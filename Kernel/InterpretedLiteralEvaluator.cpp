@@ -3,6 +3,10 @@
  * Implements class InterpretedLiteralEvaluator.
  */
 
+#include "Lib/Environment.hpp"
+
+#include "Signature.hpp"
+#include "Sorts.hpp"
 #include "TermIterators.hpp"
 #include "Term.hpp"
 #include "Theory.hpp"
@@ -11,6 +15,7 @@
 
 namespace Kernel
 {
+using namespace Lib;
 
 /**
  * We use descendants of this class to evaluate various functions.
@@ -243,6 +248,8 @@ public:
 
   TypedEvaluator() {}
 
+  virtual bool isZero(T arg) = 0;
+  virtual bool isAddition(Interpretation interp) = 0;
   virtual bool isOne(T arg) = 0;
   virtual bool isDivision(Interpretation interp) = 0;
 
@@ -290,6 +297,11 @@ public:
           res = arg1Trm;
           return true;
         }
+        if(arity==2 && theory->tryInterpretConstant(*trm->nthArgument(1),arg2)
+                    && isZero(arg2) && isAddition(itp)){
+          res = arg1Trm;
+          return true;
+        }
         return false; 
       }
       if (arity==1) {
@@ -298,7 +310,15 @@ public:
       else if (arity==2) {
 	TermList arg2Trm = *trm->nthArgument(1);
 	T arg2;
-	if (!theory->tryInterpretConstant(arg2Trm, arg2)) { return false; }
+	if (!theory->tryInterpretConstant(arg2Trm, arg2)) { 
+          T arg1;
+          if(theory->tryInterpretConstant(*trm->nthArgument(0),arg1)
+                    && isZero(arg1) && isAddition(itp)){
+            res = arg2Trm;
+            return true;
+          }
+          return false; 
+        }
 	if (!tryEvaluateBinaryFunc(itp, arg1, arg2, resNum)) { return false;}
       }
       res = TermList(theory->representConstant(resNum));
@@ -366,8 +386,14 @@ class InterpretedLiteralEvaluator::IntEvaluator : public TypedEvaluator<IntegerC
 {
 protected:
 
+  virtual bool isZero(IntegerConstantType arg){ return arg.toInner()==0;}
+  virtual bool isAddition(Interpretation interp){ return interp==Theory::INT_PLUS; }
+
   virtual bool isOne(IntegerConstantType arg){ return arg.toInner()==1;}
-  virtual bool isDivision(Interpretation interp){ return interp==Theory::INT_DIVIDE; }
+  virtual bool isDivision(Interpretation interp){ 
+    return interp==Theory::INT_QUOTIENT_E || interp==Theory::INT_QUOTIENT_T || 
+           interp==Theory::INT_QUOTIENT_F; 
+  }
 
   virtual bool tryEvaluateUnaryFunc(Interpretation op, const Value& arg, Value& res)
   {
@@ -414,14 +440,11 @@ protected:
     case Theory::INT_MULTIPLY:
       res = arg1*arg2;
       return true;
-    case Theory::INT_DIVIDE:
-      res = arg1/arg2;
-      return true;
     case Theory::INT_MODULO:
       res = arg1%arg2;
       return true;
     case Theory::INT_QUOTIENT_E:
-      res = arg1.quotientE(arg2);
+      res = arg1.quotientE(arg2); // should be equivalent to arg1/arg2
       return true;
     case Theory::INT_QUOTIENT_T:
       res = arg1.quotientT(arg2);
@@ -477,8 +500,14 @@ protected:
 class InterpretedLiteralEvaluator::RatEvaluator : public TypedEvaluator<RationalConstantType>
 {
 protected:
+  virtual bool isZero(RationalConstantType arg){ return arg.isZero();}
+  virtual bool isAddition(Interpretation interp){ return interp==Theory::RAT_PLUS; }
+
   virtual bool isOne(RationalConstantType arg) { return arg.numerator()==arg.denominator();}
-  virtual bool isDivision(Interpretation interp){ return interp==Theory::RAT_DIVIDE;}
+  virtual bool isDivision(Interpretation interp){ 
+    return interp==Theory::RAT_QUOTIENT || interp==Theory::RAT_QUOTIENT_E || 
+           interp==Theory::RAT_QUOTIENT_T || interp==Theory::RAT_QUOTIENT_F;
+  }
 
   virtual bool tryEvaluateUnaryFunc(Interpretation op, const Value& arg, Value& res)
   {
@@ -487,6 +516,15 @@ protected:
     switch(op) {
     case Theory::RAT_UNARY_MINUS:
       res = -arg;
+      return true;
+    case Theory::RAT_FLOOR:
+      res = arg.floor();
+      return true;
+    case Theory::RAT_CEILING:
+      res = arg.ceiling();
+      return true;
+    case Theory::RAT_TRUNCATE:
+      res = arg.truncate();
       return true;
     default:
       return false;
@@ -508,8 +546,27 @@ protected:
     case Theory::RAT_MULTIPLY:
       res = arg1*arg2;
       return true;
-    case Theory::RAT_DIVIDE:
+    case Theory::RAT_QUOTIENT:
       res = arg1/arg2;
+      return true;
+    case Theory::RAT_QUOTIENT_E:
+      res = arg1.quotientE(arg2);
+      return true;
+    case Theory::RAT_QUOTIENT_T:
+      res = arg1.quotientT(arg2);
+      return true;
+    case Theory::RAT_QUOTIENT_F:
+      res = arg1.quotientF(arg2);
+      return true;
+    // The remainder is left - (quotient * right)
+    case Theory::RAT_REMAINDER_E:
+      res = arg1 - (arg1.quotientE(arg2)*arg2);
+      return true;
+    case Theory::RAT_REMAINDER_T:
+      res = arg1 - (arg1.quotientT(arg2)*arg2);
+      return true;
+    case Theory::RAT_REMAINDER_F:
+      res = arg1 - (arg1.quotientF(arg2)*arg2);
       return true;
     default:
       return false;
@@ -562,8 +619,14 @@ protected:
 class InterpretedLiteralEvaluator::RealEvaluator : public TypedEvaluator<RealConstantType>
 {
 protected:
+  virtual bool isZero(RealConstantType arg){ return arg.isZero();}
+  virtual bool isAddition(Interpretation interp){ return interp==Theory::RAT_PLUS; }
+
   virtual bool isOne(RealConstantType arg) { return arg.numerator()==arg.denominator();}
-  virtual bool isDivision(Interpretation interp){ return interp==Theory::REAL_DIVIDE;}
+  virtual bool isDivision(Interpretation interp){ 
+    return interp==Theory::REAL_QUOTIENT || interp==Theory::REAL_QUOTIENT_E ||
+           interp==Theory::REAL_QUOTIENT_T || interp==Theory::REAL_QUOTIENT_F;
+  }
 
   virtual bool tryEvaluateUnaryFunc(Interpretation op, const Value& arg, Value& res)
   {
@@ -572,6 +635,15 @@ protected:
     switch(op) {
     case Theory::REAL_UNARY_MINUS:
       res = -arg;
+      return true;
+    case Theory::REAL_FLOOR:
+      res = arg.floor();
+      return true;
+    case Theory::REAL_CEILING:
+      res = arg.ceiling();
+      return true;
+    case Theory::REAL_TRUNCATE:
+      res = arg.truncate();
       return true;
     default:
       return false;
@@ -593,8 +665,27 @@ protected:
     case Theory::REAL_MULTIPLY:
       res = arg1*arg2;
       return true;
-    case Theory::REAL_DIVIDE:
+    case Theory::REAL_QUOTIENT:
       res = arg1/arg2;
+      return true;
+    case Theory::REAL_QUOTIENT_E:
+      res = arg1.quotientE(arg2);
+      return true;
+    case Theory::REAL_QUOTIENT_T:
+      res = arg1.quotientT(arg2);
+      return true;
+    case Theory::REAL_QUOTIENT_F:
+      res = arg1.quotientF(arg2);
+      return true;
+    // The remainder is left - (quotient * right)
+    case Theory::REAL_REMAINDER_E:
+      res = arg1 - (arg1.quotientE(arg2)*arg2);
+      return true;
+    case Theory::REAL_REMAINDER_T:
+      res = arg1 - (arg1.quotientT(arg2)*arg2);
+      return true;
+    case Theory::REAL_REMAINDER_F:
+      res = arg1 - (arg1.quotientF(arg2)*arg2);
       return true;
     default:
       return false;
@@ -737,12 +828,12 @@ bool InterpretedLiteralEvaluator::balance(Literal* lit,Literal*& resLit,Stack<Li
 
   ASS(theory->isInterpretedPredicate(lit->functor()));
 
-  // currently only works for equality!!
-  // because I don't deal with inverting inequalities when dividing by negatives
-  // TODO - extend this to inequalities
-  if(theory->interpretPredicate(lit->functor())!=Interpretation::EQUAL) return false;
+  Interpretation predicate = theory->interpretPredicate(lit->functor());
+  // at the end this tells us if the predicate needs to be swapped, only applies if non-equality
+  bool swap = false; 
 
-  //cout << "Attempting to balance " << lit->toString() << endl;
+  // only want lesseq and equality
+  if(lit->arity()!=2) return false;
 
   TermList t1;
   TermList t2;
@@ -751,65 +842,212 @@ bool InterpretedLiteralEvaluator::balance(Literal* lit,Literal*& resLit,Stack<Li
     t1 = *lit->nthArgument(0); t2 = *lit->nthArgument(1);
   }else{
     t1 = *lit->nthArgument(1); t2 = *lit->nthArgument(0);
+    swap=true;
+  }
+  // so we have t1 a constant and t2 something that has an interpreted function at the top
+
+  Signature::Symbol* conSym = env.signature->getFunction(t1.term()->functor());
+  unsigned srt = 0;
+  if(conSym->integerConstant()) srt = Sorts::SRT_INTEGER;
+  else if(conSym->rationalConstant()) srt = Sorts::SRT_RATIONAL;
+  else if(conSym->realConstant()) srt = Sorts::SRT_REAL;
+  else{
+     ASSERTION_VIOLATION_REP(t1);
+    return false;// can't work out the sort, that's odd!
   }
 
-  // Implied by balancable
-  //if(t2.isVar()){ return true;} //already balanced!
-  //if(!theory->isInterpretedFunction(t2)){ return false;} // cannot start
+  // unwrap t2, applying the wrappings to t1 until we get to something we can't unwrap
+  // this updates t1 and t2 as we go
 
-  // Recurse over structure of t2, applying interpreted functions to t1
-  // i.e. if we have t2=f(c,t4) and t1=d then we change pointers so that
-  //    t2=t4 and t1=f^(d,c)
   // This relies on the fact that a simplified literal with a single non-constant
   // subterm will look like f(c,f(c,f(c,t)))=c
   // If we cannot invert an interpreted function f then we fail
 
+  bool modified = false;
+
   while(theory->isInterpretedFunction(t2)){
-    //cout << "reducing " << t2.toString() << endl;
-    //find non-constant argument
     TermList* args = t2.term()->args();
     
-    TermList* non_constant=0;
+    // find which arg of t2 is the non_constant bit, this is what we are unwrapping 
+    TermList* to_unwrap=0;
     while(args->isNonEmpty()){
       if(!theory->isInterpretedConstant(*args)){
-        if(non_constant){
+        if(to_unwrap){
           return false; // If there is more than one non-constant term this will not work
-                        // TODO extend approach to this case 
         }
-        non_constant=args;
+        to_unwrap=args;
       } 
       args= args->next();
     }
     //Should not happen if balancable passed and it was simplified
-    if(!non_constant){ return false;} 
+    if(!to_unwrap){ return false;} 
     
-    //get function inverse, need information about parameter order
-    //  i.e. inverse of multiply is divide where 
-    //                multiply(x,_) and multiply(_,x) => divide(_,x) 
-    // it is of the form (orig,non-con-arg,replacement) 
-    // i.e. f(t,c1),t,c2 => f^(c1,c2) ... where f^ is f inverted and the ordering of its 
-    //      args are decided in invertInterptedFunction
-    TermList rep; 
-    if(!theory->invertInterpretedFunction(t2.term(),non_constant,t1,rep,sideConditions)){
-      // if no inverse then return false... cannot balance
-      //cout << "Fail due to lack of inverse" << endl;
-      return false;
+    // Now we do a case on the functor of t2
+    Term* t2term = t2.term();
+    Interpretation t2interp = theory->interpretFunction(t2term->functor());
+    TermList result;
+    bool okay=true;
+    switch(t2interp){
+      case Theory::INT_PLUS:
+        okay=balancePlus(Theory::INT_PLUS,Theory::INT_UNARY_MINUS,t2term,to_unwrap,t1,result);
+        break;
+      case Theory::RAT_PLUS:
+        okay=balancePlus(Theory::RAT_PLUS,Theory::RAT_UNARY_MINUS,t2term,to_unwrap,t1,result);
+        break;
+      case Theory::REAL_PLUS:
+        okay=balancePlus(Theory::REAL_PLUS,Theory::REAL_UNARY_MINUS,t2term,to_unwrap,t1,result);
+        break;
+
+/*
+      case Theory::INT_MULTIPLY: 
+      {
+        IntegerConstantType zero(0);
+        okay=balanceMultiply(Theory::INT_QUOTIENT_E,zero,t2term,to_unwrap,t1,result,predicate,swap,sideConditions);
+        break;
+      }
+*/
+      case Theory::RAT_MULTIPLY:
+      {
+        RationalConstantType zero(0,1);
+        okay=balanceMultiply(Theory::RAT_QUOTIENT,zero,t2term,to_unwrap,t1,result,predicate,swap,sideConditions);
+        break;
+      }
+      case Theory::REAL_MULTIPLY:
+      {
+        RealConstantType zero(RationalConstantType(0, 1));
+        okay=balanceMultiply(Theory::REAL_QUOTIENT,zero,t2term,to_unwrap,t1,result,predicate,swap,sideConditions);
+        break;
+       }
+
+      case Theory::RAT_QUOTIENT:
+        okay=balanceDivide(Theory::RAT_MULTIPLY,t2term,to_unwrap,t1,result,predicate,swap,sideConditions);
+        break;
+      case Theory::REAL_QUOTIENT:
+        okay=balanceDivide(Theory::REAL_MULTIPLY,t2term,to_unwrap,t1,result,predicate,swap,sideConditions);
+        break;
+
+      default:
+        okay=false;
+        break;
+    }
+    if(!okay){
+        // cannot invert this one, finish here, either by giving up or going to the end
+        if(!modified) return false;
+        goto endOfUnwrapping; 
     }
 
     // update t1
-    t1=rep;
+    t1=result;
     // set t2 to the non-constant argument
-    t2 = *non_constant;
+    t2 = *to_unwrap;
+    modified = true;
   }
+endOfUnwrapping:
 
   //Evaluate t1
   // We have rearranged things so that t2 is a non-constant term and t1 is a number
   // of interprted functions applied to some constants. By evaluating t1 we will
   //  get a constant (unless evaluation is not possible)
 
-  TermList new_args[] = {t1,t2}; 
-  resLit = TermTransformer::transform(Literal::create(lit,new_args));
+  // don't swap equality
+  if(lit->functor()==0){
+   resLit = TermTransformer::transform(Literal::createEquality(lit->polarity(),t2,t1,srt));
+  }
+  else{
+    // important, need to preserve the ordering of t1 and t2 in the original!
+    if(swap){
+      resLit = TermTransformer::transform(Literal::create2(lit->functor(),lit->polarity(),t2,t1));
+    }else{
+      resLit = TermTransformer::transform(Literal::create2(lit->functor(),lit->polarity(),t1,t2));
+    }
+  }
   return true;
+}
+
+
+bool InterpretedLiteralEvaluator::balancePlus(Interpretation plus, Interpretation unaryMinus, 
+                                              Term* AplusB, TermList* A, TermList C, TermList& result)
+{
+  CALL("InterpretedLiteralEvaluator::balancePlus");
+
+    unsigned um = env.signature->getInterpretingSymbol(unaryMinus);
+    unsigned ip = env.signature->getInterpretingSymbol(plus);
+    TermList* B = 0;
+    if(AplusB->nthArgument(0)==A){
+      B = AplusB->nthArgument(1);
+    }
+    else{
+      ASS(AplusB->nthArgument(1)==A);
+      B = AplusB->nthArgument(0);
+    }
+
+    TermList mB(Term::create1(um,*B));
+    result = TermList(Term::create2(ip,C,mB));
+    return true;
+}
+
+template<typename ConstantType>
+bool InterpretedLiteralEvaluator::balanceMultiply(Interpretation divide,ConstantType zero, 
+                                                  Term* AmultiplyB, TermList* A, TermList C, TermList& result,
+                                                  Interpretation under, bool& swap,
+                                                  Stack<Literal*>& sideConditions)
+{
+    CALL("InterpretedLiteralEvaluator::balanceMultiply");
+    unsigned srt = theory->getOperationSort(divide); 
+    ASS(srt == Sorts::SRT_REAL || srt == Sorts::SRT_RATIONAL || srt == Sorts::SRT_INTEGER);
+
+    unsigned div = env.signature->getInterpretingSymbol(divide);
+    TermList* B = 0;
+    if(AmultiplyB->nthArgument(0)==A){
+      B = AmultiplyB->nthArgument(1);
+    }
+    else{
+      ASS(AmultiplyB->nthArgument(1)==A);
+      B = AmultiplyB->nthArgument(0);
+    }
+    result = TermList(Term::create2(div,C,*B));
+
+    ConstantType bcon;
+    if(theory->tryInterpretConstant(*B,bcon)){
+      if(bcon.isZero()) return false;
+      if(bcon.isNegative()){ swap=!swap; } // switch the polarity of an inequality if we're under one
+      return true;
+    }
+    // Unsure exactly what the best thing to do here, so for now give up
+    // This means we only balance when we have a constant on the variable side
+    return false;
+
+    // if B is not a constant we need to ensure that B!=0
+    //Literal* notZero = Literal::createEquality(false,B,zero,srt);
+    //sideConditions.push(notZero);
+    //result = TermList(Term::create2(div,C,*B);
+    //return true;
+}
+
+bool InterpretedLiteralEvaluator::balanceDivide(Interpretation multiply, 
+                       Term* AoverB, TermList* A, TermList C, TermList& result,
+                       Interpretation under, bool& swap, Stack<Literal*>& sideConditions)
+{
+    CALL("InterpretedLiteralEvaluator::balanceDivide");
+    unsigned srt = theory->getOperationSort(multiply); 
+    ASS(srt == Sorts::SRT_REAL || srt == Sorts::SRT_RATIONAL);
+
+    unsigned mul = env.signature->getInterpretingSymbol(multiply);
+    if(AoverB->nthArgument(0)!=A)return false;
+
+    TermList* B = AoverB->nthArgument(1);
+
+    result = TermList(Term::create2(mul,C,*B));
+
+    RationalConstantType bcon;
+    if(theory->tryInterpretConstant(*B,bcon)){
+      ASS(!bcon.isZero());
+      if(bcon.isNegative()){ swap=!swap; } // switch the polarity of an inequality if we're under one
+      return true;
+    }
+    // Unsure exactly what the best thing to do here, so for now give up
+    // This means we only balance when we have a constant on the variable side
+    return false;    
 }
 
 /**

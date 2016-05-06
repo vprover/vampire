@@ -199,6 +199,12 @@ public:
     // update _tagNames at the end of Options constructor if you add a tag
     
 
+  enum class TheoryAxiomLevel : unsigned int {
+    ON,  // all of them
+    OFF, // none of them
+    SET_ONE
+  };
+
   enum class ProofExtra : unsigned int {
     OFF,
     FREE,
@@ -213,6 +219,26 @@ public:
     OCCURENCE,
     INPUT_USAGE,
     PREPROCESSED_USAGE
+  };
+  enum class FMBMonotonicCollapse : unsigned int {
+    OFF,
+    GROUP,
+    PREDICATE,
+    FUNCTION,
+    PREDICATE_WOM,
+    FUNCTION_WOM
+  };
+  enum class FMBSortInference : unsigned int {
+    IGNORE,
+    INFER,
+    EXPAND
+  };
+  enum class FMBEnumerationStrategy : unsigned int {
+    SBMEAM,
+#if VZ3
+    SMT,
+#endif
+    CONTOUR
   };
 
   enum class RandomStrategy : unsigned int {
@@ -1630,14 +1656,20 @@ public:
   ProofExtra proofExtra() const { return _proofExtra.actualValue; }
   bool proofChecking() const { return _proofChecking.actualValue; }
   int naming() const { return _naming.actualValue; }
-  bool fmbIncremental() const { return _fmbIncremental.actualValue; }
+
   bool fmbNonGroundDefs() const { return _fmbNonGroundDefs.actualValue; }
-  bool fmbSortInference() const { return _fmbSortInference.actualValue; }
   unsigned fmbStartSize() const { return _fmbStartSize.actualValue;}
-  bool fmbStartWithConstants() const { return _fmbStartWithConstants.actualValue; }
   float fmbSymmetryRatio() const { return _fmbSymmetryRatio.actualValue; }
   FMBWidgetOrders fmbSymmetryWidgetOrders() { return _fmbSymmetryWidgetOrders.actualValue;}
   FMBSymbolOrders fmbSymmetryOrderSymbols() const {return _fmbSymmetryOrderSymbols.actualValue; }
+  FMBMonotonicCollapse fmbCollapseMonotonicSorts() const {return _fmbCollapseMonotonicSorts.actualValue; }
+  bool fmbDetectSortBounds() const { return _fmbDetectSortBounds.actualValue; }
+  unsigned fmbDetectSortBoundsTimeLimit() const { return _fmbDetectSortBoundsTimeLimit.actualValue; }
+  unsigned fmbSizeWeightRatio() const { return _fmbSizeWeightRatio.actualValue; }
+  FMBSortInference fmbSortInference() const { return _fmbSortInference.actualValue; }
+  FMBEnumerationStrategy fmbEnumerationStrategy() const { return _fmbEnumerationStrategy.actualValue; }
+  void setFMBSortInference(FMBSortInference v){ _fmbSortInference.actualValue=v; }
+
   bool flattenTopLevelConjunctions() const { return _flattenTopLevelConjunctions.actualValue; }
   LTBLearning ltbLearning() const { return _ltbLearning.actualValue; }
   Mode mode() const { return _mode.actualValue; }
@@ -1659,6 +1691,7 @@ public:
   bool showDefinitions() const { return _showDefinitions.actualValue; }
   InterpolantMode showInterpolant() const { return _showInterpolant.actualValue; }
   bool showNew() const { return _showNew.actualValue; }
+  bool showSplitting() const { return _showSplitting.actualValue; }
   bool showNewPropositional() const { return _showNewPropositional.actualValue; }
   bool showNonconstantSkolemFunctionTrace() const { return _showNonconstantSkolemFunctionTrace.actualValue; }
   void setShowNonconstantSkolemFunctionTrace(bool newVal) { _showNonconstantSkolemFunctionTrace.actualValue = newVal; }
@@ -1673,9 +1706,11 @@ public:
   bool showSymbolElimination() const { return _showSymbolElimination.actualValue; }
   bool showTheoryAxioms() const { return _showTheoryAxioms.actualValue; }
   bool showFOOL() const { return _showFOOL.actualValue; }
+  bool showFMBsortInfo() const { return _showFMBsortInfo.actualValue; }
 #if VZ3
   bool showZ3() const { return _showZ3.actualValue; }
   bool z3UnsatCores() const { return _z3UnsatCores.actualValue;}
+  bool satFallbackForSMT() const { return _satFallbackForSMT.actualValue; }
 #endif
   bool unusedPredicateDefinitionRemoval() const { return _unusedPredicateDefinitionRemoval.actualValue; }
   void setUnusedPredicateDefinitionRemoval(bool newVal) { _unusedPredicateDefinitionRemoval.actualValue = newVal; }
@@ -1700,6 +1735,7 @@ public:
   void setBfnt(bool newVal) { _bfnt.actualValue = newVal; }
   URResolution unitResultingResolution() const { return _unitResultingResolution.actualValue; }
   bool hyperSuperposition() const { return _hyperSuperposition.actualValue; }
+  bool innerRewriting() const { return _innerRewriting.actualValue; }
   bool arityCheck() const { return _arityCheck.actualValue; }
   //void setArityCheck(bool newVal) { _arityCheck=newVal; }
   Demodulation backwardDemodulation() const { return _backwardDemodulation.actualValue; }
@@ -1730,6 +1766,7 @@ public:
   void setAgeRatio(int v){ _ageWeightRatio.actualValue = v; }
   int weightRatio() const { return _ageWeightRatio.otherValue; }
   void setWeightRatio(int v){ _ageWeightRatio.otherValue = v; }
+  bool literalMaximalityAftercheck() const { return _literalMaximalityAftercheck.actualValue; }
   bool superpositionFromVariables() const { return _superpositionFromVariables.actualValue; }
   EqualityProxy equalityProxy() const { return _equalityProxy.actualValue; }
   RuleActivity equalityResolutionWithDeletion() const { return _equalityResolutionWithDeletion.actualValue; }
@@ -1759,7 +1796,7 @@ public:
   /** set the "ignore missing options" value to true or false */
   //void setIgnoreMissing(bool newVal) { _ignoreMissing = newVal; }
   bool increasedNumeralWeight() const { return _increasedNumeralWeight.actualValue; }
-  bool theoryAxioms() const { return _theoryAxioms.actualValue; }
+  TheoryAxiomLevel theoryAxioms() const { return _theoryAxioms.actualValue; }
   //void setTheoryAxioms(bool newValue) { _theoryAxioms = newValue; }
   bool interpretedSimplification() const { return _interpretedSimplification.actualValue; }
   //void setInterpretedSimplification(bool val) { _interpretedSimplification = val; }
@@ -1768,6 +1805,7 @@ public:
   vstring namePrefix() const { return _namePrefix.actualValue; }
   bool timeStatistics() const { return _timeStatistics.actualValue; }
   bool splitting() const { return _splitting.actualValue; }
+  void setSplitting(bool value){ _splitting.actualValue=value; }
   bool nonliteralsInClauseWeight() const { return _nonliteralsInClauseWeight.actualValue; }
   unsigned sineDepth() const { return _sineDepth.actualValue; }
   unsigned sineGeneralityThreshold() const { return _sineGeneralityThreshold.actualValue; }
@@ -1823,7 +1861,6 @@ public:
   
   void setTimeLimitInSeconds(int newVal) { _timeLimitInDeciseconds.actualValue = 10*newVal; }
   void setTimeLimitInDeciseconds(int newVal) { _timeLimitInDeciseconds.actualValue = newVal; }
-  // int getTimeLimit(){return _timeLimitInDeciseconds.actualValue;} // MS: unused and the name does not stipulate the units (deciseconds)
   int getWhileNumber(){return _whileNumber.actualValue;}
   int getFunctionNumber(){return _functionNumber.actualValue;}
 
@@ -1973,6 +2010,7 @@ private:
   BoolOptionValue _encode;
 
   RatioOptionValue _ageWeightRatio;
+  BoolOptionValue _literalMaximalityAftercheck;
   BoolOptionValue _arityCheck;
   
   BoolOptionValue _backjumpTargetIsDecisionPoint;
@@ -2009,14 +2047,17 @@ private:
   BoolOptionValue _FOOLOrdering;
   BoolOptionValue _FOOLParamodulation;
 
-  BoolOptionValue _fmbIncremental;
   BoolOptionValue _fmbNonGroundDefs;
-  BoolOptionValue _fmbSortInference;
   UnsignedOptionValue _fmbStartSize;
-  BoolOptionValue _fmbStartWithConstants;
   FloatOptionValue _fmbSymmetryRatio;
   ChoiceOptionValue<FMBWidgetOrders> _fmbSymmetryWidgetOrders;
   ChoiceOptionValue<FMBSymbolOrders> _fmbSymmetryOrderSymbols;
+  ChoiceOptionValue<FMBMonotonicCollapse> _fmbCollapseMonotonicSorts;
+  BoolOptionValue _fmbDetectSortBounds;
+  UnsignedOptionValue _fmbDetectSortBoundsTimeLimit;
+  UnsignedOptionValue _fmbSizeWeightRatio;
+  ChoiceOptionValue<FMBSortInference> _fmbSortInference;
+  ChoiceOptionValue<FMBEnumerationStrategy> _fmbEnumerationStrategy;
 
   BoolOptionValue _flattenTopLevelConjunctions;
   StringOptionValue _forbiddenOptions;
@@ -2036,6 +2077,8 @@ private:
   ChoiceOptionValue<GlobalSubsumptionAvatarAssumptions> _globalSubsumptionAvatarAssumptions;
 
   BoolOptionValue _hyperSuperposition;
+
+  BoolOptionValue _innerRewriting;
 
   /** if true, then calling set() on non-existing options will not result in a user error */
   BoolOptionValue _ignoreMissing;
@@ -2122,6 +2165,7 @@ private:
   BoolOptionValue _showDefinitions;
   ChoiceOptionValue<InterpolantMode> _showInterpolant;
   BoolOptionValue _showNew;
+  BoolOptionValue _showSplitting;
   BoolOptionValue _showNewPropositional;
   BoolOptionValue _showNonconstantSkolemFunctionTrace;
   BoolOptionValue _showOptions;
@@ -2135,9 +2179,11 @@ private:
   BoolOptionValue _showSymbolElimination;
   BoolOptionValue _showTheoryAxioms;
   BoolOptionValue _showFOOL;
+  BoolOptionValue _showFMBsortInfo;
 #if VZ3
   BoolOptionValue _showZ3;
   BoolOptionValue _z3UnsatCores;
+  BoolOptionValue _satFallbackForSMT;
 #endif
   TimeLimitOptionValue _simulatedTimeLimit;
   UnsignedOptionValue _sineDepth;
@@ -2175,7 +2221,7 @@ private:
   StringOptionValue _testId;
   BoolOptionValue _szsOutput;
   StringOptionValue _thanks;
-  BoolOptionValue _theoryAxioms;
+  ChoiceOptionValue<TheoryAxiomLevel> _theoryAxioms;
   BoolOptionValue _theoryFlattening;
 
   /** Time limit in deciseconds */

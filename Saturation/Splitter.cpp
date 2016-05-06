@@ -21,6 +21,7 @@
 #include "Kernel/TermIterators.hpp"
 #include "Kernel/Formula.hpp"
 #include "Kernel/FormulaUnit.hpp"
+#include "Kernel/MainLoop.hpp"
 
 #include "Shell/Options.hpp"
 #include "Shell/Refutation.hpp"
@@ -32,6 +33,7 @@
 #include "SAT/LingelingInterfacing.hpp"
 #include "SAT/MinimizingSolver.hpp"
 #include "SAT/BufferedSolver.hpp"
+#include "SAT/FallbackSolverWrapper.hpp"
 #include "SAT/MinisatInterfacing.hpp"
 #include "SAT/Z3Interfacing.hpp"
 
@@ -77,7 +79,12 @@ void SplittingBranchSelector::init()
 #if VZ3
     case Options::SatSolver::Z3:
       { BYPASSING_ALLOCATOR
-      _solver = new Z3Interfacing(_parent.getOptions(),_parent.satNaming());
+        _solver = new Z3Interfacing(_parent.getOptions(),_parent.satNaming());
+        if(_parent.getOptions().satFallbackForSMT()){
+          // TODO make fallback minimizing?
+          SATSolver* fallback = new MinisatInterfacing(_parent.getOptions(),true);
+          _solver = new FallbackSolverWrapper(_solver.release(),fallback);
+        } 
       }
       break;
 #endif
@@ -157,6 +164,19 @@ void SplittingBranchSelector::considerPolarityAdvice(SATLiteral lit)
   }
 }
 
+static Color colorFromAssumedFOConversion(SATInference* inf,Unit*& u)
+{
+  ASS_EQ(inf->getType(),SATInference::FO_CONVERSION);
+  u = static_cast<FOConversionInference*>(inf)->getOrigin();
+  Inference* i = u->inference();
+  Inference::Iterator it = i->iterator();
+  ASS(i->hasNext(it));
+  Unit* u1 = i->next(it);
+  ASS(u1->isClause());
+  Clause* cl = u1->asClause();
+  return cl->color();
+}
+
 void SplittingBranchSelector::handleSatRefutation()
 {
   CALL("SplittingBranchSelector::handleSatRefutation");
@@ -167,8 +187,8 @@ void SplittingBranchSelector::handleSatRefutation()
   if (!env.colorUsed) { // color oblivious, simple approach
     UnitList* prems = SATInference::getFOPremises(satRefutation);
     Inference* foInf = satPremises ? // does our SAT solver support postponed minimization?
-        new InferenceFromSatRefutation(Inference::SAT_SPLITTING_REFUTATION, prems, satPremises) :
-        new InferenceMany(Inference::SAT_SPLITTING_REFUTATION, prems);
+        new InferenceFromSatRefutation(Inference::AVATAR_REFUTATION, prems, satPremises) :
+        new InferenceMany(Inference::AVATAR_REFUTATION, prems);
 
     Clause* foRef = Clause::fromIterator(LiteralIterator::getEmpty(), Unit::CONJECTURE, foInf);
     throw MainLoop::RefutationFoundException(foRef);
@@ -193,17 +213,11 @@ void SplittingBranchSelector::handleSatRefutation()
       SATClause* scl = it1.next();
       // cout << "SAT: " << scl->toString() << endl;
 
-      SATInference* inf = scl->inference();
+      Unit* dummy;
+      Color c = colorFromAssumedFOConversion(scl->inference(),dummy);
 
-      ASS_EQ(inf->getType(),SATInference::FO_CONVERSION);
-      Unit* u =  static_cast<FOConversionInference*>(inf)->getOrigin();
-
-      ASS(u->isClause());
-      Clause* cl = u->asClause();
-      // cout << "FOF: " << cl->toString() << endl;
-
-      ASS_L(cl->color(),COLOR_INVALID);
-      colorCnts[cl->color()]++;
+      ASS_L(c,COLOR_INVALID);
+      colorCnts[c]++;
     }
 
     //cout << colorCnts[0] << " " << colorCnts[1] <<  " " << colorCnts[2] << endl;
@@ -221,22 +235,20 @@ void SplittingBranchSelector::handleSatRefutation()
     SATClauseStack::Iterator it2(actualSatPremises);
     while (it2.hasNext()) {
       SATClause* scl = it2.next();
-      SATInference* inf = scl->inference();
-      ASS_EQ(inf->getType(),SATInference::FO_CONVERSION);
-      Unit* u =  static_cast<FOConversionInference*>(inf)->getOrigin();
-      ASS(u->isClause());
-      Clause* cl = u->asClause();
-      if (cl->color() == sndCol) {
+      Unit* u;
+      Color c = colorFromAssumedFOConversion(scl->inference(),u);
+
+      if (c == sndCol) {
         second.push(scl);
-        UnitList::push(cl,second_prems);
+        UnitList::push(u,second_prems);
       } else {
         first.push(scl); // contains first col ones and transparent ones together
-        UnitList::push(cl,first_prems);
+        UnitList::push(u,first_prems);
       }
     }
 
     if (colorCnts[sndCol] == 0) { // this is a degenerate case, in which we don't need to interpolate at all
-      Inference* foInf = new InferenceMany(Inference::SAT_SPLITTING_REFUTATION, first_prems);
+      Inference* foInf = new InferenceMany(Inference::AVATAR_REFUTATION, first_prems);
       Clause* foRef = Clause::fromIterator(LiteralIterator::getEmpty(), Unit::CONJECTURE, foInf);
       throw MainLoop::RefutationFoundException(foRef);
     }
@@ -585,6 +597,10 @@ void SplittingBranchSelector::recomputeModel(SplitLevelStack& addedComps, SplitL
   if(stat == SATSolver::UNSATISFIABLE) {
     handleSatRefutation(); // noreturn!
   }
+  if(stat == SATSolver::UNKNOWN){
+    env.statistics->smtReturnedUnknown=true;
+    throw MainLoop::MainLoopFinishedException(Statistics::REFUTATION_NOT_FOUND);
+  }
   ASS_EQ(stat,SATSolver::SATISFIABLE);
 
   unsigned _usedcnt=0; // for the statistics below
@@ -611,11 +627,17 @@ void SplittingBranchSelector::recomputeModel(SplitLevelStack& addedComps, SplitL
 // Splitter
 //////////////
 
+vstring Splitter::splPrefix = "";
+
 Splitter::Splitter()
 : _deleteDeactivated(Options::SplittingDeleteDeactivated::ON), _branchSelector(*this),
   _clausesAdded(false), _haveBranchRefutation(false)
 {
   CALL("Splitter::Splitter");
+  if(env.options->proof()==Options::Proof::TPTP){
+    unsigned spl = env.signature->addFreshFunction(0,"spl");
+    splPrefix = env.signature->functionName(spl)+"_";
+  }
 }
 
 Splitter::~Splitter()
@@ -655,6 +677,9 @@ void Splitter::init(SaturationAlgorithm* sa)
 
   const Options& opts = getOptions();
   _branchSelector.init();
+
+  _showSplitting = opts.showSplitting();
+
   _complBehavior = opts.splittingAddComplementary();
   _nonsplComps = opts.splittingNonsplittableComponents();
 
@@ -705,6 +730,15 @@ SATLiteral Splitter::getLiteralFromName(SplitLevel compName) const
   bool polarity = (compName&1)==0;
   return SATLiteral(var, polarity);
 }
+Unit* Splitter::getDefinitionFromName(SplitLevel compName) const
+{
+  CALL("Splitter::getDefinitionFromName");
+
+  Unit* def;
+  ALWAYS(_defs.find(compName,def));
+  return def;
+}
+
 void Splitter::collectDependenceLits(SplitSet* splits, SATLiteralStack& acc) const
 {
   SplitSet::Iterator sit(*splits);
@@ -753,6 +787,20 @@ void Splitter::onAllProcessed()
 
   _branchSelector.recomputeModel(toAdd, toRemove, flushing);
   
+  if (_showSplitting) { // TODO: this is just one of many ways Splitter could report about changes
+    env.beginOutput();
+    env.out() << "[AVATAR] recomputeModel: +";
+    for (unsigned i = 0; i < toAdd.size(); i++) {
+      env.out() << toAdd[i] << ",";
+    }
+    env.out() << " -";
+    for (unsigned i = 0; i < toRemove.size(); i++) {
+      env.out() << toRemove[i] << ",";
+    }
+    env.out() << std::endl;
+    env.endOutput();
+  }
+
   {
     TimeCounter tc(TC_SPLITTING_MODEL_UPDATE); // includes component removals and additions, also processing fast clauses and zero implied splits
 
@@ -890,9 +938,41 @@ bool Splitter::handleNonSplittable(Clause* cl)
     satLits.push(getLiteralFromName(compName));
 
     SATClause* nsClause = SATClause::fromStack(satLits);
-    nsClause->setInference(new FOConversionInference(cl));
+
+    UnitList* ps = 0;
+
+    FormulaList* resLst=0;
+    // do compName first
+    UnitList::push(getDefinitionFromName(compName),ps);
+    vstring compNameNm = splPrefix+Lib::Int::toString(compName);
+    if((compName&1)!=0){ compNameNm="~"+compNameNm; }
+    FormulaList::push(new NamedFormula(compNameNm),resLst);
+ 
+    // now do splits
+    SplitSet::Iterator sit(*cl->splits());
+    while(sit.hasNext()) {
+      SplitLevel nm = sit.next();
+      UnitList::push(getDefinitionFromName(nm),ps);
+      vstring lnm = splPrefix+Lib::Int::toString(nm);
+      // In the splits we reverse polarity
+      if((nm&1)==0){ lnm="~"+lnm; }
+      FormulaList::push(new NamedFormula(lnm),resLst);
+    }
+
+    UnitList::push(cl,ps); // making sure this clause is the last one pushed (for the sake of colorFromAssumedFOConversion)
+
+    Formula* f = JunctionFormula::generalJunction(OR,resLst);
+    FormulaUnit* scl = new FormulaUnit(f,new InferenceMany(Inference::AVATAR_SPLIT_CLAUSE,ps),cl->inputType());
+
+    nsClause->setInference(new FOConversionInference(scl));
 
     addSatClauseToSolver(nsClause, false);
+
+    if (_showSplitting) {
+      env.beginOutput();
+      env.out() << "[AVATAR] registering a non-splittable: "<< cl->toString() << std::endl;
+      env.endOutput();
+    }
 
     RSTAT_CTR_INC("ssat_non_splittable_sat_clauses");
   }
@@ -994,6 +1074,9 @@ bool Splitter::doSplitting(Clause* cl)
   // Add literals for existing constraints 
   collectDependenceLits(cl->splits(), satClauseLits);
 
+  UnitList* ps = 0;
+  FormulaList* resLst=0;
+
   unsigned compCnt = comps.size();
   for(unsigned i=0; i<compCnt; ++i) {
     const LiteralStack& comp = comps[i];
@@ -1001,10 +1084,38 @@ bool Splitter::doSplitting(Clause* cl)
     SplitLevel compName = tryGetComponentNameOrAddNew(comp, cl, compCl);
     SATLiteral nameLit = getLiteralFromName(compName);
     satClauseLits.push(nameLit);
+
+    UnitList::push(getDefinitionFromName(compName),ps);
+    vstring compNameNm = splPrefix+Lib::Int::toString(compName);
+    if((compName&1)!=0){ compNameNm="~"+compNameNm; }
+    FormulaList::push(new NamedFormula(compNameNm),resLst);
   }
 
   SATClause* splitClause = SATClause::fromStack(satClauseLits);
-  splitClause->setInference(new FOConversionInference(cl));
+
+  if (_showSplitting) {
+    env.beginOutput();
+    env.out() << "[AVATAR] split a clause: "<< cl->toString() << std::endl;
+    env.endOutput();
+  }
+
+  // now do splits
+  SplitSet::Iterator sit(*cl->splits());
+  while(sit.hasNext()) {
+    SplitLevel nm = sit.next();
+    UnitList::push(getDefinitionFromName(nm),ps);
+    vstring lnm = splPrefix+Lib::Int::toString(nm);
+    // in the splits we reverse polarity
+    if((nm&1)==0){ lnm="~"+lnm; }
+    FormulaList::push(new NamedFormula(lnm),resLst);
+  }
+
+  UnitList::push(cl,ps); // making sure this clause is the last one pushed (for the sake of colorFromAssumedFOConversion)
+
+  Formula* f = JunctionFormula::generalJunction(OR,resLst);
+  FormulaUnit* scl = new FormulaUnit(f,new InferenceMany(Inference::AVATAR_SPLIT_CLAUSE,ps),cl->inputType());
+
+  splitClause->setInference(new FOConversionInference(scl));
 
   addSatClauseToSolver(splitClause, false);
 
@@ -1044,7 +1155,7 @@ bool Splitter::tryGetExistingComponentName(unsigned size, Literal* const * lits,
 
 /**
  * Records a new component. This involves
- * - Building a new Clause for the component as a SAT_SPLITTING_COMPONENT
+ * - Building a new Clause for the component as a AVATAR_COMPONENT
  * - Create a SplitRecord for the component
  * - Record the name in the splits of the clause
  * - Insert the clause into _componentIdx for variant checking later
@@ -1063,8 +1174,19 @@ Clause* Splitter::buildAndInsertComponentClause(SplitLevel name, unsigned size, 
   ASS_EQ(_db[name],0);
 
   Unit::InputType inpType = orig ? orig->inputType() : Unit::AXIOM;
+
+  Clause* temp = Clause::fromIterator(getArrayishObjectIterator(lits, size), inpType,new Inference(Inference::AVATAR_DEFINITION));
+  Formula* def_f = new BinaryFormula(IFF,
+               new NamedFormula(splPrefix+Lib::Int::toString(name)),
+               Formula::fromClause(temp));
+
+  FormulaUnit* def_u = new FormulaUnit(def_f,new Inference(Inference::AVATAR_DEFINITION),inpType);
+  InferenceStore::instance()->recordIntroducedSplitName(def_u,splPrefix+Lib::Int::toString(name));
+  //cout << "Add def for " << def_u->toString() << endl;
+  ALWAYS(_defs.insert(name,def_u));
+
   Clause* compCl = Clause::fromIterator(getArrayishObjectIterator(lits, size), inpType, 
-          new Inference(Inference::SAT_SPLITTING_COMPONENT));
+          new Inference1(Inference::AVATAR_COMPONENT,def_u));
 
   //cout << "Name " << getLiteralFromName(name).toString() << " for " << compCl->toString() << endl; 
 
@@ -1445,7 +1567,26 @@ bool Splitter::handleEmptyClause(Clause* cl)
 
   collectDependenceLits(cl->splits(), conflictLits);
   SATClause* confl = SATClause::fromStack(conflictLits);
-  confl->setInference(new FOConversionInference(cl));
+
+  UnitList* ps = 0;
+  FormulaList* resLst=0;
+
+  SplitSet::Iterator sit(*cl->splits());
+  while(sit.hasNext()) {
+    SplitLevel nm = sit.next();
+    UnitList::push(getDefinitionFromName(nm),ps);
+    vstring lnm = splPrefix+Lib::Int::toString(nm);
+    // in the splits we reverse polarity
+    if((nm&1)==0){ lnm="~"+lnm; }
+    FormulaList::push(new NamedFormula(lnm),resLst);
+  }
+
+  UnitList::push(cl,ps); // making sure this clause is the last one pushed (for the sake of colorFromAssumedFOConversion)
+
+  Formula* f = JunctionFormula::generalJunction(OR,resLst);
+  FormulaUnit* scl = new FormulaUnit(f,new InferenceMany(Inference::AVATAR_CONTRADICTION_CLAUSE,ps),cl->inputType());
+
+  confl->setInference(new FOConversionInference(scl));
   
   // RSTAT_MCTR_INC("sspl_confl_len", confl->length());
 

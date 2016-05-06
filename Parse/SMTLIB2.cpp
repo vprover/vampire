@@ -18,6 +18,7 @@
 
 #include "Shell/LispLexer.hpp"
 #include "Shell/Options.hpp"
+#include "Shell/SMTLIBLogic.hpp"
 
 #include "SMTLIB2.hpp"
 
@@ -30,17 +31,19 @@
 #define LOG1(arg) cout << arg << endl;
 #define LOG2(a1,a2) cout << a1 << a2 << endl;
 #define LOG3(a1,a2,a3) cout << a1 << a2 << a3 << endl;
+#define LOG4(a1,a2,a3,a4) cout << a1 << a2 << a3 << a4 << endl;
 #else
 #define LOG1(arg)
 #define LOG2(a1,a2)
 #define LOG3(a1,a2,a3)
+#define LOG4(a1,a2,a3,a4)
 #endif
 
 namespace Parse {
 
 SMTLIB2::SMTLIB2(const Options& opts)
 : _logicSet(false),
-  _logic(LO_INVALID),
+  _logic(SMT_UNDEFINED),
   _numeralsAreReal(false),
   _formulas(nullptr)
 {
@@ -181,7 +184,7 @@ void SMTLIB2::readBenchmark(LExprList* bench)
         if (!exitRdr.tryAcceptAtom("exit")) {
           if(env.options->mode()!=Options::Mode::SPIDER) {
             env.beginOutput();
-            env.out() << "Warning: check-sat is not the last entry. Skipping the rest!" << endl;
+            env.out() << "% Warning: check-sat is not the last entry. Skipping the rest!" << endl;
             env.endOutput();
           }
         }
@@ -241,18 +244,18 @@ const char * SMTLIB2::s_smtlibLogicNameStrings[] = {
     "UFNIA"
 };
 
-SMTLIB2::SmtlibLogic SMTLIB2::getLogicFromString(const vstring& str)
+SMTLIBLogic SMTLIB2::getLogicFromString(const vstring& str)
 {
   CALL("SMTLIB2::getLogicFromString");
 
   static NameArray smtlibLogicNames(s_smtlibLogicNameStrings, sizeof(s_smtlibLogicNameStrings)/sizeof(char*));
-  ASS_EQ(smtlibLogicNames.length, LO_INVALID);
+  ASS_EQ(smtlibLogicNames.length, SMT_UNDEFINED);
 
   int res = smtlibLogicNames.tryToFind(str.c_str());
   if(res==-1) {
-    return LO_INVALID;
+    return SMT_UNDEFINED;
   }
-  return static_cast<SmtlibLogic>(res);
+  return static_cast<SMTLIBLogic>(res);
 }
 
 void SMTLIB2::readLogic(const vstring& logicStr)
@@ -263,51 +266,51 @@ void SMTLIB2::readLogic(const vstring& logicStr)
   _logicSet = true;
 
   switch (_logic) {
-  case LO_ALIA:
-  case LO_AUFLIA:
-  case LO_AUFLIRA:
-  case LO_AUFNIRA:
-  case LO_LIA:
-  case LO_NIA:
-  case LO_QF_ALIA:
-  case LO_QF_ANIA:
-  case LO_QF_AUFLIA:
-  case LO_QF_AUFNIA:
-  case LO_QF_AX:
-  case LO_QF_IDL:
-  case LO_QF_LIA:
-  case LO_QF_LIRA:
-  case LO_QF_NIA:
-  case LO_QF_NIRA:
-  case LO_QF_UF:
-  case LO_QF_UFIDL:
-  case LO_QF_UFLIA:
-  case LO_QF_UFNIA:
-  case LO_UF:
-  case LO_UFIDL:
-  case LO_UFLIA:
-  case LO_UFNIA:
+  case SMT_ALIA:
+  case SMT_AUFLIA:
+  case SMT_AUFLIRA:
+  case SMT_AUFNIRA:
+  case SMT_LIA:
+  case SMT_NIA:
+  case SMT_QF_ALIA:
+  case SMT_QF_ANIA:
+  case SMT_QF_AUFLIA:
+  case SMT_QF_AUFNIA:
+  case SMT_QF_AX:
+  case SMT_QF_IDL:
+  case SMT_QF_LIA:
+  case SMT_QF_LIRA:
+  case SMT_QF_NIA:
+  case SMT_QF_NIRA:
+  case SMT_QF_UF:
+  case SMT_QF_UFIDL:
+  case SMT_QF_UFLIA:
+  case SMT_QF_UFNIA:
+  case SMT_UF:
+  case SMT_UFIDL:
+  case SMT_UFLIA:
+  case SMT_UFNIA:
     break;
 
   // pure real arithmetic theories treat decimals as Real constants
-  case LO_LRA:
-  case LO_NRA:
-  case LO_QF_LRA:
-  case LO_QF_NRA:
-  case LO_QF_RDL:
-  case LO_QF_UFLRA:
-  case LO_QF_UFNRA:
-  case LO_UFLRA:
+  case SMT_LRA:
+  case SMT_NRA:
+  case SMT_QF_LRA:
+  case SMT_QF_NRA:
+  case SMT_QF_RDL:
+  case SMT_QF_UFLRA:
+  case SMT_QF_UFNRA:
+  case SMT_UFLRA:
     _numeralsAreReal = true;
     break;
 
   // we don't support bit vectors
-  case LO_BV:
-  case LO_QF_ABV:
-  case LO_QF_AUFBV:
-  case LO_QF_BV:
-  case LO_QF_UFBV:
-  case LO_UFBV:
+  case SMT_BV:
+  case SMT_QF_ABV:
+  case SMT_QF_AUFBV:
+  case SMT_QF_BV:
+  case SMT_QF_UFBV:
+  case SMT_UFBV:
     USER_ERROR("unsupported logic "+logicStr);
   default:
     USER_ERROR("unrecognized logic "+logicStr);
@@ -809,14 +812,14 @@ bool SMTLIB2::ParseResult::asFormula(Formula*& resFrm)
   CALL("SMTLIB2::ParseResult::asFormula");
 
   if (formula) {
-    ASS_EQ(sort, BS_BOOL);
+    ASS_EQ(sort, Sorts::SRT_BOOL);
     resFrm = frm;
 
     LOG2("asFormula formula ",resFrm->toString());
     return true;
   }
 
-  if (sort == BS_BOOL) {
+  if (sort == Sorts::SRT_BOOL) {
     // can we unwrap instead of wrapping back and forth?
     if (trm.isTerm()) {
       Term* t = trm.term();
@@ -845,12 +848,14 @@ unsigned SMTLIB2::ParseResult::asTerm(TermList& resTrm)
   CALL("SMTLIB2::ParseResult::asTerm");
 
   if (formula) {
-    ASS_EQ(sort, BS_BOOL);
+    ASS_EQ(sort, Sorts::SRT_BOOL);
 
     LOG2("asTerm wrap ",frm->toString());
 
     resTrm = TermList(Term::createFormula(frm));
-    return BS_BOOL;
+
+    LOG2("asTerm sort ",sort);
+    return Sorts::SRT_BOOL;
   } else {
     resTrm = trm;
 
@@ -978,12 +983,12 @@ Interpretation SMTLIB2::getTermSymbolInterpretation(TermSymbol ts, unsigned firs
 
   case TS_DIVIDE:
     if (firstArgSort == Sorts::SRT_REAL)
-      return Theory::REAL_DIVIDE;
+      return Theory::REAL_QUOTIENT;
     break;
 
   case TS_DIV:
     if (firstArgSort == Sorts::SRT_INTEGER)
-      return Theory::INT_DIVIDE;
+      return Theory::INT_QUOTIENT_E;
     break;
 
   default:
@@ -1002,6 +1007,8 @@ void SMTLIB2::complainAboutArgShortageOrWrongSorts(const vstring& symbolClass, L
 void SMTLIB2::parseLetBegin(LExpr* exp)
 {
   CALL("SMTLIB2::parseLetBegin");
+
+  LOG2("parseLetBegin  ",exp->toString());
 
   ASS(exp->isList());
   LispListReader lRdr(exp->list);
@@ -1414,6 +1421,7 @@ bool SMTLIB2::parseAsBuiltinFormulaSymbol(const vstring& id, LExpr* exp)
       TermList second;
       if (_results.isEmpty() || _results.top().isSeparator() ||
           _results.pop().asTerm(second) != sort) { // has the same sort as first
+
         complainAboutArgShortageOrWrongSorts(BUILT_IN_SYMBOL,exp);
       }
 

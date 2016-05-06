@@ -130,16 +130,36 @@ IntegerConstantType IntegerConstantType::floor(RationalConstantType rat)
   IntegerConstantType denom = rat.denominator();
   ASS_REP(denom>0, denom.toString());
 
+  // euclidiean for positive
   if (numer>0) {
     return numer/denom;
   }
-
-  IntegerConstantType numerAbs = (numer>=0) ? numer : -numer;
-  IntegerConstantType absRes = numerAbs/denom;
+  ASS(numer<=0);
+  IntegerConstantType res = numer/denom;
   if (numer%denom!=0) {
-    absRes = absRes+1;
+    res = res+1;
   }
-  return -absRes;
+  return -res;
+}
+IntegerConstantType IntegerConstantType::ceiling(RationalConstantType rat)
+{
+  CALL("IntegerConstantType::ceiling");
+
+  IntegerConstantType numer = rat.numerator();
+  IntegerConstantType denom = rat.denominator();
+  ASS_REP(denom>0, denom.toString());
+
+  // euclidian for negative
+  if (numer<0) {
+    return numer/denom;
+  }
+  ASS(numer>=0)
+
+  IntegerConstantType res = numer/denom;
+  if (numer%denom!=0) {
+    res = res+1;
+  }
+  return res;
 }
 
 Comparison IntegerConstantType::comparePrecedence(IntegerConstantType n1, IntegerConstantType n2)
@@ -197,6 +217,13 @@ RationalConstantType::RationalConstantType(const vstring& num, const vstring& de
   CALL("RationalConstantType::RationalConstantType");
 
   init(InnerType(num), InnerType(den));
+}
+
+RationalConstantType::RationalConstantType(InnerType num)
+{
+  CALL("RationalConstantType::RationalConstantType");
+
+  init(num, IntegerConstantType(1));
 }
 
 void RationalConstantType::init(InnerType num, InnerType den)
@@ -434,7 +461,7 @@ RealConstantType::RealConstantType(const vstring& number)
     throw ArithmeticException();
   }
   InnerType denominator = 1;
-  while(floor(numDbl)!=numDbl) {
+  while(::floor(numDbl)!=numDbl) {
     denominator = denominator*10;
     numDbl *= 10;
   }
@@ -571,7 +598,6 @@ unsigned Theory::getArity(Interpretation i)
   case INT_PLUS:
   case INT_MINUS:
   case INT_MULTIPLY:
-  case INT_DIVIDE:
   case INT_MODULO:
   case INT_QUOTIENT_E:
   case INT_QUOTIENT_T:
@@ -583,7 +609,6 @@ unsigned Theory::getArity(Interpretation i)
   case RAT_PLUS:
   case RAT_MINUS:
   case RAT_MULTIPLY:
-  case RAT_DIVIDE:
   case RAT_QUOTIENT:
   case RAT_QUOTIENT_E:
   case RAT_QUOTIENT_T:
@@ -595,7 +620,6 @@ unsigned Theory::getArity(Interpretation i)
   case REAL_PLUS:
   case REAL_MINUS:
   case REAL_MULTIPLY:
-  case REAL_DIVIDE:
   case REAL_QUOTIENT:
   case REAL_QUOTIENT_E:
   case REAL_QUOTIENT_T:
@@ -649,7 +673,6 @@ bool Theory::isFunction(Interpretation i)
   case INT_PLUS:
   case INT_MINUS:
   case INT_MULTIPLY:
-  case INT_DIVIDE:
   case INT_MODULO:
   case INT_QUOTIENT_E:
   case INT_QUOTIENT_T:
@@ -666,7 +689,6 @@ bool Theory::isFunction(Interpretation i)
   case RAT_PLUS:
   case RAT_MINUS:
   case RAT_MULTIPLY:
-  case RAT_DIVIDE:
   case RAT_QUOTIENT:
   case RAT_QUOTIENT_E:
   case RAT_QUOTIENT_T:
@@ -682,7 +704,6 @@ bool Theory::isFunction(Interpretation i)
   case REAL_PLUS:
   case REAL_MINUS:
   case REAL_MULTIPLY:
-  case REAL_DIVIDE:
   case REAL_QUOTIENT:
   case REAL_QUOTIENT_E:
   case REAL_QUOTIENT_T:
@@ -807,7 +828,6 @@ unsigned Theory::getOperationSort(Interpretation i)
   case INT_PLUS:
   case INT_MINUS:
   case INT_MULTIPLY:
-  case INT_DIVIDE:
   case INT_MODULO:
   case INT_QUOTIENT_E:
   case INT_QUOTIENT_T:
@@ -831,7 +851,6 @@ unsigned Theory::getOperationSort(Interpretation i)
   case RAT_PLUS:
   case RAT_MINUS:
   case RAT_MULTIPLY:
-  case RAT_DIVIDE:
   case RAT_QUOTIENT:
   case RAT_QUOTIENT_E:
   case RAT_QUOTIENT_T:
@@ -858,7 +877,6 @@ unsigned Theory::getOperationSort(Interpretation i)
   case REAL_PLUS:
   case REAL_MINUS:
   case REAL_MULTIPLY:
-  case REAL_DIVIDE:
   case REAL_QUOTIENT:
   case REAL_QUOTIENT_E:
   case REAL_QUOTIENT_T:
@@ -931,7 +949,6 @@ bool Theory::isNonLinearOperation(Interpretation i)
 
   switch(i) {
   case INT_MULTIPLY:
-  case INT_DIVIDE:
   case INT_MODULO:
   case INT_QUOTIENT_E:
   case INT_QUOTIENT_T:
@@ -940,7 +957,6 @@ bool Theory::isNonLinearOperation(Interpretation i)
   case INT_REMAINDER_T:
   case INT_REMAINDER_F:
   case RAT_MULTIPLY:
-  case RAT_DIVIDE:
   case RAT_QUOTIENT:
   case RAT_QUOTIENT_E:
   case RAT_QUOTIENT_T:
@@ -949,7 +965,6 @@ bool Theory::isNonLinearOperation(Interpretation i)
   case RAT_REMAINDER_T:
   case RAT_REMAINDER_F:
   case REAL_MULTIPLY:
-  case REAL_DIVIDE:
   case REAL_QUOTIENT:
   case REAL_QUOTIENT_E:
   case REAL_QUOTIENT_T:
@@ -1169,7 +1184,7 @@ FunctionType* Theory::getConversionOperationType(Interpretation i)
   default:
     ASSERTION_VIOLATION;
   }
-  return new FunctionType(from, to);
+  return new FunctionType({from}, to);
 }
     
     
@@ -1198,15 +1213,15 @@ BaseType* Theory::getArrayOperationType(Interpretation i)
     switch(theory->convertToStructured(i)) {
 
         case StructuredSortInterpretation::ARRAY_SELECT:
-          res = new FunctionType(arrSort, indexSort, valueSort);
+          res = new FunctionType({arrSort, indexSort}, valueSort);
           break;
 
         case StructuredSortInterpretation::ARRAY_BOOL_SELECT:
-          res = new PredicateType(arrSort, indexSort);
+          res = new PredicateType({arrSort, indexSort});
           break;
 
         case StructuredSortInterpretation::ARRAY_STORE:
-          res = new FunctionType(arrSort, indexSort, innerSort, valueSort);
+          res = new FunctionType({arrSort, indexSort, innerSort}, valueSort);
           break;
 
         default:
@@ -1754,18 +1769,17 @@ vstring Theory::tryGetInterpretedLaTeXName(unsigned func, bool pred,bool polarit
   case INT_PLUS: return "a0 + a1";
   case INT_MINUS: return "a0 - a1";
   case INT_MULTIPLY: return "a0 \\cdot a1";
-  case INT_DIVIDE: return "a0 / a1";
   //case INT_MODULO: return "a0 \\% a1";
 
   case RAT_PLUS: return "a0 + a1";
   case RAT_MINUS: return "a0 - a1";
   case RAT_MULTIPLY: return "a0 \\cdot a1";
-  case RAT_DIVIDE: return "a0 / a1";
+  case RAT_QUOTIENT: return "a0 / a1";
 
   case REAL_PLUS: return "a0 + a1";
   case REAL_MINUS: return "a0 - a1";
   case REAL_MULTIPLY: return "a0 \\cdot a1";
-  case REAL_DIVIDE: return "a0 / a1";
+  case REAL_QUOTIENT: return "a0 / a1";
 
   default: return "";
   } 
@@ -1774,138 +1788,10 @@ vstring Theory::tryGetInterpretedLaTeXName(unsigned func, bool pred,bool polarit
 
 }
 
-/**
- * This attempts to invert an interpreted function and returns false if the function
- * does not have an inverse. In some cases functions have an inverse in special cases,
- * i.e. integer division, here we attempt to check these cases.
- *
- * term is the term whose function we wish to invert 
- * arg is the argument of that term that should be moved
- * rep is the other term the funcion should be applied to
- * result is where the resultant term should be placed
- *
- * So at the end we should have result = f^(arg,rep)
- * If term=f(arg,t) and f^ is the inverse of f
- * This is modulo the ordering of arguments in f, which this function should work out
- *
- * See Kernel/InterpretedLiteralEvaluator.cpp for usage
- *
- * @author Giles
- * @since 12/11/14
- */
- bool Theory::invertInterpretedFunction(Term* term, TermList* arg, TermList rep, TermList& result,Stack<Literal*>& sideConditions)
- {
-   CALL("Theory::invertInterpetedFunction");
-
-   ASS(isInterpretedFunction(term->functor()));
-   Interpretation f = interpretFunction(term->functor());
-   Interpretation inverted_f;
-
-// Commented functions are those without an inverse
-// Currently all invertable functions are of the same form so we record their inverse
-// and perform the inversion at the end. If this changes we will need to organise this
-// differently.
-switch(f){
-  //case INT_SUCCESSOR: 
-  //case INT_UNARY_MINUS:
-  //case RAT_UNARY_MINUS:
-  //case REAL_UNARY_MINUS: 
-
-  case INT_PLUS: inverted_f = INT_MINUS; break; 
-  case INT_MINUS: inverted_f = INT_PLUS; break;
-  // This has no universal inverse but we are conservative
-  case INT_MULTIPLY: 
-    // conservative checks that this is safe
-    // TODO extend
-    if(isInterpretedConstant(rep)){
-      // otherside is constant
-      IntegerConstantType a;
-      if(!tryInterpretConstant(rep,a)) return false;
-      IntegerConstantType b;
-      if((term->nthArgument(0)==arg && tryInterpretConstant(*term->nthArgument(1),b)) ||
-         (term->nthArgument(1)==arg && tryInterpretConstant(*term->nthArgument(0),b)) )
-      {
-        // we have a problem of the form b.c=a
-        // to invert it to c = a/b we need to check that a/b is safe
-        if(b.toInner()==0) return false;
-        IntegerConstantType::InnerType apos = a.toInner() < 0 ? -a.toInner() : a.toInner();
-        IntegerConstantType::InnerType bpos = b.toInner() < 0 ? -b.toInner() : b.toInner();
-	//cout << "a:"<<a.toInt() << " b: " << b.toInt() << endl;
-        if(apos % bpos == 0){
-          inverted_f = INT_DIVIDE; break;
-        }
-      }
-    }
-    return false;
-
-  //case INT_DIVIDE: 
-  //case INT_MODULO: 
-
-  case RAT_PLUS: inverted_f = RAT_MINUS; break;
-  case RAT_MINUS: inverted_f = RAT_PLUS; break;
-  case RAT_MULTIPLY: {
-      RationalConstantType b;
-      if((term->nthArgument(0)==arg && tryInterpretConstant(*term->nthArgument(1),b)) ||
-         (term->nthArgument(1)==arg && tryInterpretConstant(*term->nthArgument(0),b)) )
-      {
-        if(b.numerator()==0) return false;
-        inverted_f = RAT_DIVIDE; 
-        break;
-      }
-      return false;
-    }
-  case RAT_DIVIDE: inverted_f = RAT_MULTIPLY; break;
-
-  case REAL_PLUS: inverted_f = REAL_MINUS; break; 
-  case REAL_MINUS: inverted_f = REAL_PLUS; break;
-  case REAL_MULTIPLY: {
-      RealConstantType b;
-      if((term->nthArgument(0)==arg && tryInterpretConstant(*term->nthArgument(1),b)) ||
-         (term->nthArgument(1)==arg && tryInterpretConstant(*term->nthArgument(0),b)) )
-      {
-        if(b.numerator()==0) return false;
-        inverted_f = REAL_DIVIDE;
-      }
-      else{
-        // In this case the 'b' i.e. the bottom of the divisor is not a constant
-        // therefore we add a side-condition saying it cannot be 
-        TermList* notZero = 0;
-        if(term->nthArgument(0)==arg){ notZero=term->nthArgument(1); } 
-        else if(term->nthArgument(1)==arg){ notZero=term->nthArgument(0); } 
-        Term* zero =theory->representConstant(RealConstantType(RationalConstantType(0,1)));
-        sideConditions.push(Literal::createEquality(true,TermList(zero),*notZero,Sorts::SRT_REAL));
-        inverted_f = REAL_DIVIDE;
-      }
-      break;
-    } 
-  case REAL_DIVIDE: inverted_f = REAL_MULTIPLY; break;
-
-  default: // cannot be inverted
-    return false;
- }
-
- // In all cases here the replacement should be the first of the two
- // arguments to a binary function.
- // NOTE: If the interpreted functions supported changes this might change
-
- // i.e. if we have term=multiply(6,product(x,5)), arg=product(x,6) and rep=4
- //      the result should be divide(4,6)
- //      if the arguments to multiply are the other way around this is still true
-
- // Work out if arg is first or second argument to term and get the other one
- ASS(term->arity()==2);
- TermList other;
- if(term->nthArgument(0)==arg) other=*term->nthArgument(1);
- else if(term->nthArgument(1)==arg) other=*term->nthArgument(0);
- else { ASSERTION_VIOLATION;} //arg must be one of the args!
-
- TermList args[] = {rep,other};
- result = TermList(Term::create(getFnNum(inverted_f),2,args));
- return true;
-
- }
-
 }
+
+
+
 
 
 

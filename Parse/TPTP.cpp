@@ -46,7 +46,13 @@ DHMap<unsigned, vstring> TPTP::_axiomNames;
 UnitList* TPTP::parse(istream& input)
 {
   Parse::TPTP parser(input);
-  parser.parse();
+  try{
+    parser.parse();
+  }
+  catch (UserErrorException& exception) {
+    vstring msg = exception.msg();
+    throw ParseErrorException(msg,parser.lineNumber());
+  }
   return parser.units();
 }
 
@@ -88,6 +94,7 @@ void TPTP::parse()
   _gpos = 0;
   _cend = 0;
   _tend = 0;
+  _lineNumber = 1;
   _states.push(UNIT_LIST);
   while (!_states.isEmpty()) {
     State s = _states.pop();
@@ -218,9 +225,9 @@ void TPTP::parse()
       break;
     default:
 #if VDEBUG
-      throw ParseErrorException(((vstring)"Don't know how to process state ")+toString(s));
+      throw ParseErrorException(((vstring)"Don't know how to process state ")+toString(s),_lineNumber);
 #else
-      throw ParseErrorException("Don't know how to process state ");
+      throw ParseErrorException("Don't know how to process state ",_lineNumber);
 #endif
     }
 #ifdef DEBUG_SHOW_STATE
@@ -653,11 +660,12 @@ void TPTP::skipWhiteSpacesAndComments()
     case 0: // end-of-file
       return;
 
+    case '\n':
+    case '\r':
+      _lineNumber++;
     case ' ':
     case '\t':
-    case '\r':
     case '\f':
-    case '\n':
       resetChars();
       break;
 
@@ -670,6 +678,7 @@ void TPTP::skipWhiteSpacesAndComments()
       }
       resetChars();
       if (c == '\n') {
+        _lineNumber++;
 	break;
       }
     }
@@ -683,6 +692,7 @@ void TPTP::skipWhiteSpacesAndComments()
       // search for the end of this comment
       for (;;) {
 	int c = getChar(0);
+        if( c == '\n' || c == '\r'){ _lineNumber++; }
 	if (!c) {
 	  return;
 	}
@@ -1009,14 +1019,14 @@ void TPTP::readAtom(Token& tok)
   }
 } // readAtom
 
-TPTP::ParseErrorException::ParseErrorException(vstring message,int pos)
+TPTP::ParseErrorException::ParseErrorException(vstring message,int pos, unsigned ln) : _ln(ln)
 {
   _message = message + " at position " + Int::toString(pos);
 } // TPTP::ParseErrorException::ParseErrorException
 
-TPTP::ParseErrorException::ParseErrorException(vstring message,Token& tok)
+TPTP::ParseErrorException::ParseErrorException(vstring message,Token& tok, unsigned ln) : _ln(ln)
 {
-  _message = message + " at position " + Int::toString(tok.start) + " (text: " + tok.toString() + ')';
+  _message = message + " at position " + Int::toString(tok.start) + " (text: " + tok.toString() + ')'; 
 } // TPTP::ParseErrorException::ParseErrorException
 
 /**
@@ -1025,8 +1035,8 @@ TPTP::ParseErrorException::ParseErrorException(vstring message,Token& tok)
  */
 void TPTP::ParseErrorException::cry(ostream& str)
 {
+  str << "Parsing Error on line " << _ln << "\n";
   str << _message << "\n";
-  str << "Hint: use cat <problem> | head -c <position> to see where parsing fails" << "\n";
 }
 
 /**
@@ -1986,7 +1996,7 @@ bool TPTP::findLetSymbol(bool isPredicate, vstring name, unsigned arity, unsigne
     LetFunctionsScope::Iterator functions(scope);
     while (functions.hasNext()) {
       LetFunction function = functions.next();
-      if (function.first == functionName && function.second.second == isPredicate) {
+      if ((function.first == functionName) && (function.second.second == isPredicate)) {
         symbol = function.second.first;
         return true;
       }
@@ -2554,9 +2564,18 @@ Formula* TPTP::createPredicateApplication(vstring name, unsigned arity)
   }
   // not equality or distinct
   Literal* lit = new(arity) Literal(pred,arity,true,false);
+  PredicateType* type = env.signature->getPredicate(pred)->predType();
   bool safe = true;
   for (int i = arity-1;i >= 0;i--) {
+    unsigned sort = type->arg(i);
     TermList ts = _termLists.pop();
+    unsigned tsSort = sortOf(ts);
+    if (sort != tsSort) {
+      USER_ERROR("Argument " + Lib::Int::toString(i) +
+                 " of predicate " + env.signature->predicateName(pred) +
+                 " expected something of sort "+env.sorts->sortName(sort)+
+                 " but got something of sort "+env.sorts->sortName(tsSort));
+    }
     safe = safe && ts.isSafe();
     *(lit->nthArgument(i)) = ts;
   }
@@ -2589,9 +2608,16 @@ TermList TPTP::createFunctionApplication(vstring name, unsigned arity)
   }
   Term* t = new(arity) Term;
   t->makeSymbol(fun,arity);
+  FunctionType* type = env.signature->getFunction(fun)->fnType();
   bool safe = true;
   for (int i = arity-1;i >= 0;i--) {
+    unsigned sort = type->arg(i);
     TermList ss = _termLists.pop();
+    unsigned ssSort = sortOf(ss);
+    if (sort != ssSort) {
+      USER_ERROR("The sort " + env.sorts->sortName(ssSort) + " of function argument " + ss.toString() + " "
+                 "does not match the expected sort " + env.sorts->sortName(sort));
+    }
     *(t->nthArgument(i)) = ss;
     safe = safe && ss.isSafe();
   }
@@ -2625,7 +2651,15 @@ void TPTP::endFormula()
     break;
   case NOT:
     f = _formulas.pop();
-    _formulas.push(new NegatedFormula(f));
+    // This gets rid of the annoying step in proof output where ~(L) is flattend to (~L)
+    if(f->connective()==LITERAL){
+      Literal* oldLit = static_cast<AtomicFormula*>(f)->literal();
+      Literal* newLit = Literal::create(oldLit,!oldLit->polarity());
+      _formulas.push(new AtomicFormula(newLit));
+    }
+    else{
+      _formulas.push(new NegatedFormula(f));
+    }
     _states.push(END_FORMULA);
     return;
   case FORALL:
@@ -2963,7 +2997,7 @@ void TPTP::endFof()
   switch (_lastInputType) {
   case Unit::CONJECTURE:
     if(!isFof) USER_ERROR("conjecture is not allowed in cnf");
-    if(_seenConjecture) USER_ERROR("Vampire only supports a single conjecuture in a problem");
+    if(_seenConjecture) USER_ERROR("Vampire only supports a single conjecture in a problem");
     _seenConjecture=true;
     if (_isQuestion && ((env.options->mode() == Options::Mode::CLAUSIFY) || (env.options->mode() == Options::Mode::CLAUSIFY_STAT)) && f->connective() == EXISTS) {
       // create an answer predicate
@@ -3008,7 +3042,7 @@ void TPTP::endFof()
       if (!added) {
 	USER_ERROR("Names of claims must be unique: "+nm);
       }
-      env.signature->getPredicate(pred)->markCFName();
+      env.signature->getPredicate(pred)->markLabel();
       Literal* a = new(0) Literal(pred,0,true,false);
       a = env.sharing->insert(a);
       Formula* claim = new AtomicFormula(a);
@@ -3594,11 +3628,12 @@ unsigned TPTP::addFunction(vstring name,int arity,bool& added,TermList& arg)
 				 Theory::RAT_MULTIPLY,
 				 Theory::REAL_MULTIPLY);
   }
+  // An odd leftover, maps to the 'most natural' kind of division
   if (name == "$divide") {
     return addOverloadedFunction(name,arity,2,added,arg,
-				 Theory::INT_DIVIDE,
-				 Theory::RAT_DIVIDE,
-				 Theory::REAL_DIVIDE);
+				 Theory::INT_QUOTIENT_E,
+				 Theory::RAT_QUOTIENT,
+				 Theory::REAL_QUOTIENT);
   }
   if (name == "$modulo"){
     if(sortOf(arg)!=Sorts::SRT_INTEGER){
@@ -3608,6 +3643,15 @@ unsigned TPTP::addFunction(vstring name,int arity,bool& added,TermList& arg)
                                  Theory::INT_MODULO,
                                  Theory::INT_MODULO,  // will not be used
                                  Theory::INT_MODULO); // will not be used
+  }
+  if (name == "$abs"){
+    if(sortOf(arg)!=Sorts::SRT_INTEGER){
+      USER_ERROR("$abs can only be used with integer type");
+    }
+    return addOverloadedFunction(name,arity,2,added,arg,
+                                 Theory::INT_ABS,
+                                 Theory::INT_ABS,  // will not be used
+                                 Theory::INT_ABS); // will not be used
   }
   if (name == "$quotient") {
     if(sortOf(arg)==Sorts::SRT_INTEGER){

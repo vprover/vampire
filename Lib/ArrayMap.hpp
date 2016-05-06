@@ -116,7 +116,7 @@ public:
    * function the key could have been assigned an object before.
    */
   inline
-  void set(size_t index, T obj)
+  void set(size_t index, T obj=T())
   {
     CALL("ArrayMap::set");
 

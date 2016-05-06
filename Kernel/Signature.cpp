@@ -10,6 +10,7 @@
 
 using namespace std;
 using namespace Kernel;
+using namespace Shell;
 
 const unsigned Signature::STRING_DISTINCT_GROUP = 0;
 const unsigned Signature::INTEGER_DISTINCT_GROUP = 1;
@@ -29,7 +30,7 @@ Signature::Symbol::Symbol(const vstring& nm,unsigned arity, bool interpreted, bo
     _introduced(0),
     _protected(0),
     _skip(0),
-    _cfName(0),
+    _label(0),
     _equalityProxy(0),
     _color(COLOR_TRANSPARENT),
     _stringConstant(stringConstant ? 1: 0),
@@ -119,7 +120,10 @@ void Signature::Symbol::addToDistinctGroup(unsigned group,unsigned this_number)
   env.signature->_distinctGroupsAddedTo=true;
 
   Stack<unsigned>* members = env.signature->_distinctGroupMembers[group];
-  if(members->size()<6 || env.options->bfnt()) members->push(this_number);
+  if(members->size()<6 || env.options->bfnt() 
+                       || env.options->saturationAlgorithm()==Options::SaturationAlgorithm::FINITE_MODEL_BUILDING){ 
+    members->push(this_number);
+  }
 
 } // addToDistinctGroup
 
@@ -489,12 +493,6 @@ unsigned Signature::getInterpretingSymbol(Interpretation interp)
   case Theory::INT_DIVIDES:
     name = "$divides";
     break;
-  case Theory::INT_DIVIDE:
-  case Theory::RAT_DIVIDE:
-  case Theory::REAL_DIVIDE:
-    //this one is not according the TPTP arithmetic (it doesn't have division)
-    name="$divide";
-    break;
   case Theory::INT_UNARY_MINUS:
   case Theory::RAT_UNARY_MINUS:
   case Theory::REAL_UNARY_MINUS:
@@ -568,8 +566,20 @@ unsigned Signature::getInterpretingSymbol(Interpretation interp)
   case Theory::INT_MODULO:
     name = "$modulo";
     break;
+  case Theory::INT_ABS:
+    name = "$abs";
+    break;
+  case Theory::INT_QUOTIENT_E:
+  case Theory::RAT_QUOTIENT_E:
+  case Theory::REAL_QUOTIENT_E:
+    name = "$quotient_e";
+    break;
+  case Theory::RAT_QUOTIENT:
+  case Theory::REAL_QUOTIENT:
+    name = "quotient";
+    break;
   default:
-    ASSERTION_VIOLATION;
+    ASSERTION_VIOLATION_REP(interp);
   }
 
   }

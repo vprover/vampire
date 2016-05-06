@@ -322,6 +322,9 @@ void TimeCounter::outputSingleStat(TimeCounterUnit tcu, ostream& out)
   case TC_SUPERPOSITION:
     out<<"superposition";
     break;
+  case TC_LITERAL_ORDER_AFTERCHECK:
+    out<<"literal order aftercheck";
+    break;
   case TC_HYPER_SUPERPOSITION:
     out<<"hyper superposition";
     break;
@@ -379,6 +382,9 @@ void TimeCounter::outputSingleStat(TimeCounterUnit tcu, ostream& out)
   case TC_MINISAT_BWD_SUBSUMPTION_CHECK:
       out << "minisat bwd subsumption check";
       break;
+  case TC_Z3_IN_FMB:
+    out << "smt search for next domain size assignment";
+    break;
   default:
     ASSERTION_VIOLATION;
   }

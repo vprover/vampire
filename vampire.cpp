@@ -72,6 +72,7 @@
 
 #include "SAT/LingelingInterfacing.hpp"
 #include "SAT/MinisatInterfacing.hpp"
+#include "SAT/MinisatInterfacingNewSimp.hpp"
 #include "SAT/TWLSolver.hpp"
 #include "SAT/Preprocess.hpp"
 
@@ -296,6 +297,9 @@ void outputResult(ostream& out) {
   switch(env.statistics->terminationReason) {
   case Statistics::UNKNOWN:
     cout<<"unknown"<<endl;
+    break;
+  case Statistics::INAPPROPRIATE:
+    cout<<"inappropriate"<<endl;
     break;
   case Statistics::SATISFIABLE:
     cout<<"sat"<<endl;
@@ -586,7 +590,7 @@ void satSolverMode()
       solver = new LingelingInterfacing(*env.options);
       break;
     case Options::SatSolver::MINISAT:
-      solver = new MinisatInterfacing(*env.options);
+      solver = new MinisatInterfacingNewSimp(*env.options);
       break;      
     default:
       ASSERTION_VIOLATION(env.options->satSolver());
@@ -690,6 +694,7 @@ void spiderMode()
     case Statistics::MEMORY_LIMIT:
       reportSpiderStatus('m');
     case Statistics::UNKNOWN:
+    case Statistics::INAPPROPRIATE:
       reportSpiderStatus('u');
     case Statistics::REFUTATION_NOT_FOUND:
       if(env.statistics->discardedNonRedundantClauses>0){
@@ -868,6 +873,8 @@ int main(int argc, char* argv[])
   // create random seed for the random number generation
   Lib::Random::setSeed(123456);
 
+  START_CHECKING_FOR_ALLOCATOR_BYPASSES;
+
   try {
     // read the command line and interpret it
     Shell::CommandLine cl(argc, argv);
@@ -928,15 +935,6 @@ int main(int argc, char* argv[])
       }
       break;
 /*
-    case Options::Mode::CASC_EPR:
-      CASC::CASCMode::makeEPR();
-      if (CASC::CASCMode::perform(argc, argv)) {
-	//casc mode succeeded in solving the problem, so we return zero
-	vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
-      }
-      break;
-*/
-/*
     case Options::Mode::CASC_LTB: {
       try {
         CASC::CLTBMode::perform();
@@ -955,14 +953,6 @@ int main(int argc, char* argv[])
       CASC::CMZRMode::perform();
       //we have processed the ltb batch file, so we can return zero
       vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
-      break;
-    }
-    case Options::Mode::CASC_THEORY: {
-      CASC::CASCMode::makeTheory();
-      if (CASC::CASCMode::perform(argc, argv)) {
-	//casc mode succeeded in solving the problem, so we return zero
-	vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
-      }
       break;
     }
 */

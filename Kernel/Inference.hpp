@@ -174,6 +174,8 @@ public:
     BACKWARD_DEMODULATION,
     /** forward literal rewriting inference */
     FORWARD_LITERAL_REWRITING,
+    /** inner rewriting */
+    INNER_REWRITING,
     /** condensation inference */
     CONDENSATION,
     /** evaluation inference */
@@ -192,6 +194,8 @@ public:
     GROUNDING,
     /** equality axiom */
     EQUALITY_AXIOM,
+    /** choice axiom */
+    CHOICE_AXIOM,
     /** any added theory axioms */
     THEORY,
     /** one of two axioms of FOOL (distinct constants or finite domain) */
@@ -209,10 +213,16 @@ public:
     FOOL_LET_ELIMINATION,
     /** Replaces a literal of the form C[s] with C[true] \/ s = false, where s is a boolean non-variable term */
     FOOL_PARAMODULATION,
-    /** component introduced by sat splitting */
-    SAT_SPLITTING_COMPONENT,
-    /** refutation of a sat splitting branch */
-    SAT_SPLITTING_REFUTATION,
+    /** definition introduced by AVATAR */
+    AVATAR_DEFINITION,
+    /** component introduced by AVATAR */
+    AVATAR_COMPONENT,
+    /** refutation of a AVATAR splitting branch */
+    AVATAR_REFUTATION,
+    /** sat clause representing FO clause for AVATAR */
+    AVATAR_SPLIT_CLAUSE,
+    /** sat clause representing FO clause for AVATAR */
+    AVATAR_CONTRADICTION_CLAUSE,
     /** sat color elimination */
     SAT_COLOR_ELIMINATION,
     /** result of general splitting */
@@ -261,6 +271,10 @@ public:
     FMB_FUNC_DEF,
     /* Definition Introduction for FMB */
     FMB_DEF_INTRO, 
+    /* Adding sort predicate */
+    ADD_SORT_PREDICATES,
+    /* Adding sort functions */
+    ADD_SORT_FUNCTIONS,
     /* Instantiation */
     INSTANTIATION,
     /* Finite model not found */

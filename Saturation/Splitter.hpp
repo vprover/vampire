@@ -184,6 +184,7 @@ public:
 
   SATLiteral getLiteralFromName(SplitLevel compName) const;
   SplitLevel getNameFromLiteral(SATLiteral lit) const;
+  Unit* getDefinitionFromName(SplitLevel compName) const;
 
   bool isUsedName(SplitLevel name) const {
     CALL("Splitter::isUsedName");
@@ -229,6 +230,8 @@ private:
   bool allSplitLevelsActive(SplitSet* s);
 
   //settings
+  bool _showSplitting;
+
   Options::SplittingAddComplementary _complBehavior;
   Options::SplittingNonsplittableComponents _nonsplComps;
   unsigned _flushPeriod;
@@ -258,6 +261,8 @@ private:
    */
   Stack<SplitRecord*> _db;
   DHMap<Clause*,SplitLevel> _compNames;
+
+  DHMap<SplitLevel,Unit*> _defs;
   
   //state variable used for flushing:  
   /** When this number of generated clauses is reached, it will cause flush */
@@ -278,8 +283,9 @@ private:
   SaturationAlgorithm* _sa;
 
 public:
+  static vstring splPrefix;
+
   // for observing the current model
-  
   SplitLevel splitLevelBound() { return _db.size(); }
   bool splitLevelActive(SplitLevel lev) {
     ASS_REP(lev<_db.size(), lev);

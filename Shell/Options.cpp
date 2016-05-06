@@ -244,6 +244,7 @@ void Options::Options::init()
     _thanks.description="";
     _lookup.insert(&_thanks);
     _thanks.setExperimental();
+
     _timeLimitInDeciseconds = TimeLimitOptionValue("time_limit","t",600); // stores deciseconds, but reads seconds from the user by default
     _timeLimitInDeciseconds.description="Time limit in wall clock seconds, you can use d,s,m,h,D suffixes also i.e. 60s, 5m. Setting it to 0 effectively gives no time limit.";
     _lookup.insert(&_timeLimitInDeciseconds);
@@ -379,7 +380,7 @@ void Options::Options::init()
     _unusedPredicateDefinitionRemoval.addProblemConstraint(notWithCat(Property::UEQ));
     _unusedPredicateDefinitionRemoval.setRandomChoices({"on","off"});
 
-    _theoryAxioms = BoolOptionValue("theory_axioms","tha",true);
+    _theoryAxioms = ChoiceOptionValue<TheoryAxiomLevel>("theory_axioms","tha",TheoryAxiomLevel::ON,{"on","off","some"});
     _theoryAxioms.description="Include theory axioms for detected interpreted symbols";
     _lookup.insert(&_theoryAxioms);
     _theoryAxioms.tag(OptionTag::PREPROCESSING);
@@ -431,7 +432,9 @@ void Options::Options::init()
     _naming.description="Introduce names for subformulas. Given a subformula F(x1,..,xk) of formula G a new predicate symbol is introduced as a name for F(x1,..,xk) by adding the axiom n(x1,..,xk) <=> F(x1,..,xk) and replacing F(x1,..,xk) with n(x1,..,xk) in G. The value indicates how many times a subformula must be used before it is named.";
     _lookup.insert(&_naming);
     _naming.tag(OptionTag::PREPROCESSING);
-    _naming.addConstraint(lessThan(32768));
+    _naming.addHardConstraint(lessThan(32768));
+    _naming.addHardConstraint(greaterThan(-1));
+    _naming.addHardConstraint(notEqual(1));
 
     _newCNF = BoolOptionValue("newcnf","",false);
     _newCNF.description="Use NewCNF algorithm to do naming, preprecess3 and clausificiation.";
@@ -502,11 +505,15 @@ void Options::Options::init()
     _lookup.insert(&_showDefinitions);
     _showDefinitions.tag(OptionTag::DEVELOPMENT);
 
-
     _showNew = BoolOptionValue("show_new","",false);
     _showNew.description="Show new (generated) clauses";
     _lookup.insert(&_showNew);
     _showNew.tag(OptionTag::DEVELOPMENT);
+
+    _showSplitting = BoolOptionValue("show_splitting","",false);
+    _showSplitting.description="Show updates within AVATAR";
+    _lookup.insert(&_showSplitting);
+    _showSplitting.tag(OptionTag::DEVELOPMENT);
 
     _showNewPropositional = BoolOptionValue("show_new_propositional","",false);
     _showNewPropositional.description="";
@@ -561,6 +568,11 @@ void Options::Options::init()
     _lookup.insert(&_showFOOL);
     _showFOOL.tag(OptionTag::OUTPUT);
 
+    _showFMBsortInfo = BoolOptionValue("show_fmb_sort_info","",false);
+    _showFMBsortInfo.description = "Print information about sorts in FMB";
+    _lookup.insert(&_showFMBsortInfo);
+    _showFMBsortInfo.tag(OptionTag::OUTPUT);
+
 //************************************************************************
 //*********************** VAMPIRE (includes CASC)  ***********************
 //************************************************************************
@@ -588,29 +600,11 @@ void Options::Options::init()
     _saturationAlgorithm.setRandomChoices(Or(hasCat(Property::UEQ),atomsLessThan(4000)),{"lrs","discount","otter","inst_gen"});
     _saturationAlgorithm.setRandomChoices({"discount","inst_gen","lrs","otter","tabulation"});
 
-    _fmbStartWithConstants = BoolOptionValue("fmb_start_with_constants","fmbswc",false);
-    _fmbStartWithConstants.description = "Start fmb with model size equal to the number of constants in the problem";
-    _lookup.insert(&_fmbStartWithConstants);
-    _fmbStartWithConstants.setExperimental();
-    _fmbStartWithConstants.setRandomChoices({"on","off"});
-
-    _fmbIncremental = BoolOptionValue("fmb_incremental","fmbi",false);
-    _fmbIncremental.description = "Use incremental SAT in fmb";
-    //_lookup.insert(&_fmbIncremental);
-    _fmbIncremental.setExperimental();
-    _fmbIncremental.setRandomChoices({"on","off"});
-
     _fmbNonGroundDefs = BoolOptionValue("fmb_nonground_defs","fmbngd",false);
     _fmbNonGroundDefs.description = "Introduce definitions for non ground terms in preprocessing for fmb";
     //_lookup.insert(&_fmbNonGroundDefs);
     _fmbNonGroundDefs.setExperimental();
     _fmbNonGroundDefs.setRandomChoices({"on","off"});
-
-    _fmbSortInference = BoolOptionValue("fmb_sort_inference","fmbsi",false);
-    _fmbSortInference.description = "Perform sort inference for fmb";
-    //_lookup.insert(&_fmbSortInference);
-    _fmbSortInference.setExperimental();
-    _fmbSortInference.setRandomChoices({"on","off"});
 
     _fmbStartSize = UnsignedOptionValue("fmb_start_size","fmbss",1);
     _fmbStartSize.description = "Set the initial model size for finite model building";
@@ -630,11 +624,48 @@ void Options::Options::init()
     _fmbSymmetryOrderSymbols.setExperimental();
 
     _fmbSymmetryWidgetOrders = ChoiceOptionValue<FMBWidgetOrders>("fmb_symmetry_widget_order","fmbswo",
-                                                     FMBWidgetOrders::DIAGONAL,
+                                                     FMBWidgetOrders::FUNCTION_FIRST,
                                                      {"function_first","argument_first","diagonal"});
     _fmbSymmetryWidgetOrders.description = "";
     _lookup.insert(&_fmbSymmetryWidgetOrders);
     _fmbSymmetryWidgetOrders.setExperimental();
+
+    _fmbCollapseMonotonicSorts = ChoiceOptionValue<FMBMonotonicCollapse>("fmb_collapse_monotonic_sorts","fmbcms",
+                                                           FMBMonotonicCollapse::OFF, 
+                                                           {"off","group","predicate","function","predicate_wom","function_wom"});
+    _fmbCollapseMonotonicSorts.description = "Detect monotonic sorts. If <group> then collapse these into a single sort. If <predicate> then introduce sort predicates for non-monotonic sorts and collapse all sorts into one. If <function> then introduce sort functions for non-monotonic sorts and collapse all sorts into one";
+    _fmbCollapseMonotonicSorts.setExperimental();
+    _lookup.insert(&_fmbCollapseMonotonicSorts);
+
+    _fmbDetectSortBounds = BoolOptionValue("fmb_detect_sort_bounds","fmbdsb",false);
+    _fmbDetectSortBounds.description = "Use a saturation loop to detect sort bounds introduced by (for example) injective functions";
+    _fmbDetectSortBounds.setExperimental();
+    _lookup.insert(&_fmbDetectSortBounds);
+
+    _fmbDetectSortBoundsTimeLimit = UnsignedOptionValue("fmb_detect_sort_bounds_time_limit","fmbdsbt",1);
+    _fmbDetectSortBoundsTimeLimit.description = "The time limit (in seconds) for performing sort bound detection";
+    _fmbDetectSortBoundsTimeLimit.setExperimental();
+    _lookup.insert(&_fmbDetectSortBoundsTimeLimit);
+
+    _fmbSizeWeightRatio = UnsignedOptionValue("fmb_size_weight_ratio","fmbswr",1);
+    _fmbSizeWeightRatio.description = "Controls the priority the next sort size vector is given based on a ratio. 0 is size only, 1 means 1:1, 2 means 1:2, etc.";
+    _fmbSizeWeightRatio.reliesOn(_fmbEnumerationStrategy.is(equal(FMBEnumerationStrategy::CONTOUR)));
+    _fmbSizeWeightRatio.setExperimental();
+    _lookup.insert(&_fmbSizeWeightRatio);
+
+    _fmbSortInference = ChoiceOptionValue<FMBSortInference>("fmb_sort_inference","fmbsi",FMBSortInference::INFER,{"ignore","infer","expand"});
+    _fmbSortInference.description = "Unless <ignore> then infer subsorts. These are used in various places. If <expand> then those that can be promoted to real sorts are promoted.";
+    _fmbSortInference.setExperimental();
+    _lookup.insert(&_fmbSortInference);
+
+    _fmbEnumerationStrategy = ChoiceOptionValue<FMBEnumerationStrategy>("fmb_enumeration_strategy","fmbes",FMBEnumerationStrategy::SBMEAM,{"sbeam",
+#if VZ3
+        "smt",
+#endif
+        "contour"});
+    _fmbEnumerationStrategy.description = "How model sizes assignments are enumerated in the multi-sorted setting. (Only smt and contour are known to be finite model complete and can therefore return UNSAT.)";
+    _fmbEnumerationStrategy.setExperimental();
+    _lookup.insert(&_fmbEnumerationStrategy);
 
     _selection = SelectionOptionValue("selection","s",10);
     _selection.description=
@@ -658,7 +689,7 @@ void Options::Options::init()
     //_selection.reliesOn(_saturationAlgorithm.is(notEqual(SaturationAlgorithm::TABULATION)));
     _selection.reliesOn(_saturationAlgorithm.is(notEqual(SaturationAlgorithm::INST_GEN))->Or<int>(_instGenWithResolution.is(equal(true))));
     _selection.setRandomChoices(And(isRandSat(),saNotInstGen()),{"0","1","2","3","4","10","11","-1","-2","-3","-4","-10","-11"});
-    _selection.setRandomChoices({"0","1","2","3","4","10","11","1002","1003","1004","1010","1011","-1","-2","-3","-4","-10","-11","-1002","-1003","-1004","-1010","-1011"});
+    _selection.setRandomChoices({"0","1","2","3","4","10","11","1002","1003","1004","1010","1011","-1","-2","-3","-4","-10","-11","-1002","-1003","-1004","-1010"});
     
     _ageWeightRatio = RatioOptionValue("age_weight_ratio","awr",1,1,':');
     _ageWeightRatio.description=
@@ -670,173 +701,178 @@ void Options::Options::init()
     _ageWeightRatio.reliesOn(_saturationAlgorithm.is(notEqual(SaturationAlgorithm::INST_GEN))->Or<int>(_instGenWithResolution.is(equal(true))));
     _ageWeightRatio.setRandomChoices({"8:1","5:1","4:1","3:1","2:1","3:2","5:4","1","2:3","2","3","4","5","6","7","8","10","12","14","16","20","24","28","32","40","50","64","128","1024"});
 
-    _lrsFirstTimeCheck = IntOptionValue("lrs_first_time_check","",5);
-    _lrsFirstTimeCheck.description=
-    "Percentage of time limit at which the LRS algorithm will for the first time estimate the number of reachable clauses.";
-    _lookup.insert(&_lrsFirstTimeCheck);
-    _lrsFirstTimeCheck.tag(OptionTag::LRS);
-    _lrsFirstTimeCheck.addConstraint(greaterThanEq(0));
-    _lrsFirstTimeCheck.addConstraint(lessThan(100));
+	    _literalMaximalityAftercheck = BoolOptionValue("literal_maximality_aftercheck","lma",false);
+	    _lookup.insert(&_literalMaximalityAftercheck);
+	    _literalMaximalityAftercheck.tag(OptionTag::SATURATION);
+	    _literalMaximalityAftercheck.setExperimental();
 
-    _lrsWeightLimitOnly = BoolOptionValue("lrs_weight_limit_only","lwlo",false);
-    _lrsWeightLimitOnly.description=
-    "If off, the lrs sets both age and weight limit according to clause reachability, otherwise it sets the age limit to 0 and only the weight limit reflects reachable clauses";
-    _lookup.insert(&_lrsWeightLimitOnly);
-    _lrsWeightLimitOnly.tag(OptionTag::LRS);
+	    _lrsFirstTimeCheck = IntOptionValue("lrs_first_time_check","",5);
+	    _lrsFirstTimeCheck.description=
+	    "Percentage of time limit at which the LRS algorithm will for the first time estimate the number of reachable clauses.";
+	    _lookup.insert(&_lrsFirstTimeCheck);
+	    _lrsFirstTimeCheck.tag(OptionTag::LRS);
+	    _lrsFirstTimeCheck.addConstraint(greaterThanEq(0));
+	    _lrsFirstTimeCheck.addConstraint(lessThan(100));
 
-    _simulatedTimeLimit = TimeLimitOptionValue("simulated_time_limit","stl",0);
-    _simulatedTimeLimit.description=
-    "Time limit in seconds for the purpose of reachability estimations of the LRS saturation algorithm (if 0, the actual time limit is used)";
-    _lookup.insert(&_simulatedTimeLimit);
-    _simulatedTimeLimit.tag(OptionTag::LRS);
+	    _lrsWeightLimitOnly = BoolOptionValue("lrs_weight_limit_only","lwlo",false);
+	    _lrsWeightLimitOnly.description=
+	    "If off, the lrs sets both age and weight limit according to clause reachability, otherwise it sets the age limit to 0 and only the weight limit reflects reachable clauses";
+	    _lookup.insert(&_lrsWeightLimitOnly);
+	    _lrsWeightLimitOnly.tag(OptionTag::LRS);
 
-
-//*********************** Inferences  ***********************
-
-    _instantiation = ChoiceOptionValue<Instantiation>("instantiation","inst",Instantiation::OFF,{"off","on"});
-    _instantiation.description = "Heuristically instantiate variables";
-    _instantiation.tag(OptionTag::INFERENCES);
-    _lookup.insert(&_instantiation);
-    _instantiation.setRandomChoices({"off","on"}); // Turn this on rarely
-    _instantiation.setExperimental();
-
-    _backwardDemodulation = ChoiceOptionValue<Demodulation>("backward_demodulation","bd",
-                                                            Demodulation::ALL,
-                                                            {"all","off","preordered"});
-    _backwardDemodulation.description=
-             "Oriented rewriting of kept clauses by newly derived unit equalities\n"
-             "s = t     L[sθ] \\/ C\n"
-             "---------------------   where sθ > tθ (replaces RHS)\n"
-             " L[tθ] \\/ C\n";
-    _lookup.insert(&_backwardDemodulation);
-    _backwardDemodulation.tag(OptionTag::INFERENCES);
-    _backwardDemodulation.addProblemConstraint(hasEquality());
-    _backwardDemodulation.reliesOn(_saturationAlgorithm.is(notEqual(SaturationAlgorithm::INST_GEN))->Or<Demodulation>(_instGenWithResolution.is(equal(true))));
-    _backwardDemodulation.setRandomChoices({"all","off"});
-
-    _backwardSubsumption = ChoiceOptionValue<Subsumption>("backward_subsumption","bs",
-                                                          Subsumption::OFF,{"off","on","unit_only"});
-    _backwardSubsumption.description=
-             "Perform subsumption deletion of kept clauses by newly derived clauses. Unit_only means that the subsumption will be performed only by unit clauses";
-    _lookup.insert(&_backwardSubsumption);
-    _backwardSubsumption.tag(OptionTag::INFERENCES);
-    _backwardSubsumption.reliesOn(_saturationAlgorithm.is(notEqual(SaturationAlgorithm::INST_GEN))->Or<Subsumption>(_instGenWithResolution.is(equal(true))));
-    //_backwardSubsumption.reliesOn(_saturationAlgorithm.is(notEqual(SaturationAlgorithm::TABULATION)));
-    _backwardSubsumption.setRandomChoices({"on","off"});
-
-    _backwardSubsumptionResolution = ChoiceOptionValue<Subsumption>("backward_subsumption_resolution","bsr",
-                                                                    Subsumption::OFF,{"off","on","unit_only"});
-    _backwardSubsumptionResolution.description=
-             "Perform subsumption resolution on kept clauses using newly derived clauses. Unit_only means that the subsumption resolution will be performed only by unit clauses";
-    _lookup.insert(&_backwardSubsumptionResolution);
-    _backwardSubsumptionResolution.tag(OptionTag::INFERENCES);
-    _backwardSubsumptionResolution.reliesOn(_saturationAlgorithm.is(notEqual(SaturationAlgorithm::INST_GEN))->Or<Subsumption>(_instGenWithResolution.is(equal(true))));
-    //_backwardSubsumptionResolution.reliesOn(_saturationAlgorithm.is(notEqual(SaturationAlgorithm::TABULATION)));
-    _backwardSubsumptionResolution.setRandomChoices({"on","off"});
-
-    _binaryResolution = BoolOptionValue("binary_resolution","br",true);
-    _binaryResolution.description=
-          "Standard binary resolution i.e.\n"
-              "C \\/ t     D \\/ s\n"
-              "---------------------\n"
-              "(C \\/ D)θ\n"
-              "where θ = mgu(t,-s) and t selected";
-    _lookup.insert(&_binaryResolution);
-    _binaryResolution.tag(OptionTag::INFERENCES);
-    // If urr is off then binary resolution should be on
-    _binaryResolution.addConstraint(
-      If(equal(false)).then(_unitResultingResolution.is(notEqual(URResolution::OFF))));
-    _binaryResolution.setRandomChoices(And(isRandSat(),saNotInstGen(),Or(hasEquality(),isBfnt(),hasCat(Property::HNE))),{"on"});
-    _binaryResolution.setRandomChoices({"on","off"});
+	    _simulatedTimeLimit = TimeLimitOptionValue("simulated_time_limit","stl",0);
+	    _simulatedTimeLimit.description=
+	    "Time limit in seconds for the purpose of reachability estimations of the LRS saturation algorithm (if 0, the actual time limit is used)";
+	    _lookup.insert(&_simulatedTimeLimit);
+	    _simulatedTimeLimit.tag(OptionTag::LRS);
 
 
-    _condensation = ChoiceOptionValue<Condensation>("condensation","cond",Condensation::OFF,{"fast","off","on"});
-    _condensation.description=
-             "Perform condensation. If 'fast' is specified, we only perform condensations that are easy to check for.";
-    _lookup.insert(&_condensation);
-    _condensation.tag(OptionTag::INFERENCES);
-    _condensation.reliesOn(_saturationAlgorithm.is(notEqual(SaturationAlgorithm::INST_GEN))->Or<Condensation>(_instGenWithResolution.is(equal(true))));
-    //_condensation.reliesOn(_saturationAlgorithm.is(notEqual(SaturationAlgorithm::TABULATION)));
-    _condensation.setRandomChoices({"on","off","fast"});
+	//*********************** Inferences  ***********************
 
-    _demodulationRedundancyCheck = BoolOptionValue("demodulation_redundancy_check","drc",true);
-    _demodulationRedundancyCheck.description=
-             "Avoids the following cases of backward and forward demodulation, as they do not preserve completeness:\n"
-             "s = t     s = t1 \\/ C \t s = t     s != t1 \\/ C\n"
+	    _instantiation = ChoiceOptionValue<Instantiation>("instantiation","inst",Instantiation::OFF,{"off","on"});
+	    _instantiation.description = "Heuristically instantiate variables";
+	    _instantiation.tag(OptionTag::INFERENCES);
+	    _lookup.insert(&_instantiation);
+	    _instantiation.setRandomChoices({"off","on"}); // Turn this on rarely
+	    _instantiation.setExperimental();
 
-             "--------------------- \t ---------------------\n"
-             "t = t1 \\/ C \t\t t != t1 \\/ C\n"
-             "where t > t1 and s = t > C (RHS replaced)";
-    _lookup.insert(&_demodulationRedundancyCheck);
-    _demodulationRedundancyCheck.tag(OptionTag::INFERENCES);
-    _demodulationRedundancyCheck.reliesOn(_saturationAlgorithm.is(notEqual(SaturationAlgorithm::INST_GEN))->Or<bool>(_instGenWithResolution.is(equal(true))));
-    _demodulationRedundancyCheck.addProblemConstraint(hasEquality());
-    _demodulationRedundancyCheck.setRandomChoices({"on","off"});
+	    _backwardDemodulation = ChoiceOptionValue<Demodulation>("backward_demodulation","bd",
+								    Demodulation::ALL,
+								    {"all","off","preordered"});
+	    _backwardDemodulation.description=
+		     "Oriented rewriting of kept clauses by newly derived unit equalities\n"
+		     "s = t     L[sθ] \\/ C\n"
+		     "---------------------   where sθ > tθ (replaces RHS)\n"
+		     " L[tθ] \\/ C\n";
+	    _lookup.insert(&_backwardDemodulation);
+	    _backwardDemodulation.tag(OptionTag::INFERENCES);
+	    _backwardDemodulation.addProblemConstraint(hasEquality());
+	    _backwardDemodulation.reliesOn(_saturationAlgorithm.is(notEqual(SaturationAlgorithm::INST_GEN))->Or<Demodulation>(_instGenWithResolution.is(equal(true))));
+	    _backwardDemodulation.setRandomChoices({"all","off"});
 
-    
-    _extensionalityAllowPosEq = BoolOptionValue( "extensionality_allow_pos_eq","",false);
-    _extensionalityAllowPosEq.description="If extensionality resolution equals filter, this dictates"
-      " whether we allow other positive equalities when recognising extensionality clauses";
-    _lookup.insert(&_extensionalityAllowPosEq);
-    _extensionalityAllowPosEq.tag(OptionTag::INFERENCES);
-    _extensionalityAllowPosEq.reliesOn(_extensionalityResolution.is(equal(ExtensionalityResolution::FILTER)));
-    _extensionalityAllowPosEq.setRandomChoices({"on","off","off"}); // Prefer off
-    
-    _extensionalityMaxLength = UnsignedOptionValue("extensionality_max_length","",0);
-    _extensionalityMaxLength.description="Sets the maximum length (number of literals) an extensionality"
-      " clause can have when doing recognition for extensionality resolution. If zero there is no maximum.";
-    _lookup.insert(&_extensionalityMaxLength);
-    _extensionalityMaxLength.tag(OptionTag::INFERENCES);
-    // 0 means infinity, so it is intentionally not if (unsignedValue < 2).
-    _extensionalityMaxLength.addConstraint(notEqual(1u));
-    _extensionalityMaxLength.reliesOn(_extensionalityResolution.is(notEqual(ExtensionalityResolution::OFF)));
-    //TODO does this depend on anything?
-    _extensionalityMaxLength.setRandomChoices({"0","0","0","2","3"}); // TODO what are good values?
-    
-    _extensionalityResolution = ChoiceOptionValue<ExtensionalityResolution>("extensionality_resolution","er",
-                                                                            ExtensionalityResolution::OFF,{"filter","known","tagged","off"});
-    _extensionalityResolution.description=
-      "Turns on the following inference rule:\n"
-      "  x=y \\/ C    s != t \\/ D\n"
-      "  -----------------------\n"
-      "  C{x → s, y → t} \\/ D\n"
-      "Where s!=t is selected in s!=t \\/D and x=y \\/ C is a recognised as an extensionality clause - how clauses are recognised depends on the value of this option.\n"
-      "If filter we attempt to recognise all extensionality clauses i.e. those that have exactly one X=Y, no inequality of the same sort as X-Y (and optionally no equality except X=Y, see extensionality_allow_pos_eq).\n" 
-      "If known we only recognise a known set of extensionality clauses. At the moment this includes the standard and subset-based formulations of the set extensionality axiom, as well as the array extensionality axiom.\n"
-      "If tagged we only use formulas tagged as extensionality clauses.";
-    _lookup.insert(&_extensionalityResolution);
-    _extensionalityResolution.tag(OptionTag::INFERENCES);
-    // Captures that if ExtensionalityResolution is not off then inequality splitting must be 0
-    _extensionalityResolution.reliesOn(_inequalitySplitting.is(equal(0)));
-    _extensionalityResolution.setRandomChoices({"filter","known","off","off"});
+	    _backwardSubsumption = ChoiceOptionValue<Subsumption>("backward_subsumption","bs",
+								  Subsumption::OFF,{"off","on","unit_only"});
+	    _backwardSubsumption.description=
+		     "Perform subsumption deletion of kept clauses by newly derived clauses. Unit_only means that the subsumption will be performed only by unit clauses";
+	    _lookup.insert(&_backwardSubsumption);
+	    _backwardSubsumption.tag(OptionTag::INFERENCES);
+	    _backwardSubsumption.reliesOn(_saturationAlgorithm.is(notEqual(SaturationAlgorithm::INST_GEN))->Or<Subsumption>(_instGenWithResolution.is(equal(true))));
+	    //_backwardSubsumption.reliesOn(_saturationAlgorithm.is(notEqual(SaturationAlgorithm::TABULATION)));
+	    _backwardSubsumption.setRandomChoices({"on","off"});
 
-    _FOOLOrdering = BoolOptionValue("fool_ordering","",false);
-    _FOOLOrdering.description="Sets term ordering to be $$false < $$true < everything else";
-    _lookup.insert(&_FOOLOrdering);
-    _FOOLOrdering.tag(OptionTag::SATURATION);
+	    _backwardSubsumptionResolution = ChoiceOptionValue<Subsumption>("backward_subsumption_resolution","bsr",
+									    Subsumption::OFF,{"off","on","unit_only"});
+	    _backwardSubsumptionResolution.description=
+		     "Perform subsumption resolution on kept clauses using newly derived clauses. Unit_only means that the subsumption resolution will be performed only by unit clauses";
+	    _lookup.insert(&_backwardSubsumptionResolution);
+	    _backwardSubsumptionResolution.tag(OptionTag::INFERENCES);
+	    _backwardSubsumptionResolution.reliesOn(_saturationAlgorithm.is(notEqual(SaturationAlgorithm::INST_GEN))->Or<Subsumption>(_instGenWithResolution.is(equal(true))));
+	    //_backwardSubsumptionResolution.reliesOn(_saturationAlgorithm.is(notEqual(SaturationAlgorithm::TABULATION)));
+	    _backwardSubsumptionResolution.setRandomChoices({"on","off"});
 
-    _FOOLParamodulation = BoolOptionValue("fool_paramodulation","",false);
-    _FOOLParamodulation.description=
-      "Turns on the following inference rule:\n"
-      "        C[s]\n"
-      "--------------------,\n"
-      "C[true] \\/ s = false\n"
-      "where s is a boolean term that is not a variable, true or false, C[true] is "
-      "the C clause with s substituted by true. This rule is needed for effecient "
-      "treatment of boolean terms.";
-    _lookup.insert(&_FOOLParamodulation);
-    _FOOLParamodulation.tag(OptionTag::INFERENCES);
+	    _binaryResolution = BoolOptionValue("binary_resolution","br",true);
+	    _binaryResolution.description=
+		  "Standard binary resolution i.e.\n"
+		      "C \\/ t     D \\/ s\n"
+		      "---------------------\n"
+		      "(C \\/ D)θ\n"
+		      "where θ = mgu(t,-s) and t selected";
+	    _lookup.insert(&_binaryResolution);
+	    _binaryResolution.tag(OptionTag::INFERENCES);
+	    // If urr is off then binary resolution should be on
+	    _binaryResolution.addConstraint(
+	      If(equal(false)).then(_unitResultingResolution.is(notEqual(URResolution::OFF))));
+	    _binaryResolution.setRandomChoices(And(isRandSat(),saNotInstGen(),Or(hasEquality(),isBfnt(),hasCat(Property::HNE))),{"on"});
+	    _binaryResolution.setRandomChoices({"on","off"});
 
-    _forwardDemodulation = ChoiceOptionValue<Demodulation>("forward_demodulation","fd",Demodulation::ALL,{"all","off","preordered"});
-    _forwardDemodulation.description=
-    "Oriented rewriting of newly derived clauses by kept unit equalities\n"
-    "s = t     L[sθ] \\/ C\n"
-    "---------------------  where sθ > tθ\n"
-    " L[tθ] \\/ C\n"
-    "If 'preordered' is set, only equalities s = t where s > t are used for rewriting.";
-    _lookup.insert(&_forwardDemodulation);
-    _forwardDemodulation.tag(OptionTag::INFERENCES);
-    _forwardDemodulation.setRandomChoices({"all","all","all","off","preordered"});
+
+	    _condensation = ChoiceOptionValue<Condensation>("condensation","cond",Condensation::OFF,{"fast","off","on"});
+	    _condensation.description=
+		     "Perform condensation. If 'fast' is specified, we only perform condensations that are easy to check for.";
+	    _lookup.insert(&_condensation);
+	    _condensation.tag(OptionTag::INFERENCES);
+	    _condensation.reliesOn(_saturationAlgorithm.is(notEqual(SaturationAlgorithm::INST_GEN))->Or<Condensation>(_instGenWithResolution.is(equal(true))));
+	    //_condensation.reliesOn(_saturationAlgorithm.is(notEqual(SaturationAlgorithm::TABULATION)));
+	    _condensation.setRandomChoices({"on","off","fast"});
+
+	    _demodulationRedundancyCheck = BoolOptionValue("demodulation_redundancy_check","drc",true);
+	    _demodulationRedundancyCheck.description=
+		     "Avoids the following cases of backward and forward demodulation, as they do not preserve completeness:\n"
+		     "s = t     s = t1 \\/ C \t s = t     s != t1 \\/ C\n"
+
+		     "--------------------- \t ---------------------\n"
+		     "t = t1 \\/ C \t\t t != t1 \\/ C\n"
+		     "where t > t1 and s = t > C (RHS replaced)";
+	    _lookup.insert(&_demodulationRedundancyCheck);
+	    _demodulationRedundancyCheck.tag(OptionTag::INFERENCES);
+	    _demodulationRedundancyCheck.reliesOn(_saturationAlgorithm.is(notEqual(SaturationAlgorithm::INST_GEN))->Or<bool>(_instGenWithResolution.is(equal(true))));
+	    _demodulationRedundancyCheck.addProblemConstraint(hasEquality());
+	    _demodulationRedundancyCheck.setRandomChoices({"on","off"});
+
+	    
+	    _extensionalityAllowPosEq = BoolOptionValue( "extensionality_allow_pos_eq","",false);
+	    _extensionalityAllowPosEq.description="If extensionality resolution equals filter, this dictates"
+	      " whether we allow other positive equalities when recognising extensionality clauses";
+	    _lookup.insert(&_extensionalityAllowPosEq);
+	    _extensionalityAllowPosEq.tag(OptionTag::INFERENCES);
+	    _extensionalityAllowPosEq.reliesOn(_extensionalityResolution.is(equal(ExtensionalityResolution::FILTER)));
+	    _extensionalityAllowPosEq.setRandomChoices({"on","off","off"}); // Prefer off
+	    
+	    _extensionalityMaxLength = UnsignedOptionValue("extensionality_max_length","",0);
+	    _extensionalityMaxLength.description="Sets the maximum length (number of literals) an extensionality"
+	      " clause can have when doing recognition for extensionality resolution. If zero there is no maximum.";
+	    _lookup.insert(&_extensionalityMaxLength);
+	    _extensionalityMaxLength.tag(OptionTag::INFERENCES);
+	    // 0 means infinity, so it is intentionally not if (unsignedValue < 2).
+	    _extensionalityMaxLength.addConstraint(notEqual(1u));
+	    _extensionalityMaxLength.reliesOn(_extensionalityResolution.is(notEqual(ExtensionalityResolution::OFF)));
+	    //TODO does this depend on anything?
+	    _extensionalityMaxLength.setRandomChoices({"0","0","0","2","3"}); // TODO what are good values?
+	    
+	    _extensionalityResolution = ChoiceOptionValue<ExtensionalityResolution>("extensionality_resolution","er",
+										    ExtensionalityResolution::OFF,{"filter","known","tagged","off"});
+	    _extensionalityResolution.description=
+	      "Turns on the following inference rule:\n"
+	      "  x=y \\/ C    s != t \\/ D\n"
+	      "  -----------------------\n"
+	      "  C{x → s, y → t} \\/ D\n"
+	      "Where s!=t is selected in s!=t \\/D and x=y \\/ C is a recognised as an extensionality clause - how clauses are recognised depends on the value of this option.\n"
+	      "If filter we attempt to recognise all extensionality clauses i.e. those that have exactly one X=Y, no inequality of the same sort as X-Y (and optionally no equality except X=Y, see extensionality_allow_pos_eq).\n" 
+	      "If known we only recognise a known set of extensionality clauses. At the moment this includes the standard and subset-based formulations of the set extensionality axiom, as well as the array extensionality axiom.\n"
+	      "If tagged we only use formulas tagged as extensionality clauses.";
+	    _lookup.insert(&_extensionalityResolution);
+	    _extensionalityResolution.tag(OptionTag::INFERENCES);
+	    // Captures that if ExtensionalityResolution is not off then inequality splitting must be 0
+	    _extensionalityResolution.reliesOn(_inequalitySplitting.is(equal(0)));
+	    _extensionalityResolution.setRandomChoices({"filter","known","off","off"});
+
+	    _FOOLOrdering = BoolOptionValue("fool_ordering","foolo",false);
+	    _FOOLOrdering.description="Sets term ordering to be $$false < $$true < everything else";
+	    _lookup.insert(&_FOOLOrdering);
+	    _FOOLOrdering.tag(OptionTag::SATURATION);
+
+	    _FOOLParamodulation = BoolOptionValue("fool_paramodulation","foolp",false);
+	    _FOOLParamodulation.description=
+	      "Turns on the following inference rule:\n"
+	      "        C[s]\n"
+	      "--------------------,\n"
+	      "C[true] \\/ s = false\n"
+	      "where s is a boolean term that is not a variable, true or false, C[true] is "
+	      "the C clause with s substituted by true. This rule is needed for effecient "
+	      "treatment of boolean terms.";
+	    _lookup.insert(&_FOOLParamodulation);
+	    _FOOLParamodulation.tag(OptionTag::INFERENCES);
+
+	    _forwardDemodulation = ChoiceOptionValue<Demodulation>("forward_demodulation","fd",Demodulation::ALL,{"all","off","preordered"});
+	    _forwardDemodulation.description=
+	    "Oriented rewriting of newly derived clauses by kept unit equalities\n"
+	    "s = t     L[sθ] \\/ C\n"
+	    "---------------------  where sθ > tθ\n"
+	    " L[tθ] \\/ C\n"
+	    "If 'preordered' is set, only equalities s = t where s > t are used for rewriting.";
+	    _lookup.insert(&_forwardDemodulation);
+	    _forwardDemodulation.tag(OptionTag::INFERENCES);
+	    _forwardDemodulation.setRandomChoices({"all","all","all","off","preordered"});
     
     _forwardLiteralRewriting = BoolOptionValue("forward_literal_rewriting","flr",false);
     _forwardLiteralRewriting.description="Perform forward literal rewriting.";
@@ -866,6 +902,12 @@ void Options::Options::init()
     "Generating inference that attempts to do several rewritings at once if it will eliminate literals of the original clause (now we aim just for elimination by equality resolution)";
     _lookup.insert(&_hyperSuperposition);
     _hyperSuperposition.tag(OptionTag::INFERENCES);
+
+    _innerRewriting = BoolOptionValue("inner_rewriting","irw",false);
+    _innerRewriting.description="C[t_1] | t1 != t2 ==> C[t_2] | t1 != t2 when t1>t2";
+    _lookup.insert(&_innerRewriting);
+    _innerRewriting.tag(OptionTag::INFERENCES);
+    _innerRewriting.setExperimental();
 
     _unitResultingResolution = ChoiceOptionValue<URResolution>("unit_resulting_resolution","urr",URResolution::OFF,{"ec_only","off","on"});
     _unitResultingResolution.description=
@@ -973,7 +1015,9 @@ void Options::Options::init()
 
     _instGenSelection = SelectionOptionValue("inst_gen_selection","igs",0);
     _instGenSelection.description=
-    "Selection function for InstGen. This is applied *after* model-based selection is applied. We don't have the functions 11 and 1011 yet (as it would need special treatment for the look-ahead)";
+    "Selection function for InstGen. This is applied *after* model-based selection is applied. "
+    "For consistency the value 1011 is used to denote look-ahead selection.";
+    _instGenSelection.addHardConstraint(notEqual(11)); // Use 1011 for look-ahead in InstGen instead.
     _lookup.insert(&_instGenSelection);
     _instGenSelection.tag(OptionTag::INST_GEN);
     _instGenSelection.reliesOn(_saturationAlgorithm.is(equal(SaturationAlgorithm::INST_GEN)));
@@ -1234,7 +1278,7 @@ void Options::Options::init()
     _satRestartStrategy.tag(OptionTag::SAT);
     _satRestartStrategy.setExperimental();
 
-    _satSolver = ChoiceOptionValue<SatSolver>("sat_solver","sas",SatSolver::VAMPIRE,
+    _satSolver = ChoiceOptionValue<SatSolver>("sat_solver","sas",SatSolver::MINISAT,
 #if VZ3
             {"lingeling","minisat","vampire","z3"});
 #else
@@ -1252,6 +1296,13 @@ void Options::Options::init()
 #endif
 
 #if VZ3
+    _satFallbackForSMT = BoolOptionValue("sat_fallback_for_smt","sffsmt",false);
+    _satFallbackForSMT.description="If using z3 run a sat solver alongside to use if the smt"
+       " solver returns unknown at any point";
+    _lookup.insert(&_satFallbackForSMT);
+    _satFallbackForSMT.tag(OptionTag::SAT);
+    _satFallbackForSMT.reliesOn(_satSolver.is(equal(SatSolver::Z3)));
+
     _z3UnsatCores = BoolOptionValue("z3_unsat_core","z3uc",false);
     _z3UnsatCores.description=""; 
     _lookup.insert(&_z3UnsatCores);
@@ -2653,7 +2704,7 @@ bool Options::complete(const Problem& prb) const
 
   if (!hasEquality) {
     if (_binaryResolution.actualValue) return true;
-    if (_unitResultingResolution.actualValue==URResolution::EC_ONLY) return false;
+    if (_unitResultingResolution.actualValue!=URResolution::ON) return false;
     // binary resolution is off
     return prop.category() == Property::HNE; // URR is complete for Horn problems
   }

@@ -96,11 +96,18 @@ XFLAGS = $(REL_FLAGS) -DIS_LINGVA=0 $(GCOV_FLAGS) $(Z3FLAG)
 MINISAT_FLAGS = $(MINISAT_REL_FLAGS)
 endif
 
+OS = $(shell uname)
+ifeq ($(OS),Darwin)
+STATIC = -static-libgcc -static-libstdc++ 
+else
+STATIC = -static
+endif
+
 ifneq (,$(filter %_dbg_static,$(MAKECMDGOALS)))
-XFLAGS = -static $(DBG_FLAGS) -DIS_LINGVA=0  $(Z3FLAG)
+XFLAGS = $(STATIC) $(DBG_FLAGS) -DIS_LINGVA=0  $(Z3FLAG)
 endif
 ifneq (,$(filter %_rel_static,$(MAKECMDGOALS)))
-XFLAGS = -static $(REL_FLAGS) -DIS_LINGVA=0 $(Z3FLAG)
+XFLAGS = $(STATIC) $(REL_FLAGS) -DIS_LINGVA=0 $(Z3FLAG)
 MINISAT_FLAGS = $(MINISAT_REL_FLAGS)
 endif
 
@@ -266,6 +273,7 @@ VINF_OBJ=Inferences/BackwardDemodulation.o\
          Inferences/ForwardSubsumptionAndResolution.o\
          Inferences/GlobalSubsumption.o\
          Inferences/HyperSuperposition.o\
+         Inferences/InnerRewriting.o\
          Inferences/InferenceEngine.o\
 	 Inferences/Instantiation.o\
          Inferences/InterpretedEvaluation.o\
@@ -291,7 +299,8 @@ VSAT_OBJ=SAT/ClauseDisposer.o\
 	 SAT/Z3Interfacing.o\
          SAT/lglib.o\
          SAT/lglopts.o\
-	 SAT/BufferedSolver.o
+	 SAT/BufferedSolver.o\
+	 SAT/FallbackSolverWrapper.o
 #         SAT/ISSatSweeping.o\	 
 #         SAT/SATClauseSharing.o\
 #         SAT/TransparentSolver.o\
@@ -302,6 +311,7 @@ VST_OBJ= Saturation/AWPassiveClauseContainer.o\
          Saturation/ConsequenceFinder.o\
          Saturation/Discount.o\
          Saturation/ExtensionalityClauseContainer.o\
+	 Saturation/LabelFinder.o\
          Saturation/Limits.o\
          Saturation/LRS.o\
          Saturation/Otter.o\
@@ -412,7 +422,10 @@ VTAB_OBJ = Tabulation/Producer.o\
 
 VFMB_OBJ = FMB/ClauseFlattening.o\
            FMB/SortInference.o\
+	   FMB/Monotonicity.o\
+	   FMB/FunctionRelationshipInference.o\
 	   FMB/FiniteModel.o\
+	   FMB/FiniteModelMultiSorted.o\
            FMB/FiniteModelBuilder.o
 
 TRANSLATOR_OBJ = \
@@ -521,7 +534,7 @@ VLTB_DEP = $(VAMP_BASIC) $(LTB_OBJ) Global.o vltb.o
 VCLAUSIFY_DEP = $(VCLAUSIFY_BASIC) Global.o vclausify.o
 VUTIL_DEP = $(VAMP_BASIC) $(CASC_OBJ) $(VUTIL_OBJ) Global.o vutil.o
 VSAT_DEP = $(VSAT_BASIC) Global.o vsat.o
-VTEST_DEP = $(VAMP_BASIC) $(API_OBJ) $(VT_OBJ) $(VUT_OBJ) $(DP_OBJ) $(VPROG_OBJ) Global.o vtest.o
+VTEST_DEP = $(VAMP_BASIC)  $(VT_OBJ) $(VUT_OBJ) $(DP_OBJ) $(VPROG_OBJ) Global.o vtest.o
 LIBVAPI_DEP = $(VD_OBJ) $(API_OBJ) $(VCLAUSIFY_BASIC) Global.o
 VAPI_DEP =  $(LIBVAPI_DEP) test_vapi.o
 #UCOMPIT_OBJ = $(VCOMPIT_BASIC) Global.o compit2.o compit2_impl.o

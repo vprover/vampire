@@ -242,7 +242,7 @@ HalfEquiv operator-(const FormBlock& r)
 };
 
 TermBlock AxiomGenerator::idiv(TermBlock arg1, TermBlock arg2)
-{ return fun2(Theory::INT_DIVIDE, arg1, arg2); }
+{ return fun2(Theory::INT_QUOTIENT_E, arg1, arg2); }
 
 FormBlock AxiomGenerator::igt(TermBlock arg1, TermBlock arg2)
 { return pred2(Theory::INT_GREATER, true, arg1, arg2); }

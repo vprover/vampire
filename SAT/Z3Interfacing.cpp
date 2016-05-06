@@ -169,7 +169,7 @@ SATSolver::VarAssignment Z3Interfacing::getAssignment(unsigned var)
   ASS_EQ(_status,SATISFIABLE);
 
   z3::expr rep = getRepresentation(SATLiteral(var,1));
-  z3::expr assignment = _model.eval(rep);
+  z3::expr assignment = _model.eval(rep,true /*model_completion*/);
   //cout << "ass is " << assignment << endl;
 
 
@@ -181,6 +181,10 @@ SATSolver::VarAssignment Z3Interfacing::getAssignment(unsigned var)
   //cout << "returning false for " << var << endl;
     return FALSE;
   }
+
+  // with model_completion true (see above), there should be no don't cares!
+
+  ASSERTION_VIOLATION;
 
   //cout << "returning don't care for " << var << endl;
   return DONT_CARE;
@@ -310,7 +314,8 @@ z3::expr Z3Interfacing::getz3expr(Term* trm,bool isLit)
         case Sorts::SRT_REAL:
           return _context.real_val(symb->name().c_str());
         default:
-          ASSERTION_VIOLATION;
+          ;
+          // intentional fallthrough; the input is fof (and not tff), so let's just treat this as a constant
         }
       }
 
@@ -386,6 +391,7 @@ z3::expr Z3Interfacing::getz3expr(Term* trm,bool isLit)
           ret = args[0] + args[1];
           break;
 
+        // Don't really need as it's preprocessed away
         case Theory::INT_MINUS:
         case Theory::RAT_MINUS:
         case Theory::REAL_MINUS:
@@ -398,21 +404,17 @@ z3::expr Z3Interfacing::getz3expr(Term* trm,bool isLit)
           ret = args[0] * args[1];
           break;
 
-        // Not sure of rounding in these cases
-        //case Theory::INT_DIVIDE: //TODO check that they are the same
-        //case Theory::RAT_DIVIDE:
-        //case Theory::REAL_DIVIDE:
-        //  ret= args[0] / args[1];
-        //  break;
-
         // No int quotient
         case Theory::RAT_QUOTIENT:
         case Theory::REAL_QUOTIENT:
-        case Theory::INT_QUOTIENT_E: // this is how their header translates _e
-        case Theory::RAT_QUOTIENT_E: // I assume the built-in division does this
-        case Theory::REAL_QUOTIENT_E: // euclidian rounding as default
+        case Theory::INT_QUOTIENT_E: 
           ret= args[0] / args[1];
           break;
+
+        // The z3 header must be wrong
+        //case Theory::RAT_QUOTIENT_E: 
+        //case Theory::REAL_QUOTIENT_E: 
+           //TODO
 
         case Theory::RAT_TO_INT:
         case Theory::REAL_TO_INT:

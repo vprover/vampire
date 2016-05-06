@@ -26,10 +26,9 @@
 /** Page size in bytes */
 #define VPAGE_SIZE 131000
 /** maximal size of allocated multi-page (in pages) */
-//TODO: increased as needed by dis+1_3_bs=off_ep=RST_fsr=off_fde=none_lcm=kinky_nwc=1.2_1200 BOO046-1
 //#define MAX_PAGES 4096
 //#define MAX_PAGES 8192
-#define MAX_PAGES 32768
+#define MAX_PAGES 40000
 /** Any memory piece of this or larger size will be allocated as a page
  *  or contiguous sequence of pages */
 #define REQUIRES_PAGE (VPAGE_SIZE/2)
@@ -166,6 +165,13 @@ private:
 
 #if VDEBUG
 public:
+  /** A helper struct used for implementing the BYPASSING_ALLOCATOR macro. */
+  struct EnableBypassChecking {
+    unsigned _save;
+    EnableBypassChecking() { _save = _tolerantZone; }
+    ~EnableBypassChecking() { _tolerantZone = _save; }
+  };
+
   /** A helper struct used for implementing the BYPASSING_ALLOCATOR macro. */  
   struct AllowBypassing {
     AllowBypassing() { _tolerantZone++; }
@@ -384,6 +390,9 @@ std::ostream& operator<<(std::ostream& out, const Allocator::Descriptor& d);
          
 #define BYPASSING_ALLOCATOR_(SEED) Allocator::AllowBypassing _tmpBypass_##SEED;
 #define BYPASSING_ALLOCATOR BYPASSING_ALLOCATOR_(__LINE__)
+
+#define START_CHECKING_FOR_BYPASSES(SEED) Allocator::EnableBypassChecking _tmpBypass_##SEED;
+#define START_CHECKING_FOR_ALLOCATOR_BYPASSES START_CHECKING_FOR_BYPASSES(__LINE__)
      
 #else
 
@@ -412,6 +421,7 @@ std::ostream& operator<<(std::ostream& out, const Allocator::Descriptor& d);
 #define DEALLOC_UNKNOWN(obj,className)		         \
   (Lib::Allocator::current->deallocateUnknown(obj))
 
+#define START_CHECKING_FOR_ALLOCATOR_BYPASSES
 #define BYPASSING_ALLOCATOR
      
 #endif

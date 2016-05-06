@@ -115,6 +115,10 @@ void Formula::destroy ()
     delete this;
     return;
 
+  case NAME:
+    delete static_cast<NamedFormula*>(this);
+    return;
+
 #if VDEBUG
   default:
     ASSERTION_VIOLATION;
@@ -228,7 +232,7 @@ void Formula::destroy ()
 vstring Formula::toString (Connective c)
 {
   static vstring names [] =
-    { "", "&", "|", "=>", "<=>", "<~>", "~", "!", "?", "$var", "$false", "$true", ""};
+    { "", "&", "|", "=>", "<=>", "<~>", "~", "!", "?", "$var", "$false", "$true", "",""};
   ASS_EQ(sizeof(names)/sizeof(vstring), NOCONN+1);
 
   return names[(int)c];
@@ -278,6 +282,9 @@ vstring Formula::toString(const Formula* formula)
 
     Connective c = f->connective();
     switch (c) {
+    case NAME:
+      res += static_cast<const NamedFormula*>(f)->name();
+      continue;
     case LITERAL:
       res += f->literal()->toString();
       continue;
@@ -410,6 +417,7 @@ bool Formula::parenthesesRequired (Connective outer) const
     case BOOL_TERM:
     case TRUE:
     case FALSE:
+    case NAME:
       return false;
 
     case OR:

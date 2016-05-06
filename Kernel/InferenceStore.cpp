@@ -20,6 +20,8 @@
 
 #include "Parse/TPTP.hpp"
 
+#include "Saturation/Splitter.hpp"
+
 #include "Signature.hpp"
 #include "Clause.hpp"
 #include "Formula.hpp"
@@ -92,6 +94,14 @@ void InferenceStore::recordIntroducedSymbol(Unit* u, bool func, unsigned number)
   pStack->push(SymbolId(func,number));
 }
 
+/**
+ * Record the introduction of a split name
+ */
+void InferenceStore::recordIntroducedSplitName(Unit* u, vstring name)
+{
+  CALL("InferenceStore::recordIntroducedSplitName");
+  ALWAYS(_introducedSplitNames.insert(u->number(),name));
+}
 
 /**
  * Get the parents of unit represented by us and fill in the rule used to generate this unit
@@ -135,7 +145,7 @@ UnitIterator InferenceStore::getParents(Unit* us)
 }
 
 /**
- * Return @b inner quentified over variables in @b vars
+ * Return @b inner quantified over variables in @b vars
  *
  * It is caller's responsibility to ensure that variables in @b vars are unique.
  */
@@ -303,7 +313,7 @@ protected:
 
       out << cl->literalsOnlyToString() << " ";
       if (cl->splits() && !cl->splits()->isEmpty()) {
-        out << " {" << cl->splits()->toString() << "} ";
+        out << "<- {" << cl->splits()->toString() << "} ";
       }
       if(proofExtra){
         out << "("<<cl->age()<<':'<<cl->weight();
@@ -398,8 +408,7 @@ struct InferenceStore::TPTPProofPrinter
   
   TPTPProofPrinter(ostream& out, InferenceStore* is)
   : ProofPrinter(out, is) {
-    unsigned spl = env.signature->addFreshFunction(0,"spl");
-    splitPrefix = env.signature->functionName(spl);
+    splitPrefix = Saturation::Splitter::splPrefix; 
   }
 
 protected:
@@ -448,12 +457,12 @@ protected:
     ASS_G(splits->size(),0);
 
     if (splits->size()==1) {
-      return splitPrefix+"_"+Int::toString(splits->sval());
+      return "~"+splitPrefix+Int::toString(splits->sval());
     }
     SplitSet::Iterator sit(*splits);
     vstring res("(");
     while(sit.hasNext()) {
-      res+=splitPrefix+"_"+Int::toString(sit.next());
+      res+= "~"+splitPrefix+Int::toString(sit.next());
       if (sit.hasNext()) {
 	res+=" | ";
       }
@@ -508,6 +517,9 @@ protected:
     CALL("InferenceStore::TPTPProofPrinter::hasNewSymbols");
     bool res = _is->_introducedSymbols.find(u->number());
     ASS(!res || _is->_introducedSymbols.get(u->number()).isNonEmpty());
+    if(!res){
+      res = _is->_introducedSplitNames.find(u->number());
+    }
     return res;
   }
   vstring getNewSymbols(vstring origin, vstring symStr) {
@@ -538,6 +550,10 @@ protected:
     CALL("InferenceStore::TPTPProofPrinter::getNewSymbols(vstring,Unit*)");
     ASS(hasNewSymbols(u));
 
+    if(_is->_introducedSplitNames.find(u->number())){
+      return getNewSymbols(origin,_is->_introducedSplitNames.get(u->number()));
+    }
+
     SymbolStack& syms = _is->_introducedSymbols.get(u->number());
     return getNewSymbols(origin, SymbolStack::ConstIterator(syms));
   }
@@ -550,9 +566,9 @@ protected:
     UnitIterator parents=_is->getParents(us, rule);
 
     switch(rule) {
-    case Inference::SAT_SPLITTING_COMPONENT:
-      printSplittingComponentIntroduction(us);
-      return;
+    //case Inference::AVATAR_COMPONENT:
+    //  printSplittingComponentIntroduction(us);
+    //  return;
     case Inference::GENERAL_SPLITTING_COMPONENT:
       printGeneralSplittingComponent(us);
       return;
@@ -724,7 +740,7 @@ protected:
     ASS(cl->splits());
     ASS_EQ(cl->splits()->size(),1);
 
-    Inference::Rule rule=Inference::SAT_SPLITTING_COMPONENT;
+    Inference::Rule rule=Inference::AVATAR_COMPONENT;
 
     vstring defId=tptpDefId(us);
     vstring splitPred = splitsToString(cl->splits());

@@ -49,7 +49,6 @@ Environment::Environment()
     property(0),
     clausePriorities(0),
     maxClausePriority(1),
-    ordering(0),
     colorUsed(false),
     _outputDepth(0),
     _priorityOutput(0),

@@ -536,11 +536,11 @@ public:
       return isNonEmpty(_lst);
     }
 
-    inline void reset(List* l) { _lst = l; }
+    inline void reset(const List* l) { _lst = l; }
 
    private:
     /** the rest of the list */
-    List* _lst;
+    const List* _lst;
   };
 
   /** iterator over references to list elements */

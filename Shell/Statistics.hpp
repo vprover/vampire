@@ -123,6 +123,10 @@ public:
   unsigned evaluations;
   /** number of interpreted simplifications */
   unsigned interpretedSimplifications;
+  /** number of (proper) inner rewrites */
+  unsigned innerRewrites;
+  /** number of inner rewrites into equational tautologies */
+  unsigned innerRewritesToEqTaut;
 
   // Deletion inferences
   /** number of tautologies A \/ ~A */
@@ -145,6 +149,10 @@ public:
   unsigned extensionalityClauses;
 
   unsigned discardedNonRedundantClauses;
+
+  unsigned inferencesBlockedForOrderingAftercheck;
+
+  bool smtReturnedUnknown;
 
   unsigned inferencesSkippedDueToColors;
 
@@ -172,6 +180,8 @@ public:
 
   unsigned satSplits;
   unsigned satSplitRefutations;
+
+  unsigned smtFallbacks;
 
   /** Lingeling statistics*/
   /** Count the number of assumptions that are added to Lingeling */
@@ -298,6 +308,8 @@ public:
     SAT_UNSATISFIABLE,
     /** saturation terminated but an incomplete strategy was used */
     REFUTATION_NOT_FOUND,
+    /** inappropriate strategy **/
+    INAPPROPRIATE, 
     /** unknown termination reason */
     UNKNOWN,
     /** time limit reached */

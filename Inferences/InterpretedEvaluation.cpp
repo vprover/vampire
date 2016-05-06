@@ -55,7 +55,13 @@ bool InterpretedEvaluation::simplifyLiteral(Literal* lit,
     return false;
   }
 
-  return _simpl->evaluate(lit, constant, res, constantTrue,sideConditions);
+  bool okay = _simpl->evaluate(lit, constant, res, constantTrue,sideConditions);
+
+  //if(okay && lit!=res){
+  //  cout << "evaluate " << lit->toString() << " to " << res->toString() << endl;
+  //}
+
+  return okay;
 }
 
 Clause* InterpretedEvaluation::simplify(Clause* cl)
@@ -63,6 +69,9 @@ Clause* InterpretedEvaluation::simplify(Clause* cl)
   CALL("InterpretedEvaluation::perform");
 
   TimeCounter tc(TC_INTERPRETED_EVALUATION);
+
+  // do not evaluate theory axioms
+  if(cl->inference()->rule()==Inference::THEORY) return cl;
 
   static DArray<Literal*> newLits(32);
   unsigned clen=cl->length();
@@ -82,6 +91,7 @@ Clause* InterpretedEvaluation::simplify(Clause* cl)
     modified=true;
     if(constant) {
       if(constTrue) {
+        //cout << "evaluate " << cl->toString() << " to true" << endl;
 	env.statistics->evaluations++;
 	return 0;
       } else {
@@ -108,6 +118,8 @@ Clause* InterpretedEvaluation::simplify(Clause* cl)
 
   res->setAge(cl->age());
   env.statistics->evaluations++;
+
+  //cout << "evaluated " << cl->toString() << " to " << res->toString() << endl;
 
   return res;
 }

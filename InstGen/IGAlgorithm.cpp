@@ -52,6 +52,8 @@ namespace InstGen
 using namespace Indexing;
 using namespace Saturation;
 
+static const int LOOKAHEAD_SELECTION = 1011;
+
 IGAlgorithm::IGAlgorithm(Problem& prb,const Options& opt)
 : MainLoop(prb, opt),
     _instGenResolutionRatio(opt.instGenResolutionRatioInstGen(),
@@ -64,7 +66,7 @@ IGAlgorithm::IGAlgorithm(Problem& prb,const Options& opt)
 
   _ordering = OrderingSP(Ordering::create(prb, opt));
 
-  if (opt.instGenSelection() == 11) {
+  if (opt.instGenSelection() == LOOKAHEAD_SELECTION) {
     _doLookahead = true;
   } else {
     _doLookahead = false;
@@ -523,14 +525,12 @@ unsigned IGAlgorithm::lookaheadSelection(Clause* cl, unsigned selCnt)
   }
 
   // UPDATE THE SELECTION
-  bool modified = false;
   unsigned selIdx = 0;
 
   // for now, take all the tied ones
   for (unsigned i=0; i < candidates.size(); i++) {
     unsigned idx = candidates[i];
     if(selIdx!=idx) {
-      modified = true;
       swap((*cl)[idx], (*cl)[selIdx]);
     }
     selIdx++;
@@ -636,6 +636,7 @@ void IGAlgorithm::doResolutionStep()
       throw;
     case Statistics::REFUTATION_NOT_FOUND:
     case Statistics::UNKNOWN:
+    case Statistics::INAPPROPRIATE:
     case Statistics::TIME_LIMIT:
     case Statistics::MEMORY_LIMIT:
       //refutation algorithm finished, we just get rid of it

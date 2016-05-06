@@ -299,10 +299,10 @@ TEST_FUN(testSolvingUnderAssumptions)
   TWLSolver sTWL(*env.options,true);
   testAssumptions(sTWL);
 
-  cout << endl << "Z3" << endl;
+  /*cout << endl << "Z3" << endl;
   {
     SAT2FO sat2fo;
     Z3Interfacing sZ3(*env.options,sat2fo,true);
     testAssumptions(sZ3);
-  }
+  }*/
 }
