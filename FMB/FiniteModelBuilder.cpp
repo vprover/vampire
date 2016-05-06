@@ -85,18 +85,28 @@ FiniteModelBuilder::FiniteModelBuilder(Problem& prb, const Options& opt)
   _partiallyDeletedPredicates.loadFromMap(prb.getPartiallyEliminatedPredicates());
   _trivialPredicates.loadFromMap(prb.trivialPredicates());
 
-  _xmass = opt.fmbXmass();
-  _sizeWeightRatio = opt.fmbSizeWeightRatio();
-
+  switch(opt.fmbEnumerationStrategy()) {
+    case Options::FMBEnumerationStrategy::SBMEAM:
+      _dsaEnumerator = new HackyDSAE();
+      _xmass = false;
+      break;
 #if VZ3
-  if (opt.fmbSmtEnumeration()) {
-    BYPASSING_ALLOCATOR;
+    case Options::FMBEnumerationStrategy::SMT:
+      {
+        BYPASSING_ALLOCATOR;
 
-    _dsaEnumerator = new SmtBasedDSAE();
-  } else
+        _dsaEnumerator = new SmtBasedDSAE();
+      }
+      _xmass = false;
+      break;
 #endif
-  {
-    _dsaEnumerator = new HackyDSAE();
+    case Options::FMBEnumerationStrategy::CONTOUR:
+      _dsaEnumerator = 0;
+      _xmass = true;
+      _sizeWeightRatio = opt.fmbSizeWeightRatio();
+      break;
+    default:
+      ASSERTION_VIOLATION;
   }
 }
 

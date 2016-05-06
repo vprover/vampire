@@ -233,6 +233,13 @@ public:
     INFER,
     EXPAND
   };
+  enum class FMBEnumerationStrategy : unsigned int {
+    SBMEAM,
+#if VZ3
+    SMT,
+#endif
+    CONTOUR
+  };
 
   enum class RandomStrategy : unsigned int {
     ON,
@@ -1660,8 +1667,8 @@ public:
   unsigned fmbDetectSortBoundsTimeLimit() const { return _fmbDetectSortBoundsTimeLimit.actualValue; }
   unsigned fmbSizeWeightRatio() const { return _fmbSizeWeightRatio.actualValue; }
   FMBSortInference fmbSortInference() const { return _fmbSortInference.actualValue; }
+  FMBEnumerationStrategy fmbEnumerationStrategy() const { return _fmbEnumerationStrategy.actualValue; }
   void setFMBSortInference(FMBSortInference v){ _fmbSortInference.actualValue=v; }
-  bool fmbXmass() const { return _fmbXmass.actualValue; }
 
   bool flattenTopLevelConjunctions() const { return _flattenTopLevelConjunctions.actualValue; }
   LTBLearning ltbLearning() const { return _ltbLearning.actualValue; }
@@ -1704,7 +1711,6 @@ public:
   bool showZ3() const { return _showZ3.actualValue; }
   bool z3UnsatCores() const { return _z3UnsatCores.actualValue;}
   bool satFallbackForSMT() const { return _satFallbackForSMT.actualValue; }
-  bool fmbSmtEnumeration() const { return _fmbSmtEnumeration.actualValue; }
 #endif
   bool unusedPredicateDefinitionRemoval() const { return _unusedPredicateDefinitionRemoval.actualValue; }
   void setUnusedPredicateDefinitionRemoval(bool newVal) { _unusedPredicateDefinitionRemoval.actualValue = newVal; }
@@ -2051,7 +2057,7 @@ private:
   UnsignedOptionValue _fmbDetectSortBoundsTimeLimit;
   UnsignedOptionValue _fmbSizeWeightRatio;
   ChoiceOptionValue<FMBSortInference> _fmbSortInference;
-  BoolOptionValue _fmbXmass;
+  ChoiceOptionValue<FMBEnumerationStrategy> _fmbEnumerationStrategy;
 
   BoolOptionValue _flattenTopLevelConjunctions;
   StringOptionValue _forbiddenOptions;
@@ -2178,7 +2184,6 @@ private:
   BoolOptionValue _showZ3;
   BoolOptionValue _z3UnsatCores;
   BoolOptionValue _satFallbackForSMT;
-  BoolOptionValue _fmbSmtEnumeration;
 #endif
   TimeLimitOptionValue _simulatedTimeLimit;
   UnsignedOptionValue _sineDepth;

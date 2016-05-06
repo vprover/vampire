@@ -647,11 +647,6 @@ void Options::Options::init()
     _fmbDetectSortBoundsTimeLimit.setExperimental();
     _lookup.insert(&_fmbDetectSortBoundsTimeLimit);
 
-    _fmbXmass = BoolOptionValue("fmb_contour_encoding","fmbxmass",false);
-    _fmbXmass.description="Apply the alternative countour encoding where sort sizes are never decreased. See SAT paper for explanation.";
-    _fmbXmass.setExperimental();
-    _lookup.insert(&_fmbXmass);
-
     _fmbSizeWeightRatio = UnsignedOptionValue("fmb_size_weight_ratio","fmbswr",1);
     _fmbSizeWeightRatio.description = "Controls the priority the next sort size vector is given based on a ratio. 0 is size only, 1 means 1:1, 2 means 1:2, etc.";
     _fmbSizeWeightRatio.setExperimental();
@@ -662,12 +657,14 @@ void Options::Options::init()
     _fmbSortInference.setExperimental();
     _lookup.insert(&_fmbSortInference);
 
+    _fmbEnumerationStrategy = ChoiceOptionValue<FMBEnumerationStrategy>("fmb_enumeration_strategy","fmbes",FMBEnumerationStrategy::SBMEAM,{"sbeam",
 #if VZ3
-    _fmbSmtEnumeration = BoolOptionValue("fmb_smt_enumeration","fmbsmte",true);
-    _fmbSmtEnumeration.description = "";
-    _fmbSmtEnumeration.setExperimental();
-    _lookup.insert(&_fmbSmtEnumeration);
+        "smt",
 #endif
+        "contour"});
+    _fmbEnumerationStrategy.description = "How model sizes assignments are enumerated in the multi-sorted setting. (Only smt and contour are known to be finite model complete and can therefore return UNSAT.)";
+    _fmbEnumerationStrategy.setExperimental();
+    _lookup.insert(&_fmbEnumerationStrategy);
 
     _selection = SelectionOptionValue("selection","s",10);
     _selection.description=
