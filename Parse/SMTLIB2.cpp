@@ -802,7 +802,7 @@ void SMTLIB2::readDefineFun(const vstring& name, LExprList* iArgs, LExpr* oSort,
 
   Formula* fla = new AtomicFormula(Literal::createEquality(true,lhs,rhs,rangeSort));
 
-  FormulaUnit* fu = new FormulaUnit(fla, new Inference(Inference::INPUT), Unit::AXIOM);
+  FormulaUnit* fu = new FormulaUnit(fla, new Inference(Inference::INPUT), Unit::ASSUMPTION);
 
   UnitList::push(fu, _formulas);
 }
@@ -1965,7 +1965,7 @@ void SMTLIB2::readAssert(LExpr* body)
     USER_ERROR("Asserted expression of non-boolean sort "+body->toString());
   }
 
-  FormulaUnit* fu = new FormulaUnit(fla, new Inference(Inference::INPUT), Unit::AXIOM);
+  FormulaUnit* fu = new FormulaUnit(fla, new Inference(Inference::INPUT), Unit::ASSUMPTION);
 
   UnitList::push(fu, _formulas);
 }
