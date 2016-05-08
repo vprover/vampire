@@ -400,6 +400,7 @@ LTB_OBJ = Shell/LTB/Builder.o\
           Shell/LTB/Storage.o
 
 CASC_OBJ = CASC/CASCMode.o\
+           CASC/CASCMultiMode.o\
            CASC/CLTBMode.o\
            CASC/CMZRMode.o\
            CASC/ForkingCM.o\

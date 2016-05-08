@@ -341,9 +341,8 @@ public:
    */
   enum class Mode : unsigned int {
     AXIOM_SELECTION,
-    //BOUND_PROP,
     CASC,
-    //CASC_LTB,
+    CASC_MULTICORE,
     CASC_SAT,
     SMTCOMP,
     CLAUSIFY,
@@ -351,13 +350,10 @@ public:
     CONSEQUENCE_ELIMINATION,
     GROUNDING,
     MODEL_CHECK,
-    //LTB_BUILD,
-    //LTB_SOLVE,
     /** this mode only outputs the input problem, without any preprocessing */
     OUTPUT,
     PREPROCESS,
     PROFILE,
-    //PROGRAM_ANALYSIS,   
     RANDOM_STRATEGY,
     SAT, 
     SPIDER,
@@ -1692,6 +1688,7 @@ public:
   bool flattenTopLevelConjunctions() const { return _flattenTopLevelConjunctions.actualValue; }
   LTBLearning ltbLearning() const { return _ltbLearning.actualValue; }
   Mode mode() const { return _mode.actualValue; }
+  unsigned multicore() const { return _multicore.actualValue; }
   InputSyntax inputSyntax() const { return _inputSyntax.actualValue; }
   void setInputSyntax(InputSyntax newVal) { _inputSyntax.actualValue = newVal; }
   bool normalize() const { return _normalize.actualValue; }
@@ -2151,6 +2148,7 @@ private:
   UnsignedOptionValue _maximalPropagatedEqualityLength;
   UnsignedOptionValue _memoryLimit; // should be size_t, making an assumption
   ChoiceOptionValue<Mode> _mode;
+  UnsignedOptionValue _multicore;
 
   StringOptionValue _namePrefix;
   IntOptionValue _naming;

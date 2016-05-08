@@ -85,37 +85,38 @@ void Options::Options::init()
 #endif
 
     _mode = ChoiceOptionValue<Mode>("mode","",Mode::VAMPIRE,
-                                    {"axiom_selection",//"bpa",
-                                        "casc",//"casc_ltb",
+                                    {"axiom_selection",
+                                        "casc",
+                                        "casc_multicore",
                                         "casc_sat",
                                         "smtcomp",
                                         "clausify","clausify_stat",
                                         "consequence_elimination","grounding",
                                         "model_check",
-                                        //"ltb_build","ltb_solve",
                                         "output","preprocess",
                                         "profile",
-                                        //"program_analysis",
                                         "random_strategy",
                                         "sat_solver","spider","vampire"});
     _mode.description=
     "Select the mode of operation. Choices are:\n"
     "  -vampire: the standard mode of operation for first-order theorem proving\n"
-    "  -casc,casc_ltb,casc_sat,: these are all portfolio modes\n   that use predefined "
+    "  -casc,casc_multicore,casc_sat,: these are all portfolio modes\n   that use predefined "
     " sets of strategies in vampire mode.\n"
     "  -preprocess,axiom_select,clausify,grounding: modes for producing output\n   for other solvers.\n"
     "  -output,profile: output information about the problem\n"
     "  -sat_solver: accepts problems in DIMACS and uses the internal sat solver\n   directly\n"
     "Some modes are not currently maintained:\n"
-    //"  -ltb_build,ltb_solve: for Large Theory Batch processing\n"
     "  -program_analysis: run Lingva\n"
     "  -bpa: perform bound propagation\n"
     "  -consequence_elimination: perform consequence elimination\n"
     "  -random_strategy: attempts to randomize the option values\n";
-    //"consequence_elimination mode forces values of unused_predicate_definition_removal to be off";
     _lookup.insert(&_mode);
     _mode.addHardConstraint(If(equal(Mode::CONSEQUENCE_ELIMINATION)).then(_splitting.is(notEqual(true))));
 
+    _multicore = UnsignedOptionValue("cores","",1);
+    _multicore.description = "When running in casc_multicore mode specify the number of cores, set to 0 to use maximum";
+    _lookup.insert(&_multicore);
+    _multicore.addHardConstraint(If(notEqual(1u)).then(_mode.is(equal(Mode::CASC_MULTICORE))));
 
     _ltbLearning = ChoiceOptionValue<LTBLearning>("ltb_learning","ltbl",LTBLearning::OFF,{"on","off","biased"});
     _ltbLearning.description = "Perform learning in LTB mode";

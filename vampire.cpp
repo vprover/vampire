@@ -49,6 +49,7 @@
 
 #include "CASC/CASCMode.hpp"
 #include "SMTCOMP/SMTCOMPMode.hpp"
+#include "CASC/CASCMultiMode.hpp"
 #include "CASC/CLTBMode.hpp"
 #include "CASC/CMZRMode.hpp"
 #include "Shell/CParser.hpp"
@@ -933,6 +934,12 @@ int main(int argc, char* argv[])
     case Options::Mode::CONSEQUENCE_ELIMINATION:
     case Options::Mode::VAMPIRE:
       vampireMode();
+      break;
+    case Options::Mode::CASC_MULTICORE:
+      if (CASC::CASCMultiMode::perform()) {
+        //casc mode succeeded in solving the problem, so we return zero
+        vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
+      }
       break;
     case Options::Mode::CASC:
       if (CASC::CASCMode::perform(argc, argv)) {
