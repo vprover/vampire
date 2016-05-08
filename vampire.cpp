@@ -713,7 +713,7 @@ void spiderMode()
     default:
       ASSERTION_VIOLATION;
     }
-    env.statistics->print(env.out());
+    // env.statistics->print(env.out());
   } else {
     reportSpiderFail();
     explainException(*exception);
