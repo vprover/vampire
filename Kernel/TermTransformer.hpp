@@ -29,8 +29,14 @@ public:
   Literal* transform(Literal* lit);
 protected:
   virtual TermList transformSubterm(TermList trm) = 0;
+  Term* transformSpecial(Term* specialTerm);
+  TermList transform(TermList ts);
+  Formula* transform(Formula* f);
 };
 
+/**
+ * TODO: WTF the name?
+ */
 class TermTransformerTransformTransformed {
 public:
   virtual ~TermTransformerTransformTransformed() {}
@@ -38,6 +44,12 @@ public:
   Literal* transform(Literal* lit);
 protected:
   virtual TermList transformSubterm(TermList trm) = 0;
+  /**
+   * TODO: these functions are exactly the same as in TermTransformer, code duplication must be removed!
+   */
+  Term* transformSpecial(Term* specialTerm);
+  TermList transform(TermList ts);
+  Formula* transform(Formula* f);
 };
 
 
