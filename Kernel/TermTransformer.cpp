@@ -11,10 +11,10 @@
 namespace Kernel
 {
 
-Literal* TermTransformer::transform(Literal* lit)
+Term* TermTransformer::transform(Term* term)
 {
-  CALL("TermTransformer::transform(Literal* lit)");
-  ASS(lit->shared());
+  CALL("TermTransformer::transform(Term* term)");
+  ASS(term->shared());
 
   static Stack<TermList*> toDo(8);
   static Stack<Term*> terms(8);
@@ -26,7 +26,7 @@ Literal* TermTransformer::transform(Literal* lit)
   args.reset();
 
   modified.push(false);
-  toDo.push(lit->args());
+  toDo.push(term->args());
 
   for(;;) {
     TermList* tt=toDo.pop();
@@ -76,24 +76,37 @@ Literal* TermTransformer::transform(Literal* lit)
   ASS(toDo.isEmpty());
   ASS(terms.isEmpty());
   ASS_EQ(modified.length(),1);
-  ASS_EQ(args.length(),lit->arity());
+  ASS_EQ(args.length(), term->arity());
 
   if(!modified.pop()) {
-    return lit;
+    return term;
   }
 
-  ASS_EQ(args.size(), lit->arity());
+  ASS_EQ(args.size(), term->arity());
   //here we assume, that stack is an array with
   //second topmost element as &top()-1, third at
   //&top()-2, etc...
-  TermList* argLst=&args.top() - (lit->arity()-1);
-  return Literal::create(lit,argLst);
+  TermList* argLst=&args.top() - (term->arity() - 1);
+
+  if (term->isLiteral()) {
+    return Literal::create(static_cast<Literal*>(term), argLst);
+  } else {
+    return Term::create(term, argLst);
+  }
 }
 
-Literal* TermTransformerTransformTransformed::transform(Literal* lit)
+Literal* TermTransformer::transform(Literal* lit)
 {
-  CALL("TermTransformerTransformTransformed::transform(Literal* lit)");
-  ASS(lit->shared());
+  CALL("TermTransformer::transform(Literal* lit)");
+  Term* t = transform(static_cast<Term*>(lit));
+  ASS(t->isLiteral());
+  return static_cast<Literal*>(t);
+}
+
+Term* TermTransformerTransformTransformed::transform(Term* term)
+{
+  CALL("TermTransformerTransformTransformed::transform(Term* term)");
+  ASS(term->shared());
 
   static Stack<TermList*> toDo(8);
   static Stack<Term*> terms(8);
@@ -102,7 +115,7 @@ Literal* TermTransformerTransformTransformed::transform(Literal* lit)
   ASS(terms.isEmpty());
   args.reset();
 
-  toDo.push(lit->args());
+  toDo.push(term->args());
 
   // cout << "transform " << lit->toString() << endl;
 
@@ -153,14 +166,26 @@ Literal* TermTransformerTransformTransformed::transform(Literal* lit)
   }
   ASS(toDo.isEmpty());
   ASS(terms.isEmpty());
-  ASS_EQ(args.length(),lit->arity());
+  ASS_EQ(args.length(), term->arity());
 
-  ASS_EQ(args.size(), lit->arity());
+  ASS_EQ(args.size(), term->arity());
   //here we assume, that stack is an array with
   //second topmost element as &top()-1, third at
   //&top()-2, etc...
-  TermList* argLst=&args.top() - (lit->arity()-1);
-  return Literal::create(lit,argLst);
+  TermList* argLst=&args.top() - (term->arity() - 1);
+  if (term->isLiteral()) {
+    return Literal::create(static_cast<Literal*>(term), argLst);
+  } else {
+    return Term::create(term, argLst);
+  }
+}
+
+Literal* TermTransformerTransformTransformed::transform(Literal* lit)
+{
+  CALL("TermTransformer::transform(Literal* lit)");
+  Term* t = transform(static_cast<Term*>(lit));
+  ASS(t->isLiteral());
+  return static_cast<Literal*>(t);
 }
 
 }

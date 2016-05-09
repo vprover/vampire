@@ -25,6 +25,7 @@ namespace Kernel {
 class TermTransformer {
 public:
   virtual ~TermTransformer() {}
+  Term* transform(Term* term);
   Literal* transform(Literal* lit);
 protected:
   virtual TermList transformSubterm(TermList trm) = 0;
@@ -33,6 +34,7 @@ protected:
 class TermTransformerTransformTransformed {
 public:
   virtual ~TermTransformerTransformTransformed() {}
+  Term* transform(Term* term);
   Literal* transform(Literal* lit);
 protected:
   virtual TermList transformSubterm(TermList trm) = 0;
