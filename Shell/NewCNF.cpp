@@ -531,7 +531,7 @@ void NewCNF::processLet(unsigned symbol, Formula::VarList* bindingVariables, Ter
 
   occurrences.replaceBy(processedContentsFormula);
 
-  process(processedContentsFormula, occurrences);
+  enqueue(processedContentsFormula, occurrences);
 }
 
 TermList NewCNF::nameLetBinding(unsigned symbol, Formula::VarList* bindingVariables, TermList binding, TermList contents)
