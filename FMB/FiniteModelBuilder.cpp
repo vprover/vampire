@@ -509,6 +509,10 @@ void FiniteModelBuilder::init()
     //if(del_p[p]) cout << "Mark " << env.signature->predicateName(p) << " as deleted" << endl;
   }
 
+#if VTRACE_FMB
+  cout << "Performing Sort Inference" << endl;
+#endif
+
   // perform SortInference on ground and non-ground clauses
   // preprocessing should preserve sorts and doing this here means that introduced symbols get sorts
   {
@@ -541,6 +545,9 @@ void FiniteModelBuilder::init()
       }
     }
 
+#if VTRACE_FMB
+  cout << "Finding Max Sort Sizes" << endl;
+#endif
 
     // Record the maximum sort sizes detected during sort inference 
     _distinctSortMaxs.ensure(_sortedSignature->distinctSorts);
@@ -605,6 +612,10 @@ void FiniteModelBuilder::init()
       }
     }
 
+#if VTRACE_FMB
+  cout << "Optionally doing Symmetry Ordering precomputation" << endl;
+#endif
+
     // If symmetry ordering uses the usage after preprocessing then recompute symbol usage
     // Otherwise this was done at clausification
     if(env.options->fmbSymmetryOrderSymbols() != Options::FMBSymbolOrders::PREPROCESSED_USAGE){
@@ -646,6 +657,10 @@ void FiniteModelBuilder::init()
     }
   }
 
+#if VTRACE_FMB
+  cout << "Now Find Minimum Sort Bounds" << endl;
+#endif
+
   //TODO why is this here? Can intermediate steps introduce new functions?
   //  - SortInference can introduce new constants
   del_f.expand(env.signature->functions());
@@ -683,6 +698,10 @@ void FiniteModelBuilder::init()
     }
     _fminbound[f]=min;
   }
+
+#if VTRACE_FMB
+  cout << "Set up Clause Signatures" << endl;
+#endif
 
   //Set up clause signature
   //cout << "Setting up clause sigs" << endl;
@@ -729,6 +748,7 @@ void FiniteModelBuilder::init()
           }
         }
         else{
+          ASS_EQ(lit->arity(),env.signature->predicateArity(lit->functor()));
           for(unsigned j=0;j<lit->arity();j++){
             ASS(lit->nthArgument(j)->isVar());
             unsigned asrt = _sortedSignature->predicateSignatures[lit->functor()][j];
