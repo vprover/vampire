@@ -593,13 +593,20 @@ TermList NewCNF::nameLetBinding(unsigned symbol, Formula::VarList* bindingVariab
   if (isPredicate) {
     Formula* formulaBinding = BoolTermFormula::create(binding);
 
-    enqueue(formulaBinding);
-
     Literal* name = Literal::create(freshSymbol, nameArity, POSITIVE, false, arguments.begin());
     Formula* nameFormula = new AtomicFormula(name);
 
-    for (SIGN sign : { POSITIVE, NEGATIVE }) {
-      introduceGenClause(GenLit(nameFormula, sign), GenLit(formulaBinding, OPPOSITE(sign)));
+    switch (formulaBinding->connective()) {
+      case TRUE:
+      case FALSE:
+        introduceGenClause(GenLit(nameFormula, formulaBinding->connective() == TRUE ? POSITIVE : NEGATIVE));
+        break;
+
+      default:
+        enqueue(formulaBinding);
+        for (SIGN sign : { POSITIVE, NEGATIVE }) {
+          introduceGenClause(GenLit(nameFormula, sign), GenLit(formulaBinding, OPPOSITE(sign)));
+        }
     }
   } else {
     TermList name = TermList(Term::create(freshSymbol, nameArity, arguments.begin()));
