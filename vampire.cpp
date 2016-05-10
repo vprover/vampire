@@ -315,7 +315,9 @@ void outputResult(ostream& out) {
     ASSERTION_VIOLATION; //these outcomes are not reachable with the current implementation
 #endif
   }
-  env.statistics->print(env.out());
+  if(env.options->mode()!=Options::Mode::SPIDER){
+    env.statistics->print(env.out());
+  }
 }
 
 
@@ -716,6 +718,7 @@ void spiderMode()
     // env.statistics->print(env.out());
   } else {
     reportSpiderFail();
+    ASS(exception);
     explainException(*exception);
     vampireReturnValue = VAMP_RESULT_STATUS_UNHANDLED_EXCEPTION;
   }
@@ -1042,7 +1045,7 @@ catch (Parse::TPTP::ParseErrorException& exception) {
 #endif
     env.beginOutput();
     explainException(exception);
-    env.statistics->print(env.out());
+    //env.statistics->print(env.out());
     env.endOutput();
   } catch (std::bad_alloc& _) {
     vampireReturnValue = VAMP_RESULT_STATUS_UNHANDLED_EXCEPTION;
