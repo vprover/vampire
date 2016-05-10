@@ -47,17 +47,23 @@ Term* TermTransformer::transform(Term* term)
       }
       Term* orig=terms.pop();
       if(!modified.pop()) {
-	args.truncate(args.length() - orig->arity());
+        if (!orig->isSpecial()) {
+          args.truncate(args.length() - orig->arity());
+        }
 	args.push(TermList(orig));
 	continue;
       }
-      //here we assume, that stack is an array with
-      //second topmost element as &top()-1, third at
-      //&top()-2, etc...
-      TermList* argLst=&args.top() - (orig->arity()-1);
-      args.truncate(args.length() - orig->arity());
 
-      args.push(TermList(Term::create(orig,argLst)));
+      if (orig->isSpecial()) {
+        args.push(TermList(orig));
+      } else {
+        //here we assume, that stack is an array with
+        //second topmost element as &top()-1, third at
+        //&top()-2, etc...
+        TermList *argLst = &args.top() - (orig->arity() - 1);
+        args.truncate(args.length() - orig->arity());
+        args.push(TermList(Term::create(orig, argLst)));
+      }
       modified.setTop(true);
       continue;
     } else {
@@ -89,7 +95,13 @@ Term* TermTransformer::transform(Term* term)
     Term* t=tl.term();
     terms.push(t);
     modified.push(false);
-    toDo.push(t->args());
+    if (t->isSpecial()) {
+      TermList aux[1];
+      aux[0].makeEmpty();
+      toDo.push(aux);
+    } else {
+      toDo.push(t->args());
+    }
   }
   ASS(toDo.isEmpty());
   ASS(terms.isEmpty());
