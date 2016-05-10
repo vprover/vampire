@@ -235,6 +235,14 @@ TermList NNF::ennf(TermList ts, bool polarity)
 
   Term* term = ts.term();
 
+  if (env.signature->isFoolConstantSymbol(true, term->functor())) {
+    return polarity ? ts : TermList(Term::foolFalse());
+  }
+
+  if (env.signature->isFoolConstantSymbol(false, term->functor())) {
+    return polarity ? ts : TermList(Term::foolTrue());
+  }
+
   if (term->shared()) {
     return ts;
   }
