@@ -455,6 +455,20 @@ void NewCNF::processBoolVar(SIGN sign, unsigned var, Occurrences &occurrences)
   }
 }
 
+void NewCNF::processConstant(bool constant, Occurrences &occurrences)
+{
+  CALL("NewCNF::processConstant");
+
+  while (occurrences.isNonEmpty()) {
+    Occurrence occ = pop(occurrences);
+    if (constant == (occ.sign() == POSITIVE)) {
+      // constant is true -- remove the genclause that has it
+    } else {
+      // constant is false -- remove the occurrence of the constant
+      removeGenLit(occ.gc, occ.position);
+    }
+  }
+}
 
 void NewCNF::processITE(Formula* condition, Formula* thenBranch, Formula* elseBranch, Occurrences &occurrences)
 {
@@ -591,22 +605,14 @@ TermList NewCNF::nameLetBinding(unsigned symbol, Formula::VarList* bindingVariab
   }
 
   if (isPredicate) {
-    Formula* formulaBinding = BoolTermFormula::create(binding);
-
     Literal* name = Literal::create(freshSymbol, nameArity, POSITIVE, false, arguments.begin());
     Formula* nameFormula = new AtomicFormula(name);
 
-    switch (formulaBinding->connective()) {
-      case TRUE:
-      case FALSE:
-        introduceGenClause(GenLit(nameFormula, formulaBinding->connective() == TRUE ? POSITIVE : NEGATIVE));
-        break;
+    Formula* formulaBinding = BoolTermFormula::create(binding);
+    enqueue(formulaBinding);
 
-      default:
-        enqueue(formulaBinding);
-        for (SIGN sign : { POSITIVE, NEGATIVE }) {
-          introduceGenClause(GenLit(nameFormula, sign), GenLit(formulaBinding, OPPOSITE(sign)));
-        }
+    for (SIGN sign : { POSITIVE, NEGATIVE }) {
+      introduceGenClause(GenLit(nameFormula, sign), GenLit(formulaBinding, OPPOSITE(sign)));
     }
   } else {
     TermList name = TermList(Term::create(freshSymbol, nameArity, arguments.begin()));
@@ -934,6 +940,11 @@ void NewCNF::process(Formula* g, Occurrences &occurrences)
       ASS_REP(g->uarg()->connective() == BOOL_TERM, g->uarg()->toString());
       ASS_REP(g->uarg()->getBooleanTerm().isVar(),  g->uarg()->toString());
       processBoolVar(NEGATIVE, g->uarg()->getBooleanTerm().var(), occurrences);
+      break;
+
+    case TRUE:
+    case FALSE:
+      processConstant(g->connective() == TRUE, occurrences);
       break;
 
     default:
