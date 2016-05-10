@@ -1036,7 +1036,6 @@ bool NewCNF::mapSubstitution(List<GenLit>* clause, Substitution subst, List<GenL
   while (it.hasNext()) {
     GenLit gl = it.next();
     Formula* f = SubstHelper::apply(formula(gl), subst);
-    ASS_NEQ(f, formula(gl));
 
     switch (f->connective()) {
       case TRUE:
