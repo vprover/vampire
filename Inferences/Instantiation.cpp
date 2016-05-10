@@ -193,6 +193,7 @@ Term* Instantiation::tryGetDifferentValue(Term* t)
 
   unsigned sort = SortHelper::getResultSort(t);
 
+  try {
         switch(sort){
           case Sorts::SRT_INTEGER:
             {
@@ -224,6 +225,9 @@ Term* Instantiation::tryGetDifferentValue(Term* t)
             break;
             // not a numeric sort
         }
+  } catch (ArithmeticException&) {
+    // return 0 as well
+  }
 
   return 0;
 }
