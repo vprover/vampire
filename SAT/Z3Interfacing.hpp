@@ -135,7 +135,7 @@ private:
         return ite(e >= 0, to_int(e), ceiling(e));
   }
 public:
-  z3::expr getz3expr(Term* trm,bool islit);
+  z3::expr getz3expr(Term* trm,bool islit,bool&name);
 private:
   z3::expr getRepresentation(SATLiteral lit);
 
@@ -149,6 +149,9 @@ private:
 
   bool _showZ3;
   bool _unsatCoreForRefutations;
+
+  DHMap<unsigned,z3::expr> _namedExpressions; 
+
 };
 
 }//end SAT namespace

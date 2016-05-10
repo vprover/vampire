@@ -167,8 +167,10 @@ SATSolver::VarAssignment Z3Interfacing::getAssignment(unsigned var)
   BYPASSING_ALLOCATOR;
 
   ASS_EQ(_status,SATISFIABLE);
-
-  z3::expr rep = getRepresentation(SATLiteral(var,1));
+  z3::expr rep;
+  if(!_namedExpressions.find(var,rep)){
+    rep = getRepresentation(SATLiteral(var,1));
+  }
   z3::expr assignment = _model.eval(rep,true /*model_completion*/);
   //cout << "ass is " << assignment << endl;
 
@@ -253,7 +255,7 @@ z3::sort Z3Interfacing::getz3sort(unsigned s)
  * - Translates the ground structure
  * - Some interpreted functions/predicates are handled
  */
-z3::expr Z3Interfacing::getz3expr(Term* trm,bool isLit)
+z3::expr Z3Interfacing::getz3expr(Term* trm,bool isLit,bool&name)
 {
   CALL("Z3Interfacing::getz3expr");
   BYPASSING_ALLOCATOR;
@@ -331,7 +333,7 @@ z3::expr Z3Interfacing::getz3expr(Term* trm,bool isLit)
     for(unsigned i=0;i<trm->arity();i++){
       TermList* arg = trm->nthArgument(i);
       ASS(!arg->isVar());// Term should be ground
-      args.push_back(getz3expr(arg->term(),false));
+      args.push_back(getz3expr(arg->term(),false,name));
     }
 
     // dummy return
@@ -376,6 +378,7 @@ z3::expr Z3Interfacing::getz3expr(Term* trm,bool isLit)
       switch(interp){
         // Numerical operations
         case Theory::INT_DIVIDES:
+          //TODO HERE
           ret = z3::expr(_context, Z3_mk_mod(_context, args[1], args[0])) == _context.int_val(0);
           break;
 
@@ -477,6 +480,7 @@ z3::expr Z3Interfacing::getz3expr(Term* trm,bool isLit)
          case Theory::INT_REMAINDER_E:
          case Theory::RAT_REMAINDER_E:
          case Theory::REAL_REMAINDER_E:
+           //TODO HERE
            ret = z3::expr(_context, Z3_mk_mod(_context, args[0], args[1]));
            break;
 
@@ -550,9 +554,18 @@ z3::expr Z3Interfacing::getRepresentation(SATLiteral slit)
     //cout << "getRepresentation of " << lit->toString() << endl;
     // Now translate it into an SMT object 
     try{
-      z3::expr e = getz3expr(lit,true);
+      bool name = false;
+      z3::expr e = getz3expr(lit,true,name);
       //cout << "got rep " << e << endl;
-      if(slit.isNegative()) return !e;
+
+      if(slit.isNegative()){ e = !e;}
+
+      if(name){
+        vstring name = "v"+Lib::Int::toString(slit.var());
+        z3::expr bname = _context.bool_const(name.c_str());
+        e = (bname == e); 
+        _namedExpressions.insert(slit.var(),bname);
+      }
       return e;
     }catch(z3::exception& exception){
      reportSpiderFail();
