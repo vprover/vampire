@@ -150,7 +150,11 @@ private:
   bool _showZ3;
   bool _unsatCoreForRefutations;
 
-  DHMap<unsigned,z3::expr> _namedExpressions; 
+  DHSet<unsigned> _namedExpressions; 
+  z3::expr getNameExpr(unsigned var){
+    vstring name = "v"+Lib::Int::toString(var);
+    return  _context.bool_const(name.c_str());
+  }
 
 };
 
