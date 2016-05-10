@@ -948,21 +948,13 @@ bool Term::skip() const
 } // skip
 
 bool Term::isBoolean() const {
-  const Term* term = this;
-  while (true) {
-    if (env.signature->isFoolConstantSymbol(true, term->functor()) ||
-        env.signature->isFoolConstantSymbol(true, term->functor())) return true;
-    if (!term->isSpecial()) return false;
-    if (term->isFormula()) return true;
-    if (term->isLet() || term->isITE()) {
-      const TermList* ts = term->nthArgument(0);
-      if (!ts->isTerm()) {
-        return false;
-      } else {
-        term = ts->term();
-      }
-    }
+  if (env.signature->isFoolConstantSymbol(true, functor()) ||
+      env.signature->isFoolConstantSymbol(false, functor())) return true;
+  if (isFormula()) return true;
+  if (isLet() || isITE()) {
+    return getSpecialData()->getSort() == Sorts::SRT_BOOL;
   }
+  return false;
 } // isBoolean
 
 /**
