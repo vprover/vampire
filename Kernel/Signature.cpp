@@ -578,6 +578,21 @@ unsigned Signature::getInterpretingSymbol(Interpretation interp)
   case Theory::REAL_QUOTIENT:
     name = "quotient";
     break;
+  case Theory::INT_TRUNCATE:
+  case Theory::RAT_TRUNCATE:
+  case Theory::REAL_TRUNCATE:
+    name="truncate";
+    break;
+  case Theory::INT_FLOOR:
+  case Theory::RAT_FLOOR:
+  case Theory::REAL_FLOOR:
+    name="floor";
+    break;
+  case Theory::INT_CEILING:
+  case Theory::RAT_CEILING:
+  case Theory::REAL_CEILING:
+    name="ceiling";
+    break;
   default:
     ASSERTION_VIOLATION_REP(interp);
   }

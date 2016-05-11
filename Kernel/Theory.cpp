@@ -139,7 +139,8 @@ IntegerConstantType IntegerConstantType::floor(RationalConstantType rat)
   if (numer%denom!=0) {
     res = res+1;
   }
-  return -res;
+
+  return res;
 }
 IntegerConstantType IntegerConstantType::ceiling(RationalConstantType rat)
 {
