@@ -497,15 +497,17 @@ void TheoryAxioms::addIntegerDivisionWithModuloAxioms(Interpretation plus, Inter
   Literal* xeqsum = Literal::createEquality(true,x,sum,srt);
   addTheoryNonUnitClause(units,yis0,xeqsum);
 
-  // y!=0 => 0 <= mod(x,y)
-  Literal* modxyge0 = Literal::create2(lessPred,true,zeroElement,modxy);
+  // y!=0 => (0 <= mod(x,y))
+  // y=0 | ~(mod(x,y) < 0)
+  Literal* modxyge0 = Literal::create2(lessPred,false,modxy,zeroElement);
   addTheoryNonUnitClause(units,yis0,modxyge0);
 
-  // y!=0 => mod(x,y) <= abs(y)-1
+  // y!=0 => (mod(x,y) <= abs(y)-1)
+  // y=0 | ~( abs(y)-1 < mod(x,y) )
   TermList absy(Term::create1(absFun,y));
   TermList m1(Term::create1(umFun,oneElement));
   TermList absym1(Term::create2(plusFun,absy,m1));
-  Literal* modxyleabsym1 = Literal::create2(lessPred,true,modxy,absym1);
+  Literal* modxyleabsym1 = Literal::create2(lessPred,false,absym1,modxy);
   addTheoryNonUnitClause(units,yis0,modxyleabsym1);
 
 }
