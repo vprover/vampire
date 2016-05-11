@@ -1802,6 +1802,7 @@ void SMTLIB2::parseRankedFunctionApplication(LExpr* exp)
   }
 
   unsigned pred = Theory::instance()->getPredNum(Theory::INT_DIVIDES);
+  env.signature->recordDividesNvalue(divisorTerm);
 
   Formula* res = new AtomicFormula(Literal::create2(pred,true,divisorTerm,arg));
 

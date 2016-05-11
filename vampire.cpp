@@ -887,7 +887,8 @@ int main(int argc, char* argv[])
     if (env.options->showHelp() ||
         env.options->showOptions() ||
         env.options->showExperimentalOptions() ||
-        !env.options->explainOption().empty()) {
+        !env.options->explainOption().empty() ||
+        env.options->printAllTheoryAxioms()) {
       env.beginOutput();
       env.options->output(env.out());
       env.endOutput();

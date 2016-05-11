@@ -70,7 +70,7 @@ private:
                                 TermList oneElement, UnitList*& units);
   void addIntegerAbsAxioms(Interpretation abs, Interpretation lessEqual,
                            Interpretation unaryMinus, TermList zeroElement, UnitList*& units);
-  void addIntegerDividesAxioms(Interpretation divides, Interpretation multiply, TermList zero, UnitList*& units);
+  void addIntegerDividesAxioms(Interpretation divides, Interpretation multiply, TermList zero, TermList n, UnitList*& units);
 
   void addBooleanArrayExtensionalityAxioms(Interpretation select, Interpretation store, unsigned skolem, UnitList*& units);
   void addArrayExtensionalityAxioms(Interpretation select, Interpretation store, unsigned skolem, UnitList*& units);

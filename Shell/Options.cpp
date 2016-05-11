@@ -151,6 +151,12 @@ void Options::Options::init()
     _lookup.insert(&_forcedOptions);
     _forcedOptions.tag(OptionTag::INPUT);
 
+    _printAllTheoryAxioms = BoolOptionValue("print_theory_axioms","",false);
+    _printAllTheoryAxioms.description = "Just print all theory axioms and terminate";
+    _printAllTheoryAxioms.tag(OptionTag::DEVELOPMENT);
+    _lookup.insert(&_printAllTheoryAxioms);
+    _printAllTheoryAxioms.setExperimental();
+
     _showHelp = BoolOptionValue("help","h",false);
     _showHelp.description="Display this help";
     _lookup.insert(&_showHelp);
@@ -1871,6 +1877,12 @@ vstring Options::includeFileName (const vstring& relativeName)
 void Options::output (ostream& str) const
 {
   CALL("Options::output");
+
+  if(printAllTheoryAxioms()){
+    cout << "Sorry, not implemented yet!" << endl;
+
+    return;
+  }
 
   if(!explainOption().empty()){
 

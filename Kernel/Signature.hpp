@@ -482,7 +482,14 @@ class Signature
     return isTrue ? number==_foolTrue : number==_foolFalse;
   }
 
+  void recordDividesNvalue(TermList n){
+    _dividesNvalues.push(n);
+  }
+  Stack<TermList>& getDividesNvalues(){ return _dividesNvalues; }
+
 private:
+  Stack<TermList> _dividesNvalues;
+
   bool _foolConstantsDefined;
   unsigned _foolTrue;
   unsigned _foolFalse;

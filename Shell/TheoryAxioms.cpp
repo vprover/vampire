@@ -493,7 +493,6 @@ void TheoryAxioms::addIntegerDivisionWithModuloAxioms(Interpretation plus, Inter
   unsigned plusFun = env.signature->getInterpretingSymbol(plus);
 
   addIntegerAbsAxioms(abs,lessEqual,unaryMinus,zeroElement,units);
-  addIntegerDividesAxioms(divides,multiply,zeroElement,units);
 
   TermList x(1,false);
   TermList y(2,false);
@@ -525,16 +524,19 @@ void TheoryAxioms::addIntegerDivisionWithModuloAxioms(Interpretation plus, Inter
 
 }
 
-void TheoryAxioms::addIntegerDividesAxioms(Interpretation divides, Interpretation multiply, TermList zero, UnitList*& units)
+void TheoryAxioms::addIntegerDividesAxioms(Interpretation divides, Interpretation multiply, TermList zero, TermList n, UnitList*& units)
 {
   CALL("TheoryAxioms::addIntegerDividesAxioms");
 
-// ![X,Y] : X!=0 => (divides(X,Y) <=> ?[Z] : multiply(Z,X) = Y)
-//
-// X=0 | (divides(X,Y) <=> ?[Z] : multiply(Z,X) = Y)
-//
-// X=0 | divides(X,Y)  |  multiply(Z,X) = Y 
-// X=0 | ~divides(X,Y) |  multiply(skolem(X,Y),X) = Y
+#if VDEBUG
+  // ASSERT n>0
+  ASS(theory->isInterpretedConstant(n)); 
+  IntegerConstantType nc;
+  ALWAYS(theory->tryInterpretConstant(n,nc));
+  ASS(nc.toInner()>0);
+#endif
+
+// ![Y] : (divides(n,Y) <=> ?[Z] : multiply(Z,n) = Y)
 
   unsigned srt = theory->getOperationSort(divides);
   ASS_EQ(srt, theory->getOperationSort(multiply));
@@ -542,30 +544,27 @@ void TheoryAxioms::addIntegerDividesAxioms(Interpretation divides, Interpretatio
   unsigned divsPred = env.signature->getInterpretingSymbol(divides);
   unsigned mulFun   = env.signature->getInterpretingSymbol(multiply);
 
-  TermList x(1,false);
-  TermList y(2,false);
-  TermList z(3,false);
+  TermList y(1,false);
+  TermList z(2,false);
 
-  Literal* xneqz = Literal::createEquality(false,x,zero,srt);
-
-// X=0 | divides(X,Y) | multiply(Z,X) != Y 
-  Literal* divsXY = Literal::create2(divsPred,true,x,y);
-  TermList mZX(Term::create2(mulFun,z,x));
+// divides(n,Y) | multiply(Z,n) != Y 
+  Literal* divsXY = Literal::create2(divsPred,true,n,y);
+  TermList mZX(Term::create2(mulFun,z,n));
   Literal* mZXneY = Literal::createEquality(false,mZX,y,srt);
-  addTheoryNonUnitClause(units,divsXY,mZXneY,xneqz);
+  addTheoryNonUnitClause(units,divsXY,mZXneY);
 
-// X=0 | ~divides(X,Y) | multiply(skolem(X,Y),X)=Y
-  Literal* ndivsXY = Literal::create2(divsPred,false,x,y);
+// ~divides(n,Y) | multiply(skolem(n,Y),n)=Y
+  Literal* ndivsXY = Literal::create2(divsPred,false,n,y);
   
   // create a skolem function with signature srt*srt>srt
   unsigned skolem = env.signature->addSkolemFunction(2);
   Signature::Symbol* sym = env.signature->getFunction(skolem);
   sym->setType(new FunctionType({srt,srt},srt));
-  TermList skXY(Term::create2(skolem,x,y));
-  TermList msxX(Term::create2(mulFun,skXY,x));
+  TermList skXY(Term::create2(skolem,n,y));
+  TermList msxX(Term::create2(mulFun,skXY,n));
   Literal* msxXeqY = Literal::createEquality(true,msxX,y,srt);
 
-  addTheoryNonUnitClause(units,ndivsXY,msxXeqY,xneqz);
+  addTheoryNonUnitClause(units,ndivsXY,msxXeqY);
 
 }
 
@@ -1019,7 +1018,14 @@ bool TheoryAxioms::apply(UnitList*& units, Property* prop)
                                  Theory::INT_MULTIPLY, Theory::INT_QUOTIENT_E, Theory::INT_DIVIDES,
                                  Theory::INT_MODULO, Theory::INT_ABS, zero,one, units);
       }
-      else if(haveIntDivides){ addIntegerDividesAxioms(Theory::INT_DIVIDES,Theory::INT_MULTIPLY,zero,units); }
+      else if(haveIntDivides){ 
+        Stack<TermList>& ns = env.signature->getDividesNvalues(); 
+        Stack<TermList>::Iterator nsit(ns);
+        while(nsit.hasNext()){
+          TermList n = nsit.next();
+          addIntegerDividesAxioms(Theory::INT_DIVIDES,Theory::INT_MULTIPLY,zero,n,units); 
+        }
+      }
     }
     else {
       addAdditionAndOrderingAxioms(Theory::INT_PLUS, Theory::INT_UNARY_MINUS, zero, one,
