@@ -578,19 +578,21 @@ void TheoryAxioms::addIntegerAbsAxioms(Interpretation abs, Interpretation lessEq
   TermList mx(Term::create1(umFun,x));
   TermList absmX(Term::create1(absFun,mx));
 
-  // x >= 0 => abs(x) = x
-  // x < 0 | abs(x)=x
-  // not(0 <= x) | abs(x)=x
-  Literal* n0ltx = Literal::create2(lePred,false,zeroElement,x);
-  Literal* absxeqx = Literal::createEquality(true,absX,x,srt);
-  addTheoryNonUnitClause(units,n0ltx,absxeqx);
-  
-  // x<0 => abs(-x) = x
-  // x>=0 | abs(-x) = x
-  // 0<=x | abs(-x) = x
-  Literal* p0ltx = Literal::create2(lePred,true,zeroElement,x);
-  Literal* absmxeqx = Literal::createEquality(true,absmX,x,srt);
-  addTheoryNonUnitClause(units,p0ltx,absmxeqx);
+  // If x is positive then abs(x)=x and abs(-x)=x
+  // If x is negative then abs(x)=-x and abs(-x)=-x
+
+  Literal* xNeg = Literal::create2(lePred,true,x,zeroElement);
+  Literal* xPos = Literal::create2(lePred,true,zeroElement,x);
+
+  Literal* absXeqX = Literal::createEquality(true,absX,x,srt);
+  Literal* absmXeqX = Literal::createEquality(true,absmX,x,srt);
+  Literal* absXeqmX = Literal::createEquality(true,absX,mx,srt);
+  Literal* absmXeqmX = Literal::createEquality(true,absmX,mx,srt);
+
+  addTheoryNonUnitClause(units,xNeg,absXeqX);
+  addTheoryNonUnitClause(units,xNeg,absmXeqX);
+  addTheoryNonUnitClause(units,xPos,absXeqmX);
+  addTheoryNonUnitClause(units,xPos,absmXeqmX);
 
 }
 
