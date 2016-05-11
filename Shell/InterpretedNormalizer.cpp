@@ -207,17 +207,18 @@ public:
   {
     CALL("InterpretedNormalizer::NLiteralTransformer::NLiteralTransformer");
 
-    addIneqTransformer(Theory::INT_LESS, 	  Theory::INT_LESS_EQUAL, true, true);
-    addIneqTransformer(Theory::INT_GREATER, 	  Theory::INT_LESS_EQUAL, false, true);
-    addIneqTransformer(Theory::INT_GREATER_EQUAL, Theory::INT_LESS_EQUAL, true, false);
+    // from, to, swap, reverse_pol 
+    addIneqTransformer(Theory::INT_LESS_EQUAL, 	  Theory::INT_LESS, true, true);
+    addIneqTransformer(Theory::INT_GREATER, 	  Theory::INT_LESS, true, false);
+    addIneqTransformer(Theory::INT_GREATER_EQUAL, Theory::INT_LESS, false, true);
 
-    addIneqTransformer(Theory::RAT_LESS, 	  Theory::RAT_LESS_EQUAL, true, true);
-    addIneqTransformer(Theory::RAT_GREATER,	  Theory::RAT_LESS_EQUAL, false, true);
-    addIneqTransformer(Theory::RAT_GREATER_EQUAL, Theory::RAT_LESS_EQUAL, true, false);
+    addIneqTransformer(Theory::RAT_LESS_EQUAL, 	  Theory::RAT_LESS, true, true);
+    addIneqTransformer(Theory::RAT_GREATER,	  Theory::RAT_LESS, true, false);
+    addIneqTransformer(Theory::RAT_GREATER_EQUAL, Theory::RAT_LESS, false, true);
 
-    addIneqTransformer(Theory::REAL_LESS,	  Theory::REAL_LESS_EQUAL, true, true);
-    addIneqTransformer(Theory::REAL_GREATER,	  Theory::REAL_LESS_EQUAL, false, true);
-    addIneqTransformer(Theory::REAL_GREATER_EQUAL,Theory::REAL_LESS_EQUAL, true, false);
+    addIneqTransformer(Theory::REAL_LESS_EQUAL,	  Theory::REAL_LESS, true, true);
+    addIneqTransformer(Theory::REAL_GREATER,	  Theory::REAL_LESS, true, false);
+    addIneqTransformer(Theory::REAL_GREATER_EQUAL,Theory::REAL_LESS, false, true);
 
     addMinusTransformer(Theory::INT_MINUS, Theory::INT_PLUS, Theory::INT_UNARY_MINUS);
     addMinusTransformer(Theory::RAT_MINUS, Theory::RAT_PLUS, Theory::RAT_UNARY_MINUS);
