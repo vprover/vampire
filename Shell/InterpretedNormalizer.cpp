@@ -544,6 +544,11 @@ bool InterpretedNormalizer::isTrivialInterpretation(Interpretation itp)
   case Theory::INT_TO_INT:
   case Theory::RAT_TO_RAT:
   case Theory::REAL_TO_REAL:
+
+  case Theory::INT_TRUNCATE:
+  case Theory::INT_FLOOR:
+  case Theory::INT_CEILING:
+  case Theory::INT_ROUND:
     return true;
 
   default:
