@@ -1735,6 +1735,7 @@ public:
   bool showHelp() const { return _showHelp.actualValue; }
   vstring explainOption() const { return _explainOption.actualValue; }
 
+  bool printAllTheoryAxioms() const { return _printAllTheoryAxioms.actualValue; }
 
 #if VZ3
   bool z3UnsatCores() const { return _z3UnsatCores.actualValue;}
@@ -2202,6 +2203,7 @@ private:
   BoolOptionValue _showOptions;
   BoolOptionValue _showExperimentalOptions;
   BoolOptionValue _showHelp;
+  BoolOptionValue _printAllTheoryAxioms;
   StringOptionValue _explainOption;
   BoolOptionValue _showPassive;
   BoolOptionValue _showReductions;
