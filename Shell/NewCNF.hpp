@@ -104,6 +104,8 @@ private:
     CLASS_NAME(NewCNF::GenClause);
     USE_ALLOCATOR(NewCNF::GenClause);
 
+    GenClause(unsigned size, BindingList* bindings) : valid(true), bindings(bindings), _literals(size), _size(0) {}
+
     bool valid; // used for lazy deletion from Occurrences(s); see below
 
     BindingList* bindings; // the list is not owned by the GenClause (they will shallow-copied and shared)
@@ -158,15 +160,6 @@ private:
       }
 
       return res;
-    }
-
-    // constructor for a GenClause of a given size and given bindings -- lits need to be filled manually
-    GenClause(unsigned size, BindingList* bindings) : valid(true), bindings(bindings), _literals(size), _size(0) {
-      // cout << "+GenClause GC("<<size<<")"<< endl;
-    }
-
-    ~GenClause() {
-      // cout << "-GenClause " << toString() << endl;
     }
   };
 
@@ -228,7 +221,6 @@ private:
         }
       }
     } else if (!_formulasCache.insert(f, sign(gl))) {
-      cout << f->toString() << " is stored in cache with polrity " << _formulasCache.get(f) << endl;
       if (sign(gl) != _formulasCache.get(f)) {
         gc->valid = false;
       } else {
