@@ -365,20 +365,6 @@ void NewCNF::process(BinaryFormula* g, Occurrences &occurrences)
   Formula* lhs = g->left();
   Formula* rhs = g->right();
 
-  if (lhs->connective() == BOOL_TERM && rhs->connective() == BOOL_TERM) {
-    TermList lhsTerm = lhs->getBooleanTerm();
-    TermList rhsTerm = rhs->getBooleanTerm();
-
-    Literal *equalityLiteral = Literal::createEquality(formulaSign, lhsTerm, rhsTerm, Sorts::SRT_BOOL);
-    Formula *equality = new AtomicFormula(equalityLiteral);
-
-    occurrences.replaceBy(equality);
-
-    enqueue(equality, occurrences);
-
-    return;
-  }
-
   enqueue(lhs);
   enqueue(rhs);
 
