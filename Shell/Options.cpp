@@ -393,6 +393,12 @@ void Options::Options::init()
     _unusedPredicateDefinitionRemoval.addProblemConstraint(notWithCat(Property::UEQ));
     _unusedPredicateDefinitionRemoval.setRandomChoices({"on","off"});
 
+    _blockedClauseElimination = BoolOptionValue("block_clause_elimination","bce",false);
+    _lookup.insert(&_blockedClauseElimination);
+    _blockedClauseElimination.tag(OptionTag::PREPROCESSING);
+    _blockedClauseElimination.addProblemConstraint(notWithCat(Property::UEQ));
+    _blockedClauseElimination.setRandomChoices({"on","off"});
+
     _theoryAxioms = ChoiceOptionValue<TheoryAxiomLevel>("theory_axioms","tha",TheoryAxiomLevel::ON,{"on","off","some"});
     _theoryAxioms.description="Include theory axioms for detected interpreted symbols";
     _lookup.insert(&_theoryAxioms);
