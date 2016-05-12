@@ -11,6 +11,9 @@
 
 #include "Kernel/Problem.hpp"
 
+#include "Lib/Comparison.hpp"
+#include "Lib/Stack.hpp"
+
 namespace Shell {
 
 using namespace Kernel;
@@ -21,9 +24,33 @@ using namespace Kernel;
 class BlockedClauseElimination
 {
 public:
-  void apply(Problem& prb);
+  void apply(Kernel::Problem& prb);
 
 private:
+  struct ClWrapper;
+
+  struct Candidate {
+    ClWrapper* clw;
+    unsigned litIdx;    // index of the potentially blocking literal L
+    unsigned contFrom;  // index of the next resolution partner to try in op(L)'s list
+    unsigned weight;    // how many resolution partners still need to be tested -- used to order the priority queue on
+  };
+
+  struct CandidateComparator {
+    static Comparison compare(Candidate* c1, Candidate* c2) {
+      return Int::compare(c1->weight,c1->weight);
+    }
+  };
+
+  struct ClWrapper {
+    Clause* cl;            // the actual clause
+    bool blocked;          // if already blocked, don't need to try again
+    Stack<Candidate*> toResurrect; // when getting block (effectively deleted, all these have a chance again)
+
+    ClWrapper(Clause* cl) : cl(cl), blocked(false) {}
+  };
+
+  bool resolvesToTautology(Clause* cl, Literal* lit, Clause* pcl, Literal* plit);
 
 };
 
