@@ -424,10 +424,11 @@ private:
     introduceGenClause(new List<GenLit>(gl0, new List<GenLit>(gl1)), bindings);
   }
 
-  void introduceExtendedGenClause(SPGenClause gc, unsigned position, List<GenLit>* gls) {
-    CALL("NewCNF::introduceExtendedGenClause(SPGenClause, unsigned, List<GenLit>*)");
+  void introduceExtendedGenClause(Occurrence occ, List<GenLit>* gls) {
+    CALL("NewCNF::introduceExtendedGenClause(Occurrence, List<GenLit>*)");
 
-    LOG4("introduceExtendedGenClause:", gc->toString(), position, gls->length());
+    SPGenClause gc = occ.gc;
+    unsigned position = occ.position;
 
     unsigned size = gc->size() + gls->length() - 1;
     SPGenClause newGc = SPGenClause(new GenClause(size, gc->bindings));
@@ -465,16 +466,16 @@ private:
     }
   }
 
-  void removeGenLit(SPGenClause gc, unsigned position) {
-    introduceExtendedGenClause(gc, position, List<GenLit>::empty());
+  void removeGenLit(Occurrence occ) {
+    introduceExtendedGenClause(occ, List<GenLit>::empty());
   }
 
-  void introduceExtendedGenClause(SPGenClause gc, unsigned position, GenLit replacement) {
-    introduceExtendedGenClause(gc, position, new List<GenLit>(replacement));
+  void introduceExtendedGenClause(Occurrence occ, GenLit replacement) {
+    introduceExtendedGenClause(occ, new List<GenLit>(replacement));
   }
 
-  void introduceExtendedGenClause(SPGenClause gc, unsigned position, GenLit replacement, GenLit extension) {
-    introduceExtendedGenClause(gc, position, new List<GenLit>(replacement, new List<GenLit>(extension)));
+  void introduceExtendedGenClause(Occurrence occ, GenLit replacement, GenLit extension) {
+    introduceExtendedGenClause(occ, new List<GenLit>(replacement, new List<GenLit>(extension)));
   }
 
   Occurrence pop(Occurrences &occurrences) {
