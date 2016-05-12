@@ -1046,7 +1046,7 @@ void NewCNF::toClauses(SPGenClause gc, Stack<Clause*>& output)
 #endif
 }
 
-bool NewCNF::mapSubstitution(List<GenLit>* clause, Substitution subst, List<GenLit>* output)
+bool NewCNF::mapSubstitution(List<GenLit>* clause, Substitution subst, List<GenLit>* &output)
 {
   CALL("NewCNF::mapSubstitution");
 
