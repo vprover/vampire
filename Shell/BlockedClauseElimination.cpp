@@ -20,6 +20,7 @@
 #include "Lib/SmartPtr.hpp"
 #include "Lib/DHSet.hpp"
 #include "Lib/BinaryHeap.hpp"
+#include "Lib/TimeCounter.hpp"
 
 #include "Shell/Statistics.hpp"
 
@@ -34,9 +35,13 @@ void BlockedClauseElimination::apply(Problem& prb)
 {
   CALL("BlockedClauseElimination::apply(Problem&)");
 
+  TimeCounter tc(TC_BCE);
+
   bool modified = false;
 
   if (prb.hasEquality()) {
+    // cout << "Problem has equality" << endl;
+
     ASSERTION_VIOLATION;
   } else {
     DArray<Stack<Candidate*>> positive(env.signature->predicates());
