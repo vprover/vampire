@@ -24,23 +24,6 @@ public:
   USE_ALLOCATOR(DistinctnessISE);
   
   Kernel::Clause* simplify(Kernel::Clause* c);
-  
-private:
-  static bool distinctConstructorsEquality(Literal *lit);
-};
-
-class AcyclicityISE
-  : public ImmediateSimplificationEngine
-{
-public:
-  CLASS_NAME(AcyclicityISE);
-  USE_ALLOCATOR(AcyclicityISE);
-  
-  Kernel::Clause* simplify(Kernel::Clause* c);
-  
-private:
-  static bool cyclicEquality(Literal *lit);
-  static bool isProperSubterm(TermList s, TermList t);
 };
 
 class InjectivityGIE
@@ -52,28 +35,19 @@ public:
   Kernel::ClauseIterator generateClauses(Kernel::Clause* c);
 
 private:
-  static bool sameConstructorsEquality(Literal *lit);
   struct SubtermIterator;
   struct SubtermEqualityFn;
 };
 
-
-  /*class AcyclicityGIE
-  : public GeneratingInferenceEngine
+class InjectivityISE
+  : public ImmediateSimplificationEngine
 {
 public:
-  CLASS_NAME(AcyclicityGIE);
-  USE_ALLOCATOR(AcyclicityGIE);
+  CLASS_NAME(InjectivityISE);
+  USE_ALLOCATOR(InjectivityISE);
   
-  Kernel::ClauseIterator generateClauses(Kernel::Clause* c);
-  
-private:
-  static List<TermList>* properSubterms(Kernel::TermList t, unsigned sort);
-  static bool oneConstructorPositiveEquality(Literal *lit, TermList &fs, TermList &t);
-  struct DeepSubtermIterator;
-  struct SubtermInequalityFn;
-  };*/
-
+  Kernel::Clause* simplify(Kernel::Clause* c);
+};
   
 };
 

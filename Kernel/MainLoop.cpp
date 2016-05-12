@@ -114,6 +114,9 @@ ImmediateSimplificationEngine* MainLoop::createISE(Problem& prb, const Options& 
     if (opt.termAlgebraCyclicityCheck()) {
       //res->addFront(new AcyclicityISE());
     }
+    if (opt.termAlgebraInjectivitySimplification()) {
+      res->addFront(new InjectivityISE());
+    }
   }
   if(prb.hasInterpretedOperations() || prb.hasInterpretedEquality()) {
     res->addFront(new InterpretedEvaluation());
