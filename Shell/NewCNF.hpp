@@ -18,7 +18,7 @@
 #include "Kernel/Substitution.hpp"
 
 #undef LOGGING
-#define LOGGING 1
+#define LOGGING 0
 
 #if LOGGING
 #define LOG1(arg)         cout << arg << endl;

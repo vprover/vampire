@@ -98,18 +98,22 @@ Formula* Flattening::flatten (Formula* f)
     {
       Literal* lit = f->literal();
 
-      // Convert equality between boolean FOOL terms to equivalence
-      if (lit->isEquality()) {
-        TermList lhs = *lit->nthArgument(0);
-        TermList rhs = *lit->nthArgument(1);
+      if (env.options->newCNF()) {
+        // Convert equality between boolean FOOL terms to equivalence
+        if (lit->isEquality()) {
+          TermList lhs = *lit->nthArgument(0);
+          TermList rhs = *lit->nthArgument(1);
 
-        if (lhs.isTerm() && lhs.term()->isBoolean() && rhs.isTerm() && rhs.term()->isBoolean()) {
-          Formula* lhsFormula = lhs.term()->isFormula()
-                                ? lhs.term()->getSpecialData()->getFormula()
-                                : BoolTermFormula::create(lhs);
-          Formula* rhsFormula = rhs.term()->isFormula() ? rhs.term()->getSpecialData()->getFormula()
-                                : BoolTermFormula::create(rhs);
-          return flatten(new BinaryFormula(lit->polarity() ? IFF : XOR, lhsFormula, rhsFormula));
+          bool lhsBoolean = lhs.isTerm() && lhs.term()->isBoolean();
+          bool rhsBoolean = rhs.isTerm() && rhs.term()->isBoolean();
+          bool varEquality = lit->isTwoVarEquality() && lit->twoVarEqSort() == Sorts::SRT_BOOL;
+
+          if (lhsBoolean || rhsBoolean || varEquality) {
+            Formula* lhsFormula = BoolTermFormula::create(lhs);
+            Formula* rhsFormula = BoolTermFormula::create(rhs);
+            cout << "WAT? " << lit->toString() << endl;
+            return flatten(new BinaryFormula(lit->polarity() ? IFF : XOR, lhsFormula, rhsFormula));
+          }
         }
       }
 
