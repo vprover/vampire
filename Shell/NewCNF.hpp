@@ -18,7 +18,7 @@
 #include "Kernel/Substitution.hpp"
 
 #undef LOGGING
-#define LOGGING 0
+#define LOGGING 1
 
 #if LOGGING
 #define LOG1(arg)         cout << arg << endl;
@@ -178,16 +178,41 @@ private:
 
   typedef list<SPGenClause,STLAllocator<SPGenClause>> GenClauses;
 
+  /**
+   * pushLiteral is responsible for tautology elimination. Whenever it sees two
+   * generalised literals with the opposite signs, the entire generalised clause
+   * is discarded. Whenever it sees more than one occurrence of a generalised
+   * literal, only one copy is kept.
+   *
+   * pushLiteral two kinds of tautologies: between shared literals and between
+   * copies of formulas. The former is possible because syntactically
+   * equivalent literals are shared and therefore can be compared by pointer.
+   * The latter can occur after inlining of let-s and ite-s. Removing tautologies
+   * between formulas is important for traversal of the list of occurrences,
+   * without it popping the first occurrence of a formula will invalidate the
+   * entire generalised clause, and other occurrences will never be seen.
+   */
   DHMap<Literal*, SIGN> _literalsCache;
+  DHMap<Formula*, SIGN> _formulasCache;
   inline void pushLiteral(SPGenClause gc, GenLit gl) {
     CALL("NewCNF::pushLiteral");
 
     if (formula(gl)->connective() == LITERAL) {
+      /**
+       * A generalised literal that is atomic have two signs, the one assigned
+       * to the proper literal, and the one assigned to the generalised literal.
+       *
+       * To simplify tautology elimination we will always store proper literals
+       * with the positive sign. Hence, proper literals with negative sign are
+       * replaces with their complements.
+       */
       Literal* l = formula(gl)->literal();
       if (l->shared() && ((SIGN)l->polarity() != POSITIVE)) {
         Literal* cl = Literal::complementaryLiteral(l);
         gl = GenLit(new AtomicFormula(cl), OPPOSITE(sign(gl)));
       }
+    } else if (formula(gl)->connective() == NOT) {
+      gl = GenLit(formula(gl)->uarg(), OPPOSITE(sign(gl)));
     }
 
     Formula* f = formula(gl);
@@ -201,6 +226,14 @@ private:
           LOG2("Found duplicate literal", l->toString());
           return;
         }
+      }
+    } else if (!_formulasCache.insert(f, sign(gl))) {
+      cout << f->toString() << " is stored in cache with polrity " << _formulasCache.get(f) << endl;
+      if (sign(gl) != _formulasCache.get(f)) {
+        gc->valid = false;
+      } else {
+        LOG2("Found duplicate formula", f->toString());
+        return;
       }
     } else {
       Occurrences* occurrences = _occurrences.findPtr(f);
@@ -232,7 +265,31 @@ private:
     }
   };
 
+  /**
+   * Occurrences represents a list of occurrences in valid generalised clauses.
+   * Occurrences is used instead of an obvious List<Occurrence> because it
+   * maintains a (1) convenient (2) constant time size() method.
+   *
+   * (1) Occurrences maintains a List<Occurrence> * _occurrences, where each
+   *     Occurrence points to a generalised clause which can become invalid.
+   *     We are only interested in occurrences in valid generalised clauses.
+   *     It wouldn't be enough to call _occurrences->length(), as it might
+   *     count occurrences in invalid generalised clauses.
+   *
+   * (2) List::length is O(n) in the version of stdlib we are using. Instead of
+   *     calling it we maintain the size in a variables (_size) that is updated
+   *     in two situations:
+   *     - whenever the list of occurrences changes (by calling Occurrences's
+   *       own add(), append() and pop() methods)
+   *     - whenever a generalised clause is invalidated. In that case NewCNF
+   *       calls Occurrences::decrement() of every list of occurrences that has
+   *       an occurrence in this newly invalid generalised clause
+   */
   class Occurrences {
+  private:
+    List<Occurrence>* _occurrences;
+    unsigned _size;
+
   public:
     CLASS_NAME(NewCNF::Occurrences);
     USE_ALLOCATOR(NewCNF::Occurrences);
@@ -244,6 +301,11 @@ private:
     inline void add(Occurrence occ) {
       List<Occurrence>::push(occ, _occurrences);
       _size++;
+    }
+
+    inline void append(Occurrences occs) {
+      _occurrences = List<Occurrence>::concat(_occurrences, occs._occurrences);
+      _size += occs.size();
     }
 
     bool isNonEmpty() {
@@ -320,17 +382,13 @@ private:
       List<Occurrence>::DelIterator _iterator;
       SmartPtr<Occurrence> _current;
     };
-
-  private:
-    // may contain pointers to invalidated GenClauses
-    List<Occurrence>* _occurrences;
-    unsigned _size;
   };
 
   SPGenClause makeGenClause(List<GenLit>* gls, BindingList* bindings) {
     SPGenClause gc = SPGenClause(new GenClause((unsigned)gls->length(), bindings));
 
     ASS(_literalsCache.isEmpty());
+    ASS(_formulasCache.isEmpty());
 
     List<GenLit>::Iterator glit(gls);
     while (glit.hasNext()) {
@@ -338,6 +396,7 @@ private:
     }
 
     _literalsCache.reset();
+    _formulasCache.reset();
 
     return gc;
   }
@@ -374,6 +433,7 @@ private:
     SPGenClause newGc = SPGenClause(new GenClause(size, gc->bindings));
 
     ASS(_literalsCache.isEmpty());
+    ASS(_formulasCache.isEmpty());
 
     GenClause::Iterator gcit = gc->genLiterals();
     unsigned i = 0;
@@ -391,6 +451,7 @@ private:
     }
 
     _literalsCache.reset();
+    _formulasCache.reset();
 
     if (newGc->size() != size) {
       LOG4("Eliminated", size - newGc->size(), "duplicate literal(s) from", newGc->toString());
@@ -466,10 +527,25 @@ private:
 
   void enqueue(Formula* formula, Occurrences occurrences = Occurrences()) {
     if ((formula->connective() == LITERAL) && formula->literal()->shared()) return;
-    _queue.push_back(formula);
-    if (!_occurrences.insert(formula, occurrences)) {
-      ASSERTION_VIOLATION_REP(formula->toString());
+
+    if (formula->connective() == NOT) {
+      /**
+       * Formulas are always stored without negations in genclauses,
+       * therefore it is safe to drop the negation before queueing,
+       * all the occurrences of the formula won't have it either
+       */
+      formula = formula->uarg();
+      ASS_REP(formula->connective() != LITERAL, formula->toString());
     }
+
+    if (_occurrences.find(formula)) {
+      Occurrences oldOccurrences;
+      _occurrences.pop(formula, oldOccurrences);
+      occurrences.append(oldOccurrences);
+    } else {
+      _queue.push_back(formula);
+    }
+    ALWAYS(_occurrences.insert(formula, occurrences));
   }
 
   void dequeue(Formula* &formula, Occurrences &occurrences) {
