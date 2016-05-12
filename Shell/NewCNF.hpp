@@ -249,11 +249,13 @@ private:
     bool isNonEmpty() {
       while (true) {
         if (List<Occurrence>::isEmpty(_occurrences)) {
+          ASS_EQ(_size, 0);
           return false;
         }
         if (!_occurrences->head().gc->valid) {
           List<Occurrence>::pop(_occurrences);
         } else {
+          ASS_G(_size, 0);
           return true;
         }
       }
@@ -265,7 +267,12 @@ private:
     }
 
     Occurrence pop() {
-      return List<Occurrence>::pop(_occurrences);
+      ASS(isNonEmpty());
+      Occurrence occ = List<Occurrence>::pop(_occurrences);
+      ASS(occ.gc->valid);
+      _size--;
+      ASS_GE(_size, 0);
+      return occ;
     }
 
     void replaceBy(Formula* f) {
