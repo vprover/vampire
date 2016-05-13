@@ -111,7 +111,6 @@ Formula* Flattening::flatten (Formula* f)
           if (lhsBoolean || rhsBoolean || varEquality) {
             Formula* lhsFormula = BoolTermFormula::create(lhs);
             Formula* rhsFormula = BoolTermFormula::create(rhs);
-            cout << "WAT? " << lit->toString() << endl;
             return flatten(new BinaryFormula(lit->polarity() ? IFF : XOR, lhsFormula, rhsFormula));
           }
         }
