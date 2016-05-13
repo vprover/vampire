@@ -135,7 +135,7 @@ private:
         return ite(e >= 0, to_int(e), ceiling(e));
   }
 public:
-  z3::expr getz3expr(Term* trm,bool islit,bool&name);
+  z3::expr getz3expr(Term* trm,bool islit,bool&nameExpression);
 private:
   z3::expr getRepresentation(SATLiteral lit);
 

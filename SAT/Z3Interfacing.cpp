@@ -254,7 +254,7 @@ z3::sort Z3Interfacing::getz3sort(unsigned s)
  * - Translates the ground structure
  * - Some interpreted functions/predicates are handled
  */
-z3::expr Z3Interfacing::getz3expr(Term* trm,bool isLit,bool&name)
+z3::expr Z3Interfacing::getz3expr(Term* trm,bool isLit,bool&nameExpression)
 {
   CALL("Z3Interfacing::getz3expr");
   BYPASSING_ALLOCATOR;
@@ -332,7 +332,7 @@ z3::expr Z3Interfacing::getz3expr(Term* trm,bool isLit,bool&name)
     for(unsigned i=0;i<trm->arity();i++){
       TermList* arg = trm->nthArgument(i);
       ASS(!arg->isVar());// Term should be ground
-      args.push_back(getz3expr(arg->term(),false,name));
+      args.push_back(getz3expr(arg->term(),false,nameExpression));
     }
 
     // dummy return
@@ -354,7 +354,7 @@ z3::expr Z3Interfacing::getz3expr(Term* trm,bool isLit,bool&name)
       unsigned argsToPop=theory->getArity(interp);
 
       if(theory->isStructuredSortInterpretation(interp)){
-        name = true;
+        nameExpression = true;
         switch(theory->convertToStructured(interp)){
           case Theory::StructuredSortInterpretation::ARRAY_SELECT:
           case Theory::StructuredSortInterpretation::ARRAY_BOOL_SELECT:
@@ -378,7 +378,7 @@ z3::expr Z3Interfacing::getz3expr(Term* trm,bool isLit,bool&name)
         // Numerical operations
         case Theory::INT_DIVIDES:
           //cout << "SET name=true" << endl;
-          name = true;
+          nameExpression = true;
           ret = z3::expr(_context, Z3_mk_mod(_context, args[1], args[0])) == _context.int_val(0);
           break;
 
@@ -556,11 +556,11 @@ z3::expr Z3Interfacing::getRepresentation(SATLiteral slit)
     // Now translate it into an SMT object 
     try{
       // TODO everything is being named!!
-      bool name = true;
-      z3::expr e = getz3expr(lit,true,name);
+      bool nameExpression = true;
+      z3::expr e = getz3expr(lit,true,nameExpression);
       //cout << "got rep " << e << endl;
 
-      if(name){
+      if(nameExpression){
         //cout << "Naming " << e << endl;
         z3::expr bname = getNameExpr(slit.var()); 
         _solver.add(bname == e); 
