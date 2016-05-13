@@ -865,11 +865,6 @@ void Options::Options::init()
 	    _extensionalityResolution.reliesOn(_inequalitySplitting.is(equal(0)));
 	    _extensionalityResolution.setRandomChoices({"filter","known","off","off"});
 
-	    _FOOLOrdering = BoolOptionValue("fool_ordering","foolo",false);
-	    _FOOLOrdering.description="Sets term ordering to be $$false < $$true < everything else";
-	    _lookup.insert(&_FOOLOrdering);
-	    _FOOLOrdering.tag(OptionTag::SATURATION);
-
 	    _FOOLParamodulation = BoolOptionValue("fool_paramodulation","foolp",false);
 	    _FOOLParamodulation.description=
 	      "Turns on the following inference rule:\n"

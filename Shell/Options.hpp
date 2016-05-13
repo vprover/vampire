@@ -1801,7 +1801,6 @@ public:
   EqualityProxy equalityProxy() const { return _equalityProxy.actualValue; }
   RuleActivity equalityResolutionWithDeletion() const { return _equalityResolutionWithDeletion.actualValue; }
   ExtensionalityResolution extensionalityResolution() const { return _extensionalityResolution.actualValue; }
-  bool FOOLOrdering() const { return _FOOLOrdering.actualValue; }
   bool FOOLParamodulation() const { return _FOOLParamodulation.actualValue; }
   unsigned extensionalityMaxLength() const { return _extensionalityMaxLength.actualValue; }
   bool extensionalityAllowPosEq() const { return _extensionalityAllowPosEq.actualValue; }
@@ -2074,7 +2073,6 @@ private:
   UnsignedOptionValue _extensionalityMaxLength;
   BoolOptionValue _extensionalityAllowPosEq;
 
-  BoolOptionValue _FOOLOrdering;
   BoolOptionValue _FOOLParamodulation;
 
   BoolOptionValue _fmbNonGroundDefs;

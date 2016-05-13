@@ -287,22 +287,14 @@ void KBO::State::traverse(Term* t1, Term* t2)
 
 /**
  * Create a KBO object.
- * @since 01/06/2015 Gothenburg, assign the lowest weight to FOOL_FALSE,
- * second lowest to FOOL_TRUE when --fool_ordering is enabled
  */
 KBO::KBO(Problem& prb, const Options& opt)
  : KBOBase(prb, opt)
 {
   CALL("KBO::KBO");
 
-  // make space for FOOL false and true to be in positions 1 and 2
-  if (env.options->FOOLOrdering() || env.options->FOOLParamodulation()) {
-    _variableWeight = 3;
-    _defaultSymbolWeight = 3;
-  } else {
-    _variableWeight = 1;
-    _defaultSymbolWeight = 1;
-  }
+  _variableWeight = 1;
+  _defaultSymbolWeight = 1;
 
   _state=new State(this);
 }
@@ -450,21 +442,9 @@ Ordering::Result KBO::compare(TermList tl1, TermList tl2) const
   return res;
 }
 
-/**
- * @since 01/06/2015 Gothenburg, assign the lowest weight to FOOL_FALSE,
- * second lowest to FOOL_TRUE when --fool_ordering is enabled
- */
 int KBO::functionSymbolWeight(unsigned fun) const
 {
   int weight = _defaultSymbolWeight;
-
-  if (env.options->FOOLOrdering() || env.options->FOOLParamodulation()) {
-    if (env.signature->isFoolConstantSymbol(false,fun)) {
-      weight = 1;
-    } else if (env.signature->isFoolConstantSymbol(true,fun)) {
-      weight = 2;
-    }
-  }
 
   if(env.signature->functionColored(fun)) {
     weight *= COLORED_WEIGHT_BOOST;
@@ -543,6 +523,23 @@ Ordering::Result KBOBase::compareFunctionPrecedences(unsigned fun1, unsigned fun
 {
   CALL("KBOBase::compareFunctionPrecedences");
   ASS_NEQ(fun1, fun2);
+
+  // $$false is the smallest
+  if (env.signature->isFoolConstantSymbol(false,fun1)) {
+    return LESS;
+  }
+  if (env.signature->isFoolConstantSymbol(false,fun2)) {
+    return GREATER;
+  }
+
+  // $$true is the second smallest
+  if (env.signature->isFoolConstantSymbol(true,fun1)) {
+    return LESS;
+  }
+
+  if (env.signature->isFoolConstantSymbol(true,fun2)) {
+    return GREATER;
+  }
 
   Signature::Symbol* s1=env.signature->getFunction(fun1);
   Signature::Symbol* s2=env.signature->getFunction(fun2);
