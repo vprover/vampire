@@ -40,16 +40,16 @@ void BlockedClauseElimination::apply(Problem& prb)
   bool modified = false;
 
   if (prb.hasEquality()) {
-    // cout << "Problem has equality" << endl;
+    cout << "BCE with equality" << endl;
 
     ASSERTION_VIOLATION;
   } else {
+    cout << "BCE without equality" << endl;
+
     DArray<Stack<Candidate*>> positive(env.signature->predicates());
     DArray<Stack<Candidate*>> negative(env.signature->predicates());
 
     Stack<ClWrapper*> wrappers; // just to delete easily in the end
-
-    // cout << "Entering the non-equality case" << endl;
 
     // put the clauses into the index
     UnitList::Iterator uit(prb.units());
@@ -184,17 +184,12 @@ bool BlockedClauseElimination::resolvesToTautology(Clause* cl, Literal* lit, Cla
   lits.reset();
 
   for (unsigned i = 0; i < cl->length(); i++) {
-    Literal* curlit = (*cl)[i];
-    if (curlit != lit) {
-      Literal* scurlit = subst.apply(curlit,0);
+    Literal* scurlit = subst.apply((*cl)[i],0);
 
-      Literal* opscurlit = Literal::complementaryLiteral(scurlit);
-
-      if (lits.find(opscurlit)) {
-        return true;
-      }
-      lits.insert(scurlit);
+    if (lits.find(Literal::complementaryLiteral(scurlit))) {
+      return true;
     }
+    lits.insert(scurlit);
   }
 
   for (unsigned i = 0; i < pcl->length(); i++) {
@@ -202,9 +197,7 @@ bool BlockedClauseElimination::resolvesToTautology(Clause* cl, Literal* lit, Cla
     if (curlit != plit) {
       Literal* scurlit = subst.apply(curlit,1);
 
-      Literal* opscurlit = Literal::complementaryLiteral(scurlit);
-
-      if (lits.find(opscurlit)) {
+      if (lits.find(Literal::complementaryLiteral(scurlit))) {
         return true;
       }
       lits.insert(scurlit);
