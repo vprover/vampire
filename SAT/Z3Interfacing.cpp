@@ -481,7 +481,7 @@ z3::expr Z3Interfacing::getz3expr(Term* trm,bool isLit,bool&nameExpression)
          case Theory::RAT_REMAINDER_E:
          case Theory::REAL_REMAINDER_E:
            //cout << "SET name=true" << endl;
-           name = true; 
+           nameExpression = true; 
            ret = z3::expr(_context, Z3_mk_mod(_context, args[0], args[1]));
            break;
 
