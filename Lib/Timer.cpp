@@ -106,7 +106,7 @@ void timeLimitReached()
     }
   }
   if(env.statistics && (!Shell::UIHelper::szsOutput || Shell::UIHelper::cascModeChild) &&
-     env.options->mode() != Shell::Options::Mode::SPIDER) {
+     env.options->mode() != Shell::Options::Mode::SPIDER && env.options->proof() != Shell::Options::Proof::SMTCOMP) {
     env.statistics->print(env.out());
   }
   env.endOutput();
