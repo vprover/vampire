@@ -105,7 +105,8 @@ void timeLimitReached()
                 << (env.options ? env.options->problemName() : "unknown") << endl;
     }
   }
-  if(env.statistics && (!Shell::UIHelper::szsOutput || Shell::UIHelper::cascModeChild)) {
+  if(env.statistics && (!Shell::UIHelper::szsOutput || Shell::UIHelper::cascModeChild) &&
+     env.options->mode() != Shell::Options::Mode::SPIDER) {
     env.statistics->print(env.out());
   }
   env.endOutput();
