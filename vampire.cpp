@@ -756,6 +756,14 @@ void clausifyMode(bool stat)
       clauses++;
       literals += cl->size();
     } else {
+/*
+  Uncomment this bit to make clausify print quantification
+  TODO decide when this should be done and do it then 
+
+      Formula* f = Formula::fromClause(cl);
+      FormulaUnit* fu = new FormulaUnit(f,cl->inference(),cl->inputType());
+      env.out() << TPTPPrinter::toString(fu) << "\n";
+*/
       env.out() << TPTPPrinter::toString(cl) << "\n";
     }
   }
