@@ -17,6 +17,7 @@
 #include "Shell/LaTeX.hpp"
 #include "Shell/Options.hpp"
 #include "Shell/Statistics.hpp"
+#include "Shell/UIHelper.hpp"
 
 #include "Parse/TPTP.hpp"
 
@@ -411,6 +412,13 @@ struct InferenceStore::TPTPProofPrinter
     splitPrefix = Saturation::Splitter::splPrefix; 
   }
 
+  void print()
+  {
+    UIHelper::outputSortDeclarations(env.out());
+    UIHelper::outputSymbolDeclarations(env.out());
+    ProofPrinter::print();
+  }
+
 protected:
   vstring splitPrefix;
 
@@ -489,7 +497,10 @@ protected:
   {
     CALL("InferenceStore::TPTPProofPrinter::getFofString");
 
-    return "fof("+id+","+getRole(rule,origin)+",("+"\n"
+    vstring kind = "fof";
+    if(env.statistics->hasTypes){ kind="tff"; }
+
+    return kind+"("+id+","+getRole(rule,origin)+",("+"\n"
 	+"  "+formula+"),\n"
 	+"  "+inference+").";
   }

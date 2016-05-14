@@ -463,7 +463,7 @@ void FiniteModelBuilder::init()
     }
   }
   if(!_clauses){
-    if(env.options->mode()!=Options::Mode::SPIDER){
+    if(outputAllowed()){
       cout << "The problem is propositional so there are no sorts!" << endl;
     }
     // ignore sort inference
@@ -1432,7 +1432,7 @@ MainLoopResult FiniteModelBuilder::runImpl()
   env.statistics->phase = Statistics::FMB_CONSTRAINT_GEN;
 
 
-  if(env.options->mode()!=Options::Mode::SPIDER){
+  if(outputAllowed()){
       bool doPrinting = false;
       vstring res = "[";
       for(unsigned s=0;s<_sortedSignature->distinctSorts;s++){
@@ -1464,7 +1464,7 @@ MainLoopResult FiniteModelBuilder::runImpl()
 
   if (reset()) {
   while(true){
-    if(env.options->mode()!=Options::Mode::SPIDER) { 
+    if(outputAllowed()) { 
       cout << "TRYING " << "["; 
       for(unsigned i=0;i<_distinctSortSizes.size();i++){
         cout << _distinctSortSizes[i];
@@ -1679,7 +1679,7 @@ MainLoopResult FiniteModelBuilder::runImpl()
                 new Inference(Inference::MODEL_NOT_FOUND));
             return MainLoopResult(Statistics::REFUTATION,empty);
           } else {
-            if(env.options->mode()!=Options::Mode::SPIDER) {
+            if(outputAllowed()) {
               cout << "Cannot enumerate next child to try in an incomplete setup" <<endl;
             }
             goto gave_up;
@@ -1700,7 +1700,7 @@ MainLoopResult FiniteModelBuilder::runImpl()
 
   // reset returned false, we can't represent all the variables; giving up!
 
-  if(env.options->mode()!=Options::Mode::SPIDER){
+  if(outputAllowed()){
     cout << "Cannot represent all propositional literals internally" <<endl;
   }
 
@@ -2322,7 +2322,7 @@ bool FiniteModelBuilder::SmtBasedDSAE::init(unsigned _startModelSize, DArray<uns
     // if UNSAT now, we know this is "infinox-gaveup"
     if (_strict_distinct_sort_constraints.size() > 0) {
       if (_smtSolver.check() == z3::check_result::unsat) {
-       if(env.options->mode()!=Options::Mode::SPIDER){
+       if(outputAllowed()){
           cout << "Problem does not have a finite model." <<endl;
         }
         return false;
