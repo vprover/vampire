@@ -454,7 +454,7 @@ void Options::Options::init()
     _lookup.insert(&_iteInliningThreshold);
     _iteInliningThreshold.tag(OptionTag::PREPROCESSING);
 
-    _inlineLet = BoolOptionValue("inline_let","",false);
+    _inlineLet = BoolOptionValue("inline_let","ile",false);
     _inlineLet.description="Always inline let-expressions.";
     _lookup.insert(&_inlineLet);
     _inlineLet.tag(OptionTag::PREPROCESSING);
