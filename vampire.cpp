@@ -48,6 +48,7 @@
 #include "SAT/DIMACS.hpp"
 
 #include "CASC/CASCMode.hpp"
+#include "SMTCOMP/SMTCOMPMode.hpp"
 #include "CASC/CLTBMode.hpp"
 #include "CASC/CMZRMode.hpp"
 #include "Shell/CParser.hpp"
@@ -946,6 +947,13 @@ int main(int argc, char* argv[])
 	vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
       }
       break;
+    case Options::Mode::SMTCOMP:
+       env.options->setProof(Options::Proof::SMTCOMP);
+       env.options->setInputSyntax(Options::InputSyntax::SMTLIB2);
+       if(SMTCOMP::SMTCOMPMode::perform(argc,argv)){
+         vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
+        }
+    break;
 /*
     case Options::Mode::CASC_LTB: {
       try {

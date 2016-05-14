@@ -843,6 +843,7 @@ InferenceStore::ProofPrinter* InferenceStore::createProofPrinter(ostream& out)
   case Options::Proof::TPTP:
     return new TPTPProofPrinter(out, this);
   case Options::Proof::OFF:
+  case Options::Proof::SMTCOMP:
     return 0;
   }
   ASSERTION_VIOLATION;

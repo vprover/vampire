@@ -345,6 +345,7 @@ public:
     CASC,
     //CASC_LTB,
     CASC_SAT,
+    SMTCOMP,
     CLAUSIFY,
     CLAUSIFY_STAT,
     CONSEQUENCE_ELIMINATION,
@@ -1692,7 +1693,7 @@ public:
   LTBLearning ltbLearning() const { return _ltbLearning.actualValue; }
   Mode mode() const { return _mode.actualValue; }
   InputSyntax inputSyntax() const { return _inputSyntax.actualValue; }
-  //void setInputSyntax(InputSyntax newVal) { _inputSyntax = newVal; }
+  void setInputSyntax(InputSyntax newVal) { _inputSyntax.actualValue = newVal; }
   bool normalize() const { return _normalize.actualValue; }
   void setNormalize(bool normalize) { _normalize.actualValue = normalize; }
   void setNaming(int n){ _naming.actualValue = n;} //TODO: ensure global constraints
