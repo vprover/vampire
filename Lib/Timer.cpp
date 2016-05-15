@@ -91,7 +91,7 @@ void timeLimitReached()
 {
   env.beginOutput();
   reportSpiderStatus('t');
-  if (!inSpiderMode()) {
+  if (!inSpiderMode() && env.options->proof()!=Shell::Options::Proof::SMTCOMP) {
     if (Shell::UIHelper::szsOutput) {
       env.out() << "% (" << getpid() << ')';
     }
