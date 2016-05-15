@@ -225,7 +225,7 @@ void NewCNF::process(Literal* literal, Occurrences &occurrences) {
 
       enqueue(f);
 
-      introduceExtendedGenClause(occ.gc, occ.position, gls->cons(GenLit(f, occ.sign())));
+      introduceExtendedGenClause(occ, gls->cons(GenLit(f, occ.sign())));
     }
   }
 }
@@ -342,11 +342,11 @@ void NewCNF::process(JunctionFormula *g, Occurrences &occurrences)
     }
 
     if (occ.sign() == formulaSign) {
-      introduceExtendedGenClause(occ.gc, occ.position, gls);
+      introduceExtendedGenClause(occ, gls);
     } else {
       List<GenLit>::Iterator glit(gls);
       while (glit.hasNext()) {
-        introduceExtendedGenClause(occ.gc, occ.position, glit.next());
+        introduceExtendedGenClause(occ, glit.next());
       }
     }
   }
@@ -366,20 +366,6 @@ void NewCNF::process(BinaryFormula* g, Occurrences &occurrences)
   Formula* lhs = g->left();
   Formula* rhs = g->right();
 
-  if (lhs->connective() == BOOL_TERM && rhs->connective() == BOOL_TERM) {
-    TermList lhsTerm = lhs->getBooleanTerm();
-    TermList rhsTerm = rhs->getBooleanTerm();
-
-    Literal *equalityLiteral = Literal::createEquality(formulaSign, lhsTerm, rhsTerm, Sorts::SRT_BOOL);
-    Formula *equality = new AtomicFormula(equalityLiteral);
-
-    occurrences.replaceBy(equality);
-
-    enqueue(equality, occurrences);
-
-    return;
-  }
-
   enqueue(lhs);
   enqueue(rhs);
 
@@ -388,7 +374,7 @@ void NewCNF::process(BinaryFormula* g, Occurrences &occurrences)
 
     for (SIGN lhsSign : { NEGATIVE, POSITIVE }) {
       SIGN rhsSign = formulaSign == occ.sign() ? OPPOSITE(lhsSign) : lhsSign;
-      introduceExtendedGenClause(occ.gc, occ.position, GenLit(lhs, lhsSign), GenLit(rhs, rhsSign));
+      introduceExtendedGenClause(occ, GenLit(lhs, lhsSign), GenLit(rhs, rhsSign));
     }
   }
 }
@@ -437,7 +423,7 @@ void NewCNF::processBoolVar(SIGN sign, unsigned var, Occurrences &occurrences)
     if (!bound) {
       Term* constant = (occurrenceSign == POSITIVE) ? Term::foolFalse() : Term::foolTrue();
       BindingList::push(Binding(var, constant), occ.gc->bindings);
-      removeGenLit(occ.gc, occ.position);
+      removeGenLit(occ);
       continue;
     }
 
@@ -447,15 +433,29 @@ void NewCNF::processBoolVar(SIGN sign, unsigned var, Occurrences &occurrences)
     if (isTrue || isFalse) {
       SIGN bindingSign = isTrue ? POSITIVE : NEGATIVE;
       if (occurrenceSign != bindingSign) {
-        removeGenLit(occ.gc, occ.position);
+        removeGenLit(occ);
       }
       continue;
     }
 
-    introduceExtendedGenClause(occ.gc, occ.position, GenLit(new BoolTermFormula(TermList(var, false)), occurrenceSign));
+    introduceExtendedGenClause(occ, GenLit(new BoolTermFormula(TermList(var, false)), occurrenceSign));
   }
 }
 
+void NewCNF::processConstant(bool constant, Occurrences &occurrences)
+{
+  CALL("NewCNF::processConstant");
+
+  while (occurrences.isNonEmpty()) {
+    Occurrence occ = pop(occurrences);
+    if (constant == (occ.sign() == POSITIVE)) {
+      // constant is true -- remove the genclause that has it
+    } else {
+      // constant is false -- remove the occurrence of the constant
+      removeGenLit(occ);
+    }
+  }
+}
 
 void NewCNF::processITE(Formula* condition, Formula* thenBranch, Formula* elseBranch, Occurrences &occurrences)
 {
@@ -470,7 +470,7 @@ void NewCNF::processITE(Formula* condition, Formula* thenBranch, Formula* elseBr
 
     for (SIGN conditionSign : { NEGATIVE, POSITIVE }) {
       Formula* branch = conditionSign == NEGATIVE ? thenBranch : elseBranch;
-      introduceExtendedGenClause(occ.gc, occ.position, GenLit(condition, conditionSign), GenLit(branch, occ.sign()));
+      introduceExtendedGenClause(occ, GenLit(condition, conditionSign), GenLit(branch, occ.sign()));
     }
   }
 }
@@ -484,13 +484,13 @@ void NewCNF::processLet(unsigned symbol, Formula::VarList* bindingVariables, Ter
   if (binding.isVar()) {
     inlineLet = true;
   } else {
-    Term* term = binding.term();
-    if (term->isSpecial()) {
-      Term::SpecialTermData* sd = term->getSpecialData();
-      if (sd->getType() == Term::SF_FORMULA) {
-        inlineLet = true;
-      }
-    }
+//    Term* term = binding.term();
+//    if (term->isSpecial()) {
+//      Term::SpecialTermData* sd = term->getSpecialData();
+//      if (sd->getType() == Term::SF_FORMULA) {
+//        inlineLet = true;
+//      }
+//    }
 //    if (term->shared()) {
 //      // TODO: magic
 ////      if (term->weight() < 6) {
@@ -532,7 +532,7 @@ void NewCNF::processLet(unsigned symbol, Formula::VarList* bindingVariables, Ter
 
   occurrences.replaceBy(processedContentsFormula);
 
-  process(processedContentsFormula, occurrences);
+  enqueue(processedContentsFormula, occurrences);
 }
 
 void NewCNF::processTupleLet(unsigned tupleFunctor, IntList* symbols, TermList binding,
@@ -630,12 +630,11 @@ TermList NewCNF::nameLetBinding(unsigned symbol, Formula::VarList* bindingVariab
   }
 
   if (isPredicate) {
-    Formula* formulaBinding = BoolTermFormula::create(binding);
-
-    enqueue(formulaBinding);
-
     Literal* name = Literal::create(freshSymbol, nameArity, POSITIVE, false, arguments.begin());
     Formula* nameFormula = new AtomicFormula(name);
+
+    Formula* formulaBinding = BoolTermFormula::create(binding);
+    enqueue(formulaBinding);
 
     for (SIGN sign : { POSITIVE, NEGATIVE }) {
       introduceGenClause(GenLit(nameFormula, sign), GenLit(formulaBinding, OPPOSITE(sign)));
@@ -979,6 +978,11 @@ void NewCNF::process(Formula* g, Occurrences &occurrences)
       processBoolVar(NEGATIVE, g->uarg()->getBooleanTerm().var(), occurrences);
       break;
 
+    case TRUE:
+    case FALSE:
+      processConstant(g->connective() == TRUE, occurrences);
+      break;
+
     default:
       ASSERTION_VIOLATION_REP(g->toString());
   }
@@ -1078,7 +1082,7 @@ void NewCNF::toClauses(SPGenClause gc, Stack<Clause*>& output)
 #endif
 }
 
-bool NewCNF::mapSubstitution(List<GenLit>* clause, Substitution subst, List<GenLit>* output)
+bool NewCNF::mapSubstitution(List<GenLit>* clause, Substitution subst, List<GenLit>* &output)
 {
   CALL("NewCNF::mapSubstitution");
 
@@ -1086,7 +1090,6 @@ bool NewCNF::mapSubstitution(List<GenLit>* clause, Substitution subst, List<GenL
   while (it.hasNext()) {
     GenLit gl = it.next();
     Formula* f = SubstHelper::apply(formula(gl), subst);
-    ASS_NEQ(f, formula(gl));
 
     switch (f->connective()) {
       case TRUE:

@@ -167,8 +167,9 @@ SATSolver::VarAssignment Z3Interfacing::getAssignment(unsigned var)
   BYPASSING_ALLOCATOR;
 
   ASS_EQ(_status,SATISFIABLE);
-
-  z3::expr rep = getRepresentation(SATLiteral(var,1));
+  bool named = _namedExpressions.find(var);
+  z3::expr rep = named ? getNameExpr(var) : getRepresentation(SATLiteral(var,1));
+  //cout << "rep is " << rep << " named was " << named << endl;
   z3::expr assignment = _model.eval(rep,true /*model_completion*/);
   //cout << "ass is " << assignment << endl;
 
@@ -253,7 +254,7 @@ z3::sort Z3Interfacing::getz3sort(unsigned s)
  * - Translates the ground structure
  * - Some interpreted functions/predicates are handled
  */
-z3::expr Z3Interfacing::getz3expr(Term* trm,bool isLit)
+z3::expr Z3Interfacing::getz3expr(Term* trm,bool isLit,bool&nameExpression)
 {
   CALL("Z3Interfacing::getz3expr");
   BYPASSING_ALLOCATOR;
@@ -297,10 +298,10 @@ z3::expr Z3Interfacing::getz3expr(Term* trm,bool isLit)
         RationalConstantType value = symb->rationalValue();
         return _context.real_val(value.numerator().toInner(),value.denominator().toInner());
       }
-      if(env.signature->isFoolConstantSymbol(true,trm->functor())){
+      if(!isLit && env.signature->isFoolConstantSymbol(true,trm->functor())){
         return _context.bool_val(true);
       }
-      if(env.signature->isFoolConstantSymbol(false,trm->functor())){
+      if(!isLit && env.signature->isFoolConstantSymbol(false,trm->functor())){
         return _context.bool_val(false);
       }
       if (symb->overflownConstant()) {
@@ -331,7 +332,7 @@ z3::expr Z3Interfacing::getz3expr(Term* trm,bool isLit)
     for(unsigned i=0;i<trm->arity();i++){
       TermList* arg = trm->nthArgument(i);
       ASS(!arg->isVar());// Term should be ground
-      args.push_back(getz3expr(arg->term(),false));
+      args.push_back(getz3expr(arg->term(),false,nameExpression));
     }
 
     // dummy return
@@ -353,7 +354,7 @@ z3::expr Z3Interfacing::getz3expr(Term* trm,bool isLit)
       unsigned argsToPop=theory->getArity(interp);
 
       if(theory->isStructuredSortInterpretation(interp)){
-
+        nameExpression = true;
         switch(theory->convertToStructured(interp)){
           case Theory::StructuredSortInterpretation::ARRAY_SELECT:
           case Theory::StructuredSortInterpretation::ARRAY_BOOL_SELECT:
@@ -376,6 +377,8 @@ z3::expr Z3Interfacing::getz3expr(Term* trm,bool isLit)
       switch(interp){
         // Numerical operations
         case Theory::INT_DIVIDES:
+          //cout << "SET name=true" << endl;
+          nameExpression = true;
           ret = z3::expr(_context, Z3_mk_mod(_context, args[1], args[0])) == _context.int_val(0);
           break;
 
@@ -477,6 +480,8 @@ z3::expr Z3Interfacing::getz3expr(Term* trm,bool isLit)
          case Theory::INT_REMAINDER_E:
          case Theory::RAT_REMAINDER_E:
          case Theory::REAL_REMAINDER_E:
+           //cout << "SET name=true" << endl;
+           nameExpression = true; 
            ret = z3::expr(_context, Z3_mk_mod(_context, args[0], args[1]));
            break;
 
@@ -550,19 +555,28 @@ z3::expr Z3Interfacing::getRepresentation(SATLiteral slit)
     //cout << "getRepresentation of " << lit->toString() << endl;
     // Now translate it into an SMT object 
     try{
-      z3::expr e = getz3expr(lit,true);
+      // TODO everything is being named!!
+      bool nameExpression = true;
+      z3::expr e = getz3expr(lit,true,nameExpression);
       //cout << "got rep " << e << endl;
-      if(slit.isNegative()) return !e;
+
+      if(nameExpression){
+        //cout << "Naming " << e << endl;
+        z3::expr bname = getNameExpr(slit.var()); 
+        _solver.add(bname == e); 
+        _namedExpressions.insert(slit.var());
+      }
+
+      if(slit.isNegative()){ e = !e;}
       return e;
     }catch(z3::exception& exception){
      reportSpiderFail();
-     cout << "Z3 exception:\n" << exception.msg() << endl;
+     //cout << "Z3 exception:\n" << exception.msg() << endl;
      ASSERTION_VIOLATION_REP("Failed to create Z3 rep for " + lit->toString());
     }
   }
   //if non ground then just create a propositional variable
-  vstring name = "v"+Lib::Int::toString(slit.var());
-  z3::expr e = _context.bool_const(name.c_str());
+  z3::expr e = getNameExpr(slit.var()); 
   if(slit.isNegative()) return !e;
   else return e;
 }

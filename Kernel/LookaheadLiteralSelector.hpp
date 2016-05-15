@@ -20,7 +20,12 @@ public:
   USE_ALLOCATOR(LookaheadLiteralSelector);
   
   LookaheadLiteralSelector(bool completeSelection, const Ordering& ordering, const Options& options)
-  : LiteralSelector(ordering, options), _completeSelection(completeSelection) {}
+  : LiteralSelector(ordering, options), _completeSelection(completeSelection) 
+  {
+    _delay = options.lookaheadDelay();
+    _skipped = 0;
+    _startupSelector = (_delay==0) ? 0 : LiteralSelector::getSelector(ordering, options, completeSelection ? 10 : 1010);
+  }
 
   bool isBGComplete() const override { return _completeSelection; }
 protected:
@@ -33,6 +38,9 @@ private:
   struct GenIteratorIterator;
 
   bool _completeSelection;
+  LiteralSelector* _startupSelector;
+  int _delay;
+  int _skipped;
 };
 
 }

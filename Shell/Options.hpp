@@ -345,6 +345,7 @@ public:
     CASC,
     //CASC_LTB,
     CASC_SAT,
+    SMTCOMP,
     CLAUSIFY,
     CLAUSIFY_STAT,
     CONSEQUENCE_ELIMINATION,
@@ -477,7 +478,8 @@ public:
     OFF = 0,
     ON = 1,
     PROOFCHECK = 2,
-    TPTP = 3
+    TPTP = 3,
+    SMTCOMP
   };
 
   /** Values for --equality_proxy */
@@ -1103,6 +1105,11 @@ private:
         }
         
         virtual vstring getStringOfValue(int value) const{ return Lib::Int::toString(value); }
+
+
+        WrappedConstraint<int>* isLookAheadSelection(){
+          return new WrappedConstraint<int>(this,new isLookAheadSelectionConstraint());
+        }
     };
     
     /**
@@ -1478,6 +1485,18 @@ private:
     static OptionValueConstraint<int>* isNotDefaultRatio(){
         return new NotDefaultRatioConstraint();
     }
+
+    struct isLookAheadSelectionConstraint : public OptionValueConstraint<int>{
+        CLASS_NAME(isLookAheadSelectionConstraint);
+        USE_ALLOCATOR(isLookAheadSelectionConstraint);
+        isLookAheadSelectionConstraint() {}
+        bool check(OptionValue<int>* value){
+            return value->actualValue == 11 || value->actualValue == 1011 || value->actualValue == -11 || value->actualValue == -1011;
+        }
+        vstring msg(OptionValue<int>* value){
+            return value->longName+"("+value->getStringOfActual()+") is not lookahead selection"; 
+        }
+    };
     
     
     /**
@@ -1674,7 +1693,7 @@ public:
   LTBLearning ltbLearning() const { return _ltbLearning.actualValue; }
   Mode mode() const { return _mode.actualValue; }
   InputSyntax inputSyntax() const { return _inputSyntax.actualValue; }
-  //void setInputSyntax(InputSyntax newVal) { _inputSyntax = newVal; }
+  void setInputSyntax(InputSyntax newVal) { _inputSyntax.actualValue = newVal; }
   bool normalize() const { return _normalize.actualValue; }
   void setNormalize(bool normalize) { _normalize.actualValue = normalize; }
   void setNaming(int n){ _naming.actualValue = n;} //TODO: ensure global constraints
@@ -1686,29 +1705,41 @@ public:
   int rowVariableMaxLength() const { return _rowVariableMaxLength.actualValue; }
   //void setRowVariableMaxLength(int newVal) { _rowVariableMaxLength = newVal; }
   bool printClausifierPremises() const { return _printClausifierPremises.actualValue; }
-  bool showActive() const { return _showActive.actualValue; }
-  bool showBlocked() const { return _showBlocked.actualValue; }
-  bool showDefinitions() const { return _showDefinitions.actualValue; }
-  InterpolantMode showInterpolant() const { return _showInterpolant.actualValue; }
-  bool showNew() const { return _showNew.actualValue; }
-  bool showSplitting() const { return _showSplitting.actualValue; }
-  bool showNewPropositional() const { return _showNewPropositional.actualValue; }
+
+  // IMPORTANT, if you add a showX command then include showAll
+  bool showAll() const { return _showAll.actualValue; }
+
+  bool showActive() const { return showAll() || _showActive.actualValue; }
+  bool showBlocked() const { return showAll() || _showBlocked.actualValue; }
+  bool showDefinitions() const { return showAll() || _showDefinitions.actualValue; }
+  bool showNew() const { return showAll() || _showNew.actualValue; }
+  bool showSplitting() const { return showAll() || _showSplitting.actualValue; }
+  bool showNewPropositional() const { return showAll() || _showNewPropositional.actualValue; }
+  bool showPassive() const { return showAll() || _showPassive.actualValue; }
+  bool showReductions() const { return showAll() || _showReductions.actualValue; }
+  bool showPreprocessing() const { return showAll() || _showPreprocessing.actualValue; }
+  bool showSkolemisations() const { return showAll() || _showSkolemisations.actualValue; }
+  bool showSymbolElimination() const { return showAll() || _showSymbolElimination.actualValue; }
+  bool showTheoryAxioms() const { return showAll() || _showTheoryAxioms.actualValue; }
+  bool showFOOL() const { return showAll() || _showFOOL.actualValue; }
+  bool showFMBsortInfo() const { return showAll() || _showFMBsortInfo.actualValue; }
+#if VZ3
+  bool showZ3() const { return showAll() || _showZ3.actualValue; }
+#endif
+  
+  // end of show commands
+
   bool showNonconstantSkolemFunctionTrace() const { return _showNonconstantSkolemFunctionTrace.actualValue; }
   void setShowNonconstantSkolemFunctionTrace(bool newVal) { _showNonconstantSkolemFunctionTrace.actualValue = newVal; }
+  InterpolantMode showInterpolant() const { return _showInterpolant.actualValue; }
   bool showOptions() const { return _showOptions.actualValue; }
   bool showExperimentalOptions() const { return _showExperimentalOptions.actualValue; }
   bool showHelp() const { return _showHelp.actualValue; }
   vstring explainOption() const { return _explainOption.actualValue; }
-  bool showPassive() const { return _showPassive.actualValue; }
-  bool showReductions() const { return _showReductions.actualValue; }
-  bool showPreprocessing() const { return _showPreprocessing.actualValue; }
-  bool showSkolemisations() const { return _showSkolemisations.actualValue; }
-  bool showSymbolElimination() const { return _showSymbolElimination.actualValue; }
-  bool showTheoryAxioms() const { return _showTheoryAxioms.actualValue; }
-  bool showFOOL() const { return _showFOOL.actualValue; }
-  bool showFMBsortInfo() const { return _showFMBsortInfo.actualValue; }
+
+  bool printAllTheoryAxioms() const { return _printAllTheoryAxioms.actualValue; }
+
 #if VZ3
-  bool showZ3() const { return _showZ3.actualValue; }
   bool z3UnsatCores() const { return _z3UnsatCores.actualValue;}
   bool satFallbackForSMT() const { return _satFallbackForSMT.actualValue; }
 #endif
@@ -1749,6 +1780,7 @@ public:
   vstring lingvaAdditionalInvariants() const {return _lingvaAdditionalInvariants.actualValue; }
   int lrsFirstTimeCheck() const { return _lrsFirstTimeCheck.actualValue; }
   int lrsWeightLimitOnly() const { return _lrsWeightLimitOnly.actualValue; }
+  int lookaheadDelay() const { return _lookaheadDelay.actualValue; }
   int simulatedTimeLimit() const { return _simulatedTimeLimit.actualValue; }
   void setSimulatedTimeLimit(int newVal) { _simulatedTimeLimit.actualValue = newVal; }
   int maxInferenceDepth() const { return _maxInferenceDepth.actualValue; }
@@ -1771,7 +1803,6 @@ public:
   EqualityProxy equalityProxy() const { return _equalityProxy.actualValue; }
   RuleActivity equalityResolutionWithDeletion() const { return _equalityResolutionWithDeletion.actualValue; }
   ExtensionalityResolution extensionalityResolution() const { return _extensionalityResolution.actualValue; }
-  bool FOOLOrdering() const { return _FOOLOrdering.actualValue; }
   bool FOOLParamodulation() const { return _FOOLParamodulation.actualValue; }
   unsigned extensionalityMaxLength() const { return _extensionalityMaxLength.actualValue; }
   bool extensionalityAllowPosEq() const { return _extensionalityAllowPosEq.actualValue; }
@@ -2044,7 +2075,6 @@ private:
   UnsignedOptionValue _extensionalityMaxLength;
   BoolOptionValue _extensionalityAllowPosEq;
 
-  BoolOptionValue _FOOLOrdering;
   BoolOptionValue _FOOLParamodulation;
 
   BoolOptionValue _fmbNonGroundDefs;
@@ -2108,6 +2138,7 @@ private:
 
   ChoiceOptionValue<LiteralComparisonMode> _literalComparisonMode;
   StringOptionValue _logFile;
+  IntOptionValue _lookaheadDelay;
   IntOptionValue _lrsFirstTimeCheck;
   BoolOptionValue _lrsWeightLimitOnly;
   ChoiceOptionValue<LTBLearning> _ltbLearning;
@@ -2160,6 +2191,7 @@ private:
   BoolOptionValue _satLingelingIncremental;
   ChoiceOptionValue<SaturationAlgorithm> _saturationAlgorithm;
   BoolOptionValue _selectUnusedVariablesFirst;
+  BoolOptionValue _showAll;
   BoolOptionValue _showActive;
   BoolOptionValue _showBlocked;
   BoolOptionValue _showDefinitions;
@@ -2171,6 +2203,7 @@ private:
   BoolOptionValue _showOptions;
   BoolOptionValue _showExperimentalOptions;
   BoolOptionValue _showHelp;
+  BoolOptionValue _printAllTheoryAxioms;
   StringOptionValue _explainOption;
   BoolOptionValue _showPassive;
   BoolOptionValue _showReductions;

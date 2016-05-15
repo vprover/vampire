@@ -463,7 +463,7 @@ void FiniteModelBuilder::init()
     }
   }
   if(!_clauses){
-    if(env.options->mode()!=Options::Mode::SPIDER){
+    if(outputAllowed()){
       cout << "The problem is propositional so there are no sorts!" << endl;
     }
     // ignore sort inference
@@ -509,6 +509,10 @@ void FiniteModelBuilder::init()
     //if(del_p[p]) cout << "Mark " << env.signature->predicateName(p) << " as deleted" << endl;
   }
 
+#if VTRACE_FMB
+  cout << "Performing Sort Inference" << endl;
+#endif
+
   // perform SortInference on ground and non-ground clauses
   // preprocessing should preserve sorts and doing this here means that introduced symbols get sorts
   {
@@ -541,6 +545,9 @@ void FiniteModelBuilder::init()
       }
     }
 
+#if VTRACE_FMB
+  cout << "Finding Max Sort Sizes" << endl;
+#endif
 
     // Record the maximum sort sizes detected during sort inference 
     _distinctSortMaxs.ensure(_sortedSignature->distinctSorts);
@@ -605,6 +612,10 @@ void FiniteModelBuilder::init()
       }
     }
 
+#if VTRACE_FMB
+  cout << "Optionally doing Symmetry Ordering precomputation" << endl;
+#endif
+
     // If symmetry ordering uses the usage after preprocessing then recompute symbol usage
     // Otherwise this was done at clausification
     if(env.options->fmbSymmetryOrderSymbols() != Options::FMBSymbolOrders::PREPROCESSED_USAGE){
@@ -646,6 +657,10 @@ void FiniteModelBuilder::init()
     }
   }
 
+#if VTRACE_FMB
+  cout << "Now Find Minimum Sort Bounds" << endl;
+#endif
+
   //TODO why is this here? Can intermediate steps introduce new functions?
   //  - SortInference can introduce new constants
   del_f.expand(env.signature->functions());
@@ -683,6 +698,10 @@ void FiniteModelBuilder::init()
     }
     _fminbound[f]=min;
   }
+
+#if VTRACE_FMB
+  cout << "Set up Clause Signatures" << endl;
+#endif
 
   //Set up clause signature
   //cout << "Setting up clause sigs" << endl;
@@ -729,6 +748,7 @@ void FiniteModelBuilder::init()
           }
         }
         else{
+          ASS_EQ(lit->arity(),env.signature->predicateArity(lit->functor()));
           for(unsigned j=0;j<lit->arity();j++){
             ASS(lit->nthArgument(j)->isVar());
             unsigned asrt = _sortedSignature->predicateSignatures[lit->functor()][j];
@@ -1412,7 +1432,7 @@ MainLoopResult FiniteModelBuilder::runImpl()
   env.statistics->phase = Statistics::FMB_CONSTRAINT_GEN;
 
 
-  if(env.options->mode()!=Options::Mode::SPIDER){
+  if(outputAllowed()){
       bool doPrinting = false;
       vstring res = "[";
       for(unsigned s=0;s<_sortedSignature->distinctSorts;s++){
@@ -1444,7 +1464,7 @@ MainLoopResult FiniteModelBuilder::runImpl()
 
   if (reset()) {
   while(true){
-    if(env.options->mode()!=Options::Mode::SPIDER) { 
+    if(outputAllowed()) { 
       cout << "TRYING " << "["; 
       for(unsigned i=0;i<_distinctSortSizes.size();i++){
         cout << _distinctSortSizes[i];
@@ -1659,7 +1679,7 @@ MainLoopResult FiniteModelBuilder::runImpl()
                 new Inference(Inference::MODEL_NOT_FOUND));
             return MainLoopResult(Statistics::REFUTATION,empty);
           } else {
-            if(env.options->mode()!=Options::Mode::SPIDER) {
+            if(outputAllowed()) {
               cout << "Cannot enumerate next child to try in an incomplete setup" <<endl;
             }
             goto gave_up;
@@ -1680,7 +1700,7 @@ MainLoopResult FiniteModelBuilder::runImpl()
 
   // reset returned false, we can't represent all the variables; giving up!
 
-  if(env.options->mode()!=Options::Mode::SPIDER){
+  if(outputAllowed()){
     cout << "Cannot represent all propositional literals internally" <<endl;
   }
 
@@ -2302,7 +2322,7 @@ bool FiniteModelBuilder::SmtBasedDSAE::init(unsigned _startModelSize, DArray<uns
     // if UNSAT now, we know this is "infinox-gaveup"
     if (_strict_distinct_sort_constraints.size() > 0) {
       if (_smtSolver.check() == z3::check_result::unsat) {
-       if(env.options->mode()!=Options::Mode::SPIDER){
+       if(outputAllowed()){
           cout << "Problem does not have a finite model." <<endl;
         }
         return false;

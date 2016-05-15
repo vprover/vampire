@@ -258,6 +258,10 @@ void UIHelper::outputResult(ostream& out)
 
   switch (env.statistics->terminationReason) {
   case Statistics::REFUTATION:
+    if(env.options->proof() == Options::Proof::SMTCOMP){
+      out << "unsat" << endl;
+      return;
+    }
     addCommentIfCASC(out);
     out << "Refutation found. Thanks to "
 	<< env.options->thanks() << "!\n";
@@ -327,12 +331,18 @@ void UIHelper::outputResult(ostream& out)
     }
     break;
   case Statistics::TIME_LIMIT:
+    if(env.options->proof() == Options::Proof::SMTCOMP){
+      return;
+    }
     if (szsOutput) {
       out << "% (" << getpid() << ')';
     }
     out << "Time limit reached!\n";
     break;
   case Statistics::MEMORY_LIMIT:
+    if(env.options->proof() == Options::Proof::SMTCOMP){
+      return;
+    }
 #if VDEBUG
     Allocator::reportUsageByClasses();
 #endif
@@ -340,6 +350,9 @@ void UIHelper::outputResult(ostream& out)
     out << "Memory limit exceeded!\n";
     break;
   case Statistics::REFUTATION_NOT_FOUND:
+    if(env.options->proof() == Options::Proof::SMTCOMP){
+      return;
+    }
     addCommentIfCASC(out);
     if (env.statistics->discardedNonRedundantClauses) {
       out << "Refutation not found, non-redundant clauses discarded\n";
@@ -355,6 +368,10 @@ void UIHelper::outputResult(ostream& out)
     }
     break;
   case Statistics::SATISFIABLE:
+    if(env.options->proof() == Options::Proof::SMTCOMP){
+      out << "sat" << endl;
+      return;
+    }
     outputSatisfiableResult(out);
     break;
   case Statistics::SAT_SATISFIABLE:
@@ -364,10 +381,16 @@ void UIHelper::outputResult(ostream& out)
     out<<"good job\n";
     break;
   case Statistics::INAPPROPRIATE:
+    if(env.options->proof() == Options::Proof::SMTCOMP){
+      return;
+    }
     addCommentIfCASC(out);
     out << "Terminated due to inappropriate strategy.\n";
     break;
   case Statistics::UNKNOWN:
+    if(env.options->proof() == Options::Proof::SMTCOMP){
+      return;
+    }
   addCommentIfCASC(out);
     out << "Unknown reason of termination!\n";
     break;

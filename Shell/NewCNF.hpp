@@ -104,6 +104,8 @@ private:
     CLASS_NAME(NewCNF::GenClause);
     USE_ALLOCATOR(NewCNF::GenClause);
 
+    GenClause(unsigned size, BindingList* bindings) : valid(true), bindings(bindings), _literals(size), _size(0) {}
+
     bool valid; // used for lazy deletion from Occurrences(s); see below
 
     BindingList* bindings; // the list is not owned by the GenClause (they will shallow-copied and shared)
@@ -159,35 +161,51 @@ private:
 
       return res;
     }
-
-    // constructor for a GenClause of a given size and given bindings -- lits need to be filled manually
-    GenClause(unsigned size, BindingList* bindings) : valid(true), bindings(bindings), _literals(size), _size(0) {
-      // cout << "+GenClause GC("<<size<<")"<< endl;
-    }
-
-    ~GenClause() {
-      // cout << "-GenClause " << toString() << endl;
-    }
   };
 
   typedef SmartPtr<GenClause> SPGenClause;
 
   void toClauses(SPGenClause gc, Stack<Clause*>& output);
-  bool mapSubstitution(List<GenLit>* gc, Substitution subst, List<GenLit>* output);
+  bool mapSubstitution(List<GenLit>* gc, Substitution subst, List<GenLit>* &output);
   Clause* toClause(SPGenClause gc);
 
   typedef list<SPGenClause,STLAllocator<SPGenClause>> GenClauses;
 
+  /**
+   * pushLiteral is responsible for tautology elimination. Whenever it sees two
+   * generalised literals with the opposite signs, the entire generalised clause
+   * is discarded. Whenever it sees more than one occurrence of a generalised
+   * literal, only one copy is kept.
+   *
+   * pushLiteral two kinds of tautologies: between shared literals and between
+   * copies of formulas. The former is possible because syntactically
+   * equivalent literals are shared and therefore can be compared by pointer.
+   * The latter can occur after inlining of let-s and ite-s. Removing tautologies
+   * between formulas is important for traversal of the list of occurrences,
+   * without it popping the first occurrence of a formula will invalidate the
+   * entire generalised clause, and other occurrences will never be seen.
+   */
   DHMap<Literal*, SIGN> _literalsCache;
+  DHMap<Formula*, SIGN> _formulasCache;
   inline void pushLiteral(SPGenClause gc, GenLit gl) {
     CALL("NewCNF::pushLiteral");
 
     if (formula(gl)->connective() == LITERAL) {
+      /**
+       * A generalised literal that is atomic have two signs, the one assigned
+       * to the proper literal, and the one assigned to the generalised literal.
+       *
+       * To simplify tautology elimination we will always store proper literals
+       * with the positive sign. Hence, proper literals with negative sign are
+       * replaces with their complements.
+       */
       Literal* l = formula(gl)->literal();
       if (l->shared() && ((SIGN)l->polarity() != POSITIVE)) {
         Literal* cl = Literal::complementaryLiteral(l);
         gl = GenLit(new AtomicFormula(cl), OPPOSITE(sign(gl)));
       }
+    } else if (formula(gl)->connective() == NOT) {
+      gl = GenLit(formula(gl)->uarg(), OPPOSITE(sign(gl)));
     }
 
     Formula* f = formula(gl);
@@ -202,10 +220,12 @@ private:
           return;
         }
       }
-    } else {
-      Occurrences* occurrences = _occurrences.findPtr(f);
-      if (occurrences) {
-        occurrences->add(Occurrence(gc, gc->_size));
+    } else if (!_formulasCache.insert(f, sign(gl))) {
+      if (sign(gl) != _formulasCache.get(f)) {
+        gc->valid = false;
+      } else {
+        LOG2("Found duplicate formula", f->toString());
+        return;
       }
     }
 
@@ -232,7 +252,31 @@ private:
     }
   };
 
+  /**
+   * Occurrences represents a list of occurrences in valid generalised clauses.
+   * Occurrences is used instead of an obvious List<Occurrence> because it
+   * maintains a (1) convenient (2) constant time size() method.
+   *
+   * (1) Occurrences maintains a List<Occurrence> * _occurrences, where each
+   *     Occurrence points to a generalised clause which can become invalid.
+   *     We are only interested in occurrences in valid generalised clauses.
+   *     It wouldn't be enough to call _occurrences->length(), as it might
+   *     count occurrences in invalid generalised clauses.
+   *
+   * (2) List::length is O(n) in the version of stdlib we are using. Instead of
+   *     calling it we maintain the size in a variables (_size) that is updated
+   *     in two situations:
+   *     - whenever the list of occurrences changes (by calling Occurrences's
+   *       own add(), append() and pop() methods)
+   *     - whenever a generalised clause is invalidated. In that case NewCNF
+   *       calls Occurrences::decrement() of every list of occurrences that has
+   *       an occurrence in this newly invalid generalised clause
+   */
   class Occurrences {
+  private:
+    List<Occurrence>* _occurrences;
+    unsigned _size;
+
   public:
     CLASS_NAME(NewCNF::Occurrences);
     USE_ALLOCATOR(NewCNF::Occurrences);
@@ -246,29 +290,43 @@ private:
       _size++;
     }
 
+    inline void append(Occurrences occs) {
+      _occurrences = List<Occurrence>::concat(_occurrences, occs._occurrences);
+      _size += occs.size();
+    }
+
     bool isNonEmpty() {
       while (true) {
         if (List<Occurrence>::isEmpty(_occurrences)) {
+          ASS_EQ(_size, 0);
           return false;
         }
         if (!_occurrences->head().gc->valid) {
           List<Occurrence>::pop(_occurrences);
         } else {
+          ASS_G(_size, 0);
           return true;
         }
       }
     }
 
     void decrement() {
+      ASS_G(_size, 0);
       _size--;
-      ASS_GE(_size, 0);
     }
 
     Occurrence pop() {
-      return List<Occurrence>::pop(_occurrences);
+      ASS(isNonEmpty());
+      Occurrence occ = List<Occurrence>::pop(_occurrences);
+      ASS(occ.gc->valid);
+      _size--;
+      ASS_GE(_size, 0);
+      return occ;
     }
 
     void replaceBy(Formula* f) {
+      CALL("Occurrences::replaceBy");
+
       Occurrences::Iterator occit(*this);
 
       bool negateOccurrenceSign = false;
@@ -287,6 +345,17 @@ private:
         if (negateOccurrenceSign) {
           sign(gl) = OPPOSITE(sign(gl));
         }
+      }
+    }
+
+    void invert() {
+      CALL("Occurrences::invert");
+
+      Occurrences::Iterator occit(*this);
+      while (occit.hasNext()) {
+        Occurrence occ = occit.next();
+        GenLit& gl = occ.gc->_literals[occ.position];
+        sign(gl) = OPPOSITE(sign(gl));
       }
     }
 
@@ -313,17 +382,13 @@ private:
       List<Occurrence>::DelIterator _iterator;
       SmartPtr<Occurrence> _current;
     };
-
-  private:
-    // may contain pointers to invalidated GenClauses
-    List<Occurrence>* _occurrences;
-    unsigned _size;
   };
 
   SPGenClause makeGenClause(List<GenLit>* gls, BindingList* bindings) {
     SPGenClause gc = SPGenClause(new GenClause((unsigned)gls->length(), bindings));
 
     ASS(_literalsCache.isEmpty());
+    ASS(_formulasCache.isEmpty());
 
     List<GenLit>::Iterator glit(gls);
     while (glit.hasNext()) {
@@ -331,6 +396,7 @@ private:
     }
 
     _literalsCache.reset();
+    _formulasCache.reset();
 
     return gc;
   }
@@ -345,6 +411,17 @@ private:
     if (gc->valid) {
       _genClauses.push_front(gc);
       gc->iter = _genClauses.begin();
+
+      GenClause::Iterator igl = gc->genLiterals();
+      unsigned position = 0;
+      while (igl.hasNext()) {
+        GenLit gl = igl.next();
+        Occurrences* occurrences = _occurrences.findPtr(formula(gl));
+        if (occurrences) {
+          occurrences->add(Occurrence(gc, position));
+        }
+        position++;
+      }
     } else {
       LOG2(gc->toString(), "is eliminated as it contains a tautology");
     }
@@ -358,15 +435,17 @@ private:
     introduceGenClause(new List<GenLit>(gl0, new List<GenLit>(gl1)), bindings);
   }
 
-  void introduceExtendedGenClause(SPGenClause gc, unsigned position, List<GenLit>* gls) {
-    CALL("NewCNF::introduceExtendedGenClause(SPGenClause, unsigned, List<GenLit>*)");
+  void introduceExtendedGenClause(Occurrence occ, List<GenLit>* gls) {
+    CALL("NewCNF::introduceExtendedGenClause(Occurrence, List<GenLit>*)");
 
-    LOG4("introduceExtendedGenClause:", gc->toString(), position, gls->length());
+    SPGenClause gc = occ.gc;
+    unsigned position = occ.position;
 
     unsigned size = gc->size() + gls->length() - 1;
     SPGenClause newGc = SPGenClause(new GenClause(size, gc->bindings));
 
     ASS(_literalsCache.isEmpty());
+    ASS(_formulasCache.isEmpty());
 
     GenClause::Iterator gcit = gc->genLiterals();
     unsigned i = 0;
@@ -384,6 +463,7 @@ private:
     }
 
     _literalsCache.reset();
+    _formulasCache.reset();
 
     if (newGc->size() != size) {
       LOG4("Eliminated", size - newGc->size(), "duplicate literal(s) from", newGc->toString());
@@ -392,21 +472,32 @@ private:
     if (newGc->valid) {
       _genClauses.push_front(newGc);
       newGc->iter = _genClauses.begin();
+
+      GenClause::Iterator igl = newGc->genLiterals();
+      unsigned position = 0;
+      while (igl.hasNext()) {
+        GenLit gl = igl.next();
+        Occurrences* occurrences = _occurrences.findPtr(formula(gl));
+        if (occurrences) {
+          occurrences->add(Occurrence(newGc, position));
+        }
+        position++;
+      }
     } else {
       LOG2(newGc->toString(), "is eliminated as it contains a tautology");
     }
   }
 
-  void removeGenLit(SPGenClause gc, unsigned position) {
-    introduceExtendedGenClause(gc, position, List<GenLit>::empty());
+  void removeGenLit(Occurrence occ) {
+    introduceExtendedGenClause(occ, List<GenLit>::empty());
   }
 
-  void introduceExtendedGenClause(SPGenClause gc, unsigned position, GenLit replacement) {
-    introduceExtendedGenClause(gc, position, new List<GenLit>(replacement));
+  void introduceExtendedGenClause(Occurrence occ, GenLit replacement) {
+    introduceExtendedGenClause(occ, new List<GenLit>(replacement));
   }
 
-  void introduceExtendedGenClause(SPGenClause gc, unsigned position, GenLit replacement, GenLit extension) {
-    introduceExtendedGenClause(gc, position, new List<GenLit>(replacement, new List<GenLit>(extension)));
+  void introduceExtendedGenClause(Occurrence occ, GenLit replacement, GenLit extension) {
+    introduceExtendedGenClause(occ, new List<GenLit>(replacement, new List<GenLit>(extension)));
   }
 
   Occurrence pop(Occurrences &occurrences) {
@@ -459,10 +550,27 @@ private:
 
   void enqueue(Formula* formula, Occurrences occurrences = Occurrences()) {
     if ((formula->connective() == LITERAL) && formula->literal()->shared()) return;
-    _queue.push_back(formula);
-    if (!_occurrences.insert(formula, occurrences)) {
-      ASSERTION_VIOLATION_REP(formula->toString());
+
+    if (formula->connective() == NOT) {
+      /**
+       * Formulas are always stored without negations in genclauses,
+       * therefore it is safe to drop the negation before queueing,
+       * all the occurrences of the formula won't have it either
+       */
+      formula = formula->uarg();
+      ASS_REP(formula->connective() != LITERAL, formula->toString());
+
+      occurrences.invert();
     }
+
+    if (_occurrences.find(formula)) {
+      Occurrences oldOccurrences;
+      _occurrences.pop(formula, oldOccurrences);
+      occurrences.append(oldOccurrences);
+    } else {
+      _queue.push_back(formula);
+    }
+    ALWAYS(_occurrences.insert(formula, occurrences));
   }
 
   void dequeue(Formula* &formula, Occurrences &occurrences) {
@@ -477,6 +585,7 @@ private:
 
   void process(TermList ts, Occurrences &occurrences);
   void process(Literal* l, Occurrences &occurrences);
+  void processConstant(bool constant, Occurrences &occurrences);
   void processBoolVar(SIGN sign, unsigned var, Occurrences &occurrences);
   void processITE(Formula* condition, Formula* thenBranch, Formula* elseBranch, Occurrences &occurrences);
   void processLet(unsigned symbol, Formula::VarList*bindingVariables, TermList binding, TermList contents, Occurrences &occurrences);

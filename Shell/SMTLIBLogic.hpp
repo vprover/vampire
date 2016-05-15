@@ -13,7 +13,6 @@ namespace Shell {
   * UF - uninterpreted function = first order we know and love
   */
 enum SMTLIBLogic {
-  SMT_UNDEFINED,
   SMT_ALIA,
   SMT_AUFLIA,
   SMT_AUFLIRA,
@@ -51,7 +50,8 @@ enum SMTLIBLogic {
   SMT_UFIDL,
   SMT_UFLIA,
   SMT_UFLRA,
-  SMT_UFNIA
+  SMT_UFNIA,
+  SMT_UNDEFINED
 };
 
 }

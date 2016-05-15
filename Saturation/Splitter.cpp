@@ -966,13 +966,13 @@ bool Splitter::handleNonSplittable(Clause* cl)
 
     nsClause->setInference(new FOConversionInference(scl));
 
-    addSatClauseToSolver(nsClause, false);
-
     if (_showSplitting) {
       env.beginOutput();
       env.out() << "[AVATAR] registering a non-splittable: "<< cl->toString() << std::endl;
       env.endOutput();
     }
+
+    addSatClauseToSolver(nsClause, false);
 
     RSTAT_CTR_INC("ssat_non_splittable_sat_clauses");
   }

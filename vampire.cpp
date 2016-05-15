@@ -48,6 +48,7 @@
 #include "SAT/DIMACS.hpp"
 
 #include "CASC/CASCMode.hpp"
+#include "SMTCOMP/SMTCOMPMode.hpp"
 #include "CASC/CLTBMode.hpp"
 #include "CASC/CMZRMode.hpp"
 #include "Shell/CParser.hpp"
@@ -315,7 +316,9 @@ void outputResult(ostream& out) {
     ASSERTION_VIOLATION; //these outcomes are not reachable with the current implementation
 #endif
   }
-  env.statistics->print(env.out());
+  if(env.options->mode()!=Options::Mode::SPIDER){
+    env.statistics->print(env.out());
+  }
 }
 
 
@@ -713,9 +716,10 @@ void spiderMode()
     default:
       ASSERTION_VIOLATION;
     }
-    env.statistics->print(env.out());
+    // env.statistics->print(env.out());
   } else {
     reportSpiderFail();
+    ASS(exception);
     explainException(*exception);
     vampireReturnValue = VAMP_RESULT_STATUS_UNHANDLED_EXCEPTION;
   }
@@ -753,6 +757,14 @@ void clausifyMode(bool stat)
       clauses++;
       literals += cl->size();
     } else {
+/*
+  Uncomment this bit to make clausify print quantification
+  TODO decide when this should be done and do it then 
+
+      Formula* f = Formula::fromClause(cl);
+      FormulaUnit* fu = new FormulaUnit(f,cl->inference(),cl->inputType());
+      env.out() << TPTPPrinter::toString(fu) << "\n";
+*/
       env.out() << TPTPPrinter::toString(cl) << "\n";
     }
   }
@@ -884,7 +896,8 @@ int main(int argc, char* argv[])
     if (env.options->showHelp() ||
         env.options->showOptions() ||
         env.options->showExperimentalOptions() ||
-        !env.options->explainOption().empty()) {
+        !env.options->explainOption().empty() ||
+        env.options->printAllTheoryAxioms()) {
       env.beginOutput();
       env.options->output(env.out());
       env.endOutput();
@@ -934,6 +947,13 @@ int main(int argc, char* argv[])
 	vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
       }
       break;
+    case Options::Mode::SMTCOMP:
+       env.options->setProof(Options::Proof::SMTCOMP);
+       env.options->setInputSyntax(Options::InputSyntax::SMTLIB2);
+       if(SMTCOMP::SMTCOMPMode::perform(argc,argv)){
+         vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
+        }
+    break;
 /*
     case Options::Mode::CASC_LTB: {
       try {
@@ -1042,7 +1062,7 @@ catch (Parse::TPTP::ParseErrorException& exception) {
 #endif
     env.beginOutput();
     explainException(exception);
-    env.statistics->print(env.out());
+    //env.statistics->print(env.out());
     env.endOutput();
   } catch (std::bad_alloc& _) {
     vampireReturnValue = VAMP_RESULT_STATUS_UNHANDLED_EXCEPTION;

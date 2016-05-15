@@ -87,7 +87,9 @@ void Options::Options::init()
     _mode = ChoiceOptionValue<Mode>("mode","",Mode::VAMPIRE,
                                     {"axiom_selection",//"bpa",
                                         "casc",//"casc_ltb",
-                                        "casc_sat","clausify","clausify_stat",
+                                        "casc_sat",
+                                        "smtcomp",
+                                        "clausify","clausify_stat",
                                         "consequence_elimination","grounding",
                                         "model_check",
                                         //"ltb_build","ltb_solve",
@@ -151,6 +153,12 @@ void Options::Options::init()
     _lookup.insert(&_forcedOptions);
     _forcedOptions.tag(OptionTag::INPUT);
 
+    _printAllTheoryAxioms = BoolOptionValue("print_theory_axioms","",false);
+    _printAllTheoryAxioms.description = "Just print all theory axioms and terminate";
+    _printAllTheoryAxioms.tag(OptionTag::DEVELOPMENT);
+    _lookup.insert(&_printAllTheoryAxioms);
+    _printAllTheoryAxioms.setExperimental();
+
     _showHelp = BoolOptionValue("help","h",false);
     _showHelp.description="Display this help";
     _lookup.insert(&_showHelp);
@@ -200,7 +208,7 @@ void Options::Options::init()
     _problemName.description="";
     //_lookup.insert(&_problemName);
 
-    _proof = ChoiceOptionValue<Proof>("proof","p",Proof::ON,{"off","on","proofcheck","tptp"});
+    _proof = ChoiceOptionValue<Proof>("proof","p",Proof::ON,{"off","on","proofcheck","tptp","smtcomp"});
     _proof.description=
     "Specifies whether proof will be output. 'proofcheck' will output proof as a sequence of TPTP problems to allow for proof-checking.";
     _lookup.insert(&_proof);
@@ -441,14 +449,14 @@ void Options::Options::init()
     _lookup.insert(&_newCNF);
     _newCNF.tag(OptionTag::PREPROCESSING);
 
-    _iteInliningThreshold = IntOptionValue("ite_inlining_threshold","", 2);
+    _iteInliningThreshold = IntOptionValue("ite_inlining_threshold","", 0);
     _iteInliningThreshold.description="Threashold of inlining of if-then-else expressions. "
                                       "0 means that all expressions are named. "
                                       "<0 means that all expressions are inlined.";
     _lookup.insert(&_iteInliningThreshold);
     _iteInliningThreshold.tag(OptionTag::PREPROCESSING);
 
-    _inlineLet = BoolOptionValue("inline_let","",false);
+    _inlineLet = BoolOptionValue("inline_let","ile",false);
     _inlineLet.description="Always inline let-expressions.";
     _lookup.insert(&_inlineLet);
     _inlineLet.tag(OptionTag::PREPROCESSING);
@@ -489,6 +497,11 @@ void Options::Options::init()
     _printClausifierPremises.description="Output how the clausified problem was derived.";
     _lookup.insert(&_printClausifierPremises);
     _printClausifierPremises.tag(OptionTag::OUTPUT);
+
+    _showAll = BoolOptionValue("show_everything","",false);
+    _showAll.description="Turn (almost) all of the showX commands on";
+    _lookup.insert(&_showAll);
+    _showAll.tag(OptionTag::DEVELOPMENT);
 
     _showActive = BoolOptionValue("show_active","",false);
     _showActive.description="Print activated clauses.";
@@ -690,6 +703,14 @@ void Options::Options::init()
     _selection.reliesOn(_saturationAlgorithm.is(notEqual(SaturationAlgorithm::INST_GEN))->Or<int>(_instGenWithResolution.is(equal(true))));
     _selection.setRandomChoices(And(isRandSat(),saNotInstGen()),{"0","1","2","3","4","10","11","-1","-2","-3","-4","-10","-11"});
     _selection.setRandomChoices({"0","1","2","3","4","10","11","1002","1003","1004","1010","1011","-1","-2","-3","-4","-10","-11","-1002","-1003","-1004","-1010"});
+
+    _lookaheadDelay = IntOptionValue("lookahaed_delay","lsd",0);
+    _lookaheadDelay.description = "Delay the use of lookahead selection by this many selections"
+                                  " the idea is that lookahead selection may behave erratically"
+                                  " at the start";
+    _lookaheadDelay.tag(OptionTag::SATURATION);
+    _lookup.insert(&_lookaheadDelay);
+    _lookaheadDelay.reliesOn(_selection.isLookAheadSelection());
     
     _ageWeightRatio = RatioOptionValue("age_weight_ratio","awr",1,1,':');
     _ageWeightRatio.description=
@@ -845,11 +866,6 @@ void Options::Options::init()
 	    // Captures that if ExtensionalityResolution is not off then inequality splitting must be 0
 	    _extensionalityResolution.reliesOn(_inequalitySplitting.is(equal(0)));
 	    _extensionalityResolution.setRandomChoices({"filter","known","off","off"});
-
-	    _FOOLOrdering = BoolOptionValue("fool_ordering","foolo",false);
-	    _FOOLOrdering.description="Sets term ordering to be $$false < $$true < everything else";
-	    _lookup.insert(&_FOOLOrdering);
-	    _FOOLOrdering.tag(OptionTag::SATURATION);
 
 	    _FOOLParamodulation = BoolOptionValue("fool_paramodulation","foolp",false);
 	    _FOOLParamodulation.description=
@@ -1087,6 +1103,9 @@ void Options::Options::init()
     _lookup.insert(&_splittingCongruenceClosure);
     _splittingCongruenceClosure.tag(OptionTag::AVATAR);
     _splittingCongruenceClosure.reliesOn(_splitting.is(equal(true)));
+#if VZ3
+    _splittingCongruenceClosure.reliesOn(_satSolver.is(notEqual(SatSolver::Z3)));
+#endif
     _splittingCongruenceClosure.addProblemConstraint(hasEquality());
     _splittingCongruenceClosure.setRandomChoices({"model","off","on"});
     _splittingCongruenceClosure.addHardConstraint(If(equal(SplittingCongruenceClosure::MODEL)).
@@ -1855,6 +1874,12 @@ vstring Options::includeFileName (const vstring& relativeName)
 void Options::output (ostream& str) const
 {
   CALL("Options::output");
+
+  if(printAllTheoryAxioms()){
+    cout << "Sorry, not implemented yet!" << endl;
+
+    return;
+  }
 
   if(!explainOption().empty()){
 

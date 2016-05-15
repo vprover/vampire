@@ -329,9 +329,11 @@ Comparison Normalisation::compare (Literal* l1, Literal* l2)
     if (comp != EQUAL) {
       return comp;
     }
-    comp = compare((int)l1->vars(),(int)l2->vars());
-    if (comp != EQUAL) {
-      return comp;
+    if (l1->shared() && l2->shared()) {
+      comp = compare((int)l1->vars(),(int)l2->vars());
+      if (comp != EQUAL) {
+        return comp;
+      }
     }
     comp = compare(_counter.getPred(p1).pocc(),
 		   _counter.getPred(p2).pocc());
