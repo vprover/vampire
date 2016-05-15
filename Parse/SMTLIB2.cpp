@@ -1021,6 +1021,9 @@ void SMTLIB2::parseLetBegin(LExpr* exp)
   LExprList* bindings = lRdr.readList();
 
   // and the actual body term
+  if (!lRdr.hasNext()) {
+    complainAboutArgShortageOrWrongSorts(LET,exp);
+  }
   LExpr* body = lRdr.readNext();
 
   // and that's it
