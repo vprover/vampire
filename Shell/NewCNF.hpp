@@ -325,6 +325,8 @@ private:
     }
 
     void replaceBy(Formula* f) {
+      CALL("Occurrences::replaceBy");
+
       Occurrences::Iterator occit(*this);
 
       bool negateOccurrenceSign = false;
@@ -343,6 +345,17 @@ private:
         if (negateOccurrenceSign) {
           sign(gl) = OPPOSITE(sign(gl));
         }
+      }
+    }
+
+    void invert() {
+      CALL("Occurrences::invert");
+
+      Occurrences::Iterator occit(*this);
+      while (occit.hasNext()) {
+        Occurrence occ = occit.next();
+        GenLit& gl = occ.gc->_literals[occ.position];
+        sign(gl) = OPPOSITE(sign(gl));
       }
     }
 
@@ -546,6 +559,8 @@ private:
        */
       formula = formula->uarg();
       ASS_REP(formula->connective() != LITERAL, formula->toString());
+
+      occurrences.invert();
     }
 
     if (_occurrences.find(formula)) {
