@@ -227,11 +227,6 @@ private:
         LOG2("Found duplicate formula", f->toString());
         return;
       }
-    } else {
-      Occurrences* occurrences = _occurrences.findPtr(f);
-      if (occurrences) {
-        occurrences->add(Occurrence(gc, gc->_size));
-      }
     }
 
     gc->_literals[gc->_size++] = gl;
@@ -316,8 +311,8 @@ private:
     }
 
     void decrement() {
+      ASS_G(_size, 0);
       _size--;
-      ASS_GE(_size, 0);
     }
 
     Occurrence pop() {
@@ -403,6 +398,17 @@ private:
     if (gc->valid) {
       _genClauses.push_front(gc);
       gc->iter = _genClauses.begin();
+
+      GenClause::Iterator igl = gc->genLiterals();
+      unsigned position = 0;
+      while (igl.hasNext()) {
+        GenLit gl = igl.next();
+        Occurrences* occurrences = _occurrences.findPtr(formula(gl));
+        if (occurrences) {
+          occurrences->add(Occurrence(gc, position));
+        }
+        position++;
+      }
     } else {
       LOG2(gc->toString(), "is eliminated as it contains a tautology");
     }
@@ -453,6 +459,17 @@ private:
     if (newGc->valid) {
       _genClauses.push_front(newGc);
       newGc->iter = _genClauses.begin();
+
+      GenClause::Iterator igl = newGc->genLiterals();
+      unsigned position = 0;
+      while (igl.hasNext()) {
+        GenLit gl = igl.next();
+        Occurrences* occurrences = _occurrences.findPtr(formula(gl));
+        if (occurrences) {
+          occurrences->add(Occurrence(newGc, position));
+        }
+        position++;
+      }
     } else {
       LOG2(newGc->toString(), "is eliminated as it contains a tautology");
     }
