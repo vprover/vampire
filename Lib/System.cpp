@@ -42,13 +42,11 @@
 
 bool outputAllowed(bool debug)
 {
- cout << debug << endl;
 #if VDEBUG
-  if(debug) return true;
-#else
+  if(debug){ return true; }
+#endif
   return !Lib::env.options || (Lib::env.options->mode()!=Shell::Options::Mode::SPIDER
                                && Lib::env.options->proof()!=Shell::Options::Proof::SMTCOMP ); 
-#endif
 }
 
 bool inSpiderMode()

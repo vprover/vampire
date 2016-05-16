@@ -1465,6 +1465,7 @@ MainLoopResult FiniteModelBuilder::runImpl()
   if (reset()) {
   while(true){
     if(outputAllowed()) { 
+      cout << outputAllowed() << endl;
       cout << "TRYING " << "["; 
       for(unsigned i=0;i<_distinctSortSizes.size();i++){
         cout << _distinctSortSizes[i];
@@ -1725,7 +1726,9 @@ void FiniteModelBuilder::onModelFound()
  if(_opt.mode()==Options::Mode::SPIDER){
    reportSpiderStatus('-');
  }
- cout << "Finite Model Found!" << endl;
+ if(outputAllowed()){
+   cout << "Finite Model Found!" << endl;
+ }
 
  //we need to print this early because model generating can take some time
  if(UIHelper::szsOutput) {
