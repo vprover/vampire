@@ -499,8 +499,10 @@ void FiniteModelBuilder::init()
     del_f[f] = _deletedFunctions.find(f);
   }
   for(unsigned p=0;p<env.signature->predicates();p++){
-    del_p[p] = _deletedPredicates.find(p) || _trivialPredicates.find(p);
-    //if(del_p[p]) cout << "Mark " << env.signature->predicateName(p) << " as deleted" << endl;
+    del_p[p] = (_deletedPredicates.find(p) || _trivialPredicates.find(p));
+#if VTRACE_FMB
+    if(del_p[p]) cout << "Mark " << env.signature->predicateName(p) << " as deleted" << endl;
+#endif
   }
 
 #if VTRACE_FMB
@@ -1912,6 +1914,7 @@ pModelLabel:
     if(!del_f[f]) continue; 
     //del_f[f]=false;
 
+    ASS(_deletedFunctions.find(f));
     Literal* def = _deletedFunctions.get(f);
 
     //cout << "For " << env.signature->getFunction(f)->name() << endl;
@@ -1946,6 +1949,7 @@ pModelLabel:
       for(unsigned i=0;i<arity-1;i++){
         grounding[i]=1;
         unsigned vampireSrt = env.signature->getFunction(f)->fnType()->arg(i);
+        ASS(_sortedSignature->vampireToDistinctParent.find(vampireSrt));
         unsigned dsrt = _sortedSignature->vampireToDistinctParent.get(vampireSrt);
         f_signature_distinct[i] = dsrt;
       }
@@ -2003,9 +2007,12 @@ ffModelLabel:
   f=env.signature->predicates()-1;
   while(f>0){
     f--;
-    unsigned arity = env.signature->predicateArity(f);
     if(!del_p[f] && !_partiallyDeletedPredicates.find(f)) continue;
+    if(_trivialPredicates.find(f)) continue;
+    unsigned arity = env.signature->predicateArity(f);
 
+    ASS(!del_p[f] || _deletedPredicates.find(f));
+    ASS(del_p[f] || _partiallyDeletedPredicates.find(f));
     Unit* udef = del_p[f] ? _deletedPredicates.get(f) : _partiallyDeletedPredicates.get(f);
 
     //if(_partiallyDeletedPredicates.find(f)){
