@@ -522,6 +522,7 @@ private:
 
 public:
   unsigned getTupleFunctor(unsigned arity, unsigned sorts[]);
+  unsigned getTupleFunctor(unsigned tupleSort);
   unsigned getTupleProjectionFunctor(unsigned proj, unsigned tupleSort);
   bool findTupleProjection(unsigned projFunctor, unsigned &proj);
 

@@ -132,6 +132,7 @@ public:
     }
     bool isTupleSort() override { return true; }
     unsigned arity() const { return _arity; }
+    unsigned* sorts() const { return _sorts; }
     unsigned argument(unsigned index) const { ASS_G(_arity, index); return _sorts[index]; }
   private:
     unsigned _arity;

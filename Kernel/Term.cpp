@@ -456,9 +456,6 @@ vstring Term::headToString() const
                                       ? env.signature->getPredicate((unsigned)symbols->nth(i))
                                       : env.signature->getFunction((unsigned)symbols->nth(i));
           symbolsList += symbol->name();
-          if (fnType->arg(i) != Sorts::SRT_DEFAULT) {
-            symbolsList += ":" + env.sorts->sortName(fnType->arg(i));
-          }
           if (i != (unsigned)symbols->length() - 1) {
             symbolsList += ", ";
           }

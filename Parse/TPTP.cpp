@@ -1930,16 +1930,19 @@ void TPTP::endBinding() {
 void TPTP::endTupleBinding() {
   CALL("TPTP::endTupleBinding");
 
-  IntList* symbols = _varLists.top();
-  SortList* sorts = _sortLists.pop();
+  TermList binding = _termLists.top();
+  unsigned bindingSort = sortOf(binding);
 
-  ASS_EQ(symbols->length(), sorts->length());
+  if (!env.sorts->isTupleSort(bindingSort)) {
+    USER_ERROR("The binding of a tuple let expression is not a tuple but has the sort " + env.sorts->sortName(bindingSort));
+  }
 
-  unsigned arity = (unsigned)symbols->length();
+  Sorts::TupleSort* tupleSort = env.sorts->getTupleSort(bindingSort);
+  unsigned tupleArity = tupleSort->arity();
 
   Set<vstring> uniqueSymbolNames;
-  unsigned *ss = new unsigned[arity];
-  for (unsigned i = 0; i < arity; i++) {
+  IntList* constants = IntList::empty();
+  for (unsigned i = 0; i < tupleArity; i++) {
     vstring name = _strings.pop();
     if (uniqueSymbolNames.contains(name)) {
       USER_ERROR("The symbol " + name + " is defined twice in a tuple $let-expression.");
@@ -1947,29 +1950,28 @@ void TPTP::endTupleBinding() {
       uniqueSymbolNames.insert(name);
     }
 
-    unsigned sort = sorts->nth(arity - i - 1);
-    ss[arity - i - 1] = sort;
+    unsigned sort = tupleSort->argument(tupleArity - i - 1);
 
-    unsigned symbol = (unsigned)symbols->nth(arity - i - 1);
     bool isPredicate = sort == Sorts::SRT_BOOL;
+
+    unsigned symbol;
+    if (isPredicate) {
+      symbol = env.signature->addFreshPredicate(0, name.c_str());
+    } else {
+      symbol = env.signature->addFreshFunction(0, name.c_str());
+      env.signature->getFunction(symbol)->setType(new FunctionType(sort));
+    }
+
+    constants = constants->cons(symbol);
+
     LetFunctionName functionName(name, 0);
     LetFunctionReference functionReference(symbol, isPredicate);
     _currentLetScope.push(LetFunction(functionName, functionReference));
   }
 
-  unsigned tupleFunctor = Theory::instance()->getTupleFunctor(arity, ss);
-  unsigned sort = env.signature->getFunction(tupleFunctor)->fnType()->result();
+  _varLists.push(constants);
 
-  TermList binding = _termLists.top();
-  unsigned bindingSort = sortOf(binding);
-
-  ASS_REP(env.sorts->isTupleSort(bindingSort), env.sorts->sortName(bindingSort));
-
-  if (sort != bindingSort) {
-    USER_ERROR("The sort of the tuple pattern " + env.sorts->sortName(sort) + " "
-               "does not match the sort of binding " + env.sorts->sortName(bindingSort));
-  }
-
+  unsigned tupleFunctor = Theory::instance()->getTupleFunctor(bindingSort);
   _currentBindingScope.push(LetBinding(tupleFunctor, true));
 
   Token tok = getTok(0);
@@ -2207,46 +2209,14 @@ void TPTP::tupleBinding()
 {
   CALL("TPTP::tupleBinding");
 
-  Stack<unsigned> reverseConstants;
-  Stack<unsigned> reverseSorts;
-
   for (;;) {
     vstring nm = name();
     _strings.push(nm);
-
-    unsigned sort = Sorts::SRT_DEFAULT;
-    if (getTok(0).tag == T_COLON) {
-      resetToks();
-      sort = readSort();
-    }
-
-    unsigned symbol;
-    if (sort == Sorts::SRT_BOOL) {
-      symbol = env.signature->addFreshPredicate(0, nm.c_str());
-    } else {
-      symbol = env.signature->addFreshFunction(0, nm.c_str());
-      env.signature->getFunction(symbol)->setType(new FunctionType(sort));
-    }
-
-    reverseConstants.push(symbol);
-    reverseSorts.push(sort);
-
     if (getTok(0).tag != T_COMMA) {
       break;
     }
-
     resetToks();
   }
-
-  IntList*  constants = IntList::empty();
-  SortList* sorts = SortList::empty();
-  while (reverseConstants.isNonEmpty() && reverseSorts.isNonEmpty()) {
-    constants = constants->cons(reverseConstants.pop());
-    sorts = sorts->cons(reverseSorts.pop());
-  }
-
-  _varLists.push(constants);
-  _sortLists.push(sorts);
 } // constantList
 
 /**

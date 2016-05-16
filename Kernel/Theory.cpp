@@ -1104,9 +1104,18 @@ unsigned Theory::getArrayExtSkolemFunction(unsigned sort) {
 }
 
 unsigned Theory::getTupleFunctor(unsigned arity, unsigned* sorts) {
-  CALL("Theory::getTupleFunctor");
+  CALL("Theory::getTupleFunctor(unsigned arity, unsigned* sorts)");
+  return getTupleFunctor(env.sorts->addTupleSort(arity, sorts));
+}
 
-  unsigned tupleSort = env.sorts->addTupleSort(arity, sorts);
+unsigned Theory::getTupleFunctor(unsigned tupleSort) {
+  CALL("Theory::getTupleFunctor(unsigned tupleSort)");
+
+  ASS_REP(env.sorts->isTupleSort(tupleSort), env.sorts->sortName(tupleSort));
+
+  Sorts::TupleSort* tuple = env.sorts->getTupleSort(tupleSort);
+  unsigned  arity = tuple->arity();
+  unsigned* sorts = tuple->sorts();
 
   unsigned tupleFunctor;
   if (!_tupleFunctors.find(tupleSort, tupleFunctor)) {
