@@ -1830,6 +1830,7 @@ fModelLabel:
       }
   }
 
+
   //Record interpretation of prop symbols 
   static const DArray<unsigned> emptyG(0);
   for(unsigned f=1;f<env.signature->predicates();f++){
@@ -1896,6 +1897,7 @@ pModelLabel:
       }
   }
 
+
   //Evaluate removed functions and constants
   unsigned maxf = env.signature->functions(); // model evaluation can add new constants
   //bool unfinished=true;
@@ -1937,16 +1939,23 @@ pModelLabel:
 
     if(arity>0){
       static DArray<unsigned> grounding;
+      static DArray<unsigned> f_signature_distinct(arity);
       grounding.ensure(arity);
-      for(unsigned i=0;i<arity-1;i++) grounding[i]=1;
+      f_signature_distinct.ensure(arity);
+      for(unsigned i=0;i<arity-1;i++){
+        grounding[i]=1;
+        unsigned vampireSrt = env.signature->getFunction(f)->fnType()->arg(i);
+        unsigned dsrt = _sortedSignature->vampireToDistinctParent.get(vampireSrt);
+        f_signature_distinct[i] = dsrt;
+      }
       grounding[arity-1]=0;
 
-      const DArray<unsigned>& f_signature = _sortedSignature->functionSignatures[f];
+      const DArray<unsigned> f_signature(arity);
 
 ffModelLabel:
       for(unsigned i=arity-1;i+1!=0;i--){
 
-        if(grounding[i]==_sortModelSizes[f_signature[i]]){
+        if(grounding[i]==_distinctSortSizes[f_signature_distinct[i]]){
           grounding[i]=1;
         }
         else{
@@ -1954,8 +1963,8 @@ ffModelLabel:
 
           Substitution subst;
           for(unsigned j=0;j<arity;j++){
-            //cout << grounding[j] << " is " << model.getDomainConstant(grounding[j])->toString() << endl;
             unsigned vampireSrt = env.signature->getFunction(f)->fnType()->arg(j); 
+            //cout << grounding[j] << " is " << model.getDomainConstant(grounding[j],vampireSrt)->toString() << endl;
             subst.bind(vars[j],model.getDomainConstant(grounding[j],vampireSrt));
           }
           Term* defGround = SubstHelper::apply(funDef,subst);
@@ -1987,6 +1996,7 @@ ffModelLabel:
     }
   }
   //}
+
 
   //Evaluate removed propositions and predicates
   f=env.signature->predicates()-1;
@@ -2061,17 +2071,22 @@ ffModelLabel:
       }
     }
 
-    DArray<unsigned> grounding;
+    static DArray<unsigned> grounding;
+    static DArray<unsigned> p_signature_distinct;
     grounding.ensure(arity);
-    for(unsigned i=0;i<arity;i++) grounding[i]=1;
+    p_signature_distinct.ensure(arity);
+    for(unsigned i=0;i<arity;i++){
+      grounding[i]=1;
+      unsigned vampireSrt = env.signature->getFunction(f)->predType()->arg(i);
+      unsigned dsrt = _sortedSignature->vampireToDistinctParent.get(vampireSrt); 
+      p_signature_distinct[i] = dsrt;
+    }
     grounding[arity-1]=0;
-
-    const DArray<unsigned>& f_signature = _sortedSignature->predicateSignatures[f];
 
 ppModelLabel:
       for(unsigned i=arity-1;i+1!=0;i--){
 
-        if(grounding[i]==_sortModelSizes[f_signature[i]]){
+        if(grounding[i]==_distinctSortSizes[p_signature_distinct[i]]){
           grounding[i]=1;
         }
         else{
