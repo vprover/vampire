@@ -154,14 +154,14 @@ unsigned Sorts::addTupleSort(unsigned arity, unsigned sorts[])
   CALL("Sorts::addTupleSort");
 
   // First check if it already exists
-  vstring name = "$tuple(";
+  vstring name = "[";
   for (unsigned i = 0; i < arity; i++) {
     name += env.sorts->sortName(sorts[i]);
     if (i != arity - 1) {
       name += ",";
     }
   }
-  name += ")";
+  name += "]";
   unsigned result;
   if(_sortNames.find(name, result)) {
     return result;
