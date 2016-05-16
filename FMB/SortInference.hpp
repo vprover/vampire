@@ -89,7 +89,7 @@ public:
                   _expandSubsorts = env.options->fmbAdjustSorts() == Options::FMBAdjustSorts::EXPAND;
 
                   _usingMonotonicity = true;
-                  _collapsingMonotonicSorts = (env.options->fmbAdjustSorts() != Options::FMBAdjustSorts::OFF ||
+                  _collapsingMonotonicSorts = (env.options->fmbAdjustSorts() != Options::FMBAdjustSorts::OFF && 
                                                env.options->fmbAdjustSorts() != Options::FMBAdjustSorts::EXPAND);
                   _assumeMonotonic = _collapsingMonotonicSorts && 
                                      env.options->fmbAdjustSorts() != Options::FMBAdjustSorts::GROUP;
