@@ -676,11 +676,15 @@ void spiderMode()
   CALL("spiderMode()");
   env.options->setBadOptionChoice(Options::BadOption::HARD); 
   Exception* exception = 0;
+  z3::exception* z3_exception = 0;
   bool noException = true;
   try {
     doProving();
   } catch (Exception& e) {
     exception = &e;
+    noException = false;
+  } catch(z3::exception& e){
+    z3_exception = &e; 
     noException = false;
   } catch (...) {
     noException = false;
@@ -720,8 +724,9 @@ void spiderMode()
     // env.statistics->print(env.out());
   } else {
     reportSpiderFail();
-    ASS(exception);
-    explainException(*exception);
+    ASS(exception || z3_exception);
+    if(exception){ explainException(*exception); }
+    else{ cout << "Z3 exception:\n" << z3_exception->msg() << endl; }
     vampireReturnValue = VAMP_RESULT_STATUS_UNHANDLED_EXCEPTION;
   }
   env.endOutput();
