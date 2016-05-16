@@ -728,7 +728,7 @@ void spiderMode()
     // env.statistics->print(env.out());
   } else {
 #if VZ3
-    if(z3_exception && z3_exception->msg() == "out of memory"){
+    if(z3_exception && strcmp(z3_exception->msg(),"out of memory")){
       reportSpiderStatus('m');
     }
     else{
