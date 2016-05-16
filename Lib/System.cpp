@@ -40,10 +40,11 @@
 
 #include "System.hpp"
 
-bool outputAllowed()
+bool outputAllowed(bool debug)
 {
+ cout << debug << endl;
 #if VDEBUG
-  return true;
+  if(debug) return true;
 #else
   return !Lib::env.options || (Lib::env.options->mode()!=Shell::Options::Mode::SPIDER
                                && Lib::env.options->proof()!=Shell::Options::Proof::SMTCOMP ); 
@@ -201,7 +202,7 @@ void handleSignal (int sigNum)
 	System::terminateImmediately(haveSigInt ? VAMP_RESULT_STATUS_SIGINT : VAMP_RESULT_STATUS_OTHER_SIGNAL);
       }
       handled = true;
-      if(outputAllowed()) {
+      if(outputAllowed(true)) {
 	if(env.options) {
 	  env.beginOutput();
 	  env.out() << "Aborted by signal " << signalDescription << " on " << env.options->inputFile() << "\n";
@@ -212,7 +213,7 @@ void handleSignal (int sigNum)
       }
       return;
     case SIGXCPU:
-      if(outputAllowed()) {
+      if(outputAllowed(true)) {
 	if(env.options) {
 	  env.beginOutput();
 	  env.out() << "External time out (SIGXCPU) on " << env.options->inputFile() << "\n";
