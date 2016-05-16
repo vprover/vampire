@@ -1459,7 +1459,6 @@ MainLoopResult FiniteModelBuilder::runImpl()
   if (reset()) {
   while(true){
     if(outputAllowed()) { 
-      cout << outputAllowed() << endl;
       cout << "TRYING " << "["; 
       for(unsigned i=0;i<_distinctSortSizes.size();i++){
         cout << _distinctSortSizes[i];

@@ -676,16 +676,20 @@ void spiderMode()
   CALL("spiderMode()");
   env.options->setBadOptionChoice(Options::BadOption::HARD); 
   Exception* exception = 0;
+#if VZ3
   z3::exception* z3_exception = 0;
+#endif
   bool noException = true;
   try {
     doProving();
   } catch (Exception& e) {
     exception = &e;
     noException = false;
+#if VZ3
   } catch(z3::exception& e){
     z3_exception = &e; 
     noException = false;
+#endif
   } catch (...) {
     noException = false;
   }
@@ -723,10 +727,20 @@ void spiderMode()
     }
     // env.statistics->print(env.out());
   } else {
-    reportSpiderFail();
-    ASS(exception || z3_exception);
-    if(exception){ explainException(*exception); }
-    else{ cout << "Z3 exception:\n" << z3_exception->msg() << endl; }
+#if VZ3
+    if(z3_exception && z3_exception->msg() == "out of memory"){
+      reportSpiderStatus('m');
+    }
+    else{
+#endif
+      reportSpiderFail();
+      ASS(exception); 
+      if(exception){ explainException(*exception); }
+#if VZ3
+      ASS(z3_exception);
+      else{ cout << "Z3 exception:\n" << z3_exception->msg() << endl; }
+    }
+#endif
     vampireReturnValue = VAMP_RESULT_STATUS_UNHANDLED_EXCEPTION;
   }
   env.endOutput();

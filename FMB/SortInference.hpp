@@ -98,7 +98,7 @@ public:
                   _collapsed=0;
 
                   ASS(! (_expandSubsorts && _collapsingMonotonicSorts) );
-                  ASS( !_collapsingMonotonicSorts || _assumeMonotonic); 
+                  ASS( _collapsingMonotonicSorts || !_assumeMonotonic); 
                 }
 
    void doInference();                
