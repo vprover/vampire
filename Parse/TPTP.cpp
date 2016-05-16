@@ -3498,10 +3498,9 @@ unsigned TPTP::readSort()
     consumeToken(T_RPAR);
     return env.sorts->addArraySort(indexSort,innerSort);
   }
-  case T_TUPLE:
+  case T_LBRA:
   {
     resetToks();
-    consumeToken(T_LPAR);
 
     Stack<unsigned> sorts;
     for (;;) {
@@ -3510,7 +3509,7 @@ unsigned TPTP::readSort()
       if (getTok(0).tag == T_COMMA) {
         resetToks();
       } else {
-        consumeToken(T_RPAR);
+        consumeToken(T_RBRA);
         break;
       }
     }
