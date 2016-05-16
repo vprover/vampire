@@ -475,7 +475,7 @@ public:
     ON = 1,
     PROOFCHECK = 2,
     TPTP = 3,
-    SMTCOMP
+    SMTCOMP = 4
   };
 
   /** Values for --equality_proxy */

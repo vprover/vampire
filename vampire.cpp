@@ -957,7 +957,7 @@ int main(int argc, char* argv[])
     case Options::Mode::SMTCOMP:
        env.options->setProof(Options::Proof::SMTCOMP);
        env.options->setInputSyntax(Options::InputSyntax::SMTLIB2);
-       if(SMTCOMP::SMTCOMPMode::perform(argc,argv)){
+       if(SMTCOMP::SMTCOMPMode::perform()){
          vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
         }
     break;

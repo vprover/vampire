@@ -411,7 +411,9 @@ void System::terminateImmediately(int resultStatus)
 void System::registerForSIGHUPOnParentDeath()
 {
 #if __APPLE__ || COMPILER_MSVC || __CYGWIN__
-  cerr<<"Death of parent process not being handled on Mac and Windows"<<endl;
+  if(env.options->mode()!=Shell::Options::Mode::SMTCOMP){
+   cerr<<"Death of parent process not being handled on Mac and Windows"<<endl;
+  }
 //  NOT_IMPLEMENTED;
 #else
   prctl(PR_SET_PDEATHSIG, SIGHUP);
