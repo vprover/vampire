@@ -728,19 +728,18 @@ void spiderMode()
     // env.statistics->print(env.out());
   } else {
 #if VZ3
-    if(z3_exception && strcmp(z3_exception->msg(),"out of memory")){
-      reportSpiderStatus('m');
+    if(z3_exception){
+      if(strcmp(z3_exception->msg(),"out of memory")){
+        reportSpiderStatus('m');
+      }
+      else{ reportSpiderFail(); }
     }
     else{
 #endif
       reportSpiderFail();
       ASS(exception); 
-      if(exception){ explainException(*exception); }
+      explainException(*exception); 
 #if VZ3
-      else{
-        ASS(z3_exception);
-        cout << "Z3 exception:\n" << z3_exception->msg() << endl; 
-      }
     }
 #endif
     vampireReturnValue = VAMP_RESULT_STATUS_UNHANDLED_EXCEPTION;
