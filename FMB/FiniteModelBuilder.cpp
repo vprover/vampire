@@ -409,21 +409,17 @@ void FiniteModelBuilder::init()
   }
 
   ClauseList* clist = 0;
-  if(env.options->fmbCollapseMonotonicSorts() == Options::FMBMonotonicCollapse::PREDICATE ||
-     env.options->fmbCollapseMonotonicSorts() == Options::FMBMonotonicCollapse::PREDICATE_WOM){
+  if(env.options->fmbAdjustSorts() == Options::FMBAdjustSorts::PREDICATE){
     DArray<unsigned> deleted_functions(env.signature->functions());
     for(unsigned f=0;f<env.signature->functions();f++){
       deleted_functions[f] = _deletedFunctions.find(f);
      }
     ClauseList::pushFromIterator(_prb.clauseIterator(),clist);
-    bool useMon = (env.options->fmbCollapseMonotonicSorts() != Options::FMBMonotonicCollapse::PREDICATE_WOM);
-    Monotonicity::addSortPredicates(useMon, clist,deleted_functions);
+    Monotonicity::addSortPredicates(true, clist,deleted_functions);
   }
-  if(env.options->fmbCollapseMonotonicSorts() == Options::FMBMonotonicCollapse::FUNCTION ||
-     env.options->fmbCollapseMonotonicSorts() == Options::FMBMonotonicCollapse::FUNCTION_WOM){
+  if(env.options->fmbAdjustSorts() == Options::FMBAdjustSorts::FUNCTION){ 
     ClauseList::pushFromIterator(_prb.clauseIterator(),clist);
-    bool useMon = (env.options->fmbCollapseMonotonicSorts() == Options::FMBMonotonicCollapse::FUNCTION);
-    Monotonicity::addSortFunctions(useMon,clist);
+    Monotonicity::addSortFunctions(true,clist);
   }
 
 
@@ -466,8 +462,6 @@ void FiniteModelBuilder::init()
     if(outputAllowed()){
       cout << "The problem is propositional so there are no sorts!" << endl;
     }
-    // ignore sort inference
-    env.options->setFMBSortInference(Options::FMBSortInference::IGNORE);
   }
 
   // Apply GeneralSplitting

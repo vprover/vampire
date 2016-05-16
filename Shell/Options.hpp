@@ -220,18 +220,12 @@ public:
     INPUT_USAGE,
     PREPROCESSED_USAGE
   };
-  enum class FMBMonotonicCollapse : unsigned int {
+  enum class FMBAdjustSorts : unsigned int {
     OFF,
+    EXPAND,
     GROUP,
     PREDICATE,
-    FUNCTION,
-    PREDICATE_WOM,
-    FUNCTION_WOM
-  };
-  enum class FMBSortInference : unsigned int {
-    IGNORE,
-    INFER,
-    EXPAND
+    FUNCTION
   };
   enum class FMBEnumerationStrategy : unsigned int {
     SBMEAM,
@@ -1677,13 +1671,11 @@ public:
   float fmbSymmetryRatio() const { return _fmbSymmetryRatio.actualValue; }
   FMBWidgetOrders fmbSymmetryWidgetOrders() { return _fmbSymmetryWidgetOrders.actualValue;}
   FMBSymbolOrders fmbSymmetryOrderSymbols() const {return _fmbSymmetryOrderSymbols.actualValue; }
-  FMBMonotonicCollapse fmbCollapseMonotonicSorts() const {return _fmbCollapseMonotonicSorts.actualValue; }
+  FMBAdjustSorts fmbAdjustSorts() const {return _fmbAdjustSorts.actualValue; }
   bool fmbDetectSortBounds() const { return _fmbDetectSortBounds.actualValue; }
   unsigned fmbDetectSortBoundsTimeLimit() const { return _fmbDetectSortBoundsTimeLimit.actualValue; }
   unsigned fmbSizeWeightRatio() const { return _fmbSizeWeightRatio.actualValue; }
-  FMBSortInference fmbSortInference() const { return _fmbSortInference.actualValue; }
   FMBEnumerationStrategy fmbEnumerationStrategy() const { return _fmbEnumerationStrategy.actualValue; }
-  void setFMBSortInference(FMBSortInference v){ _fmbSortInference.actualValue=v; }
 
   bool flattenTopLevelConjunctions() const { return _flattenTopLevelConjunctions.actualValue; }
   LTBLearning ltbLearning() const { return _ltbLearning.actualValue; }
@@ -2079,11 +2071,10 @@ private:
   FloatOptionValue _fmbSymmetryRatio;
   ChoiceOptionValue<FMBWidgetOrders> _fmbSymmetryWidgetOrders;
   ChoiceOptionValue<FMBSymbolOrders> _fmbSymmetryOrderSymbols;
-  ChoiceOptionValue<FMBMonotonicCollapse> _fmbCollapseMonotonicSorts;
+  ChoiceOptionValue<FMBAdjustSorts> _fmbAdjustSorts;
   BoolOptionValue _fmbDetectSortBounds;
   UnsignedOptionValue _fmbDetectSortBoundsTimeLimit;
   UnsignedOptionValue _fmbSizeWeightRatio;
-  ChoiceOptionValue<FMBSortInference> _fmbSortInference;
   ChoiceOptionValue<FMBEnumerationStrategy> _fmbEnumerationStrategy;
 
   BoolOptionValue _flattenTopLevelConjunctions;

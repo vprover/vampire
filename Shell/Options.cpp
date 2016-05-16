@@ -644,12 +644,11 @@ void Options::Options::init()
     _lookup.insert(&_fmbSymmetryWidgetOrders);
     _fmbSymmetryWidgetOrders.setExperimental();
 
-    _fmbCollapseMonotonicSorts = ChoiceOptionValue<FMBMonotonicCollapse>("fmb_collapse_monotonic_sorts","fmbcms",
-                                                           FMBMonotonicCollapse::OFF, 
-                                                           {"off","group","predicate","function","predicate_wom","function_wom"});
-    _fmbCollapseMonotonicSorts.description = "Detect monotonic sorts. If <group> then collapse these into a single sort. If <predicate> then introduce sort predicates for non-monotonic sorts and collapse all sorts into one. If <function> then introduce sort functions for non-monotonic sorts and collapse all sorts into one";
-    _fmbCollapseMonotonicSorts.setExperimental();
-    _lookup.insert(&_fmbCollapseMonotonicSorts);
+    _fmbAdjustSorts = ChoiceOptionValue<FMBAdjustSorts>("fmb_adjust_sorts","fmbas",
+                                                           FMBAdjustSorts::OFF,
+                                                           {"off","expand","group","predicate","function"});
+    _fmbAdjustSorts.description = "Detect monotonic sorts. If <expand> then expand monotonic subsorts into proper sorts. If <group> then collapse monotonic sorts into a single sort. If <predicate> then introduce sort predicates for non-monotonic sorts and collapse all sorts into one. If <function> then introduce sort functions for non-monotonic sorts and collapse all sorts into one";
+    _lookup.insert(&_fmbAdjustSorts);
 
     _fmbDetectSortBounds = BoolOptionValue("fmb_detect_sort_bounds","fmbdsb",false);
     _fmbDetectSortBounds.description = "Use a saturation loop to detect sort bounds introduced by (for example) injective functions";
@@ -666,11 +665,6 @@ void Options::Options::init()
     _fmbSizeWeightRatio.reliesOn(_fmbEnumerationStrategy.is(equal(FMBEnumerationStrategy::CONTOUR)));
     _fmbSizeWeightRatio.setExperimental();
     _lookup.insert(&_fmbSizeWeightRatio);
-
-    _fmbSortInference = ChoiceOptionValue<FMBSortInference>("fmb_sort_inference","fmbsi",FMBSortInference::INFER,{"ignore","infer","expand"});
-    _fmbSortInference.description = "Unless <ignore> then infer subsorts. These are used in various places. If <expand> then those that can be promoted to real sorts are promoted.";
-    _fmbSortInference.setExperimental();
-    _lookup.insert(&_fmbSortInference);
 
     _fmbEnumerationStrategy = ChoiceOptionValue<FMBEnumerationStrategy>("fmb_enumeration_strategy","fmbes",FMBEnumerationStrategy::SBMEAM,{"sbeam",
 #if VZ3

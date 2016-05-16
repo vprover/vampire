@@ -84,16 +84,21 @@ public:
                   _sig = new SortedSignature();
                   _print = env.options->showFMBsortInfo();
 
-                  _ignoreInference = env.options->fmbSortInference() == Options::FMBSortInference::IGNORE;
-                  _expandSubsorts = env.options->fmbSortInference() == Options::FMBSortInference::EXPAND;
+                   // ignore inference if there are no clauses
+                  _ignoreInference = !clauses; 
+                  _expandSubsorts = env.options->fmbAdjustSorts() == Options::FMBAdjustSorts::EXPAND;
 
                   _usingMonotonicity = true;
-                  _collapsingMonotonicSorts = env.options->fmbCollapseMonotonicSorts() != Options::FMBMonotonicCollapse::OFF;
+                  _collapsingMonotonicSorts = (env.options->fmbAdjustSorts() != Options::FMBAdjustSorts::OFF ||
+                                               env.options->fmbAdjustSorts() != Options::FMBAdjustSorts::EXPAND);
                   _assumeMonotonic = _collapsingMonotonicSorts && 
-                                     env.options->fmbCollapseMonotonicSorts() != Options::FMBMonotonicCollapse::GROUP;
+                                     env.options->fmbAdjustSorts() != Options::FMBAdjustSorts::GROUP;
 
                   _distinctSorts=0;
                   _collapsed=0;
+
+                  ASS(! (_expandSubsorts && _collapsingMonotonicSorts) );
+                  ASS( !_collapsingMonotonicSorts || _assumeMonotonic); 
                 }
 
    void doInference();                
