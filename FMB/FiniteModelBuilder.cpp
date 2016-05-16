@@ -673,9 +673,11 @@ void FiniteModelBuilder::init()
 
     if(env.signature->functionArity(f)==0){ 
       unsigned vsrt = env.signature->getFunction(f)->fnType()->result();
-      ASS(_sortedSignature->vampireToDistinctParent.find(vsrt));
-      unsigned dsrt = _sortedSignature->vampireToDistinctParent.get(vsrt);
-      _distinctSortConstantCount[dsrt]++;
+      if(vsrt != Sorts::SRT_BOOL){
+        ASS(_sortedSignature->vampireToDistinctParent.find(vsrt));
+        unsigned dsrt = _sortedSignature->vampireToDistinctParent.get(vsrt);
+        _distinctSortConstantCount[dsrt]++;
+      }
     }
 
     // f might have been added to the signature since we created the sortedSignature
@@ -689,7 +691,7 @@ void FiniteModelBuilder::init()
     for(unsigned i=1;i<fsig.size();i++){
       unsigned sz = _sortedSignature->sortBounds[fsig[i]];
       if(sz<min) min = sz;
-    }
+      }
     _fminbound[f]=min;
   }
 
