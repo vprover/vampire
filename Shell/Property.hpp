@@ -201,7 +201,11 @@ public:
   /** Problem contains non-default sorts */
   bool hasNonDefaultSorts() const { return _hasNonDefaultSorts; }
   bool hasFOOL() const { return _hasFOOL; }
-  bool usesSort(unsigned sort) const { return _usesSort[sort]; }
+  bool usesSort(unsigned sort) const { 
+    CALL("Property::usesSort");
+    if(_usesSort.size() <= sort) return false;
+    return _usesSort[sort]; 
+  }
   bool usesSingleSort() const { return _sortsUsed==1; }
   unsigned sortsUsed() const { return _sortsUsed; }
 
