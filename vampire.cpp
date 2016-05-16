@@ -737,8 +737,10 @@ void spiderMode()
       ASS(exception); 
       if(exception){ explainException(*exception); }
 #if VZ3
-      ASS(z3_exception);
-      else{ cout << "Z3 exception:\n" << z3_exception->msg() << endl; }
+      else{
+        ASS(z3_exception);
+        cout << "Z3 exception:\n" << z3_exception->msg() << endl; 
+      }
     }
 #endif
     vampireReturnValue = VAMP_RESULT_STATUS_UNHANDLED_EXCEPTION;
