@@ -729,7 +729,7 @@ void spiderMode()
   } else {
 #if VZ3
     if(z3_exception){
-      if(strcmp(z3_exception->msg(),"out of memory")){
+      if(strcmp(z3_exception->msg(),"out of memory\n")){
         reportSpiderStatus('m');
       }
       else{ reportSpiderFail(); }
