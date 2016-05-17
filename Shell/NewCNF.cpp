@@ -105,6 +105,14 @@ void NewCNF::clausify(FormulaUnit* unit,Stack<Clause*>& output)
   _maxVar = 0;
   _freeVars.reset();
 
+  { // destroy the cached substitution entries
+    DHMap<BindingList*,Substitution*>::DelIterator dIt(_substitutionsByBindings);
+    while (dIt.hasNext()) {
+      delete dIt.next();
+      dIt.del();
+    }
+  }
+
   ASS(_queue.isEmpty());
   ASS(_occurrences.isEmpty());
 }
@@ -1098,13 +1106,16 @@ Clause* NewCNF::toClause(SPGenClause gc)
 {
   CALL("NewCNF::toClause");
 
-  static Substitution subst;
-  ASS(subst.isEmpty());
+  Substitution* subst;
 
-  BindingList::Iterator bit(gc->bindings);
-  while (bit.hasNext()) {
-    Binding b = bit.next();
-    subst.bind(b.first, b.second);
+  if (!_substitutionsByBindings.find(gc->bindings, subst)) {
+    subst = new Substitution();
+    BindingList::Iterator bit(gc->bindings);
+    while (bit.hasNext()) {
+      Binding b = bit.next();
+      subst->bind(b.first, b.second);
+    }
+    _substitutionsByBindings.insert(gc->bindings, subst);
   }
 
   static Stack<Literal*> properLiterals;
@@ -1119,7 +1130,7 @@ Clause* NewCNF::toClause(SPGenClause gc)
     ASS_REP(g->literal()->shared(), g->toString());
     ASS_REP((SIGN)g->literal()->polarity() == POSITIVE, g->toString());
 
-    Literal* l = g->literal()->apply(subst);
+    Literal* l = g->literal()->apply(*subst);
     if (sign(gl) == NEGATIVE) {
       l = Literal::complementaryLiteral(l);
     }
@@ -1134,7 +1145,6 @@ Clause* NewCNF::toClause(SPGenClause gc)
   }
 
   properLiterals.reset();
-  subst.reset();
 
   return clause;
 }

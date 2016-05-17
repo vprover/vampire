@@ -564,6 +564,10 @@ private:
   DHMap<BindingList*,BindingList*> _skolemsByBindings;
   DHMap<VarSet*,BindingList*>      _skolemsByFreeVars;
 
+  // caching binding substitutions for the final phase of GenClause -> Clause transformation
+  // this saves time, because bindings are potentially shared
+  DHMap<BindingList*,Substitution*> _substitutionsByBindings;
+
   void skolemise(QuantifiedFormula* g, BindingList* &bindings);
 
   Literal* createNamingLiteral(Formula* g, List<unsigned>* free);
