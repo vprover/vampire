@@ -101,6 +101,8 @@ void NewCNF::clausify(FormulaUnit* unit,Stack<Clause*>& output)
 
   _genClauses.clear();
   _varSorts.reset();
+  _collectedVarSorts = false;
+  _maxVar = 0;
   _freeVars.reset();
 
   ASS(_queue.isEmpty());
@@ -302,19 +304,27 @@ unsigned NewCNF::createFreshVariable(unsigned sort)
 
   ensureHavingVarSorts();
 
-  unsigned maxVar = 0;
+  _maxVar++;
 
-  VirtualIterator<unsigned> vars = _varSorts.domain();
-  while (vars.hasNext()) {
-    unsigned var = vars.next();
-    if (var > maxVar) {
-      maxVar = var;
-    }
+  ALWAYS(_varSorts.insert(_maxVar, sort));
+
+  return _maxVar;
+}
+
+void NewCNF::createFreshVariableRenaming(unsigned oldVar, unsigned freshVar)
+{
+  CALL("NewCNF::createFreshVariableRenaming");
+
+  ensureHavingVarSorts();
+
+  unsigned sort;
+  ALWAYS(_varSorts.find(oldVar, sort));
+  if (!_varSorts.insert(freshVar, sort)) {
+    ASSERTION_VIOLATION_REP(freshVar);
   }
-
-  ALWAYS(_varSorts.insert(maxVar + 1, sort));
-
-  return maxVar + 1;
+  if (freshVar > _maxVar) {
+    _maxVar = freshVar;
+  }
 }
 
 void NewCNF::process(JunctionFormula *g, Occurrences &occurrences)
@@ -620,8 +630,17 @@ TermList NewCNF::nameLetBinding(unsigned symbol, Formula::VarList* bindingVariab
 TermList NewCNF::inlineLetBinding(unsigned symbol, Formula::VarList* bindingVariables, TermList binding, TermList contents) {
   CALL("NewCNF::inlineLetBinding(TermList)");
 
-  SymbolDefinitionInlining inlining(symbol, bindingVariables, binding);
-  return Flattening::flatten(inlining.process(contents));
+  ensureHavingVarSorts();
+  SymbolDefinitionInlining inlining(symbol, bindingVariables, binding, _maxVar);
+  TermList inlinedContents = inlining.process(contents);
+
+  List<pair<unsigned, unsigned>>::Iterator renamings(inlining.variableRenamings());
+  while (renamings.hasNext()) {
+    pair<unsigned, unsigned> renaming = renamings.next();
+    createFreshVariableRenaming(renaming.first, renaming.second);
+  }
+
+  return Flattening::flatten(inlinedContents);
 }
 
 NewCNF::VarSet* NewCNF::freeVars(Formula* g)
@@ -647,8 +666,17 @@ void NewCNF::ensureHavingVarSorts()
 {
   CALL("NewCNF::ensureHavingVarSorts");
 
-  if (_varSorts.size() == 0) {
+  if (!_collectedVarSorts) {
     SortHelper::collectVariableSorts(_beingClausified->formula(), _varSorts);
+    _collectedVarSorts = true;
+    _maxVar = 0;
+    VirtualIterator<unsigned> vars = _varSorts.domain();
+    while (vars.hasNext()) {
+      unsigned var = vars.next();
+      if (var > _maxVar) {
+        _maxVar = var;
+      }
+    }
   }
 }
 

@@ -51,7 +51,7 @@ namespace Shell {
 class NewCNF
 {
 public:
-  NewCNF(unsigned namingThreshold) : _namingThreshold(namingThreshold) {}
+  NewCNF(unsigned namingThreshold) : _namingThreshold(namingThreshold), _collectedVarSorts(false), _maxVar(0) {}
 
   void clausify(FormulaUnit* unit, Stack<Clause*>& output);
 private:
@@ -527,6 +527,8 @@ private:
 
   /** map var --> sort */
   DHMap<unsigned,unsigned> _varSorts;
+  bool _collectedVarSorts;
+  unsigned _maxVar;
 
   void ensureHavingVarSorts();
 
@@ -597,6 +599,7 @@ private:
                                  Stack<TermList> &thenBranches, Stack<TermList> &elseBranches);
 
   unsigned createFreshVariable(unsigned sort);
+  void createFreshVariableRenaming(unsigned oldVar, unsigned freshVar);
 
   bool shouldInlineITE(unsigned iteCounter);
 }; // class NewCNF
