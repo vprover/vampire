@@ -174,33 +174,56 @@ bool BlockedClauseElimination::resolvesToTautology(Clause* cl, Literal* lit, Cla
 {
   CALL("BlockedClauseElimination::resolvesToTautology");
 
-  static RobSubstitution subst;
-  subst.reset();
-  if(!subst.unifyArgs(lit,0,plit,1)) {
+  static RobSubstitution subst_main;
+  subst_main.reset();
+  if(!subst_main.unifyArgs(lit,0,plit,1)) {
     return true; // since they don't resolve
   }
 
-  static DHSet<Literal*> lits;
-  lits.reset();
+  static DHSet<Literal*> cl_lits;
+  cl_lits.reset();
+
+  Literal* opslit = 0;
 
   for (unsigned i = 0; i < cl->length(); i++) {
-    Literal* scurlit = subst.apply((*cl)[i],0);
+    Literal* curlit = (*cl)[i];
+    Literal* scurlit = subst_main.apply(curlit,0);
+    Literal* opscurlit = Literal::complementaryLiteral(scurlit);
 
-    if (lits.find(Literal::complementaryLiteral(scurlit))) {
+    if (curlit == lit) {
+      opslit = opscurlit;
+    }
+
+    if (cl_lits.find(opscurlit)) { // cl(subst_main) is a tautology
       return true;
     }
-    lits.insert(scurlit);
+    cl_lits.insert(scurlit);
   }
+
+  ASS_NEQ(opslit,0);
+
+  static DHSet<Literal*> pcl_lits;
+  pcl_lits.reset();
+
+  static RobSubstitution subst_aux;
+  subst_aux.reset();
 
   for (unsigned i = 0; i < pcl->length(); i++) {
     Literal* curlit = (*pcl)[i];
-    if (curlit != plit) {
-      Literal* scurlit = subst.apply(curlit,1);
+    Literal* scurlit = subst_main.apply(curlit,0);
+    Literal* opscurlit = Literal::complementaryLiteral(scurlit);
 
-      if (lits.find(Literal::complementaryLiteral(scurlit))) {
+    if (pcl_lits.find(opscurlit)) { // pcl(subst_main) is a tautology
+      return true;
+    }
+    pcl_lits.insert(scurlit);
+
+    if (curlit != plit && cl_lits.find(opscurlit)) {
+      if (!subst_aux.unifyArgs(opslit,0,scurlit,0)) { // opslit is the same thing as plit(subst_main)
         return true;
+      } else {
+        subst_aux.reset();
       }
-      lits.insert(scurlit);
     }
   }
 
