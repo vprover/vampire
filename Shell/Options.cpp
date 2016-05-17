@@ -645,7 +645,7 @@ void Options::Options::init()
     _fmbSymmetryWidgetOrders.setExperimental();
 
     _fmbAdjustSorts = ChoiceOptionValue<FMBAdjustSorts>("fmb_adjust_sorts","fmbas",
-                                                           FMBAdjustSorts::OFF,
+                                                           FMBAdjustSorts::GROUP,
                                                            {"off","expand","group","predicate","function"});
     _fmbAdjustSorts.description = "Detect monotonic sorts. If <expand> then expand monotonic subsorts into proper sorts. If <group> then collapse monotonic sorts into a single sort. If <predicate> then introduce sort predicates for non-monotonic sorts and collapse all sorts into one. If <function> then introduce sort functions for non-monotonic sorts and collapse all sorts into one";
     _lookup.insert(&_fmbAdjustSorts);
