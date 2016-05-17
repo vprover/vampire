@@ -74,6 +74,25 @@ private:
 
   typedef List<Binding> BindingList;
 
+  // all allocations of shared BindingLists should go via BindingStore so that they get destroyed in the end
+  struct BindingStore {
+    void pushAndRemember(Binding b, BindingList* &lst) {
+      lst = new BindingList(b,lst);
+      _stored.push(lst);
+    }
+    ~BindingStore() {
+      Stack<BindingList*>::Iterator it(_stored);
+      while(it.hasNext()) {
+        BindingList* cell = it.next();
+        delete cell;
+      }
+    }
+  private:
+    Stack<BindingList*> _stored;
+  };
+
+  BindingStore _bindingStore;
+
   struct BindingGetVarFunctor
   {
     DECL_RETURN_TYPE(unsigned);

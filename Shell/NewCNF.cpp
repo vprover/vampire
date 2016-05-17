@@ -431,7 +431,7 @@ void NewCNF::processBoolVar(SIGN sign, unsigned var, Occurrences &occurrences)
 
     if (!bound) {
       Term* constant = (occurrenceSign == POSITIVE) ? Term::foolFalse() : Term::foolTrue();
-      BindingList::push(Binding(var, constant), occ.gc->bindings);
+      _bindingStore.pushAndRemember(Binding(var, constant), occ.gc->bindings);
       removeGenLit(occ);
       continue;
     }
@@ -747,7 +747,7 @@ void NewCNF::skolemise(QuantifiedFormula* g, BindingList*& bindings)
       while (vs.hasNext()) {
         unsigned var = (unsigned)vs.next();
         Term* skolemTerm = createSkolemTerm(var, unboundFreeVars);
-        BindingList::push(Binding(var,skolemTerm), processedBindings);
+        BindingList::push(Binding(var,skolemTerm), processedBindings); // this cell will get destroyed when we clear the cache
       }
 
       // store the results in the caches
@@ -760,7 +760,7 @@ void NewCNF::skolemise(QuantifiedFormula* g, BindingList*& bindings)
   // extend the given binding
   BindingList::Iterator it(processedBindings);
   while (it.hasNext()) {
-    BindingList::push(it.next(),bindings);
+    _bindingStore.pushAndRemember(it.next(),bindings);
   }
 }
 
@@ -1106,8 +1106,6 @@ Clause* NewCNF::toClause(SPGenClause gc)
     Binding b = bit.next();
     subst.bind(b.first, b.second);
   }
-
-  // TODO: since the bindings are share, there is no easy way to delete them
 
   static Stack<Literal*> properLiterals;
   ASS(properLiterals.isEmpty());
