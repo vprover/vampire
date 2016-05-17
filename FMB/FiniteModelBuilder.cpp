@@ -518,7 +518,9 @@ void FiniteModelBuilder::init()
     inference.doInference();
     _sortedSignature = inference.getSignature(); 
     ASS(_sortedSignature);
-    //cout << "Done sort inference" << endl;
+#if VTRACE_FMB
+    cout << "Done sort inference" << endl;
+#endif
 
     // now we have a mapping between vampire sorts and distinct sorts we can translate
     // the sort constraints, if any
@@ -526,8 +528,12 @@ void FiniteModelBuilder::init()
       DHSet<std::pair<unsigned,unsigned>>::Iterator it(vampire_sort_constraints_nonstrict); 
       while(it.hasNext()){
         std::pair<unsigned,unsigned> vconstraint = it.next();
+        ASS(_sortedSignature->vampireToDistinctParent.find(vconstraint.first));
+        ASS(_sortedSignature->vampireToDistinctParent.find(vconstraint.second));
+        //cout << "constraint " << vconstraint.first << " , " << vconstraint.second << endl;
         unsigned s1 = _sortedSignature->vampireToDistinctParent.get(vconstraint.first);
         unsigned s2 = _sortedSignature->vampireToDistinctParent.get(vconstraint.second);
+        //cout << "is " << s1 << " , " << s2 << endl;
         _distinct_sort_constraints.push(make_pair(s1,s2));
       }
     }
@@ -535,8 +541,12 @@ void FiniteModelBuilder::init()
       DHSet<std::pair<unsigned,unsigned>>::Iterator it(vampire_sort_constraints_strict);
       while(it.hasNext()){
         std::pair<unsigned,unsigned> vconstraint = it.next();
+        ASS(_sortedSignature->vampireToDistinctParent.find(vconstraint.first));
+        ASS(_sortedSignature->vampireToDistinctParent.find(vconstraint.second));
+        //cout << "strict constraint " << vconstraint.first << " , " << vconstraint.second << endl;
         unsigned s1 = _sortedSignature->vampireToDistinctParent.get(vconstraint.first);
         unsigned s2 = _sortedSignature->vampireToDistinctParent.get(vconstraint.second);
+        //cout << "is " << s1 << " , " << s2 << endl;
         _strict_distinct_sort_constraints.push(make_pair(s1,s2));
       }
     }
