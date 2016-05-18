@@ -38,141 +38,151 @@ void BlockedClauseElimination::apply(Problem& prb)
   TimeCounter tc(TC_BCE);
 
   bool modified = false;
+  bool equationally = prb.hasEquality();
 
-  if (prb.hasEquality()) {
-    cout << "BCE with equality" << endl;
+  DArray<Stack<Candidate*>> positive(env.signature->predicates());
+  DArray<Stack<Candidate*>> negative(env.signature->predicates());
 
-    ASSERTION_VIOLATION;
-  } else {
-    cout << "BCE without equality" << endl;
+  Stack<ClWrapper*> wrappers; // just to delete easily in the end
 
-    DArray<Stack<Candidate*>> positive(env.signature->predicates());
-    DArray<Stack<Candidate*>> negative(env.signature->predicates());
+  // put the clauses into the index
+  UnitList::Iterator uit(prb.units());
+  while(uit.hasNext()) {
+    Clause* cl=static_cast<Clause*>(uit.next());
+    ASS(cl->isClause());
 
-    Stack<ClWrapper*> wrappers; // just to delete easily in the end
+    ClWrapper* clw = new ClWrapper(cl);
+    wrappers.push(clw);
 
-    // put the clauses into the index
-    UnitList::Iterator uit(prb.units());
-    while(uit.hasNext()) {
-      Clause* cl=static_cast<Clause*>(uit.next());
-      ASS(cl->isClause());
-
-      ClWrapper* clw = new ClWrapper(cl);
-      wrappers.push(clw);
-
-      for(unsigned i=0; i<cl->length(); i++) {
-        Literal* lit = (*cl)[i];
-        unsigned pred = lit->functor();
+    for(unsigned i=0; i<cl->length(); i++) {
+      Literal* lit = (*cl)[i];
+      unsigned pred = lit->functor();
+      if (pred) { // don't index on the equality predicate
         (lit->isPositive() ? positive : negative)[pred].push(new Candidate {clw,i,0,0});
       }
     }
+  }
 
-    // cout << "Clauses indexed" << endl;
+  // cout << "Clauses indexed" << endl;
 
-    typedef BinaryHeap<Candidate*, CandidateComparator> BlockClauseCheckPriorityQueue;
-    BlockClauseCheckPriorityQueue queue;
+  typedef BinaryHeap<Candidate*, CandidateComparator> BlockClauseCheckPriorityQueue;
+  BlockClauseCheckPriorityQueue queue;
 
-    for (bool pos : {false, true}) {
-      DArray<Stack<Candidate*>>& one   = pos ? positive : negative;
-      DArray<Stack<Candidate*>>& other = pos ? negative : positive;
+  for (bool pos : {false, true}) {
+    DArray<Stack<Candidate*>>& one   = pos ? positive : negative;
+    DArray<Stack<Candidate*>>& other = pos ? negative : positive;
 
-      for (unsigned pred = 0; pred < one.size(); pred++) {
-        Stack<Candidate*>& predsCandidates = one[pred];
-        unsigned predsRemaining = other[pred].size();
-        for (unsigned i = 0; i < predsCandidates.size(); i++) {
-          Candidate* cand = predsCandidates[i];
-          cand->weight = predsRemaining;
-          queue.insert(cand);
-        }
+    for (unsigned pred = 1; pred < one.size(); pred++) { // skipping 0; the empty slot for equality
+      Stack<Candidate*>& predsCandidates = one[pred];
+      unsigned predsRemaining = other[pred].size();
+      for (unsigned i = 0; i < predsCandidates.size(); i++) {
+        Candidate* cand = predsCandidates[i];
+        cand->weight = predsRemaining;
+        queue.insert(cand);
       }
-    }
-
-    // cout << "Queue initialized" << endl;
-
-    while (!queue.isEmpty()) {
-      Candidate* cand = queue.pop();
-      ClWrapper* clw = cand->clw;
-
-      if (clw->blocked) {
-        continue;
-      }
-
-      // clause still undecided
-      Clause* cl = clw->cl;
-      Literal* lit = (*cl)[cand->litIdx];
-      unsigned pred = lit->functor();
-      Stack<Candidate*>& partners = (lit->isPositive() ? negative : positive)[pred];
-
-      for (unsigned i = cand->contFrom; i < partners.size(); i++) {
-        Candidate* partner = partners[i];
-        ClWrapper* pclw = partner->clw;
-        Clause* pcl = pclw->cl;
-
-        if (pclw->blocked) {
-          continue;
-        }
-
-        if (!resolvesToTautology(cl,lit,pcl,(*pcl)[partner->litIdx])) {
-          // cand does not work, because of partner; need to wait for partner to die
-          cand->contFrom = i+1;
-          cand->weight = partners.size() - cand->contFrom;
-          pclw->toResurrect.push(cand);
-          goto next_candidate;
-        }
-      }
-
-      // resolves to tautology with all partners -- blocked!
-      // cout << "Blocked clause[" << cand->litIdx << "]: " << cl->toString() << endl;
-
-      env.statistics->blockedClauses++;
-      modified = true;
-
-      clw->blocked = true;
-      for (unsigned i = 0; i< clw->toResurrect.size(); i++) {
-        queue.insert(clw->toResurrect[i]);
-      }
-      clw->toResurrect.reset();
-
-      next_candidate: ;
-    }
-
-    // delete candidates:
-    for (bool pos : {false, true}) {
-      DArray<Stack<Candidate*>> & one   = pos ? positive : negative;
-
-      for (unsigned pred = 0; pred < one.size(); pred++) {
-        Stack<Candidate*>& predsCandidates = one[pred];
-        for (unsigned i = 0; i < predsCandidates.size(); i++) {
-          delete predsCandidates[i];
-        }
-      }
-    }
-
-    // delete wrappers and update units in prob, if there were any blockings
-    UnitList* res=0;
-
-    Stack<ClWrapper*>::Iterator it(wrappers);
-    while (it.hasNext()) {
-      ClWrapper* clw = it.next();
-      if (modified && !clw->blocked) {
-        UnitList::push(clw->cl, res);
-      }
-      delete clw;
-    }
-
-    if (modified) {
-      prb.units() = res;
     }
   }
 
-  if(modified) {
+  // cout << "Queue initialized" << endl;
+
+  while (!queue.isEmpty()) {
+    Candidate* cand = queue.pop();
+    ClWrapper* clw = cand->clw;
+
+    if (clw->blocked) {
+      continue;
+    }
+
+    // clause still undecided
+    Clause* cl = clw->cl;
+    Literal* lit = (*cl)[cand->litIdx];
+    unsigned pred = lit->functor();
+    Stack<Candidate*>& partners = (lit->isPositive() ? negative : positive)[pred];
+
+    for (unsigned i = cand->contFrom; i < partners.size(); i++) {
+      Candidate* partner = partners[i];
+      ClWrapper* pclw = partner->clw;
+      Clause* pcl = pclw->cl;
+
+      if (pclw->blocked) {
+        continue;
+      }
+
+      if (!resolvesToTautology(equationally,cl,lit,pcl,(*pcl)[partner->litIdx])) {
+        // cand does not work, because of partner; need to wait for the partner to die
+        cand->contFrom = i+1;
+        cand->weight = partners.size() - cand->contFrom;
+        pclw->toResurrect.push(cand);
+        goto next_candidate;
+      }
+    }
+
+    // resolves to tautology with all partners -- blocked!
+    // cout << "Blocked clause[" << cand->litIdx << "]: " << cl->toString() << endl;
+
+    env.statistics->blockedClauses++;
+    modified = true;
+
+    clw->blocked = true;
+    for (unsigned i = 0; i< clw->toResurrect.size(); i++) {
+      queue.insert(clw->toResurrect[i]);
+    }
+    clw->toResurrect.reset();
+
+    next_candidate: ;
+  }
+
+  // delete candidates:
+  for (bool pos : {false, true}) {
+    DArray<Stack<Candidate*>> & one   = pos ? positive : negative;
+
+    for (unsigned pred = 0; pred < one.size(); pred++) {
+      Stack<Candidate*>& predsCandidates = one[pred];
+      for (unsigned i = 0; i < predsCandidates.size(); i++) {
+        delete predsCandidates[i];
+      }
+    }
+  }
+
+  // delete wrappers and update units in prob, if there were any blockings
+  UnitList* res=0;
+
+  Stack<ClWrapper*>::Iterator it(wrappers);
+  while (it.hasNext()) {
+    ClWrapper* clw = it.next();
+    if (modified && !clw->blocked) {
+      UnitList::push(clw->cl, res);
+    }
+    delete clw;
+  }
+
+  if (modified) {
+    prb.units() = res;
     prb.invalidateProperty();
   }
 }
 
-bool BlockedClauseElimination::resolvesToTautology(Clause* cl, Literal* lit, Clause* pcl, Literal* plit)
+bool BlockedClauseElimination::resolvesToTautology(bool equationally, Clause* cl, Literal* lit, Clause* pcl, Literal* plit)
 {
   CALL("BlockedClauseElimination::resolvesToTautology");
+
+  if (equationally) {
+    return resolvesToTautologyEq(cl,lit,pcl,plit);
+  } else {
+    return resolvesToTautologyUn(cl,lit,pcl,plit);
+  }
+}
+
+bool BlockedClauseElimination::resolvesToTautologyEq(Clause* cl, Literal* lit, Clause* pcl, Literal* plit)
+{
+  CALL("BlockedClauseElimination::resolvesToTautologyUn");
+
+  return false;
+}
+
+bool BlockedClauseElimination::resolvesToTautologyUn(Clause* cl, Literal* lit, Clause* pcl, Literal* plit)
+{
+  CALL("BlockedClauseElimination::resolvesToTautologyUn");
 
   static RobSubstitution subst_main;
   subst_main.reset();

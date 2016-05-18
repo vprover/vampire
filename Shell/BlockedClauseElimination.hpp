@@ -50,8 +50,10 @@ private:
     ClWrapper(Clause* cl) : cl(cl), blocked(false) {}
   };
 
-  bool resolvesToTautology(Clause* cl, Literal* lit, Clause* pcl, Literal* plit);
+  bool resolvesToTautology(bool equationally, Clause* cl, Literal* lit, Clause* pcl, Literal* plit);
 
+  bool resolvesToTautologyUn(Clause* cl, Literal* lit, Clause* pcl, Literal* plit);
+  bool resolvesToTautologyEq(Clause* cl, Literal* lit, Clause* pcl, Literal* plit);
 };
 
 };
