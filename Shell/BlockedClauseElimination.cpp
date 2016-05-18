@@ -11,6 +11,7 @@
 #include "Kernel/Problem.hpp"
 #include "Kernel/Signature.hpp"
 #include "Kernel/SortHelper.hpp"
+#include "Kernel/SubstHelper.hpp"
 #include "Kernel/Term.hpp"
 #include "Kernel/TermIterators.hpp"
 #include "Kernel/Unit.hpp"
@@ -173,11 +174,83 @@ bool BlockedClauseElimination::resolvesToTautology(bool equationally, Clause* cl
   }
 }
 
+struct TimesTwo {
+  static TermList apply(unsigned var) {
+    return TermList(2*var,false);
+  }
+};
+
+struct TimesTwoPlusOne {
+  static TermList apply(unsigned var) {
+    return TermList(2*var+1,false);
+  }
+};
+
+
 bool BlockedClauseElimination::resolvesToTautologyEq(Clause* cl, Literal* lit, Clause* pcl, Literal* plit)
 {
   CALL("BlockedClauseElimination::resolvesToTautologyUn");
 
-  return false;
+  _cc.reset();
+
+  /*
+  cout << "cl: " << cl->toString() << endl;
+  cout << "lit: " << lit->toString() << endl;
+  cout << "pcl: " << pcl->toString() << endl;
+  cout << "plit: " << plit->toString() << endl;
+  */
+
+  // two variable normalizers:
+  TimesTwo timesTwo;
+  TimesTwoPlusOne timesTwoPlusOne;
+
+  // insert complements of literals from cl, except those that could look like lit
+  for (unsigned i = 0; i < cl->length(); i++) {
+    Literal* curlit = (*cl)[i];
+    if (curlit->functor() != lit->functor() || curlit->polarity() != lit->polarity()) {
+      Literal* oplit = Literal::complementaryLiteral(curlit);
+
+      Literal* norm_oplit = SubstHelper::apply(oplit,timesTwo);
+
+      // cout << "norm_oplit1: " << norm_oplit->toString() << endl;
+
+      _cc.addLiteral(norm_oplit);
+    }
+  }
+
+  // insert complements of literals from pcl, except those that could look like plit
+  for (unsigned i = 0; i < pcl->length(); i++) {
+    Literal* curlit = (*pcl)[i];
+    if (curlit->functor() != plit->functor() || curlit->polarity() != plit->polarity()) {
+      Literal* oplit = Literal::complementaryLiteral(curlit);
+
+      Literal* norm_oplit = SubstHelper::apply(oplit,timesTwoPlusOne);
+
+      // cout << "norm_oplit2: " << norm_oplit->toString() << endl;
+
+      _cc.addLiteral(norm_oplit);
+    }
+  }
+
+  // insert equalities describing the unifier
+  ASS_EQ(lit->functor(),plit->functor());
+  ASS_NEQ(lit->polarity(),plit->polarity());
+
+  for(unsigned i = 0; i<lit->arity(); i++) {
+    unsigned sort = SortHelper::getArgSort(lit,i);
+    ASS_EQ(sort,SortHelper::getArgSort(plit,i));
+    TermList left = SubstHelper::apply(*lit->nthArgument(i),timesTwo);
+    TermList right = SubstHelper::apply(*plit->nthArgument(i),timesTwoPlusOne);
+
+    Literal* eqLit = Literal::createEquality(true,left,right,sort);
+
+    // cout << "eqLit: " << eqLit->toString() << endl;
+
+    _cc.addLiteral(eqLit);
+  }
+
+  // is there a conflict?
+  return (_cc.getStatus(false) == DP::DecisionProcedure::UNSATISFIABLE);
 }
 
 bool BlockedClauseElimination::resolvesToTautologyUn(Clause* cl, Literal* lit, Clause* pcl, Literal* plit)
@@ -239,7 +312,5 @@ bool BlockedClauseElimination::resolvesToTautologyUn(Clause* cl, Literal* lit, C
 
   return false;
 }
-
-
 
 }

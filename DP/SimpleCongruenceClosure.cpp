@@ -133,7 +133,7 @@ void SimpleCongruenceClosure::ConstInfo::assertValid(SimpleCongruenceClosure& pa
 #endif
 
 
-SimpleCongruenceClosure::SimpleCongruenceClosure(Ordering& ord) :
+SimpleCongruenceClosure::SimpleCongruenceClosure(Ordering* ord) :
   _ord(ord)
 {
   CALL("SimpleCongruenceClosure::SimpleCongruenceClosure");
@@ -210,17 +210,17 @@ unsigned SimpleCongruenceClosure::getFreshConst()
 }
 
 /** Get congruence closure constant corresponding to a signature symbol number @c symbol */
-unsigned SimpleCongruenceClosure::getSignatureConst(unsigned symbol, bool funct)
+unsigned SimpleCongruenceClosure::getSignatureConst(unsigned symbol, SignatureKind kind)
 {
   CALL("SimpleCongruenceClosure::getSignatureConst");
 
   unsigned* pRes;
-  if(!_sigConsts.getValuePtr(make_pair(symbol, funct), pRes)) {
+  if(!_sigConsts.getValuePtr(make_pair(symbol, kind), pRes)) {
     return *pRes;
   }
   unsigned res = getFreshConst();
   _cInfos[res].sigSymbol = symbol;
-  _cInfos[res].sigSymIsFunct = funct;
+  _cInfos[res].sigSymKind = kind;
   *pRes = res;
 
   return res;
@@ -266,16 +266,16 @@ struct SimpleCongruenceClosure::FOConversionWorker
   void pre(TermList t, ChildCallback childCallbackFn) {
     CALL("SimpleCongruenceClosure::FOConversionWorker::pre");
 
-    if(t.isTerm()) {
+    if (t.isTerm()) {
       if(_parent._termNames.find(t)) {
-	//term is in cache, we don't need to traverse it
-	return;
+        //term is in cache, we don't need to traverse it
+        return;
       }
 
       Term::Iterator argIt(t.term());
       while(argIt.hasNext()) {
-	TermList arg = argIt.next();
-	childCallbackFn(arg);
+        TermList arg = argIt.next();
+        childCallbackFn(arg);
       }
     }
   }
@@ -290,16 +290,14 @@ struct SimpleCongruenceClosure::FOConversionWorker
     }
 
     if(t.isVar()) {
-      ASS_EQ(childCnt,0);
-      NOT_IMPLEMENTED;
-//      res = _parent.getFreshConst();
+      res = _parent.getSignatureConst(t.var(), SignatureKind::VARIABLE);
     }
     else {
       ASS(t.isTerm());
       Term* trm = t.term();
-      res = _parent.getSignatureConst(trm->functor(), true);
+      res = _parent.getSignatureConst(trm->functor(), SignatureKind::FUNCTION);
       for(size_t i=0; i<childCnt; i++) {
-	res = _parent.getPairName(CPair(res, childRes[i]));
+        res = _parent.getPairName(CPair(res, childRes[i]));
       }
     }
     _parent._cInfos[res].term = t;
@@ -351,7 +349,7 @@ unsigned SimpleCongruenceClosure::convertFONonEquality(Literal* lit)
   // Martin: in any case, the logical negation is encoded by the caller;
   // notice that we ignore the polarity below:
 
-  res = getSignatureConst(lit->functor(), false);
+  res = getSignatureConst(lit->functor(), SignatureKind::PREDICATE);
   Term::Iterator ait(lit);
   while(ait.hasNext()) {
     TermList a = ait.next();
@@ -435,37 +433,39 @@ void SimpleCongruenceClosure::addLiterals(LiteralIterator lits, bool onlyEqualit
     if(!l->ground()) {
       //for now we ignore non-ground literals
       continue;
+      // update: we do handle them, but let's not change the bahavoir of this interface
     }
-    bool isEq = l->isEquality();
 
-    if(isEq && l->isPositive()) {
-      CEq eq = convertFOEquality(l);
+    if (!onlyEqualites || (l->isEquality() && l->isPositive())) {
+      addLiteral(l);
+    }
+  }
+}
+
+void SimpleCongruenceClosure::addLiteral(Literal* lit)
+{
+  CALL("SimpleCongruenceClosure::addLiteral");
+
+  if (lit->isEquality()) {
+    CEq eq = convertFOEquality(lit);
+
+    if (lit->isPositive()) {
       addPendingEquality(eq);
-      continue;
-    }
-
-    if (onlyEqualites) {
-      continue;
-    }
-
-    if (isEq) {
-      ASS(!(l->isPositive()));
-      CEq eq = convertFOEquality(l);
+    } else {
       _negEqualities.push(eq);
-    } else if(isDistinctPred(l)) {
-      readDistinct(l);
+    }
+  } else if(isDistinctPred(lit)) {
+    readDistinct(lit);
+  } else {
+    unsigned predConst = convertFONonEquality(lit);
+    CEq eq;
+    if(lit->isPositive()) {
+      eq = CEq(predConst, _posLitConst, lit);
     }
     else {
-      unsigned predConst = convertFONonEquality(l);
-      CEq eq;
-      if(l->isPositive()) {
-	eq = CEq(predConst, _posLitConst, l);
-      }
-      else {
-	eq = CEq(predConst, _negLitConst, l);
-      }
-      addPendingEquality(eq);
+      eq = CEq(predConst, _negLitConst, lit);
     }
+    addPendingEquality(eq);
   }
 }
 
@@ -924,7 +924,7 @@ void SimpleCongruenceClosure::getModel(LiteralStack& model)
   
   // a heap of candidate constants to process
   static DynamicHeap<unsigned, ConstOrderingComparator, ArrayMap<unsigned> >
-    candidates(ConstOrderingComparator(_cInfos,_ord));
+    candidates(ConstOrderingComparator(_cInfos,*_ord));
   ASS(candidates.isEmpty());
   
   // a map of already computed normal forms, indexed by class representatives
