@@ -438,6 +438,19 @@ void NewCNF::processBoolVar(SIGN sign, unsigned var, Occurrences &occurrences)
     }
 
     if (!bound) {
+      BindingList::Iterator fbit(occ.gc->foolBindings);
+      while (fbit.hasNext()) {
+        Binding binding = fbit.next();
+
+        if (binding.first == var) {
+          bound = true;
+          skolem = binding.second;
+          break;
+        }
+      }
+    }
+
+    if (!bound) {
       Term* constant = (occurrenceSign == POSITIVE) ? Term::foolFalse() : Term::foolTrue();
       _bindingStore.pushAndRemember(Binding(var, constant), occ.gc->bindings);
       removeGenLit(occ);
@@ -733,42 +746,60 @@ Term* NewCNF::createSkolemTerm(unsigned var, VarSet* free)
  * so we cache results from skolemising previous
  * occurrences of g.
  */
-void NewCNF::skolemise(QuantifiedFormula* g, BindingList*& bindings)
+void NewCNF::skolemise(QuantifiedFormula* g, BindingList*& bindings, BindingList*& foolBindings)
 {
   CALL("NewCNF::skolemise");
 
   BindingList* processedBindings;
+  BindingList* processedFoolBindings;
 
-  if (!_skolemsByBindings.find(bindings, processedBindings)) {
+  if (!_skolemsByBindings.find(bindings, processedBindings) || !_foolSkolemsByBindings.find(foolBindings, processedFoolBindings)) {
     // first level cache miss, construct free variable set
 
     BindingList::Iterator bIt(bindings);
-    VarSet* boundVars = (VarSet*) VarSet::getFromIterator(getMappingIterator(bIt, BindingGetVarFunctor()));
-    VarSet* unboundFreeVars = (VarSet*) freeVars(g)->subtract(boundVars);
+    VarSet* boundVars = VarSet::getFromIterator(getMappingIterator(bIt, BindingGetVarFunctor()));
 
-    if (!_skolemsByFreeVars.find(unboundFreeVars, processedBindings)) {
+    BindingList::Iterator fbIt(foolBindings);
+    VarSet* boolBoundVars = VarSet::getFromIterator(getMappingIterator(fbIt, BindingGetVarFunctor()));
+
+    VarSet* unboundFreeVars = freeVars(g)->subtract(boundVars)->subtract(boolBoundVars);
+
+    if (!_skolemsByFreeVars.find(unboundFreeVars, processedBindings) || !_foolSkolemsByFreeVars.find(unboundFreeVars, processedFoolBindings)) {
       // second level cache miss, let's do the actual skolemisation
 
       processedBindings = nullptr;
+      processedFoolBindings = nullptr;
 
       Formula::VarList::Iterator vs(g->vars());
       while (vs.hasNext()) {
         unsigned var = (unsigned)vs.next();
-        Term* skolemTerm = createSkolemTerm(var, unboundFreeVars);
-        BindingList::push(Binding(var,skolemTerm), processedBindings); // this cell will get destroyed when we clear the cache
+        Term* skolem = createSkolemTerm(var, unboundFreeVars);
+        Binding binding(var, skolem);
+        if (skolem->isSpecial()) {
+          BindingList::push(binding, processedFoolBindings); // this cell will get destroyed when we clear the cache
+        } else {
+          BindingList::push(binding, processedBindings); // this cell will get destroyed when we clear the cache
+        }
       }
 
       // store the results in the caches
       _skolemsByFreeVars.insert(unboundFreeVars, processedBindings);
+      _foolSkolemsByFreeVars.insert(unboundFreeVars, processedFoolBindings);
     }
 
     _skolemsByBindings.insert(bindings, processedBindings);
+    _foolSkolemsByBindings.insert(foolBindings, processedFoolBindings);
   }
 
   // extend the given binding
   BindingList::Iterator it(processedBindings);
   while (it.hasNext()) {
     _bindingStore.pushAndRemember(it.next(),bindings);
+  }
+
+  BindingList::Iterator fit(processedFoolBindings);
+  while (fit.hasNext()) {
+    _foolBindingStore.pushAndRemember(fit.next(),foolBindings);
   }
 }
 
@@ -782,6 +813,8 @@ void NewCNF::process(QuantifiedFormula* g, Occurrences &occurrences)
   // the skolem caches are empty
   ASS(_skolemsByBindings.isEmpty());
   ASS(_skolemsByFreeVars.isEmpty());
+  ASS(_foolSkolemsByBindings.isEmpty());
+  ASS(_foolSkolemsByFreeVars.isEmpty());
 
   // In the skolemising polarity introduce new skolems as you go
   // each occurrence may need a new set depending on bindings,
@@ -790,7 +823,7 @@ void NewCNF::process(QuantifiedFormula* g, Occurrences &occurrences)
   while (occit.hasNext()) {
     Occurrence occ = occit.next();
     if ((occ.sign() == POSITIVE) == (g->connective() == EXISTS)) {
-      skolemise(g, occ.gc->bindings);
+      skolemise(g, occ.gc->bindings, occ.gc->foolBindings);
     }
   }
 
@@ -803,6 +836,16 @@ void NewCNF::process(QuantifiedFormula* g, Occurrences &occurrences)
     dIt.next(vars,bindings);
     bindings->destroy();
     dIt.del();
+  }
+
+  _foolSkolemsByBindings.reset();
+  DHMap<VarSet*,BindingList*>::DelIterator fdit(_foolSkolemsByFreeVars);
+  while (fdit.hasNext()) {
+    VarSet* vars;
+    BindingList* bindings;
+    fdit.next(vars, bindings);
+    bindings->destroy();
+    fdit.del();
   }
 
   // Note that the formula under quantifier reuses the quantified formula's occurrences
@@ -981,18 +1024,16 @@ void NewCNF::toClauses(SPGenClause gc, Stack<Clause*>& output)
   Stack<unsigned> variables;
   Stack<Formula*> skolems;
 
-  BindingList::Iterator bit(gc->bindings);
+  BindingList::Iterator bit(gc->foolBindings);
   while (bit.hasNext()) {
     Binding b = bit.next();
     unsigned var = b.first;
     Term* skolem = b.second;
-    if (skolem->isSpecial()) {
-      variables.push(var);
-      ASS(skolem->isFormula());
-      Formula* f = skolem->getSpecialData()->getFormula();
-      ASS(f->connective() == LITERAL);
-      skolems.push(f);
-    }
+    variables.push(var);
+    ASS_REP(skolem->isFormula(), skolem->toString());
+    Formula* f = skolem->getSpecialData()->getFormula();
+    ASS_REP(f->connective() == LITERAL, f->toString());
+    skolems.push(f);
   }
 
   List<GenLit>* initLiterals(0);
@@ -1054,7 +1095,7 @@ void NewCNF::toClauses(SPGenClause gc, Stack<Clause*>& output)
 #endif
   while (List<List<GenLit>*>::isNonEmpty(genClauses)) {
     List<GenLit>* gls = List<List<GenLit>*>::pop(genClauses);
-    SPGenClause genClause = makeGenClause(gls, gc->bindings);
+    SPGenClause genClause = makeGenClause(gls, gc->bindings, BindingList::empty());
     if (genClause->valid) {
       Clause* clause = toClause(genClause);
       LOG1(clause->toString());

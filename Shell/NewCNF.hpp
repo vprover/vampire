@@ -92,6 +92,7 @@ private:
   };
 
   BindingStore _bindingStore;
+  BindingStore _foolBindingStore;
 
   struct BindingGetVarFunctor
   {
@@ -123,11 +124,13 @@ private:
     CLASS_NAME(NewCNF::GenClause);
     USE_ALLOCATOR(NewCNF::GenClause);
 
-    GenClause(unsigned size, BindingList* bindings) : valid(true), bindings(bindings), _literals(size), _size(0) {}
+    GenClause(unsigned size, BindingList* bindings, BindingList* foolBindings)
+      : valid(true), bindings(bindings), foolBindings(foolBindings), _literals(size), _size(0) {}
 
     bool valid; // used for lazy deletion from Occurrences(s); see below
 
     BindingList* bindings; // the list is not owned by the GenClause (they will shallow-copied and shared)
+    BindingList* foolBindings;
     // we could/should carry bindings on the GenLits-level; but GenClause seems sufficient as long as we are rectified
 
     DArray<GenLit> _literals; // TODO: remove the extra indirection and allocate inside GenClause
@@ -175,6 +178,11 @@ private:
       BindingList::Iterator bIt(bindings);
       while(bIt.hasNext()) {
         Binding b = bIt.next();
+        res += " | X"+Int::toString(b.first)+" --> "+b.second->toString();
+      }
+      BindingList::Iterator fbit(foolBindings);
+      while(fbit.hasNext()) {
+        Binding b = fbit.next();
         res += " | X"+Int::toString(b.first)+" --> "+b.second->toString();
       }
 
@@ -403,8 +411,8 @@ private:
     };
   };
 
-  SPGenClause makeGenClause(List<GenLit>* gls, BindingList* bindings) {
-    SPGenClause gc = SPGenClause(new GenClause((unsigned)gls->length(), bindings));
+  SPGenClause makeGenClause(List<GenLit>* gls, BindingList* bindings, BindingList* foolBindings) {
+    SPGenClause gc = SPGenClause(new GenClause((unsigned)gls->length(), bindings, foolBindings));
 
     ASS(_literalsCache.isEmpty());
     ASS(_formulasCache.isEmpty());
@@ -420,8 +428,8 @@ private:
     return gc;
   }
 
-  void introduceGenClause(List<GenLit>* gls, BindingList* bindings) {
-    SPGenClause gc = makeGenClause(gls, bindings);
+  void introduceGenClause(List<GenLit>* gls, BindingList* bindings, BindingList* foolBindings) {
+    SPGenClause gc = makeGenClause(gls, bindings, foolBindings);
 
     if (gc->size() != (unsigned)gls->length()) {
       LOG4("Eliminated", gls->length() - gc->size(), "duplicate literal(s) from", gc->toString());
@@ -446,12 +454,12 @@ private:
     }
   }
 
-  void introduceGenClause(GenLit gl, BindingList* bindings=BindingList::empty()) {
-    introduceGenClause(new List<GenLit>(gl), bindings);
+  void introduceGenClause(GenLit gl, BindingList* bindings=BindingList::empty(), BindingList* foolBindings=BindingList::empty()) {
+    introduceGenClause(new List<GenLit>(gl), bindings, foolBindings);
   }
 
-  void introduceGenClause(GenLit gl0, GenLit gl1, BindingList* bindings=BindingList::empty()) {
-    introduceGenClause(new List<GenLit>(gl0, new List<GenLit>(gl1)), bindings);
+  void introduceGenClause(GenLit gl0, GenLit gl1, BindingList* bindings=BindingList::empty(), BindingList* foolBindings=BindingList::empty()) {
+    introduceGenClause(new List<GenLit>(gl0, new List<GenLit>(gl1)), bindings, foolBindings);
   }
 
   void introduceExtendedGenClause(Occurrence occ, List<GenLit>* gls) {
@@ -461,7 +469,7 @@ private:
     unsigned position = occ.position;
 
     unsigned size = gc->size() + gls->length() - 1;
-    SPGenClause newGc = SPGenClause(new GenClause(size, gc->bindings));
+    SPGenClause newGc = SPGenClause(new GenClause(size, gc->bindings, gc->foolBindings));
 
     ASS(_literalsCache.isEmpty());
     ASS(_formulasCache.isEmpty());
@@ -564,11 +572,14 @@ private:
   DHMap<BindingList*,BindingList*> _skolemsByBindings;
   DHMap<VarSet*,BindingList*>      _skolemsByFreeVars;
 
+  DHMap<BindingList*,BindingList*> _foolSkolemsByBindings;
+  DHMap<VarSet*,BindingList*>      _foolSkolemsByFreeVars;
+
   // caching binding substitutions for the final phase of GenClause -> Clause transformation
   // this saves time, because bindings are potentially shared
   DHMap<BindingList*,Substitution*> _substitutionsByBindings;
 
-  void skolemise(QuantifiedFormula* g, BindingList* &bindings);
+  void skolemise(QuantifiedFormula* g, BindingList* &bindings, BindingList*& foolBindings);
 
   Literal* createNamingLiteral(Formula* g, List<unsigned>* free);
   void nameSubformula(Formula* g, Occurrences &occurrences);
