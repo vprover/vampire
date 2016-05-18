@@ -229,7 +229,7 @@ bool BlockedClauseElimination::resolvesToTautologyUn(Clause* cl, Literal* lit, C
     pcl_lits.insert(scurlit);
 
     if (curlit != plit && cl_lits.find(opscurlit)) {
-      if (!subst_aux.unifyArgs(opslit,0,scurlit,0)) { // opslit is the same thing as plit(subst_main)
+      if (opslit->functor() != scurlit->functor() || !subst_aux.unifyArgs(opslit,0,scurlit,0)) { // opslit is the same thing as plit(subst_main)
         return true;
       } else {
         subst_aux.reset();
