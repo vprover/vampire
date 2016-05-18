@@ -6,6 +6,7 @@
 #include "Kernel/Signature.hpp"
 #include "Kernel/SubstHelper.hpp"
 #include "Lib/Environment.hpp"
+#include "Lib/Set.hpp"
 
 using namespace Lib;
 using namespace Kernel;
@@ -40,6 +41,8 @@ class SymbolDefinitionInlining {
     void collectBoundVariables(TermList);
     void collectBoundVariables(Term*);
     void collectBoundVariables(Formula*);
+
+    Set<Formula*> _superformulas;
 };
 
 #endif // __SymbolDefinitionInlining__
