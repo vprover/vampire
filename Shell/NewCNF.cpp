@@ -1054,7 +1054,7 @@ void NewCNF::toClauses(SPGenClause gc, Stack<Clause*>& output)
 
     List<List<GenLit>*>* processedGenClauses(0);
 
-    if (shouldInlineITE(iteCounter)) {
+    if (iteCounter < 3) {
       while (List<List<GenLit>*>::isNonEmpty(genClauses)) {
         List<GenLit>* gls = List<List<GenLit>*>::pop(genClauses);
 
