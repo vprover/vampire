@@ -664,7 +664,7 @@ TermList NewCNF::inlineLetBinding(unsigned symbol, Formula::VarList* bindingVari
   return Flattening::flatten(inlinedContents);
 }
 
-NewCNF::VarSet* NewCNF::freeVars(Formula* g)
+VarSet* NewCNF::freeVars(Formula* g)
 {
   CALL("NewCNF::freeVars");
 

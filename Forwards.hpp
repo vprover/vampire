@@ -230,6 +230,8 @@ class BDDNode;
 typedef unsigned SplitLevel;
 typedef const SharedSet<SplitLevel> SplitSet;
 
+typedef const SharedSet<unsigned> VarSet;
+
 /**
  * Color of a term
  *

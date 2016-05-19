@@ -559,8 +559,6 @@ private:
 
   void ensureHavingVarSorts();
 
-  typedef const SharedSet<unsigned> VarSet;
-
   Term* createSkolemTerm(unsigned var, VarSet* free);
 
   // caching of free variables for subformulas
