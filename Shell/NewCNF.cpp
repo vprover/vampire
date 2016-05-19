@@ -1054,35 +1054,84 @@ void NewCNF::toClauses(SPGenClause gc, Stack<Clause*>& output)
 
     List<List<GenLit>*>* processedGenClauses(0);
 
-    while (List<List<GenLit>*>::isNonEmpty(genClauses)) {
-      List<GenLit>* gls = List<List<GenLit>*>::pop(genClauses);
+    if (shouldInlineITE(iteCounter)) {
+      while (List<List<GenLit>*>::isNonEmpty(genClauses)) {
+        List<GenLit>* gls = List<List<GenLit>*>::pop(genClauses);
 
-      bool occurs = false;
-      // We might have a predicate skolem binding for a variable that does not
-      // occur in the generalised clause.
-      // TODO: optimize?
-      List<GenLit>::Iterator glsit(gls);
-      while (glsit.hasNext()) {
-        GenLit gl = glsit.next();
-        if (formula(gl)->freeVariables()->member(variable)) {
-          occurs = true;
-          break;
+        bool occurs = false;
+        // We might have a predicate skolem binding for a variable that does not
+        // occur in the generalised clause.
+        // TODO: optimize?
+        List<GenLit>::Iterator glsit(gls);
+        while (glsit.hasNext()) {
+          GenLit gl = glsit.next();
+          if (formula(gl)->freeVariables()->member(variable)) {
+            occurs = true;
+            break;
+          }
+        }
+
+        if (!occurs) {
+          processedGenClauses = processedGenClauses->cons(gls);
+          continue;
+        }
+
+        List<GenLit>* thenGls(0);
+        if (mapSubstitution(gls, thenSubst, false, thenGls)) {
+          processedGenClauses = processedGenClauses->cons(thenGls->cons(GenLit(skolem, NEGATIVE)));
+        }
+
+        List<GenLit>* elseGls(0);
+        if (mapSubstitution(gls, elseSubst, false, elseGls)) {
+          processedGenClauses = processedGenClauses->cons(elseGls->cons(GenLit(skolem, POSITIVE)));
         }
       }
+    } else {
+      List<unsigned>* vars = new List<unsigned>(variable);
+      List<unsigned>::pushFromIterator(Formula::VarList::Iterator(skolem->freeVariables()), vars);
+      Formula* naming = new AtomicFormula(createNamingLiteral(skolem, vars));
 
-      if (!occurs) {
-        processedGenClauses = processedGenClauses->cons(gls);
-        continue;
-      }
+      Substitution skolemSubst;
+      skolemSubst.bind(variable, Term::createFormula(skolem));
 
-      List<GenLit>* thenGls(0);
-      if (mapSubstitution(gls, thenSubst, thenGls)) {
-        processedGenClauses = processedGenClauses->cons(thenGls->cons(GenLit(skolem, NEGATIVE)));
-      }
+      bool addedDefinition = false;
+      while (List<List<GenLit>*>::isNonEmpty(genClauses)) {
+        List<GenLit>* gls = List<List<GenLit>*>::pop(genClauses);
 
-      List<GenLit>* elseGls(0);
-      if (mapSubstitution(gls, elseSubst, elseGls)) {
-        processedGenClauses = processedGenClauses->cons(elseGls->cons(GenLit(skolem, POSITIVE)));
+        bool occurs = false;
+        // We might have a predicate skolem binding for a variable that does not
+        // occur in the generalised clause.
+        // TODO: optimize?
+        List<GenLit>::Iterator glsit(gls);
+        while (glsit.hasNext()) {
+          GenLit gl = glsit.next();
+          if (formula(gl)->freeVariables()->member(variable)) {
+            occurs = true;
+            break;
+          }
+        }
+
+        if (!occurs) {
+          processedGenClauses = processedGenClauses->cons(gls);
+          continue;
+        }
+
+        List<GenLit>* skolemGls(0);
+        ALWAYS(mapSubstitution(gls, skolemSubst, true, skolemGls));
+        processedGenClauses = processedGenClauses->cons(skolemGls->cons(GenLit(naming, NEGATIVE)));
+
+        if (!addedDefinition) {
+          GenLit thenNaming = GenLit(SubstHelper::apply(naming, thenSubst), POSITIVE);
+          GenLit elseNaming = GenLit(SubstHelper::apply(naming, elseSubst), POSITIVE);
+
+          List<GenLit>* thenDefinition = new List<GenLit>(GenLit(skolem, NEGATIVE), new List<GenLit>(thenNaming, 0));
+          List<GenLit>* elseDefinition = new List<GenLit>(GenLit(skolem, POSITIVE), new List<GenLit>(elseNaming, 0));
+
+          processedGenClauses = processedGenClauses->cons(thenDefinition);
+          processedGenClauses = processedGenClauses->cons(elseDefinition);
+
+          addedDefinition = true;
+        }
       }
     }
 
@@ -1109,14 +1158,16 @@ void NewCNF::toClauses(SPGenClause gc, Stack<Clause*>& output)
 #endif
 }
 
-bool NewCNF::mapSubstitution(List<GenLit>* clause, Substitution subst, List<GenLit>* &output)
+bool NewCNF::mapSubstitution(List<GenLit>* clause, Substitution subst, bool onlyFormulaLevel, List<GenLit>* &output)
 {
   CALL("NewCNF::mapSubstitution");
 
   List<GenLit>::Iterator it(clause);
   while (it.hasNext()) {
     GenLit gl = it.next();
-    Formula* f = SubstHelper::apply(formula(gl), subst);
+    Formula* f = (onlyFormulaLevel && (formula(gl)->connective() == LITERAL))
+                  ? formula(gl)
+                  : SubstHelper::apply(formula(gl), subst);
 
     switch (f->connective()) {
       case TRUE:

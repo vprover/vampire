@@ -193,7 +193,7 @@ private:
   typedef SmartPtr<GenClause> SPGenClause;
 
   void toClauses(SPGenClause gc, Stack<Clause*>& output);
-  bool mapSubstitution(List<GenLit>* gc, Substitution subst, List<GenLit>* &output);
+  bool mapSubstitution(List<GenLit>* gc, Substitution subst, bool onlyFormulaLevel, List<GenLit>* &output);
   Clause* toClause(SPGenClause gc);
 
   typedef list<SPGenClause,STLAllocator<SPGenClause>> GenClauses;
