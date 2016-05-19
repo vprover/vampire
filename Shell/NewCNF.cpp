@@ -756,13 +756,37 @@ void NewCNF::skolemise(QuantifiedFormula* g, BindingList*& bindings, BindingList
   if (!_skolemsByBindings.find(bindings, processedBindings) || !_foolSkolemsByBindings.find(foolBindings, processedFoolBindings)) {
     // first level cache miss, construct free variable set
 
+    VarSet* frees = freeVars(g);
+
+    static Stack<unsigned> toSubtract;
+    toSubtract.reset();
+    static Stack<unsigned> toAddOnTop;
+    toAddOnTop.reset();
+
     BindingList::Iterator bIt(bindings);
-    VarSet* boundVars = VarSet::getFromIterator(getMappingIterator(bIt, BindingGetVarFunctor()));
-
     BindingList::Iterator fbIt(foolBindings);
-    VarSet* boolBoundVars = VarSet::getFromIterator(getMappingIterator(fbIt, BindingGetVarFunctor()));
 
-    VarSet* unboundFreeVars = freeVars(g)->subtract(boundVars)->subtract(boolBoundVars);
+    auto it = getConcatenatedIterator(bIt,fbIt);
+    while(it.hasNext()) {
+      Binding b = it.next();
+      if (frees->member(b.first)) {
+        toSubtract.push(b.first);      // because it's, in fact, bound
+        VariableIterator vit(b.second);
+        while (vit.hasNext()) {        // but depends on these free vars from above
+          TermList t = vit.next();
+          ASS(t.isVar());
+          toAddOnTop.push(t.var());
+        }
+      }
+    }
+
+    Stack<unsigned>::Iterator toSubIt(toSubtract);
+    Stack<unsigned>::Iterator toAddIt(toAddOnTop);
+
+    VarSet* boundVars = VarSet::getFromIterator(toSubIt);
+    VarSet* boundsDeps = VarSet::getFromIterator(toAddIt);
+
+    VarSet* unboundFreeVars = frees->subtract(boundVars)->getUnion(boundsDeps);
 
     if (!_skolemsByFreeVars.find(unboundFreeVars, processedBindings) || !_foolSkolemsByFreeVars.find(unboundFreeVars, processedFoolBindings)) {
       // second level cache miss, let's do the actual skolemisation
