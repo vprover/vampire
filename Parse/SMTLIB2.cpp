@@ -1740,6 +1740,8 @@ bool SMTLIB2::parseAsBuiltinTermSymbol(const vstring& id, LExpr* exp)
           TermList res = TermList(Term::create1(fun,first));
 
           _results.push(ParseResult(sort,res));
+
+          return true;
         } else {
           complainAboutArgShortageOrWrongSorts(BUILT_IN_SYMBOL,exp); // we need at least two arguments otherwise
         }
