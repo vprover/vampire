@@ -51,11 +51,14 @@ namespace Shell {
 class NewCNF
 {
 public:
-  NewCNF(unsigned namingThreshold) : _namingThreshold(namingThreshold), _collectedVarSorts(false), _maxVar(0) {}
+  NewCNF(unsigned namingThreshold)
+    : _namingThreshold(namingThreshold), _iteInliningThreshold((unsigned)ceil(log2(namingThreshold))),
+      _collectedVarSorts(false), _maxVar(0) {}
 
   void clausify(FormulaUnit* unit, Stack<Clause*>& output);
 private:
   unsigned _namingThreshold;
+  unsigned _iteInliningThreshold;
 
   FormulaUnit* _beingClausified;
 

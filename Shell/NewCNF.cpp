@@ -296,14 +296,7 @@ TermList NewCNF::findITEs(TermList ts, Stack<unsigned> &variables, Stack<Formula
 }
 
 bool NewCNF::shouldInlineITE(unsigned iteCounter) {
-  int threshold = env.options->getIteInliningThreshold();
-  if (threshold < 0) {
-    return true;
-  }
-  if (threshold == 0) {
-    return false;
-  }
-  return iteCounter < (unsigned)threshold;
+  return iteCounter < _iteInliningThreshold;
 }
 
 unsigned NewCNF::createFreshVariable(unsigned sort)
@@ -1078,7 +1071,7 @@ void NewCNF::toClauses(SPGenClause gc, Stack<Clause*>& output)
 
     List<List<GenLit>*>* processedGenClauses(0);
 
-    if (iteCounter < 3) {
+    if (shouldInlineITE(iteCounter)) {
       while (List<List<GenLit>*>::isNonEmpty(genClauses)) {
         List<GenLit>* gls = List<List<GenLit>*>::pop(genClauses);
 
