@@ -400,13 +400,13 @@ LTB_OBJ = Shell/LTB/Builder.o\
           Shell/LTB/Storage.o
 
 CASC_OBJ = CASC/CASCMode.o\
+           CASC/CASCMultiMode.o\
            CASC/CLTBMode.o\
            CASC/CMZRMode.o\
            CASC/ForkingCM.o\
            CASC/SpawningCM.o
 
-SMTCOMP_OBJ = SMTCOMP/ForkingSM.o\
-           SMTCOMP/SMTCOMPMode.o
+SMTCOMP_OBJ = SMTCOMP/SMTCOMPMode.o
 
 VPROG_OBJ = Program/Type.o\
            Program/LoopAnalyzer.o\

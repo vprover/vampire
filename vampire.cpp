@@ -49,6 +49,7 @@
 
 #include "CASC/CASCMode.hpp"
 #include "SMTCOMP/SMTCOMPMode.hpp"
+#include "CASC/CASCMultiMode.hpp"
 #include "CASC/CLTBMode.hpp"
 #include "CASC/CMZRMode.hpp"
 #include "Shell/CParser.hpp"
@@ -675,12 +676,20 @@ void spiderMode()
   CALL("spiderMode()");
   env.options->setBadOptionChoice(Options::BadOption::HARD); 
   Exception* exception = 0;
+#if VZ3
+  z3::exception* z3_exception = 0;
+#endif
   bool noException = true;
   try {
     doProving();
   } catch (Exception& e) {
     exception = &e;
     noException = false;
+#if VZ3
+  } catch(z3::exception& e){
+    z3_exception = &e; 
+    noException = false;
+#endif
   } catch (...) {
     noException = false;
   }
@@ -718,9 +727,21 @@ void spiderMode()
     }
     // env.statistics->print(env.out());
   } else {
-    reportSpiderFail();
-    ASS(exception);
-    explainException(*exception);
+#if VZ3
+    if(z3_exception){
+      if(strcmp(z3_exception->msg(),"out of memory\n")){
+        reportSpiderStatus('m');
+      }
+      else{ reportSpiderFail(); }
+    }
+    else{
+#endif
+      reportSpiderFail();
+      ASS(exception); 
+      explainException(*exception); 
+#if VZ3
+    }
+#endif
     vampireReturnValue = VAMP_RESULT_STATUS_UNHANDLED_EXCEPTION;
   }
   env.endOutput();
@@ -934,6 +955,12 @@ int main(int argc, char* argv[])
     case Options::Mode::VAMPIRE:
       vampireMode();
       break;
+    case Options::Mode::CASC_MULTICORE:
+      if (CASC::CASCMultiMode::perform()) {
+        //casc mode succeeded in solving the problem, so we return zero
+        vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
+      }
+      break;
     case Options::Mode::CASC:
       if (CASC::CASCMode::perform(argc, argv)) {
 	//casc mode succeeded in solving the problem, so we return zero
@@ -950,7 +977,7 @@ int main(int argc, char* argv[])
     case Options::Mode::SMTCOMP:
        env.options->setProof(Options::Proof::SMTCOMP);
        env.options->setInputSyntax(Options::InputSyntax::SMTLIB2);
-       if(SMTCOMP::SMTCOMPMode::perform(argc,argv)){
+       if(SMTCOMP::SMTCOMPMode::perform()){
          vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
         }
     break;

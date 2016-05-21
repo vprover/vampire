@@ -220,18 +220,12 @@ public:
     INPUT_USAGE,
     PREPROCESSED_USAGE
   };
-  enum class FMBMonotonicCollapse : unsigned int {
+  enum class FMBAdjustSorts : unsigned int {
     OFF,
+    EXPAND,
     GROUP,
     PREDICATE,
-    FUNCTION,
-    PREDICATE_WOM,
-    FUNCTION_WOM
-  };
-  enum class FMBSortInference : unsigned int {
-    IGNORE,
-    INFER,
-    EXPAND
+    FUNCTION
   };
   enum class FMBEnumerationStrategy : unsigned int {
     SBMEAM,
@@ -341,9 +335,8 @@ public:
    */
   enum class Mode : unsigned int {
     AXIOM_SELECTION,
-    //BOUND_PROP,
     CASC,
-    //CASC_LTB,
+    CASC_MULTICORE,
     CASC_SAT,
     SMTCOMP,
     CLAUSIFY,
@@ -351,13 +344,10 @@ public:
     CONSEQUENCE_ELIMINATION,
     GROUNDING,
     MODEL_CHECK,
-    //LTB_BUILD,
-    //LTB_SOLVE,
     /** this mode only outputs the input problem, without any preprocessing */
     OUTPUT,
     PREPROCESS,
     PROFILE,
-    //PROGRAM_ANALYSIS,   
     RANDOM_STRATEGY,
     SAT, 
     SPIDER,
@@ -479,7 +469,7 @@ public:
     ON = 1,
     PROOFCHECK = 2,
     TPTP = 3,
-    SMTCOMP
+    SMTCOMP = 4
   };
 
   /** Values for --equality_proxy */
@@ -1681,17 +1671,16 @@ public:
   float fmbSymmetryRatio() const { return _fmbSymmetryRatio.actualValue; }
   FMBWidgetOrders fmbSymmetryWidgetOrders() { return _fmbSymmetryWidgetOrders.actualValue;}
   FMBSymbolOrders fmbSymmetryOrderSymbols() const {return _fmbSymmetryOrderSymbols.actualValue; }
-  FMBMonotonicCollapse fmbCollapseMonotonicSorts() const {return _fmbCollapseMonotonicSorts.actualValue; }
+  FMBAdjustSorts fmbAdjustSorts() const {return _fmbAdjustSorts.actualValue; }
   bool fmbDetectSortBounds() const { return _fmbDetectSortBounds.actualValue; }
   unsigned fmbDetectSortBoundsTimeLimit() const { return _fmbDetectSortBoundsTimeLimit.actualValue; }
   unsigned fmbSizeWeightRatio() const { return _fmbSizeWeightRatio.actualValue; }
-  FMBSortInference fmbSortInference() const { return _fmbSortInference.actualValue; }
   FMBEnumerationStrategy fmbEnumerationStrategy() const { return _fmbEnumerationStrategy.actualValue; }
-  void setFMBSortInference(FMBSortInference v){ _fmbSortInference.actualValue=v; }
 
   bool flattenTopLevelConjunctions() const { return _flattenTopLevelConjunctions.actualValue; }
   LTBLearning ltbLearning() const { return _ltbLearning.actualValue; }
   Mode mode() const { return _mode.actualValue; }
+  unsigned multicore() const { return _multicore.actualValue; }
   InputSyntax inputSyntax() const { return _inputSyntax.actualValue; }
   void setInputSyntax(InputSyntax newVal) { _inputSyntax.actualValue = newVal; }
   bool normalize() const { return _normalize.actualValue; }
@@ -2082,11 +2071,10 @@ private:
   FloatOptionValue _fmbSymmetryRatio;
   ChoiceOptionValue<FMBWidgetOrders> _fmbSymmetryWidgetOrders;
   ChoiceOptionValue<FMBSymbolOrders> _fmbSymmetryOrderSymbols;
-  ChoiceOptionValue<FMBMonotonicCollapse> _fmbCollapseMonotonicSorts;
+  ChoiceOptionValue<FMBAdjustSorts> _fmbAdjustSorts;
   BoolOptionValue _fmbDetectSortBounds;
   UnsignedOptionValue _fmbDetectSortBoundsTimeLimit;
   UnsignedOptionValue _fmbSizeWeightRatio;
-  ChoiceOptionValue<FMBSortInference> _fmbSortInference;
   ChoiceOptionValue<FMBEnumerationStrategy> _fmbEnumerationStrategy;
 
   BoolOptionValue _flattenTopLevelConjunctions;
@@ -2151,6 +2139,7 @@ private:
   UnsignedOptionValue _maximalPropagatedEqualityLength;
   UnsignedOptionValue _memoryLimit; // should be size_t, making an assumption
   ChoiceOptionValue<Mode> _mode;
+  UnsignedOptionValue _multicore;
 
   StringOptionValue _namePrefix;
   IntOptionValue _naming;

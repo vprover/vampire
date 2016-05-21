@@ -409,21 +409,17 @@ void FiniteModelBuilder::init()
   }
 
   ClauseList* clist = 0;
-  if(env.options->fmbCollapseMonotonicSorts() == Options::FMBMonotonicCollapse::PREDICATE ||
-     env.options->fmbCollapseMonotonicSorts() == Options::FMBMonotonicCollapse::PREDICATE_WOM){
+  if(env.options->fmbAdjustSorts() == Options::FMBAdjustSorts::PREDICATE){
     DArray<unsigned> deleted_functions(env.signature->functions());
     for(unsigned f=0;f<env.signature->functions();f++){
       deleted_functions[f] = _deletedFunctions.find(f);
      }
     ClauseList::pushFromIterator(_prb.clauseIterator(),clist);
-    bool useMon = (env.options->fmbCollapseMonotonicSorts() != Options::FMBMonotonicCollapse::PREDICATE_WOM);
-    Monotonicity::addSortPredicates(useMon, clist,deleted_functions);
+    Monotonicity::addSortPredicates(true, clist,deleted_functions);
   }
-  if(env.options->fmbCollapseMonotonicSorts() == Options::FMBMonotonicCollapse::FUNCTION ||
-     env.options->fmbCollapseMonotonicSorts() == Options::FMBMonotonicCollapse::FUNCTION_WOM){
+  if(env.options->fmbAdjustSorts() == Options::FMBAdjustSorts::FUNCTION){ 
     ClauseList::pushFromIterator(_prb.clauseIterator(),clist);
-    bool useMon = (env.options->fmbCollapseMonotonicSorts() == Options::FMBMonotonicCollapse::FUNCTION);
-    Monotonicity::addSortFunctions(useMon,clist);
+    Monotonicity::addSortFunctions(true,clist);
   }
 
 
@@ -466,8 +462,6 @@ void FiniteModelBuilder::init()
     if(outputAllowed()){
       cout << "The problem is propositional so there are no sorts!" << endl;
     }
-    // ignore sort inference
-    env.options->setFMBSortInference(Options::FMBSortInference::IGNORE);
   }
 
   // Apply GeneralSplitting
@@ -505,8 +499,10 @@ void FiniteModelBuilder::init()
     del_f[f] = _deletedFunctions.find(f);
   }
   for(unsigned p=0;p<env.signature->predicates();p++){
-    del_p[p] = _deletedPredicates.find(p) || _trivialPredicates.find(p);
-    //if(del_p[p]) cout << "Mark " << env.signature->predicateName(p) << " as deleted" << endl;
+    del_p[p] = (_deletedPredicates.find(p) || _trivialPredicates.find(p));
+#if VTRACE_FMB
+    if(del_p[p]) cout << "Mark " << env.signature->predicateName(p) << " as deleted" << endl;
+#endif
   }
 
 #if VTRACE_FMB
@@ -522,7 +518,9 @@ void FiniteModelBuilder::init()
     inference.doInference();
     _sortedSignature = inference.getSignature(); 
     ASS(_sortedSignature);
-    //cout << "Done sort inference" << endl;
+#if VTRACE_FMB
+    cout << "Done sort inference" << endl;
+#endif
 
     // now we have a mapping between vampire sorts and distinct sorts we can translate
     // the sort constraints, if any
@@ -530,8 +528,12 @@ void FiniteModelBuilder::init()
       DHSet<std::pair<unsigned,unsigned>>::Iterator it(vampire_sort_constraints_nonstrict); 
       while(it.hasNext()){
         std::pair<unsigned,unsigned> vconstraint = it.next();
+        ASS(_sortedSignature->vampireToDistinctParent.find(vconstraint.first));
+        ASS(_sortedSignature->vampireToDistinctParent.find(vconstraint.second));
+        //cout << "constraint " << vconstraint.first << " , " << vconstraint.second << endl;
         unsigned s1 = _sortedSignature->vampireToDistinctParent.get(vconstraint.first);
         unsigned s2 = _sortedSignature->vampireToDistinctParent.get(vconstraint.second);
+        //cout << "is " << s1 << " , " << s2 << endl;
         _distinct_sort_constraints.push(make_pair(s1,s2));
       }
     }
@@ -539,8 +541,12 @@ void FiniteModelBuilder::init()
       DHSet<std::pair<unsigned,unsigned>>::Iterator it(vampire_sort_constraints_strict);
       while(it.hasNext()){
         std::pair<unsigned,unsigned> vconstraint = it.next();
+        ASS(_sortedSignature->vampireToDistinctParent.find(vconstraint.first));
+        ASS(_sortedSignature->vampireToDistinctParent.find(vconstraint.second));
+        //cout << "strict constraint " << vconstraint.first << " , " << vconstraint.second << endl;
         unsigned s1 = _sortedSignature->vampireToDistinctParent.get(vconstraint.first);
         unsigned s2 = _sortedSignature->vampireToDistinctParent.get(vconstraint.second);
+        //cout << "is " << s1 << " , " << s2 << endl;
         _strict_distinct_sort_constraints.push(make_pair(s1,s2));
       }
     }
@@ -679,9 +685,11 @@ void FiniteModelBuilder::init()
 
     if(env.signature->functionArity(f)==0){ 
       unsigned vsrt = env.signature->getFunction(f)->fnType()->result();
-      ASS(_sortedSignature->vampireToDistinctParent.find(vsrt));
-      unsigned dsrt = _sortedSignature->vampireToDistinctParent.get(vsrt);
-      _distinctSortConstantCount[dsrt]++;
+      if(vsrt != Sorts::SRT_BOOL){
+        ASS(_sortedSignature->vampireToDistinctParent.find(vsrt));
+        unsigned dsrt = _sortedSignature->vampireToDistinctParent.get(vsrt);
+        _distinctSortConstantCount[dsrt]++;
+      }
     }
 
     // f might have been added to the signature since we created the sortedSignature
@@ -695,7 +703,7 @@ void FiniteModelBuilder::init()
     for(unsigned i=1;i<fsig.size();i++){
       unsigned sz = _sortedSignature->sortBounds[fsig[i]];
       if(sz<min) min = sz;
-    }
+      }
     _fminbound[f]=min;
   }
 
@@ -1725,7 +1733,9 @@ void FiniteModelBuilder::onModelFound()
  if(_opt.mode()==Options::Mode::SPIDER){
    reportSpiderStatus('-');
  }
- cout << "Finite Model Found!" << endl;
+ if(outputAllowed()){
+   cout << "Finite Model Found!" << endl;
+ }
 
  //we need to print this early because model generating can take some time
  if(UIHelper::szsOutput) {
@@ -1833,6 +1843,7 @@ fModelLabel:
       }
   }
 
+
   //Record interpretation of prop symbols 
   static const DArray<unsigned> emptyG(0);
   for(unsigned f=1;f<env.signature->predicates();f++){
@@ -1899,6 +1910,7 @@ pModelLabel:
       }
   }
 
+
   //Evaluate removed functions and constants
   unsigned maxf = env.signature->functions(); // model evaluation can add new constants
   //bool unfinished=true;
@@ -1912,6 +1924,7 @@ pModelLabel:
     if(!del_f[f]) continue; 
     //del_f[f]=false;
 
+    ASS(_deletedFunctions.find(f));
     Literal* def = _deletedFunctions.get(f);
 
     //cout << "For " << env.signature->getFunction(f)->name() << endl;
@@ -1940,16 +1953,24 @@ pModelLabel:
 
     if(arity>0){
       static DArray<unsigned> grounding;
+      static DArray<unsigned> f_signature_distinct(arity);
       grounding.ensure(arity);
-      for(unsigned i=0;i<arity-1;i++) grounding[i]=1;
+      f_signature_distinct.ensure(arity);
+      for(unsigned i=0;i<arity-1;i++){
+        grounding[i]=1;
+        unsigned vampireSrt = env.signature->getFunction(f)->fnType()->arg(i);
+        ASS(_sortedSignature->vampireToDistinctParent.find(vampireSrt));
+        unsigned dsrt = _sortedSignature->vampireToDistinctParent.get(vampireSrt);
+        f_signature_distinct[i] = dsrt;
+      }
       grounding[arity-1]=0;
 
-      const DArray<unsigned>& f_signature = _sortedSignature->functionSignatures[f];
+      const DArray<unsigned> f_signature(arity);
 
 ffModelLabel:
       for(unsigned i=arity-1;i+1!=0;i--){
 
-        if(grounding[i]==_sortModelSizes[f_signature[i]]){
+        if(grounding[i]==_distinctSortSizes[f_signature_distinct[i]]){
           grounding[i]=1;
         }
         else{
@@ -1957,8 +1978,8 @@ ffModelLabel:
 
           Substitution subst;
           for(unsigned j=0;j<arity;j++){
-            //cout << grounding[j] << " is " << model.getDomainConstant(grounding[j])->toString() << endl;
             unsigned vampireSrt = env.signature->getFunction(f)->fnType()->arg(j); 
+            //cout << grounding[j] << " is " << model.getDomainConstant(grounding[j],vampireSrt)->toString() << endl;
             subst.bind(vars[j],model.getDomainConstant(grounding[j],vampireSrt));
           }
           Term* defGround = SubstHelper::apply(funDef,subst);
@@ -1991,13 +2012,17 @@ ffModelLabel:
   }
   //}
 
+
   //Evaluate removed propositions and predicates
   f=env.signature->predicates()-1;
   while(f>0){
     f--;
-    unsigned arity = env.signature->predicateArity(f);
     if(!del_p[f] && !_partiallyDeletedPredicates.find(f)) continue;
+    if(_trivialPredicates.find(f)) continue;
+    unsigned arity = env.signature->predicateArity(f);
 
+    ASS(!del_p[f] || _deletedPredicates.find(f));
+    ASS(del_p[f] || _partiallyDeletedPredicates.find(f));
     Unit* udef = del_p[f] ? _deletedPredicates.get(f) : _partiallyDeletedPredicates.get(f);
 
     //if(_partiallyDeletedPredicates.find(f)){
@@ -2064,17 +2089,22 @@ ffModelLabel:
       }
     }
 
-    DArray<unsigned> grounding;
+    static DArray<unsigned> grounding;
+    static DArray<unsigned> p_signature_distinct;
     grounding.ensure(arity);
-    for(unsigned i=0;i<arity;i++) grounding[i]=1;
+    p_signature_distinct.ensure(arity);
+    for(unsigned i=0;i<arity;i++){
+      grounding[i]=1;
+      unsigned vampireSrt = env.signature->getFunction(f)->predType()->arg(i);
+      unsigned dsrt = _sortedSignature->vampireToDistinctParent.get(vampireSrt); 
+      p_signature_distinct[i] = dsrt;
+    }
     grounding[arity-1]=0;
-
-    const DArray<unsigned>& f_signature = _sortedSignature->predicateSignatures[f];
 
 ppModelLabel:
       for(unsigned i=arity-1;i+1!=0;i--){
 
-        if(grounding[i]==_sortModelSizes[f_signature[i]]){
+        if(grounding[i]==_distinctSortSizes[p_signature_distinct[i]]){
           grounding[i]=1;
         }
         else{

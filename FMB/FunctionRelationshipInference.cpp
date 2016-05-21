@@ -95,7 +95,7 @@ void FunctionRelationshipInference::findFunctionRelationships(ClauseIterator cla
       if(print) cout << constraint.first << " >= " << constraint.second << endl;
     }
     else{
-      ASS(_labelMap_strict.find(l,constraint));
+      ALWAYS(_labelMap_strict.find(l,constraint));
       strict_constraints.insert(constraint);
       if(print) cout << constraint.first << " > " << constraint.second << endl;
     }
@@ -176,6 +176,11 @@ void FunctionRelationshipInference::findFunctionRelationships(ClauseIterator cla
       if(frst==snd) continue;
       strict_cons.insert(make_pair(frst,snd));
 */
+      ASS(con.first != con.second);
+      if(con.first == con.second){
+        // should not happen by construction (constraints must be between different sorts)
+        continue;
+      }
       strict_cons.insert(con);
     }
   }

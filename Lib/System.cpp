@@ -40,14 +40,13 @@
 
 #include "System.hpp"
 
-bool outputAllowed()
+bool outputAllowed(bool debug)
 {
 #if VDEBUG
-  return true;
-#else
+  if(debug){ return true; }
+#endif
   return !Lib::env.options || (Lib::env.options->mode()!=Shell::Options::Mode::SPIDER
                                && Lib::env.options->proof()!=Shell::Options::Proof::SMTCOMP ); 
-#endif
 }
 
 bool inSpiderMode()
@@ -201,7 +200,7 @@ void handleSignal (int sigNum)
 	System::terminateImmediately(haveSigInt ? VAMP_RESULT_STATUS_SIGINT : VAMP_RESULT_STATUS_OTHER_SIGNAL);
       }
       handled = true;
-      if(outputAllowed()) {
+      if(outputAllowed(true)) {
 	if(env.options) {
 	  env.beginOutput();
 	  env.out() << "Aborted by signal " << signalDescription << " on " << env.options->inputFile() << "\n";
@@ -212,7 +211,7 @@ void handleSignal (int sigNum)
       }
       return;
     case SIGXCPU:
-      if(outputAllowed()) {
+      if(outputAllowed(true)) {
 	if(env.options) {
 	  env.beginOutput();
 	  env.out() << "External time out (SIGXCPU) on " << env.options->inputFile() << "\n";
@@ -411,7 +410,9 @@ void System::terminateImmediately(int resultStatus)
 void System::registerForSIGHUPOnParentDeath()
 {
 #if __APPLE__ || COMPILER_MSVC || __CYGWIN__
-  cerr<<"Death of parent process not being handled on Mac and Windows"<<endl;
+  if(env.options->mode()!=Shell::Options::Mode::SMTCOMP){
+   cerr<<"Death of parent process not being handled on Mac and Windows"<<endl;
+  }
 //  NOT_IMPLEMENTED;
 #else
   prctl(PR_SET_PDEATHSIG, SIGHUP);

@@ -1,10 +1,10 @@
 /**
- * @file SMTCOMPMode.hpp
- * Defines class SMTCOMPMode.
+ * @file CASCMultiMode.hpp
+ * Defines class CASCMultiMode.
  */
 
-#ifndef __SMTCOMPMode__
-#define __SMTCOMPMode__
+#ifndef __CASCMultiMode__
+#define __CASCMultiMode__
 
 #include <utility>
 
@@ -24,7 +24,7 @@
 #include "Shell/Property.hpp"
 #include "Shell/SineUtils.hpp"
 
-namespace SMTCOMP {
+namespace CASC {
 
 using namespace std;
 using namespace Lib;
@@ -34,19 +34,19 @@ using namespace Kernel;
 
 #if COMPILER_MSVC
 
-class SMTCOMPMode
+class CASCMultiMode
 {
 public:
-  static bool perform() { USER_ERROR("multi-core smtcomp mode is not supported on Windows"); }
+  static bool perform() { USER_ERROR("multi-core casc  mode is not supported on Windows"); }
 };
 
 #else
 
-class SMTCOMPMode
+class CASCMultiMode
 {
 public:
 
-  SMTCOMPMode() : _syncSemaphore(1), _outputPrinted(false)
+  CASCMultiMode() : _syncSemaphore(1), _proofPrinted(false)
 {
   //add the privileges into the semaphore
   _syncSemaphore.set(0,1);
@@ -59,7 +59,6 @@ private:
 
   typedef Set<vstring> StrategySet;
   typedef Stack<vstring> Schedule;
-  static void getSchedules(Property& prop, Schedule& quick, Schedule& fallback);
 
   bool searchForProof();
 
@@ -80,6 +79,8 @@ private:
   DHSet<pid_t> childIds;
 #endif
 
+  vstring outFile;
+
   /**
    * Problem that is being solved.
    *
@@ -89,7 +90,7 @@ private:
   ScopedPtr<Problem> prb;
 
   Semaphore _syncSemaphore; // semaphore for synchronizing following variable 
-  volatile bool _outputPrinted;
+  volatile bool _proofPrinted;
 
   /**
    * Assumes semaphore object with 1 semaphores (at index 0).
@@ -119,4 +120,4 @@ private:
 
 }
 
-#endif // __SMTCOMPMode__
+#endif // __CASCMultiMode__

@@ -21,6 +21,34 @@ TermList SymbolDefinitionInlining::substitute(Term::Iterator tit) {
   }
   ASS(!tit.hasNext());
 
+  if (_counter > 0) {
+    /**
+     * The _binding is inlined more than once. In such case, rename it's bound
+     * variables.
+     */
+
+    if (_counter == 1) {
+      /**
+       * The second occurrence of the _binding -- need to calculate it's bound variables.
+       *
+       * TODO: This is insufficient to cover the case when a variable is bound
+       * multiple times in nested expressions. This is left as is for now,
+       * because this case cannot occur with let-bindings of constant.
+       */
+      collectBoundVariables(_binding);
+    }
+
+    Formula::VarList::Iterator bit(_bound);
+    while (bit.hasNext()) {
+      unsigned boundVar = (unsigned) bit.next();
+      unsigned freshVar = ++_freshVarOffset;
+      substitution.bind(boundVar, TermList(freshVar, false));
+      _varRenames = _varRenames->cons(make_pair(boundVar, freshVar));
+    }
+  }
+
+  _counter++;
+
   return SubstHelper::apply(_binding, substitution);
 }
 
@@ -133,4 +161,96 @@ FormulaList* SymbolDefinitionInlining::process(FormulaList* formulas) {
   CALL("FOOLElimination::SymbolOccurrenceReplacement::process(FormulaList*)");
   // TODO: get rid of recursion here for speed
   return FormulaList::isEmpty(formulas) ? formulas : new FormulaList(process(formulas->head()), process(formulas->tail()));
+}
+
+void SymbolDefinitionInlining::collectBoundVariables(TermList ts) {
+  CALL("SymbolDefinitionInlining::collectBoundVariables(TermList)");
+
+  if (ts.isVar()) {
+    return;
+  }
+
+  collectBoundVariables(ts.term());
+}
+
+void SymbolDefinitionInlining::collectBoundVariables(Term* t) {
+  CALL("SymbolDefinitionInlining::collectBoundVariables(Term*)");
+
+  if (t->shared()) {
+    return;
+  }
+
+  if (t->isSpecial()) {
+    Term::SpecialTermData* sd = t->getSpecialData();
+    switch (sd->getType()) {
+      case Term::SF_FORMULA: {
+        collectBoundVariables(sd->getFormula());
+        break;
+      }
+      case Term::SF_ITE: {
+        collectBoundVariables(sd->getCondition());
+        break;
+      }
+      case Term::SF_LET: {
+        collectBoundVariables(sd->getBinding());
+        _bound = Formula::VarList::concat(_bound, sd->getVariables());
+        break;
+      }
+      default:
+        ASSERTION_VIOLATION_REP(t->toString());
+    }
+  }
+
+  Term::Iterator terms(t);
+  while (terms.hasNext()) {
+    collectBoundVariables(terms.next());
+  }
+}
+
+void SymbolDefinitionInlining::collectBoundVariables(Formula* formula) {
+  CALL("SymbolDefinitionInlining::collectBoundVariables(Formula*)");
+
+  switch (formula->connective()) {
+    case FORALL:
+    case EXISTS: {
+      _bound = Formula::VarList::concat(_bound, formula->vars());
+      collectBoundVariables(formula->qarg());
+      break;
+    }
+
+    case AND:
+    case OR: {
+      List<Formula*>::Iterator fit(formula->args());
+      while (fit.hasNext()) {
+        collectBoundVariables(fit.next());
+      }
+      break;
+    }
+
+    case NOT: {
+      collectBoundVariables(formula->uarg());
+      break;
+    }
+
+    case IMP:
+    case IFF:
+    case XOR: {
+      collectBoundVariables(formula->left());
+      collectBoundVariables(formula->right());
+      break;
+    }
+
+    case BOOL_TERM: {
+      collectBoundVariables(formula->getBooleanTerm());
+      break;
+    }
+
+    case LITERAL: {
+      collectBoundVariables(formula->literal());
+      break;
+    }
+
+    default:
+      break;
+  }
 }
