@@ -281,27 +281,17 @@ TermList NewCNF::findITEs(TermList ts, Stack<unsigned> &variables, Stack<Formula
       break;
     }
 
-    case Term::SF_LET: {
-      unsigned symbol = sd->getFunctor();
-      Formula::VarList* vars = sd->getVariables();
-      TermList binding = sd->getBinding();
+    case Term::SF_LET:
+    case Term::SF_LET_TUPLE: {
       TermList contents = *term->nthArgument(0);
-      TermList processedLet = rewriteLet(symbol, vars, binding, contents);
+      TermList processedLet = eliminateLet(sd, contents);
       return findITEs(processedLet, variables, conditions, thenBranches, elseBranches);
     }
 
-    case Term::SF_LET_TUPLE: {
-      unsigned tupleFunctor = sd->getFunctor();
-      IntList* symbols = sd->getTupleSymbols();
-      TermList binding = sd->getBinding();
-      unsigned bodySort = sd->getSort();
-      TermList contents = *term->nthArgument(0);
-      TermList processedTupleLet = rewriteTupleLet(tupleFunctor, symbols, binding, contents, bodySort);
-      return findITEs(processedTupleLet, variables, conditions, thenBranches, elseBranches);
+    case Term::SF_TUPLE: {
+      TermList tupleTerm = TermList(sd->getTupleTerm());
+      return findITEs(tupleTerm, variables, conditions, thenBranches, elseBranches);
     }
-
-    case Term::SF_TUPLE:
-      return findITEs(TermList(sd->getTupleTerm()), variables, conditions, thenBranches, elseBranches);
 
     default:
       ASSERTION_VIOLATION_REP(term->toString());
@@ -517,9 +507,58 @@ void NewCNF::processITE(Formula* condition, Formula* thenBranch, Formula* elseBr
   }
 }
 
-TermList NewCNF::rewriteLet(unsigned symbol, Formula::VarList* bindingVariables, TermList binding, TermList contents)
+TermList NewCNF::eliminateLet(Term::SpecialTermData *sd, TermList contents)
 {
-  CALL("NewCNF::rewriteLet");
+  CALL("NewCNF::eliminateLet");
+
+  ASS((sd->getType() == Term::SF_LET) || (sd->getType() == Term::SF_LET_TUPLE));
+
+  unsigned symbol;
+  Formula::VarList* variables;
+  TermList binding = sd->getBinding();
+
+  if (sd->getType() == Term::SF_LET) {
+    symbol = sd->getFunctor();
+    variables = sd->getVariables();
+  } else {
+    unsigned tupleFunctor = sd->getFunctor();
+    IntList* symbols = sd->getTupleSymbols();
+    unsigned bodySort = sd->getSort();
+
+    FunctionType* tupleType = env.signature->getFunction(tupleFunctor)->fnType();
+    unsigned tupleSort = tupleType->result();
+
+    ASS_EQ(tupleType->arity(), (unsigned)symbols->length());
+
+    unsigned tuple = env.signature->addFreshFunction(0, "tuple");
+    env.signature->getFunction(tuple)->setType(new FunctionType(tupleSort));
+
+    TermList tupleTerm = TermList(Term::createConstant(tuple));
+
+    TermList detupledContents = contents;
+    for (unsigned proj = 0; proj < tupleType->arity(); proj++) {
+      unsigned symbol = (unsigned)symbols->nth(proj);
+
+      unsigned projFunctor = Theory::instance()->getTupleProjectionFunctor(proj, tupleSort);
+      TermList projectedArgument = TermList(Term::create1(projFunctor, tupleTerm));
+
+      SymbolDefinitionInlining inlining(symbol, 0, projectedArgument, 0);
+      detupledContents = inlining.process(detupledContents);
+    }
+
+    if (env.options->showPreprocessing()) {
+      env.beginOutput();
+      Term* tupleLet = Term::createTupleLet(tupleFunctor, symbols, binding, contents, tupleType->result());
+      env.out() << "[PP] clausify (detuplify let) in:  " << tupleLet->toString() << endl;
+      Term* processedLet = Term::createLet(tuple, 0, binding, detupledContents, bodySort);
+      env.out() << "[PP] clausify (detuplify let) out: " << processedLet->toString() << endl;
+      env.endOutput();
+    }
+
+    symbol = tuple;
+    variables = 0;
+    contents = detupledContents;
+  }
 
   bool inlineLet = env.options->getIteInlineLet();
 
@@ -551,7 +590,7 @@ TermList NewCNF::rewriteLet(unsigned symbol, Formula::VarList* bindingVariables,
 
   TermList processedContents;
   if (inlineLet) {
-    processedContents = inlineLetBinding(symbol, bindingVariables, binding, contents);
+    processedContents = inlineLetBinding(symbol, variables, binding, contents);
     if (env.options->showPreprocessing()) {
       env.beginOutput();
       env.out() << "[PP] clausify (inline let) binding: " << binding.toString() << endl;
@@ -560,7 +599,7 @@ TermList NewCNF::rewriteLet(unsigned symbol, Formula::VarList* bindingVariables,
       env.endOutput();
     }
   } else {
-    processedContents = nameLetBinding(symbol, bindingVariables, binding, contents);
+    processedContents = nameLetBinding(symbol, variables, binding, contents);
     if (env.options->showPreprocessing()) {
       env.beginOutput();
       env.out() << "[PP] clausify (name let) binding: " << binding.toString() << endl;
@@ -573,69 +612,18 @@ TermList NewCNF::rewriteLet(unsigned symbol, Formula::VarList* bindingVariables,
   return processedContents;
 }
 
-void NewCNF::processLet(unsigned symbol, Formula::VarList* bindingVariables, TermList binding, TermList contents,
-                        Occurrences &occurrences)
+void NewCNF::processLet(Term::SpecialTermData* sd, TermList contents, Occurrences &occurrences)
 {
   CALL("NewCNF::processLet");
 
-  TermList processedContents = rewriteLet(symbol, bindingVariables, binding, contents);
+  ASS((sd->getType() == Term::SF_LET) || (sd->getType() == Term::SF_LET_TUPLE));
 
-  Formula* processedContentsFormula = BoolTermFormula::create(processedContents);
+  TermList deletedContents = eliminateLet(sd, contents); // should be read "de-let-ed contents"
+  Formula* deletedContentsFormula = BoolTermFormula::create(deletedContents);
 
-  occurrences.replaceBy(processedContentsFormula);
+  occurrences.replaceBy(deletedContentsFormula);
 
-  enqueue(processedContentsFormula, occurrences);
-}
-
-TermList NewCNF::rewriteTupleLet(unsigned tupleFunctor, IntList* symbols, TermList binding,
-                                 TermList contents, unsigned bodySort)
-{
-  CALL("NewCNF::rewriteTupleLet");
-
-  FunctionType* tupleType = env.signature->getFunction(tupleFunctor)->fnType();
-  unsigned tupleSort = tupleType->result();
-
-  ASS_EQ(tupleType->arity(), (unsigned)symbols->length());
-
-  unsigned tuple = env.signature->addFreshFunction(0, "tuple");
-  env.signature->getFunction(tuple)->setType(new FunctionType(tupleSort));
-
-  TermList tupleTerm = TermList(Term::createConstant(tuple));
-
-  TermList processedContents = contents;
-  for (unsigned proj = 0; proj < tupleType->arity(); proj++) {
-    unsigned symbol = (unsigned)symbols->nth(proj);
-
-    unsigned projFunctor = Theory::instance()->getTupleProjectionFunctor(proj, tupleSort);
-    TermList projectedArgument = TermList(Term::create1(projFunctor, tupleTerm));
-
-    SymbolDefinitionInlining inlining(symbol, 0, projectedArgument, 0);
-    processedContents = inlining.process(processedContents);
-  }
-
-  if (env.options->showPreprocessing()) {
-    env.beginOutput();
-    Term* tupleLet = Term::createTupleLet(tupleFunctor, symbols, binding, contents, tupleType->result());
-    env.out() << "[PP] clausify (detuplify let) in:  " << tupleLet->toString() << endl;
-    Term* processedLet = Term::createLet(tuple, 0, binding, processedContents, bodySort);
-    env.out() << "[PP] clausify (detuplify let) out: " << processedLet->toString() << endl;
-    env.endOutput();
-  }
-
-  return rewriteLet(tuple, 0, binding, processedContents);
-}
-
-void NewCNF::processTupleLet(unsigned tupleFunctor, IntList* symbols, TermList binding,
-                             TermList contents, unsigned bodySort, Occurrences &occurrences) {
-  CALL("NewCNF::processTupleLet");
-
-  TermList processedContents = rewriteTupleLet(tupleFunctor, symbols, binding, contents, bodySort);
-
-  Formula* processedContentsFormula = BoolTermFormula::create(processedContents);
-
-  occurrences.replaceBy(processedContentsFormula);
-
-  enqueue(processedContentsFormula, occurrences);
+  enqueue(deletedContentsFormula, occurrences);
 }
 
 TermList NewCNF::nameLetBinding(unsigned symbol, Formula::VarList* bindingVariables, TermList binding, TermList contents)
@@ -966,10 +954,9 @@ void NewCNF::process(TermList ts, Occurrences &occurrences)
 
   Term::SpecialTermData* sd = term->getSpecialData();
   switch (sd->getType()) {
-    case Term::SF_FORMULA: {
+    case Term::SF_FORMULA:
       process(sd->getFormula(), occurrences);
       break;
-    }
 
     case Term::SF_ITE: {
       Formula* condition = sd->getCondition();
@@ -983,26 +970,10 @@ void NewCNF::process(TermList ts, Occurrences &occurrences)
       break;
     }
 
-    case Term::SF_LET: {
-      unsigned symbol = sd->getFunctor();
-      Formula::VarList* variables = sd->getVariables();
-      TermList binding = sd->getBinding();
-      TermList contents = *term->nthArgument(0);
-
-      processLet(symbol, variables, binding, contents, occurrences);
+    case Term::SF_LET:
+    case Term::SF_LET_TUPLE:
+      processLet(sd, *term->nthArgument(0), occurrences);
       break;
-    }
-
-    case Term::SF_LET_TUPLE: {
-      unsigned tupleFunctor = sd->getFunctor();
-      IntList* symbols = sd->getTupleSymbols();
-      TermList binding = sd->getBinding();
-      unsigned bodySort = sd->getSort();
-      TermList contents = *term->nthArgument(0);
-
-      processTupleLet(tupleFunctor, symbols, binding, contents, bodySort, occurrences);
-      break;
-    }
 
     default:
       ASSERTION_VIOLATION_REP(term->toString());
