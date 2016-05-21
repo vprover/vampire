@@ -523,6 +523,7 @@ public:
   bool isITE() const { return functor() == SF_ITE; }
   bool isLet() const { return functor() == SF_LET; }
   bool isTupleLet() const { return functor() == SF_LET_TUPLE; }
+  bool isTuple() const { return functor() == SF_TUPLE; }
   bool isFormula() const { return functor() == SF_FORMULA; }
   bool isBoolean() const;
   /** Return pointer to structure containing extra data for special terms such as

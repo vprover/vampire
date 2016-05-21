@@ -285,6 +285,9 @@ TermList NewCNF::findITEs(TermList ts, Stack<unsigned> &variables, Stack<Formula
     case Term::SF_LET_TUPLE:
       NOT_IMPLEMENTED;
 
+    case Term::SF_TUPLE:
+      return findITEs(TermList(sd->getTupleTerm()), variables, conditions, thenBranches, elseBranches);
+
     default:
       ASSERTION_VIOLATION_REP(term->toString());
   }
@@ -580,7 +583,7 @@ void NewCNF::processTupleLet(unsigned tupleFunctor, IntList* symbols, TermList b
     unsigned projFunctor = Theory::instance()->getTupleProjectionFunctor(proj, tupleSort);
     TermList projectedArgument = TermList(Term::create1(projFunctor, tupleTerm));
 
-    SymbolDefinitionInlining inlining(symbol, 0, projectedArgument);
+    SymbolDefinitionInlining inlining(symbol, 0, projectedArgument, 0);
     processedContents = inlining.process(processedContents);
   }
 

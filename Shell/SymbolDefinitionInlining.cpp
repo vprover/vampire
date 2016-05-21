@@ -196,6 +196,14 @@ void SymbolDefinitionInlining::collectBoundVariables(Term* t) {
         _bound = Formula::VarList::concat(_bound, sd->getVariables());
         break;
       }
+      case Term::SF_LET_TUPLE: {
+        collectBoundVariables(sd->getBinding());
+        break;
+      }
+      case Term::SF_TUPLE: {
+        collectBoundVariables(sd->getTupleTerm());
+        break;
+      }
       default:
         ASSERTION_VIOLATION_REP(t->toString());
     }

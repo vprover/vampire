@@ -1048,14 +1048,24 @@ bool Term::isBoolean() const {
     if (env.signature->isFoolConstantSymbol(true, term->functor()) ||
         env.signature->isFoolConstantSymbol(false, term->functor())) return true;
     if (!term->isSpecial()) return false;
-    if (term->isFormula()) return true;
-    if (term->isLet() || term->isITE()) {
-      const TermList* ts = term->nthArgument(0);
-      if (!ts->isTerm()) {
+    switch (term->getSpecialData()->getType()) {
+      case SF_FORMULA:
+        return true;
+      case SF_TUPLE:
         return false;
-      } else {
-        term = ts->term();
+      case SF_ITE:
+      case SF_LET:
+      case SF_LET_TUPLE: {
+        const TermList *ts = term->nthArgument(0);
+        if (!ts->isTerm()) {
+          return false;
+        } else {
+          term = ts->term();
+          break;
+        }
       }
+      default:
+        ASSERTION_VIOLATION_REP(term->toString());
     }
   }
   return false;
