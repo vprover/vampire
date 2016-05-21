@@ -281,9 +281,24 @@ TermList NewCNF::findITEs(TermList ts, Stack<unsigned> &variables, Stack<Formula
       break;
     }
 
-    case Term::SF_LET:
-    case Term::SF_LET_TUPLE:
-      NOT_IMPLEMENTED;
+    case Term::SF_LET: {
+      unsigned symbol = sd->getFunctor();
+      Formula::VarList* vars = sd->getVariables();
+      TermList binding = sd->getBinding();
+      TermList contents = *term->nthArgument(0);
+      TermList processedLet = rewriteLet(symbol, vars, binding, contents);
+      return findITEs(processedLet, variables, conditions, thenBranches, elseBranches);
+    }
+
+    case Term::SF_LET_TUPLE: {
+      unsigned tupleFunctor = sd->getFunctor();
+      IntList* symbols = sd->getTupleSymbols();
+      TermList binding = sd->getBinding();
+      unsigned bodySort = sd->getSort();
+      TermList contents = *term->nthArgument(0);
+      TermList processedTupleLet = rewriteTupleLet(tupleFunctor, symbols, binding, contents, bodySort);
+      return findITEs(processedTupleLet, variables, conditions, thenBranches, elseBranches);
+    }
 
     case Term::SF_TUPLE:
       return findITEs(TermList(sd->getTupleTerm()), variables, conditions, thenBranches, elseBranches);
@@ -502,9 +517,9 @@ void NewCNF::processITE(Formula* condition, Formula* thenBranch, Formula* elseBr
   }
 }
 
-void NewCNF::processLet(unsigned symbol, Formula::VarList* bindingVariables, TermList binding, TermList contents, Occurrences &occurrences)
+TermList NewCNF::rewriteLet(unsigned symbol, Formula::VarList* bindingVariables, TermList binding, TermList contents)
 {
-  CALL("NewCNF::processLet");
+  CALL("NewCNF::rewriteLet");
 
   bool inlineLet = env.options->getIteInlineLet();
 
@@ -555,6 +570,16 @@ void NewCNF::processLet(unsigned symbol, Formula::VarList* bindingVariables, Ter
     }
   }
 
+  return processedContents;
+}
+
+void NewCNF::processLet(unsigned symbol, Formula::VarList* bindingVariables, TermList binding, TermList contents,
+                        Occurrences &occurrences)
+{
+  CALL("NewCNF::processLet");
+
+  TermList processedContents = rewriteLet(symbol, bindingVariables, binding, contents);
+
   Formula* processedContentsFormula = BoolTermFormula::create(processedContents);
 
   occurrences.replaceBy(processedContentsFormula);
@@ -562,9 +587,10 @@ void NewCNF::processLet(unsigned symbol, Formula::VarList* bindingVariables, Ter
   enqueue(processedContentsFormula, occurrences);
 }
 
-void NewCNF::processTupleLet(unsigned tupleFunctor, IntList* symbols, TermList binding,
-                             TermList contents, unsigned bodySort, Occurrences &occurrences) {
-  CALL("NewCNF::processTupleLet");
+TermList NewCNF::rewriteTupleLet(unsigned tupleFunctor, IntList* symbols, TermList binding,
+                                 TermList contents, unsigned bodySort)
+{
+  CALL("NewCNF::rewriteTupleLet");
 
   FunctionType* tupleType = env.signature->getFunction(tupleFunctor)->fnType();
   unsigned tupleSort = tupleType->result();
@@ -587,17 +613,29 @@ void NewCNF::processTupleLet(unsigned tupleFunctor, IntList* symbols, TermList b
     processedContents = inlining.process(processedContents);
   }
 
-  TermList processedLet = TermList(Term::createLet(tuple, 0, binding, processedContents, bodySort));
-
   if (env.options->showPreprocessing()) {
     env.beginOutput();
     Term* tupleLet = Term::createTupleLet(tupleFunctor, symbols, binding, contents, tupleType->result());
     env.out() << "[PP] clausify (detuplify let) in:  " << tupleLet->toString() << endl;
-    env.out() << "[PP] clausify (detuplify let) out: " << processedLet.toString() << endl;
+    Term* processedLet = Term::createLet(tuple, 0, binding, processedContents, bodySort);
+    env.out() << "[PP] clausify (detuplify let) out: " << processedLet->toString() << endl;
     env.endOutput();
   }
 
-  process(processedLet, occurrences);
+  return rewriteLet(tuple, 0, binding, processedContents);
+}
+
+void NewCNF::processTupleLet(unsigned tupleFunctor, IntList* symbols, TermList binding,
+                             TermList contents, unsigned bodySort, Occurrences &occurrences) {
+  CALL("NewCNF::processTupleLet");
+
+  TermList processedContents = rewriteTupleLet(tupleFunctor, symbols, binding, contents, bodySort);
+
+  Formula* processedContentsFormula = BoolTermFormula::create(processedContents);
+
+  occurrences.replaceBy(processedContentsFormula);
+
+  enqueue(processedContentsFormula, occurrences);
 }
 
 TermList NewCNF::nameLetBinding(unsigned symbol, Formula::VarList* bindingVariables, TermList binding, TermList contents)
