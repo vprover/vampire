@@ -399,7 +399,7 @@ public:
      INST_GEN = 2,
      LRS = 3,
      OTTER = 4,
-     //TABULATION = 5
+     Z3 = 5,
    };
 
   /** Possible values for activity of some inference rules */
