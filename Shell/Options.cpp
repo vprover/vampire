@@ -594,7 +594,7 @@ void Options::Options::init()
 //*********************** Saturation  ***********************
 
     _saturationAlgorithm = ChoiceOptionValue<SaturationAlgorithm>("saturation_algorithm","sa",SaturationAlgorithm::LRS,
-                                                                  {"discount","fmb","inst_gen","lrs","otter"});//,"tabulation"});
+                                                                  {"discount","fmb","inst_gen","lrs","otter","z3"});
     _saturationAlgorithm.description=
     "Select the saturation algorithm:\n"
     " - discount:\n"
@@ -602,9 +602,10 @@ void Options::Options::init()
     " - limited resource:\n"
     " - instance generation: a simple implementation of instantiation calculus\n"
     "    (global_subsumption, unit_resulting_resolution and age_weight_ratio)\n"
-    " - tabulation: a special goal-oriented mode for large theories.\n"
+    //" - tabulation: a special goal-oriented mode for large theories.\n"
     " - fmb : finite model building for satisfiable problems.\n"
-    "inst_gen, tabulation and fmb aren't influenced by options for the saturation algorithm, apart from those under the relevant heading";
+    " -z3 : pass the preprocessed problem to z3, will terminate if the resulting problem is not ground.\n"
+    "inst_gen, z3 and fmb aren't influenced by options for the saturation algorithm, apart from those under the relevant heading";
     _lookup.insert(&_saturationAlgorithm);
     _saturationAlgorithm.tag(OptionTag::SATURATION);
     // Captures that if the saturation algorithm is InstGen then splitting must be off

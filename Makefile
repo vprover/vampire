@@ -406,7 +406,8 @@ CASC_OBJ = CASC/CASCMode.o\
            CASC/ForkingCM.o\
            CASC/SpawningCM.o
 
-SMTCOMP_OBJ = SMTCOMP/SMTCOMPMode.o
+SMTCOMP_OBJ = SMTCOMP/SMTCOMPMode.o\
+              SAT/Z3MainLoop.o
 
 VPROG_OBJ = Program/Type.o\
            Program/LoopAnalyzer.o\
