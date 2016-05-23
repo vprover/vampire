@@ -35,6 +35,10 @@ MainLoopResult Z3MainLoop::runImpl()
 {
   CALL("Z3MainLoop::runImpl");
 
+  if(!_prb.getProperty()->allNonTheoryClausesGround()){
+    return MainLoopResult(Statistics::INAPPROPRIATE);
+  }
+
   SAT2FO s2f;
   Z3Interfacing solver(_opt,s2f);
 

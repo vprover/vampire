@@ -131,6 +131,12 @@ MainLoop* MainLoop::createFromOptions(Problem& prb, const Options& opt)
     return new BFNTMainLoop(prb, opt);
   }
 
+#if VZ3
+  if(opt.smtForGround() && prb.getProperty()->hasInterpretedOperations()){
+    opt.setSaturationAlgorithm(Options::SaturationAlgorithm::Z3);
+  }
+#endif
+
   MainLoop* res;
 
   switch (opt.saturationAlgorithm()) {
@@ -150,7 +156,7 @@ MainLoop* MainLoop::createFromOptions(Problem& prb, const Options& opt)
     break;
 #if VZ3
   case Options::SaturationAlgorithm::Z3:
-    if(true){
+    if(!prb.getProperty()->allNonTheoryClausesGround()){
       reportSpiderStatus('u');
       USER_ERROR("Z3 saturation algorithm is only appropriate where preprocessing produces a ground problem"); 
       //TODO should return inappropriate result instead of error
