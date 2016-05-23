@@ -196,7 +196,7 @@ int Semaphore::doGet(int num)
   errno=0;
   int res=semctl(semid, num, GETVAL, unused_arg);
   if(res==-1) {
-    SYSTEM_FAIL("Cannot set the semaphore value.",errno);
+    SYSTEM_FAIL("Cannot get the semaphore value.",errno);
   }
   ASS_GE(res,0);
   return res;
@@ -309,7 +309,7 @@ void Semaphore::deregisterInstance()
  */
 void Semaphore::acquireInstance()
 {
-  CALL("Semaphore::registerInstance");
+  CALL("Semaphore::acquireInstance");
   ASS(hasSemaphore());
 
   doInc(semCnt);
@@ -321,7 +321,7 @@ void Semaphore::acquireInstance()
  */
 void Semaphore::releaseInstance()
 {
-  CALL("Semaphore::deregisterInstance");
+  CALL("Semaphore::releaseInstance");
   ASS(hasSemaphore());
 
   //Here we may wait until other deregisterInstance() calls finish.

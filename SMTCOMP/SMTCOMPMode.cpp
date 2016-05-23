@@ -96,9 +96,6 @@ bool SMTCOMPMode::perform()
   return resValue;
 } 
 
-vstring SMTCOMPMode::problemFinishedString = "##Problem finished##vn;3-d-ca-12=1;'";
-
-
 /**
  * This function solves a single problem. It makes the following steps:
  * <ol><li>find the main and the fallback schedules depending on the problem
@@ -325,21 +322,6 @@ bool SMTCOMPMode::waitForChildAndCheckIfProofFound()
   return false;
 } // waitForChildAndExitWhenProofFound
 
-ofstream* SMTCOMPMode::writerFileStream = 0;
-
-void SMTCOMPMode::terminatingSignalHandler(int sigNum)
-{
-  try {
-    if (writerFileStream) {
-      writerFileStream->close();
-    }
-  } catch (Lib::SystemFailException& ex) {
-    cerr << "Process " << getpid() << " received SystemFailException in terminatingSignalHandler" << endl;
-    ex.cry(cerr);
-    cerr << " and will now die" << endl;
-  }
-  System::terminateImmediately(0);
-}
 
 /**
  * Run a slice given by its code using the specified time limit.
@@ -403,18 +385,18 @@ void SMTCOMPMode::runSlice(Options& strategyOpt)
 
   System::ignoreSIGHUP(); // don't interrupt now, we need to finish printing the proof !
 
-  bool outputResult = true;
-  if (!resultValue) { 
-    //cout << "Enter" << endl;
-    ScopedSemaphoreLocker locker(_syncSemaphore);
-    locker.lock();
-    //cout << "oP " << _outputPrinted.get(0) << endl;
-    if(_outputPrinted.get(0)){ 
-      outputResult = false; 
+  bool outputResult = false;
+  if (!resultValue) {
+    _syncSemaphore.dec(SEM_LOCK); // will block for all accept the first to enter
+
+    if (!_syncSemaphore.get(SEM_PRINTED)) {
+      _syncSemaphore.set(SEM_PRINTED,1);
+      outputResult = true;
     }
-    else{ _outputPrinted.set(0,1); } 
-    //cout << "Exit" << endl;
+
+    _syncSemaphore.inc(SEM_LOCK); // would be also released after the processes' death, but we are polite and do it already here
   }
+
   if(outputResult){
     env.beginOutput();
     UIHelper::outputResult(env.out());
