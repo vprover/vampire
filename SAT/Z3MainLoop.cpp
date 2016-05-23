@@ -7,6 +7,8 @@
 
 #include "Forwards.hpp"
 
+#include "Shell/Statistics.hpp"
+
 #include "Z3MainLoop.hpp"
 
 namespace SAT
@@ -51,9 +53,12 @@ MainLoopResult Z3MainLoop::runImpl()
    solver.addClause(sc);
  }
 
- Status status = solver.solve();
+ SATSolver::Status status = solver.solve(UINT_MAX);
 
- TerminationReason reason = 
+ Statistics::TerminationReason reason = Statistics::UNKNOWN; 
+                
+ if(status == SATSolver::Status::UNSATISFIABLE){ reason = Statistics::REFUTATION; }
+ if(status == SATSolver::Status::SATISFIABLE){ reason = Statistics::SATISFIABLE; }
 
  return MainLoopResult(reason);
 }
