@@ -520,6 +520,47 @@ TermList NewCNF::eliminateLet(Term::SpecialTermData *sd, TermList contents)
   if (sd->getType() == Term::SF_LET) {
     symbol = sd->getFunctor();
     variables = sd->getVariables();
+  } else if (binding.isTerm() && binding.term()->isTuple()) {
+    // binding of the form $let([x, y, z] := [a, b, c], ...) is processed
+    // as $let(x := a, $let(y := b, $let(z := c, ...)))
+    unsigned tupleFunctor = sd->getFunctor();
+    IntList* symbols = sd->getTupleSymbols();
+    unsigned bodySort = sd->getSort();
+
+    FunctionType* tupleType = env.signature->getFunction(tupleFunctor)->fnType();
+
+    Term* bindingTuple = binding.term()->getSpecialData()->getTupleTerm();
+    unsigned arity = (unsigned)symbols->length();
+    IntList::Iterator sit(symbols);
+    Term::Iterator bit(bindingTuple);
+
+    TermList processedContents = contents;
+    TermList processedBinding;
+    for (unsigned i = 0; i < arity - 1; i++) {
+      ASS(bit.hasNext());
+      ASS(sit.hasNext());
+      Term* nestedLet = Term::createLet((unsigned)sit.next(), 0, bit.next(), processedContents, bodySort);
+      processedContents = TermList(nestedLet);
+    }
+    ASS(bit.hasNext());
+    ASS(sit.hasNext());
+    processedBinding = bit.next();
+    symbol = (unsigned)sit.next();
+    ASS(!sit.hasNext());
+    ASS(!bit.hasNext());
+
+    if (env.options->showPreprocessing()) {
+      env.beginOutput();
+      Term* tupleLet = Term::createTupleLet(tupleFunctor, symbols, binding, contents, tupleType->result());
+      env.out() << "[PP] clausify (detuplify let) in:  " << tupleLet->toString() << endl;
+      Term* processedLet = Term::createLet(symbol, 0, processedBinding, processedContents, bodySort);
+      env.out() << "[PP] clausify (detuplify let) out: " << processedLet->toString() << endl;
+      env.endOutput();
+    }
+
+    variables = 0;
+    contents = processedContents;
+    binding = processedBinding;
   } else {
     unsigned tupleFunctor = sd->getFunctor();
     IntList* symbols = sd->getTupleSymbols();
