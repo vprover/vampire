@@ -620,9 +620,9 @@ void Options::Options::init()
     _saturationAlgorithm.setRandomChoices({"discount","inst_gen","lrs","otter","tabulation"});
 
 #if VZ3
-    _smtForGround = new BoolOptionValue("smt_for_ground","smtfg",true);
+    _smtForGround = BoolOptionValue("smt_for_ground","smtfg",true);
     _smtForGround.description = "When a (theory) problem is ground after preprocessing pass it to Z3. In this case we can return sat if Z3 does.";
-    _lookup.insert(&_smtForGround_;
+    _lookup.insert(&_smtForGround);
 #endif
 
 
