@@ -45,6 +45,12 @@ MainLoopResult Z3MainLoop::runImpl()
  ClauseIterator cit(_prb.clauseIterator());
  while(cit.hasNext()){
    Clause* cl = cit.next();
+
+   if(cl->varCnt() > 0){
+     ASS(cl->inference()->rule()==Inference::THEORY || cl->inference()->rule()==Inference::FOOL_AXIOM);
+     continue;
+   }
+
    Clause::Iterator lit(*cl);
    unsigned len = cl->size();
    SATClause* sc = new(len) SATClause(len, true);
