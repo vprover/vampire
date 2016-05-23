@@ -17,7 +17,7 @@
 
 #include "Lib/VString.hpp"
 
-#include "Lib/Sys/SyncPipe.hpp"
+#include "Lib/Sys/Semaphore.hpp"
 
 #include "Kernel/Problem.hpp"
 
@@ -46,10 +46,11 @@ class SMTCOMPMode
 {
 public:
 
-  SMTCOMPMode() : _syncSemaphore(1), _outputPrinted(false)
+  SMTCOMPMode() : _syncSemaphore(1), _outputPrinted(1)
 {
   //add the privileges into the semaphore
   _syncSemaphore.set(0,1);
+  _outputPrinted.set(0,0);
 }
 
   static bool perform();
@@ -89,7 +90,7 @@ private:
   ScopedPtr<Problem> prb;
 
   Semaphore _syncSemaphore; // semaphore for synchronizing following variable 
-  volatile bool _outputPrinted;
+  Semaphore _outputPrinted;
 
   /**
    * Assumes semaphore object with 1 semaphores (at index 0).

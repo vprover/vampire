@@ -393,7 +393,13 @@ void SMTCOMPMode::runSlice(Options& strategyOpt)
   if (env.statistics->terminationReason == Statistics::REFUTATION ||
       env.statistics->terminationReason == Statistics::SATISFIABLE) {
     resultValue=0;
+#if OUTPUT
+     env.beginOutput();
+     SMTCOMPMode::lineOutput() << " found solution " << endl;
+     env.endOutput();
+#endif
   }
+
 
   System::ignoreSIGHUP(); // don't interrupt now, we need to finish printing the proof !
 
@@ -402,8 +408,11 @@ void SMTCOMPMode::runSlice(Options& strategyOpt)
     //cout << "Enter" << endl;
     ScopedSemaphoreLocker locker(_syncSemaphore);
     locker.lock();
-    if(_outputPrinted){ outputResult = false; }
-    _outputPrinted = true; 
+    //cout << "oP " << _outputPrinted.get(0) << endl;
+    if(_outputPrinted.get(0)){ 
+      outputResult = false; 
+    }
+    else{ _outputPrinted.set(0,1); } 
     //cout << "Exit" << endl;
   }
   if(outputResult){
