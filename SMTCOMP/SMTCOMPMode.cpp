@@ -390,7 +390,8 @@ void SMTCOMPMode::runSlice(Options& strategyOpt)
   ProvingHelper::runVampire(*prb, opt);
 
   //set return value to zero if we were successful
-  if (env.statistics->terminationReason == Statistics::REFUTATION) {
+  if (env.statistics->terminationReason == Statistics::REFUTATION ||
+      env.statistics->terminationReason == Statistics::SATISFIABLE) {
     resultValue=0;
   }
 
@@ -398,10 +399,12 @@ void SMTCOMPMode::runSlice(Options& strategyOpt)
 
   bool outputResult = true;
   if (!resultValue) { 
+    //cout << "Enter" << endl;
     ScopedSemaphoreLocker locker(_syncSemaphore);
     locker.lock();
     if(_outputPrinted){ outputResult = false; }
     _outputPrinted = true; 
+    //cout << "Exit" << endl;
   }
   if(outputResult){
     env.beginOutput();
