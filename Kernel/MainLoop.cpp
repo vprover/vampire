@@ -132,8 +132,9 @@ MainLoop* MainLoop::createFromOptions(Problem& prb, const Options& opt)
   }
 
 #if VZ3
-  if(opt.smtForGround() && prb.getProperty()->hasInterpretedOperations()){
-    opt.setSaturationAlgorithm(Options::SaturationAlgorithm::Z3);
+  if(opt.smtForGround() && prb.getProperty()->allNonTheoryClausesGround() 
+                        && prb.getProperty()->hasInterpretedOperations()){
+    return new SAT::Z3MainLoop(prb,opt);
   }
 #endif
 
