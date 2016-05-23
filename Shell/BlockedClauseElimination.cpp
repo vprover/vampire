@@ -258,6 +258,11 @@ bool BlockedClauseElimination::resolvesToTautologyUn(Clause* cl, Literal* lit, C
 {
   CALL("BlockedClauseElimination::resolvesToTautologyUn");
 
+  // cout << "cl: " << cl->toString() << endl;
+  // cout << "pcl: " << pcl->toString() << endl;
+  // cout << "lit: " << lit->toString() << endl;
+  // cout << "plit: " << plit->toString() << endl;
+
   static RobSubstitution subst_main;
   subst_main.reset();
   if(!subst_main.unifyArgs(lit,0,plit,1)) {
@@ -282,7 +287,11 @@ bool BlockedClauseElimination::resolvesToTautologyUn(Clause* cl, Literal* lit, C
       return true;
     }
     cl_lits.insert(scurlit);
+
+    // cout << "insert1(scurlit): " << scurlit->toString() << endl;
   }
+
+  // cout << "opslit: " << opslit->toString() << endl;
 
   ASS_NEQ(opslit,0);
 
@@ -294,13 +303,15 @@ bool BlockedClauseElimination::resolvesToTautologyUn(Clause* cl, Literal* lit, C
 
   for (unsigned i = 0; i < pcl->length(); i++) {
     Literal* curlit = (*pcl)[i];
-    Literal* scurlit = subst_main.apply(curlit,0);
+    Literal* scurlit = subst_main.apply(curlit,1);
     Literal* opscurlit = Literal::complementaryLiteral(scurlit);
 
     if (pcl_lits.find(opscurlit)) { // pcl(subst_main) is a tautology
       return true;
     }
     pcl_lits.insert(scurlit);
+
+    // cout << "insert2(scurlit): " << scurlit->toString() << endl;
 
     if (curlit != plit && cl_lits.find(opscurlit)) {
       if (opslit->functor() != scurlit->functor() || !subst_aux.unifyArgs(opslit,0,scurlit,0)) { // opslit is the same thing as plit(subst_main)
