@@ -521,6 +521,7 @@ private:
   DHMap<pair<unsigned,StructuredSortInterpretation>,unsigned> _structuredSortInterpretations;
 
 public:
+  bool isTupleFunctor(unsigned functor);
   unsigned getTupleFunctor(unsigned arity, unsigned sorts[]);
   unsigned getTupleFunctor(unsigned tupleSort);
   unsigned getTupleProjectionFunctor(unsigned proj, unsigned tupleSort);

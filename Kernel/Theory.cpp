@@ -1126,6 +1126,17 @@ unsigned Theory::getTupleFunctor(unsigned tupleSort) {
   return tupleFunctor;
 }
 
+// TODO: replace with a constant time algorithm
+bool Theory::isTupleFunctor(unsigned functor) {
+  VirtualIterator<unsigned> it(_tupleFunctors.range());
+  while (it.hasNext()) {
+    if (it.next() == functor) {
+      return true;
+    }
+  }
+  return false;
+}
+
 unsigned Theory::getTupleProjectionFunctor(unsigned proj, unsigned tupleSort) {
   CALL("Theory::getTupleProjectionFunctor");
 

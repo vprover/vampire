@@ -258,6 +258,14 @@ TermList NewCNF::findITEs(TermList ts, Stack<unsigned> &variables, Stack<Formula
       arguments.push(findITEs(it.next(), variables, conditions, thenBranches, elseBranches));
     }
 
+    unsigned proj;
+    if (Theory::instance()->findTupleProjection(term->functor(), proj)) {
+      TermList* arg = arguments.begin();
+      if (arg->isTerm() && Theory::instance()->isTupleFunctor(arg->term()->functor())) {
+        return *arg->term()->nthArgument(proj);
+      }
+    }
+
     return TermList(Term::create(term, arguments.begin()));
   }
 
