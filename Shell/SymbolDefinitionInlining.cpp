@@ -98,14 +98,28 @@ TermList SymbolDefinitionInlining::process(TermList ts) {
                                         binding, body, sd->getSort()));
       }
 
-      case Term::SF_LET_TUPLE:
-        return TermList(Term::createTupleLet(sd->getFunctor(), sd->getTupleSymbols(),
-                                             process(sd->getBinding()),
-                                             process(*term->nthArgument(0)),
-                                             sd->getSort()));
+      case Term::SF_LET_TUPLE: {
+        TermList binding = process(sd->getBinding());
+        TermList body = process(*term->nthArgument(0));
 
-      case Term::SF_TUPLE:
-        return TermList(Term::createTuple(process(TermList(sd->getTupleTerm())).term()));
+        if ((sd->getBinding() == binding) && (*term->nthArgument(0) == body)) {
+          return ts;
+        }
+
+        return TermList(Term::createTupleLet(sd->getFunctor(), sd->getTupleSymbols(),
+                                             binding, body, sd->getSort()));
+      }
+
+      case Term::SF_TUPLE: {
+        TermList tuple = process(TermList(sd->getTupleTerm()));
+        ASS(tuple.isTerm());
+
+        if (tuple.term() == sd->getTupleTerm()) {
+          return ts;
+        }
+
+        return TermList(Term::createTuple(tuple.term()));
+      }
 
       default:
         ASSERTION_VIOLATION_REP(term->toString());;
