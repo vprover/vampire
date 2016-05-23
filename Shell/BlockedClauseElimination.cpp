@@ -24,6 +24,7 @@
 #include "Lib/TimeCounter.hpp"
 
 #include "Shell/Statistics.hpp"
+#include "Shell/Property.hpp"
 
 namespace Shell
 {
@@ -39,7 +40,7 @@ void BlockedClauseElimination::apply(Problem& prb)
   TimeCounter tc(TC_BCE);
 
   bool modified = false;
-  bool equationally = prb.hasEquality();
+  bool equationally = prb.hasEquality() && prb.getProperty()->positiveEqualityAtoms();
 
   DArray<Stack<Candidate*>> positive(env.signature->predicates());
   DArray<Stack<Candidate*>> negative(env.signature->predicates());
