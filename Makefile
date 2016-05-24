@@ -203,6 +203,7 @@ VK_OBJ= Kernel/Clause.o\
         Kernel/KBOForEPR.o\
         Kernel/LiteralSelector.o\
         Kernel/LookaheadLiteralSelector.o\
+        Kernel/LPO.o\
         Kernel/MainLoop.o\
         Kernel/MatchTag.o\
         Kernel/Matcher.o\

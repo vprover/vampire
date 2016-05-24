@@ -1770,6 +1770,7 @@ public:
   bool termAlgebraInferences() const { return _termAlgebraInferences.actualValue; }
   bool termAlgebraCyclicityCheck() const { return _termAlgebraCyclicityCheck.actualValue; }
   bool termAlgebraInjectivitySimplification() const { return _termAlgebraInjectivitySimplification.actualValue; }
+  bool termAlgebraOrdering() const { return _termAlgebraOrdering.actualValue; }
   unsigned extensionalityMaxLength() const { return _extensionalityMaxLength.actualValue; }
   bool extensionalityAllowPosEq() const { return _extensionalityAllowPosEq.actualValue; }
   float nongoalWeightCoefficient() const { return _nonGoalWeightCoefficient.actualValue; }
@@ -2047,6 +2048,7 @@ private:
   BoolOptionValue _termAlgebraInferences;
   BoolOptionValue _termAlgebraCyclicityCheck;
   BoolOptionValue _termAlgebraInjectivitySimplification;
+  BoolOptionValue _termAlgebraOrdering;
 
   BoolOptionValue _fmbNonGroundDefs;
   UnsignedOptionValue _fmbStartSize;

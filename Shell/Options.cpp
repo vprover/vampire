@@ -880,6 +880,11 @@ void Options::Options::init()
             _lookup.insert(&_termAlgebraInjectivitySimplification);
             _termAlgebraInjectivitySimplification.tag(OptionTag::INFERENCES);
 
+            _termAlgebraOrdering = BoolOptionValue("term_algebra_ordering","tao",false);
+            _termAlgebraOrdering.description="";
+            _lookup.insert(&_termAlgebraOrdering);
+            _termAlgebraOrdering.tag(OptionTag::INFERENCES);
+
 
 	    _forwardDemodulation = ChoiceOptionValue<Demodulation>("forward_demodulation","fd",Demodulation::ALL,{"all","off","preordered"});
 	    _forwardDemodulation.description=
