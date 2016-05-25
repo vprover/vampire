@@ -276,6 +276,53 @@ class Signature
     CLASS_NAME(Signature::RealSymbol);
     USE_ALLOCATOR(RealSymbol);
   };
+
+  class TermAlgebraConstructor {
+  public:
+    TermAlgebraConstructor(vstring name) :
+      _cname(name),
+      _args(nullptr)
+    {}
+
+    ~TermAlgebraConstructor() {}
+
+    vstring name() { return _cname; }
+    List<pair<vstring, unsigned>>* args() { return _args; }
+    unsigned functor() {return _functor; }
+    void setFunctor(unsigned f) { _functor = f; }
+    bool recursive(unsigned algebraSort);
+
+    void addArg(vstring name, unsigned sort);
+
+  private:
+    unsigned _functor;
+    vstring _cname;
+    List<pair<vstring, unsigned>>* _args;
+  };
+
+  class TermAlgebra {
+  public:
+    TermAlgebra(vstring name, unsigned sort) :
+      _tname(name),
+      _constrs(nullptr),
+      _sort(sort)
+    {}
+
+    ~TermAlgebra() {}
+
+    List<TermAlgebraConstructor*>* constructors() { return _constrs; }
+    vstring name() { return _tname; }
+    unsigned sort() { return _sort; }
+
+    bool wellFoundedAlgebra();
+    void addConstr(vstring name);
+    void addConstrArg(vstring name, unsigned sort);
+  
+  private:
+    vstring _tname;
+    List<TermAlgebraConstructor*>* _constrs;
+    unsigned _sort;
+  };
     
   //////////////////////////////////////
   // Variable Symbol declarations
@@ -493,6 +540,10 @@ class Signature
     return isTrue ? number==_foolTrue : number==_foolFalse;
   }
 
+  bool isTermAlgebraSort(unsigned sort) { return _termAlgebras.find(sort); }
+  TermAlgebra *getTermAlgebraOfSort(unsigned sort) { return _termAlgebras.get(sort); }
+  void addTermAlgebra(TermAlgebra *ta) { _termAlgebras.insert(ta->sort(), ta); }
+
 private:
   bool _foolConstantsDefined;
   unsigned _foolTrue;
@@ -550,6 +601,11 @@ private:
   unsigned _rationals;
   /** the number of real constants */
   unsigned _reals;
+
+  /**
+   * Map from sorts to the associated term algebra, if applicable for the sort
+   */ 
+  DHMap<unsigned, TermAlgebra*> _termAlgebras;
 }; // class Signature
 
 }

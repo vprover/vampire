@@ -788,7 +788,7 @@ void SMTLIB2::readDefineFun(const vstring& name, LExprList* iArgs, LExpr* oSort,
 
     pRdr.acceptEOL();
 
-    TermList arg = TermList(_nextVar++,false);
+    TermList arg = TermList(_nextVar++, false);
     args.push(arg);
 
     if (!lookup->insert(vName,make_pair(arg,vSort))) {
@@ -855,14 +855,14 @@ void SMTLIB2::readDeclareDatatypes(LExprList* sorts, LExprList* datatypes, bool 
     ASS(added);
   }
 
-  List<TermAlgebra*>* algebras = nullptr;
+  List<Signature::TermAlgebra*>* algebras = nullptr;
 
   LispListReader dtypesRdr2(datatypes);
   while(dtypesRdr2.hasNext()) {
     LispListReader dtypeRdr(dtypesRdr2.readList());
     const vstring& sortName = dtypeRdr.readAtom() + "()";
     bool added;
-    TermAlgebra* ta = new TermAlgebra(sortName, env.sorts->addSort(sortName, added));
+    Signature::TermAlgebra* ta = new Signature::TermAlgebra(sortName, env.sorts->addSort(sortName, added));
     ASS(!added);
 
     while (dtypeRdr.hasNext()) {
@@ -891,7 +891,7 @@ void SMTLIB2::readDeclareDatatypes(LExprList* sorts, LExprList* datatypes, bool 
     algebras = algebras->cons(ta);
   }
 
-  List<TermAlgebra*>::Iterator it(algebras);
+  List<Signature::TermAlgebra*>::Iterator it(algebras);
   while (it.hasNext()) {
     declareTermAlgebra(it.next(), codatatype);
   }
@@ -899,7 +899,7 @@ void SMTLIB2::readDeclareDatatypes(LExprList* sorts, LExprList* datatypes, bool 
   algebras->destroy();
 }
 
-  void SMTLIB2::declareTermAlgebra(TermAlgebra *ta, bool coalgebra)
+void SMTLIB2::declareTermAlgebra(Signature::TermAlgebra *ta, bool coalgebra)
 {
   CALL("SMTLIB2::declareTermAlgebra");
 
@@ -907,7 +907,10 @@ void SMTLIB2::readDeclareDatatypes(LExprList* sorts, LExprList* datatypes, bool 
     USER_ERROR("Datatype " + ta->name() + " is not well-founded");
   }
 
-  List<TermAlgebraConstructor*>::Iterator constrsIt(ta->constructors());
+  ASS(!env.signature->isTermAlgebraSort(ta->sort()));
+  env.signature->addTermAlgebra(ta);
+
+  List<Signature::TermAlgebraConstructor*>::Iterator constrsIt(ta->constructors());
   while (constrsIt.hasNext()) {
     declareTermAlgebraConstructor(constrsIt.next(), ta->sort());
   }
@@ -934,7 +937,7 @@ void SMTLIB2::readDeclareDatatypes(LExprList* sorts, LExprList* datatypes, bool 
   }
 }
 
-void SMTLIB2::declareTermAlgebraConstructor(TermAlgebraConstructor *c, unsigned rangeSort)
+void SMTLIB2::declareTermAlgebraConstructor(Signature::TermAlgebraConstructor *c, unsigned rangeSort)
 {
   CALL("SMTLIB2::declareTermAlgebraConstructor");
 
@@ -958,21 +961,22 @@ void SMTLIB2::declareTermAlgebraConstructor(TermAlgebraConstructor *c, unsigned 
   }
   DeclaredFunction df = declareFunctionOrPredicate(c->name(), rangeSort, argSorts);
   env.signature->getFunction(df.first)->markTermAlgebraCons();
+  c->setFunctor(df.first);
 }
 
-Formula *SMTLIB2::exhaustivenessAxiom(TermAlgebra *ta)
+Formula *SMTLIB2::exhaustivenessAxiom(Signature::TermAlgebra *ta)
 {
   CALL("SMTLIB2::exhaustivenessAxiom");
 
   TermList x(0, false);
   Stack<TermList> argTerms;
 
-  List<TermAlgebraConstructor*>::Iterator it1(ta->constructors());
+  List<Signature::TermAlgebraConstructor*>::Iterator it1(ta->constructors());
 
   FormulaList *l = FormulaList::empty();
 
   while (it1.hasNext()) {
-    TermAlgebraConstructor *c = it1.next();
+    Signature::TermAlgebraConstructor *c = it1.next();
     List<pair<vstring, unsigned>>::Iterator it2(c->args());
     argTerms.reset();
     
@@ -998,7 +1002,7 @@ Formula *SMTLIB2::exhaustivenessAxiom(TermAlgebra *ta)
                                new JunctionFormula(Connective::OR, l));
 }
 
-Formula *SMTLIB2::distinctnessAxiom(TermAlgebra *ta)
+Formula *SMTLIB2::distinctnessAxiom(Signature::TermAlgebra *ta)
 {
   CALL("SMTLIB2::distinctnessAxiom");
 
@@ -1007,14 +1011,14 @@ Formula *SMTLIB2::distinctnessAxiom(TermAlgebra *ta)
   Formula::VarList* vars = Formula::VarList::empty();
   Formula::SortList* sorts = Formula::SortList::empty();
 
-  List<TermAlgebraConstructor*>* constrs = ta->constructors();
+  List<Signature::TermAlgebraConstructor*>* constrs = ta->constructors();
   List<pair<vstring, unsigned>>::Iterator argit;
   Stack<TermList> argTerms;
 
-  while (List<TermAlgebraConstructor*>::isNonEmpty(constrs)) {
+  while (List<Signature::TermAlgebraConstructor*>::isNonEmpty(constrs)) {
     pair<vstring,unsigned> a;
-    TermAlgebraConstructor* c = constrs->head();
-    List<TermAlgebraConstructor*>::Iterator cit(constrs->tail());
+    Signature::TermAlgebraConstructor* c = constrs->head();
+    List<Signature::TermAlgebraConstructor*>::Iterator cit(constrs->tail());
 
     // build LHS
     argTerms.reset();
@@ -1068,18 +1072,18 @@ Formula *SMTLIB2::distinctnessAxiom(TermAlgebra *ta)
   }
 }
 
-Formula *SMTLIB2::injectivityAxiom(TermAlgebra *ta)
+Formula *SMTLIB2::injectivityAxiom(Signature::TermAlgebra *ta)
 {
   CALL("SMTLIB2::injectivityAxiom");
 
   FormulaList *l = FormulaList::empty();
-  List<TermAlgebraConstructor*>::Iterator it(ta->constructors());
+  List<Signature::TermAlgebraConstructor*>::Iterator it(ta->constructors());
   Stack<TermList> argTermsX;
   Stack<TermList> argTermsY;
   unsigned varnum = 0;
   
   while (it.hasNext()) {
-    TermAlgebraConstructor* c = it.next();
+    Signature::TermAlgebraConstructor* c = it.next();
     
     if (c->args()->length() != 0) {
       FormulaList *implied = FormulaList::empty();
@@ -1140,7 +1144,7 @@ Formula *SMTLIB2::injectivityAxiom(TermAlgebra *ta)
   }
 }
   
-Formula *SMTLIB2::acyclicityAxiom(TermAlgebra *ta)
+Formula *SMTLIB2::acyclicityAxiom(Signature::TermAlgebra *ta)
 {
   CALL("SMTLIB2::acyclicityAxiom");
 
@@ -2311,54 +2315,6 @@ void SMTLIB2::readAssert(LExpr* body)
   FormulaUnit* fu = new FormulaUnit(fla, new Inference(Inference::INPUT), Unit::AXIOM);
 
   UnitList::push(fu, _formulas);
-}
-
-void TermAlgebraConstructor::addArg(vstring name, unsigned sort)
-{
-  CALL("TermAlgebraConstructor::addArg");
-
-   _args = List<pair<vstring, unsigned>>::addLast(_args, make_pair(name, sort));
-}
-
-bool TermAlgebraConstructor::recursive(unsigned algebraSort)
-{
-  CALL("TermAlgebraConstructor::recursive");
-  
-  List<pair<vstring, unsigned>>::Iterator it(_args);
-  while (it.hasNext()) {
-    if (it.next().second == algebraSort) {
-      // this constructor has a recursive argument
-      return true;
-    }
-  }
-  return false;
-}
-
-bool TermAlgebra::wellFoundedAlgebra()
-{
-  CALL("TermAlgebra::wellFoundedAlgebra");
-
-  List<TermAlgebraConstructor*>::Iterator it(_constrs);
-  while (it.hasNext()) {
-    if (!(it.next()->recursive(_sort))) {
-      return true;
-    }
-  }
-  return false;
-}
-
-void TermAlgebra::addConstr(vstring name)
-{
-  CALL("TermAlgebra::addConstr");
-
-  _constrs = _constrs->cons(new TermAlgebraConstructor(name));
-}
-
-void TermAlgebra::addConstrArg(vstring name, unsigned sort)
-{
-  CALL("TermAlgebra::addConstrArg");
-
-  _constrs->head()->addArg(name, sort);
 }
 
 }

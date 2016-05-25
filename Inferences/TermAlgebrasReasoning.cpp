@@ -3,6 +3,7 @@
  */
 
 #include "Kernel/Inference.hpp"
+#include "Kernel/Ordering.hpp"
 #include "Kernel/SortHelper.hpp"
 
 #include "Lib/Environment.hpp"
@@ -106,6 +107,117 @@ namespace Inferences {
     return (s && s == t);
   }
 
+  struct DistinctnessGIE::ConstructorDisequalityIterator
+  {
+    ConstructorDisequalityIterator(Clause *clause, Literal *lit, unsigned f, TermList t)
+      :
+      _clause(clause),
+      _lit(lit),
+      _functor(f),
+      _t(t),
+      _sort(env.signature->getFunction(f)->fnType()->result()),
+      _freshVar(clause->maxVar() + 1),
+      _it(env.signature->getTermAlgebraOfSort(_sort)->constructors())
+    {}
+
+    DECL_ELEMENT_TYPE(Clause *);
+
+    bool hasNext() {
+      if (_it.hasNext() && _it.peekAtNext()->functor() == _functor) {
+        _it.next();
+      }
+      return _it.hasNext();
+    }
+    
+    OWN_ELEMENT_TYPE next()
+    {
+      CALL("DistinctnessGIE::ConstructorDisequalityIterator::next()");
+
+      Clause *res;
+      Inference *inf = new Inference1(Inference::TERM_ALGEBRA_DISTINCTNESS, _clause);
+
+      unsigned g = _it.next()->functor();
+      unsigned arity = env.signature->getFunction(g)->arity();
+      TermList *args = new TermList [arity];
+      for (unsigned i = 0; i < arity; i++) {
+        args[i] = TermList(_freshVar + i, false);
+      }
+      Term *term = Term::create(g, arity, args);
+      
+      Literal *l = Literal::createEquality(false,
+                                           _t,
+                                           TermList(term),
+                                           _sort);
+      
+      res = replaceLit(_clause, _lit, l, inf);
+      res->setAge(_clause->age()+1);
+      return res;
+    }
+  private:
+    Clause *_clause;
+    Literal *_lit;
+    unsigned _functor;
+    TermList _t;
+    unsigned _sort;
+    unsigned _freshVar;
+    Signature::TermAlgebra *_algebra;
+    List<Signature::TermAlgebraConstructor*>::Iterator _it;
+  };
+
+  struct DistinctnessGIE::ConstructorDisequalityFn
+  {
+    ConstructorDisequalityFn(Ordering& ord, Clause* premise)
+      :
+      _premise(premise),
+      _ord(ord)  
+    {}
+    DECL_RETURN_TYPE(VirtualIterator<Clause*>);
+    OWN_RETURN_TYPE operator()(Literal* lit)
+    {
+      CALL("DistinctnessGIE::ConstructorDisequalityFn::operator()");
+
+      if (lit->isEquality() && lit->polarity()) {
+        Kernel::Ordering::Result cmp = _ord.compare(*lit->nthArgument(0), *lit->nthArgument(1));
+        Signature::Symbol *s = termAlgebraConstructor(lit->nthArgument(0));
+        Signature::Symbol *t = termAlgebraConstructor(lit->nthArgument(1));
+        
+        if (s && !t) {
+          if (cmp == Kernel::Ordering::INCOMPARABLE
+              || cmp == Kernel::Ordering::GREATER
+              || cmp == Kernel::Ordering::GREATER_EQ) {
+            return pvi(ConstructorDisequalityIterator(_premise,
+                                                      lit,
+                                                      lit->nthArgument(0)->term()->functor(),
+                                                      *lit->nthArgument(1)));
+          }
+        } else if (!s && t) {
+          if (cmp == Kernel::Ordering::INCOMPARABLE
+              || cmp == Kernel::Ordering::LESS
+              || cmp == Kernel::Ordering::LESS_EQ) {
+            return pvi(ConstructorDisequalityIterator(_premise,
+                                                      lit,
+                                                      lit->nthArgument(1)->term()->functor(),
+                                                      *lit->nthArgument(0)));
+          }
+        }
+      }
+      return pvi(ClauseIterator::getEmpty());
+    }
+  private:
+    Ordering& _ord;
+    Clause* _premise;
+  };
+
+  ClauseIterator DistinctnessGIE::generateClauses(Clause* c)
+  {
+    CALL("DistinctnessGIE::generateClauses");
+
+    auto it1 = c->getSelectedLiteralIterator();
+    auto it2 = getMappingIterator(it1, ConstructorDisequalityFn(_salg->getOrdering(), c));
+    auto it3 = getFlattenedIterator(it2);
+    return pvi(it3);
+  }
+
   Clause* DistinctnessISE::simplify(Clause* c)
   {
     CALL("DistinctnessISE::simplify");
@@ -130,12 +242,136 @@ namespace Inferences {
     return c;
   }
 
+  struct InjectivityGIE::ArgumentEqualityIterator
+  {
+    ArgumentEqualityIterator(Clause *clause, Literal *lit, TermList fs, TermList t)
+      :
+      _clause(clause),
+      _fs(fs),
+      _freshVar(clause->maxVar() + 1),
+      _type(env.signature->getFunction(fs.term()->functor())->fnType()),
+      _index(0),
+      _arity(fs.term()->arity()),
+      _length(clause->length() + 1)
+    {
+      ASS(fs.isTerm());
+
+      unsigned length = clause->length();
+      _lits = new Literal*[length];
+
+      TermList *args = new TermList[_arity];
+      for (unsigned i = 0; i < _arity; i++) {
+        args[i] = TermList(_freshVar + i, false);
+      }
+      Term *term = Term::create(fs.term()->functor(), _arity, args);
+      
+      unsigned i = 0;
+      for (i; (*clause)[i] != lit; i++) {}
+      std::memcpy(_lits, clause->literals(), length * sizeof(Literal*));
+      
+      _lits[i] = Literal::createEquality(false,
+                                         t,
+                                         TermList(term),
+                                         _type->result());
+    }
+
+    DECL_ELEMENT_TYPE(Clause *);
+
+    bool hasNext() {
+      return _index < _arity;
+    }
+    
+    OWN_ELEMENT_TYPE next()
+    {
+      CALL("InjectivityGIE::ArgumentEqualityIterator::next()");
+      Inference *inf = new Inference1(Inference::TERM_ALGEBRA_INJECTIVITY, _clause);
+      Clause* res = new(_length) Clause(_length,
+                                        _clause->inputType(),
+                                        inf);
+
+      std::memcpy(res->literals(), _lits, (_length - 1) * sizeof(Literal*));
+      
+      (*res)[_length - 1] = Literal::createEquality(true,
+                                                    *_fs.term()->nthArgument(_index),
+                                                    TermList(_freshVar + _index, false),
+                                                    _type->arg(_index));
+      
+      res->setAge(_clause->age() + 1);
+      _index++;
+      return res;
+    }
+  private:
+    Clause *_clause;
+    Literal **_lits;
+    unsigned _functor;
+    TermList _fs;
+    unsigned _index;
+    unsigned _arity;
+    unsigned _freshVar;
+    FunctionType *_type;
+    unsigned _length;
+  };
+
+  struct InjectivityGIE::ArgumentEqualityFn
+  {
+    ArgumentEqualityFn(Ordering& ord, Clause* premise)
+      :
+      _premise(premise),
+      _ord(ord)  
+    {}
+    DECL_RETURN_TYPE(VirtualIterator<Clause*>);
+    OWN_RETURN_TYPE operator()(Literal* lit)
+    {
+      CALL("InjectivityGIE::ArgumentEqualityFn::operator()");
+
+      if (lit->isEquality() && lit->polarity()) {
+        Kernel::Ordering::Result cmp = _ord.compare(*lit->nthArgument(0), *lit->nthArgument(1));
+        Signature::Symbol *s = termAlgebraConstructor(lit->nthArgument(0));
+        Signature::Symbol *t = termAlgebraConstructor(lit->nthArgument(1));
+        
+        if (s && !t) {
+          if (cmp == Kernel::Ordering::INCOMPARABLE
+              || cmp == Kernel::Ordering::GREATER
+              || cmp == Kernel::Ordering::GREATER_EQ) {
+            return pvi(ArgumentEqualityIterator(_premise,
+                                                lit,
+                                                *lit->nthArgument(0),
+                                                *lit->nthArgument(1)));
+          }
+        } else if (!s && t) {
+          if (cmp == Kernel::Ordering::INCOMPARABLE
+              || cmp == Kernel::Ordering::LESS
+              || cmp == Kernel::Ordering::LESS_EQ) {
+            return pvi(ArgumentEqualityIterator(_premise,
+                                                lit,
+                                                *lit->nthArgument(1),
+                                                *lit->nthArgument(0)));
+          }
+        }
+      }
+      return pvi(ClauseIterator::getEmpty());
+    }
+  private:
+    Ordering& _ord;
+    Clause* _premise;
+  };
+
+  ClauseIterator InjectivityGIE::generateClauses(Clause* c)
+  {
+    CALL("InjectivityGIE::generateClauses");
+
+    auto it1 = c->getSelectedLiteralIterator();
+    auto it2 = getMappingIterator(it1, ArgumentEqualityFn(_salg->getOrdering(), c));
+    auto it3 = getFlattenedIterator(it2);
+    return pvi(it3);
+  }
+
   /*
    * Given a clause f(x1, ..., xn) = f(y1, ... yn) \/ A, this iterator
    * returns the clauses x1 = y1 \/ A up to xn = yn \/ A. For any
    * other literal the iterator is empty
    */
-  struct InjectivityGIE::SubtermIterator
+  struct InjectivityGIE1::SubtermIterator
   {
     SubtermIterator(Clause *clause, Literal *lit)
       : _index(0),
@@ -155,7 +391,7 @@ namespace Inferences {
     bool hasNext() { return _index < _length; }
     OWN_ELEMENT_TYPE next()
     {
-      CALL("InjectivityGIE::SubtermIterator::next()");
+      CALL("InjectivityGIE1::SubtermIterator::next()");
 
       Clause *res;
       Inference *inf = new Inference1(Inference::TERM_ALGEBRA_INJECTIVITY, _clause);
@@ -186,14 +422,14 @@ namespace Inferences {
     FunctionType* _type; // type of f
   };
 
-  struct InjectivityGIE::SubtermEqualityFn
+  struct InjectivityGIE1::SubtermEqualityFn
   {
     SubtermEqualityFn(Clause* premise)
       : _premise(premise) {}
     DECL_RETURN_TYPE(VirtualIterator<Clause*>);
     OWN_RETURN_TYPE operator()(Literal* lit)
     {
-      CALL("InjectivityGIE::SubtermEqualityFn::operator()");
+      CALL("InjectivityGIE1::SubtermEqualityFn::operator()");
 
       return pvi(SubtermIterator(_premise, lit));
     }
@@ -201,9 +437,9 @@ namespace Inferences {
     Clause* _premise;
   };
 
-  ClauseIterator InjectivityGIE::generateClauses(Clause* c)
+  ClauseIterator InjectivityGIE1::generateClauses(Clause* c)
   {
-    CALL("InjectivityGIE::generateClauses");
+    CALL("InjectivityGIE1::generateClauses");
 
     auto it1 = c->getSelectedLiteralIterator();
     auto it2 = getMappingIterator(it1, SubtermEqualityFn(c));
@@ -234,7 +470,7 @@ namespace Inferences {
             } else {
               // this simplification may result in more than one new
               // clause. All but one are added to unprocessed
-              SaturationAlgorithm::tryGetInstance()->addNewClause(res);
+              _salg->addNewClause(res);
             }
           }
         }

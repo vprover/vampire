@@ -16,6 +16,19 @@
 
 namespace Inferences {
 
+class DistinctnessGIE
+  : public GeneratingInferenceEngine {
+public:
+  CLASS_NAME(DistinctnessGIE);
+  USE_ALLOCATOR(DistinctnessGIE);
+  
+  Kernel::ClauseIterator generateClauses(Kernel::Clause* c);
+  
+private:
+  struct ConstructorDisequalityIterator;
+  struct ConstructorDisequalityFn;
+};
+
 class DistinctnessISE
   : public ImmediateSimplificationEngine
 {
@@ -31,6 +44,19 @@ class InjectivityGIE
 public:
   CLASS_NAME(InjectivityGIE);
   USE_ALLOCATOR(InjectivityGIE);
+  
+  Kernel::ClauseIterator generateClauses(Kernel::Clause* c);
+  
+private:
+  struct ArgumentEqualityIterator;
+  struct ArgumentEqualityFn;
+};
+
+class InjectivityGIE1
+  : public GeneratingInferenceEngine {
+public:
+  CLASS_NAME(InjectivityGIE1);
+  USE_ALLOCATOR(InjectivityGIE1);
   
   Kernel::ClauseIterator generateClauses(Kernel::Clause* c);
 

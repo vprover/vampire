@@ -1340,8 +1340,10 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
   }
   if(prb.hasEquality() && env.signature->hasTermAlgebras() && opt.termAlgebraInferences()) {
     if (!opt.termAlgebraInjectivitySimplification()) {
-      gie->addFront(new InjectivityGIE());
+      gie->addFront(new InjectivityGIE1());
     }
+    gie->addFront(new InjectivityGIE());
+    gie->addFront(new DistinctnessGIE());
     //gie->addFront(new AcyclicityGIE());
   }
 

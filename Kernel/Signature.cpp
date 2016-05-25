@@ -202,7 +202,8 @@ Signature::Signature ():
     _strings(0),
     _integers(0),
     _rationals(0),
-    _reals(0)
+    _reals(0),
+    _termAlgebras()
 {
   CALL("Signature::Signature");
 
@@ -1172,4 +1173,52 @@ bool Signature::charNeedsQuoting(char c, bool first)
   default:
     return true;
   }
+}
+
+void Signature::TermAlgebraConstructor::addArg(vstring name, unsigned sort)
+{
+  CALL("Signature::TermAlgebraConstructor::addArg");
+  
+  _args = List<pair<vstring, unsigned>>::addLast(_args, make_pair(name, sort));
+}
+
+bool Signature::TermAlgebraConstructor::recursive(unsigned algebraSort)
+{
+  CALL("Signature::TermAlgebraConstructor::recursive");
+  
+  List<pair<vstring, unsigned>>::Iterator it(_args);
+  while (it.hasNext()) {
+    if (it.next().second == algebraSort) {
+      // this constructor has a recursive argument
+      return true;
+    }
+  }
+  return false;
+}
+
+bool Signature::TermAlgebra::wellFoundedAlgebra()
+{
+  CALL("TermAlgebra::wellFoundedAlgebra");
+
+  List<TermAlgebraConstructor*>::Iterator it(_constrs);
+  while (it.hasNext()) {
+    if (!(it.next()->recursive(_sort))) {
+      return true;
+    }
+  }
+  return false;
+}
+
+void Signature::TermAlgebra::addConstr(vstring name)
+{
+  CALL("Signature::TermAlgebra::addConstr");
+
+  _constrs = _constrs->cons(new TermAlgebraConstructor(name));
+}
+
+void Signature::TermAlgebra::addConstrArg(vstring name, unsigned sort)
+{
+  CALL("Signature::TermAlgebra::addConstrArg");
+
+  _constrs->head()->addArg(name, sort);
 }
