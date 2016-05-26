@@ -2012,7 +2012,6 @@ ffModelLabel:
   }
   //}
 
-
   //Evaluate removed propositions and predicates
   f=env.signature->predicates()-1;
   while(f>0){
@@ -2095,11 +2094,12 @@ ffModelLabel:
     p_signature_distinct.ensure(arity);
     for(unsigned i=0;i<arity;i++){
       grounding[i]=1;
-      unsigned vampireSrt = env.signature->getFunction(f)->predType()->arg(i);
+      unsigned vampireSrt = env.signature->getPredicate(f)->predType()->arg(i);
       unsigned dsrt = _sortedSignature->vampireToDistinctParent.get(vampireSrt); 
       p_signature_distinct[i] = dsrt;
     }
     grounding[arity-1]=0;
+
 
 ppModelLabel:
       for(unsigned i=arity-1;i+1!=0;i--){
@@ -2117,7 +2117,7 @@ ppModelLabel:
             Substitution subst;
             for(unsigned j=0;j<arity;j++){ 
               //cout << grounding[j] << " is " << model.getDomainConstant(grounding[j])->toString() << endl;
-              unsigned vampireSrt = env.signature->getFunction(f)->predType()->arg(j); 
+              unsigned vampireSrt = env.signature->getPredicate(f)->predType()->arg(j); 
               subst.bind(vars[j],model.getDomainConstant(grounding[j],vampireSrt));
             }
             Formula* predDefGround = SubstHelper::apply(predDef,subst);
