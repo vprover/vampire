@@ -29,8 +29,6 @@ class BlockedClauseElimination
 public:
   void apply(Kernel::Problem& prb);
 
-  BlockedClauseElimination() : _cc(0) {}
-
 private:
   struct ClWrapper;
 
@@ -58,8 +56,6 @@ private:
   bool resolvesToTautology(bool equationally, Clause* cl, Literal* lit, Clause* pcl, Literal* plit);
 
   bool resolvesToTautologyUn(Clause* cl, Literal* lit, Clause* pcl, Literal* plit);
-
-  DP::SimpleCongruenceClosure _cc;
 
   bool resolvesToTautologyEq(Clause* cl, Literal* lit, Clause* pcl, Literal* plit);
 };
