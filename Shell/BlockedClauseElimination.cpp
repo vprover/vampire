@@ -241,7 +241,7 @@ bool BlockedClauseElimination::resolvesToTautologyEq(Clause* cl, Literal* lit, C
 
   unsigned n = lit->arity();
 
-  IntUnionFind uf(2*n);
+  IntUnionFind uf(n ? 2*n : 1); // IntUnionFind does not like 0
   static Lib::DHMap<TermList, unsigned>  litArgIds;
   litArgIds.reset();
   static Lib::DHMap<TermList, unsigned> plitArgIds;
