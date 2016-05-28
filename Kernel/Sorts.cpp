@@ -176,6 +176,14 @@ unsigned Sorts::addTupleSort(unsigned arity, unsigned sorts[])
   return result;
 }
 
+VirtualIterator<unsigned> Sorts::getTupleSorts()
+{
+  CALL("Sorts::getTupleSorts");
+  Stack<SortInfo*>::Iterator all(_sorts);
+  VirtualIterator<SortInfo*> tupleSorts = pvi(getFilteredIterator(all, [](SortInfo* s){ return s->isTupleSort();}));
+  return pvi(getMappingIterator(tupleSorts,SortInfoToInt()));
+}
+
 /**
  * True if this collection contains the sort @c name.
  * @author Andrei Voronkov

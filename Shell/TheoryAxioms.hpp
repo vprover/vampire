@@ -74,6 +74,7 @@ private:
   void addBooleanArrayExtensionalityAxioms(Interpretation select, Interpretation store, unsigned skolem, UnitList*& units);
   void addArrayExtensionalityAxioms(Interpretation select, Interpretation store, unsigned skolem, UnitList*& units);
   void addBooleanArrayWriteAxioms(Interpretation select, Interpretation store, UnitList*& units);
+  void addTupleAxioms(unsigned tupleSort, UnitList*& units);
   void addFloorAxioms(Interpretation floor, Interpretation less, Interpretation unaryMinus,
                       Interpretation plus, TermList oneElement, UnitList*& units);
   void addCeilingAxioms(Interpretation ceiling, Interpretation less, Interpretation plus, 

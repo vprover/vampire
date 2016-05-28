@@ -164,6 +164,7 @@ public:
     return _sorts[sort]->isTupleSort();
   }
 
+  VirtualIterator<unsigned> getTupleSorts();
   TupleSort* getTupleSort(unsigned sort) {
     ASS_REP(isTupleSort(sort), sortName(sort));
     return static_cast<TupleSort*>(_sorts[sort]);

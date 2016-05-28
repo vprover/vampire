@@ -942,7 +942,68 @@ void TheoryAxioms::addBooleanArrayWriteAxioms(Interpretation select, Interpretat
   Formula* ax2 = new BinaryFormula(IMP, indexEq, writeEq);
   addAndOutputTheoryUnit(new FormulaUnit(ax2, new Inference(Inference::THEORY), Unit::AXIOM), units);
 } //
-    
+
+void TheoryAxioms::addTupleAxioms(unsigned tupleSort, UnitList*& units) {
+  CALL("TheoryAxioms::addTupleAxioms");
+
+  ASS_REP(env.sorts->isTupleSort(tupleSort), env.sorts->sortName(tupleSort));
+
+  Sorts::TupleSort* sort = env.sorts->getTupleSort(tupleSort);
+  unsigned arity = sort->arity();
+
+  Theory* theory = Theory::instance();
+
+  unsigned tupleFunctor = theory->getTupleFunctor(tupleSort);
+
+  static Inference* axiom = new Inference(Inference::THEORY);
+
+  // projection over construction
+  {
+    Stack<TermList> variables(arity);
+    for (unsigned i = 0; i < arity; i++) {
+      variables.push(TermList(i, false));
+    }
+
+    TermList tuple = TermList(Term::create(tupleFunctor, arity, variables.begin()));
+    for (unsigned i = 0; i < arity; i++) {
+      unsigned proj = theory->getTupleProjectionFunctor(i, tupleSort);
+      TermList projection = TermList(Term::create1(proj, tuple));
+      unsigned projSort = sort->argument(i);
+
+      Literal* equality = Literal::createEquality(true, projection, TermList(i, false), projSort);
+
+      Clause* clause = new(1) Clause(1, Unit::AXIOM, axiom);
+      (*clause)[0] = equality;
+      addAndOutputTheoryUnit(clause, units);
+    }
+  }
+
+  // tuple equality
+  {
+    static TermList t1(0, false);
+    static TermList t2(1, false);
+
+    FormulaList* projections = FormulaList::empty();
+    for (unsigned i = 0; i < arity; i++) {
+      unsigned proj = theory->getTupleProjectionFunctor(i, tupleSort);
+      unsigned projSort = sort->argument(i);
+
+      TermList proj1 = TermList(Term::create1(proj, t1));
+      TermList proj2 = TermList(Term::create1(proj, t2));
+
+      Formula* equality = new AtomicFormula(Literal::createEquality(true, proj1, proj2, projSort));
+      projections = projections->cons(equality);
+    }
+
+    Formula* conjunction = new JunctionFormula(AND, projections);
+    Formula* equality = new AtomicFormula(Literal::createEquality(true, t1, t2, tupleSort));
+    Formula* equivalence = new BinaryFormula(IFF, equality, conjunction);
+
+    addAndOutputTheoryUnit(new FormulaUnit(equivalence, axiom, Unit::AXIOM), units);
+  }
+
+}
+
 //Axioms for integer division that hven't been implemented yet
 //
 //axiom( (ige(X0,zero) & igt(X1,zero)) --> ( ilt(X0-X1, idiv(X0,X1)*X1) & ile(idiv(X0,X1)*X1, X0) ) );
@@ -1160,6 +1221,13 @@ bool TheoryAxioms::apply(UnitList*& units, Property* prop)
       }
       modified = true;
     }
+  }
+
+  VirtualIterator<unsigned> tupleSorts = env.sorts->getTupleSorts();
+  while(tupleSorts.hasNext()) {
+    unsigned tupleSort = tupleSorts.next();
+    addTupleAxioms(tupleSort, units);
+    modified = true;
   }
 
   return modified;
