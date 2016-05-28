@@ -71,7 +71,7 @@ Term* SymbolOccurrenceReplacement::process(Term* term) {
 }
 
 TermList SymbolOccurrenceReplacement::process(TermList ts) {
-  CALL("FOOLElimination::SymbolOccurrenceReplacement::process(TermList)");
+  CALL("SymbolOccurrenceReplacement::process(TermList)");
 
   if (!ts.isTerm()) {
     return ts;
@@ -81,7 +81,7 @@ TermList SymbolOccurrenceReplacement::process(TermList ts) {
 }
 
 Formula* SymbolOccurrenceReplacement::process(Formula* formula) {
-  CALL("FOOLElimination::SymbolOccurrenceReplacement::process(Formula*)");
+  CALL("SymbolOccurrenceReplacement::process(Formula*)");
   switch (formula->connective()) {
     case LITERAL: {
       Literal* literal = formula->literal();
@@ -146,6 +146,6 @@ Formula* SymbolOccurrenceReplacement::process(Formula* formula) {
 }
 
 FormulaList* SymbolOccurrenceReplacement::process(FormulaList* formulas) {
-  CALL("FOOLElimination::SymbolOccurrenceReplacement::process(FormulaList*)");
+  CALL("SymbolOccurrenceReplacement::process(FormulaList*)");
   return FormulaList::isEmpty(formulas) ? formulas : new FormulaList(process(formulas->head()), process(formulas->tail()));
 }

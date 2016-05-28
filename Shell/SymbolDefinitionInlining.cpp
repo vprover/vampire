@@ -249,10 +249,10 @@ Formula* SymbolDefinitionInlining::process(Formula* formula) {
 }
 
 FormulaList* SymbolDefinitionInlining::process(FormulaList* formulas) {
-  CALL("FOOLElimination::SymbolOccurrenceReplacement::process(FormulaList*)");
+  CALL("SymbolDefinitionInlining::process(FormulaList*)");
 
   static Stack<Formula*> elements;
-  ASS(elements.isEmpty());
+  elements.reset();
 
   bool substituted = false;
   FormulaList::Iterator fit(formulas);
@@ -274,8 +274,6 @@ FormulaList* SymbolDefinitionInlining::process(FormulaList* formulas) {
   FormulaList* processedFormula = FormulaList::empty();
   Stack<Formula*>::BottomFirstIterator eit(elements);
   FormulaList::pushFromIterator(eit, processedFormula);
-
-  elements.reset();
 
   return processedFormula;
 }
