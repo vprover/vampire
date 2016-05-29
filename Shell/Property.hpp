@@ -209,8 +209,12 @@ public:
   bool usesSingleSort() const { return _sortsUsed==1; }
   unsigned sortsUsed() const { return _sortsUsed; }
 
-  void setSMTLIBLogic(SMTLIBLogic smtLibLogic) { _smtlibLogic = smtLibLogic; }
-  SMTLIBLogic getSMTLIBLogic() const { return _smtlibLogic; }
+  void setSMTLIBLogic(SMTLIBLogic smtLibLogic) { 
+    _smtlibLogic = smtLibLogic; 
+  }
+  SMTLIBLogic getSMTLIBLogic() const { 
+    return _smtlibLogic; 
+  }
 
   bool allNonTheoryClausesGround(){ return _allNonTheoryClausesGround; }
 
