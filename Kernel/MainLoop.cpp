@@ -6,6 +6,7 @@
 
 #include "Lib/Environment.hpp"
 #include "Lib/SmartPtr.hpp"
+#include "Lib/System.hpp"
 
 #include "Inferences/Condensation.hpp"
 #include "Inferences/DistinctEqualitySimplifier.hpp"
@@ -21,6 +22,8 @@
 #include "Tabulation/TabulationAlgorithm.hpp"
 
 #include "FMB/FiniteModelBuilder.hpp"
+
+#include "SAT/Z3MainLoop.hpp"
 
 #include "Shell/BFNTMainLoop.hpp"
 #include "Shell/Options.hpp"
@@ -128,6 +131,13 @@ MainLoop* MainLoop::createFromOptions(Problem& prb, const Options& opt)
     return new BFNTMainLoop(prb, opt);
   }
 
+#if VZ3
+  if(opt.smtForGround() && prb.getProperty()->allNonTheoryClausesGround() 
+                        && prb.getProperty()->hasInterpretedOperations()){
+    return new SAT::Z3MainLoop(prb,opt);
+  }
+#endif
+
   MainLoop* res;
 
   switch (opt.saturationAlgorithm()) {
@@ -139,10 +149,22 @@ MainLoop* MainLoop::createFromOptions(Problem& prb, const Options& opt)
     break;
   case Options::SaturationAlgorithm::FINITE_MODEL_BUILDING:
     if(env.property->hasInterpretedOperations()){
+      reportSpiderStatus('u');
       USER_ERROR("Finite Model Builder (sa=fmb) cannot be used with interpreted operations"); 
+      //TODO should return inappropriate result instead of error
     }
     res = new FiniteModelBuilder(prb,opt);
     break;
+#if VZ3
+  case Options::SaturationAlgorithm::Z3:
+    if(!prb.getProperty()->allNonTheoryClausesGround()){
+      reportSpiderStatus('u');
+      USER_ERROR("Z3 saturation algorithm is only appropriate where preprocessing produces a ground problem"); 
+      //TODO should return inappropriate result instead of error
+    }
+    res = new SAT::Z3MainLoop(prb,opt);
+    break;
+#endif
   default:
     res = SaturationAlgorithm::createFromOptions(prb, opt);
     break;

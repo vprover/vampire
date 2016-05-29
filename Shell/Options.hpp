@@ -399,7 +399,7 @@ public:
      INST_GEN = 2,
      LRS = 3,
      OTTER = 4,
-     //TABULATION = 5
+     Z3 = 5,
    };
 
   /** Possible values for activity of some inference rules */
@@ -1731,6 +1731,7 @@ public:
 #if VZ3
   bool z3UnsatCores() const { return _z3UnsatCores.actualValue;}
   bool satFallbackForSMT() const { return _satFallbackForSMT.actualValue; }
+  bool smtForGround() const { return _smtForGround.actualValue; }
 #endif
   bool unusedPredicateDefinitionRemoval() const { return _unusedPredicateDefinitionRemoval.actualValue; }
   void setUnusedPredicateDefinitionRemoval(bool newVal) { _unusedPredicateDefinitionRemoval.actualValue = newVal; }
@@ -2206,6 +2207,7 @@ private:
   BoolOptionValue _showZ3;
   BoolOptionValue _z3UnsatCores;
   BoolOptionValue _satFallbackForSMT;
+  BoolOptionValue _smtForGround;
 #endif
   TimeLimitOptionValue _simulatedTimeLimit;
   UnsignedOptionValue _sineDepth;

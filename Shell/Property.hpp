@@ -212,6 +212,8 @@ public:
   void setSMTLIBLogic(SMTLIBLogic smtLibLogic) { _smtlibLogic = smtLibLogic; }
   SMTLIBLogic getSMTLIBLogic() const { return _smtlibLogic; }
 
+  bool allNonTheoryClausesGround(){ return _allNonTheoryClausesGround; }
+
  private:
   // constructor, operators new and delete
   explicit Property();
@@ -291,6 +293,7 @@ public:
   bool _hasFOOL;
 
   bool _allClausesGround;
+  bool _allNonTheoryClausesGround;
   bool _allQuantifiersEssentiallyExistential;
   SMTLIBLogic _smtlibLogic;
 }; // class Property
