@@ -410,9 +410,11 @@ void SMTCOMPMode::runSlice(Options& strategyOpt)
   }
   else{
 #if OUTPUT
-    env.beginOutput();
-    SMTCOMPMode::lineOutput() << " found a proof after proof output" << endl;
-    env.endOutput();
+    if (!resultValue) {
+      env.beginOutput();
+      SMTCOMPMode::lineOutput() << " found a proof after proof output" << endl;
+      env.endOutput();
+    }
 #endif
   }
 
