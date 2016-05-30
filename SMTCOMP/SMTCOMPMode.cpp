@@ -36,7 +36,7 @@
 
 #include "SMTCOMPMode.hpp"
 
-#define SLOWNESS 1.15
+#define SLOWNESS 1.3
 #define OUTPUT 0
 
 using namespace SMTCOMP;
@@ -468,6 +468,7 @@ ostream& SMTCOMPMode::coutLineOutput()
  */
 void SMTCOMPMode::getSchedules(Property& property, Schedule& quick, Schedule& fallback)
 {
+
     switch (property.getSMTLIBLogic()) {
     case SMT_ALIA:
       quick.push("lrs+4_8:1_er=filter:gs=on:gsem=on:lma=on:nm=16:nwc=3:nicw=on:sas=z3:stl=30:ssac=none:sfr=on:ssfp=10000:ssfq=1.0:ssnc=none:urr=on:updr=off_15");
