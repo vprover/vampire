@@ -43,7 +43,7 @@ void BlockedClauseElimination::apply(Problem& prb)
   TimeCounter tc(TC_BCE);
 
   bool modified = false;
-  bool equationally = true; /* prb.hasEquality() && prb.getProperty()->positiveEqualityAtoms(); */
+  bool equationally = prb.hasEquality() && prb.getProperty()->positiveEqualityAtoms();
 
   DArray<Stack<Candidate*>> positive(env.signature->predicates());
   DArray<Stack<Candidate*>> negative(env.signature->predicates());
@@ -107,6 +107,12 @@ void BlockedClauseElimination::apply(Problem& prb)
     for (unsigned i = cand->contFrom; i < partners.size(); i++) {
       Candidate* partner = partners[i];
       ClWrapper* pclw = partner->clw;
+
+      // don't need to check blockedness with itself
+      if (pclw == clw) {
+        continue;
+      }
+
       Clause* pcl = pclw->cl;
 
       if (pclw->blocked) {
