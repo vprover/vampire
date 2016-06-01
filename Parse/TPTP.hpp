@@ -213,6 +213,8 @@ public:
     END_EQ,
     /** tff declaration */
     TFF,
+    /** THF declaration */
+    THF,
     /** read type declaration */
     TYPE,
     /** after a top-level type declaration */

@@ -111,6 +111,7 @@ void TPTP::parse()
       fof(true);
       break;
     case TFF:
+    case THF:
       _isFof = false;
       tff();
       break;
@@ -1211,6 +1212,11 @@ void TPTP::unitList()
   }
   if (name == "tff") {
     _states.push(TFF);
+    resetToks();
+    return;
+  }
+  if (name == "thf") {
+    _states.push(THF);
     resetToks();
     return;
   }
@@ -4230,6 +4236,8 @@ const char* TPTP::toString(State s)
     return "END_EQ";
   case TFF:
     return "TFF";
+  case THF:
+    return "THF";
   case TYPE:
     return "TYPE";
   case END_TFF:
