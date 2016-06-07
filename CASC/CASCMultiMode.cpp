@@ -184,6 +184,7 @@ bool CASCMultiMode::runSchedule(Schedule& schedule,StrategySet& used,bool fallba
     if(coreNumber >=8){ coreNumber = coreNumber-2; }
     parallelProcesses = coreNumber;
   }
+  cout << "% Hi Geoff, using " << parallelProcesses << " parallel processes to solve your hard problem\n" << endl; 
 
   int processesLeft = parallelProcesses;
   Schedule::BottomFirstIterator it(schedule);

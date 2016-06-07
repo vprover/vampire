@@ -87,7 +87,6 @@ void Options::Options::init()
     _mode = ChoiceOptionValue<Mode>("mode","",Mode::VAMPIRE,
                                     {"axiom_selection",
                                         "casc",
-                                        "casc_multicore",
                                         "casc_sat",
                                         "smtcomp",
                                         "clausify","clausify_stat",

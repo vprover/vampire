@@ -955,23 +955,22 @@ int main(int argc, char* argv[])
     case Options::Mode::VAMPIRE:
       vampireMode();
       break;
-    case Options::Mode::CASC_MULTICORE:
-      if (CASC::CASCMultiMode::perform()) {
-        //casc mode succeeded in solving the problem, so we return zero
-        vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
-      }
-      break;
-    case Options::Mode::CASC:
-      if (CASC::CASCMode::perform(argc, argv)) {
-	//casc mode succeeded in solving the problem, so we return zero
-	vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
-      }
-      break;
     case Options::Mode::CASC_SAT:
       CASC::CASCMode::makeSat();
-      if (CASC::CASCMode::perform(argc, argv)) {
-	//casc mode succeeded in solving the problem, so we return zero
-	vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
+    case Options::Mode::CASC:
+      // If using a single core use old approach
+      if(env.options->multicore()==1){
+         if (CASC::CASCMode::perform(argc, argv)) {
+	    //casc mode succeeded in solving the problem, so we return zero
+            vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
+         }
+      }
+      // otherwise use the new multicore mode
+      else{
+        if (CASC::CASCMultiMode::perform()) {
+          //casc mode succeeded in solving the problem, so we return zero
+          vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
+        }
       }
       break;
     case Options::Mode::SMTCOMP:

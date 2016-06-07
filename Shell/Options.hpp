@@ -336,7 +336,6 @@ public:
   enum class Mode : unsigned int {
     AXIOM_SELECTION,
     CASC,
-    CASC_MULTICORE,
     CASC_SAT,
     SMTCOMP,
     CLAUSIFY,
