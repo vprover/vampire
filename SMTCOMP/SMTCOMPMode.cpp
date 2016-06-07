@@ -97,26 +97,7 @@ bool SMTCOMPMode::perform()
 } 
 
 /**
- * This function solves a single problem. It makes the following steps:
- * <ol><li>find the main and the fallback schedules depending on the problem
- *          properties</li>
- *     <li>run the main schedule using runSchedule()</li>
- *     <li>if the proof is not found, checks if all the remaining time
- *         was used: if not, it runs the fallback strategy using
- *         runSchedule() with the updated time limit</li></ol>
- * Once the problem is proved, the runSchedule() function does not return
- * and the process terminates.
- *
- * If a slice contains sine_selection value different from off, theory axioms
- * will be selected using SInE from the common axioms included in the batch file
- * (all problem axioms, including the included ones, will be used as a base
- * for this selection).
- *
- * If the sine_selection is off, all the common axioms will be just added to the
- * problem axioms. All this is done in the @b runSlice(Options&) function.
- * @param terminationTime the time in milliseconds since the prover starts when
- *        the strategy should terminate
- * @param timeLimit in milliseconds
+  *
  */
 bool SMTCOMPMode::performStrategy(Shell::Property* property)
 {
@@ -142,10 +123,7 @@ bool SMTCOMPMode::performStrategy(Shell::Property* property)
 } // SMTCOMPMode::performStrategy
 
 /**
- * This function solves a single problem. It parses the problem, spawns a
- * writer process for output and creates a pipe to communicate with it.
- * Then it calls performStrategy(terminationTime) that performs the
- * actual proof search.
+ *
  */
 bool SMTCOMPMode::searchForProof()
 {
@@ -158,7 +136,7 @@ bool SMTCOMPMode::searchForProof()
 
   Shell::Property* property = prb->getProperty();
 
-  if (property->atoms()<=1000000) {
+  {
     TimeCounter tc(TC_PREPROCESSING);
     env.statistics->phase=Statistics::NORMALIZATION;
     Normalisation norm;

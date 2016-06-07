@@ -33,7 +33,6 @@
 #include "Parse/TPTP.hpp"
 
 #include "CASCMode.hpp"
-
 #include "CASCMultiMode.hpp"
 
 #define SLOWNESS 1.15
@@ -95,30 +94,10 @@ bool CASCMultiMode::perform()
   return resValue;
 } 
 
-vstring CASCMultiMode::problemFinishedString = "##Problem finished##vn;3-d-ca-12=1;'";
 
 
 /**
- * This function solves a single problem. It makes the following steps:
- * <ol><li>find the main and the fallback schedules depending on the problem
- *          properties</li>
- *     <li>run the main schedule using runSchedule()</li>
- *     <li>if the proof is not found, checks if all the remaining time
- *         was used: if not, it runs the fallback strategy using
- *         runSchedule() with the updated time limit</li></ol>
- * Once the problem is proved, the runSchedule() function does not return
- * and the process terminates.
  *
- * If a slice contains sine_selection value different from off, theory axioms
- * will be selected using SInE from the common axioms included in the batch file
- * (all problem axioms, including the included ones, will be used as a base
- * for this selection).
- *
- * If the sine_selection is off, all the common axioms will be just added to the
- * problem axioms. All this is done in the @b runSlice(Options&) function.
- * @param terminationTime the time in milliseconds since the prover starts when
- *        the strategy should terminate
- * @param timeLimit in milliseconds
  */
 bool CASCMultiMode::performStrategy(Shell::Property* property)
 {
@@ -143,10 +122,7 @@ bool CASCMultiMode::performStrategy(Shell::Property* property)
 } // CASCMultiMode::performStrategy
 
 /**
- * This function solves a single problem. It parses the problem, spawns a
- * writer process for output and creates a pipe to communicate with it.
- * Then it calls performStrategy(terminationTime) that performs the
- * actual proof search.
+ *
  */
 bool CASCMultiMode::searchForProof()
 {
@@ -159,7 +135,7 @@ bool CASCMultiMode::searchForProof()
 
   Shell::Property* property = prb->getProperty();
 
-  if (property->atoms()<=1000000) {
+  {
     TimeCounter tc(TC_PREPROCESSING);
     env.statistics->phase=Statistics::NORMALIZATION;
     Normalisation norm;
@@ -193,13 +169,15 @@ bool CASCMultiMode::runSchedule(Schedule& schedule,StrategySet& used,bool fallba
   // number of available cores
 
 #if __APPLE__ || __CYGWIN__
-  unsigned coreNumber = 16; // probaby an overestimate! 
+    unsigned coreNumber = 16; // probaby an overestimate!
 #else
-  unsigned coreNumber = System::getNumberOfCores();
+    unsigned coreNumber = System::getNumberOfCores();
 #endif
-  if(coreNumber < 1){ coreNumber = 1; }
-  unsigned requested = env.options->multicore();
-  int parallelProcesses = min(coreNumber,requested);
+    if (coreNumber < 1){
+        coreNumber = 1;
+    }
+    unsigned requested = env.options->multicore();
+    int parallelProcesses = min(coreNumber,requested);
 
   // if requested is 0 then use (sensible) max
   if(parallelProcesses == 0){
@@ -314,22 +292,6 @@ bool CASCMultiMode::waitForChildAndCheckIfProofFound()
   return false;
 } // waitForChildAndExitWhenProofFound
 
-ofstream* CASCMultiMode::writerFileStream = 0;
-
-void CASCMultiMode::terminatingSignalHandler(int sigNum)
-{
-  try {
-    if (writerFileStream) {
-      writerFileStream->close();
-    }
-  } catch (Lib::SystemFailException& ex) {
-    cerr << "Process " << getpid() << " received SystemFailException in terminatingSignalHandler" << endl;
-    ex.cry(cerr);
-    cerr << " and will now die" << endl;
-  }
-  System::terminateImmediately(0);
-}
-
 /**
  * Run a slice given by its code using the specified time limit.
  */
@@ -377,38 +339,35 @@ void CASCMultiMode::runSlice(Options& strategyOpt)
   ProvingHelper::runVampire(*prb, opt);
 
   //set return value to zero if we were successful
-  if (env.statistics->terminationReason == Statistics::REFUTATION) {
+    if (env.statistics->terminationReason == Statistics::REFUTATION ||
+        env.statistics->terminationReason == Statistics::SATISFIABLE) {
     resultValue=0;
   }
 
   System::ignoreSIGHUP(); // don't interrupt now, we need to finish printing the proof !
 
-  env.beginOutput();
-  CASCMultiMode::lineOutput() << " has result " << resultValue << endl;
-  env.endOutput();
-  bool outputResult = true;
-  if (!resultValue) { 
-    ScopedSemaphoreLocker locker(_syncSemaphore);
-    locker.lock();
-    if(_proofPrinted){ outputResult = false; }
-    env.beginOutput();
-    CASCMultiMode::lineOutput() << " outputResult is " << outputResult << " proofPrinted " << _proofPrinted << endl;
-    env.endOutput();
-    _proofPrinted = true; 
-  }
-    env.beginOutput();
-    CASCMultiMode::lineOutput() << " outputResult is " << outputResult << " proofPrinted " << _proofPrinted << endl;
-    env.endOutput();
-  if(outputResult){
-    env.beginOutput();
-    UIHelper::outputResult(env.out());
-    env.endOutput();
-  }
-  else{
-    env.beginOutput();
-    CASCMultiMode::lineOutput() << " found a proof after proof output" << endl;
-    env.endOutput();
-  }
+    bool outputResult = false;
+    if (!resultValue) {
+        _syncSemaphore.dec(SEM_LOCK); // will block for all accept the first to enter
+        
+        if (!_syncSemaphore.get(SEM_PRINTED)) {
+            _syncSemaphore.set(SEM_PRINTED,1);
+            outputResult = true;
+        }
+        else{
+            env.beginOutput();
+            CASCMultiMode::lineOutput() << " found a (different) proof too late" << endl;
+            env.endOutput();
+        }
+        
+        _syncSemaphore.inc(SEM_LOCK); // would be also released after the processes' death, but we are polite and do it already here
+    }
+    
+    if(outputResult){
+        env.beginOutput();
+        UIHelper::outputResult(env.out());
+        env.endOutput();
+    }
 
   exit(resultValue);
 } // CASCMultiMode::runSlice

@@ -77,7 +77,6 @@ private:
   bool performStrategy(Shell::Property* property);
   bool waitForChildAndCheckIfProofFound();
 
-  static void terminatingSignalHandler(int sigNum) __attribute__((noreturn));
   void runSlice(vstring slice, unsigned milliseconds) __attribute__((noreturn));
   void runSlice(Options& strategyOpt) __attribute__((noreturn));
 
@@ -93,7 +92,7 @@ private:
    */
   ScopedPtr<Problem> prb;
 
-  Semaphore _syncSemaphore; // semaphore for synchronizing following variable 
+  Semaphore _syncSemaphore; // semaphore for synchronizing proof printing
 };
 
 #endif //!COMPILER_MSVC
