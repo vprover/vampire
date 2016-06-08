@@ -35,7 +35,7 @@
 #include "CASCMode.hpp"
 #include "CASCMultiMode.hpp"
 
-#define SLOWNESS 1.15
+#define SLOWNESS 1.05
 
 using namespace CASC;
 using namespace std;
