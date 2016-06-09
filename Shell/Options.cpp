@@ -112,10 +112,10 @@ void Options::Options::init()
     _lookup.insert(&_mode);
     _mode.addHardConstraint(If(equal(Mode::CONSEQUENCE_ELIMINATION)).then(_splitting.is(notEqual(true))));
 
-    _multicore = UnsignedOptionValue("cores","",0);
-    _multicore.description = "When running in casc_multicore or smtcomp mode specify the number of cores, set to 0 to use maximum";
+    _multicore = UnsignedOptionValue("cores","",1);
+    _multicore.description = "When running in casc or smtcomp mode specify the number of cores, set to 0 to use maximum";
     _lookup.insert(&_multicore);
-    //_multicore.addHardConstraint(If(notEqual(1u)).then(_mode.is(equal(Mode::CASC_MULTICORE))));
+    _multicore.reliesOnHard(_mode.is(equal(Mode::CASC)->Or(_mode.is(equal(Mode::CASC_SAT)))->Or(_mode.is(equal(Mode::SMTCOMP)))));
 
     _ltbLearning = ChoiceOptionValue<LTBLearning>("ltb_learning","ltbl",LTBLearning::OFF,{"on","off","biased"});
     _ltbLearning.description = "Perform learning in LTB mode";
