@@ -91,11 +91,11 @@ SATSolver::Status Z3Interfacing::solve(unsigned conflictCountLimit)
     case z3::check_result::sat:
       _status = SATISFIABLE;
       _model = _solver.get_model();
-      //cout << "model : " << endl;
-      //for(unsigned i=0; i < _model.size(); i++){
-      //  z3::func_decl v = _model[i];
-      //  cout << v.name() << " = " << _model.get_const_interp(v) << endl;
-      //}
+      cout << "model : " << endl;
+      for(unsigned i=0; i < _model.size(); i++){
+        z3::func_decl v = _model[i];
+        cout << v.name() << " = " << _model.get_const_interp(v) << endl;
+      }
       break;
     case z3::check_result::unknown:
       _status = UNKNOWN;
@@ -467,31 +467,45 @@ z3::expr Z3Interfacing::getz3expr(Term* trm,bool isLit,bool&nameExpression)
          case Theory::INT_REMAINDER_T:
            // leave as uninterpreted
            addTruncatedOperations(args,Theory::INT_QUOTIENT_T,Theory::INT_REMAINDER_T,range_sort);
+           skip=true;
            break;
          case Theory::RAT_QUOTIENT_T:
            ret = truncate(args[0]/args[1]);
+           addTruncatedOperations(args,Theory::RAT_QUOTIENT_T,Theory::RAT_REMAINDER_T,range_sort);
+           break;
          case Theory::RAT_REMAINDER_T:
+           skip=true;
            addTruncatedOperations(args,Theory::RAT_QUOTIENT_T,Theory::RAT_REMAINDER_T,range_sort);
            break;
          case Theory::REAL_QUOTIENT_T:
            ret = truncate(args[0]/args[1]);
+           addTruncatedOperations(args,Theory::REAL_QUOTIENT_T,Theory::REAL_REMAINDER_T,range_sort);
+           break;
          case Theory::REAL_REMAINDER_T:
-           addTruncatedOperations(args,Theory::RAT_QUOTIENT_T,Theory::RAT_REMAINDER_T,range_sort);
+           skip=true;
+           addTruncatedOperations(args,Theory::REAL_QUOTIENT_T,Theory::REAL_REMAINDER_T,range_sort);
            break;
 
          case Theory::INT_QUOTIENT_F:
          case Theory::INT_REMAINDER_F:
            // leave as uninterpreted
            addFloorOperations(args,Theory::INT_QUOTIENT_F,Theory::INT_REMAINDER_F,range_sort);
+           skip=true;
            break;
          case Theory::RAT_QUOTIENT_F:
            ret = to_real(to_int(args[0] / args[1]));
+           addFloorOperations(args,Theory::RAT_QUOTIENT_F,Theory::RAT_REMAINDER_F,range_sort);
+           break;
          case Theory::RAT_REMAINDER_F:
+           skip=true;
            addFloorOperations(args,Theory::RAT_QUOTIENT_F,Theory::RAT_REMAINDER_F,range_sort);
            break;
          case Theory::REAL_QUOTIENT_F:
            ret = to_real(to_int(args[0] / args[1]));
+           addFloorOperations(args,Theory::REAL_QUOTIENT_F,Theory::REAL_REMAINDER_F,range_sort);
+           break;
          case Theory::REAL_REMAINDER_F:
+           skip=true;
            addFloorOperations(args,Theory::REAL_QUOTIENT_F,Theory::REAL_REMAINDER_F,range_sort);
            break;
 
@@ -579,8 +593,8 @@ z3::expr Z3Interfacing::getRepresentation(SATLiteral slit)
       //cout << "got rep " << e << endl;
 
       if(nameExpression){
-        //cout << "Naming " << e << endl;
         z3::expr bname = getNameExpr(slit.var()); 
+        cout << "Naming " << e << " as " << bname << endl;
         _solver.add(bname == e); 
         _namedExpressions.insert(slit.var());
       }
@@ -660,9 +674,11 @@ SATClause* Z3Interfacing::getRefutation() {
 void Z3Interfacing::addTruncatedOperations(z3::expr_vector args, Interpretation qi, Interpretation ti, unsigned srt) 
 {
   CALL("Z3Interfacing::addTruncatedOperations");
+  return;
   
   unsigned qfun = env.signature->getInterpretingSymbol(qi);
   Signature::Symbol* qsymb = env.signature->getFunction(qfun); 
+  ASS(qsymb);
   z3::symbol qs = _context.str_symbol(qsymb->name().c_str());
   
   unsigned rfun = env.signature->getInterpretingSymbol(ti);
@@ -671,6 +687,7 @@ void Z3Interfacing::addTruncatedOperations(z3::expr_vector args, Interpretation 
 
   z3::expr e1 = args[0];
   z3::expr e2 = args[1];
+
 
   z3::sort_vector domain_sorts = z3::sort_vector(_context);
   domain_sorts.push_back(getz3sort(srt));
@@ -681,35 +698,50 @@ void Z3Interfacing::addTruncatedOperations(z3::expr_vector args, Interpretation 
 
   if(srt == Sorts::SRT_INTEGER){
 
+    domain_sorts = z3::sort_vector(_context);
+    domain_sorts.push_back(getz3sort(srt));
+    domain_sorts.push_back(getz3sort(srt));
     z3::func_decl q = _context.function(qs,domain_sorts,getz3sort(srt));
-    z3::expr q_e1_e2 = q(args);
+    z3::expr_vector qargs = z3::expr_vector(_context);
+    qargs.push_back(e1);
+    qargs.push_back(e2);
+    z3::expr q_e1_e2 = q(qargs);
 
     // e1 >= 0 & e2 > 0 -> e2 * q(e1,e2) <= e1 & e2 * q(e1,e2) > e1 - e2
+    cout << "one" << endl;
     z3::expr one = implies(( (e1 >= 0) && (e2 > 0) ), ( ( (e2*q_e1_e2) <= e1) && ( (e2*q_e1_e2) > (e1-e2) ) ) );
+    cout << one << endl;
     _solver.add(one);
 
     // e1 >= 0 & e2 < 0 -> -e2 * q(e1,e2) <= e1 & -e2 * q(e1,e2) > e1 + e2
+    cout << "two" << endl;
     z3::expr two = implies(( (e1 >=0) && (e2 <0) ), ( ((-e2)*q_e1_e2) <= e1) && ( ((-e2)*q_e1_e2) > (e1+e2) ) );
+    cout << two << endl;
     _solver.add(two);
 
     // e1 < 0 & e2 > 0 -> e2 * q(e1,e2) <= -e1 & e2 * q(e1,e2) > -e1 - e2
-    z3::expr three = implies( ((e1<0) && (e2>0)), ( ( (e2*q_e1_e2) <= (-e1) ) && ( (e2*q_e1_e2) > ((-e1)-e2) ) ) );
+    cout << "three" << endl;
+    z3::expr three = implies( ((e1<0) && (e2>0)), ( ( (e2*q_e1_e2) <= (-e1) ) && ( (e2*q_e1_e2) > ((-e1)+e2) ) ) );
+    cout << three << endl;
     _solver.add(three);
 
     // e1 < 0 & e2 < 0 -> -e2 * q(e1,e2) <= -e1 & -e2 * q(e1,e2) > -e1 + e2
-    z3::expr four = implies( ((e1<0) && (e2<0)), ( (((-e2)*q_e1_e2)<= (-e1)) && ( ((-e2)*q_e1_e2) > ((-e1)+e2) ) ) ); 
+    cout << "four" << endl;
+    z3::expr four = implies( ((e1<0) && (e2<0)), ( (((-e2)*q_e1_e2)<= (-e1)) && ( ((-e2)*q_e1_e2) > ((-e1)-e2) ) ) ); 
+    cout << four << endl;
     _solver.add(four);
 
     // e2 != 0 -> e2 * q(e1,e2) + r(e1,e2) = e1
-    z3::expr five = implies( (e2!=0), ( ((e2*q_e1_e2)+ r_e1_e2) = e1 ) );
+    cout << "five" << endl;
+    z3::expr five = implies( (e2!=0), ( ((e2*q_e1_e2)+ r_e1_e2) == e1 ) );
+    cout << five << endl;
     _solver.add(five);
   }
   else{
     // e2 != 0 -> e2 * q(e1,e2) + r(e1,e2) = e1
-    z3::expr five = implies( (e2!=0), ( ((e2*truncate(e1/e2))+ r_e1_e2) = e1 ) );
+    z3::expr five = implies( (e2!=0), ( ((e2*truncate(e1/e2))+ r_e1_e2) == e1 ) );
     _solver.add(five);
   }
-
 }
 /**
  *
@@ -717,6 +749,7 @@ void Z3Interfacing::addTruncatedOperations(z3::expr_vector args, Interpretation 
 void Z3Interfacing::addFloorOperations(z3::expr_vector args, Interpretation qi, Interpretation ti, unsigned srt)
 {
   CALL("Z3Interfacing::addFloorOperations");
+  return;
 
   unsigned qfun = env.signature->getInterpretingSymbol(qi);
   Signature::Symbol* qsymb = env.signature->getFunction(qfun);
@@ -738,8 +771,14 @@ void Z3Interfacing::addFloorOperations(z3::expr_vector args, Interpretation qi, 
 
   if(srt == Sorts::SRT_INTEGER){
 
+    domain_sorts = z3::sort_vector(_context);
+    domain_sorts.push_back(getz3sort(srt));
+    domain_sorts.push_back(getz3sort(srt));
     z3::func_decl q = _context.function(qs,domain_sorts,getz3sort(srt));
-    z3::expr q_e1_e2 = q(args);
+    z3::expr_vector qargs = z3::expr_vector(_context);
+    qargs.push_back(e1);
+    qargs.push_back(e2);
+    z3::expr q_e1_e2 = q(qargs);
 
     // e2 != 0 -> e2*q(e1,e2) <= e1 & e2*q(e1,e2) > e1 - e2 
     z3::expr one = implies( (e2!=0), ( ((e2*q_e1_e2) <= e1) && ((e2*q_e1_e2) > (e1-e2) ) ) );

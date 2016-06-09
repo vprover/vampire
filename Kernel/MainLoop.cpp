@@ -131,7 +131,7 @@ MainLoop* MainLoop::createFromOptions(Problem& prb, const Options& opt)
     return new BFNTMainLoop(prb, opt);
   }
 
-  bool isComplete = opt.complete(prb);
+  bool isComplete = false; 
 
 #if VZ3
   if(isComplete && opt.smtForGround() && prb.getProperty()->allNonTheoryClausesGround() 
