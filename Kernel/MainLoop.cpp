@@ -131,7 +131,7 @@ MainLoop* MainLoop::createFromOptions(Problem& prb, const Options& opt)
     return new BFNTMainLoop(prb, opt);
   }
 
-  bool isComplete = false; 
+  bool isComplete = false; // artificially prevent smtForGround from running 
 
 #if VZ3
   if(isComplete && opt.smtForGround() && prb.getProperty()->allNonTheoryClausesGround() 

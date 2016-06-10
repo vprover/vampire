@@ -91,11 +91,11 @@ SATSolver::Status Z3Interfacing::solve(unsigned conflictCountLimit)
     case z3::check_result::sat:
       _status = SATISFIABLE;
       _model = _solver.get_model();
-      cout << "model : " << endl;
-      for(unsigned i=0; i < _model.size(); i++){
-        z3::func_decl v = _model[i];
-        cout << v.name() << " = " << _model.get_const_interp(v) << endl;
-      }
+      //cout << "model : " << endl;
+      //for(unsigned i=0; i < _model.size(); i++){
+      //  z3::func_decl v = _model[i];
+      //  cout << v.name() << " = " << _model.get_const_interp(v) << endl;
+      //}
       break;
     case z3::check_result::unknown:
       _status = UNKNOWN;
@@ -594,7 +594,7 @@ z3::expr Z3Interfacing::getRepresentation(SATLiteral slit)
 
       if(nameExpression){
         z3::expr bname = getNameExpr(slit.var()); 
-        cout << "Naming " << e << " as " << bname << endl;
+        //cout << "Naming " << e << " as " << bname << endl;
         _solver.add(bname == e); 
         _namedExpressions.insert(slit.var());
       }
@@ -674,7 +674,6 @@ SATClause* Z3Interfacing::getRefutation() {
 void Z3Interfacing::addTruncatedOperations(z3::expr_vector args, Interpretation qi, Interpretation ti, unsigned srt) 
 {
   CALL("Z3Interfacing::addTruncatedOperations");
-  return;
   
   unsigned qfun = env.signature->getInterpretingSymbol(qi);
   Signature::Symbol* qsymb = env.signature->getFunction(qfun); 
@@ -708,33 +707,23 @@ void Z3Interfacing::addTruncatedOperations(z3::expr_vector args, Interpretation 
     z3::expr q_e1_e2 = q(qargs);
 
     // e1 >= 0 & e2 > 0 -> e2 * q(e1,e2) <= e1 & e2 * q(e1,e2) > e1 - e2
-    cout << "one" << endl;
     z3::expr one = implies(( (e1 >= 0) && (e2 > 0) ), ( ( (e2*q_e1_e2) <= e1) && ( (e2*q_e1_e2) > (e1-e2) ) ) );
-    cout << one << endl;
     _solver.add(one);
 
-    // e1 >= 0 & e2 < 0 -> -e2 * q(e1,e2) <= e1 & -e2 * q(e1,e2) > e1 + e2
-    cout << "two" << endl;
-    z3::expr two = implies(( (e1 >=0) && (e2 <0) ), ( ((-e2)*q_e1_e2) <= e1) && ( ((-e2)*q_e1_e2) > (e1+e2) ) );
-    cout << two << endl;
+    // e1 >= 0 & e2 < 0 -> e2 * q(e1,e2) <= e1 & e2 * q(e1,e2) > e1 + e2
+    z3::expr two = implies(( (e1 >=0) && (e2 <0) ), ( (e2*q_e1_e2) <= e1) && ( ((-e2)*q_e1_e2) > (e1+e2) ) );
     _solver.add(two);
 
-    // e1 < 0 & e2 > 0 -> e2 * q(e1,e2) <= -e1 & e2 * q(e1,e2) > -e1 - e2
-    cout << "three" << endl;
-    z3::expr three = implies( ((e1<0) && (e2>0)), ( ( (e2*q_e1_e2) <= (-e1) ) && ( (e2*q_e1_e2) > ((-e1)+e2) ) ) );
-    cout << three << endl;
+    // e1 < 0 & e2 > 0 -> e2 * q(e1,e2) >= e1 & e2 * q(e1,e2) < e1 + e2
+    z3::expr three = implies( ((e1<0) && (e2>0)), ( ( (e2*q_e1_e2) >= e1 ) && ( (e2*q_e1_e2) < (e1+e2) ) ) );
     _solver.add(three);
 
-    // e1 < 0 & e2 < 0 -> -e2 * q(e1,e2) <= -e1 & -e2 * q(e1,e2) > -e1 + e2
-    cout << "four" << endl;
-    z3::expr four = implies( ((e1<0) && (e2<0)), ( (((-e2)*q_e1_e2)<= (-e1)) && ( ((-e2)*q_e1_e2) > ((-e1)-e2) ) ) ); 
-    cout << four << endl;
+    // e1 < 0 & e2 < 0 -> e2 * q(e1,e2) >= e1 & e2 * q(e1,e2) < e1 - e2
+    z3::expr four = implies( ((e1<0) && (e2<0)), ( ((e2*q_e1_e2) >= e1) && ( (e2*q_e1_e2) < (e1-e2) ) ) ); 
     _solver.add(four);
 
     // e2 != 0 -> e2 * q(e1,e2) + r(e1,e2) = e1
-    cout << "five" << endl;
     z3::expr five = implies( (e2!=0), ( ((e2*q_e1_e2)+ r_e1_e2) == e1 ) );
-    cout << five << endl;
     _solver.add(five);
   }
   else{
@@ -749,7 +738,6 @@ void Z3Interfacing::addTruncatedOperations(z3::expr_vector args, Interpretation 
 void Z3Interfacing::addFloorOperations(z3::expr_vector args, Interpretation qi, Interpretation ti, unsigned srt)
 {
   CALL("Z3Interfacing::addFloorOperations");
-  return;
 
   unsigned qfun = env.signature->getInterpretingSymbol(qi);
   Signature::Symbol* qsymb = env.signature->getFunction(qfun);
