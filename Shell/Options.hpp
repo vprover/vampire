@@ -1678,6 +1678,7 @@ public:
 
   bool flattenTopLevelConjunctions() const { return _flattenTopLevelConjunctions.actualValue; }
   LTBLearning ltbLearning() const { return _ltbLearning.actualValue; }
+  vstring ltbDirectory() const { return _ltbDirectory.actualValue; }
   Mode mode() const { return _mode.actualValue; }
   unsigned multicore() const { return _multicore.actualValue; }
   InputSyntax inputSyntax() const { return _inputSyntax.actualValue; }
@@ -2130,6 +2131,7 @@ private:
   IntOptionValue _lrsFirstTimeCheck;
   BoolOptionValue _lrsWeightLimitOnly;
   ChoiceOptionValue<LTBLearning> _ltbLearning;
+  StringOptionValue _ltbDirectory;
 
   LongOptionValue _maxActive;
   IntOptionValue _maxAnswers;

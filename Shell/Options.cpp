@@ -122,6 +122,10 @@ void Options::Options::init()
     _lookup.insert(&_ltbLearning);
     _ltbLearning.setExperimental();
 
+    _ltbDirectory = StringChoiceValue("ltb_directory","","");
+    _ltbDirectory.description = "Directory for output from LTB mode";
+    _lookup.insert(&_ltbDirectory);
+
     _decode = DecodeOptionValue("decode","",this);
     _decode.description="Decodes an encoded strategy. Can be used to replay a strategy. To make Vampire output an encoded version of the strategy use the encode option.";
     _lookup.insert(&_decode);
