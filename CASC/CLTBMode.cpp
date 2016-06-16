@@ -133,8 +133,15 @@ void CLTBMode::solveBatch(istream& batchFile, bool first)
     StringPair res=probs.next();
 
     vstring probFile=res.first;
+    vstring outFile= res.second;
     vstring outDir = env.options->ltbDirectory();
-    vstring outFile= outDir+"/"+res.second;
+    if(!outDir.empty()){
+      std::size_t found = outFile.find_last_of("/");
+      if(found != vstring::npos){
+        outFile = outFile.substr(found);
+      }
+      outFile= outDir+"/"+outFile;
+    }
 
     // calculate the next problem time limit in milliseconds
     int elapsedTime = env.timer->elapsedMilliseconds();

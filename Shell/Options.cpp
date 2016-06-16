@@ -123,8 +123,8 @@ void Options::Options::init()
     _lookup.insert(&_ltbLearning);
     _ltbLearning.setExperimental();
 
-    _ltbDirectory = StringOptionValue("ltb_directory","",".");
-    _ltbDirectory.description = "Directory for output from LTB mode. Default is current directory.";
+    _ltbDirectory = StringOptionValue("ltb_directory","","");
+    _ltbDirectory.description = "Directory for output from LTB mode. Default is to put output next to problem.";
     _lookup.insert(&_ltbDirectory);
 
     _decode = DecodeOptionValue("decode","",this);
