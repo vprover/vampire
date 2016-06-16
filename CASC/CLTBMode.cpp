@@ -73,6 +73,7 @@ void CLTBMode::perform()
   }
 
   //support several batches in one file
+  bool firstBatch=true;
   while (!in.eof()) {
     vostringstream singleInst;
     bool ready = false;
@@ -89,7 +90,8 @@ void CLTBMode::perform()
     }
     CLTBMode ltbm;
     vistringstream childInp(singleInst.str());
-    ltbm.solveBatch(childInp);
+    ltbm.solveBatch(childInp,firstBatch);
+    firstBatch=false;
   }
 } // CLTBMode::perform
 
@@ -107,14 +109,14 @@ void CLTBMode::perform()
  * @author Andrei Voronkov
  * @since 04/06/2013 flight Manchester-Frankfurt
  */
-void CLTBMode::solveBatch(istream& batchFile)
+void CLTBMode::solveBatch(istream& batchFile, bool first)
 {
   CALL("CLTBMode::solveBatch(istream& batchfile)");
 
   // this is the time in milliseconds since the start when this batch file should terminate
   _timeUsedByPreviousBatches = env.timer->elapsedMilliseconds();
   coutLineOutput() << "Starting Vampire on the batch file " << "\n";
-  int terminationTime = readInput(batchFile);
+  int terminationTime = readInput(batchFile,first);
   loadIncludes();
 
   _biasedLearning = false;
@@ -131,7 +133,8 @@ void CLTBMode::solveBatch(istream& batchFile)
     StringPair res=probs.next();
 
     vstring probFile=res.first;
-    vstring outFile=res.second;
+    vstring outDir = env.options->ltbDirectory();
+    vstring outFile= outDir+"/"+res.second;
 
     // calculate the next problem time limit in milliseconds
     int elapsedTime = env.timer->elapsedMilliseconds();
@@ -355,6 +358,11 @@ void CLTBMode::doTraining()
 {
   CALL("CLTBMode::doTraining");
 
+  env.beginOutput();
+  env.out() << "Training in LTB currently unsupported" << endl;
+  env.endOutput();
+  return;
+
   Stack<vstring> solutions;
   System::readDir(_trainingDirectory+"/Solutions",solutions);
 
@@ -392,33 +400,36 @@ void CLTBMode::doTraining()
  * @since 04/06/2013 flight Manchester-Frankfurt
  * @author Andrei Voronkov
  */
-int CLTBMode::readInput(istream& in)
+int CLTBMode::readInput(istream& in, bool first)
 {
   CALL("CLTBMode::readInput");
 
   vstring line, word;
 
-  getline(in,line);
-  if (line.find("division.category") != vstring::npos){
-      StringStack ls;
-      StringUtils::splitStr(line.c_str(),' ',ls);
-      _category = getCategory(ls[1]);
-      coutLineOutput() << "read category " << ls[1] << endl;
+  if(first){
+    getline(in,line);
+    if (line.find("division.category") != vstring::npos){
+        StringStack ls;
+        StringUtils::splitStr(line.c_str(),' ',ls);
+        _category = getCategory(ls[1]);
+        coutLineOutput() << "read category " << ls[1] << endl;
+  
+        if (_category == Category::UNKNOWN) {
+          USER_ERROR("Unrecognized category");
+        }
+    }
+    else{ USER_ERROR("division category not found"); } 
+  
+    // Get training directory
+    getline(in,line);
+    if (line.find("training_directory") != vstring::npos){
+        StringStack ls;
+        StringUtils::splitStr(line.c_str(),' ',ls);
+        _trainingDirectory = ls[1];
+    }
+    else{ USER_ERROR("training_directory not found"); }
 
-      if (_category == Category::UNKNOWN) {
-        USER_ERROR("Unrecognized category");
-      }
   }
-  else{ USER_ERROR("division category not found"); } 
-
-  // Get training directory
-  getline(in,line);
-  if (line.find("training_directory") != vstring::npos){
-      StringStack ls;
-      StringUtils::splitStr(line.c_str(),' ',ls);
-      _trainingDirectory = ls[1];
-  }
-  else{ USER_ERROR("training_directory not found"); }
 
   getline(in,line);
   if (line!="% SZS start BatchConfiguration") {

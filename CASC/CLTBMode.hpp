@@ -57,8 +57,8 @@ class CLTBMode
 public:
   static void perform();
 private:
-  void solveBatch(istream& batchFile);
-  int readInput(istream& batchFile);
+  void solveBatch(istream& batchFile, bool first);
+  int readInput(istream& batchFile, bool first);
   static ostream& lineOutput();
   static ostream& coutLineOutput();
   void loadIncludes();

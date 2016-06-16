@@ -88,6 +88,7 @@ void Options::Options::init()
                                     {"axiom_selection",
                                         "casc",
                                         "casc_sat",
+                                        "casc_ltb",
                                         "smtcomp",
                                         "clausify","clausify_stat",
                                         "consequence_elimination","grounding",
@@ -122,8 +123,8 @@ void Options::Options::init()
     _lookup.insert(&_ltbLearning);
     _ltbLearning.setExperimental();
 
-    _ltbDirectory = StringChoiceValue("ltb_directory","","");
-    _ltbDirectory.description = "Directory for output from LTB mode";
+    _ltbDirectory = StringOptionValue("ltb_directory","",".");
+    _ltbDirectory.description = "Directory for output from LTB mode. Default is current directory.";
     _lookup.insert(&_ltbDirectory);
 
     _decode = DecodeOptionValue("decode","",this);

@@ -980,7 +980,6 @@ int main(int argc, char* argv[])
          vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
         }
     break;
-/*
     case Options::Mode::CASC_LTB: {
       try {
         CASC::CLTBMode::perform();
@@ -993,7 +992,6 @@ int main(int argc, char* argv[])
       vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
       break;
     }
-*/
 /*
     case Options::Mode::CASC_MZR: {
       CASC::CMZRMode::perform();
