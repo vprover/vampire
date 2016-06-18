@@ -427,10 +427,6 @@ int CLTBMode::readInput(istream& in, bool first)
         StringUtils::splitStr(line.c_str(),' ',ls);
         _category = getCategory(ls[1]);
         coutLineOutput() << "read category " << ls[1] << endl;
-  
-        if (_category == Category::UNKNOWN) {
-          USER_ERROR("Unrecognized category");
-        }
     }
     else{ USER_ERROR("division category not found"); } 
   
