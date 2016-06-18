@@ -57,17 +57,24 @@ void CLTBMode::perform()
   CALL("CLTBMode::perform");
 
   if (env.options->inputFile() == "") {
-    USER_ERROR("Input file must be specified for cltb mode");
+    USER_ERROR("Input file must be specified for ltb mode");
   }
   // to prevent from terminating by time limit
   env.options->setTimeLimitInSeconds(100000);
 
-  UIHelper::szsOutput = true;
+  //UIHelper::szsOutput = true;
   env.options->setProof(Options::Proof::TPTP);
   env.options->setStatistics(Options::Statistics::NONE);
 
   vstring line;
-  ifstream in(env.options->inputFile().c_str());
+  vstring inputFile = env.options->inputFile();
+  std::size_t found = inputFile.find_last_of("/");
+  vstring inputDirectory = ".";
+  if(found != vstring::npos){
+    inputDirectory = inputFile.substr(0,found); 
+  }
+
+  ifstream in(inputFile.c_str());
   if (in.fail()) {
     USER_ERROR("Cannot open input file: " + env.options->inputFile());
   }
@@ -90,7 +97,7 @@ void CLTBMode::perform()
     }
     CLTBMode ltbm;
     vistringstream childInp(singleInst.str());
-    ltbm.solveBatch(childInp,firstBatch);
+    ltbm.solveBatch(childInp,firstBatch,inputDirectory);
     firstBatch=false;
   }
 } // CLTBMode::perform
@@ -109,7 +116,7 @@ void CLTBMode::perform()
  * @author Andrei Voronkov
  * @since 04/06/2013 flight Manchester-Frankfurt
  */
-void CLTBMode::solveBatch(istream& batchFile, bool first)
+void CLTBMode::solveBatch(istream& batchFile, bool first,vstring inputDirectory)
 {
   CALL("CLTBMode::solveBatch(istream& batchfile)");
 
@@ -132,7 +139,7 @@ void CLTBMode::solveBatch(istream& batchFile, bool first)
   while (probs.hasNext()) {
     StringPair res=probs.next();
 
-    vstring probFile=res.first;
+    vstring probFile= inputDirectory+"/"+res.first;
     vstring outFile= res.second;
     vstring outDir = env.options->ltbDirectory();
     if(!outDir.empty()){
@@ -811,7 +818,7 @@ void CLTBProblem::searchForProof(int terminationTime,int timeLimit,const Categor
   // now all the cpu usage will be in children, we'll just be waiting for them
   Timer::setTimeLimitEnforcement(false);
 
-  UIHelper::szsOutput=true;
+  //UIHelper::szsOutput=true;
 
   performStrategy(terminationTime,timeLimit,category,property);
   exitOnNoSuccess();
