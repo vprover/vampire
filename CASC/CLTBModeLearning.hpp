@@ -47,9 +47,12 @@ class CLTBProblemLearning;
 class CLTBModeLearning
 {
 public:
-  CLTBModeLearning() {
+  enum { ATT=0, SUC=1 };
+  CLTBModeLearning() : stratSem(2) {
     attemptedStrategies = new SyncPipe();
     successfulStrategies = new SyncPipe();;
+    stratSem.set(ATT,0); 
+    stratSem.set(SUC,0); 
   }
 
   static void perform();
@@ -59,12 +62,14 @@ private:
   static ostream& lineOutput();
   static ostream& coutLineOutput();
   void loadIncludes();
-  void doTraining(int time);
+  void doTraining(int time,bool startup);
 
   typedef List<vstring> StringList;
   typedef Stack<vstring> StringStack;
   typedef pair<vstring,vstring> StringPair;
   typedef Stack<StringPair> StringPairStack;
+  typedef Stack<vstring> Schedule;
+  static void fillSchedule(Schedule& strats);
 
   vstring _trainingDirectory;
   /** per-problem time limit, in milliseconds */
@@ -84,8 +89,51 @@ private:
 
   ScopedPtr<Problem> _baseProblem;
 
+  Semaphore stratSem;
   SyncPipe* attemptedStrategies;
   SyncPipe* successfulStrategies;
+  static DHMap<vstring,unsigned> attempts;
+  static DHMap<vstring,unsigned> wins;
+
+struct StrategyComparator
+{
+  static Comparison compare(vstring s1, vstring s2)
+  {
+    unsigned a1;
+    unsigned a2;
+    unsigned w1;
+    unsigned w2;
+    if(!attempts.find(s1,a1)){a1=0;}
+    if(!attempts.find(s2,a2)){a2=0;}
+    if(!wins.find(s1,w1)){w1=0;}
+    if(!wins.find(s2,w2)){w2=0;}
+
+    if(w1==0 || w2==0){
+      return Int::compare(w2,w1);
+    }
+
+    float r1 = ((float) a1)/w1;
+    float r2 = ((float) a2)/w2;
+
+    return Int::compare(r2,r1);
+  }
+};
+struct LeastAttemptedComparator
+{
+  static Comparison compare(vstring s1, vstring s2)
+  {
+    unsigned a1;
+    unsigned a2;
+    if(!attempts.find(s1,a1)){a1=0;}
+    if(!attempts.find(s2,a2)){a2=0;}
+
+    return Int::compare(a1,a2);
+  }
+};
+
+  Stack<vstring> problems;
+  Stack<vstring> new_problems;
+  Schedule strats;
 
   friend class CLTBProblemLearning;
 };
@@ -96,15 +144,16 @@ class CLTBProblemLearning
 public:
   CLTBProblemLearning(CLTBModeLearning* parent, vstring problemFile, vstring outFile);
 
-  void searchForProof(int terminationTime,int timeLimit) __attribute__((noreturn));
   typedef Set<vstring> StrategySet;
   typedef Stack<vstring> Schedule;
+
+  void searchForProof(int terminationTime,int timeLimit,Schedule& strats,bool stopOnProof) __attribute__((noreturn));
 private:
-  bool runSchedule(Schedule&,StrategySet& remember,bool fallback,int terminationTime);
+  bool runSchedule(Schedule&,StrategySet& remember,bool fallback,int terminationTime, bool stopOnProof);
   unsigned getSliceTime(vstring sliceCode,vstring& chopped);
 
-  void performStrategy(int terminationTime,int timeLimit,  Shell::Property* property);
-  void waitForChildAndExitWhenProofFound();
+  void performStrategy(int terminationTime,int timeLimit,  Shell::Property* property, Schedule& quick, bool stopOnProof);
+  void waitForChildAndExitWhenProofFound(bool stopOnProof);
   void exitOnNoSuccess() __attribute__((noreturn));
 
   static ofstream* writerFileStream;

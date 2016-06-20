@@ -22,6 +22,7 @@
 #include "Lib/TimeCounter.hpp"
 #include "Lib/Timer.hpp"
 #include "Lib/ScopedPtr.hpp"
+#include "Lib/Sort.hpp"
 
 #include "Lib/Sys/Multiprocessing.hpp"
 #include "Lib/Sys/SyncPipe.hpp"
@@ -45,6 +46,9 @@ using namespace std;
 using namespace Lib;
 using namespace Lib::Sys;
 using namespace Saturation;
+
+DHMap<vstring,unsigned> CLTBModeLearning::attempts;
+DHMap<vstring,unsigned> CLTBModeLearning::wins;
 
 /**
  * The function that does all the job: reads the input files and runs
@@ -120,25 +124,30 @@ void CLTBModeLearning::solveBatch(istream& batchFile, bool first,vstring inputDi
 {
   CALL("CLTBModeLearning::solveBatch(istream& batchfile)");
 
+  // fill the global strats up
+  fillSchedule(strats);
+
+  // this is the time in milliseconds since the start when this batch file should terminate
+   _timeUsedByPreviousBatches = env.timer->elapsedMilliseconds();
+  coutLineOutput() << "Starting Vampire on the batch file " << "\n";
+  int terminationTime = readInput(batchFile,first);
+  loadIncludes();
+
   int surplus = 0;
   { // do some startup training
     coutLineOutput() << "Performing startup training " << endl;
+    coutLineOutput() << "Loading problems from " << (_trainingDirectory+"/Problems") << endl;
+    System::readDir(_trainingDirectory+"/Problems",problems);
+
     int elapsedTime = env.timer->elapsedMilliseconds();
-    // we train for two problem time limits 
-    // TODO this assumes a certain number of problems 
-    doTraining(2*_problemTimeLimit);
+    int doTrainingFor = 6000; //_problemTimeLimit;
+    doTraining(doTrainingFor,true);
     int trainingElapsed = env.timer->elapsedMilliseconds();
     int trainingTime = trainingElapsed-elapsedTime;
     // we begin with negative surplus
     surplus = -trainingTime;
     coutLineOutput() << "training took " << trainingTime << endl;
   }
-
-  // this is the time in milliseconds since the start when this batch file should terminate
-  _timeUsedByPreviousBatches = env.timer->elapsedMilliseconds();
-  coutLineOutput() << "Starting Vampire on the batch file " << "\n";
-  int terminationTime = readInput(batchFile,first);
-  loadIncludes();
 
   int solvedProblems = 0;
   int remainingProblems = _problemFiles.size();
@@ -147,6 +156,7 @@ void CLTBModeLearning::solveBatch(istream& batchFile, bool first,vstring inputDi
     StringPair res=probs.next();
 
     vstring probFile= inputDirectory+"/"+res.first;
+    new_problems.push(probFile);
     vstring outFile= res.second;
     vstring outDir = env.options->ltbDirectory();
     if(!outDir.empty()){
@@ -187,7 +197,7 @@ void CLTBModeLearning::solveBatch(istream& batchFile, bool first,vstring inputDi
       // child process
       CLTBProblemLearning prob(this, probFile, outFile);
       try {
-        prob.searchForProof(problemTerminationTime,nextProblemTimeLimit);
+        prob.searchForProof(problemTerminationTime,nextProblemTimeLimit,strats,true);
       } catch (Exception& exc) {
         cerr << "% Exception at proof search level" << endl;
         exc.cry(cerr);
@@ -235,9 +245,9 @@ void CLTBModeLearning::solveBatch(istream& batchFile, bool first,vstring inputDi
     // update running surplus (which might be negative to start with due to startup training) 
     surplus = surplus+timeLeft; 
     // only do training if we have at least 5 seconds surplus
-    if(surplus>5){
-      coutLineOutput() << "Have " << surplus << " surplus, doing training" << endl;
-      doTraining(surplus);
+    coutLineOutput() << "Have " << surplus << " surplus time for training" << endl;
+    if(surplus>5000){
+      doTraining(surplus,false);
       // update surplus with actual time taken
       int trainingElapsed = env.timer->elapsedMilliseconds();
       int trainingTime = trainingElapsed-timeNow;
@@ -290,26 +300,96 @@ void CLTBModeLearning::loadIncludes()
   env.statistics->phase=Statistics::UNKNOWN_PHASE;
 } // CLTBModeLearning::loadIncludes
 
-
-void CLTBModeLearning::doTraining(int time)
+void CLTBModeLearning::doTraining(int time, bool startup)
 {
   CALL("CLTBModeLearning::doTraining");
 
+  static Stack<vstring>::Iterator* prob_iter = 0;
 
-  Stack<vstring> problems; 
-  System::readDir(_trainingDirectory+"/Problems",problems);
+  if(startup || (prob_iter && !prob_iter->hasNext())){
+    problems.loadFromIterator(Stack<vstring>::BottomFirstIterator(new_problems));
+    while(!new_problems.isEmpty()){new_problems.pop();}
+    prob_iter = new Stack<vstring>::Iterator(problems);
+  }
+  ASS(prob_iter);
 
-/*
-  Stack<vstring>::Iterator it(solutions);
-  while (it.hasNext()) {
-    TimeCounter tc(TC_PARSING);
-    env.statistics->phase=Statistics::PARSING;
+  // sort strats in terms of least attempted
+  sort<LeastAttemptedComparator>(strats.begin(),strats.end());
 
-    vstring& solnFileName = it.next();
-    learnFromSolutionFile(solnFileName);
+  vstring outFile = "temp";
+
+  // try and solve the next problem(s)
+ while(prob_iter->hasNext()){
+    vstring probFile = prob_iter->next();
+    coutLineOutput() << "Training on " << probFile << endl; 
+
+    // spend 5s on this problem
+
+    int elapsedTime = env.timer->elapsedMilliseconds();
+    int problemTerminationTime = elapsedTime + 5000; 
+
+    pid_t child = Multiprocessing::instance()->fork();
+    if (!child) {
+      CLTBProblemLearning prob(this, probFile, outFile);
+      try {
+        prob.searchForProof(problemTerminationTime,5000,strats,false);
+      } catch (Exception& exc) {
+      }
+      ASSERTION_VIOLATION;
+    }
+    int resValue;
+    try {
+      pid_t finishedChild = Multiprocessing::instance()->waitForChildTermination(resValue);
+      ASS_EQ(finishedChild, child);
+    }
+    catch(SystemFailException& ex) {
+      cerr << "% SystemFailException at batch level" << endl;
+      ex.cry(cerr);
+    }
+    if(!resValue){
+      coutLineOutput() << "solved in training" << endl;
+    }
+    int timeNow = env.timer->elapsedMilliseconds();
+    int timeTaken = timeNow - elapsedTime;
+    time = time-timeTaken;
+    if(time<5000) break; // we want at least 5 seconds
+    coutLineOutput() << "time left for training " << time << endl;
+  }
+
+  // it is important that we know that nobody will be using the semaphores etc
+  if(!startup){
+
+    if(stratSem.get(ATT)){
+      attemptedStrategies->acquireRead();
+      istream& ain = attemptedStrategies->in();
+      vstring line;
+      while(stratSem.get(ATT)){
+        stratSem.dec(ATT);
+        getline(ain,line);
+        unsigned c;
+        if(!attempts.find(line,c)){c=0;}
+        attempts.insert(line,c+1);
+      }
+      attemptedStrategies->releaseRead();
+    }
+    if(stratSem.get(SUC)){
+      successfulStrategies->acquireRead();
+      istream& sin = successfulStrategies->in();
+      vstring line;
+      while(stratSem.get(SUC)){
+        stratSem.dec(SUC);
+        getline(sin,line);
+        unsigned c;
+        if(!wins.find(line,c)){c=0;}
+        wins.insert(line,c+1);
+      }
+      successfulStrategies->releaseRead();
+    }
 
   }
-*/
+
+ // Finally, resort strategies
+ sort<StrategyComparator>(strats.begin(),strats.end());
 
 } // CLTBModeLearning::doTraining
 
@@ -472,7 +552,7 @@ CLTBProblemLearning::CLTBProblemLearning(CLTBModeLearning* parent, vstring probl
   _syncSemaphore.set(0,1);
 }
 
-static void fillSchedule(CLTBProblemLearning::Schedule& sched,Shell::Property* property) {
+void CLTBModeLearning::fillSchedule(CLTBModeLearning::Schedule& sched) {
     sched.push("lrs+1011_3:1_bd=off:bsr=on:cond=fast:gs=on:gsem=on:lwlo=on:nwc=10:stl=34:sd=1:ss=axioms:st=3.0:spl=off:sp=occurrence:updr=off:uhcvi=on_1");
     sched.push("dis+1003_5_cond=on:fsr=off:fde=none:gs=on:gsem=off:nwc=1:sos=on:sdd=large:sser=off:sfr=on:ssfp=100000:ssfq=1.0:ssnc=all_dependent:sp=reverse_arity:urr=ec_only:uhcvi=on_3");
     sched.push("dis+2_5_bd=off:cond=fast:gs=on:lcm=reverse:nwc=1:sd=3:ss=axioms:sos=on:spl=off:sp=occurrence:updr=off:uhcvi=on_3");
@@ -585,25 +665,22 @@ static void fillSchedule(CLTBProblemLearning::Schedule& sched,Shell::Property* p
  * @since 04/06/2013 flight Frankfurt-Vienna, updated for CASC-J6
  * @author Andrei Voronkov
  */
-void CLTBProblemLearning::performStrategy(int terminationTime,int timeLimit,  Shell::Property* property)
+void CLTBProblemLearning::performStrategy(int terminationTime,int timeLimit,  Shell::Property* property,Schedule& quick, bool stopOnProof)
 {
   CALL("CLTBProblemLearning::performStrategy");
   cout << "% Hi Geoff, go and have some cold beer while I am trying to solve this very hard problem!\n";
 
-  Schedule quick;
-  Schedule fallback;
-
-    fillSchedule(quick,property);
-    CASC::CASCMode::getSchedules(*property,fallback,fallback);
+   Schedule fallback;
+   //CASC::CASCMode::getSchedules(*property,fallback,fallback);
     
   StrategySet usedSlices;
-  if (runSchedule(quick,usedSlices,false,terminationTime)) {
+  if (runSchedule(quick,usedSlices,false,terminationTime,stopOnProof)) {
     return;
   }
   if (env.timer->elapsedMilliseconds() >= terminationTime) {
     return;
   }
-  runSchedule(fallback,usedSlices,true,terminationTime);
+  //runSchedule(fallback,usedSlices,true,terminationTime,stopOnProof);
 } // CLTBProblemLearning::performStrategy
 
 /**
@@ -616,7 +693,7 @@ void CLTBProblemLearning::performStrategy(int terminationTime,int timeLimit,  Sh
  * @since 04/06/2013 flight Manchester-Frankfurt
  * @author Andrei Voronkov
  */
-void CLTBProblemLearning::searchForProof(int terminationTime,int timeLimit)
+void CLTBProblemLearning::searchForProof(int terminationTime,int timeLimit, Schedule& strats, bool stopOnProof)
 {
   CALL("CLTBProblemLearning::searchForProof");
 
@@ -626,8 +703,6 @@ void CLTBProblemLearning::searchForProof(int terminationTime,int timeLimit)
   TimeCounter::reinitialize();
 
   env.options->setInputFile(problemFile);
-
-  Stack<unsigned> cutoffs;
 
   // this local scope will delete a potentially large parser
   {
@@ -647,6 +722,9 @@ void CLTBProblemLearning::searchForProof(int terminationTime,int timeLimit)
     UnitList* probUnits = parser.units();
     UIHelper::setConjecturePresence(parser.containsConjecture());
     prb.addUnits(probUnits);
+
+
+
   }
 
   Shell::Property* property = prb.getProperty();
@@ -664,7 +742,7 @@ void CLTBProblemLearning::searchForProof(int terminationTime,int timeLimit)
 
   //UIHelper::szsOutput=true;
 
-  performStrategy(terminationTime,timeLimit,property);
+  performStrategy(terminationTime,timeLimit,property,strats,stopOnProof);
   exitOnNoSuccess();
   ASSERTION_VIOLATION; // the exitOnNoSuccess() function should never return
 } // CLTBProblemLearning::perform
@@ -709,7 +787,7 @@ static unsigned milliToDeci(unsigned timeInMiliseconds) {
  * @author Andrei Voronkov
  * @since 04/06/2013 flight Frankfurt-Vienna, updated for CASC-J6
  */
-bool CLTBProblemLearning::runSchedule(Schedule& schedule,StrategySet& used,bool fallback,int terminationTime)
+bool CLTBProblemLearning::runSchedule(Schedule& schedule,StrategySet& used,bool fallback,int terminationTime, bool stopOnProof)
 {
   CALL("CLTBProblemLearning::runSchedule");
 
@@ -792,7 +870,7 @@ bool CLTBProblemLearning::runSchedule(Schedule& schedule,StrategySet& used,bool 
 
     CLTBModeLearning::coutLineOutput() << "No processes available: " << endl << flush;
     if (processesLeft==0) {
-      waitForChildAndExitWhenProofFound();
+      waitForChildAndExitWhenProofFound(stopOnProof);
       // proof search failed
       processesLeft++;
     }
@@ -802,7 +880,7 @@ bool CLTBProblemLearning::runSchedule(Schedule& schedule,StrategySet& used,bool 
 
   while (parallelProcesses!=processesLeft) {
     ASS_L(processesLeft, parallelProcesses);
-    waitForChildAndExitWhenProofFound();
+    waitForChildAndExitWhenProofFound(stopOnProof);
     // proof search failed
     processesLeft++;
     Timer::syncClock();
@@ -814,7 +892,7 @@ bool CLTBProblemLearning::runSchedule(Schedule& schedule,StrategySet& used,bool 
  * Wait for termination of a child and terminate the process with a zero status
  * if a proof was found. If the child didn't find the proof, just return.
  */
-void CLTBProblemLearning::waitForChildAndExitWhenProofFound()
+void CLTBProblemLearning::waitForChildAndExitWhenProofFound(bool stopOnProof)
 {
   CALL("CLTBProblemLearning::waitForChildAndExitWhenProofFound");
   ASS(!childIds.isEmpty());
@@ -828,7 +906,7 @@ void CLTBProblemLearning::waitForChildAndExitWhenProofFound()
     // we have found the proof. It has been already written down by the writter child,
     // so we can just terminate
     CLTBModeLearning::coutLineOutput() << "terminated slice pid " << finishedChild << " (success)" << endl << flush;
-    System::terminateImmediately(0);
+    if(stopOnProof){ System::terminateImmediately(0);}
   }
   // proof not found
   CLTBModeLearning::coutLineOutput() << "terminated slice pid " << finishedChild << " (fail)" << endl << flush;
@@ -865,7 +943,8 @@ void CLTBProblemLearning::runSlice(vstring sliceCode, unsigned timeLimitInMillis
   ostream& pout = pipe->out();
   pout << sliceCode << endl;
   pipe->releaseWrite();
-
+  parent->stratSem.incp(CLTBModeLearning::ATT);
+  CLTBModeLearning::coutLineOutput() << "record attempted" << endl;
 
   Options opt = *env.options;
   opt.readFromEncodedOptions(sliceCode);
@@ -929,18 +1008,21 @@ void CLTBProblemLearning::runSlice(Options& strategyOpt)
   System::ignoreSIGHUP(); // don't interrupt now, we need to finish printing the proof !
 
   if (!resultValue) { // write the proof to a file
-    ScopedSemaphoreLocker locker(_syncSemaphore);
-    locker.lock();
-    ofstream out(outFile.c_str());
-    UIHelper::outputResult(out);
-    out.close();
+    {
+      ScopedSemaphoreLocker locker(_syncSemaphore);
+      locker.lock();
+      ofstream out(outFile.c_str());
+      UIHelper::outputResult(out);
+      out.close();
+    }
 
-    // record the sliceCode
     SyncPipe* pipe = parent->successfulStrategies;
     pipe->acquireWrite();
     ostream& pout = pipe->out();
     pout << opt.testId() << endl;
     pipe->releaseWrite();
+    parent->stratSem.incp(CLTBModeLearning::SUC);
+    CLTBModeLearning::coutLineOutput() << "record success" << endl;
 
   } else { // write other result to output
     env.beginOutput();

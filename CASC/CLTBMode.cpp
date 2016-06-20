@@ -696,7 +696,7 @@ void CLTBProblem::performStrategy(int terminationTime,int timeLimit, const Categ
   Schedule fallback;
 
     fillSchedule(quick,property);
-    CASC::CASCMode::getSchedules(*property,fallback,fallback);
+    //CASC::CASCMode::getSchedules(*property,fallback,fallback);
     
   StrategySet usedSlices;
   if (runSchedule(quick,usedSlices,false,terminationTime)) {
@@ -705,7 +705,7 @@ void CLTBProblem::performStrategy(int terminationTime,int timeLimit, const Categ
   if (env.timer->elapsedMilliseconds() >= terminationTime) {
     return;
   }
-  runSchedule(fallback,usedSlices,true,terminationTime);
+  //runSchedule(fallback,usedSlices,true,terminationTime);
 } // CLTBProblem::performStrategy
 
 /**

@@ -51,6 +51,7 @@
 #include "SMTCOMP/SMTCOMPMode.hpp"
 #include "CASC/CASCMultiMode.hpp"
 #include "CASC/CLTBMode.hpp"
+#include "CASC/CLTBModeLearning.hpp"
 #include "CASC/CMZRMode.hpp"
 #include "Shell/CParser.hpp"
 #include "Shell/CommandLine.hpp"
@@ -981,8 +982,14 @@ int main(int argc, char* argv[])
         }
     break;
     case Options::Mode::CASC_LTB: {
+      bool learning = env.options->ltbLearning()!=Options::LTBLearning::OFF;
       try {
-        CASC::CLTBMode::perform();
+        if(learning){
+          CASC::CLTBModeLearning::perform();
+        }
+        else{
+          CASC::CLTBMode::perform();
+        }
       } catch (Lib::SystemFailException& ex) {
         cerr << "Process " << getpid() << " received SystemFailException" << endl;
         ex.cry(cerr);
