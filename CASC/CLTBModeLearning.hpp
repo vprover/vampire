@@ -14,6 +14,7 @@
 #include "Lib/Portability.hpp"
 #include "Lib/ScopedPtr.hpp"
 #include "Lib/Stack.hpp"
+#include "Lib/Set.hpp"
 
 #include "Lib/VString.hpp"
 
@@ -44,15 +45,18 @@ public:
 
 class CLTBProblemLearning;
 
+  struct ProbRecord{
+    Set<vstring> suc;
+    Set<vstring> fail;
+    float avg;
+  };
+
 class CLTBModeLearning
 {
 public:
-  enum { ATT=0, SUC=1 };
-  CLTBModeLearning() : stratSem(2) {
-    attemptedStrategies = new SyncPipe();
-    successfulStrategies = new SyncPipe();;
-    stratSem.set(ATT,0); 
-    stratSem.set(SUC,0); 
+  CLTBModeLearning() : stratSem(1) {
+    strategies = new SyncPipe();;
+    stratSem.set(0,0); 
   }
 
   static void perform();
@@ -90,46 +94,11 @@ private:
   ScopedPtr<Problem> _baseProblem;
 
   Semaphore stratSem;
-  SyncPipe* attemptedStrategies;
+  SyncPipe* strategies;
   SyncPipe* successfulStrategies;
-  static DHMap<vstring,unsigned> attempts;
-  static DHMap<vstring,unsigned> wins;
 
-struct StrategyComparator
-{
-  static Comparison compare(vstring s1, vstring s2)
-  {
-    unsigned a1;
-    unsigned a2;
-    unsigned w1;
-    unsigned w2;
-    if(!attempts.find(s1,a1)){a1=0;}
-    if(!attempts.find(s2,a2)){a2=0;}
-    if(!wins.find(s1,w1)){w1=0;}
-    if(!wins.find(s2,w2)){w2=0;}
-
-    if(w1==0 || w2==0){
-      return Int::compare(w2,w1);
-    }
-
-    float r1 = ((float) a1)/w1;
-    float r2 = ((float) a2)/w2;
-
-    return Int::compare(r2,r1);
-  }
-};
-struct LeastAttemptedComparator
-{
-  static Comparison compare(vstring s1, vstring s2)
-  {
-    unsigned a1;
-    unsigned a2;
-    if(!attempts.find(s1,a1)){a1=0;}
-    if(!attempts.find(s2,a2)){a2=0;}
-
-    return Int::compare(a1,a2);
-  }
-};
+  static DHMap<vstring,ProbRecord*> probRecords;
+  static DHMap<vstring,Stack<vstring>*> stratWins;
 
   Stack<vstring> problems;
   Stack<vstring> new_problems;
@@ -158,8 +127,8 @@ private:
 
   static ofstream* writerFileStream;
   static void terminatingSignalHandler(int sigNum) __attribute__((noreturn));
-  void runSlice(vstring slice, unsigned milliseconds) __attribute__((noreturn));
-  void runSlice(Options& strategyOpt) __attribute__((noreturn));
+  void runSlice(vstring slice, unsigned milliseconds,bool printProof) __attribute__((noreturn));
+  void runSlice(Options& strategyOpt, bool printProof) __attribute__((noreturn));
 
   static vstring problemFinishedString;
 
@@ -204,6 +173,21 @@ private:
         _sem.inc(0);
       }
     }
+  };
+
+  struct ScopedSyncPipe {
+    SyncPipe* pipe;
+    // Probably dangerous to acquire in constructor
+    ScopedSyncPipe(SyncPipe* p) : pipe(p)
+    {
+      cout << "getting pipe" << endl;
+      pipe->acquireWrite();
+      cout << "got pipe" << endl;
+    }
+    ~ScopedSyncPipe(){
+      cout << "release pipe" << endl;
+      pipe->releaseWrite();
+    } 
   };
 
 };

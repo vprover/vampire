@@ -47,8 +47,8 @@ using namespace Lib;
 using namespace Lib::Sys;
 using namespace Saturation;
 
-DHMap<vstring,unsigned> CLTBModeLearning::attempts;
-DHMap<vstring,unsigned> CLTBModeLearning::wins;
+DHMap<vstring,ProbRecord*> CLTBModeLearning::probRecords;
+DHMap<vstring,Stack<vstring>*> CLTBModeLearning::stratWins;
 
 /**
  * The function that does all the job: reads the input files and runs
@@ -140,7 +140,7 @@ void CLTBModeLearning::solveBatch(istream& batchFile, bool first,vstring inputDi
     System::readDir(_trainingDirectory+"/Problems",problems);
 
     int elapsedTime = env.timer->elapsedMilliseconds();
-    int doTrainingFor = 6000; //_problemTimeLimit;
+    int doTrainingFor = 2*_problemTimeLimit;
     doTraining(doTrainingFor,true);
     int trainingElapsed = env.timer->elapsedMilliseconds();
     int trainingTime = trainingElapsed-elapsedTime;
@@ -313,13 +313,20 @@ void CLTBModeLearning::doTraining(int time, bool startup)
   }
   ASS(prob_iter);
 
-  // sort strats in terms of least attempted
-  sort<LeastAttemptedComparator>(strats.begin(),strats.end());
-
   vstring outFile = "temp";
-
   // try and solve the next problem(s)
- while(prob_iter->hasNext()){
+  while(prob_iter->hasNext()){
+
+    // randomise strategies
+    Stack<vstring> randStrats;
+    while(!strats.isEmpty()){
+      int index = Lib::Random::getInteger(strats.length());
+      vstring strat = strats[index];
+      strats.remove(strat);
+      randStrats.push(strat);
+    }
+    strats.loadFromIterator(Stack<vstring>::Iterator(randStrats)); 
+
     vstring probFile = prob_iter->next();
     coutLineOutput() << "Training on " << probFile << endl; 
 
@@ -355,41 +362,115 @@ void CLTBModeLearning::doTraining(int time, bool startup)
     if(time<5000) break; // we want at least 5 seconds
     coutLineOutput() << "time left for training " << time << endl;
   }
+  coutLineOutput() << "Collect feedback" << endl;
 
   // it is important that we know that nobody will be using the semaphores etc
-  if(!startup){
-
-    if(stratSem.get(ATT)){
-      attemptedStrategies->acquireRead();
-      istream& ain = attemptedStrategies->in();
-      vstring line;
-      while(stratSem.get(ATT)){
-        stratSem.dec(ATT);
-        getline(ain,line);
-        unsigned c;
-        if(!attempts.find(line,c)){c=0;}
-        attempts.insert(line,c+1);
+  if(stratSem.get(0)){
+      strategies->acquireRead();
+      istream& sin = strategies->in();
+      while(stratSem.get(0)){
+        stratSem.dec(0);
+        vstring strat;
+        getline(sin,strat);
+        vstring prob;
+        getline(sin,prob);
+        vstring result;
+        getline(sin,result);
+        unsigned resValue;
+        if(!Lib::Int::stringToUnsignedInt(result,resValue)){ resValue=1;} // if we cannot read say it failed
+        coutLineOutput() << "feedback: " << strat << " on " << prob << " with " << resValue << endl;
+        ProbRecord* rec = 0;
+        if(!probRecords.find(prob,rec)){
+          rec = new ProbRecord();
+          probRecords.insert(prob,rec);
+        }
+        if(!resValue){ 
+          rec->suc.insert(strat);
+          Stack<vstring>* probs = 0;
+          if(!stratWins.find(strat,probs)){ 
+            probs = new Stack<vstring>(); 
+            stratWins.insert(strat,probs); 
+          }  
+          probs->push(prob);
+        }
+        else{ rec->fail.insert(strat); }
       }
-      attemptedStrategies->releaseRead();
-    }
-    if(stratSem.get(SUC)){
-      successfulStrategies->acquireRead();
-      istream& sin = successfulStrategies->in();
-      vstring line;
-      while(stratSem.get(SUC)){
-        stratSem.dec(SUC);
-        getline(sin,line);
-        unsigned c;
-        if(!wins.find(line,c)){c=0;}
-        wins.insert(line,c+1);
-      }
-      successfulStrategies->releaseRead();
-    }
+      strategies->releaseRead();
+  }
+  coutLineOutput() << "computing scores" << endl;
+  // Compute the scores
+  Stack<vstring> nextStrats;
+  DHMap<vstring,float> scores;
+  Stack<vstring>::Iterator sit(strats);
+  while(sit.hasNext()){ scores.insert(sit.next(),0); }
 
+  // find first strategy and load up scores
+    float highest = 0;
+    vstring first_strat = strats[0];
+    DHMap<vstring,ProbRecord*>::Iterator pit(probRecords);
+    while(pit.hasNext()){
+      vstring prob;
+      ProbRecord* rec;
+      pit.next(prob,rec);
+      unsigned suc = rec->suc.size();
+      if(suc==0) continue;
+      unsigned fail = rec->fail.size();
+      unsigned total = suc+fail;
+      float avg = total / ((float) suc);
+      rec->avg=avg;
+      Stack<vstring>::Iterator sit(strats);
+      while(sit.hasNext()){
+        vstring strat = sit.next(); 
+        if(rec->fail.contains(strat)) continue;
+        float& sc = scores.get(strat);
+        if(rec->suc.contains(strat)){sc=sc+1;}
+        else{ sc=sc+avg; }
+        if(sc>highest){ highest=sc;first_strat=strat; }
+      }
+    }
+  nextStrats.push(first_strat);
+  strats.remove(first_strat);
+  vstring next_strat=first_strat;
+  unsigned c=1;
+  coutLineOutput() << (c++) << ":" << next_strat << " (" << highest <<")" << endl;
+  while(!strats.isEmpty()){
+    // decrease for last added 
+    Stack<vstring>* wins;
+    if(stratWins.find(next_strat,wins)){
+      Stack<vstring>::Iterator wit(*wins);
+      while(wit.hasNext()){
+        vstring prb = wit.next();
+        ProbRecord* rec = probRecords.get(prb);
+        if(rec->suc.size()==0) continue;
+        Stack<vstring>::Iterator sit(strats);
+        while(sit.hasNext()){
+          vstring s = sit.next();
+          if(rec->fail.contains(s)) continue;
+          float& sc = scores.get(s);
+          if(rec->suc.contains(s)){sc=sc-1;}
+          else{sc=sc-rec->avg;}
+        }
+      }
+    }
+    // now recompute best
+    float highest = 0;
+    next_strat = strats.top();
+    Stack<vstring>::Iterator sit(strats);
+    while(sit.hasNext()){
+      vstring strat = sit.next();
+      float sc = scores.get(strat);
+      if(sc>highest){ 
+        highest=sc; 
+        next_strat=strat;
+      }
+    }
+    nextStrats.push(next_strat);
+    strats.remove(next_strat);
+    coutLineOutput() << (c++) << ":" << next_strat << " (" << highest <<")" << endl;
   }
 
- // Finally, resort strategies
- sort<StrategyComparator>(strats.begin(),strats.end());
+  //TODO check that this loads them in the right order!!
+  strats.loadFromIterator(Stack<vstring>::BottomFirstIterator(nextStrats)); 
 
 } // CLTBModeLearning::doTraining
 
@@ -850,7 +931,7 @@ bool CLTBProblemLearning::runSchedule(Schedule& schedule,StrategySet& used,bool 
       if (!childId) {
         //we're in a proving child
         try {
-          runSlice(sliceCode,sliceTime); //start proving
+          runSlice(sliceCode,sliceTime,stopOnProof); //start proving
         } catch (Exception& exc) {
           cerr << "% Exception at run slice level" << endl;
           exc.cry(cerr);
@@ -933,18 +1014,21 @@ void CLTBProblemLearning::terminatingSignalHandler(int sigNum)
  * @since 04/06/2013 flight Frankfurt-Vienna
  * @author Andrei Voronkov
  */
-void CLTBProblemLearning::runSlice(vstring sliceCode, unsigned timeLimitInMilliseconds)
+void CLTBProblemLearning::runSlice(vstring sliceCode, unsigned timeLimitInMilliseconds,bool printProof)
 {
   CALL("CLTBProblemLearning::runSlice");
 
-  // record the sliceCode
-  SyncPipe* pipe = parent->attemptedStrategies;
-  pipe->acquireWrite();
-  ostream& pout = pipe->out();
-  pout << sliceCode << endl;
-  pipe->releaseWrite();
-  parent->stratSem.incp(CLTBModeLearning::ATT);
-  CLTBModeLearning::coutLineOutput() << "record attempted" << endl;
+  if(!printProof){
+    // We're learning, don't run again if already run
+    ProbRecord* rec;
+    if(parent->probRecords.find(env.options->problemName(),rec)){
+      if(rec->suc.contains(sliceCode) || rec->fail.contains(sliceCode)){
+        CLTBModeLearning::coutLineOutput() << " GaveUp as tried before (in learning)" << endl;
+        exit(1); // GaveUp
+      }
+      rec->fail.insert(sliceCode); // insert this here in child in case the same slice is in the schedule multiple times
+    }
+  }
 
   Options opt = *env.options;
   opt.readFromEncodedOptions(sliceCode);
@@ -953,7 +1037,7 @@ void CLTBProblemLearning::runSlice(vstring sliceCode, unsigned timeLimitInMillis
   if (stl) {
     opt.setSimulatedTimeLimit(int(stl * SLOWNESS));
   }
-  runSlice(opt);
+  runSlice(opt,printProof);
 } // runSlice
 
 /**
@@ -961,12 +1045,13 @@ void CLTBProblemLearning::runSlice(vstring sliceCode, unsigned timeLimitInMillis
  * @since 04/06/2013 flight Frankfurt-Vienna
  * @author Andrei Voronkov
  */
-void CLTBProblemLearning::runSlice(Options& strategyOpt)
+void CLTBProblemLearning::runSlice(Options& strategyOpt, bool printProof)
 {
   CALL("CLTBProblemLearning::runSlice(Option&)");
 
   System::registerForSIGHUPOnParentDeath();
   UIHelper::cascModeChild=true;
+  UIHelper::cascMode=true;
 
   int resultValue=1;
   env.timer->reset();
@@ -1004,11 +1089,14 @@ void CLTBProblemLearning::runSlice(Options& strategyOpt)
   if (env.statistics->terminationReason == Statistics::REFUTATION) {
     resultValue=0;
   }
+  CLTBModeLearning::lineOutput() << "result " << resultValue << endl;
 
   System::ignoreSIGHUP(); // don't interrupt now, we need to finish printing the proof !
 
   if (!resultValue) { // write the proof to a file
-    {
+    
+    if(printProof){
+      CLTBModeLearning::lineOutput() << "printing" << endl;
       ScopedSemaphoreLocker locker(_syncSemaphore);
       locker.lock();
       ofstream out(outFile.c_str());
@@ -1016,19 +1104,27 @@ void CLTBProblemLearning::runSlice(Options& strategyOpt)
       out.close();
     }
 
-    SyncPipe* pipe = parent->successfulStrategies;
-    pipe->acquireWrite();
-    ostream& pout = pipe->out();
-    pout << opt.testId() << endl;
-    pipe->releaseWrite();
-    parent->stratSem.incp(CLTBModeLearning::SUC);
-    CLTBModeLearning::coutLineOutput() << "record success" << endl;
-
   } else { // write other result to output
     env.beginOutput();
     UIHelper::outputResult(env.out());
     env.endOutput();
   }
+
+  CLTBModeLearning::lineOutput() << "sending feedback" << endl;
+  {
+    ScopedSemaphoreLocker locker(_syncSemaphore);
+    locker.lock();
+    ScopedSyncPipe pipe = ScopedSyncPipe(parent->strategies);
+    ostream& pout = pipe.pipe->out();
+    pout << opt.testId() << endl;
+    CLTBModeLearning::lineOutput() << "sent " << opt.testId() << endl;
+    pout << opt.problemName() << endl;
+    CLTBModeLearning::lineOutput() << "sent " << opt.problemName() << endl;
+    pout << resultValue << endl;
+    CLTBModeLearning::lineOutput() << "sent " << resultValue << endl;
+  }
+  parent->stratSem.incp(0);
+  CLTBModeLearning::lineOutput() << "sent" << endl;
 
   exit(resultValue);
 } // CLTBProblemLearning::runSlice
