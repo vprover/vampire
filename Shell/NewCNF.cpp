@@ -983,7 +983,7 @@ void NewCNF::nameSubformula(Formula* g, Occurrences &occurrences)
 
   enqueue(g);
 
-  bool* occurs = new bool[2] { false, false };
+  bool occurs[2] = { false, false };
   Occurrences::Iterator occit(occurrences);
   while (occit.hasNext()) {
     Occurrence occ = occit.next();
