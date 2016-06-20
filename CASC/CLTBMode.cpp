@@ -38,7 +38,7 @@
 
 #include "CLTBMode.hpp"
 
-#define SLOWNESS 1.15
+// #define SLOWNESS 1.15
 
 using namespace CASC;
 using namespace std;
@@ -574,93 +574,522 @@ CLTBProblem::CLTBProblem(CLTBMode* parent, vstring problemFile, vstring outFile)
   _syncSemaphore.set(0,1);
 }
 
-static void fillSchedule(CLTBProblem::Schedule& sched,Shell::Property* property) {
-    sched.push("lrs+1011_3:1_bd=off:bsr=on:cond=fast:gs=on:gsem=on:lwlo=on:nwc=10:stl=34:sd=1:ss=axioms:st=3.0:spl=off:sp=occurrence:updr=off:uhcvi=on_1");
-    sched.push("dis+1003_5_cond=on:fsr=off:fde=none:gs=on:gsem=off:nwc=1:sos=on:sdd=large:sser=off:sfr=on:ssfp=100000:ssfq=1.0:ssnc=all_dependent:sp=reverse_arity:urr=ec_only:uhcvi=on_3");
-    sched.push("dis+2_5_bd=off:cond=fast:gs=on:lcm=reverse:nwc=1:sd=3:ss=axioms:sos=on:spl=off:sp=occurrence:updr=off:uhcvi=on_3");
-    sched.push("dis+1002_3_cond=on:ep=RS:fsr=off:gs=on:gsaa=full_model:gsem=off:nm=0:nwc=1:sd=5:ss=axioms:st=2.0:sos=on:ssfp=4000:ssfq=1.4:smm=off:ssnc=none:updr=off_3");
-    sched.push("lrs+10_3_bd=off:cond=fast:fsr=off:nwc=1:stl=34:sd=2:ss=axioms:st=1.5:sos=on:sac=on:sdd=large:sfr=on:ssfp=100000:ssfq=1.4:ssnc=none:sp=occurrence:urr=on:updr=off:uhcvi=on_4");
-    sched.push("lrs+1004_4_cond=on:fde=unused:gsp=input_only:gs=on:nwc=1:stl=34:sd=3:ss=axioms:st=5.0:sos=on:spl=off:sp=occurrence:urr=on:updr=off_5");
-    sched.push("lrs+11_4:1_br=off:cond=on:fsr=off:fde=unused:gsp=input_only:gs=on:gsssp=full:lcm=predicate:nm=0:nwc=1:stl=34:sd=1:ss=axioms:spl=off:sp=occurrence:urr=on_5");
-    sched.push("lrs-11_8:1_bsr=on:cond=on:fde=none:lcm=reverse:nm=0:nwc=1.5:stl=34:sd=2:ss=priority:spl=off:sp=occurrence_8");
-    sched.push("dis+2_4_bd=off:cond=fast:fsr=off:fde=none:gs=on:gsem=on:lcm=reverse:lwlo=on:nwc=1:sd=3:ss=axioms:st=1.5:sos=on:spl=off:sp=occurrence:uhcvi=on_9");
-    sched.push("dis+11_3_ep=RSTC:fsr=off:fde=none:gs=on:gsaa=from_current:gsem=off:gsssp=full:nwc=1:sd=1:ss=axioms:st=2.0:sos=on:sac=on:sdd=large:sfr=on:ssfp=40000:ssfq=1.2:smm=sco:ssnc=none:sp=reverse_arity:urr=on:uhcvi=on_9");
-    sched.push("dis+10_3:1_ep=RST:gsp=input_only:gs=on:gsem=on:lcm=reverse:nwc=1.1:sd=2:ss=priority:st=2.0:sos=on:sac=on:sdd=large:sser=off:ssfp=10000:ssfq=1.1:ssnc=none:sp=reverse_arity_19");
-    sched.push("dis+11_2:1_br=off:ep=RST:fde=unused:gsp=input_only:gs=on:gsaa=from_current:gsem=off:nwc=1:sd=1:ss=priority:st=1.2:sos=all:sdd=large:sser=off:ssfp=100000:ssfq=1.1:ssnc=none:sp=occurrence:urr=on_33");
-    sched.push("lrs+1011_4:1_bd=off:bsr=unit_only:ccuc=small_ones:fsr=off:fde=unused:gs=on:gsssp=full:nm=64:nwc=4:stl=34:sd=1:ss=priority:sac=on:sscc=model:sdd=large:sser=off:sfr=on:ssfp=100000:ssfq=1.2:ssnc=all:uhcvi=on_33");
-    sched.push("lrs+10_5_bd=off:cond=fast:fde=unused:gsp=input_only:gs=on:gsem=on:gsssp=full:nwc=1:stl=34:sd=2:ss=axioms:sos=on:spl=off:urr=on:updr=off:uhcvi=on_35");
-    sched.push("dis+1002_1_ep=RST:gs=on:gsaa=full_model:gsem=on:nm=64:nwc=1:sd=7:ss=axioms:st=1.2:sos=on:sser=off:ssfp=40000:ssfq=1.2:ssnc=none:updr=off:uhcvi=on_39");
-    sched.push("lrs-4_5:4_bd=off:bs=unit_only:bsr=on:cond=on:fde=none:gs=on:gsaa=full_model:gsem=off:nm=0:nwc=1.1:nicw=on:stl=34:sd=1:ss=axioms:st=2.0:sos=on:sac=on:sfr=on:ssfp=10000:ssfq=1.0:smm=off:ssnc=none:sp=reverse_arity:urr=on:updr=off_41");
-    sched.push("ins+11_3_ep=RST:fde=unused:gsp=input_only:igbrr=0.4:igrr=1/8:igrpq=1.5:igs=1:igwr=on:lcm=predicate:nwc=1:sd=2:ss=axioms:st=3.0:sos=all:spl=off:updr=off:dm=on:uhcvi=on_41");
-               sched.push("dis+1011_5_fsr=off:fde=unused:nm=64:nwc=3:sd=2:ss=priority:spl=off:sp=occurrence:uhcvi=on_17");
-               sched.push("dis+1002_5_cond=fast:fsr=off:fde=none:gs=on:gsaa=full_model:gsem=off:gsssp=full:nwc=1:sd=1:ss=axioms:st=5.0:sos=on:sac=on:sdd=large:ssfp=40000:ssfq=1.1:smm=off:ssnc=none:sp=reverse_arity:updr=off_21");
-               sched.push("dis+1002_4_cond=on:gs=on:gsem=off:nwc=1:sd=1:ss=axioms:sos=on:sac=on:sfr=on:ssfp=1000:ssfq=1.2:smm=sco:ssnc=none:sp=occurrence:uhcvi=on_21");
-               sched.push("dis+1011_1_bsr=on:ccuc=first:nm=0:nwc=4:sd=2:ss=priority:sscc=model:sdd=large:sfr=on:smm=off:ssnc=none:updr=off:uhcvi=on_21");
-               sched.push("lrs-2_3_ep=RS:gs=on:gsaa=from_current:nwc=1:stl=34:sd=2:ss=axioms:sos=on:sac=on:sfr=on:ssfp=40000:ssfq=1.0:smm=off:ssnc=none:sp=reverse_arity:uhcvi=on_23");
-               sched.push("dis+1011_1_fsr=off:fde=unused:nm=64:nwc=1.7:sd=2:ss=priority:spl=off:updr=off_24");
-               sched.push("lrs+1011_3:2_bd=off:cond=on:gsp=input_only:gs=on:gsem=on:nm=0:nwc=4:stl=34:sd=1:ss=axioms:sser=off:sfr=on:ssfp=40000:ssfq=1.1:ssnc=all_dependent:sp=reverse_arity:updr=off_24");
-               sched.push("dis+1011_3:2_bsr=unit_only:cond=fast:nwc=3:nicw=on:sd=3:ss=priority:sdd=off:sfr=on:ssfp=10000:ssfq=1.2:uhcvi=on_25");
-               sched.push("dis+1011_3_fde=unused:nm=64:nwc=1:sd=2:ss=axioms:st=5.0:sdd=off:sser=off:ssfp=10000:ssfq=1.0:sp=occurrence_25");
-               sched.push("dis+1002_4_ep=RST:fsr=off:gs=on:gsem=off:lwlo=on:nwc=1:sd=4:ss=axioms:st=1.5:sos=on:sser=off:sfr=on:ssfp=40000:ssfq=1.2:ssnc=none_28");
-               sched.push("dis+1002_5_bd=off:fde=none:gs=on:gsaa=from_current:nwc=1:sd=2:ss=axioms:st=2.0:sos=on:sdd=off:sfr=on:ssfp=40000:ssfq=1.0:smm=sco:ssnc=none:updr=off_28");
-               sched.push("lrs+1010_1_cond=on:fde=none:gs=on:gsem=off:nwc=1:stl=34:sd=1:ss=axioms:st=3.0:sos=on:sac=on:ssfp=10000:ssfq=1.1:smm=sco:ssnc=none:urr=on:updr=off_36");
-               sched.push("ott-11_8:1_bd=preordered:ccuc=first:er=known:fsr=off:fde=unused:gsp=input_only:lcm=predicate:nm=0:nwc=2:sd=3:ss=axioms:sscc=on:ssfp=10000:ssfq=2.0:smm=sco:sp=occurrence:updr=off_1");
-               sched.push("dis+1_2:1_cond=on:fsr=off:fde=none:gs=on:gsem=on:lwlo=on:nwc=1.3:sd=2:ss=axioms:spl=off:sp=reverse_arity:urr=on_1");
-               sched.push("dis+10_5_cond=on:fsr=off:fde=none:gs=on:nwc=1:sd=2:ss=axioms:st=3.0:sos=on:spl=off_2");
-               sched.push("dis+11_3_cond=fast:fsr=off:nwc=1:sd=1:ss=axioms:st=5.0:sdd=off:sfr=on:ssfp=4000:ssfq=1.1:ssnc=none:sp=occurrence:updr=off_2");
-               sched.push("lrs+11_8_br=off:cond=on:fde=none:gs=on:gsem=on:gsssp=full:nwc=1:nicw=on:stl=34:sd=1:ss=axioms:st=5.0:sos=all:sac=on:sdd=off:ssfp=100000:ssfq=1.4:smm=off:ssnc=all:sp=reverse_arity:urr=on:uhcvi=on_2");
-               sched.push("dis-2_3_gs=on:gsem=on:lcm=reverse:nwc=1:sos=on:ssfp=40000:ssfq=2.0:smm=off:ssnc=none:sp=reverse_arity:uhcvi=on_2");
-               sched.push("dis+11_4_bd=off:fsr=off:fde=unused:gs=on:gsaa=full_model:gsem=on:nwc=1:sd=1:ss=axioms:sac=on:sdd=large:ssfp=1000:ssfq=2.0:smm=sco:ssnc=none:sp=reverse_arity_2");
-               sched.push("dis+11_4_ep=RS:fde=none:gs=on:gsaa=full_model:gsem=off:nwc=1:sd=1:ss=priority:st=1.2:sos=all:sac=on:ssfp=10000:ssfq=1.1:smm=sco:ssnc=none:sp=reverse_arity:uhcvi=on_2");
-               sched.push("dis+1010_2_bs=on:cond=fast:ep=RSTC:fde=unused:lwlo=on:nwc=1:sos=on:sac=on:sdd=off:sfr=on:ssfp=10000:ssfq=1.4:sp=reverse_arity:uhcvi=on_3");
-               sched.push("dis+10_5_ep=RST:fsr=off:gs=on:gsssp=full:lwlo=on:nm=0:nwc=1:sd=4:ss=axioms:sos=on:sfr=on:ssfp=40000:ssfq=1.1:smm=off:ssnc=none:uhcvi=on_3");
-               sched.push("ins+11_4_bd=off:fsr=off:gsp=input_only:gs=on:gsem=off:igbrr=0.6:igpr=on:igrr=1/128:igrp=700:igrpq=1.2:igs=1004:igwr=on:lcm=predicate:nwc=1:sd=2:ss=axioms:st=5.0:sos=on:spl=off:uhcvi=on_3");
-               sched.push("dis+10_5_fsr=off:fde=unused:gs=on:gsem=on:gsssp=full:lcm=reverse:nwc=1:sd=2:ss=axioms:sos=on:sdd=large:sfr=on:ssfp=1000:ssfq=1.1:smm=sco:ssnc=none:sp=occurrence:updr=off:uhcvi=on_3");
-               sched.push("dis-1_1_cond=fast:gsp=input_only:gs=on:gsaa=from_current:gsem=off:gsssp=full:nwc=1.3:sd=1:ss=axioms:st=1.2:sos=on:sdd=off:ssfp=1000:ssfq=2.0:smm=sco:sp=occurrence:updr=off_3");
-               sched.push("lrs-10_4:1_cond=on:fsr=off:fde=unused:gsp=input_only:gs=on:gsem=on:nwc=1:stl=34:sd=3:ss=axioms:sos=on:spl=off:urr=on_3");
-               sched.push("lrs+1011_1_cond=on:fsr=off:gs=on:nwc=1:stl=34:sd=4:ss=priority:st=1.2:sos=on:spl=off:sp=reverse_arity:urr=on_4");
-               sched.push("lrs+10_8:1_bsr=unit_only:br=off:cond=on:fsr=off:gsp=input_only:gs=on:gsaa=from_current:nm=0:nwc=1:stl=34:sd=2:ss=axioms:st=1.2:sos=on:sac=on:sdd=large:sfr=on:ssfp=1000:ssfq=1.1:smm=sco:ssnc=none:sp=reverse_arity:urr=on:updr=off:uhcvi=on_4");
-               sched.push("lrs+11_5_fde=none:gsp=input_only:gs=on:gsem=on:nwc=1:stl=34:sd=3:ss=axioms:st=3.0:sos=on:spl=off:sp=occurrence:urr=on_4");
-               sched.push("ins+11_10_cond=fast:fsr=off:gs=on:gsem=on:igbrr=0.5:igrr=1/2:igrpq=1.3:igs=1003:igwr=on:nwc=1:sd=2:ss=axioms:sos=on:spl=off:sp=reverse_arity_4");
-               sched.push("lrs+11_5:1_br=off:cond=fast:fde=unused:gsp=input_only:gs=on:gsem=on:gsssp=full:lcm=predicate:nm=0:nwc=1:nicw=on:stl=34:sd=1:ss=axioms:st=1.2:sac=on:sdd=large:sfr=on:ssfp=40000:ssfq=1.4:smm=sco:ssnc=all:urr=on_4");
-               sched.push("dis+1004_3:1_bsr=unit_only:ep=R:fde=unused:gs=on:gsssp=full:nm=0:nwc=1:sos=all:sac=on:sfr=on:ssfp=10000:ssfq=2.0:ssnc=all:sp=reverse_arity:urr=on:updr=off_4");
-               sched.push("dis+1010_5_cond=fast:fde=unused:gs=on:gsem=on:nm=0:nwc=1:sd=2:ss=axioms:st=3.0:sos=on:spl=off:sp=occurrence:updr=off:uhcvi=on_5");
-               sched.push("dis+10_14_cond=fast:gs=on:gsaa=full_model:gsem=off:gsssp=full:nwc=1.5:sd=1:ss=axioms:st=1.5:ssfp=40000:ssfq=1.1:smm=sco:ssnc=none:sp=occurrence:updr=off_5");
-               sched.push("dis+1010_1_cond=fast:fsr=off:nwc=1.3:sd=2:ss=axioms:st=1.5:sos=on:sscc=model:sdd=off:ssfp=4000:ssfq=2.0:uhcvi=on_5");
-               sched.push("dis+1002_3_ep=RST:fde=unused:gs=on:gsaa=full_model:gsem=off:nwc=1:sd=1:ss=axioms:st=2.0:sos=on:ssfp=100000:ssfq=1.1:ssnc=none:sp=occurrence:uhcvi=on_5");
-               sched.push("dis+1002_2:3_fde=none:gsp=input_only:nm=0:nwc=1:sd=3:ss=axioms:sos=on:sac=on:ssfp=100000:ssfq=1.0:smm=sco:ssnc=none:sp=occurrence:updr=off_5");
-               sched.push("lrs+10_2:3_bsr=unit_only:cond=on:fde=none:gs=on:nwc=1:stl=34:sd=2:ss=axioms:sos=on:spl=off:sp=reverse_arity_5");
-               sched.push("dis-11_1_cond=fast:nm=0:nwc=1:sd=2:ss=axioms:sac=on:sscc=model:sfr=on:ssfp=100000:ssfq=1.2:smm=off:ssnc=all_dependent:sp=reverse_arity:uhcvi=on_6");
-               sched.push("lrs+11_3_br=off:cond=fast:gs=on:gsem=off:nwc=1:stl=34:sd=3:ss=priority:st=1.5:sos=all:sac=on:sfr=on:ssfp=1000:ssfq=2.0:smm=sco:ssnc=none:sp=occurrence:urr=on:uhcvi=on_6");
-               sched.push("lrs-2_1_cond=on:fde=unused:gs=on:gsaa=from_current:gsssp=full:lcm=predicate:nwc=1:stl=34:sd=4:ss=axioms:st=3.0:sos=on:sac=on:sfr=on:ssfp=10000:ssfq=1.1:ssnc=none:updr=off_6");
-               sched.push("lrs+10_3:1_fde=unused:lcm=reverse:nwc=1:stl=34:sd=3:ss=priority:st=2.0:sos=all:spl=off:sp=occurrence:uhcvi=on_8");
-               sched.push("lrs+1_1_bs=on:bsr=on:br=off:cond=fast:fsr=off:gs=on:gsem=off:lwlo=on:nwc=3:stl=34:sd=3:ss=priority:sdd=large:sfr=on:ssfp=40000:ssfq=1.4:smm=off:ssnc=none:sp=occurrence:urr=on:updr=off_9");
-               sched.push("dis+11_12_cond=fast:nwc=1:sd=1:ss=axioms:st=1.5:sos=on:spl=off:sp=reverse_arity:uhcvi=on_9");
-               sched.push("lrs+10_5:4_bd=off:ccuc=small_ones:cond=on:fde=none:gs=on:gsaa=from_current:gsem=off:nm=0:nwc=1:stl=34:sd=2:ss=priority:sos=on:sscc=model:sdd=large:sser=off:ssfp=100000:ssfq=1.4:ssnc=none:urr=on_9");
-               sched.push("dis-10_2:3_cond=on:fde=none:nwc=1:sd=2:ss=axioms:st=2.0:sos=on:spl=off:updr=off:uhcvi=on_11");
-               sched.push("dis+10_5_bsr=unit_only:cond=on:ep=RS:fde=unused:nm=0:nwc=1:sd=1:ss=axioms:sos=all:spl=off_12");
-               sched.push("lrs+10_4:1_bd=off:cond=fast:fde=unused:lcm=reverse:nm=0:nwc=1.2:stl=34:sd=2:ss=axioms:sos=all:spl=off_14");
-               sched.push("dis+10_2:1_cond=fast:ep=RST:fsr=off:fde=unused:gsp=input_only:gs=on:gsaa=full_model:gsem=off:nm=0:nwc=1:sd=1:ss=axioms:st=5.0:sos=on:sac=on:sdd=off:sfr=on:ssfp=100000:ssfq=1.4:smm=sco:ssnc=none:urr=on:updr=off:uhcvi=on_16");
-               sched.push("ott+1010_3:1_bs=unit_only:bsr=unit_only:br=off:ccuc=first:cond=fast:fde=unused:gs=on:gsem=on:nwc=1:sd=2:ss=axioms:sos=on:sac=on:ssac=none:sscc=on:sser=off:ssfp=1000:ssfq=2.0:ssnc=all_dependent:sp=reverse_arity:urr=on:updr=off_18");
-               sched.push("lrs+1011_8:1_cond=on:fde=none:gsp=input_only:lwlo=on:nwc=1:stl=34:sd=2:ss=axioms:sos=all:spl=off:sp=reverse_arity:urr=ec_only:updr=off:uhcvi=on_69");
-               sched.push("lrs-4_5:4_cond=on:gs=on:gsem=on:gsssp=full:nm=64:nwc=1:stl=34:sd=2:ss=axioms:st=2.0:sos=on:sac=on:ssfp=100000:ssfq=1.1:smm=sco:ssnc=none:urr=on_2");
-               sched.push("dis+1004_3:1_cond=fast:fde=unused:nm=0:nwc=1:sd=1:ss=axioms:st=1.2:sos=on:spl=off:sp=reverse_arity:updr=off:uhcvi=on_2");
-               sched.push("ott+1010_3:1_cond=fast:fde=unused:nm=64:nwc=1.7:sd=3:ss=priority:spl=off:sp=occurrence:updr=off_3");
-               sched.push("dis+1010_4_cond=on:fde=unused:gs=on:gsem=on:nm=0:nwc=1:sd=2:ss=axioms:st=3.0:sos=on:spl=off:updr=off_3");
-               sched.push("dis+10_5:4_ep=R:gs=on:gsaa=from_current:nm=64:nwc=1:sd=1:ss=axioms:sos=on:sdd=large:sser=off:ssfp=4000:ssfq=1.1:ssnc=none:updr=off:uhcvi=on_9");
-               sched.push("ins+11_5_cond=fast:ep=RST:gs=on:gsem=on:igbrr=0.4:igpr=on:igrr=1/64:igrp=4000:igrpq=1.3:igwr=on:lcm=reverse:nwc=1:sd=2:ss=axioms:st=1.2:sos=on:spl=off:sp=occurrence:dm=on:uhcvi=on_10");
-               sched.push("ott+11_2:1_cond=fast:nm=0:nwc=2.5:sd=2:ss=priority:st=1.2:spl=off:sp=occurrence:urr=on:updr=off_27");
-               sched.push("lrs+10_3_ep=RS:gs=on:gsem=off:nm=1024:nwc=1:stl=34:sd=2:ss=priority:sos=all:spl=off_28");
-               sched.push("lrs+1003_8:1_br=off:cond=on:fde=none:gs=on:gsem=off:nm=0:nwc=1:stl=34:sd=1:ss=axioms:sos=on:sdd=off:sfr=on:ssfp=40000:ssfq=1.1:smm=off:ssnc=none:sp=occurrence:urr=on_28");
-               sched.push("lrs+1003_4_bd=off:bsr=unit_only:cond=on:gs=on:gsem=off:nm=0:nwc=1:stl=34:sd=2:ss=axioms:sos=on:spl=off:sp=occurrence:urr=on:updr=off_29");
-               sched.push("dis+1002_4_cond=fast:ep=RST:fde=unused:gs=on:gsaa=from_current:gsem=off:nm=0:nwc=1:sd=3:ss=axioms:st=1.2:sos=on:sac=on:sdd=large:ssfp=100000:ssfq=1.0:smm=sco:ssnc=none:updr=off:uhcvi=on_34");
-               sched.push("ott+2_2:1_bd=off:bsr=unit_only:cond=on:gs=on:nwc=1:sd=3:ss=priority:st=1.5:sos=on:spl=off:sp=occurrence:updr=off_36");
-               sched.push("ott+1011_1_cond=on:fsr=off:fde=none:gs=on:gsem=off:nm=0:nwc=10:sd=1:ss=axioms:st=2.0:spl=off:sp=occurrence:urr=on:updr=off_40");
-               sched.push("ott+2_2:1_cond=fast:fsr=off:fde=unused:gs=on:gsem=off:nm=0:nwc=1:sd=1:ss=axioms:st=5.0:sos=all:spl=off:sp=occurrence:updr=off:uhcvi=on_41");
-
+void CLTBProblem::fillSchedule(CLTBProblem::Schedule& sched,const Shell::Property* property,int timeLimit,Category category)
+{
+  switch (category) {
+  case HH4:
+    sched.push("lrs+10_3_ep=RS:gs=on:gsem=off:nm=1024:nwc=1:stl=300:sd=2:ss=priority:sos=all:spl=off_60"); // HH4 1 (4899)
+    sched.push("dis+11_4_cond=on:gsp=input_only:gs=on:nm=0:nwc=1:sd=2:ss=axioms:st=1.5:sos=on:spl=off:urr=on:updr=off:uhcvi=on_60"); // HH4 2 (1018)
+    sched.push("lrs+11_2:3_br=off:cond=on:fde=none:gs=on:gsem=on:lwlo=on:nm=64:nwc=1:stl=300:sd=1:ss=axioms:st=2.0:sos=all:spl=off:sp=occurrence:urr=on:updr=off_60"); // HH4 3 (356)
+    sched.push("dis+1002_4_cond=fast:ep=RST:fde=unused:gs=on:gsaa=from_current:gsem=off:nm=0:nwc=1:sd=3:ss=axioms:st=1.2:sos=on:sac=on:sdd=large:ssfp=100000:ssfq=1.0:smm=sco:ssnc=none:updr=off:uhcvi=on_60"); // HH4 4 (230)
+    sched.push("lrs+1011_1_cond=fast:fsr=off:fde=unused:gsp=input_only:gs=on:gsem=off:gsssp=full:nm=0:nwc=10:stl=300:sd=1:ss=axioms:st=5.0:spl=off:sp=occurrence:urr=on_60"); // HH4 5 (179)
+    sched.push("ott+2_2:1_bd=off:bsr=unit_only:cond=on:gs=on:nwc=1:sd=3:ss=priority:st=1.5:sos=on:spl=off:sp=occurrence:updr=off_60"); // HH4 6 (138)
+    sched.push("lrs+11_5:4_bd=off:bsr=unit_only:br=off:fsr=off:fde=none:gsp=input_only:gs=on:gsem=on:nm=0:nwc=1:stl=300:sd=1:ss=axioms:sos=on:sdd=off:ssfp=40000:ssfq=1.4:smm=sco:urr=on:updr=off:uhcvi=on_60"); // HH4 7 (120)
+    sched.push("ott+1011_1_bd=preordered:cond=on:gsp=input_only:nm=64:nwc=1:sd=3:ss=priority:spl=off:sp=reverse_arity:urr=on_60"); // HH4 8 (90)
+    sched.push("ins+11_5_cond=fast:ep=RST:gs=on:gsem=on:igbrr=0.4:igpr=on:igrr=1/64:igrp=4000:igrpq=1.3:igwr=on:lcm=reverse:nwc=1:sd=2:ss=axioms:st=1.2:sos=on:spl=off:sp=occurrence:dm=on:uhcvi=on_60"); // HH4 9 (81)
+    sched.push("lrs+11_5_cond=on:ep=RST:fde=none:gsp=input_only:gs=on:gsem=off:nm=0:nwc=1:stl=300:sd=2:ss=axioms:st=3.0:sos=all:sac=on:sdd=large:ssfp=40000:ssfq=1.4:smm=off:ssnc=none:urr=ec_only:uhcvi=on_60"); // HH4 10 (70)
+    sched.push("lrs+1011_3_bd=off:bsr=on:cond=fast:fde=none:gs=on:gsssp=full:nm=0:nwc=1:stl=300:sd=2:ss=axioms:sos=all:spl=off:sp=occurrence_60"); // HH4 11 (58)
+    sched.push("lrs-4_5:4_cond=on:gs=on:gsem=on:gsssp=full:nm=64:nwc=1:stl=300:sd=2:ss=axioms:st=2.0:sos=on:sac=on:ssfp=100000:ssfq=1.1:smm=sco:ssnc=none:urr=on_60"); // HH4 12 (44)
+    sched.push("dis+1011_3:1_br=off:nm=0:nwc=5:sd=1:ss=axioms:sac=on:ssfp=40000:ssfq=1.4:smm=sco:ssnc=none:urr=on:uhcvi=on_60"); // HH4 13 (38)
+    sched.push("lrs+11_3:1_bd=off:bsr=unit_only:fsr=off:gs=on:gsaa=from_current:gsem=off:nm=64:nwc=1:stl=300:sd=2:ss=priority:sac=on:smm=sco:ssnc=none:sp=reverse_arity:updr=off:uhcvi=on_60"); // HH4 14 (36)
+    sched.push("dis+4_3_bd=off:cond=on:fde=unused:gs=on:gsaa=full_model:gsem=off:gsssp=full:nwc=1:sd=3:ss=axioms:st=3.0:sos=on:sdd=off:sfr=on:ssfp=10000:ssfq=1.0:smm=off:ssnc=none:urr=ec_only:updr=off:uhcvi=on_60"); // HH4 15 (32)
+    sched.push("dis+1010_5_cond=fast:nm=0:nwc=1:sd=1:ss=axioms:st=1.5:sos=on:spl=off:sp=reverse_arity:uhcvi=on_60"); // HH4 16 (32)
+    sched.push("lrs+11_4:1_bd=off:bsr=unit_only:br=off:fsr=off:fde=unused:gsp=input_only:gs=on:nm=0:nwc=1:stl=300:sd=1:ss=axioms:sos=on:spl=off:sp=reverse_arity:urr=on_60"); // HH4 17 (29)
+    sched.push("dis+1002_4_cond=on:gs=on:gsem=off:nwc=1:sd=2:ss=axioms:sos=on:spl=off:sp=reverse_arity:urr=ec_only:updr=off:uhcvi=on_60"); // HH4 18 (28)
+    sched.push("lrs+11_2:3_cond=on:fde=unused:gs=on:gsaa=full_model:nwc=4:stl=300:sd=2:ss=priority:st=5.0:sac=on:sdd=off:sfr=on:smm=off:ssnc=none:sp=occurrence:urr=on:updr=off:uhcvi=on_60"); // HH4 19 (24)
+    sched.push("ott-11_8:1_bsr=unit_only:cond=on:gs=on:gsem=off:gsssp=full:nwc=1.1:sd=2:ss=axioms:sos=on:sac=on:sscc=model:sdd=large:sser=off:ssfp=40000:ssfq=2.0:ssnc=none:sp=reverse_arity:urr=on_60"); // HH4 20 (23)
+    sched.push("lrs+1010_2:1_gs=on:lwlo=on:nm=0:nwc=3:stl=300:sd=4:ss=axioms:spl=off_60"); // HH4 21 (22)
+    sched.push("lrs+1010_4_bsr=unit_only:cond=fast:fsr=off:gs=on:gsaa=from_current:gsem=on:gsssp=full:nm=0:nwc=1:stl=300:sd=1:ss=axioms:st=1.5:sos=on:sdd=off:sser=off:sfr=on:ssfp=10000:ssfq=1.0:ssnc=none:sp=occurrence:urr=on_60"); // HH4 22 (20)
+    sched.push("dis+2_1_fsr=off:nwc=1:sd=2:ss=axioms:sos=on:spl=off:sp=reverse_arity:updr=off:uhcvi=on_60"); // HH4 23 (17)
+    sched.push("ott+2_2:1_cond=fast:fsr=off:fde=unused:gs=on:gsem=off:nm=0:nwc=1:sd=1:ss=axioms:st=5.0:sos=all:spl=off:sp=occurrence:updr=off:uhcvi=on_60"); // HH4 24 (17)
+    sched.push("lrs+1003_8:1_br=off:cond=on:fde=none:gs=on:gsem=off:nm=0:nwc=1:stl=300:sd=1:ss=axioms:sos=on:sdd=off:sfr=on:ssfp=40000:ssfq=1.1:smm=off:ssnc=none:sp=occurrence:urr=on_60"); // HH4 25 (14)
+    sched.push("dis+11_2:1_bd=off:cond=fast:fde=unused:gs=on:gsem=on:nwc=1:sd=3:ss=axioms:st=2.0:sos=all:spl=off:sp=occurrence_60"); // HH4 26 (14)
+    sched.push("lrs+1011_3:1_bd=off:cond=fast:fsr=off:fde=unused:gs=on:nm=0:nwc=5:stl=300:sd=2:ss=axioms:ssfp=100000:ssfq=1.4:smm=off:ssnc=none:sp=occurrence:urr=on_60"); // HH4 27 (14)
+    sched.push("dis+1011_3_cond=on:nwc=1:sd=2:ss=axioms:st=1.2:sos=on:sac=on:sfr=on:ssfp=1000:ssfq=1.4:ssnc=none:sp=occurrence:updr=off:uhcvi=on_60"); // HH4 28 (13)
+    sched.push("dis+11_2:1_fde=none:gsp=input_only:nwc=1:sd=2:ss=axioms:sos=all:spl=off:sp=occurrence:urr=on:updr=off:uhcvi=on_60"); // HH4 29 (13)
+    sched.push("lrs+11_3_bsr=unit_only:cond=fast:fsr=off:fde=none:gsp=input_only:nwc=5:stl=300:sd=3:ss=priority:st=2.0:spl=off:updr=off:uhcvi=on_60"); // HH4 30 (12)
+    sched.push("lrs+11_5:1_cond=on:gs=on:gsssp=full:lwlo=on:nwc=1:stl=300:sd=1:ss=axioms:st=3.0:spl=off:urr=on_60"); // HH4 31 (11)
+    sched.push("dis+1_5_bd=preordered:bs=unit_only:ccuc=small_ones:cond=on:fsr=off:gs=on:gsem=on:nm=0:nwc=1:sd=1:ss=axioms:st=1.5:sos=all:ssac=none:sscc=model:sdd=off:sser=off:sfr=on:ssfp=100000:ssfq=1.2:ssnc=all_dependent:urr=ec_only:updr=off:uhcvi=on_60"); // HH4 32 (10)
+    sched.push("lrs+11_4_bd=off:cond=fast:fde=unused:gs=on:nwc=1:stl=300:sd=3:ss=axioms:st=5.0:sos=all:sfr=on:ssfp=100000:ssfq=1.2:smm=sco:ssnc=none:updr=off:uhcvi=on_60"); // HH4 33 (10)
+    sched.push("lrs+11_8:1_br=off:cond=fast:fde=none:gs=on:gsaa=from_current:gsem=on:nm=0:nwc=2:stl=300:sd=2:ss=axioms:st=1.5:sac=on:sdd=off:ssfp=40000:ssfq=1.4:ssnc=none:sp=reverse_arity:urr=on_60"); // HH4 34 (9)
+    sched.push("dis+1003_1_ccuc=first:fsr=off:fde=unused:gsp=input_only:gs=on:gsem=on:nm=64:nwc=1:sd=2:ss=axioms:st=3.0:sos=on:sscc=model:sdd=large:sp=reverse_arity:uhcvi=on_60"); // HH4 35 (9)
+    sched.push("dis+11_3_br=off:cond=on:ep=RST:fsr=off:fde=none:gsp=input_only:gs=on:nwc=1:sd=2:ss=axioms:sos=all:sac=on:sdd=off:ssfp=40000:ssfq=1.0:smm=sco:ssnc=none:sp=reverse_arity:urr=on:updr=off_60"); // HH4 36 (8)
+    sched.push("dis+10_5:4_ep=R:gs=on:gsaa=from_current:nm=64:nwc=1:sd=1:ss=axioms:sos=on:sdd=large:sser=off:ssfp=4000:ssfq=1.1:ssnc=none:updr=off:uhcvi=on_60"); // HH4 37 (8)
+    sched.push("dis+11_3:1_br=off:cond=fast:fde=unused:gs=on:gsem=off:nm=0:nwc=1.7:sd=1:ss=axioms:st=1.5:sac=on:sdd=off:sser=off:sfr=on:ssfp=10000:ssfq=1.4:ssnc=none:urr=on:uhcvi=on_60"); // HH4 38 (8)
+    sched.push("dis+10_5_bd=off:cond=fast:fde=unused:gsp=input_only:gs=on:gsem=off:gsssp=full:nwc=1:sd=3:ss=axioms:st=2.0:sos=on:sac=on:sdd=off:sfr=on:ssfp=10000:ssfq=1.1:smm=off:ssnc=none:sp=occurrence:urr=on:uhcvi=on_60"); // HH4 39 (8)
+    sched.push("ott+11_4_cond=fast:fsr=off:fde=none:gsp=input_only:gs=on:gsssp=full:lcm=predicate:nm=64:nwc=1.7:sd=2:ss=priority:st=1.2:spl=off:sp=occurrence:urr=on:uhcvi=on_60"); // HH4 40 (8)
+    sched.push("ott+11_2:1_bd=preordered:ccuc=small_ones:cond=fast:fde=unused:gs=on:gsem=on:nm=1024:nwc=3:sd=3:ss=priority:st=1.2:sscc=model:sdd=large:sfr=on:ssfp=100000:ssfq=1.4:smm=off:ssnc=none:sp=occurrence:uhcvi=on_60"); // HH4 41 (8)
+    sched.push("ott+1011_5:4_fde=unused:gs=on:gsem=off:nwc=1.3:sd=4:ss=priority:st=5.0:sdd=off:ssfp=1000:ssfq=1.2:smm=sco:sp=reverse_arity:urr=on_60"); // HH4 42 (7)
+    sched.push("lrs+11_5:4_cond=on:fde=none:gs=on:gsem=off:gsssp=full:nwc=1:stl=300:sd=2:ss=axioms:st=2.0:sos=on:spl=off:sp=occurrence:uhcvi=on_60"); // HH4 43 (7)
+    sched.push("lrs+11_2_bd=off:cond=fast:fde=unused:gsp=input_only:nwc=1:nicw=on:stl=300:sd=2:ss=priority:st=1.2:sos=all:sac=on:ssac=none:sser=off:sfr=on:ssfp=10000:ssfq=2.0:ssnc=all:sp=reverse_arity_60"); // HH4 44 (7)
+    sched.push("dis+1003_5:4_fde=none:gs=on:gsem=on:gsssp=full:nm=64:nwc=1:sd=3:ss=axioms:st=1.2:sos=on:spl=off:sp=occurrence:urr=ec_only_60"); // HH4 45 (7)
+    sched.push("dis+11_1_br=off:cond=fast:ep=RST:fsr=off:fde=unused:gsp=input_only:gs=on:gsem=off:nm=0:nwc=1.1:sd=1:ss=axioms:sdd=large:sser=off:sfr=on:ssnc=none:urr=on:updr=off_60"); // HH4 46 (6)
+    sched.push("dis-2_5_bd=off:cond=on:fde=unused:gs=on:gsaa=from_current:gsem=off:nm=1024:nwc=1:sd=5:ss=axioms:sos=on:sac=on:sdd=off:sser=off:sfr=on:ssfp=1000:ssfq=1.2:ssnc=none:urr=ec_only:updr=off_60"); // HH4 47 (6)
+    sched.push("lrs-1_5_cond=fast:fde=none:gs=on:nm=0:nwc=1.1:stl=300:sd=1:ss=axioms:st=3.0:sos=on:spl=off:sp=occurrence:uhcvi=on_60"); // HH4 48 (6)
+    sched.push("dis+1010_4_cond=on:fde=unused:gs=on:gsem=on:nm=0:nwc=1:sd=2:ss=axioms:st=3.0:sos=on:spl=off:updr=off_60"); // HH4 49 (6)
+    sched.push("lrs+10_5:4_fde=unused:gs=on:gsem=on:gsssp=full:nm=0:nwc=5:stl=300:sd=1:ss=axioms:spl=off:updr=off:uhcvi=on_60"); // HH4 50 (6)
+    sched.push("dis+11_4:1_bsr=unit_only:ccuc=small_ones:fsr=off:nm=64:nwc=3:sd=1:ss=axioms:st=1.2:sos=on:sscc=on:sfr=on:ssfp=1000:ssfq=2.0:smm=sco:ssnc=none:sp=occurrence:updr=off_60"); // HH4 51 (6)
+    sched.push("ott+1011_1_cond=on:fsr=off:fde=none:gs=on:gsem=off:nm=0:nwc=10:sd=1:ss=axioms:st=2.0:spl=off:sp=occurrence:urr=on:updr=off_60"); // HH4 52 (6)
+    sched.push("dis+1002_1_cond=on:ep=RSTC:fsr=off:gs=on:nwc=1:sd=1:ss=axioms:sos=on:spl=off:sp=reverse_arity_60"); // HH4 53 (5)
+    sched.push("lrs+1003_6_cond=on:gs=on:gsem=off:gsssp=full:nm=0:nwc=2.5:stl=300:sd=3:ss=priority:spl=off:sp=reverse_arity:updr=off_60"); // HH4 54 (5)
+    sched.push("dis-2_3_bd=off:cond=fast:fsr=off:gs=on:gsem=off:nwc=1:sd=2:ss=axioms:st=5.0:sos=on:spl=off:sp=occurrence:urr=ec_only:uhcvi=on_60"); // HH4 55 (5)
+    sched.push("dis+1011_4_br=off:cond=on:fde=none:gs=on:gsem=on:gsssp=full:nm=1024:nwc=1:sd=3:ss=axioms:sos=on:sac=on:sdd=large:ssfp=100000:ssfq=1.2:smm=sco:ssnc=all_dependent:urr=on:uhcvi=on_60"); // HH4 56 (5)
+    sched.push("lrs+10_4_bsr=unit_only:cond=fast:ep=RST:gs=on:gsem=on:gsssp=full:nm=0:nwc=1:stl=300:sd=2:ss=priority:st=1.5:sos=all:spl=off:sp=reverse_arity_60"); // HH4 57 (5)
+    sched.push("lrs+4_5:4_bd=off:cond=on:fsr=off:fde=none:gs=on:gsem=on:lcm=reverse:nm=0:nwc=1:stl=300:sd=2:ss=axioms:st=1.2:sos=on:spl=off:sp=reverse_arity_60"); // HH4 58 (5)
+    sched.push("ott+11_3:1_bs=unit_only:bsr=unit_only:cond=fast:fsr=off:fde=none:gsp=input_only:nm=64:nwc=1.2:sd=5:ss=priority:st=1.2:spl=off:sp=reverse_arity:updr=off_60"); // HH4 59 (5)
+    sched.push("dis+10_3:1_cond=on:fsr=off:fde=unused:nwc=1:sd=1:ss=priority:st=5.0:sos=all:sdd=large:sser=off:sfr=on:ssfp=40000:ssfq=1.4_60"); // HH4 60 (4)
+    sched.push("lrs+11_4:1_cond=fast:fde=none:nm=0:nwc=1:stl=300:sd=3:ss=priority:st=2.0:spl=off:sp=occurrence:urr=ec_only_60"); // HH4 61 (4)
+    sched.push("lrs-3_4_bd=off:bsr=unit_only:fde=unused:gs=on:gsaa=full_model:nwc=1:stl=300:sd=3:ss=axioms:sos=on:sac=on:sser=off:sfr=on:ssfp=40000:ssfq=1.4:ssnc=none:updr=off:uhcvi=on_60"); // HH4 62 (4)
+    sched.push("lrs+1011_2:3_bsr=unit_only:fsr=off:fde=none:gs=on:gsem=on:nm=64:nwc=2.5:stl=300:sd=3:ss=priority:st=3.0:sos=on:spl=off:sp=reverse_arity:uhcvi=on_60"); // HH4 63 (4)
+    sched.push("ott+1010_3:1_cond=fast:fde=unused:nm=64:nwc=1.7:sd=3:ss=priority:spl=off:sp=occurrence:updr=off_60"); // HH4 64 (4)
+    sched.push("dis+2_4:1_bsr=unit_only:br=off:cond=fast:fde=none:lcm=reverse:lwlo=on:nm=0:nwc=1:sd=1:ss=axioms:sos=on:spl=off:sp=occurrence:urr=on_60"); // HH4 65 (3)
+    sched.push("dis+11_1_cond=fast:ep=RST:fde=none:nm=1024:nwc=2:sd=2:ss=priority:st=1.5:sdd=off:ssfp=100000:ssfq=1.1:smm=off:sp=occurrence:urr=on:updr=off:uhcvi=on_60"); // HH4 66 (3)
+    sched.push("lrs+4_5:4_bd=off:bsr=unit_only:fsr=off:gs=on:nm=0:nwc=1:stl=300:sd=2:ss=axioms:st=1.5:sos=on:spl=off:sp=occurrence:updr=off:uhcvi=on_60"); // HH4 67 (3)
+    sched.push("dis+1010_3_bsr=unit_only:gs=on:gsaa=from_current:gsem=off:gsssp=full:nm=64:nwc=1:sd=1:ss=axioms:sos=on:ssfp=10000:ssfq=1.2:smm=sco:ssnc=none:sp=reverse_arity_60"); // HH4 68 (3)
+    sched.push("lrs+11_3_cond=fast:gs=on:nm=0:nwc=1.3:stl=300:sd=2:ss=priority:spl=off:sp=reverse_arity:updr=off_60"); // HH4 69 (3)
+    sched.push("dis+11_3_cond=fast:gsp=input_only:gs=on:gsaa=from_current:gsem=on:nm=64:nwc=1:sd=3:ss=priority:sos=on:sdd=off:ssfp=10000:ssfq=1.2:smm=sco:ssnc=none:sp=reverse_arity:urr=on:updr=off:uhcvi=on_60"); // HH4 70 (3)
+    sched.push("lrs+11_3_bd=off:bsr=on:cond=fast:fde=unused:gs=on:gsem=on:nwc=1:stl=300:sd=4:ss=axioms:st=1.5:sos=all:spl=off:sp=reverse_arity:uhcvi=on_60"); // HH4 71 (3)
+    sched.push("dis+10_3:1_bsr=unit_only:cond=fast:fde=none:nm=64:nwc=1:sd=2:ss=axioms:sos=all:spl=off:sp=reverse_arity:updr=off_60"); // HH4 72 (3)
+    sched.push("lrs+11_4_ep=RST:fde=unused:gs=on:gsaa=from_current:gsssp=full:nwc=1:stl=300:sd=1:ss=axioms:st=5.0:sos=all:sac=on:sser=off:sfr=on:ssfp=40000:ssfq=2.0:ssnc=none:sp=reverse_arity:urr=on:updr=off:uhcvi=on_60"); // HH4 73 (3)
+    sched.push("dis+11_2_bd=preordered:bs=unit_only:fsr=off:fde=none:gs=on:gsem=on:nm=0:nwc=3:sd=3:ss=axioms:st=1.5:sac=on:sscc=on:sdd=off:sfr=on:ssfp=100000:ssfq=1.2:smm=sco:ssnc=all:sp=occurrence:uhcvi=on_60"); // HH4 74 (3)
+    sched.push("lrs+11_4_fde=unused:gsp=input_only:lcm=predicate:nm=0:nwc=1.3:stl=300:sd=1:ss=axioms:st=2.0:spl=off:sp=occurrence:urr=on:uhcvi=on_60"); // HH4 75 (3)
+    sched.push("lrs+11_3:1_bd=off:bsr=unit_only:fsr=off:fde=unused:gs=on:gsem=on:nm=0:nwc=1:stl=300:sd=2:ss=axioms:sdd=large:ssfp=40000:ssfq=1.1:sp=reverse_arity_60"); // HH4 76 (3)
+    sched.push("lrs+11_3:1_bd=off:bsr=unit_only:cond=on:fsr=off:gs=on:gsem=on:nm=64:nwc=1:stl=300:sd=1:ss=axioms:st=1.5:spl=off:sp=reverse_arity:updr=off_60"); // HH4 77 (2)
+    sched.push("dis+11_3_ep=RST:fde=unused:gs=on:gsaa=from_current:gsem=off:gsssp=full:nm=0:nwc=1:sd=3:ss=axioms:st=3.0:sos=all:sac=on:smm=sco:ssnc=none:urr=ec_only:updr=off_60"); // HH4 78 (2)
+    sched.push("ott+11_5:1_br=off:cond=on:ep=RST:fsr=off:gs=on:gsem=on:gsssp=full:nwc=1:sd=3:ss=priority:sos=all:spl=off:sp=occurrence:urr=on:updr=off:uhcvi=on_60"); // HH4 79 (2)
+    sched.push("lrs+11_5_bd=off:bsr=unit_only:gs=on:gsaa=from_current:gsem=off:nwc=1:stl=300:sd=2:ss=axioms:st=3.0:sos=all:sac=on:sfr=on:ssfp=100000:ssfq=1.1:smm=off:ssnc=none:sp=occurrence:updr=off_60"); // HH4 80 (2)
+    sched.push("dis+11_5_cond=on:ep=RST:gs=on:lwlo=on:nm=64:nwc=2:sd=1:ss=axioms:st=2.0:sac=on:ssfp=10000:ssfq=1.2:ssnc=none:updr=off_60"); // HH4 81 (2)
+    sched.push("ott+1010_3_cond=on:fsr=off:fde=unused:nm=0:nwc=1.2:sd=2:ss=priority:st=1.2:spl=off:sp=reverse_arity:urr=on:updr=off:uhcvi=on_60"); // HH4 82 (2)
+    sched.push("lrs+1010_2_bs=unit_only:bsr=unit_only:ccuc=first:cond=on:fsr=off:fde=unused:gs=on:gsssp=full:nm=0:nwc=1.5:nicw=on:stl=300:sd=2:ss=axioms:st=5.0:sos=on:sac=on:sscc=on:sdd=off:sfr=on:ssfp=40000:ssfq=1.2:smm=sco:ssnc=none:sp=reverse_arity:uhcvi=on_60"); // HH4 83 (2)
+    sched.push("lrs+11_5_bd=off:cond=fast:gs=on:gsssp=full:nwc=1.1:stl=300:sd=2:ss=axioms:st=1.2:sos=all:spl=off:uhcvi=on_60"); // HH4 84 (2)
+    sched.push("lrs+11_5_fde=unused:gs=on:gsem=off:nwc=1:stl=300:sd=1:ss=priority:st=1.2:sos=all:sac=on:sser=off:ssfp=40000:ssfq=1.2:ssnc=all:sp=occurrence_60"); // HH4 85 (2)
+    sched.push("ins+11_5_cond=on:fsr=off:fde=none:gs=on:gsem=on:gsssp=full:igbrr=0.4:igrr=1/8:igrp=1400:igrpq=1.5:igwr=on:nwc=1:sd=1:ss=axioms:st=5.0:sos=on:spl=off:sp=occurrence:updr=off:uhcvi=on_60"); // HH4 86 (2)
+    sched.push("lrs+11_3_fsr=off:fde=unused:gs=on:nm=64:nwc=1.7:stl=300:sd=3:ss=axioms:st=2.0:spl=off_60"); // HH4 87 (2)
+    sched.push("lrs+11_3_bd=off:bsr=on:cond=fast:fsr=off:fde=none:gs=on:gsem=on:gsssp=full:nm=0:nwc=1:stl=300:sd=3:ss=priority:st=1.5:spl=off:sp=reverse_arity_60"); // HH4 88 (2)
+    sched.push("ott+1004_4:1_bs=on:cond=on:fsr=off:fde=unused:gs=on:gsaa=from_current:gsem=off:nm=0:nwc=1.5:sd=2:ss=axioms:st=5.0:sac=on:sdd=large:sfr=on:ssfp=1000:ssfq=1.1:ssnc=none:urr=on:updr=off_60"); // HH4 89 (2)
+    sched.push("lrs+10_8:1_bd=off:fsr=off:fde=none:gs=on:gsem=on:lwlo=on:nwc=1:stl=300:sd=10:ss=priority:sdd=off:sser=off:ssfp=100000:ssfq=1.4:sp=reverse_arity:urr=on:uhcvi=on_60"); // HH4 90 (2)
+    sched.push("dis+10_24_cond=fast:ep=RST:fsr=off:fde=none:gs=on:gsaa=full_model:gsem=on:gsssp=full:nm=0:nwc=1:sd=3:ss=axioms:st=5.0:sos=on:sac=on:sdd=off:ssfp=1000:ssfq=1.4:smm=sco:ssnc=none:sp=occurrence_60"); // HH4 91 (1)
+    sched.push("lrs+11_4:1_cond=on:ep=RS:fsr=off:lwlo=on:nm=0:nwc=1:stl=300:sos=all:spl=off:sp=reverse_arity:uhcvi=on_60"); // HH4 92 (1)
+    sched.push("dis+2_5_bsr=unit_only:cond=on:fsr=off:nwc=1:sd=10:ss=priority:st=2.0:sos=on:spl=off:sp=occurrence:urr=ec_only_60"); // HH4 93 (1)
+    sched.push("lrs-3_8:1_bsr=unit_only:cond=fast:fsr=off:fde=none:gs=on:gsem=off:nm=0:nwc=1:stl=300:sd=4:ss=priority:st=3.0:spl=off:sp=occurrence_60"); // HH4 94 (1)
+    sched.push("lrs+10_2:3_fsr=off:fde=unused:gs=on:gsem=on:nm=64:nwc=1:stl=300:sd=5:ss=priority:st=1.2:sos=on:spl=off:sp=reverse_arity:updr=off_60"); // HH4 95 (1)
+    sched.push("lrs+1010_8:1_bsr=on:fsr=off:fde=unused:nm=0:nwc=1:stl=300:sd=2:ss=axioms:spl=off:sp=reverse_arity:uhcvi=on_60"); // HH4 96 (1)
+    sched.push("lrs+1003_4:1_bd=off:bs=unit_only:bsr=unit_only:fde=none:gsp=input_only:nm=0:nwc=1:stl=300:sd=3:ss=axioms:sos=all:sac=on:ssac=none:sdd=large:sfr=on:ssfp=4000:ssfq=1.1:smm=sco:ssnc=none:sp=occurrence:urr=on:updr=off:uhcvi=on_60"); // HH4 97 (1)
+    sched.push("lrs+1003_10_bsr=unit_only:br=off:fsr=off:fde=none:nm=64:nwc=2:stl=300:sd=4:ss=axioms:st=1.2:sos=all:sac=on:sdd=large:sfr=on:ssfp=40000:ssfq=1.1:smm=off:ssnc=all:urr=on_60"); // HH4 98 (1)
+    sched.push("dis+1004_5_cond=fast:fde=unused:gs=on:lwlo=on:nwc=1:sd=2:ss=axioms:sos=on:spl=off:sp=reverse_arity:uhcvi=on_60"); // HH4 99 (1)
+    sched.push("dis+11_4_bd=off:cond=on:fde=unused:gsp=input_only:gs=on:gsem=off:nm=0:nwc=1:sd=2:ss=axioms:st=2.0:sos=all:sfr=on:ssfp=1000:ssfq=1.0:smm=sco:ssnc=none:sp=reverse_arity:urr=on:updr=off:uhcvi=on_60"); // HH4 100 (1)
+    sched.push("lrs+11_2:3_bd=off:bs=unit_only:bsr=unit_only:cond=fast:fsr=off:gsp=input_only:lcm=reverse:nm=0:nwc=1.1:stl=300:sd=1:ss=axioms:st=1.5:sos=all:spl=off_60"); // HH4 101 (1)
+    sched.push("lrs+11_5:4_bd=off:bsr=unit_only:cond=fast:fsr=off:fde=none:gsp=input_only:gs=on:gsem=off:lcm=predicate:nm=0:nwc=1:stl=300:sd=2:ss=axioms:spl=off:sp=occurrence:urr=on:updr=off:uhcvi=on_60"); // HH4 102 (1)
+    sched.push("ins+11_4_ep=RST:fsr=off:igrr=1/16:igrp=400:igrpq=2.0:igs=1:igwr=on:nm=0:nwc=1.3:sd=1:ss=axioms:st=5.0:spl=off:dm=on_60"); // HH4 103 (1)
+    sched.push("ins+11_3_fsr=off:fde=none:gs=on:gsem=off:igbrr=0.5:igpr=on:igrr=1/4:igrp=2000:igrpq=1.2:igs=1003:igwr=on:nwc=10:sd=1:ss=axioms:spl=off:sp=occurrence:urr=on:uhcvi=on_60"); // HH4 104 (1)
+    sched.push("dis+4_4_br=off:cond=fast:fsr=off:fde=unused:gs=on:gsaa=from_current:gsem=off:nm=0:nwc=1:sd=1:ss=axioms:st=1.2:sdd=off:ssfp=1000:ssfq=2.0:ssnc=none:urr=on:updr=off_60"); // HH4 105 (1)
+    sched.push("lrs+1004_8_bd=off:bsr=unit_only:br=off:cond=fast:fde=unused:nm=64:nwc=1.5:stl=300:sd=3:ss=priority:st=3.0:spl=off:sp=reverse_arity:urr=on_60"); // HH4 106 (1)
+    sched.push("lrs+11_2_bsr=unit_only:fsr=off:fde=none:gsp=input_only:gs=on:nwc=1:stl=300:sd=1:ss=axioms:st=3.0:sos=on:sdd=off:ssfp=10000:ssfq=2.0:smm=off:ssnc=none:sp=occurrence:urr=on:updr=off:uhcvi=on_60"); // HH4 107 (1)
+    sched.push("dis+10_4_bd=off:fsr=off:fde=none:gsp=input_only:gs=on:gsaa=from_current:gsem=on:gsssp=full:nm=64:nwc=1:sd=2:ss=axioms:st=3.0:sos=on:sdd=large:sser=off:ssfp=4000:ssfq=1.1:ssnc=none:sp=occurrence:urr=ec_only:updr=off_60"); // HH4 108 (1)
+    sched.push("dis+10_4_cond=fast:ep=RST:fsr=off:nwc=1:sd=3:ss=axioms:sos=all:spl=off_60"); // HH4 109 (1)
+    sched.push("dis+1_5_cond=on:ep=RST:fsr=off:fde=none:gsp=input_only:gs=on:gsem=off:nm=0:nwc=1:sd=2:ss=priority:st=3.0:sos=all:spl=off:urr=on_60"); // HH4 110 (1)
+    sched.push("dis+2_7_bd=off:cond=fast:fsr=off:gs=on:gsem=off:nm=64:nwc=1.1:sd=3:ss=axioms:st=3.0:sos=on:spl=off:sp=occurrence:uhcvi=on_60"); // HH4 111 (1)
+    sched.push("lrs-3_4_bsr=unit_only:gs=on:nwc=1:stl=300:sd=2:ss=axioms:st=3.0:sos=on:sac=on:sdd=off:sfr=on:ssfp=1000:ssfq=1.4:smm=sco:ssnc=none:sp=reverse_arity:uhcvi=on_60"); // HH4 112 (1)
+    sched.push("dis+1004_3:1_fsr=off:gs=on:gsem=off:gsssp=full:nm=0:nwc=1:sd=2:ss=axioms:sos=on:sac=on:sdd=large:ssfp=40000:ssfq=1.2:urr=ec_only:uhcvi=on_60"); // HH4 113 (1)
+    sched.push("lrs+1003_4_bd=off:bsr=unit_only:cond=on:gs=on:gsem=off:nm=0:nwc=1:stl=300:sd=2:ss=axioms:sos=on:spl=off:sp=occurrence:urr=on:updr=off_60"); // HH4 114 (1)
+    sched.push("lrs+11_5_bd=off:cond=fast:fsr=off:fde=none:nm=0:nwc=1:stl=300:sd=2:ss=axioms:st=3.0:sos=all:spl=off:updr=off:uhcvi=on_60"); // HH4 115 (1)
+    sched.push("dis+4_5_bd=off:cond=fast:fsr=off:fde=unused:gs=on:gsaa=full_model:gsem=off:gsssp=full:nwc=1:sd=3:ss=axioms:st=2.0:sos=on:sfr=on:ssfp=10000:ssfq=1.2:ssnc=none:urr=on_60"); // HH4 116 (1)
+    sched.push("lrs+11_5_fsr=off:fde=unused:gs=on:gsaa=from_current:gsssp=full:nwc=1:stl=300:sd=4:ss=axioms:sos=on:sdd=off:ssfp=10000:ssfq=1.1:smm=sco:ssnc=none:sp=reverse_arity:urr=on:uhcvi=on_60"); // HH4 117 (1)
+    sched.push("dis+11_3:1_fsr=off:fde=none:nwc=1:sd=1:ss=priority:st=5.0:sdd=off:sser=off:sfr=on:ssfp=100000:ssfq=1.1:sp=reverse_arity:urr=on:updr=off_60"); // HH4 118 (1)
+    sched.push("dis+11_4:1_cond=fast:gs=on:gsem=on:nm=64:nwc=1.1:sd=1:ss=axioms:st=2.0:spl=off:sp=occurrence:urr=on_60"); // HH4 119 (1)
+    sched.push("lrs+1010_5:1_cond=fast:fde=none:gs=on:gsaa=from_current:gsem=on:lwlo=on:nwc=1.2:stl=300:sd=2:ss=priority:st=3.0:sac=on:sdd=large:sser=off:sfr=on:ssfp=40000:ssfq=1.0:ssnc=all:uhcvi=on_60"); // HH4 120 (1)
+    sched.push("ins+11_4_cond=on:fde=none:gs=on:gsem=off:gsssp=full:igbrr=0.5:igpr=on:igrr=1/4:igrp=4000:igrpq=1.05:igs=1:igwr=on:nm=0:nwc=1:sd=1:ss=axioms:st=1.2:sos=all:spl=off:sp=reverse_arity:updr=off:uhcvi=on_60"); // HH4 121 (1)
+    sched.push("lrs+1002_3:1_bd=preordered:fsr=off:fde=none:gs=on:gsaa=full_model:gsem=off:nm=0:nwc=3:stl=300:sd=4:ss=priority:sac=on:sdd=large:ssfp=10000:ssfq=1.0:smm=off:ssnc=none:uhcvi=on_60"); // HH4 122 (1)
+    sched.push("dis+4_5:4_cond=on:fsr=off:fde=none:lwlo=on:nwc=1:sd=3:ss=axioms:st=1.5:sos=on:spl=off:sp=occurrence:urr=ec_only:updr=off:uhcvi=on_60"); // HH4 123 (1)
+    sched.push("ins+11_3_cond=fast:fsr=off:fde=none:igbrr=0.6:igrr=1/16:igrp=1400:igrpq=1.1:igs=1002:igwr=on:nm=0:nwc=1:sd=2:ss=priority:spl=off:urr=ec_only:dm=on:uhcvi=on_60"); // HH4 124 (1)
+    sched.push("ott+11_2:1_gs=on:gsem=on:gsssp=full:nm=0:nwc=1:sd=2:ss=axioms:st=1.5:sac=on:sdd=large:ssfp=100000:ssfq=1.2:smm=sco:ssnc=all:sp=occurrence:updr=off:uhcvi=on_60"); // HH4 125 (1)
+    sched.push("dis+1002_8_bd=off:fsr=off:fde=unused:gs=on:gsem=on:nwc=1:sd=4:ss=priority:sos=on:spl=off:sp=occurrence_60"); // HH4 126 (1)
+    sched.push("lrs+11_3_cond=fast:ep=RST:fde=unused:gs=on:gsem=on:nwc=1:stl=300:sd=3:ss=axioms:st=5.0:sos=all:spl=off:updr=off:uhcvi=on_60"); // HH4 127 (1)
+    sched.push("lrs+4_3:1_cond=fast:fsr=off:fde=unused:gs=on:gsem=off:lwlo=on:nm=0:nwc=1.7:stl=300:spl=off:sp=reverse_arity:updr=off_60"); // HH4 128 (1)
+    sched.push("ins+11_4_cond=on:fde=none:gsp=input_only:igbrr=0.8:igrp=1400:igs=1004:igwr=on:nwc=1:sd=4:ss=axioms:st=3.0:sos=on:spl=off:sp=reverse_arity_60"); // HH4 129 (1)
+    sched.push("lrs-3_1_bd=off:cond=on:fde=none:gs=on:lcm=reverse:nm=0:nwc=1.1:stl=300:sd=2:ss=axioms:st=1.5:spl=off:updr=off:uhcvi=on_60"); // HH4 130 (1)
+    sched.push("lrs+11_5_bd=off:ccuc=first:fde=none:gs=on:lcm=reverse:nm=0:nwc=1:stl=300:sd=2:ss=priority:st=1.2:sos=all:ssac=none:sscc=model:sfr=on:ssfp=1000:ssfq=1.1:ssnc=none:updr=off:uhcvi=on_60"); // HH4 131 (1)
+    sched.push("lrs+11_5:4_cond=fast:fde=none:gs=on:gsaa=from_current:gsem=on:nwc=1:stl=300:sd=7:ss=axioms:st=3.0:sos=all:ssfp=10000:ssfq=1.1:smm=sco:ssnc=none:sp=reverse_arity:updr=off:uhcvi=on_60"); // HH4 132 (1)
+    sched.push("dis+11_6_fsr=off:fde=none:gs=on:gsem=on:gsssp=full:lwlo=on:nm=0:nwc=1:sd=3:ss=axioms:sos=all:sdd=off:sfr=on:ssfp=4000:ssfq=1.0:smm=sco:ssnc=all:sp=occurrence:urr=ec_only:uhcvi=on_60"); // HH4 133 (1)
+    sched.push("lrs+1010_3:2_bd=off:bsr=unit_only:cond=fast:nwc=4:stl=300:sd=1:ss=axioms:st=3.0:sac=on:sdd=large:ssfp=10000:ssfq=1.2:smm=sco:sp=reverse_arity:updr=off:uhcvi=on_60"); // HH4 134 (1)
+    sched.push("dis+1004_3:1_cond=fast:fde=unused:nm=0:nwc=1:sd=1:ss=axioms:st=1.2:sos=on:spl=off:sp=reverse_arity:updr=off:uhcvi=on_60"); // HH4 135 (1)
+    sched.push("dis+4_3_bd=off:cond=fast:fsr=off:fde=unused:gs=on:gsssp=full:lwlo=on:nm=64:nwc=1:ss=axioms:st=2.0:sos=on:spl=off:sp=occurrence:updr=off_60"); // HH4 136 (1)
+    sched.push("lrs-10_24_bd=off:fsr=off:lcm=reverse:nm=0:nwc=1:stl=300:sd=1:ss=axioms:sos=on:spl=off:sp=occurrence_60"); // HH4 137 (1)
+    sched.push("ins+11_4_fde=none:igbrr=0.6:igpr=on:igrr=1/128:igrp=700:igrpq=1.05:igs=1002:igwr=on:lcm=predicate:nwc=1:sd=1:ss=axioms:sos=on:spl=off:sp=occurrence:updr=off_60"); // HH4 138 (1)
+    sched.push("ott+11_2:1_cond=fast:nm=0:nwc=2.5:sd=2:ss=priority:st=1.2:spl=off:sp=occurrence:urr=on:updr=off_60"); // HH4 139 (1)
+    return;
+  case HLL:
+    sched.push("ins+11_3_ep=RST:fde=unused:gsp=input_only:igbrr=0.4:igrr=1/8:igrpq=1.5:igs=1:igwr=on:lcm=predicate:nwc=1:sd=2:ss=axioms:st=3.0:sos=all:spl=off:updr=off:dm=on:uhcvi=on_60"); // HLL 1 (1373)
+    sched.push("lrs-4_5:4_bd=off:bs=unit_only:bsr=on:cond=on:fde=none:gs=on:gsaa=full_model:gsem=off:nm=0:nwc=1.1:nicw=on:stl=300:sd=1:ss=axioms:st=2.0:sos=on:sac=on:sfr=on:ssfp=10000:ssfq=1.0:smm=off:ssnc=none:sp=reverse_arity:urr=on:updr=off_60"); // HLL 2 (382)
+    sched.push("dis+1002_1_ep=RST:gs=on:gsaa=full_model:gsem=on:nm=64:nwc=1:sd=7:ss=axioms:st=1.2:sos=on:sser=off:ssfp=40000:ssfq=1.2:ssnc=none:updr=off:uhcvi=on_60"); // HLL 3 (170)
+    sched.push("dis+1002_1_gs=on:gsem=off:nwc=1:sd=3:ss=axioms:sos=on:sac=on:ssfp=1000:ssfq=1.4:smm=sco:ssnc=none:sp=reverse_arity:urr=on_60"); // HLL 4 (148)
+    sched.push("lrs+1011_4:1_bd=off:bsr=unit_only:ccuc=small_ones:fsr=off:fde=unused:gs=on:gsssp=full:nm=64:nwc=4:stl=300:sd=1:ss=priority:sac=on:sscc=model:sdd=large:sser=off:sfr=on:ssfp=100000:ssfq=1.2:ssnc=all:uhcvi=on_60"); // HLL 5 (68)
+    sched.push("ins+11_5_br=off:ep=RST:fde=none:gsp=input_only:gs=on:gsem=on:igbrr=0.5:igpr=on:igrp=1400:igrpq=1.3:igs=1:igwr=on:nm=0:nwc=1:sd=1:ss=axioms:st=2.0:sos=all:spl=off:urr=on:updr=off:dm=on_60"); // HLL 6 (64)
+    sched.push("lrs+10_1_bsr=unit_only:cond=fast:gs=on:gsem=off:gsssp=full:lcm=reverse:nwc=1:stl=300:sd=2:ss=axioms:st=5.0:sos=on:sac=on:sfr=on:ssfp=1000:ssfq=2.0:smm=sco:ssnc=none:sp=reverse_arity:urr=on:updr=off_60"); // HLL 7 (62)
+    sched.push("dis+10_3:1_ep=RST:gsp=input_only:gs=on:gsem=on:lcm=reverse:nwc=1.1:sd=2:ss=priority:st=2.0:sos=on:sac=on:sdd=large:sser=off:ssfp=10000:ssfq=1.1:ssnc=none:sp=reverse_arity_60"); // HLL 8 (42)
+    sched.push("lrs+1011_3:1_bd=off:bsr=on:cond=fast:gs=on:gsem=on:lwlo=on:nwc=10:stl=300:sd=1:ss=axioms:st=3.0:spl=off:sp=occurrence:updr=off:uhcvi=on_60"); // HLL 9 (35)
+    sched.push("lrs+1011_5:1_fde=none:gs=on:gsem=on:nwc=4:stl=300:sd=1:ss=axioms:st=5.0:spl=off:sp=occurrence:urr=on:uhcvi=on_60"); // HLL 10 (25)
+    sched.push("ins+11_4_fsr=off:fde=unused:gsp=input_only:gs=on:igbrr=0.3:igrr=1/4:igrp=700:igrpq=1.3:igs=1:igwr=on:lcm=reverse:nwc=1:sd=2:ss=axioms:st=1.2:sos=on:spl=off:sp=reverse_arity:updr=off:uhcvi=on_60"); // HLL 11 (22)
+    sched.push("ott+11_2:3_cond=on:ep=RST:fsr=off:fde=none:gsp=input_only:lcm=predicate:nwc=1:sd=3:ss=priority:sos=all:sac=on:ssac=none:sser=off:ssfp=100000:ssfq=1.2:ssnc=all_dependent:urr=ec_only_60"); // HLL 12 (21)
+    sched.push("dis+1011_5:1_ep=RSTC:fde=unused:gs=on:gsssp=full:lwlo=on:nm=0:nwc=1:sd=1:ss=axioms:st=3.0:sos=on:spl=off:sp=occurrence:updr=off:uhcvi=on_60"); // HLL 13 (16)
+    sched.push("dis+1011_5:1_cond=fast:fsr=off:fde=none:gs=on:gsaa=from_current:nwc=3:sd=2:ss=axioms:sac=on:ssfp=100000:ssfq=1.0:smm=sco:ssnc=none:sp=reverse_arity:urr=on:updr=off_60"); // HLL 14 (14)
+    sched.push("lrs+11_3_cond=fast:gsp=input_only:gs=on:gsem=on:gsssp=full:lcm=predicate:nwc=1:stl=300:sd=2:ss=axioms:sos=on:sac=on:sdd=large:sfr=on:ssfp=100000:ssfq=1.0:smm=sco:ssnc=none:updr=off:uhcvi=on_60"); // HLL 15 (14)
+    sched.push("dis+1011_2:1_cond=fast:ep=RST:fsr=off:gs=on:gsem=off:gsssp=full:nwc=1:sd=1:ss=axioms:sos=on:sdd=large:sser=off:sfr=on:ssfp=4000:ssfq=1.1:ssnc=none:sp=reverse_arity_60"); // HLL 16 (13)
+    sched.push("dis+1011_1_cond=fast:ep=RST:gs=on:nwc=1:sd=2:ss=axioms:st=1.5:sos=on:sac=on:smm=sco:ssnc=none:urr=ec_only_60"); // HLL 17 (12)
+    sched.push("lrs+10_4_bd=off:bsr=unit_only:fde=none:gs=on:lcm=reverse:nwc=1:stl=300:sd=3:ss=axioms:st=3.0:sos=on:spl=off:uhcvi=on_60"); // HLL 18 (11)
+    sched.push("dis+1002_7_bsr=unit_only:cond=fast:nm=64:nwc=1:sd=1:ss=axioms:sos=on:sac=on:sfr=on:ssfp=100000:ssfq=1.4:ssnc=none:uhcvi=on_60"); // HLL 19 (11)
+    sched.push("lrs+10_5_bd=off:cond=fast:fde=unused:gsp=input_only:gs=on:gsem=on:gsssp=full:nwc=1:stl=300:sd=2:ss=axioms:sos=on:spl=off:urr=on:updr=off:uhcvi=on_60"); // HLL 20 (10)
+    sched.push("dis+2_4_bd=off:cond=fast:fsr=off:fde=none:gs=on:gsem=on:lcm=reverse:lwlo=on:nwc=1:sd=3:ss=axioms:st=1.5:sos=on:spl=off:sp=occurrence:uhcvi=on_60"); // HLL 21 (9)
+    sched.push("lrs+1010_5:1_bs=unit_only:bsr=on:fde=none:gs=on:gsem=off:gsssp=full:lcm=reverse:nm=0:nwc=4:stl=300:sd=3:ss=priority:st=1.2:sos=on:ssac=none:sscc=model:sfr=on:ssfp=1000:ssfq=1.0:smm=off:urr=on:uhcvi=on_60"); // HLL 22 (8)
+    sched.push("lrs-11_8:1_bsr=on:cond=on:fde=none:lcm=reverse:nm=0:nwc=1.5:stl=300:sd=2:ss=priority:spl=off:sp=occurrence_60"); // HLL 23 (7)
+    sched.push("dis+1002_3_cond=on:ep=RS:fsr=off:gs=on:gsaa=full_model:gsem=off:nm=0:nwc=1:sd=5:ss=axioms:st=2.0:sos=on:ssfp=4000:ssfq=1.4:smm=off:ssnc=none:updr=off_60"); // HLL 24 (7)
+    sched.push("dis+1003_5_cond=on:fsr=off:fde=none:gs=on:gsem=off:nwc=1:sos=on:sdd=large:sser=off:sfr=on:ssfp=100000:ssfq=1.0:ssnc=all_dependent:sp=reverse_arity:urr=ec_only:uhcvi=on_60"); // HLL 25 (6)
+    sched.push("lrs+10_5:4_bd=off:gs=on:gsssp=full:lcm=reverse:nwc=1:stl=300:sd=1:ss=axioms:sos=on:sac=on:sdd=off:sfr=on:ssfp=10000:ssfq=1.4:smm=sco:ssnc=none:sp=reverse_arity:updr=off:uhcvi=on_60"); // HLL 26 (6)
+    sched.push("lrs+11_4:1_br=off:cond=on:fsr=off:fde=unused:gsp=input_only:gs=on:gsssp=full:lcm=predicate:nm=0:nwc=1:stl=300:sd=1:ss=axioms:spl=off:sp=occurrence:urr=on_60"); // HLL 27 (6)
+    sched.push("lrs+1010_5_cond=fast:ep=RST:gs=on:gsaa=from_current:gsem=on:nwc=1:stl=300:sd=4:ss=axioms:st=1.5:sos=on:sac=on:sdd=off:ssfp=4000:ssfq=2.0:smm=sco:ssnc=none:sp=reverse_arity:uhcvi=on_60"); // HLL 28 (6)
+    sched.push("lrs+11_3_bd=off:cond=fast:fde=none:gsp=input_only:gs=on:gsaa=from_current:gsem=on:gsssp=full:nwc=1:stl=300:sd=1:ss=axioms:sos=all:sdd=large:sser=off:sfr=on:ssfp=4000:ssfq=2.0:ssnc=none:sp=occurrence:urr=on:updr=off_60"); // HLL 29 (5)
+    sched.push("lrs+4_5:4_bd=off:bs=on:bsr=unit_only:cond=fast:fde=unused:gs=on:gsem=off:nwc=1:stl=300:sd=2:ss=axioms:st=2.0:sos=on:spl=off:sp=reverse_arity:uhcvi=on_60"); // HLL 30 (5)
+    sched.push("lrs+11_5:1_bd=off:br=off:cond=fast:gsp=input_only:gs=on:gsem=on:gsssp=full:lcm=predicate:nwc=1.1:stl=300:sd=2:ss=priority:st=3.0:spl=off:sp=occurrence:urr=on:uhcvi=on_60"); // HLL 31 (5)
+    sched.push("dis+1011_3:2_cond=fast:ep=RST:fsr=off:fde=unused:gsp=input_only:gs=on:gsem=off:nm=0:nwc=1:sd=1:ss=priority:sos=all:sdd=large:ssnc=all:sp=occurrence_60"); // HLL 32 (5)
+    sched.push("lrs+11_3:1_br=off:cond=fast:ep=R:fsr=off:gs=on:nwc=1:stl=300:sd=2:ss=priority:st=2.0:sos=all:spl=off:sp=occurrence:urr=on:updr=off:uhcvi=on_60"); // HLL 33 (4)
+    sched.push("lrs+11_3_bsr=unit_only:cond=on:ep=RST:gsp=input_only:nwc=1.7:stl=300:sd=3:ss=axioms:st=5.0:sos=all:sac=on:sfr=on:ssfp=100000:ssfq=1.1:ssnc=all_dependent:sp=reverse_arity:updr=off:uhcvi=on_60"); // HLL 34 (4)
+    sched.push("ins+11_5_ep=RS:fsr=off:gs=on:igbrr=0.4:igpr=on:igrr=1/2:igrp=4000:igrpq=1.2:igs=1010:igwr=on:nwc=1:sd=1:ss=axioms:st=3.0:sos=all:spl=off:sp=reverse_arity:urr=on:updr=off_60"); // HLL 35 (3)
+    sched.push("dis+1010_2:3_bs=unit_only:bsr=unit_only:cond=fast:fsr=off:fde=unused:gs=on:gsem=on:gsssp=full:nm=0:nwc=3:sd=4:ss=priority:st=1.5:sos=on:sscc=on:sdd=off:sser=off:sfr=on:ssfp=100000:ssfq=1.0:sp=reverse_arity:uhcvi=on_60"); // HLL 36 (3)
+    sched.push("dis+1010_5:4_bd=off:fsr=off:fde=unused:gs=on:nm=64:nwc=1:sd=4:ss=axioms:st=1.2:sos=on:spl=off:sp=reverse_arity:uhcvi=on_60"); // HLL 37 (3)
+    sched.push("lrs+1011_8:1_bd=off:bsr=unit_only:fde=none:gs=on:lwlo=on:nm=0:nwc=1.5:stl=300:sd=1:ss=axioms:st=1.2:spl=off:sp=occurrence:updr=off_60"); // HLL 38 (3)
+    sched.push("dis+4_5:4_bd=off:fsr=off:fde=unused:gs=on:nwc=1:sd=5:ss=axioms:st=1.5:sos=all:spl=off:sp=occurrence:uhcvi=on_60"); // HLL 39 (3)
+    sched.push("dis+1011_3_cond=fast:ep=R:gs=on:gsem=off:lwlo=on:nm=0:nwc=1:sd=5:ss=axioms:st=1.5:sos=on:sac=on:sdd=large:sfr=on:ssfp=1000:ssfq=1.1:ssnc=none:uhcvi=on_60"); // HLL 40 (2)
+    sched.push("lrs+1004_3:1_bd=off:bsr=unit_only:cond=fast:fde=none:gs=on:gsem=off:gsssp=full:nwc=1:stl=300:sd=2:ss=axioms:sos=on:spl=off:updr=off_60"); // HLL 41 (2)
+    sched.push("lrs+10_1_bd=off:bsr=unit_only:cond=fast:fsr=off:fde=unused:gs=on:gsem=off:lcm=reverse:nwc=1:stl=300:sd=3:ss=axioms:st=1.5:spl=off:sp=reverse_arity:urr=on_60"); // HLL 42 (2)
+    sched.push("lrs+10_4_bd=off:bsr=unit_only:cond=on:gs=on:nwc=1:stl=300:sd=4:ss=axioms:st=5.0:sos=all:spl=off:sp=reverse_arity:updr=off:uhcvi=on_60"); // HLL 43 (2)
+    sched.push("ins+11_4_ep=RS:igbrr=0.6:igpr=on:igrr=1/128:igrp=2000:igrpq=2.0:igs=1002:igwr=on:nwc=1:sd=1:ss=axioms:sos=all:spl=off:uhcvi=on_60"); // HLL 44 (2)
+    sched.push("lrs+1010_2:3_bsr=unit_only:ccuc=small_ones:cond=on:fde=unused:gs=on:gsaa=full_model:nwc=1:stl=300:sd=2:ss=axioms:st=1.5:sos=on:sac=on:sscc=model:sdd=off:sser=off:sfr=on:ssfp=1000:ssfq=2.0:sp=occurrence:uhcvi=on_60"); // HLL 45 (2)
+    sched.push("dis+10_1_bd=preordered:bs=unit_only:cond=on:fde=none:lcm=predicate:nwc=1:sd=2:ss=axioms:sos=all:sac=on:sfr=on:smm=sco:ssnc=none:updr=off:uhcvi=on_60"); // HLL 46 (2)
+    sched.push("lrs+11_5_bd=off:bsr=unit_only:cond=on:fsr=off:gs=on:gsaa=from_current:gsssp=full:nwc=1:stl=300:sd=1:ss=axioms:st=5.0:sos=all:sdd=off:ssfp=4000:ssfq=2.0:smm=off:ssnc=none:sp=occurrence:urr=on:updr=off:uhcvi=on_60"); // HLL 47 (2)
+    sched.push("dis+11_2:1_br=off:ep=RST:fde=unused:gsp=input_only:gs=on:gsaa=from_current:gsem=off:nwc=1:sd=1:ss=priority:st=1.2:sos=all:sdd=large:sser=off:ssfp=100000:ssfq=1.1:ssnc=none:sp=occurrence:urr=on_60"); // HLL 48 (2)
+    sched.push("dis+1011_2:3_cond=fast:fsr=off:fde=none:gs=on:gsaa=from_current:gsem=on:gsssp=full:nm=0:nwc=1:sd=2:ss=axioms:sos=on:sac=on:sdd=large:sfr=on:ssfp=1000:ssfq=2.0:ssnc=none:sp=reverse_arity:urr=ec_only:uhcvi=on_60"); // HLL 49 (2)
+    sched.push("lrs+1003_4_bsr=unit_only:cond=fast:fsr=off:gsp=input_only:gs=on:gsaa=from_current:nm=0:nwc=1:stl=300:sos=on:sac=on:sdd=large:ssfp=10000:ssfq=1.1:ssnc=none:urr=ec_only:uhcvi=on_60"); // HLL 50 (1)
+    sched.push("ins+11_4:1_cond=on:ep=RSTC:fde=none:gs=on:gsem=on:igbrr=0.2:igpr=on:igrr=32/1:igrp=2000:igrpq=1.3:igs=1002:igwr=on:nm=0:nwc=1:sd=2:ss=axioms:sos=all:spl=off:sp=reverse_arity:uhcvi=on_60"); // HLL 51 (1)
+    sched.push("dis+11_20_cond=fast:ep=R:fde=none:lwlo=on:nm=0:nwc=10:sd=4:ss=axioms:st=2.0:sdd=large:smm=off:sp=occurrence_60"); // HLL 52 (1)
+    sched.push("lrs-2_3_bd=off:bs=unit_only:cond=on:fde=none:nwc=1:stl=300:sd=1:ss=axioms:st=1.2:sos=all:spl=off:sp=occurrence:urr=ec_only:updr=off_60"); // HLL 53 (1)
+    sched.push("lrs+11_3_bsr=unit_only:cond=on:ep=RST:fsr=off:fde=none:gs=on:gsem=off:gsssp=full:nwc=1:stl=300:sd=10:ss=axioms:st=1.5:sos=all:sdd=off:ssfp=40000:ssfq=1.0:ssnc=none:sp=occurrence:urr=on_60"); // HLL 54 (1)
+    sched.push("lrs+1004_4_cond=on:fde=unused:gsp=input_only:gs=on:nwc=1:stl=300:sd=3:ss=axioms:st=5.0:sos=on:spl=off:sp=occurrence:urr=on:updr=off_60"); // HLL 55 (1)
+    sched.push("lrs+10_4_bsr=unit_only:cond=fast:fsr=off:fde=unused:gs=on:gsssp=full:nwc=1:stl=300:sd=2:ss=axioms:st=2.0:sos=on:ssfp=10000:ssfq=1.0:smm=sco:ssnc=all_dependent:sp=occurrence:uhcvi=on_60"); // HLL 56 (1)
+    sched.push("dis+1011_3:1_cond=fast:fsr=off:fde=unused:lwlo=on:nwc=1:sd=2:ss=axioms:st=1.2:spl=off:sp=reverse_arity:uhcvi=on_60"); // HLL 57 (1)
+    sched.push("lrs-10_3:1_cond=fast:fde=unused:gs=on:gsaa=from_current:gsem=off:lcm=predicate:nwc=1:stl=300:sd=1:ss=axioms:sos=on:sac=on:sdd=off:ssfp=100000:ssfq=2.0:smm=sco:ssnc=none:sp=reverse_arity:uhcvi=on_60"); // HLL 58 (1)
+    sched.push("lrs-10_3:1_bd=off:cond=fast:fsr=off:fde=unused:gs=on:gsem=off:gsssp=full:lcm=reverse:nm=0:nwc=1:stl=300:sd=4:ss=axioms:st=1.5:sos=on:spl=off:urr=ec_only:updr=off_60"); // HLL 59 (1)
+    sched.push("ins+11_5_fde=unused:gsp=input_only:gs=on:igbrr=0.4:igrr=1/16:igrp=100:igrpq=1.5:igs=1002:igwr=on:lcm=predicate:nwc=1:sd=3:ss=axioms:st=2.0:sos=on:spl=off:urr=ec_only_60"); // HLL 60 (1)
+    sched.push("lrs+4_5_bd=off:fde=none:nwc=1.1:stl=300:sd=2:ss=axioms:st=5.0:sos=on:spl=off:sp=occurrence:updr=off:uhcvi=on_60"); // HLL 61 (1)
+    sched.push("lrs-2_5:4_bd=off:bsr=unit_only:fsr=off:nm=0:nwc=1:stl=300:sd=2:ss=axioms:sos=on:spl=off:sp=reverse_arity_60"); // HLL 62 (1)
+    sched.push("lrs+11_5_bd=off:fde=none:gsp=input_only:gs=on:gsaa=full_model:gsssp=full:nwc=1:stl=300:sd=2:ss=priority:st=2.0:sos=all:sac=on:sdd=large:sser=off:ssfp=40000:ssfq=1.2:ssnc=none:uhcvi=on_60"); // HLL 63 (1)
+    sched.push("lrs+11_24_bsr=unit_only:gsp=input_only:gs=on:gsem=off:gsssp=full:nm=0:nwc=1:stl=300:sd=2:ss=axioms:sos=all:sac=on:ssfp=1000:ssfq=1.0:smm=sco:ssnc=none:sp=reverse_arity:updr=off_60"); // HLL 64 (1)
+    sched.push("ins+11_6_fsr=off:igbrr=0.4:igrr=1/64:igrp=100:igrpq=1.5:igs=1010:igwr=on:lcm=reverse:nwc=1:sd=2:ss=priority:spl=off:sp=occurrence:updr=off:dm=on_60"); // HLL 65 (1)
+    sched.push("dis+11_2_bd=off:cond=fast:gs=on:gsaa=full_model:nwc=1:sd=7:ss=axioms:st=1.2:sos=all:sac=on:sdd=off:sfr=on:ssfp=40000:ssfq=1.2:ssnc=all_dependent_60"); // HLL 66 (1)
+    sched.push("lrs+1004_2:3_bd=off:ccuc=small_ones:cond=fast:fsr=off:fde=none:lwlo=on:nm=0:nwc=1.5:stl=300:sac=on:ssac=none:sscc=on:sdd=large:ssfp=40000:ssfq=2.0:smm=sco:ssnc=none:sp=reverse_arity_60"); // HLL 67 (1)
+    sched.push("dis+11_1_cond=fast:fde=none:gs=on:gsssp=full:nwc=1.1:sd=1:ss=axioms:sac=on:sdd=large:ssfp=1000:ssfq=2.0:smm=sco:ssnc=none:urr=on:updr=off:uhcvi=on_60"); // HLL 68 (1)
+    sched.push("dis+2_5_bd=off:cond=fast:gs=on:lcm=reverse:nwc=1:sd=3:ss=axioms:sos=on:spl=off:sp=occurrence:updr=off:uhcvi=on_60"); // HLL 69 (1)
+    sched.push("lrs+4_3_bsr=unit_only:cond=fast:fsr=off:fde=none:gs=on:gsaa=full_model:gsem=off:gsssp=full:nwc=1:stl=300:sd=1:ss=axioms:st=1.5:sos=on:sac=on:sdd=off:sfr=on:ssfp=100000:ssfq=1.0:smm=sco:ssnc=none:sp=reverse_arity:urr=on:updr=off:uhcvi=on_60"); // HLL 70 (1)
+    sched.push("lrs+11_2:3_bd=off:cond=on:fde=none:nwc=1:stl=300:sd=10:ss=axioms:st=1.2:sos=all:spl=off:sp=occurrence:updr=off:uhcvi=on_60"); // HLL 71 (1)
+    sched.push("dis+11_4_cond=on:ep=RST:fsr=off:fde=unused:gs=on:gsaa=from_current:nwc=1:sd=2:ss=axioms:sos=all:sdd=off:sser=off:ssnc=none:sp=occurrence:uhcvi=on_60"); // HLL 72 (1)
+    sched.push("lrs+1003_3_bd=off:bsr=unit_only:cond=on:nwc=1:stl=300:sd=2:ss=priority:spl=off_60"); // HLL 73 (1)
+    return;
+  case ISA:
+    sched.push("dis+1002_3_gs=on:gsem=off:nwc=1.2:sd=2:ss=axioms:st=3.0:sos=on:spl=off:sp=reverse_arity:uhcvi=on_60"); // ISA 1 (1149)
+    sched.push("dis+1011_3:2_bsr=unit_only:cond=fast:nwc=3:nicw=on:sd=3:ss=priority:sdd=off:sfr=on:ssfp=10000:ssfq=1.2:uhcvi=on_60"); // ISA 2 (347)
+    sched.push("lrs+1010_1_cond=on:fde=none:gs=on:gsem=off:nwc=1:stl=300:sd=1:ss=axioms:st=3.0:sos=on:sac=on:ssfp=10000:ssfq=1.1:smm=sco:ssnc=none:urr=on:updr=off_60"); // ISA 3 (174)
+    sched.push("lrs-2_3_ep=RS:gs=on:gsaa=from_current:nwc=1:stl=300:sd=2:ss=axioms:sos=on:sac=on:sfr=on:ssfp=40000:ssfq=1.0:smm=off:ssnc=none:sp=reverse_arity:uhcvi=on_60"); // ISA 4 (93)
+    sched.push("dis+1011_5_fsr=off:fde=unused:nm=64:nwc=3:sd=2:ss=priority:spl=off:sp=occurrence:uhcvi=on_60"); // ISA 5 (58)
+    sched.push("dis+1002_4_cond=on:gs=on:gsem=off:nwc=1:sd=1:ss=axioms:sos=on:sac=on:sfr=on:ssfp=1000:ssfq=1.2:smm=sco:ssnc=none:sp=occurrence:uhcvi=on_60"); // ISA 6 (52)
+    sched.push("dis+1002_4_ep=RST:fsr=off:gs=on:gsem=off:lwlo=on:nwc=1:sd=4:ss=axioms:st=1.5:sos=on:sser=off:sfr=on:ssfp=40000:ssfq=1.2:ssnc=none_60"); // ISA 7 (39)
+    sched.push("lrs+1011_3:2_bd=off:cond=on:gsp=input_only:gs=on:gsem=on:nm=0:nwc=4:stl=300:sd=1:ss=axioms:sser=off:sfr=on:ssfp=40000:ssfq=1.1:ssnc=all_dependent:sp=reverse_arity:updr=off_60"); // ISA 8 (34)
+    sched.push("dis+1011_1_bsr=on:ccuc=first:nm=0:nwc=4:sd=2:ss=priority:sscc=model:sdd=large:sfr=on:smm=off:ssnc=none:updr=off:uhcvi=on_60"); // ISA 9 (32)
+    sched.push("lrs+1002_4_bd=off:fde=none:gs=on:gsaa=from_current:gsem=off:gsssp=full:nwc=1:stl=300:sd=3:ss=axioms:st=5.0:sos=on:sser=off:ssfp=100000:ssfq=1.1:ssnc=none:sp=reverse_arity_60"); // ISA 10 (29)
+    sched.push("dis+1002_5_cond=fast:fsr=off:fde=none:gs=on:gsaa=full_model:gsem=off:gsssp=full:nwc=1:sd=1:ss=axioms:st=5.0:sos=on:sac=on:sdd=large:ssfp=40000:ssfq=1.1:smm=off:ssnc=none:sp=reverse_arity:updr=off_60"); // ISA 11 (25)
+    sched.push("dis+1011_3_fde=unused:nm=64:nwc=1:sd=2:ss=axioms:st=5.0:sdd=off:sser=off:ssfp=10000:ssfq=1.0:sp=occurrence_60"); // ISA 12 (20)
+    sched.push("dis+1011_3:1_cond=fast:ep=RS:nm=0:nwc=1.7:sd=2:ss=priority:st=1.2:sdd=off:ssfp=10000:ssfq=1.2:smm=sco:ssnc=all:sp=occurrence:updr=off:uhcvi=on_60"); // ISA 13 (16)
+    sched.push("dis+1002_5_cond=on:ep=RST:fsr=off:fde=unused:gs=on:gsem=on:nwc=1:sd=2:ss=axioms:st=1.2:sos=on:sac=on:sdd=off:sfr=on:smm=sco:ssnc=none:updr=off:uhcvi=on_60"); // ISA 14 (16)
+    sched.push("dis+1011_5_cond=on:er=filter:fde=none:nm=64:nwc=3:sd=2:ss=priority:st=2.0:spl=off:sp=occurrence:updr=off:uhcvi=on_60"); // ISA 15 (12)
+    sched.push("lrs+10_3:1_cond=on:fde=none:gs=on:gsem=off:gsssp=full:nwc=1.2:stl=300:sd=1:ss=priority:sos=on:sac=on:sdd=off:ssfp=1000:ssfq=1.4:smm=sco:ssnc=all:sp=reverse_arity:urr=on:updr=off:uhcvi=on_60"); // ISA 16 (12)
+    sched.push("lrs+11_5_br=off:cond=on:fde=none:gs=on:nwc=1:stl=300:sd=2:ss=axioms:st=3.0:sos=all:sdd=off:sfr=on:ssfp=40000:ssfq=1.4:ssnc=none:sp=reverse_arity:urr=on_60"); // ISA 17 (10)
+    sched.push("dis+1002_3_bd=off:fde=unused:gs=on:gsaa=from_current:gsem=off:nwc=1:sd=2:ss=axioms:st=1.2:sos=on:sfr=on:smm=sco:ssnc=none:sp=occurrence_60"); // ISA 18 (10)
+    sched.push("ins+11_4_cond=fast:fde=none:igbrr=0.4:igrr=1/32:igrp=200:igrpq=1.2:igs=1003:igwr=on:nwc=10:sd=1:ss=axioms:st=5.0:spl=off_60"); // ISA 19 (10)
+    sched.push("lrs+1011_4:1_fsr=off:fde=unused:gs=on:gsem=on:gsssp=full:nm=64:nwc=4:stl=300:sd=1:ss=priority:st=3.0:ssac=none:sscc=on:sfr=on:ssfp=40000:ssfq=1.2:smm=sco:ssnc=all:sp=reverse_arity:updr=off:uhcvi=on_60"); // ISA 20 (9)
+    sched.push("dis+1002_50_fde=unused:nwc=1:sd=2:ss=axioms:sos=on:spl=off:sp=reverse_arity:uhcvi=on_60"); // ISA 21 (8)
+    sched.push("ott+11_4_cond=fast:fde=none:gs=on:gsem=on:gsssp=full:nwc=1:sd=2:ss=axioms:sos=on:spl=off:sp=occurrence:urr=on:updr=off:uhcvi=on_60"); // ISA 22 (8)
+    sched.push("dis-3_3_ep=RST:fde=none:nm=64:nwc=1:sd=4:ss=axioms:sos=on:spl=off:sp=occurrence:uhcvi=on_60"); // ISA 23 (7)
+    sched.push("dis+1010_7_fsr=off:fde=unused:nm=0:nwc=1.3:nicw=on:sd=3:ss=priority:sfr=on:ssfp=100000:ssfq=1.0:smm=sco:ssnc=none:updr=off:uhcvi=on_60"); // ISA 24 (7)
+    sched.push("dis+1002_4_cond=fast:ep=RST:fsr=off:nwc=1:sd=3:ss=axioms:st=2.0:sos=on:ssfp=10000:ssfq=1.1:smm=sco:sp=occurrence:uhcvi=on_60"); // ISA 25 (6)
+    sched.push("ott+1011_2_bd=off:ccuc=first:cond=on:fsr=off:fde=unused:gs=on:gsaa=from_current:gsem=on:nm=64:nwc=1.3:sd=3:ss=priority:st=1.2:sac=on:sscc=on:sdd=off:ssfp=4000:ssfq=1.4:smm=sco:ssnc=none:urr=ec_only:updr=off:uhcvi=on_60"); // ISA 26 (6)
+    sched.push("dis+1002_3_bd=off:gs=on:gsem=on:nwc=1.1:sd=7:ss=axioms:st=1.2:sos=on:spl=off:sp=reverse_arity:updr=off_60"); // ISA 27 (5)
+    sched.push("dis+11_2:3_cond=on:gs=on:gsem=off:gsssp=full:lcm=reverse:nwc=1:sd=1:ss=axioms:st=1.5:sdd=off:sser=off:sfr=on:ssfp=1000:ssfq=2.0:ssnc=all_dependent:sp=reverse_arity:updr=off:uhcvi=on_60"); // ISA 28 (5)
+    sched.push("ins+11_10_cond=on:gs=on:igbrr=0.3:igpr=on:igrr=1/32:igrp=100:igrpq=1.1:igs=1010:igwr=on:lcm=reverse:nwc=1.3:sd=1:ss=axioms:st=1.2:sos=on:spl=off:sp=reverse_arity:urr=on:updr=off:dm=on:uhcvi=on_60"); // ISA 29 (5)
+    sched.push("dis+1002_3_cond=fast:ep=RSTC:fsr=off:gs=on:gsem=off:lwlo=on:nwc=1:sd=3:ss=axioms:st=1.2:sos=on:spl=off:sp=occurrence:uhcvi=on_60"); // ISA 30 (4)
+    sched.push("lrs+11_4_ccuc=small_ones:fde=none:gs=on:gsaa=from_current:gsem=off:gsssp=full:nm=0:nwc=1.2:stl=300:sd=1:ss=axioms:st=3.0:sac=on:sscc=model:sdd=off:sser=off:sfr=on:ssfp=4000:ssfq=1.4:ssnc=none:urr=on:updr=off:uhcvi=on_60"); // ISA 31 (4)
+    sched.push("dis-11_3_cond=on:fsr=off:gs=on:gsem=on:lcm=reverse:lwlo=on:nwc=1:sd=2:ss=axioms:sos=on:spl=off_60"); // ISA 32 (4)
+    sched.push("lrs+10_4:1_bd=off:ccuc=small_ones:gs=on:nwc=1:stl=300:sd=2:ss=priority:sos=all:sac=on:sscc=model:sdd=off:sfr=on:ssfp=40000:ssfq=1.1:smm=off:ssnc=none_60"); // ISA 33 (4)
+    sched.push("dis+11_5_br=off:ccuc=small_ones:cond=fast:fsr=off:gs=on:nwc=1:sd=1:ss=axioms:st=1.2:sos=on:sscc=on:sdd=large:ssfp=100000:ssfq=1.2:smm=off:ssnc=none:sp=reverse_arity:urr=on:updr=off_60"); // ISA 34 (4)
+    sched.push("ott+1_8:1_bd=off:br=off:cond=on:nm=64:nwc=1.2:sd=2:ss=priority:st=2.0:spl=off:sp=occurrence:urr=on_60"); // ISA 35 (4)
+    sched.push("dis+10_2:1_fde=none:gs=on:gsem=off:lcm=predicate:nm=0:nwc=1.1:sd=1:ss=axioms:st=3.0:sos=on:sac=on:sscc=on:sfr=on:ssfp=100000:ssfq=1.1:smm=sco:ssnc=none:sp=reverse_arity:uhcvi=on_60"); // ISA 36 (4)
+    sched.push("dis+10_4_cond=on:fsr=off:fde=unused:gs=on:gsem=off:gsssp=full:lcm=reverse:nm=1024:nwc=1:sd=2:ss=priority:sac=on:sser=off:sfr=on:ssfp=4000:ssfq=1.1:ssnc=all:updr=off_60"); // ISA 37 (3)
+    sched.push("lrs+11_6_cond=fast:fsr=off:fde=unused:gs=on:gsssp=full:nwc=1.1:stl=300:sd=1:ss=axioms:st=5.0:sos=on:sac=on:ssfp=4000:ssfq=1.4:smm=off:ssnc=none:sp=occurrence:urr=on_60"); // ISA 38 (3)
+    sched.push("dis-4_3:1_ep=RST:nwc=1:sos=on:spl=off:updr=off:uhcvi=on_60"); // ISA 39 (3)
+    sched.push("lrs+1003_3_cond=fast:fde=unused:gs=on:gsaa=from_current:nwc=1:stl=300:sd=1:ss=axioms:sos=on:sac=on:sdd=off:sfr=on:ssfp=1000:ssfq=1.4:ssnc=none:sp=reverse_arity:updr=off:uhcvi=on_60"); // ISA 40 (3)
+    sched.push("dis-11_3:1_bd=off:fsr=off:fde=unused:lcm=reverse:nm=64:nwc=2.5:sd=5:ss=priority:st=3.0:spl=off_60"); // ISA 41 (3)
+    sched.push("dis+10_2_cond=fast:fsr=off:fde=none:gs=on:gsem=off:lcm=reverse:nwc=1.1:sd=1:ss=axioms:st=5.0:sos=on:spl=off_60"); // ISA 42 (3)
+    sched.push("dis+1011_1_fsr=off:fde=unused:nm=64:nwc=1.7:sd=2:ss=priority:spl=off:updr=off_60"); // ISA 43 (3)
+    sched.push("lrs+2_4_bd=off:cond=on:lcm=predicate:nwc=1:stl=300:sd=3:ss=priority:sos=on:sdd=off:sfr=on:ssfp=40000:ssfq=1.0:smm=sco:ssnc=none:urr=ec_only_60"); // ISA 44 (3)
+    sched.push("dis+10_2_bd=off:fsr=off:fde=none:gs=on:gsem=on:lcm=reverse:nm=64:nwc=1:sd=3:ss=axioms:st=5.0:sos=on:sac=on:ssfp=10000:ssfq=1.4:ssnc=none:updr=off:uhcvi=on_60"); // ISA 45 (3)
+    sched.push("dis+1002_32_bs=on:fde=none:nm=64:nwc=1:sd=2:ss=axioms:st=3.0:sos=on:sac=on:sscc=model:sdd=large:sser=off:sfr=on:ssfp=10000:ssfq=1.2:ssnc=none_60"); // ISA 46 (3)
+    sched.push("dis+1003_3_cond=on:ep=RST:fde=none:gs=on:gsem=off:lwlo=on:nwc=1:sd=2:ss=axioms:st=1.5:sos=on:sac=on:sser=off:sfr=on:ssfp=1000:ssfq=1.0:ssnc=none:updr=off_60"); // ISA 47 (2)
+    sched.push("dis+11_24_br=off:cond=fast:ep=RST:fsr=off:fde=none:gsp=input_only:gs=on:gsaa=full_model:gsem=off:nwc=1.1:sd=1:ss=axioms:sac=on:sdd=off:sfr=on:ssfp=4000:ssfq=2.0:smm=sco:ssnc=none:sp=occurrence:urr=on:updr=off:uhcvi=on_60"); // ISA 48 (2)
+    sched.push("dis+3_1_cond=on:fde=unused:nwc=1:sd=1:ss=axioms:st=1.2:sos=on:sac=on:sdd=off:ssfp=40000:ssfq=1.4:ssnc=none_60"); // ISA 49 (2)
+    sched.push("dis+10_3_bd=off:fsr=off:gs=on:gsaa=full_model:gsssp=full:lcm=reverse:nwc=1:sd=2:ss=axioms:st=5.0:sos=on:sac=on:sdd=large:sfr=on:ssfp=10000:ssfq=1.4:ssnc=none:sp=occurrence_60"); // ISA 50 (2)
+    sched.push("dis+10_2_bd=off:fde=unused:nwc=1:sd=2:ss=axioms:st=2.0:sos=on:spl=off:uhcvi=on_60"); // ISA 51 (2)
+    sched.push("lrs+11_12_bd=off:bs=unit_only:ccuc=small_ones:cond=fast:fde=none:nwc=2.5:stl=300:sd=5:ss=priority:st=1.2:sos=all:sscc=model:sser=off:ssfp=100000:ssfq=1.4:ssnc=none_60"); // ISA 52 (2)
+    sched.push("dis+11_3_br=off:ccuc=small_ones:cond=fast:gsp=input_only:gs=on:gsem=on:nwc=1:sd=3:ss=axioms:st=1.5:sos=all:sscc=on:sfr=on:ssfp=1000:ssfq=2.0:smm=off:ssnc=none:sp=reverse_arity:urr=on:updr=off_60"); // ISA 53 (2)
+    sched.push("ins+11_4_bd=off:fde=unused:gs=on:igbrr=0.6:igrr=1/16:igrp=4000:igrpq=1.3:igwr=on:lcm=predicate:nwc=1:sd=1:ss=axioms:st=1.5:sos=on:spl=off:urr=on_60"); // ISA 54 (2)
+    sched.push("ott+1011_10_fsr=off:fde=unused:nm=0:nwc=1:sd=3:ss=priority:st=1.2:spl=off:uhcvi=on_60"); // ISA 55 (2)
+    sched.push("ott+11_5:1_bd=off:cond=fast:nm=64:nwc=1.1:sd=3:ss=priority:st=2.0:spl=off:sp=reverse_arity:urr=on:updr=off_60"); // ISA 56 (2)
+    sched.push("lrs-3_3:1_cond=fast:ep=R:gsp=input_only:gs=on:gsem=on:gsssp=full:lcm=predicate:nwc=1:stl=300:sd=1:ss=axioms:st=3.0:sac=on:sdd=off:sfr=on:ssfp=40000:ssfq=1.1:smm=sco:ssnc=none:uhcvi=on_60"); // ISA 57 (1)
+    sched.push("dis+1011_2_cond=fast:ep=RST:fsr=off:fde=none:gs=on:gsem=off:gsssp=full:nwc=4:sd=2:ss=priority:sac=on:sdd=large:sfr=on:ssfp=40000:ssfq=1.0:smm=sco:ssnc=none:sp=reverse_arity_60"); // ISA 58 (1)
+    sched.push("dis+1002_4_cond=on:fde=none:gs=on:gsem=on:nwc=1:sd=4:ss=axioms:sos=on:spl=off:sp=occurrence:uhcvi=on_60"); // ISA 59 (1)
+    sched.push("dis-1_4_cond=fast:fsr=off:gs=on:gsem=off:gsssp=full:lcm=reverse:nwc=1:sd=1:ss=axioms:st=1.5:sos=on:spl=off:updr=off:uhcvi=on_60"); // ISA 60 (1)
+    sched.push("dis+10_4:1_fsr=off:gs=on:gsem=on:lcm=reverse:nm=64:nwc=1:sd=4:ss=priority:st=3.0:spl=off:updr=off:uhcvi=on_60"); // ISA 61 (1)
+    sched.push("dis+10_2_fsr=off:fde=none:lcm=reverse:lwlo=on:nm=64:nwc=1.2:sd=4:ss=priority:st=5.0:spl=off:uhcvi=on_60"); // ISA 62 (1)
+    sched.push("lrs+10_4_bd=off:cond=on:fde=unused:gs=on:gsem=off:lcm=predicate:nwc=1:stl=300:sd=2:ss=axioms:st=5.0:sos=on:spl=off:urr=ec_only_60"); // ISA 63 (1)
+    sched.push("ins+11_5_cond=on:ep=RST:fsr=off:fde=none:gsp=input_only:gs=on:gsem=on:igrr=1/8:igrpq=1.1:igs=1003:igwr=on:lcm=reverse:nwc=1:sd=1:ss=axioms:st=1.2:sos=on:spl=off:sp=reverse_arity:urr=on:updr=off:dm=on:uhcvi=on_60"); // ISA 64 (1)
+    sched.push("dis+10_3_ep=RST:fde=unused:gs=on:gsem=off:nwc=1:sos=on:ssfp=100000:ssfq=1.1:smm=sco:ssnc=none:sp=occurrence:updr=off_60"); // ISA 65 (1)
+    sched.push("dis+10_4_cond=fast:fsr=off:fde=unused:gs=on:gsaa=full_model:gsem=off:nwc=1.5:sd=1:ss=axioms:st=3.0:sac=on:sdd=off:sfr=on:ssfp=10000:ssfq=2.0:smm=sco:ssnc=none:sp=reverse_arity:updr=off:uhcvi=on_60"); // ISA 66 (1)
+    sched.push("ott+10_8_cond=on:gs=on:gsem=off:nm=64:nwc=1:sd=1:ss=axioms:st=3.0:sos=all:spl=off:sp=reverse_arity:urr=on:updr=off_60"); // ISA 67 (1)
+    sched.push("dis+1003_2:1_cond=fast:fde=none:nwc=1:sd=1:ss=axioms:st=2.0:sos=all:spl=off:sp=reverse_arity:urr=ec_only_60"); // ISA 68 (1)
+    sched.push("lrs+10_3_bd=off:cond=on:gs=on:gsem=off:nwc=1:stl=300:sd=3:ss=priority:st=3.0:sos=all:spl=off:uhcvi=on_60"); // ISA 69 (1)
+    sched.push("lrs+10_3_bd=off:cond=fast:fde=unused:lcm=reverse:nwc=1:stl=300:sd=5:ss=axioms:st=1.5:sos=on:spl=off:sp=occurrence:urr=ec_only_60"); // ISA 70 (1)
+    sched.push("dis+1011_4_cond=fast:ep=RST:fsr=off:gs=on:nm=64:nwc=1:sd=3:ss=axioms:st=3.0:sos=on:spl=off_60"); // ISA 71 (1)
+    sched.push("dis+11_1_cond=fast:gsp=input_only:lcm=predicate:nwc=1:sd=1:ss=axioms:st=5.0:sos=all:spl=off:sp=occurrence:uhcvi=on_60"); // ISA 72 (1)
+    sched.push("dis-11_4_bd=off:fde=none:gs=on:gsem=on:lwlo=on:nwc=1:sd=3:ss=axioms:st=5.0:sos=all:spl=off:sp=reverse_arity:urr=on:updr=off_60"); // ISA 73 (1)
+    sched.push("dis+10_1_cond=fast:ep=RST:fsr=off:fde=unused:gs=on:gsaa=from_current:gsem=on:gsssp=full:nwc=1:sd=4:ss=axioms:st=3.0:sos=on:sac=on:sdd=off:sfr=on:ssfp=40000:ssfq=2.0:ssnc=none:sp=occurrence:urr=ec_only_60"); // ISA 74 (1)
+    sched.push("lrs+11_40_bs=unit_only:cond=fast:gs=on:gsem=on:gsssp=full:lcm=reverse:nm=64:nwc=1.3:stl=300:sd=3:ss=priority:spl=off:sp=reverse_arity:updr=off_60"); // ISA 75 (1)
+    sched.push("dis+1002_7_gs=on:gsaa=from_current:gsem=on:nm=64:nwc=1:sd=2:ss=axioms:st=1.5:sos=on:sac=on:sdd=large:sfr=on:ssfp=40000:ssfq=1.0:smm=off:ssnc=none_60"); // ISA 76 (1)
+    sched.push("lrs+11_1_cond=fast:ep=RST:lwlo=on:nwc=1:stl=300:sd=2:ss=axioms:sos=all:spl=off:sp=occurrence:uhcvi=on_60"); // ISA 77 (1)
+    sched.push("lrs+11_4_bd=off:br=off:cond=on:fsr=off:fde=none:gs=on:gsaa=full_model:gsem=off:gsssp=full:nwc=1:stl=300:sd=2:ss=axioms:st=5.0:sos=all:sac=on:sdd=large:sser=off:ssfp=1000:ssfq=1.4:ssnc=none:sp=occurrence:urr=on:uhcvi=on_60"); // ISA 78 (1)
+    sched.push("lrs+1010_8:1_bs=unit_only:cond=fast:fsr=off:fde=unused:gs=on:gsaa=full_model:gsem=off:lwlo=on:nwc=4:stl=300:sd=3:ss=priority:st=2.0:sac=on:ssac=none:sdd=off:sser=off:ssfp=1000:ssfq=2.0:sp=occurrence:urr=ec_only:uhcvi=on_60"); // ISA 79 (1)
+    sched.push("lrs+1011_4_ep=RST:fsr=off:gs=on:gsssp=full:nwc=1.1:stl=300:sos=on:spl=off:updr=off_60"); // ISA 80 (1)
+    sched.push("lrs+11_24_bd=off:bsr=unit_only:cond=on:gs=on:gsssp=full:nm=0:nwc=1.1:stl=300:sd=1:ss=axioms:st=3.0:sos=all:spl=off:sp=occurrence:urr=ec_only_60"); // ISA 81 (1)
+    return;
+  case MZR:
+    sched.push("ott-11_8:1_bsr=unit_only:lcm=predicate:nwc=1:sd=2:ss=axioms:st=1.2:sos=all:spl=off:sp=reverse_arity_60"); // MZR 1 (828)
+    sched.push("ott+1010_3:1_bs=unit_only:bsr=unit_only:br=off:ccuc=first:cond=fast:fde=unused:gs=on:gsem=on:nwc=1:sd=2:ss=axioms:sos=on:sac=on:ssac=none:sscc=on:sser=off:ssfp=1000:ssfq=2.0:ssnc=all_dependent:sp=reverse_arity:urr=on:updr=off_60"); // MZR 2 (112)
+    sched.push("ins+11_3_cond=fast:igbrr=0.7:igpr=on:igrr=1/32:igrp=700:igrpq=1.5:igs=1003:igwr=on:nwc=1:sd=1:ss=axioms:st=3.0:sos=all:spl=off:sp=occurrence:uhcvi=on_60"); // MZR 3 (81)
+    sched.push("lrs+1004_2_bd=off:ccuc=small_ones:gs=on:gsem=off:gsssp=full:lwlo=on:nm=0:nwc=1:stl=300:sd=4:ss=priority:st=5.0:sos=all:sac=on:sscc=on:sdd=off:sser=off:ssfp=100000:ssfq=1.2:ssnc=none:sp=occurrence:updr=off:uhcvi=on_60"); // MZR 4 (47)
+    sched.push("dis+10_5_bsr=unit_only:cond=on:ep=RS:fde=unused:nm=0:nwc=1:sd=1:ss=axioms:sos=all:spl=off_60"); // MZR 5 (37)
+    sched.push("lrs+11_5:1_br=off:cond=fast:fde=unused:gsp=input_only:gs=on:gsem=on:gsssp=full:lcm=predicate:nm=0:nwc=1:nicw=on:stl=300:sd=1:ss=axioms:st=1.2:sac=on:sdd=large:sfr=on:ssfp=40000:ssfq=1.4:smm=sco:ssnc=all:urr=on_60"); // MZR 6 (32)
+    sched.push("lrs+1011_8:1_cond=on:fde=none:gsp=input_only:lwlo=on:nwc=1:stl=300:sd=2:ss=axioms:sos=all:spl=off:sp=reverse_arity:urr=ec_only:updr=off:uhcvi=on_60"); // MZR 7 (22)
+    sched.push("lrs+11_3_br=off:cond=fast:gs=on:gsem=off:nwc=1:stl=300:sd=3:ss=priority:st=1.5:sos=all:sac=on:sfr=on:ssfp=1000:ssfq=2.0:smm=sco:ssnc=none:sp=occurrence:urr=on:uhcvi=on_60"); // MZR 8 (21)
+    sched.push("dis+10_2:1_cond=fast:ep=RST:fsr=off:fde=unused:gsp=input_only:gs=on:gsaa=full_model:gsem=off:nm=0:nwc=1:sd=1:ss=axioms:st=5.0:sos=on:sac=on:sdd=off:sfr=on:ssfp=100000:ssfq=1.4:smm=sco:ssnc=none:urr=on:updr=off:uhcvi=on_60"); // MZR 9 (19)
+    sched.push("lrs+1002_1_bsr=unit_only:nwc=1:stl=300:sd=1:ss=axioms:st=1.5:sos=all:spl=off:updr=off:uhcvi=on_60"); // MZR 10 (14)
+    sched.push("lrs+1_1_bs=on:bsr=on:br=off:cond=fast:fsr=off:gs=on:gsem=off:lwlo=on:nwc=3:stl=300:sd=3:ss=priority:sdd=large:sfr=on:ssfp=40000:ssfq=1.4:smm=off:ssnc=none:sp=occurrence:urr=on:updr=off_60"); // MZR 11 (11)
+    sched.push("lrs-2_1_cond=on:fde=unused:gs=on:gsaa=from_current:gsssp=full:lcm=predicate:nwc=1:stl=300:sd=4:ss=axioms:st=3.0:sos=on:sac=on:sfr=on:ssfp=10000:ssfq=1.1:ssnc=none:updr=off_60"); // MZR 12 (11)
+    sched.push("lrs+10_8:1_bsr=unit_only:br=off:cond=on:fsr=off:gsp=input_only:gs=on:gsaa=from_current:nm=0:nwc=1:stl=300:sd=2:ss=axioms:st=1.2:sos=on:sac=on:sdd=large:sfr=on:ssfp=1000:ssfq=1.1:smm=sco:ssnc=none:sp=reverse_arity:urr=on:updr=off:uhcvi=on_60"); // MZR 13 (10)
+    sched.push("dis+11_12_cond=fast:nwc=1:sd=1:ss=axioms:st=1.5:sos=on:spl=off:sp=reverse_arity:uhcvi=on_60"); // MZR 14 (8)
+    sched.push("dis+1010_3_bsr=unit_only:cond=fast:fde=none:nwc=1:sd=2:ss=axioms:st=1.5:sos=all:spl=off:sp=occurrence:uhcvi=on_60"); // MZR 15 (8)
+    sched.push("dis+1002_2:3_fde=none:gsp=input_only:nm=0:nwc=1:sd=3:ss=axioms:sos=on:sac=on:ssfp=100000:ssfq=1.0:smm=sco:ssnc=none:sp=occurrence:updr=off_60"); // MZR 16 (7)
+    sched.push("lrs+10_3:1_fde=unused:lcm=reverse:nwc=1:stl=300:sd=3:ss=priority:st=2.0:sos=all:spl=off:sp=occurrence:uhcvi=on_60"); // MZR 17 (6)
+    sched.push("lrs+10_2:3_bsr=unit_only:cond=on:fde=none:gs=on:nwc=1:stl=300:sd=2:ss=axioms:sos=on:spl=off:sp=reverse_arity_60"); // MZR 18 (6)
+    sched.push("dis+1004_3:1_bsr=unit_only:ep=R:fde=unused:gs=on:gsssp=full:nm=0:nwc=1:sos=all:sac=on:sfr=on:ssfp=10000:ssfq=2.0:ssnc=all:sp=reverse_arity:urr=on:updr=off_60"); // MZR 19 (5)
+    sched.push("ott+4_5:1_br=off:cond=fast:fsr=off:nwc=1.3:spl=off:sp=occurrence:urr=on:uhcvi=on_60"); // MZR 20 (5)
+    sched.push("dis+1010_1_cond=fast:fsr=off:nwc=1.3:sd=2:ss=axioms:st=1.5:sos=on:sscc=model:sdd=off:ssfp=4000:ssfq=2.0:uhcvi=on_60"); // MZR 21 (5)
+    sched.push("lrs+11_2_bd=off:bsr=unit_only:cond=on:lcm=predicate:lwlo=on:nm=64:nwc=1.1:stl=300:sd=1:ss=axioms:st=2.0:sos=all:spl=off_60"); // MZR 22 (5)
+    sched.push("lrs+10_4:1_bd=off:cond=fast:fde=unused:lcm=reverse:nm=0:nwc=1.2:stl=300:sd=2:ss=axioms:sos=all:spl=off_60"); // MZR 23 (5)
+    sched.push("dis+10_5_ep=RST:fsr=off:gs=on:gsssp=full:lwlo=on:nm=0:nwc=1:sd=4:ss=axioms:sos=on:sfr=on:ssfp=40000:ssfq=1.1:smm=off:ssnc=none:uhcvi=on_60"); // MZR 24 (4)
+    sched.push("dis+1002_3_ep=RST:fde=unused:gs=on:gsaa=full_model:gsem=off:nwc=1:sd=1:ss=axioms:st=2.0:sos=on:ssfp=100000:ssfq=1.1:ssnc=none:sp=occurrence:uhcvi=on_60"); // MZR 25 (4)
+    sched.push("dis+10_5_cond=on:fsr=off:fde=none:gs=on:nwc=1:sd=2:ss=axioms:st=3.0:sos=on:spl=off_60"); // MZR 26 (4)
+    sched.push("ott-11_8:1_bd=preordered:ccuc=first:er=known:fsr=off:fde=unused:gsp=input_only:lcm=predicate:nm=0:nwc=2:sd=3:ss=axioms:sscc=on:ssfp=10000:ssfq=2.0:smm=sco:sp=occurrence:updr=off_60"); // MZR 27 (4)
+    sched.push("ins+11_4_bd=off:fsr=off:gsp=input_only:gs=on:gsem=off:igbrr=0.6:igpr=on:igrr=1/128:igrp=700:igrpq=1.2:igs=1004:igwr=on:lcm=predicate:nwc=1:sd=2:ss=axioms:st=5.0:sos=on:spl=off:uhcvi=on_60"); // MZR 28 (3)
+    sched.push("lrs+1011_1_cond=on:fsr=off:gs=on:nwc=1:stl=300:sd=4:ss=priority:st=1.2:sos=on:spl=off:sp=reverse_arity:urr=on_60"); // MZR 29 (3)
+    sched.push("lrs+11_3:1_bsr=unit_only:br=off:cond=on:ep=RST:fsr=off:gs=on:gsaa=from_current:gsem=off:nwc=3:stl=300:sd=2:ss=axioms:st=2.0:sac=on:sdd=large:sfr=on:ssfp=100000:ssfq=1.4:smm=sco:ssnc=none:sp=reverse_arity:urr=on_60"); // MZR 30 (3)
+    sched.push("ins+11_3_cond=fast:fde=unused:igbrr=0.6:igrr=1/2:igrp=1400:igrpq=2.0:igs=1003:igwr=on:nwc=1:sos=on:spl=off:updr=off:dm=on_60"); // MZR 31 (3)
+    sched.push("dis+11_5:4_ccuc=first:cond=on:er=known:fde=none:gs=on:nwc=1:sd=2:ss=priority:st=1.2:sos=all:ssac=none:sscc=model:sdd=large:sfr=on:ssfp=10000:ssfq=1.2:ssnc=all_dependent:sp=reverse_arity:urr=on:uhcvi=on_60"); // MZR 32 (3)
+    sched.push("lrs+1010_2_cond=on:fde=none:gs=on:gsem=off:nwc=1:stl=300:sd=3:ss=priority:st=1.2:sos=all:spl=off:uhcvi=on_60"); // MZR 33 (3)
+    sched.push("ins+11_4_fde=unused:gs=on:igbrr=0.7:igpr=on:igrr=1/4:igrp=100:igrpq=1.3:igs=1002:igwr=on:lcm=predicate:nwc=1:sd=3:ss=axioms:st=1.5:sos=all:spl=off:sp=occurrence:urr=on:uhcvi=on_60"); // MZR 34 (3)
+    sched.push("lrs+10_5:4_bd=off:ccuc=small_ones:cond=on:fde=none:gs=on:gsaa=from_current:gsem=off:nm=0:nwc=1:stl=300:sd=2:ss=priority:sos=on:sscc=model:sdd=large:sser=off:ssfp=100000:ssfq=1.4:ssnc=none:urr=on_60"); // MZR 35 (2)
+    sched.push("dis+11_1_ccuc=first:cond=on:fsr=off:fde=none:gs=on:gsem=off:lcm=predicate:nm=0:nwc=1:nicw=on:sd=3:ss=priority:sscc=model:sdd=large:ssfp=4000:ssfq=1.4:ssnc=all:sp=occurrence:updr=off:uhcvi=on_60"); // MZR 36 (2)
+    sched.push("dis+1_1_fsr=off:gs=on:gsem=on:nwc=1:sd=1:ss=axioms:st=5.0:sos=all:sscc=on:sfr=on:ssfp=10000:ssfq=1.0:smm=sco:ssnc=none:sp=reverse_arity_60"); // MZR 37 (2)
+    sched.push("dis+1004_2_bs=unit_only:bsr=unit_only:fde=unused:gs=on:nwc=1:sos=on:sdd=large:sfr=on_60"); // MZR 38 (2)
+    sched.push("dis+11_4_ep=RS:fde=none:gs=on:gsaa=full_model:gsem=off:nwc=1:sd=1:ss=priority:st=1.2:sos=all:sac=on:ssfp=10000:ssfq=1.1:smm=sco:ssnc=none:sp=reverse_arity:uhcvi=on_60"); // MZR 39 (2)
+    sched.push("lrs+11_8_br=off:cond=on:fde=none:gs=on:gsem=on:gsssp=full:nwc=1:nicw=on:stl=300:sd=1:ss=axioms:st=5.0:sos=all:sac=on:sdd=off:ssfp=100000:ssfq=1.4:smm=off:ssnc=all:sp=reverse_arity:urr=on:uhcvi=on_60"); // MZR 40 (2)
+    sched.push("ott+1_28_cond=fast:er=filter:fde=none:gsp=input_only:lcm=reverse:nwc=1.1:sos=on:spl=off:sp=reverse_arity:updr=off:uhcvi=on_60"); // MZR 41 (2)
+    sched.push("ins+10_5_cond=fast:fde=none:gsp=input_only:gs=on:gsem=on:igbrr=0.8:igrr=1/32:igrpq=1.5:igs=1003:igwr=on:nwc=1:sd=3:ss=priority:st=1.2:sos=all:spl=off:sp=occurrence:urr=ec_only:dm=on_60"); // MZR 42 (2)
+    sched.push("dis+10_14_cond=fast:gs=on:gsaa=full_model:gsem=off:gsssp=full:nwc=1.5:sd=1:ss=axioms:st=1.5:ssfp=40000:ssfq=1.1:smm=sco:ssnc=none:sp=occurrence:updr=off_60"); // MZR 43 (2)
+    sched.push("ins+11_5_cond=fast:fsr=off:fde=none:gsp=input_only:gs=on:gsem=off:igbrr=1.0:igrr=1/64:igrp=4000:igrpq=1.3:igs=1002:igwr=on:lcm=predicate:nm=0:nwc=1:sd=1:ss=axioms:st=3.0:sos=all:spl=off:dm=on:uhcvi=on_60"); // MZR 44 (2)
+    sched.push("lrs+11_5_fde=none:gsp=input_only:gs=on:gsem=on:nwc=1:stl=300:sd=3:ss=axioms:st=3.0:sos=on:spl=off:sp=occurrence:urr=on_60"); // MZR 45 (2)
+    sched.push("lrs-10_4:1_cond=on:fsr=off:fde=unused:gsp=input_only:gs=on:gsem=on:nwc=1:stl=300:sd=3:ss=axioms:sos=on:spl=off:urr=on_60"); // MZR 46 (2)
+    sched.push("lrs+3_3:1_bd=preordered:bs=on:bsr=unit_only:fsr=off:fde=unused:gs=on:gsem=off:nwc=1:nicw=on:stl=300:sd=2:ss=axioms:st=3.0:sos=all:sac=on:sdd=large:ssfp=40000:ssfq=1.2:smm=sco:ssnc=all_dependent:sp=reverse_arity:urr=ec_only_60"); // MZR 47 (2)
+    sched.push("dis+11_3_cond=fast:fsr=off:nwc=1:sd=1:ss=axioms:st=5.0:sdd=off:sfr=on:ssfp=4000:ssfq=1.1:ssnc=none:sp=occurrence:updr=off_60"); // MZR 48 (1)
+    sched.push("dis+11_4_bd=off:fsr=off:fde=unused:gs=on:gsaa=full_model:gsem=on:nwc=1:sd=1:ss=axioms:sac=on:sdd=large:ssfp=1000:ssfq=2.0:smm=sco:ssnc=none:sp=reverse_arity_60"); // MZR 49 (1)
+    sched.push("dis+1010_2_bs=on:cond=fast:ep=RSTC:fde=unused:lwlo=on:nwc=1:sos=on:sac=on:sdd=off:sfr=on:ssfp=10000:ssfq=1.4:sp=reverse_arity:uhcvi=on_60"); // MZR 50 (1)
+    sched.push("dis+10_5_fsr=off:fde=unused:gs=on:gsem=on:gsssp=full:lcm=reverse:nwc=1:sd=2:ss=axioms:sos=on:sdd=large:sfr=on:ssfp=1000:ssfq=1.1:smm=sco:ssnc=none:sp=occurrence:updr=off:uhcvi=on_60"); // MZR 51 (1)
+    sched.push("lrs+1_4:1_br=off:cond=on:er=known:fsr=off:fde=unused:gs=on:nm=0:nwc=1:stl=600:sd=1:ss=priority:st=1.5:sos=on:sac=on:sdd=off:ssfp=4000:ssfq=1.1:smm=sco:ssnc=none:urr=on:updr=off:uhcvi=on_60"); // MZR 52 (1)
+    sched.push("ins+11_10_cond=fast:fsr=off:gs=on:gsem=on:igbrr=0.5:igrr=1/2:igrpq=1.3:igs=1003:igwr=on:nwc=1:sd=2:ss=axioms:sos=on:spl=off:sp=reverse_arity_60"); // MZR 53 (1)
+    sched.push("dis+1010_5_cond=fast:fde=unused:gs=on:gsem=on:nm=0:nwc=1:sd=2:ss=axioms:st=3.0:sos=on:spl=off:sp=occurrence:updr=off:uhcvi=on_60"); // MZR 54 (1)
+    sched.push("lrs+11_8:1_bd=off:fde=unused:nwc=1:stl=300:sd=2:ss=axioms:sos=on:spl=off:updr=off:uhcvi=on_60"); // MZR 55 (1)
+    sched.push("lrs+1003_4_cond=on:fsr=off:fde=none:gs=on:gsem=off:nwc=1:stl=300:sd=3:ss=priority:sos=on:spl=off:sp=reverse_arity:updr=off:uhcvi=on_60"); // MZR 56 (1)
+    sched.push("dis-10_2:3_cond=on:fde=none:nwc=1:sd=2:ss=axioms:st=2.0:sos=on:spl=off:updr=off:uhcvi=on_60"); // MZR 57 (1)
+    sched.push("dis+10_3_cond=fast:fde=unused:gs=on:gsem=off:lwlo=on:nwc=1:sd=3:ss=axioms:sos=on:sdd=large:ssfp=10000:ssfq=2.0:ssnc=none:sp=reverse_arity_60"); // MZR 58 (1)
+    sched.push("lrs+11_4_cond=on:fsr=off:fde=none:gsp=input_only:gs=on:gsem=on:gsssp=full:nwc=1:stl=300:sd=1:ss=axioms:st=2.0:sac=on:sdd=off:sser=off:ssfp=100000:ssfq=1.4:ssnc=none:sp=occurrence:updr=off:uhcvi=on_60"); // MZR 59 (1)
+    sched.push("ott+10_5:1_bsr=unit_only:er=known:fsr=off:fde=none:gsp=input_only:lcm=reverse:nwc=2:spl=off:sp=reverse_arity:urr=ec_only:uhcvi=on_60"); // MZR 60 (1)
+    sched.push("ott+11_3:1_bs=unit_only:bsr=unit_only:br=off:cond=on:fsr=off:fde=none:nwc=1:sd=1:ss=axioms:st=1.5:sos=on:spl=off:sp=occurrence:urr=on_60"); // MZR 61 (1)
+    sched.push("dis-11_5:1_bd=off:bsr=on:ccuc=small_ones:cond=on:fsr=off:fde=none:gs=on:lcm=predicate:nwc=10:sscc=on:sser=off:ssfp=1000:ssfq=1.1:sp=occurrence:uhcvi=on_60"); // MZR 62 (1)
+    sched.push("dis+11_5_60"); // MZR 63 (1)
+    sched.push("lrs+1_8:1_bsr=on:fde=none:gs=on:lcm=reverse:nwc=1:stl=300:sd=2:ss=priority:st=1.5:sos=all:spl=off:sp=reverse_arity_60"); // MZR 64 (1)
+    sched.push("lrs+11_12_cond=fast:fde=unused:nwc=1:stl=600:sd=2:ss=priority:sos=all:spl=off:sp=reverse_arity:uhcvi=on_60"); // MZR 65 (1)
+    sched.push("lrs+11_5:1_bsr=unit_only:br=off:cond=fast:fsr=off:gs=on:nwc=1.2:stl=300:sd=1:ss=axioms:st=5.0:sos=all:spl=off:sp=reverse_arity:urr=on_60"); // MZR 66 (1)
+    sched.push("lrs+1004_5:1_ep=RST:fsr=off:nm=64:nwc=1.2:stl=600:sdd=off:sser=off:sfr=on:ssfp=100000:ssfq=1.4:sp=occurrence:updr=off:uhcvi=on_60"); // MZR 67 (1)
+    sched.push("dis-11_1_cond=fast:nm=0:nwc=1:sd=2:ss=axioms:sac=on:sscc=model:sfr=on:ssfp=100000:ssfq=1.2:smm=off:ssnc=all_dependent:sp=reverse_arity:uhcvi=on_60"); // MZR 68 (1)
+    return;
+  default:
+    sched.push("ins+11_3_ep=RST:fde=unused:gsp=input_only:igbrr=0.4:igrr=1/8:igrpq=1.5:igs=1:igwr=on:lcm=predicate:nwc=1:sd=2:ss=axioms:st=3.0:sos=all:spl=off:updr=off:dm=on:uhcvi=on_60"); // HLL 1 (1373)
+    sched.push("lrs-4_5:4_bd=off:bs=unit_only:bsr=on:cond=on:fde=none:gs=on:gsaa=full_model:gsem=off:nm=0:nwc=1.1:nicw=on:stl=300:sd=1:ss=axioms:st=2.0:sos=on:sac=on:sfr=on:ssfp=10000:ssfq=1.0:smm=off:ssnc=none:sp=reverse_arity:urr=on:updr=off_60"); // HLL 2 (382)
+    sched.push("dis+1002_1_ep=RST:gs=on:gsaa=full_model:gsem=on:nm=64:nwc=1:sd=7:ss=axioms:st=1.2:sos=on:sser=off:ssfp=40000:ssfq=1.2:ssnc=none:updr=off:uhcvi=on_60"); // HLL 3 (170)
+    sched.push("dis+1002_1_gs=on:gsem=off:nwc=1:sd=3:ss=axioms:sos=on:sac=on:ssfp=1000:ssfq=1.4:smm=sco:ssnc=none:sp=reverse_arity:urr=on_60"); // HLL 4 (148)
+    sched.push("lrs+1011_4:1_bd=off:bsr=unit_only:ccuc=small_ones:fsr=off:fde=unused:gs=on:gsssp=full:nm=64:nwc=4:stl=300:sd=1:ss=priority:sac=on:sscc=model:sdd=large:sser=off:sfr=on:ssfp=100000:ssfq=1.2:ssnc=all:uhcvi=on_60"); // HLL 5 (68)
+    sched.push("ins+11_5_br=off:ep=RST:fde=none:gsp=input_only:gs=on:gsem=on:igbrr=0.5:igpr=on:igrp=1400:igrpq=1.3:igs=1:igwr=on:nm=0:nwc=1:sd=1:ss=axioms:st=2.0:sos=all:spl=off:urr=on:updr=off:dm=on_60"); // HLL 6 (64)
+    sched.push("lrs+10_1_bsr=unit_only:cond=fast:gs=on:gsem=off:gsssp=full:lcm=reverse:nwc=1:stl=300:sd=2:ss=axioms:st=5.0:sos=on:sac=on:sfr=on:ssfp=1000:ssfq=2.0:smm=sco:ssnc=none:sp=reverse_arity:urr=on:updr=off_60"); // HLL 7 (62)
+    sched.push("dis+10_3:1_ep=RST:gsp=input_only:gs=on:gsem=on:lcm=reverse:nwc=1.1:sd=2:ss=priority:st=2.0:sos=on:sac=on:sdd=large:sser=off:ssfp=10000:ssfq=1.1:ssnc=none:sp=reverse_arity_60"); // HLL 8 (42)
+    sched.push("lrs+1011_3:1_bd=off:bsr=on:cond=fast:gs=on:gsem=on:lwlo=on:nwc=10:stl=300:sd=1:ss=axioms:st=3.0:spl=off:sp=occurrence:updr=off:uhcvi=on_60"); // HLL 9 (35)
+    sched.push("lrs+1011_5:1_fde=none:gs=on:gsem=on:nwc=4:stl=300:sd=1:ss=axioms:st=5.0:spl=off:sp=occurrence:urr=on:uhcvi=on_60"); // HLL 10 (25)
+    sched.push("ins+11_4_fsr=off:fde=unused:gsp=input_only:gs=on:igbrr=0.3:igrr=1/4:igrp=700:igrpq=1.3:igs=1:igwr=on:lcm=reverse:nwc=1:sd=2:ss=axioms:st=1.2:sos=on:spl=off:sp=reverse_arity:updr=off:uhcvi=on_60"); // HLL 11 (22)
+    sched.push("ott+11_2:3_cond=on:ep=RST:fsr=off:fde=none:gsp=input_only:lcm=predicate:nwc=1:sd=3:ss=priority:sos=all:sac=on:ssac=none:sser=off:ssfp=100000:ssfq=1.2:ssnc=all_dependent:urr=ec_only_60"); // HLL 12 (21)
+    sched.push("dis+1011_5:1_ep=RSTC:fde=unused:gs=on:gsssp=full:lwlo=on:nm=0:nwc=1:sd=1:ss=axioms:st=3.0:sos=on:spl=off:sp=occurrence:updr=off:uhcvi=on_60"); // HLL 13 (16)
+    sched.push("dis+1011_5:1_cond=fast:fsr=off:fde=none:gs=on:gsaa=from_current:nwc=3:sd=2:ss=axioms:sac=on:ssfp=100000:ssfq=1.0:smm=sco:ssnc=none:sp=reverse_arity:urr=on:updr=off_60"); // HLL 14 (14)
+    sched.push("lrs+11_3_cond=fast:gsp=input_only:gs=on:gsem=on:gsssp=full:lcm=predicate:nwc=1:stl=300:sd=2:ss=axioms:sos=on:sac=on:sdd=large:sfr=on:ssfp=100000:ssfq=1.0:smm=sco:ssnc=none:updr=off:uhcvi=on_60"); // HLL 15 (14)
+    sched.push("dis+1011_2:1_cond=fast:ep=RST:fsr=off:gs=on:gsem=off:gsssp=full:nwc=1:sd=1:ss=axioms:sos=on:sdd=large:sser=off:sfr=on:ssfp=4000:ssfq=1.1:ssnc=none:sp=reverse_arity_60"); // HLL 16 (13)
+    sched.push("dis+1011_1_cond=fast:ep=RST:gs=on:nwc=1:sd=2:ss=axioms:st=1.5:sos=on:sac=on:smm=sco:ssnc=none:urr=ec_only_60"); // HLL 17 (12)
+    sched.push("lrs+10_4_bd=off:bsr=unit_only:fde=none:gs=on:lcm=reverse:nwc=1:stl=300:sd=3:ss=axioms:st=3.0:sos=on:spl=off:uhcvi=on_60"); // HLL 18 (11)
+    sched.push("dis+1002_7_bsr=unit_only:cond=fast:nm=64:nwc=1:sd=1:ss=axioms:sos=on:sac=on:sfr=on:ssfp=100000:ssfq=1.4:ssnc=none:uhcvi=on_60"); // HLL 19 (11)
+    sched.push("lrs+10_5_bd=off:cond=fast:fde=unused:gsp=input_only:gs=on:gsem=on:gsssp=full:nwc=1:stl=300:sd=2:ss=axioms:sos=on:spl=off:urr=on:updr=off:uhcvi=on_60"); // HLL 20 (10)
+    sched.push("dis+1002_3_gs=on:gsem=off:nwc=1.2:sd=2:ss=axioms:st=3.0:sos=on:spl=off:sp=reverse_arity:uhcvi=on_60"); // ISA 1 (1149)
+    sched.push("lrs+10_3_ep=RS:gs=on:gsem=off:nm=1024:nwc=1:stl=300:sd=2:ss=priority:sos=all:spl=off_60"); // HH4 1 (4899)
+    sched.push("ott-11_8:1_bsr=unit_only:lcm=predicate:nwc=1:sd=2:ss=axioms:st=1.2:sos=all:spl=off:sp=reverse_arity_60"); // MZR 1 (828)
+    sched.push("dis+2_4_bd=off:cond=fast:fsr=off:fde=none:gs=on:gsem=on:lcm=reverse:lwlo=on:nwc=1:sd=3:ss=axioms:st=1.5:sos=on:spl=off:sp=occurrence:uhcvi=on_60"); // HLL 21 (9)
+    sched.push("dis+1011_3:2_bsr=unit_only:cond=fast:nwc=3:nicw=on:sd=3:ss=priority:sdd=off:sfr=on:ssfp=10000:ssfq=1.2:uhcvi=on_60"); // ISA 2 (347)
+    sched.push("dis+11_4_cond=on:gsp=input_only:gs=on:nm=0:nwc=1:sd=2:ss=axioms:st=1.5:sos=on:spl=off:urr=on:updr=off:uhcvi=on_60"); // HH4 2 (1018)
+    sched.push("ott+1010_3:1_bs=unit_only:bsr=unit_only:br=off:ccuc=first:cond=fast:fde=unused:gs=on:gsem=on:nwc=1:sd=2:ss=axioms:sos=on:sac=on:ssac=none:sscc=on:sser=off:ssfp=1000:ssfq=2.0:ssnc=all_dependent:sp=reverse_arity:urr=on:updr=off_60"); // MZR 2 (112)
+    sched.push("lrs+1010_5:1_bs=unit_only:bsr=on:fde=none:gs=on:gsem=off:gsssp=full:lcm=reverse:nm=0:nwc=4:stl=300:sd=3:ss=priority:st=1.2:sos=on:ssac=none:sscc=model:sfr=on:ssfp=1000:ssfq=1.0:smm=off:urr=on:uhcvi=on_60"); // HLL 22 (8)
+    sched.push("lrs+1010_1_cond=on:fde=none:gs=on:gsem=off:nwc=1:stl=300:sd=1:ss=axioms:st=3.0:sos=on:sac=on:ssfp=10000:ssfq=1.1:smm=sco:ssnc=none:urr=on:updr=off_60"); // ISA 3 (174)
+    sched.push("lrs+11_2:3_br=off:cond=on:fde=none:gs=on:gsem=on:lwlo=on:nm=64:nwc=1:stl=300:sd=1:ss=axioms:st=2.0:sos=all:spl=off:sp=occurrence:urr=on:updr=off_60"); // HH4 3 (356)
+    sched.push("ins+11_3_cond=fast:igbrr=0.7:igpr=on:igrr=1/32:igrp=700:igrpq=1.5:igs=1003:igwr=on:nwc=1:sd=1:ss=axioms:st=3.0:sos=all:spl=off:sp=occurrence:uhcvi=on_60"); // MZR 3 (81)
+    sched.push("lrs-11_8:1_bsr=on:cond=on:fde=none:lcm=reverse:nm=0:nwc=1.5:stl=300:sd=2:ss=priority:spl=off:sp=occurrence_60"); // HLL 23 (7)
+    sched.push("lrs-2_3_ep=RS:gs=on:gsaa=from_current:nwc=1:stl=300:sd=2:ss=axioms:sos=on:sac=on:sfr=on:ssfp=40000:ssfq=1.0:smm=off:ssnc=none:sp=reverse_arity:uhcvi=on_60"); // ISA 4 (93)
+    sched.push("dis+1002_4_cond=fast:ep=RST:fde=unused:gs=on:gsaa=from_current:gsem=off:nm=0:nwc=1:sd=3:ss=axioms:st=1.2:sos=on:sac=on:sdd=large:ssfp=100000:ssfq=1.0:smm=sco:ssnc=none:updr=off:uhcvi=on_60"); // HH4 4 (230)
+    sched.push("lrs+1004_2_bd=off:ccuc=small_ones:gs=on:gsem=off:gsssp=full:lwlo=on:nm=0:nwc=1:stl=300:sd=4:ss=priority:st=5.0:sos=all:sac=on:sscc=on:sdd=off:sser=off:ssfp=100000:ssfq=1.2:ssnc=none:sp=occurrence:updr=off:uhcvi=on_60"); // MZR 4 (47)
+    sched.push("dis+1002_3_cond=on:ep=RS:fsr=off:gs=on:gsaa=full_model:gsem=off:nm=0:nwc=1:sd=5:ss=axioms:st=2.0:sos=on:ssfp=4000:ssfq=1.4:smm=off:ssnc=none:updr=off_60"); // HLL 24 (7)
+    sched.push("dis+1011_5_fsr=off:fde=unused:nm=64:nwc=3:sd=2:ss=priority:spl=off:sp=occurrence:uhcvi=on_60"); // ISA 5 (58)
+    sched.push("lrs+1011_1_cond=fast:fsr=off:fde=unused:gsp=input_only:gs=on:gsem=off:gsssp=full:nm=0:nwc=10:stl=300:sd=1:ss=axioms:st=5.0:spl=off:sp=occurrence:urr=on_60"); // HH4 5 (179)
+    sched.push("dis+10_5_bsr=unit_only:cond=on:ep=RS:fde=unused:nm=0:nwc=1:sd=1:ss=axioms:sos=all:spl=off_60"); // MZR 5 (37)
+    sched.push("dis+1003_5_cond=on:fsr=off:fde=none:gs=on:gsem=off:nwc=1:sos=on:sdd=large:sser=off:sfr=on:ssfp=100000:ssfq=1.0:ssnc=all_dependent:sp=reverse_arity:urr=ec_only:uhcvi=on_60"); // HLL 25 (6)
+    sched.push("dis+1002_4_cond=on:gs=on:gsem=off:nwc=1:sd=1:ss=axioms:sos=on:sac=on:sfr=on:ssfp=1000:ssfq=1.2:smm=sco:ssnc=none:sp=occurrence:uhcvi=on_60"); // ISA 6 (52)
+    sched.push("ott+2_2:1_bd=off:bsr=unit_only:cond=on:gs=on:nwc=1:sd=3:ss=priority:st=1.5:sos=on:spl=off:sp=occurrence:updr=off_60"); // HH4 6 (138)
+    sched.push("lrs+11_5:1_br=off:cond=fast:fde=unused:gsp=input_only:gs=on:gsem=on:gsssp=full:lcm=predicate:nm=0:nwc=1:nicw=on:stl=300:sd=1:ss=axioms:st=1.2:sac=on:sdd=large:sfr=on:ssfp=40000:ssfq=1.4:smm=sco:ssnc=all:urr=on_60"); // MZR 6 (32)
+    sched.push("lrs+10_5:4_bd=off:gs=on:gsssp=full:lcm=reverse:nwc=1:stl=300:sd=1:ss=axioms:sos=on:sac=on:sdd=off:sfr=on:ssfp=10000:ssfq=1.4:smm=sco:ssnc=none:sp=reverse_arity:updr=off:uhcvi=on_60"); // HLL 26 (6)
+    sched.push("dis+1002_4_ep=RST:fsr=off:gs=on:gsem=off:lwlo=on:nwc=1:sd=4:ss=axioms:st=1.5:sos=on:sser=off:sfr=on:ssfp=40000:ssfq=1.2:ssnc=none_60"); // ISA 7 (39)
+    sched.push("lrs+11_5:4_bd=off:bsr=unit_only:br=off:fsr=off:fde=none:gsp=input_only:gs=on:gsem=on:nm=0:nwc=1:stl=300:sd=1:ss=axioms:sos=on:sdd=off:ssfp=40000:ssfq=1.4:smm=sco:urr=on:updr=off:uhcvi=on_60"); // HH4 7 (120)
+    sched.push("lrs+1011_8:1_cond=on:fde=none:gsp=input_only:lwlo=on:nwc=1:stl=300:sd=2:ss=axioms:sos=all:spl=off:sp=reverse_arity:urr=ec_only:updr=off:uhcvi=on_60"); // MZR 7 (22)
+    sched.push("lrs+11_4:1_br=off:cond=on:fsr=off:fde=unused:gsp=input_only:gs=on:gsssp=full:lcm=predicate:nm=0:nwc=1:stl=300:sd=1:ss=axioms:spl=off:sp=occurrence:urr=on_60"); // HLL 27 (6)
+    sched.push("lrs+1011_3:2_bd=off:cond=on:gsp=input_only:gs=on:gsem=on:nm=0:nwc=4:stl=300:sd=1:ss=axioms:sser=off:sfr=on:ssfp=40000:ssfq=1.1:ssnc=all_dependent:sp=reverse_arity:updr=off_60"); // ISA 8 (34)
+    sched.push("ott+1011_1_bd=preordered:cond=on:gsp=input_only:nm=64:nwc=1:sd=3:ss=priority:spl=off:sp=reverse_arity:urr=on_60"); // HH4 8 (90)
+    sched.push("lrs+11_3_br=off:cond=fast:gs=on:gsem=off:nwc=1:stl=300:sd=3:ss=priority:st=1.5:sos=all:sac=on:sfr=on:ssfp=1000:ssfq=2.0:smm=sco:ssnc=none:sp=occurrence:urr=on:uhcvi=on_60"); // MZR 8 (21)
+    sched.push("lrs+1010_5_cond=fast:ep=RST:gs=on:gsaa=from_current:gsem=on:nwc=1:stl=300:sd=4:ss=axioms:st=1.5:sos=on:sac=on:sdd=off:ssfp=4000:ssfq=2.0:smm=sco:ssnc=none:sp=reverse_arity:uhcvi=on_60"); // HLL 28 (6)
+    sched.push("dis+1011_1_bsr=on:ccuc=first:nm=0:nwc=4:sd=2:ss=priority:sscc=model:sdd=large:sfr=on:smm=off:ssnc=none:updr=off:uhcvi=on_60"); // ISA 9 (32)
+    sched.push("ins+11_5_cond=fast:ep=RST:gs=on:gsem=on:igbrr=0.4:igpr=on:igrr=1/64:igrp=4000:igrpq=1.3:igwr=on:lcm=reverse:nwc=1:sd=2:ss=axioms:st=1.2:sos=on:spl=off:sp=occurrence:dm=on:uhcvi=on_60"); // HH4 9 (81)
+    sched.push("dis+10_2:1_cond=fast:ep=RST:fsr=off:fde=unused:gsp=input_only:gs=on:gsaa=full_model:gsem=off:nm=0:nwc=1:sd=1:ss=axioms:st=5.0:sos=on:sac=on:sdd=off:sfr=on:ssfp=100000:ssfq=1.4:smm=sco:ssnc=none:urr=on:updr=off:uhcvi=on_60"); // MZR 9 (19)
+    sched.push("lrs+11_3_bd=off:cond=fast:fde=none:gsp=input_only:gs=on:gsaa=from_current:gsem=on:gsssp=full:nwc=1:stl=300:sd=1:ss=axioms:sos=all:sdd=large:sser=off:sfr=on:ssfp=4000:ssfq=2.0:ssnc=none:sp=occurrence:urr=on:updr=off_60"); // HLL 29 (5)
+    sched.push("lrs+1002_4_bd=off:fde=none:gs=on:gsaa=from_current:gsem=off:gsssp=full:nwc=1:stl=300:sd=3:ss=axioms:st=5.0:sos=on:sser=off:ssfp=100000:ssfq=1.1:ssnc=none:sp=reverse_arity_60"); // ISA 10 (29)
+    sched.push("lrs+11_5_cond=on:ep=RST:fde=none:gsp=input_only:gs=on:gsem=off:nm=0:nwc=1:stl=300:sd=2:ss=axioms:st=3.0:sos=all:sac=on:sdd=large:ssfp=40000:ssfq=1.4:smm=off:ssnc=none:urr=ec_only:uhcvi=on_60"); // HH4 10 (70)
+    sched.push("lrs+1002_1_bsr=unit_only:nwc=1:stl=300:sd=1:ss=axioms:st=1.5:sos=all:spl=off:updr=off:uhcvi=on_60"); // MZR 10 (14)
+    sched.push("lrs+4_5:4_bd=off:bs=on:bsr=unit_only:cond=fast:fde=unused:gs=on:gsem=off:nwc=1:stl=300:sd=2:ss=axioms:st=2.0:sos=on:spl=off:sp=reverse_arity:uhcvi=on_60"); // HLL 30 (5)
+    sched.push("dis+1002_5_cond=fast:fsr=off:fde=none:gs=on:gsaa=full_model:gsem=off:gsssp=full:nwc=1:sd=1:ss=axioms:st=5.0:sos=on:sac=on:sdd=large:ssfp=40000:ssfq=1.1:smm=off:ssnc=none:sp=reverse_arity:updr=off_60"); // ISA 11 (25)
+    sched.push("lrs+1011_3_bd=off:bsr=on:cond=fast:fde=none:gs=on:gsssp=full:nm=0:nwc=1:stl=300:sd=2:ss=axioms:sos=all:spl=off:sp=occurrence_60"); // HH4 11 (58)
+    sched.push("lrs+1_1_bs=on:bsr=on:br=off:cond=fast:fsr=off:gs=on:gsem=off:lwlo=on:nwc=3:stl=300:sd=3:ss=priority:sdd=large:sfr=on:ssfp=40000:ssfq=1.4:smm=off:ssnc=none:sp=occurrence:urr=on:updr=off_60"); // MZR 11 (11)
+    sched.push("lrs+11_5:1_bd=off:br=off:cond=fast:gsp=input_only:gs=on:gsem=on:gsssp=full:lcm=predicate:nwc=1.1:stl=300:sd=2:ss=priority:st=3.0:spl=off:sp=occurrence:urr=on:uhcvi=on_60"); // HLL 31 (5)
+    sched.push("dis+1011_3_fde=unused:nm=64:nwc=1:sd=2:ss=axioms:st=5.0:sdd=off:sser=off:ssfp=10000:ssfq=1.0:sp=occurrence_60"); // ISA 12 (20)
+    sched.push("lrs-4_5:4_cond=on:gs=on:gsem=on:gsssp=full:nm=64:nwc=1:stl=300:sd=2:ss=axioms:st=2.0:sos=on:sac=on:ssfp=100000:ssfq=1.1:smm=sco:ssnc=none:urr=on_60"); // HH4 12 (44)
+    sched.push("lrs-2_1_cond=on:fde=unused:gs=on:gsaa=from_current:gsssp=full:lcm=predicate:nwc=1:stl=300:sd=4:ss=axioms:st=3.0:sos=on:sac=on:sfr=on:ssfp=10000:ssfq=1.1:ssnc=none:updr=off_60"); // MZR 12 (11)
+    sched.push("dis+1011_3:2_cond=fast:ep=RST:fsr=off:fde=unused:gsp=input_only:gs=on:gsem=off:nm=0:nwc=1:sd=1:ss=priority:sos=all:sdd=large:ssnc=all:sp=occurrence_60"); // HLL 32 (5)
+    sched.push("dis+1011_3:1_cond=fast:ep=RS:nm=0:nwc=1.7:sd=2:ss=priority:st=1.2:sdd=off:ssfp=10000:ssfq=1.2:smm=sco:ssnc=all:sp=occurrence:updr=off:uhcvi=on_60"); // ISA 13 (16)
+    sched.push("dis+1011_3:1_br=off:nm=0:nwc=5:sd=1:ss=axioms:sac=on:ssfp=40000:ssfq=1.4:smm=sco:ssnc=none:urr=on:uhcvi=on_60"); // HH4 13 (38)
+    sched.push("lrs+10_8:1_bsr=unit_only:br=off:cond=on:fsr=off:gsp=input_only:gs=on:gsaa=from_current:nm=0:nwc=1:stl=300:sd=2:ss=axioms:st=1.2:sos=on:sac=on:sdd=large:sfr=on:ssfp=1000:ssfq=1.1:smm=sco:ssnc=none:sp=reverse_arity:urr=on:updr=off:uhcvi=on_60"); // MZR 13 (10)
+    sched.push("lrs+11_3:1_br=off:cond=fast:ep=R:fsr=off:gs=on:nwc=1:stl=300:sd=2:ss=priority:st=2.0:sos=all:spl=off:sp=occurrence:urr=on:updr=off:uhcvi=on_60"); // HLL 33 (4)
+    sched.push("dis+1002_5_cond=on:ep=RST:fsr=off:fde=unused:gs=on:gsem=on:nwc=1:sd=2:ss=axioms:st=1.2:sos=on:sac=on:sdd=off:sfr=on:smm=sco:ssnc=none:updr=off:uhcvi=on_60"); // ISA 14 (16)
+    sched.push("lrs+11_3:1_bd=off:bsr=unit_only:fsr=off:gs=on:gsaa=from_current:gsem=off:nm=64:nwc=1:stl=300:sd=2:ss=priority:sac=on:smm=sco:ssnc=none:sp=reverse_arity:updr=off:uhcvi=on_60"); // HH4 14 (36)
+    sched.push("dis+11_12_cond=fast:nwc=1:sd=1:ss=axioms:st=1.5:sos=on:spl=off:sp=reverse_arity:uhcvi=on_60"); // MZR 14 (8)
+    sched.push("lrs+11_3_bsr=unit_only:cond=on:ep=RST:gsp=input_only:nwc=1.7:stl=300:sd=3:ss=axioms:st=5.0:sos=all:sac=on:sfr=on:ssfp=100000:ssfq=1.1:ssnc=all_dependent:sp=reverse_arity:updr=off:uhcvi=on_60"); // HLL 34 (4)
+    sched.push("dis+1011_5_cond=on:er=filter:fde=none:nm=64:nwc=3:sd=2:ss=priority:st=2.0:spl=off:sp=occurrence:updr=off:uhcvi=on_60"); // ISA 15 (12)
+    sched.push("dis+4_3_bd=off:cond=on:fde=unused:gs=on:gsaa=full_model:gsem=off:gsssp=full:nwc=1:sd=3:ss=axioms:st=3.0:sos=on:sdd=off:sfr=on:ssfp=10000:ssfq=1.0:smm=off:ssnc=none:urr=ec_only:updr=off:uhcvi=on_60"); // HH4 15 (32)
+    sched.push("dis+1010_3_bsr=unit_only:cond=fast:fde=none:nwc=1:sd=2:ss=axioms:st=1.5:sos=all:spl=off:sp=occurrence:uhcvi=on_60"); // MZR 15 (8)
+    sched.push("ins+11_5_ep=RS:fsr=off:gs=on:igbrr=0.4:igpr=on:igrr=1/2:igrp=4000:igrpq=1.2:igs=1010:igwr=on:nwc=1:sd=1:ss=axioms:st=3.0:sos=all:spl=off:sp=reverse_arity:urr=on:updr=off_60"); // HLL 35 (3)
+    sched.push("lrs+10_3:1_cond=on:fde=none:gs=on:gsem=off:gsssp=full:nwc=1.2:stl=300:sd=1:ss=priority:sos=on:sac=on:sdd=off:ssfp=1000:ssfq=1.4:smm=sco:ssnc=all:sp=reverse_arity:urr=on:updr=off:uhcvi=on_60"); // ISA 16 (12)
+    sched.push("dis+1010_5_cond=fast:nm=0:nwc=1:sd=1:ss=axioms:st=1.5:sos=on:spl=off:sp=reverse_arity:uhcvi=on_60"); // HH4 16 (32)
+    sched.push("dis+1002_2:3_fde=none:gsp=input_only:nm=0:nwc=1:sd=3:ss=axioms:sos=on:sac=on:ssfp=100000:ssfq=1.0:smm=sco:ssnc=none:sp=occurrence:updr=off_60"); // MZR 16 (7)
+    sched.push("dis+1010_2:3_bs=unit_only:bsr=unit_only:cond=fast:fsr=off:fde=unused:gs=on:gsem=on:gsssp=full:nm=0:nwc=3:sd=4:ss=priority:st=1.5:sos=on:sscc=on:sdd=off:sser=off:sfr=on:ssfp=100000:ssfq=1.0:sp=reverse_arity:uhcvi=on_60"); // HLL 36 (3)
+    sched.push("lrs+11_5_br=off:cond=on:fde=none:gs=on:nwc=1:stl=300:sd=2:ss=axioms:st=3.0:sos=all:sdd=off:sfr=on:ssfp=40000:ssfq=1.4:ssnc=none:sp=reverse_arity:urr=on_60"); // ISA 17 (10)
+    sched.push("lrs+11_4:1_bd=off:bsr=unit_only:br=off:fsr=off:fde=unused:gsp=input_only:gs=on:nm=0:nwc=1:stl=300:sd=1:ss=axioms:sos=on:spl=off:sp=reverse_arity:urr=on_60"); // HH4 17 (29)
+    sched.push("lrs+10_3:1_fde=unused:lcm=reverse:nwc=1:stl=300:sd=3:ss=priority:st=2.0:sos=all:spl=off:sp=occurrence:uhcvi=on_60"); // MZR 17 (6)
+    sched.push("dis+1010_5:4_bd=off:fsr=off:fde=unused:gs=on:nm=64:nwc=1:sd=4:ss=axioms:st=1.2:sos=on:spl=off:sp=reverse_arity:uhcvi=on_60"); // HLL 37 (3)
+    sched.push("dis+1002_3_bd=off:fde=unused:gs=on:gsaa=from_current:gsem=off:nwc=1:sd=2:ss=axioms:st=1.2:sos=on:sfr=on:smm=sco:ssnc=none:sp=occurrence_60"); // ISA 18 (10)
+    sched.push("dis+1002_4_cond=on:gs=on:gsem=off:nwc=1:sd=2:ss=axioms:sos=on:spl=off:sp=reverse_arity:urr=ec_only:updr=off:uhcvi=on_60"); // HH4 18 (28)
+    sched.push("lrs+10_2:3_bsr=unit_only:cond=on:fde=none:gs=on:nwc=1:stl=300:sd=2:ss=axioms:sos=on:spl=off:sp=reverse_arity_60"); // MZR 18 (6)
+    sched.push("lrs+1011_8:1_bd=off:bsr=unit_only:fde=none:gs=on:lwlo=on:nm=0:nwc=1.5:stl=300:sd=1:ss=axioms:st=1.2:spl=off:sp=occurrence:updr=off_60"); // HLL 38 (3)
+    sched.push("ins+11_4_cond=fast:fde=none:igbrr=0.4:igrr=1/32:igrp=200:igrpq=1.2:igs=1003:igwr=on:nwc=10:sd=1:ss=axioms:st=5.0:spl=off_60"); // ISA 19 (10)
+    sched.push("lrs+11_2:3_cond=on:fde=unused:gs=on:gsaa=full_model:nwc=4:stl=300:sd=2:ss=priority:st=5.0:sac=on:sdd=off:sfr=on:smm=off:ssnc=none:sp=occurrence:urr=on:updr=off:uhcvi=on_60"); // HH4 19 (24)
+    sched.push("dis+1004_3:1_bsr=unit_only:ep=R:fde=unused:gs=on:gsssp=full:nm=0:nwc=1:sos=all:sac=on:sfr=on:ssfp=10000:ssfq=2.0:ssnc=all:sp=reverse_arity:urr=on:updr=off_60"); // MZR 19 (5)
+    sched.push("dis+4_5:4_bd=off:fsr=off:fde=unused:gs=on:nwc=1:sd=5:ss=axioms:st=1.5:sos=all:spl=off:sp=occurrence:uhcvi=on_60"); // HLL 39 (3)
+    sched.push("lrs+1011_4:1_fsr=off:fde=unused:gs=on:gsem=on:gsssp=full:nm=64:nwc=4:stl=300:sd=1:ss=priority:st=3.0:ssac=none:sscc=on:sfr=on:ssfp=40000:ssfq=1.2:smm=sco:ssnc=all:sp=reverse_arity:updr=off:uhcvi=on_60"); // ISA 20 (9)
+    sched.push("ott-11_8:1_bsr=unit_only:cond=on:gs=on:gsem=off:gsssp=full:nwc=1.1:sd=2:ss=axioms:sos=on:sac=on:sscc=model:sdd=large:sser=off:ssfp=40000:ssfq=2.0:ssnc=none:sp=reverse_arity:urr=on_60"); // HH4 20 (23)
+    sched.push("ott+4_5:1_br=off:cond=fast:fsr=off:nwc=1.3:spl=off:sp=occurrence:urr=on:uhcvi=on_60"); // MZR 20 (5)
+    sched.push("dis+1011_3_cond=fast:ep=R:gs=on:gsem=off:lwlo=on:nm=0:nwc=1:sd=5:ss=axioms:st=1.5:sos=on:sac=on:sdd=large:sfr=on:ssfp=1000:ssfq=1.1:ssnc=none:uhcvi=on_60"); // HLL 40 (2)
+    sched.push("dis+1002_50_fde=unused:nwc=1:sd=2:ss=axioms:sos=on:spl=off:sp=reverse_arity:uhcvi=on_60"); // ISA 21 (8)
+    sched.push("lrs+1010_2:1_gs=on:lwlo=on:nm=0:nwc=3:stl=300:sd=4:ss=axioms:spl=off_60"); // HH4 21 (22)
+    sched.push("dis+1010_1_cond=fast:fsr=off:nwc=1.3:sd=2:ss=axioms:st=1.5:sos=on:sscc=model:sdd=off:ssfp=4000:ssfq=2.0:uhcvi=on_60"); // MZR 21 (5)
+    sched.push("lrs+1004_3:1_bd=off:bsr=unit_only:cond=fast:fde=none:gs=on:gsem=off:gsssp=full:nwc=1:stl=300:sd=2:ss=axioms:sos=on:spl=off:updr=off_60"); // HLL 41 (2)
+    sched.push("ott+11_4_cond=fast:fde=none:gs=on:gsem=on:gsssp=full:nwc=1:sd=2:ss=axioms:sos=on:spl=off:sp=occurrence:urr=on:updr=off:uhcvi=on_60"); // ISA 22 (8)
+    sched.push("lrs+1010_4_bsr=unit_only:cond=fast:fsr=off:gs=on:gsaa=from_current:gsem=on:gsssp=full:nm=0:nwc=1:stl=300:sd=1:ss=axioms:st=1.5:sos=on:sdd=off:sser=off:sfr=on:ssfp=10000:ssfq=1.0:ssnc=none:sp=occurrence:urr=on_60"); // HH4 22 (20)
+    sched.push("lrs+11_2_bd=off:bsr=unit_only:cond=on:lcm=predicate:lwlo=on:nm=64:nwc=1.1:stl=300:sd=1:ss=axioms:st=2.0:sos=all:spl=off_60"); // MZR 22 (5)
+    sched.push("lrs+10_1_bd=off:bsr=unit_only:cond=fast:fsr=off:fde=unused:gs=on:gsem=off:lcm=reverse:nwc=1:stl=300:sd=3:ss=axioms:st=1.5:spl=off:sp=reverse_arity:urr=on_60"); // HLL 42 (2)
+    sched.push("dis-3_3_ep=RST:fde=none:nm=64:nwc=1:sd=4:ss=axioms:sos=on:spl=off:sp=occurrence:uhcvi=on_60"); // ISA 23 (7)
+    sched.push("dis+2_1_fsr=off:nwc=1:sd=2:ss=axioms:sos=on:spl=off:sp=reverse_arity:updr=off:uhcvi=on_60"); // HH4 23 (17)
+    sched.push("lrs+10_4:1_bd=off:cond=fast:fde=unused:lcm=reverse:nm=0:nwc=1.2:stl=300:sd=2:ss=axioms:sos=all:spl=off_60"); // MZR 23 (5)
+    sched.push("lrs+10_4_bd=off:bsr=unit_only:cond=on:gs=on:nwc=1:stl=300:sd=4:ss=axioms:st=5.0:sos=all:spl=off:sp=reverse_arity:updr=off:uhcvi=on_60"); // HLL 43 (2)
+    sched.push("dis+1010_7_fsr=off:fde=unused:nm=0:nwc=1.3:nicw=on:sd=3:ss=priority:sfr=on:ssfp=100000:ssfq=1.0:smm=sco:ssnc=none:updr=off:uhcvi=on_60"); // ISA 24 (7)
+    sched.push("ott+2_2:1_cond=fast:fsr=off:fde=unused:gs=on:gsem=off:nm=0:nwc=1:sd=1:ss=axioms:st=5.0:sos=all:spl=off:sp=occurrence:updr=off:uhcvi=on_60"); // HH4 24 (17)
+    sched.push("dis+10_5_ep=RST:fsr=off:gs=on:gsssp=full:lwlo=on:nm=0:nwc=1:sd=4:ss=axioms:sos=on:sfr=on:ssfp=40000:ssfq=1.1:smm=off:ssnc=none:uhcvi=on_60"); // MZR 24 (4)
+    sched.push("ins+11_4_ep=RS:igbrr=0.6:igpr=on:igrr=1/128:igrp=2000:igrpq=2.0:igs=1002:igwr=on:nwc=1:sd=1:ss=axioms:sos=all:spl=off:uhcvi=on_60"); // HLL 44 (2)
+    sched.push("dis+1002_4_cond=fast:ep=RST:fsr=off:nwc=1:sd=3:ss=axioms:st=2.0:sos=on:ssfp=10000:ssfq=1.1:smm=sco:sp=occurrence:uhcvi=on_60"); // ISA 25 (6)
+    sched.push("lrs+1003_8:1_br=off:cond=on:fde=none:gs=on:gsem=off:nm=0:nwc=1:stl=300:sd=1:ss=axioms:sos=on:sdd=off:sfr=on:ssfp=40000:ssfq=1.1:smm=off:ssnc=none:sp=occurrence:urr=on_60"); // HH4 25 (14)
+    sched.push("dis+1002_3_ep=RST:fde=unused:gs=on:gsaa=full_model:gsem=off:nwc=1:sd=1:ss=axioms:st=2.0:sos=on:ssfp=100000:ssfq=1.1:ssnc=none:sp=occurrence:uhcvi=on_60"); // MZR 25 (4)
+    sched.push("lrs+1010_2:3_bsr=unit_only:ccuc=small_ones:cond=on:fde=unused:gs=on:gsaa=full_model:nwc=1:stl=300:sd=2:ss=axioms:st=1.5:sos=on:sac=on:sscc=model:sdd=off:sser=off:sfr=on:ssfp=1000:ssfq=2.0:sp=occurrence:uhcvi=on_60"); // HLL 45 (2)
+    sched.push("ott+1011_2_bd=off:ccuc=first:cond=on:fsr=off:fde=unused:gs=on:gsaa=from_current:gsem=on:nm=64:nwc=1.3:sd=3:ss=priority:st=1.2:sac=on:sscc=on:sdd=off:ssfp=4000:ssfq=1.4:smm=sco:ssnc=none:urr=ec_only:updr=off:uhcvi=on_60"); // ISA 26 (6)
+    sched.push("dis+11_2:1_bd=off:cond=fast:fde=unused:gs=on:gsem=on:nwc=1:sd=3:ss=axioms:st=2.0:sos=all:spl=off:sp=occurrence_60"); // HH4 26 (14)
+    sched.push("dis+10_5_cond=on:fsr=off:fde=none:gs=on:nwc=1:sd=2:ss=axioms:st=3.0:sos=on:spl=off_60"); // MZR 26 (4)
+    sched.push("dis+10_1_bd=preordered:bs=unit_only:cond=on:fde=none:lcm=predicate:nwc=1:sd=2:ss=axioms:sos=all:sac=on:sfr=on:smm=sco:ssnc=none:updr=off:uhcvi=on_60"); // HLL 46 (2)
+    sched.push("dis+1002_3_bd=off:gs=on:gsem=on:nwc=1.1:sd=7:ss=axioms:st=1.2:sos=on:spl=off:sp=reverse_arity:updr=off_60"); // ISA 27 (5)
+    sched.push("lrs+1011_3:1_bd=off:cond=fast:fsr=off:fde=unused:gs=on:nm=0:nwc=5:stl=300:sd=2:ss=axioms:ssfp=100000:ssfq=1.4:smm=off:ssnc=none:sp=occurrence:urr=on_60"); // HH4 27 (14)
+    sched.push("ott-11_8:1_bd=preordered:ccuc=first:er=known:fsr=off:fde=unused:gsp=input_only:lcm=predicate:nm=0:nwc=2:sd=3:ss=axioms:sscc=on:ssfp=10000:ssfq=2.0:smm=sco:sp=occurrence:updr=off_60"); // MZR 27 (4)
+    sched.push("lrs+11_5_bd=off:bsr=unit_only:cond=on:fsr=off:gs=on:gsaa=from_current:gsssp=full:nwc=1:stl=300:sd=1:ss=axioms:st=5.0:sos=all:sdd=off:ssfp=4000:ssfq=2.0:smm=off:ssnc=none:sp=occurrence:urr=on:updr=off:uhcvi=on_60"); // HLL 47 (2)
+    sched.push("dis+11_2:3_cond=on:gs=on:gsem=off:gsssp=full:lcm=reverse:nwc=1:sd=1:ss=axioms:st=1.5:sdd=off:sser=off:sfr=on:ssfp=1000:ssfq=2.0:ssnc=all_dependent:sp=reverse_arity:updr=off:uhcvi=on_60"); // ISA 28 (5)
+    sched.push("dis+1011_3_cond=on:nwc=1:sd=2:ss=axioms:st=1.2:sos=on:sac=on:sfr=on:ssfp=1000:ssfq=1.4:ssnc=none:sp=occurrence:updr=off:uhcvi=on_60"); // HH4 28 (13)
+    sched.push("ins+11_4_bd=off:fsr=off:gsp=input_only:gs=on:gsem=off:igbrr=0.6:igpr=on:igrr=1/128:igrp=700:igrpq=1.2:igs=1004:igwr=on:lcm=predicate:nwc=1:sd=2:ss=axioms:st=5.0:sos=on:spl=off:uhcvi=on_60"); // MZR 28 (3)
+    sched.push("dis+11_2:1_br=off:ep=RST:fde=unused:gsp=input_only:gs=on:gsaa=from_current:gsem=off:nwc=1:sd=1:ss=priority:st=1.2:sos=all:sdd=large:sser=off:ssfp=100000:ssfq=1.1:ssnc=none:sp=occurrence:urr=on_60"); // HLL 48 (2)
+    sched.push("ins+11_10_cond=on:gs=on:igbrr=0.3:igpr=on:igrr=1/32:igrp=100:igrpq=1.1:igs=1010:igwr=on:lcm=reverse:nwc=1.3:sd=1:ss=axioms:st=1.2:sos=on:spl=off:sp=reverse_arity:urr=on:updr=off:dm=on:uhcvi=on_60"); // ISA 29 (5)
+    sched.push("dis+11_2:1_fde=none:gsp=input_only:nwc=1:sd=2:ss=axioms:sos=all:spl=off:sp=occurrence:urr=on:updr=off:uhcvi=on_60"); // HH4 29 (13)
+    sched.push("lrs+1011_1_cond=on:fsr=off:gs=on:nwc=1:stl=300:sd=4:ss=priority:st=1.2:sos=on:spl=off:sp=reverse_arity:urr=on_60"); // MZR 29 (3)
+    sched.push("dis+1011_2:3_cond=fast:fsr=off:fde=none:gs=on:gsaa=from_current:gsem=on:gsssp=full:nm=0:nwc=1:sd=2:ss=axioms:sos=on:sac=on:sdd=large:sfr=on:ssfp=1000:ssfq=2.0:ssnc=none:sp=reverse_arity:urr=ec_only:uhcvi=on_60"); // HLL 49 (2)
+    sched.push("dis+1002_3_cond=fast:ep=RSTC:fsr=off:gs=on:gsem=off:lwlo=on:nwc=1:sd=3:ss=axioms:st=1.2:sos=on:spl=off:sp=occurrence:uhcvi=on_60"); // ISA 30 (4)
+    sched.push("lrs+11_3_bsr=unit_only:cond=fast:fsr=off:fde=none:gsp=input_only:nwc=5:stl=300:sd=3:ss=priority:st=2.0:spl=off:updr=off:uhcvi=on_60"); // HH4 30 (12)
+    sched.push("lrs+11_3:1_bsr=unit_only:br=off:cond=on:ep=RST:fsr=off:gs=on:gsaa=from_current:gsem=off:nwc=3:stl=300:sd=2:ss=axioms:st=2.0:sac=on:sdd=large:sfr=on:ssfp=100000:ssfq=1.4:smm=sco:ssnc=none:sp=reverse_arity:urr=on_60"); // MZR 30 (3)
+    sched.push("lrs+1003_4_bsr=unit_only:cond=fast:fsr=off:gsp=input_only:gs=on:gsaa=from_current:nm=0:nwc=1:stl=300:sos=on:sac=on:sdd=large:ssfp=10000:ssfq=1.1:ssnc=none:urr=ec_only:uhcvi=on_60"); // HLL 50 (1)
+    return;
+  }
 } // fillSchedule
-
-
 
 /**
  * This function solves a single problem. It makes the following steps:
@@ -687,7 +1116,7 @@ static void fillSchedule(CLTBProblem::Schedule& sched,Shell::Property* property)
  * @since 04/06/2013 flight Frankfurt-Vienna, updated for CASC-J6
  * @author Andrei Voronkov
  */
-void CLTBProblem::performStrategy(int terminationTime,int timeLimit, const Category category, Shell::Property* property)
+void CLTBProblem::performStrategy(int terminationTime,int timeLimit,Category category,const Shell::Property* property)
 {
   CALL("CLTBProblem::performStrategy");
   cout << "% Hi Geoff, go and have some cold beer while I am trying to solve this very hard problem!\n";
@@ -695,8 +1124,8 @@ void CLTBProblem::performStrategy(int terminationTime,int timeLimit, const Categ
   Schedule quick;
   Schedule fallback;
 
-    fillSchedule(quick,property);
-    //CASC::CASCMode::getSchedules(*property,fallback,fallback);
+  fillSchedule(quick,property,timeLimit,category);
+  //CASC::CASCMode::getSchedules(*property,fallback,fallback);
     
   StrategySet usedSlices;
   if (runSchedule(quick,usedSlices,false,terminationTime)) {
@@ -899,7 +1328,8 @@ bool CLTBProblem::runSchedule(Schedule& schedule,StrategySet& used,bool fallback
       vstring chopped;
 
       // slice time in milliseconds
-      int sliceTime = SLOWNESS * getSliceTime(sliceCode,chopped);
+      //      int sliceTime = SLOWNESS * getSliceTime(sliceCode,chopped);
+      int sliceTime = getSliceTime(sliceCode,chopped);
       if (used.contains(chopped)) {
 	// this slice was already used
 	continue;
@@ -1014,10 +1444,10 @@ void CLTBProblem::runSlice(vstring sliceCode, unsigned timeLimitInMilliseconds)
   Options opt = *env.options;
   opt.readFromEncodedOptions(sliceCode);
   opt.setTimeLimitInDeciseconds(milliToDeci(timeLimitInMilliseconds));
-  int stl = opt.simulatedTimeLimit();
-  if (stl) {
-    opt.setSimulatedTimeLimit(int(stl * SLOWNESS));
-  }
+  // int stl = opt.simulatedTimeLimit();
+  // if (stl) {
+  //   opt.setSimulatedTimeLimit(int(stl * SLOWNESS));
+  // }
   runSlice(opt);
 } // runSlice
 
