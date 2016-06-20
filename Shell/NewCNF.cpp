@@ -983,10 +983,22 @@ void NewCNF::nameSubformula(Formula* g, Occurrences &occurrences)
 
   enqueue(g);
 
+  bool occurs[2] = { false, false };
+  Occurrences::Iterator occit(occurrences);
+  while (occit.hasNext()) {
+    Occurrence occ = occit.next();
+    occurs[occ.sign()] = true;
+    if (occurs[POSITIVE] && occurs[NEGATIVE]) {
+      break;
+    }
+  }
+
   for (SIGN sign : { NEGATIVE, POSITIVE }) {
     // One could also consider the case where (part of) the bindings goes to the definition
     // which perhaps allows us to the have a skolem predicate with fewer arguments
-    introduceGenClause(GenLit(name, OPPOSITE(sign)), GenLit(g, sign));
+    if (occurs[sign]) {
+      introduceGenClause(GenLit(name, OPPOSITE(sign)), GenLit(g, sign));
+    }
   }
 }
 
