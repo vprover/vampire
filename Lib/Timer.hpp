@@ -17,7 +17,7 @@
 #ifndef UNIX_USE_SIGALRM
 //SIGALRM causes some problems with debugging
 //[one problem might have been removed, so it's worth checking if the demand for UNIX_USE_SIGALRM in VDEBUG arises]
-#define UNIX_USE_SIGALRM !VDEBUG
+#define UNIX_USE_SIGALRM 1 // MS: only the UNIX_USE_SIGALRM seems to be working currently (experiment with SMTCOMP mode); the problem with debugging under UNIX_USE_SIGALRM might have really gone, so let's try
 #endif
 
 //we don't need SIGALRM in Api, and it causes problems debugging

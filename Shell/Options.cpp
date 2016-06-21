@@ -85,40 +85,47 @@ void Options::Options::init()
 #endif
 
     _mode = ChoiceOptionValue<Mode>("mode","",Mode::VAMPIRE,
-                                    {"axiom_selection",//"bpa",
-                                        "casc",//"casc_ltb",
-                                        "casc_sat","clausify","clausify_stat",
+                                    {"axiom_selection",
+                                        "casc",
+                                        "casc_sat",
+                                        "casc_ltb",
+                                        "smtcomp",
+                                        "clausify","clausify_stat",
                                         "consequence_elimination","grounding",
                                         "model_check",
-                                        //"ltb_build","ltb_solve",
                                         "output","preprocess",
                                         "profile",
-                                        //"program_analysis",
                                         "random_strategy",
                                         "sat_solver","spider","vampire"});
     _mode.description=
     "Select the mode of operation. Choices are:\n"
     "  -vampire: the standard mode of operation for first-order theorem proving\n"
-    "  -casc,casc_ltb,casc_sat,: these are all portfolio modes\n   that use predefined "
+    "  -casc,casc_multicore,casc_sat,: these are all portfolio modes\n   that use predefined "
     " sets of strategies in vampire mode.\n"
     "  -preprocess,axiom_select,clausify,grounding: modes for producing output\n   for other solvers.\n"
     "  -output,profile: output information about the problem\n"
     "  -sat_solver: accepts problems in DIMACS and uses the internal sat solver\n   directly\n"
     "Some modes are not currently maintained:\n"
-    //"  -ltb_build,ltb_solve: for Large Theory Batch processing\n"
     "  -program_analysis: run Lingva\n"
     "  -bpa: perform bound propagation\n"
     "  -consequence_elimination: perform consequence elimination\n"
     "  -random_strategy: attempts to randomize the option values\n";
-    //"consequence_elimination mode forces values of unused_predicate_definition_removal to be off";
     _lookup.insert(&_mode);
     _mode.addHardConstraint(If(equal(Mode::CONSEQUENCE_ELIMINATION)).then(_splitting.is(notEqual(true))));
 
+    _multicore = UnsignedOptionValue("cores","",1);
+    _multicore.description = "When running in casc or smtcomp mode specify the number of cores, set to 0 to use maximum";
+    _lookup.insert(&_multicore);
+    _multicore.reliesOnHard(_mode.is(equal(Mode::CASC)->Or(_mode.is(equal(Mode::CASC_SAT)))->Or(_mode.is(equal(Mode::SMTCOMP)))));
 
     _ltbLearning = ChoiceOptionValue<LTBLearning>("ltb_learning","ltbl",LTBLearning::OFF,{"on","off","biased"});
     _ltbLearning.description = "Perform learning in LTB mode";
     _lookup.insert(&_ltbLearning);
     _ltbLearning.setExperimental();
+
+    _ltbDirectory = StringOptionValue("ltb_directory","","");
+    _ltbDirectory.description = "Directory for output from LTB mode. Default is to put output next to problem.";
+    _lookup.insert(&_ltbDirectory);
 
     _decode = DecodeOptionValue("decode","",this);
     _decode.description="Decodes an encoded strategy. Can be used to replay a strategy. To make Vampire output an encoded version of the strategy use the encode option.";
@@ -150,6 +157,12 @@ void Options::Options::init()
     "Options in the format <opt1>=<val1>:<opt2>=<val2>:...:<optn>=<valN> that override the option values set by other means (also inside CASC mode strategies)";
     _lookup.insert(&_forcedOptions);
     _forcedOptions.tag(OptionTag::INPUT);
+
+    _printAllTheoryAxioms = BoolOptionValue("print_theory_axioms","",false);
+    _printAllTheoryAxioms.description = "Just print all theory axioms and terminate";
+    _printAllTheoryAxioms.tag(OptionTag::DEVELOPMENT);
+    _lookup.insert(&_printAllTheoryAxioms);
+    _printAllTheoryAxioms.setExperimental();
 
     _showHelp = BoolOptionValue("help","h",false);
     _showHelp.description="Display this help";
@@ -200,7 +213,7 @@ void Options::Options::init()
     _problemName.description="";
     //_lookup.insert(&_problemName);
 
-    _proof = ChoiceOptionValue<Proof>("proof","p",Proof::ON,{"off","on","proofcheck","tptp"});
+    _proof = ChoiceOptionValue<Proof>("proof","p",Proof::ON,{"off","on","proofcheck","tptp","smtcomp"});
     _proof.description=
     "Specifies whether proof will be output. 'proofcheck' will output proof as a sequence of TPTP problems to allow for proof-checking.";
     _lookup.insert(&_proof);
@@ -441,14 +454,14 @@ void Options::Options::init()
     _lookup.insert(&_newCNF);
     _newCNF.tag(OptionTag::PREPROCESSING);
 
-    _iteInliningThreshold = IntOptionValue("ite_inlining_threshold","", 2);
+    _iteInliningThreshold = IntOptionValue("ite_inlining_threshold","", 0);
     _iteInliningThreshold.description="Threashold of inlining of if-then-else expressions. "
                                       "0 means that all expressions are named. "
                                       "<0 means that all expressions are inlined.";
     _lookup.insert(&_iteInliningThreshold);
     _iteInliningThreshold.tag(OptionTag::PREPROCESSING);
 
-    _inlineLet = BoolOptionValue("inline_let","",false);
+    _inlineLet = BoolOptionValue("inline_let","ile",false);
     _inlineLet.description="Always inline let-expressions.";
     _lookup.insert(&_inlineLet);
     _inlineLet.tag(OptionTag::PREPROCESSING);
@@ -489,6 +502,11 @@ void Options::Options::init()
     _printClausifierPremises.description="Output how the clausified problem was derived.";
     _lookup.insert(&_printClausifierPremises);
     _printClausifierPremises.tag(OptionTag::OUTPUT);
+
+    _showAll = BoolOptionValue("show_everything","",false);
+    _showAll.description="Turn (almost) all of the showX commands on";
+    _lookup.insert(&_showAll);
+    _showAll.tag(OptionTag::DEVELOPMENT);
 
     _showActive = BoolOptionValue("show_active","",false);
     _showActive.description="Print activated clauses.";
@@ -580,7 +598,11 @@ void Options::Options::init()
 //*********************** Saturation  ***********************
 
     _saturationAlgorithm = ChoiceOptionValue<SaturationAlgorithm>("saturation_algorithm","sa",SaturationAlgorithm::LRS,
-                                                                  {"discount","fmb","inst_gen","lrs","otter"});//,"tabulation"});
+                                                                  {"discount","fmb","inst_gen","lrs","otter"
+#if VZ3
+      ,"z3"
+#endif
+    });
     _saturationAlgorithm.description=
     "Select the saturation algorithm:\n"
     " - discount:\n"
@@ -588,9 +610,10 @@ void Options::Options::init()
     " - limited resource:\n"
     " - instance generation: a simple implementation of instantiation calculus\n"
     "    (global_subsumption, unit_resulting_resolution and age_weight_ratio)\n"
-    " - tabulation: a special goal-oriented mode for large theories.\n"
+    //" - tabulation: a special goal-oriented mode for large theories.\n"
     " - fmb : finite model building for satisfiable problems.\n"
-    "inst_gen, tabulation and fmb aren't influenced by options for the saturation algorithm, apart from those under the relevant heading";
+    " -z3 : pass the preprocessed problem to z3, will terminate if the resulting problem is not ground.\n"
+    "inst_gen, z3 and fmb aren't influenced by options for the saturation algorithm, apart from those under the relevant heading";
     _lookup.insert(&_saturationAlgorithm);
     _saturationAlgorithm.tag(OptionTag::SATURATION);
     // Captures that if the saturation algorithm is InstGen then splitting must be off
@@ -599,6 +622,13 @@ void Options::Options::init()
     _saturationAlgorithm.setRandomChoices(isRandSat(),{"discount","otter","inst_gen","fmb"});
     _saturationAlgorithm.setRandomChoices(Or(hasCat(Property::UEQ),atomsLessThan(4000)),{"lrs","discount","otter","inst_gen"});
     _saturationAlgorithm.setRandomChoices({"discount","inst_gen","lrs","otter","tabulation"});
+
+#if VZ3
+    _smtForGround = BoolOptionValue("smt_for_ground","smtfg",true);
+    _smtForGround.description = "When a (theory) problem is ground after preprocessing pass it to Z3. In this case we can return sat if Z3 does.";
+    _lookup.insert(&_smtForGround);
+#endif
+
 
     _fmbNonGroundDefs = BoolOptionValue("fmb_nonground_defs","fmbngd",false);
     _fmbNonGroundDefs.description = "Introduce definitions for non ground terms in preprocessing for fmb";
@@ -630,44 +660,40 @@ void Options::Options::init()
     _lookup.insert(&_fmbSymmetryWidgetOrders);
     _fmbSymmetryWidgetOrders.setExperimental();
 
-    _fmbCollapseMonotonicSorts = ChoiceOptionValue<FMBMonotonicCollapse>("fmb_collapse_monotonic_sorts","fmbcms",
-                                                           FMBMonotonicCollapse::OFF, 
-                                                           {"off","group","predicate","function","predicate_wom","function_wom"});
-    _fmbCollapseMonotonicSorts.description = "Detect monotonic sorts. If <group> then collapse these into a single sort. If <predicate> then introduce sort predicates for non-monotonic sorts and collapse all sorts into one. If <function> then introduce sort functions for non-monotonic sorts and collapse all sorts into one";
-    _fmbCollapseMonotonicSorts.setExperimental();
-    _lookup.insert(&_fmbCollapseMonotonicSorts);
+    _fmbAdjustSorts = ChoiceOptionValue<FMBAdjustSorts>("fmb_adjust_sorts","fmbas",
+                                                           FMBAdjustSorts::GROUP,
+                                                           {"off","expand","group","predicate","function"});
+    _fmbAdjustSorts.description = "Detect monotonic sorts. If <expand> then expand monotonic subsorts into proper sorts. If <group> then collapse monotonic sorts into a single sort. If <predicate> then introduce sort predicates for non-monotonic sorts and collapse all sorts into one. If <function> then introduce sort functions for non-monotonic sorts and collapse all sorts into one";
+    _lookup.insert(&_fmbAdjustSorts);
+    _fmbAdjustSorts.addHardConstraint(
+      If(equal(FMBAdjustSorts::EXPAND)).then(_fmbEnumerationStrategy.is(notEqual(FMBEnumerationStrategy::CONTOUR))));
 
     _fmbDetectSortBounds = BoolOptionValue("fmb_detect_sort_bounds","fmbdsb",false);
     _fmbDetectSortBounds.description = "Use a saturation loop to detect sort bounds introduced by (for example) injective functions";
     _fmbDetectSortBounds.setExperimental();
     _lookup.insert(&_fmbDetectSortBounds);
+    _fmbDetectSortBounds.addHardConstraint(If(equal(true)).then(_fmbAdjustSorts.is(notEqual(FMBAdjustSorts::PREDICATE))));
+    _fmbDetectSortBounds.addHardConstraint(If(equal(true)).then(_fmbAdjustSorts.is(notEqual(FMBAdjustSorts::FUNCTION))));
 
     _fmbDetectSortBoundsTimeLimit = UnsignedOptionValue("fmb_detect_sort_bounds_time_limit","fmbdsbt",1);
     _fmbDetectSortBoundsTimeLimit.description = "The time limit (in seconds) for performing sort bound detection";
     _fmbDetectSortBoundsTimeLimit.setExperimental();
     _lookup.insert(&_fmbDetectSortBoundsTimeLimit);
 
-    _fmbXmass = BoolOptionValue("fmb_contour_encoding","fmbxmass",false);
-    _fmbXmass.description="Apply the alternative countour encoding where sort sizes are never decreased. See SAT paper for explanation.";
-    _fmbXmass.setExperimental();
-    _lookup.insert(&_fmbXmass);
-
     _fmbSizeWeightRatio = UnsignedOptionValue("fmb_size_weight_ratio","fmbswr",1);
     _fmbSizeWeightRatio.description = "Controls the priority the next sort size vector is given based on a ratio. 0 is size only, 1 means 1:1, 2 means 1:2, etc.";
+    _fmbSizeWeightRatio.reliesOn(_fmbEnumerationStrategy.is(equal(FMBEnumerationStrategy::CONTOUR)));
     _fmbSizeWeightRatio.setExperimental();
     _lookup.insert(&_fmbSizeWeightRatio);
 
-    _fmbSortInference = ChoiceOptionValue<FMBSortInference>("fmb_sort_inference","fmbsi",FMBSortInference::INFER,{"ignore","infer","expand"});
-    _fmbSortInference.description = "Unless <ignore> then infer subsorts. These are used in various places. If <expand> then those that can be promoted to real sorts are promoted.";
-    _fmbSortInference.setExperimental();
-    _lookup.insert(&_fmbSortInference);
-
+    _fmbEnumerationStrategy = ChoiceOptionValue<FMBEnumerationStrategy>("fmb_enumeration_strategy","fmbes",FMBEnumerationStrategy::SBMEAM,{"sbeam",
 #if VZ3
-    _fmbSmtEnumeration = BoolOptionValue("fmb_smt_enumeration","fmbsmte",true);
-    _fmbSmtEnumeration.description = "";
-    _fmbSmtEnumeration.setExperimental();
-    _lookup.insert(&_fmbSmtEnumeration);
+        "smt",
 #endif
+        "contour"});
+    _fmbEnumerationStrategy.description = "How model sizes assignments are enumerated in the multi-sorted setting. (Only smt and contour are known to be finite model complete and can therefore return UNSAT.)";
+    _fmbEnumerationStrategy.setExperimental();
+    _lookup.insert(&_fmbEnumerationStrategy);
 
     _selection = SelectionOptionValue("selection","s",10);
     _selection.description=
@@ -692,6 +718,14 @@ void Options::Options::init()
     _selection.reliesOn(_saturationAlgorithm.is(notEqual(SaturationAlgorithm::INST_GEN))->Or<int>(_instGenWithResolution.is(equal(true))));
     _selection.setRandomChoices(And(isRandSat(),saNotInstGen()),{"0","1","2","3","4","10","11","-1","-2","-3","-4","-10","-11"});
     _selection.setRandomChoices({"0","1","2","3","4","10","11","1002","1003","1004","1010","1011","-1","-2","-3","-4","-10","-11","-1002","-1003","-1004","-1010"});
+
+    _lookaheadDelay = IntOptionValue("lookahaed_delay","lsd",0);
+    _lookaheadDelay.description = "Delay the use of lookahead selection by this many selections"
+                                  " the idea is that lookahead selection may behave erratically"
+                                  " at the start";
+    _lookaheadDelay.tag(OptionTag::SATURATION);
+    _lookup.insert(&_lookaheadDelay);
+    _lookaheadDelay.reliesOn(_selection.isLookAheadSelection());
     
     _ageWeightRatio = RatioOptionValue("age_weight_ratio","awr",1,1,':');
     _ageWeightRatio.description=
@@ -847,11 +881,6 @@ void Options::Options::init()
 	    // Captures that if ExtensionalityResolution is not off then inequality splitting must be 0
 	    _extensionalityResolution.reliesOn(_inequalitySplitting.is(equal(0)));
 	    _extensionalityResolution.setRandomChoices({"filter","known","off","off"});
-
-	    _FOOLOrdering = BoolOptionValue("fool_ordering","foolo",false);
-	    _FOOLOrdering.description="Sets term ordering to be $$false < $$true < everything else";
-	    _lookup.insert(&_FOOLOrdering);
-	    _FOOLOrdering.tag(OptionTag::SATURATION);
 
 	    _FOOLParamodulation = BoolOptionValue("fool_paramodulation","foolp",false);
 	    _FOOLParamodulation.description=
@@ -1110,6 +1139,9 @@ void Options::Options::init()
     _lookup.insert(&_splittingCongruenceClosure);
     _splittingCongruenceClosure.tag(OptionTag::AVATAR);
     _splittingCongruenceClosure.reliesOn(_splitting.is(equal(true)));
+#if VZ3
+    _splittingCongruenceClosure.reliesOn(_satSolver.is(notEqual(SatSolver::Z3)));
+#endif
     _splittingCongruenceClosure.addProblemConstraint(hasEquality());
     _splittingCongruenceClosure.setRandomChoices({"model","off","on"});
     _splittingCongruenceClosure.addHardConstraint(If(equal(SplittingCongruenceClosure::MODEL)).
@@ -1878,6 +1910,12 @@ vstring Options::includeFileName (const vstring& relativeName)
 void Options::output (ostream& str) const
 {
   CALL("Options::output");
+
+  if(printAllTheoryAxioms()){
+    cout << "Sorry, not implemented yet!" << endl;
+
+    return;
+  }
 
   if(!explainOption().empty()){
 

@@ -36,6 +36,7 @@ protected:
   virtual ~FormulaTransformer() {}
 
   Formula* apply(Formula* f);
+  TermList apply(TermList ts);
 
   /** Return true if f should be traversed */
   virtual bool preApply(Formula*& f) { return true; }
@@ -79,6 +80,17 @@ protected:
   virtual Formula* applyLiteral(Formula* f);
 
   TermTransformer& _termTransformer;
+};
+
+class TermTransformerTransformTransformedFormulaTransformer : public FormulaTransformer
+{
+  public:
+    TermTransformerTransformTransformedFormulaTransformer(TermTransformerTransformTransformed& termTransformer)
+      : _termTransformer(termTransformer) {}
+  protected:
+    virtual Formula* applyLiteral(Formula* f);
+
+    TermTransformerTransformTransformed& _termTransformer;
 };
 
 class PolarityAwareFormulaTransformer : protected FormulaTransformer {

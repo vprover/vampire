@@ -145,9 +145,9 @@ void Instantiation::tryMakeLiteralFalse(Literal* lit, Stack<Substitution>& subs)
       //TODO, very limited consideration, expand
       switch(interpretation){
         case Theory::EQUAL:
-        case Theory::INT_LESS_EQUAL: // do these less_equal cases make sense?
-        case Theory::RAT_LESS_EQUAL:
-        case Theory::REAL_LESS_EQUAL:
+        case Theory::INT_LESS: // do these less_equal cases make sense?
+        case Theory::RAT_LESS:
+        case Theory::REAL_LESS:
         {
           TermList* left = lit->nthArgument(0); TermList* right = lit->nthArgument(1); 
           unsigned var;
@@ -193,6 +193,7 @@ Term* Instantiation::tryGetDifferentValue(Term* t)
 
   unsigned sort = SortHelper::getResultSort(t);
 
+  try {
         switch(sort){
           case Sorts::SRT_INTEGER:
             {
@@ -224,6 +225,9 @@ Term* Instantiation::tryGetDifferentValue(Term* t)
             break;
             // not a numeric sort
         }
+  } catch (ArithmeticException&) {
+    // return 0 as well
+  }
 
   return 0;
 }

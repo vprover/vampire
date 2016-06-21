@@ -234,7 +234,7 @@ private:
     virtual bool init(unsigned, DArray<unsigned>&, Stack<std::pair<unsigned,unsigned>>&, Stack<std::pair<unsigned,unsigned>>&) { return true; }
     virtual void learnNogood(Constraint_Generator_Vals& nogood, unsigned weight) = 0;
     virtual bool increaseModelSizes(DArray<unsigned>& newSortSizes, DArray<unsigned>& sortMaxes) = 0;
-    virtual bool isFmbComplete() { return false; }
+    virtual bool isFmbComplete(unsigned noDomains) { return false; }
     virtual ~DSAEnumerator() {}
   };
 
@@ -282,14 +282,15 @@ private:
 
     HackyDSAE() : _maxWeightSoFar(0) {}
 
-    bool init(unsigned, DArray<unsigned>&, Stack<std::pair<unsigned,unsigned>>& dsc, Stack<std::pair<unsigned,unsigned>>& sdsc) {
+    bool init(unsigned, DArray<unsigned>&, Stack<std::pair<unsigned,unsigned>>& dsc, Stack<std::pair<unsigned,unsigned>>& sdsc) override {
       _distinct_sort_constraints = &dsc;
       _strict_distinct_sort_constraints = &sdsc;
       return true;
     }
 
-    void learnNogood(Constraint_Generator_Vals& nogood, unsigned weight);
-    bool increaseModelSizes(DArray<unsigned>& newSortSizes, DArray<unsigned>& sortMaxes);
+    bool isFmbComplete(unsigned noDomains) override { return noDomains == 1; }
+    void learnNogood(Constraint_Generator_Vals& nogood, unsigned weight) override;
+    bool increaseModelSizes(DArray<unsigned>& newSortSizes, DArray<unsigned>& sortMaxes) override;
   };
 
 #if VZ3
@@ -308,10 +309,10 @@ private:
 
     SmtBasedDSAE() : _smtSolver(_context) {}
 
-    bool init(unsigned, DArray<unsigned>&, Stack<std::pair<unsigned,unsigned>>&, Stack<std::pair<unsigned,unsigned>>&);
-    void learnNogood(Constraint_Generator_Vals& nogood, unsigned weight);
-    bool increaseModelSizes(DArray<unsigned>& newSortSizes, DArray<unsigned>& sortMaxes);
-    bool isFmbComplete() { return true; }
+    bool init(unsigned, DArray<unsigned>&, Stack<std::pair<unsigned,unsigned>>&, Stack<std::pair<unsigned,unsigned>>&) override;
+    void learnNogood(Constraint_Generator_Vals& nogood, unsigned weight) override;
+    bool increaseModelSizes(DArray<unsigned>& newSortSizes, DArray<unsigned>& sortMaxes) override;
+    bool isFmbComplete(unsigned) override { return true; }
   };
 #endif
 

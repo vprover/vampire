@@ -825,7 +825,7 @@ void SMTLIB2::readDefineFun(const vstring& name, LExprList* iArgs, LExpr* oSort,
 
   Formula* fla = new AtomicFormula(Literal::createEquality(true,lhs,rhs,rangeSort));
 
-  FormulaUnit* fu = new FormulaUnit(fla, new Inference(Inference::INPUT), Unit::AXIOM);
+  FormulaUnit* fu = new FormulaUnit(fla, new Inference(Inference::INPUT), Unit::ASSUMPTION);
 
   UnitList::push(fu, _formulas);
 }
@@ -1366,6 +1366,9 @@ void SMTLIB2::parseLetBegin(LExpr* exp)
   LExprList* bindings = lRdr.readList();
 
   // and the actual body term
+  if (!lRdr.hasNext()) {
+    complainAboutArgShortageOrWrongSorts(LET,exp);
+  }
   LExpr* body = lRdr.readNext();
 
   // and that's it
@@ -2084,6 +2087,8 @@ bool SMTLIB2::parseAsBuiltinTermSymbol(const vstring& id, LExpr* exp)
           TermList res = TermList(Term::create1(fun,first));
 
           _results.push(ParseResult(sort,res));
+
+          return true;
         } else {
           complainAboutArgShortageOrWrongSorts(BUILT_IN_SYMBOL,exp); // we need at least two arguments otherwise
         }
@@ -2149,6 +2154,7 @@ void SMTLIB2::parseRankedFunctionApplication(LExpr* exp)
   }
 
   unsigned pred = Theory::instance()->getPredNum(Theory::INT_DIVIDES);
+  env.signature->recordDividesNvalue(divisorTerm);
 
   Formula* res = new AtomicFormula(Literal::create2(pred,true,divisorTerm,arg));
 
@@ -2312,7 +2318,7 @@ void SMTLIB2::readAssert(LExpr* body)
     USER_ERROR("Asserted expression of non-boolean sort "+body->toString());
   }
 
-  FormulaUnit* fu = new FormulaUnit(fla, new Inference(Inference::INPUT), Unit::AXIOM);
+  FormulaUnit* fu = new FormulaUnit(fla, new Inference(Inference::INPUT), Unit::ASSUMPTION);
 
   UnitList::push(fu, _formulas);
 }

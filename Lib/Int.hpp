@@ -173,7 +173,9 @@ class Int
     CALL("Int::safeMultiply");
 
     INT mres = arg1*arg2;
-    if (arg1 != 0 && mres / arg1 != arg2) {
+
+    if ((mres == numeric_limits<INT>::min() && arg1 == -1) || // before, there was a SIGFPE for "-2147483648 / -1" TODO: are there other evil cases?
+        (arg1 != 0 && mres / arg1 != arg2)) {
       return false;
     }
     res=mres;

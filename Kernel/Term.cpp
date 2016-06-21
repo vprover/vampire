@@ -951,7 +951,7 @@ bool Term::isBoolean() const {
   const Term* term = this;
   while (true) {
     if (env.signature->isFoolConstantSymbol(true, term->functor()) ||
-        env.signature->isFoolConstantSymbol(true, term->functor())) return true;
+        env.signature->isFoolConstantSymbol(false, term->functor())) return true;
     if (!term->isSpecial()) return false;
     if (term->isFormula()) return true;
     if (term->isLet() || term->isITE()) {

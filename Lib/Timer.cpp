@@ -91,7 +91,7 @@ void timeLimitReached()
 {
   env.beginOutput();
   reportSpiderStatus('t');
-  if (!inSpiderMode()) {
+  if (!inSpiderMode() && env.options->proof()!=Shell::Options::Proof::SMTCOMP) {
     if (Shell::UIHelper::szsOutput) {
       env.out() << "% (" << getpid() << ')';
     }
@@ -105,7 +105,8 @@ void timeLimitReached()
                 << (env.options ? env.options->problemName() : "unknown") << endl;
     }
   }
-  if(env.statistics && (!Shell::UIHelper::szsOutput || Shell::UIHelper::cascModeChild)) {
+  if(env.statistics && (!Shell::UIHelper::szsOutput || Shell::UIHelper::cascModeChild) &&
+     env.options->mode() != Shell::Options::Mode::SPIDER && env.options->proof() != Shell::Options::Proof::SMTCOMP) {
     env.statistics->print(env.out());
   }
   env.endOutput();

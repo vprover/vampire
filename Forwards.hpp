@@ -208,6 +208,7 @@ class Matcher;
 typedef VirtualIterator<Matcher*> MatchIterator;
 
 class TermTransformer;
+class TermTransformerTransformTransformed;
 class FormulaTransformer;
 class FormulaUnitTransformer;
 
@@ -228,6 +229,8 @@ class BDDNode;
 
 typedef unsigned SplitLevel;
 typedef const SharedSet<SplitLevel> SplitSet;
+
+typedef const SharedSet<unsigned> VarSet;
 
 /**
  * Color of a term

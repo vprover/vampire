@@ -201,12 +201,22 @@ public:
   /** Problem contains non-default sorts */
   bool hasNonDefaultSorts() const { return _hasNonDefaultSorts; }
   bool hasFOOL() const { return _hasFOOL; }
-  bool usesSort(unsigned sort) const { return _usesSort[sort]; }
+  bool usesSort(unsigned sort) const { 
+    CALL("Property::usesSort");
+    if(_usesSort.size() <= sort) return false;
+    return _usesSort[sort]; 
+  }
   bool usesSingleSort() const { return _sortsUsed==1; }
   unsigned sortsUsed() const { return _sortsUsed; }
 
-  void setSMTLIBLogic(SMTLIBLogic smtLibLogic) { _smtlibLogic = smtLibLogic; }
-  SMTLIBLogic getSMTLIBLogic() const { return _smtlibLogic; }
+  void setSMTLIBLogic(SMTLIBLogic smtLibLogic) { 
+    _smtlibLogic = smtLibLogic; 
+  }
+  SMTLIBLogic getSMTLIBLogic() const { 
+    return _smtlibLogic; 
+  }
+
+  bool allNonTheoryClausesGround(){ return _allNonTheoryClausesGround; }
 
  private:
   // constructor, operators new and delete
@@ -287,6 +297,7 @@ public:
   bool _hasFOOL;
 
   bool _allClausesGround;
+  bool _allNonTheoryClausesGround;
   bool _allQuantifiersEssentiallyExistential;
   SMTLIBLogic _smtlibLogic;
 }; // class Property

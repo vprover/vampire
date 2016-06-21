@@ -56,14 +56,30 @@ private:
   /** collected substitution */
   Substitution _subst;
 
-  /** Universally quantified variables and
-   * whether they appear in a subformula
-   * (VarInfo list is used to reset computation when
-   * descending below an existential quantifier;
-   * thus the list works like a stack) */
-  typedef List<bool> VarInfo;
-  typedef DHMap<unsigned,VarInfo*> Vars;
-  Vars _vars;
+  typedef List<bool> BoolList;
+
+  /** In the first pass we collect information about
+   * whether a variable appears in a subformula
+   * (occurs_below list is used to reset computation when
+   * descending below the next quantifier;
+   * thus this list works like a stack) */
+  struct VarOccInfo {
+    bool existential;
+    BoolList* occurs_below;
+  };
+  typedef DHMap<unsigned,VarOccInfo> VarOccInfos;
+  VarOccInfos _varOccs;
+
+  struct ExVarDepInfo {
+    VarSet* univ;
+    VarSet* exist;
+  };
+
+  typedef DHMap<Formula*,ExVarDepInfo> ExVarDepInfos; // stored by the blocks
+  ExVarDepInfos _varDeps;
+
+  // map from an existential variable to its quantified formula (= block of quantifiers)
+  DHMap<unsigned, Formula*> _blockLookup;
 
   /** map var --> sort */
   DHMap<unsigned,unsigned> _varSorts;

@@ -33,7 +33,7 @@ void Assertion::violated (const char* file,int line,const char* cond)
 
   _violated = true;
   reportSpiderFail();
-  if(outputAllowed()) {
+  if(outputAllowed(true)) {
     cout << "Condition in file " << file << ", line " << line
 	<< " violated:\n" << cond << "\n"
 	<< "----- stack dump -----\n";
@@ -52,7 +52,7 @@ void Assertion::violatedStrEquality(const char* file,int line,const char* val1St
 
   _violated = true;
   reportSpiderFail();
-  if(outputAllowed()) {
+  if(outputAllowed(true)) {
     std::cout << "Condition for string equality "<<val1Str<<" == "<<val2Str
 	<< " in file " << file << ", line " << line
 	<< " was violated, as:\n" << val1Str<<" == \""<<val1 <<"\"\n"
@@ -75,21 +75,21 @@ void Assertion::checkType(const char* file,int line,const void* ptr, const char*
 
   if(!desc) {
     reportSpiderFail();
-    if(outputAllowed()) {
+    if(outputAllowed(true)) {
       cout << "Type condition in file " << file << ", line " << line
 	  << " violated:\n" << ptrStr << " was not allocated by Lib::Allocator.\n";
     }
   } else if( !USE_PRECISE_CLASS_NAMES && strcmp(assumed, desc->cls) ) {
     //TODO: the use of precise class names disrupts the check, fix it in the future!
     reportSpiderFail();
-    if(outputAllowed()) {
+    if(outputAllowed(true)) {
       cout << "Type condition in file " << file << ", line " << line
 	   << " violated:\n" << ptrStr << " was allocated as \"" << desc->cls
 	   << "\" instead of \"" << assumed <<"\".\n";
     }
   } else if( !desc->allocated ) {
     reportSpiderFail();
-    if(outputAllowed()) {
+    if(outputAllowed(true)) {
       cout << "Type condition in file " << file << ", line " << line
 	   << " violated:\n" << ptrStr << " was allocated as \"" << desc->cls
 	   << "\", but no longer is.\n";
@@ -100,7 +100,7 @@ void Assertion::checkType(const char* file,int line,const void* ptr, const char*
 
   _violated = true;
 
-  if(outputAllowed()) {
+  if(outputAllowed(true)) {
     cout << "----- stack dump -----\n";
     Tracer::printStack(cout);
     cout << "----- end of stack dump -----\n";
@@ -114,7 +114,7 @@ void Assertion::checkType(const char* file,int line,const void* ptr, const char*
  */
 void Assertion::reportAssertValidException (const char* file,int line,const char* obj)
 {
-  if(outputAllowed()) {
+  if(outputAllowed(true)) {
     cout << "An exception was thrown by ASSERT_VALID on object " << obj
 	<< " in file " << file << ", line " << line << ".\n";
   }

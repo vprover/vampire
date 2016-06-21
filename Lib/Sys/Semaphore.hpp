@@ -30,6 +30,7 @@ public:
   bool hasSemaphore() { return semid!=-1; }
 
   void inc(int num);
+  void incp(int num);
   void dec(int num);
   int get(int num);
   void set(int num, int val);
@@ -39,6 +40,7 @@ public:
 private:
 
   void doInc(int num);
+  void doIncPersistent(int num);
   void doDec(int num);
   void doSet(int num, int val);
   int doGet(int num);

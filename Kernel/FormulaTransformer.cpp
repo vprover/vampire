@@ -65,8 +65,8 @@ Formula* FormulaTransformer::apply(Formula* f)
     res = applyExists(f);
     break;
   case BOOL_TERM:
-    ASSERTION_VIOLATION;
-
+    res = new BoolTermFormula(apply(f->getBooleanTerm()));
+    break;
   case TRUE:
   case FALSE:
     res = applyTrueFalse(f);
@@ -78,6 +78,52 @@ Formula* FormulaTransformer::apply(Formula* f)
   }
   postApply(f, res);
   return res;
+}
+
+TermList FormulaTransformer::apply(TermList ts) {
+  CALL("FormulaTransformer::apply(TermList)");
+
+  if (ts.isVar()) {
+    return ts;
+  }
+
+  Term* term = ts.term();
+
+  if (term->isSpecial()) {
+    Term::SpecialTermData *sd = ts.term()->getSpecialData();
+    switch (sd->getType()) {
+      case Term::SF_ITE:
+        return TermList(Term::createITE(apply(sd->getCondition()),
+                                        apply(*term->nthArgument(0)),
+                                        apply(*term->nthArgument(1)),
+                                        sd->getSort()));
+
+      case Term::SF_FORMULA:
+        return TermList(Term::createFormula(apply(sd->getFormula())));
+
+      case Term::SF_LET:
+        return TermList(Term::createLet(sd->getFunctor(),
+                                        sd->getVariables(),
+                                        apply(sd->getBinding()),
+                                        apply(*term->nthArgument(0)),
+                                        sd->getSort()));
+
+      default:
+        ASSERTION_VIOLATION_REP(ts.toString());
+    }
+  }
+
+  if (term->shared()) {
+    return ts;
+  }
+
+  Stack<TermList> args;
+  Term::Iterator terms(term);
+  while (terms.hasNext()) {
+    args.push(apply(terms.next()));
+  }
+
+  return TermList(Term::create(term, args.begin()));
 }
 
 Formula* FormulaTransformer::applyJunction(Formula* f)
@@ -155,6 +201,20 @@ Formula* FormulaTransformer::applyQuantified(Formula* f)
 //
 
 Formula* TermTransformingFormulaTransformer::applyLiteral(Formula* f)
+{
+  CALL("TermTransformingFormulaTransformer::applyLiteral");
+
+  Literal* lit = f->literal();
+  Literal* res = _termTransformer.transform(lit);
+  if(lit==res) { return f; }
+  return new AtomicFormula(res);
+}
+
+///////////////////////////////////////
+// TermTransformingFormulaTransformer
+//
+
+Formula* TermTransformerTransformTransformedFormulaTransformer::applyLiteral(Formula* f)
 {
   CALL("TermTransformingFormulaTransformer::applyLiteral");
 

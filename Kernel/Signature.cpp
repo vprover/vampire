@@ -575,9 +575,49 @@ unsigned Signature::getInterpretingSymbol(Interpretation interp)
   case Theory::REAL_QUOTIENT_E:
     name = "$quotient_e";
     break;
+  case Theory::INT_QUOTIENT_T:
+  case Theory::RAT_QUOTIENT_T:
+  case Theory::REAL_QUOTIENT_T:
+    name = "$quotient_t";
+    break;
+  case Theory::INT_QUOTIENT_F:
+  case Theory::RAT_QUOTIENT_F:
+  case Theory::REAL_QUOTIENT_F:
+    name = "$quotient_f";
+    break;
+  case Theory::INT_REMAINDER_T:
+  case Theory::RAT_REMAINDER_T:
+  case Theory::REAL_REMAINDER_T:
+    name = "$remainder_t";
+    break;
+  case Theory::INT_REMAINDER_F:
+  case Theory::RAT_REMAINDER_F:
+  case Theory::REAL_REMAINDER_F:
+    name = "$remainder_f";
+    break;
+  case Theory::INT_REMAINDER_E:
+  case Theory::RAT_REMAINDER_E:
+  case Theory::REAL_REMAINDER_E:
+    name = "$remainder_e";
+    break;
   case Theory::RAT_QUOTIENT:
   case Theory::REAL_QUOTIENT:
     name = "quotient";
+    break;
+  case Theory::INT_TRUNCATE:
+  case Theory::RAT_TRUNCATE:
+  case Theory::REAL_TRUNCATE:
+    name="truncate";
+    break;
+  case Theory::INT_FLOOR:
+  case Theory::RAT_FLOOR:
+  case Theory::REAL_FLOOR:
+    name="floor";
+    break;
+  case Theory::INT_CEILING:
+  case Theory::RAT_CEILING:
+  case Theory::REAL_CEILING:
+    name="ceiling";
     break;
   default:
     ASSERTION_VIOLATION_REP(interp);

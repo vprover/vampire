@@ -544,7 +544,14 @@ class Signature
   TermAlgebra *getTermAlgebraOfSort(unsigned sort) { return _termAlgebras.get(sort); }
   void addTermAlgebra(TermAlgebra *ta) { _termAlgebras.insert(ta->sort(), ta); }
 
+  void recordDividesNvalue(TermList n){
+    _dividesNvalues.push(n);
+  }
+  Stack<TermList>& getDividesNvalues(){ return _dividesNvalues; }
+
 private:
+  Stack<TermList> _dividesNvalues;
+
   bool _foolConstantsDefined;
   unsigned _foolTrue;
   unsigned _foolFalse;

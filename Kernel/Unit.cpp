@@ -115,8 +115,8 @@ unsigned Unit::getPriority() const
     return env.maxClausePriority;
   }
   // Current cases where there is no input clause ancestor
-  // This is probably okay as this rule is from a weird experimental option
   if(
+     _inference->rule() == Inference::CHOICE_AXIOM || 
      _inference->rule() == Inference::SKOLEM_PREDICATE_INTRODUCTION 
     ){
     // This is the same as depth 1 in sine selection
@@ -150,7 +150,9 @@ unsigned Unit::getPriority() const
       count++;
       total+=up;
     }
-    //if(count==0){ cout << "count is zero for " << toString() << endl; }
+#if VDEBUG
+    if(count==0){ cout << "count is zero for " << toString() << endl; }
+#endif
     ASS_G(count,0);
 
     // If count==0 we are only here in release mode

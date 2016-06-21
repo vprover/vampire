@@ -48,7 +48,10 @@
 #include "SAT/DIMACS.hpp"
 
 #include "CASC/CASCMode.hpp"
+#include "SMTCOMP/SMTCOMPMode.hpp"
+#include "CASC/CASCMultiMode.hpp"
 #include "CASC/CLTBMode.hpp"
+#include "CASC/CLTBModeLearning.hpp"
 #include "CASC/CMZRMode.hpp"
 #include "Shell/CParser.hpp"
 #include "Shell/CommandLine.hpp"
@@ -315,7 +318,9 @@ void outputResult(ostream& out) {
     ASSERTION_VIOLATION; //these outcomes are not reachable with the current implementation
 #endif
   }
-  env.statistics->print(env.out());
+  if(env.options->mode()!=Options::Mode::SPIDER){
+    env.statistics->print(env.out());
+  }
 }
 
 
@@ -672,12 +677,20 @@ void spiderMode()
   CALL("spiderMode()");
   env.options->setBadOptionChoice(Options::BadOption::HARD); 
   Exception* exception = 0;
+#if VZ3
+  z3::exception* z3_exception = 0;
+#endif
   bool noException = true;
   try {
     doProving();
   } catch (Exception& e) {
     exception = &e;
     noException = false;
+#if VZ3
+  } catch(z3::exception& e){
+    z3_exception = &e; 
+    noException = false;
+#endif
   } catch (...) {
     noException = false;
   }
@@ -713,10 +726,23 @@ void spiderMode()
     default:
       ASSERTION_VIOLATION;
     }
-    env.statistics->print(env.out());
+    // env.statistics->print(env.out());
   } else {
-    reportSpiderFail();
-    explainException(*exception);
+#if VZ3
+    if(z3_exception){
+      if(strcmp(z3_exception->msg(),"out of memory\n")){
+        reportSpiderStatus('m');
+      }
+      else{ reportSpiderFail(); }
+    }
+    else{
+#endif
+      reportSpiderFail();
+      ASS(exception); 
+      explainException(*exception); 
+#if VZ3
+    }
+#endif
     vampireReturnValue = VAMP_RESULT_STATUS_UNHANDLED_EXCEPTION;
   }
   env.endOutput();
@@ -753,6 +779,14 @@ void clausifyMode(bool stat)
       clauses++;
       literals += cl->size();
     } else {
+/*
+  Uncomment this bit to make clausify print quantification
+  TODO decide when this should be done and do it then 
+
+      Formula* f = Formula::fromClause(cl);
+      FormulaUnit* fu = new FormulaUnit(f,cl->inference(),cl->inputType());
+      env.out() << TPTPPrinter::toString(fu) << "\n";
+*/
       env.out() << TPTPPrinter::toString(cl) << "\n";
     }
   }
@@ -884,7 +918,8 @@ int main(int argc, char* argv[])
     if (env.options->showHelp() ||
         env.options->showOptions() ||
         env.options->showExperimentalOptions() ||
-        !env.options->explainOption().empty()) {
+        !env.options->explainOption().empty() ||
+        env.options->printAllTheoryAxioms()) {
       env.beginOutput();
       env.options->output(env.out());
       env.endOutput();
@@ -921,23 +956,40 @@ int main(int argc, char* argv[])
     case Options::Mode::VAMPIRE:
       vampireMode();
       break;
-    case Options::Mode::CASC:
-      if (CASC::CASCMode::perform(argc, argv)) {
-	//casc mode succeeded in solving the problem, so we return zero
-	vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
-      }
-      break;
     case Options::Mode::CASC_SAT:
       CASC::CASCMode::makeSat();
-      if (CASC::CASCMode::perform(argc, argv)) {
-	//casc mode succeeded in solving the problem, so we return zero
-	vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
+    case Options::Mode::CASC:
+      // If using a single core use old approach
+      if(env.options->multicore()==1){
+         if (CASC::CASCMode::perform(argc, argv)) {
+	    //casc mode succeeded in solving the problem, so we return zero
+            vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
+         }
+      }
+      // otherwise use the new multicore mode
+      else{
+        if (CASC::CASCMultiMode::perform()) {
+          //casc mode succeeded in solving the problem, so we return zero
+          vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
+        }
       }
       break;
-/*
+    case Options::Mode::SMTCOMP:
+       env.options->setProof(Options::Proof::SMTCOMP);
+       env.options->setInputSyntax(Options::InputSyntax::SMTLIB2);
+       if(SMTCOMP::SMTCOMPMode::perform()){
+         vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
+        }
+    break;
     case Options::Mode::CASC_LTB: {
+      bool learning = env.options->ltbLearning()!=Options::LTBLearning::OFF;
       try {
-        CASC::CLTBMode::perform();
+        if(learning){
+          CASC::CLTBModeLearning::perform();
+        }
+        else{
+          CASC::CLTBMode::perform();
+        }
       } catch (Lib::SystemFailException& ex) {
         cerr << "Process " << getpid() << " received SystemFailException" << endl;
         ex.cry(cerr);
@@ -947,7 +999,6 @@ int main(int argc, char* argv[])
       vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
       break;
     }
-*/
 /*
     case Options::Mode::CASC_MZR: {
       CASC::CMZRMode::perform();
@@ -1042,7 +1093,7 @@ catch (Parse::TPTP::ParseErrorException& exception) {
 #endif
     env.beginOutput();
     explainException(exception);
-    env.statistics->print(env.out());
+    //env.statistics->print(env.out());
     env.endOutput();
   } catch (std::bad_alloc& _) {
     vampireReturnValue = VAMP_RESULT_STATUS_UNHANDLED_EXCEPTION;

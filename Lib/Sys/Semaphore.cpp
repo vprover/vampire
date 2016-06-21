@@ -134,6 +134,28 @@ void Semaphore::doInc(int num)
 }
 
 /**
+ *  * Internal version of a semaphore manipulation function that
+ *   * allows accessing the internal semaphores as well.
+ *    */
+void Semaphore::doIncPersistent(int num)
+{
+  CALL("Semaphore::doIncPersistent");
+  ASS(hasSemaphore());
+  ASS_L(num, semCnt+2);
+
+  sembuf buf;
+  buf.sem_num=num;
+  buf.sem_op=1;
+  buf.sem_flg=0;
+
+  errno=0;
+  int res=semop(semid, &buf, 1);
+  if(res==-1) {
+    SYSTEM_FAIL("Cannot increase semaphore.",errno);
+  }
+}
+
+/**
  * Internal version of a semaphore manipulation function that
  * allows accessing the internal semaphores as well.
  */
@@ -196,7 +218,7 @@ int Semaphore::doGet(int num)
   errno=0;
   int res=semctl(semid, num, GETVAL, unused_arg);
   if(res==-1) {
-    SYSTEM_FAIL("Cannot set the semaphore value.",errno);
+    SYSTEM_FAIL("Cannot get the semaphore value.",errno);
   }
   ASS_GE(res,0);
   return res;
@@ -212,6 +234,18 @@ void Semaphore::inc(int num)
   ASS_L(num, semCnt);
 
   doInc(num);
+}
+
+/**
+ *  * Increase the value of the semaphore number @b num
+ *   */
+void Semaphore::incp(int num)
+{
+  CALL("Semaphore::incp");
+  ASS(hasSemaphore());
+  ASS_L(num, semCnt);
+
+  doIncPersistent(num);
 }
 
 /**
@@ -309,7 +343,7 @@ void Semaphore::deregisterInstance()
  */
 void Semaphore::acquireInstance()
 {
-  CALL("Semaphore::registerInstance");
+  CALL("Semaphore::acquireInstance");
   ASS(hasSemaphore());
 
   doInc(semCnt);
@@ -321,7 +355,7 @@ void Semaphore::acquireInstance()
  */
 void Semaphore::releaseInstance()
 {
-  CALL("Semaphore::deregisterInstance");
+  CALL("Semaphore::releaseInstance");
   ASS(hasSemaphore());
 
   //Here we may wait until other deregisterInstance() calls finish.

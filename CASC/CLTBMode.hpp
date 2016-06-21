@@ -57,8 +57,8 @@ class CLTBMode
 public:
   static void perform();
 private:
-  void solveBatch(istream& batchFile);
-  int readInput(istream& batchFile);
+  void solveBatch(istream& batchFile, bool first,vstring inputDirectory);
+  int readInput(istream& batchFile, bool first);
   static ostream& lineOutput();
   static ostream& coutLineOutput();
   void loadIncludes();
@@ -127,7 +127,9 @@ private:
   bool runSchedule(Schedule&,StrategySet& remember,bool fallback,int terminationTime);
   unsigned getSliceTime(vstring sliceCode,vstring& chopped);
 
-  void performStrategy(int terminationTime,int timeLimit, const Category category,const Shell::Property* property);
+  void performStrategy(int terminationTime,int timeLimit,Category category,const Shell::Property* property);
+  static void fillSchedule(Schedule& sched,const Shell::Property* property,int timeLimit,Category category);
+
   void waitForChildAndExitWhenProofFound();
   void exitOnNoSuccess() __attribute__((noreturn));
 

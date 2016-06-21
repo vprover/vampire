@@ -559,7 +559,7 @@ LiteralSelector& SaturationAlgorithm::getSosLiteralSelector()
 {
   CALL("SaturationAlgorithm::getSosLiteralSelector");
 
-  if (_opt.sos() == Options::Sos::ALL) {
+  if (_opt.sos() == Options::Sos::ALL || _opt.sos() == Options::Sos::THEORY) {
     if (!_sosLiteralSelector) {
       _sosLiteralSelector = new TotalLiteralSelector(getOrdering(), getOptions());
     }

@@ -14,6 +14,7 @@
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/SubformulaIterator.hpp"
 #include "Kernel/TermIterators.hpp"
+#include "Lib/SharedSet.hpp"
 
 #include "Indexing/TermSharing.hpp"
 
@@ -64,13 +65,15 @@ FormulaUnit* Skolem::skolemiseImpl (FormulaUnit* unit)
 
   _skolimizingDefinitions = UnitList::empty();
 
-  _vars.reset();
+  _varOccs.reset();
   _varSorts.reset();
   _subst.reset();
+  _varDeps.reset();
+  _blockLookup.reset();
 
   Formula* f = unit->formula();
   preskolemise(f);
-  ASS_EQ(_vars.size(),0);
+  ASS_EQ(_varOccs.size(),0);
 
   Formula* g = skolemise(f);
 
@@ -173,10 +176,11 @@ void Skolem::preskolemise (Formula* f)
       while (it.hasNext()) {
         TermList v = it.next();
         ASS(v.isVar());
-        VarInfo* varInfo;
-        if (_vars.find(v.var(),varInfo) && // a universal variable ...
-            VarInfo::isNonEmpty(varInfo)) { // ... below an existential quantifier ...
-          *varInfo->headPtr() = true; // ... occurs in this literal
+        VarOccInfo varOccInfo;
+        ALWAYS(_varOccs.find(v.var(),varOccInfo));
+
+        if (BoolList::isNonEmpty(varOccInfo.occurs_below)) { // below a quantifier ...
+          *varOccInfo.occurs_below->headPtr() = true;         // ... occurs in this literal
         }
       }
       return;
@@ -196,101 +200,77 @@ void Skolem::preskolemise (Formula* f)
     {
       Formula::VarList::Iterator vs(f->vars());
       while (vs.hasNext()) {
-        ALWAYS(_vars.insert(vs.next(),nullptr)); // ALWAYS, because we are rectified
+        ALWAYS(_varOccs.insert(vs.next(),{false/*univeral*/,nullptr})); // ALWAYS, because we are rectified
       }
       preskolemise(f->qarg());
       vs.reset(f->vars());
       while (vs.hasNext()) {
-        _vars.remove(vs.next());
+        _varOccs.remove(vs.next());
       }
       return;
     }
 
   case EXISTS:
     {
-      { // reset the "occurs" flag for all the universals we are in scope of
-        Vars::Iterator vit(_vars);
+      { // reset the "occurs" flag for all the variables we are in scope of
+        VarOccInfos::Iterator vit(_varOccs);
         while (vit.hasNext()) {
           unsigned dummy;
-          VarInfo*& varInfo = vit.nextRef(dummy);
-          VarInfo::push(false,varInfo);
+          VarOccInfo& varOccInfo = vit.nextRef(dummy);
+          BoolList::push(false,varOccInfo.occurs_below);
         }
       }
-      preskolemise(f->qarg());
 
-      // now create the skolems for the existentials here
-      // and bind them in _subst
-      unsigned arity = 0;
-      ensureHavingVarSorts();
-      static Stack<unsigned> domainSorts;
-      static Stack<TermList> fnArgs;
-      domainSorts.reset();
-      fnArgs.reset();
-
-      // for proof recording purposes, see below
-      Formula::VarList* var_args = Formula::VarList::empty();
-      static Substitution localSubst;
-      localSubst.reset();
-
-      Vars::Iterator vit(_vars);
-      while(vit.hasNext()) { // TODO: this iterator may present the variables in a "weird" order, consider sorting, for users' sake
-        unsigned uvar;
-        VarInfo*& varInfo = vit.nextRef(uvar);
-        ASS(VarInfo::isNonEmpty(varInfo));
-        if (!VarInfo::pop(varInfo)) { // the var didn't really occur in the subformula
-          continue;
-        }
-        if (VarInfo::isNonEmpty(varInfo)) { // pass the fact that it did occur above
-          *varInfo->headPtr() = true;
-        }
-        arity++;
-        domainSorts.push(_varSorts.get(uvar, Sorts::SRT_DEFAULT));
-        fnArgs.push(TermList(uvar, false));
-        Formula::VarList::push(uvar,var_args);
-      }
-
+      // add our own variables (for which we are not interested in occurrences)
       Formula::VarList::Iterator vs(f->vars());
       while (vs.hasNext()) {
-        int v = vs.next();
-        unsigned rangeSort=_varSorts.get(v, Sorts::SRT_DEFAULT);
+        unsigned var = vs.next();
+        ALWAYS(_varOccs.insert(var,{true/*existential*/,nullptr})); // ALWAYS, because we are rectified
+        ALWAYS(_blockLookup.insert(var,f));
+      }
 
-        unsigned fun = addSkolemFunction(arity, domainSorts.begin(), rangeSort, v);
-        _introducedSkolemFuns.push(fun);
+      preskolemise(f->qarg());
 
-        Term* skolemTerm = Term::create(fun, arity, fnArgs.begin());
-        _subst.bind(v,skolemTerm);
-        localSubst.bind(v,skolemTerm);
+      // take ours out again
+      vs.reset(f->vars());
+      while (vs.hasNext()) {
+        _varOccs.remove(vs.next());
+      }
 
-        if (env.options->showSkolemisations()) {
-          env.beginOutput();
-          env.out() << "Skolemising: "<<skolemTerm->toString()<<" for X"<< v
-            <<" in "<<f->toString()<<" in formula "<<_beingSkolemised->toString() << endl;
-          env.endOutput();
+      static Stack<unsigned> univ_dep_stack;
+      static Stack<unsigned> exists_deps_stack;
+      ASS(univ_dep_stack.isEmpty());
+      ASS(exists_deps_stack.isEmpty());
+
+      // collect results from subformulas
+      VarOccInfos::Iterator vit(_varOccs);
+      while(vit.hasNext()) {
+        unsigned var;
+        VarOccInfo& varOccInfo = vit.nextRef(var);
+        ASS(BoolList::isNonEmpty(varOccInfo.occurs_below));
+        if (!BoolList::pop(varOccInfo.occurs_below)) { // the var didn't really occur in the subformula
+          continue;
+        }
+        if (BoolList::isNonEmpty(varOccInfo.occurs_below)) { // pass the fact that it did occur above
+          *varOccInfo.occurs_below->headPtr() = true;
         }
 
-        if (env.options->showNonconstantSkolemFunctionTrace() && arity!=0) {
-          env.beginOutput();
-          ostream& out = env.out();
-            out <<"Nonconstant skolem function introduced: "
-            <<skolemTerm->toString()<<" for X"<<v<<" in "<<f->toString()
-            <<" in formula "<<_beingSkolemised->toString()<<endl;
-
-          Refutation ref(_beingSkolemised, true);
-          ref.output(out);
-          env.endOutput();
+        if (varOccInfo.existential) {
+          exists_deps_stack.push(var);
+        } else {
+          univ_dep_stack.push(var);
         }
       }
 
-      {
-        Formula* def = new BinaryFormula(IMP, f, SubstHelper::apply(f->qarg(), localSubst));
+      Stack<unsigned>::Iterator udIt(univ_dep_stack);
+      VarSet* univ_dep_set = VarSet::getFromIterator(udIt);
+      univ_dep_stack.reset();
 
-        if (arity > 0) {
-          def = new QuantifiedFormula(FORALL,var_args,nullptr,def);
-        }
+      Stack<unsigned>::Iterator edIt(exists_deps_stack);
+      VarSet* exists_dep_set = VarSet::getFromIterator(edIt);
+      exists_deps_stack.reset();
 
-        Unit* defUnit = new FormulaUnit(def, new Inference(Inference::CHOICE_AXIOM), Unit::AXIOM);
-        UnitList::push(defUnit,_skolimizingDefinitions);
-      }
+      _varDeps.insert(f,{univ_dep_set,exists_dep_set});
 
       return;
     }
@@ -365,6 +345,93 @@ Formula* Skolem::skolemise (Formula* f)
 
   case EXISTS: 
     {
+      // create the skolems for the existentials here
+      // and bind them in _subst
+      unsigned arity = 0;
+      ensureHavingVarSorts();
+      static Stack<unsigned> domainSorts;
+      static Stack<TermList> fnArgs;
+      domainSorts.reset();
+      fnArgs.reset();
+
+      // for proof recording purposes, see below
+      Formula::VarList* var_args = Formula::VarList::empty();
+      static Substitution localSubst;
+      localSubst.reset();
+
+      ExVarDepInfo& depInfo = _varDeps.get(f);
+
+      VarSet* dep = depInfo.univ;
+
+      VarSet::Iterator veIt(*depInfo.exist);
+      while(veIt.hasNext()) {
+        unsigned evar = veIt.next();
+        Formula* block = _blockLookup.get(evar);
+        VarSet* their_dep = _varDeps.get(block).univ;
+        dep = dep->getUnion(their_dep);
+      }
+
+      /*
+      if (depInfo.univ != dep) {
+        // PANIC !!!
+      }
+      */
+
+      // store updated, for the existentials below us to lookup as well
+      depInfo.univ = dep;
+
+      VarSet::Iterator vuIt(*dep);
+      while(vuIt.hasNext()) {
+        unsigned uvar = vuIt.next();
+        domainSorts.push(_varSorts.get(uvar, Sorts::SRT_DEFAULT));
+        fnArgs.push(TermList(uvar, false));
+        Formula::VarList::push(uvar,var_args);
+        arity++;
+      }
+
+      Formula::VarList::Iterator vs(f->vars());
+      while (vs.hasNext()) {
+        int v = vs.next();
+        unsigned rangeSort=_varSorts.get(v, Sorts::SRT_DEFAULT);
+
+        unsigned fun = addSkolemFunction(arity, domainSorts.begin(), rangeSort, v);
+        _introducedSkolemFuns.push(fun);
+
+        Term* skolemTerm = Term::create(fun, arity, fnArgs.begin());
+        _subst.bind(v,skolemTerm);
+        localSubst.bind(v,skolemTerm);
+
+        if (env.options->showSkolemisations()) {
+          env.beginOutput();
+          env.out() << "Skolemising: "<<skolemTerm->toString()<<" for X"<< v
+            <<" in "<<f->toString()<<" in formula "<<_beingSkolemised->toString() << endl;
+          env.endOutput();
+        }
+
+        if (env.options->showNonconstantSkolemFunctionTrace() && arity!=0) {
+          env.beginOutput();
+          ostream& out = env.out();
+            out <<"Nonconstant skolem function introduced: "
+            <<skolemTerm->toString()<<" for X"<<v<<" in "<<f->toString()
+            <<" in formula "<<_beingSkolemised->toString()<<endl;
+
+          Refutation ref(_beingSkolemised, true);
+          ref.output(out);
+          env.endOutput();
+        }
+      }
+
+      {
+        Formula* def = new BinaryFormula(IMP, f, SubstHelper::apply(f->qarg(), localSubst));
+
+        if (arity > 0) {
+          def = new QuantifiedFormula(FORALL,var_args,nullptr,def);
+        }
+
+        Unit* defUnit = new FormulaUnit(def, new Inference(Inference::CHOICE_AXIOM), Unit::AXIOM);
+        UnitList::push(defUnit,_skolimizingDefinitions);
+      }
+
       // drop the existential one:
       return skolemise(f->qarg());
     }

@@ -101,7 +101,17 @@ void NewCNF::clausify(FormulaUnit* unit,Stack<Clause*>& output)
 
   _genClauses.clear();
   _varSorts.reset();
+  _collectedVarSorts = false;
+  _maxVar = 0;
   _freeVars.reset();
+
+  { // destroy the cached substitution entries
+    DHMap<BindingList*,Substitution*>::DelIterator dIt(_substitutionsByBindings);
+    while (dIt.hasNext()) {
+      delete dIt.next();
+      dIt.del();
+    }
+  }
 
   ASS(_queue.isEmpty());
   ASS(_occurrences.isEmpty());
@@ -225,7 +235,7 @@ void NewCNF::process(Literal* literal, Occurrences &occurrences) {
 
       enqueue(f);
 
-      introduceExtendedGenClause(occ.gc, occ.position, gls->cons(GenLit(f, occ.sign())));
+      introduceExtendedGenClause(occ, gls->cons(GenLit(f, occ.sign())));
     }
   }
 }
@@ -286,14 +296,7 @@ TermList NewCNF::findITEs(TermList ts, Stack<unsigned> &variables, Stack<Formula
 }
 
 bool NewCNF::shouldInlineITE(unsigned iteCounter) {
-  int threshold = env.options->getIteInliningThreshold();
-  if (threshold < 0) {
-    return true;
-  }
-  if (threshold == 0) {
-    return false;
-  }
-  return iteCounter < (unsigned)threshold;
+  return iteCounter < _iteInliningThreshold;
 }
 
 unsigned NewCNF::createFreshVariable(unsigned sort)
@@ -302,19 +305,27 @@ unsigned NewCNF::createFreshVariable(unsigned sort)
 
   ensureHavingVarSorts();
 
-  unsigned maxVar = 0;
+  _maxVar++;
 
-  VirtualIterator<unsigned> vars = _varSorts.domain();
-  while (vars.hasNext()) {
-    unsigned var = vars.next();
-    if (var > maxVar) {
-      maxVar = var;
-    }
+  ALWAYS(_varSorts.insert(_maxVar, sort));
+
+  return _maxVar;
+}
+
+void NewCNF::createFreshVariableRenaming(unsigned oldVar, unsigned freshVar)
+{
+  CALL("NewCNF::createFreshVariableRenaming");
+
+  ensureHavingVarSorts();
+
+  unsigned sort;
+  ALWAYS(_varSorts.find(oldVar, sort));
+  if (!_varSorts.insert(freshVar, sort)) {
+    ASSERTION_VIOLATION_REP(freshVar);
   }
-
-  ALWAYS(_varSorts.insert(maxVar + 1, sort));
-
-  return maxVar + 1;
+  if (freshVar > _maxVar) {
+    _maxVar = freshVar;
+  }
 }
 
 void NewCNF::process(JunctionFormula *g, Occurrences &occurrences)
@@ -341,11 +352,11 @@ void NewCNF::process(JunctionFormula *g, Occurrences &occurrences)
     }
 
     if (occ.sign() == formulaSign) {
-      introduceExtendedGenClause(occ.gc, occ.position, gls);
+      introduceExtendedGenClause(occ, gls);
     } else {
       List<GenLit>::Iterator glit(gls);
       while (glit.hasNext()) {
-        introduceExtendedGenClause(occ.gc, occ.position, glit.next());
+        introduceExtendedGenClause(occ, glit.next());
       }
     }
   }
@@ -365,20 +376,6 @@ void NewCNF::process(BinaryFormula* g, Occurrences &occurrences)
   Formula* lhs = g->left();
   Formula* rhs = g->right();
 
-  if (lhs->connective() == BOOL_TERM && rhs->connective() == BOOL_TERM) {
-    TermList lhsTerm = lhs->getBooleanTerm();
-    TermList rhsTerm = rhs->getBooleanTerm();
-
-    Literal *equalityLiteral = Literal::createEquality(formulaSign, lhsTerm, rhsTerm, Sorts::SRT_BOOL);
-    Formula *equality = new AtomicFormula(equalityLiteral);
-
-    occurrences.replaceBy(equality);
-
-    enqueue(equality, occurrences);
-
-    return;
-  }
-
   enqueue(lhs);
   enqueue(rhs);
 
@@ -387,7 +384,7 @@ void NewCNF::process(BinaryFormula* g, Occurrences &occurrences)
 
     for (SIGN lhsSign : { NEGATIVE, POSITIVE }) {
       SIGN rhsSign = formulaSign == occ.sign() ? OPPOSITE(lhsSign) : lhsSign;
-      introduceExtendedGenClause(occ.gc, occ.position, GenLit(lhs, lhsSign), GenLit(rhs, rhsSign));
+      introduceExtendedGenClause(occ, GenLit(lhs, lhsSign), GenLit(rhs, rhsSign));
     }
   }
 }
@@ -434,9 +431,22 @@ void NewCNF::processBoolVar(SIGN sign, unsigned var, Occurrences &occurrences)
     }
 
     if (!bound) {
+      BindingList::Iterator fbit(occ.gc->foolBindings);
+      while (fbit.hasNext()) {
+        Binding binding = fbit.next();
+
+        if (binding.first == var) {
+          bound = true;
+          skolem = binding.second;
+          break;
+        }
+      }
+    }
+
+    if (!bound) {
       Term* constant = (occurrenceSign == POSITIVE) ? Term::foolFalse() : Term::foolTrue();
-      BindingList::push(Binding(var, constant), occ.gc->bindings);
-      removeGenLit(occ.gc, occ.position);
+      _bindingStore.pushAndRemember(Binding(var, constant), occ.gc->bindings);
+      removeGenLit(occ);
       continue;
     }
 
@@ -446,15 +456,29 @@ void NewCNF::processBoolVar(SIGN sign, unsigned var, Occurrences &occurrences)
     if (isTrue || isFalse) {
       SIGN bindingSign = isTrue ? POSITIVE : NEGATIVE;
       if (occurrenceSign != bindingSign) {
-        removeGenLit(occ.gc, occ.position);
+        removeGenLit(occ);
       }
       continue;
     }
 
-    introduceExtendedGenClause(occ.gc, occ.position, GenLit(new BoolTermFormula(TermList(var, false)), occurrenceSign));
+    introduceExtendedGenClause(occ, GenLit(new BoolTermFormula(TermList(var, false)), occurrenceSign));
   }
 }
 
+void NewCNF::processConstant(bool constant, Occurrences &occurrences)
+{
+  CALL("NewCNF::processConstant");
+
+  while (occurrences.isNonEmpty()) {
+    Occurrence occ = pop(occurrences);
+    if (constant == (occ.sign() == POSITIVE)) {
+      // constant is true -- remove the genclause that has it
+    } else {
+      // constant is false -- remove the occurrence of the constant
+      removeGenLit(occ);
+    }
+  }
+}
 
 void NewCNF::processITE(Formula* condition, Formula* thenBranch, Formula* elseBranch, Occurrences &occurrences)
 {
@@ -469,7 +493,7 @@ void NewCNF::processITE(Formula* condition, Formula* thenBranch, Formula* elseBr
 
     for (SIGN conditionSign : { NEGATIVE, POSITIVE }) {
       Formula* branch = conditionSign == NEGATIVE ? thenBranch : elseBranch;
-      introduceExtendedGenClause(occ.gc, occ.position, GenLit(condition, conditionSign), GenLit(branch, occ.sign()));
+      introduceExtendedGenClause(occ, GenLit(condition, conditionSign), GenLit(branch, occ.sign()));
     }
   }
 }
@@ -483,13 +507,13 @@ void NewCNF::processLet(unsigned symbol, Formula::VarList* bindingVariables, Ter
   if (binding.isVar()) {
     inlineLet = true;
   } else {
-    Term* term = binding.term();
-    if (term->isSpecial()) {
-      Term::SpecialTermData* sd = term->getSpecialData();
-      if (sd->getType() == Term::SF_FORMULA) {
-        inlineLet = true;
-      }
-    }
+//    Term* term = binding.term();
+//    if (term->isSpecial()) {
+//      Term::SpecialTermData* sd = term->getSpecialData();
+//      if (sd->getType() == Term::SF_FORMULA) {
+//        inlineLet = true;
+//      }
+//    }
 //    if (term->shared()) {
 //      // TODO: magic
 ////      if (term->weight() < 6) {
@@ -531,7 +555,7 @@ void NewCNF::processLet(unsigned symbol, Formula::VarList* bindingVariables, Ter
 
   occurrences.replaceBy(processedContentsFormula);
 
-  process(processedContentsFormula, occurrences);
+  enqueue(processedContentsFormula, occurrences);
 }
 
 TermList NewCNF::nameLetBinding(unsigned symbol, Formula::VarList* bindingVariables, TermList binding, TermList contents)
@@ -591,12 +615,11 @@ TermList NewCNF::nameLetBinding(unsigned symbol, Formula::VarList* bindingVariab
   }
 
   if (isPredicate) {
-    Formula* formulaBinding = BoolTermFormula::create(binding);
-
-    enqueue(formulaBinding);
-
     Literal* name = Literal::create(freshSymbol, nameArity, POSITIVE, false, arguments.begin());
     Formula* nameFormula = new AtomicFormula(name);
+
+    Formula* formulaBinding = BoolTermFormula::create(binding);
+    enqueue(formulaBinding);
 
     for (SIGN sign : { POSITIVE, NEGATIVE }) {
       introduceGenClause(GenLit(nameFormula, sign), GenLit(formulaBinding, OPPOSITE(sign)));
@@ -621,11 +644,20 @@ TermList NewCNF::nameLetBinding(unsigned symbol, Formula::VarList* bindingVariab
 TermList NewCNF::inlineLetBinding(unsigned symbol, Formula::VarList* bindingVariables, TermList binding, TermList contents) {
   CALL("NewCNF::inlineLetBinding(TermList)");
 
-  SymbolDefinitionInlining inlining(symbol, bindingVariables, binding);
-  return Flattening::flatten(inlining.process(contents));
+  ensureHavingVarSorts();
+  SymbolDefinitionInlining inlining(symbol, bindingVariables, binding, _maxVar);
+  TermList inlinedContents = inlining.process(contents);
+
+  List<pair<unsigned, unsigned>>::Iterator renamings(inlining.variableRenamings());
+  while (renamings.hasNext()) {
+    pair<unsigned, unsigned> renaming = renamings.next();
+    createFreshVariableRenaming(renaming.first, renaming.second);
+  }
+
+  return Flattening::flatten(inlinedContents);
 }
 
-NewCNF::VarSet* NewCNF::freeVars(Formula* g)
+VarSet* NewCNF::freeVars(Formula* g)
 {
   CALL("NewCNF::freeVars");
 
@@ -648,8 +680,17 @@ void NewCNF::ensureHavingVarSorts()
 {
   CALL("NewCNF::ensureHavingVarSorts");
 
-  if (_varSorts.size() == 0) {
+  if (!_collectedVarSorts) {
     SortHelper::collectVariableSorts(_beingClausified->formula(), _varSorts);
+    _collectedVarSorts = true;
+    _maxVar = 0;
+    VirtualIterator<unsigned> vars = _varSorts.domain();
+    while (vars.hasNext()) {
+      unsigned var = vars.next();
+      if (var > _maxVar) {
+        _maxVar = var;
+      }
+    }
   }
 }
 
@@ -698,42 +739,84 @@ Term* NewCNF::createSkolemTerm(unsigned var, VarSet* free)
  * so we cache results from skolemising previous
  * occurrences of g.
  */
-void NewCNF::skolemise(QuantifiedFormula* g, BindingList*& bindings)
+void NewCNF::skolemise(QuantifiedFormula* g, BindingList*& bindings, BindingList*& foolBindings)
 {
   CALL("NewCNF::skolemise");
 
   BindingList* processedBindings;
+  BindingList* processedFoolBindings;
 
-  if (!_skolemsByBindings.find(bindings, processedBindings)) {
+  if (!_skolemsByBindings.find(bindings, processedBindings) || !_foolSkolemsByBindings.find(foolBindings, processedFoolBindings)) {
     // first level cache miss, construct free variable set
 
-    BindingList::Iterator bIt(bindings);
-    VarSet* boundVars = (VarSet*) VarSet::getFromIterator(getMappingIterator(bIt, BindingGetVarFunctor()));
-    VarSet* unboundFreeVars = (VarSet*) freeVars(g)->subtract(boundVars);
+    VarSet* frees = freeVars(g);
 
-    if (!_skolemsByFreeVars.find(unboundFreeVars, processedBindings)) {
+    static Stack<unsigned> toSubtract;
+    toSubtract.reset();
+    static Stack<unsigned> toAddOnTop;
+    toAddOnTop.reset();
+
+    BindingList::Iterator bIt(bindings);
+    BindingList::Iterator fbIt(foolBindings);
+
+    auto it = getConcatenatedIterator(bIt,fbIt);
+    while(it.hasNext()) {
+      Binding b = it.next();
+      if (frees->member(b.first)) {
+        toSubtract.push(b.first);      // because it's, in fact, bound
+        VariableIterator vit(b.second);
+        while (vit.hasNext()) {        // but depends on these free vars from above
+          TermList t = vit.next();
+          ASS(t.isVar());
+          toAddOnTop.push(t.var());
+        }
+      }
+    }
+
+    Stack<unsigned>::Iterator toSubIt(toSubtract);
+    Stack<unsigned>::Iterator toAddIt(toAddOnTop);
+
+    VarSet* boundVars = VarSet::getFromIterator(toSubIt);
+    VarSet* boundsDeps = VarSet::getFromIterator(toAddIt);
+
+    VarSet* unboundFreeVars = frees->subtract(boundVars)->getUnion(boundsDeps);
+
+    if (!_skolemsByFreeVars.find(unboundFreeVars, processedBindings) || !_foolSkolemsByFreeVars.find(unboundFreeVars, processedFoolBindings)) {
       // second level cache miss, let's do the actual skolemisation
 
       processedBindings = nullptr;
+      processedFoolBindings = nullptr;
 
       Formula::VarList::Iterator vs(g->vars());
       while (vs.hasNext()) {
         unsigned var = (unsigned)vs.next();
-        Term* skolemTerm = createSkolemTerm(var, unboundFreeVars);
-        BindingList::push(Binding(var,skolemTerm), processedBindings);
+        Term* skolem = createSkolemTerm(var, unboundFreeVars);
+        Binding binding(var, skolem);
+        if (skolem->isSpecial()) {
+          BindingList::push(binding, processedFoolBindings); // this cell will get destroyed when we clear the cache
+        } else {
+          BindingList::push(binding, processedBindings); // this cell will get destroyed when we clear the cache
+        }
       }
 
       // store the results in the caches
       _skolemsByFreeVars.insert(unboundFreeVars, processedBindings);
+      _foolSkolemsByFreeVars.insert(unboundFreeVars, processedFoolBindings);
     }
 
     _skolemsByBindings.insert(bindings, processedBindings);
+    _foolSkolemsByBindings.insert(foolBindings, processedFoolBindings);
   }
 
   // extend the given binding
   BindingList::Iterator it(processedBindings);
   while (it.hasNext()) {
-    BindingList::push(it.next(),bindings);
+    _bindingStore.pushAndRemember(it.next(),bindings);
+  }
+
+  BindingList::Iterator fit(processedFoolBindings);
+  while (fit.hasNext()) {
+    _foolBindingStore.pushAndRemember(fit.next(),foolBindings);
   }
 }
 
@@ -747,6 +830,8 @@ void NewCNF::process(QuantifiedFormula* g, Occurrences &occurrences)
   // the skolem caches are empty
   ASS(_skolemsByBindings.isEmpty());
   ASS(_skolemsByFreeVars.isEmpty());
+  ASS(_foolSkolemsByBindings.isEmpty());
+  ASS(_foolSkolemsByFreeVars.isEmpty());
 
   // In the skolemising polarity introduce new skolems as you go
   // each occurrence may need a new set depending on bindings,
@@ -755,7 +840,7 @@ void NewCNF::process(QuantifiedFormula* g, Occurrences &occurrences)
   while (occit.hasNext()) {
     Occurrence occ = occit.next();
     if ((occ.sign() == POSITIVE) == (g->connective() == EXISTS)) {
-      skolemise(g, occ.gc->bindings);
+      skolemise(g, occ.gc->bindings, occ.gc->foolBindings);
     }
   }
 
@@ -768,6 +853,16 @@ void NewCNF::process(QuantifiedFormula* g, Occurrences &occurrences)
     dIt.next(vars,bindings);
     bindings->destroy();
     dIt.del();
+  }
+
+  _foolSkolemsByBindings.reset();
+  DHMap<VarSet*,BindingList*>::DelIterator fdit(_foolSkolemsByFreeVars);
+  while (fdit.hasNext()) {
+    VarSet* vars;
+    BindingList* bindings;
+    fdit.next(vars, bindings);
+    bindings->destroy();
+    fdit.del();
   }
 
   // Note that the formula under quantifier reuses the quantified formula's occurrences
@@ -888,10 +983,22 @@ void NewCNF::nameSubformula(Formula* g, Occurrences &occurrences)
 
   enqueue(g);
 
+  bool occurs[2] = { false, false };
+  Occurrences::Iterator occit(occurrences);
+  while (occit.hasNext()) {
+    Occurrence occ = occit.next();
+    occurs[occ.sign()] = true;
+    if (occurs[POSITIVE] && occurs[NEGATIVE]) {
+      break;
+    }
+  }
+
   for (SIGN sign : { NEGATIVE, POSITIVE }) {
     // One could also consider the case where (part of) the bindings goes to the definition
     // which perhaps allows us to the have a skolem predicate with fewer arguments
-    introduceGenClause(GenLit(name, OPPOSITE(sign)), GenLit(g, sign));
+    if (occurs[sign]) {
+      introduceGenClause(GenLit(name, OPPOSITE(sign)), GenLit(g, sign));
+    }
   }
 }
 
@@ -929,6 +1036,11 @@ void NewCNF::process(Formula* g, Occurrences &occurrences)
       processBoolVar(NEGATIVE, g->uarg()->getBooleanTerm().var(), occurrences);
       break;
 
+    case TRUE:
+    case FALSE:
+      processConstant(g->connective() == TRUE, occurrences);
+      break;
+
     default:
       ASSERTION_VIOLATION_REP(g->toString());
   }
@@ -941,18 +1053,16 @@ void NewCNF::toClauses(SPGenClause gc, Stack<Clause*>& output)
   Stack<unsigned> variables;
   Stack<Formula*> skolems;
 
-  BindingList::Iterator bit(gc->bindings);
+  BindingList::Iterator bit(gc->foolBindings);
   while (bit.hasNext()) {
     Binding b = bit.next();
     unsigned var = b.first;
     Term* skolem = b.second;
-    if (skolem->isSpecial()) {
-      variables.push(var);
-      ASS(skolem->isFormula());
-      Formula* f = skolem->getSpecialData()->getFormula();
-      ASS(f->connective() == LITERAL);
-      skolems.push(f);
-    }
+    variables.push(var);
+    ASS_REP(skolem->isFormula(), skolem->toString());
+    Formula* f = skolem->getSpecialData()->getFormula();
+    ASS_REP(f->connective() == LITERAL, f->toString());
+    skolems.push(f);
   }
 
   List<GenLit>* initLiterals(0);
@@ -973,35 +1083,84 @@ void NewCNF::toClauses(SPGenClause gc, Stack<Clause*>& output)
 
     List<List<GenLit>*>* processedGenClauses(0);
 
-    while (List<List<GenLit>*>::isNonEmpty(genClauses)) {
-      List<GenLit>* gls = List<List<GenLit>*>::pop(genClauses);
+    if (shouldInlineITE(iteCounter)) {
+      while (List<List<GenLit>*>::isNonEmpty(genClauses)) {
+        List<GenLit>* gls = List<List<GenLit>*>::pop(genClauses);
 
-      bool occurs = false;
-      // We might have a predicate skolem binding for a variable that does not
-      // occur in the generalised clause.
-      // TODO: optimize?
-      List<GenLit>::Iterator glsit(gls);
-      while (glsit.hasNext()) {
-        GenLit gl = glsit.next();
-        if (formula(gl)->freeVariables()->member(variable)) {
-          occurs = true;
-          break;
+        bool occurs = false;
+        // We might have a predicate skolem binding for a variable that does not
+        // occur in the generalised clause.
+        // TODO: optimize?
+        List<GenLit>::Iterator glsit(gls);
+        while (glsit.hasNext()) {
+          GenLit gl = glsit.next();
+          if (formula(gl)->freeVariables()->member(variable)) {
+            occurs = true;
+            break;
+          }
+        }
+
+        if (!occurs) {
+          processedGenClauses = processedGenClauses->cons(gls);
+          continue;
+        }
+
+        List<GenLit>* thenGls(0);
+        if (mapSubstitution(gls, thenSubst, false, thenGls)) {
+          processedGenClauses = processedGenClauses->cons(thenGls->cons(GenLit(skolem, NEGATIVE)));
+        }
+
+        List<GenLit>* elseGls(0);
+        if (mapSubstitution(gls, elseSubst, false, elseGls)) {
+          processedGenClauses = processedGenClauses->cons(elseGls->cons(GenLit(skolem, POSITIVE)));
         }
       }
+    } else {
+      List<unsigned>* vars = new List<unsigned>(variable);
+      List<unsigned>::pushFromIterator(Formula::VarList::Iterator(skolem->freeVariables()), vars);
+      Formula* naming = new AtomicFormula(createNamingLiteral(skolem, vars));
 
-      if (!occurs) {
-        processedGenClauses = processedGenClauses->cons(gls);
-        continue;
-      }
+      Substitution skolemSubst;
+      skolemSubst.bind(variable, Term::createFormula(skolem));
 
-      List<GenLit>* thenGls(0);
-      if (mapSubstitution(gls, thenSubst, thenGls)) {
-        processedGenClauses = processedGenClauses->cons(thenGls->cons(GenLit(skolem, NEGATIVE)));
-      }
+      bool addedDefinition = false;
+      while (List<List<GenLit>*>::isNonEmpty(genClauses)) {
+        List<GenLit>* gls = List<List<GenLit>*>::pop(genClauses);
 
-      List<GenLit>* elseGls(0);
-      if (mapSubstitution(gls, elseSubst, elseGls)) {
-        processedGenClauses = processedGenClauses->cons(elseGls->cons(GenLit(skolem, POSITIVE)));
+        bool occurs = false;
+        // We might have a predicate skolem binding for a variable that does not
+        // occur in the generalised clause.
+        // TODO: optimize?
+        List<GenLit>::Iterator glsit(gls);
+        while (glsit.hasNext()) {
+          GenLit gl = glsit.next();
+          if (formula(gl)->freeVariables()->member(variable)) {
+            occurs = true;
+            break;
+          }
+        }
+
+        if (!occurs) {
+          processedGenClauses = processedGenClauses->cons(gls);
+          continue;
+        }
+
+        List<GenLit>* skolemGls(0);
+        ALWAYS(mapSubstitution(gls, skolemSubst, true, skolemGls));
+        processedGenClauses = processedGenClauses->cons(skolemGls->cons(GenLit(naming, NEGATIVE)));
+
+        if (!addedDefinition) {
+          GenLit thenNaming = GenLit(SubstHelper::apply(naming, thenSubst), POSITIVE);
+          GenLit elseNaming = GenLit(SubstHelper::apply(naming, elseSubst), POSITIVE);
+
+          List<GenLit>* thenDefinition = new List<GenLit>(GenLit(skolem, NEGATIVE), new List<GenLit>(thenNaming, 0));
+          List<GenLit>* elseDefinition = new List<GenLit>(GenLit(skolem, POSITIVE), new List<GenLit>(elseNaming, 0));
+
+          processedGenClauses = processedGenClauses->cons(thenDefinition);
+          processedGenClauses = processedGenClauses->cons(elseDefinition);
+
+          addedDefinition = true;
+        }
       }
     }
 
@@ -1014,7 +1173,7 @@ void NewCNF::toClauses(SPGenClause gc, Stack<Clause*>& output)
 #endif
   while (List<List<GenLit>*>::isNonEmpty(genClauses)) {
     List<GenLit>* gls = List<List<GenLit>*>::pop(genClauses);
-    SPGenClause genClause = makeGenClause(gls, gc->bindings);
+    SPGenClause genClause = makeGenClause(gls, gc->bindings, BindingList::empty());
     if (genClause->valid) {
       Clause* clause = toClause(genClause);
       LOG1(clause->toString());
@@ -1028,15 +1187,16 @@ void NewCNF::toClauses(SPGenClause gc, Stack<Clause*>& output)
 #endif
 }
 
-bool NewCNF::mapSubstitution(List<GenLit>* clause, Substitution subst, List<GenLit>* output)
+bool NewCNF::mapSubstitution(List<GenLit>* clause, Substitution subst, bool onlyFormulaLevel, List<GenLit>* &output)
 {
   CALL("NewCNF::mapSubstitution");
 
   List<GenLit>::Iterator it(clause);
   while (it.hasNext()) {
     GenLit gl = it.next();
-    Formula* f = SubstHelper::apply(formula(gl), subst);
-    ASS_NEQ(f, formula(gl));
+    Formula* f = (onlyFormulaLevel && (formula(gl)->connective() == LITERAL))
+                  ? formula(gl)
+                  : SubstHelper::apply(formula(gl), subst);
 
     switch (f->connective()) {
       case TRUE:
@@ -1067,16 +1227,17 @@ Clause* NewCNF::toClause(SPGenClause gc)
 {
   CALL("NewCNF::toClause");
 
-  static Substitution subst;
-  ASS(subst.isEmpty());
+  Substitution* subst;
 
-  BindingList::Iterator bit(gc->bindings);
-  while (bit.hasNext()) {
-    Binding b = bit.next();
-    subst.bind(b.first, b.second);
+  if (!_substitutionsByBindings.find(gc->bindings, subst)) {
+    subst = new Substitution();
+    BindingList::Iterator bit(gc->bindings);
+    while (bit.hasNext()) {
+      Binding b = bit.next();
+      subst->bind(b.first, b.second);
+    }
+    _substitutionsByBindings.insert(gc->bindings, subst);
   }
-
-  // TODO: since the bindings are share, there is no easy way to delete them
 
   static Stack<Literal*> properLiterals;
   ASS(properLiterals.isEmpty());
@@ -1090,7 +1251,7 @@ Clause* NewCNF::toClause(SPGenClause gc)
     ASS_REP(g->literal()->shared(), g->toString());
     ASS_REP((SIGN)g->literal()->polarity() == POSITIVE, g->toString());
 
-    Literal* l = g->literal()->apply(subst);
+    Literal* l = g->literal()->apply(*subst);
     if (sign(gl) == NEGATIVE) {
       l = Literal::complementaryLiteral(l);
     }
@@ -1105,7 +1266,6 @@ Clause* NewCNF::toClause(SPGenClause gc)
   }
 
   properLiterals.reset();
-  subst.reset();
 
   return clause;
 }
