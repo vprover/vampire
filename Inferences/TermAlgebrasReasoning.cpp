@@ -5,6 +5,8 @@
 #include "Kernel/Inference.hpp"
 #include "Kernel/Ordering.hpp"
 #include "Kernel/SortHelper.hpp"
+#include "Kernel/SubstHelper.hpp"
+#include "Kernel/Substitution.hpp"
 
 #include "Lib/Environment.hpp"
 #include "Lib/Metaiterators.hpp"
@@ -109,67 +111,148 @@ namespace Inferences {
 
   struct DistinctnessGIE::ConstructorDisequalityIterator
   {
-    ConstructorDisequalityIterator(Clause *clause, Literal *lit, unsigned f, TermList t)
+    ConstructorDisequalityIterator(Clause *clause, Literal *lit, bool left, Ordering& ord)
       :
       _clause(clause),
       _lit(lit),
-      _functor(f),
-      _t(t),
-      _sort(env.signature->getFunction(f)->fnType()->result()),
       _freshVar(clause->maxVar() + 1),
-      _it(env.signature->getTermAlgebraOfSort(_sort)->constructors())
-    {}
+      _ord(ord),
+      _subst()
+    {
+      if (left) {
+        _l = *lit->nthArgument(0);
+        _r = *lit->nthArgument(1);
+      } else {
+        _l = *lit->nthArgument(1);
+        _r = *lit->nthArgument(0);
+      }
+      _f = _l.isTerm() && termAlgebraConstructor(&_l) ? _l.term()->functor() : 0;
+      _sort = SortHelper::getEqualityArgumentSort(_lit);
+      _algebra = env.signature->isTermAlgebraSort(_sort) ? env.signature->getTermAlgebraOfSort(_sort) : nullptr;
+      if (_algebra) {
+        if (_l.isTerm()) {
+          _it1 = List<Signature::TermAlgebraConstructor*>::Iterator(_algebra->constructors());
+        } else {
+          _it1 = List<Signature::TermAlgebraConstructor*>::Iterator(List<Signature::TermAlgebraConstructor*>::empty());
+          _it2 = List<Signature::TermAlgebraConstructor*>::Iterator(_algebra->constructors());
+        }
+      }
+      
+      // some cases where the rule doesn't apply
+      if (!_algebra) {
+        _empty = true; // not a term algebra equality
+      } else if (_l.isTerm() && (!termAlgebraConstructor(&_l) // the LHS is a term with uninterpreted head symbol
+                                 || Ordering::isGorGEorE(_ord.compare(_r, _l)))) { // LHS larger than RHS
+        _empty = true;
+      } else if (_l.isVar() && _r.containsSubterm(_l)) {
+        _empty = true;
+      } else {
+        _empty = false;
+      }
+    }
 
     DECL_ELEMENT_TYPE(Clause *);
 
     bool hasNext() {
-      if (_it.hasNext() && _it.peekAtNext()->functor() == _functor) {
-        _it.next();
+      if (_empty) { return false; }
+
+      if (_l.isTerm()) {
+        // if the left term has the shape f(s...), iterate over every
+        // term algebra constructor that is not f
+        if (_it1.hasNext() && _it1.peekAtNext()->functor() == _f) {
+          _it1.next();
+        }
+        return _it1.hasNext();
+      } else {
+        // if the left term is a variable, iterate over every pair of
+        // distinct term algebra constructors
+        if (_it1.hasNext() && _it1.peekAtNext()->functor() == _f) {
+          _it1.next(); // distinct pairs only
+        }
+        if (_it1.hasNext()) {
+          return true;
+        } else {
+          while (_it2.hasNext()) {
+            _f = _it2.next()->functor();
+            unsigned arity = env.signature->getFunction(_f)->arity();
+            TermList *args = new TermList [arity];
+            for (unsigned i = 0; i < arity; i++) {
+              args[i] = TermList(_freshVar++, false);
+            }
+            TermList fx = TermList(Term::create(_f, arity, args));
+            if (!Ordering::isGorGEorE(_ord.compare(fx, _r))) {
+              _it1.reset(_algebra->constructors());
+              if (_it1.hasNext() && _it1.peekAtNext()->functor() == _f) {
+                _it1.next(); // distinct pairs only
+              }
+              _subst.reset();
+              _subst.bind(_l.var(), fx);
+              
+              ASS(_it1.hasNext());
+              return true;
+            }
+          }
+          return false;
+        }
       }
-      return _it.hasNext();
     }
     
     OWN_ELEMENT_TYPE next()
     {
       CALL("DistinctnessGIE::ConstructorDisequalityIterator::next()");
 
-      Clause *res;
+      unsigned length = _clause->length();
       Inference *inf = new Inference1(Inference::TERM_ALGEBRA_DISTINCTNESS, _clause);
-
-      unsigned g = _it.next()->functor();
+      Clause *res = new(length) Clause(length,
+                                       _clause->inputType(),
+                                       inf);
+      
+      unsigned g = _it1.next()->functor();
       unsigned arity = env.signature->getFunction(g)->arity();
       TermList *args = new TermList [arity];
       for (unsigned i = 0; i < arity; i++) {
-        args[i] = TermList(_freshVar + i, false);
+        args[i] = TermList(_freshVar++, false);
       }
       Term *term = Term::create(g, arity, args);
-      
+
       Literal *l = Literal::createEquality(false,
-                                           _t,
+                                           _r,
                                            TermList(term),
                                            _sort);
       
-      res = replaceLit(_clause, _lit, l, inf);
+      for (unsigned i = 0; i < length; i++) {
+        if ((*_clause)[i] == _lit) {
+          (*res)[i] = l;
+        } else {
+          (*res)[i] = ((*_clause)[i])->apply(_subst);
+        }
+      }
+
       res->setAge(_clause->age()+1);
       return res;
     }
   private:
-    Clause *_clause;
-    Literal *_lit;
-    unsigned _functor;
-    TermList _t;
-    unsigned _sort;
+    Ordering& _ord;
+    Clause *_clause; // premise l = r \/ A
+    Literal *_lit; // selected literal 
+    unsigned _f; // the term algebra constructor f, if l is a term algebra with a term algebra symbol
+    TermList _l;
+    TermList _r;
+    unsigned _sort; // sort of the equality (and of the term algebra)
     unsigned _freshVar;
     Signature::TermAlgebra *_algebra;
-    List<Signature::TermAlgebraConstructor*>::Iterator _it;
+    List<Signature::TermAlgebraConstructor*>::Iterator _it1;
+    List<Signature::TermAlgebraConstructor*>::Iterator _it2;
+    bool _empty;
+    Substitution _subst;
   };
 
   struct DistinctnessGIE::ConstructorDisequalityFn
   {
-    ConstructorDisequalityFn(Ordering& ord, Clause* premise)
+    ConstructorDisequalityFn(Ordering& ord, Clause* clause)
       :
-      _premise(premise),
-      _ord(ord)  
+      _clause(clause),
+      _ord(ord)
     {}
     DECL_RETURN_TYPE(VirtualIterator<Clause*>);
     OWN_RETURN_TYPE operator()(Literal* lit)
@@ -177,35 +260,20 @@ namespace Inferences {
       CALL("DistinctnessGIE::ConstructorDisequalityFn::operator()");
 
       if (lit->isEquality() && lit->polarity()) {
-        Kernel::Ordering::Result cmp = _ord.compare(*lit->nthArgument(0), *lit->nthArgument(1));
-        Signature::Symbol *s = termAlgebraConstructor(lit->nthArgument(0));
-        Signature::Symbol *t = termAlgebraConstructor(lit->nthArgument(1));
-        
-        if (s && !t) {
-          if (cmp == Kernel::Ordering::INCOMPARABLE
-              || cmp == Kernel::Ordering::GREATER
-              || cmp == Kernel::Ordering::GREATER_EQ) {
-            return pvi(ConstructorDisequalityIterator(_premise,
-                                                      lit,
-                                                      lit->nthArgument(0)->term()->functor(),
-                                                      *lit->nthArgument(1)));
-          }
-        } else if (!s && t) {
-          if (cmp == Kernel::Ordering::INCOMPARABLE
-              || cmp == Kernel::Ordering::LESS
-              || cmp == Kernel::Ordering::LESS_EQ) {
-            return pvi(ConstructorDisequalityIterator(_premise,
-                                                      lit,
-                                                      lit->nthArgument(1)->term()->functor(),
-                                                      *lit->nthArgument(0)));
-          }
-        }
+        return pvi(getConcatenatedIterator(ConstructorDisequalityIterator(_clause,
+                                                                          lit,
+                                                                          true,
+                                                                          _ord),
+                                           ConstructorDisequalityIterator(_clause,
+                                                                          lit,
+                                                                          false,
+                                                                          _ord)));
       }
       return pvi(ClauseIterator::getEmpty());
     }
   private:
     Ordering& _ord;
-    Clause* _premise;
+    Clause* _clause;
   };
 
   ClauseIterator DistinctnessGIE::generateClauses(Clause* c)
@@ -244,116 +312,186 @@ namespace Inferences {
 
   struct InjectivityGIE::ArgumentEqualityIterator
   {
-    ArgumentEqualityIterator(Clause *clause, Literal *lit, TermList fs, TermList t)
+    ArgumentEqualityIterator(Clause *clause, Literal *lit, bool left, Ordering& ord)
       :
       _clause(clause),
-      _fs(fs),
+      _lit(lit),
       _freshVar(clause->maxVar() + 1),
-      _type(env.signature->getFunction(fs.term()->functor())->fnType()),
       _index(0),
-      _arity(fs.term()->arity()),
-      _length(clause->length() + 1)
+      _ord(ord),
+      _subst()
     {
-      ASS(fs.isTerm());
-
-      unsigned length = clause->length();
-      _lits = new Literal*[length];
-
-      TermList *args = new TermList[_arity];
-      for (unsigned i = 0; i < _arity; i++) {
-        args[i] = TermList(_freshVar + i, false);
+      CALL("InjectivityGIE::ArgumentEqualityIterator::ArgumentEqualityIterator");
+      
+      if (left) {
+        _l = *lit->nthArgument(0);
+        _r = *lit->nthArgument(1);
+      } else {
+        _l = *lit->nthArgument(1);
+        _r = *lit->nthArgument(0);
       }
-      Term *term = Term::create(fs.term()->functor(), _arity, args);
-      
-      unsigned i = 0;
-      for (i; (*clause)[i] != lit; i++) {}
-      std::memcpy(_lits, clause->literals(), length * sizeof(Literal*));
-      
-      _lits[i] = Literal::createEquality(false,
-                                         t,
-                                         TermList(term),
-                                         _type->result());
-    }
 
+      _sort = SortHelper::getEqualityArgumentSort(_lit);
+      _algebra = env.signature->isTermAlgebraSort(_sort) ? env.signature->getTermAlgebraOfSort(_sort) : nullptr;
+      if (_algebra) {
+        if (_l.isVar()) {
+          _arity = 0;
+          _it = List<Signature::TermAlgebraConstructor*>::Iterator(_algebra->constructors());
+        } else {
+          _f = _l.term()->functor();
+          _type = env.signature->getFunction(_f)->fnType();
+          _arity = env.signature->getFunction(_f)->arity();
+          TermList *args = new TermList [_arity];
+          for (unsigned i = 0; i < _arity; i++) {
+            args[i] = TermList(_freshVar + i, false);
+          }
+          _fy = TermList(Term::create(_f, _arity, args));
+        }
+      }
+      
+      // some cases where the rule doesn't apply
+      if (!_algebra) {
+        _empty = true; // not a term algebra equality
+      } else if (_l.isTerm() && (!termAlgebraConstructor(&_l) // the LHS is a term with uninterpreted head symbol
+                                 || Ordering::isGorGEorE(_ord.compare(_r, _l)))) { // LHS larger than RHS
+        _empty = true;
+      } else if (_l.isVar() && _r.containsSubterm(_l)) {
+        _empty = true;
+      } else {
+        _empty = false;
+      }
+    }
+    
     DECL_ELEMENT_TYPE(Clause *);
 
     bool hasNext() {
-      return _index < _arity;
+      
+      if (_empty) { return false; }
+
+      if (_l.isTerm()) {
+        // if the left term has the shape f(s1 ... sn), iterate over
+        // every argument si
+        return _index < _arity;
+      } else {
+        // if the left term is a variable, iterate over every term
+        // algebra constructor and each of their argument
+        if (_index < _arity) {
+          return true;
+        }
+        while (_it.hasNext()) {
+          _f = _it.next()->functor();
+          _arity = env.signature->getFunction(_f)->arity();
+          if (_arity > 0) {
+            _index = 0;
+            _type = env.signature->getFunction(_f)->fnType();
+            TermList *args = new TermList [_arity];
+            for (unsigned i = 0; i < _arity; i++) {
+              args[i] = TermList(_freshVar + i + _arity, false);
+            }
+            TermList fz = TermList(Term::create(_f, _arity, args));
+            if (!Ordering::isGorGEorE(_ord.compare(fz, _r))) {
+              for (unsigned i = 0; i < _arity; i++) {
+                args[i] = TermList(_freshVar + i, false);
+              }
+              _fy = TermList(Term::create(_f, _arity, args));
+              _subst.reset();
+              _subst.bind(_l.var(), fz);
+              return true;
+            }
+          }
+        }
+        return false;
+      }
     }
     
     OWN_ELEMENT_TYPE next()
     {
       CALL("InjectivityGIE::ArgumentEqualityIterator::next()");
-      Inference *inf = new Inference1(Inference::TERM_ALGEBRA_INJECTIVITY, _clause);
-      Clause* res = new(_length) Clause(_length,
-                                        _clause->inputType(),
-                                        inf);
-
-      std::memcpy(res->literals(), _lits, (_length - 1) * sizeof(Literal*));
+      ASS_L(_index, _arity);
+      ASS(_algebra);
+      ASS_EQ(_arity, env.signature->getFunction(_f)->arity());
+      #if VDEBUG
+      if (_l.isTerm()) {
+        ASS_EQ(_f, _l.term()->functor());
+      }
+      #endif
       
-      (*res)[_length - 1] = Literal::createEquality(true,
-                                                    *_fs.term()->nthArgument(_index),
-                                                    TermList(_freshVar + _index, false),
-                                                    _type->arg(_index));
+      Inference *inf = new Inference1(Inference::TERM_ALGEBRA_INJECTIVITY, _clause);
+      unsigned length = _clause->length() + 1;
+      Clause* res = new(length) Clause(length,
+                                       _clause->inputType(),
+                                       inf);
+
+      for (unsigned i = 0; i < length - 1; i++) {
+        if ((*_clause)[i] == _lit) {
+          (*res)[i] = Literal::createEquality(false,
+                                              _r,
+                                              _fy,
+                                              _sort);
+        } else {
+          (*res)[i] = ((*_clause)[i])->apply(_subst);
+        }
+      }
+
+      TermList t = _l.isTerm() ? *_l.term()->nthArgument(_index) : TermList(_freshVar + _index + _arity, false);
+      (*res)[length - 1] = Literal::createEquality(true,
+                                                   t,
+                                                   TermList(_freshVar + _index, false),
+                                                   _type->arg(_index));
       
       res->setAge(_clause->age() + 1);
       _index++;
       return res;
     }
+    
   private:
     Clause *_clause;
-    Literal **_lits;
+    Literal *_lit;
     unsigned _functor;
-    TermList _fs;
+    TermList _l;
+    TermList _r;
+    TermList _fy;
     unsigned _index;
     unsigned _arity;
+    unsigned _f;
     unsigned _freshVar;
     FunctionType *_type;
-    unsigned _length;
+    unsigned _sort;
+    Signature::TermAlgebra *_algebra;
+    List<Signature::TermAlgebraConstructor*>::Iterator _it;
+    bool _empty;
+    Ordering &_ord;
+    Substitution _subst;
   };
 
   struct InjectivityGIE::ArgumentEqualityFn
   {
-    ArgumentEqualityFn(Ordering& ord, Clause* premise)
+    ArgumentEqualityFn(Ordering& ord, Clause* clause)
       :
-      _premise(premise),
-      _ord(ord)  
+      _clause(clause),
+      _ord(ord)
     {}
     DECL_RETURN_TYPE(VirtualIterator<Clause*>);
     OWN_RETURN_TYPE operator()(Literal* lit)
     {
       CALL("InjectivityGIE::ArgumentEqualityFn::operator()");
 
+
       if (lit->isEquality() && lit->polarity()) {
-        Kernel::Ordering::Result cmp = _ord.compare(*lit->nthArgument(0), *lit->nthArgument(1));
-        Signature::Symbol *s = termAlgebraConstructor(lit->nthArgument(0));
-        Signature::Symbol *t = termAlgebraConstructor(lit->nthArgument(1));
-        
-        if (s && !t) {
-          if (cmp == Kernel::Ordering::INCOMPARABLE
-              || cmp == Kernel::Ordering::GREATER
-              || cmp == Kernel::Ordering::GREATER_EQ) {
-            return pvi(ArgumentEqualityIterator(_premise,
-                                                lit,
-                                                *lit->nthArgument(0),
-                                                *lit->nthArgument(1)));
-          }
-        } else if (!s && t) {
-          if (cmp == Kernel::Ordering::INCOMPARABLE
-              || cmp == Kernel::Ordering::LESS
-              || cmp == Kernel::Ordering::LESS_EQ) {
-            return pvi(ArgumentEqualityIterator(_premise,
-                                                lit,
-                                                *lit->nthArgument(1),
-                                                *lit->nthArgument(0)));
-          }
-        }
+        return pvi(getConcatenatedIterator(ArgumentEqualityIterator(_clause,
+                                                                    lit,
+                                                                    true,
+                                                                    _ord),
+                                           ArgumentEqualityIterator(_clause,
+                                                                    lit,
+                                                                    false,
+                                                                    _ord)));
       }
       return pvi(ClauseIterator::getEmpty());
     }
   private:
     Ordering& _ord;
-    Clause* _premise;
+    Clause* _clause;
   };
 
   ClauseIterator InjectivityGIE::generateClauses(Clause* c)
