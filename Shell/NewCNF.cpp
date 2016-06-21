@@ -19,6 +19,7 @@
 #include "Shell/Options.hpp"
 #include "Shell/SymbolOccurrenceReplacement.hpp"
 #include "Shell/SymbolDefinitionInlining.hpp"
+#include "Shell/Statistics.hpp"
 
 #include "NewCNF.hpp"
 
@@ -791,6 +792,9 @@ void NewCNF::skolemise(QuantifiedFormula* g, BindingList*& bindings, BindingList
       while (vs.hasNext()) {
         unsigned var = (unsigned)vs.next();
         Term* skolem = createSkolemTerm(var, unboundFreeVars);
+
+        env.statistics->skolemFunctions++;
+
         Binding binding(var, skolem);
         if (skolem->isSpecial()) {
           BindingList::push(binding, processedFoolBindings); // this cell will get destroyed when we clear the cache
@@ -978,6 +982,8 @@ void NewCNF::nameSubformula(Formula* g, Occurrences &occurrences)
 
   Literal* naming = createNamingLiteral(g, fv);
   Formula* name = new AtomicFormula(naming);
+
+  env.statistics->formulaNames++;
 
   occurrences.replaceBy(name);
 

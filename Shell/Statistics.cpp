@@ -218,6 +218,7 @@ void Statistics::print(ostream& out)
     unusedPredicateDefinitions+functionDefinitions+selectedBySine+
     sineIterations+splitInequalities);
   COND_OUT("Introduced names",formulaNames);
+  COND_OUT("Introduced skolems",skolemFunctions);
   COND_OUT("Pure predicates", purePredicates);
   COND_OUT("Trivial predicates", trivialPredicates);
   COND_OUT("Unused predicate definitions", unusedPredicateDefinitions);

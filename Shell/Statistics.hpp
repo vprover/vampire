@@ -57,6 +57,8 @@ public:
   // Preprocessing
   /** number of formula names introduced during preprocessing */
   unsigned formulaNames;
+  /** number of skolem functions (also predicates in FOOL) introduced during skolemization */
+  unsigned skolemFunctions;
   /** number of initial clauses */
   unsigned initialClauses;
   /** number of inequality splittings performed */
