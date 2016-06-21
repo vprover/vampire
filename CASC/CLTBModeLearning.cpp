@@ -1085,8 +1085,8 @@ void CLTBProblemLearning::runSlice(Options& strategyOpt, bool printProof)
   CALL("CLTBProblemLearning::runSlice(Option&)");
 
   System::registerForSIGHUPOnParentDeath();
-  UIHelper::cascModeChild=true;
-  UIHelper::cascMode=true;
+  //UIHelper::cascModeChild=true;
+  //UIHelper::cascMode=true;
 
   int resultValue=1;
   env.timer->reset();
