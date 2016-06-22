@@ -617,6 +617,7 @@ SATClause* Z3Interfacing::getRefutation() {
     if(!_unsatCoreForRefutations)
       return PrimitiveProofRecordingSATSolver::getRefutation(); 
 
+    ASS_EQ(_solver.check(),z3::check_result::unsat);
 
     z3::solver solver(_context);
     z3::params p(_context);
@@ -644,10 +645,10 @@ SATClause* Z3Interfacing::getRefutation() {
       solver.add(z3clause,p.c_str());
       lookup.insert(p,cl);
     }
-    //TODO add assertion
-    //cout << solver.check() << endl;
-    solver.check();
-
+  
+    z3::check_result result = solver.check();
+    ASS_EQ(result,z3::check_result::unsat);   // the new version of Z3 does not suppot unsat-cores?
+  
     SATClauseList* prems = 0;
 
     z3::expr_vector  core = solver.unsat_core();
