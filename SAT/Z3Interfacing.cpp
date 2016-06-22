@@ -592,11 +592,10 @@ z3::expr Z3Interfacing::getRepresentation(SATLiteral slit)
       z3::expr e = getz3expr(lit,true,nameExpression);
       //cout << "got rep " << e << endl;
 
-      if(nameExpression){
+      if(nameExpression && _namedExpressions.insert(slit.var())) {
         z3::expr bname = getNameExpr(slit.var()); 
         //cout << "Naming " << e << " as " << bname << endl;
-        _solver.add(bname == e); 
-        _namedExpressions.insert(slit.var());
+        _solver.add(bname == e);
       }
 
       if(slit.isNegative()){ e = !e;}
