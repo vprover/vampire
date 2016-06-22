@@ -141,6 +141,8 @@ namespace Inferences {
       // some cases where the rule doesn't apply
       if (!_algebra) {
         _empty = true; // not a term algebra equality
+      } else if (_algebra->constructors()->length() <= 1) {
+        _empty = true;
       } else if (_l.isTerm() && (!termAlgebraConstructor(&_l) // the LHS is a term with uninterpreted head symbol
                                  || Ordering::isGorGEorE(_ord.compare(_r, _l)))) { // LHS larger than RHS
         _empty = true;

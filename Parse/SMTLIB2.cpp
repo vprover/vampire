@@ -995,11 +995,19 @@ Formula *SMTLIB2::exhaustivenessAxiom(Signature::TermAlgebra *ta)
 
   Formula::VarList* vars = Formula::VarList::empty()->cons(x.var());
   Formula::SortList* sorts = Formula::SortList::empty()->cons(ta->sort());
-  
-  return new QuantifiedFormula(Connective::FORALL,
-                               vars,
-                               sorts,
-                               new JunctionFormula(Connective::OR, l));
+
+  switch (l->length()) {
+  case 0:
+    ASSERTION_VIOLATION;
+    return nullptr;
+  case 1:
+    return new QuantifiedFormula(Connective::FORALL, vars, sorts, l->head());
+  default:
+    return new QuantifiedFormula(Connective::FORALL,
+                                 vars,
+                                 sorts,
+                                 new JunctionFormula(Connective::OR, l));
+  }
 }
 
 Formula *SMTLIB2::distinctnessAxiom(Signature::TermAlgebra *ta)
