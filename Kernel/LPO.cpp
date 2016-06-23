@@ -57,33 +57,34 @@ Ordering::Result LPO::compare(Literal* l1, Literal* l2) const
   Result res;
 
   if (p1 != p2) {
-    int lev1 = predicateLevel(p1);
-    int lev2 = predicateLevel(p2);
-    if (lev1 > lev2) {
+    int prec1 = predicatePrecedence(p1);
+    int prec2 = predicatePrecedence(p2);
+    ASS_NEQ(prec1, prec2);
+    if (prec1 > prec2) {
       res=GREATER;
       goto fin;
     }
-    if (lev2 > lev1) {
+    if (prec2 > prec1) {
       res=LESS;
       goto fin;
     }
-  }
-
-  if(l1->isEquality()) {
-    ASS(l2->isEquality());
-    return compareEqualities(l1, l2);
-  }
-  ASS(!l1->isEquality());
-
-  /**/
-  for (unsigned i=0; i < l1->arity(); i++) {
-    Ordering::Result r = compare(*l1->nthArgument(i), *l2->nthArgument(i));
-    if (r != EQUAL) {
-      res=r;
-      goto fin;
+  } else {
+    if(l1->isEquality()) {
+      ASS(l2->isEquality());
+      return compareEqualities(l1, l2);
     }
+    ASS(!l1->isEquality());
+
+    /**/
+    for (unsigned i=0; i < l1->arity(); i++) {
+      Ordering::Result r = compare(*l1->nthArgument(i), *l2->nthArgument(i));
+      if (r != EQUAL) {
+        res=r;
+        goto fin;
+      }
+    }
+    res = INCOMPARABLE;
   }
-  res = INCOMPARABLE;
   /**/
 
 fin:
