@@ -232,7 +232,8 @@ VK_OBJ= Kernel/Clause.o\
          Kernel/Signature.o\
          Kernel/Unit.o
 
-VI_OBJ = Indexing/ClauseCodeTree.o\
+VI_OBJ = Indexing/AcyclicityIndex.o\
+	 Indexing/ClauseCodeTree.o\
          Indexing/ClauseVariantIndex.o\
          Indexing/CodeTree.o\
          Indexing/CodeTreeInterfaces.o\

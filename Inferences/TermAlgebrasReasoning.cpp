@@ -22,6 +22,7 @@
 #include <cstring>
 
 using namespace Kernel;
+using namespace Lib;
 
 namespace Inferences {
 
@@ -69,7 +70,7 @@ namespace Inferences {
     CALL("termAlgebraConstructor");
 
     if (t->isTerm()) {
-      Signature::Symbol *s = Lib::env.signature->getFunction(t->term()->functor());
+      Signature::Symbol *s = env.signature->getFunction(t->term()->functor());
 
       if (s->termAlgebraCons()) {
         return s;
@@ -619,6 +620,31 @@ namespace Inferences {
 
     // no equalities between similar constructors were found
     return c;
+  }
+
+  void AcyclicityGIE::attach(SaturationAlgorithm* salg)
+  {
+    CALL("AcyclicityGIE::attach");
+
+    GeneratingInferenceEngine::attach(salg);
+
+    _index = static_cast<AcyclicityIndex*>(_salg->getIndexManager()->request(ACYCLICITY_INDEX));
+  }
+
+  void AcyclicityGIE::detach()
+  {
+    CALL("AcyclicityGIE::detach");
+
+    _index=0;
+    _salg->getIndexManager()->release(ACYCLICITY_INDEX);
+    GeneratingInferenceEngine::detach();
+  }
+
+  ClauseIterator AcyclicityGIE::generateClauses(Kernel::Clause *c)
+  {
+    CALL("AcyclicityGIE::generateClauses");
+    //TODO
+    return pvi(ClauseIterator::getEmpty());
   }
  
 }

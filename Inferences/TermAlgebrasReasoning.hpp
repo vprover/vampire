@@ -9,10 +9,16 @@
 #define __TermAlgebrasReasoning__
 
 #include "Forwards.hpp"
-#include "InferenceEngine.hpp"
+
+#include "Indexing/AcyclicityIndex.hpp"
+
+#include "Inferences/InferenceEngine.hpp"
+
 #include "Kernel/Clause.hpp"
 #include "Kernel/Signature.hpp"
 #include "Kernel/Term.hpp"
+
+#include "Saturation/SaturationAlgorithm.hpp"
 
 namespace Inferences {
 
@@ -73,6 +79,19 @@ public:
   USE_ALLOCATOR(InjectivityISE);
   
   Kernel::Clause* simplify(Kernel::Clause* c);
+};
+
+class AcyclicityGIE
+  : public GeneratingInferenceEngine {
+public:
+  CLASS_NAME(AcyclicityGIE);
+  USE_ALLOCATOR(AcyclicityGIE);
+
+  void attach(Saturation::SaturationAlgorithm* salg);
+  void detach();
+  Kernel::ClauseIterator generateClauses(Kernel::Clause *c);
+private:
+  Indexing::AcyclicityIndex *_index;
 };
   
 };

@@ -1342,6 +1342,9 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
     if (!opt.termAlgebraInjectivitySimplification()) {
       gie->addFront(new InjectivityGIE1());
     }
+    if (opt.termAlgebraCyclicityCheck()) {
+      gie->addFront(new AcyclicityGIE());
+    }
     gie->addFront(new InjectivityGIE());
     gie->addFront(new DistinctnessGIE());
     //gie->addFront(new AcyclicityGIE());
