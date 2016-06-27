@@ -1565,9 +1565,9 @@ void SMTLIB2::parseAnnotatedTerm(LExpr* exp)
   static bool annotation_warning = false; // print warning only once
 
   if (!annotation_warning) {
-    env.beginOutput();
-    env.out() << "% Warning: term annotations ignored!" << endl;
-    env.endOutput();
+    //env.beginOutput();
+    //env.out() << "% Warning: term annotations ignored!" << endl;
+    //env.endOutput();
     annotation_warning = true;
   }
 
