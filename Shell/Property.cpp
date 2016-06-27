@@ -445,6 +445,10 @@ void Property::scanSort(unsigned sort)
     _hasFOOL = true;
     break;
   }
+
+  if (env.signature->isTermAlgebraSort(sort)) {
+    addProp(PR_HAS_CONSTRUCTORS);
+  }
 }
 
 /**

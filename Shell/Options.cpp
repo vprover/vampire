@@ -2737,7 +2737,8 @@ bool Options::complete(const Problem& prb) const
   if (prop.hasInterpretedOperations()
       || prop.hasProp(Property::PR_HAS_INTEGERS)
       || prop.hasProp(Property::PR_HAS_REALS)
-      || prop.hasProp(Property::PR_HAS_RATS)) {
+      || prop.hasProp(Property::PR_HAS_RATS)
+      || prop.hasProp(Property::PR_HAS_CONSTRUCTORS)) {
     return false;
   }
 
