@@ -2734,7 +2734,7 @@ void TPTP::endFof()
     if(!isFof) USER_ERROR("conjecture is not allowed in cnf");
     if(_seenConjecture) USER_ERROR("Vampire only supports a single conjecture in a problem");
     _seenConjecture=true;
-    if (_isQuestion && ((env.options->mode() == Options::Mode::CLAUSIFY) || (env.options->mode() == Options::Mode::CLAUSIFY_STAT)) && f->connective() == EXISTS) {
+    if (_isQuestion && ((env.options->mode() == Options::Mode::CLAUSIFY) || (env.options->mode() == Options::Mode::TCLAUSIFY)) && f->connective() == EXISTS) {
       // create an answer predicate
       QuantifiedFormula* g = static_cast<QuantifiedFormula*>(f);
       int arity = g->vars()->length();

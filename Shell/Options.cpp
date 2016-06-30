@@ -90,7 +90,7 @@ void Options::Options::init()
                                         "casc_sat",
                                         "casc_ltb",
                                         "smtcomp",
-                                        "clausify","clausify_stat",
+                                        "clausify","tclausify",
                                         "consequence_elimination","grounding",
                                         "model_check",
                                         "output","preprocess",
