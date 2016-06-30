@@ -302,7 +302,7 @@ class Signature
 
   class TermAlgebra {
   public:
-    TermAlgebra(vstring name, unsigned sort) :
+    TermAlgebra(vstring name, unsigned sort, bool allowsCyclicTerms = false) :
       _tname(name),
       _constrs(nullptr),
       _sort(sort)
@@ -313,7 +313,8 @@ class Signature
     List<TermAlgebraConstructor*>* constructors() { return _constrs; }
     vstring name() { return _tname; }
     unsigned sort() { return _sort; }
-
+    bool allowsCyclicTerms() { return _allowsCyclicTerms; }
+    
     bool wellFoundedAlgebra();
     void addConstr(vstring name);
     void addConstrArg(vstring name, unsigned sort);
@@ -322,6 +323,7 @@ class Signature
     vstring _tname;
     List<TermAlgebraConstructor*>* _constrs;
     unsigned _sort;
+    bool _allowsCyclicTerms;
   };
     
   //////////////////////////////////////

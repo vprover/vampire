@@ -91,7 +91,10 @@ public:
   void detach();
   Kernel::ClauseIterator generateClauses(Kernel::Clause *c);
 private:
-  Indexing::AcyclicityIndex *_index;
+  struct AcyclicityGenIterator;
+  struct AcyclicityGenFn;
+  
+  Indexing::AcyclicityIndex *_acyclIndex;
 };
   
 };

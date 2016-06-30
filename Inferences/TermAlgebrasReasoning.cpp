@@ -628,23 +628,111 @@ namespace Inferences {
 
     GeneratingInferenceEngine::attach(salg);
 
-    _index = static_cast<AcyclicityIndex*>(_salg->getIndexManager()->request(ACYCLICITY_INDEX));
+    _acyclIndex = static_cast<AcyclicityIndex*>(_salg->getIndexManager()->request(ACYCLICITY_INDEX));
   }
 
   void AcyclicityGIE::detach()
   {
     CALL("AcyclicityGIE::detach");
 
-    _index=0;
+    _acyclIndex = 0;
     _salg->getIndexManager()->release(ACYCLICITY_INDEX);
     GeneratingInferenceEngine::detach();
   }
 
-  ClauseIterator AcyclicityGIE::generateClauses(Kernel::Clause *c)
+  struct AcyclicityGIE::AcyclicityGenIterator
+  {
+    AcyclicityGenIterator(Clause *premise, Indexing::CycleQueryResultsIterator results)
+      :
+      _premise(premise),
+      _queryResults(results)
+    {}
+
+    DECL_ELEMENT_TYPE(Clause *);
+
+    bool hasNext() { return _queryResults.hasNext(); }
+    
+    OWN_ELEMENT_TYPE next()
+    {
+      CALL("AcyclicityGIE::AcyclicityGenIterator::next()");
+
+      Indexing::CycleQueryResult *qres = _queryResults.next();
+
+      ASS_EQ(qres->literals->length(), qres->premises->length());
+      ASS_EQ(qres->literals->length(), qres->clausesTheta->length());
+
+      List<Literal*>::Iterator literals(qres->literals);
+      List<Clause*>::Iterator premises(qres->premises);
+      List<Clause*>::Iterator clausesTheta(qres->clausesTheta);
+      
+      unsigned length = qres->totalLengthClauses() - qres->literals->length();
+      UnitList* ulpremises = UnitList::empty();
+      while (premises.hasNext()) {
+        ulpremises = ulpremises->cons(premises.next());
+      }
+      Inference* inf = new InferenceMany(Inference::TERM_ALGEBRA_ACYCLICITY, ulpremises);
+      Clause* res = new(length) Clause(length,
+                                       _premise->inputType(),
+                                       inf);
+
+      premises.reset(qres->premises);
+      unsigned i = 0;
+
+      while(literals.hasNext() && premises.hasNext() && clausesTheta.hasNext()) {              
+        Literal *l = literals.next();
+        Clause *p = premises.next();
+        Clause *c = clausesTheta.next();
+
+        // TODO should there be some variable renaming here?
+        ASS_EQ(p->length(), c->length());
+        for (unsigned j = 0; j < c->length(); j++) {
+          if ((*p)[j] != l) {
+            (*res)[i++] = (*c)[j];
+          }
+        }
+      }
+      ASS (!literals.hasNext());
+      ASS (!premises.hasNext());
+      ASS (!clausesTheta.hasNext());
+      ASS_EQ(i, length);
+
+      res->setAge(_premise->age() + 1);
+
+      return res;
+    }
+  private:
+
+    Clause *_premise;
+    Indexing::CycleQueryResultsIterator _queryResults;
+  };
+
+  struct AcyclicityGIE::AcyclicityGenFn
+  {
+    AcyclicityGenFn(Indexing::AcyclicityIndex* aidx, Clause* premise)
+      :
+      _aidx(aidx),
+      _premise(premise)
+    {}
+    DECL_RETURN_TYPE(VirtualIterator<Clause*>);
+    OWN_RETURN_TYPE operator()(Literal* lit)
+    {
+      CALL("AcyclicityGIE::AyclicityGenFn::operator()");
+
+      return pvi(AcyclicityGenIterator(_premise, _aidx->queryCycles(lit, _premise)));
+    }
+  private:
+    Indexing::AcyclicityIndex *_aidx;
+    Clause* _premise;
+  };
+
+  ClauseIterator AcyclicityGIE::generateClauses(Clause *c)
   {
     CALL("AcyclicityGIE::generateClauses");
-    //TODO
-    return pvi(ClauseIterator::getEmpty());
+
+    auto it1 = c->getSelectedLiteralIterator();
+    auto it2 = getMappingIterator(it1, AcyclicityGenFn(_acyclIndex, c));
+    auto it3 = getFlattenedIterator(it2);
+    return pvi(it3);
   }
  
 }

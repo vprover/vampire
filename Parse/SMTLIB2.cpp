@@ -862,7 +862,7 @@ void SMTLIB2::readDeclareDatatypes(LExprList* sorts, LExprList* datatypes, bool 
     LispListReader dtypeRdr(dtypesRdr2.readList());
     const vstring& sortName = dtypeRdr.readAtom() + "()";
     bool added;
-    Signature::TermAlgebra* ta = new Signature::TermAlgebra(sortName, env.sorts->addSort(sortName, added));
+    Signature::TermAlgebra* ta = new Signature::TermAlgebra(sortName, env.sorts->addSort(sortName, added), codatatype);
     ASS(!added);
 
     while (dtypeRdr.hasNext()) {
@@ -919,6 +919,7 @@ void SMTLIB2::declareTermAlgebra(Signature::TermAlgebra *ta, bool coalgebra)
                                  new Inference(Inference::TERM_ALGEBRA_EXHAUSTIVENESS),
                                  Unit::AXIOM),
                  _formulas);
+  
   if (!env.options->termAlgebraInferences()) {
     UnitList::push(new FormulaUnit(distinctnessAxiom(ta),
                                    new Inference(Inference::TERM_ALGEBRA_DISTINCTNESS),

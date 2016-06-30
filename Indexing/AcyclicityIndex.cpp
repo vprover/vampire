@@ -16,70 +16,273 @@ using namespace Lib;
 
 namespace Indexing
 {
-  struct AcyclicityIndex::SubtermIterator {
-    SubtermIterator(Term *t)
-    {
-      Stack<Term*> toVisit;
-      unsigned sort = SortHelper::getResultSort(t);
-      ASS(env.signature->isTermAlgebraSort(sort));
+  unsigned CycleQueryResult::totalLengthClauses()
+  {
+    CALL("CycleQueryResult::totalLengthClauses");
 
-      for (unsigned i = 0; i < t->arity(); i++) {
-        if (SortHelper::getArgSort(t, i) == sort) {
-          TermList *s = t->nthArgument(i);
-          _subterms.push(s);
-          if (s->isTerm()) {
-            toVisit.push(s->term());
-          }              
+    unsigned n = 0;
+    List<Clause*>::Iterator it(premises);
+    while (it.hasNext()) {
+      n += it.next()->length();
+    }
+
+    return n;
+  }
+  
+  List<TermList*>* AcyclicityIndex::getSubterms(Term *t)
+  {
+    CALL("AcyclicityIndex::getSubterms");
+    
+    Stack<Term*> toVisit;
+    List<TermList*>* res = List<TermList*>::empty();
+    
+    unsigned sort = SortHelper::getResultSort(t);
+    ASS(env.signature->isTermAlgebraSort(sort));
+
+    for (unsigned i = 0; i < t->arity(); i++) {
+      if (SortHelper::getArgSort(t, i) == sort) {
+        TermList *s = t->nthArgument(i);
+        res = res->cons(s);
+        if (s->isTerm()) {
+          toVisit.push(s->term());
         }
       }
+    }
 
-      while (toVisit.isNonEmpty()) {
-        Term *u = toVisit.pop();
-        if (env.signature->getFunction(u->functor())->termAlgebraCons()) {
-          for (unsigned i = 0; i < u->arity(); i++) {
-            if (SortHelper::getArgSort(u, i) == sort) {
-              TermList *s = u->nthArgument(i);
-              _subterms.push(s);
-              if (s->isTerm()) {
-                toVisit.push(s->term());
-              }
+    while (toVisit.isNonEmpty()) {
+      Term *u = toVisit.pop();
+      if (env.signature->getFunction(u->functor())->termAlgebraCons()) {
+        for (unsigned i = 0; i < u->arity(); i++) {
+          if (SortHelper::getArgSort(u, i) == sort) {
+            TermList *s = u->nthArgument(i);
+            res = res->cons(s);
+            if (s->isTerm()) {
+              toVisit.push(s->term());
             }
           }
         }
       }
     }
-
-    DECL_ELEMENT_TYPE(TermList*);
     
-    bool hasNext()
-    {
-      CALL("AcyclicityIndex::SubtermIterator::hasNext");
+    return res;
+  }
 
-      return _subterms.isNonEmpty();
+  bool AcyclicityIndex::matchesPattern(Literal *lit, TermList *&fs, TermList *&t, unsigned *sort)
+  {
+    CALL("AcyclicityIndex::matchesPattern");
+
+    if (!lit->isEquality() || !lit->polarity()) {
+      return false;
     }
 
-    OWN_ELEMENT_TYPE next()
-    {
-      CALL("AcyclicityIndex::SubtermIterator::hasNext");
-
-      return _subterms.pop();
+    *sort = SortHelper::getEqualityArgumentSort(lit);
+    if (!env.signature->isTermAlgebraSort(*sort) || env.signature->getTermAlgebraOfSort(*sort)->allowsCyclicTerms()) {
+      return false;
     }
 
-    Stack<TermList*> _subterms;
-  };
+    TermList *l = lit->nthArgument(0);
+    TermList *r = lit->nthArgument(1);
     
+    bool termAlgebraConsL = l->isTerm() && env.signature->getFunction(l->term()->functor())->termAlgebraCons();
+    bool termAlgebraConsR = r->isTerm() && env.signature->getFunction(r->term()->functor())->termAlgebraCons();
+    
+    if (!termAlgebraConsL && termAlgebraConsR) {
+      t = l;
+      fs = r;
+    } else if (termAlgebraConsL && !termAlgebraConsR) {
+      fs = l;
+      t = r;
+    } else {
+      return false;
+    }
+
+    // TODO remove the groundness test on t
+    bool b = t->isTerm() && t->term()->ground();
+    return (t->isTerm() && t->term()->ground() && !Ordering::isGorGEorE(_ord.compare(*t, *fs)));
+  }
+  
   struct AcyclicityIndex::IndexEntry {
   public:
-    IndexEntry(Literal *l, Clause *c, TermList *t) :
-      _lit(l),
-      _clause(c),
-      _term(t)
+    IndexEntry(Literal *l, Clause *c, TermList *t, List<TermList*>* subterms) :
+      lit(l),
+      clause(c),
+      t(t),
+      subterms(subterms)
     {}
+
+    Literal* lit;
+    Clause* clause;
+    TermList* t;
+    List<TermList*>* subterms;
+  };
+
+  struct AcyclicityIndex::CycleSearchTreeNode
+  {
+    CycleSearchTreeNode(TermList *t, Literal *l, Clause *c)
+      :
+      term(t),
+      lit(l),
+      clause(c),
+      parent(nullptr),
+      isInstance(false)
+    {}
+
+    CycleSearchTreeNode(TermList *t, Literal *l, Clause *c, CycleSearchTreeNode *n, bool instance)
+      :
+      term(t),
+      lit(l),
+      clause(c),
+      parent(n),
+      isInstance(instance)
+    {}
+
+    bool isInstance;
+    TermList *term;
+    Literal *lit;
+    Clause *clause;
+    CycleSearchTreeNode *parent;
+  };
+
+  struct AcyclicityIndex::CycleSearchIterator
+  {
+    CycleSearchIterator(Literal *queryLit,
+                        Clause *queryClause,
+                        AcyclicityIndex& aindex)
+      :
+      _queryLit(queryLit),
+      _queryClause(queryClause),
+      _nextResult(nullptr),
+      _stack(0)
+    {
+      if (queryLit->isEquality()) {
+        unsigned sort = SortHelper::getEqualityArgumentSort(queryLit);
+
+        if (aindex._sIndexes.find(sort)) {
+          _index = aindex._sIndexes.get(sort);
+          _tis = aindex._tis;
+          if (_index->find(queryLit)) {
+            IndexEntry *entry = _index->get(queryLit);
+            List<TermList*>::Iterator it(entry->subterms);
+            while (it.hasNext()) {
+              _stack.push(new CycleSearchTreeNode(it.next(), entry->lit, entry->clause));
+            }
+          }
+        }
+      }
+    }
     
-  protected:
-    Literal* _lit;
-    Clause* _clause;
-    TermList* _term;
+    DECL_ELEMENT_TYPE(CycleQueryResult*);
+
+    CycleQueryResult *resultFromNode(CycleSearchTreeNode *n)
+    {
+      CALL("AcyclicityIndex::CycleSearchIterator::resultFromNode");
+
+      List<Literal*>* l = List<Literal*>::empty();
+      List<Clause*>* c = List<Clause*>::empty();
+      List<Clause*>* cTheta = List<Clause*>::empty();
+
+      Clause *firstcTheta = nullptr;
+
+      CycleSearchTreeNode *node = n;
+      do {
+        ASS(node);
+        if (!firstcTheta) {
+          firstcTheta = node->clause;
+        } else {
+          cTheta = cTheta->cons(node->clause);
+        }
+        node = node->parent;
+        ASS(node);
+        ASS(!node->isInstance);
+        l = l->cons(node->lit);
+        c = c->cons(node->clause);
+      } while ((node = node->parent));
+
+      cTheta = cTheta->cons(firstcTheta);
+
+      ASS_EQ(l->length(), c->length());
+      ASS_EQ(l->length(), cTheta->length());
+
+      return new CycleQueryResult(l, c, cTheta);
+    }
+
+    bool notInAncestors(CycleSearchTreeNode *n, Literal *l)
+    {
+      CALL("AcyclicityIndex::CycleSearchIterator::notInAncestors");
+
+      CycleSearchTreeNode *node = n;
+      do {
+        if (node->lit == l) {
+          return false;
+        }
+      } while ((node = node->parent));
+
+      return true;
+    }
+
+    bool hasNext()
+    {
+      CALL("AcyclicityIndex::CycleSearchIterator::hasNext");
+
+      if (_nextResult) { return true; }
+
+      while (_stack.isNonEmpty()) {
+        CycleSearchTreeNode *n = _stack.pop();
+
+        if (n->isInstance) {
+          if (n->lit == _queryLit) {
+            _nextResult = resultFromNode(n);
+            return true;
+          } else {
+            if (_index->find(n->lit)) {
+              IndexEntry *entry = _index->get(n->lit);
+              List<TermList*>::Iterator it(entry->subterms);
+              while (it.hasNext()) { 
+                _stack.push(new CycleSearchTreeNode(it.next(), entry->lit, entry->clause, n, false));
+              }
+            }
+          }
+        } else {
+          TermQueryResultIterator tqrIt = _tis->getUnifications(*n->term);
+          while (tqrIt.hasNext()) {
+            TermQueryResult tqr = tqrIt.next();
+            if (tqr.literal == _queryLit || notInAncestors(n, tqr.literal)) {
+              // TODO could add an ordering test after substitution
+              unsigned l = tqr.clause->length();
+              Clause *cTheta = new(l) Clause(l,
+                                             tqr.clause->inputType(),
+                                             tqr.clause->inference());
+              for (unsigned i = 0; i < l; i++) {
+                (*cTheta)[i] = tqr.substitution->applyToResult((*tqr.clause)[i]);
+              }
+              _stack.push(new CycleSearchTreeNode(&tqr.term,
+                                                  tqr.literal,
+                                                  cTheta,
+                                                  n,
+                                                  true));
+            }
+          }
+        }
+      }
+      return false;
+    }
+    
+    OWN_ELEMENT_TYPE next()
+    {
+      CALL("AcyclicityIndex::CycleSearchIterator::next()");
+
+      ASS(_nextResult);
+      CycleQueryResult *res = _nextResult;
+      _nextResult = nullptr;
+      return res;
+    }
+  private:
+    Literal *_queryLit;
+    Clause *_queryClause;
+    SIndex *_index;
+    TermIndexingStructure *_tis;    
+    CycleQueryResult *_nextResult;
+    Stack<CycleSearchTreeNode*> _stack;
   };
 
   void AcyclicityIndex::handleClause(Clause* c, bool adding)
@@ -99,31 +302,14 @@ namespace Indexing
   void AcyclicityIndex::insert(Literal *lit, Clause *c)
   {
     CALL("AcyclicityIndex::insert");
-        
-    if (!lit->isEquality() || !lit->polarity()) {
-      return;
-    }
 
-    unsigned sort = SortHelper::getEqualityArgumentSort(lit);
-    if (!env.signature->isTermAlgebraSort(sort)) {
-      return;
-    }
-
-    TermList *l = lit->nthArgument(0);
-    TermList *r = lit->nthArgument(1);
+    TermList *fs;
+    TermList *t;
+    unsigned sort;
     
-    bool termAlgebraConsL = l->isTerm() && env.signature->getFunction(l->term()->functor())->termAlgebraCons();
-    bool termAlgebraConsR = r->isTerm() && env.signature->getFunction(r->term()->functor())->termAlgebraCons();
-    
-    if (!termAlgebraConsL && termAlgebraConsR) {
-      TermList *swap = l; l = r; r = swap;
-    } else if (!termAlgebraConsL || termAlgebraConsR) {
-      return;
-    }
+    if (matchesPattern(lit, fs, t, &sort)) {
+      ASS(fs->isTerm());
 
-    ASS(l->isTerm());
-
-    if (!Ordering::isGorGEorE(_ord.compare(*r, *l))) {
       SIndex* index;
       if (_sIndexes.find(sort)) {
         index = _sIndexes.get(sort);
@@ -133,19 +319,12 @@ namespace Indexing
         _sIndexes.insert(sort, index);
       }
 
-      List<IndexEntry*>* list;
-      if (index->find(r)) {
-        list = index->get(r);
-      } else {
-        list = List<IndexEntry*>::empty();
+      if (index->find(lit)) {
+        return;
       }
       
-      SubtermIterator it(l->term());
-      while (it.hasNext()) {
-        IndexEntry *entry = new IndexEntry(lit, c, it.next());
-        list = list->cons(entry);
-      }
-      index->insert(r, list);
+      _tis->insert(*t, lit, c);
+      index->insert(lit, new IndexEntry(lit, c, t, getSubterms(fs->term())));
     }
   }
 
@@ -153,6 +332,21 @@ namespace Indexing
   {
     CALL("AcyclicityIndex::remove");
 
-    //TODO
+    TermList *fs;
+    TermList *t;
+    unsigned sort;
+     
+    if (matchesPattern(lit, fs, t, &sort) && _sIndexes.find(sort)) {
+      ASS(_sIndexes.get(sort)->find(lit));
+      _sIndexes.get(sort)->remove(lit);
+      _tis->remove(*t, lit, c);
+    }
+  }
+
+  CycleQueryResultsIterator AcyclicityIndex::queryCycles(Literal *lit, Clause *c)
+  {
+    CALL("AcyclicityIndex::queryCycle");
+
+    return pvi(CycleSearchIterator(lit, c, *this));
   }
 }

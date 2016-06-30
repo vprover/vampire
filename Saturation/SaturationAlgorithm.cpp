@@ -1347,7 +1347,6 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
     }
     gie->addFront(new InjectivityGIE());
     gie->addFront(new DistinctnessGIE());
-    //gie->addFront(new AcyclicityGIE());
   }
 
   res->setGeneratingInferenceEngine(gie);
