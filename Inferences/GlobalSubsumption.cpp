@@ -86,53 +86,66 @@ Clause* GlobalSubsumption::perform(Clause* cl, Stack<Unit*>& prems)
     return cl;
   }
   
-  Grounder& grounder = _index->getGrounder();
-  
-  // SAT literals of the prop. abstraction of cl
-  static SATLiteralStack plits;
-  plits.reset();
-  
+  SATSolverWithAssumptions& solver = _index->getSolver();
+
+  // Would be nice to have this:
+  // ASS_NEQ(solver.solve(_uprOnly),SATSolver::UNSATISFIABLE);
+  // But even if the last addition made the SAT solver's content unconditionally inconsistent
+  // the last call to solveUnderAssumptions might have missed that
+
   // assumptions corresponding to the negation of the new prop clause
   // (and perhaps additional ones used to "activate" AVATAR-conditional clauses)
   static SATLiteralStack assumps;
-  assumps.reset();
-  
+
   // lookup to retrieve the FO lits later back
   static DHMap<SATLiteral,Literal*> lookup;
+
+  // consider grounding the clause with each literal that is not first being first
+  // where we normalise the variables after switching literal order
+  // so for p(x) | q(y) we would get
+  // p(1) | q(2) from the query
+  // but q(1) | p(2) from this addition
+  // I don't bother working out if the result is different when switching the literals
+  if(cl->length() > 1 && env.options->globalSubsumptionGrounding() == Options::GlobalSubsumptionGrounding::FIRST){
+
+    if(!_nonNormalizingGrounder){
+     _nonNormalizingGrounder = new GlobalSubsumptionGrounder(&solver,false);
+    }
+    Clause* copy = Clause::fromClause(cl);
+
+    Literal* first = (*copy)[0];
+    for(unsigned i=1;i<copy->length();i++){
+      Literal* other = (*copy)[i];
+      swap(first,other);
+      Renaming r;
+      for(unsigned j=0;j<copy->length();j++){
+        r.normalizeVariables((*copy)[j]);
+      }
+      for(unsigned j=0;j<copy->length();j++){
+        (*copy)[j] = r.apply((*copy)[j]);
+      }
+
+      SATClause* sc = getSATClause(copy,assumps,lookup,false,cl);
+      solver.addClause(sc);
+      swap(first,other);
+    }
+    copy->destroyIfUnnecessary();
+  }
+
+  // I reset these here in case getSATLiteral accidentily changes them; it shouldn't
+  assumps.reset();
   lookup.reset();
     
-  // first abstract cl's FO literals using grounder,
-  // start filling assumps and initialize lookup
-  grounder.groundNonProp(cl, plits, false);
-  
-  unsigned clen = plits.size();    
-  for (unsigned i = 0; i < clen; i++) {
-    lookup.insert(plits[i],(*cl)[i]);
-    assumps.push(plits[i].opposite());
-  }
-    
-  // then add literals corresponding to cl's split levels
-  //
-  // also keep filling assumps for gsaa=crom_curent
-  if (cl->splits() && cl->splits()->size()!=0) {
-    ASS(_splittingAssumps);
-    
-    SplitSet::Iterator sit(*cl->splits());
-    while(sit.hasNext()) {
-      SplitLevel l = sit.next();      
-      unsigned var = splitLevelToVar(l);
-                
-      plits.push(SATLiteral(var,false)); // negative
-      if (!_splitter) {
-        assumps.push(SATLiteral(var,true)); // positive
-      }
-    }
-  }
-  
+  // now do the query
+  // create SAT clause and add to solver
+  SATClause* scl = getSATClause(cl,assumps,lookup,true,cl);
+  unsigned clen = scl->length(); 
+  solver.addClause(scl);
+
   // for gsaa=full_model, assume all active split levels instead
   if (_splitter) {
     ASS(_splittingAssumps);
-    
+
     SplitLevel bound = _splitter->splitLevelBound();
     for (SplitLevel lev = 0; lev < bound; lev++) {
       if (_splitter->splitLevelActive(lev)) {
@@ -141,19 +154,6 @@ Clause* GlobalSubsumption::perform(Clause* cl, Stack<Unit*>& prems)
       }
     }
   }
-  
-  SATSolverWithAssumptions& solver = _index->getSolver();
-  
-  // Would be nice to have this:
-  // ASS_NEQ(solver.solve(_uprOnly),SATSolver::UNSATISFIABLE);
-  // But even if the last addition made the SAT solver's content unconditionally inconsistent
-  // the last call to solveUnderAssumptions might have missed that
-
-  // create SAT clause and add to solver
-  SATClause* scl = SATClause::fromStack(plits);
-  SATInference* inf = new FOConversionInference(cl);
-  scl->setInference(inf);
-  solver.addClause(scl);
 
   // check for subsuming clause by looking for a proper subset of used assumptions
   SATSolver::Status res = solver.solveUnderAssumptions(assumps, _uprOnly, true /* only proper subsets */);
@@ -278,6 +278,58 @@ void GlobalSubsumption::perform(Clause* cl, ForwardSimplificationPerformer* simp
   ALWAYS(simplPerformer->willPerform(0));
   simplPerformer->perform(pvi( getMappingIterator(it, Unit2ClFn()) ), newCl);
   ALWAYS(!simplPerformer->clauseKept());
+}
+
+SATClause* GlobalSubsumption::getSATClause(Clause * cl,SATLiteralStack& assumps, DHMap<SATLiteral,Literal*>& lookup, bool query,Clause* parent)
+{
+  CALL("GlobalSubsumption::getSATClause");
+
+
+  // SAT literals of the prop. abstraction of cl
+  static SATLiteralStack plits;
+  plits.reset();
+
+  Grounder& normalGrounder = _index->getGrounder();
+  if(query){
+    normalGrounder.groundNonProp(cl, plits, false);
+  }
+  else{
+    _nonNormalizingGrounder->groundNonProp(cl,plits,false);
+  }
+ 
+  unsigned clen = plits.size();
+  if(query){
+    for (unsigned i = 0; i < clen; i++) {
+      // only store if this is a query 
+      lookup.insert(plits[i],(*cl)[i]);
+      assumps.push(plits[i].opposite());
+    }
+  }
+   
+  // then add literals corresponding to cl's split levels
+  //
+  // also keep filling assumps for gsaa=crom_curent
+  if (cl->splits() && cl->splits()->size()!=0) {
+    ASS(_splittingAssumps);
+   
+    SplitSet::Iterator sit(*cl->splits());
+    while(sit.hasNext()) {
+      SplitLevel l = sit.next();
+      unsigned var = splitLevelToVar(l);
+
+      plits.push(SATLiteral(var,false)); // negative
+      if (query && !_splitter) {
+        assumps.push(SATLiteral(var,true)); // positive
+      }
+    }
+  }
+ 
+  SATClause* scl = SATClause::fromStack(plits);
+  SATInference* inf = new FOConversionInference(parent);
+  scl->setInference(inf);
+
+  return scl;
+
 }
 
 }

@@ -223,6 +223,11 @@ void GlobalSubsumptionGrounder::normalize(unsigned cnt, Literal** lits)
 
   std::sort(litOrder.begin(), litOrder.end(), OrderNormalizingComparator(lits));
 
+  static bool reverse = env.options->globalSubsumptionGrounding() == Shell::Options::GlobalSubsumptionGrounding::BACKWARD;
+  if(reverse){
+    std::reverse(litOrder.begin(),litOrder.end());
+  }
+
   static Renaming normalizer;
   normalizer.reset();
 

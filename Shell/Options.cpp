@@ -1004,6 +1004,15 @@ void Options::Options::init()
     _globalSubsumptionAvatarAssumptions.setRandomChoices({"off","from_current","full_model"});
     _globalSubsumptionAvatarAssumptions.setExperimental();
 
+    _globalSubsumptionGrounding = ChoiceOptionValue<GlobalSubsumptionGrounding>("global_subsumption_grounding","gsg",GlobalSubsumptionGrounding::NORMAL,
+                                         {"normal","first","backward"});
+    _globalSubsumptionGrounding.description="";
+    _globalSubsumptionGrounding.tag(OptionTag::INFERENCES);
+    _globalSubsumptionGrounding.setExperimental();
+    _globalSubsumptionGrounding.reliesOn(_globalSubsumption.is(equal(true)));
+    _lookup.insert(&_globalSubsumptionGrounding);
+    
+
     _instGenBigRestartRatio = FloatOptionValue("inst_gen_big_restart_ratio","igbrr",0.0);
     _instGenBigRestartRatio.description=
     "Determines how often a big restart (instance generation starts from input clauses) will be performed. Small restart means all clauses generated so far are processed again.";

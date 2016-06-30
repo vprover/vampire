@@ -573,6 +573,12 @@ public:
     FULL_MODEL
   };
 
+  enum class GlobalSubsumptionGrounding : unsigned int {
+    NORMAL,
+    FIRST,
+    BACKWARD
+  };
+
   enum class Sos : unsigned int{
     ALL = 0,
     OFF = 1,
@@ -1812,6 +1818,7 @@ public:
   GlobalSubsumptionSatSolverPower globalSubsumptionSatSolverPower() const { return _globalSubsumptionSatSolverPower.actualValue; }
   GlobalSubsumptionExplicitMinim globalSubsumptionExplicitMinim() const { return _globalSubsumptionExplicitMinim.actualValue; }
   GlobalSubsumptionAvatarAssumptions globalSubsumptionAvatarAssumptions() const { return _globalSubsumptionAvatarAssumptions.actualValue; }
+  GlobalSubsumptionGrounding globalSubsumptionGrounding() const { return _globalSubsumptionGrounding.actualValue; }
 
   /** true if calling set() on non-existing options does not result in a user error */
   bool ignoreMissing() const { return _ignoreMissing.actualValue; }
@@ -2095,6 +2102,7 @@ private:
   ChoiceOptionValue<GlobalSubsumptionSatSolverPower> _globalSubsumptionSatSolverPower;
   ChoiceOptionValue<GlobalSubsumptionExplicitMinim> _globalSubsumptionExplicitMinim;
   ChoiceOptionValue<GlobalSubsumptionAvatarAssumptions> _globalSubsumptionAvatarAssumptions;
+  ChoiceOptionValue<GlobalSubsumptionGrounding> _globalSubsumptionGrounding;
 
   BoolOptionValue _hyperSuperposition;
 

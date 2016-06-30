@@ -32,7 +32,8 @@ public:
       _explicitMinim(opts.globalSubsumptionExplicitMinim()!=Options::GlobalSubsumptionExplicitMinim::OFF),
       _randomizeMinim(opts.globalSubsumptionExplicitMinim()==Options::GlobalSubsumptionExplicitMinim::RANDOMIZED),
       _splittingAssumps(opts.globalSubsumptionAvatarAssumptions()!= Options::GlobalSubsumptionAvatarAssumptions::OFF),
-      _splitter(0) {}
+      _splitter(0),
+      _nonNormalizingGrounder(0) {}
 
   /**
    * The attach function must not be called when this constructor is used.
@@ -48,6 +49,8 @@ public:
 private:  
   struct Unit2ClFn;
       
+  SATClause* getSATClause(Clause * cl,SATLiteralStack& assumps, DHMap<SATLiteral,Literal*>& lookup, bool query,Clause* parent);
+
   GroundingIndex* _index;
 
   /**
@@ -76,6 +79,12 @@ private:
    * In fact, _splitter!=0 iff we want to do the FULL_MODEL option.
    */
   Splitter* _splitter;
+
+  /*
+   * When doing different (non-query) groundings we need to use a different grounder
+   *
+   */
+  Grounder* _nonNormalizingGrounder;
   
   /**
    * A map binding split levels to variables assigned to them in our SAT solver.
