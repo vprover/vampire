@@ -41,7 +41,7 @@ private:
 
   struct CandidateComparator {
     static Comparison compare(Candidate* c1, Candidate* c2) {
-      return Int::compare(c1->weight,c1->weight);
+      return Int::compare(c1->weight,c2->weight);
     }
   };
 
