@@ -16,6 +16,7 @@
 #include "SAT/LingelingInterfacing.hpp"
 #include "SAT/MinisatInterfacing.hpp"
 #include "SAT/BufferedSolver.hpp"
+#include "SAT/Z3Interfacing.hpp"
 
 #include "Saturation/SaturationAlgorithm.hpp"
 
@@ -35,7 +36,8 @@ GroundingIndex::GroundingIndex(const Options& opt)
     	break;
 #if VZ3
     case Options::SatSolver::Z3:
-      //cout << "Warning, Z3 not curently used for Global Subsumption" << endl; 
+     _solver = new Z3Interfacing(opt,_sat2fo);
+     break;
 #endif
     case Options::SatSolver::MINISAT:
       _solver = new MinisatInterfacing(opt,true);
