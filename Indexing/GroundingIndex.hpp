@@ -30,13 +30,10 @@ public:
   SATSolverWithAssumptions& getSolver() { return *_solver; }
   GlobalSubsumptionGrounder& getGrounder() { return *_grounder; }
 
-  SAT2FO& satNaming(){ return _sat2fo; }
-
 protected:
   virtual void handleClause(Clause* c, bool adding);
 
 private:
-  SAT2FO _sat2fo;
   ScopedPtr<SATSolverWithAssumptions> _solver;
   ScopedPtr<GlobalSubsumptionGrounder> _grounder;
 };

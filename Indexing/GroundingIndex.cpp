@@ -27,6 +27,8 @@ GroundingIndex::GroundingIndex(const Options& opt)
 {
   CALL("GroundingIndex::GroundingIndex");
 
+  SAT2FO* sat2fo = 0;
+
   switch(opt.satSolver()){
     case Options::SatSolver::VAMPIRE:
     	_solver = new TWLSolver(opt,true);
@@ -36,7 +38,8 @@ GroundingIndex::GroundingIndex(const Options& opt)
     	break;
 #if VZ3
     case Options::SatSolver::Z3:
-     _solver = new Z3Interfacing(opt,_sat2fo);
+     sat2fo = new SAT2FO();
+     _solver = new Z3Interfacing(opt,*sat2fo);
      break;
 #endif
     case Options::SatSolver::MINISAT:
@@ -47,6 +50,7 @@ GroundingIndex::GroundingIndex(const Options& opt)
   }
   
   _grounder = new GlobalSubsumptionGrounder(_solver.ptr());
+  _grounder->setSAT2FO(sat2fo);
 }
 
 void GroundingIndex::handleClause(Clause* c, bool adding)

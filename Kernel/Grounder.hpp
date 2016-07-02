@@ -12,6 +12,8 @@
 #include "Lib/ScopedPtr.hpp"
 #include "Lib/SmartPtr.hpp"
 
+#include "SAT/SAT2FO.hpp"
+
 #include "Kernel/Term.hpp"
 
 namespace Kernel {
@@ -24,7 +26,7 @@ public:
   CLASS_NAME(Grounder);
   USE_ALLOCATOR(Grounder);
   
-  Grounder(SATSolver* satSolver) : _satSolver(satSolver) {}
+  Grounder(SATSolver* satSolver) : _satSolver(satSolver),_sat2fo(0) {}
   virtual ~Grounder() { CALL("Grounder::~Grounder"); }
 
   // TODO: sort out the intended semantics and the names of these four beasts:
@@ -34,6 +36,9 @@ public:
   void groundNonProp(Clause* cl, SATLiteralStack& acc, bool use_n, Literal** normLits=0);
 
   LiteralIterator groundedLits();
+
+  void setSAT2FO(SAT2FO* s){ _sat2fo=s; }
+  SAT2FO* getSAT2FO(){ return _sat2fo; }
 
 protected:
   /**
@@ -54,6 +59,8 @@ private:
    *
    * Also used to communicate source literals with IGGrounder. */
   SATSolver* _satSolver;
+
+  SAT2FO* _sat2fo;
 };
 
 class GlobalSubsumptionGrounder : public Grounder {

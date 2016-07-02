@@ -110,6 +110,7 @@ Clause* GlobalSubsumption::perform(Clause* cl, Stack<Unit*>& prems)
 
     if(!_nonNormalizingGrounder){
      _nonNormalizingGrounder = new GlobalSubsumptionGrounder(&solver,false);
+     _nonNormalizingGrounder->setSAT2FO(_index->getGrounder().getSAT2FO());
     }
     Clause* copy = Clause::fromClause(cl);
 

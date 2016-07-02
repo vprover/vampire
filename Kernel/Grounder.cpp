@@ -149,7 +149,12 @@ SATLiteral Grounder::groundNormalized(Literal* lit)
 
   unsigned* pvar;
   if(_asgn.getValuePtr(posLit, pvar)) {    
-    *pvar = _satSolver->newVar();
+    if(_sat2fo){
+      if(lit->ground()){ *pvar = _sat2fo->createSpareSatVar(); }
+      else{ return _sat2fo->toSAT(lit); }
+    }else{
+      *pvar = _satSolver->newVar();
+    }
   }
   return SATLiteral(*pvar, isPos);
 }
