@@ -97,7 +97,6 @@ namespace Indexing
     }
 
     // TODO remove the groundness test on t
-    bool b = t->isTerm() && t->term()->ground();
     return (t->isTerm() && t->term()->ground() && !Ordering::isGorGEorE(_ord.compare(*t, *fs)));
   }
   
@@ -118,29 +117,33 @@ namespace Indexing
 
   struct AcyclicityIndex::CycleSearchTreeNode
   {
-    CycleSearchTreeNode(TermList *t, Literal *l, Clause *c)
-      :
-      term(t),
-      lit(l),
-      clause(c),
-      parent(nullptr),
-      isInstance(false)
-    {}
-
-    CycleSearchTreeNode(TermList *t, Literal *l, Clause *c, CycleSearchTreeNode *n, bool instance)
+    CycleSearchTreeNode(TermList *t, Literal *l, Clause *c, CycleSearchTreeNode *n)
       :
       term(t),
       lit(l),
       clause(c),
       parent(n),
-      isInstance(instance)
+      subst()
     {}
 
-    bool isInstance;
+    CycleSearchTreeNode(Literal *l, ResultSubstitutionSP subst, CycleSearchTreeNode *n)
+      :
+      term(nullptr),
+      lit(l),
+      clause(nullptr),
+      parent(n),
+      subst(subst)
+    {}
+
     TermList *term;
     Literal *lit;
     Clause *clause;
     CycleSearchTreeNode *parent;
+    ResultSubstitutionSP subst;
+
+    bool isInstance() {
+      return !subst.isEmpty();
+    }
   };
 
   struct AcyclicityIndex::CycleSearchIterator
@@ -164,7 +167,7 @@ namespace Indexing
             IndexEntry *entry = _index->get(queryLit);
             List<TermList*>::Iterator it(entry->subterms);
             while (it.hasNext()) {
-              _stack.push(new CycleSearchTreeNode(it.next(), entry->lit, entry->clause));
+              pushUnificationsOnStack(*it.next(), nullptr);
             }
           }
         }
@@ -173,7 +176,7 @@ namespace Indexing
     
     DECL_ELEMENT_TYPE(CycleQueryResult*);
 
-    CycleQueryResult *resultFromNode(CycleSearchTreeNode *n)
+    CycleQueryResult *resultFromNode(CycleSearchTreeNode *node)
     {
       CALL("AcyclicityIndex::CycleSearchIterator::resultFromNode");
 
@@ -181,24 +184,16 @@ namespace Indexing
       List<Clause*>* c = List<Clause*>::empty();
       List<Clause*>* cTheta = List<Clause*>::empty();
 
-      Clause *firstcTheta = nullptr;
-
-      CycleSearchTreeNode *node = n;
-      do {
-        ASS(node);
-        if (!firstcTheta) {
-          firstcTheta = node->clause;
-        } else {
-          cTheta = cTheta->cons(node->clause);
-        }
-        node = node->parent;
-        ASS(node);
-        ASS(!node->isInstance);
-        l = l->cons(node->lit);
-        c = c->cons(node->clause);
-      } while ((node = node->parent));
-
-      cTheta = cTheta->cons(firstcTheta);
+      CycleSearchTreeNode *n = node;
+      while (n) {
+        ASS(n);
+        ASS(!n->isInstance());
+        ASS(n->parent);
+        cTheta = cTheta->cons(n->clause);
+        l = l->cons(n->lit);
+        c = c->cons(n->clause);
+        n = n->parent->parent;
+      }
 
       ASS_EQ(l->length(), c->length());
       ASS_EQ(l->length(), cTheta->length());
@@ -206,16 +201,33 @@ namespace Indexing
       return new CycleQueryResult(l, c, cTheta);
     }
 
-    bool notInAncestors(CycleSearchTreeNode *n, Literal *l)
+    void pushUnificationsOnStack(TermList t, CycleSearchTreeNode *parent)
+    {
+      CALL("Acyclicity::pushUnificationOnStack");
+
+      TermQueryResultIterator tqrIt = _tis->getUnifications(t);
+      while (tqrIt.hasNext()) {
+        TermQueryResult tqr = tqrIt.next();
+        if (notInAncestors(parent, tqr.literal)) {
+          // TODO could add an ordering test after substitution
+          _stack.push(new CycleSearchTreeNode(tqr.literal,
+                                              tqr.substitution,
+                                              parent));
+        }
+      }
+    }
+
+    bool notInAncestors(CycleSearchTreeNode *node, Literal *l)
     {
       CALL("AcyclicityIndex::CycleSearchIterator::notInAncestors");
 
-      CycleSearchTreeNode *node = n;
-      do {
-        if (node->lit == l) {
+      CycleSearchTreeNode *n = node;
+      while (n) {
+        if (n->lit == l) {
           return false;
         }
-      } while ((node = node->parent));
+        n = n->parent;
+      }
 
       return true;
     }
@@ -229,39 +241,19 @@ namespace Indexing
       while (_stack.isNonEmpty()) {
         CycleSearchTreeNode *n = _stack.pop();
 
-        if (n->isInstance) {
-          if (n->lit == _queryLit) {
-            _nextResult = resultFromNode(n);
-            return true;
-          } else {
-            if (_index->find(n->lit)) {
-              IndexEntry *entry = _index->get(n->lit);
-              List<TermList*>::Iterator it(entry->subterms);
-              while (it.hasNext()) { 
-                _stack.push(new CycleSearchTreeNode(it.next(), entry->lit, entry->clause, n, false));
-              }
+        if (n->isInstance()) {
+          if (_index->find(n->lit)) {
+            IndexEntry *entry = _index->get(n->lit);
+            List<TermList*>::Iterator it(entry->subterms);
+            while (it.hasNext()) { 
+              _stack.push(new CycleSearchTreeNode(it.next(), entry->lit, entry->clause, n));
             }
           }
+        } else if (n->lit == _queryLit) {
+          _nextResult = resultFromNode(n);
+          return true;
         } else {
-          TermQueryResultIterator tqrIt = _tis->getUnifications(*n->term);
-          while (tqrIt.hasNext()) {
-            TermQueryResult tqr = tqrIt.next();
-            if (tqr.literal == _queryLit || notInAncestors(n, tqr.literal)) {
-              // TODO could add an ordering test after substitution
-              unsigned l = tqr.clause->length();
-              Clause *cTheta = new(l) Clause(l,
-                                             tqr.clause->inputType(),
-                                             tqr.clause->inference());
-              for (unsigned i = 0; i < l; i++) {
-                (*cTheta)[i] = tqr.substitution->applyToResult((*tqr.clause)[i]);
-              }
-              _stack.push(new CycleSearchTreeNode(&tqr.term,
-                                                  tqr.literal,
-                                                  cTheta,
-                                                  n,
-                                                  true));
-            }
-          }
+          pushUnificationsOnStack(n->parent->subst->applyToResult(*n->term), n->parent);
         }
       }
       return false;
