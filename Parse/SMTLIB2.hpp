@@ -255,11 +255,11 @@ private:
   void declareTermAlgebra(Signature::TermAlgebra *ta, bool coalgebra);
   void declareTermAlgebraConstructor(Signature::TermAlgebraConstructor *c, unsigned rangeSort);
 
-  Formula *exhaustivenessAxiom(Signature::TermAlgebra *ta);
-  Formula *distinctnessAxiom(Signature::TermAlgebra *ta);
-  Formula *injectivityAxiom(Signature::TermAlgebra *ta);
-  Formula *acyclicityAxiom(Signature::TermAlgebra *ta);
-
+  void addExhaustivenessAxiom(Signature::TermAlgebra *ta);
+  void addDistinctnessAxiom(Signature::TermAlgebra *ta);
+  void addInjectivityAxiom(Signature::TermAlgebra *ta);
+  void addAcyclicityAxiom(Signature::TermAlgebra *ta);
+  bool addSubtermDefinitions(Signature::TermAlgebraConstructor *c, unsigned subtermPredicate, unsigned sort);
   /**
    * Parse result of parsing an smtlib term (which can be of sort Bool and therefore represented in vampire by a formula)
    */

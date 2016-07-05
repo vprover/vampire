@@ -10,7 +10,6 @@
 
 #include "Kernel/Clause.hpp"
 #include "Kernel/Ordering.hpp"
-#include "Kernel/Substitution.hpp"
 #include "Kernel/Term.hpp"
 
 #include "Indexing/TermIndexingStructure.hpp"

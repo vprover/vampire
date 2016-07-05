@@ -3,6 +3,7 @@
  * Implements class AcyclicityIndex
  */
 
+#include "Kernel/Inference.hpp"
 #include "Kernel/Signature.hpp"
 #include "Kernel/SortHelper.hpp"
 
@@ -141,8 +142,8 @@ namespace Indexing
     CycleSearchTreeNode *parent;
     ResultSubstitutionSP subst;
 
-    bool isInstance() {
-      return !subst.isEmpty();
+    bool isUnificationNode() {
+      return (!clause);
     }
   };
 
@@ -157,6 +158,8 @@ namespace Indexing
       _nextResult(nullptr),
       _stack(0)
     {
+      CALL("AcyclicityIndex::CycleSearchIterator");
+      
       if (queryLit->isEquality()) {
         unsigned sort = SortHelper::getEqualityArgumentSort(queryLit);
 
@@ -176,6 +179,20 @@ namespace Indexing
     
     DECL_ELEMENT_TYPE(CycleQueryResult*);
 
+    Clause *applySubstitution(Clause *c, ResultSubstitutionSP subst, bool asResult) {
+      unsigned clen = c->length();
+      Inference* inf = new Inference1(Inference::INSTANTIATION, c);
+      Clause* res = new(clen) Clause(clen,
+                                     c->inputType(),
+                                     inf);
+
+      for (unsigned i = 0; i < clen; i++) {
+        (*res)[i] = (*c)[i];//asResult ? subst->applyToResult((*c)[i]) : subst->applyToQuery((*c)[i]);
+      }
+
+      return res;
+    }
+
     CycleQueryResult *resultFromNode(CycleSearchTreeNode *node)
     {
       CALL("AcyclicityIndex::CycleSearchIterator::resultFromNode");
@@ -187,9 +204,12 @@ namespace Indexing
       CycleSearchTreeNode *n = node;
       while (n) {
         ASS(n);
-        ASS(!n->isInstance());
+        ASS(!n->isUnificationNode());
         ASS(n->parent);
-        cTheta = cTheta->cons(n->clause);
+        ASS(!n->parent->subst.isEmpty());
+        ASS(n->clause->store() == Clause::ACTIVE);
+        Clause *cl = n->clause; //applySubstitution(n->clause, n->parent->subst, true);
+        cTheta = cTheta->cons(cl);
         l = l->cons(n->lit);
         c = c->cons(n->clause);
         n = n->parent->parent;
@@ -236,16 +256,18 @@ namespace Indexing
     {
       CALL("AcyclicityIndex::CycleSearchIterator::hasNext");
 
+      // is hasNext() has already been called without being followed
+      // by a call to next(), the next value is already computed
       if (_nextResult) { return true; }
 
       while (_stack.isNonEmpty()) {
         CycleSearchTreeNode *n = _stack.pop();
 
-        if (n->isInstance()) {
+        if (n->isUnificationNode()) {
           if (_index->find(n->lit)) {
             IndexEntry *entry = _index->get(n->lit);
             List<TermList*>::Iterator it(entry->subterms);
-            while (it.hasNext()) { 
+            while (it.hasNext()) {
               _stack.push(new CycleSearchTreeNode(it.next(), entry->lit, entry->clause, n));
             }
           }
@@ -253,7 +275,8 @@ namespace Indexing
           _nextResult = resultFromNode(n);
           return true;
         } else {
-          pushUnificationsOnStack(n->parent->subst->applyToResult(*n->term), n->parent);
+          ASS(!n->parent->subst.isEmpty());
+          pushUnificationsOnStack(n->parent->subst->applyToResult(*n->term), n);
         }
       }
       return false;
