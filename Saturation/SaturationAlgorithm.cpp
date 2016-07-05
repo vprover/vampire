@@ -1386,10 +1386,12 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
   }
   if (opt.forwardSubsumption()) {
     if (opt.forwardSubsumptionResolution()) {
-      res->addForwardSimplifierToFront(new CTFwSubsAndRes(true));
+      //res->addForwardSimplifierToFront(new CTFwSubsAndRes(true));
+      res->addForwardSimplifierToFront(new ForwardSubsumptionAndResolution(true));
     }
     else {
-      res->addForwardSimplifierToFront(new CTFwSubsAndRes(false));
+      //res->addForwardSimplifierToFront(new CTFwSubsAndRes(false));
+      res->addForwardSimplifierToFront(new ForwardSubsumptionAndResolution(false));
     }
   }
   else if (opt.forwardSubsumptionResolution()) {

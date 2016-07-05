@@ -748,7 +748,7 @@ void spiderMode()
   env.endOutput();
 } // spiderMode
 
-void clausifyMode(bool stat)
+void clausifyMode(bool theory)
 {
   CALL("clausifyMode()");
 
@@ -760,10 +760,8 @@ void clausifyMode(bool stat)
   ScopedPtr<Problem> prb(getPreprocessedProblem());
 
   env.beginOutput();
-  if (!stat) {
-    UIHelper::outputSortDeclarations(env.out());
-    UIHelper::outputSymbolDeclarations(env.out());
-  }
+  UIHelper::outputSortDeclarations(env.out());
+  UIHelper::outputSymbolDeclarations(env.out());
 
   unsigned clauses = 0;
   unsigned literals = 0;
@@ -775,29 +773,17 @@ void clausifyMode(bool stat)
     if (!cl) {
       continue;
     }
-    if (stat) {
-      clauses++;
-      literals += cl->size();
-    } else {
-/*
-  Uncomment this bit to make clausify print quantification
-  TODO decide when this should be done and do it then 
-
+    if (theory) {
       Formula* f = Formula::fromClause(cl);
       FormulaUnit* fu = new FormulaUnit(f,cl->inference(),cl->inputType());
       env.out() << TPTPPrinter::toString(fu) << "\n";
-*/
+    } else {
       env.out() << TPTPPrinter::toString(cl) << "\n";
     }
   }
-  if (stat) {
-    env.out() << clauses << "\t" << literals << endl;
-  }
   env.endOutput();
 
-  if (!stat) {
-    if (env.options->latexOutput() != "off") { outputClausesToLaTeX(prb.ptr()); }
-  }
+  if (env.options->latexOutput() != "off") { outputClausesToLaTeX(prb.ptr()); }
 
   //we have successfully output all clauses, so we'll terminate with zero return value
   vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
@@ -1015,7 +1001,7 @@ int main(int argc, char* argv[])
       clausifyMode(false);
       break;
 
-    case Options::Mode::CLAUSIFY_STAT:
+    case Options::Mode::TCLAUSIFY:
       clausifyMode(true);
       break;
 
