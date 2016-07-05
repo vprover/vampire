@@ -4,6 +4,7 @@
 
 #include "Kernel/Inference.hpp"
 #include "Kernel/Ordering.hpp"
+#include "Kernel/Renaming.hpp"
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/SubstHelper.hpp"
 #include "Kernel/Substitution.hpp"
@@ -677,19 +678,31 @@ namespace Inferences {
 
       premises.reset(qres->premises);
       unsigned i = 0;
+      unsigned maxVar = 0;
 
       while(literals.hasNext() && premises.hasNext() && clausesTheta.hasNext()) {              
         Literal *l = literals.next();
         Clause *p = premises.next();
         Clause *c = clausesTheta.next();
 
-        // TODO should there be some variable renaming here?
         ASS_EQ(p->length(), c->length());
+
+        // create renaming to make sure that variable from different
+        // clauses don't end up being confused in the conclusion
+        Renaming renaming(maxVar);
+        VirtualIterator<unsigned> varIter = p->getVariableIterator();
+        while (varIter.hasNext()) {
+          unsigned n = renaming.getOrBind(varIter.next());
+          maxVar = n > maxVar ? n : maxVar;
+        }
+
         for (unsigned j = 0; j < c->length(); j++) {
           if ((*p)[j] != l) {
-            (*res)[i++] = (*c)[j];
+            (*res)[i++] = renaming.apply((*c)[j]);
           }
         }
+
+        maxVar++;
       }
       ASS (!literals.hasNext());
       ASS (!premises.hasNext());

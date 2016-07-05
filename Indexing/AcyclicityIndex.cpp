@@ -72,7 +72,8 @@ namespace Indexing
   {
     CALL("AcyclicityIndex::matchesPattern");
 
-    if (!lit->isEquality() || !lit->polarity()) {
+    // TODO remove the groundness requirement
+    if (!lit->isEquality() || !lit->polarity() || !lit->ground()) {
       return false;
     }
 
@@ -97,8 +98,7 @@ namespace Indexing
       return false;
     }
 
-    // TODO remove the groundness test on t
-    return (t->isTerm() && t->term()->ground() && !Ordering::isGorGEorE(_ord.compare(*t, *fs)));
+    return (!Ordering::isGorGEorE(_ord.compare(*t, *fs)));
   }
   
   struct AcyclicityIndex::IndexEntry {
@@ -229,7 +229,8 @@ namespace Indexing
       while (tqrIt.hasNext()) {
         TermQueryResult tqr = tqrIt.next();
         if (notInAncestors(parent, tqr.literal)) {
-          // TODO could add an ordering test after substitution
+          // TODO add an ordering test after substitution (after we
+          // handle non-ground literals)
           _stack.push(new CycleSearchTreeNode(tqr.literal,
                                               tqr.substitution,
                                               parent));
@@ -352,6 +353,7 @@ namespace Indexing
     unsigned sort;
      
     if (matchesPattern(lit, fs, t, &sort) && _sIndexes.find(sort)) {
+      
       ASS(_sIndexes.get(sort)->find(lit));
       _sIndexes.get(sort)->remove(lit);
       _tis->remove(*t, lit, c);
