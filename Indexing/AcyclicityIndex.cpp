@@ -335,12 +335,10 @@ namespace Indexing
         _sIndexes.insert(sort, index);
       }
 
-      if (index->find(lit)) {
-        return;
+      if (!index->find(lit)) {
+        index->insert(lit, new IndexEntry(lit, c, t, getSubterms(fs->term())));
+        _tis->insert(*t, lit, c);
       }
-      
-      _tis->insert(*t, lit, c);
-      index->insert(lit, new IndexEntry(lit, c, t, getSubterms(fs->term())));
     }
   }
 
@@ -352,11 +350,15 @@ namespace Indexing
     TermList *t;
     unsigned sort;
      
-    if (matchesPattern(lit, fs, t, &sort) && _sIndexes.find(sort)) {
-      
-      ASS(_sIndexes.get(sort)->find(lit));
+    if (matchesPattern(lit, fs, t, &sort) && _sIndexes.find(sort) && _sIndexes.get(sort)->find(lit)) {
       _sIndexes.get(sort)->remove(lit);
-      _tis->remove(*t, lit, c);
+
+      // in some rare cases, this call leads to a segfault in the
+      // substitution tree, even though the entry (t, lit, c) should be
+      // present.
+      // TODO find cause and reactivate the removal
+      
+      //_tis->remove(*t, lit, c);
     }
   }
 
