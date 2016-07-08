@@ -975,8 +975,6 @@ void TheoryAxioms::addTupleAxioms(unsigned tupleSort, UnitList*& units) {
       Clause* clause = new(1) Clause(1, Unit::AXIOM, axiom);
       (*clause)[0] = equality;
       addAndOutputTheoryUnit(clause, units);
-
-//      cout << "ADDING " << clause->toString() << endl;
     }
   }
 
@@ -1000,8 +998,6 @@ void TheoryAxioms::addTupleAxioms(unsigned tupleSort, UnitList*& units) {
     Formula* conjunction = new JunctionFormula(AND, projections);
     Formula* equality = new AtomicFormula(Literal::createEquality(true, t1, t2, tupleSort));
     Formula* equivalence = new BinaryFormula(IFF, equality, conjunction);
-
-//    cout << "ADDING " << equivalence->toString() << endl;
 
     addAndOutputTheoryUnit(new FormulaUnit(equivalence, axiom, Unit::AXIOM), units);
   }
