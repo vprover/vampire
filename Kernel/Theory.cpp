@@ -1118,7 +1118,7 @@ unsigned Theory::getTupleFunctor(unsigned tupleSort) {
 
   unsigned tupleFunctor;
   if (!_tupleFunctors.find(tupleSort, tupleFunctor)) {
-    tupleFunctor = env.signature->addFunction("$tuple", arity);
+    tupleFunctor = env.signature->addFreshFunction(arity, "tuple");
     _tupleFunctors.set(tupleSort, tupleFunctor);
     FunctionType* tupleType = new FunctionType(arity, sorts, tupleSort);
     env.signature->getFunction(tupleFunctor)->setType(tupleType);
