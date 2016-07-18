@@ -18,6 +18,7 @@
 #include "Kernel/Unit.hpp"
 #include "Lib/Environment.hpp"
 #include "Kernel/RobSubstitution.hpp"
+#include "Kernel/EqHelper.hpp"
 
 #include "Lib/SmartPtr.hpp"
 #include "Lib/DHSet.hpp"
@@ -336,6 +337,10 @@ bool BlockedClauseElimination::resolvesToTautologyEq(Clause* cl, Literal* lit, C
         return true;
       }
 
+      if (EqHelper::isEqTautology(ncurlit)) {
+        return true;
+      }
+
       norm_lits.insert(ncurlit);
     }
   }
@@ -385,6 +390,10 @@ bool BlockedClauseElimination::resolvesToTautologyEq(Clause* cl, Literal* lit, C
       if (norm_lits.find(opncurlit)) {
         // cout << "found taut on pcl's " <<  ncurlit->toString() << endl;
 
+        return true;
+      }
+
+      if (EqHelper::isEqTautology(ncurlit)) {
         return true;
       }
 
