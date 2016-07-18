@@ -763,9 +763,6 @@ void clausifyMode(bool theory)
   UIHelper::outputSortDeclarations(env.out());
   UIHelper::outputSymbolDeclarations(env.out());
 
-  unsigned clauses = 0;
-  unsigned literals = 0;
-
   ClauseIterator cit = prb->clauseIterator();
   while (cit.hasNext()) {
     Clause* cl = cit.next();
