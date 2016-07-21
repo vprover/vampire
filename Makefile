@@ -1,3 +1,4 @@
+
 ###############################################################
 # File:    makefile 
 # Author:  Andrei Voronkov
@@ -370,6 +371,7 @@ VS_OBJ = Shell/AnswerExtractor.o\
          Shell/TheoryAxioms.o\
          Shell/TheoryFinder.o\
          Shell/TheoryFlattening.o\
+         Shell/BlockedClauseElimination.o\
          Shell/Token.o\
          Shell/TPTPPrinter.o\
          Shell/TrivialPredicateRemover.o\

@@ -123,6 +123,8 @@ class SingleParamEvent
 public:
   void fire(T t)
   {
+    CALL("SingleParamEvent::fire");
+
     HandlerList* hit=_handlers;
     while(hit) {
       static_cast<SpecificHandlerStruct*>(hit->head())->fire(t);

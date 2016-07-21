@@ -1735,6 +1735,7 @@ public:
   bool smtForGround() const { return _smtForGround.actualValue; }
 #endif
   bool unusedPredicateDefinitionRemoval() const { return _unusedPredicateDefinitionRemoval.actualValue; }
+  bool blockedClauseElimination() const { return _blockedClauseElimination.actualValue; }
   void setUnusedPredicateDefinitionRemoval(bool newVal) { _unusedPredicateDefinitionRemoval.actualValue = newVal; }
   bool weightIncrement() const { return _weightIncrement.actualValue; }
   bool useDM() const { return _use_dm.actualValue; }
@@ -2256,6 +2257,7 @@ private:
 
   ChoiceOptionValue<URResolution> _unitResultingResolution;
   BoolOptionValue _unusedPredicateDefinitionRemoval;
+  BoolOptionValue _blockedClauseElimination;
   UnsignedOptionValue _updatesByOneConstraint;
   BoolOptionValue _use_dm;
   BoolOptionValue _weightIncrement;

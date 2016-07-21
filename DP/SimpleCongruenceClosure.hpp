@@ -42,7 +42,7 @@ public:
   CLASS_NAME(SimpleCongruenceClosure);
   USE_ALLOCATOR(SimpleCongruenceClosure);
 
-  SimpleCongruenceClosure(Ordering& ord);
+  SimpleCongruenceClosure(Ordering* ord);
 
   virtual void addLiterals(LiteralIterator lits, bool onlyEqualites) override;
 
@@ -53,6 +53,11 @@ public:
   void getModel(LiteralStack& model) override;
   
   virtual void reset() override;
+
+  /**
+   * New, more fine-grained way of insertion. The terms may contain variables which are treated as constants.
+   */
+  void addLiteral(Literal* lit);
 
   /**
    * After a call to getStatus (and before reset)
@@ -66,7 +71,7 @@ public:
   }
 
 private:
-  Ordering& _ord;
+  Ordering* _ord;
   
   /**
    * Constant pair
@@ -100,9 +105,15 @@ private:
 
   };
 
+  enum class SignatureKind {
+    PREDICATE,
+    FUNCTION,
+    VARIABLE
+  };
+
   unsigned getMaxConst() const { return _cInfos.size()-1; }
   unsigned getFreshConst();
-  unsigned getSignatureConst(unsigned symbol, bool funct);
+  unsigned getSignatureConst(unsigned symbol, SignatureKind kind);
   unsigned getPairName(CPair p);
 
 
@@ -160,7 +171,7 @@ private:
 
     /** If NO_SIG_SYMBOL, the constant doesn't represent a non-constant signature symbol */
     unsigned sigSymbol;
-    bool sigSymIsFunct;
+    SignatureKind sigSymKind;
     /** If isEmpty, the constant doesn't represent a term */
     TermList term;
     /** If non-zero, constant stands for a non-equality atom */
@@ -245,9 +256,8 @@ private:
 
   /**
    * Map from signature symbols to the local constant numbers.
-   * (if the bool is true, symbol is function, otherwise a predicate).
    */
-  DHMap<pair<unsigned,bool>,unsigned> _sigConsts;
+  DHMap<pair<unsigned,SignatureKind>,unsigned> _sigConsts;
 
   typedef DHMap<CPair,unsigned> PairMap;
   /** Names of constant pairs (modulo the congruence!)*/

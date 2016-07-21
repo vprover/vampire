@@ -236,6 +236,7 @@ void Statistics::print(ostream& out)
   COND_OUT("Active clauses", activeClauses);
   COND_OUT("Passive clauses", passiveClauses);
   COND_OUT("Extensionality clauses", extensionalityClauses);
+  COND_OUT("Blocked clauses", blockedClauses);
   COND_OUT("Final active clauses", finalActiveClauses);
   COND_OUT("Final passive clauses", finalPassiveClauses);
   COND_OUT("Final extensionality clauses", finalExtensionalityClauses);
