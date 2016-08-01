@@ -983,7 +983,7 @@ void TheoryAxioms::addTupleAxioms(unsigned tupleSort, UnitList*& units) {
     static TermList t1(0, false);
     static TermList t2(1, false);
 
-    FormulaList* projections = FormulaList::empty();
+    Clause* clause = new(arity + 1) Clause(arity + 1, Unit::AXIOM, axiom);
     for (unsigned i = 0; i < arity; i++) {
       unsigned proj = theory->getTupleProjectionFunctor(i, tupleSort);
       unsigned projSort = sort->argument(i);
@@ -991,15 +991,10 @@ void TheoryAxioms::addTupleAxioms(unsigned tupleSort, UnitList*& units) {
       TermList proj1 = TermList(Term::create1(proj, t1));
       TermList proj2 = TermList(Term::create1(proj, t2));
 
-      Formula* equality = new AtomicFormula(Literal::createEquality(true, proj1, proj2, projSort));
-      projections = projections->cons(equality);
+      (*clause)[i] = Literal::createEquality(true, proj1, proj2, projSort);
     }
-
-    Formula* conjunction = new JunctionFormula(AND, projections);
-    Formula* equality = new AtomicFormula(Literal::createEquality(true, t1, t2, tupleSort));
-    Formula* equivalence = new BinaryFormula(IFF, equality, conjunction);
-
-    addAndOutputTheoryUnit(new FormulaUnit(equivalence, axiom, Unit::AXIOM), units);
+    (*clause)[arity] = Literal::createEquality(true, t1, t2, tupleSort);
+    addAndOutputTheoryUnit(clause, units);
   }
 
 }
