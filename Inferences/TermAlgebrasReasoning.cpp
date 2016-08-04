@@ -598,7 +598,7 @@ namespace Inferences {
       Literal *lit = (*c)[i];
       if (sameConstructorsEquality(lit) && lit->isPositive()) {
         unsigned arity = lit->nthArgument(0)->term()->arity();
-        if (arity > 0) {
+        if ((_arityCheck && arity == 1) || arity > 0) {
           FunctionType *type = env.signature->getFunction(lit->nthArgument(0)->term()->functor())->fnType();
           for (unsigned i=0; i < arity; i++) {
             Literal *newlit = Literal::createEquality(true,

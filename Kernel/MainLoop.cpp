@@ -112,13 +112,15 @@ ImmediateSimplificationEngine* MainLoop::createISE(Problem& prb, const Options& 
   if(prb.hasEquality() && env.signature->hasDistinctGroups()) {
     res->addFront(new DistinctEqualitySimplifier());
   }
-  if(prb.hasEquality() && env.signature->hasTermAlgebras() && opt.termAlgebraInferences()) {
-    res->addFront(new DistinctnessISE());
-    if (opt.termAlgebraCyclicityCheck()) {
-      //res->addFront(new AcyclicityISE());
-    }
-    if (opt.termAlgebraInjectivitySimplification()) {
-      res->addFront(new InjectivityISE());
+  if(prb.hasEquality() && env.signature->hasTermAlgebras()) {
+    if (opt.termAlgebraInferences() != Options::TARules::OFF) {
+      res->addFront(new DistinctnessISE());
+      if (opt.termAlgebraInferences() == Options::TARules::INJECTSIMPL) {
+        res->addFront(new InjectivityISE(false));
+      }
+      if (opt.termAlgebraInferences() == Options::TARules::INJECTOPT) {
+        res->addFront(new InjectivityISE(true));
+      }
     }
   }
   if(prb.hasInterpretedOperations() || prb.hasInterpretedEquality()) {

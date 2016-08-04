@@ -1338,15 +1338,18 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
   if (opt.FOOLParamodulation()) {
     gie->addFront(new FOOLParamodulation());
   }
-  if(prb.hasEquality() && env.signature->hasTermAlgebras() && opt.termAlgebraInferences()) {
-    if (!opt.termAlgebraInjectivitySimplification()) {
-      gie->addFront(new InjectivityGIE1());
-    }
-    if (opt.termAlgebraCyclicityCheck()) {
+  if(prb.hasEquality() && env.signature->hasTermAlgebras()) {
+    if (opt.termAlgebraCyclicityCheck() == Options::TACyclicityCheck::RULE) {
       gie->addFront(new AcyclicityGIE());
     }
-    gie->addFront(new InjectivityGIE());
-    gie->addFront(new DistinctnessGIE());
+    if (opt.termAlgebraInferences() != Options::TARules::INJECTGEN
+        || opt.termAlgebraInferences() != Options::TARules::INJECTOPT) {
+      gie->addFront(new InjectivityGIE1());
+    }
+    if (opt.termAlgebraInferences() != Options::TARules::FULL) {
+      gie->addFront(new InjectivityGIE());
+      gie->addFront(new DistinctnessGIE());
+    }
   }
 
   res->setGeneratingInferenceEngine(gie);

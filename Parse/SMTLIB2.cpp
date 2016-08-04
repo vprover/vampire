@@ -916,11 +916,11 @@ void SMTLIB2::declareTermAlgebra(Signature::TermAlgebra *ta, bool coalgebra)
   }
 
   addExhaustivenessAxiom(ta);
-  if (!env.options->termAlgebraInferences()) {
-    // if these axioms are not added, they are replace by inference rules
+  if (env.options->termAlgebraInferences() != Options::TARules::FULL) {
+    // if these axioms are not added, they are replaced by inference rules
     addDistinctnessAxiom(ta);
     addInjectivityAxiom(ta);
-    if (env.options->termAlgebraCyclicityCheck()) {
+    if (env.options->termAlgebraCyclicityCheck() == Options::TACyclicityCheck::AXIOM) {
       addAcyclicityAxiom(ta);
     }
   }

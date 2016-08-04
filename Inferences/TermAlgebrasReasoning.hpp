@@ -58,6 +58,7 @@ private:
   struct ArgumentEqualityFn;
 };
 
+// equivalent to the simplification rule, without premise deletion
 class InjectivityGIE1
   : public GeneratingInferenceEngine {
 public:
@@ -77,10 +78,18 @@ class InjectivityISE
 public:
   CLASS_NAME(InjectivityISE);
   USE_ALLOCATOR(InjectivityISE);
+
+  InjectivityISE(bool arityCheck) :
+    _arityCheck(arityCheck)
+  {}
   
   Kernel::Clause* simplify(Kernel::Clause* c);
+
+private:
+  bool _arityCheck; // if true, delete only if TA symbol has arity 1
 };
 
+// rule mimicing superposition into the injectivity axiom
 class AcyclicityGIE
   : public GeneratingInferenceEngine {
 public:
