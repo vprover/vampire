@@ -22,19 +22,6 @@
 
 namespace Inferences {
 
-class DistinctnessGIE
-  : public GeneratingInferenceEngine {
-public:
-  CLASS_NAME(DistinctnessGIE);
-  USE_ALLOCATOR(DistinctnessGIE);
-  
-  Kernel::ClauseIterator generateClauses(Kernel::Clause* c);
-  
-private:
-  struct ConstructorDisequalityIterator;
-  struct ConstructorDisequalityFn;
-};
-
 class DistinctnessISE
   : public ImmediateSimplificationEngine
 {
@@ -45,25 +32,12 @@ public:
   Kernel::Clause* simplify(Kernel::Clause* c);
 };
 
+// equivalent to the simplification rule, without premise deletion
 class InjectivityGIE
   : public GeneratingInferenceEngine {
 public:
   CLASS_NAME(InjectivityGIE);
   USE_ALLOCATOR(InjectivityGIE);
-  
-  Kernel::ClauseIterator generateClauses(Kernel::Clause* c);
-  
-private:
-  struct ArgumentEqualityIterator;
-  struct ArgumentEqualityFn;
-};
-
-// equivalent to the simplification rule, without premise deletion
-class InjectivityGIE1
-  : public GeneratingInferenceEngine {
-public:
-  CLASS_NAME(InjectivityGIE1);
-  USE_ALLOCATOR(InjectivityGIE1);
   
   Kernel::ClauseIterator generateClauses(Kernel::Clause* c);
 
@@ -78,18 +52,10 @@ class InjectivityISE
 public:
   CLASS_NAME(InjectivityISE);
   USE_ALLOCATOR(InjectivityISE);
-
-  InjectivityISE(bool arityCheck) :
-    _arityCheck(arityCheck)
-  {}
   
   Kernel::Clause* simplify(Kernel::Clause* c);
-
-private:
-  bool _arityCheck; // if true, delete only if TA symbol has arity 1
 };
 
-// rule mimicing superposition into the injectivity axiom
 class AcyclicityGIE
   : public GeneratingInferenceEngine {
 public:

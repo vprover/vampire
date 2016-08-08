@@ -894,8 +894,7 @@ void Options::Options::init()
 	    _lookup.insert(&_FOOLParamodulation);
 	    _FOOLParamodulation.tag(OptionTag::INFERENCES);
 
-            _termAlgebraInferences = ChoiceOptionValue<TARules>("term_algebra_rules","tar",
-                                                                TARules::OFF,{"off","injectgen","injectsimpl","injectopt","full"});
+            _termAlgebraInferences = BoolOptionValue("term_algebra_rules","tar",true);
             _termAlgebraInferences.description="";
             _lookup.insert(&_termAlgebraInferences);
             _termAlgebraInferences.tag(OptionTag::INFERENCES);
@@ -905,12 +904,6 @@ void Options::Options::init()
             _termAlgebraCyclicityCheck.description="";
             _lookup.insert(&_termAlgebraCyclicityCheck);
             _termAlgebraCyclicityCheck.tag(OptionTag::INFERENCES);
-
-            _termAlgebraOrdering = BoolOptionValue("term_algebra_ordering","tao",false);
-            _termAlgebraOrdering.description="";
-            _lookup.insert(&_termAlgebraOrdering);
-            _termAlgebraOrdering.tag(OptionTag::INFERENCES);
-
 
 	    _forwardDemodulation = ChoiceOptionValue<Demodulation>("forward_demodulation","fd",Demodulation::ALL,{"all","off","preordered"});
 	    _forwardDemodulation.description=
