@@ -355,6 +355,14 @@ vstring TPTP::toString(Tag tag)
     return "$tuple";
   case T_PROJ:
     return "$proj";
+  case T_OPTION:
+    return "$option";
+  case T_SOME:
+    return "$some";
+  case T_IS_SOME:
+    return "$issome";
+  case T_FROM_SOME:
+    return "$fromsome";
   case T_FOT:
     return "$fot";
   case T_FOF:
@@ -932,6 +940,18 @@ void TPTP::readReserved(Token& tok)
   }
   else if (tok.content == "$proj") {
     tok.tag = T_PROJ;
+  }
+  else if (tok.content == "$none") {
+    tok.tag = T_NONE;
+  }
+  else if (tok.content == "$some") {
+    tok.tag = T_SOME;
+  }
+  else if (tok.content == "$issome") {
+    tok.tag = T_IS_SOME;
+  }
+  else if (tok.content == "$fromsome") {
+    tok.tag = T_FROM_SOME;
   }
   else if (tok.content == "$fot") {
     tok.tag = T_FOT;
@@ -1782,6 +1802,12 @@ void TPTP::funApp()
       return;
     }
 
+    case T_NONE:
+      addTagState(T_RPAR);
+      _states.push(SIMPLE_TYPE);
+      consumeToken(T_LPAR);
+      return;
+
     case T_ITE:
       consumeToken(T_LPAR);
       addTagState(T_RPAR);
@@ -2241,6 +2267,8 @@ void TPTP::term()
     case T_SELECT:
     case T_STORE:
     case T_PROJ:
+    case T_NONE:
+    case T_SOME:
     case T_LET:
     case T_LBRA:
       _states.push(TERM_INFIX);
@@ -2321,6 +2349,14 @@ void TPTP::endTerm()
     return;
   }
 
+  if (name == toString(T_NONE)) {
+    Type* type = _types.pop();
+
+
+
+    return;
+  }
+
   int arity = _ints.pop();
 
   if (arity == -1) {
@@ -2386,6 +2422,11 @@ void TPTP::formulaInfix()
     _states.push(END_TERM_AS_FORMULA);
     _states.push(END_PROJ);
     return;
+  }
+
+  if (name == toString(T_NONE) || name == toString(T_SOME)) {
+    // the sort of an $option term is never $o
+    USER_ERROR("an $option term cannot be used as formula");
   }
 
   if (name == toString(T_LET)) {
@@ -3376,6 +3417,8 @@ void TPTP::simpleFormula()
   case T_SELECT:
   case T_STORE:
   case T_PROJ:
+  case T_NONE:
+  case T_SOME:
   case T_LET:
   case T_LBRA:
     _states.push(FORMULA_INFIX);

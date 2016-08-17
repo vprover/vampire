@@ -43,7 +43,9 @@ public:
     /** The structured sort for arrays **/
     ARRAY,
     /** The structured sort for lists, currently unused **/
-    LIST
+    LIST,
+    /** The structured sort for $option */
+    OPTION
   };
 
   Sorts();
@@ -117,6 +119,25 @@ public:
 
   };
 
+  class OptionSort : public StructuredSortInfo
+  {
+  public:
+    CLASS_NAME(OptionSort);
+    USE_ALLOCATOR(OptionSort);
+
+    OptionSort(vstring name, unsigned innerSort, unsigned id) :
+      StructuredSortInfo(name, StructuredSort::OPTION, id),
+      _innerSort(innerSort) {}
+
+    bool hasStructuredSort(StructuredSort sort) override {
+      return sort == StructuredSort::OPTION;
+    }
+    unsigned getInnerSort(){ return _innerSort; }
+
+  private:
+    unsigned _innerSort;
+  };
+
   class TupleSort : public SortInfo
   {
   public:
@@ -147,6 +168,13 @@ public:
   ArraySort* getArraySort(unsigned sort){
     ASS(hasStructuredSort(sort,StructuredSort::ARRAY));
     return static_cast<ArraySort*>(_sorts[sort]);
+  }
+
+  unsigned addOptionSort(unsigned innerSort);
+  VirtualIterator<unsigned> getOptionSorts();
+  OptionSort* getOptionSort(unsigned sort){
+    ASS(hasStructuredSort(sort,StructuredSort::OPTION));
+    return static_cast<OptionSort*>(_sorts[sort]);
   }
 
   unsigned addTupleSort(unsigned arity, unsigned sorts[]);

@@ -20,6 +20,8 @@
 #include "Kernel/Unit.hpp"
 #include "Kernel/Theory.hpp"
 
+#define DEBUG_SHOW_STATE
+
 using namespace std;
 using namespace Lib;
 using namespace Kernel;
@@ -149,6 +151,8 @@ public:
     T_STORE,
     /** $tuple type */
     T_TUPLE,
+    /** $option theory */
+    T_OPTION, T_SOME, T_NONE, T_IS_SOME, T_FROM_SOME,
     /** tuple projection */
     T_PROJ,
     /** $fot, probably useless */
