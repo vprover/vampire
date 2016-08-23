@@ -385,6 +385,8 @@ const char* Statistics::phaseToString(ExecutionPhase p)
     return "Predicate definition inlining";
   case UNUSED_PREDICATE_DEFINITION_REMOVAL:
     return "Unused predicate definition removal";
+  case BLOCKED_CLAUSE_ELIMINATION:
+    return "Blocked clause elimination";
   case PREPROCESS_2:
     return "Preprocessing 2";
   case NEW_CNF:

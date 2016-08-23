@@ -372,6 +372,7 @@ void Preprocess::preprocess (Problem& prb)
    }
 
    if (_options.blockedClauseElimination()) {
+     env.statistics->phase=Statistics::BLOCKED_CLAUSE_ELIMINATION;
      if(env.options->showPreprocessing())
        env.out() << "blocked clause elimination" << std::endl;
 
