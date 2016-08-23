@@ -13,7 +13,7 @@
 #include "Inferences/FastCondensation.hpp"
 #include "Inferences/InferenceEngine.hpp"
 #include "Inferences/InterpretedEvaluation.hpp"
-#include "Inferences/TermAlgebrasReasoning.hpp"
+#include "Inferences/TermAlgebraReasoning.hpp"
 #include "Inferences/TautologyDeletionISE.hpp"
 
 #include "InstGen/IGAlgorithm.hpp"

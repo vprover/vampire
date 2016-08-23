@@ -283,7 +283,7 @@ VINF_OBJ=Inferences/BackwardDemodulation.o\
          Inferences/SLQueryForwardSubsumption.o\
          Inferences/Superposition.o\
          Inferences/TautologyDeletionISE.o\
-         Inferences/TermAlgebrasReasoning.o\
+         Inferences/TermAlgebraReasoning.o\
          Inferences/URResolution.o
 
 VSAT_OBJ=SAT/ClauseDisposer.o\
@@ -369,6 +369,7 @@ VS_OBJ = Shell/AnswerExtractor.o\
          Shell/SymbolDefinitionInlining.o\
          Shell/SymbolOccurrenceReplacement.o\
          Shell/SymCounter.o\
+         Shell/TermAlgebra.o\
          Shell/TheoryAxioms.o\
          Shell/TheoryFinder.o\
          Shell/TheoryFlattening.o\

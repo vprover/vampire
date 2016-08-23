@@ -1,5 +1,5 @@
 /**
- * @file TermAlgebrasReasoning.cpp
+ * @file TermAlgebraReasoning.cpp
  */
 
 #include "Kernel/Inference.hpp"
@@ -18,7 +18,7 @@
 
 #include "Shell/Statistics.hpp"
 
-#include "TermAlgebrasReasoning.hpp"
+#include "TermAlgebraReasoning.hpp"
 
 #include <cstring>
 

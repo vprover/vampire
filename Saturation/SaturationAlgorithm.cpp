@@ -45,7 +45,7 @@
 #include "Inferences/HyperSuperposition.hpp"
 #include "Inferences/InnerRewriting.hpp"
 #include "Inferences/RefutationSeekerFSE.hpp"
-#include "Inferences/TermAlgebrasReasoning.hpp"
+#include "Inferences/TermAlgebraReasoning.hpp"
 #include "Inferences/SLQueryForwardSubsumption.hpp"
 #include "Inferences/SLQueryBackwardSubsumption.hpp"
 #include "Inferences/Superposition.hpp"

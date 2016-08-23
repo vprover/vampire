@@ -19,6 +19,8 @@
 #include "Lib/DHMap.hpp"
 #include "Lib/VString.hpp"
 
+#include "Shell/TermAlgebra.hpp"
+
 #include "Sorts.hpp"
 #include "Theory.hpp"
 
@@ -276,55 +278,6 @@ class Signature
     CLASS_NAME(Signature::RealSymbol);
     USE_ALLOCATOR(RealSymbol);
   };
-
-  class TermAlgebraConstructor {
-  public:
-    TermAlgebraConstructor(vstring name) :
-      _cname(name),
-      _args(nullptr)
-    {}
-
-    ~TermAlgebraConstructor() {}
-
-    vstring name() { return _cname; }
-    List<pair<vstring, unsigned>>* args() { return _args; }
-    unsigned functor() {return _functor; }
-    void setFunctor(unsigned f) { _functor = f; }
-    bool recursive(unsigned algebraSort);
-
-    void addArg(vstring name, unsigned sort);
-
-  private:
-    unsigned _functor;
-    vstring _cname;
-    List<pair<vstring, unsigned>>* _args;
-  };
-
-  class TermAlgebra {
-  public:
-    TermAlgebra(vstring name, unsigned sort, bool allowsCyclicTerms = false) :
-      _tname(name),
-      _constrs(nullptr),
-      _sort(sort)
-    {}
-
-    ~TermAlgebra() {}
-
-    List<TermAlgebraConstructor*>* constructors() { return _constrs; }
-    vstring name() { return _tname; }
-    unsigned sort() { return _sort; }
-    bool allowsCyclicTerms() { return _allowsCyclicTerms; }
-    
-    bool wellFoundedAlgebra();
-    void addConstr(vstring name);
-    void addConstrArg(vstring name, unsigned sort);
-  
-  private:
-    vstring _tname;
-    List<TermAlgebraConstructor*>* _constrs;
-    unsigned _sort;
-    bool _allowsCyclicTerms;
-  };
     
   //////////////////////////////////////
   // Variable Symbol declarations
@@ -543,8 +496,8 @@ class Signature
   }
 
   bool isTermAlgebraSort(unsigned sort) { return _termAlgebras.find(sort); }
-  TermAlgebra *getTermAlgebraOfSort(unsigned sort) { return _termAlgebras.get(sort); }
-  void addTermAlgebra(TermAlgebra *ta) { _termAlgebras.insert(ta->sort(), ta); }
+  Shell::TermAlgebra *getTermAlgebraOfSort(unsigned sort) { return _termAlgebras.get(sort); }
+  void addTermAlgebra(Shell::TermAlgebra *ta) { _termAlgebras.insert(ta->sort(), ta); }
 
   void recordDividesNvalue(TermList n){
     _dividesNvalues.push(n);
@@ -614,7 +567,7 @@ private:
   /**
    * Map from sorts to the associated term algebra, if applicable for the sort
    */ 
-  DHMap<unsigned, TermAlgebra*> _termAlgebras;
+  DHMap<unsigned, Shell::TermAlgebra*> _termAlgebras;
 }; // class Signature
 
 }

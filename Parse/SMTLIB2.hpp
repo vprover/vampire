@@ -252,14 +252,9 @@ private:
   void readDefineFun(const vstring& name, LExprList* iArgs, LExpr* oSort, LExpr* body);
 
   void readDeclareDatatypes(LExprList* sorts, LExprList* datatypes, bool codatatype = false);
-  void declareTermAlgebra(Signature::TermAlgebra *ta, bool coalgebra);
-  void declareTermAlgebraConstructor(Signature::TermAlgebraConstructor *c, unsigned rangeSort);
+  void declareTermAlgebra(Shell::TermAlgebra *ta);
+  void declareTermAlgebraConstructor(Shell::TermAlgebraConstructor *c, unsigned rangeSort);
 
-  void addExhaustivenessAxiom(Signature::TermAlgebra *ta);
-  void addDistinctnessAxiom(Signature::TermAlgebra *ta);
-  void addInjectivityAxiom(Signature::TermAlgebra *ta);
-  void addAcyclicityAxiom(Signature::TermAlgebra *ta);
-  bool addSubtermDefinitions(Signature::TermAlgebraConstructor *c, unsigned subtermPredicate, unsigned sort);
   /**
    * Parse result of parsing an smtlib term (which can be of sort Bool and therefore represented in vampire by a formula)
    */

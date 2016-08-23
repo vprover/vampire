@@ -1,12 +1,13 @@
 /**
- * @file TermAlgebrasReasoning.hpp
+ * @file TermAlgebraReasoning.hpp
  *
  * Inference rules allowing efficient reasoning in the theory of term
- * algebras
+ * algebras. These rules concerns (dis)equalities between terms of
+ * sorts marked as term algebra sorts.
  */
 
-#ifndef __TermAlgebrasReasoning__
-#define __TermAlgebrasReasoning__
+#ifndef __TermAlgebraReasoning__
+#define __TermAlgebraReasoning__
 
 #include "Forwards.hpp"
 
@@ -22,9 +23,23 @@
 
 namespace Inferences {
 
+/*
+  Simplification rule:
+
+  f(...) = g(...) \/ A
+  --------------------
+          A
+
+  Tautology deletion:
+
+  f(...) ~= g(...) \/ A
+
+  where f and g are different term algebra constructors
+*/
 class DistinctnessISE
   : public ImmediateSimplificationEngine
 {
+
 public:
   CLASS_NAME(DistinctnessISE);
   USE_ALLOCATOR(DistinctnessISE);
@@ -32,7 +47,17 @@ public:
   Kernel::Clause* simplify(Kernel::Clause* c);
 };
 
-// equivalent to the simplification rule, without premise deletion
+/*
+  Generating rule:
+
+  f(s1 ... sn) = f(t1 ... tn) \/ A
+  --------------------------------
+            s1 = t1 \/ A
+                ...
+            sn = tn \/ A
+
+  where f is a term algebra constructor of arity n > 1
+*/
 class InjectivityGIE
   : public GeneratingInferenceEngine {
 public:
@@ -46,6 +71,15 @@ private:
   struct SubtermEqualityFn;
 };
 
+/*
+  Simplification rule:
+
+  f(s) = f(t) \/ A
+  ----------------
+     s = t \/ A
+
+  where f is a term algebra constructor of arity 1
+*/
 class InjectivityISE
   : public ImmediateSimplificationEngine
 {

@@ -20,6 +20,7 @@
 #include "Shell/LispLexer.hpp"
 #include "Shell/Options.hpp"
 #include "Shell/SMTLIBLogic.hpp"
+#include "Shell/TermAlgebra.hpp"
 
 #include "SMTLIB2.hpp"
 
@@ -835,7 +836,7 @@ void SMTLIB2::readDeclareDatatypes(LExprList* sorts, LExprList* datatypes, bool 
   CALL("SMTLIB2::readDeclareDatatypes");
   
   if (sorts->length() > 0) {
-    USER_ERROR("unsupported parametric datatypes declaration");
+    USER_ERROR("unsupported parametric datatype declaration");
   }
 
   // first declare all the sorts, and then only the constructors, in
@@ -855,395 +856,123 @@ void SMTLIB2::readDeclareDatatypes(LExprList* sorts, LExprList* datatypes, bool 
     ASS(added);
   }
 
-  List<Signature::TermAlgebra*>* algebras = nullptr;
+  Stack<TermAlgebra*> algebras;
+  Stack<TermAlgebraConstructor*> constructors;
+  Stack<unsigned> argSorts;
+  Stack<vstring> destructorNames;
 
   LispListReader dtypesRdr2(datatypes);
   while(dtypesRdr2.hasNext()) {
+    constructors.reset();
     LispListReader dtypeRdr(dtypesRdr2.readList());
-    const vstring& sortName = dtypeRdr.readAtom() + "()";
+    const vstring& taName = dtypeRdr.readAtom() + "()";
     bool added;
-    Signature::TermAlgebra* ta = new Signature::TermAlgebra(sortName, env.sorts->addSort(sortName, added), codatatype);
+    unsigned taSort = env.sorts->addSort(taName, added);
     ASS(!added);
 
     while (dtypeRdr.hasNext()) {
+      argSorts.reset();
+      destructorNames.reset();
       // read each constructor declaration
+      vstring constrName;
       LExpr *constr = dtypeRdr.next();
       if (constr->isAtom()) {
         // atom, construtor of arity 0
-        ta->addConstr(constr->str);
+        constrName = constr->str;
       } else {
         ASS(constr->isList());
         LispListReader constrRdr(constr);
-        ta->addConstr(constrRdr.readAtom());
+        constrName = constrRdr.readAtom();
 
         while (constrRdr.hasNext()) {
           LExpr *arg = constrRdr.next();
           LispListReader argRdr(arg);
-          const vstring& destructorName = argRdr.readAtom();
-          unsigned argSort = declareSort(argRdr.next());
+          destructorNames.push(argRdr.readAtom());
+          argSorts.push(declareSort(argRdr.next()));
           if (argRdr.hasNext()) {
             USER_ERROR("Bad constructor argument:" + arg->toString());
           }
-          ta->addConstrArg(destructorName, argSort);
         }
       }
+      constructors.push(new TermAlgebraConstructor(constrName,
+                                                   taSort,
+                                                   argSorts.size(),
+                                                   destructorNames.begin(),
+                                                   argSorts.begin()));
     }
-    algebras = algebras->cons(ta);
+    algebras.push(new TermAlgebra(taName,
+                                  taSort,
+                                  constructors.size(),
+                                  constructors.begin(),
+                                  codatatype));
   }
 
-  List<Signature::TermAlgebra*>::Iterator it(algebras);
+  Stack<TermAlgebra*>::Iterator it(algebras);
   while (it.hasNext()) {
-    declareTermAlgebra(it.next(), codatatype);
+    declareTermAlgebra(it.next());
   }
-    
-  algebras->destroy();
 }
 
-void SMTLIB2::declareTermAlgebra(Signature::TermAlgebra *ta, bool coalgebra)
+void SMTLIB2::declareTermAlgebra(Shell::TermAlgebra *ta)
 {
   CALL("SMTLIB2::declareTermAlgebra");
 
-  if (!coalgebra && !ta->wellFoundedAlgebra()) {
-    USER_ERROR("Datatype " + ta->name() + " is not well-founded");
+  if (ta->emptyDomain()) {
+    USER_ERROR("Datatype " + ta->name() + " defines an empty sort");
   }
 
   ASS(!env.signature->isTermAlgebraSort(ta->sort()));
   env.signature->addTermAlgebra(ta);
 
-  List<Signature::TermAlgebraConstructor*>::Iterator constrsIt(ta->constructors());
-  while (constrsIt.hasNext()) {
-    declareTermAlgebraConstructor(constrsIt.next(), ta->sort());
+  for (unsigned i = 0; i < ta->nConstructors(); i++) {
+    declareTermAlgebraConstructor(ta->constructor(i), ta->sort());
   }
 
-  addExhaustivenessAxiom(ta);
-  addDistinctnessAxiom(ta);
-  addInjectivityAxiom(ta);
+  ta->addExhaustivenessAxiom(_formulas);
+  ta->addDistinctnessAxiom(_formulas);
+  ta->addInjectivityAxiom(_formulas);
+  
   if (env.options->termAlgebraCyclicityCheck() == Options::TACyclicityCheck::AXIOM) {
-    addAcyclicityAxiom(ta);
+    ta->addAcyclicityAxiom(_formulas);
+    
+    // declare subterm predicate for parser
+    DeclaredFunction p = make_pair(ta->getSubtermPredicate(), false);
+    LOG1("declareFunctionOrPredicate-Predicate");
+    LOG2("declareFunctionOrPredicate -name ", ta->getSubtermPredicateName());
+    LOG2("declareFunctionOrPredicate -symNum ", ta->getSubtermPredicate());
+    ALWAYS(_declaredFunctions.insert(ta->getSubtermPredicateName(), p));
   }
 }
 
-void SMTLIB2::declareTermAlgebraConstructor(Signature::TermAlgebraConstructor *c, unsigned rangeSort)
+void SMTLIB2::declareTermAlgebraConstructor(Shell::TermAlgebraConstructor *c, unsigned rangeSort)
 {
   CALL("SMTLIB2::declareTermAlgebraConstructor");
 
-  Stack<unsigned> destrArgSort;
-  destrArgSort.push(rangeSort);
-  Stack<unsigned> argSorts;
-  List<pair<vstring,unsigned>>::Iterator argsIt(c->args());
-  
-  while (argsIt.hasNext()) {
-    pair<vstring,unsigned> arg = argsIt.next();
-    argSorts.push(arg.second);
-    // declare destructor
-    if (isAlreadyKnownFunctionSymbol(arg.first)) {
-      USER_ERROR("Redeclaring function symbol: " + arg.first);
-    }
-    declareFunctionOrPredicate(arg.first, arg.second, destrArgSort);
-  }
-  // declare constructor
+  // create symbols in signature
+  c->createSymbols();
+
+  // declare symbols for parser
+  // constructor
   if (isAlreadyKnownFunctionSymbol(c->name())) {
     USER_ERROR("Redeclaring function symbol: " + c->name());
   }
-  DeclaredFunction df = declareFunctionOrPredicate(c->name(), rangeSort, argSorts);
-  env.signature->getFunction(df.first)->markTermAlgebraCons();
-  c->setFunctor(df.first);
-}
+  DeclaredFunction p = make_pair(c->functor(), true);
+  LOG1("declareFunctionOrPredicate-Function");
+  LOG2("declareFunctionOrPredicate -name ", c->name());
+  LOG2("declareFunctionOrPredicate -symNum ", c->functor());
+  ALWAYS(_declaredFunctions.insert(c->name(), p));
 
-void SMTLIB2::addExhaustivenessAxiom(Signature::TermAlgebra *ta)
-{
-  CALL("SMTLIB2::addExhaustivenessAxiom");
-
-  TermList x(0, false);
-  Stack<TermList> argTerms;
-
-  List<Signature::TermAlgebraConstructor*>::Iterator it1(ta->constructors());
-
-  FormulaList *l = FormulaList::empty();
-
-  while (it1.hasNext()) {
-    Signature::TermAlgebraConstructor *c = it1.next();
-    List<pair<vstring, unsigned>>::Iterator it2(c->args());
-    argTerms.reset();
-    
-    while (it2.hasNext()) {
-      pair<vstring, unsigned> a = it2.next();
-      unsigned dn = env.signature->getFunctionNumber(a.first, 1);
-      TermList t(Term::create1(dn, x));
-      argTerms.push(t);
+  // destructors
+  for (unsigned i = 0; i < c->arity(); i++) {
+    if (isAlreadyKnownFunctionSymbol(c->destructorName(i))) {
+      USER_ERROR("Redeclaring function symbol: " + c->destructorName(i));
     }
-    
-    TermList rhs(Term::create(env.signature->getFunctionNumber(c->name(), argTerms.size()),
-                              argTerms.size(),
-                              argTerms.begin()));
-    l = l->cons(new AtomicFormula(Literal::createEquality(true, x, rhs, ta->sort())));
+    DeclaredFunction p = make_pair(c->destructorFunctor(i), true);
+    LOG1("declareFunctionOrPredicate-Function");
+    LOG2("declareFunctionOrPredicate -name ", c->destructorName(i));
+    LOG2("declareFunctionOrPredicate -symNum ", c->destructorFunctor(i));
+    ALWAYS(_declaredFunctions.insert(c->destructorName(i), p));
   }
-
-  Formula::VarList* vars = Formula::VarList::empty()->cons(x.var());
-  Formula::SortList* sorts = Formula::SortList::empty()->cons(ta->sort());
-
-  Formula *axiom;
-  switch (l->length()) {
-  case 0:
-    // the algebra cannot have 0 constructors
-    ASSERTION_VIOLATION;
-  case 1:
-    axiom = new QuantifiedFormula(Connective::FORALL, vars, sorts, l->head());
-    break;
-  default:
-    axiom = new QuantifiedFormula(Connective::FORALL,
-                                  vars,
-                                  sorts,
-                                  new JunctionFormula(Connective::OR, l));
-  }
-
-  UnitList::push(new FormulaUnit(axiom,
-                                 new Inference(Inference::TERM_ALGEBRA_DISTINCTNESS),
-                                 Unit::AXIOM),
-                 _formulas);
-}
-
-void SMTLIB2::addDistinctnessAxiom(Signature::TermAlgebra *ta)
-{
-  CALL("SMTLIB2::addDistinctnessAxiom");
-
-  unsigned varnum = 0;
-  FormulaList *l = FormulaList::empty();
-  Formula::VarList* vars = Formula::VarList::empty();
-  Formula::SortList* sorts = Formula::SortList::empty();
-
-  List<Signature::TermAlgebraConstructor*>* constrs = ta->constructors();
-  List<pair<vstring, unsigned>>::Iterator argit;
-  Stack<TermList> argTerms;
-
-  while (List<Signature::TermAlgebraConstructor*>::isNonEmpty(constrs)) {
-    pair<vstring,unsigned> a;
-    Signature::TermAlgebraConstructor* c = constrs->head();
-    List<Signature::TermAlgebraConstructor*>::Iterator cit(constrs->tail());
-
-    // build LHS
-    argTerms.reset();
-    argit.reset(c->args());
-    while (argit.hasNext()) {
-      a = argit.next();
-      TermList var(varnum++, false);
-      argTerms.push(var);
-      vars = vars->cons(var.var());
-      sorts = sorts->cons(a.second);
-    }
-    TermList lhs(Term::create(env.signature->getFunctionNumber(c->name(), argTerms.size()),
-                              argTerms.size(),
-                              argTerms.begin()));
-    
-    while (cit.hasNext()) {
-      c = cit.next();
-
-      // build RHS
-      argTerms.reset();
-      argit.reset(c->args());
-      while (argit.hasNext()) {
-        a = argit.next();
-        TermList var(varnum++, false);
-        argTerms.push(var);
-        vars = vars->cons(var.var());
-        sorts = sorts->cons(a.second);
-      }
-      TermList rhs(Term::create(env.signature->getFunctionNumber(c->name(), argTerms.size()),
-                                argTerms.size(),
-                                argTerms.begin()));
-
-      l = l->cons(new AtomicFormula(Literal::createEquality(false, lhs, rhs, ta->sort())));
-    }
-
-    constrs = constrs->tail();
-  }
-
-  Formula *axiom;
-  switch (l->length()) {
-  case 0:
-    axiom = Formula::trueFormula();
-    break;
-  case 1:
-    axiom = new QuantifiedFormula(Connective::FORALL, vars, sorts, l->head());
-    break;
-  default:
-    axiom = new QuantifiedFormula(Connective::FORALL,
-                                 vars,
-                                 sorts,
-                                 new JunctionFormula(Connective::AND, l));
-  }
-
-  UnitList::push(new FormulaUnit(axiom,
-                                 new Inference(Inference::TERM_ALGEBRA_DISTINCTNESS),
-                                 Unit::AXIOM),
-                 _formulas);
-}
-
-void SMTLIB2::addInjectivityAxiom(Signature::TermAlgebra *ta)
-{
-  CALL("SMTLIB2::addInjectivityAxiom");
-
-  List<Signature::TermAlgebraConstructor*>::Iterator it(ta->constructors());
-  Stack<TermList> argTermsX;
-  Stack<TermList> argTermsY;
-  unsigned varnum = 0;
-  
-  while (it.hasNext()) {
-    Signature::TermAlgebraConstructor* c = it.next();
-    
-    if (c->args()->length() != 0) {
-      FormulaList *implied = FormulaList::empty();
-      Formula::VarList* vars = Formula::VarList::empty();
-      Formula::SortList* sorts = Formula::SortList::empty();
-
-      argTermsX.reset();
-      argTermsY.reset();
-      
-      List<pair<vstring, unsigned>>::Iterator argit(c->args());
-
-      while (argit.hasNext()) {
-        pair<vstring, unsigned> arg = argit.next();
-        TermList x(varnum++, false);
-        TermList y(varnum++, false);
-        sorts = sorts->cons(arg.second)->cons(arg.second);
-        vars = vars->cons(x.var())->cons(y.var());
-        argTermsX.push(x);
-        argTermsY.push(y);
-        implied = implied->cons(new AtomicFormula(Literal::createEquality(true, x, y, arg.second)));
-      }
-
-      TermList lhs(Term::create(env.signature->getFunctionNumber(c->name(), argTermsX.size()),
-                                argTermsX.size(),
-                                argTermsX.begin()));
-      TermList rhs(Term::create(env.signature->getFunctionNumber(c->name(), argTermsY.size()),
-                                argTermsY.size(),
-                                argTermsY.begin()));
-      Formula *eq = new AtomicFormula(Literal::createEquality(true, lhs, rhs, ta->sort()));
-      Formula *impliedf;
-      switch (implied->length()) {
-      case 0:
-        ASSERTION_VIOLATION;
-        break;
-      case 1:
-        impliedf = implied->head();
-        break;
-      default:
-        impliedf = new JunctionFormula(Connective::AND, implied);
-        break;
-      }
-
-      // add axiom to the problem
-      UnitList::push(new FormulaUnit(new QuantifiedFormula(Connective::FORALL,
-                                                           vars,
-                                                           sorts,
-                                                           new BinaryFormula (Connective::IMP, eq, impliedf)),
-                                     new Inference(Inference::TERM_ALGEBRA_DISTINCTNESS),
-                                     Unit::AXIOM),
-                     _formulas);
-    }
-  }
-}
-  
-void SMTLIB2::addAcyclicityAxiom(Signature::TermAlgebra *ta)
-{
-  CALL("SMTLIB2::addAcyclicityAxiom");
-
-  // declare a binary predicate subterm
-  Stack<unsigned> args;
-  unsigned sort = ta->sort();
-  args.push(sort); args.push(sort);
-  DeclaredFunction f = declareFunctionOrPredicate("subterm$" + ta->name(), Sorts::SRT_BOOL, args);
-  ASS(!f.second);
-
-  List<Signature::TermAlgebraConstructor*>::Iterator it(ta->constructors());
-  bool hasRecursiveConstructors = false;
-  while (it.hasNext()) {
-    if (addSubtermDefinitions(it.next(), f.first, sort)) {
-      hasRecursiveConstructors = true;
-    }
-  }
-  if (!hasRecursiveConstructors) {
-    // no need to add further since the subterm relation is empty
-    return;
-  }
-
-  unsigned varnum = 0;
-  TermList x(varnum++, false);
-  TermList y(varnum++, false);
-  TermList z(varnum++, false);
-
-  // add acyclicity axiom
-  Formula *acycl = new QuantifiedFormula(Connective::FORALL,
-                                         Formula::VarList::empty()->cons(x.var()),
-                                         Formula::SortList::empty()->cons(sort),
-                                         new AtomicFormula(Literal::create2(f.first, false, x, x)));
-  UnitList::push(new FormulaUnit(acycl,
-                                 new Inference(Inference::TERM_ALGEBRA_ACYCLICITY),
-                                 Unit::AXIOM),
-                 _formulas);
-
-  // add transitivity of subterm
-  Formula *inner = new BinaryFormula(Connective::IMP,
-                                     new AtomicFormula(Literal::create2(f.first, true, y, z)),
-                                     new AtomicFormula(Literal::create2(f.first, true, x, z)));
-  Formula *outer = new BinaryFormula(Connective::IMP,
-                                     new AtomicFormula(Literal::create2(f.first, true, x, y)),
-                                     inner);
-  Formula *trans = new QuantifiedFormula(Connective::FORALL,
-                                         Formula::VarList::empty()->cons(x.var())->cons(y.var())->cons(z.var()),
-                                         Formula::SortList::empty()->cons(sort)->cons(sort)->cons(sort),
-                                         outer);
-
-  UnitList::push(new FormulaUnit(trans,
-                                 new Inference(Inference::TERM_ALGEBRA_ACYCLICITY),
-                                 Unit::AXIOM),
-                 _formulas);
-}
-
-// returns true if at least one definition was added, i.e. if the constructor is recursive
-bool SMTLIB2::addSubtermDefinitions(Signature::TermAlgebraConstructor *c, unsigned subtermPredicate, unsigned sort)
-{
-  CALL("SMTLIB2::addSubtermDefinitions");
-
-  List<pair<vstring, unsigned>>::Iterator it(c->args());
-  Formula::VarList *v = Formula::VarList::empty();
-  Formula::SortList *s = Formula::SortList::empty();
-  Stack<TermList> args;
-  bool hasRecursiveArg = false;
-  unsigned varNum = 0;
-  
-  while (it.hasNext()) {
-    unsigned argSort = it.next().second;
-    if (argSort == sort) {
-      hasRecursiveArg = true;
-    }
-    TermList x(varNum++, false);
-    args.push(x);
-    v = v->cons(x.var());
-    s = s->cons(argSort);
-  }
-  if (!hasRecursiveArg) {
-    return false;
-  }
-  it.reset(c->args());
-  TermList right(Term::create(c->functor(), args.size(), args.begin()));
-  varNum = 0;
-
-  while (it.hasNext()) {
-    if (it.next().second == sort) {
-      TermList left(varNum, false);
-      Formula *def = new QuantifiedFormula(Connective::FORALL,
-                                           v,
-                                           s,
-                                           new AtomicFormula(Literal::create2(subtermPredicate, true, left, right)));
-      UnitList::push(new FormulaUnit(def,
-                                     new Inference(Inference::TERM_ALGEBRA_ACYCLICITY),
-                                     Unit::AXIOM),
-                     _formulas);
-    }
-    varNum++;
-  }
-  return true;
 }
   
 bool SMTLIB2::ParseResult::asFormula(Formula*& resFrm)
