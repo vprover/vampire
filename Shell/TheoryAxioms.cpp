@@ -992,7 +992,7 @@ bool TheoryAxioms::apply(UnitList*& units, Property* prop)
 
   bool haveIntDivision =
     prop->hasInterpretedOperation(Theory::INT_QUOTIENT_E) || // let's ignore the weird _F and _T for now!
-    prop->hasInterpretedOperation(Theory::INT_MODULO) ||
+    prop->hasInterpretedOperation(Theory::INT_REMAINDER_E) ||
     prop->hasInterpretedOperation(Theory::INT_ABS);
 
   bool haveIntDivides = prop->hasInterpretedOperation(Theory::INT_DIVIDES);
@@ -1012,7 +1012,7 @@ bool TheoryAxioms::apply(UnitList*& units, Property* prop)
       if(haveIntDivision){
         addIntegerDivisionWithModuloAxioms(Theory::INT_PLUS, Theory::INT_UNARY_MINUS, Theory::INT_LESS,
                                  Theory::INT_MULTIPLY, Theory::INT_QUOTIENT_E, Theory::INT_DIVIDES,
-                                 Theory::INT_MODULO, Theory::INT_ABS, zero,one, units);
+                                 Theory::INT_REMAINDER_E, Theory::INT_ABS, zero,one, units);
       }
       else if(haveIntDivides){ 
         Stack<TermList>& ns = env.signature->getDividesNvalues(); 

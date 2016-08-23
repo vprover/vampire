@@ -14,20 +14,20 @@ VAMPIRE_ROOT = sys.argv[1]+' --include '+TPTP
 time_out=str(10)
 # Set the strings for each prover
 EPROVER='~/Vampire/prover-bin/eprover --auto --tptp3-in --proof-object --cpu-limit='+time_out
-VAMPIRE= VAMPIRE_ROOT+' -p off --ignore_missing on --mode casc --time_limit '+time_out
+VAMPIRE= VAMPIRE_ROOT+' -p off --ignore_missing on -fsr off -szs on --time_limit '+time_out
 IPROVER='~/Vampire/prover-bin/iproveropt --clausifier ../vampire_rel_master --clausifier_options "--mode clausify" --time_out_real '+time_out
 CVC4='cvc4 --lang tptp --tlimit='+time_out+'000' # to convert seconds to ms
 SPASS='~/Vampire/prover-bin/SPASS -Auto=1 -TPTP=1 -TimeLimit='+time_out  
 CHECK_WITH=set()
 #CHECK_WITH.add(EPROVER)
-CHECK_WITH.add(VAMPIRE)
+#CHECK_WITH.add(VAMPIRE)
 #CHECK_WITH.add(IPROVER)
 CHECK_WITH.add(CVC4)
 #CHECK_WITH.add(SPASS)
 
 verbose=True
 
-ignores=set(['%negated conjecture','%sat splitting component','%theory axiom','%cnf transformation','%flattening','%ennf transformation','%general splitting','%general splitting component introduction','%global subsumption','%sat splitting refutation'])
+ignores=set()#set(['%negated conjecture','%sat splitting component','%theory axiom','%cnf transformation','%flattening','%ennf transformation','%general splitting','%general splitting component introduction','%global subsumption','%sat splitting refutation','%rectify'])
 
 ARGS= " -p proofcheck "+(' '.join(sys.argv[2:]))
 print "Running vampire on "+ ARGS 
@@ -70,11 +70,9 @@ for line in OUT.split('\n'):
 
       	proved=False
       	for prover_line in prover_result.split('\n'):
-		if verbose:
-			print "Prover output:"
         	if 'SZS status' in prover_line:
           		if verbose:
-            			print "\t"+prover_line
+            			print "Prover Output:\t"+prover_line
           		if 'Theorem' in prover_line or 'Unsatisfiable' in prover_line:
 	            		proved=True
 			break

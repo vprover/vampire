@@ -241,6 +241,8 @@ size_t SaturationAlgorithm::passiveClauseCount()
  */
 void SaturationAlgorithm::onActiveAdded(Clause* c)
 {
+  CALL("SaturationAlgorithm::onActiveAdded");
+
   if (env.options->showActive()) {
     env.beginOutput();    
     env.out() << "[SA] active: " << c->toString() << std::endl;

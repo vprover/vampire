@@ -369,15 +369,15 @@ vstring Inference::ruleName(Rule rule)
   case BOOLEAN_TERM_ENCODING:
     return "boolean term encoding";
   case AVATAR_DEFINITION:
-    return "AVATAR definition";
+    return "avatar definition";
   case AVATAR_COMPONENT:
-    return "AVATAR component clause";
+    return "avatar component clause";
   case AVATAR_REFUTATION:
-    return "AVATAR sat refutation";
+    return "avatar sat refutation";
   case AVATAR_SPLIT_CLAUSE:
-    return "AVATAR split clause";
+    return "avatar split clause";
   case AVATAR_CONTRADICTION_CLAUSE:
-    return "AVATAR contradiction clause";
+    return "avatar contradiction clause";
   case SAT_COLOR_ELIMINATION:
     return "sat color elimination";
   case GENERAL_SPLITTING_COMPONENT:

@@ -1882,7 +1882,7 @@ bool SMTLIB2::parseAsBuiltinTermSymbol(const vstring& id, LExpr* exp)
         complainAboutArgShortageOrWrongSorts(BUILT_IN_SYMBOL,exp);
       }
 
-      unsigned fun = Theory::instance()->getFnNum(Theory::INT_MODULO);
+      unsigned fun = Theory::instance()->getFnNum(Theory::INT_REMAINDER_E);
       TermList res = TermList(Term::create2(fun,int1,int2));
 
       _results.push(ParseResult(Sorts::SRT_INTEGER,res));
