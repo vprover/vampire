@@ -257,7 +257,7 @@ namespace Indexing
     {
       CALL("AcyclicityIndex::CycleSearchIterator::hasNext");
 
-      // is hasNext() has already been called without being followed
+      // if hasNext() has already been called without being followed
       // by a call to next(), the next value is already computed
       if (_nextResult) { return true; }
 
