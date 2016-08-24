@@ -22,8 +22,8 @@ public:
   void apply(Problem& prb);
   bool apply(UnitList*& units);
   bool apply(ClauseList*& units);
-private:
   Clause* apply(Clause*& cl);
+private:
   Literal* replaceTopTerms(Literal* lit, Stack<Literal*>& newLits,unsigned& maxVar);
   Term* replaceTopTermsInTerm(Term* term, Stack<Literal*>& newLits,
                               unsigned& maxVar,bool interpreted);

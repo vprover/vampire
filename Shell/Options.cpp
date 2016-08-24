@@ -771,6 +771,15 @@ void Options::Options::init()
 
 	//*********************** Inferences  ***********************
 
+#if VZ3
+	   _theoryInstAndSimp = BoolOptionValue("theory_inst_and_simp","this",false);
+           _theoryInstAndSimp.description = "";
+           _theoryInstAndSimp.tag(OptionTag::INFERENCES);
+	   _lookup.insert(&_theoryInstAndSimp);
+           _theoryInstAndSimp.setExperimental();
+
+#endif
+
 	    _instantiation = ChoiceOptionValue<Instantiation>("instantiation","inst",Instantiation::OFF,{"off","on"});
 	    _instantiation.description = "Heuristically instantiate variables";
 	    _instantiation.tag(OptionTag::INFERENCES);

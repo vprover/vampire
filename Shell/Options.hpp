@@ -1748,6 +1748,7 @@ public:
   bool z3UnsatCores() const { return _z3UnsatCores.actualValue;}
   bool satFallbackForSMT() const { return _satFallbackForSMT.actualValue; }
   bool smtForGround() const { return _smtForGround.actualValue; }
+  bool theoryInstAndSimp() const { return _theoryInstAndSimp.actualValue; }
 #endif
   bool unusedPredicateDefinitionRemoval() const { return _unusedPredicateDefinitionRemoval.actualValue; }
   bool blockedClauseElimination() const { return _blockedClauseElimination.actualValue; }
@@ -2231,6 +2232,7 @@ private:
   BoolOptionValue _z3UnsatCores;
   BoolOptionValue _satFallbackForSMT;
   BoolOptionValue _smtForGround;
+  BoolOptionValue _theoryInstAndSimp;
 #endif
   TimeLimitOptionValue _simulatedTimeLimit;
   UnsignedOptionValue _sineDepth;

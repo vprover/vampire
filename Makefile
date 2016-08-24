@@ -287,7 +287,8 @@ VINF_OBJ=Inferences/BackwardDemodulation.o\
          Inferences/Superposition.o\
          Inferences/TautologyDeletionISE.o\
          Inferences/TermAlgebraReasoning.o\
-         Inferences/URResolution.o
+	 Inferences/URResolution.o\
+	 Inferences/TheoryInstAndSimp.o
 
 VSAT_OBJ=SAT/ClauseDisposer.o\
          SAT/DIMACS.o\

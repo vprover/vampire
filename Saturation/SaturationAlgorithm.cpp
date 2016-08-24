@@ -51,6 +51,7 @@
 #include "Inferences/Superposition.hpp"
 #include "Inferences/URResolution.hpp"
 #include "Inferences/Instantiation.hpp"
+#include "Inferences/TheoryInstAndSimp.hpp"
 
 #include "Saturation/ExtensionalityClauseContainer.hpp"
 
@@ -1352,6 +1353,11 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
       gie->addFront(new InjectivityGIE());
     }
   }
+#if VZ3
+  if (opt.theoryInstAndSimp()){
+    gie->addFront(new TheoryInstAndSimp());
+  }
+#endif
 
   res->setGeneratingInferenceEngine(gie);
 

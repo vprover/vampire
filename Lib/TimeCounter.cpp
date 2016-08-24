@@ -391,6 +391,9 @@ void TimeCounter::outputSingleStat(TimeCounterUnit tcu, ostream& out)
   case TC_NAMING:
     out << "naming";
     break;
+  case TC_THEORY_INST_SIMP:
+    out << "theory instantiation and simplification";
+    break;
   default:
     ASSERTION_VIOLATION;
   }
