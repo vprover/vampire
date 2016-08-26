@@ -441,9 +441,11 @@ void SaturationAlgorithm::onClauseReduction(Clause* cl, Clause* replacement,
     env.beginOutput();
     env.out() << "[SA] " << (forward ? "forward" : "backward") << " reduce: " << cl->toString() << endl;
     if(replacement){ env.out() << "     replaced by " << replacement->toString() << endl; }
-    ClauseStack::Iterator pit(premStack);
-    while(pit.hasNext()){ 
-      Clause* premise = pit.next();
+    // the inference may need minimised premises, let's update them
+    Inference* inf = cl->inference();
+    Inference::Iterator iter = inf->iterator();
+    while(inf->hasNext(iter)){
+      Unit* premise = inf->next(iter);
       if(premise){ env.out() << "     using " << premise->toString() << endl; }
     }
     env.endOutput();
