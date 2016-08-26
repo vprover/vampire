@@ -1109,7 +1109,7 @@ void Options::Options::init()
     _splitAtActivation.tag(OptionTag::AVATAR);
     _splitAtActivation.setRandomChoices({"on","off"});
 
-    _splittingAddComplementary = ChoiceOptionValue<SplittingAddComplementary>("avatar_add_complementary","avac",
+    _splittingAddComplementary = ChoiceOptionValue<SplittingAddComplementary>("avatar_add_complementary","aac",
                                                                                 SplittingAddComplementary::GROUND,{"ground","none"});
     _splittingAddComplementary.description="";
     _lookup.insert(&_splittingAddComplementary);
@@ -1164,7 +1164,7 @@ void Options::Options::init()
     _splittingMinimizeModel.reliesOn(_splitting.is(equal(true)));
     _splittingMinimizeModel.setRandomChoices({"off","sco","all"});
 
-    _splittingEagerRemoval = BoolOptionValue("avatar_eager_removal","aver",true);
+    _splittingEagerRemoval = BoolOptionValue("avatar_eager_removal","aer",true);
     _splittingEagerRemoval.description="If a component was in the model and then becomes 'don't care' eagerly remove that component from the first-order solver. Note: only has any impact when smm is used.";
     _lookup.insert(&_splittingEagerRemoval);
     _splittingEagerRemoval.tag(OptionTag::AVATAR);
