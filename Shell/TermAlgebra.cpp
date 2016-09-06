@@ -274,13 +274,15 @@ void TermAlgebra::addDistinctnessAxiom(UnitList*& units)
                                 argTerms.size(),
                                 argTerms.begin()));
 
-      Formula* axiom = new QuantifiedFormula(Connective::FORALL,
-                                             vars2,
-                                             sorts2,
-                                             new AtomicFormula(Literal::createEquality(false,
-                                                                                       lhs,
-                                                                                       rhs,
-                                                                                       _sort)));
+      Formula *eq = new AtomicFormula(Literal::createEquality(false,
+                                                              lhs,
+                                                              rhs,
+                                                              _sort));
+      Formula* axiom = Formula::VarList::isEmpty(vars2) ? eq : new QuantifiedFormula(Connective::FORALL,
+                                                                                     vars2,
+                                                                                     sorts2,
+                                                                                     eq);
+      
       UnitList::push(new FormulaUnit(axiom,
                                      new Inference(Inference::TERM_ALGEBRA_DISTINCTNESS),
                                      Unit::AXIOM),

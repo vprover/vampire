@@ -307,16 +307,16 @@ namespace Inferences {
 
         // create renaming to make sure that variable from different
         // clauses don't end up being confused in the conclusion
-        Renaming renaming(maxVar);
+        /*Renaming renaming(maxVar);
         VirtualIterator<unsigned> varIter = p->getVariableIterator();
         while (varIter.hasNext()) {
           unsigned n = renaming.getOrBind(varIter.next());
           maxVar = n > maxVar ? n : maxVar;
-        }
+          }*/
 
         for (unsigned j = 0; j < c->length(); j++) {
           if ((*p)[j] != l) {
-            (*res)[i++] = renaming.apply((*c)[j]);
+            (*res)[i++] = (*c)[j]; //renaming.apply((*c)[j]);
           }
         }
 

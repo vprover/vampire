@@ -125,7 +125,7 @@ namespace Indexing
       lit(l),
       clause(c),
       parent(n),
-      depth(n->depth),
+      depth(n->parent ? n->depth + 1 : 0),
       substIndex(substIndex)
     {}
 
@@ -135,7 +135,7 @@ namespace Indexing
       lit(l),
       clause(nullptr),
       parent(n),
-      depth(n ? n->depth + 1 : 0),
+      depth(n ? n->depth : 0),
       substIndex(substIndex)
     {}
 
@@ -162,7 +162,7 @@ namespace Indexing
       _nextResult(nullptr),
       _stack(0),
       _subst(new RobSubstitution()),
-      _btData(new BacktrackData()),
+      _substChanges(0),
       _nextAvailableIndex(0),
       _currentDepth(0)
     {
@@ -176,6 +176,9 @@ namespace Indexing
           _tis = aindex._tis;
           if (_index->find(queryLit)) {
             IndexEntry *entry = _index->get(queryLit);
+            //cout << "--------------------------------" << endl;
+            //cout << "push first node " << *entry->t << "/" << _nextAvailableIndex << endl;
+            //cout << _subst->toString() << endl;
             _stack.push(new CycleSearchTreeNode(entry->t,
                                                 queryLit,
                                                 nullptr,
@@ -183,6 +186,7 @@ namespace Indexing
           }
         }
       }
+      ASS_EQ(_currentDepth, _substChanges.size());
     }
     
     DECL_ELEMENT_TYPE(CycleQueryResult*);
@@ -212,6 +216,8 @@ namespace Indexing
       List<Clause*>* c = List<Clause*>::empty();
       List<Clause*>* cTheta = List<Clause*>::empty();
 
+      //cout << "new clause with subst=" << _subst->toString() << endl;
+
       CycleSearchTreeNode *n = node;
       while (n && n->parent) {
         ASS(n);
@@ -235,19 +241,22 @@ namespace Indexing
     {
       CALL("Acyclicity::pushUnificationOnStack");
 
+      //cout << "querying unifications for " << t << endl;
+
       ASS(_tis);
       TermQueryResultIterator tqrIt = _tis->getUnifications(t);
       int index;
       while (tqrIt.hasNext()) {
         TermQueryResult tqr = tqrIt.next();
         if (tqr.literal == _queryLit || notInAncestors(parent, tqr.literal)) {
-          // TODO add an ordering test after substitution (after we
-          // handle non-ground literals)
-          if (parent && tqr.clause == parent->clause) {
+          if (tqr.literal == _queryLit) {
+            index = 0;
+          } else if (parent && tqr.clause == parent->clause) {
             index = parent->substIndex;
           } else {
             index = _nextAvailableIndex++;
           }
+          //cout << "push unification node " << tqr.term << "/" << index << endl;
           _stack.push(new CycleSearchTreeNode(new TermList(tqr.term),
                                               tqr.literal,
                                               parent,
@@ -282,20 +291,42 @@ namespace Indexing
       while (_stack.isNonEmpty()) {
         CycleSearchTreeNode *n = _stack.pop();
 
+        while (_currentDepth > n->depth) {
+          BacktrackData *btData = _substChanges.pop();
+          //cout << "popping data " << btData << endl;
+          btData->backtrack();
+          btData->~BacktrackData();
+          _currentDepth--;
+          ASS_EQ(_currentDepth, _substChanges.size());
+          //cout << "> backtracking to " << _currentDepth << endl;
+          //cout << _subst->toString() << endl;
+        }
+
         if (n->isUnificationNode()) {
-          while (_currentDepth >= n->depth && _currentDepth > 0) {
-            _btData->backtrack();
-            _currentDepth--;
-          }
+          //cout << "pop unification node " << *n->term << "/" << n->substIndex << endl;
           if (n->parent) {
-            _subst->bdRecord(*_btData);
+            BacktrackData *btData = new BacktrackData();
+            _subst->bdRecord(*btData);
+            /*cout << "try unification " << *n->parent->term
+                 << "/" << n->parent->substIndex
+                 << " and " << *n->term
+                 << "/" << n->substIndex << endl;*/
             if (_subst->unify(*n->parent->term,
                               n->parent->substIndex,
                               *n->term,
                               n->substIndex)) {
+              // TODO add ordering test
+              //cout << "pushing data " << btData << endl;
+              _substChanges.push(btData);
               _currentDepth++;
+              ASS_EQ(_currentDepth, _substChanges.size());
+              //cout << "> unifying to " << _currentDepth << endl;
+              //cout << _subst->toString() << endl;
               _subst->bdDone();
             } else {
+              _subst->bdDone();
+              ASS(btData->isEmpty());
+              btData->~BacktrackData();
               // unification can fail because the term indexing
               // structure can return "false positives", i.e. terms
               // that cannot unify (because they come from the same
@@ -312,6 +343,7 @@ namespace Indexing
             List<TermList*>::Iterator it(entry->subterms);
             while (it.hasNext()) {
               TermList *t = it.next();
+              //cout << "push subterm node " << *t << "/" << n->substIndex << endl;
               _stack.push(new CycleSearchTreeNode(t,
                                                   entry->lit,
                                                   entry->clause,
@@ -320,6 +352,7 @@ namespace Indexing
             }
           }
         } else {
+          //cout << "pop subterm node " << *n->term << "/" << n->substIndex << endl;
           pushUnificationsOnStack(_subst->apply(*n->term, n->substIndex), n);
         }
       }
@@ -343,7 +376,7 @@ namespace Indexing
     CycleQueryResult *_nextResult;
     Stack<CycleSearchTreeNode*> _stack;
     RobSubstitution *_subst;
-    BacktrackData *_btData;
+    Stack<BacktrackData*> _substChanges;
     int _nextAvailableIndex;
     unsigned _currentDepth;
   };
