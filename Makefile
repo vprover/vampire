@@ -232,7 +232,8 @@ VK_OBJ= Kernel/Clause.o\
          Kernel/Signature.o\
          Kernel/Unit.o
 
-VI_OBJ = Indexing/ClauseCodeTree.o\
+VI_OBJ = Indexing/AcyclicityIndex.o\
+	 Indexing/ClauseCodeTree.o\
          Indexing/ClauseVariantIndex.o\
          Indexing/CodeTree.o\
          Indexing/CodeTreeInterfaces.o\
@@ -283,6 +284,7 @@ VINF_OBJ=Inferences/BackwardDemodulation.o\
          Inferences/SLQueryForwardSubsumption.o\
          Inferences/Superposition.o\
          Inferences/TautologyDeletionISE.o\
+         Inferences/TermAlgebraReasoning.o\
          Inferences/URResolution.o
 
 VSAT_OBJ=SAT/ClauseDisposer.o\
@@ -368,6 +370,7 @@ VS_OBJ = Shell/AnswerExtractor.o\
          Shell/SymbolDefinitionInlining.o\
          Shell/SymbolOccurrenceReplacement.o\
          Shell/SymCounter.o\
+         Shell/TermAlgebra.o\
          Shell/TheoryAxioms.o\
          Shell/TheoryFinder.o\
          Shell/TheoryFlattening.o\

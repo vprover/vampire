@@ -580,6 +580,21 @@ public:
     THEORY = 3
   };
 
+  enum class TARules : unsigned int {
+    OFF = 0,
+    INJECTGEN = 1,
+    INJECTSIMPL = 2,
+    INJECTOPT = 2,
+    FULL = 3  
+  };
+
+  enum class TACyclicityCheck : unsigned int {
+    OFF = 0,
+    AXIOM = 1,
+    RULE = 2,
+    INCOMPLETE = 3
+  };
+
 
     
     //==========================================================
@@ -1796,6 +1811,8 @@ public:
   RuleActivity equalityResolutionWithDeletion() const { return _equalityResolutionWithDeletion.actualValue; }
   ExtensionalityResolution extensionalityResolution() const { return _extensionalityResolution.actualValue; }
   bool FOOLParamodulation() const { return _FOOLParamodulation.actualValue; }
+  bool termAlgebraInferences() const { return _termAlgebraInferences.actualValue; }
+  TACyclicityCheck termAlgebraCyclicityCheck() const { return _termAlgebraCyclicityCheck.actualValue; }
   unsigned extensionalityMaxLength() const { return _extensionalityMaxLength.actualValue; }
   bool extensionalityAllowPosEq() const { return _extensionalityAllowPosEq.actualValue; }
   float nongoalWeightCoefficient() const { return _nonGoalWeightCoefficient.actualValue; }
@@ -2068,6 +2085,9 @@ private:
   BoolOptionValue _extensionalityAllowPosEq;
 
   BoolOptionValue _FOOLParamodulation;
+
+  BoolOptionValue _termAlgebraInferences;
+  ChoiceOptionValue<TACyclicityCheck> _termAlgebraCyclicityCheck;
 
   BoolOptionValue _fmbNonGroundDefs;
   UnsignedOptionValue _fmbStartSize;

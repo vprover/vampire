@@ -13,6 +13,7 @@
 #include "Inferences/FastCondensation.hpp"
 #include "Inferences/InferenceEngine.hpp"
 #include "Inferences/InterpretedEvaluation.hpp"
+#include "Inferences/TermAlgebraReasoning.hpp"
 #include "Inferences/TautologyDeletionISE.hpp"
 
 #include "InstGen/IGAlgorithm.hpp"
@@ -110,6 +111,12 @@ ImmediateSimplificationEngine* MainLoop::createISE(Problem& prb, const Options& 
   // Only add if there are distinct groups 
   if(prb.hasEquality() && env.signature->hasDistinctGroups()) {
     res->addFront(new DistinctEqualitySimplifier());
+  }
+  if(prb.hasEquality() && env.signature->hasTermAlgebras()) {
+    if (opt.termAlgebraInferences()) {
+      res->addFront(new DistinctnessISE());
+      res->addFront(new InjectivityISE());
+    }
   }
   if(prb.hasInterpretedOperations() || prb.hasInterpretedEquality()) {
     res->addFront(new InterpretedEvaluation());

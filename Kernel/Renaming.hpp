@@ -30,6 +30,13 @@ public:
     _nextVar(0), _identity(true) {
   }
 
+  /*
+   * Construct a renaming with names starting at firstVar
+   */
+  Renaming(unsigned firstVar) :
+    _nextVar(firstVar), _identity(true) {
+  }
+
   void reset()
   {
     _data.reset();

@@ -137,6 +137,8 @@ public:
   static const unsigned long PR_HAS_ITE = 274877906944ul; // 2^38
   /** has let-in */
   static const unsigned long PR_HAS_LET_IN = 549755813888ul; // 2^39
+  /* has constructors/uses term algebras */
+  static const unsigned long PR_HAS_CONSTRUCTORS = 1099511627776ul; // 2^40
 
  public:
   CLASS_NAME(Property);

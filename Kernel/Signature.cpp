@@ -6,6 +6,7 @@
 #include "Lib/Environment.hpp"
 #include "Lib/Int.hpp"
 #include "Shell/Options.hpp"
+
 #include "Signature.hpp"
 
 using namespace std;
@@ -37,6 +38,7 @@ Signature::Symbol::Symbol(const vstring& nm,unsigned arity, bool interpreted, bo
     _numericConstant(numericConstant ? 1: 0),
     _answerPredicate(0),
     _overflownConstant(overflownConstant ? 1 : 0),
+    _termAlgebraCons(0),
     _type(0),
     _distinctGroups(0),
     _usageCount(0)
@@ -202,7 +204,8 @@ Signature::Signature ():
     _strings(0),
     _integers(0),
     _rationals(0),
-    _reals(0)
+    _reals(0),
+    _termAlgebras()
 {
   CALL("Signature::Signature");
 
@@ -690,6 +693,21 @@ bool Signature::predicateExists(const vstring& name,unsigned arity) const
   return _predNames.find(key(name, arity));
 }
 
+unsigned Signature::getFunctionNumber(const vstring& name, unsigned arity) const
+{
+  CALL("Signature::getFunctionNumber");
+
+  ASS(_funNames.find(key(name, arity)));
+  return _funNames.get(key(name, arity));
+}
+
+unsigned Signature::getPredicateNumber(const vstring& name, unsigned arity) const
+{
+  CALL("Signature::getPredicateNumber");
+
+  ASS(_predNames.find(key(name, arity)));
+  return _predNames.get(key(name, arity));
+}
 
 /**
  * If a function with this name and arity exists, return its number.
@@ -963,6 +981,19 @@ Unit* Signature::getDistinctGroupPremise(unsigned group)
   CALL("Signature::getDistinctGroupPremise");
 
   return _distinctGroupPremises[group];
+}
+
+bool Signature::hasTermAlgebras()
+{
+  CALL("Signature::hasTermAlgebras");
+
+  Stack<Symbol*>::Iterator it(_funs);
+  while (it.hasNext()) {
+    if (it.next()->termAlgebraCons()) {
+      return true;
+    }
+  }
+  return false;
 }
 
 /**

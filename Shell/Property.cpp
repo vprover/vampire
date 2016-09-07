@@ -427,6 +427,9 @@ void Property::scanSort(unsigned sort)
     if(env.sorts->hasStructuredSort(sort,Sorts::StructuredSort::ARRAY)){
       addProp(PR_HAS_ARRAYS);
     }
+    if (env.signature->isTermAlgebraSort(sort)) {
+      addProp(PR_HAS_CONSTRUCTORS);
+    }
     return;
   }
 

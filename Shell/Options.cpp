@@ -900,6 +900,34 @@ void Options::Options::init()
 	    _lookup.insert(&_FOOLParamodulation);
 	    _FOOLParamodulation.tag(OptionTag::INFERENCES);
 
+            _termAlgebraInferences = BoolOptionValue("term_algebra_rules","tar",true);
+            _termAlgebraInferences.description=
+              "Activates some rules that improve reasoning with term algebras (such as algebraic datatypes in SMT-LIB):\n"
+              "If the problem does not contain any term algebra symbols, activating this options has no effect\n"
+              "- distinctness rule:\n"
+              "f(...) = g(...) \\/ A\n"
+              "--------------------\n"
+              "          A         \n"
+              "where f and g are distinct term algebra constructors\n"
+              "- distinctness tautology deletion: clauses of the form f(...) ~= g(...) \\/ A are deleted\n"
+              "- injectivity rule:\n"
+              "f(s1 ... sn) = f(t1 ... tn) \\/ A\n"
+              "--------------------------------\n"
+              "         s1 = t1 \\/ A\n"
+              "               ...\n"
+              "         sn = tn \\/ A";
+            _lookup.insert(&_termAlgebraInferences);
+            _termAlgebraInferences.tag(OptionTag::INFERENCES);
+
+            _termAlgebraCyclicityCheck = ChoiceOptionValue<TACyclicityCheck>("term_algebra_acyclicity","tac",
+                                                                             TACyclicityCheck::OFF,{"off","axiom","rule","incomplete"});
+            _termAlgebraCyclicityCheck.description=
+              "Activates the cyclicity rule for term algebras (such as algebraic datatypes in SMT-LIB):\n"
+              "- off : the cyclicity rule is not enforced (this is sound but incomplete)\n"
+              "- axiom : the cyclicity rule is axiomatized with a transitive predicate describing the subterm relation over terms";
+            _lookup.insert(&_termAlgebraCyclicityCheck);
+            _termAlgebraCyclicityCheck.tag(OptionTag::INFERENCES);
+
 	    _forwardDemodulation = ChoiceOptionValue<Demodulation>("forward_demodulation","fd",Demodulation::ALL,{"all","off","preordered"});
 	    _forwardDemodulation.description=
 	    "Oriented rewriting of newly derived clauses by kept unit equalities\n"
@@ -2723,7 +2751,8 @@ bool Options::complete(const Problem& prb) const
   if (prop.hasInterpretedOperations()
       || prop.hasProp(Property::PR_HAS_INTEGERS)
       || prop.hasProp(Property::PR_HAS_REALS)
-      || prop.hasProp(Property::PR_HAS_RATS)) {
+      || prop.hasProp(Property::PR_HAS_RATS)
+      || prop.hasProp(Property::PR_HAS_CONSTRUCTORS)) {
     return false;
   }
 

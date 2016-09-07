@@ -9,6 +9,7 @@
 
 #include "Saturation/SaturationAlgorithm.hpp"
 
+#include "AcyclicityIndex.hpp"
 #include "ArithmeticIndex.hpp"
 #include "CodeTreeInterfaces.hpp"
 #include "GroundingIndex.hpp"
@@ -180,6 +181,12 @@ Index* IndexManager::create(IndexType t)
     isGenerating = true;
     break;
 
+  case ACYCLICITY_INDEX:
+    tis = new TermSubstitutionTree();
+    res = new AcyclicityIndex(tis, _alg->getOrdering());
+    isGenerating = true;
+    break;
+
   case DEMODULATION_SUBTERM_SUBST_TREE:
     tis=new TermSubstitutionTree();
     res=new DemodulationSubtermIndex(tis);
@@ -211,11 +218,9 @@ Index* IndexManager::create(IndexType t)
     break;
 
   case GLOBAL_SUBSUMPTION_INDEX:
-  {
     res = new GroundingIndex(_alg->getOptions());
     isGenerating = false;
     break;
-  }
 
 //  case ARITHMETIC_INDEX:
 //    res=new ArithmeticIndex();
