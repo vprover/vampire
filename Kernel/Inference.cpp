@@ -441,7 +441,7 @@ vstring Inference::ruleName(Rule rule)
   case INSTANTIATION:
     return "instantiation";
   case MODEL_NOT_FOUND:
-    return "Finite model not found";
+    return "finite model not found";
   default:
     ASSERTION_VIOLATION;
     return "!UNKNOWN INFERENCE RULE!";
