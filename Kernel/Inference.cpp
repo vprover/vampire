@@ -238,13 +238,13 @@ vstring Inference::ruleName(Rule rule)
   case FLATTEN:
     return "flattening";
   case FOOL_ELIMINATION:
-    return "FOOL elimination";
+    return "fool elimination";
   case FOOL_ITE_ELIMINATION:
-    return "FOOL $ite elimination";
+    return "fool $ite elimination";
   case FOOL_LET_ELIMINATION:
-    return "FOOL $let elimination";
+    return "fool $let elimination";
   case FOOL_PARAMODULATION:
-    return "FOOL paramodulation";
+    return "fool paramodulation";
 //  case CHOICE_AXIOM:
 //  case MONOTONE_REPLACEMENT:
 //  case FORALL_ELIMINATION:
@@ -423,11 +423,11 @@ vstring Inference::ruleName(Rule rule)
   case CLAIM_DEFINITION:
     return "claim definition";
   case BFNT_FLATTENING:
-    return "BNFT flattening";
+    return "bfnt flattening";
   case BFNT_DISTINCT:
-    return "BNFT distinct";
+    return "bfnt distinct";
   case BFNT_TOTALITY:
-    return "BNFT totality";
+    return "bfnt totality";
   case FMB_FLATTENING:
     return "flattening (finite model building)";
   case FMB_FUNC_DEF:
@@ -439,7 +439,7 @@ vstring Inference::ruleName(Rule rule)
   case ADD_SORT_FUNCTIONS:
     return "add sort functions";
   case INSTANTIATION:
-    return "Instantiation";
+    return "instantiation";
   case MODEL_NOT_FOUND:
     return "Finite model not found";
   default:
