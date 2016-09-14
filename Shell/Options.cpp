@@ -924,7 +924,9 @@ void Options::Options::init()
             _termAlgebraCyclicityCheck.description=
               "Activates the cyclicity rule for term algebras (such as algebraic datatypes in SMT-LIB):\n"
               "- off : the cyclicity rule is not enforced (this is sound but incomplete)\n"
-              "- axiom : the cyclicity rule is axiomatized with a transitive predicate describing the subterm relation over terms";
+              "- axiom : the cyclicity rule is axiomatized with a transitive predicate describing the subterm relation over terms\n";
+              "- rule : the cyclicity rule is enforced by a specific hyper-resolution rule\n";
+              "- light : the cyclicity rule is enforced by rule generating disequality between a term and its known subterms";
             _lookup.insert(&_termAlgebraCyclicityCheck);
             _termAlgebraCyclicityCheck.tag(OptionTag::INFERENCES);
 
