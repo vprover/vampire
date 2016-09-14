@@ -592,7 +592,7 @@ public:
     OFF = 0,
     AXIOM = 1,
     RULE = 2,
-    INCOMPLETE = 3
+    RULELIGHT = 3
   };
 
 
