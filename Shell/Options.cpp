@@ -920,7 +920,7 @@ void Options::Options::init()
             _termAlgebraInferences.tag(OptionTag::INFERENCES);
 
             _termAlgebraCyclicityCheck = ChoiceOptionValue<TACyclicityCheck>("term_algebra_acyclicity","tac",
-                                                                             TACyclicityCheck::OFF,{"off","axiom","rule","incomplete"});
+                                                                             TACyclicityCheck::OFF,{"off","axiom","rule","light"});
             _termAlgebraCyclicityCheck.description=
               "Activates the cyclicity rule for term algebras (such as algebraic datatypes in SMT-LIB):\n"
               "- off : the cyclicity rule is not enforced (this is sound but incomplete)\n"

@@ -105,6 +105,20 @@ private:
   
   Indexing::AcyclicityIndex *_acyclIndex;
 };
+
+class AcyclicityGIE1
+  : public GeneratingInferenceEngine {
+public:
+  CLASS_NAME(AcyclicityGIE1);
+  USE_ALLOCATOR(AcyclicityGIE1);
+  
+  Kernel::ClauseIterator generateClauses(Kernel::Clause* c);
+
+private:
+  struct SubtermDisequalityFn;
+  struct LiteralIterator;
+  struct SubtermDisequalityIterator;
+};
   
 };
 

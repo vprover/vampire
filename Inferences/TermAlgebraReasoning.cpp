@@ -365,5 +365,143 @@ namespace Inferences {
     auto it3 = getFlattenedIterator(it2);
     return pvi(it3);
   }
+
+  void pushSubterms(TermList *tl, Stack<TermList*> &stack)
+  {
+    CALL("getSubterms");
+
+    if (!termAlgebraConstructor(tl)) {
+      return;
+    }
+
+    ASS(tl->isTerm());
+    Term *t = tl->term();
+    
+    unsigned sort = SortHelper::getResultSort(t);
+    ASS(env.signature->isTermAlgebraSort(sort));
+
+    if (env.signature->getTermAlgebraOfSort(sort)->allowsCyclicTerms()) {
+      return;
+    }
+
+    Stack<Term*> toVisit;
+
+    for (unsigned i = 0; i < t->arity(); i++) {
+      if (SortHelper::getArgSort(t, i) == sort) {
+        TermList *s = t->nthArgument(i);
+        stack.push(s);
+        if (s->isTerm()) {
+          toVisit.push(s->term());
+        }
+      }
+    }
+
+    while (toVisit.isNonEmpty()) {
+      Term *u = toVisit.pop();
+      if (env.signature->getFunction(u->functor())->termAlgebraCons()) {
+        for (unsigned i = 0; i < u->arity(); i++) {
+          if (SortHelper::getArgSort(u, i) == sort) {
+            TermList *s = u->nthArgument(i);
+            stack.push(s);
+            if (s->isTerm()) {
+              toVisit.push(s->term());
+            }
+          }
+        }
+      }
+    }
+   
+  }
+
+  struct AcyclicityGIE1::SubtermDisequalityIterator
+  {
+    SubtermDisequalityIterator(Clause *clause, Literal *lit)
+      :
+      _clause(clause),
+      _lit(lit),
+      _leftSide(false),
+      _subterms(0)
+    {
+      if (!lit->isEquality() || !lit->polarity()) {
+        _leftSide = true;
+      } else {
+        _sort = SortHelper::getEqualityArgumentSort(_lit);
+        pushSubterms(_lit->nthArgument(0), _subterms);
+      }
+    }
+
+    DECL_ELEMENT_TYPE(Clause *);
+
+    bool hasNext() {
+      if (!_leftSide && _subterms.isEmpty()) {
+        _leftSide = true;
+        pushSubterms(_lit->nthArgument(1), _subterms);
+      }
+      return (_subterms.isNonEmpty());
+    }
+    OWN_ELEMENT_TYPE next()
+    {
+      CALL("InjectivityGIE::SubtermIterator::next()");
+
+      Literal *newlit = Literal::createEquality(false,
+                                                *_lit->nthArgument(_leftSide ? 0 : 1),
+                                                *_subterms.pop(),
+                                                _sort);
+      return replaceLit(_clause, _lit, newlit, new Inference1(Inference::TERM_ALGEBRA_ACYCLICITY, _clause));
+    }
+  private:
+    Clause *_clause;
+    Literal *_lit;
+    Stack<TermList*> _subterms;
+    bool _leftSide;
+    unsigned _sort;
+  };
+
+  struct AcyclicityGIE1::SubtermDisequalityFn
+  {
+    SubtermDisequalityFn(Clause* premise)
+      : _premise(premise) {}
+    DECL_RETURN_TYPE(VirtualIterator<Clause*>);
+    OWN_RETURN_TYPE operator()(Literal* lit)
+    {
+      CALL("AcyclicityGIE1::SubtermDisequalityFn::operator()");
+
+      return pvi(SubtermDisequalityIterator(_premise, lit));
+    }
+  private:
+    Clause* _premise;
+  };
+
+  struct AcyclicityGIE1::LiteralIterator
+  {
+    LiteralIterator(Clause *clause)
+      :
+      _index(0),
+      _length(clause->length()),
+      _clause(clause)
+    {}
+
+    DECL_ELEMENT_TYPE(Literal *);
+
+    bool hasNext() { return _index < _length; }
+
+    OWN_ELEMENT_TYPE next() { return (*_clause)[_index++]; }
+
+  private:
+    unsigned _index;
+    unsigned _length;
+    Clause* _clause;
+  };
+
+
+  ClauseIterator AcyclicityGIE1::generateClauses(Clause* c)
+  {
+    CALL("AcyclicityGIE1::generateClauses");
+
+    LiteralIterator it1(c);
+    auto it2 = getMappingIterator(it1, SubtermDisequalityFn(c));
+    auto it3 = getFlattenedIterator(it2);
+    return pvi(it3);
+  }
  
 }
