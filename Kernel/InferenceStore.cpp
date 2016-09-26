@@ -164,7 +164,8 @@ vstring getQuantifiedStr(const VarContainer& vars, vstring inner, DHMap<unsigned
     }
     vstring ty="";
     unsigned t;
-    if(t_map.find(var,t)){
+    if(t_map.find(var,t) && t!=Sorts::SRT_DEFAULT){
+      //TODO should assert that we are in tff mode here
       ty=":" + env.sorts->sortName(t);
     }
     varStr+=vstring("X")+Int::toString(var)+ty;
