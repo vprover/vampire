@@ -259,9 +259,9 @@ TermList NewCNF::findITEs(TermList ts, Stack<unsigned> &variables, Stack<Formula
     }
 
     unsigned proj;
-    if (Theory::instance()->findTupleProjection(term->functor(), proj)) {
+    if (Theory::tuples()->findProjection(term->functor(), proj)) {
       TermList* arg = arguments.begin();
-      if (arg->isTerm() && Theory::instance()->isTupleFunctor(arg->term()->functor())) {
+      if (arg->isTerm() && Theory::tuples()->isFunctor(arg->term()->functor())) {
         return *arg->term()->nthArgument(proj);
       }
     }
@@ -585,10 +585,16 @@ TermList NewCNF::eliminateLet(Term::SpecialTermData *sd, TermList contents)
     TermList tupleTerm = TermList(Term::createConstant(tuple));
 
     TermList detupledContents = contents;
+
+    // TODO: replace $let([a,b] := ..., ...[a,b]...) with $let(t := ... , ...t...)
+//    Term::createTuple(tupleType->arity(), );
+//    SymbolDefinitionInlining test(symbol, 0, projectedArgument, 0);
+//    detupledContents = test.process(detupledContents);
+
     for (unsigned proj = 0; proj < tupleType->arity(); proj++) {
       unsigned symbol = (unsigned)symbols->nth(proj);
 
-      unsigned projFunctor = Theory::instance()->getTupleProjectionFunctor(proj, tupleSort);
+      unsigned projFunctor = Theory::tuples()->getProjectionFunctor(proj, tupleSort);
       TermList projectedArgument = TermList(Term::create1(projFunctor, tupleTerm));
 
       SymbolDefinitionInlining inlining(symbol, 0, projectedArgument, 0);

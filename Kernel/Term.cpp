@@ -468,7 +468,7 @@ vstring Term::headToString() const
     }
   } else {
     unsigned proj;
-    if (Theory::instance()->findTupleProjection(functor(), proj)) {
+    if (Theory::tuples()->findProjection(functor(), proj)) {
       return "$proj(" + Int::toString(proj) + ", ";
     }
     return (isLiteral() ? static_cast<const Literal *>(this)->predicateName() : functionName()) + (arity() ? "(" : "");
@@ -580,7 +580,7 @@ vstring Literal::toString() const
   Stack<const TermList*> stack(64);
   vstring s = polarity() ? "" : "~";
   unsigned proj;
-  if (Theory::instance()->findTupleProjection(functor(), proj)) {
+  if (Theory::tuples()->findProjection(functor(), proj)) {
     return "$proj(" + Int::toString(proj) + ", " + args()->asArgsToString();
   }
   s += predicateName();
@@ -910,7 +910,7 @@ Term* Term::createFormula(Formula* formula)
 
 Term* Term::createTuple(unsigned arity, unsigned* sorts, TermList* elements) {
   CALL("Term::createTuple");
-  unsigned tupleFunctor = Theory::instance()->getTupleFunctor(arity, sorts);
+  unsigned tupleFunctor = Theory::tuples()->getFunctor(arity, sorts);
   Term* tupleTerm = Term::create(tupleFunctor, arity, elements);
   return createTuple(tupleTerm);
 }

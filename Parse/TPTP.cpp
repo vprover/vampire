@@ -2003,7 +2003,7 @@ void TPTP::endTupleBinding() {
 
   _varLists.push(constants);
 
-  unsigned tupleFunctor = Theory::instance()->getTupleFunctor(bindingSort);
+  unsigned tupleFunctor = Theory::tuples()->getFunctor(bindingSort);
   _currentBindingScope.push(LetBinding(tupleFunctor, true));
 
   Token tok = getTok(0);
@@ -2102,7 +2102,7 @@ void TPTP::endProj()
   TermList tuple = _termLists.pop();
   unsigned tupleSort = sortOf(tuple);
 
-  unsigned projFunctor = Theory::instance()->getTupleProjectionFunctor(proj, tupleSort);
+  unsigned projFunctor = Theory::tuples()->getProjectionFunctor(proj, tupleSort);
   unsigned projSort = env.sorts->getTupleSort(tupleSort)->argument(proj);
 
   if (projSort == Sorts::SRT_BOOL) {

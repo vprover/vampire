@@ -951,9 +951,9 @@ void TheoryAxioms::addTupleAxioms(unsigned tupleSort, UnitList*& units) {
   Sorts::TupleSort* sort = env.sorts->getTupleSort(tupleSort);
   unsigned arity = sort->arity();
 
-  Theory* theory = Theory::instance();
+  Theory::Tuples* theory = Theory::tuples();
 
-  unsigned tupleFunctor = theory->getTupleFunctor(tupleSort);
+  unsigned tupleFunctor = theory->getFunctor(tupleSort);
 
   static Inference* axiom = new Inference(Inference::THEORY);
 
@@ -966,7 +966,7 @@ void TheoryAxioms::addTupleAxioms(unsigned tupleSort, UnitList*& units) {
 
     TermList tuple = TermList(Term::create(tupleFunctor, arity, variables.begin()));
     for (unsigned i = 0; i < arity; i++) {
-      unsigned proj = theory->getTupleProjectionFunctor(i, tupleSort);
+      unsigned proj = theory->getProjectionFunctor(i, tupleSort);
       TermList projection = TermList(Term::create1(proj, tuple));
       unsigned projSort = sort->argument(i);
 
@@ -985,7 +985,7 @@ void TheoryAxioms::addTupleAxioms(unsigned tupleSort, UnitList*& units) {
 
     Clause* clause = new(arity + 1) Clause(arity + 1, Unit::AXIOM, axiom);
     for (unsigned i = 0; i < arity; i++) {
-      unsigned proj = theory->getTupleProjectionFunctor(i, tupleSort);
+      unsigned proj = theory->getProjectionFunctor(i, tupleSort);
       unsigned projSort = sort->argument(i);
 
       TermList proj1 = TermList(Term::create1(proj, t1));

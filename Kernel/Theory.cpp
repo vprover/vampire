@@ -491,8 +491,10 @@ vstring RealConstantType::toNiceString() const
 //
 
 Theory Theory::theory_obj;  // to facilitate destructor call at deinitization
+Theory::Tuples Theory::tuples_obj;
 
 Theory* theory = &Theory::theory_obj;
+Theory::Tuples* theory_tuples = &Theory::tuples_obj;
 
 /**
  * Accessor for the singleton instance of the Theory class.
@@ -500,6 +502,11 @@ Theory* theory = &Theory::theory_obj;
 Theory* Theory::instance()
 {
   return theory;
+}
+
+Theory::Tuples* Theory::tuples()
+{
+  return theory_tuples;
 }
 
 /**
@@ -1102,13 +1109,13 @@ unsigned Theory::getArrayExtSkolemFunction(unsigned sort) {
   return skolemFunction; 
 }
 
-unsigned Theory::getTupleFunctor(unsigned arity, unsigned* sorts) {
-  CALL("Theory::getTupleFunctor(unsigned arity, unsigned* sorts)");
-  return getTupleFunctor(env.sorts->addTupleSort(arity, sorts));
+unsigned Theory::Tuples::getFunctor(unsigned arity, unsigned* sorts) {
+  CALL("Theory::Tuples::getFunctor(unsigned arity, unsigned* sorts)");
+  return getFunctor(env.sorts->addTupleSort(arity, sorts));
 }
 
-unsigned Theory::getTupleFunctor(unsigned tupleSort) {
-  CALL("Theory::getTupleFunctor(unsigned tupleSort)");
+unsigned Theory::Tuples::getFunctor(unsigned tupleSort) {
+  CALL("Theory::Tuples::getFunctor(unsigned tupleSort)");
 
   ASS_REP(env.sorts->isTupleSort(tupleSort), env.sorts->sortName(tupleSort));
 
@@ -1117,9 +1124,9 @@ unsigned Theory::getTupleFunctor(unsigned tupleSort) {
   unsigned* sorts = tuple->sorts();
 
   unsigned tupleFunctor;
-  if (!_tupleFunctors.find(tupleSort, tupleFunctor)) {
+  if (!_functors.find(tupleSort, tupleFunctor)) {
     tupleFunctor = env.signature->addFreshFunction(arity, "tuple");
-    _tupleFunctors.set(tupleSort, tupleFunctor);
+    _functors.set(tupleSort, tupleFunctor);
     FunctionType* tupleType = new FunctionType(arity, sorts, tupleSort);
     env.signature->getFunction(tupleFunctor)->setType(tupleType);
   }
@@ -1127,8 +1134,9 @@ unsigned Theory::getTupleFunctor(unsigned tupleSort) {
 }
 
 // TODO: replace with a constant time algorithm
-bool Theory::isTupleFunctor(unsigned functor) {
-  VirtualIterator<unsigned> it(_tupleFunctors.range());
+bool Theory::Tuples::isFunctor(unsigned functor) {
+  CALL("Theory::Tuples::isFunctor(unsigned)");
+  VirtualIterator<unsigned> it(_functors.range());
   while (it.hasNext()) {
     if (it.next() == functor) {
       return true;
@@ -1137,15 +1145,15 @@ bool Theory::isTupleFunctor(unsigned functor) {
   return false;
 }
 
-unsigned Theory::getTupleProjectionFunctor(unsigned proj, unsigned tupleSort) {
-  CALL("Theory::getTupleProjectionFunctor");
+unsigned Theory::Tuples::getProjectionFunctor(unsigned proj, unsigned tupleSort) {
+  CALL("Theory::Tuples::getProjectionFunctor");
 
   ASS_REP(env.sorts->isTupleSort(tupleSort), env.sorts->sortName(tupleSort));
 
   pair<unsigned, unsigned> p = make_pair(proj, tupleSort);
 
   unsigned projFunctor;
-  if (!_tupleProjections.find(p, projFunctor)) {
+  if (!_projections.find(p, projFunctor)) {
     Sorts::TupleSort* sortInfo = env.sorts->getTupleSort(tupleSort);
     ASS_G(sortInfo->arity(), proj);
     unsigned projSort = sortInfo->argument(proj);
@@ -1156,14 +1164,14 @@ unsigned Theory::getTupleProjectionFunctor(unsigned proj, unsigned tupleSort) {
       projFunctor = env.signature->addFreshFunction(1, "proj");
       env.signature->getFunction(projFunctor)->setType(new FunctionType({tupleSort}, projSort));
     }
-    _tupleProjections.set(p, projFunctor);
-    _tupleProjectionFunctors.set(projFunctor, proj);
+    _projections.set(p, projFunctor);
+    _projectionFunctors.set(projFunctor, proj);
   }
   return projFunctor;
 }
 
-bool Theory::findTupleProjection(unsigned projFunctor, unsigned &proj) {
-  return _tupleProjectionFunctors.find(projFunctor, proj);
+bool Theory::Tuples::findProjection(unsigned projFunctor, unsigned &proj) {
+  return _projectionFunctors.find(projFunctor, proj);
 }
 
 /**

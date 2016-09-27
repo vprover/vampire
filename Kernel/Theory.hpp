@@ -405,7 +405,6 @@ public:
   unsigned getArrayExtSkolemFunction(unsigned i);
     
   static Theory theory_obj;
-    
   static Theory* instance();
 
   bool isInterpretedConstant(unsigned func);
@@ -521,16 +520,22 @@ private:
   DHMap<pair<unsigned,StructuredSortInterpretation>,unsigned> _structuredSortInterpretations;
 
 public:
-  bool isTupleFunctor(unsigned functor);
-  unsigned getTupleFunctor(unsigned arity, unsigned sorts[]);
-  unsigned getTupleFunctor(unsigned tupleSort);
-  unsigned getTupleProjectionFunctor(unsigned proj, unsigned tupleSort);
-  bool findTupleProjection(unsigned projFunctor, unsigned &proj);
+  class Tuples {
+  public:
+    bool isFunctor(unsigned functor);
+    unsigned getFunctor(unsigned arity, unsigned sorts[]);
+    unsigned getFunctor(unsigned tupleSort);
+    unsigned getProjectionFunctor(unsigned proj, unsigned tupleSort);
+    bool findProjection(unsigned projFunctor, unsigned &proj);
 
-private:
-  DHMap<unsigned,unsigned> _tupleFunctors;
-  DHMap<pair<unsigned,unsigned>,unsigned> _tupleProjections;
-  DHMap<unsigned,unsigned> _tupleProjectionFunctors;
+  private:
+    DHMap<unsigned,unsigned> _functors;
+    DHMap<pair<unsigned,unsigned>,unsigned> _projections;
+    DHMap<unsigned,unsigned> _projectionFunctors;
+  };
+
+  static Theory::Tuples tuples_obj;
+  static Theory::Tuples* tuples();
 };
 
 typedef Theory::Interpretation Interpretation;
@@ -539,6 +544,7 @@ typedef Theory::Interpretation Interpretation;
  * Pointer to the singleton Theory instance
  */
 extern Theory* theory;
+extern Theory::Tuples* tuples;
 }
 
 #endif // __Theory__
