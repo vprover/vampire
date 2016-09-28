@@ -212,17 +212,11 @@ void TPTP::parse()
     case END_LET:
       endLet();
       break;
-    case END_SELECT:
-      endSelect();
-      break;
-    case END_STORE:
-      endStore();
+    case END_THEORY_FUNCTION:
+      endTheoryFunction();
       break;
     case END_TUPLE:
       endTuple();
-      break;
-    case END_PROJ:
-      endProj();
       break;
     default:
 #if VDEBUG
@@ -347,22 +341,12 @@ vstring TPTP::toString(Tag tag)
     return "$int";
   case T_ARRAY_TYPE:
     return "$array";
-  case T_SELECT:
-    return "$select";
-  case T_STORE:
-    return "$store";
   case T_TUPLE:
     return "$tuple";
-  case T_PROJ:
-    return "$proj";
-  case T_OPTION:
-    return "$option";
-  case T_SOME:
-    return "$some";
-  case T_IS_SOME:
-    return "$issome";
-  case T_FROM_SOME:
-    return "$fromsome";
+  case T_THEORY_SORT:
+    return "";
+  case T_THEORY_FUNCTION:
+    return "";
   case T_FOT:
     return "$fot";
   case T_FOF:
@@ -929,29 +913,11 @@ void TPTP::readReserved(Token& tok)
   else if (tok.content == "$array") {
       tok.tag = T_ARRAY_TYPE;
   }
-  else if (tok.content == "$select"){
-      tok.tag = T_SELECT;
-  }
-  else if (tok.content == "$store"){
-      tok.tag = T_STORE;
-  }
   else if (tok.content == "$tuple") {
       tok.tag = T_TUPLE;
   }
-  else if (tok.content == "$proj") {
-    tok.tag = T_PROJ;
-  }
-  else if (tok.content == "$none") {
-    tok.tag = T_NONE;
-  }
-  else if (tok.content == "$some") {
-    tok.tag = T_SOME;
-  }
-  else if (tok.content == "$issome") {
-    tok.tag = T_IS_SOME;
-  }
-  else if (tok.content == "$fromsome") {
-    tok.tag = T_FROM_SOME;
+  else if (isTheoryFunction(tok.content)) {
+    tok.tag = T_THEORY_FUNCTION;
   }
   else if (tok.content == "$fot") {
     tok.tag = T_FOT;
@@ -1478,97 +1444,233 @@ void TPTP::endIte()
 } // endIte
 
 /**
- * Process the end of the select() term
- * @author Laura Kovacs
- * @since 3/09/2012 Vienna
- * @since 16/1/2015 Timisoara, Giles changed to endSelect when introduced StructuredSort
- * @since 25/08/2015 Gothenburg, Evgeny changed to support $array($o)
- * @since 7/10/2015 Manchester, Giles changed to support polymorphism in index
+ *
  */
-void TPTP::endSelect()
-{
-    CALL("TPTP::endSelect");
-    
-    TermList index = _termLists.pop();
-    TermList array = _termLists.pop();
-    
-    unsigned array_sort = sortOf(array);
+void TPTP::endTheoryFunction() {
+  CALL("TPTP::endTheoryFunction");
 
-    //Check that array_sort is defined
-    if(!env.sorts->hasStructuredSort(array_sort,Sorts::StructuredSort::ARRAY)){
-      USER_ERROR("select is being incorrectly used on a type of array that has not be defined");
-    }
+  /**
+   * Things get a bit awkward with theories + FOOL, because theory function can
+   * return $o in such case be a predicate symbol rather than a function symbol.
+   * The current solution is the following -- we always treat application of
+   * theory functions as a a term (a formula wrapped inside boolean term, if
+   * needed). If later on we discover that we should've taken it as a formula,
+   * we simply pull the formula out of the boolean term. This is done in
+   * endTermAsFormula().
+   */
+  bool isTheoryTerm = true;
+  Term* theoryTerm;
+  Literal* theoryLiteral;
 
-    unsigned indexSort = env.sorts->getArraySort(array_sort)->getIndexSort();
-    if(sortOf(index) != indexSort){
-      USER_ERROR((vstring)"sort of index is not the same as the index sort of the array");
-    }
+  TheoryFunction tf = _theoryFunctions.pop();
+  switch (tf) {
+    case TF_SELECT: {
+      TermList index = _termLists.pop();
+      TermList array = _termLists.pop();
 
-    // Things get a bit awkward with $select + FOOL, because $select can be either a predicate and
-    // a function symbol, depending on the inner sort of the array.
-    // The current solution is the following -- we always treat application of $select as a a term
-    // (a formula wrapped inside boolean term, if needed). If later on we discover that we should've
-    // taken it as a formula, we simply pull the formula out of the boolean term. This is done in
-    // endTermAsFormula().
-    if (env.sorts->getArraySort(array_sort)->getInnerSort() == Sorts::SRT_BOOL) {
+      unsigned array_sort = sortOf(array);
+
+      // Check that array_sort is defined
+      if (!env.sorts->hasStructuredSort(array_sort,Sorts::StructuredSort::ARRAY)) {
+        USER_ERROR("select is being incorrectly used on a type of array that has not be defined");
+      }
+
+      unsigned indexSort = env.sorts->getArraySort(array_sort)->getIndexSort();
+      if (sortOf(index) != indexSort) {
+        USER_ERROR((vstring)"sort of index is not the same as the index sort of the array");
+      }
+
+      if (env.sorts->getArraySort(array_sort)->getInnerSort() == Sorts::SRT_BOOL) {
         Theory::StructuredSortInterpretation ssi = Theory::StructuredSortInterpretation::ARRAY_BOOL_SELECT;
         Interpretation select = Theory::instance()->getInterpretation(array_sort, ssi);
 
         unsigned pred = env.signature->getInterpretingSymbol(select);
-        Literal *l = Literal::create2(pred, true, array, index);
-        _formulas.push(new AtomicFormula(l));
-        _states.push(END_FORMULA_INSIDE_TERM);
-    } else {
+        isTheoryTerm = false;
+        theoryLiteral = Literal::create2(pred, true, array, index);
+      } else {
         Theory::StructuredSortInterpretation ssi = Theory::StructuredSortInterpretation::ARRAY_SELECT;
         Interpretation select = Theory::instance()->getInterpretation(array_sort, ssi);
 
         unsigned func = env.signature->getInterpretingSymbol(select);
-        TermList ts(Term::create2(func, array, index));
-        _termLists.push(ts);
+        theoryTerm = Term::create2(func, array, index);
+      }
+      break;
     }
-} // endSelect
+    case TF_STORE: {
+      TermList value = _termLists.pop();
+      TermList index = _termLists.pop();
+      TermList array = _termLists.pop();
 
-/**
- * Process the end of the store() term
- * @author Laura Kovacs
- * @since 3/09/2012 Vienna
- * @since 16/1/2015 Timisoara, Giles changed to endStore when introduced StructuredSort
- * @since 7/10/2015 Manchester, Giles changed to support polymorphism in index
- */
-void TPTP::endStore()
-{
-    CALL("TPTP::endStore1");
-    
-    TermList value = _termLists.pop();
-    TermList index = _termLists.pop();
-    TermList array = _termLists.pop();
-    
-    unsigned array_sort = sortOf(array);
+      unsigned array_sort = sortOf(array);
 
-    //Check that array_sort is defined
-    if(!env.sorts->hasStructuredSort(array_sort,Sorts::StructuredSort::ARRAY)){
-      USER_ERROR("store is being incorrectly used on a type of array that has not be defined");
+      // Check that array_sort is defined
+      if (!env.sorts->hasStructuredSort(array_sort,Sorts::StructuredSort::ARRAY)) {
+        USER_ERROR("store is being incorrectly used on a type of array that has not be defined");
+      }
+
+      unsigned indexSort = env.sorts->getArraySort(array_sort)->getIndexSort();
+      if (sortOf(index) != indexSort) {
+        USER_ERROR((vstring)"sort of index is not the same as the index sort of the array");
+      }
+
+      unsigned innerSort = env.sorts->getArraySort(array_sort)->getInnerSort();
+      if (sortOf(value) != innerSort) {
+        USER_ERROR((vstring)"sort of value is not the same as the value sort of the array");
+      }
+
+      auto ssi = Theory::StructuredSortInterpretation::ARRAY_STORE;
+      Interpretation store = Theory::instance()->getInterpretation(array_sort, ssi);
+
+      unsigned func = env.signature->getInterpretingSymbol(store);
+      TermList args[] = { array, index, value };
+
+      theoryTerm = Term::create(func, 3, args);
+      break;
     }
+    case TF_PROJ: {
+      unsigned proj = (unsigned)_ints.pop();
 
-    unsigned indexSort = env.sorts->getArraySort(array_sort)->getIndexSort();
-    if(sortOf(index) != indexSort){
-      USER_ERROR((vstring)"sort of index is not the same as the index sort of the array");
+      TermList tuple = _termLists.pop();
+      unsigned tupleSort = sortOf(tuple);
+
+      unsigned projFunctor = Theory::tuples()->getProjectionFunctor(proj, tupleSort);
+      unsigned projSort = env.sorts->getTupleSort(tupleSort)->argument(proj);
+
+      if (projSort == Sorts::SRT_BOOL) {
+        isTheoryTerm = false;
+        theoryLiteral = Literal::create1(projFunctor, true, tuple);
+      } else {
+        theoryTerm = Term::create1(projFunctor, tuple);
+      }
+      break;
     }
-
-    unsigned innerSort = env.sorts->getArraySort(array_sort)->getInnerSort();
-    if(sortOf(value) != innerSort){
-      USER_ERROR((vstring)"sort of value is not the same as the value sort of the array");
+    case TF_NONE: {
+      Type* innerType = _types.pop();
+      ASS_EQ(innerType->tag(), TT_ATOMIC);
+      unsigned innerSort = static_cast<AtomicType*>(innerType)->sortNumber();
+      unsigned noneFunctor = Theory::option()->getNone(innerSort);
+      theoryTerm = Term::createConstant(noneFunctor);
+      break;
     }
+    case TF_SOME: {
+      TermList arg = _termLists.pop();
+      unsigned innerSort = sortOf(arg);
+      unsigned someFunctor = Theory::option()->getSome(innerSort);
+      theoryTerm = Term::create1(someFunctor, arg);
+      break;
+    }
+    case TF_LEFT: {
+      TermList arg = _termLists.pop();
+      unsigned leftSort = sortOf(arg);
+      Type* rightType = _types.pop();
+      ASS_EQ(rightType->tag(), TT_ATOMIC);
+      unsigned rightSort = static_cast<AtomicType*>(rightType)->sortNumber();
+      unsigned leftFunctor = Theory::either()->getLeft(leftSort, rightSort);
+      theoryTerm = Term::create1(leftFunctor, arg);
+      break;
+    }
+    case TF_RIGHT: {
+      Type* leftType = _types.pop();
+      ASS_EQ(leftType->tag(), TT_ATOMIC);
+      unsigned leftSort = static_cast<AtomicType*>(leftType)->sortNumber();
+      TermList arg = _termLists.pop();
+      unsigned rightSort = sortOf(arg);
+      unsigned rightFunctor = Theory::either()->getRight(leftSort, rightSort);
+      theoryTerm = Term::create1(rightFunctor, arg);
+      break;
+    }
+    case TF_IS_SOME:
+    case TF_FROM_SOME: {
+      TermList arg = _termLists.pop();
+      unsigned argSort = sortOf(arg);
 
-    Interpretation store = Theory::instance()->getInterpretation(array_sort,
-                             Theory::StructuredSortInterpretation::ARRAY_STORE);    
+      if (!env.sorts->hasStructuredSort(argSort, Sorts::StructuredSort::OPTION)) {
+        USER_ERROR("The argument " + arg.toString() + " has the sort " + env.sorts->sortName(argSort));
+      }
+      Sorts::OptionSort* optionSort = env.sorts->getOptionSort(argSort);
+      unsigned innerSort = optionSort->getInnerSort();
 
-    unsigned func = env.signature->getInterpretingSymbol(store);
-    TermList args[] = {array, index, value};
-    TermList ts(Term::create(func, 3, args));
+      switch (tf) {
+        case TF_IS_SOME: {
+          unsigned isSome = Theory::option()->getIsSome(innerSort);
+          isTheoryTerm = false;
+          theoryLiteral = Literal::create1(isSome, true, arg);
+          break;
+        }
+        case TF_FROM_SOME: {
+          unsigned fromSome = Theory::option()->getFromSome(innerSort);
+          if (innerSort == Sorts::SRT_BOOL) {
+            isTheoryTerm = false;
+            theoryLiteral = Literal::create1(fromSome, true, arg);
+          } else {
+            theoryTerm = Term::create1(fromSome, arg);
+          }
+          break;
+        }
+        default: break;
+      }
+      break;
+    }
+    case TF_IS_LEFT:
+    case TF_IS_RIGHT:
+    case TF_FROM_LEFT:
+    case TF_FROM_RIGHT: {
+      TermList arg = _termLists.pop();
+      unsigned argSort = sortOf(arg);
 
-    _termLists.push(ts);   
-} // endStore
+      if (!env.sorts->hasStructuredSort(argSort, Sorts::StructuredSort::EITHER)) {
+        USER_ERROR("The argument " + arg.toString() + " has the sort " + env.sorts->sortName(argSort));
+      }
+      Sorts::EitherSort* eitherSort = env.sorts->getEitherSort(argSort);
+      unsigned leftSort = eitherSort->getLeftSort();
+      unsigned rightSort = eitherSort->getRightSort();
+
+      switch (tf) {
+        case TF_IS_LEFT: {
+          unsigned isLeft = Theory::either()->getIsLeft(leftSort, rightSort);
+          isTheoryTerm = false;
+          theoryLiteral = Literal::create1(isLeft, true, arg);
+          break;
+        }
+        case TF_IS_RIGHT: {
+          unsigned isRight = Theory::either()->getIsRight(leftSort, rightSort);
+          isTheoryTerm = false;
+          theoryLiteral = Literal::create1(isRight, true, arg);
+          break;
+        }
+        case TF_FROM_LEFT: {
+          unsigned fromLeft = Theory::either()->getFromLeft(leftSort, rightSort);
+          if (leftSort == Sorts::SRT_BOOL) {
+            isTheoryTerm = false;
+            theoryLiteral = Literal::create1(fromLeft, true, arg);
+          } else {
+            theoryTerm = Term::create1(fromLeft, arg);
+          }
+        }
+        case TF_FROM_RIGHT: {
+          unsigned fromRight = Theory::either()->getFromRight(leftSort, rightSort);
+          if (rightSort == Sorts::SRT_BOOL) {
+            isTheoryTerm = false;
+            theoryLiteral = Literal::create1(fromRight, true, arg);
+          } else {
+            theoryTerm = Term::create1(fromRight, arg);
+          }
+        }
+        default: break;
+      }
+      break;
+    }
+    default:
+      ASSERTION_VIOLATION_REP(tf);
+  }
+
+  if (isTheoryTerm) {
+    _termLists.push(TermList(theoryTerm));
+  } else {
+    _formulas.push(new AtomicFormula(theoryLiteral));
+    _states.push(END_FORMULA_INSIDE_TERM);
+  }
+} // endTheoryFunction
 
 /**
  * Process include() declaration
@@ -1764,48 +1866,63 @@ void TPTP::funApp()
   }
 
   switch (tok.tag) {
-    // predefined functions
-    case T_SELECT:
+    case T_THEORY_FUNCTION:
       consumeToken(T_LPAR);
       addTagState(T_RPAR);
-      _states.push(TERM);
-      addTagState(T_COMMA);
-      _states.push(TERM);
-      return;
-
-    case T_STORE:
-      consumeToken(T_LPAR);
-      addTagState(T_RPAR);
-      _states.push(TERM);
-      addTagState(T_COMMA);
-      _states.push(TERM);
-      addTagState(T_COMMA);
-      _states.push(TERM);
-      return;
-
-    case T_PROJ: {
-      consumeToken(T_LPAR);
-      Token numTok;
-      Tag tag = readNumber(numTok);
-      if (tag != T_INT) {
-        USER_ERROR("Non-negative integer expected");
+      switch (getTheoryFunction(tok)) {
+        case TF_PROJ: {
+          Token numTok;
+          Tag tag = readNumber(numTok);
+          if (tag != T_INT) {
+            USER_ERROR("Non-negative integer expected");
+          }
+          int num;
+          Int::stringToInt(numTok.content, num);
+          if (num < 0) {
+            USER_ERROR("Non-negative integer expected");
+          }
+          _ints.push(num);
+          consumeToken(T_COMMA);
+          _states.push(TERM);
+          break;
+        }
+        case TF_NONE:
+          _states.push(SIMPLE_TYPE);
+          break;
+        case TF_LEFT:
+          _states.push(SIMPLE_TYPE);
+          consumeToken(T_COMMA);
+          _states.push(TERM);
+          break;
+        case TF_RIGHT:
+          _states.push(TERM);
+          consumeToken(T_COMMA);
+          _states.push(SIMPLE_TYPE);
+          break;
+        case TF_SOME:
+        case TF_IS_SOME:
+        case TF_FROM_SOME:
+        case TF_IS_LEFT:
+        case TF_IS_RIGHT:
+        case TF_FROM_LEFT:
+        case TF_FROM_RIGHT:
+          _states.push(TERM);
+          break;
+        case TF_SELECT:
+          _states.push(TERM);
+          addTagState(T_COMMA);
+          _states.push(TERM);
+          break;
+        case TF_STORE:
+          _states.push(TERM);
+          addTagState(T_COMMA);
+          _states.push(TERM);
+          addTagState(T_COMMA);
+          _states.push(TERM);
+          break;
+        default:
+          ASSERTION_VIOLATION_REP(tok.content);
       }
-      int num;
-      Int::stringToInt(numTok.content, num);
-      if (num < 0) {
-        USER_ERROR("Non-neative integer expected");
-      }
-      _ints.push(num);
-      consumeToken(T_COMMA);
-      addTagState(T_RPAR);
-      _states.push(TERM);
-      return;
-    }
-
-    case T_NONE:
-      addTagState(T_RPAR);
-      _states.push(SIMPLE_TYPE);
-      consumeToken(T_LPAR);
       return;
 
     case T_ITE:
@@ -1846,7 +1963,7 @@ void TPTP::funApp()
       return;
 
     default:
-      PARSE_ERROR("unexpectd token", tok);
+      PARSE_ERROR("unexpected token", tok);
   }
 } // TPTP::funApp
 
@@ -1965,7 +2082,7 @@ void TPTP::endTupleBinding() {
   TermList binding = _termLists.top();
   unsigned bindingSort = sortOf(binding);
 
-  if (!env.sorts->isTupleSort(bindingSort)) {
+  if (!env.sorts->hasStructuredSort(bindingSort, Sorts::StructuredSort::TUPLE)) {
     USER_ERROR("The binding of a tuple let expression is not a tuple but has the sort " + env.sorts->sortName(bindingSort));
   }
 
@@ -2087,33 +2204,6 @@ void TPTP::endTuple()
   Term* t = Term::createTuple(arity, sorts, elements);
   _termLists.push(TermList(t));
 } // endTuple
-
-/**
- * Process the end of a tuple projection
- * @since 23/04/2016 Gothenburg
- */
-void TPTP::endProj()
-{
-  CALL("TPTP::endProj");
-
-  unsigned proj = (unsigned)_ints.pop();
-  ASS_GE(proj, 0);
-
-  TermList tuple = _termLists.pop();
-  unsigned tupleSort = sortOf(tuple);
-
-  unsigned projFunctor = Theory::tuples()->getProjectionFunctor(proj, tupleSort);
-  unsigned projSort = env.sorts->getTupleSort(tupleSort)->argument(proj);
-
-  if (projSort == Sorts::SRT_BOOL) {
-    Literal* l = Literal::create1(projFunctor, true, tuple);
-    _formulas.push(new AtomicFormula(l));
-    _states.push(END_FORMULA_INSIDE_TERM);
-  } else {
-    Term* t = Term::create1(projFunctor, tuple);
-    _termLists.push(TermList(t));
-  }
-} // endProj
 
 /**
  * Read a non-empty sequence of arguments, including the right parentheses
@@ -2262,13 +2352,9 @@ void TPTP::term()
   Token tok = getTok(0);
   switch (tok.tag) {
     case T_NAME:
+    case T_THEORY_FUNCTION:
     case T_VAR:
     case T_ITE:
-    case T_SELECT:
-    case T_STORE:
-    case T_PROJ:
-    case T_NONE:
-    case T_SOME:
     case T_LET:
     case T_LBRA:
       _states.push(TERM_INFIX);
@@ -2324,16 +2410,6 @@ void TPTP::endTerm()
     return;
   }
 
-  if (name == toString(T_SELECT)) {
-    _states.push(END_SELECT);
-    return;
-  }
-
-  if (name == toString(T_STORE)) {
-    _states.push(END_STORE);
-    return;
-  }
-
   if (name == toString(T_LET)) {
     _states.push(END_LET);
     return;
@@ -2344,16 +2420,10 @@ void TPTP::endTerm()
     return;
   }
 
-  if (name == toString(T_PROJ)) {
-    _states.push(END_PROJ);
-    return;
-  }
-
-  if (name == toString(T_NONE)) {
-    Type* type = _types.pop();
-
-
-
+  TheoryFunction tf;
+  if (findTheoryFunction(name, tf)) {
+    _theoryFunctions.push(tf);
+    _states.push(END_THEORY_FUNCTION);
     return;
   }
 
@@ -2407,26 +2477,39 @@ void TPTP::formulaInfix()
     return;
   }
 
-  if (name == toString(T_SELECT)) {
-    _states.push(END_TERM_AS_FORMULA);
-    _states.push(END_SELECT);
+  TheoryFunction tf;
+  if (findTheoryFunction(name, tf)) {
+    switch (tf) {
+      case TF_STORE:
+        USER_ERROR("$store expression cannot be used as formula");
+        break;
+      case TF_NONE:
+        USER_ERROR("a $none term cannot be used as formula");
+        break;
+      case TF_SOME:
+        USER_ERROR("a $some term cannot be used as formula");
+        break;
+      case TF_LEFT:
+        USER_ERROR("a $left term cannot be used as formula");
+        break;
+      case TF_RIGHT:
+        USER_ERROR("a $right term cannot be used as formula");
+        break;
+      case TF_PROJ:
+      case TF_SELECT:
+      case TF_IS_SOME:
+      case TF_IS_LEFT:
+      case TF_IS_RIGHT:
+      case TF_FROM_SOME:
+      case TF_FROM_LEFT:
+      case TF_FROM_RIGHT:
+        _states.push(END_TERM_AS_FORMULA);
+        _states.push(END_THEORY_FUNCTION);
+        break;
+      default:
+        ASSERTION_VIOLATION_REP(name);
+    }
     return;
-  }
-
-  if (name == toString(T_STORE)) {
-    // the sort of $store(...) is never $o
-    USER_ERROR("$store expression cannot be used as formula");
-  }
-
-  if (name == toString(T_PROJ)) {
-    _states.push(END_TERM_AS_FORMULA);
-    _states.push(END_PROJ);
-    return;
-  }
-
-  if (name == toString(T_NONE) || name == toString(T_SOME)) {
-    // the sort of an $option term is never $o
-    USER_ERROR("an $option term cannot be used as formula");
   }
 
   if (name == toString(T_LET)) {
@@ -3414,11 +3497,7 @@ void TPTP::simpleFormula()
   case T_NAME:
   case T_VAR:
   case T_ITE:
-  case T_SELECT:
-  case T_STORE:
-  case T_PROJ:
-  case T_NONE:
-  case T_SOME:
+  case T_THEORY_FUNCTION:
   case T_LET:
   case T_LBRA:
     _states.push(FORMULA_INFIX);
@@ -4289,10 +4368,8 @@ const char* TPTP::toString(State s)
     return "END_TYPE";
   case SIMPLE_TYPE:
     return "SIMPLE_TYPE";
-  case END_SELECT:
-    return "END_SELECT";
-  case END_STORE:
-    return "END_STORE";
+  case END_THEORY_FUNCTION:
+    return "END_THEORY_FUNCTION";
   case END_ARGS:
     return "END_ARGS";
   case MID_EQ:
@@ -4313,8 +4390,6 @@ const char* TPTP::toString(State s)
     return "END_ITE";
   case END_TUPLE:
     return "END_TUPLE";
-  case END_PROJ:
-    return "END_PROJ";
   default:
     cout << (int)s << "\n";
     ASS(false);

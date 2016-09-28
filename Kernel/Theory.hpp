@@ -536,6 +536,39 @@ public:
 
   static Theory::Tuples tuples_obj;
   static Theory::Tuples* tuples();
+
+
+  class Option {
+  public:
+    unsigned getNone(unsigned innerSort);
+    unsigned getSome(unsigned innerSort);
+    unsigned getIsSome(unsigned innerSort);
+    unsigned getFromSome(unsigned innerSort);
+
+  private:
+    DHMap<unsigned,unsigned> _constructors;
+  };
+
+  static Theory::Option option_obj;
+  static Theory::Option* option();
+
+
+  class Either {
+    public:
+      unsigned getLeft(unsigned leftSort, unsigned rightSort);
+      unsigned getRight(unsigned leftSort, unsigned rightSort);
+      unsigned getIsLeft(unsigned leftSort, unsigned rightSort);
+      unsigned getIsRight(unsigned leftSort, unsigned rightSort);
+      unsigned getFromLeft(unsigned leftSort, unsigned rightSort);
+      unsigned getFromRight(unsigned leftSort, unsigned rightSort);
+
+    private:
+      DHMap<unsigned,unsigned> _leftConstructors;
+      DHMap<unsigned,unsigned> _rightConstructor;
+  };
+
+  static Theory::Either either_obj;
+  static Theory::Either* either();
 };
 
 typedef Theory::Interpretation Interpretation;
@@ -545,6 +578,8 @@ typedef Theory::Interpretation Interpretation;
  */
 extern Theory* theory;
 extern Theory::Tuples* tuples;
+extern Theory::Option* option;
+extern Theory::Either* either;
 }
 
 #endif // __Theory__

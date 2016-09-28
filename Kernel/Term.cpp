@@ -879,7 +879,7 @@ Term* Term::createTupleLet(unsigned tupleFunctor, IntList* symbols, TermList bin
 
   Signature::Symbol* symbol = env.signature->getFunction(tupleFunctor);
   ASS_EQ(symbol->arity(), (unsigned)symbols->length());
-  ASS_REP(env.sorts->isTupleSort(symbol->fnType()->result()), tupleFunctor);
+  ASS_REP(env.sorts->hasStructuredSort(symbol->fnType()->result(), Sorts::StructuredSort::TUPLE), tupleFunctor);
 #endif
 
   Term* s = new(1,sizeof(SpecialTermData)) Term;

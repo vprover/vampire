@@ -475,8 +475,11 @@ void UIHelper::outputSymbolTypeDeclarationIfNeeded(ostream& out, bool function, 
     return;
   }
 
-  if (function && env.sorts->isTupleSort(env.signature->getFunction(symNumber)->fnType()->result())) {
-    return;
+  if (function) {
+    unsigned sort = env.signature->getFunction(symNumber)->fnType()->result();
+    if (env.sorts->hasStructuredSort(sort, Sorts::StructuredSort::TUPLE)) {
+      return;
+    }
   }
 
   BaseType* type = function ? static_cast<BaseType*>(sym->fnType()) : sym->predType();
@@ -531,7 +534,7 @@ void UIHelper::outputSortDeclarations(ostream& out)
     }
     if ((*env.sorts).hasStructuredSort(sort, Sorts::StructuredSort::ARRAY) ||
         (*env.sorts).hasStructuredSort(sort, Sorts::StructuredSort::LIST)  ||
-        (*env.sorts).isTupleSort(sort)) {
+        (*env.sorts).hasStructuredSort(sort, Sorts::StructuredSort::TUPLE)) {
       continue;
     }
     out << "tff(type_def_" << sort << ", type, " << env.sorts->sortName(sort) << ": $tType)." << endl;

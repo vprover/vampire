@@ -946,7 +946,7 @@ void TheoryAxioms::addBooleanArrayWriteAxioms(Interpretation select, Interpretat
 void TheoryAxioms::addTupleAxioms(unsigned tupleSort, UnitList*& units) {
   CALL("TheoryAxioms::addTupleAxioms");
 
-  ASS_REP(env.sorts->isTupleSort(tupleSort), env.sorts->sortName(tupleSort));
+  ASS_REP(env.sorts->hasStructuredSort(tupleSort, Sorts::StructuredSort::TUPLE), env.sorts->sortName(tupleSort));
 
   Sorts::TupleSort* sort = env.sorts->getTupleSort(tupleSort);
   unsigned arity = sort->arity();
@@ -1183,7 +1183,7 @@ bool TheoryAxioms::apply(UnitList*& units, Property* prop)
   }
 
 
-  VirtualIterator<unsigned> arraySorts = env.sorts->getArraySorts();
+  VirtualIterator<unsigned> arraySorts = env.sorts->getStructuredSorts(Sorts::StructuredSort::ARRAY);
   while(arraySorts.hasNext()){
     unsigned arraySort = arraySorts.next();
 
@@ -1218,7 +1218,7 @@ bool TheoryAxioms::apply(UnitList*& units, Property* prop)
     }
   }
 
-  VirtualIterator<unsigned> tupleSorts = env.sorts->getTupleSorts();
+  VirtualIterator<unsigned> tupleSorts = env.sorts->getStructuredSorts(Sorts::StructuredSort::ARRAY);
   while(tupleSorts.hasNext()) {
     unsigned tupleSort = tupleSorts.next();
     addTupleAxioms(tupleSort, units);

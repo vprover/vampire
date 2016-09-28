@@ -124,7 +124,7 @@ unsigned Sorts::addArraySort(const unsigned indexSort, const unsigned innerSort)
   } else {
     Theory::instance()->addStructuredSortInterpretation(result, Theory::StructuredSortInterpretation::ARRAY_SELECT);
   }
-  // TheoryAxioms will automatically get the array sorts via getArraySorts
+  // TheoryAxioms will automatically get the array sorts via getStructuredSorts
 
   // We are done
   return result;
@@ -136,15 +136,14 @@ struct SortInfoToInt{
 };
 
 /**
- *
- * @author Giles
- */ 
-VirtualIterator<unsigned> Sorts::getArraySorts()
+ * @authors Giles, Evgeny
+ */
+VirtualIterator<unsigned> Sorts::getStructuredSorts(const StructuredSort ss)
 {
-  CALL("Sorts::getArraySorts");
+  CALL("Sorts::getStructuredSorts");
   Stack<SortInfo*>::Iterator all(_sorts);
   VirtualIterator<SortInfo*> arraySorts = pvi(getFilteredIterator(all,
-               [](SortInfo* s){ return s->hasStructuredSort(StructuredSort::ARRAY);}));
+               [ss](SortInfo* s){ return s->hasStructuredSort(ss);}));
   //auto map = ([](SortInfo* s)->unsigned{ return s->id(); });
   return pvi(getMappingIterator(arraySorts,SortInfoToInt()));
 }
@@ -176,12 +175,14 @@ unsigned Sorts::addTupleSort(unsigned arity, unsigned sorts[])
   return result;
 }
 
-VirtualIterator<unsigned> Sorts::getTupleSorts()
-{
-  CALL("Sorts::getTupleSorts");
-  Stack<SortInfo*>::Iterator all(_sorts);
-  VirtualIterator<SortInfo*> tupleSorts = pvi(getFilteredIterator(all, [](SortInfo* s){ return s->isTupleSort();}));
-  return pvi(getMappingIterator(tupleSorts,SortInfoToInt()));
+unsigned Sorts::addOptionSort(unsigned innerSort) {
+  CALL("Sorts::addOptionSort");
+  NOT_IMPLEMENTED;
+}
+
+unsigned Sorts::addEitherSort(unsigned leftSort, unsigned rightSort) {
+  CALL("Sorts::addEitherSort");
+  NOT_IMPLEMENTED;
 }
 
 /**

@@ -492,9 +492,13 @@ vstring RealConstantType::toNiceString() const
 
 Theory Theory::theory_obj;  // to facilitate destructor call at deinitization
 Theory::Tuples Theory::tuples_obj;
+Theory::Option Theory::option_obj;
+Theory::Either Theory::either_obj;
 
 Theory* theory = &Theory::theory_obj;
 Theory::Tuples* theory_tuples = &Theory::tuples_obj;
+Theory::Option* theory_option = &Theory::option_obj;
+Theory::Either* theory_either = &Theory::either_obj;
 
 /**
  * Accessor for the singleton instance of the Theory class.
@@ -507,6 +511,16 @@ Theory* Theory::instance()
 Theory::Tuples* Theory::tuples()
 {
   return theory_tuples;
+}
+
+Theory::Option* Theory::option()
+{
+  return theory_option;
+}
+
+Theory::Either* Theory::either()
+{
+  return theory_either;
 }
 
 /**
@@ -1117,7 +1131,7 @@ unsigned Theory::Tuples::getFunctor(unsigned arity, unsigned* sorts) {
 unsigned Theory::Tuples::getFunctor(unsigned tupleSort) {
   CALL("Theory::Tuples::getFunctor(unsigned tupleSort)");
 
-  ASS_REP(env.sorts->isTupleSort(tupleSort), env.sorts->sortName(tupleSort));
+  ASS_REP(env.sorts->hasStructuredSort(tupleSort, Sorts::StructuredSort::TUPLE), env.sorts->sortName(tupleSort));
 
   Sorts::TupleSort* tuple = env.sorts->getTupleSort(tupleSort);
   unsigned  arity = tuple->arity();
@@ -1148,7 +1162,7 @@ bool Theory::Tuples::isFunctor(unsigned functor) {
 unsigned Theory::Tuples::getProjectionFunctor(unsigned proj, unsigned tupleSort) {
   CALL("Theory::Tuples::getProjectionFunctor");
 
-  ASS_REP(env.sorts->isTupleSort(tupleSort), env.sorts->sortName(tupleSort));
+  ASS_REP(env.sorts->hasStructuredSort(tupleSort, Sorts::StructuredSort::TUPLE), env.sorts->sortName(tupleSort));
 
   pair<unsigned, unsigned> p = make_pair(proj, tupleSort);
 
@@ -1172,6 +1186,48 @@ unsigned Theory::Tuples::getProjectionFunctor(unsigned proj, unsigned tupleSort)
 
 bool Theory::Tuples::findProjection(unsigned projFunctor, unsigned &proj) {
   return _projectionFunctors.find(projFunctor, proj);
+}
+
+
+unsigned Theory::Option::getNone(unsigned innerSort) {
+  NOT_IMPLEMENTED;
+}
+
+unsigned Theory::Option::getSome(unsigned innerSort) {
+  NOT_IMPLEMENTED;
+}
+
+unsigned Theory::Option::getIsSome(unsigned innerSort) {
+  NOT_IMPLEMENTED;
+}
+
+unsigned Theory::Option::getFromSome(unsigned innerSort) {
+  NOT_IMPLEMENTED;
+}
+
+
+unsigned Theory::Either::getLeft(unsigned leftSort, unsigned rightSort) {
+  NOT_IMPLEMENTED;
+}
+
+unsigned Theory::Either::getRight(unsigned leftSort, unsigned rightSort) {
+  NOT_IMPLEMENTED;
+}
+
+unsigned Theory::Either::getIsLeft(unsigned leftSort, unsigned rightSort) {
+  NOT_IMPLEMENTED;
+}
+
+unsigned Theory::Either::getIsRight(unsigned leftSort, unsigned rightSort) {
+  NOT_IMPLEMENTED;
+}
+
+unsigned Theory::Either::getFromLeft(unsigned leftSort, unsigned rightSort) {
+  NOT_IMPLEMENTED;
+}
+
+unsigned Theory::Either::getFromRight(unsigned leftSort, unsigned rightSort) {
+  NOT_IMPLEMENTED;
 }
 
 /**

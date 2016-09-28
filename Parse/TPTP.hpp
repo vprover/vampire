@@ -145,14 +145,12 @@ public:
     T_REAL_TYPE,
     /** $array type*/
     T_ARRAY_TYPE,
-    /** array select*/
-    T_SELECT,
-    /** array store*/
-    T_STORE,
     /** $tuple type */
     T_TUPLE,
-    /** $option theory */
-    T_OPTION, T_SOME, T_NONE, T_IS_SOME, T_FROM_SOME,
+    /** theory functions */
+    T_THEORY_FUNCTION,
+    /** theory sorts */
+    T_THEORY_SORT,
     /** tuple projection */
     T_PROJ,
     /** $fot, probably useless */
@@ -233,8 +231,6 @@ public:
     END_ITE,
     /** read tuple */
     END_TUPLE,
-    /** read tuple projection */
-    END_PROJ,
     /** check the end of arguments */
     END_ARGS,
     /** middle of equality */
@@ -249,10 +245,8 @@ public:
     END_BINDING,
     /** end of tuple binding inside $let */
     END_TUPLE_BINDING,
-    /** end of select array terms */
-    END_SELECT,
-    /** end of store array terms */
-    END_STORE
+    /** end of a theory function */
+    END_THEORY_FUNCTION
   };
 
   /** token */
@@ -426,6 +420,77 @@ private:
     UnitList** _last;
   }; // class UnitStack
 
+  enum TheorySort {
+    /** $option theory */
+    TS_OPTION,
+    /** $either theory */
+    TS_EITHER
+  };
+  static bool findTheorySort(const vstring name, TheorySort &ts) {
+    static const vstring theorySortNames[] = {
+      "$option", "$either"
+    };
+    static const unsigned theorySorts = sizeof(theorySortNames)/sizeof(vstring);
+    for (unsigned sort = 0; sort < theorySorts; sort++) {
+      if (theorySortNames[sort] == name) {
+        ts = static_cast<TheorySort>(sort);
+        return true;
+      }
+    }
+    return false;
+  }
+  static bool isTheorySort(const vstring name) {
+    static TheorySort dummy;
+    return findTheorySort(name, dummy);
+  }
+  static TheorySort getTheorySort(const Token tok) {
+    ASS_REP(tok.tag == T_THEORY_SORT, tok.content);
+    TheorySort ts;
+    if (!findTheorySort(tok.content, ts)) {
+      ASSERTION_VIOLATION_REP(tok.content);
+    }
+    return ts;
+  }
+
+  enum TheoryFunction {
+    /** $array theory */
+    TF_SELECT, TF_STORE,
+    /** theory of tuples */
+    TF_PROJ,
+    /** $option theory */
+    TF_SOME, TF_NONE, TF_IS_SOME, TF_FROM_SOME,
+    /** $either theory */
+    TF_LEFT, TF_RIGHT, TF_IS_LEFT, TF_IS_RIGHT, TF_FROM_LEFT, TF_FROM_RIGHT
+  };
+  static bool findTheoryFunction(const vstring name, TheoryFunction &tf) {
+    static const vstring theoryFunctionNames[] = {
+      "$select", "$store",
+      "$proj",
+      "$none", "$some", "$issome", "$fromsome",
+      "$left", "$right", "$isleft", "$isright", "$fromleft", "$fromright"
+    };
+    static const unsigned theoryFunctions = sizeof(theoryFunctionNames)/sizeof(vstring);
+    for (unsigned fun = 0; fun < theoryFunctions; fun++) {
+      if (theoryFunctionNames[fun] == name) {
+        tf = static_cast<TheoryFunction>(fun);
+        return true;
+      }
+    }
+    return false;
+  }
+  static bool isTheoryFunction(const vstring name) {
+    static TheoryFunction dummy;
+    return findTheoryFunction(name, dummy);
+  }
+  static TheoryFunction getTheoryFunction(const Token tok) {
+    ASS_REP(tok.tag == T_THEORY_FUNCTION, tok.content);
+    TheoryFunction tf;
+    if (!findTheoryFunction(tok.content, tf)) {
+      ASSERTION_VIOLATION_REP(tok.content);
+    }
+    return tf;
+  }
+
   /** true if the input contains a conjecture */
   bool _containsConjecture;
   /** Allowed names of formulas.
@@ -501,6 +566,8 @@ private:
   /** various type tags saved during parsing */
   Stack<TypeTag> _typeTags;
   typedef List<unsigned> SortList;
+  /**  */
+  Stack<TheoryFunction> _theoryFunctions;
   /** bindings of variables to sorts */
   Map<int,SortList*> _variableSorts;
   /** overflown arithmetical constants for which uninterpreted constants are introduced */
@@ -666,10 +733,8 @@ private:
   void endBinding();
   void endTupleBinding();
   void endLet();
-  void endSelect();
-  void endStore();
+  void endTheoryFunction();
   void endTuple();
-  void endProj();
   void addTagState(Tag);
 
   unsigned readSort();
@@ -685,7 +750,6 @@ private:
   unsigned addOverloadedPredicate(vstring name,int arity,int symbolArity,bool& added,TermList& arg,
 				  Theory::Interpretation integer,Theory::Interpretation rational,
 				  Theory::Interpretation real);
- // unsigned addOverloadedArrayFunction(vstring name,int arity,int symbolArity,bool& added,TermList& arg,Theory::Interpretation array_select);
   unsigned sortOf(TermList term);
   static bool higherPrecedence(int c1,int c2);
 
