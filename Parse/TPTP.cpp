@@ -1462,7 +1462,9 @@ void TPTP::endTheoryFunction() {
   Term* theoryTerm;
   Literal* theoryLiteral;
 
+  cout << "PPPPPPPPP" << endl;
   TheoryFunction tf = _theoryFunctions.pop();
+  cout << "QQQQQQQQQ" << endl;
   switch (tf) {
     case TF_SELECT: {
       TermList index = _termLists.pop();
@@ -1553,7 +1555,9 @@ void TPTP::endTheoryFunction() {
       break;
     }
     case TF_SOME: {
+      cout << "AAAAAAAAAAAAAA" << endl;
       TermList arg = _termLists.pop();
+      cout << "BBBBBBBBBBBBBB" << endl;
       unsigned innerSort = sortOf(arg);
       unsigned someFunctor = Theory::option()->getSome(innerSort);
       theoryTerm = Term::create1(someFunctor, arg);
@@ -1581,7 +1585,9 @@ void TPTP::endTheoryFunction() {
     }
     case TF_IS_SOME:
     case TF_FROM_SOME: {
+      cout << "111111111111" << endl;
       TermList arg = _termLists.pop();
+      cout << "222222222222" << endl;
       unsigned argSort = sortOf(arg);
 
       if (!env.sorts->hasStructuredSort(argSort, Sorts::StructuredSort::OPTION)) {
@@ -2503,6 +2509,7 @@ void TPTP::formulaInfix()
       case TF_FROM_SOME:
       case TF_FROM_LEFT:
       case TF_FROM_RIGHT:
+        _theoryFunctions.push(tf);
         _states.push(END_TERM_AS_FORMULA);
         _states.push(END_THEORY_FUNCTION);
         break;
@@ -4489,6 +4496,12 @@ void TPTP::printStacks() {
     while (slit.hasNext()) cout << env.sorts->sortName(slit.next()) << " ";
     cout << ";";
   }
+  cout << endl;
+
+  Stack<TheoryFunction>::Iterator tfit(_theoryFunctions);
+  cout << "Theory functions: ";
+  if   (!tfit.hasNext()) cout << " <empty>";
+  while (tfit.hasNext()) cout << " " << tfit.next();
   cout << endl;
 
   Stack<LetFunctionsScope>::Iterator lfsit(_letScopes);

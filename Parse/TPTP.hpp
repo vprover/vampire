@@ -458,7 +458,7 @@ private:
     /** theory of tuples */
     TF_PROJ,
     /** $option theory */
-    TF_SOME, TF_NONE, TF_IS_SOME, TF_FROM_SOME,
+    TF_NONE, TF_SOME, TF_IS_SOME, TF_FROM_SOME,
     /** $either theory */
     TF_LEFT, TF_RIGHT, TF_IS_LEFT, TF_IS_RIGHT, TF_FROM_LEFT, TF_FROM_RIGHT
   };

@@ -1190,44 +1190,189 @@ bool Theory::Tuples::findProjection(unsigned projFunctor, unsigned &proj) {
 
 
 unsigned Theory::Option::getNone(unsigned innerSort) {
-  NOT_IMPLEMENTED;
+  CALL("Theory::Option::getNone");
+
+  unsigned functor;
+  if (!_nones.find(innerSort, functor)) {
+    unsigned optionSort = env.sorts->addOptionSort(innerSort);
+    functor = env.signature->addFreshFunction(0, "$none");
+    _nones.set(innerSort, functor);
+    FunctionType* noneType = new FunctionType(optionSort);
+    env.signature->getFunction(functor)->setType(noneType);
+  }
+
+  return functor;
 }
 
 unsigned Theory::Option::getSome(unsigned innerSort) {
-  NOT_IMPLEMENTED;
+  CALL("Theory::Option::getSome");
+
+  unsigned functor;
+  if (!_somes.find(innerSort, functor)) {
+    unsigned optionSort = env.sorts->addOptionSort(innerSort);
+    functor = env.signature->addFreshFunction(1, "$some");
+    _somes.set(innerSort, functor);
+    FunctionType* someType = new FunctionType({ innerSort }, optionSort);
+    env.signature->getFunction(functor)->setType(someType);
+  }
+
+  return functor;
 }
 
 unsigned Theory::Option::getIsSome(unsigned innerSort) {
-  NOT_IMPLEMENTED;
+  CALL("Theory::Option::getIsSome");
+
+  unsigned functor;
+  if (!_isSomes.find(innerSort, functor)) {
+    unsigned optionSort = env.sorts->addOptionSort(innerSort);
+    functor = env.signature->addFreshPredicate(1, "$issome");
+    _isSomes.set(innerSort, functor);
+    PredicateType* isSomeType = new PredicateType({ optionSort });
+    env.signature->getPredicate(functor)->setType(isSomeType);
+  }
+
+  return functor;
 }
 
 unsigned Theory::Option::getFromSome(unsigned innerSort) {
-  NOT_IMPLEMENTED;
+  CALL("Theory::Option::getFromSome");
+
+  unsigned functor;
+  if (!_fromSomes.find(innerSort, functor)) {
+    unsigned optionSort = env.sorts->addOptionSort(innerSort);
+
+    if (innerSort == Sorts::SRT_BOOL) {
+      functor = env.signature->addFreshPredicate(1, "$fromsome");
+      PredicateType* fromSomeType = new PredicateType({ optionSort });
+      env.signature->getPredicate(functor)->setType(fromSomeType);
+    } else {
+      functor = env.signature->addFreshFunction(1, "$fromsome");
+      FunctionType* fromSomeType = new FunctionType({ optionSort }, innerSort);
+      env.signature->getFunction(functor)->setType(fromSomeType);
+    }
+    _fromSomes.set(innerSort, functor);
+  }
+
+  return functor;
 }
 
 
 unsigned Theory::Either::getLeft(unsigned leftSort, unsigned rightSort) {
-  NOT_IMPLEMENTED;
+  CALL("Theory::Either::getLeft");
+
+  pair<unsigned,unsigned> sort = make_pair(leftSort, rightSort);
+
+  unsigned functor;
+  if (!_lefts.find(sort, functor)) {
+    unsigned eitherSort = env.sorts->addEitherSort(leftSort, rightSort);
+    functor = env.signature->addFreshFunction(1, "$left");
+    _lefts.set(sort, functor);
+    FunctionType* leftType = new FunctionType({ leftSort }, eitherSort);
+    env.signature->getFunction(functor)->setType(leftType);
+  }
+
+  return functor;
 }
 
 unsigned Theory::Either::getRight(unsigned leftSort, unsigned rightSort) {
-  NOT_IMPLEMENTED;
+  CALL("Theory::Either::getRight");
+
+  pair<unsigned,unsigned> sort = make_pair(leftSort, rightSort);
+
+  unsigned functor;
+  if (!_rights.find(sort, functor)) {
+    unsigned eitherSort = env.sorts->addEitherSort(leftSort, rightSort);
+    functor = env.signature->addFreshFunction(1, "$right");
+    _rights.set(sort, functor);
+    FunctionType* rightType = new FunctionType({ rightSort }, eitherSort);
+    env.signature->getFunction(functor)->setType(rightType);
+  }
+
+  return functor;
 }
 
 unsigned Theory::Either::getIsLeft(unsigned leftSort, unsigned rightSort) {
-  NOT_IMPLEMENTED;
+  CALL("Theory::Either::getIsLeft");
+
+  pair<unsigned,unsigned> sort = make_pair(leftSort, rightSort);
+
+  unsigned functor;
+  if (!_isLefts.find(sort, functor)) {
+    unsigned eitherSort = env.sorts->addEitherSort(leftSort, rightSort);
+    functor = env.signature->addFreshPredicate(1, "$isleft");
+    _isLefts.set(sort, functor);
+    PredicateType* isLeftType = new PredicateType({ eitherSort });
+    env.signature->getPredicate(functor)->setType(isLeftType);
+  }
+
+  return functor;
 }
 
 unsigned Theory::Either::getIsRight(unsigned leftSort, unsigned rightSort) {
-  NOT_IMPLEMENTED;
+  CALL("Theory::Either::getIsRight");
+
+  pair<unsigned,unsigned> sort = make_pair(leftSort, rightSort);
+
+  unsigned functor;
+  if (!_isRights.find(sort, functor)) {
+    unsigned eitherSort = env.sorts->addEitherSort(leftSort, rightSort);
+    functor = env.signature->addFreshPredicate(1, "$isright");
+    _isRights.set(sort, functor);
+    PredicateType* isRightType = new PredicateType({ eitherSort });
+    env.signature->getPredicate(functor)->setType(isRightType);
+  }
+
+  return functor;
 }
 
 unsigned Theory::Either::getFromLeft(unsigned leftSort, unsigned rightSort) {
-  NOT_IMPLEMENTED;
+  CALL("Theory::Either::getFromLeft");
+
+  pair<unsigned,unsigned> sort = make_pair(leftSort, rightSort);
+
+  unsigned functor;
+  if (!_fromLefts.find(sort, functor)) {
+    unsigned eitherSort = env.sorts->addEitherSort(leftSort, rightSort);
+
+    if (leftSort == Sorts::SRT_BOOL) {
+      functor = env.signature->addFreshPredicate(1, "$fromleft");
+      PredicateType* fromLeftType = new PredicateType({ eitherSort });
+      env.signature->getPredicate(functor)->setType(fromLeftType);
+    } else {
+      functor = env.signature->addFreshFunction(1, "$fromleft");
+      FunctionType* fromLeftType = new FunctionType({ eitherSort }, leftSort);
+      env.signature->getFunction(functor)->setType(fromLeftType);
+    }
+
+    _fromLefts.set(sort, functor);
+  }
+
+  return functor;
 }
 
 unsigned Theory::Either::getFromRight(unsigned leftSort, unsigned rightSort) {
-  NOT_IMPLEMENTED;
+  CALL("Theory::Either::getFromRight");
+
+  pair<unsigned,unsigned> sort = make_pair(leftSort, rightSort);
+
+  unsigned functor;
+  if (!_fromRights.find(sort, functor)) {
+    unsigned eitherSort = env.sorts->addEitherSort(leftSort, rightSort);
+
+    if (rightSort == Sorts::SRT_BOOL) {
+      functor = env.signature->addFreshPredicate(1, "$fromright");
+      PredicateType* fromRightType = new PredicateType({ eitherSort });
+      env.signature->getPredicate(functor)->setType(fromRightType);
+    } else {
+      functor = env.signature->addFreshFunction(1, "$fromright");
+      FunctionType* fromRightType = new FunctionType({ eitherSort }, rightSort);
+      env.signature->getFunction(functor)->setType(fromRightType);
+    }
+
+    _fromRights.set(sort, functor);
+  }
+
+  return functor;
 }
 
 /**

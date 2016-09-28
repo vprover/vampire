@@ -546,7 +546,10 @@ public:
     unsigned getFromSome(unsigned innerSort);
 
   private:
-    DHMap<unsigned,unsigned> _constructors;
+    DHMap<unsigned,unsigned> _nones;
+    DHMap<unsigned,unsigned> _somes;
+    DHMap<unsigned,unsigned> _isSomes;
+    DHMap<unsigned,unsigned> _fromSomes;
   };
 
   static Theory::Option option_obj;
@@ -563,8 +566,12 @@ public:
       unsigned getFromRight(unsigned leftSort, unsigned rightSort);
 
     private:
-      DHMap<unsigned,unsigned> _leftConstructors;
-      DHMap<unsigned,unsigned> _rightConstructor;
+      DHMap<pair<unsigned,unsigned>,unsigned> _lefts;
+      DHMap<pair<unsigned,unsigned>,unsigned> _rights;
+      DHMap<pair<unsigned,unsigned>,unsigned> _isLefts;
+      DHMap<pair<unsigned,unsigned>,unsigned> _isRights;
+      DHMap<pair<unsigned,unsigned>,unsigned> _fromLefts;
+      DHMap<pair<unsigned,unsigned>,unsigned> _fromRights;
   };
 
   static Theory::Either either_obj;

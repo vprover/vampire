@@ -87,6 +87,10 @@ public:
     StructuredSortInfo(vstring name, StructuredSort sort,unsigned id): 
       SortInfo(name,id), _sort(sort) { (void)_sort; /*to suppress warning about unused*/ }
 
+    bool hasStructuredSort(StructuredSort sort) override {
+      return sort==_sort;
+    }
+
   private:
     StructuredSort _sort;
   };
@@ -110,9 +114,6 @@ public:
 #endif
     }
 
-    bool hasStructuredSort(StructuredSort sort) override { 
-      return sort==StructuredSort::ARRAY; 
-    }
     unsigned getIndexSort(){ return _indexSort; }
     unsigned getInnerSort(){ return _innerSort; }
 
@@ -123,22 +124,18 @@ public:
 
   };
 
-  class TupleSort : public SortInfo
+  class TupleSort : public StructuredSortInfo
   {
   public:
     CLASS_NAME(TupleSort);
     USE_ALLOCATOR(TupleSort);
 
-    TupleSort(vstring name, unsigned sort, unsigned arity, unsigned sorts[])
-      : SortInfo(name, sort), _arity(arity) {
+    TupleSort(vstring name, unsigned id, unsigned arity, unsigned sorts[])
+      : StructuredSortInfo(name, StructuredSort::TUPLE, id), _arity(arity) {
       _sorts = new unsigned[arity];
       for (unsigned i = 0; i < arity; i++) {
         _sorts[i] = sorts[i];
       }
-    }
-
-    bool hasStructuredSort(StructuredSort sort) override {
-      return sort == StructuredSort::TUPLE;
     }
 
     unsigned arity() const { return _arity; }
@@ -160,9 +157,6 @@ public:
       StructuredSortInfo(name, StructuredSort::OPTION, id),
       _innerSort(innerSort) {}
 
-    bool hasStructuredSort(StructuredSort sort) override {
-      return sort == StructuredSort::OPTION;
-    }
     unsigned getInnerSort(){ return _innerSort; }
 
   private:
@@ -179,11 +173,8 @@ public:
       StructuredSortInfo(name, StructuredSort::EITHER, id),
       _leftSort(leftSort), _rightSort(rightSort) {}
 
-    bool hasStructuredSort(StructuredSort sort) override {
-      return sort == StructuredSort::EITHER;
-    }
-    unsigned getLeftSort() { return _leftSort;  }
-    unsigned getRightSort(){ return _rightSort; }
+    unsigned getLeftSort()  { return _leftSort;  }
+    unsigned getRightSort() { return _rightSort; }
 
   private:
     unsigned _leftSort;
