@@ -370,11 +370,15 @@ public:
     LIST_CONS,
     LIST_IS_EMPTY
   };
-  void addStructuredSortInterpretation(unsigned sort, StructuredSortInterpretation i);
   unsigned getSymbolForStructuredSort(unsigned sort, StructuredSortInterpretation interp);
   Interpretation getInterpretation(unsigned sort, StructuredSortInterpretation i){
-    ASS(_structuredSortInterpretations.find(pair<unsigned,StructuredSortInterpretation>(sort,i)));
-    return static_cast<Interpretation>(_structuredSortInterpretations.get(pair<unsigned,StructuredSortInterpretation>(sort,i)));
+    auto key = make_pair(sort, i);
+    unsigned interpretation;
+    if (!_structuredSortInterpretations.find(key, interpretation)) {
+      interpretation = MaxInterpretedElement() + 1;
+      _structuredSortInterpretations.insert(key, interpretation);
+    }
+    return static_cast<Interpretation>(interpretation);
   }
   bool isStructuredSortInterpretation(Interpretation i){
     return i > LastNonStructuredInterepretation();

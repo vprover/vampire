@@ -98,7 +98,6 @@ unsigned Sorts::addArraySort(const unsigned indexSort, const unsigned innerSort)
 {
   CALL("Sorts::addArraySort");
 
-  // First check if it already exists
   vstring name = "$array(";
   name+=env.sorts->sortName(indexSort);
   name+=",";
@@ -111,22 +110,11 @@ unsigned Sorts::addArraySort(const unsigned indexSort, const unsigned innerSort)
 
   _hasSort = true;
   result = _sorts.length(); 
-  // Next create ArraySort and register it
+
   ArraySort* sort = new ArraySort(name,indexSort,innerSort,result);
   _sorts.push(sort);
   _sortNames.insert(name,result);
 
-  // Next create and register the STORE and SELECT functions for this sort with Theory
-
-  Theory::instance()->addStructuredSortInterpretation(result,Theory::StructuredSortInterpretation::ARRAY_STORE);
-  if (innerSort == Sorts::SRT_BOOL) {
-    Theory::instance()->addStructuredSortInterpretation(result, Theory::StructuredSortInterpretation::ARRAY_BOOL_SELECT);
-  } else {
-    Theory::instance()->addStructuredSortInterpretation(result, Theory::StructuredSortInterpretation::ARRAY_SELECT);
-  }
-  // TheoryAxioms will automatically get the array sorts via getStructuredSorts
-
-  // We are done
   return result;
 }
 
@@ -152,7 +140,6 @@ unsigned Sorts::addTupleSort(unsigned arity, unsigned sorts[])
 {
   CALL("Sorts::addTupleSort");
 
-  // First check if it already exists
   vstring name = "[";
   for (unsigned i = 0; i < arity; i++) {
     name += env.sorts->sortName(sorts[i]);
@@ -199,7 +186,6 @@ unsigned Sorts::addOptionSort(unsigned innerSort) {
 unsigned Sorts::addEitherSort(unsigned leftSort, unsigned rightSort) {
   CALL("Sorts::addEitherSort");
 
-  // First check if it already exists
   vstring name = "$either(" + env.sorts->sortName(leftSort) + "," + env.sorts->sortName(rightSort) + ")";
 
   unsigned result;

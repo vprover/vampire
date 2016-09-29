@@ -1468,31 +1468,28 @@ void TPTP::endTheoryFunction() {
       TermList index = _termLists.pop();
       TermList array = _termLists.pop();
 
-      unsigned array_sort = sortOf(array);
+      unsigned arraySort = sortOf(array);
+      unsigned indexSort = env.sorts->getArraySort(arraySort)->getIndexSort();
 
-      // Check that array_sort is defined
-      if (!env.sorts->hasStructuredSort(array_sort,Sorts::StructuredSort::ARRAY)) {
-        USER_ERROR("select is being incorrectly used on a type of array that has not be defined");
+      if (!env.sorts->hasStructuredSort(arraySort, Sorts::StructuredSort::ARRAY)) {
+        USER_ERROR("$select is being incorrectly used on a type of array that has not be defined");
       }
 
-      unsigned indexSort = env.sorts->getArraySort(array_sort)->getIndexSort();
       if (sortOf(index) != indexSort) {
-        USER_ERROR((vstring)"sort of index is not the same as the index sort of the array");
+        USER_ERROR("sort of index is not the same as the index sort of the array");
       }
 
-      if (env.sorts->getArraySort(array_sort)->getInnerSort() == Sorts::SRT_BOOL) {
-        Theory::StructuredSortInterpretation ssi = Theory::StructuredSortInterpretation::ARRAY_BOOL_SELECT;
-        Interpretation select = Theory::instance()->getInterpretation(array_sort, ssi);
-
-        unsigned pred = env.signature->getInterpretingSymbol(select);
+      if (env.sorts->getArraySort(arraySort)->getInnerSort() == Sorts::SRT_BOOL) {
+        static const auto ssi = Theory::StructuredSortInterpretation::ARRAY_BOOL_SELECT;
+        Interpretation i = Theory::instance()->getInterpretation(arraySort, ssi);
+        unsigned select = env.signature->getInterpretingSymbol(i);
         isTheoryTerm = false;
-        theoryLiteral = Literal::create2(pred, true, array, index);
+        theoryLiteral = Literal::create2(select, true, array, index);
       } else {
-        Theory::StructuredSortInterpretation ssi = Theory::StructuredSortInterpretation::ARRAY_SELECT;
-        Interpretation select = Theory::instance()->getInterpretation(array_sort, ssi);
-
-        unsigned func = env.signature->getInterpretingSymbol(select);
-        theoryTerm = Term::create2(func, array, index);
+        static const auto ssi = Theory::StructuredSortInterpretation::ARRAY_SELECT;
+        Interpretation i = Theory::instance()->getInterpretation(arraySort, ssi);
+        unsigned select = env.signature->getInterpretingSymbol(i);
+        theoryTerm = Term::create2(select, array, index);
       }
       break;
     }
@@ -1501,30 +1498,27 @@ void TPTP::endTheoryFunction() {
       TermList index = _termLists.pop();
       TermList array = _termLists.pop();
 
-      unsigned array_sort = sortOf(array);
+      unsigned arraySort = sortOf(array);
+      unsigned innerSort = env.sorts->getArraySort(arraySort)->getInnerSort();
+      unsigned indexSort = env.sorts->getArraySort(arraySort)->getIndexSort();
 
-      // Check that array_sort is defined
-      if (!env.sorts->hasStructuredSort(array_sort,Sorts::StructuredSort::ARRAY)) {
+      if (!env.sorts->hasStructuredSort(arraySort, Sorts::StructuredSort::ARRAY)) {
         USER_ERROR("store is being incorrectly used on a type of array that has not be defined");
       }
 
-      unsigned indexSort = env.sorts->getArraySort(array_sort)->getIndexSort();
       if (sortOf(index) != indexSort) {
-        USER_ERROR((vstring)"sort of index is not the same as the index sort of the array");
+        USER_ERROR("sort of index is not the same as the index sort of the array");
       }
 
-      unsigned innerSort = env.sorts->getArraySort(array_sort)->getInnerSort();
       if (sortOf(value) != innerSort) {
-        USER_ERROR((vstring)"sort of value is not the same as the value sort of the array");
+        USER_ERROR("sort of value is not the same as the value sort of the array");
       }
 
-      auto ssi = Theory::StructuredSortInterpretation::ARRAY_STORE;
-      Interpretation store = Theory::instance()->getInterpretation(array_sort, ssi);
-
-      unsigned func = env.signature->getInterpretingSymbol(store);
+      static const auto ssi = Theory::StructuredSortInterpretation::ARRAY_STORE;
+      Interpretation i = Theory::instance()->getInterpretation(arraySort, ssi);
+      unsigned store = env.signature->getInterpretingSymbol(i);
       TermList args[] = { array, index, value };
-
-      theoryTerm = Term::create(func, 3, args);
+      theoryTerm = Term::create(store, 3, args);
       break;
     }
     case TF_PROJ: {
@@ -1581,9 +1575,7 @@ void TPTP::endTheoryFunction() {
     }
     case TF_IS_SOME:
     case TF_FROM_SOME: {
-      cout << "111111111111" << endl;
       TermList arg = _termLists.pop();
-      cout << "222222222222" << endl;
       unsigned argSort = sortOf(arg);
 
       if (!env.sorts->hasStructuredSort(argSort, Sorts::StructuredSort::OPTION)) {

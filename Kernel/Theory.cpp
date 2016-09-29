@@ -999,17 +999,6 @@ bool Theory::isNonLinearOperation(Interpretation i)
   }
 }
 
-void Theory::addStructuredSortInterpretation(unsigned sort, StructuredSortInterpretation i){
-    ALWAYS(_structuredSortInterpretations.insert(
-                pair<unsigned,StructuredSortInterpretation>(sort,i),
-                MaxInterpretedElement()+1));
-
-    // Doing this ensures that the symbol is register in signature
-    //unsigned f = env.signature->getInterpretingSymbol(getInterpretation(sort,i));
-    //cout << "for interp " << getInterpretation(sort,i) << " f is " << f << endl;
-}
-
-
 unsigned Theory::getSymbolForStructuredSort(unsigned sort, StructuredSortInterpretation interp)
 {
     return env.signature->getInterpretingSymbol(getInterpretation(sort,interp));
