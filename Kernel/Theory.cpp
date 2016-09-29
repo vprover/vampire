@@ -1131,7 +1131,8 @@ unsigned Theory::Tuples::getFunctor(unsigned arity, unsigned* sorts) {
 unsigned Theory::Tuples::getFunctor(unsigned tupleSort) {
   CALL("Theory::Tuples::getFunctor(unsigned tupleSort)");
 
-  ASS_REP(env.sorts->hasStructuredSort(tupleSort, Sorts::StructuredSort::TUPLE), env.sorts->sortName(tupleSort));
+  ASS_REP(env.sorts->hasStructuredSort(tupleSort, Sorts::StructuredSort::TUPLE),
+          env.sorts->sortName(tupleSort));
 
   Sorts::TupleSort* tuple = env.sorts->getTupleSort(tupleSort);
   unsigned  arity = tuple->arity();

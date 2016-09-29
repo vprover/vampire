@@ -532,9 +532,7 @@ void UIHelper::outputSortDeclarations(ostream& out)
     if (sort <= Sorts::FIRST_USER_SORT && ((sort != Sorts::SRT_BOOL) || !env.options->showFOOL())) {
       continue;
     }
-    if ((*env.sorts).hasStructuredSort(sort, Sorts::StructuredSort::ARRAY) ||
-        (*env.sorts).hasStructuredSort(sort, Sorts::StructuredSort::LIST)  ||
-        (*env.sorts).hasStructuredSort(sort, Sorts::StructuredSort::TUPLE)) {
+    if ((*env.sorts).hasStructuredSort(sort)) {
       continue;
     }
     out << "tff(type_def_" << sort << ", type, " << env.sorts->sortName(sort) << ": $tType)." << endl;

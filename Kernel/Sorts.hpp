@@ -49,7 +49,9 @@ public:
     /** The structured sort for $option */
     OPTION,
     /** The structured sort for $either */
-    EITHER
+    EITHER,
+    /** not a real structured sort, it's here to denote the length of the StructuredSort enum */
+    LAST_STRUCTURED_SORT
   };
 
   Sorts();
@@ -212,6 +214,17 @@ public:
   bool findSort(const vstring& name, unsigned& idx);
 
   VirtualIterator<unsigned> getStructuredSorts(const StructuredSort ss);
+
+  bool hasStructuredSort(unsigned sort) {
+    if(sort > _sorts.size()) return false;
+    unsigned sorts = (unsigned)StructuredSort::LAST_STRUCTURED_SORT;
+    for (unsigned ss = 0; ss < sorts; ss++) {
+      if (_sorts[sort]->hasStructuredSort(static_cast<StructuredSort>(ss))) {
+        return true;
+      }
+    }
+    return false;
+  }
 
   bool hasStructuredSort(unsigned sort, StructuredSort structured){
     if(sort > _sorts.size()) return false;
