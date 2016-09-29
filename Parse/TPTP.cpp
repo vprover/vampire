@@ -1462,9 +1462,7 @@ void TPTP::endTheoryFunction() {
   Term* theoryTerm;
   Literal* theoryLiteral;
 
-  cout << "PPPPPPPPP" << endl;
   TheoryFunction tf = _theoryFunctions.pop();
-  cout << "QQQQQQQQQ" << endl;
   switch (tf) {
     case TF_SELECT: {
       TermList index = _termLists.pop();
@@ -1555,9 +1553,7 @@ void TPTP::endTheoryFunction() {
       break;
     }
     case TF_SOME: {
-      cout << "AAAAAAAAAAAAAA" << endl;
       TermList arg = _termLists.pop();
-      cout << "BBBBBBBBBBBBBB" << endl;
       unsigned innerSort = sortOf(arg);
       unsigned someFunctor = Theory::option()->getSome(innerSort);
       theoryTerm = Term::create1(someFunctor, arg);
