@@ -490,6 +490,7 @@ private:
     }
     return tf;
   }
+  static Theory::StructuredSortInterpretation getSpecialSortInterpretation(TheoryFunction tf);
 
   /** true if the input contains a conjecture */
   bool _containsConjecture;

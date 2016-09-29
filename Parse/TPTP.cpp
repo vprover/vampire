@@ -1443,6 +1443,27 @@ void TPTP::endIte()
   _termLists.push(ts);
 } // endIte
 
+Theory::StructuredSortInterpretation TPTP::getSpecialSortInterpretation(TheoryFunction tf) {
+  switch (tf) {
+    case TF_SELECT:
+//      return Theory::StructuredSortInterpretation::ARRAY_SELECT
+    case TF_STORE:
+    case TF_PROJ:
+    case TF_NONE:
+    case TF_SOME:
+    case TF_IS_SOME:
+    case TF_FROM_SOME:
+    case TF_LEFT:
+    case TF_RIGHT:
+    case TF_IS_LEFT:
+    case TF_IS_RIGHT:
+    case TF_FROM_LEFT:
+    case TF_FROM_RIGHT:
+    default:
+      ASSERTION_VIOLATION;
+  }
+}
+
 /**
  *
  */
@@ -1458,9 +1479,10 @@ void TPTP::endTheoryFunction() {
    * we simply pull the formula out of the boolean term. This is done in
    * endTermAsFormula().
    */
-  bool isTheoryTerm = true;
-  Term* theoryTerm;
-  Literal* theoryLiteral;
+
+  Theory::StructuredSortInterpretation ssi;
+  TermList args[3]; // all theory function use up to 3 arguments as for now
+  unsigned theorySort;
 
   TheoryFunction tf = _theoryFunctions.pop();
   switch (tf) {
@@ -1469,27 +1491,23 @@ void TPTP::endTheoryFunction() {
       TermList array = _termLists.pop();
 
       unsigned arraySort = sortOf(array);
-      unsigned indexSort = env.sorts->getArraySort(arraySort)->getIndexSort();
-
       if (!env.sorts->hasStructuredSort(arraySort, Sorts::StructuredSort::ARRAY)) {
         USER_ERROR("$select is being incorrectly used on a type of array that has not be defined");
       }
 
+      unsigned indexSort = env.sorts->getArraySort(arraySort)->getIndexSort();
       if (sortOf(index) != indexSort) {
         USER_ERROR("sort of index is not the same as the index sort of the array");
       }
 
+      args[0] = array;
+      args[1] = index;
+      theorySort = arraySort;
+
       if (env.sorts->getArraySort(arraySort)->getInnerSort() == Sorts::SRT_BOOL) {
-        static const auto ssi = Theory::StructuredSortInterpretation::ARRAY_BOOL_SELECT;
-        Interpretation i = Theory::instance()->getInterpretation(arraySort, ssi);
-        unsigned select = env.signature->getInterpretingSymbol(i);
-        isTheoryTerm = false;
-        theoryLiteral = Literal::create2(select, true, array, index);
+        ssi = Theory::StructuredSortInterpretation::ARRAY_BOOL_SELECT;
       } else {
-        static const auto ssi = Theory::StructuredSortInterpretation::ARRAY_SELECT;
-        Interpretation i = Theory::instance()->getInterpretation(arraySort, ssi);
-        unsigned select = env.signature->getInterpretingSymbol(i);
-        theoryTerm = Term::create2(select, array, index);
+        ssi = Theory::StructuredSortInterpretation::ARRAY_SELECT;
       }
       break;
     }
@@ -1499,26 +1517,27 @@ void TPTP::endTheoryFunction() {
       TermList array = _termLists.pop();
 
       unsigned arraySort = sortOf(array);
-      unsigned innerSort = env.sorts->getArraySort(arraySort)->getInnerSort();
-      unsigned indexSort = env.sorts->getArraySort(arraySort)->getIndexSort();
-
       if (!env.sorts->hasStructuredSort(arraySort, Sorts::StructuredSort::ARRAY)) {
         USER_ERROR("store is being incorrectly used on a type of array that has not be defined");
       }
 
+      unsigned indexSort = env.sorts->getArraySort(arraySort)->getIndexSort();
       if (sortOf(index) != indexSort) {
         USER_ERROR("sort of index is not the same as the index sort of the array");
       }
 
+      unsigned innerSort = env.sorts->getArraySort(arraySort)->getInnerSort();
       if (sortOf(value) != innerSort) {
         USER_ERROR("sort of value is not the same as the value sort of the array");
       }
 
-      static const auto ssi = Theory::StructuredSortInterpretation::ARRAY_STORE;
-      Interpretation i = Theory::instance()->getInterpretation(arraySort, ssi);
-      unsigned store = env.signature->getInterpretingSymbol(i);
-      TermList args[] = { array, index, value };
-      theoryTerm = Term::create(store, 3, args);
+      args[0] = array;
+      args[1] = index;
+      args[2] = value;
+
+      ssi = Theory::StructuredSortInterpretation::ARRAY_STORE;
+      theorySort = arraySort;
+
       break;
     }
     case TF_PROJ: {
@@ -1530,27 +1549,29 @@ void TPTP::endTheoryFunction() {
       unsigned projFunctor = Theory::tuples()->getProjectionFunctor(proj, tupleSort);
       unsigned projSort = env.sorts->getTupleSort(tupleSort)->argument(proj);
 
-      if (projSort == Sorts::SRT_BOOL) {
-        isTheoryTerm = false;
-        theoryLiteral = Literal::create1(projFunctor, true, tuple);
-      } else {
-        theoryTerm = Term::create1(projFunctor, tuple);
-      }
+//      if (projSort == Sorts::SRT_BOOL) {
+//        theoryLiteral = Literal::create1(projFunctor, true, tuple);
+//      } else {
+//        theoryTerm = Term::create1(projFunctor, tuple);
+//      }
       break;
     }
     case TF_NONE: {
       Type* innerType = _types.pop();
       ASS_EQ(innerType->tag(), TT_ATOMIC);
       unsigned innerSort = static_cast<AtomicType*>(innerType)->sortNumber();
-      unsigned noneFunctor = Theory::option()->getNone(innerSort);
-      theoryTerm = Term::createConstant(noneFunctor);
+      unsigned optionSort = env.sorts->addOptionSort(innerSort);
+      ssi = Theory::StructuredSortInterpretation::OPTION_NONE;
+      theorySort = optionSort;
       break;
     }
     case TF_SOME: {
       TermList arg = _termLists.pop();
       unsigned innerSort = sortOf(arg);
-      unsigned someFunctor = Theory::option()->getSome(innerSort);
-      theoryTerm = Term::create1(someFunctor, arg);
+      unsigned optionSort = env.sorts->addOptionSort(innerSort);
+      ssi = Theory::StructuredSortInterpretation::OPTION_SOME;
+      args[0] = arg;
+      theorySort = optionSort;
       break;
     }
     case TF_LEFT: {
@@ -1559,8 +1580,10 @@ void TPTP::endTheoryFunction() {
       Type* rightType = _types.pop();
       ASS_EQ(rightType->tag(), TT_ATOMIC);
       unsigned rightSort = static_cast<AtomicType*>(rightType)->sortNumber();
-      unsigned leftFunctor = Theory::either()->getLeft(leftSort, rightSort);
-      theoryTerm = Term::create1(leftFunctor, arg);
+      unsigned eitherSort = env.sorts->addEitherSort(leftSort, rightSort);
+      ssi = Theory::StructuredSortInterpretation::EITHER_LEFT;
+      args[0] = arg;
+      theorySort = eitherSort;
       break;
     }
     case TF_RIGHT: {
@@ -1569,39 +1592,33 @@ void TPTP::endTheoryFunction() {
       unsigned leftSort = static_cast<AtomicType*>(leftType)->sortNumber();
       TermList arg = _termLists.pop();
       unsigned rightSort = sortOf(arg);
-      unsigned rightFunctor = Theory::either()->getRight(leftSort, rightSort);
-      theoryTerm = Term::create1(rightFunctor, arg);
+      unsigned eitherSort = env.sorts->addEitherSort(leftSort, rightSort);
+      ssi = Theory::StructuredSortInterpretation::EITHER_RIGHT;
+      args[0] = arg;
+      theorySort = eitherSort;
       break;
     }
     case TF_IS_SOME:
     case TF_FROM_SOME: {
       TermList arg = _termLists.pop();
-      unsigned argSort = sortOf(arg);
 
+      unsigned argSort = sortOf(arg);
       if (!env.sorts->hasStructuredSort(argSort, Sorts::StructuredSort::OPTION)) {
         USER_ERROR("The argument " + arg.toString() + " has the sort " + env.sorts->sortName(argSort));
       }
-      Sorts::OptionSort* optionSort = env.sorts->getOptionSort(argSort);
-      unsigned innerSort = optionSort->getInnerSort();
+
+      args[0] = arg;
+      theorySort = argSort;
 
       switch (tf) {
-        case TF_IS_SOME: {
-          unsigned isSome = Theory::option()->getIsSome(innerSort);
-          isTheoryTerm = false;
-          theoryLiteral = Literal::create1(isSome, true, arg);
+        case TF_IS_SOME:
+          ssi = Theory::StructuredSortInterpretation::OPTION_IS_SOME;
           break;
-        }
-        case TF_FROM_SOME: {
-          unsigned fromSome = Theory::option()->getFromSome(innerSort);
-          if (innerSort == Sorts::SRT_BOOL) {
-            isTheoryTerm = false;
-            theoryLiteral = Literal::create1(fromSome, true, arg);
-          } else {
-            theoryTerm = Term::create1(fromSome, arg);
-          }
+        case TF_FROM_SOME:
+          ssi = Theory::StructuredSortInterpretation::OPTION_FROM_SOME;
           break;
-        }
-        default: break;
+        default:
+          break;
       }
       break;
     }
@@ -1615,42 +1632,25 @@ void TPTP::endTheoryFunction() {
       if (!env.sorts->hasStructuredSort(argSort, Sorts::StructuredSort::EITHER)) {
         USER_ERROR("The argument " + arg.toString() + " has the sort " + env.sorts->sortName(argSort));
       }
-      Sorts::EitherSort* eitherSort = env.sorts->getEitherSort(argSort);
-      unsigned leftSort = eitherSort->getLeftSort();
-      unsigned rightSort = eitherSort->getRightSort();
+
+      args[0] = arg;
+      theorySort = argSort;
 
       switch (tf) {
-        case TF_IS_LEFT: {
-          unsigned isLeft = Theory::either()->getIsLeft(leftSort, rightSort);
-          isTheoryTerm = false;
-          theoryLiteral = Literal::create1(isLeft, true, arg);
+        case TF_IS_LEFT:
+          ssi = Theory::StructuredSortInterpretation::EITHER_IS_LEFT;
           break;
-        }
-        case TF_IS_RIGHT: {
-          unsigned isRight = Theory::either()->getIsRight(leftSort, rightSort);
-          isTheoryTerm = false;
-          theoryLiteral = Literal::create1(isRight, true, arg);
+        case TF_IS_RIGHT:
+          ssi = Theory::StructuredSortInterpretation::EITHER_IS_RIGHT;
           break;
-        }
-        case TF_FROM_LEFT: {
-          unsigned fromLeft = Theory::either()->getFromLeft(leftSort, rightSort);
-          if (leftSort == Sorts::SRT_BOOL) {
-            isTheoryTerm = false;
-            theoryLiteral = Literal::create1(fromLeft, true, arg);
-          } else {
-            theoryTerm = Term::create1(fromLeft, arg);
-          }
-        }
-        case TF_FROM_RIGHT: {
-          unsigned fromRight = Theory::either()->getFromRight(leftSort, rightSort);
-          if (rightSort == Sorts::SRT_BOOL) {
-            isTheoryTerm = false;
-            theoryLiteral = Literal::create1(fromRight, true, arg);
-          } else {
-            theoryTerm = Term::create1(fromRight, arg);
-          }
-        }
-        default: break;
+        case TF_FROM_LEFT:
+          ssi = Theory::StructuredSortInterpretation::EITHER_FROM_LEFT;
+          break;
+        case TF_FROM_RIGHT:
+          ssi = Theory::StructuredSortInterpretation::EITHER_FROM_RIGHT;
+          break;
+        default:
+          break;
       }
       break;
     }
@@ -1658,10 +1658,16 @@ void TPTP::endTheoryFunction() {
       ASSERTION_VIOLATION_REP(tf);
   }
 
-  if (isTheoryTerm) {
-    _termLists.push(TermList(theoryTerm));
+  Interpretation i = Theory::instance()->getInterpretation(theorySort, ssi);
+  unsigned symbol = env.signature->getInterpretingSymbol(i);
+  unsigned arity = Theory::getArity(i);
+
+  if (Theory::isFunction(i)) {
+    Term* term = Term::create(symbol, arity, args);
+    _termLists.push(TermList(term));
   } else {
-    _formulas.push(new AtomicFormula(theoryLiteral));
+    Literal* literal = Literal::create(symbol, arity, true, false, args);
+    _formulas.push(new AtomicFormula(literal));
     _states.push(END_FORMULA_INSIDE_TERM);
   }
 } // endTheoryFunction

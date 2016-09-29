@@ -266,11 +266,7 @@ unsigned Signature::addInterpretedFunction(Interpretation interpretation, const 
   _funs.push(sym);
   _funNames.insert(symbolKey, fnNum);
   ALWAYS(_iSymbols.insert(interpretation, fnNum));
-    BaseType* fnType;
-  if (Theory::isArrayOperation(interpretation)) 
-    { fnType = Theory::getArrayOperationType(interpretation);}
-  else 
-    {fnType = Theory::getOperationType(interpretation);}
+  BaseType* fnType = Theory::getOperationType(interpretation);
   ASS(fnType->isFunctionType());
   sym->setType(fnType);
   return fnNum;
@@ -479,6 +475,39 @@ unsigned Signature::getInterpretingSymbol(Interpretation interp)
         break;
       case Theory::StructuredSortInterpretation::ARRAY_STORE:
         name="$store";
+        break;
+      case Theory::StructuredSortInterpretation::OPTION_NONE:
+        name="$none";
+        break;
+      case Theory::StructuredSortInterpretation::OPTION_SOME:
+        name="$some";
+        break;
+      case Theory::StructuredSortInterpretation::OPTION_IS_SOME:
+        name="$issome";
+        break;
+      case Theory::StructuredSortInterpretation::OPTION_FROM_SOME:
+      case Theory::StructuredSortInterpretation::OPTION_BOOL_FROM_SOME:
+        name="$fromsome";
+        break;
+      case Theory::StructuredSortInterpretation::EITHER_LEFT:
+        name="$left";
+        break;
+      case Theory::StructuredSortInterpretation::EITHER_RIGHT:
+        name="$right";
+        break;
+      case Theory::StructuredSortInterpretation::EITHER_IS_LEFT:
+        name="$isleft";
+        break;
+      case Theory::StructuredSortInterpretation::EITHER_IS_RIGHT:
+        name="$isright";
+        break;
+      case Theory::StructuredSortInterpretation::EITHER_FROM_LEFT:
+      case Theory::StructuredSortInterpretation::EITHER_BOOL_FROM_LEFT:
+        name="$fromleft";
+        break;
+      case Theory::StructuredSortInterpretation::EITHER_FROM_RIGHT:
+      case Theory::StructuredSortInterpretation::EITHER_BOOL_FROM_RIGHT:
+        name="$fromright";
         break;
       default: ASSERTION_VIOLATION;
     } 

@@ -492,13 +492,9 @@ vstring RealConstantType::toNiceString() const
 
 Theory Theory::theory_obj;  // to facilitate destructor call at deinitization
 Theory::Tuples Theory::tuples_obj;
-Theory::Option Theory::option_obj;
-Theory::Either Theory::either_obj;
 
 Theory* theory = &Theory::theory_obj;
 Theory::Tuples* theory_tuples = &Theory::tuples_obj;
-Theory::Option* theory_option = &Theory::option_obj;
-Theory::Either* theory_either = &Theory::either_obj;
 
 /**
  * Accessor for the singleton instance of the Theory class.
@@ -511,16 +507,6 @@ Theory* Theory::instance()
 Theory::Tuples* Theory::tuples()
 {
   return theory_tuples;
-}
-
-Theory::Option* Theory::option()
-{
-  return theory_option;
-}
-
-Theory::Either* Theory::either()
-{
-  return theory_either;
 }
 
 /**
@@ -542,15 +528,17 @@ unsigned Theory::getArity(Interpretation i)
   CALL("Signature::InterpretedSymbol::getArity");
   ASS(theory->isValidInterpretation(i));
 
-  if(theory->isStructuredSortInterpretation(i)){
-    switch(theory->convertToStructured(i)){
+  if (theory->isStructuredSortInterpretation(i)){
+    switch (theory->convertToStructured(i)) {
+      case StructuredSortInterpretation::OPTION_NONE:
+        return 0;
       case StructuredSortInterpretation::ARRAY_SELECT:
       case StructuredSortInterpretation::ARRAY_BOOL_SELECT:
         return 2;
       case StructuredSortInterpretation::ARRAY_STORE:
         return 3;
       default:
-        ASSERTION_VIOLATION;
+        return 1;
     }
   }
 
@@ -667,11 +655,16 @@ bool Theory::isFunction(Interpretation i)
 
   if(theory->isStructuredSortInterpretation(i)){
     switch(theory->convertToStructured(i)){
-      case StructuredSortInterpretation::ARRAY_SELECT:
-      case StructuredSortInterpretation::ARRAY_STORE:
-        return true;
-      default:
+      case StructuredSortInterpretation::ARRAY_BOOL_SELECT:
+      case StructuredSortInterpretation::OPTION_IS_SOME:
+      case StructuredSortInterpretation::OPTION_BOOL_FROM_SOME:
+      case StructuredSortInterpretation::EITHER_IS_LEFT:
+      case StructuredSortInterpretation::EITHER_IS_RIGHT:
+      case StructuredSortInterpretation::EITHER_BOOL_FROM_LEFT:
+      case StructuredSortInterpretation::EITHER_BOOL_FROM_RIGHT:
         return false;
+      default:
+        return true;
     }
   }
 
@@ -1019,7 +1012,7 @@ bool Theory::isArrayOperation(Interpretation i)
 {
   CALL("Theory::isArrayFunction");
   if(!theory->isStructuredSortInterpretation(i)) return false;
-  return env.sorts->hasStructuredSort(theory->getSort(i),Sorts::StructuredSort::ARRAY);      
+  return env.sorts->hasStructuredSort(theory->getSort(i),Sorts::StructuredSort::ARRAY);
 }
 
 unsigned Theory::getArraySelectFunctor(unsigned sort) {
@@ -1179,192 +1172,6 @@ bool Theory::Tuples::findProjection(unsigned projFunctor, unsigned &proj) {
 }
 
 
-unsigned Theory::Option::getNone(unsigned innerSort) {
-  CALL("Theory::Option::getNone");
-
-  unsigned functor;
-  if (!_nones.find(innerSort, functor)) {
-    unsigned optionSort = env.sorts->addOptionSort(innerSort);
-    functor = env.signature->addFreshFunction(0, "$none");
-    _nones.set(innerSort, functor);
-    FunctionType* noneType = new FunctionType(optionSort);
-    env.signature->getFunction(functor)->setType(noneType);
-  }
-
-  return functor;
-}
-
-unsigned Theory::Option::getSome(unsigned innerSort) {
-  CALL("Theory::Option::getSome");
-
-  unsigned functor;
-  if (!_somes.find(innerSort, functor)) {
-    unsigned optionSort = env.sorts->addOptionSort(innerSort);
-    functor = env.signature->addFreshFunction(1, "$some");
-    _somes.set(innerSort, functor);
-    FunctionType* someType = new FunctionType({ innerSort }, optionSort);
-    env.signature->getFunction(functor)->setType(someType);
-  }
-
-  return functor;
-}
-
-unsigned Theory::Option::getIsSome(unsigned innerSort) {
-  CALL("Theory::Option::getIsSome");
-
-  unsigned functor;
-  if (!_isSomes.find(innerSort, functor)) {
-    unsigned optionSort = env.sorts->addOptionSort(innerSort);
-    functor = env.signature->addFreshPredicate(1, "$issome");
-    _isSomes.set(innerSort, functor);
-    PredicateType* isSomeType = new PredicateType({ optionSort });
-    env.signature->getPredicate(functor)->setType(isSomeType);
-  }
-
-  return functor;
-}
-
-unsigned Theory::Option::getFromSome(unsigned innerSort) {
-  CALL("Theory::Option::getFromSome");
-
-  unsigned functor;
-  if (!_fromSomes.find(innerSort, functor)) {
-    unsigned optionSort = env.sorts->addOptionSort(innerSort);
-
-    if (innerSort == Sorts::SRT_BOOL) {
-      functor = env.signature->addFreshPredicate(1, "$fromsome");
-      PredicateType* fromSomeType = new PredicateType({ optionSort });
-      env.signature->getPredicate(functor)->setType(fromSomeType);
-    } else {
-      functor = env.signature->addFreshFunction(1, "$fromsome");
-      FunctionType* fromSomeType = new FunctionType({ optionSort }, innerSort);
-      env.signature->getFunction(functor)->setType(fromSomeType);
-    }
-    _fromSomes.set(innerSort, functor);
-  }
-
-  return functor;
-}
-
-
-unsigned Theory::Either::getLeft(unsigned leftSort, unsigned rightSort) {
-  CALL("Theory::Either::getLeft");
-
-  pair<unsigned,unsigned> sort = make_pair(leftSort, rightSort);
-
-  unsigned functor;
-  if (!_lefts.find(sort, functor)) {
-    unsigned eitherSort = env.sorts->addEitherSort(leftSort, rightSort);
-    functor = env.signature->addFreshFunction(1, "$left");
-    _lefts.set(sort, functor);
-    FunctionType* leftType = new FunctionType({ leftSort }, eitherSort);
-    env.signature->getFunction(functor)->setType(leftType);
-  }
-
-  return functor;
-}
-
-unsigned Theory::Either::getRight(unsigned leftSort, unsigned rightSort) {
-  CALL("Theory::Either::getRight");
-
-  pair<unsigned,unsigned> sort = make_pair(leftSort, rightSort);
-
-  unsigned functor;
-  if (!_rights.find(sort, functor)) {
-    unsigned eitherSort = env.sorts->addEitherSort(leftSort, rightSort);
-    functor = env.signature->addFreshFunction(1, "$right");
-    _rights.set(sort, functor);
-    FunctionType* rightType = new FunctionType({ rightSort }, eitherSort);
-    env.signature->getFunction(functor)->setType(rightType);
-  }
-
-  return functor;
-}
-
-unsigned Theory::Either::getIsLeft(unsigned leftSort, unsigned rightSort) {
-  CALL("Theory::Either::getIsLeft");
-
-  pair<unsigned,unsigned> sort = make_pair(leftSort, rightSort);
-
-  unsigned functor;
-  if (!_isLefts.find(sort, functor)) {
-    unsigned eitherSort = env.sorts->addEitherSort(leftSort, rightSort);
-    functor = env.signature->addFreshPredicate(1, "$isleft");
-    _isLefts.set(sort, functor);
-    PredicateType* isLeftType = new PredicateType({ eitherSort });
-    env.signature->getPredicate(functor)->setType(isLeftType);
-  }
-
-  return functor;
-}
-
-unsigned Theory::Either::getIsRight(unsigned leftSort, unsigned rightSort) {
-  CALL("Theory::Either::getIsRight");
-
-  pair<unsigned,unsigned> sort = make_pair(leftSort, rightSort);
-
-  unsigned functor;
-  if (!_isRights.find(sort, functor)) {
-    unsigned eitherSort = env.sorts->addEitherSort(leftSort, rightSort);
-    functor = env.signature->addFreshPredicate(1, "$isright");
-    _isRights.set(sort, functor);
-    PredicateType* isRightType = new PredicateType({ eitherSort });
-    env.signature->getPredicate(functor)->setType(isRightType);
-  }
-
-  return functor;
-}
-
-unsigned Theory::Either::getFromLeft(unsigned leftSort, unsigned rightSort) {
-  CALL("Theory::Either::getFromLeft");
-
-  pair<unsigned,unsigned> sort = make_pair(leftSort, rightSort);
-
-  unsigned functor;
-  if (!_fromLefts.find(sort, functor)) {
-    unsigned eitherSort = env.sorts->addEitherSort(leftSort, rightSort);
-
-    if (leftSort == Sorts::SRT_BOOL) {
-      functor = env.signature->addFreshPredicate(1, "$fromleft");
-      PredicateType* fromLeftType = new PredicateType({ eitherSort });
-      env.signature->getPredicate(functor)->setType(fromLeftType);
-    } else {
-      functor = env.signature->addFreshFunction(1, "$fromleft");
-      FunctionType* fromLeftType = new FunctionType({ eitherSort }, leftSort);
-      env.signature->getFunction(functor)->setType(fromLeftType);
-    }
-
-    _fromLefts.set(sort, functor);
-  }
-
-  return functor;
-}
-
-unsigned Theory::Either::getFromRight(unsigned leftSort, unsigned rightSort) {
-  CALL("Theory::Either::getFromRight");
-
-  pair<unsigned,unsigned> sort = make_pair(leftSort, rightSort);
-
-  unsigned functor;
-  if (!_fromRights.find(sort, functor)) {
-    unsigned eitherSort = env.sorts->addEitherSort(leftSort, rightSort);
-
-    if (rightSort == Sorts::SRT_BOOL) {
-      functor = env.signature->addFreshPredicate(1, "$fromright");
-      PredicateType* fromRightType = new PredicateType({ eitherSort });
-      env.signature->getPredicate(functor)->setType(fromRightType);
-    } else {
-      functor = env.signature->addFreshFunction(1, "$fromright");
-      FunctionType* fromRightType = new FunctionType({ eitherSort }, rightSort);
-      env.signature->getFunction(functor)->setType(fromRightType);
-    }
-
-    _fromRights.set(sort, functor);
-  }
-
-  return functor;
-}
-
 /**
  * This function creates a type for converion function @c i.
  *
@@ -1405,49 +1212,90 @@ FunctionType* Theory::getConversionOperationType(Interpretation i)
   }
   return new FunctionType({from}, to);
 }
-    
-    
-/**
- * This function creates a type for array operation function @c i.
- *
- * @c i must be an array operation.
- * @author Laura Kovacs
- * @since 31/08/2012, Vienna
-*/
-BaseType* Theory::getArrayOperationType(Interpretation i)
-{
-    CALL("Theory::getArrayOperationType");
-    ASS(isArrayOperation(i));
 
-    BaseType* res;
+BaseType* Theory::getStructuredSortOperationType(Interpretation i) {
+  CALL("Theory::getStructuredSortOperationType");
 
-    // Not sure we need all of these
-    unsigned indexSort = getArrayDomainSort(i);
-    unsigned arrSort = theory->getSort(i);
-    unsigned valueSort = getArrayOperationSort(i);
-    unsigned innerSort = env.sorts->getArraySort(arrSort)->getInnerSort(); 
+  ASS(theory->isStructuredSortInterpretation(i));
 
-    //cout << "for Interp " << i << " : " << indexSort << ", " << arrSort << ", " << valueSort << endl;
+  unsigned theorySort = theory->getSort(i);
+  StructuredSortInterpretation ssi = theory->convertToStructured(i);
 
-    switch(theory->convertToStructured(i)) {
+  switch () {
+    case Sorts::StructuredSort::ARRAY: {
+      unsigned indexSort = getArrayDomainSort(i);
+      unsigned valueSort = getArrayOperationSort(i);
+      unsigned innerSort = env.sorts->getArraySort(theorySort)->getInnerSort();
 
+      switch (ssi) {
         case StructuredSortInterpretation::ARRAY_SELECT:
-          res = new FunctionType({arrSort, indexSort}, valueSort);
-          break;
+          return new FunctionType({ theorySort, indexSort }, valueSort);
 
         case StructuredSortInterpretation::ARRAY_BOOL_SELECT:
-          res = new PredicateType({arrSort, indexSort});
-          break;
+          return new PredicateType({ theorySort, indexSort });
 
         case StructuredSortInterpretation::ARRAY_STORE:
-          res = new FunctionType({arrSort, indexSort, innerSort}, valueSort);
-          break;
+          return new FunctionType({ theorySort, indexSort, innerSort }, valueSort);
 
         default:
-            ASSERTION_VIOLATION;
+          ASSERTION_VIOLATION;
+      }
     }
+    case Sorts::StructuredSort::OPTION: {
+      unsigned innerSort = env.sorts->getOptionSort(theorySort)->getInnerSort();
 
-    return res;
+      switch (ssi) {
+        case StructuredSortInterpretation::OPTION_NONE:
+          return new FunctionType(innerSort);
+
+        case StructuredSortInterpretation::OPTION_SOME:
+          return new FunctionType({ innerSort }, theorySort);
+
+        case StructuredSortInterpretation::OPTION_IS_SOME:
+          return new PredicateType({ theorySort });
+
+        case StructuredSortInterpretation::OPTION_FROM_SOME:
+          return new FunctionType({ theorySort }, innerSort);
+
+        case StructuredSortInterpretation::OPTION_BOOL_FROM_SOME:
+          return new PredicateType({ theorySort });
+
+        default:
+          ASSERTION_VIOLATION;
+      }
+    }
+    case Sorts::StructuredSort::EITHER: {
+      unsigned leftSort  = env.sorts->getEitherSort(theorySort)->getLeftSort();
+      unsigned rightSort = env.sorts->getEitherSort(theorySort)->getRightSort();
+
+      switch (ssi) {
+        case StructuredSortInterpretation::EITHER_LEFT:
+          return new FunctionType({ leftSort }, theorySort);
+
+        case StructuredSortInterpretation::EITHER_RIGHT:
+          return new FunctionType({ rightSort }, theorySort);
+
+        case StructuredSortInterpretation::EITHER_IS_LEFT:
+        case StructuredSortInterpretation::EITHER_IS_RIGHT:
+          return new PredicateType({ theorySort });
+
+        case StructuredSortInterpretation::EITHER_FROM_LEFT:
+          return new FunctionType({ theorySort }, leftSort);
+
+        case StructuredSortInterpretation::EITHER_FROM_RIGHT:
+          return new FunctionType({ theorySort }, rightSort);
+
+        case StructuredSortInterpretation::EITHER_BOOL_FROM_LEFT:
+        case StructuredSortInterpretation::EITHER_BOOL_FROM_RIGHT:
+          return new PredicateType({ theorySort });
+
+        default:
+          ASSERTION_VIOLATION;
+      }
+    }
+    default:
+      ASSERTION_VIOLATION;
+  }
 }
 
 /**
@@ -1461,20 +1309,19 @@ BaseType* Theory::getOperationType(Interpretation i)
   if (isConversionOperation(i)) {
     return getConversionOperationType(i);
   }
-   
-  if (isArrayOperation(i))
-     { return getArrayOperationType(i);}
-  
-    unsigned sort;  
-    ASS(hasSingleSort(i));
-    sort = getOperationSort(i);
 
-    
+  if (theory->isStructuredSortInterpretation(i)) {
+    return getStructuredSortOperationType(i);
+  }
+
+  unsigned sort;
+  ASS(hasSingleSort(i));
+  sort = getOperationSort(i);
+
   unsigned arity = getArity(i);
-    
+
   static DArray<unsigned> domainSorts;
   domainSorts.init(arity, sort);
-
 
   if (isFunction(i)) {
     return new FunctionType(arity, domainSorts.array(), sort);

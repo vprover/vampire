@@ -368,7 +368,10 @@ public:
     LIST_HEAD,
     LIST_TAIL,
     LIST_CONS,
-    LIST_IS_EMPTY
+    LIST_IS_EMPTY,
+    OPTION_NONE, OPTION_SOME, OPTION_IS_SOME, OPTION_FROM_SOME, OPTION_BOOL_FROM_SOME,
+    EITHER_LEFT, EITHER_RIGHT, EITHER_IS_LEFT, EITHER_IS_RIGHT,
+    EITHER_FROM_LEFT, EITHER_BOOL_FROM_LEFT, EITHER_FROM_RIGHT, EITHER_BOOL_FROM_RIGHT
   };
   unsigned getSymbolForStructuredSort(unsigned sort, StructuredSortInterpretation interp);
   Interpretation getInterpretation(unsigned sort, StructuredSortInterpretation i){
@@ -391,13 +394,12 @@ public:
   static bool isFunction(Interpretation i);
   static bool isInequality(Interpretation i);
   static BaseType* getOperationType(Interpretation i);
+  static BaseType* getStructuredSortOperationType(Interpretation i);
   static bool hasSingleSort(Interpretation i);
   static unsigned getOperationSort(Interpretation i);
   static bool isConversionOperation(Interpretation i);
   static bool isLinearOperation(Interpretation i);
   static bool isNonLinearOperation(Interpretation i);
-    
-  static BaseType* getArrayOperationType(Interpretation i);
 
   static bool isArraySort(unsigned sort);
   static bool isArrayOperation(Interpretation i);
@@ -540,46 +542,6 @@ public:
 
   static Theory::Tuples tuples_obj;
   static Theory::Tuples* tuples();
-
-
-  class Option {
-  public:
-    unsigned getNone(unsigned innerSort);
-    unsigned getSome(unsigned innerSort);
-    unsigned getIsSome(unsigned innerSort);
-    unsigned getFromSome(unsigned innerSort);
-
-  private:
-    DHMap<unsigned,unsigned> _nones;
-    DHMap<unsigned,unsigned> _somes;
-    DHMap<unsigned,unsigned> _isSomes;
-    DHMap<unsigned,unsigned> _fromSomes;
-  };
-
-  static Theory::Option option_obj;
-  static Theory::Option* option();
-
-
-  class Either {
-    public:
-      unsigned getLeft(unsigned leftSort, unsigned rightSort);
-      unsigned getRight(unsigned leftSort, unsigned rightSort);
-      unsigned getIsLeft(unsigned leftSort, unsigned rightSort);
-      unsigned getIsRight(unsigned leftSort, unsigned rightSort);
-      unsigned getFromLeft(unsigned leftSort, unsigned rightSort);
-      unsigned getFromRight(unsigned leftSort, unsigned rightSort);
-
-    private:
-      DHMap<pair<unsigned,unsigned>,unsigned> _lefts;
-      DHMap<pair<unsigned,unsigned>,unsigned> _rights;
-      DHMap<pair<unsigned,unsigned>,unsigned> _isLefts;
-      DHMap<pair<unsigned,unsigned>,unsigned> _isRights;
-      DHMap<pair<unsigned,unsigned>,unsigned> _fromLefts;
-      DHMap<pair<unsigned,unsigned>,unsigned> _fromRights;
-  };
-
-  static Theory::Either either_obj;
-  static Theory::Either* either();
 };
 
 typedef Theory::Interpretation Interpretation;
@@ -588,9 +550,7 @@ typedef Theory::Interpretation Interpretation;
  * Pointer to the singleton Theory instance
  */
 extern Theory* theory;
-extern Theory::Tuples* tuples;
-extern Theory::Option* option;
-extern Theory::Either* either;
+
 }
 
 #endif // __Theory__
