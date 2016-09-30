@@ -455,8 +455,6 @@ private:
   enum TheoryFunction {
     /** $array theory */
     TF_SELECT, TF_STORE,
-    /** theory of tuples */
-    TF_PROJ,
     /** $option theory */
     TF_NONE, TF_SOME, TF_IS_SOME, TF_FROM_SOME,
     /** $either theory */
@@ -465,7 +463,6 @@ private:
   static bool findTheoryFunction(const vstring name, TheoryFunction &tf) {
     static const vstring theoryFunctionNames[] = {
       "$select", "$store",
-      "$proj",
       "$none", "$some", "$issome", "$fromsome",
       "$left", "$right", "$isleft", "$isright", "$fromleft", "$fromright"
     };

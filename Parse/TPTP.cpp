@@ -1448,7 +1448,6 @@ Theory::StructuredSortInterpretation TPTP::getSpecialSortInterpretation(TheoryFu
     case TF_SELECT:
 //      return Theory::StructuredSortInterpretation::ARRAY_SELECT
     case TF_STORE:
-    case TF_PROJ:
     case TF_NONE:
     case TF_SOME:
     case TF_IS_SOME:
@@ -1538,22 +1537,6 @@ void TPTP::endTheoryFunction() {
       ssi = Theory::StructuredSortInterpretation::ARRAY_STORE;
       theorySort = arraySort;
 
-      break;
-    }
-    case TF_PROJ: {
-      unsigned proj = (unsigned)_ints.pop();
-
-      TermList tuple = _termLists.pop();
-      unsigned tupleSort = sortOf(tuple);
-
-      unsigned projFunctor = Theory::tuples()->getProjectionFunctor(proj, tupleSort);
-      unsigned projSort = env.sorts->getTupleSort(tupleSort)->argument(proj);
-
-//      if (projSort == Sorts::SRT_BOOL) {
-//        theoryLiteral = Literal::create1(projFunctor, true, tuple);
-//      } else {
-//        theoryTerm = Term::create1(projFunctor, tuple);
-//      }
       break;
     }
     case TF_NONE: {
@@ -1870,22 +1853,6 @@ void TPTP::funApp()
       consumeToken(T_LPAR);
       addTagState(T_RPAR);
       switch (getTheoryFunction(tok)) {
-        case TF_PROJ: {
-          Token numTok;
-          Tag tag = readNumber(numTok);
-          if (tag != T_INT) {
-            USER_ERROR("Non-negative integer expected");
-          }
-          int num;
-          Int::stringToInt(numTok.content, num);
-          if (num < 0) {
-            USER_ERROR("Non-negative integer expected");
-          }
-          _ints.push(num);
-          consumeToken(T_COMMA);
-          _states.push(TERM);
-          break;
-        }
         case TF_NONE:
           _states.push(SIMPLE_TYPE);
           break;
@@ -2495,7 +2462,6 @@ void TPTP::formulaInfix()
       case TF_RIGHT:
         USER_ERROR("a $right term cannot be used as formula");
         break;
-      case TF_PROJ:
       case TF_SELECT:
       case TF_IS_SOME:
       case TF_IS_LEFT:
