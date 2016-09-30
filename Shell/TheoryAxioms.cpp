@@ -1182,12 +1182,9 @@ bool TheoryAxioms::apply(UnitList*& units, Property* prop)
     modified = true;
   }
 
-
   VirtualIterator<unsigned> arraySorts = env.sorts->getStructuredSorts(Sorts::StructuredSort::ARRAY);
   while(arraySorts.hasNext()){
     unsigned arraySort = arraySorts.next();
-
-    //cout << "Consider arraySort " << arraySort << endl;
 
     bool isBool = (env.sorts->getArraySort(arraySort)->getInnerSort() == Sorts::SRT_BOOL);
 
@@ -1195,7 +1192,7 @@ bool TheoryAxioms::apply(UnitList*& units, Property* prop)
     Interpretation arraySelect = theory->getInterpretation(arraySort, isBool ? Theory::StructuredSortInterpretation::ARRAY_BOOL_SELECT
                                                                              : Theory::StructuredSortInterpretation::ARRAY_SELECT);
     Interpretation arrayStore  = theory->getInterpretation(arraySort,Theory::StructuredSortInterpretation::ARRAY_STORE);
-
+    
     // Check if they are used
     bool haveSelect = prop->hasInterpretedOperation(arraySelect);
     bool haveStore = prop->hasInterpretedOperation(arrayStore);
@@ -1218,7 +1215,7 @@ bool TheoryAxioms::apply(UnitList*& units, Property* prop)
     }
   }
 
-  VirtualIterator<unsigned> tupleSorts = env.sorts->getStructuredSorts(Sorts::StructuredSort::ARRAY);
+  VirtualIterator<unsigned> tupleSorts = env.sorts->getStructuredSorts(Sorts::StructuredSort::TUPLE);
   while(tupleSorts.hasNext()) {
     unsigned tupleSort = tupleSorts.next();
     addTupleAxioms(tupleSort, units);

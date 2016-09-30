@@ -342,6 +342,10 @@ public:
     return LastNonStructuredInterepretation() + _structuredSortInterpretations.size(); 
   }
 
+  unsigned numberOfInterpretations(){
+    return LastNonStructuredInterepretation() + LastStructuredInterpretation();
+  }
+
   bool isValidInterpretation(Interpretation i){
     return i <= MaxInterpretedElement();
   }
@@ -373,6 +377,9 @@ public:
     EITHER_LEFT, EITHER_RIGHT, EITHER_IS_LEFT, EITHER_IS_RIGHT,
     EITHER_FROM_LEFT, EITHER_BOOL_FROM_LEFT, EITHER_FROM_RIGHT, EITHER_BOOL_FROM_RIGHT
   };
+  unsigned LastStructuredInterpretation(){
+    return static_cast<unsigned>(StructuredSortInterpretation::EITHER_BOOL_FROM_RIGHT);
+  }
   unsigned getSymbolForStructuredSort(unsigned sort, StructuredSortInterpretation interp);
   Interpretation getInterpretation(unsigned sort, StructuredSortInterpretation i){
     auto key = make_pair(sort, i);
