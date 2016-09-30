@@ -1213,6 +1213,37 @@ FunctionType* Theory::getConversionOperationType(Interpretation i)
   return new FunctionType({from}, to);
 }
 
+Sorts::StructuredSort Theory::getInterpretedSort(StructuredSortInterpretation ssi) {
+  switch (ssi) {
+    case StructuredSortInterpretation::ARRAY_SELECT:
+    case StructuredSortInterpretation::ARRAY_BOOL_SELECT:
+    case StructuredSortInterpretation::ARRAY_STORE:
+      return Sorts::StructuredSort::ARRAY;
+    case StructuredSortInterpretation::LIST_HEAD:
+    case StructuredSortInterpretation::LIST_TAIL:
+    case StructuredSortInterpretation::LIST_CONS:
+    case StructuredSortInterpretation::LIST_IS_EMPTY:
+      return Sorts::StructuredSort::LIST;
+    case StructuredSortInterpretation::OPTION_NONE:
+    case StructuredSortInterpretation::OPTION_SOME:
+    case StructuredSortInterpretation::OPTION_IS_SOME:
+    case StructuredSortInterpretation::OPTION_FROM_SOME:
+    case StructuredSortInterpretation::OPTION_BOOL_FROM_SOME:
+      return Sorts::StructuredSort::OPTION;
+    case StructuredSortInterpretation::EITHER_LEFT:
+    case StructuredSortInterpretation::EITHER_RIGHT:
+    case StructuredSortInterpretation::EITHER_IS_LEFT:
+    case StructuredSortInterpretation::EITHER_IS_RIGHT:
+    case StructuredSortInterpretation::EITHER_FROM_LEFT:
+    case StructuredSortInterpretation::EITHER_BOOL_FROM_LEFT:
+    case StructuredSortInterpretation::EITHER_FROM_RIGHT:
+    case StructuredSortInterpretation::EITHER_BOOL_FROM_RIGHT:
+      return Sorts::StructuredSort::EITHER;
+    default:
+      ASSERTION_VIOLATION;
+  }
+}
+
 BaseType* Theory::getStructuredSortOperationType(Interpretation i) {
   CALL("Theory::getStructuredSortOperationType");
 
@@ -1221,7 +1252,7 @@ BaseType* Theory::getStructuredSortOperationType(Interpretation i) {
   unsigned theorySort = theory->getSort(i);
   StructuredSortInterpretation ssi = theory->convertToStructured(i);
 
-  switch () {
+  switch (theory->getInterpretedSort(ssi)) {
     case Sorts::StructuredSort::ARRAY: {
       unsigned indexSort = getArrayDomainSort(i);
       unsigned valueSort = getArrayOperationSort(i);

@@ -393,6 +393,7 @@ public:
   static unsigned getArity(Interpretation i);
   static bool isFunction(Interpretation i);
   static bool isInequality(Interpretation i);
+  static Sorts::StructuredSort getInterpretedSort(StructuredSortInterpretation ssi);
   static BaseType* getOperationType(Interpretation i);
   static BaseType* getStructuredSortOperationType(Interpretation i);
   static bool hasSingleSort(Interpretation i);
