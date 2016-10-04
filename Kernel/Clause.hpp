@@ -315,6 +315,7 @@ public:
 
   void collectVars(DHSet<unsigned>& acc);
   unsigned varCnt();
+  unsigned maxVar(); // useful to create fresh variables w.r.t. the clause
 
 protected:
   /** number of literals */

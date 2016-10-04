@@ -218,6 +218,7 @@ void Statistics::print(ostream& out)
     unusedPredicateDefinitions+functionDefinitions+selectedBySine+
     sineIterations+splitInequalities);
   COND_OUT("Introduced names",formulaNames);
+  COND_OUT("Introduced skolems",skolemFunctions);
   COND_OUT("Pure predicates", purePredicates);
   COND_OUT("Trivial predicates", trivialPredicates);
   COND_OUT("Unused predicate definitions", unusedPredicateDefinitions);
@@ -235,6 +236,7 @@ void Statistics::print(ostream& out)
   COND_OUT("Active clauses", activeClauses);
   COND_OUT("Passive clauses", passiveClauses);
   COND_OUT("Extensionality clauses", extensionalityClauses);
+  COND_OUT("Blocked clauses", blockedClauses);
   COND_OUT("Final active clauses", finalActiveClauses);
   COND_OUT("Final passive clauses", finalPassiveClauses);
   COND_OUT("Final extensionality clauses", finalExtensionalityClauses);
@@ -383,6 +385,8 @@ const char* Statistics::phaseToString(ExecutionPhase p)
     return "Predicate definition inlining";
   case UNUSED_PREDICATE_DEFINITION_REMOVAL:
     return "Unused predicate definition removal";
+  case BLOCKED_CLAUSE_ELIMINATION:
+    return "Blocked clause elimination";
   case PREPROCESS_2:
     return "Preprocessing 2";
   case NEW_CNF:

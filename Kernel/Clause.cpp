@@ -598,6 +598,20 @@ unsigned Clause::varCnt()
   return vars.size();
 }
 
+unsigned Clause::maxVar()
+{
+  CALL("Clause::maxVar()");
+  
+  unsigned max = 0;
+  VirtualIterator<unsigned> it = getVariableIterator();
+
+  while (it.hasNext()) {
+    unsigned n = it.next();
+    max = n > max ? n : max;
+  }
+  return max;
+}
+
 /**
  * Return index of @b lit in the clause
  *

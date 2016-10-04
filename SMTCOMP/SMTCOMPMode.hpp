@@ -17,7 +17,7 @@
 
 #include "Lib/VString.hpp"
 
-#include "Lib/Sys/SyncPipe.hpp"
+#include "Lib/Sys/Semaphore.hpp"
 
 #include "Kernel/Problem.hpp"
 
@@ -44,12 +44,20 @@ public:
 
 class SMTCOMPMode
 {
-public:
+  enum {
+    SEM_LOCK = 0,
+    SEM_PRINTED = 1
+  };
 
-  SMTCOMPMode() : _syncSemaphore(1), _outputPrinted(false)
+public:
+  SMTCOMPMode() : _syncSemaphore(2)
 {
-  //add the privileges into the semaphore
-  _syncSemaphore.set(0,1);
+  // We need the following two values because the way the semaphore class is currently implemented:
+  // 1) dec is the only operation which is blocking
+  // 2) dec is done in the mode SEM_UNDO, so is undone when a process terminates
+
+  _syncSemaphore.set(SEM_LOCK,1);    // to synchronize access to the second field
+  _syncSemaphore.set(SEM_PRINTED,0); // to indicate that a child has already printed result (it should only happen once)
 }
 
   static bool perform();
@@ -69,12 +77,8 @@ private:
   bool performStrategy(Shell::Property* property);
   bool waitForChildAndCheckIfProofFound();
 
-  static ofstream* writerFileStream;
-  static void terminatingSignalHandler(int sigNum) __attribute__((noreturn));
   void runSlice(vstring slice, unsigned milliseconds) __attribute__((noreturn));
   void runSlice(Options& strategyOpt) __attribute__((noreturn));
-
-  static vstring problemFinishedString;
 
 #if VDEBUG
   DHSet<pid_t> childIds;
@@ -88,31 +92,7 @@ private:
    */
   ScopedPtr<Problem> prb;
 
-  Semaphore _syncSemaphore; // semaphore for synchronizing following variable 
-  volatile bool _outputPrinted;
-
-  /**
-   * Assumes semaphore object with 1 semaphores (at index 0).
-   * Locks on demand (once) and releases the lock on destruction.
-   */
-  struct ScopedSemaphoreLocker { //
-    Semaphore& _sem;
-    bool locked;
-    ScopedSemaphoreLocker(Semaphore& sem) : _sem(sem), locked(false) {}
-
-    void lock() {
-      if (!locked) {
-        _sem.dec(0);
-        locked = true;
-      }
-    }
-
-    ~ScopedSemaphoreLocker() {
-      if (locked) {
-        _sem.inc(0);
-      }
-    }
-  };
+  Semaphore _syncSemaphore; // semaphore for synchronizing proof printing
 };
 
 #endif //!COMPILER_MSVC

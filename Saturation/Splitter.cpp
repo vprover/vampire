@@ -116,7 +116,7 @@ void SplittingBranchSelector::init()
 
 
   if(_parent.getOptions().splittingCongruenceClosure() != Options::SplittingCongruenceClosure::OFF) {
-    _dp = new DP::SimpleCongruenceClosure(_parent.getOrdering());
+    _dp = new DP::SimpleCongruenceClosure(&_parent.getOrdering());
     if (_parent.getOptions().ccUnsatCores() == Options::CCUnsatCores::SMALL_ONES) {
       _dp = new ShortConflictMetaDP(_dp.release(), _parent.satNaming(), *_solver);
     }
@@ -124,7 +124,7 @@ void SplittingBranchSelector::init()
 
     _ccModel = (_parent.getOptions().splittingCongruenceClosure() == Options::SplittingCongruenceClosure::MODEL);
     if (_ccModel) {
-      _dpModel = new DP::SimpleCongruenceClosure(_parent.getOrdering());
+      _dpModel = new DP::SimpleCongruenceClosure(&_parent.getOrdering());
     }
   }
 }

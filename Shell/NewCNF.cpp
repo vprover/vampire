@@ -19,6 +19,7 @@
 #include "Shell/Options.hpp"
 #include "Shell/SymbolOccurrenceReplacement.hpp"
 #include "Shell/SymbolDefinitionInlining.hpp"
+#include "Shell/Statistics.hpp"
 
 #include "NewCNF.hpp"
 
@@ -914,6 +915,9 @@ void NewCNF::skolemise(QuantifiedFormula* g, BindingList*& bindings, BindingList
       while (vs.hasNext()) {
         unsigned var = (unsigned)vs.next();
         Term* skolem = createSkolemTerm(var, unboundFreeVars);
+
+        env.statistics->skolemFunctions++;
+
         Binding binding(var, skolem);
         if (skolem->isSpecial()) {
           BindingList::push(binding, processedFoolBindings); // this cell will get destroyed when we clear the cache
@@ -1096,14 +1100,28 @@ void NewCNF::nameSubformula(Formula* g, Occurrences &occurrences)
   Literal* naming = createNamingLiteral(g, fv);
   Formula* name = new AtomicFormula(naming);
 
+  env.statistics->formulaNames++;
+
   occurrences.replaceBy(name);
 
   enqueue(g);
 
+  bool occurs[2] = { false, false };
+  Occurrences::Iterator occit(occurrences);
+  while (occit.hasNext()) {
+    Occurrence occ = occit.next();
+    occurs[occ.sign()] = true;
+    if (occurs[POSITIVE] && occurs[NEGATIVE]) {
+      break;
+    }
+  }
+
   for (SIGN sign : { NEGATIVE, POSITIVE }) {
     // One could also consider the case where (part of) the bindings goes to the definition
     // which perhaps allows us to the have a skolem predicate with fewer arguments
-    introduceGenClause(GenLit(name, OPPOSITE(sign)), GenLit(g, sign));
+    if (occurs[sign]) {
+      introduceGenClause(GenLit(name, OPPOSITE(sign)), GenLit(g, sign));
+    }
   }
 }
 

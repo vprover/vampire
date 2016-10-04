@@ -87,10 +87,10 @@ void Options::Options::init()
     _mode = ChoiceOptionValue<Mode>("mode","",Mode::VAMPIRE,
                                     {"axiom_selection",
                                         "casc",
-                                        "casc_multicore",
                                         "casc_sat",
+                                        "casc_ltb",
                                         "smtcomp",
-                                        "clausify","clausify_stat",
+                                        "clausify","tclausify",
                                         "consequence_elimination","grounding",
                                         "model_check",
                                         "output","preprocess",
@@ -114,14 +114,18 @@ void Options::Options::init()
     _mode.addHardConstraint(If(equal(Mode::CONSEQUENCE_ELIMINATION)).then(_splitting.is(notEqual(true))));
 
     _multicore = UnsignedOptionValue("cores","",1);
-    _multicore.description = "When running in casc_multicore mode specify the number of cores, set to 0 to use maximum";
+    _multicore.description = "When running in casc or smtcomp mode specify the number of cores, set to 0 to use maximum";
     _lookup.insert(&_multicore);
-    _multicore.addHardConstraint(If(notEqual(1u)).then(_mode.is(equal(Mode::CASC_MULTICORE))));
+    _multicore.reliesOnHard(_mode.is(equal(Mode::CASC)->Or(_mode.is(equal(Mode::CASC_SAT)))->Or(_mode.is(equal(Mode::SMTCOMP)))));
 
     _ltbLearning = ChoiceOptionValue<LTBLearning>("ltb_learning","ltbl",LTBLearning::OFF,{"on","off","biased"});
     _ltbLearning.description = "Perform learning in LTB mode";
     _lookup.insert(&_ltbLearning);
     _ltbLearning.setExperimental();
+
+    _ltbDirectory = StringOptionValue("ltb_directory","","");
+    _ltbDirectory.description = "Directory for output from LTB mode. Default is to put output next to problem.";
+    _lookup.insert(&_ltbDirectory);
 
     _decode = DecodeOptionValue("decode","",this);
     _decode.description="Decodes an encoded strategy. Can be used to replay a strategy. To make Vampire output an encoded version of the strategy use the encode option.";
@@ -389,6 +393,12 @@ void Options::Options::init()
     _unusedPredicateDefinitionRemoval.addProblemConstraint(notWithCat(Property::UEQ));
     _unusedPredicateDefinitionRemoval.setRandomChoices({"on","off"});
 
+    _blockedClauseElimination = BoolOptionValue("block_clause_elimination","bce",false);
+    _lookup.insert(&_blockedClauseElimination);
+    _blockedClauseElimination.tag(OptionTag::PREPROCESSING);
+    _blockedClauseElimination.addProblemConstraint(notWithCat(Property::UEQ));
+    _blockedClauseElimination.setRandomChoices({"on","off"});
+
     _theoryAxioms = ChoiceOptionValue<TheoryAxiomLevel>("theory_axioms","tha",TheoryAxiomLevel::ON,{"on","off","some"});
     _theoryAxioms.description="Include theory axioms for detected interpreted symbols";
     _lookup.insert(&_theoryAxioms);
@@ -594,7 +604,11 @@ void Options::Options::init()
 //*********************** Saturation  ***********************
 
     _saturationAlgorithm = ChoiceOptionValue<SaturationAlgorithm>("saturation_algorithm","sa",SaturationAlgorithm::LRS,
-                                                                  {"discount","fmb","inst_gen","lrs","otter"});//,"tabulation"});
+                                                                  {"discount","fmb","inst_gen","lrs","otter"
+#if VZ3
+      ,"z3"
+#endif
+    });
     _saturationAlgorithm.description=
     "Select the saturation algorithm:\n"
     " - discount:\n"
@@ -602,9 +616,10 @@ void Options::Options::init()
     " - limited resource:\n"
     " - instance generation: a simple implementation of instantiation calculus\n"
     "    (global_subsumption, unit_resulting_resolution and age_weight_ratio)\n"
-    " - tabulation: a special goal-oriented mode for large theories.\n"
+    //" - tabulation: a special goal-oriented mode for large theories.\n"
     " - fmb : finite model building for satisfiable problems.\n"
-    "inst_gen, tabulation and fmb aren't influenced by options for the saturation algorithm, apart from those under the relevant heading";
+    " -z3 : pass the preprocessed problem to z3, will terminate if the resulting problem is not ground.\n"
+    "inst_gen, z3 and fmb aren't influenced by options for the saturation algorithm, apart from those under the relevant heading";
     _lookup.insert(&_saturationAlgorithm);
     _saturationAlgorithm.tag(OptionTag::SATURATION);
     // Captures that if the saturation algorithm is InstGen then splitting must be off
@@ -613,6 +628,13 @@ void Options::Options::init()
     _saturationAlgorithm.setRandomChoices(isRandSat(),{"discount","otter","inst_gen","fmb"});
     _saturationAlgorithm.setRandomChoices(Or(hasCat(Property::UEQ),atomsLessThan(4000)),{"lrs","discount","otter","inst_gen"});
     _saturationAlgorithm.setRandomChoices({"discount","inst_gen","lrs","otter","tabulation"});
+
+#if VZ3
+    _smtForGround = BoolOptionValue("smt_for_ground","smtfg",true);
+    _smtForGround.description = "When a (theory) problem is ground after preprocessing pass it to Z3. In this case we can return sat if Z3 does.";
+    _lookup.insert(&_smtForGround);
+#endif
+
 
     _fmbNonGroundDefs = BoolOptionValue("fmb_nonground_defs","fmbngd",false);
     _fmbNonGroundDefs.description = "Introduce definitions for non ground terms in preprocessing for fmb";
@@ -878,6 +900,36 @@ void Options::Options::init()
 	    _lookup.insert(&_FOOLParamodulation);
 	    _FOOLParamodulation.tag(OptionTag::INFERENCES);
 
+            _termAlgebraInferences = BoolOptionValue("term_algebra_rules","tar",true);
+            _termAlgebraInferences.description=
+              "Activates some rules that improve reasoning with term algebras (such as algebraic datatypes in SMT-LIB):\n"
+              "If the problem does not contain any term algebra symbols, activating this options has no effect\n"
+              "- distinctness rule:\n"
+              "f(...) = g(...) \\/ A\n"
+              "--------------------\n"
+              "          A         \n"
+              "where f and g are distinct term algebra constructors\n"
+              "- distinctness tautology deletion: clauses of the form f(...) ~= g(...) \\/ A are deleted\n"
+              "- injectivity rule:\n"
+              "f(s1 ... sn) = f(t1 ... tn) \\/ A\n"
+              "--------------------------------\n"
+              "         s1 = t1 \\/ A\n"
+              "               ...\n"
+              "         sn = tn \\/ A";
+            _lookup.insert(&_termAlgebraInferences);
+            _termAlgebraInferences.tag(OptionTag::INFERENCES);
+
+            _termAlgebraCyclicityCheck = ChoiceOptionValue<TACyclicityCheck>("term_algebra_acyclicity","tac",
+                                                                             TACyclicityCheck::OFF,{"off","axiom","rule","light"});
+            _termAlgebraCyclicityCheck.description=
+              "Activates the cyclicity rule for term algebras (such as algebraic datatypes in SMT-LIB):\n"
+              "- off : the cyclicity rule is not enforced (this is sound but incomplete)\n"
+              "- axiom : the cyclicity rule is axiomatized with a transitive predicate describing the subterm relation over terms\n";
+              "- rule : the cyclicity rule is enforced by a specific hyper-resolution rule\n";
+              "- light : the cyclicity rule is enforced by rule generating disequality between a term and its known subterms";
+            _lookup.insert(&_termAlgebraCyclicityCheck);
+            _termAlgebraCyclicityCheck.tag(OptionTag::INFERENCES);
+
 	    _forwardDemodulation = ChoiceOptionValue<Demodulation>("forward_demodulation","fd",Demodulation::ALL,{"all","off","preordered"});
 	    _forwardDemodulation.description=
 	    "Oriented rewriting of newly derived clauses by kept unit equalities\n"
@@ -1071,7 +1123,7 @@ void Options::Options::init()
 
 //*********************** AVATAR  ***********************
 
-    _splitting = BoolOptionValue("splitting","spl",true);
+    _splitting = BoolOptionValue("avatar","av",true);
     _splitting.description="Use AVATAR splitting.";
     _lookup.insert(&_splitting);
     _splitting.tag(OptionTag::AVATAR);
@@ -1079,6 +1131,7 @@ void Options::Options::init()
     //_splitting.addConstraint(If(equal(true)).then(_saturationAlgorithm.is(notEqual(SaturationAlgorithm::TABULATION))));
     //_splitting.addProblemConstraint(hasNonUnits());
     _splitting.setRandomChoices({"on","off"}); //TODO change balance?
+
     _splitAtActivation = BoolOptionValue("split_at_activation","sac",false);
     _splitAtActivation.description="Split a clause when it is activated, default is to split when it is processed";
     _lookup.insert(&_splitAtActivation);
@@ -1086,7 +1139,7 @@ void Options::Options::init()
     _splitAtActivation.tag(OptionTag::AVATAR);
     _splitAtActivation.setRandomChoices({"on","off"});
 
-    _splittingAddComplementary = ChoiceOptionValue<SplittingAddComplementary>("splitting_add_complementary","ssac",
+    _splittingAddComplementary = ChoiceOptionValue<SplittingAddComplementary>("avatar_add_complementary","aac",
                                                                                 SplittingAddComplementary::GROUND,{"ground","none"});
     _splittingAddComplementary.description="";
     _lookup.insert(&_splittingAddComplementary);
@@ -1096,7 +1149,7 @@ void Options::Options::init()
     _splittingAddComplementary.setRandomChoices({"ground","none"});
 
 
-    _splittingCongruenceClosure = ChoiceOptionValue<SplittingCongruenceClosure>("splitting_congruence_closure","sscc",
+    _splittingCongruenceClosure = ChoiceOptionValue<SplittingCongruenceClosure>("avatar_congruence_closure","acc",
                                                                                 SplittingCongruenceClosure::OFF,{"model","off","on"});
     _splittingCongruenceClosure.description="Use a congruence closure decision procedure on top of the AVATAR SAT solver. This ensures that models produced by AVATAR satisfy the theory of uninterprted functions.";
     _lookup.insert(&_splittingCongruenceClosure);
@@ -1120,7 +1173,7 @@ void Options::Options::init()
     _ccUnsatCores.setExperimental();
 
     _splittingLiteralPolarityAdvice = ChoiceOptionValue<SplittingLiteralPolarityAdvice>(
-                                                "splitting_literal_polarity_advice","slpa",
+                                                "avatar_literal_polarity_advice","alpa",
                                                 SplittingLiteralPolarityAdvice::NONE,
                                                 {"false","true","none"});
     _splittingLiteralPolarityAdvice.description="Override SAT-solver's default polarity/phase setting for variables abstracting clause components.";
@@ -1129,7 +1182,7 @@ void Options::Options::init()
     _splittingLiteralPolarityAdvice.reliesOn(_splitting.is(equal(true)));
     _splittingLiteralPolarityAdvice.setExperimental();
 
-    _splittingMinimizeModel = ChoiceOptionValue<SplittingMinimizeModel>("splitting_minimize_model","smm",
+    _splittingMinimizeModel = ChoiceOptionValue<SplittingMinimizeModel>("avatar_minimize_model","amm",
                                                                         SplittingMinimizeModel::ALL,{"off","sco","all"});
     
     _splittingMinimizeModel.description="Minimize the SAT-solver model by replacing concrete values with don't-cares"
@@ -1141,7 +1194,7 @@ void Options::Options::init()
     _splittingMinimizeModel.reliesOn(_splitting.is(equal(true)));
     _splittingMinimizeModel.setRandomChoices({"off","sco","all"});
 
-    _splittingEagerRemoval = BoolOptionValue("splitting_eager_removal","sser",true);
+    _splittingEagerRemoval = BoolOptionValue("avatar_eager_removal","aer",true);
     _splittingEagerRemoval.description="If a component was in the model and then becomes 'don't care' eagerly remove that component from the first-order solver. Note: only has any impact when smm is used.";
     _lookup.insert(&_splittingEagerRemoval);
     _splittingEagerRemoval.tag(OptionTag::AVATAR);
@@ -1152,7 +1205,7 @@ void Options::Options::init()
     _splittingEagerRemoval.reliesOn(_splittingMinimizeModel.is(equal(SplittingMinimizeModel::ALL)));
     _splittingEagerRemoval.setRandomChoices({"on","off"});
 
-    _splittingFastRestart = BoolOptionValue("splitting_fast_restart","sfr",false);
+    _splittingFastRestart = BoolOptionValue("avatar_fast_restart","afr",false);
     _splittingFastRestart.description="";
     _lookup.insert(&_splittingFastRestart);
     _splittingFastRestart.tag(OptionTag::AVATAR);
@@ -1160,7 +1213,7 @@ void Options::Options::init()
     _splittingFastRestart.reliesOn(_splitting.is(equal(true)));
     _splittingFastRestart.setRandomChoices({"on","off"});
 
-    _splittingBufferedSolver = BoolOptionValue("splitting_buffered_solver","sbs",false);
+    _splittingBufferedSolver = BoolOptionValue("avatar_buffered_solver","abs",false);
     _splittingBufferedSolver.description="Added buffering funcitonality to the SAT solver used in AVATAR.";
     _lookup.insert(&_splittingBufferedSolver);
     _splittingBufferedSolver.tag(OptionTag::AVATAR);
@@ -1168,7 +1221,7 @@ void Options::Options::init()
     _splittingBufferedSolver.reliesOn(_splitting.is(equal(true)));
     _splittingBufferedSolver.setRandomChoices({"on","off"});
 
-    _splittingDeleteDeactivated = ChoiceOptionValue<SplittingDeleteDeactivated>("splitting_delete_deactivated","sdd",
+    _splittingDeleteDeactivated = ChoiceOptionValue<SplittingDeleteDeactivated>("avatar_delete_deactivated","add",
                                                                         SplittingDeleteDeactivated::ON,{"on","large","off"});
 
     _splittingDeleteDeactivated.description="";
@@ -1179,7 +1232,7 @@ void Options::Options::init()
     _splittingDeleteDeactivated.setRandomChoices({"on","large","off"});
 
 
-    _splittingFlushPeriod = UnsignedOptionValue("splitting_flush_period","ssfp",0);
+    _splittingFlushPeriod = UnsignedOptionValue("avatar_flush_period","afp",0);
     _splittingFlushPeriod.description=
     "after given number of generated clauses without deriving an empty clause, the splitting component selection is shuffled. If equal to zero, shuffling is never performed.";
     _lookup.insert(&_splittingFlushPeriod);
@@ -1188,9 +1241,9 @@ void Options::Options::init()
     _splittingFlushPeriod.reliesOn(_splitting.is(equal(true)));
     _splittingFlushPeriod.setRandomChoices({"0","1000","4000","10000","40000","100000"});
 
-    _splittingFlushQuotient = FloatOptionValue("splitting_flush_quotient","ssfq",1.5);
+    _splittingFlushQuotient = FloatOptionValue("avatar_flush_quotient","afq",1.5);
     _splittingFlushQuotient.description=
-    "after each flush, the splitting_flush_period is multiplied by the quotient";
+    "after each flush, the avatar_flush_period is multiplied by the quotient";
     _lookup.insert(&_splittingFlushQuotient);
     _splittingFlushQuotient.tag(OptionTag::AVATAR);
     _splittingFlushQuotient.setExperimental();
@@ -1198,7 +1251,7 @@ void Options::Options::init()
     _splittingFlushQuotient.reliesOn(_splitting.is(equal(true)));
     _splittingFlushQuotient.setRandomChoices({"1.0","1.1","1.2","1.4","2.0"});
 
-    _splittingNonsplittableComponents = ChoiceOptionValue<SplittingNonsplittableComponents>("splitting_nonsplittable_components","ssnc",
+    _splittingNonsplittableComponents = ChoiceOptionValue<SplittingNonsplittableComponents>("avatar_nonsplittable_components","anc",
                                                                                               SplittingNonsplittableComponents::KNOWN,
                                                                                               {"all","all_dependent","known","none"});
     _splittingNonsplittableComponents.description=
@@ -2700,7 +2753,8 @@ bool Options::complete(const Problem& prb) const
   if (prop.hasInterpretedOperations()
       || prop.hasProp(Property::PR_HAS_INTEGERS)
       || prop.hasProp(Property::PR_HAS_REALS)
-      || prop.hasProp(Property::PR_HAS_RATS)) {
+      || prop.hasProp(Property::PR_HAS_RATS)
+      || prop.hasProp(Property::PR_HAS_CONSTRUCTORS)) {
     return false;
   }
 

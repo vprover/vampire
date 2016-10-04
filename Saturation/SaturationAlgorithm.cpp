@@ -45,6 +45,7 @@
 #include "Inferences/HyperSuperposition.hpp"
 #include "Inferences/InnerRewriting.hpp"
 #include "Inferences/RefutationSeekerFSE.hpp"
+#include "Inferences/TermAlgebraReasoning.hpp"
 #include "Inferences/SLQueryForwardSubsumption.hpp"
 #include "Inferences/SLQueryBackwardSubsumption.hpp"
 #include "Inferences/Superposition.hpp"
@@ -240,6 +241,8 @@ size_t SaturationAlgorithm::passiveClauseCount()
  */
 void SaturationAlgorithm::onActiveAdded(Clause* c)
 {
+  CALL("SaturationAlgorithm::onActiveAdded");
+
   if (env.options->showActive()) {
     env.beginOutput();    
     env.out() << "[SA] active: " << c->toString() << std::endl;
@@ -439,9 +442,11 @@ void SaturationAlgorithm::onClauseReduction(Clause* cl, Clause* replacement,
     env.beginOutput();
     env.out() << "[SA] " << (forward ? "forward" : "backward") << " reduce: " << cl->toString() << endl;
     if(replacement){ env.out() << "     replaced by " << replacement->toString() << endl; }
-    ClauseStack::Iterator pit(premStack);
-    while(pit.hasNext()){ 
-      Clause* premise = pit.next();
+    // the inference may need minimised premises, let's update them
+    Inference* inf = cl->inference();
+    Inference::Iterator iter = inf->iterator();
+    while(inf->hasNext(iter)){
+      Unit* premise = inf->next(iter);
       if(premise){ env.out() << "     using " << premise->toString() << endl; }
     }
     env.endOutput();
@@ -1337,6 +1342,16 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
   if (opt.FOOLParamodulation()) {
     gie->addFront(new FOOLParamodulation());
   }
+  if(prb.hasEquality() && env.signature->hasTermAlgebras()) {
+    if (opt.termAlgebraCyclicityCheck() == Options::TACyclicityCheck::RULE) {
+      gie->addFront(new AcyclicityGIE());
+    } else if (opt.termAlgebraCyclicityCheck() == Options::TACyclicityCheck::RULELIGHT) {
+      gie->addFront(new AcyclicityGIE1());
+    }
+    if (opt.termAlgebraInferences()) {
+      gie->addFront(new InjectivityGIE());
+    }
+  }
 
   res->setGeneratingInferenceEngine(gie);
 
@@ -1375,10 +1390,12 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
   }
   if (opt.forwardSubsumption()) {
     if (opt.forwardSubsumptionResolution()) {
-      res->addForwardSimplifierToFront(new CTFwSubsAndRes(true));
+      //res->addForwardSimplifierToFront(new CTFwSubsAndRes(true));
+      res->addForwardSimplifierToFront(new ForwardSubsumptionAndResolution(true));
     }
     else {
-      res->addForwardSimplifierToFront(new CTFwSubsAndRes(false));
+      //res->addForwardSimplifierToFront(new CTFwSubsAndRes(false));
+      res->addForwardSimplifierToFront(new ForwardSubsumptionAndResolution(false));
     }
   }
   else if (opt.forwardSubsumptionResolution()) {

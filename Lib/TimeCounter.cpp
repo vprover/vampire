@@ -292,6 +292,9 @@ void TimeCounter::outputSingleStat(TimeCounterUnit tcu, ostream& out)
   case TC_PREPROCESSING:
     out<<"preprocessing";
     break;
+  case TC_BCE:
+    out<<"blocked clause elimination";
+    break;
   case TC_PROPERTY_EVALUATION:
     out<<"property evaluation";
     break;
@@ -384,6 +387,9 @@ void TimeCounter::outputSingleStat(TimeCounterUnit tcu, ostream& out)
       break;
   case TC_Z3_IN_FMB:
     out << "smt search for next domain size assignment";
+    break;
+  case TC_NAMING:
+    out << "naming";
     break;
   default:
     ASSERTION_VIOLATION;

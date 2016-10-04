@@ -9,6 +9,7 @@
 #include "Lib/Environment.hpp"
 #include "Lib/NameArray.hpp"
 #include "Lib/StringUtils.hpp"
+#include "Kernel/Clause.hpp"
 #include "Kernel/ColorHelper.hpp"
 #include "Kernel/Formula.hpp"
 #include "Kernel/FormulaUnit.hpp"
@@ -19,6 +20,7 @@
 #include "Shell/LispLexer.hpp"
 #include "Shell/Options.hpp"
 #include "Shell/SMTLIBLogic.hpp"
+#include "Shell/TermAlgebra.hpp"
 
 #include "SMTLIB2.hpp"
 
@@ -146,6 +148,28 @@ void SMTLIB2::readBenchmark(LExprList* bench)
       continue;
     }
 
+    if (ibRdr.tryAcceptAtom("declare-datatypes")) {
+      LExprList* sorts = ibRdr.readList();
+      LExprList* datatypes = ibRdr.readList();
+
+      readDeclareDatatypes(sorts, datatypes, false);
+
+      ibRdr.acceptEOL();
+
+      continue;
+    }
+
+    if (ibRdr.tryAcceptAtom("declare-codatatypes")) {
+      LExprList* sorts = ibRdr.readList();
+      LExprList* datatypes = ibRdr.readList();
+
+      readDeclareDatatypes(sorts, datatypes, true);
+
+      ibRdr.acceptEOL();
+
+      continue;
+    }
+    
     if (ibRdr.tryAcceptAtom("declare-const")) {
       vstring name = ibRdr.readAtom();
       LExpr* oSort = ibRdr.readNext();
@@ -765,7 +789,7 @@ void SMTLIB2::readDefineFun(const vstring& name, LExprList* iArgs, LExpr* oSort,
 
     pRdr.acceptEOL();
 
-    TermList arg = TermList(_nextVar++,false);
+    TermList arg = TermList(_nextVar++, false);
     args.push(arg);
 
     if (!lookup->insert(vName,make_pair(arg,vSort))) {
@@ -807,6 +831,150 @@ void SMTLIB2::readDefineFun(const vstring& name, LExprList* iArgs, LExpr* oSort,
   UnitList::push(fu, _formulas);
 }
 
+void SMTLIB2::readDeclareDatatypes(LExprList* sorts, LExprList* datatypes, bool codatatype)
+{
+  CALL("SMTLIB2::readDeclareDatatypes");
+  
+  if (sorts->length() > 0) {
+    USER_ERROR("unsupported parametric datatype declaration");
+  }
+
+  // first declare all the sorts, and then only the constructors, in
+  // order to allow mutually recursive datatypes definitions
+  LispListReader dtypesRdr(datatypes);
+  while (dtypesRdr.hasNext()) {
+    LispListReader dtypeRdr(dtypesRdr.readList());
+
+    const vstring& dtypeName = dtypeRdr.readAtom();
+    if (isAlreadyKnownSortSymbol(dtypeName)) {
+      USER_ERROR("Redeclaring built-in, declared or defined sort symbol as datatype: "+dtypeName);
+    }
+
+    ALWAYS(_declaredSorts.insert(dtypeName, 0));
+    bool added;
+    env.sorts->addSort(dtypeName + "()", added);
+    ASS(added);
+  }
+
+  Stack<TermAlgebra*> algebras;
+  Stack<TermAlgebraConstructor*> constructors;
+  Stack<unsigned> argSorts;
+  Stack<vstring> destructorNames;
+
+  LispListReader dtypesRdr2(datatypes);
+  while(dtypesRdr2.hasNext()) {
+    constructors.reset();
+    LispListReader dtypeRdr(dtypesRdr2.readList());
+    const vstring& taName = dtypeRdr.readAtom() + "()";
+    bool added;
+    unsigned taSort = env.sorts->addSort(taName, added);
+    ASS(!added);
+
+    while (dtypeRdr.hasNext()) {
+      argSorts.reset();
+      destructorNames.reset();
+      // read each constructor declaration
+      vstring constrName;
+      LExpr *constr = dtypeRdr.next();
+      if (constr->isAtom()) {
+        // atom, construtor of arity 0
+        constrName = constr->str;
+      } else {
+        ASS(constr->isList());
+        LispListReader constrRdr(constr);
+        constrName = constrRdr.readAtom();
+
+        while (constrRdr.hasNext()) {
+          LExpr *arg = constrRdr.next();
+          LispListReader argRdr(arg);
+          destructorNames.push(argRdr.readAtom());
+          argSorts.push(declareSort(argRdr.next()));
+          if (argRdr.hasNext()) {
+            USER_ERROR("Bad constructor argument:" + arg->toString());
+          }
+        }
+      }
+      constructors.push(new TermAlgebraConstructor(constrName,
+                                                   taSort,
+                                                   argSorts.size(),
+                                                   destructorNames.begin(),
+                                                   argSorts.begin()));
+    }
+    algebras.push(new TermAlgebra(taName,
+                                  taSort,
+                                  constructors.size(),
+                                  constructors.begin(),
+                                  codatatype));
+  }
+
+  Stack<TermAlgebra*>::Iterator it(algebras);
+  while (it.hasNext()) {
+    declareTermAlgebra(it.next());
+  }
+}
+
+void SMTLIB2::declareTermAlgebra(Shell::TermAlgebra *ta)
+{
+  CALL("SMTLIB2::declareTermAlgebra");
+
+  if (ta->emptyDomain()) {
+    USER_ERROR("Datatype " + ta->name() + " defines an empty sort");
+  }
+
+  ASS(!env.signature->isTermAlgebraSort(ta->sort()));
+  env.signature->addTermAlgebra(ta);
+
+  for (unsigned i = 0; i < ta->nConstructors(); i++) {
+    declareTermAlgebraConstructor(ta->constructor(i), ta->sort());
+  }
+
+  ta->addExhaustivenessAxiom(_formulas);
+  ta->addDistinctnessAxiom(_formulas);
+  ta->addInjectivityAxiom(_formulas);
+  
+  if (env.options->termAlgebraCyclicityCheck() == Options::TACyclicityCheck::AXIOM) {
+    ta->addAcyclicityAxiom(_formulas);
+    
+    // declare subterm predicate for parser
+    DeclaredFunction p = make_pair(ta->getSubtermPredicate(), false);
+    LOG1("declareFunctionOrPredicate-Predicate");
+    LOG2("declareFunctionOrPredicate -name ", ta->getSubtermPredicateName());
+    LOG2("declareFunctionOrPredicate -symNum ", ta->getSubtermPredicate());
+    ALWAYS(_declaredFunctions.insert(ta->getSubtermPredicateName(), p));
+  }
+}
+
+void SMTLIB2::declareTermAlgebraConstructor(Shell::TermAlgebraConstructor *c, unsigned rangeSort)
+{
+  CALL("SMTLIB2::declareTermAlgebraConstructor");
+
+  // create symbols in signature
+  c->createSymbols();
+
+  // declare symbols for parser
+  // constructor
+  if (isAlreadyKnownFunctionSymbol(c->name())) {
+    USER_ERROR("Redeclaring function symbol: " + c->name());
+  }
+  DeclaredFunction p = make_pair(c->functor(), true);
+  LOG1("declareFunctionOrPredicate-Function");
+  LOG2("declareFunctionOrPredicate -name ", c->name());
+  LOG2("declareFunctionOrPredicate -symNum ", c->functor());
+  ALWAYS(_declaredFunctions.insert(c->name(), p));
+
+  // destructors
+  for (unsigned i = 0; i < c->arity(); i++) {
+    if (isAlreadyKnownFunctionSymbol(c->destructorName(i))) {
+      USER_ERROR("Redeclaring function symbol: " + c->destructorName(i));
+    }
+    DeclaredFunction p = make_pair(c->destructorFunctor(i), true);
+    LOG1("declareFunctionOrPredicate-Function");
+    LOG2("declareFunctionOrPredicate -name ", c->destructorName(i));
+    LOG2("declareFunctionOrPredicate -symNum ", c->destructorFunctor(i));
+    ALWAYS(_declaredFunctions.insert(c->destructorName(i), p));
+  }
+}
+  
 bool SMTLIB2::ParseResult::asFormula(Formula*& resFrm)
 {
   CALL("SMTLIB2::ParseResult::asFormula");
@@ -1209,11 +1377,13 @@ void SMTLIB2::parseAnnotatedTerm(LExpr* exp)
 
   LExpr* toParse = lRdr.readListExpr();
 
-  const vstring& attributeKind = lRdr.readAtom();
+  static bool annotation_warning = false; // print warning only once
 
-  if (attributeKind != ":pattern") {
-    USER_ERROR("Unrecognized term attribute "+attributeKind);
-    // in particular, we currently don't support ":named"
+  if (!annotation_warning) {
+    //env.beginOutput();
+    //env.out() << "% Warning: term annotations ignored!" << endl;
+    //env.endOutput();
+    annotation_warning = true;
   }
 
   // we ignore the rest in lRdr (no matter the number of remaining arguments and their structure)
@@ -1712,7 +1882,7 @@ bool SMTLIB2::parseAsBuiltinTermSymbol(const vstring& id, LExpr* exp)
         complainAboutArgShortageOrWrongSorts(BUILT_IN_SYMBOL,exp);
       }
 
-      unsigned fun = Theory::instance()->getFnNum(Theory::INT_MODULO);
+      unsigned fun = Theory::instance()->getFnNum(Theory::INT_REMAINDER_E);
       TermList res = TermList(Term::create2(fun,int1,int2));
 
       _results.push(ParseResult(Sorts::SRT_INTEGER,res));

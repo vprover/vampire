@@ -336,11 +336,11 @@ public:
   enum class Mode : unsigned int {
     AXIOM_SELECTION,
     CASC,
-    CASC_MULTICORE,
     CASC_SAT,
+    CASC_LTB,
     SMTCOMP,
     CLAUSIFY,
-    CLAUSIFY_STAT,
+    TCLAUSIFY,
     CONSEQUENCE_ELIMINATION,
     GROUNDING,
     MODEL_CHECK,
@@ -399,7 +399,7 @@ public:
      INST_GEN = 2,
      LRS = 3,
      OTTER = 4,
-     //TABULATION = 5
+     Z3 = 5,
    };
 
   /** Possible values for activity of some inference rules */
@@ -578,6 +578,21 @@ public:
     OFF = 1,
     ON = 2,
     THEORY = 3
+  };
+
+  enum class TARules : unsigned int {
+    OFF = 0,
+    INJECTGEN = 1,
+    INJECTSIMPL = 2,
+    INJECTOPT = 2,
+    FULL = 3  
+  };
+
+  enum class TACyclicityCheck : unsigned int {
+    OFF = 0,
+    AXIOM = 1,
+    RULE = 2,
+    RULELIGHT = 3
   };
 
 
@@ -1679,6 +1694,7 @@ public:
 
   bool flattenTopLevelConjunctions() const { return _flattenTopLevelConjunctions.actualValue; }
   LTBLearning ltbLearning() const { return _ltbLearning.actualValue; }
+  vstring ltbDirectory() const { return _ltbDirectory.actualValue; }
   Mode mode() const { return _mode.actualValue; }
   unsigned multicore() const { return _multicore.actualValue; }
   InputSyntax inputSyntax() const { return _inputSyntax.actualValue; }
@@ -1731,8 +1747,10 @@ public:
 #if VZ3
   bool z3UnsatCores() const { return _z3UnsatCores.actualValue;}
   bool satFallbackForSMT() const { return _satFallbackForSMT.actualValue; }
+  bool smtForGround() const { return _smtForGround.actualValue; }
 #endif
   bool unusedPredicateDefinitionRemoval() const { return _unusedPredicateDefinitionRemoval.actualValue; }
+  bool blockedClauseElimination() const { return _blockedClauseElimination.actualValue; }
   void setUnusedPredicateDefinitionRemoval(bool newVal) { _unusedPredicateDefinitionRemoval.actualValue = newVal; }
   bool weightIncrement() const { return _weightIncrement.actualValue; }
   bool useDM() const { return _use_dm.actualValue; }
@@ -1793,6 +1811,8 @@ public:
   RuleActivity equalityResolutionWithDeletion() const { return _equalityResolutionWithDeletion.actualValue; }
   ExtensionalityResolution extensionalityResolution() const { return _extensionalityResolution.actualValue; }
   bool FOOLParamodulation() const { return _FOOLParamodulation.actualValue; }
+  bool termAlgebraInferences() const { return _termAlgebraInferences.actualValue; }
+  TACyclicityCheck termAlgebraCyclicityCheck() const { return _termAlgebraCyclicityCheck.actualValue; }
   unsigned extensionalityMaxLength() const { return _extensionalityMaxLength.actualValue; }
   bool extensionalityAllowPosEq() const { return _extensionalityAllowPosEq.actualValue; }
   float nongoalWeightCoefficient() const { return _nonGoalWeightCoefficient.actualValue; }
@@ -2066,6 +2086,9 @@ private:
 
   BoolOptionValue _FOOLParamodulation;
 
+  BoolOptionValue _termAlgebraInferences;
+  ChoiceOptionValue<TACyclicityCheck> _termAlgebraCyclicityCheck;
+
   BoolOptionValue _fmbNonGroundDefs;
   UnsignedOptionValue _fmbStartSize;
   FloatOptionValue _fmbSymmetryRatio;
@@ -2130,6 +2153,7 @@ private:
   IntOptionValue _lrsFirstTimeCheck;
   BoolOptionValue _lrsWeightLimitOnly;
   ChoiceOptionValue<LTBLearning> _ltbLearning;
+  StringOptionValue _ltbDirectory;
 
   LongOptionValue _maxActive;
   IntOptionValue _maxAnswers;
@@ -2206,6 +2230,7 @@ private:
   BoolOptionValue _showZ3;
   BoolOptionValue _z3UnsatCores;
   BoolOptionValue _satFallbackForSMT;
+  BoolOptionValue _smtForGround;
 #endif
   TimeLimitOptionValue _simulatedTimeLimit;
   UnsignedOptionValue _sineDepth;
@@ -2252,6 +2277,7 @@ private:
 
   ChoiceOptionValue<URResolution> _unitResultingResolution;
   BoolOptionValue _unusedPredicateDefinitionRemoval;
+  BoolOptionValue _blockedClauseElimination;
   UnsignedOptionValue _updatesByOneConstraint;
   BoolOptionValue _use_dm;
   BoolOptionValue _weightIncrement;

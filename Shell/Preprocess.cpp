@@ -39,6 +39,7 @@
 #include "FOOLElimination.hpp"
 #include "TheoryAxioms.hpp"
 #include "TheoryFlattening.hpp"
+#include "BlockedClauseElimination.hpp"
 #include "TrivialPredicateRemover.hpp"
 
 #include "UIHelper.hpp"
@@ -368,6 +369,15 @@ void Preprocess::preprocess (Problem& prb)
 
        TheoryFlattening tf;
        tf.apply(prb);
+   }
+
+   if (_options.blockedClauseElimination()) {
+     env.statistics->phase=Statistics::BLOCKED_CLAUSE_ELIMINATION;
+     if(env.options->showPreprocessing())
+       env.out() << "blocked clause elimination" << std::endl;
+
+       BlockedClauseElimination bce;
+       bce.apply(prb);
    }
 
    if (env.options->showPreprocessing()) {

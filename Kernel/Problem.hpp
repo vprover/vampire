@@ -110,8 +110,12 @@ public:
   bool mayHaveInequalityResolvableWithDeletion() const { return _mayHaveInequalityResolvableWithDeletion; }
   bool mayHaveXEqualsY() const { return _mayHaveXEqualsY; }
 
-  SMTLIBLogic setSMTLIBLogic(SMTLIBLogic smtLibLogic) { return smtLibLogic; }
-  SMTLIBLogic getSMTLIBLogic() const { return _smtLibLogic; }
+  void setSMTLIBLogic(SMTLIBLogic smtLibLogic) { 
+    _smtlibLogic = smtLibLogic;
+  }
+  SMTLIBLogic getSMTLIBLogic() const {
+    return _smtlibLogic;
+  }
 
   void reportFOOLEliminated()
   {
@@ -197,10 +201,10 @@ private:
   mutable MaybeBool _hasFOOL;
   mutable MaybeBool _hasInterpretedEquality;
 
+  SMTLIBLogic _smtlibLogic;
+
   mutable bool _propertyValid;
   mutable Property* _property;
-
-  SMTLIBLogic _smtLibLogic;
 };
 
 }

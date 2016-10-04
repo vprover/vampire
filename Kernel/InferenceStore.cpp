@@ -164,7 +164,8 @@ vstring getQuantifiedStr(const VarContainer& vars, vstring inner, DHMap<unsigned
     }
     vstring ty="";
     unsigned t;
-    if(t_map.find(var,t)){
+    if(t_map.find(var,t) && t!=Sorts::SRT_DEFAULT){
+      //TODO should assert that we are in tff mode here
       ty=":" + env.sorts->sortName(t);
     }
     varStr+=vstring("X")+Int::toString(var)+ty;
@@ -786,6 +787,9 @@ protected:
     Inference::Rule rule;
     UnitIterator parents=_is->getParents(cs, rule);
  
+    UIHelper::outputSortDeclarations(out);
+    UIHelper::outputSymbolDeclarations(out);
+
     vstring kind = "fof";
     if(env.statistics->hasTypes){ kind="tff"; } 
 
@@ -818,6 +822,21 @@ protected:
     case Inference::EQUALITY_PROXY_REPLACEMENT:
     case Inference::EQUALITY_PROXY_AXIOM1:
     case Inference::EQUALITY_PROXY_AXIOM2:
+    case Inference::NEGATED_CONJECTURE:
+    case Inference::RECTIFY:
+    case Inference::FLATTEN:
+    case Inference::ENNF:
+    case Inference::NNF:
+    case Inference::CLAUSIFY:
+    case Inference::AVATAR_DEFINITION:
+    case Inference::AVATAR_COMPONENT:
+    case Inference::AVATAR_REFUTATION:
+    case Inference::AVATAR_SPLIT_CLAUSE:
+    case Inference::AVATAR_CONTRADICTION_CLAUSE:
+    case Inference::FOOL_LET_ELIMINATION:
+    case Inference::FOOL_ITE_ELIMINATION:
+    case Inference::FOOL_ELIMINATION:
+    case Inference::BOOLEAN_TERM_ENCODING:
       return true;
     default:
       return false;

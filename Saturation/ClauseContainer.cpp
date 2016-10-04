@@ -112,6 +112,8 @@ Clause* UnprocessedClauseContainer::pop()
 
 void ActiveClauseContainer::add(Clause* c)
 {
+  CALL("ActiveClauseContainer::add");
+
   _size++;
 
   ASS(c->store()==Clause::ACTIVE);

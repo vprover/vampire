@@ -13,9 +13,10 @@
 #include "Shell/Options.hpp"
 #include "Shell/Property.hpp"
 
-#include "Problem.hpp"
 #include "KBO.hpp"
 #include "KBOForEPR.hpp"
+#include "Problem.hpp"
+#include "Signature.hpp"
 
 #include "Ordering.hpp"
 
@@ -96,9 +97,7 @@ Ordering* Ordering::create(Problem& prb, const Options& opt)
   if(prb.getProperty()->maxFunArity()==0 && !env.colorUsed) {
     return new KBOForEPR(prb, opt);
   }
-  else {
-    return new KBO(prb, opt);
-  }
+  return new KBO(prb, opt);
 }
 
 

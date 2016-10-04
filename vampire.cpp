@@ -51,6 +51,7 @@
 #include "SMTCOMP/SMTCOMPMode.hpp"
 #include "CASC/CASCMultiMode.hpp"
 #include "CASC/CLTBMode.hpp"
+#include "CASC/CLTBModeLearning.hpp"
 #include "CASC/CMZRMode.hpp"
 #include "Shell/CParser.hpp"
 #include "Shell/CommandLine.hpp"
@@ -747,7 +748,7 @@ void spiderMode()
   env.endOutput();
 } // spiderMode
 
-void clausifyMode(bool stat)
+void clausifyMode(bool theory)
 {
   CALL("clausifyMode()");
 
@@ -759,13 +760,8 @@ void clausifyMode(bool stat)
   ScopedPtr<Problem> prb(getPreprocessedProblem());
 
   env.beginOutput();
-  if (!stat) {
-    UIHelper::outputSortDeclarations(env.out());
-    UIHelper::outputSymbolDeclarations(env.out());
-  }
-
-  unsigned clauses = 0;
-  unsigned literals = 0;
+  UIHelper::outputSortDeclarations(env.out());
+  UIHelper::outputSymbolDeclarations(env.out());
 
   ClauseIterator cit = prb->clauseIterator();
   while (cit.hasNext()) {
@@ -774,29 +770,17 @@ void clausifyMode(bool stat)
     if (!cl) {
       continue;
     }
-    if (stat) {
-      clauses++;
-      literals += cl->size();
-    } else {
-/*
-  Uncomment this bit to make clausify print quantification
-  TODO decide when this should be done and do it then 
-
+    if (theory) {
       Formula* f = Formula::fromClause(cl);
       FormulaUnit* fu = new FormulaUnit(f,cl->inference(),cl->inputType());
       env.out() << TPTPPrinter::toString(fu) << "\n";
-*/
+    } else {
       env.out() << TPTPPrinter::toString(cl) << "\n";
     }
   }
-  if (stat) {
-    env.out() << clauses << "\t" << literals << endl;
-  }
   env.endOutput();
 
-  if (!stat) {
-    if (env.options->latexOutput() != "off") { outputClausesToLaTeX(prb.ptr()); }
-  }
+  if (env.options->latexOutput() != "off") { outputClausesToLaTeX(prb.ptr()); }
 
   //we have successfully output all clauses, so we'll terminate with zero return value
   vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
@@ -955,23 +939,22 @@ int main(int argc, char* argv[])
     case Options::Mode::VAMPIRE:
       vampireMode();
       break;
-    case Options::Mode::CASC_MULTICORE:
-      if (CASC::CASCMultiMode::perform()) {
-        //casc mode succeeded in solving the problem, so we return zero
-        vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
-      }
-      break;
-    case Options::Mode::CASC:
-      if (CASC::CASCMode::perform(argc, argv)) {
-	//casc mode succeeded in solving the problem, so we return zero
-	vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
-      }
-      break;
     case Options::Mode::CASC_SAT:
       CASC::CASCMode::makeSat();
-      if (CASC::CASCMode::perform(argc, argv)) {
-	//casc mode succeeded in solving the problem, so we return zero
-	vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
+    case Options::Mode::CASC:
+      // If using a single core use old approach
+      if(env.options->multicore()==1){
+         if (CASC::CASCMode::perform(argc, argv)) {
+	    //casc mode succeeded in solving the problem, so we return zero
+            vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
+         }
+      }
+      // otherwise use the new multicore mode
+      else{
+        if (CASC::CASCMultiMode::perform()) {
+          //casc mode succeeded in solving the problem, so we return zero
+          vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
+        }
       }
       break;
     case Options::Mode::SMTCOMP:
@@ -981,10 +964,15 @@ int main(int argc, char* argv[])
          vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
         }
     break;
-/*
     case Options::Mode::CASC_LTB: {
+      bool learning = env.options->ltbLearning()!=Options::LTBLearning::OFF;
       try {
-        CASC::CLTBMode::perform();
+        if(learning){
+          CASC::CLTBModeLearning::perform();
+        }
+        else{
+          CASC::CLTBMode::perform();
+        }
       } catch (Lib::SystemFailException& ex) {
         cerr << "Process " << getpid() << " received SystemFailException" << endl;
         ex.cry(cerr);
@@ -994,7 +982,6 @@ int main(int argc, char* argv[])
       vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
       break;
     }
-*/
 /*
     case Options::Mode::CASC_MZR: {
       CASC::CMZRMode::perform();
@@ -1011,7 +998,7 @@ int main(int argc, char* argv[])
       clausifyMode(false);
       break;
 
-    case Options::Mode::CLAUSIFY_STAT:
+    case Options::Mode::TCLAUSIFY:
       clausifyMode(true);
       break;
 

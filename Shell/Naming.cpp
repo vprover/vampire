@@ -108,6 +108,8 @@ FormulaUnit* Naming::apply(FormulaUnit* unit, UnitList*& defs) {
 Formula* Naming::apply_iter(Formula* top_f) {
   CALL("Naming::apply_iter");
 
+  TimeCounter tc(TC_NAMING);
+
   Stack<Task> todo_stack;
   Stack<Result> result_stack;
 

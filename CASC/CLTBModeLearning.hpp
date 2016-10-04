@@ -1,10 +1,10 @@
 /**
- * @file CLTBMode.hpp
- * Defines class CLTBMode.
+ * @file CLTBModeLearning.hpp
+ * Defines class CLTBModeLearning.
  */
 
-#ifndef __CLTBMode__
-#define __CLTBMode__
+#ifndef __CLTBModeLearning__
+#define __CLTBModeLearning__
 
 #include <utility>
 
@@ -14,6 +14,7 @@
 #include "Lib/Portability.hpp"
 #include "Lib/ScopedPtr.hpp"
 #include "Lib/Stack.hpp"
+#include "Lib/Set.hpp"
 
 #include "Lib/VString.hpp"
 
@@ -34,7 +35,7 @@ using namespace Kernel;
 
 #if COMPILER_MSVC
 
-class CLTBMode
+class CLTBModeLearning
 {
 public:
   static void perform() { USER_ERROR("casc_ltb mode is not supported on Windows"); }
@@ -42,49 +43,38 @@ public:
 
 #else
 
-enum Category {
-  HH4,
-  ISA,
-  HLL,
-  MZR,
-  UNKNOWN
-};
+class CLTBProblemLearning;
 
-class CLTBProblem;
+  struct ProbRecord{
+    Set<vstring> suc;
+    Set<vstring> fail;
+    float avg;
+  };
 
-class CLTBMode
+class CLTBModeLearning
 {
 public:
+  CLTBModeLearning() : stratSem(1) {
+    strategies = new SyncPipe();;
+    stratSem.set(0,0); 
+  }
+
   static void perform();
 private:
-  void solveBatch(istream& batchFile, bool first,vstring inputDirectory);
+  void solveBatch(istream& batchFile, bool first, vstring inputDirectory);
   int readInput(istream& batchFile, bool first);
   static ostream& lineOutput();
   static ostream& coutLineOutput();
   void loadIncludes();
-  void doTraining();
-  void learnFromSolutionFile(vstring& solnFileName);
+  void doTraining(int time,bool startup);
 
   typedef List<vstring> StringList;
   typedef Stack<vstring> StringStack;
   typedef pair<vstring,vstring> StringPair;
   typedef Stack<StringPair> StringPairStack;
+  typedef Stack<vstring> Schedule;
+  static void fillSchedule(Schedule& strats);
 
-  Category getCategory(vstring& categoryStr) {
-    if (categoryStr == "LTB.HH4" || categoryStr == "LTB.HL4") {
-      return HH4;
-    } else if (categoryStr == "LTB.ISA") {
-      return ISA;
-    } else if (categoryStr == "LTB.HLL" || categoryStr == "LTB.HOL") {
-      return HLL;
-    } else if (categoryStr == "LTB.MZR") {
-      return MZR;
-    } else {
-      return UNKNOWN;
-    }
-  }
-
-  Category _category;
   vstring _trainingDirectory;
   /** per-problem time limit, in milliseconds */
   int _problemTimeLimit;
@@ -103,40 +93,42 @@ private:
 
   ScopedPtr<Problem> _baseProblem;
 
-  // This contains formulas 'learned' in the sense that they were input
-  // formulas used in proofs of previous problems
-  // Note: this relies on the assurance that formulas are consistently named
-  DHSet<vstring> _learnedFormulas;
-  DHMap<vstring,unsigned> _learnedFormulasCount;
-  unsigned _learnedFormulasMaxCount;
-  bool _biasedLearning;
+  Semaphore stratSem;
+  SyncPipe* strategies;
+  SyncPipe* successfulStrategies;
 
-  friend class CLTBProblem;
+  static DHMap<vstring,ProbRecord*> probRecords;
+  static DHMap<vstring,Stack<vstring>*> stratWins;
+
+  Stack<vstring> problems;
+  Stack<vstring> new_problems;
+  Schedule strats;
+
+  friend class CLTBProblemLearning;
 };
 
 
-class CLTBProblem
+class CLTBProblemLearning
 {
 public:
-  CLTBProblem(CLTBMode* parent, vstring problemFile, vstring outFile);
+  CLTBProblemLearning(CLTBModeLearning* parent, vstring problemFile, vstring outFile);
 
-  void searchForProof(int terminationTime,int timeLimit,const Category category) __attribute__((noreturn));
   typedef Set<vstring> StrategySet;
   typedef Stack<vstring> Schedule;
+
+  void searchForProof(int terminationTime,int timeLimit,Schedule& strats,bool stopOnProof) __attribute__((noreturn));
 private:
-  bool runSchedule(Schedule&,StrategySet& remember,bool fallback,int terminationTime);
+  bool runSchedule(Schedule&,StrategySet& remember,bool fallback,int terminationTime, bool stopOnProof);
   unsigned getSliceTime(vstring sliceCode,vstring& chopped);
 
-  void performStrategy(int terminationTime,int timeLimit,Category category,const Shell::Property* property);
-  static void fillSchedule(Schedule& sched,const Shell::Property* property,int timeLimit,Category category);
-
-  void waitForChildAndExitWhenProofFound();
+  void performStrategy(int terminationTime,int timeLimit,  Shell::Property* property, Schedule& quick, bool stopOnProof);
+  void waitForChildAndExitWhenProofFound(bool stopOnProof);
   void exitOnNoSuccess() __attribute__((noreturn));
 
   static ofstream* writerFileStream;
   static void terminatingSignalHandler(int sigNum) __attribute__((noreturn));
-  void runSlice(vstring slice, unsigned milliseconds) __attribute__((noreturn));
-  void runSlice(Options& strategyOpt) __attribute__((noreturn));
+  void runSlice(vstring slice, unsigned milliseconds,bool printProof) __attribute__((noreturn));
+  void runSlice(Options& strategyOpt, bool printProof) __attribute__((noreturn));
 
   static vstring problemFinishedString;
 
@@ -144,7 +136,7 @@ private:
   DHSet<pid_t> childIds;
 #endif
 
-  CLTBMode* parent;
+  CLTBModeLearning* parent;
   vstring problemFile;
   vstring outFile;
 
@@ -182,10 +174,26 @@ private:
       }
     }
   };
+
+  struct ScopedSyncPipe {
+    SyncPipe* pipe;
+    // Probably dangerous to acquire in constructor
+    ScopedSyncPipe(SyncPipe* p) : pipe(p)
+    {
+      cout << "getting pipe" << endl;
+      pipe->acquireWrite();
+      cout << "got pipe" << endl;
+    }
+    ~ScopedSyncPipe(){
+      cout << "release pipe" << endl;
+      pipe->releaseWrite();
+    } 
+  };
+
 };
 
 #endif //!COMPILER_MSVC
 
 }
 
-#endif // __CLTBMode__
+#endif // __CLTBModeLearning__

@@ -134,6 +134,10 @@ private:
   z3::expr truncate(z3::expr e) {
         return ite(e >= 0, to_int(e), ceiling(e));
   }
+
+  void addTruncatedOperations(z3::expr_vector, Interpretation qi, Interpretation ti, unsigned srt);
+  void addFloorOperations(z3::expr_vector, Interpretation qi, Interpretation ti, unsigned srt);
+
 public:
   z3::expr getz3expr(Term* trm,bool islit,bool&nameExpression);
 private:

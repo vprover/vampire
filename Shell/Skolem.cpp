@@ -16,6 +16,8 @@
 #include "Kernel/TermIterators.hpp"
 #include "Lib/SharedSet.hpp"
 
+#include "Shell/Statistics.hpp"
+
 #include "Indexing/TermSharing.hpp"
 
 #include "Options.hpp"
@@ -396,6 +398,8 @@ Formula* Skolem::skolemise (Formula* f)
 
         unsigned fun = addSkolemFunction(arity, domainSorts.begin(), rangeSort, v);
         _introducedSkolemFuns.push(fun);
+
+        env.statistics->skolemFunctions++;
 
         Term* skolemTerm = Term::create(fun, arity, fnArgs.begin());
         _subst.bind(v,skolemTerm);

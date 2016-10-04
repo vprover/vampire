@@ -17,6 +17,7 @@
 #include "Kernel/SubformulaIterator.hpp"
 #include "Kernel/Term.hpp"
 #include "Kernel/Signature.hpp"
+#include "Kernel/Inference.hpp"
 
 #include "Statistics.hpp"
 #include "FunctionDefinition.hpp"
@@ -62,6 +63,7 @@ Property::Property()
     _sortsUsed(0),
     _hasFOOL(false),
     _allClausesGround(true),
+    _allNonTheoryClausesGround(true),
     _allQuantifiersEssentiallyExistential(true),
     _smtlibLogic(SMTLIBLogic::SMT_UNDEFINED)
 {
@@ -307,6 +309,9 @@ void Property::scan(Clause* clause)
 
   if (_variablesInThisClause > 0) {
     _allClausesGround = false;
+    if(clause->inference()->rule()!=Inference::THEORY && clause->inference()->rule()!=Inference::FOOL_AXIOM){
+      _allNonTheoryClausesGround = false;
+    }
   }
 } // Property::scan (const Clause* clause, bool isAxiom)
 
@@ -421,6 +426,9 @@ void Property::scanSort(unsigned sort)
   if(sort >= Sorts::FIRST_USER_SORT){
     if(env.sorts->hasStructuredSort(sort,Sorts::StructuredSort::ARRAY)){
       addProp(PR_HAS_ARRAYS);
+    }
+    if (env.signature->isTermAlgebraSort(sort)) {
+      addProp(PR_HAS_CONSTRUCTORS);
     }
     return;
   }

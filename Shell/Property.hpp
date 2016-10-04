@@ -137,6 +137,8 @@ public:
   static const unsigned long PR_HAS_ITE = 274877906944ul; // 2^38
   /** has let-in */
   static const unsigned long PR_HAS_LET_IN = 549755813888ul; // 2^39
+  /* has constructors/uses term algebras */
+  static const unsigned long PR_HAS_CONSTRUCTORS = 1099511627776ul; // 2^40
 
  public:
   CLASS_NAME(Property);
@@ -209,8 +211,14 @@ public:
   bool usesSingleSort() const { return _sortsUsed==1; }
   unsigned sortsUsed() const { return _sortsUsed; }
 
-  void setSMTLIBLogic(SMTLIBLogic smtLibLogic) { _smtlibLogic = smtLibLogic; }
-  SMTLIBLogic getSMTLIBLogic() const { return _smtlibLogic; }
+  void setSMTLIBLogic(SMTLIBLogic smtLibLogic) { 
+    _smtlibLogic = smtLibLogic; 
+  }
+  SMTLIBLogic getSMTLIBLogic() const { 
+    return _smtlibLogic; 
+  }
+
+  bool allNonTheoryClausesGround(){ return _allNonTheoryClausesGround; }
 
  private:
   // constructor, operators new and delete
@@ -291,6 +299,7 @@ public:
   bool _hasFOOL;
 
   bool _allClausesGround;
+  bool _allNonTheoryClausesGround;
   bool _allQuantifiersEssentiallyExistential;
   SMTLIBLogic _smtlibLogic;
 }; // class Property

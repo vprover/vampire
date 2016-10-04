@@ -238,13 +238,13 @@ vstring Inference::ruleName(Rule rule)
   case FLATTEN:
     return "flattening";
   case FOOL_ELIMINATION:
-    return "FOOL elimination";
+    return "fool elimination";
   case FOOL_ITE_ELIMINATION:
-    return "FOOL $ite elimination";
+    return "fool $ite elimination";
   case FOOL_LET_ELIMINATION:
-    return "FOOL $let elimination";
+    return "fool $let elimination";
   case FOOL_PARAMODULATION:
-    return "FOOL paramodulation";
+    return "fool paramodulation";
 //  case CHOICE_AXIOM:
 //  case MONOTONE_REPLACEMENT:
 //  case FORALL_ELIMINATION:
@@ -369,15 +369,15 @@ vstring Inference::ruleName(Rule rule)
   case BOOLEAN_TERM_ENCODING:
     return "boolean term encoding";
   case AVATAR_DEFINITION:
-    return "AVATAR definition";
+    return "avatar definition";
   case AVATAR_COMPONENT:
-    return "AVATAR component clause";
+    return "avatar component clause";
   case AVATAR_REFUTATION:
-    return "AVATAR sat refutation";
+    return "avatar sat refutation";
   case AVATAR_SPLIT_CLAUSE:
-    return "AVATAR split clause";
+    return "avatar split clause";
   case AVATAR_CONTRADICTION_CLAUSE:
-    return "AVATAR contradiction clause";
+    return "avatar contradiction clause";
   case SAT_COLOR_ELIMINATION:
     return "sat color elimination";
   case GENERAL_SPLITTING_COMPONENT:
@@ -410,16 +410,24 @@ vstring Inference::ruleName(Rule rule)
     return "sat instgen refutation";
   case DISTINCT_EQUALITY_REMOVAL:
     return "distinct equality removal";
+  case TERM_ALGEBRA_EXHAUSTIVENESS:
+    return "term algebras exhaustiveness";
+  case TERM_ALGEBRA_DISTINCTNESS:
+    return "term algebras distinctness";
+  case TERM_ALGEBRA_INJECTIVITY:
+    return "term algebras injectivity";
+  case TERM_ALGEBRA_ACYCLICITY:
+    return "term algebras acyclicity";
   case EXTERNAL:
     return "external";
   case CLAIM_DEFINITION:
     return "claim definition";
   case BFNT_FLATTENING:
-    return "BNFT flattening";
+    return "bfnt flattening";
   case BFNT_DISTINCT:
-    return "BNFT distinct";
+    return "bfnt distinct";
   case BFNT_TOTALITY:
-    return "BNFT totality";
+    return "bfnt totality";
   case FMB_FLATTENING:
     return "flattening (finite model building)";
   case FMB_FUNC_DEF:
@@ -431,9 +439,9 @@ vstring Inference::ruleName(Rule rule)
   case ADD_SORT_FUNCTIONS:
     return "add sort functions";
   case INSTANTIATION:
-    return "Instantiation";
+    return "instantiation";
   case MODEL_NOT_FOUND:
-    return "Finite model not found"; 
+    return "finite model not found";
   default:
     ASSERTION_VIOLATION;
     return "!UNKNOWN INFERENCE RULE!";
