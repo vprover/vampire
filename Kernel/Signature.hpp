@@ -461,7 +461,7 @@ class Signature
   void noDistinctGroupsLeft(){ _distinctGroupsAddedTo=false; }
   Stack<Stack<unsigned>*> getDistinctGroupMembers(){ return _distinctGroupMembers; }
 
-  bool hasTermAlgebras();
+  bool hasTermAlgebras() { return !_termAlgebras.isEmpty(); }
       
   static vstring key(const vstring& name,int arity);
 

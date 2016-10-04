@@ -1012,19 +1012,6 @@ Unit* Signature::getDistinctGroupPremise(unsigned group)
   return _distinctGroupPremises[group];
 }
 
-bool Signature::hasTermAlgebras()
-{
-  CALL("Signature::hasTermAlgebras");
-
-  Stack<Symbol*>::Iterator it(_funs);
-  while (it.hasNext()) {
-    if (it.next()->termAlgebraCons()) {
-      return true;
-    }
-  }
-  return false;
-}
-
 /**
  * Add a constant into a group of distinct elements
  *
