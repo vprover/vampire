@@ -1222,6 +1222,21 @@ bool TheoryAxioms::apply(UnitList*& units, Property* prop)
     modified = true;
   }
 
+  VirtualIterator<Shell::TermAlgebra*> tas(env.signature->termAlgebrasIterator());
+  while (tas.hasNext()) {
+    TermAlgebra* ta = tas.next();
+
+    ta->addExhaustivenessAxiom(units);
+    ta->addDistinctnessAxiom(units);
+    ta->addInjectivityAxiom(units);
+
+    if (env.options->termAlgebraCyclicityCheck() == Options::TACyclicityCheck::AXIOM) {
+      ta->addAcyclicityAxiom(units);
+    }
+
+    modified = true;
+  }
+
   return modified;
 } // TheoryAxioms::apply
 

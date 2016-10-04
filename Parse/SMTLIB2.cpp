@@ -927,14 +927,6 @@ void SMTLIB2::declareTermAlgebra(Shell::TermAlgebra *ta)
   for (unsigned i = 0; i < ta->nConstructors(); i++) {
     declareTermAlgebraConstructor(ta->constructor(i), ta->sort());
   }
-
-  ta->addExhaustivenessAxiom(_formulas);
-  ta->addDistinctnessAxiom(_formulas);
-  ta->addInjectivityAxiom(_formulas);
-  
-  if (env.options->termAlgebraCyclicityCheck() == Options::TACyclicityCheck::AXIOM) {
-    ta->addAcyclicityAxiom(_formulas);
-  }
 }
 
 void SMTLIB2::declareTermAlgebraConstructor(Shell::TermAlgebraConstructor *c, unsigned rangeSort)
