@@ -934,13 +934,6 @@ void SMTLIB2::declareTermAlgebra(Shell::TermAlgebra *ta)
   
   if (env.options->termAlgebraCyclicityCheck() == Options::TACyclicityCheck::AXIOM) {
     ta->addAcyclicityAxiom(_formulas);
-    
-    // declare subterm predicate for parser
-    DeclaredFunction p = make_pair(ta->getSubtermPredicate(), false);
-    LOG1("declareFunctionOrPredicate-Predicate");
-    LOG2("declareFunctionOrPredicate -name ", ta->getSubtermPredicateName());
-    LOG2("declareFunctionOrPredicate -symNum ", ta->getSubtermPredicate());
-    ALWAYS(_declaredFunctions.insert(ta->getSubtermPredicateName(), p));
   }
 }
 
