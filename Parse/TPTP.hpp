@@ -143,16 +143,12 @@ public:
     T_RATIONAL_TYPE,
     /** $real */
     T_REAL_TYPE,
-    /** $array type*/
-    T_ARRAY_TYPE,
     /** $tuple type */
     T_TUPLE,
     /** theory functions */
     T_THEORY_FUNCTION,
     /** theory sorts */
     T_THEORY_SORT,
-    /** tuple projection */
-    T_PROJ,
     /** $fot, probably useless */
     T_FOT,
     /** $fof, probably useless */
@@ -421,6 +417,8 @@ private:
   }; // class UnitStack
 
   enum TheorySort {
+    /** $array theoy */
+    TS_ARRAY,
     /** $option theory */
     TS_OPTION,
     /** $either theory */
@@ -428,7 +426,7 @@ private:
   };
   static bool findTheorySort(const vstring name, TheorySort &ts) {
     static const vstring theorySortNames[] = {
-      "$option", "$either"
+      "$array", "$option", "$either"
     };
     static const unsigned theorySorts = sizeof(theorySortNames)/sizeof(vstring);
     for (unsigned sort = 0; sort < theorySorts; sort++) {

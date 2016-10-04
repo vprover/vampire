@@ -339,8 +339,6 @@ vstring TPTP::toString(Tag tag)
     return "$real";
   case T_INTEGER_TYPE:
     return "$int";
-  case T_ARRAY_TYPE:
-    return "$array";
   case T_TUPLE:
     return "$tuple";
   case T_THEORY_SORT:
@@ -910,14 +908,14 @@ void TPTP::readReserved(Token& tok)
   else if (tok.content == "$real") {
     tok.tag = T_REAL_TYPE;
   }
-  else if (tok.content == "$array") {
-      tok.tag = T_ARRAY_TYPE;
-  }
   else if (tok.content == "$tuple") {
       tok.tag = T_TUPLE;
   }
   else if (isTheoryFunction(tok.content)) {
     tok.tag = T_THEORY_FUNCTION;
+  }
+  else if (isTheorySort(tok.content)) {
+    tok.tag = T_THEORY_SORT;
   }
   else if (tok.content == "$fot") {
     tok.tag = T_FOT;
@@ -3521,10 +3519,10 @@ unsigned TPTP::readSort()
   CALL("TPTP::readSort");
 
   Token tok = getTok(0);
+  resetToks();
   switch (tok.tag) {
   case T_NAME:
     {
-      resetToks();
       bool added;
       unsigned sortNumber = env.sorts->addSort(tok.content,added);
       if (added) {
@@ -3534,39 +3532,22 @@ unsigned TPTP::readSort()
     }
 
   case T_DEFAULT_TYPE:
-    resetToks();
     return Sorts::SRT_DEFAULT;
 
   case T_BOOL_TYPE:
-    resetToks();
     return Sorts::SRT_BOOL;
 
   case T_INTEGER_TYPE:
-    resetToks();
     return Sorts::SRT_INTEGER;
 
   case T_RATIONAL_TYPE:
-    resetToks();
     return Sorts::SRT_RATIONAL;
 
   case T_REAL_TYPE:
-    resetToks();
     return Sorts::SRT_REAL;
 
-  case T_ARRAY_TYPE:
-  {
-    resetToks();
-    consumeToken(T_LPAR);
-    unsigned indexSort = readSort();
-    consumeToken(T_COMMA);
-    unsigned innerSort = readSort();
-    consumeToken(T_RPAR);
-    return env.sorts->addArraySort(indexSort,innerSort);
-  }
   case T_LBRA:
   {
-    resetToks();
-
     Stack<unsigned> sorts;
     for (;;) {
       unsigned sort = readSort();
@@ -3584,6 +3565,35 @@ unsigned TPTP::readSort()
     }
 
     return env.sorts->addTupleSort((unsigned) sorts.length(), sorts.begin());
+  }
+  case T_THEORY_SORT: {
+    unsigned sort;
+    consumeToken(T_LPAR);
+    switch (getTheorySort(tok)) {
+      case TS_ARRAY: {
+        unsigned indexSort = readSort();
+        consumeToken(T_COMMA);
+        unsigned innerSort = readSort();
+        sort = env.sorts->addArraySort(indexSort, innerSort);
+        break;
+      }
+      case TS_OPTION: {
+        unsigned innerSort = readSort();
+        sort = env.sorts->addOptionSort(innerSort);
+        break;
+      }
+      case TS_EITHER: {
+        unsigned leftSort = readSort();
+        consumeToken(T_COMMA);
+        unsigned rightSort = readSort();
+        sort = env.sorts->addEitherSort(leftSort, rightSort);
+        break;
+      }
+      default:
+        ASSERTION_VIOLATION;
+    }
+    consumeToken(T_RPAR);
+    return sort;
   }
   default:
     PARSE_ERROR("sort expected",tok);
