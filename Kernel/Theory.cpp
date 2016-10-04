@@ -1277,7 +1277,7 @@ BaseType* Theory::getStructuredSortOperationType(Interpretation i) {
 
       switch (ssi) {
         case StructuredSortInterpretation::OPTION_NONE:
-          return new FunctionType(innerSort);
+          return new FunctionType(theorySort);
 
         case StructuredSortInterpretation::OPTION_SOME:
           return new FunctionType({ innerSort }, theorySort);

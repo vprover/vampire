@@ -1430,13 +1430,16 @@ void TPTP::endIte()
 {
   CALL("TPTP::endIte");
 
-  TermList t2 = _termLists.pop();
-  TermList t1 = _termLists.pop();
-  Formula* c = _formulas.pop();
-  unsigned sort = sortOf(t1);
-  TermList ts(Term::createITE(c,t1,t2,sort));
-  if (sort != sortOf(t2)) {
-    USER_ERROR((vstring)"sorts of terms in the if-then-else expression "+ts.toString()+" are not the same");
+  TermList elseBranch = _termLists.pop();
+  TermList thenBranch = _termLists.pop();
+  Formula* condition = _formulas.pop();
+  unsigned thenSort = sortOf(thenBranch);
+  TermList ts(Term::createITE(condition,thenBranch,elseBranch,thenSort));
+  unsigned elseSort = sortOf(elseBranch);
+  if (thenSort != elseSort) {
+    USER_ERROR("sort mismatch in the if-then-else expression: " +
+               thenBranch.toString() + " has the sort " + env.sorts->sortName(thenSort) + ", whereas " +
+               elseBranch.toString() + " has the sort " + env.sorts->sortName(elseSort));
   }
   _termLists.push(ts);
 } // endIte
