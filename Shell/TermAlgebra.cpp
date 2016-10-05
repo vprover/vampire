@@ -14,28 +14,22 @@ using namespace Lib;
 
 namespace Shell {
 
-TermAlgebraConstructor::TermAlgebraConstructor(unsigned functor,
-                                               unsigned rangeSort,
-                                               unsigned arity,
-                                               FunctorArray destructorFunctors,
-                                               const unsigned *argSorts) :
-  _functor(functor),
-  _rangeSort(rangeSort),
-  _arity(arity),
-  _argSorts(arity),
-  _destructorFunctors(destructorFunctors)
+TermAlgebraConstructor::TermAlgebraConstructor(unsigned functor, Lib::Array<unsigned> destructorFunctors)
+  : _functor(functor), _destructorFunctors(destructorFunctors)
 {
-  for (unsigned i = 0; i < _arity; i++) {
-    _argSorts[i] = argSorts[i];
-  }
+  _type = env.signature->getFunction(_functor)->fnType();
 }
+
+unsigned TermAlgebraConstructor::arity()               { return _type->arity();  }
+unsigned TermAlgebraConstructor::argSort(unsigned ith) { return _type->arg(ith); }
+unsigned TermAlgebraConstructor::rangeSort()           { return _type->result(); }
 
 bool TermAlgebraConstructor::recursive()
 {
   CALL("TermAlgebraConstructor::recursive");
-  
-  for (unsigned i=0; i < _arity; i++) {
-    if (_argSorts[i] == _rangeSort) {
+
+  for (unsigned i=0; i < _type->arity(); i++) {
+    if (_type->arg(i) == _type->result()) {
       // this constructor has a recursive argument
       return true;
     }
@@ -53,14 +47,14 @@ bool TermAlgebraConstructor::addSubtermDefinitions(unsigned subtermPredicate, Un
   bool hasRecursiveArg = false;
   unsigned varNum = 0;
   
-  for (unsigned i=0; i < _arity; i++) {
-    if (_argSorts[i] == _rangeSort) {
+  for (unsigned i=0; i < _type->arity(); i++) {
+    if (_type->arg(i) == _type->result()) {
       hasRecursiveArg = true;
     }
     TermList x(varNum++, false);
     args.push(x);
     Formula::VarList::push(x.var(), v);
-    Formula::SortList::push(_argSorts[i], s);
+    Formula::SortList::push(_type->arg(i), s);
   }
   if (!hasRecursiveArg) {
     return false;
@@ -69,11 +63,11 @@ bool TermAlgebraConstructor::addSubtermDefinitions(unsigned subtermPredicate, Un
   TermList right(Term::create(_functor, args.size(), args.begin()));
   TermList z(varNum++, false);
   Formula::VarList *v2 = v->cons(z.var());
-  Formula::SortList *s2 = s->cons(_rangeSort);
+  Formula::SortList *s2 = s->cons(_type->result());
   varNum = 0;
 
-  for (unsigned i=0; i < _arity; i++) {
-    if (_argSorts[i] == _rangeSort) {
+  for (unsigned i=0; i < _type->arity(); i++) {
+    if (_type->arg(i)) {
       TermList y(varNum, false);
       // Direct subterms are subterms: Sub(y, c(x1, ... y ..., xn))
       Formula *def = new QuantifiedFormula(Connective::FORALL,

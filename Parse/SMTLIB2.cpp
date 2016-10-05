@@ -929,7 +929,7 @@ void SMTLIB2::readDeclareDatatypes(LExprList* sorts, LExprList* datatypes, bool 
         destructorFunctors[i] = destructorFunctor;
       }
 
-      constructors.push(new TermAlgebraConstructor(functor, taSort, arity, destructorFunctors, argSorts.begin()));
+      constructors.push(new TermAlgebraConstructor(functor, destructorFunctors));
     }
 
     ASS(!env.signature->isTermAlgebraSort(taSort));

@@ -9,11 +9,6 @@
 #include "Lib/VString.hpp"
 
 namespace Shell {
-
-  typedef Lib::Array<unsigned> FunctorArray;
-  typedef Lib::Array<unsigned> SortArray;
-  typedef Lib::Array<Lib::vstring> StringArray;
-  
   class TermAlgebraConstructor {
   public:
     CLASS_NAME(TermAlgebraConstructor);
@@ -22,16 +17,12 @@ namespace Shell {
     /* A term algebra constructor, described by its name, range,
        arity, and for each argument: the name of its destructor and
        its sort*/
-    TermAlgebraConstructor(unsigned functor,
-                           unsigned rangeSort,
-                           unsigned arity,
-                           FunctorArray destructorFunctors,
-                           const unsigned *argSorts);
+    TermAlgebraConstructor(unsigned functor, Lib::Array<unsigned> destructorFunctors);
     ~TermAlgebraConstructor() {}
 
-    unsigned arity() { return _arity; }
-    unsigned argSort(unsigned ith) { ASS_L(ith, _arity); return _argSorts[ith]; }
-    unsigned rangeSort() { return _rangeSort; }
+    unsigned arity();
+    unsigned argSort(unsigned ith);
+    unsigned rangeSort();
 
     /* True iff one of the arguments has the same sort as the range */
     bool recursive();
@@ -40,18 +31,17 @@ namespace Shell {
        environment signature. These functions should be called only
        after createSymbols() has been called once */
     unsigned functor() {return _functor; }
-    unsigned destructorFunctor(unsigned ith) { ASS_L(ith, _arity); return _destructorFunctors[ith]; }
+    unsigned destructorFunctor(unsigned ith) { return _destructorFunctors[ith]; }
 
     /* Subterm definitions used by the acyclicity axiom. True iff some
        definition was actually added (i.e. if the constructor is
        recursive) */
     bool addSubtermDefinitions(unsigned subtermPredicate, Kernel::UnitList*& units);
+
   private:
     unsigned _functor;
-    unsigned _rangeSort;
-    unsigned _arity;
-    SortArray _argSorts;
-    FunctorArray _destructorFunctors;
+    Kernel::FunctionType* _type;
+    Lib::Array<unsigned> _destructorFunctors;
   };
 
   typedef Lib::Array<TermAlgebraConstructor*> ConstructorArray;
