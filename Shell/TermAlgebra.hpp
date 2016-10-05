@@ -22,14 +22,13 @@ namespace Shell {
     /* A term algebra constructor, described by its name, range,
        arity, and for each argument: the name of its destructor and
        its sort*/
-    TermAlgebraConstructor(Lib::vstring name,
+    TermAlgebraConstructor(unsigned functor,
                            unsigned rangeSort,
                            unsigned arity,
                            const Lib::vstring *destructorNames,
                            const unsigned *argSorts);
     ~TermAlgebraConstructor() {}
 
-    Lib::vstring name() { return _cname; }
     unsigned arity() { return _arity; }
     unsigned argSort(unsigned ith) { ASS_L(ith, _arity); return _argSorts[ith]; }
     unsigned rangeSort() { return _rangeSort; }
@@ -48,12 +47,11 @@ namespace Shell {
        recursive) */
     bool addSubtermDefinitions(unsigned subtermPredicate, Kernel::UnitList*& units);
   private:
-    Lib::vstring _cname;
+    unsigned _functor;
     unsigned _rangeSort;
     unsigned _arity;
     StringArray _destructorNames;
     SortArray _argSorts;
-    unsigned _functor;
     FunctorArray _destructorFunctors;
   };
 

@@ -894,22 +894,23 @@ void SMTLIB2::readDeclareDatatypes(LExprList* sorts, LExprList* datatypes, bool 
         }
       }
 
-      TermAlgebraConstructor* tac = new TermAlgebraConstructor(constrName,
-                                                               taSort,
-                                                               argSorts.size(),
-                                                               destructorNames.begin(),
-                                                               argSorts.begin());
-
-      // declare symbols for parser
-      // constructor
-      if (isAlreadyKnownFunctionSymbol(tac->name())) {
-        USER_ERROR("Redeclaring function symbol: " + tac->name());
+      if (isAlreadyKnownFunctionSymbol(constrName)) {
+        USER_ERROR("Redeclaring function symbol: " + constrName);
       }
-      DeclaredFunction p = make_pair(tac->functor(), true);
-      LOG1("declareFunctionOrPredicate-Function");
-      LOG2("declareFunctionOrPredicate -name ", tac->name());
-      LOG2("declareFunctionOrPredicate -symNum ", tac->functor());
-      ALWAYS(_declaredFunctions.insert(tac->name(), p));
+
+      unsigned arity = (unsigned)argSorts.size();
+
+      bool added;
+      unsigned functor = env.signature->addFunction(constrName, arity, added);
+      ASS(added);
+
+      BaseType* type = new FunctionType(arity, argSorts.begin(), taSort);
+      env.signature->getFunction(functor)->setType(type);
+      env.signature->getFunction(functor)->markTermAlgebraCons();
+
+      ALWAYS(_declaredFunctions.insert(constrName, make_pair(functor, true)));
+
+      TermAlgebraConstructor* tac = new TermAlgebraConstructor(functor, taSort, arity, destructorNames.begin(), argSorts.begin());
 
       // destructors
       for (unsigned i = 0; i < tac->arity(); i++) {
@@ -934,7 +935,7 @@ void SMTLIB2::readDeclareDatatypes(LExprList* sorts, LExprList* datatypes, bool 
     env.signature->addTermAlgebra(ta);
 
     if (ta->emptyDomain()) {
-      USER_ERROR("Datatype " + ta->name() + " defines an empty sort");
+      USER_ERROR("Datatype " + taName + " defines an empty sort");
     }
   }
 }

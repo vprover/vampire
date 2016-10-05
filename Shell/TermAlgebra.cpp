@@ -14,12 +14,12 @@ using namespace Lib;
 
 namespace Shell {
 
-TermAlgebraConstructor::TermAlgebraConstructor(vstring name,
+TermAlgebraConstructor::TermAlgebraConstructor(unsigned functor,
                                                unsigned rangeSort,
                                                unsigned arity,
                                                const vstring *destructorNames,
                                                const unsigned *argSorts) :
-  _cname(name),
+  _functor(functor),
   _rangeSort(rangeSort),
   _arity(arity),
   _argSorts(arity),
@@ -31,16 +31,10 @@ TermAlgebraConstructor::TermAlgebraConstructor(vstring name,
     _argSorts[i] = argSorts[i];
   }
 
-  bool added;
-  BaseType *type;
-  _functor = env.signature->addFunction(_cname, _arity, added);
-  ASS(added);
-  type = new FunctionType(_arity, _argSorts.begin(), _rangeSort);
-  env.signature->getFunction(_functor)->setType(type);
-  env.signature->getFunction(_functor)->markTermAlgebraCons();
-
   // destructors
   for (unsigned i = 0; i < _arity; i++) {
+    bool added;
+    BaseType* type;
     _destructorFunctors[i] = env.signature->addFunction(_destructorNames[i], 1, added);
     ASS(added);
     type = new FunctionType(1, &_rangeSort, _argSorts[i]);
