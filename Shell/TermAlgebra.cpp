@@ -2,12 +2,6 @@
 #include "Kernel/Formula.hpp"
 #include "Kernel/FormulaUnit.hpp"
 #include "Kernel/Inference.hpp"
-#include "Kernel/Signature.hpp"
-#include "Kernel/Term.hpp"
-#include "Lib/Environment.hpp"
-#include "Lib/Stack.hpp"
-
-#include "TermAlgebra.hpp"
 
 using namespace Kernel;
 using namespace Lib;
@@ -18,6 +12,8 @@ TermAlgebraConstructor::TermAlgebraConstructor(unsigned functor, Lib::Array<unsi
   : _functor(functor), _destructorFunctors(destructorFunctors)
 {
   _type = env.signature->getFunction(_functor)->fnType();
+  ASS_REP(env.signature->getFunction(_functor)->termAlgebraCons(), env.signature->functionName(_functor));
+  ASS_EQ(_type->arity(), destructorFunctors.size());
 }
 
 unsigned TermAlgebraConstructor::arity()               { return _type->arity();  }

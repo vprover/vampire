@@ -893,43 +893,7 @@ void SMTLIB2::readDeclareDatatypes(LExprList* sorts, LExprList* datatypes, bool 
           }
         }
       }
-
-      if (isAlreadyKnownFunctionSymbol(constrName)) {
-        USER_ERROR("Redeclaring function symbol: " + constrName);
-      }
-
-      unsigned arity = (unsigned)argSorts.size();
-
-      bool added;
-      unsigned functor = env.signature->addFunction(constrName, arity, added);
-      ASS(added);
-
-      BaseType* constructorType = new FunctionType(arity, argSorts.begin(), taSort);
-      env.signature->getFunction(functor)->setType(constructorType);
-      env.signature->getFunction(functor)->markTermAlgebraCons();
-
-      ALWAYS(_declaredFunctions.insert(constrName, make_pair(functor, true)));
-
-      Lib::Array<unsigned> destructorFunctors(arity);
-      for (unsigned i = 0; i < arity; i++) {
-        vstring destructorName = destructorNames[i];
-
-        bool added;
-        unsigned destructorFunctor = env.signature->addFunction(destructorName, 1, added);
-        ASS(added);
-
-        BaseType* destructorType = new FunctionType(1, &taSort, argSorts[i]);
-        env.signature->getFunction(destructorFunctor)->setType(destructorType);
-
-        if (isAlreadyKnownFunctionSymbol(destructorName)) {
-          USER_ERROR("Redeclaring function symbol: " + destructorName);
-        }
-        ALWAYS(_declaredFunctions.insert(destructorName, make_pair(destructorFunctor, true)));
-
-        destructorFunctors[i] = destructorFunctor;
-      }
-
-      constructors.push(new TermAlgebraConstructor(functor, destructorFunctors));
+      constructors.push(buildTermAlgebraConstructor(constrName, taSort, destructorNames, argSorts));
     }
 
     ASS(!env.signature->isTermAlgebraSort(taSort));
@@ -941,6 +905,48 @@ void SMTLIB2::readDeclareDatatypes(LExprList* sorts, LExprList* datatypes, bool 
 
     env.signature->addTermAlgebra(ta);
   }
+}
+
+TermAlgebraConstructor* SMTLIB2::buildTermAlgebraConstructor(vstring constrName, unsigned taSort,
+                                                             Stack<vstring> destructorNames, Stack<unsigned> argSorts) {
+  CALL("SMTLIB2::buildTermAlgebraConstructor");
+
+  if (isAlreadyKnownFunctionSymbol(constrName)) {
+    USER_ERROR("Redeclaring function symbol: " + constrName);
+  }
+
+  unsigned arity = (unsigned)argSorts.size();
+
+  bool added;
+  unsigned functor = env.signature->addFunction(constrName, arity, added);
+  ASS(added);
+
+  BaseType* constructorType = new FunctionType(arity, argSorts.begin(), taSort);
+  env.signature->getFunction(functor)->setType(constructorType);
+  env.signature->getFunction(functor)->markTermAlgebraCons();
+
+  ALWAYS(_declaredFunctions.insert(constrName, make_pair(functor, true)));
+
+  Lib::Array<unsigned> destructorFunctors(arity);
+  for (unsigned i = 0; i < arity; i++) {
+    vstring destructorName = destructorNames[i];
+
+    bool added;
+    unsigned destructorFunctor = env.signature->addFunction(destructorName, 1, added);
+    ASS(added);
+
+    BaseType* destructorType = new FunctionType(1, &taSort, argSorts[i]);
+    env.signature->getFunction(destructorFunctor)->setType(destructorType);
+
+    if (isAlreadyKnownFunctionSymbol(destructorName)) {
+      USER_ERROR("Redeclaring function symbol: " + destructorName);
+    }
+    ALWAYS(_declaredFunctions.insert(destructorName, make_pair(destructorFunctor, true)));
+
+    destructorFunctors[i] = destructorFunctor;
+  }
+
+  return new TermAlgebraConstructor(functor, destructorFunctors);
 }
 
 bool SMTLIB2::ParseResult::asFormula(Formula*& resFrm)
