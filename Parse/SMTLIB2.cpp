@@ -904,39 +904,42 @@ void SMTLIB2::readDeclareDatatypes(LExprList* sorts, LExprList* datatypes, bool 
       unsigned functor = env.signature->addFunction(constrName, arity, added);
       ASS(added);
 
-      BaseType* type = new FunctionType(arity, argSorts.begin(), taSort);
-      env.signature->getFunction(functor)->setType(type);
+      BaseType* constructorType = new FunctionType(arity, argSorts.begin(), taSort);
+      env.signature->getFunction(functor)->setType(constructorType);
       env.signature->getFunction(functor)->markTermAlgebraCons();
 
       ALWAYS(_declaredFunctions.insert(constrName, make_pair(functor, true)));
 
-      TermAlgebraConstructor* tac = new TermAlgebraConstructor(functor, taSort, arity, destructorNames.begin(), argSorts.begin());
+      Lib::Array<unsigned> destructorFunctors(arity);
+      for (unsigned i = 0; i < arity; i++) {
+        vstring destructorName = destructorNames[i];
 
-      // destructors
-      for (unsigned i = 0; i < tac->arity(); i++) {
-        if (isAlreadyKnownFunctionSymbol(tac->destructorName(i))) {
-          USER_ERROR("Redeclaring function symbol: " + tac->destructorName(i));
+        bool added;
+        unsigned destructorFunctor = env.signature->addFunction(destructorName, 1, added);
+        ASS(added);
+
+        BaseType* destructorType = new FunctionType(1, &taSort, argSorts[i]);
+        env.signature->getFunction(destructorFunctor)->setType(destructorType);
+
+        if (isAlreadyKnownFunctionSymbol(destructorName)) {
+          USER_ERROR("Redeclaring function symbol: " + destructorName);
         }
-        DeclaredFunction p = make_pair(tac->destructorFunctor(i), true);
-        LOG1("declareFunctionOrPredicate-Function");
-        LOG2("declareFunctionOrPredicate -name ", tac->destructorName(i));
-        LOG2("declareFunctionOrPredicate -symNum ", tac->destructorFunctor(i));
-        ALWAYS(_declaredFunctions.insert(tac->destructorName(i), p));
+        ALWAYS(_declaredFunctions.insert(destructorName, make_pair(destructorFunctor, true)));
+
+        destructorFunctors[i] = destructorFunctor;
       }
+
+      constructors.push(new TermAlgebraConstructor(functor, taSort, arity, destructorFunctors, argSorts.begin()));
     }
 
-    TermAlgebra* ta = new TermAlgebra(taName,
-                                      taSort,
-                                      constructors.size(),
-                                      constructors.begin(),
-                                      codatatype);
-
-    ASS(!env.signature->isTermAlgebraSort(ta->sort()));
-    env.signature->addTermAlgebra(ta);
+    ASS(!env.signature->isTermAlgebraSort(taSort));
+    TermAlgebra* ta = new TermAlgebra(taName, taSort, constructors.size(), constructors.begin(), codatatype);
 
     if (ta->emptyDomain()) {
       USER_ERROR("Datatype " + taName + " defines an empty sort");
     }
+
+    env.signature->addTermAlgebra(ta);
   }
 }
 

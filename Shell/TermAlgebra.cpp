@@ -17,28 +17,16 @@ namespace Shell {
 TermAlgebraConstructor::TermAlgebraConstructor(unsigned functor,
                                                unsigned rangeSort,
                                                unsigned arity,
-                                               const vstring *destructorNames,
+                                               FunctorArray destructorFunctors,
                                                const unsigned *argSorts) :
   _functor(functor),
   _rangeSort(rangeSort),
   _arity(arity),
   _argSorts(arity),
-  _destructorFunctors(arity),
-  _destructorNames(arity)
+  _destructorFunctors(destructorFunctors)
 {
   for (unsigned i = 0; i < _arity; i++) {
-    _destructorNames[i] = destructorNames[i];
     _argSorts[i] = argSorts[i];
-  }
-
-  // destructors
-  for (unsigned i = 0; i < _arity; i++) {
-    bool added;
-    BaseType* type;
-    _destructorFunctors[i] = env.signature->addFunction(_destructorNames[i], 1, added);
-    ASS(added);
-    type = new FunctionType(1, &_rangeSort, _argSorts[i]);
-    env.signature->getFunction(_destructorFunctors[i])->setType(type);
   }
 }
 

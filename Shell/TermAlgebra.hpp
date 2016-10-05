@@ -25,14 +25,14 @@ namespace Shell {
     TermAlgebraConstructor(unsigned functor,
                            unsigned rangeSort,
                            unsigned arity,
-                           const Lib::vstring *destructorNames,
+                           FunctorArray destructorFunctors,
                            const unsigned *argSorts);
     ~TermAlgebraConstructor() {}
 
     unsigned arity() { return _arity; }
     unsigned argSort(unsigned ith) { ASS_L(ith, _arity); return _argSorts[ith]; }
     unsigned rangeSort() { return _rangeSort; }
-    Lib::vstring destructorName(unsigned ith) { ASS_L(ith, _arity); return _destructorNames[ith]; }
+
     /* True iff one of the arguments has the same sort as the range */
     bool recursive();
 
@@ -50,7 +50,6 @@ namespace Shell {
     unsigned _functor;
     unsigned _rangeSort;
     unsigned _arity;
-    StringArray _destructorNames;
     SortArray _argSorts;
     FunctorArray _destructorFunctors;
   };
