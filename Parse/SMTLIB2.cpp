@@ -856,7 +856,6 @@ void SMTLIB2::readDeclareDatatypes(LExprList* sorts, LExprList* datatypes, bool 
     ASS(added);
   }
 
-  Stack<TermAlgebra*> algebras;
   Stack<TermAlgebraConstructor*> constructors;
   Stack<unsigned> argSorts;
   Stack<vstring> destructorNames;
@@ -894,72 +893,52 @@ void SMTLIB2::readDeclareDatatypes(LExprList* sorts, LExprList* datatypes, bool 
           }
         }
       }
-      constructors.push(new TermAlgebraConstructor(constrName,
-                                                   taSort,
-                                                   argSorts.size(),
-                                                   destructorNames.begin(),
-                                                   argSorts.begin()));
+
+      TermAlgebraConstructor* tac = new TermAlgebraConstructor(constrName,
+                                                               taSort,
+                                                               argSorts.size(),
+                                                               destructorNames.begin(),
+                                                               argSorts.begin());
+
+      // declare symbols for parser
+      // constructor
+      if (isAlreadyKnownFunctionSymbol(tac->name())) {
+        USER_ERROR("Redeclaring function symbol: " + tac->name());
+      }
+      DeclaredFunction p = make_pair(tac->functor(), true);
+      LOG1("declareFunctionOrPredicate-Function");
+      LOG2("declareFunctionOrPredicate -name ", tac->name());
+      LOG2("declareFunctionOrPredicate -symNum ", tac->functor());
+      ALWAYS(_declaredFunctions.insert(tac->name(), p));
+
+      // destructors
+      for (unsigned i = 0; i < tac->arity(); i++) {
+        if (isAlreadyKnownFunctionSymbol(tac->destructorName(i))) {
+          USER_ERROR("Redeclaring function symbol: " + tac->destructorName(i));
+        }
+        DeclaredFunction p = make_pair(tac->destructorFunctor(i), true);
+        LOG1("declareFunctionOrPredicate-Function");
+        LOG2("declareFunctionOrPredicate -name ", tac->destructorName(i));
+        LOG2("declareFunctionOrPredicate -symNum ", tac->destructorFunctor(i));
+        ALWAYS(_declaredFunctions.insert(tac->destructorName(i), p));
+      }
     }
-    algebras.push(new TermAlgebra(taName,
-                                  taSort,
-                                  constructors.size(),
-                                  constructors.begin(),
-                                  codatatype));
-  }
 
-  Stack<TermAlgebra*>::Iterator it(algebras);
-  while (it.hasNext()) {
-    declareTermAlgebra(it.next());
-  }
-}
+    TermAlgebra* ta = new TermAlgebra(taName,
+                                      taSort,
+                                      constructors.size(),
+                                      constructors.begin(),
+                                      codatatype);
 
-void SMTLIB2::declareTermAlgebra(Shell::TermAlgebra *ta)
-{
-  CALL("SMTLIB2::declareTermAlgebra");
+    ASS(!env.signature->isTermAlgebraSort(ta->sort()));
+    env.signature->addTermAlgebra(ta);
 
-  if (ta->emptyDomain()) {
-    USER_ERROR("Datatype " + ta->name() + " defines an empty sort");
-  }
-
-  ASS(!env.signature->isTermAlgebraSort(ta->sort()));
-  env.signature->addTermAlgebra(ta);
-
-  for (unsigned i = 0; i < ta->nConstructors(); i++) {
-    declareTermAlgebraConstructor(ta->constructor(i), ta->sort());
-  }
-}
-
-void SMTLIB2::declareTermAlgebraConstructor(Shell::TermAlgebraConstructor *c, unsigned rangeSort)
-{
-  CALL("SMTLIB2::declareTermAlgebraConstructor");
-
-  // create symbols in signature
-  c->createSymbols();
-
-  // declare symbols for parser
-  // constructor
-  if (isAlreadyKnownFunctionSymbol(c->name())) {
-    USER_ERROR("Redeclaring function symbol: " + c->name());
-  }
-  DeclaredFunction p = make_pair(c->functor(), true);
-  LOG1("declareFunctionOrPredicate-Function");
-  LOG2("declareFunctionOrPredicate -name ", c->name());
-  LOG2("declareFunctionOrPredicate -symNum ", c->functor());
-  ALWAYS(_declaredFunctions.insert(c->name(), p));
-
-  // destructors
-  for (unsigned i = 0; i < c->arity(); i++) {
-    if (isAlreadyKnownFunctionSymbol(c->destructorName(i))) {
-      USER_ERROR("Redeclaring function symbol: " + c->destructorName(i));
+    if (ta->emptyDomain()) {
+      USER_ERROR("Datatype " + ta->name() + " defines an empty sort");
     }
-    DeclaredFunction p = make_pair(c->destructorFunctor(i), true);
-    LOG1("declareFunctionOrPredicate-Function");
-    LOG2("declareFunctionOrPredicate -name ", c->destructorName(i));
-    LOG2("declareFunctionOrPredicate -symNum ", c->destructorFunctor(i));
-    ALWAYS(_declaredFunctions.insert(c->destructorName(i), p));
   }
 }
-  
+
 bool SMTLIB2::ParseResult::asFormula(Formula*& resFrm)
 {
   CALL("SMTLIB2::ParseResult::asFormula");

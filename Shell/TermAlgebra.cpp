@@ -30,24 +30,6 @@ TermAlgebraConstructor::TermAlgebraConstructor(vstring name,
     _destructorNames[i] = destructorNames[i];
     _argSorts[i] = argSorts[i];
   }
-}
-
-bool TermAlgebraConstructor::recursive()
-{
-  CALL("TermAlgebraConstructor::recursive");
-  
-  for (unsigned i=0; i < _arity; i++) {
-    if (_argSorts[i] == _rangeSort) {
-      // this constructor has a recursive argument
-      return true;
-    }
-  }
-  return false;
-}
-
-void TermAlgebraConstructor::createSymbols()
-{
-  CALL("TermAlgebraConstructors::createSymbols");
 
   bool added;
   BaseType *type;
@@ -64,6 +46,19 @@ void TermAlgebraConstructor::createSymbols()
     type = new FunctionType(1, &_rangeSort, _argSorts[i]);
     env.signature->getFunction(_destructorFunctors[i])->setType(type);
   }
+}
+
+bool TermAlgebraConstructor::recursive()
+{
+  CALL("TermAlgebraConstructor::recursive");
+  
+  for (unsigned i=0; i < _arity; i++) {
+    if (_argSorts[i] == _rangeSort) {
+      // this constructor has a recursive argument
+      return true;
+    }
+  }
+  return false;
 }
 
 bool TermAlgebraConstructor::addSubtermDefinitions(unsigned subtermPredicate, UnitList*& units)

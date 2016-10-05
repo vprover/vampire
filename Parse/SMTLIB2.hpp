@@ -252,8 +252,6 @@ private:
   void readDefineFun(const vstring& name, LExprList* iArgs, LExpr* oSort, LExpr* body);
 
   void readDeclareDatatypes(LExprList* sorts, LExprList* datatypes, bool codatatype = false);
-  void declareTermAlgebra(Shell::TermAlgebra *ta);
-  void declareTermAlgebraConstructor(Shell::TermAlgebraConstructor *c, unsigned rangeSort);
 
   /**
    * Parse result of parsing an smtlib term (which can be of sort Bool and therefore represented in vampire by a formula)

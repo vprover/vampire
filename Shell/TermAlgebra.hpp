@@ -37,10 +37,6 @@ namespace Shell {
     /* True iff one of the arguments has the same sort as the range */
     bool recursive();
 
-    /* Create the contructor and destructors symbols in the
-       environment signature */
-    void createSymbols();
-
     /* The numbers of the constructor and destructors functions in the
        environment signature. These functions should be called only
        after createSymbols() has been called once */
