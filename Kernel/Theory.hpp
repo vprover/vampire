@@ -13,6 +13,8 @@
 #include "Lib/DHMap.hpp"
 #include "Lib/Exception.hpp"
 
+#include "Shell/TermAlgebra.hpp"
+
 #include "Sorts.hpp"
 #include "Term.hpp"
 
@@ -397,6 +399,7 @@ public:
     return getData(i).first;
   }
 
+  static vstring getInterpretationName(Interpretation i);
   static unsigned getArity(Interpretation i);
   static bool isFunction(Interpretation i);
   static bool isInequality(Interpretation i);
@@ -420,6 +423,9 @@ public:
     
   static Theory theory_obj;
   static Theory* instance();
+
+  void defineOptionTermAlgebra(unsigned optionSort);
+  void defineEitherTermAlgebra(unsigned eitherSort);
 
   bool isInterpretedConstant(unsigned func);
   bool isInterpretedConstant(Term* t);

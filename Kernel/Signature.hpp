@@ -366,7 +366,10 @@ class Signature
   unsigned addRationalConstant(const RationalConstantType& number);
   unsigned addRealConstant(const RealConstantType& number);
 
+  vstring getInterpretationName(Interpretation interp);
   unsigned getInterpretingSymbol(Interpretation interp);
+
+  unsigned getStructureInterpretationFunctor(unsigned theorySort, Theory::StructuredSortInterpretation ssi);
 
   /** Return true iff there is a symbol interpreted by Interpretation @b interp */
   bool haveInterpretingSymbol(Interpretation interp) const { return _iSymbols.find(interp); }
@@ -569,6 +572,9 @@ private:
    * Map from sorts to the associated term algebra, if applicable for the sort
    */ 
   DHMap<unsigned, Shell::TermAlgebra*> _termAlgebras;
+
+  void defineOptionTermAlgebra(unsigned optionSort);
+  void defineEitherTermAlgebra(unsigned eitherSort);
 }; // class Signature
 
 }

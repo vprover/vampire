@@ -1244,6 +1244,154 @@ Sorts::StructuredSort Theory::getInterpretedSort(StructuredSortInterpretation ss
   }
 }
 
+vstring Theory::getInterpretationName(Interpretation interp) {
+  CALL("Theory::getInterpretationName");
+
+  if (Theory::instance()->isStructuredSortInterpretation(interp)) {
+    switch (Theory::instance()->convertToStructured(interp)) {
+      case StructuredSortInterpretation::ARRAY_SELECT:
+      case StructuredSortInterpretation::ARRAY_BOOL_SELECT:
+        return "$select";
+      case StructuredSortInterpretation::ARRAY_STORE:
+        return "$store";
+      case StructuredSortInterpretation::OPTION_NONE:
+        return "$none";
+      case StructuredSortInterpretation::OPTION_SOME:
+        return "$some";
+      case StructuredSortInterpretation::OPTION_IS_SOME:
+        return "$issome";
+      case StructuredSortInterpretation::OPTION_FROM_SOME:
+      case StructuredSortInterpretation::OPTION_BOOL_FROM_SOME:
+        return "$fromsome";
+      case StructuredSortInterpretation::EITHER_LEFT:
+        return "$left";
+      case StructuredSortInterpretation::EITHER_RIGHT:
+        return "$right";
+      case StructuredSortInterpretation::EITHER_IS_LEFT:
+        return "$isleft";
+      case StructuredSortInterpretation::EITHER_IS_RIGHT:
+        return "$isright";
+      case StructuredSortInterpretation::EITHER_FROM_LEFT:
+      case StructuredSortInterpretation::EITHER_BOOL_FROM_LEFT:
+        return "$fromleft";
+      case StructuredSortInterpretation::EITHER_FROM_RIGHT:
+      case StructuredSortInterpretation::EITHER_BOOL_FROM_RIGHT:
+        return "$fromright";
+      default:
+        ASSERTION_VIOLATION_REP(interp);
+    }
+  } else {
+    switch (interp) {
+      case Theory::INT_SUCCESSOR:
+        //this one is not according the TPTP arithmetic (it doesn't have successor)
+        return "$successor";
+      case Theory::INT_DIVIDES:
+        return "$divides";
+      case Theory::INT_UNARY_MINUS:
+      case Theory::RAT_UNARY_MINUS:
+      case Theory::REAL_UNARY_MINUS:
+        return "$uminus";
+      case Theory::INT_PLUS:
+      case Theory::RAT_PLUS:
+      case Theory::REAL_PLUS:
+        return "$sum";
+      case Theory::INT_MINUS:
+      case Theory::RAT_MINUS:
+      case Theory::REAL_MINUS:
+        return "$difference";
+      case Theory::INT_MULTIPLY:
+      case Theory::RAT_MULTIPLY:
+      case Theory::REAL_MULTIPLY:
+        return "$product";
+      case Theory::INT_GREATER:
+      case Theory::RAT_GREATER:
+      case Theory::REAL_GREATER:
+        return "$greater";
+      case Theory::INT_GREATER_EQUAL:
+      case Theory::RAT_GREATER_EQUAL:
+      case Theory::REAL_GREATER_EQUAL:
+        return "$greatereq";
+      case Theory::INT_LESS:
+      case Theory::RAT_LESS:
+      case Theory::REAL_LESS:
+        return "$less";
+      case Theory::INT_LESS_EQUAL:
+      case Theory::RAT_LESS_EQUAL:
+      case Theory::REAL_LESS_EQUAL:
+        return "$lesseq";
+      case Theory::INT_IS_INT:
+      case Theory::RAT_IS_INT:
+      case Theory::REAL_IS_INT:
+        return "$is_int";
+      case Theory::INT_IS_RAT:
+      case Theory::RAT_IS_RAT:
+      case Theory::REAL_IS_RAT:
+        return "$is_rat";
+      case Theory::INT_IS_REAL:
+      case Theory::RAT_IS_REAL:
+      case Theory::REAL_IS_REAL:
+        return "$is_real";
+      case Theory::INT_TO_INT:
+      case Theory::RAT_TO_INT:
+      case Theory::REAL_TO_INT:
+        return "$to_int";
+      case Theory::INT_TO_RAT:
+      case Theory::RAT_TO_RAT:
+      case Theory::REAL_TO_RAT:
+        return "$to_rat";
+      case Theory::INT_TO_REAL:
+      case Theory::RAT_TO_REAL:
+      case Theory::REAL_TO_REAL:
+        return "$to_real";
+      case Theory::INT_MODULO:
+        return "$modulo";
+      case Theory::INT_ABS:
+        return "$abs";
+      case Theory::INT_QUOTIENT_E:
+      case Theory::RAT_QUOTIENT_E:
+      case Theory::REAL_QUOTIENT_E:
+        return "$quotient_e";
+      case Theory::INT_QUOTIENT_T:
+      case Theory::RAT_QUOTIENT_T:
+      case Theory::REAL_QUOTIENT_T:
+        return "$quotient_t";
+      case Theory::INT_QUOTIENT_F:
+      case Theory::RAT_QUOTIENT_F:
+      case Theory::REAL_QUOTIENT_F:
+        return "$quotient_f";
+      case Theory::INT_REMAINDER_T:
+      case Theory::RAT_REMAINDER_T:
+      case Theory::REAL_REMAINDER_T:
+        return "$remainder_t";
+      case Theory::INT_REMAINDER_F:
+      case Theory::RAT_REMAINDER_F:
+      case Theory::REAL_REMAINDER_F:
+        return "$remainder_f";
+      case Theory::INT_REMAINDER_E:
+      case Theory::RAT_REMAINDER_E:
+      case Theory::REAL_REMAINDER_E:
+        return "$remainder_e";
+      case Theory::RAT_QUOTIENT:
+      case Theory::REAL_QUOTIENT:
+        return "quotient";
+      case Theory::INT_TRUNCATE:
+      case Theory::RAT_TRUNCATE:
+      case Theory::REAL_TRUNCATE:
+        return "truncate";
+      case Theory::INT_FLOOR:
+      case Theory::RAT_FLOOR:
+      case Theory::REAL_FLOOR:
+        return "floor";
+      case Theory::INT_CEILING:
+      case Theory::RAT_CEILING:
+      case Theory::REAL_CEILING:
+        return "ceiling";
+      default:
+        ASSERTION_VIOLATION_REP(interp);
+    }
+  }
+}
+
 BaseType* Theory::getStructuredSortOperationType(Interpretation i) {
   CALL("Theory::getStructuredSortOperationType");
 
@@ -1359,6 +1507,75 @@ BaseType* Theory::getOperationType(Interpretation i)
   } else {
     return new PredicateType(arity, domainSorts.array());
   }
+}
+
+void Theory::defineOptionTermAlgebra(unsigned optionSort) {
+  CALL("Signature::defineOptionTermAlgebra");
+
+  if (env.signature->isTermAlgebraSort(optionSort)) {
+    return;
+  }
+
+  static auto noneSsi = Theory::StructuredSortInterpretation::OPTION_NONE;
+  Interpretation noneI = Theory::instance()->getInterpretation(optionSort, noneSsi);
+  unsigned noneFunctor = env.signature->addInterpretedFunction(noneI, "$none");
+  env.signature->getFunction(noneFunctor)->markTermAlgebraCons();
+  Shell::TermAlgebraConstructor* none = new Shell::TermAlgebraConstructor(noneFunctor, Array<unsigned>(0));
+
+  static auto someSsi = Theory::StructuredSortInterpretation::OPTION_SOME;
+  Interpretation someI = Theory::instance()->getInterpretation(optionSort, someSsi);
+  unsigned someFunctor = env.signature->addInterpretedFunction(someI, "$some");
+  env.signature->getFunction(someFunctor)->markTermAlgebraCons();
+
+  static auto fromSomeSsi = Theory::StructuredSortInterpretation::OPTION_FROM_SOME;
+  Interpretation fromSomeI = Theory::instance()->getInterpretation(optionSort, fromSomeSsi);
+  unsigned fromSome = env.signature->addInterpretedFunction(fromSomeI, "$fromSome");
+
+  Array<unsigned> someDestructors(1);
+  someDestructors[0] = fromSome;
+  Shell::TermAlgebraConstructor* some = new Shell::TermAlgebraConstructor(someFunctor, someDestructors);
+
+  Shell::TermAlgebraConstructor* constructors[] = { none, some };
+  vstring algebraName = env.sorts->sortName(optionSort);
+  env.signature->addTermAlgebra(new Shell::TermAlgebra(algebraName, optionSort, 2, constructors, false));
+}
+
+void Theory::defineEitherTermAlgebra(unsigned eitherSort) {
+  CALL("Signature::defineEitherTermAlgebra");
+
+  if (env.signature->isTermAlgebraSort(eitherSort)) {
+    return;
+  }
+
+  static auto fromLeftSsi = Theory::StructuredSortInterpretation::EITHER_FROM_LEFT;
+  Interpretation fromLeftI = Theory::instance()->getInterpretation(eitherSort, fromLeftSsi);
+  unsigned fromLeft = env.signature->getInterpretingSymbol(fromLeftI);
+
+  static auto leftSsi = Theory::StructuredSortInterpretation::EITHER_LEFT;
+  Interpretation leftI = Theory::instance()->getInterpretation(eitherSort, leftSsi);
+  unsigned leftFunctor = env.signature->getInterpretingSymbol(leftI);
+  env.signature->getFunction(leftFunctor)->markTermAlgebraCons();
+
+  Array<unsigned> leftDestructors(1);
+  leftDestructors[0] = fromLeft;
+  Shell::TermAlgebraConstructor* left = new Shell::TermAlgebraConstructor(leftFunctor, leftDestructors);
+
+  static auto fromRightSsi = Theory::StructuredSortInterpretation::EITHER_FROM_RIGHT;
+  Interpretation fromRightI = Theory::instance()->getInterpretation(eitherSort, fromRightSsi);
+  unsigned fromRight = env.signature->getInterpretingSymbol(fromRightI);
+
+  static auto rightSsi = Theory::StructuredSortInterpretation::EITHER_RIGHT;
+  Interpretation rightI = Theory::instance()->getInterpretation(eitherSort, rightSsi);
+  unsigned rightFunctor = env.signature->getInterpretingSymbol(rightI);
+  env.signature->getFunction(rightFunctor)->markTermAlgebraCons();
+
+  Array<unsigned> rightDestructors(1);
+  rightDestructors[0] = fromRight;
+  Shell::TermAlgebraConstructor* right = new Shell::TermAlgebraConstructor(rightFunctor, rightDestructors);
+
+  Shell::TermAlgebraConstructor* constructors[] = { left, right };
+  vstring algebraName = env.sorts->sortName(eitherSort);
+  env.signature->addTermAlgebra(new Shell::TermAlgebra(algebraName, eitherSort, 2, constructors, false));
 }
 
 bool Theory::isInterpretedConstant(unsigned func)

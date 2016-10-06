@@ -1643,7 +1643,7 @@ void TPTP::endTheoryFunction() {
   }
 
   Interpretation i = Theory::instance()->getInterpretation(theorySort, ssi);
-  unsigned symbol = env.signature->getInterpretingSymbol(i);
+  unsigned symbol = env.signature->getStructureInterpretationFunctor(theorySort, ssi);
   unsigned arity = Theory::getArity(i);
 
   if (Theory::isFunction(i)) {
