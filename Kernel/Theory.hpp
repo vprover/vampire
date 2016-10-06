@@ -412,12 +412,9 @@ public:
   static bool isLinearOperation(Interpretation i);
   static bool isNonLinearOperation(Interpretation i);
 
-  static bool isArraySort(unsigned sort);
   static bool isArrayOperation(Interpretation i);
-  static unsigned getArraySelectFunctor(unsigned sort);
-  static unsigned getArrayStoreFunctor(unsigned sort);
   static unsigned getArrayOperationSort(Interpretation i);
-  static unsigned  getArrayDomainSort(Interpretation i);
+  static unsigned getArrayDomainSort(Interpretation i);
 
   unsigned getArrayExtSkolemFunction(unsigned i);
     

@@ -997,12 +997,6 @@ unsigned Theory::getSymbolForStructuredSort(unsigned sort, StructuredSortInterpr
     return env.signature->getInterpretingSymbol(getInterpretation(sort,interp));
 }
 
-bool Theory::isArraySort(unsigned sort) {
-  CALL("Theory::isArraySort");
-  
-  return env.sorts->hasStructuredSort(sort,Sorts::StructuredSort::ARRAY);
-}
-    
 /**
  * Return true if interpreted function @c i is an array operation.
  * @author Laura Kovacs
@@ -1013,19 +1007,6 @@ bool Theory::isArrayOperation(Interpretation i)
   CALL("Theory::isArrayFunction");
   if(!theory->isStructuredSortInterpretation(i)) return false;
   return env.sorts->hasStructuredSort(theory->getSort(i),Sorts::StructuredSort::ARRAY);
-}
-
-unsigned Theory::getArraySelectFunctor(unsigned sort) {
-  CALL("Theory::getArraySelectFunctor");
-  ASS(isArraySort(sort));  
-  return theory->getSymbolForStructuredSort(sort,Theory::StructuredSortInterpretation::ARRAY_SELECT);
-}
-
-unsigned Theory::getArrayStoreFunctor(unsigned sort) {
-  CALL("Theory::getArrayStoreFunctor");
-  
-  ASS(isArraySort(sort));
-  return theory->getSymbolForStructuredSort(sort,Theory::StructuredSortInterpretation::ARRAY_STORE);
 }
 
 /**
