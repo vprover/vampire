@@ -37,58 +37,45 @@ bool TermAlgebraConstructor::addSubtermDefinitions(unsigned subtermPredicate, Un
 {
   CALL("TermAlgebraConstructor::addSubtermDefinitions");
 
-  Formula::VarList *v = Formula::VarList::empty();
-  Formula::SortList *s = Formula::SortList::empty();
+  Formula::VarList*  v = Formula::VarList::empty();
+  Formula::SortList* s = Formula::SortList::empty();
   Stack<TermList> args;
-  bool hasRecursiveArg = false;
-  unsigned varNum = 0;
-  
-  for (unsigned i=0; i < _type->arity(); i++) {
-    if (_type->arg(i) == _type->result()) {
-      hasRecursiveArg = true;
-    }
-    TermList x(varNum++, false);
+
+  for (unsigned i=0; i < arity(); i++) {
+    TermList x(i, false);
     args.push(x);
     Formula::VarList::push(x.var(), v);
-    Formula::SortList::push(_type->arg(i), s);
-  }
-  if (!hasRecursiveArg) {
-    return false;
+    Formula::SortList::push(argSort(i), s);
   }
 
   TermList right(Term::create(_functor, args.size(), args.begin()));
-  TermList z(varNum++, false);
-  Formula::VarList *v2 = v->cons(z.var());
-  Formula::SortList *s2 = s->cons(_type->result());
-  varNum = 0;
+  TermList z(arity(), false);
+  Formula::VarList*  v2 = v->cons(z.var());
+  Formula::SortList* s2 = s->cons(rangeSort());
 
-  for (unsigned i=0; i < _type->arity(); i++) {
-    if (_type->arg(i)) {
-      TermList y(varNum, false);
-      // Direct subterms are subterms: Sub(y, c(x1, ... y ..., xn))
-      Formula *def = new QuantifiedFormula(Connective::FORALL,
-                                           v,
-                                           s,
-                                           new AtomicFormula(Literal::create2(subtermPredicate, true, y, right)));
-      UnitList::push(new FormulaUnit(def,
-                                     new Inference(Inference::TERM_ALGEBRA_ACYCLICITY),
-                                     Unit::AXIOM),
-                     units);
-      // Transitivity of the subterm relation: Sub(z, y) -> Sub(z, c(x1, ... y , xn))
-      Formula *trans = new QuantifiedFormula(Connective::FORALL,
-                                             v2,
-                                             s2,
-                                             new BinaryFormula(Connective::IMP,
-                                                               new AtomicFormula(Literal::create2(subtermPredicate, true, z, y)),
-                                                               new AtomicFormula(Literal::create2(subtermPredicate, true, z, right))));
-      UnitList::push(new FormulaUnit(trans,
-                                     new Inference(Inference::TERM_ALGEBRA_ACYCLICITY),
-                                     Unit::AXIOM),
-                     units);
-    }
-    varNum++;
+  static Inference* inference = new Inference(Inference::TERM_ALGEBRA_ACYCLICITY);
+
+  bool added = false;
+  for (unsigned i=0; i < arity(); i++) {
+    if (argSort(i) != rangeSort()) continue;
+
+    TermList y(i, false);
+
+    // Direct subterms are subterms: Sub(y, c(x1, ... y ..., xn))
+    Formula* sub = new AtomicFormula(Literal::create2(subtermPredicate, true, y, right));
+    Formula* def = new QuantifiedFormula(Connective::FORALL, v, s, sub);
+    UnitList::push(new FormulaUnit(def, inference, Unit::AXIOM), units);
+
+    // Transitivity of the subterm relation: Sub(z, y) -> Sub(z, c(x1, ... y , xn))
+    Formula* sub1  = new AtomicFormula(Literal::create2(subtermPredicate, true, z, y));
+    Formula* sub2  = new AtomicFormula(Literal::create2(subtermPredicate, true, z, right));
+    Formula* impl  = new BinaryFormula(Connective::IMP, sub1, sub2);
+    Formula* trans = new QuantifiedFormula(Connective::FORALL, v2, s2, impl);
+    UnitList::push(new FormulaUnit(trans, inference, Unit::AXIOM), units);
+
+    added = true;
   }
-  return true;
+  return added;
 }
 
 TermAlgebra::TermAlgebra(vstring name,
