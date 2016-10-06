@@ -421,8 +421,8 @@ public:
   static Theory theory_obj;
   static Theory* instance();
 
-  void defineOptionTermAlgebra(unsigned optionSort);
-  void defineEitherTermAlgebra(unsigned eitherSort);
+  void defineOptionTermAlgebra(unsigned innerSort);
+  void defineEitherTermAlgebra(unsigned leftSort, unsigned rightSort);
 
   bool isInterpretedConstant(unsigned func);
   bool isInterpretedConstant(Term* t);

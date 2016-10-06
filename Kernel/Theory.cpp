@@ -1490,8 +1490,10 @@ BaseType* Theory::getOperationType(Interpretation i)
   }
 }
 
-void Theory::defineOptionTermAlgebra(unsigned optionSort) {
+void Theory::defineOptionTermAlgebra(unsigned innerSort) {
   CALL("Signature::defineOptionTermAlgebra");
+
+  unsigned optionSort = env.sorts->addOptionSort(innerSort);
 
   if (env.signature->isTermAlgebraSort(optionSort)) {
     return;
@@ -1508,12 +1510,17 @@ void Theory::defineOptionTermAlgebra(unsigned optionSort) {
   unsigned someFunctor = env.signature->addInterpretedFunction(someI, "$some");
   env.signature->getFunction(someFunctor)->markTermAlgebraCons();
 
-  static auto fromSomeSsi = Theory::StructuredSortInterpretation::OPTION_FROM_SOME;
-  Interpretation fromSomeI = Theory::instance()->getInterpretation(optionSort, fromSomeSsi);
-  unsigned fromSome = env.signature->addInterpretedFunction(fromSomeI, "$fromSome");
-
   Array<unsigned> someDestructors(1);
-  someDestructors[0] = fromSome;
+  if (innerSort == Sorts::SRT_BOOL) {
+    static auto fromSomeSsi = Theory::StructuredSortInterpretation::OPTION_BOOL_FROM_SOME;
+    Interpretation fromSomeI = Theory::instance()->getInterpretation(optionSort, fromSomeSsi);
+    someDestructors[0] = env.signature->addInterpretedPredicate(fromSomeI, "$fromSome");
+  } else {
+    static auto fromSomeSsi = Theory::StructuredSortInterpretation::OPTION_FROM_SOME;
+    Interpretation fromSomeI = Theory::instance()->getInterpretation(optionSort, fromSomeSsi);
+    someDestructors[0] = env.signature->addInterpretedFunction(fromSomeI, "$fromSome");
+  }
+
   Shell::TermAlgebraConstructor* some = new Shell::TermAlgebraConstructor(someFunctor, someDestructors);
 
   Shell::TermAlgebraConstructor* constructors[] = { none, some };
@@ -1521,37 +1528,49 @@ void Theory::defineOptionTermAlgebra(unsigned optionSort) {
   env.signature->addTermAlgebra(new Shell::TermAlgebra(algebraName, optionSort, 2, constructors, false));
 }
 
-void Theory::defineEitherTermAlgebra(unsigned eitherSort) {
+void Theory::defineEitherTermAlgebra(unsigned leftSort, unsigned rightSort) {
   CALL("Signature::defineEitherTermAlgebra");
+
+  unsigned eitherSort = env.sorts->addEitherSort(leftSort, rightSort);
 
   if (env.signature->isTermAlgebraSort(eitherSort)) {
     return;
   }
 
-  static auto fromLeftSsi = Theory::StructuredSortInterpretation::EITHER_FROM_LEFT;
-  Interpretation fromLeftI = Theory::instance()->getInterpretation(eitherSort, fromLeftSsi);
-  unsigned fromLeft = env.signature->getInterpretingSymbol(fromLeftI);
-
   static auto leftSsi = Theory::StructuredSortInterpretation::EITHER_LEFT;
   Interpretation leftI = Theory::instance()->getInterpretation(eitherSort, leftSsi);
-  unsigned leftFunctor = env.signature->getInterpretingSymbol(leftI);
+  unsigned leftFunctor = env.signature->addInterpretedFunction(leftI, "$left");
   env.signature->getFunction(leftFunctor)->markTermAlgebraCons();
 
   Array<unsigned> leftDestructors(1);
-  leftDestructors[0] = fromLeft;
-  Shell::TermAlgebraConstructor* left = new Shell::TermAlgebraConstructor(leftFunctor, leftDestructors);
+  if (leftSort == Sorts::SRT_BOOL) {
+    static auto fromLeftSsi = Theory::StructuredSortInterpretation::EITHER_BOOL_FROM_LEFT;
+    Interpretation fromLeftI = Theory::instance()->getInterpretation(eitherSort, fromLeftSsi);
+    leftDestructors[0] = env.signature->addInterpretedPredicate(fromLeftI, "$fromleft");
+  } else {
+    static auto fromLeftSsi = Theory::StructuredSortInterpretation::EITHER_FROM_LEFT;
+    Interpretation fromLeftI = Theory::instance()->getInterpretation(eitherSort, fromLeftSsi);
+    leftDestructors[0] = env.signature->addInterpretedFunction(fromLeftI, "$fromleft");
+  }
 
-  static auto fromRightSsi = Theory::StructuredSortInterpretation::EITHER_FROM_RIGHT;
-  Interpretation fromRightI = Theory::instance()->getInterpretation(eitherSort, fromRightSsi);
-  unsigned fromRight = env.signature->getInterpretingSymbol(fromRightI);
+  Shell::TermAlgebraConstructor* left = new Shell::TermAlgebraConstructor(leftFunctor, leftDestructors);
 
   static auto rightSsi = Theory::StructuredSortInterpretation::EITHER_RIGHT;
   Interpretation rightI = Theory::instance()->getInterpretation(eitherSort, rightSsi);
-  unsigned rightFunctor = env.signature->getInterpretingSymbol(rightI);
+  unsigned rightFunctor = env.signature->addInterpretedFunction(rightI, "$right");
   env.signature->getFunction(rightFunctor)->markTermAlgebraCons();
 
   Array<unsigned> rightDestructors(1);
-  rightDestructors[0] = fromRight;
+  if (rightSort == Sorts::SRT_BOOL) {
+    static auto fromRightSsi = Theory::StructuredSortInterpretation::EITHER_BOOL_FROM_RIGHT;
+    Interpretation fromRightI = Theory::instance()->getInterpretation(eitherSort, fromRightSsi);
+    rightDestructors[0] = env.signature->addInterpretedPredicate(fromRightI, "$fromright");
+  } else {
+    static auto fromRightSsi = Theory::StructuredSortInterpretation::EITHER_FROM_RIGHT;
+    Interpretation fromRightI = Theory::instance()->getInterpretation(eitherSort, fromRightSsi);
+    rightDestructors[0] = env.signature->addInterpretedFunction(fromRightI, "$fromright");
+  }
+
   Shell::TermAlgebraConstructor* right = new Shell::TermAlgebraConstructor(rightFunctor, rightDestructors);
 
   Shell::TermAlgebraConstructor* constructors[] = { left, right };

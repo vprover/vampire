@@ -502,7 +502,8 @@ unsigned Signature::getStructureInterpretationFunctor(unsigned theorySort, Theor
 
   switch (Theory::getInterpretedSort(ssi)) {
     case Sorts::StructuredSort::OPTION: {
-      theory->defineOptionTermAlgebra(theorySort);
+      Sorts::OptionSort* optionSort = env.sorts->getOptionSort(theorySort);
+      theory->defineOptionTermAlgebra(optionSort->getInnerSort());
       ASS(isTermAlgebraSort(theorySort));
       TermAlgebra* ta = getTermAlgebraOfSort(theorySort);
       switch (ssi) {
@@ -520,7 +521,8 @@ unsigned Signature::getStructureInterpretationFunctor(unsigned theorySort, Theor
       }
     }
     case Sorts::StructuredSort::EITHER: {
-      theory->defineEitherTermAlgebra(theorySort);
+      Sorts::EitherSort* eitherSort = env.sorts->getEitherSort(theorySort);
+      theory->defineEitherTermAlgebra(eitherSort->getLeftSort(), eitherSort->getRightSort());
       ASS(isTermAlgebraSort(theorySort));
       TermAlgebra* ta = getTermAlgebraOfSort(theorySort);
       switch (ssi) {
