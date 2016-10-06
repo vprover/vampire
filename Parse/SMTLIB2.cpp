@@ -930,17 +930,27 @@ TermAlgebraConstructor* SMTLIB2::buildTermAlgebraConstructor(vstring constrName,
   Lib::Array<unsigned> destructorFunctors(arity);
   for (unsigned i = 0; i < arity; i++) {
     vstring destructorName = destructorNames[i];
-
-    bool added;
-    unsigned destructorFunctor = env.signature->addFunction(destructorName, 1, added);
-    ASS(added);
-
-    BaseType* destructorType = new FunctionType(1, &taSort, argSorts[i]);
-    env.signature->getFunction(destructorFunctor)->setType(destructorType);
+    unsigned destructorSort = argSorts[i];
 
     if (isAlreadyKnownFunctionSymbol(destructorName)) {
       USER_ERROR("Redeclaring function symbol: " + destructorName);
     }
+
+    bool isPredicate = destructorSort == Sorts::SRT_BOOL;
+    bool added;
+    unsigned destructorFunctor = isPredicate ? env.signature->addPredicate(destructorName, 1, added)
+                                             : env.signature->addFunction(destructorName,  1, added);
+    ASS(added);
+
+    BaseType* destructorType = isPredicate ? (BaseType*) new PredicateType(1, &taSort)
+                                           : (BaseType*) new FunctionType(1, &taSort, destructorSort);
+
+    if (isPredicate) {
+      env.signature->getPredicate(destructorFunctor)->setType(destructorType);
+    } else {
+      env.signature->getFunction(destructorFunctor)->setType(destructorType);
+    }
+
     ALWAYS(_declaredFunctions.insert(destructorName, make_pair(destructorFunctor, true)));
 
     destructorFunctors[i] = destructorFunctor;
