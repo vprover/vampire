@@ -8,12 +8,20 @@ using namespace Lib;
 
 namespace Shell {
 
-TermAlgebraConstructor::TermAlgebraConstructor(unsigned functor, Lib::Array<unsigned> destructorFunctors)
-  : _functor(functor), _destructorFunctors(destructorFunctors)
+TermAlgebraConstructor::TermAlgebraConstructor(unsigned functor, Lib::Array<unsigned> destructors)
+  : _functor(functor), _hasDiscriminator(false), _destructors(destructors)
 {
   _type = env.signature->getFunction(_functor)->fnType();
   ASS_REP(env.signature->getFunction(_functor)->termAlgebraCons(), env.signature->functionName(_functor));
-  ASS_EQ(_type->arity(), destructorFunctors.size());
+  ASS_EQ(_type->arity(), destructors.size());
+}
+
+TermAlgebraConstructor::TermAlgebraConstructor(unsigned functor, unsigned discriminator, Lib::Array<unsigned> destructors)
+  : _functor(functor), _hasDiscriminator(true), _discriminator(discriminator), _destructors(destructors)
+{
+  _type = env.signature->getFunction(_functor)->fnType();
+  ASS_REP(env.signature->getFunction(_functor)->termAlgebraCons(), env.signature->functionName(_functor));
+  ASS_EQ(_type->arity(), destructors.size());
 }
 
 unsigned TermAlgebraConstructor::arity()               { return _type->arity();  }
@@ -78,12 +86,10 @@ bool TermAlgebraConstructor::addSubtermDefinitions(unsigned subtermPredicate, Un
   return added;
 }
 
-TermAlgebra::TermAlgebra(vstring name,
-                         unsigned sort,
+TermAlgebra::TermAlgebra(unsigned sort,
                          unsigned n,
                          TermAlgebraConstructor** constrs,
                          bool allowsCyclicTerms) :
-  _tname(name),
   _sort(sort),
   _n(n),
   _allowsCyclicTerms(allowsCyclicTerms),
@@ -113,6 +119,10 @@ bool TermAlgebra::emptyDomain()
     }
   }
   return true;
+}
+
+Lib::vstring TermAlgebra::getSubtermPredicateName() {
+  return "subterm$" + env.sorts->sortName(_sort);
 }
 
 unsigned TermAlgebra::getSubtermPredicate() {
@@ -299,7 +309,38 @@ void TermAlgebra::addInjectivityAxiom(UnitList*& units)
     }
   }
 }
-  
+
+void TermAlgebra::addDiscriminationAxiom(Kernel::UnitList*& units)
+{
+  CALL("TermAlgebra::addDiscriminationAxiom");
+
+  Array<Term*> cases(_n);
+  for (unsigned i = 0; i < _n; i++) {
+    TermAlgebraConstructor* c = _constrs[i];
+
+    Stack<TermList> variables;
+    for (unsigned var = 0; var < c->arity(); var++) {
+      variables.push(TermList(var, false));
+    }
+
+    cases[i] = Term::create(c->functor(), variables.size(), variables.begin());
+  }
+
+  for (unsigned i = 0; i < _n; i++) {
+    TermAlgebraConstructor* constructor = _constrs[i];
+
+    if (!constructor->hasDiscriminator()) continue;
+
+    unsigned discriminator = constructor->discriminator();
+
+    for (unsigned c = 0; c++; c < cases.size()) {
+      Clause* unit = new(1) Clause(1, Unit::AXIOM, new Inference(Inference::TERM_ALGEBRA_DISCRIMINATION));
+      (*unit)[0] = Literal::create1(discriminator, c == i, TermList(cases[c]));
+      UnitList::push(unit, units);
+    }
+  }
+}
+
 void TermAlgebra::addAcyclicityAxiom(UnitList*& units)
 {
   CALL("TermAlgebra::addAcyclicityAxiom");

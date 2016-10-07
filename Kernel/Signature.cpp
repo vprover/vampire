@@ -512,7 +512,7 @@ unsigned Signature::getStructureInterpretationFunctor(unsigned theorySort, Theor
         case Theory::StructuredSortInterpretation::OPTION_SOME:
           return ta->constructor(1)->functor();
         case Theory::StructuredSortInterpretation::OPTION_IS_SOME:
-          NOT_IMPLEMENTED;
+          return ta->constructor(1)->discriminator();
         case Theory::StructuredSortInterpretation::OPTION_FROM_SOME:
         case Theory::StructuredSortInterpretation::OPTION_BOOL_FROM_SOME:
           return ta->constructor(1)->destructorFunctor(0);
@@ -531,9 +531,9 @@ unsigned Signature::getStructureInterpretationFunctor(unsigned theorySort, Theor
         case Theory::StructuredSortInterpretation::EITHER_RIGHT:
           return ta->constructor(1)->functor();
         case Theory::StructuredSortInterpretation::EITHER_IS_LEFT:
-          NOT_IMPLEMENTED;
+          return ta->constructor(0)->discriminator();
         case Theory::StructuredSortInterpretation::EITHER_IS_RIGHT:
-          NOT_IMPLEMENTED;
+          return ta->constructor(1)->discriminator();
         case Theory::StructuredSortInterpretation::EITHER_FROM_LEFT:
         case Theory::StructuredSortInterpretation::EITHER_BOOL_FROM_LEFT:
           return ta->constructor(0)->destructorFunctor(0);

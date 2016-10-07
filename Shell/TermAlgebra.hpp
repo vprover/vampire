@@ -17,7 +17,8 @@ namespace Shell {
     /* A term algebra constructor, described by its name, range,
        arity, and for each argument: the name of its destructor and
        its sort*/
-    TermAlgebraConstructor(unsigned functor, Lib::Array<unsigned> destructorFunctors);
+    TermAlgebraConstructor(unsigned functor, Lib::Array<unsigned> destructors);
+    TermAlgebraConstructor(unsigned functor, unsigned discriminator, Lib::Array<unsigned> destructors);
     ~TermAlgebraConstructor() {}
 
     unsigned arity();
@@ -31,7 +32,10 @@ namespace Shell {
        environment signature. These functions should be called only
        after createSymbols() has been called once */
     unsigned functor() {return _functor; }
-    unsigned destructorFunctor(unsigned ith) { return _destructorFunctors[ith]; }
+    unsigned destructorFunctor(unsigned ith) { return _destructors[ith]; }
+
+    bool hasDiscriminator() { return _hasDiscriminator; }
+    unsigned discriminator() { ASS(_hasDiscriminator); return _discriminator; }
 
     /* Subterm definitions used by the acyclicity axiom. True iff some
        definition was actually added (i.e. if the constructor is
@@ -39,9 +43,11 @@ namespace Shell {
     bool addSubtermDefinitions(unsigned subtermPredicate, Kernel::UnitList*& units);
 
   private:
-    unsigned _functor;
     Kernel::FunctionType* _type;
-    Lib::Array<unsigned> _destructorFunctors;
+    unsigned _functor;
+    bool _hasDiscriminator;
+    unsigned _discriminator;
+    Lib::Array<unsigned> _destructors;
   };
 
   typedef Lib::Array<TermAlgebraConstructor*> ConstructorArray;
@@ -57,14 +63,12 @@ namespace Shell {
        sort), and their cyclicity. If allowsCyclicTerms is false, and
        the option -tar is not set to off, then the acyclicity rule
        will be enforced for terms of this algebra*/
-    TermAlgebra(Lib::vstring name,
-                unsigned sort,
+    TermAlgebra(unsigned sort,
                 unsigned n,
                 TermAlgebraConstructor** constrs,
                 bool allowsCyclicTerms = false);
     ~TermAlgebra() {}
 
-    Lib::vstring name() { return _tname; }
     unsigned sort() { return _sort; }
     unsigned nConstructors() { return _n; }
     TermAlgebraConstructor* constructor(unsigned ith) { ASS_L(ith, _n); return _constrs[ith]; }
@@ -79,16 +83,16 @@ namespace Shell {
 
     /* The predicate of the subterm relation, used only if the option
        -tac is set to "axiom"*/
-    Lib::vstring getSubtermPredicateName() { return "subterm$" + _tname; }
+    Lib::vstring getSubtermPredicateName();
     unsigned getSubtermPredicate();
 
     /* Theory axioms */
     void addExhaustivenessAxiom(Kernel::UnitList*& units);
     void addDistinctnessAxiom(Kernel::UnitList*& units);
     void addInjectivityAxiom(Kernel::UnitList*& units);
+    void addDiscriminationAxiom(Kernel::UnitList*& units);
     void addAcyclicityAxiom(Kernel::UnitList*& units);
   private:
-      Lib::vstring _tname;
     unsigned _n; /* number of constructors */
     ConstructorArray _constrs;
     unsigned _sort;

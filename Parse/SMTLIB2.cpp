@@ -897,7 +897,7 @@ void SMTLIB2::readDeclareDatatypes(LExprList* sorts, LExprList* datatypes, bool 
     }
 
     ASS(!env.signature->isTermAlgebraSort(taSort));
-    TermAlgebra* ta = new TermAlgebra(taName, taSort, constructors.size(), constructors.begin(), codatatype);
+    TermAlgebra* ta = new TermAlgebra(taSort, constructors.size(), constructors.begin(), codatatype);
 
     if (ta->emptyDomain()) {
       USER_ERROR("Datatype " + taName + " defines an empty sort");

@@ -520,6 +520,9 @@ private:
   DHMap<unsigned,unsigned> _arraySkolemFunctions;
 
 public:
+  unsigned getStructuredOperationSort(Interpretation i){
+    return getData(i).first;
+  }
   StructuredSortInterpretation convertToStructured(Interpretation i){
     return getData(i).second;
   }
