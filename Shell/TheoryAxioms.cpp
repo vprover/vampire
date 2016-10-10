@@ -50,7 +50,13 @@ void TheoryAxioms::addAndOutputTheoryUnit(Unit* unit,UnitList*& units)
 void TheoryAxioms::addTheoryUnitClause(Literal* lit, UnitList*& units)
 {
   CALL("TheoryAxioms::addTheoryUnitClause");
-  Clause* unit = Clause::fromIterator(getSingletonIterator(lit), Unit::AXIOM, new Inference(Inference::THEORY));
+  addTheoryUnitClause(lit, new Inference(Inference::THEORY), units);
+} // addTheoryUnitClause
+
+void TheoryAxioms::addTheoryUnitClause(Literal* lit, Inference* inf, UnitList*& units)
+{
+  CALL("TheoryAxioms::addTheoryUnitClause");
+  Clause* unit = Clause::fromIterator(getSingletonIterator(lit), Unit::AXIOM, inf);
   addAndOutputTheoryUnit(unit,units);
 } // addTheoryUnitClause
 
@@ -1222,17 +1228,17 @@ bool TheoryAxioms::apply(UnitList*& units, Property* prop)
     modified = true;
   }
 
-  VirtualIterator<Shell::TermAlgebra*> tas = env.signature->termAlgebrasIterator();
+  VirtualIterator<TermAlgebra*> tas = env.signature->termAlgebrasIterator();
   while (tas.hasNext()) {
     TermAlgebra* ta = tas.next();
 
-    ta->addExhaustivenessAxiom(units);
-    ta->addDistinctnessAxiom(units);
-    ta->addInjectivityAxiom(units);
-    ta->addDiscriminationAxiom(units);
+    TermAlgebras::addExhaustivenessAxiom(ta, units);
+    TermAlgebras::addDistinctnessAxiom(ta, units);
+    TermAlgebras::addInjectivityAxiom(ta, units);
+    TermAlgebras::addDiscriminationAxiom(ta, units);
 
     if (env.options->termAlgebraCyclicityCheck() == Options::TACyclicityCheck::AXIOM) {
-      ta->addAcyclicityAxiom(units);
+      TermAlgebras::addAcyclicityAxiom(ta, units);
     }
 
     modified = true;
@@ -1265,3 +1271,249 @@ void TheoryAxioms::applyFOOL(Problem& prb) {
   (*boolVarClause)[1] = Literal::createEquality(true, TermList(0, false), f, Sorts::SRT_BOOL);
   addAndOutputTheoryUnit(boolVarClause, prb.units());
 } // TheoryAxioms::addBooleanDomainAxiom
+
+void TheoryAxioms::TermAlgebras::addExhaustivenessAxiom(TermAlgebra* ta, UnitList*& units) {
+  CALL("TheoryAxioms::TermAlgebras::addExhaustivenessAxiom");
+
+  TermList x(0, false);
+  Stack<TermList> argTerms;
+
+  FormulaList* l = FormulaList::empty();
+
+  for (unsigned i = 0; i < ta->nConstructors(); i++) {
+    TermAlgebraConstructor *c = ta->constructor(i);
+    argTerms.reset();
+
+    for (unsigned j = 0; j < c->arity(); j++) {
+      TermList t(Term::create1(c->destructorFunctor(j), x));
+      argTerms.push(t);
+    }
+
+    TermList rhs(Term::create(c->functor(), (unsigned)argTerms.size(), argTerms.begin()));
+    FormulaList::push(new AtomicFormula(Literal::createEquality(true, x, rhs, ta->sort())), l);
+  }
+
+  Formula::VarList* vars = Formula::VarList::empty()->cons(x.var());
+  Formula::SortList* sorts = Formula::SortList::empty()->cons(ta->sort());
+
+  Formula *axiom;
+  switch (l->length()) {
+    case 0:
+      // the algebra cannot have 0 constructors
+      ASSERTION_VIOLATION;
+    case 1:
+      axiom = new QuantifiedFormula(Connective::FORALL, vars, sorts, l->head());
+      break;
+    default:
+      axiom = new QuantifiedFormula(Connective::FORALL, vars, sorts, new JunctionFormula(Connective::OR, l));
+  }
+
+  Unit* unit = new FormulaUnit(axiom, new Inference(Inference::TERM_ALGEBRA_EXHAUSTIVENESS), Unit::AXIOM);
+  addAndOutputTheoryUnit(unit, units);
+}
+
+void TheoryAxioms::TermAlgebras::addDistinctnessAxiom(TermAlgebra* ta, UnitList*& units) {
+  CALL("TermAlgebra::addDistinctnessAxiom");
+
+  unsigned varnum = 0;
+  Formula::VarList *vars1, *vars2;
+  Formula::SortList *sorts1, *sorts2 = Formula::SortList::empty();
+
+  Stack<TermList> argTerms;
+
+  for (unsigned i = 0; i < ta->nConstructors(); i++) {
+    TermAlgebraConstructor* c = ta->constructor(i);
+
+    // build LHS
+    vars1 = Formula::VarList::empty();
+    sorts1 = Formula::SortList::empty();
+    argTerms.reset();
+
+    for (unsigned j = 0; j < c->arity(); j++) {
+      TermList var(varnum++, false);
+      argTerms.push(var);
+      Formula::VarList::push(var.var(), vars1);
+      Formula::SortList::push(c->argSort(j), sorts1);
+    }
+
+    TermList lhs(Term::create(c->functor(), (unsigned)argTerms.size(), argTerms.begin()));
+
+    for (unsigned k = i + 1; k < ta->nConstructors(); k++) {
+      c = ta->constructor(k);
+
+      // build RHS
+      vars2 = vars1;
+      sorts2 = sorts1;
+      argTerms.reset();
+
+      for (unsigned j = 0; j < c->arity(); j++) {
+        TermList var(varnum++, false);
+        argTerms.push(var);
+        Formula::VarList::push(var.var(), vars2);
+        Formula::SortList::push(c->argSort(j), sorts2);
+      }
+      TermList rhs(Term::create(c->functor(), (unsigned)argTerms.size(), argTerms.begin()));
+
+      Formula* eq = new AtomicFormula(Literal::createEquality(false, lhs, rhs, ta->sort()));
+      Formula* axiom = Formula::VarList::isEmpty(vars2) ? eq : new QuantifiedFormula(Connective::FORALL, vars2, sorts2, eq);
+
+      Unit* unit = new FormulaUnit(axiom, new Inference(Inference::TERM_ALGEBRA_DISTINCTNESS), Unit::AXIOM);
+      addAndOutputTheoryUnit(unit, units);
+    }
+  }
+}
+
+void TheoryAxioms::TermAlgebras::addInjectivityAxiom(TermAlgebra* ta, UnitList*& units)
+{
+  CALL("TheoryAxioms::TermAlgebras::addInjectivityAxiom");
+
+  Stack<TermList> argTermsX;
+  Stack<TermList> argTermsY;
+
+  for (unsigned i = 0; i < ta->nConstructors(); i++) {
+    TermAlgebraConstructor* c = ta->constructor(i);
+
+    if (c->arity() != 0) {
+      FormulaList *implied = FormulaList::empty();
+      Formula::VarList* vars = Formula::VarList::empty();
+      Formula::SortList* sorts = Formula::SortList::empty();
+
+      argTermsX.reset();
+      argTermsY.reset();
+
+      for (unsigned j = 0; j < c->arity(); j++) {
+        TermList x(j * 2, false);
+        TermList y(j * 2 + 1, false);
+        sorts = sorts->cons(c->argSort(j))->cons(c->argSort(j));
+        vars = vars->cons(x.var())->cons(y.var());
+        argTermsX.push(x);
+        argTermsY.push(y);
+        FormulaList::push(new AtomicFormula(Literal::createEquality(true, x, y, c->argSort(j))), implied);
+      }
+
+      TermList lhs(Term::create(c->functor(), (unsigned)argTermsX.size(), argTermsX.begin()));
+      TermList rhs(Term::create(c->functor(), (unsigned)argTermsY.size(), argTermsY.begin()));
+      Formula* eql = new AtomicFormula(Literal::createEquality(true, lhs, rhs, ta->sort()));
+
+      for (unsigned j = 0; j < c->arity(); j++) {
+        TermList x(j * 2, false);
+        TermList y(j * 2 + 1, false);
+        Formula* eqr = new AtomicFormula(Literal::createEquality(true, x, y, c->argSort(j)));
+
+        Formula* impl = new BinaryFormula(Connective::IMP, eql, eqr);
+        Formula* axiom = new QuantifiedFormula(Connective::FORALL, vars, sorts, impl);
+        Unit* unit = new FormulaUnit(axiom, new Inference(Inference::TERM_ALGEBRA_INJECTIVITY), Unit::AXIOM);
+        addAndOutputTheoryUnit(unit, units);
+      }
+    }
+  }
+}
+
+void TheoryAxioms::TermAlgebras::addDiscriminationAxiom(TermAlgebra* ta, UnitList*& units) {
+  CALL("TermAlgebras::addDiscriminationAxiom");
+
+  Array<Term*> cases(ta->nConstructors());
+  for (unsigned i = 0; i < ta->nConstructors(); i++) {
+    TermAlgebraConstructor* c = ta->constructor(i);
+
+    Stack<TermList> variables;
+    for (unsigned var = 0; var < c->arity(); var++) {
+      variables.push(TermList(var, false));
+    }
+
+    cases[i] = Term::create(c->functor(), (unsigned)variables.size(), variables.begin());
+  }
+
+  static Inference* inf = new Inference(Inference::TERM_ALGEBRA_DISCRIMINATION);
+
+  for (unsigned i = 0; i < ta->nConstructors(); i++) {
+    TermAlgebraConstructor* constructor = ta->constructor(i);
+
+    if (!constructor->hasDiscriminator()) continue;
+
+    unsigned discriminator = constructor->discriminator();
+
+    for (unsigned c = 0; c < cases.size(); c++) {
+      addTheoryUnitClause(Literal::create1(discriminator, c == i, TermList(cases[c])), inf, units);
+    }
+  }
+}
+
+void TheoryAxioms::TermAlgebras::addAcyclicityAxiom(TermAlgebra* ta, UnitList*& units)
+{
+  CALL("TheoryAxioms::TermAlgebras::addAcyclicityAxiom");
+
+  unsigned pred = ta->getSubtermPredicate();
+
+  if (ta->allowsCyclicTerms()) {
+    return;
+  }
+
+  bool rec = false;
+
+  for (unsigned i = 0; i < ta->nConstructors(); i++) {
+    if (addSubtermDefinitions(pred, ta->constructor(i), units)) {
+      rec = true;
+    }
+  }
+
+  // rec <=> the subterm relation is non-empty
+  if (!rec) {
+    return;
+  }
+
+  TermList x(0, false);
+
+  // add acyclicity axiom: ~Sub(x,x)
+  Formula* sub = new AtomicFormula(Literal::create2(pred, false, x, x));
+  Formula::VarList* vars = new Formula::VarList(x.var());
+  Formula::SortList* sorts = new Formula::SortList(ta->sort());
+  Formula* acycl = new QuantifiedFormula(Connective::FORALL, vars, sorts, sub);
+  Unit* unit = new FormulaUnit(acycl, new Inference(Inference::TERM_ALGEBRA_ACYCLICITY), Unit::AXIOM);
+  addAndOutputTheoryUnit(unit, units);
+}
+
+bool TheoryAxioms::TermAlgebras::addSubtermDefinitions(unsigned subtermPredicate, TermAlgebraConstructor* c, UnitList*& units)
+{
+  CALL("TheoryAxioms::TermAlgebras::addSubtermDefinitions");
+
+  Formula::VarList*  v = Formula::VarList::empty();
+  Formula::SortList* s = Formula::SortList::empty();
+  Stack<TermList> args;
+
+  for (unsigned i=0; i < c->arity(); i++) {
+    TermList x(i, false);
+    args.push(x);
+    Formula::VarList::push(x.var(), v);
+    Formula::SortList::push(c->argSort(i), s);
+  }
+
+  TermList right(Term::create(c->functor(), (unsigned)args.size(), args.begin()));
+  TermList z(c->arity(), false);
+  Formula::VarList*  v2 = v->cons(z.var());
+  Formula::SortList* s2 = s->cons(c->rangeSort());
+
+  static Inference* inference = new Inference(Inference::TERM_ALGEBRA_ACYCLICITY);
+
+  bool added = false;
+  for (unsigned i=0; i < c->arity(); i++) {
+    if (c->argSort(i) != c->rangeSort()) continue;
+
+    TermList y(i, false);
+
+    // Direct subterms are subterms: Sub(y, c(x1, ... y ..., xn))
+    Formula* sub = new AtomicFormula(Literal::create2(subtermPredicate, true, y, right));
+    Formula* def = new QuantifiedFormula(Connective::FORALL, v, s, sub);
+    addAndOutputTheoryUnit(new FormulaUnit(def, inference, Unit::AXIOM), units);
+
+    // Transitivity of the subterm relation: Sub(z, y) -> Sub(z, c(x1, ... y , xn))
+    Formula* sub1  = new AtomicFormula(Literal::create2(subtermPredicate, true, z, y));
+    Formula* sub2  = new AtomicFormula(Literal::create2(subtermPredicate, true, z, right));
+    Formula* impl  = new BinaryFormula(Connective::IMP, sub1, sub2);
+    Formula* trans = new QuantifiedFormula(Connective::FORALL, v2, s2, impl);
+    addAndOutputTheoryUnit(new FormulaUnit(trans, inference, Unit::AXIOM), units);
+
+    added = true;
+  }
+  return added;
+}

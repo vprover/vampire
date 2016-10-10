@@ -37,11 +37,6 @@ namespace Shell {
     bool hasDiscriminator() { return _hasDiscriminator; }
     unsigned discriminator() { ASS(_hasDiscriminator); return _discriminator; }
 
-    /* Subterm definitions used by the acyclicity axiom. True iff some
-       definition was actually added (i.e. if the constructor is
-       recursive) */
-    bool addSubtermDefinitions(unsigned subtermPredicate, Kernel::UnitList*& units);
-
   private:
     Kernel::FunctionType* _type;
     unsigned _functor;
@@ -86,12 +81,6 @@ namespace Shell {
     Lib::vstring getSubtermPredicateName();
     unsigned getSubtermPredicate();
 
-    /* Theory axioms */
-    void addExhaustivenessAxiom(Kernel::UnitList*& units);
-    void addDistinctnessAxiom(Kernel::UnitList*& units);
-    void addInjectivityAxiom(Kernel::UnitList*& units);
-    void addDiscriminationAxiom(Kernel::UnitList*& units);
-    void addAcyclicityAxiom(Kernel::UnitList*& units);
   private:
     unsigned _n; /* number of constructors */
     ConstructorArray _constrs;

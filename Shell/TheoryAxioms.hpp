@@ -83,10 +83,25 @@ private:
   void addTruncateAxioms(Interpretation truncate, Interpretation less, Interpretation unaryMinus,
                       Interpretation plus, TermList zeroElement, TermList oneElement, UnitList*& units);
   void addArrayWriteAxioms(Interpretation select, Interpretation store, UnitList*& units);
-  void addTheoryUnitClause(Literal* lit, UnitList*& units);
-  void addTheoryNonUnitClause(UnitList*& units, Literal* lit1, Literal* lit2, Literal* lit3=0);
-  void addTheoryNonUnitClause(UnitList*& units, Literal* lit1, Literal* lit2, Literal* lit3, Literal* lit4);
-  void addAndOutputTheoryUnit(Unit* unit,UnitList*& units);
+
+  struct TermAlgebras {
+    static void addExhaustivenessAxiom(TermAlgebra* ta, UnitList*& units);
+    static void addDistinctnessAxiom(TermAlgebra* ta, UnitList*& units);
+    static void addInjectivityAxiom(TermAlgebra* ta, UnitList*& units);
+    static void addDiscriminationAxiom(TermAlgebra* ta, UnitList*& units);
+    static void addAcyclicityAxiom(TermAlgebra* ta, UnitList*& units);
+
+    /* Subterm definitions used by the acyclicity axiom. True iff some
+       definition was actually added (i.e. if the constructor is
+       recursive) */
+    static bool addSubtermDefinitions(unsigned subtermPredicate, TermAlgebraConstructor* c, UnitList*& units);
+  };
+
+  static void addTheoryUnitClause(Literal* lit, UnitList*& units);
+  static void addTheoryUnitClause(Literal* lit, Inference* inf, UnitList*& units);
+  static void addTheoryNonUnitClause(UnitList*& units, Literal* lit1, Literal* lit2, Literal* lit3=0);
+  static void addTheoryNonUnitClause(UnitList*& units, Literal* lit1, Literal* lit2, Literal* lit3, Literal* lit4);
+  static void addAndOutputTheoryUnit(Unit* unit,UnitList*& units);
 };
 
 }
