@@ -1222,8 +1222,14 @@ void TheoryAxioms::TermAlgebras::addExhaustivenessAxiom(TermAlgebra* ta, UnitLis
     argTerms.reset();
 
     for (unsigned j = 0; j < c->arity(); j++) {
-      TermList t(Term::create1(c->destructorFunctor(j), x));
-      argTerms.push(t);
+      if (c->argSort(j) == Sorts::SRT_BOOL) {
+        Literal* lit = Literal::create1(c->destructorFunctor(j), true, x);
+        Term* t = Term::createFormula(new AtomicFormula(lit));
+        argTerms.push(TermList(t));
+      } else {
+        Term* t = Term::create1(c->destructorFunctor(j), x);
+        argTerms.push(TermList(t));
+      }
     }
 
     TermList rhs(Term::create(c->functor(), (unsigned)argTerms.size(), argTerms.begin()));
