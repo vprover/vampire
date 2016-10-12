@@ -421,6 +421,7 @@ public:
   static Theory theory_obj;
   static Theory* instance();
 
+  void defineTupleTermAlgebra(unsigned arity, unsigned* sorts);
   void defineOptionTermAlgebra(unsigned innerSort);
   void defineEitherTermAlgebra(unsigned leftSort, unsigned rightSort);
 
@@ -548,11 +549,6 @@ public:
     unsigned getFunctor(unsigned tupleSort);
     unsigned getProjectionFunctor(unsigned proj, unsigned tupleSort);
     bool findProjection(unsigned projFunctor, unsigned &proj);
-
-  private:
-    DHMap<unsigned,unsigned> _functors;
-    DHMap<pair<unsigned,unsigned>,unsigned> _projections;
-    DHMap<unsigned,unsigned> _projectionFunctors;
   };
 
   static Theory::Tuples tuples_obj;
