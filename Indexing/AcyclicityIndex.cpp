@@ -142,9 +142,9 @@ namespace Indexing
     TermList *term;
     Literal *lit;
     Clause *clause;
-    unsigned substIndex;
     CycleSearchTreeNode *parent;
     unsigned depth;
+    unsigned substIndex;
 
     bool isUnificationNode() {
       return (!clause);
