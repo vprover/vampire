@@ -1602,6 +1602,7 @@ void TPTP::endTheoryFunction() {
           ssi = Theory::StructuredSortInterpretation::OPTION_FROM_SOME;
           break;
         default:
+          ASSERTION_VIOLATION_REP(tf);
           break;
       }
       break;
@@ -1634,6 +1635,7 @@ void TPTP::endTheoryFunction() {
           ssi = Theory::StructuredSortInterpretation::EITHER_FROM_RIGHT;
           break;
         default:
+          ASSERTION_VIOLATION_REP(tf);
           break;
       }
       break;

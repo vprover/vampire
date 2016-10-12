@@ -578,19 +578,19 @@ Ordering::Result KBOBase::compareFunctionPrecedences(unsigned fun1, unsigned fun
     cmpRes = RealConstantType::comparePrecedence(s1->realValue(), s2->realValue());
   }
   else if(s1->integerConstant()) {
-    ASS(s2->rationalConstant() || s2->realConstant());
+    ASS_REP(s2->rationalConstant() || s2->realConstant(), s2->name());
     cmpRes = Lib::LESS;
   }
   else if(s2->integerConstant()) {
-    ASS(s1->rationalConstant() || s1->realConstant());
+    ASS_REP(s1->rationalConstant() || s1->realConstant(), s1->name());
     cmpRes = Lib::GREATER;
   }
   else if(s1->rationalConstant()) {
-    ASS(s2->realConstant());
+    ASS_REP(s2->realConstant(), s2->name());
     cmpRes = Lib::LESS;
   }
   else if(s2->rationalConstant()) {
-    ASS(s1->realConstant());
+    ASS_REP(s1->realConstant(), s1->name());
     cmpRes = Lib::GREATER;
   }
   else {
