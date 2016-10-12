@@ -468,7 +468,7 @@ vstring Term::headToString() const
     }
   } else {
     unsigned proj;
-    if (Theory::tuples()->findProjection(functor(), proj)) {
+    if (Theory::tuples()->findProjection(functor(), false, proj)) {
       return "$proj(" + Int::toString(proj) + ", ";
     }
     return (isLiteral() ? static_cast<const Literal *>(this)->predicateName() : functionName()) + (arity() ? "(" : "");
@@ -580,8 +580,8 @@ vstring Literal::toString() const
   Stack<const TermList*> stack(64);
   vstring s = polarity() ? "" : "~";
   unsigned proj;
-  if (Theory::tuples()->findProjection(functor(), proj)) {
-    return "$proj(" + Int::toString(proj) + ", " + args()->asArgsToString();
+  if (Theory::tuples()->findProjection(functor(), true, proj)) {
+    return s + "$proj(" + Int::toString(proj) + ", " + args()->asArgsToString();
   }
   s += predicateName();
 

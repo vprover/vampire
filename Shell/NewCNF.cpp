@@ -260,7 +260,7 @@ TermList NewCNF::findITEs(TermList ts, Stack<unsigned> &variables, Stack<Formula
     }
 
     unsigned proj;
-    if (Theory::tuples()->findProjection(term->functor(), proj)) {
+    if (Theory::tuples()->findProjection(term->functor(), false, proj)) {
       TermList* arg = arguments.begin();
       if (arg->isTerm() && Theory::tuples()->isFunctor(arg->term()->functor())) {
         return *arg->term()->nthArgument(proj);

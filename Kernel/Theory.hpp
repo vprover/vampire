@@ -548,7 +548,7 @@ public:
     unsigned getFunctor(unsigned arity, unsigned sorts[]);
     unsigned getFunctor(unsigned tupleSort);
     unsigned getProjectionFunctor(unsigned proj, unsigned tupleSort);
-    bool findProjection(unsigned projFunctor, unsigned &proj);
+    bool findProjection(unsigned projFunctor, bool isPredicate, unsigned &proj);
   };
 
   static Theory::Tuples tuples_obj;

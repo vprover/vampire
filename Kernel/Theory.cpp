@@ -1140,10 +1140,11 @@ unsigned Theory::Tuples::getProjectionFunctor(unsigned proj, unsigned tupleSort)
 }
 
 // TODO: replace with a constant time algorithm
-bool Theory::Tuples::findProjection(unsigned projFunctor, unsigned &proj) {
+bool Theory::Tuples::findProjection(unsigned projFunctor, bool isPredicate, unsigned &proj) {
   CALL("Theory::Tuples::findProjection");
 
-  FunctionType* projType = env.signature->getFunction(projFunctor)->fnType();
+  BaseType* projType = isPredicate ? static_cast<BaseType*>(env.signature->getPredicate(projFunctor)->predType())
+                                   : static_cast<BaseType*>(env.signature->getFunction(projFunctor)->fnType());
 
   if (projType->arity() != 1) {
     return false;
@@ -1155,15 +1156,11 @@ bool Theory::Tuples::findProjection(unsigned projFunctor, unsigned &proj) {
     return false;
   }
 
-  Sorts::TupleSort* tuple = env.sorts->getTupleSort(tupleSort);
-  unsigned  arity = tuple->arity();
-  unsigned* sorts = tuple->sorts();
+  if (!env.signature->isTermAlgebraSort(tupleSort)) {
+    return false;
+  }
 
-  theory->defineTupleTermAlgebra(arity, sorts);
-  ASS(env.signature->isTermAlgebraSort(tupleSort));
-  Shell::TermAlgebra* ta = env.signature->getTermAlgebraOfSort(tupleSort);
-
-  Shell::TermAlgebraConstructor* c = ta->constructor(0);
+  Shell::TermAlgebraConstructor* c = env.signature->getTermAlgebraOfSort(tupleSort)->constructor(0);
   for (unsigned i = 0; i < c->arity(); i++) {
     if (projFunctor == c->destructorFunctor(i)) {
       proj = i;
