@@ -367,8 +367,8 @@ void Preprocess::preprocess (Problem& prb)
      if(env.options->showPreprocessing())
        env.out() << "theory flattening" << std::endl;
 
-       TheoryFlattening tf;
-       tf.apply(prb);
+     TheoryFlattening tf;
+     tf.apply(prb);
    }
 
    if (_options.blockedClauseElimination()) {
@@ -376,8 +376,8 @@ void Preprocess::preprocess (Problem& prb)
      if(env.options->showPreprocessing())
        env.out() << "blocked clause elimination" << std::endl;
 
-       BlockedClauseElimination bce;
-       bce.apply(prb);
+     BlockedClauseElimination bce;
+     bce.apply(prb);
    }
 
    if (env.options->showPreprocessing()) {
