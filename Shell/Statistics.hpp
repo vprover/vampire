@@ -142,6 +142,13 @@ public:
   /** number of backward subsumed clauses */
   unsigned backwardSubsumed;
 
+  /** statistics of term algebra rules */
+  unsigned taDistinctnessSimplifications;
+  unsigned taDistinctnessTautologyDeletions;
+  unsigned taInjectivitySimplifications;
+  unsigned taNegativeInjectivitySimplifications;
+  unsigned taAcyclicityGeneratedDisequalities;
+
   // Saturation
   /** all clauses ever occurring in the unprocessed queue */
   unsigned generatedClauses;

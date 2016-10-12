@@ -78,6 +78,11 @@ Statistics::Statistics()
     equationalTautologies(0),
     forwardSubsumed(0),
     backwardSubsumed(0),
+    taDistinctnessSimplifications(0),
+    taDistinctnessTautologyDeletions(0),
+    taInjectivitySimplifications(0),
+    taNegativeInjectivitySimplifications(0),
+    taAcyclicityGeneratedDisequalities(0),
     generatedClauses(0),
     passiveClauses(0),
     activeClauses(0),
@@ -291,6 +296,15 @@ void Statistics::print(ostream& out)
   COND_OUT("Fw extensionality resolution", forwardExtensionalityResolution);
   COND_OUT("Bw extensionality resolution", backwardExtensionalityResolution);
   SEPARATOR;
+
+  HEADING("Term algebra simplifications",taDistinctnessSimplifications+
+      taDistinctnessTautologyDeletions+taInjectivitySimplifications+
+      taAcyclicityGeneratedDisequalities+taNegativeInjectivitySimplifications);
+  COND_OUT("Distinctness simplifications",taDistinctnessSimplifications);
+  COND_OUT("Distinctness tautology deletions",taDistinctnessTautologyDeletions);
+  COND_OUT("Injectivity simplifications",taInjectivitySimplifications);
+  COND_OUT("Negative injectivity simplifications",taNegativeInjectivitySimplifications);
+  COND_OUT("Disequalities generated from acyclicity",taAcyclicityGeneratedDisequalities);
 
   HEADING("AVATAR",splitClauses+splitComponents+uniqueComponents+satSplits+
         satSplitRefutations);

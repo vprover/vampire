@@ -114,7 +114,7 @@ namespace Inferences {
   Clause* DistinctnessISE::simplify(Clause* c)
   {
     CALL("DistinctnessISE::simplify");
-
+    
     int length = c->length();
     for (int i = length - 1; i >= 0; i--) {
       Literal *lit = (*c)[i];
@@ -123,9 +123,11 @@ namespace Inferences {
           // equality of the form f(x) = g(y), delete literal from clause
           Clause* res = removeLit(c, i, new Inference1(Inference::TERM_ALGEBRA_DISTINCTNESS, c));
           res->setAge(c->age());
+          env.statistics->taDistinctnessSimplifications++;
           return res;
         } else {
           // inequality of the form f(x) != g(y) are theory tautologies
+          env.statistics->taDistinctnessTautologyDeletions++;
           return 0;
         }
       }
@@ -177,6 +179,7 @@ namespace Inferences {
       res = replaceLit(_clause, _lit, l, inf);
       _index++;
       res->setAge(_clause->age()+1);
+      env.statistics->taInjectivitySimplifications++;
       return res;
     }
   private:
@@ -232,12 +235,76 @@ namespace Inferences {
                                                     type->arg(0));
           Clause* res = replaceLit(c, lit, newlit, new Inference1(Inference::TERM_ALGEBRA_INJECTIVITY, c));
           res->setAge(c->age());
+          env.statistics->taInjectivitySimplifications++;
           return res;
         }
       }
     }
 
     // no equalities between similar constructors were found
+    return c;
+  }
+
+  bool NegativeInjectivityISE::litCondition(Clause *c, unsigned i) {
+    Literal *lit = (*c)[i];
+    if (sameConstructorsEquality(lit) && !lit->polarity()) {
+      unsigned arity = lit->nthArgument(0)->term()->arity();
+      FunctionType *type = env.signature->getFunction(lit->nthArgument(0)->term()->functor())->fnType();
+      for (unsigned j = 0; j < arity; j++) {
+        Literal *l = Literal::createEquality(true,
+                                             *lit->nthArgument(0)->term()->nthArgument(j),
+                                             *lit->nthArgument(1)->term()->nthArgument(j),
+                                             type->arg(j));
+        for (unsigned k = 0; k < c->length(); k++) {
+          if (k != i) {
+            if (_salg->getOrdering().compare((*c)[k], l) != Ordering::GREATER) {
+              return false;
+            }
+          }
+        }
+      }
+      return true;
+    }
+    return false;
+  }
+
+  Clause* NegativeInjectivityISE::simplify(Clause *c)
+  {
+    CALL("NegativeInjectivityISE::simplify");
+
+    int length = c->length();
+    for (int i = length - 1; i >= 0; i--) {
+      if (litCondition(c, i)) {
+        Literal *lit = (*c)[i];
+        FunctionType *type = env.signature->getFunction(lit->nthArgument(0)->term()->functor())->fnType();
+        unsigned oldLength = c->length();
+        unsigned arity = lit->nthArgument(0)->term()->arity();
+        unsigned newLength = oldLength + arity - 1;
+        Clause* res = new(newLength) Clause(newLength,
+                                            c->inputType(),
+                                            new Inference1(Inference::TERM_ALGEBRA_INJECTIVITY, c));
+        Literal *newLit = Literal::createEquality(false,
+                                                  *lit->nthArgument(0)->term()->nthArgument(0),
+                                                  *lit->nthArgument(1)->term()->nthArgument(0),
+                                                  type->arg(0));
+        unsigned i = 0;
+        for (i; (*c)[i] != lit; i++) {}
+        std::memcpy(res->literals(), c->literals(), length * sizeof(Literal*));
+        (*res)[i] = newLit;
+        
+        for (unsigned i = 1; i < arity; i++) {
+          newLit = Literal::createEquality(false,
+                                           *lit->nthArgument(0)->term()->nthArgument(i),
+                                           *lit->nthArgument(1)->term()->nthArgument(i),
+                                           type->arg(i));
+          (*res)[oldLength + i - 1] = newLit;
+        }
+        res->setAge(c->age());
+        env.statistics->taNegativeInjectivitySimplifications++;
+
+        return res;
+      }
+    }
     return c;
   }
 
@@ -305,18 +372,9 @@ namespace Inferences {
 
         ASS_EQ(p->length(), c->length());
 
-        // create renaming to make sure that variable from different
-        // clauses don't end up being confused in the conclusion
-        /*Renaming renaming(maxVar);
-        VirtualIterator<unsigned> varIter = p->getVariableIterator();
-        while (varIter.hasNext()) {
-          unsigned n = renaming.getOrBind(varIter.next());
-          maxVar = n > maxVar ? n : maxVar;
-          }*/
-
         for (unsigned j = 0; j < c->length(); j++) {
           if ((*p)[j] != l) {
-            (*res)[i++] = (*c)[j]; //renaming.apply((*c)[j]);
+            (*res)[i++] = (*c)[j];
           }
         }
 
@@ -328,7 +386,6 @@ namespace Inferences {
       ASS_EQ(i, length);
 
       res->setAge(_premise->age() + 1);
-
       return res;
     }
   private:
@@ -439,6 +496,7 @@ namespace Inferences {
       }
       return (_subterms.isNonEmpty());
     }
+    
     OWN_ELEMENT_TYPE next()
     {
       CALL("InjectivityGIE::SubtermIterator::next()");
@@ -448,7 +506,11 @@ namespace Inferences {
                                                 *_subterms.pop(),
                                                 _sort);
       return replaceLit(_clause, _lit, newlit, new Inference1(Inference::TERM_ALGEBRA_ACYCLICITY, _clause));
+      //res->setAge(_clause->age() + 1);
+      env.statistics->taAcyclicityGeneratedDisequalities++;
+      //return res;
     }
+        
   private:
     Clause *_clause;
     Literal *_lit;
