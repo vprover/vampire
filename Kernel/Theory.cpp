@@ -1599,6 +1599,16 @@ bool Theory::isInterpretedConstant(TermList t)
 }
 
 /**
+ * Return true iff @b t is a constant with a numerical interpretation
+ */
+bool Theory::isInterpretedNumber(TermList t)
+{
+  CALL("Theory::isInterpretedNumber(TermList)");
+
+  return isInterpretedConstant(t) && env.signature->getFunction(t.term()->functor())->numericConstant();
+}
+
+/**
  * Return true iff @b pred is an interpreted predicate
  */
 bool Theory::isInterpretedPredicate(unsigned pred)

@@ -795,12 +795,12 @@ bool InterpretedLiteralEvaluator::balancable(Literal* lit)
   // but we do not check this second condition here, instead we detect it in balance
   TermList t1 = *lit->nthArgument(0);
   TermList t2 = *lit->nthArgument(1);
-  if(theory->isInterpretedConstant(t1)){
-    if(theory->isInterpretedConstant(t2)) return false; // already balanced
+  if(theory->isInterpretedNumber(t1)){
+    if(theory->isInterpretedNumber(t2)) return false; // already balanced
     if(t2.isVar()) return false; // already balanced
     if(!theory->isInterpretedFunction(t2)) return false; // cannot balance
-  }else if(theory->isInterpretedConstant(t2)){
-    if(theory->isInterpretedConstant(t1)) return false; // already balanced
+  }else if(theory->isInterpretedNumber(t2)){
+    if(theory->isInterpretedNumber(t1)) return false; // already balanced
     if(t1.isVar()) return false;//already balanced
     if(!theory->isInterpretedFunction(t1)) return false; // cannot balance
 
@@ -838,7 +838,7 @@ bool InterpretedLiteralEvaluator::balance(Literal* lit,Literal*& resLit,Stack<Li
   TermList t1;
   TermList t2;
   // ensure that t1 is the constant
-  if(theory->isInterpretedConstant(*lit->nthArgument(0))){
+  if(theory->isInterpretedNumber(*lit->nthArgument(0))){
     t1 = *lit->nthArgument(0); t2 = *lit->nthArgument(1);
   }else{
     t1 = *lit->nthArgument(1); t2 = *lit->nthArgument(0);
@@ -871,7 +871,7 @@ bool InterpretedLiteralEvaluator::balance(Literal* lit,Literal*& resLit,Stack<Li
     // find which arg of t2 is the non_constant bit, this is what we are unwrapping 
     TermList* to_unwrap=0;
     while(args->isNonEmpty()){
-      if(!theory->isInterpretedConstant(*args)){
+      if(!theory->isInterpretedNumber(*args)){
         if(to_unwrap){
           return false; // If there is more than one non-constant term this will not work
         }

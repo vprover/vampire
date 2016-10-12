@@ -567,6 +567,10 @@ Ordering::Result KBOBase::compareFunctionPrecedences(unsigned fun1, unsigned fun
   }
   //two interpreted constants
 
+  if (!s1->numericConstant() || !s2->numericConstant()) {
+    return fromComparison(Int::compare(fun1, fun2));
+  }
+
   Comparison cmpRes;
   if(s1->integerConstant() && s2->integerConstant()) {
     cmpRes = IntegerConstantType::comparePrecedence(s1->integerValue(), s2->integerValue());

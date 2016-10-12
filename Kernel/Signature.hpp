@@ -198,17 +198,18 @@ class Signature
     friend class Symbol;
   protected:
     Interpretation _interp;
+    bool _containsInterp;
 
   public:
 
     InterpretedSymbol(const vstring& nm, Interpretation interp)
-    : Symbol(nm, Theory::getArity(interp), true), _interp(interp)
+    : Symbol(nm, Theory::getArity(interp), true), _interp(interp), _containsInterp(true)
     {
       CALL("InterpretedSymbol");
     }
 
     InterpretedSymbol(const vstring& nm)
-    : Symbol(nm, 0, true)
+    : Symbol(nm, 0, true), _containsInterp(false)
     {
       CALL("InterpretedSymbol");
     }
@@ -216,7 +217,7 @@ class Signature
     USE_ALLOCATOR(InterpretedSymbol);
 
     /** Return the interpreted function that corresponds to this symbol */
-    inline Interpretation getInterpretation() const { ASS(interpreted()); ASS_NEQ(arity(),0); return _interp; }
+    inline Interpretation getInterpretation() const { ASS_REP(interpreted(), _name); ASS_REP(_containsInterp, _name); return _interp; }
   };
 
   class IntegerSymbol

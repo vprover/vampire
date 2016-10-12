@@ -427,6 +427,7 @@ public:
   bool isInterpretedConstant(unsigned func);
   bool isInterpretedConstant(Term* t);
   bool isInterpretedConstant(TermList t);
+  bool isInterpretedNumber(TermList t);
 
   bool isInterpretedPredicate(unsigned pred);
   bool isInterpretedPredicate(Literal* lit);
