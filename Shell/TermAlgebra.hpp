@@ -105,7 +105,7 @@ namespace Shell {
     void addInjectivityAxiom(Kernel::UnitList*& units);
     void addAcyclicityAxiom(Kernel::UnitList*& units);
   private:
-      Lib::vstring _tname;
+    Lib::vstring _tname;
     unsigned _n; /* number of constructors */
     ConstructorArray _constrs;
     unsigned _sort;

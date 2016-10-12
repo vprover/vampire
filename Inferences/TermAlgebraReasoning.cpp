@@ -38,7 +38,7 @@ namespace Inferences {
                                      inf);
 
     unsigned i = 0;
-    for (i; (*c)[i] != a; i++) {}
+    while ((*c)[i] != a) { i++; }
     std::memcpy(res->literals(), c->literals(), length * sizeof(Literal*));
     (*res)[i] = b;
 
@@ -288,7 +288,7 @@ namespace Inferences {
                                                   *lit->nthArgument(1)->term()->nthArgument(0),
                                                   type->arg(0));
         unsigned i = 0;
-        for (i; (*c)[i] != lit; i++) {}
+        while ((*c)[i] != lit) { i++; }
         std::memcpy(res->literals(), c->literals(), length * sizeof(Literal*));
         (*res)[i] = newLit;
         
@@ -476,8 +476,8 @@ namespace Inferences {
       :
       _clause(clause),
       _lit(lit),
-      _leftSide(false),
-      _subterms(0)
+      _subterms(0),
+      _leftSide(false)
     {
       if (!lit->isEquality() || !lit->polarity()) {
         _leftSide = true;
@@ -505,10 +505,10 @@ namespace Inferences {
                                                 *_lit->nthArgument(_leftSide ? 0 : 1),
                                                 *_subterms.pop(),
                                                 _sort);
-      return replaceLit(_clause, _lit, newlit, new Inference1(Inference::TERM_ALGEBRA_ACYCLICITY, _clause));
-      //res->setAge(_clause->age() + 1);
+      Clause* res = replaceLit(_clause, _lit, newlit, new Inference1(Inference::TERM_ALGEBRA_ACYCLICITY, _clause));
+      res->setAge(_clause->age() + 1);
       env.statistics->taAcyclicityGeneratedDisequalities++;
-      //return res;
+      return res;
     }
         
   private:

@@ -22,9 +22,9 @@ TermAlgebraConstructor::TermAlgebraConstructor(vstring name,
   _cname(name),
   _rangeSort(rangeSort),
   _arity(arity),
+  _destructorNames(arity),
   _argSorts(arity),
-  _destructorFunctors(arity),
-  _destructorNames(arity)
+  _destructorFunctors(arity)
 {
   for (unsigned i = 0; i < _arity; i++) {
     _destructorNames[i] = destructorNames[i];
@@ -130,10 +130,10 @@ TermAlgebra::TermAlgebra(vstring name,
                          TermAlgebraConstructor** constrs,
                          bool allowsCyclicTerms) :
   _tname(name),
-  _sort(sort),
   _n(n),
-  _allowsCyclicTerms(allowsCyclicTerms),
-  _constrs(n)
+  _constrs(n),
+  _sort(sort),
+  _allowsCyclicTerms(allowsCyclicTerms)
 {
   for (unsigned i = 0; i < n; i++) {
     ASS(constrs[i]->rangeSort() == _sort);
@@ -231,7 +231,6 @@ void TermAlgebra::addDistinctnessAxiom(UnitList*& units)
   CALL("TermAlgebra::addDistinctnessAxiom");
 
   unsigned varnum = 0;
-  FormulaList *l = FormulaList::empty();
   Formula::VarList *vars1, *vars2;
   Formula::SortList *sorts1, *sorts2 = Formula::SortList::empty();
 
@@ -349,8 +348,6 @@ void TermAlgebra::addInjectivityAxiom(UnitList*& units)
 void TermAlgebra::addAcyclicityAxiom(UnitList*& units)
 {
   CALL("TermAlgebra::addAcyclicityAxiom");
-
-  UnitList* l = UnitList::empty();
 
   unsigned pred = getSubtermPredicate();
 
