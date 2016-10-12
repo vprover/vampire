@@ -191,6 +191,14 @@ SATSolver::VarAssignment Z3Interfacing::getAssignment(unsigned var)
   return DONT_CARE;
 }
 
+Term* Z3Interfacing::evaluateInModel(Term* trm)
+{
+  CALL("Z3Interfacing::evaluateInModel");
+
+  NOT_IMPLEMENTED;
+  return 0;
+}
+
 bool Z3Interfacing::isZeroImplied(unsigned var)
 {
   CALL("Z3Interfacing::isZeroImplied");

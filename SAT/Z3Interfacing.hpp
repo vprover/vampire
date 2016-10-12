@@ -139,7 +139,9 @@ private:
   void addFloorOperations(z3::expr_vector, Interpretation qi, Interpretation ti, unsigned srt);
 
 public:
+  // not sure why this one is public
   z3::expr getz3expr(Term* trm,bool islit,bool&nameExpression);
+  Term* evaluateInModel(Term* trm);
 private:
   z3::expr getRepresentation(SATLiteral lit);
 
