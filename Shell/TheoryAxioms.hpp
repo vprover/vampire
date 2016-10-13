@@ -88,6 +88,7 @@ private:
     static void addExhaustivenessAxiom(TermAlgebra* ta, UnitList*& units);
     static void addDistinctnessAxiom(TermAlgebra* ta, UnitList*& units);
     static void addInjectivityAxiom(TermAlgebra* ta, UnitList*& units);
+    static void addAlternativeInjectivityAxiom(TermAlgebra* ta, UnitList*& units);
     static void addDiscriminationAxiom(TermAlgebra* ta, UnitList*& units);
     static void addAcyclicityAxiom(TermAlgebra* ta, UnitList*& units);
 

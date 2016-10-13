@@ -1172,6 +1172,7 @@ bool TheoryAxioms::apply(UnitList*& units, Property* prop)
     TermAlgebras::addExhaustivenessAxiom(ta, units);
     TermAlgebras::addDistinctnessAxiom(ta, units);
     TermAlgebras::addInjectivityAxiom(ta, units);
+//    TermAlgebras::addAlternativeInjectivityAxiom(ta, units);
     TermAlgebras::addDiscriminationAxiom(ta, units);
 
     if (env.options->termAlgebraCyclicityCheck() == Options::TACyclicityCheck::AXIOM) {
@@ -1307,6 +1308,27 @@ void TheoryAxioms::TermAlgebras::addInjectivityAxiom(TermAlgebra* ta, UnitList*&
       (*injectivity)[1] = eqr;
       addAndOutputTheoryUnit(injectivity, units);
     }
+  }
+}
+
+void TheoryAxioms::TermAlgebras::addAlternativeInjectivityAxiom(TermAlgebra* ta, UnitList*& units)
+{
+  CALL("TheoryAxioms::TermAlgebras::addAlternativeInjectivityAxiom");
+
+  for (unsigned i = 0; i < ta->nConstructors(); i++) {
+    TermAlgebraConstructor* c = ta->constructor(i);
+
+    static TermList t1(0, false);
+    static TermList t2(1, false);
+
+    Clause* clause = new(c->arity() + 1) Clause(c->arity() + 1, Unit::AXIOM, new Inference(Inference::TERM_ALGEBRA_INJECTIVITY));
+    for (unsigned j = 0; j < c->arity(); j++) {
+      TermList proj1 = TermList(Term::create1(c->destructorFunctor(j), t1));
+      TermList proj2 = TermList(Term::create1(c->destructorFunctor(j), t2));
+      (*clause)[j] = Literal::createEquality(false, proj1, proj2, c->argSort(j));
+    }
+    (*clause)[c->arity()] = Literal::createEquality(true, t1, t2, ta->sort());
+    addAndOutputTheoryUnit(clause, units);
   }
 }
 
