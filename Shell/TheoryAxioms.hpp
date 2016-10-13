@@ -86,6 +86,7 @@ private:
 
   struct TermAlgebras {
     static void addExhaustivenessAxiom(TermAlgebra* ta, UnitList*& units);
+    static void addAlternativeExhaustivenessAxiom(TermAlgebra* ta, UnitList*& units);
     static void addDistinctnessAxiom(TermAlgebra* ta, UnitList*& units);
     static void addInjectivityAxiom(TermAlgebra* ta, UnitList*& units);
     static void addAlternativeInjectivityAxiom(TermAlgebra* ta, UnitList*& units);

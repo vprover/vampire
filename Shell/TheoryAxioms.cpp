@@ -1170,9 +1170,10 @@ bool TheoryAxioms::apply(UnitList*& units, Property* prop)
     TermAlgebra* ta = tas.next();
 
     TermAlgebras::addExhaustivenessAxiom(ta, units);
+//    TermAlgebras::addAlternativeExhaustivenessAxiom(ta, units);
     TermAlgebras::addDistinctnessAxiom(ta, units);
-    TermAlgebras::addInjectivityAxiom(ta, units);
-//    TermAlgebras::addAlternativeInjectivityAxiom(ta, units);
+//    TermAlgebras::addInjectivityAxiom(ta, units);
+    TermAlgebras::addAlternativeInjectivityAxiom(ta, units);
     TermAlgebras::addDiscriminationAxiom(ta, units);
 
     if (env.options->termAlgebraCyclicityCheck() == Options::TACyclicityCheck::AXIOM) {
@@ -1254,6 +1255,27 @@ void TheoryAxioms::TermAlgebras::addExhaustivenessAxiom(TermAlgebra* ta, UnitLis
 
   Unit* unit = new FormulaUnit(axiom, new Inference(Inference::TERM_ALGEBRA_EXHAUSTIVENESS), Unit::AXIOM);
   addAndOutputTheoryUnit(unit, units);
+}
+
+void TheoryAxioms::TermAlgebras::addAlternativeExhaustivenessAxiom(TermAlgebra* ta, UnitList*& units) {
+  CALL("TheoryAxioms::TermAlgebras::addAlternativeExhaustivenessAxiom");
+
+  for (unsigned i = 0; i < ta->nConstructors(); i++) {
+    TermAlgebraConstructor* c = ta->constructor(i);
+
+    Stack<TermList> variables;
+    for (unsigned var = 0; var < c->arity(); var++) {
+      variables.push(TermList(var, false));
+    }
+
+    TermList constructedTerm(Term::create(c->functor(), c->arity(), variables.begin()));
+
+    for (unsigned j = 0; j < c->arity(); j++) {
+      Term* rhs = Term::create1(c->destructorFunctor(j), constructedTerm);
+      Literal* eq = Literal::createEquality(true, TermList(j, false), TermList(rhs), c->argSort(j));
+      addTheoryUnitClause(eq, new Inference(Inference::TERM_ALGEBRA_EXHAUSTIVENESS), units);
+    }
+  }
 }
 
 void TheoryAxioms::TermAlgebras::addDistinctnessAxiom(TermAlgebra* ta, UnitList*& units) {
