@@ -73,6 +73,26 @@ Clause* TheoryInstAndSimp::selectTheoryLiterals(Clause* cl, Stack<Literal*>& the
   return flattened;
 }
 
+Term* getFreshConstant(unsigned index, unsigned srt)
+{
+  CALL("TheoryInstAndSimp::getFreshConstant");
+  static Stack<Stack<Term*>*> constants;
+
+  while(srt+1 > constants.length()){
+    Stack<Term*>* stack = new Stack<Term*>;
+    constants.push(stack);
+  }
+  Stack<Term*>* sortedConstants = constants[srt]; 
+  while(index+1 > sortedConstants->length()){
+    unsigned sym = env.signature->addFreshFunction(0,"$$inst");
+    FunctionType* type = new FunctionType(srt);
+    env.signature->getFunction(sym)->setType(type);
+    Term* fresh = Term::createConstant(sym);
+    sortedConstants->push(fresh);
+  }
+  return (*sortedConstants)[index];
+}
+
 VirtualIterator<Solution> TheoryInstAndSimp::getSolutions(Stack<Literal*>& theoryLiterals){
   CALL("TheoryInstAndSimp::getSolutions");
 
@@ -81,10 +101,6 @@ VirtualIterator<Solution> TheoryInstAndSimp::getSolutions(Stack<Literal*>& theor
   // We use a new SMT solver
   SAT2FO naming;
   Z3Interfacing solver(*env.options,naming);
-
-  // We use a static Stack of fresh constants as these can be reused 
-  static Stack<Term*> freshConstants;
-  unsigned used = 0;
 
   // Firstly, we need to consistently replace variables by constants (i.e. Skolemize)
   // Secondly, we take the complement of each literal and consider the conjunction
@@ -97,15 +113,17 @@ VirtualIterator<Solution> TheoryInstAndSimp::getSolutions(Stack<Literal*>& theor
     // get the complementary of the literal
     Literal* lit = Literal::complementaryLiteral(it.next());
     // replace variables consistently by fresh constants 
+    DHMap<unsigned,unsigned > srtMap;
+    SortHelper::collectVariableSorts(lit,srtMap); 
     TermVarIterator vit(lit);
+    unsigned used = 0;
     while(vit.hasNext()){
       unsigned var = vit.next();
+      unsigned sort = srtMap.get(var);
       TermList fc;
       if(!subst.findBinding(var,fc)){
-        if(used > freshConstants.length()){
-          freshConstants.push(Term::createConstant(env.signature->addFreshFunction(0,"$$inst")));
-        }
-        subst.bind(var,freshConstants[used++]);
+        Term* fc = getFreshConstant(used++,sort);
+        subst.bind(var,fc);
         vars.push(var);
       }
     }
