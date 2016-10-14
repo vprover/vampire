@@ -17,6 +17,8 @@
 #include "Kernel/Signature.hpp"
 #include "Kernel/Sorts.hpp"
 
+#include "Indexing/TermSharing.hpp"
+
 #include "Z3Interfacing.hpp"
 
 namespace SAT
@@ -195,7 +197,28 @@ Term* Z3Interfacing::evaluateInModel(Term* trm)
 {
   CALL("Z3Interfacing::evaluateInModel");
 
-  NOT_IMPLEMENTED;
+  ASS(!trm->isLiteral());
+
+  bool name; //TODO what do we do about naming?
+  z3::expr rep = getz3expr(trm,false,name); 
+  z3::expr assignment = _model.eval(rep,true /*model_completion*/);
+
+  // now translate assignment back into a term!
+
+  // For now just deal with the case where it is an integer 
+  if(assignment.is_numeral()){
+    bool is_int = assignment.is_int();
+    ASS(is_int || assignment.is_real()); 
+    if(is_int){
+      int value = assignment.get_numeral_int();
+      Term* t = new(0) Term;
+      IntegerConstantType integer(value);
+      t->makeSymbol(env.signature->addIntegerConstant(integer),0);
+      env.sharing->insert(t);
+      return t;
+    }
+  }
+
   return 0;
 }
 
