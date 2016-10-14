@@ -211,10 +211,8 @@ Term* Z3Interfacing::evaluateInModel(Term* trm)
     ASS(is_int || assignment.is_real()); 
     if(is_int){
       int value = assignment.get_numeral_int();
-      Term* t = new(0) Term;
-      IntegerConstantType integer(value);
-      t->makeSymbol(env.signature->addIntegerConstant(integer),0);
-      env.sharing->insert(t);
+      Term* t = theory->representConstant(IntegerConstantType(value));
+      cout << "evaluteInModel: " << trm->toString() <<" has value " << value << endl; 
       return t;
     }
   }

@@ -432,7 +432,7 @@ class Signature
   /** Return the function symbol by its number */
   inline Symbol* getFunction(unsigned n)
   {
-    ASS(n < _funs.length());
+    ASS_REP(n < _funs.length(),n);
     return _funs[n];
   } // getFunction
   /** Return the predicate symbol by its number */

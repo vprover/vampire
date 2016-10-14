@@ -154,8 +154,10 @@ VirtualIterator<Solution> TheoryInstAndSimp::getSolutions(Stack<Literal*>& theor
       unsigned v = vit.next();
       Term* t = subst.apply(v).term();
       t = solver.evaluateInModel(t);
+      cout << "bind " << v << " to " << t->toString() << endl;
       sol.subst.bind(v,t);
     }
+    cout << "solution with " << sol.subst.toString() << endl;
     return pvi(getSingletonIterator(sol));
   }
 
@@ -178,6 +180,8 @@ struct InstanceFn
     if(!sol.status){
       return 0;
     }
+    cout << "Instantiate " << _cl->toString() << endl;
+    cout << "with " << sol.subst.toString() << endl;
     Inference* inf = new Inference1(Inference::INSTANTIATION,_cl);
     Clause* res = new(_cl->length()) Clause(_cl->length(),_cl->inputType(),inf);
     for(unsigned i=0;i<_cl->length();i++){
