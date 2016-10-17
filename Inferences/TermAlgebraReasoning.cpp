@@ -50,7 +50,7 @@ namespace Inferences {
   {
     CALL("removeLit");
 
-    int length = c->length();
+    unsigned length = c->length();
     ASS_GE(i, 0);
     ASS_L(i, length);
 
