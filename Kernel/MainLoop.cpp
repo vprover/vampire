@@ -116,6 +116,7 @@ ImmediateSimplificationEngine* MainLoop::createISE(Problem& prb, const Options& 
     if (opt.termAlgebraInferences()) {
       res->addFront(new DistinctnessISE());
       res->addFront(new InjectivityISE());
+      res->addFront(new NegativeInjectivityISE());
     }
   }
   if(prb.hasInterpretedOperations() || prb.hasInterpretedEquality()) {
