@@ -19115,7 +19115,8 @@ static DFPR * lglstampall (LGL * lgl, int irronly) {
       if (rootsonly &&
 	  !lglunhdisroot (lgl, root, dfpr, irronly)) goto CONTINUE;
       if (!lglunhdhasbins (lgl, dfpr, -root, irronly)) {
-	if (rootsonly) noimpls++; goto CONTINUE;
+	if (rootsonly) noimpls++;
+	goto CONTINUE;
       }
       if (rootsonly) roots++;
       searches++;

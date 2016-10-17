@@ -80,7 +80,7 @@ namespace Kernel {
 void Formula::destroy ()
 {
   CALL ("Formula::Data::destroy");
-  ASS (this);
+  // ASS (this); -- new gcc thinks this is never null
 
   switch ( connective() ) {
   case LITERAL:
