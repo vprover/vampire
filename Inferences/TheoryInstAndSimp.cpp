@@ -57,8 +57,8 @@ Clause* TheoryInstAndSimp::selectTheoryLiterals(Clause* cl, Stack<Literal*>& the
   while(it.hasNext()){
     Literal* lit = it.next();
     bool interpreted = theory->isInterpretedPredicate(lit);
-    if(lit->isEquality()){
-      interpreted=false;
+    if(lit->isEquality() && !lit->isTwoVarEquality()) {  // two var equalities are correctly identified as interpreted and should be added
+      interpreted=false; // for the other equalities, we make sure they don't contain uninterpreted stuff (after flattenning)
       for(TermList* ts = lit->args(); ts->isNonEmpty(); ts = ts->next()){
         if(ts->isTerm() && env.signature->getFunction(ts->term()->functor())->interpreted()){
           interpreted=true;
@@ -200,7 +200,8 @@ ClauseIterator TheoryInstAndSimp::generateClauses(Clause* premise)
 
   //Limits* limits = _salg->getLimits();
 
-  Stack<Literal*> theoryLiterals;
+  static Stack<Literal*> theoryLiterals;
+  theoryLiterals.reset();
 
   Clause* flattened = selectTheoryLiterals(premise,theoryLiterals);
 
