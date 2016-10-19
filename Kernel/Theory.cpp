@@ -1272,7 +1272,7 @@ bool Theory::isInterpretedPredicate(Literal* lit)
   CALL("Theory::isInterpretedPredicate");
 
   if(lit->isEquality()){
-    return SortHelper::getEqualityArgumentSort(lit)!=Sorts::SRT_DEFAULT;
+    return SortHelper::getEqualityArgumentSort(lit)!=Sorts::SRT_DEFAULT; // TODO: what about user-defined but uninterpreted ?
   }
 
   return isInterpretedPredicate(lit->functor());

@@ -177,7 +177,7 @@ struct InstanceFn
   {
     CALL("TheoryInstAndSimp::InstanceFn::operator()");
 
-    // We should be deleting cl, but we don't support that for now
+    // We should be deleting cl (it's a theory-tautology), but we don't support that for now
     if(!sol.status){
       return 0;
     }
