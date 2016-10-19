@@ -205,7 +205,7 @@ ClauseIterator TheoryInstAndSimp::generateClauses(Clause* premise)
   Clause* flattened = selectTheoryLiterals(premise,theoryLiterals);
 
   if(theoryLiterals.isEmpty()){
-     return ClauseIterator(); 
+     return ClauseIterator::getEmpty();
   }
 
   auto it1 = getSolutions(theoryLiterals);
