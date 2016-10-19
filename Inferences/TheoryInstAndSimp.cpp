@@ -154,6 +154,7 @@ VirtualIterator<Solution> TheoryInstAndSimp::getSolutions(Stack<Literal*>& theor
       unsigned v = vit.next();
       Term* t = subst.apply(v).term();
       t = solver.evaluateInModel(t);
+      ASS(t); // TODO: make evaluateInModel cover all the cases
       cout << "bind " << v << " to " << t->toString() << endl;
       sol.subst.bind(v,t);
     }
