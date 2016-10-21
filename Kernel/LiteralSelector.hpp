@@ -120,7 +120,7 @@ public:
     return false;
   }
 protected:
-  void doSelection(Clause* c, unsigned eligible);
+  void doSelection(Clause* c, unsigned eligible) override;
 };
 
 
