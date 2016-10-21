@@ -29,7 +29,7 @@ public:
 
   bool isBGComplete() const override { return _completeSelection; }
 protected:
-  virtual void doSelection(Clause* c, unsigned eligible);
+  void doSelection(Clause* c, unsigned eligible) override;
 private:
   Literal* pickTheBest(Literal** lits, unsigned cnt);
   void removeVariants(LiteralStack& lits);
