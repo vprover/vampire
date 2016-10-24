@@ -1272,7 +1272,8 @@ bool Theory::isInterpretedPredicate(Literal* lit)
   CALL("Theory::isInterpretedPredicate");
 
   if(lit->isEquality()){
-    return SortHelper::getEqualityArgumentSort(lit)!=Sorts::SRT_DEFAULT; // TODO: what about user-defined but uninterpreted ?
+    unsigned srt = SortHelper::getEqualityArgumentSort(lit);
+    return (srt > Sorts::SRT_DEFAULT && srt < Sorts::FIRST_USER_SORT);
   }
 
   return isInterpretedPredicate(lit->functor());

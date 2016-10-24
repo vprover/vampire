@@ -62,6 +62,7 @@ Clause* TheoryInstAndSimp::selectTheoryLiterals(Clause* cl, Stack<Literal*>& the
       for(TermList* ts = lit->args(); ts->isNonEmpty(); ts = ts->next()){
         if(ts->isTerm() && env.signature->getFunction(ts->term()->functor())->interpreted()){
           interpreted=true;
+          break;
         }
       }
     }

@@ -177,7 +177,11 @@ Clause* TheoryFlattening::apply(Clause*& cl)
     Term* t = ts->term();
 
     // if interpreted status is different factor out
-    if(interpreted != env.signature->getFunction(t->functor())->interpreted()){
+    // but never factor out interpreted constants e.g. numbers
+    if(
+        (interpreted != env.signature->getFunction(t->functor())->interpreted()) && 
+        theory->isInterpretedConstant(t)
+      ){
       //cout << "Factoring out " << t->toString() << endl;
       unsigned newVar = ++maxVar;
       args.push(TermList(newVar,false));
