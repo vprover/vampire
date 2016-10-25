@@ -131,6 +131,8 @@ public:
   unsigned innerRewrites;
   /** number of inner rewrites into equational tautologies */
   unsigned innerRewritesToEqTaut;
+  /** number of equational tautologies discovered by CC */
+  unsigned deepEquationalTautologies;
 
   // Deletion inferences
   /** number of tautologies A \/ ~A */

@@ -6,6 +6,8 @@
 #include "EquationalTautologyRemoval.hpp"
 
 #include "Lib/DHSet.hpp"
+#include "Lib/Environment.hpp"
+#include "Shell/Statistics.hpp"
 #include "Kernel/Clause.hpp"
 
 namespace Inferences
@@ -72,6 +74,9 @@ Clause* EquationalTautologyRemoval::simplify(Clause* cl)
   }
 
   if (_cc.getStatus(false) == DP::DecisionProcedure::UNSATISFIABLE) {
+    // cout << "Deep equational: " << cl->toString() << endl;
+
+    env.statistics->deepEquationalTautologies++;
     return 0;
   } else {
     return cl;
