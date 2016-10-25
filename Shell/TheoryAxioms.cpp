@@ -1172,8 +1172,8 @@ bool TheoryAxioms::apply(UnitList*& units, Property* prop)
     TermAlgebras::addExhaustivenessAxiom(ta, units);
 //    TermAlgebras::addAlternativeExhaustivenessAxiom(ta, units);
     TermAlgebras::addDistinctnessAxiom(ta, units);
-//    TermAlgebras::addInjectivityAxiom(ta, units);
-    TermAlgebras::addAlternativeInjectivityAxiom(ta, units);
+    TermAlgebras::addInjectivityAxiom(ta, units);
+//    TermAlgebras::addAlternativeInjectivityAxiom(ta, units);
     TermAlgebras::addDiscriminationAxiom(ta, units);
 
     if (env.options->termAlgebraCyclicityCheck() == Options::TACyclicityCheck::AXIOM) {
