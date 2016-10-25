@@ -976,6 +976,12 @@ void Options::Options::init()
     _innerRewriting.tag(OptionTag::INFERENCES);
     _innerRewriting.setExperimental();
 
+    _equationalTautologyRemoval = BoolOptionValue("equational_tautology_removal","etr",false);
+    _equationalTautologyRemoval.description="A reduction which uses CC to remove logically valid clauses.";
+    _lookup.insert(&_equationalTautologyRemoval);
+    _equationalTautologyRemoval.tag(OptionTag::INFERENCES);
+    _equationalTautologyRemoval.setExperimental();
+
     _unitResultingResolution = ChoiceOptionValue<URResolution>("unit_resulting_resolution","urr",URResolution::OFF,{"ec_only","off","on"});
     _unitResultingResolution.description=
     "Uses unit resulting resolution only to derive empty clauses (may be useful for splitting)";

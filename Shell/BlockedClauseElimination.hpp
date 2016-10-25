@@ -15,8 +15,6 @@
 #include "Lib/Comparison.hpp"
 #include "Lib/Stack.hpp"
 
-#include "DP/SimpleCongruenceClosure.hpp"
-
 namespace Shell {
 
 using namespace Kernel;
