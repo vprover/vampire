@@ -73,6 +73,19 @@ Clause::Clause(unsigned length,InputType it,Inference* inf)
     _extensionalityTag = true;
     setInputType(Unit::AXIOM);
   }
+  static bool hasTheoryAxioms = env.options->theoryAxioms() != Options::TheoryAxiomLevel::OFF;
+  if(hasTheoryAxioms){
+    Inference::Iterator it = inf->iterator();
+    bool td = inf->hasNext(it); // td should be false if there are no parents
+    while(inf->hasNext(it)){
+      Unit* parent = inf->next(it);
+      if(parent->isClause()){
+        td &= static_cast<Clause*>(parent)->isTheoryDescendant();
+        if(!td){break;}
+      }
+    }
+    _theoryDescendant=td;
+  }
 
 //#if VDEBUG
 _freeze_count=0;

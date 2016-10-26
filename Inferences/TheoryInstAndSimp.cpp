@@ -201,6 +201,8 @@ ClauseIterator TheoryInstAndSimp::generateClauses(Clause* premise)
 {
   CALL("TheoryInstAndSimp::generateClauses");
 
+  if(premise->isTheoryDescendant()){ return ClauseIterator::getEmpty(); }
+
   //Limits* limits = _salg->getLimits();
 
   static Stack<Literal*> theoryLiterals;
