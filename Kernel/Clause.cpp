@@ -54,6 +54,7 @@ Clause::Clause(unsigned length,InputType it,Inference* inf)
     _extensionality(false),
     _extensionalityTag(false),
     _component(false),
+    _theoryDescendant(false),
     _numSelected(0),
     _age(0),
     _weight(0),

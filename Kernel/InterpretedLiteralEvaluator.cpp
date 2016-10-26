@@ -104,6 +104,9 @@ class InterpretedLiteralEvaluator::EqualityEvaluator
   {
     CALL("InterpretedLiteralEvaluator::EqualityEvaluator::tryEvaluatePred");
 
+    // Return if this is not an equality between theory terms
+    if(!theory->isInterpretedPredicate(lit)){ return false; }
+
     try{
 
       Interpretation itp = theory->interpretPredicate(lit);
