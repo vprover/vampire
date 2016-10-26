@@ -16,6 +16,7 @@
 #include "Lib/System.hpp"
 #include "Kernel/Signature.hpp"
 #include "Kernel/Sorts.hpp"
+#include "Kernel/SortHelper.hpp"
 
 #include "Indexing/TermSharing.hpp"
 
@@ -199,6 +200,7 @@ Term* Z3Interfacing::evaluateInModel(Term* trm)
 
   ASS(!trm->isLiteral());
 
+  unsigned srt = SortHelper::getResultSort(trm);
   bool name; //TODO what do we do about naming?
   z3::expr rep = getz3expr(trm,false,name); 
   z3::expr assignment = _model.eval(rep,true /*model_completion*/);
@@ -210,10 +212,29 @@ Term* Z3Interfacing::evaluateInModel(Term* trm)
     bool is_int = assignment.is_int();
     ASS(is_int || assignment.is_real()); 
     if(is_int){
+      ASS(srt == Sorts::SRT_INTEGER);
       int value = assignment.get_numeral_int();
       Term* t = theory->representConstant(IntegerConstantType(value));
-      cout << "evaluteInModel: " << trm->toString() <<" has value " << value << endl; 
+      //cout << "evaluteInModel: " << trm->toString() <<" has value " << value << endl; 
       return t;
+    }
+    else{
+     Z3_ast numerator = Z3_get_numerator(_context,assignment);
+     Z3_ast denominator = Z3_get_denominator(_context,assignment);
+     int n;
+     int d;
+     if(Z3_get_numeral_int(_context,numerator,&n) && Z3_get_numeral_int(_context,denominator,&d)){
+       //cout << "HERE with " << n << " and " << d << endl;
+       if(srt == Sorts::SRT_RATIONAL){
+         Term* t = theory->representConstant(RationalConstantType(n,d));
+         return t;
+       }
+       else{
+         ASS(srt == Sorts::SRT_REAL);
+         Term* t = theory->representConstant(RealConstantType(RationalConstantType(n,d)));
+         return t;
+       }
+     }
     }
   }
 

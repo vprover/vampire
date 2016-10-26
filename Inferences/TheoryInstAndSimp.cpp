@@ -156,10 +156,10 @@ VirtualIterator<Solution> TheoryInstAndSimp::getSolutions(Stack<Literal*>& theor
       Term* t = subst.apply(v).term();
       t = solver.evaluateInModel(t);
       ASS(t); // TODO: make evaluateInModel cover all the cases
-      cout << "bind " << v << " to " << t->toString() << endl;
+      //cout << "bind " << v << " to " << t->toString() << endl;
       sol.subst.bind(v,t);
     }
-    cout << "solution with " << sol.subst.toString() << endl;
+    //cout << "solution with " << sol.subst.toString() << endl;
     return pvi(getSingletonIterator(sol));
   }
 
@@ -182,8 +182,8 @@ struct InstanceFn
     if(!sol.status){
       return 0;
     }
-    cout << "Instantiate " << _cl->toString() << endl;
-    cout << "with " << sol.subst.toString() << endl;
+    //cout << "Instantiate " << _cl->toString() << endl;
+    //cout << "with " << sol.subst.toString() << endl;
     Inference* inf = new Inference1(Inference::INSTANTIATION,_cl);
     Clause* res = new(_cl->length()) Clause(_cl->length(),_cl->inputType(),inf);
     for(unsigned i=0;i<_cl->length();i++){
@@ -207,7 +207,9 @@ ClauseIterator TheoryInstAndSimp::generateClauses(Clause* premise)
 
   Clause* flattened = selectTheoryLiterals(premise,theoryLiterals);
 
+  //cout << "Generate instances of " << premise->toString() << endl;
   if(theoryLiterals.isEmpty()){
+     //cout << "None" << endl;
      return ClauseIterator::getEmpty();
   }
 

@@ -180,7 +180,7 @@ Clause* TheoryFlattening::apply(Clause*& cl)
     // but never factor out interpreted constants e.g. numbers
     if(
         (interpreted != env.signature->getFunction(t->functor())->interpreted()) && 
-        theory->isInterpretedConstant(t)
+        !theory->isInterpretedConstant(t)
       ){
       //cout << "Factoring out " << t->toString() << endl;
       unsigned newVar = ++maxVar;
