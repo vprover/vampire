@@ -155,9 +155,10 @@ VirtualIterator<Solution> TheoryInstAndSimp::getSolutions(Stack<Literal*>& theor
       unsigned v = vit.next();
       Term* t = subst.apply(v).term();
       t = solver.evaluateInModel(t);
-      ASS(t); // TODO: make evaluateInModel cover all the cases
-      //cout << "bind " << v << " to " << t->toString() << endl;
-      sol.subst.bind(v,t);
+      // If we could evaluate the term in the model then bind it
+      if(t){
+        sol.subst.bind(v,t);
+      }
     }
     //cout << "solution with " << sol.subst.toString() << endl;
     return pvi(getSingletonIterator(sol));
