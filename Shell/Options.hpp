@@ -454,7 +454,8 @@ public:
   enum class SymbolPrecedence : unsigned int {
     ARITY = 0,
     OCCURRENCE = 1,
-    REVERSE_ARITY = 2
+    REVERSE_ARITY = 2,
+    SCRAMBLE = 3
   };
 
   enum class SineSelection : unsigned int {

@@ -14,6 +14,7 @@
 #include "Lib/DHMap.hpp"
 #include "Lib/Int.hpp"
 #include "Lib/Metaiterators.hpp"
+#include "Lib/Random.hpp"
 
 #include "Indexing/TermSharing.hpp"
 
@@ -677,8 +678,21 @@ KBOBase::KBOBase(Problem& prb, const Options& opt)
       break;
     case Shell::Options::SymbolPrecedence::OCCURRENCE:
       break;
+    case Shell::Options::SymbolPrecedence::SCRAMBLE:
+      for(unsigned i=0;i<_functions;i++){
+        unsigned j = Random::getInteger(_functions-i)+i;
+        unsigned tmp = aux[j];
+        aux[j]=aux[i];
+        aux[i]=tmp;
+      }
+      break;
     }
 
+  cout << "Function precedences:" << endl;
+  for(unsigned i=0;i<_functions;i++){
+    cout << env.signature->functionName(aux[i]) << " ";
+  }
+  cout << endl;
     for(unsigned i=0;i<_functions;i++) {
       _functionPrecedences[aux[i]]=i;
     }
@@ -695,7 +709,20 @@ KBOBase::KBOBase(Problem& prb, const Options& opt)
     break;
   case Shell::Options::SymbolPrecedence::OCCURRENCE:
     break;
+    case Shell::Options::SymbolPrecedence::SCRAMBLE:
+      for(unsigned i=0;i<_predicates;i++){
+        unsigned j = Random::getInteger(_predicates-i)+i;
+        unsigned tmp = aux[j];
+        aux[j]=aux[i];
+        aux[i]=tmp;
+      }
+      break;
   }
+  cout << "Predicate precedences:" << endl;
+  for(unsigned i=0;i<_predicates;i++){
+    cout << env.signature->predicateName(aux[i]) << " "; 
+  }
+  cout << endl;
   for(unsigned i=0;i<_predicates;i++) {
     _predicatePrecedences[aux[i]]=i;
   }
