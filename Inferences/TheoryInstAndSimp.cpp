@@ -5,6 +5,8 @@
 
 #if VZ3
 
+#define DPRINT 0
+
 #include "Debug/RuntimeStatistics.hpp"
 
 #include "Lib/Environment.hpp"
@@ -21,6 +23,7 @@
 #include "Kernel/SubstHelper.hpp"
 
 #include "Saturation/SaturationAlgorithm.hpp"
+#include "Saturation/Splitter.hpp"
 
 #include "Shell/Options.hpp"
 #include "Shell/Statistics.hpp"
@@ -57,11 +60,12 @@ Clause* TheoryInstAndSimp::selectTheoryLiterals(Clause* cl, Stack<Literal*>& the
   while(it.hasNext()){
     Literal* lit = it.next();
     bool interpreted = theory->isInterpretedPredicate(lit);
-    if(lit->isEquality() && !lit->isTwoVarEquality()) {  // two var equalities are correctly identified as interpreted and should be added
-      interpreted=false; // for the other equalities, we make sure they don't contain uninterpreted stuff (after flattenning)
+    // two var equalities are correctly identified as interpreted and should be added
+    // for the other equalities, we make sure they don't contain uninterpreted stuff (after flattenning)
+    if(interpreted && lit->isEquality() && !lit->isTwoVarEquality()) {  
       for(TermList* ts = lit->args(); ts->isNonEmpty(); ts = ts->next()){
-        if(ts->isTerm() && env.signature->getFunction(ts->term()->functor())->interpreted()){
-          interpreted=true;
+        if(ts->isTerm() && !env.signature->getFunction(ts->term()->functor())->interpreted()){
+          interpreted=false;
           break;
         }
       }
@@ -160,7 +164,9 @@ VirtualIterator<Solution> TheoryInstAndSimp::getSolutions(Stack<Literal*>& theor
         sol.subst.bind(v,t);
       }
     }
-    //cout << "solution with " << sol.subst.toString() << endl;
+#if DPRINT
+    cout << "solution with " << sol.subst.toString() << endl;
+#endif
     return pvi(getSingletonIterator(sol));
   }
 
@@ -183,8 +189,14 @@ struct InstanceFn
     if(!sol.status){
       return 0;
     }
-    //cout << "Instantiate " << _cl->toString() << endl;
-    //cout << "with " << sol.subst.toString() << endl;
+    // If the solution is empty (for any reason) there is no point performing instantiation
+    if(sol.subst.isEmpty()){
+      return 0;
+    }
+#if DPRINT
+    cout << "Instantiate " << _cl->toString() << endl;
+    cout << "with " << sol.subst.toString() << endl;
+#endif
     Inference* inf = new Inference1(Inference::INSTANTIATION,_cl);
     Clause* res = new(_cl->length()) Clause(_cl->length(),_cl->inputType(),inf);
     for(unsigned i=0;i<_cl->length();i++){
@@ -210,7 +222,13 @@ ClauseIterator TheoryInstAndSimp::generateClauses(Clause* premise)
 
   Clause* flattened = selectTheoryLiterals(premise,theoryLiterals);
 
-  //cout << "Generate instances of " << premise->toString() << endl;
+  static Splitter* splitter = _salg->getSplitter();
+  splitter->onNewClause(flattened);
+
+#if DPRINT
+  cout << "Generate instances of " << premise->toString() << endl;
+  cout << "With flattened " << flattened->toString() << endl;
+#endif
   if(theoryLiterals.isEmpty()){
      //cout << "None" << endl;
      return ClauseIterator::getEmpty();

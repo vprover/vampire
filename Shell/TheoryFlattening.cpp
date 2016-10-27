@@ -157,11 +157,15 @@ Clause* TheoryFlattening::apply(Clause*& cl)
 
   // Tells us if we're looking for interpreted are non-interpreted terms to flatten out
   bool interpreted = theory->isInterpretedPredicate(lit);
+  bool equalityWithNumber = false;
   if(lit->isEquality()){
     interpreted=false;
     for(TermList* ts = lit->args(); ts->isNonEmpty(); ts = ts->next()){
       if(ts->isTerm() && env.signature->getFunction(ts->term()->functor())->interpreted()){
         interpreted=true;
+      }
+      if(ts->isTerm() && theory->isInterpretedConstant(ts->term())){
+        equalityWithNumber = true;
       }
     }
   }
@@ -179,8 +183,9 @@ Clause* TheoryFlattening::apply(Clause*& cl)
     // if interpreted status is different factor out
     // but never factor out interpreted constants e.g. numbers
     if(
+        !equalityWithNumber &&
         (interpreted != env.signature->getFunction(t->functor())->interpreted()) && 
-        !theory->isInterpretedConstant(t)
+        !theory->isInterpretedConstant(t) 
       ){
       //cout << "Factoring out " << t->toString() << endl;
       unsigned newVar = ++maxVar;
@@ -221,7 +226,7 @@ Clause* TheoryFlattening::apply(Clause*& cl)
     Term* t = ts->term();
 
     // if interpreted status is different factor out
-    if(interpreted != env.signature->getFunction(t->functor())->interpreted()){
+    if(interpreted != env.signature->getFunction(t->functor())->interpreted() && !theory->isInterpretedConstant(t)){
       //cout << "Factoring out " << t->toString() << endl;
       unsigned newVar = ++maxVar;
       args.push(TermList(newVar,false));
