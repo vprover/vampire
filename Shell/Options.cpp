@@ -2758,7 +2758,8 @@ bool Options::complete(const Problem& prb) const
       || prop.hasProp(Property::PR_HAS_INTEGERS)
       || prop.hasProp(Property::PR_HAS_REALS)
       || prop.hasProp(Property::PR_HAS_RATS)
-      || prop.hasProp(Property::PR_HAS_CONSTRUCTORS)) {
+      || prop.hasProp(Property::PR_HAS_DT_CONSTRUCTORS)
+      || prop.hasProp(Property::PR_HAS_CDT_CONSTRUCTORS)) {
     return false;
   }
 
