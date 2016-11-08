@@ -44,17 +44,13 @@ const Options& InferenceEngine::getOptions() const
 }
 
 
-void ForwardSimplificationPerformer::perform(Clause* premise, Clause* replacement, Clause* reductionPremise)
+void ForwardSimplificationPerformer::perform(Clause* premise, Clause* replacement)
 {
   CALL("ForwardSimplificationPerformer::perform/3");
 
   ClauseIterator premises;
   
-  if(reductionPremise) {
-    ASS(premise);
-    premises = pvi( getConcatenatedIterator(getSingletonIterator(premise), getSingletonIterator(reductionPremise)) );
-  }
-  else if(premise) {
+  if(premise) {
     premises = pvi( getSingletonIterator(premise) );
   }
   else {
