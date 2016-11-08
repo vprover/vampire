@@ -7,6 +7,7 @@
 
 #include "Kernel/Inference.hpp"
 #include "Kernel/Ordering.hpp"
+#include "Kernel/ColorHelper.hpp"
 
 #include "Indexing/IndexManager.hpp"
 
@@ -51,8 +52,9 @@ void ForwardLiteralRewriting::perform(Clause* cl, ForwardSimplificationPerformer
       SLQueryResult qr=git.next();
       Clause* counterpart=_index->getCounterpart(qr.clause);
 
-      if(!simplPerformer->willPerform(qr.clause) || !simplPerformer->willPerform(counterpart)) {
-	continue;
+      if(!ColorHelper::compatible(cl->color(), qr.clause->color()) ||
+         !ColorHelper::compatible(cl->color(), counterpart->color()) ) {
+        continue;
       }
 
       if(cl==qr.clause || cl==counterpart) {

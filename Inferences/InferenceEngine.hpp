@@ -134,7 +134,6 @@ public:
    */
   void perform(Clause* premise, Clause* replacement);
   virtual void perform(ClauseIterator premises, Clause* replacement) = 0;
-  virtual bool willPerform(Clause* premise) { return true; }
   virtual bool clauseKept() = 0;
 };
 

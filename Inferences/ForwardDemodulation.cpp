@@ -21,6 +21,7 @@
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/Term.hpp"
 #include "Kernel/TermIterators.hpp"
+#include "Kernel/ColorHelper.hpp"
 
 #include "Indexing/Index.hpp"
 #include "Indexing/IndexManager.hpp"
@@ -99,7 +100,7 @@ void ForwardDemodulation::perform(Clause* cl, ForwardSimplificationPerformer* si
 	TermQueryResult qr=git.next();
 	ASS_EQ(qr.clause->length(),1);
 
-	if(!simplPerformer->willPerform(qr.clause)) {
+	if(!ColorHelper::compatible(cl->color(), qr.clause->color())) {
 	  continue;
 	}
 

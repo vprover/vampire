@@ -16,6 +16,7 @@
 #include "Kernel/Inference.hpp"
 #include "Kernel/Matcher.hpp"
 #include "Kernel/MLMatcher.hpp"
+#include "Kernel/ColorHelper.hpp"
 
 #include "Indexing/Index.hpp"
 #include "Indexing/LiteralIndex.hpp"
@@ -254,7 +255,7 @@ void ForwardSubsumptionAndResolution::perform(Clause* cl, ForwardSimplificationP
 	continue;
       }
       premise->setAux(0);
-      if(simplPerformer->willPerform(premise)) {
+      if(ColorHelper::compatible(cl->color(), premise->color()) ) {
 	simplPerformer->perform(premise, 0);
 	env.statistics->forwardSubsumed++;
 	if(!simplPerformer->clauseKept()) {
@@ -290,7 +291,7 @@ void ForwardSubsumptionAndResolution::perform(Clause* cl, ForwardSimplificationP
 	continue;
       }
 
-      if(MLMatcher::canBeMatched(mcl,cl,cms->_matches,0) && simplPerformer->willPerform(mcl)) {
+      if(MLMatcher::canBeMatched(mcl,cl,cms->_matches,0) && ColorHelper::compatible(cl->color(), mcl->color())) {
 	simplPerformer->perform(mcl, 0);
 	env.statistics->forwardSubsumed++;
 	if(!simplPerformer->clauseKept()) {
@@ -314,7 +315,7 @@ void ForwardSubsumptionAndResolution::perform(Clause* cl, ForwardSimplificationP
       SLQueryResultIterator rit=_unitIndex->getGeneralizations( resLit, true, false);
       while(rit.hasNext()) {
 	Clause* mcl=rit.next().clause;
-	if(simplPerformer->willPerform(mcl)) {
+	if(ColorHelper::compatible(cl->color(), mcl->color())) {
 	  resolutionClause=generateSubsumptionResolutionClause(cl,resLit,mcl);
 	  env.statistics->forwardSubsumptionResolution++;
 	  simplPerformer->perform(mcl, resolutionClause);
@@ -331,7 +332,7 @@ void ForwardSubsumptionAndResolution::perform(Clause* cl, ForwardSimplificationP
 	ClauseMatches* cms=csit.next();
 	for(unsigned li=0;li<clen;li++) {
 	  Literal* resLit=(*cl)[li];
-	  if(checkForSubsumptionResolution(cl, cms, resLit) && simplPerformer->willPerform(cms->_cl)) {
+	  if(checkForSubsumptionResolution(cl, cms, resLit) && ColorHelper::compatible(cl->color(), cms->_cl->color()) ) {
 	    resolutionClause=generateSubsumptionResolutionClause(cl,resLit,cms->_cl);
 	    env.statistics->forwardSubsumptionResolution++;
 	    simplPerformer->perform(cms->_cl, resolutionClause);
@@ -360,7 +361,7 @@ void ForwardSubsumptionAndResolution::perform(Clause* cl, ForwardSimplificationP
 	cmStore.push(cms);
 	cms->fillInMatches(&miniIndex);
 
-	if(checkForSubsumptionResolution(cl, cms, resLit) && simplPerformer->willPerform(cms->_cl)) {
+	if(checkForSubsumptionResolution(cl, cms, resLit) && ColorHelper::compatible(cl->color(), cms->_cl->color())) {
 	  resolutionClause=generateSubsumptionResolutionClause(cl,resLit,cms->_cl);
 	  env.statistics->forwardSubsumptionResolution++;
 	  simplPerformer->perform(cms->_cl, resolutionClause);

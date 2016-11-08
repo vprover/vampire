@@ -476,7 +476,7 @@ bool HyperSuperposition::trySimplifyingFromUnification(Clause* cl, Term* t1, Ter
   ClauseStack::Iterator premIt(premises);
   while(premIt.hasNext()) {
     Clause* pr = premIt.next();
-    if(!simplPerformer->willPerform(pr)) {
+    if(!ColorHelper::compatible(cl->color(), pr->color())) {
       return false;
     }
   }

@@ -275,7 +275,6 @@ void GlobalSubsumption::perform(Clause* cl, ForwardSimplificationPerformer* simp
     
   Stack<Unit*>::BottomFirstIterator it(prems);
               
-  ALWAYS(simplPerformer->willPerform(0));
   simplPerformer->perform(pvi( getMappingIterator(it, Unit2ClFn()) ), newCl);
   ALWAYS(!simplPerformer->clauseKept());
 }

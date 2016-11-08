@@ -5,6 +5,7 @@
 
 
 #include "Kernel/Inference.hpp"
+#include "Kernel/ColorHelper.hpp"
 
 #include "Indexing/Index.hpp"
 #include "Indexing/IndexManager.hpp"
@@ -92,7 +93,7 @@ void CTFwSubsAndRes::perform(Clause* cl, ForwardSimplificationPerformer* simplPe
       continue;
     }
     premise->setAux(0);
-    if(!simplPerformer->willPerform(premise)) {
+    if(!ColorHelper::compatible(cl->color(), premise->color())) {
       continue;
     }
     

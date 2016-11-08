@@ -681,21 +681,6 @@ public:
     _cl=0;
   }
 
-  bool willPerform(Clause* premise)
-  {
-    CALL("TotalSimplificationPerformer::willPerform");
-    ASS(_cl);
-
-    if (!premise) {
-      return true;
-    }
-    if ( !ColorHelper::compatible(_cl->color(), premise->color()) ) {
-      return false;
-    }
-
-    return true;
-  }
-
   bool clauseKept()
   { return _cl; }
 private:

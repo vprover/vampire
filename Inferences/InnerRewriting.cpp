@@ -19,8 +19,6 @@ void InnerRewriting::perform(Clause* cl, ForwardSimplificationPerformer* simplPe
 {
   CALL("InnerRewriting::perform");
 
-  ALWAYS(simplPerformer->willPerform(0));
-
   Ordering& ordering = _salg->getOrdering();
 
   // look for the first equality which rewrites something and rewrite everything with it (check for EqTaut as you go)
