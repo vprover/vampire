@@ -29,6 +29,7 @@
 
 #include "Shell/Statistics.hpp"
 #include "Shell/Property.hpp"
+#include "Shell/Options.hpp"
 
 namespace Shell
 {
@@ -63,7 +64,9 @@ void BlockedClauseElimination::apply(Problem& prb)
     for(unsigned i=0; i<cl->length(); i++) {
       Literal* lit = (*cl)[i];
       unsigned pred = lit->functor();
-      if (pred) { // don't index on the equality predicate
+      if (!env.signature->getPredicate(pred)->protectedSymbol()) { // don't index on interpreted or otherwise protected predicates (=> the cannot be ``flipped'')
+        ASS(pred); // equality predicate is protected
+
         (lit->isPositive() ? positive : negative)[pred].push(new Candidate {clw,i,0,0});
       }
     }
@@ -130,7 +133,9 @@ void BlockedClauseElimination::apply(Problem& prb)
     }
 
     // resolves to tautology with all partners -- blocked!
-    // cout << "Blocked clause[" << cand->litIdx << "]: " << cl->toString() << endl;
+    if (env.options->showPreprocessing()) {
+      cout << "[PP] Blocked clause[" << cand->litIdx << "]: " << cl->toString() << endl;
+    }
 
     env.statistics->blockedClauses++;
     modified = true;
