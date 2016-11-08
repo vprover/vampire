@@ -35,7 +35,6 @@ void InnerRewriting::perform(Clause* cl, ForwardSimplificationPerformer* simplPe
             if(EqHelper::isEqTautology(nLit)) {
               env.statistics->innerRewritesToEqTaut++;
               simplPerformer->perform(0,0);
-              ALWAYS(!simplPerformer->clauseKept());
               return;
             }
 
@@ -57,7 +56,6 @@ void InnerRewriting::perform(Clause* cl, ForwardSimplificationPerformer* simplPe
                   res->destroy();
 
                   simplPerformer->perform(0,0);
-                  ALWAYS(!simplPerformer->clauseKept());
                   return;
                 }
                 (*res)[k] = rLit;
@@ -67,7 +65,6 @@ void InnerRewriting::perform(Clause* cl, ForwardSimplificationPerformer* simplPe
             env.statistics->innerRewrites++;
 
             simplPerformer->perform(0,res);
-            ALWAYS(!simplPerformer->clauseKept());
             return;
           }
         }

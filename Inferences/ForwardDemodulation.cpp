@@ -175,9 +175,7 @@ void ForwardDemodulation::perform(Clause* cl, ForwardSimplificationPerformer* si
 	if(EqHelper::isEqTautology(resLit)) {
 	  env.statistics->forwardDemodulationsToEqTaut++;
 	  simplPerformer->perform(qr.clause, 0);
-	  if(!simplPerformer->clauseKept()) {
-	    return;
-	  }
+	  return;
 	}
 
 	Inference* inf = new Inference2(Inference::FORWARD_DEMODULATION, cl, qr.clause);
@@ -201,9 +199,7 @@ void ForwardDemodulation::perform(Clause* cl, ForwardSimplificationPerformer* si
 	env.statistics->forwardDemodulations++;
 
 	simplPerformer->perform(qr.clause, res);
-	if(!simplPerformer->clauseKept()) {
-	  return;
-	}
+	return;
 
       }
     }

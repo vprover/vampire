@@ -104,9 +104,7 @@ void SLQueryForwardSubsumption::perform(Clause* cl, ForwardSimplificationPerform
       if(rlen==1 && ColorHelper::compatible(cl->color(), res.clause->color())) {
 	env.statistics->forwardSubsumed++;
 	simplPerformer->perform(res.clause, 0);
-	if(!simplPerformer->clauseKept()) {
-	  goto fin;
-	}
+	goto fin;
       } else if(rlen>clen) {
 	continue;
       }
@@ -175,9 +173,7 @@ void SLQueryForwardSubsumption::perform(Clause* cl, ForwardSimplificationPerform
       if(!mclMatchFailed && ColorHelper::compatible(cl->color(), mcl->color())) {
 	env.statistics->forwardSubsumed++;
 	simplPerformer->perform(mcl, 0);
-	if(!simplPerformer->clauseKept()) {
-	  goto fin;
-	}
+	goto fin;
       }
 
     }

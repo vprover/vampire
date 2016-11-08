@@ -110,10 +110,7 @@ void ForwardLiteralRewriting::perform(Clause* cl, ForwardSimplificationPerformer
       env.statistics->forwardLiteralRewrites++;
 
       simplPerformer->perform(premise, res);
-      if(!simplPerformer->clauseKept()) {
-	return;
-      }
-
+      return;
     }
   }
 

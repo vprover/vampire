@@ -72,8 +72,6 @@ void RefutationSeekerFSE::perform(Clause* cl, ForwardSimplificationPerformer* si
     env.statistics->resolution++;
 
     simplPerformer->perform(res.clause, refutation);
-    if(!simplPerformer->clauseKept()) {
-      return;
-    }
+    return;
   }
 }

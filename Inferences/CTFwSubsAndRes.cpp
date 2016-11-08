@@ -107,12 +107,9 @@ void CTFwSubsAndRes::perform(Clause* cl, ForwardSimplificationPerformer* simplPe
       env.statistics->forwardSubsumed++;
     }
     
-    if(!simplPerformer->clauseKept()) {
-      goto fin;
-    }
+    break;
   }
 
-fin:
   Clause::releaseAux();
 }
 

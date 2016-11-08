@@ -258,9 +258,7 @@ void ForwardSubsumptionAndResolution::perform(Clause* cl, ForwardSimplificationP
       if(ColorHelper::compatible(cl->color(), premise->color()) ) {
 	simplPerformer->perform(premise, 0);
 	env.statistics->forwardSubsumed++;
-	if(!simplPerformer->clauseKept()) {
-	  goto fin;
-	}
+	goto fin;
       }
     }
   }
@@ -294,9 +292,7 @@ void ForwardSubsumptionAndResolution::perform(Clause* cl, ForwardSimplificationP
       if(MLMatcher::canBeMatched(mcl,cl,cms->_matches,0) && ColorHelper::compatible(cl->color(), mcl->color())) {
 	simplPerformer->perform(mcl, 0);
 	env.statistics->forwardSubsumed++;
-	if(!simplPerformer->clauseKept()) {
-	  goto fin;
-	}
+	goto fin;
       }
     }
   }
@@ -319,9 +315,7 @@ void ForwardSubsumptionAndResolution::perform(Clause* cl, ForwardSimplificationP
 	  resolutionClause=generateSubsumptionResolutionClause(cl,resLit,mcl);
 	  env.statistics->forwardSubsumptionResolution++;
 	  simplPerformer->perform(mcl, resolutionClause);
-	  if(!simplPerformer->clauseKept()) {
-	    goto fin;
-	  }
+	  goto fin;
 	}
       }
     }
@@ -336,9 +330,7 @@ void ForwardSubsumptionAndResolution::perform(Clause* cl, ForwardSimplificationP
 	    resolutionClause=generateSubsumptionResolutionClause(cl,resLit,cms->_cl);
 	    env.statistics->forwardSubsumptionResolution++;
 	    simplPerformer->perform(cms->_cl, resolutionClause);
-	    if(!simplPerformer->clauseKept()) {
-	      goto fin;
-	    }
+	    goto fin;
 	  }
 	}
       }
@@ -365,9 +357,7 @@ void ForwardSubsumptionAndResolution::perform(Clause* cl, ForwardSimplificationP
 	  resolutionClause=generateSubsumptionResolutionClause(cl,resLit,cms->_cl);
 	  env.statistics->forwardSubsumptionResolution++;
 	  simplPerformer->perform(cms->_cl, resolutionClause);
-	  if(!simplPerformer->clauseKept()) {
-	    goto fin;
-	  }
+	  goto fin;
 	}
       }
     }
