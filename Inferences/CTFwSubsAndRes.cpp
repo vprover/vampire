@@ -71,12 +71,12 @@ Clause* CTFwSubsAndRes::buildSResClause(Clause* cl, unsigned resolvedIndex, Clau
   return res;
 }
 
-void CTFwSubsAndRes::perform(Clause* cl, ForwardSimplificationPerformer* simplPerformer)
+bool CTFwSubsAndRes::perform(Clause* cl, Clause*& replacement, ClauseIterator& premises)
 {
   CALL("CTFwSubsAndRes::perform");
   
   if(cl->length()==0) {
-    return;
+    return false;
   }
 
   TimeCounter tc_fs(TC_FORWARD_SUBSUMPTION);
@@ -97,13 +97,13 @@ void CTFwSubsAndRes::perform(Clause* cl, ForwardSimplificationPerformer* simplPe
       continue;
     }
     
+    premises = pvi( getSingletonIterator(premise));
+
     if(res.resolved) {
-      Clause* replacement=buildSResClause(cl, res.resolvedQueryLiteralIndex, premise);
-      simplPerformer->perform(premise, replacement);
+      replacement=buildSResClause(cl, res.resolvedQueryLiteralIndex, premise);
       env.statistics->forwardSubsumptionResolution++;
     }
     else {
-      simplPerformer->perform(premise, 0);
       env.statistics->forwardSubsumed++;
     }
     
@@ -111,6 +111,7 @@ void CTFwSubsAndRes::perform(Clause* cl, ForwardSimplificationPerformer* simplPe
   }
 
   Clause::releaseAux();
+  return true;
 }
 
 

@@ -35,7 +35,7 @@ void ForwardLiteralRewriting::detach()
 }
 
 
-void ForwardLiteralRewriting::perform(Clause* cl, ForwardSimplificationPerformer* simplPerformer)
+bool ForwardLiteralRewriting::perform(Clause* cl, Clause*& replacement, ClauseIterator& premises)
 {
   CALL("ForwardLiteralRewriting::perform");
 
@@ -109,12 +109,13 @@ void ForwardLiteralRewriting::perform(Clause* cl, ForwardSimplificationPerformer
       res->setAge(cl->age());
       env.statistics->forwardLiteralRewrites++;
 
-      simplPerformer->perform(premise, res);
-      return;
+      premises = pvi( getSingletonIterator(premise));
+      replacement = res;
+      return true;
     }
   }
 
-
+  return false;
 }
 
 };

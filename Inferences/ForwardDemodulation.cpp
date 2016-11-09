@@ -60,7 +60,7 @@ void ForwardDemodulation::detach()
 }
 
 
-void ForwardDemodulation::perform(Clause* cl, ForwardSimplificationPerformer* simplPerformer)
+bool ForwardDemodulation::perform(Clause* cl, Clause*& replacement, ClauseIterator& premises)
 {
   CALL("ForwardDemodulation::perform");
 
@@ -174,8 +174,8 @@ void ForwardDemodulation::perform(Clause* cl, ForwardSimplificationPerformer* si
 	Literal* resLit = EqHelper::replace(lit,trm,rhsS);
 	if(EqHelper::isEqTautology(resLit)) {
 	  env.statistics->forwardDemodulationsToEqTaut++;
-	  simplPerformer->perform(qr.clause, 0);
-	  return;
+	  premises = pvi( getSingletonIterator(qr.clause));
+	  return true;
 	}
 
 	Inference* inf = new Inference2(Inference::FORWARD_DEMODULATION, cl, qr.clause);
@@ -198,12 +198,15 @@ void ForwardDemodulation::perform(Clause* cl, ForwardSimplificationPerformer* si
 	res->setAge(cl->age());
 	env.statistics->forwardDemodulations++;
 
-	simplPerformer->perform(qr.clause, res);
-	return;
+	premises = pvi( getSingletonIterator(qr.clause));
+	replacement = res;
+	return true;
 
       }
     }
   }
+
+  return false;
 }
 
 }

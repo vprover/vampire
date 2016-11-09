@@ -645,40 +645,6 @@ void SaturationAlgorithm::init()
   _startTime=env.timer->elapsedMilliseconds();
 }
 
-/**
- * Class of @b ForwardSimplificationPerformer objects that
- * perform the forward simplification only if it leads to
- * deletion of the clause being simplified. 
- */
-class SaturationAlgorithm::TotalSimplificationPerformer
-: public ForwardSimplificationPerformer
-{
-public:
-  TotalSimplificationPerformer(SaturationAlgorithm* sa, Clause* cl) : _sa(sa), _cl(cl) {}
-
-  void perform(ClauseIterator premises, Clause* replacement)
-  {
-    CALL("TotalSimplificationPerformer::perform");
-    ASS(_cl);
-
-    if (replacement) {
-      _sa->addNewClause(replacement);
-    }
-    _sa->onClauseReduction(_cl, replacement, premises);
-
-    // Remove clause - so no longer kept
-    _cl=0;
-  }
-
-  bool clauseKept()
-  { return _cl; }
-private:
-  SaturationAlgorithm* _sa;
-  // clause being simplified
-  Clause* _cl;
-};
-
-
 Clause* SaturationAlgorithm::doImmediateSimplification(Clause* cl0)
 {
   CALL("SaturationAlgorithm::doImmediateSimplification");
@@ -847,28 +813,28 @@ bool SaturationAlgorithm::forwardSimplify(Clause* cl)
     return false;
   }
 
-  TotalSimplificationPerformer performer(this, cl);
-
   FwSimplList::Iterator fsit(_fwSimplifiers);
 
   while (fsit.hasNext()) {
     ForwardSimplificationEngine* fse=fsit.next();
 
-    fse->perform(cl, &performer);
-    if (!performer.clauseKept()) {
-      break;
+    {
+      Clause* replacement = 0;
+      ClauseIterator premises = ClauseIterator::getEmpty();
+
+      if (fse->perform(cl,replacement,premises)) {
+        if (replacement) {
+          addNewClause(replacement);
+        }
+        onClauseReduction(cl, replacement, premises);
+
+        return false;
+      }
     }
   }
 
   //TODO: hack that only clauses deleted by forward simplification can be destroyed (other destruction needs debugging)
-  if (performer.clauseKept()) {
-    cl->incRefCnt();
-  }
-
-  if (!performer.clauseKept()) {
-    return false;
-  }
-
+  cl->incRefCnt();
 
   if ( _splitter && !_opt.splitAtActivation() ) {
     if (_splitter->doSplitting(cl)) {

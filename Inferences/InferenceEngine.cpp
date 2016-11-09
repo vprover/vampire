@@ -43,24 +43,6 @@ const Options& InferenceEngine::getOptions() const
   return _salg->getOptions();
 }
 
-
-void ForwardSimplificationPerformer::perform(Clause* premise, Clause* replacement)
-{
-  CALL("ForwardSimplificationPerformer::perform/3");
-
-  ClauseIterator premises;
-  
-  if(premise) {
-    premises = pvi( getSingletonIterator(premise) );
-  }
-  else {
-    premises=ClauseIterator::getEmpty();
-  }
-  perform(premises, replacement);
-}
-
-
-
 CompositeISE::~CompositeISE()
 {
   _inners->destroyWithDeletion();

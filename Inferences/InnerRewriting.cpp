@@ -15,7 +15,7 @@ namespace Inferences {
 using namespace Lib;
 using namespace Kernel;
 
-void InnerRewriting::perform(Clause* cl, ForwardSimplificationPerformer* simplPerformer)
+bool InnerRewriting::perform(Clause* cl, Clause*& replacement, ClauseIterator& premises)
 {
   CALL("InnerRewriting::perform");
 
@@ -34,8 +34,7 @@ void InnerRewriting::perform(Clause* cl, ForwardSimplificationPerformer* simplPe
           if (nLit != lit) {
             if(EqHelper::isEqTautology(nLit)) {
               env.statistics->innerRewritesToEqTaut++;
-              simplPerformer->perform(0,0);
-              return;
+              return true;
             }
 
             Inference* inf = new Inference1(Inference::INNER_REWRITING, cl);
@@ -54,9 +53,7 @@ void InnerRewriting::perform(Clause* cl, ForwardSimplificationPerformer* simplPe
                 if(EqHelper::isEqTautology(rLit)) {
                   env.statistics->innerRewritesToEqTaut++;
                   res->destroy();
-
-                  simplPerformer->perform(0,0);
-                  return;
+                  return true;
                 }
                 (*res)[k] = rLit;
               }
@@ -64,13 +61,15 @@ void InnerRewriting::perform(Clause* cl, ForwardSimplificationPerformer* simplPe
 
             env.statistics->innerRewrites++;
 
-            simplPerformer->perform(0,res);
-            return;
+            replacement = res;
+            return true;
           }
         }
       }
     }
   }
+
+  return false;
 }
 
 
