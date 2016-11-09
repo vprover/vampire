@@ -399,24 +399,15 @@ void SaturationAlgorithm::onClauseRetained(Clause* cl)
 /**
  * Called whenever a clause is simplified or deleted at any point of the
  * saturation algorithm
- *
- * In case the deletion of clause @b cl is justified also by some other clause than
- * @b replacement and @b premise clauses, it should be passed as the @b reductionPremise.
- * Otherwise the @b reductionPremise should be 0.
  */
-void SaturationAlgorithm::onClauseReduction(Clause* cl, Clause* replacement,
-    Clause* premise, Clause* reductionPremise, bool forward)
+void SaturationAlgorithm::onClauseReduction(Clause* cl, Clause* replacement, Clause* premise, bool forward)
 {
   CALL("SaturationAlgorithm::onClauseReduction/5");
   ASS(cl);
 
   ClauseIterator premises;
   
-  if (reductionPremise) {
-    ASS(premise);
-    premises = pvi( getConcatenatedIterator(getSingletonIterator(premise), getSingletonIterator(reductionPremise)) );
-  }
-  else if (premise) {
+  if (premise) {
     premises = pvi( getSingletonIterator(premise) );
   }
   else {
@@ -912,7 +903,7 @@ void SaturationAlgorithm::backwardSimplify(Clause* cl)
       if (replacement) {
 	addNewClause(replacement);
       }
-      onClauseReduction(redundant, replacement, cl, 0, false);
+      onClauseReduction(redundant, replacement, cl, false);
 
       //we must remove the redundant clause before adding its replacement,
       //as otherwise the redundant one might demodulate the replacement into
