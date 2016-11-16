@@ -530,8 +530,6 @@ unsigned Theory::getArity(Interpretation i)
 
   if (theory->isStructuredSortInterpretation(i)){
     switch (theory->convertToStructured(i)) {
-      case StructuredSortInterpretation::OPTION_NONE:
-        return 0;
       case StructuredSortInterpretation::ARRAY_SELECT:
       case StructuredSortInterpretation::ARRAY_BOOL_SELECT:
         return 2;
@@ -656,12 +654,6 @@ bool Theory::isFunction(Interpretation i)
   if(theory->isStructuredSortInterpretation(i)){
     switch(theory->convertToStructured(i)){
       case StructuredSortInterpretation::ARRAY_BOOL_SELECT:
-      case StructuredSortInterpretation::OPTION_IS_SOME:
-      case StructuredSortInterpretation::OPTION_BOOL_FROM_SOME:
-      case StructuredSortInterpretation::EITHER_IS_LEFT:
-      case StructuredSortInterpretation::EITHER_IS_RIGHT:
-      case StructuredSortInterpretation::EITHER_BOOL_FROM_LEFT:
-      case StructuredSortInterpretation::EITHER_BOOL_FROM_RIGHT:
         return false;
       default:
         return true;
@@ -1224,21 +1216,6 @@ Sorts::StructuredSort Theory::getInterpretedSort(StructuredSortInterpretation ss
     case StructuredSortInterpretation::LIST_CONS:
     case StructuredSortInterpretation::LIST_IS_EMPTY:
       return Sorts::StructuredSort::LIST;
-    case StructuredSortInterpretation::OPTION_NONE:
-    case StructuredSortInterpretation::OPTION_SOME:
-    case StructuredSortInterpretation::OPTION_IS_SOME:
-    case StructuredSortInterpretation::OPTION_FROM_SOME:
-    case StructuredSortInterpretation::OPTION_BOOL_FROM_SOME:
-      return Sorts::StructuredSort::OPTION;
-    case StructuredSortInterpretation::EITHER_LEFT:
-    case StructuredSortInterpretation::EITHER_RIGHT:
-    case StructuredSortInterpretation::EITHER_IS_LEFT:
-    case StructuredSortInterpretation::EITHER_IS_RIGHT:
-    case StructuredSortInterpretation::EITHER_FROM_LEFT:
-    case StructuredSortInterpretation::EITHER_BOOL_FROM_LEFT:
-    case StructuredSortInterpretation::EITHER_FROM_RIGHT:
-    case StructuredSortInterpretation::EITHER_BOOL_FROM_RIGHT:
-      return Sorts::StructuredSort::EITHER;
     default:
       ASSERTION_VIOLATION;
   }
@@ -1254,29 +1231,6 @@ vstring Theory::getInterpretationName(Interpretation interp) {
         return "$select";
       case StructuredSortInterpretation::ARRAY_STORE:
         return "$store";
-      case StructuredSortInterpretation::OPTION_NONE:
-        return "$none";
-      case StructuredSortInterpretation::OPTION_SOME:
-        return "$some";
-      case StructuredSortInterpretation::OPTION_IS_SOME:
-        return "$issome";
-      case StructuredSortInterpretation::OPTION_FROM_SOME:
-      case StructuredSortInterpretation::OPTION_BOOL_FROM_SOME:
-        return "$fromsome";
-      case StructuredSortInterpretation::EITHER_LEFT:
-        return "$left";
-      case StructuredSortInterpretation::EITHER_RIGHT:
-        return "$right";
-      case StructuredSortInterpretation::EITHER_IS_LEFT:
-        return "$isleft";
-      case StructuredSortInterpretation::EITHER_IS_RIGHT:
-        return "$isright";
-      case StructuredSortInterpretation::EITHER_FROM_LEFT:
-      case StructuredSortInterpretation::EITHER_BOOL_FROM_LEFT:
-        return "$fromleft";
-      case StructuredSortInterpretation::EITHER_FROM_RIGHT:
-      case StructuredSortInterpretation::EITHER_BOOL_FROM_RIGHT:
-        return "$fromright";
       default:
         ASSERTION_VIOLATION_REP(interp);
     }
@@ -1420,58 +1374,6 @@ BaseType* Theory::getStructuredSortOperationType(Interpretation i) {
           ASSERTION_VIOLATION;
       }
     }
-    case Sorts::StructuredSort::OPTION: {
-      unsigned innerSort = env.sorts->getOptionSort(theorySort)->getInnerSort();
-
-      switch (ssi) {
-        case StructuredSortInterpretation::OPTION_NONE:
-          return new FunctionType(theorySort);
-
-        case StructuredSortInterpretation::OPTION_SOME:
-          return new FunctionType({ innerSort }, theorySort);
-
-        case StructuredSortInterpretation::OPTION_IS_SOME:
-          return new PredicateType({ theorySort });
-
-        case StructuredSortInterpretation::OPTION_FROM_SOME:
-          return new FunctionType({ theorySort }, innerSort);
-
-        case StructuredSortInterpretation::OPTION_BOOL_FROM_SOME:
-          return new PredicateType({ theorySort });
-
-        default:
-          ASSERTION_VIOLATION;
-      }
-    }
-    case Sorts::StructuredSort::EITHER: {
-      unsigned leftSort  = env.sorts->getEitherSort(theorySort)->getLeftSort();
-      unsigned rightSort = env.sorts->getEitherSort(theorySort)->getRightSort();
-
-      switch (ssi) {
-        case StructuredSortInterpretation::EITHER_LEFT:
-          return new FunctionType({ leftSort }, theorySort);
-
-        case StructuredSortInterpretation::EITHER_RIGHT:
-          return new FunctionType({ rightSort }, theorySort);
-
-        case StructuredSortInterpretation::EITHER_IS_LEFT:
-        case StructuredSortInterpretation::EITHER_IS_RIGHT:
-          return new PredicateType({ theorySort });
-
-        case StructuredSortInterpretation::EITHER_FROM_LEFT:
-          return new FunctionType({ theorySort }, leftSort);
-
-        case StructuredSortInterpretation::EITHER_FROM_RIGHT:
-          return new FunctionType({ theorySort }, rightSort);
-
-        case StructuredSortInterpretation::EITHER_BOOL_FROM_LEFT:
-        case StructuredSortInterpretation::EITHER_BOOL_FROM_RIGHT:
-          return new PredicateType({ theorySort });
-
-        default:
-          ASSERTION_VIOLATION;
-      }
-    }
     default:
       ASSERTION_VIOLATION;
   }
@@ -1541,77 +1443,6 @@ void Theory::defineTupleTermAlgebra(unsigned arity, unsigned* sorts) {
 
   Shell::TermAlgebraConstructor* constructors[] = { constructor };
   env.signature->addTermAlgebra(new Shell::TermAlgebra(tupleSort, 1, constructors, false));
-}
-
-void Theory::defineOptionTermAlgebra(unsigned innerSort) {
-  CALL("Signature::defineOptionTermAlgebra");
-
-  unsigned optionSort = env.sorts->addOptionSort(innerSort);
-
-  if (env.signature->isTermAlgebraSort(optionSort)) {
-    return;
-  }
-
-  unsigned noneFunctor = getSymbolForStructuredSort(optionSort, StructuredSortInterpretation::OPTION_NONE);
-  env.signature->getFunction(noneFunctor)->markTermAlgebraCons();
-
-  Shell::TermAlgebraConstructor* none = new Shell::TermAlgebraConstructor(noneFunctor, Array<unsigned>(0));
-
-  unsigned someFunctor = getSymbolForStructuredSort(optionSort, StructuredSortInterpretation::OPTION_SOME);
-  env.signature->getFunction(someFunctor)->markTermAlgebraCons();
-
-  unsigned isSome = getSymbolForStructuredSort(optionSort, StructuredSortInterpretation::OPTION_IS_SOME);
-
-  StructuredSortInterpretation fromSomeSsi = innerSort == Sorts::SRT_BOOL
-                                             ? StructuredSortInterpretation::OPTION_BOOL_FROM_SOME
-                                             : StructuredSortInterpretation::OPTION_FROM_SOME;
-
-  Array<unsigned> someDestructors(1);
-  someDestructors[0] = getSymbolForStructuredSort(optionSort, fromSomeSsi);
-
-  Shell::TermAlgebraConstructor* some = new Shell::TermAlgebraConstructor(someFunctor, isSome, someDestructors);
-
-  Shell::TermAlgebraConstructor* constructors[] = { none, some };
-  env.signature->addTermAlgebra(new Shell::TermAlgebra(optionSort, 2, constructors, false));
-}
-
-void Theory::defineEitherTermAlgebra(unsigned leftSort, unsigned rightSort) {
-  CALL("Signature::defineEitherTermAlgebra");
-
-  unsigned eitherSort = env.sorts->addEitherSort(leftSort, rightSort);
-
-  if (env.signature->isTermAlgebraSort(eitherSort)) {
-    return;
-  }
-
-  unsigned leftFunctor = getSymbolForStructuredSort(eitherSort, StructuredSortInterpretation::EITHER_LEFT);
-  env.signature->getFunction(leftFunctor)->markTermAlgebraCons();
-
-  StructuredSortInterpretation fromLeftSsi = leftSort == Sorts::SRT_BOOL
-                                             ? StructuredSortInterpretation::EITHER_BOOL_FROM_LEFT
-                                             : StructuredSortInterpretation::EITHER_FROM_LEFT;
-  Array<unsigned> leftDestructors(1);
-  leftDestructors[0] = getSymbolForStructuredSort(eitherSort, fromLeftSsi);
-
-  unsigned isLeft = getSymbolForStructuredSort(eitherSort, StructuredSortInterpretation::EITHER_IS_LEFT);
-
-  Shell::TermAlgebraConstructor* left = new Shell::TermAlgebraConstructor(leftFunctor, isLeft, leftDestructors);
-
-  unsigned rightFunctor = getSymbolForStructuredSort(eitherSort, StructuredSortInterpretation::EITHER_RIGHT);
-  env.signature->getFunction(rightFunctor)->markTermAlgebraCons();
-
-  StructuredSortInterpretation fromRightSsi = rightSort == Sorts::SRT_BOOL
-                                              ? StructuredSortInterpretation::EITHER_BOOL_FROM_RIGHT
-                                              : StructuredSortInterpretation::EITHER_FROM_RIGHT;
-  Array<unsigned> rightDestructors(1);
-  rightDestructors[0] = getSymbolForStructuredSort(eitherSort, fromRightSsi);
-
-  unsigned isRight = getSymbolForStructuredSort(eitherSort, StructuredSortInterpretation::EITHER_IS_RIGHT);
-
-  Shell::TermAlgebraConstructor* right = new Shell::TermAlgebraConstructor(rightFunctor, isRight, rightDestructors);
-
-  Shell::TermAlgebraConstructor* constructors[] = { left, right };
-  env.signature->addTermAlgebra(new Shell::TermAlgebra(eitherSort, 2, constructors, false));
 }
 
 bool Theory::isInterpretedConstant(unsigned func)

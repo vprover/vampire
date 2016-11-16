@@ -1444,26 +1444,6 @@ void TPTP::endIte()
   _termLists.push(ts);
 } // endIte
 
-Theory::StructuredSortInterpretation TPTP::getSpecialSortInterpretation(TheoryFunction tf) {
-  switch (tf) {
-    case TF_SELECT:
-//      return Theory::StructuredSortInterpretation::ARRAY_SELECT
-    case TF_STORE:
-    case TF_NONE:
-    case TF_SOME:
-    case TF_IS_SOME:
-    case TF_FROM_SOME:
-    case TF_LEFT:
-    case TF_RIGHT:
-    case TF_IS_LEFT:
-    case TF_IS_RIGHT:
-    case TF_FROM_LEFT:
-    case TF_FROM_RIGHT:
-    default:
-      ASSERTION_VIOLATION;
-  }
-}
-
 /**
  *
  */
@@ -1538,106 +1518,6 @@ void TPTP::endTheoryFunction() {
       ssi = Theory::StructuredSortInterpretation::ARRAY_STORE;
       theorySort = arraySort;
 
-      break;
-    }
-    case TF_NONE: {
-      Type* innerType = _types.pop();
-      ASS_EQ(innerType->tag(), TT_ATOMIC);
-      unsigned innerSort = static_cast<AtomicType*>(innerType)->sortNumber();
-      unsigned optionSort = env.sorts->addOptionSort(innerSort);
-      ssi = Theory::StructuredSortInterpretation::OPTION_NONE;
-      theorySort = optionSort;
-      break;
-    }
-    case TF_SOME: {
-      TermList arg = _termLists.pop();
-      unsigned innerSort = sortOf(arg);
-      unsigned optionSort = env.sorts->addOptionSort(innerSort);
-      ssi = Theory::StructuredSortInterpretation::OPTION_SOME;
-      args[0] = arg;
-      theorySort = optionSort;
-      break;
-    }
-    case TF_LEFT: {
-      TermList arg = _termLists.pop();
-      unsigned leftSort = sortOf(arg);
-      Type* rightType = _types.pop();
-      ASS_EQ(rightType->tag(), TT_ATOMIC);
-      unsigned rightSort = static_cast<AtomicType*>(rightType)->sortNumber();
-      unsigned eitherSort = env.sorts->addEitherSort(leftSort, rightSort);
-      ssi = Theory::StructuredSortInterpretation::EITHER_LEFT;
-      args[0] = arg;
-      theorySort = eitherSort;
-      break;
-    }
-    case TF_RIGHT: {
-      Type* leftType = _types.pop();
-      ASS_EQ(leftType->tag(), TT_ATOMIC);
-      unsigned leftSort = static_cast<AtomicType*>(leftType)->sortNumber();
-      TermList arg = _termLists.pop();
-      unsigned rightSort = sortOf(arg);
-      unsigned eitherSort = env.sorts->addEitherSort(leftSort, rightSort);
-      ssi = Theory::StructuredSortInterpretation::EITHER_RIGHT;
-      args[0] = arg;
-      theorySort = eitherSort;
-      break;
-    }
-    case TF_IS_SOME:
-    case TF_FROM_SOME: {
-      TermList arg = _termLists.pop();
-
-      unsigned argSort = sortOf(arg);
-      if (!env.sorts->hasStructuredSort(argSort, Sorts::StructuredSort::OPTION)) {
-        USER_ERROR("The argument " + arg.toString() + " has the sort " + env.sorts->sortName(argSort));
-      }
-
-      args[0] = arg;
-      theorySort = argSort;
-
-      switch (tf) {
-        case TF_IS_SOME:
-          ssi = Theory::StructuredSortInterpretation::OPTION_IS_SOME;
-          break;
-        case TF_FROM_SOME:
-          ssi = Theory::StructuredSortInterpretation::OPTION_FROM_SOME;
-          break;
-        default:
-          ASSERTION_VIOLATION_REP(tf);
-          break;
-      }
-      break;
-    }
-    case TF_IS_LEFT:
-    case TF_IS_RIGHT:
-    case TF_FROM_LEFT:
-    case TF_FROM_RIGHT: {
-      TermList arg = _termLists.pop();
-      unsigned argSort = sortOf(arg);
-
-      if (!env.sorts->hasStructuredSort(argSort, Sorts::StructuredSort::EITHER)) {
-        USER_ERROR("The argument " + arg.toString() + " has the sort " + env.sorts->sortName(argSort));
-      }
-
-      args[0] = arg;
-      theorySort = argSort;
-
-      switch (tf) {
-        case TF_IS_LEFT:
-          ssi = Theory::StructuredSortInterpretation::EITHER_IS_LEFT;
-          break;
-        case TF_IS_RIGHT:
-          ssi = Theory::StructuredSortInterpretation::EITHER_IS_RIGHT;
-          break;
-        case TF_FROM_LEFT:
-          ssi = Theory::StructuredSortInterpretation::EITHER_FROM_LEFT;
-          break;
-        case TF_FROM_RIGHT:
-          ssi = Theory::StructuredSortInterpretation::EITHER_FROM_RIGHT;
-          break;
-        default:
-          ASSERTION_VIOLATION_REP(tf);
-          break;
-      }
       break;
     }
     default:
@@ -1856,28 +1736,6 @@ void TPTP::funApp()
       consumeToken(T_LPAR);
       addTagState(T_RPAR);
       switch (getTheoryFunction(tok)) {
-        case TF_NONE:
-          _states.push(SIMPLE_TYPE);
-          break;
-        case TF_LEFT:
-          _states.push(SIMPLE_TYPE);
-          consumeToken(T_COMMA);
-          _states.push(TERM);
-          break;
-        case TF_RIGHT:
-          _states.push(TERM);
-          consumeToken(T_COMMA);
-          _states.push(SIMPLE_TYPE);
-          break;
-        case TF_SOME:
-        case TF_IS_SOME:
-        case TF_FROM_SOME:
-        case TF_IS_LEFT:
-        case TF_IS_RIGHT:
-        case TF_FROM_LEFT:
-        case TF_FROM_RIGHT:
-          _states.push(TERM);
-          break;
         case TF_SELECT:
           _states.push(TERM);
           addTagState(T_COMMA);
@@ -2453,25 +2311,7 @@ void TPTP::formulaInfix()
       case TF_STORE:
         USER_ERROR("$store expression cannot be used as formula");
         break;
-      case TF_NONE:
-        USER_ERROR("a $none term cannot be used as formula");
-        break;
-      case TF_SOME:
-        USER_ERROR("a $some term cannot be used as formula");
-        break;
-      case TF_LEFT:
-        USER_ERROR("a $left term cannot be used as formula");
-        break;
-      case TF_RIGHT:
-        USER_ERROR("a $right term cannot be used as formula");
-        break;
       case TF_SELECT:
-      case TF_IS_SOME:
-      case TF_IS_LEFT:
-      case TF_IS_RIGHT:
-      case TF_FROM_SOME:
-      case TF_FROM_LEFT:
-      case TF_FROM_RIGHT:
         _theoryFunctions.push(tf);
         _states.push(END_TERM_AS_FORMULA);
         _states.push(END_THEORY_FUNCTION);
@@ -3580,18 +3420,6 @@ unsigned TPTP::readSort()
         consumeToken(T_COMMA);
         unsigned innerSort = readSort();
         sort = env.sorts->addArraySort(indexSort, innerSort);
-        break;
-      }
-      case TS_OPTION: {
-        unsigned innerSort = readSort();
-        sort = env.sorts->addOptionSort(innerSort);
-        break;
-      }
-      case TS_EITHER: {
-        unsigned leftSort = readSort();
-        consumeToken(T_COMMA);
-        unsigned rightSort = readSort();
-        sort = env.sorts->addEitherSort(leftSort, rightSort);
         break;
       }
       default:

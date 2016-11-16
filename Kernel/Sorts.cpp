@@ -162,47 +162,6 @@ unsigned Sorts::addTupleSort(unsigned arity, unsigned sorts[])
   return result;
 }
 
-unsigned Sorts::addOptionSort(unsigned innerSort) {
-  CALL("Sorts::addOptionSort");
-
-  // First check if it already exists
-  vstring name = "$option(" + env.sorts->sortName(innerSort) + ")";
-
-  unsigned result;
-  if (_sortNames.find(name, result)) {
-    return result;
-  }
-
-  _hasSort = true;
-  result = _sorts.length();
-
-  OptionSort* sort = new OptionSort(name, innerSort, result);
-  _sorts.push(sort);
-  _sortNames.insert(name, result);
-
-  return result;
-}
-
-unsigned Sorts::addEitherSort(unsigned leftSort, unsigned rightSort) {
-  CALL("Sorts::addEitherSort");
-
-  vstring name = "$either(" + env.sorts->sortName(leftSort) + "," + env.sorts->sortName(rightSort) + ")";
-
-  unsigned result;
-  if (_sortNames.find(name, result)) {
-    return result;
-  }
-
-  _hasSort = true;
-  result = _sorts.length();
-
-  EitherSort* sort = new EitherSort(name, leftSort, rightSort, result);
-  _sorts.push(sort);
-  _sortNames.insert(name, result);
-
-  return result;
-}
-
 /**
  * True if this collection contains the sort @c name.
  * @author Andrei Voronkov

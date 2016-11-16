@@ -46,10 +46,6 @@ public:
     LIST,
     /** The structured sort for tuples */
     TUPLE,
-    /** The structured sort for $option */
-    OPTION,
-    /** The structured sort for $either */
-    EITHER,
     /** not a real structured sort, it's here to denote the length of the StructuredSort enum */
     LAST_STRUCTURED_SORT
   };
@@ -149,40 +145,6 @@ public:
     unsigned* _sorts;
   };
 
-  class OptionSort : public StructuredSortInfo
-  {
-  public:
-    CLASS_NAME(OptionSort);
-    USE_ALLOCATOR(OptionSort);
-
-    OptionSort(vstring name, unsigned innerSort, unsigned id) :
-      StructuredSortInfo(name, StructuredSort::OPTION, id),
-      _innerSort(innerSort) {}
-
-    unsigned getInnerSort(){ return _innerSort; }
-
-  private:
-    unsigned _innerSort;
-  };
-
-  class EitherSort : public StructuredSortInfo
-  {
-  public:
-    CLASS_NAME(OptionSort);
-    USE_ALLOCATOR(OptionSort);
-
-    EitherSort(vstring name, unsigned leftSort, unsigned rightSort, unsigned id) :
-      StructuredSortInfo(name, StructuredSort::EITHER, id),
-      _leftSort(leftSort), _rightSort(rightSort) {}
-
-    unsigned getLeftSort()  { return _leftSort;  }
-    unsigned getRightSort() { return _rightSort; }
-
-  private:
-    unsigned _leftSort;
-    unsigned _rightSort;
-  };
-
   unsigned addSort(const vstring& name, bool& added);
   unsigned addSort(const vstring& name);
 
@@ -196,18 +158,6 @@ public:
   TupleSort* getTupleSort(unsigned sort) {
     ASS(hasStructuredSort(sort,StructuredSort::TUPLE));
     return static_cast<TupleSort*>(_sorts[sort]);
-  }
-
-  unsigned addOptionSort(unsigned innerSort);
-  OptionSort* getOptionSort(unsigned sort){
-    ASS(hasStructuredSort(sort,StructuredSort::OPTION));
-    return static_cast<OptionSort*>(_sorts[sort]);
-  }
-
-  unsigned addEitherSort(unsigned leftSort, unsigned rightSort);
-  EitherSort* getEitherSort(unsigned sort){
-    ASS(hasStructuredSort(sort,StructuredSort::EITHER));
-    return static_cast<EitherSort*>(_sorts[sort]);
   }
 
   bool haveSort(const vstring& name);

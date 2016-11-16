@@ -374,13 +374,10 @@ public:
     LIST_HEAD,
     LIST_TAIL,
     LIST_CONS,
-    LIST_IS_EMPTY,
-    OPTION_NONE, OPTION_SOME, OPTION_IS_SOME, OPTION_FROM_SOME, OPTION_BOOL_FROM_SOME,
-    EITHER_LEFT, EITHER_RIGHT, EITHER_IS_LEFT, EITHER_IS_RIGHT,
-    EITHER_FROM_LEFT, EITHER_BOOL_FROM_LEFT, EITHER_FROM_RIGHT, EITHER_BOOL_FROM_RIGHT
+    LIST_IS_EMPTY
   };
   unsigned LastStructuredInterpretation(){
-    return static_cast<unsigned>(StructuredSortInterpretation::EITHER_BOOL_FROM_RIGHT);
+    return static_cast<unsigned>(StructuredSortInterpretation::LIST_IS_EMPTY);
   }
   unsigned getSymbolForStructuredSort(unsigned sort, StructuredSortInterpretation interp);
   Interpretation getInterpretation(unsigned sort, StructuredSortInterpretation i){
@@ -422,8 +419,6 @@ public:
   static Theory* instance();
 
   void defineTupleTermAlgebra(unsigned arity, unsigned* sorts);
-  void defineOptionTermAlgebra(unsigned innerSort);
-  void defineEitherTermAlgebra(unsigned leftSort, unsigned rightSort);
 
   bool isInterpretedConstant(unsigned func);
   bool isInterpretedConstant(Term* t);

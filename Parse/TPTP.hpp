@@ -419,14 +419,10 @@ private:
   enum TheorySort {
     /** $array theoy */
     TS_ARRAY,
-    /** $option theory */
-    TS_OPTION,
-    /** $either theory */
-    TS_EITHER
   };
   static bool findTheorySort(const vstring name, TheorySort &ts) {
     static const vstring theorySortNames[] = {
-      "$array", "$option", "$either"
+      "$array"
     };
     static const unsigned theorySorts = sizeof(theorySortNames)/sizeof(vstring);
     for (unsigned sort = 0; sort < theorySorts; sort++) {
@@ -452,17 +448,11 @@ private:
 
   enum TheoryFunction {
     /** $array theory */
-    TF_SELECT, TF_STORE,
-    /** $option theory */
-    TF_NONE, TF_SOME, TF_IS_SOME, TF_FROM_SOME,
-    /** $either theory */
-    TF_LEFT, TF_RIGHT, TF_IS_LEFT, TF_IS_RIGHT, TF_FROM_LEFT, TF_FROM_RIGHT
+    TF_SELECT, TF_STORE
   };
   static bool findTheoryFunction(const vstring name, TheoryFunction &tf) {
     static const vstring theoryFunctionNames[] = {
-      "$select", "$store",
-      "$none", "$some", "$issome", "$fromsome",
-      "$left", "$right", "$isleft", "$isright", "$fromleft", "$fromright"
+      "$select", "$store"
     };
     static const unsigned theoryFunctions = sizeof(theoryFunctionNames)/sizeof(vstring);
     for (unsigned fun = 0; fun < theoryFunctions; fun++) {
@@ -485,7 +475,6 @@ private:
     }
     return tf;
   }
-  static Theory::StructuredSortInterpretation getSpecialSortInterpretation(TheoryFunction tf);
 
   /** true if the input contains a conjecture */
   bool _containsConjecture;

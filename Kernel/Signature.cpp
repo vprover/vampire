@@ -499,56 +499,8 @@ unsigned Signature::getInterpretingSymbol(Interpretation interp)
 
 unsigned Signature::getStructureInterpretationFunctor(unsigned theorySort, Theory::StructuredSortInterpretation ssi) {
   CALL("Signature::getStructureInterpretationFunctor");
-
-  switch (Theory::getInterpretedSort(ssi)) {
-    case Sorts::StructuredSort::OPTION: {
-      Sorts::OptionSort* optionSort = env.sorts->getOptionSort(theorySort);
-      theory->defineOptionTermAlgebra(optionSort->getInnerSort());
-      ASS(isTermAlgebraSort(theorySort));
-      TermAlgebra* ta = getTermAlgebraOfSort(theorySort);
-      switch (ssi) {
-        case Theory::StructuredSortInterpretation::OPTION_NONE:
-          return ta->constructor(0)->functor();
-        case Theory::StructuredSortInterpretation::OPTION_SOME:
-          return ta->constructor(1)->functor();
-        case Theory::StructuredSortInterpretation::OPTION_IS_SOME:
-          return ta->constructor(1)->discriminator();
-        case Theory::StructuredSortInterpretation::OPTION_FROM_SOME:
-        case Theory::StructuredSortInterpretation::OPTION_BOOL_FROM_SOME:
-          return ta->constructor(1)->destructorFunctor(0);
-        default:
-          ASSERTION_VIOLATION;
-      }
-    }
-    case Sorts::StructuredSort::EITHER: {
-      Sorts::EitherSort* eitherSort = env.sorts->getEitherSort(theorySort);
-      theory->defineEitherTermAlgebra(eitherSort->getLeftSort(), eitherSort->getRightSort());
-      ASS(isTermAlgebraSort(theorySort));
-      TermAlgebra* ta = getTermAlgebraOfSort(theorySort);
-      switch (ssi) {
-        case Theory::StructuredSortInterpretation::EITHER_LEFT:
-          return ta->constructor(0)->functor();
-        case Theory::StructuredSortInterpretation::EITHER_RIGHT:
-          return ta->constructor(1)->functor();
-        case Theory::StructuredSortInterpretation::EITHER_IS_LEFT:
-          return ta->constructor(0)->discriminator();
-        case Theory::StructuredSortInterpretation::EITHER_IS_RIGHT:
-          return ta->constructor(1)->discriminator();
-        case Theory::StructuredSortInterpretation::EITHER_FROM_LEFT:
-        case Theory::StructuredSortInterpretation::EITHER_BOOL_FROM_LEFT:
-          return ta->constructor(0)->destructorFunctor(0);
-        case Theory::StructuredSortInterpretation::EITHER_FROM_RIGHT:
-        case Theory::StructuredSortInterpretation::EITHER_BOOL_FROM_RIGHT:
-          return ta->constructor(1)->destructorFunctor(0);
-        default:
-          ASSERTION_VIOLATION;
-      }
-    }
-    default: {
-      Interpretation i = Theory::instance()->getInterpretation(theorySort, ssi);
-      return env.signature->getInterpretingSymbol(i);
-    }
-  }
+  Interpretation i = Theory::instance()->getInterpretation(theorySort, ssi);
+  return env.signature->getInterpretingSymbol(i);
 }
 
 const vstring& Signature::functionName(int number)
