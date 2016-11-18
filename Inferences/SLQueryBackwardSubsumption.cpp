@@ -18,6 +18,7 @@
 #include "Kernel/MLMatcher.hpp"
 #include "Kernel/Signature.hpp"
 #include "Kernel/Term.hpp"
+#include "Kernel/ColorHelper.hpp"
 
 #include "Indexing/Index.hpp"
 #include "Indexing/LiteralIndex.hpp"
