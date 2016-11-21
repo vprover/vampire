@@ -71,10 +71,10 @@ void FunctionRelationshipInference::findFunctionRelationships(ClauseIterator cla
     SaturationAlgorithm* salg = SaturationAlgorithm::createFromOptions(prb,opt);
     salg->setLabelFinder(labelFinder);
     MainLoopResult sres(salg->run());
+    (void)sres; //TODO do we even care about sres?
   }catch (TimeLimitExceededException){
     // This is expected behaviour
   }
-  //TODO do we even care about sres?
 
   Timer::setTimeLimitEnforcement(true);
   env.options->setTimeLimitInDeciseconds(oldTimeLimit);

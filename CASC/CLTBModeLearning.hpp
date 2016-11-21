@@ -95,7 +95,6 @@ private:
 
   Semaphore stratSem;
   SyncPipe* strategies;
-  SyncPipe* successfulStrategies;
 
   static DHMap<vstring,ProbRecord*> probRecords;
   static DHMap<vstring,Stack<vstring>*> stratWins;

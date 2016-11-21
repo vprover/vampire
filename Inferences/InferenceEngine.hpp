@@ -110,34 +110,6 @@ public:
   virtual Clause* simplify(Clause* cl) = 0;
 };
 
-/**
- * A ForwardSimplificationPerformer object should be handed to
- * a forward simplification inference with each simplification request,
- * so that the inference object (which works only with non-propositional
- * parts of clauses) can tell whether the forward simplification can be
- * performed by the @b premise clause from the propositional part point
- * of view.
- *
- * It also allows for simplifications that only modify the propositional
- * part of a clause instead of deleting it.
- */
-class ForwardSimplificationPerformer
-{
-public:
-  virtual ~ForwardSimplificationPerformer() {};
-  /**
-   * Perform forward simplification
-   *
-   * In case the deletion of the clause is justified also by some other clause than
-   * @b replacement and @b premise clauses, it should be passed as the @b reductionPremise.
-   * Otherwise the @b reductionPremise should be 0.
-   */
-  void perform(Clause* premise, Clause* replacement, Clause* reductionPremise=0);
-  virtual void perform(ClauseIterator premises, Clause* replacement) = 0;
-  virtual bool willPerform(Clause* premise) { return true; }
-  virtual bool clauseKept() = 0;
-};
-
 class ForwardSimplificationEngine
 : public InferenceEngine
 {
@@ -145,15 +117,13 @@ public:
   /**
    * Perform forward simplification on @b cl
    *
-   * If a simplification is appliable on @b cl, @b keep will be
-   * set to false and @b toAdd iterator will contain results of
-   * the simplification. Otherwise, @b keep will be set to true,
-   * and @b toAdd will contain an empty iterator.
+   * Return true if the simplification is applicable on @b cl,
+   * set @b replacement to a replacing clause if there is one (otherwise keep @b replacement = nullptr)
    *
    * @b premises will contain clauses that justify the simplification
    * performed.
    */
-  virtual void perform(Clause* cl, ForwardSimplificationPerformer* simplPerformer) = 0;
+  virtual bool perform(Clause* cl, Clause*& replacement, ClauseIterator& premises) = 0;
 };
 
 

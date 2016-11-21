@@ -15,14 +15,12 @@
 #include "Lib/Comparison.hpp"
 #include "Lib/Stack.hpp"
 
-#include "DP/SimpleCongruenceClosure.hpp"
-
 namespace Shell {
 
 using namespace Kernel;
 
 /**
- * Class for flattening clauses to separate theory and non-theory parts
+ * Class for performing first-order BCE.
  */
 class BlockedClauseElimination
 {

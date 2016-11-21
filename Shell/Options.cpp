@@ -924,8 +924,8 @@ void Options::Options::init()
             _termAlgebraCyclicityCheck.description=
               "Activates the cyclicity rule for term algebras (such as algebraic datatypes in SMT-LIB):\n"
               "- off : the cyclicity rule is not enforced (this is sound but incomplete)\n"
-              "- axiom : the cyclicity rule is axiomatized with a transitive predicate describing the subterm relation over terms\n";
-              "- rule : the cyclicity rule is enforced by a specific hyper-resolution rule\n";
+              "- axiom : the cyclicity rule is axiomatized with a transitive predicate describing the subterm relation over terms\n"
+              "- rule : the cyclicity rule is enforced by a specific hyper-resolution rule\n"
               "- light : the cyclicity rule is enforced by rule generating disequality between a term and its known subterms";
             _lookup.insert(&_termAlgebraCyclicityCheck);
             _termAlgebraCyclicityCheck.tag(OptionTag::INFERENCES);
@@ -975,6 +975,12 @@ void Options::Options::init()
     _lookup.insert(&_innerRewriting);
     _innerRewriting.tag(OptionTag::INFERENCES);
     _innerRewriting.setExperimental();
+
+    _equationalTautologyRemoval = BoolOptionValue("equational_tautology_removal","etr",false);
+    _equationalTautologyRemoval.description="A reduction which uses CC to remove logically valid clauses.";
+    _lookup.insert(&_equationalTautologyRemoval);
+    _equationalTautologyRemoval.tag(OptionTag::INFERENCES);
+    _equationalTautologyRemoval.setExperimental();
 
     _unitResultingResolution = ChoiceOptionValue<URResolution>("unit_resulting_resolution","urr",URResolution::OFF,{"ec_only","off","on"});
     _unitResultingResolution.description=
@@ -2747,14 +2753,13 @@ bool Options::complete(const Problem& prb) const
 
   Property& prop = *prb.getProperty();
 
-  ASS(&prop);
-
   // general properties causing incompleteness
   if (prop.hasInterpretedOperations()
       || prop.hasProp(Property::PR_HAS_INTEGERS)
       || prop.hasProp(Property::PR_HAS_REALS)
       || prop.hasProp(Property::PR_HAS_RATS)
-      || prop.hasProp(Property::PR_HAS_CONSTRUCTORS)) {
+      || prop.hasProp(Property::PR_HAS_DT_CONSTRUCTORS)
+      || prop.hasProp(Property::PR_HAS_CDT_CONSTRUCTORS)) {
     return false;
   }
 

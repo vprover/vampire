@@ -56,7 +56,7 @@ public:
 
   bool isBGComplete() const override { return false; }
 protected:
-  void doSelection(Clause* c, unsigned eligible)
+  void doSelection(Clause* c, unsigned eligible) override
   {
     CALL("BestLiteralSelector::doSelection");
 
@@ -122,7 +122,7 @@ public:
 
   bool isBGComplete() const override { return true; }
 protected:
-  void doSelection(Clause* c, unsigned eligible)
+  void doSelection(Clause* c, unsigned eligible) override
   {
     CALL("CompleteBestLiteralSelector::doSelection");
     ASS_G(eligible, 1); //trivial cases should be taken care of by the base LiteralSelector

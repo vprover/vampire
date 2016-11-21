@@ -428,7 +428,11 @@ void Property::scanSort(unsigned sort)
       addProp(PR_HAS_ARRAYS);
     }
     if (env.signature->isTermAlgebraSort(sort)) {
-      addProp(PR_HAS_CONSTRUCTORS);
+      if (env.signature->getTermAlgebraOfSort(sort)->allowsCyclicTerms()) {
+        addProp(PR_HAS_CDT_CONSTRUCTORS); // co-algebraic data type
+      } else {
+        addProp(PR_HAS_DT_CONSTRUCTORS); // algebraic data type
+      }
     }
     return;
   }

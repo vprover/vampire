@@ -90,6 +90,19 @@ public:
   Kernel::Clause* simplify(Kernel::Clause* c);
 };
 
+class NegativeInjectivityISE
+  : public ImmediateSimplificationEngine
+{
+public:
+  CLASS_NAME(NegativeInjectivityISE);
+  USE_ALLOCATOR(NegativeInjectivityISE);
+
+  Kernel::Clause* simplify(Kernel::Clause* c);
+
+private:
+  bool litCondition(Clause* c, unsigned i);
+};
+
 class AcyclicityGIE
   : public GeneratingInferenceEngine {
 public:

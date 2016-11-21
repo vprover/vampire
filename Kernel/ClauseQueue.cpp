@@ -16,8 +16,19 @@
 
 #include "ClauseQueue.hpp"
 
+#define MAX_HEIGHT 31
+
 using namespace Lib;
 using namespace Kernel;
+
+ClauseQueue::ClauseQueue()
+    : _height(0)
+{
+  void* mem = ALLOC_KNOWN(sizeof(Node)+MAX_HEIGHT*sizeof(Node*),
+          "ClauseQueue::Node");
+  _left = reinterpret_cast<Node*>(mem);
+  _left->nodes[0] = 0;
+}
 
 /** Temporary!!! */
 ClauseQueue::~ClauseQueue ()
@@ -25,6 +36,8 @@ ClauseQueue::~ClauseQueue ()
   CALL("ClauseQueue::~ClauseQueue");
 
   removeAll();
+
+  DEALLOC_KNOWN(_left,sizeof(Node)+MAX_HEIGHT*sizeof(Node*),"ClauseQueue::Node");
 } // ClauseQueue::~ClauseQueue
 
 /**
@@ -45,7 +58,7 @@ void ClauseQueue::insert(Clause* c)
       _height++;
     }
     h = _height;
-    _left.nodes[h] = 0;
+    _left->nodes[h] = 0;
   }
   void* mem = ALLOC_KNOWN(sizeof(Node)+h*sizeof(Node*),
 			  "ClauseQueue::Node");
@@ -55,7 +68,7 @@ void ClauseQueue::insert(Clause* c)
   // left is a node with a value smaller than that of newNode and having
   // a large enough height.
   // this node is on the left of the inserted one
-  Node* left = &_left;
+  Node* left = _left;
   // lh is the height on which we search for the next node
   unsigned lh = _height;
   for (;;) {
@@ -84,7 +97,7 @@ bool ClauseQueue::remove(Clause* c)
   CALL("ClauseQueue::remove");
 
   unsigned h = _height;
-  Node* left = &_left;
+  Node* left = _left;
 
   for (;;) {
     Node* next = left->nodes[h];
@@ -105,7 +118,7 @@ bool ClauseQueue::remove(Clause* c)
       DEALLOC_KNOWN(next,
 		    sizeof(Node)+height*sizeof(Node*),
 		    "ClauseQueue::Node");
-      while (_height > 0 && ! _left.nodes[_height]) {
+      while (_height > 0 && ! _left->nodes[_height]) {
 	_height--;
       }
       return true;
@@ -140,14 +153,14 @@ Clause* ClauseQueue::pop()
 {
   CALL("ClauseQueue::pop");
   ASS(_height >= 0);
-  ASS(_left.nodes[0] != 0);
+  ASS(_left->nodes[0] != 0);
 
-  Node* node = _left.nodes[0];
+  Node* node = _left->nodes[0];
   unsigned h = 0;
-  _left.nodes[0] = node->nodes[0];
-  while (h < _height && _left.nodes[h+1] == node) {
+  _left->nodes[0] = node->nodes[0];
+  while (h < _height && _left->nodes[h+1] == node) {
     h++;
-    _left.nodes[h] = node->nodes[h];
+    _left->nodes[h] = node->nodes[h];
   }
   // now h is the height of the node
   Clause* c = node->clause;
@@ -156,7 +169,7 @@ Clause* ClauseQueue::pop()
   DEALLOC_KNOWN(node,
 		sizeof(Node)+h*sizeof(Node*),
 		"ClauseQueue::Node");
-  while (_height > 0 && ! _left.nodes[_height]) {
+  while (_height > 0 && ! _left->nodes[_height]) {
     _height--;
   }
 
@@ -171,7 +184,7 @@ void ClauseQueue::removeAll()
 {
   CALL("ClauseQueue::removeAll");
 
-  while (_left.nodes[0]) {
+  while (_left->nodes[0]) {
     pop();
   }
 } // removeAll
@@ -179,7 +192,7 @@ void ClauseQueue::removeAll()
 #if VDEBUG
 void ClauseQueue::output(ostream& str) const
 {
-  for (const Node* node = _left.nodes[0]; node; node=node->nodes[0]) {
+  for (const Node* node = _left->nodes[0]; node; node=node->nodes[0]) {
     str << node->clause->toString() << '\n';
   }
 } // ClauseQueue::output

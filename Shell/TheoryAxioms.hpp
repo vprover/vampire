@@ -18,7 +18,7 @@ using namespace Kernel;
 
 class TheoryAxioms {
 public:
-  TheoryAxioms(Options::TheoryAxiomLevel level) : _level(level) {}
+  TheoryAxioms(Options::TheoryAxiomLevel level) : _level(level) { (void)_level; /* TODO: currently unused */ }
 
 
   void apply(Problem& prb);

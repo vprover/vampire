@@ -8,8 +8,6 @@
 #ifndef __ClauseQueue__
 #define __ClauseQueue__
 
-#define MAX_HEIGHT 31
-
 #if VDEBUG
 #include <ostream>
 using namespace std;
@@ -31,11 +29,7 @@ class Clause;
 class ClauseQueue
 {
 public:
-  ClauseQueue()
-    : _height(0)
-  {
-    _left.nodes[0] = 0;
-  }
+  ClauseQueue();
   virtual ~ClauseQueue();
   void insert(Clause*);
   bool remove(Clause*);
@@ -43,7 +37,7 @@ public:
   Clause* pop();
   /** True if the queue is empty */
   bool isEmpty() const
-  { return _left.nodes[0] == 0; }
+  { return _left->nodes[0] == 0; }
 #if VDEBUG
   void output(ostream&) const;
 #endif
@@ -60,18 +54,10 @@ protected:
     /** Links to other nodes on the right, can be of any length */
     Node* nodes[1];
   };
-  /** This class is just to have the leftmost dummy node of sufficient
-   * size */
-  class LargeNode
-    : public Node
-  {
-  protected: // MS: private would trigger unused field warning
-    Node* _[MAX_HEIGHT];
-  };
   /** Height of the leftmost node minus 1 */
   unsigned _height;
   /** the leftmost node with the dummy key and value */
-  LargeNode _left;
+  Node* _left;
 
 public:
   /** Iterator over the queue
@@ -83,7 +69,7 @@ public:
 
     /** Create a new iterator */
     inline explicit Iterator(ClauseQueue& queue)
-      : _current(&queue._left)
+      : _current(queue._left)
     {}
     /** true if there is a next clause */
     inline bool hasNext() const

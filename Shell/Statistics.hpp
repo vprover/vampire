@@ -131,6 +131,8 @@ public:
   unsigned innerRewrites;
   /** number of inner rewrites into equational tautologies */
   unsigned innerRewritesToEqTaut;
+  /** number of equational tautologies discovered by CC */
+  unsigned deepEquationalTautologies;
 
   // Deletion inferences
   /** number of tautologies A \/ ~A */
@@ -141,6 +143,13 @@ public:
   unsigned forwardSubsumed;
   /** number of backward subsumed clauses */
   unsigned backwardSubsumed;
+
+  /** statistics of term algebra rules */
+  unsigned taDistinctnessSimplifications;
+  unsigned taDistinctnessTautologyDeletions;
+  unsigned taInjectivitySimplifications;
+  unsigned taNegativeInjectivitySimplifications;
+  unsigned taAcyclicityGeneratedDisequalities;
 
   // Saturation
   /** all clauses ever occurring in the unprocessed queue */
