@@ -81,6 +81,7 @@ public:
   void* allocateKnown(size_t size,const char* className) ALLOC_SIZE_ATTR;
   void deallocateKnown(void* obj,size_t size,const char* className);
   void* allocateUnknown(size_t size,const char* className) ALLOC_SIZE_ATTR;
+  void* reallocateUnknown(void* obj, size_t newsize,const char* className);
   void deallocateUnknown(void* obj,const char* className);
   static void addressStatus(const void* address);
   static void reportUsageByClasses();
@@ -88,6 +89,7 @@ public:
   void* allocateKnown(size_t size) ALLOC_SIZE_ATTR;
   void deallocateKnown(void* obj,size_t size);
   void* allocateUnknown(size_t size) ALLOC_SIZE_ATTR;
+  void* reallocateUnknown(void* obj, size_t newsize);
   void deallocateUnknown(void* obj);
 #endif
 
@@ -385,6 +387,8 @@ std::ostream& operator<<(std::ostream& out, const Allocator::Descriptor& d);
   (Lib::Allocator::current->allocateUnknown(size,className))
 #define DEALLOC_KNOWN(obj,size,className)		        \
   (Lib::Allocator::current->deallocateKnown(obj,size,className))
+#define REALLOC_UNKNOWN(obj,newsize,className)                    \
+    (Lib::Allocator::current->reallocateUnknown(obj,newsize,className))
 #define DEALLOC_UNKNOWN(obj,className)		                \
   (Lib::Allocator::current->deallocateUnknown(obj,className))
          
@@ -418,6 +422,8 @@ std::ostream& operator<<(std::ostream& out, const Allocator::Descriptor& d);
   { if (obj) Lib::Allocator::current->deallocateUnknown(obj); }          
 #define ALLOC_UNKNOWN(size,className)				\
   (Lib::Allocator::current->allocateUnknown(size))
+#define REALLOC_UNKNOWN(obj,newsize,className)                    \
+    (Lib::Allocator::current->reallocateUnknown(obj,newsize))
 #define DEALLOC_UNKNOWN(obj,className)		         \
   (Lib::Allocator::current->deallocateUnknown(obj))
 

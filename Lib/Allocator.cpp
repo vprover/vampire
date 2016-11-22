@@ -8,11 +8,11 @@
 #if VDEBUG
 
 #include <sstream>
-#include <cstring>
 #include "DHMap.hpp"
 
 #endif
 
+#include <cstring>
 #include <cstdlib>
 #include "Lib/System.hpp"
 
@@ -457,6 +457,59 @@ void Allocator::deallocateUnknown(void* obj)
   }
 #endif
 } // Allocator::deallocateUnknown
+
+/**
+ * Reallocate an object whose size is unknown.
+ * The functionality should correspond to the realloc function for the standard library.
+ * This means it can be called with (obj == NULL) in which case it simply allocates.
+ * If obj points to allocated memory, this memory must have been obtained by calling
+ * reallocateUnknown or allocateUnknown.
+ * Also, the part of obj which fits into newsize will get copied over.
+ *
+ * The corresponding "free" function is deallocateUnknown.
+ */
+#if VDEBUG
+void* Allocator::reallocateUnknown(void* obj, size_t newsize, const char* className)
+#else
+void* Allocator::reallocateUnknown(void* obj, size_t newsize)
+#endif
+{
+  CALL("Allocator::reallocateUnknown");
+
+  // cout << "reallocateUnknown " << obj << " newsize " << newsize << endl;
+
+  if (obj == NULL) {
+#if VDEBUG
+    return allocateUnknown(newsize,className);
+#else
+    return allocateUnknown(newsize);
+#endif
+  }
+
+#if VDEBUG
+  void* newobj = allocateUnknown(newsize,className);
+#else
+  void* newobj = allocateUnknown(newsize);
+#endif
+
+  char* mem = reinterpret_cast<char*>(obj) - sizeof(Known);
+  Unknown* unknown = reinterpret_cast<Unknown*>(mem);
+  size_t size = unknown->size;
+
+  if (newsize < size) {
+    size = newsize;
+  }
+
+  std::memcpy(newobj,obj,size);
+
+#if VDEBUG
+  deallocateUnknown(obj,className);
+#else
+  deallocateUnknown(obj);
+#endif
+
+  return newobj;
+} // Allocator::reallocateUnknown
 
 /**
  * Create a new allocator.
