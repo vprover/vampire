@@ -165,6 +165,14 @@ private:
     Unknown* next;
   }; // class Unknown
 
+  static size_t unknownsSize(void* obj) {
+    ASS_LE(sizeof(size_t), sizeof(Known)); // because the code all around jumps back by sizeof(Known), but then reads/writes into size_t
+
+    char* mem = reinterpret_cast<char*>(obj) - sizeof(Known);
+    Unknown* unknown = reinterpret_cast<Unknown*>(mem);
+    return unknown->size - sizeof(Known);
+  }
+
 #if VDEBUG
 public:
   /** A helper struct used for implementing the BYPASSING_ALLOCATOR macro. */

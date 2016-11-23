@@ -478,25 +478,19 @@ void* Allocator::reallocateUnknown(void* obj, size_t newsize)
 
   // cout << "reallocateUnknown " << obj << " newsize " << newsize << endl;
 
-  if (obj == NULL) {
-#if VDEBUG
-    return allocateUnknown(newsize,className);
-#else
-    return allocateUnknown(newsize);
-#endif
-  }
-
 #if VDEBUG
   void* newobj = allocateUnknown(newsize,className);
 #else
   void* newobj = allocateUnknown(newsize);
 #endif
 
-  char* mem = reinterpret_cast<char*>(obj) - sizeof(Known);
-  Unknown* unknown = reinterpret_cast<Unknown*>(mem);
-  size_t size = unknown->size;
+  if (obj == NULL) {
+    return newobj;
+  }
 
-  ASS_NEQ(size,newsize); // it works when violated, but a code which want's to reallocate for the same size is suspicious
+  size_t size = unknownsSize(obj);
+
+  ASS_NEQ(size,newsize); // it all works when violated, but a code which wants to reallocate for the same size is suspicious
 
   if (newsize < size) {
     size = newsize;
