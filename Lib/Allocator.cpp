@@ -496,6 +496,8 @@ void* Allocator::reallocateUnknown(void* obj, size_t newsize)
   Unknown* unknown = reinterpret_cast<Unknown*>(mem);
   size_t size = unknown->size;
 
+  ASS_NEQ(size,newsize); // it works when violated, but a code which want's to reallocate for the same size is suspicious
+
   if (newsize < size) {
     size = newsize;
   }
