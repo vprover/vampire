@@ -43,6 +43,7 @@ void LiteralSubstitutionTree::handleLiteral(Literal* lit, Clause* cls, bool inse
   BindingMap svBindings;
   getBindings(normLit, svBindings);
   if(insert) {
+    cout << "Into " << this << " insert " << lit->toString() << endl;
     SubstitutionTree::insert(&_nodes[getRootNodeIndex(normLit)], svBindings, LeafData(cls, lit));
   } else {
     SubstitutionTree::remove(&_nodes[getRootNodeIndex(normLit)], svBindings, LeafData(cls, lit));
@@ -53,6 +54,7 @@ SLQueryResultIterator LiteralSubstitutionTree::getUnifications(Literal* lit,
 	  bool complementary, bool retrieveSubstitutions)
 {
   CALL("LiteralSubstitutionTree::getUnifications");
+  cout << "getUnifications in " << this << endl;
   return getResultIterator<UnificationsIterator>(lit,
 	  complementary, retrieveSubstitutions);
 }
@@ -262,10 +264,16 @@ SLQueryResultIterator LiteralSubstitutionTree::getResultIterator(Literal* lit,
 
   Node* root=_nodes[getRootNodeIndex(lit, complementary)];
 
+  if(root!=0){
+  cout << "Printing root" << endl;
+  root->print(0);
+  }
+
   if(root==0) {
     return SLQueryResultIterator::getEmpty();
   }
   if(root->isLeaf()) {
+    cout << "Root is Leaf" << endl;
     LDIterator ldit=static_cast<Leaf*>(root)->allChildren();
     if(retrieveSubstitutions) {
       // a single substitution will be used for all in ldit, but that's OK

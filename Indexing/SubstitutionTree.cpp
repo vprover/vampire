@@ -134,6 +134,8 @@ void SubstitutionTree::insert(Node** pnode,BindingMap& svBindings,LeafData ld)
   CALL("SubstitutionTree::insert/3");
   ASS_EQ(_iteratorCnt,0);
 
+  //cout << "Insert into " << *pnode << endl;;
+
   if(*pnode == 0) {
     if(svBindings.isEmpty()) {
       *pnode=createLeaf();
@@ -659,6 +661,8 @@ clientBDRecording(false), tree(parent)
 {
   CALL("SubstitutionTree::UnificationsIterator::UnificationsIterator");
 
+  cout << "UnificationsIteator for query " << query->toString() << endl;
+
 #if VDEBUG
   tree->_iteratorCnt++;
 #endif
@@ -777,7 +781,10 @@ bool SubstitutionTree::UnificationsIterator::findNextLeaf()
 {
   CALL("SubstitutionTree::UnificationsIterator::findNextLeaf");
 
+  cout << "findNextLeaf" << endl;
+
   if(nodeIterators.isEmpty()) {
+     cout << "nodeIterators isEmpty" << endl;
     //There are no node iterators in the stack, so there's nowhere
     //to look for the next leaf.
     //This shouldn't hapen during the regular retrieval process, but it
@@ -805,9 +812,13 @@ bool SubstitutionTree::UnificationsIterator::findNextLeaf()
       svStack.pop();
     }
     if(!nodeIterators.top().hasNext()) {
+      cout << "return here" << endl;
       return false;
     }
     Node* n=*nodeIterators.top().next();
+
+    cout << "At node with term " << n->term.toString() << endl;
+
     BacktrackData bd;
     bool success=enter(n,bd);
     if(!success) {
@@ -824,10 +835,13 @@ bool SubstitutionTree::UnificationsIterator::enter(Node* n, BacktrackData& bd)
 {
   CALL("SubstitutionTree::UnificationsIterator::enter");
 
+  cout << "entering..." << endl; n->print(0); 
+
   bool success=true;
   bool recording=false;
   if(!n->term.isEmpty()) {
     //n is proper node, not a root
+    cout << "proper node" << endl;
 
     TermList qt(svStack.top(), true);
 
@@ -835,6 +849,7 @@ bool SubstitutionTree::UnificationsIterator::enter(Node* n, BacktrackData& bd)
     subst.bdRecord(bd);
     success=associate(qt,n->term);
   }
+  cout << "success=" << success << endl;
   if(success) {
     if(n->isLeaf()) {
       ldIterator=static_cast<Leaf*>(n)->allChildren();
@@ -843,6 +858,7 @@ bool SubstitutionTree::UnificationsIterator::enter(Node* n, BacktrackData& bd)
       IntermediateNode* inode=static_cast<IntermediateNode*>(n);
       svStack.push(inode->childVar);
       NodeIterator nit=getNodeIterator(inode);
+      cout << "nit hasnext is " << nit.hasNext() << endl;
       nodeIterators.backtrackablePush(nit, bd);
     }
   }
@@ -855,6 +871,7 @@ bool SubstitutionTree::UnificationsIterator::enter(Node* n, BacktrackData& bd)
 bool SubstitutionTree::UnificationsIterator::associate(TermList query, TermList node)
 {
   CALL("SubstitutionTree::UnificationsIterator::associate");
+  cout << "HERE" << endl;
   return subst.unify(query,NORM_QUERY_BANK,node,NORM_RESULT_BANK);
 }
 
@@ -869,10 +886,16 @@ SubstitutionTree::NodeIterator
     return n->allChildren();
   } else {
     Node** match=n->childByTop(qt, false);
+    unsigned sort = ALWAYS(SortHelper::tryGetResultSort(qt)); // should always return as qt is not variable
     if(match) {
-      return pvi( getConcatenatedIterator(
+      return pvi( 
+        getConcatenatedIterator(
+          getConcatenatedIterator(
+              n->childBySort(sort,false),
 	      getSingletonIterator(match),
-	      n->variableChildren()) );
+          ),
+	   n->variableChildren() 
+       ));
     } else {
       return n->variableChildren();
     }

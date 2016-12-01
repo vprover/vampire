@@ -254,6 +254,8 @@ ClauseIterator BinaryResolution::generateClauses(Clause* premise)
 {
   CALL("BinaryResolution::generateClauses");
 
+  cout << "BinaryResolution for " << premise->toString() << endl;
+
   Limits* limits = _salg->getLimits();
 
   // generate pairs of the form (literal selected in premise, unifying object in index)

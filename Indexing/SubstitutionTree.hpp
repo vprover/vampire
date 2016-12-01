@@ -82,6 +82,11 @@ public:
     Clause* clause;
     Literal* literal;
     TermList term;
+
+    vstring toString(){
+      return "LD " + literal->toString() + " in " + clause->toString() + " with " +term.toString();
+    }
+
   };
   typedef VirtualIterator<LeafData&> LDIterator;
 
@@ -161,6 +166,14 @@ public:
 
     /** term at this node */
     TermList term;
+
+    virtual void print(unsigned depth=0){
+       printDepth(depth);
+       cout <<  "[" + term.toString() + "]" << endl;
+    }
+    void printDepth(unsigned depth){
+      while(depth-->0){ cout <<" "; }
+    }
   };
 
 
@@ -198,6 +211,22 @@ public:
      * suitable child does not exist.
      */
     virtual Node** childByTop(TermList t, bool canCreate) = 0;
+
+    /**
+     *
+     *
+     */
+    virtual Node** childBySort(TermList t) = 0;
+
+    void mightExistAsTop(TermList t)
+    {
+      if(!t.isTerm()){ return; }
+      unsigned sort;
+      if(SortHelper::tryGetResultSort(t)){
+        unsigned
+      }
+    }
+
     /**
      * Remove child which points to node with top symbol of @b t.
      * This node has to still exist in time of the call to remove method.
@@ -221,6 +250,16 @@ public:
     void loadChildren(NodeIterator children);
 
     unsigned childVar;
+
+    virtual void print(unsigned depth=0){
+       auto children = allChildren();
+       printDepth(depth);
+       cout << "I [" << childVar << "] with " << term.toString() << endl;
+       while(children.hasNext()){
+         (*children.next())->print(depth+1);
+       }
+    }
+
   }; // class SubstitutionTree::IntermediateNode
 
   class Leaf
@@ -241,6 +280,14 @@ public:
     virtual void insert(LeafData ld) = 0;
     virtual void remove(LeafData ld) = 0;
     void loadChildren(LDIterator children);
+
+    virtual void print(unsigned depth=0){
+       auto children = allChildren();
+       while(children.hasNext()){
+         printDepth(depth);
+         cout << children.next().toString() << endl;
+       } 
+    }
   };
 
   //These classes and methods are defined in SubstitutionTree_Nodes.cpp
@@ -374,6 +421,7 @@ public:
       bool found=_nodes.getPosition(t,res,canCreate);
       if(!found) {
         if(canCreate) {
+          mightExistAsTop(t);
           *res=0;
         } else {
           res=0;
