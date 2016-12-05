@@ -169,6 +169,22 @@ bool FormulaVarIterator::hasNext()
               break;
             }
 
+            case Term::SF_LET_TUPLE: {
+              _instructions.push(FVI_TERM_LIST);
+              _termLists.push(sd->getBinding());
+              break;
+            }
+
+            case Term::SF_TUPLE: {
+              Term* tt = sd->getTupleTerm();
+              Term::Iterator tts(tt);
+              while (tts.hasNext()) {
+                _instructions.push(FVI_TERM_LIST);
+                _termLists.push(tts.next());
+              }
+              break;
+            }
+
 #if VDEBUG
             default:
               ASSERTION_VIOLATION;

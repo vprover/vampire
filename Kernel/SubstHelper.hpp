@@ -287,6 +287,16 @@ Term* SubstHelper::applyImpl(Term* trm, Applicator& applicator, bool noSharing)
       return Term::createFormula(
       applyImpl<ProcessSpecVars>(sd->getFormula(), applicator, noSharing)
       );
+    case Term::SF_LET_TUPLE:
+      return Term::createTupleLet(
+        sd->getFunctor(),
+        sd->getTupleSymbols(),
+        applyImpl<ProcessSpecVars>(sd->getBinding(), applicator, noSharing),
+        applyImpl<ProcessSpecVars>(*trm->nthArgument(0), applicator, noSharing),
+        sd->getSort()
+        );
+    case Term::SF_TUPLE:
+      return Term::createTuple(applyImpl<ProcessSpecVars>(sd->getTupleTerm(), applicator, noSharing));
     }
     ASSERTION_VIOLATION;
   }

@@ -303,6 +303,34 @@ TermList NNF::ennf(TermList ts, bool polarity)
         break;
       }
 
+      case Term::SF_LET_TUPLE: {
+        TermList binding = sd->getBinding();
+        TermList body = *term->nthArgument(0);
+
+        TermList ennfBinding = ennf(binding, true);
+        TermList ennfBody = ennf(body, polarity);
+
+        if ((binding == ennfBinding) && (body == ennfBody)) {
+          return ts;
+        } else {
+          return TermList(Term::createTupleLet(sd->getFunctor(), sd->getTupleSymbols(), ennfBinding, ennfBody, sd->getSort()));
+        }
+        break;
+      }
+
+      case Term::SF_TUPLE: {
+        TermList tupleTerm = TermList(sd->getTupleTerm());
+        TermList ennfTupleTerm = ennf(tupleTerm, true);
+
+        if (tupleTerm != ennfTupleTerm) {
+          return ts;
+        } else {
+          ASS_REP(ennfTupleTerm.isTerm(), ennfTupleTerm.toString());
+          return TermList(Term::createTuple(ennfTupleTerm.term()));
+        }
+        break;
+      }
+
       default:
         ASSERTION_VIOLATION;
     }

@@ -469,6 +469,27 @@ Comparison Normalisation::compare(Term* t1, Term* t2)
         }
       }
 
+      case Term::SF_LET_TUPLE: {
+        comp = compare(t1->getSpecialData()->getTupleSymbols()->length(),
+                       t2->getSpecialData()->getTupleSymbols()->length());
+        if (comp != EQUAL) {
+          return comp;
+        }
+        TermList b1 = t1->getSpecialData()->getBinding();
+        TermList b2 = t2->getSpecialData()->getBinding();
+        comp = compare(&b1, &b2);
+        if (comp != EQUAL) {
+          return comp;
+        }
+      }
+
+      case Term::SF_TUPLE: {
+        comp = compare(t1->getSpecialData()->getTupleTerm(), t2->getSpecialData()->getTupleTerm());
+        if (comp != EQUAL) {
+          return comp;
+        }
+      }
+
       default:
         ASSERTION_VIOLATION;
     }
