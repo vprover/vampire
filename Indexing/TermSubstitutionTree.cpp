@@ -108,7 +108,8 @@ bool TermSubstitutionTree::generalizationExists(TermList t)
   if(root->isLeaf()) {
     return true;
   }
-  return FastGeneralizationsIterator(this, root, trm, false,false,false).hasNext();
+  bool useC = false; //TODO TODO TODO
+  return FastGeneralizationsIterator(this, root, trm, false,false,false,useC).hasNext();
 }
 
 /**
@@ -153,8 +154,9 @@ struct TermSubstitutionTree::TermQueryResultFn
 {
   DECL_RETURN_TYPE(TermQueryResult);
   OWN_RETURN_TYPE operator() (const QueryResult& qr) {
-    return TermQueryResult(qr.first->term, qr.first->literal,
-	    qr.first->clause, qr.second);
+    ASS(qr.second.isEmpty());
+    return TermQueryResult(qr.first.first->term, qr.first.first->literal,
+	    qr.first.first->clause, qr.first.second);
   }
 };
 
@@ -164,6 +166,8 @@ TermQueryResultIterator TermSubstitutionTree::getResultIterator(Term* trm,
 {
   CALL("TermSubstitutionTree::getResultIterator");
 
+  bool useC = false; //TODO TODO TODO
+
   Node* root=_nodes[getRootNodeIndex(trm)];
   if(!root) {
     return TermQueryResultIterator::getEmpty();
@@ -172,7 +176,7 @@ TermQueryResultIterator TermSubstitutionTree::getResultIterator(Term* trm,
     LDIterator ldit=static_cast<Leaf*>(root)->allChildren();
     return ldIteratorToTQRIterator(ldit,TermList(trm),retrieveSubstitutions);
   }
-  VirtualIterator<QueryResult> qrit=vi( new Iterator(this, root, trm, retrieveSubstitutions,false,false) );
+  VirtualIterator<QueryResult> qrit=vi( new Iterator(this, root, trm, retrieveSubstitutions,false,false, useC) );
   return pvi( getMappingIterator(qrit, TermQueryResultFn()) );
 }
 

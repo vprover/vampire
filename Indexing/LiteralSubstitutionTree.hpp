@@ -30,6 +30,9 @@ public:
   SLQueryResultIterator getUnifications(Literal* lit,
 	  bool complementary, bool retrieveSubstitutions);
 
+  SLQueryResultIterator getUnificationsWithConstraints(Literal* lit,
+          bool complementary, bool retrieveSubstitutions);
+
   SLQueryResultIterator getGeneralizations(Literal* lit,
 	  bool complementary, bool retrieveSubstitutions);
 
@@ -55,7 +58,7 @@ private:
 
   template<class Iterator>
   SLQueryResultIterator getResultIterator(Literal* lit,
-	  bool complementary, bool retrieveSubstitutions);
+	  bool complementary, bool retrieveSubstitutions, bool useConstraints);
 
   unsigned getRootNodeIndex(Literal* t, bool complementary=false);
 };

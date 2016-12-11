@@ -68,7 +68,7 @@ struct BinaryResolution::UnificationsFn
       //Binary resolution is not performed with equality literals
       return OWN_RETURN_TYPE::getEmpty();
     }
-    return pvi( pushPairIntoRightIterator(lit, _index->getUnifications(lit, true)) );
+    return pvi( pushPairIntoRightIterator(lit, _index->getUnificationsWithConstraints(lit, true)) );
   }
 private:
   GeneratingLiteralIndex* _index;
@@ -123,6 +123,7 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQ
     return 0;
   }
 
+  Stack<Literal*> constraints = qr.constraints;
   unsigned clength = queryCl->length();
   unsigned dlength = qr.clause->length();
   unsigned newAge=Int::max(queryCl->age(),qr.clause->age())+1;
@@ -160,7 +161,7 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQ
     }
   }
 
-  unsigned newLength = clength+dlength-2;
+  unsigned newLength = clength+dlength-2+constraints.size();
 
   Inference* inf = new Inference2(Inference::RESOLUTION, queryCl, qr.clause);
   Unit::InputType inpType = (Unit::InputType)
@@ -175,6 +176,10 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQ
   }
 
   unsigned next = 0;
+  for(unsigned i=0;i<constraints.size();i++){
+      (*res)[next] = constraints[i]; 
+      next++;    
+  }
   for(unsigned i=0;i<clength;i++) {
     Literal* curr=(*queryCl)[i];
     if(curr!=queryLit) {
@@ -254,7 +259,7 @@ ClauseIterator BinaryResolution::generateClauses(Clause* premise)
 {
   CALL("BinaryResolution::generateClauses");
 
-  cout << "BinaryResolution for " << premise->toString() << endl;
+  //cout << "BinaryResolution for " << premise->toString() << endl;
 
   Limits* limits = _salg->getLimits();
 

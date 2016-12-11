@@ -33,11 +33,14 @@ struct SLQueryResult
   : literal(l), clause(c), substitution(s) {}
   SLQueryResult(Literal* l, Clause* c)
   : literal(l), clause(c) {}
+  SLQueryResult(Literal* l, Clause* c, ResultSubstitutionSP s,Stack<Literal*> con)
+  : literal(l), clause(c), substitution(s), constraints(con) {}
 
 
   Literal* literal;
   Clause* clause;
   ResultSubstitutionSP substitution;
+  Stack<Literal*> constraints;
 
   struct ClauseExtractFn
   {

@@ -27,6 +27,8 @@
 #include "Kernel/RobSubstitution.hpp"
 #include "Kernel/Renaming.hpp"
 #include "Kernel/Clause.hpp"
+#include "Kernel/SortHelper.hpp"
+#include "Kernel/Sorts.hpp"
 
 #include "Lib/Allocator.hpp"
 
@@ -187,11 +189,17 @@ public:
     /** Build a new intermediate node which will serve as the root*/
     inline
     IntermediateNode(unsigned childVar) : childVar(childVar)
-    {}
+    {
+      bySort.ensure(Sorts::FIRST_USER_SORT);
+      bySortTerms.ensure(Sorts::FIRST_USER_SORT);
+    }
 
     /** Build a new intermediate node */
     inline
-    IntermediateNode(TermList ts, unsigned childVar) : Node(ts), childVar(childVar) {}
+    IntermediateNode(TermList ts, unsigned childVar) : Node(ts), childVar(childVar) {
+      bySort.ensure(Sorts::FIRST_USER_SORT);
+      bySortTerms.ensure(Sorts::FIRST_USER_SORT);
+    }
 
     inline
     bool isLeaf() const { return false; };
@@ -216,14 +224,30 @@ public:
      *
      *
      */
-    virtual Node** childBySort(TermList t) = 0;
+    NodeIterator childBySort(TermList t)
+    {
+     unsigned srt;
+     if(SortHelper::tryGetResultSort(t,srt)){
+       Stack<TermList>::Iterator fit(bySortTerms[srt]);
+       return pvi(getFilteredIterator(getMappingIterator(fit,ByTopFn(this)),NonzeroFn()));
+     }
+     return NodeIterator::getEmpty(); 
+    } 
 
+    DArray<DHSet<unsigned>> bySort;
+    DArray<Stack<TermList>> bySortTerms;
     void mightExistAsTop(TermList t)
     {
+      CALL("SubstitutionTree::IntermediateNode::mightExistAsTop");
       if(!t.isTerm()){ return; }
-      unsigned sort;
-      if(SortHelper::tryGetResultSort(t)){
-        unsigned
+      unsigned srt;
+      if(SortHelper::tryGetResultSort(t,srt)){
+        if(srt > Sorts::SRT_DEFAULT && srt < Sorts::FIRST_USER_SORT){
+          unsigned f = t.term()->functor();
+          if(bySort[srt].insert(f)){
+            bySortTerms[srt].push(t);
+          }
+        }
       }
     }
 
@@ -261,6 +285,17 @@ public:
     }
 
   }; // class SubstitutionTree::IntermediateNode
+
+  struct ByTopFn
+  {
+    ByTopFn(IntermediateNode* n) : node(n) {};
+    DECL_RETURN_TYPE(Node**);
+    OWN_RETURN_TYPE operator()(TermList t){
+      return node->childByTop(t,false);
+    }
+    private:
+      IntermediateNode* node;
+  };
 
   class Leaf
   : public Node
@@ -539,7 +574,7 @@ public:
     Stack<NodeIterator> _nodeIterators;
   };
 
-  typedef pair<LeafData*, ResultSubstitutionSP> QueryResult;
+  typedef pair<pair<LeafData*, ResultSubstitutionSP>,Stack<Literal*>> QueryResult;
 
 
   class GenMatcher;
@@ -552,7 +587,7 @@ public:
   {
   public:
     FastGeneralizationsIterator(SubstitutionTree* parent, Node* root, Term* query,
-            bool retrieveSubstitution, bool reversed,bool withoutTop);
+            bool retrieveSubstitution, bool reversed,bool withoutTop,bool useC);
 
     ~FastGeneralizationsIterator();
 
@@ -598,7 +633,7 @@ public:
   {
   public:
     FastInstancesIterator(SubstitutionTree* parent, Node* root, Term* query,
-	    bool retrieveSubstitution, bool reversed, bool withoutTop);
+	    bool retrieveSubstitution, bool reversed, bool withoutTop, bool useC);
     ~FastInstancesIterator();
 
     bool hasNext();
@@ -631,13 +666,13 @@ public:
   : public IteratorCore<QueryResult>
   {
   public:
-    UnificationsIterator(SubstitutionTree* parent, Node* root, Term* query, bool retrieveSubstitution, bool reversed,bool withoutTop);
+    UnificationsIterator(SubstitutionTree* parent, Node* root, Term* query, bool retrieveSubstitution, bool reversed,bool withoutTop, bool useC);
     ~UnificationsIterator();
 
     bool hasNext();
     QueryResult next();
   protected:
-    virtual bool associate(TermList query, TermList node);
+    virtual bool associate(TermList query, TermList node, BacktrackData& bd);
     virtual NodeIterator getNodeIterator(IntermediateNode* n);
 
     void createInitialBindings(Term* t);
@@ -669,6 +704,8 @@ public:
     BacktrackData clientBacktrackData;
     Renaming queryNormalizer;
     SubstitutionTree* tree;
+    bool useConstraints;
+    Stack<Literal*> constraints;
   };
 
 
@@ -676,8 +713,8 @@ public:
   : public UnificationsIterator
   {
   public:
-    GeneralizationsIterator(SubstitutionTree* parent, Node* root, Term* query, bool retrieveSubstitution, bool reversed, bool withoutTop)
-    : UnificationsIterator(parent, root, query, retrieveSubstitution, reversed, withoutTop) {};
+    GeneralizationsIterator(SubstitutionTree* parent, Node* root, Term* query, bool retrieveSubstitution, bool reversed, bool withoutTop, bool useC)
+    : UnificationsIterator(parent, root, query, retrieveSubstitution, reversed, withoutTop, useC) {}; 
 
   protected:
     virtual bool associate(TermList query, TermList node);
@@ -688,8 +725,8 @@ public:
   : public UnificationsIterator
   {
   public:
-    InstancesIterator(SubstitutionTree* parent, Node* root, Term* query, bool retrieveSubstitution, bool reversed,bool withoutTop)
-    : UnificationsIterator(parent, root, query, retrieveSubstitution, reversed, withoutTop) {};
+    InstancesIterator(SubstitutionTree* parent, Node* root, Term* query, bool retrieveSubstitution, bool reversed,bool withoutTop,bool useC)
+    : UnificationsIterator(parent, root, query, retrieveSubstitution, reversed, withoutTop,useC) {}; 
   protected:
     virtual bool associate(TermList query, TermList node);
     virtual NodeIterator getNodeIterator(IntermediateNode* n);

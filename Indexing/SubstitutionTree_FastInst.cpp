@@ -533,7 +533,7 @@ finish:
  * 	reversed. (useful for retrieval commutative terms)
  */
 SubstitutionTree::FastInstancesIterator::FastInstancesIterator(SubstitutionTree* parent, Node* root,
-	Term* query, bool retrieveSubstitution, bool reversed, bool withoutTop)
+	Term* query, bool retrieveSubstitution, bool reversed, bool withoutTop, bool useC)
 : _literalRetrieval(query->isLiteral()), _retrieveSubstitution(retrieveSubstitution),
   _inLeaf(false), _ldIterator(LDIterator::getEmpty()), _tree(parent),  _root(root),
   _alternatives(64), _specVarNumbers(64), _nodeTypes(64)
@@ -633,10 +633,10 @@ SubstitutionTree::QueryResult SubstitutionTree::FastInstancesIterator::next()
       _resultDenormalizer.makeInverse(normalizer);
     }
 
-    return QueryResult(&ld,
-	    _subst->getSubstitution(&_resultDenormalizer));
+    return QueryResult(make_pair(&ld,
+	    _subst->getSubstitution(&_resultDenormalizer)),Stack<Literal*>());
   } else {
-    return QueryResult(&ld, ResultSubstitutionSP());
+    return QueryResult(make_pair(&ld, ResultSubstitutionSP()),Stack<Literal*>());
   }
 }
 #undef LOGGING

@@ -22,6 +22,8 @@ public:
   virtual SLQueryResultIterator getAll() { NOT_IMPLEMENTED; }
   virtual SLQueryResultIterator getUnifications(Literal* lit,
 	  bool complementary, bool retrieveSubstitutions = true) { NOT_IMPLEMENTED; }
+  virtual SLQueryResultIterator getUnificationsWithConstraints(Literal* lit,
+          bool complementary, bool retrieveSubstitutions = true) { NOT_IMPLEMENTED; }
   virtual SLQueryResultIterator getGeneralizations(Literal* lit,
 	  bool complementary, bool retrieveSubstitutions = true) { NOT_IMPLEMENTED; }
   virtual SLQueryResultIterator getInstances(Literal* lit,

@@ -43,7 +43,7 @@ void LiteralSubstitutionTree::handleLiteral(Literal* lit, Clause* cls, bool inse
   BindingMap svBindings;
   getBindings(normLit, svBindings);
   if(insert) {
-    cout << "Into " << this << " insert " << lit->toString() << endl;
+    //cout << "Into " << this << " insert " << lit->toString() << endl;
     SubstitutionTree::insert(&_nodes[getRootNodeIndex(normLit)], svBindings, LeafData(cls, lit));
   } else {
     SubstitutionTree::remove(&_nodes[getRootNodeIndex(normLit)], svBindings, LeafData(cls, lit));
@@ -54,9 +54,15 @@ SLQueryResultIterator LiteralSubstitutionTree::getUnifications(Literal* lit,
 	  bool complementary, bool retrieveSubstitutions)
 {
   CALL("LiteralSubstitutionTree::getUnifications");
-  cout << "getUnifications in " << this << endl;
   return getResultIterator<UnificationsIterator>(lit,
-	  complementary, retrieveSubstitutions);
+	  complementary, retrieveSubstitutions,false);
+}
+SLQueryResultIterator LiteralSubstitutionTree::getUnificationsWithConstraints(Literal* lit,
+          bool complementary, bool retrieveSubstitutions)
+{
+  CALL("LiteralSubstitutionTree::getUnificationsWithConstraints");
+  return getResultIterator<UnificationsIterator>(lit,
+          complementary, retrieveSubstitutions,true);
 }
 
 SLQueryResultIterator LiteralSubstitutionTree::getGeneralizations(Literal* lit,
@@ -67,7 +73,7 @@ SLQueryResultIterator LiteralSubstitutionTree::getGeneralizations(Literal* lit,
   SLQueryResultIterator res=
 //  getResultIterator<GeneralizationsIterator>(lit,
     getResultIterator<FastGeneralizationsIterator>(lit,
-	  	  complementary, retrieveSubstitutions);
+	  	  complementary, retrieveSubstitutions,false);
 //  ASS_EQ(res.hasNext(), getResultIterator<GeneralizationsIterator>(lit,
 //	  	  complementary, retrieveSubstitutions).hasNext());
   return res;
@@ -84,13 +90,13 @@ SLQueryResultIterator LiteralSubstitutionTree::getInstances(Literal* lit,
 #if VDEBUG
     NOT_IMPLEMENTED;
 #endif
-    return getResultIterator<InstancesIterator>(lit, complementary, true);
+    return getResultIterator<InstancesIterator>(lit, complementary, true, false);
   }
 
   SLQueryResultIterator res=
 //      getResultIterator<InstancesIterator>(lit,
       getResultIterator<FastInstancesIterator>(lit,
-	  complementary, retrieveSubstitutions);
+	  complementary, retrieveSubstitutions, false);
 //  ASS_EQ(res.hasNext(), getResultIterator<InstancesIterator>(lit,
 //      complementary, retrieveSubstitutions).hasNext());
   return res;
@@ -100,7 +106,7 @@ struct LiteralSubstitutionTree::SLQueryResultFunctor
 {
   DECL_RETURN_TYPE(SLQueryResult);
   OWN_RETURN_TYPE operator() (const QueryResult& qr) {
-    return SLQueryResult(qr.first->literal, qr.first->clause, qr.second);
+    return SLQueryResult(qr.first.first->literal, qr.first.first->clause, qr.first.second,qr.second);
   }
 };
 
@@ -258,16 +264,16 @@ private:
 
 template<class Iterator>
 SLQueryResultIterator LiteralSubstitutionTree::getResultIterator(Literal* lit,
-	  bool complementary, bool retrieveSubstitutions)
+	  bool complementary, bool retrieveSubstitutions, bool useConstraints)
 {
   CALL("LiteralSubstitutionTree::getResultIterator");
 
   Node* root=_nodes[getRootNodeIndex(lit, complementary)];
 
-  if(root!=0){
-  cout << "Printing root" << endl;
-  root->print(0);
-  }
+  //if(root!=0){
+  //cout << "Printing root" << endl;
+  //root->print(0);
+  //}
 
   if(root==0) {
     return SLQueryResultIterator::getEmpty();
@@ -285,9 +291,9 @@ SLQueryResultIterator LiteralSubstitutionTree::getResultIterator(Literal* lit,
 
   if(lit->commutative()) {
     VirtualIterator<QueryResult> qrit1=vi(
-  	    new Iterator(this, root, lit, retrieveSubstitutions, false, false) );
+  	    new Iterator(this, root, lit, retrieveSubstitutions, false, false, useConstraints) );
     VirtualIterator<QueryResult> qrit2=vi(
-  	    new Iterator(this, root, lit, retrieveSubstitutions, true, false) );
+  	    new Iterator(this, root, lit, retrieveSubstitutions, true, false, useConstraints) );
     ASS(lit->isEquality());
     return pvi(
 	getFilteredIterator(
@@ -297,7 +303,7 @@ SLQueryResultIterator LiteralSubstitutionTree::getResultIterator(Literal* lit,
 	);
   } else {
     VirtualIterator<QueryResult> qrit=VirtualIterator<QueryResult>(
-  	    new Iterator(this, root, lit, retrieveSubstitutions,false,false) );
+  	    new Iterator(this, root, lit, retrieveSubstitutions,false,false, useConstraints) );
     return pvi( getMappingIterator(qrit, SLQueryResultFunctor()) );
   }
 }
