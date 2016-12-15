@@ -249,8 +249,11 @@ public:
   TypedEvaluator() {}
 
   virtual bool isZero(T arg) = 0;
-  virtual bool isAddition(Interpretation interp) = 0;
+  virtual TermList getZero() = 0;
   virtual bool isOne(T arg) = 0;
+
+  virtual bool isAddition(Interpretation interp) = 0;
+  virtual bool isProduct(Interpretation interp) = 0;
   virtual bool isDivision(Interpretation interp) = 0;
 
   virtual bool canEvaluate(Interpretation interp)
@@ -289,35 +292,55 @@ public:
       T resNum;
       TermList arg1Trm = *trm->nthArgument(0);
       T arg1;
-      if (!theory->tryInterpretConstant(arg1Trm, arg1)) { 
-        //Special case where itp is division and arg2 is '1'
-        T arg2;
-        if(arity==2 && theory->tryInterpretConstant(*trm->nthArgument(1),arg2) 
-                    && isOne(arg2) && isDivision(itp)){
-          res = arg1Trm;
-          return true;
-        }
-        if(arity==2 && theory->tryInterpretConstant(*trm->nthArgument(1),arg2)
-                    && isZero(arg2) && isAddition(itp)){
-          res = arg1Trm;
-          return true;
-        }
-        return false; 
-      }
       if (arity==1) {
-	if (!tryEvaluateUnaryFunc(itp, arg1, resNum)) { return false;}
+        if (!tryEvaluateUnaryFunc(itp, arg1, resNum)) { return false;}
       }
-      else if (arity==2) {
-	TermList arg2Trm = *trm->nthArgument(1);
-	T arg2;
-	if (!theory->tryInterpretConstant(arg2Trm, arg2)) { 
-          T arg1;
-          if(theory->tryInterpretConstant(*trm->nthArgument(0),arg1)
-                    && isZero(arg1) && isAddition(itp)){
-            res = arg2Trm;
+      else if(arity==2){
+        // If one argument is not a constant and the other is zero or one then
+        // we have some special cases
+
+        T arg2;
+        TermList arg2Trm = *trm->nthArgument(1);
+
+        bool specialCase = true;
+        T conArg;
+        TermList nonConTerm;
+        if (theory->tryInterpretConstant(arg1Trm, arg1) && (isZero(arg1) || isOne(arg1)) && 
+            !theory->tryInterpretConstant(arg2Trm, arg2)) {
+         conArg = arg1;
+         nonConTerm = arg2Trm;
+        }
+        else if(theory->tryInterpretConstant(arg2Trm, arg2) && (isZero(arg2) || isOne(arg2)) && 
+            !theory->tryInterpretConstant(arg1Trm, arg1)) {
+         conArg = arg2;
+         nonConTerm = arg1Trm;
+        }
+        else{
+          specialCase = false;
+        }
+        if(specialCase){
+ 
+          //Special case where itp is division and arg2 is '1'
+          //   Important... this is a non-symmetric case!
+          if(theory->tryInterpretConstant(arg2Trm, arg2) && isOne(arg2) && isDivision(itp)){
+            res = arg1Trm;
             return true;
           }
-          return false; 
+          //Special case where itp is addition and conArg is '0'
+          if(isZero(conArg) && isAddition(itp)){
+            res = nonConTerm;
+            return true;
+          }
+          //Special case where itp is multiplication and conArg  is '1'
+          if(isOne(conArg) && isProduct(itp)){
+            res = nonConTerm;
+            return true;
+          }
+          //Special case where itp is multiplication and conArg is '0'
+          if(isZero(conArg) && isProduct(itp)){
+            res = getZero();
+            return true;
+          }
         }
 	if (!tryEvaluateBinaryFunc(itp, arg1, arg2, resNum)) { return false;}
       }
@@ -387,9 +410,11 @@ class InterpretedLiteralEvaluator::IntEvaluator : public TypedEvaluator<IntegerC
 protected:
 
   virtual bool isZero(IntegerConstantType arg){ return arg.toInner()==0;}
-  virtual bool isAddition(Interpretation interp){ return interp==Theory::INT_PLUS; }
-
+  virtual TermList getZero(){ return TermList(theory->representConstant(IntegerConstantType(0))); }
   virtual bool isOne(IntegerConstantType arg){ return arg.toInner()==1;}
+
+  virtual bool isAddition(Interpretation interp){ return interp==Theory::INT_PLUS; }
+  virtual bool isProduct(Interpretation interp){ return interp==Theory::INT_MULTIPLY;}
   virtual bool isDivision(Interpretation interp){ 
     return interp==Theory::INT_QUOTIENT_E || interp==Theory::INT_QUOTIENT_T || 
            interp==Theory::INT_QUOTIENT_F; 
@@ -501,9 +526,11 @@ class InterpretedLiteralEvaluator::RatEvaluator : public TypedEvaluator<Rational
 {
 protected:
   virtual bool isZero(RationalConstantType arg){ return arg.isZero();}
-  virtual bool isAddition(Interpretation interp){ return interp==Theory::RAT_PLUS; }
-
+  virtual TermList getZero(){ return TermList(theory->representConstant(RationalConstantType(0,1))); }
   virtual bool isOne(RationalConstantType arg) { return arg.numerator()==arg.denominator();}
+
+  virtual bool isAddition(Interpretation interp){ return interp==Theory::RAT_PLUS; }
+  virtual bool isProduct(Interpretation interp){ return interp==Theory::RAT_MULTIPLY;}
   virtual bool isDivision(Interpretation interp){ 
     return interp==Theory::RAT_QUOTIENT || interp==Theory::RAT_QUOTIENT_E || 
            interp==Theory::RAT_QUOTIENT_T || interp==Theory::RAT_QUOTIENT_F;
@@ -620,9 +647,11 @@ class InterpretedLiteralEvaluator::RealEvaluator : public TypedEvaluator<RealCon
 {
 protected:
   virtual bool isZero(RealConstantType arg){ return arg.isZero();}
-  virtual bool isAddition(Interpretation interp){ return interp==Theory::RAT_PLUS; }
-
+  virtual TermList getZero(){ return TermList(theory->representConstant(RealConstantType(RationalConstantType(0, 1)))); }
   virtual bool isOne(RealConstantType arg) { return arg.numerator()==arg.denominator();}
+
+  virtual bool isAddition(Interpretation interp){ return interp==Theory::REAL_PLUS; }
+  virtual bool isProduct(Interpretation interp){ return interp==Theory::REAL_MULTIPLY;}
   virtual bool isDivision(Interpretation interp){ 
     return interp==Theory::REAL_QUOTIENT || interp==Theory::REAL_QUOTIENT_E ||
            interp==Theory::REAL_QUOTIENT_T || interp==Theory::REAL_QUOTIENT_F;
@@ -1111,6 +1140,8 @@ bool InterpretedLiteralEvaluator::evaluate(Literal* lit, bool& isConstant, Liter
 TermList InterpretedLiteralEvaluator::transformSubterm(TermList trm)
 {
   CALL("InterpretedLiteralEvaluator::transformSubterm");
+
+  //cout << "transformSubterm for " << trm.toString() << endl;
 
   if (!trm.isTerm()) { return trm; }
   Term* t = trm.term();
