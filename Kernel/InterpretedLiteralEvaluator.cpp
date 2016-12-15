@@ -293,7 +293,10 @@ public:
       TermList arg1Trm = *trm->nthArgument(0);
       T arg1;
       if (arity==1) {
-        if (!tryEvaluateUnaryFunc(itp, arg1, resNum)) { return false;}
+        if (theory->tryInterpretConstant(arg1Trm, arg1)){
+          if (!tryEvaluateUnaryFunc(itp, arg1, resNum)) { return false;}
+        }
+        else{ return false;}
       }
       else if(arity==2){
         // If one argument is not a constant and the other is zero or one then
@@ -342,7 +345,10 @@ public:
             return true;
           }
         }
-	if (!tryEvaluateBinaryFunc(itp, arg1, arg2, resNum)) { return false;}
+        if(theory->tryInterpretConstant(arg1Trm, arg1) && theory->tryInterpretConstant(arg2Trm, arg2)){
+	  if (!tryEvaluateBinaryFunc(itp, arg1, arg2, resNum)) { return false;}
+        }
+        else{ return false;}
       }
       res = TermList(theory->representConstant(resNum));
       return true;
@@ -1112,7 +1118,7 @@ bool InterpretedLiteralEvaluator::evaluate(Literal* lit, bool& isConstant, Liter
     isConstant=false;
     return (lit!=resLit);
   }
-  //cout << lit->toString()<< " is variable free, evaluating..." << endl;
+  //cout << resLit->toString()<< " is variable free, evaluating..." << endl;
 
   unsigned pred = resLit->functor();
 
