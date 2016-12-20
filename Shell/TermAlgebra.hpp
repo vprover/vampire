@@ -82,12 +82,12 @@ namespace Shell {
     unsigned getSubtermPredicate();
 
   private:
-    unsigned _n; /* number of constructors */
-    ConstructorArray _constrs;
     unsigned _sort;
+    unsigned _n; /* number of constructors */
     bool _allowsCyclicTerms;
+    ConstructorArray _constrs;
   };
-
 }
 
 #endif
+
