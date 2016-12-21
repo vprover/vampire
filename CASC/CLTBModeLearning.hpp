@@ -76,6 +76,7 @@ private:
   static void fillSchedule(Schedule& strats);
 
   vstring _trainingDirectory;
+  vstring _category;
   /** per-problem time limit, in milliseconds */
   int _problemTimeLimit;
   /** true if question answers should be given */
@@ -95,6 +96,7 @@ private:
 
   Semaphore stratSem;
   SyncPipe* strategies;
+  SyncPipe* successfulStrategies;
 
   static DHMap<vstring,ProbRecord*> probRecords;
   static DHMap<vstring,Stack<vstring>*> stratWins;
@@ -179,12 +181,12 @@ private:
     // Probably dangerous to acquire in constructor
     ScopedSyncPipe(SyncPipe* p) : pipe(p)
     {
-      cout << "getting pipe" << endl;
+      //cout << "getting pipe" << endl;
       pipe->acquireWrite();
-      cout << "got pipe" << endl;
+      //cout << "got pipe" << endl;
     }
     ~ScopedSyncPipe(){
-      cout << "release pipe" << endl;
+      //cout << "release pipe" << endl;
       pipe->releaseWrite();
     } 
   };
