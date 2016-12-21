@@ -448,8 +448,8 @@ void CLTBModeLearning::doTraining(int time, bool startup)
   nextStrats.push(first_strat);
   strats.remove(first_strat);
   vstring next_strat=first_strat;
-  unsigned c=1;
 #if VERBOSE
+  unsigned c=1;
   coutLineOutput() << (c++) << ":" << next_strat << " (" << highest <<")" << endl;
 #endif
   while(!strats.isEmpty()){
@@ -1122,7 +1122,6 @@ void CLTBProblemLearning::runSlice(Options& strategyOpt, bool printProof)
 
   System::registerForSIGHUPOnParentDeath();
   UIHelper::cascModeChild=true;
-  UIHelper::cascMode=true;
 
   int resultValue=1;
   env.timer->reset();
