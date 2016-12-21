@@ -137,8 +137,8 @@ void CLTBModeLearning::solveBatch(istream& batchFile, bool first,vstring inputDi
   int surplus = 0;
   { // do some startup training
     coutLineOutput() << "Performing startup training " << endl;
-    vstring tar = "tar -xzf "+inputDirectory+"/"+_trainingDirectory+"/TrainingData."+_category+".tgz";
-    cout << tar << endl;
+    vstring tar = "tar -xzf "+inputDirectory+"/"+_trainingDirectory+"/TrainingData."+_category+".tgz --directory "+_trainingDirectory;
+    coutLineOutput() << tar << endl;
     system(tar.c_str());
     vstring dir = inputDirectory+"/"+_trainingDirectory+"/Problems";
     coutLineOutput() << "Loading problems from " << dir << endl;
