@@ -514,6 +514,11 @@ void Options::Options::init()
     _lookup.insert(&_showAll);
     _showAll.tag(OptionTag::DEVELOPMENT);
 
+    _showClauseSetSizes = IntOptionValue("showClauseSetSizes","",0);
+    _showClauseSetSizes.description = "Print out clause set sizes every X iterations of the saturation loop";
+    _showClauseSetSizes.tag(OptionTag::DEVELOPMENT);
+    _lookup.insert(&_showClauseSetSizes);
+
     _showActive = BoolOptionValue("show_active","",false);
     _showActive.description="Print activated clauses.";
     _lookup.insert(&_showActive);

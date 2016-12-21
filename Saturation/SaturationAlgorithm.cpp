@@ -99,10 +99,13 @@ SaturationAlgorithm::SaturationAlgorithm(Problem& prb, const Options& opt)
     _fwSimplifiers(0), _bwSimplifiers(0), _splitter(0),
     _consFinder(0), _labelFinder(0), _symEl(0), _answerLiteralManager(0),
     _instantiation(0),
-    _generatedClauseCount(0)
+    _generatedClauseCount(0),
+    _showClauseSetSizesPeriod(0)
 {
   CALL("SaturationAlgorithm::SaturationAlgorithm");
   ASS_EQ(s_instance, 0);  //there can be only one saturation algorithm at a time
+
+  _showClauseSetSizesPeriod = opt.showClauseSetSizes();
 
   _ordering = OrderingSP(Ordering::create(prb, opt));
   if (!Ordering::trySetGlobalOrdering(_ordering)) {
@@ -1203,7 +1206,13 @@ MainLoopResult SaturationAlgorithm::runImpl()
 
   try
   {
+    unsigned l=0;
     for (;;) {
+      
+      if(_showClauseSetSizesPeriod && (l++ % _showClauseSetSizesPeriod == 0)){
+        cout << "Sizes " << _passive->size() << "," << _active->size() << endl; 
+      }
+
       doOneAlgorithmStep();
 
       Timer::syncClock();
