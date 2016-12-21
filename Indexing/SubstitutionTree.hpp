@@ -574,7 +574,7 @@ public:
     Stack<NodeIterator> _nodeIterators;
   };
 
-  typedef pair<pair<LeafData*, ResultSubstitutionSP>,Stack<Literal*>> QueryResult;
+  typedef pair<pair<LeafData*, ResultSubstitutionSP>,Stack<UnificationConstraint>> QueryResult;
 
 
   class GenMatcher;
@@ -705,7 +705,7 @@ public:
     Renaming queryNormalizer;
     SubstitutionTree* tree;
     bool useConstraints;
-    Stack<Literal*> constraints;
+    Stack<UnificationConstraint> constraints;
   };
 
 

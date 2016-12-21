@@ -772,7 +772,7 @@ SubstitutionTree::QueryResult SubstitutionTree::UnificationsIterator::next()
     return QueryResult(make_pair(&ld, ResultSubstitution::fromSubstitution(
 	    &subst, QUERY_BANK, RESULT_BANK)),constraints); // TODO: is this the right way to pass this?
   } else {
-    return QueryResult(make_pair(&ld, ResultSubstitutionSP()),Stack<Literal*>());
+    return QueryResult(make_pair(&ld, ResultSubstitutionSP()),Stack<UnificationConstraint>());
   }
 }
 
@@ -875,10 +875,16 @@ bool SubstitutionTree::UnificationsIterator::associate(TermList query, TermList 
   if(useConstraints && !result){
     TermList queryTranslated = subst.apply(query,NORM_QUERY_BANK);
     TermList nodeTranslated = subst.apply(node,NORM_RESULT_BANK);
-    if(queryTranslated.isTerm() && nodeTranslated.isTerm() && !TermList::sameTop(queryTranslated,nodeTranslated)){
+    if(queryTranslated.isTerm() && nodeTranslated.isTerm() && 
+       !TermList::sameTop(queryTranslated,nodeTranslated) &&
+       !(theory->isInterpretedConstant(queryTranslated) && theory->isInterpretedConstant(nodeTranslated))
+      ){
+
       cout << "Add Constraint " << queryTranslated.toString() << " =  " << nodeTranslated.toString() << endl;
-      unsigned sort = SortHelper::getResultSort(nodeTranslated.term()); 
-      Literal* constraint = Literal::createEquality(false,queryTranslated,nodeTranslated,sort);
+
+      //unsigned sort = SortHelper::getResultSort(nodeTranslated.term()); 
+      //Literal* constraint = Literal::createEquality(false,queryTranslated,nodeTranslated,sort);
+      pair<TermList,TermList> constraint = make_pair(query,node);
       constraints.backtrackablePush(constraint,bd);
       return true;
     }

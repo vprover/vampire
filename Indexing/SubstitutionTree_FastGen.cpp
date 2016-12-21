@@ -436,9 +436,9 @@ SubstitutionTree::QueryResult SubstitutionTree::FastGeneralizationsIterator::nex
     }
 
     return QueryResult(
-          make_pair(&ld,_subst->getSubstitution(&_resultNormalizer)),Stack<Literal*>());
+          make_pair(&ld,_subst->getSubstitution(&_resultNormalizer)),Stack<UnificationConstraint>());
   } else {
-    return QueryResult(make_pair(&ld, ResultSubstitutionSP()),Stack<Literal*>());
+    return QueryResult(make_pair(&ld, ResultSubstitutionSP()),Stack<UnificationConstraint>());
   }
 }
 

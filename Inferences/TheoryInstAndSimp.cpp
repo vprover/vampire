@@ -215,6 +215,29 @@ ClauseIterator TheoryInstAndSimp::generateClauses(Clause* premise)
 
   if(premise->isTheoryDescendant()){ return ClauseIterator::getEmpty(); }
 
+  // Check for eligiability
+  // TODO add an option to vary these constraints
+  {
+    bool eligable=false;
+    Clause::Iterator lit(*premise); 
+    while(lit.hasNext()){
+      Literal* l = lit.next();
+      if(l->isEquality()){
+        if(theory->isInterpretedFunction(*l->nthArgument(0)) ||
+           theory->isInterpretedFunction(*l->nthArgument(1))){
+          eligable=true;
+        }
+      }
+      else if(theory->isInterpretedPredicate(l)){
+        eligable=true;
+      }
+    }
+    if(!eligable){
+      return ClauseIterator::getEmpty();
+    }
+  } 
+
+  // TODO use limits
   //Limits* limits = _salg->getLimits();
 
   static Stack<Literal*> theoryLiterals;
@@ -222,6 +245,7 @@ ClauseIterator TheoryInstAndSimp::generateClauses(Clause* premise)
 
   Clause* flattened = selectTheoryLiterals(premise,theoryLiterals);
 
+  // ensure that splits are copied to flattened
   static Splitter* splitter = _salg->getSplitter();
   splitter->onNewClause(flattened);
 

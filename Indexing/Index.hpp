@@ -23,6 +23,8 @@ using namespace Kernel;
 using namespace Lib;
 using namespace Saturation;
 
+typedef pair<TermList,TermList> UnificationConstraint;
+
 /**
  * Class of objects which contain results of single literal queries.
  */
@@ -33,14 +35,14 @@ struct SLQueryResult
   : literal(l), clause(c), substitution(s) {}
   SLQueryResult(Literal* l, Clause* c)
   : literal(l), clause(c) {}
-  SLQueryResult(Literal* l, Clause* c, ResultSubstitutionSP s,Stack<Literal*> con)
+  SLQueryResult(Literal* l, Clause* c, ResultSubstitutionSP s,Stack<UnificationConstraint> con)
   : literal(l), clause(c), substitution(s), constraints(con) {}
 
 
   Literal* literal;
   Clause* clause;
   ResultSubstitutionSP substitution;
-  Stack<Literal*> constraints;
+  Stack<UnificationConstraint> constraints;
 
   struct ClauseExtractFn
   {
