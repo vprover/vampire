@@ -5,20 +5,15 @@ project (Vampire)
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# include path where we store all custom files for finding libraries which are not build using cmake (i.e. currently z3 only)
-set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/")
-
-
-
-
-# Set the output folder where your program will be created
-set(CMAKE_BINARY_DIR ${CMAKE_SOURCE_DIR}/bin)
-set(EXECUTABLE_OUTPUT_PATH ${CMAKE_BINARY_DIR})
-set(LIBRARY_OUTPUT_PATH ${CMAKE_BINARY_DIR})
 
 # The following folder will be included
 include_directories("${PROJECT_SOURCE_DIR}")
 
+# include path where we store all custom files for finding libraries which are not build using cmake (i.e. currently z3 only)
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/")
+
+# Set the output folder where the binary will be created (i.e. build/dir)
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
 ################################################################
 # z3 stuff
@@ -376,6 +371,7 @@ source_group(smt_comp_source_files FILES ${VAMPIRE_SMTCOMP_SOURCES})
 
 # do we also need Test/CheckedSatSolver.o (as in the makefile)?
 # do we also need Global.o and vampire.o (as in the makefile)?
+# TODO: proper version file
 set(VAMPIRE_SOURCES 
 	${VAMPIRE_DEBUG_SOURCES}
 	${VAMPIRE_LIB_SOURCES}
@@ -399,10 +395,9 @@ set(VAMPIRE_SOURCES
     global.cpp
     vampire.cpp
 	)
-    #version.cpp # the automatically generated version file
 
 # TODO: we want at least vampire_dbg, vampire_rel, vampire_z3_dbg, vampire_z3_rel
-message(STATUS "a test message")
+#message(STATUS "a test message")
 
 add_executable(vampire ${VAMPIRE_SOURCES})
 target_link_libraries(vampire Z3)
@@ -410,7 +405,7 @@ target_link_libraries(vampire Z3)
 ################################################################
 # automated generation of Vampire revision information from git
 ################################################################
-
+#TODO
 
 
 
