@@ -601,6 +601,59 @@ Ordering::Result KBOBase::compareFunctionPrecedences(unsigned fun1, unsigned fun
   return fromComparison(cmpRes);
 }
 
+struct FnFreqComparator
+{
+  static Comparison compare(unsigned f1, unsigned f2)
+  {
+    unsigned c1 = env.signature->getFunction(f1)->usageCnt();
+    unsigned c2 = env.signature->getFunction(f2)->usageCnt();
+    Comparison res = Int::compare(c2,c1);
+    if(res==EQUAL){
+      res = Int::compare(f1,f2);
+    }
+    return res;
+  }
+};
+struct PredFreqComparator
+{
+  static Comparison compare(unsigned p1, unsigned p2)
+  {
+    unsigned c1 = env.signature->getPredicate(p1)->usageCnt();
+    unsigned c2 = env.signature->getPredicate(p2)->usageCnt();
+    Comparison res = Int::compare(c2,c1);
+    if(res==EQUAL){
+      res = Int::compare(p1,p2);
+    }
+    return res;
+  }
+};
+struct FnRevFreqComparator
+{
+  static Comparison compare(unsigned f1, unsigned f2)
+  {
+    unsigned c1 = env.signature->getFunction(f1)->usageCnt();
+    unsigned c2 = env.signature->getFunction(f2)->usageCnt();
+    Comparison res = Int::compare(c1,c2);
+    if(res==EQUAL){
+      res = Int::compare(f1,f2);
+    }
+    return res;
+  }
+};
+struct PredRevFreqComparator
+{
+  static Comparison compare(unsigned p1, unsigned p2)
+  {
+    unsigned c1 = env.signature->getPredicate(p1)->usageCnt();
+    unsigned c2 = env.signature->getPredicate(p2)->usageCnt();
+    Comparison res = Int::compare(c1,c2);
+    if(res==EQUAL){
+      res = Int::compare(p1,p2);
+    }
+    return res;
+  }
+};
+
 struct FnArityComparator
 {
   Comparison compare(unsigned u1, unsigned u2)
@@ -676,6 +729,12 @@ KBOBase::KBOBase(Problem& prb, const Options& opt)
     case Shell::Options::SymbolPrecedence::REVERSE_ARITY:
       aux.sort(FnRevArityComparator());
       break;
+    case Shell::Options::SymbolPrecedence::FREQUENCY:
+      aux.sort(FnFreqComparator());
+      break;
+    case Shell::Options::SymbolPrecedence::REVERSE_FREQUENCY:
+      aux.sort(FnRevFreqComparator());
+      break;
     case Shell::Options::SymbolPrecedence::OCCURRENCE:
       break;
     case Shell::Options::SymbolPrecedence::SCRAMBLE:
@@ -709,6 +768,12 @@ KBOBase::KBOBase(Problem& prb, const Options& opt)
   case Shell::Options::SymbolPrecedence::REVERSE_ARITY:
     aux.sort(PredRevArityComparator());
     break;
+  case Shell::Options::SymbolPrecedence::FREQUENCY:
+    aux.sort(PredFreqComparator());
+    break;
+  case Shell::Options::SymbolPrecedence::REVERSE_FREQUENCY:
+   aux.sort(PredRevFreqComparator());
+   break;
   case Shell::Options::SymbolPrecedence::OCCURRENCE:
     break;
     case Shell::Options::SymbolPrecedence::SCRAMBLE:

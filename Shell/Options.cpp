@@ -1557,7 +1557,7 @@ void Options::Options::init()
 
 
     _symbolPrecedence = ChoiceOptionValue<SymbolPrecedence>("symbol_precedence","sp",SymbolPrecedence::ARITY,
-                                                            {"arity","occurrence","reverse_arity","scramble"});
+                                                            {"arity","occurrence","reverse_arity","scramble","frequency","reverse_frequency"});
     _symbolPrecedence.description="Vampire uses KBO which requires a precedence relation between symbols. Arity orders symbols by their arity (and reverse_arity takes the reverse of this) and occurence orders symbols by the order they appear in the problem.";
     _lookup.insert(&_symbolPrecedence);
     _symbolPrecedence.tag(OptionTag::SATURATION);

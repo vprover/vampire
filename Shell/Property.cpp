@@ -80,6 +80,10 @@ Property* Property::scan(UnitList* units)
 {
   CALL("Property::scan");
 
+  // a bit of a hack, these counts belong in Property
+  for(unsigned f=0;f<env.signature->functions();f++){ env.signature->getFunction(f)->resetUsageCnt(); }
+  for(unsigned p=0;p<env.signature->predicates();p++){ env.signature->getPredicate(p)->resetUsageCnt(); }
+
   Property* prop = new Property;
   prop->add(units);
   return prop;
