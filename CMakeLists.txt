@@ -509,6 +509,7 @@ set(VAMPIRE_SHELL_SOURCES
     Shell/InequalitySplitting.cpp
     Shell/InterpolantMinimizer.cpp
     Shell/Interpolants.cpp
+    Shell/InterpolantsNew.cpp
     Shell/InterpretedNormalizer.cpp
     Shell/LaTeX.cpp
     Shell/Lexer.cpp
@@ -577,6 +578,7 @@ set(VAMPIRE_SHELL_SOURCES
     Shell/InequalitySplitting.hpp
     Shell/InterpolantMinimizer.hpp
     Shell/Interpolants.hpp
+    Shell/InterpolantsNew.hpp
     Shell/InterpretedNormalizer.hpp
     Shell/LaTeX.hpp
     Shell/Lexer.hpp
