@@ -730,9 +730,11 @@ KBOBase::KBOBase(Problem& prb, const Options& opt)
       aux.sort(FnRevArityComparator());
       break;
     case Shell::Options::SymbolPrecedence::FREQUENCY:
+    case Shell::Options::SymbolPrecedence::WEIGHTED_FREQUENCY:
       aux.sort(FnFreqComparator());
       break;
     case Shell::Options::SymbolPrecedence::REVERSE_FREQUENCY:
+    case Shell::Options::SymbolPrecedence::REVERSE_WEIGHTED_FREQUENCY:
       aux.sort(FnRevFreqComparator());
       break;
     case Shell::Options::SymbolPrecedence::OCCURRENCE:
@@ -769,9 +771,11 @@ KBOBase::KBOBase(Problem& prb, const Options& opt)
     aux.sort(PredRevArityComparator());
     break;
   case Shell::Options::SymbolPrecedence::FREQUENCY:
+  case Shell::Options::SymbolPrecedence::WEIGHTED_FREQUENCY:
     aux.sort(PredFreqComparator());
     break;
   case Shell::Options::SymbolPrecedence::REVERSE_FREQUENCY:
+  case Shell::Options::SymbolPrecedence::REVERSE_WEIGHTED_FREQUENCY:
    aux.sort(PredRevFreqComparator());
    break;
   case Shell::Options::SymbolPrecedence::OCCURRENCE:

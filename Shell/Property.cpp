@@ -19,6 +19,7 @@
 #include "Kernel/Signature.hpp"
 #include "Kernel/Inference.hpp"
 
+#include "Options.hpp"
 #include "Statistics.hpp"
 #include "FunctionDefinition.hpp"
 #include "Property.hpp"
@@ -254,7 +255,8 @@ void Property::scan(Clause* clause)
       }
     }
 
-    scan(literal);
+    // 1 for context polarity, only used in formulas
+    scan(literal,1,clause->length());
 
     if (literal->shared() && literal->ground()) {
       groundLiterals++;
@@ -375,7 +377,7 @@ void Property::scan(Formula* formula)
 	  _positiveEqualityAtoms++;
 	}
       }
-      scan(lit,polarity);
+      scan(lit,polarity,0); // 0 as not in clause
       break;
     }
     case BOOL_TERM: {
@@ -462,7 +464,7 @@ void Property::scanSort(unsigned sort)
  * @since 17/07/2003 Manchester, changed to non-pointer types
  * @since 27/05/2007 flight Manchester-Frankfurt, uses new datastructures
  */
-void Property::scan(Literal* lit, int polarity)
+void Property::scan(Literal* lit, int polarity, unsigned cLen)
 {
   CALL("Property::scan(const Literal*...)");
 
@@ -475,7 +477,11 @@ void Property::scan(Literal* lit, int polarity)
       _maxPredArity = arity;
     }
     Signature::Symbol* pred = env.signature->getPredicate(lit->functor());
-    pred->incUsageCnt();
+    static bool weighted = env.options->symbolPrecedence() == Options::SymbolPrecedence::WEIGHTED_FREQUENCY ||
+                           env.options->symbolPrecedence() == Options::SymbolPrecedence::REVERSE_WEIGHTED_FREQUENCY;
+    unsigned w = weighted ? cLen : 1; 
+    for(unsigned i=0;i<w;i++){pred->incUsageCnt();}
+
     PredicateType* type = pred->predType();
     for (int i=0; i<arity; i++) {
       scanSort(type->arg(i));

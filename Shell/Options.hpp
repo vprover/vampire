@@ -457,7 +457,9 @@ public:
     REVERSE_ARITY = 2,
     SCRAMBLE = 3,
     FREQUENCY = 4,
-    REVERSE_FREQUENCY = 5
+    REVERSE_FREQUENCY = 5,
+    WEIGHTED_FREQUENCY = 6,
+    REVERSE_WEIGHTED_FREQUENCY = 7
   };
 
   enum class SineSelection : unsigned int {
