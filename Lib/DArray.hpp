@@ -336,6 +336,7 @@ public:
     size_t p = 0; // pointer to the next element in ft
     for (;;) {
       ASS(from<size() && to<size()); //checking for underflows
+      ASS(from<to);
       // invariant: from < to
       size_t m = from + Random::getInteger(to-from+1);
       C mid = (*this)[m];

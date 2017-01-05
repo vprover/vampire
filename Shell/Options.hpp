@@ -461,6 +461,12 @@ public:
     WEIGHTED_FREQUENCY = 6,
     REVERSE_WEIGHTED_FREQUENCY = 7
   };
+  enum class SymbolPrecedenceBoost : unsigned int {
+    NONE = 0,
+    GOAL = 1,
+    UNIT = 2,
+    GOAL_UNIT = 3
+  };
 
   enum class SineSelection : unsigned int {
     AXIOMS = 0,
@@ -1800,6 +1806,7 @@ public:
   void setSimulatedTimeLimit(int newVal) { _simulatedTimeLimit.actualValue = newVal; }
   int maxInferenceDepth() const { return _maxInferenceDepth.actualValue; }
   SymbolPrecedence symbolPrecedence() const { return _symbolPrecedence.actualValue; }
+  SymbolPrecedenceBoost symbolPrecedenceBoost() const { return _symbolPrecedenceBoost.actualValue; }
   // Return time limit in deciseconds, or 0 if there is no time limit
   int timeLimitInDeciseconds() const { return _timeLimitInDeciseconds.actualValue; }
   size_t memoryLimit() const { return _memoryLimit.actualValue; }
@@ -2268,6 +2275,7 @@ private:
   ChoiceOptionValue<Statistics> _statistics;
   BoolOptionValue _superpositionFromVariables;
   ChoiceOptionValue<SymbolPrecedence> _symbolPrecedence;
+  ChoiceOptionValue<SymbolPrecedenceBoost> _symbolPrecedenceBoost;
 
   BoolOptionValue _tabulationBwRuleSubsumptionResolutionByLemmas;
   BoolOptionValue _tabulationFwRuleSubsumptionResolutionByLemmas;

@@ -1566,6 +1566,12 @@ void Options::Options::init()
     //_symbolPrecedence.reliesOn(_saturationAlgorithm.is(notEqual(SaturationAlgorithm::TABULATION)));
     _symbolPrecedence.setRandomChoices({"arity","occurence","reverse_arity"});
 
+    _symbolPrecedenceBoost = ChoiceOptionValue<SymbolPrecedenceBoost>("symbol_precedence_boost","spb",SymbolPrecedenceBoost::NONE,
+                                     {"none","goal","units","goal_then_units"});
+    _symbolPrecedenceBoost.description = "";
+    _symbolPrecedenceBoost.tag(OptionTag::SATURATION);
+    _lookup.insert(&_symbolPrecedenceBoost);
+
     _weightIncrement = BoolOptionValue("weight_increment","",false);
     _weightIncrement.description="";
     //_lookup.insert(&_weightIncrement);

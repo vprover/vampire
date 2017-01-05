@@ -256,7 +256,7 @@ void Property::scan(Clause* clause)
     }
 
     // 1 for context polarity, only used in formulas
-    scan(literal,1,clause->length());
+    scan(literal,1,clause->length(),(clause->inputType()==Unit::CONJECTURE || clause->inputType()==Unit::NEGATED_CONJECTURE));
 
     if (literal->shared() && literal->ground()) {
       groundLiterals++;
@@ -377,7 +377,7 @@ void Property::scan(Formula* formula)
 	  _positiveEqualityAtoms++;
 	}
       }
-      scan(lit,polarity,0); // 0 as not in clause
+      scan(lit,polarity,0,false); // 0 as not in clause, goal type irrelevant
       break;
     }
     case BOOL_TERM: {
@@ -389,7 +389,7 @@ void Property::scan(Formula* formula)
         TermList aux[2];
         aux[0].makeEmpty();
         aux[1] = ts;
-        scan(aux + 1);
+        scan(aux + 1,false,false); // only care about unit/goal when clausified
       }
       break;
     }
@@ -464,7 +464,7 @@ void Property::scanSort(unsigned sort)
  * @since 17/07/2003 Manchester, changed to non-pointer types
  * @since 27/05/2007 flight Manchester-Frankfurt, uses new datastructures
  */
-void Property::scan(Literal* lit, int polarity, unsigned cLen)
+void Property::scan(Literal* lit, int polarity, unsigned cLen,bool goal)
 {
   CALL("Property::scan(const Literal*...)");
 
@@ -481,6 +481,12 @@ void Property::scan(Literal* lit, int polarity, unsigned cLen)
                            env.options->symbolPrecedence() == Options::SymbolPrecedence::REVERSE_WEIGHTED_FREQUENCY;
     unsigned w = weighted ? cLen : 1; 
     for(unsigned i=0;i<w;i++){pred->incUsageCnt();}
+    if(cLen==1){
+      pred->markInUnit();
+    }
+    if(goal){
+      pred->markInGoal();
+    }
 
     PredicateType* type = pred->predType();
     for (int i=0; i<arity; i++) {
@@ -489,7 +495,7 @@ void Property::scan(Literal* lit, int polarity, unsigned cLen)
   }
 
   scanForInterpreted(lit);
-  scan(lit->args());
+  scan(lit->args(),(cLen==1),goal);
 
   if (!hasProp(PR_HAS_INEQUALITY_RESOLVABLE_WITH_DELETION) && lit->isEquality() && lit->shared()
      && ((lit->isNegative() && polarity == 1) || (!lit->isNegative() && polarity == -1) || polarity == 0)
@@ -513,7 +519,7 @@ void Property::scan(Literal* lit, int polarity, unsigned cLen)
  * @since 27/08/2003 Vienna, changed to count variables
  * @since 27/05/2007 flight Manchester-Frankfurt, changed to new datastructures
  */
-void Property::scan(TermList* ts)
+void Property::scan(TermList* ts,bool unit,bool goal)
 {
   CALL("Property::scan(TermList*))");
 
@@ -540,6 +546,8 @@ void Property::scan(TermList* ts)
 
         Signature::Symbol* func = env.signature->getFunction(t->functor());
         func->incUsageCnt();
+        if(unit){ func->markInUnit();}
+        if(goal){ func->markInGoal();}
 
         int arity = t->arity();
         FunctionType* type = func->fnType();
@@ -573,7 +581,7 @@ void Property::scanSpecialTerm(Term* t)
     addProp(PR_HAS_ITE);
     ASS_EQ(t->arity(),2);
     scan(sd->getCondition());
-    scan(t->args());
+    scan(t->args(),false,false); // only care about unit/goal when clausified
     break;
   }
   case Term::SF_LET:
@@ -584,8 +592,8 @@ void Property::scanSpecialTerm(Term* t)
     TermList aux[2];
     aux[0].makeEmpty();
     aux[1] = sd->getBinding();
-    scan(aux+1);
-    scan(t->args());
+    scan(aux+1,false,false); // only care about unit/goal when clausified
+    scan(t->args(),false,false); // only care about unit/goal when clausified
     break;
   }
   case Term::SF_FORMULA:

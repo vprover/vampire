@@ -232,8 +232,8 @@ public:
   void scan(Clause*);
   void scan(FormulaUnit*);
   void scan(Formula*);
-  void scan(TermList* ts);
-  void scan(Literal* lit,int polarity,unsigned clauseLen);
+  void scan(TermList* ts,bool unit,bool goal);
+  void scan(Literal* lit,int polarity,unsigned clauseLen,bool goal);
   void scanSpecialTerm(Term* t);
   void scanSort(unsigned sort);
 
