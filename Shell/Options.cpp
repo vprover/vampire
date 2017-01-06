@@ -779,6 +779,11 @@ void Options::Options::init()
            _theoryInstAndSimp.setExperimental();
 
 #endif
+           _constrainedUnification = BoolOptionValue("constrained_unification","cu",false);
+           _constrainedUnification.description="";
+           _constrainedUnification.tag(OptionTag::INFERENCES);
+           _lookup.insert(&_constrainedUnification);
+           _constrainedUnification.setExperimental();
 
 	    _instantiation = ChoiceOptionValue<Instantiation>("instantiation","inst",Instantiation::OFF,{"off","on"});
 	    _instantiation.description = "Heuristically instantiate variables";

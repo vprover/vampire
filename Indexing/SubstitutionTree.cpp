@@ -41,7 +41,7 @@ using namespace Indexing;
  * @since 16/08/2008 flight Sydney-San Francisco
  */
 SubstitutionTree::SubstitutionTree(int nodes)
-  : _nextVar(0), _nodes(nodes)
+  : tag(false), _nextVar(0), _nodes(nodes)
 {
   CALL("SubstitutionTree::SubstitutionTree");
 
@@ -134,7 +134,9 @@ void SubstitutionTree::insert(Node** pnode,BindingMap& svBindings,LeafData ld)
   CALL("SubstitutionTree::insert/3");
   ASS_EQ(_iteratorCnt,0);
 
-  //cout << "Insert into " << *pnode << endl;;
+#if VDEBUG
+  if(tag){cout << "Insert " << ld.toString() << endl;}
+#endif
 
   if(*pnode == 0) {
     if(svBindings.isEmpty()) {
@@ -630,6 +632,7 @@ void SubstitutionTree::Leaf::loadChildren(LDIterator children)
 
 bool SubstitutionTree::LeafIterator::hasNext()
 {
+  //if(tag){cout << "leafIterator::hasNext" << endl;}
   for(;;) {
     while(!_nodeIterators.isEmpty() && !_nodeIterators.top().hasNext()) {
       _nodeIterators.pop();
@@ -654,7 +657,8 @@ bool SubstitutionTree::LeafIterator::hasNext()
 
 SubstitutionTree::UnificationsIterator::UnificationsIterator(SubstitutionTree* parent,
 	Node* root, Term* query, bool retrieveSubstitution, bool reversed, bool withoutTop, bool useC)
-: svStack(32), literalRetrieval(query->isLiteral()),
+: tag(parent->tag), 
+svStack(32), literalRetrieval(query->isLiteral()),
   retrieveSubstitution(retrieveSubstitution), inLeaf(false),
 ldIterator(LDIterator::getEmpty()), nodeIterators(8), bdStack(8),
 clientBDRecording(false), tree(parent), useConstraints(useC)
@@ -683,6 +687,11 @@ clientBDRecording(false), tree(parent), useConstraints(useC)
       createInitialBindings(queryNorm);
     }
   }
+#if VDEBUG
+  if(tag){
+    cout << "Starting iterator with "  << endl; cout << subst.toString() << endl;
+  }
+#endif
 
   BacktrackData bd;
   enter(root, bd);
@@ -733,6 +742,8 @@ bool SubstitutionTree::UnificationsIterator::hasNext()
 {
   CALL("SubstitutionTree::UnificationsIterator::hasNext");
 
+  //if(tag){cout << "UnificationsIterator::hasNext" << endl;}
+
   if(clientBDRecording) {
     subst.bdDone();
     clientBDRecording=false;
@@ -761,6 +772,17 @@ SubstitutionTree::QueryResult SubstitutionTree::UnificationsIterator::next()
     } else {
       normalizer.normalizeVariables(ld.term);
     }
+/*
+    Stack<UnificationConstraint> normalizedConstraints;
+    Stack<UnificationConstraint>::Iterator conit(constraints);
+    while(conit.hasNext()){
+      auto constraint = conit.next();
+      TermList normNode = subst.apply(constraint.second,NORM_RESULT_BANK);
+      normalizedConstraints.push(make_pair(constraint.first,normNode));
+    }
+*/
+    //cout << "normalizer: " << endl; cout << normalizer.toString() << endl;
+    //cout << "SUB:" << endl; cout << subst.toString() << endl;
 
     ASS(clientBacktrackData.isEmpty());
     subst.bdRecord(clientBacktrackData);
@@ -780,6 +802,8 @@ SubstitutionTree::QueryResult SubstitutionTree::UnificationsIterator::next()
 bool SubstitutionTree::UnificationsIterator::findNextLeaf()
 {
   CALL("SubstitutionTree::UnificationsIterator::findNextLeaf");
+
+  //if(tag){cout << "findNextLeaf" << endl;}
 
   if(nodeIterators.isEmpty()) {
     //There are no node iterators in the stack, so there's nowhere
@@ -829,7 +853,15 @@ bool SubstitutionTree::UnificationsIterator::enter(Node* n, BacktrackData& bd)
 {
   CALL("SubstitutionTree::UnificationsIterator::enter");
 
-  //cout << "entering..." << endl; n->print(0); 
+#if VDEBUG
+  if(tag){
+    cout << "=========================================" << endl;
+    cout << "entering..." << endl; n->print(0); cout << endl;
+    cout << "subst is " << endl; cout << subst.toString() << endl;
+    cout << "svstack is " << svStack.toString() << endl;
+    cout << "=========================================" << endl;
+  } 
+#endif
 
   bool success=true;
   bool recording=false;
@@ -869,22 +901,35 @@ bool SubstitutionTree::UnificationsIterator::enter(Node* n, BacktrackData& bd)
 bool SubstitutionTree::UnificationsIterator::associate(TermList query, TermList node, BacktrackData& bd)
 {
   CALL("SubstitutionTree::UnificationsIterator::associate");
-  
+
   bool result = subst.unify(query,NORM_QUERY_BANK,node,NORM_RESULT_BANK);
+
+#if VDEBUG
+  if(tag && result){
+    cout << "unify " << query.toString() << " and " << node.toString() << endl;
+  }
+#endif
 
   if(useConstraints && !result){
     TermList queryTranslated = subst.apply(query,NORM_QUERY_BANK);
     TermList nodeTranslated = subst.apply(node,NORM_RESULT_BANK);
+
     if(queryTranslated.isTerm() && nodeTranslated.isTerm() && 
-       !TermList::sameTop(queryTranslated,nodeTranslated) &&
+       (theory->isInterpretedFunction(queryTranslated) || theory->isInterpretedConstant(queryTranslated)) &&
+       (theory->isInterpretedFunction(nodeTranslated) || theory->isInterpretedConstant(nodeTranslated)) &&
        !(theory->isInterpretedConstant(queryTranslated) && theory->isInterpretedConstant(nodeTranslated))
       ){
 
-      cout << "Add Constraint " << queryTranslated.toString() << " =  " << nodeTranslated.toString() << endl;
-
-      //unsigned sort = SortHelper::getResultSort(nodeTranslated.term()); 
-      //Literal* constraint = Literal::createEquality(false,queryTranslated,nodeTranslated,sort);
-      pair<TermList,TermList> constraint = make_pair(query,node);
+      //cout << "Add Constraint " << queryTranslated.toString() << " =  " << nodeTranslated.toString() << endl;
+      //cout << "Without translation " << query.toString() << " = " << node.toString() << endl;
+//      cout << "SUB " << endl << subst.toString() << endl; 
+      unsigned x = tree->_nextVar++;
+      TermList nodeVar = TermList(x,true);
+      subst.bindSpecialVar(x,node,NORM_RESULT_BANK);
+#if VDEBUG
+      cout << "constraint " << query.toString() << " = " << nodeVar.toString() << endl;
+#endif
+      pair<TermList,TermList> constraint = make_pair(query,nodeVar);
       constraints.backtrackablePush(constraint,bd);
       return true;
     }

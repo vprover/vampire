@@ -45,6 +45,8 @@ void BinaryResolution::attach(SaturationAlgorithm* salg)
   GeneratingInferenceEngine::attach(salg);
   _index=static_cast<GeneratingLiteralIndex*> (
 	  _salg->getIndexManager()->request(GENERATING_SUBST_TREE) );
+
+  constrainedUnification = env.options->constrainedUnification();
 }
 
 void BinaryResolution::detach()
@@ -60,8 +62,8 @@ void BinaryResolution::detach()
 
 struct BinaryResolution::UnificationsFn
 {
-  UnificationsFn(GeneratingLiteralIndex* index)
-  : _index(index) {}
+  UnificationsFn(GeneratingLiteralIndex* index,bool cU)
+  : _index(index),constrainedUnification(cU) {}
   DECL_RETURN_TYPE(VirtualIterator<pair<Literal*, SLQueryResult> >);
   OWN_RETURN_TYPE operator()(Literal* lit)
   {
@@ -69,10 +71,14 @@ struct BinaryResolution::UnificationsFn
       //Binary resolution is not performed with equality literals
       return OWN_RETURN_TYPE::getEmpty();
     }
-    return pvi( pushPairIntoRightIterator(lit, _index->getUnificationsWithConstraints(lit, true)) );
+    if(constrainedUnification){
+      return pvi( pushPairIntoRightIterator(lit, _index->getUnificationsWithConstraints(lit, true)) );
+    }
+    return pvi( pushPairIntoRightIterator(lit, _index->getUnifications(lit, true)) );
   }
 private:
   GeneratingLiteralIndex* _index;
+  bool constrainedUnification;
 };
 
 struct BinaryResolution::ResultFn
@@ -164,7 +170,8 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQ
 
   unsigned newLength = clength+dlength-2+constraints.size();
 
-  Inference* inf = new Inference2(Inference::RESOLUTION, queryCl, qr.clause);
+  Inference* inf = new Inference2((constraints.size()?Inference::CONSTRAINED_RESOLUTION:Inference::RESOLUTION), 
+                                  queryCl, qr.clause);
   Unit::InputType inpType = (Unit::InputType)
   	Int::max(queryCl->inputType(), qr.clause->inputType());
 
@@ -175,16 +182,25 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQ
     TimeCounter tc(TC_LITERAL_ORDER_AFTERCHECK);
     queryLitAfter = qr.substitution->applyToQuery(queryLit);
   }
+#if VDEBUG
   if(constraints.size() > 0){
     cout << "Other: " << qr.clause->toString() << endl;
     cout << "queryLit: " << queryLit->toString() << endl;
     cout << "resLit: " << qr.literal->toString() << endl;
     cout << "SUB:" << endl << qr.substitution->toString() << endl;
+/*
+    cout << "SUB(deref):" << endl << qr.substitution->toString(true) << endl;
+*/
   }
+#endif
 
   unsigned next = 0;
   for(unsigned i=0;i<constraints.size();i++){
       pair<TermList,TermList> con = constraints[i]; 
+
+#if VDEBUG
+      cout << "con pair " << con.first.toString() << " , " << con.second.toString() << endl;
+#endif
 
       TermList qT = qr.substitution->applyToQuery(con.first);
       TermList rT = qr.substitution->applyToResult(con.second);
@@ -264,9 +280,14 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQ
   }
 
   res->setAge(newAge);
-  env.statistics->resolution++;
+  if(constraints.size()>0){
+    env.statistics->cResolution++;
+  }
+  else{ 
+    env.statistics->resolution++;
+  }
 
-  cout << "RESULT " << res->toString() << endl;
+  //cout << "RESULT " << res->toString() << endl;
 
   return res;
 }
@@ -275,12 +296,12 @@ ClauseIterator BinaryResolution::generateClauses(Clause* premise)
 {
   CALL("BinaryResolution::generateClauses");
 
-  cout << "BinaryResolution for " << premise->toString() << endl;
+  //cout << "BinaryResolution for " << premise->toString() << endl;
 
   Limits* limits = _salg->getLimits();
 
   // generate pairs of the form (literal selected in premise, unifying object in index)
-  auto it1 = getMappingIterator(premise->getSelectedLiteralIterator(),UnificationsFn(_index));
+  auto it1 = getMappingIterator(premise->getSelectedLiteralIterator(),UnificationsFn(_index,constrainedUnification));
   // actually, we got one iterator per selected literal; we flatten the obtained iterator of iterators:
   auto it2 = getFlattenedIterator(it1);
   // perform binary resolution on these pairs

@@ -69,6 +69,9 @@ public:
   SubstitutionTree(int nodes);
   ~SubstitutionTree();
 
+  bool tag;
+  virtual void markTagged(){ tag=true;}
+
 //protected:
 
   struct LeafData {
@@ -86,7 +89,9 @@ public:
     TermList term;
 
     vstring toString(){
-      return "LD " + literal->toString() + " in " + clause->toString() + " with " +term.toString();
+      vstring ret = "LD " + literal->toString();// + " in " + clause->literalsOnlyToString();
+      if(!term.isEmpty()){ ret += " with " +term.toString(); }
+      return ret;
     }
 
   };
@@ -228,8 +233,11 @@ public:
     {
      unsigned srt;
      if(SortHelper::tryGetResultSort(t,srt)){
+       unsigned top = t.term()->functor();
        Stack<TermList>::Iterator fit(bySortTerms[srt]);
-       return pvi(getFilteredIterator(getMappingIterator(fit,ByTopFn(this)),NonzeroFn()));
+       auto withoutThisTop = getFilteredIterator(fit,NotTop(top));
+       auto nodes = getMappingIterator(withoutThisTop,ByTopFn(this));
+       return pvi(getFilteredIterator(nodes,NonzeroFn()));
      }
      return NodeIterator::getEmpty(); 
     } 
@@ -295,6 +303,16 @@ public:
     }
     private:
       IntermediateNode* node;
+  };
+  struct NotTop
+  {
+    NotTop(unsigned t) : top(t) {};
+    DECL_RETURN_TYPE(bool);
+    OWN_RETURN_TYPE operator()(TermList t){
+      return t.term()->functor()!=top;
+    }
+    private:
+      unsigned top;
   };
 
   class Leaf
@@ -560,7 +578,7 @@ public:
   public:
     LeafIterator(SubstitutionTree* st)
     : _nextRootPtr(st->_nodes.begin()), _afterLastRootPtr(st->_nodes.end()),
-    _nodeIterators(8) {}
+    _nodeIterators(8), tag(st->tag) {}
     bool hasNext();
     Leaf* next()
     {
@@ -572,6 +590,7 @@ public:
     Node** _afterLastRootPtr;
     Node* _curr;
     Stack<NodeIterator> _nodeIterators;
+    bool tag;
   };
 
   typedef pair<pair<LeafData*, ResultSubstitutionSP>,Stack<UnificationConstraint>> QueryResult;
@@ -671,6 +690,7 @@ public:
 
     bool hasNext();
     QueryResult next();
+    bool tag;
   protected:
     virtual bool associate(TermList query, TermList node, BacktrackData& bd);
     virtual NodeIterator getNodeIterator(IntermediateNode* n);

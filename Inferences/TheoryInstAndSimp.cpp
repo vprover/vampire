@@ -202,6 +202,7 @@ struct InstanceFn
     for(unsigned i=0;i<_cl->length();i++){
       (*res)[i] = SubstHelper::apply((*_cl)[i],sol.subst);
     }
+    env.statistics->theoryInstSimp++;
     return res;
   }
 
@@ -244,10 +245,13 @@ ClauseIterator TheoryInstAndSimp::generateClauses(Clause* premise)
   theoryLiterals.reset();
 
   Clause* flattened = selectTheoryLiterals(premise,theoryLiterals);
+  ASS(flattened);
 
   // ensure that splits are copied to flattened
   static Splitter* splitter = _salg->getSplitter();
-  splitter->onNewClause(flattened);
+  if(splitter){
+    splitter->onNewClause(flattened);
+  }
 
 #if DPRINT
   cout << "Generate instances of " << premise->toString() << endl;

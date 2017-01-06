@@ -140,6 +140,9 @@ Index* IndexManager::create(IndexType t)
 #else
     is=new LiteralSubstitutionTree();
 #endif
+#if VDEBUG
+    is->markTagged();
+#endif
     _genLitIndex=is;
     res=new GeneratingLiteralIndex(is);
     isGenerating = true;

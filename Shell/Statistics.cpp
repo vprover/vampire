@@ -52,8 +52,10 @@ Statistics::Statistics()
     factoring(0),
     resolution(0),
     urResolution(0),
+    cResolution(0),
     forwardSuperposition(0),
     backwardSuperposition(0),
+    theoryInstSimp(0),
     selfSuperposition(0),
     equalityFactoring(0),
     equalityResolution(0),
@@ -281,12 +283,13 @@ void Statistics::print(ostream& out)
   COND_OUT("Inner rewrites to eq. taut.", innerRewritesToEqTaut);
   SEPARATOR;
 
-  HEADING("Generating Inferences",resolution+urResolution+factoring+
+  HEADING("Generating Inferences",resolution+urResolution+cResolution+factoring+
       forwardSuperposition+backwardSuperposition+selfSuperposition+
       equalityFactoring+equalityResolution+forwardExtensionalityResolution+
-      backwardExtensionalityResolution);
+      backwardExtensionalityResolution+theoryInstSimp);
   COND_OUT("Binary resolution", resolution);
   COND_OUT("Unit resulting resolution", urResolution);
+  COND_OUT("Constrained resolution",cResolution);
   COND_OUT("Factoring", factoring);
   COND_OUT("Forward superposition", forwardSuperposition);
   COND_OUT("Backward superposition", backwardSuperposition);
@@ -295,6 +298,7 @@ void Statistics::print(ostream& out)
   COND_OUT("Equality resolution", equalityResolution);
   COND_OUT("Fw extensionality resolution", forwardExtensionalityResolution);
   COND_OUT("Bw extensionality resolution", backwardExtensionalityResolution);
+  COND_OUT("TheoryInstSimp",theoryInstSimp);
   SEPARATOR;
 
   HEADING("Term algebra simplifications",taDistinctnessSimplifications+

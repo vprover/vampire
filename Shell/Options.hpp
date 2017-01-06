@@ -1750,6 +1750,7 @@ public:
   bool smtForGround() const { return _smtForGround.actualValue; }
   bool theoryInstAndSimp() const { return _theoryInstAndSimp.actualValue; }
 #endif
+  bool constrainedUnification() const { return _constrainedUnification.actualValue; }
   bool unusedPredicateDefinitionRemoval() const { return _unusedPredicateDefinitionRemoval.actualValue; }
   bool blockedClauseElimination() const { return _blockedClauseElimination.actualValue; }
   void setUnusedPredicateDefinitionRemoval(bool newVal) { _unusedPredicateDefinitionRemoval.actualValue = newVal; }
@@ -2234,6 +2235,7 @@ private:
   BoolOptionValue _smtForGround;
   BoolOptionValue _theoryInstAndSimp;
 #endif
+  BoolOptionValue _constrainedUnification;
   TimeLimitOptionValue _simulatedTimeLimit;
   UnsignedOptionValue _sineDepth;
   UnsignedOptionValue _sineGeneralityThreshold;

@@ -118,6 +118,8 @@ public:
 //     SHELL_TO_RESOLUTION,
     /** resolution inference */
     RESOLUTION,
+    /** constrained resolution inference */
+    CONSTRAINED_RESOLUTION,
     /** equality proxy replacement */
     EQUALITY_PROXY_REPLACEMENT,
     /** definition of the equality proxy predicate in the form E(x,y) <=> x=y */

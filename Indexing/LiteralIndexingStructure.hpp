@@ -39,6 +39,7 @@ public:
 
 #if VDEBUG
   virtual vstring toString() { return "<not supported>"; }
+  virtual void markTagged() = 0;
 #endif
 
 };

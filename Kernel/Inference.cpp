@@ -285,6 +285,8 @@ vstring Inference::ruleName(Rule rule)
     return "skolemisation";
   case RESOLUTION:
     return "resolution";
+  case CONSTRAINED_RESOLUTION:
+    return "constrained resolution";
   case EQUALITY_PROXY_REPLACEMENT:
     return "equality proxy replacement";
   case EQUALITY_PROXY_AXIOM1:

@@ -40,7 +40,7 @@ public:
   RobSubstitution* tryGetRobSubstitution() { return _subst; }
 
 #if VDEBUG
-  virtual vstring toString(){ return _subst->toString(); }
+  virtual vstring toString(bool deref){ return _subst->toString(deref); }
 #endif
 
 private:
