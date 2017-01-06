@@ -212,6 +212,7 @@ protected:
   unsigned _generatedClauseCount;
 
   int _showClauseSetSizesPeriod;
+  unsigned _activationLimit;
 };
 
 

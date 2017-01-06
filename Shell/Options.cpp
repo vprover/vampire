@@ -1555,6 +1555,9 @@ void Options::Options::init()
     _lookup.insert(&_randomSeed);
     _randomSeed.tag(OptionTag::INPUT);
 
+    _activationLimit = IntOptionValue("activation_limit","al",0);
+    _activationLimit.description="Terminate saturation after this many iterations around the main loop.";
+    _lookup.insert(&_activationLimit);
 
     _symbolPrecedence = ChoiceOptionValue<SymbolPrecedence>("symbol_precedence","sp",SymbolPrecedence::ARITY,
                                                             {"arity","occurrence","reverse_arity","scramble",

@@ -100,12 +100,15 @@ SaturationAlgorithm::SaturationAlgorithm(Problem& prb, const Options& opt)
     _consFinder(0), _labelFinder(0), _symEl(0), _answerLiteralManager(0),
     _instantiation(0),
     _generatedClauseCount(0),
-    _showClauseSetSizesPeriod(0)
+    _showClauseSetSizesPeriod(0),
+    _activationLimit(0)
 {
   CALL("SaturationAlgorithm::SaturationAlgorithm");
   ASS_EQ(s_instance, 0);  //there can be only one saturation algorithm at a time
 
   _showClauseSetSizesPeriod = opt.showClauseSetSizes();
+
+  _activationLimit = opt.activationLimit();
 
   _ordering = OrderingSP(Ordering::create(prb, opt));
   if (!Ordering::trySetGlobalOrdering(_ordering)) {
@@ -1206,11 +1209,14 @@ MainLoopResult SaturationAlgorithm::runImpl()
 
   try
   {
-    unsigned l=0;
-    for (;;) {
+    for (unsigned l=0;;l++) {
       
-      if(_showClauseSetSizesPeriod && (l++ % _showClauseSetSizesPeriod == 0)){
-        cout << "Sizes " << _passive->size() << "," << _active->size() << endl; 
+      if(_showClauseSetSizesPeriod && (l % _showClauseSetSizesPeriod == 0)){
+        cout << "Sizes " << _active->size() << ", " << l << ", " << _passive->size() << endl;
+      }
+
+      if (_activationLimit && l > _activationLimit) {
+        throw TimeLimitExceededException(); // TODO: have an own limit exception!
       }
 
       doOneAlgorithmStep();

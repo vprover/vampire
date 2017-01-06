@@ -1717,6 +1717,7 @@ public:
   void setInclude(vstring val) { _include.actualValue = val; }
   vstring logFile() const { return _logFile.actualValue; }
   vstring inputFile() const { return _inputFile.actualValue; }
+  int activationLimit() const { return _activationLimit.actualValue; }
   int randomSeed() const { return _randomSeed.actualValue; }
   int rowVariableMaxLength() const { return _rowVariableMaxLength.actualValue; }
   //void setRowVariableMaxLength(int newVal) { _rowVariableMaxLength = newVal; }
@@ -2201,6 +2202,8 @@ private:
 
   IntOptionValue _randomSeed;
   IntOptionValue _rowVariableMaxLength;
+
+  IntOptionValue _activationLimit;
 
   FloatOptionValue _satClauseActivityDecay;
   ChoiceOptionValue<SatClauseDisposer> _satClauseDisposer;
