@@ -349,6 +349,12 @@ void UIHelper::outputResult(ostream& out)
     addCommentIfCASC(out);
     out << "Memory limit exceeded!\n";
     break;
+  case Statistics::ACTIVATION_LIMIT: {
+    out << "Activation limit reached!\n";
+
+
+    break;
+  }
   case Statistics::REFUTATION_NOT_FOUND:
     if(env.options->proof() == Options::Proof::SMTCOMP){
       return;

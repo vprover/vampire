@@ -1216,7 +1216,7 @@ MainLoopResult SaturationAlgorithm::runImpl()
       }
 
       if (_activationLimit && l > _activationLimit) {
-        throw TimeLimitExceededException(); // TODO: have an own limit exception!
+        throw ActivationLimitExceededException(); // TODO: have an own limit exception!
       }
 
       doOneAlgorithmStep();
