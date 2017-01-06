@@ -1207,12 +1207,13 @@ MainLoopResult SaturationAlgorithm::runImpl()
 {
   CALL("SaturationAlgorithm::runImpl");
 
+  unsigned l = 0;
   try
   {
-    for (unsigned l=0;;l++) {
+    for (;;l++) {
       
       if(_showClauseSetSizesPeriod && (l % _showClauseSetSizesPeriod == 0)){
-        cout << "Sizes " << _active->size() << ", " << l << ", " << _passive->size() << endl;
+        cout << "Sizes " << _active->size() << " " << l << " " << _passive->size() << endl;
       }
 
       if (_activationLimit && l > _activationLimit) {
