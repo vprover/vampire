@@ -1808,6 +1808,8 @@ public:
   int maxInferenceDepth() const { return _maxInferenceDepth.actualValue; }
   SymbolPrecedence symbolPrecedence() const { return _symbolPrecedence.actualValue; }
   SymbolPrecedenceBoost symbolPrecedenceBoost() const { return _symbolPrecedenceBoost.actualValue; }
+  const vstring& functionPrecedence() const { return _functionPrecedence.actualValue; }
+  const vstring& predicatePrecedence() const { return _predicatePrecedence.actualValue; }
   // Return time limit in deciseconds, or 0 if there is no time limit
   int timeLimitInDeciseconds() const { return _timeLimitInDeciseconds.actualValue; }
   size_t memoryLimit() const { return _memoryLimit.actualValue; }
@@ -2279,6 +2281,8 @@ private:
   BoolOptionValue _superpositionFromVariables;
   ChoiceOptionValue<SymbolPrecedence> _symbolPrecedence;
   ChoiceOptionValue<SymbolPrecedenceBoost> _symbolPrecedenceBoost;
+  StringOptionValue _functionPrecedence;
+  StringOptionValue _predicatePrecedence;
 
   BoolOptionValue _tabulationBwRuleSubsumptionResolutionByLemmas;
   BoolOptionValue _tabulationFwRuleSubsumptionResolutionByLemmas;

@@ -31,6 +31,8 @@
 #define COLORED_WEIGHT_BOOST 0x10000
 #define COLORED_LEVEL_BOOST 0x10000
 
+#include <sstream>
+
 namespace Kernel {
 
 using namespace Lib;
@@ -782,6 +784,28 @@ struct PredRevArityComparator
   }
 };
 
+static void loadPermutationFromString(DArray<unsigned>& p, const vstring& str) {
+  CALL("loadPermutationFromString");
+
+  std::stringstream ss(str.c_str());
+  unsigned i = 0;
+  unsigned val;
+  while (ss >> val)
+  {
+      if (i >= p.size()) {
+        break;
+      }
+
+      if (val >= p.size()) {
+        break;
+      }
+
+      p[i++] = val;
+
+      if (ss.peek() == ',')
+          ss.ignore();
+  }
+}
 
 /**
  * Create a KBOBase object.
@@ -800,32 +824,35 @@ KBOBase::KBOBase(Problem& prb, const Options& opt)
   if(_functions) {
     aux.initFromIterator(getRangeIterator(0u, _functions), _functions);
 
-    
-    switch(opt.symbolPrecedence()) {
-    case Shell::Options::SymbolPrecedence::ARITY:
-      aux.sort(FnBoostWrapper<FnArityComparator>(FnArityComparator()));
-      break;
-    case Shell::Options::SymbolPrecedence::REVERSE_ARITY:
-      aux.sort(FnBoostWrapper<FnRevArityComparator>(FnRevArityComparator()));
-      break;
-    case Shell::Options::SymbolPrecedence::FREQUENCY:
-    case Shell::Options::SymbolPrecedence::WEIGHTED_FREQUENCY:
-      aux.sort(FnBoostWrapper<FnFreqComparator>(FnFreqComparator()));
-      break;
-    case Shell::Options::SymbolPrecedence::REVERSE_FREQUENCY:
-    case Shell::Options::SymbolPrecedence::REVERSE_WEIGHTED_FREQUENCY:
-      aux.sort(FnBoostWrapper<FnRevFreqComparator>(FnRevFreqComparator()));
-      break;
-    case Shell::Options::SymbolPrecedence::OCCURRENCE:
-      break;
-    case Shell::Options::SymbolPrecedence::SCRAMBLE:
-      for(unsigned i=0;i<_functions;i++){
-        unsigned j = Random::getInteger(_functions-i)+i;
-        unsigned tmp = aux[j];
-        aux[j]=aux[i];
-        aux[i]=tmp;
+    if (!opt.functionPrecedence().empty()) {
+      loadPermutationFromString(aux,opt.functionPrecedence());
+    } else {
+      switch(opt.symbolPrecedence()) {
+      case Shell::Options::SymbolPrecedence::ARITY:
+        aux.sort(FnBoostWrapper<FnArityComparator>(FnArityComparator()));
+        break;
+      case Shell::Options::SymbolPrecedence::REVERSE_ARITY:
+        aux.sort(FnBoostWrapper<FnRevArityComparator>(FnRevArityComparator()));
+        break;
+      case Shell::Options::SymbolPrecedence::FREQUENCY:
+      case Shell::Options::SymbolPrecedence::WEIGHTED_FREQUENCY:
+        aux.sort(FnBoostWrapper<FnFreqComparator>(FnFreqComparator()));
+        break;
+      case Shell::Options::SymbolPrecedence::REVERSE_FREQUENCY:
+      case Shell::Options::SymbolPrecedence::REVERSE_WEIGHTED_FREQUENCY:
+        aux.sort(FnBoostWrapper<FnRevFreqComparator>(FnRevFreqComparator()));
+        break;
+      case Shell::Options::SymbolPrecedence::OCCURRENCE:
+        break;
+      case Shell::Options::SymbolPrecedence::SCRAMBLE:
+        for(unsigned i=0;i<_functions;i++){
+          unsigned j = Random::getInteger(_functions-i)+i;
+          unsigned tmp = aux[j];
+          aux[j]=aux[i];
+          aux[i]=tmp;
+        }
+        break;
       }
-      break;
     }
 
 /*
@@ -836,6 +863,12 @@ KBOBase::KBOBase(Problem& prb, const Options& opt)
   cout << endl;
 */
 
+    cout << "Function precedence: ";
+    for(unsigned i=0;i<_functions;i++){
+      cout << aux[i] << ",";
+    }
+    cout << endl;
+
     for(unsigned i=0;i<_functions;i++) {
       _functionPrecedences[aux[i]]=i;
     }
@@ -843,31 +876,35 @@ KBOBase::KBOBase(Problem& prb, const Options& opt)
 
   aux.initFromIterator(getRangeIterator(0u, _predicates), _predicates);
 
-  switch(opt.symbolPrecedence()) {
-  case Shell::Options::SymbolPrecedence::ARITY:
-    aux.sort(PredBoostWrapper<PredArityComparator>(PredArityComparator()));
-    break;
-  case Shell::Options::SymbolPrecedence::REVERSE_ARITY:
-    aux.sort(PredBoostWrapper<PredRevArityComparator>(PredRevArityComparator()));
-    break;
-  case Shell::Options::SymbolPrecedence::FREQUENCY:
-  case Shell::Options::SymbolPrecedence::WEIGHTED_FREQUENCY:
-    aux.sort(PredBoostWrapper<PredFreqComparator>(PredFreqComparator()));
-    break;
-  case Shell::Options::SymbolPrecedence::REVERSE_FREQUENCY:
-  case Shell::Options::SymbolPrecedence::REVERSE_WEIGHTED_FREQUENCY:
-   aux.sort(PredBoostWrapper<PredRevFreqComparator>(PredRevFreqComparator()));
-   break;
-  case Shell::Options::SymbolPrecedence::OCCURRENCE:
-    break;
-    case Shell::Options::SymbolPrecedence::SCRAMBLE:
-      for(unsigned i=0;i<_predicates;i++){
-        unsigned j = Random::getInteger(_predicates-i)+i;
-        unsigned tmp = aux[j];
-        aux[j]=aux[i];
-        aux[i]=tmp;
-      }
+  if (!opt.predicatePrecedence().empty()) {
+    loadPermutationFromString(aux,opt.predicatePrecedence());
+  } else {
+    switch(opt.symbolPrecedence()) {
+    case Shell::Options::SymbolPrecedence::ARITY:
+      aux.sort(PredBoostWrapper<PredArityComparator>(PredArityComparator()));
       break;
+    case Shell::Options::SymbolPrecedence::REVERSE_ARITY:
+      aux.sort(PredBoostWrapper<PredRevArityComparator>(PredRevArityComparator()));
+      break;
+    case Shell::Options::SymbolPrecedence::FREQUENCY:
+    case Shell::Options::SymbolPrecedence::WEIGHTED_FREQUENCY:
+      aux.sort(PredBoostWrapper<PredFreqComparator>(PredFreqComparator()));
+      break;
+    case Shell::Options::SymbolPrecedence::REVERSE_FREQUENCY:
+    case Shell::Options::SymbolPrecedence::REVERSE_WEIGHTED_FREQUENCY:
+     aux.sort(PredBoostWrapper<PredRevFreqComparator>(PredRevFreqComparator()));
+     break;
+    case Shell::Options::SymbolPrecedence::OCCURRENCE:
+      break;
+      case Shell::Options::SymbolPrecedence::SCRAMBLE:
+        for(unsigned i=0;i<_predicates;i++){
+          unsigned j = Random::getInteger(_predicates-i)+i;
+          unsigned tmp = aux[j];
+          aux[j]=aux[i];
+          aux[i]=tmp;
+        }
+        break;
+    }
   }
   /*
   cout << "Predicate precedences:" << endl;
@@ -876,6 +913,12 @@ KBOBase::KBOBase(Problem& prb, const Options& opt)
   }
   cout << endl;
   */
+  cout << "Predicate precedence: ";
+  for(unsigned i=0;i<_predicates;i++){
+    cout << aux[i] << ",";
+  }
+  cout << endl;
+
   for(unsigned i=0;i<_predicates;i++) {
     _predicatePrecedences[aux[i]]=i;
   }

@@ -350,8 +350,10 @@ void UIHelper::outputResult(ostream& out)
     out << "Memory limit exceeded!\n";
     break;
   case Statistics::ACTIVATION_LIMIT: {
+    addCommentIfCASC(out);
     out << "Activation limit reached!\n";
 
+    // HERE ADD MORE
 
     break;
   }

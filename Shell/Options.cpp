@@ -1569,6 +1569,14 @@ void Options::Options::init()
     //_symbolPrecedence.reliesOn(_saturationAlgorithm.is(notEqual(SaturationAlgorithm::TABULATION)));
     _symbolPrecedence.setRandomChoices({"arity","occurence","reverse_arity"});
 
+    _functionPrecedence = StringOptionValue("function_precendence","fp","");
+    _functionPrecedence.description = "Explicit user specified precedence on function symbols.";
+    _lookup.insert(&_functionPrecedence);
+
+    _predicatePrecedence = StringOptionValue("predicate_precendence","pp","");
+    _predicatePrecedence.description = "Explicit user specified precedence on predicate symbols.";
+    _lookup.insert(&_predicatePrecedence);
+
     _symbolPrecedenceBoost = ChoiceOptionValue<SymbolPrecedenceBoost>("symbol_precedence_boost","spb",SymbolPrecedenceBoost::NONE,
                                      {"none","goal","units","goal_then_units"});
     _symbolPrecedenceBoost.description = "";
