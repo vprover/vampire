@@ -26,6 +26,7 @@
 #include "AnswerExtractor.hpp"
 #include "InterpolantMinimizer.hpp"
 #include "Interpolants.hpp"
+#include "InterpolantsNew.hpp"
 #include "LaTeX.hpp"
 #include "LispLexer.hpp"
 #include "LispParser.hpp"
@@ -288,6 +289,10 @@ void UIHelper::outputResult(ostream& out)
 
       Formula* interpolant=Interpolants().getInterpolant(static_cast<Clause*>(env.statistics->refutation));
       out << "Interpolant: " << interpolant->toString() << endl;
+        
+        // new interpolation method described in master thesis of Bernhard Gleiss
+        Formula* interpolantNew =InterpolantsNew().getInterpolant(static_cast<Clause*>(env.statistics->refutation));
+        out << "New Interpolant: " << interpolantNew->toString() << endl;
     }
     if (env.options->showInterpolant()==Options::InterpolantMode::MINIMIZED) {
       ASS(env.statistics->refutation->isClause());
