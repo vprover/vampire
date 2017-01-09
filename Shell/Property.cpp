@@ -614,8 +614,8 @@ void Property::scanSpecialTerm(Term* t)
     TermList aux[2];
     aux[0].makeEmpty();
     aux[1] = TermList(sd->getTupleTerm());
-    scan(aux+1);
-    scan(t->args());
+    scan(aux+1,false,false); // only care about unit/goal when clausified
+    scan(t->args(),false,false); // only care about unit/goal when clausified
     break;
   }
   default:
