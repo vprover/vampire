@@ -7,7 +7,6 @@
 #ifndef __InterpolantsNew__
 #define __InterpolantsNew__
 
-#include <vector>
 #include <queue>
 #include <unordered_set>
 #include <unordered_map>

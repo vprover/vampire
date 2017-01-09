@@ -96,8 +96,8 @@ namespace Shell
          */
         
         // TODO: replace std::vector with a hash-set taking pointer-adresses for hash-computation (i.e. pointers with the same address must yield the same hash )
-        std::unordered_map<Unit*, std::vector<Unit*>> unitsToTopBoundaries; // maps each representative unit of a subproof to the top boundaries of that subproof
-        std::unordered_map<Unit*, std::vector<Unit*>> unitsToBottomBoundaries; // maps each representative unit of a subproof to the bottom boundaries of that subproof
+        std::unordered_map<Unit*, std::unordered_set<Unit*>> unitsToTopBoundaries; // maps each representative unit of a subproof to the top boundaries of that subproof
+        std::unordered_map<Unit*, std::unordered_set<Unit*>> unitsToBottomBoundaries; // maps each representative unit of a subproof to the bottom boundaries of that subproof
         
         processed.clear();
         assert(queue.empty());
@@ -141,7 +141,7 @@ namespace Shell
                     if (!inferenceIsColoredRed(premise))
                     {
                         // add the premise (i.e. the antecedent of the parent inference) to upper boundaries of the subproof of currentUnit:
-                        unitsToTopBoundaries[rootOfCurrent].push_back(premise);
+                        unitsToTopBoundaries[rootOfCurrent].insert(premise);
                     }
                 }
             }
@@ -162,7 +162,7 @@ namespace Shell
                         Unit* rootOfPremise = root(unitsToRepresentative, premise);
 
                         // add the premise (i.e. the antecedent of the parent inference) to upper boundaries of the subproof of currentUnit:
-                        unitsToBottomBoundaries[rootOfPremise].push_back(premise);
+                        unitsToBottomBoundaries[rootOfPremise].insert(premise);
                     }
                 }
             }
@@ -173,7 +173,7 @@ namespace Shell
         if (inferenceIsColoredRed(refutation))
         {
             assert(root(unitsToRepresentative, refutation) == refutation);
-            unitsToBottomBoundaries[refutation].push_back(refutation);
+            unitsToBottomBoundaries[refutation].insert(refutation);
         }
         
         
@@ -224,7 +224,7 @@ namespace Shell
         for (const auto& root : roots)
         {
             // generate conjunction of topBoundaries
-            const std::vector<Unit*>& topBoundaries = unitsToTopBoundaries[root];
+            const std::unordered_set<Unit*>& topBoundaries = unitsToTopBoundaries[root];
             
             FormulaList* conjunction1List = FormulaList::empty();
             for (const auto& boundary : topBoundaries)
@@ -234,7 +234,7 @@ namespace Shell
             Formula* conjunction1 = JunctionFormula::generalJunction(Connective::AND, conjunction1List);
 
             // generate conjunction of bottomBoundaries
-            const std::vector<Unit*>& bottomBoundaries = unitsToBottomBoundaries[root];
+            const std::unordered_set<Unit*>& bottomBoundaries = unitsToBottomBoundaries[root];
 
             FormulaList* conjunction2List = FormulaList::empty();
             for (const auto& boundary : bottomBoundaries)
