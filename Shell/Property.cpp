@@ -69,7 +69,7 @@ Property::Property()
     _smtlibLogic(SMTLIBLogic::SMT_UNDEFINED)
 {
   //TODO now MaxInterpretedElement is stateful this might be in the wrong place
-  _interpretationPresence.init(Theory::instance()->MaxInterpretedElement()+1, false);
+  _interpretationPresence.init(Theory::instance()->numberOfInterpretations()+1, false);
   env.property = this;
 } // Property::Property
 
@@ -434,7 +434,11 @@ void Property::scanSort(unsigned sort)
       addProp(PR_HAS_ARRAYS);
     }
     if (env.signature->isTermAlgebraSort(sort)) {
-      addProp(PR_HAS_CONSTRUCTORS);
+      if (env.signature->getTermAlgebraOfSort(sort)->allowsCyclicTerms()) {
+        addProp(PR_HAS_CDT_CONSTRUCTORS); // co-algebraic data type
+      } else {
+        addProp(PR_HAS_DT_CONSTRUCTORS); // algebraic data type
+      }
     }
     return;
   }
@@ -585,6 +589,7 @@ void Property::scanSpecialTerm(Term* t)
     break;
   }
   case Term::SF_LET:
+  case Term::SF_LET_TUPLE:
   {
     addProp(PR_HAS_LET_IN);
     ASS_EQ(t->arity(),1);
@@ -600,6 +605,17 @@ void Property::scanSpecialTerm(Term* t)
   {
     ASS_EQ(t->arity(),0);
     scan(sd->getFormula());
+    break;
+  }
+  case Term::SF_TUPLE:
+  {
+    ASS_EQ(t->arity(),0);
+    //this is a trick creating an artificial term list with terms we want to traverse
+    TermList aux[2];
+    aux[0].makeEmpty();
+    aux[1] = TermList(sd->getTupleTerm());
+    scan(aux+1);
+    scan(t->args());
     break;
   }
   default:

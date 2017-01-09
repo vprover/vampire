@@ -425,6 +425,26 @@ TermList SimplifyFalseTrue::simplify(TermList ts)
         unsigned sort = sd->getSort();
         return TermList(Term::createLet(functor, variables, binding, body, sort));
       }
+      case Term::SF_LET_TUPLE: {
+        unsigned functor = sd->getFunctor();
+        IntList* symbols = sd->getTupleSymbols();
+        TermList binding = simplify(sd->getBinding());
+        TermList body = simplify(*term->nthArgument(0));
+        if ((binding == sd->getBinding()) && (body == *term->nthArgument(0))) {
+          return ts;
+        }
+        unsigned sort = sd->getSort();
+        return TermList(Term::createLet(functor, symbols, binding, body, sort));
+      }
+      case Term::SF_TUPLE: {
+        TermList tupleTerm = TermList(sd->getTupleTerm());
+        TermList simplifiedTupleTerm = simplify(tupleTerm);
+        if (tupleTerm == simplifiedTupleTerm) {
+          return ts;
+        }
+        ASS_REP(simplifiedTupleTerm.isTerm(), simplifiedTupleTerm.toString());
+        return TermList(Term::createTuple(simplifiedTupleTerm.term()));
+      }
       default:
         ASSERTION_VIOLATION_REP(term->toString());
     }

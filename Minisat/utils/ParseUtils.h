@@ -58,7 +58,7 @@ public:
         buf = (unsigned char*)xrealloc(NULL, buffer_size);
         assureLookahead();
     }
-    ~StreamBuffer() { free(buf); }
+    ~StreamBuffer() { xfree(buf); }
 
     int  operator *  () const { return (pos >= size) ? EOF : buf[pos]; }
     void operator ++ ()       { pos++; assureLookahead(); }

@@ -426,12 +426,51 @@ vstring Term::headToString() const
       }
       case Term::SF_ITE: {
         ASS_EQ(arity(),2);
-        return "$ite(" + sd->getCondition()->toString() + ",";
+        return "$ite(" + sd->getCondition()->toString() + ", ";
+      }
+      case Term::SF_TUPLE: {
+        ASS_EQ(arity(), 0);
+        Term* term = sd->getTupleTerm();
+        vstring termList = "";
+        Term::Iterator tit(term);
+        unsigned i = term->arity();
+        while (tit.hasNext()) {
+          termList += tit.next().toString();
+          if (--i > 0) {
+            termList += ", ";
+          }
+        }
+        return "[" + termList + "]";
+      }
+      case Term::SF_LET_TUPLE: {
+        ASS_EQ(arity(), 1);
+        IntList* symbols = sd->getTupleSymbols();
+        unsigned tupleFunctor = sd->getFunctor();
+        TermList binding = sd->getBinding();
+
+        FunctionType* fnType = env.signature->getFunction(tupleFunctor)->fnType();
+
+        vstring symbolsList = "";
+        for (unsigned i = 0; i < (unsigned)symbols->length(); i++) {
+          Signature::Symbol* symbol = (fnType->arg(i) == Sorts::SRT_BOOL)
+                                      ? env.signature->getPredicate((unsigned)symbols->nth(i))
+                                      : env.signature->getFunction((unsigned)symbols->nth(i));
+          symbolsList += symbol->name();
+          if (i != (unsigned)symbols->length() - 1) {
+            symbolsList += ", ";
+          }
+        }
+
+        return "$let([" + symbolsList + "] := " + binding.toString() + ", ";
       }
       default:
         ASSERTION_VIOLATION;
     }
   } else {
+    unsigned proj;
+    if (Theory::tuples()->findProjection(functor(), false, proj)) {
+      return "$proj(" + Int::toString(proj) + ", ";
+    }
     return (isLiteral() ? static_cast<const Literal *>(this)->predicateName() : functionName()) + (arity() ? "(" : "");
   }
 }
@@ -540,6 +579,10 @@ vstring Literal::toString() const
 
   Stack<const TermList*> stack(64);
   vstring s = polarity() ? "" : "~";
+  unsigned proj;
+  if (Theory::tuples()->findProjection(functor(), true, proj)) {
+    return s + "$proj(" + Int::toString(proj) + ", " + args()->asArgsToString();
+  }
   s += predicateName();
 
   //cerr << "predicate: "<< predicateName()<<endl;
@@ -815,6 +858,43 @@ Term* Term::createLet(unsigned functor, IntList* variables, TermList binding, Te
 }
 
 /**
+ * Create (let [a, b, c] <- rhs in t) expression and return
+ * the resulting term
+ */
+Term* Term::createTupleLet(unsigned tupleFunctor, IntList* symbols, TermList binding, TermList body, unsigned bodySort)
+{
+  CALL("Term::createTupleLet");
+
+#if VDEBUG
+  Set<int> distinctSymbols;
+  IntList::Iterator sit(symbols);
+  while (sit.hasNext()) {
+    unsigned symbol = (unsigned)sit.next();
+    if (!distinctSymbols.contains(symbol)) {
+      distinctSymbols.insert(symbol);
+    } else {
+      ASSERTION_VIOLATION_REP(symbol);
+    }
+  }
+
+  Signature::Symbol* symbol = env.signature->getFunction(tupleFunctor);
+  ASS_EQ(symbol->arity(), (unsigned)symbols->length());
+  ASS_REP(env.sorts->hasStructuredSort(symbol->fnType()->result(), Sorts::StructuredSort::TUPLE), tupleFunctor);
+#endif
+
+  Term* s = new(1,sizeof(SpecialTermData)) Term;
+  s->makeSymbol(SF_LET_TUPLE, 1);
+  TermList* ss = s->args();
+  *ss = body;
+  ASS(ss->next()->isEmpty());
+  s->getSpecialData()->_letTupleData.functor = tupleFunctor;
+  s->getSpecialData()->_letTupleData.symbols = symbols;
+  s->getSpecialData()->_letTupleData.sort = bodySort;
+  s->getSpecialData()->_letTupleData.binding = binding.content();
+  return s;
+}
+
+/**
  * Create a formula expression and return
  * the resulting term
  */
@@ -825,6 +905,21 @@ Term* Term::createFormula(Formula* formula)
   Term* s = new(0,sizeof(SpecialTermData)) Term;
   s->makeSymbol(SF_FORMULA, 0);
   s->getSpecialData()->_formulaData.formula = formula;
+  return s;
+}
+
+Term* Term::createTuple(unsigned arity, unsigned* sorts, TermList* elements) {
+  CALL("Term::createTuple");
+  unsigned tupleFunctor = Theory::tuples()->getFunctor(arity, sorts);
+  Term* tupleTerm = Term::create(tupleFunctor, arity, elements);
+  return createTuple(tupleTerm);
+}
+
+Term* Term::createTuple(Term* tupleTerm) {
+  CALL("Term::createTuple");
+  Term* s = new(0, sizeof(SpecialTermData)) Term;
+  s->makeSymbol(SF_TUPLE, 0);
+  s->getSpecialData()->_tupleData.term = tupleTerm;
   return s;
 }
 
@@ -953,16 +1048,27 @@ bool Term::isBoolean() const {
     if (env.signature->isFoolConstantSymbol(true, term->functor()) ||
         env.signature->isFoolConstantSymbol(false, term->functor())) return true;
     if (!term->isSpecial()) return false;
-    if (term->isFormula()) return true;
-    if (term->isLet() || term->isITE()) {
-      const TermList* ts = term->nthArgument(0);
-      if (!ts->isTerm()) {
+    switch (term->getSpecialData()->getType()) {
+      case SF_FORMULA:
+        return true;
+      case SF_TUPLE:
         return false;
-      } else {
-        term = ts->term();
+      case SF_ITE:
+      case SF_LET:
+      case SF_LET_TUPLE: {
+        const TermList *ts = term->nthArgument(0);
+        if (!ts->isTerm()) {
+          return false;
+        } else {
+          term = ts->term();
+          break;
+        }
       }
+      default:
+        ASSERTION_VIOLATION_REP(term->toString());
     }
   }
+  return false;
 } // isBoolean
 
 /**

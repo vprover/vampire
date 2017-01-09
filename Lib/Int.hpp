@@ -163,6 +163,12 @@ class Int
     return true;
   }
 
+  template <typename T>
+  static int sgn(T val) {
+    CALL("Int::sgn");
+    return (T(0) < val) - (val < T(0));
+  }
+
   /**
    * If arg1*arg2 does not overflow, return true and save the result to res.
    * Otherwise, return false.
@@ -175,6 +181,7 @@ class Int
     INT mres = arg1*arg2;
 
     if ((mres == numeric_limits<INT>::min() && arg1 == -1) || // before, there was a SIGFPE for "-2147483648 / -1" TODO: are there other evil cases?
+        (sgn(arg1)*sgn(arg2) != sgn(mres)) || // 1073741824 * 2 = -2147483648 is evil, and passes the test below
         (arg1 != 0 && mres / arg1 != arg2)) {
       return false;
     }

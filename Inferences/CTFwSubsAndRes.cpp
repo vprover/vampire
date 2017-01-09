@@ -5,6 +5,7 @@
 
 
 #include "Kernel/Inference.hpp"
+#include "Kernel/ColorHelper.hpp"
 
 #include "Indexing/Index.hpp"
 #include "Indexing/IndexManager.hpp"
@@ -70,12 +71,12 @@ Clause* CTFwSubsAndRes::buildSResClause(Clause* cl, unsigned resolvedIndex, Clau
   return res;
 }
 
-void CTFwSubsAndRes::perform(Clause* cl, ForwardSimplificationPerformer* simplPerformer)
+bool CTFwSubsAndRes::perform(Clause* cl, Clause*& replacement, ClauseIterator& premises)
 {
   CALL("CTFwSubsAndRes::perform");
   
   if(cl->length()==0) {
-    return;
+    return false;
   }
 
   TimeCounter tc_fs(TC_FORWARD_SUBSUMPTION);
@@ -92,27 +93,25 @@ void CTFwSubsAndRes::perform(Clause* cl, ForwardSimplificationPerformer* simplPe
       continue;
     }
     premise->setAux(0);
-    if(!simplPerformer->willPerform(premise)) {
+    if(!ColorHelper::compatible(cl->color(), premise->color())) {
       continue;
     }
     
+    premises = pvi( getSingletonIterator(premise));
+
     if(res.resolved) {
-      Clause* replacement=buildSResClause(cl, res.resolvedQueryLiteralIndex, premise);
-      simplPerformer->perform(premise, replacement);
+      replacement=buildSResClause(cl, res.resolvedQueryLiteralIndex, premise);
       env.statistics->forwardSubsumptionResolution++;
     }
     else {
-      simplPerformer->perform(premise, 0);
       env.statistics->forwardSubsumed++;
     }
     
-    if(!simplPerformer->clauseKept()) {
-      goto fin;
-    }
+    break;
   }
 
-fin:
   Clause::releaseAux();
+  return true;
 }
 
 

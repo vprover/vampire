@@ -74,7 +74,7 @@ void GlobalSubsumption::detach()
  */
 Clause* GlobalSubsumption::perform(Clause* cl, Stack<Unit*>& prems)
 {
-  CALL("GlobalSubsumption::perform/1");
+  CALL("GlobalSubsumption::perform/2");
 
   TimeCounter tc(TC_GLOBAL_SUBSUMPTION);
 
@@ -262,22 +262,22 @@ struct GlobalSubsumption::Unit2ClFn
   }
 };
 
-void GlobalSubsumption::perform(Clause* cl, ForwardSimplificationPerformer* simplPerformer)
+bool GlobalSubsumption::perform(Clause* cl, Clause*& replacement, ClauseIterator& premises)
 {
-  CALL("GlobalSubsumption::perform/2");
+  CALL("GlobalSubsumption::perform/3");
 
   static Stack<Unit*> prems;
   
   Clause* newCl = perform(cl,prems);
   if(newCl==cl) {
-    return;
+    return false;
   }
     
   Stack<Unit*>::BottomFirstIterator it(prems);
-              
-  ALWAYS(simplPerformer->willPerform(0));
-  simplPerformer->perform(pvi( getMappingIterator(it, Unit2ClFn()) ), newCl);
-  ALWAYS(!simplPerformer->clauseKept());
+
+  replacement = newCl;
+  premises = pvi( getMappingIterator(it, Unit2ClFn()) );
+  return true;
 }
 
 }

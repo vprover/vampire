@@ -95,12 +95,17 @@ bool SortHelper::getResultSortOrMasterVariable(const Term* t, unsigned& resultSo
 
   switch(t->functor()) {
     case Term::SF_LET:
+    case Term::SF_LET_TUPLE:
     case Term::SF_ITE:
       resultSort = t->getSpecialData()->getSort();
       return true;
     case Term::SF_FORMULA:
       resultSort = Sorts::SRT_BOOL;
       return true;
+    case Term::SF_TUPLE: {
+      resultSort = getResultSort(t->getSpecialData()->getTupleTerm());
+      return true;
+    }
     default:
       ASS(!t->isSpecial());
       resultSort = getResultSort(t);
@@ -325,8 +330,20 @@ void SortHelper::collectVariableSortsSpecialTerm(Term* term, unsigned contextSor
       break;
     }
 
+    case Term::SF_LET_TUPLE: {
+      TermList binding = sd->getBinding();
+      Signature::Symbol* symbol = env.signature->getFunction(sd->getFunctor());
+      collectVariableSorts(binding, symbol->fnType()->result(), map);
+      ts.push(term->nthArgument(0));
+      break;
+    }
+
     case Term::SF_FORMULA:
       collectVariableSorts(sd->getFormula(), map);
+      break;
+
+    case Term::SF_TUPLE:
+      collectVariableSorts(sd->getTupleTerm(), map);
       break;
 
 #if VDEBUG

@@ -181,6 +181,18 @@ Term* Rectify::rectifySpecialTerm(Term* t)
     }
     return Term::createLet(sd->getFunctor(), variables, binding, contents, sd->getSort());
   }
+  case Term::SF_LET_TUPLE:
+  {
+    ASS_EQ(t->arity(),1);
+
+    TermList binding = rectify(sd->getBinding());
+    TermList contents = rectify(*t->nthArgument(0));
+
+    if (binding == sd->getBinding() && contents == *t->nthArgument(0)) {
+      return t;
+    }
+    return Term::createLet(sd->getFunctor(), sd->getTupleSymbols(), binding, contents, sd->getSort());
+  }
   case Term::SF_FORMULA:
   {
     ASS_EQ(t->arity(),0);
@@ -189,6 +201,15 @@ Term* Rectify::rectifySpecialTerm(Term* t)
       return t;
     }
     return Term::createFormula(orig);
+  }
+  case Term::SF_TUPLE:
+  {
+    ASS_EQ(t->arity(),0);
+    Term* rectifiedTupleTerm = rectify(sd->getTupleTerm());
+    if (rectifiedTupleTerm == sd->getTupleTerm()) {
+      return t;
+    }
+    return Term::createTuple(rectifiedTupleTerm);
   }
   default:
     ASSERTION_VIOLATION;

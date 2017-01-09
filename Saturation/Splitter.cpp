@@ -1406,8 +1406,12 @@ void Splitter::onClauseReduction(Clause* cl, ClauseIterator premises, Clause* re
   if(diff->isEmpty()) {
     // unconditionally reduced
     if (_deleteDeactivated != Options::SplittingDeleteDeactivated::ON) {
-      // let others know not to keep the clause in children
-      cl->setNumActiveSplits(NOT_WORTH_REINTRODUCING);
+      if (!cl->isComponent() || _deleteDeactivated == Options::SplittingDeleteDeactivated::OFF) {
+        // if it is a component we must keep it, unless we plan to reintroduce all
+
+        // let others know not to keep the clause in children
+        cl->setNumActiveSplits(NOT_WORTH_REINTRODUCING);
+      }
     }
         
     return;

@@ -625,7 +625,8 @@ private:
   void processConstant(bool constant, Occurrences &occurrences);
   void processBoolVar(SIGN sign, unsigned var, Occurrences &occurrences);
   void processITE(Formula* condition, Formula* thenBranch, Formula* elseBranch, Occurrences &occurrences);
-  void processLet(unsigned symbol, Formula::VarList*bindingVariables, TermList binding, TermList contents, Occurrences &occurrences);
+  void processLet(Term::SpecialTermData* sd, TermList contents, Occurrences &occurrences);
+  TermList eliminateLet(Term::SpecialTermData *sd, TermList contents);
 
   TermList nameLetBinding(unsigned symbol, Formula::VarList *bindingVariables, TermList binding, TermList contents);
   TermList inlineLetBinding(unsigned symbol, Formula::VarList *bindingVariables, TermList binding, TermList contents);

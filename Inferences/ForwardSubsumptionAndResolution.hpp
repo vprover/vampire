@@ -29,7 +29,7 @@ public:
 
   void attach(SaturationAlgorithm* salg);
   void detach();
-  void perform(Clause* cl, ForwardSimplificationPerformer* simplPerformer);
+  bool perform(Clause* cl, Clause*& replacement, ClauseIterator& premises) override;
 
   static Clause* generateSubsumptionResolutionClause(Clause* cl, Literal* lit, Clause* baseClause);
 private:

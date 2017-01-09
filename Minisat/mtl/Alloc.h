@@ -54,7 +54,7 @@ class RegionAllocator
     ~RegionAllocator()
     {
         if (memory != NULL)
-            ::free(memory);
+            xfree(memory);
     }
 
 
@@ -74,7 +74,7 @@ class RegionAllocator
         return  (Ref)(t - &memory[0]); }
 
     void     moveTo(RegionAllocator& to) {
-        if (to.memory != NULL) ::free(to.memory);
+        if (to.memory != NULL) xfree(to.memory);
         to.memory = memory;
         to.sz = sz;
         to.cap = cap;

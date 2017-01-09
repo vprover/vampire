@@ -26,6 +26,8 @@
 #include "Lib/VString.hpp"
 
 #include "MatchTag.hpp"
+#include "Sorts.hpp"
+#include "SortHelper.hpp"
 
 
 #define TERM_DIST_VAR_UNKNOWN 0x7FFFFF
@@ -207,7 +209,9 @@ public:
   static const unsigned SF_ITE = 0xFFFFFFFF;
   static const unsigned SF_LET = 0xFFFFFFFE;
   static const unsigned SF_FORMULA = 0xFFFFFFFD;
-  static const unsigned SPECIAL_FUNCTOR_LOWER_BOUND = 0xFFFFFFFD;
+  static const unsigned SF_TUPLE = 0xFFFFFFFC;
+  static const unsigned SF_LET_TUPLE = 0xFFFFFFFB;
+  static const unsigned SPECIAL_FUNCTOR_LOWER_BOUND = 0xFFFFFFFB;
 
   class SpecialTermData
   {
@@ -229,6 +233,15 @@ public:
       struct {
         Formula * formula;
       } _formulaData;
+      struct {
+        Term* term;
+      } _tupleData;
+      struct {
+        unsigned functor;
+        IntList* symbols;
+        size_t binding;
+        unsigned sort;
+      } _letTupleData;
     };
     /** Return pointer to the term to which this object is attached */
     const Term* getTerm() const { return reinterpret_cast<const Term*>(this+1); }
@@ -239,14 +252,30 @@ public:
       return res;
     }
     Formula* getCondition() const { ASS_EQ(getType(), SF_ITE); return _iteData.condition; }
-    unsigned getFunctor() const { ASS_EQ(getType(), SF_LET); return _letData.functor; }
+    unsigned getFunctor() const {
+      ASS_REP(getType() == SF_LET || getType() == SF_LET_TUPLE, getType());
+      return getType() == SF_LET ? _letData.functor : _letTupleData.functor;
+    }
     IntList* getVariables() const { ASS_EQ(getType(), SF_LET); return _letData.variables; }
-    TermList getBinding() const { ASS_EQ(getType(), SF_LET); return TermList(_letData.binding); }
+    IntList* getTupleSymbols() const { return _letTupleData.symbols; }
+    TermList getBinding() const {
+      ASS_REP(getType() == SF_LET || getType() == SF_LET_TUPLE, getType());
+      return TermList(getType() == SF_LET ? _letData.binding : _letTupleData.binding);
+    }
     unsigned getSort() const {
-      ASS_REP(getType() == SF_ITE || getType() == SF_LET, getType());
-      return getType() == SF_ITE ? _iteData.sort : _letData.sort;
+      switch (getType()) {
+        case SF_ITE:
+          return _iteData.sort;
+        case SF_LET:
+          return _letData.sort;
+        case SF_LET_TUPLE:
+          return _letTupleData.sort;
+        default:
+          ASSERTION_VIOLATION_REP(getType());
+      }
     }
     Formula* getFormula() const { ASS_EQ(getType(), SF_FORMULA); return _formulaData.formula; }
+    Term* getTupleTerm() const { return _tupleData.term; }
   };
 
 
@@ -263,7 +292,10 @@ public:
   static Term* createConstant(unsigned symbolNumber) { return create(symbolNumber,0,0); }
   static Term* createITE(Formula * condition, TermList thenBranch, TermList elseBranch, unsigned branchSort);
   static Term* createLet(unsigned functor, IntList* variables, TermList binding, TermList body, unsigned bodySort);
+  static Term* createTupleLet(unsigned functor, IntList* symbols, TermList binding, TermList body, unsigned bodySort);
   static Term* createFormula(Formula* formula);
+  static Term* createTuple(unsigned arity, unsigned* sorts, TermList* elements);
+  static Term* createTuple(Term* tupleTerm);
   static Term* create1(unsigned fn, TermList arg);
   static Term* create2(unsigned fn, TermList arg1, TermList arg2);
 
@@ -490,6 +522,8 @@ public:
   bool isSpecial() const { return functor()>=SPECIAL_FUNCTOR_LOWER_BOUND; }
   bool isITE() const { return functor() == SF_ITE; }
   bool isLet() const { return functor() == SF_LET; }
+  bool isTupleLet() const { return functor() == SF_LET_TUPLE; }
+  bool isTuple() const { return functor() == SF_TUPLE; }
   bool isFormula() const { return functor() == SF_FORMULA; }
   bool isBoolean() const;
   /** Return pointer to structure containing extra data for special terms such as

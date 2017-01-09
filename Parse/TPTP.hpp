@@ -20,6 +20,8 @@
 #include "Kernel/Unit.hpp"
 #include "Kernel/Theory.hpp"
 
+//#define DEBUG_SHOW_STATE
+
 using namespace std;
 using namespace Lib;
 using namespace Kernel;
@@ -141,13 +143,13 @@ public:
     T_RATIONAL_TYPE,
     /** $real */
     T_REAL_TYPE,
+    /** $tuple type */
+    T_TUPLE,
+    /** theory functions */
+    T_THEORY_FUNCTION,
+    /** theory sorts */
+    T_THEORY_SORT,
     /** $fot, probably useless */
-    T_ARRAY_TYPE,
-    /** $array type*/
-    T_SELECT,
-    /** array select*/
-    T_STORE,
-    /** array store*/
     T_FOT,
     /** $fof, probably useless */
     T_FOF,
@@ -160,7 +162,7 @@ public:
     /** $ite: FOOL level-polymorphic if-then-else */
     T_ITE,
     /** $let: FOOL level-polymorphic let-in */
-    T_LET,
+    T_LET
   };
 
   /** parser state, numbers are just temporarily for debugging */
@@ -209,6 +211,8 @@ public:
     END_EQ,
     /** tff declaration */
     TFF,
+    /** THF declaration */
+    THF,
     /** read type declaration */
     TYPE,
     /** after a top-level type declaration */
@@ -221,6 +225,8 @@ public:
     UNBIND_VARIABLES,
     /** end of an if-then-else expression */
     END_ITE,
+    /** read tuple */
+    END_TUPLE,
     /** check the end of arguments */
     END_ARGS,
     /** middle of equality */
@@ -229,12 +235,14 @@ public:
     END_LET,
     /** start of function or predicate binding inside $let */
     BINDING,
+    /** start of tuple binding inside $let */
+    TUPLE_BINDING,
     /** end of function or predicate binding inside $let */
     END_BINDING,
-    /** end of select array terms */
-    END_SELECT,
-    /** end of store array terms */
-    END_STORE
+    /** end of tuple binding inside $let */
+    END_TUPLE_BINDING,
+    /** end of a theory function */
+    END_THEORY_FUNCTION
   };
 
   /** token */
@@ -408,6 +416,66 @@ private:
     UnitList** _last;
   }; // class UnitStack
 
+  enum TheorySort {
+    /** $array theoy */
+    TS_ARRAY,
+  };
+  static bool findTheorySort(const vstring name, TheorySort &ts) {
+    static const vstring theorySortNames[] = {
+      "$array"
+    };
+    static const unsigned theorySorts = sizeof(theorySortNames)/sizeof(vstring);
+    for (unsigned sort = 0; sort < theorySorts; sort++) {
+      if (theorySortNames[sort] == name) {
+        ts = static_cast<TheorySort>(sort);
+        return true;
+      }
+    }
+    return false;
+  }
+  static bool isTheorySort(const vstring name) {
+    static TheorySort dummy;
+    return findTheorySort(name, dummy);
+  }
+  static TheorySort getTheorySort(const Token tok) {
+    ASS_REP(tok.tag == T_THEORY_SORT, tok.content);
+    TheorySort ts;
+    if (!findTheorySort(tok.content, ts)) {
+      ASSERTION_VIOLATION_REP(tok.content);
+    }
+    return ts;
+  }
+
+  enum TheoryFunction {
+    /** $array theory */
+    TF_SELECT, TF_STORE
+  };
+  static bool findTheoryFunction(const vstring name, TheoryFunction &tf) {
+    static const vstring theoryFunctionNames[] = {
+      "$select", "$store"
+    };
+    static const unsigned theoryFunctions = sizeof(theoryFunctionNames)/sizeof(vstring);
+    for (unsigned fun = 0; fun < theoryFunctions; fun++) {
+      if (theoryFunctionNames[fun] == name) {
+        tf = static_cast<TheoryFunction>(fun);
+        return true;
+      }
+    }
+    return false;
+  }
+  static bool isTheoryFunction(const vstring name) {
+    static TheoryFunction dummy;
+    return findTheoryFunction(name, dummy);
+  }
+  static TheoryFunction getTheoryFunction(const Token tok) {
+    ASS_REP(tok.tag == T_THEORY_FUNCTION, tok.content);
+    TheoryFunction tf;
+    if (!findTheoryFunction(tok.content, tf)) {
+      ASSERTION_VIOLATION_REP(tok.content);
+    }
+    return tf;
+  }
+
   /** true if the input contains a conjecture */
   bool _containsConjecture;
   /** Allowed names of formulas.
@@ -483,6 +551,8 @@ private:
   /** various type tags saved during parsing */
   Stack<TypeTag> _typeTags;
   typedef List<unsigned> SortList;
+  /**  */
+  Stack<TheoryFunction> _theoryFunctions;
   /** bindings of variables to sorts */
   Map<int,SortList*> _variableSorts;
   /** overflown arithmetical constants for which uninterpreted constants are introduced */
@@ -503,6 +573,12 @@ private:
   bool findLetSymbol(bool isPredicate, vstring name, unsigned arity, unsigned& symbol);
   /** the scope of the currently parsed $let-term */
   LetFunctionsScope _currentLetScope;
+
+  typedef pair<unsigned, bool> LetBinding;
+  typedef Stack<LetBinding> LetBindingScope;
+  Stack<LetBindingScope> _letBindings;
+  LetBindingScope _currentBindingScope;
+
   /** model definition formula */
   bool _modelDefinition;
 
@@ -616,6 +692,7 @@ private:
   void simpleType();
   void args();
   void varList();
+  void tupleBinding();
   void term();
   void termInfix();
   void endTerm();
@@ -639,9 +716,10 @@ private:
   void endIte();
   void binding();
   void endBinding();
+  void endTupleBinding();
   void endLet();
-  void endSelect();
-  void endStore();
+  void endTheoryFunction();
+  void endTuple();
   void addTagState(Tag);
 
   unsigned readSort();
@@ -657,9 +735,10 @@ private:
   unsigned addOverloadedPredicate(vstring name,int arity,int symbolArity,bool& added,TermList& arg,
 				  Theory::Interpretation integer,Theory::Interpretation rational,
 				  Theory::Interpretation real);
- // unsigned addOverloadedArrayFunction(vstring name,int arity,int symbolArity,bool& added,TermList& arg,Theory::Interpretation array_select);
   unsigned sortOf(TermList term);
   static bool higherPrecedence(int c1,int c2);
+
+  bool findInterpretedPredicate(vstring name, unsigned arity);
 
 public:
   // make the tptp routines for dealing with overflown constants available to other parsers
