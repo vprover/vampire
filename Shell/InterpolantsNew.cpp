@@ -12,16 +12,19 @@
 #include "InterpolantsNew.hpp"
 
 #include <assert.h> //TODO: how to do assertions in vampire?
+
+/*
+ * note that a proof in vampire consists not of inferences,
+ * but of the antecedents of those inferences (and these
+ * antecendents are not formulas but more generally units).
+ */
+
 namespace Shell
 {
     using namespace Kernel;
  
 #pragma mark - main methods
-    /*
-     * note that a proof in vampire consists not of inferences,
-     * but of the antecedents of those inferences (and these
-     * antecendents are not formulas but more generally units).
-     */
+
     Formula* InterpolantsNew::getInterpolant(Unit *refutation)
     {
         /*
@@ -40,15 +43,15 @@ namespace Shell
         {
             Unit* currentUnit = queue.front();
             queue.pop();
-            cout << "current unit: " << currentUnit->toString() << endl;
-
+            processed.insert(currentUnit);
+            
             // add unprocessed premises to queue for BFS:
             VirtualIterator<Unit*> parents = InferenceStore::instance()->getParents(currentUnit);
             
             while (parents.hasNext())
             {
                 Unit* premise= parents.next();
-                
+
                 // if we haven't processed the current premise yet
                 // TODO: remove hack
                 if (processed.find(premise) == processed.end() && premise->inference()->rule() != Inference::INPUT)
@@ -78,13 +81,13 @@ namespace Shell
             }
         }
         
-        cout << endl << "unitsToRepresentative map:\n";
-        for (const auto& keyValuePair : unitsToRepresentative)
-        {
-            cout << "(" << keyValuePair.first->toString() << ", " << keyValuePair.second->toString() << ")" << endl;
-
-        }
-        cout << endl;
+//        cout << endl << "unitsToRepresentative map:\n";
+//        for (const auto& keyValuePair : unitsToRepresentative)
+//        {
+//            cout << "(" << keyValuePair.first->toString() << ", " << keyValuePair.second->toString() << ")" << endl;
+//
+//        }
+//        cout << endl;
 
         
         /* 
@@ -97,7 +100,7 @@ namespace Shell
         std::unordered_map<Unit*, std::vector<Unit*>> unitsToBottomBoundaries; // maps each representative unit of a subproof to the bottom boundaries of that subproof
         
         processed.clear();
-        ASSERT(queue.empty());
+        assert(queue.empty());
         queue.push(refutation);
 
         // iterative Breadth-first search (BFS) through the proof DAG
@@ -105,7 +108,7 @@ namespace Shell
         {
             Unit* currentUnit = queue.front();
             queue.pop();
-            cout << "current unit: " << currentUnit->toString() << endl;
+            processed.insert(currentUnit);
             
             // add unprocessed premises to queue for BFS:
             VirtualIterator<Unit*> parents = InferenceStore::instance()->getParents(currentUnit);
@@ -133,13 +136,12 @@ namespace Shell
                 while (parents.hasNext())
                 {
                     Unit* premise = parents.next();
-                    cout << "current premise: " << premise->toString() << endl;
 
                     // if it is assigned to the B-part
                     if (!inferenceIsColoredRed(premise))
                     {
                         // add the premise (i.e. the antecedent of the parent inference) to upper boundaries of the subproof of currentUnit:
-                        unitsToTopBoundaries[rootOfCurrent].push_back(premise); // TODO: this should work since it seems that an empty list is constructed if there was no value for the key before the call.
+                        unitsToTopBoundaries[rootOfCurrent].push_back(premise);
                     }
                 }
             }
@@ -160,33 +162,46 @@ namespace Shell
                         Unit* rootOfPremise = root(unitsToRepresentative, premise);
 
                         // add the premise (i.e. the antecedent of the parent inference) to upper boundaries of the subproof of currentUnit:
-                        unitsToBottomBoundaries[rootOfPremise].push_back(premise); // TODO: this should work since it seems that an empty list is constructed if there was no value for the key before the call.
+                        unitsToBottomBoundaries[rootOfPremise].push_back(premise);
                     }
                 }
             }
         }
         
         // we finally have to check for the empty clause, if it appears as boundary of an A-subproof
-        ASSERT(root(unitstoRepresentative, refutation) == refutation);
 
         if (inferenceIsColoredRed(refutation))
         {
+            assert(root(unitsToRepresentative, refutation) == refutation);
             unitsToBottomBoundaries[refutation].push_back(refutation);
         }
         
         
-        cout << endl << "unitsToTopBoundaries map:\n";
-        for (const auto& keyValuePair : unitsToBottomBoundaries)
-        {
-            cout << "(" << keyValuePair.first->toString() << ", " << endl;
-            for (const auto& element : keyValuePair.second)
-            {
-                cout << element->toString() << endl;
-
-            }
-            
-        }
-        cout << endl;
+//        cout << endl << "unitsToTopBoundaries map:\n";
+//        for (const auto& keyValuePair : unitsToTopBoundaries)
+//        {
+//            cout << "(" << keyValuePair.first->toString() << "," << endl << "[" << endl;
+//            for (const auto& element : keyValuePair.second)
+//            {
+//                cout << "\t" << element->toString() << endl;
+//                
+//            }
+//            cout << "])";
+//        }
+//        cout << endl;
+//        
+//        cout << endl << "unitsToBottomBoundaries map:\n";
+//        for (const auto& keyValuePair : unitsToBottomBoundaries)
+//        {
+//            cout << "(" << keyValuePair.first->toString() << "," << endl << "[" << endl;
+//            for (const auto& element : keyValuePair.second)
+//            {
+//                cout << "\t" << element->toString() << endl;
+//                
+//            }
+//            cout << "])";
+//        }
+//        cout << endl;
         
         /*
          * Part 3: 
@@ -229,17 +244,25 @@ namespace Shell
             Formula* conjunction2 = JunctionFormula::generalJunction(Connective::AND, conjunction2List);
 
             // generate implication "(conj. of topBoundaries) implies (conj. of bottomBoundaries)"
-            // NOTE: we perform simplifications of A->B:
+            // NOTE: we perform simplifications of C->D:
             Formula* implication;
-            if (conjunction2->connective() == Connective::TRUE)// A->Top => Top
+            if (conjunction2->connective() == Connective::TRUE)// C->Top => Top
             {
                 implication = conjunction2;
             }
-            else if (conjunction1->connective() == Connective::TRUE)// Top->B => B
+            else if (conjunction1->connective() == Connective::TRUE)// Top->D => D
             {
                 implication = conjunction2;
             }
-            else // no simplification, construct A->B
+            else if (conjunction1->connective() == Connective::FALSE)// Bot->D => Top
+            {
+                implication = new NegatedFormula(conjunction1);
+            }
+            else if (conjunction2->connective() == Connective::FALSE)// C->Bot => neg(C)
+            {
+                implication = new NegatedFormula(conjunction1);
+            }
+            else // no simplification, construct C->D
             {
                 FormulaList* implicationList = FormulaList::empty();
                 FormulaList::push(new NegatedFormula(conjunction1), implicationList);
@@ -251,7 +274,7 @@ namespace Shell
             // simplify the arguments for outer conjunction
             if (implication->connective() != Connective::TRUE) // skip argument, since it is redundant
             {
-                if (implication->connective() == Connective::FALSE) // if one of the arguments is bottom, the outerConjunction will be bottom
+                if (implication->connective() == Connective::FALSE) // if one of the arguments is bottom, the outerConjunction will be bottom, so clear arguments and stop adding new ones
                 {
                     outerConjunction = FormulaList::empty();
                     FormulaList::push(implication, outerConjunction);
@@ -280,7 +303,7 @@ namespace Shell
         // if the antecedent contains a red symbol,
         if (antecedent->getColor() == COLOR_LEFT)
         {
-            cout << "coloring " << antecedent->toString() << " red" << endl;
+//            cout << "coloring " << antecedent->toString() << " red" << endl;
             return true;
         }
         
@@ -290,13 +313,13 @@ namespace Shell
         {
             if (parents.next()->getColor() == COLOR_LEFT)
             {
-                cout << "coloring " << antecedent->toString() << " red" << endl;
+//                cout << "coloring " << antecedent->toString() << " red" << endl;
                 return true;
             }
         }
         
         // otherwise return false
-        cout << "coloring " << antecedent->toString() << " blue" << endl;
+//        cout << "coloring " << antecedent->toString() << " blue" << endl;
         return false;
     }
 
@@ -326,6 +349,9 @@ namespace Shell
         Unit* root1 = root(unitsToRepresentative, unit1);
         Unit* root2 = root(unitsToRepresentative, unit2);
         
-        unitsToRepresentative[root1] = root2;
+        if (root1 != root2) // we could also add elements as their own roots, but this is not necessary.
+        {
+            unitsToRepresentative[root2] = root1;
+        }
     }
 }

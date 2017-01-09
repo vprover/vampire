@@ -47,22 +47,3 @@ namespace Shell
     };
 };
 #endif // __InterpolantsNew__
-
-/*
- * structs defined to implement equality in the hashset "processed" and hashmap "unitsToRepresentative"
- */
-//        struct UnitPointerEqual
-//        {
-//            bool operator () (Kernel::Unit* lhs, Kernel::Unit* rhs ) const
-//            {
-//                return lhs == rhs;
-//            }
-//        };
-//
-//        struct UnitPointerHash
-//        {
-//            size_t operator() (const Kernel::Unit*& unit) const
-//            {
-//                return std::hash<const Kernel::Unit*>{}(unit);
-//            }
-//        };
