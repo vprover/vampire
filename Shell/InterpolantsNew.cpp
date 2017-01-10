@@ -72,8 +72,7 @@ namespace Shell
                 Unit* premise= parents.next();
 
                 // if we haven't processed the current premise yet
-                // TODO: remove hack
-                if (processed.find(premise) == processed.end() && premise->inference()->rule() != Inference::INPUT)
+                if (processed.find(premise) == processed.end())
                 {
                     // add it to the queue
                     queue.push(premise);
@@ -90,8 +89,7 @@ namespace Shell
                     Unit* premise = parents.next();
                     
                     // if it is assigned to the A-part of the proof
-                    // TODO: remove hack
-                    if (inferenceIsColoredRed(premise) && premise->inference()->rule() != Inference::INPUT)
+                    if (inferenceIsColoredRed(premise))
                     {
                         // merge the subproof of the current inference with the subproof of the parent inference
                         merge(unitsToRepresentative, currentUnit, premise);
@@ -136,8 +134,7 @@ namespace Shell
                 Unit* premise= parents.next();
                 
                 // if we haven't processed the current premise yet
-                // TODO: remove hack
-                if (processed.find(premise) == processed.end() && premise->inference()->rule() != Inference::INPUT)
+                if (processed.find(premise) == processed.end())
                 {
                     // add it to the queue
                     queue.push(premise);
