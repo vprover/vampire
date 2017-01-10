@@ -4,19 +4,38 @@
  * @author Bernhard Gleiss
  */
 
-#include <Kernel/Formula.hpp>
+#include "Kernel/Formula.hpp"
 #include "Kernel/Connective.hpp"
 #include "Kernel/Unit.hpp"
 #include "Kernel/InferenceStore.hpp"
 
 #include "InterpolantsNew.hpp"
 
-#include <assert.h> //TODO: how to do assertions in vampire?
+#include "Debug/Assertion.hpp"
 
 /*
- * note that a proof in vampire consists not of inferences,
- * but of the antecedents of those inferences (and these
- * antecendents are not formulas but more generally units).
+ * note that formulas are implemented as both formulas (usual formulas) and 
+ * clauses (vectors of literals) for efficiency. If we don't care about the
+ * difference (as in this class), we use the class Unit, which wraps around
+ * formulas and clauses, abstracting away the differences.
+ * ========================================================================
+ * We conceptually think of proofs as DAGS, where the nodes are inferences:
+ * Each such inference i has some premises (n_i=#premises, n_i>=0), a conclusion
+ * and n_i parent inferences.
+ *
+ * Due to performance reasons, a proof nonetheless consists not of inferences,
+ * but of the conclusions of those inferences (and these
+ * conclusions are not formulas but more generally units).
+ * Each such conclusion c (conceptually of an inference inf_c) points to the 
+ * conclusions of each parent inference of inf_c.
+ * ========================================================================
+ * Additionally to the proof-information, we use coloring information,
+ * which is created during parsing:
+ * 1) For each symbol, we can use getColor() to query if that symbol is A-local,
+ *    B-local or global (COLOR_LEFT, COLOR_RIGHT or COLOR_TRANSPARENT).
+ *    getColor() is also extended in the obvious way to formulas and clauses.
+ * 2) For each input formula, we can use inheritedColor() to query if that
+ *    formula is part of the A-formula or if it is part of the B-formula
  */
 
 namespace Shell
@@ -95,12 +114,11 @@ namespace Shell
          * collect all boundaries of the subproofs
          */
         
-        // TODO: replace std::vector with a hash-set taking pointer-adresses for hash-computation (i.e. pointers with the same address must yield the same hash )
         std::unordered_map<Unit*, std::unordered_set<Unit*>> unitsToTopBoundaries; // maps each representative unit of a subproof to the top boundaries of that subproof
         std::unordered_map<Unit*, std::unordered_set<Unit*>> unitsToBottomBoundaries; // maps each representative unit of a subproof to the bottom boundaries of that subproof
         
         processed.clear();
-        assert(queue.empty());
+        ASS(queue.empty());
         queue.push(refutation);
 
         // iterative Breadth-first search (BFS) through the proof DAG
@@ -140,7 +158,7 @@ namespace Shell
                     // if it is assigned to the B-part
                     if (!inferenceIsColoredRed(premise))
                     {
-                        // add the premise (i.e. the antecedent of the parent inference) to upper boundaries of the subproof of currentUnit:
+                        // add the premise (i.e. the conclusion of the parent inference) to upper boundaries of the subproof of currentUnit:
                         unitsToTopBoundaries[rootOfCurrent].insert(premise);
                     }
                 }
@@ -161,7 +179,7 @@ namespace Shell
                     {
                         Unit* rootOfPremise = root(unitsToRepresentative, premise);
 
-                        // add the premise (i.e. the antecedent of the parent inference) to upper boundaries of the subproof of currentUnit:
+                        // add the premise (i.e. the conclusion of the parent inference) to upper boundaries of the subproof of currentUnit:
                         unitsToBottomBoundaries[rootOfPremise].insert(premise);
                     }
                 }
@@ -172,7 +190,7 @@ namespace Shell
 
         if (inferenceIsColoredRed(refutation))
         {
-            assert(root(unitsToRepresentative, refutation) == refutation);
+            ASS_EQ(root(unitsToRepresentative, refutation), refutation);
             unitsToBottomBoundaries[refutation].insert(refutation);
         }
         
@@ -201,7 +219,7 @@ namespace Shell
 //            }
 //            cout << "])";
 //        }
-//        cout << endl;
+//        cout << endl << endl;
         
         /*
          * Part 3: 
@@ -297,29 +315,41 @@ namespace Shell
     
 #pragma mark - splitting function
  
-    bool InterpolantsNew::inferenceIsColoredRed(Kernel::Unit* antecedent)
+    bool InterpolantsNew::inferenceIsColoredRed(Kernel::Unit* conclusion)
     {
-        // return true,
-        // if the antecedent contains a red symbol,
-        if (antecedent->getColor() == COLOR_LEFT)
+        // at first check if inference is an axiom. If yes, assign the inference to the corresponding color
+        if (conclusion->inheritedColor() == COLOR_LEFT)
         {
-//            cout << "coloring " << antecedent->toString() << " red" << endl;
+            return true;
+        }
+        else if (conclusion->inheritedColor() == COLOR_RIGHT)
+        {
+            return false;
+        }
+        
+        // then check if the inference contains a red symbol (and if yes, assign it to the red partition):
+        // - this is the case if either the conclusion contains a red symbol
+        if (conclusion->getColor() == COLOR_LEFT)
+        {
+            cout << "coloring " << conclusion->toString() << " red" << endl;
             return true;
         }
         
-        // or if any parent contains a red symbol
-        VirtualIterator<Unit*> parents = InferenceStore::instance()->getParents(antecedent);
+        // - or if any parent contains a red symbol
+        VirtualIterator<Unit*> parents = InferenceStore::instance()->getParents(conclusion);
         while (parents.hasNext())
         {
             if (parents.next()->getColor() == COLOR_LEFT)
             {
-//                cout << "coloring " << antecedent->toString() << " red" << endl;
+                cout << "coloring " << conclusion->toString() << " red" << endl;
                 return true;
             }
         }
         
-        // otherwise return false
-//        cout << "coloring " << antecedent->toString() << " blue" << endl;
+        // in all other cases assign the inference to the blue partition
+        // - this is necessary for inferences containing blue symbols
+        // - for all other inferences this is a decision we make for this simple version of splitting function
+        cout << "coloring " << conclusion->toString() << " blue" << endl;
         return false;
     }
 
@@ -331,7 +361,7 @@ namespace Shell
         Unit* root = unit;
         while (unitsToRepresentative.find(root) != unitsToRepresentative.end())
         {
-            assert(unitsToRepresentative.at(root) != root);
+            ASS_NEQ(unitsToRepresentative.at(root), root);
             root = unitsToRepresentative.at(root);
         }
         
@@ -345,7 +375,7 @@ namespace Shell
     
     void InterpolantsNew::merge(UnionFindMap& unitsToRepresentative, Unit* unit1, Unit* unit2)
     {
-        assert(unit1 != unit2);
+        ASS_NEQ(unit1, unit2);
         Unit* root1 = root(unitsToRepresentative, unit1);
         Unit* root2 = root(unitsToRepresentative, unit2);
         
