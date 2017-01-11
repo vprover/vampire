@@ -36,6 +36,14 @@
  *    getColor() is also extended in the obvious way to formulas and clauses.
  * 2) For each input formula, we can use inheritedColor() to query if that
  *    formula is part of the A-formula or if it is part of the B-formula
+ *
+ * We use both of them in the method computeSplittingFunction(), which reuses
+ * the inheritedColor-field to save its result.
+ * ========================================================================
+ * Note that the word 'splitting' is used with two different meanings in
+ * this class: 1) splitting a proof into an A- and a B- part as described
+ *                in the thesis
+ *             2) splitting the proof for Avatar
  */
 
 namespace Shell
@@ -51,6 +59,12 @@ namespace Shell
      */
     Formula* InterpolantsNew::getInterpolant(Unit *refutation)
     {
+        /*
+         * compute coloring for the inferences, i.e. compute splitting function in the words of the thesis
+         * Note: reuses inheritedColor-field to save result
+         */
+        computeSplittingFunction(refutation);
+        
         /*
          * compute A-subproofs
          */
@@ -108,7 +122,7 @@ namespace Shell
             }
             
             // standard union-find: if current inference is assigned to A-part of the proof,
-            if (inferenceIsColoredRed(currentUnit))
+            if (currentUnit->inheritedColor() == COLOR_LEFT)
             {
                 parents = InferenceStore::instance()->getParents(currentUnit);
                 // then for each parent inference,
@@ -117,7 +131,7 @@ namespace Shell
                     Unit* premise = parents.next();
                     
                     // if it is assigned to the A-part of the proof
-                    if (inferenceIsColoredRed(premise))
+                    if (premise->inheritedColor() == COLOR_LEFT)
                     {
                         // merge the subproof of the current inference with the subproof of the parent inference
                         merge(unitsToRepresentative, currentUnit, premise);
@@ -166,7 +180,8 @@ namespace Shell
             }
             
             // if current inference is assigned to A-part
-            if (inferenceIsColoredRed(currentUnit))
+            ASS(currentUnit->inheritedColor() == COLOR_LEFT || currentUnit->inheritedColor() == COLOR_RIGHT);
+            if (currentUnit->inheritedColor() == COLOR_LEFT)
             {
                 Unit* rootOfCurrent = root(unitsToRepresentative, currentUnit);
                 parents = InferenceStore::instance()->getParents(currentUnit);
@@ -175,9 +190,10 @@ namespace Shell
                 while (parents.hasNext())
                 {
                     Unit* premise = parents.next();
-                    
+
                     // if it is assigned to the B-part
-                    if (!inferenceIsColoredRed(premise))
+                    ASS(premise->inheritedColor() == COLOR_LEFT || premise->inheritedColor() == COLOR_RIGHT);
+                    if (premise->inheritedColor() != COLOR_LEFT)
                     {
                         // add the premise (i.e. the conclusion of the parent inference) to upper boundaries of the subproof of currentUnit:
                         unitsToTopBoundaries[rootOfCurrent].insert(premise);
@@ -196,7 +212,8 @@ namespace Shell
                     Unit* premise = parents.next();
                     
                     // if it is assigned to the A-part
-                    if (inferenceIsColoredRed(premise))
+                    ASS(premise->inheritedColor() == COLOR_LEFT || premise->inheritedColor() == COLOR_RIGHT);
+                    if (premise->inheritedColor() == COLOR_LEFT)
                     {
                         Unit* rootOfPremise = root(unitsToRepresentative, premise);
                         
@@ -208,7 +225,7 @@ namespace Shell
         }
         
         // we finally have to check for the empty clause, if it appears as boundary of an A-subproof
-        if (inferenceIsColoredRed(refutation))
+        if (refutation->inheritedColor() == COLOR_LEFT)
         {
             ASS_EQ(root(unitsToRepresentative, refutation), refutation);
             unitsToBottomBoundaries[refutation].insert(refutation);
@@ -320,44 +337,104 @@ namespace Shell
     #pragma mark - splitting function
  
     /*
-     * implements splitting function from the thesis
+     * implements local splitting function from the thesis (improved version of approach #2, cf. section 3.3)
      */
-    bool InterpolantsNew::inferenceIsColoredRed(Kernel::Unit* conclusion)
+    void InterpolantsNew::computeSplittingFunction(Kernel::Unit* refutation)
     {
-        // at first check if inference is an axiom. If yes, assign the inference to the corresponding color
-        if (conclusion->inheritedColor() == COLOR_LEFT)
-        {
-            return true;
-        }
-        else if (conclusion->inheritedColor() == COLOR_RIGHT)
-        {
-            return false;
-        }
+        std::stack<Unit*> stack; // used for DFS
+        stack.push(refutation);
         
-        // then check if the inference contains a red symbol (and if yes, assign it to the red partition):
-        // - this is the case if either the conclusion contains a red symbol
-        if (conclusion->getColor() == COLOR_LEFT)
+        // iterative post-order depth-first search (DFS) through the proof DAG
+        // following the usual ideas, e.g.
+        // https://pythonme.wordpress.com/2013/08/05/algorithm-iterative-dfs-depth-first-search-with-postorder-and-preorder/
+        // Note: we keep track of visited nodes using the inheritedColor-field,
+        // which is COLOR_LEFT or COLOR_RIGHT iff the inference was already visited
+        // or is an axiom and therefore doesn't need to be visited
+        while (!stack.empty())
         {
-            cout << "coloring " << conclusion->toString() << " red" << endl;
-            return true;
-        }
-        
-        // - or if any parent contains a red symbol
-        VirtualIterator<Unit*> parents = InferenceStore::instance()->getParents(conclusion);
-        while (parents.hasNext())
-        {
-            if (parents.next()->getColor() == COLOR_LEFT)
+            Unit* currentUnit = stack.top();
+            
+            ASS(  (!InferenceStore::instance()->getParents(currentUnit).hasNext() && (currentUnit->inheritedColor() == COLOR_LEFT || currentUnit->inheritedColor() == COLOR_RIGHT))
+                || (InferenceStore::instance()->getParents(currentUnit).hasNext() &&  currentUnit->inheritedColor() == COLOR_INVALID));
+//            cout << "current unit: " << *currentUnit << endl;
+            bool existsUnvisitedParent = false;
+            // add unprocessed premises to stack for DFS. If there is at least one unprocessed premise, don't compute the result
+            // for currentUnit now, but wait until those unprocessed premises are processed.
+            VirtualIterator<Unit*> parents = InferenceStore::instance()->getParents(currentUnit);
+            
+            while (parents.hasNext())
             {
-                cout << "coloring " << conclusion->toString() << " red" << endl;
-                return true;
+                Unit* premise= parents.next();
+                
+                // if we haven't processed the current premise yet
+                if (premise->inheritedColor() == COLOR_INVALID)
+                {
+                    // add it to the stack
+                    stack.push(premise);
+                    existsUnvisitedParent = true;
+                }
+            }
+
+            // if we already colored all parent-inferences, we can color the inference too
+            if (!existsUnvisitedParent)
+            {
+                // we only assign non-axioms, since axioms are already assigned accordingly
+                // (the requirement of a splitting function (in the words of the thesis) is therefore
+                // fulfilled)
+                ASS_EQ(currentUnit->inheritedColor(), COLOR_INVALID);
+
+                // if the inference contains a colored symbol, assign it to the corresponding partition (this
+                // ensures requirement of a LOCAL splitting function in the words of the thesis):
+                // - this is the case if either the conclusion contains a colored symbol
+                if (currentUnit->getColor() == COLOR_LEFT || currentUnit->getColor() == COLOR_RIGHT)
+                {
+                    cout << "coloring " << currentUnit->toString() << (currentUnit->getColor() == COLOR_LEFT ? " red" : " blue") << endl;
+                    currentUnit->setInheritedColor(currentUnit->getColor());
+                    
+                    goto END;
+                }
+                
+                // - or if any premise contains a colored symbol
+                { // scoping necessary due to goto
+                    VirtualIterator<Unit*> parents = InferenceStore::instance()->getParents(currentUnit);
+                    while (parents.hasNext())
+                    {
+                        Unit* premise= parents.next();
+                        
+                        if (premise->getColor() == COLOR_LEFT || premise->getColor() == COLOR_RIGHT)
+                        {
+                            cout << "coloring " << currentUnit->toString() << (premise->getColor() == COLOR_LEFT ? " red" : " blue") << endl;
+                            currentUnit->setInheritedColor(premise->getColor());
+                            
+                            goto END;
+                        }
+                }
+                }
+                
+                // otherwise we choose the following heuristic
+                // if more parent inferences of the current inference are assigned to the red partition than to the blue partition,
+                // assign the inference to red, otherwise to blue
+                { // scoping necessary due to goto
+                    parents = InferenceStore::instance()->getParents(currentUnit);
+                    
+                    int difference = 0;
+                    while (parents.hasNext())
+                    {
+                        Unit* premise= parents.next();
+                        ASS(premise->inheritedColor() == COLOR_LEFT || premise->inheritedColor() == COLOR_RIGHT);
+                        
+                        // TODO: this could be weighted too easily :)
+                        premise->inheritedColor() == COLOR_LEFT ? difference++ : difference--;
+                    }
+                    cout << "coloring " << currentUnit->toString() << (difference > 0 ? " red" : " blue") << endl;
+                    currentUnit->setInheritedColor(difference > 0 ? COLOR_LEFT : COLOR_RIGHT);
+                }
+                
+                // we are now finished with currentUnit, so pop it
+            END:
+                stack.pop();
             }
         }
-        
-        // in all other cases assign the inference to the blue partition
-        // - this is necessary for inferences containing blue symbols
-        // - for all other inferences this is a decision we make for this simple version of splitting function
-        cout << "coloring " << conclusion->toString() << " blue" << endl;
-        return false;
     }
 
     

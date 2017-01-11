@@ -7,6 +7,7 @@
 #ifndef __InterpolantsNew__
 #define __InterpolantsNew__
 
+#include <stack>
 #include <queue>
 #include <unordered_set>
 #include <unordered_map>
@@ -30,7 +31,7 @@ namespace Shell
          * implements so called "splitting function" from the thesis.
          * Currently approach 1 from section 3.3 of the thesis is implemented
          */
-        bool inferenceIsColoredRed(Kernel::Unit* conclusion);
+        void computeSplittingFunction(Kernel::Unit* conclusion);
         
     private:
         
