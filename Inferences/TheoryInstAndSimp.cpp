@@ -217,16 +217,18 @@ ClauseIterator TheoryInstAndSimp::generateClauses(Clause* premise)
   if(premise->isTheoryDescendant()){ return ClauseIterator::getEmpty(); }
 
   // Check for eligiability
-  // TODO add an option to vary these constraints
+  static bool allowPositiveEquality = env.options->theoryInstAndSimpEqualityCheck()!=Options::TheoryInstSimpEquality::NONE; 
   {
     bool eligable=false;
     Clause::Iterator lit(*premise); 
-    while(lit.hasNext()){
+    while(lit.hasNext() && !eligable){
       Literal* l = lit.next();
       if(l->isEquality()){
-        if(theory->isInterpretedFunction(*l->nthArgument(0)) ||
-           theory->isInterpretedFunction(*l->nthArgument(1))){
-          eligable=true;
+        if(allowPositiveEquality || !l->polarity()){ 
+          if(theory->isInterpretedFunction(*l->nthArgument(0)) ||
+             theory->isInterpretedFunction(*l->nthArgument(1))){
+            eligable=true;
+          }
         }
       }
       else if(theory->isInterpretedPredicate(l)){

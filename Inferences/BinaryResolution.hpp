@@ -26,7 +26,7 @@ public:
   CLASS_NAME(BinaryResolution);
   USE_ALLOCATOR(BinaryResolution);
 
-  BinaryResolution() : _index(0), constrainedUnification(false) {}
+  BinaryResolution() : _index(0), _unificationWithAbstraction(false) {}
 
   void attach(SaturationAlgorithm* salg);
   void detach();
@@ -39,7 +39,7 @@ private:
   struct ResultFn;
 
   GeneratingLiteralIndex* _index;
-  bool constrainedUnification;
+  bool _unificationWithAbstraction;
 };
 
 };

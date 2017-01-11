@@ -198,6 +198,18 @@ public:
     };
     // update _tagNames at the end of Options constructor if you add a tag
     
+  enum class TheoryInstSimpEquality : unsigned int {
+    ANY,
+    NONE,
+    HALFWAY 
+  };
+  enum class UnificationWithAbstraction : unsigned int {
+    OFF,
+    INTERP_ONLY,
+    ONE_INTERP,
+    CONSTANT,
+    ALL
+  };
 
   enum class TheoryAxiomLevel : unsigned int {
     ON,  // all of them
@@ -1749,8 +1761,9 @@ public:
   bool satFallbackForSMT() const { return _satFallbackForSMT.actualValue; }
   bool smtForGround() const { return _smtForGround.actualValue; }
   bool theoryInstAndSimp() const { return _theoryInstAndSimp.actualValue; }
+  TheoryInstSimpEquality theoryInstAndSimpEqualityCheck() const { return _theoryInstAndSimpEqualityCheck.actualValue; }
 #endif
-  bool constrainedUnification() const { return _constrainedUnification.actualValue; }
+  UnificationWithAbstraction unificationWithAbstraction() const { return _unificationWithAbstraction.actualValue; }
   bool unusedPredicateDefinitionRemoval() const { return _unusedPredicateDefinitionRemoval.actualValue; }
   bool blockedClauseElimination() const { return _blockedClauseElimination.actualValue; }
   void setUnusedPredicateDefinitionRemoval(bool newVal) { _unusedPredicateDefinitionRemoval.actualValue = newVal; }
@@ -2234,8 +2247,9 @@ private:
   BoolOptionValue _satFallbackForSMT;
   BoolOptionValue _smtForGround;
   BoolOptionValue _theoryInstAndSimp;
+  ChoiceOptionValue<TheoryInstSimpEquality> _theoryInstAndSimpEqualityCheck;
 #endif
-  BoolOptionValue _constrainedUnification;
+  ChoiceOptionValue<UnificationWithAbstraction> _unificationWithAbstraction; 
   TimeLimitOptionValue _simulatedTimeLimit;
   UnsignedOptionValue _sineDepth;
   UnsignedOptionValue _sineGeneralityThreshold;

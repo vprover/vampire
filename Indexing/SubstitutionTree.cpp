@@ -7,6 +7,8 @@
 
 #include <utility>
 
+#include "Shell/Options.hpp"
+
 #include "Kernel/Matcher.hpp"
 #include "Kernel/Renaming.hpp"
 #include "Kernel/SubstHelper.hpp"
@@ -914,24 +916,47 @@ bool SubstitutionTree::UnificationsIterator::associate(TermList query, TermList 
     TermList queryTranslated = subst.apply(query,NORM_QUERY_BANK);
     TermList nodeTranslated = subst.apply(node,NORM_RESULT_BANK);
 
-    if(queryTranslated.isTerm() && nodeTranslated.isTerm() && 
-       (theory->isInterpretedFunction(queryTranslated) || theory->isInterpretedConstant(queryTranslated)) &&
-       (theory->isInterpretedFunction(nodeTranslated) || theory->isInterpretedConstant(nodeTranslated)) &&
-       !(theory->isInterpretedConstant(queryTranslated) && theory->isInterpretedConstant(nodeTranslated))
-      ){
+    static Options::UnificationWithAbstraction opt = env.options->unificationWithAbstraction();
+    
+    bool okay = queryTranslated.isTerm() && nodeTranslated.isTerm();
 
-      //cout << "Add Constraint " << queryTranslated.toString() << " =  " << nodeTranslated.toString() << endl;
-      //cout << "Without translation " << query.toString() << " = " << node.toString() << endl;
-//      cout << "SUB " << endl << subst.toString() << endl; 
-      unsigned x = tree->_nextVar++;
-      TermList nodeVar = TermList(x,true);
-      subst.bindSpecialVar(x,node,NORM_RESULT_BANK);
+    if(okay){
+
+      bool queryInterp = (theory->isInterpretedFunction(queryTranslated) || theory->isInterpretedConstant(queryTranslated)); 
+      bool nodeInterp = (theory->isInterpretedFunction(nodeTranslated) || theory->isInterpretedConstant(nodeTranslated)); 
+      bool bothNumbers = (theory->isInterpretedConstant(queryTranslated) && theory->isInterpretedConstant(nodeTranslated));
+    
+      switch(opt){
+        case Options::UnificationWithAbstraction::INTERP_ONLY:
+          okay &= (queryInterp && nodeInterp && !bothNumbers); 
+          break;
+        case Options::UnificationWithAbstraction::ONE_INTERP:
+          okay &= !bothNumbers && (queryInterp || nodeInterp);
+          break;
+        case Options::UnificationWithAbstraction::CONSTANT:
+          okay &= !bothNumbers && (queryInterp || nodeInterp);
+          okay &= (queryInterp || env.signature->functionArity(queryTranslated.term()->functor()));
+          okay &= (nodeInterp || env.signature->functionArity(nodeTranslated.term()->functor()));
+          break;  
+      }
+      // ALL means no restrictions
+
+      if(okay){
+
+        //cout << "Add Constraint " << queryTranslated.toString() << " =  " << nodeTranslated.toString() << endl;
+        //cout << "Without translation " << query.toString() << " = " << node.toString() << endl;
+        //cout << "SUB " << endl << subst.toString() << endl; 
+
+        unsigned x = tree->_nextVar++;
+        TermList nodeVar = TermList(x,true);
+        subst.bindSpecialVar(x,node,NORM_RESULT_BANK);
 #if VDEBUG
-      cout << "constraint " << query.toString() << " = " << nodeVar.toString() << endl;
+        cout << "constraint " << query.toString() << " = " << nodeVar.toString() << endl;
 #endif
-      pair<TermList,TermList> constraint = make_pair(query,nodeVar);
-      constraints.backtrackablePush(constraint,bd);
-      return true;
+        pair<TermList,TermList> constraint = make_pair(query,nodeVar);
+        constraints.backtrackablePush(constraint,bd);
+        return true;
+      }
     }
   }
   return result;

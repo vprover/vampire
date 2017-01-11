@@ -46,7 +46,7 @@ void BinaryResolution::attach(SaturationAlgorithm* salg)
   _index=static_cast<GeneratingLiteralIndex*> (
 	  _salg->getIndexManager()->request(GENERATING_SUBST_TREE) );
 
-  constrainedUnification = env.options->constrainedUnification();
+  _unificationWithAbstraction = env.options->unificationWithAbstraction()!=Options::UnificationWithAbstraction::OFF;
 }
 
 void BinaryResolution::detach()
@@ -63,7 +63,7 @@ void BinaryResolution::detach()
 struct BinaryResolution::UnificationsFn
 {
   UnificationsFn(GeneratingLiteralIndex* index,bool cU)
-  : _index(index),constrainedUnification(cU) {}
+  : _index(index),_unificationWithAbstraction(cU) {}
   DECL_RETURN_TYPE(VirtualIterator<pair<Literal*, SLQueryResult> >);
   OWN_RETURN_TYPE operator()(Literal* lit)
   {
@@ -71,14 +71,14 @@ struct BinaryResolution::UnificationsFn
       //Binary resolution is not performed with equality literals
       return OWN_RETURN_TYPE::getEmpty();
     }
-    if(constrainedUnification){
+    if(_unificationWithAbstraction){
       return pvi( pushPairIntoRightIterator(lit, _index->getUnificationsWithConstraints(lit, true)) );
     }
     return pvi( pushPairIntoRightIterator(lit, _index->getUnifications(lit, true)) );
   }
 private:
   GeneratingLiteralIndex* _index;
-  bool constrainedUnification;
+  bool _unificationWithAbstraction;
 };
 
 struct BinaryResolution::ResultFn
@@ -301,7 +301,7 @@ ClauseIterator BinaryResolution::generateClauses(Clause* premise)
   Limits* limits = _salg->getLimits();
 
   // generate pairs of the form (literal selected in premise, unifying object in index)
-  auto it1 = getMappingIterator(premise->getSelectedLiteralIterator(),UnificationsFn(_index,constrainedUnification));
+  auto it1 = getMappingIterator(premise->getSelectedLiteralIterator(),UnificationsFn(_index,_unificationWithAbstraction));
   // actually, we got one iterator per selected literal; we flatten the obtained iterator of iterators:
   auto it2 = getFlattenedIterator(it1);
   // perform binary resolution on these pairs

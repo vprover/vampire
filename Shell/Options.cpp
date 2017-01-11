@@ -778,12 +778,20 @@ void Options::Options::init()
 	   _lookup.insert(&_theoryInstAndSimp);
            _theoryInstAndSimp.setExperimental();
 
+           _theoryInstAndSimpEqualityCheck = ChoiceOptionValue<TheoryInstSimpEquality>("theory_inst_and_simp_equality_check","thisec",
+                                                TheoryInstSimpEquality::NONE,{"any","none","halfway"});
+           _theoryInstAndSimpEqualityCheck.description = ""; 
+           _theoryInstAndSimpEqualityCheck.tag(OptionTag::INFERENCES);
+           _lookup.insert(&_theoryInstAndSimpEqualityCheck);
+           _theoryInstAndSimpEqualityCheck.setExperimental();
 #endif
-           _constrainedUnification = BoolOptionValue("constrained_unification","cu",false);
-           _constrainedUnification.description="";
-           _constrainedUnification.tag(OptionTag::INFERENCES);
-           _lookup.insert(&_constrainedUnification);
-           _constrainedUnification.setExperimental();
+           _unificationWithAbstraction = ChoiceOptionValue<UnificationWithAbstraction>("unification_with_abstraction","uwa",
+                                             UnificationWithAbstraction::OFF,
+                                             {"off","interpreted_only","one_side_interpreted","one_side_constant","all"});
+           _unificationWithAbstraction.description="";
+           _unificationWithAbstraction.tag(OptionTag::INFERENCES);
+           _lookup.insert(&_unificationWithAbstraction);
+           _unificationWithAbstraction.setExperimental();
 
 	    _instantiation = ChoiceOptionValue<Instantiation>("instantiation","inst",Instantiation::OFF,{"off","on"});
 	    _instantiation.description = "Heuristically instantiate variables";
