@@ -41,22 +41,50 @@
 namespace Shell
 {
     using namespace Kernel;
- 
-#pragma mark - main methods
+    
+#pragma mark - main method
 
+    /*
+     * main method
+     * implements interpolation algorithm stated on page 13 of master thesis of Bernhard Gleiss
+     * cf. Definition 3.1.2 of the thesis
+     */
     Formula* InterpolantsNew::getInterpolant(Unit *refutation)
     {
         /*
-         * Part 1: 
          * compute A-subproofs
          */
+        const std::unordered_map<Unit*, Unit*> unitsToRepresentative = computeSubproofs(refutation);
+        
+        /*
+         * collect all boundaries of the subproofs
+         */
+        const auto boundaries = computeBoundaries(unitsToRepresentative, refutation);
+        
+        /*
+         * generate the interpolant (i.e. the splitting formula in the words of the thesis, cf. Definition 3.1.2. of the thesis)
+         */
+        const auto interpolant = generateInterpolant(boundaries);
+        
+        return interpolant;
+    }
     
+    
+#pragma mark - main helper methods
+    
+    /*
+     * compute the maximal A-subproofs of the proofs using standard union-find ideas as described in the thesis
+     * Note: can't just use depth-first-search, since edge information is only saved in one direction in the nodes
+     * Note: We represent each subproof by the conclusion of one of its inferences (the so called representative unit)
+     */
+    std::unordered_map<Unit*, Unit*> InterpolantsNew::computeSubproofs(Unit* refutation)
+    {
         std::unordered_map<Unit*, Unit*> unitsToRepresentative; // maps each unit u1 (belonging to a red subproof) to the representative unit u2 of that subproof
         
         std::unordered_set<Unit*> processed; // keep track of already visited units.
         std::queue<Unit*> queue; // used for BFS
         queue.push(refutation);
-    
+        
         // iterative Breadth-first search (BFS) through the proof DAG
         while (!queue.empty())
         {
@@ -70,7 +98,7 @@ namespace Shell
             while (parents.hasNext())
             {
                 Unit* premise= parents.next();
-
+                
                 // if we haven't processed the current premise yet
                 if (processed.find(premise) == processed.end())
                 {
@@ -79,7 +107,7 @@ namespace Shell
                 }
             }
             
-            // if current inference is assigned to A-part of the proof,
+            // standard union-find: if current inference is assigned to A-part of the proof,
             if (inferenceIsColoredRed(currentUnit))
             {
                 parents = InferenceStore::instance()->getParents(currentUnit);
@@ -97,29 +125,25 @@ namespace Shell
                 }
             }
         }
-        
-//        cout << endl << "unitsToRepresentative map:\n";
-//        for (const auto& keyValuePair : unitsToRepresentative)
-//        {
-//            cout << "(" << keyValuePair.first->toString() << ", " << keyValuePair.second->toString() << ")" << endl;
-//
-//        }
-//        cout << endl;
 
-        
-        /* 
-         * Part 2:
-         * collect all boundaries of the subproofs
-         */
-        
+        return unitsToRepresentative;
+    }
+    
+    // TODO: the typedef-usage is ugly
+    /*
+     * computes the boundaries of the A-subproofs using Breadth-first search (BFS)
+     * Using idea from the thesis: a unit occurs as boundary of a subproof, if it has a different color than of its parents/ one of its children.
+     */
+    std::pair<InterpolantsNew::BoundaryMap, InterpolantsNew::BoundaryMap> InterpolantsNew::computeBoundaries(std::unordered_map<Unit*, Unit*> unitsToRepresentative, Unit* refutation)
+    {
         std::unordered_map<Unit*, std::unordered_set<Unit*>> unitsToTopBoundaries; // maps each representative unit of a subproof to the top boundaries of that subproof
         std::unordered_map<Unit*, std::unordered_set<Unit*>> unitsToBottomBoundaries; // maps each representative unit of a subproof to the bottom boundaries of that subproof
         
-        processed.clear();
-        ASS(queue.empty());
+        std::unordered_set<Unit*> processed; // keep track of already visited units.
+        std::queue<Unit*> queue; // used for BFS
         queue.push(refutation);
-
-        // iterative Breadth-first search (BFS) through the proof DAG
+        
+        // iterative BFS through the proof DAG
         while (!queue.empty())
         {
             Unit* currentUnit = queue.front();
@@ -151,7 +175,7 @@ namespace Shell
                 while (parents.hasNext())
                 {
                     Unit* premise = parents.next();
-
+                    
                     // if it is assigned to the B-part
                     if (!inferenceIsColoredRed(premise))
                     {
@@ -170,12 +194,12 @@ namespace Shell
                 while (parents.hasNext())
                 {
                     Unit* premise = parents.next();
-
+                    
                     // if it is assigned to the A-part
                     if (inferenceIsColoredRed(premise))
                     {
                         Unit* rootOfPremise = root(unitsToRepresentative, premise);
-
+                        
                         // add the premise (i.e. the conclusion of the parent inference) to upper boundaries of the subproof of currentUnit:
                         unitsToBottomBoundaries[rootOfPremise].insert(premise);
                     }
@@ -184,47 +208,30 @@ namespace Shell
         }
         
         // we finally have to check for the empty clause, if it appears as boundary of an A-subproof
-
         if (inferenceIsColoredRed(refutation))
         {
             ASS_EQ(root(unitsToRepresentative, refutation), refutation);
             unitsToBottomBoundaries[refutation].insert(refutation);
         }
+
+        return make_tuple(unitsToTopBoundaries, unitsToBottomBoundaries);
+    }
+    
+    /*
+     * generate the interpolant from the boundaries as described in the thesis
+     * Note: we already have collected all relevant information before calling this function, 
+     * we now just need to build (and simplify) a formula out of the information.
+     */
+    Formula* InterpolantsNew::generateInterpolant(std::pair<InterpolantsNew::BoundaryMap, InterpolantsNew::BoundaryMap> boundaries)
+    {
+        std::unordered_map<Unit*, std::unordered_set<Unit*>>& unitsToTopBoundaries = boundaries.first;
+        std::unordered_map<Unit*, std::unordered_set<Unit*>>& unitsToBottomBoundaries = boundaries.second;
         
-        
-//        cout << endl << "unitsToTopBoundaries map:\n";
-//        for (const auto& keyValuePair : unitsToTopBoundaries)
-//        {
-//            cout << "(" << keyValuePair.first->toString() << "," << endl << "[" << endl;
-//            for (const auto& element : keyValuePair.second)
-//            {
-//                cout << "\t" << element->toString() << endl;
-//                
-//            }
-//            cout << "])";
-//        }
-//        cout << endl;
-//        
-//        cout << endl << "unitsToBottomBoundaries map:\n";
-//        for (const auto& keyValuePair : unitsToBottomBoundaries)
-//        {
-//            cout << "(" << keyValuePair.first->toString() << "," << endl << "[" << endl;
-//            for (const auto& element : keyValuePair.second)
-//            {
-//                cout << "\t" << element->toString() << endl;
-//                
-//            }
-//            cout << "])";
-//        }
-//        cout << endl << endl;
-        
-        /*
-         * Part 3: 
-         * generate the interpolant (i.e. the splitting formula in the words of the thesis, cf. Definition 3.1.2. of the thesis)
-         */
         FormulaList* outerConjunction = FormulaList::empty();
         
-        // compute list of subproof representatives by conjoining keys of unitsToTopRepresentatives and unitsToBottomRepresentatives
+        // Note: there are potentially subproofs without either topBoundaries or lowerBoundaries, so we
+        // compute list of all subproof representatives by conjoining keys of unitsToTopRepresentatives and
+        // unitsToBottomRepresentatives
         std::unordered_set<Unit*> roots;
         for (const auto& keyValuePair : unitsToTopBoundaries)
         {
@@ -247,17 +254,17 @@ namespace Shell
                 FormulaList::push(boundary->getFormula(), conjunction1List);
             }
             Formula* conjunction1 = JunctionFormula::generalJunction(Connective::AND, conjunction1List);
-
+            
             // generate conjunction of bottomBoundaries
             const std::unordered_set<Unit*>& bottomBoundaries = unitsToBottomBoundaries[root];
-
+            
             FormulaList* conjunction2List = FormulaList::empty();
             for (const auto& boundary : bottomBoundaries)
             {
                 FormulaList::push(boundary->getFormula(), conjunction2List);
             }
             Formula* conjunction2 = JunctionFormula::generalJunction(Connective::AND, conjunction2List);
-
+            
             // generate implication "(conj. of topBoundaries) implies (conj. of bottomBoundaries)"
             // NOTE: we perform simplifications of C->D:
             Formula* implication;
@@ -285,7 +292,7 @@ namespace Shell
                 
                 implication = JunctionFormula::generalJunction(Connective::OR, implicationList);
             }
-
+            
             // simplify the arguments for outer conjunction
             if (implication->connective() != Connective::TRUE) // skip argument, since it is redundant
             {
@@ -308,10 +315,13 @@ namespace Shell
         
         return interpolant;
     }
-    
-    
-#pragma mark - splitting function
+
+
+    #pragma mark - splitting function
  
+    /*
+     * implements splitting function from the thesis
+     */
     bool InterpolantsNew::inferenceIsColoredRed(Kernel::Unit* conclusion)
     {
         // at first check if inference is an axiom. If yes, assign the inference to the corresponding color
@@ -352,7 +362,13 @@ namespace Shell
 
     
 #pragma mark - union find helper methods
-  
+    
+  /*
+   * standard implementation of union-find following
+   * https://www.cs.princeton.edu/~rs/AlgsDS07/01UnionFind.pdf
+   * Note: we keep the invariant that we omit units which map to themselves
+   */
+    
     Kernel::Unit* InterpolantsNew::root(UnionFindMap& unitsToRepresentative, Unit* unit)
     {
         Unit* root = unit;

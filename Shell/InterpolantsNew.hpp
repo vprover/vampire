@@ -21,21 +21,29 @@ namespace Shell
         
         /*
          * main method to call
-         * implements interpolation algorithm stated on page 13 of
-         * master thesis of Bernhard Gleiss
+         * computes interpolant for a given local proof
          */
         Kernel::Formula* getInterpolant(Kernel::Unit* refutation);
         
-    private:
         /*
+         * helper method:
          * implements so called "splitting function" from the thesis.
          * Currently approach 1 from section 3.3 of the thesis is implemented
          */
         bool inferenceIsColoredRed(Kernel::Unit* conclusion);
         
+    private:
+        
+        /*
+         * helper methods
+         */
+        typedef std::unordered_map<Kernel::Unit*, std::unordered_set<Kernel::Unit*>> BoundaryMap;
+        std::unordered_map<Kernel::Unit*, Kernel::Unit*> computeSubproofs(Kernel::Unit* refutation);
+        std::pair<BoundaryMap, BoundaryMap> computeBoundaries(std::unordered_map<Kernel::Unit*, Kernel::Unit*> unitsToRepresentative, Kernel::Unit* refutation);
+        Kernel::Formula* generateInterpolant(std::pair<BoundaryMap, BoundaryMap> boundaries);
+        
         /*
          * methods used to implement union find: root, find and merge (aka union)
-         * https://www.cs.princeton.edu/~rs/AlgsDS07/01UnionFind.pdf
          */
         typedef std::unordered_map<Kernel::Unit*, Kernel::Unit*> UnionFindMap;
         Kernel::Unit* root(UnionFindMap& unitsToRepresentative, Kernel::Unit* unit);
