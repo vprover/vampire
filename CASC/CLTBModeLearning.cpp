@@ -141,6 +141,9 @@ void CLTBModeLearning::solveBatch(istream& batchFile, bool first,vstring inputDi
     vstring tar = "tar -xzf "+tdir+"/TrainingData."+_category+".tgz --directory "+tdir;
     coutLineOutput() << tar << endl;
     system(tar.c_str());
+    vstring cp = "cp "+_trainingDirectory+"/Axioms/* Axioms";
+    coutLineOutput() << cp << endl;
+    system(cp.c_str());
     vstring dir = inputDirectory+"/"+_trainingDirectory+"/Problems";
     coutLineOutput() << "Loading problems from " << dir << endl;
     System::readDir(dir,problems);
@@ -316,10 +319,6 @@ void CLTBModeLearning::doTraining(int time, bool startup)
 {
   CALL("CLTBModeLearning::doTraining");
 
-  // change the include directory
-  vstring includeTmp = env.options->include();
-  env.options->setInclude(_trainingDirectory);
-
   static Stack<vstring>::Iterator* prob_iter = 0;
 
   if(startup || (prob_iter && !prob_iter->hasNext())){
@@ -363,9 +362,9 @@ void CLTBModeLearning::doTraining(int time, bool startup)
         exc.cry(cerr);
         System::terminateImmediately(1); //we didn't find the proof, so we return nonzero status code
       }
-      //This might be where the issue is, stopOnProof=false above so can we reach here?
-      coutLineOutput() << "WE SHOULD NOT BE HERE" << endl;
+      // might reach here if there was a user error in the proof search
       ASSERTION_VIOLATION;
+      System::terminateImmediately(1);
     }
     int resValue;
     try {
@@ -505,8 +504,6 @@ void CLTBModeLearning::doTraining(int time, bool startup)
 
   //TODO check that this loads them in the right order!!
   strats.loadFromIterator(Stack<vstring>::BottomFirstIterator(nextStrats)); 
-
-  env.options->setInclude(includeTmp);
 
 } // CLTBModeLearning::doTraining
 
