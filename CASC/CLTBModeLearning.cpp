@@ -316,6 +316,10 @@ void CLTBModeLearning::doTraining(int time, bool startup)
 {
   CALL("CLTBModeLearning::doTraining");
 
+  // change the include directory
+  vstring includeTmp = env.options->include();
+  env.options->setInclude(_trainingDirectory);
+
   static Stack<vstring>::Iterator* prob_iter = 0;
 
   if(startup || (prob_iter && !prob_iter->hasNext())){
@@ -357,8 +361,9 @@ void CLTBModeLearning::doTraining(int time, bool startup)
       } catch (Exception& exc) {
         cerr << "% Exception at proof search level" << endl;
         exc.cry(cerr);
+        System::terminateImmediately(1); //we didn't find the proof, so we return nonzero status code
       }
-      //This might be where the issue is, stopOnProof=false above so we can reach here
+      //This might be where the issue is, stopOnProof=false above so can we reach here?
       coutLineOutput() << "WE SHOULD NOT BE HERE" << endl;
       ASSERTION_VIOLATION;
     }
@@ -500,6 +505,8 @@ void CLTBModeLearning::doTraining(int time, bool startup)
 
   //TODO check that this loads them in the right order!!
   strats.loadFromIterator(Stack<vstring>::BottomFirstIterator(nextStrats)); 
+
+  env.options->setInclude(includeTmp);
 
 } // CLTBModeLearning::doTraining
 
