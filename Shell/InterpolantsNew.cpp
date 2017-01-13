@@ -12,6 +12,9 @@
 #include "InterpolantsNew.hpp"
 
 #include "Debug/Assertion.hpp"
+#include <assert.h>
+
+#include "z3++.h"
 
 /*
  * note that formulas are implemented as both formulas (usual formulas) and 
@@ -63,7 +66,7 @@ namespace Shell
          * compute coloring for the inferences, i.e. compute splitting function in the words of the thesis
          * Note: reuses inheritedColor-field to save result
          */
-        computeSplittingFunction(refutation);
+        computeSplittingFunctionOptimized(refutation);
         
         /*
          * compute A-subproofs
@@ -180,7 +183,8 @@ namespace Shell
             }
             
             // if current inference is assigned to A-part
-            ASS(currentUnit->inheritedColor() == COLOR_LEFT || currentUnit->inheritedColor() == COLOR_RIGHT);
+            //TODO: implementing Martin's trick will make this assertion work
+            //assert(currentUnit->inheritedColor() == COLOR_LEFT || currentUnit->inheritedColor() == COLOR_RIGHT);
             if (currentUnit->inheritedColor() == COLOR_LEFT)
             {
                 Unit* rootOfCurrent = root(unitsToRepresentative, currentUnit);
@@ -192,7 +196,8 @@ namespace Shell
                     Unit* premise = parents.next();
 
                     // if it is assigned to the B-part
-                    ASS(premise->inheritedColor() == COLOR_LEFT || premise->inheritedColor() == COLOR_RIGHT);
+                    //TODO: implementing Martin's trick will make this assertion work
+                    //assert(premise->inheritedColor() == COLOR_LEFT || premise->inheritedColor() == COLOR_RIGHT);
                     if (premise->inheritedColor() != COLOR_LEFT)
                     {
                         // add the premise (i.e. the conclusion of the parent inference) to upper boundaries of the subproof of currentUnit:
@@ -212,7 +217,8 @@ namespace Shell
                     Unit* premise = parents.next();
                     
                     // if it is assigned to the A-part
-                    ASS(premise->inheritedColor() == COLOR_LEFT || premise->inheritedColor() == COLOR_RIGHT);
+                    //TODO: implementing Martin's trick will make this assertion work
+                    //assert(premise->inheritedColor() == COLOR_LEFT || premise->inheritedColor() == COLOR_RIGHT);
                     if (premise->inheritedColor() == COLOR_LEFT)
                     {
                         Unit* rootOfPremise = root(unitsToRepresentative, premise);
@@ -227,7 +233,7 @@ namespace Shell
         // we finally have to check for the empty clause, if it appears as boundary of an A-subproof
         if (refutation->inheritedColor() == COLOR_LEFT)
         {
-            ASS_EQ(root(unitsToRepresentative, refutation), refutation);
+            assert(root(unitsToRepresentative, refutation) == refutation);
             unitsToBottomBoundaries[refutation].insert(refutation);
         }
 
@@ -354,9 +360,8 @@ namespace Shell
         {
             Unit* currentUnit = stack.top();
             
-            ASS(  (!InferenceStore::instance()->getParents(currentUnit).hasNext() && (currentUnit->inheritedColor() == COLOR_LEFT || currentUnit->inheritedColor() == COLOR_RIGHT))
-                || (InferenceStore::instance()->getParents(currentUnit).hasNext() &&  currentUnit->inheritedColor() == COLOR_INVALID));
-//            cout << "current unit: " << *currentUnit << endl;
+            assert((!InferenceStore::instance()->getParents(currentUnit).hasNext() && (currentUnit->inheritedColor() == COLOR_LEFT || currentUnit->inheritedColor() == COLOR_RIGHT)) || (InferenceStore::instance()->getParents(currentUnit).hasNext() &&  currentUnit->inheritedColor() == COLOR_INVALID));
+
             bool existsUnvisitedParent = false;
             // add unprocessed premises to stack for DFS. If there is at least one unprocessed premise, don't compute the result
             // for currentUnit now, but wait until those unprocessed premises are processed.
@@ -381,7 +386,7 @@ namespace Shell
                 // we only assign non-axioms, since axioms are already assigned accordingly
                 // (the requirement of a splitting function (in the words of the thesis) is therefore
                 // fulfilled)
-                ASS_EQ(currentUnit->inheritedColor(), COLOR_INVALID);
+                assert(currentUnit->inheritedColor() == COLOR_INVALID);
 
                 // if the inference contains a colored symbol, assign it to the corresponding partition (this
                 // ensures requirement of a LOCAL splitting function in the words of the thesis):
@@ -408,7 +413,7 @@ namespace Shell
                             
                             goto END;
                         }
-                }
+                    }
                 }
                 
                 // otherwise we choose the following heuristic
@@ -421,7 +426,8 @@ namespace Shell
                     while (parents.hasNext())
                     {
                         Unit* premise= parents.next();
-                        ASS(premise->inheritedColor() == COLOR_LEFT || premise->inheritedColor() == COLOR_RIGHT);
+                        // TODO: implementing Martin's trick will make this assertion work
+                        //assert(premise->inheritedColor() == COLOR_LEFT || premise->inheritedColor() == COLOR_RIGHT);
                         
                         // TODO: this could be weighted too easily :)
                         premise->inheritedColor() == COLOR_LEFT ? difference++ : difference--;
@@ -436,8 +442,123 @@ namespace Shell
             }
         }
     }
-
     
+    /*
+     * implements optimized local splitting function from the thesis (approach #3, cf. section 3.3 and algorithm 3)
+     * we use z3 to solve the optimization problem
+     * TODO: unitsToExpressions, then use eval to get model
+     */
+    void InterpolantsNew::computeSplittingFunctionOptimized(Kernel::Unit* refutation)
+    {
+        using namespace z3;
+        context c;
+        optimize solver(c);
+        
+        std::unordered_map<Unit*, expr> unitsToExpressions; // needed in order to map the result of the optimisation-query back to the inferences.
+        expr x_0 = c.bool_const("x_0");
+        unitsToExpressions[refutation] = x_0;
+        
+        
+        int i = 0; // counter needed for unique names
+        
+        std::unordered_set<Unit*> processed; // keep track of already visited units.
+        std::queue<Unit*> queue; // used for BFS
+        queue.push(refutation);
+        
+        // note: idea from the thesis: we use x_i to denote whether inference i is assigned to the A-part.
+        // iterative Breadth-first search (BFS) through the proof DAG
+//        while (!queue.empty())
+//        {
+//            Unit* currentUnit = queue.front();
+//            queue.pop();
+//            processed.insert(currentUnit);
+//            
+//            // add unprocessed premises to queue for BFS:
+//            VirtualIterator<Unit*> parents = InferenceStore::instance()->getParents(currentUnit);
+//            
+//            while (parents.hasNext())
+//            {
+//                Unit* premise= parents.next();
+//                
+//                // if we haven't processed the current premise yet
+//                if (processed.find(premise) == processed.end())
+//                {
+//                    // add it to the queue
+//                    queue.push(premise);
+//                    i++;
+//                    expr x_parent = c.bool_const(("x_" + std::to_string(i)).c_str());
+//                    unitsToExpressions[premise] = x_parent;
+//                }
+//            }
+//            
+//            assert(unitsToExpressions.find(currentUnit) != unitsToExpressions.end());
+//            expr x_i = unitsToExpressions[currentUnit];
+//
+//
+//            // if inference is an Axiom we need to assign it to the corresponding partition
+//            if (currentUnit->inheritedColor() == COLOR_LEFT)
+//            {
+//                solver.add(x_i);
+//            }
+//            else if (currentUnit->inheritedColor() == COLOR_RIGHT)
+//            {
+//                solver.add(!x_i);
+//            }
+//            
+//            // if the conclusion contains a colored symbol, we need to assign the inference to the corresponding partition
+//            if (currentUnit->getColor() == COLOR_LEFT)
+//            {
+//                solver.add(x_i);
+//            }
+//            else if (currentUnit->getColor() == COLOR_RIGHT)
+//            {
+//                solver.add(!x_i);
+//            }
+//            
+//            // if any parent contains a colored symbol, we need to assign the inference to the corresponding partition
+//            parents = InferenceStore::instance()->getParents(currentUnit);
+//            while (parents.hasNext())
+//            {
+//                Unit* premise= parents.next();
+//                if (premise->getColor() == COLOR_LEFT)
+//                {
+//                    solver.add(x_i);
+//                }
+//                else if (premise->getColor() == COLOR_RIGHT)
+//                {
+//                    solver.add(!x_i);
+//                }
+//            }
+//            
+//            // now add the main constraints: the conclusion of a parent-inference is included in the interpolant iff the
+//            // the parent inference is assigned a different partition than the current inference
+//            parents = InferenceStore::instance()->getParents(currentUnit);
+//            while (parents.hasNext())
+//            {
+//                Unit* premise= parents.next();
+//                
+//                assert(unitsToExpressions.find(premise) != unitsToExpressions.end());
+//                expr x_j = unitsToExpressions[premise];
+//
+//                solver.add(x_i == !x_j, c.real_val("1.0")); // TODO: add actual weight here! cf. addCostFormula()-function from Interpolants.cpp
+//            }
+//        }
+//        
+//        // we are now finished with adding constraints, so use z3 to compute an optimal model
+//        solver.check();
+//        
+//        // and convert computed model to splitting function
+//        model m = solver.get_model();
+
+//        for (const auto& keyValuePair : unitsToExpressions)
+//        {
+//            expr evaluation = m.eval(unitsToExpressions[keyValuePair.first]);
+//            cout << "eval " << evaluation;
+//
+//        }
+    }
+
+
 #pragma mark - union find helper methods
     
   /*
@@ -451,7 +572,7 @@ namespace Shell
         Unit* root = unit;
         while (unitsToRepresentative.find(root) != unitsToRepresentative.end())
         {
-            ASS_NEQ(unitsToRepresentative.at(root), root);
+            assert(unitsToRepresentative.at(root) != root);
             root = unitsToRepresentative.at(root);
         }
         
@@ -465,7 +586,7 @@ namespace Shell
     
     void InterpolantsNew::merge(UnionFindMap& unitsToRepresentative, Unit* unit1, Unit* unit2)
     {
-        ASS_NEQ(unit1, unit2);
+        assert(unit1 != unit2);
         Unit* root1 = root(unitsToRepresentative, unit1);
         Unit* root2 = root(unitsToRepresentative, unit2);
         

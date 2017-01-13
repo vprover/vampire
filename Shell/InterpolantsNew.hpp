@@ -31,7 +31,10 @@ namespace Shell
          * implements so called "splitting function" from the thesis.
          * Currently approach 1 from section 3.3 of the thesis is implemented
          */
-        void computeSplittingFunction(Kernel::Unit* conclusion);
+        void computeSplittingFunction(Kernel::Unit* refutation);
+        
+        void computeSplittingFunctionOptimized(Kernel::Unit* refutation);
+
         
     private:
         
