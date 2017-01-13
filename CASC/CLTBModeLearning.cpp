@@ -141,9 +141,11 @@ void CLTBModeLearning::solveBatch(istream& batchFile, bool first,vstring inputDi
     vstring tar = "tar -xzf "+tdir+"/TrainingData."+_category+".tgz --directory "+tdir;
     coutLineOutput() << tar << endl;
     system(tar.c_str());
-    vstring cp = "cp "+_trainingDirectory+"/Axioms/* Axioms";
+    vstring cp = "cp "+tdir+"/Axioms/* "+inputDirectory+"/Axioms";
     coutLineOutput() << cp << endl;
     system(cp.c_str());
+    //vstring ls = "ls "+inputDirectory+"/Axioms";
+    //system(ls.c_str());
     vstring dir = inputDirectory+"/"+_trainingDirectory+"/Problems";
     coutLineOutput() << "Loading problems from " << dir << endl;
     System::readDir(dir,problems);
