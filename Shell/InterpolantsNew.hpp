@@ -22,19 +22,20 @@ namespace Shell
         
         /*
          * main method to call
-         * computes interpolant for a given local proof
+         * computes interpolant for a given local proof.
+         * implements interpolation algorithm stated on page 13 of master thesis of Bernhard Gleiss
+         *
+         * internally calls computeSplittingFunction to
+         * determine how to split the proof
          */
         Kernel::Formula* getInterpolant(Kernel::Unit* refutation);
         
+    protected:
         /*
-         * helper method:
-         * implements so called "splitting function" from the thesis.
-         * Currently approach 1 from section 3.3 of the thesis is implemented
+         * implements so called "splitting function" from the thesis
+         * (uses improved version of approach #2, cf. section 3.3).
          */
-        void computeSplittingFunction(Kernel::Unit* refutation);
-        
-        void computeSplittingFunctionOptimized(Kernel::Unit* refutation);
-
+        virtual void computeSplittingFunction(Kernel::Unit* refutation);
         
     private:
         
@@ -43,8 +44,8 @@ namespace Shell
          */
         typedef std::unordered_map<Kernel::Unit*, std::unordered_set<Kernel::Unit*>> BoundaryMap;
         std::unordered_map<Kernel::Unit*, Kernel::Unit*> computeSubproofs(Kernel::Unit* refutation);
-        std::pair<BoundaryMap, BoundaryMap> computeBoundaries(std::unordered_map<Kernel::Unit*, Kernel::Unit*> unitsToRepresentative, Kernel::Unit* refutation);
-        Kernel::Formula* generateInterpolant(std::pair<BoundaryMap, BoundaryMap> boundaries);
+        std::pair<const BoundaryMap, const BoundaryMap> computeBoundaries(std::unordered_map<Kernel::Unit*, Kernel::Unit*>& unitsToRepresentative, Kernel::Unit* refutation);
+        Kernel::Formula* generateInterpolant(std::pair<const BoundaryMap, const BoundaryMap>& boundaries);
         
         /*
          * methods used to implement union find: root, find and merge (aka union)

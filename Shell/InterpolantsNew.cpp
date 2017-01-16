@@ -4,17 +4,15 @@
  * @author Bernhard Gleiss
  */
 
+#include "InterpolantsNew.hpp"
+
 #include "Kernel/Formula.hpp"
 #include "Kernel/Connective.hpp"
 #include "Kernel/Unit.hpp"
 #include "Kernel/InferenceStore.hpp"
 
-#include "InterpolantsNew.hpp"
-
 #include "Debug/Assertion.hpp"
 #include <assert.h>
-
-#include "z3++.h"
 
 /*
  * note that formulas are implemented as both formulas (usual formulas) and 
@@ -66,17 +64,18 @@ namespace Shell
          * compute coloring for the inferences, i.e. compute splitting function in the words of the thesis
          * Note: reuses inheritedColor-field to save result
          */
-        computeSplittingFunctionOptimized(refutation);
+        computeSplittingFunction(refutation);
         
         /*
          * compute A-subproofs
+         * TODO: if we can make root const, then we can make unitsToRepresentative const
          */
-        const std::unordered_map<Unit*, Unit*> unitsToRepresentative = computeSubproofs(refutation);
+        std::unordered_map<Unit*, Unit*> unitsToRepresentative = computeSubproofs(refutation);
         
         /*
          * collect all boundaries of the subproofs
          */
-        const auto boundaries = computeBoundaries(unitsToRepresentative, refutation);
+        auto boundaries = computeBoundaries(unitsToRepresentative, refutation);
         
         /*
          * generate the interpolant (i.e. the splitting formula in the words of the thesis, cf. Definition 3.1.2. of the thesis)
@@ -151,8 +150,9 @@ namespace Shell
      * computes the boundaries of the A-subproofs using Breadth-first search (BFS)
      * Using idea from the thesis: a unit occurs as boundary of a subproof, if it has a different color than of its parents/ one of its children.
      */
-    std::pair<InterpolantsNew::BoundaryMap, InterpolantsNew::BoundaryMap> InterpolantsNew::computeBoundaries(std::unordered_map<Unit*, Unit*> unitsToRepresentative, Unit* refutation)
+    std::pair<const InterpolantsNew::BoundaryMap, const InterpolantsNew::BoundaryMap> InterpolantsNew::computeBoundaries(std::unordered_map<Unit*, Unit*>& unitsToRepresentative, Unit* refutation)
     {
+        // Note: unordered_map never copies its values during rehashing, so no unique pointers are needed here!
         std::unordered_map<Unit*, std::unordered_set<Unit*>> unitsToTopBoundaries; // maps each representative unit of a subproof to the top boundaries of that subproof
         std::unordered_map<Unit*, std::unordered_set<Unit*>> unitsToBottomBoundaries; // maps each representative unit of a subproof to the bottom boundaries of that subproof
         
@@ -237,7 +237,7 @@ namespace Shell
             unitsToBottomBoundaries[refutation].insert(refutation);
         }
 
-        return make_tuple(unitsToTopBoundaries, unitsToBottomBoundaries);
+        return make_tuple(std::move(unitsToTopBoundaries), std::move(unitsToBottomBoundaries));
     }
     
     /*
@@ -245,10 +245,10 @@ namespace Shell
      * Note: we already have collected all relevant information before calling this function, 
      * we now just need to build (and simplify) a formula out of the information.
      */
-    Formula* InterpolantsNew::generateInterpolant(std::pair<InterpolantsNew::BoundaryMap, InterpolantsNew::BoundaryMap> boundaries)
+    Formula* InterpolantsNew::generateInterpolant(std::pair<const InterpolantsNew::BoundaryMap, const InterpolantsNew::BoundaryMap>& boundaries)
     {
-        std::unordered_map<Unit*, std::unordered_set<Unit*>>& unitsToTopBoundaries = boundaries.first;
-        std::unordered_map<Unit*, std::unordered_set<Unit*>>& unitsToBottomBoundaries = boundaries.second;
+        const std::unordered_map<Unit*, std::unordered_set<Unit*>>& unitsToTopBoundaries = boundaries.first;
+        const std::unordered_map<Unit*, std::unordered_set<Unit*>>& unitsToBottomBoundaries = boundaries.second;
         
         FormulaList* outerConjunction = FormulaList::empty();
         
@@ -269,22 +269,32 @@ namespace Shell
         for (const auto& root : roots)
         {
             // generate conjunction of topBoundaries
-            const std::unordered_set<Unit*>& topBoundaries = unitsToTopBoundaries[root];
-            
             FormulaList* conjunction1List = FormulaList::empty();
-            for (const auto& boundary : topBoundaries)
+
+            auto it1 = unitsToTopBoundaries.find(root);
+            if (it1 != unitsToTopBoundaries.end())
             {
-                FormulaList::push(boundary->getFormula(), conjunction1List);
+                const std::unordered_set<Unit*>& topBoundaries = (*it1).second;
+                
+                for (const auto& boundary : topBoundaries)
+                {
+                    FormulaList::push(boundary->getFormula(), conjunction1List);
+                }
             }
             Formula* conjunction1 = JunctionFormula::generalJunction(Connective::AND, conjunction1List);
-            
+
             // generate conjunction of bottomBoundaries
-            const std::unordered_set<Unit*>& bottomBoundaries = unitsToBottomBoundaries[root];
-            
             FormulaList* conjunction2List = FormulaList::empty();
-            for (const auto& boundary : bottomBoundaries)
+            
+            auto it2 = unitsToBottomBoundaries.find(root);
+            if (it2 != unitsToBottomBoundaries.end())
             {
-                FormulaList::push(boundary->getFormula(), conjunction2List);
+                const std::unordered_set<Unit*>& bottomBoundaries = (*it2).second;
+                
+                for (const auto& boundary : bottomBoundaries)
+                {
+                    FormulaList::push(boundary->getFormula(), conjunction2List);
+                }
             }
             Formula* conjunction2 = JunctionFormula::generalJunction(Connective::AND, conjunction2List);
             
@@ -443,120 +453,6 @@ namespace Shell
         }
     }
     
-    /*
-     * implements optimized local splitting function from the thesis (approach #3, cf. section 3.3 and algorithm 3)
-     * we use z3 to solve the optimization problem
-     * TODO: unitsToExpressions, then use eval to get model
-     */
-    void InterpolantsNew::computeSplittingFunctionOptimized(Kernel::Unit* refutation)
-    {
-        using namespace z3;
-        context c;
-        optimize solver(c);
-        
-        std::unordered_map<Unit*, expr> unitsToExpressions; // needed in order to map the result of the optimisation-query back to the inferences.
-        expr x_0 = c.bool_const("x_0");
-        unitsToExpressions[refutation] = x_0;
-        
-        
-        int i = 0; // counter needed for unique names
-        
-        std::unordered_set<Unit*> processed; // keep track of already visited units.
-        std::queue<Unit*> queue; // used for BFS
-        queue.push(refutation);
-        
-        // note: idea from the thesis: we use x_i to denote whether inference i is assigned to the A-part.
-        // iterative Breadth-first search (BFS) through the proof DAG
-//        while (!queue.empty())
-//        {
-//            Unit* currentUnit = queue.front();
-//            queue.pop();
-//            processed.insert(currentUnit);
-//            
-//            // add unprocessed premises to queue for BFS:
-//            VirtualIterator<Unit*> parents = InferenceStore::instance()->getParents(currentUnit);
-//            
-//            while (parents.hasNext())
-//            {
-//                Unit* premise= parents.next();
-//                
-//                // if we haven't processed the current premise yet
-//                if (processed.find(premise) == processed.end())
-//                {
-//                    // add it to the queue
-//                    queue.push(premise);
-//                    i++;
-//                    expr x_parent = c.bool_const(("x_" + std::to_string(i)).c_str());
-//                    unitsToExpressions[premise] = x_parent;
-//                }
-//            }
-//            
-//            assert(unitsToExpressions.find(currentUnit) != unitsToExpressions.end());
-//            expr x_i = unitsToExpressions[currentUnit];
-//
-//
-//            // if inference is an Axiom we need to assign it to the corresponding partition
-//            if (currentUnit->inheritedColor() == COLOR_LEFT)
-//            {
-//                solver.add(x_i);
-//            }
-//            else if (currentUnit->inheritedColor() == COLOR_RIGHT)
-//            {
-//                solver.add(!x_i);
-//            }
-//            
-//            // if the conclusion contains a colored symbol, we need to assign the inference to the corresponding partition
-//            if (currentUnit->getColor() == COLOR_LEFT)
-//            {
-//                solver.add(x_i);
-//            }
-//            else if (currentUnit->getColor() == COLOR_RIGHT)
-//            {
-//                solver.add(!x_i);
-//            }
-//            
-//            // if any parent contains a colored symbol, we need to assign the inference to the corresponding partition
-//            parents = InferenceStore::instance()->getParents(currentUnit);
-//            while (parents.hasNext())
-//            {
-//                Unit* premise= parents.next();
-//                if (premise->getColor() == COLOR_LEFT)
-//                {
-//                    solver.add(x_i);
-//                }
-//                else if (premise->getColor() == COLOR_RIGHT)
-//                {
-//                    solver.add(!x_i);
-//                }
-//            }
-//            
-//            // now add the main constraints: the conclusion of a parent-inference is included in the interpolant iff the
-//            // the parent inference is assigned a different partition than the current inference
-//            parents = InferenceStore::instance()->getParents(currentUnit);
-//            while (parents.hasNext())
-//            {
-//                Unit* premise= parents.next();
-//                
-//                assert(unitsToExpressions.find(premise) != unitsToExpressions.end());
-//                expr x_j = unitsToExpressions[premise];
-//
-//                solver.add(x_i == !x_j, c.real_val("1.0")); // TODO: add actual weight here! cf. addCostFormula()-function from Interpolants.cpp
-//            }
-//        }
-//        
-//        // we are now finished with adding constraints, so use z3 to compute an optimal model
-//        solver.check();
-//        
-//        // and convert computed model to splitting function
-//        model m = solver.get_model();
-
-//        for (const auto& keyValuePair : unitsToExpressions)
-//        {
-//            expr evaluation = m.eval(unitsToExpressions[keyValuePair.first]);
-//            cout << "eval " << evaluation;
-//
-//        }
-    }
 
 
 #pragma mark - union find helper methods
