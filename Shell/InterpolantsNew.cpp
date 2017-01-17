@@ -56,9 +56,8 @@ namespace Shell
     
     void InterpolantsNew::removeTheoryInferences(Unit* refutation)
     {
-        // traverse the proof in depth-first post order
         ProofIteratorPostOrder it(refutation);
-        while (it.hasNext())
+        while (it.hasNext()) // traverse the proof in depth-first post order
         {
             Unit* current = it.next();
             assert((!InferenceStore::instance()->getParents(current).hasNext() &&  (   current->inheritedColor() == COLOR_LEFT
