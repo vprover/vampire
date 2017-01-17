@@ -51,6 +51,7 @@ namespace Shell
 {
     using namespace Kernel;
     
+    
 #pragma mark - preprocessing proof
     
     void InterpolantsNew::removeTheoryInferences(Unit* refutation)
@@ -115,18 +116,19 @@ namespace Shell
         }
     }
     
+    
 #pragma mark - main method
 
     /*
      * main method
-     * implements interpolation algorithm stated on page 13 of master thesis of Bernhard Gleiss
      * cf. Definition 3.1.2 of the thesis
      */
     Formula* InterpolantsNew::getInterpolant(Unit *refutation, UnitWeight weightFunction)
     {
 
         /*
-         * start by removing theory inferences, since we don't need those for interpolation
+         * start by removing theory inferences, since we don't need those for interpolation,
+         * but sometimes the existence of those inferences yields a bigger interpolant
          */
         removeTheoryInferences(refutation);
         
@@ -304,7 +306,7 @@ namespace Shell
             unitsToBottomBoundaries[refutation].insert(refutation);
         }
 
-        return make_tuple(std::move(unitsToTopBoundaries), std::move(unitsToBottomBoundaries));
+        return make_pair(std::move(unitsToTopBoundaries), std::move(unitsToBottomBoundaries));
     }
     
     /*
@@ -550,7 +552,7 @@ namespace Shell
   /*
    * standard implementation of union-find following
    * https://www.cs.princeton.edu/~rs/AlgsDS07/01UnionFind.pdf
-   * Note: we keep the invariant that we omit units which map to themselves
+   * Note: we keep the invariant that we omit from the map the units which map to themselves
    * Note: we don't apply path compression. That would possibly be a little 
    * bit faster, but then we couldn't make the unitsToRepresentative-argument 
    * of the root-function const.
@@ -582,7 +584,7 @@ namespace Shell
         Unit* root1 = root(unitsToRepresentative, unit1);
         Unit* root2 = root(unitsToRepresentative, unit2);
         
-        if (root1 != root2) // we could also add elements as their own roots, but this is not necessary.
+        if (root1 != root2)
         {
             if (unitsToSize[root1] < unitsToSize[root2]) // weighted version
             {

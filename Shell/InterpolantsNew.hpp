@@ -45,17 +45,6 @@ namespace Shell
          */
         Kernel::Formula* getInterpolant(Kernel::Unit* refutation, UnitWeight weightFunction);
         
-        /*
-         * preprocesses proofs by removing all inferences
-         * which are derived only from theory axioms
-         * this is usually called before calling getInterpolant
-         * @pre:  all input inferences of refutation have their inheritedColor assigned to
-         * either COLOR_LEFT, COLOR_RIGHT or COLOR_TRANSPARENT
-         * @post: all input inferences of refutation have their inheritedColor assigned to 
-         * either COLOR_LEFT or COLOR_RIGHT
-         */
-        void removeTheoryInferences(Kernel::Unit* refutation);
-        
     protected:
         /*
          * implements so called "splitting function" from the thesis
@@ -69,6 +58,16 @@ namespace Shell
         double weightForUnit(Kernel::Unit* unit, UnitWeight weightFunction);
         
     private:
+        /*
+         * preprocesses proofs by removing all inferences
+         * which are derived only from theory axioms
+         * called by getInterpolant
+         * @pre:  all input inferences of refutation have their inheritedColor assigned to
+         * either COLOR_LEFT, COLOR_RIGHT or COLOR_TRANSPARENT
+         * @post: all input inferences of refutation have their inheritedColor assigned to
+         * either COLOR_LEFT or COLOR_RIGHT
+         */
+        void removeTheoryInferences(Kernel::Unit* refutation);
         
         /*
          * helper methods to compute interpolant
