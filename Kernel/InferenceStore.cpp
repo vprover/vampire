@@ -915,5 +915,67 @@ InferenceStore* InferenceStore::instance()
   return inst.ptr();
 }
 
+#pragma mark - Proof Iterator class
+    
+    ProofIteratorPostOrder::ProofIteratorPostOrder(Unit* refutation)
+    {
+        todo.push(refutation);
+    }
+    
+    bool ProofIteratorPostOrder::hasNext()
+    {
+        return !todo.empty();
+    }
+    
+    /*
+     * iterative post-order depth-first search (DFS) through the proof DAG
+     * following the usual ideas, e.g.
+     * https://pythonme.wordpress.com/2013/08/05/algorithm-iterative-dfs-depth-first-search-with-postorder-and-preorder/
+     */
+    Unit* ProofIteratorPostOrder::next()
+    {
+        while (!todo.empty())
+        {
+            Unit* currentUnit = todo.top();
+            
+            // if we haven't already visited the current unit
+            if (visited.find(currentUnit) == visited.end())
+            {
+                bool existsUnvisitedParent = false;
+                
+                // add unprocessed premises to stack for DFS. If there is at least one unprocessed premise, don't compute the result
+                // for currentUnit now, but wait until those unprocessed premises are processed.
+                VirtualIterator<Unit*> parents = InferenceStore::instance()->getParents(currentUnit);
+                while (parents.hasNext())
+                {
+                    Unit* premise= parents.next();
+                    
+                    // if we haven't visited the current premise yet
+                    if (visited.find(premise) == visited.end())
+                    {
+                        // add it to the stack
+                        todo.push(premise);
+                        existsUnvisitedParent = true;
+                    }
+                }
+                
+                // if we already visited all parent-inferences, we can visit the inference too
+                if (!existsUnvisitedParent)
+                {
+                    visited.insert(currentUnit);
+                    todo.pop();
+                    return currentUnit;
+                }
+            }
+            else
+            {
+                todo.pop();
+            }
+        }
+        
+        // we have already iterated through all inferences
+        return nullptr;
+    }
+
 
 }

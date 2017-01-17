@@ -10,6 +10,9 @@
 #include <utility>
 #include <ostream>
 
+#include <stack>
+#include <unordered_set>
+
 #include "Forwards.hpp"
 
 #include "Lib/Allocator.hpp"
@@ -97,6 +100,22 @@ private:
 
 };
 
+    /*
+     * iterator, which traverses the proof in depth-first post-order.
+     */
+    class ProofIteratorPostOrder
+    {
+    public:
+        ProofIteratorPostOrder(Kernel::Unit* refutation);
+        bool hasNext();
+        Kernel::Unit* next();
+        
+    private:
+        std::stack<Kernel::Unit*> todo;
+        std::unordered_set<Kernel::Unit*> visited; // the units we have already visited
+
+        
+    };
 
 };
 
