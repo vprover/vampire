@@ -6,8 +6,6 @@
 
 #include "InterpolantMinimizerNew.hpp"
 
-//#include "Kernel/Formula.hpp"
-//#include "Kernel/Connective.hpp"
 #include "Kernel/Unit.hpp"
 #include "Kernel/InferenceStore.hpp"
 
@@ -40,7 +38,6 @@ namespace Shell
             // if we haven't already visited current unit
             if (processed.find(currentUnit) == processed.end())
             {
-                cout << "visiting " << *currentUnit << endl;
                 bool existsUnvisitedParent = false;
 
                 // add premises to stack for DFS:
@@ -127,7 +124,6 @@ namespace Shell
             {
                 stack.pop();
             }
-            
         }
         
         // we are now finished with adding constraints, so use z3 to compute an optimal model
@@ -143,13 +139,12 @@ namespace Shell
             
             if (Z3_get_bool_value(c,evaluation) == Z3_L_TRUE)
             {
-                cout << "coloring " << currentUnit->toString() << "red" << endl;
+                //cout << "coloring " << currentUnit->toString() << "red" << endl;
                 currentUnit->setInheritedColor(COLOR_LEFT);
-                
             }
             else
             {
-                cout << "coloring " << currentUnit->toString() << "blue" << endl;
+                //cout << "coloring " << currentUnit->toString() << "blue" << endl;
                 currentUnit->setInheritedColor(COLOR_RIGHT);
             }
         }

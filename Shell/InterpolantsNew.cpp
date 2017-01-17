@@ -88,7 +88,6 @@ namespace Shell
             if (current->inheritedColor() == COLOR_INVALID && !hasNonGreyParents)
             {
                 current->setInheritedColor(COLOR_TRANSPARENT);
-                cout << "discovered new theory-only unit " << *current << endl;
             }
             
             // whenever an inference has both grey parents and non-grey parents, remove the grey parents
@@ -133,9 +132,8 @@ namespace Shell
         
         /*
          * compute A-subproofs
-         * TODO: if we can make root const, then we can make unitsToRepresentative const
          */
-        std::unordered_map<Unit*, Unit*> unitsToRepresentative = computeSubproofs(refutation);
+        const std::unordered_map<Unit*, Unit*> unitsToRepresentative = computeSubproofs(refutation);
         
         /*
          * collect all boundaries of the subproofs
@@ -215,7 +213,7 @@ namespace Shell
      * computes the boundaries of the A-subproofs using Breadth-first search (BFS)
      * Using idea from the thesis: a unit occurs as boundary of a subproof, if it has a different color than of its parents/ one of its children.
      */
-    std::pair<const InterpolantsNew::BoundaryMap, const InterpolantsNew::BoundaryMap> InterpolantsNew::computeBoundaries(std::unordered_map<Unit*, Unit*>& unitsToRepresentative, Unit* refutation)
+    std::pair<const InterpolantsNew::BoundaryMap, const InterpolantsNew::BoundaryMap> InterpolantsNew::computeBoundaries(const std::unordered_map<Unit*, Unit*>& unitsToRepresentative, Unit* refutation)
     {
         // Note: unordered_map never copies its values during rehashing, so no unique pointers are needed here!
         std::unordered_map<Unit*, std::unordered_set<Unit*>> unitsToTopBoundaries; // maps each representative unit of a subproof to the top boundaries of that subproof
@@ -465,7 +463,7 @@ namespace Shell
                 // - this is the case if either the conclusion contains a colored symbol
                 if (currentUnit->getColor() == COLOR_LEFT || currentUnit->getColor() == COLOR_RIGHT)
                 {
-                    cout << "coloring " << currentUnit->toString() << (currentUnit->getColor() == COLOR_LEFT ? " red" : " blue") << endl;
+                    //cout << "coloring " << currentUnit->toString() << (currentUnit->getColor() == COLOR_LEFT ? " red" : " blue") << endl;
                     currentUnit->setInheritedColor(currentUnit->getColor());
                     
                     goto END;
@@ -480,7 +478,7 @@ namespace Shell
                         
                         if (premise->getColor() == COLOR_LEFT || premise->getColor() == COLOR_RIGHT)
                         {
-                            cout << "coloring " << currentUnit->toString() << (premise->getColor() == COLOR_LEFT ? " red" : " blue") << endl;
+                            //cout << "coloring " << currentUnit->toString() << (premise->getColor() == COLOR_LEFT ? " red" : " blue") << endl;
                             currentUnit->setInheritedColor(premise->getColor());
                             
                             goto END;
@@ -503,7 +501,7 @@ namespace Shell
                         assert(premise->inheritedColor() == COLOR_LEFT || premise->inheritedColor() == COLOR_RIGHT);
                         premise->inheritedColor() == COLOR_LEFT ? difference++ : difference--;
                     }
-                    cout << "coloring " << currentUnit->toString() << (difference > 0 ? " red" : " blue") << endl;
+                    //cout << "coloring " << currentUnit->toString() << (difference > 0 ? " red" : " blue") << endl;
                     currentUnit->setInheritedColor(difference > 0 ? COLOR_LEFT : COLOR_RIGHT);
                 }
                 
@@ -524,7 +522,7 @@ namespace Shell
    * Note: we keep the invariant that we omit units which map to themselves
    */
     
-    Kernel::Unit* InterpolantsNew::root(UnionFindMap& unitsToRepresentative, Unit* unit)
+    Kernel::Unit* InterpolantsNew::root(const UnionFindMap& unitsToRepresentative, Unit* unit)
     {
         Unit* root = unit;
         while (unitsToRepresentative.find(root) != unitsToRepresentative.end())

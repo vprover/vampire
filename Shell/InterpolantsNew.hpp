@@ -61,14 +61,14 @@ namespace Shell
          */
         typedef std::unordered_map<Kernel::Unit*, std::unordered_set<Kernel::Unit*>> BoundaryMap;
         std::unordered_map<Kernel::Unit*, Kernel::Unit*> computeSubproofs(Kernel::Unit* refutation);
-        std::pair<const BoundaryMap, const BoundaryMap> computeBoundaries(std::unordered_map<Kernel::Unit*, Kernel::Unit*>& unitsToRepresentative, Kernel::Unit* refutation);
+        std::pair<const BoundaryMap, const BoundaryMap> computeBoundaries(const std::unordered_map<Kernel::Unit*, Kernel::Unit*>& unitsToRepresentative, Kernel::Unit* refutation);
         Kernel::Formula* generateInterpolant(std::pair<const BoundaryMap, const BoundaryMap>& boundaries);
         
         /*
          * methods used to implement union find: root, find and merge (aka union)
          */
         typedef std::unordered_map<Kernel::Unit*, Kernel::Unit*> UnionFindMap;
-        Kernel::Unit* root(UnionFindMap& unitsToRepresentative, Kernel::Unit* unit);
+        Kernel::Unit* root(const UnionFindMap& unitsToRepresentative, Kernel::Unit* unit);
         bool find(UnionFindMap& unitsToRepresentative, Kernel::Unit* unit1, Kernel::Unit* unit2);
         void merge(UnionFindMap& unitsToRepresentative, Kernel::Unit* unit1, Kernel::Unit* unit2);
 
