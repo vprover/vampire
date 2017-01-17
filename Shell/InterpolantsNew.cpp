@@ -159,6 +159,7 @@ namespace Shell
     std::unordered_map<Unit*, Unit*> InterpolantsNew::computeSubproofs(Unit* refutation)
     {
         std::unordered_map<Unit*, Unit*> unitsToRepresentative; // maps each unit u1 (belonging to a red subproof) to the representative unit u2 of that subproof
+        std::unordered_map<Unit*, int> unitsToSize; // needed for weighted quick-union: for each unit, counts number of elements rooted in that unit
         
         std::unordered_set<Unit*> processed; // keep track of already visited units.
         std::queue<Unit*> queue; // used for BFS
@@ -199,7 +200,7 @@ namespace Shell
                     if (premise->inheritedColor() == COLOR_LEFT)
                     {
                         // merge the subproof of the current inference with the subproof of the parent inference
-                        merge(unitsToRepresentative, currentUnit, premise);
+                        merge(unitsToRepresentative, unitsToSize, currentUnit, premise);
                     }
                 }
             }
@@ -520,6 +521,9 @@ namespace Shell
    * standard implementation of union-find following
    * https://www.cs.princeton.edu/~rs/AlgsDS07/01UnionFind.pdf
    * Note: we keep the invariant that we omit units which map to themselves
+   * Note: we don't apply path compression. That would possibly be a little 
+   * bit faster, but then we couldn't make the unitsToRepresentative-argument 
+   * of the root-function const.
    */
     
     Kernel::Unit* InterpolantsNew::root(const UnionFindMap& unitsToRepresentative, Unit* unit)
@@ -539,7 +543,10 @@ namespace Shell
         return root(unitsToRepresentative, unit1) == root(unitsToRepresentative, unit2);
     }
     
-    void InterpolantsNew::merge(UnionFindMap& unitsToRepresentative, Unit* unit1, Unit* unit2)
+    void InterpolantsNew::merge(UnionFindMap& unitsToRepresentative,
+                                std::unordered_map<Unit*, int> unitsToSize,
+                                Unit* unit1,
+                                Unit* unit2)
     {
         assert(unit1 != unit2);
         Unit* root1 = root(unitsToRepresentative, unit1);
@@ -547,7 +554,16 @@ namespace Shell
         
         if (root1 != root2) // we could also add elements as their own roots, but this is not necessary.
         {
-            unitsToRepresentative[root2] = root1;
+            if (unitsToSize[root1] < unitsToSize[root2]) // weighted version
+            {
+                unitsToRepresentative[root1] = root2;
+                unitsToSize[root2] += unitsToSize[root1];
+            }
+            else
+            {
+                unitsToRepresentative[root2] = root1;
+                unitsToSize[root1] += unitsToSize[root2];
+            }
         }
     }
 }

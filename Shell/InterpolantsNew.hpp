@@ -70,7 +70,7 @@ namespace Shell
         typedef std::unordered_map<Kernel::Unit*, Kernel::Unit*> UnionFindMap;
         Kernel::Unit* root(const UnionFindMap& unitsToRepresentative, Kernel::Unit* unit);
         bool find(UnionFindMap& unitsToRepresentative, Kernel::Unit* unit1, Kernel::Unit* unit2);
-        void merge(UnionFindMap& unitsToRepresentative, Kernel::Unit* unit1, Kernel::Unit* unit2);
+        void merge(UnionFindMap& unitsToRepresentative, std::unordered_map<Kernel::Unit*, int> unitsToSize, Kernel::Unit* unit1, Kernel::Unit* unit2);
 
     };
 };
