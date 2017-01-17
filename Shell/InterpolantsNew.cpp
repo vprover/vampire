@@ -103,10 +103,12 @@ namespace Shell
                     {
                         UnitList::push(premise, premises);
                     }
+                    else
+                    {
+                        premise->decRefCnt();
+                    }
                 }
                 
-                // TODO: how not to leak here???
-                //current->inference()->destroy();
                 Inference* inference = new InferenceMany(current->inference()->rule(), premises);
                 current->setInference(inference);
             }
