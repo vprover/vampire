@@ -4,6 +4,8 @@
  * @author Bernhard Gleiss
  */
 
+//#if VZ3
+
 #include "InterpolantMinimizerNew.hpp"
 
 #include "Kernel/Unit.hpp"
@@ -15,7 +17,7 @@ namespace Shell
 {
     using namespace Kernel;
     
-    void InterpolantMinimizerNew::computeSplittingFunction(Kernel::Unit* refutation)
+    void InterpolantMinimizerNew::computeSplittingFunction(Kernel::Unit* refutation,  UnitWeight weightFunction)
     {
         using namespace z3;
         context c;
@@ -114,7 +116,8 @@ namespace Shell
                         assert(unitsToExpressions.find(premise) != unitsToExpressions.end());
                         expr& x_j = *unitsToExpressions[premise];
                         
-                        solver.add(x_i == x_j, c.real_val("1.0")); // TODO: add actual weight here! cf. addCostFormula()-function from Interpolants.cpp
+                        double weight = weightForUnit(premise, weightFunction);
+                        solver.add(x_i == x_j, c.real_val(std::to_string(weight).c_str())); // TODO: add actual weight here! cf. addCostFormula()-function from Interpolants.cpp
                     }
                     
                     stack.pop();
@@ -150,3 +153,5 @@ namespace Shell
         }
     }
 }
+
+//#endif // VZ3

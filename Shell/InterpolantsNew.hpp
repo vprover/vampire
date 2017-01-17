@@ -18,12 +18,21 @@ namespace Shell
     /*
      * main class for deriving craig-interpolants
      * computes interpolants from local refutations
-     * algorithm is based on master thesis of Bernhard Gleiss
+     * algorithms are based on master thesis of Bernhard Gleiss
      */
     class InterpolantsNew
     {
     public:
         InterpolantsNew(){}
+        
+        /*
+         * controls which quality measurement is used for creating the interpolant
+         */
+        enum UnitWeight
+        {
+            VAMPIRE, // the weight usually used in vampire, i.e. number of symbols
+            QUANTIFIED_VARS // use number of different quantified vars as weight
+        };
         
         /*
          * main method to call
@@ -34,7 +43,7 @@ namespace Shell
          * determine how to split the proof
          * @pre: refutation must be a local refutation
          */
-        Kernel::Formula* getInterpolant(Kernel::Unit* refutation);
+        Kernel::Formula* getInterpolant(Kernel::Unit* refutation, UnitWeight weightFunction);
         
         /*
          * preprocesses proofs by removing all inferences
@@ -52,17 +61,24 @@ namespace Shell
          * implements so called "splitting function" from the thesis
          * (uses improved version of approach #2, cf. section 3.3).
          */
-        virtual void computeSplittingFunction(Kernel::Unit* refutation);
+        virtual void computeSplittingFunction(Kernel::Unit* refutation, UnitWeight weightFunction);
+        
+        /*
+         * helper method to compute the weight of a unit
+         */
+        double weightForUnit(Kernel::Unit* unit, UnitWeight weightFunction);
         
     private:
         
         /*
-         * helper methods
+         * helper methods to compute interpolant
          */
         typedef std::unordered_map<Kernel::Unit*, std::unordered_set<Kernel::Unit*>> BoundaryMap;
         std::unordered_map<Kernel::Unit*, Kernel::Unit*> computeSubproofs(Kernel::Unit* refutation);
         std::pair<const BoundaryMap, const BoundaryMap> computeBoundaries(const std::unordered_map<Kernel::Unit*, Kernel::Unit*>& unitsToRepresentative, Kernel::Unit* refutation);
         Kernel::Formula* generateInterpolant(std::pair<const BoundaryMap, const BoundaryMap>& boundaries);
+        
+
         
         /*
          * methods used to implement union find: root, find and merge (aka union)

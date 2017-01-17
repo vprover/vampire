@@ -10,7 +10,7 @@
 #include "InterpolantsNew.hpp"
 #include <stack>
 
-// TODO: guard agains non-availability of z3
+//#if VZ3
 namespace Shell
 {
     /*
@@ -29,7 +29,9 @@ namespace Shell
          * and ask solver for an optimal solution
          * we use z3 as solver
          */
-        virtual void computeSplittingFunction(Kernel::Unit* refutation) override;
+        virtual void computeSplittingFunction(Kernel::Unit* refutation, UnitWeight weightFunction) override;
     };
 };
+//#endif // VZ3
+
 #endif // __InterpolantMinimizerNew__

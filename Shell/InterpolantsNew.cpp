@@ -122,15 +122,19 @@ namespace Shell
      * implements interpolation algorithm stated on page 13 of master thesis of Bernhard Gleiss
      * cf. Definition 3.1.2 of the thesis
      */
-    Formula* InterpolantsNew::getInterpolant(Unit *refutation)
+    Formula* InterpolantsNew::getInterpolant(Unit *refutation, UnitWeight weightFunction)
     {
 
+        /*
+         * start by removing theory inferences, since we don't need those for interpolation
+         */
         removeTheoryInferences(refutation);
+        
         /*
          * compute coloring for the inferences, i.e. compute splitting function in the words of the thesis
          * Note: reuses inheritedColor-field to save result
          */
-        computeSplittingFunction(refutation);
+        computeSplittingFunction(refutation, weightFunction);
         
         /*
          * compute A-subproofs
@@ -418,7 +422,7 @@ namespace Shell
     /*
      * implements local splitting function from the thesis (improved version of approach #2, cf. section 3.3)
      */
-    void InterpolantsNew::computeSplittingFunction(Kernel::Unit* refutation)
+    void InterpolantsNew::computeSplittingFunction(Kernel::Unit* refutation, UnitWeight weightFunction)
     {
         std::stack<Unit*> stack; // used for DFS
         stack.push(refutation);
@@ -489,20 +493,29 @@ namespace Shell
                     }
                 }
                 
-                // otherwise we choose the following heuristic
-                // if more parent inferences of the current inference are assigned to the red partition than to the blue partition,
-                // assign the inference to red, otherwise to blue
+                /* otherwise we choose the following heuristic
+                 * if the weighted sum of the conclusions of all parent inferences assigned
+                 * to the red partition is greater than the weighted sum of the conclusions
+                 * of all parent inferences assigned to the blue partition, then
+                 * assign the inference to red, otherwise to blue
+                 */
                 { // scoping necessary due to goto
                     parents = InferenceStore::instance()->getParents(currentUnit);
                     
-                    int difference = 0;
+                    double difference = 0;
                     while (parents.hasNext())
                     {
                         Unit* premise= parents.next();
                         
-                        // TODO: this could be weighted too easily :)
                         assert(premise->inheritedColor() == COLOR_LEFT || premise->inheritedColor() == COLOR_RIGHT);
-                        premise->inheritedColor() == COLOR_LEFT ? difference++ : difference--;
+                        if (premise->inheritedColor() == COLOR_LEFT)
+                        {
+                            difference += weightForUnit(premise, weightFunction);
+                        }
+                        else
+                        {
+                            difference -= weightForUnit(premise, weightFunction);
+                        }
                     }
                     //cout << "coloring " << currentUnit->toString() << (difference > 0 ? " red" : " blue") << endl;
                     currentUnit->setInheritedColor(difference > 0 ? COLOR_LEFT : COLOR_RIGHT);
@@ -515,6 +528,21 @@ namespace Shell
         }
     }
     
+#pragma mark - helper method for unit weight
+    
+    double InterpolantsNew::weightForUnit(Kernel::Unit* unit, UnitWeight weightFunction)
+    {
+        return 1;
+//        if (weightFunction == UnitWeight::VAMPIRE)
+//        {
+//            // TODO: proper weight here!
+//        }
+//        else
+//        {
+//            assert(weightFunction == UnitWeight::QUANTIFIED_VARS);
+//            return unit->varCnt();
+//        }
+    }
 
 
 #pragma mark - union find helper methods
