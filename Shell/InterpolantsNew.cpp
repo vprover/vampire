@@ -36,8 +36,8 @@
  *    B-local or global (COLOR_LEFT, COLOR_RIGHT or COLOR_TRANSPARENT).
  *    getColor() is also extended in the obvious way to formulas and clauses.
  * 2) For each input formula, we can use inheritedColor() to query if that
- *    formula is part of the A-formula or if it is part of the B-formula
- *
+ *    formula is part of the A-formula, part of the B-formula or part of the
+ *    theory axioms (COLOR_LEFT, COLOR_RIGHT or COLOR_TRANSPARENT)
  * We use both of them in the method computeSplittingFunction(), which reuses
  * the inheritedColor-field to save its result.
  * ========================================================================
@@ -51,6 +51,69 @@ namespace Shell
 {
     using namespace Kernel;
     
+#pragma mark - preprocessing proof
+    
+    void InterpolantsNew::removeTheoryInferences(Unit* refutation)
+    {
+        // traverse the proof in depth-first post order
+        ProofIteratorPostOrder it(refutation);
+        while (it.hasNext())
+        {
+            Unit* current = it.next();
+            assert((!InferenceStore::instance()->getParents(current).hasNext() &&  (   current->inheritedColor() == COLOR_LEFT
+                                                                                        || current->inheritedColor() == COLOR_RIGHT
+                                                                                        || current->inheritedColor() == COLOR_TRANSPARENT
+                                                                                        ))
+                   || (InferenceStore::instance()->getParents(current).hasNext() &&  current->inheritedColor() == COLOR_INVALID));
+
+            
+            bool hasGreyParents = false;
+            bool hasNonGreyParents = false;
+            
+            VirtualIterator<Unit*> parents = InferenceStore::instance()->getParents(current);
+            while (parents.hasNext())
+            {
+                Unit* premise = parents.next();
+                if (premise->inheritedColor() == COLOR_TRANSPARENT)
+                {
+                    hasGreyParents = true;
+                }
+                else
+                {
+                    hasNonGreyParents = true;
+                }
+            }
+            
+            // whenever a non-input-inference has only grey parents, color it grey too (needed to compute which inferences are derived only from theory axioms)
+            if (current->inheritedColor() == COLOR_INVALID && !hasNonGreyParents)
+            {
+                current->setInheritedColor(COLOR_TRANSPARENT);
+                cout << "discovered new theory-only unit " << *current << endl;
+            }
+            
+            // whenever an inference has both grey parents and non-grey parents, remove the grey parents
+            if (hasGreyParents && hasNonGreyParents)
+            {
+                UnitList* premises = UnitList::empty();
+
+                VirtualIterator<Unit*> parents = InferenceStore::instance()->getParents(current);
+                while (parents.hasNext())
+                {
+                    Unit* premise = parents.next();
+                    if (premise->inheritedColor() != COLOR_TRANSPARENT)
+                    {
+                        UnitList::push(premise, premises);
+                    }
+                }
+                
+                // TODO: how not to leak here???
+                //current->inference()->destroy();
+                Inference* inference = new InferenceMany(current->inference()->rule(), premises);
+                current->setInference(inference);
+            }
+        }
+    }
+    
 #pragma mark - main method
 
     /*
@@ -60,6 +123,8 @@ namespace Shell
      */
     Formula* InterpolantsNew::getInterpolant(Unit *refutation)
     {
+
+        removeTheoryInferences(refutation);
         /*
          * compute coloring for the inferences, i.e. compute splitting function in the words of the thesis
          * Note: reuses inheritedColor-field to save result
@@ -145,7 +210,7 @@ namespace Shell
         return unitsToRepresentative;
     }
     
-    // TODO: the typedef-usage is ugly
+    
     /*
      * computes the boundaries of the A-subproofs using Breadth-first search (BFS)
      * Using idea from the thesis: a unit occurs as boundary of a subproof, if it has a different color than of its parents/ one of its children.
@@ -183,8 +248,7 @@ namespace Shell
             }
             
             // if current inference is assigned to A-part
-            //TODO: implementing Martin's trick will make this assertion work
-            //assert(currentUnit->inheritedColor() == COLOR_LEFT || currentUnit->inheritedColor() == COLOR_RIGHT);
+            assert(currentUnit->inheritedColor() == COLOR_LEFT || currentUnit->inheritedColor() == COLOR_RIGHT);
             if (currentUnit->inheritedColor() == COLOR_LEFT)
             {
                 Unit* rootOfCurrent = root(unitsToRepresentative, currentUnit);
@@ -196,8 +260,7 @@ namespace Shell
                     Unit* premise = parents.next();
 
                     // if it is assigned to the B-part
-                    //TODO: implementing Martin's trick will make this assertion work
-                    //assert(premise->inheritedColor() == COLOR_LEFT || premise->inheritedColor() == COLOR_RIGHT);
+                    assert(premise->inheritedColor() == COLOR_LEFT || premise->inheritedColor() == COLOR_RIGHT);
                     if (premise->inheritedColor() != COLOR_LEFT)
                     {
                         // add the premise (i.e. the conclusion of the parent inference) to upper boundaries of the subproof of currentUnit:
@@ -217,8 +280,7 @@ namespace Shell
                     Unit* premise = parents.next();
                     
                     // if it is assigned to the A-part
-                    //TODO: implementing Martin's trick will make this assertion work
-                    //assert(premise->inheritedColor() == COLOR_LEFT || premise->inheritedColor() == COLOR_RIGHT);
+                    assert(premise->inheritedColor() == COLOR_LEFT || premise->inheritedColor() == COLOR_RIGHT);
                     if (premise->inheritedColor() == COLOR_LEFT)
                     {
                         Unit* rootOfPremise = root(unitsToRepresentative, premise);
@@ -436,10 +498,9 @@ namespace Shell
                     while (parents.hasNext())
                     {
                         Unit* premise= parents.next();
-                        // TODO: implementing Martin's trick will make this assertion work
-                        //assert(premise->inheritedColor() == COLOR_LEFT || premise->inheritedColor() == COLOR_RIGHT);
                         
                         // TODO: this could be weighted too easily :)
+                        assert(premise->inheritedColor() == COLOR_LEFT || premise->inheritedColor() == COLOR_RIGHT);
                         premise->inheritedColor() == COLOR_LEFT ? difference++ : difference--;
                     }
                     cout << "coloring " << currentUnit->toString() << (difference > 0 ? " red" : " blue") << endl;

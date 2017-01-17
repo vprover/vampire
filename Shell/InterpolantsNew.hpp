@@ -15,6 +15,11 @@
 
 namespace Shell
 {
+    /*
+     * main class for deriving craig-interpolants
+     * computes interpolants from local refutations
+     * algorithm is based on master thesis of Bernhard Gleiss
+     */
     class InterpolantsNew
     {
     public:
@@ -23,12 +28,24 @@ namespace Shell
         /*
          * main method to call
          * computes interpolant for a given local proof.
-         * implements interpolation algorithm stated on page 13 of master thesis of Bernhard Gleiss
+         * implements interpolation algorithm stated on page 13 of the thesis
          *
          * internally calls computeSplittingFunction to
          * determine how to split the proof
+         * @pre: refutation must be a local refutation
          */
         Kernel::Formula* getInterpolant(Kernel::Unit* refutation);
+        
+        /*
+         * preprocesses proofs by removing all inferences
+         * which are derived only from theory axioms
+         * this is usually called before calling getInterpolant
+         * @pre:  all input inferences of refutation have their inheritedColor assigned to
+         * either COLOR_LEFT, COLOR_RIGHT or COLOR_TRANSPARENT
+         * @post: all input inferences of refutation have their inheritedColor assigned to 
+         * either COLOR_LEFT or COLOR_RIGHT
+         */
+        void removeTheoryInferences(Kernel::Unit* refutation);
         
     protected:
         /*
