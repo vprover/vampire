@@ -11,6 +11,7 @@
 #include <ostream>
 
 #include <stack>
+#include <queue>
 #include <unordered_set>
 
 #include "Forwards.hpp"
@@ -113,9 +114,23 @@ private:
     private:
         std::stack<Kernel::Unit*> todo;
         std::unordered_set<Kernel::Unit*> visited; // the units we have already visited
-
-        
     };
+    
+    /*
+     * iterator, which traverses the proof in breadth-first pre-order.
+     */
+    class ProofIteratorBFSPreOrder
+    {
+    public:
+        ProofIteratorBFSPreOrder(Kernel::Unit* refutation);
+        bool hasNext();
+        Kernel::Unit* next();
+        
+    private:
+        std::queue<Kernel::Unit*> todo;
+        std::unordered_set<Kernel::Unit*> visited; // the units we have already visited
+    };
+
 
 };
 

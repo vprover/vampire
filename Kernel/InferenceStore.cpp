@@ -915,7 +915,51 @@ InferenceStore* InferenceStore::instance()
   return inst.ptr();
 }
 
-#pragma mark - Proof Iterator class
+#pragma mark - Proof Iterator classes
+    
+    ProofIteratorBFSPreOrder::ProofIteratorBFSPreOrder(Unit* refutation)
+    {
+        todo.push(refutation);
+    }
+    
+    bool ProofIteratorBFSPreOrder::hasNext()
+    {
+        return !todo.empty();
+    }
+    
+    /*
+     * iterative Breadth-first search (BFS) through the proof DAG
+     */
+    Unit* ProofIteratorBFSPreOrder::next()
+    {
+        while (!todo.empty())
+        {
+            Unit* current = todo.front();
+            todo.pop();
+            
+            if (visited.find(current) == visited.end())
+            {
+                // add unprocessed premises to queue for BFS:
+                VirtualIterator<Unit*> parents = InferenceStore::instance()->getParents(current);
+                
+                while (parents.hasNext())
+                {
+                    Unit* premise= parents.next();
+                    todo.push(premise);
+                }
+                
+                // remember that we have visited current
+                visited.insert(current);
+                
+                return current;
+            }
+
+        }
+        
+        // we have already iterated through all inferences
+        return nullptr;
+    }
+
     
     ProofIteratorPostOrder::ProofIteratorPostOrder(Unit* refutation)
     {
