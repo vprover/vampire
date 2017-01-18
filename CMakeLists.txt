@@ -362,9 +362,7 @@ set(VAMPIRE_INFERENCE_SOURCES
     Inferences/InferenceEngine.cpp
     Inferences/Instantiation.cpp
     Inferences/InterpretedEvaluation.cpp
-    Inferences/RefutationSeekerFSE.cpp
     Inferences/SLQueryBackwardSubsumption.cpp
-    Inferences/SLQueryForwardSubsumption.cpp
     Inferences/Superposition.cpp
     Inferences/TautologyDeletionISE.cpp
     Inferences/TermAlgebraReasoning.cpp
@@ -391,9 +389,7 @@ set(VAMPIRE_INFERENCE_SOURCES
     Inferences/InferenceEngine.hpp
     Inferences/Instantiation.hpp
     Inferences/InterpretedEvaluation.hpp
-    Inferences/RefutationSeekerFSE.hpp
     Inferences/SLQueryBackwardSubsumption.hpp
-    Inferences/SLQueryForwardSubsumption.hpp
     Inferences/Superposition.hpp
     Inferences/TautologyDeletionISE.hpp
     Inferences/TermAlgebraReasoning.hpp
@@ -743,6 +739,7 @@ set(VAMPIRE_SOURCES
 	${VAMPIRE_SMTCOMP_SOURCES}
     ${VAMPIRE_MINISAT_SOURCES}
     Test/CheckedSatSolver.cpp
+    Test/CheckedSatSolver.hpp
     version.cpp
     global.cpp
     vampire.cpp
