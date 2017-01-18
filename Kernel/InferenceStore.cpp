@@ -919,11 +919,15 @@ InferenceStore* InferenceStore::instance()
     
     ProofIteratorBFSPreOrder::ProofIteratorBFSPreOrder(Unit* refutation)
     {
+        CALL("ProofIteratorBFSPreOrder::ProofIteratorBFSPreOrder");
+        
         todo.push(refutation);
     }
     
     bool ProofIteratorBFSPreOrder::hasNext()
     {
+        CALL("ProofIteratorBFSPreOrder::hasNext");
+
         while (!todo.empty())
         {
             if (visited.find(todo.front()) == visited.end())
@@ -944,6 +948,8 @@ InferenceStore* InferenceStore::instance()
      */
     Unit* ProofIteratorBFSPreOrder::next()
     {
+        CALL("ProofIteratorBFSPreOrder::next");
+
         while (!todo.empty())
         {
             Unit* current = todo.front();
@@ -975,11 +981,13 @@ InferenceStore* InferenceStore::instance()
     
     ProofIteratorPostOrder::ProofIteratorPostOrder(Unit* refutation)
     {
+        CALL("ProofIteratorPostOrder::ProofIteratorPostOrder");
         todo.push(refutation);
     }
     
     bool ProofIteratorPostOrder::hasNext()
     {
+        CALL("ProofIteratorPostOrder::hasNext");
         return !todo.empty();
     }
     
@@ -990,6 +998,7 @@ InferenceStore* InferenceStore::instance()
      */
     Unit* ProofIteratorPostOrder::next()
     {
+        CALL("ProofIteratorPostOrder::next");
         while (!todo.empty())
         {
             Unit* currentUnit = todo.top();

@@ -35,6 +35,21 @@ namespace Shell
         };
         
         /*
+         * preprocesses proofs by removing all inferences
+         * which are derived only from theory axioms,
+         * since we don't need those for interpolation,
+         * but sometimes the existence of those inferences yields a bigger interpolant.
+         *
+         * usually called before call to getInterpolant
+         *
+         * @pre:  all input inferences of refutation have their inheritedColor assigned to
+         * either COLOR_LEFT, COLOR_RIGHT or COLOR_TRANSPARENT
+         * @post: all input inferences of refutation have their inheritedColor assigned to
+         * either COLOR_LEFT or COLOR_RIGHT
+         */
+        void removeTheoryInferences(Kernel::Unit* refutation);
+        
+        /*
          * main method to call
          * computes interpolant for a given local proof.
          * implements interpolation algorithm stated on page 13 of the thesis
@@ -45,7 +60,9 @@ namespace Shell
          */
         Kernel::Formula* getInterpolant(Kernel::Unit* refutation, UnitWeight weightFunction);
         
+        
     protected:
+        
         /*
          * implements so called "splitting function" from the thesis
          * (uses improved version of approach #2, cf. section 3.3).
@@ -58,16 +75,6 @@ namespace Shell
         double weightForUnit(Kernel::Unit* unit, UnitWeight weightFunction);
         
     private:
-        /*
-         * preprocesses proofs by removing all inferences
-         * which are derived only from theory axioms
-         * called by getInterpolant
-         * @pre:  all input inferences of refutation have their inheritedColor assigned to
-         * either COLOR_LEFT, COLOR_RIGHT or COLOR_TRANSPARENT
-         * @post: all input inferences of refutation have their inheritedColor assigned to
-         * either COLOR_LEFT or COLOR_RIGHT
-         */
-        void removeTheoryInferences(Kernel::Unit* refutation);
         
         /*
          * helper methods to compute interpolant
@@ -77,8 +84,6 @@ namespace Shell
         std::pair<const BoundaryMap, const BoundaryMap> computeBoundaries(const std::unordered_map<Kernel::Unit*, Kernel::Unit*>& unitsToRepresentative, Kernel::Unit* refutation);
         Kernel::Formula* generateInterpolant(std::pair<const BoundaryMap, const BoundaryMap>& boundaries);
         
-
-        
         /*
          * methods used to implement union find: root, find and merge (aka union)
          */
@@ -86,7 +91,6 @@ namespace Shell
         Kernel::Unit* root(const UnionFindMap& unitsToRepresentative, Kernel::Unit* unit);
         bool find(UnionFindMap& unitsToRepresentative, Kernel::Unit* unit1, Kernel::Unit* unit2);
         void merge(UnionFindMap& unitsToRepresentative, std::unordered_map<Kernel::Unit*, int> unitsToSize, Kernel::Unit* unit1, Kernel::Unit* unit2);
-
     };
 };
 #endif // __InterpolantsNew__

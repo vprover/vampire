@@ -6,9 +6,10 @@
 
 #include "InterpolantsNew.hpp"
 
+#include "Kernel/Unit.hpp"
+#include "Kernel/FormulaUnit.hpp"
 #include "Kernel/Formula.hpp"
 #include "Kernel/Connective.hpp"
-#include "Kernel/Unit.hpp"
 #include "Kernel/InferenceStore.hpp"
 
 #include "Debug/Assertion.hpp"
@@ -56,6 +57,8 @@ namespace Shell
     
     void InterpolantsNew::removeTheoryInferences(Unit* refutation)
     {
+        CALL("InterpolantsNew::removeTheoryInferences");
+
         ProofIteratorPostOrder it(refutation);
         while (it.hasNext()) // traverse the proof in depth-first post order
         {
@@ -126,13 +129,8 @@ namespace Shell
      */
     Formula* InterpolantsNew::getInterpolant(Unit *refutation, UnitWeight weightFunction)
     {
-
-        /*
-         * start by removing theory inferences, since we don't need those for interpolation,
-         * but sometimes the existence of those inferences yields a bigger interpolant
-         */
-        removeTheoryInferences(refutation);
-        
+        CALL("InterpolantsNew::getInterpolant");
+                
         /*
          * compute coloring for the inferences, i.e. compute splitting function in the words of the thesis
          * Note: reuses inheritedColor-field to save result
@@ -167,6 +165,8 @@ namespace Shell
      */
     std::unordered_map<Unit*, Unit*> InterpolantsNew::computeSubproofs(Unit* refutation)
     {
+        CALL("InterpolantsNew::computeSubproofs");
+
         std::unordered_map<Unit*, Unit*> unitsToRepresentative; // maps each unit u1 (belonging to a red subproof) to the representative unit u2 of that subproof
         std::unordered_map<Unit*, int> unitsToSize; // needed for weighted quick-union: for each unit, counts number of elements rooted in that unit
         
@@ -194,8 +194,6 @@ namespace Shell
             }
         }
         
-
-
         return unitsToRepresentative;
     }
     
@@ -206,6 +204,8 @@ namespace Shell
      */
     std::pair<const InterpolantsNew::BoundaryMap, const InterpolantsNew::BoundaryMap> InterpolantsNew::computeBoundaries(const std::unordered_map<Unit*, Unit*>& unitsToRepresentative, Unit* refutation)
     {
+        CALL("InterpolantsNew::computeBoundaries");
+
         // Note: unordered_map never copies its values during rehashing, so no unique pointers are needed here!
         std::unordered_map<Unit*, std::unordered_set<Unit*>> unitsToTopBoundaries; // maps each representative unit of a subproof to the top boundaries of that subproof
         std::unordered_map<Unit*, std::unordered_set<Unit*>> unitsToBottomBoundaries; // maps each representative unit of a subproof to the bottom boundaries of that subproof
@@ -276,6 +276,8 @@ namespace Shell
      */
     Formula* InterpolantsNew::generateInterpolant(std::pair<const InterpolantsNew::BoundaryMap, const InterpolantsNew::BoundaryMap>& boundaries)
     {
+        CALL("InterpolantsNew::generateInterpolant");
+
         const std::unordered_map<Unit*, std::unordered_set<Unit*>>& unitsToTopBoundaries = boundaries.first;
         const std::unordered_map<Unit*, std::unordered_set<Unit*>>& unitsToBottomBoundaries = boundaries.second;
         
@@ -386,6 +388,8 @@ namespace Shell
      */
     void InterpolantsNew::computeSplittingFunction(Kernel::Unit* refutation, UnitWeight weightFunction)
     {
+        CALL("InterpolantsNew::computeSplittingFunction");
+
         ProofIteratorPostOrder it(refutation);
         while (it.hasNext()) // traverse the proof in depth-first post order
         {
@@ -460,16 +464,25 @@ namespace Shell
 
     double InterpolantsNew::weightForUnit(Kernel::Unit* unit, UnitWeight weightFunction)
     {
+        CALL("InterpolantsNew::weightForUnit");
+
         return 1;
-//        if (weightFunction == UnitWeight::VAMPIRE)
-//        {
-//            // TODO: proper weight here!
-//        }
-//        else
-//        {
-//            assert(weightFunction == UnitWeight::QUANTIFIED_VARS);
-//            return unit->varCnt();
-//        }
+        if (weightFunction == UnitWeight::VAMPIRE)
+        {
+            if(unit->isClause())
+            {
+                return static_cast<Clause*>(unit)->weight();
+            }
+            else
+            {
+                return static_cast<FormulaUnit*>(unit)->formula()->weight();
+            }
+        }
+        else
+        {
+            assert(weightFunction == UnitWeight::QUANTIFIED_VARS);
+            return unit->varCnt();
+        }
     }
 
 
@@ -486,6 +499,8 @@ namespace Shell
     
     Kernel::Unit* InterpolantsNew::root(const UnionFindMap& unitsToRepresentative, Unit* unit)
     {
+        CALL("InterpolantsNew::root");
+
         Unit* root = unit;
         while (unitsToRepresentative.find(root) != unitsToRepresentative.end())
         {
@@ -498,6 +513,8 @@ namespace Shell
     
     bool InterpolantsNew::find(UnionFindMap& unitsToRepresentative, Unit* unit1, Unit* unit2)
     {
+        CALL("InterpolantsNew::find");
+
         return root(unitsToRepresentative, unit1) == root(unitsToRepresentative, unit2);
     }
     
@@ -506,6 +523,8 @@ namespace Shell
                                 Unit* unit1,
                                 Unit* unit2)
     {
+        CALL("InterpolantsNew::merge");
+
         assert(unit1 != unit2);
         Unit* root1 = root(unitsToRepresentative, unit1);
         Unit* root2 = root(unitsToRepresentative, unit2);

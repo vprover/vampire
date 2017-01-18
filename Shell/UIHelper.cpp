@@ -288,15 +288,29 @@ void UIHelper::outputResult(ostream& out)
       ASS(env.statistics->refutation->isClause());
       Interpolants::beatifyRefutation(env.statistics->refutation);
 
-      Formula* interpolant=Interpolants().getInterpolant(static_cast<Clause*>(env.statistics->refutation));
-      out << "Interpolant: " << interpolant->toString() << endl;
+        // old interpolation algorithm
+        Formula* interpolant=Interpolants().getInterpolant(env.statistics->refutation);
+        out << "Old Interpolant: " << interpolant->toString() << endl;
         
-        // new interpolation method described in master thesis of Bernhard Gleiss
-        Formula* interpolantNew =InterpolantsNew().getInterpolant(static_cast<Clause*>(env.statistics->refutation), InterpolantsNew::UnitWeight::VAMPIRE);
-        out << "New Interpolant: " << interpolantNew->toString() << endl;
+        // new interpolation methods described in master thesis of Bernhard Gleiss
+        // - remove theory stuff
+        InterpolantsNew().removeTheoryInferences(env.statistics->refutation); // do this only once for each proof!
         
-//        Formula* interpolantMinimizedNew = InterpolantMinimizerNew().getInterpolant(static_cast<Clause*>(env.statistics->refutation), InterpolantsNew::UnitWeight::VAMPIRE);
-//        out << "New minimized Interpolant: " << interpolantMinimizedNew->toString() << endl;
+        // - get interpolant using new algorithm, standard weight and heuristic splitting function
+        Formula* interpolantNew1 =InterpolantsNew().getInterpolant(env.statistics->refutation, InterpolantsNew::UnitWeight::VAMPIRE);
+        out << "New Interpolant (standard weight): " << interpolantNew1->toString() << endl;
+        
+        // - get interpolant using new algorithm, standard weight and z3-optimized splitting function
+        Formula* interpolantMinimizedNew1 = InterpolantMinimizerNew().getInterpolant(env.statistics->refutation, InterpolantsNew::UnitWeight::VAMPIRE);
+        out << "New minimized Interpolant (standard weight): " << interpolantMinimizedNew1->toString() << endl;
+        
+        // - get interpolant using new algorithm, quantifier weight and heuristic splitting function
+        Formula* interpolantNew2 =InterpolantsNew().getInterpolant(env.statistics->refutation, InterpolantsNew::UnitWeight::QUANTIFIED_VARS);
+        out << "New Interpolant (quantifier weight): " << interpolantNew2->toString() << endl;
+        
+        // - get interpolant using new algorithm, quantifier weight and z3-optimized splitting function
+        Formula* interpolantMinimizedNew2 = InterpolantMinimizerNew().getInterpolant(env.statistics->refutation, InterpolantsNew::UnitWeight::QUANTIFIED_VARS);
+        out << "New minimized Interpolant (quantifier weight): " << interpolantMinimizedNew2->toString() << endl;
     }
     if (env.options->showInterpolant()==Options::InterpolantMode::MINIMIZED) {
       ASS(env.statistics->refutation->isClause());

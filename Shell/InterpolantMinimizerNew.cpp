@@ -21,6 +21,8 @@ namespace Shell
 
     void InterpolantMinimizerNew::computeSplittingFunction(Kernel::Unit* refutation,  UnitWeight weightFunction)
     {
+        CALL("InterpolantMinimizerNew::computeSplittingFunction");
+
         using namespace z3;
         context c;
         optimize solver(c);
