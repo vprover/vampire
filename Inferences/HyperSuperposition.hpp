@@ -33,8 +33,7 @@ public:
   Clause* generateClause(Clause* queryCl, Literal* queryLit, SLQueryResult res, Limits* limits=0);
   ClauseIterator generateClauses(Clause* premise);
 
-  void perform(Clause* cl, ForwardSimplificationPerformer* simplPerformer);
-
+  bool perform(Clause* cl, Clause*& replacement, ClauseIterator& premises) override;
 private:
   typedef pair<TermList,TermList> TermPair;
   /** The int here is a variable bank index of the term's variables */
@@ -66,12 +65,12 @@ private:
    * premises should contain any other premises that can be needed
    * (e.g. an unit literal to resolve with)
    */
-  Clause* tryGetContradictionFromUnification(Clause* cl, Term* t1, Term* t2, bool disjointVariables, ClauseStack& premises);
+  Clause* tryGetContradictionFromUnification(Clause* cl, Term* t1, Term* t2, bool disjointVariables, ClauseStack& premStack);
 
-  bool trySimplifyingFromUnification(Clause* cl, Term* t1, Term* t2, bool disjointVariables, ClauseStack& premises,
-      ForwardSimplificationPerformer* simplPerformer);
-  bool tryUnifyingNonequalitySimpl(Clause* cl, ForwardSimplificationPerformer* simplPerformer);
-  bool tryUnifyingToResolveSimpl(Clause* cl, ForwardSimplificationPerformer* simplPerformer);
+  bool trySimplifyingFromUnification(Clause* cl, Term* t1, Term* t2, bool disjointVariables, ClauseStack& premStack,
+      Clause*& replacement, ClauseIterator& premises);
+  bool tryUnifyingNonequalitySimpl(Clause* cl, Clause*& replacement, ClauseIterator& premises);
+  bool tryUnifyingToResolveSimpl(Clause* cl, Clause*& replacement, ClauseIterator& premises);
 
 
   Literal* getUnifQueryLit(Literal* base);

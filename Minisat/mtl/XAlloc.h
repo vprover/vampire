@@ -29,6 +29,8 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 #include <errno.h>
 #include <stdlib.h>
 
+#include "Lib/Allocator.hpp"
+
 namespace Minisat {
 
 //=================================================================================================
@@ -37,11 +39,16 @@ namespace Minisat {
 class OutOfMemoryException{};
 static inline void* xrealloc(void *ptr, size_t size)
 {
-    void* mem = realloc(ptr, size);
+    void* mem = REALLOC_UNKNOWN(ptr, size, "Minisat::xrealloc");
     if (mem == NULL && errno == ENOMEM){
         throw OutOfMemoryException();
     }else
         return mem;
+}
+
+static inline void xfree (void* ptr)
+{
+  DEALLOC_UNKNOWN(ptr,"Minisat::xrealloc");
 }
 
 //=================================================================================================

@@ -50,6 +50,7 @@
 #include "SortInference.hpp"
 #include "DefinitionIntroduction.hpp"
 #include "FunctionRelationshipInference.hpp"
+#include "CliqueFinder.hpp"
 #include "Monotonicity.hpp"
 #include "FiniteModelBuilder.hpp"
 
@@ -429,9 +430,52 @@ void FiniteModelBuilder::init()
     (clist ? pvi(ClauseList::Iterator(clist)) : _prb.clauseIterator())
   );
 
+  // Store distinct constants by type
+  DArray<DHMap<unsigned,DHSet<unsigned>*>*> _distinctConstants;
+  _distinctConstants.ensure(env.sorts->sorts());
+  for(unsigned i=0;i<env.sorts->sorts();i++){ _distinctConstants[i]=0; }
+
   // Apply flattening and split clauses into ground and non-ground
   while(cit.hasNext()){
     Clause* c = cit.next();
+
+    // Do we have a ground unit equality between constants?
+    if(c->length()==1 && c->varCnt()==0){
+      Literal* l = (*c)[0];
+      if(l->isEquality()){
+        TermList* left = l->nthArgument(0);
+        TermList* right = l->nthArgument(1);
+        if(left->isTerm() && left->term()->arity()==0 &&
+           right->isTerm() && right->term()->arity()==0){
+
+          unsigned srt = SortHelper::getResultSort(left->term());
+          auto map = _distinctConstants[srt];
+          if(map==0){
+            map = new DHMap<unsigned,DHSet<unsigned>*>();
+            _distinctConstants[srt]=map;
+          }
+          unsigned lnum = left->term()->functor();
+          unsigned rnum = right->term()->functor();
+          {
+            DHSet<unsigned>* set;
+            if(!map->find(lnum,set)){
+              set = new DHSet<unsigned>();
+              map->insert(lnum,set);
+            }
+            set->insert(rnum);
+          }
+          {
+            DHSet<unsigned>* set;
+            if(!map->find(rnum,set)){
+              set = new DHSet<unsigned>();
+              map->insert(rnum,set);
+            }
+            set->insert(lnum);
+          } 
+        }
+      }
+    }
+
 #if VTRACE_FMB
     //cout << "Flatten " << c->toString() << endl;
 #endif
@@ -552,7 +596,7 @@ void FiniteModelBuilder::init()
     }
 
 #if VTRACE_FMB
-  cout << "Finding Max Sort Sizes" << endl;
+  cout << "Finding Min and Max Sort Sizes" << endl;
 #endif
 
     // Record the maximum sort sizes detected during sort inference 
@@ -615,6 +659,24 @@ void FiniteModelBuilder::init()
             _distinctSortMaxs[parent] = max(_distinctSortMaxs[parent],_distinctSortMaxs[child]);
           }
         }
+      }
+    }
+
+    //_distinctConstants
+    for(unsigned s=0;s<env.sorts->sorts();s++){
+      if(_distinctConstants[s]!=0){
+
+        ASS(_sortedSignature->vampireToDistinct.find(s));
+        auto map = _distinctConstants[s];
+        unsigned max = CliqueFinder::findMaxCliqueSize(map);
+        Stack<unsigned>* dss = _sortedSignature->vampireToDistinct.get(s);
+        Stack<unsigned>::Iterator ds(*dss);
+        while(ds.hasNext()){
+          _distinctSortMins[ds.next()]=max;
+        }
+#if VTRACE_FMB
+        cout << "Setting min for " << env.sorts->sortName(s) << " to " << max << endl;
+#endif
       }
     }
 
@@ -1442,6 +1504,9 @@ MainLoopResult FiniteModelBuilder::runImpl()
 
   if(outputAllowed()){
       bool doPrinting = false;
+#if VTRACE_FMB
+      doPrinting = true;
+#endif
       vstring res = "[";
       for(unsigned s=0;s<_sortedSignature->distinctSorts;s++){
         if(_distinctSortMaxs[s]==UINT_MAX){
@@ -1459,9 +1524,11 @@ MainLoopResult FiniteModelBuilder::runImpl()
 
   _sortModelSizes.ensure(_sortedSignature->sorts);
   _distinctSortSizes.ensure(_sortedSignature->distinctSorts);
-  for(unsigned i=0;i<_distinctSortSizes.size();i++) _distinctSortSizes[i]=_startModelSize;
-  for(unsigned i=0;i<_sortModelSizes.size();i++){
-    _sortModelSizes[i]=_startModelSize;
+  for(unsigned i=0;i<_distinctSortSizes.size();i++){
+     _distinctSortSizes[i]=max(_startModelSize,_distinctSortMins[i]);
+  }
+  for(unsigned s=0;s<_sortedSignature->sorts;s++) {
+    _sortModelSizes[s] = _distinctSortSizes[_sortedSignature->parents[s]];
   }
 
   if (!_xmass) {

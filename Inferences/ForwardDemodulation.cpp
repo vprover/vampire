@@ -21,6 +21,7 @@
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/Term.hpp"
 #include "Kernel/TermIterators.hpp"
+#include "Kernel/ColorHelper.hpp"
 
 #include "Indexing/Index.hpp"
 #include "Indexing/IndexManager.hpp"
@@ -59,7 +60,7 @@ void ForwardDemodulation::detach()
 }
 
 
-void ForwardDemodulation::perform(Clause* cl, ForwardSimplificationPerformer* simplPerformer)
+bool ForwardDemodulation::perform(Clause* cl, Clause*& replacement, ClauseIterator& premises)
 {
   CALL("ForwardDemodulation::perform");
 
@@ -99,7 +100,7 @@ void ForwardDemodulation::perform(Clause* cl, ForwardSimplificationPerformer* si
 	TermQueryResult qr=git.next();
 	ASS_EQ(qr.clause->length(),1);
 
-	if(!simplPerformer->willPerform(qr.clause)) {
+	if(!ColorHelper::compatible(cl->color(), qr.clause->color())) {
 	  continue;
 	}
 
@@ -173,10 +174,8 @@ void ForwardDemodulation::perform(Clause* cl, ForwardSimplificationPerformer* si
 	Literal* resLit = EqHelper::replace(lit,trm,rhsS);
 	if(EqHelper::isEqTautology(resLit)) {
 	  env.statistics->forwardDemodulationsToEqTaut++;
-	  simplPerformer->perform(qr.clause, 0);
-	  if(!simplPerformer->clauseKept()) {
-	    return;
-	  }
+	  premises = pvi( getSingletonIterator(qr.clause));
+	  return true;
 	}
 
 	Inference* inf = new Inference2(Inference::FORWARD_DEMODULATION, cl, qr.clause);
@@ -199,14 +198,15 @@ void ForwardDemodulation::perform(Clause* cl, ForwardSimplificationPerformer* si
 	res->setAge(cl->age());
 	env.statistics->forwardDemodulations++;
 
-	simplPerformer->perform(qr.clause, res);
-	if(!simplPerformer->clauseKept()) {
-	  return;
-	}
+	premises = pvi( getSingletonIterator(qr.clause));
+	replacement = res;
+	return true;
 
       }
     }
   }
+
+  return false;
 }
 
 }

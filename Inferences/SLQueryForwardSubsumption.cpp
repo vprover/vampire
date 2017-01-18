@@ -15,6 +15,7 @@
 #include "Kernel/Term.hpp"
 #include "Kernel/Clause.hpp"
 #include "Kernel/MLMatcher.hpp"
+#include "Kernel/ColorHelper.hpp"
 
 #include "Indexing/Index.hpp"
 #include "Indexing/LiteralIndex.hpp"
@@ -100,12 +101,10 @@ void SLQueryForwardSubsumption::perform(Clause* cl, ForwardSimplificationPerform
     while(rit.hasNext()) {
       SLQueryResult res=rit.next();
       unsigned rlen=res.clause->length();
-      if(rlen==1 && simplPerformer->willPerform(res.clause)) {
+      if(rlen==1 && ColorHelper::compatible(cl->color(), res.clause->color())) {
 	env.statistics->forwardSubsumed++;
 	simplPerformer->perform(res.clause, 0);
-	if(!simplPerformer->clauseKept()) {
-	  goto fin;
-	}
+	goto fin;
       } else if(rlen>clen) {
 	continue;
       }
@@ -171,12 +170,10 @@ void SLQueryForwardSubsumption::perform(Clause* cl, ForwardSimplificationPerform
 	matches[li]->destroy();
       }
 
-      if(!mclMatchFailed && simplPerformer->willPerform(mcl)) {
+      if(!mclMatchFailed && ColorHelper::compatible(cl->color(), mcl->color())) {
 	env.statistics->forwardSubsumed++;
 	simplPerformer->perform(mcl, 0);
-	if(!simplPerformer->clauseKept()) {
-	  goto fin;
-	}
+	goto fin;
       }
 
     }

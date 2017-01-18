@@ -117,7 +117,7 @@ Literal* ArrayTermTransformer::rewriteNegEqByExtensionality(Literal* l)
   
   if (l->isEquality() && l->isNegative()) {
     unsigned sort = SortHelper::getEqualityArgumentSort(l);
-    unsigned select = theory->getArraySelectFunctor(sort);
+    unsigned select = theory->getSymbolForStructuredSort(sort, Theory::StructuredSortInterpretation::ARRAY_SELECT);
     unsigned valSort = theory->getArrayOperationSort(theory->interpretFunction(select));
 
     //cout << l->toString() << endl;

@@ -7,6 +7,7 @@
 
 #include "Kernel/Inference.hpp"
 #include "Kernel/Ordering.hpp"
+#include "Kernel/ColorHelper.hpp"
 
 #include "Indexing/IndexManager.hpp"
 
@@ -34,7 +35,7 @@ void ForwardLiteralRewriting::detach()
 }
 
 
-void ForwardLiteralRewriting::perform(Clause* cl, ForwardSimplificationPerformer* simplPerformer)
+bool ForwardLiteralRewriting::perform(Clause* cl, Clause*& replacement, ClauseIterator& premises)
 {
   CALL("ForwardLiteralRewriting::perform");
 
@@ -51,8 +52,9 @@ void ForwardLiteralRewriting::perform(Clause* cl, ForwardSimplificationPerformer
       SLQueryResult qr=git.next();
       Clause* counterpart=_index->getCounterpart(qr.clause);
 
-      if(!simplPerformer->willPerform(qr.clause) || !simplPerformer->willPerform(counterpart)) {
-	continue;
+      if(!ColorHelper::compatible(cl->color(), qr.clause->color()) ||
+         !ColorHelper::compatible(cl->color(), counterpart->color()) ) {
+        continue;
       }
 
       if(cl==qr.clause || cl==counterpart) {
@@ -107,15 +109,13 @@ void ForwardLiteralRewriting::perform(Clause* cl, ForwardSimplificationPerformer
       res->setAge(cl->age());
       env.statistics->forwardLiteralRewrites++;
 
-      simplPerformer->perform(premise, res);
-      if(!simplPerformer->clauseKept()) {
-	return;
-      }
-
+      premises = pvi( getSingletonIterator(premise));
+      replacement = res;
+      return true;
     }
   }
 
-
+  return false;
 }
 
 };

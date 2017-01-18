@@ -881,7 +881,12 @@ void PredicateDefinition::count (TermList ts,int add, Unit* unit)
         break;
 
       case Term::SF_LET:
+      case Term::SF_LET_TUPLE:
         count(sd->getBinding(), add, unit);
+        break;
+
+      case Term::SF_TUPLE:
+        count(TermList(sd->getTupleTerm()), add, unit);
         break;
 
       default:

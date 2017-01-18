@@ -491,8 +491,10 @@ vstring RealConstantType::toNiceString() const
 //
 
 Theory Theory::theory_obj;  // to facilitate destructor call at deinitization
+Theory::Tuples Theory::tuples_obj;
 
 Theory* theory = &Theory::theory_obj;
+Theory::Tuples* theory_tuples = &Theory::tuples_obj;
 
 /**
  * Accessor for the singleton instance of the Theory class.
@@ -500,6 +502,11 @@ Theory* theory = &Theory::theory_obj;
 Theory* Theory::instance()
 {
   return theory;
+}
+
+Theory::Tuples* Theory::tuples()
+{
+  return theory_tuples;
 }
 
 /**
@@ -521,15 +528,15 @@ unsigned Theory::getArity(Interpretation i)
   CALL("Signature::InterpretedSymbol::getArity");
   ASS(theory->isValidInterpretation(i));
 
-  if(theory->isStructuredSortInterpretation(i)){
-    switch(theory->convertToStructured(i)){
+  if (theory->isStructuredSortInterpretation(i)){
+    switch (theory->convertToStructured(i)) {
       case StructuredSortInterpretation::ARRAY_SELECT:
       case StructuredSortInterpretation::ARRAY_BOOL_SELECT:
         return 2;
       case StructuredSortInterpretation::ARRAY_STORE:
         return 3;
       default:
-        ASSERTION_VIOLATION;
+        return 1;
     }
   }
 
@@ -646,11 +653,10 @@ bool Theory::isFunction(Interpretation i)
 
   if(theory->isStructuredSortInterpretation(i)){
     switch(theory->convertToStructured(i)){
-      case StructuredSortInterpretation::ARRAY_SELECT:
-      case StructuredSortInterpretation::ARRAY_STORE:
-        return true;
-      default:
+      case StructuredSortInterpretation::ARRAY_BOOL_SELECT:
         return false;
+      default:
+        return true;
     }
   }
 
@@ -817,6 +823,10 @@ unsigned Theory::getOperationSort(Interpretation i)
   ASS(hasSingleSort(i));
   ASS(theory->isValidInterpretation(i));
 
+  if (theory->isStructuredSortInterpretation(i)) {
+    return theory->getStructuredOperationSort(i);
+  }
+
   switch(i) {
   case INT_GREATER:
   case INT_GREATER_EQUAL:
@@ -978,28 +988,11 @@ bool Theory::isNonLinearOperation(Interpretation i)
   }
 }
 
-void Theory::addStructuredSortInterpretation(unsigned sort, StructuredSortInterpretation i){
-    ALWAYS(_structuredSortInterpretations.insert(
-                pair<unsigned,StructuredSortInterpretation>(sort,i),
-                MaxInterpretedElement()+1));
-
-    // Doing this ensures that the symbol is register in signature
-    //unsigned f = env.signature->getInterpretingSymbol(getInterpretation(sort,i));
-    //cout << "for interp " << getInterpretation(sort,i) << " f is " << f << endl;
-}
-
-
 unsigned Theory::getSymbolForStructuredSort(unsigned sort, StructuredSortInterpretation interp)
 {
     return env.signature->getInterpretingSymbol(getInterpretation(sort,interp));
 }
 
-bool Theory::isArraySort(unsigned sort) {
-  CALL("Theory::isArraySort");
-  
-  return env.sorts->hasStructuredSort(sort,Sorts::StructuredSort::ARRAY);
-}
-    
 /**
  * Return true if interpreted function @c i is an array operation.
  * @author Laura Kovacs
@@ -1009,20 +1002,7 @@ bool Theory::isArrayOperation(Interpretation i)
 {
   CALL("Theory::isArrayFunction");
   if(!theory->isStructuredSortInterpretation(i)) return false;
-  return env.sorts->hasStructuredSort(theory->getSort(i),Sorts::StructuredSort::ARRAY);      
-}
-
-unsigned Theory::getArraySelectFunctor(unsigned sort) {
-  CALL("Theory::getArraySelectFunctor");
-  ASS(isArraySort(sort));  
-  return theory->getSymbolForStructuredSort(sort,Theory::StructuredSortInterpretation::ARRAY_SELECT);
-}
-
-unsigned Theory::getArrayStoreFunctor(unsigned sort) {
-  CALL("Theory::getArrayStoreFunctor");
-  
-  ASS(isArraySort(sort));
-  return theory->getSymbolForStructuredSort(sort,Theory::StructuredSortInterpretation::ARRAY_STORE);
+  return env.sorts->hasStructuredSort(theory->getSort(i),Sorts::StructuredSort::ARRAY);
 }
 
 /**
@@ -1102,7 +1082,88 @@ unsigned Theory::getArrayExtSkolemFunction(unsigned sort) {
   return skolemFunction; 
 }
 
-    
+unsigned Theory::Tuples::getFunctor(unsigned arity, unsigned* sorts) {
+  CALL("Theory::Tuples::getFunctor(unsigned arity, unsigned* sorts)");
+  return getFunctor(env.sorts->addTupleSort(arity, sorts));
+}
+
+unsigned Theory::Tuples::getFunctor(unsigned tupleSort) {
+  CALL("Theory::Tuples::getFunctor(unsigned tupleSort)");
+
+  ASS_REP(env.sorts->hasStructuredSort(tupleSort, Sorts::StructuredSort::TUPLE),
+          env.sorts->sortName(tupleSort));
+
+  Sorts::TupleSort* tuple = env.sorts->getTupleSort(tupleSort);
+  unsigned  arity = tuple->arity();
+  unsigned* sorts = tuple->sorts();
+
+  theory->defineTupleTermAlgebra(arity, sorts);
+  ASS(env.signature->isTermAlgebraSort(tupleSort));
+  Shell::TermAlgebra* ta = env.signature->getTermAlgebraOfSort(tupleSort);
+
+  return ta->constructor(0)->functor();
+}
+
+bool Theory::Tuples::isFunctor(unsigned functor) {
+  CALL("Theory::Tuples::isFunctor(unsigned)");
+  unsigned tupleSort = env.signature->getFunction(functor)->fnType()->result();
+  return env.sorts->hasStructuredSort(tupleSort, Sorts::StructuredSort::TUPLE);
+}
+
+unsigned Theory::Tuples::getProjectionFunctor(unsigned proj, unsigned tupleSort) {
+  CALL("Theory::Tuples::getProjectionFunctor");
+
+  ASS_REP(env.sorts->hasStructuredSort(tupleSort, Sorts::StructuredSort::TUPLE),
+          env.sorts->sortName(tupleSort));
+
+  Sorts::TupleSort* tuple = env.sorts->getTupleSort(tupleSort);
+  unsigned  arity = tuple->arity();
+  unsigned* sorts = tuple->sorts();
+
+  theory->defineTupleTermAlgebra(arity, sorts);
+  ASS(env.signature->isTermAlgebraSort(tupleSort));
+  Shell::TermAlgebra* ta = env.signature->getTermAlgebraOfSort(tupleSort);
+
+  Shell::TermAlgebraConstructor* c = ta->constructor(0);
+
+  ASS_NEQ(proj, c->arity());
+
+  return c->destructorFunctor(proj);
+}
+
+// TODO: replace with a constant time algorithm
+bool Theory::Tuples::findProjection(unsigned projFunctor, bool isPredicate, unsigned &proj) {
+  CALL("Theory::Tuples::findProjection");
+
+  BaseType* projType = isPredicate ? static_cast<BaseType*>(env.signature->getPredicate(projFunctor)->predType())
+                                   : static_cast<BaseType*>(env.signature->getFunction(projFunctor)->fnType());
+
+  if (projType->arity() != 1) {
+    return false;
+  }
+
+  unsigned tupleSort = projType->arg(0);
+
+  if (!env.sorts->hasStructuredSort(tupleSort, Sorts::StructuredSort::TUPLE)) {
+    return false;
+  }
+
+  if (!env.signature->isTermAlgebraSort(tupleSort)) {
+    return false;
+  }
+
+  Shell::TermAlgebraConstructor* c = env.signature->getTermAlgebraOfSort(tupleSort)->constructor(0);
+  for (unsigned i = 0; i < c->arity(); i++) {
+    if (projFunctor == c->destructorFunctor(i)) {
+      proj = i;
+      return true;
+    }
+  }
+
+  return false;
+}
+
+
 /**
  * This function creates a type for converion function @c i.
  *
@@ -1143,49 +1204,179 @@ FunctionType* Theory::getConversionOperationType(Interpretation i)
   }
   return new FunctionType({from}, to);
 }
-    
-    
-/**
- * This function creates a type for array operation function @c i.
- *
- * @c i must be an array operation.
- * @author Laura Kovacs
- * @since 31/08/2012, Vienna
-*/
-BaseType* Theory::getArrayOperationType(Interpretation i)
-{
-    CALL("Theory::getArrayOperationType");
-    ASS(isArrayOperation(i));
 
-    BaseType* res;
+Sorts::StructuredSort Theory::getInterpretedSort(StructuredSortInterpretation ssi) {
+  switch (ssi) {
+    case StructuredSortInterpretation::ARRAY_SELECT:
+    case StructuredSortInterpretation::ARRAY_BOOL_SELECT:
+    case StructuredSortInterpretation::ARRAY_STORE:
+      return Sorts::StructuredSort::ARRAY;
+    case StructuredSortInterpretation::LIST_HEAD:
+    case StructuredSortInterpretation::LIST_TAIL:
+    case StructuredSortInterpretation::LIST_CONS:
+    case StructuredSortInterpretation::LIST_IS_EMPTY:
+      return Sorts::StructuredSort::LIST;
+    default:
+      ASSERTION_VIOLATION;
+  }
+}
 
-    // Not sure we need all of these
-    unsigned indexSort = getArrayDomainSort(i);
-    unsigned arrSort = theory->getSort(i);
-    unsigned valueSort = getArrayOperationSort(i);
-    unsigned innerSort = env.sorts->getArraySort(arrSort)->getInnerSort(); 
+vstring Theory::getInterpretationName(Interpretation interp) {
+  CALL("Theory::getInterpretationName");
 
-    //cout << "for Interp " << i << " : " << indexSort << ", " << arrSort << ", " << valueSort << endl;
+  if (Theory::instance()->isStructuredSortInterpretation(interp)) {
+    switch (Theory::instance()->convertToStructured(interp)) {
+      case StructuredSortInterpretation::ARRAY_SELECT:
+      case StructuredSortInterpretation::ARRAY_BOOL_SELECT:
+        return "$select";
+      case StructuredSortInterpretation::ARRAY_STORE:
+        return "$store";
+      default:
+        ASSERTION_VIOLATION_REP(interp);
+    }
+  } else {
+    switch (interp) {
+      case Theory::INT_SUCCESSOR:
+        //this one is not according the TPTP arithmetic (it doesn't have successor)
+        return "$successor";
+      case Theory::INT_DIVIDES:
+        return "$divides";
+      case Theory::INT_UNARY_MINUS:
+      case Theory::RAT_UNARY_MINUS:
+      case Theory::REAL_UNARY_MINUS:
+        return "$uminus";
+      case Theory::INT_PLUS:
+      case Theory::RAT_PLUS:
+      case Theory::REAL_PLUS:
+        return "$sum";
+      case Theory::INT_MINUS:
+      case Theory::RAT_MINUS:
+      case Theory::REAL_MINUS:
+        return "$difference";
+      case Theory::INT_MULTIPLY:
+      case Theory::RAT_MULTIPLY:
+      case Theory::REAL_MULTIPLY:
+        return "$product";
+      case Theory::INT_GREATER:
+      case Theory::RAT_GREATER:
+      case Theory::REAL_GREATER:
+        return "$greater";
+      case Theory::INT_GREATER_EQUAL:
+      case Theory::RAT_GREATER_EQUAL:
+      case Theory::REAL_GREATER_EQUAL:
+        return "$greatereq";
+      case Theory::INT_LESS:
+      case Theory::RAT_LESS:
+      case Theory::REAL_LESS:
+        return "$less";
+      case Theory::INT_LESS_EQUAL:
+      case Theory::RAT_LESS_EQUAL:
+      case Theory::REAL_LESS_EQUAL:
+        return "$lesseq";
+      case Theory::INT_IS_INT:
+      case Theory::RAT_IS_INT:
+      case Theory::REAL_IS_INT:
+        return "$is_int";
+      case Theory::INT_IS_RAT:
+      case Theory::RAT_IS_RAT:
+      case Theory::REAL_IS_RAT:
+        return "$is_rat";
+      case Theory::INT_IS_REAL:
+      case Theory::RAT_IS_REAL:
+      case Theory::REAL_IS_REAL:
+        return "$is_real";
+      case Theory::INT_TO_INT:
+      case Theory::RAT_TO_INT:
+      case Theory::REAL_TO_INT:
+        return "$to_int";
+      case Theory::INT_TO_RAT:
+      case Theory::RAT_TO_RAT:
+      case Theory::REAL_TO_RAT:
+        return "$to_rat";
+      case Theory::INT_TO_REAL:
+      case Theory::RAT_TO_REAL:
+      case Theory::REAL_TO_REAL:
+        return "$to_real";
+      case Theory::INT_MODULO:
+        return "$modulo";
+      case Theory::INT_ABS:
+        return "$abs";
+      case Theory::INT_QUOTIENT_E:
+      case Theory::RAT_QUOTIENT_E:
+      case Theory::REAL_QUOTIENT_E:
+        return "$quotient_e";
+      case Theory::INT_QUOTIENT_T:
+      case Theory::RAT_QUOTIENT_T:
+      case Theory::REAL_QUOTIENT_T:
+        return "$quotient_t";
+      case Theory::INT_QUOTIENT_F:
+      case Theory::RAT_QUOTIENT_F:
+      case Theory::REAL_QUOTIENT_F:
+        return "$quotient_f";
+      case Theory::INT_REMAINDER_T:
+      case Theory::RAT_REMAINDER_T:
+      case Theory::REAL_REMAINDER_T:
+        return "$remainder_t";
+      case Theory::INT_REMAINDER_F:
+      case Theory::RAT_REMAINDER_F:
+      case Theory::REAL_REMAINDER_F:
+        return "$remainder_f";
+      case Theory::INT_REMAINDER_E:
+      case Theory::RAT_REMAINDER_E:
+      case Theory::REAL_REMAINDER_E:
+        return "$remainder_e";
+      case Theory::RAT_QUOTIENT:
+      case Theory::REAL_QUOTIENT:
+        return "quotient";
+      case Theory::INT_TRUNCATE:
+      case Theory::RAT_TRUNCATE:
+      case Theory::REAL_TRUNCATE:
+        return "truncate";
+      case Theory::INT_FLOOR:
+      case Theory::RAT_FLOOR:
+      case Theory::REAL_FLOOR:
+        return "floor";
+      case Theory::INT_CEILING:
+      case Theory::RAT_CEILING:
+      case Theory::REAL_CEILING:
+        return "ceiling";
+      default:
+        ASSERTION_VIOLATION_REP(interp);
+    }
+  }
+}
 
-    switch(theory->convertToStructured(i)) {
+BaseType* Theory::getStructuredSortOperationType(Interpretation i) {
+  CALL("Theory::getStructuredSortOperationType");
 
+  ASS(theory->isStructuredSortInterpretation(i));
+
+  unsigned theorySort = theory->getSort(i);
+  StructuredSortInterpretation ssi = theory->convertToStructured(i);
+
+  switch (theory->getInterpretedSort(ssi)) {
+    case Sorts::StructuredSort::ARRAY: {
+      unsigned indexSort = getArrayDomainSort(i);
+      unsigned valueSort = getArrayOperationSort(i);
+      unsigned innerSort = env.sorts->getArraySort(theorySort)->getInnerSort();
+
+      switch (ssi) {
         case StructuredSortInterpretation::ARRAY_SELECT:
-          res = new FunctionType({arrSort, indexSort}, valueSort);
-          break;
+          return new FunctionType({ theorySort, indexSort }, valueSort);
 
         case StructuredSortInterpretation::ARRAY_BOOL_SELECT:
-          res = new PredicateType({arrSort, indexSort});
-          break;
+          return new PredicateType({ theorySort, indexSort });
 
         case StructuredSortInterpretation::ARRAY_STORE:
-          res = new FunctionType({arrSort, indexSort, innerSort}, valueSort);
-          break;
+          return new FunctionType({ theorySort, indexSort, innerSort }, valueSort);
 
         default:
-            ASSERTION_VIOLATION;
+          ASSERTION_VIOLATION;
+      }
     }
-
-    return res;
+    default:
+      ASSERTION_VIOLATION;
+  }
 }
 
 /**
@@ -1199,26 +1390,59 @@ BaseType* Theory::getOperationType(Interpretation i)
   if (isConversionOperation(i)) {
     return getConversionOperationType(i);
   }
-   
-  if (isArrayOperation(i))
-     { return getArrayOperationType(i);}
-  
-    unsigned sort;  
-    ASS(hasSingleSort(i));
-    sort = getOperationSort(i);
 
-    
+  if (theory->isStructuredSortInterpretation(i)) {
+    return getStructuredSortOperationType(i);
+  }
+
+  unsigned sort;
+  ASS(hasSingleSort(i));
+  sort = getOperationSort(i);
+
   unsigned arity = getArity(i);
-    
+
   static DArray<unsigned> domainSorts;
   domainSorts.init(arity, sort);
-
 
   if (isFunction(i)) {
     return new FunctionType(arity, domainSorts.array(), sort);
   } else {
     return new PredicateType(arity, domainSorts.array());
   }
+}
+
+void Theory::defineTupleTermAlgebra(unsigned arity, unsigned* sorts) {
+  CALL("Signature::defineTupleTermAlgebra");
+
+  unsigned tupleSort = env.sorts->addTupleSort(arity, sorts);
+
+  if (env.signature->isTermAlgebraSort(tupleSort)) {
+    return;
+  }
+
+  unsigned functor = env.signature->addFreshFunction(arity, "tuple");
+  FunctionType* tupleType = new FunctionType(arity, sorts, tupleSort);
+  env.signature->getFunction(functor)->setType(tupleType);
+  env.signature->getFunction(functor)->markTermAlgebraCons();
+
+  Array<unsigned> destructors(arity);
+  for (unsigned i = 0; i < arity; i++) {
+    unsigned projSort = sorts[i];
+    unsigned destructor;
+    if (projSort == Sorts::SRT_BOOL) {
+      destructor = env.signature->addFreshPredicate(1, "proj");
+      env.signature->getPredicate(destructor)->setType(new PredicateType({ tupleSort }));
+    } else {
+      destructor = env.signature->addFreshFunction(1, "proj");
+      env.signature->getFunction(destructor)->setType(new FunctionType({ tupleSort }, projSort));
+    }
+    destructors[i] = destructor;
+  }
+
+  Shell::TermAlgebraConstructor* constructor = new Shell::TermAlgebraConstructor(functor, destructors);
+
+  Shell::TermAlgebraConstructor* constructors[] = { constructor };
+  env.signature->addTermAlgebra(new Shell::TermAlgebra(tupleSort, 1, constructors, false));
 }
 
 bool Theory::isInterpretedConstant(unsigned func)
@@ -1252,6 +1476,16 @@ bool Theory::isInterpretedConstant(TermList t)
   CALL("Theory::isInterpretedConstant(TermList)");
 
   return t.isTerm() && isInterpretedConstant(t.term());
+}
+
+/**
+ * Return true iff @b t is a constant with a numerical interpretation
+ */
+bool Theory::isInterpretedNumber(TermList t)
+{
+  CALL("Theory::isInterpretedNumber(TermList)");
+
+  return isInterpretedConstant(t) && env.signature->getFunction(t.term()->functor())->numericConstant();
 }
 
 /**

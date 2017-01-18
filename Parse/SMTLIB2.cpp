@@ -856,7 +856,6 @@ void SMTLIB2::readDeclareDatatypes(LExprList* sorts, LExprList* datatypes, bool 
     ASS(added);
   }
 
-  Stack<TermAlgebra*> algebras;
   Stack<TermAlgebraConstructor*> constructors;
   Stack<unsigned> argSorts;
   Stack<vstring> destructorNames;
@@ -894,87 +893,72 @@ void SMTLIB2::readDeclareDatatypes(LExprList* sorts, LExprList* datatypes, bool 
           }
         }
       }
-      constructors.push(new TermAlgebraConstructor(constrName,
-                                                   taSort,
-                                                   argSorts.size(),
-                                                   destructorNames.begin(),
-                                                   argSorts.begin()));
+      constructors.push(buildTermAlgebraConstructor(constrName, taSort, destructorNames, argSorts));
     }
-    algebras.push(new TermAlgebra(taName,
-                                  taSort,
-                                  constructors.size(),
-                                  constructors.begin(),
-                                  codatatype));
-  }
 
-  Stack<TermAlgebra*>::Iterator it(algebras);
-  while (it.hasNext()) {
-    declareTermAlgebra(it.next());
-  }
-}
+    ASS(!env.signature->isTermAlgebraSort(taSort));
+    TermAlgebra* ta = new TermAlgebra(taSort, constructors.size(), constructors.begin(), codatatype);
 
-void SMTLIB2::declareTermAlgebra(Shell::TermAlgebra *ta)
-{
-  CALL("SMTLIB2::declareTermAlgebra");
-
-  if (ta->emptyDomain()) {
-    USER_ERROR("Datatype " + ta->name() + " defines an empty sort");
-  }
-
-  ASS(!env.signature->isTermAlgebraSort(ta->sort()));
-  env.signature->addTermAlgebra(ta);
-
-  for (unsigned i = 0; i < ta->nConstructors(); i++) {
-    declareTermAlgebraConstructor(ta->constructor(i), ta->sort());
-  }
-
-  ta->addExhaustivenessAxiom(_formulas);
-  ta->addDistinctnessAxiom(_formulas);
-  ta->addInjectivityAxiom(_formulas);
-  
-  if (env.options->termAlgebraCyclicityCheck() == Options::TACyclicityCheck::AXIOM) {
-    ta->addAcyclicityAxiom(_formulas);
-    
-    // declare subterm predicate for parser
-    DeclaredFunction p = make_pair(ta->getSubtermPredicate(), false);
-    LOG1("declareFunctionOrPredicate-Predicate");
-    LOG2("declareFunctionOrPredicate -name ", ta->getSubtermPredicateName());
-    LOG2("declareFunctionOrPredicate -symNum ", ta->getSubtermPredicate());
-    ALWAYS(_declaredFunctions.insert(ta->getSubtermPredicateName(), p));
-  }
-}
-
-void SMTLIB2::declareTermAlgebraConstructor(Shell::TermAlgebraConstructor *c, unsigned rangeSort)
-{
-  CALL("SMTLIB2::declareTermAlgebraConstructor");
-
-  // create symbols in signature
-  c->createSymbols();
-
-  // declare symbols for parser
-  // constructor
-  if (isAlreadyKnownFunctionSymbol(c->name())) {
-    USER_ERROR("Redeclaring function symbol: " + c->name());
-  }
-  DeclaredFunction p = make_pair(c->functor(), true);
-  LOG1("declareFunctionOrPredicate-Function");
-  LOG2("declareFunctionOrPredicate -name ", c->name());
-  LOG2("declareFunctionOrPredicate -symNum ", c->functor());
-  ALWAYS(_declaredFunctions.insert(c->name(), p));
-
-  // destructors
-  for (unsigned i = 0; i < c->arity(); i++) {
-    if (isAlreadyKnownFunctionSymbol(c->destructorName(i))) {
-      USER_ERROR("Redeclaring function symbol: " + c->destructorName(i));
+    if (ta->emptyDomain()) {
+      USER_ERROR("Datatype " + taName + " defines an empty sort");
     }
-    DeclaredFunction p = make_pair(c->destructorFunctor(i), true);
-    LOG1("declareFunctionOrPredicate-Function");
-    LOG2("declareFunctionOrPredicate -name ", c->destructorName(i));
-    LOG2("declareFunctionOrPredicate -symNum ", c->destructorFunctor(i));
-    ALWAYS(_declaredFunctions.insert(c->destructorName(i), p));
+
+    env.signature->addTermAlgebra(ta);
   }
 }
-  
+
+TermAlgebraConstructor* SMTLIB2::buildTermAlgebraConstructor(vstring constrName, unsigned taSort,
+                                                             Stack<vstring> destructorNames, Stack<unsigned> argSorts) {
+  CALL("SMTLIB2::buildTermAlgebraConstructor");
+
+  if (isAlreadyKnownFunctionSymbol(constrName)) {
+    USER_ERROR("Redeclaring function symbol: " + constrName);
+  }
+
+  unsigned arity = (unsigned)argSorts.size();
+
+  bool added;
+  unsigned functor = env.signature->addFunction(constrName, arity, added);
+  ASS(added);
+
+  BaseType* constructorType = new FunctionType(arity, argSorts.begin(), taSort);
+  env.signature->getFunction(functor)->setType(constructorType);
+  env.signature->getFunction(functor)->markTermAlgebraCons();
+
+  ALWAYS(_declaredFunctions.insert(constrName, make_pair(functor, true)));
+
+  Lib::Array<unsigned> destructorFunctors(arity);
+  for (unsigned i = 0; i < arity; i++) {
+    vstring destructorName = destructorNames[i];
+    unsigned destructorSort = argSorts[i];
+
+    if (isAlreadyKnownFunctionSymbol(destructorName)) {
+      USER_ERROR("Redeclaring function symbol: " + destructorName);
+    }
+
+    bool isPredicate = destructorSort == Sorts::SRT_BOOL;
+    bool added;
+    unsigned destructorFunctor = isPredicate ? env.signature->addPredicate(destructorName, 1, added)
+                                             : env.signature->addFunction(destructorName,  1, added);
+    ASS(added);
+
+    BaseType* destructorType = isPredicate ? (BaseType*) new PredicateType(1, &taSort)
+                                           : (BaseType*) new FunctionType(1, &taSort, destructorSort);
+
+    if (isPredicate) {
+      env.signature->getPredicate(destructorFunctor)->setType(destructorType);
+    } else {
+      env.signature->getFunction(destructorFunctor)->setType(destructorType);
+    }
+
+    ALWAYS(_declaredFunctions.insert(destructorName, make_pair(destructorFunctor, true)));
+
+    destructorFunctors[i] = destructorFunctor;
+  }
+
+  return new TermAlgebraConstructor(functor, destructorFunctors);
+}
+
 bool SMTLIB2::ParseResult::asFormula(Formula*& resFrm)
 {
   CALL("SMTLIB2::ParseResult::asFormula");

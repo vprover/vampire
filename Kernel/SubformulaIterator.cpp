@@ -166,8 +166,16 @@ bool SubformulaIterator::hasNext ()
             if (!binding.isTerm()) {
               _reserve = rest;
             } else {
+              // TODO: should be 1 instead of polarity?
               _reserve = new Element(binding.term(), polarity, rest);
             }
+            break;
+          }
+          case Term::SF_LET_TUPLE: {
+            delete _reserve;
+            TermList binding = term->getSpecialData()->getBinding();
+            // TODO: should be 1 instead of polarity?
+            _reserve = new Element(binding.term(), polarity, rest);
             break;
           }
           case Term::SF_FORMULA: {
@@ -176,6 +184,13 @@ bool SubformulaIterator::hasNext ()
             delete _reserve;
             _reserve = rest;
             return true;
+          }
+          case Term::SF_TUPLE: {
+            delete _reserve;
+            Term* tupleTerm = term->getSpecialData()->getTupleTerm();
+            // TODO: should be 1 instead of polarity?
+            _reserve = new Element(tupleTerm, polarity, rest);
+            break;
           }
 #if VDEBUG
           default:

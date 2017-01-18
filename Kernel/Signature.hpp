@@ -198,17 +198,18 @@ class Signature
     friend class Symbol;
   protected:
     Interpretation _interp;
+    bool _containsInterp;
 
   public:
 
     InterpretedSymbol(const vstring& nm, Interpretation interp)
-    : Symbol(nm, Theory::getArity(interp), true), _interp(interp)
+    : Symbol(nm, Theory::getArity(interp), true), _interp(interp), _containsInterp(true)
     {
       CALL("InterpretedSymbol");
     }
 
     InterpretedSymbol(const vstring& nm)
-    : Symbol(nm, 0, true)
+    : Symbol(nm, 0, true), _containsInterp(false)
     {
       CALL("InterpretedSymbol");
     }
@@ -216,7 +217,7 @@ class Signature
     USE_ALLOCATOR(InterpretedSymbol);
 
     /** Return the interpreted function that corresponds to this symbol */
-    inline Interpretation getInterpretation() const { ASS(interpreted()); ASS_NEQ(arity(),0); return _interp; }
+    inline Interpretation getInterpretation() const { ASS_REP(interpreted(), _name); ASS_REP(_containsInterp, _name); return _interp; }
   };
 
   class IntegerSymbol
@@ -366,7 +367,10 @@ class Signature
   unsigned addRationalConstant(const RationalConstantType& number);
   unsigned addRealConstant(const RealConstantType& number);
 
+  vstring getInterpretationName(Interpretation interp);
   unsigned getInterpretingSymbol(Interpretation interp);
+
+  unsigned getStructureInterpretationFunctor(unsigned theorySort, Theory::StructuredSortInterpretation ssi);
 
   /** Return true iff there is a symbol interpreted by Interpretation @b interp */
   bool haveInterpretingSymbol(Interpretation interp) const { return _iSymbols.find(interp); }
@@ -461,7 +465,7 @@ class Signature
   void noDistinctGroupsLeft(){ _distinctGroupsAddedTo=false; }
   Stack<Stack<unsigned>*> getDistinctGroupMembers(){ return _distinctGroupMembers; }
 
-  bool hasTermAlgebras();
+  bool hasTermAlgebras() { return !_termAlgebras.isEmpty(); }
       
   static vstring key(const vstring& name,int arity);
 
@@ -498,6 +502,7 @@ class Signature
   bool isTermAlgebraSort(unsigned sort) { return _termAlgebras.find(sort); }
   Shell::TermAlgebra *getTermAlgebraOfSort(unsigned sort) { return _termAlgebras.get(sort); }
   void addTermAlgebra(Shell::TermAlgebra *ta) { _termAlgebras.insert(ta->sort(), ta); }
+  VirtualIterator<Shell::TermAlgebra*> termAlgebrasIterator() const { return _termAlgebras.range(); }
 
   void recordDividesNvalue(TermList n){
     _dividesNvalues.push(n);
@@ -568,6 +573,9 @@ private:
    * Map from sorts to the associated term algebra, if applicable for the sort
    */ 
   DHMap<unsigned, Shell::TermAlgebra*> _termAlgebras;
+
+  void defineOptionTermAlgebra(unsigned optionSort);
+  void defineEitherTermAlgebra(unsigned eitherSort);
 }; // class Signature
 
 }

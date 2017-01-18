@@ -291,6 +291,32 @@ TermList Flattening::flatten (TermList ts)
         }
       }
 
+      case Term::SF_LET_TUPLE: {
+        TermList binding = sd->getBinding();
+        TermList body = *term->nthArgument(0);
+
+        TermList flattenedBinding = flatten(binding);
+        TermList flattenedBody = flatten(body);
+
+        if ((binding == flattenedBinding) && (body == flattenedBody)) {
+          return ts;
+        } else {
+          return TermList(Term::createTupleLet(sd->getFunctor(), sd->getTupleSymbols(), flattenedBinding, flattenedBody, sd->getSort()));
+        }
+      }
+
+      case Term::SF_TUPLE: {
+        TermList tupleTerm = TermList(sd->getTupleTerm());
+        TermList flattenedTupleTerm = flatten(tupleTerm);
+
+        if (tupleTerm == flattenedTupleTerm) {
+          return ts;
+        } else {
+          ASS_REP(flattenedTupleTerm.isTerm(), flattenedTupleTerm.toString())
+          return TermList(Term::createTuple(flattenedTupleTerm.term()));
+        }
+      }
+
       default:
         ASSERTION_VIOLATION;
     }
