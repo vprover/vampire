@@ -294,6 +294,9 @@ void UIHelper::outputResult(ostream& out)
         // new interpolation method described in master thesis of Bernhard Gleiss
         Formula* interpolantNew =InterpolantsNew().getInterpolant(static_cast<Clause*>(env.statistics->refutation), InterpolantsNew::UnitWeight::VAMPIRE);
         out << "New Interpolant: " << interpolantNew->toString() << endl;
+        
+//        Formula* interpolantMinimizedNew = InterpolantMinimizerNew().getInterpolant(static_cast<Clause*>(env.statistics->refutation), InterpolantsNew::UnitWeight::VAMPIRE);
+//        out << "New minimized Interpolant: " << interpolantMinimizedNew->toString() << endl;
     }
     if (env.options->showInterpolant()==Options::InterpolantMode::MINIMIZED) {
       ASS(env.statistics->refutation->isClause());

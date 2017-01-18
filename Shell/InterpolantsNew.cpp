@@ -60,13 +60,15 @@ namespace Shell
         while (it.hasNext()) // traverse the proof in depth-first post order
         {
             Unit* current = it.next();
+            
+            // sanity check
             assert((!InferenceStore::instance()->getParents(current).hasNext() &&  (   current->inheritedColor() == COLOR_LEFT
                                                                                         || current->inheritedColor() == COLOR_RIGHT
                                                                                         || current->inheritedColor() == COLOR_TRANSPARENT
                                                                                         ))
                    || (InferenceStore::instance()->getParents(current).hasNext() &&  current->inheritedColor() == COLOR_INVALID));
 
-            
+            // compute whether inference has grey and non-grey parent inferences
             bool hasGreyParents = false;
             bool hasNonGreyParents = false;
             
@@ -168,37 +170,16 @@ namespace Shell
         std::unordered_map<Unit*, Unit*> unitsToRepresentative; // maps each unit u1 (belonging to a red subproof) to the representative unit u2 of that subproof
         std::unordered_map<Unit*, int> unitsToSize; // needed for weighted quick-union: for each unit, counts number of elements rooted in that unit
         
-        std::unordered_set<Unit*> processed; // keep track of already visited units.
-        std::queue<Unit*> queue; // used for BFS
-        queue.push(refutation);
-        
-        // iterative Breadth-first search (BFS) through the proof DAG
-        while (!queue.empty())
+        ProofIteratorBFSPreOrder it(refutation);
+        while (it.hasNext())
         {
-            Unit* currentUnit = queue.front();
-            queue.pop();
-            processed.insert(currentUnit);
-            
-            // add unprocessed premises to queue for BFS:
-            VirtualIterator<Unit*> parents = InferenceStore::instance()->getParents(currentUnit);
-            
-            while (parents.hasNext())
-            {
-                Unit* premise= parents.next();
-                
-                // if we haven't processed the current premise yet
-                if (processed.find(premise) == processed.end())
-                {
-                    // add it to the queue
-                    queue.push(premise);
-                }
-            }
+            Unit* current = it.next();
             
             // standard union-find: if current inference is assigned to A-part of the proof,
-            if (currentUnit->inheritedColor() == COLOR_LEFT)
+            if (current->inheritedColor() == COLOR_LEFT)
             {
-                parents = InferenceStore::instance()->getParents(currentUnit);
                 // then for each parent inference,
+                VirtualIterator<Unit*> parents = InferenceStore::instance()->getParents(current);
                 while (parents.hasNext())
                 {
                     Unit* premise = parents.next();
@@ -207,11 +188,13 @@ namespace Shell
                     if (premise->inheritedColor() == COLOR_LEFT)
                     {
                         // merge the subproof of the current inference with the subproof of the parent inference
-                        merge(unitsToRepresentative, unitsToSize, currentUnit, premise);
+                        merge(unitsToRepresentative, unitsToSize, current, premise);
                     }
                 }
             }
         }
+        
+
 
         return unitsToRepresentative;
     }

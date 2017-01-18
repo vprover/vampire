@@ -924,7 +924,19 @@ InferenceStore* InferenceStore::instance()
     
     bool ProofIteratorBFSPreOrder::hasNext()
     {
-        return !todo.empty();
+        while (!todo.empty())
+        {
+            if (visited.find(todo.front()) == visited.end())
+            {
+                return true;
+            }
+            else
+            {
+                todo.pop();
+            }
+        }
+        
+        return false;
     }
     
     /*
