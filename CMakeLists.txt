@@ -742,6 +742,7 @@ set(VAMPIRE_SOURCES
 	${VAMPIRE_CASC_SOURCES}
 	${VAMPIRE_SMTCOMP_SOURCES}
     ${VAMPIRE_MINISAT_SOURCES}
+    Test/CheckedSatSolver.cpp
     version.cpp
     global.cpp
     vampire.cpp
@@ -752,6 +753,7 @@ set(VAMPIRE_SOURCES
 
 add_executable(vampire ${VAMPIRE_SOURCES})
 target_link_libraries(vampire Z3)
+target_compile_definitions(vampire PRIVATE VZ3=1 VDEBUG=1 CHECK_LEAKS=0)
 
 ################################################################
 # automated generation of Vampire revision information from git

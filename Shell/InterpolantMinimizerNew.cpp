@@ -4,7 +4,7 @@
  * @author Bernhard Gleiss
  */
 
-//#if VZ3
+#if VZ3
 
 #include "InterpolantMinimizerNew.hpp"
 
@@ -16,7 +16,7 @@
 namespace Shell
 {
     using namespace Kernel;
-    
+
     void InterpolantMinimizerNew::computeSplittingFunction(Kernel::Unit* refutation,  UnitWeight weightFunction)
     {
         using namespace z3;
@@ -116,4 +116,4 @@ namespace Shell
     }
 }
 
-//#endif // VZ3
+#endif // VZ3

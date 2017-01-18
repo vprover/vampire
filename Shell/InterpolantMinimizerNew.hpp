@@ -10,7 +10,7 @@
 #include "InterpolantsNew.hpp"
 #include <stack>
 
-//#if VZ3
+#if VZ3
 namespace Shell
 {
     /*
@@ -32,6 +32,6 @@ namespace Shell
         virtual void computeSplittingFunction(Kernel::Unit* refutation, UnitWeight weightFunction) override;
     };
 };
-//#endif // VZ3
+#endif // VZ3
 
 #endif // __InterpolantMinimizerNew__
