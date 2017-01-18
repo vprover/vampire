@@ -170,7 +170,7 @@ namespace Shell
         std::unordered_map<Unit*, Unit*> unitsToRepresentative; // maps each unit u1 (belonging to a red subproof) to the representative unit u2 of that subproof
         std::unordered_map<Unit*, int> unitsToSize; // needed for weighted quick-union: for each unit, counts number of elements rooted in that unit
         
-        ProofIteratorBFSPreOrder it(refutation);
+        ProofIteratorBFSPreOrder it(refutation); // traverse the proof in breadth-first pre-order
         while (it.hasNext())
         {
             Unit* current = it.next();
@@ -210,44 +210,23 @@ namespace Shell
         std::unordered_map<Unit*, std::unordered_set<Unit*>> unitsToTopBoundaries; // maps each representative unit of a subproof to the top boundaries of that subproof
         std::unordered_map<Unit*, std::unordered_set<Unit*>> unitsToBottomBoundaries; // maps each representative unit of a subproof to the bottom boundaries of that subproof
         
-        std::unordered_set<Unit*> processed; // keep track of already visited units.
-        std::queue<Unit*> queue; // used for BFS
-        queue.push(refutation);
-        
-        // iterative BFS through the proof DAG
-        while (!queue.empty())
+        ProofIteratorBFSPreOrder it(refutation); // traverse the proof in breadth-first pre-order
+        while (it.hasNext())
         {
-            Unit* currentUnit = queue.front();
-            queue.pop();
-            processed.insert(currentUnit);
-            
-            // add unprocessed premises to queue for BFS:
-            VirtualIterator<Unit*> parents = InferenceStore::instance()->getParents(currentUnit);
-            
-            while (parents.hasNext())
-            {
-                Unit* premise= parents.next();
-                
-                // if we haven't processed the current premise yet
-                if (processed.find(premise) == processed.end())
-                {
-                    // add it to the queue
-                    queue.push(premise);
-                }
-            }
+            Unit* current = it.next();
             
             // if current inference is assigned to A-part
-            assert(currentUnit->inheritedColor() == COLOR_LEFT || currentUnit->inheritedColor() == COLOR_RIGHT);
-            if (currentUnit->inheritedColor() == COLOR_LEFT)
+            assert(current->inheritedColor() == COLOR_LEFT || current->inheritedColor() == COLOR_RIGHT);
+            if (current->inheritedColor() == COLOR_LEFT)
             {
-                Unit* rootOfCurrent = root(unitsToRepresentative, currentUnit);
-                parents = InferenceStore::instance()->getParents(currentUnit);
+                Unit* rootOfCurrent = root(unitsToRepresentative, current);
                 
                 // then for each parent inference,
+                VirtualIterator<Unit*> parents = InferenceStore::instance()->getParents(current);
                 while (parents.hasNext())
                 {
                     Unit* premise = parents.next();
-
+                    
                     // if it is assigned to the B-part
                     assert(premise->inheritedColor() == COLOR_LEFT || premise->inheritedColor() == COLOR_RIGHT);
                     if (premise->inheritedColor() != COLOR_LEFT)
@@ -261,9 +240,8 @@ namespace Shell
             // if current inference is assigned to B-part
             else
             {
-                parents = InferenceStore::instance()->getParents(currentUnit);
-                
                 // then for each parent inference,
+                VirtualIterator<Unit*> parents = InferenceStore::instance()->getParents(current);
                 while (parents.hasNext())
                 {
                     Unit* premise = parents.next();
@@ -280,7 +258,7 @@ namespace Shell
                 }
             }
         }
-        
+
         // we finally have to check for the empty clause, if it appears as boundary of an A-subproof
         if (refutation->inheritedColor() == COLOR_LEFT)
         {
