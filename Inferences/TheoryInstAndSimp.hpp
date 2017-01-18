@@ -39,7 +39,7 @@ public:
 
 private:
 
-  Clause* selectTheoryLiterals(Clause* cl, Stack<Literal*>& theoryLits);
+  void selectTheoryLiterals(Clause* cl, Stack<Literal*>& theoryLits);
   VirtualIterator<Solution> getSolutions(Stack<Literal*>& theoryLiterals);
 
 };

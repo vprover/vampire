@@ -103,6 +103,8 @@ public:
   unsigned backwardExtensionalityResolution;
   /** number of theory inst simp **/
   unsigned theoryInstSimp;
+  /** number of theoryInstSimp candidates **/
+  unsigned theoryInstSimpCandidates;
 
   // Simplifying inferences
   /** number of duplicate literals deleted */

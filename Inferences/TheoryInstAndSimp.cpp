@@ -46,22 +46,27 @@ using namespace SAT;
 
 
 /**
- * Apply theory flattening to cl and return the flattened clause. The theoryLits *of the flattened clause* will be inserted into the stack
+ * 
  **/
-Clause* TheoryInstAndSimp::selectTheoryLiterals(Clause* cl, Stack<Literal*>& theoryLits)
+void TheoryInstAndSimp::selectTheoryLiterals(Clause* cl, Stack<Literal*>& theoryLits)
 {
   CALL("TheoryInstAndSimp::selectTheoryLiterals");
 
-  static TheoryFlattening flattener;
+  static Shell::Options::TheoryInstSimpSelection selection = env.options->theoryInstAndSimpSelection();
 
-  Clause* flattened = flattener.apply(cl);
+  Stack<Literal*> weak;
+  Set<unsigned> strong_vars;
+  Set<unsigned> strong_symbols;
 
-  Clause::Iterator it(*flattened);
+  Clause::Iterator it(*cl);
   while(it.hasNext()){
     Literal* lit = it.next();
     bool interpreted = theory->isInterpretedPredicate(lit);
+
     // two var equalities are correctly identified as interpreted and should be added
     // for the other equalities, we make sure they don't contain uninterpreted stuff (after flattenning)
+
+    //TODO I do this kind of check all over the place but differently every time!
     if(interpreted && lit->isEquality() && !lit->isTwoVarEquality()) {  
       for(TermList* ts = lit->args(); ts->isNonEmpty(); ts = ts->next()){
         if(ts->isTerm() && !env.signature->getFunction(ts->term()->functor())->interpreted()){
@@ -70,12 +75,55 @@ Clause* TheoryInstAndSimp::selectTheoryLiterals(Clause* cl, Stack<Literal*>& the
         }
       }
     }
-    if(interpreted){
-      theoryLits.push(lit);
+    if(interpreted){    
+      VariableIterator vit(lit); 
+      bool pos_equality = lit->isEquality() && lit->polarity();
+      // currently weak literals are postive equalities or ground literals
+      bool is_weak = !vit.hasNext() || pos_equality;
+      if(selection != Shell::Options::TheoryInstSimpSelection::ALL && is_weak){
+        weak.push(lit);
+      }
+      else{
+#if DPRINT
+        cout << "select " << lit->toString() << endl;
+#endif
+        theoryLits.push(lit);
+        while(vit.hasNext()){ strong_vars.insert(vit.next().var()); } 
+        NonVariableIterator nit(lit);
+        while(nit.hasNext()){ strong_symbols.insert(nit.next().term()->functor());}
+      }
     } 
   }
+  if(selection != Shell::Options::TheoryInstSimpSelection::OVERLAP){
+    return;
+  }
 
-  return flattened;
+  Stack<Literal*>::Iterator wit(weak);
+  while(wit.hasNext()){
+    Literal* lit = wit.next();
+    VariableIterator vit(lit);
+    bool add = false;
+    while(vit.hasNext() && !add){
+      if(strong_vars.contains(vit.next().var())){
+        add=true; 
+      }
+    }
+    if(!add){
+      NonVariableIterator nit(lit); 
+      while(nit.hasNext() && !add){
+        if(strong_symbols.contains(nit.next().term()->functor())){
+          add=true;
+        }
+      }
+    }
+    if(add){
+#if DPRINT
+        cout << "select " << lit->toString() << endl;
+#endif
+        theoryLits.push(lit);
+    }
+  }
+
 }
 
 Term* getFreshConstant(unsigned index, unsigned srt)
@@ -178,7 +226,7 @@ VirtualIterator<Solution> TheoryInstAndSimp::getSolutions(Stack<Literal*>& theor
 
 struct InstanceFn
 {
-  InstanceFn(Clause* cl) : _cl(cl) {}
+  InstanceFn(Clause* cl,Stack<Literal*>& tl) : _cl(cl), _theoryLits(tl) {}
   
   DECL_RETURN_TYPE(Clause*);
   OWN_RETURN_TYPE operator()(Solution sol)
@@ -197,17 +245,40 @@ struct InstanceFn
     cout << "Instantiate " << _cl->toString() << endl;
     cout << "with " << sol.subst.toString() << endl;
 #endif
-    Inference* inf = new Inference1(Inference::INSTANTIATION,_cl);
-    Clause* res = new(_cl->length()) Clause(_cl->length(),_cl->inputType(),inf);
+    Inference* inf_inst = new Inference1(Inference::INSTANTIATION,_cl);
+    Clause* inst = new(_cl->length()) Clause(_cl->length(),_cl->inputType(),inf_inst);
+
+    Inference* inf_simp = new Inference1(Inference::INTERPRETED_SIMPLIFICATION,inst);
+    unsigned newLen = _cl->length() - _theoryLits.size();
+    Clause* res = new(newLen) Clause(newLen,_cl->inputType(),inf_simp);
+
+#if VDEBUG
+    unsigned skip = 0;
+#endif
+    unsigned j=0;
     for(unsigned i=0;i<_cl->length();i++){
-      (*res)[i] = SubstHelper::apply((*_cl)[i],sol.subst);
+      Literal* lit = (*_cl)[i];
+      Literal* lit_inst = SubstHelper::apply(lit,sol.subst);
+      (*inst)[i] = lit_inst;
+      // we implicitly remove all theoryLits as the solution makes their combination false
+      if(!_theoryLits.find(lit)){
+        (*res)[j] = lit_inst; 
+        j++;
+      }
+#if VDEBUG
+      else{skip++;}
+#endif
     }
+    ASS_EQ(skip, _theoryLits.size());
+    ASS_EQ(j,newLen);
+
     env.statistics->theoryInstSimp++;
     return res;
   }
 
 private:
   Clause* _cl;
+  Stack<Literal*>& _theoryLits;
 };
 
 ClauseIterator TheoryInstAndSimp::generateClauses(Clause* premise)
@@ -216,37 +287,27 @@ ClauseIterator TheoryInstAndSimp::generateClauses(Clause* premise)
 
   if(premise->isTheoryDescendant()){ return ClauseIterator::getEmpty(); }
 
-  // Check for eligiability
-  static bool allowPositiveEquality = env.options->theoryInstAndSimpEqualityCheck()!=Options::TheoryInstSimpEquality::NONE; 
-  {
-    bool eligable=false;
-    Clause::Iterator lit(*premise); 
-    while(lit.hasNext() && !eligable){
-      Literal* l = lit.next();
-      if(l->isEquality()){
-        if(allowPositiveEquality || !l->polarity()){ 
-          if(theory->isInterpretedFunction(*l->nthArgument(0)) ||
-             theory->isInterpretedFunction(*l->nthArgument(1))){
-            eligable=true;
-          }
-        }
-      }
-      else if(theory->isInterpretedPredicate(l)){
-        eligable=true;
-      }
-    }
-    if(!eligable){
-      return ClauseIterator::getEmpty();
-    }
-  } 
+  static Stack<Literal*> selectedLiterals;
+  selectedLiterals.reset();
+
+  selectTheoryLiterals(premise,selectedLiterals);
+
+  // if there are no eligable theory literals selected then there is nothing to do
+  if(selectedLiterals.isEmpty()){
+        return ClauseIterator::getEmpty();
+  }
+
+  // we have an eligable candidate
+  env.statistics->theoryInstSimpCandidates++;
 
   // TODO use limits
   //Limits* limits = _salg->getLimits();
 
-  static Stack<Literal*> theoryLiterals;
-  theoryLiterals.reset();
+  // we will use flattening which is non-recursive and sharing
+  static TheoryFlattening flattener(false,true);
 
-  Clause* flattened = selectTheoryLiterals(premise,theoryLiterals);
+  Clause* flattened = flattener.apply(premise,selectedLiterals);
+
   ASS(flattened);
 
   // ensure that splits are copied to flattened
@@ -254,6 +315,16 @@ ClauseIterator TheoryInstAndSimp::generateClauses(Clause* premise)
   if(splitter){
     splitter->onNewClause(flattened);
   }
+
+  static Stack<Literal*> theoryLiterals;
+  theoryLiterals.reset();
+
+  // Now go through the abstracted clause and select the things we send to SMT
+  // Selection and abstraction could be done in a single step but we are reusing existing theory flattening
+  selectTheoryLiterals(flattened,theoryLiterals);
+
+  // At this point theoryLiterals should contain abstracted versions of what is in selectedLiterals
+  // all of the namings will be ineligable as, by construction, they will contain uninterpreted things
 
 #if DPRINT
   cout << "Generate instances of " << premise->toString() << endl;
@@ -266,7 +337,7 @@ ClauseIterator TheoryInstAndSimp::generateClauses(Clause* premise)
 
   auto it1 = getSolutions(theoryLiterals);
 
-  auto it2 = getMappingIterator(it1,InstanceFn(flattened));
+  auto it2 = getMappingIterator(it1,InstanceFn(flattened,theoryLiterals));
 
   // filter out only non-zero results
   auto it3 = getFilteredIterator(it2, NonzeroFn());

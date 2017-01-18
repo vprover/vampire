@@ -198,10 +198,10 @@ public:
     };
     // update _tagNames at the end of Options constructor if you add a tag
     
-  enum class TheoryInstSimpEquality : unsigned int {
-    ANY,
-    NONE,
-    HALFWAY 
+  enum class TheoryInstSimpSelection : unsigned int {
+    ALL,    // select all interpreted
+    STRONG, // select strong only
+    OVERLAP // select strong and weak which overlap with strong
   };
   enum class UnificationWithAbstraction : unsigned int {
     OFF,
@@ -1761,7 +1761,7 @@ public:
   bool satFallbackForSMT() const { return _satFallbackForSMT.actualValue; }
   bool smtForGround() const { return _smtForGround.actualValue; }
   bool theoryInstAndSimp() const { return _theoryInstAndSimp.actualValue; }
-  TheoryInstSimpEquality theoryInstAndSimpEqualityCheck() const { return _theoryInstAndSimpEqualityCheck.actualValue; }
+  TheoryInstSimpSelection theoryInstAndSimpSelection() const { return _theoryInstAndSimpSelection.actualValue; }
 #endif
   UnificationWithAbstraction unificationWithAbstraction() const { return _unificationWithAbstraction.actualValue; }
   bool unusedPredicateDefinitionRemoval() const { return _unusedPredicateDefinitionRemoval.actualValue; }
@@ -2247,7 +2247,7 @@ private:
   BoolOptionValue _satFallbackForSMT;
   BoolOptionValue _smtForGround;
   BoolOptionValue _theoryInstAndSimp;
-  ChoiceOptionValue<TheoryInstSimpEquality> _theoryInstAndSimpEqualityCheck;
+  ChoiceOptionValue<TheoryInstSimpSelection> _theoryInstAndSimpSelection;
 #endif
   ChoiceOptionValue<UnificationWithAbstraction> _unificationWithAbstraction; 
   TimeLimitOptionValue _simulatedTimeLimit;

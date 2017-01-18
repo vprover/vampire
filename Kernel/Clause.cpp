@@ -77,11 +77,15 @@ Clause::Clause(unsigned length,InputType it,Inference* inf)
   if(hasTheoryAxioms){
     Inference::Iterator it = inf->iterator();
     bool td = inf->hasNext(it); // td should be false if there are no parents
-    while(inf->hasNext(it)){
+    while(inf->hasNext(it) && td){
       Unit* parent = inf->next(it);
       if(parent->isClause()){
         td &= static_cast<Clause*>(parent)->isTheoryDescendant();
         if(!td){break;}
+      }
+      else{
+        // if a parent is not a clause then it cannot be (i) a theory axiom itself, or (ii) a theory descendant clause
+        td = false;
       }
     }
     _theoryDescendant=td;
@@ -404,10 +408,19 @@ vstring Clause::toString() const
   }
 
   result += vstring(" (") + Int::toString(_age) + ':' + Int::toString(weight());
+  float ew = const_cast<Clause*>(this)->getEffectiveWeight(const_cast<Shell::Options&>(*(env.options)));
+  unsigned effective = static_cast<int>(ceil(ew));
+  if(effective!=weight()){
+    result += "["+Int::toString(effective)+"]";
+  }
   if (numSelected()>0) {
     result += ':' + Int::toString(numSelected());
   }
-  result += ") " + inferenceAsString();
+  result += ") ";
+  if(isTheoryDescendant()){
+    result += "T ";
+  }
+  result +=  inferenceAsString();
   return result;
 }
 
@@ -513,7 +526,7 @@ unsigned Clause::splitWeight() const
  * @since 04/05/2013 Manchester, updated to use new NonVariableIterator
  * @author Andrei Voronkov
  */
-unsigned Clause::getNumeralWeight()
+unsigned Clause::getNumeralWeight() 
 {
   CALL("Clause::getNumeralWeight");
 
@@ -567,7 +580,7 @@ unsigned Clause::getNumeralWeight()
  * by the nongoal weight coefficient, if applicable)
  * @since 22/1/15 weight uses splitWeight
  */
-float Clause::getEffectiveWeight(const Options& opt)
+float Clause::getEffectiveWeight(const Options& opt) 
 {
   CALL("Clause::getEffectiveWeight");
 

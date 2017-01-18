@@ -329,6 +329,8 @@ void Options::Options::init()
     _sos.setRandomChoices(And(isRandOn(),hasNonUnits()),{"on","off","off","off","off"});
     _sos.setRandomChoices(isRandOn(),{"all","off","on"});
 
+    //_sosTheoryLimit = UnsignedOptionValue("s
+
 
 
     _equalityProxy = ChoiceOptionValue<EqualityProxy>( "equality_proxy","ep",EqualityProxy::OFF,{"R","RS","RST","RSTC","off"});
@@ -778,12 +780,12 @@ void Options::Options::init()
 	   _lookup.insert(&_theoryInstAndSimp);
            _theoryInstAndSimp.setExperimental();
 
-           _theoryInstAndSimpEqualityCheck = ChoiceOptionValue<TheoryInstSimpEquality>("theory_inst_and_simp_equality_check","thisec",
-                                                TheoryInstSimpEquality::NONE,{"any","none","halfway"});
-           _theoryInstAndSimpEqualityCheck.description = ""; 
-           _theoryInstAndSimpEqualityCheck.tag(OptionTag::INFERENCES);
-           _lookup.insert(&_theoryInstAndSimpEqualityCheck);
-           _theoryInstAndSimpEqualityCheck.setExperimental();
+           _theoryInstAndSimpSelection = ChoiceOptionValue<TheoryInstSimpSelection>("theory_inst_and_simp_selection","thiss",
+                                                TheoryInstSimpSelection::STRONG,{"all","strong","overlap"});
+           _theoryInstAndSimpSelection.description = ""; 
+           _theoryInstAndSimpSelection.tag(OptionTag::INFERENCES);
+           _lookup.insert(&_theoryInstAndSimpSelection);
+           _theoryInstAndSimpSelection.setExperimental();
 #endif
            _unificationWithAbstraction = ChoiceOptionValue<UnificationWithAbstraction>("unification_with_abstraction","uwa",
                                              UnificationWithAbstraction::OFF,
