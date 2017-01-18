@@ -11,6 +11,8 @@
 #include "Kernel/Unit.hpp"
 #include "Kernel/InferenceStore.hpp"
 
+#include <memory>
+
 #include "z3++.h"
 
 namespace Shell
