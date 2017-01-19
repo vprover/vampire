@@ -16,7 +16,6 @@
 #include "SimplifyFalseTrue.hpp"
 
 #include "Debug/Assertion.hpp"
-#include <assert.h>
 
 /*
  * note that formulas are implemented as both formulas (usual formulas) and 
@@ -65,9 +64,9 @@ namespace Shell
         while (it.hasNext()) // traverse the proof in depth-first post order
         {
             Unit* current = it.next();
-            
+
             // sanity check
-            assert((!InferenceStore::instance()->getParents(current).hasNext() &&  (   current->inheritedColor() == COLOR_LEFT
+            ASS((!InferenceStore::instance()->getParents(current).hasNext() &&  (   current->inheritedColor() == COLOR_LEFT
                                                                                         || current->inheritedColor() == COLOR_RIGHT
                                                                                         || current->inheritedColor() == COLOR_TRANSPARENT
                                                                                         ))
@@ -219,7 +218,7 @@ namespace Shell
             Unit* current = it.next();
             
             // if current inference is assigned to A-part
-            assert(splittingFunction.at(current) == COLOR_LEFT || splittingFunction.at(current) == COLOR_RIGHT);
+            ASS(splittingFunction.at(current) == COLOR_LEFT || splittingFunction.at(current) == COLOR_RIGHT);
             if (splittingFunction.at(current) == COLOR_LEFT)
             {
                 Unit* rootOfCurrent = root(unitsToRepresentative, current);
@@ -231,7 +230,7 @@ namespace Shell
                     Unit* premise = parents.next();
                     
                     // if it is assigned to the B-part
-                    assert(splittingFunction.at(premise) == COLOR_LEFT || splittingFunction.at(premise) == COLOR_RIGHT);
+                    ASS(splittingFunction.at(premise) == COLOR_LEFT || splittingFunction.at(premise) == COLOR_RIGHT);
                     if (splittingFunction.at(premise) != COLOR_LEFT)
                     {
                         // add the premise (i.e. the conclusion of the parent inference) to upper boundaries of the subproof of currentUnit:
@@ -250,7 +249,7 @@ namespace Shell
                     Unit* premise = parents.next();
                     
                     // if it is assigned to the A-part
-                    assert(splittingFunction.at(premise) == COLOR_LEFT || splittingFunction.at(premise) == COLOR_RIGHT);
+                    ASS(splittingFunction.at(premise) == COLOR_LEFT || splittingFunction.at(premise) == COLOR_RIGHT);
                     if (splittingFunction.at(premise) == COLOR_LEFT)
                     {
                         Unit* rootOfPremise = root(unitsToRepresentative, premise);
@@ -265,7 +264,7 @@ namespace Shell
         // we finally have to check for the empty clause, if it appears as boundary of an A-subproof
         if (splittingFunction.at(refutation) == COLOR_LEFT)
         {
-            assert(root(unitsToRepresentative, refutation) == refutation);
+            ASS_EQ(root(unitsToRepresentative, refutation), refutation);
             unitsToBottomBoundaries[refutation].insert(refutation);
         }
 
@@ -363,7 +362,7 @@ namespace Shell
         while (it.hasNext()) // traverse the proof in depth-first post order
         {
             Unit* current = it.next();
-            assert((!InferenceStore::instance()->getParents(current).hasNext() && (current->inheritedColor() == COLOR_LEFT || current->inheritedColor() == COLOR_RIGHT)) || (InferenceStore::instance()->getParents(current).hasNext() &&  current->inheritedColor() == COLOR_INVALID));
+            ASS((!InferenceStore::instance()->getParents(current).hasNext() && (current->inheritedColor() == COLOR_LEFT || current->inheritedColor() == COLOR_RIGHT)) || (InferenceStore::instance()->getParents(current).hasNext() &&  current->inheritedColor() == COLOR_INVALID));
 
             // if the inference is an axiom, assign it to the corresponding partition
             if (!InferenceStore::instance()->getParents(current).hasNext())
@@ -413,7 +412,7 @@ namespace Shell
             {
                 Unit* premise= parents.next();
                 
-                assert(splittingFunction.at(premise) == COLOR_LEFT || splittingFunction.at(premise) == COLOR_RIGHT);
+                ASS(splittingFunction.at(premise) == COLOR_LEFT || splittingFunction.at(premise) == COLOR_RIGHT);
                 if (splittingFunction.at(premise) == COLOR_LEFT)
                 {
                     difference += weightForUnit(premise, weightFunction);
@@ -448,7 +447,7 @@ namespace Shell
         }
         else
         {
-            assert(weightFunction == UnitWeight::QUANTIFIED_VARS);
+            ASS_EQ(weightFunction, UnitWeight::QUANTIFIED_VARS);
             return unit->varCnt();
         }
     }
@@ -472,7 +471,7 @@ namespace Shell
         Unit* root = unit;
         while (unitsToRepresentative.find(root) != unitsToRepresentative.end())
         {
-            assert(unitsToRepresentative.at(root) != root);
+            ASS_NEQ(unitsToRepresentative.at(root), root);
             root = unitsToRepresentative.at(root);
         }
         
@@ -493,7 +492,7 @@ namespace Shell
     {
         CALL("InterpolantsNew::merge");
 
-        assert(unit1 != unit2);
+        ASS_NEQ(unit1, unit2);
         Unit* root1 = root(unitsToRepresentative, unit1);
         Unit* root2 = root(unitsToRepresentative, unit2);
         

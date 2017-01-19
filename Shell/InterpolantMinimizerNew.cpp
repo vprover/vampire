@@ -98,7 +98,6 @@ namespace Shell
             {
                 Unit* premise= parents.next();
                 
-                assert(unitsToExpressions.find(premise) != unitsToExpressions.end());
                 expr& x_j = *unitsToExpressions[premise];
                 expr& p_j = *unitsToPenalties[premise];
                 
