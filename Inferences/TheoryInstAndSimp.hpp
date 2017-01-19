@@ -33,7 +33,8 @@ public:
   CLASS_NAME(TheoryInstAndSimp);
   USE_ALLOCATOR(TheoryInstAndSimp);
 
-  TheoryInstAndSimp() {}
+  TheoryInstAndSimp() : _splitter(0) {}
+  void attach(SaturationAlgorithm* salg);
 
   ClauseIterator generateClauses(Clause* premise);
 
@@ -41,6 +42,8 @@ private:
 
   void selectTheoryLiterals(Clause* cl, Stack<Literal*>& theoryLits);
   VirtualIterator<Solution> getSolutions(Stack<Literal*>& theoryLiterals);
+
+  Splitter* _splitter;
 
 };
 

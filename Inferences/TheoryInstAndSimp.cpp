@@ -45,6 +45,14 @@ using namespace Saturation;
 using namespace SAT;
 
 
+void TheoryInstAndSimp::attach(SaturationAlgorithm* salg)
+{
+  CALL("Superposition::attach");
+
+  GeneratingInferenceEngine::attach(salg);
+  _splitter = salg->getSplitter();
+}
+
 /**
  * 
  **/
@@ -226,7 +234,7 @@ VirtualIterator<Solution> TheoryInstAndSimp::getSolutions(Stack<Literal*>& theor
 
 struct InstanceFn
 {
-  InstanceFn(Clause* cl,Stack<Literal*>& tl) : _cl(cl), _theoryLits(tl) {}
+  InstanceFn(Clause* cl,Stack<Literal*>& tl,Splitter* sp) : _cl(cl), _theoryLits(tl), _splitter(sp) {}
   
   DECL_RETURN_TYPE(Clause*);
   OWN_RETURN_TYPE operator()(Solution sol)
@@ -234,6 +242,7 @@ struct InstanceFn
     CALL("TheoryInstAndSimp::InstanceFn::operator()");
 
     // We should be deleting cl (it's a theory-tautology), but we don't support that for now
+    // ... but does sol.status account for unknown?
     if(!sol.status){
       return 0;
     }
@@ -272,6 +281,10 @@ struct InstanceFn
     ASS_EQ(skip, _theoryLits.size());
     ASS_EQ(j,newLen);
 
+    if(_splitter){
+      _splitter->onNewClause(inst);
+    }
+
     env.statistics->theoryInstSimp++;
     return res;
   }
@@ -279,6 +292,7 @@ struct InstanceFn
 private:
   Clause* _cl;
   Stack<Literal*>& _theoryLits;
+  Splitter* _splitter;
 };
 
 ClauseIterator TheoryInstAndSimp::generateClauses(Clause* premise)
@@ -311,9 +325,8 @@ ClauseIterator TheoryInstAndSimp::generateClauses(Clause* premise)
   ASS(flattened);
 
   // ensure that splits are copied to flattened
-  static Splitter* splitter = _salg->getSplitter();
-  if(splitter){
-    splitter->onNewClause(flattened);
+  if(_splitter && flattened!=premise){
+    _splitter->onNewClause(flattened);
   }
 
   static Stack<Literal*> theoryLiterals;
@@ -337,7 +350,7 @@ ClauseIterator TheoryInstAndSimp::generateClauses(Clause* premise)
 
   auto it1 = getSolutions(theoryLiterals);
 
-  auto it2 = getMappingIterator(it1,InstanceFn(flattened,theoryLiterals));
+  auto it2 = getMappingIterator(it1,InstanceFn(flattened,theoryLiterals,_splitter));
 
   // filter out only non-zero results
   auto it3 = getFilteredIterator(it2, NonzeroFn());

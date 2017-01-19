@@ -1316,6 +1316,10 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
     res->_imgr = SmartPtr<IndexManager>(new IndexManager(res));
   }
 
+  if(opt.splitting()){
+    res->_splitter = new Splitter();
+  }
+
   // create generating inference engine
   CompositeGIE* gie=new CompositeGIE();
 
@@ -1362,10 +1366,6 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
   res->setGeneratingInferenceEngine(gie);
 
   res->setImmediateSimplificationEngine(createISE(prb, opt));
-
-  if(opt.splitting()){
-    res->_splitter = new Splitter();
-  }
 
   // create forward simplification engine
   if (prb.hasEquality() && opt.innerRewriting()) {
