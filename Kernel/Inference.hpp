@@ -355,11 +355,15 @@ public:
   /** Return the extra string */
   vstring extra() { return _extra; }
 
+  unsigned maxDepth(){ return _maxDepth; }
+
 protected:
   /** The rule used */
   Rule _rule;
   /** Extra information */
   vstring _extra;
+  /** The depth */
+  unsigned _maxDepth;
 }; // class Inference
 
 /**
@@ -373,7 +377,10 @@ public:
   Inference1(Rule rule,Unit* premise)
     : Inference(rule),
       _premise1(premise)
-  { _premise1->incRefCnt(); }
+  { 
+    _premise1->incRefCnt(); 
+    _maxDepth = premise->inference()->maxDepth(); 
+  }
 
   virtual void destroy();
   virtual Iterator iterator();
@@ -427,6 +434,7 @@ public:
   {
     _premise1->incRefCnt();
     _premise2->incRefCnt();
+    _maxDepth = max(premise1->inference()->maxDepth(),premise2->inference()->maxDepth());
   }
 
   virtual void destroy();

@@ -329,7 +329,12 @@ void Options::Options::init()
     _sos.setRandomChoices(And(isRandOn(),hasNonUnits()),{"on","off","off","off","off"});
     _sos.setRandomChoices(isRandOn(),{"all","off","on"});
 
-    //_sosTheoryLimit = UnsignedOptionValue("s
+    _sosTheoryLimit = UnsignedOptionValue("sos_theory_limit","sstl",0);
+    _sosTheoryLimit.description="When sos=theory the depth of descendants a theory axiom can have";
+    _sosTheoryLimit.setExperimental();
+    _lookup.insert(&_sosTheoryLimit);
+    _sosTheoryLimit.tag(OptionTag::PREPROCESSING);
+    _sos.reliesOn(_sos.is(equal(Sos::THEORY)));
 
 
 
