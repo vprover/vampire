@@ -7,8 +7,6 @@
 #ifndef __InterpolantsNew__
 #define __InterpolantsNew__
 
-#include <stack>
-#include <queue>
 #include <unordered_set>
 #include <unordered_map>
 #include "Forwards.hpp"
@@ -67,7 +65,7 @@ namespace Shell
          * implements so called "splitting function" from the thesis
          * (uses improved version of approach #2, cf. section 3.3).
          */
-        virtual void computeSplittingFunction(Kernel::Unit* refutation, UnitWeight weightFunction);
+        virtual std::unordered_map<Kernel::Unit*, Kernel::Color> computeSplittingFunction(Kernel::Unit* refutation, UnitWeight weightFunction);
         
         /*
          * helper method to compute the weight of a unit
@@ -80,8 +78,11 @@ namespace Shell
          * helper methods to compute interpolant
          */
         typedef std::unordered_map<Kernel::Unit*, std::unordered_set<Kernel::Unit*>> BoundaryMap;
-        std::unordered_map<Kernel::Unit*, Kernel::Unit*> computeSubproofs(Kernel::Unit* refutation);
-        std::pair<const BoundaryMap, const BoundaryMap> computeBoundaries(const std::unordered_map<Kernel::Unit*, Kernel::Unit*>& unitsToRepresentative, Kernel::Unit* refutation);
+        std::unordered_map<Kernel::Unit*, Kernel::Unit*> computeSubproofs(Kernel::Unit* refutation,
+                                                                          const std::unordered_map<Kernel::Unit*,Kernel::Color> splittingFunction);
+        std::pair<const BoundaryMap, const BoundaryMap> computeBoundaries(Kernel::Unit* refutation,
+                                                                          const std::unordered_map<Kernel::Unit*, Kernel::Color> splittingFunction,
+                                                                          const std::unordered_map<Kernel::Unit*, Kernel::Unit*>& unitsToRepresentative);
         Kernel::Formula* generateInterpolant(std::pair<const BoundaryMap, const BoundaryMap>& boundaries);
         
         /*

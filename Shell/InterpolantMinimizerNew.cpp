@@ -19,7 +19,7 @@ namespace Shell
 {
     using namespace Kernel;
 
-    void InterpolantMinimizerNew::computeSplittingFunction(Kernel::Unit* refutation,  UnitWeight weightFunction)
+    std::unordered_map<Kernel::Unit*, Kernel::Color> InterpolantMinimizerNew::computeSplittingFunction(Kernel::Unit* refutation,  UnitWeight weightFunction)
     {
         CALL("InterpolantMinimizerNew::computeSplittingFunction");
 
@@ -28,7 +28,6 @@ namespace Shell
         optimize solver(c);
         
         std::unordered_map<Unit*, std::unique_ptr<expr>> unitsToExpressions; // needed in order to map the result of the optimisation-query back to the inferences.
-
         int i = 0; // counter needed for unique names
         
         // note: idea from the thesis: we use x_i to denote whether inference i is assigned to the A-part.
@@ -100,23 +99,24 @@ namespace Shell
 
         // and convert computed model to splitting function
         model m = solver.get_model();
-
+        
+        std::unordered_map<Kernel::Unit*, Kernel::Color> splittingFunction;
         for (const auto& keyValuePair : unitsToExpressions)
         {
-            Unit* currentUnit = keyValuePair.first;
-            expr evaluation = m.eval(*unitsToExpressions[currentUnit]);
+            Unit* current = keyValuePair.first;
+            expr evaluation = m.eval(*unitsToExpressions[current]);
             
             if (Z3_get_bool_value(c,evaluation) == Z3_L_TRUE)
             {
-                //cout << "coloring " << currentUnit->toString() << "red" << endl;
-                currentUnit->setInheritedColor(COLOR_LEFT);
+                splittingFunction[current] = COLOR_LEFT;
             }
             else
             {
-                //cout << "coloring " << currentUnit->toString() << "blue" << endl;
-                currentUnit->setInheritedColor(COLOR_RIGHT);
+                splittingFunction[current] = COLOR_RIGHT;
             }
         }
+        
+        return splittingFunction;
     }
 }
 

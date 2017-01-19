@@ -8,7 +8,6 @@
 #define __InterpolantMinimizerNew__
 
 #include "InterpolantsNew.hpp"
-#include <stack>
 
 #if VZ3
 namespace Shell
@@ -29,7 +28,7 @@ namespace Shell
          * and ask solver for an optimal solution
          * we use z3 as solver
          */
-        virtual void computeSplittingFunction(Kernel::Unit* refutation, UnitWeight weightFunction) override;
+        virtual std::unordered_map<Kernel::Unit*, Kernel::Color> computeSplittingFunction(Kernel::Unit* refutation, UnitWeight weightFunction) override;
     };
 };
 #endif // VZ3
