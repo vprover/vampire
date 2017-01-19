@@ -296,6 +296,9 @@ void UIHelper::outputResult(ostream& out)
         // - remove theory stuff
         InterpolantsNew().removeTheoryInferences(env.statistics->refutation); // do this only once for each proof!
         
+        out << endl <<  "Proof without theory inferences" << endl;
+        InferenceStore::instance()->outputProof(out, env.statistics->refutation);
+
         // - get interpolant using new algorithm, standard weight and heuristic splitting function
         Formula* interpolantNew1 =InterpolantsNew().getInterpolant(env.statistics->refutation, InterpolantsNew::UnitWeight::VAMPIRE);
         out << "New Interpolant (standard weight): " << interpolantNew1->toString() << endl;
@@ -311,6 +314,13 @@ void UIHelper::outputResult(ostream& out)
         // - get interpolant using new algorithm, quantifier weight and z3-optimized splitting function
         Formula* interpolantMinimizedNew2 = InterpolantMinimizerNew().getInterpolant(env.statistics->refutation, InterpolantsNew::UnitWeight::QUANTIFIED_VARS);
         out << "New minimized Interpolant (quantifier weight): " << interpolantMinimizedNew2->toString() << endl;
+        
+        out << "Weight-comparison: "<< endl;
+        out << interpolant->weight() << " (weight old)"<< endl;
+        out << interpolantNew1->weight() << " (weight new, standard)"<< endl;
+        out << interpolantMinimizedNew1->weight() << " (weight new minimized, standard)"<< endl;
+        out << interpolantNew2->weight() << " (weight new, quantifier)"<< endl;
+        out << interpolantMinimizedNew2->weight() << " (weight new minimized, quantifier)"<< endl;
     }
     if (env.options->showInterpolant()==Options::InterpolantMode::MINIMIZED) {
       ASS(env.statistics->refutation->isClause());

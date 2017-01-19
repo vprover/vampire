@@ -12,6 +12,9 @@
 #include "Kernel/Connective.hpp"
 #include "Kernel/InferenceStore.hpp"
 
+#include "Shell/Flattening.hpp"
+#include "SimplifyFalseTrue.hpp"
+
 #include "Debug/Assertion.hpp"
 #include <assert.h>
 
@@ -329,55 +332,19 @@ namespace Shell
             }
             Formula* conjunction2 = JunctionFormula::generalJunction(Connective::AND, conjunction2List);
             
-            // generate implication "(conj. of topBoundaries) implies (conj. of bottomBoundaries)"
-            // NOTE: we perform simplifications of C->D:
-            Formula* implication;
-            if (conjunction2->connective() == Connective::TRUE)// C->Top => Top
-            {
-                implication = conjunction2;
-            }
-            else if (conjunction1->connective() == Connective::TRUE)// Top->D => D
-            {
-                implication = conjunction2;
-            }
-            else if (conjunction1->connective() == Connective::FALSE)// Bot->D => Top
-            {
-                implication = new NegatedFormula(conjunction1);
-            }
-            else if (conjunction2->connective() == Connective::FALSE)// C->Bot => neg(C)
-            {
-                implication = new NegatedFormula(conjunction1);
-            }
-            else // no simplification, construct C->D
-            {
-                FormulaList* implicationList = FormulaList::empty();
-                FormulaList::push(new NegatedFormula(conjunction1), implicationList);
-                FormulaList::push(conjunction2, implicationList);
-                
-                implication = JunctionFormula::generalJunction(Connective::OR, implicationList);
-            }
             
-            // simplify the arguments for outer conjunction
-            if (implication->connective() != Connective::TRUE) // skip argument, since it is redundant
-            {
-                if (implication->connective() == Connective::FALSE) // if one of the arguments is bottom, the outerConjunction will be bottom, so clear arguments and stop adding new ones
-                {
-                    outerConjunction = FormulaList::empty();
-                    FormulaList::push(implication, outerConjunction);
-                    break;
-                }
-                else // no simplification
-                {
-                    // add implication to outerConjunction
-                    FormulaList::push(implication, outerConjunction);
-                }
-            }
+            FormulaList* implicationList = FormulaList::empty();
+            FormulaList::push(new NegatedFormula(conjunction1), implicationList);
+            FormulaList::push(conjunction2, implicationList);
+            
+            Formula* implication = JunctionFormula::generalJunction(Connective::OR, implicationList);
+            FormulaList::push(implication, outerConjunction);
         }
         
-        // finally conjoin all generated implications and return the result, which is the interpolant
+        // finally conjoin all generated implications and return the simplified result, which is the interpolant
         Formula* interpolant = JunctionFormula::generalJunction(Connective::AND, outerConjunction);
         
-        return interpolant;
+        return Flattening::flatten(SimplifyFalseTrue::simplify(interpolant));
     }
 
 
@@ -468,7 +435,6 @@ namespace Shell
     {
         CALL("InterpolantsNew::weightForUnit");
 
-        return 1;
         if (weightFunction == UnitWeight::VAMPIRE)
         {
             if(unit->isClause())

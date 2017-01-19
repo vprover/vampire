@@ -28,6 +28,7 @@ namespace Shell
         optimize solver(c);
         
         std::unordered_map<Unit*, std::unique_ptr<expr>> unitsToExpressions; // needed in order to map the result of the optimisation-query back to the inferences.
+        std::unordered_map<Unit*, std::unique_ptr<expr>> unitsToPenalties;
         int i = 0; // counter needed for unique names
         
         // note: idea from the thesis: we use x_i to denote whether inference i is assigned to the A-part.
@@ -41,6 +42,17 @@ namespace Shell
             std::unique_ptr<expr> x_i_ptr (new expr(c));
             *x_i_ptr = c.bool_const(("x_" + std::to_string(i)).c_str()); // ugly but necessary due to z3-API
             unitsToExpressions.emplace(std::make_pair(current, std::move(x_i_ptr)));
+            
+            
+            std::unique_ptr<expr> p_i_ptr (new expr(c));
+            *p_i_ptr = c.bool_const(("p_" + std::to_string(i)).c_str()); // ugly but necessary due to z3-API
+            unitsToPenalties.emplace(std::make_pair(current, std::move(p_i_ptr)));
+            
+            // construct variable which encodes soft constraints
+            expr& p_i = *unitsToPenalties[current];
+            double weight = weightForUnit(current, weightFunction);
+            solver.add(!p_i, c.real_val(std::to_string(weight).c_str()));
+            
             i++;
             
             expr& x_i = *unitsToExpressions.at(current);
@@ -88,9 +100,9 @@ namespace Shell
                 
                 assert(unitsToExpressions.find(premise) != unitsToExpressions.end());
                 expr& x_j = *unitsToExpressions[premise];
+                expr& p_j = *unitsToPenalties[premise];
                 
-                double weight = weightForUnit(premise, weightFunction);
-                solver.add(x_i == x_j, c.real_val(std::to_string(weight).c_str())); // TODO: add actual weight here! cf. addCostFormula()-function from Interpolants.cpp
+                solver.add(!(x_i != x_j) || p_j);
             }
         }
 
