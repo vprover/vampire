@@ -107,6 +107,8 @@ public:
   unsigned theoryInstSimpCandidates;
   /** number of theoryInstSimp tautologies **/
   unsigned theoryInstSimpTautologies;
+  /** number of theoryInstSimp solutions lost as we could not represent them **/
+  unsigned theoryInstSimpLostSolution;
 
   // Simplifying inferences
   /** number of duplicate literals deleted */

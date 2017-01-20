@@ -232,6 +232,7 @@ VirtualIterator<Solution> TheoryInstAndSimp::getSolutions(Stack<Literal*>& theor
         sol.subst.bind(v,t);
       } else {
         // Failed to obtain a value; could be an algebraic number or some other currently unhandled beast...
+        env.statistics->theoryInstSimpLostSolution++;
         goto fail;
       }
     }

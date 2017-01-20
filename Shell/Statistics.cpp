@@ -58,6 +58,7 @@ Statistics::Statistics()
     theoryInstSimp(0),
     theoryInstSimpCandidates(0),
     theoryInstSimpTautologies(0),
+    theoryInstSimpLostSolution(0),
     selfSuperposition(0),
     equalityFactoring(0),
     equalityResolution(0),
@@ -288,7 +289,8 @@ void Statistics::print(ostream& out)
   HEADING("Generating Inferences",resolution+urResolution+cResolution+factoring+
       forwardSuperposition+backwardSuperposition+selfSuperposition+
       equalityFactoring+equalityResolution+forwardExtensionalityResolution+
-      backwardExtensionalityResolution+theoryInstSimp+theoryInstSimpCandidates+theoryInstSimpTautologies);
+      backwardExtensionalityResolution+
+      theoryInstSimp+theoryInstSimpCandidates+theoryInstSimpTautologies+theoryInstSimpLostSolution);
   COND_OUT("Binary resolution", resolution);
   COND_OUT("Unit resulting resolution", urResolution);
   COND_OUT("Constrained resolution",cResolution);
@@ -303,6 +305,7 @@ void Statistics::print(ostream& out)
   COND_OUT("TheoryInstSimp",theoryInstSimp);
   COND_OUT("TheoryInstSimpCandidates",theoryInstSimpCandidates);
   COND_OUT("TheoryInstSimpTautologies",theoryInstSimpTautologies);
+  COND_OUT("TheoryInstSimpLostSolution",theoryInstSimpLostSolution);
   SEPARATOR;
 
   HEADING("Term algebra simplifications",taDistinctnessSimplifications+
