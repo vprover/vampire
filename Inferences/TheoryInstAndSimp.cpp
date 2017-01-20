@@ -261,6 +261,7 @@ struct InstanceFn
     // We should be deleting cl (it's a theory-tautology), but we don't support that for now
     // ... but does sol.status account for unknown?
     if(!sol.status){
+      env.statistics->theoryInstSimpTautologies++;
       return 0;
     }
     // If the solution is empty (for any reason) there is no point performing instantiation

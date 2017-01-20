@@ -334,7 +334,7 @@ void Options::Options::init()
     _sosTheoryLimit.setExperimental();
     _lookup.insert(&_sosTheoryLimit);
     _sosTheoryLimit.tag(OptionTag::PREPROCESSING);
-    _sos.reliesOn(_sos.is(equal(Sos::THEORY)));
+    _sosTheoryLimit.reliesOn(_sos.is(equal(Sos::THEORY)));
 
 
 
