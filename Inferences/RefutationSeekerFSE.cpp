@@ -11,6 +11,7 @@
 #include "Kernel/Unit.hpp"
 #include "Kernel/Inference.hpp"
 #include "Kernel/Clause.hpp"
+#include "Kernel/ColorHelper.hpp"
 
 #include "Indexing/Index.hpp"
 #include "Indexing/LiteralIndex.hpp"
@@ -58,7 +59,7 @@ void RefutationSeekerFSE::perform(Clause* cl, ForwardSimplificationPerformer* si
     SLQueryResult res=rit.next();
     ASS(res.clause->length()==1);
 
-    if(!simplPerformer->willPerform(res.clause)) {
+    if(!ColorHelper::compatible(cl->color(), res.clause->color())) {
       continue;
     }
 
@@ -71,8 +72,6 @@ void RefutationSeekerFSE::perform(Clause* cl, ForwardSimplificationPerformer* si
     env.statistics->resolution++;
 
     simplPerformer->perform(res.clause, refutation);
-    if(!simplPerformer->clauseKept()) {
-      return;
-    }
+    return;
   }
 }

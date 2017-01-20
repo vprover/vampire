@@ -41,7 +41,7 @@ void MinisatInterfacing::ensureVarCount(unsigned newVarCnt)
 
 unsigned MinisatInterfacing::newVar() 
 {
-  CALL("MinisatInterfacing::ensureVarCount");
+  CALL("MinisatInterfacing::newVar");
   
   return minisatVar2Vampire(_solver.newVar());
 }

@@ -101,9 +101,6 @@ void TPTP::parse()
 #ifdef DEBUG_SHOW_STATE
     cout << "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~" << endl;
     cout << toString(s) << endl;
-    cout << "----------------------------------------" << endl;
-    printStacks();
-    cout << "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~" << endl << endl;
 #endif
     switch (s) {
     case UNIT_LIST:
@@ -114,6 +111,7 @@ void TPTP::parse()
       fof(true);
       break;
     case TFF:
+    case THF:
       _isFof = false;
       tff();
       break;
@@ -205,14 +203,20 @@ void TPTP::parse()
     case END_BINDING:
       endBinding();
       break;
+    case TUPLE_BINDING:
+      tupleBinding();
+      break;
+    case END_TUPLE_BINDING:
+      endTupleBinding();
+      break;
     case END_LET:
       endLet();
       break;
-    case END_SELECT:
-      endSelect();
+    case END_THEORY_FUNCTION:
+      endTheoryFunction();
       break;
-    case END_STORE:
-      endStore();
+    case END_TUPLE:
+      endTuple();
       break;
     default:
 #if VDEBUG
@@ -221,6 +225,11 @@ void TPTP::parse()
       throw ParseErrorException("Don't know how to process state ",_lineNumber);
 #endif
     }
+#ifdef DEBUG_SHOW_STATE
+    cout << "----------------------------------------" << endl;
+    printStacks();
+    cout << "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~" << endl << endl;
+#endif
   }
 } // TPTP::parse()
 
@@ -330,12 +339,12 @@ vstring TPTP::toString(Tag tag)
     return "$real";
   case T_INTEGER_TYPE:
     return "$int";
-  case T_ARRAY_TYPE:
-    return "$array";
-  case T_SELECT:
-    return "$select";
-  case T_STORE:
-    return "$store";
+  case T_TUPLE:
+    return "$tuple";
+  case T_THEORY_SORT:
+    return "";
+  case T_THEORY_FUNCTION:
+    return "";
   case T_FOT:
     return "$fot";
   case T_FOF:
@@ -899,14 +908,14 @@ void TPTP::readReserved(Token& tok)
   else if (tok.content == "$real") {
     tok.tag = T_REAL_TYPE;
   }
-  else if (tok.content == "$array") {
-      tok.tag = T_ARRAY_TYPE;
+  else if (tok.content == "$tuple") {
+      tok.tag = T_TUPLE;
   }
-  else if (tok.content == "$select"){
-      tok.tag = T_SELECT;
+  else if (isTheoryFunction(tok.content)) {
+    tok.tag = T_THEORY_FUNCTION;
   }
-  else if (tok.content == "$store"){
-      tok.tag = T_STORE;
+  else if (isTheorySort(tok.content)) {
+    tok.tag = T_THEORY_SORT;
   }
   else if (tok.content == "$fot") {
     tok.tag = T_FOT;
@@ -1092,6 +1101,7 @@ int TPTP::decimal(int pos)
   case '9':
     break;
   default:
+    ASSERTION_VIOLATION_REP(getChar(pos));
     PARSE_ERROR("wrong number format",_gpos);
   }
 
@@ -1186,6 +1196,11 @@ void TPTP::unitList()
   }
   if (name == "tff") {
     _states.push(TFF);
+    resetToks();
+    return;
+  }
+  if (name == "thf") {
+    _states.push(THF);
     resetToks();
     return;
   }
@@ -1415,109 +1430,113 @@ void TPTP::endIte()
 {
   CALL("TPTP::endIte");
 
-  TermList t2 = _termLists.pop();
-  TermList t1 = _termLists.pop();
-  Formula* c = _formulas.pop();
-  unsigned sort = sortOf(t1);
-  TermList ts(Term::createITE(c,t1,t2,sort));
-  if (sort != sortOf(t2)) {
-    USER_ERROR((vstring)"sorts of terms in the if-then-else expression "+ts.toString()+" are not the same");
+  TermList elseBranch = _termLists.pop();
+  TermList thenBranch = _termLists.pop();
+  Formula* condition = _formulas.pop();
+  unsigned thenSort = sortOf(thenBranch);
+  TermList ts(Term::createITE(condition,thenBranch,elseBranch,thenSort));
+  unsigned elseSort = sortOf(elseBranch);
+  if (thenSort != elseSort) {
+    USER_ERROR("sort mismatch in the if-then-else expression: " +
+               thenBranch.toString() + " has the sort " + env.sorts->sortName(thenSort) + ", whereas " +
+               elseBranch.toString() + " has the sort " + env.sorts->sortName(elseSort));
   }
   _termLists.push(ts);
 } // endIte
 
 /**
- * Process the end of the select() term
- * @author Laura Kovacs
- * @since 3/09/2012 Vienna
- * @since 16/1/2015 Timisoara, Giles changed to endSelect when introduced StructuredSort
- * @since 25/08/2015 Gothenburg, Evgeny changed to support $array($o)
- * @since 7/10/2015 Manchester, Giles changed to support polymorphism in index
+ *
  */
-void TPTP::endSelect()
-{
-    CALL("TPTP::endSelect");
-    
-    TermList index = _termLists.pop();
-    TermList array = _termLists.pop();
-    
-    unsigned array_sort = sortOf(array);
+void TPTP::endTheoryFunction() {
+  CALL("TPTP::endTheoryFunction");
 
-    //Check that array_sort is defined
-    if(!env.sorts->hasStructuredSort(array_sort,Sorts::StructuredSort::ARRAY)){
-      USER_ERROR("select is being incorrectly used on a type of array that has not be defined");
+  /**
+   * Things get a bit awkward with theories + FOOL, because theory function can
+   * return $o in such case be a predicate symbol rather than a function symbol.
+   * The current solution is the following -- we always treat application of
+   * theory functions as a a term (a formula wrapped inside boolean term, if
+   * needed). If later on we discover that we should've taken it as a formula,
+   * we simply pull the formula out of the boolean term. This is done in
+   * endTermAsFormula().
+   */
+
+  Theory::StructuredSortInterpretation ssi;
+  TermList args[3]; // all theory function use up to 3 arguments as for now
+  unsigned theorySort;
+
+  TheoryFunction tf = _theoryFunctions.pop();
+  switch (tf) {
+    case TF_SELECT: {
+      TermList index = _termLists.pop();
+      TermList array = _termLists.pop();
+
+      unsigned arraySort = sortOf(array);
+      if (!env.sorts->hasStructuredSort(arraySort, Sorts::StructuredSort::ARRAY)) {
+        USER_ERROR("$select is being incorrectly used on a type of array that has not be defined");
+      }
+
+      unsigned indexSort = env.sorts->getArraySort(arraySort)->getIndexSort();
+      if (sortOf(index) != indexSort) {
+        USER_ERROR("sort of index is not the same as the index sort of the array");
+      }
+
+      args[0] = array;
+      args[1] = index;
+      theorySort = arraySort;
+
+      if (env.sorts->getArraySort(arraySort)->getInnerSort() == Sorts::SRT_BOOL) {
+        ssi = Theory::StructuredSortInterpretation::ARRAY_BOOL_SELECT;
+      } else {
+        ssi = Theory::StructuredSortInterpretation::ARRAY_SELECT;
+      }
+      break;
     }
+    case TF_STORE: {
+      TermList value = _termLists.pop();
+      TermList index = _termLists.pop();
+      TermList array = _termLists.pop();
 
-    unsigned indexSort = env.sorts->getArraySort(array_sort)->getIndexSort();
-    if(sortOf(index) != indexSort){
-      USER_ERROR((vstring)"sort of index is not the same as the index sort of the array");
+      unsigned arraySort = sortOf(array);
+      if (!env.sorts->hasStructuredSort(arraySort, Sorts::StructuredSort::ARRAY)) {
+        USER_ERROR("store is being incorrectly used on a type of array that has not be defined");
+      }
+
+      unsigned indexSort = env.sorts->getArraySort(arraySort)->getIndexSort();
+      if (sortOf(index) != indexSort) {
+        USER_ERROR("sort of index is not the same as the index sort of the array");
+      }
+
+      unsigned innerSort = env.sorts->getArraySort(arraySort)->getInnerSort();
+      if (sortOf(value) != innerSort) {
+        USER_ERROR("sort of value is not the same as the value sort of the array");
+      }
+
+      args[0] = array;
+      args[1] = index;
+      args[2] = value;
+
+      ssi = Theory::StructuredSortInterpretation::ARRAY_STORE;
+      theorySort = arraySort;
+
+      break;
     }
+    default:
+      ASSERTION_VIOLATION_REP(tf);
+  }
 
-    // Things get a bit awkward with $select + FOOL, because $select can be either a predicate and
-    // a function symbol, depending on the inner sort of the array.
-    // The current solution is the following -- we always treat application of $select as a a term
-    // (a formula wrapped inside boolean term, if needed). If later on we discover that we should've
-    // taken it as a formula, we simply pull the formula out of the boolean term. This is done in
-    // endTermAsFormula().
-    if (env.sorts->getArraySort(array_sort)->getInnerSort() == Sorts::SRT_BOOL) {
-        Theory::StructuredSortInterpretation ssi = Theory::StructuredSortInterpretation::ARRAY_BOOL_SELECT;
-        Interpretation select = Theory::instance()->getInterpretation(array_sort, ssi);
+  Interpretation i = Theory::instance()->getInterpretation(theorySort, ssi);
+  unsigned symbol = env.signature->getStructureInterpretationFunctor(theorySort, ssi);
+  unsigned arity = Theory::getArity(i);
 
-        unsigned pred = env.signature->getInterpretingSymbol(select);
-        Literal *l = Literal::create2(pred, true, array, index);
-        _formulas.push(new AtomicFormula(l));
-        _states.push(END_FORMULA_INSIDE_TERM);
-    } else {
-        Theory::StructuredSortInterpretation ssi = Theory::StructuredSortInterpretation::ARRAY_SELECT;
-        Interpretation select = Theory::instance()->getInterpretation(array_sort, ssi);
-
-        unsigned func = env.signature->getInterpretingSymbol(select);
-        TermList ts(Term::create2(func, array, index));
-        _termLists.push(ts);
-    }
-} // endSelect
-
-/**
- * Process the end of the store() term
- * @author Laura Kovacs
- * @since 3/09/2012 Vienna
- * @since 16/1/2015 Timisoara, Giles changed to endStore when introduced StructuredSort
- * @since 7/10/2015 Manchester, Giles changed to support polymorphism in index
- */
-void TPTP::endStore()
-{
-    CALL("TPTP::endStore1");
-    
-    TermList value = _termLists.pop();
-    TermList index = _termLists.pop();
-    TermList array = _termLists.pop();
-    
-    unsigned array_sort = sortOf(array);
-
-    //Check that array_sort is defined
-    if(!env.sorts->hasStructuredSort(array_sort,Sorts::StructuredSort::ARRAY)){
-      USER_ERROR("store is being incorrectly used on a type of array that has not be defined");
-    }
-
-    unsigned indexSort = env.sorts->getArraySort(array_sort)->getIndexSort();
-    if(sortOf(index) != indexSort){
-      USER_ERROR((vstring)"sort of index is not the same as the index sort of the array");
-    }
-
-    unsigned innerSort = env.sorts->getArraySort(array_sort)->getInnerSort();
-    if(sortOf(value) != innerSort){
-      USER_ERROR((vstring)"sort of value is not the same as the value sort of the array");
-    }
-
-    Interpretation store = Theory::instance()->getInterpretation(array_sort,
-                             Theory::StructuredSortInterpretation::ARRAY_STORE);    
-
-    unsigned func = env.signature->getInterpretingSymbol(store);
-    TermList args[] = {array, index, value};
-    TermList ts(Term::create(func, 3, args));
-
-    _termLists.push(ts);   
-} // endStore
+  if (Theory::isFunction(i)) {
+    Term* term = Term::create(symbol, arity, args);
+    _termLists.push(TermList(term));
+  } else {
+    Literal* literal = Literal::create(symbol, arity, true, false, args);
+    _formulas.push(new AtomicFormula(literal));
+    _states.push(END_FORMULA_INSIDE_TERM);
+  }
+} // endTheoryFunction
 
 /**
  * Process include() declaration
@@ -1656,6 +1675,7 @@ void TPTP::termInfix()
     case T_COMMA:
     case T_SEMICOLON:
     case T_RPAR:
+    case T_RBRA:
     case T_ASS:
       _states.push(END_TERM);
       return;
@@ -1705,26 +1725,32 @@ void TPTP::funApp()
   Token tok = getTok(0);
   resetToks();
 
-  _strings.push(tok.content);
+  if (tok.tag == T_LBRA) {
+    _strings.push(toString(T_TUPLE));
+  } else {
+    _strings.push(tok.content);
+  }
 
   switch (tok.tag) {
-    // predefined functions
-    case T_SELECT:
+    case T_THEORY_FUNCTION:
       consumeToken(T_LPAR);
       addTagState(T_RPAR);
-      _states.push(TERM);
-      addTagState(T_COMMA);
-      _states.push(TERM);
-      return;
-
-    case T_STORE:
-      consumeToken(T_LPAR);
-      addTagState(T_RPAR);
-      _states.push(TERM);
-      addTagState(T_COMMA);
-      _states.push(TERM);
-      addTagState(T_COMMA);
-      _states.push(TERM);
+      switch (getTheoryFunction(tok)) {
+        case TF_SELECT:
+          _states.push(TERM);
+          addTagState(T_COMMA);
+          _states.push(TERM);
+          break;
+        case TF_STORE:
+          _states.push(TERM);
+          addTagState(T_COMMA);
+          _states.push(TERM);
+          addTagState(T_COMMA);
+          _states.push(TERM);
+          break;
+        default:
+          ASSERTION_VIOLATION_REP(tok.content);
+      }
       return;
 
     case T_ITE:
@@ -1745,6 +1771,11 @@ void TPTP::funApp()
       consumeToken(T_LPAR);
       return;
 
+    case T_LBRA:
+      _states.push(ARGS);
+      _ints.push(1); // the arity of the function symbol is at least 1
+      return;
+
     case T_VAR:
       _ints.push(-1); // dummy arity to indicate a variable
       return;
@@ -1760,55 +1791,62 @@ void TPTP::funApp()
       return;
 
     default:
-      PARSE_ERROR("unexpectd token", tok);
+      PARSE_ERROR("unexpected token", tok);
   }
 } // TPTP::funApp
 
 void TPTP::binding()
 {
   CALL("TPTP::binding");
-  _strings.push(name());
 
-  Token tok = getTok(0);
-
-  switch (tok.tag) {
-    case T_ASS:
-    case T_LPAR:
+  switch (getTok(0).tag) {
+    case T_NAME: {
+      _strings.push(getTok(0).content);
       resetToks();
-      _states.push(END_BINDING);
-      _states.push(TERM);
-      if (tok.tag == T_LPAR) {
-        addTagState(T_ASS);
-        addTagState(T_RPAR);
-        _states.push(VAR_LIST);
-      } else {
-        // empty list of vars
-        _varLists.push(0);
-        _sortLists.push(0);
-        _bindLists.push(0);
-      }
-      break;
 
+      Token tok = getTok(0);
+
+      switch (tok.tag) {
+        case T_ASS:
+        case T_LPAR:
+          resetToks();
+          _states.push(END_BINDING);
+          _states.push(TERM);
+          if (tok.tag == T_LPAR) {
+            addTagState(T_ASS);
+            addTagState(T_RPAR);
+            _states.push(VAR_LIST);
+          } else {
+            // empty list of vars
+            _varLists.push(0);
+            _sortLists.push(0);
+            _bindLists.push(0);
+          }
+          return;
+
+        default:
+          PARSE_ERROR(toString(T_LPAR) + " or " + toString(T_ASS) + " expected", tok);
+      }
+    }
+    case T_LBRA: {
+      resetToks();
+      _states.push(END_TUPLE_BINDING);
+      _states.push(TERM);
+      addTagState(T_ASS);
+      addTagState(T_RBRA);
+      _states.push(TUPLE_BINDING);
+      break;
+    }
     default:
-      PARSE_ERROR(toString(T_LPAR) + " or " + toString(T_ASS) + "expected", tok);
+      PARSE_ERROR("name or tuple expected",getTok(0));
   }
 }
 
 void TPTP::endBinding() {
   CALL("TPTP::endBinding");
 
-  TermList body = _termLists.top();
-  unsigned bodySort = sortOf(body);
-  bool isPredicate = bodySort == Sorts::SRT_BOOL;
-
   Formula::VarList* vars = _varLists.top(); // will be poped in endLet()
-  unsigned arity = (unsigned)vars->length();
-
-  vstring name = _strings.pop();
-
-  unsigned symbolNumber = isPredicate ? env.signature->addFreshPredicate(arity,name.c_str())
-                                      : env.signature->addFreshFunction (arity,name.c_str());
-
+  _sortLists.pop();
   Stack<unsigned> argSorts(0);
   Formula::VarList::Iterator vit(vars);
   while (vit.hasNext()) {
@@ -1819,11 +1857,22 @@ void TPTP::endBinding() {
     argSorts.push(sorts->head());
   }
 
+  unsigned arity = (unsigned)vars->length();
+
+  TermList binding = _termLists.top();
+  unsigned bindingSort = sortOf(binding);
+  bool isPredicate = bindingSort == Sorts::SRT_BOOL;
+
+  vstring name = _strings.pop();
+
+  unsigned symbolNumber = isPredicate ? env.signature->addFreshPredicate(arity,name.c_str())
+                                      : env.signature->addFreshFunction (arity,name.c_str());
+
   if (isPredicate) {
     PredicateType* type = new PredicateType(arity, argSorts.begin());
     env.signature->getPredicate(symbolNumber)->setType(type);
   } else {
-    FunctionType* type = new FunctionType(arity, argSorts.begin(), bodySort);
+    FunctionType* type = new FunctionType(arity, argSorts.begin(), bindingSort);
     env.signature->getFunction(symbolNumber)->setType(type);
   }
 
@@ -1838,6 +1887,7 @@ void TPTP::endBinding() {
   }
 
   _currentLetScope.push(LetFunction(functionName, functionReference));
+  _currentBindingScope.push(LetBinding(symbolNumber, false));
 
   Token tok = getTok(0);
   if (tok.tag == T_SEMICOLON) {
@@ -1846,10 +1896,73 @@ void TPTP::endBinding() {
   } else {
     _letScopes.push(_currentLetScope);
     _currentLetScope = LetFunctionsScope();
+
+    _letBindings.push(_currentBindingScope);
+    _currentBindingScope = LetBindingScope();
   }
 
   _states.push(UNBIND_VARIABLES);
 } // endBinding
+
+void TPTP::endTupleBinding() {
+  CALL("TPTP::endTupleBinding");
+
+  TermList binding = _termLists.top();
+  unsigned bindingSort = sortOf(binding);
+
+  if (!env.sorts->hasStructuredSort(bindingSort, Sorts::StructuredSort::TUPLE)) {
+    USER_ERROR("The binding of a tuple let expression is not a tuple but has the sort " + env.sorts->sortName(bindingSort));
+  }
+
+  Sorts::TupleSort* tupleSort = env.sorts->getTupleSort(bindingSort);
+  unsigned tupleArity = tupleSort->arity();
+
+  Set<vstring> uniqueSymbolNames;
+  IntList* constants = IntList::empty();
+  for (unsigned i = 0; i < tupleArity; i++) {
+    vstring name = _strings.pop();
+    if (uniqueSymbolNames.contains(name)) {
+      USER_ERROR("The symbol " + name + " is defined twice in a tuple $let-expression.");
+    } else {
+      uniqueSymbolNames.insert(name);
+    }
+
+    unsigned sort = tupleSort->argument(tupleArity - i - 1);
+
+    bool isPredicate = sort == Sorts::SRT_BOOL;
+
+    unsigned symbol;
+    if (isPredicate) {
+      symbol = env.signature->addFreshPredicate(0, name.c_str());
+    } else {
+      symbol = env.signature->addFreshFunction(0, name.c_str());
+      env.signature->getFunction(symbol)->setType(new FunctionType(sort));
+    }
+
+    constants = constants->cons(symbol);
+
+    LetFunctionName functionName(name, 0);
+    LetFunctionReference functionReference(symbol, isPredicate);
+    _currentLetScope.push(LetFunction(functionName, functionReference));
+  }
+
+  _varLists.push(constants);
+
+  unsigned tupleFunctor = Theory::tuples()->getFunctor(bindingSort);
+  _currentBindingScope.push(LetBinding(tupleFunctor, true));
+
+  Token tok = getTok(0);
+  if (tok.tag == T_SEMICOLON) {
+    resetToks();
+    _states.push(BINDING);
+  } else {
+    _letScopes.push(_currentLetScope);
+    _currentLetScope = LetFunctionsScope();
+
+    _letBindings.push(_currentBindingScope);
+    _currentBindingScope = LetBindingScope();
+  }
+} // endTupleBinding
 
 bool TPTP::findLetSymbol(bool isPredicate, vstring name, unsigned arity, unsigned& symbol) {
   CALL("TPTP::findLetSymbol");
@@ -1881,14 +1994,44 @@ void TPTP::endLet()
 
   TermList let = _termLists.pop();
   unsigned sort = sortOf(let);
-  LetFunctionsScope::TopFirstIterator functions(_letScopes.pop());
-  while (functions.hasNext()) {
-    unsigned symbol = functions.next().second.first;
-    _sortLists.pop(); //TODO add sort information to Let term
-    let = TermList(Term::createLet(symbol, _varLists.pop(), _termLists.pop(), let, sort));
+
+  _letScopes.pop();
+  LetBindingScope scope = _letBindings.pop(); // TODO: inlining this crashes the program, WTF?
+  LetBindingScope::TopFirstIterator bindings(scope);
+  while (bindings.hasNext()) {
+    LetBinding binding = bindings.next();
+    unsigned symbol = binding.first;
+    bool isTuple = binding.second;
+    if (isTuple) {
+      let = TermList(Term::createTupleLet(symbol, _varLists.pop(), _termLists.pop(), let, sort));
+    } else {
+      let = TermList(Term::createLet(symbol, _varLists.pop(), _termLists.pop(), let, sort));
+    }
   }
   _termLists.push(let);
 } // endLet
+
+/**
+ * Process the end of the tuple expression
+ * @since 19/04/2016 Gothenburg
+ */
+void TPTP::endTuple()
+{
+  CALL("TPTP::endTuple");
+
+  unsigned arity = (unsigned)_ints.pop();
+  ASS_GE(_termLists.size(), arity);
+
+  TermList* elements = new TermList[arity];
+  unsigned* sorts = new unsigned[arity];
+  for (int i = arity - 1; i >= 0; i--) {
+    elements[i] = _termLists.pop();
+    sorts[i] = sortOf(elements[i]);
+  }
+
+  Term* t = Term::createTuple(arity, sorts, elements);
+  _termLists.push(TermList(t));
+} // endTuple
 
 /**
  * Read a non-empty sequence of arguments, including the right parentheses
@@ -1921,8 +2064,11 @@ void TPTP::endArgs()
   case T_RPAR:
     resetToks();
     return;
+  case T_RBRA:
+    resetToks();
+    return;
   default:
-    PARSE_ERROR(", or ) expected after an end of a term",tok);
+    PARSE_ERROR(", ) or ] expected after an end of a term",tok);
   }
 } // endArgs
 
@@ -2005,6 +2151,25 @@ void TPTP::varList()
 } // varList
 
 /**
+ * Read a non-empty sequence of constants and save the resulting
+ * sequence of TermList and their number
+ * @since 20/04/2016 Gothenburg
+ */
+void TPTP::tupleBinding()
+{
+  CALL("TPTP::tupleBinding");
+
+  for (;;) {
+    vstring nm = name();
+    _strings.push(nm);
+    if (getTok(0).tag != T_COMMA) {
+      break;
+    }
+    resetToks();
+  }
+} // constantList
+
+/**
  * Read a term and save the resulting TermList
  * @since 10/04/2011 Manchester
  * @since 13/04/2015 Gothenburg, major changes to support FOOL
@@ -2015,11 +2180,11 @@ void TPTP::term()
   Token tok = getTok(0);
   switch (tok.tag) {
     case T_NAME:
+    case T_THEORY_FUNCTION:
     case T_VAR:
     case T_ITE:
-    case T_SELECT:
-    case T_STORE:
     case T_LET:
+    case T_LBRA:
       _states.push(TERM_INFIX);
       _states.push(FUN_APP);
       return;
@@ -2073,18 +2238,20 @@ void TPTP::endTerm()
     return;
   }
 
-  if (name == toString(T_SELECT)) {
-    _states.push(END_SELECT);
-    return;
-  }
-
-  if (name == toString(T_STORE)) {
-    _states.push(END_STORE);
-    return;
-  }
-
   if (name == toString(T_LET)) {
     _states.push(END_LET);
+    return;
+  }
+
+  if (name == toString(T_TUPLE)) {
+    _states.push(END_TUPLE);
+    return;
+  }
+
+  TheoryFunction tf;
+  if (findTheoryFunction(name, tf)) {
+    _theoryFunctions.push(tf);
+    _states.push(END_THEORY_FUNCTION);
     return;
   }
 
@@ -2098,7 +2265,9 @@ void TPTP::endTerm()
   }
 
   unsigned symbol;
-  if (env.signature->predicateExists(name, arity) || findLetSymbol(true, name, arity, symbol)) {
+  if (env.signature->predicateExists(name, arity) ||
+      findLetSymbol(true, name, arity, symbol) ||
+      findInterpretedPredicate(name, arity)) {
     // if the function symbol is actually a predicate,
     // we need to construct a formula and wrap it inside a term
     _formulas.push(createPredicateApplication(name, arity));
@@ -2136,15 +2305,21 @@ void TPTP::formulaInfix()
     return;
   }
 
-  if (name == toString(T_SELECT)) {
-    _states.push(END_TERM_AS_FORMULA);
-    _states.push(END_SELECT);
+  TheoryFunction tf;
+  if (findTheoryFunction(name, tf)) {
+    switch (tf) {
+      case TF_STORE:
+        USER_ERROR("$store expression cannot be used as formula");
+        break;
+      case TF_SELECT:
+        _theoryFunctions.push(tf);
+        _states.push(END_TERM_AS_FORMULA);
+        _states.push(END_THEORY_FUNCTION);
+        break;
+      default:
+        ASSERTION_VIOLATION_REP(name);
+    }
     return;
-  }
-
-  if (name == toString(T_STORE)) {
-    // the sort of $store(...) is never $o
-    USER_ERROR("$store expression cannot be used as formula");
   }
 
   if (name == toString(T_LET)) {
@@ -3132,9 +3307,9 @@ void TPTP::simpleFormula()
   case T_NAME:
   case T_VAR:
   case T_ITE:
-  case T_SELECT:
-  case T_STORE:
+  case T_THEORY_FUNCTION:
   case T_LET:
+  case T_LBRA:
     _states.push(FORMULA_INFIX);
     _states.push(FUN_APP);
     return;
@@ -3189,10 +3364,10 @@ unsigned TPTP::readSort()
   CALL("TPTP::readSort");
 
   Token tok = getTok(0);
+  resetToks();
   switch (tok.tag) {
   case T_NAME:
     {
-      resetToks();
       bool added;
       unsigned sortNumber = env.sorts->addSort(tok.content,added);
       if (added) {
@@ -3202,34 +3377,56 @@ unsigned TPTP::readSort()
     }
 
   case T_DEFAULT_TYPE:
-    resetToks();
     return Sorts::SRT_DEFAULT;
 
   case T_BOOL_TYPE:
-    resetToks();
     return Sorts::SRT_BOOL;
 
   case T_INTEGER_TYPE:
-    resetToks();
     return Sorts::SRT_INTEGER;
 
   case T_RATIONAL_TYPE:
-    resetToks();
     return Sorts::SRT_RATIONAL;
 
   case T_REAL_TYPE:
-    resetToks();
     return Sorts::SRT_REAL;
 
-  case T_ARRAY_TYPE:
+  case T_LBRA:
   {
-    resetToks();
+    Stack<unsigned> sorts;
+    for (;;) {
+      unsigned sort = readSort();
+      sorts.push(sort);
+      if (getTok(0).tag == T_COMMA) {
+        resetToks();
+      } else {
+        consumeToken(T_RBRA);
+        break;
+      }
+    }
+
+    if (sorts.length() < 2) {
+      USER_ERROR("Tuple sort with less than two arguments");
+    }
+
+    return env.sorts->addTupleSort((unsigned) sorts.length(), sorts.begin());
+  }
+  case T_THEORY_SORT: {
+    unsigned sort;
     consumeToken(T_LPAR);
-    unsigned indexSort = readSort();
-    consumeToken(T_COMMA);
-    unsigned innerSort = readSort();
+    switch (getTheorySort(tok)) {
+      case TS_ARRAY: {
+        unsigned indexSort = readSort();
+        consumeToken(T_COMMA);
+        unsigned innerSort = readSort();
+        sort = env.sorts->addArraySort(indexSort, innerSort);
+        break;
+      }
+      default:
+        ASSERTION_VIOLATION;
+    }
     consumeToken(T_RPAR);
-    return env.sorts->addArraySort(indexSort,innerSort);
+    return sort;
   }
   default:
     PARSE_ERROR("sort expected",tok);
@@ -3254,6 +3451,24 @@ bool TPTP::higherPrecedence(int c1,int c2)
   if (c1 == OR) return false;
   ASSERTION_VIOLATION;
 } // higherPriority
+
+bool TPTP::findInterpretedPredicate(vstring name, unsigned arity) {
+  CALL("TPTP::findInterpretedPredicate");
+
+  if (name == "$evaleq" || name == "$equal" || name == "$distinct") {
+    return true;
+  }
+
+  if (name == "$is_int" || name == "$is_rat") {
+    return arity == 1;
+  }
+
+  if (name == "$less" || name == "$lesseq" || name == "$greater" || name == "$greatereq" || name == "$divides") {
+    return arity == 2;
+  }
+
+  return false;
+}
 
 /**
  * Create an and- or or-formula flattening its lhs and rhs if necessary.
@@ -3447,7 +3662,7 @@ unsigned TPTP::addFunction(vstring name,int arity,bool& added,TermList& arg)
 				 Theory::RAT_TO_REAL,
 				 Theory::REAL_TO_REAL);
   }
-
+ASSERTION_VIOLATION;
   USER_ERROR((vstring)"Invalid function name: " + name);
 } // addFunction
 
@@ -3953,6 +4168,8 @@ const char* TPTP::toString(State s)
     return "END_EQ";
   case TFF:
     return "TFF";
+  case THF:
+    return "THF";
   case TYPE:
     return "TYPE";
   case END_TFF:
@@ -3961,24 +4178,28 @@ const char* TPTP::toString(State s)
     return "END_TYPE";
   case SIMPLE_TYPE:
     return "SIMPLE_TYPE";
-  case END_SELECT:
-    return "END_SELECT";
-  case END_STORE:
-    return "END_STORE";
+  case END_THEORY_FUNCTION:
+    return "END_THEORY_FUNCTION";
   case END_ARGS:
     return "END_ARGS";
   case MID_EQ:
     return "MID_EQ";
   case BINDING:
     return "BINDING";
+  case TUPLE_BINDING:
+    return "TUPLE_BINDING";
   case END_BINDING:
     return "END_BINDING";
+  case END_TUPLE_BINDING:
+    return "END_TUPLE_BINDING";
   case END_LET:
     return "END_LET";
   case UNBIND_VARIABLES:
     return "UNBIND_VARIABLES";
   case END_ITE:
     return "END_ITE";
+  case END_TUPLE:
+    return "END_TUPLE";
   default:
     cout << (int)s << "\n";
     ASS(false);
@@ -4045,12 +4266,10 @@ void TPTP::printStacks() {
     if (!vit.hasNext()) {
       cout << " <empty>";
     } else {
-      cout << " [";
       while (vit.hasNext()) {
         cout << vit.next();
         if (vit.hasNext()) cout << " ";
-      }
-      cout << "]";
+      };
     }
   }
   cout << endl;
@@ -4070,15 +4289,34 @@ void TPTP::printStacks() {
   }
   cout << endl;
 
+  Stack<SortList*>::Iterator slsit(_sortLists);
+  cout << "Sort lists: ";
+  if   (!slsit.hasNext()) cout << "<empty>";
+  while (slsit.hasNext()) {
+    SortList* sl = slsit.next();
+    SortList::Iterator slit(sl);
+    if   (!slit.hasNext()) cout << "<empty>";
+    while (slit.hasNext()) cout << env.sorts->sortName(slit.next()) << " ";
+    cout << ";";
+  }
+  cout << endl;
+
+  Stack<TheoryFunction>::Iterator tfit(_theoryFunctions);
+  cout << "Theory functions: ";
+  if   (!tfit.hasNext()) cout << " <empty>";
+  while (tfit.hasNext()) cout << " " << tfit.next();
+  cout << endl;
+
   Stack<LetFunctionsScope>::Iterator lfsit(_letScopes);
-  cout << "Let functions scopes:";
-  if (!lfsit.hasNext()) cout << " <empty>";
+  cout << "Let functions scopes: ";
+  if (!lfsit.hasNext()) cout << "<empty>";
   while (lfsit.hasNext()) {
-    LetFunctionsScope::Iterator sit(lfsit.next());
+    LetFunctionsScope lfs = lfsit.next();
+    LetFunctionsScope::Iterator sit(lfs);
     if (!sit.hasNext()) {
-      cout << " <empty>";
+      cout << "<empty>";
     } else {
-      cout << " [";
+      unsigned i = lfs.length();
       while (sit.hasNext()) {
         LetFunction f    = sit.next();
         vstring name     = f.first.first;
@@ -4089,9 +4327,11 @@ void TPTP::printStacks() {
         vstring symbolName = isPredicate ? env.signature->predicateName(symbol)
                                          : env.signature->functionName (symbol);
 
-        cout << name << "/" << arity << " -> " << symbolName << ", ";
-      }
-      cout << "]";
+        cout << name << "/" << arity << " -> " << symbolName;
+        if (--i > 0) {
+          cout << ", ";
+        }
+      };
     }
   }
   cout << endl;
@@ -4112,6 +4352,45 @@ void TPTP::printStacks() {
                                        : env.signature->functionName (symbol);
 
       cout << name << "/" << arity << " -> " << symbolName << " ";
+    }
+  }
+  cout << endl;
+
+  Stack<LetBindingScope>::Iterator lbsit(_letBindings);
+  cout << "Let bindings: ";
+  if (!lbsit.hasNext()) cout << "<empty>";
+  while (lbsit.hasNext()) {
+    LetBindingScope lbs = lbsit.next();
+    LetBindingScope::Iterator lbit(lbs);
+    unsigned i = (unsigned)lbs.length();
+    if (lbit.hasNext()) {
+      while (lbit.hasNext()) {
+        LetBinding b = lbit.next();
+        unsigned symbol = b.first;
+        bool isTuple = b.second;
+        if (isTuple) {
+          cout << env.sorts->sortName(env.signature->getFunction(symbol)->fnType()->result());
+        } else {
+          cout << env.signature->functionName(symbol);
+        }
+      }
+      if (--i > 0) {
+        cout << ", ";
+      }
+    }
+  }
+  cout << endl;
+
+  LetBindingScope::Iterator clbsit(_currentBindingScope);
+  cout << "Current let bindings scope:";
+  if (!clbsit.hasNext()) {
+    cout << " <empty>";
+  } else {
+    while (clbsit.hasNext()) {
+      LetBinding b    = clbsit.next();
+      unsigned symbol = b.first;
+      bool isTuple = b.second;
+      cout << symbol << "," << isTuple << " ";
     }
   }
   cout << endl;

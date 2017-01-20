@@ -436,12 +436,12 @@ bool HyperSuperposition::tryGetUnifyingPremises(Term* t1, Term* t2, Color clr, b
 }
 
 Clause* HyperSuperposition::tryGetContradictionFromUnification(Clause* cl, Term* t1, Term* t2, bool disjointVariables,
-    ClauseStack& premises)
+    ClauseStack& premStack)
 {
   CALL("HyperSuperposition::tryGetContradictionFromUnification");
 
   Color clr = cl->color();
-  ClauseStack::Iterator cit(premises);
+  ClauseStack::Iterator cit(premStack);
   while(cit.hasNext()) {
     Clause* prem = cit.next();
     clr = ColorHelper::combine(clr, prem->color());
@@ -449,11 +449,11 @@ Clause* HyperSuperposition::tryGetContradictionFromUnification(Clause* cl, Term*
   if(clr==COLOR_INVALID) {
     return 0;
   }
-  if(!tryGetUnifyingPremises(t1, t2, clr, disjointVariables, premises)) {
+  if(!tryGetUnifyingPremises(t1, t2, clr, disjointVariables, premStack)) {
     return 0;
   }
   UnitList* premLst = 0;
-  UnitList::pushFromIterator(ClauseStack::Iterator(premises), premLst);
+  UnitList::pushFromIterator(ClauseStack::Iterator(premStack), premLst);
   UnitList::push(cl, premLst);
   Inference* inf = new InferenceMany(Inference::HYPER_SUPERPOSITION, premLst);
   Unit::InputType inp = Unit::getInputType(premLst);
@@ -462,31 +462,33 @@ Clause* HyperSuperposition::tryGetContradictionFromUnification(Clause* cl, Term*
   return res;
 }
 
-bool HyperSuperposition::trySimplifyingFromUnification(Clause* cl, Term* t1, Term* t2, bool disjointVariables, ClauseStack& premises,
-      ForwardSimplificationPerformer* simplPerformer)
+bool HyperSuperposition::trySimplifyingFromUnification(Clause* cl, Term* t1, Term* t2, bool disjointVariables, ClauseStack& premStack,
+    Clause*& replacement, ClauseIterator& premises)
 {
   CALL("HyperSuperposition::trySimplifyingFromUnification");
 
 
-  Clause* res = tryGetContradictionFromUnification(cl, t1, t2, false, premises);
+  Clause* res = tryGetContradictionFromUnification(cl, t1, t2, false, premStack);
   if(!res) {
     return false;
   }
 
-  ClauseStack::Iterator premIt(premises);
+  ClauseStack::Iterator premIt(premStack);
   while(premIt.hasNext()) {
     Clause* pr = premIt.next();
-    if(!simplPerformer->willPerform(pr)) {
+    if(!ColorHelper::compatible(cl->color(), pr->color())) {
       return false;
     }
   }
 
-  simplPerformer->perform(pvi(ClauseStack::Iterator(premises)), res);
   RSTAT_CTR_INC("hyper-superposition");
+
+  replacement = res;
+  premises = pvi(ClauseStack::Iterator(premStack));
   return true;
 }
 
-bool HyperSuperposition::tryUnifyingNonequalitySimpl(Clause* cl, ForwardSimplificationPerformer* simplPerformer)
+bool HyperSuperposition::tryUnifyingNonequalitySimpl(Clause* cl, Clause*& replacement, ClauseIterator& premises)
 {
   CALL("HyperSuperposition::tryUnifyingNonequalitySimpl");
   ASS_EQ(cl->length(), 1);
@@ -502,13 +504,13 @@ bool HyperSuperposition::tryUnifyingNonequalitySimpl(Clause* cl, ForwardSimplifi
     return false;
   }
 
-  static ClauseStack premises;
-  premises.reset();
+  static ClauseStack premStack;
+  premStack.reset();
 
-  return trySimplifyingFromUnification(cl, t1.term(), t2.term(), false, premises, simplPerformer);
+  return trySimplifyingFromUnification(cl, t1.term(), t2.term(), false, premStack, replacement, premises);
 }
 
-bool HyperSuperposition::tryUnifyingToResolveSimpl(Clause* cl, ForwardSimplificationPerformer* simplPerformer)
+bool HyperSuperposition::tryUnifyingToResolveSimpl(Clause* cl, Clause*& replacement, ClauseIterator& premises)
 {
   CALL("HyperSuperposition::tryUnifyingToResolveSimpl");
   ASS_EQ(cl->length(), 1);
@@ -528,7 +530,7 @@ bool HyperSuperposition::tryUnifyingToResolveSimpl(Clause* cl, ForwardSimplifica
     prems.reset();
     prems.push(unifRes.clause);
 
-    if(trySimplifyingFromUnification(cl, lit, unifRes.literal, true, prems, simplPerformer)) {
+    if(trySimplifyingFromUnification(cl, lit, unifRes.literal, true, prems, replacement, premises)) {
       return true;
     }
   }
@@ -538,26 +540,23 @@ bool HyperSuperposition::tryUnifyingToResolveSimpl(Clause* cl, ForwardSimplifica
 /**
  * Interface for a fw simplifying inference
  */
-void HyperSuperposition::perform(Clause* cl, ForwardSimplificationPerformer* simplPerformer)
+bool HyperSuperposition::perform(Clause* cl, Clause*& replacement, ClauseIterator& premises)
 {
   CALL("HyperSuperposition::perform");
   if(cl->length()!=1) {
-    return;
+    return false;
   }
 
   TimeCounter tc(TC_HYPER_SUPERPOSITION);
 
   Literal* lit = (*cl)[0];
 
-  static ClausePairStack res;
-  res.reset();
-
   if(lit->isEquality() && lit->isNegative()) {
-    if(tryUnifyingNonequalitySimpl(cl, simplPerformer)) {
-      return;
+    if(tryUnifyingNonequalitySimpl(cl, replacement, premises)) {
+      return true;
     }
   }
-  tryUnifyingToResolveSimpl(cl, simplPerformer);
+  return tryUnifyingToResolveSimpl(cl, replacement, premises);
 }
 
 }

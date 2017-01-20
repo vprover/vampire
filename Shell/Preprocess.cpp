@@ -208,7 +208,7 @@ void Preprocess::preprocess (Problem& prb)
   }
 
   // If there are interpreted operations
-  if (prb.hasInterpretedOperations()){
+  if (prb.hasInterpretedOperations() || env.signature->hasTermAlgebras()){
     // Normalize them e.g. replace $greater with not $lesseq
     InterpretedNormalizer().apply(prb);
     // Add theory axioms if needed

@@ -399,7 +399,7 @@ protected:
    */
   virtual Formula* applyLiteral(Formula* f)
   {
-    CALL("applyLiteral");
+    CALL("InterpretedNormalizer::NFormulaTransformer::applyLiteral");
 
     Literal* lit = f->literal();
     bool isConst;
@@ -451,7 +451,7 @@ void InterpretedNormalizer::apply(Problem& prb)
  */
 bool InterpretedNormalizer::apply(UnitList*& units)
 {
-  CALL("InterpretedNormalizer::apply");
+  CALL("InterpretedNormalizer::apply(UnitList*& units)");
 
   NFormulaTransformer ftransf(_litTransf);
   FTFormulaUnitTransformer<NFormulaTransformer> futransf(Inference::EVALUATION, ftransf);
@@ -488,7 +488,7 @@ bool InterpretedNormalizer::apply(UnitList*& units)
 
 Clause* InterpretedNormalizer::apply(Clause* cl)
 {
-  CALL("InterpretedNormalizer::isTrivialInterpretation");
+  CALL("InterpretedNormalizer::apply(Clause* cl)");
 
   static LiteralStack lits;
   lits.reset();

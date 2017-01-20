@@ -64,37 +64,90 @@ TermList SymbolDefinitionInlining::process(TermList ts) {
   if (term->isSpecial()) {
     Term::SpecialTermData *sd = term->getSpecialData();
     switch (sd->getType()) {
-      case Term::SF_FORMULA:
-        return TermList(Term::createFormula(process(sd->getFormula())));
+      case Term::SF_FORMULA: {
+        Formula* formula = process(sd->getFormula());
 
-      case Term::SF_ITE:
-        return TermList(Term::createITE(process(sd->getCondition()),
-                                        process(*term->nthArgument(0)),
-                                        process(*term->nthArgument(1)),
-                                        sd->getSort()));
+        if (formula == sd->getFormula()) {
+          return ts;
+        }
 
-      case Term::SF_LET:
+        return TermList(Term::createFormula(formula));
+      }
+
+      case Term::SF_ITE: {
+        Formula* condition  = process(sd->getCondition());
+        TermList thenBranch = process(*term->nthArgument(0));
+        TermList elseBranch = process(*term->nthArgument(1));
+
+        if ((condition == sd->getCondition()) && (thenBranch == *term->nthArgument(0)) && (elseBranch == *term->nthArgument(1))) {
+          return ts;
+        }
+
+        return TermList(Term::createITE(condition, thenBranch, elseBranch, sd->getSort()));
+      }
+
+      case Term::SF_LET: {
+        TermList binding = process(sd->getBinding());
+        TermList body = process(*term->nthArgument(0));
+
+        if ((sd->getBinding() == binding) && (*term->nthArgument(0) == body)) {
+          return ts;
+        }
+
         return TermList(Term::createLet(sd->getFunctor(), sd->getVariables(),
-                                        process(sd->getBinding()),
-                                        process(*term->nthArgument(0)),
-                                        sd->getSort()));
+                                        binding, body, sd->getSort()));
+      }
+
+      case Term::SF_LET_TUPLE: {
+        TermList binding = process(sd->getBinding());
+        TermList body = process(*term->nthArgument(0));
+
+        if ((sd->getBinding() == binding) && (*term->nthArgument(0) == body)) {
+          return ts;
+        }
+
+        return TermList(Term::createTupleLet(sd->getFunctor(), sd->getTupleSymbols(),
+                                             binding, body, sd->getSort()));
+      }
+
+      case Term::SF_TUPLE: {
+        TermList tuple = process(TermList(sd->getTupleTerm()));
+        ASS(tuple.isTerm());
+
+        if (tuple.term() == sd->getTupleTerm()) {
+          return ts;
+        }
+
+        return TermList(Term::createTuple(tuple.term()));
+      }
 
       default:
         ASSERTION_VIOLATION_REP(term->toString());;
     }
   }
 
-  Term::Iterator it(term);
+  Term::Iterator terms(term);
 
   if (!_isPredicate && (term->functor() == _symbol)) {
-    return substitute(it);
+    return substitute(terms);
   }
 
-  Stack<TermList> arguments;
-  while (it.hasNext()) {
-    arguments.push(process(it.next()));
+  bool substituted = false;
+  Stack<TermList> args;
+  while (terms.hasNext()) {
+    TermList argument = terms.next();
+    TermList processedArgument = process(argument);
+    if (argument != processedArgument) {
+      substituted = true;
+    }
+    args.push(processedArgument);
   }
-  return TermList(Term::create(term, arguments.begin()));
+
+  if (!substituted) {
+    return ts;
+  }
+
+  return TermList(Term::create(term, args.begin()));
 }
 
 Formula* SymbolDefinitionInlining::process(Formula* formula) {
@@ -103,41 +156,88 @@ Formula* SymbolDefinitionInlining::process(Formula* formula) {
   switch (formula->connective()) {
     case LITERAL: {
       Literal* literal = formula->literal();
-      Term::Iterator it(literal);
+      Term::Iterator terms(literal);
 
       if (_isPredicate && (literal->functor() == _symbol)) {
         if (literal->polarity()) {
-          return BoolTermFormula::create(substitute(it));
+          return BoolTermFormula::create(substitute(terms));
         } else {
-          return new NegatedFormula(BoolTermFormula::create(substitute(it)));
+          return new NegatedFormula(BoolTermFormula::create(substitute(terms)));
         }
       }
 
-      Stack<TermList> arguments;
-      while (it.hasNext()) {
-        arguments.push(process(it.next()));
+      bool processed = false;
+      Stack<TermList> args;
+      while (terms.hasNext()) {
+        TermList argument = terms.next();
+        TermList flattenedArgument = process(argument);
+        if (argument != flattenedArgument) {
+          processed = true;
+        }
+        args.push(flattenedArgument);
       }
-      return new AtomicFormula(Literal::create(literal, arguments.begin()));
+
+      if (!processed) {
+        return formula;
+      }
+
+      return new AtomicFormula(Literal::create(literal, args.begin()));
     }
 
     case AND:
-    case OR:
-      return new JunctionFormula(formula->connective(), process(formula->args()));
+    case OR: {
+      FormulaList* args = process(formula->args());
+
+      if (args == formula->args()) {
+        return formula;
+      }
+
+      return new JunctionFormula(formula->connective(), args);
+    }
 
     case IMP:
     case IFF:
-    case XOR:
-      return new BinaryFormula(formula->connective(), process(formula->left()), process(formula->right()));
+    case XOR: {
+      Formula* left  = process(formula->left());
+      Formula* right = process(formula->right());
 
-    case NOT:
-      return new NegatedFormula(process(formula->uarg()));
+      if ((left == formula->left()) && (right == formula->right())) {
+        return formula;
+      }
+
+      return new BinaryFormula(formula->connective(), left, right);
+    }
+
+    case NOT: {
+      Formula* uarg = process(formula->uarg());
+
+      if (uarg == formula->uarg()) {
+        return formula;
+      }
+
+      return new NegatedFormula(uarg);
+    }
 
     case FORALL:
-    case EXISTS:
-      return new QuantifiedFormula(formula->connective(), formula->vars(), formula->sorts(), process(formula->qarg()));
+    case EXISTS: {
+      Formula* qarg = process(formula->qarg());
 
-    case BOOL_TERM:
-      return new BoolTermFormula(process(formula->getBooleanTerm()));
+      if (qarg == formula->qarg()) {
+        return formula;
+      }
+
+      return new QuantifiedFormula(formula->connective(), formula->vars(), formula->sorts(), qarg);
+    }
+
+    case BOOL_TERM: {
+      TermList ts = process(formula->getBooleanTerm());
+
+      if (ts == formula->getBooleanTerm()) {
+        return formula;
+      }
+
+      return new BoolTermFormula(ts);
+    }
 
     case TRUE:
     case FALSE:
@@ -149,9 +249,33 @@ Formula* SymbolDefinitionInlining::process(Formula* formula) {
 }
 
 FormulaList* SymbolDefinitionInlining::process(FormulaList* formulas) {
-  CALL("FOOLElimination::SymbolOccurrenceReplacement::process(FormulaList*)");
-  // TODO: get rid of recursion here for speed
-  return FormulaList::isEmpty(formulas) ? formulas : new FormulaList(process(formulas->head()), process(formulas->tail()));
+  CALL("SymbolDefinitionInlining::process(FormulaList*)");
+
+  static Stack<Formula*> elements;
+  elements.reset();
+
+  bool substituted = false;
+  FormulaList::Iterator fit(formulas);
+  while (fit.hasNext()) {
+    Formula* formula = fit.next();
+    Formula* processedFormula = process(formula);
+
+    if (formula != processedFormula) {
+      substituted = true;
+    }
+
+    elements.push(processedFormula);
+  }
+
+  if (!substituted) {
+    return formulas;
+  }
+
+  FormulaList* processedFormula = FormulaList::empty();
+  Stack<Formula*>::BottomFirstIterator eit(elements);
+  FormulaList::pushFromIterator(eit, processedFormula);
+
+  return processedFormula;
 }
 
 void SymbolDefinitionInlining::collectBoundVariables(TermList ts) {
@@ -185,6 +309,14 @@ void SymbolDefinitionInlining::collectBoundVariables(Term* t) {
       case Term::SF_LET: {
         collectBoundVariables(sd->getBinding());
         _bound = Formula::VarList::concat(_bound, sd->getVariables());
+        break;
+      }
+      case Term::SF_LET_TUPLE: {
+        collectBoundVariables(sd->getBinding());
+        break;
+      }
+      case Term::SF_TUPLE: {
+        collectBoundVariables(sd->getTupleTerm());
         break;
       }
       default:

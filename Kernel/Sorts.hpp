@@ -43,7 +43,11 @@ public:
     /** The structured sort for arrays **/
     ARRAY,
     /** The structured sort for lists, currently unused **/
-    LIST
+    LIST,
+    /** The structured sort for tuples */
+    TUPLE,
+    /** not a real structured sort, it's here to denote the length of the StructuredSort enum */
+    LAST_STRUCTURED_SORT
   };
 
   Sorts();
@@ -62,6 +66,7 @@ public:
     const unsigned id() const { return _id; }
 
     virtual bool hasStructuredSort(StructuredSort sort) { return false; }
+
   protected:
     vstring _name;
     unsigned _id;
@@ -79,6 +84,10 @@ public:
 
     StructuredSortInfo(vstring name, StructuredSort sort,unsigned id): 
       SortInfo(name,id), _sort(sort) { (void)_sort; /*to suppress warning about unused*/ }
+
+    bool hasStructuredSort(StructuredSort sort) override {
+      return sort==_sort;
+    }
 
   private:
     StructuredSort _sort;
@@ -103,9 +112,6 @@ public:
 #endif
     }
 
-    bool hasStructuredSort(StructuredSort sort) override { 
-      return sort==StructuredSort::ARRAY; 
-    }
     unsigned getIndexSort(){ return _indexSort; }
     unsigned getInnerSort(){ return _innerSort; }
 
@@ -116,18 +122,59 @@ public:
 
   };
 
+  class TupleSort : public StructuredSortInfo
+  {
+  public:
+    CLASS_NAME(TupleSort);
+    USE_ALLOCATOR(TupleSort);
+
+    TupleSort(vstring name, unsigned id, unsigned arity, unsigned sorts[])
+      : StructuredSortInfo(name, StructuredSort::TUPLE, id), _arity(arity) {
+      _sorts = new unsigned[arity];
+      for (unsigned i = 0; i < arity; i++) {
+        _sorts[i] = sorts[i];
+      }
+    }
+
+    unsigned arity() const { return _arity; }
+    unsigned* sorts() const { return _sorts; }
+    unsigned argument(unsigned index) const { ASS_G(_arity, index); return _sorts[index]; }
+
+  private:
+    unsigned _arity;
+    unsigned* _sorts;
+  };
+
   unsigned addSort(const vstring& name, bool& added);
   unsigned addSort(const vstring& name);
 
   unsigned addArraySort(unsigned indexSort, unsigned innerSort);
-  VirtualIterator<unsigned> getArraySorts();
   ArraySort* getArraySort(unsigned sort){
     ASS(hasStructuredSort(sort,StructuredSort::ARRAY));
     return static_cast<ArraySort*>(_sorts[sort]);
   }
 
+  unsigned addTupleSort(unsigned arity, unsigned sorts[]);
+  TupleSort* getTupleSort(unsigned sort) {
+    ASS(hasStructuredSort(sort,StructuredSort::TUPLE));
+    return static_cast<TupleSort*>(_sorts[sort]);
+  }
+
   bool haveSort(const vstring& name);
   bool findSort(const vstring& name, unsigned& idx);
+
+  VirtualIterator<unsigned> getStructuredSorts(const StructuredSort ss);
+
+  bool hasStructuredSort(unsigned sort) {
+    if(sort > _sorts.size()) return false;
+    unsigned sorts = (unsigned)StructuredSort::LAST_STRUCTURED_SORT;
+    for (unsigned ss = 0; ss < sorts; ss++) {
+      if (_sorts[sort]->hasStructuredSort(static_cast<StructuredSort>(ss))) {
+        return true;
+      }
+    }
+    return false;
+  }
 
   bool hasStructuredSort(unsigned sort, StructuredSort structured){
     if(sort > _sorts.size()) return false;

@@ -24,7 +24,7 @@ public:
   CLASS_NAME(InnerRewriting);
   USE_ALLOCATOR(InnerRewriting);
   
-  void perform(Clause* cl, ForwardSimplificationPerformer* simplPerformer) override;
+  bool perform(Clause* cl, Clause*& replacement, ClauseIterator& premises) override;
 };
 
 };

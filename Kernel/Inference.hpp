@@ -204,6 +204,8 @@ public:
     TERM_ALGEBRA_DISTINCTNESS,
     /** inference rule for term algebras (injectivity of constructors)*/
     TERM_ALGEBRA_INJECTIVITY,
+    /** inference rule for term algebras (discriminators)*/
+    TERM_ALGEBRA_DISCRIMINATION,
     /** inference rule for term algebras (no cyclic terms)*/
     TERM_ALGEBRA_ACYCLICITY,
     /** one of two axioms of FOOL (distinct constants or finite domain) */

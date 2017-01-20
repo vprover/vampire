@@ -13,6 +13,8 @@
 #include "Lib/DHMap.hpp"
 #include "Lib/Exception.hpp"
 
+#include "Shell/TermAlgebra.hpp"
+
 #include "Sorts.hpp"
 #include "Term.hpp"
 
@@ -342,6 +344,10 @@ public:
     return LastNonStructuredInterepretation() + _structuredSortInterpretations.size(); 
   }
 
+  unsigned numberOfInterpretations(){
+    return LastNonStructuredInterepretation() + LastStructuredInterpretation();
+  }
+
   bool isValidInterpretation(Interpretation i){
     return i <= MaxInterpretedElement();
   }
@@ -370,11 +376,18 @@ public:
     LIST_CONS,
     LIST_IS_EMPTY
   };
-  void addStructuredSortInterpretation(unsigned sort, StructuredSortInterpretation i);
+  unsigned LastStructuredInterpretation(){
+    return static_cast<unsigned>(StructuredSortInterpretation::LIST_IS_EMPTY);
+  }
   unsigned getSymbolForStructuredSort(unsigned sort, StructuredSortInterpretation interp);
   Interpretation getInterpretation(unsigned sort, StructuredSortInterpretation i){
-    ASS(_structuredSortInterpretations.find(pair<unsigned,StructuredSortInterpretation>(sort,i)));
-    return static_cast<Interpretation>(_structuredSortInterpretations.get(pair<unsigned,StructuredSortInterpretation>(sort,i)));
+    auto key = make_pair(sort, i);
+    unsigned interpretation;
+    if (!_structuredSortInterpretations.find(key, interpretation)) {
+      interpretation = MaxInterpretedElement() + 1;
+      _structuredSortInterpretations.insert(key, interpretation);
+    }
+    return static_cast<Interpretation>(interpretation);
   }
   bool isStructuredSortInterpretation(Interpretation i){
     return i > LastNonStructuredInterepretation();
@@ -383,34 +396,34 @@ public:
     return getData(i).first;
   }
 
+  static vstring getInterpretationName(Interpretation i);
   static unsigned getArity(Interpretation i);
   static bool isFunction(Interpretation i);
   static bool isInequality(Interpretation i);
+  static Sorts::StructuredSort getInterpretedSort(StructuredSortInterpretation ssi);
   static BaseType* getOperationType(Interpretation i);
+  static BaseType* getStructuredSortOperationType(Interpretation i);
   static bool hasSingleSort(Interpretation i);
   static unsigned getOperationSort(Interpretation i);
   static bool isConversionOperation(Interpretation i);
   static bool isLinearOperation(Interpretation i);
   static bool isNonLinearOperation(Interpretation i);
-    
-  static BaseType* getArrayOperationType(Interpretation i);
 
-  static bool isArraySort(unsigned sort);
   static bool isArrayOperation(Interpretation i);
-  static unsigned getArraySelectFunctor(unsigned sort);
-  static unsigned getArrayStoreFunctor(unsigned sort);
   static unsigned getArrayOperationSort(Interpretation i);
-  static unsigned  getArrayDomainSort(Interpretation i);
+  static unsigned getArrayDomainSort(Interpretation i);
 
   unsigned getArrayExtSkolemFunction(unsigned i);
     
   static Theory theory_obj;
-    
   static Theory* instance();
+
+  void defineTupleTermAlgebra(unsigned arity, unsigned* sorts);
 
   bool isInterpretedConstant(unsigned func);
   bool isInterpretedConstant(Term* t);
   bool isInterpretedConstant(TermList t);
+  bool isInterpretedNumber(TermList t);
 
   bool isInterpretedPredicate(unsigned pred);
   bool isInterpretedPredicate(Literal* lit);
@@ -504,6 +517,9 @@ private:
   DHMap<unsigned,unsigned> _arraySkolemFunctions;
 
 public:
+  unsigned getStructuredOperationSort(Interpretation i){
+    return getData(i).first;
+  }
   StructuredSortInterpretation convertToStructured(Interpretation i){
     return getData(i).second;
   }
@@ -519,6 +535,19 @@ private:
   }
 
   DHMap<pair<unsigned,StructuredSortInterpretation>,unsigned> _structuredSortInterpretations;
+
+public:
+  class Tuples {
+  public:
+    bool isFunctor(unsigned functor);
+    unsigned getFunctor(unsigned arity, unsigned sorts[]);
+    unsigned getFunctor(unsigned tupleSort);
+    unsigned getProjectionFunctor(unsigned proj, unsigned tupleSort);
+    bool findProjection(unsigned projFunctor, bool isPredicate, unsigned &proj);
+  };
+
+  static Theory::Tuples tuples_obj;
+  static Theory::Tuples* tuples();
 };
 
 typedef Theory::Interpretation Interpretation;
@@ -527,6 +556,7 @@ typedef Theory::Interpretation Interpretation;
  * Pointer to the singleton Theory instance
  */
 extern Theory* theory;
+
 }
 
 #endif // __Theory__
