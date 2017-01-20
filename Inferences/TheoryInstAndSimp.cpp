@@ -230,6 +230,9 @@ VirtualIterator<Solution> TheoryInstAndSimp::getSolutions(Stack<Literal*>& theor
       if(t){
         //cout << "evaluate to " << t->toString() << endl;
         sol.subst.bind(v,t);
+      } else {
+        // Failed to obtain a value; could be an algebraic number or some other currently unhandled beast...
+        goto fail;
       }
     }
 #if DPRINT
@@ -237,6 +240,8 @@ VirtualIterator<Solution> TheoryInstAndSimp::getSolutions(Stack<Literal*>& theor
 #endif
     return pvi(getSingletonIterator(sol));
   }
+
+  fail:
 
   // SMT solving was incomplete
   return VirtualIterator<Solution>::getEmpty(); 

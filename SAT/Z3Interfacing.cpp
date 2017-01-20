@@ -203,7 +203,7 @@ Term* Z3Interfacing::evaluateInModel(Term* trm)
   unsigned srt = SortHelper::getResultSort(trm);
   bool name; //TODO what do we do about naming?
   z3::expr rep = getz3expr(trm,false,name); 
-  z3::expr assignment = _model.eval(rep,true /*model_completion*/);
+  z3::expr assignment = _model.eval(rep,true); // true means "model_completion"
 
   // now translate assignment back into a term!
 
@@ -236,6 +236,10 @@ Term* Z3Interfacing::evaluateInModel(Term* trm)
        }
      }
     }
+  } else {
+    // TODO" assignment such as "(root-obj (+ (^ x 2) (- 128)) 1)" is an algebraic number, but not a numeral
+    // would be interesting to allow such Sorts::SRT_REAL things to live in vampire
+    // of course, they are not in general Sorts::SRT_RATIONAL
   }
 
   return 0;
