@@ -163,6 +163,7 @@ VirtualIterator<Solution> TheoryInstAndSimp::getSolutions(Stack<Literal*>& theor
   SAT2FO naming;
   Z3Interfacing solver(*env.options,naming);
 
+
   // Firstly, we need to consistently replace variables by constants (i.e. Skolemize)
   // Secondly, we take the complement of each literal and consider the conjunction
   // This subst is for the consistent replacement
@@ -188,7 +189,15 @@ VirtualIterator<Solution> TheoryInstAndSimp::getSolutions(Stack<Literal*>& theor
         vars.push(var);
       }
     }
+#if DPRINT
+    //cout << "skolem " << lit->toString();
+#endif
+
     lit = SubstHelper::apply(lit,subst);
+
+#if DPRINT
+    //cout << " to get " << lit->toString() << endl;
+#endif
 
     // register the lit in naming in such a way that the solver will pick it up!
     SATLiteral slit = naming.toSAT(lit);
@@ -214,9 +223,12 @@ VirtualIterator<Solution> TheoryInstAndSimp::getSolutions(Stack<Literal*>& theor
     while(vit.hasNext()){
       unsigned v = vit.next();
       Term* t = subst.apply(v).term();
+      ASS(t);
+      //cout << v << ": " << t->toString() << endl;
       t = solver.evaluateInModel(t);
       // If we could evaluate the term in the model then bind it
       if(t){
+        //cout << "evaluate to " << t->toString() << endl;
         sol.subst.bind(v,t);
       }
     }

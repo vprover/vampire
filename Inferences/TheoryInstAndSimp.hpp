@@ -44,6 +44,8 @@ private:
   VirtualIterator<Solution> getSolutions(Stack<Literal*>& theoryLiterals);
 
   Splitter* _splitter;
+  //SAT2F0 _naming;
+  //Z3Interfacing* _solver;
 
 };
 

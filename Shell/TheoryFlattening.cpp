@@ -113,6 +113,10 @@ Clause* TheoryFlattening::apply(Clause*& cl,Stack<Literal*>& target)
     }
   }
 
+  // The resultant lits
+  Stack<Literal*> result;
+  bool updated = false;
+
   // literals to be processed, start with those in clause
   Stack<Literal*> lits;
   for(int i= cl->length()-1; i>=0;i--){
@@ -120,13 +124,10 @@ Clause* TheoryFlattening::apply(Clause*& cl,Stack<Literal*>& target)
     if(target.isEmpty() || target.find(lit)){
       lits.push(lit);
     }
+    else{ result.push(lit); }
   }
   
   DHMap<Term*,unsigned> abstracted;
-
-  // The resultant lits
-  Stack<Literal*> result;
-  bool updated = false;
 
   // process lits
   while(!lits.isEmpty()){
