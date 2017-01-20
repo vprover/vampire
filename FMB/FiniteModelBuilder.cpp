@@ -575,7 +575,7 @@ void FiniteModelBuilder::init()
     for(unsigned s=0;s<_sortedSignature->sorts;s++){
       unsigned bound = _sortedSignature->sortBounds[s];
       unsigned parent = _sortedSignature->parents[s];
-      if(bound > bfromSI[parent]) bfromSI[parent]=bound;
+      if(bound > bfromSI[parent]){ bfromSI[parent]=bound; }
       dConstants[parent] += (_sortedSignature->sortedConstants[s]).size();
       dFunctions[parent] += (_sortedSignature->sortedFunctions[s]).size();
     }
