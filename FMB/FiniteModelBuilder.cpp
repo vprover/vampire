@@ -442,7 +442,7 @@ void FiniteModelBuilder::init()
     // Do we have a ground unit equality between constants?
     if(c->length()==1 && c->varCnt()==0){
       Literal* l = (*c)[0];
-      if(l->isEquality()){
+      if(l->isEquality() && l->isNegative()){
         TermList* left = l->nthArgument(0);
         TermList* right = l->nthArgument(1);
         if(left->isTerm() && left->term()->arity()==0 &&
