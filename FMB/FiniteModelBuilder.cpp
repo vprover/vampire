@@ -445,6 +445,12 @@ void FiniteModelBuilder::init()
       if(l->isEquality() && l->isNegative()){
         TermList* left = l->nthArgument(0);
         TermList* right = l->nthArgument(1);
+
+        if(left==right){
+          // we have discovered unsat
+          throw RefutationFoundException(c);
+        }
+
         if(left->isTerm() && left->term()->arity()==0 &&
            right->isTerm() && right->term()->arity()==0){
 

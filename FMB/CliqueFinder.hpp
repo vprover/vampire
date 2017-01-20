@@ -16,8 +16,11 @@ namespace FMB {
     {
       CALL("FMB::CliqueFinder::findMaxCliqueSize");
 
+      //cout << "findMaxCliqueSize with " << Ngraph->size() << endl;
+
+      // at least stores the number of nodes with at least index neighbours
       DArray<Stack<unsigned>> atleast;
-      atleast.ensure(Ngraph->size());
+      atleast.ensure(Ngraph->size()+1); // the +1 is to protect against a self-loop sneaking in
 
       DHMap<unsigned,DHSet<unsigned>*>::Iterator miter(*Ngraph);
       while(miter.hasNext()){
@@ -26,6 +29,10 @@ namespace FMB {
         miter.next(c,nbs);
         unsigned size = nbs->size();
         //cout << ">> " << c << ": " << size << endl;
+
+        //DHSet<unsigned>::Iterator dit(*nbs);
+        //while(dit.hasNext()){ cout << dit.next() << endl; }
+
         for(;size>0;size--){
           atleast[size].push(c);
         }
