@@ -39,13 +39,9 @@ void TheoryAxioms::addAndOutputTheoryUnit(Unit* unit,UnitList*& units)
   if (env.options->showTheoryAxioms()) {
     cout << "% Theory " << (unit->isClause() ? "clause" : "formula" ) << ": " << unit->toString() << "\n";
   }
-<<<<<<< HEAD
-  if(unit->isClause()){ static_cast<Clause*>(unit)->setTheoryDescendant(true); }
-=======
   if(unit->isClause()){ 
     static_cast<Clause*>(unit)->setTheoryDescendant(true); 
   }
->>>>>>> master
   UnitList::push(unit,units);
 } // addAndOutputTheoryUnit
 
