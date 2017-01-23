@@ -12,6 +12,7 @@
 #include "Lib/Stack.hpp"
 #include "Lib/Timer.hpp"
 #include "Lib/VirtualIterator.hpp"
+#include "Lib/System.hpp"
 
 #include "Indexing/LiteralIndexingStructure.hpp"
 
