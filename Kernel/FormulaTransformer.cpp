@@ -108,6 +108,16 @@ TermList FormulaTransformer::apply(TermList ts) {
                                         apply(*term->nthArgument(0)),
                                         sd->getSort()));
 
+      case Term::SF_LET_TUPLE:
+        return TermList(Term::createTupleLet(sd->getFunctor(),
+                                             sd->getTupleSymbols(),
+                                             apply(sd->getBinding()),
+                                             apply(*term->nthArgument(0)),
+                                             sd->getSort()));
+
+      case Term::SF_TUPLE:
+        return TermList(Term::createTuple(apply(TermList(sd->getTupleTerm())).term()));
+
       default:
         ASSERTION_VIOLATION_REP(ts.toString());
     }

@@ -44,9 +44,7 @@
 #include "Inferences/GlobalSubsumption.hpp"
 #include "Inferences/HyperSuperposition.hpp"
 #include "Inferences/InnerRewriting.hpp"
-#include "Inferences/RefutationSeekerFSE.hpp"
 #include "Inferences/TermAlgebraReasoning.hpp"
-#include "Inferences/SLQueryForwardSubsumption.hpp"
 #include "Inferences/SLQueryBackwardSubsumption.hpp"
 #include "Inferences/Superposition.hpp"
 #include "Inferences/URResolution.hpp"
@@ -402,24 +400,15 @@ void SaturationAlgorithm::onClauseRetained(Clause* cl)
 /**
  * Called whenever a clause is simplified or deleted at any point of the
  * saturation algorithm
- *
- * In case the deletion of clause @b cl is justified also by some other clause than
- * @b replacement and @b premise clauses, it should be passed as the @b reductionPremise.
- * Otherwise the @b reductionPremise should be 0.
  */
-void SaturationAlgorithm::onClauseReduction(Clause* cl, Clause* replacement,
-    Clause* premise, Clause* reductionPremise, bool forward)
+void SaturationAlgorithm::onClauseReduction(Clause* cl, Clause* replacement, Clause* premise, bool forward)
 {
   CALL("SaturationAlgorithm::onClauseReduction/5");
   ASS(cl);
 
   ClauseIterator premises;
   
-  if (reductionPremise) {
-    ASS(premise);
-    premises = pvi( getConcatenatedIterator(getSingletonIterator(premise), getSingletonIterator(reductionPremise)) );
-  }
-  else if (premise) {
+  if (premise) {
     premises = pvi( getSingletonIterator(premise) );
   }
   else {
@@ -443,11 +432,9 @@ void SaturationAlgorithm::onClauseReduction(Clause* cl, Clause* replacement,
     env.beginOutput();
     env.out() << "[SA] " << (forward ? "forward" : "backward") << " reduce: " << cl->toString() << endl;
     if(replacement){ env.out() << "     replaced by " << replacement->toString() << endl; }
-    // the inference may need minimised premises, let's update them
-    Inference* inf = cl->inference();
-    Inference::Iterator iter = inf->iterator();
-    while(inf->hasNext(iter)){
-      Unit* premise = inf->next(iter);
+    ClauseStack::Iterator pit(premStack);
+    while(pit.hasNext()){
+      Clause* premise = pit.next();
       if(premise){ env.out() << "     using " << premise->toString() << endl; }
     }
     env.endOutput();
@@ -658,55 +645,6 @@ void SaturationAlgorithm::init()
   _startTime=env.timer->elapsedMilliseconds();
 }
 
-/**
- * Class of @b ForwardSimplificationPerformer objects that
- * perform the forward simplification only if it leads to
- * deletion of the clause being simplified. 
- */
-class SaturationAlgorithm::TotalSimplificationPerformer
-: public ForwardSimplificationPerformer
-{
-public:
-  TotalSimplificationPerformer(SaturationAlgorithm* sa, Clause* cl) : _sa(sa), _cl(cl) {}
-
-  void perform(ClauseIterator premises, Clause* replacement)
-  {
-    CALL("TotalSimplificationPerformer::perform");
-    ASS(_cl);
-
-    if (replacement) {
-      _sa->addNewClause(replacement);
-    }
-    _sa->onClauseReduction(_cl, replacement, premises);
-
-    // Remove clause - so no longer kept
-    _cl=0;
-  }
-
-  bool willPerform(Clause* premise)
-  {
-    CALL("TotalSimplificationPerformer::willPerform");
-    ASS(_cl);
-
-    if (!premise) {
-      return true;
-    }
-    if ( !ColorHelper::compatible(_cl->color(), premise->color()) ) {
-      return false;
-    }
-
-    return true;
-  }
-
-  bool clauseKept()
-  { return _cl; }
-private:
-  SaturationAlgorithm* _sa;
-  // clause being simplified
-  Clause* _cl;
-};
-
-
 Clause* SaturationAlgorithm::doImmediateSimplification(Clause* cl0)
 {
   CALL("SaturationAlgorithm::doImmediateSimplification");
@@ -850,6 +788,14 @@ void SaturationAlgorithm::handleEmptyClause(Clause* cl)
 
   if (isRefutation(cl)) {
     onNonRedundantClause(cl);
+
+    if(cl->isTheoryDescendant()){
+      ASSERTION_VIOLATION_REP("A pure theory descendant is empty, which means theory axioms are inconsistent");
+      reportSpiderFail();
+      // this is a poor way of handling this in release mode but it prevents unsound proofs
+      throw MainLoop::MainLoopFinishedException(Statistics::REFUTATION_NOT_FOUND);
+    }
+
     throw RefutationFoundException(cl);
   }
   // as Clauses no longer have prop parts the only reason for an empty 
@@ -882,28 +828,28 @@ bool SaturationAlgorithm::forwardSimplify(Clause* cl)
     return false;
   }
 
-  TotalSimplificationPerformer performer(this, cl);
-
   FwSimplList::Iterator fsit(_fwSimplifiers);
 
   while (fsit.hasNext()) {
     ForwardSimplificationEngine* fse=fsit.next();
 
-    fse->perform(cl, &performer);
-    if (!performer.clauseKept()) {
-      break;
+    {
+      Clause* replacement = 0;
+      ClauseIterator premises = ClauseIterator::getEmpty();
+
+      if (fse->perform(cl,replacement,premises)) {
+        if (replacement) {
+          addNewClause(replacement);
+        }
+        onClauseReduction(cl, replacement, premises);
+
+        return false;
+      }
     }
   }
 
   //TODO: hack that only clauses deleted by forward simplification can be destroyed (other destruction needs debugging)
-  if (performer.clauseKept()) {
-    cl->incRefCnt();
-  }
-
-  if (!performer.clauseKept()) {
-    return false;
-  }
-
+  cl->incRefCnt();
 
   if ( _splitter && !_opt.splitAtActivation() ) {
     if (_splitter->doSplitting(cl)) {
@@ -938,7 +884,7 @@ void SaturationAlgorithm::backwardSimplify(Clause* cl)
       if (replacement) {
 	addNewClause(replacement);
       }
-      onClauseReduction(redundant, replacement, cl, 0, false);
+      onClauseReduction(redundant, replacement, cl, false);
 
       //we must remove the redundant clause before adding its replacement,
       //as otherwise the redundant one might demodulate the replacement into

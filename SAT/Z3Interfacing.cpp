@@ -32,7 +32,7 @@ using namespace Lib;
   
 Z3Interfacing::Z3Interfacing(const Shell::Options& opts,SAT2FO& s2f, bool unsatCoresForAssumptions):
   _varCnt(0), sat2fo(s2f),_status(SATISFIABLE), _solver(_context),
-  _model(_solver.get_first_model()), _assumptions(_context), _unsatCoreForAssumptions(unsatCoresForAssumptions),
+  _model((_solver.check(),_solver.get_model())), _assumptions(_context), _unsatCoreForAssumptions(unsatCoresForAssumptions),
   _showZ3(opts.showZ3()),_unsatCoreForRefutations(opts.z3UnsatCores())
 {
   CALL("Z3Interfacing::Z3Interfacing");

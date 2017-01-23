@@ -1188,6 +1188,8 @@ Clause* Splitter::buildAndInsertComponentClause(SplitLevel name, unsigned size, 
   Clause* compCl = Clause::fromIterator(getArrayishObjectIterator(lits, size), inpType, 
           new Inference1(Inference::AVATAR_COMPONENT,def_u));
 
+  if(orig && orig->isTheoryDescendant()){ compCl->setTheoryDescendant(true); }
+
   //cout << "Name " << getLiteralFromName(name).toString() << " for " << compCl->toString() << endl; 
 
   compCl->setAge(orig ? orig->age() : AGE_NOT_FILLED);
@@ -1406,8 +1408,12 @@ void Splitter::onClauseReduction(Clause* cl, ClauseIterator premises, Clause* re
   if(diff->isEmpty()) {
     // unconditionally reduced
     if (_deleteDeactivated != Options::SplittingDeleteDeactivated::ON) {
-      // let others know not to keep the clause in children
-      cl->setNumActiveSplits(NOT_WORTH_REINTRODUCING);
+      if (!cl->isComponent() || _deleteDeactivated == Options::SplittingDeleteDeactivated::OFF) {
+        // if it is a component we must keep it, unless we plan to reintroduce all
+
+        // let others know not to keep the clause in children
+        cl->setNumActiveSplits(NOT_WORTH_REINTRODUCING);
+      }
     }
         
     return;

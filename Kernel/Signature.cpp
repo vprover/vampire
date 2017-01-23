@@ -269,11 +269,7 @@ unsigned Signature::addInterpretedFunction(Interpretation interpretation, const 
   _funs.push(sym);
   _funNames.insert(symbolKey, fnNum);
   ALWAYS(_iSymbols.insert(interpretation, fnNum));
-    BaseType* fnType;
-  if (Theory::isArrayOperation(interpretation)) 
-    { fnType = Theory::getArrayOperationType(interpretation);}
-  else 
-    {fnType = Theory::getOperationType(interpretation);}
+  BaseType* fnType = Theory::getOperationType(interpretation);
   ASS(fnType->isFunctionType());
   sym->setType(fnType);
   return fnNum;
@@ -472,161 +468,8 @@ unsigned Signature::getInterpretingSymbol(Interpretation interp)
   if (_iSymbols.find(interp, res)) {
     return res;
   }
-  vstring name;
 
-  if(theory->isStructuredSortInterpretation(interp)){
-    switch(theory->convertToStructured(interp)){
-      case Theory::StructuredSortInterpretation::ARRAY_SELECT:
-      case Theory::StructuredSortInterpretation::ARRAY_BOOL_SELECT:
-        name="$select";
-        break;
-      case Theory::StructuredSortInterpretation::ARRAY_STORE:
-        name="$store";
-        break;
-      default: ASSERTION_VIOLATION;
-    } 
-  }
-  else{
-
-  switch(interp) {
-  case Theory::INT_SUCCESSOR:
-    //this one is not according the TPTP arithmetic (it doesn't have successor)
-    name="$successor";
-    break;
-  case Theory::INT_DIVIDES:
-    name = "$divides";
-    break;
-  case Theory::INT_UNARY_MINUS:
-  case Theory::RAT_UNARY_MINUS:
-  case Theory::REAL_UNARY_MINUS:
-    name="$uminus";
-    break;
-  case Theory::INT_PLUS:
-  case Theory::RAT_PLUS:
-  case Theory::REAL_PLUS:
-    name="$sum";
-    break;
-  case Theory::INT_MINUS:
-  case Theory::RAT_MINUS:
-  case Theory::REAL_MINUS:
-    name="$difference";
-    break;
-  case Theory::INT_MULTIPLY:
-  case Theory::RAT_MULTIPLY:
-  case Theory::REAL_MULTIPLY:
-    name="$product";
-    break;
-  case Theory::INT_GREATER:
-  case Theory::RAT_GREATER:
-  case Theory::REAL_GREATER:
-    name="$greater";
-    break;
-  case Theory::INT_GREATER_EQUAL:
-  case Theory::RAT_GREATER_EQUAL:
-  case Theory::REAL_GREATER_EQUAL:
-    name="$greatereq";
-    break;
-  case Theory::INT_LESS:
-  case Theory::RAT_LESS:
-  case Theory::REAL_LESS:
-    name="$less";
-    break;
-  case Theory::INT_LESS_EQUAL:
-  case Theory::RAT_LESS_EQUAL:
-  case Theory::REAL_LESS_EQUAL:
-    name="$lesseq";
-    break;
-  case Theory::INT_IS_INT:
-  case Theory::RAT_IS_INT:
-  case Theory::REAL_IS_INT:
-    name="$is_int";
-    break;
-  case Theory::INT_IS_RAT:
-  case Theory::RAT_IS_RAT:
-  case Theory::REAL_IS_RAT:
-    name="$is_rat";
-    break;
-  case Theory::INT_IS_REAL:
-  case Theory::RAT_IS_REAL:
-  case Theory::REAL_IS_REAL:
-    name="$is_real";
-    break;
-  case Theory::INT_TO_INT:
-  case Theory::RAT_TO_INT:
-  case Theory::REAL_TO_INT:
-    name="$to_int";
-    break;
-  case Theory::INT_TO_RAT:
-  case Theory::RAT_TO_RAT:
-  case Theory::REAL_TO_RAT:
-    name="$to_rat";
-    break;
-  case Theory::INT_TO_REAL:
-  case Theory::RAT_TO_REAL:
-  case Theory::REAL_TO_REAL:
-    name="$to_real";
-    break;
-  case Theory::INT_MODULO:
-    name = "$modulo";
-    break;
-  case Theory::INT_ABS:
-    name = "$abs";
-    break;
-  case Theory::INT_QUOTIENT_E:
-  case Theory::RAT_QUOTIENT_E:
-  case Theory::REAL_QUOTIENT_E:
-    name = "$quotient_e";
-    break;
-  case Theory::INT_QUOTIENT_T:
-  case Theory::RAT_QUOTIENT_T:
-  case Theory::REAL_QUOTIENT_T:
-    name = "$quotient_t";
-    break;
-  case Theory::INT_QUOTIENT_F:
-  case Theory::RAT_QUOTIENT_F:
-  case Theory::REAL_QUOTIENT_F:
-    name = "$quotient_f";
-    break;
-  case Theory::INT_REMAINDER_T:
-  case Theory::RAT_REMAINDER_T:
-  case Theory::REAL_REMAINDER_T:
-    name = "$remainder_t";
-    break;
-  case Theory::INT_REMAINDER_F:
-  case Theory::RAT_REMAINDER_F:
-  case Theory::REAL_REMAINDER_F:
-    name = "$remainder_f";
-    break;
-  case Theory::INT_REMAINDER_E:
-  case Theory::RAT_REMAINDER_E:
-  case Theory::REAL_REMAINDER_E:
-    name = "$remainder_e";
-    break;
-  case Theory::RAT_QUOTIENT:
-  case Theory::REAL_QUOTIENT:
-    name = "quotient";
-    break;
-  case Theory::INT_TRUNCATE:
-  case Theory::RAT_TRUNCATE:
-  case Theory::REAL_TRUNCATE:
-    name="truncate";
-    break;
-  case Theory::INT_FLOOR:
-  case Theory::RAT_FLOOR:
-  case Theory::REAL_FLOOR:
-    name="floor";
-    break;
-  case Theory::INT_CEILING:
-  case Theory::RAT_CEILING:
-  case Theory::REAL_CEILING:
-    name="ceiling";
-    break;
-  default:
-    ASSERTION_VIOLATION_REP(interp);
-  }
-
-  }
-
+  vstring name = theory->getInterpretationName(interp);
   unsigned arity = Theory::getArity(interp);
   
   if (Theory::isFunction(interp)) {
@@ -652,6 +495,12 @@ unsigned Signature::getInterpretingSymbol(Interpretation interp)
 
   //we have now registered a new function, so it should be present in the map
   return _iSymbols.get(interp);
+}
+
+unsigned Signature::getStructureInterpretationFunctor(unsigned theorySort, Theory::StructuredSortInterpretation ssi) {
+  CALL("Signature::getStructureInterpretationFunctor");
+  Interpretation i = Theory::instance()->getInterpretation(theorySort, ssi);
+  return env.signature->getInterpretingSymbol(i);
 }
 
 const vstring& Signature::functionName(int number)
@@ -981,19 +830,6 @@ Unit* Signature::getDistinctGroupPremise(unsigned group)
   CALL("Signature::getDistinctGroupPremise");
 
   return _distinctGroupPremises[group];
-}
-
-bool Signature::hasTermAlgebras()
-{
-  CALL("Signature::hasTermAlgebras");
-
-  Stack<Symbol*>::Iterator it(_funs);
-  while (it.hasNext()) {
-    if (it.next()->termAlgebraCons()) {
-      return true;
-    }
-  }
-  return false;
 }
 
 /**

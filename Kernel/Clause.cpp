@@ -84,7 +84,8 @@ Clause::Clause(unsigned length,InputType it,Inference* inf)
         if(!td){break;}
       }
       else{
-        // if a parent is not a clause then it cannot be (i) a theory axiom itself, or (ii) a theory descendant clause
+        // if a parent is not a clause then it cannot be (i) a theory axiom itself, 
+        // or (ii) a theory descendant clause
         td = false;
       }
     }

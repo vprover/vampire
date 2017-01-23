@@ -878,10 +878,11 @@ void InferenceStore::outputProof(ostream& out, Unit* refutation)
 {
   CALL("InferenceStore::outputProof(ostream&,Unit*)");
 
-  ScopedPtr<ProofPrinter> pp(createProofPrinter(out));
-  if (!pp) {
+  ProofPrinter* p = createProofPrinter(out);
+  if (!p) {
     return;
   }
+  ScopedPtr<ProofPrinter> pp(p);
   pp->scheduleForPrinting(refutation);
   pp->print();
 }
@@ -894,10 +895,11 @@ void InferenceStore::outputProof(ostream& out, UnitList* units)
 {
   CALL("InferenceStore::outputProof(ostream&,UnitList*)");
 
-  ScopedPtr<ProofPrinter> pp(createProofPrinter(out));
-  if (!pp) {
+  ProofPrinter* p = createProofPrinter(out);
+  if (!p) {
     return;
   }
+  ScopedPtr<ProofPrinter> pp(p);
   UnitList::Iterator uit(units);
   while(uit.hasNext()) {
     Unit* u = uit.next();
