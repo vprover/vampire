@@ -471,9 +471,6 @@ protected:
     case Theory::INT_MULTIPLY:
       res = arg1*arg2;
       return true;
-    case Theory::INT_MODULO:
-      res = arg1%arg2;
-      return true;
     case Theory::INT_QUOTIENT_E:
       res = arg1.quotientE(arg2); // should be equivalent to arg1/arg2
       return true;

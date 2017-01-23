@@ -3547,9 +3547,9 @@ unsigned TPTP::addFunction(vstring name,int arity,bool& added,TermList& arg)
       USER_ERROR("$modulo can only be used with integer type");
     }
     return addOverloadedFunction(name,arity,2,added,arg,
-                                 Theory::INT_MODULO,
-                                 Theory::INT_MODULO,  // will not be used
-                                 Theory::INT_MODULO); // will not be used
+                                 Theory::INT_REMAINDER_E,  // $modulo is the always positive remainder, therefore INT_REMAINDER_E
+                                 Theory::INT_REMAINDER_E,  // will not be used
+                                 Theory::INT_REMAINDER_E); // will not be used
   }
   if (name == "$abs"){
     if(sortOf(arg)!=Sorts::SRT_INTEGER){

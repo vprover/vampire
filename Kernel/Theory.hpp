@@ -271,7 +271,6 @@ public:
     INT_PLUS,  // sum in TPTP
     INT_MINUS, // difference in TPTP
     INT_MULTIPLY,
-    INT_MODULO,
     INT_QUOTIENT_E,
     INT_QUOTIENT_T,
     INT_QUOTIENT_F,

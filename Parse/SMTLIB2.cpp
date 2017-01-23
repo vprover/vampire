@@ -1866,7 +1866,7 @@ bool SMTLIB2::parseAsBuiltinTermSymbol(const vstring& id, LExpr* exp)
         complainAboutArgShortageOrWrongSorts(BUILT_IN_SYMBOL,exp);
       }
 
-      unsigned fun = Theory::instance()->getFnNum(Theory::INT_REMAINDER_E);
+      unsigned fun = Theory::instance()->getFnNum(Theory::INT_REMAINDER_E); // TS_MOD is the always positive remainder, therefore INT_REMAINDER_E
       TermList res = TermList(Term::create2(fun,int1,int2));
 
       _results.push(ParseResult(Sorts::SRT_INTEGER,res));
