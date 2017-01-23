@@ -779,6 +779,14 @@ void SaturationAlgorithm::handleEmptyClause(Clause* cl)
 
   if (isRefutation(cl)) {
     onNonRedundantClause(cl);
+
+    if(cl->isTheoryDescendant()){
+      ASSERTION_VIOLATION_REP("A pure theory descendant is empty, which means theory axioms are inconsistent");
+      reportSpiderFail();
+      // this is a poor way of handling this in release mode but it prevents unsound proofs
+      throw MainLoop::MainLoopFinishedException(Statistics::REFUTATION_NOT_FOUND);
+    }
+
     throw RefutationFoundException(cl);
   }
   // as Clauses no longer have prop parts the only reason for an empty 

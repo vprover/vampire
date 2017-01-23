@@ -54,6 +54,7 @@ Clause::Clause(unsigned length,InputType it,Inference* inf)
     _extensionality(false),
     _extensionalityTag(false),
     _component(false),
+    _theoryDescendant(false),
     _numSelected(0),
     _age(0),
     _weight(0),
@@ -71,6 +72,24 @@ Clause::Clause(unsigned length,InputType it,Inference* inf)
     //cout << "Setting extensionality" << endl;
     _extensionalityTag = true;
     setInputType(Unit::AXIOM);
+  }
+  static bool hasTheoryAxioms = env.options->theoryAxioms() != Options::TheoryAxiomLevel::OFF;
+  if(hasTheoryAxioms){
+    Inference::Iterator it = inf->iterator();
+    bool td = inf->hasNext(it); // td should be false if there are no parents
+    while(inf->hasNext(it) && td){
+      Unit* parent = inf->next(it);
+      if(parent->isClause()){
+        td &= static_cast<Clause*>(parent)->isTheoryDescendant();
+        if(!td){break;}
+      }
+      else{
+        // if a parent is not a clause then it cannot be (i) a theory axiom itself, 
+        // or (ii) a theory descendant clause
+        td = false;
+      }
+    }
+    _theoryDescendant=td;
   }
 
 //#if VDEBUG

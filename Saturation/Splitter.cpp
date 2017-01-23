@@ -1188,6 +1188,8 @@ Clause* Splitter::buildAndInsertComponentClause(SplitLevel name, unsigned size, 
   Clause* compCl = Clause::fromIterator(getArrayishObjectIterator(lits, size), inpType, 
           new Inference1(Inference::AVATAR_COMPONENT,def_u));
 
+  if(orig && orig->isTheoryDescendant()){ compCl->setTheoryDescendant(true); }
+
   //cout << "Name " << getLiteralFromName(name).toString() << " for " << compCl->toString() << endl; 
 
   compCl->setAge(orig ? orig->age() : AGE_NOT_FILLED);
