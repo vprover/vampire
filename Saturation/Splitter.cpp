@@ -1188,6 +1188,8 @@ Clause* Splitter::buildAndInsertComponentClause(SplitLevel name, unsigned size, 
   Clause* compCl = Clause::fromIterator(getArrayishObjectIterator(lits, size), inpType, 
           new Inference1(Inference::AVATAR_COMPONENT,def_u));
 
+  if(orig && orig->isTheoryDescendant()){ compCl->setTheoryDescendant(true); }
+
   //cout << "Name " << getLiteralFromName(name).toString() << " for " << compCl->toString() << endl; 
 
   compCl->setAge(orig ? orig->age() : AGE_NOT_FILLED);
@@ -1572,20 +1574,19 @@ bool Splitter::handleEmptyClause(Clause* cl)
   collectDependenceLits(cl->splits(), conflictLits);
   SATClause* confl = SATClause::fromStack(conflictLits);
 
-  UnitList* ps = 0;
   FormulaList* resLst=0;
 
   SplitSet::Iterator sit(*cl->splits());
   while(sit.hasNext()) {
     SplitLevel nm = sit.next();
-    UnitList::push(getDefinitionFromName(nm),ps);
     vstring lnm = splPrefix+Lib::Int::toString(nm);
     // in the splits we reverse polarity
     if((nm&1)==0){ lnm="~"+lnm; }
     FormulaList::push(new NamedFormula(lnm),resLst);
   }
 
-  UnitList::push(cl,ps); // making sure this clause is the last one pushed (for the sake of colorFromAssumedFOConversion)
+  UnitList* ps = UnitList::empty();
+  UnitList::push(cl,ps);
 
   Formula* f = JunctionFormula::generalJunction(OR,resLst);
   FormulaUnit* scl = new FormulaUnit(f,new InferenceMany(Inference::AVATAR_CONTRADICTION_CLAUSE,ps),cl->inputType());

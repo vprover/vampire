@@ -772,7 +772,7 @@ void clausifyMode(bool theory)
     }
     if (theory) {
       Formula* f = Formula::fromClause(cl);
-      FormulaUnit* fu = new FormulaUnit(f,cl->inference(),cl->inputType());
+      FormulaUnit* fu = new FormulaUnit(f,cl->inference(),cl->inputType() == Unit::CONJECTURE ? Unit::NEGATED_CONJECTURE : cl->inputType()); // CONJECTURE is evil, as it cannot occur multiple times
       env.out() << TPTPPrinter::toString(fu) << "\n";
     } else {
       env.out() << TPTPPrinter::toString(cl) << "\n";

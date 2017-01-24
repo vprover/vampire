@@ -442,9 +442,15 @@ void FiniteModelBuilder::init()
     // Do we have a ground unit equality between constants?
     if(c->length()==1 && c->varCnt()==0){
       Literal* l = (*c)[0];
-      if(l->isEquality()){
+      if(l->isEquality() && l->isNegative()){
         TermList* left = l->nthArgument(0);
         TermList* right = l->nthArgument(1);
+
+        if(left==right){
+          // we have discovered unsat
+          throw RefutationFoundException(c);
+        }
+
         if(left->isTerm() && left->term()->arity()==0 &&
            right->isTerm() && right->term()->arity()==0){
 
@@ -619,7 +625,7 @@ void FiniteModelBuilder::init()
     for(unsigned s=0;s<_sortedSignature->sorts;s++){
       unsigned bound = _sortedSignature->sortBounds[s];
       unsigned parent = _sortedSignature->parents[s];
-      if(bound > bfromSI[parent]) bfromSI[parent]=bound;
+      if(bound > bfromSI[parent]){ bfromSI[parent]=bound; }
       dConstants[parent] += (_sortedSignature->sortedConstants[s]).size();
       dFunctions[parent] += (_sortedSignature->sortedFunctions[s]).size();
     }
