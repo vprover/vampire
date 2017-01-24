@@ -378,7 +378,6 @@ VS_OBJ = Shell/AnswerExtractor.o\
          Shell/BlockedClauseElimination.o\
          Shell/Token.o\
          Shell/TPTPPrinter.o\
-         Shell/TrivialPredicateRemover.o\
          Shell/UIHelper.o\
          Shell/VarManager.o\
          Shell/ConstantRemover.o\
