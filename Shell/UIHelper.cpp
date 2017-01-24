@@ -289,8 +289,10 @@ void UIHelper::outputResult(ostream& out)
       Interpolants::beatifyRefutation(env.statistics->refutation);
 
         // old interpolation algorithm
+        /*
         Formula* interpolant=Interpolants().getInterpolant(env.statistics->refutation);
         out << "Old Interpolant: " << interpolant->toString() << endl;
+        */
         
         // new interpolation methods described in master thesis of Bernhard Gleiss
         // - remove theory stuff
