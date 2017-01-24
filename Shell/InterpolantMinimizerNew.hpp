@@ -29,6 +29,17 @@ namespace Shell
          * we use z3 as solver
          */
         virtual std::unordered_map<Kernel::Unit*, Kernel::Color> computeSplittingFunction(Kernel::Unit* refutation, UnitWeight weightFunction) override;
+        
+        /*
+         * print statistics for a given local proof
+         */
+        void analyzeLocalProof(Kernel::Unit* refutation);
+        
+        /*
+         * print statistics on the grey areas
+         */
+        void analyzeGreyAreas(Kernel::Unit* refutation);
+
     };
 };
 #endif // VZ3

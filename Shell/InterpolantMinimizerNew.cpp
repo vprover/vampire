@@ -12,7 +12,7 @@
 #include "Kernel/InferenceStore.hpp"
 
 #include <memory>
-
+#include <unordered_set> // TODO: remove this after benchmarking
 #include "z3++.h"
 
 namespace Shell
@@ -129,6 +129,112 @@ namespace Shell
         
         return splittingFunction;
     }
+    
+    void InterpolantMinimizerNew::analyzeLocalProof(Kernel::Unit *refutation)
+    {
+        CALL("InterpolantMinimizerNew::analyzeLocalProof");
+
+        // print statistics on grey area
+        analyzeGreyAreas(refutation);
+        
+        // compute number of red subproofs
+        const std::unordered_map<Unit*, Color> splittingFunction = computeSplittingFunction(refutation, UnitWeight::VAMPIRE);
+        const std::unordered_map<Unit*, Unit*> unitsToRepresentative = computeSubproofs(refutation, splittingFunction);
+        
+        std::unordered_set<Unit*> representatives;
+        for (const auto& keyValuePair : unitsToRepresentative)
+        {
+            representatives.insert(keyValuePair.second);
+        }
+        cout << "Number of red subproofs: " << representatives.size() << endl;
+    }
+    
+    /*
+     * compute both number of inferences which are necessarily assigned to red and to blue, and number of inferences which can be assigned arbitrarily
+     * computes percentage grey / (red + blue + grey)
+     */
+    void InterpolantMinimizerNew::analyzeGreyAreas(Kernel::Unit* refutation)
+    {
+        CALL("InterpolantMinimizerNew::analyzeGreyArea");
+        
+        int number_red = 0;
+        int number_blue = 0;
+        int number_grey = 0;
+        
+        /*
+         * note: reuses code from heuristic splitting function
+         */
+        ProofIteratorPostOrder it(refutation);
+        while (it.hasNext()) // traverse the proof in depth-first post order
+        {
+            Unit* current = it.next();
+            ASS((!InferenceStore::instance()->getParents(current).hasNext() && (current->inheritedColor() == COLOR_LEFT || current->inheritedColor() == COLOR_RIGHT)) || (InferenceStore::instance()->getParents(current).hasNext() &&  current->inheritedColor() == COLOR_INVALID));
+            
+            // if the inference is an axiom, assign it to the corresponding partition
+            if (!InferenceStore::instance()->getParents(current).hasNext())
+            {
+                if (current->inheritedColor() == COLOR_LEFT)
+                {
+                    number_red++;
+                }
+                else
+                {
+                    number_blue++;
+                }
+                continue;
+            }
+            
+            // if the inference contains a colored symbol, assign it to the corresponding partition (this
+            // ensures requirement of a LOCAL splitting function in the words of the thesis):
+            // - this is the case if either the conclusion contains a colored symbol
+            if (current->getColor() == COLOR_LEFT)
+            {
+                number_red++;
+                continue;
+            }
+            else if (current->getColor() == COLOR_RIGHT)
+            {
+                number_blue++;
+                continue;
+            }
+            
+            // - or if any premise contains a colored symbol
+            Color containedColor = COLOR_TRANSPARENT;
+            VirtualIterator<Unit*> parents = InferenceStore::instance()->getParents(current);
+            while (parents.hasNext())
+            {
+                Unit* premise= parents.next();
+                
+                if (premise->getColor() == COLOR_LEFT || premise->getColor() == COLOR_RIGHT)
+                {
+                    containedColor = premise->getColor();
+                    break;
+                }
+            }
+            if (containedColor == COLOR_LEFT)
+            {
+                number_red++;
+                continue;
+            }
+            else if (containedColor == COLOR_RIGHT)
+            {
+                number_blue++;
+                continue;
+            }
+            
+            /* otherwise we choose the following heuristic
+             * if the weighted sum of the conclusions of all parent inferences assigned
+             * to the red partition is greater than the weighted sum of the conclusions
+             * of all parent inferences assigned to the blue partition, then
+             * assign the inference to red, otherwise to blue
+             */
+            number_grey++;
+        }
+        
+        cout << "Proof contains " << number_red << " / " << number_blue << " / " << number_grey << " inferences (red/blue/grey)" << endl;
+        cout << "Percentage of grey inferences: " << static_cast<double>(number_grey) / (number_red + number_blue + number_grey) << endl;
+    }
+
 }
 
 #endif // VZ3

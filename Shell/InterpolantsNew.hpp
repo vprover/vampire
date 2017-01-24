@@ -72,8 +72,7 @@ namespace Shell
          */
         double weightForUnit(Kernel::Unit* unit, UnitWeight weightFunction);
         
-    private:
-        
+        // TODO: make the following three methods private again after benchmarking
         /*
          * helper methods to compute interpolant
          */
@@ -84,7 +83,8 @@ namespace Shell
                                                                           const std::unordered_map<Kernel::Unit*, Kernel::Color> splittingFunction,
                                                                           const std::unordered_map<Kernel::Unit*, Kernel::Unit*>& unitsToRepresentative);
         Kernel::Formula* generateInterpolant(std::pair<const BoundaryMap, const BoundaryMap>& boundaries);
-        
+    private:
+      
         /*
          * methods used to implement union find: root, find and merge (aka union)
          */
