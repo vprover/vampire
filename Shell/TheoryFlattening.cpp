@@ -264,8 +264,50 @@ Clause* TheoryFlattening::apply(Clause*& cl,Stack<Literal*>& target)
     }
     Term* t = ts->term();
 
+    bool interpretedStatus = env.signature->getFunction(t->functor())->interpreted() && !theory->isInterpretedConstant(t);
+  
+    //special check
+    if(interpretedStatus){
+      Interpretation interp = theory->interpretFunction(t->functor());
+      switch(interp){
+        case Theory::INT_QUOTIENT_E:
+        case Theory::INT_QUOTIENT_T:
+        case Theory::INT_QUOTIENT_F:
+        case Theory::INT_REMAINDER_E:
+        case Theory::INT_REMAINDER_T:
+        case Theory::INT_REMAINDER_F:
+        case Theory::RAT_QUOTIENT:
+        case Theory::RAT_QUOTIENT_E:
+        case Theory::RAT_QUOTIENT_T:
+        case Theory::RAT_QUOTIENT_F:
+        case Theory::RAT_REMAINDER_E:
+        case Theory::RAT_REMAINDER_T:
+        case Theory::RAT_REMAINDER_F:
+        case Theory::REAL_QUOTIENT:
+        case Theory::REAL_QUOTIENT_E:
+        case Theory::REAL_QUOTIENT_T:
+        case Theory::REAL_QUOTIENT_F:
+        case Theory::REAL_REMAINDER_E:
+        case Theory::REAL_REMAINDER_T:
+        case Theory::REAL_REMAINDER_F:
+
+        if(t->nthArgument(1)->isTerm()){
+          Term* arg2 = t->nthArgument(1)->term(); 
+          IntegerConstantType value;
+          if(theory->isInterpretedConstant(arg2) && theory->tryInterpretConstant(arg2,value)
+                                                 && value.toInner()==0){
+
+            // If we have something of the form /0 or %0 then we treat it as uninterpreted
+            interpretedStatus=false; 
+          }
+        }
+        default:
+          break;
+      }
+    }
+
     // if interpreted status is different factor out
-    if(interpreted != env.signature->getFunction(t->functor())->interpreted() && !theory->isInterpretedConstant(t)){
+    if(interpreted != interpretedStatus){ 
       //cout << "Factoring out " << t->toString() << endl;
       
       unsigned newVar;

@@ -208,7 +208,7 @@ VirtualIterator<Solution> TheoryInstAndSimp::getSolutions(Stack<Literal*>& theor
     satLits.push(slit);
     SATClause* sc = SATClause::fromStack(satLits); 
     //clause->setInference(new FOConversionInference(cl));
-    solver.addClause(sc);
+    solver.addClause(sc,true);
   }
 
   // now we can call the solver

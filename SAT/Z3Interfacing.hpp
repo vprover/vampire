@@ -35,7 +35,8 @@ public:
    */
   Z3Interfacing(const Shell::Options& opts, SAT2FO& s2f, bool unsatCoresForAssumptions = false);
 
-  void addClause(SATClause* cl) override;
+  void addClause(SATClause* cl, bool withGuard);
+  void addClause(SATClause* cl) override { addClause(cl,false); }
 
   virtual Status solve(unsigned conflictCountLimit) override;
   /**
@@ -79,11 +80,14 @@ public:
   // Currently not implemented for Z3
   virtual void suggestPolarity(unsigned var, unsigned pol) override {}
   
-  virtual void addAssumption(SATLiteral lit) override;
+  void addAssumption(SATLiteral lit, bool withGuard);
+  virtual void addAssumption(SATLiteral lit) override { addAssumption(lit,false); }
   virtual void retractAllAssumptions() override { _assumptions.resize(0); }
   virtual bool hasAssumptions() const override { return !_assumptions.empty(); }
 
-  virtual Status solveUnderAssumptions(const SATLiteralStack& assumps, unsigned, bool) override;
+  Status solveUnderAssumptions(const SATLiteralStack& assumps, unsigned,bool,bool);
+  virtual Status solveUnderAssumptions(const SATLiteralStack& assumps, unsigned c, bool p) override
+  { return solveUnderAssumptions(assumps,c,p,false); }
 
  /**
   * Record the association between a SATLiteral var and a Literal
@@ -137,13 +141,14 @@ private:
 
   void addTruncatedOperations(z3::expr_vector, Interpretation qi, Interpretation ti, unsigned srt);
   void addFloorOperations(z3::expr_vector, Interpretation qi, Interpretation ti, unsigned srt);
+  void addNonZero(z3::expr);
 
 public:
   // not sure why this one is public
-  z3::expr getz3expr(Term* trm,bool islit,bool&nameExpression);
+  z3::expr getz3expr(Term* trm,bool islit,bool&nameExpression, bool withGuard=false);
   Term* evaluateInModel(Term* trm);
 private:
-  z3::expr getRepresentation(SATLiteral lit);
+  z3::expr getRepresentation(SATLiteral lit,bool withGuard);
 
   Status _status;
   z3::context _context;
