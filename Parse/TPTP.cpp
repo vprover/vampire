@@ -3555,7 +3555,7 @@ unsigned TPTP::addFunction(vstring name,int arity,bool& added,TermList& arg)
     if(sortOf(arg)!=Sorts::SRT_INTEGER){
       USER_ERROR("$abs can only be used with integer type");
     }
-    return addOverloadedFunction(name,arity,2,added,arg,
+    return addOverloadedFunction(name,arity,1,added,arg,
                                  Theory::INT_ABS,
                                  Theory::INT_ABS,  // will not be used
                                  Theory::INT_ABS); // will not be used
