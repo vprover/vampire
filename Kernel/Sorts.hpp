@@ -59,7 +59,7 @@ public:
     CLASS_NAME(SortInfo);
     USE_ALLOCATOR(SortInfo);
   
-    SortInfo(const vstring& name,const unsigned id) : _name(name), _id(id) {}
+    SortInfo(const vstring& name,const unsigned id, bool interpreted = false);
     virtual ~SortInfo() {}
     
     const vstring& name() const { return _name; }
@@ -145,8 +145,8 @@ public:
     unsigned* _sorts;
   };
 
-  unsigned addSort(const vstring& name, bool& added);
-  unsigned addSort(const vstring& name);
+  unsigned addSort(const vstring& name, bool& added, bool interpreted);
+  unsigned addSort(const vstring& name, bool interpreted);
 
   unsigned addArraySort(unsigned indexSort, unsigned innerSort);
   ArraySort* getArraySort(unsigned sort){

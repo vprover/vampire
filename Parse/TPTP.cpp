@@ -1356,7 +1356,7 @@ void TPTP::tff()
     if (tok.tag == T_TTYPE) {
       // now we know that this is a new type declaration
       bool added;
-      env.sorts->addSort(nm,added);
+      env.sorts->addSort(nm,added,false);
       if (!added) {
 	PARSE_ERROR("Sort name must be unique",tok);
       }
@@ -3369,7 +3369,7 @@ unsigned TPTP::readSort()
   case T_NAME:
     {
       bool added;
-      unsigned sortNumber = env.sorts->addSort(tok.content,added);
+      unsigned sortNumber = env.sorts->addSort(tok.content,added,false);
       if (added) {
       	PARSE_ERROR("undeclared sort",tok);
       }

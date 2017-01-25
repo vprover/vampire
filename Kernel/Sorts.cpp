@@ -3,11 +3,13 @@
  * Implements class Sorts for handling collections of sorts.
  */
 
+#include "Sorts.hpp"
+
 #include "Lib/Environment.hpp"
 #include "Kernel/Theory.hpp"
 #include "Shell/Options.hpp"
 
-#include "Sorts.hpp"
+#include "Signature.hpp"
 
 using namespace Kernel;
 
@@ -22,22 +24,22 @@ Sorts::Sorts()
 
   unsigned aux;
 
-  aux = addSort("$i");
+  aux = addSort("$i",true);
   ASS_EQ(aux, SRT_DEFAULT);
 
-  aux = addSort("$o");
+  aux = addSort("$o",true);
   ASS_EQ(aux, SRT_BOOL);
 
-  aux = addSort("$int");
+  aux = addSort("$int",true);
   ASS_EQ(aux, SRT_INTEGER);
 
-  aux = addSort("$rat");
+  aux = addSort("$rat",true);
   ASS_EQ(aux, SRT_RATIONAL);
 
-  aux = addSort("$real");
+  aux = addSort("$real",true);
   ASS_EQ(aux, SRT_REAL);
 
-  aux = addSort("$fus");
+  aux = addSort("$fus",true);
   ASS_EQ(aux,FIRST_USER_SORT);
     
  _hasSort = false;
@@ -60,21 +62,34 @@ Sorts::~Sorts()
  * Add a new or existing sort and return its number.
  * @author Andrei Voronkov
  */
-unsigned Sorts::addSort(const vstring& name)
+unsigned Sorts::addSort(const vstring& name, bool interpreted)
 {
-  CALL("Sorts::addSort/1");
+  CALL("Sorts::addSort/2");
   bool dummy;
-  return addSort(name, dummy);
+  return addSort(name, dummy, interpreted);
 } // Sorts::addSort
+
+Sorts::SortInfo::SortInfo(const vstring& name,const unsigned id, bool interpreted)
+{
+  CALL("Sorts::SortInfo::SortInfo");
+
+  if (Signature::symbolNeedsQuoting(name,interpreted,0)) { // arity does not make sense for sorts, but the code still should
+    _name = "'" + name + "'";
+  } else {
+    _name = name;
+  }
+
+  _id = id;
+}
 
 /**
  * Add a new or exising sort named @c name. Set @c added to true iff
  * the sort turned out to be new.
  * @author Andrei Voronkov
  */
-unsigned Sorts::addSort(const vstring& name, bool& added)
+unsigned Sorts::addSort(const vstring& name, bool& added, bool interpreted)
 {
-  CALL("Sorts::addSort/2");
+  CALL("Sorts::addSort/3");
 
   unsigned result;
   if (_sortNames.find(name,result)) {
@@ -83,7 +98,7 @@ unsigned Sorts::addSort(const vstring& name, bool& added)
   }
   _hasSort = true;
   result = _sorts.length();
-  _sorts.push(new SortInfo(name, result));
+  _sorts.push(new SortInfo(name, result,interpreted));
   _sortNames.insert(name, result);
   added = true;
   return result;
