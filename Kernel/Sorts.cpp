@@ -38,9 +38,6 @@ Sorts::Sorts()
 
   aux = addSort("$real",true);
   ASS_EQ(aux, SRT_REAL);
-
-  aux = addSort("$fus",true);
-  ASS_EQ(aux,FIRST_USER_SORT);
     
  _hasSort = false;
 } // Sorts::Sorts
