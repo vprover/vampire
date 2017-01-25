@@ -470,6 +470,11 @@ void UIHelper::outputSymbolTypeDeclarationIfNeeded(ostream& out, bool function, 
     return;
   }
 
+  if (sym->overflownConstant()) {
+    // don't output definitions of numbers; not even big ones
+    return;
+  }
+
   unsigned dummy;
   if (Theory::tuples()->findProjection(symNumber, !function, dummy)) {
     return;
