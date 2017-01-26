@@ -153,9 +153,6 @@ MainLoop* MainLoop::createFromOptions(Problem& prb, const Options& opt)
   MainLoop* res;
 
   switch (opt.saturationAlgorithm()) {
-  //case Options::SaturationAlgorithm::TABULATION:
-  //  res = new TabulationAlgorithm(prb, opt);
-  //  break;
   case Options::SaturationAlgorithm::INST_GEN:
     res = new IGAlgorithm(prb, opt);
     break;

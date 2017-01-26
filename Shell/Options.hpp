@@ -184,7 +184,6 @@ public:
         OTHER,
         DEVELOPMENT,
         OUTPUT,
-        //TABULATION,
         INST_GEN,
         SAT,
         AVATAR,
@@ -1856,16 +1855,6 @@ public:
 
   bool colorUnblocking() const { return _colorUnblocking.actualValue; }
 
-  bool tabulationBwRuleSubsumptionResolutionByLemmas() const { return _tabulationBwRuleSubsumptionResolutionByLemmas.actualValue; }
-  bool tabulationFwRuleSubsumptionResolutionByLemmas() const { return _tabulationFwRuleSubsumptionResolutionByLemmas.actualValue; }
-  int tabulationGoalAgeRatio() const { return _tabulationGoalAgeWeightRatio.actualValue; }
-  int tabulationGoalWeightRatio() const { return _tabulationGoalAgeWeightRatio.otherValue; }
-  int tabulationGoalRatio() const { return _tabulationGoalLemmaRatio.actualValue; }
-  int tabulationLemmaRatio() const { return _tabulationGoalLemmaRatio.otherValue; }
-  bool tabulationInstantiateProducingRules() const { return _tabulationInstantiateProducingRules.actualValue; }
-  int tabulationLemmaAgeRatio() const { return _tabulationLemmaAgeWeightRatio.actualValue; }
-  int tabulationLemmaWeightRatio() const { return _tabulationLemmaAgeWeightRatio.otherValue; }
-
   Instantiation instantiation() const { return _instantiation.actualValue; }
   bool theoryFlattening() const { return _theoryFlattening.actualValue; }
 
@@ -2256,12 +2245,6 @@ private:
   BoolOptionValue _superpositionFromVariables;
   ChoiceOptionValue<SymbolPrecedence> _symbolPrecedence;
 
-  BoolOptionValue _tabulationBwRuleSubsumptionResolutionByLemmas;
-  BoolOptionValue _tabulationFwRuleSubsumptionResolutionByLemmas;
-  RatioOptionValue _tabulationGoalAgeWeightRatio;
-  RatioOptionValue _tabulationGoalLemmaRatio;
-  BoolOptionValue _tabulationInstantiateProducingRules;
-  RatioOptionValue _tabulationLemmaAgeWeightRatio;
   StringOptionValue _testId;
   BoolOptionValue _szsOutput;
   StringOptionValue _thanks;
