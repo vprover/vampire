@@ -390,6 +390,8 @@ void TimeCounter::outputSingleStat(TimeCounterUnit tcu, ostream& out)
     break;
   case TC_NAMING:
     out << "naming";
+  case TC_LITERAL_SELECTION:
+    out << "literal selection";
     break;
   default:
     ASSERTION_VIOLATION;

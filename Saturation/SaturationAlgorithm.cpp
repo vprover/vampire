@@ -967,6 +967,8 @@ bool SaturationAlgorithm::activate(Clause* cl)
   _clauseActivationInProgress=true;
 
   if (!cl->numSelected()) {
+    TimeCounter tc(TC_LITERAL_SELECTION);
+
     _selector->select(cl);
   }
 

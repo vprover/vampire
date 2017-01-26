@@ -2310,6 +2310,17 @@ bool Options::SelectionOptionValue::setValue(const vstring& value)
   case 4:
   case 10:
   case 11:
+  case 20:
+  case 21:
+  case 22:
+
+  case 30:
+  case 31:
+  case 32:
+  case 33:
+  case 34:
+  case 35:
+
   case 1002:
   case 1003:
   case 1004:
@@ -2321,10 +2332,21 @@ bool Options::SelectionOptionValue::setValue(const vstring& value)
   case -4:
   case -10:
   case -11:
+  case -20: // almost same as 20 (but factoring will be on negative and not positive literals)
+  case -21:
+  case -22:
+  case -30: // almost same as 30 (but factoring will be on negative and not positive literals)
+  case -31:
+  case -32:
+  case -33:
+  case -34:
+  case -35:
+
   case -1002:
   case -1003:
   case -1004:
   case -1010:
+  case -1011: // almost same as 1011 (but factoring will be on negative and not positive literals)
     actualValue = sel;
     return true;
   default:

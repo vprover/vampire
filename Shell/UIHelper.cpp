@@ -506,6 +506,11 @@ void UIHelper::outputSymbolTypeDeclarationIfNeeded(ostream& out, bool function, 
     return;
   }
 
+  if (sym->overflownConstant()) {
+    // don't output definitions of numbers; not even big ones
+    return;
+  }
+
   unsigned dummy;
   if (Theory::tuples()->findProjection(symNumber, !function, dummy)) {
     return;
@@ -565,7 +570,7 @@ void UIHelper::outputSortDeclarations(ostream& out)
 
   unsigned sorts = (*env.sorts).sorts();
   for (unsigned sort = Sorts::SRT_BOOL; sort < sorts; ++sort) {
-    if (sort <= Sorts::FIRST_USER_SORT && ((sort != Sorts::SRT_BOOL) || !env.options->showFOOL())) {
+    if (sort < Sorts::FIRST_USER_SORT && ((sort != Sorts::SRT_BOOL) || !env.options->showFOOL())) {
       continue;
     }
     if ((*env.sorts).hasStructuredSort(sort)) {

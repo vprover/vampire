@@ -284,7 +284,7 @@ void SMTLIB::doSortDeclarations()
   Stack<vstring>::Iterator srtIt(_userSorts);
   while(srtIt.hasNext()) {
     vstring sortName = srtIt.next();
-    env.sorts->addSort(sortName);
+    env.sorts->addSort(sortName,false);
   }
 }
 
