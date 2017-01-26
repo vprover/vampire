@@ -530,7 +530,7 @@ unsigned SMTLIB2::declareSort(LExpr* sExpr)
         }
         sortName += ")";
 
-        unsigned newSort = env.sorts->addSort(sortName);
+        unsigned newSort = env.sorts->addSort(sortName,false);
         results.push(newSort);
 
         continue;
@@ -852,7 +852,7 @@ void SMTLIB2::readDeclareDatatypes(LExprList* sorts, LExprList* datatypes, bool 
 
     ALWAYS(_declaredSorts.insert(dtypeName, 0));
     bool added;
-    env.sorts->addSort(dtypeName + "()", added);
+    env.sorts->addSort(dtypeName + "()", added,false);
     ASS(added);
   }
 
@@ -866,7 +866,7 @@ void SMTLIB2::readDeclareDatatypes(LExprList* sorts, LExprList* datatypes, bool 
     LispListReader dtypeRdr(dtypesRdr2.readList());
     const vstring& taName = dtypeRdr.readAtom() + "()";
     bool added;
-    unsigned taSort = env.sorts->addSort(taName, added);
+    unsigned taSort = env.sorts->addSort(taName, added, false);
     ASS(!added);
 
     while (dtypeRdr.hasNext()) {

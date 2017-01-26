@@ -31,9 +31,9 @@ using namespace Lib;
 
 /**
  * A literal selector class template that selects the best literal
- * (i.e. the maximal literal in quality ordering specfied by
+ * (i.e. the maximal literal in quality ordering specified by
  * QComparator class). Using this literal selector does not
- * sustain completeness.
+ * maintain completeness.
  *
  * Objects of the QComparator class must provide a method
  * Lib::Comparison compare(Literal*, Literal*)
@@ -41,12 +41,12 @@ using namespace Lib;
  */
 template<class QComparator>
 class BestLiteralSelector
-: public LiteralSelector
-{
-public:
+    : public LiteralSelector
+      {
+      public:
   CLASS_NAME(BestLiteralSelector);
   USE_ALLOCATOR(BestLiteralSelector);
-  
+
   BestLiteralSelector(const Ordering& ordering, const Options& options) : LiteralSelector(ordering, options)
   {
     CALL("BestLiteralSelector::BestLiteralSelector");
@@ -80,15 +80,15 @@ protected:
 #endif
   }
 
-private:
+      private:
   QComparator _comp;
-};
+      };
 
 
 /**
  * A literal selector class template, that tries select the best
- * literal (i.e. the maximal literal in quality ordering specfied by
- * QComparator class), but takes completness of the selection into
+ * literal (i.e. the maximal literal in quality ordering specified by
+ * QComparator class), but takes completeness of the selection into
  * account.
  *
 // * If the best literal is negative, it is selected. If it is among
@@ -107,7 +107,7 @@ private:
  */
 template<class QComparator>
 class CompleteBestLiteralSelector
-: public LiteralSelector
+    : public LiteralSelector
 {
 public:
   CLASS_NAME(CompleteBestLiteralSelector);
@@ -133,7 +133,7 @@ protected:
 
     LiteralList* maximals=0;
     Literal* singleSelected=0; //If equals to 0 in the end, all maximal
-			       //literals will be selected.
+    //literals will be selected.
     bool allSelected=false;
 
     if(isNegativeForSelection(litArr[0])) {
@@ -141,25 +141,25 @@ protected:
     } else {
       DArray<Literal*>::ReversedIterator rlit(litArr);
       while(rlit.hasNext()) {
-	Literal* lit=rlit.next();
-	LiteralList::push(lit,maximals);
+        Literal* lit=rlit.next();
+        LiteralList::push(lit,maximals);
       }
       _ord.removeNonMaximal(maximals);
       unsigned besti=0;
       LiteralList* nextMax=maximals;
       while(true) {
-	if(nextMax->head()==litArr[besti]) {
-	  nextMax=nextMax->tail();
-	  if(nextMax==0) {
-	    break;
-	  }
-	}
-	besti++;
-	ASS_L(besti,eligible);
-	if(isNegativeForSelection(litArr[besti])) {
-	  singleSelected=litArr[besti];
-	  break;
-	}
+        if(nextMax->head()==litArr[besti]) {
+          nextMax=nextMax->tail();
+          if(nextMax==0) {
+            break;
+          }
+        }
+        besti++;
+        ASS_L(besti,eligible);
+        if(isNegativeForSelection(litArr[besti])) {
+          singleSelected=litArr[besti];
+          break;
+        }
       }
     }
     if(!singleSelected && !maximals->tail()) {
@@ -169,11 +169,11 @@ protected:
     if(!singleSelected) {
       unsigned selCnt=0;
       for(LiteralList* mit=maximals; mit; mit=mit->tail()) {
-	ASS(isPositiveForSelection(mit->head()));
-	selCnt++;
+        ASS(isPositiveForSelection(mit->head()));
+        selCnt++;
       }
       if(selCnt==eligible) {
-	allSelected=true;
+        allSelected=true;
       }
     }
     if(allSelected) {
@@ -185,15 +185,15 @@ protected:
       unsigned selCnt=0;
 
       for(LiteralList* mit=maximals; mit; mit=mit->tail()) {
-	maxSet.insert(mit->head());
+        maxSet.insert(mit->head());
       }
 
       while(maximals) {
-	if(!maxSet.contains((*c)[selCnt])) {
-	  replaced.push((*c)[selCnt]);
-	}
-	(*c)[selCnt]=LiteralList::pop(maximals);
-	selCnt++;
+        if(!maxSet.contains((*c)[selCnt])) {
+          replaced.push((*c)[selCnt]);
+        }
+        (*c)[selCnt]=LiteralList::pop(maximals);
+        selCnt++;
       }
       ASS_G(selCnt,1);
       ASS_LE(selCnt,eligible);
@@ -201,18 +201,18 @@ protected:
       //put back non-selected literals that were removed
       unsigned i=selCnt;
       while(replaced.isNonEmpty()) {
-	while(!maxSet.contains((*c)[i])) {
-	  i++;
-	  ASS_L(i,eligible);
-	}
-	(*c)[i++]=replaced.pop();
+        while(!maxSet.contains((*c)[i])) {
+          i++;
+          ASS_L(i,eligible);
+        }
+        (*c)[i++]=replaced.pop();
       }
 
       c->setSelected(selCnt);
     } else {
       unsigned besti=c->getLiteralPosition(singleSelected);
       if(besti!=0) {
-	std::swap((*c)[0],(*c)[besti]);
+        std::swap((*c)[0],(*c)[besti]);
       }
       c->setSelected(1);
     }
