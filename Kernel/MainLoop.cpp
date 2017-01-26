@@ -21,8 +21,6 @@
 
 #include "Saturation/SaturationAlgorithm.hpp"
 
-#include "Tabulation/TabulationAlgorithm.hpp"
-
 #include "FMB/FiniteModelBuilder.hpp"
 
 #include "SAT/Z3MainLoop.hpp"
@@ -39,7 +37,6 @@
 using namespace Kernel;
 using namespace InstGen;
 using namespace Saturation;
-using namespace Tabulation;
 using namespace FMB;
 
 void MainLoopResult::updateStatistics()

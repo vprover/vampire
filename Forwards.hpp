@@ -394,12 +394,6 @@ class IGAlgorithm;
 class ModelPrinter;
 }
 
-namespace Tabulation
-{
-class TabulationAlgorithm;
-class Producer;
-}
-
 namespace DP
 {
 class DecisionProcedure;
