@@ -1357,9 +1357,9 @@ void Options::Options::init()
 
     _satSolver = ChoiceOptionValue<SatSolver>("sat_solver","sas",SatSolver::MINISAT,
 #if VZ3
-            {"lingeling","minisat","vampire","z3"});
+            {"minisat","vampire","z3"});
 #else
-            {"lingeling","minisat","vampire"});
+    {"minisat","vampire"});
 #endif
     _satSolver.description=
     "Select the SAT solver to be used throughout the solver. This will be used in AVATAR (for splitting) when the saturation algorithm is discount,lrs or otter and in instance generation for selection and global subsumption.";
@@ -1367,9 +1367,9 @@ void Options::Options::init()
     _satSolver.tag(OptionTag::SAT);
     _satSolver.setRandomChoices(
 #if VZ3
-            {"lingeling","minisat","vampire","z3"});
+            {"minisat","vampire","z3"});
 #else
-            {"lingeling","minisat","vampire"});
+            {"minisat","vampire"});
 #endif
 
 #if VZ3
@@ -1400,18 +1400,6 @@ void Options::Options::init()
     _lookup.insert(&_satVarSelector);
     _satVarSelector.tag(OptionTag::SAT);
     _satVarSelector.setExperimental();
-
-    _satLingelingSimilarModels = BoolOptionValue("sat_lingeling_similar_models","",true);
-    _satLingelingSimilarModels.description="";
-    _lookup.insert(&_satLingelingSimilarModels);
-    _satLingelingSimilarModels.tag(OptionTag::SAT);
-    _satLingelingSimilarModels.setExperimental();
-
-    _satLingelingIncremental = BoolOptionValue("sat_lingeling_incremental","",false);
-    _satLingelingIncremental.description="";
-    _lookup.insert(&_satLingelingIncremental);
-    _satLingelingIncremental.tag(OptionTag::SAT);
-    _satLingelingIncremental.setExperimental();
 
  //*********************** Tabulation  ***********************
 

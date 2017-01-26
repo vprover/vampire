@@ -384,11 +384,10 @@ public:
 
   /** Possible values for sat_solver */
   enum class SatSolver : unsigned int {
-     LINGELING = 0,
-     MINISAT = 1,
-     VAMPIRE = 2
+     MINISAT = 0,
+     VAMPIRE = 1
 #if VZ3
-     ,Z3 = 3
+     ,Z3 = 2
 #endif
   };
 
@@ -1756,8 +1755,6 @@ public:
   bool useDM() const { return _use_dm.actualValue; }
   SatSolver satSolver() const { return _satSolver.actualValue; }
   //void setSatSolver(SatSolver newVal) { _satSolver = newVal; }
-  bool satLingelingSimilarModels() const { return _satLingelingSimilarModels.actualValue; }
-  bool satLingelingIncremental() const { return _satLingelingIncremental.actualValue; }
   SaturationAlgorithm saturationAlgorithm() const { return _saturationAlgorithm.actualValue; }
   void setSaturationAlgorithm(SaturationAlgorithm newVal) { _saturationAlgorithm.actualValue = newVal; }
   int selection() const { return _selection.actualValue; }
@@ -2202,8 +2199,6 @@ private:
   FloatOptionValue _satVarActivityDecay;
   ChoiceOptionValue<SatVarSelector> _satVarSelector;
   ChoiceOptionValue<SatSolver> _satSolver;
-  BoolOptionValue _satLingelingSimilarModels;
-  BoolOptionValue _satLingelingIncremental;
   ChoiceOptionValue<SaturationAlgorithm> _saturationAlgorithm;
   BoolOptionValue _selectUnusedVariablesFirst;
   BoolOptionValue _showAll;

@@ -301,10 +301,7 @@ VSAT_OBJ=SAT/ClauseDisposer.o\
          SAT/SATLiteral.o\
          SAT/TWLSolver.o\
          SAT/VariableSelector.o\
-         SAT/LingelingInterfacing.o\
 	 SAT/Z3Interfacing.o\
-         SAT/lglib.o\
-         SAT/lglopts.o\
 	 SAT/BufferedSolver.o\
 	 SAT/FallbackSolverWrapper.o
 #         SAT/ISSatSweeping.o\	 
