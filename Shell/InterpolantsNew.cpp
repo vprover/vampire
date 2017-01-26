@@ -58,6 +58,7 @@ namespace Shell
     
     void InterpolantsNew::removeTheoryInferences(Unit* refutation)
     {
+        BYPASSING_ALLOCATOR;
         CALL("InterpolantsNew::removeTheoryInferences");
 
         ProofIteratorPostOrder it(refutation);
@@ -130,6 +131,7 @@ namespace Shell
      */
     Formula* InterpolantsNew::getInterpolant(Unit *refutation, UnitWeight weightFunction)
     {
+        BYPASSING_ALLOCATOR;
         CALL("InterpolantsNew::getInterpolant");
                 
         /*

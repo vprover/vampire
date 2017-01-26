@@ -132,6 +132,7 @@ namespace Shell
     
     void InterpolantMinimizerNew::analyzeLocalProof(Kernel::Unit *refutation)
     {
+        BYPASSING_ALLOCATOR;
         CALL("InterpolantMinimizerNew::analyzeLocalProof");
 
         // print statistics on grey area
