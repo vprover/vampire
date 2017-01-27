@@ -148,6 +148,52 @@ namespace Shell
             representatives.insert(keyValuePair.second);
         }
         cout << "Number of red subproofs: " << representatives.size() << endl;
+        
+        // compute number of alternations between red and blue subproofs
+        /*
+         * Def.: if we have a refutation
+         *          A
+         *        -----
+         *          B
+         *        -----
+         *          A
+         * we count it as 2 alternations (although one could argue for 3 alternations)
+         */
+        std::unordered_map<Unit*, int> alternations;
+        
+        ProofIteratorPostOrder it(refutation);
+        while (it.hasNext()) // traverse the proof in depth-first post order
+        {
+            Unit* current = it.next();
+            
+            // if current is an axiom
+            if (!InferenceStore::instance()->getParents(current).hasNext())
+            {
+                alternations[current] = 0;
+            }
+            else
+            {
+                int alternations_max = 0;
+                
+                VirtualIterator<Unit*> parents = InferenceStore::instance()->getParents(current);
+                while (parents.hasNext())
+                {
+                    Unit* premise= parents.next();
+                    
+                    if (splittingFunction.at(premise) != splittingFunction.at(current))
+                    {
+                        alternations_max = std::max(alternations.at(premise) + 1, alternations_max);
+                    }
+                    else
+                    {
+                        alternations_max = std::max(alternations.at(premise), alternations_max);
+                    }
+                }
+                alternations[current] = alternations_max;
+            }
+        }
+        
+        cout << "Number of alternations: " << alternations.at(refutation) << endl;
     }
     
     /*
