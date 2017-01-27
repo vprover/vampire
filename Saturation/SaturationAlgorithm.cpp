@@ -530,6 +530,8 @@ void SaturationAlgorithm::addInputClause(Clause* cl)
   }
 
   bool sosForAxioms = _opt.sos() == Options::Sos::ON || _opt.sos() == Options::Sos::ALL; 
+  sosForAxioms = sosForAxioms && cl->inputType()==Clause::AXIOM;
+
   bool isTheory = cl->inference()->rule()==Inference::THEORY;
   bool sosForTheory = _opt.sos() == Options::Sos::THEORY && _opt.sosTheoryLimit() == 0;
 

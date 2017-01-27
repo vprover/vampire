@@ -141,7 +141,7 @@ Index* IndexManager::create(IndexType t)
     is=new LiteralSubstitutionTree();
 #endif
 #if VDEBUG
-    is->markTagged();
+    //is->markTagged();
 #endif
     _genLitIndex=is;
     res=new GeneratingLiteralIndex(is);

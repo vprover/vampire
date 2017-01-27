@@ -37,7 +37,7 @@
 #include "SMTCOMPMode.hpp"
 
 #define SLOWNESS 1.3
-#define OUTPUT 0
+#define OUTPUT 1
 
 using namespace SMTCOMP;
 using namespace std;
