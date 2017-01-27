@@ -27,6 +27,7 @@
 #define __Options__
 
 #include <type_traits>
+#include <cstring>
 
 #include "Forwards.hpp"
 

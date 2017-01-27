@@ -40,13 +40,6 @@
 
 #include "SaturationAlgorithm.hpp"
 
-
-#define DEBUG_MIN_SOLVER VDEBUG
-
-#if DEBUG_MIN_SOLVER
-#include "Test/CheckedSatSolver.hpp"
-#endif
-
 namespace Saturation
 {
 
@@ -104,12 +97,6 @@ void SplittingBranchSelector::init()
       ASSERTION_VIOLATION_REP(_parent.getOptions().splittingMinimizeModel());
   }
   _minSCO = _parent.getOptions().splittingMinimizeModel() == Options::SplittingMinimizeModel::SCO;
-
-
-#if DEBUG_MIN_SOLVER
-  _solver = new Test::CheckedSatSolver(_solver.release());
-#endif
-
 
   if(_parent.getOptions().splittingCongruenceClosure() != Options::SplittingCongruenceClosure::OFF) {
     _dp = new DP::SimpleCongruenceClosure(&_parent.getOrdering());

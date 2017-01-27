@@ -34,7 +34,7 @@
 #include "Statistics.hpp"
 #include "TPTPPrinter.hpp"
 #include "UIHelper.hpp"
-#include "SMTPrinter.hpp"
+// #include "SMTPrinter.hpp"
 
 #include "Lib/RCPtr.hpp"
 #include "Lib/List.hpp"
@@ -299,7 +299,7 @@ void UIHelper::outputResult(ostream& out)
       Formula* cntInterpolant = InterpolantMinimizer(InterpolantMinimizer::OT_COUNT, false, true, "Minimized interpolant count").getInterpolant(static_cast<Clause*>(env.statistics->refutation));
       Formula* quantInterpolant =  InterpolantMinimizer(InterpolantMinimizer::OT_QUANTIFIERS, false, true, "Minimized interpolant quantifiers").getInterpolant(static_cast<Clause*>(env.statistics->refutation));
       
-      SMTPrinter printer;
+      // SMTPrinter printer;
       out << "Old interpolant (without minimization): " << TPTPPrinter::toString(oldInterpolant) << endl;
       //out << "Old interpolant in SMT format (without minimization): ";
       //printer.smtPrint(oldInterpolant,out);

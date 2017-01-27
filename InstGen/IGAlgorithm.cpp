@@ -31,7 +31,6 @@
 
 #include "Saturation/SaturationAlgorithm.hpp"
 
-#include "Shell/EqualityAxiomatizer.hpp"
 #include "Shell/EqualityProxy.hpp"
 #include "Shell/Property.hpp"
 #include "Shell/Statistics.hpp"
