@@ -279,7 +279,7 @@ SLQueryResultIterator LiteralSubstitutionTree::getResultIterator(Literal* lit,
     return SLQueryResultIterator::getEmpty();
   }
   if(root->isLeaf()) {
-    cout << "Root is Leaf" << endl;
+    //cout << "Root is Leaf" << endl;
     LDIterator ldit=static_cast<Leaf*>(root)->allChildren();
     if(retrieveSubstitutions) {
       // a single substitution will be used for all in ldit, but that's OK
