@@ -231,8 +231,9 @@ public:
      */
     NodeIterator childBySort(TermList t)
     {
+     CALL("SubstitutionTree::NodeIterator::childBySort");
      unsigned srt;
-     if(SortHelper::tryGetResultSort(t,srt)){
+     if(SortHelper::tryGetResultSort(t,srt) && srt < Sorts::FIRST_USER_SORT){
        unsigned top = t.term()->functor();
        Stack<TermList>::Iterator fit(bySortTerms[srt]);
        auto withoutThisTop = getFilteredIterator(fit,NotTop(top));
