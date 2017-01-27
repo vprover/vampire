@@ -30,7 +30,6 @@
 #include "SAT/Preprocess.hpp"
 #include "SAT/SATInference.hpp"
 #include "SAT/TWLSolver.hpp"
-#include "SAT/LingelingInterfacing.hpp"
 #include "SAT/MinimizingSolver.hpp"
 #include "SAT/BufferedSolver.hpp"
 #include "SAT/FallbackSolverWrapper.hpp"
@@ -40,13 +39,6 @@
 #include "DP/ShortConflictMetaDP.hpp"
 
 #include "SaturationAlgorithm.hpp"
-
-
-#define DEBUG_MIN_SOLVER VDEBUG
-
-#if DEBUG_MIN_SOLVER
-#include "Test/CheckedSatSolver.hpp"
-#endif
 
 namespace Saturation
 {
@@ -69,9 +61,6 @@ void SplittingBranchSelector::init()
   switch(_parent.getOptions().satSolver()){
     case Options::SatSolver::VAMPIRE:  
       _solver = new TWLSolver(_parent.getOptions(), true);
-      break;
-    case Options::SatSolver::LINGELING: 
-      _solver = new LingelingInterfacing(_parent.getOptions(), true);
       break;
     case Options::SatSolver::MINISAT:
       _solver = new MinisatInterfacing(_parent.getOptions(),true);
@@ -108,12 +97,6 @@ void SplittingBranchSelector::init()
       ASSERTION_VIOLATION_REP(_parent.getOptions().splittingMinimizeModel());
   }
   _minSCO = _parent.getOptions().splittingMinimizeModel() == Options::SplittingMinimizeModel::SCO;
-
-
-#if DEBUG_MIN_SOLVER
-  _solver = new Test::CheckedSatSolver(_solver.release());
-#endif
-
 
   if(_parent.getOptions().splittingCongruenceClosure() != Options::SplittingCongruenceClosure::OFF) {
     _dp = new DP::SimpleCongruenceClosure(&_parent.getOrdering());

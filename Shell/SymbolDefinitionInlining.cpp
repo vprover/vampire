@@ -251,8 +251,7 @@ Formula* SymbolDefinitionInlining::process(Formula* formula) {
 FormulaList* SymbolDefinitionInlining::process(FormulaList* formulas) {
   CALL("SymbolDefinitionInlining::process(FormulaList*)");
 
-  static Stack<Formula*> elements;
-  elements.reset();
+  Stack<Formula*> elements(formulas->length());
 
   bool substituted = false;
   FormulaList::Iterator fit(formulas);
@@ -271,8 +270,8 @@ FormulaList* SymbolDefinitionInlining::process(FormulaList* formulas) {
     return formulas;
   }
 
+  Stack<Formula*>::Iterator eit(elements);
   FormulaList* processedFormula = FormulaList::empty();
-  Stack<Formula*>::BottomFirstIterator eit(elements);
   FormulaList::pushFromIterator(eit, processedFormula);
 
   return processedFormula;

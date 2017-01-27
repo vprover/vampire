@@ -22,7 +22,7 @@
 
 #include "Options.hpp"
 #include "Rectify.hpp"
-#include "Refutation.hpp"
+// #include "Refutation.hpp"
 #include "Skolem.hpp"
 #include "VarManager.hpp"
 
@@ -419,8 +419,10 @@ Formula* Skolem::skolemise (Formula* f)
             <<skolemTerm->toString()<<" for X"<<v<<" in "<<f->toString()
             <<" in formula "<<_beingSkolemised->toString()<<endl;
 
+          /*
           Refutation ref(_beingSkolemised, true);
           ref.output(out);
+          */
           env.endOutput();
         }
       }
