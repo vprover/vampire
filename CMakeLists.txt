@@ -199,6 +199,7 @@ set(VAMPIRE_KERNEL_SOURCES
 	Kernel/Clause.cpp
     Kernel/ClauseQueue.cpp
     Kernel/ColorHelper.cpp
+    Kernel/ELiteralSelector.cpp
     Kernel/EqHelper.cpp
     Kernel/FlatTerm.cpp
     Kernel/Formula.cpp
@@ -227,6 +228,7 @@ set(VAMPIRE_KERNEL_SOURCES
     Kernel/Signature.cpp
     Kernel/SortHelper.cpp
     Kernel/Sorts.cpp
+    Kernel/SpassLiteralSelector.cpp
     Kernel/SubformulaIterator.cpp
     Kernel/Substitution.cpp
     Kernel/Term.cpp
@@ -246,6 +248,7 @@ set(VAMPIRE_KERNEL_SOURCES
     Kernel/ColorHelper.hpp
     Kernel/Connective.hpp
     Kernel/Curryfier.hpp
+    Kernel/ELiteralSelector.hpp
     Kernel/EqHelper.hpp
     Kernel/FlatTerm.hpp
     Kernel/Formula.hpp
@@ -275,6 +278,7 @@ set(VAMPIRE_KERNEL_SOURCES
     Kernel/Signature.hpp
     Kernel/SortHelper.hpp
     Kernel/Sorts.hpp
+    Kernel/SpassLiteralSelector.hpp
     Kernel/SubformulaIterator.hpp
     Kernel/SubstHelper.hpp
     Kernel/Substitution.hpp
@@ -751,6 +755,8 @@ set(VAMPIRE_SOURCES
 add_executable(vampire ${VAMPIRE_SOURCES})
 target_link_libraries(vampire Z3)
 target_compile_definitions(vampire PRIVATE VZ3=1 VDEBUG=1 CHECK_LEAKS=0)
+#set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -Wall") 
+
 
 ################################################################
 # automated generation of Vampire revision information from git
