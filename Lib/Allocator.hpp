@@ -178,7 +178,7 @@ public:
   /** A helper struct used for implementing the BYPASSING_ALLOCATOR macro. */
   struct EnableBypassChecking {
     unsigned _save;
-    EnableBypassChecking() { _save = _tolerantZone; }
+    EnableBypassChecking() { _save = _tolerantZone; _tolerantZone = 0; }
     ~EnableBypassChecking() { _tolerantZone = _save; }
   };
 

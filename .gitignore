@@ -32,3 +32,6 @@ valgrind.supp
 
 *.p
 *.tptp
+*.txt
+*.smt2
+*.cnf

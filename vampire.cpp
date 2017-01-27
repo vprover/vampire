@@ -73,7 +73,6 @@
 
 #include "Saturation/SaturationAlgorithm.hpp"
 
-#include "SAT/LingelingInterfacing.hpp"
 #include "SAT/MinisatInterfacing.hpp"
 #include "SAT/MinisatInterfacingNewSimp.hpp"
 #include "SAT/TWLSolver.hpp"
@@ -591,9 +590,6 @@ void satSolverMode()
     case Options::SatSolver::VAMPIRE:  
       solver = new TWLSolver(*env.options);
       break;
-    case Options::SatSolver::LINGELING:
-      solver = new LingelingInterfacing(*env.options);
-      break;
     case Options::SatSolver::MINISAT:
       solver = new MinisatInterfacingNewSimp(*env.options);
       break;      
@@ -772,7 +768,7 @@ void clausifyMode(bool theory)
     }
     if (theory) {
       Formula* f = Formula::fromClause(cl);
-      FormulaUnit* fu = new FormulaUnit(f,cl->inference(),cl->inputType());
+      FormulaUnit* fu = new FormulaUnit(f,cl->inference(),cl->inputType() == Unit::CONJECTURE ? Unit::NEGATED_CONJECTURE : cl->inputType()); // CONJECTURE is evil, as it cannot occur multiple times
       env.out() << TPTPPrinter::toString(fu) << "\n";
     } else {
       env.out() << TPTPPrinter::toString(cl) << "\n";

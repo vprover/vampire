@@ -390,6 +390,8 @@ void TimeCounter::outputSingleStat(TimeCounterUnit tcu, ostream& out)
     break;
   case TC_NAMING:
     out << "naming";
+  case TC_LITERAL_SELECTION:
+    out << "literal selection";
     break;
   case TC_THEORY_INST_SIMP:
     out << "theory instantiation and simplification";

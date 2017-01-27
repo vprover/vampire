@@ -509,6 +509,8 @@ class Signature
   }
   Stack<TermList>& getDividesNvalues(){ return _dividesNvalues; }
 
+  static bool symbolNeedsQuoting(vstring name, bool interpreted, unsigned arity);
+
 private:
   Stack<TermList> _dividesNvalues;
 
@@ -517,7 +519,6 @@ private:
   unsigned _foolFalse;
 
   static bool isProtectedName(vstring name);
-  static bool symbolNeedsQuoting(vstring name, bool interpreted, unsigned arity);
   static bool charNeedsQuoting(char c, bool first);
   /** Stack of function symbols -- used for bound propagation*/
   Stack<VarSymbol*> _vars;

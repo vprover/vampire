@@ -605,7 +605,6 @@ unsigned Theory::getArity(Interpretation i)
   case INT_PLUS:
   case INT_MINUS:
   case INT_MULTIPLY:
-  case INT_MODULO:
   case INT_QUOTIENT_E:
   case INT_QUOTIENT_T:
   case INT_QUOTIENT_F:
@@ -679,7 +678,6 @@ bool Theory::isFunction(Interpretation i)
   case INT_PLUS:
   case INT_MINUS:
   case INT_MULTIPLY:
-  case INT_MODULO:
   case INT_QUOTIENT_E:
   case INT_QUOTIENT_T:
   case INT_QUOTIENT_F:
@@ -838,7 +836,6 @@ unsigned Theory::getOperationSort(Interpretation i)
   case INT_PLUS:
   case INT_MINUS:
   case INT_MULTIPLY:
-  case INT_MODULO:
   case INT_QUOTIENT_E:
   case INT_QUOTIENT_T:
   case INT_QUOTIENT_F:
@@ -959,7 +956,6 @@ bool Theory::isNonLinearOperation(Interpretation i)
 
   switch(i) {
   case INT_MULTIPLY:
-  case INT_MODULO:
   case INT_QUOTIENT_E:
   case INT_QUOTIENT_T:
   case INT_QUOTIENT_F:
@@ -1297,8 +1293,6 @@ vstring Theory::getInterpretationName(Interpretation interp) {
       case Theory::RAT_TO_REAL:
       case Theory::REAL_TO_REAL:
         return "$to_real";
-      case Theory::INT_MODULO:
-        return "$modulo";
       case Theory::INT_ABS:
         return "$abs";
       case Theory::INT_QUOTIENT_E:
@@ -1961,7 +1955,6 @@ vstring Theory::tryGetInterpretedLaTeXName(unsigned func, bool pred,bool polarit
   case INT_PLUS: return "a0 + a1";
   case INT_MINUS: return "a0 - a1";
   case INT_MULTIPLY: return "a0 \\cdot a1";
-  //case INT_MODULO: return "a0 \\% a1";
 
   case RAT_PLUS: return "a0 + a1";
   case RAT_MINUS: return "a0 - a1";

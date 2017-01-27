@@ -15,6 +15,7 @@
 #include "Lib/Int.hpp"
 #include "Lib/SharedSet.hpp"
 #include "Lib/Stack.hpp"
+#include "Lib/BitUtils.hpp"
 
 #include "Saturation/ClauseContainer.hpp"
 

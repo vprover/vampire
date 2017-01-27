@@ -14,6 +14,8 @@
 #include "Lib/Environment.hpp"
 #include "Lib/VString.hpp"
 
+#include "Lib/Allocator.hpp"
+
 #include "Term.hpp"
 
 namespace Kernel {
@@ -28,6 +30,10 @@ using namespace Lib;
 class Substitution
 {
 public:
+  CLASS_NAME(Substitution);
+  USE_ALLOCATOR(Substitution);
+  DECLARE_PLACEMENT_NEW;
+
   Substitution() {}
 
   void bind(int v,Term* t);

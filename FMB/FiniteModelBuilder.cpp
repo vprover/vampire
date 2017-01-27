@@ -23,7 +23,6 @@
 
 #include "SAT/Preprocess.hpp"
 #include "SAT/TWLSolver.hpp"
-#include "SAT/LingelingInterfacing.hpp"
 #include "SAT/MinisatInterfacingNewSimp.hpp"
 #include "SAT/BufferedSolver.hpp"
 
@@ -237,9 +236,6 @@ bool FiniteModelBuilder::reset(){
   switch(_opt.satSolver()){
     case Options::SatSolver::VAMPIRE:
       _solver = new TWLSolver(_opt, true);
-      break;
-    case Options::SatSolver::LINGELING:
-      _solver = new LingelingInterfacing(_opt, true);
       break;
 #if VZ3
     case Options::SatSolver::Z3:
@@ -652,7 +648,7 @@ void FiniteModelBuilder::init()
     // if we've done the sort expansion thing then the max for the parent should be
     // the max of all children
     for(unsigned s=0;s<env.sorts->sorts();s++){
-      if((env.property->usesSort(s) || s > Sorts::FIRST_USER_SORT) && _sortedSignature->vampireToDistinct.find(s)){
+      if((env.property->usesSort(s) || s >= Sorts::FIRST_USER_SORT) && _sortedSignature->vampireToDistinct.find(s)){
         Stack<unsigned>* dmembers = _sortedSignature->vampireToDistinct.get(s);
         ASS(dmembers);
         if(dmembers->size() > 1){ 
