@@ -754,8 +754,11 @@ set(VAMPIRE_SOURCES
 
 add_executable(vampire ${VAMPIRE_SOURCES})
 target_link_libraries(vampire Z3)
-target_compile_definitions(vampire PRIVATE VZ3=1 VDEBUG=1 CHECK_LEAKS=0)
-#set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -Wall") 
+target_compile_definitions(vampire PRIVATE VZ3=1 CHECK_LEAKS=0)
+
+set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -D VDEBUG=1") 
+set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -D VDEBUG=0") 
+
 
 
 ################################################################
