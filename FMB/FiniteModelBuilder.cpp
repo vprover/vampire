@@ -23,7 +23,6 @@
 
 #include "SAT/Preprocess.hpp"
 #include "SAT/TWLSolver.hpp"
-#include "SAT/LingelingInterfacing.hpp"
 #include "SAT/MinisatInterfacingNewSimp.hpp"
 #include "SAT/BufferedSolver.hpp"
 
@@ -237,9 +236,6 @@ bool FiniteModelBuilder::reset(){
   switch(_opt.satSolver()){
     case Options::SatSolver::VAMPIRE:
       _solver = new TWLSolver(_opt, true);
-      break;
-    case Options::SatSolver::LINGELING:
-      _solver = new LingelingInterfacing(_opt, true);
       break;
 #if VZ3
     case Options::SatSolver::Z3:

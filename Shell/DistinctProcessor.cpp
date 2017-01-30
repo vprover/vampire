@@ -3,6 +3,8 @@
  * Implements class DistinctProcessor.
  */
 
+#include "DistinctProcessor.hpp"
+
 #include "Lib/Environment.hpp"
 
 #include "Kernel/Formula.hpp"
@@ -10,7 +12,7 @@
 #include "Kernel/Signature.hpp"
 #include "Kernel/Unit.hpp"
 
-#include "DistinctProcessor.hpp"
+#include <cstring>
 
 namespace Shell
 {

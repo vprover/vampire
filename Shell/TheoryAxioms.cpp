@@ -18,7 +18,6 @@
 #include "Kernel/TermIterators.hpp"
 #include "Kernel/Theory.hpp"
 
-#include "AxiomGenerator.hpp"
 #include "Property.hpp"
 #include "SymCounter.hpp"
 #include "TheoryAxioms.hpp"

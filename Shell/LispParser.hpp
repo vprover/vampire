@@ -41,6 +41,9 @@ public:
 
   /** expressions */
   struct Expression {
+    CLASS_NAME(LispParser::Expression);
+    USE_ALLOCATOR(Expression);
+
     /** type of the expression */
     Tag tag;
     /** the value (for atoms and numbers) */

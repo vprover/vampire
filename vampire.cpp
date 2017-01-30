@@ -73,7 +73,6 @@
 
 #include "Saturation/SaturationAlgorithm.hpp"
 
-#include "SAT/LingelingInterfacing.hpp"
 #include "SAT/MinisatInterfacing.hpp"
 #include "SAT/MinisatInterfacingNewSimp.hpp"
 #include "SAT/TWLSolver.hpp"
@@ -590,9 +589,6 @@ void satSolverMode()
   switch(env.options->satSolver()) {
     case Options::SatSolver::VAMPIRE:  
       solver = new TWLSolver(*env.options);
-      break;
-    case Options::SatSolver::LINGELING:
-      solver = new LingelingInterfacing(*env.options);
       break;
     case Options::SatSolver::MINISAT:
       solver = new MinisatInterfacingNewSimp(*env.options);

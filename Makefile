@@ -170,7 +170,6 @@ VL_OBJ= Lib/Allocator.o\
         Lib/Environment.o\
         Lib/Event.o\
         Lib/Exception.o\
-        Lib/Graph.o\
         Lib/Hash.o\
         Lib/Int.o\
         Lib/IntNameTable.o\
@@ -178,12 +177,13 @@ VL_OBJ= Lib/Allocator.o\
         Lib/MemoryLeak.o\
         Lib/MultiCounter.o\
         Lib/NameArray.o\
-        Lib/OptionsReader.o\
         Lib/Random.o\
         Lib/StringUtils.o\
         Lib/System.o\
         Lib/TimeCounter.o\
         Lib/Timer.o
+#        Lib/OptionsReader.o\
+#        Lib/Graph.o\
 
 VLS_OBJ= Lib/Sys/Multiprocessing.o\
          Lib/Sys/Semaphore.o\
@@ -207,7 +207,6 @@ VK_OBJ= Kernel/Clause.o\
         Kernel/LiteralSelector.o\
         Kernel/LookaheadLiteralSelector.o\
         Kernel/MainLoop.o\
-        Kernel/MatchTag.o\
         Kernel/Matcher.o\
         Kernel/MaximalLiteralSelector.o\
         Kernel/SpassLiteralSelector.o\
@@ -228,20 +227,21 @@ VK_OBJ= Kernel/Clause.o\
         Kernel/TermIterators.o\
         Kernel/TermTransformer.o\
         Kernel/Theory.o\
-        Kernel/Assignment.o\
-        Kernel/Constraint.o\
-         Kernel/Number.o\
-         Kernel/Rational.o\
-         Kernel/V2CIndex.o\
          Kernel/Signature.o\
          Kernel/Unit.o
+#        Kernel/MatchTag.o\
+#        Kernel/Assignment.o\     
+#        Kernel/Constraint.o\
+#         Kernel/Number.o\
+#         Kernel/Rational.o\
+#         Kernel/V2CIndex.o\
+    
 
 VI_OBJ = Indexing/AcyclicityIndex.o\
 	 Indexing/ClauseCodeTree.o\
          Indexing/ClauseVariantIndex.o\
          Indexing/CodeTree.o\
          Indexing/CodeTreeInterfaces.o\
-         Indexing/FormulaIndex.o\
          Indexing/GroundingIndex.o\
          Indexing/Index.o\
          Indexing/IndexManager.o\
@@ -258,6 +258,7 @@ VI_OBJ = Indexing/AcyclicityIndex.o\
          Indexing/TermIndex.o\
          Indexing/TermSharing.o\
          Indexing/TermSubstitutionTree.o
+#         Indexing/FormulaIndex.o\         
 
 VIG_OBJ = InstGen/IGAlgorithm.o\
           InstGen/ModelPrinter.o
@@ -266,7 +267,6 @@ VINF_OBJ=Inferences/BackwardDemodulation.o\
          Inferences/BackwardSubsumptionResolution.o\
          Inferences/BinaryResolution.o\
          Inferences/Condensation.o\
-         Inferences/CTFwSubsAndRes.o\
          Inferences/DistinctEqualitySimplifier.o\
          Inferences/EqualityFactoring.o\
          Inferences/EqualityResolution.o\
@@ -289,6 +289,7 @@ VINF_OBJ=Inferences/BackwardDemodulation.o\
          Inferences/TautologyDeletionISE.o\
          Inferences/TermAlgebraReasoning.o\
          Inferences/URResolution.o
+#         Inferences/CTFwSubsAndRes.o\
 
 VSAT_OBJ=SAT/ClauseDisposer.o\
          SAT/DIMACS.o\
@@ -301,10 +302,7 @@ VSAT_OBJ=SAT/ClauseDisposer.o\
          SAT/SATLiteral.o\
          SAT/TWLSolver.o\
          SAT/VariableSelector.o\
-         SAT/LingelingInterfacing.o\
 	 SAT/Z3Interfacing.o\
-         SAT/lglib.o\
-         SAT/lglopts.o\
 	 SAT/BufferedSolver.o\
 	 SAT/FallbackSolverWrapper.o
 #         SAT/ISSatSweeping.o\	 
@@ -327,22 +325,18 @@ VST_OBJ= Saturation/AWPassiveClauseContainer.o\
          Saturation/SymElOutput.o
 
 VS_OBJ = Shell/AnswerExtractor.o\
-         Shell/AxiomGenerator.o\
          Shell/BFNT.o\
          Shell/BFNTMainLoop.o\
          Shell/CommandLine.o\
          Shell/CNF.o\
          Shell/NewCNF.o\
-         Shell/CParser.o\
          Shell/DistinctProcessor.o\
          Shell/DistinctGroupExpansion.o\
          Shell/EqResWithDeletion.o\
-         Shell/EqualityAxiomatizer.o\
          Shell/EqualityProxy.o\
          Shell/Flattening.o\
          Shell/FunctionDefinition.o\
          Shell/GeneralSplitting.o\
-         Shell/GlobalOptions.o\
          Shell/Grounding.o\
          Shell/InequalitySplitting.o\
          Shell/InterpolantMinimizer.o\
@@ -352,25 +346,21 @@ VS_OBJ = Shell/AnswerExtractor.o\
          Shell/InterpolantMinimizer.o\
          Shell/InterpretedNormalizer.o\
          Shell/LaTeX.o\
-         Shell/Lexer.o\
          Shell/LispLexer.o\
          Shell/LispParser.o\
          Shell/Naming.o\
          Shell/NNF.o\
          Shell/Normalisation.o\
          Shell/Options.o\
-         Shell/PDUtils.o\
          Shell/PredicateDefinition.o\
          Shell/Preprocess.o\
          Shell/Property.o\
          Shell/Rectify.o\
-         Shell/Refutation.o\
          Shell/Skolem.o\
          Shell/SimplifyFalseTrue.o\
          Shell/SimplifyProver.o\
          Shell/SineUtils.o\
          Shell/SMTFormula.o\
-         Shell/SMTPrinter.o\
          Shell/FOOLElimination.o\
          Shell/Statistics.o\
          Shell/SymbolDefinitionInlining.o\
@@ -385,18 +375,26 @@ VS_OBJ = Shell/AnswerExtractor.o\
          Shell/TPTPPrinter.o\
          Shell/UIHelper.o\
          Shell/VarManager.o\
-         Shell/ConstantRemover.o\
-         Shell/ConstraintReaderBack.o\
-         Shell/EqualityVariableRemover.o\
-         Shell/EquivalentVariableRemover.o\
-         Shell/HalfBoundingRemover.o\
          Shell/Lexer.o\
-         Shell/PARSER_TKV.o\
          Shell/Preprocess.o\
-         Shell/SMTLEX.o\
-         Shell/SMTPAR.o\
-         Shell/SubsumptionRemover.o\
          version.o
+#         Shell/PARSER_TKV.o\
+#         Shell/SMTLEX.o\
+#         Shell/SMTPAR.o\
+#         Shell/CParser.o\
+#         Shell/AxiomGenerator.o\
+#         Shell/EqualityAxiomatizer.o\
+#         Shell/GlobalOptions.o\
+#         Shell/Lexer.o\
+#         Shell/PDUtils.o\
+#         Shell/Refutation.o\
+#         Shell/SMTPrinter.o\
+#         Shell/ConstantRemover.o\
+#         Shell/ConstraintReaderBack.o\
+#         Shell/EqualityVariableRemover.o\
+#         Shell/EquivalentVariableRemover.o\
+#         Shell/HalfBoundingRemover.o\
+#         Shell/SubsumptionRemover.o\
 
 PARSE_OBJ = Parse/SMTLIB.o\
             Parse/SMTLIB2.o\
@@ -413,9 +411,9 @@ CASC_OBJ = CASC/CASCMode.o\
            CASC/CASCMultiMode.o\
            CASC/CLTBMode.o\
            CASC/CLTBModeLearning.o\
-           CASC/CMZRMode.o\
-           CASC/ForkingCM.o\
-           CASC/SpawningCM.o
+           CASC/ForkingCM.o
+#           CASC/SpawningCM.o\
+#           CASC/CMZRMode.o\
 
 SMTCOMP_OBJ = SMTCOMP/SMTCOMPMode.o\
               SAT/Z3MainLoop.o
@@ -431,10 +429,6 @@ VPROG_OBJ = Program/Type.o\
 
 VPROG_OBL = Program/Lingva.o
 
-VTAB_OBJ = Tabulation/Producer.o\
-           Tabulation/TabulationAlgorithm.o\
-           Tabulation/TabulationContainers.o
-
 VFMB_OBJ = FMB/ClauseFlattening.o\
            FMB/SortInference.o\
 	   FMB/Monotonicity.o\
@@ -442,11 +436,6 @@ VFMB_OBJ = FMB/ClauseFlattening.o\
 	   FMB/FiniteModel.o\
 	   FMB/FiniteModelMultiSorted.o\
            FMB/FiniteModelBuilder.o
-
-TRANSLATOR_OBJ = \
-	Translator/CollectionOfObjects.o\
-	Translator/MyASTConsumer.o\
-	Translator/NewTranslator.o
 
 # testing procedures
 VT_OBJ = Test/CheckedFwSimplifier.o\
@@ -535,9 +524,9 @@ OTHER_CL_DEP = Indexing/FormulaIndex.o\
 	       SAT/TWLSolver.o\
 	       SAT/VariableSelector.o	
 
-VAMP_DIRS := Api Debug DP Lib Lib/Sys Kernel FMB Indexing Inferences InstGen BoundProp Shell CASC SMTCOMP Shell/LTB SAT Saturation Tabulation Test Translator UnitTests VUtils Program Parse MPSLib Minisat Minisat/core Minisat/mtl Minisat/simp Minisat/utils
+VAMP_DIRS := Api Debug DP Lib Lib/Sys Kernel FMB Indexing Inferences InstGen Shell CASC SMTCOMP Shell/LTB SAT Saturation Test UnitTests VUtils Program Parse Minisat Minisat/core Minisat/mtl Minisat/simp Minisat/utils
 
-VAMP_BASIC := $(MINISAT_OBJ) $(VD_OBJ) $(VL_OBJ) $(VLS_OBJ) $(VK_OBJ) $(BP_VD_OBJ) $(BP_VL_OBJ) $(BP_VLS_OBJ) $(BP_VSOL_OBJ) $(BP_VT_OBJ) $(BP_MPS_OBJ) $(ALG_OBJ) $(VI_OBJ) $(VINF_OBJ) $(VIG_OBJ) $(VSAT_OBJ) $(DP_OBJ) $(VST_OBJ) $(VS_OBJ) $(PARSE_OBJ) $(VTAB_OBJ) $(VFMB_OBJ) Test/CheckedSatSolver.o
+VAMP_BASIC := $(MINISAT_OBJ) $(VD_OBJ) $(VL_OBJ) $(VLS_OBJ) $(VK_OBJ) $(BP_VD_OBJ) $(BP_VL_OBJ) $(BP_VLS_OBJ) $(BP_VSOL_OBJ) $(BP_VT_OBJ) $(BP_MPS_OBJ) $(ALG_OBJ) $(VI_OBJ) $(VINF_OBJ) $(VIG_OBJ) $(VSAT_OBJ) $(DP_OBJ) $(VST_OBJ) $(VS_OBJ) $(PARSE_OBJ) $(VFMB_OBJ)
 #VCLAUSIFY_BASIC := $(VD_OBJ) $(VL_OBJ) $(VLS_OBJ) $(VK_OBJ) $(ALG_OBJ) $(VI_OBJ) $(VINF_OBJ) $(VSAT_OBJ) $(VST_OBJ) $(VS_OBJ) $(VT_OBJ)
 VCLAUSIFY_BASIC := $(VD_OBJ) $(VL_OBJ) $(VLS_OBJ) $(filter-out Shell/InterpolantMinimizer.o Shell/AnswerExtractor.o Shell/BFNTMainLoop.o, $(VS_OBJ)) $(PARSE_OBJ) $(LIB_DEP) $(OTHER_CL_DEP) 
 VSAT_BASIC := $(VD_OBJ) $(VL_OBJ) $(VLS_OBJ) $(VSAT_OBJ) Test/CheckedSatSolver.o $(LIB_DEP)
@@ -554,8 +543,8 @@ LIBVAPI_DEP = $(VD_OBJ) $(API_OBJ) $(VCLAUSIFY_BASIC) Global.o
 VAPI_DEP =  $(LIBVAPI_DEP) test_vapi.o
 #UCOMPIT_OBJ = $(VCOMPIT_BASIC) Global.o compit2.o compit2_impl.o
 VGROUND_DEP = $(VAMP_BASIC) Global.o vground.o
-LINGVA_DEP = $(API_OBJ) $(VAMP_BASIC) $(CASC_OBJ) $(SMTCOMP_OBJ) Saturation/ProvingHelper.o Global.o $(VPROG_OBL) $(VPROG_OBJ) $(TRANSLATOR_OBJ) vampire.o 
-#$(LIBVAPI_DEP) Saturation/ProvingHelper.o $(VPROG_OBJ) $(TRANSLATOR_OBJ)
+LINGVA_DEP = $(API_OBJ) $(VAMP_BASIC) $(CASC_OBJ) $(SMTCOMP_OBJ) Saturation/ProvingHelper.o Global.o $(VPROG_OBL) $(VPROG_OBJ) vampire.o 
+#$(LIBVAPI_DEP) Saturation/ProvingHelper.o $(VPROG_OBJ) 
 
 
 all:#default make disabled
