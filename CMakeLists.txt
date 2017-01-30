@@ -96,7 +96,7 @@ set(VAMPIRE_LIB_SOURCES
     Lib/Environment.cpp
 	Lib/Event.cpp
 	Lib/Exception.cpp
-    Lib/Graph.cpp
+    #Lib/Graph.cpp
     Lib/Hash.cpp
     Lib/Int.cpp
     Lib/IntNameTable.cpp
@@ -104,7 +104,7 @@ set(VAMPIRE_LIB_SOURCES
     Lib/MemoryLeak.cpp
     Lib/MultiCounter.cpp
     Lib/NameArray.cpp
-    Lib/OptionsReader.cpp
+    #Lib/OptionsReader.cpp
     Lib/Random.cpp
     Lib/StringUtils.cpp
     Lib/System.cpp
@@ -134,7 +134,7 @@ set(VAMPIRE_LIB_SOURCES
     Lib/Exception.hpp
     Lib/fdstream.hpp
     Lib/FreshnessGuard.hpp
-    Lib/Graph.hpp
+    #Lib/Graph.hpp
     Lib/Hash.hpp
     Lib/ImplicationSetClosure.hpp
     Lib/InPlaceStack.hpp
@@ -154,7 +154,7 @@ set(VAMPIRE_LIB_SOURCES
     Lib/MultiCounter.hpp
     Lib/NameArray.hpp
     Lib/Numbering.hpp
-    Lib/OptionsReader.hpp
+    #Lib/OptionsReader.hpp
     Lib/PairUtils.hpp
     Lib/Portability.hpp
     Lib/Random.hpp
@@ -215,7 +215,7 @@ set(VAMPIRE_KERNEL_SOURCES
     Kernel/LiteralSelector.cpp
     Kernel/LookaheadLiteralSelector.cpp
     Kernel/MainLoop.cpp
-    Kernel/MatchTag.cpp
+    #Kernel/MatchTag.cpp
     Kernel/Matcher.cpp
     Kernel/MaximalLiteralSelector.cpp
     Kernel/MLMatcher.cpp
@@ -235,11 +235,11 @@ set(VAMPIRE_KERNEL_SOURCES
     Kernel/TermIterators.cpp
     Kernel/TermTransformer.cpp
     Kernel/Theory.cpp
-    Kernel/Assignment.cpp
-    Kernel/Constraint.cpp
-    Kernel/Number.cpp
-    Kernel/Rational.cpp
-    Kernel/V2CIndex.cpp
+    #Kernel/Assignment.cpp
+    #Kernel/Constraint.cpp
+    #Kernel/Number.cpp
+    #Kernel/Rational.cpp
+    #Kernel/V2CIndex.cpp
     Kernel/Signature.cpp
     Kernel/Unit.cpp
     Kernel/BestLiteralSelector.hpp
@@ -265,7 +265,7 @@ set(VAMPIRE_KERNEL_SOURCES
     Kernel/LiteralSelector.hpp
     Kernel/LookaheadLiteralSelector.hpp
     Kernel/MainLoop.hpp
-    Kernel/MatchTag.hpp
+    #Kernel/MatchTag.hpp
     Kernel/Matcher.hpp
     Kernel/MaximalLiteralSelector.hpp
     Kernel/MLMatcher.hpp
@@ -286,11 +286,11 @@ set(VAMPIRE_KERNEL_SOURCES
     Kernel/TermIterators.hpp
     Kernel/TermTransformer.hpp
     Kernel/Theory.hpp
-    Kernel/Assignment.hpp
-    Kernel/Constraint.hpp
-    Kernel/Number.hpp
-    Kernel/Rational.hpp
-    Kernel/V2CIndex.hpp
+    #Kernel/Assignment.hpp
+    #Kernel/Constraint.hpp
+    #Kernel/Number.hpp
+    #Kernel/Rational.hpp
+    #Kernel/V2CIndex.hpp
     Kernel/Signature.hpp
     Kernel/Unit.hpp
 	)
@@ -302,7 +302,7 @@ set(VAMPIRE_INDEXING_SOURCES
     Indexing/ClauseVariantIndex.cpp
     Indexing/CodeTree.cpp
     Indexing/CodeTreeInterfaces.cpp
-    Indexing/FormulaIndex.cpp
+    #Indexing/FormulaIndex.cpp
     Indexing/GroundingIndex.cpp
     Indexing/Index.cpp
     Indexing/IndexManager.cpp
@@ -324,7 +324,7 @@ set(VAMPIRE_INDEXING_SOURCES
     Indexing/ClauseVariantIndex.hpp
     Indexing/CodeTree.hpp
     Indexing/CodeTreeInterfaces.hpp
-    Indexing/FormulaIndex.hpp
+    #Indexing/FormulaIndex.hpp
     Indexing/GroundingIndex.hpp
     Indexing/Index.hpp
     Indexing/IndexManager.hpp
@@ -348,7 +348,7 @@ set(VAMPIRE_INFERENCE_SOURCES
     Inferences/BackwardSubsumptionResolution.cpp
     Inferences/BinaryResolution.cpp
     Inferences/Condensation.cpp
-    Inferences/CTFwSubsAndRes.cpp
+    #Inferences/CTFwSubsAndRes.cpp
     Inferences/DistinctEqualitySimplifier.cpp
     Inferences/EqualityFactoring.cpp
     Inferences/EqualityResolution.cpp
@@ -375,7 +375,7 @@ set(VAMPIRE_INFERENCE_SOURCES
     Inferences/BackwardSubsumptionResolution.hpp
     Inferences/BinaryResolution.hpp
     Inferences/Condensation.hpp
-    Inferences/CTFwSubsAndRes.hpp
+    #Inferences/CTFwSubsAndRes.hpp
     Inferences/DistinctEqualitySimplifier.hpp
     Inferences/EqualityFactoring.hpp
     Inferences/EqualityResolution.hpp
@@ -416,7 +416,6 @@ set(VAMPIRE_SAT_SOURCES
     SAT/FallbackSolverWrapper.cpp
     SAT/lglib.c
     SAT/lglopts.c
-    SAT/LingelingInterfacing.cpp
     SAT/MinimizingSolver.cpp
     SAT/Preprocess.cpp
     SAT/RestartStrategy.cpp
@@ -432,11 +431,6 @@ set(VAMPIRE_SAT_SOURCES
     SAT/ClauseDisposer.hpp
     SAT/DIMACS.hpp
     SAT/FallbackSolverWrapper.hpp
-    SAT/lglconst.h
-    SAT/lglib.h
-    SAT/lglopts.h
-    SAT/LingelingInterfacing.hpp
-    SAT/LingelingInterfacingDummy.hpp
     SAT/MinimizingSolver.hpp
     SAT/Preprocess.hpp
     SAT/RestartStrategy.hpp
@@ -492,22 +486,22 @@ source_group(saturation_source_files FILES ${VAMPIRE_SATURATION_SOURCES})
 
 set(VAMPIRE_SHELL_SOURCES
 	Shell/AnswerExtractor.cpp
-    Shell/AxiomGenerator.cpp
+    #Shell/AxiomGenerator.cpp
     Shell/BFNT.cpp
     Shell/BFNTMainLoop.cpp
     Shell/CommandLine.cpp
     Shell/CNF.cpp
     Shell/NewCNF.cpp
-    Shell/CParser.cpp
+    #Shell/CParser.cpp
     Shell/DistinctProcessor.cpp
     Shell/DistinctGroupExpansion.cpp
     Shell/EqResWithDeletion.cpp
-    Shell/EqualityAxiomatizer.cpp
+    #Shell/EqualityAxiomatizer.cpp
     Shell/EqualityProxy.cpp
     Shell/Flattening.cpp
     Shell/FunctionDefinition.cpp
     Shell/GeneralSplitting.cpp
-    Shell/GlobalOptions.cpp
+    #Shell/GlobalOptions.cpp
     Shell/Grounding.cpp
     Shell/InequalitySplitting.cpp
     Shell/InterpolantMinimizer.cpp
@@ -523,18 +517,18 @@ set(VAMPIRE_SHELL_SOURCES
     Shell/NNF.cpp
     Shell/Normalisation.cpp
     Shell/Options.cpp
-    Shell/PDUtils.cpp
+    #Shell/PDUtils.cpp
     Shell/PredicateDefinition.cpp
     Shell/Preprocess.cpp
     Shell/Property.cpp
     Shell/Rectify.cpp
-    Shell/Refutation.cpp
+    #Shell/Refutation.cpp
     Shell/Skolem.cpp
     Shell/SimplifyFalseTrue.cpp
     Shell/SimplifyProver.cpp
     Shell/SineUtils.cpp
     Shell/SMTFormula.cpp
-    Shell/SMTPrinter.cpp
+    #Shell/SMTPrinter.cpp
     Shell/FOOLElimination.cpp
     Shell/Statistics.cpp
     Shell/SymbolDefinitionInlining.cpp
@@ -550,34 +544,34 @@ set(VAMPIRE_SHELL_SOURCES
     Shell/TrivialPredicateRemover.cpp
     Shell/UIHelper.cpp
     Shell/VarManager.cpp
-    Shell/ConstantRemover.cpp
-    Shell/ConstraintReaderBack.cpp
-    Shell/EqualityVariableRemover.cpp
-    Shell/EquivalentVariableRemover.cpp
-    Shell/HalfBoundingRemover.cpp
+    #Shell/ConstantRemover.cpp
+    #Shell/ConstraintReaderBack.cpp
+    #Shell/EqualityVariableRemover.cpp
+    #Shell/EquivalentVariableRemover.cpp
+    #Shell/HalfBoundingRemover.cpp
     Shell/Lexer.cpp
-    Shell/PARSER_TKV.cpp
+    #Shell/PARSER_TKV.cpp
     Shell/Preprocess.cpp
-    Shell/SMTLEX.cpp
-    Shell/SMTPAR.cpp
-    Shell/SubsumptionRemover.cpp
+    #Shell/SMTLEX.cpp
+    #Shell/SMTPAR.cpp
+    #Shell/SubsumptionRemover.cpp
     Shell/AnswerExtractor.hpp
-    Shell/AxiomGenerator.hpp
+    #Shell/AxiomGenerator.hpp
     Shell/BFNT.hpp
     Shell/BFNTMainLoop.hpp
     Shell/CommandLine.hpp
     Shell/CNF.hpp
     Shell/NewCNF.hpp
-    Shell/CParser.hpp
+    #Shell/CParser.hpp
     Shell/DistinctProcessor.hpp
     Shell/DistinctGroupExpansion.hpp
     Shell/EqResWithDeletion.hpp
-    Shell/EqualityAxiomatizer.hpp
+    #Shell/EqualityAxiomatizer.hpp
     Shell/EqualityProxy.hpp
     Shell/Flattening.hpp
     Shell/FunctionDefinition.hpp
     Shell/GeneralSplitting.hpp
-    Shell/GlobalOptions.hpp
+    #Shell/GlobalOptions.hpp
     Shell/Grounding.hpp
     Shell/InequalitySplitting.hpp
     Shell/InterpolantMinimizer.hpp
@@ -593,19 +587,19 @@ set(VAMPIRE_SHELL_SOURCES
     Shell/NNF.hpp
     Shell/Normalisation.hpp
     Shell/Options.hpp
-    Shell/PDUtils.hpp
+    #Shell/PDUtils.hpp
     Shell/PredicateDefinition.hpp
     Shell/Preprocess.hpp
     Shell/Property.hpp
     Shell/Rectify.hpp
-    Shell/Refutation.hpp
+    #Shell/Refutation.hpp
     Shell/Skolem.hpp
     Shell/SimplifyFalseTrue.hpp
     Shell/SimplifyProver.hpp
     Shell/SineUtils.hpp
     Shell/SMTFormula.hpp
     Shell/SMTLIBLogic.hpp
-    Shell/SMTPrinter.hpp
+    #Shell/SMTPrinter.hpp
     Shell/FOOLElimination.hpp
     Shell/Statistics.hpp
     Shell/SymbolDefinitionInlining.hpp
@@ -621,17 +615,17 @@ set(VAMPIRE_SHELL_SOURCES
     Shell/TrivialPredicateRemover.hpp
     Shell/UIHelper.hpp
     Shell/VarManager.hpp
-    Shell/ConstantRemover.hpp
-    Shell/ConstraintReaderBack.hpp
-    Shell/EqualityVariableRemover.hpp
-    Shell/EquivalentVariableRemover.hpp
-    Shell/HalfBoundingRemover.hpp
+    #Shell/ConstantRemover.hpp
+    #Shell/ConstraintReaderBack.hpp
+    #Shell/EqualityVariableRemover.hpp
+    #Shell/EquivalentVariableRemover.hpp
+    #Shell/HalfBoundingRemover.hpp
     Shell/Lexer.hpp
-    Shell/PARSER_TKV.hpp
+    #Shell/PARSER_TKV.hpp
     Shell/Preprocess.hpp
-    Shell/SMTLEX.hpp
-    Shell/SMTPAR.hpp
-    Shell/SubsumptionRemover.hpp
+    #Shell/SMTLEX.hpp
+    #Shell/SMTPAR.hpp
+    #Shell/SubsumptionRemover.hpp
 	)
 source_group(shell_source_files FILES ${VAMPIRE_SHELL_SOURCES})
 
@@ -644,16 +638,6 @@ set(VAMPIRE_PARSE_SOURCES
     Parse/TPTP.hpp
     )
 source_group(parse_source_files FILES ${VAMPIRE_PARSE_SOURCES})
-
-set(VAMPIRE_TABULATION_SOURCES
-	Tabulation/Producer.cpp
-    Tabulation/TabulationAlgorithm.cpp
-    Tabulation/TabulationContainers.cpp
-    Tabulation/Producer.hpp
-    Tabulation/TabulationAlgorithm.hpp
-    Tabulation/TabulationContainers.hpp
-    )
-source_group(tabulation_source_files FILES ${VAMPIRE_TABULATION_SOURCES})
 
 set(VAMPIRE_PROGRAM_SOURCES
     Program/Analyze.cpp
@@ -736,14 +720,13 @@ set(VAMPIRE_SOURCES
 	${VAMPIRE_SATURATION_SOURCES}
 	${VAMPIRE_SHELL_SOURCES}
 	${VAMPIRE_PARSE_SOURCES}
-	${VAMPIRE_TABULATION_SOURCES}
 	${VAMPIRE_PROGRAM_SOURCES}
 	${VAMPIRE_FINITEMODELBUILDING_SOURCES}
 	${VAMPIRE_CASC_SOURCES}
 	${VAMPIRE_SMTCOMP_SOURCES}
     ${VAMPIRE_MINISAT_SOURCES}
-    Test/CheckedSatSolver.cpp
-    Test/CheckedSatSolver.hpp
+#    Test/CheckedSatSolver.cpp
+#    Test/CheckedSatSolver.hpp
     version.cpp
     global.cpp
     vampire.cpp
