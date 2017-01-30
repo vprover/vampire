@@ -43,16 +43,12 @@ namespace Shell
             *x_i_ptr = c.bool_const(("x_" + std::to_string(i)).c_str()); // ugly but necessary due to z3-API
             unitsToExpressions.emplace(std::make_pair(current, std::move(x_i_ptr)));
             
-            
+            // construct a new expression representing the current penalty and remember it
             std::unique_ptr<expr> p_i_ptr (new expr(c));
             *p_i_ptr = c.bool_const(("p_" + std::to_string(i)).c_str()); // ugly but necessary due to z3-API
             unitsToPenalties.emplace(std::make_pair(current, std::move(p_i_ptr)));
             
-            // construct variable which encodes soft constraints
-            expr& p_i = *unitsToPenalties[current];
-            double weight = weightForUnit(current, weightFunction);
-            solver.add(!p_i, c.real_val(std::to_string(weight).c_str()));
-            
+            // increase i in order to get unique names
             i++;
             
             expr& x_i = *unitsToExpressions.at(current);
@@ -98,12 +94,25 @@ namespace Shell
             {
                 Unit* premise= parents.next();
                 
-                expr& x_j = *unitsToExpressions[premise];
-                expr& p_j = *unitsToPenalties[premise];
+                expr& x_j = *unitsToExpressions.at(premise);
+                expr& p_j = *unitsToPenalties.at(premise);
                 
                 solver.add(!(x_i != x_j) || p_j);
             }
         }
+        
+        // add the function we want to minimise to the solver
+        expr penaltyFunction = c.real_val(0);
+
+        for (const auto& keyValuePair : unitsToPenalties)
+        {
+            expr& p_i = *keyValuePair.second;
+            double weight = weightForUnit(keyValuePair.first, weightFunction);
+            expr weightExpression = c.real_val(std::to_string(weight).c_str());
+            
+            penaltyFunction = penaltyFunction + ite(p_i, weightExpression, c.real_val(0));
+        }
+        solver.minimize(penaltyFunction);
 
         // we are now finished with adding constraints, so use z3 to compute an optimal model
         solver.check();
@@ -111,6 +120,8 @@ namespace Shell
         // and convert computed model to splitting function
         model m = solver.get_model();
         
+        cout << "expecting interpolant weight " << m.eval(penaltyFunction) << endl;
+
         std::unordered_map<Kernel::Unit*, Kernel::Color> splittingFunction;
         for (const auto& keyValuePair : unitsToExpressions)
         {
