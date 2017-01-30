@@ -266,8 +266,8 @@ namespace Shell
         // we finally have to check for the empty clause, if it appears as boundary of an A-subproof
         if (splittingFunction.at(refutation) == COLOR_LEFT)
         {
-            ASS_EQ(root(unitsToRepresentative, refutation), refutation);
-            unitsToBottomBoundaries[refutation].insert(refutation);
+            Unit* rootOfEmptyClause = root(unitsToRepresentative, refutation);
+            unitsToBottomBoundaries[rootOfEmptyClause].insert(refutation);
         }
 
         return make_pair(std::move(unitsToTopBoundaries), std::move(unitsToBottomBoundaries));
