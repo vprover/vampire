@@ -438,14 +438,7 @@ namespace Shell
 
         if (weightFunction == UnitWeight::VAMPIRE)
         {
-            if(unit->isClause())
-            {
-                return static_cast<Clause*>(unit)->weight();
-            }
-            else
-            {
-                return static_cast<FormulaUnit*>(unit)->formula()->weight();
-            }
+            return unit->getWeight();
         }
         else
         {

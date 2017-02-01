@@ -199,11 +199,25 @@ Clause* Unit::asClause() {
 
 Color Unit::getColor()
 {
+  CALL("Unit::getColor");
+
   if(isClause()) {
     return static_cast<Clause*>(this)->color();
   }
   else {
     return static_cast<FormulaUnit*>(this)->getColor();
+  }
+}
+
+unsigned Unit::getWeight()
+{
+  CALL("Unit::getWeight");
+
+  if(isClause()) {
+    return static_cast<Clause*>(this)->weight();
+  }
+  else {
+    return static_cast<FormulaUnit*>(this)->weight();
   }
 }
 

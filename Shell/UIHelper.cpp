@@ -288,6 +288,8 @@ void UIHelper::outputResult(ostream& out)
       ASS(env.statistics->refutation->isClause());
       Interpolants::beatifyRefutation(env.statistics->refutation);
 
+      Unit* formulifiedRefutation = Interpolants::formulifyRefutation(env.statistics->refutation);
+
         // old interpolation algorithm
         /*
         Formula* interpolant=Interpolants().getInterpolant(env.statistics->refutation);
@@ -296,7 +298,7 @@ void UIHelper::outputResult(ostream& out)
         
         // new interpolation methods described in master thesis of Bernhard Gleiss
         // - remove theory stuff
-        InterpolantsNew().removeTheoryInferences(env.statistics->refutation); // do this only once for each proof!
+        InterpolantsNew().removeTheoryInferences(formulifiedRefutation); // do this only once for each proof!
         // InterpolantMinimizerNew().analyzeLocalProof(env.statistics->refutation);
         
 //        out << endl <<  "Proof without theory inferences" << endl;
@@ -307,7 +309,7 @@ void UIHelper::outputResult(ostream& out)
 //        out << "New Interpolant (standard weight): " << interpolantNew1->toString() << endl;
 //        
 //        // - get interpolant using new algorithm, standard weight and z3-optimized splitting function
-        Formula* interpolantMinimizedNew1 = InterpolantMinimizerNew().getInterpolant(env.statistics->refutation, InterpolantsNew::UnitWeight::VAMPIRE);
+        Formula* interpolantMinimizedNew1 = InterpolantMinimizerNew().getInterpolant(formulifiedRefutation, InterpolantsNew::UnitWeight::VAMPIRE);
         out << "New minimized Interpolant (standard weight): " << TPTPPrinter::toString(interpolantMinimizedNew1) << endl;
         out << "Actual weight: " << interpolantMinimizedNew1->weight() << endl;
 //        

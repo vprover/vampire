@@ -15,6 +15,7 @@
 #include "Kernel/SubstHelper.hpp"
 #include "Kernel/Term.hpp"
 #include "Kernel/Unit.hpp"
+#include "Kernel/FormulaUnit.hpp"
 
 #include "Flattening.hpp"
 #include "SimplifyFalseTrue.hpp"
@@ -232,6 +233,86 @@ void Interpolants::beatifyRefutation(Unit* refutation)
 
     todo.loadFromIterator(InferenceStore::instance()->getParents(cur));
   }
+}
+
+/**
+ * Turn all Units in a refutation into FormulaUnits (casting Clauses to Formulas and wrapping these as Units).
+ *
+ * Keep the old refutation (= non-destructive). Possible sharing of the formula part of the original refutation.
+ *
+ * Assume that once we have formula on a parent path we can't go back to a clause.
+ *
+ */
+Unit* Interpolants::formulifyRefutation(Unit* refutation)
+{
+  CALL("Interpolants::formulifyRefutation");
+
+  Stack<Unit*> todo;
+  DHMap<Unit*,Unit*> translate; // for caching results (we deal with a DAG in general), but also to distinguish the first call from the next
+
+  todo.push(refutation);
+  while (todo.isNonEmpty()) {
+    Unit* cur = todo.top();
+
+    if (translate.find(cur)) {  // the DAG hit case
+      todo.pop();
+
+      continue;
+    }
+
+    if (!cur->isClause()) {     // the formula case
+      todo.pop();
+
+      translate.insert(cur,cur);
+      continue;
+    }
+
+    // are all children done?
+    bool allDone = true;
+    Inference* inf = cur->inference();
+    Inference::Iterator iit = inf->iterator();
+    while (inf->hasNext(iit)) {
+      Unit* premUnit=inf->next(iit);
+      if (!translate.find(premUnit)) {
+        allDone = false;
+        break;
+      }
+    }
+
+    if (allDone) { // ready to return
+      todo.pop();
+
+      List<Unit*>* prems = 0;
+
+      Inference::Iterator iit = inf->iterator();
+      while (inf->hasNext(iit)) {
+        Unit* premUnit=inf->next(iit);
+
+        List<Unit*>::push(translate.get(premUnit), prems);
+      }
+
+      Inference::Rule rule=inf->rule();
+      prems = prems->reverse(); //we want items in the same order
+
+      Formula* f = Formula::fromClause(cur->asClause());
+      FormulaUnit* fu = new FormulaUnit(f,new InferenceMany(rule,prems),cur->inputType());
+
+      if (cur->inheritedColor() != COLOR_INVALID) {
+        fu->setInheritedColor(cur->inheritedColor());
+      }
+
+      translate.insert(cur,fu);
+    } else { // need "recursive" calls first
+
+      Inference::Iterator iit = inf->iterator();
+      while (inf->hasNext(iit)) {
+        Unit* premUnit=inf->next(iit);
+        todo.push(premUnit);
+      }
+    }
+  }
+
+  return translate.get(refutation);
 }
 
 Formula* Interpolants::getInterpolant(Unit* unit)

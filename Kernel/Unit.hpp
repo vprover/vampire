@@ -110,6 +110,8 @@ public:
   void invalidateInheritedColor() { _inheritedColor = COLOR_INVALID; }
 
   Color getColor();
+  unsigned getWeight();
+
   Formula* getFormula();
   void collectAtoms(Stack<Literal*>& acc);
   void collectPredicates(Stack<unsigned>& acc);

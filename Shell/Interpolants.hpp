@@ -24,6 +24,8 @@ public:
   Formula* getInterpolant(Unit* refutation);
 
   static void beatifyRefutation(Unit* refutation);
+
+  static Unit* formulifyRefutation(Unit* refutation);
 private:
   struct ItemState;
 
