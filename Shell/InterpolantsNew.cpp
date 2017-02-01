@@ -14,6 +14,7 @@
 
 #include "Shell/Flattening.hpp"
 #include "SimplifyFalseTrue.hpp"
+#include "Shell/NNF.hpp"
 
 #include "Debug/Assertion.hpp"
 
@@ -345,7 +346,10 @@ namespace Shell
         // finally conjoin all generated implications and return the simplified result, which is the interpolant
         Formula* interpolant = JunctionFormula::generalJunction(Connective::AND, outerConjunction);
         
-        return Flattening::flatten(SimplifyFalseTrue::simplify(interpolant));
+        cout << "Before simplification: " << interpolant->toString() << endl;
+        cout << "Weight before simplification: " << interpolant->weight() << endl;
+
+        return Flattening::flatten(NNF::ennf(Flattening::flatten(SimplifyFalseTrue::simplify(interpolant)),true));
     }
 
 

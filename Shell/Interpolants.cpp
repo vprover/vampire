@@ -19,6 +19,7 @@
 
 #include "Flattening.hpp"
 #include "SimplifyFalseTrue.hpp"
+#include "NNF.hpp"
 
 #include "Interpolants.hpp"
 
@@ -460,8 +461,11 @@ fin:
 
   TRACE(cout << "result interpolant (before false/true - simplification) " << resultInterpolant->toString() << endl);
 
+  cout << "Before simplification: " << resultInterpolant->toString() << endl;
+  cout << "Weight before simplification: " << resultInterpolant->weight() << endl;
+
   //simplify the interpolant and exit
-  return Flattening::flatten(SimplifyFalseTrue::simplify(resultInterpolant));
+  return Flattening::flatten(NNF::ennf(Flattening::flatten(SimplifyFalseTrue::simplify(resultInterpolant)),true));
 //  return resultInterpolant;
 }
 
