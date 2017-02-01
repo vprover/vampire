@@ -332,6 +332,14 @@ void UIHelper::outputResult(ostream& out)
       ASS(env.statistics->refutation->isClause());
       Interpolants::beatifyRefutation(env.statistics->refutation);
 
+      Unit* formulifiedRefutation = Interpolants::formulifyRefutation(env.statistics->refutation);
+
+      Formula* interpolant = InterpolantMinimizer(InterpolantMinimizer::OT_WEIGHT, false, true, "Minimized interpolant weight").getInterpolant(formulifiedRefutation);
+      out << "Symbol-weight minimized interpolant: " << TPTPPrinter::toString(interpolant) << endl;
+      out << "Actual weight: " << interpolant->weight() << endl;
+      out<<endl;
+
+      /*
       Formula* oldInterpolant = InterpolantMinimizer(InterpolantMinimizer::OT_WEIGHT, true, true, "Original interpolant weight").getInterpolant(static_cast<Clause*>(env.statistics->refutation));
       Formula* interpolant = InterpolantMinimizer(InterpolantMinimizer::OT_WEIGHT, false, true, "Minimized interpolant weight").getInterpolant(static_cast<Clause*>(env.statistics->refutation));
       InterpolantMinimizer(InterpolantMinimizer::OT_COUNT, true, true, "Original interpolant count").getInterpolant(static_cast<Clause*>(env.statistics->refutation));
@@ -359,6 +367,8 @@ void UIHelper::outputResult(ostream& out)
       //out << "Quantifiers minimized interpolant in SMT format: ";
       //printer.smtPrint(quantInterpolant,out);
       out<<endl;
+
+      */
 
     }
     if (env.options->latexOutput() != "off") {
