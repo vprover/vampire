@@ -30,6 +30,12 @@ TermQueryResultIterator TermIndex::getUnifications(TermList t,
   return _is->getUnifications(t, retrieveSubstitutions);
 }
 
+TermQueryResultIterator TermIndex::getUnificationsWithConstraints(TermList t,
+          bool retrieveSubstitutions)
+{
+  return _is->getUnificationsWithConstraints(t, retrieveSubstitutions);
+}
+
 TermQueryResultIterator TermIndex::getGeneralizations(TermList t,
 	  bool retrieveSubstitutions)
 {

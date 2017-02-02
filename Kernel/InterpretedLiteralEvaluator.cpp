@@ -830,16 +830,23 @@ bool InterpretedLiteralEvaluator::balancable(Literal* lit)
   // but we do not check this second condition here, instead we detect it in balance
   TermList t1 = *lit->nthArgument(0);
   TermList t2 = *lit->nthArgument(1);
-  if(theory->isInterpretedNumber(t1)){
-    if(theory->isInterpretedNumber(t2)) return false; // already balanced
-    if(t2.isVar()) return false; // already balanced
-    if(!theory->isInterpretedFunction(t2)) return false; // cannot balance
-  }else if(theory->isInterpretedNumber(t2)){
-    if(theory->isInterpretedNumber(t1)) return false; // already balanced
-    if(t1.isVar()) return false;//already balanced
-    if(!theory->isInterpretedFunction(t1)) return false; // cannot balance
 
-  }else { return false; } // neither side constant
+  bool t1Number = theory->isInterpretedNumber(t1);
+  bool t2Number = theory->isInterpretedNumber(t2);
+
+  if(!t1Number && !t2Number){ return false; } // cannot balance
+  if(t1Number && t2Number){ return true; } // already balanced
+
+  // so here exactly one of t1Number and t2Number is true
+
+  if(t1Number){
+    if(t2.isVar()){ return false;} // already balanced
+    if(!theory->isInterpretedFunction(t2)){ return false;} // cannot balance
+  }
+  if(t2Number){
+    if(t1.isVar()){ return false;} // already balanced
+    if(!theory->isInterpretedFunction(t1)){ return false;} // cannot balance
+  }
 
   return true;
 }
@@ -933,14 +940,11 @@ bool InterpretedLiteralEvaluator::balance(Literal* lit,Literal*& resLit,Stack<Li
         okay=balancePlus(Theory::REAL_PLUS,Theory::REAL_UNARY_MINUS,t2term,to_unwrap,t1,result);
         break;
 
-/*
       case Theory::INT_MULTIPLY: 
       {
-        IntegerConstantType zero(0);
-        okay=balanceMultiply(Theory::INT_QUOTIENT_E,zero,t2term,to_unwrap,t1,result,predicate,swap,sideConditions);
+        okay=balanceIntegerMultiply(t2term,to_unwrap,t1,result,predicate,swap,sideConditions);
         break;
       }
-*/
       case Theory::RAT_MULTIPLY:
       {
         RationalConstantType zero(0,1);
@@ -1029,7 +1033,7 @@ bool InterpretedLiteralEvaluator::balanceMultiply(Interpretation divide,Constant
 {
     CALL("InterpretedLiteralEvaluator::balanceMultiply");
     unsigned srt = theory->getOperationSort(divide); 
-    ASS(srt == Sorts::SRT_REAL || srt == Sorts::SRT_RATIONAL || srt == Sorts::SRT_INTEGER);
+    ASS(srt == Sorts::SRT_REAL || srt == Sorts::SRT_RATIONAL); 
 
     unsigned div = env.signature->getInterpretingSymbol(divide);
     TermList* B = 0;
@@ -1057,6 +1061,39 @@ bool InterpretedLiteralEvaluator::balanceMultiply(Interpretation divide,Constant
     //sideConditions.push(notZero);
     //result = TermList(Term::create2(div,C,*B);
     //return true;
+}
+
+bool InterpretedLiteralEvaluator::balanceIntegerMultiply(
+                                                  Term* AmultiplyB, TermList* A, TermList C, TermList& result,
+                                                  Interpretation under, bool& swap,
+                                                  Stack<Literal*>& sideConditions)
+{
+    CALL("InterpretedLiteralEvaluator::balanceIntegerMultiply");
+
+    // only works if we in the end divid a number by a number
+    IntegerConstantType ccon;
+    if(!theory->tryInterpretConstant(C,ccon)){ return false; }
+
+    // we are going to use rounding division but ensure that it is non-rounding
+    unsigned div = env.signature->getInterpretingSymbol(Theory::INT_QUOTIENT_E);
+    TermList* B = 0;
+    if(AmultiplyB->nthArgument(0)==A){
+      B = AmultiplyB->nthArgument(1);
+    }
+    else{
+      ASS(AmultiplyB->nthArgument(1)==A);
+      B = AmultiplyB->nthArgument(0);
+    }
+    result = TermList(Term::create2(div,C,*B));
+
+    IntegerConstantType bcon;
+    if(theory->tryInterpretConstant(*B,bcon)){
+      if(bcon.isZero()){ return false; }
+      if(ccon.toInner() % bcon.toInner() !=0){ return false; } 
+      if(bcon.isNegative()){ swap=!swap; } // switch the polarity of an inequality if we're under one
+      return true;
+    }
+    return false;
 }
 
 bool InterpretedLiteralEvaluator::balanceDivide(Interpretation multiply, 
@@ -1111,6 +1148,7 @@ bool InterpretedLiteralEvaluator::evaluate(Literal* lit, bool& isConstant, Liter
       ASS(balance_result || resLit==new_resLit);
       resLit=new_resLit;
   }
+  //else{ cout << "NOT" << endl; }
 
   // If resLit contains variables the predicate cannot be interpreted
   VariableIterator vit(lit);

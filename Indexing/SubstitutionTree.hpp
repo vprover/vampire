@@ -233,7 +233,8 @@ public:
     {
      CALL("SubstitutionTree::NodeIterator::childBySort");
      unsigned srt;
-     if(SortHelper::tryGetResultSort(t,srt) && srt < Sorts::FIRST_USER_SORT){
+     // only consider interpreted sorts
+     if(SortHelper::tryGetResultSort(t,srt) && srt < Sorts::FIRST_USER_SORT && srt!=Sorts::SRT_DEFAULT){
        unsigned top = t.term()->functor();
        Stack<TermList>::Iterator fit(bySortTerms[srt]);
        auto withoutThisTop = getFilteredIterator(fit,NotTop(top));
@@ -594,7 +595,7 @@ public:
     bool tag;
   };
 
-  typedef pair<pair<LeafData*, ResultSubstitutionSP>,Stack<UnificationConstraint>> QueryResult;
+  typedef pair<pair<LeafData*, ResultSubstitutionSP>,UnificationConstraintStackSP> QueryResult;
 
 
   class GenMatcher;

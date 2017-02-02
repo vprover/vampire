@@ -164,6 +164,8 @@ public:
     SUBSUMPTION_RESOLUTION,
     /** superposition inference */
     SUPERPOSITION,
+    /** superposition with constraints */
+    CONSTRAINED_SUPERPOSITION,
     /** equality factoring inference */
     EQUALITY_FACTORING,
     /** equality resolution inference */

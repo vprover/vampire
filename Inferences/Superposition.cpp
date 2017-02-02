@@ -70,14 +70,20 @@ void Superposition::detach()
 
 struct Superposition::RewritableResultsFn
 {
-  RewritableResultsFn(SuperpositionSubtermIndex* index) : _index(index) {}
+  RewritableResultsFn(SuperpositionSubtermIndex* index,bool wc) : _index(index),_withC(wc) {}
   DECL_RETURN_TYPE(VirtualIterator<pair<pair<Literal*, TermList>, TermQueryResult> >);
   OWN_RETURN_TYPE operator()(pair<Literal*, TermList> arg)
   {
-    return pvi( pushPairIntoRightIterator(arg, _index->getUnifications(arg.second, true)) );
+    if(_withC){
+      return pvi( pushPairIntoRightIterator(arg, _index->getUnificationsWithConstraints(arg.second, true)) );
+    }
+    else{
+      return pvi( pushPairIntoRightIterator(arg, _index->getUnifications(arg.second, true)) );
+    }
   }
 private:
   SuperpositionSubtermIndex* _index;
+  bool _withC;
 };
 
 struct Superposition::RewriteableSubtermsFn
@@ -96,14 +102,20 @@ private:
 
 struct Superposition::ApplicableRewritesFn
 {
-  ApplicableRewritesFn(SuperpositionLHSIndex* index) : _index(index) {}
+  ApplicableRewritesFn(SuperpositionLHSIndex* index, bool wc) : _index(index), _withC(wc) {}
   DECL_RETURN_TYPE(VirtualIterator<pair<pair<Literal*, TermList>, TermQueryResult> >);
   OWN_RETURN_TYPE operator()(pair<Literal*, TermList> arg)
   {
-    return pvi( pushPairIntoRightIterator(arg, _index->getUnifications(arg.second, true)) );
+    if(_withC){
+      return pvi( pushPairIntoRightIterator(arg, _index->getUnificationsWithConstraints(arg.second, true)) );
+    }
+    else{
+      return pvi( pushPairIntoRightIterator(arg, _index->getUnifications(arg.second, true)) );
+    }
   }
 private:
   SuperpositionLHSIndex* _index;
+  bool _withC;
 };
 
 
@@ -117,7 +129,7 @@ struct Superposition::ForwardResultFn
 
     TermQueryResult& qr = arg.second;
     return _parent.performSuperposition(_cl, arg.first.first, arg.first.second,
-	    qr.clause, qr.literal, qr.term, qr.substitution, true, _limits);
+	    qr.clause, qr.literal, qr.term, qr.substitution, true, _limits, qr.constraints);
   }
 private:
   Clause* _cl;
@@ -140,7 +152,7 @@ struct Superposition::BackwardResultFn
 
     TermQueryResult& qr = arg.second;
     return _parent.performSuperposition(qr.clause, qr.literal, qr.term,
-	    _cl, arg.first.first, arg.first.second, qr.substitution, false, _limits);
+	    _cl, arg.first.first, arg.first.second, qr.substitution, false, _limits, qr.constraints);
   }
 private:
   Clause* _cl;
@@ -154,6 +166,12 @@ ClauseIterator Superposition::generateClauses(Clause* premise)
   CALL("Superposition::generateClauses");
   Limits* limits=_salg->getLimits();
 
+  //cout << "SUPERPOSITION with " << premise->toString() << endl;
+
+  //TODO probably shouldn't go here!
+  static bool withConstraints = env.options->unificationWithAbstraction()!=Options::UnificationWithAbstraction::OFF;
+
+
   auto itf1 = premise->getSelectedLiteralIterator();
 
   // Get an iterator of pairs of selected literals and rewritable subterms of those literals
@@ -164,14 +182,14 @@ ClauseIterator Superposition::generateClauses(Clause* premise)
 
   // Get clauses with a literal whose complement unifies with the rewritable subterm,
   // returns a pair with the original pair and the unification result (includes substitution)
-  auto itf3 = getMapAndFlattenIterator(itf2,ApplicableRewritesFn(_lhsIndex));
+  auto itf3 = getMapAndFlattenIterator(itf2,ApplicableRewritesFn(_lhsIndex,withConstraints));
 
   //Perform forward superposition
   auto itf4 = getMappingIterator(itf3,ForwardResultFn(premise, limits, *this));
 
   auto itb1 = premise->getSelectedLiteralIterator();
   auto itb2 = getMapAndFlattenIterator(itb1,EqHelper::SuperpositionLHSIteratorFn(_salg->getOrdering(), _salg->getOptions()));
-  auto itb3 = getMapAndFlattenIterator(itb2,RewritableResultsFn(_subtermIndex));
+  auto itb3 = getMapAndFlattenIterator(itb2,RewritableResultsFn(_subtermIndex,withConstraints));
 
   //Perform backward superposition
   auto itb4 = getMappingIterator(itb3,BackwardResultFn(premise, limits, *this));
@@ -385,13 +403,29 @@ size_t Superposition::getSubtermOccurrenceCount(Term* trm, TermList subterm)
 Clause* Superposition::performSuperposition(
     Clause* rwClause, Literal* rwLit, TermList rwTerm,
     Clause* eqClause, Literal* eqLit, TermList eqLHS,
-    ResultSubstitutionSP subst, bool eqIsResult, Limits* limits)
+    ResultSubstitutionSP subst, bool eqIsResult, Limits* limits,
+    UnificationConstraintStackSP constraints)
 {
   CALL("Superposition::performSuperposition");
   // we want the rwClause and eqClause to be active
   ASS(rwClause->store()==Clause::ACTIVE);
   ASS(eqClause->store()==Clause::ACTIVE);
 
+  //cout << "performSuperposition with " << rwClause->toString() << " and " << eqClause->toString() << endl;
+  //cout << "rwTerm " << rwTerm.toString() << " eqLHSS " << eqLHS.toString() << endl;
+
+  // the first checks the reference and the second checks the stack
+/*
+  if(!constraints.isEmpty() && !constraints->isEmpty()){ 
+    cout << "has constraints" << endl; 
+    Stack<UnificationConstraint>::Iterator uit(*constraints);
+    while(uit.hasNext()){ auto c = uit.next(); cout << c.first.toString() << "," << c.second.toString() << endl; }
+  }
+  cout << "subst " << endl << subst->toString() << endl;
+*/
+
+  // the first checks the reference and the second checks the stack
+  bool hasConstraints = !constraints.isEmpty() && !constraints->isEmpty();
   unsigned sort = SortHelper::getEqualityArgumentSort(eqLit);
 
   if(SortHelper::getTermSort(rwTerm, rwLit)!=sort) {
@@ -411,6 +445,8 @@ Clause* Superposition::performSuperposition(
 
   unsigned rwLength = rwClause->length();
   unsigned eqLength = eqClause->length();
+  unsigned conLength = hasConstraints ? constraints->size() : 0;
+
   int newAge=Int::max(rwClause->age(),eqClause->age())+1;
 
   TermList tgtTerm = EqHelper::getOtherEqualitySide(eqLit, eqLHS);
@@ -427,14 +463,21 @@ Clause* Superposition::performSuperposition(
   TermList eqLHSS = subst->apply(eqLHS, eqIsResult);
   TermList tgtTermS = subst->apply(tgtTerm, eqIsResult);
 
-  //check that we're not rewriting smaller subterm with larger
-  if(Ordering::isGorGEorE(ordering.compare(tgtTermS,eqLHSS))) {
-    return 0;
-  }
-
   Literal* rwLitS = subst->apply(rwLit, !eqIsResult);
   TermList rwTermS = subst->apply(rwTerm, !eqIsResult);
-  ASS_EQ(rwTermS,eqLHSS);
+
+#if VDEBUG
+  if(!hasConstraints){
+    ASS_EQ(rwTermS,eqLHSS);
+  }
+#endif
+
+  //cout << "Check ordering on " << tgtTermS.toString() << " and " << rwTermS.toString() << endl;
+
+  //check that we're not rewriting smaller subterm with larger
+  if(Ordering::isGorGEorE(ordering.compare(tgtTermS,rwTermS))) {
+    return 0;
+  }
 
   if(rwLitS->isEquality()) {
     //check that we're not rewriting only the smaller side of an equality
@@ -459,9 +502,10 @@ Clause* Superposition::performSuperposition(
     return 0;
   }
 
-  unsigned newLength = rwLength+eqLength-1;
+  unsigned newLength = rwLength+eqLength-1+conLength;
 
-  Inference* inf = new Inference2(Inference::SUPERPOSITION, rwClause, eqClause);
+  Inference* inf = new Inference2(hasConstraints ? Inference::  CONSTRAINED_SUPERPOSITION : Inference::SUPERPOSITION, 
+                          rwClause, eqClause);
   Unit::InputType inpType = (Unit::InputType)
   	    Int::max(rwClause->inputType(), eqClause->inputType());
 
@@ -577,6 +621,17 @@ Clause* Superposition::performSuperposition(
       }
     }
   }
+  for(unsigned i=0;i<constraints->size();i++){
+      pair<TermList,TermList> con = (*constraints)[i];
+
+      TermList qT = subst->applyToQuery(con.first);
+      TermList rT = subst->applyToResult(con.second);
+
+      unsigned sort = SortHelper::getResultSort(rT.term());
+      Literal* constraint = Literal::createEquality(false,qT,rT,sort);
+      (*res)[next] = constraint;
+      next++;   
+  }
 
   if(weightLimit!=-1 && weight>weightLimit) {
     RSTAT_CTR_INC("superpositions skipped for weight limit after the clause was built");
@@ -595,6 +650,13 @@ Clause* Superposition::performSuperposition(
   } else {
     env.statistics->backwardSuperposition++;
   }
+
+/*
+  if(hasConstraints){ 
+    cout << "RETURNING " << res->toString() << endl;
+    //NOT_IMPLEMENTED;
+  }
+*/
 
   return res;
 }

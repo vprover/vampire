@@ -175,6 +175,9 @@ Index* IndexManager::create(IndexType t)
 #else
     tis=new TermSubstitutionTree();
 #endif
+#if VDEBUG
+    //tis->markTagged();
+#endif
     res=new SuperpositionSubtermIndex(tis, _alg->getOrdering());
     isGenerating = true;
     break;

@@ -35,11 +35,18 @@ public:
   TermQueryResultIterator getUnifications(TermList t,
 	  bool retrieveSubstitutions);
 
+  TermQueryResultIterator getUnificationsWithConstraints(TermList t,
+          bool retrieveSubstitutions);
+
   TermQueryResultIterator getGeneralizations(TermList t,
 	  bool retrieveSubstitutions);
 
   TermQueryResultIterator getInstances(TermList t,
 	  bool retrieveSubstitutions);
+
+#if VDEBUG
+  virtual void markTagged(){ SubstitutionTree::markTagged();}
+#endif
 
 private:
   void handleTerm(TermList t, Literal* lit, Clause* cls, bool insert);
@@ -48,7 +55,7 @@ private:
 
   template<class Iterator>
   TermQueryResultIterator getResultIterator(Term* term,
-	  bool retrieveSubstitutions);
+	  bool retrieveSubstitutions,bool withConstraints);
 
   struct LDToTermQueryResultFn;
   struct LDToTermQueryResultWithSubstFn;
@@ -57,10 +64,11 @@ private:
 
   template<class LDIt>
   TermQueryResultIterator ldIteratorToTQRIterator(LDIt ldIt,
-	  TermList queryTerm, bool retrieveSubstitutions);
+	  TermList queryTerm, bool retrieveSubstitutions,
+          bool withConstraints);
 
-  TermQueryResultIterator getAllUnifyingIterator(TermList var,
-	  bool retrieveSubstitutions);
+  TermQueryResultIterator getAllUnifyingIterator(TermList trm,
+	  bool retrieveSubstitutions,bool withConstraints);
 
   inline
   unsigned getRootNodeIndex(Term* t)

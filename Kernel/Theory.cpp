@@ -1479,7 +1479,7 @@ bool Theory::isInterpretedNumber(TermList t)
 {
   CALL("Theory::isInterpretedNumber(TermList)");
 
-  return isInterpretedConstant(t) && env.signature->getFunction(t.term()->functor())->numericConstant();
+  return isInterpretedConstant(t) && env.signature->getFunction(t.term()->functor())->interpretedNumber();
 }
 
 /**

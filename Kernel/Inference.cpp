@@ -333,6 +333,8 @@ vstring Inference::ruleName(Rule rule)
     return "subsumption resolution";
   case SUPERPOSITION:
     return "superposition";
+  case CONSTRAINED_SUPERPOSITION:
+    return "constrained superposition";
   case EQUALITY_FACTORING:
     return "equality factoring";
   case EQUALITY_RESOLUTION:

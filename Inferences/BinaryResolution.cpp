@@ -168,9 +168,9 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQ
     }
   }
 
-  unsigned newLength = clength+dlength-2+constraints.size();
+  unsigned newLength = clength+dlength-2+constraints->size();
 
-  Inference* inf = new Inference2((constraints.size()?Inference::CONSTRAINED_RESOLUTION:Inference::RESOLUTION), 
+  Inference* inf = new Inference2((constraints->size()?Inference::CONSTRAINED_RESOLUTION:Inference::RESOLUTION), 
                                   queryCl, qr.clause);
   Unit::InputType inpType = (Unit::InputType)
   	Int::max(queryCl->inputType(), qr.clause->inputType());
@@ -183,7 +183,7 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQ
     queryLitAfter = qr.substitution->applyToQuery(queryLit);
   }
 #if VDEBUG
-  if(constraints.size() > 0){
+  if(constraints->size() > 0){
     cout << "Other: " << qr.clause->toString() << endl;
     cout << "queryLit: " << queryLit->toString() << endl;
     cout << "resLit: " << qr.literal->toString() << endl;
@@ -195,8 +195,8 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQ
 #endif
 
   unsigned next = 0;
-  for(unsigned i=0;i<constraints.size();i++){
-      pair<TermList,TermList> con = constraints[i]; 
+  for(unsigned i=0;i<constraints->size();i++){
+      pair<TermList,TermList> con = (*constraints)[i]; 
 
 #if VDEBUG
       cout << "con pair " << con.first.toString() << " , " << con.second.toString() << endl;
@@ -280,7 +280,7 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQ
   }
 
   res->setAge(newAge);
-  if(constraints.size()>0){
+  if(constraints->size()>0){
     env.statistics->cResolution++;
   }
   else{ 

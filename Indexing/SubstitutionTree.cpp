@@ -794,9 +794,10 @@ SubstitutionTree::QueryResult SubstitutionTree::UnificationsIterator::next()
     subst.denormalize(queryNormalizer,NORM_QUERY_BANK,QUERY_BANK);
 
     return QueryResult(make_pair(&ld, ResultSubstitution::fromSubstitution(
-	    &subst, QUERY_BANK, RESULT_BANK)),constraints); // TODO: is this the right way to pass this?
+	    &subst, QUERY_BANK, RESULT_BANK)),
+            UnificationConstraintStackSP(new Stack<UnificationConstraint>(constraints))); 
   } else {
-    return QueryResult(make_pair(&ld, ResultSubstitutionSP()),Stack<UnificationConstraint>());
+    return QueryResult(make_pair(&ld, ResultSubstitutionSP()),UnificationConstraintStackSP());
   }
 }
 
