@@ -22,7 +22,8 @@ namespace Shell
     std::unordered_map<Kernel::Unit*, Kernel::Color> InterpolantMinimizerNew::computeSplittingFunction(Kernel::Unit* refutation,  UnitWeight weightFunction)
     {
         CALL("InterpolantMinimizerNew::computeSplittingFunction");
-
+        BYPASSING_ALLOCATOR;
+        
         using namespace z3;
         context c;
         optimize solver(c);
@@ -101,16 +102,16 @@ namespace Shell
             }
         }
         
+        // add the function we want to minimise to the solver
         /*
-         * we want to use the weighted sum of literals as measurement
-         * note that this doesn't exactly correspond to the size of the interpolant,
+         * Note: we want to use the weighted sum of literals as measurement,
+         * but this doesn't exactly correspond to the size of the interpolant,
          * since we are not counting the connectives.
          * we can now use the fact that each included literal except the first one
          * introduces exactly one connective (from an NNF-perspective), so we therefore
          * add 1 to each weight. Afterwards we need to subtract 1, if there is at least one literal
          * in the interpolant, since the first element doesn't introduce a connective.
          */
-        // add the function we want to minimise to the solver
         expr penaltyFunction = c.real_val(0);
 
         for (const auto& keyValuePair : unitsToPenalties)
@@ -123,42 +124,59 @@ namespace Shell
         }
         solver.minimize(penaltyFunction);
 
-        // we are now finished with adding constraints, so use z3 to compute an optimal model
-        solver.check();
-
-        // and convert computed model to splitting function
-        model m = solver.get_model();
+        // set a time limit for z3 call in order to being able to fallback to heuristic splitting function for very big proofs
+        params p(c);
+        p.set(":timeout", static_cast<unsigned>(60000)); // in milliseconds, i.e. 1 minute
+        solver.set(p);
         
-        bool containsLeftInference = false;
-        bool containsRightInference = false;
-        std::unordered_map<Kernel::Unit*, Kernel::Color> splittingFunction;
-        for (const auto& keyValuePair : unitsToExpressions)
+        // we are now finished with adding constraints, so use z3 to compute an optimal model
+        check_result result = solver.check();
+        
+        // if the optimization procedure finds any model
+        // Note: doesn't have to be the optimal one (Assumption: a non-optimal model still produces a better splitting function than the heuristic approach)
+        if (result == check_result::sat)
         {
-            Unit* current = keyValuePair.first;
-            expr evaluation = m.eval(*unitsToExpressions[current]);
+            bool containsLeftInference = false; // needed for weight prediction
+            bool containsRightInference = false; // needed for weight prediction
             
-            if (Z3_get_bool_value(c,evaluation) == Z3_L_TRUE)
+            // convert computed model to splitting function
+            model m = solver.get_model();
+            
+            std::unordered_map<Kernel::Unit*, Kernel::Color> splittingFunction;
+            for (const auto& keyValuePair : unitsToExpressions)
             {
-                splittingFunction[current] = COLOR_LEFT;
-                containsLeftInference = true;
+                Unit* current = keyValuePair.first;
+                expr evaluation = m.eval(*unitsToExpressions[current]);
+                
+                if (Z3_get_bool_value(c,evaluation) == Z3_L_TRUE)
+                {
+                    splittingFunction[current] = COLOR_LEFT;
+                    containsLeftInference = true;
+                }
+                else
+                {
+                    splittingFunction[current] = COLOR_RIGHT;
+                    containsRightInference = true;
+                }
+            }
+            
+            // print weight prediction
+            if (containsLeftInference && containsRightInference)
+            {
+                cout << "expecting interpolant weight " << m.eval(penaltyFunction - c.real_val(1)) << endl;
             }
             else
             {
-                splittingFunction[current] = COLOR_RIGHT;
-                containsRightInference = true;
+                cout << "expecting interpolant weight " << m.eval(penaltyFunction) << endl;
             }
+            
+            return splittingFunction;
         }
-        
-        if (containsLeftInference && containsRightInference)
-        {
-            cout << "expecting interpolant weight " << m.eval(penaltyFunction - c.real_val(1)) << endl;
-        }
+        // otherwise use heuristic approach as fallback
         else
         {
-            cout << "expecting interpolant weight " << m.eval(penaltyFunction) << endl;
+            return InterpolantsNew::computeSplittingFunction(refutation, weightFunction);
         }
-        
-        return splittingFunction;
     }
     
     void InterpolantMinimizerNew::analyzeLocalProof(Kernel::Unit *refutation)
