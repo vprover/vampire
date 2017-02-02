@@ -101,13 +101,22 @@ namespace Shell
             }
         }
         
+        /*
+         * we want to use the weighted sum of literals as measurement
+         * note that this doesn't exactly correspond to the size of the interpolant,
+         * since we are not counting the connectives.
+         * we can now use the fact that each included literal except the first one
+         * introduces exactly one connective (from an NNF-perspective), so we therefore
+         * add 1 to each weight. Afterwards we need to subtract 1, if there is at least one literal
+         * in the interpolant, since the first element doesn't introduce a connective.
+         */
         // add the function we want to minimise to the solver
         expr penaltyFunction = c.real_val(0);
 
         for (const auto& keyValuePair : unitsToPenalties)
         {
             expr& p_i = *keyValuePair.second;
-            double weight = weightForUnit(keyValuePair.first, weightFunction);
+            double weight = weightForUnit(keyValuePair.first, weightFunction) + 1;
             expr weightExpression = c.real_val(std::to_string(weight).c_str());
             
             penaltyFunction = penaltyFunction + ite(p_i, weightExpression, c.real_val(0));
@@ -120,8 +129,8 @@ namespace Shell
         // and convert computed model to splitting function
         model m = solver.get_model();
         
-        cout << "expecting interpolant weight " << m.eval(penaltyFunction) << endl;
-
+        bool containsLeftInference = false;
+        bool containsRightInference = false;
         std::unordered_map<Kernel::Unit*, Kernel::Color> splittingFunction;
         for (const auto& keyValuePair : unitsToExpressions)
         {
@@ -131,11 +140,22 @@ namespace Shell
             if (Z3_get_bool_value(c,evaluation) == Z3_L_TRUE)
             {
                 splittingFunction[current] = COLOR_LEFT;
+                containsLeftInference = true;
             }
             else
             {
                 splittingFunction[current] = COLOR_RIGHT;
+                containsRightInference = true;
             }
+        }
+        
+        if (containsLeftInference && containsRightInference)
+        {
+            cout << "expecting interpolant weight " << m.eval(penaltyFunction - c.real_val(1)) << endl;
+        }
+        else
+        {
+            cout << "expecting interpolant weight " << m.eval(penaltyFunction) << endl;
         }
         
         return splittingFunction;
