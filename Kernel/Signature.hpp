@@ -150,6 +150,10 @@ class Signature
     inline bool realConstant() const
     { return interpreted() && arity()==0 && fnType()->result()==Sorts::SRT_REAL; }
           
+    /** return true if an interpreted number, note subtle but significant difference from numericConstant **/
+    inline bool interpretedNumber() const
+    { return integerConstant() || rationalConstant() || realConstant(); }
+    
     /** Return value of an integer constant */
     inline IntegerConstantType integerValue() const
     { ASS(integerConstant()); return static_cast<const IntegerSymbol*>(this)->_intValue; }
@@ -436,7 +440,7 @@ class Signature
   /** Return the function symbol by its number */
   inline Symbol* getFunction(unsigned n)
   {
-    ASS(n < _funs.length());
+    ASS_REP(n < _funs.length(),n);
     return _funs[n];
   } // getFunction
   /** Return the predicate symbol by its number */
