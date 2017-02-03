@@ -166,6 +166,9 @@ private:
    * A struct for holding clause's dms, on per literal basis.
    */
   struct DismatchingContraints {
+    CLASS_NAME(IGAlgorithm::DismatchingContraints);
+    USE_ALLOCATOR(DismatchingContraints);
+
     typedef DHMap<Literal*,DismatchingLiteralIndex*> Lit2Index;
 
     Lit2Index lit2index;
