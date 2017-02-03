@@ -329,6 +329,8 @@ vstring Inference::ruleName(Rule rule)
     return "trivial inequality removal";
   case FACTORING:
     return "factoring";
+  case CONSTRAINED_FACTORING:
+    return "constrained factoring";
   case SUBSUMPTION_RESOLUTION:
     return "subsumption resolution";
   case SUPERPOSITION:

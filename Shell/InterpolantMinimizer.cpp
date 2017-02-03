@@ -51,7 +51,7 @@ Formula* InterpolantMinimizer::getInterpolant(Unit* refutation)
   YicesSolver solver;
   YicesSolver::MinimizationResult mres = solver.minimize(_resBenchmark, costFunction(), res);
 
-    
+
   DHSet<Unit*> slicedOff;
 
   if(mres==SMTSolver::FAIL) {

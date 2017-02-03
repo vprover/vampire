@@ -160,6 +160,8 @@ public:
     TRIVIAL_INEQUALITY_REMOVAL,
     /** factoring inference */
     FACTORING,
+    /** factoring with constraints */
+    CONSTRAINED_FACTORING,
     /** subsumption resolution simplification rule */
     SUBSUMPTION_RESOLUTION,
     /** superposition inference */
