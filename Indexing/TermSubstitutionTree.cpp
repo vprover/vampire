@@ -267,6 +267,7 @@ struct TermSubstitutionTree::LeafToLDIteratorFn
 {
   DECL_RETURN_TYPE(LDIterator);
   OWN_RETURN_TYPE operator() (Leaf* l) {
+    CALL("TermSubstitutionTree::LeafToLDIteratorFn()");
     return l->allChildren();
   }
 };
@@ -342,6 +343,7 @@ template<class LDIt>
 TermQueryResultIterator TermSubstitutionTree::ldIteratorToTQRIterator(LDIt ldIt,
 	TermList queryTerm, bool retrieveSubstitutions,bool withConstraints)
 {
+  CALL("TermSubstitutionTree::ldIteratorToTQRIterator");
   // only call withConstraints if we are also getting substitions, the other branch doesn't handle constraints
   ASS(retrieveSubstitutions | !withConstraints); 
 
@@ -366,20 +368,19 @@ TermQueryResultIterator TermSubstitutionTree::getAllUnifyingIterator(TermList tr
   //if(withConstraints){ cout << "getAllUnifyingIterator for " << trm.toString() << endl; }
 
   ASS(trm.isVar() || withConstraints);
-  return ldIteratorToTQRIterator(
-	    getConcatenatedIterator(
-		    getFlattenedIterator(
-			    getMappingIterator(
-				    vi( new LeafIterator(this) ),
-				    LeafToLDIteratorFn())),
-                    (// If we are searching withConstraints it means that we have already added in
-                     // the results related to _vars, we are only interested in non-unifying leaves
-                      withConstraints ?
-                      LDSkipList::RefIterator(LDSkipList()) :
-		      LDSkipList::RefIterator(_vars)
-                    )
-                    ),
+
+  auto it1 = getFlattenedIterator(getMappingIterator(vi( new LeafIterator(this) ), LeafToLDIteratorFn()));
+
+  // If we are searching withConstraints it means that we have already added in
+  // the results related to _vars, we are only interested in non-unifying leaves
+  if(withConstraints){
+    return ldIteratorToTQRIterator(it1,trm, retrieveSubstitutions,withConstraints);
+  }
+  else{
+    return ldIteratorToTQRIterator(
+	    getConcatenatedIterator(it1,LDSkipList::RefIterator(_vars)),
 	    trm, retrieveSubstitutions,withConstraints);
+  }
 }
 
 

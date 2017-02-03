@@ -634,6 +634,7 @@ void SubstitutionTree::Leaf::loadChildren(LDIterator children)
 
 bool SubstitutionTree::LeafIterator::hasNext()
 {
+  CALL("SubstitutionTree::Leaf::hasNext");
   //if(tag){cout << "leafIterator::hasNext" << endl;}
   for(;;) {
     while(!_nodeIterators.isEmpty() && !_nodeIterators.top().hasNext()) {
@@ -952,7 +953,7 @@ bool SubstitutionTree::UnificationsIterator::associate(TermList query, TermList 
         TermList nodeVar = TermList(x,true);
         subst.bindSpecialVar(x,node,NORM_RESULT_BANK);
 #if VDEBUG
-        cout << "constraint " << query.toString() << " = " << nodeVar.toString() << endl;
+        //cout << "constraint " << query.toString() << " = " << nodeVar.toString() << endl;
 #endif
         pair<TermList,TermList> constraint = make_pair(query,nodeVar);
         constraints.backtrackablePush(constraint,bd);

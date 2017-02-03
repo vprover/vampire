@@ -185,6 +185,7 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQ
     queryLitAfter = qr.substitution->applyToQuery(queryLit);
   }
 #if VDEBUG
+/*
   if(withConstraints && constraints->size() > 0){
     cout << "Other: " << qr.clause->toString() << endl;
     cout << "queryLit: " << queryLit->toString() << endl;
@@ -202,7 +203,7 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQ
       pair<TermList,TermList> con = (*constraints)[i]; 
 
 #if VDEBUG
-      cout << "con pair " << con.first.toString() << " , " << con.second.toString() << endl;
+      //cout << "con pair " << con.first.toString() << " , " << con.second.toString() << endl;
 #endif
 
       TermList qT = qr.substitution->applyToQuery(con.first);

@@ -74,6 +74,7 @@ struct Superposition::RewritableResultsFn
   DECL_RETURN_TYPE(VirtualIterator<pair<pair<Literal*, TermList>, TermQueryResult> >);
   OWN_RETURN_TYPE operator()(pair<Literal*, TermList> arg)
   {
+    CALL("Superposition::RewritableResultsFn()");
     if(_withC){
       return pvi( pushPairIntoRightIterator(arg, _index->getUnificationsWithConstraints(arg.second, true)) );
     }
@@ -93,6 +94,7 @@ struct Superposition::RewriteableSubtermsFn
   DECL_RETURN_TYPE(VirtualIterator<pair<Literal*, TermList> >);
   OWN_RETURN_TYPE operator()(Literal* lit)
   {
+    CALL("Superposition::RewriteableSubtermsFn()");
     return pvi( pushPairIntoRightIterator(lit, EqHelper::getRewritableSubtermIterator(lit, _ord)) );
   }
 
@@ -106,6 +108,7 @@ struct Superposition::ApplicableRewritesFn
   DECL_RETURN_TYPE(VirtualIterator<pair<pair<Literal*, TermList>, TermQueryResult> >);
   OWN_RETURN_TYPE operator()(pair<Literal*, TermList> arg)
   {
+    CALL("Superposition::ApplicableRewritesFn()");
     if(_withC){
       return pvi( pushPairIntoRightIterator(arg, _index->getUnificationsWithConstraints(arg.second, true)) );
     }
