@@ -158,6 +158,8 @@ Term* getFreshConstant(unsigned index, unsigned srt)
 VirtualIterator<Solution> TheoryInstAndSimp::getSolutions(Stack<Literal*>& theoryLiterals){
   CALL("TheoryInstAndSimp::getSolutions");
 
+  BYPASSING_ALLOCATOR;
+
   // Currently we just get the single solution from Z3
 
   // We use a new SMT solver

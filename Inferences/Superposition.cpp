@@ -621,7 +621,8 @@ Clause* Superposition::performSuperposition(
       }
     }
   }
-  for(unsigned i=0;i<constraints->size();i++){
+  if(hasConstraints){
+    for(unsigned i=0;i<constraints->size();i++){
       pair<TermList,TermList> con = (*constraints)[i];
 
       TermList qT = subst->applyToQuery(con.first);
@@ -631,6 +632,7 @@ Clause* Superposition::performSuperposition(
       Literal* constraint = Literal::createEquality(false,qT,rT,sort);
       (*res)[next] = constraint;
       next++;   
+    }
   }
 
   if(weightLimit!=-1 && weight>weightLimit) {
