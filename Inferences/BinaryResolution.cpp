@@ -191,10 +191,11 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQ
     cout << "queryLit: " << queryLit->toString() << endl;
     cout << "resLit: " << qr.literal->toString() << endl;
     cout << "SUB:" << endl << qr.substitution->toString() << endl;
+*/
 /*
     cout << "SUB(deref):" << endl << qr.substitution->toString(true) << endl;
 */
-  }
+  //}
 #endif
 
   unsigned next = 0;
