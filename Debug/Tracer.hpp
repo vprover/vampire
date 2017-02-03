@@ -86,6 +86,7 @@ class Tracer {
 
 #else // ! VDEBUG
 #  define CALL(Fun) 
+#  define CALLC(Fun) 
 #  define CONTROL(description)
 #endif
 
