@@ -131,6 +131,7 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQ
   }
 
   auto constraints = qr.constraints;
+  bool withConstraints = !constraints.isEmpty() && !constraints->isEmpty();
   unsigned clength = queryCl->length();
   unsigned dlength = qr.clause->length();
   unsigned newAge=Int::max(queryCl->age(),qr.clause->age())+1;
@@ -168,9 +169,10 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQ
     }
   }
 
-  unsigned newLength = clength+dlength-2+constraints->size();
+  unsigned conlength = withConstraints ? constraints->size() : 0;
+  unsigned newLength = clength+dlength-2+conlength;
 
-  Inference* inf = new Inference2((constraints->size()?Inference::CONSTRAINED_RESOLUTION:Inference::RESOLUTION), 
+  Inference* inf = new Inference2((withConstraints?Inference::CONSTRAINED_RESOLUTION:Inference::RESOLUTION), 
                                   queryCl, qr.clause);
   Unit::InputType inpType = (Unit::InputType)
   	Int::max(queryCl->inputType(), qr.clause->inputType());
@@ -183,7 +185,7 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQ
     queryLitAfter = qr.substitution->applyToQuery(queryLit);
   }
 #if VDEBUG
-  if(constraints->size() > 0){
+  if(withConstraints && constraints->size() > 0){
     cout << "Other: " << qr.clause->toString() << endl;
     cout << "queryLit: " << queryLit->toString() << endl;
     cout << "resLit: " << qr.literal->toString() << endl;
@@ -195,6 +197,7 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQ
 #endif
 
   unsigned next = 0;
+  if(withConstraints){
   for(unsigned i=0;i<constraints->size();i++){
       pair<TermList,TermList> con = (*constraints)[i]; 
 
@@ -209,6 +212,7 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQ
       Literal* constraint = Literal::createEquality(false,qT,rT,sort);
       (*res)[next] = constraint; 
       next++;    
+  }
   }
   for(unsigned i=0;i<clength;i++) {
     Literal* curr=(*queryCl)[i];
@@ -280,7 +284,7 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQ
   }
 
   res->setAge(newAge);
-  if(constraints->size()>0){
+  if(withConstraints){
     env.statistics->cResolution++;
   }
   else{ 
