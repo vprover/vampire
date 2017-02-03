@@ -60,7 +60,8 @@ void TheoryInstAndSimp::selectTheoryLiterals(Clause* cl, Stack<Literal*>& theory
 {
   CALL("TheoryInstAndSimp::selectTheoryLiterals");
 
-  static Shell::Options::TheoryInstSimpSelection selection = env.options->theoryInstAndSimpSelection();
+  static Shell::Options::TheoryInstSimp selection = env.options->theoryInstAndSimp();
+  ASS(selection!=Shell::Options::TheoryInstSimp::OFF);
 
   Stack<Literal*> weak;
   Set<unsigned> strong_vars;
@@ -88,7 +89,7 @@ void TheoryInstAndSimp::selectTheoryLiterals(Clause* cl, Stack<Literal*>& theory
       bool pos_equality = lit->isEquality() && lit->polarity();
       // currently weak literals are postive equalities or ground literals
       bool is_weak = !vit.hasNext() || pos_equality;
-      if(selection != Shell::Options::TheoryInstSimpSelection::ALL && is_weak){
+      if(selection != Shell::Options::TheoryInstSimp::ALL && is_weak){
         weak.push(lit);
       }
       else{
@@ -102,7 +103,7 @@ void TheoryInstAndSimp::selectTheoryLiterals(Clause* cl, Stack<Literal*>& theory
       }
     } 
   }
-  if(selection != Shell::Options::TheoryInstSimpSelection::OVERLAP){
+  if(selection != Shell::Options::TheoryInstSimp::OVERLAP){
     return;
   }
 

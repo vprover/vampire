@@ -198,7 +198,8 @@ public:
     };
     // update _tagNames at the end of Options constructor if you add a tag
     
-  enum class TheoryInstSimpSelection : unsigned int {
+  enum class TheoryInstSimp : unsigned int {
+    OFF,
     ALL,    // select all interpreted
     STRONG, // select strong only
     OVERLAP // select strong and weak which overlap with strong
@@ -1759,8 +1760,7 @@ public:
   bool z3UnsatCores() const { return _z3UnsatCores.actualValue;}
   bool satFallbackForSMT() const { return _satFallbackForSMT.actualValue; }
   bool smtForGround() const { return _smtForGround.actualValue; }
-  bool theoryInstAndSimp() const { return _theoryInstAndSimp.actualValue; }
-  TheoryInstSimpSelection theoryInstAndSimpSelection() const { return _theoryInstAndSimpSelection.actualValue; }
+  TheoryInstSimp theoryInstAndSimp() const { return _theoryInstAndSimp.actualValue; }
 #endif
   UnificationWithAbstraction unificationWithAbstraction() const { return _unificationWithAbstraction.actualValue; }
   bool unusedPredicateDefinitionRemoval() const { return _unusedPredicateDefinitionRemoval.actualValue; }
@@ -2234,8 +2234,7 @@ private:
   BoolOptionValue _z3UnsatCores;
   BoolOptionValue _satFallbackForSMT;
   BoolOptionValue _smtForGround;
-  BoolOptionValue _theoryInstAndSimp;
-  ChoiceOptionValue<TheoryInstSimpSelection> _theoryInstAndSimpSelection;
+  ChoiceOptionValue<TheoryInstSimp> _theoryInstAndSimp;
 #endif
   ChoiceOptionValue<UnificationWithAbstraction> _unificationWithAbstraction; 
   TimeLimitOptionValue _simulatedTimeLimit;

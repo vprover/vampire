@@ -1317,7 +1317,7 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
     }
   }
 #if VZ3
-  if (opt.theoryInstAndSimp()){
+  if (opt.theoryInstAndSimp() != Shell::Options::TheoryInstSimp::OFF){
     gie->addFront(new TheoryInstAndSimp());
   }
 #endif

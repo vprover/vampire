@@ -773,18 +773,13 @@ void Options::Options::init()
 	//*********************** Inferences  ***********************
 
 #if VZ3
-	   _theoryInstAndSimp = BoolOptionValue("theory_inst_and_simp","this",false);
-           _theoryInstAndSimp.description = "";
-           _theoryInstAndSimp.tag(OptionTag::INFERENCES);
-	   _lookup.insert(&_theoryInstAndSimp);
-           _theoryInstAndSimp.setExperimental();
 
-           _theoryInstAndSimpSelection = ChoiceOptionValue<TheoryInstSimpSelection>("theory_inst_and_simp_selection","thiss",
-                                                TheoryInstSimpSelection::STRONG,{"all","strong","overlap"});
-           _theoryInstAndSimpSelection.description = ""; 
-           _theoryInstAndSimpSelection.tag(OptionTag::INFERENCES);
-           _lookup.insert(&_theoryInstAndSimpSelection);
-           _theoryInstAndSimpSelection.setExperimental();
+           _theoryInstAndSimp = ChoiceOptionValue<TheoryInstSimp>("theory_inst_and_simp","this",
+                                                TheoryInstSimp::OFF,{"off","all","strong","overlap"});
+           _theoryInstAndSimp.description = ""; 
+           _theoryInstAndSimp.tag(OptionTag::INFERENCES);
+           _lookup.insert(&_theoryInstAndSimp);
+           _theoryInstAndSimp.setExperimental();
 #endif
            _unificationWithAbstraction = ChoiceOptionValue<UnificationWithAbstraction>("unification_with_abstraction","uwa",
                                              UnificationWithAbstraction::OFF,
