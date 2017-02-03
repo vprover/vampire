@@ -141,7 +141,8 @@ private:
 
   void addTruncatedOperations(z3::expr_vector, Interpretation qi, Interpretation ti, unsigned srt);
   void addFloorOperations(z3::expr_vector, Interpretation qi, Interpretation ti, unsigned srt);
-  void addNonZero(z3::expr);
+  void addIntNonZero(z3::expr);
+  void addRealNonZero(z3::expr);
 
 public:
   // not sure why this one is public

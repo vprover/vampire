@@ -431,6 +431,7 @@ z3::expr Z3Interfacing::getz3expr(Term* trm,bool isLit,bool&nameExpression,bool 
       switch(interp){
         // Numerical operations
         case Theory::INT_DIVIDES:
+          if(withGuard){addIntNonZero(args[0]);}
           //cout << "SET name=true" << endl;
           nameExpression = true;
           ret = z3::expr(_context, Z3_mk_mod(_context, args[1], args[0])) == _context.int_val(0);
@@ -463,11 +464,12 @@ z3::expr Z3Interfacing::getz3expr(Term* trm,bool isLit,bool&nameExpression,bool 
 
         case Theory::RAT_QUOTIENT:
         case Theory::REAL_QUOTIENT:
+          if(withGuard){addRealNonZero(args[1]);}
           ret= args[0] / args[1];
           break;
 
         case Theory::INT_QUOTIENT_E: 
-          if(withGuard){addNonZero(args[1]);}
+          if(withGuard){addIntNonZero(args[1]);}
           ret= args[0] / args[1];
           break;
 
@@ -568,12 +570,13 @@ z3::expr Z3Interfacing::getz3expr(Term* trm,bool isLit,bool&nameExpression,bool 
 
          case Theory::RAT_REMAINDER_E:
          case Theory::REAL_REMAINDER_E:
+           if(withGuard){addRealNonZero(args[1]);}
            nameExpression = true; 
            ret = z3::expr(_context, Z3_mk_mod(_context, args[0], args[1]));
            break;
 
          case Theory::INT_REMAINDER_E:
-           if(withGuard){addNonZero(args[1]);}
+           if(withGuard){addIntNonZero(args[1]);}
            nameExpression = true;
            ret = z3::expr(_context, Z3_mk_mod(_context, args[0], args[1]));
            break;
@@ -728,11 +731,20 @@ SATClause* Z3Interfacing::getRefutation() {
     return refutation; 
 }
 
-void Z3Interfacing::addNonZero(z3::expr t)
+void Z3Interfacing::addIntNonZero(z3::expr t)
 {
-  CALL("Z3Interfacing::addNonZero");
+  CALL("Z3Interfacing::addIntNonZero");
 
-  static z3::expr zero = _context.int_val(0);
+   z3::expr zero = _context.int_val(0);
+
+  _solver.add(t != zero);
+}
+
+void Z3Interfacing::addRealNonZero(z3::expr t)
+{
+  CALL("Z3Interfacing::addRealNonZero");
+
+   z3::expr zero = _context.real_val(0);
 
   _solver.add(t != zero);
 }
