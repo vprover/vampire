@@ -1090,7 +1090,7 @@ bool InterpretedLiteralEvaluator::balanceIntegerMultiply(
     IntegerConstantType bcon;
     if(theory->tryInterpretConstant(*B,bcon)){
       if(bcon.isZero()){ return false; }
-      if(!ccon.divides(bcon)){ return false;}
+      if(!bcon.divides(ccon)){ return false;}
       if(bcon.isNegative()){ swap=!swap; } // switch the polarity of an inequality if we're under one
       return true;
     }
