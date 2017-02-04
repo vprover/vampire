@@ -46,7 +46,13 @@ public:
   
   // true if this divides num
   bool divides(const IntegerConstantType& num) const {
-    int safeVal;
+    CALL("IntegerConstantType:divides");
+    // if this is zero it shouldn't divide anything, if num is zero dividing it doesn't make sense
+    if(_val==0 || num._val==0){ return false; }
+    // if this is bigger than num then the result cannot be an integer
+    if(_val > num._val){ return false; }
+    // now we only need to check the absolute value
+    int safeVal=_val;
     if (_val < 0 && ! Lib::Int::safeUnaryMinus<int>(_val,safeVal)) {
       return false;
     }
@@ -58,12 +64,15 @@ public:
     return ((float)_val)/num._val; 
   }
   int intDivide(const IntegerConstantType& num) const {
+      CALL("IntegerConstantType::intDivide");
       ASS(num.divides(*this));
       if(num._val==0){ throw ArithmeticException(); }
       return _val/num._val;
   }
+  // TODO: shouldn't we always be using intDivide for quotientE - when are they different (apart from real rounding)?
   IntegerConstantType quotientE(const IntegerConstantType& num) const { 
     CALL("IntegerConstantType::quotientE");
+    //cout << "quotientE " << _val << " and " << num._val << endl;
     if(num.divides(*this)){
       return IntegerConstantType(intDivide(num));
     }
