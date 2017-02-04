@@ -57,18 +57,29 @@ public:
     if(num._val==0) throw ArithmeticException();
     return ((float)_val)/num._val; 
   }
+  int intDivide(const IntegerConstantType& num) const {
+      ASS(num.divides(*this));
+      if(num._val==0){ throw ArithmeticException(); }
+      return _val/num._val;
+  }
   IntegerConstantType quotientE(const IntegerConstantType& num) const { 
     CALL("IntegerConstantType::quotientE");
     if(num.divides(*this)){
-      return IntegerConstantType(_val/num._val);
+      return IntegerConstantType(intDivide(num));
     }
     if(num._val>0) return IntegerConstantType(::floor(realDivide(num)));
     else return IntegerConstantType(::ceil(realDivide(num)));
   }
   IntegerConstantType quotientT(const IntegerConstantType& num) const { 
+    if(num.divides(*this)){
+      return IntegerConstantType(intDivide(num));
+    }
     return IntegerConstantType(::trunc(realDivide(num)));
   }
   IntegerConstantType quotientF(const IntegerConstantType& num) const { 
+    if(num.divides(*this)){
+      return IntegerConstantType(intDivide(num));
+    }
     return IntegerConstantType(::floor(realDivide(num)));
   }
 
