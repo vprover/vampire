@@ -8,7 +8,7 @@ using namespace Kernel;
 using namespace Shell;
 
 TermList SymbolDefinitionInlining::substitute(Term::Iterator tit) {
-  CALL("SymbolDefinitionInlining::constructSubstitution");
+  CALL("SymbolDefinitionInlining::substitute");
 
   Substitution substitution;
 
@@ -122,7 +122,7 @@ TermList SymbolDefinitionInlining::process(TermList ts) {
       }
 
       default:
-        ASSERTION_VIOLATION_REP(term->toString());;
+        ASSERTION_VIOLATION_REP(term->toString());
     }
   }
 
@@ -151,7 +151,7 @@ TermList SymbolDefinitionInlining::process(TermList ts) {
 }
 
 Formula* SymbolDefinitionInlining::process(Formula* formula) {
-  CALL("NewCNF::inlineLetBinding(Formula*)");
+  CALL("SymbolDefinitionInlining::process(Formula*)");
 
   switch (formula->connective()) {
     case LITERAL: {
@@ -166,18 +166,18 @@ Formula* SymbolDefinitionInlining::process(Formula* formula) {
         }
       }
 
-      bool processed = false;
+      bool substituted = false;
       Stack<TermList> args;
       while (terms.hasNext()) {
         TermList argument = terms.next();
-        TermList flattenedArgument = process(argument);
-        if (argument != flattenedArgument) {
-          processed = true;
+        TermList processedArgument = process(argument);
+        if (argument != processedArgument) {
+          substituted = true;
         }
-        args.push(flattenedArgument);
+        args.push(processedArgument);
       }
 
-      if (!processed) {
+      if (!substituted) {
         return formula;
       }
 
@@ -307,7 +307,8 @@ void SymbolDefinitionInlining::collectBoundVariables(Term* t) {
       }
       case Term::SF_LET: {
         collectBoundVariables(sd->getBinding());
-        _bound = Formula::VarList::concat(_bound, sd->getVariables());
+        Formula::VarList::Iterator vit(sd->getVariables());
+        Formula::VarList::pushFromIterator(vit, _bound);
         break;
       }
       case Term::SF_LET_TUPLE: {
@@ -335,8 +336,9 @@ void SymbolDefinitionInlining::collectBoundVariables(Formula* formula) {
   switch (formula->connective()) {
     case FORALL:
     case EXISTS: {
-      _bound = Formula::VarList::concat(_bound, formula->vars());
       collectBoundVariables(formula->qarg());
+      Formula::VarList::Iterator vit(formula->vars());
+      Formula::VarList::pushFromIterator(vit, _bound);
       break;
     }
 
