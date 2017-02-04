@@ -44,11 +44,24 @@ public:
   IntegerConstantType operator/(const IntegerConstantType& num) const;
   IntegerConstantType operator%(const IntegerConstantType& num) const;
   
+  // true if this divides num
+  bool divides(const IntegerConstantType& num) const {
+    int safeVal;
+    if (_val < 0 && ! Lib::Int::safeUnaryMinus<int>(_val,safeVal)) {
+      return false;
+    }
+    return (num._val % safeVal ==0);
+  }
+
   float realDivide(const IntegerConstantType& num) const { 
     if(num._val==0) throw ArithmeticException();
     return ((float)_val)/num._val; 
   }
   IntegerConstantType quotientE(const IntegerConstantType& num) const { 
+    CALL("IntegerConstantType::quotientE");
+    if(num.divides(*this)){
+      return IntegerConstantType(_val/num._val);
+    }
     if(num._val>0) return IntegerConstantType(::floor(realDivide(num)));
     else return IntegerConstantType(::ceil(realDivide(num)));
   }

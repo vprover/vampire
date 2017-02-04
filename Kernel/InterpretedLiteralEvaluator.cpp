@@ -1090,12 +1090,7 @@ bool InterpretedLiteralEvaluator::balanceIntegerMultiply(
     IntegerConstantType bcon;
     if(theory->tryInterpretConstant(*B,bcon)){
       if(bcon.isZero()){ return false; }
-      // to make a safe divisibility check:
-      IntegerConstantType::InnerType divisor = bcon.toInner();
-      if (divisor < 0 && ! Int::safeUnaryMinus(divisor,divisor)) {
-        return false;
-      }
-      if(ccon.toInner() % divisor !=0){ return false; }
+      if(!ccon.divides(bcon)){ return false;}
       if(bcon.isNegative()){ swap=!swap; } // switch the polarity of an inequality if we're under one
       return true;
     }
