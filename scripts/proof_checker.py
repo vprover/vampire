@@ -7,12 +7,12 @@ if(len(sys.argv)<2):
   print "You should provide a command to proof_check i.e. ../vampire_rel_master -sa inst_gen TPTP/Problems/SYN/SYN001+1.p" 
   sys.exit(0)
 
-TPTP='~/TPTP/TPTP-v6.1.0/'
+TPTP='~/TPTP/TPTP-v6.4.0/'
 VAMPIRE_ROOT = sys.argv[1]+' --include '+TPTP
-VAMPIRE_CHECK = './vampire_rel_master'#VAMPIRE_ROOT
+VAMPIRE_CHECK = '../vampire_z3_rel_master --mode casc'#VAMPIRE_ROOT
 
 # Set the time out for all proof attempts
-time_out=str(10)
+time_out=str(30)
 # Set the strings for each prover
 EPROVER='~/Vampire/prover-bin/eprover --auto --tptp3-in --proof-object --cpu-limit='+time_out
 VAMPIRE= VAMPIRE_CHECK+' -p off -szs on --time_limit '+time_out
