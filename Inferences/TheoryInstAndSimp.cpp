@@ -255,17 +255,18 @@ VirtualIterator<Solution> TheoryInstAndSimp::getSolutions(Stack<Literal*>& theor
 
 struct InstanceFn
 {
-  InstanceFn(Clause* cl,Stack<Literal*>& tl,Splitter* sp) : _cl(cl), _theoryLits(tl), _splitter(sp) {}
+  InstanceFn(Clause* premise, Clause* cl,Stack<Literal*>& tl,Splitter* splitter, SaturationAlgorithm* salg) : 
+                       _premise(premise), _cl(cl), _theoryLits(tl), _splitter(splitter), _salg(salg) {}
   
   DECL_RETURN_TYPE(Clause*);
   OWN_RETURN_TYPE operator()(Solution sol)
   {
     CALL("TheoryInstAndSimp::InstanceFn::operator()");
 
-    // We should be deleting cl (it's a theory-tautology), but we don't support that for now
-    // ... but does sol.status account for unknown?
+    // We delete cl as it's a theory-tautology (note that if the answer was uknown no solution would be produced)
     if(!sol.status){
       env.statistics->theoryInstSimpTautologies++;
+      _salg->removeActiveOrPassiveClause(_premise);
       return 0;
     }
     // If the solution is empty (for any reason) there is no point performing instantiation
@@ -312,9 +313,11 @@ struct InstanceFn
   }
 
 private:
+  Clause* _premise;
   Clause* _cl;
   Stack<Literal*>& _theoryLits;
   Splitter* _splitter;
+  SaturationAlgorithm* _salg;
 };
 
 ClauseIterator TheoryInstAndSimp::generateClauses(Clause* premise)
@@ -372,7 +375,7 @@ ClauseIterator TheoryInstAndSimp::generateClauses(Clause* premise)
 
   auto it1 = getSolutions(theoryLiterals);
 
-  auto it2 = getMappingIterator(it1,InstanceFn(flattened,theoryLiterals,_splitter));
+  auto it2 = getMappingIterator(it1,InstanceFn(premise,flattened,theoryLiterals,_splitter,_salg));
 
   // filter out only non-zero results
   auto it3 = getFilteredIterator(it2, NonzeroFn());
