@@ -66,6 +66,8 @@ void TheoryInstAndSimp::selectTheoryLiterals(Clause* cl, Stack<Literal*>& theory
   Stack<Literal*> weak;
   Set<unsigned> strong_vars;
   Set<unsigned> strong_symbols;
+  Array<Stack<Literal*>> var_to_lits(cl->varCnt());
+  
 
   Clause::Iterator it(*cl);
   while(it.hasNext()){
@@ -97,15 +99,17 @@ void TheoryInstAndSimp::selectTheoryLiterals(Clause* cl, Stack<Literal*>& theory
         cout << "select " << lit->toString() << endl;
 #endif
         theoryLits.push(lit);
-        while(vit.hasNext()){ strong_vars.insert(vit.next().var()); } 
+        while(vit.hasNext()){ 
+          unsigned v = vit.next().var();
+          strong_vars.insert(v); 
+          var_to_lits[v].push(lit);
+        }
         NonVariableIterator nit(lit);
         while(nit.hasNext()){ strong_symbols.insert(nit.next().term()->functor());}
       }
     } 
   }
-  if(selection != Shell::Options::TheoryInstSimp::OVERLAP){
-    return;
-  }
+  if(selection == Shell::Options::TheoryInstSimp::OVERLAP){
 
   Stack<Literal*>::Iterator wit(weak);
   while(wit.hasNext()){
@@ -130,9 +134,24 @@ void TheoryInstAndSimp::selectTheoryLiterals(Clause* cl, Stack<Literal*>& theory
         cout << "select " << lit->toString() << endl;
 #endif
         theoryLits.push(lit);
+        VariableIterator vit(lit);
+        while(vit.hasNext()){ var_to_lits[vit.next().var()].push(lit); } 
     }
   }
-
+ 
+  }
+  // now remove bad things
+  for(unsigned i=0;i<var_to_lits.size();i++){
+    if(var_to_lits[i].size()==1){
+      Literal * lit = var_to_lits[i][0]; 
+      if(lit->isEquality() && !lit->polarity()){
+#if DPRINT
+        cout << "deselect " << lit->toString() << endl;
+#endif
+        theoryLits.remove(lit);
+      }
+    }
+  }
 }
 
 Term* getFreshConstant(unsigned index, unsigned srt)

@@ -131,7 +131,7 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQ
   }
 
   auto constraints = qr.constraints;
-  bool withConstraints = !constraints.isEmpty();
+  bool withConstraints = !constraints.isEmpty() && !constraints->isEmpty();
   unsigned clength = queryCl->length();
   unsigned dlength = qr.clause->length();
   unsigned newAge=Int::max(queryCl->age(),qr.clause->age())+1;
