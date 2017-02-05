@@ -146,7 +146,7 @@ Term* getFreshConstant(unsigned index, unsigned srt)
   }
   Stack<Term*>* sortedConstants = constants[srt]; 
   while(index+1 > sortedConstants->length()){
-    unsigned sym = env.signature->addFreshFunction(0,"$$inst");
+    unsigned sym = env.signature->addFreshFunction(0,"$inst");
     FunctionType* type = new FunctionType(srt);
     env.signature->getFunction(sym)->setType(type);
     Term* fresh = Term::createConstant(sym);
@@ -174,6 +174,7 @@ VirtualIterator<Solution> TheoryInstAndSimp::getSolutions(Stack<Literal*>& theor
 
   Stack<Literal*>::Iterator it(theoryLiterals);
   Stack<unsigned> vars;
+  unsigned used = 0;
   while(it.hasNext()){
     // get the complementary of the literal
     Literal* lit = Literal::complementaryLiteral(it.next());
@@ -181,25 +182,27 @@ VirtualIterator<Solution> TheoryInstAndSimp::getSolutions(Stack<Literal*>& theor
     DHMap<unsigned,unsigned > srtMap;
     SortHelper::collectVariableSorts(lit,srtMap); 
     TermVarIterator vit(lit);
-    unsigned used = 0;
     while(vit.hasNext()){
       unsigned var = vit.next();
       unsigned sort = srtMap.get(var);
       TermList fc;
       if(!subst.findBinding(var,fc)){
         Term* fc = getFreshConstant(used++,sort);
+#if DPRINT
+    cout << "bind " << var << " to " << fc->toString() << endl;
+#endif
         subst.bind(var,fc);
         vars.push(var);
       }
     }
 #if DPRINT
-    //cout << "skolem " << lit->toString();
+    cout << "skolem " << lit->toString();
 #endif
 
     lit = SubstHelper::apply(lit,subst);
 
 #if DPRINT
-    //cout << " to get " << lit->toString() << endl;
+    cout << " to get " << lit->toString() << endl;
 #endif
 
     // register the lit in naming in such a way that the solver will pick it up!
