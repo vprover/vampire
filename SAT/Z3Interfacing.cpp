@@ -36,6 +36,7 @@ Z3Interfacing::Z3Interfacing(const Shell::Options& opts,SAT2FO& s2f, bool unsatC
   _showZ3(opts.showZ3()),_unsatCoreForRefutations(opts.z3UnsatCores())
 {
   CALL("Z3Interfacing::Z3Interfacing");
+  _solver.rest();
 
     z3::params p(_context);
   if (_unsatCoreForAssumptions) {
