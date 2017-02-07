@@ -221,6 +221,26 @@ void SMTLIB2::readBenchmark(LExprList* bench)
       break;
     }
 
+    if (ibRdr.tryAcceptAtom("reset")) {
+      LOG1("ignoring reset");
+      continue;
+    }
+
+    if (ibRdr.tryAcceptAtom("set-option")) {
+      LOG2("ignoring set-option", ibRdr.readAtom());
+      continue;
+    }
+
+    if (ibRdr.tryAcceptAtom("push")) {
+      LOG1("ignoring push");
+      continue;
+    }
+
+    if (ibRdr.tryAcceptAtom("get-info")) {
+      LOG2("ignoring get-info", ibRdr.readAtom());
+      continue;
+    }
+
     USER_ERROR("unrecognized entry "+ibRdr.readAtom());
   }
 }
