@@ -108,6 +108,11 @@ public:
 
   SATClause* getRefutation() override;  
 
+  void reset(){
+    sat2fo.reset();
+    _solver.reset();
+    _status = UNKNOWN; // I set it to unknown as I do not reset
+  }
 private:
   // just to conform to the interface
   unsigned _varCnt;

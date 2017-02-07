@@ -182,8 +182,10 @@ VirtualIterator<Solution> TheoryInstAndSimp::getSolutions(Stack<Literal*>& theor
   // Currently we just get the single solution from Z3
 
   // We use a new SMT solver
-  SAT2FO naming;
-  Z3Interfacing solver(*env.options,naming);
+  // currently these are not needed outside of this function so we put them here
+  static SAT2FO naming;
+  static Z3Interfacing solver(*env.options,naming);
+  solver.reset(); // the solver will reset naming
 
 
   // Firstly, we need to consistently replace variables by constants (i.e. Skolemize)
