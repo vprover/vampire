@@ -46,7 +46,7 @@ public:
 
 private:
 
-  void selectTheoryLiterals(Clause* cl, Stack<Literal*>& theoryLits);
+  void selectTheoryLiterals(Clause* cl, Stack<Literal*>& theoryLits,bool forZ3);
 
   Splitter* _splitter;
   //SAT2F0 _naming;

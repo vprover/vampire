@@ -56,7 +56,7 @@ void TheoryInstAndSimp::attach(SaturationAlgorithm* salg)
 /**
  * 
  **/
-void TheoryInstAndSimp::selectTheoryLiterals(Clause* cl, Stack<Literal*>& theoryLits)
+void TheoryInstAndSimp::selectTheoryLiterals(Clause* cl, Stack<Literal*>& theoryLits,bool forZ3)
 {
   CALL("TheoryInstAndSimp::selectTheoryLiterals");
 
@@ -86,6 +86,8 @@ void TheoryInstAndSimp::selectTheoryLiterals(Clause* cl, Stack<Literal*>& theory
         }
       }
     }
+
+    if(forZ3){
     // literals containing top-level terms that are partial functions with 0 on the right should never be selected
     // we only focus on top-level terms as otherwise the literal can be selected and have such terms abstracted out (abstraction treats
     // these terms as uninterpreted) and then in the abstracted version we want them to not be selected!
@@ -98,6 +100,7 @@ void TheoryInstAndSimp::selectTheoryLiterals(Clause* cl, Stack<Literal*>& theory
           interpreted=false;
         }
       }
+    }
     }
 
 
@@ -405,7 +408,7 @@ ClauseIterator TheoryInstAndSimp::generateClauses(Clause* premise,bool& premiseR
   static Stack<Literal*> selectedLiterals;
   selectedLiterals.reset();
 
-  selectTheoryLiterals(premise,selectedLiterals);
+  selectTheoryLiterals(premise,selectedLiterals,false);
 
   // if there are no eligable theory literals selected then there is nothing to do
   if(selectedLiterals.isEmpty()){
@@ -435,7 +438,7 @@ ClauseIterator TheoryInstAndSimp::generateClauses(Clause* premise,bool& premiseR
 
   // Now go through the abstracted clause and select the things we send to SMT
   // Selection and abstraction could be done in a single step but we are reusing existing theory flattening
-  selectTheoryLiterals(flattened,theoryLiterals);
+  selectTheoryLiterals(flattened,theoryLiterals,true);
 
   // At this point theoryLiterals should contain abstracted versions of what is in selectedLiterals
   // all of the namings will be ineligable as, by construction, they will contain uninterpreted things
