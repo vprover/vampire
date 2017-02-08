@@ -159,7 +159,11 @@ void TheoryInstAndSimp::selectTheoryLiterals(Clause* cl, Stack<Literal*>& theory
   for(unsigned i=0;i<var_to_lits.size();i++){
     if(var_to_lits[i].size()==1){
       Literal * lit = var_to_lits[i][0]; 
-      if(lit->isEquality() && !lit->polarity()){
+      // is of the form X!=t where X only occurs in this literal (from theory literals)
+      if(lit->isEquality() && !lit->polarity() &&
+         ((lit->nthArgument(0)->isVar() && lit->nthArgument(0)->var()==i) &&
+          (lit->nthArgument(1)->isVar() && lit->nthArgument(1)->var()==i))
+         ){
 #if DPRINT
         cout << "deselect " << lit->toString() << endl;
 #endif
