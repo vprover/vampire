@@ -384,6 +384,7 @@ partial_check_end:
 
     if(_splitter){
       _splitter->onNewClause(inst);
+      _splitter->onNewClause(res);
     }
 
     env.statistics->theoryInstSimp++;
