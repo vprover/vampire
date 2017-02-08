@@ -1505,6 +1505,16 @@ bool Theory::isInterpretedConstant(TermList t)
 /**
  * Return true iff @b t is a constant with a numerical interpretation
  */
+bool Theory::isInterpretedNumber(Term* t)
+{
+  CALL("Theory::isInterpretedNumber(TermList)");
+
+  return isInterpretedConstant(t) && env.signature->getFunction(t->functor())->interpretedNumber();
+}
+
+/**
+ * Return true iff @b t is a constant with a numerical interpretation
+ */
 bool Theory::isInterpretedNumber(TermList t)
 {
   CALL("Theory::isInterpretedNumber(TermList)");
@@ -1561,11 +1571,30 @@ bool Theory::isInterpretedFunction(unsigned func)
 }
 bool Theory::isInterpretedPartialFunction(unsigned func)
 {
-  CALL("Theory::isInterpretedFunction(unsigned)");
+  CALL("Theory::isInterpretedPartialFunction(unsigned)");
 
   if(!isInterpretedFunction(func)){ return false; }
 
-  return isPartialFunction(interpretFunction(func));
+  bool result =  isPartialFunction(interpretFunction(func));
+  ASS(!result || env.signature->functionArity(func)==2);
+  return result;
+}
+
+bool Theory::isZero(TermList term)
+{
+  CALL("Theory::isZero");
+
+
+  IntegerConstantType it;
+  if(tryInterpretConstant(term,it) && it.isZero()){ return true; }
+
+  RationalConstantType rtt;
+  if(tryInterpretConstant(term,rtt) && rtt.isZero()){ return true; }
+
+  RealConstantType ret;
+  if(tryInterpretConstant(term,ret) && ret.isZero()){ return true; }
+
+  return false;
 }
 
 

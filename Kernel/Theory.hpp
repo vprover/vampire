@@ -456,6 +456,7 @@ public:
   bool isInterpretedConstant(unsigned func);
   bool isInterpretedConstant(Term* t);
   bool isInterpretedConstant(TermList t);
+  bool isInterpretedNumber(Term* t);
   bool isInterpretedNumber(TermList t);
 
   bool isInterpretedPredicate(unsigned pred);
@@ -470,6 +471,7 @@ public:
 
  
   bool isInterpretedPartialFunction(unsigned func);
+  bool isZero(TermList t);
 
   Interpretation interpretFunction(unsigned func);
   Interpretation interpretFunction(Term* t);
