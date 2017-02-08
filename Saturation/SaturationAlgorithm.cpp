@@ -988,20 +988,28 @@ bool SaturationAlgorithm::activate(Clause* cl)
   env.statistics->activeClauses++;
   _active->add(cl);
 
-  ClauseIterator toAdd=_generator->generateClauses(cl);
+  bool redundant=false;
+  ClauseIterator instances = ClauseIterator::getEmpty();
+  if(_theoryInstSimp){
+    instances = _theoryInstSimp->generateClauses(cl,redundant);
+  }
 
-  while (toAdd.hasNext()) {
-    Clause* genCl=toAdd.next();
+  if(!redundant){
+    ClauseIterator toAdd= pvi(getConcatenatedIterator(instances,_generator->generateClauses(cl)));
 
-    addNewClause(genCl);
+    while (toAdd.hasNext()) {
+      Clause* genCl=toAdd.next();
 
-    Inference::Iterator iit=genCl->inference()->iterator();
-    while (genCl->inference()->hasNext(iit)) {
-      Unit* premUnit=genCl->inference()->next(iit);
-      ASS(premUnit->isClause());
-      Clause* premCl=static_cast<Clause*>(premUnit);
+      addNewClause(genCl);
 
-      onParenthood(genCl, premCl);
+      Inference::Iterator iit=genCl->inference()->iterator();
+      while (genCl->inference()->hasNext(iit)) {
+        Unit* premUnit=genCl->inference()->next(iit);
+        ASS(premUnit->isClause());
+        Clause* premCl=static_cast<Clause*>(premUnit);
+
+        onParenthood(genCl, premCl);
+      }
     }
   }
 
@@ -1017,7 +1025,7 @@ bool SaturationAlgorithm::activate(Clause* cl)
     removeActiveOrPassiveClause(cl);
   }
 
-  return true;
+  return !redundant;
 }
 
 /**
@@ -1318,7 +1326,8 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
   }
 #if VZ3
   if (opt.theoryInstAndSimp() != Shell::Options::TheoryInstSimp::OFF){
-    gie->addFront(new TheoryInstAndSimp());
+    res->setTheoryInstAndSimp(new TheoryInstAndSimp());
+    //gie->addFront(new TheoryInstAndSimp());
   }
 #endif
 

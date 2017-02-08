@@ -89,9 +89,9 @@ void TheoryInstAndSimp::selectTheoryLiterals(Clause* cl, Stack<Literal*>& theory
     // literals containing top-level terms that are partial functions with 0 on the right should never be selected
     // we only focus on top-level terms as otherwise the literal can be selected and have such terms abstracted out (abstraction treats
     // these terms as uninterpreted) and then in the abstracted version we want them to not be selected!
-    for(TermList* ts = term->args(); ts->isNonEmpty(); ts = ts->next()){
-      if(ts.isTerm()){
-        Term* t = ts.term();
+    for(TermList* ts = lit->args(); ts->isNonEmpty(); ts = ts->next()){
+      if(ts->isTerm()){
+        Term* t = ts->term();
         if(theory->isInterpretedPartialFunction(t->functor()) &&
            theory->isZero(*(t->nthArgument(1)))){
           // treat this literal as uninterpreted
@@ -296,8 +296,9 @@ VirtualIterator<Solution> TheoryInstAndSimp::getSolutions(Stack<Literal*>& theor
 struct InstanceFn
 {
   InstanceFn(Clause* premise, Clause* cl,Stack<Literal*>& tl,Splitter* splitter, 
-             SaturationAlgorithm* salg, TheoryInstAndSimp* parent) : 
-         _premise(premise), _cl(cl), _theoryLits(tl), _splitter(splitter), _salg(salg), _parent(parent) {}
+             SaturationAlgorithm* salg, TheoryInstAndSimp* parent,bool& red) : 
+         _premise(premise), _cl(cl), _theoryLits(tl), _splitter(splitter), 
+         _salg(salg), _parent(parent), _red(red) {}
   
   DECL_RETURN_TYPE(Clause*);
   OWN_RETURN_TYPE operator()(Solution sol)
@@ -333,6 +334,7 @@ partial_check_end:
       if(!containsPartial){
         env.statistics->theoryInstSimpTautologies++;
         _salg->removeActiveOrPassiveClause(_premise);
+        _red=true;
       }
 
       return 0;
@@ -387,9 +389,10 @@ private:
   Splitter* _splitter;
   SaturationAlgorithm* _salg;
   TheoryInstAndSimp* _parent;
+  bool& _red;
 };
 
-ClauseIterator TheoryInstAndSimp::generateClauses(Clause* premise)
+ClauseIterator TheoryInstAndSimp::generateClauses(Clause* premise,bool& premiseRedundant)
 {
   CALL("TheoryInstAndSimp::generateClauses");
 
@@ -444,7 +447,8 @@ ClauseIterator TheoryInstAndSimp::generateClauses(Clause* premise)
 
   auto it1 = getSolutions(theoryLiterals);
 
-  auto it2 = getMappingIterator(it1,InstanceFn(premise,flattened,theoryLiterals,_splitter,_salg,this));
+  auto it2 = getMappingIterator(it1,
+               InstanceFn(premise,flattened,theoryLiterals,_splitter,_salg,this,premiseRedundant));
 
   // filter out only non-zero results
   auto it3 = getFilteredIterator(it2, NonzeroFn());

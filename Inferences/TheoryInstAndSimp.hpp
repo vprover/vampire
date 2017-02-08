@@ -36,7 +36,11 @@ public:
   TheoryInstAndSimp() : _splitter(0) {}
   void attach(SaturationAlgorithm* salg);
 
-  ClauseIterator generateClauses(Clause* premise);
+  ClauseIterator generateClauses(Clause* premise, bool& premiseRedundant);
+  ClauseIterator generateClauses(Clause* premise){
+    bool r;
+    return generateClauses(premise,r);
+  }
 
   VirtualIterator<Solution> getSolutions(Stack<Literal*>& theoryLiterals,bool guarded=true);
 
