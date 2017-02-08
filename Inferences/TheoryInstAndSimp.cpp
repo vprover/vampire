@@ -340,7 +340,8 @@ partial_check_end:
 
       if(!containsPartial){
         env.statistics->theoryInstSimpTautologies++;
-        _salg->removeActiveOrPassiveClause(_premise);
+        // do this directly in salg
+        //_salg->removeActiveOrPassiveClause(_premise);
         _red=true;
       }
 

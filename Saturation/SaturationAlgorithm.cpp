@@ -99,6 +99,7 @@ SaturationAlgorithm::SaturationAlgorithm(Problem& prb, const Options& opt)
     _fwSimplifiers(0), _bwSimplifiers(0), _splitter(0),
     _consFinder(0), _labelFinder(0), _symEl(0), _answerLiteralManager(0),
     _instantiation(0),
+    _theoryInstSimp(0),
     _generatedClauseCount(0)
 {
   CALL("SaturationAlgorithm::SaturationAlgorithm");
@@ -975,6 +976,17 @@ bool SaturationAlgorithm::activate(Clause* cl)
       return false;
     }
   }
+
+  bool redundant=false;
+  ClauseIterator instances = ClauseIterator::getEmpty();
+  if(_theoryInstSimp){
+    instances = _theoryInstSimp->generateClauses(cl,redundant);
+  }
+  if(redundant){ 
+    removeActiveOrPassiveClause(cl);
+    return false; 
+  }
+
   _clauseActivationInProgress=true;
 
   if (!cl->numSelected()) {
@@ -988,13 +1000,7 @@ bool SaturationAlgorithm::activate(Clause* cl)
   env.statistics->activeClauses++;
   _active->add(cl);
 
-  bool redundant=false;
-  ClauseIterator instances = ClauseIterator::getEmpty();
-  if(_theoryInstSimp){
-    instances = _theoryInstSimp->generateClauses(cl,redundant);
-  }
 
-  if(!redundant){
     ClauseIterator toAdd= pvi(getConcatenatedIterator(instances,_generator->generateClauses(cl)));
 
     while (toAdd.hasNext()) {
@@ -1011,9 +1017,9 @@ bool SaturationAlgorithm::activate(Clause* cl)
         onParenthood(genCl, premCl);
       }
     }
-  }
 
   _clauseActivationInProgress=false;
+
 
   //now we remove clauses that could not be removed during the clause activation process
   while (_postponedClauseRemovals.isNonEmpty()) {
@@ -1025,7 +1031,7 @@ bool SaturationAlgorithm::activate(Clause* cl)
     removeActiveOrPassiveClause(cl);
   }
 
-  return !redundant;
+  return true; 
 }
 
 /**
@@ -1073,7 +1079,7 @@ void SaturationAlgorithm::handleUnsuccessfulActivation(Clause* cl)
 {
   CALL("SaturationAlgorithm::handleUnsuccessfulActivation");
 
-  ASS_EQ(cl->store(), Clause::SELECTED);
+  //ASS_EQ(cl->store(), Clause::SELECTED);
   cl->setStore(Clause::NONE);
 }
 
