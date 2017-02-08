@@ -174,7 +174,7 @@ Term* getFreshConstant(unsigned index, unsigned srt)
   return (*sortedConstants)[index];
 }
 
-VirtualIterator<Solution> TheoryInstAndSimp::getSolutions(Stack<Literal*>& theoryLiterals){
+VirtualIterator<Solution> TheoryInstAndSimp::getSolutions(Stack<Literal*>& theoryLiterals, bool guarded){
   CALL("TheoryInstAndSimp::getSolutions");
 
   BYPASSING_ALLOCATOR;
@@ -235,7 +235,8 @@ VirtualIterator<Solution> TheoryInstAndSimp::getSolutions(Stack<Literal*>& theor
     satLits.push(slit);
     SATClause* sc = SATClause::fromStack(satLits); 
     //clause->setInference(new FOConversionInference(cl));
-    solver.addClause(sc,true);
+    // guarded is normally true, apart from when we are checking a theory tautology
+    solver.addClause(sc,guarded);
   }
 
   // now we can call the solver
@@ -279,8 +280,9 @@ VirtualIterator<Solution> TheoryInstAndSimp::getSolutions(Stack<Literal*>& theor
 
 struct InstanceFn
 {
-  InstanceFn(Clause* premise, Clause* cl,Stack<Literal*>& tl,Splitter* splitter, SaturationAlgorithm* salg) : 
-                       _premise(premise), _cl(cl), _theoryLits(tl), _splitter(splitter), _salg(salg) {}
+  InstanceFn(Clause* premise, Clause* cl,Stack<Literal*>& tl,Splitter* splitter, 
+             SaturationAlgorithm* salg, TheoryInstAndSimp* parent) : 
+         _premise(premise), _cl(cl), _theoryLits(tl), _splitter(splitter), _salg(salg), _parent(parent) {}
   
   DECL_RETURN_TYPE(Clause*);
   OWN_RETURN_TYPE operator()(Solution sol)
@@ -289,8 +291,35 @@ struct InstanceFn
 
     // We delete cl as it's a theory-tautology (note that if the answer was uknown no solution would be produced)
     if(!sol.status){
-      env.statistics->theoryInstSimpTautologies++;
-      _salg->removeActiveOrPassiveClause(_premise);
+      // if the theoryLits contain partial functions that need to be guarded then it may not
+      // be a tautology, we would need to confirm this without the guards
+      bool containsPartial = false;
+      Stack<Literal*>::Iterator lit(_theoryLits);
+      while(lit.hasNext()){
+        NonVariableIterator tit(lit.next());
+        while(tit.hasNext()){
+          if(theory->isInterpretedPartialFunction(tit.next().term()->functor())){
+            containsPartial=true;
+            goto partial_check_end;
+          }
+        }
+      }
+partial_check_end:
+
+      // now we run SMT solver again without guarding
+      if(containsPartial){
+        auto solutions = _parent->getSolutions(_theoryLits,false);
+        // we have an unsat solution without guards
+        if(solutions.hasNext() && !solutions.next().status){
+          containsPartial=false;
+        }
+      }
+
+      if(!containsPartial){
+        env.statistics->theoryInstSimpTautologies++;
+        _salg->removeActiveOrPassiveClause(_premise);
+      }
+
       return 0;
     }
     // If the solution is empty (for any reason) there is no point performing instantiation
@@ -342,6 +371,7 @@ private:
   Stack<Literal*>& _theoryLits;
   Splitter* _splitter;
   SaturationAlgorithm* _salg;
+  TheoryInstAndSimp* _parent;
 };
 
 ClauseIterator TheoryInstAndSimp::generateClauses(Clause* premise)
@@ -399,7 +429,7 @@ ClauseIterator TheoryInstAndSimp::generateClauses(Clause* premise)
 
   auto it1 = getSolutions(theoryLiterals);
 
-  auto it2 = getMappingIterator(it1,InstanceFn(premise,flattened,theoryLiterals,_splitter,_salg));
+  auto it2 = getMappingIterator(it1,InstanceFn(premise,flattened,theoryLiterals,_splitter,_salg,this));
 
   // filter out only non-zero results
   auto it3 = getFilteredIterator(it2, NonzeroFn());

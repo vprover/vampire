@@ -440,6 +440,7 @@ public:
   static bool isConversionOperation(Interpretation i);
   static bool isLinearOperation(Interpretation i);
   static bool isNonLinearOperation(Interpretation i);
+  static bool isPartialFunction(Interpretation i);
 
   static bool isArrayOperation(Interpretation i);
   static unsigned getArrayOperationSort(Interpretation i);
@@ -466,6 +467,9 @@ public:
   bool isInterpretedFunction(TermList t);
   bool isInterpretedFunction(Term* t, Interpretation itp);
   bool isInterpretedFunction(TermList t, Interpretation itp);
+
+ 
+  bool isInterpretedPartialFunction(unsigned func);
 
   Interpretation interpretFunction(unsigned func);
   Interpretation interpretFunction(Term* t);

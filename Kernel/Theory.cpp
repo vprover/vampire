@@ -933,7 +933,7 @@ bool Theory::isConversionOperation(Interpretation i)
 }
 bool Theory::isLinearOperation(Interpretation i)
 {
-  CALL("Theory::isComparisonOperation");
+  CALL("Theory::isLinearOperation");
 
   switch(i) {
   case INT_UNARY_MINUS:
@@ -952,7 +952,7 @@ bool Theory::isLinearOperation(Interpretation i)
 }
 bool Theory::isNonLinearOperation(Interpretation i)
 {
-  CALL("Theory::isComparisonOperation");
+  CALL("Theory::isNonLinearOperation");
 
   switch(i) {
   case INT_MULTIPLY:
@@ -971,6 +971,36 @@ bool Theory::isNonLinearOperation(Interpretation i)
   case RAT_REMAINDER_T:
   case RAT_REMAINDER_F:
   case REAL_MULTIPLY:
+  case REAL_QUOTIENT:
+  case REAL_QUOTIENT_E:
+  case REAL_QUOTIENT_T:
+  case REAL_QUOTIENT_F:
+  case REAL_REMAINDER_E:
+  case REAL_REMAINDER_T:
+  case REAL_REMAINDER_F:
+    return true;
+  default:
+    return false;
+  }
+}
+bool Theory::isPartialFunction(Interpretation i)
+{
+  CALL("Theory::isPartialFunction");
+
+  switch(i) {
+  case INT_QUOTIENT_E:
+  case INT_QUOTIENT_T:
+  case INT_QUOTIENT_F:
+  case INT_REMAINDER_E:
+  case INT_REMAINDER_T:
+  case INT_REMAINDER_F:
+  case RAT_QUOTIENT:
+  case RAT_QUOTIENT_E:
+  case RAT_QUOTIENT_T:
+  case RAT_QUOTIENT_F:
+  case RAT_REMAINDER_E:
+  case RAT_REMAINDER_T:
+  case RAT_REMAINDER_F:
   case REAL_QUOTIENT:
   case REAL_QUOTIENT_E:
   case REAL_QUOTIENT_T:
@@ -1528,6 +1558,14 @@ bool Theory::isInterpretedFunction(unsigned func)
   }
 
   return env.signature->getFunction(func)->interpreted() && env.signature->functionArity(func)!=0;
+}
+bool Theory::isInterpretedPartialFunction(unsigned func)
+{
+  CALL("Theory::isInterpretedFunction(unsigned)");
+
+  if(!isInterpretedFunction(func)){ return false; }
+
+  return isPartialFunction(interpretFunction(func));
 }
 
 

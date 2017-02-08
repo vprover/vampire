@@ -38,10 +38,11 @@ public:
 
   ClauseIterator generateClauses(Clause* premise);
 
+  VirtualIterator<Solution> getSolutions(Stack<Literal*>& theoryLiterals,bool guarded=true);
+
 private:
 
   void selectTheoryLiterals(Clause* cl, Stack<Literal*>& theoryLits);
-  VirtualIterator<Solution> getSolutions(Stack<Literal*>& theoryLiterals);
 
   Splitter* _splitter;
   //SAT2F0 _naming;
