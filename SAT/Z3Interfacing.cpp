@@ -468,9 +468,7 @@ z3::expr Z3Interfacing::getz3expr(Term* trm,bool isLit,bool&nameExpression,bool 
         case Theory::RAT_QUOTIENT:
         case Theory::REAL_QUOTIENT:
           if(withGuard){addRealNonZero(args[1]);}
-          //ret= args[0] / args[1];
-          ret = z3::expr(_context,Z3_mk_div(_context,args[0],args[1]));
-          addRealNonZero(ret);
+          ret= args[0] / args[1];
           break;
 
         case Theory::INT_QUOTIENT_E: 
