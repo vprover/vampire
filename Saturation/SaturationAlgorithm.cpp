@@ -1194,6 +1194,13 @@ MainLoopResult SaturationAlgorithm::runImpl()
 
 }
 
+void SaturationAlgorithm::setTheoryInstAndSimp(TheoryInstAndSimp* t)
+{
+  ASS(t);
+  _theoryInstSimp=t;
+  _theoryInstSimp->attach(this);
+}
+
 /**
  * Assign an generating inference object @b generator to be used
  *

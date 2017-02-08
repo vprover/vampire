@@ -60,7 +60,7 @@ public:
 
   void setGeneratingInferenceEngine(GeneratingInferenceEngine* generator);
   void setImmediateSimplificationEngine(ImmediateSimplificationEngine* immediateSimplifier);
-  void setTheoryInstAndSimp(TheoryInstAndSimp* t){ _theoryInstSimp = t; }
+  void setTheoryInstAndSimp(TheoryInstAndSimp* t);
 
   void setLabelFinder(LabelFinder* finder){ _labelFinder = finder; }
 
