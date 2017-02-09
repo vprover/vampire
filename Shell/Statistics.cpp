@@ -56,6 +56,9 @@ Statistics::Statistics()
     forwardSuperposition(0),
     backwardSuperposition(0),
     selfSuperposition(0),
+    cForwardSuperposition(0),
+    cBackwardSuperposition(0),
+    cSelfSuperposition(0),
     equalityFactoring(0),
     equalityResolution(0),
     forwardExtensionalityResolution(0),
@@ -290,16 +293,20 @@ void Statistics::print(ostream& out)
 
   HEADING("Generating Inferences",resolution+urResolution+cResolution+factoring+
       forwardSuperposition+backwardSuperposition+selfSuperposition+
+      cForwardSuperposition+cBackwardSuperposition+cSelfSuperposition+
       equalityFactoring+equalityResolution+forwardExtensionalityResolution+
       backwardExtensionalityResolution+
       theoryInstSimp+theoryInstSimpCandidates+theoryInstSimpTautologies+theoryInstSimpLostSolution);
   COND_OUT("Binary resolution", resolution);
   COND_OUT("Unit resulting resolution", urResolution);
-  COND_OUT("Constrained resolution",cResolution);
+  COND_OUT("Binary resolution with abstraction",cResolution);
   COND_OUT("Factoring", factoring);
   COND_OUT("Forward superposition", forwardSuperposition);
   COND_OUT("Backward superposition", backwardSuperposition);
   COND_OUT("Self superposition", selfSuperposition);
+  COND_OUT("Forward superposition with abstraction", cForwardSuperposition);
+  COND_OUT("Backward superposition with abstraction", cBackwardSuperposition);
+  COND_OUT("Self superposition with abstraction", cSelfSuperposition);
   COND_OUT("Equality factoring", equalityFactoring);
   COND_OUT("Equality resolution", equalityResolution);
   COND_OUT("Fw extensionality resolution", forwardExtensionalityResolution);

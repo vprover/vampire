@@ -648,12 +648,23 @@ Clause* Superposition::performSuperposition(
   ASS(weightLimit==-1 || weight<=weightLimit);
 
   res->setAge(newAge);
-  if(rwClause==eqClause) {
-    env.statistics->selfSuperposition++;
-  } else if(eqIsResult) {
-    env.statistics->forwardSuperposition++;
+
+  if(hasConstraints){
+    if(rwClause==eqClause) {
+      env.statistics->selfSuperposition++;
+    } else if(eqIsResult) {
+      env.statistics->forwardSuperposition++;
+    } else {
+      env.statistics->backwardSuperposition++;
+    }
   } else {
-    env.statistics->backwardSuperposition++;
+    if(rwClause==eqClause) {
+      env.statistics->cSelfSuperposition++;
+    } else if(eqIsResult) {
+      env.statistics->cForwardSuperposition++;
+    } else {
+      env.statistics->cBackwardSuperposition++;
+    }
   }
 
 /*
