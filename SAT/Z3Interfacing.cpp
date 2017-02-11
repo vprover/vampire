@@ -152,7 +152,7 @@ SATSolver::Status Z3Interfacing::solveUnderAssumptions(const SATLiteralStack& as
     z3::expr_vector  core = _solver.unsat_core();
     for (unsigned i = 0; i < core.size(); i++) {
       z3::expr ci = core[i];
-      vstring cip = Z3_ast_to_string(_context,ci);
+      vstring cip = vstring(ci.to_string().c_str());
       SATLiteral v_assump = lookup.get(cip);
       _failedAssumptionBuffer.push(v_assump);
     }
@@ -179,11 +179,11 @@ SATSolver::VarAssignment Z3Interfacing::getAssignment(unsigned var)
   //cout << "ass is " << assignment << endl;
 
 
-  if(Z3_get_bool_value(_context,assignment)==Z3_L_TRUE){
+  if(assignment.bool_value()==Z3_L_TRUE){
   //cout << "returning true for " << var << endl;
     return TRUE;
   }
-  if(Z3_get_bool_value(_context,assignment)==Z3_L_FALSE){
+  if(assignment.bool_value()==Z3_L_FALSE){
   //cout << "returning false for " << var << endl;
     return FALSE;
   }
@@ -443,7 +443,7 @@ z3::expr Z3Interfacing::getz3expr(Term* trm,bool isLit,bool&nameExpression,bool 
           if(withGuard){addIntNonZero(args[0]);}
           //cout << "SET name=true" << endl;
           nameExpression = true;
-          ret = z3::expr(_context, Z3_mk_mod(_context, args[1], args[0])) == _context.int_val(0);
+          ret = z3::mod(args[1], args[0]) == _context.int_val(0);
           break;
 
         case Theory::INT_UNARY_MINUS:
@@ -581,13 +581,13 @@ z3::expr Z3Interfacing::getz3expr(Term* trm,bool isLit,bool&nameExpression,bool 
          case Theory::REAL_REMAINDER_E:
            if(withGuard){addRealNonZero(args[1]);}
            nameExpression = true; 
-           ret = z3::expr(_context, Z3_mk_mod(_context, args[0], args[1]));
+           ret = z3::mod(args[0], args[1]);
            break;
 
          case Theory::INT_REMAINDER_E:
            if(withGuard){addIntNonZero(args[1]);}
            nameExpression = true;
-           ret = z3::expr(_context, Z3_mk_mod(_context, args[0], args[1]));
+           ret = z3::mod(args[0], args[1]);
            break;
 
 
@@ -597,7 +597,7 @@ z3::expr Z3Interfacing::getz3expr(Term* trm,bool isLit,bool&nameExpression,bool 
        case Theory::INT_IS_INT:
        case Theory::RAT_IS_INT:
        case Theory::REAL_IS_INT:
-         ret = z3::expr(_context,Z3_mk_is_int(_context,args[0]));
+         ret = z3::is_int(args[0]);
          break;
 
        case Theory::INT_LESS:
