@@ -225,13 +225,13 @@ Term* Z3Interfacing::evaluateInModel(Term* trm)
       }
     }
     else{
-      __int64 n;
-      __int64 d;
-      if (Z3_get_numeral_small(_context, assignment, &n, &d)) {
-        if (n < numeric_limits<IntegerConstantType::InnerType>::min() || n > numeric_limits<IntegerConstantType::InnerType>::max() ||
-            d < numeric_limits<IntegerConstantType::InnerType>::min() || d > numeric_limits<IntegerConstantType::InnerType>::max()) {
+      int n;
+      int d;
+      z3::expr numerator = assignment.numerator();
+      z3::expr denominator = assignment.denominator(); 
+      if(!numerator.is_numeral_i(n) || !denominator.is_numeral_i(d)){
           return 0;
-        }
+      }
        
        if(srt == Sorts::SRT_RATIONAL){
          Term* t = theory->representConstant(RationalConstantType(n,d));
@@ -242,7 +242,6 @@ Term* Z3Interfacing::evaluateInModel(Term* trm)
          Term* t = theory->representConstant(RealConstantType(RationalConstantType(n,d)));
          return t;
        }
-     }
     }
   } else {
     // TODO" assignment such as "(root-obj (+ (^ x 2) (- 128)) 1)" is an algebraic number, but not a numeral
