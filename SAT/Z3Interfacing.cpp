@@ -217,16 +217,18 @@ Term* Z3Interfacing::evaluateInModel(Term* trm)
       ASS(srt == Sorts::SRT_INTEGER);
       int value = assignment.get_numeral_int();
       Term* t = theory->representConstant(IntegerConstantType(value));
-      //cout << "evaluteInModel: " << trm->toString() <<" has value " << value << endl; 
+      // cout << "evaluteInModel: " << trm->toString() <<" has value " << value << endl;
       return t;
     }
     else{
-     Z3_ast numerator = Z3_get_numerator(_context,assignment);
-     Z3_ast denominator = Z3_get_denominator(_context,assignment);
-     int n;
-     int d;
-     if(Z3_get_numeral_int(_context,numerator,&n) && Z3_get_numeral_int(_context,denominator,&d)){
-       //cout << "HERE with " << n << " and " << d << endl;
+      __int64 n;
+      __int64 d;
+      if (Z3_get_numeral_small(_context, assignment, &n, &d)) {
+        if (n < numeric_limits<IntegerConstantType::InnerType>::min() || n > numeric_limits<IntegerConstantType::InnerType>::max() ||
+            d < numeric_limits<IntegerConstantType::InnerType>::min() || d > numeric_limits<IntegerConstantType::InnerType>::max()) {
+          return 0;
+        }
+       
        if(srt == Sorts::SRT_RATIONAL){
          Term* t = theory->representConstant(RationalConstantType(n,d));
          return t;
