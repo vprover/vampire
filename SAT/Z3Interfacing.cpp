@@ -215,10 +215,14 @@ Term* Z3Interfacing::evaluateInModel(Term* trm)
     ASS(is_int || assignment.is_real()); 
     if(is_int){
       ASS(srt == Sorts::SRT_INTEGER);
-      int value = assignment.get_numeral_int();
-      Term* t = theory->representConstant(IntegerConstantType(value));
-      // cout << "evaluteInModel: " << trm->toString() <<" has value " << value << endl;
-      return t;
+      int value;
+      if (assignment.is_numeral_i(value)) {
+        Term* t = theory->representConstant(IntegerConstantType(value));
+        // cout << "evaluteInModel: " << trm->toString() <<" has value " << value << endl;
+        return t;
+      } else {
+        return 0;
+      }
     }
     else{
       __int64 n;
