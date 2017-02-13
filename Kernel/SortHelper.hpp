@@ -10,11 +10,30 @@
 
 #include "Lib/DHMap.hpp"
 
-#include "Term.hpp"
+#include "Kernel/Term.hpp"
 
 namespace Kernel {
 
 class SortHelper {
+private:
+  enum CollectWhat {
+    COLLECT_TERM,
+    COLLECT_TERMLIST,
+    COLLECT_SPECIALTERM,
+    COLLECT_FORMULA
+  };
+
+  struct CollectTask {
+    CollectWhat fncTag;
+    union {
+      Term* t; // shared by TERM and SPECIALTERM
+      Formula* f;
+    };
+    TermList ts; // outside of union, because it has a non-trivial constructor
+    unsigned contextSort; // only used by TERMLIST and SPECIALTERM
+  };
+
+  static void collectVariableSortsIter(CollectTask task, DHMap<unsigned,unsigned>& map);
 public:
   static unsigned getResultSort(const Term* t);
   static unsigned getResultSort(TermList t, DHMap<unsigned,unsigned>& varSorts);
