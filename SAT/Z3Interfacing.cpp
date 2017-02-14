@@ -70,7 +70,6 @@ void Z3Interfacing::addClause(SATClause* cl,bool withGuard)
     env.endOutput();
   }
   _solver.add(z3clause);
-
 }
 
 void Z3Interfacing::addAssumption(SATLiteral lit,bool withGuard)
@@ -82,7 +81,7 @@ void Z3Interfacing::addAssumption(SATLiteral lit,bool withGuard)
 
 SATSolver::Status Z3Interfacing::solve(unsigned conflictCountLimit)
 {
-  CALL("Z3Interfacing::addClause");
+  CALL("Z3Interfacing::solve");
   BYPASSING_ALLOCATOR;
 
   z3::check_result result = _assumptions.empty() ? _solver.check() : _solver.check(_assumptions);
