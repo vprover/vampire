@@ -574,7 +574,13 @@ vstring Literal::toString() const
     else {
       s += " != ";
     }
-    return s + lhs->next()->toString();
+
+    vstring res = s + lhs->next()->toString();
+    if (SortHelper::getEqualityArgumentSort(this) == Sorts::SRT_BOOL) {
+      res = "("+res+")";
+    }
+
+    return res;
   }
 
   Stack<const TermList*> stack(64);

@@ -838,6 +838,7 @@ protected:
     case Inference::FOOL_ELIMINATION:
     case Inference::BOOLEAN_TERM_ENCODING:
     case Inference::CHOICE_AXIOM:
+    case Inference::PREDICATE_DEFINITION:
       return true;
     default:
       return false;
