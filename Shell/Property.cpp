@@ -350,7 +350,7 @@ void Property::scan(FormulaUnit* unit)
  */
 void Property::scan(Formula* formula)
 {
-  CALL("void Property::scan(const Formula&)");
+  CALL("void Property::scan(Formula* formula)");
 
   SubformulaIterator fs(formula);
   while (fs.hasNext()) {
