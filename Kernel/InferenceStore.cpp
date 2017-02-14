@@ -837,6 +837,7 @@ protected:
     case Inference::FOOL_ITE_ELIMINATION:
     case Inference::FOOL_ELIMINATION:
     case Inference::BOOLEAN_TERM_ENCODING:
+    case Inference::CHOICE_AXIOM:
       return true;
     default:
       return false;
