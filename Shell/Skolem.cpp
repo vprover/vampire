@@ -472,6 +472,8 @@ FormulaList* Skolem::skolemise (FormulaList* fs)
 {
   CALL("Skolem:skolemise(FormulaList*)");
 
+  ASS(FormulaList::isNonEmpty(fs));
+
   Stack<FormulaList*> args;
 
   while (FormulaList::isNonEmpty(fs)) {
