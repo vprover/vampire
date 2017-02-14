@@ -243,6 +243,206 @@ bool SortHelper::tryGetVariableSort(unsigned var, Formula* f, unsigned& res)
   return false;
 }
 
+
+/**
+ * An iterative version to replace the original recursive functions below.
+ *
+ * @since 13/02/2017 Vienna
+ * @author Martin Suda
+ */
+void SortHelper::collectVariableSortsIter(CollectTask task, DHMap<unsigned,unsigned>& map)
+{
+  CALL("SortHelper::collectVariableSortsIter");
+
+  Stack<CollectTask> todo;
+
+  todo.push(task);
+  while (todo.isNonEmpty()) {
+    CollectTask task = todo.pop();
+
+    switch(task.fncTag) {
+      case COLLECT_TERM: {
+        Term* term = task.t;
+
+        unsigned position = 0;
+        for (TermList* ts = term->args(); ts->isNonEmpty(); ts = ts->next()) {
+          CollectTask newTask;
+          newTask.fncTag = COLLECT_TERMLIST;
+          newTask.ts = *ts;
+          newTask.contextSort = getArgSort(term, position++);
+          todo.push(newTask);
+        }
+
+      } break;
+
+      case COLLECT_TERMLIST: {
+        TermList ts = task.ts;
+
+        if (ts.isTerm()) {
+          Term* term = ts.term();
+
+          CollectTask newTask;
+          newTask.t = term;
+          newTask.contextSort = task.contextSort;
+
+          if (term->isSpecial()) {
+            newTask.fncTag = COLLECT_SPECIALTERM;
+            todo.push(newTask);
+          } else {
+            newTask.fncTag = COLLECT_TERM;
+            todo.push(newTask);
+          }
+        } else if (ts.isOrdinaryVar()) {
+          unsigned var = ts.var();
+          if (!map.insert(var, task.contextSort)) {
+            ASS_EQ(task.contextSort, map.get(var));
+          }
+        }
+
+      } break;
+
+      case COLLECT_SPECIALTERM: {
+        Term* term = task.t;
+
+        ASS(term->isSpecial());
+
+        Term::SpecialTermData* sd = term->getSpecialData();
+
+        switch (term->functor()) {
+          case Term::SF_ITE: {
+            CollectTask newTask;
+
+            newTask.fncTag = COLLECT_TERMLIST;
+            newTask.contextSort = task.contextSort;
+
+            newTask.ts = *term->nthArgument(0);
+            todo.push(newTask);
+
+            newTask.ts = *term->nthArgument(1);
+            todo.push(newTask);
+
+            newTask.fncTag = COLLECT_FORMULA;
+            newTask.f = sd->getCondition();
+            todo.push(newTask);
+
+            break;
+          }
+
+          case Term::SF_LET: {
+            TermList binding = sd->getBinding();
+            bool isPredicate = binding.isTerm() && binding.term()->isBoolean();
+            Signature::Symbol* symbol = isPredicate ? env.signature->getPredicate(sd->getFunctor())
+                                                    : env.signature->getFunction(sd->getFunctor());
+            unsigned position = 0;
+            Formula::VarList::Iterator vit(sd->getVariables());
+            while (vit.hasNext()) {
+              unsigned var = (unsigned)vit.next();
+              unsigned sort = isPredicate ? symbol->predType()->arg(position) : symbol->fnType()->arg(position);
+              if (!map.insert(var, sort)) {
+                ASS_EQ(sort, map.get(var));
+              }
+              position++;
+            }
+
+            CollectTask newTask;
+
+            newTask.fncTag = COLLECT_TERMLIST;
+            newTask.contextSort = task.contextSort;
+
+            newTask.ts = *term->nthArgument(0);
+            todo.push(newTask);
+
+            newTask.ts = binding;
+            if (!isPredicate) {
+              newTask.contextSort = symbol->fnType()->result();
+            }
+            todo.push(newTask);
+
+            break;
+          }
+
+          case Term::SF_LET_TUPLE: {
+            TermList binding = sd->getBinding();
+            Signature::Symbol* symbol = env.signature->getFunction(sd->getFunctor());
+
+            CollectTask newTask;
+            newTask.fncTag = COLLECT_TERMLIST;
+            newTask.contextSort = task.contextSort;
+            newTask.ts = *term->nthArgument(0);
+            todo.push(newTask);
+
+            newTask.contextSort = symbol->fnType()->result();
+            newTask.ts = binding;
+            todo.push(newTask);
+
+            break;
+          }
+
+          case Term::SF_FORMULA: {
+            CollectTask newTask;
+            newTask.fncTag = COLLECT_FORMULA;
+            newTask.f = sd->getFormula();
+            todo.push(newTask);
+          } break;
+
+          case Term::SF_TUPLE: {
+            CollectTask newTask;
+            newTask.fncTag = COLLECT_TERM;
+            newTask.t = sd->getTupleTerm();
+            todo.push(newTask);
+          } break;
+
+      #if VDEBUG
+          default:
+            ASSERTION_VIOLATION;
+      #endif
+        }
+      } break;
+
+      case COLLECT_FORMULA: {
+        Formula* f = task.f;
+
+        SubformulaIterator sfit(f);
+        while (sfit.hasNext()) {
+          Formula* sf = sfit.next();
+          switch (sf->connective()) {
+            case LITERAL: {
+              CollectTask newTask;
+              newTask.fncTag = COLLECT_TERM;
+              newTask.t = sf->literal();
+
+              todo.push(newTask);
+            } break;
+
+            case BOOL_TERM: {
+              TermList ts = sf->getBooleanTerm();
+              if (ts.isVar()) {
+                if (!map.insert(ts.var(), Sorts::SRT_BOOL)) {
+                  ASS_EQ(Sorts::SRT_BOOL, map.get(ts.var()));
+                }
+              } else {
+                ASS(ts.isTerm() && ts.term()->isSpecial());
+
+                CollectTask newTask;
+                newTask.fncTag = COLLECT_SPECIALTERM;
+                newTask.t = ts.term();
+                newTask.contextSort = Sorts::SRT_BOOL;
+
+                todo.push(newTask);
+              }
+              break;
+            }
+
+            default:
+              continue;
+          }
+        }
+
+      } break;
+    }
+  }
+}
+
 /**
  * Insert variable sorts from non-shared subterms of @c t0 into @c map. If a
  * variable is in map already (or appears multiple times), assert that the sorts
@@ -255,10 +455,19 @@ void SortHelper::collectVariableSorts(Term* term, DHMap<unsigned,unsigned>& map)
 {
   CALL("SortHelper::collectVariableSorts(Term*,...)");
 
+  CollectTask t;
+  t.fncTag = COLLECT_TERM;
+  t.t = term;
+
+  collectVariableSortsIter(t,map);
+
+  /*
   unsigned position = 0;
   for (TermList* ts = term->args(); ts->isNonEmpty(); ts = ts->next()) {
     collectVariableSorts(*ts, getArgSort(term, position++), map);
   }
+  */
+
 } // SortHelper::collectVariableSorts
 
 /**
@@ -271,6 +480,14 @@ void SortHelper::collectVariableSorts(TermList ts, unsigned contextSort, DHMap<u
 {
   CALL("SortHelper::collectVariableSorts(TermList,...)");
 
+  CollectTask t;
+  t.fncTag = COLLECT_TERMLIST;
+  t.ts = ts;
+  t.contextSort = contextSort;
+
+  collectVariableSortsIter(t,map);
+
+  /*
   if (ts.isTerm()) {
     Term* term = ts.term();
     if (term->isSpecial()) {
@@ -284,11 +501,20 @@ void SortHelper::collectVariableSorts(TermList ts, unsigned contextSort, DHMap<u
       ASS_EQ(contextSort, map.get(var));
     }
   }
+  */
 } // SortHelper::collectVariableSorts
 
 void SortHelper::collectVariableSortsSpecialTerm(Term* term, unsigned contextSort, DHMap<unsigned,unsigned>& map) {
   CALL("SortHelper::collectVariableSortsSpecialTerm(Term*,...)");
 
+  CollectTask task;
+  task.fncTag = COLLECT_SPECIALTERM;
+  task.t = term;
+  task.contextSort = contextSort;
+
+  collectVariableSortsIter(task,map);
+
+  /*
   ASS(term->isSpecial());
 
   Stack<TermList*> ts(0);
@@ -356,6 +582,7 @@ void SortHelper::collectVariableSortsSpecialTerm(Term* term, unsigned contextSor
   while (tit.hasNext()) {
     collectVariableSorts(*tit.next(), contextSort, map);
   }
+  */
 } // SortHelper::collectVariableSortsSpecialTerm
 
 /**
@@ -367,6 +594,13 @@ void SortHelper::collectVariableSorts(Formula* f, DHMap<unsigned,unsigned>& map)
 {
   CALL("SortHelper::collectVariableSorts(Formula*,...)");
 
+  CollectTask task;
+  task.fncTag = COLLECT_FORMULA;
+  task.f = f;
+
+  collectVariableSortsIter(task,map);
+
+  /*
   SubformulaIterator sfit(f);
   while (sfit.hasNext()) {
     Formula* sf = sfit.next();
@@ -392,6 +626,7 @@ void SortHelper::collectVariableSorts(Formula* f, DHMap<unsigned,unsigned>& map)
         continue;
     }
   }
+  */
 }
 
 /**
@@ -405,7 +640,13 @@ void SortHelper::collectVariableSorts(Unit* u, DHMap<unsigned,unsigned>& map)
 
   if (!u->isClause()) {
     FormulaUnit* fu = static_cast<FormulaUnit*>(u);
-    collectVariableSorts(fu->formula(), map);
+
+    CollectTask task;
+    task.fncTag = COLLECT_FORMULA;
+    task.f = fu->formula();
+
+    collectVariableSortsIter(task,map);
+
     return;
   }
 
@@ -413,7 +654,12 @@ void SortHelper::collectVariableSorts(Unit* u, DHMap<unsigned,unsigned>& map)
   Clause::Iterator cit(*cl);
   while (cit.hasNext()) {
     Literal* l = cit.next();
-    collectVariableSorts(l, map);
+
+    CollectTask task;
+    task.fncTag = COLLECT_TERM;
+    task.t = l;
+
+    collectVariableSortsIter(task,map);
   }
 }
 

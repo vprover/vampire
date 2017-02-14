@@ -29,8 +29,6 @@
 #define USE_MATCH_TAG 0
 
 #include "Sorts.hpp"
-#include "SortHelper.hpp"
-
 
 #define TERM_DIST_VAR_UNKNOWN 0x7FFFFF
 

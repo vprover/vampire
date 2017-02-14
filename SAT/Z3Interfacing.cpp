@@ -588,7 +588,6 @@ z3::expr Z3Interfacing::getz3expr(Term* trm,bool isLit,bool&nameExpression,bool 
            ret = z3::mod(args[0], args[1]);
            break;
 
-
        // Numerical comparisons
        // is_rat and to_rat not supported
 

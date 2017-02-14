@@ -295,7 +295,20 @@ Formula* FOOLElimination::process(Formula* formula) {
 
 FormulaList* FOOLElimination::process(FormulaList* formulas) {
   CALL ("FOOLElimination::process(FormulaList*)");
-  return FormulaList::isEmpty(formulas) ? formulas : new FormulaList(process(formulas->head()), process(formulas->tail()));
+
+  FormulaList*  res = FormulaList::empty();
+  FormulaList** ipt = &res;
+
+  while (!FormulaList::isEmpty(formulas)) {
+    Formula* processed = process(formulas->head());
+    *ipt = new FormulaList(processed,FormulaList::empty());
+    ipt = (*ipt)->tailPtr();
+    formulas = formulas->tail();
+  }
+
+  return res;
+
+  // return FormulaList::isEmpty(formulas) ? formulas : new FormulaList(process(formulas->head()), process(formulas->tail()));
 }
 
 /**
