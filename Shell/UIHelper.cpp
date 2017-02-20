@@ -18,6 +18,7 @@
 
 #include "Kernel/InferenceStore.hpp"
 #include "Kernel/Problem.hpp"
+#include "Kernel/FormulaUnit.hpp"
 
 #include "Parse/SMTLIB.hpp"
 #include "Parse/SMTLIB2.hpp"
@@ -146,6 +147,8 @@ void UIHelper::outputSaturatedSet(ostream& out, UnitIterator uit)
   out << "# SZS output end Saturation." << endl;
 } // outputSaturatedSet
 
+UnitList* parsedUnits;
+
 /**
  * Return problem object with units obtained according to the content of
  * @b env.options
@@ -239,11 +242,41 @@ Problem* UIHelper::getInputProblem(const Options& opts)
     input=0;
   }
 
+  // parsedUnits = units->copy();
+
   Problem* res = new Problem(units);
   res->setSMTLIBLogic(smtLibLogic);
 
   env.statistics->phase=Statistics::UNKNOWN_PHASE;
   return res;
+}
+
+static void printInterpolationProofTask(ostream& out, Formula* intp, Color avoid_color, bool negate)
+{
+  CALL("printInterpolationProofTask");
+
+  UIHelper::outputSortDeclarations(out);
+  UIHelper::outputSymbolDeclarations(out);
+
+  UnitList::Iterator uit(parsedUnits);
+  while (uit.hasNext()) {
+    Unit* u = uit.next();
+
+    if (u->inheritedColor() != avoid_color) { // TODO: this does not work, since some inherited colors are modified destructively by the interpolation extraction code
+      Unit* toPrint = u;
+      if (toPrint->isClause()) { // need formulas, for the many sorted case
+        Formula* f = Formula::fromClause(toPrint->asClause());
+        toPrint = new FormulaUnit(f,u->inference(),Unit::AXIOM);
+      } else {
+        u->setInputType(Unit::AXIOM); // need it to be axiom in any case; the interpolant will be the conjecture
+      }
+
+      out << TPTPPrinter::toString(toPrint) << endl;
+    }
+  }
+
+  FormulaUnit* intpUnit = new FormulaUnit(negate ? new NegatedFormula(intp) : intp,new Inference(Inference::INPUT),Unit::CONJECTURE);
+  out << TPTPPrinter::toString(intpUnit) << "\n";
 }
 
 /**
@@ -312,6 +345,17 @@ void UIHelper::outputResult(ostream& out)
         Formula* interpolantMinimizedNew1 = InterpolantMinimizerNew().getInterpolant(formulifiedRefutation, InterpolantsNew::UnitWeight::VAMPIRE);
         out << "New minimized Interpolant (standard weight): " << TPTPPrinter::toString(interpolantMinimizedNew1) << endl;
         out << "Actual weight: " << interpolantMinimizedNew1->weight() << endl;
+
+        /*
+        out << "%%%%% proofcheck L -> I %%%%%" << endl;
+        printInterpolationProofTask(out,interpolantMinimizedNew1,COLOR_RIGHT,false);
+        out << "%%%%%" << endl;
+
+        out << "%%%%% proofcheck R -> not I %%%%%" << endl;
+        printInterpolationProofTask(out,interpolantMinimizedNew1,COLOR_LEFT,true);
+        out << "%%%%%" << endl;
+        */
+
 //        
 //        // - get interpolant using new algorithm, quantifier weight and heuristic splitting function
 //        Formula* interpolantNew2 =InterpolantsNew().getInterpolant(env.statistics->refutation, InterpolantsNew::UnitWeight::QUANTIFIED_VARS);
@@ -338,6 +382,16 @@ void UIHelper::outputResult(ostream& out)
       out << "Symbol-weight minimized interpolant: " << TPTPPrinter::toString(interpolant) << endl;
       out << "Actual weight: " << interpolant->weight() << endl;
       out<<endl;
+
+      /*
+      out << "%%%%% proofcheck L -> I %%%%%" << endl;
+      printInterpolationProofTask(out,interpolant,COLOR_RIGHT,false);
+      out << "%%%%%" << endl;
+
+      out << "%%%%% proofcheck R -> not I %%%%%" << endl;
+      printInterpolationProofTask(out,interpolant,COLOR_LEFT,true);
+      out << "%%%%%" << endl;
+      */
 
       /*
       Formula* oldInterpolant = InterpolantMinimizer(InterpolantMinimizer::OT_WEIGHT, true, true, "Original interpolant weight").getInterpolant(static_cast<Clause*>(env.statistics->refutation));
