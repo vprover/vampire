@@ -322,12 +322,6 @@ namespace Shell
                 continue;
             }
             
-            /* otherwise we choose the following heuristic
-             * if the weighted sum of the conclusions of all parent inferences assigned
-             * to the red partition is greater than the weighted sum of the conclusions
-             * of all parent inferences assigned to the blue partition, then
-             * assign the inference to red, otherwise to blue
-             */
             number_grey++;
         }
         
