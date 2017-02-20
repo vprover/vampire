@@ -173,9 +173,9 @@ void mergeCopy(UIPairList*& tgt, UIPairList* src)
  * so that InterpolantMinimizer can consider this input unit as a result of a symbol eliminating inference.
  * (Without this, InterpolantMinimizer does not work properly is such cases.)
  */
-void Interpolants::beatifyRefutation(Unit* refutation)
+void Interpolants::beautifyRefutation(Unit* refutation)
 {
-  CALL("Interpolants::beatifyRefutation");
+  CALL("Interpolants::beautifyRefutation");
 
   Stack<Unit*> todo;
   DHSet<Unit*> seen;

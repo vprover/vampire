@@ -88,6 +88,8 @@ namespace Shell
                 }
             }
             
+            // TODO: the above may be adding the same constraint more than once
+
             // now add the main constraints: the conclusion of a parent-inference is included in the interpolant iff the
             // the parent inference is assigned a different partition than the current inference
             parents = InferenceStore::instance()->getParents(current);
@@ -125,9 +127,11 @@ namespace Shell
         solver.minimize(penaltyFunction);
 
         // set a time limit for z3 call in order to being able to fallback to heuristic splitting function for very big proofs
+        /* ":timeout" seems not to by supported by (the current version of) Z3 in this context
         params p(c);
         p.set(":timeout", static_cast<unsigned>(60000)); // in milliseconds, i.e. 1 minute
         solver.set(p);
+        */
         
         // we are now finished with adding constraints, so use z3 to compute an optimal model
         check_result result = solver.check();

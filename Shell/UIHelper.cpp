@@ -286,7 +286,7 @@ void UIHelper::outputResult(ostream& out)
     }
     if (env.options->showInterpolant()==Options::InterpolantMode::ON) {
       ASS(env.statistics->refutation->isClause());
-      Interpolants::beatifyRefutation(env.statistics->refutation);
+      Interpolants::beautifyRefutation(env.statistics->refutation);
 
       Unit* formulifiedRefutation = Interpolants::formulifyRefutation(env.statistics->refutation);
 
@@ -330,7 +330,7 @@ void UIHelper::outputResult(ostream& out)
     }
     if (env.options->showInterpolant()==Options::InterpolantMode::MINIMIZED) {
       ASS(env.statistics->refutation->isClause());
-      Interpolants::beatifyRefutation(env.statistics->refutation);
+      Interpolants::beautifyRefutation(env.statistics->refutation);
 
       Unit* formulifiedRefutation = Interpolants::formulifyRefutation(env.statistics->refutation);
 

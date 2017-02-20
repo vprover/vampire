@@ -23,7 +23,7 @@ public:
   Interpolants(DHSet<Unit*>* slicedOff=0) : _slicedOff(slicedOff) {}
   Formula* getInterpolant(Unit* refutation);
 
-  static void beatifyRefutation(Unit* refutation);
+  static void beautifyRefutation(Unit* refutation);
 
   static Unit* formulifyRefutation(Unit* refutation);
 private:
