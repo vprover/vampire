@@ -65,7 +65,8 @@ namespace Shell
          * implements so called "splitting function" from the thesis
          * (uses improved version of approach #2, cf. section 3.3).
          */
-        virtual std::unordered_map<Kernel::Unit*, Kernel::Color> computeSplittingFunction(Kernel::Unit* refutation, UnitWeight weightFunction);
+        typedef std::unordered_map<Kernel::Unit*, Kernel::Color> SplittingFunction;
+        virtual SplittingFunction computeSplittingFunction(Kernel::Unit* refutation, UnitWeight weightFunction);
         
         /*
          * helper method to compute the weight of a unit
@@ -76,13 +77,13 @@ namespace Shell
         /*
          * helper methods to compute interpolant
          */
-        typedef std::unordered_map<Kernel::Unit*, std::unordered_set<Kernel::Unit*>> BoundaryMap;
-        std::unordered_map<Kernel::Unit*, Kernel::Unit*> computeSubproofs(Kernel::Unit* refutation,
-                                                                          const std::unordered_map<Kernel::Unit*,Kernel::Color> splittingFunction);
-        std::pair<const BoundaryMap, const BoundaryMap> computeBoundaries(Kernel::Unit* refutation,
-                                                                          const std::unordered_map<Kernel::Unit*, Kernel::Color> splittingFunction,
-                                                                          const std::unordered_map<Kernel::Unit*, Kernel::Unit*>& unitsToRepresentative);
-        Kernel::Formula* generateInterpolant(std::pair<const BoundaryMap, const BoundaryMap>& boundaries);
+        typedef std::unordered_map<Kernel::Unit*, Kernel::Unit*> SubproofsUnionFind;
+        SubproofsUnionFind computeSubproofs(Kernel::Unit* refutation, const SplittingFunction& splittingFunction);
+
+        typedef std::pair<const std::unordered_set<Kernel::Unit*>, const std::unordered_set<Kernel::Unit*>> Boundary; // pair of inputNodes and outputNodes
+        Boundary computeBoundary(Kernel::Unit* refutation, const SplittingFunction& splittingFunction);
+        Kernel::Formula* generateInterpolant(Kernel::Unit* refutation, const Boundary& boundary, const SplittingFunction& splittingFunction,
+                                                                 const SubproofsUnionFind& unitsToRepresentative);
     private:
       
         /*

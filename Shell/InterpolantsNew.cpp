@@ -138,22 +138,22 @@ namespace Shell
         /*
          * compute coloring for the inferences, i.e. compute splitting function in the words of the thesis
          */
-        const std::unordered_map<Unit*, Color> splittingFunction = computeSplittingFunction(refutation, weightFunction);
+        const SplittingFunction splittingFunction = computeSplittingFunction(refutation, weightFunction);
         
         /*
          * compute A-subproofs
          */
-        const std::unordered_map<Unit*, Unit*> unitsToRepresentative = computeSubproofs(refutation, splittingFunction);
+        const SubproofsUnionFind unitsToRepresentative = computeSubproofs(refutation, splittingFunction);
         
         /*
          * collect all boundaries of the subproofs
          */
-        auto boundaries = computeBoundaries(refutation, splittingFunction, unitsToRepresentative);
+        const Boundary boundary = computeBoundary(refutation, splittingFunction);
         
         /*
          * generate the interpolant (i.e. the splitting formula in the words of the thesis, cf. Definition 3.1.2. of the thesis)
          */
-        const auto interpolant = generateInterpolant(boundaries);
+        const auto interpolant = generateInterpolant(refutation, boundary, splittingFunction, unitsToRepresentative);
         
         return interpolant;
     }
@@ -166,7 +166,7 @@ namespace Shell
      * Note: can't just use depth-first-search, since edge information is only saved in one direction in the nodes
      * Note: We represent each subproof by the conclusion of one of its inferences (the so called representative unit)
      */
-    std::unordered_map<Unit*, Unit*> InterpolantsNew::computeSubproofs(Unit* refutation, const std::unordered_map<Unit*, Color> splittingFunction)
+    InterpolantsNew::SubproofsUnionFind InterpolantsNew::computeSubproofs(Unit* refutation, const SplittingFunction& splittingFunction)
     {
         CALL("InterpolantsNew::computeSubproofs");
 
@@ -187,8 +187,8 @@ namespace Shell
                 {
                     Unit* premise = parents.next();
                     
-                    // if it is assigned to the A-part of the proof
-                    if (splittingFunction.at(premise) == COLOR_LEFT)
+                    // the parent may be from the B-part, this is to induce connectedness over a common parent
+                    // (Even then we want to merge, so that this parent appears only once in the final interpolant.)
                     {
                         // merge the subproof of the current inference with the subproof of the parent inference
                         merge(unitsToRepresentative, unitsToSize, current, premise);
@@ -205,15 +205,12 @@ namespace Shell
      * computes the boundaries of the A-subproofs using Breadth-first search (BFS)
      * Using idea from the thesis: a unit occurs as boundary of a subproof, if it has a different color than of its parents/ one of its children.
      */
-    std::pair<const InterpolantsNew::BoundaryMap, const InterpolantsNew::BoundaryMap> InterpolantsNew::computeBoundaries(Unit* refutation,
-                                                                                                                         const std::unordered_map<Kernel::Unit*, Kernel::Color> splittingFunction,
-                                                                                                                         const std::unordered_map<Unit*, Unit*>& unitsToRepresentative)
+    InterpolantsNew::Boundary InterpolantsNew::computeBoundary(Unit* refutation,const SplittingFunction& splittingFunction)
     {
-        CALL("InterpolantsNew::computeBoundaries");
+        CALL("InterpolantsNew::computeBoundary");
 
-        // Note: unordered_map never copies its values during rehashing, so no unique pointers are needed here!
-        std::unordered_map<Unit*, std::unordered_set<Unit*>> unitsToTopBoundaries; // maps each representative unit of a subproof to the top boundaries of that subproof
-        std::unordered_map<Unit*, std::unordered_set<Unit*>> unitsToBottomBoundaries; // maps each representative unit of a subproof to the bottom boundaries of that subproof
+        std::unordered_set<Kernel::Unit*> inputNodes;   // input is a blue premise of a red inference
+        std::unordered_set<Kernel::Unit*> outputNodes;  // output is a red premise of a blue inference or a red refutation
         
         ProofIteratorBFSPreOrder it(refutation); // traverse the proof in breadth-first pre-order
         while (it.hasNext())
@@ -224,8 +221,6 @@ namespace Shell
             ASS(splittingFunction.at(current) == COLOR_LEFT || splittingFunction.at(current) == COLOR_RIGHT);
             if (splittingFunction.at(current) == COLOR_LEFT)
             {
-                Unit* rootOfCurrent = root(unitsToRepresentative, current);
-                
                 // then for each parent inference,
                 VirtualIterator<Unit*> parents = InferenceStore::instance()->getParents(current);
                 while (parents.hasNext())
@@ -236,8 +231,7 @@ namespace Shell
                     ASS(splittingFunction.at(premise) == COLOR_LEFT || splittingFunction.at(premise) == COLOR_RIGHT);
                     if (splittingFunction.at(premise) != COLOR_LEFT)
                     {
-                        // add the premise (i.e. the conclusion of the parent inference) to upper boundaries of the subproof of currentUnit:
-                        unitsToTopBoundaries[rootOfCurrent].insert(premise);
+                        inputNodes.insert(premise);
                     }
                 }
             }
@@ -255,10 +249,7 @@ namespace Shell
                     ASS(splittingFunction.at(premise) == COLOR_LEFT || splittingFunction.at(premise) == COLOR_RIGHT);
                     if (splittingFunction.at(premise) == COLOR_LEFT)
                     {
-                        Unit* rootOfPremise = root(unitsToRepresentative, premise);
-                        
-                        // add the premise (i.e. the conclusion of the parent inference) to upper boundaries of the subproof of currentUnit:
-                        unitsToBottomBoundaries[rootOfPremise].insert(premise);
+                        outputNodes.insert(premise);
                     }
                 }
             }
@@ -267,85 +258,124 @@ namespace Shell
         // we finally have to check for the empty clause, if it appears as boundary of an A-subproof
         if (splittingFunction.at(refutation) == COLOR_LEFT)
         {
-            Unit* rootOfEmptyClause = root(unitsToRepresentative, refutation);
-            unitsToBottomBoundaries[rootOfEmptyClause].insert(refutation);
+            outputNodes.insert(refutation);
         }
 
-        return make_pair(std::move(unitsToTopBoundaries), std::move(unitsToBottomBoundaries));
+        return make_pair(std::move(inputNodes), std::move(outputNodes));
     }
     
     /*
-     * generate the interpolant from the boundaries as described in the thesis
+     * generate the interpolant from the boundary
      * Note: we already have collected all relevant information before calling this function, 
      * we now just need to build (and simplify) a formula out of the information.
      */
-    Formula* InterpolantsNew::generateInterpolant(std::pair<const InterpolantsNew::BoundaryMap, const InterpolantsNew::BoundaryMap>& boundaries)
+    Formula* InterpolantsNew::generateInterpolant(Kernel::Unit* refutation, const Boundary& boundary,
+                const SplittingFunction& splittingFunction, const SubproofsUnionFind& unitsToRepresentative)
     {
         CALL("InterpolantsNew::generateInterpolant");
 
-        const std::unordered_map<Unit*, std::unordered_set<Unit*>>& unitsToTopBoundaries = boundaries.first;
-        const std::unordered_map<Unit*, std::unordered_set<Unit*>>& unitsToBottomBoundaries = boundaries.second;
+        const std::unordered_set<Unit*>& inputNodes = boundary.first;
+        const std::unordered_set<Unit*>& outputNodes = boundary.second;
         
+        struct InterpolantBuilder {
+          int implCnt; // for statistics only
+
+          Kernel::Color lastCol;
+          FormulaList* conjuncts;
+          Formula* aside;
+          InterpolantBuilder() : implCnt(0), lastCol(COLOR_LEFT), conjuncts(FormulaList::empty()), aside(nullptr) {}
+
+          Formula* finiliseLeft() {
+            return JunctionFormula::generalJunction(Connective::AND, conjuncts);
+          }
+
+          Formula* finiliseRight() {
+            Formula* antecedent = JunctionFormula::generalJunction(Connective::AND, conjuncts);
+
+            implCnt++;
+
+            return new BinaryFormula(IMP,antecedent,aside);
+          }
+
+          Formula* finalise() {
+            if (lastCol == COLOR_LEFT) {
+              return finiliseLeft();
+            } else {
+              return finiliseRight();
+            }
+          }
+
+          void addLeft(Unit* u) {
+            if (lastCol != COLOR_LEFT) {
+              conjuncts = FormulaList::empty();
+              FormulaList::push(finiliseRight(),conjuncts);
+            }
+            FormulaList::push(u->getFormula(),conjuncts);
+
+            lastCol = COLOR_LEFT;
+          }
+
+          void addRight(Unit* u) {
+            if (lastCol != COLOR_RIGHT) {
+              aside = finiliseLeft();
+              conjuncts = FormulaList::empty();
+            }
+            FormulaList::push(u->getFormula(),conjuncts);
+
+            lastCol = COLOR_RIGHT;
+          }
+        };
+
+        // one nested implication for each connected A-part
+        std::unordered_map<Unit*, InterpolantBuilder> contributions;
+
+        // do dfs on the derivation and present results in the reversed order (using stack for it)
+        ProofIteratorPostOrder pipo(refutation);
+        static UnitStack buffer;
+        buffer.reset();
+        buffer.loadFromIterator(pipo);
+
+        UnitStack::Iterator it(buffer);
+        while (it.hasNext()) {
+          Unit* u = it.next();
+
+          if (outputNodes.find(u) != outputNodes.end()) {
+            ASS_EQ(splittingFunction.at(u),COLOR_LEFT);
+
+            Unit* uRoot = root(unitsToRepresentative, u);
+
+            contributions[uRoot].addLeft(u);
+
+          } else if (inputNodes.find(u) != inputNodes.end()) {
+            ASS_EQ(splittingFunction.at(u),COLOR_RIGHT);
+
+            Unit* uRoot = root(unitsToRepresentative, u);
+
+            contributions[uRoot].addRight(u);
+          }
+        }
+
         FormulaList* outerConjunction = FormulaList::empty();
-        
-        // Note: there are potentially subproofs without either topBoundaries or lowerBoundaries, so we
-        // compute list of all subproof representatives by conjoining keys of unitsToTopRepresentatives and
-        // unitsToBottomRepresentatives
-        std::unordered_set<Unit*> roots;
-        for (const auto& keyValuePair : unitsToTopBoundaries)
-        {
-            roots.insert(keyValuePair.first);
-        }
-        for(const auto& keyValuePair : unitsToBottomBoundaries)
-        {
-            roots.insert(keyValuePair.first);
-        }
-        
-        // for each subproof
-        for (const auto& root : roots)
-        {
-            // generate conjunction of topBoundaries
-            FormulaList* conjunction1List = FormulaList::empty();
 
-            auto it1 = unitsToTopBoundaries.find(root);
-            if (it1 != unitsToTopBoundaries.end())
-            {
-                const std::unordered_set<Unit*>& topBoundaries = (*it1).second;
-                
-                for (const auto& boundary : topBoundaries)
-                {
-                    FormulaList::push(boundary->getFormula(), conjunction1List);
-                }
-            }
-            Formula* conjunction1 = JunctionFormula::generalJunction(Connective::AND, conjunction1List);
+        // statistics only
+        vstring nestednesses;
 
-            // generate conjunction of bottomBoundaries
-            FormulaList* conjunction2List = FormulaList::empty();
-            
-            auto it2 = unitsToBottomBoundaries.find(root);
-            if (it2 != unitsToBottomBoundaries.end())
-            {
-                const std::unordered_set<Unit*>& bottomBoundaries = (*it2).second;
-                
-                for (const auto& boundary : bottomBoundaries)
-                {
-                    FormulaList::push(boundary->getFormula(), conjunction2List);
-                }
-            }
-            Formula* conjunction2 = JunctionFormula::generalJunction(Connective::AND, conjunction2List);
-            
-            
-            FormulaList* implicationList = FormulaList::empty();
-            FormulaList::push(new NegatedFormula(conjunction1), implicationList);
-            FormulaList::push(conjunction2, implicationList);
-            
-            Formula* implication = JunctionFormula::generalJunction(Connective::OR, implicationList);
-            FormulaList::push(implication, outerConjunction);
+        for (auto& rootBuilderPair : contributions) {
+          InterpolantBuilder& builder = rootBuilderPair.second;
+
+          FormulaList::push(builder.finalise(),outerConjunction);
+
+          nestednesses += Int::toString(builder.implCnt) + ",";
         }
-        
+
         // finally conjoin all generated implications and return the simplified result, which is the interpolant
         Formula* interpolant = JunctionFormula::generalJunction(Connective::AND, outerConjunction);
         
+        // print number of pieces
+        // print the depth of each ...
+
+        cout << "Number of red components: " << contributions.size() << endl;
+        cout << "Nestednesses: " << nestednesses << endl;
         cout << "Before simplification: " << interpolant->toString() << endl;
         cout << "Weight before simplification: " << interpolant->weight() << endl;
 
