@@ -360,6 +360,7 @@ VS_OBJ = Shell/AnswerExtractor.o\
          Shell/SMTFormula.o\
          Shell/FOOLElimination.o\
          Shell/Statistics.o\
+         Shell/SubexpressionIterator.o\
          Shell/SymbolDefinitionInlining.o\
          Shell/SymbolOccurrenceReplacement.o\
          Shell/SymCounter.o\
