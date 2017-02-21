@@ -306,6 +306,8 @@ namespace Shell
           }
 
           void addLeft(Unit* u) {
+            // cout << "addLeft " << u->toString() << endl;
+
             if (lastCol != COLOR_LEFT) {
               conjuncts = FormulaList::empty();
               FormulaList::push(finiliseRight(),conjuncts);
@@ -316,6 +318,8 @@ namespace Shell
           }
 
           void addRight(Unit* u) {
+            // cout << "addRight " << u->toString() << endl;
+
             if (lastCol != COLOR_RIGHT) {
               aside = finiliseLeft();
               conjuncts = FormulaList::empty();
@@ -338,6 +342,8 @@ namespace Shell
         UnitStack::Iterator it(buffer);
         while (it.hasNext()) {
           Unit* u = it.next();
+
+          // cout << "Next " << u->toString() << endl;
 
           if (outputNodes.find(u) != outputNodes.end()) {
             ASS_EQ(splittingFunction.at(u),COLOR_LEFT);

@@ -251,6 +251,7 @@ Problem* UIHelper::getInputProblem(const Options& opts)
   return res;
 }
 
+/*
 static void printInterpolationProofTask(ostream& out, Formula* intp, Color avoid_color, bool negate)
 {
   CALL("printInterpolationProofTask");
@@ -278,6 +279,7 @@ static void printInterpolationProofTask(ostream& out, Formula* intp, Color avoid
   FormulaUnit* intpUnit = new FormulaUnit(negate ? new NegatedFormula(intp) : intp,new Inference(Inference::INPUT),Unit::CONJECTURE);
   out << TPTPPrinter::toString(intpUnit) << "\n";
 }
+*/
 
 /**
  * Output result based on the content of
@@ -317,114 +319,55 @@ void UIHelper::outputResult(ostream& out)
 	out << "% SZS output end Proof for " << env.options->problemName() << endl << flush;
       }
     }
-    if (env.options->showInterpolant()==Options::InterpolantMode::ON) {
+    if (env.options->showInterpolant()!=Options::InterpolantMode::OFF) {
       ASS(env.statistics->refutation->isClause());
-      Interpolants::beautifyRefutation(env.statistics->refutation);
 
+      Interpolants::removeConjectureNodesFromRefutation(env.statistics->refutation);
       Unit* formulifiedRefutation = Interpolants::formulifyRefutation(env.statistics->refutation);
 
-        // old interpolation algorithm
-        /*
-        Formula* interpolant=Interpolants().getInterpolant(env.statistics->refutation);
-        out << "Old Interpolant: " << interpolant->toString() << endl;
-        */
-        
-        // new interpolation methods described in master thesis of Bernhard Gleiss
-        // - remove theory stuff
+      Formula* interpolant = nullptr;
+
+      switch(env.options->showInterpolant()) {
+      // new interpolation methods described in master thesis of Bernhard Gleiss
+      case Options::InterpolantMode::NEW_HEUR:
         InterpolantsNew().removeTheoryInferences(formulifiedRefutation); // do this only once for each proof!
-        // InterpolantMinimizerNew().analyzeLocalProof(env.statistics->refutation);
+        interpolant = InterpolantMinimizerNew().getInterpolant(formulifiedRefutation, InterpolantsNew::UnitWeight::VAMPIRE);
+        break;
+
+      case Options::InterpolantMode::NEW_OPT:
+        InterpolantsNew().removeTheoryInferences(formulifiedRefutation); // do this only once for each proof!
+
+        // InterpolantMinimizerNew().analyzeLocalProof(formulifiedRefutation);
+
+        interpolant = InterpolantsNew().getInterpolant(formulifiedRefutation, InterpolantsNew::UnitWeight::VAMPIRE);
+        break;
+
+      case Options::InterpolantMode::OLD:
+        interpolant = Interpolants().getInterpolant(formulifiedRefutation);
+        break;
         
-//        out << endl <<  "Proof without theory inferences" << endl;
-//        InferenceStore::instance()->outputProof(out, env.statistics->refutation);
-//
-//        // - get interpolant using new algorithm, standard weight and heuristic splitting function
-//        Formula* interpolantNew1 =InterpolantsNew().getInterpolant(env.statistics->refutation, InterpolantsNew::UnitWeight::VAMPIRE);
-//        out << "New Interpolant (standard weight): " << interpolantNew1->toString() << endl;
-//        
-//        // - get interpolant using new algorithm, standard weight and z3-optimized splitting function
-        Formula* interpolantMinimizedNew1 = InterpolantMinimizerNew().getInterpolant(formulifiedRefutation, InterpolantsNew::UnitWeight::VAMPIRE);
-        out << "New minimized Interpolant (standard weight): " << TPTPPrinter::toString(interpolantMinimizedNew1) << endl;
-        out << "Actual weight: " << interpolantMinimizedNew1->weight() << endl;
-
+      case Options::InterpolantMode::OLD_OPT:
+        Interpolants::fakeNodesFromRightButGrayInputsRefutation(formulifiedRefutation); // grey right input formulas are artificially made children of proper blue parents
+        interpolant = InterpolantMinimizer(InterpolantMinimizer::OT_WEIGHT, false, true, "Minimized interpolant weight").getInterpolant(formulifiedRefutation);
+        
         /*
-        out << "%%%%% proofcheck L -> I %%%%%" << endl;
-        printInterpolationProofTask(out,interpolantMinimizedNew1,COLOR_RIGHT,false);
-        out << "%%%%%" << endl;
-
-        out << "%%%%% proofcheck R -> not I %%%%%" << endl;
-        printInterpolationProofTask(out,interpolantMinimizedNew1,COLOR_LEFT,true);
-        out << "%%%%%" << endl;
+        Formula* oldInterpolant = InterpolantMinimizer(InterpolantMinimizer::OT_WEIGHT, true, true, "Original interpolant weight").getInterpolant(static_cast<Clause*>(env.statistics->refutation));
+        Formula* interpolant = InterpolantMinimizer(InterpolantMinimizer::OT_WEIGHT, false, true, "Minimized interpolant weight").getInterpolant(static_cast<Clause*>(env.statistics->refutation));
+        InterpolantMinimizer(InterpolantMinimizer::OT_COUNT, true, true, "Original interpolant count").getInterpolant(static_cast<Clause*>(env.statistics->refutation));
+        Formula* cntInterpolant = InterpolantMinimizer(InterpolantMinimizer::OT_COUNT, false, true, "Minimized interpolant count").getInterpolant(static_cast<Clause*>(env.statistics->refutation));
+        Formula* quantInterpolant =  InterpolantMinimizer(InterpolantMinimizer::OT_QUANTIFIERS, false, true, "Minimized interpolant quantifiers").getInterpolant(static_cast<Clause*>(env.statistics->refutation));
         */
 
-//        
-//        // - get interpolant using new algorithm, quantifier weight and heuristic splitting function
-//        Formula* interpolantNew2 =InterpolantsNew().getInterpolant(env.statistics->refutation, InterpolantsNew::UnitWeight::QUANTIFIED_VARS);
-//        out << "New Interpolant (quantifier weight): " << interpolantNew2->toString() << endl;
-//        
-//        // - get interpolant using new algorithm, quantifier weight and z3-optimized splitting function
-//        Formula* interpolantMinimizedNew2 = InterpolantMinimizerNew().getInterpolant(env.statistics->refutation, InterpolantsNew::UnitWeight::QUANTIFIED_VARS);
-//        out << "New minimized Interpolant (quantifier weight): " << interpolantMinimizedNew2->toString() << endl;
-//        
-//        out << "Weight-comparison: "<< endl;
-//        out << interpolant->weight() << " (weight old)"<< endl;
-//        out << interpolantNew1->weight() << " (weight new, standard)"<< endl;
-//        out << interpolantMinimizedNew1->weight() << " (weight new minimized, standard)"<< endl;
-//        out << interpolantNew2->weight() << " (weight new, quantifier)"<< endl;
-//        out << interpolantMinimizedNew2->weight() << " (weight new minimized, quantifier)"<< endl;
-    }
-    if (env.options->showInterpolant()==Options::InterpolantMode::MINIMIZED) {
-      ASS(env.statistics->refutation->isClause());
-      Interpolants::beautifyRefutation(env.statistics->refutation);
+        break;
+      case Options::InterpolantMode::OFF:
+        ASSERTION_VIOLATION;
+      }
 
-      Unit* formulifiedRefutation = Interpolants::formulifyRefutation(env.statistics->refutation);
-
-      Formula* interpolant = InterpolantMinimizer(InterpolantMinimizer::OT_WEIGHT, false, true, "Minimized interpolant weight").getInterpolant(formulifiedRefutation);
       out << "Symbol-weight minimized interpolant: " << TPTPPrinter::toString(interpolant) << endl;
       out << "Actual weight: " << interpolant->weight() << endl;
       out<<endl;
-
-      /*
-      out << "%%%%% proofcheck L -> I %%%%%" << endl;
-      printInterpolationProofTask(out,interpolant,COLOR_RIGHT,false);
-      out << "%%%%%" << endl;
-
-      out << "%%%%% proofcheck R -> not I %%%%%" << endl;
-      printInterpolationProofTask(out,interpolant,COLOR_LEFT,true);
-      out << "%%%%%" << endl;
-      */
-
-      /*
-      Formula* oldInterpolant = InterpolantMinimizer(InterpolantMinimizer::OT_WEIGHT, true, true, "Original interpolant weight").getInterpolant(static_cast<Clause*>(env.statistics->refutation));
-      Formula* interpolant = InterpolantMinimizer(InterpolantMinimizer::OT_WEIGHT, false, true, "Minimized interpolant weight").getInterpolant(static_cast<Clause*>(env.statistics->refutation));
-      InterpolantMinimizer(InterpolantMinimizer::OT_COUNT, true, true, "Original interpolant count").getInterpolant(static_cast<Clause*>(env.statistics->refutation));
-      Formula* cntInterpolant = InterpolantMinimizer(InterpolantMinimizer::OT_COUNT, false, true, "Minimized interpolant count").getInterpolant(static_cast<Clause*>(env.statistics->refutation));
-      Formula* quantInterpolant =  InterpolantMinimizer(InterpolantMinimizer::OT_QUANTIFIERS, false, true, "Minimized interpolant quantifiers").getInterpolant(static_cast<Clause*>(env.statistics->refutation));
-      
-      // SMTPrinter printer;
-      out << "Old interpolant (without minimization): " << TPTPPrinter::toString(oldInterpolant) << endl;
-      //out << "Old interpolant in SMT format (without minimization): ";
-      //printer.smtPrint(oldInterpolant,out);
-      out << endl;
-        
-      out << "Symbol-weight minimized interpolant: " << TPTPPrinter::toString(interpolant) << endl;
-      //out << "Symbol-weight minimized interpolant in SMT format: ";
-      //printer.smtPrint(interpolant,out);
-      out<<endl;
-
-      out << "Atom-count minimized interpolant: " << TPTPPrinter::toString(cntInterpolant) << endl;
-      //out << "Atom-count minimized interpolant in SMT format: ";
-      //printer.smtPrint(cntInterpolant,out);
-      out<<endl;
-        
-        
-      out << "Quantifiers minimized interpolant: " << TPTPPrinter::toString(quantInterpolant) << endl;
-      //out << "Quantifiers minimized interpolant in SMT format: ";
-      //printer.smtPrint(quantInterpolant,out);
-      out<<endl;
-
-      */
-
     }
+
     if (env.options->latexOutput() != "off") {
       BYPASSING_ALLOCATOR; // for ofstream 
       ofstream latexOut(env.options->latexOutput().c_str());

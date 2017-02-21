@@ -163,19 +163,13 @@ void mergeCopy(UIPairList*& tgt, UIPairList* src)
 /**
  * Any pre-processing of the refutation before interpolation is considered.
  *
- * Currently, we
- * 1) remove the leafs corresponding to the conjecture
+ * We remove the leafs corresponding to the conjecture
  * and leave the negated_conjecture child of this unit as the leaf instead.
  * (Inference::NEGATED_CONJECTURE is not sound).
- *
- * 2) for any input unit marked as properly colored but which is, in fact, transparent,
- * we add an artificial parent which is forced to pretend it was truly colored that way,
- * so that InterpolantMinimizer can consider this input unit as a result of a symbol eliminating inference.
- * (Without this, InterpolantMinimizer does not work properly is such cases.)
  */
-void Interpolants::beautifyRefutation(Unit* refutation)
+void Interpolants::removeConjectureNodesFromRefutation(Unit* refutation)
 {
-  CALL("Interpolants::beautifyRefutation");
+  CALL("Interpolants::removeConjectureNodesFromRefutation");
 
   Stack<Unit*> todo;
   DHSet<Unit*> seen;
@@ -186,8 +180,6 @@ void Interpolants::beautifyRefutation(Unit* refutation)
     if (!seen.insert(cur)) {
       continue;
     }
-
-    bool just_removed_conjecture = false;
 
     if (cur->inference()->rule() == Inference::NEGATED_CONJECTURE) {
       VirtualIterator<Unit*> pars = InferenceStore::instance()->getParents(cur);
@@ -207,8 +199,30 @@ void Interpolants::beautifyRefutation(Unit* refutation)
 
       cur->inference()->destroy();
       cur->setInference(new Inference(Inference::NEGATED_CONJECTURE)); // negated conjecture without a parent (non-standard, but nobody will see it)
+    }
 
-      just_removed_conjecture = true;
+    todo.loadFromIterator(InferenceStore::instance()->getParents(cur));
+  }
+}
+
+/**
+* For any input unit marked as properly colored but which is, in fact, transparent,
+* we add an artificial parent which is forced to pretend it was truly colored that way,
+* so that InterpolantMinimizer can consider this input unit as a result of a symbol eliminating inference.
+* (Without this, InterpolantMinimizer does not work properly is such cases.)
+ */
+void Interpolants::fakeNodesFromRightButGrayInputsRefutation(Unit* refutation)
+{
+  CALL("Interpolants::fakeNodesFromRightButGrayInputsRefutation");
+
+  Stack<Unit*> todo;
+  DHSet<Unit*> seen;
+
+  todo.push(refutation);
+  while (todo.isNonEmpty()) {
+    Unit* cur = todo.pop();
+    if (!seen.insert(cur)) {
+      continue;
     }
 
     {
@@ -217,10 +231,6 @@ void Interpolants::beautifyRefutation(Unit* refutation)
       if (!pars.hasNext() && // input-like, because no parents
           cur->inheritedColor() != COLOR_INVALID && cur->inheritedColor() != COLOR_TRANSPARENT && // proper inherited color
           cur->getColor() == COLOR_TRANSPARENT) {  // but in fact transparent
-
-          if (!just_removed_conjecture) {
-            ASS_EQ(cur->inference()->rule(),Inference::INPUT);
-          }
 
           Clause* fakeParent = Clause::fromIterator(LiteralIterator::getEmpty(), cur->inputType(), new Inference(Inference::INPUT));
           fakeParent->setInheritedColor(cur->inheritedColor());
@@ -235,6 +245,7 @@ void Interpolants::beautifyRefutation(Unit* refutation)
     todo.loadFromIterator(InferenceStore::instance()->getParents(cur));
   }
 }
+
 
 /**
  * Turn all Units in a refutation into FormulaUnits (casting Clauses to Formulas and wrapping these as Units).
