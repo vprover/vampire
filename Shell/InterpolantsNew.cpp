@@ -313,8 +313,9 @@ namespace Shell
             // cout << "addLeft " << u->toString() << endl;
 
             if (lastCol != COLOR_LEFT) {
+              Formula* f = finiliseRight();
               conjuncts = FormulaList::empty();
-              FormulaList::push(finiliseRight(),conjuncts);
+              FormulaList::push(f,conjuncts);
             }
             FormulaList::push(u->getFormula(),conjuncts);
 
