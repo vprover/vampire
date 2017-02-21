@@ -331,15 +331,14 @@ void UIHelper::outputResult(ostream& out)
       // new interpolation methods described in master thesis of Bernhard Gleiss
       case Options::InterpolantMode::NEW_HEUR:
         InterpolantsNew().removeTheoryInferences(formulifiedRefutation); // do this only once for each proof!
-        interpolant = InterpolantMinimizerNew().getInterpolant(formulifiedRefutation, InterpolantsNew::UnitWeight::VAMPIRE);
-        break;
-
-      case Options::InterpolantMode::NEW_OPT:
-        InterpolantsNew().removeTheoryInferences(formulifiedRefutation); // do this only once for each proof!
 
         // InterpolantMinimizerNew().analyzeLocalProof(formulifiedRefutation);
 
         interpolant = InterpolantsNew().getInterpolant(formulifiedRefutation, InterpolantsNew::UnitWeight::VAMPIRE);
+        break;
+      case Options::InterpolantMode::NEW_OPT:
+        InterpolantsNew().removeTheoryInferences(formulifiedRefutation); // do this only once for each proof!
+        interpolant = InterpolantMinimizerNew().getInterpolant(formulifiedRefutation, InterpolantsNew::UnitWeight::VAMPIRE);
         break;
 
       case Options::InterpolantMode::OLD:
