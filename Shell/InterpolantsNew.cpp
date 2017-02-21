@@ -286,10 +286,12 @@ namespace Shell
           InterpolantBuilder() : implCnt(0), lastCol(COLOR_LEFT), conjuncts(FormulaList::empty()), aside(nullptr) {}
 
           Formula* finiliseLeft() {
+            CALL("InterpolantsNew::InterpolantBuilder::finiliseLeft");
             return JunctionFormula::generalJunction(Connective::AND, conjuncts);
           }
 
           Formula* finiliseRight() {
+            CALL("InterpolantsNew::InterpolantBuilder::finiliseRight");
             Formula* antecedent = JunctionFormula::generalJunction(Connective::AND, conjuncts);
 
             implCnt++;
@@ -298,6 +300,7 @@ namespace Shell
           }
 
           Formula* finalise() {
+            CALL("InterpolantsNew::InterpolantBuilder::finalise");
             if (lastCol == COLOR_LEFT) {
               return finiliseLeft();
             } else {
@@ -306,6 +309,7 @@ namespace Shell
           }
 
           void addLeft(Unit* u) {
+            CALL("InterpolantsNew::InterpolantBuilder::addLeft");
             // cout << "addLeft " << u->toString() << endl;
 
             if (lastCol != COLOR_LEFT) {
@@ -318,6 +322,7 @@ namespace Shell
           }
 
           void addRight(Unit* u) {
+            CALL("InterpolantsNew::InterpolantBuilder::addRight");
             // cout << "addRight " << u->toString() << endl;
 
             if (lastCol != COLOR_RIGHT) {
@@ -331,7 +336,8 @@ namespace Shell
         };
 
         // one nested implication for each connected A-part
-        std::unordered_map<Unit*, InterpolantBuilder> contributions;
+        // std::unordered_map<Unit*, InterpolantBuilder> contributions;
+        InterpolantBuilder justOneNoodle;
 
         // do dfs on the derivation and present results in the reversed order (using stack for it)
         ProofIteratorPostOrder pipo(refutation);
@@ -348,19 +354,24 @@ namespace Shell
           if (outputNodes.find(u) != outputNodes.end()) {
             ASS_EQ(splittingFunction.at(u),COLOR_LEFT);
 
+            /*
             Unit* uRoot = root(unitsToRepresentative, u);
-
             contributions[uRoot].addLeft(u);
+            */
+            justOneNoodle.addLeft(u);
 
           } else if (inputNodes.find(u) != inputNodes.end()) {
             ASS_EQ(splittingFunction.at(u),COLOR_RIGHT);
 
+            /*
             Unit* uRoot = root(unitsToRepresentative, u);
-
             contributions[uRoot].addRight(u);
+            */
+            justOneNoodle.addRight(u);
           }
         }
 
+        /*
         FormulaList* outerConjunction = FormulaList::empty();
 
         // statistics only
@@ -373,15 +384,17 @@ namespace Shell
 
           nestednesses += Int::toString(builder.implCnt) + ",";
         }
+        */
 
         // finally conjoin all generated implications and return the simplified result, which is the interpolant
-        Formula* interpolant = JunctionFormula::generalJunction(Connective::AND, outerConjunction);
+        //Formula* interpolant = JunctionFormula::generalJunction(Connective::AND, outerConjunction);
+        Formula* interpolant = justOneNoodle.finalise();
         
         // print number of pieces
         // print the depth of each ...
 
-        cout << "Number of red components: " << contributions.size() << endl;
-        cout << "Nestednesses: " << nestednesses << endl;
+        // cout << "Number of red components: " << contributions.size() << endl;
+        cout << "Nestedness: " << justOneNoodle.implCnt << endl;
         cout << "Before simplification: " << interpolant->toString() << endl;
         cout << "Weight before simplification: " << interpolant->weight() << endl;
 
