@@ -233,10 +233,10 @@ public:
   void scan(Unit*);
   void scan(Clause*);
   void scan(FormulaUnit*);
-  void scan(Formula*);
-  void scan(TermList* ts);
+  void scan(Formula*, int polarity);
+  void scan(TermList ts);
   void scan(Literal* lit,int polarity = 1);
-  void scanSpecialTerm(Term* t);
+  void scan(Term* t);
   void scanSort(unsigned sort);
 
   char axiomTypes() const;
