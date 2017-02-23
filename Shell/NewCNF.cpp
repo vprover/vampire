@@ -594,11 +594,17 @@ TermList NewCNF::eliminateLet(Term::SpecialTermData *sd, TermList contents)
 
     for (unsigned proj = 0; proj < tupleType->arity(); proj++) {
       unsigned symbol = (unsigned)symbols->nth(proj);
+      bool isPredicate = tupleType->arg(proj) == Sorts::SRT_BOOL;
 
       unsigned projFunctor = Theory::tuples()->getProjectionFunctor(proj, tupleSort);
-      TermList projectedArgument = TermList(Term::create1(projFunctor, tupleTerm));
+      Term* projectedArgument;
+      if (isPredicate) {
+        projectedArgument = Term::createFormula(new AtomicFormula(Literal::create1(projFunctor, 1, tupleTerm)));
+      } else {
+        projectedArgument = Term::create1(projFunctor, tupleTerm);
+      }
 
-      SymbolDefinitionInlining inlining(symbol, 0, projectedArgument, 0);
+      SymbolDefinitionInlining inlining(symbol, 0, TermList(projectedArgument), 0);
       detupledContents = inlining.process(detupledContents);
     }
 

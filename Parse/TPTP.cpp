@@ -1934,6 +1934,7 @@ void TPTP::endTupleBinding() {
     unsigned symbol;
     if (isPredicate) {
       symbol = env.signature->addFreshPredicate(0, name.c_str());
+      env.signature->getPredicate(symbol)->setType(new PredicateType(0, 0));
     } else {
       symbol = env.signature->addFreshFunction(0, name.c_str());
       env.signature->getFunction(symbol)->setType(new FunctionType(sort));
@@ -4274,10 +4275,12 @@ void TPTP::printStacks() {
     if (!vit.hasNext()) {
       cout << " <empty>";
     } else {
+      cout << " [";
       while (vit.hasNext()) {
         cout << vit.next();
         if (vit.hasNext()) cout << " ";
       };
+      cout << "]";
     }
   }
   cout << endl;
