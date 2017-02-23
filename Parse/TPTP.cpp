@@ -1472,7 +1472,7 @@ void TPTP::endTheoryFunction() {
 
       unsigned arraySort = sortOf(array);
       if (!env.sorts->hasStructuredSort(arraySort, Sorts::StructuredSort::ARRAY)) {
-        USER_ERROR("$select is being incorrectly used on a type of array that has not be defined");
+        USER_ERROR("$select is being incorrectly used on a type of array " + env.sorts->sortName(arraySort) + " that has not be defined");
       }
 
       unsigned indexSort = env.sorts->getArraySort(arraySort)->getIndexSort();
@@ -2022,14 +2022,16 @@ void TPTP::endTuple()
   unsigned arity = (unsigned)_ints.pop();
   ASS_GE(_termLists.size(), arity);
 
-  TermList* elements = new TermList[arity];
-  unsigned* sorts = new unsigned[arity];
+  DArray<TermList> elements(arity);
+  DArray<unsigned> sorts(arity);
+
   for (int i = arity - 1; i >= 0; i--) {
-    elements[i] = _termLists.pop();
-    sorts[i] = sortOf(elements[i]);
+    TermList ts = _termLists.pop();
+    elements[i] = ts;
+    sorts[i] = sortOf(ts);
   }
 
-  Term* t = Term::createTuple(arity, sorts, elements);
+  Term* t = Term::createTuple(arity, sorts.begin(), elements.begin());
   _termLists.push(TermList(t));
 } // endTuple
 
