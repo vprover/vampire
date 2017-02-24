@@ -191,7 +191,7 @@ Term* Rectify::rectifySpecialTerm(Term* t)
     if (binding == sd->getBinding() && contents == *t->nthArgument(0)) {
       return t;
     }
-    return Term::createLet(sd->getFunctor(), sd->getTupleSymbols(), binding, contents, sd->getSort());
+    return Term::createTupleLet(sd->getFunctor(), sd->getTupleSymbols(), binding, contents, sd->getSort());
   }
   case Term::SF_FORMULA:
   {
