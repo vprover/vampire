@@ -487,6 +487,11 @@ void Property::scan(Literal* lit, int polarity)
 
   scanForInterpreted(lit);
 
+  SubtermIterator stit(new AtomicFormula(lit));
+  while (stit.hasNext()) {
+    scan(stit.next());
+  }
+
   if (!hasProp(PR_HAS_INEQUALITY_RESOLVABLE_WITH_DELETION) && lit->isEquality() && lit->shared()
      && ((lit->isNegative() && polarity == 1) || (!lit->isNegative() && polarity == -1) || polarity == 0)
      && !lit->ground() &&
@@ -515,6 +520,10 @@ void Property::scan(TermList ts)
   _terms++;
   if (ts.isVar()) {
     _variablesInThisClause++;
+    return;
+  }
+
+  if (!ts.isTerm()) {
     return;
   }
 
