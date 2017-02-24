@@ -2220,12 +2220,6 @@ void TPTP::term()
       return;
     }
 
-    case T_LPAR:
-      resetToks();
-      addTagState(T_RPAR);
-      _states.push(TERM);
-      return;
-
     default:
       _states.push(FORMULA_INSIDE_TERM);
   }
