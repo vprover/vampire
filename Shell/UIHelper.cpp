@@ -300,8 +300,7 @@ void UIHelper::outputResult(ostream& out)
       return;
     }
     addCommentIfCASC(out);
-    out << "Refutation found. Thanks to "
-	<< env.options->thanks() << "!\n";
+    out << "Refutation found. Thanks to " << env.options->thanks() << "!" << endl;
     if (szsOutput) {
       out << "% SZS status " << ( UIHelper::haveConjecture() ? "Theorem" : "Unsatisfiable" )
 	  << " for " << env.options->problemName() << endl;
