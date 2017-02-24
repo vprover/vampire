@@ -162,7 +162,12 @@ Formula* SymbolDefinitionInlining::process(Formula* formula) {
         if (literal->polarity()) {
           return BoolTermFormula::create(substitute(terms));
         } else {
-          return new NegatedFormula(BoolTermFormula::create(substitute(terms)));
+          Formula* negation = BoolTermFormula::create(substitute(terms));
+          if (negation->connective() == LITERAL) {
+            return new AtomicFormula(Literal::complementaryLiteral(negation->literal()));
+          } else {
+            return new NegatedFormula(negation);
+          }
         }
       }
 
