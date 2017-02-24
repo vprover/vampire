@@ -342,8 +342,6 @@ void Property::scan(FormulaUnit* unit)
 
     if (expr->isFormula()) {
       scan(expr->getFormula(), polarity);
-    } else if (expr->isTermList()) {
-      scan(expr->getTermList());
     } else if (expr->isTerm()) {
       scan(expr->getTerm());
     } else {
@@ -513,16 +511,14 @@ void Property::scan(Literal* lit, int polarity)
  */
 void Property::scan(TermList ts)
 {
-  CALL("Property::scan(TermList))");
+  CALL("Property::scan(TermList)");
   _terms++;
   if (ts.isVar()) {
     _variablesInThisClause++;
+    return;
   }
-} // Property::scan(const TermList* ts)
 
-void Property::scan(Term* t)
-{
-  CALL("Property::scan(Term*)");
+  Term* t = ts.term();
 
   if (t->isSpecial()) {
     _hasFOOL = true;

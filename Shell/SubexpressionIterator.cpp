@@ -18,7 +18,7 @@ namespace Shell {
     }
   }
   SubexpressionIterator::SubexpressionIterator(Term* t) {
-    _subexpressions.push(new Expression(t));
+    _subexpressions.push(new Expression(TermList(t)));
   }
   SubexpressionIterator::SubexpressionIterator(TermList ts) {
     _subexpressions.push(new Expression(ts));
@@ -93,7 +93,12 @@ namespace Shell {
       }
 
       case Expression::Tag::TERM: {
-        Term* term = expression->_term;
+        TermList ts = expression->_term;
+        if (!ts.isTerm()) {
+          break;
+        }
+
+        Term* term = ts.term();
         if (term->isSpecial()) {
           Term::SpecialTermData* sd = term->getSpecialData();
           switch (sd->getType()) {
@@ -145,14 +150,6 @@ namespace Shell {
         break;
       }
 
-      case Expression::Tag::TERM_LIST: {
-        TermList ts = expression->_termList;
-        if (ts.isTerm()) {
-          _subexpressions.push(new Expression(ts.term()));
-        }
-        break;
-      }
-
 #if VDEBUG
       default:
         ASSERTION_VIOLATION_REP(expression->_tag);
@@ -160,30 +157,5 @@ namespace Shell {
     }
 
     return expression;
-  }
-
-  bool SubformulaIterator::hasNext() {
-    CALL("SubformulaIterator::hasNext");
-    while (_sei.hasNext()) {
-      SubexpressionIterator::Expression* expression = _sei.next();
-      if (expression->isFormula()) {
-        _next = expression->getFormula();
-        _polarity = expression->getPolarity();
-        return true;
-      }
-    }
-    return false;
-  }
-
-  bool SubtermIterator::hasNext() {
-    CALL("SubtermIterator::hasNext");
-    while (_sei.hasNext()) {
-      SubexpressionIterator::Expression* expression = _sei.next();
-      if (expression->isTermList()) {
-        _next = expression->getTermList();
-        return true;
-      }
-    }
-    return false;
   }
 }

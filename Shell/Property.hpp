@@ -236,7 +236,6 @@ public:
   void scan(Formula*, int polarity);
   void scan(TermList ts);
   void scan(Literal* lit,int polarity = 1);
-  void scan(Term* t);
   void scanSort(unsigned sort);
 
   char axiomTypes() const;

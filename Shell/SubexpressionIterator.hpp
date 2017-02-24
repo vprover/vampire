@@ -24,10 +24,10 @@ namespace Shell {
       USE_ALLOCATOR(SubexpressionIterator);
       /**
        * SubexpressionIterator::Expression represents an expression, which is
-       * either a term or a formula. At the same time, each object of Expression
-       * has a tag with one of three values. This has to do with the way terms are
-       * represented in Vampire. Objects of the class Term are non-variable terms,
-       * while variables are represented as special values of TermList.
+       * either a term or a formula. Terms are stored as objects of TermList,
+       * and not of Term. This has to do with the way Vampire represents terms.
+       * Objects of the class Term are non-variable terms, while variables are
+       * represented as special values of TermList.
        *
        * Each expression has a polarity. For formula expressions, this is the
        * polarity of the formula. For terms, polarity is not meaningful, but it
@@ -49,21 +49,19 @@ namespace Shell {
 
           enum Tag {
             FORMULA,
-            TERM_LIST,
             TERM
           };
 
           Expression(Formula* f): Expression(f, 1) {}
           Expression(Formula* f, int polarity): _tag(FORMULA), _formula(f), _polarity(polarity) {}
           Expression(TermList ts): Expression(ts, 1) {}
-          Expression(TermList ts, int polarity): _tag(TERM_LIST), _termList(ts), _polarity(polarity) {}
-          Expression(Term* t): Expression(t, 1) {}
-          Expression(Term* t, int polarity): _tag(TERM), _term(t), _polarity(polarity) {}
+          Expression(TermList ts, int polarity): _tag(TERM), _term(ts), _polarity(polarity) {}
+          Expression(Term* t): Expression(TermList(t)) {}
+          Expression(Term* t, int polarity): Expression(TermList(t), polarity) {}
 
           bool isTerm() { return _tag == TERM; }
-          Term* getTerm() { ASS(isTerm()); return _term; }
-          bool isTermList() { return _tag == TERM_LIST; }
-          TermList getTermList() { ASS(isTermList()); return _termList; }
+          TermList getTerm() { ASS(isTerm()); return _term; }
+
           bool isFormula() { return _tag == FORMULA; }
           Formula* getFormula() { ASS(isFormula()); return _formula; }
 
@@ -75,8 +73,7 @@ namespace Shell {
           Tag _tag;
           union {
             Formula* _formula;
-            TermList _termList;
-            Term* _term;
+            TermList _term;
           };
           int _polarity;
       };
@@ -100,14 +97,25 @@ namespace Shell {
       SubformulaIterator(Term* t): _sei(t) {}
       SubformulaIterator(TermList ts): _sei(ts) {}
 
-      bool hasNext();
+      bool hasNext() {
+        CALL("SubformulaIterator::hasNext");
+        while (_sei.hasNext()) {
+          SubexpressionIterator::Expression* expression = _sei.next();
+          if (expression->isFormula()) {
+            _next = expression->getFormula();
+            _polarity = expression->getPolarity();
+            return true;
+          }
+        }
+        return false;
+      }
       Formula* next() {
         int dummy;
         return next(dummy);
       }
       Formula* next(int& polarity) {
         CALL("SubformulaIterator::next(int&)");
-        ASS(hasNext());
+        ASS(_next);
         polarity = _polarity;
         return _next;
       }
@@ -125,10 +133,18 @@ namespace Shell {
       SubtermIterator(Term* t): _sei(t) {}
       SubtermIterator(TermList ts): _sei(ts) {}
 
-      bool hasNext();
+      bool hasNext() {
+        CALL("SubtermIterator::hasNext");
+        while (_sei.hasNext()) {
+          SubexpressionIterator::Expression* expression = _sei.next();
+          if (expression->isTerm()) {
+            _next = expression->getTerm();
+            return true;
+          }
+        }
+        return false;
+      }
       TermList next() {
-        CALL("SubtermIterator::next");
-        ASS(hasNext());
         return _next;
       }
 
@@ -136,7 +152,6 @@ namespace Shell {
       SubexpressionIterator _sei;
       TermList _next;
   };
-
- }
+}
 
 #endif // __SubexpressionIterator__
