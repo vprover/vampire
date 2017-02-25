@@ -216,7 +216,8 @@ TermQueryResultIterator TermSubstitutionTree::getResultIterator(Term* trm,
     }
   }
 
-  if(withConstraints){
+  // DO NOT ALLOW UNIFICATIONS AT THE TOP LEVEL
+  if(false){
     ASS(retrieveSubstitutions);
     // this true means that I am allowed to pass a non-variable term to getAllUnifyingIterator
     TermQueryResultIterator other = getAllUnifyingIterator(TermList(trm),retrieveSubstitutions,true); 
@@ -284,7 +285,8 @@ struct TermSubstitutionTree::UnifyingContext
     RobSubstitution* subst=qr.substitution->tryGetRobSubstitution();
     ASS(subst);
     bool unified = subst->unify(_queryTerm, QRS_QUERY_BANK, qr.term, QRS_RESULT_BANK);
-    unsigned srt;
+    //unsigned srt;
+/*
     if(_withConstraints && !unified && 
        SortHelper::tryGetResultSort(_queryTerm,srt) && srt < Sorts::FIRST_USER_SORT && srt!=Sorts::SRT_DEFAULT){
       UnificationConstraintStackSP constraints = qr.constraints;
@@ -299,6 +301,7 @@ struct TermSubstitutionTree::UnifyingContext
 
       // I don't expect okay to be false at this point as if one is a variable the above unify would succeed 
       bool okay = _queryTerm.isTerm() && qr.term.isTerm();
+      ASS(okay);
       switch(opt){
         case Options::UnificationWithAbstraction::INTERP_ONLY:
           okay &= (queryInterp && termInterp && !bothNumbers);
@@ -323,6 +326,7 @@ struct TermSubstitutionTree::UnifyingContext
         unified=true;
       }
     }
+*/
     ASS(unified || _withConstraints);
     return unified;
   }
@@ -375,7 +379,9 @@ TermQueryResultIterator TermSubstitutionTree::getAllUnifyingIterator(TermList tr
 
   // If we are searching withConstraints it means that we have already added in
   // the results related to _vars, we are only interested in non-unifying leaves
-  if(withConstraints){
+
+  // STOP DOING THIS AT THE TOP LEVEL
+  if(false){
     return ldIteratorToTQRIterator(it1,trm, retrieveSubstitutions,withConstraints);
   }
   else{
