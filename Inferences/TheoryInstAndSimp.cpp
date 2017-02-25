@@ -265,6 +265,9 @@ VirtualIterator<Solution> TheoryInstAndSimp::getSolutions(Stack<Literal*>& theor
   SATSolver::Status status = solver.solve(UINT_MAX);
 
   if(status == SATSolver::UNSATISFIABLE){
+#if DPRINT
+    cout << "z3 says unsat" << endl;
+#endif
     return pvi(getSingletonIterator(Solution(false)));
   }
   else if(status == SATSolver::SATISFIABLE){
@@ -293,6 +296,9 @@ VirtualIterator<Solution> TheoryInstAndSimp::getSolutions(Stack<Literal*>& theor
   }
 
   fail:
+#if DRPINT
+    cout << "no solution" << endl;
+#endif
 
   // SMT solving was incomplete
   return VirtualIterator<Solution>::getEmpty(); 

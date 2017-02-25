@@ -324,6 +324,9 @@ protected:
         }
         out<<") ";
       }
+      if(cl->isTheoryDescendant()){
+        out << "(TD) ";
+      }
     }
     else {
       FormulaUnit* fu=static_cast<FormulaUnit*>(cs);

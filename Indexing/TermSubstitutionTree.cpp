@@ -284,7 +284,9 @@ struct TermSubstitutionTree::UnifyingContext
     RobSubstitution* subst=qr.substitution->tryGetRobSubstitution();
     ASS(subst);
     bool unified = subst->unify(_queryTerm, QRS_QUERY_BANK, qr.term, QRS_RESULT_BANK);
-    if(_withConstraints && !unified){
+    unsigned srt;
+    if(_withConstraints && !unified && 
+       SortHelper::tryGetResultSort(_queryTerm,srt) && srt < Sorts::FIRST_USER_SORT && srt!=Sorts::SRT_DEFAULT){
       UnificationConstraintStackSP constraints = qr.constraints;
       ASS(!constraints.isEmpty());
       //current usage tells us that if we are querying withConstraints then
