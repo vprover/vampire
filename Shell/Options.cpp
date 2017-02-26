@@ -774,7 +774,7 @@ void Options::Options::init()
 
 #if VZ3
 
-           _theoryInstAndSimp = ChoiceOptionValue<TheoryInstSimp>("theory_inst_and_simp","this",
+           _theoryInstAndSimp = ChoiceOptionValue<TheoryInstSimp>("theory_instantiation","thi",
                                                 TheoryInstSimp::OFF,{"off","all","strong","overlap"});
            _theoryInstAndSimp.description = ""; 
            _theoryInstAndSimp.tag(OptionTag::INFERENCES);
@@ -783,7 +783,7 @@ void Options::Options::init()
 #endif
            _unificationWithAbstraction = ChoiceOptionValue<UnificationWithAbstraction>("unification_with_abstraction","uwa",
                                              UnificationWithAbstraction::OFF,
-                                             {"off","interpreted_only","one_side_interpreted","one_side_constant","all"});
+                                             {"off","interpreted_only","one_side_interpreted","one_side_constant","all","ground"});
            _unificationWithAbstraction.description="";
            _unificationWithAbstraction.tag(OptionTag::INFERENCES);
            _lookup.insert(&_unificationWithAbstraction);

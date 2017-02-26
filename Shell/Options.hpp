@@ -209,7 +209,8 @@ public:
     INTERP_ONLY,
     ONE_INTERP,
     CONSTANT,
-    ALL
+    ALL,
+    GROUND
   };
 
   enum class TheoryAxiomLevel : unsigned int {

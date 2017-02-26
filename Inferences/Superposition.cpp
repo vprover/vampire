@@ -633,6 +633,18 @@ Clause* Superposition::performSuperposition(
 
       unsigned sort = SortHelper::getResultSort(rT.term());
       Literal* constraint = Literal::createEquality(false,qT,rT,sort);
+
+      static Options::UnificationWithAbstraction uwa = env.options->unificationWithAbstraction();
+      if(uwa==Options::UnificationWithAbstraction::GROUND && 
+         !constraint->ground() &&
+         (!theory->isInterpretedFunction(qT) && !theory->isInterpretedConstant(qT)) &&
+         (!theory->isInterpretedFunction(rT) && !theory->isInterpretedConstant(rT))){
+
+        // the unification was between two uninterpreted things that were not ground 
+        res->destroy();
+        return 0;
+      }
+
       (*res)[next] = constraint;
       next++;   
     }
