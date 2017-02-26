@@ -27,9 +27,9 @@ using namespace Lib;
 using namespace Kernel;
 
 TheoryFlattening::TheoryFlattening(bool rec, bool share) : _recursive(rec), _sharing(share) {
-    if(rec && share){
-      USER_ERROR("Theory flattening which is recursive with sharing has not been tested");
-    }
+    //if(rec && share){
+    //  USER_ERROR("Theory flattening which is recursive with sharing has not been tested");
+    //}
 }
 
 void TheoryFlattening::apply(Problem& prb)

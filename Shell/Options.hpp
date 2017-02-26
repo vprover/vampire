@@ -202,7 +202,8 @@ public:
     OFF,
     ALL,    // select all interpreted
     STRONG, // select strong only
-    OVERLAP // select strong and weak which overlap with strong
+    OVERLAP, // select strong and weak which overlap with strong
+    FULL    // perform full abstraction
   };
   enum class UnificationWithAbstraction : unsigned int {
     OFF,

@@ -775,7 +775,7 @@ void Options::Options::init()
 #if VZ3
 
            _theoryInstAndSimp = ChoiceOptionValue<TheoryInstSimp>("theory_instantiation","thi",
-                                                TheoryInstSimp::OFF,{"off","all","strong","overlap"});
+                                                TheoryInstSimp::OFF,{"off","all","strong","overlap","full"});
            _theoryInstAndSimp.description = ""; 
            _theoryInstAndSimp.tag(OptionTag::INFERENCES);
            _lookup.insert(&_theoryInstAndSimp);

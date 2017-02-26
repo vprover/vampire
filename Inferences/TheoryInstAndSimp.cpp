@@ -109,7 +109,9 @@ void TheoryInstAndSimp::selectTheoryLiterals(Clause* cl, Stack<Literal*>& theory
       bool pos_equality = lit->isEquality() && lit->polarity();
       // currently weak literals are postive equalities or ground literals
       bool is_weak = !vit.hasNext() || pos_equality;
-      if(selection != Shell::Options::TheoryInstSimp::ALL && is_weak){
+      if(selection != Shell::Options::TheoryInstSimp::ALL && 
+         selection != Shell::Options::TheoryInstSimp::FULL && 
+         is_weak){
         weak.push(lit);
       }
       else{
@@ -429,7 +431,8 @@ ClauseIterator TheoryInstAndSimp::generateClauses(Clause* premise,bool& premiseR
   //Limits* limits = _salg->getLimits();
 
   // we will use flattening which is non-recursive and sharing
-  static TheoryFlattening flattener(false,true);
+  static Options::TheoryInstSimp thi = env.options->theoryInstAndSimp();
+  static TheoryFlattening flattener((thi==Options::TheoryInstSimp::FULL),true);
 
   Clause* flattened = flattener.apply(premise,selectedLiterals);
 
