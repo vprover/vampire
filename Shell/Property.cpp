@@ -337,15 +337,15 @@ void Property::scan(FormulaUnit* unit)
 
   SubexpressionIterator sei(f);
   while (sei.hasNext()) {
-    SubexpressionIterator::Expression* expr = sei.next();
-    int polarity = expr->getPolarity();
+    SubexpressionIterator::Expression expr = sei.next();
+    int polarity = expr.getPolarity();
 
-    if (expr->isFormula()) {
-      scan(expr->getFormula(), polarity);
-    } else if (expr->isTerm()) {
-      scan(expr->getTerm());
+    if (expr.isFormula()) {
+      scan(expr.getFormula(), polarity);
+    } else if (expr.isTerm()) {
+      scan(expr.getTerm());
     } else {
-      ASSERTION_VIOLATION_REP(expr);
+      ASSERTION_VIOLATION;
     }
   }
 

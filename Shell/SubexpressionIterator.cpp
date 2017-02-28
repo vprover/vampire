@@ -8,20 +8,20 @@ namespace Shell {
   using namespace Kernel;
 
   SubexpressionIterator::SubexpressionIterator(Formula* f) {
-    _subexpressions.push(new Expression(f));
+    _subexpressions.push(Expression(f));
   }
   SubexpressionIterator::SubexpressionIterator(FormulaList* fs) {
     FormulaList::Iterator fi(fs);
     while (fi.hasNext()) {
       Formula* f = fi.next();
-      _subexpressions.push(new Expression(f));
+      _subexpressions.push(Expression(f));
     }
   }
   SubexpressionIterator::SubexpressionIterator(Term* t) {
-    _subexpressions.push(new Expression(TermList(t)));
+    _subexpressions.push(Expression(TermList(t)));
   }
   SubexpressionIterator::SubexpressionIterator(TermList ts) {
-    _subexpressions.push(new Expression(ts));
+    _subexpressions.push(Expression(ts));
   }
 
   bool SubexpressionIterator::hasNext() {
@@ -29,52 +29,52 @@ namespace Shell {
     return _subexpressions.isNonEmpty();
   }
 
-  SubexpressionIterator::Expression* SubexpressionIterator::next() {
+  SubexpressionIterator::Expression SubexpressionIterator::next() {
     CALL("SubexpressionIterator::next");
 
     ASS(hasNext());
-    Expression* expression = _subexpressions.pop();
-    int polarity = expression->_polarity;
+    Expression expression = _subexpressions.pop();
+    int polarity = expression._polarity;
 
-    switch (expression->_tag) {
+    switch (expression._tag) {
       case Expression::Tag::FORMULA: {
-        Formula* f = expression->_formula;
+        Formula* f = expression._formula;
         switch (f->connective()) {
           case LITERAL:
             /**
              * Note that we do not propagate the polarity here, because
              * formula-level if-then-else and let-in cannot occur inside literals
              */
-            _subexpressions.push(new Expression(*f->literal()->args()));
+            _subexpressions.push(Expression(*f->literal()->args()));
             break;
 
           case AND:
           case OR: {
             FormulaList::Iterator args(f->args());
             while (args.hasNext()) {
-              _subexpressions.push(new Expression(args.next(), polarity));
+              _subexpressions.push(Expression(args.next(), polarity));
             }
             break;
           }
 
           case IMP:
-            _subexpressions.push(new Expression(f->left(), -polarity));
-            _subexpressions.push(new Expression(f->right(), polarity));
+            _subexpressions.push(Expression(f->left(), -polarity));
+            _subexpressions.push(Expression(f->right(), polarity));
             break;
 
           case IFF:
           case XOR:
-            _subexpressions.push(new Expression(f->left(),  0));
-            _subexpressions.push(new Expression(f->right(), 0));
+            _subexpressions.push(Expression(f->left(),  0));
+            _subexpressions.push(Expression(f->right(), 0));
             break;
 
           case NOT:
-            _subexpressions.push(new Expression(f->uarg(), -polarity));
+            _subexpressions.push(Expression(f->uarg(), -polarity));
             break;
 
           case FORALL:
           case EXISTS:
-            _subexpressions.push(new Expression(f->qarg(), polarity));
+            _subexpressions.push(Expression(f->qarg(), polarity));
             break;
 
           case BOOL_TERM:
@@ -83,7 +83,7 @@ namespace Shell {
              * its underlying boolean term. This is the only place in the code
              * where the polarity of a term can be set to negative.
              */
-            _subexpressions.push(new Expression(f->getBooleanTerm(), polarity));
+            _subexpressions.push(Expression(f->getBooleanTerm(), polarity));
             break;
 
           default:
@@ -93,7 +93,7 @@ namespace Shell {
       }
 
       case Expression::Tag::TERM: {
-        TermList ts = expression->_term;
+        TermList ts = expression._term;
         if (!ts.isTerm()) {
           break;
         }
@@ -107,7 +107,7 @@ namespace Shell {
                * Note that here we propagate the polarity of the boolean term to its
                * underlying formula
                */
-              _subexpressions.push(new Expression(sd->getFormula(), polarity));
+              _subexpressions.push(Expression(sd->getFormula(), polarity));
               break;
 
             case Term::SF_ITE:
@@ -116,9 +116,9 @@ namespace Shell {
                * the polarity of the condition is always 0. This is because you
                * can always see "$ite(C, A, B)" as "(C => A) && (~C => B)"
                */
-              _subexpressions.push(new Expression(sd->getCondition(), 0));
-              _subexpressions.push(new Expression(*term->nthArgument(0), polarity));
-              _subexpressions.push(new Expression(*term->nthArgument(1), polarity));
+              _subexpressions.push(Expression(sd->getCondition(), 0));
+              _subexpressions.push(Expression(*term->nthArgument(0), polarity));
+              _subexpressions.push(Expression(*term->nthArgument(1), polarity));
               break;
 
             case Term::SF_LET:
@@ -128,12 +128,12 @@ namespace Shell {
                * An expression "$let(f := A, ...)", where A is a formula,
                * is semantically equivalent to f <=> A && ...
                */
-              _subexpressions.push(new Expression(sd->getBinding(), 0));
-              _subexpressions.push(new Expression(*term->nthArgument(0), polarity));
+              _subexpressions.push(Expression(sd->getBinding(), 0));
+              _subexpressions.push(Expression(*term->nthArgument(0), polarity));
               break;
 
             case Term::SF_TUPLE:
-              _subexpressions.push(new Expression(sd->getTupleTerm()));
+              _subexpressions.push(Expression(sd->getTupleTerm()));
               break;
 
 #if VDEBUG
@@ -144,7 +144,7 @@ namespace Shell {
         } else {
           Term::Iterator args(term);
           while (args.hasNext()) {
-            _subexpressions.push(new Expression(args.next()));
+            _subexpressions.push(Expression(args.next()));
           }
         }
         break;
@@ -152,7 +152,7 @@ namespace Shell {
 
 #if VDEBUG
       default:
-        ASSERTION_VIOLATION_REP(expression->_tag);
+        ASSERTION_VIOLATION_REP(expression._tag);
 #endif
     }
 

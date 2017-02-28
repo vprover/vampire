@@ -18,7 +18,7 @@ namespace Shell {
   using namespace Lib;
   using namespace Kernel;
 
-  class SubexpressionIterator { //: public IteratorCore<SubexpressionIterator::Expression*> {
+  class SubexpressionIterator { //: public IteratorCore<SubexpressionIterator::Expression> {
     public:
       CLASS_NAME(SubexpressionIterator);
       USE_ALLOCATOR(SubexpressionIterator);
@@ -44,9 +44,6 @@ namespace Shell {
        */
       class Expression {
         public:
-          CLASS_NAME(SubexpressionIterator::Expression);
-          USE_ALLOCATOR(SubexpressionIterator::Expression);
-
           enum Tag {
             FORMULA,
             TERM
@@ -79,7 +76,7 @@ namespace Shell {
       };
 
       bool hasNext();
-      Expression* next();
+      Expression next();
 
       SubexpressionIterator(Formula* f);
       SubexpressionIterator(FormulaList* fs);
@@ -87,7 +84,7 @@ namespace Shell {
       SubexpressionIterator(TermList ts);
 
     private:
-      Stack<Expression*> _subexpressions;
+      Stack<Expression> _subexpressions;
   };
 
   class SubformulaIterator : public IteratorCore<Formula*> {
@@ -100,10 +97,10 @@ namespace Shell {
       bool hasNext() {
         CALL("SubformulaIterator::hasNext");
         while (_sei.hasNext()) {
-          SubexpressionIterator::Expression* expression = _sei.next();
-          if (expression->isFormula()) {
-            _next = expression->getFormula();
-            _polarity = expression->getPolarity();
+          SubexpressionIterator::Expression expression = _sei.next();
+          if (expression.isFormula()) {
+            _next = expression.getFormula();
+            _polarity = expression.getPolarity();
             return true;
           }
         }
@@ -136,9 +133,9 @@ namespace Shell {
       bool hasNext() {
         CALL("SubtermIterator::hasNext");
         while (_sei.hasNext()) {
-          SubexpressionIterator::Expression* expression = _sei.next();
-          if (expression->isTerm()) {
-            _next = expression->getTerm();
+          SubexpressionIterator::Expression expression = _sei.next();
+          if (expression.isTerm()) {
+            _next = expression.getTerm();
             return true;
           }
         }
