@@ -18,6 +18,7 @@ namespace Shell {
   using namespace Lib;
   using namespace Kernel;
 
+  // FoolAwareSubexpressionIterator
   class SubexpressionIterator { //: public IteratorCore<SubexpressionIterator::Expression> {
     public:
       CLASS_NAME(SubexpressionIterator);
@@ -87,15 +88,15 @@ namespace Shell {
       Stack<Expression> _subexpressions;
   };
 
-  class SubformulaIterator : public IteratorCore<Formula*> {
+  class FoolAwareSubformulaIterator : public IteratorCore<Formula*> {
     public:
-      SubformulaIterator(Formula* f): _sei(f) {}
-      SubformulaIterator(FormulaList* fs): _sei(fs) {}
-      SubformulaIterator(Term* t): _sei(t) {}
-      SubformulaIterator(TermList ts): _sei(ts) {}
+      FoolAwareSubformulaIterator(Formula* f): _sei(f) {}
+      FoolAwareSubformulaIterator(FormulaList* fs): _sei(fs) {}
+      FoolAwareSubformulaIterator(Term* t): _sei(t) {}
+      FoolAwareSubformulaIterator(TermList ts): _sei(ts) {}
 
       bool hasNext() {
-        CALL("SubformulaIterator::hasNext");
+        CALL("FoolAwareSubformulaIterator::hasNext");
         while (_sei.hasNext()) {
           SubexpressionIterator::Expression expression = _sei.next();
           if (expression.isFormula()) {
@@ -111,7 +112,7 @@ namespace Shell {
         return next(dummy);
       }
       Formula* next(int& polarity) {
-        CALL("SubformulaIterator::next(int&)");
+        CALL("FoolAwareSubformulaIterator::next(int&)");
         ASS(_next);
         polarity = _polarity;
         return _next;
@@ -123,15 +124,15 @@ namespace Shell {
       int _polarity;
   };
 
-  class SubtermIterator : public IteratorCore<TermList> {
+  class FoolAwareSubtermIterator : public IteratorCore<TermList> {
     public:
-      SubtermIterator(Formula* f): _sei(f) {}
-      SubtermIterator(FormulaList* fs): _sei(fs) {}
-      SubtermIterator(Term* t): _sei(t) {}
-      SubtermIterator(TermList ts): _sei(ts) {}
+      FoolAwareSubtermIterator(Formula* f): _sei(f) {}
+      FoolAwareSubtermIterator(FormulaList* fs): _sei(fs) {}
+      FoolAwareSubtermIterator(Term* t): _sei(t) {}
+      FoolAwareSubtermIterator(TermList ts): _sei(ts) {}
 
       bool hasNext() {
-        CALL("SubtermIterator::hasNext");
+        CALL("FoolAwareSubtermIterator::hasNext");
         while (_sei.hasNext()) {
           SubexpressionIterator::Expression expression = _sei.next();
           if (expression.isTerm()) {
