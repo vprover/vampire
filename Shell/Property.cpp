@@ -18,6 +18,7 @@
 #include "Kernel/Term.hpp"
 #include "Kernel/Signature.hpp"
 #include "Kernel/Inference.hpp"
+#include "Kernel/TermIterators.hpp"
 
 #include "Statistics.hpp"
 #include "FunctionDefinition.hpp"
@@ -487,7 +488,7 @@ void Property::scan(Literal* lit, int polarity)
 
   scanForInterpreted(lit);
 
-  SubtermIterator stit(new AtomicFormula(lit));
+  SubtermIterator stit(lit);
   while (stit.hasNext()) {
     scan(stit.next());
   }
