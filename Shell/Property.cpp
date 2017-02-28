@@ -254,6 +254,11 @@ void Property::scan(Clause* clause)
 
     scan(literal);
 
+    SubtermIterator stit(literal);
+    while (stit.hasNext()) {
+      scan(stit.next());
+    }
+
     if (literal->shared() && literal->ground()) {
       groundLiterals++;
     }
@@ -487,11 +492,6 @@ void Property::scan(Literal* lit, int polarity)
   }
 
   scanForInterpreted(lit);
-
-  SubtermIterator stit(lit);
-  while (stit.hasNext()) {
-    scan(stit.next());
-  }
 
   if (!hasProp(PR_HAS_INEQUALITY_RESOLVABLE_WITH_DELETION) && lit->isEquality() && lit->shared()
      && ((lit->isNegative() && polarity == 1) || (!lit->isNegative() && polarity == -1) || polarity == 0)
