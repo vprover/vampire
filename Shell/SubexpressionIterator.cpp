@@ -40,14 +40,18 @@ namespace Shell {
       case Expression::Tag::FORMULA: {
         Formula* f = expression._formula;
         switch (f->connective()) {
-          case LITERAL:
+          case LITERAL: {
             /**
              * Note that we do not propagate the polarity here, because
              * formula-level if-then-else and let-in cannot occur inside literals
              */
-            _subexpressions.push(Expression(*f->literal()->args()));
-            break;
+            Term::Iterator args(f->literal());
+            while (args.hasNext()) {
+              _subexpressions.push(Expression(args.next()));
+            }
 
+            break;
+          }
           case AND:
           case OR: {
             FormulaList::Iterator args(f->args());
@@ -94,11 +98,14 @@ namespace Shell {
 
       case Expression::Tag::TERM: {
         TermList ts = expression._term;
-        if (!ts.isTerm()) {
+
+        if (ts.isVar()) {
           break;
         }
 
+        ASS(ts.isTerm());
         Term* term = ts.term();
+
         if (term->isSpecial()) {
           Term::SpecialTermData* sd = term->getSpecialData();
           switch (sd->getType()) {

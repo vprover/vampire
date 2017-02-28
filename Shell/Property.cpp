@@ -524,10 +524,7 @@ void Property::scan(TermList ts)
     return;
   }
 
-  if (!ts.isTerm()) {
-    return;
-  }
-
+  ASS(ts.isTerm());
   Term* t = ts.term();
 
   if (t->isSpecial()) {
