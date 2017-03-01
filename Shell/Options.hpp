@@ -1805,8 +1805,8 @@ public:
   int maxInferenceDepth() const { return _maxInferenceDepth.actualValue; }
   SymbolPrecedence symbolPrecedence() const { return _symbolPrecedence.actualValue; }
   SymbolPrecedenceBoost symbolPrecedenceBoost() const { return _symbolPrecedenceBoost.actualValue; }
-  const vstring& functionPrecedence() const { return _functionPrecedence.actualValue; }
-  const vstring& predicatePrecedence() const { return _predicatePrecedence.actualValue; }
+  vstring functionPrecedence() const { return _functionPrecedence.actualValue + _functionPrecedence2.actualValue; }
+  vstring predicatePrecedence() const { return _predicatePrecedence.actualValue + _predicatePrecedence2.actualValue; }
   // Return time limit in deciseconds, or 0 if there is no time limit
   int timeLimitInDeciseconds() const { return _timeLimitInDeciseconds.actualValue; }
   size_t memoryLimit() const { return _memoryLimit.actualValue; }
@@ -2268,6 +2268,11 @@ private:
   ChoiceOptionValue<SymbolPrecedenceBoost> _symbolPrecedenceBoost;
   StringOptionValue _functionPrecedence;
   StringOptionValue _predicatePrecedence;
+  // terrible hack as a workaround to precedences which are longer than unix's limit on argument size
+  // (apparently the limit is 131071bytes, see http://stackoverflow.com/questions/29801975/why-is-the-subprocess-popen-argument-length-limit-smaller-than-what-the-os-repor)
+  // these will get silently concatenated with the previous when requested by the code
+  StringOptionValue _functionPrecedence2;
+  StringOptionValue _predicatePrecedence2;
 
   StringOptionValue _testId;
   BoolOptionValue _szsOutput;

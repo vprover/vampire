@@ -1503,6 +1503,14 @@ void Options::Options::init()
     _predicatePrecedence.description = "Explicit user specified precedence on predicate symbols.";
     _lookup.insert(&_predicatePrecedence);
 
+    _functionPrecedence2 = StringOptionValue("function_precendence2","fp2","");
+    _functionPrecedence2.description = "Explicit user specified precedence on function symbols -- second half of the string, if needed.";
+    _lookup.insert(&_functionPrecedence2);
+
+    _predicatePrecedence2 = StringOptionValue("predicate_precendence2","pp2","");
+    _predicatePrecedence2.description = "Explicit user specified precedence on predicate symbols -- second half of the string, if needed.";
+    _lookup.insert(&_predicatePrecedence2);
+
     _symbolPrecedenceBoost = ChoiceOptionValue<SymbolPrecedenceBoost>("symbol_precedence_boost","spb",SymbolPrecedenceBoost::NONE,
                                      {"none","goal","units","goal_then_units"});
     _symbolPrecedenceBoost.description = "";
