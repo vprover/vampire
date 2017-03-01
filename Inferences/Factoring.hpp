@@ -26,7 +26,7 @@ public:
 
   ClauseIterator generateClauses(Clause* premise);
 private:
-  class UnificationsFn;
+  class UnificationsOnPositiveFn;
   class ResultsFn;
 };
 

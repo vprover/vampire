@@ -22,7 +22,7 @@
 
 #include "Options.hpp"
 #include "Rectify.hpp"
-#include "Refutation.hpp"
+// #include "Refutation.hpp"
 #include "Skolem.hpp"
 #include "VarManager.hpp"
 
@@ -419,8 +419,10 @@ Formula* Skolem::skolemise (Formula* f)
             <<skolemTerm->toString()<<" for X"<<v<<" in "<<f->toString()
             <<" in formula "<<_beingSkolemised->toString()<<endl;
 
+          /*
           Refutation ref(_beingSkolemised, true);
           ref.output(out);
+          */
           env.endOutput();
         }
       }
@@ -468,21 +470,35 @@ Formula* Skolem::skolemise (Formula* f)
  */
 FormulaList* Skolem::skolemise (FormulaList* fs)
 {
-  CALL("skolemise (FormulaList*)");
+  CALL("Skolem:skolemise(FormulaList*)");
 
-  if (FormulaList::isEmpty(fs)) {
-    return fs;
+  ASS(FormulaList::isNonEmpty(fs));
+
+  Stack<FormulaList*> args;
+
+  while (FormulaList::isNonEmpty(fs)) {
+    args.push(fs);
+    fs = fs->tail();
   }
 
-  Formula* g = fs->head();
-  FormulaList* gs = fs->tail();
-  Formula* h = skolemise(g);
-  FormulaList* hs = skolemise(gs);
+  FormulaList* res = args.top()->tail();
+  ASS(FormulaList::isEmpty(res));
 
-  if (gs == hs && g == h) {
-    return fs;
+  while (args.isNonEmpty()) {
+    fs = args.pop();
+    Formula* g = fs->head();
+    FormulaList* gs = fs->tail();
+    Formula* h = skolemise(g);
+    FormulaList* hs = res; // = skolemise(gs);
+
+    if (gs == hs && g == h) {
+      res = fs;
+    } else {
+      res = new FormulaList(h,hs);
+    }
   }
-  return new FormulaList(h,hs);
+
+  return res;
 } // Skolem::skolemise
 
 

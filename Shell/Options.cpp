@@ -322,9 +322,6 @@ void Options::Options::init()
     "Set of support strategy. All formulas annotated as axioms are put directly among active clauses, without performing any inferences between them. If all, select all literals of set-of-support clauses, ortherwise use the default literal selector.";
     _lookup.insert(&_sos);
     _sos.tag(OptionTag::PREPROCESSING);
-    // Captures that if Sos is not off then the Saturation Algorithm cannot be Tabulation
-    //_sos.addConstraint(If(notEqual(Sos::OFF)).then(_saturationAlgorithm.is(
-    //                                                notEqual(SaturationAlgorithm::TABULATION))));
     _sos.setRandomChoices(And(isRandSat(),saNotInstGen()),{"on","off","off","off","off"});
     _sos.setRandomChoices(And(isRandOn(),hasNonUnits()),{"on","off","off","off","off"});
     _sos.setRandomChoices(isRandOn(),{"all","off","on"});
@@ -621,7 +618,6 @@ void Options::Options::init()
     " - limited resource:\n"
     " - instance generation: a simple implementation of instantiation calculus\n"
     "    (global_subsumption, unit_resulting_resolution and age_weight_ratio)\n"
-    //" - tabulation: a special goal-oriented mode for large theories.\n"
     " - fmb : finite model building for satisfiable problems.\n"
     " -z3 : pass the preprocessed problem to z3, will terminate if the resulting problem is not ground.\n"
     "inst_gen, z3 and fmb aren't influenced by options for the saturation algorithm, apart from those under the relevant heading";
@@ -632,7 +628,7 @@ void Options::Options::init()
     // Note order of adding constraints matters (we assume previous gaurds are false)
     _saturationAlgorithm.setRandomChoices(isRandSat(),{"discount","otter","inst_gen","fmb"});
     _saturationAlgorithm.setRandomChoices(Or(hasCat(Property::UEQ),atomsLessThan(4000)),{"lrs","discount","otter","inst_gen"});
-    _saturationAlgorithm.setRandomChoices({"discount","inst_gen","lrs","otter","tabulation"});
+    _saturationAlgorithm.setRandomChoices({"discount","inst_gen","lrs","otter"});
 
 #if VZ3
     _smtForGround = BoolOptionValue("smt_for_ground","smtfg",true);
@@ -725,7 +721,6 @@ void Options::Options::init()
 
     _lookup.insert(&_selection);
     _selection.tag(OptionTag::SATURATION);
-    //_selection.reliesOn(_saturationAlgorithm.is(notEqual(SaturationAlgorithm::TABULATION)));
     _selection.reliesOn(_saturationAlgorithm.is(notEqual(SaturationAlgorithm::INST_GEN))->Or<int>(_instGenWithResolution.is(equal(true))));
     _selection.setRandomChoices(And(isRandSat(),saNotInstGen()),{"0","1","2","3","4","10","11","-1","-2","-3","-4","-10","-11"});
     _selection.setRandomChoices({"0","1","2","3","4","10","11","1002","1003","1004","1010","1011","-1","-2","-3","-4","-10","-11","-1002","-1003","-1004","-1010"});
@@ -744,7 +739,6 @@ void Options::Options::init()
     "there will be w selected based on weight.";
     _lookup.insert(&_ageWeightRatio);
     _ageWeightRatio.tag(OptionTag::SATURATION);
-    //_ageWeightRatio.reliesOn(_saturationAlgorithm.is(notEqual(SaturationAlgorithm::TABULATION)));
     _ageWeightRatio.reliesOn(_saturationAlgorithm.is(notEqual(SaturationAlgorithm::INST_GEN))->Or<int>(_instGenWithResolution.is(equal(true))));
     _ageWeightRatio.setRandomChoices({"8:1","5:1","4:1","3:1","2:1","3:2","5:4","1","2:3","2","3","4","5","6","7","8","10","12","14","16","20","24","28","32","40","50","64","128","1024"});
 
@@ -804,7 +798,6 @@ void Options::Options::init()
 	    _lookup.insert(&_backwardSubsumption);
 	    _backwardSubsumption.tag(OptionTag::INFERENCES);
 	    _backwardSubsumption.reliesOn(_saturationAlgorithm.is(notEqual(SaturationAlgorithm::INST_GEN))->Or<Subsumption>(_instGenWithResolution.is(equal(true))));
-	    //_backwardSubsumption.reliesOn(_saturationAlgorithm.is(notEqual(SaturationAlgorithm::TABULATION)));
 	    _backwardSubsumption.setRandomChoices({"on","off"});
 
 	    _backwardSubsumptionResolution = ChoiceOptionValue<Subsumption>("backward_subsumption_resolution","bsr",
@@ -814,7 +807,6 @@ void Options::Options::init()
 	    _lookup.insert(&_backwardSubsumptionResolution);
 	    _backwardSubsumptionResolution.tag(OptionTag::INFERENCES);
 	    _backwardSubsumptionResolution.reliesOn(_saturationAlgorithm.is(notEqual(SaturationAlgorithm::INST_GEN))->Or<Subsumption>(_instGenWithResolution.is(equal(true))));
-	    //_backwardSubsumptionResolution.reliesOn(_saturationAlgorithm.is(notEqual(SaturationAlgorithm::TABULATION)));
 	    _backwardSubsumptionResolution.setRandomChoices({"on","off"});
 
 	    _binaryResolution = BoolOptionValue("binary_resolution","br",true);
@@ -839,7 +831,6 @@ void Options::Options::init()
 	    _lookup.insert(&_condensation);
 	    _condensation.tag(OptionTag::INFERENCES);
 	    _condensation.reliesOn(_saturationAlgorithm.is(notEqual(SaturationAlgorithm::INST_GEN))->Or<Condensation>(_instGenWithResolution.is(equal(true))));
-	    //_condensation.reliesOn(_saturationAlgorithm.is(notEqual(SaturationAlgorithm::TABULATION)));
 	    _condensation.setRandomChoices({"on","off","fast"});
 
 	    _demodulationRedundancyCheck = BoolOptionValue("demodulation_redundancy_check","drc",true);
@@ -952,7 +943,6 @@ void Options::Options::init()
     _forwardLiteralRewriting.tag(OptionTag::INFERENCES);
     _forwardLiteralRewriting.addProblemConstraint(hasNonUnits());
     _forwardLiteralRewriting.reliesOn(_saturationAlgorithm.is(notEqual(SaturationAlgorithm::INST_GEN))->Or<bool>(_instGenWithResolution.is(equal(true))));
-    //_forwardLiteralRewriting.reliesOn(_saturationAlgorithm.is(notEqual(SaturationAlgorithm::TABULATION)));
     _forwardLiteralRewriting.setRandomChoices({"on","off"});
 
     _forwardSubsumption = BoolOptionValue("forward_subsumption","fs",true);
@@ -966,7 +956,6 @@ void Options::Options::init()
     _lookup.insert(&_forwardSubsumptionResolution);
     _forwardSubsumptionResolution.tag(OptionTag::INFERENCES);
     _forwardSubsumptionResolution    .reliesOn(_saturationAlgorithm.is(notEqual(SaturationAlgorithm::INST_GEN))->Or<bool>(_instGenWithResolution.is(equal(true))));
-    //_forwardSubsumptionResolution.reliesOn(_saturationAlgorithm.is(notEqual(SaturationAlgorithm::TABULATION)));
     _forwardSubsumptionResolution.setRandomChoices({"on","off"});
 
     _hyperSuperposition = BoolOptionValue("hyper_superposition","",false);
@@ -992,7 +981,6 @@ void Options::Options::init()
     "Uses unit resulting resolution only to derive empty clauses (may be useful for splitting)";
     _lookup.insert(&_unitResultingResolution);
     _unitResultingResolution.tag(OptionTag::INFERENCES);
-    //_unitResultingResolution.reliesOn(_saturationAlgorithm.is(notEqual(SaturationAlgorithm::TABULATION)));
     // Wrong, should instead suggest that urr is always used with inst_gen
     //_unitResultingResolution.reliesOn(
     //  _saturationAlgorithm.is(notEqual(SaturationAlgorithm::INST_GEN))->And<URResolution,bool>(
@@ -1020,7 +1008,6 @@ void Options::Options::init()
     _lookup.insert(&_globalSubsumption);
     _globalSubsumption.tag(OptionTag::INFERENCES);
     _globalSubsumption.addProblemConstraint(hasNonUnits());
-    //_globalSubsumption.reliesOn(_saturationAlgorithm.is(notEqual(SaturationAlgorithm::TABULATION)));
     _globalSubsumption.setRandomChoices({"off","on"});
 
     _globalSubsumptionSatSolverPower = ChoiceOptionValue<GlobalSubsumptionSatSolverPower>("global_subsumption_sat_solver_power","gsssp",
@@ -1138,8 +1125,6 @@ void Options::Options::init()
     _splitting.description="Use AVATAR splitting.";
     _lookup.insert(&_splitting);
     _splitting.tag(OptionTag::AVATAR);
-    // TODO - put the tabulation constraint here but inst_gen constraint on sa... why?
-    //_splitting.addConstraint(If(equal(true)).then(_saturationAlgorithm.is(notEqual(SaturationAlgorithm::TABULATION))));
     //_splitting.addProblemConstraint(hasNonUnits());
     _splitting.setRandomChoices({"on","off"}); //TODO change balance?
 
@@ -1362,9 +1347,9 @@ void Options::Options::init()
 
     _satSolver = ChoiceOptionValue<SatSolver>("sat_solver","sas",SatSolver::MINISAT,
 #if VZ3
-            {"lingeling","minisat","vampire","z3"});
+            {"minisat","vampire","z3"});
 #else
-            {"lingeling","minisat","vampire"});
+    {"minisat","vampire"});
 #endif
     _satSolver.description=
     "Select the SAT solver to be used throughout the solver. This will be used in AVATAR (for splitting) when the saturation algorithm is discount,lrs or otter and in instance generation for selection and global subsumption.";
@@ -1372,9 +1357,9 @@ void Options::Options::init()
     _satSolver.tag(OptionTag::SAT);
     _satSolver.setRandomChoices(
 #if VZ3
-            {"lingeling","minisat","vampire","z3"});
+            {"minisat","vampire","z3"});
 #else
-            {"lingeling","minisat","vampire"});
+            {"minisat","vampire"});
 #endif
 
 #if VZ3
@@ -1406,62 +1391,6 @@ void Options::Options::init()
     _satVarSelector.tag(OptionTag::SAT);
     _satVarSelector.setExperimental();
 
-    _satLingelingSimilarModels = BoolOptionValue("sat_lingeling_similar_models","",true);
-    _satLingelingSimilarModels.description="";
-    _lookup.insert(&_satLingelingSimilarModels);
-    _satLingelingSimilarModels.tag(OptionTag::SAT);
-    _satLingelingSimilarModels.setExperimental();
-
-    _satLingelingIncremental = BoolOptionValue("sat_lingeling_incremental","",false);
-    _satLingelingIncremental.description="";
-    _lookup.insert(&_satLingelingIncremental);
-    _satLingelingIncremental.tag(OptionTag::SAT);
-    _satLingelingIncremental.setExperimental();
-
- //*********************** Tabulation  ***********************
-
-    _tabulationBwRuleSubsumptionResolutionByLemmas = BoolOptionValue("tabulation_bw_rule_subsumption_resolution_by_lemmas","tbsr",true);
-    _tabulationBwRuleSubsumptionResolutionByLemmas.description="";
-    //_lookup.insert(&_tabulationBwRuleSubsumptionResolutionByLemmas);
-    //_tabulationBwRuleSubsumptionResolutionByLemmas.tag(OptionTag::TABULATION);
-    _tabulationBwRuleSubsumptionResolutionByLemmas.setRandomChoices({"on","off"});
-
-
-    _tabulationFwRuleSubsumptionResolutionByLemmas = BoolOptionValue("tabulation_fw_rule_subsumption_resolution_by_lemmas","tfsr",true);
-    _tabulationFwRuleSubsumptionResolutionByLemmas.description="";
-    //_lookup.insert(&_tabulationFwRuleSubsumptionResolutionByLemmas);
-    //_tabulationFwRuleSubsumptionResolutionByLemmas.tag(OptionTag::TABULATION);
-    _tabulationFwRuleSubsumptionResolutionByLemmas.setRandomChoices({"on","off"});
-
-
-    _tabulationGoalAgeWeightRatio = RatioOptionValue("tabulation_goal_awr","tgawr",1,1,'/');
-    _tabulationGoalAgeWeightRatio.description=
-    "when saturation algorithm is set to tabulation, this option determines the age-weight ratio for selecting next goal clause to process";
-    //_lookup.insert(&_tabulationGoalAgeWeightRatio);
-    //_tabulationGoalAgeWeightRatio.tag(OptionTag::TABULATION);
-    _tabulationGoalAgeWeightRatio.setRandomChoices({"8/1","5/1","4/1","3/1","2/1","3/2","5/4","1/1","2/3","1/2","1/3","1/4","1/5","1/6","1/7","1/8","1/10","1/12","1/14","1/16","1/20","1/24","1/28","1/32","1/40","1/50","1/64","1/128"});
-
-    _tabulationGoalLemmaRatio = RatioOptionValue("tabulation_goal_lemma_ratio","tglr",1,1,'/');
-    _tabulationGoalLemmaRatio.description=
-    "when saturation algorithm is set to tabulation, this option determines the ratio of processing new goals and lemmas";
-    //_lookup.insert(&_tabulationGoalLemmaRatio);
-    //_tabulationGoalLemmaRatio.tag(OptionTag::TABULATION);
-    _tabulationGoalLemmaRatio.setRandomChoices({"20/1","10/1","7/1","5/1","4/1","3/1","2/1","1/1","1/2","1/3","1/4","1/5","1/7","1/10","1/20"});
-    
-    _tabulationInstantiateProducingRules = BoolOptionValue("tabulation_instantiate_producing_rules","tipr",true);
-    _tabulationInstantiateProducingRules.description=
-    "when saturation algorithm is set to tabulation, this option determines whether the producing rules will be made of theory clauses (in case it's off), or of their instances got from the substitution unifying them with the goal";
-    //_lookup.insert(&_tabulationInstantiateProducingRules);
-    //_tabulationInstantiateProducingRules.tag(OptionTag::TABULATION);
-    _tabulationInstantiateProducingRules.setRandomChoices({"on","off"});
-    
-    _tabulationLemmaAgeWeightRatio = RatioOptionValue("tabulation_lemma_awr","tlawr",1,1,'/');
-    _tabulationLemmaAgeWeightRatio.description=
-    "when saturation algorithm is set to tabulation, this option determines the age-weight ratio for selecting next lemma to process";
-    //_lookup.insert(&_tabulationLemmaAgeWeightRatio);
-    //_tabulationLemmaAgeWeightRatio.tag(OptionTag::TABULATION);
-    _tabulationLemmaAgeWeightRatio.setRandomChoices({"8/1","5/1","4/1","3/1","2/1","3/2","5/4","1/1","2/3","1/2","1/3","1/4","1/5","1/6","1/7","1/8","1/10","1/12","1/14","1/16","1/20","1/24","1/28","1/32","1/40","1/50","1/64","1/128"});
-    
     //*************************************************************
     //*********************** which mode or tag?  ************************
     //*************************************************************
@@ -1497,7 +1426,6 @@ void Options::Options::init()
     _literalComparisonMode.description="Vampire uses KBO which uses an ordering of predicates. Standard places equality (and certain other special predicates) first and all others second. Predicate depends on symbol precedence (see symbol_precedence). Reverse reverses the order.";
     _lookup.insert(&_literalComparisonMode);
     _literalComparisonMode.tag(OptionTag::SATURATION);
-    //_literalComparisonMode.reliesOn(_saturationAlgorithm.is(notEqual(SaturationAlgorithm::TABULATION)));
     _literalComparisonMode.addProblemConstraint(hasNonUnits());
     _literalComparisonMode.addProblemConstraint(hasPredicates());
     // TODO: if sat then should not use reverse
@@ -1534,7 +1462,6 @@ void Options::Options::init()
              "coefficient that will multiply the weight of theory clauses (those marked as 'axiom' in TPTP)";
     _lookup.insert(&_nonGoalWeightCoefficient);
     _nonGoalWeightCoefficient.tag(OptionTag::SATURATION);
-    //_nonGoalWeightCoefficient.reliesOn(_saturationAlgorithm.is(notEqual(SaturationAlgorithm::TABULATION)));
     _nonGoalWeightCoefficient.setRandomChoices({"1","1.1","1.2","1.3","1.5","1.7","2","2.5","3","4","5","10"});
 
 
@@ -1566,7 +1493,6 @@ void Options::Options::init()
     _symbolPrecedence.description="Vampire uses KBO which requires a precedence relation between symbols. Arity orders symbols by their arity (and reverse_arity takes the reverse of this) and occurence orders symbols by the order they appear in the problem.";
     _lookup.insert(&_symbolPrecedence);
     _symbolPrecedence.tag(OptionTag::SATURATION);
-    //_symbolPrecedence.reliesOn(_saturationAlgorithm.is(notEqual(SaturationAlgorithm::TABULATION)));
     _symbolPrecedence.setRandomChoices({"arity","occurence","reverse_arity"});
 
     _functionPrecedence = StringOptionValue("function_precendence","fp","");
@@ -1744,7 +1670,6 @@ void Options::Options::init()
                  "Other",
                  "Development",
                  "Output",
-                 //"Tabulation",
                  "Instance Generation",
                  "SAT Solving",
                  "AVATAR",
@@ -2334,6 +2259,17 @@ bool Options::SelectionOptionValue::setValue(const vstring& value)
   case 4:
   case 10:
   case 11:
+  case 20:
+  case 21:
+  case 22:
+
+  case 30:
+  case 31:
+  case 32:
+  case 33:
+  case 34:
+  case 35:
+
   case 1002:
   case 1003:
   case 1004:
@@ -2345,10 +2281,21 @@ bool Options::SelectionOptionValue::setValue(const vstring& value)
   case -4:
   case -10:
   case -11:
+  case -20: // almost same as 20 (but factoring will be on negative and not positive literals)
+  case -21:
+  case -22:
+  case -30: // almost same as 30 (but factoring will be on negative and not positive literals)
+  case -31:
+  case -32:
+  case -33:
+  case -34:
+  case -35:
+
   case -1002:
   case -1003:
   case -1004:
   case -1010:
+  case -1011: // almost same as 1011 (but factoring will be on negative and not positive literals)
     actualValue = sel;
     return true;
   default:
@@ -2600,9 +2547,6 @@ void Options::readFromEncodedOptions (vstring testId)
   else if (ma == "ott") {
     _saturationAlgorithm.actualValue = SaturationAlgorithm::OTTER;
   }
-  //else if (ma == "tab") {
-  //  _saturationAlgorithm.actualValue = SaturationAlgorithm::TABULATION;
-  //}
   else if (ma == "ins") {
     _saturationAlgorithm.actualValue = SaturationAlgorithm::INST_GEN;
   }
@@ -2693,7 +2637,6 @@ vstring Options::generateEncodedOptions() const
     case SaturationAlgorithm::LRS : sat="lrs"; break;
     case SaturationAlgorithm::DISCOUNT : sat="dis"; break;
     case SaturationAlgorithm::OTTER : sat="ott"; break;
-    //case SaturationAlgorithm::TABULATION : sat="tab"; break;
     case SaturationAlgorithm::INST_GEN : sat="ins"; break;
     case SaturationAlgorithm::FINITE_MODEL_BUILDING : sat="fmb"; break;
     default : ASSERTION_VIOLATION;
@@ -2791,7 +2734,6 @@ bool Options::complete(const Problem& prb) const
   if (_sineSelection.actualValue != SineSelection::OFF) return false;
 
   switch (_saturationAlgorithm.actualValue) {
-  //case SaturationAlgorithm::TABULATION: return false;
   case SaturationAlgorithm::INST_GEN: return true; // !!! Implies InstGen is always complete
   default: break;
   }
@@ -2844,7 +2786,6 @@ bool Options::completeForNNE() const
   if (_sineSelection.actualValue != SineSelection::OFF) return false;
 
   switch (_saturationAlgorithm.actualValue) {
-  //case SaturationAlgorithm::TABULATION: return false;
   case SaturationAlgorithm::INST_GEN: return true; // !!!
   default: break;
   }

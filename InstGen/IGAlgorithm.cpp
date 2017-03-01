@@ -27,12 +27,10 @@
 #include "SAT/Preprocess.hpp"
 #include "SAT/SATClause.hpp"
 #include "SAT/TWLSolver.hpp"
-#include "SAT/LingelingInterfacing.hpp"
 #include "SAT/MinisatInterfacing.hpp"
 
 #include "Saturation/SaturationAlgorithm.hpp"
 
-#include "Shell/EqualityAxiomatizer.hpp"
 #include "Shell/EqualityProxy.hpp"
 #include "Shell/Property.hpp"
 #include "Shell/Statistics.hpp"
@@ -82,9 +80,6 @@ IGAlgorithm::IGAlgorithm(Problem& prb,const Options& opt)
   switch(opt.satSolver()){
     case Options::SatSolver::VAMPIRE:
       _satSolver = new TWLSolver(opt,true);
-      break;
-    case Options::SatSolver::LINGELING:
-      _satSolver = new LingelingInterfacing(opt,true);
       break;
     case Options::SatSolver::MINISAT:
       _satSolver = new MinisatInterfacing(opt,true);

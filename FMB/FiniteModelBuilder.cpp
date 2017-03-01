@@ -23,7 +23,6 @@
 
 #include "SAT/Preprocess.hpp"
 #include "SAT/TWLSolver.hpp"
-#include "SAT/LingelingInterfacing.hpp"
 #include "SAT/MinisatInterfacingNewSimp.hpp"
 #include "SAT/BufferedSolver.hpp"
 
@@ -238,9 +237,6 @@ bool FiniteModelBuilder::reset(){
     case Options::SatSolver::VAMPIRE:
       _solver = new TWLSolver(_opt, true);
       break;
-    case Options::SatSolver::LINGELING:
-      _solver = new LingelingInterfacing(_opt, true);
-      break;
 #if VZ3
     case Options::SatSolver::Z3:
         ASSERTION_VIOLATION_REP("Do not use fmb with Z3");
@@ -442,9 +438,15 @@ void FiniteModelBuilder::init()
     // Do we have a ground unit equality between constants?
     if(c->length()==1 && c->varCnt()==0){
       Literal* l = (*c)[0];
-      if(l->isEquality()){
+      if(l->isEquality() && l->isNegative()){
         TermList* left = l->nthArgument(0);
         TermList* right = l->nthArgument(1);
+
+        if(left==right){
+          // we have discovered unsat
+          throw RefutationFoundException(c);
+        }
+
         if(left->isTerm() && left->term()->arity()==0 &&
            right->isTerm() && right->term()->arity()==0){
 
@@ -619,7 +621,7 @@ void FiniteModelBuilder::init()
     for(unsigned s=0;s<_sortedSignature->sorts;s++){
       unsigned bound = _sortedSignature->sortBounds[s];
       unsigned parent = _sortedSignature->parents[s];
-      if(bound > bfromSI[parent]) bfromSI[parent]=bound;
+      if(bound > bfromSI[parent]){ bfromSI[parent]=bound; }
       dConstants[parent] += (_sortedSignature->sortedConstants[s]).size();
       dFunctions[parent] += (_sortedSignature->sortedFunctions[s]).size();
     }
@@ -646,7 +648,7 @@ void FiniteModelBuilder::init()
     // if we've done the sort expansion thing then the max for the parent should be
     // the max of all children
     for(unsigned s=0;s<env.sorts->sorts();s++){
-      if((env.property->usesSort(s) || s > Sorts::FIRST_USER_SORT) && _sortedSignature->vampireToDistinct.find(s)){
+      if((env.property->usesSort(s) || s >= Sorts::FIRST_USER_SORT) && _sortedSignature->vampireToDistinct.find(s)){
         Stack<unsigned>* dmembers = _sortedSignature->vampireToDistinct.get(s);
         ASS(dmembers);
         if(dmembers->size() > 1){ 

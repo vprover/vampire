@@ -18,7 +18,9 @@
 #include "Kernel/Sorts.hpp"
 #include "Kernel/InterpretedLiteralEvaluator.hpp"
 
-#include "Tabulation/TabulationAlgorithm.hpp"
+// #include "Tabulation/TabulationAlgorithm.hpp" // MS: Tabulation discontinued, AnswerExtractor needs fixing
+#include "Indexing/Index.hpp"
+#include "Indexing/LiteralIndexingStructure.hpp"
 
 #include "Shell/Flattening.hpp"
 #include "Shell/Options.hpp"
@@ -247,6 +249,10 @@ bool ConjunctionGoalAnswerExractor::tryGetAnswer(Clause* refutation, Stack<TermL
   Options tabulationOpts;
   //tabulationOpts.setSaturationAlgorithm(Options::SaturationAlgorithm::TABULATION);
   //NOT_IMPLEMENTED;
+
+  // MS: Tabulation discontinued, AnswerExtractor needs fixing
+  (void)answerVariables;
+  /*
   Problem tabPrb(pvi( ClauseStack::Iterator(premiseClauses) ), true);
   Tabulation::TabulationAlgorithm talg(tabPrb, tabulationOpts);
   talg.run();
@@ -272,6 +278,8 @@ bool ConjunctionGoalAnswerExractor::tryGetAnswer(Clause* refutation, Stack<TermL
     TermList asgn = subst.apply(varTerm, 0); //goal variables have index 0
     answer.push(asgn);
   }
+
+  */
 
   return true;
 }

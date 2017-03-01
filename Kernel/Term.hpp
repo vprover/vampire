@@ -25,10 +25,10 @@
 #include "Lib/Metaiterators.hpp"
 #include "Lib/VString.hpp"
 
-#include "MatchTag.hpp"
-#include "Sorts.hpp"
-#include "SortHelper.hpp"
+// #include "MatchTag.hpp" // MS: disconnecting MatchTag, January 2017
+#define USE_MATCH_TAG 0
 
+#include "Sorts.hpp"
 
 #define TERM_DIST_VAR_UNKNOWN 0x7FFFFF
 

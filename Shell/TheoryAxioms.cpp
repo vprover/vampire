@@ -18,7 +18,6 @@
 #include "Kernel/TermIterators.hpp"
 #include "Kernel/Theory.hpp"
 
-#include "AxiomGenerator.hpp"
 #include "Property.hpp"
 #include "SymCounter.hpp"
 #include "TheoryAxioms.hpp"
@@ -38,6 +37,9 @@ void TheoryAxioms::addAndOutputTheoryUnit(Unit* unit,UnitList*& units)
   CALL("TheoryAxioms::addAndOutputTheoryUnit");
   if (env.options->showTheoryAxioms()) {
     cout << "% Theory " << (unit->isClause() ? "clause" : "formula" ) << ": " << unit->toString() << "\n";
+  }
+  if(unit->isClause()){ 
+    static_cast<Clause*>(unit)->setTheoryDescendant(true); 
   }
   UnitList::push(unit,units);
 } // addAndOutputTheoryUnit

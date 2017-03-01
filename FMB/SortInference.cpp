@@ -59,7 +59,7 @@ void SortInference::doInference()
     }
 
     for(unsigned s=0;s<env.sorts->sorts();s++){
-      if(env.property->usesSort(s) || s > Sorts::FIRST_USER_SORT){
+      if(env.property->usesSort(s) || s >= Sorts::FIRST_USER_SORT){
         if(_assumeMonotonic){
           _sig->distinctToVampire.get(dsorts)->push(s);
           Stack<unsigned>* stack = new Stack<unsigned>();
@@ -112,7 +112,7 @@ void SortInference::doInference()
 
     // we need at least one constant for symmetry breaking
     for(unsigned s=0;s<env.sorts->sorts();s++){
-      if(env.property->usesSort(s) || s > Sorts::FIRST_USER_SORT){ 
+      if(env.property->usesSort(s) || s >= Sorts::FIRST_USER_SORT){
         unsigned dsort = (*_sig->vampireToDistinct.get(s))[0];
         if(_sig->sortedConstants[dsort].isEmpty()){
           unsigned fresh = env.signature->addFreshFunction(0,"fmbFreshConstant");
@@ -168,7 +168,7 @@ void SortInference::doInference()
       if(_assumeMonotonic){ cout << "Assuming all sorts monotonic due to translation" << endl; }
     }
     for(unsigned s=0;s<env.sorts->sorts();s++){
-      if(env.property->usesSort(s) || s > Sorts::FIRST_USER_SORT){
+      if(env.property->usesSort(s) || s >= Sorts::FIRST_USER_SORT){
         bool monotonic = _assumeMonotonic;
         if(!monotonic){
           Monotonicity m(_clauses,s);
@@ -215,6 +215,7 @@ void SortInference::doInference()
 
   IntUnionFind unionFind(count);
   ZIArray<unsigned> posEqualitiesOnPos;
+  Stack<unsigned> varEqualityVampireSorts;
 
   ClauseIterator cit = pvi(ClauseList::Iterator(_clauses));
 
@@ -232,6 +233,7 @@ void SortInference::doInference()
      Literal* l = (*c)[i];
      if(l->isEquality()){
        if(l->isTwoVarEquality()){
+         varEqualityVampireSorts.push(l->twoVarEqSort());
 #if DEBUG_SORT_INFERENCE
          //cout << "join X" << l->nthArgument(0)->var()<< " and X" << l->nthArgument(1)->var() << endl;
 #endif
@@ -596,6 +598,22 @@ void SortInference::doInference()
   }
 
   // sorting out variable equalities
+  // first check that a sort exists for every variable equality we saw
+  Stack<unsigned>::Iterator tvevsit(varEqualityVampireSorts);
+  while(tvevsit.hasNext()){
+    unsigned vsort = tvevsit.next();
+    if(!_sig->vampireToDistinct.find(vsort)){
+      // it's missing, let's make one
+      unsigned dsort = _distinctSorts++;
+      Stack<unsigned>* stack = new Stack<unsigned>();
+      stack->push(vsort);
+      _sig->distinctToVampire.insert(dsort,stack);
+      stack = new Stack<unsigned>();
+      stack->push(dsort);
+      _sig->vampireToDistinct.insert(vsort,stack);
+      _sig->vampireToDistinctParent.insert(vsort,dsort);
+    }
+  } 
   // allocate an extra sort per disinct sort for variable equalities
   _sig->varEqSorts.ensure(_distinctSorts);
   _sig->sortBounds.expand(_sig->sorts+_distinctSorts);
@@ -640,9 +658,9 @@ void SortInference::doInference()
   }
 
   for(unsigned s=0;s<env.sorts->sorts();s++){
-    if(env.property->usesSort(s) || s > Sorts::FIRST_USER_SORT){
+    if(env.property->usesSort(s) || s >= Sorts::FIRST_USER_SORT){
       if(!_sig->vampireToDistinctParent.find(s)){
-        if(!_sig->vampireToDistinct.find(s)) continue; // don't actually use this sort :s
+        ASS(_sig->vampireToDistinct.find(s));
         ASS_REP(_sig->vampireToDistinct.find(s),env.sorts->sortName(s));
         ASS(!_sig->vampireToDistinct.get(s)->isEmpty());
         _sig->vampireToDistinctParent.insert(s,(*_sig->vampireToDistinct.get(s))[0]);

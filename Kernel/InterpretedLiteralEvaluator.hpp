@@ -58,6 +58,11 @@ protected:
                        Term* AmultiplyB, TermList* A, TermList C, TermList& result,
                        Interpretation under, bool& swap, Stack<Literal*>& sideConditions);
 
+  bool balanceIntegerMultiply(
+                                                  Term* AmultiplyB, TermList* A, TermList C, TermList& result,
+                                                  Interpretation under, bool& swap,
+                                                  Stack<Literal*>& sideConditions);
+
   // take AoverB, A and C and let result=C*B, AoverB must be that way round
   // ignore the case of BoverA for now
   // rat and real versions only

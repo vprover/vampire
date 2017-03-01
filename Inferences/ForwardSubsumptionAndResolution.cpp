@@ -61,6 +61,9 @@ void ForwardSubsumptionAndResolution::detach()
 
 
 struct ClauseMatches {
+  CLASS_NAME(ForwardSubsumptionAndResolution::ClauseMatches);
+  USE_ALLOCATOR(ClauseMatches);
+
 private:
   //private and undefined operator= and copy constructor to avoid implicitly generated ones
   ClauseMatches(const ClauseMatches&);

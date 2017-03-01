@@ -31,6 +31,9 @@ private:
   struct ClWrapper;
 
   struct Candidate {
+    CLASS_NAME(BlockedClauseElimination::Candidate);
+    USE_ALLOCATOR(Candidate);
+
     ClWrapper* clw;
     unsigned litIdx;    // index of the potentially blocking literal L
     unsigned contFrom;  // index of the next resolution partner to try in op(L)'s list
@@ -44,6 +47,9 @@ private:
   };
 
   struct ClWrapper {
+    CLASS_NAME(BlockedClauseElimination::ClWrapper);
+    USE_ALLOCATOR(ClWrapper);
+
     Clause* cl;            // the actual clause
     bool blocked;          // if already blocked, don't need to try again
     Stack<Candidate*> toResurrect; // when getting block (effectively deleted, all these have a chance again)

@@ -195,7 +195,6 @@ void TPTPPrinter::outputSymbolTypeDefinitions(unsigned symNumber, bool function)
     switch(interp) {
     case Theory::INT_SUCCESSOR:
     case Theory::INT_ABS:
-    case Theory::INT_MODULO:
     case Theory::INT_DIVIDES:
       //for interpreted symbols that do not belong to TPTP standard we still have to output sort
       break;

@@ -13,7 +13,6 @@
 #include "Shell/Options.hpp"
 
 #include "SAT/TWLSolver.hpp"
-#include "SAT/LingelingInterfacing.hpp"
 #include "SAT/MinisatInterfacing.hpp"
 #include "SAT/BufferedSolver.hpp"
 
@@ -29,9 +28,6 @@ GroundingIndex::GroundingIndex(const Options& opt)
   switch(opt.satSolver()){
     case Options::SatSolver::VAMPIRE:
     	_solver = new TWLSolver(opt,true);
-    	break;
-    case Options::SatSolver::LINGELING:
-      _solver = new LingelingInterfacing(opt,true);
     	break;
 #if VZ3
     case Options::SatSolver::Z3:

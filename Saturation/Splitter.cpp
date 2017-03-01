@@ -30,7 +30,6 @@
 #include "SAT/Preprocess.hpp"
 #include "SAT/SATInference.hpp"
 #include "SAT/TWLSolver.hpp"
-#include "SAT/LingelingInterfacing.hpp"
 #include "SAT/MinimizingSolver.hpp"
 #include "SAT/BufferedSolver.hpp"
 #include "SAT/FallbackSolverWrapper.hpp"
@@ -40,13 +39,6 @@
 #include "DP/ShortConflictMetaDP.hpp"
 
 #include "SaturationAlgorithm.hpp"
-
-
-#define DEBUG_MIN_SOLVER VDEBUG
-
-#if DEBUG_MIN_SOLVER
-#include "Test/CheckedSatSolver.hpp"
-#endif
 
 namespace Saturation
 {
@@ -69,9 +61,6 @@ void SplittingBranchSelector::init()
   switch(_parent.getOptions().satSolver()){
     case Options::SatSolver::VAMPIRE:  
       _solver = new TWLSolver(_parent.getOptions(), true);
-      break;
-    case Options::SatSolver::LINGELING: 
-      _solver = new LingelingInterfacing(_parent.getOptions(), true);
       break;
     case Options::SatSolver::MINISAT:
       _solver = new MinisatInterfacing(_parent.getOptions(),true);
@@ -108,12 +97,6 @@ void SplittingBranchSelector::init()
       ASSERTION_VIOLATION_REP(_parent.getOptions().splittingMinimizeModel());
   }
   _minSCO = _parent.getOptions().splittingMinimizeModel() == Options::SplittingMinimizeModel::SCO;
-
-
-#if DEBUG_MIN_SOLVER
-  _solver = new Test::CheckedSatSolver(_solver.release());
-#endif
-
 
   if(_parent.getOptions().splittingCongruenceClosure() != Options::SplittingCongruenceClosure::OFF) {
     _dp = new DP::SimpleCongruenceClosure(&_parent.getOrdering());
@@ -1188,6 +1171,8 @@ Clause* Splitter::buildAndInsertComponentClause(SplitLevel name, unsigned size, 
   Clause* compCl = Clause::fromIterator(getArrayishObjectIterator(lits, size), inpType, 
           new Inference1(Inference::AVATAR_COMPONENT,def_u));
 
+  if(orig && orig->isTheoryDescendant()){ compCl->setTheoryDescendant(true); }
+
   //cout << "Name " << getLiteralFromName(name).toString() << " for " << compCl->toString() << endl; 
 
   compCl->setAge(orig ? orig->age() : AGE_NOT_FILLED);
@@ -1572,20 +1557,19 @@ bool Splitter::handleEmptyClause(Clause* cl)
   collectDependenceLits(cl->splits(), conflictLits);
   SATClause* confl = SATClause::fromStack(conflictLits);
 
-  UnitList* ps = 0;
   FormulaList* resLst=0;
 
   SplitSet::Iterator sit(*cl->splits());
   while(sit.hasNext()) {
     SplitLevel nm = sit.next();
-    UnitList::push(getDefinitionFromName(nm),ps);
     vstring lnm = splPrefix+Lib::Int::toString(nm);
     // in the splits we reverse polarity
     if((nm&1)==0){ lnm="~"+lnm; }
     FormulaList::push(new NamedFormula(lnm),resLst);
   }
 
-  UnitList::push(cl,ps); // making sure this clause is the last one pushed (for the sake of colorFromAssumedFOConversion)
+  UnitList* ps = UnitList::empty();
+  UnitList::push(cl,ps);
 
   Formula* f = JunctionFormula::generalJunction(OR,resLst);
   FormulaUnit* scl = new FormulaUnit(f,new InferenceMany(Inference::AVATAR_CONTRADICTION_CLAUSE,ps),cl->inputType());

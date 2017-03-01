@@ -8,6 +8,7 @@
 
 #include "Forwards.hpp"
 
+#include "Lib/DArray.hpp"
 #include "Lib/Map.hpp"
 #include "Lib/Stack.hpp"
 #include "Lib/Vector.hpp"
@@ -59,7 +60,7 @@ public:
     CLASS_NAME(SortInfo);
     USE_ALLOCATOR(SortInfo);
   
-    SortInfo(const vstring& name,const unsigned id) : _name(name), _id(id) {}
+    SortInfo(const vstring& name,const unsigned id, bool interpreted = false);
     virtual ~SortInfo() {}
     
     const vstring& name() const { return _name; }
@@ -129,24 +130,22 @@ public:
     USE_ALLOCATOR(TupleSort);
 
     TupleSort(vstring name, unsigned id, unsigned arity, unsigned sorts[])
-      : StructuredSortInfo(name, StructuredSort::TUPLE, id), _arity(arity) {
-      _sorts = new unsigned[arity];
+      : StructuredSortInfo(name, StructuredSort::TUPLE, id), _sorts(arity) {
       for (unsigned i = 0; i < arity; i++) {
         _sorts[i] = sorts[i];
       }
     }
 
-    unsigned arity() const { return _arity; }
-    unsigned* sorts() const { return _sorts; }
-    unsigned argument(unsigned index) const { ASS_G(_arity, index); return _sorts[index]; }
+    unsigned arity() const { return (unsigned)_sorts.size(); }
+    unsigned* sorts() { return _sorts.array(); }
+    unsigned argument(unsigned index) const { ASS_G(arity(), index); return _sorts[index]; }
 
   private:
-    unsigned _arity;
-    unsigned* _sorts;
+    DArray<unsigned> _sorts;
   };
 
-  unsigned addSort(const vstring& name, bool& added);
-  unsigned addSort(const vstring& name);
+  unsigned addSort(const vstring& name, bool& added, bool interpreted);
+  unsigned addSort(const vstring& name, bool interpreted);
 
   unsigned addArraySort(unsigned indexSort, unsigned innerSort);
   ArraySort* getArraySort(unsigned sort){
