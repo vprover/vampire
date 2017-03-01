@@ -772,12 +772,12 @@ void Z3Interfacing::addFloorOperations(z3::expr_vector args, Interpretation qi, 
      _solver.add(one);
 
     // e2 != 0 -> e2 * q(e1,e2) + r(e1,e2) = e1
-    z3::expr five = implies( (e2!=0), ( ((e2*q_e1_e2)+ r_e1_e2) = e1 ) );
+    z3::expr five = implies( (e2!=0), ( ((e2*q_e1_e2)+ r_e1_e2) == e1 ) );
     _solver.add(five);
   }
   else{
     // e2 != 0 -> e2 * q(e1,e2) + r(e1,e2) = e1
-    z3::expr five = implies( (e2!=0), ( ((e2*to_real(to_int(e1/e2)))+ r_e1_e2) = e1 ) );
+    z3::expr five = implies( (e2!=0), ( ((e2*to_real(to_int(e1/e2)))+ r_e1_e2) == e1 ) );
     _solver.add(five);
   }
 
