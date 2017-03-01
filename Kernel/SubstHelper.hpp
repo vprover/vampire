@@ -544,15 +544,31 @@ FormulaList* SubstHelper::applyImpl(FormulaList* fs, Applicator& applicator, boo
   if (FormulaList::isEmpty(fs)) {
     return fs;
   }
-  Formula* f = fs->head();
-  FormulaList* tail = fs->tail();
-  Formula* g = applyImpl<ProcessSpecVars>(f, applicator, noSharing);
-  FormulaList* gs = applyImpl<ProcessSpecVars>(tail, applicator, noSharing);
 
-  if (f == g && tail == gs) {
-    return fs;
+  Stack<FormulaList*> args;
+  while (FormulaList::isNonEmpty(fs)) {
+    args.push(fs);
+    fs = fs->tail();
   }
-  return new FormulaList(g,gs);
+
+  FormulaList* res = args.top()->tail();
+  ASS(FormulaList::isEmpty(res));
+
+  while (args.isNonEmpty()) {
+    fs = args.pop();
+    Formula* g = fs->head();
+    FormulaList* gs = fs->tail();
+    Formula* h = applyImpl<ProcessSpecVars>(g, applicator, noSharing);
+    FormulaList* hs = res; // = applyImpl<ProcessSpecVars>(gs, applicator, noSharing);
+
+    if (gs == hs && g == h) {
+      res = fs;
+    } else {
+      res = new FormulaList(h,hs);
+    }
+  }
+
+  return res;
 } // SubstHelper::applyImpl
 
 };
