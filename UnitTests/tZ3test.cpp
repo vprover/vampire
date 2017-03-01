@@ -157,7 +157,6 @@ TEST_FUN(example_model){
   // we can evaluate expressions in the model.
   std::cout << "x + y + 1 = " << m.eval(x + y + 1) << "\n";
 }
-*/
 TEST_FUN(models_on_unknown){
   try{
   std::cout << "models_on_unknown\n";
@@ -191,6 +190,49 @@ TEST_FUN(models_on_unknown){
   //std::cout << "x = " << m.eval(x + y + 1) << "\n";
   }
   catch(z3::exception& exception){
+    cout << "Z3 exception:\n" << exception.msg() << endl;
+  }
+}
+*/
+TEST_FUN(division){
+  std::cout << "z3 division" << endl;
+
+  try{
+
+  unsigned div = theory->getFnNum(Theory::REAL_QUOTIENT);
+  TermList zero(theory->representConstant(RealConstantType("0")));
+  TermList one(theory->representConstant(RealConstantType("1")));
+
+  unsigned afun = env.signature->addFunction("a",0); 
+  Signature::Symbol* symbol = env.signature->getFunction(afun);
+  symbol->setType(new FunctionType(Sorts::SRT_REAL));
+  unsigned bfun = env.signature->addFunction("b",0);    
+  symbol = env.signature->getFunction(bfun);
+  symbol->setType(new FunctionType(Sorts::SRT_REAL));
+  unsigned cfun = env.signature->addFunction("c",0);    
+  symbol = env.signature->getFunction(cfun);
+  symbol->setType(new FunctionType(Sorts::SRT_REAL));
+
+  TermList a(Term::createConstant(afun)); 
+  TermList b(Term::createConstant(bfun)); 
+  TermList c(Term::createConstant(cfun)); 
+  TermList divab(Term::create2(div, a, b));
+  Literal* lit = Literal::createEquality(true, c, divab, Sorts::SRT_REAL);
+
+  SAT::SAT2FO s2f;
+  SAT::Z3Interfacing* sat = new SAT::Z3Interfacing(*env.options,s2f);
+
+  Clause * cl = new(1) Clause(1,Unit::AXIOM,new Inference(Inference::INPUT));
+  (* cl)[0] = lit;
+  sat->addClause(s2f.toSAT(cl),true);
+
+  cl = new(1) Clause(1,Unit::AXIOM,new Inference(Inference::INPUT));
+  (* cl)[0] = Literal::createEquality(true,a,one,Sorts::SRT_REAL);
+  sat->addClause(s2f.toSAT(cl),true);
+
+  cout << sat->solve(0) << endl;
+
+  }catch(z3::exception& exception){
     cout << "Z3 exception:\n" << exception.msg() << endl;
   }
 }

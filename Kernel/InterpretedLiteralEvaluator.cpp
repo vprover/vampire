@@ -4,6 +4,7 @@
  */
 
 #include "Lib/Environment.hpp"
+#include "Lib/Int.hpp"
 
 #include "Signature.hpp"
 #include "Sorts.hpp"
@@ -1089,7 +1090,7 @@ bool InterpretedLiteralEvaluator::balanceIntegerMultiply(
     IntegerConstantType bcon;
     if(theory->tryInterpretConstant(*B,bcon)){
       if(bcon.isZero()){ return false; }
-      if(ccon.toInner() % bcon.toInner() !=0){ return false; } 
+      if(!bcon.divides(ccon)){ return false;}
       if(bcon.isNegative()){ swap=!swap; } // switch the polarity of an inequality if we're under one
       return true;
     }

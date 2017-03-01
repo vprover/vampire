@@ -22,6 +22,7 @@
 
 #include "Inferences/InferenceEngine.hpp"
 #include "Inferences/Instantiation.hpp"
+#include "Inferences/TheoryInstAndSimp.hpp"
 
 #include "Saturation/ExtensionalityClauseContainer.hpp"
 
@@ -59,6 +60,7 @@ public:
 
   void setGeneratingInferenceEngine(GeneratingInferenceEngine* generator);
   void setImmediateSimplificationEngine(ImmediateSimplificationEngine* immediateSimplifier);
+  void setTheoryInstAndSimp(TheoryInstAndSimp* t);
 
   void setLabelFinder(LabelFinder* finder){ _labelFinder = finder; }
 
@@ -191,6 +193,7 @@ protected:
   SymElOutput* _symEl;
   AnswerLiteralManager* _answerLiteralManager;
   Instantiation* _instantiation;
+  TheoryInstAndSimp* _theoryInstSimp;
 
 
   SubscriptionData _passiveContRemovalSData;

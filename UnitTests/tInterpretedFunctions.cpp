@@ -45,7 +45,7 @@ void interpret(Literal* lit)
   }
    */
 }
-
+/*
 // Interpret x*2=5
 TEST_FUN(interpFunc1)
 {
@@ -104,3 +104,4 @@ TEST_FUN(interpFunc4)
   interpret(lit);
 
 }
+*/

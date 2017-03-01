@@ -43,6 +43,7 @@ public:
 	  bool complementary, bool retrieveSubstitutions);
 
 #if VDEBUG
+  virtual void markTagged(){ SubstitutionTree::markTagged();}
   vstring toString() {return SubstitutionTree::toString();}
 #endif
 

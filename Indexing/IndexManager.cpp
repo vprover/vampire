@@ -140,6 +140,9 @@ Index* IndexManager::create(IndexType t)
 #else
     is=new LiteralSubstitutionTree();
 #endif
+#if VDEBUG
+    //is->markTagged();
+#endif
     _genLitIndex=is;
     res=new GeneratingLiteralIndex(is);
     isGenerating = true;
@@ -171,6 +174,9 @@ Index* IndexManager::create(IndexType t)
     tis=new CompitUnificationRecordingTermSubstitutionTree();
 #else
     tis=new TermSubstitutionTree();
+#endif
+#if VDEBUG
+    //tis->markTagged();
 #endif
     res=new SuperpositionSubtermIndex(tis, _alg->getOrdering());
     isGenerating = true;

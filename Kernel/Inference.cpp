@@ -13,7 +13,7 @@
 using namespace Kernel;
 
 Inference::Inference(Rule r)
-  : _rule(r), _extra("")
+  : _rule(r), _extra(""),_maxDepth(0)
 {
 //  switch(r) {
 //  //TODO: move env.statistics object updates here.
@@ -64,10 +64,13 @@ InferenceMany::InferenceMany(Rule rule,UnitList* premises)
 {
   CALL("InferenceMany::InferenceMany");
   UnitList* it=_premises;
+  unsigned md = 0;
   while(it) {
     it->head()->incRefCnt();
+    md = max(md,it->head()->inference()->maxDepth());
     it=it->tail();
   }
+  _maxDepth = md;
 }
 
 /**
@@ -285,6 +288,8 @@ vstring Inference::ruleName(Rule rule)
     return "skolemisation";
   case RESOLUTION:
     return "resolution";
+  case CONSTRAINED_RESOLUTION:
+    return "constrained resolution";
   case EQUALITY_PROXY_REPLACEMENT:
     return "equality proxy replacement";
   case EQUALITY_PROXY_AXIOM1:
@@ -324,10 +329,14 @@ vstring Inference::ruleName(Rule rule)
     return "trivial inequality removal";
   case FACTORING:
     return "factoring";
+  case CONSTRAINED_FACTORING:
+    return "constrained factoring";
   case SUBSUMPTION_RESOLUTION:
     return "subsumption resolution";
   case SUPERPOSITION:
     return "superposition";
+  case CONSTRAINED_SUPERPOSITION:
+    return "constrained superposition";
   case EQUALITY_FACTORING:
     return "equality factoring";
   case EQUALITY_RESOLUTION:

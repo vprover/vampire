@@ -324,6 +324,9 @@ protected:
         }
         out<<") ";
       }
+      if(cl->isTheoryDescendant()){
+        out << "(TD) ";
+      }
     }
     else {
       FormulaUnit* fu=static_cast<FormulaUnit*>(cs);
@@ -837,6 +840,8 @@ protected:
     case Inference::FOOL_ITE_ELIMINATION:
     case Inference::FOOL_ELIMINATION:
     case Inference::BOOLEAN_TERM_ENCODING:
+    case Inference::CHOICE_AXIOM:
+    case Inference::PREDICATE_DEFINITION:
       return true;
     default:
       return false;

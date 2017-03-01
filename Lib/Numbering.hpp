@@ -69,6 +69,11 @@ public:
     CALL("Numbering::getNumberUpperBound");
     return _nextNum==0 ? 0 : (_nextNum-1);
   }
+  void reset(){
+    _map.reset();
+    _rev.reset();
+    _nextNum=Start;
+  }
 private:
   DHMap<T, unsigned> _map;
   DHMap<unsigned, T> _rev;

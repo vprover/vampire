@@ -20,12 +20,19 @@ public:
 
   virtual TermQueryResultIterator getUnifications(TermList t,
 	  bool retrieveSubstitutions = true) { NOT_IMPLEMENTED; }
+  virtual TermQueryResultIterator getUnificationsWithConstraints(TermList t,
+          bool retrieveSubstitutions = true) { NOT_IMPLEMENTED; }
   virtual TermQueryResultIterator getGeneralizations(TermList t,
 	  bool retrieveSubstitutions = true) { NOT_IMPLEMENTED; }
   virtual TermQueryResultIterator getInstances(TermList t,
 	  bool retrieveSubstitutions = true) { NOT_IMPLEMENTED; }
 
   virtual bool generalizationExists(TermList t) { NOT_IMPLEMENTED; }
+
+#if VDEBUG
+  virtual void markTagged() = 0;
+#endif
+
 };
 
 };

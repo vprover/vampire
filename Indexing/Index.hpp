@@ -23,6 +23,9 @@ using namespace Kernel;
 using namespace Lib;
 using namespace Saturation;
 
+typedef pair<TermList,TermList> UnificationConstraint;
+typedef Lib::SmartPtr<Stack<UnificationConstraint>> UnificationConstraintStackSP;
+
 /**
  * Class of objects which contain results of single literal queries.
  */
@@ -33,11 +36,14 @@ struct SLQueryResult
   : literal(l), clause(c), substitution(s) {}
   SLQueryResult(Literal* l, Clause* c)
   : literal(l), clause(c) {}
+  SLQueryResult(Literal* l, Clause* c, ResultSubstitutionSP s,UnificationConstraintStackSP con)
+  : literal(l), clause(c), substitution(s), constraints(con) {}
 
 
   Literal* literal;
   Clause* clause;
   ResultSubstitutionSP substitution;
+  UnificationConstraintStackSP constraints;
 
   struct ClauseExtractFn
   {
@@ -59,11 +65,14 @@ struct TermQueryResult
   : term(t), literal(l), clause(c), substitution(s) {}
   TermQueryResult(TermList t, Literal* l, Clause* c)
   : term(t), literal(l), clause(c) {}
+  TermQueryResult(TermList t, Literal* l, Clause* c, ResultSubstitutionSP s,UnificationConstraintStackSP con)
+  : term(t), literal(l), clause(c), substitution(s), constraints(con) {}
 
   TermList term;
   Literal* literal;
   Clause* clause;
   ResultSubstitutionSP substitution;
+  UnificationConstraintStackSP constraints;
 };
 
 struct ClauseSResQueryResult

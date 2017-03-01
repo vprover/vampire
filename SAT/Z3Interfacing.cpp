@@ -16,6 +16,9 @@
 #include "Lib/System.hpp"
 #include "Kernel/Signature.hpp"
 #include "Kernel/Sorts.hpp"
+#include "Kernel/SortHelper.hpp"
+
+#include "Indexing/TermSharing.hpp"
 
 #include "Z3Interfacing.hpp"
 
@@ -33,15 +36,17 @@ Z3Interfacing::Z3Interfacing(const Shell::Options& opts,SAT2FO& s2f, bool unsatC
   _showZ3(opts.showZ3()),_unsatCoreForRefutations(opts.z3UnsatCores())
 {
   CALL("Z3Interfacing::Z3Interfacing");
+  _solver.reset();
 
-  if (_unsatCoreForAssumptions) {
     z3::params p(_context);
+  if (_unsatCoreForAssumptions) {
     p.set(":unsat-core", true);
-    _solver.set(p);
   }
+    //p.set(":smtlib2-compliant",true);
+    _solver.set(p);
 }
   
-void Z3Interfacing::addClause(SATClause* cl)
+void Z3Interfacing::addClause(SATClause* cl,bool withGuard)
 {
   CALL("Z3Interfacing::addClause");
   BYPASSING_ALLOCATOR;
@@ -55,7 +60,7 @@ void Z3Interfacing::addClause(SATClause* cl)
   unsigned clen=cl->length();
   for(unsigned i=0;i<clen;i++){
     SATLiteral l = (*cl)[i];
-    z3::expr e = getRepresentation(l);
+    z3::expr e = getRepresentation(l,withGuard);
     z3clause = z3clause || e;
   }
   
@@ -65,19 +70,18 @@ void Z3Interfacing::addClause(SATClause* cl)
     env.endOutput();
   }
   _solver.add(z3clause);
-
 }
 
-void Z3Interfacing::addAssumption(SATLiteral lit)
+void Z3Interfacing::addAssumption(SATLiteral lit,bool withGuard)
 {
   CALL("Z3Interfacing::addAssumption");
 
-  _assumptions.push_back(getRepresentation(lit));
+  _assumptions.push_back(getRepresentation(lit,withGuard));
 }
 
 SATSolver::Status Z3Interfacing::solve(unsigned conflictCountLimit)
 {
-  CALL("Z3Interfacing::addClause");
+  CALL("Z3Interfacing::solve");
   BYPASSING_ALLOCATOR;
 
   z3::check_result result = _assumptions.empty() ? _solver.check() : _solver.check(_assumptions);
@@ -107,7 +111,7 @@ SATSolver::Status Z3Interfacing::solve(unsigned conflictCountLimit)
   return _status;
 }
 
-SATSolver::Status Z3Interfacing::solveUnderAssumptions(const SATLiteralStack& assumps, unsigned conflictCountLimit, bool onlyProperSubusets)
+SATSolver::Status Z3Interfacing::solveUnderAssumptions(const SATLiteralStack& assumps, unsigned conflictCountLimit, bool onlyProperSubusets,bool withGuard)
 {
   CALL("Z3Interfacing::solveUnderAssumptions");
 
@@ -129,7 +133,7 @@ SATSolver::Status Z3Interfacing::solveUnderAssumptions(const SATLiteralStack& as
 
   while (it.hasNext()) {
     SATLiteral v_assump = it.next();
-    z3::expr z_assump = getRepresentation(v_assump);
+    z3::expr z_assump = getRepresentation(v_assump,withGuard);
 
     vstring p = ps+Int::toString(n++);
     _solver.add(z_assump,p.c_str());
@@ -168,7 +172,7 @@ SATSolver::VarAssignment Z3Interfacing::getAssignment(unsigned var)
 
   ASS_EQ(_status,SATISFIABLE);
   bool named = _namedExpressions.find(var);
-  z3::expr rep = named ? getNameExpr(var) : getRepresentation(SATLiteral(var,1));
+  z3::expr rep = named ? getNameExpr(var) : getRepresentation(SATLiteral(var,1),false);
   //cout << "rep is " << rep << " named was " << named << endl;
   z3::expr assignment = _model.eval(rep,true /*model_completion*/);
   //cout << "ass is " << assignment << endl;
@@ -189,6 +193,62 @@ SATSolver::VarAssignment Z3Interfacing::getAssignment(unsigned var)
 
   //cout << "returning don't care for " << var << endl;
   return DONT_CARE;
+}
+
+Term* Z3Interfacing::evaluateInModel(Term* trm)
+{
+  CALL("Z3Interfacing::evaluateInModel");
+
+  ASS(!trm->isLiteral());
+
+  unsigned srt = SortHelper::getResultSort(trm);
+  bool name; //TODO what do we do about naming?
+  z3::expr rep = getz3expr(trm,false,name,false); 
+  z3::expr assignment = _model.eval(rep,true); // true means "model_completion"
+
+  // now translate assignment back into a term!
+
+  // For now just deal with the case where it is an integer 
+  if(assignment.is_numeral()){
+    bool is_int = assignment.is_int();
+    ASS(is_int || assignment.is_real()); 
+    if(is_int){
+      ASS(srt == Sorts::SRT_INTEGER);
+      int value;
+      if (assignment.is_numeral_i(value)) {
+        Term* t = theory->representConstant(IntegerConstantType(value));
+        // cout << "evaluteInModel: " << trm->toString() <<" has value " << value << endl;
+        return t;
+      } else {
+        return 0;
+      }
+    }
+    else{
+      int n;
+      int d;
+      z3::expr numerator = assignment.numerator();
+      z3::expr denominator = assignment.denominator(); 
+      if(!numerator.is_numeral_i(n) || !denominator.is_numeral_i(d)){
+          return 0;
+      }
+       
+       if(srt == Sorts::SRT_RATIONAL){
+         Term* t = theory->representConstant(RationalConstantType(n,d));
+         return t;
+       }
+       else{
+         ASS(srt == Sorts::SRT_REAL);
+         Term* t = theory->representConstant(RealConstantType(RationalConstantType(n,d)));
+         return t;
+       }
+    }
+  } else {
+    // TODO" assignment such as "(root-obj (+ (^ x 2) (- 128)) 1)" is an algebraic number, but not a numeral
+    // would be interesting to allow such Sorts::SRT_REAL things to live in vampire
+    // of course, they are not in general Sorts::SRT_RATIONAL
+  }
+
+  return 0;
 }
 
 bool Z3Interfacing::isZeroImplied(unsigned var)
@@ -254,7 +314,7 @@ z3::sort Z3Interfacing::getz3sort(unsigned s)
  * - Translates the ground structure
  * - Some interpreted functions/predicates are handled
  */
-z3::expr Z3Interfacing::getz3expr(Term* trm,bool isLit,bool&nameExpression)
+z3::expr Z3Interfacing::getz3expr(Term* trm,bool isLit,bool&nameExpression,bool withGuard)
 {
   CALL("Z3Interfacing::getz3expr");
   BYPASSING_ALLOCATOR;
@@ -321,6 +381,7 @@ z3::expr Z3Interfacing::getz3expr(Term* trm,bool isLit,bool&nameExpression)
       }
 
       // If not value then create constant symbol
+      //cout << "HERE " << env.sorts->sortName(range_sort) << " for " << symb->name() << endl; 
       return _context.constant(symb->name().c_str(),getz3sort(range_sort));
     }
     ASS(trm->arity()>0);
@@ -332,7 +393,7 @@ z3::expr Z3Interfacing::getz3expr(Term* trm,bool isLit,bool&nameExpression)
     for(unsigned i=0;i<trm->arity();i++){
       TermList* arg = trm->nthArgument(i);
       ASS(!arg->isVar());// Term should be ground
-      args.push_back(getz3expr(arg->term(),false,nameExpression));
+      args.push_back(getz3expr(arg->term(),false,nameExpression,withGuard));
     }
 
     // dummy return
@@ -377,6 +438,7 @@ z3::expr Z3Interfacing::getz3expr(Term* trm,bool isLit,bool&nameExpression)
       switch(interp){
         // Numerical operations
         case Theory::INT_DIVIDES:
+          if(withGuard){addIntNonZero(args[0]);}
           //cout << "SET name=true" << endl;
           nameExpression = true;
           ret = z3::mod(args[1], args[0]) == _context.int_val(0);
@@ -407,10 +469,14 @@ z3::expr Z3Interfacing::getz3expr(Term* trm,bool isLit,bool&nameExpression)
           ret = args[0] * args[1];
           break;
 
-        // No int quotient
         case Theory::RAT_QUOTIENT:
         case Theory::REAL_QUOTIENT:
+          if(withGuard){addRealNonZero(args[1]);}
+          ret= args[0] / args[1];
+          break;
+
         case Theory::INT_QUOTIENT_E: 
+          if(withGuard){addIntNonZero(args[1]);}
           ret= args[0] / args[1];
           break;
 
@@ -509,10 +575,16 @@ z3::expr Z3Interfacing::getz3expr(Term* trm,bool isLit,bool&nameExpression)
            addFloorOperations(args,Theory::REAL_QUOTIENT_F,Theory::REAL_REMAINDER_F,range_sort);
            break;
 
-         case Theory::INT_REMAINDER_E:
          case Theory::RAT_REMAINDER_E:
          case Theory::REAL_REMAINDER_E:
+           if(withGuard){addRealNonZero(args[1]);}
            nameExpression = true; 
+           ret = z3::mod(args[0], args[1]);
+           break;
+
+         case Theory::INT_REMAINDER_E:
+           if(withGuard){addIntNonZero(args[1]);}
+           nameExpression = true;
            ret = z3::mod(args[0], args[1]);
            break;
 
@@ -575,7 +647,7 @@ z3::expr Z3Interfacing::getz3expr(Term* trm,bool isLit,bool&nameExpression)
     return e;
 }
 
-z3::expr Z3Interfacing::getRepresentation(SATLiteral slit)
+z3::expr Z3Interfacing::getRepresentation(SATLiteral slit,bool withGuard)
 {
   CALL("Z3Interfacing::getRepresentation");
   BYPASSING_ALLOCATOR;
@@ -588,13 +660,19 @@ z3::expr Z3Interfacing::getRepresentation(SATLiteral slit)
     try{
       // TODO everything is being named!!
       bool nameExpression = true;
-      z3::expr e = getz3expr(lit,true,nameExpression);
+      z3::expr e = getz3expr(lit,true,nameExpression,withGuard);
       //cout << "got rep " << e << endl;
 
       if(nameExpression && _namedExpressions.insert(slit.var())) {
         z3::expr bname = getNameExpr(slit.var()); 
         //cout << "Naming " << e << " as " << bname << endl;
-        _solver.add(bname == e);
+        z3::expr naming = (bname == e);
+        _solver.add(naming);
+  if(_showZ3){
+    env.beginOutput();
+    env.out() << "[Z3] add: " << naming << std::endl;
+    env.endOutput();
+  }
       }
 
       if(slit.isNegative()){ e = !e;}
@@ -636,7 +714,7 @@ SATClause* Z3Interfacing::getRefutation() {
       unsigned clen=cl->length();
       for(unsigned i=0;i<clen;i++){
         SATLiteral l = (*cl)[i];
-        z3::expr e = getRepresentation(l);
+        z3::expr e = getRepresentation(l,false); 
         z3clause = z3clause || e;
       }
       vstring p = ps+Int::toString(n++);
@@ -663,6 +741,29 @@ SATClause* Z3Interfacing::getRefutation() {
     refutation->setInference(new PropInference(prems));
 
     return refutation; 
+}
+
+void Z3Interfacing::addIntNonZero(z3::expr t)
+{
+  CALL("Z3Interfacing::addIntNonZero");
+
+   z3::expr zero = _context.int_val(0);
+
+  _solver.add(t != zero);
+}
+
+void Z3Interfacing::addRealNonZero(z3::expr t)
+{
+  CALL("Z3Interfacing::addRealNonZero");
+
+   z3::expr zero = _context.real_val(0);
+   z3::expr side = t!=zero;
+  if(_showZ3){
+    env.beginOutput();
+    env.out() << "[Z3] add: " << side << std::endl;
+    env.endOutput();
+  }
+  _solver.add(side);
 }
 
 /**
