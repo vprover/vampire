@@ -436,7 +436,10 @@ void Preprocess::preprocess1 (Problem& prb)
     fu = Rectify::rectify(fu);
     FormulaUnit* rectFu = fu;
     // Simplify the formula if it contains true or false
-    fu = SimplifyFalseTrue::simplify(fu);
+    if (!_options.newCNF()) {
+      // NewCNF effectively implements this simplification already
+      fu = SimplifyFalseTrue::simplify(fu);
+    }
     if (fu!=rectFu) {
       formulasSimplified = true;
     }

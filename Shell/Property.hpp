@@ -231,12 +231,14 @@ public:
 
   // reading in properties of problems
   void scan(Unit*);
+
+  // these two are the only ones which start the deep iteration
   void scan(Clause*);
   void scan(FormulaUnit*);
-  void scan(Formula*);
-  void scan(TermList* ts);
+
+  void scan(Formula*, int polarity);
+  void scan(TermList ts);
   void scan(Literal* lit,int polarity = 1);
-  void scanSpecialTerm(Term* t);
   void scanSort(unsigned sort);
 
   char axiomTypes() const;

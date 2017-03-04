@@ -132,6 +132,8 @@ SMTPAR.cpp
 SMTPAR.hpp
 SMTPrinter.cpp
 SMTPrinter.hpp
+SubexpressionIterator.cpp
+SubexpressionIterator.hpp
 FOOLElimination.cpp
 FOOLElimination.hpp
 Statistics.cpp
