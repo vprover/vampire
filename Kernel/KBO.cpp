@@ -24,6 +24,8 @@
 #include "KBO.hpp"
 #include "Signature.hpp"
 
+#include <fstream>
+
 
 #define NONINTERPRETED_PRECEDENCE_BOOST 0x1000
 
@@ -829,7 +831,14 @@ KBOBase::KBOBase(Problem& prb, const Options& opt)
     aux.initFromIterator(getRangeIterator(0u, _functions), _functions);
 
     if (!opt.functionPrecedence().empty()) {
-      loadPermutationFromString(aux,opt.functionPrecedence());
+      BYPASSING_ALLOCATOR;
+
+      vstring precedence;
+      ifstream precedence_file (opt.functionPrecedence().c_str());
+      if (precedence_file.is_open() && getline(precedence_file, precedence)) {
+        loadPermutationFromString(aux,precedence);
+        precedence_file.close();
+      }
     } else {
       switch(opt.symbolPrecedence()) {
       case Shell::Options::SymbolPrecedence::ARITY:
@@ -881,7 +890,14 @@ KBOBase::KBOBase(Problem& prb, const Options& opt)
   aux.initFromIterator(getRangeIterator(0u, _predicates), _predicates);
 
   if (!opt.predicatePrecedence().empty()) {
-    loadPermutationFromString(aux,opt.predicatePrecedence());
+    BYPASSING_ALLOCATOR;
+
+    vstring precedence;
+    ifstream precedence_file (opt.predicatePrecedence().c_str());
+    if (precedence_file.is_open() && getline(precedence_file, precedence)) {
+      loadPermutationFromString(aux,precedence);
+      precedence_file.close();
+    }
   } else {
     switch(opt.symbolPrecedence()) {
     case Shell::Options::SymbolPrecedence::ARITY:
