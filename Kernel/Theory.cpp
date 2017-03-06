@@ -1321,7 +1321,7 @@ vstring Theory::getInterpretationName(Interpretation interp) {
         return "$remainder_e";
       case Theory::RAT_QUOTIENT:
       case Theory::REAL_QUOTIENT:
-        return "quotient";
+        return "$quotient";
       case Theory::INT_TRUNCATE:
       case Theory::RAT_TRUNCATE:
       case Theory::REAL_TRUNCATE:
