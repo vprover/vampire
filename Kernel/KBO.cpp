@@ -828,10 +828,8 @@ KBOBase::KBOBase(Problem& prb, const Options& opt)
   if(_functions) {
     aux.initFromIterator(getRangeIterator(0u, _functions), _functions);
 
-    vstring fp = opt.functionPrecedence();
-
-    if (!fp.empty()) {
-      loadPermutationFromString(aux,fp);
+    if (!opt.functionPrecedence().empty()) {
+      loadPermutationFromString(aux,opt.functionPrecedence());
     } else {
       switch(opt.symbolPrecedence()) {
       case Shell::Options::SymbolPrecedence::ARITY:
@@ -882,10 +880,8 @@ KBOBase::KBOBase(Problem& prb, const Options& opt)
 
   aux.initFromIterator(getRangeIterator(0u, _predicates), _predicates);
 
-  vstring pp = opt.predicatePrecedence();
-
-  if (!pp.empty()) {
-    loadPermutationFromString(aux,pp);
+  if (!opt.predicatePrecedence().empty()) {
+    loadPermutationFromString(aux,opt.predicatePrecedence());
   } else {
     switch(opt.symbolPrecedence()) {
     case Shell::Options::SymbolPrecedence::ARITY:
