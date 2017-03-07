@@ -886,7 +886,7 @@ int main(int argc, char* argv[])
   // create random seed for the random number generation
   Lib::Random::setSeed(123456);
 
-  // START_CHECKING_FOR_ALLOCATOR_BYPASSES;
+  START_CHECKING_FOR_ALLOCATOR_BYPASSES;
 
   try {
     // read the command line and interpret it
