@@ -1123,7 +1123,8 @@ void Options::Options::init()
 
     _use_dm = BoolOptionValue("use_dismatching","dm",false);
     _use_dm.description="Use dismatching constraints.";
-    _lookup.insert(&_use_dm);
+    // Dismatching constraints didn't work and are being discontinued ...
+    // _lookup.insert(&_use_dm);
     _use_dm.tag(OptionTag::INST_GEN);
     //_use_dm.setExperimental();
     _use_dm.setRandomChoices({"on","off"});
