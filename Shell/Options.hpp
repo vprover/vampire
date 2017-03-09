@@ -483,7 +483,8 @@ public:
     ON = 1,
     PROOFCHECK = 2,
     TPTP = 3,
-    SMTCOMP = 4
+    SMTCOMP = 4,
+    PROPERTY = 5
   };
 
   /** Values for --equality_proxy */

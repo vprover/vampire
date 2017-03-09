@@ -81,6 +81,7 @@ private:
   struct ProofPrinter;
   struct TPTPProofPrinter;
   struct ProofCheckPrinter;
+  struct ProofPropertyPrinter;
 
   ProofPrinter* createProofPrinter(ostream& out);
 

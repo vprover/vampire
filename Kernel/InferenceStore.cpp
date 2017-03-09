@@ -405,6 +405,63 @@ protected:
   bool proofExtra;
 };
 
+struct InferenceStore::ProofPropertyPrinter
+: public InferenceStore::ProofPrinter
+{
+  CLASS_NAME(InferenceStore::ProofPropertyPrinter);
+  USE_ALLOCATOR(InferenceStore::ProofPropertyPrinter);
+
+  ProofPropertyPrinter(ostream& out, InferenceStore* is) : ProofPrinter(out,is) 
+  {
+    CALL("InferenceStore::ProofPropertyPrinter::ProofPropertyPrinter");
+
+    max_theory_clause_depth = 0;
+  }
+
+  void print()
+  {
+    ProofPrinter::print();
+    out << "max_theory_clause_depth:"<<max_theory_clause_depth << endl;
+  }
+
+protected:
+
+  void printStep(Unit* us)
+  {
+    // TODO we could make clauses track this information, but I am not sure that that's worth it
+    if(us->isClause() && static_cast<Clause*>(us)->isTheoryDescendant()){
+      //cout << "HERE with " << us->toString() << endl;
+      Inference* inf = us->inference();
+      Stack<Inference*> current;
+      current.push(inf);
+      unsigned level = 0;
+      while(!current.isEmpty()){
+        Stack<Inference*> next;
+        Stack<Inference*>::Iterator it(current);
+        while(it.hasNext()){
+          Inference* inf = it.next();
+          Inference::Iterator iit=inf->iterator();
+          while(inf->hasNext(iit)) {
+            Unit* premUnit=inf->next(iit);
+            next.push(premUnit->inference());
+          }
+        }
+        level++;
+        current = next;
+      }
+      //cout << "level is " << level << endl;
+      
+      if(level > max_theory_clause_depth){
+        max_theory_clause_depth=level;
+      }
+    }
+  }
+
+  unsigned max_theory_clause_depth;
+
+};
+
+
 struct InferenceStore::TPTPProofPrinter
 : public InferenceStore::ProofPrinter
 {
@@ -866,6 +923,8 @@ InferenceStore::ProofPrinter* InferenceStore::createProofPrinter(ostream& out)
     return new ProofCheckPrinter(out, this);
   case Options::Proof::TPTP:
     return new TPTPProofPrinter(out, this);
+  case Options::Proof::PROPERTY:
+    return new ProofPropertyPrinter(out,this);
   case Options::Proof::OFF:
   case Options::Proof::SMTCOMP:
     return 0;
