@@ -661,7 +661,7 @@ Clause* Superposition::performSuperposition(
 
   res->setAge(newAge);
 
-  if(hasConstraints){
+  if(!hasConstraints){
     if(rwClause==eqClause) {
       env.statistics->selfSuperposition++;
     } else if(eqIsResult) {
