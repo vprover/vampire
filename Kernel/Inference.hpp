@@ -385,7 +385,8 @@ public:
       _premise1(premise)
   { 
     _premise1->incRefCnt(); 
-    _maxDepth = premise->inference()->maxDepth(); 
+    _maxDepth = premise->inference()->maxDepth()+1; 
+    if(_rule == EVALUATION){ _maxDepth = premise->inference()->maxDepth(); }
   }
 
   virtual void destroy();
@@ -440,7 +441,7 @@ public:
   {
     _premise1->incRefCnt();
     _premise2->incRefCnt();
-    _maxDepth = max(premise1->inference()->maxDepth(),premise2->inference()->maxDepth());
+    _maxDepth = max(premise1->inference()->maxDepth(),premise2->inference()->maxDepth())+1;
   }
 
   virtual void destroy();
