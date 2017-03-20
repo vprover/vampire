@@ -1162,7 +1162,7 @@ MainLoopResult SaturationAlgorithm::runImpl()
     for (;;l++) {
       
       if(_showClauseSetSizesPeriod && (l % _showClauseSetSizesPeriod == 0)){
-        cout << "Sizes " << _active->size() << " " << l << " " << _passive->size() << endl;
+        cout << "Sizes " << _active->size() << " " << l << " " << _passive->size() + _newClauses.size() << endl;
       }
 
       if (_activationLimit && l > _activationLimit) {
