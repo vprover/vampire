@@ -1725,7 +1725,8 @@ public:
   // IMPORTANT, if you add a showX command then include showAll
   bool showAll() const { return _showAll.actualValue; }
 
-  int showClauseSetSizes() const { return _showClauseSetSizes.actualValue; }
+  int showClauseSetSizesByActivations() const { return _showClauseSetSizesByActivations.actualValue; }
+  int showClauseSetSizesByDecisedonds() const { return _showClauseSetSizesByDeciseconds.actualValue; }
 
   bool showActive() const { return showAll() || _showActive.actualValue; }
   bool showBlocked() const { return showAll() || _showBlocked.actualValue; }
@@ -2211,7 +2212,8 @@ private:
   ChoiceOptionValue<SaturationAlgorithm> _saturationAlgorithm;
   BoolOptionValue _selectUnusedVariablesFirst;
   BoolOptionValue _showAll;
-  IntOptionValue _showClauseSetSizes;
+  IntOptionValue _showClauseSetSizesByActivations;
+  IntOptionValue _showClauseSetSizesByDeciseconds;
   BoolOptionValue _showActive;
   BoolOptionValue _showBlocked;
   BoolOptionValue _showDefinitions;

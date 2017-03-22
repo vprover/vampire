@@ -210,7 +210,9 @@ protected:
   /** Number of clauses that entered the unprocessed container */
   unsigned _generatedClauseCount;
 
-  int _showClauseSetSizesPeriod;
+  int _showClauseSetSizesActivationPeriod;
+  int _showClauseSetSizesDecisecondPeriod;
+
   unsigned _activationLimit;
 };
 
