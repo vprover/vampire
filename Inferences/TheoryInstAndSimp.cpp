@@ -59,6 +59,9 @@ void TheoryInstAndSimp::attach(SaturationAlgorithm* salg)
 void TheoryInstAndSimp::selectTheoryLiterals(Clause* cl, Stack<Literal*>& theoryLits,bool forZ3)
 {
   CALL("TheoryInstAndSimp::selectTheoryLiterals");
+#if DPRINT
+  cout << "selectTheoryLiterals["<<forZ3<<"] in " << cl->toString() << endl;
+#endif
 
   static Shell::Options::TheoryInstSimp selection = env.options->theoryInstAndSimp();
   ASS(selection!=Shell::Options::TheoryInstSimp::OFF);
@@ -98,11 +101,13 @@ void TheoryInstAndSimp::selectTheoryLiterals(Clause* cl, Stack<Literal*>& theory
            theory->isZero(*(t->nthArgument(1)))){
           // treat this literal as uninterpreted
           interpreted=false;
+#if DPRINT
+          cout << "forZ3 interpreted is false for " << lit->toString() << endl;
+#endif
         }
       }
     }
     }
-
 
     if(interpreted){    
       VariableIterator vit(lit); 
@@ -134,11 +139,17 @@ void TheoryInstAndSimp::selectTheoryLiterals(Clause* cl, Stack<Literal*>& theory
   Stack<Literal*>::Iterator wit(weak);
   while(wit.hasNext()){
     Literal* lit = wit.next();
+#if DPRINT
+	cout << "consider weak " << lit->toString() << endl;
+#endif
     VariableIterator vit(lit);
     bool add = false;
     while(vit.hasNext() && !add){
       if(strong_vars.contains(vit.next().var())){
         add=true; 
+#if DPRINT
+	cout << "add weak as has strong var" << endl;
+#endif
       }
     }
     if(!add){
@@ -146,6 +157,9 @@ void TheoryInstAndSimp::selectTheoryLiterals(Clause* cl, Stack<Literal*>& theory
       while(nit.hasNext() && !add){
         if(strong_symbols.contains(nit.next().term()->functor())){
           add=true;
+#if DPRINT
+        cout << "add weak as has strong symbol" << endl;
+#endif
         }
       }
     }
@@ -161,6 +175,29 @@ void TheoryInstAndSimp::selectTheoryLiterals(Clause* cl, Stack<Literal*>& theory
  
   }
   // now remove bad things
+  // if this is the forZ3 pass then ensure that nothing is uninterpreted
+  if(forZ3){
+    Stack<Literal*>::Iterator tlit(theoryLits);
+    Stack<Literal*> deselected;
+    while(tlit.hasNext()){
+      Literal* lit = tlit.next();
+      NonVariableIterator nit(lit);
+      bool deselect=false;
+      while(nit.hasNext() && !deselect){
+        Term* t = nit.next().term();
+        deselect = !theory->isInterpretedFunction(t->functor()); 
+      }
+      if(deselect){ deselected.push(lit);}
+    }
+    Stack<Literal*>::Iterator dit(deselected);
+    while(dit.hasNext()){ 
+      Literal* lit = dit.next();
+      theoryLits.remove(lit);
+#if DPRINT
+	cout << "deselect " << lit->toString() << endl;
+#endif
+    }
+  }
   for(unsigned i=0;i<var_to_lits.size();i++){
     if(var_to_lits[i].size()==1){
       Literal * lit = var_to_lits[i][0]; 
@@ -322,6 +359,9 @@ struct InstanceFn
 
     // We delete cl as it's a theory-tautology (note that if the answer was uknown no solution would be produced)
     if(!sol.status){
+#if DPRINT
+      cout << "Potential theory tautology" << endl;
+#endif
       // if the theoryLits contain partial functions that need to be guarded then it may not
       // be a tautology, we would need to confirm this without the guards
       bool containsPartial = false;
@@ -395,6 +435,9 @@ partial_check_end:
     }
 
     env.statistics->theoryInstSimp++;
+#if DPRINT
+    cout << "to get " << res->toString() << endl;
+#endif
     return res;
   }
 
