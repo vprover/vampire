@@ -99,15 +99,10 @@ SaturationAlgorithm::SaturationAlgorithm(Problem& prb, const Options& opt)
     _consFinder(0), _labelFinder(0), _symEl(0), _answerLiteralManager(0),
     _instantiation(0),
     _generatedClauseCount(0),
-    _showClauseSetSizesActivationPeriod(0),
-    _showClauseSetSizesDecisecondPeriod(0),
     _activationLimit(0)
 {
   CALL("SaturationAlgorithm::SaturationAlgorithm");
   ASS_EQ(s_instance, 0);  //there can be only one saturation algorithm at a time
-
-  _showClauseSetSizesActivationPeriod = opt.showClauseSetSizesByActivations();
-  _showClauseSetSizesDecisecondPeriod = opt.showClauseSetSizesByDecisedonds();
 
   _activationLimit = opt.activationLimit();
 
@@ -1158,27 +1153,12 @@ MainLoopResult SaturationAlgorithm::runImpl()
 {
   CALL("SaturationAlgorithm::runImpl");
 
-  unsigned last_deci = 0;
   unsigned l = 0;
   try
   {
     for (;;l++) {
-      
-      if(_showClauseSetSizesActivationPeriod && (l % _showClauseSetSizesActivationPeriod == 0)){
-        cout << "Sizes by activation: " << _active->size() << " " << l << " " << _passive->size() + _newClauses.size() << endl;
-      }
-
-      if(_showClauseSetSizesDecisecondPeriod) {
-        static Timer* timer = Timer::instance();
-        unsigned current_deci = timer->elapsedDeciseconds();
-        if (current_deci-last_deci >= _showClauseSetSizesDecisecondPeriod) {
-          cout << "Sizes by decisecond: " << _active->size() << " " << current_deci << " " << _passive->size() + _newClauses.size() << endl;
-          last_deci += _showClauseSetSizesDecisecondPeriod;
-        }
-      }
-
       if (_activationLimit && l > _activationLimit) {
-        throw ActivationLimitExceededException(); // TODO: have an own limit exception!
+        throw ActivationLimitExceededException();
       }
 
       doOneAlgorithmStep();
