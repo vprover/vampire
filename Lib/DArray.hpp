@@ -322,7 +322,7 @@ public:
   {
     CALL("DArray::sortGen");
 
-    if(!size()) {
+    if(_size <= 1) {
       return;
     }
 
