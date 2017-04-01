@@ -175,6 +175,9 @@ void Statistics::print(ostream& out)
   case Statistics::MEMORY_LIMIT:
     out << "Memory limit";
     break;
+  case Statistics::ACTIVATION_LIMIT:
+    out << "Activation limit";
+    break;
   case Statistics::REFUTATION_NOT_FOUND:
     if (env.statistics->discardedNonRedundantClauses) {
       out << "Refutation not found, non-redundant clauses discarded";

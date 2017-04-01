@@ -209,6 +209,8 @@ protected:
 
   /** Number of clauses that entered the unprocessed container */
   unsigned _generatedClauseCount;
+
+  unsigned _activationLimit;
 };
 
 

@@ -20,6 +20,7 @@
 #include "Kernel/Inference.hpp"
 #include "Kernel/TermIterators.hpp"
 
+#include "Options.hpp"
 #include "Statistics.hpp"
 #include "FunctionDefinition.hpp"
 #include "Property.hpp"
@@ -81,6 +82,10 @@ Property::Property()
 Property* Property::scan(UnitList* units)
 {
   CALL("Property::scan");
+
+  // a bit of a hack, these counts belong in Property
+  for(unsigned f=0;f<env.signature->functions();f++){ env.signature->getFunction(f)->resetUsageCnt(); }
+  for(unsigned p=0;p<env.signature->predicates();p++){ env.signature->getPredicate(p)->resetUsageCnt(); }
 
   Property* prop = new Property;
   prop->add(units);
@@ -252,11 +257,15 @@ void Property::scan(Clause* clause)
       }
     }
 
-    scan(literal);
+    bool goal = (clause->inputType()==Unit::CONJECTURE || clause->inputType()==Unit::NEGATED_CONJECTURE);
+    bool unit = (clause->length() == 1);
+
+    // 1 for context polarity, only used in formulas
+    scan(literal,1,clause->length(),goal);
 
     SubtermIterator stit(literal);
     while (stit.hasNext()) {
-      scan(stit.next());
+      scan(stit.next(),unit,goal);
     }
 
     if (literal->shared() && literal->ground()) {
@@ -349,7 +358,7 @@ void Property::scan(FormulaUnit* unit)
     if (expr.isFormula()) {
       scan(expr.getFormula(), polarity);
     } else if (expr.isTerm()) {
-      scan(expr.getTerm());
+      scan(expr.getTerm(),false,false); // only care about unit/goal when clausified
     } else {
       ASSERTION_VIOLATION;
     }
@@ -386,7 +395,7 @@ void Property::scan(Formula* f, int polarity)
           _positiveEqualityAtoms++;
         }
       }
-      scan(lit,polarity);
+      scan(lit,polarity,0,false); // 0 as not in clause, goal type irrelevant
       break;
     }
     case BOOL_TERM: {
@@ -471,7 +480,7 @@ void Property::scanSort(unsigned sort)
  * @since 17/07/2003 Manchester, changed to non-pointer types
  * @since 27/05/2007 flight Manchester-Frankfurt, uses new datastructures
  */
-void Property::scan(Literal* lit, int polarity)
+void Property::scan(Literal* lit, int polarity, unsigned cLen, bool goal)
 {
   CALL("Property::scan(const Literal*...)");
 
@@ -484,7 +493,17 @@ void Property::scan(Literal* lit, int polarity)
       _maxPredArity = arity;
     }
     Signature::Symbol* pred = env.signature->getPredicate(lit->functor());
-    pred->incUsageCnt();
+    static bool weighted = env.options->symbolPrecedence() == Options::SymbolPrecedence::WEIGHTED_FREQUENCY ||
+                           env.options->symbolPrecedence() == Options::SymbolPrecedence::REVERSE_WEIGHTED_FREQUENCY;
+    unsigned w = weighted ? cLen : 1; 
+    for(unsigned i=0;i<w;i++){pred->incUsageCnt();}
+    if(cLen==1){
+      pred->markInUnit();
+    }
+    if(goal){
+      pred->markInGoal();
+    }
+
     PredicateType* type = pred->predType();
     for (int i=0; i<arity; i++) {
       scanSort(type->arg(i));
@@ -515,7 +534,7 @@ void Property::scan(Literal* lit, int polarity)
  * @since 27/08/2003 Vienna, changed to count variables
  * @since 27/05/2007 flight Manchester-Frankfurt, changed to new datastructures
  */
-void Property::scan(TermList ts)
+void Property::scan(TermList ts,bool unit,bool goal)
 {
   CALL("Property::scan(TermList)");
   _terms++;
@@ -547,6 +566,8 @@ void Property::scan(TermList ts)
 
     Signature::Symbol* func = env.signature->getFunction(t->functor());
     func->incUsageCnt();
+    if(unit){ func->markInUnit();}
+    if(goal){ func->markInGoal();}
 
     int arity = t->arity();
     FunctionType* type = func->fnType();

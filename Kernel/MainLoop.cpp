@@ -67,6 +67,10 @@ MainLoopResult MainLoop::run()
   {
     return MainLoopResult(Statistics::TIME_LIMIT);
   }
+  catch(ActivationLimitExceededException&)
+  {
+    return MainLoopResult(Statistics::ACTIVATION_LIMIT);
+  }
   catch(MainLoopFinishedException& e)
   {
     return e.result;

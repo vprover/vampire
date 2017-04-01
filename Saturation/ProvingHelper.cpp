@@ -55,6 +55,10 @@ using namespace Shell;
     env.statistics->terminationReason=Statistics::TIME_LIMIT;
     env.statistics->refutation=0;
   }
+  catch(ActivationLimitExceededException&) {
+    env.statistics->terminationReason=Statistics::ACTIVATION_LIMIT;
+    env.statistics->refutation=0;
+  }
 }
 
 /**
@@ -94,6 +98,10 @@ void ProvingHelper::runVampire(Problem& prb, const Options& opt)
   }
   catch(TimeLimitExceededException&) {
     env.statistics->terminationReason=Statistics::TIME_LIMIT;
+    env.statistics->refutation=0;
+  }
+  catch(ActivationLimitExceededException&) {
+    env.statistics->terminationReason=Statistics::ACTIVATION_LIMIT;
     env.statistics->refutation=0;
   }
 }

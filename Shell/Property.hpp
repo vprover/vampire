@@ -236,9 +236,10 @@ public:
   void scan(Clause*);
   void scan(FormulaUnit*);
 
+  void scan(Literal* lit, int polarity, unsigned cLen, bool goal);
   void scan(Formula*, int polarity);
-  void scan(TermList ts);
-  void scan(Literal* lit,int polarity = 1);
+  void scan(TermList ts,bool unit,bool goal);
+
   void scanSort(unsigned sort);
 
   char axiomTypes() const;

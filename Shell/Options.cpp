@@ -1478,13 +1478,35 @@ void Options::Options::init()
     _lookup.insert(&_randomSeed);
     _randomSeed.tag(OptionTag::INPUT);
 
+    _activationLimit = IntOptionValue("activation_limit","al",0);
+    _activationLimit.description="Terminate saturation after this many iterations of the main loop. 0 means no limit.";
+    _activationLimit.setExperimental();
+    _lookup.insert(&_activationLimit);
 
     _symbolPrecedence = ChoiceOptionValue<SymbolPrecedence>("symbol_precedence","sp",SymbolPrecedence::ARITY,
-                                                            {"arity","occurrence","reverse_arity"});
+                                                            {"arity","occurrence","reverse_arity","scramble",
+                                                             "frequency","reverse_frequency",
+                                                             "weighted_frequency","reverse_weighted_frequency"});
     _symbolPrecedence.description="Vampire uses KBO which requires a precedence relation between symbols. Arity orders symbols by their arity (and reverse_arity takes the reverse of this) and occurence orders symbols by the order they appear in the problem.";
     _lookup.insert(&_symbolPrecedence);
     _symbolPrecedence.tag(OptionTag::SATURATION);
-    _symbolPrecedence.setRandomChoices({"arity","occurence","reverse_arity"});
+    _symbolPrecedence.setRandomChoices({"arity","occurence","reverse_arity","frequency"});
+
+    _functionPrecedence = StringOptionValue("function_precendence","fp","");
+    _functionPrecedence.description = "A name of a file with an explicit user specified precedence on function symbols.";
+    _functionPrecedence.setExperimental();
+    _lookup.insert(&_functionPrecedence);
+
+    _predicatePrecedence = StringOptionValue("predicate_precendence","pp","");
+    _predicatePrecedence.description = "A name of a file with an explicit user specified precedence on predicate symbols.";
+    _predicatePrecedence.setExperimental();
+    _lookup.insert(&_predicatePrecedence);
+
+    _symbolPrecedenceBoost = ChoiceOptionValue<SymbolPrecedenceBoost>("symbol_precedence_boost","spb",SymbolPrecedenceBoost::NONE,
+                                     {"none","goal","units","goal_then_units"});
+    _symbolPrecedenceBoost.description = "";
+    _symbolPrecedenceBoost.tag(OptionTag::SATURATION);
+    _lookup.insert(&_symbolPrecedenceBoost);
 
     _weightIncrement = BoolOptionValue("weight_increment","",false);
     _weightIncrement.description="";
