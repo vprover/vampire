@@ -90,10 +90,11 @@ private:
   enum BuiltInSorts
   {
     BS_ARRAY,
+    BS_BITVECTOR,
     BS_BOOL,
     BS_INT,
     BS_REAL,
-
+    
     BS_INVALID
   };
   static const char * s_builtInSortNameStrings[];
@@ -171,6 +172,13 @@ private:
     FS_GREATER,
     FS_GREATER_EQ,
     FS_AND,
+    FS_BVSGE,
+    FS_BVSGT,
+    FS_BVSLE,
+    FS_BVSLT,
+    FS_BVUGE,
+    FS_BVUGT,
+    FS_BVULE,
     FS_DISTINCT,
     FS_EXISTS,
     FS_FALSE,
@@ -200,8 +208,32 @@ private:
     TS_PLUS,
     TS_MINUS,
     TS_DIVIDE,
+    TS_UNDERSCORE,
     TS_ABS,
+    TS_BVADD,
+    TS_BVAND,
+    TS_BVASHR,
+    TS_BVCOMP,
+    TS_BVMUL,
+    TS_BVNAND,
+    TS_BVNEG,
+    TS_BVNOR, // WILL HAVE TO MOVE THE ONES THAT RETURN BOOLEAN
+    TS_BVNOT,
+    TS_BVOR,
+    TS_BVSDIV,
+    TS_BVSHL,
+    TS_BVSHR,
+    TS_BVSMOD,
+    TS_BVSREM,
+    TS_BVSUB,
+    TS_BVUDIV,
+    TS_BVULT,
+    TS_BVUREM,
+    TS_BVXNOR,
+    TS_BVXOR,
+    TS_CONCAT,
     TS_DIV,
+    TS_EXTRACT,
     TS_ITE,
     TS_LET,
     TS_MOD,
@@ -209,7 +241,7 @@ private:
     TS_STORE,
     TS_TO_INT,
     TS_TO_REAL,
-
+    
     TS_USER_FUNCTION
   };
   static const char * s_termSymbolNameStrings[];
@@ -301,7 +333,7 @@ private:
   Interpretation getUnaryMinusInterpretation(unsigned argSort);
   /** Return Theory::Interpretation for overloaded arithmetic operators based on its argSort (either Int or Real) */
   Interpretation getTermSymbolInterpretation(TermSymbol ts, unsigned firstArgSort);
-  
+
 
   // global parsing data structures -- BEGIN
 
@@ -362,6 +394,8 @@ private:
   bool parseAsScopeLookup(const vstring& id);
   /** Currently either numeral or decimal */
   bool parseAsSpecConstant(const vstring& id);
+  /** to parse bv231 and the like*/
+  bool parseAsBitVectorDescriptor(const vstring& id);
   /** Declared or defined functions (and predicates) - which includes 0-arity ones */
   bool parseAsUserDefinedSymbol(const vstring& id, LExpr* exp);
   /** Whatever is built-in and looks like a formula from vampire perspective (see FormulaSymbol)

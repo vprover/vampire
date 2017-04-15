@@ -102,6 +102,28 @@ unsigned Sorts::addSort(const vstring& name, bool& added, bool interpreted)
 } // Sorts::addSort
 
 
+unsigned Sorts::addBitVectorSort(const unsigned size)
+{
+    CALL("Sorts::addBitVectorSort");
+    
+    vstring name = "$bitVector(";
+    vstring temp = size+"";
+    name+=temp+")";
+    unsigned result;
+    if(_sortNames.find(name,result)){
+        return result;
+    }
+    
+    _hasSort = true;
+    result = _sorts.length();
+    
+    BitVectorSort* sort = new BitVectorSort(name,size,result);
+    _sorts.push(sort);
+    _sortNames.insert(name,result);
+    
+    return result;
+}
+
 /**
  *
  * @author Giles

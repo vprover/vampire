@@ -325,7 +325,7 @@ public:
     REAL_TO_INT,
     REAL_TO_RAT,
     REAL_TO_REAL
-
+    
     // IMPORTANT - if you add something to end of this, update it in LastNonStructuredInterepretation 
     
     //INVALID_INTERPRETATION // replaced by LastNonStructuredInterepretation
@@ -373,7 +373,8 @@ public:
     LIST_HEAD,
     LIST_TAIL,
     LIST_CONS,
-    LIST_IS_EMPTY
+    LIST_IS_EMPTY,
+    DEFINE_BITVECTOR  
   };
   unsigned LastStructuredInterpretation(){
     return static_cast<unsigned>(StructuredSortInterpretation::LIST_IS_EMPTY);

@@ -169,7 +169,7 @@ void SMTLIB2::readBenchmark(LExprList* bench)
 
       continue;
     }
-    
+
     if (ibRdr.tryAcceptAtom("declare-const")) {
       vstring name = ibRdr.readAtom();
       LExpr* oSort = ibRdr.readNext();
@@ -349,10 +349,11 @@ void SMTLIB2::readLogic(const vstring& logicStr)
     break;
 
   // we don't support bit vectors
+  case SMT_QF_BV:
+      break;
   case SMT_BV:
   case SMT_QF_ABV:
   case SMT_QF_AUFBV:
-  case SMT_QF_BV:
   case SMT_QF_UFBV:
   case SMT_UFBV:
     USER_ERROR("unsupported logic "+logicStr);
@@ -366,6 +367,7 @@ void SMTLIB2::readLogic(const vstring& logicStr)
 
 const char * SMTLIB2::s_builtInSortNameStrings[] = {
     "Array",
+    "BitVec",
     "Bool",
     "Int",
     "Real"
@@ -448,7 +450,7 @@ void SMTLIB2::readDefineSort(const vstring& name, LExprList* args, LExpr* body)
 unsigned SMTLIB2::declareSort(LExpr* sExpr)
 {
   CALL("SMTLIB2::declareSort");
-
+  int bitVecSize = -1;
   enum SortParseOperation {
     SPO_PARSE,
     SPO_POP_LOOKUP,
@@ -501,6 +503,7 @@ unsigned SMTLIB2::declareSort(LExpr* sExpr)
 
     ASS_EQ(op,SPO_PARSE);
     LExpr* exp = cur.second;
+    cout<<"\n SPO parse "<<  exp->str<<"\n";
 
     if (exp->isList()) {
       LExprList::Iterator lIt(exp->list);
@@ -513,6 +516,7 @@ unsigned SMTLIB2::declareSort(LExpr* sExpr)
       }
     } else {
       ASS(exp->isAtom());
+      cout<<"\n atom is "<< exp->str<<"\n";
       vstring& id = exp->str;
 
       // try (top) context lookup
@@ -585,6 +589,9 @@ unsigned SMTLIB2::declareSort(LExpr* sExpr)
 
       // try built-ins
       BuiltInSorts bs = getBuiltInSortFromString(id);
+      //cout<<"\n buil in sort from string id: "<< id;
+      //cout<<"\n buil in sort from string bs: "<< bs;
+      
       switch (bs) {
         case BS_BOOL:
           results.push(Sorts::SRT_BOOL);
@@ -607,11 +614,23 @@ unsigned SMTLIB2::declareSort(LExpr* sExpr)
             results.push(env.sorts->addArraySort(indexSort,innerSort));
             continue;
           }
+        case BS_BITVECTOR: // have to still do error handling
+            cur = todo.pop();
+            if (cur.second->str == "_"){
+                results.push(env.sorts->addBitVectorSort(bitVecSize));
+                //results.push(Sorts::SRT_INTEGER);
+            }
+            continue;
 
         default:
           ASS_EQ(bs,BS_INVALID);
       }
-
+      // Getting the size of the bitvector
+      if (std::stoi(id.c_str())){
+        bitVecSize = std::stoi(id.c_str());
+        continue;
+      }
+        
       USER_ERROR("Unrecognized sort identifier "+id);
     }
   }
@@ -635,6 +654,13 @@ const char * SMTLIB2::s_formulaSymbolNameStrings[] = {
     ">",
     ">=",
     "and",
+    "bvsge",
+    "bvsgt",
+    "bvsle",
+    "bvslt",
+    "bvuge",
+    "bvugt",
+    "bvule",
     "distinct",
     EXISTS,
     "false",
@@ -667,8 +693,32 @@ const char * SMTLIB2::s_termSymbolNameStrings[] = {
     "+",
     "-",
     "/",
+    "_",
     "abs",
+    "bvadd",
+    "bvand",
+    "bvashr",
+    "bvcomp",
+    "bvmul",
+    "bvnand",
+    "bvneg",
+    "bvnor",
+    "bvnot",
+    "bvor",
+    "bvsdiv",
+    "bvshl",
+    "bvshr",
+    "bvsmod",
+    "bvsrem",
+    "bvsub",
+    "bvudiv",
+    "bvult",
+    "bvurem",
+    "bvxnor",
+    "bvxor",
+    "concat",
     "div",
+    "extract",
     "ite",
     LET,
     "mod",
@@ -854,7 +904,7 @@ void SMTLIB2::readDefineFun(const vstring& name, LExprList* iArgs, LExpr* oSort,
 void SMTLIB2::readDeclareDatatypes(LExprList* sorts, LExprList* datatypes, bool codatatype)
 {
   CALL("SMTLIB2::readDeclareDatatypes");
-  
+
   if (sorts->length() > 0) {
     USER_ERROR("unsupported parametric datatype declaration");
   }
@@ -1067,8 +1117,10 @@ Interpretation SMTLIB2::getFormulaSymbolInterpretation(FormulaSymbol fs, unsigne
     }
     break;
   case FS_LESS_EQ:
+      case FS_BVSLT:
     switch(firstArgSort) {
     case Sorts::SRT_INTEGER:
+        cout<<" is integer !";
   return Theory::INT_LESS_EQUAL;
     case Sorts::SRT_REAL:
       return Theory::REAL_LESS_EQUAL;
@@ -1116,7 +1168,7 @@ Interpretation SMTLIB2::getUnaryMinusInterpretation(unsigned argSort)
       USER_ERROR("invalid sort "+env.sorts->sortName(argSort)+" for interpretation -");
   }
 }
-
+/// CAREFUL HERE
 Interpretation SMTLIB2::getTermSymbolInterpretation(TermSymbol ts, unsigned firstArgSort)
 {
   CALL("SMTLIB2::getTermSymbolInterpretation");
@@ -1162,6 +1214,11 @@ Interpretation SMTLIB2::getTermSymbolInterpretation(TermSymbol ts, unsigned firs
     if (firstArgSort == Sorts::SRT_INTEGER)
       return Theory::INT_QUOTIENT_E;
     break;
+/*case TS_UNDERSCORE:
+    if (firstArgSort == Sorts::SRT_INTEGER)
+        return Theory::DEFINE_BITVECTOR;*/
+   // break;
+
 
   default:
     ASSERTION_VIOLATION_REP(ts);
@@ -1413,6 +1470,22 @@ bool SMTLIB2::parseAsScopeLookup(const vstring& id)
   return false;
 }
 
+bool SMTLIB2::parseAsBitVectorDescriptor(const vstring& id)
+{
+    CALL("SMTLIB2::parseAsBitVectorDescriptor");
+    cout<<"\n parseAsBitVectorDescriptor "<< id<< "\n";
+    vstring bv = id.substr(0,2);
+    // then just call parseAsSpecConstant
+    if (bv == "bv"){
+        vstring num = id.substr(2);
+        cout<<" \n and the number is : "<<num<<"\n";
+        return parseAsSpecConstant(num);
+    }
+    cout<<"\n parseAsBitVectorDescriptor returning false";
+    return false;
+}
+
+
 bool SMTLIB2::parseAsSpecConstant(const vstring& id)
 {
   CALL("SMTLIB2::parseAsSpecConstant");
@@ -1424,6 +1497,7 @@ bool SMTLIB2::parseAsSpecConstant(const vstring& id)
 
     unsigned symb = TPTP::addIntegerConstant(id,_overflow,false);
     TermList res = TermList(Term::createConstant(symb));
+    cout<<" parseAsSpecConstant with : "<< id;
     _results.push(ParseResult(Sorts::SRT_INTEGER,res));
 
     return true;
@@ -1588,17 +1662,19 @@ bool SMTLIB2::parseAsBuiltinFormulaSymbol(const vstring& id, LExpr* exp)
     case FS_LESS_EQ:
     case FS_GREATER:
     case FS_GREATER_EQ:
+    case FS_BVSLT:
     {
       // read the first two arguments
       TermList first;
       if (_results.isEmpty() || _results.top().isSeparator()) {
+          cout<<"here 1 ";
         complainAboutArgShortageOrWrongSorts(BUILT_IN_SYMBOL,exp);
       }
       unsigned sort = _results.pop().asTerm(first);
       TermList second;
       if (_results.isEmpty() || _results.top().isSeparator() ||
           _results.pop().asTerm(second) != sort) { // has the same sort as first
-
+          cout<<" here2 ";
         complainAboutArgShortageOrWrongSorts(BUILT_IN_SYMBOL,exp);
       }
 
@@ -1607,6 +1683,11 @@ bool SMTLIB2::parseAsBuiltinFormulaSymbol(const vstring& id, LExpr* exp)
       if (fs == FS_EQ) {
         lastConjunct = new AtomicFormula(Literal::createEquality(true, first, second, sort));
       } else {
+          if (fs== FS_BVSLT){
+              cout<<" be sure to remove this ";
+              fs = FS_LESS_EQ;  
+          }
+          cout<<" fs is "<< fs;
         Interpretation intp = getFormulaSymbolInterpretation(fs,sort);
         pred = Theory::instance()->getPredNum(intp);
         lastConjunct = new AtomicFormula(Literal::create2(pred,true,first,second));
@@ -1732,6 +1813,12 @@ bool SMTLIB2::parseAsBuiltinFormulaSymbol(const vstring& id, LExpr* exp)
       _results.push(ParseResult(res));
       return true;
     }
+    
+    /*case FS_BVSLT:
+    {
+        cout<<"\n case FS_BVSLT!!\n";
+        return true;
+    }*/
 
     default:
       ASS_EQ(fs,FS_USER_PRED_SYMBOL);
@@ -1745,6 +1832,8 @@ bool SMTLIB2::parseAsBuiltinTermSymbol(const vstring& id, LExpr* exp)
 
   // try built-in term symbols
   TermSymbol ts = getBuiltInTermSymbol(id);
+  cout<<"\n getbuiltingTermSymbol id :"<<id << " and ts: "<< ts;
+
   switch(ts) {
     case TS_ITE:
     {
@@ -1942,6 +2031,33 @@ bool SMTLIB2::parseAsBuiltinTermSymbol(const vstring& id, LExpr* exp)
 
       return true;
     }
+    case TS_UNDERSCORE:
+    {
+      TermList first, second;
+      if (_results.isEmpty() || _results.top().isSeparator()) {
+        complainAboutArgShortageOrWrongSorts(BUILT_IN_SYMBOL,exp);
+      }
+      // do the same as parseAsSpecConstant
+     // unsigned argSort = results.pop();
+       //   const vstring& argName = argRdr.readAtom();
+      
+      const vstring& numberToRepresent = _results.pop().trm.toString();
+      const vstring& size = _results.pop().trm.toString();
+      cout<<"\nresult 1 "<<size<<"\n";
+      cout<<"result 2 "<<numberToRepresent<<"\n";
+      cout<<"get until underscore";
+      //unsigned symb = TPTP::addIntegerConstant(_results.pop().asTerm(second),_overflow,false);
+      /*vstring t = "1";
+      parseAsSpecConstant(t);*/
+     // _results.push(Sorts::SRT_INTEGER);
+      TPTP::addBitVectorConstant(size, numberToRepresent);
+      
+      
+      //_results.push(StructuredSort::BITVECTOR);
+      
+      return true;
+    }
+
     default:
       ASS_EQ(ts,TS_USER_FUNCTION);
       return false;
@@ -2012,9 +2128,10 @@ SMTLIB2::ParseResult SMTLIB2::parseTermOrFormula(LExpr* body)
 
     switch (op) {
       case PO_PARSE: {
+          cout<<"\n in PO PARSE";
         if (exp->isList()) {
           LispListReader lRdr(exp->list);
-
+          cout<<"\n in is list \n"<< exp->toString();
           // schedule arity check
           _results.push(ParseResult()); // separator into results
           _todo.push(make_pair(PO_CHECK_ARITY,exp)); // check as a todo (exp for error reporting)
@@ -2023,7 +2140,7 @@ SMTLIB2::ParseResult SMTLIB2::parseTermOrFormula(LExpr* body)
           LExpr* fst = lRdr.readNext();
           if (fst->isAtom()) {
             vstring& id = fst->str;
-
+            cout<<"\n in is atom \n"<< fst->toString();
             if (id == FORALL || id == EXISTS) {
               parseQuantBegin(exp);
               continue;
@@ -2040,17 +2157,19 @@ SMTLIB2::ParseResult SMTLIB2::parseTermOrFormula(LExpr* body)
             }
 
             if (id == UNDERSCORE) {
-              USER_ERROR("Indexed identifiers in general term position are not supported: "+exp->toString());
+              //USER_ERROR("Indexed identifiers in general term position are not supported: "+exp->toString());
 
               // we only support indexed identifiers as functors applied to something (see just below)
             }
           } else {
             // this has to be an UNDERSCORE, otherwise we error later when we PO_PARSE_APPLICATION
+              cout<<"\n this has to be an underscore ";
           }
 
           // this handles the general function-to-arguments application:
 
           _todo.push(make_pair(PO_PARSE_APPLICATION,exp));
+          cout<<"\n parse application pushed \n"<< exp->toString();
           // and all the other arguments too
           while (lRdr.hasNext()) {
             _todo.push(make_pair(PO_PARSE,lRdr.next()));
@@ -2062,6 +2181,7 @@ SMTLIB2::ParseResult SMTLIB2::parseTermOrFormula(LExpr* body)
         // INTENTIONAL FALL-THROUGH FOR ATOMS
       }
       case PO_PARSE_APPLICATION: { // the arguments have already been parsed
+        cout<<"\n in parse application... for expression  \n"<< exp->toString();
         vstring id;
         if (exp->isAtom()) { // the fall-through case
           id = exp->str;
@@ -2072,31 +2192,41 @@ SMTLIB2::ParseResult SMTLIB2::parseTermOrFormula(LExpr* body)
           LExpr* head = lRdr.readNext();
 
           if (head->isList()) {
+              cout<<" yes head is list ";
             parseRankedFunctionApplication(exp);
             continue;
           }
           ASS(head->isAtom());
           id = head->str;
         }
-
+        cout<<" checking id "<< id;
         if (parseAsScopeLookup(id)) {
           continue;
         }
-
+        
         if (parseAsSpecConstant(id)) {
+            cout<<"\n parsing spec as constant : "<< id;
           continue;
         }
 
         if (parseAsUserDefinedSymbol(id,exp)) {
+            cout<<"\n was a user defined symbol: \n"<< id;
           continue;
         }
 
         if (parseAsBuiltinFormulaSymbol(id,exp)) {
+            cout<<"\n was a BuiltinFormulaSymbol: \n"<< id;
           continue;
         }
 
         if (parseAsBuiltinTermSymbol(id,exp)) {
+          cout<<"\n BuiltinTermSymbol: \n"<< id;
           continue;
+        }
+
+        if (parseAsBitVectorDescriptor(id)){
+            cout<<" \nparseAsBitVectorDescriptor\n";
+            continue;
         }
 
         USER_ERROR("Unrecognized term identifier "+id);
@@ -2107,7 +2237,8 @@ SMTLIB2::ParseResult SMTLIB2::parseTermOrFormula(LExpr* body)
         ASS_GE(_results.size(),2);
         ParseResult true_result = _results.pop();
         ParseResult separator   = _results.pop();
-
+        cout << "\n true result string \n"<<true_result.toString();
+        cout<< "\n seperator to string \n"<<separator.toString();
         if (true_result.isSeparator() || !separator.isSeparator()) {
           USER_ERROR("Too many arguments in "+exp->toString());
         }

@@ -158,6 +158,7 @@ public:
 
     try {
       Interpretation itp = theory->interpretFunction(trm);
+      cout<<" stuck loop 1";
       ASS(theory->isFunction(itp));
       ASS(theory->isConversionOperation(itp));
       ASS_EQ(theory->getArity(itp), 1);
@@ -287,6 +288,9 @@ public:
     try {
       Interpretation itp = theory->interpretFunction(trm);
       ASS(theory->isFunction(itp));
+      cout<<" stuck loop 2";
+      cout<<" \n the term is "<< trm->toString();
+      cout<<"\n the termlist is "<< res.toString();
       unsigned arity = theory->getArity(itp);
 
       if (arity!=1 && arity!=2) {

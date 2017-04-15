@@ -634,8 +634,8 @@ unsigned Theory::getArity(Interpretation i)
   case REAL_REMAINDER_T:
   case REAL_REMAINDER_F:
     return 2;
-          
-          
+
+
   default:
     ASSERTION_VIOLATION_REP(i);
   }
@@ -647,6 +647,7 @@ unsigned Theory::getArity(Interpretation i)
  */
 bool Theory::isFunction(Interpretation i)
 {
+  cout<<" problem Interpretation "<< i;
   CALL("Signature::InterpretedSymbol::isFunction");
   ASS(theory->isValidInterpretation(i));
 
@@ -719,7 +720,7 @@ bool Theory::isFunction(Interpretation i)
   case REAL_CEILING:
   case REAL_TRUNCATE:
   case REAL_ROUND:
-          
+
     return true;
 
   case EQUAL:
@@ -817,7 +818,7 @@ unsigned Theory::getOperationSort(Interpretation i)
 {
   CALL("Theory::getOperationSort");
 
-  
+
   ASS(hasSingleSort(i));
   ASS(theory->isValidInterpretation(i));
 
@@ -905,13 +906,13 @@ unsigned Theory::getOperationSort(Interpretation i)
   case REAL_IS_RAT:
   case REAL_IS_REAL:
     return Sorts::SRT_REAL;
-
+      
   default:
     ASSERTION_VIOLATION;
   }
 }
-    
-        
+
+
 
 bool Theory::isConversionOperation(Interpretation i)
 {
@@ -1002,7 +1003,7 @@ bool Theory::isArrayOperation(Interpretation i)
 }
 
 /**
-* This function can be called for array operations 
+* This function can be called for array operations
 * it returns the range domain (the sort of the output) of select and store
 * @author Laura Kovacs
 * @since 31/08/2012, Vienna
@@ -1011,7 +1012,7 @@ unsigned Theory::getArrayOperationSort(Interpretation i)
 {
     CALL("Theory::getArrayOperationSort");
     ASS(isArrayOperation(i));
-    
+
     unsigned sort = theory->getSort(i);
 
     switch(theory->convertToStructured(i))
@@ -1020,14 +1021,14 @@ unsigned Theory::getArrayOperationSort(Interpretation i)
       case StructuredSortInterpretation::ARRAY_BOOL_SELECT:
         return env.sorts->getArraySort(sort)->getInnerSort();
       case StructuredSortInterpretation::ARRAY_STORE:
-        return sort; 
+        return sort;
       default:
         ASSERTION_VIOLATION;
     }
 }
-    
-        
-    
+
+
+
 /**
 * This function returns the domain of array indexes (SRT_INT)
 * @author Laura Kovacs
@@ -1038,7 +1039,7 @@ unsigned Theory::getArrayDomainSort(Interpretation i)
 {
     CALL("Theory::getArrayDomainSort");
     ASS(isArrayOperation(i));
-        
+
     unsigned sort = theory->getSort(i);
 
     return  env.sorts->getArraySort(sort)->getIndexSort();
@@ -1049,7 +1050,7 @@ unsigned Theory::getArrayDomainSort(Interpretation i)
  * array extensionality axiom (of particular sort).
  *
  * select(X,sk(X,Y)) != select(Y,sk(X,Y)) | X = Y
- * 
+ *
  * If the symbol does not exist yet, it is added to the signature. We use 0 to
  * represent that the symbol not yet exists, assuming that at call time of this
  * method, at least the array function are already in the signature.
@@ -1075,7 +1076,7 @@ unsigned Theory::getArrayExtSkolemFunction(unsigned sort) {
 
   _arraySkolemFunctions.insert(sort,skolemFunction);
 
-  return skolemFunction; 
+  return skolemFunction;
 }
 
 unsigned Theory::Tuples::getFunctor(unsigned arity, unsigned* sorts) {
@@ -1673,7 +1674,7 @@ bool Theory::tryInterpretConstant(const Term* t, RationalConstantType& res)
   }
   res = sym->rationalValue();
   return true;
-} // Theory::tryInterpretConstant 
+} // Theory::tryInterpretConstant
 
 /**
  * Try to interpret the term as a real constant. If it is an
@@ -1783,7 +1784,7 @@ Term* Theory::fun2(Interpretation itp, TermList arg1, TermList arg2)
   return Term::create(fn, 2, args);
 }
 
-    
+
 /**
 * Return term containing trenary function interpreted as @b itp with
 * arguments @b arg1 ,  @b arg2, @b arg3
@@ -1793,16 +1794,16 @@ Term* Theory::fun3(Interpretation itp, TermList arg1, TermList arg2, TermList ar
         CALL("Theory::fun3");
         ASS(isFunction(itp));
         ASS_EQ(getArity(itp), 3);
-        
+
         TermList args[]= {arg1, arg2, arg3};
-        
+
         unsigned fn=theory->getFnNum(itp);
         return Term::create(fn, 3, args);
     }
 
 
-    
-    
+
+
 /**
  * Return literal containing binary predicate interpreted as @b itp with
  * arguments @b arg1 and @b arg2
@@ -1829,7 +1830,7 @@ unsigned Theory::getFnNum(Interpretation itp)
 {
   CALL("Theory::getFnNum");
   ASS(isFunction(itp));
-  
+
   return env.signature->getInterpretingSymbol(itp);
 }
 
@@ -1840,13 +1841,13 @@ unsigned Theory::getPredNum(Interpretation itp)
 {
   CALL("Theory::getPredNum");
   ASS(!isFunction(itp));
-  
+
   return env.signature->getInterpretingSymbol(itp);
 }
 
 /**
  * Register that a predicate pred with a given polarity has the given
- * template. See tryGetInterpretedLaTeXName for explanation of templates 
+ * template. See tryGetInterpretedLaTeXName for explanation of templates
  */
 void Theory::registerLaTeXPredName(unsigned pred, bool polarity, vstring temp)
 {
@@ -1854,12 +1855,12 @@ void Theory::registerLaTeXPredName(unsigned pred, bool polarity, vstring temp)
   if(polarity){
     _predLaTeXnamesPos.insert(pred,temp);
   }else{
-    _predLaTeXnamesNeg.insert(pred,temp); 
+    _predLaTeXnamesNeg.insert(pred,temp);
   }
 }
 /**
  * Register that a function has the given template
- * See tryGetInterpretedLaTeXName for explanation of templates 
+ * See tryGetInterpretedLaTeXName for explanation of templates
  */
 void Theory::registerLaTeXFuncName(unsigned func, vstring temp)
 {
@@ -1883,7 +1884,7 @@ void Theory::registerLaTeXFuncName(unsigned func, vstring temp)
  * interpreted functions will use these defaults.
  *
  * A template is a string with "ai" representing parameter i. These will be
- * replaced by the actual parameters elsewhere. For example, the template for 
+ * replaced by the actual parameters elsewhere. For example, the template for
  * not greater or equal to is "a0 \not \geq a1"
  */
 vstring Theory::tryGetInterpretedLaTeXName(unsigned func, bool pred,bool polarity)
@@ -1898,14 +1899,14 @@ vstring Theory::tryGetInterpretedLaTeXName(unsigned func, bool pred,bool polarit
   if(pred){
     if(polarity){
       if(_predLaTeXnamesPos.find(func)){ return _predLaTeXnamesPos.get(func); }
-      else if(_predLaTeXnamesNeg.find(func)){ 
+      else if(_predLaTeXnamesNeg.find(func)){
         // If a negative record is found but no positive we negate it
         return "\neg ("+_predLaTeXnamesNeg.get(func)+")";
       }
     }
-    else{ 
+    else{
       if(_predLaTeXnamesNeg.find(func)){ return _predLaTeXnamesNeg.get(func); }
-      else if(_predLaTeXnamesPos.find(func)){ 
+      else if(_predLaTeXnamesPos.find(func)){
         // If a positive record is found but no negative we negate it
         return "\neg ("+_predLaTeXnamesPos.get(func)+")";
       }
@@ -1928,7 +1929,7 @@ vstring Theory::tryGetInterpretedLaTeXName(unsigned func, bool pred,bool polarit
   //TODO do we want special symbols for quotient, remainder, floor, ceiling, truncate, round?
 
   switch(i){
-  case INT_SUCCESSOR: return "a0++"; 
+  case INT_SUCCESSOR: return "a0++";
   case INT_UNARY_MINUS:
   case RAT_UNARY_MINUS:
   case REAL_UNARY_MINUS: return "-a0";
@@ -1946,7 +1947,7 @@ vstring Theory::tryGetInterpretedLaTeXName(unsigned func, bool pred,bool polarit
   case RAT_LESS: return "a0 "+pol+"< a1";
   case RAT_LESS_EQUAL: return "a0 "+pol+"\\leq a1";
 
-  case REAL_GREATER: return "a0 "+pol+"> a1"; 
+  case REAL_GREATER: return "a0 "+pol+"> a1";
   case REAL_GREATER_EQUAL: return "a0 "+pol+"\\geq a1";
   case REAL_LESS: return "a0 "+pol+"< a1";
   case REAL_LESS_EQUAL: return "a0 "+pol+"\\leq a1";
@@ -1966,29 +1967,10 @@ vstring Theory::tryGetInterpretedLaTeXName(unsigned func, bool pred,bool polarit
   case REAL_QUOTIENT: return "a0 / a1";
 
   default: return "";
-  } 
+  }
 
   return "";
 
 }
 
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

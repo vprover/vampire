@@ -3837,6 +3837,12 @@ unsigned TPTP::sortOf(TermList t)
  *   as terms of the default sort when fof() or cnf() is used
  * @author Andrei Voronkov
  */
+
+unsigned TPTP::addBitVectorConstant(const vstring& size, const vstring& numberToRepresent, Set<vstring>& overflow, bool defaultSort)
+{
+    CALL("TPTP::addBitVectorConstant");
+    return 0;
+}
 unsigned TPTP::addIntegerConstant(const vstring& name, Set<vstring>& overflow, bool defaultSort)
 {
   CALL("TPTP::addIntegerConstant");
