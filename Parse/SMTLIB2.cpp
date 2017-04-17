@@ -661,6 +661,7 @@ const char * SMTLIB2::s_formulaSymbolNameStrings[] = {
     "bvuge",
     "bvugt",
     "bvule",
+    "bvult",
     "distinct",
     EXISTS,
     "false",
@@ -713,7 +714,7 @@ const char * SMTLIB2::s_termSymbolNameStrings[] = {
     "bvsrem",
     "bvsub",
     "bvudiv",
-    "bvult",
+    //"bvult",
     "bvurem",
     "bvxnor",
     "bvxor",
@@ -1197,7 +1198,13 @@ Interpretation SMTLIB2::getFormulaSymbolInterpretation(FormulaSymbol fs, unsigne
     default:
       break;
     } 
-         
+   case FS_BVULT:
+     switch(firstArgSort){
+     case Sorts::SRT_BITVECTOR:
+       return Theory::BVULE;
+    default:
+      break;
+    }     
     break;
 
   default:
@@ -1354,10 +1361,10 @@ Interpretation SMTLIB2::getTermSymbolInterpretation(TermSymbol ts, unsigned firs
        return Theory::BVUDIV;
      break; 
     
-    case TS_BVULT:
+    /*case TS_BVULT:
      if (firstArgSort == Sorts::SRT_BITVECTOR)
        return Theory::BVULT;
-     break;  
+     break;*/  
     
     case TS_BVUREM:
      if (firstArgSort == Sorts::SRT_BITVECTOR)
@@ -1829,6 +1836,7 @@ bool SMTLIB2::parseAsBuiltinFormulaSymbol(const vstring& id, LExpr* exp)
     case FS_BVUGT:
     case FS_BVULE:
     case FS_BVSLT:
+    case FS_BVULT:
     {
       // read the first two arguments
       TermList first;
@@ -2160,11 +2168,13 @@ bool SMTLIB2::parseAsBuiltinTermSymbol(const vstring& id, LExpr* exp)
     case TS_BVAND:
     case TS_BVLSHR:
     case TS_CONCAT:
+    //case TS_BVULT:
     
     {
       // read the first argument
       TermList first;
       if (_results.isEmpty() || _results.top().isSeparator()) {
+          cout<<" problem here 0 ";
         complainAboutArgShortageOrWrongSorts(BUILT_IN_SYMBOL,exp);
       }
       unsigned sort = _results.pop().asTerm(first);
@@ -2180,6 +2190,7 @@ bool SMTLIB2::parseAsBuiltinTermSymbol(const vstring& id, LExpr* exp)
 
           return true;
         } else {
+            cout<<" problem here 1 ";
           complainAboutArgShortageOrWrongSorts(BUILT_IN_SYMBOL,exp); // we need at least two arguments otherwise
         }
       }
@@ -2189,6 +2200,7 @@ bool SMTLIB2::parseAsBuiltinTermSymbol(const vstring& id, LExpr* exp)
 
       TermList second;
       if (_results.pop().asTerm(second) != sort) {
+          cout<<" problem here 2 ";
         complainAboutArgShortageOrWrongSorts(BUILT_IN_SYMBOL,exp);
       }
 
@@ -2196,6 +2208,7 @@ bool SMTLIB2::parseAsBuiltinTermSymbol(const vstring& id, LExpr* exp)
       while (_results.isNonEmpty() && !_results.top().isSeparator()) {
         TermList another;
         if (_results.pop().asTerm(another) != sort) {
+            cout<<" problem here 3 ";
           complainAboutArgShortageOrWrongSorts(BUILT_IN_SYMBOL,exp);
         }
 
@@ -2290,12 +2303,7 @@ void SMTLIB2::parseRankedFunctionApplication(LExpr* exp)
      
       _results.push(ParseResult(Sorts::SRT_BITVECTOR,res));
         
-      ///// just copied this
-      TermList theInt;
-      if (_results.isEmpty() || _results.top().isSeparator() ||
-          _results.pop().asTerm(theInt) != Sorts::SRT_INTEGER) {
-        complainAboutArgShortageOrWrongSorts(BUILT_IN_SYMBOL,exp);
-      }
+     
       return ;
       
       
@@ -2414,6 +2422,7 @@ SMTLIB2::ParseResult SMTLIB2::parseTermOrFormula(LExpr* body)
           if (head->isList()) {
               cout<<" yes head is list ";
             parseRankedFunctionApplication(exp);
+            cout<<"\n parseRankedFunctionApplication terminated";
             continue;
           }
           ASS(head->isAtom());
