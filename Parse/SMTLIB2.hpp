@@ -214,15 +214,16 @@ private:
     TS_BVAND,
     TS_BVASHR,
     TS_BVCOMP,
+    TS_BVLSHR,
     TS_BVMUL,
     TS_BVNAND,
     TS_BVNEG,
-    TS_BVNOR, // WILL HAVE TO MOVE THE ONES THAT RETURN BOOLEAN
+    TS_BVNOR, 
     TS_BVNOT,
     TS_BVOR,
     TS_BVSDIV,
     TS_BVSHL,
-    TS_BVSHR,
+    
     TS_BVSMOD,
     TS_BVSREM,
     TS_BVSUB,

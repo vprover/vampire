@@ -308,6 +308,16 @@ unsigned Signature::addInterpretedPredicate(Interpretation interpretation, const
   return predNum;
 } // Signature::addInterpretedPredicate
 
+unsigned Signature::addBitVectorConstant(const vstring& size, const vstring& numberToRepresent, bool defaultSort)
+{
+    CALL("Signature::addBitVectorConstant(vstring, vstring)");
+    //BitVectorConstantType value(size, numberToRepresent);
+    return 0;
+}
+
+
+
+
 /**
  * Add an integer constant to the signature. If defaultSort is true, treat it as
  * a term of the default sort, otherwise as an interepreted integer value.

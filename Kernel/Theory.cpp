@@ -581,6 +581,8 @@ unsigned Theory::getArity(Interpretation i)
   case REAL_CEILING:
   case REAL_TRUNCATE:
   case REAL_ROUND:
+  case BVNOT:
+  case BVNEG:
 
     return 1;
 
@@ -633,6 +635,35 @@ unsigned Theory::getArity(Interpretation i)
   case REAL_REMAINDER_E:
   case REAL_REMAINDER_T:
   case REAL_REMAINDER_F:
+  
+  case BVSLT: 
+  case BVSGE:
+  case BVSGT:
+  case BVSLE:
+  case BVUGE:
+  case BVUGT:
+  case BVULE:
+      
+  case BVADD:
+  case BVAND:
+  case BVASHR:
+  case BVCOMP:
+  case BVMUL:
+  case BVNAND:
+  case BVNOR: 
+  case BVOR:
+  case BVSDIV:
+  case BVSHL:
+  case BVLSHR:
+  case BVSMOD:
+  case BVSREM:
+  case BVSUB:
+  case BVUDIV:
+  case BVULT:
+  case BVUREM:
+  case BVXNOR:
+  case BVXOR:
+  case CONCAT:
     return 2;
 
 
@@ -720,6 +751,29 @@ bool Theory::isFunction(Interpretation i)
   case REAL_CEILING:
   case REAL_TRUNCATE:
   case REAL_ROUND:
+      
+  case BVADD:
+  case  BVAND:
+  case BVASHR:
+  case BVCOMP:
+  case BVMUL:
+  case BVNAND:
+  case BVNEG:
+  case BVNOR: 
+  case BVNOT:
+  case BVOR:
+  case BVSDIV:
+  case BVSHL:
+  case BVLSHR:
+  case BVSMOD:
+  case BVSREM:
+  case BVSUB:
+  case BVUDIV:
+  case BVULT:
+  case BVUREM:
+  case BVXNOR:
+  case BVXOR:
+  case CONCAT:
 
     return true;
 
@@ -750,6 +804,13 @@ bool Theory::isFunction(Interpretation i)
   case REAL_IS_INT:
   case REAL_IS_RAT:
   case REAL_IS_REAL:
+  case BVSLT:
+  case BVSGE:
+  case BVSGT:
+  case BVSLE:
+  case BVUGE:
+  case BVUGT:
+  case BVULE:
     return false;
 
   default:
@@ -906,6 +967,37 @@ unsigned Theory::getOperationSort(Interpretation i)
   case REAL_IS_RAT:
   case REAL_IS_REAL:
     return Sorts::SRT_REAL;
+   
+  case BVSLT:
+  case BVSGE:
+  case BVSGT:
+  case BVSLE:
+  case BVUGE:
+  case BVUGT:
+  case BVULE:
+  case BVADD:
+  case BVAND:
+  case BVASHR:
+  case BVCOMP:
+  case BVMUL:
+  case BVNAND:
+  case BVNEG:
+  case BVNOR: 
+  case BVNOT:
+  case BVOR:
+  case BVSDIV:
+  case BVSHL:
+  case BVLSHR:
+  case BVSMOD:
+  case BVSREM:
+  case BVSUB:
+  case BVUDIV:
+  case BVULT:
+  case BVUREM:
+  case BVXNOR:
+  case BVXOR:
+  case CONCAT:
+    return Sorts::SRT_BITVECTOR;
       
   default:
     ASSERTION_VIOLATION;
@@ -1335,6 +1427,66 @@ vstring Theory::getInterpretationName(Interpretation interp) {
       case Theory::RAT_CEILING:
       case Theory::REAL_CEILING:
         return "ceiling";
+      ///////////////////////////////
+      case Theory::BVSLT:
+            return "$bvslt";
+      case Theory::BVSGT:
+            return "$bvsgt";
+      case Theory::BVSLE:
+            return "$bvsle";
+      case Theory::BVUGE:
+            return "$bvuge"; 
+      case Theory::BVUGT:
+            return "$bvugt";
+      case Theory::BVULE:
+            return "$bvule";
+      ////////////////////////////////
+      
+      case Theory::BVADD:
+          return "$bvadd";
+      case Theory::BVAND:
+          return "$bvand";    
+      case Theory::BVASHR:
+          return "$bvashr";
+      case Theory::BVCOMP:
+          return "$bvcomp";
+      case Theory::BVMUL:
+          return "$bvmul";
+      case Theory::BVNAND:
+          return "$bvnand";
+      case Theory::BVNEG:
+          return "$bvneg";
+      case Theory::BVNOR:
+          return "$bvnor";
+      case Theory::BVNOT:
+          return "$bvnot";
+      case Theory::BVOR:
+          return "$bvor";      
+      case Theory::BVSDIV:
+          return "$bvsdiv";
+      case Theory::BVSHL:
+          return "$bvshl";
+      case Theory::BVLSHR:
+          return "$bvlshr";
+      case Theory::BVSMOD:
+          return "$bvsmod";
+      case Theory::BVSREM:
+          return "$bvsrem";
+      case Theory::BVSUB:
+          return "$bvsub";
+      case Theory::BVUDIV:
+          return "$bvsub";     
+      case Theory::BVULT:
+          return "$bvult";
+      case Theory::BVUREM:
+          return "$bvurem";
+      case Theory::BVXNOR:
+          return "$bvxnor";
+      case Theory::BVXOR:
+          return "$bvxor";
+       case Theory::CONCAT:
+          return "$concat";
+       
       default:
         ASSERTION_VIOLATION_REP(interp);
     }

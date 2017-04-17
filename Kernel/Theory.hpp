@@ -25,6 +25,36 @@ namespace Kernel {
  * e.g. because of overflow of a native type.
  */
 class ArithmeticException : public ThrowableBase {};
+class BitVectorConstantType{
+static unsigned getSort(){ return -1;}
+    
+    typedef unsigned Size;
+    typedef unsigned NumberToRepresent;
+    
+    BitVectorConstantType(){};
+    BitVectorConstantType(Size s, NumberToRepresent n) : _size(s), _numberToRepresent(n){}; 
+    explicit BitVectorConstantType(const vstring& str1, const vstring& str2);
+    
+private: 
+    Size _size;
+    NumberToRepresent _numberToRepresent;
+};
+/*class BitVectorConstantType
+{
+public:
+    static unsigned getSort(){ return -1;}
+    
+    typedef unsigned Size;
+    typedef unsigned NumberToRepresent;
+    
+    BitVectorConstantType(){};
+    BitVectorConstantType(Size s, NumberToRepresent n) : _size(s), _numberToRepresent(n){}; 
+    explicit BitVectorConstantType(const vstring& str1, const vstring& str2);
+    
+private: 
+    Size _size;
+    NumberToRepresent _numberToRepresent;
+};*/
 
 class IntegerConstantType
 {
@@ -324,14 +354,47 @@ public:
     RAT_TO_REAL,
     REAL_TO_INT,
     REAL_TO_RAT,
-    REAL_TO_REAL
+    REAL_TO_REAL,
     
+    
+    // bitvector predicates
+    BVSLT,
+    BVSGE,
+    BVSGT,
+    BVSLE,
+    BVUGE,
+    BVUGT,
+    BVULE,
+    
+    // bitvector functions
+    BVADD,
+    BVAND,
+    BVASHR,
+    BVCOMP,
+    BVMUL,
+    BVNAND,
+    BVNEG,
+    BVNOR, 
+    BVNOT,
+    BVOR,
+    BVSDIV,
+    BVSHL,
+    BVLSHR,
+    BVSMOD,
+    BVSREM,
+    BVSUB,
+    BVUDIV,
+    BVULT,
+    BVUREM,
+    BVXNOR,
+    BVXOR,
+    CONCAT
     // IMPORTANT - if you add something to end of this, update it in LastNonStructuredInterepretation 
     
     //INVALID_INTERPRETATION // replaced by LastNonStructuredInterepretation
   };
 
-  unsigned LastNonStructuredInterepretation(){ return REAL_TO_REAL; }
+  unsigned LastNonStructuredInterepretation(){ return CONCAT; }
 
     /**
      * Maximal element number in the enum Interpretation

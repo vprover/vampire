@@ -3841,6 +3841,10 @@ unsigned TPTP::sortOf(TermList t)
 unsigned TPTP::addBitVectorConstant(const vstring& size, const vstring& numberToRepresent, Set<vstring>& overflow, bool defaultSort)
 {
     CALL("TPTP::addBitVectorConstant");
+    try{
+        return env.signature->addBitVectorConstant(size, numberToRepresent, defaultSort);
+    }catch(Kernel::ArithmeticException){}
+    
     return 0;
 }
 unsigned TPTP::addIntegerConstant(const vstring& name, Set<vstring>& overflow, bool defaultSort)

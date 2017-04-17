@@ -372,6 +372,8 @@ class Signature
   unsigned addInterpretedFunction(Interpretation itp, const vstring& name);
   unsigned addInterpretedPredicate(Interpretation itp, const vstring& name);
 
+  unsigned addBitVectorConstant(const vstring& size, const vstring& numberToRepresent, bool defaultSort);
+  
   unsigned addIntegerConstant(const vstring& number,bool defaultSort);
   unsigned addRationalConstant(const vstring& numerator, const vstring& denominator,bool defaultSort);
   unsigned addRealConstant(const vstring& number,bool defaultSort);
