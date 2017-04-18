@@ -2168,6 +2168,7 @@ bool SMTLIB2::parseAsBuiltinTermSymbol(const vstring& id, LExpr* exp)
     case TS_BVAND:
     case TS_BVLSHR:
     case TS_CONCAT:
+    case TS_BVADD:
     //case TS_BVULT:
     
     {
@@ -2198,11 +2199,28 @@ bool SMTLIB2::parseAsBuiltinTermSymbol(const vstring& id, LExpr* exp)
       Interpretation intp = getTermSymbolInterpretation(ts,sort);
       unsigned fun = Theory::instance()->getFnNum(intp);
 
-      TermList second;
-      if (_results.pop().asTerm(second) != sort) {
+      TermList second;////////////////////////// made changes from here 
+      unsigned temp = _results.pop().asTerm(second);
+      if (temp != sort && ts!= TS_CONCAT) {
           cout<<" problem here 2 ";
+          cout<<" \n second is "<< temp << " sort is "<< sort;
+          
         complainAboutArgShortageOrWrongSorts(BUILT_IN_SYMBOL,exp);
       }
+      
+      if (TS_CONCAT == ts){
+        const vstring& numberToRepresent = "1";
+      const vstring& size = "1";
+      
+    
+      
+      unsigned symb = TPTP::addBitVectorConstant(size, numberToRepresent, _overflow, false);
+      
+      TermList res = TermList(Term::createConstant(symb));
+    
+     _results.push(ParseResult(Sorts::SRT_BITVECTOR,res));
+     return true;
+      }   /// to gere
 
       TermList res = TermList(Term::create2(fun,first,second));
       while (_results.isNonEmpty() && !_results.top().isSeparator()) {
@@ -2231,24 +2249,55 @@ bool SMTLIB2::parseAsBuiltinTermSymbol(const vstring& id, LExpr* exp)
       const vstring& numberToRepresent = _results.pop().trm.toString();
       const vstring& size = _results.pop().trm.toString();
       
-          
-      
       cout<<"\nresult 1 "<<size<<"\n";
       cout<<"result 2 "<<numberToRepresent<<"\n";
       cout<<"get until underscore";
-      //unsigned symb = TPTP::addIntegerConstant(_results.pop().asTerm(second),_overflow,false);
-      /*vstring t = "1";
-      parseAsSpecConstant(t);*/
-     // _results.push(Sorts::SRT_INTEGER);
-    
+      
       
       unsigned symb = TPTP::addBitVectorConstant(size, numberToRepresent, _overflow, false);
       
       TermList res = TermList(Term::createConstant(symb));
     
      _results.push(ParseResult(Sorts::SRT_BITVECTOR,res));
-      //_results.push(StructuredSort::BITVECTOR);
-      
+  
+     
+      return true;
+    }
+    case TS_BVNEG:
+    {
+      TermList theBv;
+      if (_results.isEmpty() || _results.top().isSeparator() ||
+          _results.pop().asTerm(theBv) != Sorts::SRT_BITVECTOR) {
+        complainAboutArgShortageOrWrongSorts(BUILT_IN_SYMBOL,exp);
+      }
+
+      unsigned fun = Theory::instance()->getFnNum(Theory::BVNEG);
+      TermList res = TermList(Term::create1(fun,theBv));
+
+      _results.push(ParseResult(Sorts::SRT_BITVECTOR,res));
+
+      return true;
+    }
+    
+    case TS_BVSHL:
+    {
+       TermList theBv;
+      if (_results.isEmpty() || _results.top().isSeparator() ||
+          _results.pop().asTerm(theBv) != Sorts::SRT_BITVECTOR) {
+        complainAboutArgShortageOrWrongSorts(BUILT_IN_SYMBOL,exp);
+      }
+       // HERE ALSO HAVE TO CONSIDER INTEGERS
+      TermList theSecondBv;
+      if (_results.isEmpty() || _results.top().isSeparator() ||
+          _results.pop().asTerm(theSecondBv) != Sorts::SRT_BITVECTOR) {
+        complainAboutArgShortageOrWrongSorts(BUILT_IN_SYMBOL,exp);
+      } 
+       
+      unsigned fun = Theory::instance()->getFnNum(Theory::BVSHL);
+      TermList res = TermList(Term::create2(fun,theBv, theSecondBv));
+
+      _results.push(ParseResult(Sorts::SRT_BITVECTOR,res));
+
       return true;
     }
 
@@ -2277,31 +2326,55 @@ void SMTLIB2::parseRankedFunctionApplication(LExpr* exp)
   headRdr.acceptAtom("divisible");
   } catch(Exception e){
       cout<<"caught exception";
-      headRdr.acceptAtom("extract");
-      cout<< "accepted concat";
-      const vstring& numeral = headRdr.readAtom();
-      if (!StringUtils::isPositiveInteger(numeral)) {
-        USER_ERROR("Expected numeral as an argument of a ranked function in "+head->toString());
-      }
-      const vstring numeral2 = headRdr.readAtom();
-      if (!StringUtils::isPositiveInteger(numeral2)) {
-        USER_ERROR("Expected numeral as an argument of a ranked function in "+head->toString());
-      }
-      
-      unsigned fromSymbol = TPTP::addIntegerConstant(numeral,_overflow,false);
-      TermList fromTerm = TermList(Term::createConstant(fromSymbol));
-      
-      unsigned numBitsSymbol = TPTP::addIntegerConstant(numeral2,_overflow,false);
-      TermList numBitsTerm = TermList(Term::createConstant(numBitsSymbol));
-      
-      // for now get bvneg and use it. 
-      unsigned fun = Theory::instance()->getFnNum(Theory::BVNEG); // TS_MOD is the always positive remainder, therefore INT_REMAINDER_E
-      TermList temp;
-      _results.pop().asTerm(temp);
-      cout<<" is this even what we want? "<< temp;
-      TermList res = TermList(Term::create1(fun,temp));
+      LExpr* fst = lRdr.readNext();
+          if (fst->isAtom()) {
+            vstring& id = fst->str;
+            cout<<"\n in is atom \n"<< fst->toString();
+            if (id == "extract") {
+                cout<< "accepted concat";
+            const vstring& numeral = headRdr.readAtom();
+            if (!StringUtils::isPositiveInteger(numeral)) {
+              USER_ERROR("Expected numeral as an argument of a ranked function in "+head->toString());
+            }
+            const vstring numeral2 = headRdr.readAtom();
+            if (!StringUtils::isPositiveInteger(numeral2)) {
+              USER_ERROR("Expected numeral as an argument of a ranked function in "+head->toString());
+            }
+
+            unsigned fromSymbol = TPTP::addIntegerConstant(numeral,_overflow,false);
+            TermList fromTerm = TermList(Term::createConstant(fromSymbol));
+
+            unsigned numBitsSymbol = TPTP::addIntegerConstant(numeral2,_overflow,false);
+            TermList numBitsTerm = TermList(Term::createConstant(numBitsSymbol));
+
+            // for now get bvneg and use it. 
+            unsigned fun = Theory::instance()->getFnNum(Theory::BVNEG); // TS_MOD is the always positive remainder, therefore INT_REMAINDER_E
+            TermList temp;
+            _results.pop().asTerm(temp);
+            cout<<" is this even what we want? "<< temp;
+            TermList res = TermList(Term::create1(fun,temp));
+
+            _results.push(ParseResult(Sorts::SRT_BITVECTOR,res));
+            }
+            else if (id == "zero_extend" || id == "sign_extend" || id == "rotate_left" || id == "rotate_right")
+            {
+                const vstring& numeral = headRdr.readAtom();
+                if (!StringUtils::isPositiveInteger(numeral)) {
+                  USER_ERROR("Expected numeral as an argument of a ranked function in "+head->toString());
+                }
+                unsigned fun = Theory::instance()->getFnNum(Theory::BVNEG); // TS_MOD is the always positive remainder, therefore INT_REMAINDER_E
+                TermList temp;
+                _results.pop().asTerm(temp);
+                cout<<" is this even what we want? "<< temp;
+                TermList res = TermList(Term::create1(fun,temp));
+
+                _results.push(ParseResult(Sorts::SRT_BITVECTOR,res));
+                
+            }
+          }
+     // headRdr.acceptAtom("extract");
      
-      _results.push(ParseResult(Sorts::SRT_BITVECTOR,res));
+      
         
      
       return ;
