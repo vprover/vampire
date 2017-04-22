@@ -35,7 +35,6 @@ public:
     SRT_RATIONAL = 3,
     /** sort of reals */
     SRT_REAL = 4,
-    SRT_BITVECTOR = 5,
     /** this is not a sort, it is just used to denote the first index of a user-define sort */
     FIRST_USER_SORT = 6
   };
@@ -140,15 +139,15 @@ public:
       _size(size)
     { 
 #if VDEBUG
-      //cout << "Creating ArraySort " << name << " with id " << id << endl; 
+      //cout << "Creating BitVectorSort " << name << " with id " << id << endl; 
 #endif
     }
 
     unsigned getSize(){ return _size; }
-
+    
   private: 
     unsigned _size;
-    DArray<bool> _bitvector;
+    DArray<unsigned> _bitvector;
 
   };
   
@@ -185,6 +184,11 @@ public:
     ASS(hasStructuredSort(sort,StructuredSort::ARRAY));
     return static_cast<ArraySort*>(_sorts[sort]);
   }
+  
+  BitVectorSort* getBitVectorSort(unsigned sort){
+      ASS(hasStructuredSort(sort,StructuredSort::BITVECTOR));
+      return static_cast<BitVectorSort*>(_sorts[sort]);
+  }
 
   unsigned addTupleSort(unsigned arity, unsigned sorts[]);
   TupleSort* getTupleSort(unsigned sort) {
@@ -211,7 +215,7 @@ public:
   bool hasStructuredSort(unsigned sort, StructuredSort structured){
     if(sort > _sorts.size()) return false;
     return _sorts[sort]->hasStructuredSort(structured);
-  }
+    }
 
   const vstring& sortName(unsigned idx) const;
 
@@ -240,7 +244,9 @@ public:
 
   unsigned arg(unsigned idx) const
   {
+      cout<<"\n in BaseType::arg \n";
     CALL("BaseType::arg");
+    cout<<"\n looking for idx in _args: "<<idx<<"\n";
     return (*_args)[idx];
   }
 
@@ -271,7 +277,7 @@ public:
   USE_ALLOCATOR(PredicateType);
 
   PredicateType(unsigned arity, const unsigned* argumentSorts)
-   : BaseType(arity, argumentSorts) {}
+   : BaseType(arity, argumentSorts) { cout<< " \n in predicateType constructor and arity is :"<<arity<<"\n";}
   PredicateType(std::initializer_list<unsigned> sorts) : BaseType(sorts) {}
 
   virtual vstring toString() const;

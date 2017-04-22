@@ -3843,7 +3843,7 @@ unsigned TPTP::addBitVectorConstant(const vstring& size, const vstring& numberTo
     CALL("TPTP::addBitVectorConstant");
     try{
         return env.signature->addBitVectorConstant(size, numberToRepresent, defaultSort);
-    }catch(Kernel::ArithmeticException){}
+    }catch(Kernel::ArithmeticException&){}
     
     return 0;
 }

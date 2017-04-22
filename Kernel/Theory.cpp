@@ -29,6 +29,43 @@ using namespace Lib;
 // IntegerConstantType
 //
 
+BitVectorConstantType::BitVectorConstantType(const vstring& size, const vstring& numberToRepresent)
+{
+    CALL("BitVectorConstantType::BitVectorConstantType(vstring, vstring)");
+    if (!Int::stringToInt(size, _size) || !Int::stringToInt(numberToRepresent, _numberToRepresent))
+    {
+        cout<<" ArithmeticException thrown hello there ";
+        //env.sorts->findSort(name, outSort);
+        throw ArithmeticException();
+    }
+    
+    cout<<" size in bitvectorconstantype is "<<size; 
+    int t;
+    Int::stringToInt(size, t);
+    sortB = env.sorts->addBitVectorSort(t);
+    cout<<" sort B is "<<sortB;
+    /*vstring name = "$bitVector(";
+    vstring temp = Int::toString(this->_size)+"";
+    name+=temp+")";*/
+    //bool Sorts::findSort(const vstring& name, unsigned& idx)
+     
+     
+     //env.sorts->addBitVectorSort(bitVecSize)// env.sorts->hasStructuredSort
+     /*if (env.sorts->findSort(name, outSort)){
+         cout<<"\n environent has sort bitvec of size "<< size<<"\n";
+            }
+     else{
+         cout<<"\n environent doesnt have sort bitvec of size "<< size<<"\n";
+            // add the sort to the sort list;
+                //unsigned Sorts::addBitVectorSort(const unsigned size)
+               // outSort = addBitVectorSort(val.size());
+               // setType(new FunctionType(outsort));
+                outSort = 1000;
+            }
+     sortB = outSort;*/
+}
+
+
 IntegerConstantType::IntegerConstantType(const vstring& str)
 {
   CALL("IntegerConstantType::IntegerConstantType(vstring)");
@@ -199,6 +236,12 @@ vstring IntegerConstantType::toString() const
   CALL("IntegerConstantType::toString");
 
   return Int::toString(_val);
+}
+
+vstring BitVectorConstantType::toString() const
+{
+    CALL("BitVectorConstantType::toString");
+    return "_ bv" + Int::toString(_numberToRepresent) + " " + Int::toString(_size);
 }
 
 ///////////////////////
@@ -532,6 +575,10 @@ unsigned Theory::getArity(Interpretation i)
     switch (theory->convertToStructured(i)) {
       case StructuredSortInterpretation::ARRAY_SELECT:
       case StructuredSortInterpretation::ARRAY_BOOL_SELECT:
+      case StructuredSortInterpretation::BVSLT:
+      case StructuredSortInterpretation::BVAND:
+      case StructuredSortInterpretation::BVLSHR:
+      case StructuredSortInterpretation::CONCAT:    
         return 2;
       case StructuredSortInterpretation::ARRAY_STORE:
         return 3;
@@ -581,8 +628,8 @@ unsigned Theory::getArity(Interpretation i)
   case REAL_CEILING:
   case REAL_TRUNCATE:
   case REAL_ROUND:
-  case BVNOT:
-  case BVNEG:
+  //case BVNOT:
+  //case BVNEG:
 
     return 1;
 
@@ -635,9 +682,9 @@ unsigned Theory::getArity(Interpretation i)
   case REAL_REMAINDER_E:
   case REAL_REMAINDER_T:
   case REAL_REMAINDER_F:
-  
-  case BVSLT: 
-  case BVSGE:
+      return 2;
+  //case BVSLT: 
+  /*case BVSGE:
   case BVSGT:
   case BVSLE:
   case BVUGE:
@@ -664,7 +711,7 @@ unsigned Theory::getArity(Interpretation i)
   case BVXNOR:
   case BVXOR:
   case CONCAT:
-    return 2;
+    return 2;*/
 
 
   default:
@@ -685,6 +732,7 @@ bool Theory::isFunction(Interpretation i)
   if(theory->isStructuredSortInterpretation(i)){
     switch(theory->convertToStructured(i)){
       case StructuredSortInterpretation::ARRAY_BOOL_SELECT:
+      case StructuredSortInterpretation::BVSLT:
         return false;
       default:
         return true;
@@ -752,8 +800,8 @@ bool Theory::isFunction(Interpretation i)
   case REAL_TRUNCATE:
   case REAL_ROUND:
       
-  case BVADD:
-  case  BVAND:
+ /* case BVADD:
+  case BVAND:
   case BVASHR:
   case BVCOMP:
   case BVMUL:
@@ -764,7 +812,7 @@ bool Theory::isFunction(Interpretation i)
   case BVOR:
   case BVSDIV:
   case BVSHL:
-  case BVLSHR:
+  //case BVLSHR:
   case BVSMOD:
   case BVSREM:
   case BVSUB:
@@ -775,7 +823,7 @@ bool Theory::isFunction(Interpretation i)
   case BVXOR:
   case CONCAT:
 
-    return true;
+    return true;*/
 
   case EQUAL:
 
@@ -804,13 +852,13 @@ bool Theory::isFunction(Interpretation i)
   case REAL_IS_INT:
   case REAL_IS_RAT:
   case REAL_IS_REAL:
-  case BVSLT:
-  case BVSGE:
+ // case BVSLT:
+  /*case BVSGE:
   case BVSGT:
   case BVSLE:
   case BVUGE:
   case BVUGT:
-  case BVULE:
+  case BVULE:*/
     return false;
 
   default:
@@ -968,7 +1016,7 @@ unsigned Theory::getOperationSort(Interpretation i)
   case REAL_IS_REAL:
     return Sorts::SRT_REAL;
    
-  case BVSLT:
+  /*case BVSLT:
   case BVSGE:
   case BVSGT:
   case BVSLE:
@@ -997,7 +1045,7 @@ unsigned Theory::getOperationSort(Interpretation i)
   case BVXNOR:
   case BVXOR:
   case CONCAT:
-    return Sorts::SRT_BITVECTOR;
+    return Sorts::SRT_BITVECTOR;*/
       
   default:
     ASSERTION_VIOLATION;
@@ -1305,6 +1353,11 @@ Sorts::StructuredSort Theory::getInterpretedSort(StructuredSortInterpretation ss
     case StructuredSortInterpretation::LIST_CONS:
     case StructuredSortInterpretation::LIST_IS_EMPTY:
       return Sorts::StructuredSort::LIST;
+    case StructuredSortInterpretation::BVSLT:
+    case StructuredSortInterpretation::BVAND:
+    case StructuredSortInterpretation::BVLSHR:
+    case StructuredSortInterpretation::CONCAT:    
+        return Sorts::StructuredSort::BITVECTOR;
     default:
       ASSERTION_VIOLATION;
   }
@@ -1320,6 +1373,14 @@ vstring Theory::getInterpretationName(Interpretation interp) {
         return "$select";
       case StructuredSortInterpretation::ARRAY_STORE:
         return "$store";
+      case StructuredSortInterpretation::BVSLT:
+        return "$bvslt";
+      case StructuredSortInterpretation::BVAND:
+        return "$bvand";
+      case StructuredSortInterpretation::BVLSHR:  
+          return "$bvlshr";
+      case StructuredSortInterpretation::CONCAT:  
+          return "$concat";
       default:
         ASSERTION_VIOLATION_REP(interp);
     }
@@ -1428,9 +1489,9 @@ vstring Theory::getInterpretationName(Interpretation interp) {
       case Theory::REAL_CEILING:
         return "ceiling";
       ///////////////////////////////
-      case Theory::BVSLT:
-            return "$bvslt";
-      case Theory::BVSGT:
+      /*case Theory::BVSLT:
+            return "$bvslt";*/
+     /* case Theory::BVSGT:
             return "$bvsgt";
       case Theory::BVSLE:
             return "$bvsle";
@@ -1466,7 +1527,7 @@ vstring Theory::getInterpretationName(Interpretation interp) {
           return "$bvsdiv";
       case Theory::BVSHL:
           return "$bvshl";
-      case Theory::BVLSHR:
+      /*case Theory::BVLSHR:
           return "$bvlshr";
       case Theory::BVSMOD:
           return "$bvsmod";
@@ -1485,7 +1546,7 @@ vstring Theory::getInterpretationName(Interpretation interp) {
       case Theory::BVXOR:
           return "$bvxor";
        case Theory::CONCAT:
-          return "$concat";
+          return "$concat";*/
        
       default:
         ASSERTION_VIOLATION_REP(interp);
@@ -1500,7 +1561,9 @@ BaseType* Theory::getStructuredSortOperationType(Interpretation i) {
 
   unsigned theorySort = theory->getSort(i);
   StructuredSortInterpretation ssi = theory->convertToStructured(i);
-
+  cout<<"\n theorySort is: \n"<<theorySort<<"\n";
+  //cout<<"\n StrucutedSortInte is \n"<<ssi;
+  
   switch (theory->getInterpretedSort(ssi)) {
     case Sorts::StructuredSort::ARRAY: {
       unsigned indexSort = getArrayDomainSort(i);
@@ -1516,11 +1579,34 @@ BaseType* Theory::getStructuredSortOperationType(Interpretation i) {
 
         case StructuredSortInterpretation::ARRAY_STORE:
           return new FunctionType({ theorySort, indexSort, innerSort }, valueSort);
-
+        
         default:
           ASSERTION_VIOLATION;
       }
     }
+    
+      case Sorts::StructuredSort::BITVECTOR: {
+          unsigned size = env.sorts->getBitVectorSort(theorySort)->getSize();
+          unsigned sortt = env.sorts->addBitVectorSort(size);
+          cout<<"\n theory sort is "<< theorySort<< " and sortt is "<<sortt<<"\n";
+          switch (ssi){
+            case StructuredSortInterpretation::BVSLT:
+                return new PredicateType({theorySort,sortt});
+            case StructuredSortInterpretation::BVAND:
+                return new FunctionType({ sortt, sortt}, sortt);
+          /*  case StructuredSortInterpretation::CONCAT: 
+            {
+                
+               // cout<<"\n in case Sorts::StructuredSort::BITVECTOR: and result sort is "<<resultSort<<"\n";
+                //return new FunctionType({sort}, theorySort);
+            }*/
+          
+          
+          default: ASSERTION_VIOLATION;
+          }
+      
+      }
+    
     default:
       ASSERTION_VIOLATION;
   }

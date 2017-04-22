@@ -23,6 +23,7 @@
 
 #include "Sorts.hpp"
 #include "Theory.hpp"
+#include "Lib/Environment.hpp"
 
 
 namespace Kernel {
@@ -158,7 +159,17 @@ class Signature
     /** Return true if symbol is a real constant */
     inline bool realConstant() const
     { return interpreted() && arity()==0 && fnType()->result()==Sorts::SRT_REAL; }
-          
+    
+    
+    inline bool bitVectorConstant() const
+    { 
+        // might have to change this 
+        return interpreted() && arity()==0 && env.sorts->hasStructuredSort(fnType()->result());//env.sorts->hasStructuredSort(idx, Sorts::StructuredSort::BITVECTOR); 
+    
+    }
+    
+    
+    
     /** return true if an interpreted number, note subtle but significant difference from numericConstant **/
     inline bool interpretedNumber() const
     { return integerConstant() || rationalConstant() || realConstant(); }
@@ -232,7 +243,7 @@ class Signature
     /** Return the interpreted function that corresponds to this symbol */
     inline Interpretation getInterpretation() const { ASS_REP(interpreted(), _name); ASS_REP(_containsInterp, _name); return _interp; }
   };
-
+  
   class IntegerSymbol
   : public Symbol
   {
@@ -252,7 +263,7 @@ class Signature
     CLASS_NAME(Signature::IntegerSymbol);
     USE_ALLOCATOR(IntegerSymbol);
   };
-
+ 
   class RationalSymbol
   : public Symbol
   {
@@ -292,7 +303,35 @@ class Signature
     CLASS_NAME(Signature::RealSymbol);
     USE_ALLOCATOR(RealSymbol);
   };
-    
+  
+class BitVectorSymbol
+  : public Symbol
+  {
+      friend class Signature;
+      friend class Symbol;
+  protected:
+      BitVectorConstantType _theBv;
+      
+  public:
+      BitVectorSymbol(const BitVectorConstantType& val)
+      : Symbol(val.toString(), 0, true), _theBv(val)
+      {
+        CALL("BitVectorSymbol");
+        
+        // differentiate between sort and the actual constant... sort will only need the size 
+        /*vstring name = "$bitVector(";
+        vstring temp = Int::toString(val.size())+"";
+        name+=temp+")";*/
+        //bool Sorts::findSort(const vstring& name, unsigned& idx)
+        unsigned outSort = env.sorts->addBitVectorSort(val.size());
+        cout<<" in bitvectorsymbol constructor outsort is "<< outSort;
+        setType(new FunctionType(outSort));
+        
+      }
+      CLASS_NAME(Signature::BitVectorSymbol);
+      USE_ALLOCATOR(BitVectorSymbol);
+    };
+  
   //////////////////////////////////////
   // Variable Symbol declarations
   //
@@ -492,12 +531,15 @@ class Signature
   unsigned rationals() const {return _rationals;}
   /** the number of real constants */
   unsigned reals() const {return _reals;}
+  /** the number of bitvector constants */
+  unsigned bitvectors() const {return _bitvectors;}
 
   static const unsigned STRING_DISTINCT_GROUP;
   static const unsigned INTEGER_DISTINCT_GROUP;
   static const unsigned RATIONAL_DISTINCT_GROUP;
   static const unsigned REAL_DISTINCT_GROUP;
   static const unsigned LAST_BUILT_IN_DISTINCT_GROUP;
+  static const unsigned BITVECTOR_DISTINCT_GROUP;
 
   unsigned getFoolConstantSymbol(bool isTrue){ 
     if(!_foolConstantsDefined){
@@ -584,6 +626,8 @@ private:
   unsigned _rationals;
   /** the number of real constants */
   unsigned _reals;
+  /** the number of bitvector constants*/
+  unsigned _bitvectors;
 
   /**
    * Map from sorts to the associated term algebra, if applicable for the sort

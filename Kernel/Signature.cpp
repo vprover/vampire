@@ -17,7 +17,8 @@ const unsigned Signature::STRING_DISTINCT_GROUP = 0;
 const unsigned Signature::INTEGER_DISTINCT_GROUP = 1;
 const unsigned Signature::RATIONAL_DISTINCT_GROUP = 2;
 const unsigned Signature::REAL_DISTINCT_GROUP = 3;
-const unsigned Signature::LAST_BUILT_IN_DISTINCT_GROUP = 3;
+const unsigned Signature::BITVECTOR_DISTINCT_GROUP = 4;
+const unsigned Signature::LAST_BUILT_IN_DISTINCT_GROUP = 4;
 
 /**
  * Standard constructor.
@@ -78,6 +79,9 @@ void Signature::Symbol::destroyFnSymbol()
   }
   else if (realConstant()) {
     delete static_cast<RealSymbol*>(this);
+  }
+  else if (bitVectorConstant()){
+      delete static_cast<BitVectorSymbol*>(this);
   }
   else if (interpreted()) {
     delete static_cast<InterpretedSymbol*>(this);
@@ -234,13 +238,19 @@ Signature::Signature ():
  */
 Signature::~Signature ()
 {
+    cout<<"\n in signature destructor0 \n";
   for (int i = _funs.length()-1;i >= 0;i--) {
+      cout<<"\n in signature destructor1 \n";
     _funs[i]->destroyFnSymbol();
   }
+    cout<<"\n in signature destructor2 \n";
   for (int i = _preds.length()-1;i >= 0;i--) {
+      cout<<"\n in signature destructor3 \n";
     _preds[i]->destroyPredSymbol();
   }
+    cout<<"\n in signature destructor4 \n";
   for (int i = _vars.length()-1; i>= 0 ; i--){
+      cout<<"\n in signature destructor5 \n";
     delete _vars[i];
   }
 } // Signature::~Signature
@@ -308,15 +318,6 @@ unsigned Signature::addInterpretedPredicate(Interpretation interpretation, const
   return predNum;
 } // Signature::addInterpretedPredicate
 
-unsigned Signature::addBitVectorConstant(const vstring& size, const vstring& numberToRepresent, bool defaultSort)
-{
-    CALL("Signature::addBitVectorConstant(vstring, vstring)");
-    //BitVectorConstantType value(size, numberToRepresent);
-    return 0;
-}
-
-
-
 
 /**
  * Add an integer constant to the signature. If defaultSort is true, treat it as
@@ -354,10 +355,31 @@ unsigned Signature::addIntegerConstant(const vstring& number,bool defaultSort)
  * Add an integer constant to the signature.
  * @todo something smarter, so that we don't need to convert all values to string
  */
+unsigned Signature::addBitVectorConstant(const vstring& size, const vstring& numberToRepresent, bool defaultSort)
+{
+    CALL("Signature::addBitVectorConstant(vstring, vstring)");
+    cout<<" fun names size "<<_funNames.numberOfElements();
+    BitVectorConstantType value(size, numberToRepresent); // 
+    //vstring temp = size;
+    vstring key = size + "_" + numberToRepresent + "_bv";
+    unsigned result;
+    
+    if (_funNames.find(key, result)){
+        return result;
+    }
+    _bitvectors++;
+    result = _funs.length();
+    Symbol* sym = new BitVectorSymbol(value);
+    _funs.push(sym);
+    _funNames.insert(key, result);
+   //sym->addToDistinctGroup(BITVECTOR_DISTINCT_GROUP,result);
+    sym->addToDistinctGroup(STRING_DISTINCT_GROUP,result); // numbers are distinct from strings
+    return result;
+}
 unsigned Signature::addIntegerConstant(const IntegerConstantType& value)
 {
   CALL("Signature::addIntegerConstant");
-
+  cout<<" fun names size "<<_funNames.numberOfElements();
   vstring key = value.toString() + "_n";
   unsigned result;
   if (_funNames.find(key, result)) {
