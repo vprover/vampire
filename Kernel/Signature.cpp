@@ -238,19 +238,16 @@ Signature::Signature ():
  */
 Signature::~Signature ()
 {
-    cout<<"\n in signature destructor0 \n";
   for (int i = _funs.length()-1;i >= 0;i--) {
-      cout<<"\n in signature destructor1 \n";
     _funs[i]->destroyFnSymbol();
   }
-    cout<<"\n in signature destructor2 \n";
+  
   for (int i = _preds.length()-1;i >= 0;i--) {
-      cout<<"\n in signature destructor3 \n";
     _preds[i]->destroyPredSymbol();
   }
-    cout<<"\n in signature destructor4 \n";
+    
   for (int i = _vars.length()-1; i>= 0 ; i--){
-      cout<<"\n in signature destructor5 \n";
+      
     delete _vars[i];
   }
 } // Signature::~Signature
@@ -493,7 +490,7 @@ unsigned Signature::addRealConstant(const RealConstantType& value)
 unsigned Signature::getInterpretingSymbol(Interpretation interp)
 {
   CALL("Signature::getInterpretingSymbol");
-  
+  cout<<" in Signature::getInterpretingSymbol";
   ASS(Theory::instance()->isValidInterpretation(interp));
     
   unsigned res;

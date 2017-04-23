@@ -446,6 +446,7 @@ public:
   }
   unsigned getSymbolForStructuredSort(unsigned sort, StructuredSortInterpretation interp);
   Interpretation getInterpretation(unsigned sort, StructuredSortInterpretation i){
+      cout<<"\n in getInterpretation\n";
     auto key = make_pair(sort, i);
     unsigned interpretation;
     if (!_structuredSortInterpretations.find(key, interpretation)) {
@@ -477,6 +478,12 @@ public:
   static bool isArrayOperation(Interpretation i);
   static unsigned getArrayOperationSort(Interpretation i);
   static unsigned getArrayDomainSort(Interpretation i);
+  
+  static bool isBitVectorOperation(Interpretation i);
+  static unsigned getBitVectorArg1Sort(Interpretation i );
+  static unsigned getBitVectorArg2Sort(Interpretation i );
+  
+  
 
   unsigned getArrayExtSkolemFunction(unsigned i);
     

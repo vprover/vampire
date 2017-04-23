@@ -77,22 +77,15 @@ Environment::~Environment()
   }
 
 // #if CHECK_LEAKS
-  cout<<"\n in destroy environment 1\n";
   delete sharing;
-  cout<<"\n in destroy environment 2\n";
   delete signature;
-  cout<<"\n in destroy environment 3\n";
   delete sorts;
-  cout<<"\n in destroy environment 4\n";
   delete statistics;
-  cout<<"\n in destroy environment 5\n";
   if(clausePriorities) delete clausePriorities; 
   {
-      cout<<"\n in destroy environment 6\n";
     BYPASSING_ALLOCATOR; // use of std::function in options
     delete options;
   }
-  cout<<"\n in destroy environment 7\n";
 // #endif
 }
 

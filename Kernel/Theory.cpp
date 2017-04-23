@@ -1127,6 +1127,7 @@ bool Theory::isNonLinearOperation(Interpretation i)
 
 unsigned Theory::getSymbolForStructuredSort(unsigned sort, StructuredSortInterpretation interp)
 {
+    cout<<"\n Theory::getSymbolForStructuredSort\n";
     return env.signature->getInterpretingSymbol(getInterpretation(sort,interp));
 }
 
@@ -1140,6 +1141,13 @@ bool Theory::isArrayOperation(Interpretation i)
   CALL("Theory::isArrayFunction");
   if(!theory->isStructuredSortInterpretation(i)) return false;
   return env.sorts->hasStructuredSort(theory->getSort(i),Sorts::StructuredSort::ARRAY);
+}
+
+bool Theory::isBitVectorOperation(Interpretation i)
+{
+  CALL("Theory::isBitVectorOperation");
+  if(!theory->isStructuredSortInterpretation(i)) return false;
+  return env.sorts->hasStructuredSort(theory->getSort(i),Sorts::StructuredSort::BITVECTOR);
 }
 
 /**
@@ -1183,6 +1191,26 @@ unsigned Theory::getArrayDomainSort(Interpretation i)
     unsigned sort = theory->getSort(i);
 
     return  env.sorts->getArraySort(sort)->getIndexSort();
+}
+
+unsigned Theory::getBitVectorArg1Sort(Interpretation i )
+{
+    CALL("Theory::getBitVectorArg1Sort");
+    ASS(isBitVectorOperation(i));
+
+    unsigned sort = theory->getSort(i);
+    cout<<"\n in getBitVectorArg1Sort and sort is :"<< sort<<"\n";
+    return  env.sorts->getBitVectorSort(sort)->getSizeArg1();
+}
+
+unsigned Theory::getBitVectorArg2Sort(Interpretation i )
+{
+    CALL("Theory::getBitVectorArg1Sort");
+    ASS(isBitVectorOperation(i));
+
+    unsigned sort = theory->getSort(i);
+    cout<<"\n in getBitVectorArg2Sort and sort is :"<< sort<<"\n";
+    return  env.sorts->getBitVectorSort(sort)->getSizeArg2();
 }
 
 /**
@@ -1594,12 +1622,14 @@ BaseType* Theory::getStructuredSortOperationType(Interpretation i) {
                 return new PredicateType({theorySort,sortt});
             case StructuredSortInterpretation::BVAND:
                 return new FunctionType({ sortt, sortt}, sortt);
-          /*  case StructuredSortInterpretation::CONCAT: 
+            case StructuredSortInterpretation::CONCAT: 
             {
-                
+                // the problem is here... need to get the argument sorts and put it here
                // cout<<"\n in case Sorts::StructuredSort::BITVECTOR: and result sort is "<<resultSort<<"\n";
-                //return new FunctionType({sort}, theorySort);
-            }*/
+                unsigned argSize1 = getBitVectorArg1Sort(i);
+                unsigned argSize2 = getBitVectorArg2Sort(i);
+                return new FunctionType({env.sorts->addBitVectorSort(argSize1), env.sorts->addBitVectorSort(argSize2)}, sortt);
+            }
           
           
           default: ASSERTION_VIOLATION;

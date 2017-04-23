@@ -137,6 +137,44 @@ unsigned Sorts::addBitVectorSort(const unsigned size)
     return result;
 }
 
+unsigned Sorts::addBitVectorSort(const unsigned size, unsigned argSize1, unsigned argSize2)
+{
+    CALL("Sorts::addBitVectorSort");
+    
+    vstring name = "$bitVector(";
+    std::string n = "$bitVector(";
+    unsigned s = size;
+    std::string r = n + std::to_string(s) + ")";
+    //vstring vsize = static_cast<std::string>(size); // here is a PROBLEM !!!
+
+            
+    cout<<"\n in add bitvector sort checking the content... size is :"<<size<<"\n";
+    //vstring n1 = ;
+    
+    name = r.c_str();
+    cout<<" vstring name is "<< name;
+    
+    unsigned result;
+    cout<<"\n the name part whihc is the weird part is : "<<name<<"\n";
+    if(_sortNames.find(name,result)){
+        cout<<"\n sortnames contained name: "<<name<< " and the number is : "<<result<<"\n";
+        BitVectorSort* temp = getBitVectorSort(result);
+        temp->setArg1(argSize1);
+        temp->setArg2(argSize2);
+        return result;
+    }
+   cout<<" couldnt find that name so now attempting to add "; 
+    _hasSort = true;
+    result = _sorts.length();
+    cout<<" and its sort is : "<<result;
+    
+    BitVectorSort* sort = new BitVectorSort(name,size,result);
+    _sorts.push(sort);
+    _sortNames.insert(name,result);
+    
+    return result;
+}
+
 /**
  *
  * @author Giles

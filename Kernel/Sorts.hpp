@@ -142,11 +142,28 @@ public:
       //cout << "Creating BitVectorSort " << name << " with id " << id << endl; 
 #endif
     }
+    
+    /*BitVectorSort(vstring name, unsigned size, unsigned arg1Size, unsigned arg2Size, unsigned id) : 
+      StructuredSortInfo(name,StructuredSort::BITVECTOR, id),
+      _size(size),_sizeArg1(arg1Size),_sizeArg2(arg2Size)
+    { 
+#if VDEBUG
+      //cout << "Creating BitVectorSort " << name << " with id " << id << endl; 
+#endif
+    }*/
 
     unsigned getSize(){ return _size; }
     
+    unsigned getSizeArg1(){ return _sizeArg1; }
+    unsigned getSizeArg2(){ return _sizeArg2; }
+   
+    void setArg1(unsigned a1){_sizeArg1 = a1; return;}
+    void setArg2(unsigned a2){_sizeArg2 = a2; return;}
+    
   private: 
     unsigned _size;
+    unsigned _sizeArg1;
+    unsigned _sizeArg2;
     DArray<unsigned> _bitvector;
 
   };
@@ -179,6 +196,7 @@ public:
 
   unsigned addArraySort(unsigned indexSort, unsigned innerSort);
   unsigned addBitVectorSort(unsigned size);
+  unsigned addBitVectorSort(unsigned size, unsigned sizeArg1, unsigned sizeArg2);
   
   ArraySort* getArraySort(unsigned sort){
     ASS(hasStructuredSort(sort,StructuredSort::ARRAY));

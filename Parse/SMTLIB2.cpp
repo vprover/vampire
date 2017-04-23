@@ -2210,9 +2210,12 @@ bool SMTLIB2::parseAsBuiltinTermSymbol(const vstring& id, LExpr* exp)
         
         
         unsigned resultSize = size1 + size2;
-        unsigned resultSort = env.sorts->addBitVectorSort(resultSize);
-        
+        cout<<" \n resultSize is "<< resultSize<<"\n";
+        //unsigned resultSort = env.sorts->addBitVectorSort(resultSize);
+        unsigned resultSort = env.sorts->addBitVectorSort(resultSize, size1, size2);
+        cout<<" \n resultSort is "<< resultSort<<"\n";
         unsigned fun = Theory::instance()->getSymbolForStructuredSort(resultSort, Theory::StructuredSortInterpretation::CONCAT);
+        cout<<" \n in ts_concat fun is: "<< fun <<"\n";
         TermList res = TermList(Term::Term::create2(fun, first, second));
         _results.push(ParseResult(resultSort, res));
         
@@ -2417,7 +2420,7 @@ void SMTLIB2::parseRankedFunctionApplication(LExpr* exp)
   LExpr* head = lRdr.readNext();
   ASS(head->isList());
   LispListReader headRdr(head);
-
+  cout<<"\n head is \n"<< head->toString();
   headRdr.acceptAtom(UNDERSCORE);
 
   // currently we only support divisible, so this is easy
@@ -2428,7 +2431,7 @@ void SMTLIB2::parseRankedFunctionApplication(LExpr* exp)
       LExpr* fst = lRdr.readNext();
           if (fst->isAtom()) {
             vstring& id = fst->str;
-            cout<<"\n in is atom \n"<< fst->toString();
+            cout<<"\n in is atom the vstring is :\n"<< fst->toString();
             if (id == "extract") {
                 cout<< "accepted concat";
             const vstring& numeral = headRdr.readAtom();
