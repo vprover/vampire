@@ -2212,7 +2212,7 @@ bool SMTLIB2::parseAsBuiltinTermSymbol(const vstring& id, LExpr* exp)
         unsigned resultSize = size1 + size2;
         cout<<" \n resultSize is "<< resultSize<<"\n";
         //unsigned resultSort = env.sorts->addBitVectorSort(resultSize);
-        unsigned resultSort = env.sorts->addBitVectorSort(resultSize, size1, size2);
+        unsigned resultSort = env.sorts->addBitVectorSort2(resultSize, size1, size2);
         cout<<" \n resultSort is "<< resultSort<<"\n";
         unsigned fun = Theory::instance()->getSymbolForStructuredSort(resultSort, Theory::StructuredSortInterpretation::CONCAT);
         cout<<" \n in ts_concat fun is: "<< fun <<"\n";
@@ -2428,12 +2428,65 @@ void SMTLIB2::parseRankedFunctionApplication(LExpr* exp)
   headRdr.acceptAtom("divisible");
   } catch(Exception e){
       cout<<"caught exception";
-      LExpr* fst = lRdr.readNext();
+      const vstring& operation = headRdr.readAtom();
+      cout<<"\n readAtom gives "<< operation;
+      if (operation== "extract"){
+          cout<<"\n operation is extract ";
+          
+            const vstring& numeral = headRdr.readAtom();
+            cout<<"\n the first numeral is : "<< numeral;
+            if (!StringUtils::isPositiveInteger(numeral)) {
+              USER_ERROR("Expected numeral as an argument of a ranked function in "+head->toString());
+            }
+            const vstring numeral2 = headRdr.readAtom();
+            cout<<"\n the second numeral is : "<< numeral;
+            if (!StringUtils::isPositiveInteger(numeral2)) {
+              USER_ERROR("Expected numeral as an argument of a ranked function in "+head->toString());
+            }
+
+            unsigned fromSymbol = TPTP::addIntegerConstant(numeral,_overflow,false);
+            TermList fromTerm = TermList(Term::createConstant(fromSymbol));
+
+            unsigned numBitsSymbol = TPTP::addIntegerConstant(numeral2,_overflow,false);
+            TermList numBitsTerm = TermList(Term::createConstant(numBitsSymbol));
+          
+            //static bool stringToInt(const vstring& str,int& result);
+            int numeralInt;
+            Int::stringToInt(numeral,numeralInt);
+            int numeral2Int;
+            Int::stringToInt(numeral2,numeral2Int);
+            unsigned resultSize = numeralInt - numeral2Int + 1;
+            cout<<"\n numeralInt is : "<<numeralInt;
+            cout<<"\n numeral2Int is : "<<numeral2Int;
+            cout<<"\n resultSize is : "<<resultSize;
+            
+            TermList arg;
+            unsigned tempSort = _results.pop().asTerm(arg);
+            cout<<"\n in parseRankedFunctionApplication; arg is;\n "<< arg<< " and the sort is : "<<tempSort;
+            
+            
+            unsigned argSize = env.sorts->getBitVectorSort(tempSort)->getSize();
+            unsigned resultSort = env.sorts->addBitVectorSort2(resultSize, argSize, argSize);
+            
+            
+            // now we have all the arguments we need..
+            TermList args[] = {arg, fromTerm, numBitsTerm};
+            unsigned fun = Theory::instance()->getSymbolForStructuredSort(resultSort, Theory::StructuredSortInterpretation::EXTRACT);
+            TermList res = TermList(Term::Term::create(fun, 3, args));
+            _results.push(ParseResult(resultSort, res));
+            
+            return;
+            //TermList args[] = {theArray, theIndex, theValue};
+            //TermList res = TermList(Term::Term::create(fun, 3, args));
+          
+      }
+      /*LExpr* fst = lRdr.readNext();
+      
           if (fst->isAtom()) {
             vstring& id = fst->str;
             cout<<"\n in is atom the vstring is :\n"<< fst->toString();
             if (id == "extract") {
-                cout<< "accepted concat";
+                cout<< "accepted extract";
             const vstring& numeral = headRdr.readAtom();
             if (!StringUtils::isPositiveInteger(numeral)) {
               USER_ERROR("Expected numeral as an argument of a ranked function in "+head->toString());
@@ -2474,14 +2527,8 @@ void SMTLIB2::parseRankedFunctionApplication(LExpr* exp)
                 
             }
           }
-     // headRdr.acceptAtom("extract");
-     
-      
-        
-     
-      return ;
-      
-      
+     // headRdr.acceptAtom("extract");  
+      return ;   */
   }
   cout<<" after accept divisble ";
   const vstring& numeral = headRdr.readAtom();

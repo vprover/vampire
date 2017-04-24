@@ -581,6 +581,7 @@ unsigned Theory::getArity(Interpretation i)
       case StructuredSortInterpretation::CONCAT:    
         return 2;
       case StructuredSortInterpretation::ARRAY_STORE:
+      case StructuredSortInterpretation::EXTRACT:
         return 3;
       default:
         return 1;
@@ -1384,7 +1385,8 @@ Sorts::StructuredSort Theory::getInterpretedSort(StructuredSortInterpretation ss
     case StructuredSortInterpretation::BVSLT:
     case StructuredSortInterpretation::BVAND:
     case StructuredSortInterpretation::BVLSHR:
-    case StructuredSortInterpretation::CONCAT:    
+    case StructuredSortInterpretation::CONCAT: 
+    case StructuredSortInterpretation::EXTRACT:    
         return Sorts::StructuredSort::BITVECTOR;
     default:
       ASSERTION_VIOLATION;
@@ -1409,6 +1411,8 @@ vstring Theory::getInterpretationName(Interpretation interp) {
           return "$bvlshr";
       case StructuredSortInterpretation::CONCAT:  
           return "$concat";
+      case StructuredSortInterpretation::EXTRACT:  
+          return "$extract";
       default:
         ASSERTION_VIOLATION_REP(interp);
     }
@@ -1629,6 +1633,11 @@ BaseType* Theory::getStructuredSortOperationType(Interpretation i) {
                 unsigned argSize1 = getBitVectorArg1Sort(i);
                 unsigned argSize2 = getBitVectorArg2Sort(i);
                 return new FunctionType({env.sorts->addBitVectorSort(argSize1), env.sorts->addBitVectorSort(argSize2)}, sortt);
+            }
+            case StructuredSortInterpretation::EXTRACT:
+            {
+                unsigned bitVecArgSize = getBitVectorArg1Sort(i);
+                return new FunctionType({env.sorts->addBitVectorSort(bitVecArgSize), Sorts::SRT_INTEGER, Sorts::SRT_INTEGER}, sortt);
             }
           
           

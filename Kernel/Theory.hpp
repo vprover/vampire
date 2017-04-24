@@ -438,6 +438,7 @@ public:
     BVAND,
     BVLSHR,
     CONCAT,
+    EXTRACT,
     DEFINE_BITVECTOR
     
   };
