@@ -222,14 +222,12 @@ private:
     TS_BVNOR, 
     TS_BVNOT,
     TS_BVOR,
-    TS_BVSDIV,
+    TS_BVSDIV, 
     TS_BVSHL,
-    
     TS_BVSMOD,
     TS_BVSREM,
     TS_BVSUB,
     TS_BVUDIV,
-    //TS_BVULT,
     TS_BVUREM,
     TS_BVXNOR,
     TS_BVXOR,
@@ -239,15 +237,98 @@ private:
     TS_ITE,
     TS_LET,
     TS_MOD,
+    TS_BV_ROTATE_LEFT,
+    TS_BV_ROTATE_RIGHT,
     TS_SELECT,
+    TS_BV_SIGN_EXTEND,
     TS_STORE,
     TS_TO_INT,
     TS_TO_REAL,
+    TS_BV_ZERO_EXTEND,
     
     TS_USER_FUNCTION
   };
   static const char * s_termSymbolNameStrings[];
-
+/* get the ssi from ts, eg: argument is TS_CONCAT, it returns StructuredSortInterpretation::CONCAT*/
+  Theory::StructuredSortInterpretation getSSIfromTS(TermSymbol ts){
+      switch(ts){
+          case TS_BVADD:
+              return Theory::StructuredSortInterpretation::BVADD;
+          case TS_BVAND:
+              return Theory::StructuredSortInterpretation::BVAND;
+          case TS_BVASHR:
+              return Theory::StructuredSortInterpretation::BVASHR;
+          case TS_BVCOMP:
+              return Theory::StructuredSortInterpretation::BVCOMP;
+          case TS_BVLSHR:
+              return Theory::StructuredSortInterpretation::BVLSHR;
+          case TS_BVMUL:
+              return Theory::StructuredSortInterpretation::BVMUL;
+          case TS_BVNAND:
+              return Theory::StructuredSortInterpretation::BVNAND;
+          case TS_BVNEG:
+              return Theory::StructuredSortInterpretation::BVNEG;
+          case TS_BVNOR:
+              return Theory::StructuredSortInterpretation::BVNOR;
+          case TS_BVNOT:
+              return Theory::StructuredSortInterpretation::BVNOT;
+          case TS_BVOR:
+              return Theory::StructuredSortInterpretation::BVOR;
+          case TS_BVSDIV:
+              return Theory::StructuredSortInterpretation::BVSDIV;
+          case TS_BVSMOD:
+              return Theory::StructuredSortInterpretation::BVSMOD;
+          case TS_BVSHL:
+              return Theory::StructuredSortInterpretation::BVSHL;
+          case TS_BVSREM:
+              return Theory::StructuredSortInterpretation::BVSREM;
+           case TS_BVSUB:
+              return Theory::StructuredSortInterpretation::BVSUB;
+          case TS_BVUDIV:
+              return Theory::StructuredSortInterpretation::BVUDIV;
+          case TS_BVUREM:
+              return Theory::StructuredSortInterpretation::BVUREM;
+          case TS_BVXNOR:
+              return Theory::StructuredSortInterpretation::BVXNOR;
+          case TS_BV_ZERO_EXTEND:
+              return Theory::StructuredSortInterpretation::BV_ZERO_EXTEND;
+          case TS_BV_SIGN_EXTEND:
+              return Theory::StructuredSortInterpretation::BV_SIGN_EXTEND;
+          case TS_BV_ROTATE_LEFT:
+              return Theory::StructuredSortInterpretation::BV_ROTATE_LEFT;
+          case TS_BV_ROTATE_RIGHT:
+              return Theory::StructuredSortInterpretation::BV_ROTATE_RIGHT;
+          default:
+              ASS_EQ(1,2);    
+              
+      }
+  }
+  
+  /* get the ssi from ts, eg: argument is TS_CONCAT, it returns StructuredSortInterpretation::CONCAT*/
+  Theory::StructuredSortInterpretation getSSIfromFS(FormulaSymbol fs){
+      switch(fs){
+          case FS_BVSLT:
+              return Theory::StructuredSortInterpretation::BVSLT;
+          case FS_BVULE:
+              return Theory::StructuredSortInterpretation::BVULE;
+          case FS_BVUGT:
+              return Theory::StructuredSortInterpretation::BVUGT;
+          case FS_BVUGE:
+              return Theory::StructuredSortInterpretation::BVUGE;
+          case FS_BVSLE:
+              return Theory::StructuredSortInterpretation::BVSLE;
+          case FS_BVSGT:
+              return Theory::StructuredSortInterpretation::BVSGT;
+          case FS_BVSGE:
+              return Theory::StructuredSortInterpretation::BVSGE;
+          case FS_BVULT:
+              return Theory::StructuredSortInterpretation::BVULT;
+              
+          default:
+              ASS_EQ(1,2);    
+              
+      }
+  }
   /**
    * Lookup to see if vstring is a built-in TermSymbol.
    */

@@ -701,6 +701,7 @@ const char * SMTLIB2::s_termSymbolNameStrings[] = {
     "/",
     "_",
     "abs",
+    
     "bvadd",
     "bvand",
     "bvashr",
@@ -713,13 +714,14 @@ const char * SMTLIB2::s_termSymbolNameStrings[] = {
     "bvnot",
     "bvor",
     "bvsdiv",
+    
     "bvshl",
     
     "bvsmod",
     "bvsrem",
     "bvsub",
     "bvudiv",
-    //"bvult",
+    
     "bvurem",
     "bvxnor",
     "bvxor",
@@ -729,10 +731,15 @@ const char * SMTLIB2::s_termSymbolNameStrings[] = {
     "ite",
     LET,
     "mod",
+    "rotate_left",
+    "rotate_right",
     "select",
+    "sign_extend",
+    
     "store",
     "to_int",
-    "to_real"
+    "to_real",
+    "zero_extend"
 };
 
 SMTLIB2::TermSymbol SMTLIB2::getBuiltInTermSymbol(const vstring& str)
@@ -1153,62 +1160,7 @@ Interpretation SMTLIB2::getFormulaSymbolInterpretation(FormulaSymbol fs, unsigne
     default:
       break;
     }
-   //case FS_BVSLT: 
-     //switch(firstArgSort){
-     //case Sorts::SRT_BITVECTOR:
-       //return Theory::BVSLT;
-    
-     
-   case FS_BVSGE:
-    /* switch(firstArgSort){
-     case Sorts::SRT_BITVECTOR:
-       return Theory::BVSGE;
-    default:
-      break;
-    } */
-   case FS_BVSGT:
-     /*switch(firstArgSort){
-     case Sorts::SRT_BITVECTOR:
-       return Theory::BVSGT;
-    default:
-      break;
-    } */
-   case FS_BVSLE:
-     /*switch(firstArgSort){
-     case Sorts::SRT_BITVECTOR:
-       return Theory::BVSLE;
-    default:
-      break;
-    } */
-   
-   case FS_BVUGE:
-     /*switch(firstArgSort){
-     case Sorts::SRT_BITVECTOR:
-       return Theory::BVUGE;
-    default:
-      break;
-    } */
-   case FS_BVUGT:
-     /*switch(firstArgSort){
-     case Sorts::SRT_BITVECTOR:
-       return Theory::BVUGT;
-    default:
-      break;
-    } */
-   case FS_BVULE:
-     /*switch(firstArgSort){
-     case Sorts::SRT_BITVECTOR:
-       return Theory::BVULE;
-    default:
-      break;
-    } */
-   case FS_BVULT:
-     /*switch(firstArgSort){
-     case Sorts::SRT_BITVECTOR:
-       return Theory::BVULE;
-    default:
-      break;
-    } */    
+      
     break;
 
   default:
@@ -1230,7 +1182,7 @@ Interpretation SMTLIB2::getUnaryMinusInterpretation(unsigned argSort)
       USER_ERROR("invalid sort "+env.sorts->sortName(argSort)+" for interpretation -");
   }
 }
-/// CAREFUL HERE
+
 Interpretation SMTLIB2::getTermSymbolInterpretation(TermSymbol ts, unsigned firstArgSort)
 {
   CALL("SMTLIB2::getTermSymbolInterpretation");
@@ -1276,118 +1228,7 @@ Interpretation SMTLIB2::getTermSymbolInterpretation(TermSymbol ts, unsigned firs
     if (firstArgSort == Sorts::SRT_INTEGER)
       return Theory::INT_QUOTIENT_E;
     break;
-/*case TS_UNDERSCORE:
-    if (firstArgSort == Sorts::SRT_INTEGER)
-        return Theory::DEFINE_BITVECTOR;*/
-   // break;
-   /*case TS_BVAND:
-     if (firstArgSort == Sorts::SRT_BITVECTOR)
-       return Theory::BVAND;
-     break;
-     
-   case TS_BVADD:
-     if (firstArgSort == Sorts::SRT_BITVECTOR)
-       return Theory::BVADD;
-     break;  
-     
-   case TS_BVASHR:
-     if (firstArgSort == Sorts::SRT_BITVECTOR)
-       return Theory::BVASHR;
-     break;  
-     
-   case TS_BVCOMP:
-     if (firstArgSort == Sorts::SRT_BITVECTOR)
-       return Theory::BVCOMP;
-     break; 
-     
-   case TS_BVMUL:
-     if (firstArgSort == Sorts::SRT_BITVECTOR)
-       return Theory::BVMUL;
-     break;
-     
-   case TS_BVNAND:
-     if (firstArgSort == Sorts::SRT_BITVECTOR)
-       return Theory::BVNAND;
-     break;
-   
-   case TS_BVNEG:
-     if (firstArgSort == Sorts::SRT_BITVECTOR)
-       return Theory::BVNEG;
-     break;
     
-   case TS_BVNOR:
-     if (firstArgSort == Sorts::SRT_BITVECTOR)
-       return Theory::BVNOR;
-     break; 
-   
-   case TS_BVNOT:
-     if (firstArgSort == Sorts::SRT_BITVECTOR)
-       return Theory::BVNOT;
-     break;  
-   
-   case TS_BVOR:
-     if (firstArgSort == Sorts::SRT_BITVECTOR)
-       return Theory::BVOR;
-     break;  
-     
-   case TS_BVSDIV:
-     if (firstArgSort == Sorts::SRT_BITVECTOR)
-       return Theory::BVSDIV;
-     break; 
-   
-    case TS_BVSHL:
-     if (firstArgSort == Sorts::SRT_BITVECTOR)
-       return Theory::BVSHL;
-     break; 
-    
-    case TS_BVLSHR:
-     if (firstArgSort == Sorts::SRT_BITVECTOR)
-       return Theory::BVLSHR;
-     break; 
-     
-    case TS_BVSMOD:
-     if (firstArgSort == Sorts::SRT_BITVECTOR)
-       return Theory::BVSMOD;
-     break;
-     
-    case TS_BVSREM:
-     if (firstArgSort == Sorts::SRT_BITVECTOR)
-       return Theory::BVSREM;
-     break;
-    
-      case TS_BVSUB:
-     if (firstArgSort == Sorts::SRT_BITVECTOR)
-       return Theory::BVSUB;
-     break; 
-   
-    case TS_BVUDIV:
-     if (firstArgSort == Sorts::SRT_BITVECTOR)
-       return Theory::BVUDIV;
-     break; 
-    
-    
-    
-    case TS_BVUREM:
-     if (firstArgSort == Sorts::SRT_BITVECTOR)
-       return Theory::BVUREM;
-     break;
-   
-    case TS_BVXNOR:
-     if (firstArgSort == Sorts::SRT_BITVECTOR)
-       return Theory::BVXNOR;
-     break; 
-    
-    case TS_BVXOR:
-     if (firstArgSort == Sorts::SRT_BITVECTOR)
-       return Theory::BVXOR;
-     break; 
-     
-    case TS_CONCAT:
-     if (firstArgSort == Sorts::SRT_BITVECTOR)
-       return Theory::CONCAT;
-     break;*/
-     
-     
   default:
     ASSERTION_VIOLATION_REP(ts);
   }
@@ -1828,8 +1669,15 @@ bool SMTLIB2::parseAsBuiltinFormulaSymbol(const vstring& id, LExpr* exp)
 
       return true;
     }
-    // all the following are "chainable" and need to respect sorts
-   case FS_BVSLT:
+    
+    case FS_BVSLT:
+    case FS_BVULT:
+    case FS_BVSGT:
+    case FS_BVSGE:
+    case FS_BVSLE:
+    case FS_BVUGE:
+    case FS_BVUGT:
+    case FS_BVULE:
    {
        TermList firstBv;
        if (_results.isEmpty() || _results.top().isSeparator()) {
@@ -1860,37 +1708,30 @@ bool SMTLIB2::parseAsBuiltinFormulaSymbol(const vstring& id, LExpr* exp)
         //cout<< "\n sort name2 is "<< env.sorts->sortName(bvSortIdx2);
         
         
-        unsigned pred =Theory::instance()->getSymbolForStructuredSort(bvSortIdx1,Theory::StructuredSortInterpretation::BVSLT);
+        
+        
+        Theory::StructuredSortInterpretation t =  getSSIfromFS(fs);
+        cout<<"\n\n the problem FS is :"<<fs;
+        cout<<" the ssi is "<< t;
+        unsigned pred =Theory::instance()->getSymbolForStructuredSort(bvSortIdx1,t);
         cout<<" pred is "<< pred;
-        //FormulaList* argLst = nullptr;
+        
         
         
         Formula* res = new AtomicFormula(Literal::create2(pred,true,firstBv,secondBv));
         
-        //result = new AtomicFormula(Literal::create2(fun,true, firstBv, secondBv));
-        //TermList resulst = TermList(Term::Term::create2(fun, firstBv, secondBv));
-        //FormulaList* argLst = nullptr;
-        //FormulaList::push(result,argLst);
-        //_results.push(ParseResult(bvSortIdx1, res));
         cout<<"\n we do get to _results.push \n";
-        //_results.push(ParseResult(result));
         _results.push(ParseResult(res));
-       return true;
+       
+        return true;
    }
-          
+    
+    // all the following are "chainable" and need to respect sorts      
     case FS_EQ:
     case FS_LESS:
     case FS_LESS_EQ:
     case FS_GREATER:
     case FS_GREATER_EQ:
-    case FS_BVSGT:
-    case FS_BVSGE:
-    case FS_BVSLE:
-    case FS_BVUGE:
-    case FS_BVUGT:
-    case FS_BVULE:
-   // case FS_BVSLT:
-    case FS_BVULT:
     {
       // read the first two arguments
       TermList first;
@@ -2035,23 +1876,7 @@ bool SMTLIB2::parseAsBuiltinFormulaSymbol(const vstring& id, LExpr* exp)
       _results.push(ParseResult(res));
       return true;
     }
-    
-    /*case FS_BVSLT:
-    {
-        cout<<"\n case FS_BVSLT!!\n";
-        TermList first;
-        if (_results.isEmpty() || _results.top().isSeparator()) {
-          complainAboutArgShortageOrWrongSorts(BUILT_IN_SYMBOL,exp);
-        }
-        unsigned sort = _results.pop().asTerm(first);
-        TermList second;
-        if (_results.isEmpty() || _results.top().isSeparator() ||
-            _results.pop().asTerm(second) != sort) { // has the same sort as first
-          complainAboutArgShortageOrWrongSorts(BUILT_IN_SYMBOL,exp);
-        }
-        return true;
-    }*/
-
+   
     default:
       ASS_EQ(fs,FS_USER_PRED_SYMBOL);
       return false;
@@ -2223,10 +2048,26 @@ bool SMTLIB2::parseAsBuiltinTermSymbol(const vstring& id, LExpr* exp)
         return true;
         
     }
+  
     case TS_BVAND:
+    case TS_BVADD:
+    case TS_BVSHL:
+    case TS_BVOR:
+    case TS_BVMUL:
+    case TS_BVUDIV:
+    case TS_BVUREM:
     case TS_BVLSHR:
+    case TS_BVNAND:
+    case TS_BVNOR:
+    case TS_BVXOR:
+    case TS_BVCOMP:
+    case TS_BVSUB:
+    case TS_BVSDIV:
+    case TS_BVSREM:
+    case TS_BVSMOD:
+    case TS_BVASHR:
     {
-      cout<<"\n in case TS_BVAND\n";
+      cout<<"\n in case TS_BVAND and such\n";
       TermList first, second;
       if (_results.isEmpty() || _results.top().isSeparator()) {
         complainAboutArgShortageOrWrongSorts(BUILT_IN_SYMBOL,exp);
@@ -2239,10 +2080,32 @@ bool SMTLIB2::parseAsBuiltinTermSymbol(const vstring& id, LExpr* exp)
           complainAboutArgShortageOrWrongSorts(BUILT_IN_SYMBOL,exp);
       }
       
-      unsigned fun = Theory::instance()->getSymbolForStructuredSort(sort, Theory::StructuredSortInterpretation::BVAND);
+      /// here make sure to get the interpretation of the according 
+      Theory::StructuredSortInterpretation t =  getSSIfromTS(ts);
+      unsigned fun = Theory::instance()->getSymbolForStructuredSort(sort, t);
       
       
       TermList res = TermList(Term::Term::create2(fun, first, second));
+      _results.push(ParseResult(sort, res));
+      
+      return true;
+    }
+    
+    case TS_BVNEG:
+    {
+        cout<<"\n in case TS_BVNEG\n";
+      TermList first;
+      if (_results.isEmpty() || _results.top().isSeparator()) {
+        complainAboutArgShortageOrWrongSorts(BUILT_IN_SYMBOL,exp);
+      }
+      unsigned sort = _results.pop().asTerm(first);
+      cout<< "\n sort in bvneg: "<< sort;
+      
+      
+      unsigned fun = Theory::instance()->getSymbolForStructuredSort(sort, Theory::StructuredSortInterpretation::BVNEG);
+      
+      
+      TermList res = TermList(Term::Term::create1(fun, first));
       _results.push(ParseResult(sort, res));
       
       return true;
@@ -2315,13 +2178,8 @@ bool SMTLIB2::parseAsBuiltinTermSymbol(const vstring& id, LExpr* exp)
     case TS_MINUS:
     case TS_DIVIDE:
     case TS_DIV:
-    /*case TS_BVAND:
-    case TS_BVLSHR:
-    case TS_CONCAT:
-    case TS_BVADD:*/
-    //case TS_BVULT:
-    // read the first argument
     {
+      // read the first argument
       TermList first;
       if (_results.isEmpty() || _results.top().isSeparator()) {
         complainAboutArgShortageOrWrongSorts(BUILT_IN_SYMBOL,exp);
@@ -2365,44 +2223,6 @@ bool SMTLIB2::parseAsBuiltinTermSymbol(const vstring& id, LExpr* exp)
       return true;
     }
     
-    /*case TS_BVNEG:
-    {
-      TermList theBv;
-      if (_results.isEmpty() || _results.top().isSeparator() ||
-          _results.pop().asTerm(theBv) != Sorts::SRT_BITVECTOR) {
-        complainAboutArgShortageOrWrongSorts(BUILT_IN_SYMBOL,exp);
-      }
-
-      unsigned fun = Theory::instance()->getFnNum(Theory::BVNEG);
-      TermList res = TermList(Term::create1(fun,theBv));
-
-      _results.push(ParseResult(Sorts::SRT_BITVECTOR,res));
-
-      return true;
-    }
-    
-    case TS_BVSHL:
-    {
-       TermList theBv;
-      if (_results.isEmpty() || _results.top().isSeparator() ||
-          _results.pop().asTerm(theBv) != Sorts::SRT_BITVECTOR) {
-        complainAboutArgShortageOrWrongSorts(BUILT_IN_SYMBOL,exp);
-      }
-       // HERE ALSO HAVE TO CONSIDER INTEGERS
-      TermList theSecondBv;
-      if (_results.isEmpty() || _results.top().isSeparator() ||
-          _results.pop().asTerm(theSecondBv) != Sorts::SRT_BITVECTOR) {
-        complainAboutArgShortageOrWrongSorts(BUILT_IN_SYMBOL,exp);
-      } 
-       
-      unsigned fun = Theory::instance()->getFnNum(Theory::BVSHL);
-      TermList res = TermList(Term::create2(fun,theBv, theSecondBv));
-
-      _results.push(ParseResult(Sorts::SRT_BITVECTOR,res));
-
-      return true;
-    }*/
-
     default:
       ASS_EQ(ts,TS_USER_FUNCTION);
       return false;
@@ -2480,55 +2300,52 @@ void SMTLIB2::parseRankedFunctionApplication(LExpr* exp)
             //TermList res = TermList(Term::Term::create(fun, 3, args));
           
       }
-      /*LExpr* fst = lRdr.readNext();
-      
-          if (fst->isAtom()) {
-            vstring& id = fst->str;
-            cout<<"\n in is atom the vstring is :\n"<< fst->toString();
-            if (id == "extract") {
-                cout<< "accepted extract";
-            const vstring& numeral = headRdr.readAtom();
+      else if (operation == "zero_extend" || operation == "sign_extend" || operation == "rotate_left" || operation == "rotate_right")
+      {
+          TermSymbol ts = getBuiltInTermSymbol(operation);
+          //cout<<"\n in ranked parse fs is \n"<< fs ;
+          Theory::StructuredSortInterpretation te = getSSIfromTS(ts);
+          
+          const vstring& numeral = headRdr.readAtom();
+            cout<<"\n the first numeral is : "<< numeral;
             if (!StringUtils::isPositiveInteger(numeral)) {
               USER_ERROR("Expected numeral as an argument of a ranked function in "+head->toString());
             }
-            const vstring numeral2 = headRdr.readAtom();
-            if (!StringUtils::isPositiveInteger(numeral2)) {
-              USER_ERROR("Expected numeral as an argument of a ranked function in "+head->toString());
-            }
+            
 
-            unsigned fromSymbol = TPTP::addIntegerConstant(numeral,_overflow,false);
-            TermList fromTerm = TermList(Term::createConstant(fromSymbol));
+            unsigned argSymbol = TPTP::addIntegerConstant(numeral,_overflow,false);
+            TermList argTerm = TermList(Term::createConstant(argSymbol));
 
-            unsigned numBitsSymbol = TPTP::addIntegerConstant(numeral2,_overflow,false);
-            TermList numBitsTerm = TermList(Term::createConstant(numBitsSymbol));
-
-            // for now get bvneg and use it. 
-            unsigned fun = 99;//Theory::instance()->getFnNum(Theory::BVNEG); // TS_MOD is the always positive remainder, therefore INT_REMAINDER_E
-            TermList temp;
-            _results.pop().asTerm(temp);
-            cout<<" is this even what we want? "<< temp;
-            TermList res = TermList(Term::create1(fun,temp));
-
-            //_results.push(ParseResult(Sorts::SRT_BITVECTOR,res));
-            }
-            else if (id == "zero_extend" || id == "sign_extend" || id == "rotate_left" || id == "rotate_right")
-            {
-                const vstring& numeral = headRdr.readAtom();
-                if (!StringUtils::isPositiveInteger(numeral)) {
-                  USER_ERROR("Expected numeral as an argument of a ranked function in "+head->toString());
-                }
-                unsigned fun = 99; //Theory::instance()->getFnNum(Theory::BVNEG); // TS_MOD is the always positive remainder, therefore INT_REMAINDER_E
-                TermList temp;
-                _results.pop().asTerm(temp);
-                cout<<" is this even what we want? "<< temp;
-                TermList res = TermList(Term::create1(fun,temp));
-
-                //_results.push(ParseResult(Sorts::SRT_BITVECTOR,res));
-                
-            }
-          }
-     // headRdr.acceptAtom("extract");  
-      return ;   */
+            
+            //static bool stringToInt(const vstring& str,int& result);
+            int numeralInt;
+            Int::stringToInt(numeral,numeralInt);
+            
+            
+            cout<<"\n numeralInt is : "<<numeralInt;
+            
+            
+            
+            TermList arg;
+            unsigned tempSort = _results.pop().asTerm(arg);
+            cout<<"\n in parseRankedFunctionApplication; arg is;\n "<< arg<< " and the sort is : "<<tempSort;
+            
+           
+            unsigned argSize = env.sorts->getBitVectorSort(tempSort)->getSize();
+            
+            unsigned resultSize = numeralInt + argSize;
+            cout<<"\n resultSize is : "<<resultSize;
+            unsigned resultSort = env.sorts->addBitVectorSort2(resultSize, argSize, argSize);
+            
+            // now we have all the arguments we need..
+            unsigned fun = Theory::instance()->getSymbolForStructuredSort(resultSort, te);
+            TermList res = TermList(Term::Term::create2(fun, argTerm, arg));
+            _results.push(ParseResult(resultSort, res));
+            
+            return;
+          
+          
+      }
   }
   cout<<" after accept divisble ";
   const vstring& numeral = headRdr.readAtom();
