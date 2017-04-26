@@ -1136,7 +1136,7 @@ unsigned Theory::getArrayDomainSort(Interpretation i)
     return  env.sorts->getArraySort(sort)->getIndexSort();
 }
 
-unsigned Theory::getBitVectorArg1Sort(Interpretation i )
+/*unsigned Theory::getBitVectorArg1Sort(Interpretation i )
 {
     CALL("Theory::getBitVectorArg1Sort");
     ASS(isBitVectorOperation(i));
@@ -1154,7 +1154,7 @@ unsigned Theory::getBitVectorArg2Sort(Interpretation i )
     unsigned sort = theory->getSort(i);
     cout<<"\n in getBitVectorArg2Sort and sort is :"<< sort<<"\n";
     return  env.sorts->getBitVectorSort(sort)->getSizeArg2();
-}
+}*/
 
 /**
  * Get the number of the skolem function symbol used in the clause form of the
@@ -1638,8 +1638,8 @@ BaseType* Theory::getStructuredSortOperationType(Interpretation i) {
             {
                 // the problem is here... need to get the argument sorts and put it here
                // cout<<"\n in case Sorts::StructuredSort::BITVECTOR: and result sort is "<<resultSort<<"\n";
-                unsigned argSize1 = getBitVectorArg1Sort(i);
-                unsigned argSize2 = getBitVectorArg2Sort(i);
+                unsigned argSize1 = env.signature->getArg1();//getBitVectorArg1Sort(i);
+                unsigned argSize2 = env.signature->getArg2();//getBitVectorArg2Sort(i);
                 return new FunctionType({env.sorts->addBitVectorSort(argSize1), env.sorts->addBitVectorSort(argSize2)}, sortt);
             }
             case StructuredSortInterpretation::BV_ROTATE_LEFT:  
@@ -1647,14 +1647,14 @@ BaseType* Theory::getStructuredSortOperationType(Interpretation i) {
             case StructuredSortInterpretation::BV_ZERO_EXTEND:
             case StructuredSortInterpretation::BV_SIGN_EXTEND:
             {
-                unsigned argSize1 = getBitVectorArg1Sort(i);;
+                unsigned argSize1 = env.signature->getArg1();//getBitVectorArg1Sort(i);;
                 return new FunctionType({Sorts::SRT_INTEGER, env.sorts->addBitVectorSort(argSize1)}, sortt);
             }
             
             
             case StructuredSortInterpretation::EXTRACT:
             {
-                unsigned bitVecArgSize = getBitVectorArg1Sort(i);
+                unsigned bitVecArgSize = env.signature->getArg1();
                 return new FunctionType({env.sorts->addBitVectorSort(bitVecArgSize), Sorts::SRT_INTEGER, Sorts::SRT_INTEGER}, sortt);
             }
           

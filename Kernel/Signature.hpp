@@ -567,10 +567,21 @@ class BitVectorSymbol
   Stack<TermList>& getDividesNvalues(){ return _dividesNvalues; }
 
   static bool symbolNeedsQuoting(vstring name, bool interpreted, unsigned arity);
+  
+  unsigned getArg1(){ return _arg1; }
+  unsigned getArg2(){ return _arg2; }
+  void setArg1(unsigned a1){
+      _arg1 = a1;
+  } 
+  
+  void setArg2(unsigned a2){
+      _arg2 = a2;
+  }
 
 private:
   Stack<TermList> _dividesNvalues;
-
+  unsigned _arg1;
+  unsigned _arg2;
   bool _foolConstantsDefined;
   unsigned _foolTrue;
   unsigned _foolFalse;

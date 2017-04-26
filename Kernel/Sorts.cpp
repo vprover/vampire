@@ -139,7 +139,7 @@ unsigned Sorts::addBitVectorSort(const unsigned size)
 
 
 // call this for concat only 
-unsigned Sorts::addBitVectorSort2(const unsigned size, unsigned argSize1, unsigned argSize2)
+/*unsigned Sorts::addBitVectorSort2(const unsigned size, unsigned argSize1, unsigned argSize2)
 {
     CALL("Sorts::addBitVectorSort2");
     
@@ -184,7 +184,7 @@ unsigned Sorts::addBitVectorSort2(const unsigned size, unsigned argSize1, unsign
     _sortNames.insert(name,result);
     
     return result;
-}
+}*/
 
 /**
  *

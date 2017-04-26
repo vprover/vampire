@@ -154,16 +154,16 @@ public:
 
     unsigned getSize(){ return _size; }
     
-    unsigned getSizeArg1(){ return _sizeArg1; }
+   /* unsigned getSizeArg1(){ return _sizeArg1; }
     unsigned getSizeArg2(){ return _sizeArg2; }
    
     void setArg1(unsigned a1){_sizeArg1 = a1; return;}
-    void setArg2(unsigned a2){_sizeArg2 = a2; return;}
+    void setArg2(unsigned a2){_sizeArg2 = a2; return;}*/
     
   private: 
     unsigned _size;
-    unsigned _sizeArg1;
-    unsigned _sizeArg2;
+    //unsigned _sizeArg1;
+    //unsigned _sizeArg2;
     DArray<unsigned> _bitvector;
 
   };
@@ -196,7 +196,7 @@ public:
 
   unsigned addArraySort(unsigned indexSort, unsigned innerSort);
   unsigned addBitVectorSort(unsigned size);
-  unsigned addBitVectorSort2(unsigned size, unsigned sizeArg1, unsigned sizeArg2);
+  //unsigned addBitVectorSort2(unsigned size, unsigned sizeArg1, unsigned sizeArg2);
   
   ArraySort* getArraySort(unsigned sort){
     ASS(hasStructuredSort(sort,StructuredSort::ARRAY));

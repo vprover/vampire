@@ -476,11 +476,10 @@ unsigned SMTLIB2::declareSort(LExpr* sExpr)
   ASS(forbidden.isEmpty());
 
   todo.push(make_pair(SPO_PARSE,sExpr));
-
+  
   while (todo.isNonEmpty()) {
     pair<SortParseOperation,LExpr*> cur = todo.pop();
     SortParseOperation op = cur.first;
-
     if (op == SPO_POP_LOOKUP) {
       delete lookups.pop();
       forbidden.pop();
@@ -615,7 +614,7 @@ unsigned SMTLIB2::declareSort(LExpr* sExpr)
             results.push(env.sorts->addArraySort(indexSort,innerSort));
             continue;
           }
-        case BS_BITVECTOR: // have to still do error handling
+        /*case BS_BITVECTOR: // have to still do error handling
             cout<<"\n in case BS_BITVECTOR\n";
             cur = todo.pop();
             if (cur.second->str == "_"){
@@ -623,17 +622,30 @@ unsigned SMTLIB2::declareSort(LExpr* sExpr)
                 unsigned temp = env.sorts->addBitVectorSort(bitVecSize);
                 cout<<" the function sort number is "<< temp;
                  results.push(env.sorts->addBitVectorSort(bitVecSize));
-                //results.push(Sorts::SRT_INTEGER);
+                
             }
-            continue;
+            continue;*/
 
         default:
           ASS_EQ(bs,BS_INVALID);
       }
-      // Getting the size of the bitvector
+      // special handling of bitvectors
       if (std::stoi(id.c_str())){
         bitVecSize = std::stoi(id.c_str());
-        continue;
+        cur = todo.pop();
+        if (getBuiltInSortFromString(cur.second->str) != BS_BITVECTOR)
+            goto malformed;
+        cout<<"\n in handling BitVec\n";
+        cur = todo.pop();
+        if (cur.second->str == "_"){
+            unsigned temp = env.sorts->addBitVectorSort(bitVecSize);
+            cout<<"-:- the function sort number is "<< temp;
+            results.push(env.sorts->addBitVectorSort(bitVecSize));
+            continue;
+        }
+        cout<<" bitvec going to malformed";
+        goto malformed;
+        //continue;
       }
         
       USER_ERROR("Unrecognized sort identifier "+id);
@@ -2037,7 +2049,11 @@ bool SMTLIB2::parseAsBuiltinTermSymbol(const vstring& id, LExpr* exp)
         unsigned resultSize = size1 + size2;
         cout<<" \n resultSize is "<< resultSize<<"\n";
         //unsigned resultSort = env.sorts->addBitVectorSort(resultSize);
-        unsigned resultSort = env.sorts->addBitVectorSort2(resultSize, size1, size2);
+        env.signature->setArg1(size1);
+        env.signature->setArg2(size2);
+        
+        //unsigned resultSort = env.sorts->addBitVectorSort(resultSize, size1, size2);
+        unsigned resultSort = env.sorts->addBitVectorSort(resultSize);
         cout<<" \n resultSort is "<< resultSort<<"\n";
         unsigned fun = Theory::instance()->getSymbolForStructuredSort(resultSort, Theory::StructuredSortInterpretation::CONCAT);
         cout<<" \n in ts_concat fun is: "<< fun <<"\n";
@@ -2286,7 +2302,8 @@ void SMTLIB2::parseRankedFunctionApplication(LExpr* exp)
             
             
             unsigned argSize = env.sorts->getBitVectorSort(tempSort)->getSize();
-            unsigned resultSort = env.sorts->addBitVectorSort2(resultSize, argSize, argSize);
+            env.signature->setArg1(argSize);
+            unsigned resultSort = env.sorts->addBitVectorSort(resultSize);//env.sorts->addBitVectorSort2(resultSize, argSize, argSize);
             
             
             // now we have all the arguments we need..
@@ -2335,7 +2352,9 @@ void SMTLIB2::parseRankedFunctionApplication(LExpr* exp)
             
             unsigned resultSize = numeralInt + argSize;
             cout<<"\n resultSize is : "<<resultSize;
-            unsigned resultSort = env.sorts->addBitVectorSort2(resultSize, argSize, argSize);
+            env.signature->setArg1(argSize);
+            //unsigned resultSort = env.sorts->addBitVectorSort2(resultSize, argSize, argSize);
+            unsigned resultSort = env.sorts->addBitVectorSort(resultSize);
             
             // now we have all the arguments we need..
             unsigned fun = Theory::instance()->getSymbolForStructuredSort(resultSort, te);
