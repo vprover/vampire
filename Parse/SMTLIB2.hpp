@@ -237,6 +237,7 @@ private:
     TS_ITE,
     TS_LET,
     TS_MOD,
+    TS_REPEAT,
     TS_BV_ROTATE_LEFT,
     TS_BV_ROTATE_RIGHT,
     TS_SELECT,
@@ -298,6 +299,8 @@ private:
               return Theory::StructuredSortInterpretation::BV_ROTATE_LEFT;
           case TS_BV_ROTATE_RIGHT:
               return Theory::StructuredSortInterpretation::BV_ROTATE_RIGHT;
+          case TS_REPEAT:
+              return Theory::StructuredSortInterpretation::REPEAT;    
           default:
               ASS_EQ(1,2);    
               
@@ -479,6 +482,8 @@ private:
   bool parseAsSpecConstant(const vstring& id);
   /** to parse bv231 and the like*/
   bool parseAsBitVectorDescriptor(const vstring& id);
+  /* to parse constants such as #b0101 or #xA891f */
+  bool parseAsBitVectorConstant(const vstring& id);
   /** Declared or defined functions (and predicates) - which includes 0-arity ones */
   bool parseAsUserDefinedSymbol(const vstring& id, LExpr* exp);
   /** Whatever is built-in and looks like a formula from vampire perspective (see FormulaSymbol)

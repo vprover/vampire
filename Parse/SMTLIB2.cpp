@@ -743,6 +743,7 @@ const char * SMTLIB2::s_termSymbolNameStrings[] = {
     "ite",
     LET,
     "mod",
+    "repeat",
     "rotate_left",
     "rotate_right",
     "select",
@@ -1506,6 +1507,39 @@ bool SMTLIB2::parseAsBitVectorDescriptor(const vstring& id)
     return false;
 }
 
+bool SMTLIB2::parseAsBitVectorConstant(const vstring& id)
+{
+    CALL("SMTLIB2::parseAsBitVectorConstant");
+    cout<<" in parseAsBitvectorConstant";
+    vstring hexSlashBin = id.substr(0,2);
+    cout<<"\n hexSlashBin : "<<hexSlashBin<<"\n";
+    unsigned multiplier = 1;
+    if (hexSlashBin == "#x" || hexSlashBin =="#b")
+    {    if (hexSlashBin == "#x"){
+            multiplier = 4;
+        }
+        cout<<" bv constant we get here";
+        vstring bvContent = id.substr(2);
+        int bvContentSize = bvContent.length();
+        int resultSize = multiplier * bvContentSize;
+        vstring resultSizeVstring = Int::toString(resultSize);
+
+        //unsigned TPTP::addBitVectorConstant(const vstring& size, const vstring& numberToRepresent, Set<vstring>& overflow, bool defaultSort)
+
+        unsigned resultSort = env.sorts->addBitVectorSort(resultSize);
+
+        unsigned symb = TPTP::addBitVectorConstant(resultSizeVstring, resultSizeVstring, _overflow, false);// must change this !!!!!
+        TermList res = TermList(Term::createConstant(symb));
+
+
+
+         _results.push(ParseResult(resultSort,res)); // change THIS !!!:!:!:!:!:
+         return true;
+    }
+    else
+        return false;
+}
+
 
 bool SMTLIB2::parseAsSpecConstant(const vstring& id)
 {
@@ -2108,6 +2142,7 @@ bool SMTLIB2::parseAsBuiltinTermSymbol(const vstring& id, LExpr* exp)
     }
     
     case TS_BVNEG:
+    case TS_BVNOT:
     {
         cout<<"\n in case TS_BVNEG\n";
       TermList first;
@@ -2126,7 +2161,7 @@ bool SMTLIB2::parseAsBuiltinTermSymbol(const vstring& id, LExpr* exp)
       
       return true;
     }
-    case TS_UNDERSCORE:
+    /*case TS_UNDERSCORE:
     {
       TermList first, second;
       if (_results.isEmpty() || _results.top().isSeparator()) {
@@ -2157,7 +2192,7 @@ bool SMTLIB2::parseAsBuiltinTermSymbol(const vstring& id, LExpr* exp)
 
      
       return true;
-    }
+    }*/ 
     
     case TS_ABS:
     {
@@ -2312,12 +2347,9 @@ void SMTLIB2::parseRankedFunctionApplication(LExpr* exp)
             TermList res = TermList(Term::Term::create(fun, 3, args));
             _results.push(ParseResult(resultSort, res));
             
-            return;
-            //TermList args[] = {theArray, theIndex, theValue};
-            //TermList res = TermList(Term::Term::create(fun, 3, args));
-          
+            return;    
       }
-      else if (operation == "zero_extend" || operation == "sign_extend" || operation == "rotate_left" || operation == "rotate_right")
+      else if (operation == "zero_extend" || operation == "sign_extend" || operation == "rotate_left" || operation == "rotate_right" || operation == "repeat")
       {
           TermSymbol ts = getBuiltInTermSymbol(operation);
           //cout<<"\n in ranked parse fs is \n"<< fs ;
@@ -2350,7 +2382,11 @@ void SMTLIB2::parseRankedFunctionApplication(LExpr* exp)
            
             unsigned argSize = env.sorts->getBitVectorSort(tempSort)->getSize();
             
-            unsigned resultSize = numeralInt + argSize;
+            unsigned resultSize; // = numeralInt + argSize;
+            if (operation == "repeat")
+                resultSize = numeralInt * argSize;
+            else
+                resultSize = numeralInt + argSize;
             cout<<"\n resultSize is : "<<resultSize;
             env.signature->setArg1(argSize);
             //unsigned resultSort = env.sorts->addBitVectorSort2(resultSize, argSize, argSize);
@@ -2445,6 +2481,27 @@ SMTLIB2::ParseResult SMTLIB2::parseTermOrFormula(LExpr* body)
             if (id == UNDERSCORE) {
               //USER_ERROR("Indexed identifiers in general term position are not supported: "+exp->toString());
                     cout<<"\n in id is underscore";
+                    fst = lRdr.readNext();
+                    vstring wholeBvPart = fst->str;
+                    vstring bvpart = wholeBvPart.substr(0,2);
+                    cout<<"\n bv part is "<< bvpart<<"\n";
+                    if (bvpart!= "bv")
+                        USER_ERROR("BV ERROR bv expected ");
+                    vstring numberPart = wholeBvPart.substr(2);
+                    int actualNumber;
+                    Int::stringToInt(numberPart,actualNumber);
+                    cout<<"\n number part "<< actualNumber<<"\n";
+                    fst = lRdr.readNext();
+                    cout<<" and last "<<fst->str;
+                    
+                    unsigned symb = TPTP::addBitVectorConstant(fst->str,numberPart,  _overflow, false);
+                    TermList res = TermList(Term::createConstant(symb));
+                    cout<< "\n symbol is "<<symb<<"\n";
+                    int hey;
+                    Int::stringToInt(fst->str, hey);
+                    cout<< "\n hey is "<<hey<<"\n";
+                    _results.push(ParseResult(env.sorts->addBitVectorSort(hey),res)); 
+                    continue;
               // we only support indexed identifiers as functors applied to something (see just below)
             }
           } else {
@@ -2513,6 +2570,10 @@ SMTLIB2::ParseResult SMTLIB2::parseTermOrFormula(LExpr* body)
 
         if (parseAsBitVectorDescriptor(id)){
             cout<<" \nparseAsBitVectorDescriptor\n";
+            continue;
+        }
+        if (parseAsBitVectorConstant(id)){
+            cout<<"\n in parseAsBitvectorConstant\n";
             continue;
         }
 

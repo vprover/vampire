@@ -574,6 +574,7 @@ unsigned Theory::getArity(Interpretation i)
   if (theory->isStructuredSortInterpretation(i)){
     switch (theory->convertToStructured(i)) {
       case StructuredSortInterpretation::BVNEG:
+      case StructuredSortInterpretation::BVNOT:    
             return 1;
       case StructuredSortInterpretation::ARRAY_SELECT:
       case StructuredSortInterpretation::ARRAY_BOOL_SELECT:
@@ -585,6 +586,7 @@ unsigned Theory::getArity(Interpretation i)
       case StructuredSortInterpretation::BVNAND:
       case StructuredSortInterpretation::BVOR:
       case StructuredSortInterpretation::BVXOR:
+      case StructuredSortInterpretation::BVNOR:
       case StructuredSortInterpretation::BVXNOR:
       case StructuredSortInterpretation::BVASHR:
       case StructuredSortInterpretation::BVCOMP:
@@ -602,6 +604,7 @@ unsigned Theory::getArity(Interpretation i)
       case StructuredSortInterpretation::BV_ZERO_EXTEND:
       case StructuredSortInterpretation::BV_SIGN_EXTEND:
       case StructuredSortInterpretation::BVSHL:
+      case StructuredSortInterpretation::REPEAT:    
         return 2;
       case StructuredSortInterpretation::ARRAY_STORE:
       case StructuredSortInterpretation::EXTRACT:
@@ -1357,7 +1360,8 @@ Sorts::StructuredSort Theory::getInterpretedSort(StructuredSortInterpretation ss
     case StructuredSortInterpretation::BVUGE:
     case StructuredSortInterpretation::BVSLE:
     case StructuredSortInterpretation::BVSGT:
-    case StructuredSortInterpretation::BVSGE:    
+    case StructuredSortInterpretation::BVSGE:
+    case StructuredSortInterpretation::REPEAT:    
         return Sorts::StructuredSort::BITVECTOR;
     default:
       ASSERTION_VIOLATION;
@@ -1449,6 +1453,8 @@ vstring Theory::getInterpretationName(Interpretation interp) {
           return "$bvsgt";
         case StructuredSortInterpretation::BVSGE:  
           return "$bvsge";
+        case StructuredSortInterpretation::REPEAT:
+            return "$repeat";
             
       default:
         ASSERTION_VIOLATION_REP(interp);
@@ -1625,33 +1631,26 @@ BaseType* Theory::getStructuredSortOperationType(Interpretation i) {
             case StructuredSortInterpretation::BVSDIV:
             case StructuredSortInterpretation::BVSREM:
             case StructuredSortInterpretation::BVSMOD:
-            case StructuredSortInterpretation::BVASHR:
-            //case StructuredSortInterpretation::BV_ROTATE_LEFT:  
-            //case StructuredSortInterpretation::BV_ROTATE_RIGHT:    
+            case StructuredSortInterpretation::BVASHR:   
                 return new FunctionType({ sortt, sortt}, sortt);
             case StructuredSortInterpretation::BVNEG:
             case StructuredSortInterpretation::BVNOT:
                 return new FunctionType({sortt}, sortt);
-            case StructuredSortInterpretation::CONCAT: 
-            //case StructuredSortInterpretation::BV_ZERO_EXTEND:
-            //case StructuredSortInterpretation::BV_SIGN_EXTEND:    
+            case StructuredSortInterpretation::CONCAT:  
             {
-                // the problem is here... need to get the argument sorts and put it here
-               // cout<<"\n in case Sorts::StructuredSort::BITVECTOR: and result sort is "<<resultSort<<"\n";
-                unsigned argSize1 = env.signature->getArg1();//getBitVectorArg1Sort(i);
-                unsigned argSize2 = env.signature->getArg2();//getBitVectorArg2Sort(i);
+                unsigned argSize1 = env.signature->getArg1();
+                unsigned argSize2 = env.signature->getArg2();
                 return new FunctionType({env.sorts->addBitVectorSort(argSize1), env.sorts->addBitVectorSort(argSize2)}, sortt);
             }
             case StructuredSortInterpretation::BV_ROTATE_LEFT:  
             case StructuredSortInterpretation::BV_ROTATE_RIGHT:
             case StructuredSortInterpretation::BV_ZERO_EXTEND:
             case StructuredSortInterpretation::BV_SIGN_EXTEND:
+            case StructuredSortInterpretation::REPEAT:    
             {
-                unsigned argSize1 = env.signature->getArg1();//getBitVectorArg1Sort(i);;
+                unsigned argSize1 = env.signature->getArg1();
                 return new FunctionType({Sorts::SRT_INTEGER, env.sorts->addBitVectorSort(argSize1)}, sortt);
             }
-            
-            
             case StructuredSortInterpretation::EXTRACT:
             {
                 unsigned bitVecArgSize = env.signature->getArg1();

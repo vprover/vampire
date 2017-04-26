@@ -430,12 +430,14 @@ public:
     BVUREM,
     BVXNOR,
     BVXOR,
+    
     BV_ROTATE_LEFT,
     BV_ROTATE_RIGHT,
     BV_SIGN_EXTEND,
     BV_ZERO_EXTEND,
     CONCAT,
     EXTRACT,
+    REPEAT,
     DEFINE_BITVECTOR
     
   };
