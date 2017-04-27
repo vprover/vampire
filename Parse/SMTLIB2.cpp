@@ -1445,6 +1445,39 @@ void SMTLIB2::parseQuantBegin(LExpr* exp)
   lRdr.acceptEOL();
 }
 
+void SMTLIB2::parseUnderScoredExpression(LExpr* exp)
+{
+    CALL("SMTLIB2::parseUnderScoredExpression");
+    
+    ASS(exp->isList());
+    LispListReader lRdr(exp->list);
+    
+    LExpr* ex = lRdr.readNext();
+    if (ex->str!= "_")
+        USER_ERROR("This shouldnt pop up");
+    ex = lRdr.readNext();
+    vstring wholeBvPart = ex->str;
+    vstring bvpart = wholeBvPart.substr(0,2);
+    cout<<"\n bv part is "<< bvpart<<"\n";
+    if (bvpart!= "bv")
+        USER_ERROR("BV ERROR bv expected ");
+    vstring numberPart = wholeBvPart.substr(2);
+    int actualNumber;
+    Int::stringToInt(numberPart,actualNumber);
+    cout<<"\n number part "<< actualNumber<<"\n";
+    ex = lRdr.readNext();
+    cout<<" and last "<<ex->str;
+                   
+    unsigned symb = TPTP::addBitVectorConstant(ex->str,numberPart,  _overflow, false);
+    TermList res = TermList(Term::createConstant(symb));
+    cout<< "\n symbol is "<<symb<<"\n";
+    int hey;
+    Int::stringToInt(ex->str, hey);
+    cout<< "\n hey is "<<hey<<"\n";
+    _results.push(ParseResult(env.sorts->addBitVectorSort(hey),res));
+}
+
+
 static const char* EXCLAMATION = "!";
 
 void SMTLIB2::parseAnnotatedTerm(LExpr* exp)
@@ -1506,7 +1539,7 @@ bool SMTLIB2::parseAsBitVectorDescriptor(const vstring& id)
     cout<<"\n parseAsBitVectorDescriptor returning false";
     return false;
 }
-
+// for BitVec constants that look like: #b01001 or #xABC
 bool SMTLIB2::parseAsBitVectorConstant(const vstring& id)
 {
     CALL("SMTLIB2::parseAsBitVectorConstant");
@@ -1515,29 +1548,45 @@ bool SMTLIB2::parseAsBitVectorConstant(const vstring& id)
     cout<<"\n hexSlashBin : "<<hexSlashBin<<"\n";
     unsigned multiplier = 1;
     if (hexSlashBin == "#x" || hexSlashBin =="#b")
-    {    if (hexSlashBin == "#x"){
-            multiplier = 4;
-        }
-        cout<<" bv constant we get here";
+    {    
         vstring bvContent = id.substr(2);
         int bvContentSize = bvContent.length();
-        int resultSize = multiplier * bvContentSize;
-        vstring resultSizeVstring = Int::toString(resultSize);
+        if (hexSlashBin == "#x")
+        {
+            multiplier = 4;
+            DArray<char> testing = getHexArrayFromString(bvContent);
+            
+            int resultSize = multiplier * bvContentSize;
+            vstring resultSizeVstring = Int::toString(resultSize);
+            vstring vstringNumToRepresent = Int::toString(getNumberFromHexArray(testing));
+            
+            unsigned resultSort = env.sorts->addBitVectorSort(resultSize);
 
-        //unsigned TPTP::addBitVectorConstant(const vstring& size, const vstring& numberToRepresent, Set<vstring>& overflow, bool defaultSort)
+            unsigned symb = TPTP::addBitVectorConstant(resultSizeVstring, vstringNumToRepresent, _overflow, false);
+            TermList res = TermList(Term::createConstant(symb));
+            _results.push(ParseResult(resultSort,res)); // change THIS !!!:!:!:!:!:
+            return true;
+        }
+        else if(hexSlashBin == "#b")
+        {
+                
+            int resultSize = multiplier * bvContentSize;
+            vstring resultSizeVstring = Int::toString(resultSize);
 
-        unsigned resultSort = env.sorts->addBitVectorSort(resultSize);
+            DArray<bool> testing = getBoolArrayFromString(bvContent);
+            vstring vstringNumToRepresent = Int::toString(getNumberFromBoolArray(testing));
+        
+            unsigned resultSort = env.sorts->addBitVectorSort(resultSize);
 
-        unsigned symb = TPTP::addBitVectorConstant(resultSizeVstring, resultSizeVstring, _overflow, false);// must change this !!!!!
-        TermList res = TermList(Term::createConstant(symb));
-
-
-
-         _results.push(ParseResult(resultSort,res)); // change THIS !!!:!:!:!:!:
-         return true;
+            
+            unsigned symb = TPTP::addBitVectorConstant(resultSizeVstring, vstringNumToRepresent, _overflow, false);
+            TermList res = TermList(Term::createConstant(symb));
+            _results.push(ParseResult(resultSort,res)); 
+            return true;
+        }
+        
     }
-    else
-        return false;
+    return false;
 }
 
 
@@ -2295,22 +2344,16 @@ void SMTLIB2::parseRankedFunctionApplication(LExpr* exp)
   headRdr.acceptAtom(UNDERSCORE);
 
   // currently we only support divisible, so this is easy
-  try{
-  headRdr.acceptAtom("divisible");
-  } catch(Exception e){
-      cout<<"caught exception";
-      const vstring& operation = headRdr.readAtom();
-      cout<<"\n readAtom gives "<< operation;
-      if (operation== "extract"){
-          cout<<"\n operation is extract ";
-          
+  const vstring& operation = headRdr.readAtom();
+  
+  //headRdr.acceptAtom("divisible");
+   cout<<"\n readAtom gives "<< operation;
+  if (operation== "extract"){
             const vstring& numeral = headRdr.readAtom();
-            cout<<"\n the first numeral is : "<< numeral;
             if (!StringUtils::isPositiveInteger(numeral)) {
               USER_ERROR("Expected numeral as an argument of a ranked function in "+head->toString());
             }
             const vstring numeral2 = headRdr.readAtom();
-            cout<<"\n the second numeral is : "<< numeral;
             if (!StringUtils::isPositiveInteger(numeral2)) {
               USER_ERROR("Expected numeral as an argument of a ranked function in "+head->toString());
             }
@@ -2327,18 +2370,14 @@ void SMTLIB2::parseRankedFunctionApplication(LExpr* exp)
             int numeral2Int;
             Int::stringToInt(numeral2,numeral2Int);
             unsigned resultSize = numeralInt - numeral2Int + 1;
-            cout<<"\n numeralInt is : "<<numeralInt;
-            cout<<"\n numeral2Int is : "<<numeral2Int;
-            cout<<"\n resultSize is : "<<resultSize;
-            
+           
             TermList arg;
             unsigned tempSort = _results.pop().asTerm(arg);
-            cout<<"\n in parseRankedFunctionApplication; arg is;\n "<< arg<< " and the sort is : "<<tempSort;
             
             
             unsigned argSize = env.sorts->getBitVectorSort(tempSort)->getSize();
             env.signature->setArg1(argSize);
-            unsigned resultSort = env.sorts->addBitVectorSort(resultSize);//env.sorts->addBitVectorSort2(resultSize, argSize, argSize);
+            unsigned resultSort = env.sorts->addBitVectorSort(resultSize);
             
             
             // now we have all the arguments we need..
@@ -2351,17 +2390,13 @@ void SMTLIB2::parseRankedFunctionApplication(LExpr* exp)
       }
       else if (operation == "zero_extend" || operation == "sign_extend" || operation == "rotate_left" || operation == "rotate_right" || operation == "repeat")
       {
-          TermSymbol ts = getBuiltInTermSymbol(operation);
-          //cout<<"\n in ranked parse fs is \n"<< fs ;
-          Theory::StructuredSortInterpretation te = getSSIfromTS(ts);
-          
-          const vstring& numeral = headRdr.readAtom();
-            cout<<"\n the first numeral is : "<< numeral;
-            if (!StringUtils::isPositiveInteger(numeral)) {
-              USER_ERROR("Expected numeral as an argument of a ranked function in "+head->toString());
-            }
-            
+            TermSymbol ts = getBuiltInTermSymbol(operation);
+            Theory::StructuredSortInterpretation te = getSSIfromTS(ts);
 
+            const vstring& numeral = headRdr.readAtom();
+            if (!StringUtils::isPositiveInteger(numeral)) {
+                USER_ERROR("Expected numeral as an argument of a ranked function in "+head->toString());
+              }
             unsigned argSymbol = TPTP::addIntegerConstant(numeral,_overflow,false);
             TermList argTerm = TermList(Term::createConstant(argSymbol));
 
@@ -2369,15 +2404,9 @@ void SMTLIB2::parseRankedFunctionApplication(LExpr* exp)
             //static bool stringToInt(const vstring& str,int& result);
             int numeralInt;
             Int::stringToInt(numeral,numeralInt);
-            
-            
-            cout<<"\n numeralInt is : "<<numeralInt;
-            
-            
-            
+             
             TermList arg;
             unsigned tempSort = _results.pop().asTerm(arg);
-            cout<<"\n in parseRankedFunctionApplication; arg is;\n "<< arg<< " and the sort is : "<<tempSort;
             
            
             unsigned argSize = env.sorts->getBitVectorSort(tempSort)->getSize();
@@ -2387,9 +2416,7 @@ void SMTLIB2::parseRankedFunctionApplication(LExpr* exp)
                 resultSize = numeralInt * argSize;
             else
                 resultSize = numeralInt + argSize;
-            cout<<"\n resultSize is : "<<resultSize;
             env.signature->setArg1(argSize);
-            //unsigned resultSort = env.sorts->addBitVectorSort2(resultSize, argSize, argSize);
             unsigned resultSort = env.sorts->addBitVectorSort(resultSize);
             
             // now we have all the arguments we need..
@@ -2401,29 +2428,32 @@ void SMTLIB2::parseRankedFunctionApplication(LExpr* exp)
           
           
       }
-  }
-  cout<<" after accept divisble ";
-  const vstring& numeral = headRdr.readAtom();
+      else if (operation == "divisble")
+      {
+          const vstring& numeral = headRdr.readAtom();
 
-  if (!StringUtils::isPositiveInteger(numeral)) {
-    USER_ERROR("Expected numeral as an argument of a ranked function in "+head->toString());
-  }
+            if (!StringUtils::isPositiveInteger(numeral)) {
+              USER_ERROR("Expected numeral as an argument of a ranked function in "+head->toString());
+            }
 
-  unsigned divisorSymb = TPTP::addIntegerConstant(numeral,_overflow,false);
-  TermList divisorTerm = TermList(Term::createConstant(divisorSymb));
+            unsigned divisorSymb = TPTP::addIntegerConstant(numeral,_overflow,false);
+            TermList divisorTerm = TermList(Term::createConstant(divisorSymb));
 
-  TermList arg;
-  if (_results.isEmpty() || _results.top().isSeparator() ||
-      _results.pop().asTerm(arg) != Sorts::SRT_INTEGER) {
-    complainAboutArgShortageOrWrongSorts("ranked function symbol",exp);
-  }
+            TermList arg;
+            if (_results.isEmpty() || _results.top().isSeparator() ||
+                _results.pop().asTerm(arg) != Sorts::SRT_INTEGER) {
+              complainAboutArgShortageOrWrongSorts("ranked function symbol",exp);
+            }
 
-  unsigned pred = Theory::instance()->getPredNum(Theory::INT_DIVIDES);
-  env.signature->recordDividesNvalue(divisorTerm);
+            unsigned pred = Theory::instance()->getPredNum(Theory::INT_DIVIDES);
+            env.signature->recordDividesNvalue(divisorTerm);
 
-  Formula* res = new AtomicFormula(Literal::create2(pred,true,divisorTerm,arg));
+            Formula* res = new AtomicFormula(Literal::create2(pred,true,divisorTerm,arg));
 
-  _results.push(ParseResult(res));
+            _results.push(ParseResult(res));
+      }
+   
+  
 }
 
 SMTLIB2::ParseResult SMTLIB2::parseTermOrFormula(LExpr* body)
@@ -2480,33 +2510,15 @@ SMTLIB2::ParseResult SMTLIB2::parseTermOrFormula(LExpr* body)
 
             if (id == UNDERSCORE) {
               //USER_ERROR("Indexed identifiers in general term position are not supported: "+exp->toString());
-                    cout<<"\n in id is underscore";
-                    fst = lRdr.readNext();
-                    vstring wholeBvPart = fst->str;
-                    vstring bvpart = wholeBvPart.substr(0,2);
-                    cout<<"\n bv part is "<< bvpart<<"\n";
-                    if (bvpart!= "bv")
-                        USER_ERROR("BV ERROR bv expected ");
-                    vstring numberPart = wholeBvPart.substr(2);
-                    int actualNumber;
-                    Int::stringToInt(numberPart,actualNumber);
-                    cout<<"\n number part "<< actualNumber<<"\n";
-                    fst = lRdr.readNext();
-                    cout<<" and last "<<fst->str;
-                    
-                    unsigned symb = TPTP::addBitVectorConstant(fst->str,numberPart,  _overflow, false);
-                    TermList res = TermList(Term::createConstant(symb));
-                    cout<< "\n symbol is "<<symb<<"\n";
-                    int hey;
-                    Int::stringToInt(fst->str, hey);
-                    cout<< "\n hey is "<<hey<<"\n";
-                    _results.push(ParseResult(env.sorts->addBitVectorSort(hey),res)); 
-                    continue;
+                
+                // if the expression starts with an underscore, then it is an expression of type 
+                    parseUnderScoredExpression(exp);
+                    continue;                 
               // we only support indexed identifiers as functors applied to something (see just below)
             }
           } else {
             // this has to be an UNDERSCORE, otherwise we error later when we PO_PARSE_APPLICATION
-              cout<<"\n this has to be an underscore ";
+              
           }
 
           // this handles the general function-to-arguments application:
