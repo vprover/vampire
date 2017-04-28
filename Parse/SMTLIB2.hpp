@@ -370,6 +370,8 @@ int getIntValueFromHex(char in)
               return Theory::StructuredSortInterpretation::BVUREM;
           case TS_BVXNOR:
               return Theory::StructuredSortInterpretation::BVXNOR;
+          case TS_BVXOR:
+              return Theory::StructuredSortInterpretation::BVXOR;
           case TS_BV_ZERO_EXTEND:
               return Theory::StructuredSortInterpretation::BV_ZERO_EXTEND;
           case TS_BV_SIGN_EXTEND:

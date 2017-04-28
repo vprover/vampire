@@ -1517,6 +1517,7 @@ bool SMTLIB2::parseAsScopeLookup(const vstring& id)
 
     SortedTerm st;
     if (lookup->find(id,st)) {
+        cout<<" in scope lookup st second: "<< st.second << " and st first "<< st.first;
       _results.push(ParseResult(st.second,st.first));
       return true;
     }
@@ -2137,7 +2138,9 @@ bool SMTLIB2::parseAsBuiltinTermSymbol(const vstring& id, LExpr* exp)
         
         //unsigned resultSort = env.sorts->addBitVectorSort(resultSize, size1, size2);
         unsigned resultSort = env.sorts->addBitVectorSort(resultSize);
+        cout<<"\n\n after addBitVector "<<"\n";
         cout<<" \n resultSort is "<< resultSort<<"\n";
+        // Always getting the same FUN SYMBOL FOR THE ONES WITH SAME RESULTSORT
         unsigned fun = Theory::instance()->getSymbolForStructuredSort(resultSort, Theory::StructuredSortInterpretation::CONCAT);
         cout<<" \n in ts_concat fun is: "<< fun <<"\n";
         TermList res = TermList(Term::Term::create2(fun, first, second));
@@ -2370,13 +2373,20 @@ void SMTLIB2::parseRankedFunctionApplication(LExpr* exp)
             int numeral2Int;
             Int::stringToInt(numeral2,numeral2Int);
             unsigned resultSize = numeralInt - numeral2Int + 1;
-           
+            cout<< "\nresultSize is:\n" << resultSize<<"\n";
             TermList arg;
             unsigned tempSort = _results.pop().asTerm(arg);
-            
+            cout<< "the supposed bitvector is "<< arg.toString();
+            cout<<" and its sort number is: "<<tempSort;
+            //cout<<" and the size of these bitvectors are "
+                        
             
             unsigned argSize = env.sorts->getBitVectorSort(tempSort)->getSize();
             env.signature->setArg1(argSize);
+            tempSort = env.sorts->addBitVectorSort(argSize);
+            cout<< "\n\n argSize is \n\n"<< argSize;
+            //cout<< " tempsort is : "<< tempSort;
+            
             unsigned resultSort = env.sorts->addBitVectorSort(resultSize);
             
             
@@ -2388,7 +2398,8 @@ void SMTLIB2::parseRankedFunctionApplication(LExpr* exp)
             
             return;    
       }
-      else if (operation == "zero_extend" || operation == "sign_extend" || operation == "rotate_left" || operation == "rotate_right" || operation == "repeat")
+   // rotate left and rotate right are in the WRONG PLACE!
+      else if (operation == "zero_extend" || operation == "sign_extend" || operation == "repeat")
       {
             TermSymbol ts = getBuiltInTermSymbol(operation);
             Theory::StructuredSortInterpretation te = getSSIfromTS(ts);
@@ -2418,6 +2429,47 @@ void SMTLIB2::parseRankedFunctionApplication(LExpr* exp)
                 resultSize = numeralInt + argSize;
             env.signature->setArg1(argSize);
             unsigned resultSort = env.sorts->addBitVectorSort(resultSize);
+            
+            // now we have all the arguments we need..
+            unsigned fun = Theory::instance()->getSymbolForStructuredSort(resultSort, te);
+            TermList res = TermList(Term::Term::create2(fun, argTerm, arg));
+            _results.push(ParseResult(resultSort, res));
+            
+            return;
+          
+          
+      }
+   else if (operation == "rotate_left" || operation == "rotate_right")
+      {
+       cout<<" we are in rotate_left";
+            TermSymbol ts = getBuiltInTermSymbol(operation);
+            Theory::StructuredSortInterpretation te = getSSIfromTS(ts);
+
+            const vstring& numeral = headRdr.readAtom();
+            if (!StringUtils::isPositiveInteger(numeral)) {
+                USER_ERROR("Expected numeral as an argument of a ranked function in "+head->toString());
+              }
+            unsigned argSymbol = TPTP::addIntegerConstant(numeral,_overflow,false);
+            TermList argTerm = TermList(Term::createConstant(argSymbol));
+
+            
+            //static bool stringToInt(const vstring& str,int& result);
+            int numeralInt;
+            Int::stringToInt(numeral,numeralInt);
+             
+            TermList arg;
+            unsigned tempSort = _results.pop().asTerm(arg);
+            
+           
+            unsigned argSize = env.sorts->getBitVectorSort(tempSort)->getSize();
+            
+            /*unsigned resultSize; // = numeralInt + argSize;
+            if (operation == "repeat")
+                resultSize = numeralInt * argSize;
+            else
+                resultSize = numeralInt + argSize;
+            env.signature->setArg1(argSize);*/
+            unsigned resultSort = env.sorts->addBitVectorSort(argSize);
             
             // now we have all the arguments we need..
             unsigned fun = Theory::instance()->getSymbolForStructuredSort(resultSort, te);
@@ -2557,6 +2609,7 @@ SMTLIB2::ParseResult SMTLIB2::parseTermOrFormula(LExpr* body)
         }
         cout<<" checking id "<< id;
         if (parseAsScopeLookup(id)) {
+            cout<<" asScopeLookUp";
           continue;
         }
         
@@ -2588,7 +2641,7 @@ SMTLIB2::ParseResult SMTLIB2::parseTermOrFormula(LExpr* body)
             cout<<"\n in parseAsBitvectorConstant\n";
             continue;
         }
-
+        cout<<" we get tto here 1?";
         USER_ERROR("Unrecognized term identifier "+id);
       }
       case PO_CHECK_ARITY: {

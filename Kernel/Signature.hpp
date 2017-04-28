@@ -571,7 +571,9 @@ class BitVectorSymbol
   unsigned getArg1(){ return _arg1; }
   unsigned getArg2(){ return _arg2; }
   void setArg1(unsigned a1){
+      cout<<" setting arg 1 .. is "<<a1; 
       _arg1 = a1;
+      cout<<"_arg1 is "<< _arg1;
   } 
   
   void setArg2(unsigned a2){

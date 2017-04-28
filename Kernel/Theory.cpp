@@ -604,7 +604,11 @@ unsigned Theory::getArity(Interpretation i)
       case StructuredSortInterpretation::BV_ZERO_EXTEND:
       case StructuredSortInterpretation::BV_SIGN_EXTEND:
       case StructuredSortInterpretation::BVSHL:
-      case StructuredSortInterpretation::REPEAT:    
+      case StructuredSortInterpretation::REPEAT:
+      case StructuredSortInterpretation::BV_ROTATE_LEFT:
+      case StructuredSortInterpretation::BV_ROTATE_RIGHT: 
+      case StructuredSortInterpretation::BVMUL:
+      case StructuredSortInterpretation::BVUDIV:    
         return 2;
       case StructuredSortInterpretation::ARRAY_STORE:
       case StructuredSortInterpretation::EXTRACT:
@@ -1639,11 +1643,17 @@ BaseType* Theory::getStructuredSortOperationType(Interpretation i) {
             case StructuredSortInterpretation::CONCAT:  
             {
                 unsigned argSize1 = env.signature->getArg1();
+                cout<<" and in corresponding concat : argSize1 : "<<argSize1;
                 unsigned argSize2 = env.signature->getArg2();
+                cout<<"\n and in corresponding concat : argSize2 : "<<argSize2<<"\n";
                 return new FunctionType({env.sorts->addBitVectorSort(argSize1), env.sorts->addBitVectorSort(argSize2)}, sortt);
             }
+            // here also
             case StructuredSortInterpretation::BV_ROTATE_LEFT:  
             case StructuredSortInterpretation::BV_ROTATE_RIGHT:
+            {
+                return new FunctionType({Sorts::SRT_INTEGER, sortt}, sortt);
+            }
             case StructuredSortInterpretation::BV_ZERO_EXTEND:
             case StructuredSortInterpretation::BV_SIGN_EXTEND:
             case StructuredSortInterpretation::REPEAT:    
@@ -1654,6 +1664,10 @@ BaseType* Theory::getStructuredSortOperationType(Interpretation i) {
             case StructuredSortInterpretation::EXTRACT:
             {
                 unsigned bitVecArgSize = env.signature->getArg1();
+                cout<<"checkig value \n"<<bitVecArgSize<<"\n";
+                //Sorts::BitVectorSort* bv = env.sorts->getBitVectorSort(bitVecArgSize);//getBitVectorSort(bitVecArgSize);
+                //cout<<" name of the sort "<< bv->name();
+                cout<<" finally : "<<env.sorts->addBitVectorSort(bitVecArgSize);
                 return new FunctionType({env.sorts->addBitVectorSort(bitVecArgSize), Sorts::SRT_INTEGER, Sorts::SRT_INTEGER}, sortt);
             }
           

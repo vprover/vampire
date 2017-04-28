@@ -755,6 +755,7 @@ bool SortHelper::areImmediateSortsValid(Term* t)
   
   cout<<"\n the getType returns "<< type.toString()<<"\n";
   cout<<"\n the arity is "<< arity<<"\n";
+  cout<< "\n and the term is "<< t->toString();
   
   for (unsigned i=0; i<arity; i++) {
     TermList arg = *t->nthArgument(i);
@@ -763,7 +764,8 @@ bool SortHelper::areImmediateSortsValid(Term* t)
     unsigned argSort = getResultSort(ta);
     cout<<"\n got till here.:.. \n";
     if (type.arg(i) != argSort) {
-      //cout << "error with expected " << type.arg(i) << " and actual " << argSort << " when functor is " << t->functor() << " and arg is " << arg << endl;
+        //cout<<"\n\n detailed error \n\n"<< "type.arg(i) :"<< type.arg(i) << " and the argSort is "<<argSort;
+      cout << "error with expected " << type.arg(i) << " and actual " << argSort << " when functor is " << t->functor() << " and arg is " << arg << endl;
         cout<<" get here x6 ";
         return false;
     }
