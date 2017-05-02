@@ -74,9 +74,9 @@ bool DistinctGroupExpansion::apply(UnitList*& units)
 
       if(grp_sort==Sorts::SRT_INTEGER || grp_sort==Sorts::SRT_RATIONAL || grp_sort==Sorts::SRT_REAL) someLeft=true;
 
-      // This 5 is a magic number, if it is changed then the corresponding
-      // 6 should be changed in Kernel::Signature::Symol::addToDistinctGroup
-      if( members->size()>1 && (members->size() < 5 || expandEverything)){
+      // This 140 is a magic number, if it is changed then the corresponding
+      // 141 should be changed in Kernel::Signature::Symbol::addToDistinctGroup
+      if( members->size()>1 && (members->size() < 140 || expandEverything)){
         added=true;
         Formula* expansion = expand(*members);
         if(env.options->showPreprocessing()){
