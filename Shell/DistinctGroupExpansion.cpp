@@ -68,7 +68,11 @@ bool DistinctGroupExpansion::apply(UnitList*& units)
       // If the non-empty distinct group represents numbers then we need to keep
       // the distinct processing later as new numbers can be generated from the
       // existing ones
-      if(i==Sorts::SRT_INTEGER || i==Sorts::SRT_RATIONAL || i==Sorts::SRT_REAL) someLeft=true;
+
+      Signature::Symbol* sym = env.signature->getFunction(members->top());
+      unsigned grp_sort = sym->fnType()->result();
+
+      if(grp_sort==Sorts::SRT_INTEGER || grp_sort==Sorts::SRT_RATIONAL || grp_sort==Sorts::SRT_REAL) someLeft=true;
 
       // This 5 is a magic number, if it is changed then the corresponding
       // 6 should be changed in Kernel::Signature::Symol::addToDistinctGroup
@@ -85,7 +89,9 @@ bool DistinctGroupExpansion::apply(UnitList*& units)
     }
   } 
 
-  if(!someLeft){ env.signature->noDistinctGroupsLeft(); }
+  if(!someLeft){
+    env.signature->noDistinctGroupsLeft();
+  }
 
   return added;
 }
@@ -94,7 +100,7 @@ bool DistinctGroupExpansion::apply(UnitList*& units)
  * If a distinct group of constants has 2 members then a single disequality is creatd
  * Otherwise a conjunction of disequalities is created
  */
-Formula* DistinctGroupExpansion::expand(Stack<unsigned> constants)
+Formula* DistinctGroupExpansion::expand(Stack<unsigned>& constants)
 {
   CALL("DistinctGroupExpansion::expand");
 

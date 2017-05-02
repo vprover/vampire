@@ -28,6 +28,7 @@
 #include "Lib/System.hpp"
 
 #include "Kernel/Problem.hpp"
+#include "Kernel/Signature.hpp"
 
 #include "Options.hpp"
 #include "Property.hpp"
@@ -2731,6 +2732,10 @@ bool Options::complete(const Problem& prb) const
 
   // preprocessing
   if (_sineSelection.actualValue != SineSelection::OFF) return false;
+
+  if (env.signature->hasDistinctGroups()) {
+    return false;
+  }
 
   switch (_saturationAlgorithm.actualValue) {
   case SaturationAlgorithm::INST_GEN: return true; // !!! Implies InstGen is always complete
