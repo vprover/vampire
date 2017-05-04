@@ -24,7 +24,7 @@ public:
   CLASS_NAME(TermSubstitutionTree);
   USE_ALLOCATOR(TermSubstitutionTree);
 
-  TermSubstitutionTree();
+  TermSubstitutionTree(bool useC=false);
 
   void insert(TermList t, Literal* lit, Clause* cls);
   void remove(TermList t, Literal* lit, Clause* cls);

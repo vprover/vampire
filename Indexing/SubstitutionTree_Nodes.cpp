@@ -109,13 +109,17 @@ SubstitutionTree::Leaf* SubstitutionTree::createLeaf(TermList ts)
   return new UListLeaf(ts);
 }
 
-SubstitutionTree::IntermediateNode* SubstitutionTree::createIntermediateNode(unsigned childVar)
+SubstitutionTree::IntermediateNode* SubstitutionTree::createIntermediateNode(unsigned childVar,bool useC)
 {
+  CALL("SubstitutionTree::createIntermediateNode/2");
+  if(useC){ return new UArrIntermediateNodeWithSorts(childVar); }
   return new UArrIntermediateNode(childVar);
 }
 
-SubstitutionTree::IntermediateNode* SubstitutionTree::createIntermediateNode(TermList ts, unsigned childVar)
+SubstitutionTree::IntermediateNode* SubstitutionTree::createIntermediateNode(TermList ts, unsigned childVar,bool useC)
 {
+  CALL("SubstitutionTree::createIntermediateNode/3");
+  if(useC){ return new UArrIntermediateNodeWithSorts(ts, childVar); }
   return new UArrIntermediateNode(ts, childVar);
 }
 
@@ -179,12 +183,17 @@ void SubstitutionTree::UArrIntermediateNode::remove(TermList t)
  * Take an IntermediateNode, destroy it, and return
  * SListIntermediateNode with the same content.
  */
-SubstitutionTree::SListIntermediateNode* SubstitutionTree::SListIntermediateNode
+SubstitutionTree::IntermediateNode* SubstitutionTree::SListIntermediateNode
 	::assimilate(IntermediateNode* orig)
 {
   CALL("SubstitutionTree::SListIntermediateNode::assimilate");
 
-  SListIntermediateNode* res=new SListIntermediateNode(orig->term, orig->childVar);
+  IntermediateNode* res= 0;
+  if(orig->withSorts()){
+    res = new SListIntermediateNodeWithSorts(orig->term, orig->childVar);
+  }else{
+    res = new SListIntermediateNode(orig->term, orig->childVar);
+  }
   res->loadChildren(orig->allChildren());
   orig->makeEmpty();
   delete orig;

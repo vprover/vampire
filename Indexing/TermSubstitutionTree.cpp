@@ -23,8 +23,8 @@ namespace Indexing
 using namespace Lib;
 using namespace Kernel;
 
-TermSubstitutionTree::TermSubstitutionTree()
-: SubstitutionTree(env.signature->functions())
+TermSubstitutionTree::TermSubstitutionTree(bool useC)
+: SubstitutionTree(env.signature->functions(),useC)
 {
 }
 

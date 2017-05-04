@@ -17,8 +17,8 @@
 namespace Indexing
 {
 
-LiteralSubstitutionTree::LiteralSubstitutionTree()
-: SubstitutionTree(2*env.signature->predicates())
+LiteralSubstitutionTree::LiteralSubstitutionTree(bool useC)
+: SubstitutionTree(2*env.signature->predicates(),useC)
 {
 }
 

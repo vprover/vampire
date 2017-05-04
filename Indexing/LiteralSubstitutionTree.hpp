@@ -19,7 +19,7 @@ public:
   CLASS_NAME(LiteralSubstitutionTree);
   USE_ALLOCATOR(LiteralSubstitutionTree);
 
-  LiteralSubstitutionTree();
+  LiteralSubstitutionTree(bool useC=false);
 
   void insert(Literal* lit, Clause* cls);
   void remove(Literal* lit, Clause* cls);

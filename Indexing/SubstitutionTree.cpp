@@ -42,8 +42,8 @@ using namespace Indexing;
  * Initialise the substitution tree.
  * @since 16/08/2008 flight Sydney-San Francisco
  */
-SubstitutionTree::SubstitutionTree(int nodes)
-  : tag(false), _nextVar(0), _nodes(nodes)
+SubstitutionTree::SubstitutionTree(int nodes,bool useC)
+  : tag(false), _nextVar(0), _nodes(nodes), _useC(useC)
 {
   CALL("SubstitutionTree::SubstitutionTree");
 
@@ -144,7 +144,7 @@ void SubstitutionTree::insert(Node** pnode,BindingMap& svBindings,LeafData ld)
     if(svBindings.isEmpty()) {
       *pnode=createLeaf();
     } else {
-      *pnode=createIntermediateNode(svBindings.getOneKey());
+      *pnode=createIntermediateNode(svBindings.getOneKey(),_useC);
     }
   }
   if(svBindings.isEmpty()) {
@@ -158,15 +158,24 @@ void SubstitutionTree::insert(Node** pnode,BindingMap& svBindings,LeafData ld)
   static SplitRecordHeap unresolvedSplits;
   unresolvedSplits.reset();
 
+  ASS((*pnode));
   ASS(!(*pnode)->isLeaf());
+
 start:
+
 #if REORDERING
   ASS(!(*pnode)->isLeaf() || !unresolvedSplits.isEmpty());
   bool canPostponeSplits=false;
   if((*pnode)->isLeaf() || (*pnode)->algorithm()!=UNSORTED_LIST) {
     canPostponeSplits=false;
   } else {
-    UArrIntermediateNode* inode = static_cast<UArrIntermediateNode*>(*pnode);
+    UArrIntermediateNode* inode = 0;
+    if((*pnode)->withSorts()){
+      inode = static_cast<UArrIntermediateNode*>((static_cast<IntermediateNodeWithSorts*>(*pnode))->_inner);
+    }
+    else{
+      inode = static_cast<UArrIntermediateNode*>(*pnode);
+    }
     canPostponeSplits = inode->size()==1;
     if(canPostponeSplits) {
       unsigned boundVar=inode->childVar;
@@ -208,7 +217,7 @@ start:
       UnresolvedSplitRecord urr=unresolvedSplits.pop();
 
       Node* node=*pnode;
-      IntermediateNode* newNode = createIntermediateNode(node->term, urr.var);
+      IntermediateNode* newNode = createIntermediateNode(node->term, urr.var,_useC);
       node->term=urr.original;
 
       *pnode=newNode;
@@ -222,6 +231,7 @@ start:
   ASS(!(*pnode)->isLeaf());
 
   IntermediateNode* inode = static_cast<IntermediateNode*>(*pnode);
+  ASS(inode);
 
   unsigned boundVar=inode->childVar;
   TermList term=svBindings.get(boundVar);
@@ -243,7 +253,7 @@ start:
     }
     while (!remainingBindings.isEmpty()) {
       Binding b=remainingBindings.pop();
-      IntermediateNode* inode = createIntermediateNode(term, b.var);
+      IntermediateNode* inode = createIntermediateNode(term, b.var,_useC);
       term=b.term;
 
       *pnode = inode;
@@ -599,7 +609,7 @@ void SubstitutionTree::Node::split(Node** pnode, TermList* where, int var)
 
   Node* node=*pnode;
 
-  IntermediateNode* newNode = createIntermediateNode(node->term, var);
+  IntermediateNode* newNode = createIntermediateNode(node->term, var,node->withSorts());
   node->term=*where;
   *pnode=newNode;
 
@@ -669,6 +679,7 @@ clientBDRecording(false), tree(parent), useConstraints(useC)
   CALL("SubstitutionTree::UnificationsIterator::UnificationsIterator");
 
   ASS(!useConstraints || retrieveSubstitution);
+  ASS(!useConstraints || parent->_useC);
 
 #if VDEBUG
   tree->_iteratorCnt++;
@@ -940,6 +951,10 @@ bool SubstitutionTree::UnificationsIterator::associate(TermList query, TermList 
           okay &= (queryInterp || env.signature->functionArity(queryTranslated.term()->functor()));
           okay &= (nodeInterp || env.signature->functionArity(nodeTranslated.term()->functor()));
           break;  
+        case Options::UnificationWithAbstraction::ALL:
+          break;
+        default:
+          ASSERTION_VIOLATION; 
       }
       // ALL means no restrictions
 

@@ -133,12 +133,13 @@ Index* IndexManager::create(IndexType t)
   TermIndexingStructure* tis;
 
   bool isGenerating;
+  static bool useConstraints = env.options->unificationWithAbstraction()!=Options::UnificationWithAbstraction::OFF;
   switch(t) {
   case GENERATING_SUBST_TREE:
 #if COMPIT_GENERATOR==2
     is=new CompitUnificationRecordingLiteralSubstitutionTree();
 #else
-    is=new LiteralSubstitutionTree();
+    is=new LiteralSubstitutionTree(useConstraints);
 #endif
 #if VDEBUG
     //is->markTagged();
@@ -173,7 +174,7 @@ Index* IndexManager::create(IndexType t)
 #if COMPIT_GENERATOR==1
     tis=new CompitUnificationRecordingTermSubstitutionTree();
 #else
-    tis=new TermSubstitutionTree();
+    tis=new TermSubstitutionTree(useConstraints);
 #endif
 #if VDEBUG
     //tis->markTagged();
@@ -182,7 +183,7 @@ Index* IndexManager::create(IndexType t)
     isGenerating = true;
     break;
   case SUPERPOSITION_LHS_SUBST_TREE:
-    tis=new TermSubstitutionTree();
+    tis=new TermSubstitutionTree(useConstraints);
     res=new SuperpositionLHSIndex(tis, _alg->getOrdering(), _alg->getOptions());
     isGenerating = true;
     break;
