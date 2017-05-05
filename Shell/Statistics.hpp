@@ -344,7 +344,9 @@ public:
     /** time limit reached */
     TIME_LIMIT,
     /** memory limit reached */
-    MEMORY_LIMIT
+    MEMORY_LIMIT,
+    /** activation limit reached */
+    ACTIVATION_LIMIT
   };
   /** termination reason */
   TerminationReason terminationReason;

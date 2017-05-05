@@ -102,10 +102,13 @@ SaturationAlgorithm::SaturationAlgorithm(Problem& prb, const Options& opt)
 #if VZ3
     _theoryInstSimp(0),
 #endif
-    _generatedClauseCount(0)
+    _generatedClauseCount(0),
+    _activationLimit(0)
 {
   CALL("SaturationAlgorithm::SaturationAlgorithm");
   ASS_EQ(s_instance, 0);  //there can be only one saturation algorithm at a time
+
+  _activationLimit = opt.activationLimit();
 
   _ordering = OrderingSP(Ordering::create(prb, opt));
   if (!Ordering::trySetGlobalOrdering(_ordering)) {
@@ -1179,9 +1182,14 @@ MainLoopResult SaturationAlgorithm::runImpl()
 {
   CALL("SaturationAlgorithm::runImpl");
 
+  unsigned l = 0;
   try
   {
-    for (;;) {
+    for (;;l++) {
+      if (_activationLimit && l > _activationLimit) {
+        throw ActivationLimitExceededException();
+      }
+
       doOneAlgorithmStep();
 
       Timer::syncClock();

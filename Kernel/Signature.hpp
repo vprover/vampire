@@ -76,6 +76,10 @@ class Signature
     List<unsigned>* _distinctGroups;
     /** number of times it is used in the problem */
     unsigned _usageCount;
+    /** if used in the goal **/
+    unsigned _inGoal : 1;
+    /** if used in a unit **/
+    unsigned _inUnit : 1;
 
     ~Symbol();
   public:
@@ -141,6 +145,11 @@ class Signature
     inline unsigned usageCnt() const { return _usageCount; }
     /** Reset usage count to zero, to start again! **/
     inline void resetUsageCnt(){ _usageCount=0; }
+
+    inline void markInGoal(){ _inGoal=1; }
+    inline bool inGoal(){ return _inGoal; }
+    inline void markInUnit(){ _inUnit=1; }
+    inline bool inUnit(){ return _inUnit; }
       
     /** Return true if symbol is an integer constant */
     inline bool integerConstant() const

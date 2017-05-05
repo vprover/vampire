@@ -634,6 +634,7 @@ void IGAlgorithm::doResolutionStep()
     case Statistics::INAPPROPRIATE:
     case Statistics::TIME_LIMIT:
     case Statistics::MEMORY_LIMIT:
+    case Statistics::ACTIVATION_LIMIT:
       //refutation algorithm finished, we just get rid of it
       _saturationAlgorithm = 0;
       _instGenResolutionRatio.alwaysDoFirst();

@@ -21,7 +21,7 @@ public:
 
   void apply(Problem& prb);
   bool apply(UnitList*& units);
-  Formula* expand(Stack<unsigned> constants);
+  Formula* expand(Stack<unsigned>& constants);
 
 };
 

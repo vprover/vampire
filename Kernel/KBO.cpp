@@ -14,6 +14,7 @@
 #include "Lib/DHMap.hpp"
 #include "Lib/Int.hpp"
 #include "Lib/Metaiterators.hpp"
+#include "Lib/Random.hpp"
 
 #include "Indexing/TermSharing.hpp"
 
@@ -23,12 +24,16 @@
 #include "KBO.hpp"
 #include "Signature.hpp"
 
+#include <fstream>
+
 
 #define NONINTERPRETED_PRECEDENCE_BOOST 0x1000
 
 #define NONINTERPRETED_LEVEL_BOOST 0x1000
 #define COLORED_WEIGHT_BOOST 0x10000
 #define COLORED_LEVEL_BOOST 0x10000
+
+#include <sstream>
 
 namespace Kernel {
 
@@ -605,6 +610,137 @@ Ordering::Result KBOBase::compareFunctionPrecedences(unsigned fun1, unsigned fun
   return fromComparison(cmpRes);
 }
 
+template<typename Comparator>
+struct FnBoostWrapper
+{
+  FnBoostWrapper(Comparator comp) : _comp(comp) {}
+  Comparator _comp;
+
+  Comparison compare(unsigned f1, unsigned f2)
+  {
+    static Options::SymbolPrecedenceBoost boost = env.options->symbolPrecedenceBoost();
+    Comparison res = EQUAL;
+    bool u1 = env.signature->getFunction(f1)->inUnit(); 
+    bool u2 = env.signature->getFunction(f2)->inUnit(); 
+    bool g1 = env.signature->getFunction(f1)->inGoal();
+    bool g2 = env.signature->getFunction(f2)->inGoal();
+    switch(boost){
+      case Options::SymbolPrecedenceBoost::NONE:
+        break;
+      case Options::SymbolPrecedenceBoost::GOAL:
+        if(g1 && !g2){ res = GREATER; }
+        else if(!g1 && g2){ res = LESS; }
+        break;
+      case Options::SymbolPrecedenceBoost::UNIT:
+        if(u1 && !u2){ res = GREATER; }
+        else if(!u1 && u2){ res = LESS; }
+        break;
+      case Options::SymbolPrecedenceBoost::GOAL_UNIT:
+        if(g1 && !g2){ res = GREATER; }
+        else if(!g1 && g2){ res = LESS; }
+        else if(u1 && !u2){ res = GREATER; }
+        else if(!u1 && u2){ res = LESS; }
+        break;
+    }
+    if(res==EQUAL){
+      res = _comp.compare(f1,f2);
+    }
+    return res;
+  }
+
+};
+template<typename Comparator>
+struct PredBoostWrapper
+{
+  PredBoostWrapper(Comparator comp) : _comp(comp) {}
+  Comparator _comp;
+
+  Comparison compare(unsigned p1, unsigned p2)
+  {
+    static Options::SymbolPrecedenceBoost boost = env.options->symbolPrecedenceBoost();
+    Comparison res = EQUAL;
+    bool u1 = env.signature->getPredicate(p1)->inUnit();
+    bool u2 = env.signature->getPredicate(p2)->inUnit();
+    bool g1 = env.signature->getPredicate(p1)->inGoal();
+    bool g2 = env.signature->getPredicate(p2)->inGoal();
+    switch(boost){
+      case Options::SymbolPrecedenceBoost::NONE:
+        break;
+      case Options::SymbolPrecedenceBoost::GOAL:
+        if(g1 && !g2){ res = GREATER; }
+        else if(!g1 && g2){ res = LESS; }
+        break;
+      case Options::SymbolPrecedenceBoost::UNIT:
+        if(u1 && !u2){ res = GREATER; }
+        else if(!u1 && u2){ res = LESS; }
+        break;
+      case Options::SymbolPrecedenceBoost::GOAL_UNIT:
+        if(g1 && !g2){ res = GREATER; }
+        else if(!g1 && g2){ res = LESS; }
+        else if(u1 && !u2){ res = GREATER; }
+        else if(!u1 && u2){ res = LESS; }
+        break;
+    }
+    if(res==EQUAL){
+      res = _comp.compare(p1,p2);
+    }
+    return res;
+  }
+};
+
+struct FnFreqComparator
+{
+  Comparison compare(unsigned f1, unsigned f2)
+  {
+    unsigned c1 = env.signature->getFunction(f1)->usageCnt();
+    unsigned c2 = env.signature->getFunction(f2)->usageCnt();
+    Comparison res = Int::compare(c2,c1);
+    if(res==EQUAL){
+      res = Int::compare(f1,f2);
+    }
+    return res;
+  }
+};
+struct PredFreqComparator
+{
+  Comparison compare(unsigned p1, unsigned p2)
+  {
+    unsigned c1 = env.signature->getPredicate(p1)->usageCnt();
+    unsigned c2 = env.signature->getPredicate(p2)->usageCnt();
+    Comparison res = Int::compare(c2,c1);
+    if(res==EQUAL){
+      res = Int::compare(p1,p2);
+    }
+    return res;
+  }
+};
+struct FnRevFreqComparator
+{
+  Comparison compare(unsigned f1, unsigned f2)
+  {
+    unsigned c1 = env.signature->getFunction(f1)->usageCnt();
+    unsigned c2 = env.signature->getFunction(f2)->usageCnt();
+    Comparison res = Int::compare(c1,c2);
+    if(res==EQUAL){
+      res = Int::compare(f1,f2);
+    }
+    return res;
+  }
+};
+struct PredRevFreqComparator
+{
+  Comparison compare(unsigned p1, unsigned p2)
+  {
+    unsigned c1 = env.signature->getPredicate(p1)->usageCnt();
+    unsigned c2 = env.signature->getPredicate(p2)->usageCnt();
+    Comparison res = Int::compare(c1,c2);
+    if(res==EQUAL){
+      res = Int::compare(p1,p2);
+    }
+    return res;
+  }
+};
+
 struct FnArityComparator
 {
   Comparison compare(unsigned u1, unsigned u2)
@@ -655,6 +791,28 @@ struct PredRevArityComparator
   }
 };
 
+static void loadPermutationFromString(DArray<unsigned>& p, const vstring& str) {
+  CALL("loadPermutationFromString");
+
+  std::stringstream ss(str.c_str());
+  unsigned i = 0;
+  unsigned val;
+  while (ss >> val)
+  {
+      if (i >= p.size()) {
+        break;
+      }
+
+      if (val >= p.size()) {
+        break;
+      }
+
+      p[i++] = val;
+
+      if (ss.peek() == ',')
+          ss.ignore();
+  }
+}
 
 /**
  * Create a KBOBase object.
@@ -673,16 +831,59 @@ KBOBase::KBOBase(Problem& prb, const Options& opt)
   if(_functions) {
     aux.initFromIterator(getRangeIterator(0u, _functions), _functions);
 
-    switch(opt.symbolPrecedence()) {
-    case Shell::Options::SymbolPrecedence::ARITY:
-      aux.sort(FnArityComparator());
-      break;
-    case Shell::Options::SymbolPrecedence::REVERSE_ARITY:
-      aux.sort(FnRevArityComparator());
-      break;
-    case Shell::Options::SymbolPrecedence::OCCURRENCE:
-      break;
+    if (!opt.functionPrecedence().empty()) {
+      BYPASSING_ALLOCATOR;
+
+      vstring precedence;
+      ifstream precedence_file (opt.functionPrecedence().c_str());
+      if (precedence_file.is_open() && getline(precedence_file, precedence)) {
+        loadPermutationFromString(aux,precedence);
+        precedence_file.close();
+      }
+    } else {
+      switch(opt.symbolPrecedence()) {
+      case Shell::Options::SymbolPrecedence::ARITY:
+        aux.sort(FnBoostWrapper<FnArityComparator>(FnArityComparator()));
+        break;
+      case Shell::Options::SymbolPrecedence::REVERSE_ARITY:
+        aux.sort(FnBoostWrapper<FnRevArityComparator>(FnRevArityComparator()));
+        break;
+      case Shell::Options::SymbolPrecedence::FREQUENCY:
+      case Shell::Options::SymbolPrecedence::WEIGHTED_FREQUENCY:
+        aux.sort(FnBoostWrapper<FnFreqComparator>(FnFreqComparator()));
+        break;
+      case Shell::Options::SymbolPrecedence::REVERSE_FREQUENCY:
+      case Shell::Options::SymbolPrecedence::REVERSE_WEIGHTED_FREQUENCY:
+        aux.sort(FnBoostWrapper<FnRevFreqComparator>(FnRevFreqComparator()));
+        break;
+      case Shell::Options::SymbolPrecedence::OCCURRENCE:
+        break;
+      case Shell::Options::SymbolPrecedence::SCRAMBLE:
+        for(unsigned i=0;i<_functions;i++){
+          unsigned j = Random::getInteger(_functions-i)+i;
+          unsigned tmp = aux[j];
+          aux[j]=aux[i];
+          aux[i]=tmp;
+        }
+        break;
+      }
     }
+
+    /*
+      cout << "Function precedences:" << endl;
+      for(unsigned i=0;i<_functions;i++){
+        cout << env.signature->functionName(aux[i]) << " ";
+      }
+      cout << endl;
+    */
+
+    /*
+    cout << "Function precedence: ";
+    for(unsigned i=0;i<_functions;i++){
+      cout << aux[i] << ",";
+    }
+    cout << endl;
+    */
 
     for(unsigned i=0;i<_functions;i++) {
       _functionPrecedences[aux[i]]=i;
@@ -691,16 +892,58 @@ KBOBase::KBOBase(Problem& prb, const Options& opt)
 
   aux.initFromIterator(getRangeIterator(0u, _predicates), _predicates);
 
-  switch(opt.symbolPrecedence()) {
-  case Shell::Options::SymbolPrecedence::ARITY:
-    aux.sort(PredArityComparator());
-    break;
-  case Shell::Options::SymbolPrecedence::REVERSE_ARITY:
-    aux.sort(PredRevArityComparator());
-    break;
-  case Shell::Options::SymbolPrecedence::OCCURRENCE:
-    break;
+  if (!opt.predicatePrecedence().empty()) {
+    BYPASSING_ALLOCATOR;
+
+    vstring precedence;
+    ifstream precedence_file (opt.predicatePrecedence().c_str());
+    if (precedence_file.is_open() && getline(precedence_file, precedence)) {
+      loadPermutationFromString(aux,precedence);
+      precedence_file.close();
+    }
+  } else {
+    switch(opt.symbolPrecedence()) {
+    case Shell::Options::SymbolPrecedence::ARITY:
+      aux.sort(PredBoostWrapper<PredArityComparator>(PredArityComparator()));
+      break;
+    case Shell::Options::SymbolPrecedence::REVERSE_ARITY:
+      aux.sort(PredBoostWrapper<PredRevArityComparator>(PredRevArityComparator()));
+      break;
+    case Shell::Options::SymbolPrecedence::FREQUENCY:
+    case Shell::Options::SymbolPrecedence::WEIGHTED_FREQUENCY:
+      aux.sort(PredBoostWrapper<PredFreqComparator>(PredFreqComparator()));
+      break;
+    case Shell::Options::SymbolPrecedence::REVERSE_FREQUENCY:
+    case Shell::Options::SymbolPrecedence::REVERSE_WEIGHTED_FREQUENCY:
+     aux.sort(PredBoostWrapper<PredRevFreqComparator>(PredRevFreqComparator()));
+     break;
+    case Shell::Options::SymbolPrecedence::OCCURRENCE:
+      break;
+      case Shell::Options::SymbolPrecedence::SCRAMBLE:
+        for(unsigned i=0;i<_predicates;i++){
+          unsigned j = Random::getInteger(_predicates-i)+i;
+          unsigned tmp = aux[j];
+          aux[j]=aux[i];
+          aux[i]=tmp;
+        }
+        break;
+    }
   }
+  /*
+  cout << "Predicate precedences:" << endl;
+  for(unsigned i=0;i<_predicates;i++){
+    cout << env.signature->predicateName(aux[i]) << " "; 
+  }
+  cout << endl;
+  */
+  /*
+  cout << "Predicate precedence: ";
+  for(unsigned i=0;i<_predicates;i++){
+    cout << aux[i] << ",";
+  }
+  cout << endl;
+  */
+
   for(unsigned i=0;i<_predicates;i++) {
     _predicatePrecedences[aux[i]]=i;
   }

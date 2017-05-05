@@ -468,7 +468,18 @@ public:
   enum class SymbolPrecedence : unsigned int {
     ARITY = 0,
     OCCURRENCE = 1,
-    REVERSE_ARITY = 2
+    REVERSE_ARITY = 2,
+    SCRAMBLE = 3,
+    FREQUENCY = 4,
+    REVERSE_FREQUENCY = 5,
+    WEIGHTED_FREQUENCY = 6,
+    REVERSE_WEIGHTED_FREQUENCY = 7
+  };
+  enum class SymbolPrecedenceBoost : unsigned int {
+    NONE = 0,
+    GOAL = 1,
+    UNIT = 2,
+    GOAL_UNIT = 3
   };
 
   enum class SineSelection : unsigned int {
@@ -1721,6 +1732,7 @@ public:
   void setInclude(vstring val) { _include.actualValue = val; }
   vstring logFile() const { return _logFile.actualValue; }
   vstring inputFile() const { return _inputFile.actualValue; }
+  int activationLimit() const { return _activationLimit.actualValue; }
   int randomSeed() const { return _randomSeed.actualValue; }
   int rowVariableMaxLength() const { return _rowVariableMaxLength.actualValue; }
   //void setRowVariableMaxLength(int newVal) { _rowVariableMaxLength = newVal; }
@@ -1728,7 +1740,6 @@ public:
 
   // IMPORTANT, if you add a showX command then include showAll
   bool showAll() const { return _showAll.actualValue; }
-
   bool showActive() const { return showAll() || _showActive.actualValue; }
   bool showBlocked() const { return showAll() || _showBlocked.actualValue; }
   bool showDefinitions() const { return showAll() || _showDefinitions.actualValue; }
@@ -1808,6 +1819,9 @@ public:
   void setSimulatedTimeLimit(int newVal) { _simulatedTimeLimit.actualValue = newVal; }
   int maxInferenceDepth() const { return _maxInferenceDepth.actualValue; }
   SymbolPrecedence symbolPrecedence() const { return _symbolPrecedence.actualValue; }
+  SymbolPrecedenceBoost symbolPrecedenceBoost() const { return _symbolPrecedenceBoost.actualValue; }
+  const vstring& functionPrecedence() const { return _functionPrecedence.actualValue; }
+  const vstring& predicatePrecedence() const { return _predicatePrecedence.actualValue; }
   // Return time limit in deciseconds, or 0 if there is no time limit
   int timeLimitInDeciseconds() const { return _timeLimitInDeciseconds.actualValue; }
   size_t memoryLimit() const { return _memoryLimit.actualValue; }
@@ -2194,6 +2208,8 @@ private:
   IntOptionValue _randomSeed;
   IntOptionValue _rowVariableMaxLength;
 
+  IntOptionValue _activationLimit;
+
   FloatOptionValue _satClauseActivityDecay;
   ChoiceOptionValue<SatClauseDisposer> _satClauseDisposer;
   BoolOptionValue _satLearntMinimization;
@@ -2267,6 +2283,9 @@ private:
   ChoiceOptionValue<Statistics> _statistics;
   BoolOptionValue _superpositionFromVariables;
   ChoiceOptionValue<SymbolPrecedence> _symbolPrecedence;
+  ChoiceOptionValue<SymbolPrecedenceBoost> _symbolPrecedenceBoost;
+  StringOptionValue _functionPrecedence;
+  StringOptionValue _predicatePrecedence;
 
   StringOptionValue _testId;
   BoolOptionValue _szsOutput;
