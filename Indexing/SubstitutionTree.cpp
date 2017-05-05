@@ -169,13 +169,7 @@ start:
   if((*pnode)->isLeaf() || (*pnode)->algorithm()!=UNSORTED_LIST) {
     canPostponeSplits=false;
   } else {
-    UArrIntermediateNode* inode = 0;
-    if((*pnode)->withSorts()){
-      inode = static_cast<UArrIntermediateNode*>((static_cast<IntermediateNodeWithSorts*>(*pnode))->_inner);
-    }
-    else{
-      inode = static_cast<UArrIntermediateNode*>(*pnode);
-    }
+    UArrIntermediateNode* inode = static_cast<UArrIntermediateNode*>(*pnode);
     canPostponeSplits = inode->size()==1;
     if(canPostponeSplits) {
       unsigned boundVar=inode->childVar;

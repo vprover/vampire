@@ -188,7 +188,66 @@ public:
 
   typedef VirtualIterator<Node**> NodeIterator;
   typedef List<Node*> NodeList;
-
+  class IntermediateNode;
+    
+    class ChildBySortHelper
+    {
+    public:
+        
+        CLASS_NAME(SubstitutionTree::ChildBySortHelper);
+        USE_ALLOCATOR(ChildBySortHelper);
+        
+        ChildBySortHelper(IntermediateNode* p):  _parent(p)
+        {
+            bySort.ensure(Sorts::FIRST_USER_SORT);
+            bySortTerms.ensure(Sorts::FIRST_USER_SORT);
+        }
+        
+        /**
+         * Return an iterator of child nodes whose top term has the same sort
+         * as Termlist t. Only consider interpreted sorts.
+         *
+         */
+        NodeIterator childBySort(TermList t)
+        {
+            CALL("SubstitutionTree::ChildBySortHelper::childBySort");
+            unsigned srt;
+            // only consider interpreted sorts
+            if(SortHelper::tryGetResultSort(t,srt) && srt < Sorts::FIRST_USER_SORT && srt!=Sorts::SRT_DEFAULT){
+                unsigned top = t.term()->functor();
+                Stack<TermList>::Iterator fit(bySortTerms[srt]);
+                auto withoutThisTop = getFilteredIterator(fit,NotTop(top));
+                auto nodes = getMappingIterator(withoutThisTop,ByTopFn(this));
+                return pvi(getFilteredIterator(nodes,NonzeroFn()));
+            }
+            return NodeIterator::getEmpty();
+        }
+        
+        DArray<DHSet<unsigned>> bySort;
+        DArray<Stack<TermList>> bySortTerms;
+        
+        IntermediateNode* _parent;
+        /*
+         * This is used for recording terms that might
+         */
+        void mightExistAsTop(TermList t)
+        {
+            CALL("SubstitutionTree::ChildBySortHelper::mightExistAsTop");
+            if(!t.isTerm()){ return; }
+            unsigned srt;
+            if(SortHelper::tryGetResultSort(t,srt)){
+                if(srt > Sorts::SRT_DEFAULT && srt < Sorts::FIRST_USER_SORT){
+                    unsigned f = t.term()->functor();
+                    if(bySort[srt].insert(f)){
+                        bySortTerms[srt].push(t);
+                    }
+                }
+            }
+        }
+        
+    };// class SubstitutionTree::ChildBySortHelper
+    
+    
 
   class IntermediateNode
     	: public Node
@@ -196,11 +255,11 @@ public:
   public:
     /** Build a new intermediate node which will serve as the root*/
     inline
-    IntermediateNode(unsigned childVar) : childVar(childVar) {}
+    IntermediateNode(unsigned childVar) : childVar(childVar),_childBySortHelper(0) {}
 
     /** Build a new intermediate node */
     inline
-    IntermediateNode(TermList ts, unsigned childVar) : Node(ts), childVar(childVar) {}
+    IntermediateNode(TermList ts, unsigned childVar) : Node(ts), childVar(childVar),_childBySortHelper(0) {}
 
     inline
     bool isLeaf() const { return false; };
@@ -243,13 +302,19 @@ public:
 
     virtual NodeIterator childBySort(TermList t)
     {
-        NOT_IMPLEMENTED;
+        if(!_childBySortHelper) return NodeIterator::getEmpty();
+        return _childBySortHelper->childBySort(t);
     }
-    virtual void mightExistAsTop(TermList t) {}
+    virtual void mightExistAsTop(TermList t) {
+        if(_childBySortHelper){
+          _childBySortHelper->mightExistAsTop(t);
+        }
+    }
 
     void loadChildren(NodeIterator children);
 
     const unsigned childVar;
+    ChildBySortHelper* _childBySortHelper;
 
     virtual void print(unsigned depth=0){
        auto children = allChildren();
@@ -262,93 +327,15 @@ public:
 
   }; // class SubstitutionTree::IntermediateNode
 
-    class IntermediateNodeWithSorts : public IntermediateNode
-    {
-    private:
-      IntermediateNodeWithSorts(unsigned childVar) : IntermediateNode(childVar), _inner(0){ ASSERTION_VIOLATION; } 
-      IntermediateNodeWithSorts(TermList ts, unsigned childVar) : IntermediateNode(ts,childVar), _inner(0) { ASSERTION_VIOLATION; }
-
-    public:
-
-    CLASS_NAME(SubstitutionTree::IntermediateNodeWithSorts);
-    USE_ALLOCATOR(IntermediateNodeWithSorts);
-  
-      IntermediateNodeWithSorts(IntermediateNode* in) : IntermediateNode(in->term,in->childVar), _inner(in)
-        {
-            bySort.ensure(Sorts::FIRST_USER_SORT);
-            bySortTerms.ensure(Sorts::FIRST_USER_SORT);
-        }
-
-        virtual bool withSorts(){ return true; }
-
-        /**
-         * Return an iterator of child nodes whose top term has the same sort
-         * as Termlist t. Only consider interpreted sorts.
-         *
-         */
-        NodeIterator childBySort(TermList t)
-        {
-            CALL("SubstitutionTree::NodeIterator::childBySort");
-            unsigned srt;
-            // only consider interpreted sorts
-            if(SortHelper::tryGetResultSort(t,srt) && srt < Sorts::FIRST_USER_SORT && srt!=Sorts::SRT_DEFAULT){
-                unsigned top = t.term()->functor();
-                Stack<TermList>::Iterator fit(bySortTerms[srt]);
-                auto withoutThisTop = getFilteredIterator(fit,NotTop(top));
-                auto nodes = getMappingIterator(withoutThisTop,ByTopFn(this));
-                return pvi(getFilteredIterator(nodes,NonzeroFn()));
-            }
-            return NodeIterator::getEmpty();
-        }
-        
-        DArray<DHSet<unsigned>> bySort;
-        DArray<Stack<TermList>> bySortTerms;
-
-        IntermediateNode* _inner;
-
-
-    virtual bool isEmpty() const { return _inner->isEmpty(); }
-    void makeEmpty()
-    {
-      _inner->makeEmpty();
-    }
-    virtual int size() const { return _inner->size(); }
-    virtual NodeAlgorithm algorithm() const { return _inner->algorithm(); } 
-    virtual NodeIterator allChildren(){ return _inner->allChildren(); } 
-    virtual NodeIterator variableChildren(){ return _inner->variableChildren(); }
-    virtual Node** childByTop(TermList t, bool canCreate){ return _inner->childByTop(t,canCreate); } 
-    virtual void remove(TermList t){return _inner->remove(t);}
-    virtual void removeAllChildren(){return _inner->removeAllChildren(); }
-        
-        /*
-         * This is used for recording terms that might
-         */
-        void mightExistAsTop(TermList t)
-        {
-            CALL("SubstitutionTree::IntermediateNode::mightExistAsTop");
-            if(!t.isTerm()){ return; }
-            unsigned srt;
-            if(SortHelper::tryGetResultSort(t,srt)){
-                if(srt > Sorts::SRT_DEFAULT && srt < Sorts::FIRST_USER_SORT){
-                    unsigned f = t.term()->functor();
-                    if(bySort[srt].insert(f)){
-                        bySortTerms[srt].push(t);
-                    }
-                }
-            }
-        }
-        
-    };// class SubstitutionTree::IntermediateNodeWithSorts
-    
     struct ByTopFn
     {
-        ByTopFn(IntermediateNodeWithSorts* n) : node(n) {};
+        ByTopFn(ChildBySortHelper* n) : node(n) {};
         DECL_RETURN_TYPE(Node**);
         OWN_RETURN_TYPE operator()(TermList t){
-            return node->childByTop(t,false);
+            return node->_parent->childByTop(t,false);
         }
     private:
-        IntermediateNodeWithSorts* node;
+        ChildBySortHelper* node;
     };
     struct NotTop
     {
@@ -468,11 +455,15 @@ public:
   };
 
   class UArrIntermediateNodeWithSorts
-  : public IntermediateNodeWithSorts
+  : public UArrIntermediateNode
   {
   public:
-   UArrIntermediateNodeWithSorts(unsigned childVar) : IntermediateNodeWithSorts(new UArrIntermediateNode(childVar)) {} 
-   UArrIntermediateNodeWithSorts(TermList ts, unsigned childVar) : IntermediateNodeWithSorts(new UArrIntermediateNode(ts, childVar)) {}
+   UArrIntermediateNodeWithSorts(unsigned childVar) : UArrIntermediateNode(childVar) {
+     _childBySortHelper = new ChildBySortHelper(this);
+   }
+   UArrIntermediateNodeWithSorts(TermList ts, unsigned childVar) : UArrIntermediateNode(ts, childVar) {
+     _childBySortHelper = new ChildBySortHelper(this);
+   }
   }; 
 
   class SListIntermediateNode
@@ -576,11 +567,15 @@ public:
 
 
   class SListIntermediateNodeWithSorts
-  : public IntermediateNodeWithSorts
+  : public SListIntermediateNode
   {
    public:
-   SListIntermediateNodeWithSorts(unsigned childVar) : IntermediateNodeWithSorts(new SListIntermediateNode(childVar)) {}
-   SListIntermediateNodeWithSorts(TermList ts, unsigned childVar) : IntermediateNodeWithSorts(new SListIntermediateNode(ts, childVar)) {}
+   SListIntermediateNodeWithSorts(unsigned childVar) : SListIntermediateNode(childVar) {
+       _childBySortHelper = new ChildBySortHelper(this);
+   }
+   SListIntermediateNodeWithSorts(TermList ts, unsigned childVar) : SListIntermediateNode(ts, childVar) {
+       _childBySortHelper = new ChildBySortHelper(this);
+   }
   };
 
   class Binding {
