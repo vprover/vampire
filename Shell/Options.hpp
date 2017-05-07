@@ -202,7 +202,7 @@ public:
   enum class TheoryAxiomLevel : unsigned int {
     ON,  // all of them
     OFF, // none of them
-    SET_ONE
+    CHEAP 
   };
 
   enum class ProofExtra : unsigned int {

@@ -18,8 +18,10 @@ using namespace Kernel;
 
 class TheoryAxioms {
 public:
-  TheoryAxioms(Options::TheoryAxiomLevel level) : _level(level) { (void)_level; /* TODO: currently unused */ }
+  TheoryAxioms() {} 
 
+static unsigned const CHEAP = 0;
+static unsigned const EXPENSIVE = 1;
 
   void apply(Problem& prb);
   bool apply(UnitList*& units, Property* prop);
@@ -34,7 +36,6 @@ public:
   void applyFOOL(Problem& prb);
 
 private:
-  Options::TheoryAxiomLevel _level;
 
   void addCommutativity(Interpretation op, UnitList*& units);
   void addAssociativity(Interpretation op, UnitList*& units);
@@ -99,11 +100,12 @@ private:
     static bool addSubtermDefinitions(unsigned subtermPredicate, TermAlgebraConstructor* c, UnitList*& units);
   };
 
-  static void addTheoryUnitClause(Literal* lit, UnitList*& units);
-  static void addTheoryUnitClause(Literal* lit, Inference* inf, UnitList*& units);
-  static void addTheoryNonUnitClause(UnitList*& units, Literal* lit1, Literal* lit2, Literal* lit3=0);
-  static void addTheoryNonUnitClause(UnitList*& units, Literal* lit1, Literal* lit2, Literal* lit3, Literal* lit4);
-  static void addAndOutputTheoryUnit(Unit* unit,UnitList*& units);
+  static void addTheoryUnitClause(Literal* lit, UnitList*& units,unsigned level);
+  static void addTheoryUnitClause(Literal* lit, Inference* inf, UnitList*& units,unsigned level);
+  static void addTheoryNonUnitClause(UnitList*& units, Literal* lit1, Literal* lit2,unsigned level);
+  static void addTheoryNonUnitClause(UnitList*& units, Literal* lit1, Literal* lit2, Literal* lit3,unsigned level);
+  static void addTheoryNonUnitClause(UnitList*& units, Literal* lit1, Literal* lit2, Literal* lit3, Literal* lit4,unsigned level);
+  static void addAndOutputTheoryUnit(Unit* unit,UnitList*& units,unsigned level);
 };
 
 }

@@ -169,7 +169,7 @@ void Preprocess::preprocess (Problem& prb)
     if (!_options.newCNF()) {
       if (env.options->showPreprocessing())
         env.out() << "FOOL elimination" << std::endl;
-      TheoryAxioms(_options.theoryAxioms()).applyFOOL(prb);
+      TheoryAxioms().applyFOOL(prb);
       FOOLElimination().apply(prb);
     }
   }
@@ -217,7 +217,7 @@ void Preprocess::preprocess (Problem& prb)
       if (env.options->showPreprocessing())
         env.out() << "adding theory axioms" << std::endl;
 
-      TheoryAxioms(_options.theoryAxioms()).apply(prb);
+      TheoryAxioms().apply(prb);
     }
   }
 
