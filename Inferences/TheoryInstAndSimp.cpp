@@ -185,7 +185,8 @@ void TheoryInstAndSimp::selectTheoryLiterals(Clause* cl, Stack<Literal*>& theory
       bool deselect=false;
       while(nit.hasNext() && !deselect){
         Term* t = nit.next().term();
-        deselect = !theory->isInterpretedFunction(t->functor()); 
+        deselect = !(theory->isInterpretedFunction(t->functor()) || theory->isInterpretedConstant(t->functor())); 
+        if(deselect){ cout << t->toString() << endl; }
       }
       if(deselect){ deselected.push(lit);}
     }
@@ -194,7 +195,7 @@ void TheoryInstAndSimp::selectTheoryLiterals(Clause* cl, Stack<Literal*>& theory
       Literal* lit = dit.next();
       theoryLits.remove(lit);
 #if DPRINT
-	cout << "deselect " << lit->toString() << endl;
+	cout << "deselect1 " << lit->toString() << endl;
 #endif
     }
   }
@@ -207,7 +208,7 @@ void TheoryInstAndSimp::selectTheoryLiterals(Clause* cl, Stack<Literal*>& theory
           (lit->nthArgument(1)->isVar() && lit->nthArgument(1)->var()==i))
          ){
 #if DPRINT
-        cout << "deselect " << lit->toString() << endl;
+        cout << "deselect2 " << lit->toString() << endl;
 #endif
         theoryLits.remove(lit);
       }
