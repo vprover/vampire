@@ -249,6 +249,7 @@ void SMTLIB2::readBenchmark(LExprList* bench)
 
 const char * SMTLIB2::s_smtlibLogicNameStrings[] = {
     "ALIA",
+    "ALL",
     "AUFLIA",
     "AUFLIRA",
     "AUFNIRA",
@@ -310,6 +311,7 @@ void SMTLIB2::readLogic(const vstring& logicStr)
   _logicSet = true;
 
   switch (_logic) {
+  case SMT_ALL:
   case SMT_ALIA:
   case SMT_AUFLIA:
   case SMT_AUFLIRA:
@@ -855,40 +857,49 @@ void SMTLIB2::readDeclareDatatypes(LExprList* sorts, LExprList* datatypes, bool 
 {
   CALL("SMTLIB2::readDeclareDatatypes");
   
-  if (sorts->length() > 0) {
-    USER_ERROR("unsupported parametric datatype declaration");
+  if(sorts->length() != datatypes->length()){
+    USER_ERROR("declare-datatype(s) declaration mismatch between declared datatypes and definitions");
   }
 
   // first declare all the sorts, and then only the constructors, in
   // order to allow mutually recursive datatypes definitions
-  LispListReader dtypesRdr(datatypes);
-  while (dtypesRdr.hasNext()) {
-    LispListReader dtypeRdr(dtypesRdr.readList());
+  LispListReader dtypesNamesRdr(sorts);
+  Stack<vstring> dtypeNames;
+  while (dtypesNamesRdr.hasNext()) {
+    LispListReader dtypeNRdr(dtypesNamesRdr.readList());
 
-    const vstring& dtypeName = dtypeRdr.readAtom();
+    const vstring& dtypeName = dtypeNRdr.readAtom();
+    const vstring& dtypeSize = dtypeNRdr.readAtom();
+    unsigned arity;
+    if(!Int::stringToUnsignedInt(dtypeSize,arity)){ USER_ERROR("datatype arity not given"); }
+    if(arity>0){ USER_ERROR("unsupported parametric datatype declaration"); }
     if (isAlreadyKnownSortSymbol(dtypeName)) {
       USER_ERROR("Redeclaring built-in, declared or defined sort symbol as datatype: "+dtypeName);
     }
 
     ALWAYS(_declaredSorts.insert(dtypeName, 0));
     bool added;
-    env.sorts->addSort(dtypeName + "()", added,false);
+    unsigned srt = env.sorts->addSort(dtypeName + "()", added,false);
     ASS(added);
+    LOG2("reading datatype "+dtypeName+" as sort ",srt);
+    dtypeNames.push(dtypeName+"()");
   }
 
   Stack<TermAlgebraConstructor*> constructors;
   Stack<unsigned> argSorts;
   Stack<vstring> destructorNames;
 
-  LispListReader dtypesRdr2(datatypes);
-  while(dtypesRdr2.hasNext()) {
+  LispListReader dtypesDefsRdr(datatypes);
+  Stack<vstring>::BottomFirstIterator dtypeNameIter(dtypeNames);
+  while(dtypesDefsRdr.hasNext()) {
+    ASS(dtypeNameIter.hasNext());
     constructors.reset();
-    LispListReader dtypeRdr(dtypesRdr2.readList());
-    const vstring& taName = dtypeRdr.readAtom() + "()";
+    const vstring& taName = dtypeNameIter.next(); 
     bool added;
     unsigned taSort = env.sorts->addSort(taName, added, false);
     ASS(!added);
 
+    LispListReader dtypeRdr(dtypesDefsRdr.readList());
     while (dtypeRdr.hasNext()) {
       argSorts.reset();
       destructorNames.reset();
@@ -945,6 +956,8 @@ TermAlgebraConstructor* SMTLIB2::buildTermAlgebraConstructor(vstring constrName,
   env.signature->getFunction(functor)->setType(constructorType);
   env.signature->getFunction(functor)->markTermAlgebraCons();
 
+  LOG1("build constructor "+constrName+": "+constructorType->toString());
+
   ALWAYS(_declaredFunctions.insert(constrName, make_pair(functor, true)));
 
   Lib::Array<unsigned> destructorFunctors(arity);
@@ -964,6 +977,8 @@ TermAlgebraConstructor* SMTLIB2::buildTermAlgebraConstructor(vstring constrName,
 
     BaseType* destructorType = isPredicate ? (BaseType*) new PredicateType(1, &taSort)
                                            : (BaseType*) new FunctionType(1, &taSort, destructorSort);
+
+    LOG1("build destructor "+destructorName+": "+destructorType->toString());
 
     if (isPredicate) {
       env.signature->getPredicate(destructorFunctor)->setType(destructorType);
@@ -1962,30 +1977,37 @@ void SMTLIB2::parseRankedFunctionApplication(LExpr* exp)
 
   headRdr.acceptAtom(UNDERSCORE);
 
-  // currently we only support divisible, so this is easy
-  headRdr.acceptAtom("divisible");
+  if(headRdr.tryAcceptAtom("divisible")){
 
-  const vstring& numeral = headRdr.readAtom();
+    const vstring& numeral = headRdr.readAtom();
 
-  if (!StringUtils::isPositiveInteger(numeral)) {
-    USER_ERROR("Expected numeral as an argument of a ranked function in "+head->toString());
+    if (!StringUtils::isPositiveInteger(numeral)) {
+      USER_ERROR("Expected numeral as an argument of a ranked function in "+head->toString());
+    }
+
+    unsigned divisorSymb = TPTP::addIntegerConstant(numeral,_overflow,false);
+    TermList divisorTerm = TermList(Term::createConstant(divisorSymb));
+
+    TermList arg;
+    if (_results.isEmpty() || _results.top().isSeparator() ||
+        _results.pop().asTerm(arg) != Sorts::SRT_INTEGER) {
+      complainAboutArgShortageOrWrongSorts("ranked function symbol",exp);
+    }
+
+    unsigned pred = Theory::instance()->getPredNum(Theory::INT_DIVIDES);
+    env.signature->recordDividesNvalue(divisorTerm);
+
+    Formula* res = new AtomicFormula(Literal::create2(pred,true,divisorTerm,arg));
+
+    _results.push(ParseResult(res));
   }
-
-  unsigned divisorSymb = TPTP::addIntegerConstant(numeral,_overflow,false);
-  TermList divisorTerm = TermList(Term::createConstant(divisorSymb));
-
-  TermList arg;
-  if (_results.isEmpty() || _results.top().isSeparator() ||
-      _results.pop().asTerm(arg) != Sorts::SRT_INTEGER) {
-    complainAboutArgShortageOrWrongSorts("ranked function symbol",exp);
+  else if(headRdr.tryAcceptAtom("is")){
+    USER_ERROR("Ranked function application 'is' not supported");
   }
-
-  unsigned pred = Theory::instance()->getPredNum(Theory::INT_DIVIDES);
-  env.signature->recordDividesNvalue(divisorTerm);
-
-  Formula* res = new AtomicFormula(Literal::create2(pred,true,divisorTerm,arg));
-
-  _results.push(ParseResult(res));
+  else{
+    USER_ERROR("Ranked function application "+headRdr.readAtom()+" not known");
+  }
+  
 }
 
 SMTLIB2::ParseResult SMTLIB2::parseTermOrFormula(LExpr* body)
