@@ -2208,9 +2208,11 @@ void TPTP::term()
         case T_REAL:
           number = addRealConstant(tok.content,_overflow,_isFof);
           break;
-        default: // T_RAT
+        case T_RAT:
           number = addRationalConstant(tok.content,_overflow,_isFof);
           break;
+        default:
+          ASSERTION_VIOLATION;
       }
       Term *t = new(0) Term;
       t->makeSymbol(number, 0);
