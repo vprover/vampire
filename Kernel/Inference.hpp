@@ -311,6 +311,8 @@ public:
     INSTANTIATION,
     /* Finite model not found */
     MODEL_NOT_FOUND,
+    /* Induction */
+    INDUCTION
   }; // class Inference::Rule
 
   explicit Inference(Rule r);
