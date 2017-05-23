@@ -492,7 +492,7 @@ unsigned Signature::getInterpretingSymbol(Interpretation interp)
   CALL("Signature::getInterpretingSymbol");
   cout<<" in Signature::getInterpretingSymbol";
   ASS(Theory::instance()->isValidInterpretation(interp));
-    
+     
   unsigned res;
   if (_iSymbols.find(interp, res)) {
     return res;
@@ -527,8 +527,13 @@ unsigned Signature::getInterpretingSymbol(Interpretation interp)
 }
 
 unsigned Signature::getStructureInterpretationFunctor(unsigned theorySort, Theory::StructuredSortInterpretation ssi) {
+  CALL("Signature::getStructureInterpretationFunctor unsigned Theory::StructuredSortInterpretation");
+  return getStructureInterpretationFunctor(theorySort,ssi,-1,-1);
+}
+
+unsigned Signature::getStructureInterpretationFunctor(unsigned theorySort, Theory::StructuredSortInterpretation ssi, unsigned arg1,unsigned arg2) {
   CALL("Signature::getStructureInterpretationFunctor");
-  Interpretation i = Theory::instance()->getInterpretation(theorySort, ssi);
+  Interpretation i = Theory::instance()->getInterpretation(theorySort, ssi,arg1,arg2);
   return env.signature->getInterpretingSymbol(i);
 }
 

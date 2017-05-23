@@ -69,13 +69,64 @@ void SMTLIB2::parse(LExpr* bench)
 
   ASS(bench->isList());
   readBenchmark(bench->list);
+  cout<<" parsing terminates ";
 }
-
+/*class AKey {
+  public:
+    
+    AKey(){}
+    AKey(Theory::StructuredSortInterpretation ssi, unsigned arg1, unsigned arg2, unsigned resultSort):
+    _ssi(ssi), _resultSort(resultSort), _arg1(arg1), _arg2(arg2)
+    {
+        
+    }
+  AKey& operator=(const AKey& o){
+		(*this)._resultSort = o._resultSort;
+		(*this)._arg1 = o._arg1;
+                (*this)._arg2 = o._arg2;
+                
+		return static_cast<AKey&>(*this);
+	}
+  bool operator==(const AKey& o) const {
+		//assumes that the rational numbers are canonicalized
+		//return ((*this)._num == o._num && (*this)._den == o._den);
+      return true;
+	}
+  bool operator!=(const AKey& o) const {
+		//assumes that the rational numbers are canonicalized
+		//return ((*this)._num == o._num && (*this)._den == o._den);
+      return false;
+	}
+  unsigned getResultSort(){
+      return _resultSort;
+  }
+  unsigned getArg1(){
+      return _arg1;
+  }
+  unsigned getArg2(){
+      return _arg2;
+  }
+  private:
+      Theory::StructuredSortInterpretation _ssi;
+      unsigned _resultSort;
+      unsigned _arg1;
+      unsigned _arg2;
+      
+  };*/
 void SMTLIB2::readBenchmark(LExprList* bench)
 {
   CALL("SMTLIB2::readBenchmark");
   LispListReader bRdr(bench);
-
+  
+  /*AKey aKey(Theory::StructuredSortInterpretation::BVADD, 1, 2, 3);
+  DHMap<AKey,unsigned> aMap;
+  aMap.insert(aKey, 5);
+  AKey bKey(Theory::StructuredSortInterpretation::BVADD, 3, 3, 2);
+  AKey cKey(Theory::StructuredSortInterpretation::BVADD, 1, 2, 3);
+  cout<<" crucial testing "<< aMap.find(cKey);
+  aMap.insert(cKey, 6);
+  cout<<"\n crucial testing "<< aMap.find(cKey);*/
+  
   // iteration over benchmark top level entries
   while(bRdr.hasNext()){
     LExpr* lexp = bRdr.next();
@@ -1465,6 +1516,25 @@ void SMTLIB2::parseUnderScoredExpression(LExpr* exp)
     int actualNumber;
     Int::stringToInt(numberPart,actualNumber);
     cout<<"\n number part "<< actualNumber<<"\n";
+    int imax = std::numeric_limits<int>::max();
+    cout<<"\n MAX number "<< imax;
+    unsigned int max_unsigned_int_size = std::numeric_limits<unsigned int>::max();
+    unsigned int max_unsigned_long_size = std::numeric_limits<double>::max();
+    cout<<"\n max unsigned int is "<< max_unsigned_int_size<<"\n";
+    cout<<"\n max unsigned LONG is "<< max_unsigned_long_size<<"\n";
+    long teSting = 281474976710655;
+    int teSting2 = 281474976710655;
+    unsigned teSting3 = 281474976710655;
+    cout <<"\n long testing "<< teSting;
+    cout <<"\n int testing "<< teSting2;
+    cout <<"\n unsigned testing "<< teSting3;
+    
+    
+    
+    //long long bigNum = 89884656743115795386465259539451236680898848947115328636715040578866337902750481566354238661203768010560056939935696678829394884407208311246423715319737062188883946712432742638151109800623047059726541476042502884419075341171231440736956555270413618581675255342293149119973622969239858152417678164812112068607;
+    //cout<<"\n\n bigNum is "<<bigNum<<"\n\n";
+   // mpz_class bigNum = 1000;
+    
     ex = lRdr.readNext();
     cout<<" and last "<<ex->str;
                    
@@ -1789,12 +1859,19 @@ bool SMTLIB2::parseAsBuiltinFormulaSymbol(const vstring& id, LExpr* exp)
         
         TermList secondBv;
        // unsigned bvSortIdx2;// = _results.pop().asTerm(secondBv);
-        cout<< " sort name1 is "<< env.sorts->sortName(bvSortIdx1)<< " and and bvSortIdx1 is "<< bvSortIdx1 ;
+        //unsigned secondSort = _results.pop().asTerm(secondBv);
+        cout<< "\n firstBV "<< firstBv.toString();
+        
+        cout<< "\n sort name1 is "<< env.sorts->sortName(bvSortIdx1)<< " and and bvSortIdx1 is "<< bvSortIdx1 ;
+        //cout<< " sort name2 is "<< env.sorts->sortName(secondSort)<< " and and secondBv is "<< secondBv ;
+        
         //cout<< "\n sort name2 is "<< env.sorts->sortName(bvSortIdx2)<< " and and bvSortIdx2 is "<< bvSortIdx2;
         if (_results.isEmpty() || _results.top().isSeparator() ||
            _results.pop().asTerm(secondBv) != bvSortIdx1 ) {
             cout<<" bvslt problem 2";
-            //cout<< (bvSortIdx1 == bvSortIdx2);
+            cout<<"\n results empty? "<<_results.isEmpty();
+            cout<<"\n top is seperator? "<<_results.top().isSeparator();
+            //cout<< "\n\n bvSortIdx1 == bvSortIdx2? "<<bvSortIdx1<<" "<<secondBv.toString();//(bvSortIdx1 == secondBv.toString());
         complainAboutArgShortageOrWrongSorts(BUILT_IN_SYMBOL,exp);
         }
         
@@ -1809,7 +1886,7 @@ bool SMTLIB2::parseAsBuiltinFormulaSymbol(const vstring& id, LExpr* exp)
         Theory::StructuredSortInterpretation t =  getSSIfromFS(fs);
         cout<<"\n\n the problem FS is :"<<fs;
         cout<<" the ssi is "<< t;
-        unsigned pred =Theory::instance()->getSymbolForStructuredSort(bvSortIdx1,t);
+        unsigned pred =Theory::instance()->getSymbolForStructuredSort(bvSortIdx1,t,-1,-1);
         cout<<" pred is "<< pred;
         
         
@@ -2059,13 +2136,13 @@ bool SMTLIB2::parseAsBuiltinTermSymbol(const vstring& id, LExpr* exp)
       }
 
       if (arraySort->getInnerSort() == Sorts::SRT_BOOL) {
-        unsigned pred = Theory::instance()->getSymbolForStructuredSort(arraySortIdx,Theory::StructuredSortInterpretation::ARRAY_BOOL_SELECT);
+        unsigned pred = Theory::instance()->getSymbolForStructuredSort(arraySortIdx,Theory::StructuredSortInterpretation::ARRAY_BOOL_SELECT,-1,-1);
 
         Formula* res = new AtomicFormula(Literal::create2(pred,true,theArray,theIndex));
 
         _results.push(ParseResult(res));
       } else {
-        unsigned fun = Theory::instance()->getSymbolForStructuredSort(arraySortIdx,Theory::StructuredSortInterpretation::ARRAY_SELECT);
+        unsigned fun = Theory::instance()->getSymbolForStructuredSort(arraySortIdx,Theory::StructuredSortInterpretation::ARRAY_SELECT,-1,-1);
         TermList res = TermList(Term::create2(fun,theArray,theIndex));
 
         _results.push(ParseResult(arraySort->getInnerSort(),res));
@@ -2097,7 +2174,7 @@ bool SMTLIB2::parseAsBuiltinTermSymbol(const vstring& id, LExpr* exp)
         complainAboutArgShortageOrWrongSorts(BUILT_IN_SYMBOL,exp);
       }
 
-      unsigned fun = Theory::instance()->getSymbolForStructuredSort(arraySortIdx,Theory::StructuredSortInterpretation::ARRAY_STORE);
+      unsigned fun = Theory::instance()->getSymbolForStructuredSort(arraySortIdx,Theory::StructuredSortInterpretation::ARRAY_STORE,-1,-1);
 
       TermList args[] = {theArray, theIndex, theValue};
       TermList res = TermList(Term::Term::create(fun, 3, args));
@@ -2141,7 +2218,7 @@ bool SMTLIB2::parseAsBuiltinTermSymbol(const vstring& id, LExpr* exp)
         cout<<"\n\n after addBitVector "<<"\n";
         cout<<" \n resultSort is "<< resultSort<<"\n";
         // Always getting the same FUN SYMBOL FOR THE ONES WITH SAME RESULTSORT
-        unsigned fun = Theory::instance()->getSymbolForStructuredSort(resultSort, Theory::StructuredSortInterpretation::CONCAT);
+        unsigned fun = Theory::instance()->getSymbolForStructuredSort(resultSort, Theory::StructuredSortInterpretation::CONCAT,size1,size2);
         cout<<" \n in ts_concat fun is: "<< fun <<"\n";
         TermList res = TermList(Term::Term::create2(fun, first, second));
         _results.push(ParseResult(resultSort, res));
@@ -2184,7 +2261,7 @@ bool SMTLIB2::parseAsBuiltinTermSymbol(const vstring& id, LExpr* exp)
       
       /// here make sure to get the interpretation of the according 
       Theory::StructuredSortInterpretation t =  getSSIfromTS(ts);
-      unsigned fun = Theory::instance()->getSymbolForStructuredSort(sort, t);
+      unsigned fun = Theory::instance()->getSymbolForStructuredSort(sort, t,-1,-1);
       
       
       TermList res = TermList(Term::Term::create2(fun, first, second));
@@ -2204,8 +2281,9 @@ bool SMTLIB2::parseAsBuiltinTermSymbol(const vstring& id, LExpr* exp)
       unsigned sort = _results.pop().asTerm(first);
       cout<< "\n sort in bvneg: "<< sort;
       
-      
-      unsigned fun = Theory::instance()->getSymbolForStructuredSort(sort, Theory::StructuredSortInterpretation::BVNEG);
+      Theory::StructuredSortInterpretation te = getSSIfromTS(ts);
+
+      unsigned fun = Theory::instance()->getSymbolForStructuredSort(sort, te);
       
       
       TermList res = TermList(Term::Term::create1(fun, first));
@@ -2244,7 +2322,7 @@ bool SMTLIB2::parseAsBuiltinTermSymbol(const vstring& id, LExpr* exp)
 
      
       return true;
-    }*/ 
+    }*/
     
     case TS_ABS:
     {
@@ -2360,7 +2438,7 @@ void SMTLIB2::parseRankedFunctionApplication(LExpr* exp)
             if (!StringUtils::isPositiveInteger(numeral2)) {
               USER_ERROR("Expected numeral as an argument of a ranked function in "+head->toString());
             }
-
+           
             unsigned fromSymbol = TPTP::addIntegerConstant(numeral,_overflow,false);
             TermList fromTerm = TermList(Term::createConstant(fromSymbol));
 
@@ -2392,7 +2470,7 @@ void SMTLIB2::parseRankedFunctionApplication(LExpr* exp)
             
             // now we have all the arguments we need..
             TermList args[] = {arg, fromTerm, numBitsTerm};
-            unsigned fun = Theory::instance()->getSymbolForStructuredSort(resultSort, Theory::StructuredSortInterpretation::EXTRACT);
+            unsigned fun = Theory::instance()->getSymbolForStructuredSort(resultSort, Theory::StructuredSortInterpretation::EXTRACT,tempSort,-1);
             TermList res = TermList(Term::Term::create(fun, 3, args));
             _results.push(ParseResult(resultSort, res));
             
@@ -2431,7 +2509,7 @@ void SMTLIB2::parseRankedFunctionApplication(LExpr* exp)
             unsigned resultSort = env.sorts->addBitVectorSort(resultSize);
             
             // now we have all the arguments we need..
-            unsigned fun = Theory::instance()->getSymbolForStructuredSort(resultSort, te);
+            unsigned fun = Theory::instance()->getSymbolForStructuredSort(resultSort, te,tempSort,-1);
             TermList res = TermList(Term::Term::create2(fun, argTerm, arg));
             _results.push(ParseResult(resultSort, res));
             
@@ -2472,7 +2550,7 @@ void SMTLIB2::parseRankedFunctionApplication(LExpr* exp)
             unsigned resultSort = env.sorts->addBitVectorSort(argSize);
             
             // now we have all the arguments we need..
-            unsigned fun = Theory::instance()->getSymbolForStructuredSort(resultSort, te);
+            unsigned fun = Theory::instance()->getSymbolForStructuredSort(resultSort, te,-1,-1);
             TermList res = TermList(Term::Term::create2(fun, argTerm, arg));
             _results.push(ParseResult(resultSort, res));
             
@@ -2564,6 +2642,7 @@ SMTLIB2::ParseResult SMTLIB2::parseTermOrFormula(LExpr* body)
               //USER_ERROR("Indexed identifiers in general term position are not supported: "+exp->toString());
                 
                 // if the expression starts with an underscore, then it is an expression of type 
+                cout<<" before parseUnderScoredExpression ";
                     parseUnderScoredExpression(exp);
                     continue;                 
               // we only support indexed identifiers as functors applied to something (see just below)

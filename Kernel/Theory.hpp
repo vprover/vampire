@@ -444,10 +444,19 @@ public:
   unsigned LastStructuredInterpretation(){
     return static_cast<unsigned>(StructuredSortInterpretation::DEFINE_BITVECTOR);
   }
+  
+  
+  unsigned getSymbolForStructuredSort(unsigned sort, StructuredSortInterpretation interp, unsigned arg1, unsigned arg2);
   unsigned getSymbolForStructuredSort(unsigned sort, StructuredSortInterpretation interp);
+  
   Interpretation getInterpretation(unsigned sort, StructuredSortInterpretation i){
+      return getInterpretation(sort, i, -1,-1);
+  }
+  
+  Interpretation getInterpretation(unsigned sort, StructuredSortInterpretation i, unsigned arg1, unsigned arg2){
       cout<<"\n in getInterpretation\n";
-    auto key = make_pair(sort, i);
+    // key = make_pair(sort, i);
+    AKey key(sort, i, arg1, arg2);
     unsigned interpretation;
     if (!_structuredSortInterpretations.find(key, interpretation)) {
       interpretation = MaxInterpretedElement() + 1;
@@ -455,11 +464,14 @@ public:
     }
     return static_cast<Interpretation>(interpretation);
   }
+  
+  
+  
   bool isStructuredSortInterpretation(Interpretation i){
     return i > LastNonStructuredInterepretation();
   }
   unsigned getSort(Interpretation i){
-    return getData(i).first;
+    return getData(i).getResultSort();
   }
 
   static vstring getInterpretationName(Interpretation i);
@@ -576,6 +588,57 @@ public:
   }
   bool tryInterpretConstant(const Term* t, RealConstantType& res);
 
+  class AKey {
+  public:
+    
+    AKey(){}
+    AKey(unsigned resultSort, Theory::StructuredSortInterpretation ssi,  unsigned arg1, unsigned arg2):
+    _ssi(ssi), _resultSort(resultSort), _arg1(arg1), _arg2(arg2)
+    {
+        
+    }
+    /*AKey(Theory::StructuredSortInterpretation ssi,  unsigned resultSort):
+    _ssi(ssi), _resultSort(resultSort), _arg1(-1), _arg2(-1)
+    {
+        
+    }*/
+  AKey& operator=(const AKey& o){
+		(*this)._resultSort = o._resultSort;
+		(*this)._arg1 = o._arg1;
+                (*this)._arg2 = o._arg2;
+                (*this)._ssi = o._ssi;
+		return static_cast<AKey&>(*this);
+	}
+  bool operator==(const AKey& o) const {
+		return ((*this)._resultSort == o._resultSort && (*this)._ssi == o._ssi 
+                        && (*this)._arg1 == o._arg1 && (*this)._arg2 == o._arg2) ;
+	}
+  bool operator!=(const AKey& o) const {
+		return (!((*this)._resultSort == o._resultSort && (*this)._ssi == o._ssi 
+                        && (*this)._arg1 == o._arg1 && (*this)._arg2 == o._arg2)) ;
+	}
+  unsigned getResultSort(){
+      return _resultSort;
+  }
+  unsigned getArg1(){
+      return _arg1;
+  }
+  unsigned getArg2(){
+      return _arg2;
+  }
+  
+  StructuredSortInterpretation getSSI(){
+      return _ssi;
+  }
+  private:
+      StructuredSortInterpretation _ssi;
+      unsigned _resultSort;
+      unsigned _arg1;
+      unsigned _arg2;
+      
+  };
+  
+  
   Term* representConstant(const IntegerConstantType& num);
   Term* representConstant(const RationalConstantType& num);
   Term* representConstant(const RealConstantType& num);
@@ -590,13 +653,13 @@ private:
 
 public:
   unsigned getStructuredOperationSort(Interpretation i){
-    return getData(i).first;
+    return getData(i).getResultSort();
   }
   StructuredSortInterpretation convertToStructured(Interpretation i){
-    return getData(i).second;
+    return getData(i).getSSI();
   }
 private:    
-  pair<unsigned,StructuredSortInterpretation> getData(Interpretation i){
+    AKey getData(Interpretation i){
     ASS(isStructuredSortInterpretation(i));
     auto it = _structuredSortInterpretations.items();
     while(it.hasNext()){
@@ -606,8 +669,57 @@ private:
     ASSERTION_VIOLATION;
   }
 
-  DHMap<pair<unsigned,StructuredSortInterpretation>,unsigned> _structuredSortInterpretations;
+  DHMap<AKey,unsigned> _structuredSortInterpretations;
+  //DHMap<pair<unsigned,StructuredSortInterpretation>,unsigned> _structuredSortInterpretations;
 
+ /*public:
+  class AKey {
+  public:
+    unsigned getFunctor();
+    unsigned getFunctor();
+   
+    AKey(StructuredSortInterpretation ssi, unsigned arg1, unsigned arg2, unsigned resultSort):
+    _ssi(ssi), _resultSort(resultSort), _arg1(arg1), _arg2(arg2)
+    {
+        
+    }
+  private:
+      StructuredSortInterpretation _ssi;
+      unsigned _resultSort;
+      unsigned _arg1;
+      unsigned _arg2;
+      
+  };
+  
+ public:
+  class ARecord {
+  public:
+    AKey getKey()
+    {
+        return _key;
+    }
+    unsigned getImplementationNr()
+    {
+        return _implementationNr;
+    }
+    
+  private:
+      AKey _key;
+      unsigned _implementationNr;
+      
+  }; 
+  
+  
+  public:
+  class DDMap {
+  public:
+    
+    
+  private:
+      DArray<ARecord> _records;
+      
+  };*/
+  
 public:
   class Tuples {
   public:

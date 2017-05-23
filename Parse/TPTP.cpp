@@ -3843,7 +3843,13 @@ unsigned TPTP::addBitVectorConstant(const vstring& size, const vstring& numberTo
     CALL("TPTP::addBitVectorConstant");
     try{
         return env.signature->addBitVectorConstant(size, numberToRepresent, defaultSort);
-    }catch(Kernel::ArithmeticException&){}
+    }catch(Kernel::ArithmeticException&){
+        // the numbertoRepresent is too big so we just use 1
+        cout<<" \n Kernel::ArithmeticException \n";
+        vstring workAround = "1";
+        return env.signature->addBitVectorConstant(size, workAround, defaultSort);
+        //USER_ERROR("Bitvector constant arithmetic exception");
+    }
     
     return 0;
 }

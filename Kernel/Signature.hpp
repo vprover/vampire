@@ -424,6 +424,7 @@ class BitVectorSymbol
   vstring getInterpretationName(Interpretation interp);
   unsigned getInterpretingSymbol(Interpretation interp);
 
+  unsigned getStructureInterpretationFunctor(unsigned theorySort, Theory::StructuredSortInterpretation ssi, unsigned arg1, unsigned arg2);
   unsigned getStructureInterpretationFunctor(unsigned theorySort, Theory::StructuredSortInterpretation ssi);
 
   /** Return true iff there is a symbol interpreted by Interpretation @b interp */

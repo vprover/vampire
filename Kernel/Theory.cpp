@@ -1077,8 +1077,14 @@ bool Theory::isNonLinearOperation(Interpretation i)
 
 unsigned Theory::getSymbolForStructuredSort(unsigned sort, StructuredSortInterpretation interp)
 {
+   
+    return getSymbolForStructuredSort(sort, interp, -1,-1);
+}
+
+unsigned Theory::getSymbolForStructuredSort(unsigned sort, StructuredSortInterpretation interp, unsigned arg1, unsigned arg2)
+{
     cout<<"\n Theory::getSymbolForStructuredSort\n";
-    return env.signature->getInterpretingSymbol(getInterpretation(sort,interp));
+    return env.signature->getInterpretingSymbol(getInterpretation(sort,interp,arg1,arg2));
 }
 
 /**
@@ -1183,9 +1189,9 @@ unsigned Theory::getArrayExtSkolemFunction(unsigned sort) {
 
   bool isBool = (env.sorts->getArraySort(sort)->getInnerSort() == Sorts::SRT_BOOL);
 
-  Interpretation store = getInterpretation(sort, StructuredSortInterpretation::ARRAY_STORE);
+  Interpretation store = getInterpretation(sort, StructuredSortInterpretation::ARRAY_STORE,-1,-1);
   Interpretation select = getInterpretation(sort, isBool ? StructuredSortInterpretation::ARRAY_BOOL_SELECT
-                                                         : StructuredSortInterpretation::ARRAY_SELECT);
+                                                         : StructuredSortInterpretation::ARRAY_SELECT,-1,-1);
 
   unsigned arraySort = getArrayOperationSort(store);
   unsigned indexSort = theory->getArrayDomainSort(select);
