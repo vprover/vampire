@@ -1538,7 +1538,17 @@ void SMTLIB2::parseUnderScoredExpression(LExpr* exp)
     ex = lRdr.readNext();
     cout<<" and last "<<ex->str;
                    
-    unsigned symb = TPTP::addBitVectorConstant(ex->str,numberPart,  _overflow, false);
+    
+    DArray<bool> arg = Signature::getBinArrayFromVString(numberPart);
+    unsigned size;
+    Int::stringToUnsignedInt(ex->str, size);
+    cout<<endl<<"to pad  size is "<<size<<endl;
+    DArray<bool> argPadded = Signature::fitBinArrayIntoBits(arg,size);
+    cout<<endl<<"THE BV TO USE "<<endl;
+    Signature::printBoolArrayContent(argPadded);
+    
+    
+    unsigned symb = TPTP::addBitVectorConstant(ex->str,arg,  _overflow, false);
     TermList res = TermList(Term::createConstant(symb));
     cout<< "\n symbol is "<<symb<<"\n";
     int hey;
@@ -1633,24 +1643,50 @@ bool SMTLIB2::parseAsBitVectorConstant(const vstring& id)
             
             unsigned resultSort = env.sorts->addBitVectorSort(resultSize);
 
-            unsigned symb = TPTP::addBitVectorConstant(resultSizeVstring, vstringNumToRepresent, _overflow, false);
+            DArray<bool> theBinArray(testing.size()*4);
+            
+            for (int i = 0 ; i < testing.size();++i)
+            {
+                unsigned index = i * 4;
+                DArray<bool> theHexInBinary = Signature::getBinArrayFromDec(testing[i]);
+                cout<<endl<<" i is "<<i<<" , testing[i] is: "<< testing[i]<<" and content is "<<endl;
+                
+                Signature::printBoolArrayContent(theHexInBinary);
+                for (int count = 0 , j = index; count< 4 ; ++ j,++count){
+                    theBinArray[j] = theHexInBinary[count];
+                }
+                cout<<endl<<" i am checking thisss"<<endl;
+               // WRONG ORDER
+                
+            }
+             Signature::printBoolArrayContent(theBinArray);
+            // pass the number to represent as the binary string of the array
+            
+            //unsigned symb = TPTP::addBitVectorConstant(resultSizeVstring, vstringNumToRepresent, _overflow, true);
+             cout<<endl<<" BEFORE ADDING AGAIN "<<endl;
+            Signature::printBoolArrayContent(theBinArray);
+            unsigned symb = TPTP::addBitVectorConstant(resultSizeVstring, theBinArray, _overflow, false); 
+             
             TermList res = TermList(Term::createConstant(symb));
             _results.push(ParseResult(resultSort,res)); // change THIS !!!:!:!:!:!:
             return true;
         }
         else if(hexSlashBin == "#b")
         {
-                
+            //USER_ERROR("NOT THERE YET");
             int resultSize = multiplier * bvContentSize;
             vstring resultSizeVstring = Int::toString(resultSize);
 
+            
+            cout<<endl<<"bvContent is "<< bvContent;
+            
             DArray<bool> testing = getBoolArrayFromString(bvContent);
             vstring vstringNumToRepresent = Int::toString(getNumberFromBoolArray(testing));
         
             unsigned resultSort = env.sorts->addBitVectorSort(resultSize);
 
             
-            unsigned symb = TPTP::addBitVectorConstant(resultSizeVstring, vstringNumToRepresent, _overflow, false);
+            unsigned symb = TPTP::addBitVectorConstant(resultSizeVstring, testing, _overflow, false);
             TermList res = TermList(Term::createConstant(symb));
             _results.push(ParseResult(resultSort,res)); 
             return true;

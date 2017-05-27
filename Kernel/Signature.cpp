@@ -352,7 +352,7 @@ unsigned Signature::addIntegerConstant(const vstring& number,bool defaultSort)
  * Add an integer constant to the signature.
  * @todo something smarter, so that we don't need to convert all values to string
  */
-unsigned Signature::addBitVectorConstant(const vstring& size, const vstring& numberToRepresent, bool defaultSort)
+/*unsigned Signature::addBitVectorConstant(const vstring& size, const vstring& numberToRepresent, bool defaultSort)
 {
     CALL("Signature::addBitVectorConstant(vstring, vstring)");
     cout<<" fun names size "<<_funNames.numberOfElements();
@@ -372,7 +372,537 @@ unsigned Signature::addBitVectorConstant(const vstring& size, const vstring& num
    //sym->addToDistinctGroup(BITVECTOR_DISTINCT_GROUP,result);
     sym->addToDistinctGroup(STRING_DISTINCT_GROUP,result); // numbers are distinct from strings
     return result;
+}*/
+
+vstring Signature::boolArraytoString(DArray<bool> in){
+    vstring out = "";
+    for (int i = 0 ; i < in.size() ; ++ i)
+    {
+        if (in[i] == false)
+            out = out + "0";
+        else if (in[i] == true)
+             out = out + "1";
+        else
+            USER_ERROR("Unexpected character in bin array");
+    }
+    return out;
 }
+
+
+unsigned Signature::addBitVectorConstant(const vstring& size, const DArray<bool> binArray, bool defaultSort)
+{
+    CALL("Signature::addBitVectorConstant(vstring, vstring)");
+    
+    cout<<" in addBitVectorConstant ";
+    cout<<" fun names size "<<_funNames.numberOfElements();
+    cout<<endl<<" do we have a problem?"<<endl;
+    Signature::printBoolArrayContent(binArray);
+    cout<<endl;
+    BitVectorConstantType value(size, binArray); // 
+    //vstring temp = size;
+    
+    vstring key;
+    vstring forKey = boolArraytoString(binArray); 
+    
+    
+    key = size + "_" + forKey + "_bv";
+    
+    unsigned result;
+    if (_funNames.find(key, result)){
+        return result;
+    }
+    cout<<" before loopeee : "<<endl;
+    
+    _bitvectors++;
+    result = _funs.length();
+    cout<<" checkpoint o1 : "<<endl;
+    Symbol* sym = new BitVectorSymbol(value);
+    cout<<" checkpoint o2 : "<<endl;
+    
+    _funs.push(sym);
+    cout<<" checkpoint o3 : "<<endl;
+    _funNames.insert(key, result);
+    cout<<" checkpoint o4 : "<<endl;
+   //sym->addToDistinctGroup(BITVECTOR_DISTINCT_GROUP,result);
+    sym->addToDistinctGroup(STRING_DISTINCT_GROUP,result); // numbers are distinct from strings
+    return result;
+}
+
+
+DArray<bool> Signature::getBinArrayFromVString(vstring& numberToRepresent)
+{
+     char initialChar = numberToRepresent[0];
+    
+    DArray<bool> initial = getBinArrayFromDec(initialChar);
+    DArray<bool> *initialBoolArray = new DArray<bool>(initial.size());
+    copyDArray(initial,*initialBoolArray);
+    
+    DArray<bool> smallestBinArrayTen = getBinArrayFromDec('a');
+    DArray<bool> sum = getBinArrayFromDec('0');
+    
+    for(unsigned int i = 1; i<numberToRepresent.length(); i++) {
+        char c = numberToRepresent[i]; 
+        
+        cout<<" Cee is : "<<c <<endl;
+        
+        
+        unsigned s = (*initialBoolArray).size();
+        cout<<endl<<"checkpoint0";
+        DArray<bool> binArrayTenPadded = padBinArray(smallestBinArrayTen,s);
+        cout<<endl<<"checkpoint1";
+        DArray<bool> multipliedByTen = multBinArrays(*initialBoolArray, binArrayTenPadded);
+        
+        
+        DArray<bool> toAdd = getBinArrayFromDec(c);
+        cout<<endl<<"checkpoint2";
+        DArray<bool> toAddPadded = padBinArray(toAdd, multipliedByTen.size());
+        cout<<endl<<"checkpoint3";
+        DArray<bool> added(multipliedByTen.size()+1);
+        cout<<endl<<"checkpoint4";
+        addBinArrays(multipliedByTen,toAddPadded, added);
+        
+        
+        // put added in initialBoolArray
+        initialBoolArray = new DArray<bool>(added.size());
+        copyDArray(added,*initialBoolArray);
+        
+        //addBinArrays(added,sum)    
+        
+    }
+    cout<<endl<<"The result of multiplication is :";
+    printBoolArrayContent(*initialBoolArray);
+    /*value.setBinArray(*initialBoolArray);
+    DArray<bool> temp =value.getBinArray(); 
+    cout<<endl<<"The result of get is :";
+    printBoolArrayContent(temp);
+    
+    unsigned unsignedSize;
+    Int::stringToUnsignedInt(size,unsignedSize);
+    DArray<bool> testTruncate = fitBinArrayIntoBits(temp, unsignedSize);
+    cout<<endl<<"Testing truncate:";
+    printBoolArrayContent(testTruncate);
+    */
+    
+    
+    return *initialBoolArray;
+}
+
+DArray<bool> Signature::fitBinArrayIntoBits(DArray<bool> input, unsigned size)
+{
+    
+    if (input.size()==size)
+        return input;
+    else if (input.size()<size)
+    {
+        DArray<bool> result = padBinArray(input, size);
+        return result;
+    }
+    else if (input.size()>size)
+    {
+        DArray<bool> result = truncate(input, size);
+        return result;
+    }
+}
+
+DArray<bool> Signature::truncate(DArray<bool> input, unsigned size)
+{
+    DArray<bool> result(size);
+    for (int i = 0 , j = input.size()-1, counter = size-1; i < size; ++i, --j, -- counter)
+    {
+        result[counter] = input[j];
+    }
+    return result;
+}
+
+DArray<bool> Signature::getBinArrayFromDec(char n)
+{
+    /*if ( n > 10)
+        USER_ERROR("EXPECTED number between one and 9");
+    */
+    switch(n){
+        
+        case '0':{
+            DArray<bool> zeroArr;
+            bool tem[] = {false, false, false,false}; // 0000
+            zeroArr.initFromArray(4, tem);
+            return zeroArr;
+        }
+        case '1':{
+            DArray<bool> oneArr;
+            bool tem[] = {false, false, false,true}; // 0001
+            oneArr.initFromArray(4, tem);
+            return oneArr;
+        }
+        case '2':{
+            DArray<bool> twoArr;
+            bool tem[] = {false, false, true,false}; // 0010
+            twoArr.initFromArray(4, tem);
+            return twoArr;
+        }
+        case '3':{
+            DArray<bool> threeArr;
+            bool tem[] = {false, false, true,true}; // 0011
+            threeArr.initFromArray(4, tem);
+            return threeArr;
+        }
+        case '4':{
+            DArray<bool> fourArr;
+            bool tem[] = {false, true, false,false}; // 0100
+            fourArr.initFromArray(4, tem);
+            return fourArr;
+        }
+        case '5':{
+            DArray<bool> fiveArr;
+            bool tem[] = {false, true, false,true}; // 0101
+            fiveArr.initFromArray(4, tem);
+            return fiveArr;
+        }
+        case '6':{
+            DArray<bool> sixArr;
+            bool tem[] = {false, true, true,false}; // 0110
+            sixArr.initFromArray(4, tem);
+            return sixArr;
+        }
+        case '7':{
+            DArray<bool> sevenArr;
+            bool tem[] = {false, true, true,true}; // 0111
+            sevenArr.initFromArray(4, tem);
+            return sevenArr;
+        }
+        case '8':{
+            DArray<bool> eightArr;
+            bool tem[] = {true, false, false,false}; // 1000
+            eightArr.initFromArray(4, tem);
+            return eightArr;
+        }
+        case '9':{
+            DArray<bool> nineArr;
+            bool tem[] = {true, false, false,true}; // 1001
+            nineArr.initFromArray(4, tem);
+            return nineArr;
+        }
+        case 'a':
+        case 'A':{
+            DArray<bool> tenArr;
+            bool tem[] = {true, false, true,false}; // 1010
+            tenArr.initFromArray(4, tem);
+            return tenArr;
+        }
+        case 'b':
+        case 'B':{
+            DArray<bool> elevenArr;
+            bool tem[] = {true, false, true,true}; // 1011
+            elevenArr.initFromArray(4, tem);
+            return elevenArr;
+        }
+        case 'c':
+        case 'C':{
+            DArray<bool> twelveArr;
+            bool tem[] = {true, true, false,false}; // 1100
+            twelveArr.initFromArray(4, tem);
+            return twelveArr;
+        }
+        case 'd':
+        case 'D':{
+            DArray<bool> thirteenArr;
+            bool tem[] = {true, true, false,true}; // 1101
+            thirteenArr.initFromArray(4, tem);
+            return thirteenArr;
+        }   
+        case 'e':
+        case 'E':{
+            DArray<bool> fourteenArr;
+            bool tem[] = {true, true, true,false}; // 1110
+            fourteenArr.initFromArray(4, tem);
+            return fourteenArr;
+        }
+        case 'f':
+        case 'F':{
+            DArray<bool> fifteenArr;
+            bool tem[] = {true, true, true,true}; // 1111
+            fifteenArr.initFromArray(4, tem);
+            return fifteenArr;
+        }
+        
+    }
+
+}
+
+// a1 and a2 have to be same length, result has to be length(a1) + 1 
+void Signature::addBinArrays(const DArray<bool>& a1, const DArray<bool>& a2, DArray<bool> &result)
+{
+    bool carry = false;
+    
+    bool t1 = true, t2 = true, t3 = true;
+    bool r = t1 ^t2 ^t3;
+    
+    cout<<endl<< "testing exclusive or "<< r;
+    
+    cout<<endl<<"following arrays are being added "<<endl;
+    printBoolArrayContent(a1);
+    cout<<endl<<"and "<<endl;
+    printBoolArrayContent(a2);
+    
+    for (int i = 0, j = a1.size() - 1 ; i < a1.size() ; ++ i, --j )
+    {
+        cout<<endl<<"we do get in loop thoug";
+        cout<<endl<<"a1 size "<< a1.size()<<endl;
+        cout<<endl<<"a2 size "<< a2.size()<<endl;
+        result[j+1] = a1[j] ^ a2[j] ^ carry;
+        cout << endl<< "a1[j] : "<<  a1[j]  ;
+        cout << endl<< "a2[j] : "<<  a2[j]  ;
+        cout << endl<< "carry : "<<  carry  ;
+        cout << endl<< "result[j] : "<<  result[j+1]  ;
+        
+        
+        if ((a1[j] && carry && !a2[j]) || (a2[j] && carry && !a1[j]) || (a2[j] && !carry && a1[j]) ||(a2[j] && carry && a1[j])){
+            carry = true;
+            cout<<endl<< " j is "<< j << " and carry becomes true";
+        }else{
+            carry = false;
+            cout<<endl<< " j is "<< j << " and carry becomes false";
+        }
+    }
+    if (carry)
+        result[0] = true;
+    else
+        result[0] = false;
+    
+    
+}
+
+DArray<bool> Signature::multBinArrays(DArray<bool> a1, DArray<bool> a2)
+{
+    DArray<bool> *previousToAdd = new DArray<bool>(a1.size());
+    /*bool tem[] = {false}; // 0
+    previousToAdd->initFromArray(1, tem);
+     */  
+    
+    //sum.initFromArray(1, tem);
+    cout<<endl <<" before loop a1 "<<endl;
+    
+    printBoolArrayContent(a1);
+    
+    cout<<endl <<" before loop a2 "<<endl;
+    
+    printBoolArrayContent(a2);
+    for (int i = 0, j = a1.size()-1 ; i < a1.size() ; ++ i,--j )
+    {
+        cout<<" checking for j "<< j << endl;
+        cout<<endl<<" in loop, i is "<<i<<" j is "<<j << " a1[j] is "<< a1[j] << endl;
+        if (a1[j] == true)
+        {
+            
+            cout<<endl<<"in if 1";
+            DArray<bool> curr = shiftLeft(a2,i);
+            cout<<endl<<" shift left really working? "<<endl;
+            cout<<"a2:";
+            printBoolArrayContent(a2);
+            cout<<"shifted by i = "<<i<<endl;
+            cout<<"gives us ";
+            printBoolArrayContent(curr);
+                    
+            
+            
+            cout<<endl<<"in if 2"<<endl;
+            cout<<endl<<"the previous to add is  "<<endl;
+            printBoolArrayContent(*previousToAdd);
+            
+            
+            
+            DArray<bool> paddedPrevious = padBinArray(*previousToAdd,curr.size());
+            cout<<endl<<"in if 3";
+            
+            
+            cout<<endl<<"the padded previous to add is  "<<endl;
+            printBoolArrayContent(paddedPrevious);
+            
+            
+            
+            
+            
+            
+            DArray<bool> sum(curr.size()+1);
+            cout<<endl<<"in if 4";
+            addBinArrays(paddedPrevious,curr,sum);
+            
+            
+            cout<< endl <<"RIGHT, so this is important "<<endl<<endl<<"the following two arrays are being added "<<endl;
+            printBoolArrayContent(paddedPrevious);
+            cout<<endl;
+            printBoolArrayContent(curr);
+            cout<<endl<<"and the result is "<< endl;
+            printBoolArrayContent(sum);
+            
+            
+            
+            
+            
+            cout<<endl<<"in if 5";
+            previousToAdd = new DArray<bool>(sum.size());
+            cout<<endl<<"in if 6";
+            copyDArray(sum, *previousToAdd);
+            cout<<endl<<"in if 7";
+            
+        }
+    }
+    
+    
+    return *previousToAdd;
+}   
+
+void Signature::copyDArray(const DArray<bool> from, DArray<bool>& to )
+{
+    for (int i = 0 ; i < from.size() ; ++ i )
+    {
+        to[i] = from[i];
+    }
+}
+
+DArray<bool> Signature::shiftLeft(DArray<bool> input, unsigned shiftByNum)
+{
+    DArray<bool> res(input.size()+shiftByNum);
+    int i = 0;
+    for (; i < input.size() ; ++i ){
+        res[i] = input[i];
+    }
+    for (int j = 0; j < shiftByNum ; ++j,++i ){
+        res[i] = false; 
+    }
+    return res;
+    
+}
+
+
+DArray<bool> Signature::padBinArray(DArray<bool> anArray, unsigned size)
+{
+    if (anArray.size() == size)
+        return anArray;
+    cout<<endl<<"anArray size "<< anArray.size()<< endl;
+    cout<<endl<<"ssize "<< size<< endl;
+    cout<<" in padd bin array"<< endl;
+    DArray<bool> result(size);
+    unsigned difference = size - anArray.size();
+    int i = 0;
+    for( ;i <difference; ++i){
+        //cout<<" in loop i is "<< i<<endl<<" and anArray[i] is "<<anArray[i];
+        result[i] = false;
+    }
+    cout<<" first loop terminates"<< endl;
+    
+    for(int j = 0; j < anArray.size();++j, ++i){
+        cout<<" in second loop i is : "<< i << endl;
+        result[i] = anArray[j];
+    }
+    return result;
+    
+    
+}
+
+void Signature::printBoolArrayContent(DArray<bool> array)
+{
+    for (int i = 0 ; i < array.size() ; ++ i)
+    {
+        if (array[i] == false)
+            cout<<"0";
+        else if (array[i] == true)
+            cout<<"1";
+        else
+            USER_ERROR("Unexpected character in bin array");
+    }
+    cout<< endl;
+}
+
+/*DArray<bool> lookUpBinArrayFromDecNumber(unsigned n)
+{
+    switch(n)
+    {
+        DArray<bool> result;
+        case 0:
+            result(1); 
+            result[0]=false; // 0
+        case 1:
+            result(1);
+            result[0]=true; // 1
+        case 2:
+            result(2);
+            result[0] = true; result[1] = false; // 10 
+        case 3:
+            result(2);
+            result[0] = true; result[1] = true; // 11
+        case 4:
+            result(3);
+            result[0] = true; result[1] = false; result[2] = false;// 100
+        case 5:
+            result(3);
+            result[0] = true; result[1] = false; result[2] = true;// 101
+        case 6:
+            result(3);
+            result[0] = true; result[1] = true; result[2] = false;// 110
+        case 7:
+            result(3);
+            result[0] = true; result[1] = true; result[2] = true;// 111
+        case 8:
+            result(4);
+            result[0] = true; result[1] = false; result[2] = false; result[3] = false; // 1000
+        case 9:
+            result(4);
+            result[0] = true; result[1] = false; result[2] = false; result[3] = true; // 1001
+        case 10:
+            result(4);
+            result[0] = true; result[1] = false; result[2] = true; result[3] = false; // 1010   
+        return result;    
+    }
+    return NULL;
+
+}*/
+
+/*DArray<bool> result(size);
+    unsigned difference = size - anArray.size();
+    int i = 0;
+    for (; i < difference ; ++ i)
+    {
+        cout<<"in loop "<< i<<endl;
+        result[i] = false; 
+    }
+    cout<<"first loop terminates";
+    for (;i<size;++i)
+    {
+        result[i] = anArray[i];
+    }
+    return result;
+    */
+
+/*DArray<bool> Signature::calculateBinaryArray(const vstring& number)
+{
+    DArray<bool> resultArray;
+    
+    if (number.size()==1){
+        unsigned n;
+        Int::stringToUnsignedInt(number, n);
+        return lookUpBinArrayFromDecNumber(n);
+    }
+    else if (number.size()>=2){
+        // now 
+    }
+        
+
+}*/
+
+/*DArray<bool> Signature::multiplyBinArrays(DArray<bool> a1, DArray<bool> a2)
+{
+    for(int i = 0, j = a1.size()-1; i<a1.size();++i,--j){
+        if (a1[j] == true){
+            unsigned numberOfZeroes = i;
+            
+        }
+    }
+}*/
+
+
+
+
+
 unsigned Signature::addIntegerConstant(const IntegerConstantType& value)
 {
   CALL("Signature::addIntegerConstant");

@@ -29,17 +29,22 @@ using namespace Lib;
 // IntegerConstantType
 //
 
-BitVectorConstantType::BitVectorConstantType(const vstring& size, const vstring& numberToRepresent)
+BitVectorConstantType::BitVectorConstantType(const vstring& size, DArray<bool> binArray)//const vstring& numberToRepresent)
 {
     CALL("BitVectorConstantType::BitVectorConstantType(vstring, vstring)");
-    if (!Int::stringToInt(size, _size) || !Int::stringToInt(numberToRepresent, _numberToRepresent))
+   // if (!Int::stringToInt(size, _size) || !Int::stringToInt(numberToRepresent, _numberToRepresent) )
+    if (!Int::isInteger(size))
     {
         cout<<" ArithmeticException thrown hello there ";
         //env.sorts->findSort(name, outSort);
-        throw ArithmeticException();
+        //throw ArithmeticException();
+        USER_ERROR("Arithmetic Exception used to be thrown here");
     }
-    
+    Int::stringToInt(size, _size);
+    //Int::stringToInt(numberToRepresent, _numberToRepresent);
+   // _numberToRepresent = numberToRepresent;
     cout<<" size in bitvectorconstantype is "<<size; 
+    setBinArray(binArray);
     int t;
     Int::stringToInt(size, t);
     sortB = env.sorts->addBitVectorSort(t);
@@ -241,7 +246,10 @@ vstring IntegerConstantType::toString() const
 vstring BitVectorConstantType::toString() const
 {
     CALL("BitVectorConstantType::toString");
-    return "_ bv" + Int::toString(_numberToRepresent) + " " + Int::toString(_size);
+    cout<<endl<<" do we have a problem 2 "<<endl;
+    cout<<endl<<" do we have a problem 2 "<<binArray->size();
+    Signature::printBoolArrayContent(*binArray);
+    return "bv" + Signature::boolArraytoString(*binArray) + " " + Int::toString(_size);
 }
 
 ///////////////////////

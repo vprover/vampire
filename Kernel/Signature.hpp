@@ -411,7 +411,26 @@ class BitVectorSymbol
   unsigned addInterpretedFunction(Interpretation itp, const vstring& name);
   unsigned addInterpretedPredicate(Interpretation itp, const vstring& name);
 
-  unsigned addBitVectorConstant(const vstring& size, const vstring& numberToRepresent, bool defaultSort);
+ // unsigned addBitVectorConstant(const vstring& size, const vstring& numberToRepresent, bool defaultSort);
+  unsigned addBitVectorConstant(const vstring& size, const DArray<bool> binArray, bool defaultSort);
+  
+  static vstring boolArraytoString(DArray<bool> in);
+  static DArray<bool> getBinArrayFromVString(vstring& numberToRepresent);
+  //DArray<bool> calculateBinaryArray(const vstring& number);
+  static DArray<bool> padBinArray(DArray<bool> anArray, unsigned size);
+  //DArray<bool> lookUpBinArrayFromDecNumber(unsigned n);
+  static void printBoolArrayContent(DArray<bool> array);
+  static DArray<bool> getBinArrayFromDec(char n);
+  static void addBinArrays(const DArray<bool>& a1, const DArray<bool>& a2, DArray<bool>& result);
+  static DArray<bool> shiftLeft(DArray<bool> input, unsigned shiftByNum);
+  static DArray<bool> multBinArrays(DArray<bool> a1, DArray<bool> a2);
+  static DArray<bool> fitBinArrayIntoBits(DArray<bool> input, unsigned size);
+  static DArray<bool> truncate(DArray<bool> input, unsigned size);
+  static void copyDArray(const DArray<bool> from, DArray<bool>& to );
+  
+  
+  
+  
   
   unsigned addIntegerConstant(const vstring& number,bool defaultSort);
   unsigned addRationalConstant(const vstring& numerator, const vstring& denominator,bool defaultSort);

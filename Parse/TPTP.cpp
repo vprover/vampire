@@ -3838,7 +3838,7 @@ unsigned TPTP::sortOf(TermList t)
  * @author Andrei Voronkov
  */
 
-unsigned TPTP::addBitVectorConstant(const vstring& size, const vstring& numberToRepresent, Set<vstring>& overflow, bool defaultSort)
+/*unsigned TPTP::addBitVectorConstant(const vstring& size, const vstring& numberToRepresent, Set<vstring>& overflow, bool defaultSort)
 {
     CALL("TPTP::addBitVectorConstant");
     try{
@@ -3852,7 +3852,27 @@ unsigned TPTP::addBitVectorConstant(const vstring& size, const vstring& numberTo
     }
     
     return 0;
+}*/
+
+
+unsigned TPTP::addBitVectorConstant(const vstring& size, const DArray<bool> binArray, Set<vstring>& overflow, bool defaultSort)
+{
+    CALL("TPTP::addBitVectorConstant");
+    try{
+        return env.signature->addBitVectorConstant(size, binArray, defaultSort);
+    }catch(Kernel::ArithmeticException&){
+        // the numbertoRepresent is too big so we just use 1
+        USER_ERROR("We should never get here");
+        cout<<" \n Kernel::ArithmeticException \n";
+        vstring workAround = "1";
+       // return env.signature->addBitVectorConstant(size, workAround, defaultSort);
+        //USER_ERROR("Bitvector constant arithmetic exception");
+    }
+    
+    return 0;
 }
+
+
 unsigned TPTP::addIntegerConstant(const vstring& name, Set<vstring>& overflow, bool defaultSort)
 {
   CALL("TPTP::addIntegerConstant");

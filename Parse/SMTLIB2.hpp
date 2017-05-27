@@ -251,13 +251,13 @@ private:
   };
   static const char * s_termSymbolNameStrings[];
   
-// most signigicant bit will be at the end after this transformation   
+ 
 DArray<char> getHexArrayFromString(vstring& input)
 {
     DArray<char> result(input.length());
     for (int i = input.length()-1, j = 0; i>=0; --i,++j){
         if ((input.at(i) >= '0' && input.at(i) <= '9') || (input.at(i) >= 'a' && input.at(i) <= 'f') || (input.at(i) >= 'A' && input.at(i) <= 'F'))
-            result[j] = input[i];
+            result[j] = input[j];
         else
             USER_ERROR("Problem with the hexadecimal");
     }
@@ -299,18 +299,22 @@ int getIntValueFromHex(char in)
             
     }
 }
-  // most signigicant bit will be at the end after this transformation 
+
  DArray<bool> getBoolArrayFromString(vstring& input)
  {
+     cout<<endl<<" input is "<< input<<endl;
     DArray<bool> result(input.length());
     for (int j = 0, i = input.length()-1; i>=0;--i, ++j){
         cout<<"\n input at "<< i << " is "<<input.at(i);
-        if (input.at(i) == '0')
+        if (input.at(j) == '0')
             result[j] = false;
-        else if (input.at(i) == '1')
+        else if (input.at(j) == '1')
             result[j] = true;
         else
+        {
+            cout<<endl<<" the problem char is "<< result[j]<<endl;
             USER_ERROR("Zero or ones expected");
+        }
     }
     return result;
 
