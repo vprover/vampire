@@ -36,7 +36,7 @@ public:
     /** sort of reals */
     SRT_REAL = 4,
     /** this is not a sort, it is just used to denote the first index of a user-define sort */
-    FIRST_USER_SORT = 6
+    FIRST_USER_SORT = 5
   };
 
   /** Various structured sorts */
@@ -125,9 +125,6 @@ public:
 
   };
   
-  
-  // POSSIBLY HAVE TO INITALIZE THE DARRAY
-  
   class BitVectorSort : public StructuredSortInfo
   {
   public:
@@ -142,30 +139,11 @@ public:
       //cout << "Creating BitVectorSort " << name << " with id " << id << endl; 
 #endif
     }
-    
-    /*BitVectorSort(vstring name, unsigned size, unsigned arg1Size, unsigned arg2Size, unsigned id) : 
-      StructuredSortInfo(name,StructuredSort::BITVECTOR, id),
-      _size(size),_sizeArg1(arg1Size),_sizeArg2(arg2Size)
-    { 
-#if VDEBUG
-      //cout << "Creating BitVectorSort " << name << " with id " << id << endl; 
-#endif
-    }*/
 
-    unsigned getSize(){ return _size; }
-    
-   /* unsigned getSizeArg1(){ return _sizeArg1; }
-    unsigned getSizeArg2(){ return _sizeArg2; }
-   
-    void setArg1(unsigned a1){_sizeArg1 = a1; return;}
-    void setArg2(unsigned a2){_sizeArg2 = a2; return;}*/
+   unsigned getSize(){ return _size; }
     
   private: 
     unsigned _size;
-    //unsigned _sizeArg1;
-    //unsigned _sizeArg2;
-    DArray<unsigned> _bitvector;
-
   };
   
   
