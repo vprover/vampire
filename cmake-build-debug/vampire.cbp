@@ -1,0 +1,2306 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CodeBlocks_project_file>
+	<FileVersion major="1" minor="6"/>
+	<Project>
+		<Option title="vampire"/>
+		<Option makefile_is_custom="1"/>
+		<Option compiler="gcc"/>
+		<Option virtualFolders="CMake Files\;"/>
+		<Build>
+			<Target title="all">
+				<Option working_dir="/Users/dam/Desktop/wanderweg/vampire/cmake-build-debug"/>
+				<Option type="4"/>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j4 -f &quot;/Users/dam/Desktop/wanderweg/vampire/cmake-build-debug/Makefile&quot;  VERBOSE=1 all"/>
+					<CompileFile command="/usr/bin/make -j4 -f &quot;/Users/dam/Desktop/wanderweg/vampire/cmake-build-debug/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j4 -f &quot;/Users/dam/Desktop/wanderweg/vampire/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j4 -f &quot;/Users/dam/Desktop/wanderweg/vampire/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="rebuild_cache">
+				<Option working_dir="/Users/dam/Desktop/wanderweg/vampire/cmake-build-debug"/>
+				<Option type="4"/>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j4 -f &quot;/Users/dam/Desktop/wanderweg/vampire/cmake-build-debug/Makefile&quot;  VERBOSE=1 rebuild_cache"/>
+					<CompileFile command="/usr/bin/make -j4 -f &quot;/Users/dam/Desktop/wanderweg/vampire/cmake-build-debug/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j4 -f &quot;/Users/dam/Desktop/wanderweg/vampire/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j4 -f &quot;/Users/dam/Desktop/wanderweg/vampire/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="edit_cache">
+				<Option working_dir="/Users/dam/Desktop/wanderweg/vampire/cmake-build-debug"/>
+				<Option type="4"/>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j4 -f &quot;/Users/dam/Desktop/wanderweg/vampire/cmake-build-debug/Makefile&quot;  VERBOSE=1 edit_cache"/>
+					<CompileFile command="/usr/bin/make -j4 -f &quot;/Users/dam/Desktop/wanderweg/vampire/cmake-build-debug/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j4 -f &quot;/Users/dam/Desktop/wanderweg/vampire/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j4 -f &quot;/Users/dam/Desktop/wanderweg/vampire/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="vampire">
+				<Option output="/Users/dam/Desktop/wanderweg/vampire/cmake-build-debug/vampire" prefix_auto="0" extension_auto="0"/>
+				<Option working_dir="/Users/dam/Desktop/wanderweg/vampire/cmake-build-debug"/>
+				<Option object_output="./"/>
+				<Option type="1"/>
+				<Option compiler="gcc"/>
+				<Compiler>
+					<Add directory="/Users/dam/Desktop/wanderweg/vampire/Api"/>
+					<Add directory="/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/../include/c++/v1"/>
+					<Add directory="/usr/local/include"/>
+					<Add directory="/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/../lib/clang/8.1.0/include"/>
+					<Add directory="/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include"/>
+					<Add directory="/System/Library/Frameworks"/>
+					<Add directory="/Library/Frameworks"/>
+				</Compiler>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j4 -f &quot;/Users/dam/Desktop/wanderweg/vampire/cmake-build-debug/Makefile&quot;  VERBOSE=1 vampire"/>
+					<CompileFile command="/usr/bin/make -j4 -f &quot;/Users/dam/Desktop/wanderweg/vampire/cmake-build-debug/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j4 -f &quot;/Users/dam/Desktop/wanderweg/vampire/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j4 -f &quot;/Users/dam/Desktop/wanderweg/vampire/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="vampire/fast">
+				<Option output="/Users/dam/Desktop/wanderweg/vampire/cmake-build-debug/vampire" prefix_auto="0" extension_auto="0"/>
+				<Option working_dir="/Users/dam/Desktop/wanderweg/vampire/cmake-build-debug"/>
+				<Option object_output="./"/>
+				<Option type="1"/>
+				<Option compiler="gcc"/>
+				<Compiler>
+					<Add directory="/Users/dam/Desktop/wanderweg/vampire/Api"/>
+					<Add directory="/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/../include/c++/v1"/>
+					<Add directory="/usr/local/include"/>
+					<Add directory="/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/../lib/clang/8.1.0/include"/>
+					<Add directory="/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include"/>
+					<Add directory="/System/Library/Frameworks"/>
+					<Add directory="/Library/Frameworks"/>
+				</Compiler>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j4 -f &quot;/Users/dam/Desktop/wanderweg/vampire/cmake-build-debug/Makefile&quot;  VERBOSE=1 vampire/fast"/>
+					<CompileFile command="/usr/bin/make -j4 -f &quot;/Users/dam/Desktop/wanderweg/vampire/cmake-build-debug/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j4 -f &quot;/Users/dam/Desktop/wanderweg/vampire/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j4 -f &quot;/Users/dam/Desktop/wanderweg/vampire/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+		</Build>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Api/FormulaBuilder.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Api/FormulaBuilder.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Api/Helper.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Api/Helper.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Api/Helper_Internal.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Api/Problem.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Api/Problem.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Api/ResourceLimits.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Api/ResourceLimits.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Api/Tracing.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Api/Tracing.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/CASC/CASCMode.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/CASC/CASCMode.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/CASC/CASCMultiMode.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/CASC/CASCMultiMode.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/CASC/CLTBMode.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/CASC/CLTBMode.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/CASC/CLTBModeLearning.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/CASC/CLTBModeLearning.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/CASC/CMZRMode.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/CASC/CMZRMode.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/CASC/ForkingCM.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/CASC/ForkingCM.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/CASC/SpawningCM.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/CASC/SpawningCM.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/ClausifierDependencyFix.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Config.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/DP/DecisionProcedure.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/DP/ShortConflictMetaDP.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/DP/ShortConflictMetaDP.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/DP/SimpleCongruenceClosure.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/DP/SimpleCongruenceClosure.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Debug/Assertion.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Debug/Assertion.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Debug/RuntimeStatistics.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Debug/RuntimeStatistics.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Debug/Tracer.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Debug/Tracer.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/FMB/ClauseFlattening.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/FMB/ClauseFlattening.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/FMB/CliqueFinder.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/FMB/DefinitionIntroduction.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/FMB/FiniteModel.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/FMB/FiniteModel.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/FMB/FiniteModelBuilder.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/FMB/FiniteModelBuilder.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/FMB/FiniteModelMultiSorted.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/FMB/FiniteModelMultiSorted.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/FMB/FunctionRelationshipInference.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/FMB/FunctionRelationshipInference.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/FMB/ModelCheck.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/FMB/Monotonicity.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/FMB/Monotonicity.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/FMB/SortInference.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/FMB/SortInference.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Forwards.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Global.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Indexing/AcyclicityIndex.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Indexing/AcyclicityIndex.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Indexing/ArithmeticIndex.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Indexing/ArithmeticIndex.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Indexing/ClauseCodeTree.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Indexing/ClauseCodeTree.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Indexing/ClauseVariantIndex.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Indexing/ClauseVariantIndex.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Indexing/CodeTree.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Indexing/CodeTree.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Indexing/CodeTreeInterfaces.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Indexing/CodeTreeInterfaces.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Indexing/FormulaIndex.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Indexing/FormulaIndex.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Indexing/GroundingIndex.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Indexing/GroundingIndex.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Indexing/Index.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Indexing/Index.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Indexing/IndexManager.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Indexing/IndexManager.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Indexing/LiteralIndex.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Indexing/LiteralIndex.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Indexing/LiteralIndexingStructure.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Indexing/LiteralMiniIndex.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Indexing/LiteralMiniIndex.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Indexing/LiteralSubstitutionTree.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Indexing/LiteralSubstitutionTree.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Indexing/LiteralSubstitutionTreeWithoutTop.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Indexing/LiteralSubstitutionTreeWithoutTop.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Indexing/ResultSubstitution.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Indexing/ResultSubstitution.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Indexing/SubstitutionTree.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Indexing/SubstitutionTree.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Indexing/SubstitutionTree_FastGen.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Indexing/SubstitutionTree_FastInst.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Indexing/SubstitutionTree_Nodes.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Indexing/TermCodeTree.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Indexing/TermCodeTree.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Indexing/TermIndex.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Indexing/TermIndex.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Indexing/TermIndexingStructure.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Indexing/TermSharing.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Indexing/TermSharing.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Indexing/TermSubstitutionTree.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Indexing/TermSubstitutionTree.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Inferences/ArrayTheoryISE.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Inferences/ArrayTheoryISE.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Inferences/BackwardDemodulation.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Inferences/BackwardDemodulation.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Inferences/BackwardSubsumptionResolution.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Inferences/BackwardSubsumptionResolution.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Inferences/BinaryResolution.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Inferences/BinaryResolution.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Inferences/CTFwSubsAndRes.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Inferences/CTFwSubsAndRes.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Inferences/Condensation.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Inferences/Condensation.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Inferences/DistinctEqualitySimplifier.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Inferences/DistinctEqualitySimplifier.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Inferences/EqualityFactoring.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Inferences/EqualityFactoring.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Inferences/EqualityResolution.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Inferences/EqualityResolution.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Inferences/EquationalTautologyRemoval.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Inferences/EquationalTautologyRemoval.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Inferences/ExtensionalityResolution.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Inferences/ExtensionalityResolution.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Inferences/FOOLParamodulation.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Inferences/FOOLParamodulation.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Inferences/Factoring.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Inferences/Factoring.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Inferences/FastCondensation.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Inferences/FastCondensation.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Inferences/ForwardDemodulation.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Inferences/ForwardDemodulation.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Inferences/ForwardLiteralRewriting.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Inferences/ForwardLiteralRewriting.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Inferences/ForwardSubsumptionAndResolution.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Inferences/ForwardSubsumptionAndResolution.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Inferences/GlobalSubsumption.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Inferences/GlobalSubsumption.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Inferences/HyperSuperposition.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Inferences/HyperSuperposition.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Inferences/InferenceEngine.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Inferences/InferenceEngine.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Inferences/InnerRewriting.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Inferences/InnerRewriting.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Inferences/Instantiation.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Inferences/Instantiation.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Inferences/InterpretedEvaluation.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Inferences/InterpretedEvaluation.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Inferences/InterpretedSimplifier.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Inferences/InterpretedSimplifier.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Inferences/RefutationSeekerFSE.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Inferences/RefutationSeekerFSE.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Inferences/SLQueryBackwardSubsumption.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Inferences/SLQueryBackwardSubsumption.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Inferences/SLQueryForwardSubsumption.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Inferences/SLQueryForwardSubsumption.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Inferences/Superposition.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Inferences/Superposition.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Inferences/TautologyDeletionISE.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Inferences/TautologyDeletionISE.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Inferences/TermAlgebraReasoning.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Inferences/TermAlgebraReasoning.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Inferences/URResolution.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Inferences/URResolution.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/InstGen/IGAlgorithm.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/InstGen/IGAlgorithm.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/InstGen/ModelPrinter.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/InstGen/ModelPrinter.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Kernel/Assignment.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Kernel/Assignment.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Kernel/BestLiteralSelector.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Kernel/Clause.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Kernel/Clause.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Kernel/ClauseQueue.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Kernel/ClauseQueue.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Kernel/ColorHelper.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Kernel/ColorHelper.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Kernel/Connective.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Kernel/Constraint.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Kernel/Constraint.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Kernel/Curryfier.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Kernel/ELiteralSelector.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Kernel/ELiteralSelector.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Kernel/EqHelper.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Kernel/EqHelper.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Kernel/FlatTerm.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Kernel/FlatTerm.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Kernel/Formula.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Kernel/Formula.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Kernel/FormulaTransformer.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Kernel/FormulaTransformer.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Kernel/FormulaUnit.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Kernel/FormulaUnit.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Kernel/FormulaVarIterator.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Kernel/FormulaVarIterator.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Kernel/Grounder.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Kernel/Grounder.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Kernel/Inference.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Kernel/Inference.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Kernel/InferenceStore.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Kernel/InferenceStore.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Kernel/InterpretedLiteralEvaluator.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Kernel/InterpretedLiteralEvaluator.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Kernel/KBO.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Kernel/KBO.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Kernel/KBOForEPR.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Kernel/KBOForEPR.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Kernel/LiteralComparators.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Kernel/LiteralSelector.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Kernel/LiteralSelector.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Kernel/LookaheadLiteralSelector.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Kernel/LookaheadLiteralSelector.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Kernel/MLMatcher.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Kernel/MLMatcher.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Kernel/MLVariant.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Kernel/MLVariant.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Kernel/MainLoop.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Kernel/MainLoop.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Kernel/MatchTag.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Kernel/MatchTag.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Kernel/Matcher.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Kernel/Matcher.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Kernel/MaximalLiteralSelector.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Kernel/MaximalLiteralSelector.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Kernel/Number.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Kernel/Number.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Kernel/Ordering.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Kernel/Ordering.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Kernel/Ordering_Equality.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Kernel/Problem.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Kernel/Problem.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Kernel/RCClauseStack.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Kernel/Rational.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Kernel/Rational.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Kernel/Renaming.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Kernel/Renaming.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Kernel/RobSubstitution.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Kernel/RobSubstitution.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Kernel/Signature.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Kernel/Signature.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Kernel/SortHelper.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Kernel/SortHelper.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Kernel/Sorts.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Kernel/Sorts.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Kernel/SpassLiteralSelector.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Kernel/SpassLiteralSelector.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Kernel/SubformulaIterator.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Kernel/SubformulaIterator.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Kernel/SubstHelper.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Kernel/Substitution.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Kernel/Substitution.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Kernel/Term.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Kernel/Term.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Kernel/TermIterators.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Kernel/TermIterators.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Kernel/TermTransformer.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Kernel/TermTransformer.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Kernel/Theory.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Kernel/Theory.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Kernel/Unit.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Kernel/Unit.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Kernel/V2CIndex.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Kernel/V2CIndex.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Lib/Allocator.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Lib/Allocator.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Lib/Array.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Lib/ArrayMap.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Lib/BacktrackIterators.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Lib/Backtrackable.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Lib/BinaryHeap.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Lib/BitUtils.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Lib/BucketSorter.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Lib/Cache.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Lib/Comparison.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Lib/Counter.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Lib/DArray.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Lib/DHMap.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Lib/DHMap.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Lib/DHMultiset.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Lib/DHSet.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Lib/Deque.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Lib/DynamicHeap.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Lib/Enumerator.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Lib/Environment.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Lib/Environment.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Lib/Event.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Lib/Event.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Lib/Exception.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Lib/Exception.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Lib/FreshnessGuard.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Lib/Graph.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Lib/Graph.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Lib/Hash.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Lib/Hash.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Lib/ImplicationSetClosure.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Lib/InPlaceStack.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Lib/Int.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Lib/Int.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Lib/IntNameTable.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Lib/IntNameTable.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Lib/IntUnionFind.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Lib/IntUnionFind.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Lib/IntegerSet.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Lib/IntegerSet.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Lib/InverseLookup.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Lib/LastCopyWatcher.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Lib/List.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Lib/Map.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Lib/MapToLIFO.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Lib/MaybeBool.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Lib/MemoryLeak.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Lib/MemoryLeak.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Lib/Metaarrays.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Lib/Metaiterators.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Lib/MultiColumnMap.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Lib/MultiCounter.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Lib/MultiCounter.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Lib/NameArray.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Lib/NameArray.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Lib/Numbering.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Lib/OptionsReader.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Lib/OptionsReader.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Lib/PairUtils.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Lib/Portability.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Lib/RCPtr.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Lib/Random.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Lib/Random.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Lib/RatioKeeper.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Lib/Recycler.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Lib/ReferenceCounter.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Lib/Reflection.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Lib/SCCAnalyzer.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Lib/STLAllocator.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Lib/SafeRecursion.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Lib/ScopedLet.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Lib/ScopedPtr.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Lib/Set.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Lib/SharedSet.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Lib/SkipList.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Lib/SmartPtr.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Lib/Sort.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Lib/Stack.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Lib/StringUtils.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Lib/StringUtils.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Lib/Sys/Multiprocessing.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Lib/Sys/Multiprocessing.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Lib/Sys/Semaphore.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Lib/Sys/Semaphore.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Lib/Sys/SyncPipe.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Lib/Sys/SyncPipe.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Lib/System.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Lib/System.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Lib/TimeCounter.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Lib/TimeCounter.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Lib/Timer.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Lib/Timer.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Lib/TriangularArray.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Lib/VString.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Lib/Vector.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Lib/VirtualIterator.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Lib/XML.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Lib/XML.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Lib/fdstream.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Minisat/core/Dimacs.h">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Minisat/core/Main.cc">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Minisat/core/Solver.cc">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Minisat/core/Solver.h">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Minisat/core/SolverTypes.h">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Minisat/mtl/Alg.h">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Minisat/mtl/Alloc.h">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Minisat/mtl/Heap.h">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Minisat/mtl/IntMap.h">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Minisat/mtl/IntTypes.h">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Minisat/mtl/Map.h">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Minisat/mtl/Queue.h">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Minisat/mtl/Rnd.h">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Minisat/mtl/Sort.h">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Minisat/mtl/Vec.h">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Minisat/mtl/XAlloc.h">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Minisat/simp/Main.cc">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Minisat/simp/SimpSolver.cc">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Minisat/simp/SimpSolver.h">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Minisat/utils/Options.cc">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Minisat/utils/Options.h">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Minisat/utils/ParseUtils.h">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Minisat/utils/System.cc">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Minisat/utils/System.h">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Parse/SMTLIB.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Parse/SMTLIB.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Parse/SMTLIB2.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Parse/SMTLIB2.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Parse/TPTP.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Parse/TPTP.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Program/Analyze.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Program/Analyze.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Program/Expression.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Program/Expression.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Program/InvariantHelper.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Program/InvariantHelper.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Program/Lingva.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Program/Lingva.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Program/LoopAnalyzer.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Program/LoopAnalyzer.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Program/Path.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Program/Path.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Program/Statement.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Program/Statement.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Program/Type.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Program/Type.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Program/Variable.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Program/Variable.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/SAT/BufferedSolver.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/SAT/BufferedSolver.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/SAT/ClauseDisposer.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/SAT/ClauseDisposer.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/SAT/DIMACS.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/SAT/DIMACS.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/SAT/FallbackSolverWrapper.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/SAT/FallbackSolverWrapper.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/SAT/ISSatSweeping.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/SAT/ISSatSweeping.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/SAT/LingelingInterfacingDummy.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/SAT/MinimizingSolver.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/SAT/MinimizingSolver.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/SAT/MinisatInterfacing.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/SAT/MinisatInterfacing.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/SAT/MinisatInterfacingNewSimp.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/SAT/MinisatInterfacingNewSimp.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/SAT/Preprocess.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/SAT/Preprocess.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/SAT/RestartStrategy.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/SAT/RestartStrategy.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/SAT/SAT2FO.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/SAT/SAT2FO.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/SAT/SATClause.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/SAT/SATClause.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/SAT/SATClauseSharing.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/SAT/SATClauseSharing.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/SAT/SATInference.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/SAT/SATInference.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/SAT/SATLiteral.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/SAT/SATLiteral.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/SAT/SATSolver.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/SAT/SingleWatchSAT.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/SAT/SingleWatchSAT.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/SAT/TWLSolver.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/SAT/TWLSolver.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/SAT/TransparentSolver.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/SAT/TransparentSolver.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/SAT/VariableSelector.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/SAT/VariableSelector.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/SAT/Z3Interfacing.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/SAT/Z3Interfacing.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/SAT/Z3MainLoop.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/SAT/Z3MainLoop.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/SAT/lglconst.h">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/SAT/lglib.c">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/SAT/lglib.h">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/SAT/lgloptl.h">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/SAT/lglopts.c">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/SAT/lglopts.h">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/SMTCOMP/SMTCOMPMode.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/SMTCOMP/SMTCOMPMode.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Saturation/AWPassiveClauseContainer.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Saturation/AWPassiveClauseContainer.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Saturation/ClauseContainer.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Saturation/ClauseContainer.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Saturation/ConsequenceFinder.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Saturation/ConsequenceFinder.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Saturation/Discount.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Saturation/Discount.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Saturation/ExtensionalityClauseContainer.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Saturation/ExtensionalityClauseContainer.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Saturation/LRS.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Saturation/LRS.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Saturation/LabelFinder.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Saturation/LabelFinder.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Saturation/Limits.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Saturation/Limits.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Saturation/Otter.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Saturation/Otter.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Saturation/ProvingHelper.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Saturation/ProvingHelper.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Saturation/SaturationAlgorithm.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Saturation/SaturationAlgorithm.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Saturation/Splitter.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Saturation/Splitter.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Saturation/SymElOutput.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Saturation/SymElOutput.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Shell/AnswerExtractor.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Shell/AnswerExtractor.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Shell/AxiomGenerator.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Shell/AxiomGenerator.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Shell/BFNT.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Shell/BFNT.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Shell/BFNTMainLoop.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Shell/BFNTMainLoop.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Shell/BlockedClauseElimination.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Shell/BlockedClauseElimination.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Shell/CNF.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Shell/CNF.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Shell/CParser.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Shell/CParser.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Shell/CommandLine.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Shell/CommandLine.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Shell/ConstantRemover.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Shell/ConstantRemover.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Shell/ConstraintReaderBack.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Shell/ConstraintReaderBack.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Shell/DistinctGroupExpansion.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Shell/DistinctGroupExpansion.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Shell/DistinctProcessor.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Shell/DistinctProcessor.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Shell/EqResWithDeletion.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Shell/EqResWithDeletion.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Shell/EqualityAxiomatizer.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Shell/EqualityAxiomatizer.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Shell/EqualityProxy.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Shell/EqualityProxy.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Shell/EqualityVariableRemover.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Shell/EqualityVariableRemover.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Shell/EquivalentVariableRemover.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Shell/EquivalentVariableRemover.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Shell/FOOLElimination.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Shell/FOOLElimination.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Shell/Flattening.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Shell/Flattening.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Shell/FunctionDefinition.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Shell/FunctionDefinition.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Shell/GeneralSplitting.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Shell/GeneralSplitting.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Shell/GlobalOptions.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Shell/GlobalOptions.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Shell/Grounding.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Shell/Grounding.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Shell/HalfBoundingRemover.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Shell/HalfBoundingRemover.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Shell/InequalitySplitting.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Shell/InequalitySplitting.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Shell/InterpolantMinimizer.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Shell/InterpolantMinimizer.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Shell/Interpolants.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Shell/Interpolants.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Shell/InterpretedNormalizer.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Shell/InterpretedNormalizer.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Shell/LTB/Builder.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Shell/LTB/Builder.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Shell/LTB/Selector.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Shell/LTB/Selector.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Shell/LTB/Storage.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Shell/LTB/Storage.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Shell/LaTeX.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Shell/LaTeX.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Shell/Lexer.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Shell/Lexer.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Shell/LispLexer.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Shell/LispLexer.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Shell/LispParser.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Shell/LispParser.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Shell/NNF.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Shell/NNF.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Shell/Naming.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Shell/Naming.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Shell/NewCNF.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Shell/NewCNF.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Shell/Normalisation.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Shell/Normalisation.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Shell/Options.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Shell/Options.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Shell/PARSER_TKV.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Shell/PARSER_TKV.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Shell/PDUtils.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Shell/PDUtils.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Shell/PredicateDefinition.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Shell/PredicateDefinition.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Shell/Preprocess.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Shell/Preprocess.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Shell/Profile.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Shell/Profile.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Shell/ProofSimplifier.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Shell/ProofSimplifier.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Shell/Property.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Shell/Property.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Shell/Rectify.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Shell/Rectify.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Shell/Refutation.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Shell/Refutation.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Shell/SMTFormula.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Shell/SMTFormula.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Shell/SMTLEX.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Shell/SMTLEX.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Shell/SMTLIBLogic.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Shell/SMTPAR.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Shell/SMTPAR.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Shell/SMTPrinter.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Shell/SMTPrinter.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Shell/SimplifyFalseTrue.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Shell/SimplifyFalseTrue.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Shell/SimplifyProver.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Shell/SimplifyProver.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Shell/SineUtils.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Shell/SineUtils.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Shell/Skolem.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Shell/Skolem.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Shell/Statistics.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Shell/Statistics.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Shell/SubexpressionIterator.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Shell/SubexpressionIterator.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Shell/SubsumptionRemover.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Shell/SubsumptionRemover.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Shell/SymCounter.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Shell/SymCounter.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Shell/SymbolDefinitionInlining.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Shell/SymbolDefinitionInlining.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Shell/SymbolOccurrenceReplacement.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Shell/SymbolOccurrenceReplacement.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Shell/TPTPPrinter.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Shell/TPTPPrinter.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Shell/TermAlgebra.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Shell/TermAlgebra.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Shell/TheoryAxioms.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Shell/TheoryAxioms.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Shell/TheoryFinder.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Shell/TheoryFinder.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Shell/TheoryFlattening.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Shell/TheoryFlattening.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Shell/Token.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Shell/Token.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Shell/TrivialPredicateRemover.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Shell/TrivialPredicateRemover.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Shell/UIHelper.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Shell/UIHelper.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Shell/VarManager.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Shell/VarManager.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Test/CheckedFwSimplifier.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Test/CheckedFwSimplifier.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Test/CheckedSatSolver.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Test/CheckedSatSolver.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Test/Compit2Output.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Test/Compit2Output.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Test/CompitOutput.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Test/CompitOutput.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Test/DiffOrdering.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Test/Output.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Test/Output.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Test/RecordingSatSolver.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Test/RecordingSatSolver.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Test/TestUtils.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Test/TestUtils.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Test/UnitTesting.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Test/UnitTesting.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Test/compit2.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Test/compit2.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Test/compit2_impl.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Translator/CollectionOfObjects.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Translator/CollectionOfObjects.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Translator/MyASTConsumer.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Translator/MyASTConsumer.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Translator/NewTranslator.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/Translator/NewTranslator.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/UnitTests/tArithCompare.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/UnitTests/tBinaryHeap.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/UnitTests/tDHMap.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/UnitTests/tDHMultiset.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/UnitTests/tDisagreement.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/UnitTests/tDismatching.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/UnitTests/tDynamicHeap.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/UnitTests/tImplicationSetClosure.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/UnitTests/tInstantiation.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/UnitTests/tInterpretedFunctions.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/UnitTests/tInterpretedNormalizer.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/UnitTests/tList.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/UnitTests/tOptionConstraints.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/UnitTests/tProgramAnalysis.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/UnitTests/tProgramAnalysisCopy.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/UnitTests/tProgramAnalysisInvariantTest.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/UnitTests/tProgramAnalysisPartition.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/UnitTests/tRatioKeeper.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/UnitTests/tSATSolver.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/UnitTests/tSCCAnalyzer.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/UnitTests/tSafeRecursion.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/UnitTests/tSkipList.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/UnitTests/tStack.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/UnitTests/tTracingApi.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/UnitTests/tTransparentSolver.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/UnitTests/tTwoVampires.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/UnitTests/tZ3test.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/UnitTests/tfork.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/VUtils/AnnotationColoring.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/VUtils/AnnotationColoring.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/VUtils/CPAInterpolator.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/VUtils/CPAInterpolator.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/VUtils/DPTester.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/VUtils/DPTester.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/VUtils/EPRRestoringScanner.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/VUtils/EPRRestoringScanner.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/VUtils/FOEquivalenceDiscovery.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/VUtils/FOEquivalenceDiscovery.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/VUtils/LocalityRestoring.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/VUtils/LocalityRestoring.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/VUtils/PreprocessingEvaluator.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/VUtils/PreprocessingEvaluator.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/VUtils/ProblemColoring.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/VUtils/ProblemColoring.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/VUtils/RangeColoring.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/VUtils/RangeColoring.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/VUtils/SATReplayer.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/VUtils/SATReplayer.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/VUtils/SMTLIBConcat.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/VUtils/SMTLIBConcat.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/VUtils/SimpleSMT.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/VUtils/SimpleSMT.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/VUtils/Z3InterpolantExtractor.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/VUtils/Z3InterpolantExtractor.hpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/dummy_main.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/test_libvapi.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/test_vapi.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/ucompit.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/vampire.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/vclausify.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/vcompit.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/version.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/vground.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/vltb.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/vsat.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/vtest.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/vutil.cpp">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/z3/api/c++/z3++.h">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/z3/api/z3.h">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/z3/api/z3_algebraic.h">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/z3/api/z3_api.h">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/z3/api/z3_ast_containers.h">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/z3/api/z3_fixedpoint.h">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/z3/api/z3_fpa.h">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/z3/api/z3_interp.h">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/z3/api/z3_macros.h">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/z3/api/z3_optimization.h">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/z3/api/z3_polynomial.h">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/z3/api/z3_rcf.h">
+			<Option target="vampire"/>
+		</Unit>
+		<Unit filename="/Users/dam/Desktop/wanderweg/vampire/CMakeLists.txt">
+			<Option virtualFolder="CMake Files\"/>
+		</Unit>
+	</Project>
+</CodeBlocks_project_file>

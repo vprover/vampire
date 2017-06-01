@@ -414,7 +414,7 @@ class BitVectorSymbol
  // unsigned addBitVectorConstant(const vstring& size, const vstring& numberToRepresent, bool defaultSort);
   unsigned addBitVectorConstant(const vstring& size, const DArray<bool> binArray, bool defaultSort);
   
-  static vstring boolArraytoString(DArray<bool> in);
+  static vstring boolArraytoString(const DArray<bool>& in);
   static DArray<bool> getBinArrayFromVString(vstring& numberToRepresent);
   //DArray<bool> calculateBinaryArray(const vstring& number);
   static DArray<bool> padBinArray(DArray<bool> anArray, unsigned size);

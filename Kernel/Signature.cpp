@@ -229,7 +229,8 @@ Signature::Signature ():
   ASS_EQ(RATIONAL_DISTINCT_GROUP, aux);
   aux = createDistinctGroup();
   ASS_EQ(REAL_DISTINCT_GROUP, aux);
-
+  aux = createDistinctGroup();
+  ASS_EQ(BITVECTOR_DISTINCT_GROUP, aux);
 } // Signature::Signature
 
 /**
@@ -374,16 +375,15 @@ unsigned Signature::addIntegerConstant(const vstring& number,bool defaultSort)
     return result;
 }*/
 
-vstring Signature::boolArraytoString(DArray<bool> in){
+vstring Signature::boolArraytoString(const DArray<bool>& in){
     vstring out = "";
-    for (int i = 0 ; i < in.size() ; ++ i)
+    for (unsigned i = 0; i < in.size(); ++ i)
     {
-        if (in[i] == false)
-            out = out + "0";
-        else if (in[i] == true)
-             out = out + "1";
-        else
-            USER_ERROR("Unexpected character in bin array");
+        if (in[i]) {
+          out += "1";
+        } else {
+          out += "0";
+        }
     }
     return out;
 }
@@ -423,7 +423,7 @@ unsigned Signature::addBitVectorConstant(const vstring& size, const DArray<bool>
     cout<<" checkpoint o3 : "<<endl;
     _funNames.insert(key, result);
     cout<<" checkpoint o4 : "<<endl;
-   //sym->addToDistinctGroup(BITVECTOR_DISTINCT_GROUP,result);
+    sym->addToDistinctGroup(BITVECTOR_DISTINCT_GROUP,result);
     sym->addToDistinctGroup(STRING_DISTINCT_GROUP,result); // numbers are distinct from strings
     return result;
 }
@@ -654,6 +654,7 @@ void Signature::addBinArrays(const DArray<bool>& a1, const DArray<bool>& a2, DAr
         cout << endl<< "carry : "<<  carry  ;
         cout << endl<< "result[j] : "<<  result[j+1]  ;*/
         
+
         
         if ((a1[j] && carry && !a2[j]) || (a2[j] && carry && !a1[j]) || (a2[j] && !carry && a1[j]) ||(a2[j] && carry && a1[j])){
             carry = true;
@@ -662,13 +663,12 @@ void Signature::addBinArrays(const DArray<bool>& a1, const DArray<bool>& a2, DAr
             carry = false;
             //cout<<endl<< " j is "<< j << " and carry becomes false";
         }
+
+        carry = ((a1[j] && carry && !a2[j]) || (a2[j] && carry && !a1[j]) || (a2[j] && !carry && a1[j]) ||(a2[j] && carry && a1[j]));
+
     }
-    if (carry)
-        result[0] = true;
-    else
-        result[0] = false;
-    
-    
+
+    result[0] = carry;
 }
 
 DArray<bool> Signature::multBinArrays(DArray<bool> a1, DArray<bool> a2)

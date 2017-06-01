@@ -464,12 +464,10 @@ public:
     BV_ZERO_EXTEND,
     CONCAT,
     EXTRACT,
-    REPEAT,
-    DEFINE_BITVECTOR
-    
+    REPEAT
   };
   unsigned LastStructuredInterpretation(){
-    return static_cast<unsigned>(StructuredSortInterpretation::DEFINE_BITVECTOR);
+    return static_cast<unsigned>(StructuredSortInterpretation::REPEAT);
   }
   
   

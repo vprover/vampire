@@ -1,0 +1,992 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configurationDescriptor version="100">
+  <logicalFolder name="root" displayName="root" projectFiles="true" kind="ROOT">
+    <df root="." name="0">
+      <df name=".idea">
+      </df>
+      <df name="Api">
+        <in>FormulaBuilder.cpp</in>
+        <in>FormulaBuilder.hpp</in>
+        <in>Helper.cpp</in>
+        <in>Helper.hpp</in>
+        <in>Helper_Internal.hpp</in>
+        <in>Problem.cpp</in>
+        <in>Problem.hpp</in>
+        <in>ResourceLimits.cpp</in>
+        <in>ResourceLimits.hpp</in>
+        <in>Tracing.cpp</in>
+        <in>Tracing.hpp</in>
+      </df>
+      <df name="CASC">
+        <in>CASCMode.cpp</in>
+        <in>CASCMode.hpp</in>
+        <in>CASCMultiMode.cpp</in>
+        <in>CASCMultiMode.hpp</in>
+        <in>CLTBMode.cpp</in>
+        <in>CLTBMode.hpp</in>
+        <in>CLTBModeLearning.cpp</in>
+        <in>CLTBModeLearning.hpp</in>
+        <in>CMZRMode.cpp</in>
+        <in>CMZRMode.hpp</in>
+        <in>ForkingCM.cpp</in>
+        <in>ForkingCM.hpp</in>
+        <in>SpawningCM.cpp</in>
+        <in>SpawningCM.hpp</in>
+      </df>
+      <df name="cmake-build-debug">
+        <df name="CMakeFiles">
+          <df name="3.7.1">
+            <df name="CompilerIdC">
+              <in>CMakeCCompilerId.c</in>
+            </df>
+            <df name="CompilerIdCXX">
+              <in>CMakeCXXCompilerId.cpp</in>
+            </df>
+          </df>
+          <df name="CMakeTmp">
+          </df>
+          <df name="vampire.dir">
+            <df name="Api">
+            </df>
+            <df name="CASC">
+            </df>
+            <df name="Debug">
+            </df>
+            <df name="DP">
+            </df>
+            <df name="FMB">
+            </df>
+            <df name="Indexing">
+            </df>
+            <df name="Inferences">
+            </df>
+            <df name="InstGen">
+            </df>
+            <df name="Kernel">
+            </df>
+            <df name="Lib">
+              <df name="Sys">
+              </df>
+            </df>
+            <df name="Minisat">
+              <df name="core">
+              </df>
+              <df name="simp">
+              </df>
+              <df name="utils">
+              </df>
+            </df>
+            <df name="Parse">
+            </df>
+            <df name="Program">
+            </df>
+            <df name="SAT">
+            </df>
+            <df name="Saturation">
+            </df>
+            <df name="Shell">
+              <df name="LTB">
+              </df>
+            </df>
+            <df name="SMTCOMP">
+            </df>
+            <df name="Test">
+            </df>
+            <df name="Translator">
+            </df>
+            <df name="UnitTests">
+            </df>
+            <df name="VUtils">
+            </df>
+          </df>
+          <in>feature_tests.c</in>
+          <in>feature_tests.cxx</in>
+        </df>
+      </df>
+      <df name="Debug">
+        <in>Assertion.cpp</in>
+        <in>Assertion.hpp</in>
+        <in>RuntimeStatistics.cpp</in>
+        <in>RuntimeStatistics.hpp</in>
+        <in>Tracer.cpp</in>
+        <in>Tracer.hpp</in>
+      </df>
+      <df name="DP">
+        <in>DecisionProcedure.hpp</in>
+        <in>ShortConflictMetaDP.cpp</in>
+        <in>ShortConflictMetaDP.hpp</in>
+        <in>SimpleCongruenceClosure.cpp</in>
+        <in>SimpleCongruenceClosure.hpp</in>
+      </df>
+      <df name="FMB">
+        <in>ClauseFlattening.cpp</in>
+        <in>ClauseFlattening.hpp</in>
+        <in>CliqueFinder.hpp</in>
+        <in>DefinitionIntroduction.hpp</in>
+        <in>FiniteModel.cpp</in>
+        <in>FiniteModel.hpp</in>
+        <in>FiniteModelBuilder.cpp</in>
+        <in>FiniteModelBuilder.hpp</in>
+        <in>FiniteModelMultiSorted.cpp</in>
+        <in>FiniteModelMultiSorted.hpp</in>
+        <in>FunctionRelationshipInference.cpp</in>
+        <in>FunctionRelationshipInference.hpp</in>
+        <in>ModelCheck.hpp</in>
+        <in>Monotonicity.cpp</in>
+        <in>Monotonicity.hpp</in>
+        <in>SortInference.cpp</in>
+        <in>SortInference.hpp</in>
+      </df>
+      <df name="Indexing">
+        <in>AcyclicityIndex.cpp</in>
+        <in>AcyclicityIndex.hpp</in>
+        <in>ArithmeticIndex.cpp</in>
+        <in>ArithmeticIndex.hpp</in>
+        <in>ClauseCodeTree.cpp</in>
+        <in>ClauseCodeTree.hpp</in>
+        <in>ClauseVariantIndex.cpp</in>
+        <in>ClauseVariantIndex.hpp</in>
+        <in>CodeTree.cpp</in>
+        <in>CodeTree.hpp</in>
+        <in>CodeTreeInterfaces.cpp</in>
+        <in>CodeTreeInterfaces.hpp</in>
+        <in>FormulaIndex.cpp</in>
+        <in>FormulaIndex.hpp</in>
+        <in>GroundingIndex.cpp</in>
+        <in>GroundingIndex.hpp</in>
+        <in>Index.cpp</in>
+        <in>Index.hpp</in>
+        <in>IndexManager.cpp</in>
+        <in>IndexManager.hpp</in>
+        <in>LiteralIndex.cpp</in>
+        <in>LiteralIndex.hpp</in>
+        <in>LiteralIndexingStructure.hpp</in>
+        <in>LiteralMiniIndex.cpp</in>
+        <in>LiteralMiniIndex.hpp</in>
+        <in>LiteralSubstitutionTree.cpp</in>
+        <in>LiteralSubstitutionTree.hpp</in>
+        <in>LiteralSubstitutionTreeWithoutTop.cpp</in>
+        <in>LiteralSubstitutionTreeWithoutTop.hpp</in>
+        <in>ResultSubstitution.cpp</in>
+        <in>ResultSubstitution.hpp</in>
+        <in>SubstitutionTree.cpp</in>
+        <in>SubstitutionTree.hpp</in>
+        <in>SubstitutionTree_FastGen.cpp</in>
+        <in>SubstitutionTree_FastInst.cpp</in>
+        <in>SubstitutionTree_Nodes.cpp</in>
+        <in>TermCodeTree.cpp</in>
+        <in>TermCodeTree.hpp</in>
+        <in>TermIndex.cpp</in>
+        <in>TermIndex.hpp</in>
+        <in>TermIndexingStructure.hpp</in>
+        <in>TermSharing.cpp</in>
+        <in>TermSharing.hpp</in>
+        <in>TermSubstitutionTree.cpp</in>
+        <in>TermSubstitutionTree.hpp</in>
+      </df>
+      <df name="Inferences">
+        <in>ArrayTheoryISE.cpp</in>
+        <in>ArrayTheoryISE.hpp</in>
+        <in>BackwardDemodulation.cpp</in>
+        <in>BackwardDemodulation.hpp</in>
+        <in>BackwardSubsumptionResolution.cpp</in>
+        <in>BackwardSubsumptionResolution.hpp</in>
+        <in>BinaryResolution.cpp</in>
+        <in>BinaryResolution.hpp</in>
+        <in>CTFwSubsAndRes.cpp</in>
+        <in>CTFwSubsAndRes.hpp</in>
+        <in>Condensation.cpp</in>
+        <in>Condensation.hpp</in>
+        <in>DistinctEqualitySimplifier.cpp</in>
+        <in>DistinctEqualitySimplifier.hpp</in>
+        <in>EqualityFactoring.cpp</in>
+        <in>EqualityFactoring.hpp</in>
+        <in>EqualityResolution.cpp</in>
+        <in>EqualityResolution.hpp</in>
+        <in>EquationalTautologyRemoval.cpp</in>
+        <in>EquationalTautologyRemoval.hpp</in>
+        <in>ExtensionalityResolution.cpp</in>
+        <in>ExtensionalityResolution.hpp</in>
+        <in>FOOLParamodulation.cpp</in>
+        <in>FOOLParamodulation.hpp</in>
+        <in>Factoring.cpp</in>
+        <in>Factoring.hpp</in>
+        <in>FastCondensation.cpp</in>
+        <in>FastCondensation.hpp</in>
+        <in>ForwardDemodulation.cpp</in>
+        <in>ForwardDemodulation.hpp</in>
+        <in>ForwardLiteralRewriting.cpp</in>
+        <in>ForwardLiteralRewriting.hpp</in>
+        <in>ForwardSubsumptionAndResolution.cpp</in>
+        <in>ForwardSubsumptionAndResolution.hpp</in>
+        <in>GlobalSubsumption.cpp</in>
+        <in>GlobalSubsumption.hpp</in>
+        <in>HyperSuperposition.cpp</in>
+        <in>HyperSuperposition.hpp</in>
+        <in>InferenceEngine.cpp</in>
+        <in>InferenceEngine.hpp</in>
+        <in>InnerRewriting.cpp</in>
+        <in>InnerRewriting.hpp</in>
+        <in>Instantiation.cpp</in>
+        <in>Instantiation.hpp</in>
+        <in>InterpretedEvaluation.cpp</in>
+        <in>InterpretedEvaluation.hpp</in>
+        <in>InterpretedSimplifier.cpp</in>
+        <in>InterpretedSimplifier.hpp</in>
+        <in>RefutationSeekerFSE.cpp</in>
+        <in>RefutationSeekerFSE.hpp</in>
+        <in>SLQueryBackwardSubsumption.cpp</in>
+        <in>SLQueryBackwardSubsumption.hpp</in>
+        <in>SLQueryForwardSubsumption.cpp</in>
+        <in>SLQueryForwardSubsumption.hpp</in>
+        <in>Superposition.cpp</in>
+        <in>Superposition.hpp</in>
+        <in>TautologyDeletionISE.cpp</in>
+        <in>TautologyDeletionISE.hpp</in>
+        <in>TermAlgebraReasoning.cpp</in>
+        <in>TermAlgebraReasoning.hpp</in>
+        <in>URResolution.cpp</in>
+        <in>URResolution.hpp</in>
+      </df>
+      <df name="InstGen">
+        <in>IGAlgorithm.cpp</in>
+        <in>IGAlgorithm.hpp</in>
+        <in>ModelPrinter.cpp</in>
+        <in>ModelPrinter.hpp</in>
+      </df>
+      <df name="Kernel">
+        <in>Assignment.cpp</in>
+        <in>Assignment.hpp</in>
+        <in>BestLiteralSelector.hpp</in>
+        <in>Clause.cpp</in>
+        <in>Clause.hpp</in>
+        <in>ClauseQueue.cpp</in>
+        <in>ClauseQueue.hpp</in>
+        <in>ColorHelper.cpp</in>
+        <in>ColorHelper.hpp</in>
+        <in>Connective.hpp</in>
+        <in>Constraint.cpp</in>
+        <in>Constraint.hpp</in>
+        <in>Curryfier.hpp</in>
+        <in>ELiteralSelector.cpp</in>
+        <in>ELiteralSelector.hpp</in>
+        <in>EqHelper.cpp</in>
+        <in>EqHelper.hpp</in>
+        <in>FlatTerm.cpp</in>
+        <in>FlatTerm.hpp</in>
+        <in>Formula.cpp</in>
+        <in>Formula.hpp</in>
+        <in>FormulaTransformer.cpp</in>
+        <in>FormulaTransformer.hpp</in>
+        <in>FormulaUnit.cpp</in>
+        <in>FormulaUnit.hpp</in>
+        <in>FormulaVarIterator.cpp</in>
+        <in>FormulaVarIterator.hpp</in>
+        <in>Grounder.cpp</in>
+        <in>Grounder.hpp</in>
+        <in>Inference.cpp</in>
+        <in>Inference.hpp</in>
+        <in>InferenceStore.cpp</in>
+        <in>InferenceStore.hpp</in>
+        <in>InterpretedLiteralEvaluator.cpp</in>
+        <in>InterpretedLiteralEvaluator.hpp</in>
+        <in>KBO.cpp</in>
+        <in>KBO.hpp</in>
+        <in>KBOForEPR.cpp</in>
+        <in>KBOForEPR.hpp</in>
+        <in>LiteralComparators.hpp</in>
+        <in>LiteralSelector.cpp</in>
+        <in>LiteralSelector.hpp</in>
+        <in>LookaheadLiteralSelector.cpp</in>
+        <in>LookaheadLiteralSelector.hpp</in>
+        <in>MLMatcher.cpp</in>
+        <in>MLMatcher.hpp</in>
+        <in>MLVariant.cpp</in>
+        <in>MLVariant.hpp</in>
+        <in>MainLoop.cpp</in>
+        <in>MainLoop.hpp</in>
+        <in>MatchTag.cpp</in>
+        <in>MatchTag.hpp</in>
+        <in>Matcher.cpp</in>
+        <in>Matcher.hpp</in>
+        <in>MaximalLiteralSelector.cpp</in>
+        <in>MaximalLiteralSelector.hpp</in>
+        <in>Number.cpp</in>
+        <in>Number.hpp</in>
+        <in>Ordering.cpp</in>
+        <in>Ordering.hpp</in>
+        <in>Ordering_Equality.cpp</in>
+        <in>Problem.cpp</in>
+        <in>Problem.hpp</in>
+        <in>RCClauseStack.hpp</in>
+        <in>Rational.cpp</in>
+        <in>Rational.hpp</in>
+        <in>Renaming.cpp</in>
+        <in>Renaming.hpp</in>
+        <in>RobSubstitution.cpp</in>
+        <in>RobSubstitution.hpp</in>
+        <in>Signature.cpp</in>
+        <in>Signature.hpp</in>
+        <in>SortHelper.cpp</in>
+        <in>SortHelper.hpp</in>
+        <in>Sorts.cpp</in>
+        <in>Sorts.hpp</in>
+        <in>SpassLiteralSelector.cpp</in>
+        <in>SpassLiteralSelector.hpp</in>
+        <in>SubformulaIterator.cpp</in>
+        <in>SubformulaIterator.hpp</in>
+        <in>SubstHelper.hpp</in>
+        <in>Substitution.cpp</in>
+        <in>Substitution.hpp</in>
+        <in>Term.cpp</in>
+        <in>Term.hpp</in>
+        <in>TermIterators.cpp</in>
+        <in>TermIterators.hpp</in>
+        <in>TermTransformer.cpp</in>
+        <in>TermTransformer.hpp</in>
+        <in>Theory.cpp</in>
+        <in>Theory.hpp</in>
+        <in>Unit.cpp</in>
+        <in>Unit.hpp</in>
+        <in>V2CIndex.cpp</in>
+        <in>V2CIndex.hpp</in>
+      </df>
+      <df name="Lib">
+        <df name="Sys">
+          <in>Multiprocessing.cpp</in>
+          <in>Multiprocessing.hpp</in>
+          <in>Semaphore.cpp</in>
+          <in>Semaphore.hpp</in>
+          <in>SyncPipe.cpp</in>
+          <in>SyncPipe.hpp</in>
+        </df>
+        <in>Allocator.cpp</in>
+        <in>Allocator.hpp</in>
+        <in>Array.hpp</in>
+        <in>ArrayMap.hpp</in>
+        <in>BacktrackIterators.hpp</in>
+        <in>Backtrackable.hpp</in>
+        <in>BinaryHeap.hpp</in>
+        <in>BitUtils.hpp</in>
+        <in>BucketSorter.hpp</in>
+        <in>Cache.hpp</in>
+        <in>Comparison.hpp</in>
+        <in>Counter.hpp</in>
+        <in>DArray.hpp</in>
+        <in>DHMap.cpp</in>
+        <in>DHMap.hpp</in>
+        <in>DHMultiset.hpp</in>
+        <in>DHSet.hpp</in>
+        <in>Deque.hpp</in>
+        <in>DynamicHeap.hpp</in>
+        <in>Enumerator.hpp</in>
+        <in>Environment.cpp</in>
+        <in>Environment.hpp</in>
+        <in>Event.cpp</in>
+        <in>Event.hpp</in>
+        <in>Exception.cpp</in>
+        <in>Exception.hpp</in>
+        <in>FreshnessGuard.hpp</in>
+        <in>Graph.cpp</in>
+        <in>Graph.hpp</in>
+        <in>Hash.cpp</in>
+        <in>Hash.hpp</in>
+        <in>ImplicationSetClosure.hpp</in>
+        <in>InPlaceStack.hpp</in>
+        <in>Int.cpp</in>
+        <in>Int.hpp</in>
+        <in>IntNameTable.cpp</in>
+        <in>IntNameTable.hpp</in>
+        <in>IntUnionFind.cpp</in>
+        <in>IntUnionFind.hpp</in>
+        <in>IntegerSet.cpp</in>
+        <in>IntegerSet.hpp</in>
+        <in>InverseLookup.hpp</in>
+        <in>LastCopyWatcher.hpp</in>
+        <in>List.hpp</in>
+        <in>Map.hpp</in>
+        <in>MapToLIFO.hpp</in>
+        <in>MaybeBool.hpp</in>
+        <in>MemoryLeak.cpp</in>
+        <in>MemoryLeak.hpp</in>
+        <in>Metaarrays.hpp</in>
+        <in>Metaiterators.hpp</in>
+        <in>MultiColumnMap.hpp</in>
+        <in>MultiCounter.cpp</in>
+        <in>MultiCounter.hpp</in>
+        <in>NameArray.cpp</in>
+        <in>NameArray.hpp</in>
+        <in>Numbering.hpp</in>
+        <in>OptionsReader.cpp</in>
+        <in>OptionsReader.hpp</in>
+        <in>PairUtils.hpp</in>
+        <in>Portability.hpp</in>
+        <in>RCPtr.hpp</in>
+        <in>Random.cpp</in>
+        <in>Random.hpp</in>
+        <in>RatioKeeper.hpp</in>
+        <in>Recycler.hpp</in>
+        <in>ReferenceCounter.hpp</in>
+        <in>Reflection.hpp</in>
+        <in>SCCAnalyzer.hpp</in>
+        <in>STLAllocator.hpp</in>
+        <in>SafeRecursion.hpp</in>
+        <in>ScopedLet.hpp</in>
+        <in>ScopedPtr.hpp</in>
+        <in>Set.hpp</in>
+        <in>SharedSet.hpp</in>
+        <in>SkipList.hpp</in>
+        <in>SmartPtr.hpp</in>
+        <in>Sort.hpp</in>
+        <in>Stack.hpp</in>
+        <in>StringUtils.cpp</in>
+        <in>StringUtils.hpp</in>
+        <in>System.cpp</in>
+        <in>System.hpp</in>
+        <in>TimeCounter.cpp</in>
+        <in>TimeCounter.hpp</in>
+        <in>Timer.cpp</in>
+        <in>Timer.hpp</in>
+        <in>TriangularArray.hpp</in>
+        <in>VString.hpp</in>
+        <in>Vector.hpp</in>
+        <in>VirtualIterator.hpp</in>
+        <in>XML.cpp</in>
+        <in>XML.hpp</in>
+        <in>fdstream.hpp</in>
+      </df>
+      <df name="Minisat">
+        <df name="core">
+          <in>Dimacs.h</in>
+          <in>Main.cc</in>
+          <in>Solver.cc</in>
+          <in>Solver.h</in>
+          <in>SolverTypes.h</in>
+        </df>
+        <df name="mtl">
+          <in>Alg.h</in>
+          <in>Alloc.h</in>
+          <in>Heap.h</in>
+          <in>IntMap.h</in>
+          <in>IntTypes.h</in>
+          <in>Map.h</in>
+          <in>Queue.h</in>
+          <in>Rnd.h</in>
+          <in>Sort.h</in>
+          <in>Vec.h</in>
+          <in>XAlloc.h</in>
+        </df>
+        <df name="simp">
+          <in>Main.cc</in>
+          <in>SimpSolver.cc</in>
+          <in>SimpSolver.h</in>
+        </df>
+        <df name="utils">
+          <in>Options.cc</in>
+          <in>Options.h</in>
+          <in>ParseUtils.h</in>
+          <in>System.cc</in>
+          <in>System.h</in>
+        </df>
+      </df>
+      <df name="obj">
+        <df name="29205X">
+          <df name="Api">
+          </df>
+          <df name="CASC">
+          </df>
+          <df name="Debug">
+          </df>
+          <df name="DP">
+          </df>
+          <df name="FMB">
+          </df>
+          <df name="Indexing">
+          </df>
+          <df name="Inferences">
+          </df>
+          <df name="InstGen">
+          </df>
+          <df name="Kernel">
+          </df>
+          <df name="Lib">
+            <df name="Sys">
+            </df>
+          </df>
+          <df name="Minisat">
+            <df name="core">
+            </df>
+            <df name="mtl">
+            </df>
+            <df name="simp">
+            </df>
+            <df name="utils">
+            </df>
+          </df>
+          <df name="Parse">
+          </df>
+          <df name="Program">
+          </df>
+          <df name="SAT">
+          </df>
+          <df name="Saturation">
+          </df>
+          <df name="Shell">
+            <df name="LTB">
+            </df>
+          </df>
+          <df name="SMTCOMP">
+          </df>
+          <df name="Test">
+          </df>
+          <df name="UnitTests">
+          </df>
+          <df name="VUtils">
+          </df>
+        </df>
+      </df>
+      <df name="Parse">
+        <in>SMTLIB.cpp</in>
+        <in>SMTLIB.hpp</in>
+        <in>SMTLIB2.cpp</in>
+        <in>SMTLIB2.hpp</in>
+        <in>TPTP.cpp</in>
+        <in>TPTP.hpp</in>
+      </df>
+      <df name="Program">
+        <in>Analyze.cpp</in>
+        <in>Analyze.hpp</in>
+        <in>Expression.cpp</in>
+        <in>Expression.hpp</in>
+        <in>InvariantHelper.cpp</in>
+        <in>InvariantHelper.hpp</in>
+        <in>Lingva.cpp</in>
+        <in>Lingva.hpp</in>
+        <in>LoopAnalyzer.cpp</in>
+        <in>LoopAnalyzer.hpp</in>
+        <in>Path.cpp</in>
+        <in>Path.hpp</in>
+        <in>Statement.cpp</in>
+        <in>Statement.hpp</in>
+        <in>Type.cpp</in>
+        <in>Type.hpp</in>
+        <in>Variable.cpp</in>
+        <in>Variable.hpp</in>
+      </df>
+      <df name="regressions">
+        <df name="problems">
+        </df>
+        <df name="scripts">
+        </df>
+      </df>
+      <df name="SAT">
+        <in>BufferedSolver.cpp</in>
+        <in>BufferedSolver.hpp</in>
+        <in>ClauseDisposer.cpp</in>
+        <in>ClauseDisposer.hpp</in>
+        <in>DIMACS.cpp</in>
+        <in>DIMACS.hpp</in>
+        <in>FallbackSolverWrapper.cpp</in>
+        <in>FallbackSolverWrapper.hpp</in>
+        <in>ISSatSweeping.cpp</in>
+        <in>ISSatSweeping.hpp</in>
+        <in>LingelingInterfacingDummy.hpp</in>
+        <in>MinimizingSolver.cpp</in>
+        <in>MinimizingSolver.hpp</in>
+        <in>MinisatInterfacing.cpp</in>
+        <in>MinisatInterfacing.hpp</in>
+        <in>MinisatInterfacingNewSimp.cpp</in>
+        <in>MinisatInterfacingNewSimp.hpp</in>
+        <in>Preprocess.cpp</in>
+        <in>Preprocess.hpp</in>
+        <in>RestartStrategy.cpp</in>
+        <in>RestartStrategy.hpp</in>
+        <in>SAT2FO.cpp</in>
+        <in>SAT2FO.hpp</in>
+        <in>SATClause.cpp</in>
+        <in>SATClause.hpp</in>
+        <in>SATClauseSharing.cpp</in>
+        <in>SATClauseSharing.hpp</in>
+        <in>SATInference.cpp</in>
+        <in>SATInference.hpp</in>
+        <in>SATLiteral.cpp</in>
+        <in>SATLiteral.hpp</in>
+        <in>SATSolver.hpp</in>
+        <in>SingleWatchSAT.cpp</in>
+        <in>SingleWatchSAT.hpp</in>
+        <in>TWLSolver.cpp</in>
+        <in>TWLSolver.hpp</in>
+        <in>TransparentSolver.cpp</in>
+        <in>TransparentSolver.hpp</in>
+        <in>VariableSelector.cpp</in>
+        <in>VariableSelector.hpp</in>
+        <in>Z3Interfacing.cpp</in>
+        <in>Z3Interfacing.hpp</in>
+        <in>Z3MainLoop.cpp</in>
+        <in>Z3MainLoop.hpp</in>
+        <in>lglconst.h</in>
+        <in>lglib.c</in>
+        <in>lglib.h</in>
+        <in>lgloptl.h</in>
+        <in>lglopts.c</in>
+        <in>lglopts.h</in>
+      </df>
+      <df name="Saturation">
+        <in>AWPassiveClauseContainer.cpp</in>
+        <in>AWPassiveClauseContainer.hpp</in>
+        <in>ClauseContainer.cpp</in>
+        <in>ClauseContainer.hpp</in>
+        <in>ConsequenceFinder.cpp</in>
+        <in>ConsequenceFinder.hpp</in>
+        <in>Discount.cpp</in>
+        <in>Discount.hpp</in>
+        <in>ExtensionalityClauseContainer.cpp</in>
+        <in>ExtensionalityClauseContainer.hpp</in>
+        <in>LRS.cpp</in>
+        <in>LRS.hpp</in>
+        <in>LabelFinder.cpp</in>
+        <in>LabelFinder.hpp</in>
+        <in>Limits.cpp</in>
+        <in>Limits.hpp</in>
+        <in>Otter.cpp</in>
+        <in>Otter.hpp</in>
+        <in>ProvingHelper.cpp</in>
+        <in>ProvingHelper.hpp</in>
+        <in>SaturationAlgorithm.cpp</in>
+        <in>SaturationAlgorithm.hpp</in>
+        <in>Splitter.cpp</in>
+        <in>Splitter.hpp</in>
+        <in>SymElOutput.cpp</in>
+        <in>SymElOutput.hpp</in>
+      </df>
+      <df name="scripts">
+        <df name="papers">
+        </df>
+      </df>
+      <df name="Shell">
+        <df name="LTB">
+          <in>Builder.cpp</in>
+          <in>Builder.hpp</in>
+          <in>Selector.cpp</in>
+          <in>Selector.hpp</in>
+          <in>Storage.cpp</in>
+          <in>Storage.hpp</in>
+        </df>
+        <in>AnswerExtractor.cpp</in>
+        <in>AnswerExtractor.hpp</in>
+        <in>AxiomGenerator.cpp</in>
+        <in>AxiomGenerator.hpp</in>
+        <in>BFNT.cpp</in>
+        <in>BFNT.hpp</in>
+        <in>BFNTMainLoop.cpp</in>
+        <in>BFNTMainLoop.hpp</in>
+        <in>BlockedClauseElimination.cpp</in>
+        <in>BlockedClauseElimination.hpp</in>
+        <in>CNF.cpp</in>
+        <in>CNF.hpp</in>
+        <in>CParser.cpp</in>
+        <in>CParser.hpp</in>
+        <in>CommandLine.cpp</in>
+        <in>CommandLine.hpp</in>
+        <in>ConstantRemover.cpp</in>
+        <in>ConstantRemover.hpp</in>
+        <in>ConstraintReaderBack.cpp</in>
+        <in>ConstraintReaderBack.hpp</in>
+        <in>DistinctGroupExpansion.cpp</in>
+        <in>DistinctGroupExpansion.hpp</in>
+        <in>DistinctProcessor.cpp</in>
+        <in>DistinctProcessor.hpp</in>
+        <in>EqResWithDeletion.cpp</in>
+        <in>EqResWithDeletion.hpp</in>
+        <in>EqualityAxiomatizer.cpp</in>
+        <in>EqualityAxiomatizer.hpp</in>
+        <in>EqualityProxy.cpp</in>
+        <in>EqualityProxy.hpp</in>
+        <in>EqualityVariableRemover.cpp</in>
+        <in>EqualityVariableRemover.hpp</in>
+        <in>EquivalentVariableRemover.cpp</in>
+        <in>EquivalentVariableRemover.hpp</in>
+        <in>FOOLElimination.cpp</in>
+        <in>FOOLElimination.hpp</in>
+        <in>Flattening.cpp</in>
+        <in>Flattening.hpp</in>
+        <in>FunctionDefinition.cpp</in>
+        <in>FunctionDefinition.hpp</in>
+        <in>GeneralSplitting.cpp</in>
+        <in>GeneralSplitting.hpp</in>
+        <in>GlobalOptions.cpp</in>
+        <in>GlobalOptions.hpp</in>
+        <in>Grounding.cpp</in>
+        <in>Grounding.hpp</in>
+        <in>HalfBoundingRemover.cpp</in>
+        <in>HalfBoundingRemover.hpp</in>
+        <in>InequalitySplitting.cpp</in>
+        <in>InequalitySplitting.hpp</in>
+        <in>InterpolantMinimizer.cpp</in>
+        <in>InterpolantMinimizer.hpp</in>
+        <in>Interpolants.cpp</in>
+        <in>Interpolants.hpp</in>
+        <in>InterpretedNormalizer.cpp</in>
+        <in>InterpretedNormalizer.hpp</in>
+        <in>LaTeX.cpp</in>
+        <in>LaTeX.hpp</in>
+        <in>Lexer.cpp</in>
+        <in>Lexer.hpp</in>
+        <in>LispLexer.cpp</in>
+        <in>LispLexer.hpp</in>
+        <in>LispParser.cpp</in>
+        <in>LispParser.hpp</in>
+        <in>NNF.cpp</in>
+        <in>NNF.hpp</in>
+        <in>Naming.cpp</in>
+        <in>Naming.hpp</in>
+        <in>NewCNF.cpp</in>
+        <in>NewCNF.hpp</in>
+        <in>Normalisation.cpp</in>
+        <in>Normalisation.hpp</in>
+        <in>Options.cpp</in>
+        <in>Options.hpp</in>
+        <in>PARSER_TKV.cpp</in>
+        <in>PARSER_TKV.hpp</in>
+        <in>PDUtils.cpp</in>
+        <in>PDUtils.hpp</in>
+        <in>PredicateDefinition.cpp</in>
+        <in>PredicateDefinition.hpp</in>
+        <in>Preprocess.cpp</in>
+        <in>Preprocess.hpp</in>
+        <in>Profile.cpp</in>
+        <in>Profile.hpp</in>
+        <in>ProofSimplifier.cpp</in>
+        <in>ProofSimplifier.hpp</in>
+        <in>Property.cpp</in>
+        <in>Property.hpp</in>
+        <in>Rectify.cpp</in>
+        <in>Rectify.hpp</in>
+        <in>Refutation.cpp</in>
+        <in>Refutation.hpp</in>
+        <in>SMTFormula.cpp</in>
+        <in>SMTFormula.hpp</in>
+        <in>SMTLEX.cpp</in>
+        <in>SMTLEX.hpp</in>
+        <in>SMTLIBLogic.hpp</in>
+        <in>SMTPAR.cpp</in>
+        <in>SMTPAR.hpp</in>
+        <in>SMTPrinter.cpp</in>
+        <in>SMTPrinter.hpp</in>
+        <in>SimplifyFalseTrue.cpp</in>
+        <in>SimplifyFalseTrue.hpp</in>
+        <in>SimplifyProver.cpp</in>
+        <in>SimplifyProver.hpp</in>
+        <in>SineUtils.cpp</in>
+        <in>SineUtils.hpp</in>
+        <in>Skolem.cpp</in>
+        <in>Skolem.hpp</in>
+        <in>Statistics.cpp</in>
+        <in>Statistics.hpp</in>
+        <in>SubexpressionIterator.cpp</in>
+        <in>SubexpressionIterator.hpp</in>
+        <in>SubsumptionRemover.cpp</in>
+        <in>SubsumptionRemover.hpp</in>
+        <in>SymCounter.cpp</in>
+        <in>SymCounter.hpp</in>
+        <in>SymbolDefinitionInlining.cpp</in>
+        <in>SymbolDefinitionInlining.hpp</in>
+        <in>SymbolOccurrenceReplacement.cpp</in>
+        <in>SymbolOccurrenceReplacement.hpp</in>
+        <in>TPTPPrinter.cpp</in>
+        <in>TPTPPrinter.hpp</in>
+        <in>TermAlgebra.cpp</in>
+        <in>TermAlgebra.hpp</in>
+        <in>TheoryAxioms.cpp</in>
+        <in>TheoryAxioms.hpp</in>
+        <in>TheoryFinder.cpp</in>
+        <in>TheoryFinder.hpp</in>
+        <in>TheoryFlattening.cpp</in>
+        <in>TheoryFlattening.hpp</in>
+        <in>Token.cpp</in>
+        <in>Token.hpp</in>
+        <in>TrivialPredicateRemover.cpp</in>
+        <in>TrivialPredicateRemover.hpp</in>
+        <in>UIHelper.cpp</in>
+        <in>UIHelper.hpp</in>
+        <in>VarManager.cpp</in>
+        <in>VarManager.hpp</in>
+      </df>
+      <df name="SMTCOMP">
+        <in>SMTCOMPMode.cpp</in>
+        <in>SMTCOMPMode.hpp</in>
+      </df>
+      <df name="Test">
+        <in>CheckedFwSimplifier.cpp</in>
+        <in>CheckedFwSimplifier.hpp</in>
+        <in>CheckedSatSolver.cpp</in>
+        <in>CheckedSatSolver.hpp</in>
+        <in>Compit2Output.cpp</in>
+        <in>Compit2Output.hpp</in>
+        <in>CompitOutput.cpp</in>
+        <in>CompitOutput.hpp</in>
+        <in>DiffOrdering.hpp</in>
+        <in>Output.cpp</in>
+        <in>Output.hpp</in>
+        <in>RecordingSatSolver.cpp</in>
+        <in>RecordingSatSolver.hpp</in>
+        <in>TestUtils.cpp</in>
+        <in>TestUtils.hpp</in>
+        <in>UnitTesting.cpp</in>
+        <in>UnitTesting.hpp</in>
+        <in>compit2.cpp</in>
+        <in>compit2.hpp</in>
+        <in>compit2_impl.cpp</in>
+      </df>
+      <df name="Translator">
+        <in>CollectionOfObjects.cpp</in>
+        <in>CollectionOfObjects.hpp</in>
+        <in>MyASTConsumer.cpp</in>
+        <in>MyASTConsumer.hpp</in>
+        <in>NewTranslator.cpp</in>
+        <in>NewTranslator.hpp</in>
+      </df>
+      <df name="UnitTests">
+        <in>tArithCompare.cpp</in>
+        <in>tBinaryHeap.cpp</in>
+        <in>tDHMap.cpp</in>
+        <in>tDHMultiset.cpp</in>
+        <in>tDisagreement.cpp</in>
+        <in>tDismatching.cpp</in>
+        <in>tDynamicHeap.cpp</in>
+        <in>tImplicationSetClosure.cpp</in>
+        <in>tInstantiation.cpp</in>
+        <in>tInterpretedFunctions.cpp</in>
+        <in>tInterpretedNormalizer.cpp</in>
+        <in>tList.cpp</in>
+        <in>tOptionConstraints.cpp</in>
+        <in>tProgramAnalysis.cpp</in>
+        <in>tProgramAnalysisCopy.cpp</in>
+        <in>tProgramAnalysisInvariantTest.cpp</in>
+        <in>tProgramAnalysisPartition.cpp</in>
+        <in>tRatioKeeper.cpp</in>
+        <in>tSATSolver.cpp</in>
+        <in>tSCCAnalyzer.cpp</in>
+        <in>tSafeRecursion.cpp</in>
+        <in>tSkipList.cpp</in>
+        <in>tStack.cpp</in>
+        <in>tTracingApi.cpp</in>
+        <in>tTransparentSolver.cpp</in>
+        <in>tTwoVampires.cpp</in>
+        <in>tZ3test.cpp</in>
+        <in>tfork.cpp</in>
+      </df>
+      <df name="VUtils">
+        <in>AnnotationColoring.cpp</in>
+        <in>AnnotationColoring.hpp</in>
+        <in>CPAInterpolator.cpp</in>
+        <in>CPAInterpolator.hpp</in>
+        <in>DPTester.cpp</in>
+        <in>DPTester.hpp</in>
+        <in>EPRRestoringScanner.cpp</in>
+        <in>EPRRestoringScanner.hpp</in>
+        <in>FOEquivalenceDiscovery.cpp</in>
+        <in>FOEquivalenceDiscovery.hpp</in>
+        <in>LocalityRestoring.cpp</in>
+        <in>LocalityRestoring.hpp</in>
+        <in>PreprocessingEvaluator.cpp</in>
+        <in>PreprocessingEvaluator.hpp</in>
+        <in>ProblemColoring.cpp</in>
+        <in>ProblemColoring.hpp</in>
+        <in>RangeColoring.cpp</in>
+        <in>RangeColoring.hpp</in>
+        <in>SATReplayer.cpp</in>
+        <in>SATReplayer.hpp</in>
+        <in>SMTLIBConcat.cpp</in>
+        <in>SMTLIBConcat.hpp</in>
+        <in>SimpleSMT.cpp</in>
+        <in>SimpleSMT.hpp</in>
+        <in>Z3InterpolantExtractor.cpp</in>
+        <in>Z3InterpolantExtractor.hpp</in>
+      </df>
+      <df name="z3">
+        <df name="api">
+          <df name="c++">
+            <in>z3++.h</in>
+          </df>
+          <in>z3.h</in>
+          <in>z3_algebraic.h</in>
+          <in>z3_api.h</in>
+          <in>z3_ast_containers.h</in>
+          <in>z3_fixedpoint.h</in>
+          <in>z3_fpa.h</in>
+          <in>z3_interp.h</in>
+          <in>z3_macros.h</in>
+          <in>z3_optimization.h</in>
+          <in>z3_polynomial.h</in>
+          <in>z3_rcf.h</in>
+        </df>
+      </df>
+      <in>ClausifierDependencyFix.cpp</in>
+      <in>Config.hpp</in>
+      <in>Forwards.hpp</in>
+      <in>Global.cpp</in>
+      <in>dummy_main.cpp</in>
+      <in>test_libvapi.cpp</in>
+      <in>test_vapi.cpp</in>
+      <in>ucompit.cpp</in>
+      <in>vampire.cpp</in>
+      <in>vclausify.cpp</in>
+      <in>vcompit.cpp</in>
+      <in>version.cpp</in>
+      <in>vground.cpp</in>
+      <in>vltb.cpp</in>
+      <in>vsat.cpp</in>
+      <in>vtest.cpp</in>
+      <in>vutil.cpp</in>
+    </df>
+  </logicalFolder>
+  <projectmakefile>Makefile</projectmakefile>
+  <confs>
+    <conf name="Default" type="0">
+      <toolsSet>
+        <developmentServer>localhost</developmentServer>
+        <platform>4</platform>
+      </toolsSet>
+      <compile>
+        <compiledirpicklist>
+          <compiledirpicklistitem>.</compiledirpicklistitem>
+          <compiledirpicklistitem>${AUTO_FOLDER}</compiledirpicklistitem>
+        </compiledirpicklist>
+        <compiledir>${AUTO_FOLDER}</compiledir>
+        <compilecommandpicklist>
+          <compilecommandpicklistitem>${MAKE} ${ITEM_NAME}.o</compilecommandpicklistitem>
+          <compilecommandpicklistitem>${AUTO_COMPILE}</compilecommandpicklistitem>
+        </compilecommandpicklist>
+        <compilecommand>${AUTO_COMPILE}</compilecommand>
+      </compile>
+      <dbx_gdbdebugger version="1">
+        <gdb_pathmaps>
+        </gdb_pathmaps>
+        <gdb_interceptlist>
+          <gdbinterceptoptions gdb_all="false" gdb_unhandled="true" gdb_unexpected="true"/>
+        </gdb_interceptlist>
+        <gdb_options>
+          <DebugOptions>
+          </DebugOptions>
+        </gdb_options>
+        <gdb_buildfirst gdb_buildfirst_overriden="false" gdb_buildfirst_old="false"/>
+      </dbx_gdbdebugger>
+      <nativedebugger version="1">
+        <engine>gdb</engine>
+      </nativedebugger>
+      <runprofile version="9">
+        <runcommandpicklist>
+          <runcommandpicklistitem>"${OUTPUT_PATH}"</runcommandpicklistitem>
+        </runcommandpicklist>
+        <runcommand>"${OUTPUT_PATH}"</runcommand>
+        <rundir>.</rundir>
+        <buildfirst>false</buildfirst>
+        <terminal-type>0</terminal-type>
+        <remove-instrumentation>0</remove-instrumentation>
+        <environment>
+        </environment>
+      </runprofile>
+    </conf>
+  </confs>
+</configurationDescriptor>
