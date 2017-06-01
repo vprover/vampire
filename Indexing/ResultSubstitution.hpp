@@ -125,7 +125,7 @@ public:
 //  static ResultSubstitutionSP fromSubstitution(EGSubstitution* s,
 //	  int queryBank, int resultBank);
 #if VDEBUG
-  virtual vstring toString(){ NOT_IMPLEMENTED; }
+  virtual vstring toString(bool deref=false){ NOT_IMPLEMENTED; }
 #endif
 };
 

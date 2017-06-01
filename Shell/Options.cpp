@@ -214,7 +214,7 @@ void Options::Options::init()
     _problemName.description="";
     //_lookup.insert(&_problemName);
 
-    _proof = ChoiceOptionValue<Proof>("proof","p",Proof::ON,{"off","on","proofcheck","tptp","smtcomp"});
+    _proof = ChoiceOptionValue<Proof>("proof","p",Proof::ON,{"off","on","proofcheck","tptp","smtcomp","property"});
     _proof.description=
     "Specifies whether proof will be output. 'proofcheck' will output proof as a sequence of TPTP problems to allow for proof-checking.";
     _lookup.insert(&_proof);
@@ -326,6 +326,13 @@ void Options::Options::init()
     _sos.setRandomChoices(And(isRandSat(),saNotInstGen()),{"on","off","off","off","off"});
     _sos.setRandomChoices(And(isRandOn(),hasNonUnits()),{"on","off","off","off","off"});
     _sos.setRandomChoices(isRandOn(),{"all","off","on"});
+
+    _sosTheoryLimit = UnsignedOptionValue("sos_theory_limit","sstl",0);
+    _sosTheoryLimit.description="When sos=theory the depth of descendants a theory axiom can have";
+    _sosTheoryLimit.setExperimental();
+    _lookup.insert(&_sosTheoryLimit);
+    _sosTheoryLimit.tag(OptionTag::PREPROCESSING);
+    _sosTheoryLimit.reliesOn(_sos.is(equal(Sos::THEORY)));
 
 
 
@@ -765,6 +772,23 @@ void Options::Options::init()
 
 
 	//*********************** Inferences  ***********************
+
+#if VZ3
+
+           _theoryInstAndSimp = ChoiceOptionValue<TheoryInstSimp>("theory_instantiation","thi",
+                                                TheoryInstSimp::OFF,{"off","all","strong","overlap","full"});
+           _theoryInstAndSimp.description = ""; 
+           _theoryInstAndSimp.tag(OptionTag::INFERENCES);
+           _lookup.insert(&_theoryInstAndSimp);
+           _theoryInstAndSimp.setExperimental();
+#endif
+           _unificationWithAbstraction = ChoiceOptionValue<UnificationWithAbstraction>("unification_with_abstraction","uwa",
+                                             UnificationWithAbstraction::OFF,
+                                             {"off","interpreted_only","one_side_interpreted","one_side_constant","all","ground"});
+           _unificationWithAbstraction.description="";
+           _unificationWithAbstraction.tag(OptionTag::INFERENCES);
+           _lookup.insert(&_unificationWithAbstraction);
+           _unificationWithAbstraction.setExperimental();
 
 	    _instantiation = ChoiceOptionValue<Instantiation>("instantiation","inst",Instantiation::OFF,{"off","on"});
 	    _instantiation.description = "Heuristically instantiate variables";

@@ -548,6 +548,7 @@ Ordering::Result KBOBase::compareFunctionPrecedences(unsigned fun1, unsigned fun
 
   Signature::Symbol* s1=env.signature->getFunction(fun1);
   Signature::Symbol* s2=env.signature->getFunction(fun2);
+  // uninterpreted things are greater than interpreted things
   if(!s1->interpreted()) {
     if(s2->interpreted()) {
       return GREATER;

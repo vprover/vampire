@@ -102,7 +102,7 @@ struct LiteralSubstitutionTreeWithoutTop::SLQueryResultFunctor
 {
   DECL_RETURN_TYPE(SLQueryResult);
   OWN_RETURN_TYPE operator() (const QueryResult& qr) {
-    return SLQueryResult(qr.first->literal, qr.first->clause, qr.second);
+    return SLQueryResult(qr.first.first->literal, qr.first.first->clause, qr.first.second);
   }
 };
 
@@ -282,12 +282,13 @@ SLQueryResultIterator LiteralSubstitutionTreeWithoutTop::getResultIterator(Liter
       return pvi( getMappingIterator(ldit,LDToSLQueryResultFn()) );
     }
   }
+  bool useC = false; //TODO TODO TODO
 
   if(lit->commutative()) {
     VirtualIterator<QueryResult> qrit1=vi(
-  	    new Iterator(this, _root, lit, retrieveSubstitutions,false, true) );
+  	    new Iterator(this, _root, lit, retrieveSubstitutions,false, true, useC) );
     VirtualIterator<QueryResult> qrit2=vi(
-  	    new Iterator(this, _root, lit, retrieveSubstitutions, true, true) );
+  	    new Iterator(this, _root, lit, retrieveSubstitutions, true, true, useC) );
     ASS(lit->isEquality());
     return pvi(
 	getFilteredIterator(
@@ -297,7 +298,7 @@ SLQueryResultIterator LiteralSubstitutionTreeWithoutTop::getResultIterator(Liter
 	);
   } else {
     VirtualIterator<QueryResult> qrit=VirtualIterator<QueryResult>(
-  	    new Iterator(this, _root, lit, retrieveSubstitutions,false,true) );
+  	    new Iterator(this, _root, lit, retrieveSubstitutions,false,true, useC) );
     return pvi( getMappingIterator(qrit, SLQueryResultFunctor()) );
   }
 }

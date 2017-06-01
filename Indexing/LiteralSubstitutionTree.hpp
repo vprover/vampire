@@ -19,7 +19,7 @@ public:
   CLASS_NAME(LiteralSubstitutionTree);
   USE_ALLOCATOR(LiteralSubstitutionTree);
 
-  LiteralSubstitutionTree();
+  LiteralSubstitutionTree(bool useC=false);
 
   void insert(Literal* lit, Clause* cls);
   void remove(Literal* lit, Clause* cls);
@@ -29,6 +29,9 @@ public:
 
   SLQueryResultIterator getUnifications(Literal* lit,
 	  bool complementary, bool retrieveSubstitutions);
+
+  SLQueryResultIterator getUnificationsWithConstraints(Literal* lit,
+          bool complementary, bool retrieveSubstitutions);
 
   SLQueryResultIterator getGeneralizations(Literal* lit,
 	  bool complementary, bool retrieveSubstitutions);
@@ -40,6 +43,7 @@ public:
 	  bool complementary, bool retrieveSubstitutions);
 
 #if VDEBUG
+  virtual void markTagged(){ SubstitutionTree::markTagged();}
   vstring toString() {return SubstitutionTree::toString();}
 #endif
 
@@ -55,7 +59,7 @@ private:
 
   template<class Iterator>
   SLQueryResultIterator getResultIterator(Literal* lit,
-	  bool complementary, bool retrieveSubstitutions);
+	  bool complementary, bool retrieveSubstitutions, bool useConstraints);
 
   unsigned getRootNodeIndex(Literal* t, bool complementary=false);
 };

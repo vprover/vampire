@@ -198,6 +198,21 @@ public:
     };
     // update _tagNames at the end of Options constructor if you add a tag
     
+  enum class TheoryInstSimp : unsigned int {
+    OFF,
+    ALL,    // select all interpreted
+    STRONG, // select strong only
+    OVERLAP, // select strong and weak which overlap with strong
+    FULL    // perform full abstraction
+  };
+  enum class UnificationWithAbstraction : unsigned int {
+    OFF,
+    INTERP_ONLY,
+    ONE_INTERP,
+    CONSTANT,
+    ALL,
+    GROUND
+  };
 
   enum class TheoryAxiomLevel : unsigned int {
     ON,  // all of them
@@ -479,7 +494,8 @@ public:
     ON = 1,
     PROOFCHECK = 2,
     TPTP = 3,
-    SMTCOMP = 4
+    SMTCOMP = 4,
+    PROPERTY = 5
   };
 
   /** Values for --equality_proxy */
@@ -1758,7 +1774,9 @@ public:
   bool z3UnsatCores() const { return _z3UnsatCores.actualValue;}
   bool satFallbackForSMT() const { return _satFallbackForSMT.actualValue; }
   bool smtForGround() const { return _smtForGround.actualValue; }
+  TheoryInstSimp theoryInstAndSimp() const { return _theoryInstAndSimp.actualValue; }
 #endif
+  UnificationWithAbstraction unificationWithAbstraction() const { return _unificationWithAbstraction.actualValue; }
   bool unusedPredicateDefinitionRemoval() const { return _unusedPredicateDefinitionRemoval.actualValue; }
   bool blockedClauseElimination() const { return _blockedClauseElimination.actualValue; }
   void setUnusedPredicateDefinitionRemoval(bool newVal) { _unusedPredicateDefinitionRemoval.actualValue = newVal; }
@@ -1829,6 +1847,7 @@ public:
   bool extensionalityAllowPosEq() const { return _extensionalityAllowPosEq.actualValue; }
   float nongoalWeightCoefficient() const { return _nonGoalWeightCoefficient.actualValue; }
   Sos sos() const { return _sos.actualValue; }
+  unsigned sosTheoryLimit() const { return _sosTheoryLimit.actualValue; }
   //void setSos(Sos newVal) { _sos = newVal; }
   FunctionDefinitionElimination functionDefinitionElimination() const { return _functionDefinitionElimination.actualValue; }
   bool outputAxiomNames() const { return _outputAxiomNames.actualValue; }
@@ -2234,7 +2253,9 @@ private:
   BoolOptionValue _z3UnsatCores;
   BoolOptionValue _satFallbackForSMT;
   BoolOptionValue _smtForGround;
+  ChoiceOptionValue<TheoryInstSimp> _theoryInstAndSimp;
 #endif
+  ChoiceOptionValue<UnificationWithAbstraction> _unificationWithAbstraction; 
   TimeLimitOptionValue _simulatedTimeLimit;
   UnsignedOptionValue _sineDepth;
   UnsignedOptionValue _sineGeneralityThreshold;
@@ -2243,6 +2264,7 @@ private:
   BoolOptionValue _smtlibConsiderIntsReal;
   BoolOptionValue _smtlibFletAsDefinition;
   ChoiceOptionValue<Sos> _sos;
+  UnsignedOptionValue _sosTheoryLimit;
   BoolOptionValue _splitting;
   BoolOptionValue _splitAtActivation;
   ChoiceOptionValue<SplittingAddComplementary> _splittingAddComplementary;

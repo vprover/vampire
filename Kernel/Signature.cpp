@@ -923,6 +923,10 @@ bool Signature::symbolNeedsQuoting(vstring name, bool interpreted, unsigned arit
     //TODO: remove this once we properly support the $distinct predicate and quoting
     return false;
   }
+  if (name.find("$array") == 0) {
+    //TODO: a hacky solution not to quote array sorts
+    return false;
+  }
   return true;
 } // Signature::symbolNeedsQuoting
 

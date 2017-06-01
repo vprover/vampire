@@ -659,11 +659,17 @@ void SortInference::doInference()
 
   for(unsigned s=0;s<env.sorts->sorts();s++){
     if(env.property->usesSort(s) || s >= Sorts::FIRST_USER_SORT){
-      if(!_sig->vampireToDistinctParent.find(s)){
-        ASS(_sig->vampireToDistinct.find(s));
-        ASS_REP(_sig->vampireToDistinct.find(s),env.sorts->sortName(s));
+      // if sort is not here then it does not appear in signature (check)
+      if(!_sig->vampireToDistinct.find(s)){ continue; }
+
+      // make sure it has a parent
+      if(!_sig->vampireToDistinctParent.find(s)){ 
+
         ASS(!_sig->vampireToDistinct.get(s)->isEmpty());
-        _sig->vampireToDistinctParent.insert(s,(*_sig->vampireToDistinct.get(s))[0]);
+
+        if(_sig->vampireToDistinct.find(s)){
+         _sig->vampireToDistinctParent.insert(s,(*_sig->vampireToDistinct.get(s))[0]);
+        }
       }
       // add those constraints between children and parent
       unsigned parent = _sig->vampireToDistinctParent.get(s);

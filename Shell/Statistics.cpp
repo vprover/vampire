@@ -52,13 +52,21 @@ Statistics::Statistics()
     factoring(0),
     resolution(0),
     urResolution(0),
+    cResolution(0),
     forwardSuperposition(0),
     backwardSuperposition(0),
     selfSuperposition(0),
+    cForwardSuperposition(0),
+    cBackwardSuperposition(0),
+    cSelfSuperposition(0),
     equalityFactoring(0),
     equalityResolution(0),
     forwardExtensionalityResolution(0),
     backwardExtensionalityResolution(0),
+    theoryInstSimp(0),
+    theoryInstSimpCandidates(0),
+    theoryInstSimpTautologies(0),
+    theoryInstSimpLostSolution(0),
     duplicateLiterals(0),
     trivialInequalities(0),
     forwardSubsumptionResolution(0),
@@ -286,20 +294,30 @@ void Statistics::print(ostream& out)
   COND_OUT("Inner rewrites to eq. taut.", innerRewritesToEqTaut);
   SEPARATOR;
 
-  HEADING("Generating Inferences",resolution+urResolution+factoring+
+  HEADING("Generating Inferences",resolution+urResolution+cResolution+factoring+
       forwardSuperposition+backwardSuperposition+selfSuperposition+
+      cForwardSuperposition+cBackwardSuperposition+cSelfSuperposition+
       equalityFactoring+equalityResolution+forwardExtensionalityResolution+
-      backwardExtensionalityResolution);
+      backwardExtensionalityResolution+
+      theoryInstSimp+theoryInstSimpCandidates+theoryInstSimpTautologies+theoryInstSimpLostSolution);
   COND_OUT("Binary resolution", resolution);
   COND_OUT("Unit resulting resolution", urResolution);
+  COND_OUT("Binary resolution with abstraction",cResolution);
   COND_OUT("Factoring", factoring);
   COND_OUT("Forward superposition", forwardSuperposition);
   COND_OUT("Backward superposition", backwardSuperposition);
   COND_OUT("Self superposition", selfSuperposition);
+  COND_OUT("Forward superposition with abstraction", cForwardSuperposition);
+  COND_OUT("Backward superposition with abstraction", cBackwardSuperposition);
+  COND_OUT("Self superposition with abstraction", cSelfSuperposition);
   COND_OUT("Equality factoring", equalityFactoring);
   COND_OUT("Equality resolution", equalityResolution);
   COND_OUT("Fw extensionality resolution", forwardExtensionalityResolution);
   COND_OUT("Bw extensionality resolution", backwardExtensionalityResolution);
+  COND_OUT("TheoryInstSimp",theoryInstSimp);
+  COND_OUT("TheoryInstSimpCandidates",theoryInstSimpCandidates);
+  COND_OUT("TheoryInstSimpTautologies",theoryInstSimpTautologies);
+  COND_OUT("TheoryInstSimpLostSolution",theoryInstSimpLostSolution);
   SEPARATOR;
 
   HEADING("Term algebra simplifications",taDistinctnessSimplifications+

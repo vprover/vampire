@@ -27,6 +27,8 @@
 #include "Kernel/RobSubstitution.hpp"
 #include "Kernel/Renaming.hpp"
 #include "Kernel/Clause.hpp"
+#include "Kernel/SortHelper.hpp"
+#include "Kernel/Sorts.hpp"
 
 #include "Lib/Allocator.hpp"
 
@@ -64,8 +66,12 @@ public:
   CLASS_NAME(SubstitutionTree);
   USE_ALLOCATOR(SubstitutionTree);
 
-  SubstitutionTree(int nodes);
+  SubstitutionTree(int nodes,bool useC=false);
   ~SubstitutionTree();
+
+  // Tags are used as a debug tool to turn debugging on for a particular instance
+  bool tag;
+  virtual void markTagged(){ tag=true;}
 
 //protected:
 
@@ -82,6 +88,13 @@ public:
     Clause* clause;
     Literal* literal;
     TermList term;
+
+    vstring toString(){
+      vstring ret = "LD " + literal->toString();// + " in " + clause->literalsOnlyToString();
+      if(!term.isEmpty()){ ret += " with " +term.toString(); }
+      return ret;
+    }
+
   };
   typedef VirtualIterator<LeafData&> LDIterator;
 
@@ -137,6 +150,7 @@ public:
     /** True if a leaf node */
     virtual bool isLeaf() const = 0;
     virtual bool isEmpty() const = 0;
+    virtual bool withSorts(){ return false; }
     /**
      * Return number of elements held in the node.
      *
@@ -161,11 +175,79 @@ public:
 
     /** term at this node */
     TermList term;
+
+    virtual void print(unsigned depth=0){
+       printDepth(depth);
+       cout <<  "[" + term.toString() + "]" << endl;
+    }
+    void printDepth(unsigned depth){
+      while(depth-->0){ cout <<" "; }
+    }
   };
 
 
   typedef VirtualIterator<Node**> NodeIterator;
   typedef List<Node*> NodeList;
+  class IntermediateNode;
+    
+    class ChildBySortHelper
+    {
+    public:
+        
+        CLASS_NAME(SubstitutionTree::ChildBySortHelper);
+        USE_ALLOCATOR(ChildBySortHelper);
+        
+        ChildBySortHelper(IntermediateNode* p):  _parent(p)
+        {
+            bySort.ensure(Sorts::FIRST_USER_SORT);
+            bySortTerms.ensure(Sorts::FIRST_USER_SORT);
+        }
+        
+        /**
+         * Return an iterator of child nodes whose top term has the same sort
+         * as Termlist t. Only consider interpreted sorts.
+         *
+         */
+        NodeIterator childBySort(TermList t)
+        {
+            CALL("SubstitutionTree::ChildBySortHelper::childBySort");
+            unsigned srt;
+            // only consider interpreted sorts
+            if(SortHelper::tryGetResultSort(t,srt) && srt < Sorts::FIRST_USER_SORT && srt!=Sorts::SRT_DEFAULT){
+                unsigned top = t.term()->functor();
+                Stack<TermList>::Iterator fit(bySortTerms[srt]);
+                auto withoutThisTop = getFilteredIterator(fit,NotTop(top));
+                auto nodes = getMappingIterator(withoutThisTop,ByTopFn(this));
+                return pvi(getFilteredIterator(nodes,NonzeroFn()));
+            }
+            return NodeIterator::getEmpty();
+        }
+        
+        DArray<DHSet<unsigned>> bySort;
+        DArray<Stack<TermList>> bySortTerms;
+        
+        IntermediateNode* _parent;
+        /*
+         * This is used for recording terms that might
+         */
+        void mightExistAsTop(TermList t)
+        {
+            CALL("SubstitutionTree::ChildBySortHelper::mightExistAsTop");
+            if(!t.isTerm()){ return; }
+            unsigned srt;
+            if(SortHelper::tryGetResultSort(t,srt)){
+                if(srt > Sorts::SRT_DEFAULT && srt < Sorts::FIRST_USER_SORT){
+                    unsigned f = t.term()->functor();
+                    if(bySort[srt].insert(f)){
+                        bySortTerms[srt].push(t);
+                    }
+                }
+            }
+        }
+        
+    };// class SubstitutionTree::ChildBySortHelper
+    
+    
 
   class IntermediateNode
     	: public Node
@@ -173,12 +255,11 @@ public:
   public:
     /** Build a new intermediate node which will serve as the root*/
     inline
-    IntermediateNode(unsigned childVar) : childVar(childVar)
-    {}
+    IntermediateNode(unsigned childVar) : childVar(childVar),_childBySortHelper(0) {}
 
     /** Build a new intermediate node */
     inline
-    IntermediateNode(TermList ts, unsigned childVar) : Node(ts), childVar(childVar) {}
+    IntermediateNode(TermList ts, unsigned childVar) : Node(ts), childVar(childVar),_childBySortHelper(0) {}
 
     inline
     bool isLeaf() const { return false; };
@@ -198,6 +279,8 @@ public:
      * suitable child does not exist.
      */
     virtual Node** childByTop(TermList t, bool canCreate) = 0;
+
+
     /**
      * Remove child which points to node with top symbol of @b t.
      * This node has to still exist in time of the call to remove method.
@@ -217,11 +300,54 @@ public:
       removeAllChildren();
     }
 
+    virtual NodeIterator childBySort(TermList t)
+    {
+        if(!_childBySortHelper) return NodeIterator::getEmpty();
+        return _childBySortHelper->childBySort(t);
+    }
+    virtual void mightExistAsTop(TermList t) {
+        if(_childBySortHelper){
+          _childBySortHelper->mightExistAsTop(t);
+        }
+    }
 
     void loadChildren(NodeIterator children);
 
-    unsigned childVar;
+    const unsigned childVar;
+    ChildBySortHelper* _childBySortHelper;
+
+    virtual void print(unsigned depth=0){
+       auto children = allChildren();
+       printDepth(depth);
+       cout << "I [" << childVar << "] with " << term.toString() << endl;
+       while(children.hasNext()){
+         (*children.next())->print(depth+1);
+       }
+    }
+
   }; // class SubstitutionTree::IntermediateNode
+
+    struct ByTopFn
+    {
+        ByTopFn(ChildBySortHelper* n) : node(n) {};
+        DECL_RETURN_TYPE(Node**);
+        OWN_RETURN_TYPE operator()(TermList t){
+            return node->_parent->childByTop(t,false);
+        }
+    private:
+        ChildBySortHelper* node;
+    };
+    struct NotTop
+    {
+        NotTop(unsigned t) : top(t) {};
+        DECL_RETURN_TYPE(bool);
+        OWN_RETURN_TYPE operator()(TermList t){
+            return t.term()->functor()!=top;
+        }
+    private:
+        unsigned top;
+    };
+    
 
   class Leaf
   : public Node
@@ -241,6 +367,14 @@ public:
     virtual void insert(LeafData ld) = 0;
     virtual void remove(LeafData ld) = 0;
     void loadChildren(LDIterator children);
+
+    virtual void print(unsigned depth=0){
+       auto children = allChildren();
+       while(children.hasNext()){
+         printDepth(depth);
+         cout << children.next().toString() << endl;
+       } 
+    }
   };
 
   //These classes and methods are defined in SubstitutionTree_Nodes.cpp
@@ -251,8 +385,8 @@ public:
   static Leaf* createLeaf();
   static Leaf* createLeaf(TermList ts);
   static void ensureLeafEfficiency(Leaf** l);
-  static IntermediateNode* createIntermediateNode(unsigned childVar);
-  static IntermediateNode* createIntermediateNode(TermList ts, unsigned childVar);
+  static IntermediateNode* createIntermediateNode(unsigned childVar,bool constraints);
+  static IntermediateNode* createIntermediateNode(TermList ts, unsigned childVar,bool constraints);
   static void ensureIntermediateNodeEfficiency(IntermediateNode** inode);
 
   struct IsPtrToVarNodeFn
@@ -303,7 +437,7 @@ public:
       return pvi( getFilteredIterator(PointerPtrIterator<Node*>(&_nodes[0],&_nodes[_size]),
   	    IsPtrToVarNodeFn()) );
     }
-    Node** childByTop(TermList t, bool canCreate);
+    virtual Node** childByTop(TermList t, bool canCreate);
     void remove(TermList t);
 
 #if VDEBUG
@@ -319,6 +453,18 @@ public:
     int _size;
     Node* _nodes[UARR_INTERMEDIATE_NODE_MAX_SIZE+1];
   };
+
+  class UArrIntermediateNodeWithSorts
+  : public UArrIntermediateNode
+  {
+  public:
+   UArrIntermediateNodeWithSorts(unsigned childVar) : UArrIntermediateNode(childVar) {
+     _childBySortHelper = new ChildBySortHelper(this);
+   }
+   UArrIntermediateNodeWithSorts(TermList ts, unsigned childVar) : UArrIntermediateNode(ts, childVar) {
+     _childBySortHelper = new ChildBySortHelper(this);
+   }
+  }; 
 
   class SListIntermediateNode
   : public IntermediateNode
@@ -341,7 +487,7 @@ public:
       }
     }
 
-    static SListIntermediateNode* assimilate(IntermediateNode* orig);
+    static IntermediateNode* assimilate(IntermediateNode* orig);
 
     inline
     NodeAlgorithm algorithm() const { return SKIP_LIST; }
@@ -366,7 +512,7 @@ public:
   		    NodeSkipList::PtrIterator(_nodes),
   		    IsPtrToVarNodeFn()) );
     }
-    Node** childByTop(TermList t, bool canCreate)
+    virtual Node** childByTop(TermList t, bool canCreate)
     {
       CALL("SubstitutionTree::SListIntermediateNode::childByTop");
 
@@ -374,6 +520,7 @@ public:
       bool found=_nodes.getPosition(t,res,canCreate);
       if(!found) {
         if(canCreate) {
+          mightExistAsTop(t);
           *res=0;
         } else {
           res=0;
@@ -418,6 +565,18 @@ public:
     NodeSkipList _nodes;
   };
 
+
+  class SListIntermediateNodeWithSorts
+  : public SListIntermediateNode
+  {
+   public:
+   SListIntermediateNodeWithSorts(unsigned childVar) : SListIntermediateNode(childVar) {
+       _childBySortHelper = new ChildBySortHelper(this);
+   }
+   SListIntermediateNodeWithSorts(TermList ts, unsigned childVar) : SListIntermediateNode(ts, childVar) {
+       _childBySortHelper = new ChildBySortHelper(this);
+   }
+  };
 
   class Binding {
   public:
@@ -470,6 +629,8 @@ public:
   int _nextVar;
   /** Array of nodes */
   ZIArray<Node*> _nodes;
+  /** enable searching with constraints for this tree */
+  bool _useC;
 
   class LeafIterator
   : public IteratorCore<Leaf*>
@@ -477,7 +638,7 @@ public:
   public:
     LeafIterator(SubstitutionTree* st)
     : _nextRootPtr(st->_nodes.begin()), _afterLastRootPtr(st->_nodes.end()),
-    _nodeIterators(8) {}
+    _nodeIterators(8), tag(st->tag) {}
     bool hasNext();
     Leaf* next()
     {
@@ -489,9 +650,10 @@ public:
     Node** _afterLastRootPtr;
     Node* _curr;
     Stack<NodeIterator> _nodeIterators;
+    bool tag;
   };
 
-  typedef pair<LeafData*, ResultSubstitutionSP> QueryResult;
+  typedef pair<pair<LeafData*, ResultSubstitutionSP>,UnificationConstraintStackSP> QueryResult;
 
 
   class GenMatcher;
@@ -504,7 +666,7 @@ public:
   {
   public:
     FastGeneralizationsIterator(SubstitutionTree* parent, Node* root, Term* query,
-            bool retrieveSubstitution, bool reversed,bool withoutTop);
+            bool retrieveSubstitution, bool reversed,bool withoutTop,bool useC);
 
     ~FastGeneralizationsIterator();
 
@@ -550,7 +712,7 @@ public:
   {
   public:
     FastInstancesIterator(SubstitutionTree* parent, Node* root, Term* query,
-	    bool retrieveSubstitution, bool reversed, bool withoutTop);
+	    bool retrieveSubstitution, bool reversed, bool withoutTop, bool useC);
     ~FastInstancesIterator();
 
     bool hasNext();
@@ -583,13 +745,14 @@ public:
   : public IteratorCore<QueryResult>
   {
   public:
-    UnificationsIterator(SubstitutionTree* parent, Node* root, Term* query, bool retrieveSubstitution, bool reversed,bool withoutTop);
+    UnificationsIterator(SubstitutionTree* parent, Node* root, Term* query, bool retrieveSubstitution, bool reversed,bool withoutTop, bool useC);
     ~UnificationsIterator();
 
     bool hasNext();
     QueryResult next();
+    bool tag;
   protected:
-    virtual bool associate(TermList query, TermList node);
+    virtual bool associate(TermList query, TermList node, BacktrackData& bd);
     virtual NodeIterator getNodeIterator(IntermediateNode* n);
 
     void createInitialBindings(Term* t);
@@ -621,6 +784,8 @@ public:
     BacktrackData clientBacktrackData;
     Renaming queryNormalizer;
     SubstitutionTree* tree;
+    bool useConstraints;
+    Stack<UnificationConstraint> constraints;
   };
 
 
@@ -628,8 +793,8 @@ public:
   : public UnificationsIterator
   {
   public:
-    GeneralizationsIterator(SubstitutionTree* parent, Node* root, Term* query, bool retrieveSubstitution, bool reversed, bool withoutTop)
-    : UnificationsIterator(parent, root, query, retrieveSubstitution, reversed, withoutTop) {};
+    GeneralizationsIterator(SubstitutionTree* parent, Node* root, Term* query, bool retrieveSubstitution, bool reversed, bool withoutTop, bool useC)
+    : UnificationsIterator(parent, root, query, retrieveSubstitution, reversed, withoutTop, useC) {}; 
 
   protected:
     virtual bool associate(TermList query, TermList node);
@@ -640,8 +805,8 @@ public:
   : public UnificationsIterator
   {
   public:
-    InstancesIterator(SubstitutionTree* parent, Node* root, Term* query, bool retrieveSubstitution, bool reversed,bool withoutTop)
-    : UnificationsIterator(parent, root, query, retrieveSubstitution, reversed, withoutTop) {};
+    InstancesIterator(SubstitutionTree* parent, Node* root, Term* query, bool retrieveSubstitution, bool reversed,bool withoutTop,bool useC)
+    : UnificationsIterator(parent, root, query, retrieveSubstitution, reversed, withoutTop,useC) {}; 
   protected:
     virtual bool associate(TermList query, TermList node);
     virtual NodeIterator getNodeIterator(IntermediateNode* n);

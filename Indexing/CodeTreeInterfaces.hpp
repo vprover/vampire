@@ -40,6 +40,10 @@ public:
   TermQueryResultIterator getGeneralizations(TermList t, bool retrieveSubstitutions = true);
   bool generalizationExists(TermList t);
 
+#if VDEBUG
+  virtual void markTagged(){ NOT_IMPLEMENTED; } 
+#endif
+
 private:
   class ResultIterator;
 
