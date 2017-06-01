@@ -70,7 +70,7 @@ InferenceMany::InferenceMany(Rule rule,UnitList* premises)
     md = max(md,it->head()->inference()->maxDepth());
     it=it->tail();
   }
-  _maxDepth = md;
+  _maxDepth = md+1;
 }
 
 /**
