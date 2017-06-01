@@ -616,13 +616,14 @@ unsigned Theory::getArity(Interpretation i)
       case StructuredSortInterpretation::BV_ROTATE_LEFT:
       case StructuredSortInterpretation::BV_ROTATE_RIGHT: 
       case StructuredSortInterpretation::BVMUL:
-      case StructuredSortInterpretation::BVUDIV:    
+      case StructuredSortInterpretation::BVUDIV: 
+      case StructuredSortInterpretation::BVUREM:
         return 2;
       case StructuredSortInterpretation::ARRAY_STORE:
       case StructuredSortInterpretation::EXTRACT:
         return 3;
       default:
-        return 1;
+          USER_ERROR("Add to list here");
     }
   }
 
@@ -1089,7 +1090,7 @@ unsigned Theory::getSymbolForStructuredSort(unsigned sort, StructuredSortInterpr
     return getSymbolForStructuredSort(sort, interp, -1,-1);
 }
 
-unsigned Theory::getSymbolForStructuredSort(unsigned sort, StructuredSortInterpretation interp, unsigned arg1, unsigned arg2)
+unsigned Theory::getSymbolForStructuredSort(unsigned sort, StructuredSortInterpretation interp, int arg1, int arg2)
 {
     cout<<"\n Theory::getSymbolForStructuredSort\n";
     return env.signature->getInterpretingSymbol(getInterpretation(sort,interp,arg1,arg2));
@@ -1683,6 +1684,18 @@ BaseType* Theory::getStructuredSortOperationType(Interpretation i) {
                 //cout<<" name of the sort "<< bv->name();
                 cout<<" finally : "<<env.sorts->addBitVectorSort(bitVecArgSize);
                 return new FunctionType({env.sorts->addBitVectorSort(bitVecArgSize), Sorts::SRT_INTEGER, Sorts::SRT_INTEGER}, sortt);
+            }
+            
+            case StructuredSortInterpretation::BVCOMP:
+            {
+                //unsigned bitVecArgSize = env.signature->getArg1();
+                unsigned one = 1;
+                //Sorts::BitVectorSort* bv = env.sorts->getBitVectorSort(bitVecArgSize);//getBitVectorSort(bitVecArgSize);
+                //cout<<" name of the sort "<< bv->name();
+                cout<<endl<<"testing bvcomp sortt is "<< sortt;
+                unsigned temp =  env.sorts->addBitVectorSort(one);
+                cout<<endl<<" and the result is "<<  temp<<" result should be before this ";
+                return new FunctionType({sortt, sortt}, temp);
             }
           
           

@@ -396,6 +396,8 @@ public:
   }
 
   unsigned numberOfInterpretations(){
+      cout<<endl<<"LastNonStructuredInterepretation() gives "<<LastNonStructuredInterepretation();
+      cout<<endl<<"LastStructuredInterpretation() gives "<<LastStructuredInterpretation();
     return LastNonStructuredInterepretation() + LastStructuredInterpretation();
   }
 
@@ -471,22 +473,27 @@ public:
   }
   
   
-  unsigned getSymbolForStructuredSort(unsigned sort, StructuredSortInterpretation interp, unsigned arg1, unsigned arg2);
+  unsigned getSymbolForStructuredSort(unsigned sort, StructuredSortInterpretation interp, int arg1, int arg2);
   unsigned getSymbolForStructuredSort(unsigned sort, StructuredSortInterpretation interp);
   
   Interpretation getInterpretation(unsigned sort, StructuredSortInterpretation i){
       return getInterpretation(sort, i, -1,-1);
   }
   
-  Interpretation getInterpretation(unsigned sort, StructuredSortInterpretation i, unsigned arg1, unsigned arg2){
+  // maybe have to change this to int 
+  Interpretation getInterpretation(unsigned sort, StructuredSortInterpretation i, int arg1, int arg2){
       cout<<"\n in getInterpretation\n";
     // key = make_pair(sort, i);
     AKey key(sort, i, arg1, arg2);
+    cout<<endl<<"before if _structuredSortInterpretations size "<<_structuredSortInterpretations.size();
     unsigned interpretation;
     if (!_structuredSortInterpretations.find(key, interpretation)) {
       interpretation = MaxInterpretedElement() + 1;
+      
       _structuredSortInterpretations.insert(key, interpretation);
+      cout<<endl<<"_structuredSortInterpretations size "<<_structuredSortInterpretations.size();
     }
+    cout<<endl<<endl<<"_structuredSortInterpretations not found "<<endl;
     return static_cast<Interpretation>(interpretation);
   }
   
@@ -645,10 +652,10 @@ public:
   unsigned getResultSort(){
       return _resultSort;
   }
-  unsigned getArg1(){
+  int getArg1(){
       return _arg1;
   }
-  unsigned getArg2(){
+  int getArg2(){
       return _arg2;
   }
   
@@ -658,8 +665,8 @@ public:
   private:
       StructuredSortInterpretation _ssi;
       unsigned _resultSort;
-      unsigned _arg1;
-      unsigned _arg2;
+      int _arg1;
+      int _arg2;
       
   };
   
@@ -695,6 +702,7 @@ private:
   }
 
   DHMap<AKey,unsigned> _structuredSortInterpretations;
+
   //DHMap<pair<unsigned,StructuredSortInterpretation>,unsigned> _structuredSortInterpretations;
 
  /*public:

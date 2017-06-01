@@ -636,31 +636,31 @@ void Signature::addBinArrays(const DArray<bool>& a1, const DArray<bool>& a2, DAr
     bool t1 = true, t2 = true, t3 = true;
     bool r = t1 ^t2 ^t3;
     
-    cout<<endl<< "testing exclusive or "<< r;
+   /* cout<<endl<< "testing exclusive or "<< r;
     
-    cout<<endl<<"following arrays are being added "<<endl;
+    cout<<endl<<"following arrays are being added "<<endl;*/
     printBoolArrayContent(a1);
-    cout<<endl<<"and "<<endl;
+   // cout<<endl<<"and "<<endl;
     printBoolArrayContent(a2);
     
     for (int i = 0, j = a1.size() - 1 ; i < a1.size() ; ++ i, --j )
     {
-        cout<<endl<<"we do get in loop thoug";
+        /*cout<<endl<<"we do get in loop thoug";
         cout<<endl<<"a1 size "<< a1.size()<<endl;
-        cout<<endl<<"a2 size "<< a2.size()<<endl;
+        cout<<endl<<"a2 size "<< a2.size()<<endl;*/
         result[j+1] = a1[j] ^ a2[j] ^ carry;
-        cout << endl<< "a1[j] : "<<  a1[j]  ;
+        /*cout << endl<< "a1[j] : "<<  a1[j]  ;
         cout << endl<< "a2[j] : "<<  a2[j]  ;
         cout << endl<< "carry : "<<  carry  ;
-        cout << endl<< "result[j] : "<<  result[j+1]  ;
+        cout << endl<< "result[j] : "<<  result[j+1]  ;*/
         
         
         if ((a1[j] && carry && !a2[j]) || (a2[j] && carry && !a1[j]) || (a2[j] && !carry && a1[j]) ||(a2[j] && carry && a1[j])){
             carry = true;
-            cout<<endl<< " j is "<< j << " and carry becomes true";
+            //cout<<endl<< " j is "<< j << " and carry becomes true";
         }else{
             carry = false;
-            cout<<endl<< " j is "<< j << " and carry becomes false";
+            //cout<<endl<< " j is "<< j << " and carry becomes false";
         }
     }
     if (carry)
@@ -679,42 +679,42 @@ DArray<bool> Signature::multBinArrays(DArray<bool> a1, DArray<bool> a2)
      */  
     
     //sum.initFromArray(1, tem);
-    cout<<endl <<" before loop a1 "<<endl;
+   // cout<<endl <<" before loop a1 "<<endl;
     
-    printBoolArrayContent(a1);
+   // printBoolArrayContent(a1);
     
-    cout<<endl <<" before loop a2 "<<endl;
+    //cout<<endl <<" before loop a2 "<<endl;
     
     printBoolArrayContent(a2);
     for (int i = 0, j = a1.size()-1 ; i < a1.size() ; ++ i,--j )
     {
-        cout<<" checking for j "<< j << endl;
-        cout<<endl<<" in loop, i is "<<i<<" j is "<<j << " a1[j] is "<< a1[j] << endl;
+        //cout<<" checking for j "<< j << endl;
+        //cout<<endl<<" in loop, i is "<<i<<" j is "<<j << " a1[j] is "<< a1[j] << endl;
         if (a1[j] == true)
         {
             
-            cout<<endl<<"in if 1";
+            //cout<<endl<<"in if 1";
             DArray<bool> curr = shiftLeft(a2,i);
-            cout<<endl<<" shift left really working? "<<endl;
-            cout<<"a2:";
+            //cout<<endl<<" shift left really working? "<<endl;
+            //cout<<"a2:";
             printBoolArrayContent(a2);
-            cout<<"shifted by i = "<<i<<endl;
-            cout<<"gives us ";
+            //cout<<"shifted by i = "<<i<<endl;
+            //cout<<"gives us ";
             printBoolArrayContent(curr);
                     
             
             
-            cout<<endl<<"in if 2"<<endl;
-            cout<<endl<<"the previous to add is  "<<endl;
+            //cout<<endl<<"in if 2"<<endl;
+            //cout<<endl<<"the previous to add is  "<<endl;
             printBoolArrayContent(*previousToAdd);
             
             
             
             DArray<bool> paddedPrevious = padBinArray(*previousToAdd,curr.size());
-            cout<<endl<<"in if 3";
+           // cout<<endl<<"in if 3";
             
             
-            cout<<endl<<"the padded previous to add is  "<<endl;
+            //cout<<endl<<"the padded previous to add is  "<<endl;
             printBoolArrayContent(paddedPrevious);
             
             
@@ -723,26 +723,26 @@ DArray<bool> Signature::multBinArrays(DArray<bool> a1, DArray<bool> a2)
             
             
             DArray<bool> sum(curr.size()+1);
-            cout<<endl<<"in if 4";
+            //cout<<endl<<"in if 4";
             addBinArrays(paddedPrevious,curr,sum);
             
             
-            cout<< endl <<"RIGHT, so this is important "<<endl<<endl<<"the following two arrays are being added "<<endl;
+            //cout<< endl <<"RIGHT, so this is important "<<endl<<endl<<"the following two arrays are being added "<<endl;
             printBoolArrayContent(paddedPrevious);
-            cout<<endl;
+            //cout<<endl;
             printBoolArrayContent(curr);
-            cout<<endl<<"and the result is "<< endl;
+            //cout<<endl<<"and the result is "<< endl;
             printBoolArrayContent(sum);
             
             
             
             
             
-            cout<<endl<<"in if 5";
+           // cout<<endl<<"in if 5";
             previousToAdd = new DArray<bool>(sum.size());
-            cout<<endl<<"in if 6";
+           // cout<<endl<<"in if 6";
             copyDArray(sum, *previousToAdd);
-            cout<<endl<<"in if 7";
+           // cout<<endl<<"in if 7";
             
         }
     }
@@ -778,9 +778,9 @@ DArray<bool> Signature::padBinArray(DArray<bool> anArray, unsigned size)
 {
     if (anArray.size() == size)
         return anArray;
-    cout<<endl<<"anArray size "<< anArray.size()<< endl;
+   /* cout<<endl<<"anArray size "<< anArray.size()<< endl;
     cout<<endl<<"ssize "<< size<< endl;
-    cout<<" in padd bin array"<< endl;
+    cout<<" in padd bin array"<< endl;*/
     DArray<bool> result(size);
     unsigned difference = size - anArray.size();
     int i = 0;
@@ -788,10 +788,10 @@ DArray<bool> Signature::padBinArray(DArray<bool> anArray, unsigned size)
         //cout<<" in loop i is "<< i<<endl<<" and anArray[i] is "<<anArray[i];
         result[i] = false;
     }
-    cout<<" first loop terminates"<< endl;
+    //cout<<" first loop terminates"<< endl;
     
     for(int j = 0; j < anArray.size();++j, ++i){
-        cout<<" in second loop i is : "<< i << endl;
+        //cout<<" in second loop i is : "<< i << endl;
         result[i] = anArray[j];
     }
     return result;

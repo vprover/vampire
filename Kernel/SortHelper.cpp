@@ -755,7 +755,7 @@ bool SortHelper::areImmediateSortsValid(Term* t)
   
   cout<<"\n the getType returns "<< type.toString()<<"\n";
   cout<<"\n the arity is "<< arity<<"\n";
-  cout<< "\n and the term is "<< t->toString();
+  //cout<< "\n and the term is "<< t->toString();
   
   for (unsigned i=0; i<arity; i++) {
     TermList arg = *t->nthArgument(i);

@@ -1548,7 +1548,7 @@ void SMTLIB2::parseUnderScoredExpression(LExpr* exp)
     Signature::printBoolArrayContent(argPadded);
     
     
-    unsigned symb = TPTP::addBitVectorConstant(ex->str,arg,  _overflow, false);
+    unsigned symb = TPTP::addBitVectorConstant(ex->str,argPadded,  _overflow, false);
     TermList res = TermList(Term::createConstant(symb));
     cout<< "\n symbol is "<<symb<<"\n";
     int hey;
@@ -2253,8 +2253,13 @@ bool SMTLIB2::parseAsBuiltinTermSymbol(const vstring& id, LExpr* exp)
         unsigned resultSort = env.sorts->addBitVectorSort(resultSize);
         cout<<"\n\n after addBitVector "<<"\n";
         cout<<" \n resultSort is "<< resultSort<<"\n";
-        // Always getting the same FUN SYMBOL FOR THE ONES WITH SAME RESULTSORT
-        unsigned fun = Theory::instance()->getSymbolForStructuredSort(resultSort, Theory::StructuredSortInterpretation::CONCAT,size1,size2);
+        // Always getting the same FUN SYMBOL FOR THE ONES WITH SAME RESULTSORT // i think problem is with size1 and size 2
+        
+        unsigned fun = Theory::instance()->getSymbolForStructuredSort(resultSort, Theory::StructuredSortInterpretation::CONCAT,sort,sort2);
+        
+        
+        
+        
         cout<<" \n in ts_concat fun is: "<< fun <<"\n";
         TermList res = TermList(Term::Term::create2(fun, first, second));
         _results.push(ParseResult(resultSort, res));
@@ -2275,7 +2280,7 @@ bool SMTLIB2::parseAsBuiltinTermSymbol(const vstring& id, LExpr* exp)
     case TS_BVNAND:
     case TS_BVNOR:
     case TS_BVXOR:
-    case TS_BVCOMP:
+    //case TS_BVCOMP:
     case TS_BVSUB:
     case TS_BVSDIV:
     case TS_BVSREM:
@@ -2305,7 +2310,32 @@ bool SMTLIB2::parseAsBuiltinTermSymbol(const vstring& id, LExpr* exp)
       
       return true;
     }
+    case TS_BVCOMP:
+    {
+        cout<<"\n in case TS_BVAND and such\n";
+      TermList first, second;
+      if (_results.isEmpty() || _results.top().isSeparator()) {
+        complainAboutArgShortageOrWrongSorts(BUILT_IN_SYMBOL,exp);
+      }
+      unsigned sort = _results.pop().asTerm(first);
+      unsigned sort2 = _results.pop().asTerm(second);
+      cout<< "\n sort 1: "<< sort;
+      cout<< "\n sort 2: "<< sort2;
+      if (sort != sort2){
+          complainAboutArgShortageOrWrongSorts(BUILT_IN_SYMBOL,exp);
+      }
+      
+      /// here make sure to get the interpretation of the according 
+      Theory::StructuredSortInterpretation t =  getSSIfromTS(ts);
+      unsigned fun = Theory::instance()->getSymbolForStructuredSort(sort, t,-1,-1);
+      
+      
+      TermList res = TermList(Term::Term::create2(fun, first, second));
+      _results.push(ParseResult(env.sorts->addBitVectorSort(1), res));
+      
+      return true;
     
+    }
     case TS_BVNEG:
     case TS_BVNOT:
     {

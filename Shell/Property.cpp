@@ -70,6 +70,7 @@ Property::Property()
     _allQuantifiersEssentiallyExistential(true),
     _smtlibLogic(SMTLIBLogic::SMT_UNDEFINED)
 {
+    cout<<endl<<"property called after parsing?"<<endl;
   //TODO now MaxInterpretedElement is stateful this might be in the wrong place
   _interpretationPresence.init(Theory::instance()->numberOfInterpretations()+1, false);
   env.property = this;
@@ -584,7 +585,7 @@ void Property::scan(TermList ts,bool unit,bool goal)
 void Property::scanForInterpreted(Term* t)
 {
   CALL("Property::scanInterpretation");
-
+  cout<<endl<<" dealing with term "<<t->toString();
   Interpretation itp;
   if (t->isLiteral()) {
     Literal* lit = static_cast<Literal*>(t);
@@ -597,20 +598,28 @@ void Property::scanForInterpreted(Term* t)
     }
   }
   else {
-    if (!theory->isInterpretedFunction(t)) { return; }
+      cout<<endl<<"in else"<<endl;
+    if (!theory->isInterpretedFunction(t)) { 
+        cout<<endl<<"not interpreted function";
+        return; }
     itp = theory->interpretFunction(t);
   }
+  cout<<endl<<" after else";
   _hasInterpreted = true;
+  cout<<endl<<"itp is "<< itp<<endl;
   _interpretationPresence[itp] = true;
+  cout<<endl<<" after access array";
   if(Theory::isConversionOperation(itp)){
+      cout<<endl<<" isConversionOperation";
     addProp(PR_NUMBER_CONVERSION);
     return;
   }
   if(Theory::isArrayOperation(itp)){
+      cout<<endl<<" isArrayOperation";
     //addProp(PR_HAS_ARRAYS);
     return;
   }
-
+cout<<endl<<" after these ifs ";
   unsigned sort = Theory::getOperationSort(itp);
   if(Theory::isInequality(itp)){
     switch(sort){
