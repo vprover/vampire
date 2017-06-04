@@ -658,6 +658,7 @@ void SMTCOMPMode::getSchedules(Property& property, Schedule& quick, Schedule& fa
       return;
     case SMT_AUFLIA:
     case SMT_QF_AUFLIA:
+    case SMT_AUFDTLIA:
       quick.push("dis+1_3_fsr=off:gs=on:nm=64:nwc=1:sas=z3:sac=on:afr=on:afp=100000:afq=1.1:amm=sco:anc=none:sp=reverse_arity:tha=off:updr=off_2");
       quick.push("lrs+4_3:1_bs=on:fsr=off:gs=on:gsem=off:ile=on:inst=on:lma=on:nm=64:nwc=2.5:nicw=on:sas=z3:stl=30:sos=theory:sac=on:add=large:afp=10000:afq=1.2:amm=off:anc=none:sp=reverse_arity:urr=ec_only:updr=off_36");
       fallback.push("lrs+1010_2:1_gs=on:inw=on:ile=on:irw=on:lwlo=on:nm=32:nwc=1:sos=all:av=off:sp=reverse_arity:urr=on_3000");
@@ -2096,6 +2097,7 @@ void SMTCOMPMode::getSchedules(Property& property, Schedule& quick, Schedule& fa
       return;
     case SMT_UF:
     case SMT_QF_UF:
+    case SMT_UFDT:
       quick.push("lrs+11_1_cond=on:gsp=input_only:gs=on:gsem=on:ile=on:lma=on:nm=2:nwc=1:stl=30:sos=theory:add=off:afp=10000:afq=1.1:anc=none:sp=reverse_arity:urr=on_7");
       quick.push("lrs+1011_1_cond=on:ile=on:nwc=1.2:stl=30:add=off:afr=on:afp=4000:afq=1.0:urr=ec_only:updr=off_63");
       quick.push("fmb+10_1_fmbsr=1.8:ile=on:nm=64:newcnf=on:av=off_65");
@@ -2514,6 +2516,7 @@ void SMTCOMPMode::getSchedules(Property& property, Schedule& quick, Schedule& fa
 
     case SMT_UFLIA:
     case SMT_QF_UFLIA:
+    case SMT_UFDTLIA:
       quick.push("dis+10_14_fsr=off:inw=on:ile=on:nm=6:nwc=1:sos=on:av=off:sp=occurrence:updr=off_16");
       quick.push("lrs-10_5:4_bs=on:bsr=on:cond=on:gs=on:gsem=on:inw=on:irw=on:lma=on:nm=32:newcnf=on:nwc=1:stl=30:sos=on:sac=on:afr=on:afp=1000:afq=1.2:sp=reverse_arity:urr=ec_only:updr=off_41");
       quick.push("lrs+10_2:3_gs=on:gsem=off:inw=on:ile=on:inst=on:nm=64:nwc=5:nicw=on:sas=z3:stl=30:sos=theory:aac=none:afr=on:afp=40000:afq=1.2:amm=off:anc=none:sp=reverse_arity:urr=on:updr=off_91");

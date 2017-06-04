@@ -250,6 +250,7 @@ void SMTLIB2::readBenchmark(LExprList* bench)
 const char * SMTLIB2::s_smtlibLogicNameStrings[] = {
     "ALIA",
     "ALL",
+    "AUFDTLIA",
     "AUFLIA",
     "AUFLIRA",
     "AUFNIRA",
@@ -282,6 +283,8 @@ const char * SMTLIB2::s_smtlibLogicNameStrings[] = {
     "QF_UFNIA",
     "QF_UFNRA",
     "UF",
+    "UFDT",
+    "UFDTLIA",
     "UFBV",
     "UFIDL",
     "UFLIA",
@@ -313,6 +316,7 @@ void SMTLIB2::readLogic(const vstring& logicStr)
   switch (_logic) {
   case SMT_ALL:
   case SMT_ALIA:
+  case SMT_AUFDTLIA:
   case SMT_AUFLIA:
   case SMT_AUFLIRA:
   case SMT_AUFNIRA:
@@ -333,6 +337,8 @@ void SMTLIB2::readLogic(const vstring& logicStr)
   case SMT_QF_UFLIA:
   case SMT_QF_UFNIA:
   case SMT_UF:
+  case SMT_UFDT:
+  case SMT_UFDTLIA:
   case SMT_UFIDL:
   case SMT_UFLIA:
   case SMT_UFNIA:
