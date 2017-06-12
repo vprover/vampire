@@ -1337,8 +1337,10 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
   // create generating inference engine
   CompositeGIE* gie=new CompositeGIE();
 
-  //TODO put behind option
-  gie->addFront(new Induction());
+  //TODO here induction is last, is that right?
+  if(opt.induction()!=Options::Induction::OFF){
+    gie->addFront(new Induction());
+  }
 
   if(opt.instantiation()!=Options::Instantiation::OFF){
     res->_instantiation = new Instantiation();

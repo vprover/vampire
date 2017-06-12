@@ -858,6 +858,14 @@ void Options::Options::init()
            _lookup.insert(&_unificationWithAbstraction);
            _unificationWithAbstraction.setExperimental();
 
+            _induction = ChoiceOptionValue<Induction>("induction","ind",Induction::OFF,
+                                {"off","all","con","conp"});
+            _induction.description = "Apply structural and mathematical induction on datatypes and integers";
+            _induction.tag(OptionTag::INFERENCES);
+            _lookup.insert(&_induction);
+            //_induction.setRandomChoices
+            _induction.setExperimental();
+
 	    _instantiation = ChoiceOptionValue<Instantiation>("instantiation","inst",Instantiation::OFF,{"off","on"});
 	    _instantiation.description = "Heuristically instantiate variables";
 	    _instantiation.tag(OptionTag::INFERENCES);
