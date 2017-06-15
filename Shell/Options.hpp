@@ -231,6 +231,7 @@ public:
     GROUND,
     FIXED
   };
+
   //TODO turn off mathematical induction and just keep structural, perhaps put mathematical under another option
   enum class Induction : unsigned int {
     OFF,
