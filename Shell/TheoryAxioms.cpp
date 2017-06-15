@@ -1184,15 +1184,15 @@ bool TheoryAxioms::apply(UnitList*& units, Property* prop)
   while (tas.hasNext()) {
     TermAlgebra* ta = tas.next();
 
-    TermAlgebras::addExhaustivenessAxiom(ta, units);
-//    TermAlgebras::addAlternativeExhaustivenessAxiom(ta, units);
-    TermAlgebras::addDistinctnessAxiom(ta, units);
-    TermAlgebras::addInjectivityAxiom(ta, units);
-//    TermAlgebras::addAlternativeInjectivityAxiom(ta, units);
-    TermAlgebras::addDiscriminationAxiom(ta, units);
+    addExhaustivenessAxiom(ta, units);
+//    addAlternativeExhaustivenessAxiom(ta, units);
+    addDistinctnessAxiom(ta, units);
+    addInjectivityAxiom(ta, units);
+//    addAlternativeInjectivityAxiom(ta, units);
+    addDiscriminationAxiom(ta, units);
 
     if (env.options->termAlgebraCyclicityCheck() == Options::TACyclicityCheck::AXIOM) {
-      TermAlgebras::addAcyclicityAxiom(ta, units);
+      addAcyclicityAxiom(ta, units);
     }
 
     modified = true;
@@ -1226,8 +1226,8 @@ void TheoryAxioms::applyFOOL(Problem& prb) {
   addAndOutputTheoryUnit(boolVarClause, prb.units(),CHEAP);
 } // TheoryAxioms::addBooleanDomainAxiom
 
-void TheoryAxioms::TermAlgebras::addExhaustivenessAxiom(TermAlgebra* ta, UnitList*& units) {
-  CALL("TheoryAxioms::TermAlgebras::addExhaustivenessAxiom");
+void TheoryAxioms::addExhaustivenessAxiom(TermAlgebra* ta, UnitList*& units) {
+  CALL("TheoryAxioms::addExhaustivenessAxiom");
 
   TermList x(0, false);
   Stack<TermList> argTerms;
@@ -1272,8 +1272,8 @@ void TheoryAxioms::TermAlgebras::addExhaustivenessAxiom(TermAlgebra* ta, UnitLis
   addAndOutputTheoryUnit(unit, units,CHEAP);
 }
 
-void TheoryAxioms::TermAlgebras::addAlternativeExhaustivenessAxiom(TermAlgebra* ta, UnitList*& units) {
-  CALL("TheoryAxioms::TermAlgebras::addAlternativeExhaustivenessAxiom");
+void TheoryAxioms::addAlternativeExhaustivenessAxiom(TermAlgebra* ta, UnitList*& units) {
+  CALL("TheoryAxioms::addAlternativeExhaustivenessAxiom");
 
   for (unsigned i = 0; i < ta->nConstructors(); i++) {
     TermAlgebraConstructor* c = ta->constructor(i);
@@ -1293,7 +1293,7 @@ void TheoryAxioms::TermAlgebras::addAlternativeExhaustivenessAxiom(TermAlgebra* 
   }
 }
 
-void TheoryAxioms::TermAlgebras::addDistinctnessAxiom(TermAlgebra* ta, UnitList*& units) {
+void TheoryAxioms::addDistinctnessAxiom(TermAlgebra* ta, UnitList*& units) {
   CALL("TermAlgebra::addDistinctnessAxiom");
 
   Array<TermList> terms(ta->nConstructors());
@@ -1318,9 +1318,9 @@ void TheoryAxioms::TermAlgebras::addDistinctnessAxiom(TermAlgebra* ta, UnitList*
   }
 }
 
-void TheoryAxioms::TermAlgebras::addInjectivityAxiom(TermAlgebra* ta, UnitList*& units)
+void TheoryAxioms::addInjectivityAxiom(TermAlgebra* ta, UnitList*& units)
 {
-  CALL("TheoryAxioms::TermAlgebras::addInjectivityAxiom");
+  CALL("TheoryAxioms::addInjectivityAxiom");
 
   for (unsigned i = 0; i < ta->nConstructors(); i++) {
     TermAlgebraConstructor* c = ta->constructor(i);
@@ -1348,9 +1348,9 @@ void TheoryAxioms::TermAlgebras::addInjectivityAxiom(TermAlgebra* ta, UnitList*&
   }
 }
 
-void TheoryAxioms::TermAlgebras::addAlternativeInjectivityAxiom(TermAlgebra* ta, UnitList*& units)
+void TheoryAxioms::addAlternativeInjectivityAxiom(TermAlgebra* ta, UnitList*& units)
 {
-  CALL("TheoryAxioms::TermAlgebras::addAlternativeInjectivityAxiom");
+  CALL("TheoryAxioms::addAlternativeInjectivityAxiom");
 
   for (unsigned i = 0; i < ta->nConstructors(); i++) {
     TermAlgebraConstructor* c = ta->constructor(i);
@@ -1369,8 +1369,8 @@ void TheoryAxioms::TermAlgebras::addAlternativeInjectivityAxiom(TermAlgebra* ta,
   }
 }
 
-void TheoryAxioms::TermAlgebras::addDiscriminationAxiom(TermAlgebra* ta, UnitList*& units) {
-  CALL("TermAlgebras::addDiscriminationAxiom");
+void TheoryAxioms::addDiscriminationAxiom(TermAlgebra* ta, UnitList*& units) {
+  CALL("addDiscriminationAxiom");
 
   Array<TermList> cases(ta->nConstructors());
   for (unsigned i = 0; i < ta->nConstructors(); i++) {
@@ -1397,9 +1397,9 @@ void TheoryAxioms::TermAlgebras::addDiscriminationAxiom(TermAlgebra* ta, UnitLis
   }
 }
 
-void TheoryAxioms::TermAlgebras::addAcyclicityAxiom(TermAlgebra* ta, UnitList*& units)
+void TheoryAxioms::addAcyclicityAxiom(TermAlgebra* ta, UnitList*& units)
 {
-  CALL("TheoryAxioms::TermAlgebras::addAcyclicityAxiom");
+  CALL("TheoryAxioms::addAcyclicityAxiom");
 
   unsigned pred = ta->getSubtermPredicate();
 
@@ -1426,9 +1426,9 @@ void TheoryAxioms::TermAlgebras::addAcyclicityAxiom(TermAlgebra* ta, UnitList*& 
   addTheoryUnitClause(sub, new Inference(Inference::TERM_ALGEBRA_ACYCLICITY), units,CHEAP);
 }
 
-bool TheoryAxioms::TermAlgebras::addSubtermDefinitions(unsigned subtermPredicate, TermAlgebraConstructor* c, UnitList*& units)
+bool TheoryAxioms::addSubtermDefinitions(unsigned subtermPredicate, TermAlgebraConstructor* c, UnitList*& units)
 {
-  CALL("TheoryAxioms::TermAlgebras::addSubtermDefinitions");
+  CALL("TheoryAxioms::addSubtermDefinitions");
 
   TermList z(c->arity(), false);
 

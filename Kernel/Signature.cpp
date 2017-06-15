@@ -986,6 +986,23 @@ unsigned Signature::addVar (const vstring& name,
   return result;
 } // Signature::addFunction
 
+TermAlgebraConstructor* Signature::getTermAlgebraConstructor(unsigned functor)
+{
+  CALL("Signature::getTermAlgebraConstructor");
+
+  if (getFunction(functor)->termAlgebraCons()) {
+    TermAlgebra *ta = _termAlgebras.get(getFunction(functor)->fnType()->result());
+    if (ta) {
+      for (unsigned i = 0; i < ta->nConstructors(); i++) {
+        TermAlgebraConstructor *c = ta->constructor(i);
+        if (c->functor() == functor)
+          return c;
+      }
+    }
+  }
+
+  return nullptr;
+}
 
 /**
  * Return true if the name containing che character must be quoted

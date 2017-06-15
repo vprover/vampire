@@ -2008,7 +2008,38 @@ void SMTLIB2::parseRankedFunctionApplication(LExpr* exp)
     _results.push(ParseResult(res));
   }
   else if(headRdr.tryAcceptAtom("is")){
-    USER_ERROR("Ranked function application 'is' not supported");
+    // discriminator predicate for term algebras
+    const vstring& consName = headRdr.readAtom();
+
+    if (_declaredFunctions.find(consName)) {
+      DeclaredFunction& f = _declaredFunctions.get(consName);
+      if (f.second) {
+        TermAlgebraConstructor* c = env.signature->getTermAlgebraConstructor(f.first);
+        if (c) /* else the symbol is not a TA constructor */ {
+          unsigned sort = env.signature->getFunction(f.first)->fnType()->result();
+          if (!c->hasDiscriminator()) {
+            // add discriminator predicate
+            bool added;
+            unsigned pred = env.signature->addPredicate(c->discriminatorName(), 1, added);
+            ASS(added);
+            PredicateType* type = new PredicateType({ sort });
+            env.signature->getPredicate(pred)->setType(type);
+            c->addDiscriminator(pred);
+            // this predicate is not declare for the parser as it has a reserved name
+          }
+          TermList arg;
+          if (_results.isEmpty() || _results.top().isSeparator() ||
+              _results.pop().asTerm(arg) != sort) {
+            complainAboutArgShortageOrWrongSorts("ranked function symbol",exp);
+          }
+          Formula* res = new AtomicFormula(Literal::create1(c->discriminator(),true,arg));
+          
+          _results.push(ParseResult(res));
+          return;
+        }
+      }
+    }
+    USER_ERROR("'"+consName+"' is not a datatype constructor");    
   }
   else{
     USER_ERROR("Ranked function application "+headRdr.readAtom()+" not known");

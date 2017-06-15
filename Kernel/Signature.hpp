@@ -518,6 +518,7 @@ class Signature
   Shell::TermAlgebra *getTermAlgebraOfSort(unsigned sort) { return _termAlgebras.get(sort); }
   void addTermAlgebra(Shell::TermAlgebra *ta) { _termAlgebras.insert(ta->sort(), ta); }
   VirtualIterator<Shell::TermAlgebra*> termAlgebrasIterator() const { return _termAlgebras.range(); }
+  Shell::TermAlgebraConstructor* getTermAlgebraConstructor(unsigned functor);
 
   void recordDividesNvalue(TermList n){
     _dividesNvalues.push(n);

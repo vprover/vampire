@@ -41,6 +41,13 @@ bool TermAlgebraConstructor::recursive()
   return false;
 }
 
+Lib::vstring TermAlgebraConstructor::discriminatorName()
+{
+  CALL("TermAlgebraConstructor::discriminatorName");
+
+  return "$is" + env.signature->functionName(_functor);
+}
+
 TermAlgebra::TermAlgebra(unsigned sort,
                          unsigned n,
                          TermAlgebraConstructor** constrs,
@@ -77,7 +84,7 @@ bool TermAlgebra::emptyDomain()
 }
 
 Lib::vstring TermAlgebra::getSubtermPredicateName() {
-  return "subterm$" + env.sorts->sortName(_sort);
+  return "$subterm" + env.sorts->sortName(_sort);
 }
 
 unsigned TermAlgebra::getSubtermPredicate() {

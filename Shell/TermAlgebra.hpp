@@ -36,7 +36,10 @@ namespace Shell {
 
     bool hasDiscriminator() { return _hasDiscriminator; }
     unsigned discriminator() { ASS(_hasDiscriminator); return _discriminator; }
+    void addDiscriminator(unsigned d) { ASS(!_hasDiscriminator); _hasDiscriminator = true; _discriminator = d; }
 
+    Lib::vstring discriminatorName();
+    
   private:
     Kernel::FunctionType* _type;
     unsigned _functor;

@@ -85,20 +85,19 @@ private:
                       Interpretation plus, TermList zeroElement, TermList oneElement, UnitList*& units);
   void addArrayWriteAxioms(Interpretation select, Interpretation store, UnitList*& units);
 
-  struct TermAlgebras {
-    static void addExhaustivenessAxiom(TermAlgebra* ta, UnitList*& units);
-    static void addAlternativeExhaustivenessAxiom(TermAlgebra* ta, UnitList*& units);
-    static void addDistinctnessAxiom(TermAlgebra* ta, UnitList*& units);
-    static void addInjectivityAxiom(TermAlgebra* ta, UnitList*& units);
-    static void addAlternativeInjectivityAxiom(TermAlgebra* ta, UnitList*& units);
-    static void addDiscriminationAxiom(TermAlgebra* ta, UnitList*& units);
-    static void addAcyclicityAxiom(TermAlgebra* ta, UnitList*& units);
+  // term algebra axioms
+  void addExhaustivenessAxiom(TermAlgebra* ta, UnitList*& units);
+  void addAlternativeExhaustivenessAxiom(TermAlgebra* ta, UnitList*& units);
+  void addDistinctnessAxiom(TermAlgebra* ta, UnitList*& units);
+  void addInjectivityAxiom(TermAlgebra* ta, UnitList*& units);
+  void addAlternativeInjectivityAxiom(TermAlgebra* ta, UnitList*& units);
+  void addDiscriminationAxiom(TermAlgebra* ta, UnitList*& units);
+  void addAcyclicityAxiom(TermAlgebra* ta, UnitList*& units);
 
-    /* Subterm definitions used by the acyclicity axiom. True iff some
-       definition was actually added (i.e. if the constructor is
-       recursive) */
-    static bool addSubtermDefinitions(unsigned subtermPredicate, TermAlgebraConstructor* c, UnitList*& units);
-  };
+  /* Subterm definitions used by the acyclicity axiom. True iff some
+     definition was actually added (i.e. if the constructor is
+     recursive) */
+  static bool addSubtermDefinitions(unsigned subtermPredicate, TermAlgebraConstructor* c, UnitList*& units);
 
   static void addTheoryUnitClause(Literal* lit, UnitList*& units,unsigned level);
   static void addTheoryUnitClause(Literal* lit, Inference* inf, UnitList*& units,unsigned level);
