@@ -601,7 +601,9 @@ void Property::scanForInterpreted(Term* t)
     itp = theory->interpretFunction(t);
   }
   _hasInterpreted = true;
-  _interpretationPresence[itp] = true;
+  if(itp < _interpretationPresence.size()){
+    _interpretationPresence[itp] = true;
+  }
   if(Theory::isConversionOperation(itp)){
     addProp(PR_NUMBER_CONVERSION);
     return;

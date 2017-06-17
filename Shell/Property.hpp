@@ -197,7 +197,10 @@ public:
    */
   void scanForInterpreted(Term* t);
 
-  bool hasInterpretedOperation(Interpretation i) const { return _interpretationPresence[i]; }
+  bool hasInterpretedOperation(Interpretation i) const { 
+    if(i >= _interpretationPresence.size()){ return false; }
+    return _interpretationPresence[i]; 
+  }
   //bool hasArrayOperation(Interpretation i) const { return true; }
   /** Problem contains an interpreted symbol excluding equality */
   bool hasInterpretedOperations() const { return _hasInterpreted; }
