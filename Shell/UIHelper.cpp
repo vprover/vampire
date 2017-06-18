@@ -332,6 +332,7 @@ void UIHelper::outputResult(ostream& out)
     break;
   case Statistics::TIME_LIMIT:
     if(env.options->proof() == Options::Proof::SMTCOMP){
+      out << "unknown" << endl;
       return;
     }
     if (szsOutput) {
@@ -341,6 +342,7 @@ void UIHelper::outputResult(ostream& out)
     break;
   case Statistics::MEMORY_LIMIT:
     if(env.options->proof() == Options::Proof::SMTCOMP){
+      out << "unknown" << endl;
       return;
     }
 #if VDEBUG
@@ -359,6 +361,7 @@ void UIHelper::outputResult(ostream& out)
   }
   case Statistics::REFUTATION_NOT_FOUND:
     if(env.options->proof() == Options::Proof::SMTCOMP){
+      out << "unknown" << endl;
       return;
     }
     addCommentIfCASC(out);
@@ -390,6 +393,7 @@ void UIHelper::outputResult(ostream& out)
     break;
   case Statistics::INAPPROPRIATE:
     if(env.options->proof() == Options::Proof::SMTCOMP){
+      out << "unknown" << endl;
       return;
     }
     addCommentIfCASC(out);
@@ -397,6 +401,7 @@ void UIHelper::outputResult(ostream& out)
     break;
   case Statistics::UNKNOWN:
     if(env.options->proof() == Options::Proof::SMTCOMP){
+      out << "unknown" << endl;
       return;
     }
   addCommentIfCASC(out);
