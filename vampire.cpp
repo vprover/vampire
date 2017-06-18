@@ -959,6 +959,9 @@ int main(int argc, char* argv[])
        if(SMTCOMP::SMTCOMPMode::perform()){
          vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
         }
+       else{
+         cout << "unknown" << endl;
+       }
     break;
     case Options::Mode::CASC_LTB: {
       bool learning = env.options->ltbLearning()!=Options::LTBLearning::OFF;
