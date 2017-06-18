@@ -416,7 +416,7 @@ unsigned SMTCOMPMode::getSliceTime(vstring sliceCode,vstring& chopped)
 
   unsigned time = sliceTime + 1;
   if (time < 10) {
-    time++;
+    time=10;
   }
   // convert deciseconds to milliseconds
   return time * 100;
