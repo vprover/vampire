@@ -887,6 +887,8 @@ void SMTLIB2::readDeclareDatatypes(LExprList* sorts, LExprList* datatypes, bool 
     bool added;
     unsigned srt = env.sorts->addSort(dtypeName + "()", added,false);
     ASS(added);
+    (void)srt; // to get rid of compiler warning when logging is off
+    // TODO: is it really OK we normally don't need the sort?
     LOG2("reading datatype "+dtypeName+" as sort ",srt);
     dtypeNames.push(dtypeName+"()");
   }
