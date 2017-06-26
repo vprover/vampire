@@ -112,7 +112,7 @@ namespace Indexing
       return false;
     }
 
-    return (!Ordering::isGorGEorE(_ord.compare(*t, *fs)));
+    return true;
   }
   
   struct AcyclicityIndex::IndexEntry {
@@ -331,7 +331,6 @@ namespace Indexing
                               n->parent->substIndex,
                               n->term,
                               n->substIndex)) {
-              // TODO add ordering test
               _substChanges.push(btData);
               _currentDepth++;
               ASS_EQ(_currentDepth, _substChanges.size());
