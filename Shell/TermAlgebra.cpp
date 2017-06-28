@@ -83,6 +83,32 @@ bool TermAlgebra::emptyDomain()
   return true;
 }
 
+bool TermAlgebra::finiteDomain()
+{
+  CALL("TermAlgebra::finiteDomain");
+
+  for (unsigned i = 0; i < _n; i++) {
+    if (_constrs[i]->arity() > 0) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+bool TermAlgebra::infiniteDomain()
+{
+  CALL("TermAlgebra::infiniteDomain");
+
+  for (unsigned i = 0; i < _n; i++) {
+    if (_constrs[i]->recursive()) {
+      return true;
+    }
+  }
+
+  return false;
+}
+  
 Lib::vstring TermAlgebra::getSubtermPredicateName() {
   return "$subterm" + env.sorts->sortName(_sort);
 }

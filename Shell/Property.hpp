@@ -215,7 +215,9 @@ public:
   }
   bool usesSingleSort() const { return _sortsUsed==1; }
   unsigned sortsUsed() const { return _sortsUsed; }
-
+  bool onlyFiniteDomainDatatypes() const { return _onlyFiniteDomainDatatypes; }
+  bool knownInfiniteDomain() const { return _knownInfiniteDomain; }
+  
   void setSMTLIBLogic(SMTLIBLogic smtLibLogic) { 
     _smtlibLogic = smtLibLogic; 
   }
@@ -305,6 +307,9 @@ public:
   Array<bool> _usesSort;
 
   bool _hasFOOL;
+
+  bool _onlyFiniteDomainDatatypes;
+  bool _knownInfiniteDomain;
 
   bool _allClausesGround;
   bool _allNonTheoryClausesGround;
