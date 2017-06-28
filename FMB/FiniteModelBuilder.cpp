@@ -84,8 +84,6 @@ FiniteModelBuilder::FiniteModelBuilder(Problem& prb, const Options& opt)
             || prop.hasProp(Property::PR_HAS_INTEGERS)
             || prop.hasProp(Property::PR_HAS_REALS)
             || prop.hasProp(Property::PR_HAS_RATS)
-            || prop.hasProp(Property::PR_HAS_DT_CONSTRUCTORS)
-            || prop.hasProp(Property::PR_HAS_CDT_CONSTRUCTORS)
             ||
       env.property->hasInterpretedOperations()) {
     _isAppropriate = false;
