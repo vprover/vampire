@@ -451,7 +451,8 @@ void Property::scanSort(unsigned sort)
       TermAlgebra* ta = env.signature->getTermAlgebraOfSort(sort);
       if (!ta->finiteDomain()) {
         _onlyFiniteDomainDatatypes = false;
-      } else if (ta->infiniteDomain()) {
+      }
+      if (ta->infiniteDomain()) {
         _knownInfiniteDomain = true;
       }
       if (ta->allowsCyclicTerms()) {
