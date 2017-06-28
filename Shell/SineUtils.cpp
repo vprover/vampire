@@ -365,11 +365,13 @@ void SineSelector::perform(Problem& prb)
 {
   CALL("SineSelector::perform");
 
-  perform(prb.units());
+  if (perform(prb.units())) {
+    prb.reportIncompleteTransformation();
+  }
   prb.invalidateByRemoval();
 }
 
-void SineSelector::perform(UnitList*& units)
+bool SineSelector::perform(UnitList*& units)
 {
   CALL("SineSelector::perform");
 
@@ -385,8 +387,10 @@ void SineSelector::perform(UnitList*& units)
 
   //build the D-relation and select the non-axiom formulas
   _def.init(symIdBound,0);
+  unsigned numberUnitsLeftOut = 0;
   UnitList::Iterator uit2(units);
   while (uit2.hasNext()) {
+    numberUnitsLeftOut++;
     Unit* u=uit2.next();
     bool performSelection= _onIncluded ? u->included() : (u->inputType()==Unit::AXIOM);
     if (performSelection) {
@@ -456,8 +460,9 @@ void SineSelector::perform(UnitList*& units)
   }
 
   env.statistics->sineIterations=depth;
-
   env.statistics->selectedBySine=_unitsWithoutSymbols.size() + selectedStack.size();
+
+  numberUnitsLeftOut -= env.statistics->selectedBySine;
 
   units->destroy();
   units=0;
@@ -495,6 +500,8 @@ if(env.clausePriorities){
     cout<<'#'<<selIt.next()->toString()<<endl;
   }
 #endif
+
+  return (numberUnitsLeftOut > 0);
 }
 
 //////////////////////////////////////

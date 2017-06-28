@@ -57,24 +57,42 @@
 
 #define VTRACE_DOMAINS 0
 
+#define LOG(X) // cout << #X <<  X << endl;
+
 namespace FMB 
 {
 
 FiniteModelBuilder::FiniteModelBuilder(Problem& prb, const Options& opt)
 : MainLoop(prb, opt), _sortedSignature(0), _groundClauses(0), _clauses(0),
-                      _isComplete(true)
+                      _isAppropriate(true)
 
 {
   CALL("FiniteModelBuilder::FiniteModelBuilder");
 
-  // If we are incomplete then stop now
-  // Can be incomplete if we used incomplete version of equality proxy
-  if(!opt.complete(prb)){
-    _isComplete = false;
+  Property& prop = *prb.getProperty();
+
+  LOG(prop.hasInterpretedOperations());
+  LOG(prop.hasProp(Property::PR_HAS_INTEGERS));
+  LOG(prop.hasProp(Property::PR_HAS_REALS));
+  LOG(prop.hasProp(Property::PR_HAS_RATS));
+  LOG(prop.hasProp(Property::PR_HAS_DT_CONSTRUCTORS));
+  LOG(prop.hasProp(Property::PR_HAS_CDT_CONSTRUCTORS));
+
+  if (prb.hadIncompleteTransformation() ||
+      opt.sineSelection() != Options::SineSelection::OFF ||
+      prop.hasInterpretedOperations()
+            || prop.hasProp(Property::PR_HAS_INTEGERS)
+            || prop.hasProp(Property::PR_HAS_REALS)
+            || prop.hasProp(Property::PR_HAS_RATS)
+            ||
+      env.property->hasInterpretedOperations()) {
+    _isAppropriate = false;
+
     // to ensure it is initialised
     _dsaEnumerator = 0;
     return;
   }
+
   // Record option values
   _startModelSize = opt.fmbStartSize();
   _symmetryRatio = opt.fmbSymmetryRatio();
@@ -386,7 +404,7 @@ void FiniteModelBuilder::init()
   CALL("FiniteModelBuilder::init");
 
   // If we're not complete don't both doing anything
-  if(!_isComplete) return;
+  if(!_isAppropriate) return;
 
   if(!_prb.units()) return;
 
@@ -1493,7 +1511,7 @@ MainLoopResult FiniteModelBuilder::runImpl()
 {
   CALL("FiniteModelBuilder::runImpl");
 
-  if(!_isComplete){
+  if(!_isAppropriate){
     // give up!
     return MainLoopResult(Statistics::INAPPROPRIATE);
   }
