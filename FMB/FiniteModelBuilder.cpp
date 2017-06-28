@@ -77,6 +77,7 @@ FiniteModelBuilder::FiniteModelBuilder(Problem& prb, const Options& opt)
   LOG(prop.hasProp(Property::PR_HAS_RATS));
   LOG(prop.hasProp(Property::PR_HAS_DT_CONSTRUCTORS));
   LOG(prop.hasProp(Property::PR_HAS_CDT_CONSTRUCTORS));
+  LOG(prop.knownInfiniteDomain());
 
   if (prb.hadIncompleteTransformation() ||
       opt.sineSelection() != Options::SineSelection::OFF ||
@@ -84,7 +85,7 @@ FiniteModelBuilder::FiniteModelBuilder(Problem& prb, const Options& opt)
             || prop.hasProp(Property::PR_HAS_INTEGERS)
             || prop.hasProp(Property::PR_HAS_REALS)
             || prop.hasProp(Property::PR_HAS_RATS)
-            ||
+            || prop.knownInfiniteDomain() || // recursive data type provably infinite --> don't bother model building
       env.property->hasInterpretedOperations()) {
     _isAppropriate = false;
 
