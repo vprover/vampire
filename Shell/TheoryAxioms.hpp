@@ -87,7 +87,6 @@ private:
 
   // term algebra axioms
   void addExhaustivenessAxiom(TermAlgebra* ta, UnitList*& units);
-  void addAlternativeExhaustivenessAxiom(TermAlgebra* ta, UnitList*& units);
   void addDistinctnessAxiom(TermAlgebra* ta, UnitList*& units);
   void addInjectivityAxiom(TermAlgebra* ta, UnitList*& units);
   void addAlternativeInjectivityAxiom(TermAlgebra* ta, UnitList*& units);
