@@ -35,7 +35,8 @@ private:
   Clause* performSuperposition(
 	  Clause* rwClause, Literal* rwLiteral, TermList rwTerm,
 	  Clause* eqClause, Literal* eqLiteral, TermList eqLHS,
-	  ResultSubstitutionSP subst, bool eqIsResult, Limits* limits);
+	  ResultSubstitutionSP subst, bool eqIsResult, Limits* limits,
+          UnificationConstraintStackSP constraints);
 
   bool checkClauseColorCompatibility(Clause* eqClause, Clause* rwClause);
   static int getWeightLimit(Clause* eqClause, Clause* rwClause, Limits* limits);

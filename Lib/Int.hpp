@@ -13,6 +13,8 @@
 #include "Portability.hpp"
 #include "VString.hpp"
 
+#include <iostream>
+
 using namespace std;
 
 #ifdef _MSC_VER // VC++
@@ -114,7 +116,7 @@ class Int
    * Otherwise, return false.
    */
   template<typename INT>
-  static bool safeUnaryMinus(INT num, INT& res)
+  static bool safeUnaryMinus(const INT num, INT& res)
   {
     CALL("Int::safeUnaryMinus");
 
@@ -180,6 +182,25 @@ class Int
 
     INT mres = arg1*arg2;
 
+    if (arg1 == 0 || arg1 == 1 || arg2 == 0 || arg2 == 1) {
+      res=mres;
+      return true;
+    }
+
+    if (arg1 == numeric_limits<INT>::min() || arg2 == numeric_limits<INT>::min()) {
+      // cannot take abs of min() and all safe operations with min have been ruled out above
+      return false;
+    }
+
+    // we can safely apply uminus on negative ones
+    INT arg1abs = arg1 < 0 ? -arg1 : arg1;
+    INT arg2abs = arg2 < 0 ? -arg2 : arg2;
+
+    if (arg1abs > numeric_limits<INT>::max() / arg2abs) {
+      return false;
+    }
+
+    // this is perhaps obsolete and could be removed
     if ((mres == numeric_limits<INT>::min() && arg1 == -1) || // before, there was a SIGFPE for "-2147483648 / -1" TODO: are there other evil cases?
         (sgn(arg1)*sgn(arg2) != sgn(mres)) || // 1073741824 * 2 = -2147483648 is evil, and passes the test below
         (arg1 != 0 && mres / arg1 != arg2)) {

@@ -198,11 +198,26 @@ public:
     };
     // update _tagNames at the end of Options constructor if you add a tag
     
+  enum class TheoryInstSimp : unsigned int {
+    OFF,
+    ALL,    // select all interpreted
+    STRONG, // select strong only
+    OVERLAP, // select strong and weak which overlap with strong
+    FULL    // perform full abstraction
+  };
+  enum class UnificationWithAbstraction : unsigned int {
+    OFF,
+    INTERP_ONLY,
+    ONE_INTERP,
+    CONSTANT,
+    ALL,
+    GROUND
+  };
 
   enum class TheoryAxiomLevel : unsigned int {
     ON,  // all of them
     OFF, // none of them
-    SET_ONE
+    CHEAP 
   };
 
   enum class ProofExtra : unsigned int {
@@ -455,7 +470,18 @@ public:
   enum class SymbolPrecedence : unsigned int {
     ARITY = 0,
     OCCURRENCE = 1,
-    REVERSE_ARITY = 2
+    REVERSE_ARITY = 2,
+    SCRAMBLE = 3,
+    FREQUENCY = 4,
+    REVERSE_FREQUENCY = 5,
+    WEIGHTED_FREQUENCY = 6,
+    REVERSE_WEIGHTED_FREQUENCY = 7
+  };
+  enum class SymbolPrecedenceBoost : unsigned int {
+    NONE = 0,
+    GOAL = 1,
+    UNIT = 2,
+    GOAL_UNIT = 3
   };
 
   enum class SineSelection : unsigned int {
@@ -470,7 +496,8 @@ public:
     ON = 1,
     PROOFCHECK = 2,
     TPTP = 3,
-    SMTCOMP = 4
+    SMTCOMP = 4,
+    PROPERTY = 5
   };
 
   /** Values for --equality_proxy */
@@ -1707,6 +1734,7 @@ public:
   void setInclude(vstring val) { _include.actualValue = val; }
   vstring logFile() const { return _logFile.actualValue; }
   vstring inputFile() const { return _inputFile.actualValue; }
+  int activationLimit() const { return _activationLimit.actualValue; }
   int randomSeed() const { return _randomSeed.actualValue; }
   int rowVariableMaxLength() const { return _rowVariableMaxLength.actualValue; }
   //void setRowVariableMaxLength(int newVal) { _rowVariableMaxLength = newVal; }
@@ -1714,7 +1742,6 @@ public:
 
   // IMPORTANT, if you add a showX command then include showAll
   bool showAll() const { return _showAll.actualValue; }
-
   bool showActive() const { return showAll() || _showActive.actualValue; }
   bool showBlocked() const { return showAll() || _showBlocked.actualValue; }
   bool showDefinitions() const { return showAll() || _showDefinitions.actualValue; }
@@ -1749,7 +1776,9 @@ public:
   bool z3UnsatCores() const { return _z3UnsatCores.actualValue;}
   bool satFallbackForSMT() const { return _satFallbackForSMT.actualValue; }
   bool smtForGround() const { return _smtForGround.actualValue; }
+  TheoryInstSimp theoryInstAndSimp() const { return _theoryInstAndSimp.actualValue; }
 #endif
+  UnificationWithAbstraction unificationWithAbstraction() const { return _unificationWithAbstraction.actualValue; }
   bool unusedPredicateDefinitionRemoval() const { return _unusedPredicateDefinitionRemoval.actualValue; }
   bool blockedClauseElimination() const { return _blockedClauseElimination.actualValue; }
   void setUnusedPredicateDefinitionRemoval(bool newVal) { _unusedPredicateDefinitionRemoval.actualValue = newVal; }
@@ -1792,6 +1821,9 @@ public:
   void setSimulatedTimeLimit(int newVal) { _simulatedTimeLimit.actualValue = newVal; }
   int maxInferenceDepth() const { return _maxInferenceDepth.actualValue; }
   SymbolPrecedence symbolPrecedence() const { return _symbolPrecedence.actualValue; }
+  SymbolPrecedenceBoost symbolPrecedenceBoost() const { return _symbolPrecedenceBoost.actualValue; }
+  const vstring& functionPrecedence() const { return _functionPrecedence.actualValue; }
+  const vstring& predicatePrecedence() const { return _predicatePrecedence.actualValue; }
   // Return time limit in deciseconds, or 0 if there is no time limit
   int timeLimitInDeciseconds() const { return _timeLimitInDeciseconds.actualValue; }
   size_t memoryLimit() const { return _memoryLimit.actualValue; }
@@ -1817,6 +1849,7 @@ public:
   bool extensionalityAllowPosEq() const { return _extensionalityAllowPosEq.actualValue; }
   float nongoalWeightCoefficient() const { return _nonGoalWeightCoefficient.actualValue; }
   Sos sos() const { return _sos.actualValue; }
+  unsigned sosTheoryLimit() const { return _sosTheoryLimit.actualValue; }
   //void setSos(Sos newVal) { _sos = newVal; }
   FunctionDefinitionElimination functionDefinitionElimination() const { return _functionDefinitionElimination.actualValue; }
   bool outputAxiomNames() const { return _outputAxiomNames.actualValue; }
@@ -2177,6 +2210,8 @@ private:
   IntOptionValue _randomSeed;
   IntOptionValue _rowVariableMaxLength;
 
+  IntOptionValue _activationLimit;
+
   FloatOptionValue _satClauseActivityDecay;
   ChoiceOptionValue<SatClauseDisposer> _satClauseDisposer;
   BoolOptionValue _satLearntMinimization;
@@ -2220,7 +2255,9 @@ private:
   BoolOptionValue _z3UnsatCores;
   BoolOptionValue _satFallbackForSMT;
   BoolOptionValue _smtForGround;
+  ChoiceOptionValue<TheoryInstSimp> _theoryInstAndSimp;
 #endif
+  ChoiceOptionValue<UnificationWithAbstraction> _unificationWithAbstraction; 
   TimeLimitOptionValue _simulatedTimeLimit;
   UnsignedOptionValue _sineDepth;
   UnsignedOptionValue _sineGeneralityThreshold;
@@ -2229,6 +2266,7 @@ private:
   BoolOptionValue _smtlibConsiderIntsReal;
   BoolOptionValue _smtlibFletAsDefinition;
   ChoiceOptionValue<Sos> _sos;
+  UnsignedOptionValue _sosTheoryLimit;
   BoolOptionValue _splitting;
   BoolOptionValue _splitAtActivation;
   ChoiceOptionValue<SplittingAddComplementary> _splittingAddComplementary;
@@ -2247,6 +2285,9 @@ private:
   ChoiceOptionValue<Statistics> _statistics;
   BoolOptionValue _superpositionFromVariables;
   ChoiceOptionValue<SymbolPrecedence> _symbolPrecedence;
+  ChoiceOptionValue<SymbolPrecedenceBoost> _symbolPrecedenceBoost;
+  StringOptionValue _functionPrecedence;
+  StringOptionValue _predicatePrecedence;
 
   StringOptionValue _testId;
   BoolOptionValue _szsOutput;

@@ -410,10 +410,19 @@ vstring Clause::toString() const
   }
 
   result += vstring(" (") + Int::toString(_age) + ':' + Int::toString(weight());
+  float ew = const_cast<Clause*>(this)->getEffectiveWeight(const_cast<Shell::Options&>(*(env.options)));
+  unsigned effective = static_cast<int>(ceil(ew));
+  if(effective!=weight()){
+    result += "["+Int::toString(effective)+"]";
+  }
   if (numSelected()>0) {
     result += ':' + Int::toString(numSelected());
   }
-  result += ") " + inferenceAsString();
+  result += ") ";
+  if(isTheoryDescendant()){
+    result += "T ";
+  }
+  result +=  inferenceAsString();
   return result;
 }
 
@@ -519,7 +528,7 @@ unsigned Clause::splitWeight() const
  * @since 04/05/2013 Manchester, updated to use new NonVariableIterator
  * @author Andrei Voronkov
  */
-unsigned Clause::getNumeralWeight()
+unsigned Clause::getNumeralWeight() 
 {
   CALL("Clause::getNumeralWeight");
 
@@ -573,7 +582,7 @@ unsigned Clause::getNumeralWeight()
  * by the nongoal weight coefficient, if applicable)
  * @since 22/1/15 weight uses splitWeight
  */
-float Clause::getEffectiveWeight(const Options& opt)
+float Clause::getEffectiveWeight(const Options& opt) 
 {
   CALL("Clause::getEffectiveWeight");
 

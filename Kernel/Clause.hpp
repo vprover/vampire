@@ -178,8 +178,8 @@ public:
   bool isComponent() const { return _component; }
   void setComponent(bool c) { _component = c; }
 
-  bool isTheoryDescendant() const{ return _theoryDescendant; }
-  void setTheoryDescendant(bool t){ _theoryDescendant=t; }
+  bool isTheoryDescendant() const { return _theoryDescendant; }
+  void setTheoryDescendant(bool t) { _theoryDescendant=t; }
   
   bool skip() const;
 

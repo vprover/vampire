@@ -28,6 +28,7 @@
 #include "Lib/System.hpp"
 
 #include "Kernel/Problem.hpp"
+#include "Kernel/Signature.hpp"
 
 #include "Options.hpp"
 #include "Property.hpp"
@@ -213,7 +214,7 @@ void Options::Options::init()
     _problemName.description="";
     //_lookup.insert(&_problemName);
 
-    _proof = ChoiceOptionValue<Proof>("proof","p",Proof::ON,{"off","on","proofcheck","tptp","smtcomp"});
+    _proof = ChoiceOptionValue<Proof>("proof","p",Proof::ON,{"off","on","proofcheck","tptp","smtcomp","property"});
     _proof.description=
     "Specifies whether proof will be output. 'proofcheck' will output proof as a sequence of TPTP problems to allow for proof-checking.";
     _lookup.insert(&_proof);
@@ -325,6 +326,13 @@ void Options::Options::init()
     _sos.setRandomChoices(And(isRandSat(),saNotInstGen()),{"on","off","off","off","off"});
     _sos.setRandomChoices(And(isRandOn(),hasNonUnits()),{"on","off","off","off","off"});
     _sos.setRandomChoices(isRandOn(),{"all","off","on"});
+
+    _sosTheoryLimit = UnsignedOptionValue("sos_theory_limit","sstl",0);
+    _sosTheoryLimit.description="When sos=theory the depth of descendants a theory axiom can have";
+    _sosTheoryLimit.setExperimental();
+    _lookup.insert(&_sosTheoryLimit);
+    _sosTheoryLimit.tag(OptionTag::PREPROCESSING);
+    _sosTheoryLimit.reliesOn(_sos.is(equal(Sos::THEORY)));
 
 
 
@@ -765,6 +773,23 @@ void Options::Options::init()
 
 	//*********************** Inferences  ***********************
 
+#if VZ3
+
+           _theoryInstAndSimp = ChoiceOptionValue<TheoryInstSimp>("theory_instantiation","thi",
+                                                TheoryInstSimp::OFF,{"off","all","strong","overlap","full"});
+           _theoryInstAndSimp.description = ""; 
+           _theoryInstAndSimp.tag(OptionTag::INFERENCES);
+           _lookup.insert(&_theoryInstAndSimp);
+           _theoryInstAndSimp.setExperimental();
+#endif
+           _unificationWithAbstraction = ChoiceOptionValue<UnificationWithAbstraction>("unification_with_abstraction","uwa",
+                                             UnificationWithAbstraction::OFF,
+                                             {"off","interpreted_only","one_side_interpreted","one_side_constant","all","ground"});
+           _unificationWithAbstraction.description="";
+           _unificationWithAbstraction.tag(OptionTag::INFERENCES);
+           _lookup.insert(&_unificationWithAbstraction);
+           _unificationWithAbstraction.setExperimental();
+
 	    _instantiation = ChoiceOptionValue<Instantiation>("instantiation","inst",Instantiation::OFF,{"off","on"});
 	    _instantiation.description = "Heuristically instantiate variables";
 	    _instantiation.tag(OptionTag::INFERENCES);
@@ -1099,7 +1124,8 @@ void Options::Options::init()
 
     _use_dm = BoolOptionValue("use_dismatching","dm",false);
     _use_dm.description="Use dismatching constraints.";
-    _lookup.insert(&_use_dm);
+    // Dismatching constraints didn't work and are being discontinued ...
+    // _lookup.insert(&_use_dm);
     _use_dm.tag(OptionTag::INST_GEN);
     //_use_dm.setExperimental();
     _use_dm.setRandomChoices({"on","off"});
@@ -1477,13 +1503,35 @@ void Options::Options::init()
     _lookup.insert(&_randomSeed);
     _randomSeed.tag(OptionTag::INPUT);
 
+    _activationLimit = IntOptionValue("activation_limit","al",0);
+    _activationLimit.description="Terminate saturation after this many iterations of the main loop. 0 means no limit.";
+    _activationLimit.setExperimental();
+    _lookup.insert(&_activationLimit);
 
     _symbolPrecedence = ChoiceOptionValue<SymbolPrecedence>("symbol_precedence","sp",SymbolPrecedence::ARITY,
-                                                            {"arity","occurrence","reverse_arity"});
+                                                            {"arity","occurrence","reverse_arity","scramble",
+                                                             "frequency","reverse_frequency",
+                                                             "weighted_frequency","reverse_weighted_frequency"});
     _symbolPrecedence.description="Vampire uses KBO which requires a precedence relation between symbols. Arity orders symbols by their arity (and reverse_arity takes the reverse of this) and occurence orders symbols by the order they appear in the problem.";
     _lookup.insert(&_symbolPrecedence);
     _symbolPrecedence.tag(OptionTag::SATURATION);
-    _symbolPrecedence.setRandomChoices({"arity","occurence","reverse_arity"});
+    _symbolPrecedence.setRandomChoices({"arity","occurence","reverse_arity","frequency"});
+
+    _functionPrecedence = StringOptionValue("function_precendence","fp","");
+    _functionPrecedence.description = "A name of a file with an explicit user specified precedence on function symbols.";
+    _functionPrecedence.setExperimental();
+    _lookup.insert(&_functionPrecedence);
+
+    _predicatePrecedence = StringOptionValue("predicate_precendence","pp","");
+    _predicatePrecedence.description = "A name of a file with an explicit user specified precedence on predicate symbols.";
+    _predicatePrecedence.setExperimental();
+    _lookup.insert(&_predicatePrecedence);
+
+    _symbolPrecedenceBoost = ChoiceOptionValue<SymbolPrecedenceBoost>("symbol_precedence_boost","spb",SymbolPrecedenceBoost::NONE,
+                                     {"none","goal","units","goal_then_units"});
+    _symbolPrecedenceBoost.description = "";
+    _symbolPrecedenceBoost.tag(OptionTag::SATURATION);
+    _lookup.insert(&_symbolPrecedenceBoost);
 
     _weightIncrement = BoolOptionValue("weight_increment","",false);
     _weightIncrement.description="";
@@ -2700,13 +2748,15 @@ bool Options::complete(const Problem& prb) const
       || prop.hasProp(Property::PR_HAS_INTEGERS)
       || prop.hasProp(Property::PR_HAS_REALS)
       || prop.hasProp(Property::PR_HAS_RATS)
-      || prop.hasProp(Property::PR_HAS_DT_CONSTRUCTORS)
-      || prop.hasProp(Property::PR_HAS_CDT_CONSTRUCTORS)) {
+      || (!prop.onlyFiniteDomainDatatypes() && prop.hasProp(Property::PR_HAS_DT_CONSTRUCTORS))
+      || (!prop.onlyFiniteDomainDatatypes() && prop.hasProp(Property::PR_HAS_CDT_CONSTRUCTORS))) {
     return false;
   }
 
   // preprocessing
-  if (_sineSelection.actualValue != SineSelection::OFF) return false;
+  if (env.signature->hasDistinctGroups()) {
+    return false;
+  }
 
   switch (_saturationAlgorithm.actualValue) {
   case SaturationAlgorithm::INST_GEN: return true; // !!! Implies InstGen is always complete
@@ -2733,13 +2783,6 @@ bool Options::complete(const Problem& prb) const
     return prop.category() == Property::HNE; // URR is complete for Horn problems
   }
 
-  // equality problems
-  switch (_equalityProxy.actualValue) {
-  case EqualityProxy::R: return false;
-  case EqualityProxy::RS: return false;
-  case EqualityProxy::RST: return false;
-  default: break;
-  }
   if (!_demodulationRedundancyCheck.actualValue) return false;
   if (!_superpositionFromVariables.actualValue) return false;
 

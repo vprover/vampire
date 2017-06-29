@@ -118,6 +118,8 @@ public:
 //     SHELL_TO_RESOLUTION,
     /** resolution inference */
     RESOLUTION,
+    /** constrained resolution inference */
+    CONSTRAINED_RESOLUTION,
     /** equality proxy replacement */
     EQUALITY_PROXY_REPLACEMENT,
     /** definition of the equality proxy predicate in the form E(x,y) <=> x=y */
@@ -158,10 +160,14 @@ public:
     TRIVIAL_INEQUALITY_REMOVAL,
     /** factoring inference */
     FACTORING,
+    /** factoring with constraints */
+    CONSTRAINED_FACTORING,
     /** subsumption resolution simplification rule */
     SUBSUMPTION_RESOLUTION,
     /** superposition inference */
     SUPERPOSITION,
+    /** superposition with constraints */
+    CONSTRAINED_SUPERPOSITION,
     /** equality factoring inference */
     EQUALITY_FACTORING,
     /** equality resolution inference */
@@ -355,11 +361,15 @@ public:
   /** Return the extra string */
   vstring extra() { return _extra; }
 
+  unsigned maxDepth(){ return _maxDepth; }
+
 protected:
   /** The rule used */
   Rule _rule;
   /** Extra information */
   vstring _extra;
+  /** The depth */
+  unsigned _maxDepth;
 }; // class Inference
 
 /**
@@ -373,7 +383,11 @@ public:
   Inference1(Rule rule,Unit* premise)
     : Inference(rule),
       _premise1(premise)
-  { _premise1->incRefCnt(); }
+  { 
+    _premise1->incRefCnt(); 
+    _maxDepth = premise->inference()->maxDepth()+1; 
+    if(_rule == EVALUATION){ _maxDepth = premise->inference()->maxDepth(); }
+  }
 
   virtual void destroy();
   virtual Iterator iterator();
@@ -427,6 +441,7 @@ public:
   {
     _premise1->incRefCnt();
     _premise2->incRefCnt();
+    _maxDepth = max(premise1->inference()->maxDepth(),premise2->inference()->maxDepth())+1;
   }
 
   virtual void destroy();

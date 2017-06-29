@@ -31,13 +31,26 @@ namespace Indexing
 
     return n;
   }
+
+  List<TermList>* addSubterm(TermList t, List<TermList>* l)
+  {
+    CALL("addSubterms");
+    List<TermList>::Iterator it(l);
+    while (it.hasNext()) {
+      // TODO test for unifiability, keep only most general term
+      if (TermList::equals(t, it.next())) {
+        return l;
+      }
+    }
+    return l->cons(t);
+  }
   
-  List<TermList*>* AcyclicityIndex::getSubterms(Term *t)
+  List<TermList>* AcyclicityIndex::getSubterms(Term *t)
   {
     CALL("AcyclicityIndex::getSubterms");
     
     Stack<Term*> toVisit;
-    List<TermList*>* res = List<TermList*>::empty();
+    List<TermList>* res = List<TermList>::empty();
     
     unsigned sort = SortHelper::getResultSort(t);
     ASS(env.signature->isTermAlgebraSort(sort));
@@ -45,7 +58,7 @@ namespace Indexing
     for (unsigned i = 0; i < t->arity(); i++) {
       if (SortHelper::getArgSort(t, i) == sort) {
         TermList *s = t->nthArgument(i);
-        res = res->cons(s);
+        res = addSubterm(*s, res);
         if (s->isTerm()) {
           toVisit.push(s->term());
         }
@@ -58,7 +71,7 @@ namespace Indexing
         for (unsigned i = 0; i < u->arity(); i++) {
           if (SortHelper::getArgSort(u, i) == sort) {
             TermList *s = u->nthArgument(i);
-            res = res->cons(s);
+            res = addSubterm(*s, res);
             if (s->isTerm()) {
               toVisit.push(s->term());
             }
@@ -99,56 +112,75 @@ namespace Indexing
       return false;
     }
 
-    return (!Ordering::isGorGEorE(_ord.compare(*t, *fs)));
+    return true;
   }
   
   struct AcyclicityIndex::IndexEntry {
   public:
-    IndexEntry(Literal *l, Clause *c, TermList *t, List<TermList*>* subterms) :
+    IndexEntry(Literal *l, Clause *c, TermList t, List<TermList>* subterms) :
       lit(l),
       clause(c),
       t(t),
       subterms(subterms)
     {}
 
+    CLASS_NAME(AcyclicityIndex::IndexEntry);
+    USE_ALLOCATOR(AcyclicityIndex::IndexEntry);
+
     Literal* lit;
     Clause* clause;
-    TermList* t;
-    List<TermList*>* subterms;
+    TermList t;
+    List<TermList>* subterms;
   };
 
   struct AcyclicityIndex::CycleSearchTreeNode
   {
-    CycleSearchTreeNode(TermList *t, Literal *l, Clause *c, CycleSearchTreeNode *n, int substIndex)
+    CycleSearchTreeNode(TermList t,
+                        Literal *l,
+                        Clause *c,
+                        CycleSearchTreeNode *n,
+                        unsigned d,
+                        unsigned i,
+                        bool b)
       :
       term(t),
       lit(l),
       clause(c),
       parent(n),
-      depth(n->parent ? n->depth + 1 : 0),
-      substIndex(substIndex)
+      depth(d),
+      substIndex(i),
+      isUnificationNode(b)
     {}
 
-    CycleSearchTreeNode(TermList *t, Literal *l, CycleSearchTreeNode *n, int substIndex)
-      :
-      term(t),
-      lit(l),
-      clause(nullptr),
-      parent(n),
-      depth(n ? n->depth : 0),
-      substIndex(substIndex)
-    {}
+    static CycleSearchTreeNode *subtermNode(TermList t,
+                                     Literal *l,
+                                     Clause *c,
+                                     CycleSearchTreeNode *n,
+                                     unsigned substIndex)
+    {
+      return new CycleSearchTreeNode(t, l, c, n, n ? n->depth + 1 : 0, substIndex, false);
+    }
 
-    TermList *term;
+    static CycleSearchTreeNode *unificationNode(TermList t,
+                                         Literal *l,
+                                         Clause *c,
+                                         CycleSearchTreeNode *n,
+                                         unsigned substIndex)
+    {
+      return new CycleSearchTreeNode(t, l, c, n, n ? n->depth : 0, substIndex, true);
+    }
+
+    CLASS_NAME(AcyclicityIndex::CycleSearchTreeNode);
+    USE_ALLOCATOR(AcyclicityIndex::CycleSearchTreeNode);
+
+    TermList term;
     Literal *lit;
     Clause *clause;
     CycleSearchTreeNode *parent;
     unsigned depth;
     unsigned substIndex;
+    bool isUnificationNode;
 
-    bool isUnificationNode() {
-      return (!clause);
-    }
   };
 
   struct AcyclicityIndex::CycleSearchIterator
@@ -174,15 +206,13 @@ namespace Indexing
         if (aindex._sIndexes.find(sort)) {
           _index = aindex._sIndexes.get(sort);
           _tis = aindex._tis;
-          if (_index->find(queryLit)) {
-            IndexEntry *entry = _index->get(queryLit);
-            //cout << "--------------------------------" << endl;
-            //cout << "push first node " << *entry->t << "/" << _nextAvailableIndex << endl;
-            //cout << _subst->toString() << endl;
-            _stack.push(new CycleSearchTreeNode(entry->t,
-                                                queryLit,
-                                                nullptr,
-                                                _nextAvailableIndex++));
+          if (_index->find(make_pair(queryLit, queryClause))) {
+            IndexEntry *entry = _index->get(make_pair(queryLit, queryClause));
+            _stack.push(CycleSearchTreeNode::unificationNode(entry->t,
+                                                             queryLit,
+                                                             queryClause,
+                                                             nullptr,
+                                                             _nextAvailableIndex++));
           }
         }
       }
@@ -216,12 +246,10 @@ namespace Indexing
       List<Clause*>* c = List<Clause*>::empty();
       List<Clause*>* cTheta = List<Clause*>::empty();
 
-      //cout << "new clause with subst=" << _subst->toString() << endl;
-
       CycleSearchTreeNode *n = node;
       while (n && n->parent) {
         ASS(n);
-        ASS(n->isUnificationNode());
+        ASS(n->isUnificationNode);
         ASS(n->parent->clause);
         ASS(n->parent->clause->store() == Clause::ACTIVE);
         Clause *cl = applySubstitution(n->parent->clause, n->parent->substIndex);
@@ -241,8 +269,6 @@ namespace Indexing
     {
       CALL("Acyclicity::pushUnificationOnStack");
 
-      //cout << "querying unifications for " << t << endl;
-
       ASS(_tis);
       TermQueryResultIterator tqrIt = _tis->getUnifications(t);
       int index;
@@ -256,11 +282,11 @@ namespace Indexing
           } else {
             index = _nextAvailableIndex++;
           }
-          //cout << "push unification node " << tqr.term << "/" << index << endl;
-          _stack.push(new CycleSearchTreeNode(new TermList(tqr.term),
-                                              tqr.literal,
-                                              parent,
-                                              index));
+          _stack.push(CycleSearchTreeNode::unificationNode(tqr.term,
+                                                           tqr.literal,
+                                                           tqr.clause,
+                                                           parent,
+                                                           index));
         }
       }
     }
@@ -292,41 +318,26 @@ namespace Indexing
         CycleSearchTreeNode *n = _stack.pop();
 
         while (_currentDepth > n->depth) {
-          BacktrackData *btData = _substChanges.pop();
-          //cout << "popping data " << btData << endl;
-          btData->backtrack();
-          btData->~BacktrackData();
+          _substChanges.pop().backtrack();
           _currentDepth--;
           ASS_EQ(_currentDepth, _substChanges.size());
-          //cout << "> backtracking to " << _currentDepth << endl;
-          //cout << _subst->toString() << endl;
         }
 
-        if (n->isUnificationNode()) {
-          //cout << "pop unification node " << *n->term << "/" << n->substIndex << endl;
+        if (n->isUnificationNode) {
           if (n->parent) {
-            BacktrackData *btData = new BacktrackData();
-            _subst->bdRecord(*btData);
-            /*cout << "try unification " << *n->parent->term
-                 << "/" << n->parent->substIndex
-                 << " and " << *n->term
-                 << "/" << n->substIndex << endl;*/
-            if (_subst->unify(*n->parent->term,
+            BacktrackData btData;
+            _subst->bdRecord(btData);
+            if (_subst->unify(n->parent->term,
                               n->parent->substIndex,
-                              *n->term,
+                              n->term,
                               n->substIndex)) {
-              // TODO add ordering test
-              //cout << "pushing data " << btData << endl;
               _substChanges.push(btData);
               _currentDepth++;
               ASS_EQ(_currentDepth, _substChanges.size());
-              //cout << "> unifying to " << _currentDepth << endl;
-              //cout << _subst->toString() << endl;
               _subst->bdDone();
             } else {
               _subst->bdDone();
-              ASS(btData->isEmpty());
-              btData->~BacktrackData();
+              ASS(btData.isEmpty());
               // unification can fail because the term indexing
               // structure can return "false positives", i.e. terms
               // that cannot unify (because they come from the same
@@ -338,22 +349,20 @@ namespace Indexing
             _nextResult = resultFromNode(n);
             return true;
           }
-          if (_index->find(n->lit)) {
-            IndexEntry *entry = _index->get(n->lit);
-            List<TermList*>::Iterator it(entry->subterms);
+          if (_index->find(make_pair(n->lit, n->clause))) {
+            IndexEntry *entry = _index->get(make_pair(n->lit, n->clause));
+            List<TermList>::Iterator it(entry->subterms);
             while (it.hasNext()) {
-              TermList *t = it.next();
-              //cout << "push subterm node " << *t << "/" << n->substIndex << endl;
-              _stack.push(new CycleSearchTreeNode(t,
-                                                  entry->lit,
-                                                  entry->clause,
-                                                  n,
-                                                  n->substIndex));
+              TermList t = it.next();
+              _stack.push(CycleSearchTreeNode::subtermNode(t,
+                                                           entry->lit,
+                                                           entry->clause,
+                                                           n,
+                                                           n->substIndex));
             }
           }
         } else {
-          //cout << "pop subterm node " << *n->term << "/" << n->substIndex << endl;
-          pushUnificationsOnStack(_subst->apply(*n->term, n->substIndex), n);
+          pushUnificationsOnStack(_subst->apply(n->term, n->substIndex), n);
         }
       }
       return false;
@@ -376,7 +385,7 @@ namespace Indexing
     CycleQueryResult *_nextResult;
     Stack<CycleSearchTreeNode*> _stack;
     RobSubstitution *_subst;
-    Stack<BacktrackData*> _substChanges;
+    Stack<BacktrackData> _substChanges;
     int _nextAvailableIndex;
     unsigned _currentDepth;
   };
@@ -415,8 +424,9 @@ namespace Indexing
         _sIndexes.insert(sort, index);
       }
 
-      if (!index->find(lit)) {
-        index->insert(lit, new IndexEntry(lit, c, t, getSubterms(fs->term())));
+      ULit ulit = make_pair(lit, c);
+      if (!index->find(ulit)) {
+        index->insert(ulit, new IndexEntry(lit, c, *t, getSubterms(fs->term())));
         _tis->insert(*t, lit, c);
       }
     }
@@ -430,15 +440,13 @@ namespace Indexing
     TermList *t;
     unsigned sort;
      
-    if (matchesPattern(lit, fs, t, &sort) && _sIndexes.find(sort) && _sIndexes.get(sort)->find(lit)) {
-      _sIndexes.get(sort)->remove(lit);
+    if (matchesPattern(lit, fs, t, &sort) && _sIndexes.find(sort)) {
+      ULit ulit = make_pair(lit, c);
+      if (!_sIndexes.get(sort)->find(ulit))
+        return;
 
-      // in some rare cases, this call leads to a segfault in the
-      // substitution tree, even though the entry (t, lit, c) should be
-      // present.
-      // TODO find cause and reactivate the removal
-      
-      //_tis->remove(*t, lit, c);
+      _sIndexes.get(sort)->remove(ulit);
+     _tis->remove(*t, lit, c);
     }
   }
 

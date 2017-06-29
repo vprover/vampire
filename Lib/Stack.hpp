@@ -338,6 +338,21 @@ public:
     return false;
   }
 
+#if VDEBUG
+  vstring toString()
+  {
+    vstring ret = "[";
+    Iterator it(const_cast<Stack&>(*this));
+    while(it.hasNext()){
+      C el = it.next();
+      ret += Int::toString(static_cast<unsigned int>(el));
+      if(it.hasNext()){ ret +=",";}
+    }
+    return ret+"]";
+  }
+
+#endif
+
   friend class Iterator;
 
   /** Iterator iterates over the elements of a stack and can

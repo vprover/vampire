@@ -124,7 +124,19 @@ public:
   TimeLimitExceededException ()
   : Exception("The time limit exceeded")
   {}
-}; // MemoryLimitExceededException
+}; // TimeLimitExceededException
+
+/**
+ * Class ActivationLimitExceededException.
+ */
+class ActivationLimitExceededException
+: public Exception
+{
+public:
+  ActivationLimitExceededException ()
+  : Exception("The activation limit exceeded")
+  {}
+}; // ActivationLimitExceededException
 
 
 /**

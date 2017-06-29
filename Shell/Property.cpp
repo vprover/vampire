@@ -18,10 +18,13 @@
 #include "Kernel/Term.hpp"
 #include "Kernel/Signature.hpp"
 #include "Kernel/Inference.hpp"
+#include "Kernel/TermIterators.hpp"
 
+#include "Options.hpp"
 #include "Statistics.hpp"
 #include "FunctionDefinition.hpp"
 #include "Property.hpp"
+#include "SubexpressionIterator.hpp"
 
 using namespace Lib;
 using namespace Kernel;
@@ -62,6 +65,8 @@ Property::Property()
     _hasNonDefaultSorts(false),
     _sortsUsed(0),
     _hasFOOL(false),
+    _onlyFiniteDomainDatatypes(true),
+    _knownInfiniteDomain(false),
     _allClausesGround(true),
     _allNonTheoryClausesGround(true),
     _allQuantifiersEssentiallyExistential(true),
@@ -79,6 +84,10 @@ Property::Property()
 Property* Property::scan(UnitList* units)
 {
   CALL("Property::scan");
+
+  // a bit of a hack, these counts belong in Property
+  for(unsigned f=0;f<env.signature->functions();f++){ env.signature->getFunction(f)->resetUsageCnt(); }
+  for(unsigned p=0;p<env.signature->predicates();p++){ env.signature->getPredicate(p)->resetUsageCnt(); }
 
   Property* prop = new Property;
   prop->add(units);
@@ -250,7 +259,16 @@ void Property::scan(Clause* clause)
       }
     }
 
-    scan(literal);
+    bool goal = (clause->inputType()==Unit::CONJECTURE || clause->inputType()==Unit::NEGATED_CONJECTURE);
+    bool unit = (clause->length() == 1);
+
+    // 1 for context polarity, only used in formulas
+    scan(literal,1,clause->length(),goal);
+
+    SubtermIterator stit(literal);
+    while (stit.hasNext()) {
+      scan(stit.next(),unit,goal);
+    }
 
     if (literal->shared() && literal->ground()) {
       groundLiterals++;
@@ -333,7 +351,21 @@ void Property::scan(FormulaUnit* unit)
     _goalFormulas++;
   }
   Formula* f = unit->formula();
-  scan(f);
+
+  SubexpressionIterator sei(f);
+  while (sei.hasNext()) {
+    SubexpressionIterator::Expression expr = sei.next();
+    int polarity = expr.getPolarity();
+
+    if (expr.isFormula()) {
+      scan(expr.getFormula(), polarity);
+    } else if (expr.isTerm()) {
+      scan(expr.getTerm(),false,false); // only care about unit/goal when clausified
+    } else {
+      ASSERTION_VIOLATION;
+    }
+  }
+
   if (! hasProp(PR_HAS_X_EQUALS_Y)) {
     if (hasXEqualsY(f)) {
       addProp(PR_HAS_X_EQUALS_Y);
@@ -348,30 +380,24 @@ void Property::scan(FormulaUnit* unit)
  * @since 17/07/2003 Manchester
  * @since 11/12/2004 Manchester, true and false added
  */
-void Property::scan(Formula* formula)
+void Property::scan(Formula* f, int polarity)
 {
-  CALL("void Property::scan(const Formula&)");
+  CALL("void Property::scan(Formula* formula, int polarity)");
 
-  SubformulaIterator fs(formula);
-  while (fs.hasNext()) {
-    _subformulas++;
-    int polarity;
-    Formula* f = fs.next(polarity);
-
-    switch(f->connective()) {
-    case LITERAL:
-    {
+  _subformulas++;
+  switch(f->connective()) {
+    case LITERAL: {
       _atoms++;
       Literal* lit = f->literal();
       if (lit->isEquality()) {
-	_equalityAtoms++;
-	if ((lit->isPositive() && polarity == 1) ||
-	    (!lit->isPositive() && polarity == -1) ||
-	    polarity == 0) {
-	  _positiveEqualityAtoms++;
-	}
+        _equalityAtoms++;
+        if ((lit->isPositive() && polarity == 1) ||
+            (!lit->isPositive() && polarity == -1) ||
+            polarity == 0) {
+          _positiveEqualityAtoms++;
+        }
       }
-      scan(lit,polarity);
+      scan(lit,polarity,0,false); // 0 as not in clause, goal type irrelevant
       break;
     }
     case BOOL_TERM: {
@@ -379,11 +405,6 @@ void Property::scan(Formula* formula)
       TermList ts = f->getBooleanTerm();
       if (ts.isVar()) {
         addProp(PR_HAS_BOOLEAN_VARIABLES);
-      } else {
-        TermList aux[2];
-        aux[0].makeEmpty();
-        aux[1] = ts;
-        scan(aux + 1);
       }
       break;
     }
@@ -399,7 +420,6 @@ void Property::scan(Formula* formula)
       break;
     default:
       break;
-    }
   }
 } // Property::scan(const Formula&)
 
@@ -428,7 +448,14 @@ void Property::scanSort(unsigned sort)
       addProp(PR_HAS_ARRAYS);
     }
     if (env.signature->isTermAlgebraSort(sort)) {
-      if (env.signature->getTermAlgebraOfSort(sort)->allowsCyclicTerms()) {
+      TermAlgebra* ta = env.signature->getTermAlgebraOfSort(sort);
+      if (!ta->finiteDomain()) {
+        _onlyFiniteDomainDatatypes = false;
+      }
+      if (ta->infiniteDomain()) {
+        _knownInfiniteDomain = true;
+      }
+      if (ta->allowsCyclicTerms()) {
         addProp(PR_HAS_CDT_CONSTRUCTORS); // co-algebraic data type
       } else {
         addProp(PR_HAS_DT_CONSTRUCTORS); // algebraic data type
@@ -462,7 +489,7 @@ void Property::scanSort(unsigned sort)
  * @since 17/07/2003 Manchester, changed to non-pointer types
  * @since 27/05/2007 flight Manchester-Frankfurt, uses new datastructures
  */
-void Property::scan(Literal* lit, int polarity)
+void Property::scan(Literal* lit, int polarity, unsigned cLen, bool goal)
 {
   CALL("Property::scan(const Literal*...)");
 
@@ -475,7 +502,17 @@ void Property::scan(Literal* lit, int polarity)
       _maxPredArity = arity;
     }
     Signature::Symbol* pred = env.signature->getPredicate(lit->functor());
-    pred->incUsageCnt();
+    static bool weighted = env.options->symbolPrecedence() == Options::SymbolPrecedence::WEIGHTED_FREQUENCY ||
+                           env.options->symbolPrecedence() == Options::SymbolPrecedence::REVERSE_WEIGHTED_FREQUENCY;
+    unsigned w = weighted ? cLen : 1; 
+    for(unsigned i=0;i<w;i++){pred->incUsageCnt();}
+    if(cLen==1){
+      pred->markInUnit();
+    }
+    if(goal){
+      pred->markInGoal();
+    }
+
     PredicateType* type = pred->predType();
     for (int i=0; i<arity; i++) {
       scanSort(type->arg(i));
@@ -483,7 +520,6 @@ void Property::scan(Literal* lit, int polarity)
   }
 
   scanForInterpreted(lit);
-  scan(lit->args());
 
   if (!hasProp(PR_HAS_INEQUALITY_RESOLVABLE_WITH_DELETION) && lit->isEquality() && lit->shared()
      && ((lit->isNegative() && polarity == 1) || (!lit->isNegative() && polarity == -1) || polarity == 0)
@@ -507,101 +543,50 @@ void Property::scan(Literal* lit, int polarity)
  * @since 27/08/2003 Vienna, changed to count variables
  * @since 27/05/2007 flight Manchester-Frankfurt, changed to new datastructures
  */
-void Property::scan(TermList* ts)
+void Property::scan(TermList ts,bool unit,bool goal)
 {
-  CALL("Property::scan(TermList*))");
+  CALL("Property::scan(TermList)");
+  _terms++;
+  if (ts.isVar()) {
+    _variablesInThisClause++;
+    return;
+  }
 
-  static Stack<TermList*> stack(64);
-  stack.reset();
+  ASS(ts.isTerm());
+  Term* t = ts.term();
 
-  for (;;) {
-    if (ts->isEmpty()) {
-      if (stack.isEmpty()) {
-	return;
-      }
-      ts = stack.pop();
+  if (t->isSpecial()) {
+    _hasFOOL = true;
+    switch(t->functor()) {
+      case Term::SF_ITE:
+        addProp(PR_HAS_ITE);
+        break;
+
+      case Term::SF_LET:
+      case Term::SF_LET_TUPLE:
+        addProp(PR_HAS_LET_IN);
+        break;
+
+      default:
+        break;
     }
-    // ts is non-empty
-    _terms ++;
-    if (ts->isVar()) {
-      _variablesInThisClause++;
-    } else { // ts is a reference to a complex term
-      Term* t = ts->term();
-      if (t->isSpecial()) {
-        scanSpecialTerm(t);
-      } else {
-        scanForInterpreted(t);
+  } else {
+    scanForInterpreted(t);
 
-        Signature::Symbol* func = env.signature->getFunction(t->functor());
-        func->incUsageCnt();
+    Signature::Symbol* func = env.signature->getFunction(t->functor());
+    func->incUsageCnt();
+    if(unit){ func->markInUnit();}
+    if(goal){ func->markInGoal();}
 
-        int arity = t->arity();
-        FunctionType* type = func->fnType();
-        for (int i=0; i<arity; i++) {
-          scanSort(type->arg(i));
-        }
-
-        if (arity > _maxFunArity) {
-          _maxFunArity = arity;
-        }
-
-        if (arity) {
-          stack.push(t->args());
-        }
-      }
+    int arity = t->arity();
+    FunctionType* type = func->fnType();
+    for (int i = 0; i < arity; i++) {
+      scanSort(type->arg(i));
     }
-    ts = ts->next();
-  }
-} // Property::scan(const Term& term, bool& isGround)
 
-void Property::scanSpecialTerm(Term* t)
-{
-  CALL("Property::scanSpecialTerm");
-
-  _hasFOOL = true;
-
-  Term::SpecialTermData* sd = t->getSpecialData();
-  switch(t->functor()) {
-  case Term::SF_ITE:
-  {
-    addProp(PR_HAS_ITE);
-    ASS_EQ(t->arity(),2);
-    scan(sd->getCondition());
-    scan(t->args());
-    break;
-  }
-  case Term::SF_LET:
-  case Term::SF_LET_TUPLE:
-  {
-    addProp(PR_HAS_LET_IN);
-    ASS_EQ(t->arity(),1);
-    //this is a trick creating an artificial term list with terms we want to traverse
-    TermList aux[2];
-    aux[0].makeEmpty();
-    aux[1] = sd->getBinding();
-    scan(aux+1);
-    scan(t->args());
-    break;
-  }
-  case Term::SF_FORMULA:
-  {
-    ASS_EQ(t->arity(),0);
-    scan(sd->getFormula());
-    break;
-  }
-  case Term::SF_TUPLE:
-  {
-    ASS_EQ(t->arity(),0);
-    //this is a trick creating an artificial term list with terms we want to traverse
-    TermList aux[2];
-    aux[0].makeEmpty();
-    aux[1] = TermList(sd->getTupleTerm());
-    scan(aux+1);
-    scan(t->args());
-    break;
-  }
-  default:
-    ASSERTION_VIOLATION;
+    if (arity > _maxFunArity) {
+      _maxFunArity = arity;
+    }
   }
 }
 
@@ -625,7 +610,9 @@ void Property::scanForInterpreted(Term* t)
     itp = theory->interpretFunction(t);
   }
   _hasInterpreted = true;
-  _interpretationPresence[itp] = true;
+  if(itp < _interpretationPresence.size()){
+    _interpretationPresence[itp] = true;
+  }
   if(Theory::isConversionOperation(itp)){
     addProp(PR_NUMBER_CONVERSION);
     return;

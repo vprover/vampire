@@ -288,6 +288,7 @@ VINF_OBJ=Inferences/BackwardDemodulation.o\
          Inferences/Superposition.o\
          Inferences/TautologyDeletionISE.o\
          Inferences/TermAlgebraReasoning.o\
+         Inferences/TheoryInstAndSimp.o\
          Inferences/URResolution.o
 #         Inferences/CTFwSubsAndRes.o\
 
@@ -363,6 +364,7 @@ VS_OBJ = Shell/AnswerExtractor.o\
          Shell/SMTFormula.o\
          Shell/FOOLElimination.o\
          Shell/Statistics.o\
+         Shell/SubexpressionIterator.o\
          Shell/SymbolDefinitionInlining.o\
          Shell/SymbolOccurrenceReplacement.o\
          Shell/SymCounter.o\
@@ -438,13 +440,13 @@ VFMB_OBJ = FMB/ClauseFlattening.o\
            FMB/FiniteModelBuilder.o
 
 # testing procedures
-VT_OBJ = Test/CheckedFwSimplifier.o\
-         Test/CheckedSatSolver.o\
+VT_OBJ = Test/CheckedSatSolver.o\
          Test/CompitOutput.o\
          Test/Compit2Output.o\
          Test/Output.o\
          Test/UnitTesting.o
 #         Test/TestUtils.o\         
+ #Test/CheckedFwSimplifier.o\
 
 VUT_OBJ = $(patsubst %.cpp,%.o,$(wildcard UnitTests/*.cpp))
 
@@ -538,7 +540,7 @@ VLTB_DEP = $(VAMP_BASIC) $(LTB_OBJ) Global.o vltb.o
 VCLAUSIFY_DEP = $(VCLAUSIFY_BASIC) Global.o vclausify.o
 VUTIL_DEP = $(VAMP_BASIC) $(CASC_OBJ) $(SMTCOMP_OBJ) $(VUTIL_OBJ) Global.o vutil.o
 VSAT_DEP = $(VSAT_BASIC) Global.o vsat.o
-VTEST_DEP = $(VAMP_BASIC)  $(VT_OBJ) $(VUT_OBJ) $(DP_OBJ) $(VPROG_OBJ) Global.o vtest.o
+VTEST_DEP = $(VAMP_BASIC) $(VT_OBJ) $(VUT_OBJ) $(DP_OBJ) $(VPROG_OBJ) $(SMTCOMP_OBJ) Global.o vtest.o
 LIBVAPI_DEP = $(VD_OBJ) $(API_OBJ) $(VCLAUSIFY_BASIC) Global.o
 VAPI_DEP =  $(LIBVAPI_DEP) test_vapi.o
 #UCOMPIT_OBJ = $(VCOMPIT_BASIC) Global.o compit2.o compit2_impl.o

@@ -67,6 +67,10 @@ MainLoopResult MainLoop::run()
   {
     return MainLoopResult(Statistics::TIME_LIMIT);
   }
+  catch(ActivationLimitExceededException&)
+  {
+    return MainLoopResult(Statistics::ACTIVATION_LIMIT);
+  }
   catch(MainLoopFinishedException& e)
   {
     return e.result;
@@ -157,11 +161,6 @@ MainLoop* MainLoop::createFromOptions(Problem& prb, const Options& opt)
     res = new IGAlgorithm(prb, opt);
     break;
   case Options::SaturationAlgorithm::FINITE_MODEL_BUILDING:
-    if(env.property->hasInterpretedOperations()){
-      reportSpiderStatus('u');
-      USER_ERROR("Finite Model Builder (sa=fmb) cannot be used with interpreted operations"); 
-      //TODO should return inappropriate result instead of error
-    }
     res = new FiniteModelBuilder(prb,opt);
     break;
 #if VZ3

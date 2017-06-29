@@ -191,7 +191,7 @@ Term* Rectify::rectifySpecialTerm(Term* t)
     if (binding == sd->getBinding() && contents == *t->nthArgument(0)) {
       return t;
     }
-    return Term::createLet(sd->getFunctor(), sd->getTupleSymbols(), binding, contents, sd->getSort());
+    return Term::createTupleLet(sd->getFunctor(), sd->getTupleSymbols(), binding, contents, sd->getSort());
   }
   case Term::SF_FORMULA:
   {
@@ -530,20 +530,38 @@ Rectify::VarList* Rectify::rectifyBoundVars (VarList* vs)
   if (VarList::isEmpty(vs)) {
     return vs;
   }
-  VarList* vtail = vs->tail();
-  VarList* ws = rectifyBoundVars(vtail);
 
-  int v = vs->head();
-  int w;
-  VarWithUsageInfo wWithUsg = _renaming.getBoundAndUsage(v);
-  if(!wWithUsg.second && _removeUnusedVars) {
-    return ws;
+  Stack<VarList*> args;
+  while (VarList::isNonEmpty(vs)) {
+    args.push(vs);
+    vs = vs->tail();
   }
-  w = wWithUsg.first;
-  if (v == w && vtail == ws) {
-    return vs;
+
+  VarList* res = args.top()->tail();
+  ASS(VarList::isEmpty(res));
+
+  while (args.isNonEmpty()) {
+    vs = args.pop();
+
+    VarList* vtail = vs->tail();
+    VarList* ws = res; // = rectifyBoundVars(vtail);
+
+    int v = vs->head();
+    int w;
+    VarWithUsageInfo wWithUsg = _renaming.getBoundAndUsage(v);
+    if (wWithUsg.second || !_removeUnusedVars) {
+      w = wWithUsg.first;
+
+      if (v == w && vtail == ws) {
+        res = vs;
+      } else {
+        res = new VarList(w,ws);
+      }
+    }
+    // else nothing, because "else" means dropping the variable from the list and returning ws, but res == ws already ...
   }
-  return new VarList(w,ws);
+
+  return res;
 } // Rectify::rectify(const VarList& ...)
 
 

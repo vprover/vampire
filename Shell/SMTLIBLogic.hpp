@@ -11,9 +11,12 @@ namespace Shell {
   * BV - bit vector - we don't support
   * (I/R)DL - difference logic - we don't treat specially (fragment of L(I/R)A)
   * UF - uninterpreted function = first order we know and love
+  * DT - datatypes (term algebras)
   */
 enum SMTLIBLogic {
   SMT_ALIA,
+  SMT_ALL,
+  SMT_AUFDTLIA,
   SMT_AUFLIA,
   SMT_AUFLIRA,
   SMT_AUFNIRA,
@@ -47,6 +50,8 @@ enum SMTLIBLogic {
   SMT_QF_UFNRA,
   SMT_UF,
   SMT_UFBV,
+  SMT_UFDT,
+  SMT_UFDTLIA,
   SMT_UFIDL,
   SMT_UFLIA,
   SMT_UFLRA,

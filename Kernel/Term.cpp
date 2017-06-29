@@ -574,7 +574,13 @@ vstring Literal::toString() const
     else {
       s += " != ";
     }
-    return s + lhs->next()->toString();
+
+    vstring res = s + lhs->next()->toString();
+    if (SortHelper::getEqualityArgumentSort(this) == Sorts::SRT_BOOL) {
+      res = "("+res+")";
+    }
+
+    return res;
   }
 
   Stack<const TermList*> stack(64);
@@ -866,20 +872,23 @@ Term* Term::createTupleLet(unsigned tupleFunctor, IntList* symbols, TermList bin
   CALL("Term::createTupleLet");
 
 #if VDEBUG
-  Set<int> distinctSymbols;
+  Signature::Symbol* tupleSymbol = env.signature->getFunction(tupleFunctor);
+  ASS_EQ(tupleSymbol->arity(), (unsigned)symbols->length());
+  ASS_REP(env.sorts->hasStructuredSort(tupleSymbol->fnType()->result(), Sorts::StructuredSort::TUPLE), tupleFunctor);
+
+  Set<pair<int,bool> > distinctSymbols;
   IntList::Iterator sit(symbols);
+  unsigned arg = 0;
   while (sit.hasNext()) {
     unsigned symbol = (unsigned)sit.next();
-    if (!distinctSymbols.contains(symbol)) {
-      distinctSymbols.insert(symbol);
+    bool isPredicate = tupleSymbol->fnType()->arg(arg) == Sorts::SRT_BOOL;
+    if (!distinctSymbols.contains(make_pair(symbol, isPredicate))) {
+      distinctSymbols.insert(make_pair(symbol, isPredicate));
     } else {
       ASSERTION_VIOLATION_REP(symbol);
     }
+    arg++;
   }
-
-  Signature::Symbol* symbol = env.signature->getFunction(tupleFunctor);
-  ASS_EQ(symbol->arity(), (unsigned)symbols->length());
-  ASS_REP(env.sorts->hasStructuredSort(symbol->fnType()->result(), Sorts::StructuredSort::TUPLE), tupleFunctor);
 #endif
 
   Term* s = new(1,sizeof(SpecialTermData)) Term;

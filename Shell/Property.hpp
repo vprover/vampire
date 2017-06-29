@@ -197,7 +197,10 @@ public:
    */
   void scanForInterpreted(Term* t);
 
-  bool hasInterpretedOperation(Interpretation i) const { return _interpretationPresence[i]; }
+  bool hasInterpretedOperation(Interpretation i) const { 
+    if(i >= _interpretationPresence.size()){ return false; }
+    return _interpretationPresence[i]; 
+  }
   //bool hasArrayOperation(Interpretation i) const { return true; }
   /** Problem contains an interpreted symbol excluding equality */
   bool hasInterpretedOperations() const { return _hasInterpreted; }
@@ -212,7 +215,9 @@ public:
   }
   bool usesSingleSort() const { return _sortsUsed==1; }
   unsigned sortsUsed() const { return _sortsUsed; }
-
+  bool onlyFiniteDomainDatatypes() const { return _onlyFiniteDomainDatatypes; }
+  bool knownInfiniteDomain() const { return _knownInfiniteDomain; }
+  
   void setSMTLIBLogic(SMTLIBLogic smtLibLogic) { 
     _smtlibLogic = smtLibLogic; 
   }
@@ -231,12 +236,15 @@ public:
 
   // reading in properties of problems
   void scan(Unit*);
+
+  // these two are the only ones which start the deep iteration
   void scan(Clause*);
   void scan(FormulaUnit*);
-  void scan(Formula*);
-  void scan(TermList* ts);
-  void scan(Literal* lit,int polarity = 1);
-  void scanSpecialTerm(Term* t);
+
+  void scan(Literal* lit, int polarity, unsigned cLen, bool goal);
+  void scan(Formula*, int polarity);
+  void scan(TermList ts,bool unit,bool goal);
+
   void scanSort(unsigned sort);
 
   char axiomTypes() const;
@@ -299,6 +307,9 @@ public:
   Array<bool> _usesSort;
 
   bool _hasFOOL;
+
+  bool _onlyFiniteDomainDatatypes;
+  bool _knownInfiniteDomain;
 
   bool _allClausesGround;
   bool _allNonTheoryClausesGround;

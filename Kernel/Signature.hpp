@@ -18,8 +18,10 @@
 #include "Lib/Map.hpp"
 #include "Lib/DHMap.hpp"
 #include "Lib/VString.hpp"
+#include "Lib/Environment.hpp"
 
 #include "Shell/TermAlgebra.hpp"
+#include "Shell/Options.hpp"
 
 #include "Sorts.hpp"
 #include "Theory.hpp"
@@ -74,6 +76,10 @@ class Signature
     List<unsigned>* _distinctGroups;
     /** number of times it is used in the problem */
     unsigned _usageCount;
+    /** if used in the goal **/
+    unsigned _inGoal : 1;
+    /** if used in a unit **/
+    unsigned _inUnit : 1;
 
     ~Symbol();
   public:
@@ -139,6 +145,11 @@ class Signature
     inline unsigned usageCnt() const { return _usageCount; }
     /** Reset usage count to zero, to start again! **/
     inline void resetUsageCnt(){ _usageCount=0; }
+
+    inline void markInGoal(){ _inGoal=1; }
+    inline bool inGoal(){ return _inGoal; }
+    inline void markInUnit(){ _inUnit=1; }
+    inline bool inUnit(){ return _inUnit; }
       
     /** Return true if symbol is an integer constant */
     inline bool integerConstant() const
@@ -150,6 +161,10 @@ class Signature
     inline bool realConstant() const
     { return interpreted() && arity()==0 && fnType()->result()==Sorts::SRT_REAL; }
           
+    /** return true if an interpreted number, note subtle but significant difference from numericConstant **/
+    inline bool interpretedNumber() const
+    { return integerConstant() || rationalConstant() || realConstant(); }
+    
     /** Return value of an integer constant */
     inline IntegerConstantType integerValue() const
     { ASS(integerConstant()); return static_cast<const IntegerSymbol*>(this)->_intValue; }
@@ -270,7 +285,7 @@ class Signature
 
   public:
     RealSymbol(const RealConstantType& val)
-    : Symbol(val.toNiceString(), 0, true), _realValue(val)
+    : Symbol((env.options->proof() == Shell::Options::Proof::PROOFCHECK) ? "$to_real("+val.toString()+")" : val.toNiceString(), 0, true), _realValue(val)
     {
       CALL("RealSymbol");
 
@@ -436,7 +451,7 @@ class Signature
   /** Return the function symbol by its number */
   inline Symbol* getFunction(unsigned n)
   {
-    ASS(n < _funs.length());
+    ASS_REP(n < _funs.length(),n);
     return _funs[n];
   } // getFunction
   /** Return the predicate symbol by its number */
@@ -503,6 +518,7 @@ class Signature
   Shell::TermAlgebra *getTermAlgebraOfSort(unsigned sort) { return _termAlgebras.get(sort); }
   void addTermAlgebra(Shell::TermAlgebra *ta) { _termAlgebras.insert(ta->sort(), ta); }
   VirtualIterator<Shell::TermAlgebra*> termAlgebrasIterator() const { return _termAlgebras.range(); }
+  Shell::TermAlgebraConstructor* getTermAlgebraConstructor(unsigned functor);
 
   void recordDividesNvalue(TermList n){
     _dividesNvalues.push(n);

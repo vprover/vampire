@@ -50,6 +50,7 @@
 #include "Inferences/Superposition.hpp"
 #include "Inferences/URResolution.hpp"
 #include "Inferences/Instantiation.hpp"
+#include "Inferences/TheoryInstAndSimp.hpp"
 
 #include "Saturation/ExtensionalityClauseContainer.hpp"
 
@@ -98,10 +99,16 @@ SaturationAlgorithm::SaturationAlgorithm(Problem& prb, const Options& opt)
     _fwSimplifiers(0), _bwSimplifiers(0), _splitter(0),
     _consFinder(0), _labelFinder(0), _symEl(0), _answerLiteralManager(0),
     _instantiation(0),
-    _generatedClauseCount(0)
+#if VZ3
+    _theoryInstSimp(0),
+#endif
+    _generatedClauseCount(0),
+    _activationLimit(0)
 {
   CALL("SaturationAlgorithm::SaturationAlgorithm");
   ASS_EQ(s_instance, 0);  //there can be only one saturation algorithm at a time
+
+  _activationLimit = opt.activationLimit();
 
   _ordering = OrderingSP(Ordering::create(prb, opt));
   if (!Ordering::trySetGlobalOrdering(_ordering)) {
@@ -528,10 +535,13 @@ void SaturationAlgorithm::addInputClause(Clause* cl)
     _symEl->onInputClause(cl);
   }
 
-  if (_opt.sos() != Options::Sos::OFF && 
-       ((cl->inputType()==Clause::AXIOM && _opt.sos() !=Options::Sos::THEORY) ||
-        cl->inference()->rule()==Inference::THEORY)
-     ) {
+  bool sosForAxioms = _opt.sos() == Options::Sos::ON || _opt.sos() == Options::Sos::ALL; 
+  sosForAxioms = sosForAxioms && cl->inputType()==Clause::AXIOM;
+
+  bool isTheory = cl->inference()->rule()==Inference::THEORY;
+  bool sosForTheory = _opt.sos() == Options::Sos::THEORY && _opt.sosTheoryLimit() == 0;
+
+  if (sosForAxioms || (isTheory && sosForTheory)){
     addInputSOSClause(cl);
   } else {
     addNewClause(cl);
@@ -647,6 +657,13 @@ void SaturationAlgorithm::init()
 Clause* SaturationAlgorithm::doImmediateSimplification(Clause* cl0)
 {
   CALL("SaturationAlgorithm::doImmediateSimplification");
+
+  static bool sosTheoryLimit = _opt.sos()==Options::Sos::THEORY;
+  static unsigned sosTheoryLimitDepth = _opt.sosTheoryLimit();
+
+  if(sosTheoryLimit && cl0->isTheoryDescendant() && cl0->inference()->maxDepth() > sosTheoryLimitDepth){
+    return 0;
+  }
 
   Clause* cl=cl0;
 
@@ -781,7 +798,7 @@ void SaturationAlgorithm::handleEmptyClause(Clause* cl)
   if (isRefutation(cl)) {
     onNonRedundantClause(cl);
 
-    if(cl->isTheoryDescendant()){
+    if(cl->isTheoryDescendant() ){
       ASSERTION_VIOLATION_REP("A pure theory descendant is empty, which means theory axioms are inconsistent");
       reportSpiderFail();
       // this is a poor way of handling this in release mode but it prevents unsound proofs
@@ -964,6 +981,19 @@ bool SaturationAlgorithm::activate(Clause* cl)
       return false;
     }
   }
+
+  bool redundant=false;
+  ClauseIterator instances = ClauseIterator::getEmpty();
+#if VZ3
+  if(_theoryInstSimp){
+    instances = _theoryInstSimp->generateClauses(cl,redundant);
+  }
+#endif
+  if(redundant){ 
+    removeActiveOrPassiveClause(cl);
+    return false; 
+  }
+
   _clauseActivationInProgress=true;
 
   if (!cl->numSelected()) {
@@ -977,24 +1007,26 @@ bool SaturationAlgorithm::activate(Clause* cl)
   env.statistics->activeClauses++;
   _active->add(cl);
 
-  ClauseIterator toAdd=_generator->generateClauses(cl);
 
-  while (toAdd.hasNext()) {
-    Clause* genCl=toAdd.next();
+    ClauseIterator toAdd= pvi(getConcatenatedIterator(instances,_generator->generateClauses(cl)));
 
-    addNewClause(genCl);
+    while (toAdd.hasNext()) {
+      Clause* genCl=toAdd.next();
 
-    Inference::Iterator iit=genCl->inference()->iterator();
-    while (genCl->inference()->hasNext(iit)) {
-      Unit* premUnit=genCl->inference()->next(iit);
-      ASS(premUnit->isClause());
-      Clause* premCl=static_cast<Clause*>(premUnit);
+      addNewClause(genCl);
 
-      onParenthood(genCl, premCl);
+      Inference::Iterator iit=genCl->inference()->iterator();
+      while (genCl->inference()->hasNext(iit)) {
+        Unit* premUnit=genCl->inference()->next(iit);
+        ASS(premUnit->isClause());
+        Clause* premCl=static_cast<Clause*>(premUnit);
+
+        onParenthood(genCl, premCl);
+      }
     }
-  }
 
   _clauseActivationInProgress=false;
+
 
   //now we remove clauses that could not be removed during the clause activation process
   while (_postponedClauseRemovals.isNonEmpty()) {
@@ -1006,7 +1038,7 @@ bool SaturationAlgorithm::activate(Clause* cl)
     removeActiveOrPassiveClause(cl);
   }
 
-  return true;
+  return true; 
 }
 
 /**
@@ -1054,7 +1086,7 @@ void SaturationAlgorithm::handleUnsuccessfulActivation(Clause* cl)
 {
   CALL("SaturationAlgorithm::handleUnsuccessfulActivation");
 
-  ASS_EQ(cl->store(), Clause::SELECTED);
+  //ASS_EQ(cl->store(), Clause::SELECTED);
   cl->setStore(Clause::NONE);
 }
 
@@ -1150,9 +1182,14 @@ MainLoopResult SaturationAlgorithm::runImpl()
 {
   CALL("SaturationAlgorithm::runImpl");
 
+  unsigned l = 0;
   try
   {
-    for (;;) {
+    for (;;l++) {
+      if (_activationLimit && l > _activationLimit) {
+        throw ActivationLimitExceededException();
+      }
+
       doOneAlgorithmStep();
 
       Timer::syncClock();
@@ -1168,6 +1205,15 @@ MainLoopResult SaturationAlgorithm::runImpl()
   }
 
 }
+
+#if VZ3
+void SaturationAlgorithm::setTheoryInstAndSimp(TheoryInstAndSimp* t)
+{
+  ASS(t);
+  _theoryInstSimp=t;
+  _theoryInstSimp->attach(this);
+}
+#endif
 
 /**
  * Assign an generating inference object @b generator to be used
@@ -1264,6 +1310,10 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
     res->_imgr = SmartPtr<IndexManager>(new IndexManager(res));
   }
 
+  if(opt.splitting()){
+    res->_splitter = new Splitter();
+  }
+
   // create generating inference engine
   CompositeGIE* gie=new CompositeGIE();
 
@@ -1301,14 +1351,16 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
       gie->addFront(new InjectivityGIE());
     }
   }
+#if VZ3
+  if (opt.theoryInstAndSimp() != Shell::Options::TheoryInstSimp::OFF){
+    res->setTheoryInstAndSimp(new TheoryInstAndSimp());
+    //gie->addFront(new TheoryInstAndSimp());
+  }
+#endif
 
   res->setGeneratingInferenceEngine(gie);
 
   res->setImmediateSimplificationEngine(createISE(prb, opt));
-
-  if(opt.splitting()){
-    res->_splitter = new Splitter();
-  }
 
   // create forward simplification engine
   if (prb.hasEquality() && opt.innerRewriting()) {
