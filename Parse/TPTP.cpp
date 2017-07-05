@@ -3514,7 +3514,7 @@ Formula* TPTP::makeJunction (Connective c,Formula* lhs,Formula* rhs)
  */
 unsigned TPTP::addFunction(vstring name,int arity,bool& added,TermList& arg)
 {
-  CALL("TPTP::aion");
+  CALL("TPTP::addFunction");
 
   if (name == "$sum") {
     return addOverloadedFunction(name,arity,2,added,arg,
