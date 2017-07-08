@@ -821,7 +821,7 @@ void Z3Interfacing::addTruncatedOperations(z3::expr_vector args, Interpretation 
     _solver.add(one);
 
     // e1 >= 0 & e2 < 0 -> e2 * q(e1,e2) <= e1 & e2 * q(e1,e2) > e1 + e2
-    z3::expr two = implies(( (e1 >=0) && (e2 <0) ), ( (e2*q_e1_e2) <= e1) && ( ((-e2)*q_e1_e2) > (e1+e2) ) );
+    z3::expr two = implies(( (e1 >=0) && (e2 <0) ), ( (e2*q_e1_e2) <= e1) && ( (e2*q_e1_e2) > (e1+e2) ) );
     _solver.add(two);
 
     // e1 < 0 & e2 > 0 -> e2 * q(e1,e2) >= e1 & e2 * q(e1,e2) < e1 + e2
