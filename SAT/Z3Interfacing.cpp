@@ -531,46 +531,56 @@ z3::expr Z3Interfacing::getz3expr(Term* trm,bool isLit,bool&nameExpression,bool 
 
          case Theory::INT_QUOTIENT_T:
          case Theory::INT_REMAINDER_T:
+           if(withGuard){addIntNonZero(args[1]);}
            // leave as uninterpreted
            addTruncatedOperations(args,Theory::INT_QUOTIENT_T,Theory::INT_REMAINDER_T,range_sort);
            skip=true;
            break;
          case Theory::RAT_QUOTIENT_T:
+           if(withGuard){addRealNonZero(args[1]);}
            ret = truncate(args[0]/args[1]);
            addTruncatedOperations(args,Theory::RAT_QUOTIENT_T,Theory::RAT_REMAINDER_T,range_sort);
            break;
          case Theory::RAT_REMAINDER_T:
+           if(withGuard){addRealNonZero(args[1]);}
            skip=true;
            addTruncatedOperations(args,Theory::RAT_QUOTIENT_T,Theory::RAT_REMAINDER_T,range_sort);
            break;
          case Theory::REAL_QUOTIENT_T:
+           if(withGuard){addRealNonZero(args[1]);}
            ret = truncate(args[0]/args[1]);
            addTruncatedOperations(args,Theory::REAL_QUOTIENT_T,Theory::REAL_REMAINDER_T,range_sort);
            break;
          case Theory::REAL_REMAINDER_T:
+           if(withGuard){addRealNonZero(args[1]);}
            skip=true;
            addTruncatedOperations(args,Theory::REAL_QUOTIENT_T,Theory::REAL_REMAINDER_T,range_sort);
            break;
 
          case Theory::INT_QUOTIENT_F:
          case Theory::INT_REMAINDER_F:
+           if(withGuard){addIntNonZero(args[1]);}
            // leave as uninterpreted
            addFloorOperations(args,Theory::INT_QUOTIENT_F,Theory::INT_REMAINDER_F,range_sort);
            skip=true;
            break;
          case Theory::RAT_QUOTIENT_F:
+           if(withGuard){addRealNonZero(args[1]);}
            ret = to_real(to_int(args[0] / args[1]));
            addFloorOperations(args,Theory::RAT_QUOTIENT_F,Theory::RAT_REMAINDER_F,range_sort);
            break;
          case Theory::RAT_REMAINDER_F:
+           if(withGuard){addRealNonZero(args[1]);}
            skip=true;
            addFloorOperations(args,Theory::RAT_QUOTIENT_F,Theory::RAT_REMAINDER_F,range_sort);
            break;
          case Theory::REAL_QUOTIENT_F:
+           if(withGuard){addRealNonZero(args[1]);}
            ret = to_real(to_int(args[0] / args[1]));
            addFloorOperations(args,Theory::REAL_QUOTIENT_F,Theory::REAL_REMAINDER_F,range_sort);
            break;
          case Theory::REAL_REMAINDER_F:
+           if(withGuard){addRealNonZero(args[1]);}
            skip=true;
            addFloorOperations(args,Theory::REAL_QUOTIENT_F,Theory::REAL_REMAINDER_F,range_sort);
            break;
