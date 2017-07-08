@@ -1185,10 +1185,9 @@ bool TheoryAxioms::apply(UnitList*& units, Property* prop)
     TermAlgebra* ta = tas.next();
 
     addExhaustivenessAxiom(ta, units);
-//    addAlternativeExhaustivenessAxiom(ta, units);
     addDistinctnessAxiom(ta, units);
     addInjectivityAxiom(ta, units);
-//    addAlternativeInjectivityAxiom(ta, units);
+    //addAlternativeInjectivityAxiom(ta, units);
     addDiscriminationAxiom(ta, units);
 
     if (env.options->termAlgebraCyclicityCheck() == Options::TACyclicityCheck::AXIOM) {
@@ -1228,52 +1227,6 @@ void TheoryAxioms::applyFOOL(Problem& prb) {
 
 void TheoryAxioms::addExhaustivenessAxiom(TermAlgebra* ta, UnitList*& units) {
   CALL("TheoryAxioms::addExhaustivenessAxiom");
-
-  TermList x(0, false);
-  Stack<TermList> argTerms;
-
-  FormulaList* l = FormulaList::empty();
-
-  for (unsigned i = 0; i < ta->nConstructors(); i++) {
-    TermAlgebraConstructor *c = ta->constructor(i);
-    argTerms.reset();
-
-    for (unsigned j = 0; j < c->arity(); j++) {
-      if (c->argSort(j) == Sorts::SRT_BOOL) {
-        Literal* lit = Literal::create1(c->destructorFunctor(j), true, x);
-        Term* t = Term::createFormula(new AtomicFormula(lit));
-        argTerms.push(TermList(t));
-      } else {
-        Term* t = Term::create1(c->destructorFunctor(j), x);
-        argTerms.push(TermList(t));
-      }
-    }
-
-    TermList rhs(Term::create(c->functor(), (unsigned)argTerms.size(), argTerms.begin()));
-    FormulaList::push(new AtomicFormula(Literal::createEquality(true, x, rhs, ta->sort())), l);
-  }
-
-  Formula::VarList* vars = Formula::VarList::empty()->cons(x.var());
-  Formula::SortList* sorts = Formula::SortList::empty()->cons(ta->sort());
-
-  Formula *axiom;
-  switch (l->length()) {
-    case 0:
-      // the algebra cannot have 0 constructors
-      ASSERTION_VIOLATION;
-    case 1:
-      axiom = new QuantifiedFormula(Connective::FORALL, vars, sorts, l->head());
-      break;
-    default:
-      axiom = new QuantifiedFormula(Connective::FORALL, vars, sorts, new JunctionFormula(Connective::OR, l));
-  }
-
-  Unit* unit = new FormulaUnit(axiom, new Inference(Inference::TERM_ALGEBRA_EXHAUSTIVENESS), Unit::AXIOM);
-  addAndOutputTheoryUnit(unit, units,CHEAP);
-}
-
-void TheoryAxioms::addAlternativeExhaustivenessAxiom(TermAlgebra* ta, UnitList*& units) {
-  CALL("TheoryAxioms::addAlternativeExhaustivenessAxiom");
 
   for (unsigned i = 0; i < ta->nConstructors(); i++) {
     TermAlgebraConstructor* c = ta->constructor(i);

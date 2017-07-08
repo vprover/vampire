@@ -344,7 +344,7 @@ protected:
  * 
  * This need not necessarily inherit from SATSolverWithAssumptions,
  * but why bother with multiple inheritance if we know the only 
- * to descendants of this class will nqeed it...
+ * two descendants of this class will need it...
  */
 class PrimitiveProofRecordingSATSolver : public SATSolverWithAssumptions {
 public:

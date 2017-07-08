@@ -79,6 +79,11 @@ namespace Shell {
      */
     bool emptyDomain();
 
+    /* True iff all the constructors are constants */
+    bool finiteDomain();
+    /* True iff one of the constructors is recursive */
+    bool infiniteDomain();
+
     /* The predicate of the subterm relation, used only if the option
        -tac is set to "axiom"*/
     Lib::vstring getSubtermPredicateName();

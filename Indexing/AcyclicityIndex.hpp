@@ -9,7 +9,6 @@
 #include "Indexing/Index.hpp"
 
 #include "Kernel/Clause.hpp"
-#include "Kernel/Ordering.hpp"
 #include "Kernel/Term.hpp"
 
 #include "Indexing/TermIndexingStructure.hpp"
@@ -48,10 +47,9 @@ class AcyclicityIndex
 : public Index
 {
 public:
-  AcyclicityIndex(Indexing::TermIndexingStructure* tis, Kernel::Ordering &ord) :
+  AcyclicityIndex(Indexing::TermIndexingStructure* tis) :
     _sIndexes(),
-    _tis(tis),
-    _ord(ord)
+    _tis(tis)
   {}
 
   ~AcyclicityIndex() {}
@@ -77,7 +75,6 @@ private:
 
   Lib::DHMap<unsigned, SIndex*> _sIndexes;
   Indexing::TermIndexingStructure* _tis;
-  Kernel::Ordering &_ord;
 };
 
 }

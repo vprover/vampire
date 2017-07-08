@@ -65,6 +65,8 @@ Property::Property()
     _hasNonDefaultSorts(false),
     _sortsUsed(0),
     _hasFOOL(false),
+    _onlyFiniteDomainDatatypes(true),
+    _knownInfiniteDomain(false),
     _allClausesGround(true),
     _allNonTheoryClausesGround(true),
     _allQuantifiersEssentiallyExistential(true),
@@ -446,7 +448,14 @@ void Property::scanSort(unsigned sort)
       addProp(PR_HAS_ARRAYS);
     }
     if (env.signature->isTermAlgebraSort(sort)) {
-      if (env.signature->getTermAlgebraOfSort(sort)->allowsCyclicTerms()) {
+      TermAlgebra* ta = env.signature->getTermAlgebraOfSort(sort);
+      if (!ta->finiteDomain()) {
+        _onlyFiniteDomainDatatypes = false;
+      }
+      if (ta->infiniteDomain()) {
+        _knownInfiniteDomain = true;
+      }
+      if (ta->allowsCyclicTerms()) {
         addProp(PR_HAS_CDT_CONSTRUCTORS); // co-algebraic data type
       } else {
         addProp(PR_HAS_DT_CONSTRUCTORS); // algebraic data type

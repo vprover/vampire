@@ -175,6 +175,16 @@ Term* TermTransformer::transformSpecial(Term* term)
       }
     }
 
+    case Term::SF_TUPLE: {
+      Term* tupleTerm = transform(sd->getTupleTerm());
+
+      if (tupleTerm == sd->getTupleTerm()) {
+        return term;
+      } else {
+        return Term::createTuple(tupleTerm);
+      }
+    }
+
     default:
       ASSERTION_VIOLATION_REP(term->toString());
   }

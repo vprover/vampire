@@ -2749,14 +2749,12 @@ bool Options::complete(const Problem& prb) const
       || prop.hasProp(Property::PR_HAS_INTEGERS)
       || prop.hasProp(Property::PR_HAS_REALS)
       || prop.hasProp(Property::PR_HAS_RATS)
-      || prop.hasProp(Property::PR_HAS_DT_CONSTRUCTORS)
-      || prop.hasProp(Property::PR_HAS_CDT_CONSTRUCTORS)) {
+      || (!prop.onlyFiniteDomainDatatypes() && prop.hasProp(Property::PR_HAS_DT_CONSTRUCTORS))
+      || (!prop.onlyFiniteDomainDatatypes() && prop.hasProp(Property::PR_HAS_CDT_CONSTRUCTORS))) {
     return false;
   }
 
   // preprocessing
-  if (_sineSelection.actualValue != SineSelection::OFF) return false;
-
   if (env.signature->hasDistinctGroups()) {
     return false;
   }
@@ -2786,13 +2784,6 @@ bool Options::complete(const Problem& prb) const
     return prop.category() == Property::HNE; // URR is complete for Horn problems
   }
 
-  // equality problems
-  switch (_equalityProxy.actualValue) {
-  case EqualityProxy::R: return false;
-  case EqualityProxy::RS: return false;
-  case EqualityProxy::RST: return false;
-  default: break;
-  }
   if (!_demodulationRedundancyCheck.actualValue) return false;
   if (!_superpositionFromVariables.actualValue) return false;
 

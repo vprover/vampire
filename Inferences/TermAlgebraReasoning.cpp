@@ -114,6 +114,9 @@ namespace Inferences {
   Clause* DistinctnessISE::simplify(Clause* c)
   {
     CALL("DistinctnessISE::simplify");
+
+    if (c->isTheoryDescendant())
+      return c;
     
     int length = c->length();
     for (int i = length - 1; i >= 0; i--) {
@@ -222,6 +225,9 @@ namespace Inferences {
   Clause* InjectivityISE::simplify(Clause *c)
   {
     CALL("InjectivityISE::simplify");
+    
+    if (c->isTheoryDescendant())
+      return c;
 
     int length = c->length();
     for (int i = length - 1; i >= 0; i--) {
@@ -271,6 +277,9 @@ namespace Inferences {
   Clause* NegativeInjectivityISE::simplify(Clause *c)
   {
     CALL("NegativeInjectivityISE::simplify");
+
+    if (c->isTheoryDescendant())
+      return c;
 
     int length = c->length();
     for (int i = length - 1; i >= 0; i--) {

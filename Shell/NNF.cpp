@@ -322,7 +322,7 @@ TermList NNF::ennf(TermList ts, bool polarity)
         TermList tupleTerm = TermList(sd->getTupleTerm());
         TermList ennfTupleTerm = ennf(tupleTerm, true);
 
-        if (tupleTerm != ennfTupleTerm) {
+        if (tupleTerm == ennfTupleTerm) {
           return ts;
         } else {
           ASS_REP(ennfTupleTerm.isTerm(), ennfTupleTerm.toString());

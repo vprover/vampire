@@ -3514,14 +3514,8 @@ Formula* TPTP::makeJunction (Connective c,Formula* lhs,Formula* rhs)
  */
 unsigned TPTP::addFunction(vstring name,int arity,bool& added,TermList& arg)
 {
-  CALL("TPTP::aion");
+  CALL("TPTP::addFunction");
 
-  if (name[0] != '$' || (name.length() > 1 && name[1] == '$')) {
-    if (arity > 0) {
-      return env.signature->addFunction(name,arity,added);
-    }
-    return addUninterpretedConstant(name,_overflow,added);
-  }
   if (name == "$sum") {
     return addOverloadedFunction(name,arity,2,added,arg,
 				 Theory::INT_PLUS,
@@ -3667,8 +3661,11 @@ unsigned TPTP::addFunction(vstring name,int arity,bool& added,TermList& arg)
 				 Theory::RAT_TO_REAL,
 				 Theory::REAL_TO_REAL);
   }
-ASSERTION_VIOLATION;
-  USER_ERROR((vstring)"Invalid function name: " + name);
+
+  if (arity > 0) {
+    return env.signature->addFunction(name,arity,added);
+  }
+  return addUninterpretedConstant(name,_overflow,added);
 } // addFunction
 
 /** Add a predicate to the signature
@@ -3684,9 +3681,6 @@ int TPTP::addPredicate(vstring name,int arity,bool& added,TermList& arg)
 {
   CALL("TPTP::addPredicate");
 
-  if (name[0] != '$' || (name.length() > 1 && name[1] == '$')) {
-    return env.signature->addPredicate(name,arity,added);
-  }
   if (name == "$evaleq" || name == "$equal") {
     return -1;
   }
@@ -3739,7 +3733,7 @@ int TPTP::addPredicate(vstring name,int arity,bool& added,TermList& arg)
     // special case for distinct, dealt with in formulaInfix
     return -2;
   }
-  USER_ERROR((vstring)"Invalid predicate name: " + name);
+  return env.signature->addPredicate(name,arity,added);
 } // addPredicate
 
 

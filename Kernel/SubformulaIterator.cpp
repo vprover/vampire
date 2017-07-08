@@ -174,8 +174,12 @@ bool SubformulaIterator::hasNext ()
           case Term::SF_LET_TUPLE: {
             delete _reserve;
             TermList binding = term->getSpecialData()->getBinding();
-            // TODO: should be 1 instead of polarity?
-            _reserve = new Element(binding.term(), polarity, rest);
+            if (!binding.isTerm()) {
+              _reserve = rest;
+            } else {
+              // TODO: should be 1 instead of polarity?
+              _reserve = new Element(binding.term(), polarity, rest);
+            }
             break;
           }
           case Term::SF_FORMULA: {

@@ -190,7 +190,7 @@ Index* IndexManager::create(IndexType t)
 
   case ACYCLICITY_INDEX:
     tis = new TermSubstitutionTree();
-    res = new AcyclicityIndex(tis, _alg->getOrdering());
+    res = new AcyclicityIndex(tis);
     isGenerating = true;
     break;
 
