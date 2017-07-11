@@ -1239,9 +1239,32 @@ void TheoryAxioms::addExhaustivenessAxiom(TermAlgebra* ta, UnitList*& units) {
     TermList constructedTerm(Term::create(c->functor(), c->arity(), variables.begin()));
 
     for (unsigned j = 0; j < c->arity(); j++) {
-      Term* rhs = Term::create1(c->destructorFunctor(j), constructedTerm);
-      Literal* eq = Literal::createEquality(true, TermList(j, false), TermList(rhs), c->argSort(j));
-      addTheoryUnitClause(eq, new Inference(Inference::TERM_ALGEBRA_EXHAUSTIVENESS), units,CHEAP);
+      if (c->argSort(j) == Sorts::SRT_BOOL) {
+        Stack<TermList> posBoolArgs;
+        Stack<TermList> negBoolArgs;
+        for (unsigned var = 0; var < c->arity(); var++) {
+          if (var == j) {
+            posBoolArgs.push(TermList(Term::foolTrue()));
+            negBoolArgs.push(TermList(Term::foolFalse()));
+          } else {
+            posBoolArgs.push(TermList(var, false));
+            negBoolArgs.push(TermList(var, false));
+          }
+        }
+
+        TermList posConstructedTerm(Term::create(c->functor(), c->arity(), posBoolArgs.begin()));
+        TermList negConstructedTerm(Term::create(c->functor(), c->arity(), negBoolArgs.begin()));
+
+        Literal* pos = Literal::create1(c->destructorFunctor(j), true,  posConstructedTerm);
+        addTheoryUnitClause(pos, new Inference(Inference::TERM_ALGEBRA_EXHAUSTIVENESS), units, CHEAP);
+
+        Literal* neg = Literal::create1(c->destructorFunctor(j), false, negConstructedTerm);
+        addTheoryUnitClause(neg, new Inference(Inference::TERM_ALGEBRA_EXHAUSTIVENESS), units, CHEAP);
+      } else {
+        Term* rhs = Term::create1(c->destructorFunctor(j), constructedTerm);
+        Literal* eq = Literal::createEquality(true, TermList(j, false), TermList(rhs), c->argSort(j));
+        addTheoryUnitClause(eq, new Inference(Inference::TERM_ALGEBRA_EXHAUSTIVENESS), units, CHEAP);
+      }
     }
   }
 }
