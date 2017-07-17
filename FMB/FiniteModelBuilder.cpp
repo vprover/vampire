@@ -1802,11 +1802,14 @@ MainLoopResult FiniteModelBuilder::runImpl()
 
   gave_up: // for jumping because of other reasons to give up (message printed elsewhere)
 
+  /*
+  // Giles: In CASC mode we should only print GaveUp at the very end
   if(UIHelper::szsOutput) {
     env.beginOutput();
     env.out() << "% SZS status GaveUp for " << _opt.problemName() << endl;
     env.endOutput();
   }
+  */
 
   return MainLoopResult(Statistics::REFUTATION_NOT_FOUND);
 }
