@@ -34,6 +34,7 @@ public:
   static void getSchedulesSat(Property& prop, Schedule& quick, Schedule& fallback);
   static unsigned getSliceTime(vstring sliceCode,vstring& chopped);
   static void makeSat() {_sat=true;}
+  static void makeSLD() {_sld=true;}
 protected:
   /**
    * Run a slice correponding to the options.
@@ -47,6 +48,8 @@ protected:
   Property* _property;
   /** True if satisfiability checking */
   static bool _sat;
+  /** True if SLD mode */
+  static bool _sld;
 
 private:
   typedef Set<vstring> StrategySet;

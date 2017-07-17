@@ -352,6 +352,7 @@ public:
     AXIOM_SELECTION,
     CASC,
     CASC_SAT,
+    CASC_SLD,
     CASC_LTB,
     SMTCOMP,
     CLAUSIFY,

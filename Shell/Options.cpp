@@ -89,6 +89,7 @@ void Options::Options::init()
                                     {"axiom_selection",
                                         "casc",
                                         "casc_sat",
+                                        "casc_sld",
                                         "casc_ltb",
                                         "smtcomp",
                                         "clausify","tclausify",

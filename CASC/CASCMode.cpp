@@ -26,6 +26,7 @@ using namespace Lib;
 using namespace CASC;
 
 bool CASCMode::_sat = false;
+bool CASCMode::_sld = false;
 
 bool CASCMode::perform(int argc, char* argv [])
 {
@@ -87,7 +88,11 @@ bool CASCMode::perform()
   Schedule quick;
   Schedule fallback;
 
-  if (_sat) {
+  if (_sld){
+    //TODO create a separate schedule for SLD
+    getSchedules(*_property, quick, fallback);
+  }
+  else if (_sat) {
     getSchedulesSat(*_property, quick, fallback);
   }
   else {

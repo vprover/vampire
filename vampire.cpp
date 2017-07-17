@@ -935,6 +935,13 @@ int main(int argc, char* argv[])
     case Options::Mode::VAMPIRE:
       vampireMode();
       break;
+    case Options::Mode::CASC_SLD:
+       CASC::CASCMode::makeSLD();
+       if (CASC::CASCMultiMode::perform()) {
+          //casc mode succeeded in solving the problem, so we return zero
+          vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
+        }
+      break;
     case Options::Mode::CASC_SAT:
       CASC::CASCMode::makeSat();
     case Options::Mode::CASC:
