@@ -413,9 +413,9 @@ class BitVectorSymbol
 
  // unsigned addBitVectorConstant(const vstring& size, const vstring& numberToRepresent, bool defaultSort);
   unsigned addBitVectorConstant(const vstring& size, const DArray<bool> binArray, bool defaultSort);
-  
+  ////////////////////////////////////
   static vstring boolArraytoString(const DArray<bool>& in);
-  static DArray<bool> getBinArrayFromVString(vstring& numberToRepresent);
+  static DArray<bool> getBinArrayFromVString(vstring& numberToRepresent, unsigned size);
   //DArray<bool> calculateBinaryArray(const vstring& number);
   static DArray<bool> padBinArray(DArray<bool> anArray, unsigned size);
   //DArray<bool> lookUpBinArrayFromDecNumber(unsigned n);
@@ -427,7 +427,7 @@ class BitVectorSymbol
   static DArray<bool> fitBinArrayIntoBits(DArray<bool> input, unsigned size);
   static DArray<bool> truncate(DArray<bool> input, unsigned size);
   static void copyDArray(const DArray<bool> from, DArray<bool>& to );
-  
+  /////////////
   
   
   

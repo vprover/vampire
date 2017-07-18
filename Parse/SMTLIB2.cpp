@@ -1516,34 +1516,24 @@ void SMTLIB2::parseUnderScoredExpression(LExpr* exp)
     int actualNumber;
     Int::stringToInt(numberPart,actualNumber);
     cout<<"\n number part "<< actualNumber<<"\n";
-    int imax = std::numeric_limits<int>::max();
-    cout<<"\n MAX number "<< imax;
-    unsigned int max_unsigned_int_size = std::numeric_limits<unsigned int>::max();
-    unsigned int max_unsigned_long_size = std::numeric_limits<double>::max();
-    cout<<"\n max unsigned int is "<< max_unsigned_int_size<<"\n";
-    cout<<"\n max unsigned LONG is "<< max_unsigned_long_size<<"\n";
-    long teSting = 281474976710655;
-    int teSting2 = 281474976710655;
-    unsigned teSting3 = 281474976710655;
-    cout <<"\n long testing "<< teSting;
-    cout <<"\n int testing "<< teSting2;
-    cout <<"\n unsigned testing "<< teSting3;
     
-    
-    
-    //long long bigNum = 89884656743115795386465259539451236680898848947115328636715040578866337902750481566354238661203768010560056939935696678829394884407208311246423715319737062188883946712432742638151109800623047059726541476042502884419075341171231440736956555270413618581675255342293149119973622969239858152417678164812112068607;
-    //cout<<"\n\n bigNum is "<<bigNum<<"\n\n";
-   // mpz_class bigNum = 1000;
+   
     
     ex = lRdr.readNext();
     cout<<" and last "<<ex->str;
                    
     
-    DArray<bool> arg = Signature::getBinArrayFromVString(numberPart);
     unsigned size;
     Int::stringToUnsignedInt(ex->str, size);
+    
+    DArray<bool> arg = Signature::getBinArrayFromVString(numberPart, size);
+    
     cout<<endl<<"to pad  size is "<<size<<endl;
+    
+    
     DArray<bool> argPadded = Signature::fitBinArrayIntoBits(arg,size);
+    
+    
     cout<<endl<<"THE BV TO USE "<<endl;
     Signature::printBoolArrayContent(argPadded);
     

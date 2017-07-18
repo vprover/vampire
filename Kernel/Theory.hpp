@@ -40,13 +40,13 @@ class BitVectorConstantType{
     BitVectorConstantType(Size s, BinArray n) : _size(s) {
         cout<<" in problem constructor"<<endl;
         cout<<" size is "<<n.size()<<endl;
-        binArray = new DArray<bool>(n.size());
+        binArray.initFromArray(n.size(),n);
         //Signature::copyDArray(n, *binArray);
-        for (int i = 0 ; i < n.size() ; ++ i )
+        /*for (int i = 0 ; i < n.size() ; ++ i )
         {
             (*binArray)[i] = n[i];
             cout<<"setTo 2is " <<n[i];
-        }
+        }*/
     }; 
     
     public: // for some reason have to put the constructor here
@@ -58,15 +58,16 @@ class BitVectorConstantType{
     //NumberToRepresent numberToRepresent() const { return _numberToRepresent;}
     void setBinArray(DArray<bool> setTo)
     {
-        binArray = new DArray<bool>(setTo.size());
+        /*binArray = new DArray<bool>(setTo.size());
         for (int i = 0 ; i < setTo.size() ; ++i){
             (*binArray)[i] = setTo[i];
             cout<<"setTo is " <<setTo[i];
-        }
+        }*/
+        binArray.initFromArray(setTo.size(),setTo);
     }
     
     DArray<bool> getBinArray(){
-        return (*binArray);
+        return binArray;
     }
     
     
@@ -74,7 +75,7 @@ private:
     Size _size;
    // NumberToRepresent _numberToRepresent;
     unsigned sortB;
-    BinArray *binArray;
+    BinArray binArray;
 };
 
 

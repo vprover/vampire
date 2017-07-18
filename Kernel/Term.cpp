@@ -1196,7 +1196,11 @@ Literal* Literal::createEquality (bool polarity, TermList arg1, TermList arg2, u
    CALL("Literal::createEquality/4");
 
    unsigned srt1, srt2;
-
+   cout<<endl<<"shibby"<<endl;
+   cout<<arg1.toString();
+   cout<<endl<<"shibby"<<endl;
+   cout<<arg2.toString();
+   
    if (!SortHelper::tryGetResultSort(arg1, srt1)) {
      if (!SortHelper::tryGetResultSort(arg2, srt2)) {
        ASS_REP(arg1.isVar(), arg1.toString());
@@ -1209,7 +1213,8 @@ Literal* Literal::createEquality (bool polarity, TermList arg1, TermList arg2, u
      ASS_EQ(srt1, sort);
 #if VDEBUG
      if (SortHelper::tryGetResultSort(arg2, srt2)) {
-       ASS_EQ(srt2, sort);
+         //if (!env.sorts->hasStructuredSort(srt2) && !env.sorts->hasStructuredSort(srt1))
+            ASS_EQ(srt2, sort);
      }
 #endif
    }
