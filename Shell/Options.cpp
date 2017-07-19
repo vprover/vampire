@@ -118,7 +118,8 @@ void Options::Options::init()
     _multicore = UnsignedOptionValue("cores","",1);
     _multicore.description = "When running in casc or smtcomp mode specify the number of cores, set to 0 to use maximum";
     _lookup.insert(&_multicore);
-    _multicore.reliesOnHard(_mode.is(equal(Mode::CASC)->Or(_mode.is(equal(Mode::CASC_SAT)))->Or(_mode.is(equal(Mode::SMTCOMP)))));
+    _multicore.reliesOnHard(_mode.is(equal(Mode::CASC)->Or(
+         _mode.is(equal(Mode::CASC_SAT)))->Or(_mode.is(equal(Mode::SMTCOMP)))->Or(_mode.is(equal(Mode::CASC_SLD)))));
 
     _ltbLearning = ChoiceOptionValue<LTBLearning>("ltb_learning","ltbl",LTBLearning::OFF,{"on","off","biased"});
     _ltbLearning.description = "Perform learning in LTB mode";
