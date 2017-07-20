@@ -3855,18 +3855,13 @@ unsigned TPTP::sortOf(TermList t)
 }*/
 
 
-unsigned TPTP::addBitVectorConstant(const vstring& size, const DArray<bool> binArray, Set<vstring>& overflow, bool defaultSort)
+unsigned TPTP::addBitVectorConstant(const DArray<bool> binArray)
 {
     CALL("TPTP::addBitVectorConstant");
     try{
-        return env.signature->addBitVectorConstant(size, binArray, defaultSort);
+        return env.signature->addBitVectorConstant(binArray);
     }catch(Kernel::ArithmeticException&){
-        // the numbertoRepresent is too big so we just use 1
         USER_ERROR("We should never get here");
-        cout<<" \n Kernel::ArithmeticException \n";
-        vstring workAround = "1";
-       // return env.signature->addBitVectorConstant(size, workAround, defaultSort);
-        //USER_ERROR("Bitvector constant arithmetic exception");
     }
     
     return 0;

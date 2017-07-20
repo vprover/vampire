@@ -1196,10 +1196,7 @@ Literal* Literal::createEquality (bool polarity, TermList arg1, TermList arg2, u
    CALL("Literal::createEquality/4");
 
    unsigned srt1, srt2;
-   cout<<endl<<"shibby"<<endl;
-   cout<<arg1.toString();
-   cout<<endl<<"shibby"<<endl;
-   cout<<arg2.toString();
+  
    
    if (!SortHelper::tryGetResultSort(arg1, srt1)) {
      if (!SortHelper::tryGetResultSort(arg2, srt2)) {

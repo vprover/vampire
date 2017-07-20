@@ -219,6 +219,7 @@ VK_OBJ= Kernel/Clause.o\
         Kernel/Renaming.o\
         Kernel/RobSubstitution.o\
         Kernel/Signature.o\
+	Kernel/BitVectorOperations.o\
         Kernel/SortHelper.o\
         Kernel/Sorts.o\
         Kernel/SubformulaIterator.o\

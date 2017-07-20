@@ -1528,17 +1528,8 @@ void SMTLIB2::parseUnderScoredExpression(LExpr* exp)
     
     DArray<bool> arg = Signature::getBinArrayFromVString(numberPart, size);
     
-    cout<<endl<<"to pad  size is "<<size<<endl;
-    
-    
-    DArray<bool> argPadded = Signature::fitBinArrayIntoBits(arg,size);
-    
-    
-    cout<<endl<<"THE BV TO USE "<<endl;
-    Signature::printBoolArrayContent(argPadded);
-    
-    
-    unsigned symb = TPTP::addBitVectorConstant(ex->str,argPadded,  _overflow, false);
+   
+    unsigned symb = TPTP::addBitVectorConstant(arg); // fixed this to use arg instead of argpadded
     TermList res = TermList(Term::createConstant(symb));
     cout<< "\n symbol is "<<symb<<"\n";
     int hey;
@@ -1618,6 +1609,7 @@ bool SMTLIB2::parseAsBitVectorConstant(const vstring& id)
     vstring hexSlashBin = id.substr(0,2);
     cout<<"\n hexSlashBin : "<<hexSlashBin<<"\n";
     unsigned multiplier = 1;
+    // ORDER MIGHT BE WRONG HERE !!! 
     if (hexSlashBin == "#x" || hexSlashBin =="#b")
     {    
         vstring bvContent = id.substr(2);
@@ -1655,7 +1647,7 @@ bool SMTLIB2::parseAsBitVectorConstant(const vstring& id)
             //unsigned symb = TPTP::addBitVectorConstant(resultSizeVstring, vstringNumToRepresent, _overflow, true);
              cout<<endl<<" BEFORE ADDING AGAIN "<<endl;
             Signature::printBoolArrayContent(theBinArray);
-            unsigned symb = TPTP::addBitVectorConstant(resultSizeVstring, theBinArray, _overflow, false); 
+            unsigned symb = TPTP::addBitVectorConstant(theBinArray); 
              
             TermList res = TermList(Term::createConstant(symb));
             _results.push(ParseResult(resultSort,res)); // change THIS !!!:!:!:!:!:
@@ -1676,7 +1668,7 @@ bool SMTLIB2::parseAsBitVectorConstant(const vstring& id)
             unsigned resultSort = env.sorts->addBitVectorSort(resultSize);
 
             
-            unsigned symb = TPTP::addBitVectorConstant(resultSizeVstring, testing, _overflow, false);
+            unsigned symb = TPTP::addBitVectorConstant(testing);
             TermList res = TermList(Term::createConstant(symb));
             _results.push(ParseResult(resultSort,res)); 
             return true;

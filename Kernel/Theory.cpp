@@ -29,45 +29,11 @@ using namespace Lib;
 // IntegerConstantType
 //
 
-BitVectorConstantType::BitVectorConstantType(const vstring& size, DArray<bool> binArray)//const vstring& numberToRepresent)
+BitVectorConstantType::BitVectorConstantType(DArray<bool> binArray)
 {
     CALL("BitVectorConstantType::BitVectorConstantType(vstring, vstring)");
-   // if (!Int::stringToInt(size, _size) || !Int::stringToInt(numberToRepresent, _numberToRepresent) )
-    if (!Int::isInteger(size))
-    {
-        cout<<" ArithmeticException thrown hello there ";
-        //env.sorts->findSort(name, outSort);
-        //throw ArithmeticException();
-        USER_ERROR("Arithmetic Exception used to be thrown here");
-    }
-    Int::stringToInt(size, _size);
-    //Int::stringToInt(numberToRepresent, _numberToRepresent);
-   // _numberToRepresent = numberToRepresent;
-    cout<<" size in bitvectorconstantype is "<<size; 
     setBinArray(binArray);
-    int t;
-    Int::stringToInt(size, t);
-    sortB = env.sorts->addBitVectorSort(t);
-    cout<<" sort B is "<<sortB;
-    /*vstring name = "$bitVector(";
-    vstring temp = Int::toString(this->_size)+"";
-    name+=temp+")";*/
-    //bool Sorts::findSort(const vstring& name, unsigned& idx)
-     
-     
-     //env.sorts->addBitVectorSort(bitVecSize)// env.sorts->hasStructuredSort
-     /*if (env.sorts->findSort(name, outSort)){
-         cout<<"\n environent has sort bitvec of size "<< size<<"\n";
-            }
-     else{
-         cout<<"\n environent doesnt have sort bitvec of size "<< size<<"\n";
-            // add the sort to the sort list;
-                //unsigned Sorts::addBitVectorSort(const unsigned size)
-               // outSort = addBitVectorSort(val.size());
-               // setType(new FunctionType(outsort));
-                outSort = 1000;
-            }
-     sortB = outSort;*/
+    sortB = env.sorts->addBitVectorSort(binArray.size());
 }
 
 
@@ -246,10 +212,9 @@ vstring IntegerConstantType::toString() const
 vstring BitVectorConstantType::toString() const
 {
     CALL("BitVectorConstantType::toString");
-    cout<<endl<<" do we have a problem 2 "<<endl;
-    cout<<endl<<" do we have a problem 2 "<<binArray.size();
+    cout<<endl<<" do we have a problem 2 "<<binArray.size()<<" ";
     Signature::printBoolArrayContent(binArray);
-    return "bv" + Signature::boolArraytoString(binArray) + " " + Int::toString(_size);
+    return "bv" + Signature::boolArraytoString(binArray);
 }
 
 ///////////////////////

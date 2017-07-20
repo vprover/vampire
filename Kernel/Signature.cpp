@@ -9,6 +9,8 @@
 
 #include "Signature.hpp"
 
+#include "BitVectorOperations.hpp"
+
 using namespace std;
 using namespace Kernel;
 using namespace Shell;
@@ -389,24 +391,17 @@ vstring Signature::boolArraytoString(const DArray<bool>& in){
 }
 
 
-unsigned Signature::addBitVectorConstant(const vstring& size, const DArray<bool> binArray, bool defaultSort)
+unsigned Signature::addBitVectorConstant(const DArray<bool> binArray)
 {
     CALL("Signature::addBitVectorConstant(vstring, vstring)");
-    
-    cout<<" in addBitVectorConstant ";
-    cout<<" fun names size "<<_funNames.numberOfElements();
-    cout<<endl<<" do we have a problem?"<<endl;
-    Signature::printBoolArrayContent(binArray);
-    cout<<endl;
-    BitVectorConstantType value(size, binArray); // 
-    //vstring temp = size;
+    BitVectorConstantType value(binArray); // 
     
     vstring key;
     vstring forKey = boolArraytoString(binArray); 
     
     
-    key = size + "_" + forKey + "_bv";
-    
+    key = Int::toString(binArray.size()) + "_" + forKey + "_bv";
+    cout<<" key is "<< key<<endl;
     unsigned result;
     if (_funNames.find(key, result)){
         return result;
@@ -423,67 +418,19 @@ unsigned Signature::addBitVectorConstant(const vstring& size, const DArray<bool>
     cout<<" checkpoint o3 : "<<endl;
     _funNames.insert(key, result);
     cout<<" checkpoint o4 : "<<endl;
-    sym->addToDistinctGroup(BITVECTOR_DISTINCT_GROUP,result);
+    //sym->addToDistinctGroup(BITVECTOR_DISTINCT_GROUP,result);
     sym->addToDistinctGroup(STRING_DISTINCT_GROUP,result); // numbers are distinct from strings
     return result;
 }
 
 
-/*DArray<bool> Signature::getBinArrayFromVString(vstring& numberToRepresent)
+DArray<bool> Signature::getBinArrayFromVString(vstring& numberToRepresent, unsigned size)
 {
     char initialChar = numberToRepresent[0];
     
     DArray<bool> initial = getBinArrayFromDec(initialChar);
-    DArray<bool> *initialBoolArray = new DArray<bool>(initial.size());
-    copyDArray(initial,*initialBoolArray);
-    
-    DArray<bool> smallestBinArrayTen = getBinArrayFromDec('a');
-    DArray<bool> sum = getBinArrayFromDec('0');
-    
-    for(unsigned int i = 1; i<numberToRepresent.length(); i++) {
-        char c = numberToRepresent[i]; 
-        
-        cout<<" Cee is : "<<c <<endl;
-        
-        
-        unsigned s = (*initialBoolArray).size();
-        cout<<endl<<"checkpoint0";
-        DArray<bool> binArrayTenPadded = padBinArray(smallestBinArrayTen,s);
-        cout<<endl<<"checkpoint1";
-        DArray<bool> multipliedByTen = multBinArrays(*initialBoolArray, binArrayTenPadded);
-        
-        
-        DArray<bool> toAdd = getBinArrayFromDec(c);
-        cout<<endl<<"checkpoint2";
-        DArray<bool> toAddPadded = padBinArray(toAdd, multipliedByTen.size());
-        cout<<endl<<"checkpoint3";
-        DArray<bool> added(multipliedByTen.size()+1);
-        cout<<endl<<"checkpoint4";
-        addBinArrays(multipliedByTen,toAddPadded, added);
-        
-        
-        // put added in initialBoolArray
-        initialBoolArray = new DArray<bool>(added.size());
-        copyDArray(added,*initialBoolArray);
-        
-        //addBinArrays(added,sum)    
-        
-    }
-    cout<<endl<<"The result of multiplication is :";
-    printBoolArrayContent(*initialBoolArray);
-   
-    
-    
-    return *initialBoolArray;
-}*/
-
-
- DArray<bool> Signature::getBinArrayFromVString(vstring& numberToRepresent, unsigned size)
-{
-    char initialChar = numberToRepresent[0];
-    
-    DArray<bool> initial = getBinArrayFromDec(initialChar);
-    DArray<bool> initialBoolArray(initial);
+    DArray<bool> step = fitBinArrayIntoBits(initial, size);
+    DArray<bool> initialBoolArray(step);
     
     
     DArray<bool> smallestBinArrayTen = getBinArrayFromDec('a');
@@ -491,30 +438,14 @@ unsigned Signature::addBitVectorConstant(const vstring& size, const DArray<bool>
     
     for(unsigned int i = 1; i<numberToRepresent.length(); i++) {
         char c = numberToRepresent[i]; 
-        
-        cout<<" Cee is : "<<c <<endl;
-        
-        
-        unsigned s = initialBoolArray.size();
         cout<<endl<<"checkpoint0";
-        DArray<bool> binArrayTenPadded = padBinArray(smallestBinArrayTen,s); // pad binarray fixed
-        cout<<endl<<"checkpoint0.5"<<endl;
-        printBoolArrayContent(binArrayTenPadded);
-        cout<<endl<<"checkpoint1"<<endl;
-        DArray<bool> multipliedByTen = multBinArrays(initialBoolArray, binArrayTenPadded);
-        
-        
+        DArray<bool> multipliedByTen = multBinArrays(initialBoolArray, binArrayTen); 
         DArray<bool> toAdd = getBinArrayFromDec(c);
-        cout<<endl<<"checkpoint2";
-        DArray<bool> toAddPadded = padBinArray(toAdd, multipliedByTen.size());
-        cout<<endl<<"checkpoint3";
-        DArray<bool> added(multipliedByTen.size()+1);
-        cout<<endl<<"checkpoint4";
+        DArray<bool> toAddPadded = fitBinArrayIntoBits(toAdd,size);
+        DArray<bool> added(size);
         addBinArrays(multipliedByTen,toAddPadded, added);
-        
-        
         // put added in initialBoolArray
-        initialBoolArray.initFromArray(added.size(),added);
+        initialBoolArray.initFromArray(size,added);
         //addBinArrays(added,sum)    
         
     }
@@ -524,12 +455,6 @@ unsigned Signature::addBitVectorConstant(const vstring& size, const DArray<bool>
 }
  
  
-
-
-/*DArray<bool> Signature::getBinArrayFromVString(vstring& numberToRepresent, unsigned size)
-{
-    
-}*/
 
 DArray<bool> Signature::fitBinArrayIntoBits(DArray<bool> input, unsigned size)
 {
@@ -672,11 +597,14 @@ DArray<bool> Signature::getBinArrayFromDec(char n)
 
 }
 
-// a1 and a2 have to be same length, result has to be length(a1) + 1 
-void Signature::addBinArrays(const DArray<bool>& a1, const DArray<bool>& a2, DArray<bool> &result)
+// a1 and a2 have to be same length, result also has to be of same length  
+bool Signature::addBinArrays(const DArray<bool>& a1, const DArray<bool>& a2, DArray<bool> &result)
 {
-    bool carry = false;
+    CALL("Signature::addBinArrays");
+    if (a1.size()!= a2.size() || a2.size()!= result.size())
+        USER_ERROR("Array should be same length"); // will change this later
     
+    bool carry = false;
     cout<<endl<<"following arrays are being added "<<endl;
     printBoolArrayContent(a1);
    // cout<<endl<<"and "<<endl;
@@ -709,7 +637,8 @@ void Signature::addBinArrays(const DArray<bool>& a1, const DArray<bool>& a2, DAr
 
     }
 
-    result[result.size()-1] = carry;
+    //result[result.size()-1] = carry;
+    return carry;
 }
 
 DArray<bool> Signature::multBinArrays(DArray<bool> a1, DArray<bool> a2)
@@ -726,47 +655,21 @@ DArray<bool> Signature::multBinArrays(DArray<bool> a1, DArray<bool> a2)
             
             
             DArray<bool> curr = shiftLeft(a2,i);
-            
             printBoolArrayContent(a2);
-            
             printBoolArrayContent(curr);
-                    
+            printBoolArrayContent(previousToAdd);
+            
+            
+             
+            DArray<bool> sum(curr.size());
+            addBinArrays(previousToAdd,curr,sum);
             
             
             
             printBoolArrayContent(previousToAdd);
-            
-            
-            
-            DArray<bool> paddedPrevious = padBinArray(previousToAdd,curr.size());
-           
-            
-            
-            
-            printBoolArrayContent(paddedPrevious);
-            
-            
-            
-            
-            
-            
-            DArray<bool> sum(curr.size()+1);
-            
-            addBinArrays(paddedPrevious,curr,sum);
-            
-            
-            
-            printBoolArrayContent(paddedPrevious);
-            
             printBoolArrayContent(curr);
-            
             printBoolArrayContent(sum);
             
-            
-            
-            
-            
-           
             previousToAdd.initFromArray(sum.size(),sum);
            
             
@@ -787,15 +690,17 @@ void Signature::copyDArray(const DArray<bool> from, DArray<bool>& to )
 
 DArray<bool> Signature::shiftLeft(DArray<bool> input, unsigned shiftByNum)
 {
-    DArray<bool> res(input.size()+shiftByNum);
-    unsigned i = 0,j;
+    DArray<bool> res(input.size());
     
-    for (j = shiftByNum;i<input.size();++i, ++j ){
-        res[j] = input[i];
-    }
-    for (unsigned k = 0 ; k < shiftByNum ; ++k){
+    unsigned k;
+    for (k = 0 ; k < shiftByNum ; ++k){
         res[k] = false;
     }
+    
+    for (unsigned i = 0 ; k< input.size(); ++k, ++i){
+        res[k] = input[i];
+    }
+    
     return res;
    
     

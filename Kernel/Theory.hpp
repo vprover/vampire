@@ -29,40 +29,23 @@ class ArithmeticException : public ThrowableBase {};
 
 class BitVectorConstantType{
      unsigned getSort(){
-         cout<< "\n get sort of bitvectorconstanttype called and value is "<<sortB<<"\n";
          return sortB;
     }   
-    typedef int Size;
+    
     typedef DArray<bool> BinArray;
     
     
     BitVectorConstantType(){};
-    BitVectorConstantType(Size s, BinArray n) : _size(s) {
-        cout<<" in problem constructor"<<endl;
-        cout<<" size is "<<n.size()<<endl;
-        binArray.initFromArray(n.size(),n);
-        //Signature::copyDArray(n, *binArray);
-        /*for (int i = 0 ; i < n.size() ; ++ i )
-        {
-            (*binArray)[i] = n[i];
-            cout<<"setTo 2is " <<n[i];
-        }*/
-    }; 
+    
     
     public: // for some reason have to put the constructor here
         //explicit BitVectorConstantType(const vstring& size, const vstring& numberToRepresent);
-        explicit BitVectorConstantType(const vstring& size, const DArray<bool> n);
+        explicit BitVectorConstantType(const DArray<bool> n);
     vstring toString() const;
 
-    Size size() const {return _size;}
-    //NumberToRepresent numberToRepresent() const { return _numberToRepresent;}
+    unsigned size() const {return binArray.size();}
     void setBinArray(DArray<bool> setTo)
     {
-        /*binArray = new DArray<bool>(setTo.size());
-        for (int i = 0 ; i < setTo.size() ; ++i){
-            (*binArray)[i] = setTo[i];
-            cout<<"setTo is " <<setTo[i];
-        }*/
         binArray.initFromArray(setTo.size(),setTo);
     }
     
@@ -72,7 +55,7 @@ class BitVectorConstantType{
     
     
 private: 
-    Size _size;
+    
    // NumberToRepresent _numberToRepresent;
     unsigned sortB;
     BinArray binArray;
