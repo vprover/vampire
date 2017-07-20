@@ -1526,7 +1526,7 @@ void SMTLIB2::parseUnderScoredExpression(LExpr* exp)
     unsigned size;
     Int::stringToUnsignedInt(ex->str, size);
     
-    DArray<bool> arg = Signature::getBinArrayFromVString(numberPart, size);
+    BitVectorConstantType arg = Signature::getBVCTFromVString(numberPart, size); // start with getBinArrayFromVString
     
    
     unsigned symb = TPTP::addBitVectorConstant(arg); // fixed this to use arg instead of argpadded
@@ -1610,7 +1610,7 @@ bool SMTLIB2::parseAsBitVectorConstant(const vstring& id)
     cout<<"\n hexSlashBin : "<<hexSlashBin<<"\n";
     unsigned multiplier = 1;
     // ORDER MIGHT BE WRONG HERE !!! 
-    if (hexSlashBin == "#x" || hexSlashBin =="#b")
+   /* if (hexSlashBin == "#x" || hexSlashBin =="#b")
     {    
         vstring bvContent = id.substr(2);
         int bvContentSize = bvContent.length();
@@ -1674,7 +1674,7 @@ bool SMTLIB2::parseAsBitVectorConstant(const vstring& id)
             return true;
         }
         
-    }
+    }*/
     return false;
 }
 

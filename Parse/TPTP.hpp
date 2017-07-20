@@ -743,7 +743,7 @@ private:
 public:
   // make the tptp routines for dealing with overflown constants available to other parsers
   //static unsigned addBitVectorConstant(const vstring&, const vstring&,  Set<vstring>& overflow, bool defaultSort);
-  static unsigned addBitVectorConstant(const DArray<bool>);
+  static unsigned addBitVectorConstant(const BitVectorConstantType);
   static unsigned addIntegerConstant(const vstring&, Set<vstring>& overflow, bool defaultSort);
   static unsigned addRationalConstant(const vstring&, Set<vstring>& overflow, bool defaultSort);
   static unsigned addRealConstant(const vstring&, Set<vstring>& overflow, bool defaultSort);

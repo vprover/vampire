@@ -35,12 +35,13 @@ class BitVectorConstantType{
     typedef DArray<bool> BinArray;
     
     
-    BitVectorConstantType(){};
+    
     
     
     public: // for some reason have to put the constructor here
         //explicit BitVectorConstantType(const vstring& size, const vstring& numberToRepresent);
         explicit BitVectorConstantType(const DArray<bool> n);
+        BitVectorConstantType(){};
     vstring toString() const;
 
     unsigned size() const {return binArray.size();}
@@ -49,10 +50,12 @@ class BitVectorConstantType{
         binArray.initFromArray(setTo.size(),setTo);
     }
     
-    DArray<bool> getBinArray(){
+    DArray<bool> getBinArray() const{
         return binArray;
     }
-    
+    /*DArray<bool> getBinArray2() const {
+        return binArray;
+    }*/
     
 private: 
     

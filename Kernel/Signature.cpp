@@ -351,31 +351,6 @@ unsigned Signature::addIntegerConstant(const vstring& number,bool defaultSort)
   return result;
 } // Signature::addIntegerConstant
 
-/**
- * Add an integer constant to the signature.
- * @todo something smarter, so that we don't need to convert all values to string
- */
-/*unsigned Signature::addBitVectorConstant(const vstring& size, const vstring& numberToRepresent, bool defaultSort)
-{
-    CALL("Signature::addBitVectorConstant(vstring, vstring)");
-    cout<<" fun names size "<<_funNames.numberOfElements();
-    BitVectorConstantType value(size, numberToRepresent); // 
-    //vstring temp = size;
-    vstring key = size + "_" + numberToRepresent + "_bv";
-    unsigned result;
-    
-    if (_funNames.find(key, result)){
-        return result;
-    }
-    _bitvectors++;
-    result = _funs.length();
-    Symbol* sym = new BitVectorSymbol(value);
-    _funs.push(sym);
-    _funNames.insert(key, result);
-   //sym->addToDistinctGroup(BITVECTOR_DISTINCT_GROUP,result);
-    sym->addToDistinctGroup(STRING_DISTINCT_GROUP,result); // numbers are distinct from strings
-    return result;
-}*/
 
 vstring Signature::boolArraytoString(const DArray<bool>& in){
     vstring out = "";
@@ -390,17 +365,21 @@ vstring Signature::boolArraytoString(const DArray<bool>& in){
     return out;
 }
 
-
-unsigned Signature::addBitVectorConstant(const DArray<bool> binArray)
+/**
+ * Add an integer constant to the signature.
+ * @todo something smarter, so that we don't need to convert all values to string
+ */
+unsigned Signature::addBitVectorConstant(const BitVectorConstantType& value)
 {
     CALL("Signature::addBitVectorConstant(vstring, vstring)");
-    BitVectorConstantType value(binArray); // 
+    //BitVectorConstantType value(binArray); // 
     
     vstring key;
-    vstring forKey = boolArraytoString(binArray); 
+    DArray<bool> t = value.getBinArray();
+    vstring forKey = boolArraytoString(t); 
     
     
-    key = Int::toString(binArray.size()) + "_" + forKey + "_bv";
+    key = Int::toString(value.size()) + "_" + forKey + "_bv";
     cout<<" key is "<< key<<endl;
     unsigned result;
     if (_funNames.find(key, result)){
@@ -424,173 +403,210 @@ unsigned Signature::addBitVectorConstant(const DArray<bool> binArray)
 }
 
 
-DArray<bool> Signature::getBinArrayFromVString(vstring& numberToRepresent, unsigned size)
+BitVectorConstantType Signature::getBVCTFromVString(vstring& numberToRepresent, unsigned size)
 {
     char initialChar = numberToRepresent[0];
     
-    DArray<bool> initial = getBinArrayFromDec(initialChar);
-    DArray<bool> step = fitBinArrayIntoBits(initial, size);
-    DArray<bool> initialBoolArray(step);
+    BitVectorConstantType initial = getBVCTFromDec(initialChar);
+    BitVectorConstantType step = fitBVCTIntoBits(initial, size);
+    BitVectorConstantType initialBoolArray(step);
     
-    
-    DArray<bool> smallestBinArrayTen = getBinArrayFromDec('a');
-    DArray<bool> binArrayTen = fitBinArrayIntoBits(smallestBinArrayTen, size);
+    BitVectorConstantType smallestBinArrayTen = getBVCTFromDec('a');
+    printBoolArrayContent(smallestBinArrayTen.getBinArray());
+    BitVectorConstantType binArrayTen = fitBVCTIntoBits(smallestBinArrayTen, size);
+    printBoolArrayContent(binArrayTen.getBinArray());
     
     for(unsigned int i = 1; i<numberToRepresent.length(); i++) {
         char c = numberToRepresent[i]; 
-        cout<<endl<<"checkpoint0";
-        DArray<bool> multipliedByTen = multBinArrays(initialBoolArray, binArrayTen); 
-        DArray<bool> toAdd = getBinArrayFromDec(c);
-        DArray<bool> toAddPadded = fitBinArrayIntoBits(toAdd,size);
+        BitVectorConstantType multipliedByTen = multBVCTs(initialBoolArray, binArrayTen); 
+        BitVectorConstantType toAdd = getBVCTFromDec(c);
+        BitVectorConstantType toAddPadded = fitBVCTIntoBits(toAdd,size);
         DArray<bool> added(size);
-        addBinArrays(multipliedByTen,toAddPadded, added);
-        // put added in initialBoolArray
-        initialBoolArray.initFromArray(size,added);
-        //addBinArrays(added,sum)    
-        
+        addBinArrays(multipliedByTen.getBinArray(),toAddPadded.getBinArray(), added);
+        initialBoolArray.setBinArray(added);
+        printBoolArrayContent(initialBoolArray.getBinArray());
     }
-    cout<<endl<<"The result of multiplication is :";
-    printBoolArrayContent(initialBoolArray);
+    cout<<"result of multiplication is "<<endl;
+    printBoolArrayContent(initialBoolArray.getBinArray());
     return initialBoolArray;
 }
  
  
 
-DArray<bool> Signature::fitBinArrayIntoBits(DArray<bool> input, unsigned size)
+BitVectorConstantType Signature::fitBVCTIntoBits(BitVectorConstantType input, unsigned size)
 {
     
     if (input.size()==size)
         return input;
     else if (input.size()<size)
     {
-        DArray<bool> result = padBinArray(input, size);
+        BitVectorConstantType result = padBVCT(input, size);
         return result;
     }
     else if (input.size()>size)
     {
-        DArray<bool> result = truncate(input, size);
+        BitVectorConstantType result = truncate(input, size);
         return result;
     }
 }
 
-DArray<bool> Signature::truncate(DArray<bool> input, unsigned size)
+
+BitVectorConstantType Signature::padBVCT(BitVectorConstantType input, unsigned size)
 {
+    if (input.size() == size)
+        return input;
+   
     DArray<bool> result(size);
+    DArray<bool> anArray = input.getBinArray();
+    
+    unsigned i;
+    for (i = 0 ; i< anArray.size(); ++i){
+        result[i] = anArray[i];
+    }
+    for (;i<size;++i){
+        result[i] = false;
+    }
+    BitVectorConstantType r(result);
+    return r;
+}
+
+BitVectorConstantType Signature::truncate(BitVectorConstantType in, unsigned size)
+{
+    if (in.size()==size)
+        return in;
+    
+    DArray<bool> result(size);
+    DArray<bool> input = in.getBinArray();
     for (int i = 0 , j = input.size()-1, counter = size-1; i < size; ++i, --j, -- counter)
     {
         result[i] = input[i];
     }
-    return result;
+    BitVectorConstantType r(result);
+    return r;
 }
 
-DArray<bool> Signature::getBinArrayFromDec(char n)
+BitVectorConstantType Signature::getBVCTFromDec(char n)
 {
-    /*if ( n > 10)
-        USER_ERROR("EXPECTED number between one and 9");
-    */
+    
     switch(n){
         
         case '0':{
             DArray<bool> zeroArr;
             bool tem[] = {false, false, false,false}; // 0000 -> 0000
             zeroArr.initFromArray(4, tem);
-            return zeroArr;
+            BitVectorConstantType res(zeroArr);
+            return res;
         }
         case '1':{
             DArray<bool> oneArr;
             bool tem[] = {true, false, false,false}; // 0001 -> 1000
             oneArr.initFromArray(4, tem);
-            return oneArr;
+            BitVectorConstantType res(oneArr);
+            return res;
         }
         case '2':{
             DArray<bool> twoArr;
             bool tem[] = {false, true, false,false}; // 0010 -> 0100
             twoArr.initFromArray(4, tem);
-            return twoArr;
+            BitVectorConstantType res(twoArr);
+            return res;
         }
         case '3':{
             DArray<bool> threeArr;
             bool tem[] = {true, true, false, false, }; // 0011 -> 1100
             threeArr.initFromArray(4, tem);
-            return threeArr;
+            BitVectorConstantType res(threeArr);
+            return res;
         }
         case '4':{
             DArray<bool> fourArr;
             bool tem[] = {false, false, true, false}; // 0100 -> 0010
             fourArr.initFromArray(4, tem);
-            return fourArr;
+            BitVectorConstantType res(fourArr);
+            return res;
         }
         case '5':{
             DArray<bool> fiveArr;
             bool tem[] = {true, false, true, false}; // 0101 -> 1010
             fiveArr.initFromArray(4, tem);
-            return fiveArr;
+            BitVectorConstantType res(fiveArr);
+            return res;
         }
         case '6':{
             DArray<bool> sixArr;
             bool tem[] = {false, true, true, false}; // 0110 -> 0110
             sixArr.initFromArray(4, tem);
-            return sixArr;
+            BitVectorConstantType res(sixArr);
+            return res;
         }
         case '7':{
             DArray<bool> sevenArr;
             bool tem[] = {true, true, true, false}; // 0111 -> 1110
             sevenArr.initFromArray(4, tem);
-            return sevenArr;
+            BitVectorConstantType res(sevenArr);
+            return res;
         }
         case '8':{
             DArray<bool> eightArr;
             bool tem[] = {false, false, false, true}; // 1000 -> 0001
             eightArr.initFromArray(4, tem);
-            return eightArr;
+            BitVectorConstantType res(eightArr);
+            return res;
         }
         case '9':{
             DArray<bool> nineArr;
             bool tem[] = {true, false, false,true}; // 1001 -> 1001
             nineArr.initFromArray(4, tem);
-            return nineArr;
+            BitVectorConstantType res(nineArr);
+            return res;
         }
         case 'a':
         case 'A':{
             DArray<bool> tenArr;
             bool tem[] = {false, true, false,true}; // 1010 -> 0101
             tenArr.initFromArray(4, tem);
-            return tenArr;
+            BitVectorConstantType res(tenArr);
+            return res;
         }
         case 'b':
         case 'B':{
             DArray<bool> elevenArr;
             bool tem[] = {true, true, false, true}; // 1011 -> 1101
             elevenArr.initFromArray(4, tem);
-            return elevenArr;
+            BitVectorConstantType res(elevenArr);
+            return res;
         }
         case 'c':
         case 'C':{
             DArray<bool> twelveArr;
             bool tem[] = {false, false, true , true}; // 1100 -> 0011
             twelveArr.initFromArray(4, tem);
-            return twelveArr;
+            BitVectorConstantType res(twelveArr);
+            return res;
         }
         case 'd':
         case 'D':{
             DArray<bool> thirteenArr;
             bool tem[] = {true, false, true,true}; // 1101 -> 1011
             thirteenArr.initFromArray(4, tem);
-            return thirteenArr;
+            BitVectorConstantType res(thirteenArr);
+            return res;
         }   
         case 'e':
         case 'E':{
             DArray<bool> fourteenArr;
             bool tem[] = {false, true, true, true}; // 1110 -> 0111
             fourteenArr.initFromArray(4, tem);
-            return fourteenArr;
+            BitVectorConstantType res(fourteenArr);
+            return res;
         }
         case 'f':
         case 'F':{
             DArray<bool> fifteenArr;
             bool tem[] = {true, true, true,true}; // 1111 -> 1111
             fifteenArr.initFromArray(4, tem);
-            return fifteenArr;
+            BitVectorConstantType res(fifteenArr);
+            return res;
         }
         
     }
@@ -614,14 +630,9 @@ bool Signature::addBinArrays(const DArray<bool>& a1, const DArray<bool>& a2, DAr
     cout<<endl<<" testing memory problem 1"<<endl;
     for (int i = 0, j = a1.size() - 1 ; i < a1.size() ; ++ i, --j )
     {
-        /*cout<<endl<<"we do get in loop thoug";
-        cout<<endl<<"a1 size "<< a1.size()<<endl;
-        cout<<endl<<"a2 size "<< a2.size()<<endl;*/
+        
         result[i] = a1[i] ^ a2[i] ^ carry;
-        /*cout << endl<< "a1[j] : "<<  a1[j]  ;
-        cout << endl<< "a2[j] : "<<  a2[j]  ;
-        cout << endl<< "carry : "<<  carry  ;
-        cout << endl<< "result[j] : "<<  result[j+1]  ;*/
+        
         
 
         
@@ -641,8 +652,12 @@ bool Signature::addBinArrays(const DArray<bool>& a1, const DArray<bool>& a2, DAr
     return carry;
 }
 
-DArray<bool> Signature::multBinArrays(DArray<bool> a1, DArray<bool> a2)
+BitVectorConstantType Signature::multBVCTs(BitVectorConstantType in1, BitVectorConstantType in2)
 {
+    DArray<bool> a1 = in1.getBinArray();
+    DArray<bool> a2 = in2.getBinArray();
+    
+    
     DArray<bool> previousToAdd(a1.size());
     
     
@@ -676,8 +691,8 @@ DArray<bool> Signature::multBinArrays(DArray<bool> a1, DArray<bool> a2)
         }
     }
     
-    
-    return previousToAdd;
+    BitVectorConstantType res(previousToAdd);
+    return res;
 }   
 
 void Signature::copyDArray(const DArray<bool> from, DArray<bool>& to )
@@ -706,45 +721,6 @@ DArray<bool> Signature::shiftLeft(DArray<bool> input, unsigned shiftByNum)
     
 }
 
-
-/*DArray<bool> Signature::padBinArray(DArray<bool> anArray, unsigned size)
-{
-    if (anArray.size() == size)
-        return anArray;
-   
-    DArray<bool> result(size);
-    unsigned difference = size - anArray.size();
-    int i = 0;
-    for( ;i <difference; ++i){
-        //cout<<" in loop i is "<< i<<endl<<" and anArray[i] is "<<anArray[i];
-        result[i] = false;
-    }
-    //cout<<" first loop terminates"<< endl;
-    
-    for(int j = 0; j < anArray.size();++j, ++i){
-        //cout<<" in second loop i is : "<< i << endl;
-        result[i] = anArray[j];
-    }
-    return result;
-}*/
-
-
-DArray<bool> Signature::padBinArray(DArray<bool> anArray, unsigned size)
-{
-    if (anArray.size() == size)
-        return anArray;
-   
-    DArray<bool> result(size);
-    
-    unsigned i;
-    for (i = 0 ; i< anArray.size(); ++i){
-        result[i] = anArray[i];
-    }
-    for (;i<size;++i){
-        result[i] = false;
-    }
-    return result;
-}
 
 void Signature::printBoolArrayContent(DArray<bool> array)
 {

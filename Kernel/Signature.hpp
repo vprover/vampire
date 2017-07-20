@@ -411,20 +411,20 @@ class BitVectorSymbol
   unsigned addInterpretedFunction(Interpretation itp, const vstring& name);
   unsigned addInterpretedPredicate(Interpretation itp, const vstring& name);
  /////////////////////////////////////////////////////////
-  unsigned addBitVectorConstant(const DArray<bool> binArray);
+  unsigned addBitVectorConstant(const BitVectorConstantType& value);
   ////////////////////////////////////
   static vstring boolArraytoString(const DArray<bool>& in);
-  static DArray<bool> getBinArrayFromVString(vstring& numberToRepresent, unsigned size);
-  //DArray<bool> calculateBinaryArray(const vstring& number);
-  static DArray<bool> padBinArray(DArray<bool> anArray, unsigned size);
-  //DArray<bool> lookUpBinArrayFromDecNumber(unsigned n);
+  static BitVectorConstantType getBVCTFromVString(vstring& numberToRepresent, unsigned size);
+  static BitVectorConstantType padBVCT(BitVectorConstantType input, unsigned size);
   static void printBoolArrayContent(DArray<bool> array);
-  static DArray<bool> getBinArrayFromDec(char n);
+  static BitVectorConstantType getBVCTFromDec(char n);
+  
   static bool addBinArrays(const DArray<bool>& a1, const DArray<bool>& a2, DArray<bool>& result);
   static DArray<bool> shiftLeft(DArray<bool> input, unsigned shiftByNum);
-  static DArray<bool> multBinArrays(DArray<bool> a1, DArray<bool> a2);
-  static DArray<bool> fitBinArrayIntoBits(DArray<bool> input, unsigned size);
-  static DArray<bool> truncate(DArray<bool> input, unsigned size);
+  
+  static BitVectorConstantType multBVCTs(BitVectorConstantType a1, BitVectorConstantType a2);
+  static BitVectorConstantType fitBVCTIntoBits(BitVectorConstantType input, unsigned size);
+  static BitVectorConstantType truncate(BitVectorConstantType input, unsigned size);
   static void copyDArray(const DArray<bool> from, DArray<bool>& to );
   /////////////
   

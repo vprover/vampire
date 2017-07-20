@@ -3855,11 +3855,11 @@ unsigned TPTP::sortOf(TermList t)
 }*/
 
 
-unsigned TPTP::addBitVectorConstant(const DArray<bool> binArray)
+unsigned TPTP::addBitVectorConstant(const BitVectorConstantType bvct)
 {
     CALL("TPTP::addBitVectorConstant");
     try{
-        return env.signature->addBitVectorConstant(binArray);
+        return env.signature->addBitVectorConstant(bvct);
     }catch(Kernel::ArithmeticException&){
         USER_ERROR("We should never get here");
     }
