@@ -632,6 +632,9 @@ z3::expr Z3Interfacing::getz3expr(Term* trm,bool isLit,bool&nameExpression,bool 
           break;
 
         default: 
+          if(withGuard){
+            throw UninterpretedForZ3Exception();
+          }
           skip=true;//skip it and treat the function as uninterpretted
           break;
       }

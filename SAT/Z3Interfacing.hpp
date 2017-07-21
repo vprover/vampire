@@ -21,6 +21,14 @@
 
 namespace SAT{
 
+  struct UninterpretedForZ3Exception : public ThrowableBase
+  {
+    UninterpretedForZ3Exception() 
+    {
+      CALL("Z3Interfacing::UninterpretedForZ3Exception::UninterpretedForZ3Exception");
+    }
+  };
+
 class Z3Interfacing : public PrimitiveProofRecordingSATSolver
 {
 public: 

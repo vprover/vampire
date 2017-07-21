@@ -298,7 +298,12 @@ VirtualIterator<Solution> TheoryInstAndSimp::getSolutions(Stack<Literal*>& theor
     SATClause* sc = SATClause::fromStack(satLits); 
     //clause->setInference(new FOConversionInference(cl));
     // guarded is normally true, apart from when we are checking a theory tautology
-    solver.addClause(sc,guarded);
+    try{
+      solver.addClause(sc,guarded);
+    }
+    catch(UninterpretedForZ3Exception){
+      return VirtualIterator<Solution>::getEmpty();
+    }
   }
 
   // now we can call the solver
