@@ -17,6 +17,7 @@
 
 #include "Sorts.hpp"
 #include "Term.hpp"
+#include "BitVectorOperations.hpp"
 
 namespace Kernel {
 
@@ -25,44 +26,6 @@ namespace Kernel {
  * e.g. because of overflow of a native type.
  */
 class ArithmeticException : public ThrowableBase {};
-
-
-class BitVectorConstantType{
-     unsigned getSort(){
-         return sortB;
-    }   
-    
-    typedef DArray<bool> BinArray;
-    
-    
-    
-    
-    
-    public: // for some reason have to put the constructor here
-        //explicit BitVectorConstantType(const vstring& size, const vstring& numberToRepresent);
-        explicit BitVectorConstantType(const DArray<bool> n);
-        BitVectorConstantType(){};
-    vstring toString() const;
-
-    unsigned size() const {return binArray.size();}
-    void setBinArray(DArray<bool> setTo)
-    {
-        binArray.initFromArray(setTo.size(),setTo);
-    }
-    
-    DArray<bool> getBinArray() const{
-        return binArray;
-    }
-    /*DArray<bool> getBinArray2() const {
-        return binArray;
-    }*/
-    
-private: 
-    
-   // NumberToRepresent _numberToRepresent;
-    unsigned sortB;
-    BinArray binArray;
-};
 
 
 class IntegerConstantType
@@ -127,6 +90,35 @@ std::ostream& operator<< (ostream& out, const IntegerConstantType& val) {
 }
 
 
+/*class BitVectorConstantType{
+     unsigned getSort(){
+         return sortB;
+    }   
+    
+    typedef DArray<bool> BinArray;
+    public: // for some reason have to put the constructor here
+        //explicit BitVectorConstantType(const vstring& size, const vstring& numberToRepresent);
+        explicit BitVectorConstantType(const DArray<bool> n);
+        BitVectorConstantType(){};
+    vstring toString() const;
+
+    unsigned size() const {return binArray.size();}
+    void setBinArray(DArray<bool> setTo)
+    {
+        binArray.initFromArray(setTo.size(),setTo);
+    }
+    
+    DArray<bool> getBinArray() const{
+        return binArray;
+    }
+    
+    
+private: 
+    
+   // NumberToRepresent _numberToRepresent;
+    unsigned sortB;
+    BinArray binArray;
+};*/
 
 /**
  * A class for representing rational numbers

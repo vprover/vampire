@@ -1526,10 +1526,10 @@ void SMTLIB2::parseUnderScoredExpression(LExpr* exp)
     unsigned size;
     Int::stringToUnsignedInt(ex->str, size);
     
-    BitVectorConstantType arg = Signature::getBVCTFromVString(numberPart, size); // start with getBinArrayFromVString
+   // BitVectorConstantType arg = BitVectorOperations::getBVCTFromVString(numberPart, size); // start with getBinArrayFromVString
     
    
-    unsigned symb = TPTP::addBitVectorConstant(arg); // fixed this to use arg instead of argpadded
+    unsigned symb = TPTP::addBitVectorConstant(BitVectorOperations::getBVCTFromVString(numberPart, size)); // fixed this to use arg instead of argpadded
     TermList res = TermList(Term::createConstant(symb));
     cout<< "\n symbol is "<<symb<<"\n";
     int hey;

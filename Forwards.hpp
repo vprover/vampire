@@ -116,6 +116,7 @@ namespace Kernel
 {
 using namespace Lib;
 
+//class BitVectorConstantType;
 class IntegerConstantType;
 struct RationalConstantType;
 class RealConstantType;

@@ -412,25 +412,7 @@ class BitVectorSymbol
   unsigned addInterpretedPredicate(Interpretation itp, const vstring& name);
  /////////////////////////////////////////////////////////
   unsigned addBitVectorConstant(const BitVectorConstantType& value);
-  ////////////////////////////////////
-  static vstring boolArraytoString(const DArray<bool>& in);
-  static BitVectorConstantType getBVCTFromVString(vstring& numberToRepresent, unsigned size);
-  static BitVectorConstantType padBVCT(BitVectorConstantType input, unsigned size);
-  static void printBoolArrayContent(DArray<bool> array);
-  static BitVectorConstantType getBVCTFromDec(char n);
-  
-  static bool addBinArrays(const DArray<bool>& a1, const DArray<bool>& a2, DArray<bool>& result);
-  static DArray<bool> shiftLeft(DArray<bool> input, unsigned shiftByNum);
-  
-  static BitVectorConstantType multBVCTs(BitVectorConstantType a1, BitVectorConstantType a2);
-  static BitVectorConstantType fitBVCTIntoBits(BitVectorConstantType input, unsigned size);
-  static BitVectorConstantType truncate(BitVectorConstantType input, unsigned size);
-  static void copyDArray(const DArray<bool> from, DArray<bool>& to );
-  /////////////
-  
-  
-  
-  
+ /////////////////////////////////////////////////////////
   unsigned addIntegerConstant(const vstring& number,bool defaultSort);
   unsigned addRationalConstant(const vstring& numerator, const vstring& denominator,bool defaultSort);
   unsigned addRealConstant(const vstring& number,bool defaultSort);

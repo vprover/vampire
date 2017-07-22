@@ -212,9 +212,8 @@ vstring IntegerConstantType::toString() const
 vstring BitVectorConstantType::toString() const
 {
     CALL("BitVectorConstantType::toString");
-    cout<<endl<<" do we have a problem 2 "<<binArray.size()<<" ";
-    Signature::printBoolArrayContent(binArray);
-    return "bv" + Signature::boolArraytoString(binArray);
+    BitVectorOperations::printBoolArrayContent(binArray);
+    return "bv" + BitVectorOperations::boolArraytoString(binArray);
 }
 
 ///////////////////////
