@@ -19,8 +19,8 @@ const unsigned Signature::STRING_DISTINCT_GROUP = 0;
 const unsigned Signature::INTEGER_DISTINCT_GROUP = 1;
 const unsigned Signature::RATIONAL_DISTINCT_GROUP = 2;
 const unsigned Signature::REAL_DISTINCT_GROUP = 3;
-const unsigned Signature::BITVECTOR_DISTINCT_GROUP = 4;
-const unsigned Signature::LAST_BUILT_IN_DISTINCT_GROUP = 4;
+//const unsigned Signature::BITVECTOR_DISTINCT_GROUP = 4;
+unsigned Signature::LAST_BUILT_IN_DISTINCT_GROUP = 3;
 
 /**
  * Standard constructor.
@@ -223,6 +223,7 @@ Signature::Signature ():
   unsigned aux;
   // Warning! reordering or removing some of below may brake the code in
   // DistinctGroupExpansion::apply(UnitList*& units)
+  cout<<endl<<"signature constructor called"<<endl;
   aux = createDistinctGroup();
   ASS_EQ(STRING_DISTINCT_GROUP, aux);
   aux = createDistinctGroup();
@@ -231,8 +232,8 @@ Signature::Signature ():
   ASS_EQ(RATIONAL_DISTINCT_GROUP, aux);
   aux = createDistinctGroup();
   ASS_EQ(REAL_DISTINCT_GROUP, aux);
-  aux = createDistinctGroup();
-  ASS_EQ(BITVECTOR_DISTINCT_GROUP, aux);
+  //aux = createDistinctGroup();asd
+ // ASS_EQ(BITVECTOR_DISTINCT_GROUP, aux);
 } // Signature::Signature
 
 /**
@@ -382,7 +383,24 @@ unsigned Signature::addBitVectorConstant(const BitVectorConstantType& value)
     cout<<" checkpoint o3 : "<<endl;
     _funNames.insert(key, result);
     cout<<" checkpoint o4 : "<<endl;
-    //sym->addToDistinctGroup(BITVECTOR_DISTINCT_GROUP,result);
+    // here use the sort of bvonstanttype to look for the distinct group number in a hashmap
+    // addBitVectorSortToDistinctGroupList
+    unsigned bvSort = value.getSort();
+    if (!bitVector_D_G_map.find(bvSort))
+    {
+        LAST_BUILT_IN_DISTINCT_GROUP++;
+        unsigned aux = createDistinctGroup();
+        ASS_EQ(LAST_BUILT_IN_DISTINCT_GROUP,aux);
+        bitVector_D_G_map.insert(bvSort,LAST_BUILT_IN_DISTINCT_GROUP);
+        sym->addToDistinctGroup(LAST_BUILT_IN_DISTINCT_GROUP , result);
+    }
+    else 
+    {
+        unsigned vall = bitVector_D_G_map.get(bvSort);
+        sym->addToDistinctGroup(vall , result);
+        
+    }
+    
     sym->addToDistinctGroup(STRING_DISTINCT_GROUP,result); // numbers are distinct from strings
     return result;
 }

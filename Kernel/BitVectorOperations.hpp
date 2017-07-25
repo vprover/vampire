@@ -16,17 +16,18 @@
 #include <iostream>
 #include "Debug/Assertion.hpp"
 #include "Lib/DArray.hpp"
+#include "Sorts.hpp"
+#include "Theory.hpp"
+#include "Lib/Environment.hpp"
 
 namespace Kernel {
     using namespace std;
     using namespace Lib;
     
-    // BVCT probably shoudlnt be here... temporary workaround
+    //  temporary workaround before moving BVCT to its appropriate place
     class BitVectorConstantType;
     class BitVectorConstantType{
-     unsigned getSort(){
-         return sortB;
-    }   
+       
     
     typedef DArray<bool> BinArray;
     public: // for some reason have to put the constructor here
@@ -36,6 +37,10 @@ namespace Kernel {
     vstring toString() const;
 
     unsigned size() const {return binArray.size();}
+    unsigned getSort() const {
+         //return sortB; 
+         return env.sorts->addBitVectorSort(binArray.size()); // this should probabyl be changed to getBitVectorSort
+    } 
     void setBinArray(DArray<bool> setTo)
     {
         binArray.initFromArray(setTo.size(),setTo);

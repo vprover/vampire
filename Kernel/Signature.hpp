@@ -539,8 +539,8 @@ class BitVectorSymbol
   static const unsigned INTEGER_DISTINCT_GROUP;
   static const unsigned RATIONAL_DISTINCT_GROUP;
   static const unsigned REAL_DISTINCT_GROUP;
-  static const unsigned LAST_BUILT_IN_DISTINCT_GROUP;
-  static const unsigned BITVECTOR_DISTINCT_GROUP;
+  static unsigned LAST_BUILT_IN_DISTINCT_GROUP;
+  //static const unsigned BITVECTOR_DISTINCT_GROUP;
 
   unsigned getFoolConstantSymbol(bool isTrue){ 
     if(!_foolConstantsDefined){
@@ -582,6 +582,9 @@ class BitVectorSymbol
   }
 
 private:
+    
+    
+  DHMap<unsigned,unsigned> bitVector_D_G_map;
   Stack<TermList> _dividesNvalues;
   unsigned _arg1;
   unsigned _arg2;
