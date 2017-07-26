@@ -73,7 +73,6 @@ bool DistinctGroupExpansion::apply(UnitList*& units)
       // This 5 is a magic number, if it is changed then the corresponding
       // 6 should be changed in Kernel::Signature::Symol::addToDistinctGroup
       if( members->size()>1 && (members->size() < 5 || expandEverything)){
-        cout<<endl<<"members size is "<<members->size()<<endl;
         added=true;
         Formula* expansion = expand(*members);
         if(env.options->showPreprocessing()){

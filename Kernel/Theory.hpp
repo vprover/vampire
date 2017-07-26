@@ -462,22 +462,15 @@ public:
   
   // maybe have to change this to int 
   Interpretation getInterpretation(unsigned sort, StructuredSortInterpretation i, int arg1, int arg2){
-      cout<<"\n in getInterpretation\n";
     // key = make_pair(sort, i);
     AKey key(sort, i, arg1, arg2);
-    cout<<endl<<"before if _structuredSortInterpretations size "<<_structuredSortInterpretations.size();
     unsigned interpretation;
     if (!_structuredSortInterpretations.find(key, interpretation)) {
       interpretation = MaxInterpretedElement() + 1;
-      
       _structuredSortInterpretations.insert(key, interpretation);
-      cout<<endl<<"_structuredSortInterpretations size "<<_structuredSortInterpretations.size();
     }
-    cout<<endl<<endl<<"_structuredSortInterpretations not found "<<endl;
     return static_cast<Interpretation>(interpretation);
   }
-  
-  
   
   bool isStructuredSortInterpretation(Interpretation i){
     return i > LastNonStructuredInterepretation();

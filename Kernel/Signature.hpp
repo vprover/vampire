@@ -314,13 +314,8 @@ class BitVectorSymbol
       {
         CALL("BitVectorSymbol");
         
-        // differentiate between sort and the actual constant... sort will only need the size 
-        /*vstring name = "$bitVector(";
-        vstring temp = Int::toString(val.size())+"";
-        name+=temp+")";*/
-        //bool Sorts::findSort(const vstring& name, unsigned& idx)
         unsigned outSort = env.sorts->addBitVectorSort(val.size());
-        cout<<" in bitvectorsymbol constructor outsort is "<< outSort;
+        
         setType(new FunctionType(outSort));
         
       }
@@ -568,9 +563,7 @@ class BitVectorSymbol
   unsigned getArg1(){ return _arg1; }
   unsigned getArg2(){ return _arg2; }
   void setArg1(unsigned a1){
-      cout<<" setting arg 1 .. is "<<a1; 
       _arg1 = a1;
-      cout<<"_arg1 is "<< _arg1;
   } 
   
   void setArg2(unsigned a2){

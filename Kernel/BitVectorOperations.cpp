@@ -28,9 +28,9 @@ BitVectorConstantType BitVectorOperations::getBVCTFromVString(vstring& numberToR
     BitVectorConstantType initialBoolArray(step);
     
     BitVectorConstantType smallestBinArrayTen = getBVCTFromDec('a');
-    printBoolArrayContent(smallestBinArrayTen.getBinArray());
+    //printBoolArrayContent(smallestBinArrayTen.getBinArray());
     BitVectorConstantType binArrayTen = fitBVCTIntoBits(smallestBinArrayTen, size);
-    printBoolArrayContent(binArrayTen.getBinArray());
+   // printBoolArrayContent(binArrayTen.getBinArray());
     
     for(unsigned int i = 1; i<numberToRepresent.length(); i++) {
         char c = numberToRepresent[i]; 
@@ -40,10 +40,10 @@ BitVectorConstantType BitVectorOperations::getBVCTFromVString(vstring& numberToR
         DArray<bool> added(size);
         addBinArrays(multipliedByTen.getBinArray(),toAddPadded.getBinArray(), added);
         initialBoolArray.setBinArray(added);
-        printBoolArrayContent(initialBoolArray.getBinArray());
+        //printBoolArrayContent(initialBoolArray.getBinArray());
     }
-    cout<<"result of multiplication is "<<endl;
-    printBoolArrayContent(initialBoolArray.getBinArray());
+    //cout<<"result of multiplication is "<<endl;
+    //printBoolArrayContent(initialBoolArray.getBinArray());
     return initialBoolArray;
 }
  

@@ -240,9 +240,7 @@ public:
 
   unsigned arg(unsigned idx) const
   {
-      cout<<"\n in BaseType::arg \n";
     CALL("BaseType::arg");
-    cout<<"\n looking for idx in _args: "<<idx<<"\n";
     return (*_args)[idx];
   }
 
@@ -273,7 +271,7 @@ public:
   USE_ALLOCATOR(PredicateType);
 
   PredicateType(unsigned arity, const unsigned* argumentSorts)
-   : BaseType(arity, argumentSorts) { cout<< " \n in predicateType constructor and arity is :"<<arity<<"\n";}
+   : BaseType(arity, argumentSorts) {}
   PredicateType(std::initializer_list<unsigned> sorts) : BaseType(sorts) {}
 
   virtual vstring toString() const;

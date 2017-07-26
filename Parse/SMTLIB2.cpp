@@ -69,7 +69,6 @@ void SMTLIB2::parse(LExpr* bench)
 
   ASS(bench->isList());
   readBenchmark(bench->list);
-  cout<<" parsing terminates ";
 }
 
 void SMTLIB2::readBenchmark(LExprList* bench)
@@ -504,7 +503,6 @@ unsigned SMTLIB2::declareSort(LExpr* sExpr)
 
     ASS_EQ(op,SPO_PARSE);
     LExpr* exp = cur.second;
-    cout<<"\n SPO parse "<<  exp->str<<"\n";
 
     if (exp->isList()) {
       LExprList::Iterator lIt(exp->list);
@@ -1522,12 +1520,11 @@ bool SMTLIB2::parseAsBitVectorDescriptor(const vstring& id)
 bool SMTLIB2::parseAsBitVectorConstant(const vstring& id)
 {
     CALL("SMTLIB2::parseAsBitVectorConstant");
-    cout<<" in parseAsBitvectorConstant";
     vstring hexSlashBin = id.substr(0,2);
-    cout<<"\n hexSlashBin : "<<hexSlashBin<<"\n";
+    
     unsigned multiplier = 1;
-    // ORDER MIGHT BE WRONG HERE !!! 
-   /* if (hexSlashBin == "#x" || hexSlashBin =="#b")
+     
+    if (hexSlashBin == "#x" || hexSlashBin =="#b")
     {    
         vstring bvContent = id.substr(2);
         int bvContentSize = bvContent.length();
@@ -1544,54 +1541,46 @@ bool SMTLIB2::parseAsBitVectorConstant(const vstring& id)
 
             DArray<bool> theBinArray(testing.size()*4);
             
-            for (int i = 0 ; i < testing.size();++i)
-            {
-                unsigned index = i * 4;
-                DArray<bool> theHexInBinary = Signature::getBinArrayFromDec(testing[i]);
-                cout<<endl<<" i is "<<i<<" , testing[i] is: "<< testing[i]<<" and content is "<<endl;
-                
-                Signature::printBoolArrayContent(theHexInBinary);
-                for (int count = 0 , j = index; count< 4 ; ++ j,++count){
-                    theBinArray[j] = theHexInBinary[count];
-                }
-                cout<<endl<<" i am checking thisss"<<endl;
-               // WRONG ORDER
-                
-            }
-             Signature::printBoolArrayContent(theBinArray);
-            // pass the number to represent as the binary string of the array
             
-            //unsigned symb = TPTP::addBitVectorConstant(resultSizeVstring, vstringNumToRepresent, _overflow, true);
-             cout<<endl<<" BEFORE ADDING AGAIN "<<endl;
-            Signature::printBoolArrayContent(theBinArray);
-            unsigned symb = TPTP::addBitVectorConstant(theBinArray); 
-             
+            unsigned kay = 0;
+            //for (int i = 0 ; i < testing.size();++i)
+            for (int i = testing.size()-1 ; i >= 0;--i)
+            {
+                
+                BitVectorConstantType tempo = BitVectorOperations::getBVCTFromDec(testing[i]);
+                DArray<bool> theHexInBinary = tempo.getBinArray();
+                
+                
+                for (int k = 0; k < 4; ++k,++kay){
+                    theBinArray[kay] = theHexInBinary[k];
+                }
+                   
+            }
+            BitVectorConstantType addThis(theBinArray);
+            unsigned symb = TPTP::addBitVectorConstant(addThis); 
             TermList res = TermList(Term::createConstant(symb));
-            _results.push(ParseResult(resultSort,res)); // change THIS !!!:!:!:!:!:
+            _results.push(ParseResult(resultSort,res)); 
             return true;
         }
         else if(hexSlashBin == "#b")
         {
-            //USER_ERROR("NOT THERE YET");
+            
             int resultSize = multiplier * bvContentSize;
             vstring resultSizeVstring = Int::toString(resultSize);
 
-            
-            cout<<endl<<"bvContent is "<< bvContent;
             
             DArray<bool> testing = getBoolArrayFromString(bvContent);
             vstring vstringNumToRepresent = Int::toString(getNumberFromBoolArray(testing));
         
             unsigned resultSort = env.sorts->addBitVectorSort(resultSize);
-
-            
-            unsigned symb = TPTP::addBitVectorConstant(testing);
+            BitVectorConstantType addThis(testing);
+            unsigned symb = TPTP::addBitVectorConstant(addThis);
             TermList res = TermList(Term::createConstant(symb));
             _results.push(ParseResult(resultSort,res)); 
             return true;
         }
         
-    }*/
+    }
     return false;
 }
 
@@ -2412,10 +2401,10 @@ SMTLIB2::ParseResult SMTLIB2::parseTermOrFormula(LExpr* body)
 
     switch (op) {
       case PO_PARSE: {
-          cout<<"\n in PO PARSE";
+        
         if (exp->isList()) {
           LispListReader lRdr(exp->list);
-          cout<<"\n in is list \n"<< exp->toString();
+          
           // schedule arity check
           _results.push(ParseResult()); // separator into results
           _todo.push(make_pair(PO_CHECK_ARITY,exp)); // check as a todo (exp for error reporting)

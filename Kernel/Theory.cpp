@@ -212,7 +212,7 @@ vstring IntegerConstantType::toString() const
 vstring BitVectorConstantType::toString() const
 {
     CALL("BitVectorConstantType::toString");
-    BitVectorOperations::printBoolArrayContent(binArray);
+    //BitVectorOperations::printBoolArrayContent(binArray);
     return "bv" + BitVectorOperations::boolArraytoString(binArray);
 }
 
@@ -700,7 +700,7 @@ unsigned Theory::getArity(Interpretation i)
  */
 bool Theory::isFunction(Interpretation i)
 {
-  cout<<" problem Interpretation "<< i;
+  //cout<<" problem Interpretation "<< i;
   CALL("Signature::InterpretedSymbol::isFunction");
   ASS(theory->isValidInterpretation(i));
 
@@ -1056,7 +1056,6 @@ unsigned Theory::getSymbolForStructuredSort(unsigned sort, StructuredSortInterpr
 
 unsigned Theory::getSymbolForStructuredSort(unsigned sort, StructuredSortInterpretation interp, int arg1, int arg2)
 {
-    cout<<"\n Theory::getSymbolForStructuredSort\n";
     return env.signature->getInterpretingSymbol(getInterpretation(sort,interp,arg1,arg2));
 }
 

@@ -223,7 +223,6 @@ Signature::Signature ():
   unsigned aux;
   // Warning! reordering or removing some of below may brake the code in
   // DistinctGroupExpansion::apply(UnitList*& units)
-  cout<<endl<<"signature constructor called"<<endl;
   aux = createDistinctGroup();
   ASS_EQ(STRING_DISTINCT_GROUP, aux);
   aux = createDistinctGroup();
