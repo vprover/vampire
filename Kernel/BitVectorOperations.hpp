@@ -25,7 +25,7 @@ namespace Kernel {
     using namespace Lib;
     
     //  temporary workaround before moving BVCT to its appropriate place
-    class BitVectorConstantType;
+    /*class BitVectorConstantType;
     class BitVectorConstantType{
        
     
@@ -56,7 +56,7 @@ private:
    // NumberToRepresent _numberToRepresent;
     unsigned sortB;
     BinArray binArray;
-};
+};*/
     
     class BitVectorOperations{
     public:

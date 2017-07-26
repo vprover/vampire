@@ -18,6 +18,7 @@
 #include "Sorts.hpp"
 #include "Term.hpp"
 #include "BitVectorOperations.hpp"
+#include "Lib/Environment.hpp"
 
 namespace Kernel {
 
@@ -90,10 +91,8 @@ std::ostream& operator<< (ostream& out, const IntegerConstantType& val) {
 }
 
 
-/*class BitVectorConstantType{
-     unsigned getSort(){
-         return sortB;
-    }   
+class BitVectorConstantType{
+       
     
     typedef DArray<bool> BinArray;
     public: // for some reason have to put the constructor here
@@ -103,6 +102,10 @@ std::ostream& operator<< (ostream& out, const IntegerConstantType& val) {
     vstring toString() const;
 
     unsigned size() const {return binArray.size();}
+    unsigned getSort() const {
+         //return sortB; 
+         return env.sorts->addBitVectorSort(binArray.size()); // this should probabyl be changed to getBitVectorSort
+    } 
     void setBinArray(DArray<bool> setTo)
     {
         binArray.initFromArray(setTo.size(),setTo);
@@ -118,7 +121,7 @@ private:
    // NumberToRepresent _numberToRepresent;
     unsigned sortB;
     BinArray binArray;
-};*/
+};
 
 /**
  * A class for representing rational numbers
