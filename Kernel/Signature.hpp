@@ -162,11 +162,7 @@ class Signature
     
     
     inline bool bitVectorConstant() const
-    { 
-        // might have to change this 
-        return interpreted() && arity()==0 && env.sorts->hasStructuredSort(fnType()->result());//env.sorts->hasStructuredSort(idx, Sorts::StructuredSort::BITVECTOR); 
-    
-    }
+    { return interpreted() && arity()==0 && env.sorts->hasStructuredSort(fnType()->result());}
     
     
     

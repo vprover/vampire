@@ -1,8 +1,3 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
 
 #include "BitVectorOperations.hpp"
 
@@ -240,34 +235,17 @@ bool BitVectorOperations::addBinArrays(const DArray<bool>& a1, const DArray<bool
     ASS(!(a1.size()!= a2.size() || a2.size()!= result.size()));
    
     bool carry = false;
-    cout<<endl<<"following arrays are being added "<<endl;
-    printBoolArrayContent(a1);
-   // cout<<endl<<"and "<<endl;
-    
-    cout<<endl<<" testing memory problem 0"<<endl;
-    printBoolArrayContent(a2);
-    cout<<endl<<" testing memory problem 1"<<endl;
     for (int i = 0, j = a1.size() - 1 ; i < a1.size() ; ++ i, --j )
     {
-        
         result[i] = a1[i] ^ a2[i] ^ carry;
-        
-        
-
-        
-        if ((a1[i] && carry && !a2[i]) || (a2[i] && carry && !a1[i]) || (a2[i] && !carry && a1[i]) ||(a2[i] && carry && a1[i])){
+        if ((a1[i] && carry && !a2[i]) || (a2[i] && carry && !a1[i]) || (a2[i] && !carry && a1[i]) ||(a2[i] && carry && a1[i]))
             carry = true;
-            //cout<<endl<< " j is "<< j << " and carry becomes true";
-        }else{
+        else
             carry = false;
-            //cout<<endl<< " j is "<< j << " and carry becomes false";
-        }
-
         carry = ((a1[i] && carry && !a2[i]) || (a2[i] && carry && !a1[i]) || (a2[i] && !carry && a1[i]) ||(a2[i] && carry && a1[i]));
 
     }
-
-    //result[result.size()-1] = carry;
+    
     return carry;
 }
 
@@ -275,38 +253,16 @@ BitVectorConstantType BitVectorOperations::multBVCTs(BitVectorConstantType in1, 
 {
     DArray<bool> a1 = in1.getBinArray();
     DArray<bool> a2 = in2.getBinArray();
-    
-    
     DArray<bool> previousToAdd(a1.size());
     
-    
-    printBoolArrayContent(a2);
     for (int i = 0, j = a1.size()-1 ; i < a1.size() ; ++ i,--j )
     {
-        cout<<endl<<" counting loops: "<<i << endl;
         if (a1[i] == true)
         {
-            
-            
             DArray<bool> curr = shiftLeft(a2,i);
-            printBoolArrayContent(a2);
-            printBoolArrayContent(curr);
-            printBoolArrayContent(previousToAdd);
-            
-            
-             
-            DArray<bool> sum(curr.size());
+             DArray<bool> sum(curr.size());
             addBinArrays(previousToAdd,curr,sum);
-            
-            
-            
-            printBoolArrayContent(previousToAdd);
-            printBoolArrayContent(curr);
-            printBoolArrayContent(sum);
-            
             previousToAdd.initFromArray(sum.size(),sum);
-           
-            
         }
     }
     
@@ -329,8 +285,6 @@ DArray<bool> BitVectorOperations::shiftLeft(DArray<bool> input, unsigned shiftBy
     }
     
     return res;
-   
-    
 }
 
 void BitVectorOperations::printBoolArrayContent(DArray<bool> array)

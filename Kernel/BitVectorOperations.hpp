@@ -24,40 +24,6 @@ namespace Kernel {
     using namespace std;
     using namespace Lib;
     
-    //  temporary workaround before moving BVCT to its appropriate place
-    /*class BitVectorConstantType;
-    class BitVectorConstantType{
-       
-    
-    typedef DArray<bool> BinArray;
-    public: // for some reason have to put the constructor here
-        //explicit BitVectorConstantType(const vstring& size, const vstring& numberToRepresent);
-        explicit BitVectorConstantType(const DArray<bool> n);
-        BitVectorConstantType(){};
-    vstring toString() const;
-
-    unsigned size() const {return binArray.size();}
-    unsigned getSort() const {
-         //return sortB; 
-         return env.sorts->addBitVectorSort(binArray.size()); // this should probabyl be changed to getBitVectorSort
-    } 
-    void setBinArray(DArray<bool> setTo)
-    {
-        binArray.initFromArray(setTo.size(),setTo);
-    }
-    
-    DArray<bool> getBinArray() const{
-        return binArray;
-    }
-    
-    
-private: 
-    
-   // NumberToRepresent _numberToRepresent;
-    unsigned sortB;
-    BinArray binArray;
-};*/
-    
     class BitVectorOperations{
     public:
     static IntegerConstantType test();    

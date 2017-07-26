@@ -251,89 +251,7 @@ private:
   };
   static const char * s_termSymbolNameStrings[];
   
- 
-DArray<char> getHexArrayFromString(vstring& input)
-{
-    DArray<char> result(input.length());
-    for (int i = input.length()-1, j = 0; i>=0; --i,++j){
-        if ((input.at(i) >= '0' && input.at(i) <= '9') || (input.at(i) >= 'a' && input.at(i) <= 'f') || (input.at(i) >= 'A' && input.at(i) <= 'F'))
-            result[j] = input[j];
-        else
-            USER_ERROR("Problem with the hexadecimal");
-    }
-    return result;
-}  
-int getNumberFromHexArray(DArray<char> input)
-{
-    int result = 0;
-     for (int i = 0 ; i< input.size();++i)
-         result += ((input[i] - '0') * pow(16,i));
-    return result;
-}
-  
-int getIntValueFromHex(char in)
-{
-    if (in>= '0' && in<= '9')
-        return (in - '0');
-    switch (in){
-        case 'a':
-        case 'A':
-            return 10;
-        case 'b':
-        case 'B':
-            return 11;
-        case 'c':
-        case 'C':
-            return 12;
-        case 'd':
-        case 'D':
-            return 13; 
-        case 'e':
-        case 'E':
-            return 14;
-        case 'f':
-        case 'F':
-            return 15; 
-        default:
-            USER_ERROR("expected a numeral or char between a and f");
-            
-    }
-}
-
- DArray<bool> getBoolArrayFromString(vstring& input)
- {
-     cout<<endl<<" input is "<< input<<endl;
-    DArray<bool> result(input.length());
-    for (int j = 0, i = input.length()-1; i>=0;--i, ++j){
-        cout<<"\n input at "<< i << " is "<<input.at(i);
-        if (input.at(j) == '0')
-            result[j] = false;
-        else if (input.at(j) == '1')
-            result[j] = true;
-        else
-        {
-            cout<<endl<<" the problem char is "<< result[j]<<endl;
-            USER_ERROR("Zero or ones expected");
-        }
-    }
-    return result;
-
-  }
- 
- int getNumberFromBoolArray(DArray<bool> a){
-     int result = 0;
-     for (int i = 0 ; i< a.size();++i){
-         unsigned toAdd = 0;
-         if (a[i] == true){
-             toAdd = pow(2,i);
-             cout<<"\n toAdd "<< toAdd<< " ";
-         }
-         result+=toAdd;
-     }
-     return result;
- }
-  
-/* get the ssi from ts, eg: argument is TS_CONCAT, it returns StructuredSortInterpretation::CONCAT*/
+ /* get the ssi from ts, eg: argument is TS_CONCAT, it returns StructuredSortInterpretation::CONCAT*/
   Theory::StructuredSortInterpretation getSSIfromTS(TermSymbol ts){
       switch(ts){
           case TS_BVADD:
@@ -392,7 +310,6 @@ int getIntValueFromHex(char in)
       }
   }
   
-  /* get the ssi from ts, eg: argument is TS_CONCAT, it returns StructuredSortInterpretation::CONCAT*/
   Theory::StructuredSortInterpretation getSSIfromFS(FormulaSymbol fs){
       switch(fs){
           case FS_BVSLT:
@@ -414,8 +331,7 @@ int getIntValueFromHex(char in)
               
           default:
               ASS_EQ(1,2);    
-              
-      }
+        }
   }
   /**
    * Lookup to see if vstring is a built-in TermSymbol.

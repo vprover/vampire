@@ -358,33 +358,24 @@ unsigned Signature::addIntegerConstant(const vstring& number,bool defaultSort)
 unsigned Signature::addBitVectorConstant(const BitVectorConstantType& value)
 {
     CALL("Signature::addBitVectorConstant(vstring, vstring)");
-    //BitVectorConstantType value(binArray); // 
     
     vstring key;
     DArray<bool> t = value.getBinArray();
     vstring forKey = BitVectorOperations::boolArraytoString(t); 
     
-    
     key = Int::toString(value.size()) + "_" + forKey + "_bv";
-    cout<<" key is "<< key<<endl;
     unsigned result;
     if (_funNames.find(key, result)){
         return result;
     }
-    cout<<" before loopeee : "<<endl;
     
     _bitvectors++;
     result = _funs.length();
-    cout<<" checkpoint o1 : "<<endl;
     Symbol* sym = new BitVectorSymbol(value);
-    cout<<" checkpoint o2 : "<<endl;
     
     _funs.push(sym);
-    cout<<" checkpoint o3 : "<<endl;
     _funNames.insert(key, result);
-    cout<<" checkpoint o4 : "<<endl;
-    // here use the sort of bvonstanttype to look for the distinct group number in a hashmap
-    // addBitVectorSortToDistinctGroupList
+     // here use the sort of bvonstanttype to look for the distinct group number in a hashmap
     unsigned bvSort = value.getSort();
     if (!bitVector_D_G_map.find(bvSort))
     {
@@ -412,7 +403,7 @@ unsigned Signature::addBitVectorConstant(const BitVectorConstantType& value)
 unsigned Signature::addIntegerConstant(const IntegerConstantType& value)
 {
   CALL("Signature::addIntegerConstant");
-  cout<<" fun names size "<<_funNames.numberOfElements();
+ 
   vstring key = value.toString() + "_n";
   unsigned result;
   if (_funNames.find(key, result)) {
@@ -526,7 +517,6 @@ unsigned Signature::addRealConstant(const RealConstantType& value)
 unsigned Signature::getInterpretingSymbol(Interpretation interp)
 {
   CALL("Signature::getInterpretingSymbol");
-  cout<<" in Signature::getInterpretingSymbol";
   ASS(Theory::instance()->isValidInterpretation(interp));
      
   unsigned res;

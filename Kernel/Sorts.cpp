@@ -109,11 +109,9 @@ unsigned Sorts::addBitVectorSort(const unsigned size)
     vstring name = "$bitVector(" + Int::toString(size) + ")";
     
     unsigned result;
-    if(_sortNames.find(name,result)){
-        cout<<"\n sortnames contained name: "<<name<< " and the number is : "<<result<<"\n";
+    if(_sortNames.find(name,result))
         return result;
-    }
-
+    
     _hasSort = true;
     result = _sorts.length();
     
