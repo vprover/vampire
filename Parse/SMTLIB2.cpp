@@ -69,6 +69,7 @@ void SMTLIB2::parse(LExpr* bench)
 
   ASS(bench->isList());
   readBenchmark(bench->list);
+  cout<<endl<<"benchmark has been read / parsing terminated"<<endl;
 }
 
 void SMTLIB2::readBenchmark(LExprList* bench)
@@ -717,7 +718,7 @@ const char * SMTLIB2::s_termSymbolNameStrings[] = {
     "bvxnor",
     "bvxor",
     "concat",
-    "div",
+    "div", //  
     "extract",
     "ite",
     LET,
@@ -2102,9 +2103,53 @@ bool SMTLIB2::parseAsBuiltinTermSymbol(const vstring& id, LExpr* exp)
     }
     case TS_BVAND:
     case TS_BVADD:
-    case TS_BVSHL:
     case TS_BVOR:
+    case TS_BVXNOR:
     case TS_BVMUL:
+    {
+        TermList first, second;
+        if (_results.isEmpty() || _results.top().isSeparator()) {
+            complainAboutArgShortageOrWrongSorts(BUILT_IN_SYMBOL,exp);
+        }
+        unsigned sort = _results.pop().asTerm(first);
+        unsigned sort2 = _results.pop().asTerm(second);
+      
+        if (sort != sort2){
+            complainAboutArgShortageOrWrongSorts(BUILT_IN_SYMBOL,exp);
+        }
+        
+        Theory::StructuredSortInterpretation t =  getSSIfromTS(ts);
+        unsigned fun = Theory::instance()->getSymbolForStructuredSort(sort, t,-1,-1);
+      
+       bool done = false;
+        
+        TermList res = TermList(Term::Term::create2(fun, first, second));
+        if (_results.top().isSeparator())
+            done = true;
+        _results.push(ParseResult(sort, res));
+        
+       
+        while(!done){
+            TermList third, fourth;
+            unsigned sort3 = _results.pop().asTerm(third);
+            unsigned sort4 = _results.pop().asTerm(fourth);
+            if (sort3 != sort4){
+                complainAboutArgShortageOrWrongSorts(BUILT_IN_SYMBOL,exp);
+            }
+            if (_results.top().isSeparator())
+                done = true;
+            res = TermList(Term::Term::create2(fun, third, fourth));
+            _results.push(ParseResult(sort, res));
+        }
+        return true;
+        
+    
+    }
+    //case TS_BVAND: // this one
+    //case TS_BVADD: // this one 
+    case TS_BVSHL:
+    //case TS_BVOR: // this one 
+    //case TS_BVMUL: // this one AND bvxnor
     case TS_BVUDIV:
     case TS_BVUREM:
     case TS_BVLSHR:
@@ -2198,7 +2243,7 @@ bool SMTLIB2::parseAsBuiltinTermSymbol(const vstring& id, LExpr* exp)
           _results.isEmpty() || _results.top().isSeparator() || _results.pop().asTerm(int2) != Sorts::SRT_INTEGER) {
         complainAboutArgShortageOrWrongSorts(BUILT_IN_SYMBOL,exp);
       }
-
+      
       unsigned fun = Theory::instance()->getFnNum(Theory::INT_REMAINDER_E); // TS_MOD is the always positive remainder, therefore INT_REMAINDER_E
       TermList res = TermList(Term::create2(fun,int1,int2));
 

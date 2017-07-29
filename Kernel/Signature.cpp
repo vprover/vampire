@@ -517,7 +517,7 @@ unsigned Signature::getInterpretingSymbol(Interpretation interp)
 {
   CALL("Signature::getInterpretingSymbol");
   ASS(Theory::instance()->isValidInterpretation(interp));
-     
+  
   unsigned res;
   if (_iSymbols.find(interp, res)) {
     return res;

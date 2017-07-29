@@ -378,9 +378,7 @@ public:
   }
 
   unsigned numberOfInterpretations(){
-      cout<<endl<<"LastNonStructuredInterepretation() gives "<<LastNonStructuredInterepretation();
-      cout<<endl<<"LastStructuredInterpretation() gives "<<LastStructuredInterpretation();
-    return LastNonStructuredInterepretation() + LastStructuredInterpretation();
+      return LastNonStructuredInterepretation() + LastStructuredInterpretation();
   }
 
   bool isValidInterpretation(Interpretation i){
@@ -676,55 +674,6 @@ private:
 
   DHMap<AKey,unsigned> _structuredSortInterpretations;
 
-  //DHMap<pair<unsigned,StructuredSortInterpretation>,unsigned> _structuredSortInterpretations;
-
- /*public:
-  class AKey {
-  public:
-    unsigned getFunctor();
-    unsigned getFunctor();
-   
-    AKey(StructuredSortInterpretation ssi, unsigned arg1, unsigned arg2, unsigned resultSort):
-    _ssi(ssi), _resultSort(resultSort), _arg1(arg1), _arg2(arg2)
-    {
-        
-    }
-  private:
-      StructuredSortInterpretation _ssi;
-      unsigned _resultSort;
-      unsigned _arg1;
-      unsigned _arg2;
-      
-  };
-  
- public:
-  class ARecord {
-  public:
-    AKey getKey()
-    {
-        return _key;
-    }
-    unsigned getImplementationNr()
-    {
-        return _implementationNr;
-    }
-    
-  private:
-      AKey _key;
-      unsigned _implementationNr;
-      
-  }; 
-  
-  
-  public:
-  class DDMap {
-  public:
-    
-    
-  private:
-      DArray<ARecord> _records;
-      
-  };*/
   
 public:
   class Tuples {

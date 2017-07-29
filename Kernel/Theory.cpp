@@ -721,7 +721,7 @@ bool Theory::isFunction(Interpretation i)
         return true;
     }
   }
-
+  
   switch(i) {
   case INT_TO_INT:
   case INT_TO_RAT:
@@ -782,7 +782,7 @@ bool Theory::isFunction(Interpretation i)
   case REAL_CEILING:
   case REAL_TRUNCATE:
   case REAL_ROUND:
-
+      return true;
 
   case EQUAL:
 
