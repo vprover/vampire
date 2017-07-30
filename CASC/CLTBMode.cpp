@@ -432,7 +432,7 @@ int CLTBMode::readInput(istream& in, bool first)
   
     // Get training directory
     getline(in,line);
-    if (line.find("training_directory") != vstring::npos){
+    if (line.find("training_data") != vstring::npos){
         StringStack ls;
         StringUtils::splitStr(line.c_str(),' ',ls);
         _trainingDirectory = ls[1];
