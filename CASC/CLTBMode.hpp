@@ -124,7 +124,7 @@ public:
   typedef Set<vstring> StrategySet;
   typedef Stack<vstring> Schedule;
 private:
-  bool runSchedule(Schedule&,StrategySet& remember,bool fallback,int terminationTime);
+  bool runSchedule(Schedule&,StrategySet& remember,int terminationTime);
   unsigned getSliceTime(vstring sliceCode,vstring& chopped);
 
   void performStrategy(int terminationTime,int timeLimit,Category category,const Shell::Property* property);

@@ -1122,19 +1122,21 @@ void CLTBProblem::performStrategy(int terminationTime,int timeLimit,Category cat
   cout << "% Hi Geoff, go and have some cold beer while I am trying to solve this very hard problem!\n";
 
   Schedule quick;
-  Schedule fallback;
 
   fillSchedule(quick,property,timeLimit,category);
-  //CASC::CASCMode::getSchedules(*property,fallback,fallback);
     
   StrategySet usedSlices;
-  if (runSchedule(quick,usedSlices,false,terminationTime)) {
+  if (runSchedule(quick,usedSlices,terminationTime)) {
     return;
   }
   if (env.timer->elapsedMilliseconds() >= terminationTime) {
     return;
   }
-  //runSchedule(fallback,usedSlices,true,terminationTime);
+  Schedule fallback;
+  Schedule fallback2;
+  CASC::CASCMode::getSchedules(*const_cast<Property*>(property),fallback,fallback2);
+  runSchedule(fallback,usedSlices,terminationTime);
+  runSchedule(fallback2,usedSlices,terminationTime);
 } // CLTBProblem::performStrategy
 
 /**
@@ -1290,7 +1292,7 @@ static unsigned milliToDeci(unsigned timeInMiliseconds) {
  * @author Andrei Voronkov
  * @since 04/06/2013 flight Frankfurt-Vienna, updated for CASC-J6
  */
-bool CLTBProblem::runSchedule(Schedule& schedule,StrategySet& used,bool fallback,int terminationTime)
+bool CLTBProblem::runSchedule(Schedule& schedule,StrategySet& used,int terminationTime)
 {
   CALL("CLTBProblem::runSchedule");
 
