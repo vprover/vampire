@@ -56,7 +56,7 @@ SMTLIB2::SMTLIB2(const Options& opts)
 void SMTLIB2::parse(istream& str)
 {
   CALL("SMTLIB2::parse(istream&)");
-
+ 
   LispLexer lex(str);
   LispParser lpar(lex);
   LExpr* expr = lpar.parse();
@@ -2334,7 +2334,7 @@ void SMTLIB2::parseRankedFunctionApplication(LExpr* exp)
     TermList fromTerm = TermList(Term::createConstant(fromSymbol));
 
     unsigned numBitsSymbol = TPTP::addIntegerConstant(numeral2,_overflow,false);
-    TermList numBitsTerm = TermList(Term::createConstant(numBitsSymbol));
+    TermList numBitsTerm = TermList(Term::createConstant(numBitsSymbol)); 
     int numeralInt;
     Int::stringToInt(numeral,numeralInt);
     int numeral2Int;

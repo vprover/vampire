@@ -160,7 +160,7 @@ Problem* UIHelper::getInputProblem(const Options& opts)
   SMTLIBLogic smtLibLogic = SMT_UNDEFINED;
 
   vstring inputFile = opts.inputFile();
-
+  cout<<inputFile<<endl<<"hello inputfile";
   istream* input;
   if (inputFile=="") {
     input=&cin;

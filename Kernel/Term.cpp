@@ -1194,7 +1194,7 @@ Literal* Literal::create(Literal* l,TermList* args)
 Literal* Literal::createEquality (bool polarity, TermList arg1, TermList arg2, unsigned sort)
 {
    CALL("Literal::createEquality/4");
-
+   cout<<endl<<"in create equality ,  checking"<<endl<<arg1.toString()<<endl<<arg2.toString()<<endl<<sort;
    unsigned srt1, srt2;
   
    

@@ -250,7 +250,7 @@ private:
     TS_USER_FUNCTION
   };
   static const char * s_termSymbolNameStrings[];
-  ///////////////
+  /////////////// TODO: move operations
   DArray<char> getHexArrayFromString(vstring& input)
 {
     DArray<char> result(input.length());

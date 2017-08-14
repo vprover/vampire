@@ -44,7 +44,7 @@ public:
   bool canEvaluatePred(unsigned pred)
   {
     CALL("InterpretedLiteralEvaluator::Evaluator::canEvaluatePred");
-
+        
     if (!theory->isInterpretedPredicate(pred)) {
       return false;
     }
@@ -84,17 +84,17 @@ class InterpretedLiteralEvaluator::EqualityEvaluator
 
   template<typename T>
   bool checkEquality(Literal* lit, bool& res)
-  {
+  { 
     CALL("InterpretedLiteralEvaluator::EqualityEvaluator::checkEquality");
     T arg1;
-    if(!theory->tryInterpretConstant(lit->nthArgument(0)->term(),arg1)){ 
+    if(!theory->tryInterpretConstant(lit->nthArgument(0)->term(),arg1)){
       return false; 
     }
     T arg2;
-    if(!theory->tryInterpretConstant(lit->nthArgument(1)->term(),arg2)){ 
+    if(!theory->tryInterpretConstant(lit->nthArgument(1)->term(),arg2)){
       return false;
     }
-
+    
     res = (arg1 == arg2);
 
     return true;
@@ -103,7 +103,7 @@ class InterpretedLiteralEvaluator::EqualityEvaluator
   bool tryEvaluatePred(Literal* lit, bool& res)
   {
     CALL("InterpretedLiteralEvaluator::EqualityEvaluator::tryEvaluatePred");
-
+            
     // Return if this is not an equality between theory terms
     if(!theory->isInterpretedPredicate(lit)){ return false; }
 
@@ -119,12 +119,12 @@ class InterpretedLiteralEvaluator::EqualityEvaluator
       // the result of the equality check
       bool okay = checkEquality<IntegerConstantType>(lit,res)  ||
                   checkEquality<RationalConstantType>(lit,res) ||
-                  checkEquality<RealConstantType>(lit,res);
+                  checkEquality<RealConstantType>(lit,res) || checkEquality<BitVectorConstantType>(lit,res);
 
       if(!okay) return false;
 
       if(lit->isNegative()){ res = !res; }
-
+      cout<<endl<<"tryEvaluatePred becomes true"<<endl;
       return true;
 
     }
@@ -262,7 +262,7 @@ public:
   virtual bool canEvaluate(Interpretation interp)
   {
     CALL("InterpretedLiteralEvaluator::TypedEvaluator::canEvaluate");
-
+     
     //only interpreted operations with non-single argument sort are array operations
     if (theory->isArrayOperation(interp))
     {
@@ -270,6 +270,10 @@ public:
         return opSort==T::getSort();
     }
     
+    if (theory->isBitVectorOperation(interp) && T::getSort()==1500 )
+        return true;
+    
+                
     // This is why we cannot evaluate Equality here... we cannot determine its sort
     if (!theory->hasSingleSort(interp)) { return false; } //To skip conversions and EQUAL
 
@@ -283,7 +287,7 @@ public:
     ASS(theory->isInterpretedFunction(trm));
 
     //cout << "try evaluate " << trm->toString() << endl;
-
+    
     try {
       Interpretation itp = theory->interpretFunction(trm);
       ASS(theory->isFunction(itp));
@@ -304,7 +308,7 @@ public:
       else if(arity==2){
         // If one argument is not a constant and the other is zero or one then
         // we have some special cases
-
+          
         T arg2;
         TermList arg2Trm = *trm->nthArgument(1);
 
@@ -367,7 +371,7 @@ public:
   {
     CALL("InterpretedLiteralEvaluator::tryEvaluatePred");
     ASS(theory->isInterpretedPredicate(lit));
-
+   
     try {
       Interpretation itp = theory->interpretPredicate(lit);
       ASS(!theory->isFunction(itp));
@@ -378,15 +382,15 @@ public:
       }
       TermList arg1Trm = *lit->nthArgument(0);
       T arg1;
-      if (!theory->tryInterpretConstant(arg1Trm, arg1)) { return false; }
+      if (!theory->tryInterpretConstant(arg1Trm, arg1)) { cout<<endl<<"failure0"<<endl;return false; }
       if (arity==1) {
-	if (!tryEvaluateUnaryPred(itp, arg1, res)) { return false;}
+	if (!tryEvaluateUnaryPred(itp, arg1, res)) { cout<<endl<<"failure1"<<endl; return false;}
       }
       else {
 	TermList arg2Trm = *lit->nthArgument(1);
 	T arg2;
-	if (!theory->tryInterpretConstant(arg2Trm, arg2)) { return false; }
-	if (!tryEvaluateBinaryPred(itp, arg1, arg2, res)) { return false;}
+	if (!theory->tryInterpretConstant(arg2Trm, arg2)) { cout<<endl<<"failure2"<<endl; return false; }
+	if (!tryEvaluateBinaryPred(itp, arg1, arg2, res)) { cout<<endl<<"failure3"<<endl; return false;}
       }
       if (lit->isNegative()) {
 	res = !res;
@@ -395,6 +399,7 @@ public:
     }
     catch(ArithmeticException&)
     {
+      cout<<"arithmeticexeption";
       return false;
     }
 
@@ -770,6 +775,249 @@ protected:
 
 };
 
+ 
+
+class InterpretedLiteralEvaluator::BitVectorEvaluator : public TypedEvaluator<BitVectorConstantType> 
+{
+  protected:
+
+  virtual bool isZero(BitVectorConstantType arg){return false;}
+  virtual TermList getZero(){ return TermList(); }
+  virtual bool isOne(BitVectorConstantType arg){return false;}
+
+  virtual bool isAddition(Interpretation interp){return false;}
+  virtual bool isProduct(Interpretation interp){return false;}
+  virtual bool isDivision(Interpretation interp){return false; 
+  }
+  virtual bool tryEvaluateFunc(Term* trm, TermList& res)
+  {
+      Interpretation itp = theory->interpretFunction(trm);
+      ASS(theory->isFunction(itp));
+      unsigned arity = theory->getArity(itp);
+      Theory::StructuredSortInterpretation ssi = theory->convertToStructured(itp);
+      // certain interpretations need special attention 
+      if (ssi == Theory::StructuredSortInterpretation::BV_ROTATE_RIGHT || 
+              ssi == Theory::StructuredSortInterpretation::BV_ROTATE_LEFT || 
+              ssi == Theory::StructuredSortInterpretation::BV_SIGN_EXTEND || 
+              ssi == Theory::StructuredSortInterpretation::BV_ZERO_EXTEND)
+      {
+              TermList arg1Trm = *trm->nthArgument(0);
+              TermList arg2Trm = *trm->nthArgument(1);
+              cout<<endl<<"hmm"<<endl<<arg1Trm.toString()<<" and "<< endl<< arg2Trm.toString();
+              IntegerConstantType rotateBy;
+              if (!theory->tryInterpretConstant(arg1Trm, rotateBy))
+              {
+                  ASS(2==3);
+              }
+              BitVectorConstantType argBv;
+              if (!theory->tryInterpretConstant(arg2Trm, argBv))
+              {
+                  ASS(3==4);
+              }
+              
+              
+              // if sign extend or zero extend size accordingly
+              unsigned resSize = argBv.size();
+              if (ssi == Theory::StructuredSortInterpretation::BV_SIGN_EXTEND || ssi == Theory::StructuredSortInterpretation::BV_ZERO_EXTEND)
+                  resSize = argBv.size() + rotateBy.toInner();
+              BitVectorConstantType resNum(resSize);
+              if (ssi == Theory::StructuredSortInterpretation::BV_ROTATE_RIGHT)
+                BitVectorConstantType::rotate_right(rotateBy.toInner(),argBv,resNum);
+              else if (ssi == Theory::StructuredSortInterpretation::BV_ROTATE_LEFT)
+                BitVectorConstantType::rotate_left(rotateBy.toInner(),argBv,resNum);
+              else if (ssi == Theory::StructuredSortInterpretation::BV_SIGN_EXTEND)
+                BitVectorConstantType::sign_extend(rotateBy.toInner(),argBv,resNum);  
+              else if (ssi == Theory::StructuredSortInterpretation::BV_ZERO_EXTEND)
+                BitVectorConstantType::zero_extend(rotateBy.toInner(),argBv,resNum);   
+              res = TermList(theory->representConstant(resNum));
+              return true;
+              
+      }
+      // TODO: error handling 
+      else if (ssi == Theory::StructuredSortInterpretation::EXTRACT)
+      {
+              TermList arg1Trm = *trm->nthArgument(0);
+              TermList arg2Trm = *trm->nthArgument(1);
+              TermList arg3Trm = *trm->nthArgument(2);
+              cout<<endl<<"hmm"<<endl<<arg1Trm.toString()<<" and "<< endl<< arg2Trm.toString();
+              IntegerConstantType from;
+              IntegerConstantType to;
+              BitVectorConstantType argBv;
+              
+              cout<<" arg 1 is "<< arg1Trm.toString()<<endl;
+              cout<<" arg 2 is "<< arg2Trm.toString()<<endl;
+              cout<<" arg 3 is "<< arg3Trm.toString()<<endl;
+              if (!theory->tryInterpretConstant(arg1Trm, argBv))
+              {
+                  cout<<"from here 2 == 3 ";
+                  ASS(2==3);
+              }
+              
+              if (!theory->tryInterpretConstant(arg2Trm, from))
+              {
+                  ASS(5==3);
+              }
+              
+              
+              if (!theory->tryInterpretConstant(arg3Trm, to))
+              {
+                  ASS(3==4);
+              }
+              
+              
+              // if sign extend or zero extend size accordingyl
+              unsigned resSize = from.toInner()-to.toInner()+1;
+              BitVectorConstantType resNum(resSize);
+              BitVectorConstantType::extract(from.toInner(),to.toInner(),argBv,resNum);
+              res = TermList(theory->representConstant(resNum));
+              return true;
+      }
+      else //for bvand and such
+      {
+          TermList arg1Trm = *trm->nthArgument(0);
+          TermList arg2Trm = *trm->nthArgument(1);
+          BitVectorConstantType argBv1;
+          BitVectorConstantType argBv2;
+          if (!theory->tryInterpretConstant(arg1Trm, argBv1))
+          {
+             ASS(3==4);
+          }
+          if (!theory->tryInterpretConstant(arg2Trm, argBv2))
+          {
+             ASS(22==4);
+          }
+          // here check what operation is done... according to that determine the size 
+          cout<<"before actually calling concat "<<endl;
+          cout<<arg1Trm.toString()<<endl<<arg2Trm.toString()<<endl;
+          unsigned resSize = argBv1.size();
+          if (ssi == Theory::StructuredSortInterpretation::CONCAT)
+              resSize = argBv1.size() + argBv2.size();
+          BitVectorConstantType resNum(resSize);
+          
+          if (!tryEvaluateBinaryFunc(itp, argBv1, argBv2, resNum)) 
+          { 
+              return false;
+          }
+          
+          
+          res = TermList(theory->representConstant(resNum));
+          return true;
+          
+      }
+      return false; // hav to do representConstant in every if else branch  
+      
+      
+  }
+  // return BVCT representing one with the given size 
+  BitVectorConstantType getOne(unsigned size)
+  {
+      BitVectorConstantType res;
+      DArray<bool> resArray(size);
+      resArray[0] = true;
+      for (int i = 1 ; i<size;++i){
+          resArray[i] = false;
+      }
+      res.setBinArray(resArray);
+      return res;
+  }
+
+ 
+  
+  virtual bool tryEvaluateUnaryFunc(Interpretation op, const Value& arg, Value& res)
+  {
+      cout<<" in bitvecor eval"<<endl;
+      Theory::StructuredSortInterpretation ssi = theory->convertToStructured(op);
+      cout<<" in bitvecor eval"<<endl;
+      switch(ssi){
+          case Theory::StructuredSortInterpretation::BVNEG:
+              res.prepareBinArray(arg.size());
+              BitVectorConstantType::bvneg(arg, res);
+              return true;
+          case Theory::StructuredSortInterpretation::BVNOT:
+              res.prepareBinArray(arg.size());
+              BitVectorConstantType::bvnot(arg, res);
+              return true;
+          default:
+              USER_ERROR("Add here1");
+              return false;
+      }
+      
+  }
+
+  virtual bool tryEvaluateBinaryFunc(Interpretation op, const Value& arg1,
+      const Value& arg2, Value& res)
+  {
+     cout<<" in tryEvaluateBinaryFunc"<<endl;
+      Theory::StructuredSortInterpretation ssi = theory->convertToStructured(op);
+      cout<<" in btryEvaluateBinaryFunc"<<endl;
+      switch(ssi){
+          case Theory::StructuredSortInterpretation::BVADD:
+              res.prepareBinArray(arg1.size());
+              BitVectorConstantType::bvadd(arg1, arg2,res);
+              return true;
+          case Theory::StructuredSortInterpretation::BVSHL:
+              res.prepareBinArray(arg1.size());
+              BitVectorConstantType::bvshl(arg1, arg2,res);
+              return true;
+          case Theory::StructuredSortInterpretation::BVLSHR:
+              res.prepareBinArray(arg1.size());
+              BitVectorConstantType::bvlshr(arg1, arg2,res);
+              return true;
+          case Theory::StructuredSortInterpretation::BVASHR:
+              res.prepareBinArray(arg1.size());
+              BitVectorConstantType::bvashr(arg1, arg2,res);
+              return true;    
+          case Theory::StructuredSortInterpretation::BVSUB:
+              res.prepareBinArray(arg1.size());
+              BitVectorConstantType::bvsub(arg1, arg2,res);
+              return true;
+         /* case Theory::StructuredSortInterpretation::BVUDIV:
+              res.prepareBinArray(arg1.size());
+              BitVectorConstantType::bvudiv(arg1, arg2,res);
+              return true; */ 
+           case Theory::StructuredSortInterpretation::BVCOMP:
+              res.prepareBinArray(1);
+              BitVectorConstantType::bvcomp(arg1, arg2,res);
+              return true; 
+           case Theory::StructuredSortInterpretation::CONCAT:
+              //res.prepareBinArray(1);
+              BitVectorConstantType::concat(arg1, arg2,res);
+              return true;   
+          default:
+              USER_ERROR("Add here"); // remove this
+              return false;
+      }
+  }
+
+  
+  virtual bool tryEvaluateBinaryPred(Interpretation op, const Value& arg1,
+      const Value& arg2, bool& res)
+  {
+      cout<<" tryEvaluateBinaryPred"<<endl;
+      Theory::StructuredSortInterpretation ssi = theory->convertToStructured(op);
+      cout<<" tryEvaluateBinaryPred"<<endl;
+      //switch(ssi){
+         // case Theory::StructuredSortInterpretation::BVUGT:
+      if (ssi==Theory::StructuredSortInterpretation::BVUGE)
+      {       
+             BitVectorConstantType::bvuge(arg1, arg2,res);
+            
+             return true;
+      }
+      else if (ssi==Theory::StructuredSortInterpretation::BVUGT)
+      {       
+             BitVectorConstantType::bvugt(arg1, arg2,res);
+             return true;
+      }
+      
+      USER_ERROR("Add here2");
+      return false;
+      
+  }
+    
+};
+
+
 ////////////////////////////////
 // InterpretedLiteralEvaluator
 //
@@ -788,7 +1036,8 @@ InterpretedLiteralEvaluator::InterpretedLiteralEvaluator()
   _evals.push(new RealEvaluator());
   _evals.push(new ConversionEvaluator());
   _evals.push(new EqualityEvaluator());
-
+  _evals.push(new BitVectorEvaluator());
+  
   _funEvaluators.ensure(0);
   _predEvaluators.ensure(0);
 
@@ -866,7 +1115,7 @@ bool InterpretedLiteralEvaluator::balance(Literal* lit,Literal*& resLit,Stack<Li
   CALL("InterpretedLiteralEvaluator::balance");
   ASS(balancable(lit));
 
-  //cout << "try balance " << lit->toString() << endl;
+  cout << "try balance " << lit->toString() << endl;
 
   ASS(theory->isInterpretedPredicate(lit->functor()));
 
@@ -1133,7 +1382,7 @@ bool InterpretedLiteralEvaluator::evaluate(Literal* lit, bool& isConstant, Liter
 {
   CALL("InterpretedLiteralEvaluator::evaluate");
 
-  //cout << "evaluate " << lit->toString() << endl;
+  cout << "evaluate " << lit->toString() << endl;
 
   // This tries to transform each subterm using tryEvaluateFunc (see transform Subterm below)
   resLit = TermTransformer::transform(lit);
@@ -1218,7 +1467,8 @@ InterpretedLiteralEvaluator::Evaluator* InterpretedLiteralEvaluator::getFuncEval
 	  Evaluator* ev = evit.next();
 	  if (ev->canEvaluateFunc(i)) {
 	    ASS_EQ(_funEvaluators[i], 0); //we should have only one evaluator for each function
-	    _funEvaluators[i] = ev;
+	    cout<<"okay?";
+            _funEvaluators[i] = ev;
 	  }
 	}
     }

@@ -5,7 +5,7 @@
 namespace Kernel{
 
 
-
+    
 vstring BitVectorOperations::boolArraytoString(const DArray<bool>& in){
     vstring out = "";
     for (unsigned i = 0; i < in.size(); ++ i)

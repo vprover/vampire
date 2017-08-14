@@ -379,7 +379,7 @@ private:
 
   /** inequality translators at positions of their predicate numbers */
   DArray<ScopedPtr<IneqTranslator> > _ineqTransls;
-  /** inequality translators at positions of their predicate numbers */
+  /** inequality translators at positions of their predicate numbers */ 
   DArray<ScopedPtr<FunctionTranslator> > _fnTransfs;
 };
 

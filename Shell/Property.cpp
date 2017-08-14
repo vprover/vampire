@@ -71,7 +71,7 @@ Property::Property()
     _smtlibLogic(SMTLIBLogic::SMT_UNDEFINED)
 {
   //TODO now MaxInterpretedElement is stateful this might be in the wrong place
- // _interpretationPresence.init(Theory::instance()->numberOfInterpretations()+1, false);
+ // _interpretationPresence.init(Theory::instance()->numberOfInterpretations()+1, false); 
     _interpretationPresence.init(Theory::instance()->MaxInterpretedElement()+1, false); // changing the above line to the current line did the trick for the float benchmakrs 
   env.property = this;
 } // Property::Property

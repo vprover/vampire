@@ -48,7 +48,7 @@ void ConsequenceFinder::onNewPropositionalClause(Clause* cl)
   CALL("ConsequenceFinder::onNewPropositionalClause");
 
   TimeCounter tc(TC_CONSEQUENCE_FINDING);
-
+  
   //remove duplicate literals (necessary for tautology deletion)
   Clause* dlrCl=_dlr.simplify(cl);
 

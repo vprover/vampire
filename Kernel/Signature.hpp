@@ -170,6 +170,9 @@ class Signature
     inline bool interpretedNumber() const
     { return integerConstant() || rationalConstant() || realConstant(); }
     
+    /** Return value of a bitvector constant */
+    inline BitVectorConstantType bitVectorValue() const
+    { ASS(bitVectorConstant()); return static_cast<const BitVectorSymbol*>(this)->_theBv; }
     /** Return value of an integer constant */
     inline IntegerConstantType integerValue() const
     { ASS(integerConstant()); return static_cast<const IntegerSymbol*>(this)->_intValue; }

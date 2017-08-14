@@ -35,7 +35,8 @@ protected:
   class IntEvaluator;
   class RatEvaluator;
   class RealEvaluator;
-
+  class BitVectorEvaluator;
+  
   typedef Stack<Evaluator*> EvalStack;
   virtual TermList transformSubterm(TermList trm);
   Evaluator* getFuncEvaluator(unsigned func);

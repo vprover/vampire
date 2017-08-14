@@ -29,12 +29,12 @@ using namespace Lib;
 // IntegerConstantType
 //
 
-BitVectorConstantType::BitVectorConstantType(DArray<bool> binArray)
+/*BitVectorConstantType::BitVectorConstantType(const DArray<bool> binArray)
 {
     CALL("BitVectorConstantType::BitVectorConstantType(vstring, vstring)");
     setBinArray(binArray);
     sortB = env.sorts->addBitVectorSort(binArray.size());
-}
+}*/
 
 
 IntegerConstantType::IntegerConstantType(const vstring& str)
@@ -214,6 +214,48 @@ vstring BitVectorConstantType::toString() const
     CALL("BitVectorConstantType::toString");
     //BitVectorOperations::printBoolArrayContent(binArray);
     return "bv" + BitVectorOperations::boolArraytoString(binArray);
+}
+bool BitVectorConstantType::operator==(const BitVectorConstantType& num) const
+{
+  CALL("BitVectorConstantType::operator==");
+  cout<<" bitvec == operator called "<<endl;
+  DArray<bool> other = num.getBinArray();
+  
+  for (int i = 0 ; i < binArray.size();++i){
+      cout<<binArray[i];
+  }
+  cout<<endl;
+  for (int i = 0 ; i < other.size();++i){
+      cout<<other[i];
+  }
+  cout<<endl;
+  
+  for (int i = 0 ; i < other.size() ; ++i)
+  {
+      if (binArray[i]!=other[i]){
+          cout<<binArray[i]<<" "<<other[i];
+          cout<<"returning false";
+          return false;
+      }
+  }
+  return true;
+}
+
+bool BitVectorConstantType::operator!=(const BitVectorConstantType& num) const
+{
+  CALL("BitVectorConstantType::operator!=");
+  cout<<" bitvec != operator called ";
+  DArray<bool> other = num.getBinArray();
+  for (int i = 0 ; i < other.size() ; ++i)
+  {
+      if (binArray[i]!=other[i]){
+          cout<<binArray[i]<<" "<<other[i];
+          cout<<"returning false";
+          return true;
+      }
+  }
+  return false;
+  
 }
 
 ///////////////////////
@@ -1585,8 +1627,8 @@ BaseType* Theory::getStructuredSortOperationType(Interpretation i) {
             case StructuredSortInterpretation::BVUGE:
             case StructuredSortInterpretation::BVSLE:
             case StructuredSortInterpretation::BVSGT:
-            case StructuredSortInterpretation::BVSGE:    
-                return new PredicateType({theorySort,sortt});
+            case StructuredSortInterpretation::BVSGE:
+                return new PredicateType({theorySort,sortt});           
             case StructuredSortInterpretation::BVAND:
             case StructuredSortInterpretation::BVLSHR:
             case StructuredSortInterpretation::BVADD:
@@ -1603,7 +1645,7 @@ BaseType* Theory::getStructuredSortOperationType(Interpretation i) {
             case StructuredSortInterpretation::BVSDIV:
             case StructuredSortInterpretation::BVSREM:
             case StructuredSortInterpretation::BVSMOD:
-            case StructuredSortInterpretation::BVASHR:   
+            case StructuredSortInterpretation::BVASHR:
                 return new FunctionType({ sortt, sortt}, sortt);
             case StructuredSortInterpretation::BVNEG:
             case StructuredSortInterpretation::BVNOT:
@@ -1906,6 +1948,23 @@ Interpretation Theory::interpretPredicate(Literal* lit)
   return interpretPredicate(lit->functor());
 }
 
+bool Theory::tryInterpretConstant(const Term* t, BitVectorConstantType& res)
+{
+    CALL("Theory::tryInterpretConstant(Term*,BitVectorConstantType)");
+
+    if (t->arity() != 0 || t->isSpecial()) {
+      return false;
+    }
+    unsigned func = t->functor();
+    Signature::Symbol* sym = env.signature->getFunction(func);
+    if (!sym->bitVectorConstant()) {  
+      return false;
+    }
+    
+    res.setBinArray(sym->bitVectorValue().getBinArray());
+    return true;
+}
+
 /**
  * Try to interpret the term as an integer constant. If it is an
  * integer constant, return true and save the constant in @c res, otherwise
@@ -1974,6 +2033,14 @@ bool Theory::tryInterpretConstant(const Term* t, RealConstantType& res)
   res = sym->realValue();
   return true;
 } // // Theory::tryInterpretConstant
+
+Term* Theory::representConstant(const BitVectorConstantType& num)
+{
+  CALL("Theory::representConstant(const IntegerConstantType&)");
+
+  unsigned func = env.signature->addBitVectorConstant(num);
+  return Term::create(func, 0, 0);
+}
 
 Term* Theory::representConstant(const IntegerConstantType& num)
 {
