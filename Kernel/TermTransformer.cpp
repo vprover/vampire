@@ -19,7 +19,6 @@ namespace Kernel
 Term* TermTransformer::transform(Term* term)
 {
   CALL("TermTransformer::transform(Term* term)");
-  cout<<"oOo !";
 
   if (term->isSpecial()) {
     return transformSpecial(term);
@@ -129,7 +128,7 @@ Term* TermTransformer::transform(Term* term)
 Literal* TermTransformer::transform(Literal* lit)
 {
   CALL("TermTransformer::transform(Literal* lit)");
-  cout<<"from here"<<endl;
+  
   Term* t = transform(static_cast<Term*>(lit));
   ASS(t->isLiteral());
   return static_cast<Literal*>(t);
@@ -139,8 +138,7 @@ Term* TermTransformer::transformSpecial(Term* term)
 {
   CALL("TermTransformer::transformSpecial(Term* term)");
   ASS(term->isSpecial());
-  cout<<"TermTransformer::transformSpecial(Term* term)";
-  cout<<endl<<term->toString()<<endl;
+  
   Term::SpecialTermData* sd = term->getSpecialData();
   switch (sd->getType()) {
     case Term::SF_ITE: {
@@ -186,7 +184,7 @@ Term* TermTransformer::transformSpecial(Term* term)
 TermList TermTransformer::transform(TermList ts)
 {
   CALL("TermTransformer::transform(TermList ts)");
-  cout<<"from here 2!"; 
+   
   if (ts.isVar()) {
     return transformSubterm(ts);
   } else {

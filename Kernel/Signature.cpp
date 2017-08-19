@@ -362,9 +362,6 @@ unsigned Signature::addBitVectorConstant(const BitVectorConstantType& value)
     DArray<bool> t = value.getBinArray();
     vstring forKey = BitVectorOperations::boolArraytoString(t); 
     
-    cout<<endl<<" adding bitvec constant! "<<forKey<<endl;
-    
-    
     key = Int::toString(value.size()) + "_" + forKey + "_bv";
     unsigned result;
     if (_funNames.find(key, result)){
@@ -378,8 +375,6 @@ unsigned Signature::addBitVectorConstant(const BitVectorConstantType& value)
     _funs.push(sym);
     _funNames.insert(key, result);
      // here use the sort of bvonstanttype to look for the distinct group number in a hashmap
-    cout<<" is this relevant still?"<<endl;
-    cout<<value.toString()<<" checking toString";
     unsigned bvSort = value.getSortOld();
     if (!bitVector_D_G_map.find(bvSort))
     {

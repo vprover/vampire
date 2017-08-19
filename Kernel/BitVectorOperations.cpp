@@ -5,6 +5,133 @@
 namespace Kernel{
 
 
+
+
+//static bool map[][bool] = {zero, one,fifteen};
+static DHMap<char, BitVectorConstantType> map;
+
+
+void BitVectorOperations::createHashmap()
+{
+    static bool zero[] = {false}; // 0 
+    static bool one[] = {true}; // 1
+    static bool two[] = {false, true}; // 01
+    static bool three[] = {true, true}; // 11
+    static bool four[] = {false, false, true}; // 001
+    static bool five[] = {true, false, true}; // 101
+    static bool six[] = {false, true, true}; // 011
+    static bool seven[] = {true, true, true}; // 111
+    static bool eight[] = {false, false, false, true}; // 0001
+    static bool nine[] = {true, false, false, true}; // 1001
+    static bool ten[] = {false, true, false, true}; // 0101
+    static bool eleven[] = {true, true, false, true}; // 1101
+    static bool twelve[] = {false, false, true, true}; // 0011
+    static bool thirteen[] = {true, false, true, true}; // 1011
+    static bool fourteen[] = {false, true, true, true}; // 0111
+    static bool fifteen[] = {true, true, true, true}; // 1111
+
+    // zero
+    DArray<bool> toAdd;
+    toAdd.initFromArray(1,zero);
+    BitVectorConstantType bvToAdd(toAdd);
+    map.insert('0',bvToAdd);
+    
+    // one
+    toAdd.initFromArray(1,one);
+    bvToAdd.setBinArray(toAdd);
+    map.insert('1',bvToAdd);
+    
+    //two
+    toAdd.initFromArray(2,two);
+    bvToAdd.setBinArray(toAdd);
+    map.insert('2',bvToAdd);
+    
+    //three
+    toAdd.initFromArray(2,three);
+    bvToAdd.setBinArray(toAdd);
+    map.insert('3',bvToAdd);
+    
+    //four
+    toAdd.initFromArray(3,four);
+    bvToAdd.setBinArray(toAdd);
+    map.insert('4',bvToAdd);
+    
+    //five
+    toAdd.initFromArray(3,five);
+    bvToAdd.setBinArray(toAdd);
+    map.insert('5',bvToAdd);
+    
+    //six
+    toAdd.initFromArray(3,six);
+    bvToAdd.setBinArray(toAdd);
+    map.insert('6',bvToAdd);
+    
+    //seven
+    toAdd.initFromArray(3,seven);
+    bvToAdd.setBinArray(toAdd);
+    map.insert('7',bvToAdd);
+    
+    //eight
+    toAdd.initFromArray(4,eight);
+    bvToAdd.setBinArray(toAdd);
+    map.insert('8',bvToAdd);
+    
+    //nine
+    toAdd.initFromArray(4,nine);
+    bvToAdd.setBinArray(toAdd);
+    map.insert('9',bvToAdd);
+    
+    // 10 = 'a'
+    toAdd.initFromArray(4,ten);
+    bvToAdd.setBinArray(toAdd);
+    map.insert('a',bvToAdd);
+    
+    // 11 = 'b'
+    toAdd.initFromArray(4,eleven);
+    bvToAdd.setBinArray(toAdd);
+    map.insert('b',bvToAdd);
+    
+    // 12 = 'c'
+    toAdd.initFromArray(4,twelve);
+    bvToAdd.setBinArray(toAdd);
+    map.insert('c',bvToAdd);
+    
+    // 13 = 'd'
+    toAdd.initFromArray(4,thirteen);
+    bvToAdd.setBinArray(toAdd);
+    map.insert('d',bvToAdd);
+    
+    // 14 = 'e'
+    toAdd.initFromArray(4,fourteen);
+    bvToAdd.setBinArray(toAdd);
+    map.insert('e',bvToAdd);
+    
+    // 15 = 'f'
+    toAdd.initFromArray(4,fifteen);
+    bvToAdd.setBinArray(toAdd);
+    map.insert('f',bvToAdd);
+    
+}
+
+
+
+BitVectorConstantType BitVectorOperations::getBVCTFromDec(char n, unsigned size)
+{
+    
+    BitVectorConstantType bvct = map.get(n);
+    BitVectorConstantType res(size);
+    unsigned i = 0 ;
+    
+    for (; i < size && i<bvct.size(); ++ i){
+        res.setValueAt(i,bvct.getValueAt(i));
+    
+    }
+    for ( ; i < size; ++ i){
+        res.setValueAt(i,false);
+    
+    }
+    return res;
+}
     
 vstring BitVectorOperations::boolArraytoString(const DArray<bool>& in){
     vstring out = "";
@@ -19,7 +146,7 @@ vstring BitVectorOperations::boolArraytoString(const DArray<bool>& in){
     return out;
 }
 
-BitVectorConstantType BitVectorOperations::getBVCTFromVString(vstring& numberToRepresent, unsigned size)
+/*BitVectorConstantType BitVectorOperations::getBVCTFromVString(vstring& numberToRepresent, unsigned size)
 {
     char initialChar = numberToRepresent[0];
     
@@ -45,9 +172,30 @@ BitVectorConstantType BitVectorOperations::getBVCTFromVString(vstring& numberToR
     //cout<<"result of multiplication is "<<endl;
     //printBoolArrayContent(initialBoolArray.getBinArray());
     return initialBoolArray;
-}
+}*/
  
- 
+BitVectorConstantType BitVectorOperations::getBVCTFromVString(vstring& numberToRepresent, unsigned size)
+{
+    
+    char initialChar = numberToRepresent[0];
+    
+    BitVectorConstantType initialBoolArray = getBVCTFromDec(initialChar,size);
+    BitVectorConstantType binArrayTen = getBVCTFromDec('a',size);
+    BitVectorConstantType sum(initialBoolArray.getBinArray());
+    char c;
+    BitVectorConstantType toAddPadded; 
+    
+    for(unsigned int i = 1; i<numberToRepresent.length(); i++) {
+        multBVCTs(sum,binArrayTen,sum);
+        c = numberToRepresent[i]; 
+        toAddPadded = getBVCTFromDec(c,size);
+        addBVCTs(sum,toAddPadded,sum);
+        
+    }
+    //cout<<"getBVCTFromVString:"<<endl;
+    //printBoolArrayContent(sum.getBinArray());
+    return sum;
+} 
 
 BitVectorConstantType BitVectorOperations::fitBVCTIntoBits(BitVectorConstantType input, unsigned size)
 {
@@ -59,7 +207,7 @@ BitVectorConstantType BitVectorOperations::fitBVCTIntoBits(BitVectorConstantType
         BitVectorConstantType result = padBVCT(input, size);
         return result;
     }
-    else if (input.size()>size)
+    else 
     {
         BitVectorConstantType result = truncate(input, size);
         return result;
@@ -101,7 +249,7 @@ BitVectorConstantType BitVectorOperations::truncate(BitVectorConstantType in, un
     return r;
 }
 
-BitVectorConstantType BitVectorOperations::getBVCTFromDec(char n)
+/*BitVectorConstantType BitVectorOperations::getBVCTFromDec(char n)
 {
     
     switch(n){
@@ -224,15 +372,36 @@ BitVectorConstantType BitVectorOperations::getBVCTFromDec(char n)
             BitVectorConstantType res(fifteenArr);
             return res;
         }
+        default:
+            throw Exception("between 0 and 15");
         
     }
 
-}
+}*/
 
+// this function is now assuming a1 and result are/can be the same 
 // a1 and a2 have to be same length, result also has to be of same length  
-bool BitVectorOperations::addBinArrays(const DArray<bool>& a1, const DArray<bool>& a2, DArray<bool> &result)
+bool BitVectorOperations::addBVCTs(BitVectorConstantType& a1, BitVectorConstantType& a2, BitVectorConstantType& result)
 {
-    ASS(!(a1.size()!= a2.size() || a2.size()!= result.size()));
+    ASS_EQ(a1.size(),a2.size());
+    ASS_EQ(a2.size(),result.size());
+   
+    bool carry = false;
+    for (int i = 0, j = a1.size() - 1 ; i < a1.size() ; ++ i, --j )
+    {
+        bool old = a1.getValueAt(i);
+        bool val = a1.getValueAt(i)^a2.getValueAt(i)^carry;
+        //cout<<"i: "<<i<<" a1[i]: "<<a1.getValueAt(i)<<" a2[i]: "<<a2.getValueAt(i)<<" and val is "<<val<<endl;
+        result.setValueAt(i,val);
+        carry = ((old && carry && !a2.getValueAt(i)) || (a2.getValueAt(i) && carry && !old) || (a2.getValueAt(i) && !carry && old) ||(a2.getValueAt(i) && carry && old));
+    }
+    
+    return carry;
+}
+/*bool BitVectorOperations::addBinArrays(const DArray<bool>& a1, const DArray<bool>& a2, DArray<bool> &result)
+{
+    ASS_EQ(a1.size(),a2.size());
+    ASS_EQ(a2.size(),result.size());
    
     bool carry = false;
     for (int i = 0, j = a1.size() - 1 ; i < a1.size() ; ++ i, --j )
@@ -247,34 +416,35 @@ bool BitVectorOperations::addBinArrays(const DArray<bool>& a1, const DArray<bool
     }
     
     return carry;
-}
-
-BitVectorConstantType BitVectorOperations::multBVCTs(BitVectorConstantType in1, BitVectorConstantType in2)
+}*/
+void BitVectorOperations::multBVCTs(BitVectorConstantType& in1, BitVectorConstantType& in2, BitVectorConstantType& res)
 {
+    ASS_EQ(in1.size(),in2.size());
+    ASS_EQ(in2.size(),res.size());
+
     DArray<bool> a1 = in1.getBinArray();
     DArray<bool> a2 = in2.getBinArray();
-    DArray<bool> previousToAdd(a1.size());
+    BitVectorConstantType sum(in1.size());
     
+    DArray<bool> curr;
+    BitVectorConstantType toAdd;
     for (int i = 0, j = a1.size()-1 ; i < a1.size() ; ++ i,--j )
     {
         if (a1[i] == true)
         {
-            DArray<bool> curr = shiftLeft(a2,i);
-             DArray<bool> sum(curr.size());
-            addBinArrays(previousToAdd,curr,sum);
-            previousToAdd.initFromArray(sum.size(),sum);
+            toAdd= shiftLeft(a2,i);
+            addBVCTs(sum,toAdd,sum);
         }
     }
     
-    BitVectorConstantType res(previousToAdd);
-    return res;
+    res.setBinArray(sum.getBinArray());
 }   
 
 
-DArray<bool> BitVectorOperations::shiftLeft(DArray<bool> input, unsigned shiftByNum)
+BitVectorConstantType BitVectorOperations::shiftLeft(DArray<bool>& input, unsigned shiftByNum)
 {
     DArray<bool> res(input.size());
-    
+    BitVectorConstantType result;
     unsigned k;
     for (k = 0 ; k < shiftByNum ; ++k){
         res[k] = false;
@@ -283,8 +453,8 @@ DArray<bool> BitVectorOperations::shiftLeft(DArray<bool> input, unsigned shiftBy
     for (unsigned i = 0 ; k< input.size(); ++k, ++i){
         res[k] = input[i];
     }
-    
-    return res;
+    result.setBinArray(res);
+    return result;
 }
 
 void BitVectorOperations::printBoolArrayContent(DArray<bool> array)

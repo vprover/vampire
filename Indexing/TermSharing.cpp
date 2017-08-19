@@ -118,12 +118,9 @@ Term* TermSharing::insert(Term* t)
       
     t->setInterpretedConstantsPresence(hasInterpretedConstants);
     _totalTerms++;
-    cout<<"term to string is "<< t->toString(); 
-    cout<<endl<<"arguments: "<<endl<<t->args()->toString();
     //cout<<endl<<"arguments size : "<<endl<<t->args()->content();
     ASS_REP(SortHelper::areImmediateSortsValid(t), t->toString());
     if (!SortHelper::areImmediateSortsValid(t)){
-        cout<<endl<<"isfromhere0"<<endl;
       USER_ERROR("Immediate (shared) subterms of  term/literal "+t->toString()+" have different types/not well-typed!");
     }
   }
@@ -201,7 +198,6 @@ Literal* TermSharing::insert(Literal* t)
     _totalLiterals++;
     
     if (!SortHelper::areImmediateSortsValid(t)){
-        cout<<endl<<"isfromhere1"<<endl;
       USER_ERROR("Immediate (shared) subterms of  term/literal "+t->toString()+" have different types/not well-typed!");
     }
   }

@@ -299,14 +299,14 @@ int getIntValueFromHex(char in)
     }
 }
 
- DArray<bool> getBoolArrayFromString(vstring& input)
+ BitVectorConstantType getBVCTFromString(vstring& input)
  {
-    DArray<bool> result(input.length());
+    BitVectorConstantType result(input.length());
     for (int j = 0, i = input.length()-1; i>=0;--i, ++j){
         if (input.at(j) == '0')
-            result[i] = false;
+            result.setValueAt(i,false);
         else if (input.at(j) == '1')
-            result[i] = true;
+            result.setValueAt(i,true);
         else
             USER_ERROR("Zero or ones expected");
         

@@ -68,15 +68,15 @@ void SMTLIB2::parse(LExpr* bench)
   CALL("SMTLIB2::parse(LExpr*)");
 
   ASS(bench->isList());
+  BitVectorOperations::createHashmap();
   readBenchmark(bench->list);
-  cout<<endl<<"benchmark has been read / parsing terminated"<<endl;
 }
 
 void SMTLIB2::readBenchmark(LExprList* bench)
 {
   CALL("SMTLIB2::readBenchmark");
   LispListReader bRdr(bench);
-    
+   
   // iteration over benchmark top level entries
   while(bRdr.hasNext()){
     LExpr* lexp = bRdr.next();
@@ -350,15 +350,14 @@ void SMTLIB2::readLogic(const vstring& logicStr)
     _numeralsAreReal = true;
     break;
 
-  // we don't support bit vectors
+  
   case SMT_QF_BV:
-      break;
   case SMT_BV:
   case SMT_QF_ABV:
   case SMT_QF_AUFBV:
   case SMT_QF_UFBV:
-  case SMT_UFBV:
-    USER_ERROR("unsupported logic "+logicStr);
+  case SMT_UFBV:    
+      break;
   default:
     USER_ERROR("unrecognized logic "+logicStr);
   }
@@ -618,19 +617,22 @@ unsigned SMTLIB2::declareSort(LExpr* sExpr)
           ASS_EQ(bs,BS_INVALID);
       }
       // special handling of bitvectors
-      if (std::stoi(id.c_str())){
-        bitVecSize = std::stoi(id.c_str());
-        cur = todo.pop();
-        if (getBuiltInSortFromString(cur.second->str) != BS_BITVECTOR)
-            goto malformed;
-        cur = todo.pop();
-        if (cur.second->str == "_"){
-            unsigned temp = env.sorts->addBitVectorSort(bitVecSize);
+       
+      if (!Int::stringToInt(id.c_str(),bitVecSize))
+      {
+          goto malformed;
+      }
+      cur = todo.pop();
+      if (getBuiltInSortFromString(cur.second->str) != BS_BITVECTOR)
+          goto malformed;
+      cur = todo.pop();
+      if (cur.second->str == "_"){
+            //unsigned temp = env.sorts->addBitVectorSort(bitVecSize);
             results.push(env.sorts->addBitVectorSort(bitVecSize));
             continue;
-        }
-        goto malformed;
-      }
+       }
+       goto malformed;
+      
         
       USER_ERROR("Unrecognized sort identifier "+id);
     }
@@ -1438,19 +1440,19 @@ void SMTLIB2::parseUnderScoredExpression(LExpr* exp)
     vstring bvpart = wholeBvPart.substr(0,2);
     if (bvpart!= "bv")
         USER_ERROR("BV ERROR bv expected ");
-    vstring numberPart = wholeBvPart.substr(2);
-    int actualNumber;
-    Int::stringToInt(numberPart,actualNumber);
-    ex = lRdr.readNext();
-                   
-    unsigned size;
-    Int::stringToUnsignedInt(ex->str, size);
     
-    unsigned symb = TPTP::addBitVectorConstant(BitVectorOperations::getBVCTFromVString(numberPart, size)); // fixed this to use arg instead of argpadded
+    vstring numberPart = wholeBvPart.substr(2);
+    unsigned actualNumber;
+    ASS(Int::stringToUnsignedInt(numberPart,actualNumber));
+    
+    ex = lRdr.readNext();
+    unsigned size;
+    ASS(Int::stringToUnsignedInt(ex->str, size));
+    
+    unsigned symb = TPTP::addBitVectorConstant(BitVectorOperations::getBVCTFromVString(numberPart, size));
     TermList res = TermList(Term::createConstant(symb));
-    int hey;
-    Int::stringToInt(ex->str, hey);
-    _results.push(ParseResult(env.sorts->addBitVectorSort(hey),res));
+  
+    _results.push(ParseResult(env.sorts->addBitVectorSort(size),res));
 }
 
 
@@ -1523,41 +1525,31 @@ bool SMTLIB2::parseAsBitVectorConstant(const vstring& id)
     CALL("SMTLIB2::parseAsBitVectorConstant");
     vstring hexSlashBin = id.substr(0,2);
     
-    unsigned multiplier = 1;
-     
     if (hexSlashBin == "#x" || hexSlashBin =="#b")
     {    
         vstring bvContent = id.substr(2);
-        int bvContentSize = bvContent.length();
+        unsigned bvContentSize = bvContent.length();
         if (hexSlashBin == "#x")
         {
-            multiplier = 4;
-            DArray<char> testing = getHexArrayFromString(bvContent);
             
-            int resultSize = multiplier * bvContentSize;
-            vstring resultSizeVstring = Int::toString(resultSize);
-            vstring vstringNumToRepresent = Int::toString(getNumberFromHexArray(testing));
+            DArray<char> hexCharArray = getHexArrayFromString(bvContent);
             
-            unsigned resultSort = env.sorts->addBitVectorSort(resultSize);
+            bvContentSize = 4 * bvContentSize;
+            unsigned resultSort = env.sorts->addBitVectorSort(bvContentSize);
 
-            DArray<bool> theBinArray(testing.size()*4);
-            
+            BitVectorConstantType addThis(bvContentSize);
             
             unsigned kay = 0;
-            //for (int i = 0 ; i < testing.size();++i)
-            for (int i = testing.size()-1 ; i >= 0;--i)
+            
+            for (int i = hexCharArray.size()-1 ; i >= 0;--i)
             {
                 
-                BitVectorConstantType tempo = BitVectorOperations::getBVCTFromDec(testing[i]);
-                DArray<bool> theHexInBinary = tempo.getBinArray();
-                
-                
-                for (int k = 0; k < 4; ++k,++kay){
-                    theBinArray[kay] = theHexInBinary[k];
+                BitVectorConstantType theHexInBinary = BitVectorOperations::getBVCTFromDec(hexCharArray[i],4);
+                for (unsigned k = 0; k < 4; ++k,++kay){
+                    addThis.setValueAt(kay, theHexInBinary.getValueAt(k));
                 }
                    
             }
-            BitVectorConstantType addThis(theBinArray);
             unsigned symb = TPTP::addBitVectorConstant(addThis); 
             TermList res = TermList(Term::createConstant(symb));
             _results.push(ParseResult(resultSort,res)); 
@@ -1566,16 +1558,11 @@ bool SMTLIB2::parseAsBitVectorConstant(const vstring& id)
         else if(hexSlashBin == "#b")
         {
             
-            int resultSize = multiplier * bvContentSize;
-            vstring resultSizeVstring = Int::toString(resultSize);
-
-            
-            DArray<bool> testing = getBoolArrayFromString(bvContent);
-            vstring vstringNumToRepresent = Int::toString(getNumberFromBoolArray(testing));
-        
-            unsigned resultSort = env.sorts->addBitVectorSort(resultSize);
-            BitVectorConstantType addThis(testing);
+            //unsigned resultSize = multiplier * bvContentSize;
+            BitVectorConstantType addThis= getBVCTFromString(bvContent);
+            unsigned resultSort = env.sorts->addBitVectorSort(bvContentSize);
             unsigned symb = TPTP::addBitVectorConstant(addThis);
+            
             TermList res = TermList(Term::createConstant(symb));
             _results.push(ParseResult(resultSort,res)); 
             return true;
@@ -1598,10 +1585,7 @@ bool SMTLIB2::parseAsSpecConstant(const vstring& id)
     unsigned symb = TPTP::addIntegerConstant(id,_overflow,false);
     TermList res = TermList(Term::createConstant(symb));
     _results.push(ParseResult(Sorts::SRT_INTEGER,res));
-    TermList test ;
     
-    unsigned bvSortIdx1 = _results.pop().asTerm(test);
-    _results.push(ParseResult(Sorts::SRT_INTEGER,res));
     return true;
   }
 
@@ -1776,7 +1760,6 @@ bool SMTLIB2::parseAsBuiltinFormulaSymbol(const vstring& id, LExpr* exp)
         if (!env.sorts->hasStructuredSort(bvSortIdx1,Sorts::StructuredSort::BITVECTOR)) {
           complainAboutArgShortageOrWrongSorts(BUILT_IN_SYMBOL,exp);
         }
-        Sorts::BitVectorSort* bvSort1 = env.sorts->getBitVectorSort(bvSortIdx1);
         
         TermList secondBv;
         if (_results.isEmpty() || _results.top().isSeparator() ||
@@ -2145,11 +2128,8 @@ bool SMTLIB2::parseAsBuiltinTermSymbol(const vstring& id, LExpr* exp)
         
     
     }
-    //case TS_BVAND: // this one
-    //case TS_BVADD: // this one 
+     
     case TS_BVSHL:
-    //case TS_BVOR: // this one 
-    //case TS_BVMUL: // this one AND bvxnor
     case TS_BVUDIV:
     case TS_BVUREM:
     case TS_BVLSHR:
