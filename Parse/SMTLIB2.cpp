@@ -1442,8 +1442,8 @@ void SMTLIB2::parseUnderScoredExpression(LExpr* exp)
         USER_ERROR("BV ERROR bv expected ");
     
     vstring numberPart = wholeBvPart.substr(2);
-    unsigned actualNumber;
-    ASS(Int::stringToUnsignedInt(numberPart,actualNumber));
+    
+    ASS(StringUtils::isPositiveInteger(numberPart));
     
     ex = lRdr.readNext();
     unsigned size;

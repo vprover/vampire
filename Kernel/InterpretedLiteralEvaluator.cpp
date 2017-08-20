@@ -1007,7 +1007,9 @@ class InterpretedLiteralEvaluator::BitVectorEvaluator : public TypedEvaluator<Bi
            case Theory::StructuredSortInterpretation::CONCAT:
               BitVectorConstantType::concat(arg1, arg2,res);
               return true;
-              
+           case Theory::StructuredSortInterpretation::BVMUL:
+              BitVectorConstantType::bvmul(arg1, arg2,res);
+              return true;   
           default:
               USER_ERROR("Add here"); // remove this
               return false;

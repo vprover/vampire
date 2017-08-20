@@ -151,71 +151,89 @@ class BitVectorConstantType{
        setBinArray(o.getBinArray());
        return static_cast<BitVectorConstantType&>(*this);
     }
+    bool operator==(const BitVectorConstantType& num) const;
+    bool operator!=(const BitVectorConstantType& num) const;
    ///////////////////////////
     ///////////////////////////
     /////////////////////////// 
    /////////////////////////// START FUNCTIONS TO BE MOVED
-    static DArray<bool> shiftLeft(DArray<bool> input, unsigned shiftByNum)
-    {
-        DArray<bool> res(input.size());
-        unsigned k;
-        
-        for (k = 0 ; k < shiftByNum ; ++k){
-            res[k] = false;
-        }
-
-        for (unsigned i = 0 ; k< input.size(); ++k, ++i){
-            res[k] = input[i];
-        }
-        return res;
-    }
-    
-    static DArray<bool> shiftRight(DArray<bool> input, unsigned shiftByNum)
-    {
-        DArray<bool> res(input.size());
-        int j = input.size()-1;
-        for(int i = 0; i < shiftByNum; ++i, --j){
-            res[j] = false;
-        }
-        for (int i = 0, other = input.size()-1; i < input.size() - shiftByNum ; ++i,--j,--other){
-            res[j] = input[other];
-        }
-        return res;
-        
-    }
-    
-    static DArray<bool> aithmeticShiftRight(DArray<bool> input, unsigned shiftByNum)
-    {
-        DArray<bool> res(input.size());
-        int j = input.size()-1;
-        for(int i = 0; i < shiftByNum; ++i, --j){
-            res[j] = input[input.size()-1];
-        }
-        for (int i = 0, other = input.size()-1; i < input.size() - shiftByNum ; ++i,--j,--other){
-            res[j] = input[other];
-        }
-        return res;
-        
-    }
-    
+ 
+    // this function is now assuming a1 and result are/can be the same - this is how it differs from bvadd
     // a1 and a2 have to be same length, result also has to be of same length  
-    static bool addBinArrays(const DArray<bool>& a1, const DArray<bool>& a2, DArray<bool> &result)
+    //TODO: change to use only single BVCT
+    static bool addBVCTs(BitVectorConstantType& a1, BitVectorConstantType& a2, BitVectorConstantType& result)
     {
-        ASS(!(a1.size()!= a2.size() || a2.size()!= result.size()));
+        ASS_EQ(a1.size(),a2.size());
+        ASS_EQ(a2.size(),result.size());
 
         bool carry = false;
         for (int i = 0, j = a1.size() - 1 ; i < a1.size() ; ++ i, --j )
         {
-            result[i] = a1[i] ^ a2[i] ^ carry;
-            carry = ((a1[i] && carry && !a2[i]) || (a2[i] && carry && !a1[i]) || (a2[i] && !carry && a1[i]) ||(a2[i] && carry && a1[i]));
-
+            bool old = a1.getValueAt(i);
+            bool val = a1.getValueAt(i)^a2.getValueAt(i)^carry;
+            //cout<<"i: "<<i<<" a1[i]: "<<a1.getValueAt(i)<<" a2[i]: "<<a2.getValueAt(i)<<" and val is "<<val<<endl;
+            result.setValueAt(i,val);
+            carry = ((old && carry && !a2.getValueAt(i)) || (a2.getValueAt(i) && carry && !old) || (a2.getValueAt(i) && !carry && old) ||(a2.getValueAt(i) && carry && old));
         }
 
         return carry;
     }
+    static BitVectorConstantType shiftLeft(const BitVectorConstantType& in, unsigned shiftByNum)
+    {
+ 
+        DArray<bool> res(in.size());
+        BitVectorConstantType result;
+        unsigned k;
+        for (k = 0 ; k < shiftByNum ; ++k){
+            res[k] = false;
+        }
+
+        for (unsigned i = 0 ; k< in.size(); ++k, ++i){
+            res[k] = in.getValueAt(i);
+        }
+        result.setBinArray(res);
+        return result;
+    }
+    
+    static void inplaceShiftLeft(BitVectorConstantType& in, unsigned shiftByNum)
+    {
+        int startAt = in.size()-shiftByNum - 1;
+        while (startAt>-1)
+        {
+            in.setValueAt(startAt+shiftByNum,in.getValueAt(startAt));
+            --startAt;
+        }
+        for (unsigned i = 0 ; i < shiftByNum; ++i){
+            in.setValueAt(i,false);
+        }
+    }
     
     
-   
+    static void inPlaceShiftRight(BitVectorConstantType& input, unsigned shiftByNum)
+    {
+        int startAt = shiftByNum;
+        for (int i = 0 ; i < input.size() - shiftByNum; ++i,++startAt){
+            input.setValueAt(startAt - shiftByNum, input.getValueAt(startAt)); 
+        }
+        for (unsigned k = input.size()-1, i = 0 ; i<shiftByNum; --k,++i){
+            input.setValueAt(k,false);
+        }
+        
+    }
+    
+    static void inPlaceArithmeticShiftRight(BitVectorConstantType& input, unsigned shiftByNum)
+    {
+        bool sign = input.getValueAt(input.size()-1);
+        int startAt = shiftByNum;
+        for (int i = 0 ; i < input.size() - shiftByNum; ++i,++startAt){
+            input.setValueAt(startAt - shiftByNum, input.getValueAt(startAt)); 
+        }
+        for (unsigned k = input.size()-1, i = 0 ; i<shiftByNum; --k,++i){
+            input.setValueAt(k,sign);
+        }
+        
+    }
+    
     
     static bool isOne(const BitVectorConstantType& arg)
     {
@@ -229,20 +247,7 @@ class BitVectorConstantType{
         return true;
     }
     
-    //Overflow??
-    /*static unsigned bv2nat(const BitVectorConstantType& arg)
-    {
-        unsigned result = 0;
-        DArray<bool> arr = arg.getBinArray();
-        for(int i = 0 ; i < arr.size();++i){
-            if (arr[i]){
-                result += pow(i,2);
-            }
-        }
-        return result;
-    }*/
-    
-     void static printBoolArrayContent(DArray<bool> array)
+   void static printBoolArrayContent(DArray<bool> array)
     {
         for (int i = array.size()-1 ; i > -1 ; --i)
         {
@@ -255,15 +260,47 @@ class BitVectorConstantType{
         cout<< endl;
     }
     
-    static DArray<bool> copyDArray(const DArray<bool> in)
+    static bool isZero(const BitVectorConstantType& q)
     {
-        DArray<bool> res(in.size());
-        for (int i = 0 ; i < in.size() ; ++i){
-            res[i] = in[i];
+        for (int i = 0 ; i <q.size();++i){
+            if (q.getValueAt(i))
+                return false;
         }
+        return true;
+    }
+    
+    static BitVectorConstantType getOne(unsigned size)
+    {
+        DArray<bool> one(size);
+        one[0] = true;
+        for (int i = 1 ; i < size; ++ i){
+            one[i] = false;
+        }
+        BitVectorConstantType res(size);
+        res.setBinArray(one);
         return res;
     }
     
+    static BitVectorConstantType getAllOnes(unsigned size)
+    {
+        DArray<bool> allOne(size);
+        
+        for (int i = 0 ; i < size; ++ i){
+            allOne[i] = true;
+        }
+        BitVectorConstantType res(size);
+        res.setBinArray(allOne);
+        return res;
+    }
+     
+    static BitVectorConstantType getZero(unsigned size)
+    {
+        BitVectorConstantType res(size);
+        for (int i =0; i < size; ++i){
+            res.setValueAt(i,false);
+        }
+        return res;
+    }
     ///////////////////////////
     ///////////////////////////
     ///////////////////////////
@@ -359,22 +396,20 @@ class BitVectorConstantType{
     {
         ASS_EQ(arg1.size(),arg2.size());
         ASS_EQ(arg2.size(),result.size());
-        DArray<bool> a1 = arg1.getBinArray();
-        DArray<bool> a2 = arg2.getBinArray();
-        DArray<bool> previousToAdd(a1.size());
 
-        for (int i = 0, j = a1.size()-1 ; i < a1.size() ; ++ i,--j )
+        BitVectorConstantType sum(arg1.size());
+
+        BitVectorConstantType toAdd;
+        for (int i = 0, j = arg1.size()-1 ; i < arg1.size() ; ++ i,--j )
         {
-            if (a1[i])
+            if (arg1.getValueAt(i))
             {
-                DArray<bool> curr = shiftLeft(a2,i);
-                DArray<bool> sum(curr.size());
-                addBinArrays(previousToAdd,curr,sum);
-                previousToAdd.initFromArray(sum.size(),sum);
+                toAdd= shiftLeft(arg2,i);
+                addBVCTs(sum,toAdd,sum);
             }
         }
-        result.setBinArray(previousToAdd);
-        
+
+        result.setBinArray(sum.getBinArray());
     }
     
     static void bvurem(const BitVectorConstantType& arg1, const BitVectorConstantType& arg2 , BitVectorConstantType& result)
@@ -389,8 +424,7 @@ class BitVectorConstantType{
             return;
         }
         
-        // x / 1 = x 
-        // axiom?
+        
         if (isOne(arg2))
         {
             result.setBinArray(getZero(arg1.size()).getBinArray());
@@ -630,68 +664,52 @@ class BitVectorConstantType{
     {
         ASS_EQ(arg1.size(),arg2.size());
         ASS_EQ(arg2.size(),result.size());
-        DArray<bool> resArray = copyDArray(arg1.getBinArray()); // copyDARRay neccessary??
         
+        result.setBinArray(arg1.getBinArray());
         for (int i = 0 ; i < arg2.size(); ++ i){
             if (arg2.getValueAt(i)){
-                DArray<bool> temp  = shiftLeft(resArray,i+1); // doesnt work without tempstep
-                resArray.initFromArray(temp.size(),temp);
+                {
+                    result.setBinArray(getZero(arg1.size()).getBinArray());
+                    break;
+                }
+                inplaceShiftLeft(result,pow(2,i));
              }
         }
-        result.setBinArray(resArray);
     }
     
     static void bvlshr(const BitVectorConstantType& arg1, const BitVectorConstantType& arg2 , BitVectorConstantType& result)
     {
         ASS_EQ(arg1.size(),arg2.size());
         ASS_EQ(arg2.size(),result.size());
-        DArray<bool> resArray = copyDArray(arg1.getBinArray()); // copyDARRay neccessary??
         
+        result.setBinArray(arg1.getBinArray());
         for (int i = 0 ; i < arg2.size(); ++ i){
             if (arg2.getValueAt(i)){
-                DArray<bool> temp  = shiftRight(resArray,i+1); // doesnt work without tempstep
-                resArray.initFromArray(temp.size(),temp);
+                unsigned num = pow(2,i);
+                if (num>arg1.size())
+                {
+                    result.setBinArray(getZero(arg1.size()).getBinArray());
+                    break;
+                }
+                inPlaceShiftRight(result,pow(2,i));
              }
         }
-        result.setBinArray(resArray);
     }
     
     static void bvashr(const BitVectorConstantType& arg1, const BitVectorConstantType& arg2 , BitVectorConstantType& result)
     {
         ASS_EQ(arg1.size(),arg2.size());
         ASS_EQ(arg2.size(),result.size());
-        DArray<bool> resArray = copyDArray(arg1.getBinArray()); // copyDARRay neccessary??
+        result.setBinArray(arg1.getBinArray()); 
         for (int i = 0 ; i < arg2.size(); ++ i){
             if (arg2.getValueAt(i)){
-                DArray<bool> temp  = aithmeticShiftRight(resArray,i+1); // doesnt work without tempstep
-                resArray.initFromArray(temp.size(),temp);
+                {
+                    result.setBinArray(getZero(arg1.size()).getBinArray());
+                    break;
+                }
+                inPlaceArithmeticShiftRight(result,pow(2,i));
              }
         }
-        result.setBinArray(resArray);
-    }
-    
-    static BitVectorConstantType getOne(unsigned size)
-    {
-        DArray<bool> one(size);
-        one[0] = true;
-        for (int i = 1 ; i < size; ++ i){
-            one[i] = false;
-        }
-        BitVectorConstantType res(size);
-        res.setBinArray(one);
-        return res;
-    }
-    
-    static BitVectorConstantType getAllOnes(unsigned size)
-    {
-        DArray<bool> allOne(size);
-        
-        for (int i = 0 ; i < size; ++ i){
-            allOne[i] = true;
-        }
-        BitVectorConstantType res(size);
-        res.setBinArray(allOne);
-        return res;
     }
     
     static void bvsub(const BitVectorConstantType& arg1, const BitVectorConstantType& arg2 , BitVectorConstantType& result)
@@ -725,16 +743,6 @@ class BitVectorConstantType{
         else
             result.setValueAt(0,false);
     }
-    
-    static bool isZero(const BitVectorConstantType& q)
-    {
-        for (int i = 0 ; i <q.size();++i){
-            if (q.getValueAt(i))
-                return false;
-        }
-        return true;
-    }
-    
     
     static void zero_extend(unsigned extendBy, const BitVectorConstantType& arg , BitVectorConstantType& result)
     {
@@ -973,27 +981,7 @@ class BitVectorConstantType{
         ASS_EQ(arg1.size(),arg2.size());
         bvsle(arg2,arg1,result);
     }
-   
-    static BitVectorConstantType insertRight(BitVectorConstantType in, bool val)
-    {
-        BitVectorConstantType res(in.size()+1);
-        res.setValueAt(0,val);
-        for (int i = 0,j = 1 ; i < in.size(); ++i,++j){
-            res.setValueAt(j,in.getValueAt(i));
-        }
-        return res;
-    }
     
-    static BitVectorConstantType getZero(unsigned size)
-    {
-        BitVectorConstantType res(size);
-        for (int i =0; i < size; ++i){
-            res.setValueAt(i,false);
-        }
-        return res;
-    }
-    bool operator==(const BitVectorConstantType& num) const;
-    bool operator!=(const BitVectorConstantType& num) const;
     
 private: 
     
