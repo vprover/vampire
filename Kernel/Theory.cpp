@@ -218,23 +218,11 @@ vstring BitVectorConstantType::toString() const
 bool BitVectorConstantType::operator==(const BitVectorConstantType& num) const
 {
   CALL("BitVectorConstantType::operator==");
-  cout<<" bitvec == operator called "<<endl;
+  
   DArray<bool> other = num.getBinArray();
-  
-  for (int i = 0 ; i < binArray.size();++i){
-      cout<<binArray[i];
-  }
-  cout<<endl;
-  for (int i = 0 ; i < other.size();++i){
-      cout<<other[i];
-  }
-  cout<<endl;
-  
   for (int i = 0 ; i < other.size() ; ++i)
   {
       if (binArray[i]!=other[i]){
-          cout<<binArray[i]<<" "<<other[i];
-          cout<<"returning false";
           return false;
       }
   }

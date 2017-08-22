@@ -2301,8 +2301,7 @@ void SMTLIB2::parseRankedFunctionApplication(LExpr* exp)
 
   // currently we only support divisible, so this is easy
   const vstring& operation = headRdr.readAtom();
-  
-  //headRdr.acceptAtom("divisible");
+   
   if (operation== "extract"){
     const vstring& numeral = headRdr.readAtom();
     if (!StringUtils::isPositiveInteger(numeral)) 

@@ -124,7 +124,6 @@ class InterpretedLiteralEvaluator::EqualityEvaluator
       if(!okay) return false;
 
       if(lit->isNegative()){ res = !res; }
-      cout<<endl<<"tryEvaluatePred becomes true"<<endl;
       return true;
 
     }
@@ -270,10 +269,6 @@ public:
         return opSort==T::getSort();
     }
     
-    if (theory->isBitVectorOperation(interp) && T::getSort()==1500 )
-        return true;
-    
-                
     // This is why we cannot evaluate Equality here... we cannot determine its sort
     if (!theory->hasSingleSort(interp)) { return false; } //To skip conversions and EQUAL
 
@@ -780,13 +775,97 @@ class InterpretedLiteralEvaluator::BitVectorEvaluator : public TypedEvaluator<Bi
 {
   protected:
 
-  virtual bool isZero(BitVectorConstantType arg){return false;}
+  virtual bool isZero(BitVectorConstantType arg)
+  {
+      for (int i = 0 ; i <arg.size();++i){
+            if (arg.getValueAt(i))
+                return false;
+        }
+        return true;
+  }
+  
   virtual TermList getZero(){ return TermList(); }
-  virtual bool isOne(BitVectorConstantType arg){return false;}
+  TermList getZero(unsigned size)
+  {
+      return TermList(theory->representConstant(getZeroBVCT(size)));
+  }
+  static BitVectorConstantType getZeroBVCT(unsigned size)
+  {
+        BitVectorConstantType res(size);
+        for (int i =0; i < size; ++i){
+            res.setValueAt(i,false);
+        }
+        return res;
+  }
+  virtual bool isOne(BitVectorConstantType arg)
+  {
+      if (!arg.getValueAt(0))
+            return false;
+        for (unsigned i = 1; i < arg.size(); ++i){
+            if (arg.getValueAt(i)){
+                return false;
+            }
+        }
+        return true;
+  }
 
-  virtual bool isAddition(Interpretation interp){return false;}
-  virtual bool isProduct(Interpretation interp){return false;}
-  virtual bool isDivision(Interpretation interp){return false; 
+  virtual bool isAddition(Interpretation interp)
+  {
+      Theory::StructuredSortInterpretation ssi = theory->convertToStructured(interp);
+      if (ssi == Theory::StructuredSortInterpretation::BVADD)
+          return true;
+      return false;
+  }
+  virtual bool isProduct(Interpretation interp)
+  {
+      Theory::StructuredSortInterpretation ssi = theory->convertToStructured(interp);
+      if (ssi == Theory::StructuredSortInterpretation::BVMUL)
+          return true;
+      return false;
+  }
+  virtual bool isDivision(Interpretation interp)
+  {
+      Theory::StructuredSortInterpretation ssi = theory->convertToStructured(interp);
+      if (ssi == Theory::StructuredSortInterpretation::BVUDIV || ssi == Theory::StructuredSortInterpretation::BVSDIV)
+          return true;
+      return false; 
+  }
+  bool isUnsignedDivision(Interpretation interp)
+  {
+      Theory::StructuredSortInterpretation ssi = theory->convertToStructured(interp);
+      if (ssi == Theory::StructuredSortInterpretation::BVUDIV)
+          return true;
+      return false; 
+  }
+  
+  bool isUnsignedRemainder(Interpretation interp)
+  {
+      Theory::StructuredSortInterpretation ssi = theory->convertToStructured(interp);
+      if (ssi == Theory::StructuredSortInterpretation::BVUREM)
+          return true;
+      return false; 
+  }
+  bool isSignedDivision(Interpretation interp)
+  {
+      Theory::StructuredSortInterpretation ssi = theory->convertToStructured(interp);
+      if (ssi == Theory::StructuredSortInterpretation::BVSDIV)
+          return true;
+      return false; 
+  }
+  static BitVectorConstantType getAllOnes(unsigned size)
+    {
+        DArray<bool> allOne(size);
+        
+        for (int i = 0 ; i < size; ++ i){
+            allOne[i] = true;
+        }
+        BitVectorConstantType res(size);
+        res.setBinArray(allOne);
+        return res;
+    }
+  virtual bool canEvaluate(Interpretation interp)
+  {
+      return theory->isBitVectorOperation(interp);
   }
   virtual bool tryEvaluateFunc(Term* trm, TermList& res)
   {
@@ -858,23 +937,9 @@ class InterpretedLiteralEvaluator::BitVectorEvaluator : public TypedEvaluator<Bi
               IntegerConstantType to;
               BitVectorConstantType argBv;
               
-              if (!theory->tryInterpretConstant(arg1Trm, argBv))
-              {
-                  
-                  return false;
-              }
-              
-              if (!theory->tryInterpretConstant(arg2Trm, from))
-              {
-                  return false;
-              }
-              
-              
-              if (!theory->tryInterpretConstant(arg3Trm, to))
-              {
-                  return false;
-              }
-              
+              if (!theory->tryInterpretConstant(arg1Trm, argBv) || !theory->tryInterpretConstant(arg2Trm, from)
+                      || !theory->tryInterpretConstant(arg3Trm, to))
+                    return false;
               
               // if sign extend or zero extend size accordingyl
               unsigned resSize = from.toInner()-to.toInner()+1;
@@ -889,14 +954,75 @@ class InterpretedLiteralEvaluator::BitVectorEvaluator : public TypedEvaluator<Bi
           TermList arg2Trm = *trm->nthArgument(1);
           BitVectorConstantType argBv1;
           BitVectorConstantType argBv2;
-          if (!theory->tryInterpretConstant(arg1Trm, argBv1))
+          bool specialCase = true;
+          BitVectorConstantType conArg;
+          TermList nonConTerm;
+          
+          if (theory->tryInterpretConstant(arg1Trm, argBv1) && (isZero(argBv1) || isOne(argBv1)) && 
+            !theory->tryInterpretConstant(arg2Trm, argBv2)) 
+          {
+            conArg = argBv1;
+            nonConTerm = arg2Trm;
+          }
+          else if(theory->tryInterpretConstant(arg2Trm, argBv2) && (isZero(argBv2) || isOne(argBv2)) && 
+            !theory->tryInterpretConstant(arg1Trm, argBv1)) 
+          {
+            conArg = argBv2;
+            nonConTerm = arg1Trm;
+          }
+          else
+          {
+             specialCase = false;
+          }
+          if (specialCase)
+          {
+            //Special case where itp is division and arg2 is '1'
+            //   Important... this is a non-symmetric case!
+            if(theory->tryInterpretConstant(arg2Trm, argBv2) && isOne(argBv2) && isDivision(itp)){
+              res = arg1Trm;
+              return true;
+            }
+            
+            //special case where its is division and second arg is zero... 
+            //returns a bitvector of all ones 
+            if(theory->tryInterpretConstant(arg2Trm, argBv2) && isZero(argBv2) && isUnsignedDivision(itp)){
+              res = TermList(theory->representConstant(getAllOnes(argBv1.size())));
+              return true;
+            }
+            
+            if(theory->tryInterpretConstant(arg2Trm, argBv2) && isZero(argBv2) && isUnsignedRemainder(itp)){
+              res = arg1Trm;
+              return true;
+            }
+            
+            if(theory->tryInterpretConstant(arg2Trm, argBv2) && isOne(argBv2) && isUnsignedRemainder(itp)){
+              res = getZero(argBv1.size());
+              return true;
+            }
+            
+            //Special case where itp is addition and conArg is '0'
+            if(isZero(conArg) && isAddition(itp)){
+              res = nonConTerm;
+              return true;
+            }
+            //Special case where itp is multiplication and conArg  is '1'
+            if(isOne(conArg) && isProduct(itp)){
+              res = nonConTerm;
+              return true;
+            }
+            //Special case where itp is multiplication and conArg is '0'
+            if(isZero(conArg) && isProduct(itp)){
+              res = getZero(argBv1.size());
+              return true;
+            }
+          }
+          
+          
+          if (!theory->tryInterpretConstant(arg1Trm, argBv1) || !theory->tryInterpretConstant(arg2Trm, argBv2))
           {
               return false;
           }
-          if (!theory->tryInterpretConstant(arg2Trm, argBv2))
-          {
-              return false;
-          }
+          
           // here check what operation is done... according to that determine the size 
           unsigned resSize = argBv1.size();
           if (ssi == Theory::StructuredSortInterpretation::CONCAT)
@@ -909,7 +1035,6 @@ class InterpretedLiteralEvaluator::BitVectorEvaluator : public TypedEvaluator<Bi
           { 
               return false;
           }
-          
           
           res = TermList(theory->representConstant(resNum));
           return true;
