@@ -62,8 +62,11 @@ public:
   bool addAnswerLiterals(UnitList*& units);
 
   bool isAnswerLiteral(Literal* lit);
+  bool isAnswerClause(Clause* cl,bool ignoreSplits=false);
 
   void onNewClause(Clause* cl);
+
+  void print();
 
 private:
   Literal* getAnswerLiteral(VList* vars,Formula* f);

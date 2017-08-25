@@ -15,6 +15,7 @@
 #include "Lib/DArray.hpp"
 #include "Lib/Environment.hpp"
 #include "Lib/Stack.hpp"
+#include "Lib/System.hpp"
 
 #include "Kernel/Signature.hpp"
 #include "Kernel/Formula.hpp"
@@ -425,31 +426,97 @@ bool AnswerLiteralManager::isAnswerLiteral(Literal* lit)
   Signature::Symbol* sym = env.signature->getPredicate(pred);
   return sym->answerPredicate();
 }
-
-void AnswerLiteralManager::onNewClause(Clause* cl)
+bool AnswerLiteralManager::isAnswerClause(Clause* cl,bool ignoreSplits)
 {
-  CALL("AnswerLiteralManager::onNewClause");
+  CALL("AnswerLiteralManager::isAnswerClause");
 
-  if(!cl->noSplits()) {
-    return;
+  if(!ignoreSplits && !cl->noSplits()) {
+    return false;
   }
 
   unsigned clen = cl->length();
   for(unsigned i=0; i<clen; i++) {
     if(!isAnswerLiteral((*cl)[i])) {
-      return;
+      return false;
     }
   }
+  return true;
+}
+
+
+void AnswerLiteralManager::print()
+{
+  env.beginOutput();
+  env.out() << "% SZS answers Tuple [";
+  RCClauseStack::Iterator cit(_answers);
+  while(cit.hasNext()) {
+    Clause* ansCl = cit.next();
+    if(ansCl->length()>1){ env.out() << "("; }
+
+      for(unsigned i=0;i<ansCl->length();i++){
+      env.out() << "[";
+      Literal* lit = (*ansCl)[i];
+        for(unsigned j=0;j<lit->arity();j++){
+          TermList aLit = (*lit->nthArgument(j));
+
+    // try evaluating aLit
+    if(aLit.isTerm()){
+      InterpretedLiteralEvaluator eval;
+      unsigned p = env.signature->addFreshPredicate(1,"p");
+      unsigned sort = SortHelper::getResultSort(aLit.term());
+      PredicateType* type = new PredicateType({sort});
+      env.signature->getPredicate(p)->setType(type);
+      Literal* l = Literal::create1(p,true,aLit);
+      Literal* res =0;
+      bool constant, constTrue;
+      Stack<Literal*> sideConditions;
+      bool litMod = eval.evaluate(l,constant,res,constTrue,sideConditions);
+      if(litMod && res && sideConditions.isEmpty()){
+        aLit.setTerm(res->nthArgument(0)->term());
+      }
+    }
+
+    env.out() << aLit.toString();
+
+          if(j+1 < lit->arity()){
+            env.out() << ',';
+          }
+        }
+        env.out() << "]";
+        if(i+1 < ansCl->length()){
+          env.out() << '|';
+        }
+      }
+    if(ansCl->length()>1){env.out() << ")";} 
+    if(cit.hasNext()){ env.out() << ",";}
+  }
+  env.out() << "|_] for " << env.options->problemName() << endl;
+  env.endOutput();
+}
+
+void AnswerLiteralManager::onNewClause(Clause* cl)
+{
+  CALL("AnswerLiteralManager::onNewClause");
+
+  if(!isAnswerClause(cl)){ return; }
 
   _answers.push(cl);
 
+  static unsigned qc = env.options->questionCount();
+  if(qc > 0 && _answers.size() >= qc){ 
+    print();
+    System::terminateImmediately(1);
+  }
+
   Clause* refutation = getRefutation(cl);
 
-  throw MainLoop::RefutationFoundException(refutation);
+  //throw MainLoop::RefutationFoundException(refutation);
 
-//  env.beginOutput();
-//  env.out()<<cl->toString()<<endl;
-//  env.endOutput();
+/*
+  env.beginOutput();
+  env.out()<<cl->toString()<<endl;
+  env.endOutput();
+*/
 }
 
 Clause* AnswerLiteralManager::getResolverClause(unsigned pred)

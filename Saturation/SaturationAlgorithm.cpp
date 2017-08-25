@@ -922,7 +922,8 @@ void SaturationAlgorithm::addUnprocessedClause(Clause* cl)
     return;
   }
 
-  if (cl->isEmpty()) {
+  //if (cl->isEmpty() || (_answerLiteralManager && _answerLiteralManager->isAnswerClause(cl,true))){
+  if(cl->isEmpty()){
     handleEmptyClause(cl);
     return;
   }
@@ -942,7 +943,7 @@ void SaturationAlgorithm::addUnprocessedClause(Clause* cl)
 void SaturationAlgorithm::handleEmptyClause(Clause* cl)
 {
   CALL("SaturationAlgorithm::handleEmptyClause");
-  ASS(cl->isEmpty());
+  ASS(cl->isEmpty() || (_answerLiteralManager && _answerLiteralManager->isAnswerClause(cl,true)));
 
   if (isRefutation(cl)) {
     onNonRedundantClause(cl);
@@ -1331,6 +1332,12 @@ void SaturationAlgorithm::doOneAlgorithmStep()
   doUnprocessedLoop();
 
   if (_passive->isEmpty()) {
+
+    if (_answerLiteralManager){ 
+      _answerLiteralManager->print(); 
+      System::terminateImmediately(1);
+    }
+
     MainLoopResult::TerminationReason termReason =
 	isComplete() ? Statistics::SATISFIABLE : Statistics::REFUTATION_NOT_FOUND;
     MainLoopResult res(termReason);
