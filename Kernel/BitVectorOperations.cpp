@@ -228,14 +228,12 @@ BitVectorConstantType BitVectorOperations::getBVCTFromVString(vstring& numberToR
 
 void BitVectorOperations::multBVCTByTen(BitVectorConstantType& arg1)
 {
-    //ASS_EQ(arg1.size(),result.size());
+    ASS(arg1.size()>0);
     
-    BitVectorConstantType binArrayTen = getBVCTFromDec('a',arg1.size());
-    
+    BitVectorConstantType t(arg1.getBinArray());
     inplaceShiftLeft(arg1,1);
-    addBVCTs(arg1,arg1);
-    inplaceShiftLeft(arg1,1);
-    addBVCTs(arg1,arg1);
+    inplaceShiftLeft(t,3);
+    addBVCTs(arg1,t);
 }  
 void BitVectorOperations::printBoolArrayContent(DArray<bool> array)
 {
