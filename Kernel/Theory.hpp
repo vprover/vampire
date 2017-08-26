@@ -121,6 +121,12 @@ class BitVectorConstantType{
         binArray.initFromArray(setTo.size(),setTo);
     }
     
+    void prepareBinArray(unsigned size)
+    {
+        DArray<bool> t(size);
+        setBinArray(t);
+    }
+    
     DArray<bool> getBinArray() const&
     {
         return binArray;
@@ -155,7 +161,7 @@ class BitVectorConstantType{
         ASS_EQ(a1.size(),a2.size());
         
         bool carry = false;
-        for (int i = 0, j = a1.size() - 1 ; i < a1.size() ; ++ i, --j )
+        for (unsigned i = 0, j = a1.size() - 1 ; i < a1.size() ; ++ i, --j )
         {
             bool old = a1.getValueAt(i);
             bool val = a1.getValueAt(i)^a2.getValueAt(i)^carry;
@@ -234,7 +240,7 @@ class BitVectorConstantType{
     
    void static printBoolArrayContent(DArray<bool> array)
     {
-        for (int i = array.size()-1 ; i > -1 ; --i)
+        for (unsigned i = array.size()-1 ; i > -1 ; --i)
         {
             if (array[i] == false)
                 cout<<"0";
@@ -247,7 +253,7 @@ class BitVectorConstantType{
     
     static bool isZero(const BitVectorConstantType& q)
     {
-        for (int i = 0 ; i <q.size();++i){
+        for (unsigned i = 0 ; i <q.size();++i){
             if (q.getValueAt(i))
                 return false;
         }
@@ -258,7 +264,7 @@ class BitVectorConstantType{
     {
         DArray<bool> one(size);
         one[0] = true;
-        for (int i = 1 ; i < size; ++ i){
+        for (unsigned i = 1 ; i < size; ++ i){
             one[i] = false;
         }
         BitVectorConstantType res(size);
@@ -270,7 +276,7 @@ class BitVectorConstantType{
     {
         DArray<bool> allOne(size);
         
-        for (int i = 0 ; i < size; ++ i){
+        for (unsigned i = 0 ; i < size; ++ i){
             allOne[i] = true;
         }
         BitVectorConstantType res(size);
@@ -281,7 +287,7 @@ class BitVectorConstantType{
     static BitVectorConstantType getZero(unsigned size)
     {
         BitVectorConstantType res(size);
-        for (int i =0; i < size; ++i){
+        for (unsigned i =0; i < size; ++i){
             res.setValueAt(i,false);
         }
         return res;
@@ -295,7 +301,7 @@ class BitVectorConstantType{
     {
         ASS_EQ(arg.size(),res.size());
         bool encounteredOne = false;
-        for (int i = 0; i<arg.size(); ++i){
+        for (unsigned i = 0; i<arg.size(); ++i){
             if (encounteredOne){
                 res.setValueAt(i,!arg.getValueAt(i));
             }
@@ -309,7 +315,7 @@ class BitVectorConstantType{
     static void bvnot(const BitVectorConstantType& arg, BitVectorConstantType& res)
     {
         ASS_EQ(arg.size(),res.size());
-        for (int i = 0; i<arg.size();++i){
+        for (unsigned i = 0; i<arg.size();++i){
             res.setValueAt(i, !arg.getValueAt(i));
         }
     }
@@ -322,7 +328,7 @@ class BitVectorConstantType{
         DArray<bool> a2 = arg2.getBinArray();
         
         bool carry = false;
-        for (int i = 0, j = a1.size() - 1 ; i < a1.size() ; ++ i, --j )
+        for (unsigned i = 0, j = a1.size() - 1 ; i < a1.size() ; ++ i, --j )
         {
             result.setValueAt(i,a1[i] ^ a2[i] ^ carry);
             carry = ((a1[i] && carry && !a2[i]) || (a2[i] && carry && !a1[i]) || (a2[i] && !carry && a1[i]) ||(a2[i] && carry && a1[i]));
@@ -339,7 +345,7 @@ class BitVectorConstantType{
         DArray<bool> a1 = arg1.getBinArray();
         DArray<bool> a2 = arg2.getBinArray();
         
-        for (int i = 0, j = a1.size() - 1 ; i < a1.size() ; ++ i, --j )
+        for (unsigned i = 0, j = a1.size() - 1 ; i < a1.size() ; ++ i, --j )
             result.setValueAt(i,a1[i] || a2[i]);
     }
     
@@ -350,7 +356,7 @@ class BitVectorConstantType{
         DArray<bool> a1 = arg1.getBinArray();
         DArray<bool> a2 = arg2.getBinArray();
         
-        for (int i = 0, j = a1.size() - 1 ; i < a1.size() ; ++ i, --j )
+        for (unsigned i = 0, j = a1.size() - 1 ; i < a1.size() ; ++ i, --j )
             result.setValueAt(i,a1[i] ^ a2[i]);
     }
     
@@ -361,7 +367,7 @@ class BitVectorConstantType{
         DArray<bool> a1 = arg1.getBinArray();
         DArray<bool> a2 = arg2.getBinArray();
         
-        for (int i = 0, j = a1.size() - 1 ; i < a1.size() ; ++ i, --j )
+        for (unsigned i = 0, j = a1.size() - 1 ; i < a1.size() ; ++ i, --j )
             result.setValueAt(i,!(a1[i] || a2[i]));
     }
     
@@ -372,7 +378,7 @@ class BitVectorConstantType{
         DArray<bool> a1 = arg1.getBinArray();
         DArray<bool> a2 = arg2.getBinArray();
         
-        for (int i = 0, j = a1.size() - 1 ; i < a1.size() ; ++ i, --j )
+        for (unsigned i = 0, j = a1.size() - 1 ; i < a1.size() ; ++ i, --j )
             result.setValueAt(i,(a1[i] == a2[i]));
           
     }
@@ -613,7 +619,7 @@ class BitVectorConstantType{
         DArray<bool> a1 = arg1.getBinArray();
         DArray<bool> a2 = arg2.getBinArray();
          
-        for (int i = 0, j = a1.size() - 1 ; i < a1.size() ; ++ i, --j )
+        for (unsigned i = 0, j = a1.size() - 1 ; i < a1.size() ; ++ i, --j )
             result.setValueAt(i,a1[i] && a2[i]);
           
     }
@@ -625,7 +631,7 @@ class BitVectorConstantType{
         DArray<bool> a1 = arg1.getBinArray();
         DArray<bool> a2 = arg2.getBinArray();
         
-        for (int i = 0, j = a1.size() - 1 ; i < a1.size() ; ++ i, --j )
+        for (unsigned i = 0, j = a1.size() - 1 ; i < a1.size() ; ++ i, --j )
             result.setValueAt(i,!(a1[i] && a2[i]));
     }
    
@@ -636,7 +642,7 @@ class BitVectorConstantType{
         ASS_EQ(arg2.size(),result.size());
         
         result = arg1;
-        for (int i = 0 ; i < arg2.size(); ++ i){
+        for (unsigned i = 0 ; i < arg2.size(); ++ i){
             if (arg2.getValueAt(i)){
                 {
                     unsigned num = pow(2,i);
@@ -661,7 +667,8 @@ class BitVectorConstantType{
         for (unsigned i = 0 ; i < arg2.size(); ++ i){
             if (arg2.getValueAt(i))
             {
-                unsigned num = pow(2,i);  
+                unsigned num = pow(2,i); 
+                // TODO: check from top to bottom.. wil be faster if num > arg1.size
                 if (num>arg1.size())
                 {
                     result = getZero(arg1.size());
@@ -678,7 +685,7 @@ class BitVectorConstantType{
         ASS_EQ(arg2.size(),result.size());
         
         result = arg1; 
-        for (int i = 0 ; i < arg2.size(); ++ i){
+        for (unsigned i = 0 ; i < arg2.size(); ++ i){
             if (arg2.getValueAt(i)){
                 {
                     unsigned num = pow(2,i);
@@ -713,7 +720,7 @@ class BitVectorConstantType{
         ASS_EQ(arg1.size(),arg2.size());
         ASS_EQ(1,result.size());
         bool areEqual = true;
-        for (int i = 0 ; i < arg1.size(); ++i){
+        for (unsigned i = 0 ; i < arg1.size(); ++i){
             if (arg1.getValueAt(i) != arg2.getValueAt(i))
             {
                 areEqual = false;
@@ -760,7 +767,7 @@ class BitVectorConstantType{
         unsigned newRotateBy = rotateBy;
         if (rotateBy > arg.size())
             newRotateBy = rotateBy-arg.size();
-        for (int i = 0 ; i < arg.size();++i){
+        for (unsigned i = 0 ; i < arg.size();++i){
             bool theValue = arg.getValueAt(i);
             unsigned newIndex;
             if (i < newRotateBy){
@@ -783,7 +790,7 @@ class BitVectorConstantType{
         unsigned newRotateBy = rotateBy;
         if (rotateBy > arg.size())
             newRotateBy = rotateBy-arg.size();
-        for (int i = 0 ; i < arg.size();++i){
+        for (unsigned i = 0 ; i < arg.size();++i){
             bool theValue = arg.getValueAt(i);
             unsigned newIndex;
             if (newRotateBy+i >= arg.size()){

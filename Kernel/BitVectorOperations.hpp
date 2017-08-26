@@ -21,8 +21,6 @@
 #include "Lib/Environment.hpp"
 
 namespace Kernel {
-    using namespace std;
-    using namespace Lib;
     
     class BitVectorOperations{
     
@@ -34,9 +32,9 @@ namespace Kernel {
     static DArray<char> getHexArrayFromString(vstring& input);
     static BitVectorConstantType getBoolArrayFromVString(vstring& input);
     
-    static void multBVCTs(BitVectorConstantType& a1, BitVectorConstantType& a2, BitVectorConstantType& result);
+    static void multBVCTByTen(BitVectorConstantType& arg1);
     static bool addBVCTs(BitVectorConstantType& a1,const BitVectorConstantType& a2);
-    static BitVectorConstantType shiftLeft(DArray<bool>& input, unsigned shiftByNum);
+    static void inplaceShiftLeft(BitVectorConstantType& in, unsigned shiftByNum);
 
     static void createHashmap();
     static void printHashmap();  
