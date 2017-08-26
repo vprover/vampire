@@ -30,20 +30,18 @@ namespace Kernel {
      
     static vstring boolArraytoString(const DArray<bool>& in);
     static BitVectorConstantType getBVCTFromVString(vstring& numberToRepresent, unsigned size);
-    static BitVectorConstantType padBVCT(BitVectorConstantType input, unsigned size);
-    static void printBoolArrayContent(DArray<bool> array);
-    //static BitVectorConstantType getBVCTFromDec(char n);
     static BitVectorConstantType getBVCTFromDec(char n,unsigned size);
-
-    static bool addBVCTs(BitVectorConstantType& a1,BitVectorConstantType& a2, BitVectorConstantType& result);
-    //static bool addBinArrays(const DArray<bool>& a1, const DArray<bool>& a2, DArray<bool>& result);
+    static DArray<char> getHexArrayFromString(vstring& input);
+    static BitVectorConstantType getBoolArrayFromVString(vstring& input);
+    
+    static void multBVCTs(BitVectorConstantType& a1, BitVectorConstantType& a2, BitVectorConstantType& result);
+    static bool addBVCTs(BitVectorConstantType& a1,const BitVectorConstantType& a2);
     static BitVectorConstantType shiftLeft(DArray<bool>& input, unsigned shiftByNum);
 
-    static void multBVCTs(BitVectorConstantType& a1, BitVectorConstantType& a2, BitVectorConstantType& result);
-    static BitVectorConstantType fitBVCTIntoBits(BitVectorConstantType input, unsigned size);
-    static BitVectorConstantType truncate(BitVectorConstantType input, unsigned size);     
     static void createHashmap();
     static void printHashmap();  
+    
+    static void printBoolArrayContent(DArray<bool> array);
     };  
 }
 

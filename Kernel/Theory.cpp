@@ -28,15 +28,6 @@ using namespace Lib;
 ///////////////////////
 // IntegerConstantType
 //
-
-/*BitVectorConstantType::BitVectorConstantType(const DArray<bool> binArray)
-{
-    CALL("BitVectorConstantType::BitVectorConstantType(vstring, vstring)");
-    setBinArray(binArray);
-    sortB = env.sorts->addBitVectorSort(binArray.size());
-}*/
-
-
 IntegerConstantType::IntegerConstantType(const vstring& str)
 {
   CALL("IntegerConstantType::IntegerConstantType(vstring)");

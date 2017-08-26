@@ -121,12 +121,6 @@ class BitVectorConstantType{
         binArray.initFromArray(setTo.size(),setTo);
     }
     
-    void prepareBinArray(unsigned size)
-    {
-        DArray<bool> uhuh(size);
-        setBinArray(uhuh);
-    }
-    
     DArray<bool> getBinArray() const&
     {
         return binArray;
@@ -151,7 +145,7 @@ class BitVectorConstantType{
     bool operator==(const BitVectorConstantType& num) const;
     bool operator!=(const BitVectorConstantType& num) const;
    ///////////////////////////
-    ///////////////////////////
+    /////////////////////////// 
     /////////////////////////// 
    /////////////////////////// START FUNCTIONS TO BE MOVED
  

@@ -168,7 +168,7 @@ void SMTLIB2::readBenchmark(LExprList* bench)
       readDeclareDatatypes(sorts, datatypes, true);
 
       ibRdr.acceptEOL();
-
+      
       continue;
     }
 
@@ -1532,7 +1532,7 @@ bool SMTLIB2::parseAsBitVectorConstant(const vstring& id)
         if (hexSlashBin == "#x")
         {
             
-            DArray<char> hexCharArray = getHexArrayFromString(bvContent);
+            DArray<char> hexCharArray = BitVectorOperations::getHexArrayFromString(bvContent);
             
             bvContentSize = 4 * bvContentSize;
             unsigned resultSort = env.sorts->addBitVectorSort(bvContentSize);
@@ -1559,7 +1559,7 @@ bool SMTLIB2::parseAsBitVectorConstant(const vstring& id)
         {
             
             //unsigned resultSize = multiplier * bvContentSize;
-            BitVectorConstantType addThis= getBVCTFromString(bvContent);
+            BitVectorConstantType addThis= BitVectorOperations::getBoolArrayFromVString(bvContent);
             unsigned resultSort = env.sorts->addBitVectorSort(bvContentSize);
             unsigned symb = TPTP::addBitVectorConstant(addThis);
             
