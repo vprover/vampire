@@ -161,10 +161,11 @@ class BitVectorConstantType{
         ASS_EQ(a1.size(),a2.size());
         
         bool carry = false;
+        bool old,val;
         for (unsigned i = 0, j = a1.size() - 1 ; i < a1.size() ; ++ i, --j )
         {
-            bool old = a1.getValueAt(i);
-            bool val = a1.getValueAt(i)^a2.getValueAt(i)^carry;
+            old = a1.getValueAt(i);
+            val = a1.getValueAt(i)^a2.getValueAt(i)^carry;
             a1.setValueAt(i,val);
             carry = ((old && carry && !a2.getValueAt(i)) || (a2.getValueAt(i) && carry && !old) || (a2.getValueAt(i) && !carry && old) ||(a2.getValueAt(i) && carry && old));
         }
@@ -885,7 +886,7 @@ class BitVectorConstantType{
         else
             result = tempResult;
     }
-    //correct?
+    
     static void bvult(const BitVectorConstantType& arg1, const BitVectorConstantType& arg2 , bool& result)
     {
         ASS_EQ(arg1.size(),arg2.size());
@@ -896,21 +897,19 @@ class BitVectorConstantType{
     static void bvslt(const BitVectorConstantType& arg1, const BitVectorConstantType& arg2 , bool& result)
     {
         ASS_EQ(arg1.size(),arg2.size());
-        bool check = false;
+        result = false;
         bool msb_arg1 = arg1.getValueAt(arg1.size()-1);
         bool msb_arg2 = arg2.getValueAt(arg2.size()-1);
         
         if (msb_arg1 && !msb_arg2)
-            check = true;
-        bool check2 = false;
+        {
+            result = true;
+            return;
+        }
         if (msb_arg1 == msb_arg2)
         {
-            bool temp;
-            bvult(arg1,arg2,temp);
-            if (temp)
-                check2 = true;
+            bvult(arg1,arg2,result);
         }
-        result = check^check2;
         
     }
     
@@ -918,22 +917,19 @@ class BitVectorConstantType{
     static void bvsle(const BitVectorConstantType& arg1, const BitVectorConstantType& arg2 , bool& result)
     {
         ASS_EQ(arg1.size(),arg2.size());
-        bool check = false;
+        result = false;
         bool msb_arg1 = arg1.getValueAt(arg1.size()-1);
         bool msb_arg2 = arg2.getValueAt(arg2.size()-1);
         
         if (msb_arg1 && !msb_arg2)
-            check = true;
-        bool check2 = false;
+        {
+            result= true;
+            return;
+        }
         if (msb_arg1 == msb_arg2)
         {
-            bool temp;
-            bvule(arg1,arg2,temp);
-            if (temp)
-                check2 = true;
+            bvule(arg1,arg2,result);
         }
-        result = check || check2;
-        
     }
     
     static void bvsgt(const BitVectorConstantType& arg1, const BitVectorConstantType& arg2 , bool& result)

@@ -618,21 +618,19 @@ unsigned SMTLIB2::declareSort(LExpr* sExpr)
       }
       // special handling of bitvectors
        
-      if (!Int::stringToInt(id.c_str(),bitVecSize))
+      if (Int::stringToInt(id.c_str(),bitVecSize))
       {
-          goto malformed;
+        cur = todo.pop();
+        if (getBuiltInSortFromString(cur.second->str) != BS_BITVECTOR)
+            goto malformed;
+        cur = todo.pop();
+        if (cur.second->str == "_"){
+              //unsigned temp = env.sorts->addBitVectorSort(bitVecSize);
+              results.push(env.sorts->addBitVectorSort(bitVecSize));
+              continue;
+         }
+         goto malformed;
       }
-      cur = todo.pop();
-      if (getBuiltInSortFromString(cur.second->str) != BS_BITVECTOR)
-          goto malformed;
-      cur = todo.pop();
-      if (cur.second->str == "_"){
-            //unsigned temp = env.sorts->addBitVectorSort(bitVecSize);
-            results.push(env.sorts->addBitVectorSort(bitVecSize));
-            continue;
-       }
-       goto malformed;
-      
         
       USER_ERROR("Unrecognized sort identifier "+id);
     }
