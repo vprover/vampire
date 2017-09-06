@@ -40,6 +40,11 @@ namespace Kernel {
     static void printHashmap();  
     
     static void printBoolArrayContent(DArray<bool> array);
+
+    private:
+
+    static DHMap<char, BitVectorConstantType> map;
+
     };  
 }
 

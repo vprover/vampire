@@ -4,12 +4,7 @@
 
 namespace Kernel{
 
-
-
-
-//static bool map[][bool] = {zero, one,fifteen};
-static DHMap<char, BitVectorConstantType> map;
-
+DHMap<char, BitVectorConstantType> BitVectorOperations::map;
 
 void BitVectorOperations::createHashmap()
 {
