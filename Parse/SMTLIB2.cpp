@@ -2327,7 +2327,7 @@ void SMTLIB2::parseRankedFunctionApplication(LExpr* exp)
     unsigned resultSort = env.sorts->addBitVectorSort(resultSize);
             
     // now we have all the arguments we need..
-    TermList args[] = {arg, fromTerm, numBitsTerm};
+    TermList args[] = {fromTerm, numBitsTerm, arg};
     unsigned fun = Theory::instance()->getSymbolForStructuredSort(resultSort, Theory::StructuredSortInterpretation::EXTRACT,tempSort,-1);
     TermList res = TermList(Term::Term::create(fun, 3, args));
     _results.push(ParseResult(resultSort, res));

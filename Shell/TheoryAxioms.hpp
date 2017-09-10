@@ -59,6 +59,24 @@ private:
 						  TermList zeroElement, TermList oneElement,
 						  Interpretation less, Interpretation multiply,
 						  UnitList*& units);
+  
+  
+  void addBVSdivAxiom1(Interpretation bvsdiv, Interpretation extract, Interpretation bvand, Interpretation bvudiv, 
+  Interpretation bvneg, UnitList*& units);
+  
+  void addBVUdivAxiom1(Interpretation bvudiv, TermList zeroElement, TermList oneElement,UnitList*& units);
+  
+  void addCertainBitVectorAxioms(Interpretation plus, Interpretation unaryMinus,
+  TermList zeroElement, TermList oneElement, Interpretation less, UnitList*& units);
+  void addBVNandAxiom1(Interpretation bvnand, Interpretation bvnot, Interpretation bvand, UnitList*& units);
+  void addBVNorAxiom1(Interpretation bvnor, Interpretation bvnot, Interpretation bvor, UnitList*& units);
+  void addBVXORAxiom1(Interpretation bvxorInterpretation, Interpretation bvorInterpretation , Interpretation bvandInterpretation, Interpretation bvnotInterpretation, UnitList*& units);
+  void addBVXNORAxiom1(Interpretation bvxnor, Interpretation bvor , Interpretation bvand, Interpretation bvnot, UnitList*& units);
+  void addBVSUBAxiom1(Interpretation subInterpretation, Interpretation bvaddInterpretation , Interpretation bvnegInterpretation, UnitList*& units);
+  void addBVUleAxiom1(Interpretation bvule, Interpretation bvult, UnitList*& units);
+  void addBVReverseAxiom(Interpretation bvugt, Interpretation bvult, UnitList*& units);
+  void addMulBitVectorAxioms(Interpretation plus, Interpretation unaryMinus,
+    TermList zeroElement, TermList oneElement, Interpretation less, Interpretation multiply, UnitList*& units);
   void addExtraIntegerOrderingAxiom(Interpretation plus, TermList oneElement, Interpretation less,
 				    UnitList*& units);
   void addQuotientAxioms(Interpretation quotient, Interpretation multiply, TermList zeroElement, TermList oneElement,

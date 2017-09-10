@@ -49,7 +49,7 @@ bool InterpretedEvaluation::simplifyLiteral(Literal* lit,
 	bool& constant, Literal*& res, bool& constantTrue,Stack<Literal*>& sideConditions)
 {
   CALL("InterpretedEvaluation::evaluateLiteral");
-
+  
   if(lit->arity()==0 || !lit->hasInterpretedConstants()) {
     //we have no interpreted predicates of zero arity
     return false;

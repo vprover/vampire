@@ -223,13 +223,11 @@ bool BitVectorConstantType::operator==(const BitVectorConstantType& num) const
 bool BitVectorConstantType::operator!=(const BitVectorConstantType& num) const
 {
   CALL("BitVectorConstantType::operator!=");
-  cout<<" bitvec != operator called ";
+  
   DArray<bool> other = num.getBinArray();
   for (int i = 0 ; i < other.size() ; ++i)
   {
       if (binArray[i]!=other[i]){
-          cout<<binArray[i]<<" "<<other[i];
-          cout<<"returning false";
           return true;
       }
   }
@@ -1650,7 +1648,7 @@ BaseType* Theory::getStructuredSortOperationType(Interpretation i) {
             case StructuredSortInterpretation::EXTRACT:
             {
                 unsigned bitVecArgSize = env.signature->getArg1();
-                return new FunctionType({env.sorts->addBitVectorSort(bitVecArgSize), Sorts::SRT_INTEGER, Sorts::SRT_INTEGER}, sortt);
+                return new FunctionType({Sorts::SRT_INTEGER, Sorts::SRT_INTEGER,env.sorts->addBitVectorSort(bitVecArgSize)}, sortt);
             }
             
             case StructuredSortInterpretation::BVCOMP:

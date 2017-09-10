@@ -10,17 +10,22 @@
     <editor-bookmarks xmlns="http://www.netbeans.org/ns/editor-bookmarks/2" lastBookmarkId="0"/>
     <open-files xmlns="http://www.netbeans.org/ns/projectui-open-files/2">
         <group>
+            <file>file:/Users/dam/Desktop/wanderweg/vampire/Kernel/BitVectorOperations.hpp</file>
+            <file>file:/Users/dam/Desktop/wanderweg/vampire/Inferences/InterpretedEvaluation.cpp</file>
+            <file>file:/Users/dam/Desktop/wanderweg/vampire/Kernel/Sorts.cpp</file>
+            <file>file:/Users/dam/Desktop/wanderweg/vampire/Kernel/Theory.hpp</file>
             <file>file:/Users/dam/Desktop/wanderweg/vampire/Parse/SMTLIB2.hpp</file>
             <file>file:/Users/dam/Desktop/wanderweg/vampire/Kernel/Signature.cpp</file>
-            <file>file:/Users/dam/Desktop/wanderweg/vampire/Kernel/Signature.hpp</file>
             <file>file:/Users/dam/Desktop/wanderweg/vampire/Parse/SMTLIB2.cpp</file>
             <file>file:/Users/dam/Desktop/wanderweg/vampire/Kernel/Theory.cpp</file>
-            <file>file:/Users/dam/Desktop/wanderweg/vampire/Parse/TPTP.cpp</file>
-            <file>file:/Users/dam/Desktop/wanderweg/vampire/Shell/Property.cpp</file>
-            <file>file:/Users/dam/Desktop/wanderweg/vampire/Kernel/Theory.hpp</file>
-            <file>file:/Users/dam/Desktop/wanderweg/vampire/Shell/Property.hpp</file>
-            <file>file:/Users/dam/Desktop/wanderweg/vampire/Parse/TPTP.hpp</file>
-            <file>file:/Users/dam/Desktop/wanderweg/vampire/Lib/DArray.hpp</file>
+            <file>file:/Users/dam/Desktop/wanderweg/vampire/Program/LoopAnalyzer.cpp</file>
+            <file>file:/Users/dam/Desktop/wanderweg/vampire/Shell/TheoryAxioms.hpp</file>
+            <file>file:/Users/dam/Desktop/wanderweg/vampire/Kernel/Term.cpp</file>
+            <file>file:/Users/dam/Desktop/wanderweg/vampire/Kernel/Connective.hpp</file>
+            <file>file:/Users/dam/Desktop/wanderweg/vampire/Kernel/InterpretedLiteralEvaluator.cpp</file>
+            <file>file:/Users/dam/Desktop/wanderweg/vampire/Kernel/BitVectorOperations.cpp</file>
+            <file>file:/Users/dam/Desktop/wanderweg/vampire/Kernel/Formula.hpp</file>
+            <file>file:/Users/dam/Desktop/wanderweg/vampire/Shell/TheoryAxioms.cpp</file>
         </group>
     </open-files>
 </project-private>

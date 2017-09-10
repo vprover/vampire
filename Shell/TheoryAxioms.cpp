@@ -22,6 +22,8 @@
 #include "SymCounter.hpp"
 #include "TheoryAxioms.hpp"
 #include "Options.hpp"
+#include "Lib/DHMap.hpp"
+#include "Kernel/Sorts.hpp"
 
 using namespace Lib;
 using namespace Kernel;
@@ -399,6 +401,326 @@ void TheoryAxioms::addAdditionAndOrderingAxioms(Interpretation plus, Interpretat
 
 }
 
+//(bvugt s t) abbreviates (bvult t s)
+void TheoryAxioms::addBVReverseAxiom(Interpretation bvugt, Interpretation bvult, UnitList*& units)
+{
+    unsigned ugt = env.signature->getInterpretingSymbol(bvugt);
+    unsigned ult = env.signature->getInterpretingSymbol(bvult);
+    unsigned srt = theory->getOperationSort(bvugt);
+    
+    TermList s(0,false);
+    TermList t(1,false);
+    
+    Formula* bvugt_s_t = new AtomicFormula(Literal::create2(ugt,true,s,t));
+    Formula* bvult_t_s = new AtomicFormula(Literal::create2(ult,true,t,s));
+    Formula* res = new BinaryFormula(IMP,bvugt_s_t,bvult_t_s);
+    
+    addAndOutputTheoryUnit(new FormulaUnit(res, new Inference(Inference::THEORY), Unit::AXIOM), units);
+    
+    // (bvugt s t) XOR (bvult s t) XOR (= s t)
+    Formula* bvult_s_t = new AtomicFormula(Literal::create2(ult,true,s,t));
+    Formula* eq_s_t = new AtomicFormula(Literal::createEquality(true, s, t, srt));
+    
+    Formula*  _xor1 = new BinaryFormula(XOR, bvult_s_t, bvugt_s_t);
+    Formula*  _xor2 = new BinaryFormula(XOR, _xor1, eq_s_t);
+    addAndOutputTheoryUnit(new FormulaUnit(_xor2, new Inference(Inference::THEORY), Unit::AXIOM), units);
+    
+} 
+/*(bvsdiv s t) abbreviates
+      (let ((?msb_s ((_ extract |m-1| |m-1|) s))
+            (?msb_t ((_ extract |m-1| |m-1|) t)))
+        (ite (and (= ?msb_s #b0) (= ?msb_t #b0))
+             (bvudiv s t)
+        (ite (and (= ?msb_s #b1) (= ?msb_t #b0))
+             (bvneg (bvudiv (bvneg s) t))
+        (ite (and (= ?msb_s #b0) (= ?msb_t #b1))
+             (bvneg (bvudiv s (bvneg t)))
+             (bvudiv (bvneg s) (bvneg t))))))*/
+
+void TheoryAxioms::addBVSdivAxiom1(Interpretation bvsdiv, Interpretation extract, Interpretation bvand, Interpretation bvudiv,Interpretation bvneg, UnitList*& units)
+{
+    /*unsigned sdiv = env.signature->getInterpretingSymbol(bvsdiv);
+    unsigned extr = env.signature->getInterpretingSymbol(extract);
+    unsigned _and = env.signature->getInterpretingSymbol(bvand);
+    unsigned udiv = env.signature->getInterpretingSymbol(bvudiv);
+    unsigned neg = env.signature->getInterpretingSymbol(bvneg);
+    
+    
+    unsigned srt = theory->getOperationSort(bvsdiv);
+    
+    TermList s(0,false);
+    TermList t(1,false);
+    //lhs
+    //(bvsdiv s t)
+    TermList bvsdiv_s_t(Term::create2(sdiv,s,t));
+    
+    //rhs
+    TermList msb_s(2,false);
+    TermList msb_t(3,false);
+    */
+    //TODO
+    
+    // you can easily get the sort of the bvsdiv, from there you get the size simple
+    unsigned srt = theory->getOperationSort(bvsdiv);
+    unsigned bvSize = env.sorts->getBitVectorSort(srt)->getSize(); // now you can use the size
+    bvSize--;
+    
+}
+
+void TheoryAxioms::addBVUleAxiom1(Interpretation bvule, Interpretation bvult, UnitList*& units)
+{
+    // (bvule s t) abbreviates (or (bvult s t) (= s t))
+    unsigned ule = env.signature->getInterpretingSymbol(bvule);
+    unsigned ult = env.signature->getInterpretingSymbol(bvult);
+    
+    unsigned srt = theory->getOperationSort(bvule);
+    TermList s(0,false);
+    TermList t(1,false);
+    Formula* formula;
+   
+    
+    //lhs
+    //(bvule s t)
+    Formula* bvule_s_t = new AtomicFormula(Literal::create2(ule,true,s,t));
+    Formula* n_bvule_s_t = new NegatedFormula(bvule_s_t);
+    
+    //rhs
+    // (= s t)
+    formula = new AtomicFormula(Literal::createEquality(true, s, t, srt));
+    //(bvult s t) 
+    Formula* bvult_s_t = new AtomicFormula(Literal::create2(ult,true,s,t));
+    FormulaList* argLst = nullptr;
+    FormulaList::push(formula,argLst);
+    FormulaList::push(bvult_s_t,argLst);
+    
+    //(or (bvult s t) (= s t))
+    Formula*  _or = new JunctionFormula(OR, argLst);
+    
+    FormulaList* argLst2 = nullptr;
+    FormulaList::push( n_bvule_s_t,argLst2);
+    FormulaList::push( _or,argLst2);
+    Formula* res = new JunctionFormula(OR,argLst2);
+    
+    addAndOutputTheoryUnit(new FormulaUnit(res, new Inference(Inference::THEORY), Unit::AXIOM), units);
+    
+}
+void TheoryAxioms::addBVNandAxiom1(Interpretation bvnand, Interpretation bvnot, Interpretation bvand, UnitList*& units)
+{
+    //(bvnand s t) abbreviates (bvnot (bvand s t))
+    unsigned nand = env.signature->getInterpretingSymbol(bvnand);
+    unsigned _not = env.signature->getInterpretingSymbol(bvnot);
+    unsigned _and = env.signature->getInterpretingSymbol(bvand);
+    
+    unsigned srt = theory->getOperationSort(bvnand);
+    
+    TermList s(0,false);
+    TermList t(1,false);
+    
+    //(bvnand s t) 
+    TermList bvnand_s_t(Term::create2(nand,s,t));
+    
+    
+    //(bvand s t)
+    TermList bvand_s_t(Term::create2(_and,s,t));
+    //(bvnot (bvand s t))
+    TermList bvnot_bvand_s_t(Term::create1(_not,bvand_s_t));
+    
+    Literal* eq1 = Literal::createEquality(true,bvnand_s_t,bvnot_bvand_s_t,srt);
+    addTheoryUnitClause(eq1, units);
+    
+}
+
+void TheoryAxioms::addBVSUBAxiom1(Interpretation bvsub, Interpretation bvadd , Interpretation bvneg, UnitList*& units)
+{
+    //(bvsub s t) abbreviates (bvadd s (bvneg t))
+    unsigned sub = env.signature->getInterpretingSymbol(bvsub);
+    unsigned add = env.signature->getInterpretingSymbol(bvadd);
+    unsigned neg = env.signature->getInterpretingSymbol(bvneg);
+    
+    unsigned srt = theory->getOperationSort(bvsub);
+    
+    TermList s(0,false);
+    TermList t(1,false);
+    
+    //lhs
+    //(bvsub s t) 
+    TermList bvsub_s_t(Term::create2(sub,s,t));
+    
+    //rhs
+    //(bvneg t)
+    TermList bvneg_t(Term::create1(neg,t));
+    // (bvadd s (bvneg t))
+    TermList bvadd_s_bvneg_t(Term::create2(add,s,bvneg_t));
+    
+    Literal* eq1 = Literal::createEquality(true,bvsub_s_t,bvadd_s_bvneg_t,srt);
+    addTheoryUnitClause(eq1, units);
+    
+}
+
+
+void TheoryAxioms::addBVUdivAxiom1(Interpretation bvudiv, TermList zeroElement, TermList allOneElement, UnitList*& units)
+{
+    // bvudiv now returns a vector of all 1's if the second operand is 0
+    unsigned udiv = env.signature->getInterpretingSymbol(bvudiv);
+    unsigned srt = theory->getOperationSort(bvudiv);
+    
+    TermList x(0,false);
+    //(bvudiv x zero) = allones 
+    TermList bvudiv_x_zero(Term::create2(udiv,x,zeroElement));
+    
+    Literal* eq1 = Literal::createEquality(true,bvudiv_x_zero,allOneElement,srt);
+    addTheoryUnitClause(eq1, units);
+    
+}
+void TheoryAxioms::addBVXNORAxiom1(Interpretation bvxnor, Interpretation bvor , Interpretation bvand, Interpretation bvnot, UnitList*& units)
+{
+    //(bvxnor s t) abbreviates (bvor (bvand s t) (bvand (bvnot s) (bvnot t)))
+    unsigned _xnor = env.signature->getInterpretingSymbol(bvxnor);
+    unsigned _or = env.signature->getInterpretingSymbol(bvor);
+    unsigned _not = env.signature->getInterpretingSymbol(bvnot);
+    unsigned _and = env.signature->getInterpretingSymbol(bvand);
+    
+    unsigned srt = theory->getOperationSort(bvor);
+    
+    TermList s(0,false);
+    TermList t(1,false);
+    
+    //lhs
+    //(bvxnor s t) 
+    TermList bvxnor_s_t(Term::create2(_xnor,s,t));
+    
+    // rhs
+    //(bvnot t)
+    TermList bvnot_t(Term::create1(_not,t));
+    //(bvnot s)
+    TermList bvnot_s(Term::create1(_not,s));
+    //(bvand (bvnot s) (bvnot t))
+    TermList bvand_bvnot_s_bvnot_t(Term::create2(_and,bvnot_t,bvnot_s));
+    
+    //(bvand s t)
+    TermList bvand_s_t(Term::create2(_and,s,t));
+    
+    //rhs 
+    //(bvor (bvand s t) (bvand (bvnot s) (bvnot t))
+    TermList rhs(Term::create2(_or,bvand_s_t,bvand_bvnot_s_bvnot_t));
+    
+    Literal* eq1 = Literal::createEquality(true,bvxnor_s_t,rhs,srt);
+    addTheoryUnitClause(eq1, units);
+    
+}
+
+void TheoryAxioms::addBVXORAxiom1(Interpretation bvxor, Interpretation bvor , Interpretation bvand, Interpretation bvnot, UnitList*& units)
+{
+    //(bvxor s t) abbreviates (bvor (bvand s (bvnot t)) (bvand (bvnot s) t))
+    unsigned _xor = env.signature->getInterpretingSymbol(bvxor);
+    unsigned _or = env.signature->getInterpretingSymbol(bvor);
+    unsigned _not = env.signature->getInterpretingSymbol(bvnot);
+    unsigned _and = env.signature->getInterpretingSymbol(bvand);
+    
+    unsigned srt = theory->getOperationSort(bvor);
+    
+    TermList s(0,false);
+    TermList t(1,false);
+    
+    //(bvxor s t)
+    TermList bvxor_s_t(Term::create2(_xor,s,t));
+    
+    
+    // (bvnot s)
+    TermList bvnot_s(Term::create1(_not,s));
+    // (bvand (bvnot s) t))
+    TermList bvand_bvnot_s_t(Term::create2(_and,bvnot_s, t));
+    
+    // (bvnot t)
+    TermList bvnot_t(Term::create1(_not,t));
+    // (bvand s (bvnot t)
+    TermList bvand_s_bvnot_t(Term::create2(_and,s, bvnot_t));
+    //(bvor (bvand s (bvnot t)) (bvand (bvnot s) t))
+    TermList rhs(Term::create2(_or,bvand_bvnot_s_t, bvand_s_bvnot_t));
+    
+    
+    Literal* eq1 = Literal::createEquality(true,bvxor_s_t,rhs,srt);
+    addTheoryUnitClause(eq1, units);
+    
+}
+  
+void TheoryAxioms::addMulBitVectorAxioms(Interpretation plus, Interpretation unaryMinus,
+    TermList zeroElement, TermList oneElement, Interpretation less, Interpretation multiply,UnitList*& units)
+{
+    //////// 
+    
+        unsigned srt = theory->getOperationSort(plus);
+         
+         addCommutativity(multiply, units);
+         addAssociativity(multiply, units);
+         addRightIdentity(multiply, oneElement, units);
+         
+        //axiom( X0*zero==zero );
+        unsigned mulFun = env.signature->getInterpretingSymbol(multiply);
+        TermList x(0,false);
+        TermList xMulZero(Term::create2(mulFun, x, zeroElement));
+        Literal* xEqXMulZero = Literal::createEquality(true, xMulZero, zeroElement, srt);
+        addTheoryUnitClause(xEqXMulZero, units);
+        
+        // Distributivity
+        //axiom x*(y+z) = (x*y)+(x*z)
+
+        unsigned plusFun = env.signature->getInterpretingSymbol(plus);
+        TermList y(1,false);
+        TermList z(2,false);
+
+        TermList yPz(Term::create2(plusFun,y,z));
+        TermList xTyPz(Term::create2(mulFun,x,yPz));
+
+        TermList xTy(Term::create2(mulFun,x,y));
+        TermList xTz(Term::create2(mulFun,x,z));
+        TermList xTyPxTz(Term::create2(plusFun,xTy,xTz));
+
+        Literal* distrib = Literal::createEquality(true, xTyPz, xTyPxTz,srt);
+        addTheoryUnitClause(distrib,units);
+
+        // Divisibility
+        // (x != 0 & x times z = y & x times w = y) -> z = w
+        // x=0 | x*z != y | x*w != y | z=w
+        TermList w(3,false);
+        Literal* xEz = Literal::createEquality(true,x,zeroElement,srt);
+        TermList xTw(Term::create2(mulFun,x,w));
+        Literal* xTznEy = Literal::createEquality(false,xTz,y,srt); 
+        Literal* xTwnEy = Literal::createEquality(false,xTw,y,srt); 
+        Literal* zEw = Literal::createEquality(true,z,w,srt);
+
+        addTheoryNonUnitClause(units,xEz,xTznEy,xTwnEy,zEw);
+}
+
+void TheoryAxioms::addCertainBitVectorAxioms(Interpretation plus, Interpretation unaryMinus,
+    TermList zeroElement, TermList oneElement, Interpretation less,UnitList*& units)
+{
+       /* addCommutativity(op,units);
+            addAssociativity(op,units);
+            addRightIdentity(op,e,units);
+            i(f(x,y)) = f(i(y),i(x))
+            f(x,i(x))=e
+          */
+    
+         addCommutativeGroupAxioms(plus, unaryMinus,zeroElement,units);
+        
+         //Add axioms of reflexivity, transitivity and total ordering for predicate
+         addTotalOrderAxioms(less,units);
+      
+         
+         //Add axiom less(X,Y) | less(Y,X) | X=Y
+         addOrderingTotality(less,units);
+         
+         // add that --k = k
+         TermList k(0,false);
+         unsigned varSort = theory->getOperationSort(unaryMinus);
+         unsigned unaryMinusFun = env.signature->getInterpretingSymbol(unaryMinus);
+         TermList mk(Term::create1(unaryMinusFun,k));
+         TermList mmk(Term::create1(unaryMinusFun,mk));
+         Literal* mmkEqk = Literal::createEquality(true,mmk,k,varSort);
+         addTheoryUnitClause(mmkEqk,units);
+         
+}
 /**
  * Add axioms for addition, multiplication, unary minus and ordering
  */
@@ -1184,7 +1506,175 @@ bool TheoryAxioms::apply(UnitList*& units, Property* prop)
 
     modified = true;
   }
-
+  
+    auto it = theory->getSSIItems(); 
+    while(it.hasNext()){
+      auto entry = it.next();
+      if (entry.first.getSSI() == Theory::StructuredSortInterpretation::BVADD)
+      {
+         
+         Interpretation currInterpretation = static_cast<Interpretation>(entry.second);
+         Interpretation unaryMinus = theory->getInterpretation(entry.first.getResultSort(),Theory::StructuredSortInterpretation::BVNEG);
+         Interpretation less = theory->getInterpretation(entry.first.getResultSort(), Theory::StructuredSortInterpretation::BVULT);
+         //Interpretation multiply = theory->getInterpretation(entry.first.getResultSort(), Theory::StructuredSortInterpretation::BVMUL);
+         unsigned size = env.sorts->getBitVectorSort(entry.first.getResultSort())->getSize();
+         
+         TermList zero(theory->representConstant(BitVectorOperations::getZeroBVCT(size)));
+         TermList one(theory->representConstant(BitVectorOperations::getOneBVCT(size)));
+         addCertainBitVectorAxioms(currInterpretation, unaryMinus, zero, one, less,units);
+        
+      }
+      else if(entry.first.getSSI() == Theory::StructuredSortInterpretation::BVMUL)
+      {
+         Interpretation currInterpretation = static_cast<Interpretation>(entry.second);
+         Interpretation unaryMinus = theory->getInterpretation(entry.first.getResultSort(),Theory::StructuredSortInterpretation::BVNEG);
+         Interpretation less = theory->getInterpretation(entry.first.getResultSort(), Theory::StructuredSortInterpretation::BVULT);
+         Interpretation plus = theory->getInterpretation(entry.first.getResultSort(), Theory::StructuredSortInterpretation::BVADD);
+         unsigned size = env.sorts->getBitVectorSort(entry.first.getResultSort())->getSize();
+         TermList zero(theory->representConstant(BitVectorOperations::getZeroBVCT(size)));
+         TermList one(theory->representConstant(BitVectorOperations::getOneBVCT(size)));
+         addMulBitVectorAxioms(plus, unaryMinus, zero, one, less, currInterpretation,units);
+      }
+      else if(entry.first.getSSI() == Theory::StructuredSortInterpretation::BVNAND)
+      {
+          Interpretation nandInterpretation = static_cast<Interpretation>(entry.second);
+          Interpretation bvnotInterpretation = theory->getInterpretation(entry.first.getResultSort(),Theory::StructuredSortInterpretation::BVNOT);
+          Interpretation bvandInterpretation = theory->getInterpretation(entry.first.getResultSort(),Theory::StructuredSortInterpretation::BVAND);
+          addBVNandAxiom1(nandInterpretation,bvnotInterpretation, bvandInterpretation, units);
+      }
+      else if(entry.first.getSSI() == Theory::StructuredSortInterpretation::BVNOR)
+      {
+          Interpretation norInterpretation = static_cast<Interpretation>(entry.second);
+          Interpretation bvnotInterpretation = theory->getInterpretation(entry.first.getResultSort(),Theory::StructuredSortInterpretation::BVNOT);
+          Interpretation bvorInterpretation = theory->getInterpretation(entry.first.getResultSort(),Theory::StructuredSortInterpretation::BVOR);
+          addBVNandAxiom1(norInterpretation,bvnotInterpretation, bvorInterpretation, units);
+      }
+      //(bvxor s t) abbreviates (bvor (bvand s (bvnot t)) (bvand (bvnot s) t))
+      else if(entry.first.getSSI() == Theory::StructuredSortInterpretation::BVXOR)
+      {
+          Interpretation xorInterpretation = static_cast<Interpretation>(entry.second);
+          Interpretation bvnotInterpretation = theory->getInterpretation(entry.first.getResultSort(),Theory::StructuredSortInterpretation::BVNOT);
+          Interpretation bvorInterpretation = theory->getInterpretation(entry.first.getResultSort(),Theory::StructuredSortInterpretation::BVOR);
+          Interpretation bvandInterpretation = theory->getInterpretation(entry.first.getResultSort(),Theory::StructuredSortInterpretation::BVAND);
+          addBVXORAxiom1(xorInterpretation, bvorInterpretation , bvandInterpretation,bvnotInterpretation, units);
+      }
+      else if(entry.first.getSSI() == Theory::StructuredSortInterpretation::BVXNOR)
+      {
+          Interpretation xnorInterpretation = static_cast<Interpretation>(entry.second);
+          Interpretation bvnotInterpretation = theory->getInterpretation(entry.first.getResultSort(),Theory::StructuredSortInterpretation::BVNOT);
+          Interpretation bvorInterpretation = theory->getInterpretation(entry.first.getResultSort(),Theory::StructuredSortInterpretation::BVOR);
+          Interpretation bvandInterpretation = theory->getInterpretation(entry.first.getResultSort(),Theory::StructuredSortInterpretation::BVAND);
+          addBVXNORAxiom1(xnorInterpretation, bvorInterpretation , bvandInterpretation,bvnotInterpretation, units);
+      }
+      else if(entry.first.getSSI() == Theory::StructuredSortInterpretation::BVSUB)
+      {
+          Interpretation subInterpretation = static_cast<Interpretation>(entry.second);
+          Interpretation bvaddInterpretation = theory->getInterpretation(entry.first.getResultSort(),Theory::StructuredSortInterpretation::BVADD);
+          Interpretation bvnegInterpretation = theory->getInterpretation(entry.first.getResultSort(),Theory::StructuredSortInterpretation::BVNEG);
+          addBVSUBAxiom1(subInterpretation, bvaddInterpretation , bvnegInterpretation,units);
+      }
+      else if(entry.first.getSSI() == Theory::StructuredSortInterpretation::BVULE)
+      {
+          Interpretation bvuleInterpretation = static_cast<Interpretation>(entry.second);
+          Interpretation bvultInterpretation = theory->getInterpretation(entry.first.getResultSort(),Theory::StructuredSortInterpretation::BVULT);
+          addBVUleAxiom1(bvuleInterpretation, bvultInterpretation,units);
+      }
+      else if(entry.first.getSSI() == Theory::StructuredSortInterpretation::BVUGT)
+      {
+          Interpretation bvugtInterpretation = static_cast<Interpretation>(entry.second);
+          Interpretation bvultInterpretation = theory->getInterpretation(entry.first.getResultSort(),Theory::StructuredSortInterpretation::BVULT);
+          addBVReverseAxiom(bvugtInterpretation, bvultInterpretation,units);
+          addTotalOrderAxioms(bvugtInterpretation, units);
+          addOrderingTotality(bvugtInterpretation,units);
+      }      
+      
+      else if(entry.first.getSSI() == Theory::StructuredSortInterpretation::BVUDIV)
+      {
+          Interpretation bvudivInterpretation = static_cast<Interpretation>(entry.second);
+          unsigned size = env.sorts->getBitVectorSort(entry.first.getResultSort())->getSize();
+          
+          TermList zero(theory->representConstant(BitVectorOperations::getZeroBVCT(size)));
+          TermList allOnes(theory->representConstant(BitVectorOperations::getAllOnesBVCT(size)));
+          addBVUdivAxiom1(bvudivInterpretation, zero, allOnes,units);
+          
+          TermList one(theory->representConstant(BitVectorOperations::getOneBVCT(size)));
+          addRightIdentity(bvudivInterpretation, one, units);
+          
+      }
+     
+      // an failed attempt to add associvity for concat
+      /*
+      else if(entry.first.getSSI() == Theory::StructuredSortInterpretation::CONCAT)
+      {
+          //lhs
+          //f(Y,Z)
+          Interpretation concatInterpretation = static_cast<Interpretation>(entry.second);
+          // first argument of concat, from there you can get its arg1 sort 
+          //
+          unsigned sortArg1 = entry.first.getArg1();
+          unsigned sortArg2 = entry.first.getArg2();
+          unsigned resultSort = theory->getOperationSort(concatInterpretation);//entry.first.getResultSort();// env.signature->getInterpretingSymbol(concatInterpretation);//;
+          
+           // Get the symbols needed 
+          // f(X,f(Y,Z))
+          // get the sort of the result
+          unsigned bvSize1 = env.sorts->getBitVectorSort(sortArg1)->getSize() + env.sorts->getBitVectorSort(resultSort)->getSize(); 
+          unsigned srt1 = env.sorts->addBitVectorSort(bvSize1);
+          unsigned fun_f_xf_yz = Theory::instance()->getSymbolForStructuredSort(srt1, Theory::StructuredSortInterpretation::CONCAT,sortArg1,resultSort);
+          
+          //rhs
+          //f(X,Y)
+          unsigned bvSize2 = env.sorts->getBitVectorSort(sortArg1)->getSize() * 2; 
+          unsigned srt2 = env.sorts->addBitVectorSort(bvSize2);
+          unsigned fun_f_xy = Theory::instance()->getSymbolForStructuredSort(srt2, Theory::StructuredSortInterpretation::CONCAT,sortArg1,sortArg1);
+          
+          // f(f(X,Y),Z)
+          unsigned bvSize3 = bvSize2 + env.sorts->getBitVectorSort(sortArg2)->getSize(); 
+          unsigned srt3 = env.sorts->addBitVectorSort(bvSize3);
+          unsigned fun_f_fxy_z = Theory::instance()->getSymbolForStructuredSort(srt3, Theory::StructuredSortInterpretation::CONCAT,srt2,sortArg2);
+         
+          // Add axiom f(X,f(Y,Z))=f(f(X,Y),Z) 
+          unsigned concatFun = env.signature->getInterpretingSymbol(concatInterpretation);
+          TermList x(0,false);
+          TermList y(1,false);
+          TermList z(2,false);
+          //lhs
+          //f(Y,Z)
+          TermList fyz(Term::create2(concatFun,y,z));
+          //f(X,f(Y,Z))
+          
+          TermList fx_fyz(Term::create2(fun_f_xf_yz,x,fyz));
+          
+          //rhs
+          // f(X,Y)
+          TermList fxy(Term::create2(fun_f_xy,x,y));
+          //f(f(X,Y),Z)
+          TermList f_fxy_z(Term::create2(fun_f_fxy_z,fxy,z));
+          Literal* lit = Literal::createEquality(true, fx_fyz, f_fxy_z,srt3);
+          addTheoryUnitClause(lit,units);
+          
+      }*/
+      else if(entry.first.getSSI() == Theory::StructuredSortInterpretation::BVSHL)
+      {
+          // (bvshlt s one) abbreviates (bvmul s two)
+      }
+      else if(entry.first.getSSI() == Theory::StructuredSortInterpretation::BVLSHR)
+      {
+          
+      }
+      else if(entry.first.getSSI() == Theory::StructuredSortInterpretation::CONCAT)
+      {
+          
+      } 
+      else if(entry.first.getSSI() == Theory::StructuredSortInterpretation::BV_ZERO_EXTEND)
+      {
+          // zero extend is like a concat 
+          // (zero_extend i s) abbreviates (concat 0000 s)
+      }
+      
+      //add orderingTotality for unsigned less than and maybe greater than
+    }
+  
   return modified;
 } // TheoryAxioms::apply
 

@@ -12,6 +12,7 @@
 #include "Theory.hpp"
 
 #include "InterpretedLiteralEvaluator.hpp"
+#include "BitVectorOperations.hpp"
 
 namespace Kernel
 {
@@ -915,13 +916,13 @@ class InterpretedLiteralEvaluator::BitVectorEvaluator : public TypedEvaluator<Bi
                   resSize = argBv.size() + rotateBy.toInner();
               BitVectorConstantType resNum(resSize);
               if (ssi == Theory::StructuredSortInterpretation::BV_ROTATE_RIGHT)
-                BitVectorConstantType::rotate_right(rotateBy.toInner(),argBv,resNum);
+                BitVectorOperations::rotate_right(rotateBy.toInner(),argBv,resNum);
               else if (ssi == Theory::StructuredSortInterpretation::BV_ROTATE_LEFT)
-                BitVectorConstantType::rotate_left(rotateBy.toInner(),argBv,resNum);
+                BitVectorOperations::rotate_left(rotateBy.toInner(),argBv,resNum);
               else if (ssi == Theory::StructuredSortInterpretation::BV_SIGN_EXTEND)
-                BitVectorConstantType::sign_extend(rotateBy.toInner(),argBv,resNum);  
+                BitVectorOperations::sign_extend(rotateBy.toInner(),argBv,resNum);  
               else if (ssi == Theory::StructuredSortInterpretation::BV_ZERO_EXTEND)
-                BitVectorConstantType::zero_extend(rotateBy.toInner(),argBv,resNum);   
+                BitVectorOperations::zero_extend(rotateBy.toInner(),argBv,resNum);   
               res = TermList(theory->representConstant(resNum));
               return true;
               
@@ -937,14 +938,14 @@ class InterpretedLiteralEvaluator::BitVectorEvaluator : public TypedEvaluator<Bi
               IntegerConstantType to;
               BitVectorConstantType argBv;
               
-              if (!theory->tryInterpretConstant(arg1Trm, argBv) || !theory->tryInterpretConstant(arg2Trm, from)
-                      || !theory->tryInterpretConstant(arg3Trm, to))
+              if (!theory->tryInterpretConstant(arg1Trm, from)
+                      || !theory->tryInterpretConstant(arg2Trm, to) || !theory->tryInterpretConstant(arg3Trm, argBv))
                     return false;
               
               // if sign extend or zero extend size accordingyl
               unsigned resSize = from.toInner()-to.toInner()+1;
               BitVectorConstantType resNum(resSize);
-              BitVectorConstantType::extract(from.toInner(),to.toInner(),argBv,resNum);
+              BitVectorOperations::extract(from.toInner(),to.toInner(),argBv,resNum);
               res = TermList(theory->representConstant(resNum));
               return true;
       }
@@ -996,7 +997,7 @@ class InterpretedLiteralEvaluator::BitVectorEvaluator : public TypedEvaluator<Bi
             }
             
             if(theory->tryInterpretConstant(arg2Trm, argBv2) && isOne(argBv2) && isUnsignedRemainder(itp)){
-              res = getZero(argBv1.size());
+              res = TermList(theory->representConstant(BitVectorOperations::getZeroBVCT(argBv2.size())));
               return true;
             }
             
@@ -1010,13 +1011,14 @@ class InterpretedLiteralEvaluator::BitVectorEvaluator : public TypedEvaluator<Bi
               res = nonConTerm;
               return true;
             }
+            
             //Special case where itp is multiplication and conArg is '0'
             if(isZero(conArg) && isProduct(itp)){
-              res = getZero(argBv1.size());
+              //res = getZero(argBv1.size());
+              res = TermList(theory->representConstant(BitVectorOperations::getZeroBVCT(conArg.size())));
               return true;
             }
           }
-          
           
           if (!theory->tryInterpretConstant(arg1Trm, argBv1) || !theory->tryInterpretConstant(arg2Trm, argBv2))
           {
@@ -1066,11 +1068,11 @@ class InterpretedLiteralEvaluator::BitVectorEvaluator : public TypedEvaluator<Bi
       switch(ssi){
           case Theory::StructuredSortInterpretation::BVNEG:
               res.prepareBinArray(arg.size());
-              BitVectorConstantType::bvneg(arg, res);
+              BitVectorOperations::bvneg(arg, res);
               return true;
           case Theory::StructuredSortInterpretation::BVNOT:
               res.prepareBinArray(arg.size());
-              BitVectorConstantType::bvnot(arg, res);
+              BitVectorOperations::bvnot(arg, res);
               return true;
           default:
               USER_ERROR("Add here1");
@@ -1078,62 +1080,62 @@ class InterpretedLiteralEvaluator::BitVectorEvaluator : public TypedEvaluator<Bi
       }
       
   }
-
+  
   virtual bool tryEvaluateBinaryFunc(Interpretation op, const Value& arg1,
       const Value& arg2, Value& res)
   {
      Theory::StructuredSortInterpretation ssi = theory->convertToStructured(op);
      switch(ssi){
           case Theory::StructuredSortInterpretation::BVAND:
-              BitVectorConstantType::bvand(arg1, arg2,res);
+              BitVectorOperations::bvand(arg1, arg2,res);
               return true;
           case Theory::StructuredSortInterpretation::BVNAND:
-              BitVectorConstantType::bvnand(arg1, arg2,res);
+              BitVectorOperations::bvnand(arg1, arg2,res);
               return true;
           case Theory::StructuredSortInterpretation::BVXOR:
-              BitVectorConstantType::bvxor(arg1, arg2,res);
+              BitVectorOperations::bvxor(arg1, arg2,res);
               return true;
           case Theory::StructuredSortInterpretation::BVXNOR:
-              BitVectorConstantType::bvxnor(arg1, arg2,res);
+              BitVectorOperations::bvxnor(arg1, arg2,res);
               return true;    
           case Theory::StructuredSortInterpretation::BVADD:
-              BitVectorConstantType::bvadd(arg1, arg2,res);
+              BitVectorOperations::bvadd(arg1, arg2,res);
               return true;
           case Theory::StructuredSortInterpretation::BVSHL:
-              BitVectorConstantType::bvshl(arg1, arg2,res);
+              BitVectorOperations::bvshl(arg1, arg2,res);
               return true;
           case Theory::StructuredSortInterpretation::BVLSHR:
-              BitVectorConstantType::bvlshr(arg1, arg2,res);
+              BitVectorOperations::bvlshr(arg1, arg2,res);
               return true;
           case Theory::StructuredSortInterpretation::BVASHR:
-              BitVectorConstantType::bvashr(arg1, arg2,res);
+              BitVectorOperations::bvashr(arg1, arg2,res);
               return true;    
           case Theory::StructuredSortInterpretation::BVSUB:
-              BitVectorConstantType::bvsub(arg1, arg2,res);
+              BitVectorOperations::bvsub(arg1, arg2,res);
               return true;
           case Theory::StructuredSortInterpretation::BVUDIV:
-              BitVectorConstantType::bvudiv(arg1, arg2,res);
+              BitVectorOperations::bvudiv(arg1, arg2,res);
               return true;
           case Theory::StructuredSortInterpretation::BVSDIV:
-              BitVectorConstantType::bvsdiv(arg1, arg2,res);
+              BitVectorOperations::bvsdiv(arg1, arg2,res);
               return true;    
           case Theory::StructuredSortInterpretation::BVUREM:
-              BitVectorConstantType::bvurem(arg1, arg2,res);
+              BitVectorOperations::bvurem(arg1, arg2,res);
               return true; 
           case Theory::StructuredSortInterpretation::BVSREM:
-              BitVectorConstantType::bvsrem(arg1, arg2,res);
+              BitVectorOperations::bvsrem(arg1, arg2,res);
               return true;
           case Theory::StructuredSortInterpretation::BVSMOD:
-              BitVectorConstantType::bvsmod(arg1, arg2,res);
+              BitVectorOperations::bvsmod(arg1, arg2,res);
               return true;    
            case Theory::StructuredSortInterpretation::BVCOMP:
-              BitVectorConstantType::bvcomp(arg1, arg2,res);
+              BitVectorOperations::bvcomp(arg1, arg2,res);
               return true; 
            case Theory::StructuredSortInterpretation::CONCAT:
-              BitVectorConstantType::concat(arg1, arg2,res);
+              BitVectorOperations::concat(arg1, arg2,res);
               return true;
            case Theory::StructuredSortInterpretation::BVMUL:
-              BitVectorConstantType::bvmul(arg1, arg2,res);
+              BitVectorOperations::bvmul(arg1, arg2,res);
               return true;   
           default:
               USER_ERROR("Add here"); // remove this
@@ -1148,42 +1150,42 @@ class InterpretedLiteralEvaluator::BitVectorEvaluator : public TypedEvaluator<Bi
       Theory::StructuredSortInterpretation ssi = theory->convertToStructured(op);
       if (ssi==Theory::StructuredSortInterpretation::BVUGE)
       {       
-             BitVectorConstantType::bvuge(arg1, arg2,res);
+             BitVectorOperations::bvuge(arg1, arg2,res);
              return true;
       }
       if (ssi==Theory::StructuredSortInterpretation::BVUGT)
       {       
-             BitVectorConstantType::bvugt(arg1, arg2,res);
+             BitVectorOperations::bvugt(arg1, arg2,res);
              return true;
       }
       if (ssi==Theory::StructuredSortInterpretation::BVULE)
       {       
-             BitVectorConstantType::bvule(arg1, arg2,res);
+             BitVectorOperations::bvule(arg1, arg2,res);
              return true;
       }
       if (ssi==Theory::StructuredSortInterpretation::BVULT)
       {       
-             BitVectorConstantType::bvult(arg1, arg2,res);
+             BitVectorOperations::bvult(arg1, arg2,res);
              return true;
       }
       if (ssi==Theory::StructuredSortInterpretation::BVSLT)
       {
-          BitVectorConstantType::bvslt(arg1, arg2,res);
+          BitVectorOperations::bvslt(arg1, arg2,res);
           return true;
       }
       if (ssi==Theory::StructuredSortInterpretation::BVSLE)
       {
-          BitVectorConstantType::bvsle(arg1, arg2,res);
+          BitVectorOperations::bvsle(arg1, arg2,res);
           return true;
       }
       if (ssi==Theory::StructuredSortInterpretation::BVSGT)
       {
-          BitVectorConstantType::bvsgt(arg1, arg2,res);
+          BitVectorOperations::bvsgt(arg1, arg2,res);
           return true;
       }
       if (ssi==Theory::StructuredSortInterpretation::BVSGE)
       {
-          BitVectorConstantType::bvsge(arg1, arg2,res);
+          BitVectorOperations::bvsge(arg1, arg2,res);
           return true;
       }
       

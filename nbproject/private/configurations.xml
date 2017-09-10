@@ -258,6 +258,8 @@
         <in>Assignment.cpp</in>
         <in>Assignment.hpp</in>
         <in>BestLiteralSelector.hpp</in>
+        <in>BitVectorOperations.cpp</in>
+        <in>BitVectorOperations.hpp</in>
         <in>Clause.cpp</in>
         <in>Clause.hpp</in>
         <in>ClauseQueue.cpp</in>
