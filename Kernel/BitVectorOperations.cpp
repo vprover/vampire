@@ -81,30 +81,60 @@ void BitVectorOperations::createHashmap()
     bvToAdd.setBinArray(toAdd);
     map.insert('a',bvToAdd);
     
+    // 10 = 'A'
+    toAdd.initFromArray(4,ten);
+    bvToAdd.setBinArray(toAdd);
+    map.insert('A',bvToAdd);
+    
     // 11 = 'b'
     toAdd.initFromArray(4,eleven);
     bvToAdd.setBinArray(toAdd);
     map.insert('b',bvToAdd);
+    
+    // 11 = 'B'
+    toAdd.initFromArray(4,eleven);
+    bvToAdd.setBinArray(toAdd);
+    map.insert('B',bvToAdd);
     
     // 12 = 'c'
     toAdd.initFromArray(4,twelve);
     bvToAdd.setBinArray(toAdd);
     map.insert('c',bvToAdd);
     
+    // 12 = 'C'
+    toAdd.initFromArray(4,twelve);
+    bvToAdd.setBinArray(toAdd);
+    map.insert('C',bvToAdd);
+    
     // 13 = 'd'
     toAdd.initFromArray(4,thirteen);
     bvToAdd.setBinArray(toAdd);
     map.insert('d',bvToAdd);
+    
+    // 13 = 'D'
+    toAdd.initFromArray(4,thirteen);
+    bvToAdd.setBinArray(toAdd);
+    map.insert('D',bvToAdd);
     
     // 14 = 'e'
     toAdd.initFromArray(4,fourteen);
     bvToAdd.setBinArray(toAdd);
     map.insert('e',bvToAdd);
     
+    // 14 = 'E'
+    toAdd.initFromArray(4,fourteen);
+    bvToAdd.setBinArray(toAdd);
+    map.insert('E',bvToAdd);
+    
     // 15 = 'f'
     toAdd.initFromArray(4,fifteen);
     bvToAdd.setBinArray(toAdd);
     map.insert('f',bvToAdd);
+    
+    // 15 = 'F'
+    toAdd.initFromArray(4,fifteen);
+    bvToAdd.setBinArray(toAdd);
+    map.insert('F',bvToAdd);
     
 }
 
@@ -240,7 +270,7 @@ BitVectorConstantType BitVectorOperations::getBVCTFromVString(vstring& numberToR
             in.setValueAt(i,false);
         }
     }
- 
+
  
  void BitVectorOperations::inPlaceShiftRight(BitVectorConstantType& input, unsigned shiftByNum)
     {
@@ -657,16 +687,22 @@ BitVectorConstantType BitVectorOperations::getZeroBVCT(unsigned size)
         ASS_EQ(arg1.size(),arg2.size());
         ASS_EQ(arg2.size(),result.size());
         
+        
+         // use log base 2 eg logbase2 size of bitvector
         result = arg1;
+        double sum = 0;
+        unsigned terminateIndex = (unsigned)(ceil(log2(arg2.size())));
         for (unsigned i = 0 ; i < arg2.size(); ++ i){
             if (arg2.getValueAt(i)){
                 {
-                    unsigned num = pow(2,i);
-                    if(num>arg1.size())
+                    double numL = pow(2,i); // 
+                    sum+=numL;
+                    if(numL>=arg1.size() || sum>=arg1.size() || i>=terminateIndex)
                     {    
                         result = getZeroBVCT(arg1.size());
                         break;
                     }
+                    unsigned num = static_cast<unsigned>(numL);
                     inplaceShiftLeft(result,num);
                 }
                 
@@ -680,16 +716,19 @@ BitVectorConstantType BitVectorOperations::getZeroBVCT(unsigned size)
         ASS_EQ(arg2.size(),result.size());
         
         result = arg1;
+        double sum = 0;
+        unsigned terminateIndex = (unsigned)(ceil(log2(arg2.size())));
         for (unsigned i = 0 ; i < arg2.size(); ++ i){
             if (arg2.getValueAt(i))
             {
-                unsigned num = pow(2,i); 
-                // TODO: check from top to bottom.. wil be faster if num > arg1.size
-                if (num>arg1.size())
+                double numL = pow(2,i); 
+                sum+=numL;
+                if (numL>=arg1.size() || sum>=arg1.size() || i>=terminateIndex)
                 {
                     result = getZeroBVCT(arg1.size());
                     break;
                 }
+                unsigned num = static_cast<unsigned>(numL);
                 inPlaceShiftRight(result,num);
              }
         }
@@ -700,16 +739,20 @@ BitVectorConstantType BitVectorOperations::getZeroBVCT(unsigned size)
         ASS_EQ(arg1.size(),arg2.size());
         ASS_EQ(arg2.size(),result.size());
         
-        result = arg1; 
+        result = arg1;
+        double sum = 0;
+        unsigned terminateIndex = (unsigned)(ceil(log2(arg2.size())));
         for (unsigned i = 0 ; i < arg2.size(); ++ i){
             if (arg2.getValueAt(i)){
                 {
-                    unsigned num = pow(2,i);
-                    if (num>arg1.size())
+                    double numL = pow(2,i); 
+                    sum+=numL;
+                    if (numL>=arg1.size() || sum>=arg1.size() || i>=terminateIndex)
                     {
                         result = getZeroBVCT(arg1.size());
                         break;
                     }
+                    unsigned num = static_cast<unsigned>(numL);
                     inPlaceArithmeticShiftRight(result,num);
                 }
                 

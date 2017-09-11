@@ -356,7 +356,7 @@ void SMTLIB2::readLogic(const vstring& logicStr)
   case SMT_QF_ABV:
   case SMT_QF_AUFBV:
   case SMT_QF_UFBV:
-  case SMT_UFBV:    
+  case SMT_UFBV:   
       break;
   default:
     USER_ERROR("unrecognized logic "+logicStr);

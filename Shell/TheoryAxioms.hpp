@@ -59,13 +59,10 @@ private:
 						  TermList zeroElement, TermList oneElement,
 						  Interpretation less, Interpretation multiply,
 						  UnitList*& units);
-  
-  
-  void addBVSdivAxiom1(Interpretation bvsdiv, Interpretation extract, Interpretation bvand, Interpretation bvudiv, 
-  Interpretation bvneg, UnitList*& units);
-  
   void addBVUdivAxiom1(Interpretation bvudiv, TermList zeroElement, TermList oneElement,UnitList*& units);
-  
+  /*void addConcatAxiom(Interpretation concatInterpretation, unsigned sortArg1,unsigned sortArg2,unsigned resultSort, UnitList*& units);*/
+  /*void addBVsdivAxiom(Interpretation bvsdivInterpretation, Interpretation extractInterpretation,Interpretation bvudivI, Interpretation bvnegI, unsigned n,UnitList*& units);
+   */               
   void addCertainBitVectorAxioms(Interpretation plus, Interpretation unaryMinus,
   TermList zeroElement, TermList oneElement, Interpretation less, UnitList*& units);
   void addBVNandAxiom1(Interpretation bvnand, Interpretation bvnot, Interpretation bvand, UnitList*& units);
