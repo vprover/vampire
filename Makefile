@@ -27,48 +27,48 @@ MINISAT_DBG_FLAGS = -D DEBUG
 MINISAT_REL_FLAGS = -D NDEBUG
 MINISAT_FLAGS = $(MINISAT_DBG_FLAGS)
 
-#XFLAGS = -g -DVDEBUG=1 -DVTEST=1 -DCHECK_LEAKS=1 # full debugging + testing
-#XFLAGS = $(DBG_FLAGS)
-XFLAGS = -Wfatal-errors -g -DVDEBUG=1 -DCHECK_LEAKS=0 -DGNUMP=$(GNUMPF)# standard debugging only
-#XFLAGS = -g -DVDEBUG=1 -DCHECK_LEAKS=0 -DUSE_SYSTEM_ALLOCATION=1 -DVALGRIND=1 -DGNUMP=$(GNUMPF)# memory leaks
-#XFLAGS = $(REL_FLAGS)
+#PRE_XFLAGS = -g -DVDEBUG=1 -DVTEST=1 -DCHECK_LEAKS=1 # full debugging + testing
+#PRE_XFLAGS = $(DBG_FLAGS)
+PRE_XFLAGS = -Wfatal-errors -g -DVDEBUG=1 -DCHECK_LEAKS=0 -DGNUMP=$(GNUMPF)# standard debugging only
+#PRE_XFLAGS = -g -DVDEBUG=1 -DCHECK_LEAKS=0 -DUSE_SYSTEM_ALLOCATION=1 -DVALGRIND=1 -DGNUMP=$(GNUMPF)# memory leaks
+#PRE_XFLAGS = $(REL_FLAGS)
 
 # TODO: consider trying -flto (see https://gcc.gnu.org/onlinedocs/gcc/Optimize-Options.html)
 
-#XFLAGS = -O6 -DVDEBUG=0 -march=native -mtune=native # no debugging 
-#XFLAGS = -O6 -DVDEBUG=0 -msse3 # no debugging 
-#XFLAGS = -O6 -DVDEBUG=0 -msse3 -g # no debugging 
-#XFLAGS = -O6 -DVDEBUG=0 -march=core2 -msse4.1 -mtune=core2 # no debugging 
-#XFLAGS = -O6 -DVDEBUG=0 -march=core2 -msse4.1 -mtune=core2 -g # no debugging 
-#XFLAGS = -O6 -DUSE_SYSTEM_ALLOCATION=1 -DVDEBUG=0 -march=core2 -msse4.1 -mtune=core2 -g # no debugging 
+#PRE_XFLAGS = -O6 -DVDEBUG=0 -march=native -mtune=native # no debugging 
+#PRE_XFLAGS = -O6 -DVDEBUG=0 -msse3 # no debugging 
+#PRE_XFLAGS = -O6 -DVDEBUG=0 -msse3 -g # no debugging 
+#PRE_XFLAGS = -O6 -DVDEBUG=0 -march=core2 -msse4.1 -mtune=core2 # no debugging 
+#PRE_XFLAGS = -O6 -DVDEBUG=0 -march=core2 -msse4.1 -mtune=core2 -g # no debugging 
+#PRE_XFLAGS = -O6 -DUSE_SYSTEM_ALLOCATION=1 -DVDEBUG=0 -march=core2 -msse4.1 -mtune=core2 -g # no debugging 
 
-#XFLAGS = -pg -g -O6 -DVDEBUG=0 # profiling with max optimization
-#XFLAGS = -pg -g -O6 -DVDEBUG=0 -fno-inline # profiling with no inlining
-#XFLAGS = -pg -g -DVDEBUG=0 # profiling
-#XFLAGS = -pg -g -DVDEBUG=1 -DCHECK_LEAKS=0 # profiling & debugging
-#XFLAGS = -fprofile-arcs -pg -O6 -DVDEBUG=0 # coverage & profiling optimized
-#XFLAGS = -O0 -DVDEBUG=0 -g # no debugging, no optimization
-#XFLAGS = -O6 -DVDEBUG=1 -DCHECK_LEAKS=0 -g # debugging and optimized
+#PRE_XFLAGS = -pg -g -O6 -DVDEBUG=0 # profiling with max optimization
+#PRE_XFLAGS = -pg -g -O6 -DVDEBUG=0 -fno-inline # profiling with no inlining
+#PRE_XFLAGS = -pg -g -DVDEBUG=0 # profiling
+#PRE_XFLAGS = -pg -g -DVDEBUG=1 -DCHECK_LEAKS=0 # profiling & debugging
+#PRE_XFLAGS = -fprofile-arcs -pg -O6 -DVDEBUG=0 # coverage & profiling optimized
+#PRE_XFLAGS = -O0 -DVDEBUG=0 -g # no debugging, no optimization
+#PRE_XFLAGS = -O6 -DVDEBUG=1 -DCHECK_LEAKS=0 -g # debugging and optimized
 
-#XFLAGS = -O6 -DVDEBUG=0 -g # Cachegrind
-#XFLAGS = -O6 -DVDEBUG=0 -DUNIX_USE_SIGALRM=0 -g # Cachegrind
-#XFLAGS = -O2 -DVDEBUG=0 -fno-inline-functions -fno-inline-functions-called-once -fno-default-inline -fno-inline-small-functions -fno-early-inlining -g # Callgrind
-#XFLAGS = -O6 -DVDEBUG=0 -fno-inline-functions -fno-inline-functions-called-once -fno-default-inline -fno-early-inlining -g # Callgrind
-#XFLAGS = -O0 -DVDEBUG=0 -DUNIX_USE_SIGALRM=0 -fno-inline-functions -fno-inline-functions-called-once -fno-default-inline -fno-early-inlining -g # Callgrind
-#XFLAGS = -O2 -DVDEBUG=0 -fno-inline-functions -fno-inline-functions-called-once -fno-default-inline -fno-early-inlining -g # Callgrind
-#XFLAGS = -O6 -DVDEBUG=0 -DUNIX_USE_SIGALRM=0 -fno-inline -g # Callgrind
-#XFLAGS = -O0 -DVDEBUG=0 -DUSE_SYSTEM_ALLOCATION=1 -fno-inline -fno-default-inline -g # Valgrind
-#XFLAGS = -O0 -DVDEBUG=0 -DUSE_SYSTEM_ALLOCATION=1 -DVALGRIND=1 -fno-inline -g #Valgrind
-#XFLAGS = -O0 -DVDEBUG=0 -DUSE_SYSTEM_ALLOCATION=1 -DVALGRIND=1 -g #Valgrind
-#XFLAGS = -O6 -DVDEBUG=0 -DUSE_SYSTEM_ALLOCATION=1 -DVALGRIND=1 -g #Valgrind
-#XFLAGS = -O0 -DVDEBUG=1 -DCHECK_LEAKS=0 -DUSE_SYSTEM_ALLOCATION=1 -DVALGRIND=1 -fno-inline -fno-default-inline -g #Valgrind
-#XFLAGS = -O0 -DVDEBUG=0 -DUSE_SYSTEM_ALLOCATION=1 -DEFENCE=1 -fno-inline -g -lefence #Electric Fence
-#XFLAGS = -O6 -DVDEBUG=0 -DUSE_SYSTEM_ALLOCATION=1 -DEFENCE=1 -g -lefence #Electric Fence
-#XFLAGS = -O6 -DVDEBUG=0 -DUSE_SYSTEM_ALLOCATION=1 -g
+#PRE_XFLAGS = -O6 -DVDEBUG=0 -g # Cachegrind
+#PRE_XFLAGS = -O6 -DVDEBUG=0 -DUNIX_USE_SIGALRM=0 -g # Cachegrind
+#PRE_XFLAGS = -O2 -DVDEBUG=0 -fno-inline-functions -fno-inline-functions-called-once -fno-default-inline -fno-inline-small-functions -fno-early-inlining -g # Callgrind
+#PRE_XFLAGS = -O6 -DVDEBUG=0 -fno-inline-functions -fno-inline-functions-called-once -fno-default-inline -fno-early-inlining -g # Callgrind
+#PRE_XFLAGS = -O0 -DVDEBUG=0 -DUNIX_USE_SIGALRM=0 -fno-inline-functions -fno-inline-functions-called-once -fno-default-inline -fno-early-inlining -g # Callgrind
+#PRE_XFLAGS = -O2 -DVDEBUG=0 -fno-inline-functions -fno-inline-functions-called-once -fno-default-inline -fno-early-inlining -g # Callgrind
+#PRE_XFLAGS = -O6 -DVDEBUG=0 -DUNIX_USE_SIGALRM=0 -fno-inline -g # Callgrind
+#PRE_XFLAGS = -O0 -DVDEBUG=0 -DUSE_SYSTEM_ALLOCATION=1 -fno-inline -fno-default-inline -g # Valgrind
+#PRE_XFLAGS = -O0 -DVDEBUG=0 -DUSE_SYSTEM_ALLOCATION=1 -DVALGRIND=1 -fno-inline -g #Valgrind
+#PRE_XFLAGS = -O0 -DVDEBUG=0 -DUSE_SYSTEM_ALLOCATION=1 -DVALGRIND=1 -g #Valgrind
+#PRE_XFLAGS = -O6 -DVDEBUG=0 -DUSE_SYSTEM_ALLOCATION=1 -DVALGRIND=1 -g #Valgrind
+#PRE_XFLAGS = -O0 -DVDEBUG=1 -DCHECK_LEAKS=0 -DUSE_SYSTEM_ALLOCATION=1 -DVALGRIND=1 -fno-inline -fno-default-inline -g #Valgrind
+#PRE_XFLAGS = -O0 -DVDEBUG=0 -DUSE_SYSTEM_ALLOCATION=1 -DEFENCE=1 -fno-inline -g -lefence #Electric Fence
+#PRE_XFLAGS = -O6 -DVDEBUG=0 -DUSE_SYSTEM_ALLOCATION=1 -DEFENCE=1 -g -lefence #Electric Fence
+#PRE_XFLAGS = -O6 -DVDEBUG=0 -DUSE_SYSTEM_ALLOCATION=1 -g
 
-INCLUDES= -I.
-Z3FLAG= -DVZ3=0
-Z3LIB=
+INCLUDES= -I. -Linclude -Iz3/api -Iz3/api/c++ -Icvc4
+Z3FLAG= -DVZ3=1
+Z3LIB= -lz3
 ifeq (,$(shell echo $(MAKECMDGOALS) | sed 's/.*z3.*//g')) 
 INCLUDES= -I. -Linclude -Iz3/api -Iz3/api/c++ 
 ifeq (,$(shell echo $(MAKECMDGOALS) | sed 's/.*static.*//g'))
@@ -79,6 +79,8 @@ endif
 
 Z3FLAG= -DVZ3=1
 endif
+
+XFLAGS = $(PRE_XFLAGS) -DIS_LINGVA=0 $(Z3FLAG)
 
 ifneq (,$(filter vtest%,$(MAKECMDGOALS)))
 XFLAGS = $(DBG_FLAGS) -DIS_LINGVA=0 $(Z3FLAG)
@@ -304,6 +306,7 @@ VSAT_OBJ=SAT/ClauseDisposer.o\
          SAT/TWLSolver.o\
          SAT/VariableSelector.o\
 	 SAT/Z3Interfacing.o\
+	 SAT/CVC4Interfacing.o\
 	 SAT/BufferedSolver.o\
 	 SAT/FallbackSolverWrapper.o
 #         SAT/ISSatSweeping.o\	 
@@ -629,7 +632,7 @@ $(CXX) $(CXXFLAGS) $(filter -l%, $+) $(filter %.o, $^) -o $@_$(BRANCH)_$(COM_CNT
 endef
 
 define COMPILE_CMD_SIMPLE
-$(CXX) $(CXXFLAGS) $(filter -l%, $+) $(filter %.o, $^) -o $@ $(LGMP)
+$(CXX) $(CXXFLAGS) $(filter -l%, $+) $(filter %.o, $^) -o $@ $(LGMP) $(Z3LIB) -lcvc4
 endef
 
 define COMPILE_CMD_TKV
