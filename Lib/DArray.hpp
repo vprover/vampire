@@ -31,7 +31,7 @@ class DArray
 {
 private:
   //private and undefined operator= to avoid an implicitly generated one
- // DArray& operator=(const DArray&);
+  DArray& operator=(const DArray&);
 public:
   CLASS_NAME(DArray<C>);
   USE_ALLOCATOR(DArray<C>);
@@ -114,15 +114,7 @@ public:
 
     _size = s;
   }
-  //DArray& operator=(const DArray&);
-  inline DArray operator=(const DArray& in)
-  {
-      DArray res(in.size());
-      for (int i = 0;i<in.size();++i){
-          res[i] = in[i];
-      }
-      return res;
-  }
+  
   inline bool operator==(const DArray& o) const
   {
     CALL("DArray::operator==");

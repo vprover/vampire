@@ -142,116 +142,8 @@ public:
   /* has co-algrebaic data type constructors */
   static const unsigned long PR_HAS_CDT_CONSTRUCTORS = 2199023255552ul; // 2^41
   
-  //////////////////////////////
-  /////////////////////////////
-  //////////////////////////////
-  /////////////////////////////
-  //////////////////////////////
-  ///////////////////////////// possible solution? could be simpler if there are no axioms for extract and such
-  class BVal
-  {
-    public:
-        BVal(unsigned r, unsigned a1, unsigned a2){
-            resultSort = r ; 
-            arg1Sort = a1;
-            arg2Sort = a2;
-        }
-        BVal(){}
-      bool operator==(const BVal& o) const {
-        return ((resultSort == o.getResultSort()) && (arg1Sort == o.getArg1Sort()) && (arg2Sort == o.getArg2Sort()));
-        } 
-      unsigned getResultSort() const {return resultSort;}
-      unsigned getArg1Sort() const {return arg1Sort;}
-      unsigned getArg2Sort() const {return arg2Sort;}
-    private:
-        unsigned resultSort;
-        unsigned arg1Sort;
-        unsigned arg2Sort;
-    
-  };
-  
-  class BValArray
-  {
-      public:
-        bool contains(BVal in)
-        {
-            for (unsigned i = 0 ; i < list.size(); ++i){
-                if (in == list[i])
-                    return true;
-            }
-            return false;
-        }
-        
-        void addVal(BVal in)
-        {
-            if (!contains(in))
-            {
-                list.expand(list.size()+1);
-                list[list.size()-1] = in;
-            }
-        }
-     private :
-      DArray<BVal> list;
-  };
-  class BValArrayContainer
-  {
-      DArray<BValArray> valArray;
-  public:
-      void addToIndex(unsigned index, BVal bval)
-      {
-          if (!hasIndex(index))
-              index = expand();
-          valArray[index].addVal(bval);
-      }
-      bool hasIndex(unsigned index){
-          return (index<valArray.size());
-      }
-      unsigned expand(){
-          valArray.expand(valArray.size()+1);
-          return valArray.size()-1;  
-      }
-      
-  };
-  class SSIArray
-  {
-    private:
-        DArray<Theory::StructuredSortInterpretation> ssiArray;
-    public:
-        int contains(Theory::StructuredSortInterpretation ssi)
-        {
-            for (unsigned i = 0 ; i < ssiArray.size(); ++i){
-                if (ssi == ssiArray[i])
-                    return i;
-            }
-            return -1;
-        }
-        
-        unsigned addSSI(Theory::StructuredSortInterpretation in)
-        {
-            int contain = contains(in);
-            if (contain == -1)
-            {
-                ssiArray.expand(ssiArray.size()+1);
-                ssiArray[ssiArray.size()-1] = in;
-                return ssiArray.size()-1;
-            }
-            return contain;
-        }
-       
-      
-
-  };
-  
-  // map ssi to a list of BVals
  
-  BValArrayContainer valArray;
-  SSIArray ssiArray;
-//////////////////////////////
-  ///////////////////////////////////////////////////////////
-  /////////////////////////////
-  //////////////////////////////
-  /////////////////////////////
- public:
+public:
   CLASS_NAME(Property);
   USE_ALLOCATOR(Property);
 
@@ -267,22 +159,6 @@ public:
   vstring toString() const;
   vstring toSpider(const vstring& problemName) const;
   
-  //////////////////////////////
-  ///////////////////////////////////////////////////////////
-  /////////////////////////////
-  void addEntry(Theory::StructuredSortInterpretation ssi, unsigned resultSort, unsigned arg1Sort, unsigned arg2Sort)
-  {
-      unsigned index =ssiArray.addSSI(ssi);
-      BVal t(resultSort,arg1Sort,arg2Sort);
-      valArray.addToIndex(index, t);
-      
-  }
-  
-  //////////////////////////////
-  ///////////////////////////////////////////////////////////
-  ///////////////////////////////////////////////////////////
-  /////////////////////////////
-
   /** Total number of clauses in the problem. */
   int clauses() const { return _goalClauses + _axiomClauses; }
   /** Total number of formulas in the problem */

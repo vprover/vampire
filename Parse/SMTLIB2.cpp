@@ -451,7 +451,7 @@ void SMTLIB2::readDefineSort(const vstring& name, LExprList* args, LExpr* body)
 unsigned SMTLIB2::declareSort(LExpr* sExpr)
 {
   CALL("SMTLIB2::declareSort");
-  int bitVecSize = -1;
+  unsigned bitVecSize;
   enum SortParseOperation {
     SPO_PARSE,
     SPO_POP_LOOKUP,
@@ -612,20 +612,21 @@ unsigned SMTLIB2::declareSort(LExpr* sExpr)
             results.push(env.sorts->addArraySort(indexSort,innerSort));
             continue;
           }
+        case BS_BITVECTOR: 
+            goto malformed;
         
         default:
           ASS_EQ(bs,BS_INVALID);
       }
       // special handling of bitvectors
        
-      if (Int::stringToInt(id.c_str(),bitVecSize))
+      if (Int::stringToUnsignedInt(id.c_str(),bitVecSize)) 
       {
         cur = todo.pop();
         if (getBuiltInSortFromString(cur.second->str) != BS_BITVECTOR)
             goto malformed;
         cur = todo.pop();
         if (cur.second->str == "_"){
-              //unsigned temp = env.sorts->addBitVectorSort(bitVecSize);
               results.push(env.sorts->addBitVectorSort(bitVecSize));
               continue;
          }
@@ -695,7 +696,6 @@ const char * SMTLIB2::s_termSymbolNameStrings[] = {
     "+",
     "-",
     "/",
-    "_",
     "abs",
     "bvadd",
     "bvand",
@@ -2306,21 +2306,26 @@ void SMTLIB2::parseRankedFunctionApplication(LExpr* exp)
         USER_ERROR("Expected numeral as an argument of a ranked function in "+head->toString());
     const vstring numeral2 = headRdr.readAtom();
     if (!StringUtils::isPositiveInteger(numeral2)) 
-            USER_ERROR("Expected numeral as an argument of a ranked function in "+head->toString());
+         USER_ERROR("Expected numeral as an argument of a ranked function in "+head->toString());
+   
     unsigned fromSymbol = TPTP::addIntegerConstant(numeral,_overflow,false);
     TermList fromTerm = TermList(Term::createConstant(fromSymbol));
 
     unsigned numBitsSymbol = TPTP::addIntegerConstant(numeral2,_overflow,false);
     TermList numBitsTerm = TermList(Term::createConstant(numBitsSymbol)); 
-    int numeralInt;
-    Int::stringToInt(numeral,numeralInt);
-    int numeral2Int;
-    Int::stringToInt(numeral2,numeral2Int);
-    unsigned resultSize = numeralInt - numeral2Int + 1;
+    
+    unsigned fromBitInt;
+    Int::stringToUnsignedInt(numeral,fromBitInt);
+    unsigned numBitsInt;
+    Int::stringToUnsignedInt(numeral2,numBitsInt);
+    unsigned resultSize = fromBitInt - numBitsInt + 1;
     TermList arg;
     unsigned tempSort = _results.pop().asTerm(arg);
                        
     unsigned argSize = env.sorts->getBitVectorSort(tempSort)->getSize();
+    // error handling
+    if (fromBitInt >= argSize || numBitsInt>fromBitInt)
+        USER_ERROR("Invalid extract application");
     env.signature->setArg1(argSize);
     tempSort = env.sorts->addBitVectorSort(argSize);
              
@@ -2371,10 +2376,8 @@ void SMTLIB2::parseRankedFunctionApplication(LExpr* exp)
     int numeralInt;
     Int::stringToInt(numeral,numeralInt);
     TermList arg;
-    unsigned tempSort = _results.pop().asTerm(arg);
-    unsigned argSize = env.sorts->getBitVectorSort(tempSort)->getSize();
-    unsigned resultSort = env.sorts->addBitVectorSort(argSize);
-            
+    unsigned resultSort = _results.pop().asTerm(arg);
+           
     // now we have all the arguments we need..
     unsigned fun = Theory::instance()->getSymbolForStructuredSort(resultSort, te,-1,-1);
     TermList res = TermList(Term::Term::create2(fun, argTerm, arg));

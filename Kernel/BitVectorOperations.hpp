@@ -81,7 +81,7 @@ namespace Kernel {
     static void bvsle(const BitVectorConstantType& arg1, const BitVectorConstantType& arg2 , bool& result);
     static void bvsgt(const BitVectorConstantType& arg1, const BitVectorConstantType& arg2 , bool& result);
     static void bvsge(const BitVectorConstantType& arg1, const BitVectorConstantType& arg2 , bool& result);
-   
+    
     
     private:
 

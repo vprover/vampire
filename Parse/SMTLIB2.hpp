@@ -209,7 +209,6 @@ private:
     TS_PLUS,
     TS_MINUS,
     TS_DIVIDE,
-    TS_UNDERSCORE,
     TS_ABS,
     TS_BVADD,
     TS_BVAND,

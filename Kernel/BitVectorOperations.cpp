@@ -82,8 +82,6 @@ void BitVectorOperations::createHashmap()
     map.insert('a',bvToAdd);
     
     // 10 = 'A'
-    toAdd.initFromArray(4,ten);
-    bvToAdd.setBinArray(toAdd);
     map.insert('A',bvToAdd);
     
     // 11 = 'b'
@@ -92,8 +90,6 @@ void BitVectorOperations::createHashmap()
     map.insert('b',bvToAdd);
     
     // 11 = 'B'
-    toAdd.initFromArray(4,eleven);
-    bvToAdd.setBinArray(toAdd);
     map.insert('B',bvToAdd);
     
     // 12 = 'c'
@@ -102,8 +98,6 @@ void BitVectorOperations::createHashmap()
     map.insert('c',bvToAdd);
     
     // 12 = 'C'
-    toAdd.initFromArray(4,twelve);
-    bvToAdd.setBinArray(toAdd);
     map.insert('C',bvToAdd);
     
     // 13 = 'd'
@@ -112,8 +106,6 @@ void BitVectorOperations::createHashmap()
     map.insert('d',bvToAdd);
     
     // 13 = 'D'
-    toAdd.initFromArray(4,thirteen);
-    bvToAdd.setBinArray(toAdd);
     map.insert('D',bvToAdd);
     
     // 14 = 'e'
@@ -122,8 +114,6 @@ void BitVectorOperations::createHashmap()
     map.insert('e',bvToAdd);
     
     // 14 = 'E'
-    toAdd.initFromArray(4,fourteen);
-    bvToAdd.setBinArray(toAdd);
     map.insert('E',bvToAdd);
     
     // 15 = 'f'
@@ -132,8 +122,6 @@ void BitVectorOperations::createHashmap()
     map.insert('f',bvToAdd);
     
     // 15 = 'F'
-    toAdd.initFromArray(4,fifteen);
-    bvToAdd.setBinArray(toAdd);
     map.insert('F',bvToAdd);
     
 }
