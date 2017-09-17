@@ -2064,7 +2064,14 @@ bool SMTLIB2::parseAsBuiltinTermSymbol(const vstring& id, LExpr* exp)
         complainAboutArgShortageOrWrongSorts(BUILT_IN_SYMBOL,exp);
         }
         unsigned sort = _results.pop().asTerm(first);
+        if (_results.isEmpty() || _results.top().isSeparator()) {
+        complainAboutArgShortageOrWrongSorts(BUILT_IN_SYMBOL,exp);
+        }
         unsigned sort2 = _results.pop().asTerm(second);
+        if (!env.sorts->hasStructuredSort(sort,Sorts::StructuredSort::BITVECTOR) ||
+                !env.sorts->hasStructuredSort(sort2,Sorts::StructuredSort::BITVECTOR))
+            complainAboutArgShortageOrWrongSorts(BUILT_IN_SYMBOL,exp);
+        
         unsigned size1 = env.sorts->getBitVectorSort(sort)->getSize();
         unsigned size2 = env.sorts->getBitVectorSort(sort2)->getSize();
         
@@ -2072,7 +2079,6 @@ bool SMTLIB2::parseAsBuiltinTermSymbol(const vstring& id, LExpr* exp)
         env.signature->setArg1(size1);
         env.signature->setArg2(size2);
         
-        //unsigned resultSort = env.sorts->addBitVectorSort(resultSize, size1, size2);
         unsigned resultSort = env.sorts->addBitVectorSort(resultSize);
         
         unsigned fun = Theory::instance()->getSymbolForStructuredSort(resultSort, Theory::StructuredSortInterpretation::CONCAT,sort,sort2);
@@ -2093,8 +2099,12 @@ bool SMTLIB2::parseAsBuiltinTermSymbol(const vstring& id, LExpr* exp)
             complainAboutArgShortageOrWrongSorts(BUILT_IN_SYMBOL,exp);
         }
         unsigned sort = _results.pop().asTerm(first);
+        
+        if (!env.sorts->hasStructuredSort(sort,Sorts::StructuredSort::BITVECTOR) ||_results.isEmpty() 
+                || _results.top().isSeparator()) {
+            complainAboutArgShortageOrWrongSorts(BUILT_IN_SYMBOL,exp);
+        }
         unsigned sort2 = _results.pop().asTerm(second);
-      
         if (sort != sort2){
             complainAboutArgShortageOrWrongSorts(BUILT_IN_SYMBOL,exp);
         }
@@ -2102,7 +2112,7 @@ bool SMTLIB2::parseAsBuiltinTermSymbol(const vstring& id, LExpr* exp)
         Theory::StructuredSortInterpretation t =  getSSIfromTS(ts);
         unsigned fun = Theory::instance()->getSymbolForStructuredSort(sort, t,-1,-1);
       
-       bool done = false;
+        bool done = false;
         
         TermList res = TermList(Term::Term::create2(fun, first, second));
         if (_results.top().isSeparator())
@@ -2112,7 +2122,13 @@ bool SMTLIB2::parseAsBuiltinTermSymbol(const vstring& id, LExpr* exp)
        
         while(!done){
             TermList third, fourth;
+            if (_results.isEmpty() || _results.top().isSeparator()) {
+                complainAboutArgShortageOrWrongSorts(BUILT_IN_SYMBOL,exp);
+            }
             unsigned sort3 = _results.pop().asTerm(third);
+            if (!env.sorts->hasStructuredSort(sort3,Sorts::StructuredSort::BITVECTOR) || _results.isEmpty() 
+                    || _results.top().isSeparator())
+                complainAboutArgShortageOrWrongSorts(BUILT_IN_SYMBOL,exp);
             unsigned sort4 = _results.pop().asTerm(fourth);
             if (sort3 != sort4){
                 complainAboutArgShortageOrWrongSorts(BUILT_IN_SYMBOL,exp);
@@ -2145,16 +2161,18 @@ bool SMTLIB2::parseAsBuiltinTermSymbol(const vstring& id, LExpr* exp)
         complainAboutArgShortageOrWrongSorts(BUILT_IN_SYMBOL,exp);
       }
       unsigned sort = _results.pop().asTerm(first);
+      if (_results.isEmpty() || _results.top().isSeparator() 
+              || !env.sorts->hasStructuredSort(sort,Sorts::StructuredSort::BITVECTOR)) {
+        complainAboutArgShortageOrWrongSorts(BUILT_IN_SYMBOL,exp);
+      }
       unsigned sort2 = _results.pop().asTerm(second);
       
       if (sort != sort2){
           complainAboutArgShortageOrWrongSorts(BUILT_IN_SYMBOL,exp);
       }
       
-      /// here make sure to get the interpretation of the according 
       Theory::StructuredSortInterpretation t =  getSSIfromTS(ts);
       unsigned fun = Theory::instance()->getSymbolForStructuredSort(sort, t,-1,-1);
-      
       
       TermList res = TermList(Term::Term::create2(fun, first, second));
       _results.push(ParseResult(sort, res));
@@ -2169,12 +2187,15 @@ bool SMTLIB2::parseAsBuiltinTermSymbol(const vstring& id, LExpr* exp)
         complainAboutArgShortageOrWrongSorts(BUILT_IN_SYMBOL,exp);
       }
       unsigned sort = _results.pop().asTerm(first);
+      if (_results.isEmpty() || _results.top().isSeparator() 
+              || !env.sorts->hasStructuredSort(sort,Sorts::StructuredSort::BITVECTOR)) {
+        complainAboutArgShortageOrWrongSorts(BUILT_IN_SYMBOL,exp);
+      }
       unsigned sort2 = _results.pop().asTerm(second);
       if (sort != sort2){
           complainAboutArgShortageOrWrongSorts(BUILT_IN_SYMBOL,exp);
       }
       
-      /// here make sure to get the interpretation of the according 
       Theory::StructuredSortInterpretation t =  getSSIfromTS(ts);
       unsigned fun = Theory::instance()->getSymbolForStructuredSort(sort, t,-1,-1);
       
@@ -2191,6 +2212,9 @@ bool SMTLIB2::parseAsBuiltinTermSymbol(const vstring& id, LExpr* exp)
         complainAboutArgShortageOrWrongSorts(BUILT_IN_SYMBOL,exp);
       }
       unsigned sort = _results.pop().asTerm(first);
+      if (!env.sorts->hasStructuredSort(sort,Sorts::StructuredSort::BITVECTOR)){
+          complainAboutArgShortageOrWrongSorts(BUILT_IN_SYMBOL,exp);
+      }
       Theory::StructuredSortInterpretation te = getSSIfromTS(ts);
       unsigned fun = Theory::instance()->getSymbolForStructuredSort(sort, te);
       
@@ -2307,7 +2331,7 @@ void SMTLIB2::parseRankedFunctionApplication(LExpr* exp)
     const vstring numeral2 = headRdr.readAtom();
     if (!StringUtils::isPositiveInteger(numeral2)) 
          USER_ERROR("Expected numeral as an argument of a ranked function in "+head->toString());
-   
+    
     unsigned fromSymbol = TPTP::addIntegerConstant(numeral,_overflow,false);
     TermList fromTerm = TermList(Term::createConstant(fromSymbol));
 
@@ -2320,8 +2344,13 @@ void SMTLIB2::parseRankedFunctionApplication(LExpr* exp)
     Int::stringToUnsignedInt(numeral2,numBitsInt);
     unsigned resultSize = fromBitInt - numBitsInt + 1;
     TermList arg;
+    if (_results.isEmpty() || _results.top().isSeparator() ){
+          complainAboutArgShortageOrWrongSorts(BUILT_IN_SYMBOL,exp);
+      }
     unsigned tempSort = _results.pop().asTerm(arg);
-                       
+    if (!env.sorts->hasStructuredSort(tempSort,Sorts::StructuredSort::BITVECTOR)){
+          complainAboutArgShortageOrWrongSorts(BUILT_IN_SYMBOL,exp);
+      }                   
     unsigned argSize = env.sorts->getBitVectorSort(tempSort)->getSize();
     // error handling
     if (fromBitInt >= argSize || numBitsInt>fromBitInt)
@@ -2347,10 +2376,17 @@ void SMTLIB2::parseRankedFunctionApplication(LExpr* exp)
         USER_ERROR("Expected numeral as an argument of a ranked function in "+head->toString());
     unsigned argSymbol = TPTP::addIntegerConstant(numeral,_overflow,false);
     TermList argTerm = TermList(Term::createConstant(argSymbol));
-    int numeralInt;
-    Int::stringToInt(numeral,numeralInt);
+    unsigned numeralInt;
+    Int::stringToUnsignedInt(numeral,numeralInt);
     TermList arg;
+    if (_results.isEmpty() || _results.top().isSeparator()) {
+        complainAboutArgShortageOrWrongSorts(BUILT_IN_SYMBOL,exp);
+    }
     unsigned tempSort = _results.pop().asTerm(arg);
+    if (!env.sorts->hasStructuredSort(tempSort,Sorts::StructuredSort::BITVECTOR)){
+          complainAboutArgShortageOrWrongSorts(BUILT_IN_SYMBOL,exp);
+    }
+    
     unsigned argSize = env.sorts->getBitVectorSort(tempSort)->getSize();
     unsigned resultSize; // = numeralInt + argSize;
     if (operation == "repeat")
@@ -2373,11 +2409,16 @@ void SMTLIB2::parseRankedFunctionApplication(LExpr* exp)
         USER_ERROR("Expected numeral as an argument of a ranked function in "+head->toString());
     unsigned argSymbol = TPTP::addIntegerConstant(numeral,_overflow,false);
     TermList argTerm = TermList(Term::createConstant(argSymbol));
-    int numeralInt;
-    Int::stringToInt(numeral,numeralInt);
+    unsigned numeralInt;
+    Int::stringToUnsignedInt(numeral,numeralInt);
     TermList arg;
+    if (_results.isEmpty() || _results.top().isSeparator()) {
+        complainAboutArgShortageOrWrongSorts(BUILT_IN_SYMBOL,exp);
+    }
     unsigned resultSort = _results.pop().asTerm(arg);
-           
+    if (!env.sorts->hasStructuredSort(resultSort,Sorts::StructuredSort::BITVECTOR)){
+          complainAboutArgShortageOrWrongSorts(BUILT_IN_SYMBOL,exp);
+    }       
     // now we have all the arguments we need..
     unsigned fun = Theory::instance()->getSymbolForStructuredSort(resultSort, te,-1,-1);
     TermList res = TermList(Term::Term::create2(fun, argTerm, arg));
