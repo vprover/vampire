@@ -49,7 +49,9 @@ namespace Kernel {
     
     static void makeZeroBVCT(BitVectorConstantType& in);
     static BitVectorConstantType getZeroBVCT(unsigned size);
+    static void makeOneBVCT(BitVectorConstantType& in);
     static BitVectorConstantType getOneBVCT(unsigned size);
+    static void makeAllOnesBVCT(BitVectorConstantType& in);
     static BitVectorConstantType getAllOnesBVCT(unsigned size);
     
     static void bvneg(const BitVectorConstantType& arg, BitVectorConstantType& res);

@@ -279,309 +279,305 @@ BitVectorConstantType BitVectorOperations::getZeroBVCT(unsigned size)
         return res;
  }
 void BitVectorOperations::makeZeroBVCT(BitVectorConstantType& in)
- {
+{
     for (int i =0; i < in.size() ; ++i)
         in.setValueAt(i,false);
- }
+}
   
   
-  BitVectorConstantType BitVectorOperations::getOneBVCT(unsigned size)
-    {
-        BitVectorConstantType res(size);
-        res.setValueAt(0,true);
-        for (int i =1; i < size; ++i){
-            res.setValueAt(i,false);
-        }
-        return res;
+BitVectorConstantType BitVectorOperations::getOneBVCT(unsigned size)
+{
+    BitVectorConstantType res(size);
+    res.setValueAt(0,true);
+    for (unsigned i =1; i < size; ++i){
+        res.setValueAt(i,false);
     }
-  
-  BitVectorConstantType BitVectorOperations::getAllOnesBVCT(unsigned size)
-    {
-        DArray<bool> allOne(size);
-        
-        for (int i = 0 ; i < size; ++ i){
-            allOne[i] = true;
-        }
-        BitVectorConstantType res(size);
-        res.setBinArray(allOne);
-        return res;
-    }
-  
-   void BitVectorOperations::bvnand(const BitVectorConstantType& arg1, const BitVectorConstantType& arg2 , BitVectorConstantType& result)
-   {
-        ASS_EQ(arg1.size(),arg2.size());
-        ASS_EQ(arg2.size(),result.size());
-        DArray<bool> a1 = arg1.getBinArray();
-        DArray<bool> a2 = arg2.getBinArray();
-        
-        for (unsigned i = 0, j = a1.size() - 1 ; i < a1.size() ; ++ i, --j )
-            result.setValueAt(i,!(a1[i] && a2[i]));
-   }
-   
-   void BitVectorOperations::subtractBVCTs(BitVectorConstantType& a1, const BitVectorConstantType& a2)
-   {
-        ASS_EQ(a1.size(),a2.size());
-        
-        BitVectorConstantType arg2Notted(a1.size());
-        bvnot(a2,arg2Notted);
-        addBVCTs(a1,arg2Notted);
-        BitVectorConstantType one = getOneBVCT(a1.size());
-        addBVCTs(a1,one);
-    }
-   
-   void BitVectorOperations::bvneg(const BitVectorConstantType& arg, BitVectorConstantType& res)
-    {
-        ASS_EQ(arg.size(),res.size());
-        bool encounteredOne = false;
-        for (unsigned i = 0; i<arg.size(); ++i){
-            if (encounteredOne){
-                res.setValueAt(i,!arg.getValueAt(i));
-            }
-            else{
-                if (arg.getValueAt(i) == true)
-                    encounteredOne = true;
-                res.setValueAt(i, arg.getValueAt(i));
-            }
-        }
-    }
-   
-   void BitVectorOperations::bvnot(const BitVectorConstantType& arg, BitVectorConstantType& res)
-    {
-        ASS_EQ(arg.size(),res.size());
-        for (unsigned i = 0; i<arg.size();++i){
-            res.setValueAt(i, !arg.getValueAt(i));
-        }
-    }
-   
-   bool BitVectorOperations::bvadd(const BitVectorConstantType& arg1, const BitVectorConstantType& arg2 , BitVectorConstantType& result)
-    {
-        ASS_EQ(arg1.size(),arg2.size());
-        ASS_EQ(arg2.size(),result.size());
-        DArray<bool> a1 = arg1.getBinArray();
-        DArray<bool> a2 = arg2.getBinArray();
-        
-        bool carry = false;
-        for (unsigned i = 0, j = a1.size() - 1 ; i < a1.size() ; ++ i, --j )
-        {
-            result.setValueAt(i,a1[i] ^ a2[i] ^ carry);
-            carry = ((a1[i] && carry && !a2[i]) || (a2[i] && carry && !a1[i]) || (a2[i] && !carry && a1[i]) ||(a2[i] && carry && a1[i]));
+    return res;
+}
 
-        }
+void BitVectorOperations::makeOneBVCT(BitVectorConstantType& in)
+{
+    in.setValueAt(0,true);
+    for (unsigned i =1; i < in.size(); ++i){
+        in.setValueAt(i,false);
+    }
+}
+  
 
-        return carry;
+void BitVectorOperations::makeAllOnesBVCT(BitVectorConstantType& in)
+{
+    for (unsigned i = 0 ; i < in.size(); ++ i){
+        in.setValueAt(i,true);
     }
+}
+BitVectorConstantType BitVectorOperations::getAllOnesBVCT(unsigned size)
+{
+    DArray<bool> allOne(size);
+        
+    for (unsigned i = 0 ; i < size; ++ i){
+        allOne[i] = true;
+    }
+    BitVectorConstantType res(size);
+    res.setBinArray(allOne);
+    return res;
+}
+  
+void BitVectorOperations::bvnand(const BitVectorConstantType& arg1, const BitVectorConstantType& arg2 , BitVectorConstantType& result)
+{
+    ASS_EQ(arg1.size(),arg2.size());
+    ASS_EQ(arg2.size(),result.size());
+    DArray<bool> a1 = arg1.getBinArray();
+    DArray<bool> a2 = arg2.getBinArray();
+        
+    for (unsigned i = 0, j = a1.size() - 1 ; i < a1.size() ; ++ i, --j )
+        result.setValueAt(i,!(a1[i] && a2[i]));
+}
    
-   void BitVectorOperations::bvor(const BitVectorConstantType& arg1, const BitVectorConstantType& arg2 , BitVectorConstantType& result)
-    {
-        ASS_EQ(arg1.size(),arg2.size());
-        ASS_EQ(arg2.size(),result.size());
-        DArray<bool> a1 = arg1.getBinArray();
-        DArray<bool> a2 = arg2.getBinArray();
+void BitVectorOperations::subtractBVCTs(BitVectorConstantType& a1, const BitVectorConstantType& a2)
+{
+    ASS_EQ(a1.size(),a2.size());
         
-        for (unsigned i = 0, j = a1.size() - 1 ; i < a1.size() ; ++ i, --j )
-            result.setValueAt(i,a1[i] || a2[i]);
-    }
+    BitVectorConstantType arg2Notted(a1.size());
+    bvnot(a2,arg2Notted);
+    addBVCTs(a1,arg2Notted);
+    BitVectorConstantType one = getOneBVCT(a1.size());
+    addBVCTs(a1,one);
+}
    
-   void BitVectorOperations::bvxor(const BitVectorConstantType& arg1, const BitVectorConstantType& arg2 , BitVectorConstantType& result)
-    {
-        ASS_EQ(arg1.size(),arg2.size());
-        ASS_EQ(arg2.size(),result.size());
-        DArray<bool> a1 = arg1.getBinArray();
-        DArray<bool> a2 = arg2.getBinArray();
-        
-        for (unsigned i = 0, j = a1.size() - 1 ; i < a1.size() ; ++ i, --j )
-            result.setValueAt(i,a1[i] ^ a2[i]);
+void BitVectorOperations::bvneg(const BitVectorConstantType& arg, BitVectorConstantType& res)
+{
+    ASS_EQ(arg.size(),res.size());
+    bool encounteredOne = false;
+    for (unsigned i = 0; i<arg.size(); ++i){
+        if (encounteredOne){
+            res.setValueAt(i,!arg.getValueAt(i));
+        }
+        else{
+            if (arg.getValueAt(i) == true)
+                encounteredOne = true;
+            res.setValueAt(i, arg.getValueAt(i));
+        }
     }
+}
    
-   void BitVectorOperations::bvnor(const BitVectorConstantType& arg1, const BitVectorConstantType& arg2 , BitVectorConstantType& result)
-    {
-        ASS_EQ(arg1.size(),arg2.size());
-        ASS_EQ(arg2.size(),result.size());
-        DArray<bool> a1 = arg1.getBinArray();
-        DArray<bool> a2 = arg2.getBinArray();
-        
-        for (unsigned i = 0, j = a1.size() - 1 ; i < a1.size() ; ++ i, --j )
-            result.setValueAt(i,!(a1[i] || a2[i]));
+void BitVectorOperations::bvnot(const BitVectorConstantType& arg, BitVectorConstantType& res)
+{
+    ASS_EQ(arg.size(),res.size());
+    for (unsigned i = 0; i<arg.size();++i){
+        res.setValueAt(i, !arg.getValueAt(i));
     }
-   void BitVectorOperations::bvxnor(const BitVectorConstantType& arg1, const BitVectorConstantType& arg2 , BitVectorConstantType& result)
-    {
-        ASS_EQ(arg1.size(),arg2.size());
-        ASS_EQ(arg2.size(),result.size());
-        DArray<bool> a1 = arg1.getBinArray();
-        DArray<bool> a2 = arg2.getBinArray();
+}
+   
+bool BitVectorOperations::bvadd(const BitVectorConstantType& arg1, const BitVectorConstantType& arg2 , BitVectorConstantType& result)
+{
+    ASS_EQ(arg1.size(),arg2.size());
+    ASS_EQ(arg2.size(),result.size());
+    DArray<bool> a1 = arg1.getBinArray();
+    DArray<bool> a2 = arg2.getBinArray();
         
-        for (unsigned i = 0, j = a1.size() - 1 ; i < a1.size() ; ++ i, --j )
-            result.setValueAt(i,(a1[i] == a2[i]));
-    }
-   void BitVectorOperations::bvmul(const BitVectorConstantType& arg1, const BitVectorConstantType& arg2 , BitVectorConstantType& result)
+    bool carry = false;
+    for (unsigned i = 0, j = a1.size() - 1 ; i < a1.size() ; ++ i, --j )
     {
-        ASS_EQ(arg1.size(),arg2.size());
-        ASS_EQ(arg2.size(),result.size());
-        ASS(isZero(result));
+        result.setValueAt(i,a1[i] ^ a2[i] ^ carry);
+        carry = ((a1[i] && carry && !a2[i]) || (a2[i] && carry && !a1[i]) || (a2[i] && !carry && a1[i]) ||(a2[i] && carry && a1[i]));
+    }
+    return carry;
+}
+   
+void BitVectorOperations::bvor(const BitVectorConstantType& arg1, const BitVectorConstantType& arg2 , BitVectorConstantType& result)
+{
+    ASS_EQ(arg1.size(),arg2.size());
+    ASS_EQ(arg2.size(),result.size());
+    DArray<bool> a1 = arg1.getBinArray();
+    DArray<bool> a2 = arg2.getBinArray();
+        
+    for (unsigned i = 0, j = a1.size() - 1 ; i < a1.size() ; ++ i, --j )
+        result.setValueAt(i,a1[i] || a2[i]);
+}
+   
+void BitVectorOperations::bvxor(const BitVectorConstantType& arg1, const BitVectorConstantType& arg2 , BitVectorConstantType& result)
+{
+    ASS_EQ(arg1.size(),arg2.size());
+    ASS_EQ(arg2.size(),result.size());
+    DArray<bool> a1 = arg1.getBinArray();
+    DArray<bool> a2 = arg2.getBinArray();
+        
+    for (unsigned i = 0, j = a1.size() - 1 ; i < a1.size() ; ++ i, --j )
+        result.setValueAt(i,a1[i] ^ a2[i]);
+}
+   
+void BitVectorOperations::bvnor(const BitVectorConstantType& arg1, const BitVectorConstantType& arg2 , BitVectorConstantType& result)
+{
+    ASS_EQ(arg1.size(),arg2.size());
+    ASS_EQ(arg2.size(),result.size());
+    DArray<bool> a1 = arg1.getBinArray();
+    DArray<bool> a2 = arg2.getBinArray();
+        
+    for (unsigned i = 0, j = a1.size() - 1 ; i < a1.size() ; ++ i, --j )
+        result.setValueAt(i,!(a1[i] || a2[i]));
+}
 
-        BitVectorConstantType toAdd(arg2.getBinArray());
-        unsigned lastI = 0;
-        for (unsigned i = 0 ; i < arg1.size() ; ++ i)
+void BitVectorOperations::bvxnor(const BitVectorConstantType& arg1, const BitVectorConstantType& arg2 , BitVectorConstantType& result)
+{
+    ASS_EQ(arg1.size(),arg2.size());
+    ASS_EQ(arg2.size(),result.size());
+    DArray<bool> a1 = arg1.getBinArray();
+    DArray<bool> a2 = arg2.getBinArray();
+        
+    for (unsigned i = 0, j = a1.size() - 1 ; i < a1.size() ; ++ i, --j )
+        result.setValueAt(i,(a1[i] == a2[i]));
+}
+
+void BitVectorOperations::bvmul(const BitVectorConstantType& arg1, const BitVectorConstantType& arg2 , BitVectorConstantType& result)
+{
+    ASS_EQ(arg1.size(),arg2.size());
+    ASS_EQ(arg2.size(),result.size());
+    ASS(isZero(result));
+
+    BitVectorConstantType toAdd(arg2.getBinArray());
+    unsigned lastI = 0;
+    unsigned diff;
+    for (unsigned i = 0 ; i < arg1.size() ; ++ i)
+    {
+        if (arg1.getValueAt(i))
         {
-            if (arg1.getValueAt(i))
-            {
-                unsigned diff = i - lastI;
-                inplaceShiftLeft(toAdd,diff);
-                addBVCTs(result,toAdd);
-                lastI = i;
-            }
+            diff = i - lastI;
+            inplaceShiftLeft(toAdd,diff);
+            addBVCTs(result,toAdd);
+            lastI = i;
         }
     }
+}
    
-   void BitVectorOperations::bvurem(const BitVectorConstantType& arg1, const BitVectorConstantType& arg2 , BitVectorConstantType& result)
+void BitVectorOperations::bvurem(const BitVectorConstantType& arg1, const BitVectorConstantType& arg2 , BitVectorConstantType& result)
+{
+    ASS_EQ(arg1.size(),arg2.size());
+    ASS_EQ(arg2.size(),result.size());
+        
+    //  bvurem returns its first operand if the second operand is 0
+    result = arg1;
+    if (isZero(arg2))
     {
-        ASS_EQ(arg1.size(),arg2.size());
-        ASS_EQ(arg2.size(),result.size());
-        
-        //  bvurem returns its first operand if the second operand is 0
-        if (isZero(arg2))
-        {
-            result = arg1;
-            return;
-        }
-        
-        // if arg2 is one, there will be no remainder 
-        if (isOne(arg2))
-        {
-            makeZeroBVCT(result);
-            return;
-        }
-        
-        result = arg1;
-        bool done = false;
-        
-        while (!done)
-        {
-            bvult(result,arg2,done);
-            if(done)
-                break;
-            subtractBVCTs(result,arg2);
-        }
+        return;
     }
-   
-   void BitVectorOperations::bvudiv(const BitVectorConstantType& arg1, const BitVectorConstantType& arg2 , BitVectorConstantType& result)
+       
+    bool done = false;
+    while (!done)
     {
-        ASS_EQ(arg1.size(),arg2.size());
-        ASS_EQ(arg2.size(),result.size());
-        
-         //  bvudiv now returns a vector of all 1's if the second operand is 0
-        //  axiom?
-        if (isZero(arg2))
-        {
-            result = getAllOnesBVCT(arg1.size());
-            return;
-        }
-        
-        // x / 1 = x 
-        // axiom?
-        if (isOne(arg2))
-        {
-            result = arg1;
-            return;
-        }
-        
-        BitVectorConstantType one = getOneBVCT(arg1.size());
-        BitVectorConstantType workWith;
-        workWith = arg1;
-        bool done = false;
-        
-        while (!done)
-        {
-            bvult(workWith,arg2,done);
-            if(done)
-                break;
-            subtractBVCTs(workWith,arg2);
-            addBVCTs(result,one);
-        }
-        
+        bvult(result,arg2,done);
+        if(done)
+            break;
+        subtractBVCTs(result,arg2);
     }
+}
    
-   void BitVectorOperations::bvsdiv(const BitVectorConstantType& arg1, const BitVectorConstantType& arg2 , BitVectorConstantType& result)
-    {
-        ASS_EQ(arg1.size(),arg2.size());
-        ASS_EQ(arg2.size(),result.size());
+void BitVectorOperations::bvudiv(const BitVectorConstantType& arg1, const BitVectorConstantType& arg2 , BitVectorConstantType& result)
+{
+    ASS_EQ(arg1.size(),arg2.size());
+    ASS_EQ(arg2.size(),result.size());
         
-        bool msb_arg1 = arg1.getValueAt(arg1.size()-1);
-        bool msb_arg2 = arg2.getValueAt(arg2.size()-1);
-        if (!msb_arg1 && !msb_arg2)
-        {
-            bvudiv(arg1,arg2,result);
-            return;
-        }
-        if (msb_arg1 && !msb_arg2)
-        {
-            BitVectorConstantType arg1Negated(arg1.size());
-            bvneg(arg1,arg1Negated);
+    //  bvudiv now returns a vector of all 1's if the second operand is 0
+    if (isZero(arg2))
+    {
+        makeAllOnesBVCT(result);
+        return;
+    }
+    
+    BitVectorConstantType one(arg1.size());// = getOneBVCT(arg1.size());
+    makeOneBVCT(one);
+    BitVectorConstantType workWith;
+    workWith = arg1;
+    bool done = false;
+    bvult(workWith,arg2,done);
+    
+    while (!done)
+    {
+        subtractBVCTs(workWith,arg2);
+        addBVCTs(result,one);
+        bvult(workWith,arg2,done);
+    }
+}
+   
+void BitVectorOperations::bvsdiv(const BitVectorConstantType& arg1, const BitVectorConstantType& arg2 , BitVectorConstantType& result)
+{
+    ASS_EQ(arg1.size(),arg2.size());
+    ASS_EQ(arg2.size(),result.size());
+        
+    bool msb_arg1 = arg1.getValueAt(arg1.size()-1);
+    bool msb_arg2 = arg2.getValueAt(arg2.size()-1);
+    if (!msb_arg1 && !msb_arg2)
+    {
+        bvudiv(arg1,arg2,result);
+        return;
+    }
+    if (msb_arg1 && !msb_arg2)
+    {
+        BitVectorConstantType arg1Negated(arg1.size());
+        bvneg(arg1,arg1Negated);
             
-            BitVectorConstantType div(arg1.size());
-            bvudiv(arg1Negated,arg2,div);
-            bvneg(div,result);
-            return;
-        }
-        if (!msb_arg1 && msb_arg2)
-        {
-            BitVectorConstantType arg2Negated(arg2.size());
-            BitVectorConstantType div(arg1.size());
-            bvudiv(arg1,arg2Negated,div);
-            bvneg(div,result);
-            return;
-        }
-        // negated both and do a bvudiv
-        BitVectorConstantType arg1Negated(arg1.size());
-        BitVectorConstantType arg2Negated(arg2.size());
-        bvneg(arg1,arg1Negated);
-        bvneg(arg2,arg2Negated);
-        bvudiv(arg1Negated,arg2Negated,result);
-        
+        BitVectorConstantType div(arg1.size());
+        bvudiv(arg1Negated,arg2,div);
+        bvneg(div,result);
+        return;
     }
-   
-   void BitVectorOperations::bvsrem(const BitVectorConstantType& arg1, const BitVectorConstantType& arg2 , BitVectorConstantType& result)
+    if (!msb_arg1 && msb_arg2)
     {
-        ASS_EQ(arg1.size(),arg2.size());
-        ASS_EQ(arg2.size(),result.size());
-        
-        bool msb_arg1 = arg1.getValueAt(arg1.size()-1);
-        bool msb_arg2 = arg2.getValueAt(arg2.size()-1);
-        
-        if (!msb_arg1 && !msb_arg2)
-        {
-            bvurem(arg1,arg2,result);
-            return;
-        }
-        
-        if (msb_arg1 && !msb_arg2)
-        {
-            BitVectorConstantType arg1Negated(arg1.size());
-            bvneg(arg1,arg1Negated);
-            BitVectorConstantType rem(arg1.size());
-            bvurem(arg1Negated,arg2,rem);
-            bvneg(rem,result);
-            return;
-        }
-        
-        if (!msb_arg1 && msb_arg2)
-        {
-            BitVectorConstantType arg2Negated(arg1.size());
-            bvneg(arg2,arg2Negated);
-            bvurem(arg1,arg2Negated,result);
-            return;
-        }
-        
-        BitVectorConstantType arg1Negated(arg1.size());
         BitVectorConstantType arg2Negated(arg2.size());
-        bvneg(arg1,arg1Negated);
-        bvneg(arg2,arg2Negated);
-        
-        BitVectorConstantType rem(arg2.size());
-        bvurem(arg1Negated,arg2Negated,rem);
-        
-        bvneg(rem,result);
+        BitVectorConstantType div(arg1.size());
+        bvudiv(arg1,arg2Negated,div);
+        bvneg(div,result);
+        return;
     }
+    // negated both and do a bvudiv
+    BitVectorConstantType arg1Negated(arg1.size());
+    BitVectorConstantType arg2Negated(arg2.size());
+    bvneg(arg1,arg1Negated);
+    bvneg(arg2,arg2Negated);
+    bvudiv(arg1Negated,arg2Negated,result);
+}
+   
+void BitVectorOperations::bvsrem(const BitVectorConstantType& arg1, const BitVectorConstantType& arg2 , BitVectorConstantType& result)
+{
+    ASS_EQ(arg1.size(),arg2.size());
+    ASS_EQ(arg2.size(),result.size());
+        
+    bool msb_arg1 = arg1.getValueAt(arg1.size()-1);
+    bool msb_arg2 = arg2.getValueAt(arg2.size()-1);
+        
+    if (!msb_arg1 && !msb_arg2)
+    {
+        bvurem(arg1,arg2,result);
+        return;
+    }
+        
+    if (msb_arg1 && !msb_arg2)
+    {
+        BitVectorConstantType arg1Negated(arg1.size());
+        bvneg(arg1,arg1Negated);
+        BitVectorConstantType rem(arg1.size());
+        bvurem(arg1Negated,arg2,rem);
+        bvneg(rem,result);
+        return;
+    }
+        
+    if (!msb_arg1 && msb_arg2)
+    {
+        BitVectorConstantType arg2Negated(arg1.size());
+        bvneg(arg2,arg2Negated);
+        bvurem(arg1,arg2Negated,result);
+        return;
+    }
+        
+    BitVectorConstantType arg1Negated(arg1.size());
+    BitVectorConstantType arg2Negated(arg2.size());
+    bvneg(arg1,arg1Negated);
+    bvneg(arg2,arg2Negated);
+        
+    BitVectorConstantType rem(arg2.size());
+    bvurem(arg1Negated,arg2Negated,rem);
+        
+    bvneg(rem,result);
+}
    
    void BitVectorOperations::bvsmod(const BitVectorConstantType& arg1, const BitVectorConstantType& arg2 , BitVectorConstantType& result)
     {
@@ -655,26 +651,23 @@ void BitVectorOperations::makeZeroBVCT(BitVectorConstantType& in)
         ASS_EQ(arg1.size(),arg2.size());
         ASS_EQ(arg2.size(),result.size());
         
-        
-         // use log base 2 eg logbase2 size of bitvector
+        // use log base 2 eg logbase2 size of bitvector
         result = arg1;
-        double sum = 0;
+        double sum = 0,numL;
         unsigned terminateIndex = (unsigned)(ceil(log2(arg2.size())));
         for (unsigned i = 0 ; i < arg2.size(); ++ i){
-            if (arg2.getValueAt(i)){
-                {
-                    double numL = pow(2,i); // 
-                    sum+=numL;
-                    if(numL>=arg1.size() || sum>=arg1.size() || i>=terminateIndex)
-                    {    
-                        makeZeroBVCT(result);
-                        break;
-                    }
-                    unsigned num = static_cast<unsigned>(numL);
-                    inplaceShiftLeft(result,num);
+            if (arg2.getValueAt(i))
+            {
+                numL = pow(2,i); // 
+                sum+=numL;
+                if(numL>=arg1.size() || sum>=arg1.size() || i>=terminateIndex)
+                {    
+                    makeZeroBVCT(result);
+                    break;
                 }
-                
-             }
+                unsigned num = static_cast<unsigned>(numL);
+                inplaceShiftLeft(result,num);
+            }
         }
     }
    
@@ -684,12 +677,12 @@ void BitVectorOperations::makeZeroBVCT(BitVectorConstantType& in)
         ASS_EQ(arg2.size(),result.size());
         
         result = arg1;
-        double sum = 0;
+        double sum = 0, numL;
         unsigned terminateIndex = (unsigned)(ceil(log2(arg2.size())));
         for (unsigned i = 0 ; i < arg2.size(); ++ i){
             if (arg2.getValueAt(i))
             {
-                double numL = pow(2,i); 
+                numL = pow(2,i); 
                 sum+=numL;
                 if (numL>=arg1.size() || sum>=arg1.size() || i>=terminateIndex)
                 {
@@ -708,23 +701,21 @@ void BitVectorOperations::makeZeroBVCT(BitVectorConstantType& in)
         ASS_EQ(arg2.size(),result.size());
         
         result = arg1;
-        double sum = 0;
+        double sum = 0,numL;
         unsigned terminateIndex = (unsigned)(ceil(log2(arg2.size())));
         for (unsigned i = 0 ; i < arg2.size(); ++ i){
-            if (arg2.getValueAt(i)){
+            if (arg2.getValueAt(i))
+            {
+                numL = pow(2,i); 
+                sum+=numL;
+                if (numL>=arg1.size() || sum>=arg1.size() || i>=terminateIndex)
                 {
-                    double numL = pow(2,i); 
-                    sum+=numL;
-                    if (numL>=arg1.size() || sum>=arg1.size() || i>=terminateIndex)
-                    {
-                        makeZeroBVCT(result);
-                        break;
-                    }
-                    unsigned num = static_cast<unsigned>(numL);
-                    inPlaceArithmeticShiftRight(result,num);
+                    makeZeroBVCT(result);
+                    break;
                 }
-                
-             }
+                unsigned num = static_cast<unsigned>(numL);
+                inPlaceArithmeticShiftRight(result,num);
+            }
         }
     }
    
@@ -759,7 +750,6 @@ void BitVectorOperations::makeZeroBVCT(BitVectorConstantType& in)
    
    void BitVectorOperations::zero_extend(unsigned extendBy, const BitVectorConstantType& arg , BitVectorConstantType& result)
     {
-       
         ASS_EQ(result.size(),arg.size()+extendBy);
         unsigned i = 0;
         for (; i < arg.size();++i){
@@ -852,7 +842,6 @@ void BitVectorOperations::makeZeroBVCT(BitVectorConstantType& in)
             ++lower;
         }
         result.setBinArray(resultArray);
-        
     }
    
    void BitVectorOperations::bvule(const BitVectorConstantType& arg1, const BitVectorConstantType& arg2 , bool& result)
