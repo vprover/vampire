@@ -29,8 +29,12 @@ namespace Kernel {
     static vstring boolArraytoString(const DArray<bool>& in);
     static BitVectorConstantType getBVCTFromVString(vstring& numberToRepresent, unsigned size);
     static BitVectorConstantType getBVCTFromDec(char n,unsigned size);
+    static void setBVCTFromDec(char n, BitVectorConstantType& res);
+    
+    
     static DArray<char> getHexArrayFromString(vstring& input);
     static BitVectorConstantType getBoolArrayFromVString(vstring& input);
+    static void setBVCTFromVString(vstring& input, BitVectorConstantType& result);
     static bool isOne(const BitVectorConstantType& arg);
     static bool isZero(const BitVectorConstantType& q);
 
@@ -43,6 +47,7 @@ namespace Kernel {
   
     static void createHashmap();
     
+    static void makeZeroBVCT(BitVectorConstantType& in);
     static BitVectorConstantType getZeroBVCT(unsigned size);
     static BitVectorConstantType getOneBVCT(unsigned size);
     static BitVectorConstantType getAllOnesBVCT(unsigned size);

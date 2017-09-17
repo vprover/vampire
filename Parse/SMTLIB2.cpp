@@ -1529,9 +1529,7 @@ bool SMTLIB2::parseAsBitVectorConstant(const vstring& id)
         unsigned bvContentSize = bvContent.length();
         if (hexSlashBin == "#x")
         {
-            
-            DArray<char> hexCharArray = BitVectorOperations::getHexArrayFromString(bvContent);
-            
+            //DArray<char> hexCharArray = BitVectorOperations::getHexArrayFromString(bvContent);
             bvContentSize = 4 * bvContentSize;
             unsigned resultSort = env.sorts->addBitVectorSort(bvContentSize);
 
@@ -1540,14 +1538,19 @@ bool SMTLIB2::parseAsBitVectorConstant(const vstring& id)
             unsigned kay = 0;
             
             unsigned j = 0;
-            for (unsigned i = hexCharArray.size()-1 ; j < hexCharArray.size();--i,++j)
+            for (unsigned i = bvContent.size()-1 ; j < bvContent.size();--i,++j)
             {
-                
-                BitVectorConstantType theHexInBinary = BitVectorOperations::getBVCTFromDec(hexCharArray[i],4);
-                for (unsigned k = 0; k < 4; ++k,++kay){
-                    addThis.setValueAt(kay, theHexInBinary.getValueAt(k));
-                }
-                   
+                if ((bvContent.at(i) >= '0' && bvContent.at(i) <= '9') || (bvContent.at(i) >= 'a' && bvContent.at(i) <= 'f') 
+                        || (bvContent.at(i) >= 'A' && bvContent.at(i) <= 'F'))
+                {    
+                    BitVectorConstantType theHexInBinary(4);// = BitVectorOperations::getBVCTFromDec(hexCharArray[i],4);
+                    BitVectorOperations::setBVCTFromDec(bvContent.at(i),theHexInBinary);
+                    for (unsigned k = 0; k < 4; ++k,++kay){
+                        addThis.setValueAt(kay, theHexInBinary.getValueAt(k));
+                    }
+                }  
+                else
+                    USER_ERROR("hexa character expected");
             }
             unsigned symb = TPTP::addBitVectorConstant(addThis); 
             TermList res = TermList(Term::createConstant(symb));
@@ -1557,7 +1560,8 @@ bool SMTLIB2::parseAsBitVectorConstant(const vstring& id)
         else if(hexSlashBin == "#b")
         {
             
-            BitVectorConstantType addThis= BitVectorOperations::getBoolArrayFromVString(bvContent);
+            BitVectorConstantType addThis(bvContent.size());//= BitVectorOperations::getBoolArrayFromVString(bvContent);
+            BitVectorOperations::setBVCTFromVString(bvContent,addThis);
             unsigned resultSort = env.sorts->addBitVectorSort(bvContentSize);
             unsigned symb = TPTP::addBitVectorConstant(addThis);
             

@@ -127,46 +127,44 @@ void BitVectorOperations::createHashmap()
 }
 
 bool BitVectorOperations::isOne(const BitVectorConstantType& arg)
-    {
-        if (!arg.getValueAt(0))
+{
+    if (!arg.getValueAt(0))
+        return false;
+    for (unsigned i = 1; i < arg.size(); ++i){
+        if (arg.getValueAt(i)){
             return false;
-        for (unsigned i = 1; i < arg.size(); ++i){
-            if (arg.getValueAt(i)){
-                return false;
-            }
         }
-        return true;
     }
+    return true;
+}
 
 bool BitVectorOperations::isZero(const BitVectorConstantType& q)
-    {
-        for (unsigned i = 0 ; i <q.size();++i){
-            if (q.getValueAt(i))
-                return false;
-        }
-        return true;
-    }
-
-
-BitVectorConstantType BitVectorOperations::getBVCTFromDec(char n, unsigned size)
 {
+    for (unsigned i = 0 ; i <q.size();++i){
+        if (q.getValueAt(i))
+            return false;
+        }
+    return true;
+}
+
+void BitVectorOperations::setBVCTFromDec(char n, BitVectorConstantType& res)
+{
+    ASS(res.size()>0);
     
     BitVectorConstantType bvct = map.get(n);
-    BitVectorConstantType res(size);
     unsigned i = 0 ;
     
-    for (; i < size && i<bvct.size(); ++ i){
+    for (; i < res.size() && i<bvct.size(); ++ i){
         res.setValueAt(i,bvct.getValueAt(i));
-    
     }
-    for ( ; i < size; ++ i){
+    for ( ; i < res.size(); ++ i){
         res.setValueAt(i,false);
-    
     }
-    return res;
 }
+
     
-vstring BitVectorOperations::boolArraytoString(const DArray<bool>& in){
+vstring BitVectorOperations::boolArraytoString(const DArray<bool>& in)
+{
     vstring out = "";
     for (unsigned i = 0; i < in.size(); ++ i)
     {
@@ -179,112 +177,89 @@ vstring BitVectorOperations::boolArraytoString(const DArray<bool>& in){
     return out;
 }
 
-DArray<char> BitVectorOperations::getHexArrayFromString(vstring& input)
-{
-    ASS(input.length()>0);
 
-    DArray<char> result(input.length());
-    for (unsigned i = input.length()-1, j = 0; j<input.length(); --i,++j){
-        if ((input.at(i) >= '0' && input.at(i) <= '9') || (input.at(i) >= 'a' && input.at(i) <= 'f') || (input.at(i) >= 'A' && input.at(i) <= 'F'))
-            result[j] = input[j];
-        else
-            ASS(1==2);
-    }
-    return result;
-} 
-// get a BVCT from a string like this 010010
-BitVectorConstantType BitVectorOperations::getBoolArrayFromVString(vstring& input)
+// set a BVCT from a string like this 010010
+void BitVectorOperations::setBVCTFromVString(vstring& input, BitVectorConstantType& result)
  {
-    BitVectorConstantType result(input.length());
-    for (int j = 0, i = input.length()-1; i>=0;--i, ++j){
+    for (unsigned j = 0, i = input.length()-1; j<input.length();--i, ++j){
         if (input.at(j) == '0')
             result.setValueAt(i,false);
-        else if (input.at(j) == '1')
+        else 
             result.setValueAt(i,true);
-        else
-            ASS(2==3);
-        
     }
-    return result;
+ }
 
-  }
 BitVectorConstantType BitVectorOperations::getBVCTFromVString(vstring& numberToRepresent, unsigned size)
 {
     
-    char initialChar = numberToRepresent[0];
-    
-    BitVectorConstantType initialBoolArray = getBVCTFromDec(initialChar,size);
+    char c = numberToRepresent[0];
+    BitVectorConstantType initialBoolArray(size);
+    setBVCTFromDec(c,initialBoolArray);
     BitVectorConstantType sum(initialBoolArray.getBinArray());
-    char c;
-    BitVectorConstantType toAddPadded; 
     
     for(unsigned i = 1; i<numberToRepresent.length(); i++) {
         multBVCTByTen(sum);
         c = numberToRepresent[i]; 
-        toAddPadded = getBVCTFromDec(c,size);
-        addBVCTs(sum,toAddPadded);
+        setBVCTFromDec(c,initialBoolArray);
+        addBVCTs(sum,initialBoolArray);
         
     }
     return sum;
 } 
  bool BitVectorOperations::addBVCTs(BitVectorConstantType& a1, const BitVectorConstantType& a2)
  {
-        ASS_EQ(a1.size(),a2.size());
+    ASS_EQ(a1.size(),a2.size());
         
-        bool carry = false;
-        bool old,val;
-        for (unsigned i = 0, j = a1.size() - 1 ; i < a1.size() ; ++ i, --j )
-        {
-            old = a1.getValueAt(i);
-            val = a1.getValueAt(i)^a2.getValueAt(i)^carry;
-            a1.setValueAt(i,val);
-            carry = ((old && carry && !a2.getValueAt(i)) || (a2.getValueAt(i) && carry && !old) || (a2.getValueAt(i) && !carry && old) ||(a2.getValueAt(i) && carry && old));
-        }
-
-        return carry;
+    bool carry = false;
+    bool old,val;
+    for (unsigned i = 0, j = a1.size() - 1 ; i < a1.size() ; ++ i, --j )
+    {
+        old = a1.getValueAt(i);
+        val = a1.getValueAt(i)^a2.getValueAt(i)^carry;
+        a1.setValueAt(i,val);
+        carry = ((old && carry && !a2.getValueAt(i)) || (a2.getValueAt(i) && carry && !old) || (a2.getValueAt(i) && !carry && old) ||(a2.getValueAt(i) && carry && old));
+    }
+    return carry;
  }
 
  void BitVectorOperations::inplaceShiftLeft(BitVectorConstantType& in, unsigned shiftByNum)
-    {
-        //int startAt = in.size()-shiftByNum - 1;
-        unsigned startAt = in.size() - shiftByNum;
+ {
+    //int startAt = in.size()-shiftByNum - 1;
+    unsigned startAt = in.size() - shiftByNum;
         
-        while (startAt>0)
-        {
-            in.setValueAt(startAt+shiftByNum-1,in.getValueAt(startAt-1));
-            --startAt;
-        }
-        for (unsigned i = 0 ; i < shiftByNum; ++i){
-            in.setValueAt(i,false);
-        }
+    while (startAt>0)
+    {
+        in.setValueAt(startAt+shiftByNum-1,in.getValueAt(startAt-1));
+        --startAt;
     }
+    for (unsigned i = 0 ; i < shiftByNum; ++i){
+        in.setValueAt(i,false);
+    }
+ }
 
- 
  void BitVectorOperations::inPlaceShiftRight(BitVectorConstantType& input, unsigned shiftByNum)
-    {
-        unsigned startAt = shiftByNum;
-        for (unsigned i = 0 ; i < input.size() - shiftByNum; ++i,++startAt){
-            input.setValueAt(startAt - shiftByNum, input.getValueAt(startAt)); 
-        }
-        for (unsigned k = input.size()-1, i = 0 ; i<shiftByNum; --k,++i){
-            input.setValueAt(k,false);
-        }
-        
+ {
+    unsigned startAt = shiftByNum;
+    for (unsigned i = 0 ; i < input.size() - shiftByNum; ++i,++startAt){
+        input.setValueAt(startAt - shiftByNum, input.getValueAt(startAt)); 
     }
+    for (unsigned k = input.size()-1, i = 0 ; i<shiftByNum; --k,++i){
+        input.setValueAt(k,false);
+    }
+  }
+ 
  void BitVectorOperations::inPlaceArithmeticShiftRight(BitVectorConstantType& input, unsigned shiftByNum)
-    {
-        bool sign = input.getValueAt(input.size()-1);
-        unsigned startAt = shiftByNum;
-        for (unsigned i = 0 ; i < input.size() - shiftByNum; ++i,++startAt){
-            input.setValueAt(startAt - shiftByNum, input.getValueAt(startAt)); 
-        }
-        for (unsigned k = input.size()-1, i = 0 ; i<shiftByNum; --k,++i){
-            input.setValueAt(k,sign);
-        }
-        
+ {
+    bool sign = input.getValueAt(input.size()-1);
+    unsigned startAt = shiftByNum;
+    for (unsigned i = 0 ; i < input.size() - shiftByNum; ++i,++startAt){
+        input.setValueAt(startAt - shiftByNum, input.getValueAt(startAt)); 
     }
+    for (unsigned k = input.size()-1, i = 0 ; i<shiftByNum; --k,++i){
+        input.setValueAt(k,sign);
+    }
+ }
    
-
 void BitVectorOperations::multBVCTByTen(BitVectorConstantType& arg1)
 {
     ASS(arg1.size()>0);
@@ -302,6 +277,11 @@ BitVectorConstantType BitVectorOperations::getZeroBVCT(unsigned size)
         res.setValueAt(i,false);
     }
         return res;
+ }
+void BitVectorOperations::makeZeroBVCT(BitVectorConstantType& in)
+ {
+    for (int i =0; i < in.size() ; ++i)
+        in.setValueAt(i,false);
  }
   
   
@@ -468,7 +448,7 @@ BitVectorConstantType BitVectorOperations::getZeroBVCT(unsigned size)
         // if arg2 is one, there will be no remainder 
         if (isOne(arg2))
         {
-            result = getZeroBVCT(arg1.size());
+            makeZeroBVCT(result);
             return;
         }
         
@@ -687,7 +667,7 @@ BitVectorConstantType BitVectorOperations::getZeroBVCT(unsigned size)
                     sum+=numL;
                     if(numL>=arg1.size() || sum>=arg1.size() || i>=terminateIndex)
                     {    
-                        result = getZeroBVCT(arg1.size());
+                        makeZeroBVCT(result);
                         break;
                     }
                     unsigned num = static_cast<unsigned>(numL);
@@ -713,7 +693,7 @@ BitVectorConstantType BitVectorOperations::getZeroBVCT(unsigned size)
                 sum+=numL;
                 if (numL>=arg1.size() || sum>=arg1.size() || i>=terminateIndex)
                 {
-                    result = getZeroBVCT(arg1.size());
+                    makeZeroBVCT(result);
                     break;
                 }
                 unsigned num = static_cast<unsigned>(numL);
@@ -737,7 +717,7 @@ BitVectorConstantType BitVectorOperations::getZeroBVCT(unsigned size)
                     sum+=numL;
                     if (numL>=arg1.size() || sum>=arg1.size() || i>=terminateIndex)
                     {
-                        result = getZeroBVCT(arg1.size());
+                        makeZeroBVCT(result);
                         break;
                     }
                     unsigned num = static_cast<unsigned>(numL);
