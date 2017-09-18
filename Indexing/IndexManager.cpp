@@ -136,11 +136,7 @@ Index* IndexManager::create(IndexType t)
   static bool useConstraints = env.options->unificationWithAbstraction()!=Options::UnificationWithAbstraction::OFF;
   switch(t) {
   case GENERATING_SUBST_TREE:
-#if COMPIT_GENERATOR==2
-    is=new CompitUnificationRecordingLiteralSubstitutionTree();
-#else
     is=new LiteralSubstitutionTree(useConstraints);
-#endif
 #if VDEBUG
     //is->markTagged();
 #endif
@@ -171,11 +167,7 @@ Index* IndexManager::create(IndexType t)
     break;
 
   case SUPERPOSITION_SUBTERM_SUBST_TREE:
-#if COMPIT_GENERATOR==1
-    tis=new CompitUnificationRecordingTermSubstitutionTree();
-#else
     tis=new TermSubstitutionTree(useConstraints);
-#endif
 #if VDEBUG
     //tis->markTagged();
 #endif

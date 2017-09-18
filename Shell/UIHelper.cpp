@@ -418,7 +418,6 @@ void UIHelper::outputSatisfiableResult(ostream& out)
   CALL("UIHelper::outputSatisfiableResult");
 
   out << "Satisfiable!\n";
-#if SATISFIABLE_IS_SUCCESS
   if (szsOutput && !satisfiableStatusWasAlreadyOutput) {
     out << "% SZS status " << ( UIHelper::haveConjecture() ? "CounterSatisfiable" : "Satisfiable" )
 	  <<" for " << env.options->problemName() << endl;
@@ -435,7 +434,6 @@ void UIHelper::outputSatisfiableResult(ostream& out)
   else if (env.statistics->saturatedSet) {
     outputSaturatedSet(out, pvi(UnitList::Iterator(env.statistics->saturatedSet)));
   }
-#endif
 }
 
 /**
