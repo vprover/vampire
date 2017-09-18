@@ -31,17 +31,6 @@ using namespace Lib;
 using namespace Kernel;
 
 
-
-#if COMPILER_MSVC
-
-class CASCMultiMode
-{
-public:
-  static bool perform() { USER_ERROR("multi-core casc  mode is not supported on Windows"); }
-};
-
-#else
-
 class CASCMultiMode
 {
     enum {
@@ -95,8 +84,6 @@ private:
 
   Semaphore _syncSemaphore; // semaphore for synchronizing proof printing
 };
-
-#endif //!COMPILER_MSVC
 
 }
 

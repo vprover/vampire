@@ -10,8 +10,6 @@
 
 #include "Lib/Portability.hpp"
 
-#if !COMPILER_MSVC
-
 #include "Lib/DHSet.hpp"
 #include "Lib/Environment.hpp"
 #include "Lib/Exception.hpp"
@@ -1654,6 +1652,3 @@ void CMZRMode::getStrategy(Property& property, StringStack& res)
   res.loadFromIterator(StringStack::TopFirstIterator(fallback));
   res.loadFromIterator(StringStack::TopFirstIterator(quick));
 }
-
-
-#endif //!COMPILER_MSVC

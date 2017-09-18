@@ -9,8 +9,6 @@
 
 #include "Lib/Portability.hpp"
 
-#if !COMPILER_MSVC
-
 #include "Lib/DHSet.hpp"
 #include "Lib/Environment.hpp"
 #include "Lib/Exception.hpp"
@@ -415,5 +413,3 @@ ostream& CASCMultiMode::coutLineOutput()
   CALL("CASCMultiMode::lineOutput");
   return cout << "% (" << getpid() << ',' << (env.timer->elapsedMilliseconds()/100)/10.0 << ") ";
 } // CASCMultiMode::coutLineOutput
-
-#endif //!COMPILER_MSVC

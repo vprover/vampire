@@ -9,8 +9,6 @@
 
 #include "Lib/Portability.hpp"
 
-#if !COMPILER_MSVC
-
 #include "Lib/DHSet.hpp"
 #include "Lib/Environment.hpp"
 #include "Lib/Exception.hpp"
@@ -1108,4 +1106,3 @@ void SMTCOMPMode::getSchedules(Property& property, Schedule& quick, Schedule& fa
   fallback.push("lrs+1003_4:1_av=off:bd=preordered:cond=on:fde=unused:gs=on:ile=on:irw=on:nm=64:nwc=1.2:sp=reverse_arity:tha=off:urr=on:updr=off:uhcvi=on_900");    
 } // getSchedule
 
-#endif //!COMPILER_MSVC

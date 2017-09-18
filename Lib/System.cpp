@@ -7,15 +7,10 @@
 #include "Portability.hpp"
 
 #include <stdlib.h>
-#if COMPILER_MSVC
-#  include <Winsock2.h>
-#  include <process.h>
-#else
 #  include <unistd.h>
 #  if !__APPLE__ && !__CYGWIN__
 #    include <sys/prctl.h>
 #  endif
-#endif
 
 #include <dirent.h>
 
@@ -409,7 +404,7 @@ void System::terminateImmediately(int resultStatus)
  */
 void System::registerForSIGHUPOnParentDeath()
 {
-#if __APPLE__ || COMPILER_MSVC || __CYGWIN__
+#if __APPLE__ || __CYGWIN__
   if(env.options->mode()!=Shell::Options::Mode::SMTCOMP){
    cerr<<"Death of parent process not being handled on Mac and Windows"<<endl;
   }
@@ -513,12 +508,7 @@ pid_t System::getPID()
 {
   CALL("System::getPID");
 
-#if !COMPILER_MSVC
   return getpid();
-#else
-  //TODO: Implement pid retrieval for windows
-  return 0;
-#endif
 }
 
 void System::readDir(vstring dirName, Stack<vstring>& filenames)
@@ -577,9 +567,6 @@ int System::executeCommand(vstring command, vstring input, Stack<vstring>& outpu
 {
   CALL("System::executeCommand");
 
-#if COMPILER_MSVC
-  NOT_IMPLEMENTED;
-#else
   vstring pidStr = Int::toString(getPID());
   vstring inFile  = "/tmp/vampire_executeCommand_"+pidStr+"_in";
   vstring outFile = "/tmp/vampire_executeCommand_"+pidStr+"_out";
@@ -623,8 +610,6 @@ int System::executeCommand(vstring command, vstring input, Stack<vstring>& outpu
   else {
     return -0xffff;
   }
-
-#endif
 }
 
 };

@@ -28,47 +28,7 @@ using namespace Lib;
 
 bool Timer::s_timeLimitEnforcement = true;
 
-#if COMPILER_MSVC
-
-#include <windows.h>
-
-int Lib::Timer::miliseconds()
-{
-  if(_mustIncludeChildren) {
-    NOT_IMPLEMENTED;
-  }
-
-  static bool init=false;
-  static LARGE_INTEGER freq;
-  if(!init) {
-    ALWAYS(QueryPerformanceFrequency(&freq));
-    init=true;
-  }
-
-  LARGE_INTEGER counter;
-  QueryPerformanceCounter(&counter);
-
-  return counter.QuadPart*1000/freq.QuadPart;
-}
-
-void Lib::Timer::makeChildrenIncluded()
-{
-  //here are children always included as we measure the wall clock time
-}
-
-void Lib::Timer::syncClock()
-{
-}
-
-void Lib::Timer::ensureTimerInitialized()
-{
-}
-
-void Lib::Timer::deinitializeTimer()
-{
-}
-
-#elif UNIX_USE_SIGALRM
+#if UNIX_USE_SIGALRM
 
 #include <cerrno>
 #include <unistd.h>

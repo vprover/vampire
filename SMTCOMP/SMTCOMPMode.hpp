@@ -31,17 +31,6 @@ using namespace Lib;
 using namespace Kernel;
 
 
-
-#if COMPILER_MSVC
-
-class SMTCOMPMode
-{
-public:
-  static bool perform() { USER_ERROR("multi-core smtcomp mode is not supported on Windows"); }
-};
-
-#else
-
 class SMTCOMPMode
 {
   enum {
@@ -94,8 +83,6 @@ private:
 
   Semaphore _syncSemaphore; // semaphore for synchronizing proof printing
 };
-
-#endif //!COMPILER_MSVC
 
 }
 

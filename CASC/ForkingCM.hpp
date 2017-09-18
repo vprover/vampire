@@ -21,17 +21,6 @@ namespace CASC
 using namespace Lib;
 using namespace Kernel;
 
-#if COMPILER_MSVC
-
-class ForkingCM
-: public CASCMode
-{
-  ForkingCM() { INVALID_OPERATION("Forking CASC mode is not supported on the Windows platform."); }
-  bool runSlice(Options& opt) { ASSERTION_VIOLATION; }
-};
-
-#else
-
 class ForkingCM
 : public CASCMode
 {
@@ -45,8 +34,6 @@ protected:
 private:
   ScopedPtr<Problem> _prb;
 };
-
-#endif
 
 }
 

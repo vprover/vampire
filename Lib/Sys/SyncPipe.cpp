@@ -5,8 +5,6 @@
 
 #include "Lib/Portability.hpp"
 
-#if !COMPILER_MSVC
-
 #include <cerrno>
 #include <unistd.h>
 
@@ -267,4 +265,3 @@ void SyncPipe::ensureEventHandlersInstalled()
 }
 }
 
-#endif //!COMPILER_MSVC

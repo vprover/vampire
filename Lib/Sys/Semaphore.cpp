@@ -5,8 +5,6 @@
 
 #include "Lib/Portability.hpp"
 
-#if !COMPILER_MSVC
-
 #include <cerrno>
 #include <stdlib.h>
 #include <unistd.h>
@@ -442,5 +440,4 @@ void Semaphore::ensureEventHandlersInstalled()
 }
 }
 
-#endif //!COMPILER_MSVC
 

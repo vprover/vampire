@@ -31,17 +31,6 @@ using namespace Lib;
 using namespace Kernel;
 
 
-
-#if COMPILER_MSVC
-
-class CLTBMode
-{
-public:
-  static void perform() { USER_ERROR("casc_ltb mode is not supported on Windows"); }
-};
-
-#else
-
 enum Category {
   HH4,
   ISA,
@@ -183,8 +172,6 @@ private:
     }
   };
 };
-
-#endif //!COMPILER_MSVC
 
 }
 

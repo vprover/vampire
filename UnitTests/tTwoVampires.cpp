@@ -11,9 +11,6 @@
 UT_CREATE;
 
 
-//forking isn't supported in the visual studio
-#if !COMPILER_MSVC
-
 #include <sstream>
 #include <sys/wait.h>
 
@@ -174,5 +171,3 @@ TEST_FUN(two_vampires1)
   ASS(!WIFEXITED(status) || WEXITSTATUS(status)!=0); //problem was satisfiable, so we shouldn't get zero
 
 }
-
-#endif

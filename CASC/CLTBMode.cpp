@@ -11,8 +11,6 @@
 
 #include "Lib/Portability.hpp"
 
-#if !COMPILER_MSVC
-
 #include "Lib/DHSet.hpp"
 #include "Lib/Environment.hpp"
 #include "Lib/Exception.hpp"
@@ -1567,5 +1565,3 @@ ostream& CLTBMode::coutLineOutput()
   CALL("CLTBMode::lineOutput");
   return cout << "% (" << getpid() << ',' << (env.timer->elapsedMilliseconds()/100)/10.0 << ") ";
 } // CLTBMode::coutLineOutput
-
-#endif //!COMPILER_MSVC

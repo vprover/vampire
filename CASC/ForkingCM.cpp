@@ -5,8 +5,6 @@
 
 #include "Lib/Portability.hpp"
 
-#if !COMPILER_MSVC
-
 #include <cerrno>
 #include <ctime>
 #include <stdlib.h>
@@ -145,12 +143,8 @@ void ForkingCM::childRun(Options& strategyOpt)
   ProvingHelper::runVampire(*_prb,opt);
 
   //set return value to zero if we were successful
-#if SATISFIABLE_IS_SUCCESS
   if(env.statistics->terminationReason==Statistics::REFUTATION ||
       env.statistics->terminationReason==Statistics::SATISFIABLE) {
-#else
-  if(env.statistics->terminationReason==Statistics::REFUTATION) {
-#endif
     resultValue=0;
   }
 
@@ -162,5 +156,3 @@ void ForkingCM::childRun(Options& strategyOpt)
 }
 
 }
-
-#endif // !COMPILER_MSVC

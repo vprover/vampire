@@ -36,11 +36,7 @@ bool CASCMode::perform(int argc, char* argv [])
 
   env.timer->makeChildrenIncluded();
 
-#if COMPILER_MSVC
-  SpawningCM cm(argv[0]);
-#else
   ForkingCM cm;
-#endif
 
   bool res=cm.perform();
 

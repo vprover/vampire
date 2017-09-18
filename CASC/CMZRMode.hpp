@@ -30,16 +30,6 @@ using namespace std;
 using namespace Lib;
 using namespace Kernel;
 
-#if COMPILER_MSVC
-
-class CMZRMode
-{
-public:
-  static void perform() { USER_ERROR("casc_mzr mode is not supported on Windows"); }
-};
-
-#else
-
 class CMZRProblem;
 
 class CMZRMode
@@ -126,9 +116,6 @@ private:
 
   friend class CMZRProblem;
 };
-
-
-#endif //!COMPILER_MSVC
 
 }
 

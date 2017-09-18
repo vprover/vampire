@@ -40,12 +40,10 @@ using namespace std;
 using namespace Lib;
 using namespace Kernel;
 
-#if !COMPILER_MSVC 
 const unsigned Term::SF_ITE;
 const unsigned Term::SF_LET;
 const unsigned Term::SF_FORMULA;
 const unsigned Term::SPECIAL_FUNCTOR_LOWER_BOUND;
-#endif
 
 /**
  * Allocate enough bytes to fit a term of a given arity.
