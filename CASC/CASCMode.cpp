@@ -16,7 +16,6 @@
 #include "Shell/UIHelper.hpp"
 
 #include "ForkingCM.hpp"
-#include "SpawningCM.hpp"
 
 #include "CASCMode.hpp"
 

@@ -411,8 +411,6 @@ CASC_OBJ = CASC/CASCMode.o\
            CASC/CLTBMode.o\
            CASC/CLTBModeLearning.o\
            CASC/ForkingCM.o
-#           CASC/SpawningCM.o\
-#           CASC/CMZRMode.o\
 
 SMTCOMP_OBJ = SMTCOMP/SMTCOMPMode.o\
               SAT/Z3MainLoop.o
