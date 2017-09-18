@@ -629,12 +629,8 @@ void satSolverMode()
   env.beginOutput();
   UIHelper::outputResult(env.out());
   env.endOutput();
-#if SATISFIABLE_IS_SUCCESS
   if (env.statistics->terminationReason == Statistics::SAT_UNSATISFIABLE
       || env.statistics->terminationReason == Statistics::SAT_SATISFIABLE) {
-#else
-    if (env.statistics->terminationReason==Statistics:SAT_UNSATISFIABLE) {
-#endif
       vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
   }
 
@@ -658,12 +654,8 @@ void vampireMode()
   UIHelper::outputResult(env.out());
   env.endOutput();
 
-#if SATISFIABLE_IS_SUCCESS
   if (env.statistics->terminationReason == Statistics::REFUTATION
       || env.statistics->terminationReason == Statistics::SATISFIABLE) {
-#else
-    if (env.statistics->terminationReason==Statistics::REFUTATION) {
-#endif
       vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
   }
 } // vampireMode
@@ -715,9 +707,7 @@ void spiderMode()
       break;
     case Statistics::SATISFIABLE:
       reportSpiderStatus('-');
-#if SATISFIABLE_IS_SUCCESS
       vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
-#endif
       break;
     default:
       ASSERTION_VIOLATION;

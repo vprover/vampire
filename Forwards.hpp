@@ -8,8 +8,6 @@
 
 #include "Lib/VString.hpp"
 
-#include "Config.hpp"
-
 typedef void (*VoidFunc)();
 
 namespace Lib
