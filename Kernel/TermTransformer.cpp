@@ -197,9 +197,9 @@ Term* TermTransformer::transformSpecial(Term* term)
       }
     }
 
-    default:
-      ASSERTION_VIOLATION_REP(term->toString());
   }
+  ASSERTION_VIOLATION_REP(term->toString());
+  return nullptr;
 }
 
 TermList TermTransformer::transform(TermList ts)
