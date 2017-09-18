@@ -52,7 +52,6 @@
 #include "CASC/CASCMultiMode.hpp"
 #include "CASC/CLTBMode.hpp"
 #include "CASC/CLTBModeLearning.hpp"
-#include "CASC/CMZRMode.hpp"
 #include "Shell/CParser.hpp"
 #include "Shell/CommandLine.hpp"
 #include "Shell/EqualityProxy.hpp"
@@ -924,13 +923,6 @@ int main(int argc, char* argv[])
     case Options::Mode::CONSEQUENCE_ELIMINATION:
     case Options::Mode::VAMPIRE:
       vampireMode();
-      break;
-    case Options::Mode::CASC_SLD:
-       CASC::CASCMode::makeSLD();
-       if (CASC::CASCMultiMode::perform()) {
-          //casc mode succeeded in solving the problem, so we return zero
-          vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
-        }
       break;
     case Options::Mode::CASC_SAT:
       CASC::CASCMode::makeSat();

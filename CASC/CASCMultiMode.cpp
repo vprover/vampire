@@ -30,6 +30,8 @@
 
 #include "Parse/TPTP.hpp"
 
+#include "Schedules.hpp"
+
 #include "CASCMode.hpp"
 #include "CASCMultiMode.hpp"
 
@@ -105,7 +107,7 @@ bool CASCMultiMode::performStrategy(Shell::Property* property)
   Schedule quick;
   Schedule fallback;
 
-  CASC::CASCMode::getSchedules(*property,quick,fallback);
+  Schedules::getCasc2017Schedule(*property,quick,fallback);
 
   int terminationTime = env.remainingTime()/100; 
   if(terminationTime <= 0){ return false; }

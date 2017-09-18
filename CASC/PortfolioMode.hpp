@@ -1,10 +1,10 @@
 /**
- * @file CASCMode.hpp
- * Defines class CASCMode.
+ * @file PortfolioMode.hpp
+ * Defines class PortfolioMode.
  */
 
-#ifndef __CASCMode__
-#define __CASCMode__
+#ifndef __PortfolioMode__
+#define __PortfolioMode__
 
 #include "Forwards.hpp"
 
@@ -17,8 +17,6 @@
 
 #include "Shell/Property.hpp"
 
-#include "Schedules.hpp"
-
 namespace CASC
 {
 
@@ -26,20 +24,20 @@ using namespace std;
 using namespace Lib;
 using namespace Shell;
 
-class CASCMode {
+class PortfolioMode {
 public:
-  virtual ~CASCMode() {}
+  virtual ~PortfolioMode() {}
   static bool perform(int argc,char* argv []);
 
-  static void makeSat() {_sat=true;}
-protected:
-  static unsigned getSliceTime(vstring sliceCode,vstring& chopped);
-
+  typedef Stack<vstring> Schedule;
   static void getSchedules(Property& prop, Schedule& quick, Schedule& fallback);
   static void getSchedulesSat(Property& prop, Schedule& quick, Schedule& fallback);
-
+  static unsigned getSliceTime(vstring sliceCode,vstring& chopped);
+  static void makeSat() {_sat=true;}
+  static void makeSLD() {_sld=true;}
+protected:
   /**
-   * Run a slice corresponding to the options.
+   * Run a slice correponding to the options.
    * Return true iff the proof or satisfiability was found
    */
   virtual bool runSlice(Options& opt) = 0;
@@ -50,6 +48,8 @@ protected:
   Property* _property;
   /** True if satisfiability checking */
   static bool _sat;
+  /** True if SLD mode */
+  static bool _sld;
 
 private:
   typedef Set<vstring> StrategySet;
@@ -60,4 +60,4 @@ private:
 
 }
 
-#endif // __CASCMode__
+#endif // __PortfolioMode__

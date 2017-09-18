@@ -89,21 +89,22 @@ void Options::Options::init()
                                     {"axiom_selection",
                                         "casc",
                                         "casc_sat",
-                                        "casc_sld",
                                         "casc_ltb",
-                                        "smtcomp",
                                         "clausify","tclausify",
                                         "consequence_elimination","grounding",
                                         "model_check",
                                         "output","preprocess",
+                                        "portfolio",
                                         "profile",
                                         "random_strategy",
-                                        "sat_solver","spider","vampire"});
+                                        "sat_solver",
+                                        "smtcomp",
+                                        "spider","vampire"});
     _mode.description=
     "Select the mode of operation. Choices are:\n"
     "  -vampire: the standard mode of operation for first-order theorem proving\n"
-    "  -casc,casc_multicore,casc_sat,: these are all portfolio modes\n   that use predefined "
-    " sets of strategies in vampire mode.\n"
+    "  -portfolio: a portfolio mode running a specified schedule (see schedule)\n"
+    "  -casc, casc_sat, smtcomp - like portfolio mode, with competition specific presets for schedule, etc.\n"
     "  -preprocess,axiom_select,clausify,grounding: modes for producing output\n   for other solvers.\n"
     "  -output,profile: output information about the problem\n"
     "  -sat_solver: accepts problems in DIMACS and uses the internal sat solver\n   directly\n"
@@ -115,11 +116,29 @@ void Options::Options::init()
     _lookup.insert(&_mode);
     _mode.addHardConstraint(If(equal(Mode::CONSEQUENCE_ELIMINATION)).then(_splitting.is(notEqual(true))));
 
+    _schedule = ChoiceOptionValue<Schedule>("schedule","sched",Schedule::CASC,
+        {"casc",
+         "casc_2017",
+         "casc_sat",
+         "casc_sat_2017",
+         "ltb_default_2017",
+         "ltb_hh4_2017",
+         "ltb_hll_2017",
+         "ltb_isa_2017",
+         "ltb_mzr_2017",
+         "smtcomp",
+         "smtcomp_2017"});
+    _schedule.description = "Schedule to be run by the portfolio mode.";
+    _lookup.insert(&_schedule);
+    _schedule.reliesOnHard(_mode.is(equal(Mode::CASC)->
+        Or(_mode.is(equal(Mode::CASC_SAT)))->
+        Or(_mode.is(equal(Mode::SMTCOMP)))->
+        Or(_mode.is(equal(Mode::PORTFOLIO)))));
+
     _multicore = UnsignedOptionValue("cores","",1);
-    _multicore.description = "When running in casc or smtcomp mode specify the number of cores, set to 0 to use maximum";
+    _multicore.description = "When running in portfolio mode mode specify the number of cores, set to 0 to use maximum";
     _lookup.insert(&_multicore);
-    _multicore.reliesOnHard(_mode.is(equal(Mode::CASC)->Or(
-         _mode.is(equal(Mode::CASC_SAT)))->Or(_mode.is(equal(Mode::SMTCOMP)))->Or(_mode.is(equal(Mode::CASC_SLD)))));
+    _multicore.reliesOnHard(_mode.is(equal(Mode::CASC)->Or(_mode.is(equal(Mode::PORTFOLIO)))));
 
     _ltbLearning = ChoiceOptionValue<LTBLearning>("ltb_learning","ltbl",LTBLearning::OFF,{"on","off","biased"});
     _ltbLearning.description = "Perform learning in LTB mode";

@@ -352,9 +352,7 @@ public:
     AXIOM_SELECTION,
     CASC,
     CASC_SAT,
-    CASC_SLD,
     CASC_LTB,
-    SMTCOMP,
     CLAUSIFY,
     TCLAUSIFY,
     CONSEQUENCE_ELIMINATION,
@@ -362,13 +360,30 @@ public:
     MODEL_CHECK,
     /** this mode only outputs the input problem, without any preprocessing */
     OUTPUT,
+    PORTFOLIO,
     PREPROCESS,
     PROFILE,
     RANDOM_STRATEGY,
-    SAT, 
+    SAT,
+    SMTCOMP,
     SPIDER,
     VAMPIRE
 };
+
+  enum class Schedule : unsigned int {
+    CASC,
+    CASC_2017,
+    CASC_SAT,
+    CASC_SAT_2017,
+    LTB_DEFAULT_2017,
+    LTB_HH4_2017,
+    LTB_HLL_2017,
+    LTB_ISA_2017,
+    LTB_MZR_2017,
+    SMTCOMP,
+    SMTCOMP_2017
+};
+
 
 /* TODO: use an enum for Selection. The current issue is the way these values are manipulated as ints
  *
@@ -1723,6 +1738,7 @@ public:
   LTBLearning ltbLearning() const { return _ltbLearning.actualValue; }
   vstring ltbDirectory() const { return _ltbDirectory.actualValue; }
   Mode mode() const { return _mode.actualValue; }
+  Schedule schedule() const { return _schedule.actualValue; }
   unsigned multicore() const { return _multicore.actualValue; }
   InputSyntax inputSyntax() const { return _inputSyntax.actualValue; }
   void setInputSyntax(InputSyntax newVal) { _inputSyntax.actualValue = newVal; }
@@ -2186,6 +2202,7 @@ private:
   UnsignedOptionValue _maximalPropagatedEqualityLength;
   UnsignedOptionValue _memoryLimit; // should be size_t, making an assumption
   ChoiceOptionValue<Mode> _mode;
+  ChoiceOptionValue<Schedule> _schedule;
   UnsignedOptionValue _multicore;
 
   StringOptionValue _namePrefix;

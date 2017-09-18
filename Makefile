@@ -408,6 +408,7 @@ LTB_OBJ = Shell/LTB/Builder.o\
 
 CASC_OBJ = CASC/CASCMode.o\
            CASC/CASCMultiMode.o\
+           CASC/Schedules.o\
            CASC/CLTBMode.o\
            CASC/CLTBModeLearning.o\
            CASC/ForkingCM.o
