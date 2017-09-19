@@ -431,7 +431,11 @@ void UIHelper::outputSatisfiableResult(ostream& out)
 	out << "% SZS output end FiniteModel for " << env.options->problemName() << endl;
     }
   }
-  else if (env.statistics->saturatedSet) {
+  else //if (env.statistics->saturatedSet)
+       /* -- MS: it's never incorrect to print the empty one, in fact this prevents us from losing
+        * points at CASC when the input gets completely emptied, by e.g. preprocessing
+        */
+  {
     outputSaturatedSet(out, pvi(UnitList::Iterator(env.statistics->saturatedSet)));
   }
 }
