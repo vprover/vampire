@@ -15,6 +15,7 @@
 #include "Lib/Environment.hpp"
 #include "Lib/TimeCounter.hpp"
 #include "Lib/VString.hpp"
+#include "Lib/Timer.hpp"
 
 #include "Kernel/InferenceStore.hpp"
 #include "Kernel/Problem.hpp"
@@ -59,11 +60,49 @@
 #include <list>
 #endif
 
-using namespace Shell;
+namespace Shell {
+
 using namespace Lib;
 using namespace Kernel;
 using namespace Saturation;
 using namespace std;
+
+bool outputAllowed(bool debug)
+{
+#if VDEBUG
+  if(debug){ return true; }
+#endif
+  return !Lib::env.options || (Lib::env.options->mode()!=Shell::Options::Mode::SPIDER
+                               && Lib::env.options->proof()!=Shell::Options::Proof::SMTCOMP );
+}
+
+bool inSpiderMode()
+{
+  return Lib::env.options && Lib::env.options->mode()==Shell::Options::Mode::SPIDER;
+}
+
+void reportSpiderFail()
+{
+  reportSpiderStatus('!');
+}
+
+void reportSpiderStatus(char status)
+{
+  using namespace Lib;
+
+  static bool headerPrinted=false;
+
+  if(inSpiderMode() && !headerPrinted) {
+    headerPrinted=true;
+
+    env.beginOutput();
+    env.out() << status << " "
+      << (Lib::env.options ? Lib::env.options->problemName() : "unknown") << " "
+      << (Lib::env.timer ? Lib::env.timer->elapsedDeciseconds() : 0) << " "
+      << (Lib::env.options ? Lib::env.options->testId() : "unknown") << "\n";
+    env.endOutput();
+  }
+}
 
 bool UIHelper::s_haveConjecture=false;
 
@@ -978,4 +1017,9 @@ void UIHelper::outputAssignment(Assignment& assignemt, ostream& out, Shell::Opti
     ASSERTION_VIOLATION;
   }
 }
+
 #endif //GNUMP
+
+} // namespace Shell
+
+

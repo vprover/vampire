@@ -25,6 +25,7 @@
 
 #include "Shell/Options.hpp"
 #include "Shell/Statistics.hpp"
+#include "Shell/UIHelper.hpp"
 
 #include "Environment.hpp"
 #include "Exception.hpp"
@@ -34,43 +35,6 @@
 #include "VString.hpp"
 
 #include "System.hpp"
-
-bool outputAllowed(bool debug)
-{
-#if VDEBUG
-  if(debug){ return true; }
-#endif
-  return !Lib::env.options || (Lib::env.options->mode()!=Shell::Options::Mode::SPIDER
-                               && Lib::env.options->proof()!=Shell::Options::Proof::SMTCOMP ); 
-}
-
-bool inSpiderMode()
-{
-  return Lib::env.options && Lib::env.options->mode()==Shell::Options::Mode::SPIDER;
-}
-
-void reportSpiderFail()
-{
-  reportSpiderStatus('!');
-}
-
-void reportSpiderStatus(char status)
-{
-  using namespace Lib;
-
-  static bool headerPrinted=false;
-
-  if(inSpiderMode() && !headerPrinted) {
-    headerPrinted=true;
-
-    env.beginOutput();
-    env.out() << status << " "
-      << (Lib::env.options ? Lib::env.options->problemName() : "unknown") << " "
-      << (Lib::env.timer ? Lib::env.timer->elapsedDeciseconds() : 0) << " "
-      << (Lib::env.options ? Lib::env.options->testId() : "unknown") << "\n";
-    env.endOutput();
-  }
-}
 
 #include <unistd.h>
 

@@ -16,6 +16,7 @@
 #include "System.hpp"
 #include "TimeCounter.hpp"
 
+#include "Shell/UIHelper.hpp"
 #include "Shell/Options.hpp"
 #include "Shell/Statistics.hpp"
 
@@ -49,6 +50,8 @@ int Timer::s_initGuarantedMiliseconds;
 
 void timeLimitReached()
 {
+  using namespace Shell;
+
   env.beginOutput();
   reportSpiderStatus('t');
   if (!inSpiderMode() && env.options->proof()!=Shell::Options::Proof::SMTCOMP) {

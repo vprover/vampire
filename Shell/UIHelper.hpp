@@ -16,6 +16,11 @@ namespace Shell {
 using namespace Lib;
 using namespace Kernel;
 
+bool outputAllowed(bool debug=false);
+bool inSpiderMode();
+void reportSpiderFail();
+void reportSpiderStatus(char status);
+
 class UIHelper {
 public:
   static Problem* getInputProblem(const Options& opts);
