@@ -121,7 +121,7 @@ void ForkingCM::childRun(Options& strategyOpt)
 {
   CALL("ForkingCM::childRun");
 
-  UIHelper::cascModeChild=true;
+  UIHelper::portfolioChild=true;
   int resultValue=1;
   env.timer->reset();
   env.timer->start();

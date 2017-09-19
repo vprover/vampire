@@ -332,7 +332,7 @@ void SMTCOMPMode::runSlice(Options& strategyOpt)
   CALL("SMTCOMPMode::runSlice(Option&)");
 
   System::registerForSIGHUPOnParentDeath();
-  UIHelper::cascModeChild=true;
+  UIHelper::portfolioChild=true;
 
   int resultValue=1;
   env.timer->reset();

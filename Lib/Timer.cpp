@@ -56,7 +56,7 @@ void timeLimitReached()
       env.out() << "% (" << getpid() << ')';
     }
     env.out() << "Time limit reached!\n";
-    if (Shell::UIHelper::szsOutput && !Shell::UIHelper::cascModeChild) {
+    if (Shell::UIHelper::szsOutput && !Shell::UIHelper::portfolioChild) {
       env.out() << "% Proof not found in time ";
       Timer::printMSString(env.out(),env.timer->elapsedMilliseconds());
       env.out() << endl;
@@ -65,7 +65,7 @@ void timeLimitReached()
                 << (env.options ? env.options->problemName() : "unknown") << endl;
     }
   }
-  if(env.statistics && (!Shell::UIHelper::szsOutput || Shell::UIHelper::cascModeChild) &&
+  if(env.statistics && (!Shell::UIHelper::szsOutput || Shell::UIHelper::portfolioChild) &&
      env.options->mode() != Shell::Options::Mode::SPIDER && env.options->proof() != Shell::Options::Proof::SMTCOMP) {
     env.statistics->print(env.out());
   }

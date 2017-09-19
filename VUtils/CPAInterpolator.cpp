@@ -425,7 +425,7 @@ void CPAInterpolator::childRun(Options& strategyOpt)
 {
   CALL("CPAInterpolator::childRun");
 
-  UIHelper::cascModeChild=true;
+  UIHelper::portfolioChild=true;
   int resultValue=1;
   env.timer->reset();
   env.timer->start();

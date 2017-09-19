@@ -318,7 +318,7 @@ void CASCMultiMode::runSlice(Options& strategyOpt)
   CALL("CASCMultiMode::runSlice(Option&)");
 
   System::registerForSIGHUPOnParentDeath();
-  UIHelper::cascModeChild=true;
+  UIHelper::portfolioChild=true;
 
   int resultValue=1;
   env.timer->reset();

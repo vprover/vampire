@@ -43,16 +43,15 @@ public:
   static void outputSortDeclarations(ostream& out);
 
   /**
-   * True if we are running in the CASC mode
-   *
-   * CASC mode means that we will output messages also in the SZS format.
+   * Hacky global flag indicating that reporting should be done in a Geoff-compliant way.
+   * (http://www.cs.miami.edu/~tptp/TPTP/TPTPTParty/2007/PositionStatements/GeoffSutcliffe_SZS.html)
    */
   static bool szsOutput;
   /**
-   * True if we are running in the CASC mode and we are the child process
+   * A hacky global flag distinguishing the parent and the child in portfolio modes.
+   * Currently affects how things are reported during timeout (see Timer.cpp)
    */
-  static bool cascModeChild;
-
+  static bool portfolioChild;
   /**
    * Hack not to output satisfiable status twice (we may output it earlier in
    * IGAlgorithm, before we start generating model)
