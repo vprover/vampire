@@ -72,26 +72,6 @@ void reportSpiderStatus(char status)
   }
 }
 
-#if COMPILER_MSVC
-
-#include <windows.h>
-
-long long Lib::System::getSystemMemory()
-{
-  MEMORYSTATUSEX status;
-  GlobalMemoryStatusEx(&status);
-  return status.ullTotalPhys;
-}
-
-unsigned Lib::System::getNumberOfCores()
-{
-  SYSTEM_INFO sysinfo;
-  GetSystemInfo( &sysinfo );
-  return sysinfo.dwNumberOfProcessors;
-}
-
-#else
-
 #include <unistd.h>
 
 long long Lib::System::getSystemMemory()
@@ -113,9 +93,6 @@ unsigned Lib::System::getNumberOfCores()
   return sysconf( _SC_NPROCESSORS_ONLN );
 #endif
 }
-
-
-#endif
 
 namespace Lib {
 
