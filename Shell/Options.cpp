@@ -27,6 +27,8 @@
 #include "Lib/Set.hpp"
 #include "Lib/System.hpp"
 
+#include "Shell/UIHelper.hpp"
+
 #include "Kernel/Problem.hpp"
 #include "Kernel/Signature.hpp"
 
@@ -235,7 +237,7 @@ void Options::Options::init()
     _problemName.description="";
     //_lookup.insert(&_problemName);
 
-    _proof = ChoiceOptionValue<Proof>("proof","p",Proof::ON,{"off","on","proofcheck","tptp","smtcomp","property"});
+    _proof = ChoiceOptionValue<Proof>("proof","p",Proof::ON,{"off","on","proofcheck","tptp","property"});
     _proof.description=
     "Specifies whether proof will be output. 'proofcheck' will output proof as a sequence of TPTP problems to allow for proof-checking.";
     _lookup.insert(&_proof);
@@ -270,10 +272,10 @@ void Options::Options::init()
     _lookup.insert(&_testId);
     _testId.setExperimental();
 
-    _szsOutput = BoolOptionValue("szs_output","szs",false);
-    _szsOutput.description="";
-    _lookup.insert(&_szsOutput);
-    _szsOutput.setExperimental();
+    _outputMode = ChoiceOptionValue<Output>("output_mode","",Output::VAMPIRE,{"smtcomp","spider","szs","vampire"});
+    _outputMode.description="";
+    _lookup.insert(&_outputMode);
+    _outputMode.setExperimental();
 
     _thanks = StringOptionValue("thanks","","Tanya");
     _thanks.description="";

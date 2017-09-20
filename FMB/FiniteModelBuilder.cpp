@@ -1560,7 +1560,7 @@ MainLoopResult FiniteModelBuilder::runImpl()
 
   if (reset()) {
   while(true){
-    if(outputAllowed()) { 
+    if(outputAllowed()) {
       cout << "TRYING " << "["; 
       for(unsigned i=0;i<_distinctSortSizes.size();i++){
         cout << _distinctSortSizes[i];
@@ -1821,15 +1821,14 @@ void FiniteModelBuilder::onModelFound()
  if(_opt.proof()==Options::Proof::OFF){ 
    return; 
  }
- if(_opt.mode()==Options::Mode::SPIDER){
-   reportSpiderStatus('-');
- }
+
+ reportSpiderStatus('-');
  if(outputAllowed()){
    cout << "Finite Model Found!" << endl;
  }
 
  //we need to print this early because model generating can take some time
- if(UIHelper::szsOutput) {
+ if(szsOutputMode()) {
    env.beginOutput();
    env.out() << "% SZS status "<<( UIHelper::haveConjecture() ? "CounterSatisfiable" : "Satisfiable" )
        << " for " << _opt.problemName() << endl << flush;

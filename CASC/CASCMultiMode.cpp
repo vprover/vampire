@@ -55,7 +55,6 @@ bool CASCMultiMode::perform()
   // to prevent from terminating by time limit
   env.options->setTimeLimitInSeconds(100000);
 
-  UIHelper::szsOutput = true;
   env.options->setProof(Options::Proof::TPTP);
   env.options->setStatistics(Options::Statistics::NONE);
 
@@ -146,8 +145,6 @@ bool CASCMultiMode::searchForProof()
 
   // now all the cpu usage will be in children, we'll just be waiting for them
   Timer::setTimeLimitEnforcement(false);
-
-  UIHelper::szsOutput=true;
 
   return performStrategy(property);
 } // CASCMultiMode::perform

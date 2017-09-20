@@ -642,10 +642,7 @@ void vampireMode()
     env.options->setUnusedPredicateDefinitionRemoval(false);
   }
 
-  if (env.options->szsOutput()) {
-    UIHelper::szsOutput = true;
-    UIHelper::portfolioChild = true; // so that we print stats on time-out (see Timer.cpp)
-  }
+  UIHelper::portfolioChild = true; // so that we print stats on time-out (see Timer.cpp)
 
   doProving();
 
@@ -662,7 +659,8 @@ void vampireMode()
 void spiderMode()
 {
   CALL("spiderMode()");
-  env.options->setBadOptionChoice(Options::BadOption::HARD); 
+  env.options->setBadOptionChoice(Options::BadOption::HARD);
+  env.options->setOutputMode(Options::Output::SPIDER);
   Exception* exception = 0;
 #if VZ3
   z3::exception* z3_exception = 0;
@@ -927,6 +925,7 @@ int main(int argc, char* argv[])
     case Options::Mode::CASC_SAT:
       CASC::CASCMode::makeSat();
     case Options::Mode::CASC:
+      env.options->setOutputMode(Options::Output::SZS);
       // If using a single core use old approach
       if(env.options->multicore()==1){
          if (CASC::CASCMode::perform(argc, argv)) {
@@ -943,7 +942,7 @@ int main(int argc, char* argv[])
       }
       break;
     case Options::Mode::SMTCOMP:
-       env.options->setProof(Options::Proof::SMTCOMP);
+       env.options->setOutputMode(Options::Output::SMTCOMP);
        env.options->setInputSyntax(Options::InputSyntax::SMTLIB2);
        if(SMTCOMP::SMTCOMPMode::perform()){
          vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
@@ -970,14 +969,6 @@ int main(int argc, char* argv[])
       vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
       break;
     }
-/*
-    case Options::Mode::CASC_MZR: {
-      CASC::CMZRMode::perform();
-      //we have processed the ltb batch file, so we can return zero
-      vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
-      break;
-    }
-*/
     case Options::Mode::MODEL_CHECK:
       modelCheckMode();
       break;

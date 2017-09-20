@@ -895,15 +895,13 @@ MainLoopResult IGAlgorithm::onModelFound()
     MainLoopResult res(Statistics::SATISFIABLE);
     if(_opt.proof()!=Options::Proof::OFF) {
       //we need to print this early because model generating can take some time
-      if(UIHelper::szsOutput) {
-	env.beginOutput();
-	env.out() << "% SZS status "<<( UIHelper::haveConjecture() ? "CounterSatisfiable" : "Satisfiable" )
-	    << " for " << _opt.problemName() << endl << flush;
-	env.endOutput();
-	UIHelper::satisfiableStatusWasAlreadyOutput = true;
-      }
-      if(_opt.mode()==Options::Mode::SPIDER){
-        reportSpiderStatus('-');
+      reportSpiderStatus('-');
+      if(szsOutputMode()) {
+        env.beginOutput();
+        env.out() << "% SZS status "<<( UIHelper::haveConjecture() ? "CounterSatisfiable" : "Satisfiable" )
+            << " for " << _opt.problemName() << endl << flush;
+        env.endOutput();
+        UIHelper::satisfiableStatusWasAlreadyOutput = true;
       }
 
       // Prevent timing out whilst the model is being printed

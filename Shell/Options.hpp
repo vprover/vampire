@@ -413,6 +413,14 @@ public:
     NONE = 2
   };
 
+  /** how much we want vampire talking and in what language */
+  enum class Output : unsigned int {
+    SMTCOMP,
+    SPIDER,
+    SZS,
+    VAMPIRE
+  };
+
   /** Possible values for sat_solver */
   enum class SatSolver : unsigned int {
      MINISAT = 0,
@@ -510,8 +518,7 @@ public:
     ON = 1,
     PROOFCHECK = 2,
     TPTP = 3,
-    SMTCOMP = 4,
-    PROPERTY = 5
+    PROPERTY = 4
   };
 
   /** Values for --equality_proxy */
@@ -1871,7 +1878,8 @@ public:
   void setOutputAxiomNames(bool newVal) { _outputAxiomNames.actualValue = newVal; }
   QuestionAnsweringMode questionAnswering() const { return _questionAnswering.actualValue; }
   vstring xmlOutput() const { return _xmlOutput.actualValue; }
-  bool szsOutput() const { return _szsOutput.actualValue; }
+  Output outputMode() const { return _outputMode.actualValue; }
+  void setOutputMode(Output newVal) { _outputMode.actualValue = newVal; }
   vstring thanks() const { return _thanks.actualValue; }
   void setQuestionAnswering(QuestionAnsweringMode newVal) { _questionAnswering.actualValue = newVal; }
   bool globalSubsumption() const { return _globalSubsumption.actualValue; }
@@ -2306,7 +2314,7 @@ private:
   StringOptionValue _predicatePrecedence;
 
   StringOptionValue _testId;
-  BoolOptionValue _szsOutput;
+  ChoiceOptionValue<Output> _outputMode;
   StringOptionValue _thanks;
   ChoiceOptionValue<TheoryAxiomLevel> _theoryAxioms;
   BoolOptionValue _theoryFlattening;

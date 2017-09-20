@@ -27,6 +27,7 @@
 
 #include "Shell/BFNTMainLoop.hpp"
 #include "Shell/Options.hpp"
+#include "Shell/UIHelper.hpp"
 
 #include "Signature.hpp"
 #include "Clause.hpp"

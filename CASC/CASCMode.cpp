@@ -30,8 +30,6 @@ bool CASCMode::perform(int argc, char* argv [])
 {
   CALL("CASCMode::perform/2");
 
-  UIHelper::szsOutput=true;
-
   env.timer->makeChildrenIncluded();
 
   ForkingCM cm;

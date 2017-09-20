@@ -18,6 +18,8 @@
 #include "Kernel/Sorts.hpp"
 #include "Kernel/SortHelper.hpp"
 
+#include "Shell/UIHelper.hpp"
+
 #include "Indexing/TermSharing.hpp"
 
 #include "Z3Interfacing.hpp"
