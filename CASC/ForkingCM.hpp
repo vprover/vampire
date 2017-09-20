@@ -13,7 +13,7 @@
 
 #include "Kernel/Problem.hpp"
 
-#include "CASCMode.hpp"
+#include "PortfolioMode.hpp"
 
 namespace CASC
 {
@@ -22,7 +22,7 @@ using namespace Lib;
 using namespace Kernel;
 
 class ForkingCM
-: public CASCMode
+: public PortfolioMode
 {
 public:
   ForkingCM();

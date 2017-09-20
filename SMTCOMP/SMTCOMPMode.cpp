@@ -53,12 +53,6 @@ bool SMTCOMPMode::perform()
 {
   CALL("SMTCOMPMode::perform");
 
-  //TODO needed?
-  // to prevent from terminating by time limit
-  env.options->setTimeLimitInSeconds(100000);
-
-  env.options->setStatistics(Options::Statistics::NONE);
-
   SMTCOMPMode casc;
 
   bool resValue;

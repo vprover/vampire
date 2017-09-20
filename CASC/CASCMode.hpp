@@ -30,8 +30,6 @@ class CASCMode {
 public:
   virtual ~CASCMode() {}
   static bool perform(int argc,char* argv []);
-
-  static void makeSat() {_sat=true;}
 protected:
   static unsigned getSliceTime(vstring sliceCode,vstring& chopped);
 
@@ -48,8 +46,6 @@ protected:
 
   /** The problem property, computed once in the parent process */
   Property* _property;
-  /** True if satisfiability checking */
-  static bool _sat;
 
 private:
   typedef Set<vstring> StrategySet;

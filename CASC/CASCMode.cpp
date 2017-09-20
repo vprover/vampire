@@ -24,8 +24,6 @@
 using namespace Lib;
 using namespace CASC;
 
-bool CASCMode::_sat = false;
-
 bool CASCMode::perform(int argc, char* argv [])
 {
   CALL("CASCMode::perform/2");
@@ -80,13 +78,8 @@ bool CASCMode::perform()
   Schedule quick;
   Schedule fallback;
 
-  if (_sat) {
-    getSchedulesSat(*_property, quick, fallback);
-  }
-  else {
-    getSchedules(*_property, quick, fallback);
-  }
-  
+  getSchedules(*_property, quick, fallback);
+
   int remainingTime=env.remainingTime()/100;
   if (remainingTime<=0) {
     return false;

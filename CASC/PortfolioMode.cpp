@@ -16,7 +16,6 @@
 #include "Shell/UIHelper.hpp"
 
 #include "ForkingCM.hpp"
-#include "SpawningCM.hpp"
 
 #include "PortfolioMode.hpp"
 
@@ -31,8 +30,6 @@ bool PortfolioMode::_sld = false;
 bool PortfolioMode::perform(int argc, char* argv [])
 {
   CALL("PortfolioMode::perform/2");
-
-  UIHelper::szsOutput=true;
 
   env.timer->makeChildrenIncluded();
 

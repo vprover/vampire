@@ -1746,7 +1746,9 @@ public:
   vstring ltbDirectory() const { return _ltbDirectory.actualValue; }
   Mode mode() const { return _mode.actualValue; }
   Schedule schedule() const { return _schedule.actualValue; }
+  void setSchedule(Schedule newVal) {  _schedule.actualValue = newVal; }
   unsigned multicore() const { return _multicore.actualValue; }
+  void setMulticore(unsigned newVal) { _multicore.actualValue = newVal; }
   InputSyntax inputSyntax() const { return _inputSyntax.actualValue; }
   void setInputSyntax(InputSyntax newVal) { _inputSyntax.actualValue = newVal; }
   bool normalize() const { return _normalize.actualValue; }

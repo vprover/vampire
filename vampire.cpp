@@ -47,9 +47,7 @@
 
 #include "SAT/DIMACS.hpp"
 
-#include "CASC/CASCMode.hpp"
-#include "SMTCOMP/SMTCOMPMode.hpp"
-#include "CASC/CASCMultiMode.hpp"
+#include "CASC/PortfolioMode.hpp"
 #include "CASC/CLTBMode.hpp"
 #include "CASC/CLTBModeLearning.hpp"
 #include "Shell/CParser.hpp"
@@ -922,35 +920,54 @@ int main(int argc, char* argv[])
     case Options::Mode::VAMPIRE:
       vampireMode();
       break;
-    case Options::Mode::CASC_SAT:
-      CASC::CASCMode::makeSat();
+
     case Options::Mode::CASC:
+      env.options->setSchedule(Options::Schedule::CASC);
       env.options->setOutputMode(Options::Output::SZS);
-      // If using a single core use old approach
-      if(env.options->multicore()==1){
-         if (CASC::CASCMode::perform(argc, argv)) {
-	    //casc mode succeeded in solving the problem, so we return zero
-            vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
-         }
-      }
-      // otherwise use the new multicore mode
-      else{
-        if (CASC::CASCMultiMode::perform()) {
-          //casc mode succeeded in solving the problem, so we return zero
-          vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
-        }
+      env.options->setTimeLimitInSeconds(300);
+      env.options->setMemoryLimit(128000);
+
+      if (CASC::PortfolioMode::perform(argc, argv)) {
+        vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
       }
       break;
+
+    case Options::Mode::CASC_SAT:
+      env.options->setSchedule(Options::Schedule::CASC_SAT);
+      env.options->setOutputMode(Options::Output::SZS);
+      env.options->setTimeLimitInSeconds(300);
+      env.options->setMemoryLimit(128000);
+
+      if (CASC::PortfolioMode::perform(argc, argv)) {
+        vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
+      }
+      break;
+
     case Options::Mode::SMTCOMP:
-       env.options->setOutputMode(Options::Output::SMTCOMP);
-       env.options->setInputSyntax(Options::InputSyntax::SMTLIB2);
-       if(SMTCOMP::SMTCOMPMode::perform()){
-         vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
-        }
-       else{
-         cout << "unknown" << endl;
-       }
-    break;
+      env.options->setOutputMode(Options::Output::SMTCOMP);
+      env.options->setInputSyntax(Options::InputSyntax::SMTLIB2);
+      env.options->setMulticore(0); // use all available cores
+      env.options->setTimeLimitInSeconds(300);
+      env.options->setMemoryLimit(128000);
+      env.options->setStatistics(Options::Statistics::NONE);
+
+      //TODO needed?
+      // to prevent from terminating by time limit
+      env.options->setTimeLimitInSeconds(100000);
+
+      if(CASC::PortfolioMode::perform(argc, argv)){
+       vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
+      } else {
+       cout << "unknown" << endl;
+      }
+      break;
+
+    case Options::Mode::PORTFOLIO:
+      if (CASC::PortfolioMode::perform(argc, argv)) {
+        vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
+      }
+      break;
+
     case Options::Mode::CASC_LTB: {
       bool learning = env.options->ltbLearning()!=Options::LTBLearning::OFF;
       try {
