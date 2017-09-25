@@ -2654,23 +2654,8 @@ void Options::setForcedOptionValues()
 {
   CALL("Options::setForcedOptionValues");
 
-  // Set the options forced by mode
-  switch (_mode.actualValue) {
-  case Mode::CASC:
-  case Mode::CASC_SAT:
-  //case Mode::CASC_THEORY:
-  //case Mode::CASC_LTB:
-    _outputAxiomNames.actualValue = true;
-    _proof.actualValue = Proof::TPTP;
-    break;
-  default:
-    break;
-  }
-
   if(_forcedOptions.actualValue.empty()) return;
-
   readOptionsString(_forcedOptions.actualValue);
-
 }
 
 /**
