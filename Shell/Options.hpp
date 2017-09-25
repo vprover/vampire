@@ -354,7 +354,6 @@ public:
     CASC_SAT,
     CASC_LTB,
     CLAUSIFY,
-    TCLAUSIFY,
     CONSEQUENCE_ELIMINATION,
     GROUNDING,
     MODEL_CHECK,
@@ -367,6 +366,7 @@ public:
     SAT,
     SMTCOMP,
     SPIDER,
+    TCLAUSIFY,
     VAMPIRE
 };
 

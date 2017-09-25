@@ -92,16 +92,20 @@ void Options::Options::init()
                                         "casc",
                                         "casc_sat",
                                         "casc_ltb",
-                                        "clausify","tclausify",
-                                        "consequence_elimination","grounding",
+                                        "clausify",
+                                        "consequence_elimination",
+                                        "grounding",
                                         "model_check",
-                                        "output","preprocess",
+                                        "output",
                                         "portfolio",
+                                        "preprocess",
                                         "profile",
                                         "random_strategy",
                                         "sat_solver",
                                         "smtcomp",
-                                        "spider","vampire"});
+                                        "spider",
+                                        "tclausify",
+                                        "vampire"});
     _mode.description=
     "Select the mode of operation. Choices are:\n"
     "  -vampire: the standard mode of operation for first-order theorem proving\n"
