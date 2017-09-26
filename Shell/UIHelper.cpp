@@ -101,11 +101,15 @@ bool szsOutputMode() {
   return (Lib::env.options && Lib::env.options->outputMode() == Shell::Options::Output::SZS);
 }
 
-void addCommentSignForSZS(ostream& out)
+ostream& addCommentSignForSZS(ostream& out)
 {
   if (szsOutputMode()) {
     out << "% ";
+    if (Lib::env.options && Lib::env.options->multicore() != 1) {
+      out << "(" << getpid() << ")";
+    }
   }
+  return out;
 }
 
 bool UIHelper::s_haveConjecture=false;

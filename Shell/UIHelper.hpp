@@ -17,7 +17,7 @@ using namespace Lib;
 using namespace Kernel;
 
 bool szsOutputMode();
-void addCommentSignForSZS(ostream&);
+ostream& addCommentSignForSZS(ostream&);
 void reportSpiderFail();
 void reportSpiderStatus(char status);
 bool outputAllowed(bool debug=false);

@@ -182,13 +182,6 @@ static unsigned milliToDeci(unsigned timeInMiliseconds) {
   return timeInMiliseconds/100;
 }
 
-static ostream& lineOutput()
-{
-  CALL("PortfolioMode static lineOutput");
-  addCommentSignForSZS(env.out());
-  return env.out() << "(" << getpid() << ',' << (env.timer->elapsedMilliseconds()/100)/10.0 << ") ";
-}
-
 /**
  * Run a schedule.
  * Return true if a proof was found, otherwise return false.
@@ -238,8 +231,8 @@ bool PortfolioMode::runSchedule(Schedule& schedule, int terminationTime)
 
       /*
       env.beginOutput();
-      lineOutput() << "Slices left: " << slices << endl;
-      lineOutput() << "Processes available: " << processesLeft << endl;
+      addCommentSignForSZS(env.out()) << "Slices left: " << slices << endl;
+      addCommentSignForSZS(env.out()) << "Processes available: " << processesLeft << endl;
       env.endOutput();
       */
 
@@ -287,7 +280,7 @@ bool PortfolioMode::runSchedule(Schedule& schedule, int terminationTime)
 
       if (outputAllowed()) {
         env.beginOutput();
-        lineOutput() << "spawned child "<< childId << " with time: " << sliceTime << " (total remaining time " << remainingTime << ")" << endl;
+        addCommentSignForSZS(env.out()) << "spawned child "<< childId << " with time: " << sliceTime << " (total remaining time " << remainingTime << ")" << endl;
         env.endOutput();
       }
 
@@ -421,7 +414,7 @@ void PortfolioMode::runSlice(Options& strategyOpt)
 
   if (outputAllowed()) {
     env.beginOutput();
-    lineOutput() << opt.testId() << " on " << opt.problemName() << endl;
+    addCommentSignForSZS(env.out()) << opt.testId() << " on " << opt.problemName() << endl;
     env.endOutput();
   }
 
@@ -462,7 +455,7 @@ void PortfolioMode::runSlice(Options& strategyOpt)
     /*
     if (!resultValue) {
       env.beginOutput();
-      lineOutput() << " found a proof after proof output" << endl;
+      addCommentSignForSZS(env.out()) << " found a proof after proof output" << endl;
       env.endOutput();
     }
     */
