@@ -453,7 +453,7 @@ void PortfolioMode::runSlice(Options& strategyOpt)
     _syncSemaphore.inc(SEM_LOCK); // would be also released after the processes' death, but we are polite and do it already here
   }
 
-  if(outputResult && outputAllowed()){
+  if(outputResult){
     env.beginOutput();
     UIHelper::outputResult(env.out());
     env.endOutput();
