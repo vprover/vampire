@@ -279,7 +279,7 @@ void Options::Options::init()
     _lookup.insert(&_testId);
     _testId.setExperimental();
 
-    _outputMode = ChoiceOptionValue<Output>("output_mode","",Output::VAMPIRE,{"smtcomp","spider","szs","vampire"});
+    _outputMode = ChoiceOptionValue<Output>("output_mode","",Output::SZS,{"smtcomp","spider","szs","vampire"});
     _outputMode.description="";
     _lookup.insert(&_outputMode);
     _outputMode.setExperimental();
