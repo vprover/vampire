@@ -265,7 +265,6 @@ bool PortfolioMode::runSchedule(Schedule& schedule, int terminationTime)
       if (sliceTime > remainingTime) {
         sliceTime = remainingTime;
       }
-
       ASS_GE(sliceTime,0);
 
       pid_t childId=Multiprocessing::instance()->fork();
@@ -285,12 +284,12 @@ bool PortfolioMode::runSchedule(Schedule& schedule, int terminationTime)
       }
       Timer::syncClock();
       ASS(childIds.insert(childId));
-      /*
-      env.beginOutput();
-      lineOutput() << "slice pid "<< childId << " slice: " << sliceCode
-         << " time: " << (sliceTime/100)/10.0 << endl;
-      env.endOutput();
-      */
+
+      if (outputAllowed()) {
+        env.beginOutput();
+        lineOutput() << "spawned child "<< childId << " with time: " << sliceTime << " (total remaining time " << remainingTime << ")" << endl;
+        env.endOutput();
+      }
 
       processesLeft--;
       if (!it.hasNext()) {
