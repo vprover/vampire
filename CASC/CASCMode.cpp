@@ -101,21 +101,6 @@ bool CASCMode::perform()
   return runSchedule(fallback,remainingTime,used,true);
 }
 
-
-
-
-void CASCMode::handleSIGINT()
-{
-  CALL("CASCMode::handleSIGINT");
-
-  env.beginOutput();
-  env.out()<<"% Terminated by SIGINT!"<<endl;
-  env.out()<<"% SZS status User for "<<env.options->problemName() <<endl;
-  env.statistics->print(env.out());
-  env.endOutput();
-  exit(VAMP_RESULT_STATUS_SIGINT);
-}
-
 unsigned CASCMode::getSliceTime(vstring sliceCode,vstring& chopped)
 {
   CALL("CASCMode::getSliceTime");
@@ -170,9 +155,11 @@ bool CASCMode::runSchedule(Schedule& schedule,unsigned ds,StrategySet& ss,bool f
     if (sliceTime > (unsigned)remainingTime) {
       sliceTime = remainingTime;
     }
+
     env.beginOutput();
     env.out()<<"% remaining time: "<<remainingTime<<" next slice time: "<<sliceTime<<endl;
     env.endOutput();
+
     if (runSlice(sliceCode,sliceTime)) {
       return true;
     }
@@ -198,46 +185,24 @@ bool CASCMode::runSlice(vstring slice, unsigned ds)
 
 
 
-/**
- * Do the theorem proving in a forked-off process
- */
-void CASCMode::childRun(Options& strategyOpt)
+
+
+
+
+
+
+void CASCMode::handleSIGINT()
 {
-  CALL("CASCMode::childRun");
-
-  UIHelper::portfolioChild=true;
-  int resultValue=1;
-  env.timer->reset();
-  env.timer->start();
-  TimeCounter::reinitialize();
-
-  Options opt(strategyOpt);
-
-  //we have already performed the normalization
-  opt.setNormalize(false);
-  opt.setForcedOptionValues();
-  opt.checkGlobalOptionConstraints();
-  *env.options = opt; //just temporarily until we get rid of dependencies on env.options in solving
-  env.options->setTimeLimitInDeciseconds(opt.timeLimitInDeciseconds());
+  CALL("CASCMode::handleSIGINT");
 
   env.beginOutput();
-  env.out()<<opt.testId()<<" on "<<env.options->problemName()<<endl;
+  env.out()<<"% Terminated by SIGINT!"<<endl;
+  env.out()<<"% SZS status User for "<<env.options->problemName() <<endl;
+  env.statistics->print(env.out());
   env.endOutput();
-
-  ProvingHelper::runVampire(*_prb,opt);
-
-  //set return value to zero if we were successful
-  if(env.statistics->terminationReason==Statistics::REFUTATION ||
-      env.statistics->terminationReason==Statistics::SATISFIABLE) {
-    resultValue=0;
-  }
-
-  env.beginOutput();
-  UIHelper::outputResult(env.out());
-  env.endOutput();
-
-  exit(resultValue);
+  exit(VAMP_RESULT_STATUS_SIGINT);
 }
+
 
 bool CASCMode::runSlice(Options& opt)
 {
@@ -285,4 +250,45 @@ bool CASCMode::runSlice(Options& opt)
   }
 
   return false;
+}
+
+/**
+ * Do the theorem proving in a forked-off process
+ */
+void CASCMode::childRun(Options& strategyOpt)
+{
+  CALL("CASCMode::childRun");
+
+  UIHelper::portfolioChild=true;
+  int resultValue=1;
+  env.timer->reset();
+  env.timer->start();
+  TimeCounter::reinitialize();
+
+  Options opt(strategyOpt);
+
+  //we have already performed the normalization
+  opt.setNormalize(false);
+  opt.setForcedOptionValues();
+  opt.checkGlobalOptionConstraints();
+  *env.options = opt; //just temporarily until we get rid of dependencies on env.options in solving
+  env.options->setTimeLimitInDeciseconds(opt.timeLimitInDeciseconds());
+
+  env.beginOutput();
+  env.out()<<opt.testId()<<" on "<<env.options->problemName()<<endl;
+  env.endOutput();
+
+  ProvingHelper::runVampire(*_prb,opt);
+
+  //set return value to zero if we were successful
+  if(env.statistics->terminationReason==Statistics::REFUTATION ||
+      env.statistics->terminationReason==Statistics::SATISFIABLE) {
+    resultValue=0;
+  }
+
+  env.beginOutput();
+  UIHelper::outputResult(env.out());
+  env.endOutput();
+
+  exit(resultValue);
 }

@@ -138,7 +138,7 @@ bool PortfolioMode::performStrategy(Shell::Property* property)
     return false;
   }
 
-  return runSchedule(fallback,terminationTime);
+  return runSchedule(main,terminationTime);
 }
 
 void PortfolioMode::getSchedules(Property& prop, Schedule& quick, Schedule& fallback)
