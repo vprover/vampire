@@ -162,10 +162,8 @@ public:
     USE_ALLOCATOR(Options);
     
     // standard ways of creating options
-    void set(const vstring& name, const vstring& value);
-    void set(const char* name, const char* value);
-    void setShort(const char* name, const char* value);
-    
+    void set(const vstring& name, const vstring& value); // implicitly the long version used here
+    void set(const char* name, const char* value, bool longOpt);
     
 public:
   //==========================================================
@@ -268,6 +266,12 @@ public:
     ON,
     OFF,
     BIASED
+  };
+
+  enum class IgnoreMissing : unsigned int {
+    ON,
+    OFF,
+    WARN
   };
 
   //enums for the bound propagation purpose
@@ -1746,6 +1750,7 @@ public:
   vstring ltbDirectory() const { return _ltbDirectory.actualValue; }
   Mode mode() const { return _mode.actualValue; }
   Schedule schedule() const { return _schedule.actualValue; }
+  vstring scheduleName() const { return _schedule.getStringOfValue(_schedule.actualValue); }
   void setSchedule(Schedule newVal) {  _schedule.actualValue = newVal; }
   unsigned multicore() const { return _multicore.actualValue; }
   void setMulticore(unsigned newVal) { _multicore.actualValue = newVal; }
@@ -1890,9 +1895,8 @@ public:
   GlobalSubsumptionAvatarAssumptions globalSubsumptionAvatarAssumptions() const { return _globalSubsumptionAvatarAssumptions.actualValue; }
 
   /** true if calling set() on non-existing options does not result in a user error */
-  bool ignoreMissing() const { return _ignoreMissing.actualValue; }
-  /** set the "ignore missing options" value to true or false */
-  //void setIgnoreMissing(bool newVal) { _ignoreMissing = newVal; }
+  IgnoreMissing ignoreMissing() const { return _ignoreMissing.actualValue; }
+  void setIgnoreMissing(IgnoreMissing newVal) { _ignoreMissing.actualValue = newVal; }
   bool increasedNumeralWeight() const { return _increasedNumeralWeight.actualValue; }
   TheoryAxiomLevel theoryAxioms() const { return _theoryAxioms.actualValue; }
   //void setTheoryAxioms(bool newValue) { _theoryAxioms = newValue; }
@@ -2171,7 +2175,7 @@ private:
   BoolOptionValue _equationalTautologyRemoval;
 
   /** if true, then calling set() on non-existing options will not result in a user error */
-  BoolOptionValue _ignoreMissing;
+  ChoiceOptionValue<IgnoreMissing> _ignoreMissing;
   StringOptionValue _include;
   /** if this option is true, Vampire will add the numeral weight of a clause
    * to its weight. The weight is defined as the sum of binary sizes of all

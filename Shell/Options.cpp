@@ -213,7 +213,7 @@ void Options::Options::init()
     _lookup.insert(&_explainOption);
     _explainOption.tag(OptionTag::HELP);
 
-    _ignoreMissing = BoolOptionValue("ignore_missing","",false);
+    _ignoreMissing = ChoiceOptionValue<IgnoreMissing>("ignore_missing","",IgnoreMissing::OFF,{"on","off","warn"});
     _ignoreMissing.description=
     "Ignore any options that have been removed (useful in CASC mode where this can cause errors)";
     _lookup.insert(&_ignoreMissing);
@@ -1771,18 +1771,42 @@ Options& Options::operator=(const Options& that)
  * @since 14/09/2014 updated to use _lookup
  * @author Andrei Voronkov
  */
-void Options::set(const char* name,const char* value)
+void Options::set(const char* name,const char* value, bool longOpt)
 {
-  CALL ("Options::set/2");
+  CALL ("Options::set/3");
 
   try {
-    if(!_lookup.findLong(name)->set(value)){
-      USER_ERROR((vstring) value +" is an invalid value for "+(vstring)name+"\nSee help or use explain i.e. vampire -explain mode");
+    if((longOpt && !_lookup.findLong(name)->set(value)) ||
+        (!longOpt && !_lookup.findShort(name)->set(value))) {
+      switch (ignoreMissing()) {
+      case IgnoreMissing::OFF:
+        USER_ERROR((vstring) value +" is an invalid value for "+(vstring)name+"\nSee help or use explain i.e. vampire -explain mode");
+        break;
+      case IgnoreMissing::WARN:
+        if (outputAllowed()) {
+          env.beginOutput();
+          addCommentSignForSZS(env.out());
+          env.out() << "WARNING: invalid value "<< value << " for option " << name << endl;
+          env.endOutput();
+        }
+        break;
+      case IgnoreMissing::ON:
+        break;
+      }
     }
   }
   catch (const ValueNotFoundException&) {
-    if (!_ignoreMissing.actualValue) {
-      vstring msg = (vstring)name + " is not a valid option";
+    if (_ignoreMissing.actualValue != IgnoreMissing::ON) {
+      vstring msg = (vstring)name + (longOpt ? " is not a valid option" : " is not a valid short option (did you mean --?)");
+      if (_ignoreMissing.actualValue == IgnoreMissing::WARN) {
+        if (outputAllowed()) {
+          env.beginOutput();
+          addCommentSignForSZS(env.out());
+          env.out() << "WARNING: " << msg << endl;
+          env.endOutput();
+        }
+        return;
+      } // else:
       Stack<vstring> sim = getSimilarOptionNames(name,false);
       Stack<vstring>::Iterator sit(sim);
       if(sit.hasNext()){
@@ -1805,44 +1829,8 @@ void Options::set(const char* name,const char* value)
 void Options::set(const vstring& name,const vstring& value)
 {
   CALL ("Options::set/2");
-  set(name.c_str(),value.c_str());
+  set(name.c_str(),value.c_str(),false);
 } // Options::set/2
-
-/**
- * Set option by its short name and value. If such a short name does not
- * exist, try to use the long name instead.
- *
- * @since 21/11/2004 Manchester
- * @since 18/01/2014 Manchester, changed to use _ignoreMissing
- * @author Andrei Voronkov
- */
-void Options::setShort(const char* name,const char* value)
-{
-  CALL ("Options::setShort");
-
-  try {
-    if(!_lookup.findShort(name)->set(value)){
-      USER_ERROR((vstring) value +" is an invalid value for "+(vstring)name+", see help");
-    }
-  }
-  catch (const ValueNotFoundException&) {
-    if (!_ignoreMissing.actualValue) {
-      vstring msg = (vstring)name + " is not a valid short option (did you mean --?)";
-      Stack<vstring> sim = getSimilarOptionNames(name,true);
-      Stack<vstring>::Iterator sit(sim);
-      if(sit.hasNext()){
-        vstring first = sit.next();
-        msg += "\n\tMaybe you meant ";
-        if(sit.hasNext()) msg += "one of:\n\t\t";
-        msg += first;
-        while(sit.hasNext()){ msg+="\n\t\t"+sit.next();}
-        msg+="\n\tYou can use -explain <option> to explain an option";
-      }
-      USER_ERROR(msg);
-    }
-  }
-} // Options::setShort
-
 
 bool Options::OptionHasValue::check(Property*p){
           CALL("Options::OptionHasValue::check");
@@ -2552,7 +2540,24 @@ void Options::readOptionsString(vstring optionsString,bool assign)
     AbstractOptionValue* opt = getOptionValueByName(param);
     if(opt){
         if(assign){
-            opt->set(value);
+            if (!opt->set(value)) {
+              switch (ignoreMissing()) {
+              case IgnoreMissing::OFF:
+                USER_ERROR("value "+value+" for option "+ param +" not known");
+                break;
+              case IgnoreMissing::WARN:
+                env.beginOutput();
+                if (outputAllowed()) {
+                  env.beginOutput();
+                  addCommentSignForSZS(env.out());
+                  env.out() << "WARNING: value " << value << " for option "<< param <<" not known" << endl;
+                  env.endOutput();
+                }
+                break;
+              case IgnoreMissing::ON:
+                break;
+              }
+            }
         }
         else{
             vstring current = opt->getStringOfActual();
@@ -2562,8 +2567,21 @@ void Options::readOptionsString(vstring optionsString,bool assign)
         }
     }
     else{
-      if(!ignoreMissing()){
-       USER_ERROR("option "+param+" not known");
+      switch (ignoreMissing()) {
+      case IgnoreMissing::OFF:
+        USER_ERROR("option "+param+" not known");
+        break;
+      case IgnoreMissing::WARN:
+        env.beginOutput();
+        if (outputAllowed()) {
+          env.beginOutput();
+          addCommentSignForSZS(env.out());
+          env.out() << "WARNING: option "<< param << " not known." << endl;
+          env.endOutput();
+        }
+        break;
+      case IgnoreMissing::ON:
+        break;
       }
     }
 
