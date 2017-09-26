@@ -463,3 +463,71 @@ void PortfolioMode::runSlice(Options& strategyOpt)
 
   exit(resultValue);
 } // runSlice
+
+// BELOW ARE TWO LEFT-OVER FUNCTIONS FROM THE ORIGINAL (SINGLE-CHILD) CASC-MODE
+// THE CODE WAS KEPT FOR NOW AS IT DOESN'T DIRECTLY CORRESPOND TO ANYTHING ABOVE
+
+/*
+
+void handleSIGINT()
+{
+  CALL("CASCMode::handleSIGINT");
+
+  env.beginOutput();
+  env.out()<<"% Terminated by SIGINT!"<<endl;
+  env.out()<<"% SZS status User for "<<env.options->problemName() <<endl;
+  env.statistics->print(env.out());
+  env.endOutput();
+  exit(VAMP_RESULT_STATUS_SIGINT);
+}
+
+bool CASCMode::runSlice(Options& opt)
+{
+  CALL("CASCMode::runSlice");
+
+  pid_t fres=Multiprocessing::instance()->fork();
+
+  if(!fres) {
+    childRun(opt);
+
+    INVALID_OPERATION("ForkingCM::childRun should never return.");
+  }
+
+  System::ignoreSIGINT();
+
+  int status;
+  errno=0;
+  pid_t res=waitpid(fres, &status, 0);
+  if(res==-1) {
+    SYSTEM_FAIL("Error in waiting for forked process.",errno);
+  }
+
+  System::heedSIGINT();
+
+  Timer::syncClock();
+
+  if(res!=fres) {
+    INVALID_OPERATION("Invalid waitpid return value: "+Int::toString(res)+"  pid of forked Vampire: "+Int::toString(fres));
+  }
+
+  ASS(!WIFSTOPPED(status));
+
+  if( (WIFSIGNALED(status) && WTERMSIG(status)==SIGINT) ||
+      (WIFEXITED(status) && WEXITSTATUS(status)==3) )  {
+    //if the forked Vampire was terminated by SIGINT (Ctrl+C), we also terminate
+    //(3 is the return value for this case; see documentation for the
+    //@b vampireReturnValue global variable)
+
+    handleSIGINT();
+  }
+
+  if(WIFEXITED(status) && WEXITSTATUS(status)==0) {
+    //if Vampire succeeds, its return value is zero
+    return true;
+  }
+
+  return false;
+}
+
+*/
+
