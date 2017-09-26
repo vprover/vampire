@@ -32,10 +32,6 @@
 
 #include "CASC/Schedules.hpp"
 
-#include "SMTCOMPMode.hpp"
-
-#include "SMTCOMPMode.hpp"
-
 #define SLOWNESS 1.3
 #define OUTPUT 0
 
@@ -299,7 +295,6 @@ bool SMTCOMPMode::waitForChildAndCheckIfProofFound()
 #endif
   return false;
 } // waitForChildAndExitWhenProofFound
-
 
 /**
  * Run a slice given by its code using the specified time limit.

@@ -25,15 +25,6 @@ public:
   static void getLtb2017HllSchedule(const Shell::Property& property, Schedule& sched);
   static void getLtb2017MzrSchedule(const Shell::Property& property, Schedule& sched);
   static void getLtb2017DefaultSchedule(const Shell::Property& property, Schedule& sched);
-
-  // ignore missing should be on in porfolio mode and only give a warning (error in vampire mode - in combination with --decode)
-
-  // vsechny souteze 1 kod (az na LTB)
-
-  // pocet core 1 a vice by mel byt jeden kod
-
-  // pores SLOWNESS
-
 };
 
 

@@ -28,30 +28,33 @@ using namespace Shell;
 
 class CASCMode {
 public:
+  CASCMode();
   virtual ~CASCMode() {}
   static bool perform(int argc,char* argv []);
-protected:
-  static unsigned getSliceTime(vstring sliceCode,vstring& chopped);
 
-  static void getSchedules(Property& prop, Schedule& quick, Schedule& fallback);
-  static void getSchedulesSat(Property& prop, Schedule& quick, Schedule& fallback);
+  static unsigned getSliceTime(vstring sliceCode,vstring& chopped);
 
   /**
    * Run a slice corresponding to the options.
    * Return true iff the proof or satisfiability was found
    */
-  virtual bool runSlice(Options& opt) = 0;
+  bool runSlice(Options& opt);
+  void childRun(Options& opt) NO_RETURN;
 
   void handleSIGINT() __attribute__((noreturn));
 
   /** The problem property, computed once in the parent process */
   Property* _property;
 
-private:
   typedef Set<vstring> StrategySet;
   bool perform();
   bool runSchedule(Schedule&,unsigned ds,StrategySet& remember,bool fallback);
   bool runSlice(vstring sliceCode, unsigned ds);
+
+  ScopedPtr<Problem> _prb;
+
+
+
 };
 
 }

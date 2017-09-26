@@ -922,32 +922,40 @@ int main(int argc, char* argv[])
       break;
 
     case Options::Mode::CASC:
+      env.options->setIgnoreMissing(Options::IgnoreMissing::WARN);
       env.options->setSchedule(Options::Schedule::CASC);
       env.options->setOutputMode(Options::Output::SZS);
+      env.options->setProof(Options::Proof::TPTP);
+      env.options->setOutputAxiomNames(true);
       env.options->setTimeLimitInSeconds(300);
       env.options->setMemoryLimit(128000);
 
-      if (CASC::PortfolioMode::perform(argc, argv)) {
+      if (CASC::PortfolioMode::perform(1.05)) {
         vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
       }
       break;
 
     case Options::Mode::CASC_SAT:
+      env.options->setIgnoreMissing(Options::IgnoreMissing::WARN);
       env.options->setSchedule(Options::Schedule::CASC_SAT);
       env.options->setOutputMode(Options::Output::SZS);
+      env.options->setProof(Options::Proof::TPTP);
+      env.options->setOutputAxiomNames(true);
       env.options->setTimeLimitInSeconds(300);
       env.options->setMemoryLimit(128000);
 
-      if (CASC::PortfolioMode::perform(argc, argv)) {
+      if (CASC::PortfolioMode::perform(1.05)) {
         vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
       }
       break;
 
     case Options::Mode::SMTCOMP:
-      env.options->setOutputMode(Options::Output::SMTCOMP);
+      env.options->setIgnoreMissing(Options::IgnoreMissing::WARN);
       env.options->setInputSyntax(Options::InputSyntax::SMTLIB2);
+      env.options->setOutputMode(Options::Output::SMTCOMP);
+      env.options->setProof(Options::Proof::OFF);
       env.options->setMulticore(0); // use all available cores
-      env.options->setTimeLimitInSeconds(300);
+      env.options->setTimeLimitInSeconds(1800);
       env.options->setMemoryLimit(128000);
       env.options->setStatistics(Options::Statistics::NONE);
 
@@ -955,7 +963,7 @@ int main(int argc, char* argv[])
       // to prevent from terminating by time limit
       env.options->setTimeLimitInSeconds(100000);
 
-      if(CASC::PortfolioMode::perform(argc, argv)){
+      if(CASC::PortfolioMode::perform(1.3)){
        vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
       } else {
        cout << "unknown" << endl;
@@ -963,7 +971,9 @@ int main(int argc, char* argv[])
       break;
 
     case Options::Mode::PORTFOLIO:
-      if (CASC::PortfolioMode::perform(argc, argv)) {
+      env.options->setIgnoreMissing(Options::IgnoreMissing::WARN);
+
+      if (CASC::PortfolioMode::perform(1.0)) {
         vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
       }
       break;

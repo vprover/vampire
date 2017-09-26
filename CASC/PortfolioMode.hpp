@@ -14,8 +14,10 @@
 #include "Lib/Stack.hpp"
 
 #include "Lib/VString.hpp"
+#include "Lib/Sys/Semaphore.hpp"
 
 #include "Shell/Property.hpp"
+#include "Schedules.hpp"
 
 namespace CASC
 {
@@ -25,37 +27,44 @@ using namespace Lib;
 using namespace Shell;
 
 class PortfolioMode {
+  enum {
+    SEM_LOCK = 0,
+    SEM_PRINTED = 1
+  };
+
+  PortfolioMode();
+
 public:
-  virtual ~PortfolioMode() {}
-  static bool perform(int argc,char* argv []);
-
-  typedef Stack<vstring> Schedule;
-  static void getSchedules(Property& prop, Schedule& quick, Schedule& fallback);
-  static void getSchedulesSat(Property& prop, Schedule& quick, Schedule& fallback);
-  static unsigned getSliceTime(vstring sliceCode,vstring& chopped);
-  static void makeSat() {_sat=true;}
-  static void makeSLD() {_sld=true;}
-protected:
-  /**
-   * Run a slice correponding to the options.
-   * Return true iff the proof or satisfiability was found
-   */
-  virtual bool runSlice(Options& opt) = 0;
-
-  void handleSIGINT() __attribute__((noreturn));
-
-  /** The problem property, computed once in the parent process */
-  Property* _property;
-  /** True if satisfiability checking */
-  static bool _sat;
-  /** True if SLD mode */
-  static bool _sld;
+  static bool perform(float slowness);
 
 private:
-  typedef Set<vstring> StrategySet;
-  bool perform();
-  bool runSchedule(Schedule&,unsigned ds,StrategySet& remember,bool fallback);
-  bool runSlice(vstring sliceCode, unsigned ds);
+
+  // some of these names are kind of arbitrary and should be perhaps changed
+
+  bool searchForProof();
+  bool performStrategy(Shell::Property* property);
+  void getSchedules(Property& prop, Schedule& quick, Schedule& fallback);
+  bool runSchedule(Schedule& schedule, int terminationTime);
+  unsigned getSliceTime(vstring sliceCode,vstring& chopped);
+  bool waitForChildAndCheckIfProofFound();
+  void runSlice(vstring slice, unsigned timeLimitInDeciseconds) NO_RETURN;
+  void runSlice(Options& strategyOpt) NO_RETURN;
+
+#if VDEBUG
+  DHSet<pid_t> childIds;
+#endif
+
+  float _slowness;
+
+  /**
+   * Problem that is being solved.
+   *
+   * Note that in the current process this child object is the only one that
+   * will be using the problem object.
+   */
+  ScopedPtr<Problem> _prb;
+
+  Semaphore _syncSemaphore; // semaphore for synchronizing proof printing
 };
 
 }

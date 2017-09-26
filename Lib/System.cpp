@@ -20,6 +20,7 @@
 #include <cstdlib>
 #include <iostream>
 #include <fstream>
+#include <thread>
 
 #include "Debug/Tracer.hpp"
 
@@ -51,11 +52,7 @@ long long Lib::System::getSystemMemory()
 
 unsigned Lib::System::getNumberOfCores()
 {
-#if __APPLE__ || __CYGWIN__
-  NOT_IMPLEMENTED;
-#else
-  return sysconf( _SC_NPROCESSORS_ONLN );
-#endif
+  return std::thread::hardware_concurrency();
 }
 
 namespace Lib {
@@ -341,15 +338,13 @@ void System::terminateImmediately(int resultStatus)
  * Make sure that the process will receive the SIGHUP signal
  * when its parent process dies
  *
- * This setting is not passed to the child precesses created by fork().
+ * This setting is not passed to the child processes created by fork().
  */
 void System::registerForSIGHUPOnParentDeath()
 {
 #if __APPLE__ || __CYGWIN__
-  if(env.options->mode()!=Shell::Options::Mode::SMTCOMP){
-   cerr<<"Death of parent process not being handled on Mac and Windows"<<endl;
-  }
-//  NOT_IMPLEMENTED;
+  // cerr<<"Death of parent process not being handled on Mac and Windows"<<endl;
+  // NOT_IMPLEMENTED;
 #else
   prctl(PR_SET_PDEATHSIG, SIGHUP);
 #endif

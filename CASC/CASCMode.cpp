@@ -10,12 +10,11 @@
 #include "Lib/System.hpp"
 #include "Lib/TimeCounter.hpp"
 #include "Lib/Timer.hpp"
+#include "Lib/Sys/Multiprocessing.hpp"
 
 #include "Shell/Options.hpp"
 #include "Shell/Statistics.hpp"
 #include "Shell/UIHelper.hpp"
-
-#include "ForkingCM.hpp"
 
 #include "CASCMode.hpp"
 
@@ -30,8 +29,7 @@ bool CASCMode::perform(int argc, char* argv [])
 
   env.timer->makeChildrenIncluded();
 
-  ForkingCM cm;
-
+  CASCMode cm; // remember what this guy did!
   bool res=cm.perform();
 
   env.beginOutput();
@@ -58,16 +56,24 @@ bool CASCMode::perform(int argc, char* argv [])
   return res;
 }
 
-void CASCMode::handleSIGINT()
+CASCMode::CASCMode()
 {
-  CALL("CASCMode::handleSIGINT");
+  CALL("CASCMode::CASCMode");
 
-  env.beginOutput();
-  env.out()<<"% Terminated by SIGINT!"<<endl;
-  env.out()<<"% SZS status User for "<<env.options->problemName() <<endl;
-  env.statistics->print(env.out());
-  env.endOutput();
-  exit(VAMP_RESULT_STATUS_SIGINT);
+  _prb = UIHelper::getInputProblem(*env.options);
+
+  {
+    TimeCounter tc(TC_PREPROCESSING);
+
+    //we normalize now so that we don't have to do it in every child Vampire
+    ScopedLet<Statistics::ExecutionPhase> phaseLet(env.statistics->phase,Statistics::NORMALIZATION);
+    Normalisation norm;
+    norm.normalise(*_prb);
+  }
+
+  _property = _prb->getProperty();
+  TheoryFinder tf(_prb->units(),_property);
+  tf.search();
 }
 
 bool CASCMode::perform()
@@ -78,7 +84,7 @@ bool CASCMode::perform()
   Schedule quick;
   Schedule fallback;
 
-  getSchedules(*_property, quick, fallback);
+  getCasc2017Schedule(property,quick,fallback);
 
   int remainingTime=env.remainingTime()/100;
   if (remainingTime<=0) {
@@ -95,9 +101,19 @@ bool CASCMode::perform()
   return runSchedule(fallback,remainingTime,used,true);
 }
 
-void CASCMode::getSchedules(Property& property, Schedule& quick, Schedule& fallback)
+
+
+
+void CASCMode::handleSIGINT()
 {
-  Schedules::getCasc2017Schedule(property,quick,fallback);
+  CALL("CASCMode::handleSIGINT");
+
+  env.beginOutput();
+  env.out()<<"% Terminated by SIGINT!"<<endl;
+  env.out()<<"% SZS status User for "<<env.options->problemName() <<endl;
+  env.statistics->print(env.out());
+  env.endOutput();
+  exit(VAMP_RESULT_STATUS_SIGINT);
 }
 
 unsigned CASCMode::getSliceTime(vstring sliceCode,vstring& chopped)
@@ -117,11 +133,6 @@ unsigned CASCMode::getSliceTime(vstring sliceCode,vstring& chopped)
   }
   return time;
 }
-
-void CASCMode::getSchedulesSat(Property& property, Schedule& quick, Schedule& fallback)
-{
-  Schedules::getCascSat2017Schedule(property,quick,fallback);
-} // getSchedulesSat
 
 /**
  * Run strategies from the null-terminated array @b strategies,
@@ -185,3 +196,93 @@ bool CASCMode::runSlice(vstring slice, unsigned ds)
   return runSlice(opt);
 }
 
+
+
+/**
+ * Do the theorem proving in a forked-off process
+ */
+void CASCMode::childRun(Options& strategyOpt)
+{
+  CALL("CASCMode::childRun");
+
+  UIHelper::portfolioChild=true;
+  int resultValue=1;
+  env.timer->reset();
+  env.timer->start();
+  TimeCounter::reinitialize();
+
+  Options opt(strategyOpt);
+
+  //we have already performed the normalization
+  opt.setNormalize(false);
+  opt.setForcedOptionValues();
+  opt.checkGlobalOptionConstraints();
+  *env.options = opt; //just temporarily until we get rid of dependencies on env.options in solving
+  env.options->setTimeLimitInDeciseconds(opt.timeLimitInDeciseconds());
+
+  env.beginOutput();
+  env.out()<<opt.testId()<<" on "<<env.options->problemName()<<endl;
+  env.endOutput();
+
+  ProvingHelper::runVampire(*_prb,opt);
+
+  //set return value to zero if we were successful
+  if(env.statistics->terminationReason==Statistics::REFUTATION ||
+      env.statistics->terminationReason==Statistics::SATISFIABLE) {
+    resultValue=0;
+  }
+
+  env.beginOutput();
+  UIHelper::outputResult(env.out());
+  env.endOutput();
+
+  exit(resultValue);
+}
+
+bool CASCMode::runSlice(Options& opt)
+{
+  CALL("CASCMode::runSlice");
+
+  pid_t fres=Multiprocessing::instance()->fork();
+
+  if(!fres) {
+    childRun(opt);
+
+    INVALID_OPERATION("ForkingCM::childRun should never return.");
+  }
+
+  System::ignoreSIGINT();
+
+  int status;
+  errno=0;
+  pid_t res=waitpid(fres, &status, 0);
+  if(res==-1) {
+    SYSTEM_FAIL("Error in waiting for forked process.",errno);
+  }
+
+  System::heedSIGINT();
+
+  Timer::syncClock();
+
+  if(res!=fres) {
+    INVALID_OPERATION("Invalid waitpid return value: "+Int::toString(res)+"  pid of forked Vampire: "+Int::toString(fres));
+  }
+
+  ASS(!WIFSTOPPED(status));
+
+  if( (WIFSIGNALED(status) && WTERMSIG(status)==SIGINT) ||
+      (WIFEXITED(status) && WEXITSTATUS(status)==3) )  {
+    //if the forked Vampire was terminated by SIGINT (Ctrl+C), we also terminate
+    //(3 is the return value for this case; see documentation for the
+    //@b vampireReturnValue global variable)
+
+    handleSIGINT();
+  }
+
+  if(WIFEXITED(status) && WEXITSTATUS(status)==0) {
+    //if Vampire succeeds, its return value is zero
+    return true;
+  }
+
+  return false;
+}
