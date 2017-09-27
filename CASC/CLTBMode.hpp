@@ -61,7 +61,7 @@ private:
   typedef Stack<StringPair> StringPairStack;
 
   Category getCategory(vstring& categoryStr) {
-    if (categoryStr == "‰" || categoryStr == "LTB.HL4") {
+    if (categoryStr == "LTB.HH4" || categoryStr == "LTB.HL4") {
       return HH4;
     } else if (categoryStr == "LTB.ISA") {
       return ISA;
