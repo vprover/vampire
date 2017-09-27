@@ -640,8 +640,6 @@ void vampireMode()
     env.options->setUnusedPredicateDefinitionRemoval(false);
   }
 
-  UIHelper::portfolioChild = true; // so that we print stats on time-out (see Timer.cpp)
-
   doProving();
 
   env.beginOutput();

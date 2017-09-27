@@ -27,7 +27,7 @@
 // any objects
 Lib::Enumerator Lib::Enumerator::unitEnumerator;
 unsigned Kernel::Unit::_lastNumber = 0;
-bool Shell::UIHelper::portfolioChild=false;
+bool Shell::UIHelper::portfolioParent=false;
 bool Shell::UIHelper::satisfiableStatusWasAlreadyOutput=false;
 
 /**

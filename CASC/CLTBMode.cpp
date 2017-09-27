@@ -657,6 +657,9 @@ void CLTBProblem::searchForProof(int terminationTime,int timeLimit,const Categor
 
   System::registerForSIGHUPOnParentDeath();
 
+  // special reporting in Timer.cpp
+  UIHelper::portfolioParent = true;
+
   env.timer->makeChildrenIncluded();
   TimeCounter::reinitialize();
 
@@ -965,7 +968,7 @@ void CLTBProblem::runSlice(Options& strategyOpt)
   CALL("CLTBProblem::runSlice(Option&)");
 
   System::registerForSIGHUPOnParentDeath();
-  UIHelper::portfolioChild=true;
+  UIHelper::portfolioParent = false;
 
   int resultValue=1;
   env.timer->reset();

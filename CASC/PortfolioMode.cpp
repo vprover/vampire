@@ -208,6 +208,8 @@ bool PortfolioMode::runSchedule(Schedule& schedule, int terminationTime)
     parallelProcesses = coreNumber;
   }
 
+  UIHelper::portfolioParent = true; // to report on overall-solving-ended in Timer.cpp
+
   if (outputAllowed()) {
     env.beginOutput();
     addCommentSignForSZS(env.out());
@@ -397,7 +399,7 @@ void PortfolioMode::runSlice(Options& strategyOpt)
   CALL("PortfolioMode::runSlice(Option&)");
 
   System::registerForSIGHUPOnParentDeath();
-  UIHelper::portfolioChild=true;
+  UIHelper::portfolioParent=false;
 
   int resultValue=1;
   env.timer->reset();

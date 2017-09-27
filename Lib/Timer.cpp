@@ -58,7 +58,7 @@ void timeLimitReached()
     addCommentSignForSZS(env.out());
     env.out() << "Time limit reached!\n";
 
-    if (!UIHelper::portfolioChild) { // the boss
+    if (UIHelper::portfolioParent) { // the boss
       addCommentSignForSZS(env.out());
       env.out() << "Proof not found in time ";
       Timer::printMSString(env.out(),env.timer->elapsedMilliseconds());

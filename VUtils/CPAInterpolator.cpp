@@ -215,6 +215,7 @@ void CPAInterpolator::doProving()
 {
   CALL("CPAInterpolator::doProving");
 
+  UIHelper::portfolioParent=true;
   env.timer->makeChildrenIncluded();
 
   Schedule quick;
@@ -425,7 +426,7 @@ void CPAInterpolator::childRun(Options& strategyOpt)
 {
   CALL("CPAInterpolator::childRun");
 
-  UIHelper::portfolioChild=true;
+  UIHelper::portfolioParent=false;
   int resultValue=1;
   env.timer->reset();
   env.timer->start();
