@@ -68,10 +68,10 @@ void CommandLine::interpret (Options& options)
       }
       else{
          if (arg[1] == '-') {
-   	  options.set(arg+2,*_next);
+           options.set(arg+2,*_next, /*isLong*/ true);
          }
          else {
-	  options.setShort(arg+1,*_next);
+           options.set(arg+1,*_next, /*isLong*/ false);
         }
         _next++;
       }

@@ -24,12 +24,13 @@
 #include "Shell/Property.hpp"
 #include "Shell/SineUtils.hpp"
 
+#include "Schedules.hpp"
+
 namespace CASC {
 
 using namespace std;
 using namespace Lib;
 using namespace Kernel;
-
 
 enum Category {
   HH4,
@@ -111,7 +112,6 @@ public:
 
   void searchForProof(int terminationTime,int timeLimit,const Category category) __attribute__((noreturn));
   typedef Set<vstring> StrategySet;
-  typedef Stack<vstring> Schedule;
 private:
   bool runSchedule(Schedule&,StrategySet& remember,int terminationTime);
   unsigned getSliceTime(vstring sliceCode,vstring& chopped);

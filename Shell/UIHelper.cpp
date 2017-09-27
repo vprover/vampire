@@ -15,6 +15,7 @@
 #include "Lib/Environment.hpp"
 #include "Lib/TimeCounter.hpp"
 #include "Lib/VString.hpp"
+#include "Lib/Timer.hpp"
 
 #include "Kernel/InferenceStore.hpp"
 #include "Kernel/Problem.hpp"
@@ -59,32 +60,59 @@
 #include <list>
 #endif
 
-using namespace Shell;
+namespace Shell {
+
 using namespace Lib;
 using namespace Kernel;
 using namespace Saturation;
 using namespace std;
 
-bool UIHelper::s_haveConjecture=false;
-
-bool UIHelper::unitNumberComparator(Unit* us1, Unit* us2)
+bool outputAllowed(bool debug)
 {
-  CALL("UIHelper::unitNumberComparator");
+#if VDEBUG
+  if(debug){ return true; }
+#endif
 
-  return us1->number() < us2->number();
+  // spider and smtcomp output modes are generally silent
+  return !Lib::env.options || (Lib::env.options->outputMode()!=Shell::Options::Output::SPIDER
+                               && Lib::env.options->outputMode()!=Shell::Options::Output::SMTCOMP );
 }
 
-/**
- * In the CASC mode output "% " so that the following line will be considered a comment.
- * @author Andrei Voronkov
- * @since 03/06/2012 Manchester
- */
-void UIHelper::addCommentIfCASC(ostream& out)
+void reportSpiderFail()
 {
-  if (szsOutput) {
-    out << "% ";
+  reportSpiderStatus('!');
+}
+
+void reportSpiderStatus(char status)
+{
+  using namespace Lib;
+
+  if(Lib::env.options && Lib::env.options->outputMode() == Shell::Options::Output::SPIDER) {
+    env.beginOutput();
+    env.out() << status << " "
+      << (Lib::env.options ? Lib::env.options->problemName() : "unknown") << " "
+      << (Lib::env.timer ? Lib::env.timer->elapsedDeciseconds() : 0) << " "
+      << (Lib::env.options ? Lib::env.options->testId() : "unknown") << "\n";
+    env.endOutput();
   }
-} // UIHelper::addCommentIfCASC
+}
+
+bool szsOutputMode() {
+  return (Lib::env.options && Lib::env.options->outputMode() == Shell::Options::Output::SZS);
+}
+
+ostream& addCommentSignForSZS(ostream& out)
+{
+  if (szsOutputMode()) {
+    out << "% ";
+    if (Lib::env.options && Lib::env.options->multicore() != 1) {
+      out << "(" << getpid() << ")";
+    }
+  }
+  return out;
+}
+
+bool UIHelper::s_haveConjecture=false;
 
 void UIHelper::outputAllPremises(ostream& out, UnitList* units, vstring prefix)
 {
@@ -132,7 +160,7 @@ void UIHelper::outputSaturatedSet(ostream& out, UnitIterator uit)
 {
   CALL("UIHelper::outputSaturatedSet");
 
-  addCommentIfCASC(out);
+  addCommentSignForSZS(out);
   out << "# SZS output start Saturation." << endl;
 
   while (uit.hasNext()) {
@@ -140,7 +168,7 @@ void UIHelper::outputSaturatedSet(ostream& out, UnitIterator uit)
     out << TPTPPrinter::toString(cl) << endl;
   }
 
-  addCommentIfCASC(out);
+  addCommentSignForSZS(out);
   out << "# SZS output end Saturation." << endl;
 } // outputSaturatedSet
 
@@ -258,14 +286,13 @@ void UIHelper::outputResult(ostream& out)
 
   switch (env.statistics->terminationReason) {
   case Statistics::REFUTATION:
-    if(env.options->proof() == Options::Proof::SMTCOMP){
+    if(env.options->outputMode() == Options::Output::SMTCOMP){
       out << "unsat" << endl;
       return;
     }
-    addCommentIfCASC(out);
-    out << "Refutation found. Thanks to "
-	<< env.options->thanks() << "!\n";
-    if (szsOutput) {
+    addCommentSignForSZS(out);
+    out << "Refutation found. Thanks to " << env.options->thanks() << "!\n";
+    if (szsOutputMode()) {
       out << "% SZS status " << ( UIHelper::haveConjecture() ? "Theorem" : "Unsatisfiable" )
 	  << " for " << env.options->problemName() << endl;
     }
@@ -274,12 +301,12 @@ void UIHelper::outputResult(ostream& out)
       AnswerExtractor::tryOutputAnswer(static_cast<Clause*>(env.statistics->refutation));
     }
     if (env.options->proof() != Options::Proof::OFF) {
-      if (szsOutput) {
-	out << "% SZS output start Proof for " << env.options->problemName() << endl;
+      if (szsOutputMode()) {
+        out << "% SZS output start Proof for " << env.options->problemName() << endl;
       }
       InferenceStore::instance()->outputProof(out, env.statistics->refutation);
-      if (szsOutput) {
-	out << "% SZS output end Proof for " << env.options->problemName() << endl << flush;
+      if (szsOutputMode()) {
+        out << "% SZS output end Proof for " << env.options->problemName() << endl << flush;
       }
     }
     if (env.options->showInterpolant()==Options::InterpolantMode::ON) {
@@ -331,28 +358,26 @@ void UIHelper::outputResult(ostream& out)
     }
     break;
   case Statistics::TIME_LIMIT:
-    if(env.options->proof() == Options::Proof::SMTCOMP){
+    if(env.options->outputMode() == Options::Output::SMTCOMP){
       out << "unknown" << endl;
       return;
     }
-    if (szsOutput) {
-      out << "% (" << getpid() << ')';
-    }
+    addCommentSignForSZS(out);
     out << "Time limit reached!\n";
     break;
   case Statistics::MEMORY_LIMIT:
-    if(env.options->proof() == Options::Proof::SMTCOMP){
+    if(env.options->outputMode() == Options::Output::SMTCOMP){
       out << "unknown" << endl;
       return;
     }
 #if VDEBUG
     Allocator::reportUsageByClasses();
 #endif
-    addCommentIfCASC(out);
+    addCommentSignForSZS(out);
     out << "Memory limit exceeded!\n";
     break;
   case Statistics::ACTIVATION_LIMIT: {
-    addCommentIfCASC(out);
+    addCommentSignForSZS(out);
     out << "Activation limit reached!\n";
 
     // HERE ADD MORE
@@ -360,11 +385,11 @@ void UIHelper::outputResult(ostream& out)
     break;
   }
   case Statistics::REFUTATION_NOT_FOUND:
-    if(env.options->proof() == Options::Proof::SMTCOMP){
+    if(env.options->outputMode() == Options::Output::SMTCOMP){
       out << "unknown" << endl;
       return;
     }
-    addCommentIfCASC(out);
+    addCommentSignForSZS(out);
     if (env.statistics->discardedNonRedundantClauses) {
       out << "Refutation not found, non-redundant clauses discarded\n";
     }
@@ -379,7 +404,7 @@ void UIHelper::outputResult(ostream& out)
     }
     break;
   case Statistics::SATISFIABLE:
-    if(env.options->proof() == Options::Proof::SMTCOMP){
+    if(env.options->outputMode() == Options::Output::SMTCOMP){
       out << "sat" << endl;
       return;
     }
@@ -392,19 +417,19 @@ void UIHelper::outputResult(ostream& out)
     out<<"good job\n";
     break;
   case Statistics::INAPPROPRIATE:
-    if(env.options->proof() == Options::Proof::SMTCOMP){
+    if(env.options->outputMode() == Options::Output::SMTCOMP){
       out << "unknown" << endl;
       return;
     }
-    addCommentIfCASC(out);
+    addCommentSignForSZS(out);
     out << "Terminated due to inappropriate strategy.\n";
     break;
   case Statistics::UNKNOWN:
-    if(env.options->proof() == Options::Proof::SMTCOMP){
+    if(env.options->outputMode() == Options::Output::SMTCOMP){
       out << "unknown" << endl;
       return;
     }
-  addCommentIfCASC(out);
+    addCommentSignForSZS(out);
     out << "Unknown reason of termination!\n";
     break;
   default:
@@ -418,16 +443,16 @@ void UIHelper::outputSatisfiableResult(ostream& out)
   CALL("UIHelper::outputSatisfiableResult");
 
   out << "Satisfiable!\n";
-  if (szsOutput && !satisfiableStatusWasAlreadyOutput) {
+  if (szsOutputMode() && !satisfiableStatusWasAlreadyOutput) {
     out << "% SZS status " << ( UIHelper::haveConjecture() ? "CounterSatisfiable" : "Satisfiable" )
 	  <<" for " << env.options->problemName() << endl;
   }
   if (!env.statistics->model.empty()) {
-    if (szsOutput) {
+    if (szsOutputMode()) {
 	out << "% SZS output start FiniteModel for " << env.options->problemName() << endl;
     }
     out << env.statistics->model;
-    if (szsOutput) {
+    if (szsOutputMode()) {
 	out << "% SZS output end FiniteModel for " << env.options->problemName() << endl;
     }
   }
@@ -978,4 +1003,9 @@ void UIHelper::outputAssignment(Assignment& assignemt, ostream& out, Shell::Opti
     ASSERTION_VIOLATION;
   }
 }
+
 #endif //GNUMP
+
+} // namespace Shell
+
+

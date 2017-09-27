@@ -24,8 +24,10 @@
 
 #include "Tracer.hpp"
 
-bool outputAllowed(bool debug);
-void reportSpiderFail();
+namespace Shell {
+  bool outputAllowed(bool debug);
+  void reportSpiderFail();
+}
 
 namespace Debug {
 
@@ -221,8 +223,8 @@ void Debug::Assertion::violated (const char* file,int line,const char* cond,
   }
 
   _violated = true;
-  reportSpiderFail();
-  if (outputAllowed(true)) {
+  Shell::reportSpiderFail();
+  if (Shell::outputAllowed(true)) {
     cout << "Condition in file " << file << ", line " << line
 	 << " violated:\n" << cond << "\n"
 	 << "Value of " << repStr << " is: " << rep
@@ -241,8 +243,8 @@ void Debug::Assertion::violated (const char* file,int line,const char* cond,
   }
 
   _violated = true;
-  reportSpiderFail();
-  if (outputAllowed(true)) {
+  Shell::reportSpiderFail();
+  if (Shell::outputAllowed(true)) {
     cout << "Condition in file " << file << ", line " << line
 	<< " violated:\n" << cond << "\n"
 	<< "Value of " << repStr << " is: " << rep << "\n"
@@ -262,8 +264,8 @@ void Debug::Assertion::violatedEquality(const char* file,int line,const char* va
   }
 
   _violated = true;
-  reportSpiderFail();
-  if (outputAllowed(true)) {
+  Shell::reportSpiderFail();
+  if (Shell::outputAllowed(true)) {
     std::cout << "Condition " << val1Str << " == " << val2Str << " in file " << file << ", line " << line
 	      << " was violated, as:\n" << val1Str << " == " << val1 << "\n"
 	      << val2Str << " == " << val2 << "\n"
@@ -283,8 +285,8 @@ void Debug::Assertion::violatedNonequality(const char* file,int line,const char*
   }
 
   _violated = true;
-  reportSpiderFail();
-  if (outputAllowed(true)) {
+  Shell::reportSpiderFail();
+  if (Shell::outputAllowed(true)) {
     std::cout << "Condition " << val1Str << " != " << val2Str << " in file " << file << ", line " << line
 	      << " was violated, as:\n" << val1Str << " == " << val1 <<"\n" << val2Str << " == " << val2 << "\n"
 	      << "----- stack dump -----\n";
@@ -303,8 +305,8 @@ void Debug::Assertion::violatedComparison(const char* file,int line,const char* 
   }
 
   _violated = true;
-  reportSpiderFail();
-  if (outputAllowed(true)) {
+  Shell::reportSpiderFail();
+  if (Shell::outputAllowed(true)) {
     std::cout << "Condition " << val1Str;
     if (strict) {
       if (greater) {
@@ -339,8 +341,8 @@ void Debug::Assertion::violatedMethod(const char* file,int line,const T& obj,
   }
 
   _violated = true;
-  reportSpiderFail();
-  if (outputAllowed(true)) {
+  Shell::reportSpiderFail();
+  if (Shell::outputAllowed(true)) {
     std::cout << "Condition " << prefix << "(" << objStr << ")." << methodStr << " in file "
 	      << file << ", line " << line << " was violated for:\n"
 	      << objStr << " == " << obj << "\n"

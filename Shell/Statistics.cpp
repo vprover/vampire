@@ -141,18 +141,6 @@ Statistics::Statistics()
 {
 } // Statistics::Statistics
 
-/**
- * In the CASC mode output "% " so that the following line will be considered a comment.
- * @author Andrei Voronkov
- * @since 03/06/2012 Manchester
- */
-void Statistics::addCommentIfCASC(ostream& out)
-{
-  if (UIHelper::szsOutput) {
-    out << "% ";
-  }
-} // Statistics::addCommentIfCASC
-
 void Statistics::print(ostream& out)
 {
   if (env.options->statistics()==Options::Statistics::NONE) {
@@ -162,16 +150,16 @@ void Statistics::print(ostream& out)
   SaturationAlgorithm::tryUpdateFinalClauseCount();
 
   bool separable=false;
-#define HEADING(text,num) if (num) { addCommentIfCASC(out); out << ">>> " << (text) << endl;}
-#define COND_OUT(text, num) if (num) { addCommentIfCASC(out); out << (text) << ": " << (num) << endl; separable = true; }
-#define SEPARATOR if (separable) {   addCommentIfCASC(out); out << endl; separable = false; }
+#define HEADING(text,num) if (num) { addCommentSignForSZS(out); out << ">>> " << (text) << endl;}
+#define COND_OUT(text, num) if (num) { addCommentSignForSZS(out); out << (text) << ": " << (num) << endl; separable = true; }
+#define SEPARATOR if (separable) { addCommentSignForSZS(out); out << endl; separable = false; }
 
-  addCommentIfCASC(out);
+  addCommentSignForSZS(out);
   out << "------------------------------\n";
-  addCommentIfCASC(out);
+  addCommentSignForSZS(out);
   out << "Version: " << VERSION_STRING << endl;
 
-  addCommentIfCASC(out);
+  addCommentSignForSZS(out);
   out << "Termination reason: ";
   switch(terminationReason) {
   case Statistics::REFUTATION:
@@ -220,7 +208,7 @@ void Statistics::print(ostream& out)
   }
   out << endl;
   if (phase!=FINALIZATION) {
-    addCommentIfCASC(out);
+    addCommentSignForSZS(out);
     out << "Termination phase: " << phaseToString(phase) << endl;
   }
   out << endl;
@@ -378,15 +366,15 @@ void Statistics::print(ostream& out)
 
   COND_OUT("Memory used [KB]", Allocator::getUsedMemory()/1024);
 
-  addCommentIfCASC(out);
+  addCommentSignForSZS(out);
   out << "Time elapsed: ";
   Timer::printMSString(out,env.timer->elapsedMilliseconds());
   out << endl;
-  addCommentIfCASC(out);
+  addCommentSignForSZS(out);
   out << "------------------------------\n";
 
   RSTAT_PRINT(out);
-  addCommentIfCASC(out);
+  addCommentSignForSZS(out);
   out << "------------------------------\n";
 
 #undef SEPARATOR

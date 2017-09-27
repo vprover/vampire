@@ -10,7 +10,7 @@
 #include <iostream>
 
 #include "Debug/Assertion.hpp"
-#include "Forwards.hpp"               // to declare checked_delete a fried for ScopedPtr's desctruction to work
+#include "Forwards.hpp"               // to declare checked_delete a fried for ScopedPtr's destruction to work
 #include "Allocator.hpp"
 #include "VString.hpp"
 

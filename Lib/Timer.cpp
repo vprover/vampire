@@ -16,6 +16,7 @@
 #include "System.hpp"
 #include "TimeCounter.hpp"
 
+#include "Shell/UIHelper.hpp"
 #include "Shell/Options.hpp"
 #include "Shell/Statistics.hpp"
 
@@ -49,25 +50,28 @@ int Timer::s_initGuarantedMiliseconds;
 
 void timeLimitReached()
 {
+  using namespace Shell;
+
   env.beginOutput();
   reportSpiderStatus('t');
-  if (!inSpiderMode() && env.options->proof()!=Shell::Options::Proof::SMTCOMP) {
-    if (Shell::UIHelper::szsOutput) {
-      env.out() << "% (" << getpid() << ')';
-    }
+  if (outputAllowed()) {
+    addCommentSignForSZS(env.out());
     env.out() << "Time limit reached!\n";
-    if (Shell::UIHelper::szsOutput && !Shell::UIHelper::cascModeChild) {
-      env.out() << "% Proof not found in time ";
+
+    if (UIHelper::portfolioParent) { // the boss
+      addCommentSignForSZS(env.out());
+      env.out() << "Proof not found in time ";
       Timer::printMSString(env.out(),env.timer->elapsedMilliseconds());
       env.out() << endl;
 
-      env.out() << "% SZS status Timeout for "
-                << (env.options ? env.options->problemName() : "unknown") << endl;
+      if (szsOutputMode()) {
+        env.out() << "% SZS status Timeout for "
+                        << (env.options ? env.options->problemName() : "unknown") << endl;
+      }
+    } else // the actual child
+      if (env.statistics) {
+        env.statistics->print(env.out());
     }
-  }
-  if(env.statistics && (!Shell::UIHelper::szsOutput || Shell::UIHelper::cascModeChild) &&
-     env.options->mode() != Shell::Options::Mode::SPIDER && env.options->proof() != Shell::Options::Proof::SMTCOMP) {
-    env.statistics->print(env.out());
   }
   env.endOutput();
 
