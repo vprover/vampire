@@ -399,7 +399,7 @@ unsigned PortfolioMode::getSliceTime(vstring sliceCode,vstring& chopped)
 
   unsigned time = _slowness * sliceTime + 1;
   if (time < 10) {
-    time = 10;
+    time++;
   }
   return time;
 } // getSliceTime
