@@ -117,10 +117,6 @@ Statistics::Statistics()
 
     smtFallbacks(0),
 
-    satLingelingAssumptions(0),
-    satLingelingClauses(0),
-    satLingelingVariables(0),
-    satLingelingSATCalls(0),
     /**TODO Remove the next var*/
     satTWLClauseCount(0),
     satTWLVariablesCount(0),
@@ -342,9 +338,7 @@ void Statistics::print(ostream& out)
 
 
   //TODO record statistics for MiniSAT
-  HEADING("SAT Solver Statistics",satLingelingAssumptions+satLingelingVariables+
-        satLingelingClauses+satLingelingClauses+satLingelingClauses+
-        satLingelingSATCalls+satTWLClauseCount+satTWLVariablesCount+
+  HEADING("SAT Solver Statistics",satTWLClauseCount+satTWLVariablesCount+
         satTWLSATCalls+satClauses+unitSatClauses+binarySatClauses+
         learntSatClauses+learntSatLiterals+satPureVarsEliminated);
   COND_OUT("SAT solver clauses", satClauses);
@@ -352,10 +346,6 @@ void Statistics::print(ostream& out)
   COND_OUT("SAT solver binary clauses", binarySatClauses);
   COND_OUT("TWL SAT solver learnt clauses", learntSatClauses);
   COND_OUT("TWL SAT solver learnt literals", learntSatLiterals);
-  COND_OUT("Lingeling assumptions", satLingelingAssumptions);
-  COND_OUT("Lingeling vampire count variables", satLingelingVariables);
-  COND_OUT("Lingeling vampire count clauses", satLingelingClauses);
-  COND_OUT("Lingeling calls for satisfiability", satLingelingSATCalls);
   COND_OUT("TWLsolver clauses", satTWLClauseCount);
   COND_OUT("TWLsolver variables", satTWLVariablesCount);
   COND_OUT("TWLsolver calls for satisfiability", satTWLSATCalls);

@@ -569,7 +569,7 @@ $(CONF_ID)/%.o : %.c | $(CONF_ID)
 %.o : %.cc
 $(CONF_ID)/%.o : %.cc | $(CONF_ID)
 	$(CXX) $(CXXFLAGS) -c -o $@ $*.cc $(MINISAT_FLAGS) -D __STDC_LIMIT_MACROS -D __STDC_FORMAT_MACROS -MMD -MF $(CONF_ID)/$*.d
-  
+
 ################################################################
 # targets for executables
 
