@@ -81,7 +81,7 @@ public:
   {
     unsigned clen=_cl->length();
     for(unsigned i=0;i<clen;i++) {
-      _matches[i]->destroy();
+      LiteralList::destroy(_matches[i]);
     }
     DEALLOC_KNOWN(_matches, clen*sizeof(void*), "Inferences::ClauseMatches");
   }
@@ -366,11 +366,12 @@ bool ForwardSubsumptionAndResolution::perform(Clause* cl, Clause*& replacement, 
 	if(checkForSubsumptionResolution(cl, cms, resLit) && ColorHelper::compatible(cl->color(), cms->_cl->color())) {
 	  resolutionClause=generateSubsumptionResolutionClause(cl,resLit,cms->_cl);
 	  env.statistics->forwardSubsumptionResolution++;
-    premises = pvi( getSingletonIterator(cms->_cl) );
-    replacement = resolutionClause;
-    result = true;
+          premises = pvi( getSingletonIterator(cms->_cl) );
+          replacement = resolutionClause;
+          result = true;
 	  goto fin;
 	}
+
       }
     }
   }

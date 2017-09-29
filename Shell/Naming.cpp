@@ -1100,7 +1100,7 @@ bool Naming::canBeInDefinition(Formula* f, Where where) {
 
   Formula::VarList* fvars = f->freeVariables();
   bool freeVars = fvars;
-  fvars->destroy();
+  Formula::VarList::destroy(fvars);
 
   if (!_varsInScope && freeVars
       && (exQuant || (unQuant && where == UNDER_IFF))) {

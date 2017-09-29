@@ -261,7 +261,7 @@ void SLQueryBackwardSubsumption::perform(Clause* cl,
 
   match_fail:
     for(unsigned bi=0; bi<clen; bi++) {
-      matchedLits[bi]->destroy();
+      LiteralList::destroy(matchedLits[bi]);
       matchedLits[bi]=0;
     }
   }
@@ -270,7 +270,7 @@ void SLQueryBackwardSubsumption::perform(Clause* cl,
   if(subsumed) {
     simplifications=getPersistentIterator(
 	    getMappingIterator(ClauseList::Iterator(subsumed), ClauseToBwSimplRecordFn()));
-    subsumed->destroy();
+    ClauseList::destroy(subsumed);
   }
   return;
 }

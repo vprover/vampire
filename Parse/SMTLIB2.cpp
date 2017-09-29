@@ -1564,7 +1564,7 @@ bool SMTLIB2::parseAsBuiltinFormulaSymbol(const vstring& id, LExpr* exp)
         res = new JunctionFormula( (fs==FS_AND) ? AND : OR, argLst);
       } else {
         res = argLst->head();
-        argLst->destroy();
+        FormulaList::destroy(argLst);
       }
       _results.push(ParseResult(res));
 

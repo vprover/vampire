@@ -282,7 +282,7 @@ void SplittingBranchSelector::handleSatRefutation()
         Formula* clFla;
         if (cl->size() == 1) {
           clFla = disjuncts->head();
-          disjuncts->destroy();
+          FormulaList::destroy(disjuncts);
         } else {
           clFla = JunctionFormula::generalJunction(OR, disjuncts);
         }
@@ -292,7 +292,7 @@ void SplittingBranchSelector::handleSatRefutation()
 
       if (conj_cnt == 1) {
         interpolant = conjuncts->head();
-        conjuncts->destroy();
+        FormulaList::destroy(conjuncts);
       } else {
         interpolant = JunctionFormula::generalJunction(AND, conjuncts);
       }

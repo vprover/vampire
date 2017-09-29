@@ -48,8 +48,8 @@ unsigned FormulaUnit::varCnt()
   Formula::VarList* bv = frm->boundVariables();
 
   unsigned res = fv->length() + bv->length();
-  fv->destroy();
-  bv->destroy();
+  Formula::VarList::destroy(fv);
+  Formula::VarList::destroy(bv);
   return res;
 }
 

@@ -411,7 +411,7 @@ class InferenceMany
 {
 public:
   InferenceMany(Rule rule,UnitList* premises);
-  virtual ~InferenceMany() { _premises->destroy(); }
+  virtual ~InferenceMany() { UnitList::destroy(_premises); }
 
   virtual void destroy();
   virtual Iterator iterator();

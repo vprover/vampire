@@ -162,12 +162,12 @@ public:
   } // list::setTail
 
   /** Destroy the list */
-  void destroy ()
+  static void destroy (List *l)
   {
     CALL("List::destroy");
 
-    if (isEmpty(this)) return;
-    List* current = this;
+    if (isEmpty(l)) return;
+    List* current = l;
 
     for (;;) {
       List* next = current->tail();

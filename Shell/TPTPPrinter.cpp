@@ -544,7 +544,7 @@ vstring TPTPPrinter::toString (const Unit* unit)
       }
       if(quant!=f) {
 	ASS_EQ(quant->connective(),FORALL);
-	static_cast<QuantifiedFormula*>(quant)->vars()->destroy();
+        Formula::VarList::destroy(static_cast<QuantifiedFormula*>(quant)->vars());
 	quant->destroy();
       }
     }

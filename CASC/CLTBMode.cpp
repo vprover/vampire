@@ -301,10 +301,9 @@ void CLTBMode::learnFromSolutionFile(vstring& solnFileName)
       UnitList* units = parser.units();
       UnitList::Iterator it(units);
       while (it.hasNext()) {
-        Unit* unit = it.next();
-        unit->destroy();
+        it.next()->destroy();
       }
-      units->destroy();
+      UnitList::destroy(units);
     }
 
     UnitList::DelIterator it(solnUnits);

@@ -67,7 +67,7 @@ UnitList* Normalisation::normalise (UnitList* units)
   for (int k = length-1;k >= 0;k--) {
     result = new UnitList(srt[k],result);
   }
-  units->destroy();
+  UnitList::destroy(units);
   return result;
 } // Normalisation::normalise (UnitList*)
 

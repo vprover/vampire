@@ -802,11 +802,11 @@ protected:
     ASS(!first);
 
     compStr=getQuantifiedStr(compOnlyVars, compStr, multiple);
-    compOnlyVars->destroy();
+    List<unsigned>::destroy(compOnlyVars);
 
     vstring defStr=compStr+" <=> "+Literal::complementaryLiteral(nameLit)->toString();
     defStr=getQuantifiedStr(nameVars, defStr);
-    nameVars->destroy();
+    List<unsigned>::destroy(nameVars);
 
     SymbolId nameSymbol = SymbolId(false,nameLit->functor());
     vostringstream originStm;

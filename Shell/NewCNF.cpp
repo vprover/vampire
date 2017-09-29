@@ -984,7 +984,7 @@ void NewCNF::process(QuantifiedFormula* g, Occurrences &occurrences)
     VarSet* vars;
     BindingList* bindings;
     dIt.next(vars,bindings);
-    bindings->destroy();
+    BindingList::destroy(bindings);
     dIt.del();
   }
 
@@ -994,7 +994,7 @@ void NewCNF::process(QuantifiedFormula* g, Occurrences &occurrences)
     VarSet* vars;
     BindingList* bindings;
     fdit.next(vars, bindings);
-    bindings->destroy();
+    BindingList::destroy(bindings);
     fdit.del();
   }
 

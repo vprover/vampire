@@ -568,7 +568,7 @@ void Preprocess::newCnf(Problem& prb)
   }
   fin:
   if (emptyClause) {
-    prb.units()->destroy();
+    UnitList::destroy(prb.units());
     prb.units() = 0;
     UnitList::push(emptyClause, prb.units());
   }
@@ -686,7 +686,7 @@ void Preprocess::clausify(Problem& prb)
   }
   fin:
   if (emptyClause) {
-    prb.units()->destroy();
+    UnitList::destroy(prb.units());
     prb.units() = 0;
     UnitList::push(emptyClause, prb.units());
   }

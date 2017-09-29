@@ -26,9 +26,7 @@ public:
   UListLeaf(TermList ts) : Leaf(ts), _children(0), _size(0) {}
   ~UListLeaf()
   {
-    if(_children) {
-      _children->destroy();
-    }
+    LDList::destroy(_children);
   }
 
   inline

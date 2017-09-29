@@ -503,7 +503,7 @@ Formula* SubstHelper::applyImpl(Formula* f, Applicator& applicator, bool noShari
 
     Formula* arg = applyImpl<ProcessSpecVars>(f->qarg(), applicator, noSharing);
     if (!varsModified && arg == f->qarg()) {
-      newVars->destroy();
+      Formula::VarList::destroy(newVars);
       return f;
     }
     //TODO compute an updated sorts list

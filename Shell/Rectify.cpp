@@ -125,7 +125,7 @@ Rectify::Renaming::~Renaming ()
   CALL("Rectify::Renaming::~Renaming");
 
   for (int i = _capacity-1;i >= 0;i--) {
-    _array[i]->destroy();
+    VarUsageTrackingList::destroy(_array[i]);
     _array[i] = 0;
   }
 
