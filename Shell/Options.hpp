@@ -1866,7 +1866,6 @@ public:
   Subsumption backwardSubsumptionResolution() const { return _backwardSubsumptionResolution.actualValue; }
   bool forwardSubsumption() const { return _forwardSubsumption.actualValue; }
   bool forwardLiteralRewriting() const { return _forwardLiteralRewriting.actualValue; }
-  vstring lingvaAdditionalInvariants() const {return _lingvaAdditionalInvariants.actualValue; }
   int lrsFirstTimeCheck() const { return _lrsFirstTimeCheck.actualValue; }
   int lrsWeightLimitOnly() const { return _lrsWeightLimitOnly.actualValue; }
   int lookaheadDelay() const { return _lookaheadDelay.actualValue; }
@@ -2222,7 +2221,6 @@ private:
 
   StringOptionValue _latexOutput;
   BoolOptionValue _latexUseDefaultSymbols;
-  StringOptionValue _lingvaAdditionalInvariants;
 
   ChoiceOptionValue<LiteralComparisonMode> _literalComparisonMode;
   StringOptionValue _logFile;
@@ -2390,4 +2388,3 @@ std::ostream& operator<< (std::ostream& str,const T& val)
 }
 
 #endif
-

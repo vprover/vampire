@@ -403,8 +403,6 @@ vstring Inference::ruleName(Rule rule)
     return "bddzation";
   case TAUTOLOGY_INTRODUCTION:
     return "tautology introduction";
-  case PROGRAM_ANALYSIS:
-    return "program analysis";
   case COLOR_UNBLOCKING:
     return "color unblocking";
   case INSTANCE_GENERATION:

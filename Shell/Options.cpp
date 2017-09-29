@@ -115,7 +115,6 @@ void Options::Options::init()
     "  -output,profile: output information about the problem\n"
     "  -sat_solver: accepts problems in DIMACS and uses the internal sat solver\n   directly\n"
     "Some modes are not currently maintained:\n"
-    "  -program_analysis: run Lingva\n"
     "  -bpa: perform bound propagation\n"
     "  -consequence_elimination: perform consequence elimination\n"
     "  -random_strategy: attempts to randomize the option values\n";
@@ -1618,18 +1617,6 @@ void Options::Options::init()
     _lookup.insert(&_showInterpolant);
     _showInterpolant.tag(OptionTag::OTHER);
     _showInterpolant.setExperimental();
-    
-//******************************************************************
-//*********************** Program Analysis  ************************
-//******************************************************************
-    
-/*
-    _lingvaAdditionalInvariants = StringOptionValue("lingva_additional_invariants","","");
-    _lingvaAdditionalInvariants.description="";
-    _lookup.insert(&_lingvaAdditionalInvariants);
-    _lingvaAdditionalInvariants.tag(Mode::PROGRAM_ANALYSIS);
-    _lingvaAdditionalInvariants.setExperimental();
-  */  
 
 //******************************************************************
 //*********************** Bound Propagation  ***********************
