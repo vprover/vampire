@@ -417,6 +417,7 @@ class BitVectorSymbol
 
   vstring getInterpretationName(Interpretation interp);
   unsigned getInterpretingSymbol(Interpretation interp);
+  unsigned getInterpretingSymbol(Interpretation interp, int argSort1, int argSort2);
 
   unsigned getStructureInterpretationFunctor(unsigned theorySort, Theory::StructuredSortInterpretation ssi, unsigned arg1, unsigned arg2);
   unsigned getStructureInterpretationFunctor(unsigned theorySort, Theory::StructuredSortInterpretation ssi);

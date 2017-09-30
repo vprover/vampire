@@ -3827,16 +3827,6 @@ unsigned TPTP::sortOf(TermList t)
   }
 } // sortOf
 
-/**
- * Add an integer constant by reading it from the vstring name.
- * If it overflows, create an uninterpreted constant of the
- * integer type and the name 'name'. Check that the name of the constant
- * does not collide with user-introduced names of uninterpreted constants.
- * @since 22/07/2011 Manchester
- * @since 03/05/2013 train Manchester-London, bug fix: integers are treated
- *   as terms of the default sort when fof() or cnf() is used
- * @author Andrei Voronkov
- */
 
 /*unsigned TPTP::addBitVectorConstant(const vstring& size, const vstring& numberToRepresent, Set<vstring>& overflow, bool defaultSort)
 {
@@ -3864,10 +3854,19 @@ unsigned TPTP::addBitVectorConstant(const BitVectorConstantType bvct)
         USER_ERROR("We should never get here");
     }
     
-    return 0;
+    return 0;//TODO
 }
 
-
+/**
+ * Add an integer constant by reading it from the vstring name.
+ * If it overflows, create an uninterpreted constant of the
+ * integer type and the name 'name'. Check that the name of the constant
+ * does not collide with user-introduced names of uninterpreted constants.
+ * @since 22/07/2011 Manchester
+ * @since 03/05/2013 train Manchester-London, bug fix: integers are treated
+ *   as terms of the default sort when fof() or cnf() is used
+ * @author Andrei Voronkov
+ */
 unsigned TPTP::addIntegerConstant(const vstring& name, Set<vstring>& overflow, bool defaultSort)
 {
   CALL("TPTP::addIntegerConstant");

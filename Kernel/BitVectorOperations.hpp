@@ -74,6 +74,7 @@ namespace Kernel {
     static void bvashr(const BitVectorConstantType& arg1, const BitVectorConstantType& arg2 , BitVectorConstantType& result);
     static void bvsub(const BitVectorConstantType& arg1, const BitVectorConstantType& arg2 , BitVectorConstantType& result);
     static void bvcomp(const BitVectorConstantType& arg1, const BitVectorConstantType& arg2 , BitVectorConstantType& result);
+    static void repeat(unsigned multBy, const BitVectorConstantType& arg , BitVectorConstantType& result);
     static void zero_extend(unsigned extendBy, const BitVectorConstantType& arg , BitVectorConstantType& result);
     static void sign_extend(unsigned extendBy, const BitVectorConstantType& arg , BitVectorConstantType& result);
     static void rotate_right(IntegerConstantType in, const BitVectorConstantType& arg , BitVectorConstantType& result);

@@ -762,6 +762,11 @@ void BitVectorOperations::bvsrem(const BitVectorConstantType& arg1, const BitVec
         }
     }
    
+   void BitVectorOperations::repeat(unsigned multBy, const BitVectorConstantType& arg , BitVectorConstantType& result)
+    {
+        //TODO
+    }
+   
    void BitVectorOperations::sign_extend(unsigned extendBy, const BitVectorConstantType& arg , BitVectorConstantType& result)
     {
         ASS_EQ(result.size(),arg.size()+extendBy);

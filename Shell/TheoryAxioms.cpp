@@ -1541,13 +1541,13 @@ bool TheoryAxioms::apply(UnitList*& units, Property* prop)
       auto entry = it.next();
       if (entry.first.getSSI() == Theory::StructuredSortInterpretation::BVADD)
       {
-         
+   
          Interpretation currInterpretation = static_cast<Interpretation>(entry.second);
          Interpretation unaryMinus = theory->getInterpretation(entry.first.getResultSort(),Theory::StructuredSortInterpretation::BVNEG);
          Interpretation less = theory->getInterpretation(entry.first.getResultSort(), Theory::StructuredSortInterpretation::BVULT);
          //Interpretation multiply = theory->getInterpretation(entry.first.getResultSort(), Theory::StructuredSortInterpretation::BVMUL);
          unsigned size = env.sorts->getBitVectorSort(entry.first.getResultSort())->getSize();
-         
+  
          TermList zero(theory->representConstant(BitVectorOperations::getZeroBVCT(size)));
          TermList one(theory->representConstant(BitVectorOperations::getOneBVCT(size)));
          addCertainBitVectorAxioms(currInterpretation, unaryMinus, zero, one, less,units);

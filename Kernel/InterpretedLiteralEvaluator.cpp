@@ -95,7 +95,7 @@ class InterpretedLiteralEvaluator::EqualityEvaluator
     if(!theory->tryInterpretConstant(lit->nthArgument(1)->term(),arg2)){
       return false;
     }
-    
+   
     res = (arg1 == arg2);
 
     return true;
@@ -367,7 +367,7 @@ public:
   {
     CALL("InterpretedLiteralEvaluator::tryEvaluatePred");
     ASS(theory->isInterpretedPredicate(lit));
-   
+    
     try {
       Interpretation itp = theory->interpretPredicate(lit);
       ASS(!theory->isFunction(itp));
@@ -893,7 +893,7 @@ class InterpretedLiteralEvaluator::BitVectorEvaluator : public TypedEvaluator<Bi
       if (ssi == Theory::StructuredSortInterpretation::BV_ROTATE_RIGHT || 
               ssi == Theory::StructuredSortInterpretation::BV_ROTATE_LEFT || 
               ssi == Theory::StructuredSortInterpretation::BV_SIGN_EXTEND || 
-              ssi == Theory::StructuredSortInterpretation::BV_ZERO_EXTEND)
+              ssi == Theory::StructuredSortInterpretation::BV_ZERO_EXTEND || ssi == Theory::StructuredSortInterpretation::REPEAT)
       {
               TermList arg1Trm = *trm->nthArgument(0);
               TermList arg2Trm = *trm->nthArgument(1);
@@ -914,6 +914,8 @@ class InterpretedLiteralEvaluator::BitVectorEvaluator : public TypedEvaluator<Bi
               unsigned resSize = argBv.size();
               if (ssi == Theory::StructuredSortInterpretation::BV_SIGN_EXTEND || ssi == Theory::StructuredSortInterpretation::BV_ZERO_EXTEND)
                   resSize = argBv.size() + rotateBy.toInner();
+              else if (ssi == Theory::StructuredSortInterpretation::REPEAT)
+                  resSize = argBv.size() * rotateBy.toInner();
               BitVectorConstantType resNum(resSize);
               if (ssi == Theory::StructuredSortInterpretation::BV_ROTATE_RIGHT)
                 BitVectorOperations::rotate_right(rotateBy.toInner(),argBv,resNum);
@@ -922,7 +924,9 @@ class InterpretedLiteralEvaluator::BitVectorEvaluator : public TypedEvaluator<Bi
               else if (ssi == Theory::StructuredSortInterpretation::BV_SIGN_EXTEND)
                 BitVectorOperations::sign_extend(rotateBy.toInner(),argBv,resNum);  
               else if (ssi == Theory::StructuredSortInterpretation::BV_ZERO_EXTEND)
-                BitVectorOperations::zero_extend(rotateBy.toInner(),argBv,resNum);   
+                BitVectorOperations::zero_extend(rotateBy.toInner(),argBv,resNum);
+              else if (ssi == Theory::StructuredSortInterpretation::REPEAT)
+                BitVectorOperations::repeat(rotateBy.toInner(),argBv,resNum);
               res = TermList(theory->representConstant(resNum));
               return true;
               
@@ -1095,9 +1099,15 @@ class InterpretedLiteralEvaluator::BitVectorEvaluator : public TypedEvaluator<Bi
           case Theory::StructuredSortInterpretation::BVXOR:
               BitVectorOperations::bvxor(arg1, arg2,res);
               return true;
+          case Theory::StructuredSortInterpretation::BVOR:
+              BitVectorOperations::bvor(arg1, arg2,res);
+              return true;
+          case Theory::StructuredSortInterpretation::BVNOR:
+              BitVectorOperations::bvnor(arg1, arg2,res);
+              return true;    
           case Theory::StructuredSortInterpretation::BVXNOR:
               BitVectorOperations::bvxnor(arg1, arg2,res);
-              return true;    
+              return true;
           case Theory::StructuredSortInterpretation::BVADD:
               BitVectorOperations::bvadd(arg1, arg2,res);
               return true;

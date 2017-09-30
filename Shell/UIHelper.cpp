@@ -411,7 +411,7 @@ void UIHelper::outputResult(ostream& out)
 void UIHelper::outputSatisfiableResult(ostream& out)
 {
   CALL("UIHelper::outputSatisfiableResult");
-
+  
   out << "Satisfiable!\n";
 #if SATISFIABLE_IS_SUCCESS
   if (szsOutput && !satisfiableStatusWasAlreadyOutput) {

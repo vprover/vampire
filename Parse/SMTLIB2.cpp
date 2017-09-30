@@ -103,11 +103,11 @@ void SMTLIB2::readBenchmark(LExprList* bench)
       }
 
       if (ibRdr.tryAcceptAtom(":source")) {
-        _sourceInfo = ibRdr.readAtom();
+       _sourceInfo = ibRdr.readAtom();
         ibRdr.acceptEOL();
         continue;
       }
-
+      
       // ignore unknown info
       ibRdr.readAtom();
       ibRdr.readAtom();
@@ -251,6 +251,7 @@ void SMTLIB2::readBenchmark(LExprList* bench)
 
 const char * SMTLIB2::s_smtlibLogicNameStrings[] = {
     "ALIA",
+    "AUFBVDTLIA",
     "AUFLIA",
     "AUFLIRA",
     "AUFNIRA",
@@ -352,6 +353,7 @@ void SMTLIB2::readLogic(const vstring& logicStr)
 
   
   case SMT_QF_BV:
+  case SMT_AUFBVDTLIA:
   case SMT_BV:
   case SMT_QF_ABV:
   case SMT_QF_AUFBV:
@@ -1445,7 +1447,9 @@ void SMTLIB2::parseUnderScoredExpression(LExpr* exp)
     
     ex = lRdr.readNext();
     unsigned size;
-    ASS(Int::stringToUnsignedInt(ex->str, size));
+    
+    Int::stringToUnsignedInt(ex->str, size); //TODO:  ERROR HANDLING
+    //ASS(Int::stringToUnsignedInt(ex->str, size));
     
     unsigned symb = TPTP::addBitVectorConstant(BitVectorOperations::getBVCTFromVString(numberPart, size));
     TermList res = TermList(Term::createConstant(symb));

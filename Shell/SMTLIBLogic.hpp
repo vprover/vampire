@@ -14,6 +14,7 @@ namespace Shell {
   */
 enum SMTLIBLogic {
   SMT_ALIA,
+  SMT_AUFBVDTLIA,
   SMT_AUFLIA,
   SMT_AUFLIRA,
   SMT_AUFNIRA,

@@ -450,7 +450,7 @@ Formula FormulaBuilder::atom(const Predicate& p, const Term* args, bool positive
 Formula FormulaBuilder::equality(const Term& lhs,const Term& rhs, Sort sort, bool positive)
 {
   CALL("FormulaBuilder::equality/4");
-
+  
   if(lhs.sort()!=sort) {
     throw SortMismatchException("Sorts of equality sides is not as declared");
   }

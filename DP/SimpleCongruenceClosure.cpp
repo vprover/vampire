@@ -661,7 +661,7 @@ DecisionProcedure::Status SimpleCongruenceClosure::checkNegativeDistincts(bool r
 DecisionProcedure::Status SimpleCongruenceClosure::getStatus(bool retrieveMultipleCores)
 {
   CALL("SimpleCongruenceClosure::getStatus");
-
+  
   // Propagate any pending equalities
   propagate();
 

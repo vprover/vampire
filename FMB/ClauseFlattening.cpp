@@ -24,7 +24,7 @@ bool ClauseFlattening::isShallow(Literal* lit)
   CALL("ClauseFlattening::isShallow(Literal)");
   // The term to check for variable arguments
   Term* check = 0;
-
+  
   if(lit->isEquality()){
    // equalities between vars are shallow if positive
    if(lit->isTwoVarEquality()) return lit->polarity()==1;

@@ -53,7 +53,7 @@ Monotonicity::Monotonicity(ClauseList* clauses, unsigned srt) : _srt(srt)
      monotone(c,l);
    }
  }
-
+ 
  SATSolver::Status status = _solver->solve();
  ASS(status!=SATSolver::Status::UNKNOWN);
  _result = (status == SATSolver::Status::SATISFIABLE);

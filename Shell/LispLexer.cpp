@@ -72,7 +72,7 @@ void LispLexer::skipWhiteSpacesAndComments ()
 void LispLexer::readToken (Token& token)
 {
   CALL("LispLexer::readToken");
-
+ 
   skipWhiteSpacesAndComments();
   _charCursor = 0;
 
@@ -90,7 +90,7 @@ void LispLexer::readToken (Token& token)
     saveTokenText(token);
     readNextChar();
     break;
-  case ')':
+   case ')':
     token.tag = TT_RPAR;
     saveLastChar();
     saveTokenText(token);
@@ -109,11 +109,14 @@ void LispLexer::readToken (Token& token)
     readNumber(token);
     return;
   case '|':
-    readQuotedString(token, '|', '|');
-    return;
+        readQuotedString(token, '|', '|');
+       return;
   case '{':
-    readQuotedString(token, '{', '}');
-    return;
+        readQuotedString(token, '{', '}');
+        return;
+  case '"':
+        readQuotedString2(token);
+        break;     
   default:
     readName(token);
     token.tag = TT_NAME;
@@ -163,7 +166,7 @@ void LispLexer::readName (Token& token)
 void LispLexer::readQuotedString(Token& token, char opening, char closing)
 {
   CALL("LispLexer::readQuotedString");
-
+  
   bool escape=false;
   saveLastChar();
 
@@ -189,5 +192,28 @@ void LispLexer::readQuotedString(Token& token, char opening, char closing)
   throw LexerException((vstring)"file ended while reading quoted string ", *this);
 } // LispLexer::readQuotedString
 
-
+void LispLexer::readQuotedString2(Token& token)
+{
+  CALL("LispLexer::readQuotedString");
+  bool escape=false;
+  saveLastChar();
+  while (readNextChar()) {
+    
+    if (_lastCharacter == '\\' && !escape) {
+      escape=true;
+    }
+    else if (_lastCharacter == '"' && lookAhead()==')' && !escape) { // TODO: error handling
+        saveLastChar();
+        saveTokenText(token);
+        readNextChar();
+        token.tag = TT_NAME;
+        return;
+    }
+    else {
+    escape=false;
+    saveLastChar();
+    }
+  }
+  throw LexerException((vstring)"file ended while reading quoted string ", *this);
+} // LispLexer::readQuotedString2
 

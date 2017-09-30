@@ -350,10 +350,6 @@ unsigned Signature::addIntegerConstant(const vstring& number,bool defaultSort)
   _funNames.insert(symbolKey,result);
   return result;
 } // Signature::addIntegerConstant
-
-
-
-
 unsigned Signature::addBitVectorConstant(const BitVectorConstantType& value)
 {
     CALL("Signature::addBitVectorConstant(vstring, vstring)");
@@ -514,6 +510,10 @@ unsigned Signature::addRealConstant(const RealConstantType& value)
  * If no such symbol exists, it is created.
  */
 unsigned Signature::getInterpretingSymbol(Interpretation interp)
+{
+    return getInterpretingSymbol(interp, -1 , -1);
+}
+unsigned Signature::getInterpretingSymbol(Interpretation interp, int sortArg1, int sortArg2)
 {
   CALL("Signature::getInterpretingSymbol");
   ASS(Theory::instance()->isValidInterpretation(interp));

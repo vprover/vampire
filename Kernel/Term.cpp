@@ -1217,7 +1217,7 @@ Literal* Literal::createEquality (bool polarity, TermList arg1, TermList arg2, u
    Literal* lit=new(2) Literal(0,2,polarity,true);
    *lit->nthArgument(0)=arg1;
    *lit->nthArgument(1)=arg2;
-   if (arg1.isSafe() && arg2.isSafe()) {
+   if (arg1.isSafe() && arg2.isSafe()) {     
      lit = env.sharing->insert(lit);
    }
    return lit;
