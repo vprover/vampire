@@ -447,6 +447,9 @@ void Property::scanSort(unsigned sort)
     if(env.sorts->hasStructuredSort(sort,Sorts::StructuredSort::ARRAY)){
       addProp(PR_HAS_ARRAYS);
     }
+    if(env.sorts->hasStructuredSort(sort,Sorts::StructuredSort::BITVECTOR)){
+      addProp(PR_HAS_BITVECTORS);
+    }
     if (env.signature->isTermAlgebraSort(sort)) {
       if (env.signature->getTermAlgebraOfSort(sort)->allowsCyclicTerms()) {
         addProp(PR_HAS_CDT_CONSTRUCTORS); // co-algebraic data type

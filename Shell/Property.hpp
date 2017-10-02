@@ -141,7 +141,8 @@ public:
   static const unsigned long PR_HAS_DT_CONSTRUCTORS = 1099511627776ul; // 2^40
   /* has co-algrebaic data type constructors */
   static const unsigned long PR_HAS_CDT_CONSTRUCTORS = 2199023255552ul; // 2^41
-  
+  /* has bitvectors */
+  static const unsigned long PR_HAS_BITVECTORS = 4398046511104ul; // 2^42
  
 public:
   CLASS_NAME(Property);
