@@ -173,7 +173,8 @@ Term* Rectify::rectifySpecialTerm(Term* t)
     _removeUnusedVars = removeUnusedVars; // restore the status quo
     unbindVars(sd->getVariables());
 
-    ASS_EQ(variables->length(), sd->getVariables()->length());
+    ASS_EQ(VarList::length(variables),
+           VarList::length(sd->getVariables()));
 
     TermList contents = rectify(*t->nthArgument(0));
     if (sd->getVariables() == variables && binding == sd->getBinding() && contents == *t->nthArgument(0)) {

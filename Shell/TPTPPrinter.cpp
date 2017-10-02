@@ -250,8 +250,8 @@ void TPTPPrinter::ensureNecesarySorts()
     unsigned arity = sym->arity();
     if (arity > 0) {
       for (unsigned i = 0; i < arity; i++) {
-	if( _usedSorts->member(type->arg(i))==false)
-	 _usedSorts = _usedSorts->cons(type->arg(i));
+	if(! List<unsigned>::member(type->arg(i), _usedSorts))
+          List<unsigned>::push(type->arg(i), _usedSorts);
       }
     }
   }
@@ -262,14 +262,14 @@ void TPTPPrinter::ensureNecesarySorts()
     unsigned arity = sym->arity();
     if (arity > 0) {
       for (unsigned i = 0; i < arity; i++) {
-	if( _usedSorts->member(type->arg(i))==false)
-		  _usedSorts = _usedSorts->cons(type->arg(i));
+	if(! List<unsigned>::member(type->arg(i), _usedSorts))
+          List<unsigned>::push(type->arg(i), _usedSorts);
       }
     }
   }
   //output the sort definition for the used sorts, but not for the built-in sorts
   for (i = Sorts::FIRST_USER_SORT; i < sorts; i++) {
-    if (_usedSorts->member(i))
+    if (List<unsigned>::member(i, _usedSorts))
       tgt() << "tff(sort_def_" << i << ",type, " << env.sorts->sortName(i)
             	      << ": $tType" << " )." << endl;
 

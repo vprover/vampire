@@ -115,7 +115,7 @@ void Signature::Symbol::addToDistinctGroup(unsigned group,unsigned this_number)
   CALL("Signature::Symbol::addToDistinctGroup");
 
   ASS_EQ(arity(), 0);
-  ASS(!_distinctGroups->member(group))
+  ASS(!List<unsigned>::member(group, _distinctGroups))
 
   List<unsigned>::push(group, _distinctGroups);
 

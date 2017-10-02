@@ -98,7 +98,7 @@ FormulaUnit* Naming::apply(FormulaUnit* unit, UnitList*& defs) {
     }
   }
   defs = _defs;
-  UnitList* premises = _defs->copy();
+  UnitList* premises = UnitList::copy(_defs);
   UnitList::push(unit, premises);
   return new FormulaUnit(g,
       new InferenceMany(Inference::DEFINITION_FOLDING, premises),
@@ -142,7 +142,7 @@ Formula* Naming::apply_iter(Formula* top_f) {
 
       case AND: {
         FormulaList* fs = tas.f->args();
-        int length = fs->length();
+        unsigned length = FormulaList::length(fs);
         void* mem = ALLOC_UNKNOWN(length * sizeof(int), "Naming::apply");
         int* cls = array_new<int>(mem, length);
         int* negCls = 0;
@@ -164,7 +164,7 @@ Formula* Naming::apply_iter(Formula* top_f) {
 
       case OR: {
         FormulaList* fs = tas.f->args();
-        int length = fs->length();
+        unsigned length = FormulaList::length(fs);
         void* mem = ALLOC_UNKNOWN(length * sizeof(int), "Naming::apply");
         int* cls = array_new<int>(mem, length);
         int* negCls = 0;
@@ -250,7 +250,7 @@ Formula* Naming::apply_iter(Formula* top_f) {
 
       Formula* f = tas.f;
       FormulaList* fs = f->args();
-      int length = fs->length();
+      unsigned length = FormulaList::length(fs);
 
       // fs = apply_list(fs, where, cls, negCls);
       {
@@ -270,7 +270,7 @@ Formula* Naming::apply_iter(Formula* top_f) {
         int maxPosIndex = 0;
         int maxNegIndex = 0;
         FormulaList* currArg = f->args();
-        for (int i = 0; i < length; i++) {
+        for (unsigned i = 0; i < length; i++) {
           int c = sand.cls[i];
           sum = Int::min(_threshold, sum + c);
           bool canBeDefEvaluated = false;
@@ -372,7 +372,7 @@ Formula* Naming::apply_iter(Formula* top_f) {
 
       Formula* f = tas.f;
       FormulaList* fs = f->args();
-      int length = fs->length();
+      unsigned length = FormulaList::length(fs);
 
       // fs = apply_list(fs, where, cls, negCls);
       {
@@ -392,7 +392,7 @@ Formula* Naming::apply_iter(Formula* top_f) {
         int maxPosIndex = 0;
         int maxNegIndex = 0;
         FormulaList* currArg = f->args();
-        for (int i = 0; i < length; i++) {
+        for (unsigned i = 0; i < length; i++) {
           int c = sor.cls[i];
           product = Int::min(_threshold, product * c);
           bool canBeDefEvaluated = false;
@@ -759,7 +759,7 @@ Formula* Naming::apply_sub(Formula* f, Where where, int& pos, int& neg) {
 
   case AND: {
     FormulaList* fs = f->args();
-    int length = fs->length();
+    unsigned length = FormulaList::length(fs);
     void* mem = ALLOC_UNKNOWN(length * sizeof(int), "Naming::apply");
     int* cls = array_new<int>(mem, length);
     int* negCls = 0;
@@ -780,7 +780,7 @@ Formula* Naming::apply_sub(Formula* f, Where where, int& pos, int& neg) {
       int maxPosIndex = 0;
       int maxNegIndex = 0;
       FormulaList* currArg = f->args();
-      for (int i = 0; i < length; i++) {
+      for (unsigned i = 0; i < length; i++) {
         int c = cls[i];
         sum = Int::min(_threshold, sum + c);
         bool canBeDefEvaluated = false;
@@ -869,7 +869,7 @@ Formula* Naming::apply_sub(Formula* f, Where where, int& pos, int& neg) {
 
   case OR: {
     FormulaList* fs = f->args();
-    int length = fs->length();
+    unsigned length = FormulaList::length(fs);
     void* mem = ALLOC_UNKNOWN(length * sizeof(int), "Naming::apply");
     int* cls = array_new<int>(mem, length);
     int* negCls = 0;
@@ -893,7 +893,7 @@ Formula* Naming::apply_sub(Formula* f, Where where, int& pos, int& neg) {
       int maxPosIndex = 0;
       int maxNegIndex = 0;
       FormulaList* currArg = f->args();
-      for (int i = 0; i < length; i++) {
+      for (unsigned i = 0; i < length; i++) {
         int c = cls[i];
         product = Int::min(_threshold, product * c);
         bool canBeDefEvaluated = false;
@@ -1113,7 +1113,7 @@ bool Naming::canBeInDefinition(Formula* f, Where where) {
 Literal* Naming::getDefinitionLiteral(Formula* f, Formula::VarList* freeVars) {
   CALL("Naming::getDefinitionLiteral");
 
-  int length = freeVars->length();
+  unsigned length = Formula::VarList::length(freeVars);
   unsigned pred = env.signature->addNamePredicate(length);
   Signature::Symbol* predSym = env.signature->getPredicate(pred);
 

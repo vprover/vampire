@@ -514,12 +514,12 @@ void FiniteModelBuilder::init()
 #if VTRACE_FMB
       //cout << "Add ground clause " << c->toString() << endl;
 #endif
-      _groundClauses = _groundClauses->cons(c);
+      ClauseList::push(c, _groundClauses);
     }else{
 #if VTRACE_FMB
     //cout << "Add non-ground clause " << c->toString() << endl;
 #endif
-    _clauses = _clauses->cons(c);
+      ClauseList::push(c, _clauses);
 
     }
   }

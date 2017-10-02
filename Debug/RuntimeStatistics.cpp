@@ -81,7 +81,7 @@ RuntimeStatistics::RuntimeStatistics()
 
 RuntimeStatistics::~RuntimeStatistics()
 {
-  _objs->destroyWithDeletion();
+  ObjList::destroyWithDeletion(_objs);
 }
 
 struct RuntimeStatistics::RSObjComparator

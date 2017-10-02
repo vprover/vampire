@@ -164,7 +164,7 @@ Formula* FormulaTransformer::applyJunction(Formula* f)
     return f;
   }
   //we want to keep arguments in the same order as the input ones
-  resArgs = resArgs->reverse();
+  resArgs = FormulaList::reverse(resArgs);
   return new JunctionFormula(con, resArgs);
 }
 

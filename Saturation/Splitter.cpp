@@ -155,7 +155,7 @@ static Color colorFromPossiblyDeepFOConversion(SATClause* scl,Unit*& u)
     ASS_EQ(scl->inference()->getType(),SATInference::PROP_INF);
     PropInference* inf = static_cast<PropInference*>(scl->inference());
     SATClauseList* premises = inf->getPremises();
-    ASS_EQ(premises->length(),1);
+    ASS_EQ(SATClauseList::length(premises),1);
     scl = premises->head();
   }
 

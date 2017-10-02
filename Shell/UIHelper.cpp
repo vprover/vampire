@@ -724,7 +724,7 @@ ConstraintRCList* UIHelper::getPreprocessedConstraints(const ConstraintRCList* i
   env.statistics->phase = Statistics::PREPROCESSING;
 
   Preprocess prepr(*env.options);
-  ConstraintRCList* constraints = inputConstraints->copy();
+  ConstraintRCList* constraints = ConstraintRCList::copy(inputConstraints);
   prepr.preprocess(constraints);
   
   return constraints;

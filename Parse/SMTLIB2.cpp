@@ -863,7 +863,7 @@ void SMTLIB2::readDeclareDatatypes(LExprList* sorts, LExprList* datatypes, bool 
 {
   CALL("SMTLIB2::readDeclareDatatypes");
   
-  if(sorts->length() != datatypes->length()){
+  if(LExprList::length(sorts) != LExprList::length(datatypes)){
     USER_ERROR("declare-datatype(s) declaration mismatch between declared datatypes and definitions");
   }
 

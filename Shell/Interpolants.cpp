@@ -132,7 +132,7 @@ void mergeCopy(UIPairList*& tgt, UIPairList* src)
 {
   CALL("mergeCopy");
   if(!tgt) {
-    tgt = src->copy();
+    tgt = UIPairList::copy(src);
     return;
   }
 

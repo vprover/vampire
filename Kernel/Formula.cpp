@@ -296,7 +296,7 @@ vstring Formula::toString(const Formula* formula)
         // but that should not matter
 
         const FormulaList* fs = f->args();
-        ASS (fs->length() >= 2);
+        ASS (FormulaList::length(fs) >= 2);
 
         while (FormulaList::isNonEmpty(fs)) {
           const Formula* arg = fs->head();
@@ -559,14 +559,14 @@ Formula::VarList* Formula::boundVariables () const
 {
   CALL("Formula::boundVariables");
 
-  VarList* res=0;
+  VarList* res = 0;
   SubformulaIterator sfit(const_cast<Formula*>(this));
   while(sfit.hasNext()) {
-    Formula* sf=sfit.next();
-    if(sf->connective()==FORALL || sf->connective()==EXISTS) {
-      VarList* qvars=sf->vars();
-      VarList* qvCopy=qvars->copy();
-      res=VarList::concat(qvCopy, res);
+    Formula* sf = sfit.next();
+    if(sf->connective() == FORALL || sf->connective() == EXISTS) {
+      VarList* qvars = sf->vars();
+      VarList* qvCopy = VarList::copy(qvars);
+      res = VarList::concat(qvCopy, res);
     }
   }
   return res;

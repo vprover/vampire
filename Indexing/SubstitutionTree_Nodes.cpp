@@ -49,7 +49,7 @@ public:
   inline
   void remove(LeafData ld)
   {
-    _children=_children->remove(ld);
+    _children = LDList::remove(ld, _children);
     _size--;
   }
 

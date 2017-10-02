@@ -208,7 +208,7 @@ void CPAInterpolator::loadFormula(vstring fname)
   _forms = UnitList::concat(pars.getFormulas(), _forms);
   _defs = UnitList::concat(pars.getDefinitions(), _defs);
 
-  _prb.addUnits(_forms->copy());
+  _prb.addUnits(UnitList::copy(_forms));
 }
 
 void CPAInterpolator::doProving()
