@@ -253,20 +253,6 @@ public:
     }
   }
 
-  /**
-   * True if the list has the given length.
-   * @since 10/06/2007 Manchester
-   */
-  static bool hasLength(const List* l, unsigned length)
-  {
-    while (isNonEMpty(l)) {
-      if (length == 0) return false;
-      length--;
-      l = l->tail();
-    }
-    return length == 0;
-  } // hasLength
-
   /** pop the first element and return it */
   inline static C pop(List* &lst)
   {
