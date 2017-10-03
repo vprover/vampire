@@ -176,9 +176,31 @@ Term* TermTransformer::transformSpecial(Term* term)
       }
     }
 
-    default:
-      ASSERTION_VIOLATION_REP(term->toString());
+    case Term::SF_LET_TUPLE: {
+      TermList binding = transform(sd->getBinding());
+      TermList body = transform(*term->nthArgument(0));
+
+      if ((binding == sd->getBinding()) && (body == *term->nthArgument(0))) {
+        return term;
+      } else {
+        return Term::createTupleLet(sd->getFunctor(), sd->getTupleSymbols(), binding, body, sd->getSort());
+      }
+      break;
+    }
+
+    case Term::SF_TUPLE: {
+      Term* tupleTerm = transform(sd->getTupleTerm());
+
+      if (tupleTerm == sd->getTupleTerm()) {
+        return term;
+      } else {
+        return Term::createTuple(tupleTerm);
+      }
+    }
+
   }
+  ASSERTION_VIOLATION_REP(term->toString());
+  return nullptr;
 }
 
 TermList TermTransformer::transform(TermList ts)

@@ -141,8 +141,9 @@ void NewCNF::process(Literal* literal, Occurrences &occurrences) {
   }
   Literal* processedLiteral = Literal::create(literal, arguments.begin());
 
-  List<pair<Literal*, List<GenLit>*> >* literals(0);
-  literals = literals->cons(make_pair(processedLiteral, List<GenLit>::empty()));
+  List<LPair>* literals(0);
+  List<LPair>::push(make_pair(processedLiteral, List<GenLit>::empty()),
+                    literals);
 
   LOG4("Found", variables.size(), "variable(s) inside", literal->toString());
   LOG3("Replacing it by", processedLiteral->toString(), "with variable substitutions");
@@ -165,25 +166,26 @@ void NewCNF::process(Literal* literal, Occurrences &occurrences) {
     Substitution elseSubst;
     elseSubst.bind(variable, elseBranch);
 
-    List<pair<Literal*, List<GenLit>*> >* processedLiterals(0);
+    List<LPair>* processedLiterals(0);
 
     if (shouldInlineITE(iteCounter)) {
-      while (List<pair<Literal*, List<GenLit>*> >::isNonEmpty(literals)) {
-        pair<Literal*, List<GenLit>*> p = List<pair<Literal*, List<GenLit>*> >::pop(literals);
+      while (List<LPair>::isNonEmpty(literals)) {
+        LPair p = List<LPair>::pop(literals);
         Literal* literal = p.first;
         List<GenLit>* gls = p.second;
 
         Literal* thenLiteral = SubstHelper::apply(literal, thenSubst);
         Literal* elseLiteral = SubstHelper::apply(literal, elseSubst);
 
-        pair<Literal*, List<GenLit>*> thenPair = make_pair(thenLiteral, gls->cons(negativeCondition));
-        pair<Literal*, List<GenLit>*> elsePair = make_pair(elseLiteral, gls->cons(positiveCondition));
+        LPair thenPair = make_pair(thenLiteral, List<GenLit>::cons(negativeCondition, gls));
+        LPair elsePair = make_pair(elseLiteral, List<GenLit>::cons(positiveCondition, gls));
 
-        processedLiterals = processedLiterals->cons(thenPair);
-        processedLiterals = processedLiterals->cons(elsePair);
+        List<LPair>::push(thenPair, processedLiterals);
+        List<LPair>::push(elsePair, processedLiterals);
       }
     } else {
-      IntList::Iterator branchesFreeVars(thenBranch.freeVariables()->append(elseBranch.freeVariables()));
+      IntList::Iterator branchesFreeVars(IntList::append(thenBranch.freeVariables(),
+                                                         elseBranch.freeVariables()));
       VarSet* fv = (VarSet*) freeVars(condition)->getUnion(VarSet::getFromIterator(branchesFreeVars));
 
       List<unsigned>* vars = new List<unsigned>(variable);
@@ -203,14 +205,14 @@ void NewCNF::process(Literal* literal, Occurrences &occurrences) {
       introduceGenClause(negativeCondition, GenLit(thenDefinition, POSITIVE));
       introduceGenClause(positiveCondition, GenLit(elseDefinition, POSITIVE));
 
-      while (List<pair<Literal*, List<GenLit>*> >::isNonEmpty(literals)) {
-        pair<Literal*, List<GenLit>*> p = List<pair<Literal*, List<GenLit>*> >::pop(literals);
+      while (List<LPair >::isNonEmpty(literals)) {
+        LPair p = List<LPair >::pop(literals);
         Literal* literal = p.first;
         List<GenLit>* gls = p.second;
 
-        pair<Literal*, List<GenLit>*> namePair = make_pair(literal, gls->cons(GenLit(naming, NEGATIVE)));
+        LPair namePair = make_pair(literal, List<GenLit>::cons(GenLit(naming, NEGATIVE), gls));
 
-        processedLiterals = processedLiterals->cons(namePair);
+        List<LPair>::push(namePair, processedLiterals);
       }
     }
 
@@ -226,9 +228,9 @@ void NewCNF::process(Literal* literal, Occurrences &occurrences) {
   while (occurrences.isNonEmpty()) {
     Occurrence occ = pop(occurrences);
 
-    List<pair<Literal*, List<GenLit>*> >::Iterator lit(literals);
+    List<LPair >::Iterator lit(literals);
     while (lit.hasNext()) {
-      pair<Literal*, List<GenLit>*> p = lit.next();
+      LPair p = lit.next();
       Literal* literal = p.first;
       List<GenLit>* gls = p.second;
 
@@ -236,7 +238,7 @@ void NewCNF::process(Literal* literal, Occurrences &occurrences) {
 
       enqueue(f);
 
-      introduceExtendedGenClause(occ, gls->cons(GenLit(f, occ.sign())));
+      introduceExtendedGenClause(occ, List<GenLit>::cons(GenLit(f, occ.sign()), gls));
     }
   }
 }
@@ -539,7 +541,7 @@ TermList NewCNF::eliminateLet(Term::SpecialTermData *sd, TermList contents)
     FunctionType* tupleType = env.signature->getFunction(tupleFunctor)->fnType();
 
     Term* bindingTuple = binding.term()->getSpecialData()->getTupleTerm();
-    unsigned arity = (unsigned)symbols->length();
+    unsigned arity = IntList::length(symbols);
     IntList::Iterator sit(symbols);
     Term::Iterator bit(bindingTuple);
 
@@ -578,7 +580,7 @@ TermList NewCNF::eliminateLet(Term::SpecialTermData *sd, TermList contents)
     FunctionType* tupleType = env.signature->getFunction(tupleFunctor)->fnType();
     unsigned tupleSort = tupleType->result();
 
-    ASS_EQ(tupleType->arity(), (unsigned)symbols->length());
+    ASS_EQ(tupleType->arity(), IntList::length(symbols));
 
     unsigned tuple = env.signature->addFreshFunction(0, "tuple");
     env.signature->getFunction(tuple)->setType(new FunctionType(tupleSort));
@@ -593,7 +595,7 @@ TermList NewCNF::eliminateLet(Term::SpecialTermData *sd, TermList contents)
 //    detupledContents = test.process(detupledContents);
 
     for (unsigned proj = 0; proj < tupleType->arity(); proj++) {
-      unsigned symbol = (unsigned)symbols->nth(proj);
+      unsigned symbol = (unsigned) IntList::nth(symbols, proj);
       bool isPredicate = tupleType->arg(proj) == Sorts::SRT_BOOL;
 
       unsigned projFunctor = Theory::tuples()->getProjectionFunctor(proj, tupleSort);
@@ -696,14 +698,14 @@ TermList NewCNF::nameLetBinding(unsigned symbol, Formula::VarList* bindingVariab
   Formula::VarList::Iterator bfvi(binding.freeVariables());
   while (bfvi.hasNext()) {
     int var = bfvi.next();
-    if (!bindingVariables->member(var)) {
+    if (!Formula::VarList::member(var, bindingVariables)) {
       bindingFreeVars = new Formula::VarList(var, bindingFreeVars);
     }
   }
 
   bool isPredicate = binding.isTerm() && binding.term()->isBoolean();
 
-  unsigned nameArity = (unsigned) bindingVariables->length() + bindingFreeVars->length();
+  unsigned nameArity = Formula::VarList::length(bindingVariables) + Formula::VarList::length(bindingFreeVars);
   unsigned nameSort;
   if (!isPredicate) {
     nameSort = env.signature->getFunction(symbol)->fnType()->result();
@@ -735,7 +737,7 @@ TermList NewCNF::nameLetBinding(unsigned symbol, Formula::VarList* bindingVariab
     }
   }
 
-  Formula::VarList* variables = bindingFreeVars->append(bindingVariables);
+  Formula::VarList* variables = Formula::VarList::append(bindingFreeVars,bindingVariables);
 
   Stack<TermList> arguments;
   Formula::VarList::Iterator vit(variables);
@@ -984,7 +986,7 @@ void NewCNF::process(QuantifiedFormula* g, Occurrences &occurrences)
     VarSet* vars;
     BindingList* bindings;
     dIt.next(vars,bindings);
-    bindings->destroy();
+    BindingList::destroy(bindings);
     dIt.del();
   }
 
@@ -994,7 +996,7 @@ void NewCNF::process(QuantifiedFormula* g, Occurrences &occurrences)
     VarSet* vars;
     BindingList* bindings;
     fdit.next(vars, bindings);
-    bindings->destroy();
+    BindingList::destroy(bindings);
     fdit.del();
   }
 
@@ -1052,7 +1054,7 @@ Literal* NewCNF::createNamingLiteral(Formula* f, List<unsigned>* free)
 {
   CALL("NewCNF::createNamingLiteral");
 
-  unsigned length = (unsigned) free->length();
+  unsigned length = List<unsigned>::length(free);
   unsigned pred = env.signature->addNamePredicate(length);
   Signature::Symbol* predSym = env.signature->getPredicate(pred);
 
@@ -1223,25 +1225,27 @@ void NewCNF::toClauses(SPGenClause gc, Stack<Clause*>& output)
         List<GenLit>::Iterator glsit(gls);
         while (glsit.hasNext()) {
           GenLit gl = glsit.next();
-          if (formula(gl)->freeVariables()->member(variable)) {
+          if (Formula::VarList::member(variable, formula(gl)->freeVariables())) {
             occurs = true;
             break;
           }
         }
 
         if (!occurs) {
-          processedGenClauses = processedGenClauses->cons(gls);
+          List<List<GenLit>*>::push(gls, processedGenClauses);
           continue;
         }
 
         List<GenLit>* thenGls(0);
         if (mapSubstitution(gls, thenSubst, false, thenGls)) {
-          processedGenClauses = processedGenClauses->cons(thenGls->cons(GenLit(skolem, NEGATIVE)));
+          List<List<GenLit>*>::push(List<GenLit>::cons(GenLit(skolem, NEGATIVE), thenGls),
+                                    processedGenClauses);
         }
 
         List<GenLit>* elseGls(0);
         if (mapSubstitution(gls, elseSubst, false, elseGls)) {
-          processedGenClauses = processedGenClauses->cons(elseGls->cons(GenLit(skolem, POSITIVE)));
+          List<List<GenLit>*>::push(List<GenLit>::cons(GenLit(skolem, POSITIVE), elseGls),
+                                    processedGenClauses);
         }
       }
     } else {
@@ -1263,20 +1267,21 @@ void NewCNF::toClauses(SPGenClause gc, Stack<Clause*>& output)
         List<GenLit>::Iterator glsit(gls);
         while (glsit.hasNext()) {
           GenLit gl = glsit.next();
-          if (formula(gl)->freeVariables()->member(variable)) {
+          if (Formula::VarList::member(variable, formula(gl)->freeVariables())) {
             occurs = true;
             break;
           }
         }
 
         if (!occurs) {
-          processedGenClauses = processedGenClauses->cons(gls);
+          List<List<GenLit>*>::push(gls, processedGenClauses);
           continue;
         }
 
         List<GenLit>* skolemGls(0);
         ALWAYS(mapSubstitution(gls, skolemSubst, true, skolemGls));
-        processedGenClauses = processedGenClauses->cons(skolemGls->cons(GenLit(naming, NEGATIVE)));
+        List<List<GenLit>*>::push(List<GenLit>::cons(GenLit(naming, NEGATIVE), skolemGls),
+                                  processedGenClauses);
 
         if (!addedDefinition) {
           GenLit thenNaming = GenLit(SubstHelper::apply(naming, thenSubst), POSITIVE);
@@ -1285,8 +1290,8 @@ void NewCNF::toClauses(SPGenClause gc, Stack<Clause*>& output)
           List<GenLit>* thenDefinition = new List<GenLit>(GenLit(skolem, NEGATIVE), new List<GenLit>(thenNaming, 0));
           List<GenLit>* elseDefinition = new List<GenLit>(GenLit(skolem, POSITIVE), new List<GenLit>(elseNaming, 0));
 
-          processedGenClauses = processedGenClauses->cons(thenDefinition);
-          processedGenClauses = processedGenClauses->cons(elseDefinition);
+          List<List<GenLit>*>::push(thenDefinition, processedGenClauses);
+          List<List<GenLit>*>::push(elseDefinition, processedGenClauses);
 
           addedDefinition = true;
         }
@@ -1340,7 +1345,7 @@ bool NewCNF::mapSubstitution(List<GenLit>* clause, Substitution subst, bool only
 
       case BOOL_TERM:
       case LITERAL: {
-        output = output->cons(GenLit(f, sign(gl)));
+        List<GenLit>::push(GenLit(f, sign(gl)), output);
         break;
       }
 

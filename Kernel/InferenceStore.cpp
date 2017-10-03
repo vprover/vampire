@@ -116,22 +116,22 @@ UnitIterator InferenceStore::getParents(Unit* us, Inference::Rule& rule)
   ASS_NEQ(us,0);
 
   // The unit itself stores the inference
-  List<Unit*>* res=0;
-  Inference* inf=us->inference();
+  UnitList* res = 0;
+  Inference* inf = us->inference();
 
   // opportunity to shrink the premise list
   // (currently applies if this was a SAT-based inference
   // and the solver didn't provide a proper proof nor a core)
   inf->minimizePremises();
 
-  Inference::Iterator iit=inf->iterator();
+  Inference::Iterator iit = inf->iterator();
   while(inf->hasNext(iit)) {
-    Unit* premUnit=inf->next(iit);
-    List<Unit*>::push(premUnit, res);
+    Unit* premUnit = inf->next(iit);
+    UnitList::push(premUnit, res);
   }
-  rule=inf->rule();
-  res=res->reverse(); //we want items in the same order
-  return pvi( List<Unit*>::DestructiveIterator(res) );
+  rule = inf->rule();
+  res = UnitList::reverse(res); //we want items in the same order
+  return pvi(UnitList::DestructiveIterator(res));
 }
 
 /**
@@ -216,7 +216,7 @@ vstring getQuantifiedStr(Unit* u, List<unsigned>* nonQuantified=0)
       TermVarIterator vit( (*cl)[i] );
       while(vit.hasNext()) {
 	unsigned var=vit.next();
-	if (nonQuantified->member(var)) {
+	if (List<unsigned>::member(var, nonQuantified)) {
 	  continue;
 	}
 	vars.insert(var);
@@ -228,7 +228,7 @@ vstring getQuantifiedStr(Unit* u, List<unsigned>* nonQuantified=0)
     FormulaVarIterator fvit( formula );
     while(fvit.hasNext()) {
       unsigned var=fvit.next();
-      if (nonQuantified->member(var)) {
+      if (List<unsigned>::member(var, nonQuantified)) {
         continue;
       }
       vars.insert(var);
@@ -324,6 +324,9 @@ protected:
         }
         out<<") ";
       }
+      if(cl->isTheoryDescendant()){
+        out << "(TD) ";
+      }
     }
     else {
       FormulaUnit* fu=static_cast<FormulaUnit*>(cs);
@@ -401,6 +404,77 @@ protected:
   bool delayPrinting;
   bool proofExtra;
 };
+
+struct InferenceStore::ProofPropertyPrinter
+: public InferenceStore::ProofPrinter
+{
+  CLASS_NAME(InferenceStore::ProofPropertyPrinter);
+  USE_ALLOCATOR(InferenceStore::ProofPropertyPrinter);
+
+  ProofPropertyPrinter(ostream& out, InferenceStore* is) : ProofPrinter(out,is) 
+  {
+    CALL("InferenceStore::ProofPropertyPrinter::ProofPropertyPrinter");
+
+    max_theory_clause_depth = 0;
+  }
+
+  void print()
+  {
+    ProofPrinter::print();
+    out << "max_theory_clause_depth:"<<max_theory_clause_depth << endl;
+  }
+
+protected:
+
+  void printStep(Unit* us)
+  {
+    // TODO we could make clauses track this information, but I am not sure that that's worth it
+    if(us->isClause() && static_cast<Clause*>(us)->isTheoryDescendant()){
+      //cout << "HERE with " << us->toString() << endl;
+      Inference* inf = us->inference();
+      while(inf->rule() == Inference::EVALUATION){
+              Inference::Iterator piit = inf->iterator();
+              inf = inf->next(piit)->inference();
+     }
+      Stack<Inference*> current;
+      current.push(inf);
+      unsigned level = 0;
+      while(!current.isEmpty()){
+        //cout << current.size() << endl;
+        Stack<Inference*> next;
+        Stack<Inference*>::Iterator it(current);
+        while(it.hasNext()){
+          Inference* inf = it.next();
+          Inference::Iterator iit=inf->iterator();
+          while(inf->hasNext(iit)) {
+            Unit* premUnit=inf->next(iit);
+            Inference* premInf = premUnit->inference();
+            while(premInf->rule() == Inference::EVALUATION){
+              Inference::Iterator piit = premInf->iterator();
+              premUnit = premInf->next(piit);
+              premInf = premUnit->inference(); 
+            }
+
+//for(unsigned i=0;i<level;i++){ cout << ">";}; cout << premUnit->toString() << endl;
+            next.push(premInf);
+          }
+        }
+        level++;
+        current = next;
+      }
+      level--;
+      //cout << "level is " << level << endl;
+      
+      if(level > max_theory_clause_depth){
+        max_theory_clause_depth=level;
+      }
+    }
+  }
+
+  unsigned max_theory_clause_depth;
+
+};
+
 
 struct InferenceStore::TPTPProofPrinter
 : public InferenceStore::ProofPrinter
@@ -694,7 +768,7 @@ protected:
     VariableIterator vit(nameLit);
     while(vit.hasNext()) {
       unsigned var=vit.next().var();
-      ASS(!nameVars->member(var)); //each variable appears only once in the naming literal
+      ASS(!List<unsigned>::member(var, nameVars)); //each variable appears only once in the naming literal
       List<unsigned>::push(var,nameVars);
     }
 
@@ -720,7 +794,7 @@ protected:
       VariableIterator lvit(lit);
       while(lvit.hasNext()) {
         unsigned var=lvit.next().var();
-        if (!nameVars->member(var) && !compOnlyVars->member(var)) {
+        if (!List<unsigned>::member(var, nameVars) && !List<unsigned>::member(var, compOnlyVars)) {
           List<unsigned>::push(var,compOnlyVars);
         }
       }
@@ -728,11 +802,11 @@ protected:
     ASS(!first);
 
     compStr=getQuantifiedStr(compOnlyVars, compStr, multiple);
-    compOnlyVars->destroy();
+    List<unsigned>::destroy(compOnlyVars);
 
     vstring defStr=compStr+" <=> "+Literal::complementaryLiteral(nameLit)->toString();
     defStr=getQuantifiedStr(nameVars, defStr);
-    nameVars->destroy();
+    List<unsigned>::destroy(nameVars);
 
     SymbolId nameSymbol = SymbolId(false,nameLit->functor());
     vostringstream originStm;
@@ -837,6 +911,8 @@ protected:
     case Inference::FOOL_ITE_ELIMINATION:
     case Inference::FOOL_ELIMINATION:
     case Inference::BOOLEAN_TERM_ENCODING:
+    case Inference::CHOICE_AXIOM:
+    case Inference::PREDICATE_DEFINITION:
       return true;
     default:
       return false;
@@ -861,8 +937,9 @@ InferenceStore::ProofPrinter* InferenceStore::createProofPrinter(ostream& out)
     return new ProofCheckPrinter(out, this);
   case Options::Proof::TPTP:
     return new TPTPProofPrinter(out, this);
+  case Options::Proof::PROPERTY:
+    return new ProofPropertyPrinter(out,this);
   case Options::Proof::OFF:
-  case Options::Proof::SMTCOMP:
     return 0;
   }
   ASSERTION_VIOLATION;

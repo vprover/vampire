@@ -7,14 +7,10 @@
 
 #include "Lib/Portability.hpp"
 
-#if !COMPILER_MSVC
-
 #include <signal.h>
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/wait.h>
-
-#endif
 
 #include "Lib/Environment.hpp"
 #include "Lib/List.hpp"
@@ -41,9 +37,9 @@ Multiprocessing::Multiprocessing()
 
 Multiprocessing::~Multiprocessing()
 {
-  _preFork->destroy();
-  _postForkParent->destroy();
-  _postForkChild->destroy();
+  VoidFuncList::destroy(_preFork);
+  VoidFuncList::destroy(_postForkParent);
+  VoidFuncList::destroy(_postForkChild);
 }
 
 void Multiprocessing::registerForkHandlers(VoidFunc before, VoidFunc afterParent, VoidFunc afterChild)
@@ -77,9 +73,6 @@ pid_t Multiprocessing::fork()
   CALL("Multiprocessing::fork");
   ASS(!env.haveOutput());
 
-#if COMPILER_MSVC
-  INVALID_OPERATION("fork() is not supported on Windows");
-#else
   executeFuncList(_preFork);
   errno=0;
   pid_t res=::fork();
@@ -93,7 +86,6 @@ pid_t Multiprocessing::fork()
     executeFuncList(_postForkParent);
   }
   return res;
-#endif
 }
 
 /**
@@ -104,10 +96,6 @@ pid_t Multiprocessing::fork()
 pid_t Multiprocessing::waitForChildTermination(int& resValue)
 {
   CALL("Multiprocessing::waitForChildTermination");
-
-#if COMPILER_MSVC
-  INVALID_OPERATION("waitpid() is not supported on Windows");
-#else
 
   int status;
   pid_t childPid;
@@ -128,7 +116,6 @@ pid_t Multiprocessing::waitForChildTermination(int& resValue)
     resValue = WTERMSIG(status)+256;
   }
   return childPid;
-#endif
 }
 
 /**
@@ -138,10 +125,6 @@ pid_t Multiprocessing::waitForChildTermination(int& resValue)
 pid_t Multiprocessing::waitForChildTerminationOrTime(unsigned timeMs,int& resValue)
 {
   CALL("Multiprocessing::waitForChildTerminationOrTime");
-
-#if COMPILER_MSVC
-  INVALID_OPERATION("waitpid() is not supported on Windows");
-#else
 
   int status;
   pid_t childPid;
@@ -176,7 +159,6 @@ pid_t Multiprocessing::waitForChildTerminationOrTime(unsigned timeMs,int& resVal
     resValue = WTERMSIG(status)+256;
   }
   return childPid;
-#endif
 }
 
 /**
@@ -187,10 +169,6 @@ pid_t Multiprocessing::waitForChildTerminationOrTime(unsigned timeMs,int& resVal
 void Multiprocessing::waitForParticularChildTermination(pid_t child, int& resValue)
 {
   CALL("Multiprocessing::waitForChildTermination");
-
-#if COMPILER_MSVC
-  INVALID_OPERATION("waitpid() is not supported on Windows");
-#else
 
   int status;
 
@@ -210,16 +188,11 @@ void Multiprocessing::waitForParticularChildTermination(pid_t child, int& resVal
     ASS(WIFSIGNALED(status));
     resValue = WTERMSIG(status)+256;
   }
-#endif
 }
 
 void Multiprocessing::sleep(unsigned ms)
 {
   CALL("Multiprocessing::sleep");
-
-#if COMPILER_MSVC
-  INVALID_OPERATION("sleep() is not supported on Windows");
-#else
 
   timespec init;
   timespec ts;
@@ -238,33 +211,19 @@ void Multiprocessing::sleep(unsigned ms)
     }
     ts = remaining;
   }
-#endif
 }
 
 void Multiprocessing::kill(pid_t child, int signal)
 {
   CALL("Multiprocessing::kill");
 
-#if COMPILER_MSVC
-  INVALID_OPERATION("kill() is not supported on Windows");
-#else
   int res = ::kill(child, signal);
   if(res!=0) {
     ASS_EQ(res,-1);
     SYSTEM_FAIL("Call to kill() function failed.", errno);
   }
-#endif
 }
 
 }
 }
-
-
-
-
-
-
-
-
-
 

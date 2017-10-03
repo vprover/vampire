@@ -189,10 +189,10 @@ Formula* Flattening::flatten (Formula* f)
       // the sort list is either empty (if one of the parts have empty sorts) or the concatentation
       Formula::SortList* sl = 0;
       if(f->sorts() && arg->sorts()){
-        sl = f->sorts()->append(arg->sorts());
+        sl = Formula::SortList::append(f->sorts(), arg->sorts());
       }
       return new QuantifiedFormula(con,
-				   f->vars()->append(arg->vars()),
+				   Formula::VarList::append(f->vars(), arg->vars()),
                                    sl, 
 				   arg->qarg());
     }
@@ -402,7 +402,7 @@ FormulaList* Flattening::flatten (FormulaList* fs,
   FormulaList* tail = flatten(fs->tail(),con);
 
   if (head->connective() == con) {
-    return head->args()->append(tail);
+    return FormulaList::append(head->args(), tail);
   }
 
   if (head == fs->head() && tail == fs->tail()) {

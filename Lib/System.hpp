@@ -22,12 +22,6 @@
 #define VAMP_RESULT_STATUS_SIGINT 3
 #define VAMP_RESULT_STATUS_UNHANDLED_EXCEPTION 4
 
-
-bool outputAllowed(bool debug=false);
-bool inSpiderMode();
-void reportSpiderFail();
-void reportSpiderStatus(char status);
-
 namespace Lib {
 
 using namespace std;

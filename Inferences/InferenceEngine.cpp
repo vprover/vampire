@@ -45,7 +45,7 @@ const Options& InferenceEngine::getOptions() const
 
 CompositeISE::~CompositeISE()
 {
-  _inners->destroyWithDeletion();
+  ISList::destroyWithDeletion(_inners);
 }
 
 /**
@@ -143,7 +143,7 @@ struct GeneratingFunctor
 };
 CompositeGIE::~CompositeGIE()
 {
-  _inners->destroyWithDeletion();
+  GIList::destroyWithDeletion(_inners);
 }
 void CompositeGIE::addFront(GeneratingInferenceEngine* fse)
 {

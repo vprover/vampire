@@ -29,14 +29,22 @@ using namespace Lib;
 using namespace Kernel;
 using namespace Shell;
 
+
 /**
  * Add the unit @c to @c units and output it, if the option show_theory_axioms is on.
  * @since 11/11/2013 Manchester
  * @author Andrei Voronkov
  */
-void TheoryAxioms::addAndOutputTheoryUnit(Unit* unit,UnitList*& units)
+void TheoryAxioms::addAndOutputTheoryUnit(Unit* unit,UnitList*& units,unsigned level)
 {
   CALL("TheoryAxioms::addAndOutputTheoryUnit");
+
+  static Options::TheoryAxiomLevel opt_level = env.options->theoryAxioms();
+  // if the theory axioms are some or off (want this case for some things like fool) and the axiom is not
+  // a cheap one then don't add it
+  if(opt_level != Options::TheoryAxiomLevel::ON && level != CHEAP){ return; }
+
+
   if (env.options->showTheoryAxioms()) {
     cout << "% Theory " << (unit->isClause() ? "clause" : "formula" ) << ": " << unit->toString() << "\n";
   }
@@ -51,27 +59,32 @@ void TheoryAxioms::addAndOutputTheoryUnit(Unit* unit,UnitList*& units)
  * @since 11/11/2013, Manchester: output of the clause added
  * @author Andrei Voronkov
  */
-void TheoryAxioms::addTheoryUnitClause(Literal* lit, UnitList*& units)
+void TheoryAxioms::addTheoryUnitClause(Literal* lit, UnitList*& units,unsigned level)
 {
   CALL("TheoryAxioms::addTheoryUnitClause");
-  addTheoryUnitClause(lit, new Inference(Inference::THEORY), units);
+  addTheoryUnitClause(lit, new Inference(Inference::THEORY), units,level);
 } // addTheoryUnitClause
 
-void TheoryAxioms::addTheoryUnitClause(Literal* lit, Inference* inf, UnitList*& units)
+void TheoryAxioms::addTheoryUnitClause(Literal* lit, Inference* inf, UnitList*& units,unsigned level)
 {
   CALL("TheoryAxioms::addTheoryUnitClause");
   Clause* unit = Clause::fromIterator(getSingletonIterator(lit), Unit::AXIOM, inf);
-  addAndOutputTheoryUnit(unit,units);
+  addAndOutputTheoryUnit(unit,units,level);
 } // addTheoryUnitClause
 
-/**
- * Add clause with literals @c lit1, @c lit2, @c lit3 to @c units.
- * @c lit3 can be null, in that case only the first two literals are used.
- *
- * @since 11/11/2013, Manchester: output of the clause added
- * @author Andrei Voronkov
- */
-void TheoryAxioms::addTheoryNonUnitClause(UnitList*& units, Literal* lit1, Literal* lit2, Literal* lit3)
+void TheoryAxioms::addTheoryNonUnitClause(UnitList*& units, Literal* lit1, Literal* lit2,unsigned level)
+{
+  CALL("TheoryAxioms::addTheoryNonUnitClause");
+  LiteralStack lits;
+  ASS(lit1);
+  lits.push(lit1);
+  ASS(lit2);
+  lits.push(lit2);
+  Clause* cl = Clause::fromStack(lits, Unit::AXIOM, new Inference(Inference::THEORY));
+  addAndOutputTheoryUnit(cl,units,level);
+} // addTheoryNonUnitCLause
+
+void TheoryAxioms::addTheoryNonUnitClause(UnitList*& units, Literal* lit1, Literal* lit2, Literal* lit3,unsigned level)
 {
   CALL("TheoryAxioms::addTheoryNonUnitClause");
   LiteralStack lits;
@@ -83,10 +96,10 @@ void TheoryAxioms::addTheoryNonUnitClause(UnitList*& units, Literal* lit1, Liter
     lits.push(lit3);
   }
   Clause* cl = Clause::fromStack(lits, Unit::AXIOM, new Inference(Inference::THEORY));
-  addAndOutputTheoryUnit(cl,units);
+  addAndOutputTheoryUnit(cl,units,level);
 } // addTheoryNonUnitCLause
 
-void TheoryAxioms::addTheoryNonUnitClause(UnitList*& units, Literal* lit1, Literal* lit2, Literal* lit3,Literal* lit4)
+void TheoryAxioms::addTheoryNonUnitClause(UnitList*& units, Literal* lit1, Literal* lit2, Literal* lit3,Literal* lit4,unsigned level)
 {
   CALL("TheoryAxioms::addTheoryNonUnitClause");
   LiteralStack lits;
@@ -99,7 +112,7 @@ void TheoryAxioms::addTheoryNonUnitClause(UnitList*& units, Literal* lit1, Liter
   ASS(lit4);
   lits.push(lit4);
   Clause* cl = Clause::fromStack(lits, Unit::AXIOM, new Inference(Inference::THEORY));
-  addAndOutputTheoryUnit(cl,units);
+  addAndOutputTheoryUnit(cl,units,level);
 } // addTheoryNonUnitCLause
 
 /**
@@ -120,7 +133,7 @@ void TheoryAxioms::addCommutativity(Interpretation op,UnitList*& units)
   TermList fxy(Term::create2(f,x,y));
   TermList fyx(Term::create2(f,y,x));
   Literal* eq = Literal::createEquality(true,fxy,fyx,srt);
-  addTheoryUnitClause(eq,units);
+  addTheoryUnitClause(eq,units,EXPENSIVE);
 } // addCommutativity
 
 /**
@@ -144,7 +157,7 @@ void TheoryAxioms::addAssociativity(Interpretation op, UnitList*& units)
   TermList fx_fyz(Term::create2(f,x,fyz));
   TermList f_fxy_z(Term::create2(f,fxy,z));
   Literal* eq = Literal::createEquality(true, fx_fyz,f_fxy_z, srt);
-  addTheoryUnitClause(eq, units);
+  addTheoryUnitClause(eq, units,EXPENSIVE);
 } // addAsssociativity
 
 
@@ -164,7 +177,7 @@ void TheoryAxioms::addRightIdentity(Interpretation op, TermList e, UnitList*& un
   TermList x(0,false);
   TermList fxe(Term::create2(f,x,e));
   Literal* eq = Literal::createEquality(true,fxe,x,srt);
-  addTheoryUnitClause(eq, units);
+  addTheoryUnitClause(eq, units,EXPENSIVE);
 } // addRightIdentity
 
 /**
@@ -181,7 +194,7 @@ void TheoryAxioms::addLeftIdentity(Interpretation op, TermList e, UnitList*& uni
   TermList x(0,false);
   TermList fex(Term::create2(f,e,x));
   Literal* eq = Literal::createEquality(true,fex,x,srt);
-  addTheoryUnitClause(eq, units);
+  addTheoryUnitClause(eq, units,EXPENSIVE);
 } // addLeftIdentity
 
 /**
@@ -223,12 +236,12 @@ void TheoryAxioms::addCommutativeGroupAxioms(Interpretation op, Interpretation i
   TermList i_fxy(Term::create1(i,fxy));
   TermList f_iy_ix(Term::create2(f,iy,ix));
   Literal* eq1 = Literal::createEquality(true,i_fxy,f_iy_ix,srt);
-  addTheoryUnitClause(eq1, units);
+  addTheoryUnitClause(eq1, units,EXPENSIVE);
 
   // f(x,i(x))=e
   TermList fx_ix(Term::create2(f,x,ix));
   Literal* eq2 = Literal::createEquality(true,fx_ix,e,srt);
-  addTheoryUnitClause(eq2, units);
+  addTheoryUnitClause(eq2, units,EXPENSIVE);
 } // TheoryAxioms::addCommutativeGroupAxioms
 
 /**
@@ -248,7 +261,7 @@ void TheoryAxioms::addRightInverse(Interpretation op, Interpretation inverse, Un
   TermList xiy(Term::create2(f,x,iy));
   TermList xiyy(Term::create2(f,xiy,y));
   Literal* eq = Literal::createEquality(true,xiyy,x,srt);
-  addTheoryUnitClause(eq,units);
+  addTheoryUnitClause(eq,units,EXPENSIVE);
 }
 
 /**
@@ -264,7 +277,7 @@ void TheoryAxioms::addNonReflexivity(Interpretation op, UnitList*& units)
   unsigned opPred = env.signature->getInterpretingSymbol(op);
   TermList x(0,false);
   Literal* l11 = Literal::create2(opPred, false, x, x);
-  addTheoryUnitClause(l11, units);
+  addTheoryUnitClause(l11, units,CHEAP);
 } // addNonReflexivity
 
 /**
@@ -285,7 +298,7 @@ void TheoryAxioms::addTransitivity(Interpretation op, UnitList*& units)
   Literal* nonL23 = Literal::create2(opPred, false, y, v3);
   Literal* l13 = Literal::create2(opPred, true, x, v3);
 
-  addTheoryNonUnitClause(units, nonL12, nonL23, l13);
+  addTheoryNonUnitClause(units, nonL12, nonL23, l13,CHEAP);
 }
 
 /**
@@ -307,7 +320,7 @@ void TheoryAxioms::addOrderingTotality(Interpretation less, UnitList*& units)
   unsigned srt = theory->getOperationSort(less);
   Literal* eq = Literal::createEquality(true,x,y,srt);
 
-  addTheoryNonUnitClause(units, l12, l21,eq);
+  addTheoryNonUnitClause(units, l12, l21,eq,CHEAP);
 }
 
 /**
@@ -343,7 +356,7 @@ void TheoryAxioms::addMonotonicity(Interpretation less, Interpretation addition,
   Literal* nonLe = Literal::create2(lessPred, false, x, y);
   Literal* leAdded = Literal::create2(lessPred, true, xPv3, yPv3);
 
-  addTheoryNonUnitClause(units, nonLe, leAdded);
+  addTheoryNonUnitClause(units, nonLe, leAdded,EXPENSIVE);
 }
 
 /**
@@ -366,7 +379,7 @@ void TheoryAxioms::addPlusOneGreater(Interpretation plus, TermList oneElement,
 
   TermList xPo(Term::create2(addFun,x,oneElement));
   Literal* xPo_g_x = Literal::create2(lessPred,true,x,xPo);
-  addTheoryUnitClause(xPo_g_x,units);
+  addTheoryUnitClause(xPo_g_x,units,CHEAP);
 }
 
 /**
@@ -389,7 +402,7 @@ void TheoryAxioms::addAdditionAndOrderingAxioms(Interpretation plus, Interpretat
   Literal* xLy = Literal::create2(lessPred,true,x,y);
   TermList xP(Term::create2(plusFun,x,oneElement));
   Literal* yLxP = Literal::create2(lessPred,true,y,xP);
-  addTheoryNonUnitClause(units,xLy,yLxP);
+  addTheoryNonUnitClause(units,xLy,yLxP,EXPENSIVE);
 
   // add that --x = x
   unsigned varSort = theory->getOperationSort(unaryMinus);
@@ -397,7 +410,7 @@ void TheoryAxioms::addAdditionAndOrderingAxioms(Interpretation plus, Interpretat
   TermList mx(Term::create1(unaryMinusFun,x));
   TermList mmx(Term::create1(unaryMinusFun,mx));
   Literal* mmxEqx = Literal::createEquality(true,mmx,x,varSort);
-  addTheoryUnitClause(mmxEqx,units);
+  addTheoryUnitClause(mmxEqx,units,EXPENSIVE);
 
 }
 
@@ -415,7 +428,7 @@ void TheoryAxioms::addBVReverseAxiom(Interpretation bvugt, Interpretation bvult,
     Formula* bvult_t_s = new AtomicFormula(Literal::create2(ult,true,t,s));
     Formula* res = new BinaryFormula(IMP,bvugt_s_t,bvult_t_s);
     
-    addAndOutputTheoryUnit(new FormulaUnit(res, new Inference(Inference::THEORY), Unit::AXIOM), units);
+    addAndOutputTheoryUnit(new FormulaUnit(res, new Inference(Inference::THEORY), Unit::AXIOM), units, EXPENSIVE);
     
     // (bvugt s t) XOR (bvult s t) XOR (= s t)
     Formula* bvult_s_t = new AtomicFormula(Literal::create2(ult,true,s,t));
@@ -423,7 +436,7 @@ void TheoryAxioms::addBVReverseAxiom(Interpretation bvugt, Interpretation bvult,
     
     Formula*  _xor1 = new BinaryFormula(XOR, bvult_s_t, bvugt_s_t);
     Formula*  _xor2 = new BinaryFormula(XOR, _xor1, eq_s_t);
-    addAndOutputTheoryUnit(new FormulaUnit(_xor2, new Inference(Inference::THEORY), Unit::AXIOM), units);
+    addAndOutputTheoryUnit(new FormulaUnit(_xor2, new Inference(Inference::THEORY), Unit::AXIOM), units, EXPENSIVE);
     
 } 
 
@@ -462,7 +475,7 @@ void TheoryAxioms::addBVUleAxiom1(Interpretation bvule, Interpretation bvult, Un
     FormulaList::push( _or,argLst2);
     Formula* res = new JunctionFormula(OR,argLst2);
     
-    addAndOutputTheoryUnit(new FormulaUnit(res, new Inference(Inference::THEORY), Unit::AXIOM), units);
+    addAndOutputTheoryUnit(new FormulaUnit(res, new Inference(Inference::THEORY), Unit::AXIOM), units, EXPENSIVE);
     
 }
 void TheoryAxioms::addBVNandAxiom1(Interpretation bvnand, Interpretation bvnot, Interpretation bvand, UnitList*& units)
@@ -487,7 +500,7 @@ void TheoryAxioms::addBVNandAxiom1(Interpretation bvnand, Interpretation bvnot, 
     TermList bvnot_bvand_s_t(Term::create1(_not,bvand_s_t));
     
     Literal* eq1 = Literal::createEquality(true,bvnand_s_t,bvnot_bvand_s_t,srt);
-    addTheoryUnitClause(eq1, units);
+    addTheoryUnitClause(eq1, units,EXPENSIVE);
     
 }
 
@@ -514,7 +527,7 @@ void TheoryAxioms::addBVSUBAxiom1(Interpretation bvsub, Interpretation bvadd , I
     TermList bvadd_s_bvneg_t(Term::create2(add,s,bvneg_t));
     
     Literal* eq1 = Literal::createEquality(true,bvsub_s_t,bvadd_s_bvneg_t,srt);
-    addTheoryUnitClause(eq1, units);
+    addTheoryUnitClause(eq1, units,EXPENSIVE);
     
 }
 
@@ -530,7 +543,7 @@ void TheoryAxioms::addBVUdivAxiom1(Interpretation bvudiv, TermList zeroElement, 
     TermList bvudiv_x_zero(Term::create2(udiv,x,zeroElement));
     
     Literal* eq1 = Literal::createEquality(true,bvudiv_x_zero,allOneElement,srt);
-    addTheoryUnitClause(eq1, units);
+    addTheoryUnitClause(eq1, units, EXPENSIVE);
     
 }
 void TheoryAxioms::addBVXNORAxiom1(Interpretation bvxnor, Interpretation bvor , Interpretation bvand, Interpretation bvnot, UnitList*& units)
@@ -566,7 +579,7 @@ void TheoryAxioms::addBVXNORAxiom1(Interpretation bvxnor, Interpretation bvor , 
     TermList rhs(Term::create2(_or,bvand_s_t,bvand_bvnot_s_bvnot_t));
     
     Literal* eq1 = Literal::createEquality(true,bvxnor_s_t,rhs,srt);
-    addTheoryUnitClause(eq1, units);
+    addTheoryUnitClause(eq1, units, EXPENSIVE);
     
 }
 
@@ -601,7 +614,7 @@ void TheoryAxioms::addBVXORAxiom1(Interpretation bvxor, Interpretation bvor , In
     
     
     Literal* eq1 = Literal::createEquality(true,bvxor_s_t,rhs,srt);
-    addTheoryUnitClause(eq1, units);
+    addTheoryUnitClause(eq1, units, EXPENSIVE);
     
 }
  /*(bvsdiv s t) abbreviates
@@ -689,7 +702,7 @@ void TheoryAxioms::addMulBitVectorAxioms(Interpretation plus, Interpretation una
         TermList x(0,false);
         TermList xMulZero(Term::create2(mulFun, x, zeroElement));
         Literal* xEqXMulZero = Literal::createEquality(true, xMulZero, zeroElement, srt);
-        addTheoryUnitClause(xEqXMulZero, units);
+        addTheoryUnitClause(xEqXMulZero, units, EXPENSIVE);
         
         // Distributivity
         //axiom x*(y+z) = (x*y)+(x*z)
@@ -706,7 +719,7 @@ void TheoryAxioms::addMulBitVectorAxioms(Interpretation plus, Interpretation una
         TermList xTyPxTz(Term::create2(plusFun,xTy,xTz));
 
         Literal* distrib = Literal::createEquality(true, xTyPz, xTyPxTz,srt);
-        addTheoryUnitClause(distrib,units);
+        addTheoryUnitClause(distrib,units, EXPENSIVE);
 
         // Divisibility
         // (x != 0 & x times z = y & x times w = y) -> z = w
@@ -718,7 +731,7 @@ void TheoryAxioms::addMulBitVectorAxioms(Interpretation plus, Interpretation una
         Literal* xTwnEy = Literal::createEquality(false,xTw,y,srt); 
         Literal* zEw = Literal::createEquality(true,z,w,srt);
 
-        addTheoryNonUnitClause(units,xEz,xTznEy,xTwnEy,zEw);
+        addTheoryNonUnitClause(units,xEz,xTznEy,xTwnEy,zEw, EXPENSIVE);
 } 
 
 void TheoryAxioms::addCertainBitVectorAxioms(Interpretation plus, Interpretation unaryMinus,
@@ -747,7 +760,7 @@ void TheoryAxioms::addCertainBitVectorAxioms(Interpretation plus, Interpretation
          TermList mk(Term::create1(unaryMinusFun,k));
          TermList mmk(Term::create1(unaryMinusFun,mk));
          Literal* mmkEqk = Literal::createEquality(true,mmk,k,varSort);
-         addTheoryUnitClause(mmkEqk,units);
+         addTheoryUnitClause(mmkEqk,units,EXPENSIVE);
          
 }
 /**
@@ -775,7 +788,7 @@ void TheoryAxioms::addAdditionOrderingAndMultiplicationAxioms(Interpretation plu
   TermList x(0,false);
   TermList xMulZero(Term::create2(mulFun, x, zeroElement));
   Literal* xEqXMulZero = Literal::createEquality(true, xMulZero, zeroElement, srt);
-  addTheoryUnitClause(xEqXMulZero, units);
+  addTheoryUnitClause(xEqXMulZero, units,EXPENSIVE);
 
   // Distributivity
   //axiom x*(y+z) = (x*y)+(x*z)
@@ -792,7 +805,7 @@ void TheoryAxioms::addAdditionOrderingAndMultiplicationAxioms(Interpretation plu
   TermList xTyPxTz(Term::create2(plusFun,xTy,xTz));
   
   Literal* distrib = Literal::createEquality(true, xTyPz, xTyPxTz,srt);
-  addTheoryUnitClause(distrib,units);
+  addTheoryUnitClause(distrib,units,EXPENSIVE);
 
   // Divisibility
   // (x != 0 & x times z = y & x times w = y) -> z = w
@@ -804,7 +817,7 @@ void TheoryAxioms::addAdditionOrderingAndMultiplicationAxioms(Interpretation plu
   Literal* xTwnEy = Literal::createEquality(false,xTw,y,srt); 
   Literal* zEw = Literal::createEquality(true,z,w,srt);
 
-  addTheoryNonUnitClause(units,xEz,xTznEy,xTwnEy,zEw);
+  addTheoryNonUnitClause(units,xEz,xTznEy,xTwnEy,zEw,EXPENSIVE);
   
 }
 
@@ -854,12 +867,12 @@ void TheoryAxioms::addIntegerDivisionWithModuloAxioms(Interpretation plus, Inter
   TermList mulydivxy(Term::create2(mulFun,y,divxy));
   TermList sum(Term::create2(plusFun,modxy,mulydivxy));
   Literal* xeqsum = Literal::createEquality(true,x,sum,srt);
-  addTheoryNonUnitClause(units,yis0,xeqsum);
+  addTheoryNonUnitClause(units,yis0,xeqsum,EXPENSIVE);
 
   // y!=0 => (0 <= mod(x,y))
   // y=0 | ~(mod(x,y) < 0)
   Literal* modxyge0 = Literal::create2(lessPred,false,modxy,zeroElement);
-  addTheoryNonUnitClause(units,yis0,modxyge0);
+  addTheoryNonUnitClause(units,yis0,modxyge0,EXPENSIVE);
 
   // y!=0 => (mod(x,y) <= abs(y)-1)
   // y=0 | ~( abs(y)-1 < mod(x,y) )
@@ -867,7 +880,7 @@ void TheoryAxioms::addIntegerDivisionWithModuloAxioms(Interpretation plus, Inter
   TermList m1(Term::create1(umFun,oneElement));
   TermList absym1(Term::create2(plusFun,absy,m1));
   Literal* modxyleabsym1 = Literal::create2(lessPred,false,absym1,modxy);
-  addTheoryNonUnitClause(units,yis0,modxyleabsym1);
+  addTheoryNonUnitClause(units,yis0,modxyleabsym1,EXPENSIVE);
 
 }
 
@@ -898,7 +911,7 @@ void TheoryAxioms::addIntegerDividesAxioms(Interpretation divides, Interpretatio
   Literal* divsXY = Literal::create2(divsPred,true,n,y);
   TermList mZX(Term::create2(mulFun,z,n));
   Literal* mZXneY = Literal::createEquality(false,mZX,y,srt);
-  addTheoryNonUnitClause(units,divsXY,mZXneY);
+  addTheoryNonUnitClause(units,divsXY,mZXneY,EXPENSIVE);
 
 // ~divides(n,Y) | multiply(skolem(n,Y),n)=Y
   Literal* ndivsXY = Literal::create2(divsPred,false,n,y);
@@ -911,7 +924,7 @@ void TheoryAxioms::addIntegerDividesAxioms(Interpretation divides, Interpretatio
   TermList msxX(Term::create2(mulFun,skXY,n));
   Literal* msxXeqY = Literal::createEquality(true,msxX,y,srt);
 
-  addTheoryNonUnitClause(units,ndivsXY,msxXeqY);
+  addTheoryNonUnitClause(units,ndivsXY,msxXeqY,EXPENSIVE);
 
 }
 
@@ -942,8 +955,8 @@ void TheoryAxioms::addIntegerAbsAxioms(Interpretation abs, Interpretation less,
   Literal* absXeqX = Literal::createEquality(true,absX,x,srt);
   Literal* absXeqmX = Literal::createEquality(true,absX,mx,srt);
 
-  addTheoryNonUnitClause(units,xNeg,absXeqX);
-  addTheoryNonUnitClause(units,xPos,absXeqmX);
+  addTheoryNonUnitClause(units,xNeg,absXeqX,EXPENSIVE);
+  addTheoryNonUnitClause(units,xPos,absXeqmX,EXPENSIVE);
 
 }
 
@@ -977,7 +990,7 @@ void TheoryAxioms::addQuotientAxioms(Interpretation quotient, Interpretation mul
   // x=0 | quotient(1,x)!=0
   TermList q1X(Term::create2(divFun,oneElement,x));
   Literal* oQxnot0 = Literal::createEquality(false,q1X,zeroElement,srt);
-  addTheoryNonUnitClause(units,guardx,oQxnot0);
+  addTheoryNonUnitClause(units,guardx,oQxnot0,EXPENSIVE);
 
   // quotient(x,1)=x, easily derivable!
   //TermList qX1(Term::create2(quotient,x,oneElement));
@@ -988,7 +1001,7 @@ void TheoryAxioms::addQuotientAxioms(Interpretation quotient, Interpretation mul
   TermList myx(Term::create2(mulFun,y,x));
   TermList qmx(Term::create2(divFun,myx,x));
   Literal* qmxisy = Literal::createEquality(true,qmx,y,srt);
-  addTheoryNonUnitClause(units,guardx,qmxisy);
+  addTheoryNonUnitClause(units,guardx,qmxisy,EXPENSIVE);
 
 
 }
@@ -1010,7 +1023,7 @@ void TheoryAxioms::addExtraIntegerOrderingAxiom(Interpretation plus, TermList on
   Literal* nxLy = Literal::create2(lessPred, false, x, y);
   TermList xPOne(Term::create2(plusFun, x, oneElement));
   Literal* nyLxPOne = Literal::create2(lessPred, false, y,xPOne);
-  addTheoryNonUnitClause(units, nxLy, nyLxPOne);
+  addTheoryNonUnitClause(units, nxLy, nyLxPOne,EXPENSIVE);
 }
     
 /**
@@ -1032,13 +1045,13 @@ void TheoryAxioms::addFloorAxioms(Interpretation floor, Interpretation less, Int
   //axiom( floor(X) <= X )
   // is ~(X < floor(X))
   Literal* a1 = Literal::create2(lessPred, false, x, floorX);
-  addTheoryUnitClause(a1, units);
+  addTheoryUnitClause(a1, units,EXPENSIVE);
 
   //axiom( X-1 < floor(X) ) 
   TermList m1(Term::create1(umFun,oneElement));
   TermList xm1(Term::create2(plusFun, x, m1));
   Literal* a2 = Literal::create2(lessPred,true, xm1, floorX);
-  addTheoryUnitClause(a2,units);
+  addTheoryUnitClause(a2,units,EXPENSIVE);
 } //addFloorAxioms
 
 /**
@@ -1059,12 +1072,12 @@ void TheoryAxioms::addCeilingAxioms(Interpretation ceiling, Interpretation less,
   //axiom( ceiling(X) >= X ) 
   // is ~( ceiling(X) < X )
   Literal* a1 = Literal::create2(lessPred, false, ceilingX, x);
-  addTheoryUnitClause(a1, units);
+  addTheoryUnitClause(a1, units,EXPENSIVE);
 
   //axiom( ceiling(X) < X+1 ) 
   TermList xp1(Term::create2(plusFun, x, oneElement));
   Literal* a2 = Literal::create2(lessPred,true, ceilingX, xp1);
-  addTheoryUnitClause(a2,units);
+  addTheoryUnitClause(a2,units,EXPENSIVE);
 } //addCeilingAxioms
 
 /**
@@ -1121,19 +1134,19 @@ void TheoryAxioms::addTruncateAxioms(Interpretation truncate, Interpretation les
 
   //x<0 | ~( x < tr(x) )
   Literal* a1 = Literal::create2(lessPred,false,x,truncateX);
-  addTheoryNonUnitClause(units,xLz,a1);
+  addTheoryNonUnitClause(units,xLz,a1,EXPENSIVE);
 
   //x<0 | x-1 < tr(x)
   Literal* a2 = Literal::create2(lessPred,true,xm1,truncateX);
-  addTheoryNonUnitClause(units,xLz,a2);
+  addTheoryNonUnitClause(units,xLz,a2,EXPENSIVE);
 
   // ~(x<0) | ~( tr(x) < x )
   Literal* a3 = Literal::create2(lessPred,false,truncateX,x);
-  addTheoryNonUnitClause(units,nxLz,a3);
+  addTheoryNonUnitClause(units,nxLz,a3,EXPENSIVE);
 
   // ~(x<0) | tr(x) < x+1
   Literal* a4 = Literal::create2(lessPred,true,truncateX,xp1);
-  addTheoryNonUnitClause(units,nxLz,a4);
+  addTheoryNonUnitClause(units,nxLz,a4,EXPENSIVE);
 
 } //addTruncateAxioms
 
@@ -1173,7 +1186,7 @@ void TheoryAxioms::addArrayExtensionalityAxioms(
   Literal* eq = Literal::createEquality(true,x,y,arraySort); //x = y
   Literal* ineq = Literal::createEquality(false,sel_x_sk,sel_y_sk,rangeSort); //select(x,sk(x,y) != select(y,z)
   
-  addTheoryNonUnitClause(units, eq, ineq);
+  addTheoryNonUnitClause(units, eq, ineq,CHEAP);
 } // addArrayExtensionalityAxiom    
 
 /**
@@ -1212,7 +1225,7 @@ void TheoryAxioms::addBooleanArrayExtensionalityAxioms(
                                          new Formula::SortList(arraySort, new Formula::SortList(arraySort,0)),
                                          new BinaryFormula(IMP, x_neq_y, sx_neq_sy));
 
-  addAndOutputTheoryUnit(new FormulaUnit(axiom, new Inference(Inference::THEORY), Unit::AXIOM), units);
+  addAndOutputTheoryUnit(new FormulaUnit(axiom, new Inference(Inference::THEORY), Unit::AXIOM), units,CHEAP);
 } // addBooleanArrayExtensionalityAxiom
 
 /**
@@ -1246,7 +1259,7 @@ void TheoryAxioms::addArrayWriteAxioms(Interpretation select, Interpretation sto
   TermList wAIV(Term::create(func_store, 3, args)); //store(A,I,V)
   TermList sWI(Term::create2(func_select, wAIV,i)); //select(wAIV,I)
   Literal* ax = Literal::createEquality(true, sWI, v, rangeSort);
-  addTheoryUnitClause(ax, units);
+  addTheoryUnitClause(ax, units,CHEAP);
 
   //axiom (!A: arraySort, !I,J:domainSort, !V:rangeSort: (I!=J)->(select(store(A,I,V), J) = select(A,J)
   TermList sWJ(Term::create2(func_select, wAIV,j)); //select(wAIV,J)
@@ -1254,7 +1267,7 @@ void TheoryAxioms::addArrayWriteAxioms(Interpretation select, Interpretation sto
         
   Literal* indexEq = Literal::createEquality(true, i, j, domainSort);//!(!(I=J)) === I=J
   Literal* writeEq = Literal::createEquality(true, sWJ, sAJ, rangeSort);//(select(store(A,I,V), J) = select(A,J)
-  addTheoryNonUnitClause(units, indexEq, writeEq);                      
+  addTheoryNonUnitClause(units, indexEq, writeEq,CHEAP);
 } //
 
 /**
@@ -1290,7 +1303,7 @@ void TheoryAxioms::addBooleanArrayWriteAxioms(Interpretation select, Interpretat
   TermList true_(Term::foolTrue());
   Formula* xeqt = new AtomicFormula(Literal::createEquality(true, true_, v, rangeSort));
   Formula* ax = new BinaryFormula(IFF, xeqt, sWI);
-  addAndOutputTheoryUnit(new FormulaUnit(ax, new Inference(Inference::THEORY), Unit::AXIOM), units);
+  addAndOutputTheoryUnit(new FormulaUnit(ax, new Inference(Inference::THEORY), Unit::AXIOM), units,CHEAP);
 
   //axiom (!A: arraySort, !I,J:domainSort, !V:rangeSort: (I!=J)->(select(store(A,I,V), J) <=> select(A,J)
   Formula* sWJ = new AtomicFormula(Literal::create2(pred_select, true, wAIV,j)); //select(wAIV,J)
@@ -1299,7 +1312,7 @@ void TheoryAxioms::addBooleanArrayWriteAxioms(Interpretation select, Interpretat
   Formula* indexEq = new AtomicFormula(Literal::createEquality(false, i, j, domainSort));//I!=J
   Formula* writeEq = new BinaryFormula(IFF, sWJ, sAJ);//(select(store(A,I,V), J) <=> select(A,J)
   Formula* ax2 = new BinaryFormula(IMP, indexEq, writeEq);
-  addAndOutputTheoryUnit(new FormulaUnit(ax2, new Inference(Inference::THEORY), Unit::AXIOM), units);
+  addAndOutputTheoryUnit(new FormulaUnit(ax2, new Inference(Inference::THEORY), Unit::AXIOM), units,CHEAP);
 } //
 
 //Axioms for integer division that hven't been implemented yet
@@ -1522,15 +1535,14 @@ bool TheoryAxioms::apply(UnitList*& units, Property* prop)
   while (tas.hasNext()) {
     TermAlgebra* ta = tas.next();
 
-    TermAlgebras::addExhaustivenessAxiom(ta, units);
-//    TermAlgebras::addAlternativeExhaustivenessAxiom(ta, units);
-    TermAlgebras::addDistinctnessAxiom(ta, units);
-    TermAlgebras::addInjectivityAxiom(ta, units);
-//    TermAlgebras::addAlternativeInjectivityAxiom(ta, units);
-    TermAlgebras::addDiscriminationAxiom(ta, units);
+    addExhaustivenessAxiom(ta, units);
+    addDistinctnessAxiom(ta, units);
+    addInjectivityAxiom(ta, units);
+    //addAlternativeInjectivityAxiom(ta, units);
+    addDiscriminationAxiom(ta, units);
 
     if (env.options->termAlgebraCyclicityCheck() == Options::TACyclicityCheck::AXIOM) {
-      TermAlgebras::addAcyclicityAxiom(ta, units);
+      addAcyclicityAxiom(ta, units);
     }
 
     modified = true;
@@ -1691,7 +1703,7 @@ void TheoryAxioms::applyFOOL(Problem& prb) {
   // Add "$$true != $$false"
   Clause* tneqfClause = new(1) Clause(1, Unit::AXIOM, foolAxiom);
   (*tneqfClause)[0] = Literal::createEquality(false, t, f, Sorts::SRT_BOOL);
-  addAndOutputTheoryUnit(tneqfClause, prb.units());
+  addAndOutputTheoryUnit(tneqfClause, prb.units(),CHEAP);
 
   // Do not add the finite domain axiom if --fool_paradomulation on
   if (env.options->FOOLParamodulation()) {
@@ -1702,57 +1714,11 @@ void TheoryAxioms::applyFOOL(Problem& prb) {
   Clause* boolVarClause = new(2) Clause(2, Unit::AXIOM, foolAxiom);
   (*boolVarClause)[0] = Literal::createEquality(true, TermList(0, false), t, Sorts::SRT_BOOL);
   (*boolVarClause)[1] = Literal::createEquality(true, TermList(0, false), f, Sorts::SRT_BOOL);
-  addAndOutputTheoryUnit(boolVarClause, prb.units());
+  addAndOutputTheoryUnit(boolVarClause, prb.units(),CHEAP);
 } // TheoryAxioms::addBooleanDomainAxiom
 
-void TheoryAxioms::TermAlgebras::addExhaustivenessAxiom(TermAlgebra* ta, UnitList*& units) {
-  CALL("TheoryAxioms::TermAlgebras::addExhaustivenessAxiom");
-
-  TermList x(0, false);
-  Stack<TermList> argTerms;
-
-  FormulaList* l = FormulaList::empty();
-
-  for (unsigned i = 0; i < ta->nConstructors(); i++) {
-    TermAlgebraConstructor *c = ta->constructor(i);
-    argTerms.reset();
-
-    for (unsigned j = 0; j < c->arity(); j++) {
-      if (c->argSort(j) == Sorts::SRT_BOOL) {
-        Literal* lit = Literal::create1(c->destructorFunctor(j), true, x);
-        Term* t = Term::createFormula(new AtomicFormula(lit));
-        argTerms.push(TermList(t));
-      } else {
-        Term* t = Term::create1(c->destructorFunctor(j), x);
-        argTerms.push(TermList(t));
-      }
-    }
-
-    TermList rhs(Term::create(c->functor(), (unsigned)argTerms.size(), argTerms.begin()));
-    FormulaList::push(new AtomicFormula(Literal::createEquality(true, x, rhs, ta->sort())), l);
-  }
-
-  Formula::VarList* vars = Formula::VarList::empty()->cons(x.var());
-  Formula::SortList* sorts = Formula::SortList::empty()->cons(ta->sort());
-
-  Formula *axiom;
-  switch (l->length()) {
-    case 0:
-      // the algebra cannot have 0 constructors
-      ASSERTION_VIOLATION;
-    case 1:
-      axiom = new QuantifiedFormula(Connective::FORALL, vars, sorts, l->head());
-      break;
-    default:
-      axiom = new QuantifiedFormula(Connective::FORALL, vars, sorts, new JunctionFormula(Connective::OR, l));
-  }
-
-  Unit* unit = new FormulaUnit(axiom, new Inference(Inference::TERM_ALGEBRA_EXHAUSTIVENESS), Unit::AXIOM);
-  addAndOutputTheoryUnit(unit, units);
-}
-
-void TheoryAxioms::TermAlgebras::addAlternativeExhaustivenessAxiom(TermAlgebra* ta, UnitList*& units) {
-  CALL("TheoryAxioms::TermAlgebras::addAlternativeExhaustivenessAxiom");
+void TheoryAxioms::addExhaustivenessAxiom(TermAlgebra* ta, UnitList*& units) {
+  CALL("TheoryAxioms::addExhaustivenessAxiom");
 
   for (unsigned i = 0; i < ta->nConstructors(); i++) {
     TermAlgebraConstructor* c = ta->constructor(i);
@@ -1765,14 +1731,37 @@ void TheoryAxioms::TermAlgebras::addAlternativeExhaustivenessAxiom(TermAlgebra* 
     TermList constructedTerm(Term::create(c->functor(), c->arity(), variables.begin()));
 
     for (unsigned j = 0; j < c->arity(); j++) {
-      Term* rhs = Term::create1(c->destructorFunctor(j), constructedTerm);
-      Literal* eq = Literal::createEquality(true, TermList(j, false), TermList(rhs), c->argSort(j));
-      addTheoryUnitClause(eq, new Inference(Inference::TERM_ALGEBRA_EXHAUSTIVENESS), units);
+      if (c->argSort(j) == Sorts::SRT_BOOL) {
+        Stack<TermList> posBoolArgs;
+        Stack<TermList> negBoolArgs;
+        for (unsigned var = 0; var < c->arity(); var++) {
+          if (var == j) {
+            posBoolArgs.push(TermList(Term::foolTrue()));
+            negBoolArgs.push(TermList(Term::foolFalse()));
+          } else {
+            posBoolArgs.push(TermList(var, false));
+            negBoolArgs.push(TermList(var, false));
+          }
+        }
+
+        TermList posConstructedTerm(Term::create(c->functor(), c->arity(), posBoolArgs.begin()));
+        TermList negConstructedTerm(Term::create(c->functor(), c->arity(), negBoolArgs.begin()));
+
+        Literal* pos = Literal::create1(c->destructorFunctor(j), true,  posConstructedTerm);
+        addTheoryUnitClause(pos, new Inference(Inference::TERM_ALGEBRA_EXHAUSTIVENESS), units, CHEAP);
+
+        Literal* neg = Literal::create1(c->destructorFunctor(j), false, negConstructedTerm);
+        addTheoryUnitClause(neg, new Inference(Inference::TERM_ALGEBRA_EXHAUSTIVENESS), units, CHEAP);
+      } else {
+        Term* rhs = Term::create1(c->destructorFunctor(j), constructedTerm);
+        Literal* eq = Literal::createEquality(true, TermList(j, false), TermList(rhs), c->argSort(j));
+        addTheoryUnitClause(eq, new Inference(Inference::TERM_ALGEBRA_EXHAUSTIVENESS), units, CHEAP);
+      }
     }
   }
 }
 
-void TheoryAxioms::TermAlgebras::addDistinctnessAxiom(TermAlgebra* ta, UnitList*& units) {
+void TheoryAxioms::addDistinctnessAxiom(TermAlgebra* ta, UnitList*& units) {
   CALL("TermAlgebra::addDistinctnessAxiom");
 
   Array<TermList> terms(ta->nConstructors());
@@ -1792,14 +1781,14 @@ void TheoryAxioms::TermAlgebras::addDistinctnessAxiom(TermAlgebra* ta, UnitList*
   for (unsigned i = 0; i < ta->nConstructors(); i++) {
     for (unsigned j = i + 1; j < ta->nConstructors(); j++) {
       Literal* ineq = Literal::createEquality(false, terms[i], terms[j], ta->sort());
-      addTheoryUnitClause(ineq, new Inference(Inference::TERM_ALGEBRA_DISTINCTNESS), units);
+      addTheoryUnitClause(ineq, new Inference(Inference::TERM_ALGEBRA_DISTINCTNESS), units,CHEAP);
     }
   }
 }
 
-void TheoryAxioms::TermAlgebras::addInjectivityAxiom(TermAlgebra* ta, UnitList*& units)
+void TheoryAxioms::addInjectivityAxiom(TermAlgebra* ta, UnitList*& units)
 {
-  CALL("TheoryAxioms::TermAlgebras::addInjectivityAxiom");
+  CALL("TheoryAxioms::addInjectivityAxiom");
 
   for (unsigned i = 0; i < ta->nConstructors(); i++) {
     TermAlgebraConstructor* c = ta->constructor(i);
@@ -1822,14 +1811,14 @@ void TheoryAxioms::TermAlgebras::addInjectivityAxiom(TermAlgebra* ta, UnitList*&
       Clause* injectivity = new(2) Clause(2, Unit::AXIOM, new Inference(Inference::TERM_ALGEBRA_INJECTIVITY));
       (*injectivity)[0] = eql;
       (*injectivity)[1] = eqr;
-      addAndOutputTheoryUnit(injectivity, units);
+      addAndOutputTheoryUnit(injectivity, units,CHEAP);
     }
   }
 }
 
-void TheoryAxioms::TermAlgebras::addAlternativeInjectivityAxiom(TermAlgebra* ta, UnitList*& units)
+void TheoryAxioms::addAlternativeInjectivityAxiom(TermAlgebra* ta, UnitList*& units)
 {
-  CALL("TheoryAxioms::TermAlgebras::addAlternativeInjectivityAxiom");
+  CALL("TheoryAxioms::addAlternativeInjectivityAxiom");
 
   for (unsigned i = 0; i < ta->nConstructors(); i++) {
     TermAlgebraConstructor* c = ta->constructor(i);
@@ -1844,12 +1833,12 @@ void TheoryAxioms::TermAlgebras::addAlternativeInjectivityAxiom(TermAlgebra* ta,
       (*clause)[j] = Literal::createEquality(false, proj1, proj2, c->argSort(j));
     }
     (*clause)[c->arity()] = Literal::createEquality(true, t1, t2, ta->sort());
-    addAndOutputTheoryUnit(clause, units);
+    addAndOutputTheoryUnit(clause, units,CHEAP);
   }
 }
 
-void TheoryAxioms::TermAlgebras::addDiscriminationAxiom(TermAlgebra* ta, UnitList*& units) {
-  CALL("TermAlgebras::addDiscriminationAxiom");
+void TheoryAxioms::addDiscriminationAxiom(TermAlgebra* ta, UnitList*& units) {
+  CALL("addDiscriminationAxiom");
 
   Array<TermList> cases(ta->nConstructors());
   for (unsigned i = 0; i < ta->nConstructors(); i++) {
@@ -1871,14 +1860,14 @@ void TheoryAxioms::TermAlgebras::addDiscriminationAxiom(TermAlgebra* ta, UnitLis
 
     for (unsigned c = 0; c < cases.size(); c++) {
       Literal* lit = Literal::create1(constructor->discriminator(), c == i, cases[c]);
-      addTheoryUnitClause(lit, new Inference(Inference::TERM_ALGEBRA_DISCRIMINATION), units);
+      addTheoryUnitClause(lit, new Inference(Inference::TERM_ALGEBRA_DISCRIMINATION), units,CHEAP);
     }
   }
 }
 
-void TheoryAxioms::TermAlgebras::addAcyclicityAxiom(TermAlgebra* ta, UnitList*& units)
+void TheoryAxioms::addAcyclicityAxiom(TermAlgebra* ta, UnitList*& units)
 {
-  CALL("TheoryAxioms::TermAlgebras::addAcyclicityAxiom");
+  CALL("TheoryAxioms::addAcyclicityAxiom");
 
   unsigned pred = ta->getSubtermPredicate();
 
@@ -1902,12 +1891,12 @@ void TheoryAxioms::TermAlgebras::addAcyclicityAxiom(TermAlgebra* ta, UnitList*& 
   static TermList x(0, false);
 
   Literal* sub = Literal::create2(pred, false, x, x);
-  addTheoryUnitClause(sub, new Inference(Inference::TERM_ALGEBRA_ACYCLICITY), units);
+  addTheoryUnitClause(sub, new Inference(Inference::TERM_ALGEBRA_ACYCLICITY), units,CHEAP);
 }
 
-bool TheoryAxioms::TermAlgebras::addSubtermDefinitions(unsigned subtermPredicate, TermAlgebraConstructor* c, UnitList*& units)
+bool TheoryAxioms::addSubtermDefinitions(unsigned subtermPredicate, TermAlgebraConstructor* c, UnitList*& units)
 {
-  CALL("TheoryAxioms::TermAlgebras::addSubtermDefinitions");
+  CALL("TheoryAxioms::addSubtermDefinitions");
 
   TermList z(c->arity(), false);
 
@@ -1925,13 +1914,13 @@ bool TheoryAxioms::TermAlgebras::addSubtermDefinitions(unsigned subtermPredicate
 
     // Direct subterms are subterms: Sub(y, c(x1, ... y ..., xn))
     Literal* sub = Literal::create2(subtermPredicate, true, y, right);
-    addTheoryUnitClause(sub, new Inference(Inference::TERM_ALGEBRA_ACYCLICITY), units);
+    addTheoryUnitClause(sub, new Inference(Inference::TERM_ALGEBRA_ACYCLICITY), units,CHEAP);
 
     // Transitivity of the subterm relation: Sub(z, y) -> Sub(z, c(x1, ... y , xn))
     Clause* transitivity = new(2) Clause(2, Unit::AXIOM, new Inference(Inference::TERM_ALGEBRA_ACYCLICITY));
     (*transitivity)[0] = Literal::create2(subtermPredicate, false, z, y);
     (*transitivity)[1] = Literal::create2(subtermPredicate, true,  z, right);
-    addAndOutputTheoryUnit(transitivity, units);
+    addAndOutputTheoryUnit(transitivity, units,CHEAP);
 
     added = true;
   }

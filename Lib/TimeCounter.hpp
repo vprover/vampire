@@ -25,11 +25,6 @@ enum TimeCounterUnit
   TC_BDD_CLAUSIFICATION,
   TC_SAT_SOLVER,
   TC_TWLSOLVER_ADD,
-  /**
-   * Time counter for LingelingInterfacing. Counts the total time spent in SAT solving
-   * both in adding new clauses and also in adding new assumptions
-   */
-  TC_LINGELING,
   TC_MINIMIZING_SOLVER,
   TC_SAT_PROOF_MINIMIZATION,
   TC_TERM_SHARING,
@@ -91,6 +86,7 @@ enum TimeCounterUnit
   TC_Z3_IN_FMB,
   TC_NAMING,
   TC_LITERAL_SELECTION,
+  TC_THEORY_INST_SIMP,
   TC_OTHER,
   __TC_ELEMENT_COUNT,
   __TC_NONE

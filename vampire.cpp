@@ -47,12 +47,9 @@
 
 #include "SAT/DIMACS.hpp"
 
-#include "CASC/CASCMode.hpp"
-#include "SMTCOMP/SMTCOMPMode.hpp"
-#include "CASC/CASCMultiMode.hpp"
+#include "CASC/PortfolioMode.hpp"
 #include "CASC/CLTBMode.hpp"
 #include "CASC/CLTBModeLearning.hpp"
-#include "CASC/CMZRMode.hpp"
 #include "Shell/CParser.hpp"
 #include "Shell/CommandLine.hpp"
 #include "Shell/EqualityProxy.hpp"
@@ -79,10 +76,6 @@
 #include "SAT/Preprocess.hpp"
 
 #include "FMB/ModelCheck.hpp"
-
-#if IS_LINGVA
-#include "Program/Lingva.hpp"
-#endif
 
 #if GNUMP
 #include "Solving/Solver.hpp"
@@ -234,64 +227,6 @@ void profileMode()
   //we have succeeded with the profile mode, so we'll terminate with zero return value
   vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
 } // profileMode
-
-void programAnalysisMode()
-{
-  CALL("programAnalysisMode()");
-
-  // create random seed for the random number generation
-
-#if 0
-  vstring inputFile = env.options->inputFile();
-  istream* input;
-  if (inputFile=="") {
-    input=&cin;
-  } else {
-    cout << "Analyzing " << inputFile << "...\n";
-    input=new ifstream(inputFile.c_str());
-    if (input->fail()) {
-      USER_ERROR("Cannot open problem file: "+inputFile);
-    }
-  }
-  vstring progString("");
-  while (!input->eof()) {
-    vstring inp;
-    getline(*input,inp);
-    progString += inp + '\n';
-  }
-  // cout << progString;
-
-  CParser parser(progString.c_str());
-  parser.tokenize();
-  //  parser.output(cout);
-#endif
-
-#if IS_LINGVA
-  Lib::Random::setSeed(123456);
-  int time = env.options->timeLimitInDeciseconds();
-  env.options->setMode(Options::Mode::VAMPIRE);
-  // Seems dangerous, overriding memory limit
-  Allocator::setMemoryLimit(1024u * 1048576ul);
-
-  vstring inputFile = env.options->inputFile();
-  if (inputFile == "") {
-    USER_ERROR("Cannot open problem file: "+inputFile);
-  }
-  else {
-    //default time limit 10 seconds (perhaps this belongs in Options)
-    if (time == 0) {
-      env.options->setTimeLimitInDeciseconds(100);
-    }
-    Program::RunLingva lingva;
-    lingva.run();
-  }
-
-#else
-  INVALID_OPERATION("program analysis currently not supported");
-#endif
-  vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
-} // programAnalysisMode
-
 
 void outputResult(ostream& out) {
   CALL("outputResult");
@@ -629,12 +564,8 @@ void satSolverMode()
   env.beginOutput();
   UIHelper::outputResult(env.out());
   env.endOutput();
-#if SATISFIABLE_IS_SUCCESS
   if (env.statistics->terminationReason == Statistics::SAT_UNSATISFIABLE
       || env.statistics->terminationReason == Statistics::SAT_SATISFIABLE) {
-#else
-    if (env.statistics->terminationReason==Statistics:SAT_UNSATISFIABLE) {
-#endif
       vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
   }
 
@@ -647,23 +578,14 @@ void vampireMode()
     env.options->setUnusedPredicateDefinitionRemoval(false);
   }
 
-  if (env.options->szsOutput()) {
-    UIHelper::szsOutput = true;
-    UIHelper::cascModeChild = true; // so that we print stats on time-out (see Timer.cpp)
-  }
-
   doProving();
 
   env.beginOutput();
   UIHelper::outputResult(env.out());
   env.endOutput();
 
-#if SATISFIABLE_IS_SUCCESS
   if (env.statistics->terminationReason == Statistics::REFUTATION
       || env.statistics->terminationReason == Statistics::SATISFIABLE) {
-#else
-    if (env.statistics->terminationReason==Statistics::REFUTATION) {
-#endif
       vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
   }
 } // vampireMode
@@ -671,7 +593,8 @@ void vampireMode()
 void spiderMode()
 {
   CALL("spiderMode()");
-  env.options->setBadOptionChoice(Options::BadOption::HARD); 
+  env.options->setBadOptionChoice(Options::BadOption::HARD);
+  env.options->setOutputMode(Options::Output::SPIDER);
   Exception* exception = 0;
 #if VZ3
   z3::exception* z3_exception = 0;
@@ -715,9 +638,7 @@ void spiderMode()
       break;
     case Statistics::SATISFIABLE:
       reportSpiderStatus('-');
-#if SATISFIABLE_IS_SUCCESS
       vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
-#endif
       break;
     default:
       ASSERTION_VIOLATION;
@@ -877,9 +798,6 @@ int main(int argc, char* argv[])
 {
   CALL ("main");
 
-//#if IS_LINGVA
-//    env.options->setMode(Options::Mode::PROGRAM_ANALYSIS);
-//#endif
 
   System::registerArgv0(argv[0]);
   System::setSignalHandlers();
@@ -935,31 +853,64 @@ int main(int argc, char* argv[])
     case Options::Mode::VAMPIRE:
       vampireMode();
       break;
-    case Options::Mode::CASC_SAT:
-      CASC::CASCMode::makeSat();
+
     case Options::Mode::CASC:
-      // If using a single core use old approach
-      if(env.options->multicore()==1){
-         if (CASC::CASCMode::perform(argc, argv)) {
-	    //casc mode succeeded in solving the problem, so we return zero
-            vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
-         }
-      }
-      // otherwise use the new multicore mode
-      else{
-        if (CASC::CASCMultiMode::perform()) {
-          //casc mode succeeded in solving the problem, so we return zero
-          vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
-        }
+      env.options->setIgnoreMissing(Options::IgnoreMissing::WARN);
+      env.options->setSchedule(Options::Schedule::CASC);
+      env.options->setOutputMode(Options::Output::SZS);
+      env.options->setProof(Options::Proof::TPTP);
+      env.options->setOutputAxiomNames(true);
+      env.options->setTimeLimitInSeconds(300);
+      env.options->setMemoryLimit(128000);
+
+      if (CASC::PortfolioMode::perform(1.05)) {
+        vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
       }
       break;
+
+    case Options::Mode::CASC_SAT:
+      env.options->setIgnoreMissing(Options::IgnoreMissing::WARN);
+      env.options->setSchedule(Options::Schedule::CASC_SAT);
+      env.options->setOutputMode(Options::Output::SZS);
+      env.options->setProof(Options::Proof::TPTP);
+      env.options->setOutputAxiomNames(true);
+      env.options->setTimeLimitInSeconds(300);
+      env.options->setMemoryLimit(128000);
+
+      if (CASC::PortfolioMode::perform(1.05)) {
+        vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
+      }
+      break;
+
     case Options::Mode::SMTCOMP:
-       env.options->setProof(Options::Proof::SMTCOMP);
-       env.options->setInputSyntax(Options::InputSyntax::SMTLIB2);
-       if(SMTCOMP::SMTCOMPMode::perform()){
-         vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
-        }
-    break;
+      env.options->setIgnoreMissing(Options::IgnoreMissing::WARN);
+      env.options->setInputSyntax(Options::InputSyntax::SMTLIB2);
+      env.options->setOutputMode(Options::Output::SMTCOMP);
+      env.options->setProof(Options::Proof::OFF);
+      env.options->setMulticore(0); // use all available cores
+      env.options->setTimeLimitInSeconds(1800);
+      env.options->setMemoryLimit(128000);
+      env.options->setStatistics(Options::Statistics::NONE);
+
+      //TODO needed?
+      // to prevent from terminating by time limit
+      env.options->setTimeLimitInSeconds(100000);
+
+      if(CASC::PortfolioMode::perform(1.3)){
+       vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
+      } else {
+       cout << "unknown" << endl;
+      }
+      break;
+
+    case Options::Mode::PORTFOLIO:
+      env.options->setIgnoreMissing(Options::IgnoreMissing::WARN);
+
+      if (CASC::PortfolioMode::perform(1.0)) {
+        vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
+      }
+      break;
+
     case Options::Mode::CASC_LTB: {
       bool learning = env.options->ltbLearning()!=Options::LTBLearning::OFF;
       try {
@@ -978,14 +929,6 @@ int main(int argc, char* argv[])
       vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
       break;
     }
-/*
-    case Options::Mode::CASC_MZR: {
-      CASC::CMZRMode::perform();
-      //we have processed the ltb batch file, so we can return zero
-      vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
-      break;
-    }
-*/
     case Options::Mode::MODEL_CHECK:
       modelCheckMode();
       break;
@@ -1005,12 +948,7 @@ int main(int argc, char* argv[])
     case Options::Mode::PROFILE:
       profileMode();
       break;
-/*
-    case Options::Mode::PROGRAM_ANALYSIS:
-      std::cout<<"Program analysis mode "<<std::endl;
-      programAnalysisMode();
-      break;
-*/   
+
     case Options::Mode::PREPROCESS:
       preprocessMode();
       break;

@@ -260,7 +260,7 @@ void BackwardSubsumptionResolution::perform(Clause* cl,
 
   match_fail:
     for(unsigned bi=0; bi<clen; bi++) {
-      matchedLits[bi]->destroy();
+      LiteralList::destroy(matchedLits[bi]);
       matchedLits[bi]=0;
     }
   }
@@ -406,7 +406,7 @@ void BackwardSubsumptionResolution::perform(Clause* cl,
 
   match_fail2:
     for(unsigned bi=0; bi<clen; bi++) {
-      matchedLits[bi]->destroy();
+      LiteralList::destroy(matchedLits[bi]);
       matchedLits[bi]=0;
     }
   }

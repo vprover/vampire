@@ -365,11 +365,13 @@ void SineSelector::perform(Problem& prb)
 {
   CALL("SineSelector::perform");
 
-  perform(prb.units());
+  if (perform(prb.units())) {
+    prb.reportIncompleteTransformation();
+  }
   prb.invalidateByRemoval();
 }
 
-void SineSelector::perform(UnitList*& units)
+bool SineSelector::perform(UnitList*& units)
 {
   CALL("SineSelector::perform");
 
@@ -385,8 +387,10 @@ void SineSelector::perform(UnitList*& units)
 
   //build the D-relation and select the non-axiom formulas
   _def.init(symIdBound,0);
+  unsigned numberUnitsLeftOut = 0;
   UnitList::Iterator uit2(units);
   while (uit2.hasNext()) {
+    numberUnitsLeftOut++;
     Unit* u=uit2.next();
     bool performSelection= _onIncluded ? u->included() : (u->inputType()==Unit::AXIOM);
     if (performSelection) {
@@ -450,16 +454,17 @@ void SineSelector::perform(UnitList*& units)
       }
       //all defining units for the symbol sym were selected,
       //so we can remove them from the relation
-      _def[sym]->destroy();
+      UnitList::destroy(_def[sym]);
       _def[sym]=0;
     }
   }
 
   env.statistics->sineIterations=depth;
-
   env.statistics->selectedBySine=_unitsWithoutSymbols.size() + selectedStack.size();
 
-  units->destroy();
+  numberUnitsLeftOut -= env.statistics->selectedBySine;
+
+  UnitList::destroy(units);
   units=0;
   UnitList::pushFromIterator(Stack<Unit*>::Iterator(_unitsWithoutSymbols), units);
   while (selectedStack.isNonEmpty()) {
@@ -495,6 +500,8 @@ if(env.clausePriorities){
     cout<<'#'<<selIt.next()->toString()<<endl;
   }
 #endif
+
+  return (numberUnitsLeftOut > 0);
 }
 
 //////////////////////////////////////
@@ -703,7 +710,7 @@ void SineTheorySelector::perform(UnitList*& units)
 
   UnitList::pushFromIterator(Stack<Unit*>::Iterator(_unitsWithoutSymbols), res);
 
-  units->destroy();
+  UnitList::destroy(units);
 //  units=res->reverse(); //we want to resemble the original SInE as much as possible
   units=res;
 

@@ -6,12 +6,6 @@
 //////////////////////////////////////////////////////
 // Detect compiler
 
-#ifdef _MSC_VER
-# define COMPILER_MSVC 1
-#else
-# define COMPILER_MSVC 0
-#endif
-
 #ifndef __APPLE__
 # define __APPLE__ 0
 #endif
@@ -80,28 +74,8 @@ ASS_STATIC(sizeof(char)==1);
 # endif
 #endif
 
-
-//////////////////////////////////////////////////////
-// Fix compiler-specific problems
-
-#if COMPILER_MSVC
-
-#define int32_t __int32
-#define pid_t __int32
-
-#endif
-
-
 //////////////////////////////////////////////////////
 // Attempt to detect endianness
-
-#if COMPILER_MSVC
-
-//is this always true??
-#define HASH_LITTLE_ENDIAN 1
-#define HASH_BIG_ENDIAN 0
-
-#else
 
 #include <sys/param.h>  
 #ifdef linux
@@ -126,8 +100,6 @@ ASS_STATIC(sizeof(char)==1);
 #else
 # define HASH_LITTLE_ENDIAN 1
 # define HASH_BIG_ENDIAN 0
-#endif
-
 #endif
 
 #endif /*__Portability__*/

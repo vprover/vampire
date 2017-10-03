@@ -26,6 +26,12 @@ namespace Shell
 using namespace Lib;
 using namespace Kernel;
 
+TheoryFlattening::TheoryFlattening(bool rec, bool share) : _recursive(rec), _sharing(share) {
+    //if(rec && share){
+    //  USER_ERROR("Theory flattening which is recursive with sharing has not been tested");
+    //}
+}
+
 void TheoryFlattening::apply(Problem& prb)
 {
   CALL("TheoryFlattening::apply(Problem&)");
@@ -93,7 +99,7 @@ bool TheoryFlattening::apply(ClauseList*& clauses)
  *
  * @author Giles
  */
-Clause* TheoryFlattening::apply(Clause*& cl)
+Clause* TheoryFlattening::apply(Clause*& cl,Stack<Literal*>& target)
 {
   CALL("TheoryFlattening::apply");
 
@@ -107,33 +113,48 @@ Clause* TheoryFlattening::apply(Clause*& cl)
     }
   }
 
-  // literals to be processed, start with those in clause
-  Stack<Literal*> lits;
-  for(int i= cl->length()-1; i>=0;i--){
-    lits.push((*cl)[i]);
-  }
-
   // The resultant lits
   Stack<Literal*> result;
   bool updated = false;
+
+  // literals to be processed, start with those in clause
+  Stack<Literal*> lits;
+  for(int i= cl->length()-1; i>=0;i--){
+    Literal* lit = (*cl)[i];
+    if(target.isEmpty() || target.find(lit)){
+      lits.push(lit);
+    }
+    else{ result.push(lit); }
+  }
+  
+  DHMap<Term*,unsigned> abstracted;
 
   // process lits
   while(!lits.isEmpty()){
     Literal* lit = lits.pop();
     if(lit->arity()==0){
       result.push(lit);
+      continue;
     }
+
     Stack<Literal*> newLits;
-    Literal* nlit = replaceTopTerms(lit,newLits,maxVar);
-    if(newLits.isEmpty()){
+    Literal* nlit = replaceTopTerms(lit,newLits,maxVar,abstracted);
+    if(nlit==lit){
+      ASS(newLits.isEmpty());
       result.push(lit);
     }
     else{
       //cout << lit->toString() << " flattened to " << nlit->toString() << endl; 
-      //for(unsigned i=0;i<newLits.length();i++){ cout << newLits[i]->toString() << endl; }
+      //for(unsigned i=0;i<newLits.length();i++){ cout << ">> " << newLits[i]->toString() << endl; }
       updated=true;
-      lits.push(nlit);
-      lits.loadFromIterator(Stack<Literal*>::Iterator(newLits));
+      if(_recursive){
+        lits.push(nlit);
+        lits.loadFromIterator(Stack<Literal*>::Iterator(newLits));
+      }
+      else{
+        result.push(nlit);
+        result.loadFromIterator(Stack<Literal*>::Iterator(newLits));
+      }
     } 
   }
   if(!updated){ return cl;}
@@ -150,22 +171,29 @@ Clause* TheoryFlattening::apply(Clause*& cl)
  *
  * @author Giles
  */
- Literal* TheoryFlattening::replaceTopTerms(Literal* lit, Stack<Literal*>& newLits,unsigned& maxVar)
+ Literal* TheoryFlattening::replaceTopTerms(Literal* lit, Stack<Literal*>& newLits,unsigned& maxVar,
+                                            DHMap<Term*,unsigned>& abstracted)
 {
   CALL("TheoryFlattening::replaceTopTerms");
   //cout << "replaceTopTerms " << lit->toString() << endl;
 
   // Tells us if we're looking for interpreted are non-interpreted terms to flatten out
   bool interpreted = theory->isInterpretedPredicate(lit);
+  bool equalityWithNumber = false;
   if(lit->isEquality()){
     interpreted=false;
     for(TermList* ts = lit->args(); ts->isNonEmpty(); ts = ts->next()){
       if(ts->isTerm() && env.signature->getFunction(ts->term()->functor())->interpreted()){
         interpreted=true;
       }
+      if(ts->isTerm() && theory->isInterpretedConstant(ts->term())){
+        equalityWithNumber = true;
+      }
     }
   }
   //cout << "interpreted is " << interpreted << endl;
+
+  bool updated = false;
 
   Stack<TermList> args;
 
@@ -176,23 +204,42 @@ Clause* TheoryFlattening::apply(Clause*& cl)
     }
     Term* t = ts->term();
 
+    //cout << "term " << t->toString() << " has interp=" << env.signature->getFunction(t->functor())->interpreted() << endl;
+
     // if interpreted status is different factor out
-    if(interpreted != env.signature->getFunction(t->functor())->interpreted()){
+    // but never factor out interpreted constants e.g. numbers
+    if(
+        !equalityWithNumber &&
+        (interpreted != env.signature->getFunction(t->functor())->interpreted()) && 
+        !theory->isInterpretedConstant(t) 
+      ){
       //cout << "Factoring out " << t->toString() << endl;
-      unsigned newVar = ++maxVar;
+
+      unsigned newVar;
+      bool create = false;
+      if(!(_sharing && abstracted.find(t,newVar))){
+        newVar = ++maxVar;
+        create=true;
+      }
       args.push(TermList(newVar,false));
-      unsigned sort = SortHelper::getResultSort(t);
-      newLits.push(Literal::createEquality(false,TermList(t),TermList(newVar,false),sort));
+      if(create){
+        unsigned sort = SortHelper::getResultSort(t);
+        Literal* lit = Literal::createEquality(false,TermList(t),TermList(newVar,false),sort);
+        newLits.push(lit);
+        abstracted.insert(t,newVar);
+      }
+      updated=true;
     } 
     else{
-      Term* tt = replaceTopTermsInTerm(t,newLits,maxVar,interpreted);
-      //cout << "ret " << tt->toString() << endl;
+      Term* tt = replaceTopTermsInTerm(t,newLits,maxVar,interpreted,abstracted);
+      if(tt!=t){ updated=true; }
+      //cout << "recurse in  " << tt->toString() << endl;
       args.push(TermList(tt));
     }
   }
 
-  if(newLits.isEmpty()) return lit;
-  else return Literal::create(lit,args.begin());
+  if(!updated){ return lit;}
+  return Literal::create(lit,args.begin());
 }
 
 /**
@@ -200,7 +247,8 @@ Clause* TheoryFlattening::apply(Clause*& cl)
  * @author Giles
  */
  Term* TheoryFlattening::replaceTopTermsInTerm(Term* term, Stack<Literal*>& newLits,
-                                               unsigned& maxVar,bool interpreted)
+                                               unsigned& maxVar,bool interpreted,
+                                               DHMap<Term*,unsigned>& abstracted)
 {
   CALL("TheoryFlattening::replaceTopTermsInTerm");
   //cout << "replaceTopTermsInTerm " << term->toString() << endl;
@@ -216,17 +264,43 @@ Clause* TheoryFlattening::apply(Clause*& cl)
     }
     Term* t = ts->term();
 
+    bool interpretedStatus = env.signature->getFunction(t->functor())->interpreted(); 
+
+    // do not abstract numbers out of uninterpreted things, no point
+    if(!interpreted && interpretedStatus){
+      interpretedStatus = !theory->isInterpretedNumber(t);
+    }
+  
+    //special check
+    if(interpretedStatus &&
+       theory->isInterpretedPartialFunction(t->functor()) &&
+       theory->isZero(*(t->nthArgument(1)))){
+
+       // If we have something of the form /0 or %0 then we treat it as uninterpreted
+         interpretedStatus=false; 
+    }
+
     // if interpreted status is different factor out
-    if(interpreted != env.signature->getFunction(t->functor())->interpreted()){
+    if(interpreted != interpretedStatus){ 
       //cout << "Factoring out " << t->toString() << endl;
-      unsigned newVar = ++maxVar;
+      
+      unsigned newVar;
+      bool create = false; 
+      if(!(_sharing && abstracted.find(t,newVar))){
+        newVar = ++maxVar;
+        create=true;
+      }
       args.push(TermList(newVar,false));
-      unsigned sort = SortHelper::getResultSort(t);
-      newLits.push(Literal::createEquality(false,TermList(t),TermList(newVar,false),sort));
+      if(create){
+        unsigned sort = SortHelper::getResultSort(t);
+        Literal* lit = Literal::createEquality(false,TermList(t),TermList(newVar,false),sort);
+        newLits.push(lit);
+        abstracted.insert(t,newVar);
+      }
       updated=true;
     }   
     else{
-      Term* tt = replaceTopTermsInTerm(t,newLits,maxVar,interpreted);
+      Term* tt = replaceTopTermsInTerm(t,newLits,maxVar,interpreted,abstracted);
       if(tt!=t){ updated=true; }
       args.push(TermList(tt));
     }

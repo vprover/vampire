@@ -22,6 +22,8 @@ public:
 
   TermQueryResultIterator getUnifications(TermList t,
 	  bool retrieveSubstitutions = true);
+  TermQueryResultIterator getUnificationsWithConstraints(TermList t,
+          bool retrieveSubstitutions = true);
   TermQueryResultIterator getGeneralizations(TermList t,
 	  bool retrieveSubstitutions = true);
   TermQueryResultIterator getInstances(TermList t,

@@ -495,7 +495,7 @@ bool MLVariant::isVariant(Literal* const * cl1Lits, Clause* cl2, bool complement
 
 fin:
   for(unsigned i=0;i<clen;i++) {
-    alts[i]->destroy();
+    LiteralList::destroy(alts[i]);
   }
 
   return !fail;

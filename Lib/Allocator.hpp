@@ -21,6 +21,8 @@
 #include <string>
 #endif
 
+#define MAKE_CALLS 0
+
 #define USE_PRECISE_CLASS_NAMES 0
 
 /** Page size in bytes */
@@ -57,19 +59,19 @@ public:
   /** Return the amount of used memory */
   static size_t getUsedMemory()
   {
-    CALL("Allocator::getUsedMemory");
+    CALLC("Allocator::getUsedMemory",MAKE_CALLS);
     return _usedMemory;
   }
   /** Return the global memory limit (in bytes) */
   static size_t getMemoryLimit()
   {
-    CALL("Allocator::getMemoryLimit");
+    CALLC("Allocator::getMemoryLimit",MAKE_CALLS);
     return _memoryLimit;
   }
   /** Set the global memory limit (in bytes) */
   static void setMemoryLimit(size_t size)
   {
-    CALL("Allocator::setMemoryLimit");
+    CALLC("Allocator::setMemoryLimit",MAKE_CALLS);
     _memoryLimit = size;
     _tolerated = size + (size/10);
   }
@@ -98,7 +100,7 @@ public:
     /** Initialise the static allocator's methods */
     Initialiser()
     {
-      CALL("Allocator::Initialiser::Initialiser");
+      CALLC("Allocator::Initialiser::Initialiser",MAKE_CALLS);
 
       if (Allocator::_initialised++ == 0) {
 	Allocator::initialise();
@@ -107,7 +109,7 @@ public:
 
     ~Initialiser()
     {
-      CALL("Allocator::Initialiser::~Initialiser");
+      CALLC("Allocator::Initialiser::~Initialiser",MAKE_CALLS);
       if (--Allocator::_initialised == 0) {
 	Allocator::cleanup();
       }
@@ -289,10 +291,10 @@ private:
    * See also Allocator::AllowBypassing and the BYPASSING_ALLOCATOR macro.
    */
   static unsigned _tolerantZone;  
-  friend void* ::operator new(size_t) throw(std::bad_alloc);
-  friend void* ::operator new[](size_t) throw(std::bad_alloc);
-  friend void ::operator delete(void*) throw();
-  friend void ::operator delete[](void*) throw();
+  friend void* ::operator new(size_t);    // throw(std::bad_alloc); // dynamic exception specifications are deprecated in C++11
+  friend void* ::operator new[](size_t);  // throw(std::bad_alloc);
+  friend void ::operator delete(void*);   // throw();
+  friend void ::operator delete[](void*); // throw();
 #endif
 }; // class Allocator
 
@@ -314,7 +316,7 @@ static Allocator::Initialiser _____;
 template<typename T>
 T* array_new(void* placement, size_t length)
 {
-  CALL("array_new");
+  CALLC("array_new",MAKE_CALLS);
   ASS_NEQ(placement,0);
   ASS_G(length,0);
 
@@ -336,7 +338,7 @@ T* array_new(void* placement, size_t length)
 template<typename T>
 void array_delete(T* array, size_t length)
 {
-  CALL("array_delete");
+  CALLC("array_delete",MAKE_CALLS);
   ASS_NEQ(array,0);
   ASS_G(length,0);
 

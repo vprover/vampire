@@ -586,7 +586,7 @@ public:
   DECL_ELEMENT_TYPE(ResultType);
   explicit MappingIterator(Inner inner, Functor func)
   : _func(func), _inner(inner) {}
-  inline bool hasNext() { return _inner.hasNext(); };
+  inline bool hasNext() { CALL("MappingIterator::hasNext"); return _inner.hasNext(); };
   inline ResultType next() { return _func(_inner.next()); };
 
   /**
@@ -724,6 +724,7 @@ public:
   inline
   T next()
   {
+    CALL("FlatteningIterator::next");
     ASS(_current.hasNext());
     return _current.next();
   }
@@ -774,6 +775,7 @@ public:
   inline
   T next()
   {
+    CALL("FlatteningIterator::next");
     ASS(_current.hasNext());
     return _current.next();
   }
@@ -847,7 +849,7 @@ public:
   ~PersistentIterator()
   {
     if(_items) {
-      _items->destroy();
+      List<T>::destroy(_items);
     }
   }
   inline bool hasNext() { return _items; };
@@ -906,7 +908,7 @@ public:
   ~UniquePersistentIterator()
   {
     if(_items) {
-      _items->destroy();
+      ItemList::destroy(_items);
     }
   }
   inline bool hasNext() { return _items; };

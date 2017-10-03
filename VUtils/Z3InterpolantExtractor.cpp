@@ -353,7 +353,7 @@ ZIE::ProofObject ZIE::readProofObject(LExpr* expr)
 	LISP_ERROR("invalid lemma premise", expr);
       }
 
-      List<TermList>* remainingHyp = prem.hypotheses->copy();
+      List<TermList>* remainingHyp = List<TermList>::copy(prem.hypotheses);
       resolveHypotheses(remainingHyp, lemmaTrm);
 
       Inference* inf = new Inference1(Inference::EXTERNAL, prem.unit);

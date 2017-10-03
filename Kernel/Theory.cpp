@@ -1016,7 +1016,7 @@ bool Theory::isConversionOperation(Interpretation i)
 }
 bool Theory::isLinearOperation(Interpretation i)
 {
-  CALL("Theory::isComparisonOperation");
+  CALL("Theory::isLinearOperation");
 
   switch(i) {
   case INT_UNARY_MINUS:
@@ -1035,7 +1035,7 @@ bool Theory::isLinearOperation(Interpretation i)
 }
 bool Theory::isNonLinearOperation(Interpretation i)
 {
-  CALL("Theory::isComparisonOperation");
+  CALL("Theory::isNonLinearOperation");
 
   switch(i) {
   case INT_MULTIPLY:
@@ -1054,6 +1054,36 @@ bool Theory::isNonLinearOperation(Interpretation i)
   case RAT_REMAINDER_T:
   case RAT_REMAINDER_F:
   case REAL_MULTIPLY:
+  case REAL_QUOTIENT:
+  case REAL_QUOTIENT_E:
+  case REAL_QUOTIENT_T:
+  case REAL_QUOTIENT_F:
+  case REAL_REMAINDER_E:
+  case REAL_REMAINDER_T:
+  case REAL_REMAINDER_F:
+    return true;
+  default:
+    return false;
+  }
+}
+bool Theory::isPartialFunction(Interpretation i)
+{
+  CALL("Theory::isPartialFunction");
+
+  switch(i) {
+  case INT_QUOTIENT_E:
+  case INT_QUOTIENT_T:
+  case INT_QUOTIENT_F:
+  case INT_REMAINDER_E:
+  case INT_REMAINDER_T:
+  case INT_REMAINDER_F:
+  case RAT_QUOTIENT:
+  case RAT_QUOTIENT_E:
+  case RAT_QUOTIENT_T:
+  case RAT_QUOTIENT_F:
+  case RAT_REMAINDER_E:
+  case RAT_REMAINDER_T:
+  case RAT_REMAINDER_F:
   case REAL_QUOTIENT:
   case REAL_QUOTIENT_E:
   case REAL_QUOTIENT_T:
@@ -1771,11 +1801,21 @@ bool Theory::isInterpretedConstant(TermList t)
 /**
  * Return true iff @b t is a constant with a numerical interpretation
  */
+bool Theory::isInterpretedNumber(Term* t)
+{
+  CALL("Theory::isInterpretedNumber(TermList)");
+
+  return isInterpretedConstant(t) && env.signature->getFunction(t->functor())->interpretedNumber();
+}
+
+/**
+ * Return true iff @b t is a constant with a numerical interpretation
+ */
 bool Theory::isInterpretedNumber(TermList t)
 {
   CALL("Theory::isInterpretedNumber(TermList)");
 
-  return isInterpretedConstant(t) && env.signature->getFunction(t.term()->functor())->numericConstant();
+  return isInterpretedConstant(t) && env.signature->getFunction(t.term()->functor())->interpretedNumber();
 }
 
 /**
@@ -1796,7 +1836,8 @@ bool Theory::isInterpretedPredicate(Literal* lit)
   CALL("Theory::isInterpretedPredicate");
 
   if(lit->isEquality()){
-    return SortHelper::getEqualityArgumentSort(lit)!=Sorts::SRT_DEFAULT;
+    unsigned srt = SortHelper::getEqualityArgumentSort(lit);
+    return (srt > Sorts::SRT_DEFAULT && srt < Sorts::FIRST_USER_SORT);
   }
 
   return isInterpretedPredicate(lit->functor());
@@ -1823,6 +1864,33 @@ bool Theory::isInterpretedFunction(unsigned func)
   }
 
   return env.signature->getFunction(func)->interpreted() && env.signature->functionArity(func)!=0;
+}
+bool Theory::isInterpretedPartialFunction(unsigned func)
+{
+  CALL("Theory::isInterpretedPartialFunction(unsigned)");
+
+  if(!isInterpretedFunction(func)){ return false; }
+
+  bool result =  isPartialFunction(interpretFunction(func));
+  ASS(!result || env.signature->functionArity(func)==2);
+  return result;
+}
+
+bool Theory::isZero(TermList term)
+{
+  CALL("Theory::isZero");
+
+
+  IntegerConstantType it;
+  if(tryInterpretConstant(term,it) && it.isZero()){ return true; }
+
+  RationalConstantType rtt;
+  if(tryInterpretConstant(term,rtt) && rtt.isZero()){ return true; }
+
+  RealConstantType ret;
+  if(tryInterpretConstant(term,ret) && ret.isZero()){ return true; }
+
+  return false;
 }
 
 

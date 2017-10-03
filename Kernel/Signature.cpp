@@ -121,14 +121,15 @@ void Signature::Symbol::addToDistinctGroup(unsigned group,unsigned this_number)
   CALL("Signature::Symbol::addToDistinctGroup");
 
   ASS_EQ(arity(), 0);
-  ASS(!_distinctGroups->member(group))
+  ASS(!List<unsigned>::member(group, _distinctGroups))
 
   List<unsigned>::push(group, _distinctGroups);
 
   env.signature->_distinctGroupsAddedTo=true;
 
   Stack<unsigned>* members = env.signature->_distinctGroupMembers[group];
-  if(members->size()<6 || env.options->bfnt() 
+  // see DistinctGroupExpansion::apply for why 141
+  if(members->size()<141 || env.options->bfnt()
                        || env.options->saturationAlgorithm()==Options::SaturationAlgorithm::FINITE_MODEL_BUILDING){ 
     members->push(this_number);
   }
@@ -345,7 +346,9 @@ unsigned Signature::addIntegerConstant(const vstring& number,bool defaultSort)
   result = _funs.length();
   Symbol* sym = new Symbol(name,0,false,false,true);
   sym->addToDistinctGroup(INTEGER_DISTINCT_GROUP,result);
-  sym->addToDistinctGroup(STRING_DISTINCT_GROUP,result); // numbers are disctinct from strings
+  if(defaultSort){ 
+     sym->addToDistinctGroup(STRING_DISTINCT_GROUP,result); // numbers are disctinct from strings
+  }
   _funs.push(sym);
   _funNames.insert(symbolKey,result);
   return result;
@@ -410,7 +413,7 @@ unsigned Signature::addIntegerConstant(const IntegerConstantType& value)
   _funs.push(sym);
   _funNames.insert(key,result);
   sym->addToDistinctGroup(INTEGER_DISTINCT_GROUP,result);
-  sym->addToDistinctGroup(STRING_DISTINCT_GROUP,result); // numbers are distinct from strings
+  //sym->addToDistinctGroup(STRING_DISTINCT_GROUP,result); // numbers are distinct from strings
   return result;
 } // addIntegerConstant
 
@@ -437,7 +440,9 @@ unsigned Signature::addRationalConstant(const vstring& numerator, const vstring&
   }
   result = _funs.length();
   Symbol* sym = new Symbol(name,0,false,false,true);
-  sym->addToDistinctGroup(STRING_DISTINCT_GROUP,result); // numbers are distinct from strings
+  if(defaultSort){ 
+    sym->addToDistinctGroup(STRING_DISTINCT_GROUP,result); // numbers are distinct from strings
+  }
   sym->addToDistinctGroup(RATIONAL_DISTINCT_GROUP,result);
   _funs.push(sym);
   _funNames.insert(key,result);
@@ -481,7 +486,9 @@ unsigned Signature::addRealConstant(const vstring& number,bool defaultSort)
   }
   result = _funs.length();
   Symbol* sym = new Symbol(value.toNiceString(),0,false,false,true);
-  sym->addToDistinctGroup(STRING_DISTINCT_GROUP,result); // numbers are distinct from strings
+  if(defaultSort){ 
+    sym->addToDistinctGroup(STRING_DISTINCT_GROUP,result); // numbers are distinct from strings
+  }
   sym->addToDistinctGroup(REAL_DISTINCT_GROUP,result);
   _funs.push(sym);
   _funNames.insert(key,result);
@@ -981,6 +988,10 @@ bool Signature::symbolNeedsQuoting(vstring name, bool interpreted, unsigned arit
     //TODO: remove this once we properly support the $distinct predicate and quoting
     return false;
   }
+  if (name.find("$array") == 0) {
+    //TODO: a hacky solution not to quote array sorts
+    return false;
+  }
   return true;
 } // Signature::symbolNeedsQuoting
 
@@ -1034,6 +1045,23 @@ unsigned Signature::addVar (const vstring& name,
   return result;
 } // Signature::addFunction
 
+TermAlgebraConstructor* Signature::getTermAlgebraConstructor(unsigned functor)
+{
+  CALL("Signature::getTermAlgebraConstructor");
+
+  if (getFunction(functor)->termAlgebraCons()) {
+    TermAlgebra *ta = _termAlgebras.get(getFunction(functor)->fnType()->result());
+    if (ta) {
+      for (unsigned i = 0; i < ta->nConstructors(); i++) {
+        TermAlgebraConstructor *c = ta->constructor(i);
+        if (c->functor() == functor)
+          return c;
+      }
+    }
+  }
+
+  return nullptr;
+}
 
 /**
  * Return true if the name containing che character must be quoted

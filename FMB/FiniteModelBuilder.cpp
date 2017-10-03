@@ -57,24 +57,43 @@
 
 #define VTRACE_DOMAINS 0
 
+#define LOG(X) // cout << #X <<  X << endl;
+
 namespace FMB 
 {
 
 FiniteModelBuilder::FiniteModelBuilder(Problem& prb, const Options& opt)
 : MainLoop(prb, opt), _sortedSignature(0), _groundClauses(0), _clauses(0),
-                      _isComplete(true)
+                      _isAppropriate(true)
 
 {
   CALL("FiniteModelBuilder::FiniteModelBuilder");
 
-  // If we are incomplete then stop now
-  // Can be incomplete if we used incomplete version of equality proxy
-  if(!opt.complete(prb)){
-    _isComplete = false;
+  Property& prop = *prb.getProperty();
+
+  LOG(prop.hasInterpretedOperations());
+  LOG(prop.hasProp(Property::PR_HAS_INTEGERS));
+  LOG(prop.hasProp(Property::PR_HAS_REALS));
+  LOG(prop.hasProp(Property::PR_HAS_RATS));
+  LOG(prop.hasProp(Property::PR_HAS_DT_CONSTRUCTORS));
+  LOG(prop.hasProp(Property::PR_HAS_CDT_CONSTRUCTORS));
+  LOG(prop.knownInfiniteDomain());
+
+  if (prb.hadIncompleteTransformation() ||
+      opt.sineSelection() != Options::SineSelection::OFF ||
+      prop.hasInterpretedOperations()
+            || prop.hasProp(Property::PR_HAS_INTEGERS)
+            || prop.hasProp(Property::PR_HAS_REALS)
+            || prop.hasProp(Property::PR_HAS_RATS)
+            || prop.knownInfiniteDomain() || // recursive data type provably infinite --> don't bother model building
+      env.property->hasInterpretedOperations()) {
+    _isAppropriate = false;
+
     // to ensure it is initialised
     _dsaEnumerator = 0;
     return;
   }
+
   // Record option values
   _startModelSize = opt.fmbStartSize();
   _symmetryRatio = opt.fmbSymmetryRatio();
@@ -386,7 +405,7 @@ void FiniteModelBuilder::init()
   CALL("FiniteModelBuilder::init");
 
   // If we're not complete don't both doing anything
-  if(!_isComplete) return;
+  if(!_isAppropriate) return;
 
   if(!_prb.units()) return;
 
@@ -495,12 +514,12 @@ void FiniteModelBuilder::init()
 #if VTRACE_FMB
       //cout << "Add ground clause " << c->toString() << endl;
 #endif
-      _groundClauses = _groundClauses->cons(c);
+      ClauseList::push(c, _groundClauses);
     }else{
 #if VTRACE_FMB
     //cout << "Add non-ground clause " << c->toString() << endl;
 #endif
-    _clauses = _clauses->cons(c);
+      ClauseList::push(c, _clauses);
 
     }
   }
@@ -1493,7 +1512,7 @@ MainLoopResult FiniteModelBuilder::runImpl()
 {
   CALL("FiniteModelBuilder::runImpl");
 
-  if(!_isComplete){
+  if(!_isAppropriate){
     // give up!
     return MainLoopResult(Statistics::INAPPROPRIATE);
   }
@@ -1541,7 +1560,7 @@ MainLoopResult FiniteModelBuilder::runImpl()
 
   if (reset()) {
   while(true){
-    if(outputAllowed()) { 
+    if(outputAllowed()) {
       cout << "TRYING " << "["; 
       for(unsigned i=0;i<_distinctSortSizes.size();i++){
         cout << _distinctSortSizes[i];
@@ -1783,11 +1802,14 @@ MainLoopResult FiniteModelBuilder::runImpl()
 
   gave_up: // for jumping because of other reasons to give up (message printed elsewhere)
 
+  /*
+  // Giles: In CASC mode we should only print GaveUp at the very end
   if(UIHelper::szsOutput) {
     env.beginOutput();
     env.out() << "% SZS status GaveUp for " << _opt.problemName() << endl;
     env.endOutput();
   }
+  */
 
   return MainLoopResult(Statistics::REFUTATION_NOT_FOUND);
 }
@@ -1799,15 +1821,14 @@ void FiniteModelBuilder::onModelFound()
  if(_opt.proof()==Options::Proof::OFF){ 
    return; 
  }
- if(_opt.mode()==Options::Mode::SPIDER){
-   reportSpiderStatus('-');
- }
+
+ reportSpiderStatus('-');
  if(outputAllowed()){
    cout << "Finite Model Found!" << endl;
  }
 
  //we need to print this early because model generating can take some time
- if(UIHelper::szsOutput) {
+ if(szsOutputMode()) {
    env.beginOutput();
    env.out() << "% SZS status "<<( UIHelper::haveConjecture() ? "CounterSatisfiable" : "Satisfiable" )
        << " for " << _opt.problemName() << endl << flush;

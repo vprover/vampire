@@ -143,7 +143,7 @@ void ELiteralSelector::doSelection(Clause* c, unsigned eligible)
   }
 
   if(singleSel) {
-    sel->destroy();
+    LiteralList::destroy(sel);
     sel = LiteralList::empty();
     LiteralList::push(singleSel,sel);
   } else if (!sel) {

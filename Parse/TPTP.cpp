@@ -1857,7 +1857,7 @@ void TPTP::endBinding() {
     argSorts.push(sorts->head());
   }
 
-  unsigned arity = (unsigned)vars->length();
+  unsigned arity = Formula::VarList::length(vars);
 
   TermList binding = _termLists.top();
   unsigned bindingSort = sortOf(binding);
@@ -1940,7 +1940,7 @@ void TPTP::endTupleBinding() {
       env.signature->getFunction(symbol)->setType(new FunctionType(sort));
     }
 
-    constants = constants->cons(symbol);
+    IntList::push(symbol, constants);
 
     LetFunctionName functionName(name, 0);
     LetFunctionReference functionReference(symbol, isPredicate);
@@ -2208,9 +2208,11 @@ void TPTP::term()
         case T_REAL:
           number = addRealConstant(tok.content,_overflow,_isFof);
           break;
-        default: // T_RAT
+        case T_RAT:
           number = addRationalConstant(tok.content,_overflow,_isFof);
           break;
+        default:
+          ASSERTION_VIOLATION;
       }
       Term *t = new(0) Term;
       t->makeSymbol(number, 0);
@@ -2915,11 +2917,11 @@ void TPTP::endFof()
     if (_isQuestion && ((env.options->mode() == Options::Mode::CLAUSIFY) || (env.options->mode() == Options::Mode::TCLAUSIFY)) && f->connective() == EXISTS) {
       // create an answer predicate
       QuantifiedFormula* g = static_cast<QuantifiedFormula*>(f);
-      int arity = g->vars()->length();
+      unsigned arity = Formula::VarList::length(g->vars());
       unsigned pred = env.signature->addPredicate("$$answer",arity);
       env.signature->getPredicate(pred)->markAnswerPredicate();
       Literal* a = new(arity) Literal(pred,arity,true,false);
-      List<int>::Iterator vs(g->vars());
+      Formula::VarList::Iterator vs(g->vars());
       int i = 0;
       while (vs.hasNext()) {
 	a->nthArgument(i++)->makeVar(vs.next());
@@ -3512,14 +3514,8 @@ Formula* TPTP::makeJunction (Connective c,Formula* lhs,Formula* rhs)
  */
 unsigned TPTP::addFunction(vstring name,int arity,bool& added,TermList& arg)
 {
-  CALL("TPTP::aion");
+  CALL("TPTP::addFunction");
 
-  if (name[0] != '$' || (name.length() > 1 && name[1] == '$')) {
-    if (arity > 0) {
-      return env.signature->addFunction(name,arity,added);
-    }
-    return addUninterpretedConstant(name,_overflow,added);
-  }
   if (name == "$sum") {
     return addOverloadedFunction(name,arity,2,added,arg,
 				 Theory::INT_PLUS,
@@ -3665,8 +3661,11 @@ unsigned TPTP::addFunction(vstring name,int arity,bool& added,TermList& arg)
 				 Theory::RAT_TO_REAL,
 				 Theory::REAL_TO_REAL);
   }
-ASSERTION_VIOLATION;
-  USER_ERROR((vstring)"Invalid function name: " + name);
+
+  if (arity > 0) {
+    return env.signature->addFunction(name,arity,added);
+  }
+  return addUninterpretedConstant(name,_overflow,added);
 } // addFunction
 
 /** Add a predicate to the signature
@@ -3682,9 +3681,6 @@ int TPTP::addPredicate(vstring name,int arity,bool& added,TermList& arg)
 {
   CALL("TPTP::addPredicate");
 
-  if (name[0] != '$' || (name.length() > 1 && name[1] == '$')) {
-    return env.signature->addPredicate(name,arity,added);
-  }
   if (name == "$evaleq" || name == "$equal") {
     return -1;
   }
@@ -3737,7 +3733,7 @@ int TPTP::addPredicate(vstring name,int arity,bool& added,TermList& arg)
     // special case for distinct, dealt with in formulaInfix
     return -2;
   }
-  USER_ERROR((vstring)"Invalid predicate name: " + name);
+  return env.signature->addPredicate(name,arity,added);
 } // addPredicate
 
 

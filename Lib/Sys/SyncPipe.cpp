@@ -5,8 +5,6 @@
 
 #include "Lib/Portability.hpp"
 
-#if !COMPILER_MSVC
-
 #include <cerrno>
 #include <unistd.h>
 
@@ -65,8 +63,8 @@ SyncPipe::~SyncPipe()
   CALL("SyncPipe::~SyncPipe");
 
   releasePrivileges();
-  ASS(s_instances->member(this));
-  s_instances=s_instances->remove(this);
+  ASS(PipeList::member(this, s_instances));
+  s_instances = PipeList::remove(this, s_instances);
 
   if(canRead()) {
     neverRead();
@@ -267,4 +265,3 @@ void SyncPipe::ensureEventHandlersInstalled()
 }
 }
 
-#endif //!COMPILER_MSVC

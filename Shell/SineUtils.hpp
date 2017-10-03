@@ -59,7 +59,7 @@ public:
   SineSelector(const Options& opt);
   SineSelector(bool onIncluded, float tolerance, unsigned depthLimit, unsigned genThreshold=0);
 
-  void perform(UnitList*& units);
+  bool perform(UnitList*& units); // returns true iff removed something
   void perform(Problem& prb);
 private:
   void init();

@@ -116,7 +116,7 @@ class Int
    * Otherwise, return false.
    */
   template<typename INT>
-  static bool safeUnaryMinus(INT num, INT& res)
+  static bool safeUnaryMinus(const INT num, INT& res)
   {
     CALL("Int::safeUnaryMinus");
 

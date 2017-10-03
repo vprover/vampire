@@ -7,15 +7,10 @@
 #include "Portability.hpp"
 
 #include <stdlib.h>
-#if COMPILER_MSVC
-#  include <Winsock2.h>
-#  include <process.h>
-#else
 #  include <unistd.h>
 #  if !__APPLE__ && !__CYGWIN__
 #    include <sys/prctl.h>
 #  endif
-#endif
 
 #include <dirent.h>
 
@@ -25,11 +20,13 @@
 #include <cstdlib>
 #include <iostream>
 #include <fstream>
+#include <thread>
 
 #include "Debug/Tracer.hpp"
 
 #include "Shell/Options.hpp"
 #include "Shell/Statistics.hpp"
+#include "Shell/UIHelper.hpp"
 
 #include "Environment.hpp"
 #include "Exception.hpp"
@@ -39,63 +36,6 @@
 #include "VString.hpp"
 
 #include "System.hpp"
-
-bool outputAllowed(bool debug)
-{
-#if VDEBUG
-  if(debug){ return true; }
-#endif
-  return !Lib::env.options || (Lib::env.options->mode()!=Shell::Options::Mode::SPIDER
-                               && Lib::env.options->proof()!=Shell::Options::Proof::SMTCOMP ); 
-}
-
-bool inSpiderMode()
-{
-  return Lib::env.options && Lib::env.options->mode()==Shell::Options::Mode::SPIDER;
-}
-
-void reportSpiderFail()
-{
-  reportSpiderStatus('!');
-}
-
-void reportSpiderStatus(char status)
-{
-  using namespace Lib;
-
-  static bool headerPrinted=false;
-
-  if(inSpiderMode() && !headerPrinted) {
-    headerPrinted=true;
-
-    env.beginOutput();
-    env.out() << status << " "
-      << (Lib::env.options ? Lib::env.options->problemName() : "unknown") << " "
-      << (Lib::env.timer ? Lib::env.timer->elapsedDeciseconds() : 0) << " "
-      << (Lib::env.options ? Lib::env.options->testId() : "unknown") << "\n";
-    env.endOutput();
-  }
-}
-
-#if COMPILER_MSVC
-
-#include <windows.h>
-
-long long Lib::System::getSystemMemory()
-{
-  MEMORYSTATUSEX status;
-  GlobalMemoryStatusEx(&status);
-  return status.ullTotalPhys;
-}
-
-unsigned Lib::System::getNumberOfCores()
-{
-  SYSTEM_INFO sysinfo;
-  GetSystemInfo( &sysinfo );
-  return sysinfo.dwNumberOfProcessors;
-}
-
-#else
 
 #include <unistd.h>
 
@@ -112,15 +52,8 @@ long long Lib::System::getSystemMemory()
 
 unsigned Lib::System::getNumberOfCores()
 {
-#if __APPLE__ || __CYGWIN__
-  NOT_IMPLEMENTED;
-#else
-  return sysconf( _SC_NPROCESSORS_ONLN );
-#endif
+  return std::thread::hardware_concurrency();
 }
-
-
-#endif
 
 namespace Lib {
 
@@ -405,15 +338,13 @@ void System::terminateImmediately(int resultStatus)
  * Make sure that the process will receive the SIGHUP signal
  * when its parent process dies
  *
- * This setting is not passed to the child precesses created by fork().
+ * This setting is not passed to the child processes created by fork().
  */
 void System::registerForSIGHUPOnParentDeath()
 {
-#if __APPLE__ || COMPILER_MSVC || __CYGWIN__
-  if(env.options->mode()!=Shell::Options::Mode::SMTCOMP){
-   cerr<<"Death of parent process not being handled on Mac and Windows"<<endl;
-  }
-//  NOT_IMPLEMENTED;
+#if __APPLE__ || __CYGWIN__
+  // cerr<<"Death of parent process not being handled on Mac and Windows"<<endl;
+  // NOT_IMPLEMENTED;
 #else
   prctl(PR_SET_PDEATHSIG, SIGHUP);
 #endif
@@ -513,12 +444,7 @@ pid_t System::getPID()
 {
   CALL("System::getPID");
 
-#if !COMPILER_MSVC
   return getpid();
-#else
-  //TODO: Implement pid retrieval for windows
-  return 0;
-#endif
 }
 
 void System::readDir(vstring dirName, Stack<vstring>& filenames)
@@ -577,9 +503,6 @@ int System::executeCommand(vstring command, vstring input, Stack<vstring>& outpu
 {
   CALL("System::executeCommand");
 
-#if COMPILER_MSVC
-  NOT_IMPLEMENTED;
-#else
   vstring pidStr = Int::toString(getPID());
   vstring inFile  = "/tmp/vampire_executeCommand_"+pidStr+"_in";
   vstring outFile = "/tmp/vampire_executeCommand_"+pidStr+"_out";
@@ -623,8 +546,6 @@ int System::executeCommand(vstring command, vstring input, Stack<vstring>& outpu
   else {
     return -0xffff;
   }
-
-#endif
 }
 
 };

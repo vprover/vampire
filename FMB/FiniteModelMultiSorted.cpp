@@ -184,14 +184,14 @@ vstring FiniteModelMultiSorted::toString()
     vstring sortNameLabel = (s==Sorts::SRT_BOOL) ? "bool" : sortName;
 
     // Sort declaration
-    modelStm << "tff(declare" << sortNameLabel << ",type,"<<sortName<<":$tType)." <<endl; 
+    modelStm << "tff(" << prepend("declare_", sortNameLabel) << ",type,"<<sortName<<":$tType)." <<endl;
 
     cnames[s].ensure(size+1);
 
 
     // Domain constant declarations
     for(unsigned i=1;i<=size;i++){
-      modelStm << "tff(declare_" << sortNameLabel << i << ",type,";
+      modelStm << "tff(" << append(prepend("declare_", sortNameLabel), Int::toString(i).c_str()) << ",type,";
       int frep = sortRepr[s][i];
       vstring cname = "fmb_"+sortNameLabel+"_"+Lib::Int::toString(i);
       if(frep >= 0){
@@ -245,9 +245,9 @@ vstring FiniteModelMultiSorted::toString()
     if(name == cname) continue;
 
     vstring sortName = env.sorts->sortName(srt);
-    modelStm << "tff(declare_"<<name<<",type,"<<name<<":"<<sortName<<")."<<endl;
+    modelStm << "tff("<<prepend("declare_", name)<<",type,"<<name<<":"<<sortName<<")."<<endl;
     if(res>0){ 
-      modelStm << "tff("<<name<<"_definition,axiom,"<<name<<" = " << cname << ")."<<endl;
+      modelStm << "tff("<<append(name,"_definition")<<",axiom,"<<name<<" = " << cname << ")."<<endl;
     }
     else{
       modelStm << "% " << name << " undefined in model" << endl; 
@@ -262,14 +262,14 @@ vstring FiniteModelMultiSorted::toString()
     vstring name = env.signature->functionName(f);
 
     FunctionType* sig = env.signature->getFunction(f)->fnType();
-    modelStm << "tff(declare_"<<name<<",type,"<<name<<": ";
+    modelStm << "tff("<<prepend("declare_", name)<<",type,"<<name<<": ";
     for(unsigned i=0;i<arity;i++){
       modelStm << env.sorts->sortName(sig->arg(i));
       if(i+1 < arity) modelStm << " * ";
     }
     modelStm << " > " << env.sorts->sortName(sig->result()) << ")." << endl; 
 
-    modelStm << "tff(function_"<<name<<",axiom,"<<endl;
+    modelStm << "tff("<<prepend("function_", name)<<",axiom,"<<endl;
 
     unsigned offset = f_offsets[f];
 
@@ -328,12 +328,13 @@ fModelLabel:
     if(arity>0) continue;
     if(!printIntroduced && env.signature->getPredicate(f)->introduced()) continue;
     vstring name = env.signature->predicateName(f);
+    modelStm << "tff("<<prepend("declare_", name)<<",type,"<<name<<": $o).";
     unsigned res = p_interpretation[p_offsets[f]];
     if(res==2){
-      modelStm << "tff("<<name<<"_definition,axiom,"<<name<< ")."<<endl;
+      modelStm << "tff("<<append(name,"_definition")<<",axiom,"<<name<< ")."<<endl;
     }
     else if(res==1){
-      modelStm << "tff("<<name<<"_definition,axiom,~"<<name<< ")."<<endl;
+      modelStm << "tff("<<append(name,"_definition")<<",axiom,~"<<name<< ")."<<endl;
     }
     else{
       modelStm << "% " << name << " undefined" << endl;
@@ -348,15 +349,15 @@ fModelLabel:
     vstring name = env.signature->predicateName(f);
 
     PredicateType* sig = env.signature->getPredicate(f)->predType();
-    modelStm << "tff(declare_"<<name<<",type,"<<name<<": ";
-    for(unsigned i=0;i<arity;i++){ 
+    modelStm << "tff("<<prepend("declare_", name)<<",type,"<<name<<": ";
+    for(unsigned i=0;i<arity;i++){
       modelStm << env.sorts->sortName(sig->arg(i));
       if(i+1 < arity) modelStm << " * ";
     }
     modelStm << " > $o )." << endl;
 
 
-    modelStm << "fof(predicate_"<<name<<",axiom,"<<endl;
+    modelStm << "tff("<<prepend("predicate_", name)<<",axiom,"<<endl;
 
     unsigned offset = p_offsets[f];
 

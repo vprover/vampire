@@ -18,8 +18,10 @@
 #include "Lib/Map.hpp"
 #include "Lib/DHMap.hpp"
 #include "Lib/VString.hpp"
+#include "Lib/Environment.hpp"
 
 #include "Shell/TermAlgebra.hpp"
+#include "Shell/Options.hpp"
 
 #include "Sorts.hpp"
 #include "Theory.hpp"
@@ -293,7 +295,7 @@ class Signature
 
   public:
     RealSymbol(const RealConstantType& val)
-    : Symbol(val.toNiceString(), 0, true), _realValue(val)
+    : Symbol((env.options->proof() == Shell::Options::Proof::PROOFCHECK) ? "$to_real("+val.toString()+")" : val.toNiceString(), 0, true), _realValue(val)
     {
       CALL("RealSymbol");
 
@@ -556,6 +558,7 @@ class BitVectorSymbol
   Shell::TermAlgebra *getTermAlgebraOfSort(unsigned sort) { return _termAlgebras.get(sort); }
   void addTermAlgebra(Shell::TermAlgebra *ta) { _termAlgebras.insert(ta->sort(), ta); }
   VirtualIterator<Shell::TermAlgebra*> termAlgebrasIterator() const { return _termAlgebras.range(); }
+  Shell::TermAlgebraConstructor* getTermAlgebraConstructor(unsigned functor);
 
   void recordDividesNvalue(TermList n){
     _dividesNvalues.push(n);

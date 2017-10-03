@@ -147,8 +147,20 @@ void SplittingBranchSelector::considerPolarityAdvice(SATLiteral lit)
   }
 }
 
-static Color colorFromAssumedFOConversion(SATInference* inf,Unit*& u)
+static Color colorFromPossiblyDeepFOConversion(SATClause* scl,Unit*& u)
 {
+  /* all the clauses added to AVATAR are FO_CONVERSIONs except when there is a duplicate literal
+   and Preprocess::removeDuplicateLiterals creates an extra inference with a single premise ``in between''.*/
+  if (scl->inference()->getType() != SATInference::FO_CONVERSION) {
+    ASS_EQ(scl->inference()->getType(),SATInference::PROP_INF);
+    PropInference* inf = static_cast<PropInference*>(scl->inference());
+    SATClauseList* premises = inf->getPremises();
+    ASS_EQ(SATClauseList::length(premises),1);
+    scl = premises->head();
+  }
+
+  SATInference* inf = scl->inference();
+
   ASS_EQ(inf->getType(),SATInference::FO_CONVERSION);
   u = static_cast<FOConversionInference*>(inf)->getOrigin();
   Inference* i = u->inference();
@@ -197,7 +209,7 @@ void SplittingBranchSelector::handleSatRefutation()
       // cout << "SAT: " << scl->toString() << endl;
 
       Unit* dummy;
-      Color c = colorFromAssumedFOConversion(scl->inference(),dummy);
+      Color c = colorFromPossiblyDeepFOConversion(scl,dummy);
 
       ASS_L(c,COLOR_INVALID);
       colorCnts[c]++;
@@ -219,7 +231,7 @@ void SplittingBranchSelector::handleSatRefutation()
     while (it2.hasNext()) {
       SATClause* scl = it2.next();
       Unit* u;
-      Color c = colorFromAssumedFOConversion(scl->inference(),u);
+      Color c = colorFromPossiblyDeepFOConversion(scl,u);
 
       if (c == sndCol) {
         second.push(scl);
@@ -270,7 +282,7 @@ void SplittingBranchSelector::handleSatRefutation()
         Formula* clFla;
         if (cl->size() == 1) {
           clFla = disjuncts->head();
-          disjuncts->destroy();
+          FormulaList::destroy(disjuncts);
         } else {
           clFla = JunctionFormula::generalJunction(OR, disjuncts);
         }
@@ -280,7 +292,7 @@ void SplittingBranchSelector::handleSatRefutation()
 
       if (conj_cnt == 1) {
         interpolant = conjuncts->head();
-        conjuncts->destroy();
+        FormulaList::destroy(conjuncts);
       } else {
         interpolant = JunctionFormula::generalJunction(AND, conjuncts);
       }

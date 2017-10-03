@@ -5,8 +5,6 @@
 
 #include "Lib/Portability.hpp"
 
-#if !COMPILER_MSVC
-
 #include <cerrno>
 #include <stdlib.h>
 #include <unistd.h>
@@ -332,8 +330,8 @@ void Semaphore::deregisterInstance()
   if(!hasSemaphore()) {
     return;
   }
-  ASS(s_instances->member(this));
-  s_instances=s_instances->remove(this);
+  ASS(SemaphoreList::member(this, s_instances));
+  s_instances = SemaphoreList::remove(this, s_instances);
 
   releaseInstance();
 }
@@ -442,5 +440,4 @@ void Semaphore::ensureEventHandlersInstalled()
 }
 }
 
-#endif //!COMPILER_MSVC
 

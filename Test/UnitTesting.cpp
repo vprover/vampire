@@ -39,7 +39,7 @@ TestUnit::Iterator TestUnit::getTests()
 {
   CALL("TestUnit::getTests");
 
-  TestList* lst=_tests->copy()->reverse();
+  TestList* lst = TestList::reverse(TestList::copy(_tests));
   return TestList::DestructiveIterator(lst);
 }
 

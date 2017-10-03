@@ -27,6 +27,7 @@
 
 #include "Shell/BFNTMainLoop.hpp"
 #include "Shell/Options.hpp"
+#include "Shell/UIHelper.hpp"
 
 #include "Signature.hpp"
 #include "Clause.hpp"
@@ -161,11 +162,6 @@ MainLoop* MainLoop::createFromOptions(Problem& prb, const Options& opt)
     res = new IGAlgorithm(prb, opt);
     break;
   case Options::SaturationAlgorithm::FINITE_MODEL_BUILDING:
-    if(env.property->hasInterpretedOperations()){
-      reportSpiderStatus('u');
-      USER_ERROR("Finite Model Builder (sa=fmb) cannot be used with interpreted operations"); 
-      //TODO should return inappropriate result instead of error
-    }
     res = new FiniteModelBuilder(prb,opt);
     break;
 #if VZ3

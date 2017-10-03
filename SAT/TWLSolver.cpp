@@ -618,9 +618,7 @@ bool TWLSolver::isRedundant(SATLiteral lit, ArraySet& seenVars, SATClauseList*& 
     varsSeenHere.insert(clVar);
     SATClause* cl = _assignmentPremises[clVar];
     if(!cl) {
-      if(redundancyPremises) {
-	redundancyPremises->destroy();
-      }
+      SATClauseList::destroy(redundancyPremises);
       return false;
     }
     if(_generateProofs) {

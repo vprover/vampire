@@ -8,6 +8,7 @@
 #include "MinisatInterfacingNewSimp.hpp"
 
 #include "Lib/System.hpp"
+#include "Shell/UIHelper.hpp"
 #include "Lib/ScopedLet.hpp"
 #include "Lib/Environment.hpp"
 #include "Shell/Statistics.hpp"

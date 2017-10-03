@@ -801,7 +801,7 @@ bool SMTLIB::tryReadTerm(LExpr* e, TermList& res)
     return true;
   }
 
-  unsigned arity = e->list->length()-1;
+  unsigned arity = List<LExpr*>::length(e->list) - 1;
   LispListReader rdr(e);
   vstring fnName = rdr.readAtom();
     
@@ -1313,7 +1313,7 @@ void SMTLIB::buildFormula()
   }
 
  
-  _formulas = UnitList::concat(_formulas, _definitions->copy());
+  _formulas = UnitList::concat(_formulas, UnitList::copy(_definitions));
 }
 
 Formula* SMTLIB::readFormula(LExpr* e)
@@ -1381,7 +1381,7 @@ Formula* SMTLIB::nameFormula(Formula* f, vstring fletVarName)
   CALL("SMTLIB::nameFormula");
 
   Formula::VarList* freeVars = f->freeVariables();
-  unsigned varCnt = freeVars->length();
+  unsigned varCnt = Formula::VarList::length(freeVars);
 
   static DHMap<unsigned,unsigned> sorts;
   sorts.reset();

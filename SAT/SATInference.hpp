@@ -55,7 +55,7 @@ public:
 
   ~PropInference()
   {
-    _premises->destroy();
+    SATClauseList::destroy(_premises);
   }
 
   virtual InfType getType() const { return PROP_INF; }

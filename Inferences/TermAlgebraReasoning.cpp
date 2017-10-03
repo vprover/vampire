@@ -114,6 +114,9 @@ namespace Inferences {
   Clause* DistinctnessISE::simplify(Clause* c)
   {
     CALL("DistinctnessISE::simplify");
+
+    if (c->isTheoryDescendant())
+      return c;
     
     int length = c->length();
     for (int i = length - 1; i >= 0; i--) {
@@ -222,6 +225,9 @@ namespace Inferences {
   Clause* InjectivityISE::simplify(Clause *c)
   {
     CALL("InjectivityISE::simplify");
+    
+    if (c->isTheoryDescendant())
+      return c;
 
     int length = c->length();
     for (int i = length - 1; i >= 0; i--) {
@@ -271,6 +277,9 @@ namespace Inferences {
   Clause* NegativeInjectivityISE::simplify(Clause *c)
   {
     CALL("NegativeInjectivityISE::simplify");
+
+    if (c->isTheoryDescendant())
+      return c;
 
     int length = c->length();
     for (int i = length - 1; i >= 0; i--) {
@@ -344,17 +353,17 @@ namespace Inferences {
 
       Indexing::CycleQueryResult *qres = _queryResults.next();
 
-      ASS_EQ(qres->literals->length(), qres->premises->length());
-      ASS_EQ(qres->literals->length(), qres->clausesTheta->length());
+      ASS_EQ(LiteralList::length(qres->literals), ClauseList::length(qres->premises));
+      ASS_EQ(LiteralList::length(qres->literals), ClauseList::length(qres->clausesTheta));
 
-      List<Literal*>::Iterator literals(qres->literals);
-      List<Clause*>::Iterator premises(qres->premises);
-      List<Clause*>::Iterator clausesTheta(qres->clausesTheta);
+      LiteralList::Iterator literals(qres->literals);
+      ClauseList::Iterator premises(qres->premises);
+      ClauseList::Iterator clausesTheta(qres->clausesTheta);
       
-      unsigned length = qres->totalLengthClauses() - qres->literals->length();
+      unsigned length = qres->totalLengthClauses() - LiteralList::length(qres->literals);
       UnitList* ulpremises = UnitList::empty();
       while (premises.hasNext()) {
-        ulpremises = ulpremises->cons(premises.next());
+        UnitList::push(premises.next(), ulpremises);
       }
       Inference* inf = new InferenceMany(Inference::TERM_ALGEBRA_ACYCLICITY, ulpremises);
       Clause* res = new(length) Clause(length,

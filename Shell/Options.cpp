@@ -27,7 +27,10 @@
 #include "Lib/Set.hpp"
 #include "Lib/System.hpp"
 
+#include "Shell/UIHelper.hpp"
+
 #include "Kernel/Problem.hpp"
+#include "Kernel/Signature.hpp"
 
 #include "Options.hpp"
 #include "Property.hpp"
@@ -89,34 +92,81 @@ void Options::Options::init()
                                         "casc",
                                         "casc_sat",
                                         "casc_ltb",
-                                        "smtcomp",
-                                        "clausify","tclausify",
-                                        "consequence_elimination","grounding",
+                                        "clausify",
+                                        "consequence_elimination",
+                                        "grounding",
                                         "model_check",
-                                        "output","preprocess",
+                                        "output",
+                                        "portfolio",
+                                        "preprocess",
                                         "profile",
                                         "random_strategy",
-                                        "sat_solver","spider","vampire"});
+                                        "sat_solver",
+                                        "smtcomp",
+                                        "spider",
+                                        "tclausify",
+                                        "vampire"});
     _mode.description=
     "Select the mode of operation. Choices are:\n"
     "  -vampire: the standard mode of operation for first-order theorem proving\n"
-    "  -casc,casc_multicore,casc_sat,: these are all portfolio modes\n   that use predefined "
-    " sets of strategies in vampire mode.\n"
+    "  -portfolio: a portfolio mode running a specified schedule (see schedule)\n"
+    "  -casc, casc_sat, smtcomp - like portfolio mode, with competition specific presets for schedule, etc.\n"
     "  -preprocess,axiom_select,clausify,grounding: modes for producing output\n   for other solvers.\n"
     "  -output,profile: output information about the problem\n"
     "  -sat_solver: accepts problems in DIMACS and uses the internal sat solver\n   directly\n"
     "Some modes are not currently maintained:\n"
-    "  -program_analysis: run Lingva\n"
     "  -bpa: perform bound propagation\n"
     "  -consequence_elimination: perform consequence elimination\n"
     "  -random_strategy: attempts to randomize the option values\n";
     _lookup.insert(&_mode);
     _mode.addHardConstraint(If(equal(Mode::CONSEQUENCE_ELIMINATION)).then(_splitting.is(notEqual(true))));
 
+    _schedule = ChoiceOptionValue<Schedule>("schedule","sched",Schedule::CASC,
+        {"casc",
+         "casc_2014",
+         "casc_2014_epr",
+         "casc_2016",
+         "casc_2017",
+         "casc_sat",
+         "casc_sat_2014",
+         "casc_sat_2016",
+         "casc_sat_2017",
+         "ltb_2014",
+         "ltb_2014_mzr",
+         "ltb_default_2017",
+         "ltb_hh4_2015_fast",
+         "ltb_hh4_2015_midd",
+         "ltb_hh4_2015_slow",
+         "ltb_hh4_2017",
+         "ltb_hll_2015_fast",
+         "ltb_hll_2015_midd",
+         "ltb_hll_2015_slow",
+         "ltb_hll_2017",
+         "ltb_isa_2015_fast",
+         "ltb_isa_2015_midd",
+         "ltb_isa_2015_slow",
+         "ltb_isa_2017",
+         "ltb_mzr_2015_fast",
+         "ltb_mzr_2015_midd",
+         "ltb_mzr_2015_slow",
+         "ltb_mzr_2017",
+         "smtcomp",
+         "smtcomp_2016",
+         "smtcomp_2017"});
+    _schedule.description = "Schedule to be run by the portfolio mode.";
+    _lookup.insert(&_schedule);
+    _schedule.reliesOnHard(_mode.is(equal(Mode::CASC)->
+        Or(_mode.is(equal(Mode::CASC_SAT)))->
+        Or(_mode.is(equal(Mode::SMTCOMP)))->
+        Or(_mode.is(equal(Mode::PORTFOLIO)))));
+
     _multicore = UnsignedOptionValue("cores","",1);
-    _multicore.description = "When running in casc or smtcomp mode specify the number of cores, set to 0 to use maximum";
+    _multicore.description = "When running in portfolio mode mode specify the number of cores, set to 0 to use maximum";
     _lookup.insert(&_multicore);
-    _multicore.reliesOnHard(_mode.is(equal(Mode::CASC)->Or(_mode.is(equal(Mode::CASC_SAT)))->Or(_mode.is(equal(Mode::SMTCOMP)))));
+    _multicore.reliesOnHard(_mode.is(equal(Mode::CASC)->
+        Or(_mode.is(equal(Mode::CASC_SAT)))->
+        Or(_mode.is(equal(Mode::SMTCOMP)))->
+        Or(_mode.is(equal(Mode::PORTFOLIO)))));
 
     _ltbLearning = ChoiceOptionValue<LTBLearning>("ltb_learning","ltbl",LTBLearning::OFF,{"on","off","biased"});
     _ltbLearning.description = "Perform learning in LTB mode";
@@ -185,7 +235,7 @@ void Options::Options::init()
     _lookup.insert(&_explainOption);
     _explainOption.tag(OptionTag::HELP);
 
-    _ignoreMissing = BoolOptionValue("ignore_missing","",false);
+    _ignoreMissing = ChoiceOptionValue<IgnoreMissing>("ignore_missing","",IgnoreMissing::OFF,{"on","off","warn"});
     _ignoreMissing.description=
     "Ignore any options that have been removed (useful in CASC mode where this can cause errors)";
     _lookup.insert(&_ignoreMissing);
@@ -213,7 +263,7 @@ void Options::Options::init()
     _problemName.description="";
     //_lookup.insert(&_problemName);
 
-    _proof = ChoiceOptionValue<Proof>("proof","p",Proof::ON,{"off","on","proofcheck","tptp","smtcomp"});
+    _proof = ChoiceOptionValue<Proof>("proof","p",Proof::ON,{"off","on","proofcheck","tptp","property"});
     _proof.description=
     "Specifies whether proof will be output. 'proofcheck' will output proof as a sequence of TPTP problems to allow for proof-checking.";
     _lookup.insert(&_proof);
@@ -248,10 +298,10 @@ void Options::Options::init()
     _lookup.insert(&_testId);
     _testId.setExperimental();
 
-    _szsOutput = BoolOptionValue("szs_output","szs",false);
-    _szsOutput.description="";
-    _lookup.insert(&_szsOutput);
-    _szsOutput.setExperimental();
+    _outputMode = ChoiceOptionValue<Output>("output_mode","",Output::SZS,{"smtcomp","spider","szs","vampire"});
+    _outputMode.description="";
+    _lookup.insert(&_outputMode);
+    _outputMode.setExperimental();
 
     _thanks = StringOptionValue("thanks","","Tanya");
     _thanks.description="";
@@ -325,6 +375,13 @@ void Options::Options::init()
     _sos.setRandomChoices(And(isRandSat(),saNotInstGen()),{"on","off","off","off","off"});
     _sos.setRandomChoices(And(isRandOn(),hasNonUnits()),{"on","off","off","off","off"});
     _sos.setRandomChoices(isRandOn(),{"all","off","on"});
+
+    _sosTheoryLimit = UnsignedOptionValue("sos_theory_limit","sstl",0);
+    _sosTheoryLimit.description="When sos=theory the depth of descendants a theory axiom can have";
+    _sosTheoryLimit.setExperimental();
+    _lookup.insert(&_sosTheoryLimit);
+    _sosTheoryLimit.tag(OptionTag::PREPROCESSING);
+    _sosTheoryLimit.reliesOn(_sos.is(equal(Sos::THEORY)));
 
 
 
@@ -764,6 +821,23 @@ void Options::Options::init()
 
 
 	//*********************** Inferences  ***********************
+
+#if VZ3
+
+           _theoryInstAndSimp = ChoiceOptionValue<TheoryInstSimp>("theory_instantiation","thi",
+                                                TheoryInstSimp::OFF,{"off","all","strong","overlap","full"});
+           _theoryInstAndSimp.description = ""; 
+           _theoryInstAndSimp.tag(OptionTag::INFERENCES);
+           _lookup.insert(&_theoryInstAndSimp);
+           _theoryInstAndSimp.setExperimental();
+#endif
+           _unificationWithAbstraction = ChoiceOptionValue<UnificationWithAbstraction>("unification_with_abstraction","uwa",
+                                             UnificationWithAbstraction::OFF,
+                                             {"off","interpreted_only","one_side_interpreted","one_side_constant","all","ground"});
+           _unificationWithAbstraction.description="";
+           _unificationWithAbstraction.tag(OptionTag::INFERENCES);
+           _lookup.insert(&_unificationWithAbstraction);
+           _unificationWithAbstraction.setExperimental();
 
 	    _instantiation = ChoiceOptionValue<Instantiation>("instantiation","inst",Instantiation::OFF,{"off","on"});
 	    _instantiation.description = "Heuristically instantiate variables";
@@ -1543,18 +1617,6 @@ void Options::Options::init()
     _lookup.insert(&_showInterpolant);
     _showInterpolant.tag(OptionTag::OTHER);
     _showInterpolant.setExperimental();
-    
-//******************************************************************
-//*********************** Program Analysis  ************************
-//******************************************************************
-    
-/*
-    _lingvaAdditionalInvariants = StringOptionValue("lingva_additional_invariants","","");
-    _lingvaAdditionalInvariants.description="";
-    _lookup.insert(&_lingvaAdditionalInvariants);
-    _lingvaAdditionalInvariants.tag(Mode::PROGRAM_ANALYSIS);
-    _lingvaAdditionalInvariants.setExperimental();
-  */  
 
 //******************************************************************
 //*********************** Bound Propagation  ***********************
@@ -1719,18 +1781,42 @@ Options& Options::operator=(const Options& that)
  * @since 14/09/2014 updated to use _lookup
  * @author Andrei Voronkov
  */
-void Options::set(const char* name,const char* value)
+void Options::set(const char* name,const char* value, bool longOpt)
 {
-  CALL ("Options::set/2");
+  CALL ("Options::set/3");
 
   try {
-    if(!_lookup.findLong(name)->set(value)){
-      USER_ERROR((vstring) value +" is an invalid value for "+(vstring)name+"\nSee help or use explain i.e. vampire -explain mode");
+    if((longOpt && !_lookup.findLong(name)->set(value)) ||
+        (!longOpt && !_lookup.findShort(name)->set(value))) {
+      switch (ignoreMissing()) {
+      case IgnoreMissing::OFF:
+        USER_ERROR((vstring) value +" is an invalid value for "+(vstring)name+"\nSee help or use explain i.e. vampire -explain mode");
+        break;
+      case IgnoreMissing::WARN:
+        if (outputAllowed()) {
+          env.beginOutput();
+          addCommentSignForSZS(env.out());
+          env.out() << "WARNING: invalid value "<< value << " for option " << name << endl;
+          env.endOutput();
+        }
+        break;
+      case IgnoreMissing::ON:
+        break;
+      }
     }
   }
   catch (const ValueNotFoundException&) {
-    if (!_ignoreMissing.actualValue) {
-      vstring msg = (vstring)name + " is not a valid option";
+    if (_ignoreMissing.actualValue != IgnoreMissing::ON) {
+      vstring msg = (vstring)name + (longOpt ? " is not a valid option" : " is not a valid short option (did you mean --?)");
+      if (_ignoreMissing.actualValue == IgnoreMissing::WARN) {
+        if (outputAllowed()) {
+          env.beginOutput();
+          addCommentSignForSZS(env.out());
+          env.out() << "WARNING: " << msg << endl;
+          env.endOutput();
+        }
+        return;
+      } // else:
       Stack<vstring> sim = getSimilarOptionNames(name,false);
       Stack<vstring>::Iterator sit(sim);
       if(sit.hasNext()){
@@ -1753,44 +1839,8 @@ void Options::set(const char* name,const char* value)
 void Options::set(const vstring& name,const vstring& value)
 {
   CALL ("Options::set/2");
-  set(name.c_str(),value.c_str());
+  set(name.c_str(),value.c_str(),false);
 } // Options::set/2
-
-/**
- * Set option by its short name and value. If such a short name does not
- * exist, try to use the long name instead.
- *
- * @since 21/11/2004 Manchester
- * @since 18/01/2014 Manchester, changed to use _ignoreMissing
- * @author Andrei Voronkov
- */
-void Options::setShort(const char* name,const char* value)
-{
-  CALL ("Options::setShort");
-
-  try {
-    if(!_lookup.findShort(name)->set(value)){
-      USER_ERROR((vstring) value +" is an invalid value for "+(vstring)name+", see help");
-    }
-  }
-  catch (const ValueNotFoundException&) {
-    if (!_ignoreMissing.actualValue) {
-      vstring msg = (vstring)name + " is not a valid short option (did you mean --?)";
-      Stack<vstring> sim = getSimilarOptionNames(name,true);
-      Stack<vstring>::Iterator sit(sim);
-      if(sit.hasNext()){
-        vstring first = sit.next();
-        msg += "\n\tMaybe you meant ";
-        if(sit.hasNext()) msg += "one of:\n\t\t";
-        msg += first;
-        while(sit.hasNext()){ msg+="\n\t\t"+sit.next();}
-        msg+="\n\tYou can use -explain <option> to explain an option";
-      }
-      USER_ERROR(msg);
-    }
-  }
-} // Options::setShort
-
 
 bool Options::OptionHasValue::check(Property*p){
           CALL("Options::OptionHasValue::check");
@@ -2500,7 +2550,24 @@ void Options::readOptionsString(vstring optionsString,bool assign)
     AbstractOptionValue* opt = getOptionValueByName(param);
     if(opt){
         if(assign){
-            opt->set(value);
+            if (!opt->set(value)) {
+              switch (ignoreMissing()) {
+              case IgnoreMissing::OFF:
+                USER_ERROR("value "+value+" for option "+ param +" not known");
+                break;
+              case IgnoreMissing::WARN:
+                env.beginOutput();
+                if (outputAllowed()) {
+                  env.beginOutput();
+                  addCommentSignForSZS(env.out());
+                  env.out() << "WARNING: value " << value << " for option "<< param <<" not known" << endl;
+                  env.endOutput();
+                }
+                break;
+              case IgnoreMissing::ON:
+                break;
+              }
+            }
         }
         else{
             vstring current = opt->getStringOfActual();
@@ -2510,8 +2577,21 @@ void Options::readOptionsString(vstring optionsString,bool assign)
         }
     }
     else{
-      if(!ignoreMissing()){
-       USER_ERROR("option "+param+" not known");
+      switch (ignoreMissing()) {
+      case IgnoreMissing::OFF:
+        USER_ERROR("option "+param+" not known");
+        break;
+      case IgnoreMissing::WARN:
+        env.beginOutput();
+        if (outputAllowed()) {
+          env.beginOutput();
+          addCommentSignForSZS(env.out());
+          env.out() << "WARNING: option "<< param << " not known." << endl;
+          env.endOutput();
+        }
+        break;
+      case IgnoreMissing::ON:
+        break;
       }
     }
 
@@ -2602,23 +2682,8 @@ void Options::setForcedOptionValues()
 {
   CALL("Options::setForcedOptionValues");
 
-  // Set the options forced by mode
-  switch (_mode.actualValue) {
-  case Mode::CASC:
-  case Mode::CASC_SAT:
-  //case Mode::CASC_THEORY:
-  //case Mode::CASC_LTB:
-    _outputAxiomNames.actualValue = true;
-    _proof.actualValue = Proof::TPTP;
-    break;
-  default:
-    break;
-  }
-
   if(_forcedOptions.actualValue.empty()) return;
-
   readOptionsString(_forcedOptions.actualValue);
-
 }
 
 /**
@@ -2726,12 +2791,17 @@ bool Options::complete(const Problem& prb) const
       || prop.hasProp(Property::PR_HAS_RATS)
       || prop.hasProp(Property::PR_HAS_DT_CONSTRUCTORS)
       || prop.hasProp(Property::PR_HAS_CDT_CONSTRUCTORS)
-      || prop.hasProp(Property::PR_HAS_BITVECTORS)) {
+      || prop.hasProp(Property::PR_HAS_BITVECTORS) 
+      || (!prop.onlyFiniteDomainDatatypes() && prop.hasProp(Property::PR_HAS_DT_CONSTRUCTORS))
+      || (!prop.onlyFiniteDomainDatatypes() && prop.hasProp(Property::PR_HAS_CDT_CONSTRUCTORS))) {
+
     return false;
   }
 
   // preprocessing
-  if (_sineSelection.actualValue != SineSelection::OFF) return false;
+  if (env.signature->hasDistinctGroups()) {
+    return false;
+  }
 
   switch (_saturationAlgorithm.actualValue) {
   case SaturationAlgorithm::INST_GEN: return true; // !!! Implies InstGen is always complete
@@ -2758,13 +2828,6 @@ bool Options::complete(const Problem& prb) const
     return prop.category() == Property::HNE; // URR is complete for Horn problems
   }
 
-  // equality problems
-  switch (_equalityProxy.actualValue) {
-  case EqualityProxy::R: return false;
-  case EqualityProxy::RS: return false;
-  case EqualityProxy::RST: return false;
-  default: break;
-  }
   if (!_demodulationRedundancyCheck.actualValue) return false;
   if (!_superpositionFromVariables.actualValue) return false;
 

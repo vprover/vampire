@@ -47,18 +47,51 @@ public:
   IntegerConstantType operator/(const IntegerConstantType& num) const;
   IntegerConstantType operator%(const IntegerConstantType& num) const;
   
+  // true if this divides num
+  bool divides(const IntegerConstantType& num) const {
+    CALL("IntegerConstantType:divides");
+    // if this is zero it shouldn't divide anything, if num is zero dividing it doesn't make sense
+    if(_val==0 || num._val==0){ return false; }
+    // if this is bigger than num then the result cannot be an integer
+    if(_val > num._val){ return false; }
+    // now we only need to check the absolute value
+    int safeVal=_val;
+    if (_val < 0 && ! Lib::Int::safeUnaryMinus<int>(_val,safeVal)) {
+      return false;
+    }
+    return (num._val % safeVal ==0);
+  }
+
   float realDivide(const IntegerConstantType& num) const { 
     if(num._val==0) throw ArithmeticException();
     return ((float)_val)/num._val; 
   }
+  int intDivide(const IntegerConstantType& num) const {
+      CALL("IntegerConstantType::intDivide");
+      ASS(num.divides(*this));
+      if(num._val==0){ throw ArithmeticException(); }
+      return _val/num._val;
+  }
+  // TODO: shouldn't we always be using intDivide for quotientE - when are they different (apart from real rounding)?
   IntegerConstantType quotientE(const IntegerConstantType& num) const { 
+    CALL("IntegerConstantType::quotientE");
+    //cout << "quotientE " << _val << " and " << num._val << endl;
+    if(num.divides(*this)){
+      return IntegerConstantType(intDivide(num));
+    }
     if(num._val>0) return IntegerConstantType(::floor(realDivide(num)));
     else return IntegerConstantType(::ceil(realDivide(num)));
   }
   IntegerConstantType quotientT(const IntegerConstantType& num) const { 
+    if(num.divides(*this)){
+      return IntegerConstantType(intDivide(num));
+    }
     return IntegerConstantType(::trunc(realDivide(num)));
   }
   IntegerConstantType quotientF(const IntegerConstantType& num) const { 
+    if(num.divides(*this)){
+      return IntegerConstantType(intDivide(num));
+    }
     return IntegerConstantType(::floor(realDivide(num)));
   }
 
@@ -523,6 +556,7 @@ public:
   static bool isConversionOperation(Interpretation i);
   static bool isLinearOperation(Interpretation i);
   static bool isNonLinearOperation(Interpretation i);
+  static bool isPartialFunction(Interpretation i);
 
   static bool isArrayOperation(Interpretation i);
   static unsigned getArrayOperationSort(Interpretation i);
@@ -544,6 +578,7 @@ public:
   bool isInterpretedConstant(unsigned func);
   bool isInterpretedConstant(Term* t);
   bool isInterpretedConstant(TermList t);
+  bool isInterpretedNumber(Term* t);
   bool isInterpretedNumber(TermList t);
 
   bool isInterpretedPredicate(unsigned pred);
@@ -555,6 +590,10 @@ public:
   bool isInterpretedFunction(TermList t);
   bool isInterpretedFunction(Term* t, Interpretation itp);
   bool isInterpretedFunction(TermList t, Interpretation itp);
+
+ 
+  bool isInterpretedPartialFunction(unsigned func);
+  bool isZero(TermList t);
 
   Interpretation interpretFunction(unsigned func);
   Interpretation interpretFunction(Term* t);

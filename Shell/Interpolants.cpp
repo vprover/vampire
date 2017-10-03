@@ -84,8 +84,8 @@ struct Interpolants::ItemState
   {
     CALL("ItemState::destroy");
 
-    leftInts->destroy();
-    rightInts->destroy();
+    List<UIPair>::destroy(leftInts);
+    List<UIPair>::destroy(rightInts);
   }
 
   Unit* us() const { return _us; }
@@ -132,7 +132,7 @@ void mergeCopy(UIPairList*& tgt, UIPairList* src)
 {
   CALL("mergeCopy");
   if(!tgt) {
-    tgt = src->copy();
+    tgt = UIPairList::copy(src);
     return;
   }
 
@@ -467,12 +467,12 @@ void Interpolants::generateInterpolant(ItemState& st)
 	<<"\ninterpolant "<<interpolant->toString()<<endl<<endl);
   UIPair uip=make_pair(unitFormula, interpolant);
   if(st.inheritedColor==COLOR_LEFT) {
-    st.leftInts->destroy();
+    List<UIPair>::destroy(st.leftInts);
     st.leftInts=0;
     List<UIPair>::push(uip,st.leftInts);
   }
   else if(st.inheritedColor==COLOR_RIGHT) {
-    st.rightInts->destroy();
+    List<UIPair>::destroy(st.rightInts);
     st.rightInts=0;
     List<UIPair>::push(uip,st.rightInts);
   }

@@ -8,13 +8,10 @@
 
 #include "Portability.hpp"
 
-#if !COMPILER_MSVC
-
 #include <unistd.h>
 #include <cerrno>
 #include <iostream>
 #include <streambuf>
-
 
 #include "Forwards.hpp"
 
@@ -162,10 +159,6 @@ struct basic_fdstream: public std::basic_iostream <CharType, CharTraits>
 typedef basic_fdbuf    <char> fdbuf;
 typedef basic_fdstream <char> fdstream;
 
-
-
 }
-
-#endif //COMPILER_MSVC
 
 #endif // __fdstream__

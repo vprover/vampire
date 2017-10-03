@@ -22,6 +22,8 @@ public:
   virtual SLQueryResultIterator getAll() { NOT_IMPLEMENTED; }
   virtual SLQueryResultIterator getUnifications(Literal* lit,
 	  bool complementary, bool retrieveSubstitutions = true) { NOT_IMPLEMENTED; }
+  virtual SLQueryResultIterator getUnificationsWithConstraints(Literal* lit,
+          bool complementary, bool retrieveSubstitutions = true) { NOT_IMPLEMENTED; }
   virtual SLQueryResultIterator getGeneralizations(Literal* lit,
 	  bool complementary, bool retrieveSubstitutions = true) { NOT_IMPLEMENTED; }
   virtual SLQueryResultIterator getInstances(Literal* lit,
@@ -37,6 +39,7 @@ public:
 
 #if VDEBUG
   virtual vstring toString() { return "<not supported>"; }
+  virtual void markTagged() = 0;
 #endif
 
 };

@@ -23,12 +23,11 @@
 #include "Lib/List.hpp"
 #include "Lib/System.hpp"
 
-// the elements below are simple and can be initisalised before
+// the elements below are simple and can be initialised before
 // any objects
 Lib::Enumerator Lib::Enumerator::unitEnumerator;
 unsigned Kernel::Unit::_lastNumber = 0;
-bool Shell::UIHelper::szsOutput=false;
-bool Shell::UIHelper::cascModeChild=false;
+bool Shell::UIHelper::portfolioParent=false;
 bool Shell::UIHelper::satisfiableStatusWasAlreadyOutput=false;
 
 /**

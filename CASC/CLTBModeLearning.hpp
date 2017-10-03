@@ -31,18 +31,6 @@ using namespace std;
 using namespace Lib;
 using namespace Kernel;
 
-
-
-#if COMPILER_MSVC
-
-class CLTBModeLearning
-{
-public:
-  static void perform() { USER_ERROR("casc_ltb mode is not supported on Windows"); }
-};
-
-#else
-
 class CLTBProblemLearning;
 
   struct ProbRecord{
@@ -190,8 +178,6 @@ private:
   };
 
 };
-
-#endif //!COMPILER_MSVC
 
 }
 

@@ -91,7 +91,7 @@ bool DistinctEqualitySimplifier::mustBeDistinct(TermList t1, TermList t2, unsign
   List<unsigned>::Iterator dl1it(dlst1);
   while(dl1it.hasNext()) {
     unsigned candGrp = dl1it.next(); //candidate group
-    if(dlst2->member(candGrp)) {
+    if(List<unsigned>::member(candGrp, dlst2)) {
       grp = candGrp;
       return true;
     }

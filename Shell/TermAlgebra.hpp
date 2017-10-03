@@ -36,7 +36,10 @@ namespace Shell {
 
     bool hasDiscriminator() { return _hasDiscriminator; }
     unsigned discriminator() { ASS(_hasDiscriminator); return _discriminator; }
+    void addDiscriminator(unsigned d) { ASS(!_hasDiscriminator); _hasDiscriminator = true; _discriminator = d; }
 
+    Lib::vstring discriminatorName();
+    
   private:
     Kernel::FunctionType* _type;
     unsigned _functor;
@@ -75,6 +78,11 @@ namespace Shell {
        - not allowing cyclic terms and having only recursive constructors
      */
     bool emptyDomain();
+
+    /* True iff all the constructors are constants */
+    bool finiteDomain();
+    /* True iff one of the constructors is recursive */
+    bool infiniteDomain();
 
     /* The predicate of the subterm relation, used only if the option
        -tac is set to "axiom"*/

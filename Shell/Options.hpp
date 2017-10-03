@@ -162,10 +162,8 @@ public:
     USE_ALLOCATOR(Options);
     
     // standard ways of creating options
-    void set(const vstring& name, const vstring& value);
-    void set(const char* name, const char* value);
-    void setShort(const char* name, const char* value);
-    
+    void set(const vstring& name, const vstring& value); // implicitly the long version used here
+    void set(const char* name, const char* value, bool longOpt);
     
 public:
   //==========================================================
@@ -198,11 +196,26 @@ public:
     };
     // update _tagNames at the end of Options constructor if you add a tag
     
+  enum class TheoryInstSimp : unsigned int {
+    OFF,
+    ALL,    // select all interpreted
+    STRONG, // select strong only
+    OVERLAP, // select strong and weak which overlap with strong
+    FULL    // perform full abstraction
+  };
+  enum class UnificationWithAbstraction : unsigned int {
+    OFF,
+    INTERP_ONLY,
+    ONE_INTERP,
+    CONSTANT,
+    ALL,
+    GROUND
+  };
 
   enum class TheoryAxiomLevel : unsigned int {
     ON,  // all of them
     OFF, // none of them
-    SET_ONE
+    CHEAP 
   };
 
   enum class ProofExtra : unsigned int {
@@ -253,6 +266,12 @@ public:
     ON,
     OFF,
     BIASED
+  };
+
+  enum class IgnoreMissing : unsigned int {
+    ON,
+    OFF,
+    WARN
   };
 
   //enums for the bound propagation purpose
@@ -338,21 +357,61 @@ public:
     CASC,
     CASC_SAT,
     CASC_LTB,
-    SMTCOMP,
     CLAUSIFY,
-    TCLAUSIFY,
     CONSEQUENCE_ELIMINATION,
     GROUNDING,
     MODEL_CHECK,
     /** this mode only outputs the input problem, without any preprocessing */
     OUTPUT,
+    PORTFOLIO,
     PREPROCESS,
     PROFILE,
     RANDOM_STRATEGY,
-    SAT, 
+    SAT,
+    SMTCOMP,
     SPIDER,
+    TCLAUSIFY,
     VAMPIRE
 };
+
+  enum class Schedule : unsigned int {
+    CASC,
+    CASC_2014,
+    CASC_2014_EPR,
+    CASC_2016,
+    CASC_2017,
+    CASC_SAT,
+    CASC_SAT_2014,
+    CASC_SAT_2016,
+    CASC_SAT_2017,
+    LTB_2014,
+    LTB_2014_MZR,
+    LTB_DEFAULT_2017,
+
+    LTB_HH4_2015_FAST,
+    LTB_HH4_2015_MIDD,
+    LTB_HH4_2015_SLOW,
+    LTB_HH4_2017,
+
+    LTB_HLL_2015_FAST,
+    LTB_HLL_2015_MIDD,
+    LTB_HLL_2015_SLOW,
+    LTB_HLL_2017,
+
+    LTB_ISA_2015_FAST,
+    LTB_ISA_2015_MIDD,
+    LTB_ISA_2015_SLOW,
+    LTB_ISA_2017,
+
+    LTB_MZR_2015_FAST,
+    LTB_MZR_2015_MIDD,
+    LTB_MZR_2015_SLOW,
+    LTB_MZR_2017,
+    SMTCOMP,
+    SMTCOMP_2016,
+    SMTCOMP_2017
+};
+
 
 /* TODO: use an enum for Selection. The current issue is the way these values are manipulated as ints
  *
@@ -380,6 +439,14 @@ public:
     FULL = 1,
     /** changed by the option "--statistics off" */
     NONE = 2
+  };
+
+  /** how much we want vampire talking and in what language */
+  enum class Output : unsigned int {
+    SMTCOMP,
+    SPIDER,
+    SZS,
+    VAMPIRE
   };
 
   /** Possible values for sat_solver */
@@ -479,7 +546,7 @@ public:
     ON = 1,
     PROOFCHECK = 2,
     TPTP = 3,
-    SMTCOMP = 4
+    PROPERTY = 4
   };
 
   /** Values for --equality_proxy */
@@ -1706,7 +1773,11 @@ public:
   LTBLearning ltbLearning() const { return _ltbLearning.actualValue; }
   vstring ltbDirectory() const { return _ltbDirectory.actualValue; }
   Mode mode() const { return _mode.actualValue; }
+  Schedule schedule() const { return _schedule.actualValue; }
+  vstring scheduleName() const { return _schedule.getStringOfValue(_schedule.actualValue); }
+  void setSchedule(Schedule newVal) {  _schedule.actualValue = newVal; }
   unsigned multicore() const { return _multicore.actualValue; }
+  void setMulticore(unsigned newVal) { _multicore.actualValue = newVal; }
   InputSyntax inputSyntax() const { return _inputSyntax.actualValue; }
   void setInputSyntax(InputSyntax newVal) { _inputSyntax.actualValue = newVal; }
   bool normalize() const { return _normalize.actualValue; }
@@ -1758,7 +1829,9 @@ public:
   bool z3UnsatCores() const { return _z3UnsatCores.actualValue;}
   bool satFallbackForSMT() const { return _satFallbackForSMT.actualValue; }
   bool smtForGround() const { return _smtForGround.actualValue; }
+  TheoryInstSimp theoryInstAndSimp() const { return _theoryInstAndSimp.actualValue; }
 #endif
+  UnificationWithAbstraction unificationWithAbstraction() const { return _unificationWithAbstraction.actualValue; }
   bool unusedPredicateDefinitionRemoval() const { return _unusedPredicateDefinitionRemoval.actualValue; }
   bool blockedClauseElimination() const { return _blockedClauseElimination.actualValue; }
   void setUnusedPredicateDefinitionRemoval(bool newVal) { _unusedPredicateDefinitionRemoval.actualValue = newVal; }
@@ -1793,7 +1866,6 @@ public:
   Subsumption backwardSubsumptionResolution() const { return _backwardSubsumptionResolution.actualValue; }
   bool forwardSubsumption() const { return _forwardSubsumption.actualValue; }
   bool forwardLiteralRewriting() const { return _forwardLiteralRewriting.actualValue; }
-  vstring lingvaAdditionalInvariants() const {return _lingvaAdditionalInvariants.actualValue; }
   int lrsFirstTimeCheck() const { return _lrsFirstTimeCheck.actualValue; }
   int lrsWeightLimitOnly() const { return _lrsWeightLimitOnly.actualValue; }
   int lookaheadDelay() const { return _lookaheadDelay.actualValue; }
@@ -1829,13 +1901,15 @@ public:
   bool extensionalityAllowPosEq() const { return _extensionalityAllowPosEq.actualValue; }
   float nongoalWeightCoefficient() const { return _nonGoalWeightCoefficient.actualValue; }
   Sos sos() const { return _sos.actualValue; }
+  unsigned sosTheoryLimit() const { return _sosTheoryLimit.actualValue; }
   //void setSos(Sos newVal) { _sos = newVal; }
   FunctionDefinitionElimination functionDefinitionElimination() const { return _functionDefinitionElimination.actualValue; }
   bool outputAxiomNames() const { return _outputAxiomNames.actualValue; }
   void setOutputAxiomNames(bool newVal) { _outputAxiomNames.actualValue = newVal; }
   QuestionAnsweringMode questionAnswering() const { return _questionAnswering.actualValue; }
   vstring xmlOutput() const { return _xmlOutput.actualValue; }
-  bool szsOutput() const { return _szsOutput.actualValue; }
+  Output outputMode() const { return _outputMode.actualValue; }
+  void setOutputMode(Output newVal) { _outputMode.actualValue = newVal; }
   vstring thanks() const { return _thanks.actualValue; }
   void setQuestionAnswering(QuestionAnsweringMode newVal) { _questionAnswering.actualValue = newVal; }
   bool globalSubsumption() const { return _globalSubsumption.actualValue; }
@@ -1844,9 +1918,8 @@ public:
   GlobalSubsumptionAvatarAssumptions globalSubsumptionAvatarAssumptions() const { return _globalSubsumptionAvatarAssumptions.actualValue; }
 
   /** true if calling set() on non-existing options does not result in a user error */
-  bool ignoreMissing() const { return _ignoreMissing.actualValue; }
-  /** set the "ignore missing options" value to true or false */
-  //void setIgnoreMissing(bool newVal) { _ignoreMissing = newVal; }
+  IgnoreMissing ignoreMissing() const { return _ignoreMissing.actualValue; }
+  void setIgnoreMissing(IgnoreMissing newVal) { _ignoreMissing.actualValue = newVal; }
   bool increasedNumeralWeight() const { return _increasedNumeralWeight.actualValue; }
   TheoryAxiomLevel theoryAxioms() const { return _theoryAxioms.actualValue; }
   //void setTheoryAxioms(bool newValue) { _theoryAxioms = newValue; }
@@ -2125,7 +2198,7 @@ private:
   BoolOptionValue _equationalTautologyRemoval;
 
   /** if true, then calling set() on non-existing options will not result in a user error */
-  BoolOptionValue _ignoreMissing;
+  ChoiceOptionValue<IgnoreMissing> _ignoreMissing;
   StringOptionValue _include;
   /** if this option is true, Vampire will add the numeral weight of a clause
    * to its weight. The weight is defined as the sum of binary sizes of all
@@ -2148,7 +2221,6 @@ private:
 
   StringOptionValue _latexOutput;
   BoolOptionValue _latexUseDefaultSymbols;
-  StringOptionValue _lingvaAdditionalInvariants;
 
   ChoiceOptionValue<LiteralComparisonMode> _literalComparisonMode;
   StringOptionValue _logFile;
@@ -2166,6 +2238,7 @@ private:
   UnsignedOptionValue _maximalPropagatedEqualityLength;
   UnsignedOptionValue _memoryLimit; // should be size_t, making an assumption
   ChoiceOptionValue<Mode> _mode;
+  ChoiceOptionValue<Schedule> _schedule;
   UnsignedOptionValue _multicore;
 
   StringOptionValue _namePrefix;
@@ -2234,7 +2307,9 @@ private:
   BoolOptionValue _z3UnsatCores;
   BoolOptionValue _satFallbackForSMT;
   BoolOptionValue _smtForGround;
+  ChoiceOptionValue<TheoryInstSimp> _theoryInstAndSimp;
 #endif
+  ChoiceOptionValue<UnificationWithAbstraction> _unificationWithAbstraction; 
   TimeLimitOptionValue _simulatedTimeLimit;
   UnsignedOptionValue _sineDepth;
   UnsignedOptionValue _sineGeneralityThreshold;
@@ -2243,6 +2318,7 @@ private:
   BoolOptionValue _smtlibConsiderIntsReal;
   BoolOptionValue _smtlibFletAsDefinition;
   ChoiceOptionValue<Sos> _sos;
+  UnsignedOptionValue _sosTheoryLimit;
   BoolOptionValue _splitting;
   BoolOptionValue _splitAtActivation;
   ChoiceOptionValue<SplittingAddComplementary> _splittingAddComplementary;
@@ -2266,7 +2342,7 @@ private:
   StringOptionValue _predicatePrecedence;
 
   StringOptionValue _testId;
-  BoolOptionValue _szsOutput;
+  ChoiceOptionValue<Output> _outputMode;
   StringOptionValue _thanks;
   ChoiceOptionValue<TheoryAxiomLevel> _theoryAxioms;
   BoolOptionValue _theoryFlattening;
@@ -2312,4 +2388,3 @@ std::ostream& operator<< (std::ostream& str,const T& val)
 }
 
 #endif
-
