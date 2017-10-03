@@ -638,7 +638,7 @@ public:
   public:
     LeafIterator(SubstitutionTree* st)
     : _nextRootPtr(st->_nodes.begin()), _afterLastRootPtr(st->_nodes.end()),
-    _nodeIterators(8), tag(st->tag) {}
+    _nodeIterators(8) {}
     bool hasNext();
     Leaf* next()
     {
@@ -650,7 +650,6 @@ public:
     Node** _afterLastRootPtr;
     Node* _curr;
     Stack<NodeIterator> _nodeIterators;
-    bool tag;
   };
 
   typedef pair<pair<LeafData*, ResultSubstitutionSP>,UnificationConstraintStackSP> QueryResult;

@@ -39,8 +39,8 @@ public:
    */
   GlobalSubsumption(const Options& opts, GroundingIndex* idx) : GlobalSubsumption(opts) { _index = idx; }
 
-  void attach(SaturationAlgorithm* salg);
-  void detach();
+  void attach(SaturationAlgorithm* salg) override;
+  void detach() override;
   bool perform(Clause* cl, Clause*& replacement, ClauseIterator& premises) override;
   
   Clause* perform(Clause* cl, Stack<Unit*>& prems);
