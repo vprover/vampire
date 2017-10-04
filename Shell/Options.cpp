@@ -1171,6 +1171,7 @@ void Options::Options::init()
     _useHashingVariantIndex.setExperimental();
     _useHashingVariantIndex.setRandomChoices({"on","off"});
 
+    /*
     _use_dm = BoolOptionValue("use_dismatching","dm",false);
     _use_dm.description="Use dismatching constraints.";
     // Dismatching constraints didn't work and are being discontinued ...
@@ -1179,6 +1180,7 @@ void Options::Options::init()
     //_use_dm.setExperimental();
     _use_dm.setRandomChoices({"on","off"});
     _use_dm.reliesOn(_saturationAlgorithm.is(equal(SaturationAlgorithm::INST_GEN)));
+    */
 
     _nicenessOption = ChoiceOptionValue<Niceness>("niceness_option","none",Niceness::NONE,{"average","none","sum","top"});
     _nicenessOption.description="";

@@ -1836,7 +1836,7 @@ public:
   bool blockedClauseElimination() const { return _blockedClauseElimination.actualValue; }
   void setUnusedPredicateDefinitionRemoval(bool newVal) { _unusedPredicateDefinitionRemoval.actualValue = newVal; }
   bool weightIncrement() const { return _weightIncrement.actualValue; }
-  bool useDM() const { return _use_dm.actualValue; }
+  // bool useDM() const { return _use_dm.actualValue; }
   SatSolver satSolver() const { return _satSolver.actualValue; }
   //void setSatSolver(SatSolver newVal) { _satSolver = newVal; }
   SaturationAlgorithm saturationAlgorithm() const { return _saturationAlgorithm.actualValue; }
@@ -2355,7 +2355,7 @@ private:
   BoolOptionValue _unusedPredicateDefinitionRemoval;
   BoolOptionValue _blockedClauseElimination;
   UnsignedOptionValue _updatesByOneConstraint;
-  BoolOptionValue _use_dm;
+  // BoolOptionValue _use_dm;
   BoolOptionValue _weightIncrement;
   IntOptionValue _whileNumber;
 
