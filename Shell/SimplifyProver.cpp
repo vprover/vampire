@@ -1516,7 +1516,7 @@ void SimplifyProver::buildDistinct()
   Context context = (Context)_isaved.pop();
   unsigned length = (unsigned)_isaved.pop();
   args.ensure(length);
-  for (unsigned i = length-1;i >= 0;i--) {
+  for (int i = length-1;i >= 0;i--) {
     args[i] = _tsaved.pop();
   }
   if (length == 2) {

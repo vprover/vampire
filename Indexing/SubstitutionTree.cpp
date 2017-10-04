@@ -996,6 +996,7 @@ SubstitutionTree::NodeIterator
   }
 }
 
+/*
 bool SubstitutionTree::GeneralizationsIterator::associate(TermList query, TermList node)
 {
   CALL("SubstitutionTree::GeneralizationsIterator::associate");
@@ -1021,8 +1022,9 @@ SubstitutionTree::NodeIterator
     }
   }
 }
+*/
 
-
+/*
 bool SubstitutionTree::InstancesIterator::associate(TermList query, TermList node)
 {
   CALL("SubstitutionTree::InstancesIterator::associate");
@@ -1047,4 +1049,5 @@ SubstitutionTree::NodeIterator
     }
   }
 }
+*/
 

@@ -638,7 +638,7 @@ public:
   public:
     LeafIterator(SubstitutionTree* st)
     : _nextRootPtr(st->_nodes.begin()), _afterLastRootPtr(st->_nodes.end()),
-    _nodeIterators(8), tag(st->tag) {}
+    _nodeIterators(8) {}
     bool hasNext();
     Leaf* next()
     {
@@ -650,7 +650,6 @@ public:
     Node** _afterLastRootPtr;
     Node* _curr;
     Stack<NodeIterator> _nodeIterators;
-    bool tag;
   };
 
   typedef pair<pair<LeafData*, ResultSubstitutionSP>,UnificationConstraintStackSP> QueryResult;
@@ -788,7 +787,7 @@ public:
     Stack<UnificationConstraint> constraints;
   };
 
-
+/*
   class GeneralizationsIterator
   : public UnificationsIterator
   {
@@ -800,7 +799,8 @@ public:
     virtual bool associate(TermList query, TermList node);
     virtual NodeIterator getNodeIterator(IntermediateNode* n);
   };
-
+*/
+/*
   class InstancesIterator
   : public UnificationsIterator
   {
@@ -811,6 +811,7 @@ public:
     virtual bool associate(TermList query, TermList node);
     virtual NodeIterator getNodeIterator(IntermediateNode* n);
   };
+*/
 
 #if VDEBUG
 public:

@@ -23,7 +23,6 @@
 #include "Indexing/ClauseVariantIndex.hpp"
 #include "Indexing/IndexManager.hpp"
 #include "Indexing/LiteralIndex.hpp"
-#include "Indexing/LiteralSubstitutionTreeWithoutTop.hpp"
 
 #include "Inferences/GlobalSubsumption.hpp"
 #include "Inferences/InferenceEngine.hpp"
@@ -160,11 +159,10 @@ private:
   DistinctEqualitySimplifier _distinctEqualitySimplifier;
 
   bool _use_niceness;
+  /*
   bool _use_dm;
 
-  /**
-   * A struct for holding clause's dms, on per literal basis.
-   */
+  // A struct for holding clause's dms, on per literal basis.
   struct DismatchingContraints {
     CLASS_NAME(IGAlgorithm::DismatchingContraints);
     USE_ALLOCATOR(DismatchingContraints);
@@ -201,6 +199,7 @@ private:
   typedef DHMap<Clause*,DismatchingContraints*> DismatchMap;
 
   DismatchMap _dismatchMap;
+  */
 
   /**
    * The internal representation of all the clauses inside IG

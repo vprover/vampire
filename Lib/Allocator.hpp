@@ -291,10 +291,10 @@ private:
    * See also Allocator::AllowBypassing and the BYPASSING_ALLOCATOR macro.
    */
   static unsigned _tolerantZone;  
-  friend void* ::operator new(size_t);    // throw(std::bad_alloc); // dynamic exception specifications are deprecated in C++11
-  friend void* ::operator new[](size_t);  // throw(std::bad_alloc);
-  friend void ::operator delete(void*);   // throw();
-  friend void ::operator delete[](void*); // throw();
+  friend void* ::operator new(size_t);
+  friend void* ::operator new[](size_t);
+  friend void ::operator delete(void*) noexcept;
+  friend void ::operator delete[](void*) noexcept;
 #endif
 }; // class Allocator
 
