@@ -787,7 +787,7 @@ public:
     Stack<UnificationConstraint> constraints;
   };
 
-
+/*
   class GeneralizationsIterator
   : public UnificationsIterator
   {
@@ -799,7 +799,8 @@ public:
     virtual bool associate(TermList query, TermList node);
     virtual NodeIterator getNodeIterator(IntermediateNode* n);
   };
-
+*/
+/*
   class InstancesIterator
   : public UnificationsIterator
   {
@@ -810,6 +811,7 @@ public:
     virtual bool associate(TermList query, TermList node);
     virtual NodeIterator getNodeIterator(IntermediateNode* n);
   };
+*/
 
 #if VDEBUG
 public:
