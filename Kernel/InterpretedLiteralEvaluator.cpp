@@ -1305,7 +1305,7 @@ bool InterpretedLiteralEvaluator::balance(Literal* lit,Literal*& resLit,Stack<Li
   CALL("InterpretedLiteralEvaluator::balance");
   ASS(balancable(lit));
 
-  cout << "try balance " << lit->toString() << endl;
+  // cout << "try balance " << lit->toString() << endl;
 
   ASS(theory->isInterpretedPredicate(lit->functor()));
 
