@@ -630,8 +630,9 @@ unsigned SMTLIB2::declareSort(LExpr* sExpr)
       }
       // special handling of bitvectors
        
-      if (Int::stringToUnsignedInt(id.c_str(),bitVecSize)) 
+      if (StringUtils::isBiggerThanZero(id.c_str())) 
       {
+        Int::stringToUnsignedInt(id.c_str(),bitVecSize); 
         cur = todo.pop();
         if (getBuiltInSortFromString(cur.second->str) != BS_BITVECTOR)
             goto malformed;
