@@ -19,6 +19,7 @@ public:
   static vstring sanitizeSuffix(vstring str);
   static bool isPositiveInteger(vstring str);
   static bool isPositiveDecimal(vstring str);
+  static bool isBiggerThanZero(vstring str);
 
   static void splitStr(const char* str, char delimiter, Stack<vstring>& strings);
   static bool readEquality(const char* str, char eqChar, vstring& lhs, vstring& rhs);

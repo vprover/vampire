@@ -1457,23 +1457,26 @@ void SMTLIB2::parseUnderScoredExpression(LExpr* exp)
     LispListReader lRdr(exp->list);
     
     LExpr* ex = lRdr.readNext();
+    // this check can probably be removed since this function is called when an underscore is encountered
     if (ex->str!= "_")
-        USER_ERROR("This shouldnt pop up");
+        USER_ERROR("Underscore exptected in "+exp->toString());
     ex = lRdr.readNext();
     vstring wholeBvPart = ex->str;
     vstring bvpart = wholeBvPart.substr(0,2);
     if (bvpart!= "bv")
-        USER_ERROR("BV ERROR bv expected ");
+        USER_ERROR("bv expected after undescore in "+exp->toString());
     
     vstring numberPart = wholeBvPart.substr(2);
-    
-    ASS(StringUtils::isPositiveInteger(numberPart));
-    
+    if (!StringUtils::isPositiveInteger(numberPart)){
+        USER_ERROR("Expected an integer >= 0 for numeral in expression: "+exp->toString());
+    }
     ex = lRdr.readNext();
     unsigned size;
     
-    Int::stringToUnsignedInt(ex->str, size); //TODO:  ERROR HANDLING
-    //ASS(Int::stringToUnsignedInt(ex->str, size));
+    if (!StringUtils::isBiggerThanZero(ex->str)){
+        USER_ERROR("Expected an integer > 0 for bitvector size in expression: "+exp->toString());
+    }
+    Int::stringToUnsignedInt(ex->str, size); 
     
     unsigned symb = TPTP::addBitVectorConstant(BitVectorOperations::getBVCTFromVString(numberPart, size));
     TermList res = TermList(Term::createConstant(symb));

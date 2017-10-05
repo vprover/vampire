@@ -95,6 +95,23 @@ bool StringUtils::isPositiveInteger(vstring str)
   return true;
 }
 
+bool StringUtils::isBiggerThanZero(vstring str)
+{
+  CALL("StringUtils::isBiggerThanZero");
+
+  size_t sz = str.size();
+
+  if(str[0]=='0') {
+    return false ;
+  }
+  for(size_t i=0; i<sz; i++) {
+    if(str[i]<'0' || str[i]>'9') {
+      return false;
+    }
+  }
+  return true;
+}
+
 bool StringUtils::isPositiveDecimal(vstring str)
 {
   CALL("StringUtils::isPositiveDecimal");
