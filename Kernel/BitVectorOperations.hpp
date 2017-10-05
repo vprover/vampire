@@ -34,7 +34,7 @@ namespace Kernel {
     
     static DArray<char> getHexArrayFromString(vstring& input);
     static BitVectorConstantType getBoolArrayFromVString(vstring& input);
-    static void setBVCTFromVString(vstring& input, BitVectorConstantType& result);
+    static bool setBVCTFromVString(vstring& input, BitVectorConstantType& result);
     static bool isOne(const BitVectorConstantType& arg);
     static bool isZero(const BitVectorConstantType& q);
 

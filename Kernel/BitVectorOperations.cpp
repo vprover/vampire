@@ -178,15 +178,18 @@ vstring BitVectorOperations::boolArraytoString(const DArray<bool>& in)
 }
 
 
-// set a BVCT from a string like this 010010
-void BitVectorOperations::setBVCTFromVString(vstring& input, BitVectorConstantType& result)
+// set a BVCT from a string like this 010010 and return false if it contains anything but zero or one
+bool BitVectorOperations::setBVCTFromVString(vstring& input, BitVectorConstantType& result)
  {
     for (unsigned j = 0, i = input.length()-1; j<input.length();--i, ++j){
         if (input.at(j) == '0')
             result.setValueAt(i,false);
-        else 
+        else if (input.at(j) == '1')
             result.setValueAt(i,true);
+        else
+            return false;
     }
+    return true;
  }
 
 BitVectorConstantType BitVectorOperations::getBVCTFromVString(vstring& numberToRepresent, unsigned size)

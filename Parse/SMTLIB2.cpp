@@ -1582,7 +1582,7 @@ bool SMTLIB2::parseAsBitVectorConstant(const vstring& id)
                     }
                 }  
                 else
-                    USER_ERROR("hexa character expected");
+                    USER_ERROR("hexa character expected in "+id);
             }
             unsigned symb = TPTP::addBitVectorConstant(addThis); 
             TermList res = TermList(Term::createConstant(symb));
@@ -1593,7 +1593,8 @@ bool SMTLIB2::parseAsBitVectorConstant(const vstring& id)
         {
             
             BitVectorConstantType addThis(bvContent.size());//= BitVectorOperations::getBoolArrayFromVString(bvContent);
-            BitVectorOperations::setBVCTFromVString(bvContent,addThis);
+            if (!BitVectorOperations::setBVCTFromVString(bvContent,addThis))
+                USER_ERROR("0 or 1 exptected in "+id);
             unsigned resultSort = env.sorts->addBitVectorSort(bvContentSize);
             unsigned symb = TPTP::addBitVectorConstant(addThis);
             
