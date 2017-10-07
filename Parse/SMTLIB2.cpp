@@ -2412,6 +2412,8 @@ void SMTLIB2::parseRankedFunctionApplication(LExpr* exp)
     const vstring& numeral = headRdr.readAtom();
     if (!StringUtils::isPositiveInteger(numeral)) 
         USER_ERROR("Expected numeral as an argument of a ranked function in "+head->toString());
+    if ((operation =="repeat") && (!StringUtils::isBiggerThanZero(numeral)))
+        USER_ERROR("repeat expects a number bigger than 0 in "+head->toString());
     unsigned argSymbol = TPTP::addIntegerConstant(numeral,_overflow,false);
     TermList argTerm = TermList(Term::createConstant(argSymbol));
     unsigned numeralInt;
