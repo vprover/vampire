@@ -465,12 +465,12 @@ void BitVectorOperations::bvurem(const BitVectorConstantType& arg1, const BitVec
     }
        
     bool done = false;
+    bvult(result,arg2,done);
+    
     while (!done)
     {
-        bvult(result,arg2,done);
-        if(done)
-            break;
         subtractBVCTs(result,arg2);
+        bvult(result,arg2,done);
     }
 }
    

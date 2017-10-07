@@ -977,14 +977,14 @@ class InterpretedLiteralEvaluator::BitVectorEvaluator : public TypedEvaluator<Bi
               res = arg1Trm;
               return true;
             }
-            
+          
             //special case where itp is division and second arg is zero... 
             //returns a bitvector of all ones 
             if(theory->tryInterpretConstant(arg2Trm, argBv2) && isZero(argBv2) && isUnsignedDivision(itp)){
               res = TermList(theory->representConstant(BitVectorOperations::getAllOnesBVCT(argBv2.size())));
               return true;
             }
-            
+          
             if(theory->tryInterpretConstant(arg2Trm, argBv2) && isZero(argBv2) && isUnsignedRemainder(itp)){
               res = arg1Trm;
               return true;
