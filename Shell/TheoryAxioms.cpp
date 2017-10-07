@@ -689,49 +689,19 @@ void TheoryAxioms::addBVXORAxiom1(Interpretation bvxor, Interpretation bvor , In
 void TheoryAxioms::addMulBitVectorAxioms(Interpretation plus, Interpretation unaryMinus,
     TermList zeroElement, TermList oneElement, Interpretation less, Interpretation multiply,UnitList*& units)
 {
-    //////// 
-    
-        unsigned srt = theory->getOperationSort(plus);
+    unsigned srt = theory->getOperationSort(plus);
          
-         addCommutativity(multiply, units);
-         addAssociativity(multiply, units);
-         addRightIdentity(multiply, oneElement, units);
+    addCommutativity(multiply, units);
+    addAssociativity(multiply, units);
+    addRightIdentity(multiply, oneElement, units);
          
-        //axiom( X0*zero==zero );
-        unsigned mulFun = env.signature->getInterpretingSymbol(multiply);
-        TermList x(0,false);
-        TermList xMulZero(Term::create2(mulFun, x, zeroElement));
-        Literal* xEqXMulZero = Literal::createEquality(true, xMulZero, zeroElement, srt);
-        addTheoryUnitClause(xEqXMulZero, units, EXPENSIVE);
+    //axiom( X0*zero==zero );
+    unsigned mulFun = env.signature->getInterpretingSymbol(multiply);
+    TermList x(0,false);
+    TermList xMulZero(Term::create2(mulFun, x, zeroElement));
+    Literal* xEqXMulZero = Literal::createEquality(true, xMulZero, zeroElement, srt);
+    addTheoryUnitClause(xEqXMulZero, units, EXPENSIVE);
         
-        // Distributivity
-        //axiom x*(y+z) = (x*y)+(x*z)
-
-        unsigned plusFun = env.signature->getInterpretingSymbol(plus);
-        TermList y(1,false);
-        TermList z(2,false);
-
-        TermList yPz(Term::create2(plusFun,y,z));
-        TermList xTyPz(Term::create2(mulFun,x,yPz));
-
-        TermList xTy(Term::create2(mulFun,x,y));
-        TermList xTz(Term::create2(mulFun,x,z));
-        TermList xTyPxTz(Term::create2(plusFun,xTy,xTz));
-
-        Literal* distrib = Literal::createEquality(true, xTyPz, xTyPxTz,srt);
-        addTheoryUnitClause(distrib,units, EXPENSIVE);
-
-        // Divisibility
-        // (x != 0 & x times z = y & x times w = y) -> z = w
-        // x=0 | x*z != y | x*w != y | z=w
-        TermList w(3,false);
-        Literal* xEz = Literal::createEquality(true,x,zeroElement,srt);
-        TermList xTw(Term::create2(mulFun,x,w));
-        Literal* xTznEy = Literal::createEquality(false,xTz,y,srt); 
-        Literal* xTwnEy = Literal::createEquality(false,xTw,y,srt); 
-        Literal* zEw = Literal::createEquality(true,z,w,srt);
-
-        addTheoryNonUnitClause(units,xEz,xTznEy,xTwnEy,zEw, EXPENSIVE);
 } 
 
 void TheoryAxioms::addCertainBitVectorAxioms(Interpretation plus, Interpretation unaryMinus,
@@ -744,7 +714,7 @@ void TheoryAxioms::addCertainBitVectorAxioms(Interpretation plus, Interpretation
             f(x,i(x))=e
           */
     
-         addCommutativeGroupAxioms(plus, unaryMinus,zeroElement,units);
+        // addCommutativeGroupAxioms(plus, unaryMinus,zeroElement,units);
         
          //Add axioms of reflexivity, transitivity and total ordering for predicate
          addTotalOrderAxioms(less,units);
