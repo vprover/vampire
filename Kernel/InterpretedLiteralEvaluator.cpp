@@ -854,17 +854,7 @@ class InterpretedLiteralEvaluator::BitVectorEvaluator : public TypedEvaluator<Bi
           return true;
       return false; 
   }
-  static BitVectorConstantType getAllOnes(unsigned size)
-    {
-        DArray<bool> allOne(size);
-        
-        for (int i = 0 ; i < size; ++ i){
-            allOne[i] = true;
-        }
-        BitVectorConstantType res(size);
-        res.setBinArray(allOne);
-        return res;
-    }
+  
   virtual bool canEvaluate(Interpretation interp)
   {
       return theory->isBitVectorOperation(interp);
@@ -947,7 +937,6 @@ class InterpretedLiteralEvaluator::BitVectorEvaluator : public TypedEvaluator<Bi
                       || !theory->tryInterpretConstant(arg2Trm, to) || !theory->tryInterpretConstant(arg3Trm, argBv))
                     return false;
               
-              // if sign extend or zero extend size accordingyl
               unsigned resSize = from.toInner()-to.toInner()+1;
               BitVectorConstantType resNum(resSize);
               BitVectorOperations::extract(from.toInner(),to.toInner(),argBv,resNum);
@@ -989,10 +978,10 @@ class InterpretedLiteralEvaluator::BitVectorEvaluator : public TypedEvaluator<Bi
               return true;
             }
             
-            //special case where its is division and second arg is zero... 
+            //special case where itp is division and second arg is zero... 
             //returns a bitvector of all ones 
             if(theory->tryInterpretConstant(arg2Trm, argBv2) && isZero(argBv2) && isUnsignedDivision(itp)){
-              res = TermList(theory->representConstant(getAllOnes(argBv1.size())));
+              res = TermList(theory->representConstant(BitVectorOperations::getAllOnesBVCT(argBv2.size())));
               return true;
             }
             
