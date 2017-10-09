@@ -211,7 +211,7 @@ bool BitVectorConstantType::operator==(const BitVectorConstantType& num) const
   CALL("BitVectorConstantType::operator==");
   
   DArray<bool> other = num.getBinArray();
-  for (int i = 0 ; i < other.size() ; ++i)
+  for (unsigned i = 0 ; i < other.size() ; ++i)
   {
       if (binArray[i]!=other[i]){
           return false;
@@ -225,7 +225,7 @@ bool BitVectorConstantType::operator!=(const BitVectorConstantType& num) const
   CALL("BitVectorConstantType::operator!=");
   
   DArray<bool> other = num.getBinArray();
-  for (int i = 0 ; i < other.size() ; ++i)
+  for (unsigned i = 0 ; i < other.size() ; ++i)
   {
       if (binArray[i]!=other[i]){
           return true;
