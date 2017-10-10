@@ -779,7 +779,7 @@ class InterpretedLiteralEvaluator::BitVectorEvaluator : public TypedEvaluator<Bi
 
   virtual bool isZero(BitVectorConstantType arg)
   {
-      for (int i = 0 ; i <arg.size();++i){
+      for (unsigned i = 0 ; i <arg.size();++i){
             if (arg.getValueAt(i))
                 return false;
         }
@@ -794,7 +794,7 @@ class InterpretedLiteralEvaluator::BitVectorEvaluator : public TypedEvaluator<Bi
   static BitVectorConstantType getZeroBVCT(unsigned size)
   {
         BitVectorConstantType res(size);
-        for (int i =0; i < size; ++i){
+        for (unsigned i =0; i < size; ++i){
             res.setValueAt(i,false);
         }
         return res;
@@ -1046,7 +1046,7 @@ class InterpretedLiteralEvaluator::BitVectorEvaluator : public TypedEvaluator<Bi
       BitVectorConstantType res;
       DArray<bool> resArray(size);
       resArray[0] = true;
-      for (int i = 1 ; i<size;++i){
+      for (unsigned i = 1 ; i<size;++i){
           resArray[i] = false;
       }
       res.setBinArray(resArray);

@@ -276,14 +276,14 @@ void BitVectorOperations::multBVCTByTen(BitVectorConstantType& arg1)
 BitVectorConstantType BitVectorOperations::getZeroBVCT(unsigned size)
  {
     BitVectorConstantType res(size);
-    for (int i =0; i < size; ++i){
+    for (unsigned i =0; i < size; ++i){
         res.setValueAt(i,false);
     }
         return res;
  }
 void BitVectorOperations::makeZeroBVCT(BitVectorConstantType& in)
 {
-    for (int i =0; i < in.size() ; ++i)
+    for (unsigned i =0; i < in.size() ; ++i)
         in.setValueAt(i,false);
 }
   
