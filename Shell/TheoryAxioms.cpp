@@ -48,6 +48,8 @@ void TheoryAxioms::addAndOutputTheoryUnit(Unit* unit, unsigned level)
   }
   if(unit->isClause()){ 
     static_cast<Clause*>(unit)->setTheoryDescendant(true); 
+  } else {
+    _prb.reportFormulasAdded();
   }
   UnitList::push(unit, _prb.units());
 } // addAndOutputTheoryUnit
@@ -967,35 +969,19 @@ void TheoryAxioms::addBooleanArrayWriteAxioms(Interpretation select, Interpretat
 //axiom( (ilt(X0,zero) & igt(X1,zero)) --> ( igt(X0+X1, idiv(X0,X1)*X1) & ige(idiv(X0,X1)*X1, X0) ) );
 //axiom( (X1!=zero) --> (idiv(X0,X1)+X2==idiv(X0+(X1*X2),X1)) );
 
-/**
- * Add theory axioms to the @b problem that are relevant to
- * units present in the problem. The problem must have been processed
- * by the InterpretedNormalizer before using this rule.
- */
-void TheoryAxioms::apply()
-{
-  CALL("TheoryAxioms::apply");
-
-  Property* prop = _prb.getProperty();
-  if(applyProperty(prop)) {
-    _prb.reportEqualityAdded(false);
-    _prb.reportFormulasAdded();
-  }
-}
 
 /**
  * Add theory axioms to the @b problem that are relevant to
  * units present in the problem. The problem must have been processed
  * by the InterpretedNormalizer before using this rule
  *
- * @return true iff the list of units was modified
- *
  * @since 11/11/2013, Manchester: bug fixes
  * @author Andrei Voronkov
  */
-bool TheoryAxioms::applyProperty(Property* prop)
+void TheoryAxioms::apply()
 {
-  CALL("TheoryAxioms::applyProperty");  
+  CALL("TheoryAxioms::applyProperty");
+  Property* prop = _prb.getProperty();
   bool modified = false;
   bool haveIntPlus =
     prop->hasInterpretedOperation(Theory::INT_PLUS) ||
@@ -1190,7 +1176,9 @@ bool TheoryAxioms::applyProperty(Property* prop)
     modified = true;
   }
 
-  return modified;
+  if(modified) {
+    _prb.reportEqualityAdded(false);
+  }
 } // TheoryAxioms::apply
 
 void TheoryAxioms::applyFOOL() {
@@ -1223,6 +1211,7 @@ void TheoryAxioms::addExhaustivenessAxiom(TermAlgebra* ta) {
 
   TermList x(0, false);
   Stack<TermList> argTerms;
+  bool addsFOOL = false;
 
   FormulaList* l = FormulaList::empty();
 
@@ -1232,6 +1221,7 @@ void TheoryAxioms::addExhaustivenessAxiom(TermAlgebra* ta) {
 
     for (unsigned j = 0; j < c->arity(); j++) {
       if (c->argSort(j) == Sorts::SRT_BOOL) {
+        addsFOOL = true;
         Literal* lit = Literal::create1(c->destructorFunctor(j), true, x);
         Term* t = Term::createFormula(new AtomicFormula(lit));
         argTerms.push(TermList(t));
@@ -1260,8 +1250,9 @@ void TheoryAxioms::addExhaustivenessAxiom(TermAlgebra* ta) {
       axiom = new QuantifiedFormula(Connective::FORALL, vars, sorts, new JunctionFormula(Connective::OR, l));
   }
 
-  Unit* unit = new FormulaUnit(axiom, new Inference(Inference::TERM_ALGEBRA_EXHAUSTIVENESS), Unit::AXIOM);
-  addAndOutputTheoryUnit(unit, CHEAP);
+  Unit* u = new FormulaUnit(axiom, new Inference(Inference::TERM_ALGEBRA_EXHAUSTIVENESS), Unit::AXIOM);
+  addAndOutputTheoryUnit(u, CHEAP);
+  if (addsFOOL) { _prb.reportFOOLAdded(); }
 }
 
 void TheoryAxioms::addDistinctnessAxiom(TermAlgebra* ta) {

@@ -26,7 +26,6 @@ static unsigned const CHEAP = 0;
 static unsigned const EXPENSIVE = 1;
 
   void apply();
-  bool applyProperty(Property* prop);
 
   /**
    * There is a separate method for adding the FOOL domain axiom because unlike

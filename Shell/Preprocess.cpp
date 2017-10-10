@@ -139,7 +139,7 @@ void Preprocess::unfoldEqualities(ConstraintRCList*& constraints)
  * @since 12/04/2004 Torrevieja tautology and double literal deletion added
  * @since 22/05/2004 Manchester, equality proxy added
  */
-void Preprocess::preprocess (Problem& prb)
+void Preprocess::preprocess(Problem& prb)
 {
   CALL("Preprocess::preprocess");
 
@@ -162,6 +162,20 @@ void Preprocess::preprocess (Problem& prb)
     env.interpretedOperationsUsed = true;
   }
 
+    // If there are interpreted operations
+  if (prb.hasInterpretedOperations() || env.signature->hasTermAlgebras()){
+    // Normalize them e.g. replace $greater with not $lesseq
+    InterpretedNormalizer().apply(prb);
+    // Add theory axioms if needed
+    if( _options.theoryAxioms() != Options::TheoryAxiomLevel::OFF){
+      env.statistics->phase=Statistics::INCLUDING_THEORY_AXIOMS;
+      if (env.options->showPreprocessing())
+        env.out() << "adding theory axioms" << std::endl;
+
+      TheoryAxioms(prb).apply();
+    }
+  }
+
   if (prb.hasFOOL()) {
     // This is the point to extend the signature with $$true and $$false
     // If we don't have fool then these constants get in the way (a lot)
@@ -169,7 +183,7 @@ void Preprocess::preprocess (Problem& prb)
     if (!_options.newCNF()) {
       if (env.options->showPreprocessing())
         env.out() << "FOOL elimination" << std::endl;
-      TheoryAxioms().applyFOOL(prb);
+      TheoryAxioms(prb).applyFOOL();
       FOOLElimination().apply(prb);
     }
   }
@@ -205,20 +219,6 @@ void Preprocess::preprocess (Problem& prb)
       env.out() << "answer literal addition" << std::endl;
 
     AnswerLiteralManager::getInstance()->addAnswerLiterals(prb);
-  }
-
-  // If there are interpreted operations
-  if (prb.hasInterpretedOperations() || env.signature->hasTermAlgebras()){
-    // Normalize them e.g. replace $greater with not $lesseq
-    InterpretedNormalizer().apply(prb);
-    // Add theory axioms if needed
-    if( _options.theoryAxioms() != Options::TheoryAxiomLevel::OFF){
-      env.statistics->phase=Statistics::INCLUDING_THEORY_AXIOMS;
-      if (env.options->showPreprocessing())
-        env.out() << "adding theory axioms" << std::endl;
-
-      TheoryAxioms().apply(prb);
-    }
   }
 
   // stop here if clausification is not required
