@@ -1646,6 +1646,8 @@ bool SMTLIB2::parseAsUserDefinedSymbol(const vstring& id,LExpr* exp)
     return false;
   }
 
+  LOG2("parseAsUserDefinedSymbol ",id);
+
   unsigned symbIdx = fun.first;
   bool isTrueFun = fun.second;
 
@@ -1661,6 +1663,8 @@ bool SMTLIB2::parseAsUserDefinedSymbol(const vstring& id,LExpr* exp)
 
   for (unsigned i = 0; i < arity; i++) {
     unsigned sort = type->arg(i);
+
+    LOG2("Expecting sort",sort);
 
     TermList arg;
     if (_results.isEmpty() || _results.top().isSeparator() ||
