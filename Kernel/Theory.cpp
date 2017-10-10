@@ -1837,6 +1837,8 @@ bool Theory::isInterpretedPredicate(Literal* lit)
 
   if(lit->isEquality()){
     unsigned srt = SortHelper::getEqualityArgumentSort(lit);
+    if (env.sorts->hasStructuredSort(srt,Sorts::StructuredSort::BITVECTOR))
+        return true;
     return (srt > Sorts::SRT_DEFAULT && srt < Sorts::FIRST_USER_SORT);
   }
 

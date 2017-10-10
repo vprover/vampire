@@ -647,7 +647,7 @@ void BitVectorOperations::bvsrem(const BitVectorConstantType& arg1, const BitVec
         for (unsigned i = 0, j = a1.size() - 1 ; i < a1.size() ; ++ i, --j )
             result.setValueAt(i,a1[i] && a2[i]);
           
-    }
+   }  
    
    void BitVectorOperations::bvshl(const BitVectorConstantType& arg1, const BitVectorConstantType& arg2 , BitVectorConstantType& result)
     {

@@ -293,7 +293,7 @@ unsigned Signature::addInterpretedPredicate(Interpretation interpretation, const
 {
   CALL("Signature::addInterpretedPredicate");
   ASS(!Theory::isFunction(interpretation));
-
+ 
   unsigned res;
   if (_iSymbols.find(interpretation,res)) { // already declared
     if (name!=predicateName(res)) {

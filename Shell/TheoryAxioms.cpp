@@ -1612,7 +1612,7 @@ bool TheoryAxioms::apply(UnitList*& units, Property* prop)
           addRightIdentity(bvudivInterpretation, one, units);
           
       }
-     
+          
       // an failed attempt to add associvity for concat
       else if(entry.first.getSSI() == Theory::StructuredSortInterpretation::CONCAT)
       {
