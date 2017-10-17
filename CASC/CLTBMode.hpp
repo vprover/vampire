@@ -24,23 +24,13 @@
 #include "Shell/Property.hpp"
 #include "Shell/SineUtils.hpp"
 
+#include "Schedules.hpp"
+
 namespace CASC {
 
 using namespace std;
 using namespace Lib;
 using namespace Kernel;
-
-
-
-#if COMPILER_MSVC
-
-class CLTBMode
-{
-public:
-  static void perform() { USER_ERROR("casc_ltb mode is not supported on Windows"); }
-};
-
-#else
 
 enum Category {
   HH4,
@@ -122,9 +112,8 @@ public:
 
   void searchForProof(int terminationTime,int timeLimit,const Category category) __attribute__((noreturn));
   typedef Set<vstring> StrategySet;
-  typedef Stack<vstring> Schedule;
 private:
-  bool runSchedule(Schedule&,StrategySet& remember,bool fallback,int terminationTime);
+  bool runSchedule(Schedule&,StrategySet& remember,int terminationTime);
   unsigned getSliceTime(vstring sliceCode,vstring& chopped);
 
   void performStrategy(int terminationTime,int timeLimit,Category category,const Shell::Property* property);
@@ -183,8 +172,6 @@ private:
     }
   };
 };
-
-#endif //!COMPILER_MSVC
 
 }
 

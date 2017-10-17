@@ -92,45 +92,34 @@ public:
   /** return the tail of the list */
   inline List* tail() const
   {
-    ASS_NEQ(this,0);
-
     return _tail;
   } // List::tail
 
   /** return a reference to the tail of the list */
   inline List*& tailReference ()
   {
-    ASS_NEQ(this,0);
-
     return _tail;
   } // List::tailReference
 
   /** return a reference to the tail of the list */
   inline List** tailPtr ()
   {
-    ASS_NEQ(this,0);
-
     return &_tail;
   } // List::tailReference
 
   /** return the head of the list */
   inline const C head () const
   {
-    ASS_NEQ(this,0);
-
     return _head;
   } // List::head
 
   inline C head ()
   {
-    ASS_NEQ(this,0);
-
     return _head;
   } // List::head
 
   inline C* headPtr ()
   {
-    ASS_NEQ(this,0);
     return &(this->_head);
   }
 
@@ -144,8 +133,6 @@ public:
   /** Set the head of the list to hd */
   inline void setHead (C hd)
   {
-    ASS_NEQ(this,0);
-
     _head = hd;
   } // List::setHead
 
@@ -154,20 +141,18 @@ public:
    *  and return the original tail. */
   inline List* setTail(List* tl)
   {
-    ASS_NEQ(this,0);
-
     List* res = _tail;
     _tail = tl;
     return res;
   } // list::setTail
 
   /** Destroy the list */
-  void destroy ()
+  static void destroy (List *l)
   {
     CALL("List::destroy");
 
-    if (isEmpty(this)) return;
-    List* current = this;
+    if (isEmpty(l)) return;
+    List* current = l;
 
     for (;;) {
       List* next = current->tail();
@@ -182,12 +167,12 @@ public:
    * Naturally, the list must be a list of pointers.
    * @since 01/04/2006 Bellevue
    */
-  void destroyWithDeletion()
+  static void destroyWithDeletion(List *l)
   {
     CALL("List::destroyWithDeletion");
 
-    if (isEmpty(this)) return;
-    List* current = this;
+    if (isEmpty(l)) return;
+    List* current = l;
 
     for (;;) {
       List* next = current->tail();
@@ -199,14 +184,14 @@ public:
   } // List::destroyWithDeletion
 
   /** create a shallow copy of the list */
-  List* copy () const
+  static List* copy (const List* l)
   {
-    if (isEmpty(this)) return empty();
+    if (isEmpty(l)) return empty();
 
     List* result = new List;
-    result->_head = _head;
+    result->_head = l->head();
     List* previous = result;
-    List* rest = _tail;
+    List* rest = l->tail();
 
     while (! isEmpty(rest)) {
       List* tmp = new List;
@@ -220,15 +205,15 @@ public:
     return result;
   }  // List::copy
 
-  /** appends snd to a copy of this list */
-  List* append (List* snd)
+  /** appends snd to a copy of fst */
+  static List* append (List* fst, List* snd)
   {
-    if (isEmpty(this)) return snd;
+    if (isEmpty(fst)) return snd;
 
     List* result = new List;
-    result->setHead(head());
+    result->setHead(fst->head());
     List* previous = result;
-    List* rest = tail();
+    List* rest = fst->tail();
 
     while(isNonEmpty(rest)) {
       List* tmp = new List;
@@ -244,15 +229,15 @@ public:
 
   /** return the list obtained by adding elem as the first element
    *  of this list */
-  inline List* cons(C elem)
+  static inline List* cons(C elem, List* l)
   {
-    return new List(elem,this);
+    return new List(elem, l);
   } // List::cons
 
   /** push elem to lst */
   inline static void push(C elem,List* &lst)
   {
-    lst = lst->cons(elem);
+    lst = cons(elem, lst);
   } // List::push
 
   /**
@@ -267,21 +252,6 @@ public:
       push(it.next(), lst);
     }
   }
-
-  /**
-   * True if the list has the given length.
-   * @since 10/06/2007 Manchester
-   */
-  bool hasLength(int length) const
-  {
-    ASS_GE(length,0);
-
-    for (const List* lst = this;lst;lst = lst->tail()) {
-      if (length == 0) return false;
-      length--;
-    }
-    return length == 0;
-  } // hasLength
 
   /** pop the first element and return it */
   inline static C pop(List* &lst)
@@ -318,40 +288,41 @@ public:
   } // List::concat
 
   /** Destructive list reversal */
-  List* reverse()
+  static List* reverse(List* l)
   {
-    if (isEmpty(this)) return this;
+    if (isEmpty(l)) return empty();
 
     List* result = empty();
-    List* lst = this;
 
-    while (isNonEmpty(lst)) {
-      List* tl = lst->tail();
-      lst->setTail(result);
-      result = lst;
-      lst = tl;
+    while (isNonEmpty(l)) {
+      List* tl = l->tail();
+      l->setTail(result);
+      result = l;
+      l = tl;
     }
 
     return result;
   } // List::reverse
 
   /** return the length of the list */
-  int length () const
+  static unsigned length(const List *l)
   {
-    int len = 0;
+    unsigned len = 0;
 
-    for (const List* lst = this; isNonEmpty(lst); lst = lst->tail()) {
+    while (isNonEmpty(l)) {
       len ++;
+      l = l->tail();
     }
 
     return len;
   } // List::length
 
   /** True if elem is a member of the list, the comparison is made using == */
-  bool member (C elem) const
+  static bool member (C elem, const List* l)
   {
-    for (const List* lst = this; isNonEmpty(lst); lst = lst->tail()) {
-      if (lst->head() == elem) return true;
+    while (isNonEmpty(l)) {
+      if (l->head() == elem) return true;
+      l = l->tail();
     }
 
     return false;
@@ -361,40 +332,35 @@ public:
    * from the list and returns the resulting list. Does nothing
    * if elem is not a member of the list.
    */
-  List* remove (C elem)
+  static List* remove (C elem, List* l)
   {
-    if (isEmpty(this)) return this;
+    if (isEmpty(l)) return empty();
 
-    if (head() == elem) {
-      List* result = tail();
-      delete this;
+    if (l->head() == elem) {
+      List* result = l->tail();
+      delete l;
       return result;
     }
-    if (isEmpty(tail())) return this;
+    if (isEmpty(l->tail())) return l;
 
-    List* current = this;
-    List* next = tail();
+    List* current = l;
+    List* next = l->tail();
 
     for (;;) {
       if (next->head() == elem) { // element found
         current->setTail(next->tail());
         delete next;
-        return this;
+        return l;
       }
       current = next;
       next = next->tail();
-      if (isEmpty(next)) return this;
+      if (isEmpty(next)) return l;
     }
   } // List::remove
 
   /** Return the nth element, counting from 0 */
-  C nth(int n) const
+  static C nth(const List *l, unsigned n)
   {
-    // nth element, counting from 0
-    ASS_GE(n,0);
-
-    const List* l = this;
-
     while (n != 0) {
       ASS_NEQ(l,0);
 
@@ -455,9 +421,9 @@ public:
 
   /** Split the list into two sublists, first of the length n. Return
    *  the first sublist and save the second sublist in the variable rest. */
-  List* split (int n, List*& rest)
+  static List* split (List* l, int n, List*& rest)
   {
-    if (! this) {
+    if (! l) {
       ASS_EQ(n,0);
       rest = empty();
       return empty();
@@ -465,10 +431,10 @@ public:
 
     if (n == 0) {
       rest = empty();
-      return this;
+      return l;
     }
 
-    List* nth = this;
+    List* nth = l;
     while (--n > 0) {
       ASS_NEQ(nth,0);
       nth = nth->_tail;
@@ -477,7 +443,7 @@ public:
     ASS_NEQ(nth,0);
     rest = nth->_tail;
     nth->_tail = empty();
-    return this;
+    return l;
   } // List::split
 
 #if VDEBUG

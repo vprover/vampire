@@ -329,7 +329,7 @@ public:
   }
   ~PData()
   {
-    _forms->destroy();
+    AFList::destroy(_forms);
   }
 
   void incRef() { _refCnt++; }
@@ -347,7 +347,7 @@ public:
     CALL("Problem::PData::cloneInto");
     ASS_EQ(obj->_forms, 0);
 
-    obj->_forms=_forms->copy();
+    obj->_forms = AFList::copy(_forms);
   }
 
   void addFormula(AnnotatedFormula f)
@@ -696,7 +696,7 @@ protected:
       Kernel::UnitList::push(f.unit, units);
     }
     _aii.scan(units);
-    units->destroy();
+    Kernel::UnitList::destroy(units);
 
     fit=p.formulas();
     while(fit.hasNext()) {
@@ -741,7 +741,7 @@ protected:
       Kernel::UnitList::push(f.unit, units);
     }
     _adi.scan(units);
-    units->destroy();
+    Kernel::UnitList::units->destroy(units);
 
     fit=p.formulas();
     while(fit.hasNext()) {
@@ -828,7 +828,7 @@ protected:
       Kernel::UnitList::push(f.unit, units);
     }
     _pii.scan(units);
-    units->destroy();
+    Kernel::UnitList::destroy(units);
 
     fit=p.formulas();
     while(fit.hasNext()) {
@@ -902,7 +902,7 @@ protected:
       Kernel::UnitList::push(f.unit, units);
     }
     _merger.scan(units);
-    units->destroy();
+    Kernel::UnitList::destroy(units);
 
     fit=p.formulas();
     while(fit.hasNext()) {
@@ -1072,7 +1072,7 @@ protected:
       Kernel::UnitList::push(f.unit, units);
     }
     _eprInliner.scan(units);
-    units->destroy();
+    Kernel::UnitList::destroy(units);
 
     fit=p.formulas();
     while(fit.hasNext()) {
@@ -1134,7 +1134,7 @@ protected:
       Kernel::UnitList::push(f.unit, units);
     }
     _eprSkolem.scan(units);
-    units->destroy();
+    Kernel::UnitList::destroy(units);
 
     fit=p.formulas();
     while(fit.hasNext()) {
@@ -1184,7 +1184,7 @@ protected:
       Kernel::UnitList::push(f.unit, units);
     }
     pd.collectReplacements(units, replacements);
-    units->destroy();
+        Kernel::UnitList::destroy(units);
 
     fit=p.formulas();
     while(fit.hasNext()) {
@@ -1280,7 +1280,7 @@ public:
       }
       eqs = ed.getEquivalences(units);
     }
-    units->destroy();
+        Kernel::UnitList::destroy(units);
 
     if(!eqs) { return p; }
 

@@ -71,7 +71,7 @@ IGAlgorithm::IGAlgorithm(Problem& prb,const Options& opt)
     _selector = LiteralSelector::getSelector(*_ordering, opt, opt.instGenSelection());
   }
 
-  _use_dm = opt.useDM();
+  // _use_dm = opt.useDM();
   _use_niceness = (opt.satVarSelector() == Options::SatVarSelector::NICENESS);
 
   _passive.setAgeWeightRatio(_opt.ageRatio(), _opt.weightRatio());
@@ -326,6 +326,7 @@ bool IGAlgorithm::startGeneratingClause(Clause* orig, ResultSubstitution& subst,
 
   genLits.reset();
 
+  /*
   // We check and update the dismatching constraints associated
   // with the clause being instantiated
   DismatchingContraints* dmatch = 0;
@@ -333,6 +334,7 @@ bool IGAlgorithm::startGeneratingClause(Clause* orig, ResultSubstitution& subst,
     TimeCounter tc(TC_DISMATCHING);
     _dismatchMap.find(orig,dmatch);
   }
+  */
 
   unsigned clen = orig->length();
   Literal* origLitGnd = 0;
@@ -344,6 +346,7 @@ bool IGAlgorithm::startGeneratingClause(Clause* orig, ResultSubstitution& subst,
       origLitGnd = glit;
     }
 
+    /*
     {
       TimeCounter tc(TC_DISMATCHING);
       // check dismatching constraint here
@@ -356,6 +359,7 @@ bool IGAlgorithm::startGeneratingClause(Clause* orig, ResultSubstitution& subst,
         return false;
       }
     }
+    */
 
     genLits.push(glit);
   }
@@ -384,7 +388,9 @@ void IGAlgorithm::finishGeneratingClause(Clause* orig, ResultSubstitution& subst
 
   env.statistics->instGenGeneratedClauses++;
   bool added = addClause(res);
+  (void)added;
 
+  /*
   //Update dismatch constraints
   if(added && _use_dm) {
     TimeCounter tc(TC_DISMATCHING);
@@ -408,6 +414,7 @@ void IGAlgorithm::finishGeneratingClause(Clause* orig, ResultSubstitution& subst
 #endif
     dmatch->add(origLit,dm_with);
   }
+  */
 }
 
 /**
@@ -772,6 +779,7 @@ void IGAlgorithm::restartFromBeginning()
 {
   CALL("IGAlgorithm::restartFromBeginning");
 
+  /*
   {
     TimeCounter tc(TC_DISMATCHING);
     // throw away dismatching constraints
@@ -779,6 +787,7 @@ void IGAlgorithm::restartFromBeginning()
     while(iit.hasNext()){ delete iit.next(); }
     _dismatchMap.reset();
   }
+  */
 
   _active.reset();
   while(!_passive.isEmpty()) {
@@ -895,15 +904,13 @@ MainLoopResult IGAlgorithm::onModelFound()
     MainLoopResult res(Statistics::SATISFIABLE);
     if(_opt.proof()!=Options::Proof::OFF) {
       //we need to print this early because model generating can take some time
-      if(UIHelper::szsOutput) {
-	env.beginOutput();
-	env.out() << "% SZS status "<<( UIHelper::haveConjecture() ? "CounterSatisfiable" : "Satisfiable" )
-	    << " for " << _opt.problemName() << endl << flush;
-	env.endOutput();
-	UIHelper::satisfiableStatusWasAlreadyOutput = true;
-      }
-      if(_opt.mode()==Options::Mode::SPIDER){
-        reportSpiderStatus('-');
+      reportSpiderStatus('-');
+      if(szsOutputMode()) {
+        env.beginOutput();
+        env.out() << "% SZS status "<<( UIHelper::haveConjecture() ? "CounterSatisfiable" : "Satisfiable" )
+            << " for " << _opt.problemName() << endl << flush;
+        env.endOutput();
+        UIHelper::satisfiableStatusWasAlreadyOutput = true;
       }
 
       // Prevent timing out whilst the model is being printed

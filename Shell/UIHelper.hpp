@@ -16,6 +16,12 @@ namespace Shell {
 using namespace Lib;
 using namespace Kernel;
 
+bool szsOutputMode();
+ostream& addCommentSignForSZS(ostream&);
+void reportSpiderFail();
+void reportSpiderStatus(char status);
+bool outputAllowed(bool debug=false);
+
 class UIHelper {
 public:
   static Problem* getInputProblem(const Options& opts);
@@ -43,22 +49,25 @@ public:
   static void outputSortDeclarations(ostream& out);
 
   /**
-   * True if we are running in the CASC mode
-   *
-   * CASC mode means that we will output messages also in the SZS format.
+   * A hacky global flag distinguishing the parent and the child in portfolio modes.
+   * Currently affects how things are reported during timeout (see Timer.cpp)
    */
-  static bool szsOutput;
-  /**
-   * True if we are running in the CASC mode and we are the child process
-   */
-  static bool cascModeChild;
-
+  static bool portfolioParent;
   /**
    * Hack not to output satisfiable status twice (we may output it earlier in
    * IGAlgorithm, before we start generating model)
    */
   static bool satisfiableStatusWasAlreadyOutput;
+
+private:
+
+  static bool s_haveConjecture;
+#if VDEBUG
+  static bool _inputHasBeenRead;
+#endif
+
 #if GNUMP
+public:
   static ConstraintRCList* getInputConstraints(const Options& opts);
   static ConstraintRCList* getPreprocessedConstraints(const ConstraintRCList* inputConstraints);
   static ConstraintRCList* getPreprocessedConstraints(const Options& opts);
@@ -67,22 +76,11 @@ public:
   static void outputConstraints(ConstraintList* constraints, ostream& out, Options::InputSyntax syntax=Options::IS_HUMAN);
   
   static void outputAssignment(Assignment& assignemt, ostream& out, Options::InputSyntax syntax=Options::IS_HUMAN);
-#endif //GNUMP
   
 private:
-#if GNUMP
   static void outputConstraintInHumanFormat(const Constraint& constraint, ostream& out);
   static void outputConstraintInSMTFormat(const Constraint& constraint, ostream& out);
 #endif //GNUMP
-
-  static bool unitNumberComparator(Unit* us1, Unit* us2);
-  static void addCommentIfCASC(ostream&); 
-
-  static bool s_haveConjecture;
-#if VDEBUG
-  static bool _inputHasBeenRead;
-#endif
-  
 };
 
 }

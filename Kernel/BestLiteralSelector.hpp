@@ -216,7 +216,7 @@ protected:
       }
       c->setSelected(1);
     }
-    maximals->destroy();
+    LiteralList::destroy(maximals);
 
     ensureSomeColoredSelected(c, eligible);
   }

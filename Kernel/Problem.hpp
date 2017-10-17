@@ -122,7 +122,14 @@ public:
     invalidateProperty();
     _hasFOOL = false;
   }
-  void refortFormulasAdded()
+
+  void reportFOOLAdded()
+  {
+    invalidateProperty();
+    _hasFOOL = true;
+  }
+  
+  void reportFormulasAdded()
   {
     invalidateProperty();
     _mayHaveFormulas = true;

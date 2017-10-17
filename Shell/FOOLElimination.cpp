@@ -511,7 +511,7 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
         Formula* thenImplication = new BinaryFormula(IMP, condition, thenEq);
 
         // build ![X1, ..., Xn]: (f => g(X1, ..., Xn) == s)
-        if (freeVars->length() > 0) {
+        if (Formula::VarList::length(freeVars) > 0) {
           //TODO do we know the sorts of freeVars?
           thenImplication = new QuantifiedFormula(FORALL, freeVars,0, thenImplication);
         }
@@ -524,7 +524,7 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
         Formula* elseImplication = new BinaryFormula(IMP, new NegatedFormula(condition), elseEq);
 
         // build ![X1, ..., Xn]: (~f => g(X1, ..., Xn) == t)
-        if (freeVars->length() > 0) {
+        if (Formula::VarList::length(freeVars) > 0) {
           //TODO do we know the sorts of freeVars?
           elseImplication = new QuantifiedFormula(FORALL, freeVars, 0, elseImplication);
         }
@@ -579,13 +579,13 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
         Formula::VarList::Iterator bfvi(binding.freeVariables());
         while (bfvi.hasNext()) {
           int var = bfvi.next();
-          if (!argumentVars->member(var)) {
+          if (!Formula::VarList::member(var, argumentVars)) {
             bodyFreeVars = new Formula::VarList(var, bodyFreeVars);
           }
         }
 
         // build the list X1, ..., Xn, Y1, ..., Yk of variables and their sorts
-        Formula::VarList* vars = bodyFreeVars->append(argumentVars);
+        Formula::VarList* vars = Formula::VarList::append(bodyFreeVars, argumentVars);
         Stack<unsigned> sorts = collectSorts(vars);
 
         // take the defined function symbol and its result sort
@@ -625,7 +625,7 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
                                                                  freshFunctionApplication, processedBody, bindingSort);
 
         // build ![X1, ..., Xn, Y1, ..., Yk]: g(X1, ..., Xn, Y1, ..., Yk) == s
-        if (vars->length() > 0) {
+        if (Formula::VarList::length(vars) > 0) {
         /*
           Formula::SortList* sortList = Formula::SortList::empty();
           Formula::VarList* vp = vars;
@@ -705,7 +705,7 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
         Formula* freshSymbolDefinition = new BinaryFormula(IFF, formula, toEquality(freshSymbolApplication));
 
         // build ![X1, ..., Xn]: (f <=> g(X1, ..., Xn) = true)
-        if (freeVars->length() > 0) {
+        if (Formula::VarList::length(freeVars) > 0) {
           // TODO do we know the sorts of freeVars?
           freshSymbolDefinition = new QuantifiedFormula(FORALL, freeVars,0, freshSymbolDefinition);
         }
@@ -741,12 +741,12 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
   Formula::VarList::Iterator ufv(freeVars);
   while (ufv.hasNext()) {
     unsigned var = (unsigned)ufv.next();
-    ASS_REP(resultFreeVars->member(var), var);
+    ASS_REP(Formula::VarList::member(var, resultFreeVars), var);
   }
   Formula::VarList::Iterator pfv(resultFreeVars);
   while (pfv.hasNext()) {
     unsigned var = (unsigned)pfv.next();
-    ASS_REP(freeVars->member(var), var);
+    ASS_REP(Formula::VarList::member(var, freeVars), var);
   }
 
   // special subterms should be eliminated
@@ -794,7 +794,7 @@ void FOOLElimination::buildApplication(unsigned symbol, Formula::VarList* vars, 
                                        TermList& functionApplication, Formula*& predicateApplication) {
   CALL("FOOLElimination::buildApplication");
 
-  unsigned arity = (unsigned)vars->length();
+  unsigned arity = Formula::VarList::length(vars);
   if (context == FORMULA_CONTEXT) {
     ASS_EQ(env.signature->predicateArity(symbol), arity);
   } else {

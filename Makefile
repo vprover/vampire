@@ -11,7 +11,6 @@
 #   VTEST            - testing procedures will also be compiled
 #   CHECK_LEAKS      - test for memory leaks (debugging mode only)
 #   UNIX_USE_SIGALRM - the SIGALRM timer will be used even in debug mode
-#   IS_LINGVA 	     - this allows the compilation of lingva. 
 #   GNUMPF           - this option allows us to compile with bound propagation or without it ( value 1 or 0 ) 
 #                      Importantly, it includes the GNU Multiple Precision Arithmetic Library (GMP)
 #   VZ3              - compile with Z3
@@ -20,7 +19,6 @@ GNUMPF = 0
 DBG_FLAGS = -g -DVDEBUG=1 -DCHECK_LEAKS=0 -DUNIX_USE_SIGALRM=1 -DGNUMP=$(GNUMPF)# debugging for spider 
 # DELETEMEin2017: the bug with gcc-6.2 and problems in ClauseQueue could be also fixed by adding -fno-tree-ch
 REL_FLAGS = -O6 -DVDEBUG=0 -DGNUMP=$(GNUMPF)# no debugging 
-LLVM_FLAGS = -D_GNU_SOURCE -DGNUMP=$(GNUMPF) -D__STDC_CONSTANT_MACROS -D__STDC_FORMAT_MACROS -D__STDC_LIMIT_MACROS -fexceptions -fno-rtti -fPIC -Woverloaded-virtual -Wcast-qual
 GCOV_FLAGS = -O0 --coverage #-pedantic
 
 MINISAT_DBG_FLAGS = -D DEBUG
@@ -81,21 +79,21 @@ Z3FLAG= -DVZ3=1
 endif
 
 ifneq (,$(filter vtest%,$(MAKECMDGOALS)))
-XFLAGS = $(DBG_FLAGS) -DIS_LINGVA=0 $(Z3FLAG)
+XFLAGS = $(DBG_FLAGS) $(Z3FLAG)
 endif
 ifneq (,$(filter %_dbg,$(MAKECMDGOALS)))
-XFLAGS = $(DBG_FLAGS) -DIS_LINGVA=0 $(Z3FLAG)
+XFLAGS = $(DBG_FLAGS) $(Z3FLAG)
 endif
 ifneq (,$(filter %_rel,$(MAKECMDGOALS)))
-XFLAGS = $(REL_FLAGS) -DIS_LINGVA=0 $(Z3FLAG)
+XFLAGS = $(REL_FLAGS) $(Z3FLAG)
 MINISAT_FLAGS = $(MINISAT_REL_FLAGS)
 endif
 
 ifneq (,$(filter %_dbg_gcov,$(MAKECMDGOALS)))
-XFLAGS = $(DBG_FLAGS) -DIS_LINGVA=0 $(GCOV_FLAGS) $(Z3FLAG)
+XFLAGS = $(DBG_FLAGS) $(GCOV_FLAGS) $(Z3FLAG)
 endif
 ifneq (,$(filter %_rel_gcov,$(MAKECMDGOALS)))
-XFLAGS = $(REL_FLAGS) -DIS_LINGVA=0 $(GCOV_FLAGS) $(Z3FLAG)
+XFLAGS = $(REL_FLAGS) $(GCOV_FLAGS) $(Z3FLAG)
 MINISAT_FLAGS = $(MINISAT_REL_FLAGS)
 endif
 
@@ -107,10 +105,10 @@ STATIC = -static
 endif
 
 ifneq (,$(filter %_dbg_static,$(MAKECMDGOALS)))
-XFLAGS = $(STATIC) $(DBG_FLAGS) -DIS_LINGVA=0  $(Z3FLAG)
+XFLAGS = $(STATIC) $(DBG_FLAGS) $(Z3FLAG)
 endif
 ifneq (,$(filter %_rel_static,$(MAKECMDGOALS)))
-XFLAGS = $(STATIC) $(REL_FLAGS) -DIS_LINGVA=0 $(Z3FLAG)
+XFLAGS = $(STATIC) $(REL_FLAGS) $(Z3FLAG)
 MINISAT_FLAGS = $(MINISAT_REL_FLAGS)
 endif
 
@@ -120,24 +118,10 @@ endif
 #
 
 ifneq (,$(filter libvapi,$(MAKECMDGOALS)))
-XFLAGS = $(REL_FLAGS) -DVAPI_LIBRARY=1 -DIS_LINGVA=0-fPIC
+XFLAGS = $(REL_FLAGS) -DVAPI_LIBRARY=1 -fPIC
 endif
 ifneq (,$(filter libvapi_dbg,$(MAKECMDGOALS)))
-XFLAGS = $(DBG_FLAGS) -DVAPI_LIBRARY=1 -DIS_LINGVA=0 -fPIC 
-endif
-
-ifneq (,$(filter lingva_rel,$(MAKECMDGOALS)))
-XFLAGS = $(REL_FLAGS) $(LLVM_FLAGS) -DIS_LINGVA=1
-INCLUDES = -I. -ISrcInclude -IBuildInclude
-endif
-ifneq (,$(filter lingva,$(MAKECMDGOALS)))
-XFLAGS = $(DBG_FLAGS) $(LLVM_FLAGS) -DIS_LINGVA=1
-INCLUDES = -I. -ISrcInclude -IBuildInclude
-endif
-
-ifneq (,$(filter lingva_dbg,$(MAKECMDGOALS)))
-XFLAGS = $(DBG_FLAGS) $(LLVM_FLAGS) -DIS_LINGVA=1
-INCLUDES = -I. -ISrcInclude -IBuildInclude
+XFLAGS = $(DBG_FLAGS) -DVAPI_LIBRARY=1 -fPIC 
 endif
 
 ################################################################
@@ -248,7 +232,6 @@ VI_OBJ = Indexing/AcyclicityIndex.o\
          Indexing/LiteralIndex.o\
          Indexing/LiteralMiniIndex.o\
          Indexing/LiteralSubstitutionTree.o\
-	 Indexing/LiteralSubstitutionTreeWithoutTop.o\
          Indexing/ResultSubstitution.o\
          Indexing/SubstitutionTree.o\
          Indexing/SubstitutionTree_FastGen.o\
@@ -304,6 +287,7 @@ VSAT_OBJ=SAT/ClauseDisposer.o\
          SAT/TWLSolver.o\
          SAT/VariableSelector.o\
 	 SAT/Z3Interfacing.o\
+	 SAT/Z3MainLoop.o\
 	 SAT/BufferedSolver.o\
 	 SAT/FallbackSolverWrapper.o
 #         SAT/ISSatSweeping.o\	 
@@ -409,27 +393,10 @@ LTB_OBJ = Shell/LTB/Builder.o\
           Shell/LTB/Selector.o\
           Shell/LTB/Storage.o
 
-CASC_OBJ = CASC/CASCMode.o\
-           CASC/CASCMultiMode.o\
+CASC_OBJ = CASC/PortfolioMode.o\
+           CASC/Schedules.o\
            CASC/CLTBMode.o\
-           CASC/CLTBModeLearning.o\
-           CASC/ForkingCM.o
-#           CASC/SpawningCM.o\
-#           CASC/CMZRMode.o\
-
-SMTCOMP_OBJ = SMTCOMP/SMTCOMPMode.o\
-              SAT/Z3MainLoop.o
-
-VPROG_OBJ = Program/Type.o\
-           Program/LoopAnalyzer.o\
-           Program/Analyze.o\
-           Program/Path.o\
-           Program/Expression.o\
-           Program/Statement.o\
-           Program/Variable.o\
-           Program/InvariantHelper.o           
-
-VPROG_OBL = Program/Lingva.o
+           CASC/CLTBModeLearning.o
 
 VFMB_OBJ = FMB/ClauseFlattening.o\
            FMB/SortInference.o\
@@ -526,7 +493,7 @@ OTHER_CL_DEP = Indexing/FormulaIndex.o\
 	       SAT/TWLSolver.o\
 	       SAT/VariableSelector.o	
 
-VAMP_DIRS := Api Debug DP Lib Lib/Sys Kernel FMB Indexing Inferences InstGen Shell CASC SMTCOMP Shell/LTB SAT Saturation Test UnitTests VUtils Program Parse Minisat Minisat/core Minisat/mtl Minisat/simp Minisat/utils
+VAMP_DIRS := Api Debug DP Lib Lib/Sys Kernel FMB Indexing Inferences InstGen Shell CASC Shell/LTB SAT Saturation Test UnitTests VUtils Parse Minisat Minisat/core Minisat/mtl Minisat/simp Minisat/utils
 
 VAMP_BASIC := $(MINISAT_OBJ) $(VD_OBJ) $(VL_OBJ) $(VLS_OBJ) $(VK_OBJ) $(BP_VD_OBJ) $(BP_VL_OBJ) $(BP_VLS_OBJ) $(BP_VSOL_OBJ) $(BP_VT_OBJ) $(BP_MPS_OBJ) $(ALG_OBJ) $(VI_OBJ) $(VINF_OBJ) $(VIG_OBJ) $(VSAT_OBJ) $(DP_OBJ) $(VST_OBJ) $(VS_OBJ) $(PARSE_OBJ) $(VFMB_OBJ)
 #VCLAUSIFY_BASIC := $(VD_OBJ) $(VL_OBJ) $(VLS_OBJ) $(VK_OBJ) $(ALG_OBJ) $(VI_OBJ) $(VINF_OBJ) $(VSAT_OBJ) $(VST_OBJ) $(VS_OBJ) $(VT_OBJ)
@@ -534,19 +501,17 @@ VCLAUSIFY_BASIC := $(VD_OBJ) $(VL_OBJ) $(VLS_OBJ) $(filter-out Shell/Interpolant
 VSAT_BASIC := $(VD_OBJ) $(VL_OBJ) $(VLS_OBJ) $(VSAT_OBJ) Test/CheckedSatSolver.o $(LIB_DEP)
 #VGROUND_BASIC := $(VD_OBJ) $(VL_OBJ) $(VK_OBJ) $(VI_OBJ) $(VSAT_OBJ) $(VS_OBJ) $(VT_OBJ)  
 
-VAMPIRE_DEP := $(VAMP_BASIC) $(CASC_OBJ) $(SMTCOMP_OBJ) $(TKV_BASIC) Global.o vampire.o
+VAMPIRE_DEP := $(VAMP_BASIC) $(CASC_OBJ) $(TKV_BASIC) Global.o vampire.o
 VCOMPIT_DEP = $(VAMP_BASIC) Global.o vcompit.o
 VLTB_DEP = $(VAMP_BASIC) $(LTB_OBJ) Global.o vltb.o
 VCLAUSIFY_DEP = $(VCLAUSIFY_BASIC) Global.o vclausify.o
-VUTIL_DEP = $(VAMP_BASIC) $(CASC_OBJ) $(SMTCOMP_OBJ) $(VUTIL_OBJ) Global.o vutil.o
+VUTIL_DEP = $(VAMP_BASIC) $(CASC_OBJ) $(VUTIL_OBJ) Global.o vutil.o
 VSAT_DEP = $(VSAT_BASIC) Global.o vsat.o
-VTEST_DEP = $(VAMP_BASIC) $(VT_OBJ) $(VUT_OBJ) $(DP_OBJ) $(VPROG_OBJ) $(SMTCOMP_OBJ) Global.o vtest.o
+VTEST_DEP = $(VAMP_BASIC) $(VT_OBJ) $(VUT_OBJ) $(DP_OBJ) Global.o vtest.o
 LIBVAPI_DEP = $(VD_OBJ) $(API_OBJ) $(VCLAUSIFY_BASIC) Global.o
 VAPI_DEP =  $(LIBVAPI_DEP) test_vapi.o
 #UCOMPIT_OBJ = $(VCOMPIT_BASIC) Global.o compit2.o compit2_impl.o
 VGROUND_DEP = $(VAMP_BASIC) Global.o vground.o
-LINGVA_DEP = $(API_OBJ) $(VAMP_BASIC) $(CASC_OBJ) $(SMTCOMP_OBJ) Saturation/ProvingHelper.o Global.o $(VPROG_OBL) $(VPROG_OBJ) vampire.o 
-#$(LIBVAPI_DEP) Saturation/ProvingHelper.o $(VPROG_OBJ) 
 
 
 all:#default make disabled
@@ -607,7 +572,7 @@ $(CONF_ID)/%.o : %.c | $(CONF_ID)
 %.o : %.cc
 $(CONF_ID)/%.o : %.cc | $(CONF_ID)
 	$(CXX) $(CXXFLAGS) -c -o $@ $*.cc $(MINISAT_FLAGS) -D __STDC_LIMIT_MACROS -D __STDC_FORMAT_MACROS -MMD -MF $(CONF_ID)/$*.d
-  
+
 ################################################################
 # targets for executables
 
@@ -621,7 +586,6 @@ VSAT_OBJ := $(addprefix $(CONF_ID)/, $(VSAT_DEP))
 VAPI_OBJ := $(addprefix $(CONF_ID)/, $(VAPI_DEP))
 LIBVAPI_OBJ := $(addprefix $(CONF_ID)/, $(LIBVAPI_DEP))
 VGROUND_OBJ := $(addprefix $(CONF_ID)/, $(VGROUND_DEP))
-LINGVA_OBJ := $(addprefix $(CONF_ID)/, $(LINGVA_DEP))
 TKV_OBJ := $(addprefix $(CONF_ID)/, $(TKV_DEP))
 
 LGMP = 
@@ -646,33 +610,6 @@ $(CXX) $(CXXFLAGS) $(filter -l%, $+) $(filter %.o, $^) -o $@ -lgmp -lgmpxx
 @#$(CXX) -static $(CXXFLAGS) $(filter %.o, $^) -o $@
 @#strip $@
 endef
-################################################################
-# LLVM external dependencies and build commands
-
-ifneq (,$(filter lingva% ,$(MAKECMDGOALS)))
-
-RELCLANG := RelClang/libclangFrontend.a \
-    RelClang/libclangParse.a \
-    RelClang/libclangSema.a \
-    RelClang/libclangAnalysis.a \
-    RelClang/libclangAST.a \
-    RelClang/libclangLex.a \
-    RelClang/libclangBasic.a \
-    RelClang/libclangDriver.a \
-    RelClang/libclangSerialization.a \
-    RelClang/libLLVMMC.a \
-    RelClang/libLLVMCppBackend.a \
-    RelClang/libLLVMCore.a \
-    RelClang/libLLVMSupport.a 
-
--lpthread:
--ldl: 
-define LLVM_COMPILE_CMD
-$(CXX) $(CXXFLAGS) $(filter -l%, $+) $(filter %.o, $^) -o $@ $(RELCLANG) -lpthread -ldl -lgmp -lgmpxx 
-@#$(CXX) $(filter %.o, $^) -o $@ $(CLANGLIBS) $(shell /home/ioan/proseed/proseed/llvm/build/Debug/bin/llvm-config --ldflags --libs cppbackend)
-@#strip $@
-endef
-endif
 
 ################################################################
 # definitions of targets
@@ -683,8 +620,6 @@ endif
 
 EXEC_DEF_PREREQ = Makefile
 
-lingva lingva_rel lingva_dbg: $(LINGVA_OBJ) $(EXEC_DEF_PREREQ)
-	$(LLVM_COMPILE_CMD)
 
 vampire_dbg vampire_rel vampire_dbg_static vampire_dbg_gcov vampire_rel_static vampire_rel_gcov vampire_z3_dbg vampire_z3_rel vampire_z3_dbg_static vampire_z3_dbg_gcov vampire_z3_rel_static vampire_z3_rel_gcov: $(VAMPIRE_OBJ) $(EXEC_DEF_PREREQ)
 	$(COMPILE_CMD)

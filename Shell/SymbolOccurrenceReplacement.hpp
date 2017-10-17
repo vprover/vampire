@@ -32,10 +32,10 @@ class SymbolOccurrenceReplacement {
         ASS(freeVars || !env.signature->getFunction(symbol)->introduced());
         // Arities of symbols should coincide
         if (isPredicate) {
-            ASS_EQ(env.signature->getPredicate(symbol)->arity() + freeVars->length(),
+          ASS_EQ(env.signature->getPredicate(symbol)->arity() + Formula::VarList::length(freeVars),
                    env.signature->getPredicate(freshSymbol)->arity());
         } else {
-            ASS_EQ(env.signature->getFunction(symbol)->arity() + freeVars->length(),
+          ASS_EQ(env.signature->getFunction(symbol)->arity() + Formula::VarList::length(freeVars),
                    env.signature->getFunction(freshSymbol)->arity());
         }
     }

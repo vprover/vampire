@@ -18,7 +18,6 @@
 #include "SAT/Preprocess.hpp"
 #include "SAT/SingleWatchSAT.hpp"
 #include "SAT/TWLSolver.hpp"
-#include "SAT/LingelingInterfacing.hpp"
 
 #include "Indexing/TermSharing.hpp"
 
@@ -39,7 +38,6 @@ struct SatOptions
   bool simulateIncremental;
   bool minimizingSolver;
   bool checkingSolver;
-  bool testLingeling;
   vstring fileName;
 
   SatOptions()
@@ -185,38 +183,11 @@ void satSolverMode(SatOptions& opts)
     //clauses = getPreprocessedClauses(opts.fileName.c_str(), varCnt);
   }
 
-  /*
-  if (opts.testLingeling){
-	  env.statistics->phase = Statistics::SATURATION;
-    SATSolverSCP solver(new LingelingInterfacing(*env.options, false));
-    SATClauseList* iclause; 
-    unsigned variableCount;
-    iclause = getInputClauses(opts.fileName.c_str(),variableCount);
-
-    solver->addClauses(pvi(SATClauseList::Iterator(iclause)));
-    SATSolver::Status result = solver->getStatus();
-    env.statistics->phase = Statistics::FINALIZATION;
-    switch(result) {
-    case SATSolver::SATISFIABLE:
-      cout<<"SATISFIABLE\n";
-      env.statistics->terminationReason = Statistics::SATISFIABLE;
-      break;
-    case SATSolver::UNSATISFIABLE:
-      cout<<"UNSATISFIABLE\n";
-      env.statistics->terminationReason = Statistics::REFUTATION;
-      break;
-    default:
-      ASSERTION_VIOLATION;
-    }
-    return;
-  }
-  */
   env.statistics->phase = Statistics::SAT_SOLVING;
 
   cout<<"start varcnt :"<<varCnt<<"\n";
 
-  //SATSolverSCP solver(new TWLSolver(*env.options, true));
-  SATSolverSCP solver(new LingelingInterfacing(*env.options, false));
+  SATSolverSCP solver(new TWLSolver(*env.options, true));
   //for the minimized case
   //solver = new MinimizingSolver(solver.release());
 
@@ -269,10 +240,6 @@ bool processArgs(StringStack& args, SatOptions& opts)
       opts.simulateIncremental = true;
       it.del();
     }
-    else if(arg == "-ling"){
-      opts.testLingeling = true; 
-      it.del();
-    }
     else if(arg=="-minim") {
       opts.minimizingSolver = true;
       it.del();
@@ -320,8 +287,6 @@ int main(int argc, char* argv [])
 {
   CALL("main");
   //ScopedPtr<SATSolver> solver;
-  //solver = new LingelingInterfacing(*env.options, false);
-  //LingelingInterfacing* solver(new LingelingInterfacing(*env.options, false));
  
   try {
     System::registerArgv0(argv[0]);

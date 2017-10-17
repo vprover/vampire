@@ -54,7 +54,7 @@ SATInference* SATInference::copy(const SATInference* inf)
 
   switch(inf->getType()) {
   case PROP_INF:
-    return new PropInference(static_cast<const PropInference*>(inf)->getPremises()->copy());
+    return new PropInference(SATClauseList::copy(static_cast<const PropInference*>(inf)->getPremises()));
   case FO_CONVERSION:
     return new FOConversionInference(static_cast<const FOConversionInference*>(inf)->getOrigin());
   case ASSUMPTION:

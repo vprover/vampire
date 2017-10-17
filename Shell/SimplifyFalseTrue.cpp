@@ -137,7 +137,7 @@ Formula* SimplifyFalseTrue::simplify (Formula* f)
       int length = 0;  // the length of the result
       bool changed = false;
       FormulaList* fs = f->args();
-      DArray<Formula*> gs(fs->length());
+      DArray<Formula*> gs(FormulaList::length(fs));
 
       FormulaList::Iterator it(fs);
       while (it.hasNext()) {

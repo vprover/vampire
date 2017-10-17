@@ -99,7 +99,26 @@ public:
  {
    return _domainConstantsRev.find(t);
  }
-
+ vstring prepend(const char* prefix, vstring name) {
+   if (name.empty()) {
+     return vstring(prefix);
+   } else if (name[0] == '\'') {
+     vstring dequoted = name.substr(1, name.length() - 1);
+     return vstring("'") + prefix + dequoted;
+   } else {
+     return prefix + name;
+   }
+ }
+ vstring append(vstring name, const char* suffix) {
+   if (name.empty()) {
+     return vstring(suffix);
+   } else if (name[0] == '\'') {
+     vstring dequoted = name.substr(0, name.length() - 1);
+     return dequoted + suffix + "'";
+   } else {
+     return name + suffix;
+   }
+ }
 };
 
 

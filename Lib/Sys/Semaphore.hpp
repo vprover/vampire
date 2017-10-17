@@ -15,8 +15,6 @@
 namespace Lib {
 namespace Sys {
 
-#if !COMPILER_MSVC
-
 class Semaphore
 {
 public:
@@ -71,8 +69,6 @@ private:
                                   (Linux-specific) */
   };
 };
-
-#endif
 
 }
 }

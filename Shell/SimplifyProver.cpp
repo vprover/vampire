@@ -278,13 +278,13 @@ SimplifyProver::Keyword SimplifyProver::keyword(const vstring& str)
 } // keyword
 
 /** Create a typoinfo structure and allocate the argTypes array */
-SimplifyProver::SymbolInfo::SymbolInfo(int ar)
+SimplifyProver::SymbolInfo::SymbolInfo(unsigned ar)
   : arity(ar)
 {
 }
 
 /** allocate a new SymbolInfo structure */
-void* SimplifyProver::SymbolInfo::operator new(size_t size, int arity)
+void* SimplifyProver::SymbolInfo::operator new(size_t size, unsigned arity)
 {
   return ALLOC_KNOWN(size + sizeof(int)*(arity-1),"SimplifyProver::SymbolInfo");
 }
@@ -484,10 +484,10 @@ void SimplifyProver::parseFormula()
       case K_LBLNEG:
       case K_LBL:
       case K_LBLPOS:
-	if (lst->length() != 3) {
+	if (List::length(lst) != 3) {
 	  formulaError(expr,"LBL expression has a wrong length");
 	}
-	expr = lst->nth(2);
+	expr = List::nth(lst, 2);
 	goto retry;
       default:
 	formulaError(expr);
@@ -523,7 +523,7 @@ void SimplifyProver::parseQuantifiedFormula(const List* lst,const Expression* ex
 
   Stack<int> booleanVars;
   lst = lst->tail();
-  int len = lst->length();
+  unsigned len = List::length(lst);
   if (len < 2) {
     formulaError(expr,"quantified formula too short");
   }
@@ -616,7 +616,7 @@ void SimplifyProver::parseBinaryFormula(const List* lst,const Expression* expr,C
 {
   CALL("SimplifyProver::parseBinaryFormula");
 
-  if (lst->length()!=2) {
+  if (List::length(lst) != 2) {
     formulaError(expr,"binary connective (such as <=>) must have two arguments");
   }
   _isaved.push(c);
@@ -642,9 +642,9 @@ void SimplifyProver::parseJunctionFormula(const List* lst,const Expression* expr
 {
   CALL("SimplifyProver::parseJunctionFormula");
 
-  if (lst->length() <= 2) formulaError(expr);
+  if (List::length(lst) <= 2) formulaError(expr);
   lst = lst->tail();
-  _isaved.push(lst->length());
+  _isaved.push(List::length(lst));
   _isaved.push((int)c);
   _isaved.push(context);
   _commands.push(BUILD_JUNCTION_FORMULA);
@@ -663,12 +663,13 @@ void SimplifyProver::parseJunctionFormula(const List* lst,const Expression* expr
 void SimplifyProver::parseAtom(const List* lst,const Expression* expr,Context context)
 {
   CALL("SimplifyProver::parseAtom");
-
+  ASS(!List::isEmpty(lst));
+      
   if (lst->head()->tag == LispParser::LIST) {
     formulaError(expr);
   } 
   vstring symb = lst->head()->str;
-  int arity = lst->length() - 1;
+  unsigned arity = List::length(lst) - 1;
 
   SymbolInfo* sinfo;
   if (!_symbolInfo.find(symb,sinfo)) {
@@ -787,9 +788,10 @@ void SimplifyProver::parseAtom(const Expression* expr,Context context)
 void SimplifyProver::parseDistinct(const List* lst,const Expression* expr,Context context)
 {
   CALL("SimplifyProver::parseDistinct");
-
+  ASS(List::isNonEmpty(lst));
+  
   lst = lst->tail();
-  int length = lst->length();
+  unsigned length = List::length(lst);
   if (length < 2) {
     return;
   }
@@ -811,7 +813,7 @@ void SimplifyProver::parseLet(const List* lst,const Expression* expr,Context con
 {
   CALL("SimplifyProver::parseLet");
 
-  if (lst->length() != 2) formulaError(expr);
+  if (List::length(lst) != 2) formulaError(expr);
   Expression* let = lst->head();
   if (let->tag == LispParser::ATOM) formulaError(expr);
   // bindings produced by LET
@@ -833,7 +835,7 @@ void SimplifyProver::parseEquality(const List* lst,const Expression* expr,Contex
 {
   CALL("SimplifyProver::parseEquality");
 
-  if (lst->length() != 3) formulaError(expr);
+  if (List::length(lst) != 3) formulaError(expr);
   _isaved.push(polarity);
   _isaved.push(context);
   _commands.push(BUILD_EQUALITY);
@@ -850,7 +852,7 @@ void SimplifyProver::parseEquality(const List* lst,const Expression* expr,Contex
  * have to be declared in advance but they can be used.
  * @since 29/08/2009 Redmond
  */
-SimplifyProver::SymbolInfo* SimplifyProver::builtInPredicate(const vstring& symb,int arity)
+SimplifyProver::SymbolInfo* SimplifyProver::builtInPredicate(const vstring& symb,unsigned arity)
 {
   CALL("SimplifyProver::builtInPredicate");
 
@@ -886,7 +888,7 @@ SimplifyProver::SymbolInfo* SimplifyProver::builtInPredicate(const vstring& symb
   SymbolInfo* sinfo = new(arity) SymbolInfo(arity);
   sinfo->returnType = BIT_BOOL;
   sinfo->number = isEquality ? 0 : env.signature->addPredicate(symb,arity);
-  for (int i = 0;i < arity;i++) {
+  for (unsigned i = 0;i < arity;i++) {
     sinfo->argTypes[i] = BIT_INT;
   }
   _symbolInfo.insert(symb,sinfo);
@@ -898,7 +900,7 @@ SimplifyProver::SymbolInfo* SimplifyProver::builtInPredicate(const vstring& symb
  * have to be declared in advance but they can be used.
  * @since 31/08/2009 Redmond
  */
-SimplifyProver::SymbolInfo* SimplifyProver::builtInFunction(const vstring& symb,int arity)
+SimplifyProver::SymbolInfo* SimplifyProver::builtInFunction(const vstring& symb, unsigned arity)
 {
   CALL("SimplifyProver::builtInFunction");
 
@@ -922,7 +924,7 @@ SimplifyProver::SymbolInfo* SimplifyProver::builtInFunction(const vstring& symb,
   SymbolInfo* sinfo = new(arity) SymbolInfo(arity);
   sinfo->returnType = BIT_INT;
   sinfo->number = env.signature->addFunction(symb,arity);
-  for (int i = 0;i < arity;i++) {
+  for (unsigned i = 0;i < arity;i++) {
     sinfo->argTypes[i] = BIT_INT;
   }
 
@@ -1003,7 +1005,7 @@ void SimplifyProver::parseTerm()
   switch (keyword(symb)) {
   case K_NONE:
     {
-      int arity = lst->length() - 1;
+      unsigned arity = List::length(lst) - 1;
       SymbolInfo* sinfo;
       if (!_symbolInfo.find(symb,sinfo)) {
 	sinfo = builtInFunction(symb,arity);
@@ -1057,16 +1059,16 @@ void SimplifyProver::parseTerm()
  * Parse a DEFTYPE declaration
  * @since 31/08/2009 Redmond
  */
-void SimplifyProver::defType(const List* list,const Expression* expr)
+void SimplifyProver::defType(const List* lst,const Expression* expr)
 {
   CALL("SimplifyProver::defType");
 
-  int length = list->length();
+  unsigned length = List::length(lst);
   if (length == 0) {
   err:
     error((vstring)"Bad DEFTYPE declaration " + expr->toString());
   }
-  List* l1 = list->tail();
+  List* l1 = lst->tail();
   Expression* h1 = l1->head();
   if (h1->tag == LispParser::LIST) {
     goto err;
@@ -1155,12 +1157,12 @@ void SimplifyProver::defOp(const List* list,const Expression* expr)
     types.push(tp);
   }
 
-  int length = types.length();
+  unsigned length = types.length();
   if (length == 0) goto err;
   SymbolInfo* symInfo = new(length-1) SymbolInfo(length-1);
   Type tp = types.pop();
   symInfo->returnType = tp;
-  for (int i = 0;i < length-1;i++) {
+  for (unsigned i = 0;i < length-1;i++) {
     symInfo->argTypes[i] = types[i];
   }
 
@@ -1288,9 +1290,9 @@ void SimplifyProver::buildTerm()
   static DArray<TermList> args;
 
   const SymbolInfo* sinfo = (SymbolInfo*)_saved.pop();
-  int arity = sinfo->arity;
+  unsigned arity = sinfo->arity;
   args.ensure(arity);
-  for (int i = 0;i < arity;i++) {
+  for (unsigned i = 0;i < arity;i++) {
     args[i] = _tsaved.pop();
   }
   TermList ts(Term::create(sinfo->number,arity,args.array()));
@@ -1308,9 +1310,9 @@ void SimplifyProver::buildAtom()
 
   const SymbolInfo* sinfo = (SymbolInfo*)_saved.pop();
   Context context = (Context)_isaved.pop();
-  int arity = sinfo->arity;
+  unsigned arity = sinfo->arity;
   args.ensure(arity);
-  for (int i = 0;i < arity;i++) {
+  for (unsigned i = 0;i < arity;i++) {
     args[i] = _tsaved.pop();
   }
   Literal* lit = sinfo->number == 0 // equality
@@ -1444,7 +1446,7 @@ void SimplifyProver::doLet()
     formulaError(expr);
   }
   lst = hd->list;
-  if (lst->length() != 3) goto err;
+  if (List::length(lst) != 3) goto err;
   hd = lst->head(); // hd is either FORMULA or TERM
   if (hd->tag == LispParser::LIST) {
     goto err;
@@ -1512,7 +1514,7 @@ void SimplifyProver::buildDistinct()
   static DArray<TermList> args;
 
   Context context = (Context)_isaved.pop();
-  int length = _isaved.pop();
+  unsigned length = (unsigned)_isaved.pop();
   args.ensure(length);
   for (int i = length-1;i >= 0;i--) {
     args[i] = _tsaved.pop();
@@ -1527,8 +1529,8 @@ void SimplifyProver::buildDistinct()
   bool top = (context == CN_TOP_LEVEL) && ! _isaved.top();
   // TEMPORARY, only 300 are processed
   if (length > 300) length = 300;
-  for (int i = 1;i < length;i++) {
-    for (int j = 0;j < i;j++) {
+  for (unsigned i = 1;i < length;i++) {
+    for (unsigned j = 0;j < i;j++) {
       Literal* lit = Literal::createEquality(false,args[i],args[j],_defaultSort);
       Formula* ineq = new AtomicFormula(lit);
       if (top) {
@@ -1589,7 +1591,7 @@ void SimplifyProver::processFormula(Formula* f,Context context)
 	TermList ts(fvi.next(),false);
 	args.push(ts);
       }
-      int arity = args.length();
+      unsigned arity = args.length();
       unsigned sf = env.signature->addSkolemFunction(arity);
       // term f(x)
       TermList fx(Term::create(sf,arity,args.begin()));
@@ -1657,7 +1659,7 @@ void SimplifyProver::parseNegatedFormula(const List* lst,const Expression* expr,
 {
   CALL("SimplifyProver::parseNegatedFormula");
 
-  if (lst->length()!=1) {
+  if (List::length(lst) != 1) {
     formulaError(expr);
   }
   _isaved.push(context);
@@ -1724,7 +1726,7 @@ void SimplifyProver::buildIfThenElseTerm()
       args.push(ts);
     }
   }
-  int arity = args.length();
+  unsigned arity = args.length();
   unsigned sf = env.signature->addSkolemFunction(arity);
   TermList fx(Term::create(sf,arity,args.begin()));
   // add axioms f => fx=s and ~f => fx=t
@@ -1759,7 +1761,7 @@ void SimplifyProver::buildLetFormula()
   while (fvi.hasNext()) {
     args.push(TermList(fvi.next(),false));
   }
-  int arity = args.length();
+  unsigned arity = args.length();
   unsigned sf = env.signature->addNamePredicate(arity);
   // atom p(x)
   Formula* px = new AtomicFormula(Literal::create(sf,arity,true,false,args.begin()));

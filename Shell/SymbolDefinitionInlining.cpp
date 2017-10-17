@@ -43,7 +43,7 @@ TermList SymbolDefinitionInlining::substitute(Term::Iterator tit) {
       unsigned boundVar = (unsigned) bit.next();
       unsigned freshVar = ++_freshVarOffset;
       substitution.bind(boundVar, TermList(freshVar, false));
-      _varRenames = _varRenames->cons(make_pair(boundVar, freshVar));
+      List<pair<unsigned, unsigned>>::push(make_pair(boundVar, freshVar), _varRenames);
     }
   }
 
@@ -256,7 +256,7 @@ Formula* SymbolDefinitionInlining::process(Formula* formula) {
 FormulaList* SymbolDefinitionInlining::process(FormulaList* formulas) {
   CALL("SymbolDefinitionInlining::process(FormulaList*)");
 
-  Stack<Formula*> elements(formulas->length());
+  Stack<Formula*> elements(FormulaList::length(formulas));
 
   bool substituted = false;
   FormulaList::Iterator fit(formulas);

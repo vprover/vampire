@@ -116,22 +116,22 @@ UnitIterator InferenceStore::getParents(Unit* us, Inference::Rule& rule)
   ASS_NEQ(us,0);
 
   // The unit itself stores the inference
-  List<Unit*>* res=0;
-  Inference* inf=us->inference();
+  UnitList* res = 0;
+  Inference* inf = us->inference();
 
   // opportunity to shrink the premise list
   // (currently applies if this was a SAT-based inference
   // and the solver didn't provide a proper proof nor a core)
   inf->minimizePremises();
 
-  Inference::Iterator iit=inf->iterator();
+  Inference::Iterator iit = inf->iterator();
   while(inf->hasNext(iit)) {
-    Unit* premUnit=inf->next(iit);
-    List<Unit*>::push(premUnit, res);
+    Unit* premUnit = inf->next(iit);
+    UnitList::push(premUnit, res);
   }
-  rule=inf->rule();
-  res=res->reverse(); //we want items in the same order
-  return pvi( List<Unit*>::DestructiveIterator(res) );
+  rule = inf->rule();
+  res = UnitList::reverse(res); //we want items in the same order
+  return pvi(UnitList::DestructiveIterator(res));
 }
 
 /**
@@ -216,7 +216,7 @@ vstring getQuantifiedStr(Unit* u, List<unsigned>* nonQuantified=0)
       TermVarIterator vit( (*cl)[i] );
       while(vit.hasNext()) {
 	unsigned var=vit.next();
-	if (nonQuantified->member(var)) {
+	if (List<unsigned>::member(var, nonQuantified)) {
 	  continue;
 	}
 	vars.insert(var);
@@ -228,7 +228,7 @@ vstring getQuantifiedStr(Unit* u, List<unsigned>* nonQuantified=0)
     FormulaVarIterator fvit( formula );
     while(fvit.hasNext()) {
       unsigned var=fvit.next();
-      if (nonQuantified->member(var)) {
+      if (List<unsigned>::member(var, nonQuantified)) {
         continue;
       }
       vars.insert(var);
@@ -771,7 +771,7 @@ protected:
     VariableIterator vit(nameLit);
     while(vit.hasNext()) {
       unsigned var=vit.next().var();
-      ASS(!nameVars->member(var)); //each variable appears only once in the naming literal
+      ASS(!List<unsigned>::member(var, nameVars)); //each variable appears only once in the naming literal
       List<unsigned>::push(var,nameVars);
     }
 
@@ -797,7 +797,7 @@ protected:
       VariableIterator lvit(lit);
       while(lvit.hasNext()) {
         unsigned var=lvit.next().var();
-        if (!nameVars->member(var) && !compOnlyVars->member(var)) {
+        if (!List<unsigned>::member(var, nameVars) && !List<unsigned>::member(var, compOnlyVars)) {
           List<unsigned>::push(var,compOnlyVars);
         }
       }
@@ -805,11 +805,11 @@ protected:
     ASS(!first);
 
     compStr=getQuantifiedStr(compOnlyVars, compStr, multiple);
-    compOnlyVars->destroy();
+    List<unsigned>::destroy(compOnlyVars);
 
     vstring defStr=compStr+" <=> "+Literal::complementaryLiteral(nameLit)->toString();
     defStr=getQuantifiedStr(nameVars, defStr);
-    nameVars->destroy();
+    List<unsigned>::destroy(nameVars);
 
     SymbolId nameSymbol = SymbolId(false,nameLit->functor());
     vostringstream originStm;
@@ -943,7 +943,6 @@ InferenceStore::ProofPrinter* InferenceStore::createProofPrinter(ostream& out)
   case Options::Proof::PROPERTY:
     return new ProofPropertyPrinter(out,this);
   case Options::Proof::OFF:
-  case Options::Proof::SMTCOMP:
     return 0;
   }
   ASSERTION_VIOLATION;

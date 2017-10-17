@@ -475,7 +475,7 @@ bool TheoryFinder::matchCode(const void* obj,
     ASS(code[cp+1] == 2);
 
     const FormulaList* args = f->args();
-    if (args->length() != code[cp+1]) {
+    if (FormulaList::length(args) != code[cp+1]) {
       goto backtrack;
     }
 
@@ -521,7 +521,7 @@ bool TheoryFinder::matchCode(const void* obj,
     if (f->connective() != FORALL) {
       goto backtrack;
     }
-    if (f->vars()->length() != code[cp+1]) {
+    if (Formula::VarList::length(f->vars()) != code[cp+1]) {
       goto backtrack;
     }
     cp += 2;

@@ -10,10 +10,6 @@
 #define UNIT_ID fork
 UT_CREATE;
 
-
-//forking isn't supported in the visual studio
-#if !COMPILER_MSVC
-
 #include <cerrno>
 #include <stdlib.h>
 #include <unistd.h>
@@ -284,5 +280,3 @@ TEST_FUN(fork_and_kill3)
   ASS_EQ(c1res,256+SIGKILL);
   ASS_EQ(c2res,1);
 }
-
-#endif

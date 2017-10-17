@@ -29,17 +29,6 @@ using namespace Kernel;
 using namespace Indexing;
 using namespace Shell;
 
-#if COMPIT_GENERATOR
-struct nullstream:
-public std::ostream {
-  struct nullbuf: public std::streambuf {
-    int overflow(int c) { return traits_type::not_eof(c); }
-  } m_sbuf;
-  nullstream(): std::ios(&m_sbuf), std::ostream(&m_sbuf) {}
-};
-nullstream nullStream;
-#endif
-
 /**
  * @since 06/05/2007 Manchester
  */
@@ -172,10 +161,6 @@ ostream& Environment::out()
   CALL("Environment::out");
   ASS(_outputDepth);
 
-#if COMPIT_GENERATOR
-  static nullstream ns;
-  return ns;
-#else
   if(_priorityOutput) {
     return *_priorityOutput;
   }
@@ -185,7 +170,6 @@ ostream& Environment::out()
   else {
     return cout;
   }
-#endif
 }
 
 /**

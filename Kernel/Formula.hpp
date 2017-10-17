@@ -181,7 +181,7 @@ class QuantifiedFormula
   {
     ASS(con == FORALL || con == EXISTS);
     ASS(vs);
-    ASS(!ss || vs->length()==ss->length());
+    ASS(!ss || VarList::length(vs) == SortList::length(ss));
   }
 
   /** Return the immediate subformula */
@@ -287,7 +287,7 @@ class JunctionFormula
       _args(args)
   {
     ASS(con == AND || con == OR);
-    ASS_GE(args->length(),2);
+    ASS_GE(FormulaList::length(args),2);
   }
 
   /** set arguments to args */

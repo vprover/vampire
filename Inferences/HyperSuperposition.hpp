@@ -27,8 +27,8 @@ public:
 
   HyperSuperposition() : _index(0) {}
 
-  void attach(SaturationAlgorithm* salg);
-  void detach();
+  void attach(SaturationAlgorithm* salg) override;
+  void detach() override;
 
   Clause* generateClause(Clause* queryCl, Literal* queryLit, SLQueryResult res, Limits* limits=0);
   ClauseIterator generateClauses(Clause* premise);

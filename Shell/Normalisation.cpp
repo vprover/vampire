@@ -52,7 +52,7 @@ UnitList* Normalisation::normalise (UnitList* units)
   }
   _counter.count(units,1);
 
-  int length = units->length();
+  unsigned length = UnitList::length(units);
 
   // more than one literal
   Sort<Unit*,Normalisation> srt(length,*this);
@@ -67,7 +67,7 @@ UnitList* Normalisation::normalise (UnitList* units)
   for (int k = length-1;k >= 0;k--) {
     result = new UnitList(srt[k],result);
   }
-  units->destroy();
+  UnitList::destroy(units);
   return result;
 } // Normalisation::normalise (UnitList*)
 
@@ -249,7 +249,8 @@ Comparison Normalisation::compare (Formula* fm1, Formula* fm2)
     case EXISTS:
       // first compare the length of the variable prefix,
       //  and then the immediate subformulas
-      comp = compare(f1->vars()->length(),f2->vars()->length());
+      comp = compare((int) Formula::VarList::length(f1->vars()),
+                     (int) Formula::VarList::length(f2->vars()));
       if (comp != EQUAL) {
 	return comp;
       }
@@ -438,7 +439,8 @@ Comparison Normalisation::compare(Term* t1, Term* t2)
   }
 
   if (!t1->shared() && !t2->shared()) {
-    comp = compare ((int)t1->getSpecialData()->getType(), (int)t2->getSpecialData()->getType());
+    comp = compare ((int)t1->getSpecialData()->getType(),
+                    (int)t2->getSpecialData()->getType());
     if (comp != EQUAL) {
       return comp;
     }
@@ -456,8 +458,8 @@ Comparison Normalisation::compare(Term* t1, Term* t2)
         break;
 
       case Term::SF_LET: {
-        comp = compare(t1->getSpecialData()->getVariables()->length(),
-                       t2->getSpecialData()->getVariables()->length());
+        comp = compare((int) Formula::VarList::length(t1->getSpecialData()->getVariables()),
+                       (int) Formula::VarList::length(t2->getSpecialData()->getVariables()));
         if (comp != EQUAL) {
           return comp;
         }
@@ -470,8 +472,8 @@ Comparison Normalisation::compare(Term* t1, Term* t2)
       }
 
       case Term::SF_LET_TUPLE: {
-        comp = compare(t1->getSpecialData()->getTupleSymbols()->length(),
-                       t2->getSpecialData()->getTupleSymbols()->length());
+        comp = compare((int) Formula::VarList::length(t1->getSpecialData()->getTupleSymbols()),
+                       (int) Formula::VarList::length(t2->getSpecialData()->getTupleSymbols()));
         if (comp != EQUAL) {
           return comp;
         }

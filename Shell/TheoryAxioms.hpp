@@ -18,13 +18,14 @@ using namespace Kernel;
 
 class TheoryAxioms {
 public:
-  TheoryAxioms() {} 
+  TheoryAxioms(Problem& prb) :
+    _prb(prb)
+  {} 
 
 static unsigned const CHEAP = 0;
 static unsigned const EXPENSIVE = 1;
 
-  void apply(Problem& prb);
-  bool apply(UnitList*& units, Property* prop);
+  void apply();
 
   /**
    * There is a separate method for adding the FOOL domain axiom because unlike
@@ -33,77 +34,74 @@ static unsigned const EXPENSIVE = 1;
    * which is a different condition that is used to apply axioms than the one,
    * used for the other theories.
    */
-  void applyFOOL(Problem& prb);
+  void applyFOOL();
 
 private:
 
-  void addCommutativity(Interpretation op, UnitList*& units);
-  void addAssociativity(Interpretation op, UnitList*& units);
-  void addRightIdentity(Interpretation op, TermList idElement, UnitList*& units);
-  void addLeftIdentity(Interpretation op, TermList idElement, UnitList*& units);
-  void addCommutativeGroupAxioms(Interpretation op,Interpretation inverse,
-				 TermList idElement, UnitList*& units);
+  Problem& _prb;
 
-  void addRightInverse(Interpretation op, Interpretation inverse, UnitList*& units);
+  void addCommutativity(Interpretation op);
+  void addAssociativity(Interpretation op);
+  void addRightIdentity(Interpretation op, TermList idElement);
+  void addLeftIdentity(Interpretation op, TermList idElement);
+  void addCommutativeGroupAxioms(Interpretation op, Interpretation inverse, TermList idElement);
 
-  void addNonReflexivity(Interpretation op, UnitList*& units);
-  void addTransitivity(Interpretation op, UnitList*& units);
-  void addOrderingTotality(Interpretation less, UnitList*& units);
-  void addTotalOrderAxioms(Interpretation less, UnitList*& units);
-  void addMonotonicity(Interpretation less, Interpretation addition, UnitList*& units);
-  void addPlusOneGreater(Interpretation plus, TermList oneElement,
-                                     Interpretation less, UnitList*& units);
+  void addRightInverse(Interpretation op, Interpretation inverse);
+
+  void addNonReflexivity(Interpretation op);
+  void addTransitivity(Interpretation op);
+  void addOrderingTotality(Interpretation less);
+  void addTotalOrderAxioms(Interpretation less);
+  void addMonotonicity(Interpretation less, Interpretation addition);
+  void addPlusOneGreater(Interpretation plus, TermList oneElement, Interpretation less);
   void addAdditionAndOrderingAxioms(Interpretation plus, Interpretation unaryMinus,
 				    TermList zeroElement, TermList oneElement,
-				    Interpretation less, UnitList*& units);
+				    Interpretation less);
   void addAdditionOrderingAndMultiplicationAxioms(Interpretation plus, Interpretation unaryMinus,
 						  TermList zeroElement, TermList oneElement,
-						  Interpretation less, Interpretation multiply,
-						  UnitList*& units);
-  void addExtraIntegerOrderingAxiom(Interpretation plus, TermList oneElement, Interpretation less,
-				    UnitList*& units);
+						  Interpretation less, Interpretation multiply);
+  void addExtraIntegerOrderingAxiom(Interpretation plus, TermList oneElement, Interpretation less);
   void addQuotientAxioms(Interpretation quotient, Interpretation multiply, TermList zeroElement, TermList oneElement,
-                         Interpretation less,UnitList*& units);
+                         Interpretation less);
   void addIntegerDivisionWithModuloAxioms(Interpretation plus, Interpretation unaryMinus, Interpretation less,
                                 Interpretation multiply, Interpretation divide, Interpretation divides,
                                 Interpretation modulo, Interpretation abs, TermList zeroElement,
-                                TermList oneElement, UnitList*& units);
+                                TermList oneElement);
   void addIntegerAbsAxioms(Interpretation abs, Interpretation less,
-                           Interpretation unaryMinus, TermList zeroElement, UnitList*& units);
-  void addIntegerDividesAxioms(Interpretation divides, Interpretation multiply, TermList zero, TermList n, UnitList*& units);
+                           Interpretation unaryMinus, TermList zeroElement);
+  void addIntegerDividesAxioms(Interpretation divides, Interpretation multiply, TermList zero, TermList n);
 
-  void addBooleanArrayExtensionalityAxioms(Interpretation select, Interpretation store, unsigned skolem, UnitList*& units);
-  void addArrayExtensionalityAxioms(Interpretation select, Interpretation store, unsigned skolem, UnitList*& units);
-  void addBooleanArrayWriteAxioms(Interpretation select, Interpretation store, UnitList*& units);
-  void addTupleAxioms(unsigned tupleSort, UnitList*& units);
+  void addBooleanArrayExtensionalityAxioms(Interpretation select, Interpretation store, unsigned skolem);
+  void addArrayExtensionalityAxioms(Interpretation select, Interpretation store, unsigned skolem);
+  void addBooleanArrayWriteAxioms(Interpretation select, Interpretation store);
+  void addTupleAxioms(unsigned tupleSort);
   void addFloorAxioms(Interpretation floor, Interpretation less, Interpretation unaryMinus,
-                      Interpretation plus, TermList oneElement, UnitList*& units);
+                      Interpretation plus, TermList oneElement);
   void addCeilingAxioms(Interpretation ceiling, Interpretation less, Interpretation plus, 
-                        TermList oneElement, UnitList*& units);
-  void addRoundAxioms(Interpretation round, Interpretation floor, Interpretation ceiling, UnitList*& units); 
+                        TermList oneElement);
+  void addRoundAxioms(Interpretation round, Interpretation floor, Interpretation ceiling); 
   void addTruncateAxioms(Interpretation truncate, Interpretation less, Interpretation unaryMinus,
-                      Interpretation plus, TermList zeroElement, TermList oneElement, UnitList*& units);
-  void addArrayWriteAxioms(Interpretation select, Interpretation store, UnitList*& units);
+                      Interpretation plus, TermList zeroElement, TermList oneElement);
+  void addArrayWriteAxioms(Interpretation select, Interpretation store);
 
   // term algebra axioms
-  void addExhaustivenessAxiom(TermAlgebra* ta, UnitList*& units);
-  void addDistinctnessAxiom(TermAlgebra* ta, UnitList*& units);
-  void addInjectivityAxiom(TermAlgebra* ta, UnitList*& units);
-  void addAlternativeInjectivityAxiom(TermAlgebra* ta, UnitList*& units);
-  void addDiscriminationAxiom(TermAlgebra* ta, UnitList*& units);
-  void addAcyclicityAxiom(TermAlgebra* ta, UnitList*& units);
+  void addExhaustivenessAxiom(TermAlgebra* ta);
+  void addDistinctnessAxiom(TermAlgebra* ta);
+  void addInjectivityAxiom(TermAlgebra* ta);
+  void addDiscriminationAxiom(TermAlgebra* ta);
+  void addAcyclicityAxiom(TermAlgebra* ta);
 
   /* Subterm definitions used by the acyclicity axiom. True iff some
      definition was actually added (i.e. if the constructor is
      recursive) */
-  static bool addSubtermDefinitions(unsigned subtermPredicate, TermAlgebraConstructor* c, UnitList*& units);
+  bool addSubtermDefinitions(unsigned subtermPredicate, TermAlgebraConstructor* c);
 
-  static void addTheoryUnitClause(Literal* lit, UnitList*& units,unsigned level);
-  static void addTheoryUnitClause(Literal* lit, Inference* inf, UnitList*& units,unsigned level);
-  static void addTheoryNonUnitClause(UnitList*& units, Literal* lit1, Literal* lit2,unsigned level);
-  static void addTheoryNonUnitClause(UnitList*& units, Literal* lit1, Literal* lit2, Literal* lit3,unsigned level);
-  static void addTheoryNonUnitClause(UnitList*& units, Literal* lit1, Literal* lit2, Literal* lit3, Literal* lit4,unsigned level);
-  static void addAndOutputTheoryUnit(Unit* unit,UnitList*& units,unsigned level);
+  void addTheoryUnitClause(Literal* lit, unsigned level);
+  void addTheoryUnitClause(Literal* lit, Inference* inf, unsigned level);
+  void addTheoryNonUnitClause(Literal* lit1, Literal* lit2,unsigned level);
+  void addTheoryNonUnitClause(Literal* lit1, Literal* lit2, Literal* lit3,unsigned level);
+  void addTheoryNonUnitClause(Literal* lit1, Literal* lit2, Literal* lit3, Literal* lit4,unsigned level);
+  void addAndOutputTheoryUnit(Unit* unit, unsigned level);
 };
 
 }

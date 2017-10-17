@@ -15,6 +15,7 @@
 #include <cstring>
 #include <cstdlib>
 #include "Lib/System.hpp"
+#include "Shell/UIHelper.hpp"
 
 #define SAFE_OUT_OF_MEM_SOLUTION 1
 

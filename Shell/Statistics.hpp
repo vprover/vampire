@@ -212,16 +212,6 @@ public:
 
   unsigned smtFallbacks;
 
-  /** Lingeling statistics*/
-  /** Count the number of assumptions that are added to Lingeling */
-  unsigned satLingelingAssumptions;
-  /** Count the number of clauses sent to Lingeling */
-  unsigned satLingelingClauses;
-  /** Number of distinct variables counted by vampire */
-  unsigned satLingelingVariables;
-  /** Number of SAT calls for Lingeling */
-  unsigned satLingelingSATCalls;
-
   /* the next three variables keep statistics for Vampire default sat solver*/
   unsigned satTWLClauseCount;
   unsigned satTWLVariablesCount;
@@ -400,7 +390,6 @@ public:
   ExecutionPhase phase;
 
 private:
-  static void addCommentIfCASC(ostream&); 
   static const char* phaseToString(ExecutionPhase p);
 }; // class Statistics
 

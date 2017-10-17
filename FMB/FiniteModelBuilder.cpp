@@ -514,12 +514,12 @@ void FiniteModelBuilder::init()
 #if VTRACE_FMB
       //cout << "Add ground clause " << c->toString() << endl;
 #endif
-      _groundClauses = _groundClauses->cons(c);
+      ClauseList::push(c, _groundClauses);
     }else{
 #if VTRACE_FMB
     //cout << "Add non-ground clause " << c->toString() << endl;
 #endif
-    _clauses = _clauses->cons(c);
+      ClauseList::push(c, _clauses);
 
     }
   }
@@ -1560,7 +1560,7 @@ MainLoopResult FiniteModelBuilder::runImpl()
 
   if (reset()) {
   while(true){
-    if(outputAllowed()) { 
+    if(outputAllowed()) {
       cout << "TRYING " << "["; 
       for(unsigned i=0;i<_distinctSortSizes.size();i++){
         cout << _distinctSortSizes[i];
@@ -1802,11 +1802,14 @@ MainLoopResult FiniteModelBuilder::runImpl()
 
   gave_up: // for jumping because of other reasons to give up (message printed elsewhere)
 
+  /*
+  // Giles: In CASC mode we should only print GaveUp at the very end
   if(UIHelper::szsOutput) {
     env.beginOutput();
     env.out() << "% SZS status GaveUp for " << _opt.problemName() << endl;
     env.endOutput();
   }
+  */
 
   return MainLoopResult(Statistics::REFUTATION_NOT_FOUND);
 }
@@ -1818,15 +1821,14 @@ void FiniteModelBuilder::onModelFound()
  if(_opt.proof()==Options::Proof::OFF){ 
    return; 
  }
- if(_opt.mode()==Options::Mode::SPIDER){
-   reportSpiderStatus('-');
- }
+
+ reportSpiderStatus('-');
  if(outputAllowed()){
    cout << "Finite Model Found!" << endl;
  }
 
  //we need to print this early because model generating can take some time
- if(UIHelper::szsOutput) {
+ if(szsOutputMode()) {
    env.beginOutput();
    env.out() << "% SZS status "<<( UIHelper::haveConjecture() ? "CounterSatisfiable" : "Satisfiable" )
        << " for " << _opt.problemName() << endl << flush;

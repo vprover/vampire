@@ -16,10 +16,10 @@
 #include "Shell/Options.hpp"
 
 using namespace Lib;
+using namespace Shell;
 using namespace Debug;
 
 bool Assertion::_violated = false;
-
 
 /**
  * Called when an assertion is violated. Simply print the stack and

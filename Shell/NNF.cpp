@@ -322,7 +322,7 @@ TermList NNF::ennf(TermList ts, bool polarity)
         TermList tupleTerm = TermList(sd->getTupleTerm());
         TermList ennfTupleTerm = ennf(tupleTerm, true);
 
-        if (tupleTerm != ennfTupleTerm) {
+        if (tupleTerm == ennfTupleTerm) {
           return ts;
         } else {
           ASS_REP(ennfTupleTerm.isTerm(), ennfTupleTerm.toString());
@@ -392,7 +392,7 @@ FormulaList* NNF::ennf (FormulaList* fs, bool polarity)
   if (changed) {
     return result;
   }
-  result->destroy();
+  FormulaList::destroy(result);
   return fs;
 } // NNF::ennf(FormulaList...)
 
@@ -541,7 +541,7 @@ FormulaList* NNF::nnf (FormulaList* fs, bool polarity)
   if (changed) {
     return result;
   }
-  result->destroy();
+  FormulaList::destroy(result);
   return fs;
 } // NNF::nnf(FormulaList...)
 

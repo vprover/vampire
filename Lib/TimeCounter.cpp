@@ -155,9 +155,7 @@ void TimeCounter::printReport(ostream& out)
 
   snapShot();
 
-  if (UIHelper::szsOutput) {
-    out << "% ";
-  }
+  addCommentSignForSZS(out);
   out << "Time measurement results:" << endl;
   for (int i=0; i<__TC_ELEMENT_COUNT; i++) {
     outputSingleStat(static_cast<TimeCounterUnit>(i), out);
@@ -171,9 +169,7 @@ void TimeCounter::outputSingleStat(TimeCounterUnit tcu, ostream& out)
     return;
   }
 
-  if (UIHelper::szsOutput) {
-    out << "% ";
-  }
+  addCommentSignForSZS(out);
   switch(tcu) {
   case TC_RAND_OPT:
     out << "random option generation";
@@ -313,8 +309,6 @@ void TimeCounter::outputSingleStat(TimeCounterUnit tcu, ostream& out)
   case TC_TWLSOLVER_ADD:
     out<<"TWLSolver add clauses";
     break;
-  case TC_LINGELING:
-    out<<"Lingeling solver time";
     break;
   case TC_MINIMIZING_SOLVER:
     out << "minimizing solver time";

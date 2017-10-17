@@ -38,8 +38,8 @@ SubscriptionData BaseEvent::subscribe(HandlerStruct* h)
 
 void BaseEvent::unsubscribe(HandlerStruct* h)
 {
-  ASS(_handlers->member(h));
-  _handlers = _handlers->remove(h);
+  ASS(HandlerList::member(h, _handlers));
+  _handlers = HandlerList::remove(h, _handlers);
   if(h->sObj) {
     h->sObj->hs=0;
   }

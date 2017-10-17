@@ -87,10 +87,10 @@ SLQueryResultIterator LiteralSubstitutionTree::getInstances(Literal* lit,
 //  return getResultIterator<InstancesIterator>(lit, complementary, true);
 
   if(retrieveSubstitutions) {
-#if VDEBUG
     NOT_IMPLEMENTED;
-#endif
+    /*
     return getResultIterator<InstancesIterator>(lit, complementary, true, false);
+    */
   }
 
   SLQueryResultIterator res=

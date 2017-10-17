@@ -39,14 +39,12 @@ private:
    * (at least until we have proper handling of sorts in BFNT) */
   bool _hasSorts;
 
-#if !COMPILER_MSVC
   void runChild(size_t modelSize) __attribute__((noreturn));
   MainLoopResult spawnChild(size_t modelSize);
 
   Options _childOpts;
   /** the input transformer */
   BFNT _bfnt;
-#endif
 };
 
 }

@@ -208,13 +208,14 @@ void CPAInterpolator::loadFormula(vstring fname)
   _forms = UnitList::concat(pars.getFormulas(), _forms);
   _defs = UnitList::concat(pars.getDefinitions(), _defs);
 
-  _prb.addUnits(_forms->copy());
+  _prb.addUnits(UnitList::copy(_forms));
 }
 
 void CPAInterpolator::doProving()
 {
   CALL("CPAInterpolator::doProving");
 
+  UIHelper::portfolioParent=true;
   env.timer->makeChildrenIncluded();
 
   Schedule quick;
@@ -425,7 +426,7 @@ void CPAInterpolator::childRun(Options& strategyOpt)
 {
   CALL("CPAInterpolator::childRun");
 
-  UIHelper::cascModeChild=true;
+  UIHelper::portfolioParent=false;
   int resultValue=1;
   env.timer->reset();
   env.timer->start();
