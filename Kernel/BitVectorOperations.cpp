@@ -165,6 +165,7 @@ void BitVectorOperations::setBVCTFromDec(char n, BitVectorConstantType& res)
     
 vstring BitVectorOperations::boolArraytoString(const DArray<bool>& in)
 {
+    CALL("BitVectorOperations::boolArraytoString(DArray<bool>&)");
     vstring out = "";
     for (unsigned i = 0; i < in.size(); ++ i)
     {
@@ -181,6 +182,7 @@ vstring BitVectorOperations::boolArraytoString(const DArray<bool>& in)
 // set a BVCT from a string like this 010010 and return false if it contains anything but zero or one
 bool BitVectorOperations::setBVCTFromVString(vstring& input, BitVectorConstantType& result)
  {
+    CALL("BitVectorOperations::setBVCTFromVString(vstring&,BitVectorConstantType&)");
     for (unsigned j = 0, i = input.length()-1; j<input.length();--i, ++j){
         if (input.at(j) == '0')
             result.setValueAt(i,false);
@@ -194,7 +196,7 @@ bool BitVectorOperations::setBVCTFromVString(vstring& input, BitVectorConstantTy
 
 BitVectorConstantType BitVectorOperations::getBVCTFromVString(vstring& numberToRepresent, unsigned size)
 {
-    
+    CALL("BitVectorOperations::getBVCTFromVString(vstring&,unsigned)");
     char c = numberToRepresent[0];
     BitVectorConstantType initialBoolArray(size);
     setBVCTFromDec(c,initialBoolArray);
@@ -211,6 +213,7 @@ BitVectorConstantType BitVectorOperations::getBVCTFromVString(vstring& numberToR
 } 
  bool BitVectorOperations::addBVCTs(BitVectorConstantType& a1, const BitVectorConstantType& a2)
  {
+    CALL("BitVectorOperations::addBVCTs(BitVectorConstantType&,BitVectorConstantType&)"); 
     ASS_EQ(a1.size(),a2.size());
         
     bool carry = false;
@@ -225,8 +228,10 @@ BitVectorConstantType BitVectorOperations::getBVCTFromVString(vstring& numberToR
     return carry;
  }
 
+ // TODO: possibly change unsigned to IntegerConstantType
  void BitVectorOperations::inplaceShiftLeft(BitVectorConstantType& in, unsigned shiftByNum)
  {
+    CALL("BitVectorOperations::inplaceShiftLeft(BitVectorConstantType&,unsigned)"); 
     //int startAt = in.size()-shiftByNum - 1;
     unsigned startAt = in.size() - shiftByNum;
         
@@ -242,6 +247,7 @@ BitVectorConstantType BitVectorOperations::getBVCTFromVString(vstring& numberToR
 
  void BitVectorOperations::inPlaceShiftRight(BitVectorConstantType& input, unsigned shiftByNum)
  {
+    CALL("BitVectorOperations::inplaceShiftRight(BitVectorConstantType&,unsigned)"); 
     unsigned startAt = shiftByNum;
     for (unsigned i = 0 ; i < input.size() - shiftByNum; ++i,++startAt){
         input.setValueAt(startAt - shiftByNum, input.getValueAt(startAt)); 
@@ -253,6 +259,7 @@ BitVectorConstantType BitVectorOperations::getBVCTFromVString(vstring& numberToR
  
  void BitVectorOperations::inPlaceArithmeticShiftRight(BitVectorConstantType& input, unsigned shiftByNum)
  {
+    CALL("BitVectorOperations::inPlaceArithmeticShiftRight(BitVectorConstantType&,unsigned)"); 
     bool sign = input.getValueAt(input.size()-1);
     unsigned startAt = shiftByNum;
     for (unsigned i = 0 ; i < input.size() - shiftByNum; ++i,++startAt){
@@ -265,6 +272,7 @@ BitVectorConstantType BitVectorOperations::getBVCTFromVString(vstring& numberToR
    
 void BitVectorOperations::multBVCTByTen(BitVectorConstantType& arg1)
 {
+    CALL("BitVectorOperations::inPlaceArithmeticShiftRight(BitVectorConstantType&)"); 
     ASS(arg1.size()>0);
     
     BitVectorConstantType t(arg1.getBinArray());
@@ -275,6 +283,7 @@ void BitVectorOperations::multBVCTByTen(BitVectorConstantType& arg1)
 
 BitVectorConstantType BitVectorOperations::getZeroBVCT(unsigned size)
  {
+    CALL("BitVectorOperations::getZeroBVCT(unsigned)"); 
     BitVectorConstantType res(size);
     for (unsigned i =0; i < size; ++i){
         res.setValueAt(i,false);
@@ -283,6 +292,7 @@ BitVectorConstantType BitVectorOperations::getZeroBVCT(unsigned size)
  }
 void BitVectorOperations::makeZeroBVCT(BitVectorConstantType& in)
 {
+    CALL("BitVectorOperations::makeZeroBVCT(BitVectorConstantType&)");
     for (unsigned i =0; i < in.size() ; ++i)
         in.setValueAt(i,false);
 }
@@ -290,6 +300,7 @@ void BitVectorOperations::makeZeroBVCT(BitVectorConstantType& in)
   
 BitVectorConstantType BitVectorOperations::getOneBVCT(unsigned size)
 {
+    CALL("BitVectorOperations::getOneBVCT(unsigned)");
     BitVectorConstantType res(size);
     res.setValueAt(0,true);
     for (unsigned i =1; i < size; ++i){
@@ -300,6 +311,7 @@ BitVectorConstantType BitVectorOperations::getOneBVCT(unsigned size)
 
 void BitVectorOperations::makeOneBVCT(BitVectorConstantType& in)
 {
+    CALL("BitVectorOperations::makeOneBVCT(BitVectorConstantType&)");
     in.setValueAt(0,true);
     for (unsigned i =1; i < in.size(); ++i){
         in.setValueAt(i,false);
@@ -309,12 +321,14 @@ void BitVectorOperations::makeOneBVCT(BitVectorConstantType& in)
 
 void BitVectorOperations::makeAllOnesBVCT(BitVectorConstantType& in)
 {
+    CALL("BitVectorOperations::makeAllOnesBVCT(BitVectorConstantType&)");
     for (unsigned i = 0 ; i < in.size(); ++ i){
         in.setValueAt(i,true);
     }
 }
 BitVectorConstantType BitVectorOperations::getAllOnesBVCT(unsigned size)
 {
+    CALL("BitVectorOperations::getAllOnesBVCT(unsigned)");
     DArray<bool> allOne(size);
         
     for (unsigned i = 0 ; i < size; ++ i){
@@ -327,6 +341,7 @@ BitVectorConstantType BitVectorOperations::getAllOnesBVCT(unsigned size)
   
 void BitVectorOperations::bvnand(const BitVectorConstantType& arg1, const BitVectorConstantType& arg2 , BitVectorConstantType& result)
 {
+    CALL("BitVectorOperations::bvnand(const BitVectorConstantType&, const BitVectorConstantType&, BitVectorConstantType&)");
     ASS_EQ(arg1.size(),arg2.size());
     ASS_EQ(arg2.size(),result.size());
     DArray<bool> a1 = arg1.getBinArray();
@@ -338,6 +353,7 @@ void BitVectorOperations::bvnand(const BitVectorConstantType& arg1, const BitVec
    
 void BitVectorOperations::subtractBVCTs(BitVectorConstantType& a1, const BitVectorConstantType& a2)
 {
+    CALL("BitVectorOperations::subtractBVCTs(BitVectorConstantType&, const BitVectorConstantType&)");
     ASS_EQ(a1.size(),a2.size());
         
     BitVectorConstantType arg2Notted(a1.size());
@@ -349,6 +365,7 @@ void BitVectorOperations::subtractBVCTs(BitVectorConstantType& a1, const BitVect
    
 void BitVectorOperations::bvneg(const BitVectorConstantType& arg, BitVectorConstantType& res)
 {
+    CALL("BitVectorOperations::bvneg(const BitVectorConstantType&, BitVectorConstantType&)");
     ASS_EQ(arg.size(),res.size());
     bool encounteredOne = false;
     for (unsigned i = 0; i<arg.size(); ++i){
@@ -365,6 +382,7 @@ void BitVectorOperations::bvneg(const BitVectorConstantType& arg, BitVectorConst
    
 void BitVectorOperations::bvnot(const BitVectorConstantType& arg, BitVectorConstantType& res)
 {
+    CALL("BitVectorOperations::bvnot(const BitVectorConstantType&, BitVectorConstantType&)");
     ASS_EQ(arg.size(),res.size());
     for (unsigned i = 0; i<arg.size();++i){
         res.setValueAt(i, !arg.getValueAt(i));
@@ -373,6 +391,7 @@ void BitVectorOperations::bvnot(const BitVectorConstantType& arg, BitVectorConst
    
 bool BitVectorOperations::bvadd(const BitVectorConstantType& arg1, const BitVectorConstantType& arg2 , BitVectorConstantType& result)
 {
+    CALL("BitVectorOperations::bvadd(const BitVectorConstantType&, const BitVectorConstantType&, BitVectorConstantType&)");
     ASS_EQ(arg1.size(),arg2.size());
     ASS_EQ(arg2.size(),result.size());
     DArray<bool> a1 = arg1.getBinArray();
@@ -389,6 +408,7 @@ bool BitVectorOperations::bvadd(const BitVectorConstantType& arg1, const BitVect
    
 void BitVectorOperations::bvor(const BitVectorConstantType& arg1, const BitVectorConstantType& arg2 , BitVectorConstantType& result)
 {
+    CALL("BitVectorOperations::bvor(const BitVectorConstantType&, const BitVectorConstantType&, BitVectorConstantType&)");
     ASS_EQ(arg1.size(),arg2.size());
     ASS_EQ(arg2.size(),result.size());
     DArray<bool> a1 = arg1.getBinArray();
@@ -400,6 +420,7 @@ void BitVectorOperations::bvor(const BitVectorConstantType& arg1, const BitVecto
    
 void BitVectorOperations::bvxor(const BitVectorConstantType& arg1, const BitVectorConstantType& arg2 , BitVectorConstantType& result)
 {
+    CALL("BitVectorOperations::bvxor(const BitVectorConstantType&, const BitVectorConstantType&, BitVectorConstantType&)");
     ASS_EQ(arg1.size(),arg2.size());
     ASS_EQ(arg2.size(),result.size());
     DArray<bool> a1 = arg1.getBinArray();
@@ -411,6 +432,7 @@ void BitVectorOperations::bvxor(const BitVectorConstantType& arg1, const BitVect
    
 void BitVectorOperations::bvnor(const BitVectorConstantType& arg1, const BitVectorConstantType& arg2 , BitVectorConstantType& result)
 {
+    CALL("BitVectorOperations::bvnor(const BitVectorConstantType&, const BitVectorConstantType&, BitVectorConstantType&)");
     ASS_EQ(arg1.size(),arg2.size());
     ASS_EQ(arg2.size(),result.size());
     DArray<bool> a1 = arg1.getBinArray();
@@ -422,6 +444,7 @@ void BitVectorOperations::bvnor(const BitVectorConstantType& arg1, const BitVect
 
 void BitVectorOperations::bvxnor(const BitVectorConstantType& arg1, const BitVectorConstantType& arg2 , BitVectorConstantType& result)
 {
+    CALL("BitVectorOperations::bvxnor(const BitVectorConstantType&, const BitVectorConstantType&, BitVectorConstantType&)");
     ASS_EQ(arg1.size(),arg2.size());
     ASS_EQ(arg2.size(),result.size());
     DArray<bool> a1 = arg1.getBinArray();
@@ -433,6 +456,7 @@ void BitVectorOperations::bvxnor(const BitVectorConstantType& arg1, const BitVec
 
 void BitVectorOperations::bvmul(const BitVectorConstantType& arg1, const BitVectorConstantType& arg2 , BitVectorConstantType& result)
 {
+    CALL("BitVectorOperations::bvmul(const BitVectorConstantType&, const BitVectorConstantType&, BitVectorConstantType&)");
     ASS_EQ(arg1.size(),arg2.size());
     ASS_EQ(arg2.size(),result.size());
     ASS(isZero(result));
@@ -454,6 +478,7 @@ void BitVectorOperations::bvmul(const BitVectorConstantType& arg1, const BitVect
    
 void BitVectorOperations::bvurem(const BitVectorConstantType& arg1, const BitVectorConstantType& arg2 , BitVectorConstantType& result)
 {
+    CALL("BitVectorOperations::bvurem(const BitVectorConstantType&, const BitVectorConstantType&, BitVectorConstantType&)");
     ASS_EQ(arg1.size(),arg2.size());
     ASS_EQ(arg2.size(),result.size());
         
@@ -476,6 +501,7 @@ void BitVectorOperations::bvurem(const BitVectorConstantType& arg1, const BitVec
    
 void BitVectorOperations::bvudiv(const BitVectorConstantType& arg1, const BitVectorConstantType& arg2 , BitVectorConstantType& result)
 {
+    CALL("BitVectorOperations::bvudiv(const BitVectorConstantType&, const BitVectorConstantType&, BitVectorConstantType&)");
     ASS_EQ(arg1.size(),arg2.size());
     ASS_EQ(arg2.size(),result.size());
         
@@ -503,6 +529,7 @@ void BitVectorOperations::bvudiv(const BitVectorConstantType& arg1, const BitVec
    
 void BitVectorOperations::bvsdiv(const BitVectorConstantType& arg1, const BitVectorConstantType& arg2 , BitVectorConstantType& result)
 {
+    CALL("BitVectorOperations::bvsdiv(const BitVectorConstantType&, const BitVectorConstantType&, BitVectorConstantType&)");
     ASS_EQ(arg1.size(),arg2.size());
     ASS_EQ(arg2.size(),result.size());
         
@@ -541,6 +568,7 @@ void BitVectorOperations::bvsdiv(const BitVectorConstantType& arg1, const BitVec
    
 void BitVectorOperations::bvsrem(const BitVectorConstantType& arg1, const BitVectorConstantType& arg2 , BitVectorConstantType& result)
 {
+    CALL("BitVectorOperations::bvsrem(const BitVectorConstantType&, const BitVectorConstantType&, BitVectorConstantType&)");
     ASS_EQ(arg1.size(),arg2.size());
     ASS_EQ(arg2.size(),result.size());
         
@@ -584,6 +612,7 @@ void BitVectorOperations::bvsrem(const BitVectorConstantType& arg1, const BitVec
    
    void BitVectorOperations::bvsmod(const BitVectorConstantType& arg1, const BitVectorConstantType& arg2 , BitVectorConstantType& result)
     {
+        CALL("BitVectorOperations::bvsmod(const BitVectorConstantType&, const BitVectorConstantType&, BitVectorConstantType&)");
         ASS_EQ(arg1.size(),arg2.size());
         ASS_EQ(arg2.size(),result.size());
         
@@ -639,6 +668,7 @@ void BitVectorOperations::bvsrem(const BitVectorConstantType& arg1, const BitVec
     }
    void BitVectorOperations::bvand(const BitVectorConstantType& arg1, const BitVectorConstantType& arg2 , BitVectorConstantType& result)
     {
+        CALL("BitVectorOperations::bvand(const BitVectorConstantType&, const BitVectorConstantType&, BitVectorConstantType&)");
         ASS_EQ(arg1.size(),arg2.size());
         ASS_EQ(arg2.size(),result.size());
         DArray<bool> a1 = arg1.getBinArray();
@@ -651,6 +681,7 @@ void BitVectorOperations::bvsrem(const BitVectorConstantType& arg1, const BitVec
    
    void BitVectorOperations::bvshl(const BitVectorConstantType& arg1, const BitVectorConstantType& arg2 , BitVectorConstantType& result)
     {
+        CALL("BitVectorOperations::bvshl(const BitVectorConstantType&, const BitVectorConstantType&, BitVectorConstantType&)");
         ASS_EQ(arg1.size(),arg2.size());
         ASS_EQ(arg2.size(),result.size());
         
@@ -676,6 +707,7 @@ void BitVectorOperations::bvsrem(const BitVectorConstantType& arg1, const BitVec
    
    void BitVectorOperations::bvlshr(const BitVectorConstantType& arg1, const BitVectorConstantType& arg2 , BitVectorConstantType& result)
     {
+        CALL("BitVectorOperations::bvlshr(const BitVectorConstantType&, const BitVectorConstantType&, BitVectorConstantType&)");
         ASS_EQ(arg1.size(),arg2.size());
         ASS_EQ(arg2.size(),result.size());
         
@@ -700,6 +732,7 @@ void BitVectorOperations::bvsrem(const BitVectorConstantType& arg1, const BitVec
    
    void BitVectorOperations::bvashr(const BitVectorConstantType& arg1, const BitVectorConstantType& arg2 , BitVectorConstantType& result)
     {
+        CALL("BitVectorOperations::bvashr(const BitVectorConstantType&, const BitVectorConstantType&, BitVectorConstantType&)");
         ASS_EQ(arg1.size(),arg2.size());
         ASS_EQ(arg2.size(),result.size());
         
@@ -724,6 +757,7 @@ void BitVectorOperations::bvsrem(const BitVectorConstantType& arg1, const BitVec
    
    void BitVectorOperations::bvsub(const BitVectorConstantType& arg1, const BitVectorConstantType& arg2 , BitVectorConstantType& result)
     {
+        CALL("BitVectorOperations::bvsub(const BitVectorConstantType&, const BitVectorConstantType&, BitVectorConstantType&)");
         ASS_EQ(arg1.size(),arg2.size());
         ASS_EQ(arg2.size(),result.size());
         
@@ -738,6 +772,7 @@ void BitVectorOperations::bvsrem(const BitVectorConstantType& arg1, const BitVec
    
    void BitVectorOperations::bvcomp(const BitVectorConstantType& arg1, const BitVectorConstantType& arg2 , BitVectorConstantType& result)
     {
+        CALL("BitVectorOperations::bvcomp(const BitVectorConstantType&, const BitVectorConstantType&, BitVectorConstantType&)");
         ASS_EQ(arg1.size(),arg2.size());
         ASS_EQ(1,result.size());
         bool areEqual = true;
@@ -753,6 +788,7 @@ void BitVectorOperations::bvsrem(const BitVectorConstantType& arg1, const BitVec
    
    void BitVectorOperations::zero_extend(unsigned extendBy, const BitVectorConstantType& arg , BitVectorConstantType& result)
     {
+        CALL("BitVectorOperations::zero_extend(unsigned, const BitVectorConstantType&, BitVectorConstantType&)");
         ASS_EQ(result.size(),arg.size()+extendBy);
         unsigned i = 0;
         for (; i < arg.size();++i){
@@ -767,6 +803,7 @@ void BitVectorOperations::bvsrem(const BitVectorConstantType& arg1, const BitVec
    
    void BitVectorOperations::repeat(unsigned multBy, const BitVectorConstantType& arg , BitVectorConstantType& result)
     {
+       CALL("BitVectorOperations::repeat(unsigned, const BitVectorConstantType&, BitVectorConstantType&)");
        ASS_EQ(result.size(),arg.size()*multBy);
        
        unsigned j = 0;
@@ -779,6 +816,7 @@ void BitVectorOperations::bvsrem(const BitVectorConstantType& arg1, const BitVec
    
    void BitVectorOperations::sign_extend(unsigned extendBy, const BitVectorConstantType& arg , BitVectorConstantType& result)
     {
+        CALL("BitVectorOperations::sign_extend(unsigned, const BitVectorConstantType&, BitVectorConstantType&)");
         ASS_EQ(result.size(),arg.size()+extendBy);
         bool sign = result.getValueAt(result.size()-1);
         unsigned i = 0;
@@ -792,6 +830,7 @@ void BitVectorOperations::bvsrem(const BitVectorConstantType& arg1, const BitVec
    
    void BitVectorOperations::rotate_right(IntegerConstantType in, const BitVectorConstantType& arg , BitVectorConstantType& result)
     {
+        CALL("BitVectorOperations::rotate_right(IntegerConstantType, const BitVectorConstantType&, BitVectorConstantType&)");
         ASS_EQ(arg.size(),result.size());
         
         unsigned rotateBy = in.toInner();
@@ -814,7 +853,7 @@ void BitVectorOperations::bvsrem(const BitVectorConstantType& arg1, const BitVec
    
    void BitVectorOperations::rotate_left(IntegerConstantType in, const BitVectorConstantType& arg , BitVectorConstantType& result)
     {
-        ASS_EQ(arg.size(),result.size());
+       ASS_EQ(arg.size(),result.size());
         
         unsigned rotateBy = in.toInner();
         unsigned newRotateBy = rotateBy;
@@ -838,6 +877,7 @@ void BitVectorOperations::bvsrem(const BitVectorConstantType& arg1, const BitVec
    
    void BitVectorOperations::concat(const BitVectorConstantType& arg1, const BitVectorConstantType& arg2 , BitVectorConstantType& result)
     {
+        CALL("BitVectorOperations::concat(const BitVectorConstantType&, const BitVectorConstantType&, BitVectorConstantType&)");
         ASS_EQ(arg1.size()+arg2.size(),result.size());
         unsigned i;
         for (i = 0 ; i<arg2.size(); ++i ){
@@ -861,6 +901,7 @@ void BitVectorOperations::bvsrem(const BitVectorConstantType& arg1, const BitVec
    
    void BitVectorOperations::bvule(const BitVectorConstantType& arg1, const BitVectorConstantType& arg2 , bool& result)
     {
+        CALL("BitVectorOperations::bvule(const BitVectorConstantType&, const BitVectorConstantType&, bool&)");
         ASS_EQ(arg1.size(),arg2.size());
         
         unsigned size = arg1.size();
@@ -879,6 +920,7 @@ void BitVectorOperations::bvsrem(const BitVectorConstantType& arg1, const BitVec
    
    void BitVectorOperations::bvuge(const BitVectorConstantType& arg1, const BitVectorConstantType& arg2 , bool& result)
     {
+        CALL("BitVectorOperations::bvuge(const BitVectorConstantType&, const BitVectorConstantType&, bool&)");
         ASS_EQ(arg1.size(),arg2.size());
         
         unsigned size = arg1.size();
@@ -894,6 +936,7 @@ void BitVectorOperations::bvsrem(const BitVectorConstantType& arg1, const BitVec
    
   void BitVectorOperations::bvugt(const BitVectorConstantType& arg1, const BitVectorConstantType& arg2 , bool& result)
     {
+        CALL("BitVectorOperations::bvugt(const BitVectorConstantType&, const BitVectorConstantType&, bool&)");
         ASS_EQ(arg1.size(),arg2.size());
         
         unsigned size = arg1.size();
@@ -912,12 +955,14 @@ void BitVectorOperations::bvsrem(const BitVectorConstantType& arg1, const BitVec
    
    void BitVectorOperations::bvult(const BitVectorConstantType& arg1, const BitVectorConstantType& arg2 , bool& result)
     {
+        CALL("BitVectorOperations::bvulte(const BitVectorConstantType&, const BitVectorConstantType&, bool&)");
         ASS_EQ(arg1.size(),arg2.size());
         bvugt(arg2,arg1,result);
     }
    
    void BitVectorOperations::bvslt(const BitVectorConstantType& arg1, const BitVectorConstantType& arg2 , bool& result)
     {
+        CALL("BitVectorOperations::bvslt(const BitVectorConstantType&, const BitVectorConstantType&, bool&)");
         ASS_EQ(arg1.size(),arg2.size());
         result = false;
         bool msb_arg1 = arg1.getValueAt(arg1.size()-1);
@@ -937,6 +982,7 @@ void BitVectorOperations::bvsrem(const BitVectorConstantType& arg1, const BitVec
    
    void BitVectorOperations::bvsle(const BitVectorConstantType& arg1, const BitVectorConstantType& arg2 , bool& result)
     {
+        CALL("BitVectorOperations::bvsle(const BitVectorConstantType&, const BitVectorConstantType&, bool&)");
         ASS_EQ(arg1.size(),arg2.size());
         result = false;
         bool msb_arg1 = arg1.getValueAt(arg1.size()-1);
@@ -955,12 +1001,14 @@ void BitVectorOperations::bvsrem(const BitVectorConstantType& arg1, const BitVec
    
    void BitVectorOperations::bvsgt(const BitVectorConstantType& arg1, const BitVectorConstantType& arg2 , bool& result)
     {
+        CALL("BitVectorOperations::bvsgt(const BitVectorConstantType&, const BitVectorConstantType&, bool&)");
         ASS_EQ(arg1.size(),arg2.size());
         bvslt(arg2,arg1,result);
     }
    
    void BitVectorOperations::bvsge(const BitVectorConstantType& arg1, const BitVectorConstantType& arg2 , bool& result)
     {
+        CALL("BitVectorOperations::bvsge(const BitVectorConstantType&, const BitVectorConstantType&, bool&)");
         ASS_EQ(arg1.size(),arg2.size());
         bvsle(arg2,arg1,result);
     }
