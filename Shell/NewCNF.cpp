@@ -589,11 +589,6 @@ TermList NewCNF::eliminateLet(Term::SpecialTermData *sd, TermList contents)
 
     TermList detupledContents = contents;
 
-    // TODO: replace $let([a,b] := ..., ...[a,b]...) with $let(t := ... , ...t...)
-//    Term::createTuple(tupleType->arity(), );
-//    SymbolDefinitionInlining test(symbol, 0, projectedArgument, 0);
-//    detupledContents = test.process(detupledContents);
-
     for (unsigned proj = 0; proj < tupleType->arity(); proj++) {
       unsigned symbol = (unsigned) IntList::nth(symbols, proj);
       bool isPredicate = tupleType->arg(proj) == Sorts::SRT_BOOL;

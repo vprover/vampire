@@ -33,7 +33,7 @@ void DistinctGroupExpansion::apply(Problem& prb)
 
   if(apply(prb.units())){
     prb.invalidateProperty();
-    prb.refortFormulasAdded();
+    prb.reportFormulasAdded();
     prb.reportEqualityAdded(false); // Do we need to do this if adding disequality?
   }
 

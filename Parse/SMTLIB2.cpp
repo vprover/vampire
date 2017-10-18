@@ -1054,7 +1054,7 @@ TermAlgebraConstructor* SMTLIB2::buildTermAlgebraConstructor(vstring constrName,
       env.signature->getFunction(destructorFunctor)->setType(destructorType);
     }
 
-    ALWAYS(_declaredFunctions.insert(destructorName, make_pair(destructorFunctor, true)));
+    ALWAYS(_declaredFunctions.insert(destructorName, make_pair(destructorFunctor, !isPredicate)));
 
     destructorFunctors[i] = destructorFunctor;
   }
@@ -1651,8 +1651,10 @@ bool SMTLIB2::parseAsUserDefinedSymbol(const vstring& id,LExpr* exp)
   unsigned symbIdx = fun.first;
   bool isTrueFun = fun.second;
 
-  Signature::Symbol* symbol = isTrueFun ? env.signature->getFunction(symbIdx) : env.signature->getPredicate(symbIdx);
-  BaseType* type = isTrueFun ? static_cast<BaseType*>(symbol->fnType()) : static_cast<BaseType*>(symbol->predType());
+  Signature::Symbol* symbol = isTrueFun ? env.signature->getFunction(symbIdx)
+                                        : env.signature->getPredicate(symbIdx);
+  BaseType* type = isTrueFun ? static_cast<BaseType*>(symbol->fnType())
+                             : static_cast<BaseType*>(symbol->predType());
 
   unsigned arity = symbol->arity();
 
