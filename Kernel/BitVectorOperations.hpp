@@ -37,6 +37,7 @@ namespace Kernel {
     static bool setBVCTFromVString(vstring& input, BitVectorConstantType& result);
     static bool isOne(const BitVectorConstantType& arg);
     static bool isZero(const BitVectorConstantType& q);
+    static bool getIndexOfLastOne(const BitVectorConstantType& arg, unsigned& result);
 
     static void multBVCTByTen(BitVectorConstantType& arg1);
     static bool addBVCTs(BitVectorConstantType& a1,const BitVectorConstantType& a2);
@@ -44,6 +45,8 @@ namespace Kernel {
     static void inplaceShiftLeft(BitVectorConstantType& in, unsigned shiftByNum);
     static void inPlaceShiftRight(BitVectorConstantType& input, unsigned shiftByNum);
     static void inPlaceArithmeticShiftRight(BitVectorConstantType& input, unsigned shiftByNum);
+    static void specialExtract(const BitVectorConstantType& arg1, unsigned indexLastOneArg2, BitVectorConstantType& result);
+    static void printBVCT(const BitVectorConstantType& arg1);
   
     static void createHashmap();
     
@@ -64,8 +67,10 @@ namespace Kernel {
     static void bvmul(const BitVectorConstantType& arg1, const BitVectorConstantType& arg2 , BitVectorConstantType& result);
     static void bvurem(const BitVectorConstantType& arg1, const BitVectorConstantType& arg2 , BitVectorConstantType& result);
     static void bvudiv(const BitVectorConstantType& arg1, const BitVectorConstantType& arg2 , BitVectorConstantType& result);
+    static void bvudiv_fast(const BitVectorConstantType& arg1, const BitVectorConstantType& arg2 , BitVectorConstantType& result);
     static void bvsdiv(const BitVectorConstantType& arg1, const BitVectorConstantType& arg2 , BitVectorConstantType& result);
     static void bvsrem(const BitVectorConstantType& arg1, const BitVectorConstantType& arg2 , BitVectorConstantType& result);
+    static void bvurem_fast(const BitVectorConstantType& arg1, const BitVectorConstantType& arg2 , BitVectorConstantType& result);
     static void bvsmod(const BitVectorConstantType& arg1, const BitVectorConstantType& arg2 , BitVectorConstantType& result);
     static void bvand(const BitVectorConstantType& arg1, const BitVectorConstantType& arg2 , BitVectorConstantType& result);
     static void bvnand(const BitVectorConstantType& arg1, const BitVectorConstantType& arg2 , BitVectorConstantType& result);

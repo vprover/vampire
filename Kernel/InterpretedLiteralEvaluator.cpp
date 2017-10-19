@@ -1114,13 +1114,13 @@ class InterpretedLiteralEvaluator::BitVectorEvaluator : public TypedEvaluator<Bi
               BitVectorOperations::bvsub(arg1, arg2,res);
               return true;
           case Theory::StructuredSortInterpretation::BVUDIV:
-              BitVectorOperations::bvudiv(arg1, arg2,res);
+              BitVectorOperations::bvudiv_fast(arg1, arg2,res);
               return true;
           case Theory::StructuredSortInterpretation::BVSDIV:
               BitVectorOperations::bvsdiv(arg1, arg2,res);
               return true;    
           case Theory::StructuredSortInterpretation::BVUREM:
-              BitVectorOperations::bvurem(arg1, arg2,res);
+              BitVectorOperations::bvurem_fast(arg1, arg2,res);
               return true; 
           case Theory::StructuredSortInterpretation::BVSREM:
               BitVectorOperations::bvsrem(arg1, arg2,res);

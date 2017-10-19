@@ -126,6 +126,18 @@ void BitVectorOperations::createHashmap()
     
 }
 
+bool BitVectorOperations::getIndexOfLastOne(const BitVectorConstantType& arg, unsigned& result)
+{
+    bool containsOne = false;
+    for (unsigned i = 0; i<arg.size(); ++i){
+        if (arg.getValueAt(i)==true){
+            containsOne = true;
+            result=i;
+        }
+    }
+    return containsOne;
+}
+
 bool BitVectorOperations::isOne(const BitVectorConstantType& arg)
 {
     if (!arg.getValueAt(0))
@@ -498,7 +510,130 @@ void BitVectorOperations::bvurem(const BitVectorConstantType& arg1, const BitVec
         bvult(result,arg2,done);
     }
 }
+
+//TODO: simplify?
+void BitVectorOperations::bvudiv_fast(const BitVectorConstantType& arg1, const BitVectorConstantType& arg2 , BitVectorConstantType& result)
+{
+    CALL("BitVectorOperations::bvudiv_fast(const BitVectorConstantType&, const BitVectorConstantType&, BitVectorConstantType&)");
+    ASS_EQ(arg1.size(),arg2.size());
+    ASS_EQ(arg2.size(),result.size());
+        
+    unsigned indexLastOneArg2;
+    bool containsOne = getIndexOfLastOne(arg2,indexLastOneArg2);
+    
+    if (!containsOne)
+    {
+        makeAllOnesBVCT(result);
+        return;
+    }
+    
+    BitVectorConstantType buffer(arg1.size());
+    unsigned j = buffer.size()-1;
+    for (unsigned k = 0; k < indexLastOneArg2;++k,--j)
+        result.setValueAt(j,false);
    
+    specialExtract(arg1,indexLastOneArg2,buffer);
+    unsigned indexWorkingAtArg1 = arg1.size() - indexLastOneArg2 - 1;
+    bool fitIn= false;
+    
+    while(indexWorkingAtArg1!=0)
+    {
+        bvuge(buffer,arg2,fitIn);
+        if (fitIn)
+        {
+            result.setValueAt(j,true);
+            // do subtract
+            subtractBVCTs(buffer,arg2);
+        }
+        else
+        {
+            result.setValueAt(j,false);
+        }
+        //shift left in order to take into account next bit
+        inplaceShiftLeft(buffer,1);
+        --indexWorkingAtArg1;
+        buffer.setValueAt(0,arg1.getValueAt(indexWorkingAtArg1));
+        --j;
+    }
+    bvuge(buffer,arg2,fitIn);
+    if (fitIn)
+        result.setValueAt(j,true);
+    else
+        result.setValueAt(j,false);
+}
+
+
+void BitVectorOperations::specialExtract(const BitVectorConstantType& arg1, unsigned indexLastOneArg2, BitVectorConstantType& result)
+{
+    ASS_EQ(arg1.size(),result.size());
+    unsigned j = arg1.size()-indexLastOneArg2-1;
+    unsigned i = 0;
+    for (; i <= indexLastOneArg2; ++i,++j){
+        result.setValueAt(i,arg1.getValueAt(j));
+    }
+    for (;i<arg1.size();++i){
+        result.setValueAt(i,false);
+    }
+}  
+
+//TODO: simplify?
+void BitVectorOperations::bvurem_fast(const BitVectorConstantType& arg1, const BitVectorConstantType& arg2 , BitVectorConstantType& result)
+{
+    CALL("BitVectorOperations::bvurem_fast(const BitVectorConstantType&, const BitVectorConstantType&, BitVectorConstantType&)");
+    ASS_EQ(arg1.size(),arg2.size());
+    ASS_EQ(arg2.size(),result.size());
+        
+    unsigned indexLastOneArg2;
+    bool containsOne = getIndexOfLastOne(arg2,indexLastOneArg2);
+    
+    if (!containsOne)
+    {
+        result = arg1;
+        return;
+    }
+    
+    specialExtract(arg1,indexLastOneArg2,result);
+    unsigned indexWorkingAtArg1 = arg1.size() - indexLastOneArg2 - 1;
+    bool fitIn= false;
+    
+    while(indexWorkingAtArg1!=0)
+    {
+        
+        bvuge(result,arg2,fitIn);
+        if (fitIn)
+        {
+            // do subtract
+            subtractBVCTs(result,arg2);
+            //shift left in order to take into account next bit
+            inplaceShiftLeft(result,1);
+            // get the next bit and set it
+            --indexWorkingAtArg1;
+            result.setValueAt(0, arg1.getValueAt(indexWorkingAtArg1));
+        }
+        else
+        {
+            inplaceShiftLeft(result,1);
+            --indexWorkingAtArg1;
+            result.setValueAt(0,arg1.getValueAt(indexWorkingAtArg1));
+        }
+        
+    }
+    bvuge(result,arg2,fitIn);
+    if (fitIn){
+        subtractBVCTs(result,arg2);
+    }
+    
+}
+void BitVectorOperations::printBVCT(const BitVectorConstantType& arg1)
+{
+    int j = arg1.size()-1;
+    cout<<endl<<"print BVCT:"<<endl;
+    for (;j>=0;--j)
+    {
+        cout<<arg1.getValueAt(j);
+    }
+    cout<<endl<<"end"<<endl;
+}
 void BitVectorOperations::bvudiv(const BitVectorConstantType& arg1, const BitVectorConstantType& arg2 , BitVectorConstantType& result)
 {
     CALL("BitVectorOperations::bvudiv(const BitVectorConstantType&, const BitVectorConstantType&, BitVectorConstantType&)");
