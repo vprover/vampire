@@ -162,9 +162,9 @@ class Signature
     inline bool realConstant() const
     { return interpreted() && arity()==0 && fnType()->result()==Sorts::SRT_REAL; }
     
-    
+    // changed from return interpreted() && arity()==0 && env.sorts->hasStructuredSort(fnType()->result() to below
     inline bool bitVectorConstant() const
-    { return interpreted() && arity()==0 && env.sorts->hasStructuredSort(fnType()->result());}
+    { return interpreted() && arity()==0 && env.sorts->hasStructuredSort(fnType()->result(), Sorts::StructuredSort::BITVECTOR);}
     
     
     
