@@ -1841,7 +1841,7 @@ void Options::set(const char* name,const char* value, bool longOpt)
 void Options::set(const vstring& name,const vstring& value)
 {
   CALL ("Options::set/2");
-  set(name.c_str(),value.c_str(),false);
+  set(name.c_str(),value.c_str(),true);
 } // Options::set/2
 
 bool Options::OptionHasValue::check(Property*p){

@@ -55,7 +55,7 @@ void CommandLine::interpret (Options& options)
     if(strcmp(arg,"--help")==0 || 
        (strcmp(arg,"-h")==0 && _next==_last) //if -h and there is no more
       ){ 
-      cout << _next << " " << _last << endl;
+      // cout << _next << " " << _last << endl;
       options.set("help","on");
       env.beginOutput();
       options.output(env.out());
