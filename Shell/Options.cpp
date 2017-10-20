@@ -1614,8 +1614,7 @@ void Options::Options::init()
     
     
     _showInterpolant = ChoiceOptionValue<InterpolantMode>("show_interpolant","",InterpolantMode::OFF,
-                                                          {"minimized","off","on"});
-    _showInterpolant.description="minimized tries to find a nicer interpolant than the default algorithm does";
+                                                          {"new_heur","new_opt","off", "old", "old_opt"});
     _lookup.insert(&_showInterpolant);
     _showInterpolant.tag(OptionTag::OTHER);
     _showInterpolant.setExperimental();

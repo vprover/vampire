@@ -98,7 +98,6 @@ private:
 
 };
 
-
 };
 
 #endif /* __InferenceStore__ */

@@ -330,6 +330,9 @@ protected:
     }
     else {
       FormulaUnit* fu=static_cast<FormulaUnit*>(cs);
+      if (env.colorUsed && fu->inheritedColor() != COLOR_INVALID) {
+        out << " IC" << fu->inheritedColor() << " ";
+      }
       out << fu->formula()->toString() << ' ';
     }
 
@@ -991,6 +994,5 @@ InferenceStore* InferenceStore::instance()
   
   return inst.ptr();
 }
-
 
 }

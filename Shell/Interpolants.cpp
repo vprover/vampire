@@ -15,9 +15,11 @@
 #include "Kernel/SubstHelper.hpp"
 #include "Kernel/Term.hpp"
 #include "Kernel/Unit.hpp"
+#include "Kernel/FormulaUnit.hpp"
 
 #include "Flattening.hpp"
 #include "SimplifyFalseTrue.hpp"
+#include "NNF.hpp"
 
 #include "Interpolants.hpp"
 
@@ -161,19 +163,13 @@ void mergeCopy(UIPairList*& tgt, UIPairList* src)
 /**
  * Any pre-processing of the refutation before interpolation is considered.
  *
- * Currently, we
- * 1) remove the leafs corresponding to the conjecture
+ * We remove the leafs corresponding to the conjecture
  * and leave the negated_conjecture child of this unit as the leaf instead.
  * (Inference::NEGATED_CONJECTURE is not sound).
- *
- * 2) for any input unit marked as properly colored but which is, in fact, transparent,
- * we add an artificial parent which is forced to pretend it was truly colored that way,
- * so that InterpolantMinimizer can consider this input unit as a result of a symbol eliminating inference.
- * (Without this, InterpolantMinimizer does not work properly is such cases.)
  */
-void Interpolants::beatifyRefutation(Unit* refutation)
+void Interpolants::removeConjectureNodesFromRefutation(Unit* refutation)
 {
-  CALL("Interpolants::beatifyRefutation");
+  CALL("Interpolants::removeConjectureNodesFromRefutation");
 
   Stack<Unit*> todo;
   DHSet<Unit*> seen;
@@ -184,8 +180,6 @@ void Interpolants::beatifyRefutation(Unit* refutation)
     if (!seen.insert(cur)) {
       continue;
     }
-
-    bool just_removed_conjecture = false;
 
     if (cur->inference()->rule() == Inference::NEGATED_CONJECTURE) {
       VirtualIterator<Unit*> pars = InferenceStore::instance()->getParents(cur);
@@ -205,8 +199,30 @@ void Interpolants::beatifyRefutation(Unit* refutation)
 
       cur->inference()->destroy();
       cur->setInference(new Inference(Inference::NEGATED_CONJECTURE)); // negated conjecture without a parent (non-standard, but nobody will see it)
+    }
 
-      just_removed_conjecture = true;
+    todo.loadFromIterator(InferenceStore::instance()->getParents(cur));
+  }
+}
+
+/**
+* For any input unit marked as properly colored but which is, in fact, transparent,
+* we add an artificial parent which is forced to pretend it was truly colored that way,
+* so that InterpolantMinimizer can consider this input unit as a result of a symbol eliminating inference.
+* (Without this, InterpolantMinimizer does not work properly is such cases.)
+ */
+void Interpolants::fakeNodesFromRightButGrayInputsRefutation(Unit* refutation)
+{
+  CALL("Interpolants::fakeNodesFromRightButGrayInputsRefutation");
+
+  Stack<Unit*> todo;
+  DHSet<Unit*> seen;
+
+  todo.push(refutation);
+  while (todo.isNonEmpty()) {
+    Unit* cur = todo.pop();
+    if (!seen.insert(cur)) {
+      continue;
     }
 
     {
@@ -215,10 +231,6 @@ void Interpolants::beatifyRefutation(Unit* refutation)
       if (!pars.hasNext() && // input-like, because no parents
           cur->inheritedColor() != COLOR_INVALID && cur->inheritedColor() != COLOR_TRANSPARENT && // proper inherited color
           cur->getColor() == COLOR_TRANSPARENT) {  // but in fact transparent
-
-          if (!just_removed_conjecture) {
-            ASS_EQ(cur->inference()->rule(),Inference::INPUT);
-          }
 
           Clause* fakeParent = Clause::fromIterator(LiteralIterator::getEmpty(), cur->inputType(), new Inference(Inference::INPUT));
           fakeParent->setInheritedColor(cur->inheritedColor());
@@ -232,6 +244,87 @@ void Interpolants::beatifyRefutation(Unit* refutation)
 
     todo.loadFromIterator(InferenceStore::instance()->getParents(cur));
   }
+}
+
+
+/**
+ * Turn all Units in a refutation into FormulaUnits (casting Clauses to Formulas and wrapping these as Units).
+ *
+ * Keep the old refutation (= non-destructive). Possible sharing of the formula part of the original refutation.
+ *
+ * Assume that once we have formula on a parent path we can't go back to a clause.
+ *
+ */
+Unit* Interpolants::formulifyRefutation(Unit* refutation)
+{
+  CALL("Interpolants::formulifyRefutation");
+
+  Stack<Unit*> todo;
+  DHMap<Unit*,Unit*> translate; // for caching results (we deal with a DAG in general), but also to distinguish the first call from the next
+
+  todo.push(refutation);
+  while (todo.isNonEmpty()) {
+    Unit* cur = todo.top();
+
+    if (translate.find(cur)) {  // the DAG hit case
+      todo.pop();
+
+      continue;
+    }
+
+    if (!cur->isClause()) {     // the formula case
+      todo.pop();
+
+      translate.insert(cur,cur);
+      continue;
+    }
+
+    // are all children done?
+    bool allDone = true;
+    Inference* inf = cur->inference();
+    Inference::Iterator iit = inf->iterator();
+    while (inf->hasNext(iit)) {
+      Unit* premUnit=inf->next(iit);
+      if (!translate.find(premUnit)) {
+        allDone = false;
+        break;
+      }
+    }
+
+    if (allDone) { // ready to return
+      todo.pop();
+
+      List<Unit*>* prems = 0;
+
+      Inference::Iterator iit = inf->iterator();
+      while (inf->hasNext(iit)) {
+        Unit* premUnit=inf->next(iit);
+
+        List<Unit*>::push(translate.get(premUnit), prems);
+      }
+
+      Inference::Rule rule=inf->rule();
+      prems = List<Unit*>::reverse(prems);  //we want items in the same order
+
+      Formula* f = Formula::fromClause(cur->asClause());
+      FormulaUnit* fu = new FormulaUnit(f,new InferenceMany(rule,prems),cur->inputType());
+
+      if (cur->inheritedColor() != COLOR_INVALID) {
+        fu->setInheritedColor(cur->inheritedColor());
+      }
+
+      translate.insert(cur,fu);
+    } else { // need "recursive" calls first
+
+      Inference::Iterator iit = inf->iterator();
+      while (inf->hasNext(iit)) {
+        Unit* premUnit=inf->next(iit);
+        todo.push(premUnit);
+      }
+    }
+  }
+
+  return translate.get(refutation);
 }
 
 Formula* Interpolants::getInterpolant(Unit* unit)
@@ -379,8 +472,11 @@ fin:
 
   TRACE(cout << "result interpolant (before false/true - simplification) " << resultInterpolant->toString() << endl);
 
+  cout << "Before simplification: " << resultInterpolant->toString() << endl;
+  cout << "Weight before simplification: " << resultInterpolant->weight() << endl;
+
   //simplify the interpolant and exit
-  return Flattening::flatten(SimplifyFalseTrue::simplify(resultInterpolant));
+  return Flattening::flatten(NNF::ennf(Flattening::flatten(SimplifyFalseTrue::simplify(resultInterpolant)),true));
 //  return resultInterpolant;
 }
 

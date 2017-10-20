@@ -510,6 +510,8 @@ int System::executeCommand(vstring command, vstring input, Stack<vstring>& outpu
   vstring cmdLine = command + " <" + inFile + " >" + outFile;
 
   {
+    BYPASSING_ALLOCATOR;
+
     ofstream inpFile(inFile.c_str());
     inpFile << input;
     inpFile.close();
@@ -518,6 +520,8 @@ int System::executeCommand(vstring command, vstring input, Stack<vstring>& outpu
   int resStatus=system(cmdLine.c_str());
 
   {
+    BYPASSING_ALLOCATOR;
+
     outputLines.reset();
     vstring line;
     ifstream outpFile(outFile.c_str());
