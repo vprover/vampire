@@ -9,10 +9,44 @@
 
 #include <unordered_set>
 #include <unordered_map>
+#include <stack>
+#include <queue>
+
 #include "Forwards.hpp"
 
 namespace Shell
 {
+    /*
+    * iterator, which traverses the proof in depth-first post-order.
+    */
+    class ProofIteratorPostOrder
+    {
+    public:
+      ProofIteratorPostOrder(Kernel::Unit* refutation);
+      bool hasNext();
+      Kernel::Unit* next();
+
+    private:
+      std::stack<Kernel::Unit*> todo;
+      std::unordered_set<Kernel::Unit*> visited; // the units we have already visited
+    };
+
+    /*
+    * iterator, which traverses the proof in breadth-first pre-order.
+    */
+    class ProofIteratorBFSPreOrder
+    {
+    public:
+      ProofIteratorBFSPreOrder(Kernel::Unit* refutation);
+      bool hasNext();
+      Kernel::Unit* next();
+
+    private:
+      std::queue<Kernel::Unit*> todo;
+      std::unordered_set<Kernel::Unit*> visited; // the units we have already visited
+    };
+
+
     /*
      * main class for deriving craig-interpolants
      * computes interpolants from local refutations

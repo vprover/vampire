@@ -6,6 +6,8 @@
 
 #include "InterpolantsNew.hpp"
 
+#include <unordered_set>
+
 #include "Kernel/Unit.hpp"
 #include "Kernel/FormulaUnit.hpp"
 #include "Kernel/Formula.hpp"
@@ -559,4 +561,131 @@ namespace Shell
             }
         }
     }
+
+    ProofIteratorBFSPreOrder::ProofIteratorBFSPreOrder(Unit* refutation)
+    {
+        CALL("ProofIteratorBFSPreOrder::ProofIteratorBFSPreOrder");
+
+        todo.push(refutation);
+    }
+
+    bool ProofIteratorBFSPreOrder::hasNext()
+    {
+        CALL("ProofIteratorBFSPreOrder::hasNext");
+
+        while (!todo.empty())
+        {
+            if (visited.find(todo.front()) == visited.end())
+            {
+                return true;
+            }
+            else
+            {
+                todo.pop();
+            }
+        }
+
+        return false;
+    }
+
+    /*
+     * iterative Breadth-first search (BFS) through the proof DAG
+     */
+    Unit* ProofIteratorBFSPreOrder::next()
+    {
+        CALL("ProofIteratorBFSPreOrder::next");
+
+        while (!todo.empty())
+        {
+            Unit* current = todo.front();
+            todo.pop();
+
+            if (visited.find(current) == visited.end())
+            {
+                // add unprocessed premises to queue for BFS:
+                VirtualIterator<Unit*> parents = InferenceStore::instance()->getParents(current);
+
+                while (parents.hasNext())
+                {
+                    Unit* premise= parents.next();
+                    todo.push(premise);
+                }
+
+                // remember that we have visited current
+                visited.insert(current);
+
+                return current;
+            }
+
+        }
+
+        // we have already iterated through all inferences
+        return nullptr;
+    }
+
+
+    ProofIteratorPostOrder::ProofIteratorPostOrder(Unit* refutation)
+    {
+        CALL("ProofIteratorPostOrder::ProofIteratorPostOrder");
+        todo.push(refutation);
+    }
+
+    bool ProofIteratorPostOrder::hasNext()
+    {
+        CALL("ProofIteratorPostOrder::hasNext");
+        return !todo.empty();
+    }
+
+    /*
+     * iterative post-order depth-first search (DFS) through the proof DAG
+     * following the usual ideas, e.g.
+     * https://pythonme.wordpress.com/2013/08/05/algorithm-iterative-dfs-depth-first-search-with-postorder-and-preorder/
+     */
+    Unit* ProofIteratorPostOrder::next()
+    {
+        CALL("ProofIteratorPostOrder::next");
+        while (!todo.empty())
+        {
+            Unit* currentUnit = todo.top();
+
+            // if we haven't already visited the current unit
+            if (visited.find(currentUnit) == visited.end())
+            {
+                bool existsUnvisitedParent = false;
+
+                // add unprocessed premises to stack for DFS. If there is at least one unprocessed premise, don't compute the result
+                // for currentUnit now, but wait until those unprocessed premises are processed.
+                VirtualIterator<Unit*> parents = InferenceStore::instance()->getParents(currentUnit);
+                while (parents.hasNext())
+                {
+                    Unit* premise= parents.next();
+
+                    // if we haven't visited the current premise yet
+                    if (visited.find(premise) == visited.end())
+                    {
+                        // add it to the stack
+                        todo.push(premise);
+                        existsUnvisitedParent = true;
+                    }
+                }
+
+                // if we already visited all parent-inferences, we can visit the inference too
+                if (!existsUnvisitedParent)
+                {
+                    visited.insert(currentUnit);
+                    todo.pop();
+                    return currentUnit;
+                }
+            }
+            else
+            {
+                todo.pop();
+            }
+        }
+
+        // we have already iterated through all inferences
+        return nullptr;
+    }
+
+
 }

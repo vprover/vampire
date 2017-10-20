@@ -10,10 +10,6 @@
 #include <utility>
 #include <ostream>
 
-#include <stack>
-#include <queue>
-#include <unordered_set>
-
 #include "Forwards.hpp"
 
 #include "Lib/Allocator.hpp"
@@ -101,37 +97,6 @@ private:
   DHMap<unsigned,vstring> _introducedSplitNames;
 
 };
-
-    /*
-     * iterator, which traverses the proof in depth-first post-order.
-     */
-    class ProofIteratorPostOrder
-    {
-    public:
-        ProofIteratorPostOrder(Kernel::Unit* refutation);
-        bool hasNext();
-        Kernel::Unit* next();
-        
-    private:
-        std::stack<Kernel::Unit*> todo;
-        std::unordered_set<Kernel::Unit*> visited; // the units we have already visited
-    };
-    
-    /*
-     * iterator, which traverses the proof in breadth-first pre-order.
-     */
-    class ProofIteratorBFSPreOrder
-    {
-    public:
-        ProofIteratorBFSPreOrder(Kernel::Unit* refutation);
-        bool hasNext();
-        Kernel::Unit* next();
-        
-    private:
-        std::queue<Kernel::Unit*> todo;
-        std::unordered_set<Kernel::Unit*> visited; // the units we have already visited
-    };
-
 
 };
 
