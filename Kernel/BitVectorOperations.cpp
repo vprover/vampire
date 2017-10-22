@@ -540,15 +540,9 @@ void BitVectorOperations::bvudiv_fast(const BitVectorConstantType& arg1, const B
     {
         bvuge(buffer,arg2,fitIn);
         if (fitIn)
-        {
-            result.setValueAt(j,true);
-            // do subtract
             subtractBVCTs(buffer,arg2);
-        }
-        else
-        {
-            result.setValueAt(j,false);
-        }
+        
+        result.setValueAt(j,fitIn);
         //shift left in order to take into account next bit
         inplaceShiftLeft(buffer,1);
         --indexWorkingAtArg1;
@@ -556,10 +550,7 @@ void BitVectorOperations::bvudiv_fast(const BitVectorConstantType& arg1, const B
         --j;
     }
     bvuge(buffer,arg2,fitIn);
-    if (fitIn)
-        result.setValueAt(j,true);
-    else
-        result.setValueAt(j,false);
+    result.setValueAt(j,fitIn);
 }
 
 
@@ -601,21 +592,11 @@ void BitVectorOperations::bvurem_fast(const BitVectorConstantType& arg1, const B
         
         bvuge(result,arg2,fitIn);
         if (fitIn)
-        {
-            // do subtract
             subtractBVCTs(result,arg2);
-            //shift left in order to take into account next bit
-            inplaceShiftLeft(result,1);
-            // get the next bit and set it
-            --indexWorkingAtArg1;
-            result.setValueAt(0, arg1.getValueAt(indexWorkingAtArg1));
-        }
-        else
-        {
-            inplaceShiftLeft(result,1);
-            --indexWorkingAtArg1;
-            result.setValueAt(0,arg1.getValueAt(indexWorkingAtArg1));
-        }
+            
+        inplaceShiftLeft(result,1);
+        --indexWorkingAtArg1;
+        result.setValueAt(0,arg1.getValueAt(indexWorkingAtArg1));
         
     }
     bvuge(result,arg2,fitIn);
