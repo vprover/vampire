@@ -390,6 +390,12 @@ void TimeCounter::outputSingleStat(TimeCounterUnit tcu, ostream& out)
   case TC_THEORY_INST_SIMP:
     out << "theory instantiation and simplification";
     break;
+  case TC_BITVECTOFUNCTIONEVALUATION:
+    out << "BitVector function evaluation";
+    break;
+  case TC_BITVECTOPREDICATEEVALUATION:
+    out << "BitVector predicate evaluation";
+    break;   
   default:
     ASSERTION_VIOLATION;
   }

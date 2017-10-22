@@ -861,6 +861,7 @@ class InterpretedLiteralEvaluator::BitVectorEvaluator : public TypedEvaluator<Bi
   }
   virtual bool tryEvaluateFunc(Term* trm, TermList& res)
   {
+      TimeCounter tc(TC_BITVECTOFUNCTIONEVALUATION);
       Interpretation itp = theory->interpretFunction(trm);
       ASS(theory->isFunction(itp));
       unsigned arity = theory->getArity(itp);
@@ -1147,6 +1148,8 @@ class InterpretedLiteralEvaluator::BitVectorEvaluator : public TypedEvaluator<Bi
   virtual bool tryEvaluateBinaryPred(Interpretation op, const Value& arg1,
       const Value& arg2, bool& res)
   {
+      TimeCounter td(TC_BITVECTOPREDICATEEVALUATION);
+      
       Theory::StructuredSortInterpretation ssi = theory->convertToStructured(op);
       if (ssi==Theory::StructuredSortInterpretation::BVUGE)
       {       
