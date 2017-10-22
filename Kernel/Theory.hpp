@@ -131,11 +131,7 @@ class BitVectorConstantType{
         typedef DArray<bool> BinArray;
         BitVectorConstantType(BinArray n): binArray(n){}
         BitVectorConstantType(){};
-        BitVectorConstantType(unsigned s)
-        {
-            DArray<bool> setTo(s);
-            setBinArray(setTo);
-        }
+       
     vstring toString() const;
 
     unsigned size() const {return binArray.size();}
