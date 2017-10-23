@@ -2364,8 +2364,6 @@ void SMTLIB2::parseRankedFunctionApplication(LExpr* exp)
   LispListReader headRdr(head);
   headRdr.acceptAtom(UNDERSCORE);
 
-//<<<<<<< HEAD
-  // currently we only support divisible, so this is easy
   const vstring& operation = headRdr.readAtom();
    
   if (operation== "extract"){
