@@ -98,8 +98,8 @@ namespace Kernel {
     
     private:
 
-    static DHMap<char, BitVectorConstantType> map;
-
+   static DHMap<char, BitVectorConstantType> map;
+    
     };  
 }
 

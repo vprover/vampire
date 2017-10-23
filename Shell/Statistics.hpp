@@ -45,7 +45,7 @@ public:
   Statistics();
 
   void print(ostream& out);
-
+ 
   // Input
   /** number of input clauses */
   unsigned inputClauses;

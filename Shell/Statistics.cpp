@@ -352,6 +352,44 @@ void Statistics::print(ostream& out)
   COND_OUT("Pure propositional variables eliminated by SAT solver", satPureVarsEliminated);
   SEPARATOR;
 
+  // BitVector Statistics
+  HEADING("BitVectorOperations",1);
+  auto it = theory->getSSIItems();
+  while(it.hasNext()){
+      auto entry = it.next();
+      vstring name = theory->getInterpretationName(static_cast<Interpretation>(entry.second));
+      Theory::StructuredSortInterpretation ssi = theory->convertToStructured(static_cast<Interpretation>(entry.second));
+      unsigned resultSize = env.sorts->getBitVectorSort(entry.first.getResultSort())->getSize();
+      
+      if (ssi == Theory::StructuredSortInterpretation::BVNEG || 
+              ssi == Theory::StructuredSortInterpretation::BVNOT)
+      {
+          name = name+"{" +Int::toString(resultSize)+"}";
+      }
+      else if (ssi == Theory::StructuredSortInterpretation::BV_ROTATE_RIGHT || 
+              ssi == Theory::StructuredSortInterpretation::BV_ROTATE_LEFT || 
+              ssi == Theory::StructuredSortInterpretation::BV_SIGN_EXTEND || 
+              ssi == Theory::StructuredSortInterpretation::BV_ZERO_EXTEND || ssi == Theory::StructuredSortInterpretation::REPEAT)
+      {
+          name = name+ "{Int, " +Int::toString(resultSize)+ "}";
+      }
+      else if (ssi == Theory::StructuredSortInterpretation::EXTRACT)
+      {
+          unsigned argSize = env.sorts->getBitVectorSort(entry.first.getArg1())->getSize();
+          name = name+ "{Int,Int, " +Int::toString(argSize) + "} -> " +Int::toString(resultSize);
+      }
+      else if (ssi == Theory::StructuredSortInterpretation::CONCAT)
+      {
+          unsigned argSize1 = env.sorts->getBitVectorSort(entry.first.getArg1())->getSize();
+          unsigned argSize2 = env.sorts->getBitVectorSort(entry.first.getArg2())->getSize();
+          name = name+ "{" +Int::toString(argSize1) + ", " +Int::toString(argSize2)+"} -> "+Int::toString(resultSize);
+      }
+      else
+        {name = name+ "{" +Int::toString(resultSize) + ", " +Int::toString(resultSize)+ "}";}
+      COND_OUT(name,Theory::instance()->getFromCountmap(entry.second));
+  }
+  SEPARATOR; 
+  
   }
 
   COND_OUT("Memory used [KB]", Allocator::getUsedMemory()/1024);

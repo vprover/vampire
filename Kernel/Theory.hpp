@@ -521,7 +521,11 @@ public:
       return getInterpretation(sort, i, -1,-1);
   }
   
-  // maybe have to change this to int 
+  unsigned getFromCountmap(unsigned itp)
+  {
+    return count_map.get(itp); 
+  }
+  
   Interpretation getInterpretation(unsigned sort, StructuredSortInterpretation i, int arg1, int arg2){
     // key = make_pair(sort, i);
     AKey key(sort, i, arg1, arg2);
@@ -529,7 +533,9 @@ public:
     if (!_structuredSortInterpretations.find(key, interpretation)) {
       interpretation = MaxInterpretedElement() + 1;
       _structuredSortInterpretations.insert(key, interpretation);
+      count_map.set(interpretation,0);
     }
+    count_map.set(interpretation,count_map.get(interpretation)+1);
     return static_cast<Interpretation>(interpretation);
   }
   
@@ -766,6 +772,7 @@ private:
   }
 
   DHMap<AKey,unsigned> _structuredSortInterpretations;
+  DHMap<unsigned, unsigned> count_map;
 
   
 public:
