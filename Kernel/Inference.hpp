@@ -214,6 +214,8 @@ public:
     TERM_ALGEBRA_DISCRIMINATION,
     /** inference rule for term algebras (no cyclic terms)*/
     TERM_ALGEBRA_ACYCLICITY,
+    /** inference rule for infinite terms algebras/co-datatypes (existence of unique cyclic terms)*/
+    TERM_ALGEBRA_CYCLES,
     /** one of two axioms of FOOL (distinct constants or finite domain) */
     FOOL_AXIOM,
     //** Flatten a clause to separate theory literals */

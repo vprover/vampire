@@ -85,9 +85,16 @@ namespace Shell {
     bool infiniteDomain();
 
     /* The predicate of the subterm relation, used only if the option
-       -tac is set to "axiom"*/
+       -tac is set to "axiom" and allowsCyclicTerms is false */
     Lib::vstring getSubtermPredicateName();
     unsigned getSubtermPredicate();
+
+    /* The substitution and cycle functions, used only if the option
+       -tac is set to "axiom" and allowsCyclicTerms is true*/
+    Lib::vstring getSubstFunctionName();
+    unsigned getSubstFunction();
+    Lib::vstring getCycleFunctionName();
+    unsigned getCycleFunction();
 
   private:
     unsigned _sort;

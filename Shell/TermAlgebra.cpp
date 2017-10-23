@@ -121,9 +121,43 @@ unsigned TermAlgebra::getSubtermPredicate() {
 
   if (added) {
     // declare a binary predicate subterm
-    Stack<unsigned> args;
-    args.push(_sort); args.push(_sort);
-    env.signature->getPredicate(s)->setType(new PredicateType(args.size(),args.begin()));
+    env.signature->getPredicate(s)->setType(new PredicateType({_sort, _sort}));
+  }
+
+  return s;
+}
+
+Lib::vstring TermAlgebra::getSubstFunctionName() {
+  return "$subst" + env.sorts->sortName(_sort);
+}
+
+unsigned TermAlgebra::getSubstFunction() {
+  CALL("TermAlgebra::getSubstFunction");
+
+  bool added;
+  unsigned s = env.signature->addFunction(getSubstFunctionName(), 3, added);
+
+  if (added) {
+    // declare a ternary function subst
+    env.signature->getFunction(s)->setType(new FunctionType({_sort, _sort, _sort}, _sort));
+  }
+
+  return s;
+}
+
+Lib::vstring TermAlgebra::getCycleFunctionName() {
+  return "$cycle" + env.sorts->sortName(_sort);
+}
+
+unsigned TermAlgebra::getCycleFunction() {
+  CALL("TermAlgebra::getCycleFunction");
+
+  bool added;
+  unsigned s = env.signature->addFunction(getCycleFunctionName(), 2, added);
+
+  if (added) {
+    // declare a binary function cycle
+    env.signature->getFunction(s)->setType(new FunctionType({_sort, _sort}, _sort));
   }
 
   return s;

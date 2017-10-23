@@ -1170,7 +1170,7 @@ void TheoryAxioms::apply()
     addDiscriminationAxiom(ta);
 
     if (env.options->termAlgebraCyclicityCheck() == Options::TACyclicityCheck::AXIOM) {
-      addAcyclicityAxiom(ta);
+      addCyclicityAxiom(ta);
     }
 
     modified = true;
@@ -1268,7 +1268,7 @@ void TheoryAxioms::addDistinctnessAxiom(TermAlgebra* ta) {
     for (unsigned j = 0; j < c->arity(); j++) {
       args.push(TermList(var++, false));
     }
-    TermList term(Term::create(c->functor(), (unsigned)args.size(), args.begin()));
+    TermList term(Term::create(c->functor(), args.size(), args.begin()));
     terms[i] = term;
   }
 
@@ -1295,8 +1295,8 @@ void TheoryAxioms::addInjectivityAxiom(TermAlgebra* ta)
       rhsArgs.push(TermList(j * 2 + 1, false));
     }
 
-    TermList lhs(Term::create(c->functor(), (unsigned)lhsArgs.size(), lhsArgs.begin()));
-    TermList rhs(Term::create(c->functor(), (unsigned)rhsArgs.size(), rhsArgs.begin()));
+    TermList lhs(Term::create(c->functor(), lhsArgs.size(), lhsArgs.begin()));
+    TermList rhs(Term::create(c->functor(), rhsArgs.size(), rhsArgs.begin()));
     Literal* eql = Literal::createEquality(false, lhs, rhs, ta->sort());
 
     for (unsigned j = 0; j < c->arity(); j++) {
@@ -1322,7 +1322,7 @@ void TheoryAxioms::addDiscriminationAxiom(TermAlgebra* ta) {
       variables.push(TermList(var, false));
     }
 
-    TermList term(Term::create(c->functor(), (unsigned)variables.size(), variables.begin()));
+    TermList term(Term::create(c->functor(), variables.size(), variables.begin()));
     cases[i] = term;
   }
 
@@ -1338,36 +1338,35 @@ void TheoryAxioms::addDiscriminationAxiom(TermAlgebra* ta) {
   }
 }
 
-void TheoryAxioms::addAcyclicityAxiom(TermAlgebra* ta)
+void TheoryAxioms::addCyclicityAxiom(TermAlgebra* ta)
 {
   CALL("TheoryAxioms::addAcyclicityAxiom");
 
-  unsigned pred = ta->getSubtermPredicate();
+  // nothing to do if there are no recursive constructors
+  if (!ta->infiniteDomain())
+    return;
 
   if (ta->allowsCyclicTerms()) {
-    return;
-  }
-
-  bool rec = false;
-
-  for (unsigned i = 0; i < ta->nConstructors(); i++) {
-    if (addSubtermDefinitions(pred, ta->constructor(i))) {
-      rec = true;
+    unsigned func = ta->getSubstFunction();
+    // infinite trees/co-datatypes : cyclic terms exists and are unique
+    // axiomatized with subst function
+    for (unsigned i = 0; i < ta->nConstructors(); i++) {
+      addSubstFunctionDefinitions(func, ta->constructor(i));
     }
+    addSubstFunctionIdentity(func, ta->sort());
+    addCycleFunctionDefinitions(ta);
+  } else {
+    unsigned pred = ta->getSubtermPredicate();
+    // term algebras/datatypes : no cyclic terms
+    // axiomatized with subterm predicate
+    for (unsigned i = 0; i < ta->nConstructors(); i++) {
+      addSubtermDefinitions(pred, ta->constructor(i));
+    }
+    addSubtermIrreflexivity(pred);
   }
-
-  // rec <=> the subterm relation is non-empty
-  if (!rec) {
-    return;
-  }
-
-  static TermList x(0, false);
-
-  Literal* sub = Literal::create2(pred, false, x, x);
-  addTheoryUnitClause(sub, new Inference(Inference::TERM_ALGEBRA_ACYCLICITY),CHEAP);
 }
 
-bool TheoryAxioms::addSubtermDefinitions(unsigned subtermPredicate, TermAlgebraConstructor* c)
+void TheoryAxioms::addSubtermDefinitions(unsigned subtermPredicate, TermAlgebraConstructor* c)
 {
   CALL("TheoryAxioms::addSubtermDefinitions");
 
@@ -1377,9 +1376,8 @@ bool TheoryAxioms::addSubtermDefinitions(unsigned subtermPredicate, TermAlgebraC
   for (unsigned i = 0; i < c->arity(); i++) {
     args.push(TermList(i, false));
   }
-  TermList right(Term::create(c->functor(), (unsigned)args.size(), args.begin()));
+  TermList right(Term::create(c->functor(), args.size(), args.begin()));
 
-  bool added = false;
   for (unsigned i = 0; i < c->arity(); i++) {
     if (c->argSort(i) != c->rangeSort()) continue;
 
@@ -1394,8 +1392,104 @@ bool TheoryAxioms::addSubtermDefinitions(unsigned subtermPredicate, TermAlgebraC
     (*transitivity)[0] = Literal::create2(subtermPredicate, false, z, y);
     (*transitivity)[1] = Literal::create2(subtermPredicate, true,  z, right);
     addAndOutputTheoryUnit(transitivity,CHEAP);
-
-    added = true;
   }
-  return added;
+}
+
+void TheoryAxioms::addSubtermIrreflexivity(unsigned subtermPredicate) {
+  CALL("TheoryAxioms::addSubtermIrreflexivity");
+
+  TermList x(0, false);
+  Literal* sub = Literal::create2(subtermPredicate, false, x, x);
+  addTheoryUnitClause(sub, new Inference(Inference::TERM_ALGEBRA_ACYCLICITY), CHEAP);
+}
+
+void TheoryAxioms::addSubstFunctionDefinitions(unsigned substFunction, TermAlgebraConstructor* c)
+{
+  CALL("TheoryAxioms::addSubstFunctionDefinitions");
+
+  // x != C(z_1 ... z_n) => subst(x, y, C(z_1 ... z_n)) = C(z_1' ... x, y, z_n')
+  // where z_i' = subst(x, y, z_i) if the ith argument is recursive
+  // and z_i' = z_i otherwise
+  TermList x(c->arity(), false);
+  TermList y(c->arity() + 1, false);
+  Stack<TermList> args;
+  Stack<TermList> args1;
+  Stack<TermList> args2;
+  for (unsigned i = 0; i < c->arity(); i++) {
+    TermList zi(i, false);
+    args1.push(zi);
+    if (c->argSort(i) == c->rangeSort()) {
+      args.reset(); args.push(x); args.push(y); args.push(zi);
+      TermList subst(Term::create(substFunction, 3, args.begin()));
+      args2.push(subst);
+    } else {
+      args2.push(zi);
+    }
+  }
+  TermList lhsArg(Term::create(c->functor(), c->arity(), args1.begin()));
+  TermList rhs(Term::create(c->functor(), c->arity(), args2.begin()));
+
+  args.reset(); args.push(x); args.push(y); args.push(lhsArg);
+  TermList lhs(Term::create(substFunction, 3, args.begin()));
+
+  Clause* cl = new(2) Clause(2, Unit::AXIOM, new Inference(Inference::TERM_ALGEBRA_CYCLES));
+  (*cl)[0] = Literal::createEquality(true, x, lhsArg, c->rangeSort());
+  (*cl)[1] = Literal::createEquality(true, lhs, rhs, c->rangeSort());
+  addAndOutputTheoryUnit(cl, CHEAP);
+}
+
+void TheoryAxioms::addSubstFunctionIdentity(unsigned substFunction, unsigned srt)
+{
+  CALL("TheoryAxioms::addSubstFunctionIdentity");
+
+  // subst(x, y, x) = y
+  TermList x(0, false);
+  TermList y(1, false);
+  Stack<TermList> args;
+  args.push(x); args.push(y); args.push(x);
+  TermList subst(Term::create(substFunction, 3, args.begin()));
+  
+  addTheoryUnitClause(Literal::createEquality(true, y, subst, srt),
+                      new Inference(Inference::TERM_ALGEBRA_CYCLES),
+                      CHEAP);
+}
+
+void TheoryAxioms::addCycleFunctionDefinitions(TermAlgebra* ta)
+{
+  CALL("TheoryAxioms::addCycleFunctionDefinitions");
+
+  // existence of cyclic terms
+  // note that if x does not occur in y, then cycl(x, y) is not a cyclic term but just y
+  // x !=y => cycl(x,y) = subst(x, cycl(x, y), y)
+  TermList x(0, false);
+  TermList y(1, false);
+  Stack<TermList> args;
+  
+  args.push(x); args.push(y);
+  TermList cycl(Term::create(ta->getCycleFunction(), 2, args.begin()));
+
+  args.reset(); args.push(x); args.push(cycl); args.push(y);
+  TermList subst(Term::create(ta->getSubstFunction(), 3, args.begin()));
+
+  addTheoryUnitClause(Literal::createEquality(true, cycl, subst, ta->sort()),
+                      new Inference(Inference::TERM_ALGEBRA_CYCLES),
+                      CHEAP);
+
+  // unicity of cyclic terms
+  // x != y & subst(x,z1,y) = z1 & subst(x,z2,y) => z1 = z2
+  TermList z1(2, false);
+  TermList z2(3, false);
+
+  args.reset(); args.push(x); args.push(z1); args.push(y);
+  TermList subst1(Term::create(ta->getSubstFunction(), 3, args.begin()));
+
+  args.reset(); args.push(x); args.push(z2); args.push(y);
+  TermList subst2(Term::create(ta->getSubstFunction(), 3, args.begin()));
+
+  Clause* cl = new(4) Clause(4, Unit::AXIOM, new Inference(Inference::TERM_ALGEBRA_CYCLES));
+  (*cl)[0] = Literal::createEquality(true, x, y, ta->sort());
+  (*cl)[1] = Literal::createEquality(false, z1, subst1, ta->sort());
+  (*cl)[2] = Literal::createEquality(false, z2, subst2, ta->sort());
+  (*cl)[3] = Literal::createEquality(true, z1, z2, ta->sort());
+  addAndOutputTheoryUnit(cl, CHEAP);
 }

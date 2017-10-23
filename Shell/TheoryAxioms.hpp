@@ -89,12 +89,16 @@ private:
   void addDistinctnessAxiom(TermAlgebra* ta);
   void addInjectivityAxiom(TermAlgebra* ta);
   void addDiscriminationAxiom(TermAlgebra* ta);
-  void addAcyclicityAxiom(TermAlgebra* ta);
+  void addCyclicityAxiom(TermAlgebra* ta);
 
-  /* Subterm definitions used by the acyclicity axiom. True iff some
-     definition was actually added (i.e. if the constructor is
-     recursive) */
-  bool addSubtermDefinitions(unsigned subtermPredicate, TermAlgebraConstructor* c);
+  /* Subterm definitions used by the acyclicity axiom. */
+  void addSubtermDefinitions(unsigned subtermPredicate, TermAlgebraConstructor* c);
+  void addSubtermIrreflexivity(unsigned subtermPredicate);
+
+  /* Same thing for the subst and cycle functions, used to axiomatize infinite trees (a.k.a. co-datatypes) */
+  void addSubstFunctionDefinitions(unsigned substFunction, TermAlgebraConstructor* c);
+  void addSubstFunctionIdentity(unsigned substFunction, unsigned srt);
+  void addCycleFunctionDefinitions(TermAlgebra* ta);
 
   void addTheoryUnitClause(Literal* lit, unsigned level);
   void addTheoryUnitClause(Literal* lit, Inference* inf, unsigned level);
