@@ -214,8 +214,14 @@ BitVectorConstantType BitVectorOperations::getBVCTFromVString(vstring& numberToR
     setBVCTFromDec(c,initialBoolArray);
     BitVectorConstantType sum(initialBoolArray.getBinArray());
     
+    // add condition to this loop
     for(unsigned i = 1; i<numberToRepresent.length(); i++) {
-        multBVCTByTen(sum);
+        if (size==1)
+            sum.setValueAt(0,false);
+        else if (size==2)
+            specialMultBVCTByTen(sum);
+        else
+            multBVCTByTen(sum);
         c = numberToRepresent[i]; 
         setBVCTFromDec(c,initialBoolArray);
         addBVCTs(sum,initialBoolArray);
@@ -282,9 +288,10 @@ BitVectorConstantType BitVectorOperations::getBVCTFromVString(vstring& numberToR
     }
  }
    
+ //error for size one and two
 void BitVectorOperations::multBVCTByTen(BitVectorConstantType& arg1)
 {
-    CALL("BitVectorOperations::inPlaceArithmeticShiftRight(BitVectorConstantType&)"); 
+    CALL("BitVectorOperations::multBVCTByTen(BitVectorConstantType&)"); 
     ASS(arg1.size()>0);
     
     BitVectorConstantType t(arg1.getBinArray());
@@ -292,6 +299,12 @@ void BitVectorOperations::multBVCTByTen(BitVectorConstantType& arg1)
     inplaceShiftLeft(t,3);
     addBVCTs(arg1,t);
 }  
+void BitVectorOperations::specialMultBVCTByTen(BitVectorConstantType& arg1)
+{
+    CALL("BitVectorOperations::specialmultBVCTByTen(BitVectorConstantType&)"); 
+    ASS(arg1.size()>0);
+    inplaceShiftLeft(arg1,1);
+} 
 
 BitVectorConstantType BitVectorOperations::getZeroBVCT(unsigned size)
  {

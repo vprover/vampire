@@ -1456,7 +1456,8 @@ void SMTLIB2::parseUnderScoredExpression(LExpr* exp)
     
     ASS(exp->isList());
     LispListReader lRdr(exp->list);
-    
+    if (exp->list->length(exp->list)!=3)
+        USER_ERROR("Error in "+exp->toString());
     LExpr* ex = lRdr.readNext();
     // this check can probably be removed since this function is called when an underscore is encountered
     if (ex->str!= "_")

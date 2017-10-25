@@ -39,6 +39,7 @@ namespace Kernel {
     static bool isZero(const BitVectorConstantType& q);
     static bool getIndexOfLastOne(const BitVectorConstantType& arg, unsigned& result);
 
+    static void specialMultBVCTByTen(BitVectorConstantType& arg1);
     static void multBVCTByTen(BitVectorConstantType& arg1);
     static bool addBVCTs(BitVectorConstantType& a1,const BitVectorConstantType& a2);
     static void subtractBVCTs(BitVectorConstantType& a1, const BitVectorConstantType& a2);
