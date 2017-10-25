@@ -1614,8 +1614,7 @@ void Options::Options::init()
     
     
     _showInterpolant = ChoiceOptionValue<InterpolantMode>("show_interpolant","",InterpolantMode::OFF,
-                                                          {"minimized","off","on"});
-    _showInterpolant.description="minimized tries to find a nicer interpolant than the default algorithm does";
+                                                          {"new_heur","new_opt","off", "old", "old_opt"});
     _lookup.insert(&_showInterpolant);
     _showInterpolant.tag(OptionTag::OTHER);
     _showInterpolant.setExperimental();
@@ -1841,7 +1840,7 @@ void Options::set(const char* name,const char* value, bool longOpt)
 void Options::set(const vstring& name,const vstring& value)
 {
   CALL ("Options::set/2");
-  set(name.c_str(),value.c_str(),false);
+  set(name.c_str(),value.c_str(),true);
 } // Options::set/2
 
 bool Options::OptionHasValue::check(Property*p){

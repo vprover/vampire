@@ -482,9 +482,11 @@ public:
   };
 
   enum class InterpolantMode : unsigned int {
-    MINIMIZED = 0,
-    OFF = 1,
-    ON = 2
+    NEW_HEUR = 0,
+    NEW_OPT = 1,
+    OFF = 2,
+    OLD = 3,
+    OLD_OPT = 4
   };
 
   enum class LiteralComparisonMode : unsigned int {

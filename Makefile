@@ -288,6 +288,7 @@ VSAT_OBJ=SAT/ClauseDisposer.o\
          SAT/TWLSolver.o\
          SAT/VariableSelector.o\
 	 SAT/Z3Interfacing.o\
+	 SAT/Z3MainLoop.o\
 	 SAT/BufferedSolver.o\
 	 SAT/FallbackSolverWrapper.o
 #         SAT/ISSatSweeping.o\	 
@@ -325,7 +326,9 @@ VS_OBJ = Shell/AnswerExtractor.o\
          Shell/Grounding.o\
          Shell/InequalitySplitting.o\
          Shell/InterpolantMinimizer.o\
+         Shell/InterpolantMinimizerNew.o\
          Shell/Interpolants.o\
+         Shell/InterpolantsNew.o\
          Shell/InterpretedNormalizer.o\
          Shell/LaTeX.o\
          Shell/LispLexer.o\

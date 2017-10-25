@@ -30,7 +30,7 @@ public:
   /** New unit of a given kind */
   FormulaUnit(Formula* f,Inference* inf,InputType it)
     : Unit(FORMULA,inf,it),
-      _formula(f)
+      _formula(f), _cachedColor(COLOR_INVALID), _cachedWeight(0)
   {}
 
   void destroy();
@@ -45,8 +45,8 @@ public:
   Formula* formula()
   { return _formula; }
 
-
   Color getColor();
+  unsigned weight();
 
   CLASS_NAME(FormulaUnit);
   USE_ALLOCATOR(FormulaUnit);
@@ -54,6 +54,9 @@ public:
 protected:
   /** Formula of this unit */
   Formula* _formula;
+
+  Color _cachedColor;
+  unsigned _cachedWeight;
 }; // class FormulaUnit
 
 
