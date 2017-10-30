@@ -213,7 +213,23 @@ Term* Z3Interfacing::evaluateInModel(Term* trm)
   // For now just deal with the case where it is an integer 
   if(assignment.is_numeral()){
     bool is_int = assignment.is_int();
-    ASS(is_int || assignment.is_real()); 
+    ASS(is_int || assignment.is_real() || assignment.is_bv()); 
+    if (assignment.is_bv())
+    {
+        ASS(env.sorts->hasStructuredSort(srt,Sorts::StructuredSort::BITVECTOR));
+        std::string val;
+    
+        if (assignment.is_numeral(val))
+        {
+            unsigned size = assignment.get_sort().bv_size();
+            vstring vVal(val);
+            Term* t = theory->representConstant(BitVectorConstantType(BitVectorOperations::getBVCTFromVString(vVal, size)));
+            return t;
+        }
+        else{
+            return 0;
+        }
+    }
     if(is_int){
       ASS(srt == Sorts::SRT_INTEGER);
       int value;
@@ -293,8 +309,13 @@ z3::sort Z3Interfacing::getz3sort(unsigned s)
     z3::sort value_sort = getz3sort(env.sorts->getArraySort(s)->getInnerSort());
  
     return _context.array_sort(index_sort,value_sort);
-  } 
-
+  }
+  
+  //Deal with bitvectors
+  if(env.sorts->hasStructuredSort(s,Sorts::StructuredSort::BITVECTOR)){
+    unsigned size = env.sorts->getBitVectorSort(s)->getSize();  
+    return _context.bv_sort(size);
+  }
   // Use new interface for uninterpreted sorts, I think this is not less efficient
   return _context.uninterpreted_sort(Lib::Int::toString(s).c_str());
 /*
@@ -359,6 +380,10 @@ z3::expr Z3Interfacing::getz3expr(Term* trm,bool isLit,bool&nameExpression,bool 
       if(symb->rationalConstant()){
         RationalConstantType value = symb->rationalValue();
         return _context.real_val(value.numerator().toInner(),value.denominator().toInner());
+      }
+      if (symb->bitVectorConstant()){
+          BitVectorConstantType value = symb->bitVectorValue();
+          return _context.bv_val(BitVectorOperations::boolArraytoString(value.getBinArray()).c_str(),value.size());
       }
       if(!isLit && env.signature->isFoolConstantSymbol(true,trm->functor())){
         return _context.bool_val(true);
@@ -429,7 +454,97 @@ z3::expr Z3Interfacing::getz3expr(Term* trm,bool isLit,bool&nameExpression,bool 
             // store(array,index,value)
             ret = store(args[0],args[1],args[2]);
             break;
-
+          case Theory::StructuredSortInterpretation::BVUREM:
+            ret = urem(args[0],args[1]);    
+            break;
+          case Theory::StructuredSortInterpretation::BVUDIV:
+            ret = udiv(args[0],args[1]);    
+            break;
+          case Theory::StructuredSortInterpretation::BVSDIV:
+            ret = args[0]/args[1];  
+            break;
+          case Theory::StructuredSortInterpretation::BVADD:
+            ret = args[0]+args[1];  
+            break;
+          case Theory::StructuredSortInterpretation::CONCAT:
+            ret = concat(args[0],args[1]);  //correct concat?
+            break;
+          case Theory::StructuredSortInterpretation::EXTRACT:
+            ret = args[2].extract(args[0],args[1]);  //correct?
+            break; 
+          case Theory::StructuredSortInterpretation::BVNOT:
+            ret = !args[0];  
+            break;
+          case Theory::StructuredSortInterpretation::BVAND:
+            ret = args[0]&args[1];  
+            break;
+          case Theory::StructuredSortInterpretation::BVOR:
+            ret = args[0]||args[1];  
+            break;
+          case Theory::StructuredSortInterpretation::BVNEG:
+            ret = -args[0];  
+            break;
+          case Theory::StructuredSortInterpretation::BVMUL:
+            ret = args[0]*args[1];  
+            break;
+          case Theory::StructuredSortInterpretation::BVSHL:
+            ret = shl(args[0],args[1]);  
+            break;
+          case Theory::StructuredSortInterpretation::BVLSHR:
+            ret = lshr(args[0],args[1]);  
+            break;
+          case Theory::StructuredSortInterpretation::BVNOR:
+            ret = !(args[0]||args[1]);  
+            break;
+          case Theory::StructuredSortInterpretation::BVXNOR:
+            ret = !(args[0]^args[1]);  //?
+            break;
+          case Theory::StructuredSortInterpretation::BVSUB:
+            ret = args[0]-args[1];  
+            break;
+          case Theory::StructuredSortInterpretation::BVSREM:
+            ret = srem(args[0],args[1]);    
+            break;
+          case Theory::StructuredSortInterpretation::BVASHR:
+            ret = ashr(args[0],args[1]);  
+            break;  
+          case Theory::StructuredSortInterpretation::BV_ZERO_EXTEND:
+            ret = zext(args[1],args[0]);  
+            break;
+          case Theory::StructuredSortInterpretation::BV_SIGN_EXTEND:
+            ret = sext(args[1],args[0]);  
+            break;  
+          case Theory::StructuredSortInterpretation::BVULT:
+            ret = ult(args[0],args[1]);  
+            break;
+          case Theory::StructuredSortInterpretation::BVULE:
+            ret = ule(args[0],args[1]);  
+            break;  
+          case Theory::StructuredSortInterpretation::BVUGT:
+            ret = ugt(args[0],args[1]);  
+            break;
+          case Theory::StructuredSortInterpretation::BVUGE:
+            ret = uge(args[0],args[1]);  
+            break;
+          case Theory::StructuredSortInterpretation::BVSLT:
+            ret = args[0]<args[1];  
+            break;
+          case Theory::StructuredSortInterpretation::BVSLE:
+            ret = args[0]<=args[1];  
+            break;
+          case Theory::StructuredSortInterpretation::BVSGT:
+            ret = args[0]>args[1];  
+            break;
+          case Theory::StructuredSortInterpretation::BVSGE:
+            ret = args[0]>=args[1];  
+            break;  
+          
+          //TODO  
+          case Theory::StructuredSortInterpretation::BV_ROTATE_LEFT:
+          case Theory::StructuredSortInterpretation::BV_ROTATE_RIGHT:
+          case Theory::StructuredSortInterpretation::REPEAT:
+          case Theory::StructuredSortInterpretation::BVSMOD:
+          case Theory::StructuredSortInterpretation::BVCOMP:
           default:
             skip=true;//skip it and treat the function as uninterpretted
             break;
