@@ -204,6 +204,7 @@ void TPTP::parse()
       endBinding();
       break;
     case TUPLE_BINDING:
+      if(!env.options->newCNF()){ USER_ERROR("Set --newcnf on if using tuples"); }
       tupleBinding();
       break;
     case END_TUPLE_BINDING:
@@ -216,6 +217,7 @@ void TPTP::parse()
       endTheoryFunction();
       break;
     case END_TUPLE:
+      if(!env.options->newCNF()){ USER_ERROR("Set --newcnf on if using tuples"); }
       endTuple();
       break;
     default:
