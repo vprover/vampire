@@ -162,6 +162,18 @@ void Preprocess::preprocess(Problem& prb)
     env.interpretedOperationsUsed = true;
   }
 
+  if (prb.hasFOOL()) {
+    // This is the point to extend the signature with $$true and $$false
+    // If we don't have fool then these constants get in the way (a lot)
+  
+    if (!_options.newCNF()) {
+      if (env.options->showPreprocessing())
+        env.out() << "FOOL elimination" << std::endl;
+      TheoryAxioms(prb).applyFOOL();
+      FOOLElimination().apply(prb);
+    }
+  }
+
     // If there are interpreted operations
   if (prb.hasInterpretedOperations() || env.signature->hasTermAlgebras()){
     // Normalize them e.g. replace $greater with not $lesseq
@@ -173,18 +185,6 @@ void Preprocess::preprocess(Problem& prb)
         env.out() << "adding theory axioms" << std::endl;
 
       TheoryAxioms(prb).apply();
-    }
-  }
-
-  if (prb.hasFOOL()) {
-    // This is the point to extend the signature with $$true and $$false
-    // If we don't have fool then these constants get in the way (a lot)
-  
-    if (!_options.newCNF()) {
-      if (env.options->showPreprocessing())
-        env.out() << "FOOL elimination" << std::endl;
-      TheoryAxioms(prb).applyFOOL();
-      FOOLElimination().apply(prb);
     }
   }
 
