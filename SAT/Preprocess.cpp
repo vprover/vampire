@@ -137,7 +137,7 @@ bool Preprocess::filterPureLiterals(unsigned varCnt, SATClauseList*& res)
 
   ASS(SATClauseList::isEmpty(occurences[0]));
   for(unsigned i=1;i<=varCnt;i++) {
-    occurences[i]->destroy();
+    SATClauseList::destroy(occurences[i]);
   }
 
 #if VDEBUG
@@ -178,8 +178,8 @@ void Preprocess::propagateUnits(SATClauseIterator clauses,
       bool oldPolarity;
       if(unitBindings.find(unit.var(), oldPolarity)) {
 	if(oldPolarity!=unit.isPositive()) {
-	  res->destroy();
-	  units->destroy();
+	  SATClauseList::destroy(res);
+          SATClauseList::destroy(units);
 	  resUnits=SATClauseIterator::getEmpty();
 	  resNonUnits=pvi( getSingletonIterator(new(0) SATClause(0, true)) );
 	  return;

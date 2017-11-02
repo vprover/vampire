@@ -43,7 +43,7 @@ TermList SymbolDefinitionInlining::substitute(Term::Iterator tit) {
       unsigned boundVar = (unsigned) bit.next();
       unsigned freshVar = ++_freshVarOffset;
       substitution.bind(boundVar, TermList(freshVar, false));
-      _varRenames = _varRenames->cons(make_pair(boundVar, freshVar));
+      List<pair<unsigned, unsigned>>::push(make_pair(boundVar, freshVar), _varRenames);
     }
   }
 
@@ -114,11 +114,18 @@ TermList SymbolDefinitionInlining::process(TermList ts) {
         TermList tuple = process(TermList(sd->getTupleTerm()));
         ASS(tuple.isTerm());
 
-        if (tuple.term() == sd->getTupleTerm()) {
+        Term* t = tuple.term();
+        if (t == sd->getTupleTerm()) {
           return ts;
         }
 
-        return TermList(Term::createTuple(tuple.term()));
+        // Replace [$proj(0, t), ..., $proj(n, t)] with t
+        TermList tupleConstant;
+        if (mirroredTuple(t, tupleConstant)) {
+          return tupleConstant;
+        }
+
+        return TermList(Term::createTuple(t));
       }
 
       default:
@@ -148,6 +155,50 @@ TermList SymbolDefinitionInlining::process(TermList ts) {
   }
 
   return TermList(Term::create(term, args.begin()));
+}
+
+bool SymbolDefinitionInlining::mirroredTuple(Term* tuple, TermList &tupleConstant) {
+  bool foundTupleConstant = false;
+  unsigned tupleSort = env.signature->getFunction(tuple->functor())->fnType()->result();
+  ASS(env.sorts->hasStructuredSort(tupleSort, Sorts::StructuredSort::TUPLE));
+  for (unsigned i = 0; i < tuple->arity(); i++) {
+    if (!tuple->nthArgument(i)->isTerm()) {
+      return false;
+    }
+    Term* arg = (tuple->nthArgument(i))->term();
+    TermList possibleTupleConstant;
+    if (arg->isSpecial()) {
+      if (arg->getSpecialData()->getType() != Term::SF_FORMULA) {
+        return false;
+      }
+      Formula* f = arg->getSpecialData()->getFormula();
+      if (f->connective() != LITERAL) {
+        return false;
+      }
+      Literal* l = f->literal();
+      if (l->functor() != Theory::tuples()->getProjectionFunctor(i, tupleSort)) {
+        return false;
+      }
+      possibleTupleConstant = *l->nthArgument(0);
+    } else {
+      if (arg->functor() != Theory::tuples()->getProjectionFunctor(i, tupleSort)) {
+        return false;
+      }
+      possibleTupleConstant = *arg->nthArgument(0);
+    }
+    if (!possibleTupleConstant.isTerm()) {
+      return false;
+    }
+    if (!foundTupleConstant) {
+      tupleConstant = possibleTupleConstant;
+      foundTupleConstant = true;
+    } else {
+      if (possibleTupleConstant != tupleConstant) {
+        return false;
+      }
+    }
+  }
+  return true;
 }
 
 Formula* SymbolDefinitionInlining::process(Formula* formula) {
@@ -256,7 +307,7 @@ Formula* SymbolDefinitionInlining::process(Formula* formula) {
 FormulaList* SymbolDefinitionInlining::process(FormulaList* formulas) {
   CALL("SymbolDefinitionInlining::process(FormulaList*)");
 
-  Stack<Formula*> elements(formulas->length());
+  Stack<Formula*> elements(FormulaList::length(formulas));
 
   bool substituted = false;
   FormulaList::Iterator fit(formulas);

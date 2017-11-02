@@ -39,8 +39,7 @@ public:
     }
     typename InnerMap::Iterator it(_data);
     while(it.hasNext()) {
-      ValList* lst=it.next();
-      lst->destroy();
+      ValList::destroy(it.next());
     }
     _data.reset();
   }
@@ -182,8 +181,7 @@ private:
   {
     typename InnerMap::Iterator it(_data);
     while(it.hasNext()) {
-      ValList* lst=it.next();
-      lst->destroy();
+      ValList::destroy(it.next());
     }
     _data.reset();
   }

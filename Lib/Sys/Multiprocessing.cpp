@@ -37,9 +37,9 @@ Multiprocessing::Multiprocessing()
 
 Multiprocessing::~Multiprocessing()
 {
-  _preFork->destroy();
-  _postForkParent->destroy();
-  _postForkChild->destroy();
+  VoidFuncList::destroy(_preFork);
+  VoidFuncList::destroy(_postForkParent);
+  VoidFuncList::destroy(_postForkChild);
 }
 
 void Multiprocessing::registerForkHandlers(VoidFunc before, VoidFunc afterParent, VoidFunc afterChild)

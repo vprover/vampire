@@ -348,7 +348,6 @@ class SATInference;
 class SATSolver;
 typedef ScopedPtr<SATSolver> SATSolverSCP;
 class TWLSolver;
-class LingelingInterfacing;
 
 class RestartStrategy;
 typedef ScopedPtr<RestartStrategy> RestartStrategySCP;

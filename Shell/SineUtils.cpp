@@ -454,7 +454,7 @@ bool SineSelector::perform(UnitList*& units)
       }
       //all defining units for the symbol sym were selected,
       //so we can remove them from the relation
-      _def[sym]->destroy();
+      UnitList::destroy(_def[sym]);
       _def[sym]=0;
     }
   }
@@ -464,7 +464,7 @@ bool SineSelector::perform(UnitList*& units)
 
   numberUnitsLeftOut -= env.statistics->selectedBySine;
 
-  units->destroy();
+  UnitList::destroy(units);
   units=0;
   UnitList::pushFromIterator(Stack<Unit*>::Iterator(_unitsWithoutSymbols), units);
   while (selectedStack.isNonEmpty()) {
@@ -710,7 +710,7 @@ void SineTheorySelector::perform(UnitList*& units)
 
   UnitList::pushFromIterator(Stack<Unit*>::Iterator(_unitsWithoutSymbols), res);
 
-  units->destroy();
+  UnitList::destroy(units);
 //  units=res->reverse(); //we want to resemble the original SInE as much as possible
   units=res;
 

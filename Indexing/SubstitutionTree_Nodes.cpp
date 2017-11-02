@@ -26,9 +26,7 @@ public:
   UListLeaf(TermList ts) : Leaf(ts), _children(0), _size(0) {}
   ~UListLeaf()
   {
-    if(_children) {
-      _children->destroy();
-    }
+    LDList::destroy(_children);
   }
 
   inline
@@ -51,7 +49,7 @@ public:
   inline
   void remove(LeafData ld)
   {
-    _children=_children->remove(ld);
+    _children = LDList::remove(ld, _children);
     _size--;
   }
 

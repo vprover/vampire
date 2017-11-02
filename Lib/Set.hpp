@@ -222,7 +222,7 @@ public:
   }
 	
   /** Return the number of (non-deleted) elements */
-  inline int size() const
+  inline unsigned size() const
   {
     return _size;
   }
@@ -283,7 +283,7 @@ private:
   /** the current number of cells */
   int _nonemptyCells;
   /** the current size */
-  int _size;
+  unsigned _size;
   /** the array of entries */
   Cell* _entries;
   /** the cell after the last one, required since the

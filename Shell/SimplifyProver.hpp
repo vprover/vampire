@@ -120,13 +120,13 @@ public:
 
   /** information about a function or a predicate symbol */
   struct SymbolInfo {
-    int arity;
+    unsigned arity;
     Type returnType;
     unsigned number;
     int argTypes[1];
 
-    void* operator new(size_t,int arity);
-    SymbolInfo(int arity);
+    void* operator new(size_t, unsigned arity);
+    SymbolInfo(unsigned arity);
     ~SymbolInfo();
   };
 
@@ -251,9 +251,9 @@ private:
   void parseDistinct(const List*,const Expression*,Context);
   void parseLet(const List*,const Expression*,Context);
   void parseTerm();
-  SymbolInfo* builtInPredicate(const vstring& str,int arity);
-  SymbolInfo* builtInFunction(const vstring& str,int arity);
-  SymbolInfo* getFunctionSymbolInfo(const vstring& name,int arity);
+  SymbolInfo* builtInPredicate(const vstring& str,unsigned arity);
+  SymbolInfo* builtInFunction(const vstring& str,unsigned arity);
+  SymbolInfo* getFunctionSymbolInfo(const vstring& name,unsigned arity);
   SymbolInfo* addNumber(const vstring&);
   void defType(const List*,const Expression*);
   void defOp(const List*,const Expression*);

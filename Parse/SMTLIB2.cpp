@@ -863,7 +863,7 @@ void SMTLIB2::readDeclareDatatypes(LExprList* sorts, LExprList* datatypes, bool 
 {
   CALL("SMTLIB2::readDeclareDatatypes");
   
-  if(sorts->length() != datatypes->length()){
+  if(LExprList::length(sorts) != LExprList::length(datatypes)){
     USER_ERROR("declare-datatype(s) declaration mismatch between declared datatypes and definitions");
   }
 
@@ -994,7 +994,7 @@ TermAlgebraConstructor* SMTLIB2::buildTermAlgebraConstructor(vstring constrName,
       env.signature->getFunction(destructorFunctor)->setType(destructorType);
     }
 
-    ALWAYS(_declaredFunctions.insert(destructorName, make_pair(destructorFunctor, true)));
+    ALWAYS(_declaredFunctions.insert(destructorName, make_pair(destructorFunctor, !isPredicate)));
 
     destructorFunctors[i] = destructorFunctor;
   }
@@ -1477,8 +1477,10 @@ bool SMTLIB2::parseAsUserDefinedSymbol(const vstring& id,LExpr* exp)
   unsigned symbIdx = fun.first;
   bool isTrueFun = fun.second;
 
-  Signature::Symbol* symbol = isTrueFun ? env.signature->getFunction(symbIdx) : env.signature->getPredicate(symbIdx);
-  BaseType* type = isTrueFun ? static_cast<BaseType*>(symbol->fnType()) : static_cast<BaseType*>(symbol->predType());
+  Signature::Symbol* symbol = isTrueFun ? env.signature->getFunction(symbIdx)
+                                        : env.signature->getPredicate(symbIdx);
+  BaseType* type = isTrueFun ? static_cast<BaseType*>(symbol->fnType())
+                             : static_cast<BaseType*>(symbol->predType());
 
   unsigned arity = symbol->arity();
 
@@ -1564,7 +1566,7 @@ bool SMTLIB2::parseAsBuiltinFormulaSymbol(const vstring& id, LExpr* exp)
         res = new JunctionFormula( (fs==FS_AND) ? AND : OR, argLst);
       } else {
         res = argLst->head();
-        argLst->destroy();
+        FormulaList::destroy(argLst);
       }
       _results.push(ParseResult(res));
 

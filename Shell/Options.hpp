@@ -482,9 +482,11 @@ public:
   };
 
   enum class InterpolantMode : unsigned int {
-    MINIMIZED = 0,
-    OFF = 1,
-    ON = 2
+    NEW_HEUR = 0,
+    NEW_OPT = 1,
+    OFF = 2,
+    OLD = 3,
+    OLD_OPT = 4
   };
 
   enum class LiteralComparisonMode : unsigned int {
@@ -1836,7 +1838,7 @@ public:
   bool blockedClauseElimination() const { return _blockedClauseElimination.actualValue; }
   void setUnusedPredicateDefinitionRemoval(bool newVal) { _unusedPredicateDefinitionRemoval.actualValue = newVal; }
   bool weightIncrement() const { return _weightIncrement.actualValue; }
-  bool useDM() const { return _use_dm.actualValue; }
+  // bool useDM() const { return _use_dm.actualValue; }
   SatSolver satSolver() const { return _satSolver.actualValue; }
   //void setSatSolver(SatSolver newVal) { _satSolver = newVal; }
   SaturationAlgorithm saturationAlgorithm() const { return _saturationAlgorithm.actualValue; }
@@ -1866,7 +1868,6 @@ public:
   Subsumption backwardSubsumptionResolution() const { return _backwardSubsumptionResolution.actualValue; }
   bool forwardSubsumption() const { return _forwardSubsumption.actualValue; }
   bool forwardLiteralRewriting() const { return _forwardLiteralRewriting.actualValue; }
-  vstring lingvaAdditionalInvariants() const {return _lingvaAdditionalInvariants.actualValue; }
   int lrsFirstTimeCheck() const { return _lrsFirstTimeCheck.actualValue; }
   int lrsWeightLimitOnly() const { return _lrsWeightLimitOnly.actualValue; }
   int lookaheadDelay() const { return _lookaheadDelay.actualValue; }
@@ -2222,7 +2223,6 @@ private:
 
   StringOptionValue _latexOutput;
   BoolOptionValue _latexUseDefaultSymbols;
-  StringOptionValue _lingvaAdditionalInvariants;
 
   ChoiceOptionValue<LiteralComparisonMode> _literalComparisonMode;
   StringOptionValue _logFile;
@@ -2357,7 +2357,7 @@ private:
   BoolOptionValue _unusedPredicateDefinitionRemoval;
   BoolOptionValue _blockedClauseElimination;
   UnsignedOptionValue _updatesByOneConstraint;
-  BoolOptionValue _use_dm;
+  // BoolOptionValue _use_dm;
   BoolOptionValue _weightIncrement;
   IntOptionValue _whileNumber;
 
@@ -2390,4 +2390,3 @@ std::ostream& operator<< (std::ostream& str,const T& val)
 }
 
 #endif
-

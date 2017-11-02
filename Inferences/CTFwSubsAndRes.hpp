@@ -26,8 +26,8 @@ public:
   CTFwSubsAndRes(bool subsumptionResolution)
   : _subsumptionResolution(subsumptionResolution) {}
   
-  void attach(SaturationAlgorithm* salg);
-  void detach();
+  void attach(SaturationAlgorithm* salg) override;
+  void detach() override;
   bool perform(Clause* cl, Clause*& replacement, ClauseIterator& premises) override;
 private:
   Clause* buildSResClause(Clause* cl, unsigned resolvedIndex, Clause* premise);

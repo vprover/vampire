@@ -115,7 +115,6 @@ void Options::Options::init()
     "  -output,profile: output information about the problem\n"
     "  -sat_solver: accepts problems in DIMACS and uses the internal sat solver\n   directly\n"
     "Some modes are not currently maintained:\n"
-    "  -program_analysis: run Lingva\n"
     "  -bpa: perform bound propagation\n"
     "  -consequence_elimination: perform consequence elimination\n"
     "  -random_strategy: attempts to randomize the option values\n";
@@ -1172,6 +1171,7 @@ void Options::Options::init()
     _useHashingVariantIndex.setExperimental();
     _useHashingVariantIndex.setRandomChoices({"on","off"});
 
+    /*
     _use_dm = BoolOptionValue("use_dismatching","dm",false);
     _use_dm.description="Use dismatching constraints.";
     // Dismatching constraints didn't work and are being discontinued ...
@@ -1180,6 +1180,7 @@ void Options::Options::init()
     //_use_dm.setExperimental();
     _use_dm.setRandomChoices({"on","off"});
     _use_dm.reliesOn(_saturationAlgorithm.is(equal(SaturationAlgorithm::INST_GEN)));
+    */
 
     _nicenessOption = ChoiceOptionValue<Niceness>("niceness_option","none",Niceness::NONE,{"average","none","sum","top"});
     _nicenessOption.description="";
@@ -1613,23 +1614,10 @@ void Options::Options::init()
     
     
     _showInterpolant = ChoiceOptionValue<InterpolantMode>("show_interpolant","",InterpolantMode::OFF,
-                                                          {"minimized","off","on"});
-    _showInterpolant.description="minimized tries to find a nicer interpolant than the default algorithm does";
+                                                          {"new_heur","new_opt","off", "old", "old_opt"});
     _lookup.insert(&_showInterpolant);
     _showInterpolant.tag(OptionTag::OTHER);
     _showInterpolant.setExperimental();
-    
-//******************************************************************
-//*********************** Program Analysis  ************************
-//******************************************************************
-    
-/*
-    _lingvaAdditionalInvariants = StringOptionValue("lingva_additional_invariants","","");
-    _lingvaAdditionalInvariants.description="";
-    _lookup.insert(&_lingvaAdditionalInvariants);
-    _lingvaAdditionalInvariants.tag(Mode::PROGRAM_ANALYSIS);
-    _lingvaAdditionalInvariants.setExperimental();
-  */  
 
 //******************************************************************
 //*********************** Bound Propagation  ***********************
@@ -1852,7 +1840,7 @@ void Options::set(const char* name,const char* value, bool longOpt)
 void Options::set(const vstring& name,const vstring& value)
 {
   CALL ("Options::set/2");
-  set(name.c_str(),value.c_str(),false);
+  set(name.c_str(),value.c_str(),true);
 } // Options::set/2
 
 bool Options::OptionHasValue::check(Property*p){

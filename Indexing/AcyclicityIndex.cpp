@@ -32,17 +32,17 @@ namespace Indexing
     return n;
   }
 
-  List<TermList>* addSubterm(TermList t, List<TermList>* l)
+  void addSubterm(TermList t, List<TermList>*& l)
   {
-    CALL("addSubterms");
+    CALL("addSubterm");
     List<TermList>::Iterator it(l);
     while (it.hasNext()) {
       // TODO test for unifiability, keep only most general term
       if (TermList::equals(t, it.next())) {
-        return l;
+        return;
       }
     }
-    return l->cons(t);
+    List<TermList>::push(t, l);
   }
   
   List<TermList>* AcyclicityIndex::getSubterms(Term *t)
@@ -58,7 +58,7 @@ namespace Indexing
     for (unsigned i = 0; i < t->arity(); i++) {
       if (SortHelper::getArgSort(t, i) == sort) {
         TermList *s = t->nthArgument(i);
-        res = addSubterm(*s, res);
+        addSubterm(*s, res);
         if (s->isTerm()) {
           toVisit.push(s->term());
         }
@@ -71,7 +71,7 @@ namespace Indexing
         for (unsigned i = 0; i < u->arity(); i++) {
           if (SortHelper::getArgSort(u, i) == sort) {
             TermList *s = u->nthArgument(i);
-            res = addSubterm(*s, res);
+            addSubterm(*s, res);
             if (s->isTerm()) {
               toVisit.push(s->term());
             }
@@ -242,9 +242,9 @@ namespace Indexing
     {
       CALL("AcyclicityIndex::CycleSearchIterator::resultFromNode");
 
-      List<Literal*>* l = List<Literal*>::empty();
-      List<Clause*>* c = List<Clause*>::empty();
-      List<Clause*>* cTheta = List<Clause*>::empty();
+      LiteralList* l = LiteralList::empty();
+      ClauseList* c = ClauseList::empty();
+      ClauseList* cTheta = ClauseList::empty();
 
       CycleSearchTreeNode *n = node;
       while (n && n->parent) {
@@ -253,14 +253,14 @@ namespace Indexing
         ASS(n->parent->clause);
         ASS(n->parent->clause->store() == Clause::ACTIVE);
         Clause *cl = applySubstitution(n->parent->clause, n->parent->substIndex);
-        cTheta = cTheta->cons(cl);
-        l = l->cons(n->parent->lit);
-        c = c->cons(n->parent->clause);
+        LiteralList::push(n->parent->lit, l);
+        ClauseList::push(n->parent->clause, c);
+        ClauseList::push(cl, cTheta);
         n = n->parent->parent;
       }
 
-      ASS_EQ(l->length(), c->length());
-      ASS_EQ(l->length(), cTheta->length());
+      ASS_EQ(ClauseList::length(c), LiteralList::length(l));
+      ASS_EQ(ClauseList::length(c), ClauseList::length(cTheta));
 
       return new CycleQueryResult(l, c, cTheta);
     }

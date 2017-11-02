@@ -47,9 +47,9 @@ unsigned FormulaUnit::varCnt()
   Formula::VarList* fv = frm->freeVariables();
   Formula::VarList* bv = frm->boundVariables();
 
-  unsigned res = fv->length() + bv->length();
-  fv->destroy();
-  bv->destroy();
+  unsigned res = Formula::VarList::length(fv) + Formula::VarList::length(bv);
+  Formula::VarList::destroy(fv);
+  Formula::VarList::destroy(bv);
   return res;
 }
 
@@ -64,5 +64,19 @@ Color FormulaUnit::getColor()
   CALL("FormulaUnit::getColor");
   ASS_ALLOC_TYPE(this, "FormulaUnit");
 
-  return this->formula()->getColor();
+  if (_cachedColor == COLOR_INVALID) {
+    _cachedColor = this->formula()->getColor();
+  }
+  return _cachedColor;
+}
+
+unsigned FormulaUnit::weight()
+{
+  CALL("FormulaUnit::weight");
+  ASS_ALLOC_TYPE(this, "FormulaUnit");
+
+  if (!_cachedWeight) {
+    _cachedWeight = this->formula()->weight();
+  }
+  return _cachedWeight;
 }

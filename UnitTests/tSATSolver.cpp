@@ -9,7 +9,6 @@
 #include "SAT/SATSolver.hpp"
 #include "SAT/TWLSolver.hpp"
 #include "SAT/MinisatInterfacing.hpp"
-//#include "SAT/LingelingInterfacing.hpp"
 #include "SAT/Z3Interfacing.hpp"
 
 #include "Test/UnitTesting.hpp"
@@ -222,13 +221,7 @@ TEST_FUN(testSATSolverInterface)
   cout << endl << "Minisat" << endl;  
   MinisatInterfacing sMini(*env.options,true);
   testInterface(sMini);
-  
-/*
-  cout << endl << "Lingeling" << endl;
-  LingelingInterfacing sLing(*env.options,true);
-  testInterface(sLing);
-*/
-  
+    
   cout << endl << "TWL" << endl;
   TWLSolver sTWL(*env.options,true);
   testInterface(sTWL);  
@@ -292,12 +285,6 @@ TEST_FUN(testSolvingUnderAssumptions)
   cout << endl << "Minisat" << endl;
   MinisatInterfacing sMini(*env.options,true);
   testAssumptions(sMini);
-
-/*
-  cout << endl << "Lingeling" << endl;
-  LingelingInterfacing sLing(*env.options,true);
-  testAssumptions(sLing);
-*/
 
   cout << endl << "TWL" << endl;
   TWLSolver sTWL(*env.options,true);

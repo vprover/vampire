@@ -330,8 +330,8 @@ void Semaphore::deregisterInstance()
   if(!hasSemaphore()) {
     return;
   }
-  ASS(s_instances->member(this));
-  s_instances=s_instances->remove(this);
+  ASS(SemaphoreList::member(this, s_instances));
+  s_instances = SemaphoreList::remove(this, s_instances);
 
   releaseInstance();
 }

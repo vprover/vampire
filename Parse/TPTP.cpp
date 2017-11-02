@@ -1857,7 +1857,7 @@ void TPTP::endBinding() {
     argSorts.push(sorts->head());
   }
 
-  unsigned arity = (unsigned)vars->length();
+  unsigned arity = Formula::VarList::length(vars);
 
   TermList binding = _termLists.top();
   unsigned bindingSort = sortOf(binding);
@@ -1940,7 +1940,7 @@ void TPTP::endTupleBinding() {
       env.signature->getFunction(symbol)->setType(new FunctionType(sort));
     }
 
-    constants = constants->cons(symbol);
+    IntList::push(symbol, constants);
 
     LetFunctionName functionName(name, 0);
     LetFunctionReference functionReference(symbol, isPredicate);
@@ -2917,11 +2917,11 @@ void TPTP::endFof()
     if (_isQuestion && ((env.options->mode() == Options::Mode::CLAUSIFY) || (env.options->mode() == Options::Mode::TCLAUSIFY)) && f->connective() == EXISTS) {
       // create an answer predicate
       QuantifiedFormula* g = static_cast<QuantifiedFormula*>(f);
-      int arity = g->vars()->length();
+      unsigned arity = Formula::VarList::length(g->vars());
       unsigned pred = env.signature->addPredicate("$$answer",arity);
       env.signature->getPredicate(pred)->markAnswerPredicate();
       Literal* a = new(arity) Literal(pred,arity,true,false);
-      List<int>::Iterator vs(g->vars());
+      Formula::VarList::Iterator vs(g->vars());
       int i = 0;
       while (vs.hasNext()) {
 	a->nthArgument(i++)->makeVar(vs.next());

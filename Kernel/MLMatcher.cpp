@@ -501,7 +501,7 @@ bool MLMatcher::canBeMatched(Literal** baseLits, unsigned baseLen, Clause* insta
   if(!md) {
     return false;
   }
-  unsigned instLen=instance->length();
+  unsigned instLen = instance->length();
 
   static DArray<unsigned> matchRecord(32);
   unsigned matchRecordLen=resolvedLit?2:instLen;
@@ -620,7 +620,7 @@ void MLMatcher::orderLiterals(T& base, U& alts,
   ASS_EQ(len2lits.size(), 0);
 
   for(unsigned i=0;i<baseLen;i++) {
-    unsigned len=alts[i]->length();
+    unsigned len = LiteralList::length(alts[i]);
     List<unsigned>** plst;
     if(len2lits.getValuePtr(len, plst, 0)) {
       lengths.insert(len);

@@ -406,18 +406,18 @@ vstring Term::headToString() const
 
         const IntList* variables = sd->getVariables();
         vstring variablesList = "";
-        for (int i = 0; i < variables->length(); i++) {
-          unsigned var = (unsigned)variables->nth(i);
+        for (unsigned i = 0; i < IntList::length(variables); i++) {
+          unsigned var = (unsigned) IntList::nth(variables, i);
           variablesList += Term::variableToString(var);
           unsigned sort = type->arg((unsigned)i);
           if (sort != Sorts::SRT_DEFAULT) {
             variablesList += " : " + env.sorts->sortName(sort);
           }
-          if (i < variables->length() - 1) {
+          if (i < IntList::length(variables) - 1) {
             variablesList += ", ";
           }
         }
-        if (variables->length()) {
+        if (IntList::length(variables)) {
           variablesList = "(" + variablesList + ")";
         }
         return "$let(" + functor + variablesList + " := " + binding.toString() + ",";
@@ -449,12 +449,12 @@ vstring Term::headToString() const
         FunctionType* fnType = env.signature->getFunction(tupleFunctor)->fnType();
 
         vstring symbolsList = "";
-        for (unsigned i = 0; i < (unsigned)symbols->length(); i++) {
+        for (unsigned i = 0; i < IntList::length(symbols); i++) {
           Signature::Symbol* symbol = (fnType->arg(i) == Sorts::SRT_BOOL)
-                                      ? env.signature->getPredicate((unsigned)symbols->nth(i))
-                                      : env.signature->getFunction((unsigned)symbols->nth(i));
+            ? env.signature->getPredicate((unsigned)IntList::nth(symbols, i))
+            : env.signature->getFunction((unsigned)IntList::nth(symbols, i));
           symbolsList += symbol->name();
-          if (i != (unsigned)symbols->length() - 1) {
+          if (i != IntList::length(symbols) - 1) {
             symbolsList += ", ";
           }
         }
@@ -841,12 +841,12 @@ Term* Term::createLet(unsigned functor, IntList* variables, TermList binding, Te
   while (vit.hasNext()) {
     distinctVars.insert(vit.next());
   }
-  ASS_EQ(distinctVars.size(), variables->length());
+  ASS_EQ(distinctVars.size(), IntList::length(variables));
 
   bool isPredicate = binding.isTerm() && binding.term()->isBoolean();
   const unsigned int arity = isPredicate ? env.signature->predicateArity(functor)
                                          : env.signature->functionArity(functor);
-  ASS_EQ(arity, (unsigned)variables->length());
+  ASS_EQ(arity, IntList::length(variables));
 #endif
 
   Term* s = new(1,sizeof(SpecialTermData)) Term;
@@ -871,7 +871,7 @@ Term* Term::createTupleLet(unsigned tupleFunctor, IntList* symbols, TermList bin
 
 #if VDEBUG
   Signature::Symbol* tupleSymbol = env.signature->getFunction(tupleFunctor);
-  ASS_EQ(tupleSymbol->arity(), (unsigned)symbols->length());
+  ASS_EQ(tupleSymbol->arity(), IntList::length(symbols));
   ASS_REP(env.sorts->hasStructuredSort(tupleSymbol->fnType()->result(), Sorts::StructuredSort::TUPLE), tupleFunctor);
 
   Set<pair<int,bool> > distinctSymbols;

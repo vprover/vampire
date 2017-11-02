@@ -61,7 +61,7 @@ void SpassLiteralSelector::doSelection(Clause* c, unsigned eligible)
   LiteralList* sel = LiteralList::empty();
 
   if(singleSel) {
-    maximals->destroy();
+    LiteralList::destroy(maximals);
     sel = LiteralList::empty();
     LiteralList::push(singleSel,sel);
   } else if (maximals) {

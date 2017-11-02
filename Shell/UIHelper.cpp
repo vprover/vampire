@@ -19,6 +19,7 @@
 
 #include "Kernel/InferenceStore.hpp"
 #include "Kernel/Problem.hpp"
+#include "Kernel/FormulaUnit.hpp"
 
 #include "Parse/SMTLIB.hpp"
 #include "Parse/SMTLIB2.hpp"
@@ -26,7 +27,9 @@
 
 #include "AnswerExtractor.hpp"
 #include "InterpolantMinimizer.hpp"
+#include "InterpolantMinimizerNew.hpp"
 #include "Interpolants.hpp"
+#include "InterpolantsNew.hpp"
 #include "LaTeX.hpp"
 #include "LispLexer.hpp"
 #include "LispParser.hpp"
@@ -172,6 +175,8 @@ void UIHelper::outputSaturatedSet(ostream& out, UnitIterator uit)
   out << "# SZS output end Saturation." << endl;
 } // outputSaturatedSet
 
+UnitList* parsedUnits;
+
 /**
  * Return problem object with units obtained according to the content of
  * @b env.options
@@ -265,12 +270,44 @@ Problem* UIHelper::getInputProblem(const Options& opts)
     input=0;
   }
 
+  // parsedUnits = units->copy();
+
   Problem* res = new Problem(units);
   res->setSMTLIBLogic(smtLibLogic);
 
   env.statistics->phase=Statistics::UNKNOWN_PHASE;
   return res;
 }
+
+/*
+static void printInterpolationProofTask(ostream& out, Formula* intp, Color avoid_color, bool negate)
+{
+  CALL("printInterpolationProofTask");
+
+  UIHelper::outputSortDeclarations(out);
+  UIHelper::outputSymbolDeclarations(out);
+
+  UnitList::Iterator uit(parsedUnits);
+  while (uit.hasNext()) {
+    Unit* u = uit.next();
+
+    if (u->inheritedColor() != avoid_color) { // TODO: this does not work, since some inherited colors are modified destructively by the interpolation extraction code
+      Unit* toPrint = u;
+      if (toPrint->isClause()) { // need formulas, for the many sorted case
+        Formula* f = Formula::fromClause(toPrint->asClause());
+        toPrint = new FormulaUnit(f,u->inference(),Unit::AXIOM);
+      } else {
+        u->setInputType(Unit::AXIOM); // need it to be axiom in any case; the interpolant will be the conjecture
+      }
+
+      out << TPTPPrinter::toString(toPrint) << endl;
+    }
+  }
+
+  FormulaUnit* intpUnit = new FormulaUnit(negate ? new NegatedFormula(intp) : intp,new Inference(Inference::INPUT),Unit::CONJECTURE);
+  out << TPTPPrinter::toString(intpUnit) << "\n";
+}
+*/
 
 /**
  * Output result based on the content of
@@ -309,46 +346,58 @@ void UIHelper::outputResult(ostream& out)
         out << "% SZS output end Proof for " << env.options->problemName() << endl << flush;
       }
     }
-    if (env.options->showInterpolant()==Options::InterpolantMode::ON) {
+    if (env.options->showInterpolant()!=Options::InterpolantMode::OFF) {
       ASS(env.statistics->refutation->isClause());
-      Interpolants::beatifyRefutation(env.statistics->refutation);
 
-      Formula* interpolant=Interpolants().getInterpolant(static_cast<Clause*>(env.statistics->refutation));
-      out << "Interpolant: " << interpolant->toString() << endl;
-    }
-    if (env.options->showInterpolant()==Options::InterpolantMode::MINIMIZED) {
-      ASS(env.statistics->refutation->isClause());
-      Interpolants::beatifyRefutation(env.statistics->refutation);
+      Interpolants::removeConjectureNodesFromRefutation(env.statistics->refutation);
+      Unit* formulifiedRefutation = Interpolants::formulifyRefutation(env.statistics->refutation);
 
-      Formula* oldInterpolant = InterpolantMinimizer(InterpolantMinimizer::OT_WEIGHT, true, true, "Original interpolant weight").getInterpolant(static_cast<Clause*>(env.statistics->refutation));
-      Formula* interpolant = InterpolantMinimizer(InterpolantMinimizer::OT_WEIGHT, false, true, "Minimized interpolant weight").getInterpolant(static_cast<Clause*>(env.statistics->refutation));
-      InterpolantMinimizer(InterpolantMinimizer::OT_COUNT, true, true, "Original interpolant count").getInterpolant(static_cast<Clause*>(env.statistics->refutation));
-      Formula* cntInterpolant = InterpolantMinimizer(InterpolantMinimizer::OT_COUNT, false, true, "Minimized interpolant count").getInterpolant(static_cast<Clause*>(env.statistics->refutation));
-      Formula* quantInterpolant =  InterpolantMinimizer(InterpolantMinimizer::OT_QUANTIFIERS, false, true, "Minimized interpolant quantifiers").getInterpolant(static_cast<Clause*>(env.statistics->refutation));
-      
-      // SMTPrinter printer;
-      out << "Old interpolant (without minimization): " << TPTPPrinter::toString(oldInterpolant) << endl;
-      //out << "Old interpolant in SMT format (without minimization): ";
-      //printer.smtPrint(oldInterpolant,out);
-      out << endl;
+      Formula* interpolant = nullptr;
+
+      switch(env.options->showInterpolant()) {
+      // new interpolation methods described in master thesis of Bernhard Gleiss
+      case Options::InterpolantMode::NEW_HEUR:
+        InterpolantsNew().removeTheoryInferences(formulifiedRefutation); // do this only once for each proof!
+
+        // InterpolantMinimizerNew().analyzeLocalProof(formulifiedRefutation);
+
+        interpolant = InterpolantsNew().getInterpolant(formulifiedRefutation, InterpolantsNew::UnitWeight::VAMPIRE);
+        break;
+      case Options::InterpolantMode::NEW_OPT:
+#if VZ3
+        InterpolantsNew().removeTheoryInferences(formulifiedRefutation); // do this only once for each proof!
+        interpolant = InterpolantMinimizerNew().getInterpolant(formulifiedRefutation, InterpolantsNew::UnitWeight::VAMPIRE);
+#else
+        NOT_IMPLEMENTED;
+#endif
+        break;
+
+      case Options::InterpolantMode::OLD:
+        interpolant = Interpolants().getInterpolant(formulifiedRefutation);
+        break;
         
+      case Options::InterpolantMode::OLD_OPT:
+        Interpolants::fakeNodesFromRightButGrayInputsRefutation(formulifiedRefutation); // grey right input formulas are artificially made children of proper blue parents
+        interpolant = InterpolantMinimizer(InterpolantMinimizer::OT_WEIGHT, false, true, "Minimized interpolant weight").getInterpolant(formulifiedRefutation);
+        
+        /*
+        Formula* oldInterpolant = InterpolantMinimizer(InterpolantMinimizer::OT_WEIGHT, true, true, "Original interpolant weight").getInterpolant(static_cast<Clause*>(env.statistics->refutation));
+        Formula* interpolant = InterpolantMinimizer(InterpolantMinimizer::OT_WEIGHT, false, true, "Minimized interpolant weight").getInterpolant(static_cast<Clause*>(env.statistics->refutation));
+        InterpolantMinimizer(InterpolantMinimizer::OT_COUNT, true, true, "Original interpolant count").getInterpolant(static_cast<Clause*>(env.statistics->refutation));
+        Formula* cntInterpolant = InterpolantMinimizer(InterpolantMinimizer::OT_COUNT, false, true, "Minimized interpolant count").getInterpolant(static_cast<Clause*>(env.statistics->refutation));
+        Formula* quantInterpolant =  InterpolantMinimizer(InterpolantMinimizer::OT_QUANTIFIERS, false, true, "Minimized interpolant quantifiers").getInterpolant(static_cast<Clause*>(env.statistics->refutation));
+        */
+
+        break;
+      case Options::InterpolantMode::OFF:
+        ASSERTION_VIOLATION;
+      }
+
       out << "Symbol-weight minimized interpolant: " << TPTPPrinter::toString(interpolant) << endl;
-      //out << "Symbol-weight minimized interpolant in SMT format: ";
-      //printer.smtPrint(interpolant,out);
+      out << "Actual weight: " << interpolant->weight() << endl;
       out<<endl;
-
-      out << "Atom-count minimized interpolant: " << TPTPPrinter::toString(cntInterpolant) << endl;
-      //out << "Atom-count minimized interpolant in SMT format: ";
-      //printer.smtPrint(cntInterpolant,out);
-      out<<endl;
-        
-        
-      out << "Quantifiers minimized interpolant: " << TPTPPrinter::toString(quantInterpolant) << endl;
-      //out << "Quantifiers minimized interpolant in SMT format: ";
-      //printer.smtPrint(quantInterpolant,out);
-      out<<endl;
-
     }
+
     if (env.options->latexOutput() != "off") {
       BYPASSING_ALLOCATOR; // for ofstream 
       ofstream latexOut(env.options->latexOutput().c_str());
@@ -724,7 +773,7 @@ ConstraintRCList* UIHelper::getPreprocessedConstraints(const ConstraintRCList* i
   env.statistics->phase = Statistics::PREPROCESSING;
 
   Preprocess prepr(*env.options);
-  ConstraintRCList* constraints = inputConstraints->copy();
+  ConstraintRCList* constraints = ConstraintRCList::copy(inputConstraints);
   prepr.preprocess(constraints);
   
   return constraints;

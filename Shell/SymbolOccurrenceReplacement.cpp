@@ -63,7 +63,7 @@ Term* SymbolOccurrenceReplacement::process(Term* term) {
   }
 
   if (renaming) {
-    unsigned arity = term->arity() + _freeVars->length();
+    unsigned arity = term->arity() + Formula::VarList::length(_freeVars);
     return Term::create(_freshSymbol, arity, arguments.begin());
   } else {
     return Term::create(term, arguments.begin());
@@ -104,7 +104,7 @@ Formula* SymbolOccurrenceReplacement::process(Formula* formula) {
 
       Literal* processedLiteral;
       if (renaming) {
-        unsigned arity = literal->arity() + _freeVars->length();
+        unsigned arity = literal->arity() + Formula::VarList::length(_freeVars);
         bool polarity = (bool)literal->polarity();
         bool commutative = (bool)literal->commutative();
         processedLiteral = Literal::create(_freshSymbol, arity, polarity, commutative, arguments.begin());

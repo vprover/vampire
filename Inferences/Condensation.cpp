@@ -118,7 +118,7 @@ Clause* Condensation::simplify(Clause* cl)
     // We will jump here if we do not find a match, in this case success will be false
     match_fin:
       for(unsigned i=0;i<newLen;i++) {
-	alts[i]->destroy();
+        LiteralList::destroy(alts[i]);
       }
 
       if(success) {

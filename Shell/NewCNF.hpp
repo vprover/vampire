@@ -114,6 +114,7 @@ private:
 
   // generalized literal
   typedef pair<Formula*, SIGN> GenLit;
+  typedef pair<Literal*, List<GenLit>*> LPair;
 
   inline static Formula* &formula(GenLit &gl) {
     return gl.first;
@@ -415,7 +416,7 @@ private:
   };
 
   SPGenClause makeGenClause(List<GenLit>* gls, BindingList* bindings, BindingList* foolBindings) {
-    SPGenClause gc = SPGenClause(new GenClause((unsigned)gls->length(), bindings, foolBindings));
+    SPGenClause gc = SPGenClause(new GenClause(List<GenLit>::length(gls), bindings, foolBindings));
 
     ASS(_literalsCache.isEmpty());
     ASS(_formulasCache.isEmpty());
@@ -434,8 +435,8 @@ private:
   void introduceGenClause(List<GenLit>* gls, BindingList* bindings, BindingList* foolBindings) {
     SPGenClause gc = makeGenClause(gls, bindings, foolBindings);
 
-    if (gc->size() != (unsigned)gls->length()) {
-      LOG4("Eliminated", gls->length() - gc->size(), "duplicate literal(s) from", gc->toString());
+    if (gc->size() != List<GenLit>::length(gls)) {
+      LOG4("Eliminated", List<GenLit>::length(gls) - gc->size(), "duplicate literal(s) from", gc->toString());
     }
 
     if (gc->valid) {
@@ -471,7 +472,7 @@ private:
     SPGenClause gc = occ.gc;
     unsigned position = occ.position;
 
-    unsigned size = gc->size() + gls->length() - 1;
+    unsigned size = gc->size() + List<GenLit>::length(gls) - 1;
     SPGenClause newGc = SPGenClause(new GenClause(size, gc->bindings, gc->foolBindings));
 
     ASS(_literalsCache.isEmpty());

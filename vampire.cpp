@@ -77,10 +77,6 @@
 
 #include "FMB/ModelCheck.hpp"
 
-#if IS_LINGVA
-#include "Program/Lingva.hpp"
-#endif
-
 #if GNUMP
 #include "Solving/Solver.hpp"
 
@@ -231,64 +227,6 @@ void profileMode()
   //we have succeeded with the profile mode, so we'll terminate with zero return value
   vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
 } // profileMode
-
-void programAnalysisMode()
-{
-  CALL("programAnalysisMode()");
-
-  // create random seed for the random number generation
-
-#if 0
-  vstring inputFile = env.options->inputFile();
-  istream* input;
-  if (inputFile=="") {
-    input=&cin;
-  } else {
-    cout << "Analyzing " << inputFile << "...\n";
-    input=new ifstream(inputFile.c_str());
-    if (input->fail()) {
-      USER_ERROR("Cannot open problem file: "+inputFile);
-    }
-  }
-  vstring progString("");
-  while (!input->eof()) {
-    vstring inp;
-    getline(*input,inp);
-    progString += inp + '\n';
-  }
-  // cout << progString;
-
-  CParser parser(progString.c_str());
-  parser.tokenize();
-  //  parser.output(cout);
-#endif
-
-#if IS_LINGVA
-  Lib::Random::setSeed(123456);
-  int time = env.options->timeLimitInDeciseconds();
-  env.options->setMode(Options::Mode::VAMPIRE);
-  // Seems dangerous, overriding memory limit
-  Allocator::setMemoryLimit(1024u * 1048576ul);
-
-  vstring inputFile = env.options->inputFile();
-  if (inputFile == "") {
-    USER_ERROR("Cannot open problem file: "+inputFile);
-  }
-  else {
-    //default time limit 10 seconds (perhaps this belongs in Options)
-    if (time == 0) {
-      env.options->setTimeLimitInDeciseconds(100);
-    }
-    Program::RunLingva lingva;
-    lingva.run();
-  }
-
-#else
-  INVALID_OPERATION("program analysis currently not supported");
-#endif
-  vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
-} // programAnalysisMode
-
 
 void outputResult(ostream& out) {
   CALL("outputResult");
@@ -860,9 +798,6 @@ int main(int argc, char* argv[])
 {
   CALL ("main");
 
-//#if IS_LINGVA
-//    env.options->setMode(Options::Mode::PROGRAM_ANALYSIS);
-//#endif
 
   System::registerArgv0(argv[0]);
   System::setSignalHandlers();
@@ -1013,12 +948,7 @@ int main(int argc, char* argv[])
     case Options::Mode::PROFILE:
       profileMode();
       break;
-/*
-    case Options::Mode::PROGRAM_ANALYSIS:
-      std::cout<<"Program analysis mode "<<std::endl;
-      programAnalysisMode();
-      break;
-*/   
+
     case Options::Mode::PREPROCESS:
       preprocessMode();
       break;

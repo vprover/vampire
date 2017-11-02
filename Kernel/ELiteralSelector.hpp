@@ -44,7 +44,7 @@ public:
 
   bool isBGComplete() const override { return true; }
 protected:
-  void doSelection(Clause* c, unsigned eligible);
+  void doSelection(Clause* c, unsigned eligible) override;
 
 private:
   LiteralList* getMaximalsInOrder(Clause* c, unsigned eligible);

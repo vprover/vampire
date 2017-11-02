@@ -78,7 +78,7 @@ public:
 
   fin:
     for(unsigned i=0;i<_length;i++) {
-      alts[i]->destroy();
+      LiteralList::destroy(alts[i]);
     }
 
     if(fail) {
@@ -149,11 +149,11 @@ SubstitutionTreeClauseVariantIndex::~SubstitutionTreeClauseVariantIndex()
     }
   }
 
-  _emptyClauses->destroy();
+  ClauseList::destroy(_emptyClauses);
 
   DHMap<Literal*, ClauseList*>::Iterator it(_groundUnits);
   while (it.hasNext()) {
-    it.next()->destroy();
+    ClauseList::destroy(it.next());
   }
 }
 
@@ -229,7 +229,7 @@ HashingClauseVariantIndex::~HashingClauseVariantIndex()
 //      maxval->destroy();
 //      maxval = lst;
 //    } else {
-      lst->destroy();
+    ClauseList::destroy(lst);
 //    }
   }
 

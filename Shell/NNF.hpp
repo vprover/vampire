@@ -26,8 +26,8 @@ class NNF
 public:
   static FormulaUnit* ennf(FormulaUnit* unit);
   static FormulaUnit* nnf(FormulaUnit* unit);
-private:
   static Formula* ennf(Formula*, bool polarity);
+private:
   static Literal* ennf(Literal*, bool polarity);
   static TermList ennf(TermList, bool polarity);
   static FormulaList* ennf(FormulaList*, bool polarity);

@@ -50,7 +50,7 @@ void MaximalLiteralSelector::doSelection(Clause* c, unsigned eligible)
     }
   }
   if(singleSel) {
-    sel->destroy();
+    LiteralList::destroy(sel);
     sel=0;
     LiteralList::push(singleSel,sel);
   }

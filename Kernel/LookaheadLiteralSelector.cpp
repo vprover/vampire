@@ -310,7 +310,7 @@ void LookaheadLiteralSelector::doSelection(Clause* c, unsigned eligible)
 
 selection_done:
   if(singleSel) {
-    maximals->destroy();
+    LiteralList::destroy(maximals);
     maximals=0;
     LiteralList::push(singleSel,maximals);
   }

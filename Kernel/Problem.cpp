@@ -179,9 +179,9 @@ void Problem::copyInto(Problem& tgt, bool copyClauses)
       Clause* newCl = Clause::fromClause(cl);
       UnitList::push(newCl, newUnits);
     }
-    tgt.addUnits(newUnits->reverse());
+    tgt.addUnits(UnitList::reverse(newUnits));
   }else {
-    tgt.addUnits(units()->copy());
+    tgt.addUnits(UnitList::copy(units()));
   }
   if(hadIncompleteTransformation()) {
     tgt.reportIncompleteTransformation();

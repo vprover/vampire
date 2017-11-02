@@ -28,7 +28,7 @@ void RSMultiCounter::print(ostream& out)
 RSMultiStatistic::~RSMultiStatistic()
 {
   for(size_t i=0;i<_values.size();i++) {
-    _values[i]->destroy();
+    ValList::destroy(_values[i]);
   }
 }
 
@@ -81,7 +81,7 @@ RuntimeStatistics::RuntimeStatistics()
 
 RuntimeStatistics::~RuntimeStatistics()
 {
-  _objs->destroyWithDeletion();
+  ObjList::destroyWithDeletion(_objs);
 }
 
 struct RuntimeStatistics::RSObjComparator

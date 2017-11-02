@@ -849,7 +849,7 @@ public:
   ~PersistentIterator()
   {
     if(_items) {
-      _items->destroy();
+      List<T>::destroy(_items);
     }
   }
   inline bool hasNext() { return _items; };
@@ -908,7 +908,7 @@ public:
   ~UniquePersistentIterator()
   {
     if(_items) {
-      _items->destroy();
+      ItemList::destroy(_items);
     }
   }
   inline bool hasNext() { return _items; };
