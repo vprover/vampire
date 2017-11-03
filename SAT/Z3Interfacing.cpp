@@ -222,7 +222,7 @@ Term* Z3Interfacing::evaluateInModel(Term* trm)
         if (assignment.is_numeral(val))
         {
             unsigned size = assignment.get_sort().bv_size();
-            vstring vVal(val);
+            vstring vVal(val.c_str());
             Term* t = theory->representConstant(BitVectorConstantType(BitVectorOperations::getBVCTFromVString(vVal, size)));
             return t;
         }
