@@ -432,44 +432,11 @@ protected:
   void printStep(Unit* us)
   {
     // TODO we could make clauses track this information, but I am not sure that that's worth it
-    if(us->isClause() && static_cast<Clause*>(us)->isTheoryDescendant()){
-      //cout << "HERE with " << us->toString() << endl;
-      Inference* inf = us->inference();
-      while(inf->rule() == Inference::EVALUATION){
-              Inference::Iterator piit = inf->iterator();
-              inf = inf->next(piit)->inference();
-     }
-      Stack<Inference*> current;
-      current.push(inf);
-      unsigned level = 0;
-      while(!current.isEmpty()){
-        //cout << current.size() << endl;
-        Stack<Inference*> next;
-        Stack<Inference*>::Iterator it(current);
-        while(it.hasNext()){
-          Inference* inf = it.next();
-          Inference::Iterator iit=inf->iterator();
-          while(inf->hasNext(iit)) {
-            Unit* premUnit=inf->next(iit);
-            Inference* premInf = premUnit->inference();
-            while(premInf->rule() == Inference::EVALUATION){
-              Inference::Iterator piit = premInf->iterator();
-              premUnit = premInf->next(piit);
-              premInf = premUnit->inference(); 
-            }
+    if(us->isClause() && static_cast<Clause*>(us)->inputType() < Unit::CONJECTURE){
 
-//for(unsigned i=0;i<level;i++){ cout << ">";}; cout << premUnit->toString() << endl;
-            next.push(premInf);
-          }
-        }
-        level++;
-        current = next;
-      }
-      level--;
-      //cout << "level is " << level << endl;
-      
-      if(level > max_theory_clause_depth){
-        max_theory_clause_depth=level;
+      unsigned depth = us->inference()->maxDepth();
+      if(depth > max_theory_clause_depth){
+        max_theory_clause_depth=depth;
       }
     }
   }
