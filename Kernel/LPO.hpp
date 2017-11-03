@@ -46,8 +46,6 @@ protected:
   Result lexMAE(Term* s, Term* t, TermList* sl, TermList* tl, unsigned arity) const;
   Result majo(Term* s, TermList* tl, unsigned arity) const;
 
-  int functionSymbolWeight(unsigned fun) const;
-
 };
 
 }

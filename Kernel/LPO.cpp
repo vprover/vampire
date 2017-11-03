@@ -47,29 +47,24 @@ Ordering::Result LPO::compare(Literal* l1, Literal* l2) const
     return l1->isNegative() ? LESS : GREATER;
   }
 
-  if (p1 != p2) {
-    int lev1 = predicateLevel(p1);
-    int lev2 = predicateLevel(p2);
-    if (lev1 > lev2) {
-      return GREATER;
+  if (p1 == p2) {
+    if(l1->isEquality()) {
+      ASS(l2->isEquality());
+      return compareEqualities(l1, l2);
     }
-    if (lev2 > lev1) {
-      return LESS;
+    ASS(!l1->isEquality());
+
+    // compare arguments in lexicographic order
+    for (unsigned i = 0; i < l1->arity(); i++) {
+      Result res = compare(*l1->nthArgument(i), *l2->nthArgument(i));
+      if (res != EQUAL)
+        return res;
     }
+    return EQUAL;
   }
 
-  if(l1->isEquality()) {
-    ASS(l2->isEquality());
-    return compareEqualities(l1, l2);
-  }
-  ASS(!l1->isEquality());
-
-  for (unsigned i = 0; i < l1->arity(); i++) {
-    Result res = compare(*l1->nthArgument(i), *l2->nthArgument(i));
-    if (res != EQUAL)
-      return res;
-  }
-  return EQUAL;
+  ASS_NEQ(_predicatePrecedences[p1], _predicatePrecedences[p2]); // precedence should be total
+  return (_predicatePrecedences[p1] > _predicatePrecedences[p2]) ? GREATER : LESS;
 } // LPO::compare()
 
 Ordering::Result LPO::compare(TermList tl1, TermList tl2) const
@@ -199,6 +194,8 @@ Ordering::Result LPO::alpha(TermList* sl, unsigned arity, Term *t) const
   return INCOMPARABLE;
 }
 
+// unidirectional comparison function (returns correct result if tl1 >
+// tl2 or tl1 = tl2)
 Ordering::Result LPO::lpo(TermList tl1, TermList tl2) const
 {
   CALL("LPO::lpo(TermList, TermList)");
