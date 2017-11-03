@@ -33,7 +33,7 @@ using namespace Lib;
  * before any comparisons using this object are being made.
  */
 KBOForEPR::KBOForEPR(Problem& prb, const Options& opt)
- : KBOBase(prb, opt)
+ : PrecedenceOrdering(prb, opt)
 {
   CALL("KBOForEPR::KBOForEPR");
   ASS_EQ(prb.getProperty()->maxFunArity(),0);

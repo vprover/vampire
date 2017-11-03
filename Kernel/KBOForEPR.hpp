@@ -19,7 +19,7 @@ using namespace Lib;
  * @since 30/04/2008 flight Brussels-Tel Aviv
  */
 class KBOForEPR
-: public KBOBase
+: public PrecedenceOrdering
 {
 public:
   CLASS_NAME(KBOForEPR);

@@ -519,6 +519,11 @@ public:
     ON = 2
   };
 
+  enum class TermOrdering : unsigned int {
+    KBO = 0,
+    LPO = 1,
+  };
+
   enum class SymbolPrecedence : unsigned int {
     ARITY = 0,
     OCCURRENCE = 1,
@@ -1874,6 +1879,7 @@ public:
   int simulatedTimeLimit() const { return _simulatedTimeLimit.actualValue; }
   void setSimulatedTimeLimit(int newVal) { _simulatedTimeLimit.actualValue = newVal; }
   int maxInferenceDepth() const { return _maxInferenceDepth.actualValue; }
+  TermOrdering termOrdering() const { return _termOrdering.actualValue; }
   SymbolPrecedence symbolPrecedence() const { return _symbolPrecedence.actualValue; }
   SymbolPrecedenceBoost symbolPrecedenceBoost() const { return _symbolPrecedenceBoost.actualValue; }
   const vstring& functionPrecedence() const { return _functionPrecedence.actualValue; }
@@ -2338,6 +2344,7 @@ private:
 
   ChoiceOptionValue<Statistics> _statistics;
   BoolOptionValue _superpositionFromVariables;
+  ChoiceOptionValue<TermOrdering> _termOrdering;
   ChoiceOptionValue<SymbolPrecedence> _symbolPrecedence;
   ChoiceOptionValue<SymbolPrecedenceBoost> _symbolPrecedenceBoost;
   StringOptionValue _functionPrecedence;
