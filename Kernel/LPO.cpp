@@ -28,7 +28,7 @@ using namespace Shell;
  * Compare arguments of literals l1 and l2 and return the result
  * of the comparison.
  */
-Ordering::Result LPO::compare(Literal* l1, Literal* l2) const
+Ordering::Result LPO::compare(Literal* l1, Literal *l2) const
 {
   CALL("LPO::compare(Literal*...)");
   ASS(l1->shared());
@@ -48,6 +48,7 @@ Ordering::Result LPO::compare(Literal* l1, Literal* l2) const
   }
 
   if (p1 == p2) {
+    ASS_EQ(l1->isNegative(), l1->isNegative())
     if(l1->isEquality()) {
       ASS(l2->isEquality());
       return compareEqualities(l1, l2);
@@ -63,8 +64,8 @@ Ordering::Result LPO::compare(Literal* l1, Literal* l2) const
     return EQUAL;
   }
 
-  ASS_NEQ(_predicatePrecedences[p1], _predicatePrecedences[p2]); // precedence should be total
-  return (_predicatePrecedences[p1] > _predicatePrecedences[p2]) ? GREATER : LESS;
+  ASS_NEQ(predicatePrecedence(p1), predicatePrecedence(p2)); // precedence should be total
+  return (predicatePrecedence(p1) > predicatePrecedence(p2)) ? GREATER : LESS;
 } // LPO::compare()
 
 Ordering::Result LPO::compare(TermList tl1, TermList tl2) const

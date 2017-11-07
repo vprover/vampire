@@ -18,7 +18,7 @@ namespace Kernel {
 using namespace Lib;
 
 /**
- * Class for instances of the Knuth-Bendix orderings
+ * Class for instances of the lexicographic path orderings
  */
 class LPO
 : public PrecedenceOrdering
