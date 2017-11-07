@@ -890,7 +890,7 @@ Term* Term::createTupleLet(unsigned tupleFunctor, IntList* symbols, TermList bin
 #if VDEBUG
   Signature::Symbol* tupleSymbol = env.signature->getFunction(tupleFunctor);
   ASS_EQ(tupleSymbol->arity(), IntList::length(symbols));
-  ASS_REP(env.sorts->hasStructuredSort(tupleSymbol->fnType()->result(), Sorts::StructuredSort::TUPLE), tupleFunctor);
+  ASS_REP(env.sorts->isOfStructuredSort(tupleSymbol->fnType()->result(), Sorts::StructuredSort::TUPLE), tupleFunctor);
 
   Set<pair<int,bool> > distinctSymbols;
   IntList::Iterator sit(symbols);

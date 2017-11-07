@@ -589,7 +589,7 @@ void UIHelper::outputSymbolTypeDeclarationIfNeeded(ostream& out, bool function, 
 
   if (function) {
     unsigned sort = env.signature->getFunction(symNumber)->fnType()->result();
-    if (env.sorts->hasStructuredSort(sort, Sorts::StructuredSort::TUPLE)) {
+    if (env.sorts->isOfStructuredSort(sort, Sorts::StructuredSort::TUPLE)) {
       return;
     }
   }
@@ -639,12 +639,12 @@ void UIHelper::outputSortDeclarations(ostream& out)
 {
   CALL("UIHelper::outputSortDeclarations");
 
-  unsigned sorts = (*env.sorts).sorts();
+  unsigned sorts = (*env.sorts).count();
   for (unsigned sort = Sorts::SRT_BOOL; sort < sorts; ++sort) {
     if (sort < Sorts::FIRST_USER_SORT && ((sort != Sorts::SRT_BOOL) || !env.options->showFOOL())) {
       continue;
     }
-    if ((*env.sorts).hasStructuredSort(sort)) {
+    if ((*env.sorts).isStructuredSort(sort)) {
       continue;
     }
     out << "tff(type_def_" << sort << ", type, " << env.sorts->sortName(sort) << ": $tType)." << endl;

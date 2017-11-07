@@ -175,8 +175,8 @@ void Monotonicity::addSortPredicates(bool withMon, ClauseList*& clauses, DArray<
   CALL("Monotonicity::addSortPredicates");
 
   // First compute the monotonic sorts
-  DArray<bool> isMonotonic(env.sorts->sorts());
-  for(unsigned s=0;s<env.sorts->sorts();s++){
+  DArray<bool> isMonotonic(env.sorts->count());
+  for(unsigned s=0;s<env.sorts->count();s++){
     if(env.property->usesSort(s) || s >= Sorts::FIRST_USER_SORT){
        if(withMon){
          Monotonicity m(clauses,s);
@@ -191,8 +191,8 @@ void Monotonicity::addSortPredicates(bool withMon, ClauseList*& clauses, DArray<
   }
 
   // Now create a sort predicate per non-monotonic sort
-  DArray<unsigned> sortPredicates(env.sorts->sorts());
-  for(unsigned s=0;s<env.sorts->sorts();s++){
+  DArray<unsigned> sortPredicates(env.sorts->count());
+  for(unsigned s=0;s<env.sorts->count();s++){
     if(!isMonotonic[s]){
       vstring name = "sortPredicate_"+env.sorts->sortName(s);
       unsigned p = env.signature->addFreshPredicate(1,name.c_str());
@@ -210,7 +210,7 @@ void Monotonicity::addSortPredicates(bool withMon, ClauseList*& clauses, DArray<
   // 2) for each function f with return sort s 
   //    !args : p(f(args))
   unsigned function_count = env.signature->functions();
-  for(unsigned s=0;s<env.sorts->sorts();s++){
+  for(unsigned s=0;s<env.sorts->count();s++){
     if(isMonotonic[s]) continue;
 
     unsigned p = sortPredicates[s];
@@ -330,8 +330,8 @@ void Monotonicity::addSortFunctions(bool withMon, ClauseList*& clauses)
   CALL("Monotonicity::addSortFunctions");
 
   // First compute the monotonic sorts
-  DArray<bool> isMonotonic(env.sorts->sorts());
-  for(unsigned s=0;s<env.sorts->sorts();s++){
+  DArray<bool> isMonotonic(env.sorts->count());
+  for(unsigned s=0;s<env.sorts->count();s++){
     if(env.property->usesSort(s) || s >= Sorts::FIRST_USER_SORT){
        if(withMon){
          Monotonicity m(clauses,s);
@@ -346,8 +346,8 @@ void Monotonicity::addSortFunctions(bool withMon, ClauseList*& clauses)
   }
 
   // Now create a sort function per non-monotonic sort
-  DArray<unsigned> sortFunctions(env.sorts->sorts());
-  for(unsigned s=0;s<env.sorts->sorts();s++){
+  DArray<unsigned> sortFunctions(env.sorts->count());
+  for(unsigned s=0;s<env.sorts->count();s++){
     if(!isMonotonic[s]){
       vstring name = "sortFunction_"+env.sorts->sortName(s);
       unsigned f = env.signature->addFreshFunction(1,name.c_str());

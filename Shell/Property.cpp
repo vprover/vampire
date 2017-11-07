@@ -462,7 +462,7 @@ void Property::scanSort(unsigned sort)
   env.statistics->hasTypes=true;
 
   if(sort >= Sorts::FIRST_USER_SORT){
-    if(env.sorts->hasStructuredSort(sort,Sorts::StructuredSort::ARRAY)){
+    if(env.sorts->isOfStructuredSort(sort,Sorts::StructuredSort::ARRAY)){
       addProp(PR_HAS_ARRAYS);
     }
     if (env.signature->isTermAlgebraSort(sort)) {

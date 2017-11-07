@@ -161,8 +161,7 @@ VirtualIterator<unsigned> Sorts::getStructuredSorts(const StructuredSort ss)
   CALL("Sorts::getStructuredSorts");
   Stack<SortInfo*>::Iterator all(_sorts);
   VirtualIterator<SortInfo*> arraySorts = pvi(getFilteredIterator(all,
-               [ss](SortInfo* s){ return s->hasStructuredSort(ss);}));
-  //auto map = ([](SortInfo* s)->unsigned{ return s->id(); });
+               [ss](SortInfo* s){ return s->isOfStructuredSort(ss);}));
   return pvi(getMappingIterator(arraySorts,SortInfoToInt()));
 }
 

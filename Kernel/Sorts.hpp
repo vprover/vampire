@@ -84,7 +84,7 @@ public:
     const vstring& name() const { return _name; }
     const unsigned id() const { return _id; }
 
-    virtual bool hasStructuredSort(StructuredSort sort) { return false; }
+    virtual bool isOfStructuredSort(StructuredSort sort) { return false; }
 
   protected:
     vstring _name;
@@ -104,7 +104,7 @@ public:
     StructuredSortInfo(vstring name, StructuredSort sort,unsigned id): 
       SortInfo(name,id), _sort(sort) { (void)_sort; /*to suppress warning about unused*/ }
 
-    bool hasStructuredSort(StructuredSort sort) override {
+    bool isOfStructuredSort(StructuredSort sort) override {
       return sort==_sort;
     }
 
@@ -124,12 +124,7 @@ public:
 
     ArraySort(vstring name, unsigned indexSort, unsigned innerSort,unsigned id) : 
       StructuredSortInfo(name,StructuredSort::ARRAY, id), 
-      _indexSort(indexSort), _innerSort(innerSort)
-    { 
-#if VDEBUG
-      //cout << "Creating ArraySort " << name << " with id " << id << endl; 
-#endif
-    }
+      _indexSort(indexSort), _innerSort(innerSort) {}
 
     unsigned getIndexSort(){ return _indexSort; }
     unsigned getInnerSort(){ return _innerSort; }
@@ -138,7 +133,6 @@ public:
     // the SortInfo can be found using Sorts
     unsigned _indexSort;
     unsigned _innerSort;
-
   };
 
   class TupleSort : public StructuredSortInfo
@@ -167,13 +161,13 @@ public:
 
   unsigned addArraySort(unsigned indexSort, unsigned innerSort);
   ArraySort* getArraySort(unsigned sort){
-    ASS(hasStructuredSort(sort,StructuredSort::ARRAY));
+    ASS(isOfStructuredSort(sort,StructuredSort::ARRAY));
     return static_cast<ArraySort*>(_sorts[sort]);
   }
 
   unsigned addTupleSort(unsigned arity, unsigned sorts[]);
   TupleSort* getTupleSort(unsigned sort) {
-    ASS(hasStructuredSort(sort,StructuredSort::TUPLE));
+    ASS(isOfStructuredSort(sort,StructuredSort::TUPLE));
     return static_cast<TupleSort*>(_sorts[sort]);
   }
 
@@ -182,20 +176,20 @@ public:
 
   VirtualIterator<unsigned> getStructuredSorts(const StructuredSort ss);
 
-  bool hasStructuredSort(unsigned sort) {
+  bool isStructuredSort(unsigned sort) {
     if(sort > _sorts.size()) return false;
-    unsigned sorts = (unsigned)StructuredSort::LAST_STRUCTURED_SORT;
-    for (unsigned ss = 0; ss < sorts; ss++) {
-      if (_sorts[sort]->hasStructuredSort(static_cast<StructuredSort>(ss))) {
+    SortInfo* si = _sorts[sort];
+    for (unsigned ss = 0; ss < (unsigned)StructuredSort::LAST_STRUCTURED_SORT; ss++) {
+      if (si->isOfStructuredSort(static_cast<StructuredSort>(ss))) {
         return true;
       }
     }
     return false;
   }
 
-  bool hasStructuredSort(unsigned sort, StructuredSort structured){
+  bool isOfStructuredSort(unsigned sort, StructuredSort structured){
     if(sort > _sorts.size()) return false;
-    return _sorts[sort]->hasStructuredSort(structured);
+    return _sorts[sort]->isOfStructuredSort(structured);
   }
 
   const vstring& sortName(unsigned idx) const;
@@ -203,7 +197,7 @@ public:
   /**
    * Return the number of sorts
    */
-  unsigned sorts() const { return _sorts.length(); }
+  unsigned count() const { return _sorts.length(); }
   /** true if there is a sort different from built-ins */
   bool hasSort() const {return _hasSort;}
 

@@ -352,7 +352,7 @@ bool EqualityProxy::haveProxyPredicate(unsigned sort) const
 unsigned EqualityProxy::getProxyPredicate(unsigned sort)
 {
   CALL("EqualityProxy::getProxyPredicate");
-  ASS_L(sort, env.sorts->sorts());
+  ASS_L(sort, env.sorts->count());
 
   if (s_proxyPredicates[sort] != 0) {
     return s_proxyPredicates[sort];

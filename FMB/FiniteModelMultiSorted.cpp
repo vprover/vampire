@@ -93,8 +93,8 @@ FiniteModelMultiSorted::FiniteModelMultiSorted(DHMap<unsigned,unsigned> sizes) :
   }
   p_interpretation.expand(offsets+1,0);
 
-  sortRepr.ensure(env.sorts->sorts());
-  for(unsigned s=0;s<env.sorts->sorts();s++){
+  sortRepr.ensure(env.sorts->count());
+  for(unsigned s=0;s<env.sorts->count();s++){
     sortRepr[s].ensure(_sizes.get(s)+1);
     for(unsigned i=0;i<=_sizes.get(s);i++){
       sortRepr[s][i] = -1;
@@ -190,10 +190,10 @@ vstring FiniteModelMultiSorted::toString()
   bool printIntroduced = false;
 
   static DArray<DArray<vstring>> cnames;
-  cnames.ensure(env.sorts->sorts());
+  cnames.ensure(env.sorts->count());
 
   //Output sorts and their sizes 
-  for(unsigned s=0;s<env.sorts->sorts();s++){
+  for(unsigned s=0;s<env.sorts->count();s++){
 
     unsigned size = _sizes.get(s);
     if(size==0) continue;

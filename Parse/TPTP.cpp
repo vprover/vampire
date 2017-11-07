@@ -1491,7 +1491,7 @@ void TPTP::endTheoryFunction() {
       TermList array = _termLists.pop();
 
       unsigned arraySort = sortOf(array);
-      if (!env.sorts->hasStructuredSort(arraySort, Sorts::StructuredSort::ARRAY)) {
+      if (!env.sorts->isOfStructuredSort(arraySort, Sorts::StructuredSort::ARRAY)) {
         USER_ERROR("$select is being incorrectly used on a type of array " + env.sorts->sortName(arraySort) + " that has not be defined");
       }
 
@@ -1517,7 +1517,7 @@ void TPTP::endTheoryFunction() {
       TermList array = _termLists.pop();
 
       unsigned arraySort = sortOf(array);
-      if (!env.sorts->hasStructuredSort(arraySort, Sorts::StructuredSort::ARRAY)) {
+      if (!env.sorts->isOfStructuredSort(arraySort, Sorts::StructuredSort::ARRAY)) {
         USER_ERROR("store is being incorrectly used on a type of array that has not be defined");
       }
 
@@ -1930,7 +1930,7 @@ void TPTP::endTupleBinding() {
   TermList binding = _termLists.top();
   unsigned bindingSort = sortOf(binding);
 
-  if (!env.sorts->hasStructuredSort(bindingSort, Sorts::StructuredSort::TUPLE)) {
+  if (!env.sorts->isOfStructuredSort(bindingSort, Sorts::StructuredSort::TUPLE)) {
     USER_ERROR("The binding of a tuple let expression is not a tuple but has the sort " + env.sorts->sortName(bindingSort));
   }
 

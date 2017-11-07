@@ -305,7 +305,7 @@ z3::sort Z3Interfacing::getz3sort(unsigned s)
   if(s==Sorts::SRT_RATIONAL) return _context.real_sort(); // Drop notion of rationality 
 
   // Deal with arrays
-  if(env.sorts->hasStructuredSort(s,Sorts::StructuredSort::ARRAY)){
+  if(env.sorts->isOfStructuredSort(s,Sorts::StructuredSort::ARRAY)){
     
     z3::sort index_sort = getz3sort(env.sorts->getArraySort(s)->getIndexSort());
     z3::sort value_sort = getz3sort(env.sorts->getArraySort(s)->getInnerSort());

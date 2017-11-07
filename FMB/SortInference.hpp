@@ -96,7 +96,7 @@ public:
                 Stack<DHSet<unsigned>*> equiv_v_sorts,
                 Stack<std::pair<unsigned,unsigned>>& cons) :
                 _clauses(clauses), _del_f(del_f), _del_p(del_p),
-                _equiv_v_sorts(equiv_v_sorts), _equiv_vs(env.sorts->sorts()),
+                _equiv_v_sorts(equiv_v_sorts), _equiv_vs(env.sorts->count()),
                 _sort_constraints(cons) {
 
                   _sig = new SortedSignature();

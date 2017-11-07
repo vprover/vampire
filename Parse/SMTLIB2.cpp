@@ -1847,7 +1847,7 @@ bool SMTLIB2::parseAsBuiltinTermSymbol(const vstring& id, LExpr* exp)
         complainAboutArgShortageOrWrongSorts(BUILT_IN_SYMBOL,exp);
       }
       unsigned arraySortIdx = _results.pop().asTerm(theArray);
-      if (!env.sorts->hasStructuredSort(arraySortIdx,Sorts::StructuredSort::ARRAY)) {
+      if (!env.sorts->isOfStructuredSort(arraySortIdx,Sorts::StructuredSort::ARRAY)) {
         complainAboutArgShortageOrWrongSorts(BUILT_IN_SYMBOL,exp);
       }
       Sorts::ArraySort* arraySort = env.sorts->getArraySort(arraySortIdx);
@@ -1880,7 +1880,7 @@ bool SMTLIB2::parseAsBuiltinTermSymbol(const vstring& id, LExpr* exp)
         complainAboutArgShortageOrWrongSorts(BUILT_IN_SYMBOL,exp);
       }
       unsigned arraySortIdx = _results.pop().asTerm(theArray);
-      if (!env.sorts->hasStructuredSort(arraySortIdx,Sorts::StructuredSort::ARRAY)) {
+      if (!env.sorts->isOfStructuredSort(arraySortIdx,Sorts::StructuredSort::ARRAY)) {
         complainAboutArgShortageOrWrongSorts(BUILT_IN_SYMBOL,exp);
       }
       Sorts::ArraySort* arraySort = env.sorts->getArraySort(arraySortIdx);

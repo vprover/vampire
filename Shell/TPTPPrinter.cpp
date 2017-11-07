@@ -260,7 +260,7 @@ void TPTPPrinter::ensureNecesarySorts()
   List<unsigned> *_usedSorts(0);
   BaseType* type;
   Signature::Symbol* sym;
-  unsigned sorts = env.sorts->sorts();
+  unsigned sorts = env.sorts->count();
   //check the sorts of the function symbols and collect information about used sorts
   for (i = 0; i < env.signature->functions(); i++) {
     sym = env.signature->getFunction(i);

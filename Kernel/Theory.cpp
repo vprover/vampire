@@ -1046,7 +1046,7 @@ bool Theory::isArrayOperation(Interpretation i)
 {
   CALL("Theory::isArrayFunction");
   if(!theory->isStructuredSortInterpretation(i)) return false;
-  return env.sorts->hasStructuredSort(theory->getSort(i),Sorts::StructuredSort::ARRAY);
+  return env.sorts->isOfStructuredSort(theory->getSort(i),Sorts::StructuredSort::ARRAY);
 }
 
 /**
@@ -1134,7 +1134,7 @@ unsigned Theory::Tuples::getFunctor(unsigned arity, unsigned* sorts) {
 unsigned Theory::Tuples::getFunctor(unsigned tupleSort) {
   CALL("Theory::Tuples::getFunctor(unsigned tupleSort)");
 
-  ASS_REP(env.sorts->hasStructuredSort(tupleSort, Sorts::StructuredSort::TUPLE),
+  ASS_REP(env.sorts->isOfStructuredSort(tupleSort, Sorts::StructuredSort::TUPLE),
           env.sorts->sortName(tupleSort));
 
   Sorts::TupleSort* tuple = env.sorts->getTupleSort(tupleSort);
@@ -1151,13 +1151,13 @@ unsigned Theory::Tuples::getFunctor(unsigned tupleSort) {
 bool Theory::Tuples::isFunctor(unsigned functor) {
   CALL("Theory::Tuples::isFunctor(unsigned)");
   unsigned tupleSort = env.signature->getFunction(functor)->fnType()->result();
-  return env.sorts->hasStructuredSort(tupleSort, Sorts::StructuredSort::TUPLE);
+  return env.sorts->isOfStructuredSort(tupleSort, Sorts::StructuredSort::TUPLE);
 }
 
 unsigned Theory::Tuples::getProjectionFunctor(unsigned proj, unsigned tupleSort) {
   CALL("Theory::Tuples::getProjectionFunctor");
 
-  ASS_REP(env.sorts->hasStructuredSort(tupleSort, Sorts::StructuredSort::TUPLE),
+  ASS_REP(env.sorts->isOfStructuredSort(tupleSort, Sorts::StructuredSort::TUPLE),
           env.sorts->sortName(tupleSort));
 
   Sorts::TupleSort* tuple = env.sorts->getTupleSort(tupleSort);
@@ -1188,7 +1188,7 @@ bool Theory::Tuples::findProjection(unsigned projFunctor, bool isPredicate, unsi
 
   unsigned tupleSort = projType->arg(0);
 
-  if (!env.sorts->hasStructuredSort(tupleSort, Sorts::StructuredSort::TUPLE)) {
+  if (!env.sorts->isOfStructuredSort(tupleSort, Sorts::StructuredSort::TUPLE)) {
     return false;
   }
 

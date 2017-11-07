@@ -76,7 +76,7 @@ void SortInference::doInference()
       _sig->distinctToVampire.insert(dsorts,stack);
     }
 
-    for(unsigned s=0;s<env.sorts->sorts();s++){
+    for(unsigned s=0;s<env.sorts->count();s++){
       if(env.property->usesSort(s) || s >= Sorts::FIRST_USER_SORT){
         if(_assumeMonotonic){
           _sig->distinctToVampire.get(dsorts)->push(s);
@@ -129,7 +129,7 @@ void SortInference::doInference()
     }
 
     // we need at least one constant for symmetry breaking
-    for(unsigned s=0;s<env.sorts->sorts();s++){
+    for(unsigned s=0;s<env.sorts->count();s++){
       if(env.property->usesSort(s) || s >= Sorts::FIRST_USER_SORT){
         unsigned dsort = (*_sig->vampireToDistinct.get(s))[0];
         if(_sig->sortedConstants[dsort].isEmpty()){
@@ -185,7 +185,7 @@ void SortInference::doInference()
       cout << "Monotonicity information:" << endl;
       if(_assumeMonotonic){ cout << "Assuming all sorts monotonic due to translation" << endl; }
     }
-    for(unsigned s=0;s<env.sorts->sorts();s++){
+    for(unsigned s=0;s<env.sorts->count();s++){
       if(env.property->usesSort(s) || s >= Sorts::FIRST_USER_SORT){
         bool monotonic = _assumeMonotonic;
         if(!monotonic){
@@ -675,7 +675,7 @@ void SortInference::doInference()
     }
   }
 
-  for(unsigned s=0;s<env.sorts->sorts();s++){
+  for(unsigned s=0;s<env.sorts->count();s++){
     if(env.property->usesSort(s) || s >= Sorts::FIRST_USER_SORT){
       // if sort is not here then it does not appear in signature (check)
       if(!_sig->vampireToDistinct.find(s)){ continue; }
@@ -692,14 +692,14 @@ void SortInference::doInference()
       // add those constraints between children and parent
       unsigned parent = _sig->vampireToDistinctParent.get(s);
 #if DEBUG_SORT_INFERENCE 
-      cout << "Parent " << parent << " for " << env.sorts->sortName(s) << endl;
+      cout << "Parent " << parent << " for " << env.count->sortName(s) << endl;
 #endif
       Stack<unsigned>::Iterator children(*_sig->vampireToDistinct.get(s));
       while(children.hasNext()){
         unsigned child = children.next();
         if(child==parent) continue;
 #if DEBUG_SORT_INFERENCE 
-        cout << "Child " << child << " for " << env.sorts->sortName(s) << endl;
+        cout << "Child " << child << " for " << env.count->sortName(s) << endl;
 #endif
         _sort_constraints.push(make_pair(parent,child));
       }
@@ -719,7 +719,7 @@ unsigned SortInference::getDistinctSort(unsigned subsort, unsigned realVampireSo
   unsigned vampireSort = realVampireSort;
   if(_expandSubsorts){
     if(!posEqualitiesOnSort[subsort]){
-      vampireSort = env.sorts->sorts()+subsort+1;
+      vampireSort = env.sorts->count()+subsort+1;
     }
   }
 
