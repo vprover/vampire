@@ -235,8 +235,6 @@ Ordering::Result PrecedenceOrdering::compare(Literal* l1, Literal* l2) const
     return l1->isNegative() ? LESS : GREATER;
   }
 
-  Result res;
-
   if (p1 != p2) {
     Comparison levComp=Int::compare(predicateLevel(p1),predicateLevel(p2));
     if(levComp!=Lib::EQUAL) {
@@ -250,17 +248,15 @@ Ordering::Result PrecedenceOrdering::compare(Literal* l1, Literal* l2) const
   }
   ASS(!l1->isEquality());
 
-  res = comparePredicates(l1, l2);
-
   if(_reverseLCM && (l1->isNegative() || l2->isNegative()) ) {
     if(l1->isNegative() && l2->isNegative()) {
-      res = reverse(res);
+      return reverse(comparePredicates(l1, l2));
     }
     else {
-      res = l1->isNegative() ? LESS : GREATER;
+      return l1->isNegative() ? LESS : GREATER;
     }
   }
-  return res;
+  return comparePredicates(l1, l2);
 } // PrecedenceOrdering::compare()
 
 /**
