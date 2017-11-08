@@ -7,6 +7,8 @@
 
 #include "Forwards.hpp"
 
+#include "Indexing/TermSharing.hpp"
+
 #include "Lib/Environment.hpp"
 #include "Lib/Exception.hpp"
 #include "Lib/List.hpp"
@@ -213,6 +215,53 @@ Ordering::Result Ordering::getEqualityArgumentOrder(Literal* eq) const
 //////////////////////////////////////////////////
 // PrecedenceOrdering class
 //////////////////////////////////////////////////
+
+Ordering::Result PrecedenceOrdering::compare(Literal* l1, Literal* l2) const
+{
+  CALL("PrecedenceOrdering::compare(Literal*...)");
+  ASS(l1->shared());
+  ASS(l2->shared());
+
+  if (l1 == l2) {
+    return EQUAL;
+  }
+
+  unsigned p1 = l1->functor();
+  unsigned p2 = l2->functor();
+
+  if( (l1->isNegative() ^ l2->isNegative()) && (p1==p2) &&
+	  l1->weight()==l2->weight() && l1->vars()==l2->vars() &&  //this line is just optimization, so we don't check whether literals are opposite when they cannot be
+	  l1==env.sharing->tryGetOpposite(l2)) {
+    return l1->isNegative() ? LESS : GREATER;
+  }
+
+  Result res;
+
+  if (p1 != p2) {
+    Comparison levComp=Int::compare(predicateLevel(p1),predicateLevel(p2));
+    if(levComp!=Lib::EQUAL) {
+      return fromComparison(levComp);
+    }
+  }
+
+  if(l1->isEquality()) {
+    ASS(l2->isEquality());
+    return compareEqualities(l1, l2);
+  }
+  ASS(!l1->isEquality());
+
+  res = comparePredicates(l1, l2);
+
+  if(_reverseLCM && (l1->isNegative() || l2->isNegative()) ) {
+    if(l1->isNegative() && l2->isNegative()) {
+      res = reverse(res);
+    }
+    else {
+      res = l1->isNegative() ? LESS : GREATER;
+    }
+  }
+  return res;
+} // PrecedenceOrdering::compare()
 
 /**
  * Return the predicate level. If @b pred is less than or equal to

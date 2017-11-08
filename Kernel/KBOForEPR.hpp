@@ -27,8 +27,10 @@ public:
 
   KBOForEPR(Problem& prb, const Options& opt);
 
-  virtual Result compare(Literal* l1, Literal* l2) const;
   virtual Result compare(TermList tl1, TermList tl2) const;
+
+protected:
+  virtual Result comparePredicates(Literal* l1, Literal* l2) const;
 };
 
 }

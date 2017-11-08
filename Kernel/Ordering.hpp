@@ -144,9 +144,13 @@ class PrecedenceOrdering
 : public Ordering
 {
 public:
+  virtual Result compare(Literal* l1,Literal* l2) const;
   virtual Comparison compareFunctors(unsigned fun1, unsigned fun2) const;
 
 protected:
+  // l1 and l2 are not equalities and have the same predicate
+  virtual Result comparePredicates(Literal* l1,Literal* l2) const = 0;
+  
   PrecedenceOrdering(Problem& prb, const Options& opt);
 
   Result compareFunctionPrecedences(unsigned fun1, unsigned fun2) const;

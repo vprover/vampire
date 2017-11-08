@@ -11,8 +11,6 @@
 #include "Lib/Environment.hpp"
 #include "Lib/Comparison.hpp"
 
-#include "Indexing/TermSharing.hpp"
-
 #include "Shell/Options.hpp"
 
 #include "Term.hpp"
@@ -25,35 +23,22 @@ using namespace Lib;
 using namespace Shell;
 
 /**
- * Compare arguments of literals l1 and l2 and return the result
- * of the comparison.
+ * Compare arguments of non-equality literals l1 and l2 and return the
+ * result of the comparison.
  */
-Ordering::Result LPO::compare(Literal* l1, Literal *l2) const
+Ordering::Result LPO::comparePredicates(Literal* l1, Literal *l2) const
 {
-  CALL("LPO::compare(Literal*...)");
+  CALL("LPO::comparePredicates");
   ASS(l1->shared());
   ASS(l2->shared());
-
-  if (l1 == l2) {
-    return EQUAL;
-  }
+  ASS(!l1->isEquality());
+  ASS(!l2->isEquality());
 
   unsigned p1 = l1->functor();
   unsigned p2 = l2->functor();
 
-  if( (l1->isNegative() ^ l2->isNegative()) && (p1==p2) &&
-	  l1->weight()==l2->weight() && l1->vars()==l2->vars() &&  //this line is just optimization, so we don't check whether literals are opposite when they cannot be
-	  l1==env.sharing->tryGetOpposite(l2)) {
-    return l1->isNegative() ? LESS : GREATER;
-  }
-
   if (p1 == p2) {
     ASS_EQ(l1->isNegative(), l1->isNegative())
-    if(l1->isEquality()) {
-      ASS(l2->isEquality());
-      return compareEqualities(l1, l2);
-    }
-    ASS(!l1->isEquality());
 
     // compare arguments in lexicographic order
     for (unsigned i = 0; i < l1->arity(); i++) {
@@ -66,7 +51,7 @@ Ordering::Result LPO::compare(Literal* l1, Literal *l2) const
 
   ASS_NEQ(predicatePrecedence(p1), predicatePrecedence(p2)); // precedence should be total
   return (predicatePrecedence(p1) > predicatePrecedence(p2)) ? GREATER : LESS;
-} // LPO::compare()
+} // LPO::comparePredicates()
 
 Ordering::Result LPO::compare(TermList tl1, TermList tl2) const
 {

@@ -11,8 +11,6 @@
 #include "Lib/Environment.hpp"
 #include "Lib/Comparison.hpp"
 
-#include "Indexing/TermSharing.hpp"
-
 #include "Shell/Options.hpp"
 
 #include "Term.hpp"
@@ -302,87 +300,47 @@ KBO::~KBO()
  * of the comparison.
  * @since 07/05/2008 flight Manchester-Brussels
  */
-Ordering::Result KBO::compare(Literal* l1, Literal* l2) const
+Ordering::Result KBO::comparePredicates(Literal* l1, Literal* l2) const
 {
-  CALL("KBO::compare(Literal*...)");
+  CALL("KBO::comparePredicates");
   ASS(l1->shared());
   ASS(l2->shared());
-
-  if (l1 == l2) {
-    return EQUAL;
-  }
+  ASS(!l1->isEquality());
+  ASS(!l2->isEquality());
 
   unsigned p1 = l1->functor();
   unsigned p2 = l2->functor();
 
-  if( (l1->isNegative() ^ l2->isNegative()) && (p1==p2) &&
-	  l1->weight()==l2->weight() && l1->vars()==l2->vars() &&  //this line is just optimization, so we don't check whether literals are opposite when they cannot be
-	  l1==env.sharing->tryGetOpposite(l2)) {
-    return l1->isNegative() ? LESS : GREATER;
-  }
-
   Result res;
-
-  if (p1 != p2) {
-    int lev1 = predicateLevel(p1);
-    int lev2 = predicateLevel(p2);
-    if (lev1 > lev2) {
-      res=GREATER;
-      goto fin;
-    }
-    if (lev2 > lev1) {
-      res=LESS;
-      goto fin;
-    }
-  }
-
-  if(l1->isEquality()) {
-    ASS(l2->isEquality());
-    return compareEqualities(l1, l2);
-  }
-  ASS(!l1->isEquality());
-
-  {
-    ASS(_state);
-    State* state=_state;
+  ASS(_state);
+  State* state=_state;
 #if VDEBUG
-    //this is to make sure _state isn't used while we're using it
-    _state=0;
+  //this is to make sure _state isn't used while we're using it
+  _state=0;
 #endif
-    state->init();
-    if(p1!=p2) {
-      TermList* ts;
-      ts=l1->args();
-      while(!ts->isEmpty()) {
-	state->traverse(*ts,1);
-	ts=ts->next();
-      }
-      ts=l2->args();
-      while(!ts->isEmpty()) {
-	state->traverse(*ts,-1);
-	ts=ts->next();
-      }
-    } else {
-      state->traverse(l1,l2);
+  state->init();
+  if(p1!=p2) {
+    TermList* ts;
+    ts=l1->args();
+    while(!ts->isEmpty()) {
+      state->traverse(*ts,1);
+      ts=ts->next();
     }
+    ts=l2->args();
+    while(!ts->isEmpty()) {
+      state->traverse(*ts,-1);
+      ts=ts->next();
+    }
+  } else {
+    state->traverse(l1,l2);
+  }
 
-    res=state->result(l1,l2);
+  res=state->result(l1,l2);
 #if VDEBUG
-    _state=state;
+  _state=state;
 #endif
-  }
-
-fin:
-  if(_reverseLCM && (l1->isNegative() || l2->isNegative()) ) {
-    if(l1->isNegative() && l2->isNegative()) {
-      res = reverse(res);
-    }
-    else {
-      res = l1->isNegative() ? LESS : GREATER;
-    }
-  }
   return res;
-} // KBO::compare()
+} // KBO::comparePredicates()
 
 Ordering::Result KBO::compare(TermList tl1, TermList tl2) const
 {
