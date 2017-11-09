@@ -14,6 +14,7 @@
 
 #include "Lib/Comparison.hpp"
 #include "Lib/SmartPtr.hpp"
+#include "Lib/DArray.hpp"
 
 #include "Lib/Allocator.hpp"
 
@@ -137,6 +138,39 @@ private:
    */
   static OrderingSP s_globalOrdering;
 }; // class Ordering
+
+// orderings that rely on symbol precedence
+class PrecedenceOrdering
+: public Ordering
+{
+public:
+  virtual Result compare(Literal* l1,Literal* l2) const;
+  virtual Comparison compareFunctors(unsigned fun1, unsigned fun2) const;
+
+protected:
+  // l1 and l2 are not equalities and have the same predicate
+  virtual Result comparePredicates(Literal* l1,Literal* l2) const = 0;
+  
+  PrecedenceOrdering(Problem& prb, const Options& opt);
+
+  Result compareFunctionPrecedences(unsigned fun1, unsigned fun2) const;
+
+  int predicatePrecedence(unsigned pred) const;
+  int predicateLevel(unsigned pred) const;
+
+  /** number of predicates in the signature at the time the order was created */
+  unsigned _predicates;
+  /** number of functions in the signature at the time the order was created */
+  unsigned _functions;
+  /** Array of predicate levels */
+  DArray<int> _predicateLevels;
+  /** Array of predicate precedences */
+  DArray<int> _predicatePrecedences;
+  /** Array of function precedences */
+  DArray<int> _functionPrecedences;
+
+  bool _reverseLCM;
+};
 
 }
 

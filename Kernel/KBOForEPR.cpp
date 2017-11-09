@@ -10,8 +10,6 @@
 #include "Lib/Comparison.hpp"
 #include "Lib/Int.hpp"
 
-#include "Indexing/TermSharing.hpp"
-
 #include "Shell/Property.hpp"
 
 #include "Problem.hpp"
@@ -33,51 +31,27 @@ using namespace Lib;
  * before any comparisons using this object are being made.
  */
 KBOForEPR::KBOForEPR(Problem& prb, const Options& opt)
- : KBOBase(prb, opt)
+ : PrecedenceOrdering(prb, opt)
 {
   CALL("KBOForEPR::KBOForEPR");
   ASS_EQ(prb.getProperty()->maxFunArity(),0);
 }
 
 /**
- * Compare arguments of literals l1 and l2 and return the result
- * of the comparison.
+ * Compare arguments of non-equality literals l1 and l2 and return the
+ * result of the comparison.
  * @since 07/05/2008 flight Manchester-Brussels
  */
-Ordering::Result KBOForEPR::compare(Literal* l1, Literal* l2) const
+Ordering::Result KBOForEPR::comparePredicates(Literal* l1, Literal* l2) const
 {
-  CALL("KBOForEPR::compare(Literal*...)");
+  CALL("KBOForEPR::comparePredicates(Literal*...)");
   ASS(l1->shared());
   ASS(l2->shared());
-
-  if (l1 == l2) {
-    return EQUAL;
-  }
+  ASS(!l1->isEquality());
+  ASS(!l2->isEquality());
 
   unsigned p1 = l1->functor();
   unsigned p2 = l2->functor();
-
-  if( (l1->isNegative() ^ l2->isNegative()) && (p1==p2) &&
-	  l1->weight()==l2->weight() && l1->vars()==l2->vars() &&
-	  l1==env.sharing->tryGetOpposite(l2)) {
-    return l1->isNegative() ? LESS : GREATER;
-  }
-
-  Result res;
-  if (p1 != p2) {
-    Comparison levComp=Int::compare(predicateLevel(p1),predicateLevel(p2));
-    if(levComp!=Lib::EQUAL) {
-      res = fromComparison(levComp);
-      goto fin;
-    }
-  }
-
-  if(l1->isEquality()) {
-    ASS(l2->isEquality());
-    return compareEqualities(l1, l2);
-  }
-  ASS(!l1->isEquality());
-  ASS(!l2->isEquality());
 
   if (p1 != p2) {
     Comparison arComp=Int::compare(l1->arity(),l2->arity());
@@ -85,40 +59,24 @@ Ordering::Result KBOForEPR::compare(Literal* l1, Literal* l2) const
       //since on the ground level each literal argument must be a constant,
       //and all symbols are of weight 1, the literal with higher arity is
       //heavier and therefore greater
-      res = fromComparison(arComp);
-      goto fin;
+      return fromComparison(arComp);
     }
 
     Comparison prComp=Int::compare(predicatePrecedence(p1),predicatePrecedence(p2));
     ASS_NEQ(prComp, Lib::EQUAL); //precedence ordering is total
-    res = fromComparison(prComp);
-    goto fin;
+    return fromComparison(prComp);
   }
 
-  {
-    TermList* t1=l1->args();
-    TermList* t2=l2->args();
+  TermList* t1=l1->args();
+  TermList* t2=l2->args();
 
-    ASS(!t1->isEmpty());
-    while(*t1==*t2) {
-      t1=t1->next();
-      t2=t2->next();
-      ASS(!t1->isEmpty()); //if we're at the end of the term, the literals would have been the same
-    }
-    res = compare(*t1, *t2);
-    goto fin;
+  ASS(!t1->isEmpty());
+  while(*t1==*t2) {
+    t1=t1->next();
+    t2=t2->next();
+    ASS(!t1->isEmpty()); //if we're at the end of the term, the literals would have been the same
   }
-
-fin:
-  if(_reverseLCM && (l1->isNegative() || l2->isNegative()) ) {
-    if(l1->isNegative() && l2->isNegative()) {
-      res = reverse(res);
-    }
-    else {
-      res = l1->isNegative() ? LESS : GREATER;
-    }
-  }
-  return res;
+  return compare(*t1, *t2);
 }
 
 Ordering::Result KBOForEPR::compare(TermList tl1, TermList tl2) const

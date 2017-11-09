@@ -1496,7 +1496,7 @@ void Options::Options::init()
     _literalComparisonMode = ChoiceOptionValue<LiteralComparisonMode>("literal_comparison_mode","lcm",
                                                                       LiteralComparisonMode::STANDARD,
                                                                       {"predicate","reverse","standard"});
-    _literalComparisonMode.description="Vampire uses KBO which uses an ordering of predicates. Standard places equality (and certain other special predicates) first and all others second. Predicate depends on symbol precedence (see symbol_precedence). Reverse reverses the order.";
+    _literalComparisonMode.description="Vampire uses term orderings which use an ordering of predicates. Standard places equality (and certain other special predicates) first and all others second. Predicate depends on symbol precedence (see symbol_precedence). Reverse reverses the order.";
     _lookup.insert(&_literalComparisonMode);
     _literalComparisonMode.tag(OptionTag::SATURATION);
     _literalComparisonMode.addProblemConstraint(hasNonUnits());
@@ -1560,11 +1560,16 @@ void Options::Options::init()
     _activationLimit.setExperimental();
     _lookup.insert(&_activationLimit);
 
+    _termOrdering = ChoiceOptionValue<TermOrdering>("term_ordering","to", TermOrdering::KBO,
+                                                    {"kbo","lpo"});
+    _termOrdering.description="The term ordering used by Vampire to orient equations and order literals";
+    _termOrdering.tag(OptionTag::SATURATION);
+    _lookup.insert(&_termOrdering);
     _symbolPrecedence = ChoiceOptionValue<SymbolPrecedence>("symbol_precedence","sp",SymbolPrecedence::ARITY,
                                                             {"arity","occurrence","reverse_arity","scramble",
                                                              "frequency","reverse_frequency",
                                                              "weighted_frequency","reverse_weighted_frequency"});
-    _symbolPrecedence.description="Vampire uses KBO which requires a precedence relation between symbols. Arity orders symbols by their arity (and reverse_arity takes the reverse of this) and occurence orders symbols by the order they appear in the problem.";
+    _symbolPrecedence.description="Vampire uses term orderings which require a precedence relation between symbols. Arity orders symbols by their arity (and reverse_arity takes the reverse of this) and occurence orders symbols by the order they appear in the problem.";
     _lookup.insert(&_symbolPrecedence);
     _symbolPrecedence.tag(OptionTag::SATURATION);
     _symbolPrecedence.setRandomChoices({"arity","occurence","reverse_arity","frequency"});
