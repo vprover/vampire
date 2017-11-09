@@ -448,6 +448,7 @@ void Options::Options::init()
     _unusedPredicateDefinitionRemoval.setRandomChoices({"on","off"});
 
     _blockedClauseElimination = BoolOptionValue("blocked_clause_elimination","bce",false);
+    _blockedClauseElimination.description="Eliminate blocked clauses after clausification.";
     _lookup.insert(&_blockedClauseElimination);
     _blockedClauseElimination.tag(OptionTag::PREPROCESSING);
     _blockedClauseElimination.addProblemConstraint(notWithCat(Property::UEQ));
