@@ -139,7 +139,7 @@ unsigned Skolem::addSkolemFunction(unsigned arity, unsigned* domainSorts,
 
   unsigned fun = env.signature->addSkolemFunction(arity, suffix);
   Signature::Symbol* fnSym = env.signature->getFunction(fun);
-  fnSym->setType(new FunctionType(arity, domainSorts, rangeSort));
+  fnSym->setType(OperatorType::getFunctionType(arity, domainSorts, rangeSort));
   return fun;
 }
 
@@ -163,7 +163,7 @@ unsigned Skolem::addSkolemPredicate(unsigned arity, unsigned* domainSorts, const
 
   unsigned pred = env.signature->addSkolemPredicate(arity, suffix);
   Signature::Symbol* pSym = env.signature->getPredicate(pred);
-  pSym->setType(new PredicateType(arity, domainSorts));
+  pSym->setType(OperatorType::getPredicateType(arity, domainSorts));
   return pred;
 }
 

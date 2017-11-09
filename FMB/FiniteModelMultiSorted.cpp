@@ -70,7 +70,7 @@ FiniteModelMultiSorted::FiniteModelMultiSorted(DHMap<unsigned,unsigned> sizes) :
     unsigned arity=env.signature->functionArity(f);
     f_offsets[f]=offsets;
 
-    FunctionType* sig = env.signature->getFunction(f)->fnType();
+    OperatorType* sig = env.signature->getFunction(f)->fnType();
     unsigned add = _sizes.get(sig->result());
     for(unsigned i=0;i<arity;i++){ add*= _sizes.get(sig->arg(i)); }
     
@@ -84,7 +84,7 @@ FiniteModelMultiSorted::FiniteModelMultiSorted(DHMap<unsigned,unsigned> sizes) :
     unsigned arity=env.signature->predicateArity(p);
     p_offsets[p]=offsets;
 
-    PredicateType* sig = env.signature->getPredicate(p)->predType();
+    OperatorType* sig = env.signature->getPredicate(p)->predType();
     unsigned add = 1;
     for(unsigned i=0;i<arity;i++){ add*= _sizes.get(sig->arg(i)); }
 
@@ -126,7 +126,7 @@ void FiniteModelMultiSorted::addFunctionDefinition(unsigned f, const DArray<unsi
 
   unsigned var = f_offsets[f];
   unsigned mult = 1;
-  FunctionType* sig = env.signature->getFunction(f)->fnType();
+  OperatorType* sig = env.signature->getFunction(f)->fnType();
   for(unsigned i=0;i<args.size();i++){
     var += mult*(args[i]-1);
     mult *= _sizes.get(sig->arg(i));
@@ -160,7 +160,7 @@ void FiniteModelMultiSorted::addPredicateDefinition(unsigned p, const DArray<uns
 
   unsigned var = p_offsets[p];
   unsigned mult = 1;
-  PredicateType* sig = env.signature->getPredicate(p)->predType();
+  OperatorType* sig = env.signature->getPredicate(p)->predType();
   for(unsigned i=0;i<args.size();i++){
     var += mult*(args[i]-1);
     mult *=_sizes.get(sig->arg(i));
@@ -279,7 +279,7 @@ vstring FiniteModelMultiSorted::toString()
     if(!printIntroduced && env.signature->getFunction(f)->introduced()) continue;
     vstring name = env.signature->functionName(f);
 
-    FunctionType* sig = env.signature->getFunction(f)->fnType();
+    OperatorType* sig = env.signature->getFunction(f)->fnType();
     modelStm << "tff("<<prepend("declare_", name)<<",type,"<<name<<": ";
     for(unsigned i=0;i<arity;i++){
       modelStm << env.sorts->sortName(sig->arg(i));
@@ -366,7 +366,7 @@ fModelLabel:
     if(!printIntroduced && env.signature->getPredicate(f)->introduced()) continue;
     vstring name = env.signature->predicateName(f);
 
-    PredicateType* sig = env.signature->getPredicate(f)->predType();
+    OperatorType* sig = env.signature->getPredicate(f)->predType();
     modelStm << "tff("<<prepend("declare_", name)<<",type,"<<name<<": ";
     for(unsigned i=0;i<arity;i++){
       modelStm << env.sorts->sortName(sig->arg(i));
@@ -450,7 +450,7 @@ unsigned FiniteModelMultiSorted::evaluateGroundTerm(Term* term)
     if(args[i]==0) USER_ERROR("Could not evaluate "+term->toString());
   }
 
-  FunctionType* sig = env.signature->getFunction(term->functor())->fnType();
+  OperatorType* sig = env.signature->getFunction(term->functor())->fnType();
   unsigned var = f_offsets[term->functor()];
   unsigned mult = 1;
   for(unsigned i=0;i<args.size();i++){
@@ -494,7 +494,7 @@ bool FiniteModelMultiSorted::evaluateGroundLiteral(Literal* lit)
     else return !res;
   }
 
-  PredicateType* sig = env.signature->getPredicate(lit->functor())->predType();
+  OperatorType* sig = env.signature->getPredicate(lit->functor())->predType();
   unsigned var = p_offsets[lit->functor()];
   unsigned mult = 1;
   for(unsigned i=0;i<args.size();i++){

@@ -531,7 +531,7 @@ void Property::scan(Literal* lit, int polarity, unsigned cLen, bool goal)
       pred->markInGoal();
     }
 
-    PredicateType* type = pred->predType();
+    OperatorType* type = pred->predType();
     for (int i=0; i<arity; i++) {
       scanSort(type->arg(i));
     }
@@ -597,7 +597,7 @@ void Property::scan(TermList ts,bool unit,bool goal)
     if(goal){ func->markInGoal();}
 
     int arity = t->arity();
-    FunctionType* type = func->fnType();
+    OperatorType* type = func->fnType();
     for (int i = 0; i < arity; i++) {
       scanSort(type->arg(i));
     }

@@ -55,6 +55,18 @@ struct StackHash {
   }
 };
 
+template<class ElementHash>
+struct VectorHash {
+  template<typename T>
+  static unsigned hash(const Vector<T>& s) {
+    unsigned res = 2166136261u;
+    for (unsigned i = 0; i < s.length(); i++) {
+      res = HashUtils::combine(res, ElementHash::hash(s[i]));
+    }
+    return res;
+  }
+};
+
 /**
  * Hash functions for various types.
  */
@@ -77,6 +89,10 @@ public:
   template<typename T>
   static unsigned hash(Stack<T> obj)
   { return StackHash<Hash>::hash(obj); }
+
+  template<typename T>
+  static unsigned hash(Vector<T>* obj)
+  { return VectorHash<Hash>::hash(*obj); }
 
   // Careful: using this default on structs may cause big trouble!
   // Even when all fields are properly initialized, there can remain "holes"

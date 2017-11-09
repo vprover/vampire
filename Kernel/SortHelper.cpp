@@ -39,7 +39,7 @@ using namespace Kernel;
  * Return the type of a term or a literal @c t
  * @author Andrei Voronkov
  */
-BaseType& SortHelper::getType(Term* t)
+OperatorType& SortHelper::getType(Term* t)
 {
   CALL("SortHelper::getType(Term*)");
 
@@ -768,7 +768,7 @@ bool SortHelper::areImmediateSortsValid(Term* t)
     return true;
   }
 
-  BaseType& type = getType(t);
+  OperatorType& type = getType(t);
   unsigned arity = t->arity();
   for (unsigned i=0; i<arity; i++) {
     TermList arg = *t->nthArgument(i);

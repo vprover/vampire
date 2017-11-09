@@ -180,7 +180,7 @@ ClauseList* Grounding::getEqualityAxioms(bool otherThanReflexivity)
 	continue;
       }
 
-      PredicateType* predType = env.signature->getPredicate(pred)->predType();
+      OperatorType* predType = env.signature->getPredicate(pred)->predType();
 
       args.ensure(arity);
       for(unsigned i=0;i<arity;i++) {

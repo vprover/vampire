@@ -1179,8 +1179,8 @@ unsigned Theory::Tuples::getProjectionFunctor(unsigned proj, unsigned tupleSort)
 bool Theory::Tuples::findProjection(unsigned projFunctor, bool isPredicate, unsigned &proj) {
   CALL("Theory::Tuples::findProjection");
 
-  BaseType* projType = isPredicate ? static_cast<BaseType*>(env.signature->getPredicate(projFunctor)->predType())
-                                   : static_cast<BaseType*>(env.signature->getFunction(projFunctor)->fnType());
+  OperatorType* projType = isPredicate ? env.signature->getPredicate(projFunctor)->predType()
+                                       : env.signature->getFunction(projFunctor)->fnType();
 
   if (projType->arity() != 1) {
     return false;
@@ -1213,7 +1213,7 @@ bool Theory::Tuples::findProjection(unsigned projFunctor, bool isPredicate, unsi
  *
  * @c i must be a type conversion operation.
  */
-FunctionType* Theory::getConversionOperationType(Interpretation i)
+OperatorType* Theory::getConversionOperationType(Interpretation i)
 {
   CALL("Theory::getConversionOperationType");
 
@@ -1246,7 +1246,7 @@ FunctionType* Theory::getConversionOperationType(Interpretation i)
   default:
     ASSERTION_VIOLATION;
   }
-  return new FunctionType({from}, to);
+  return OperatorType::getFunctionType({from}, to);
 }
 
 Sorts::StructuredSort Theory::getInterpretedSort(StructuredSortInterpretation ssi) {
@@ -1388,7 +1388,7 @@ vstring Theory::getInterpretationName(Interpretation interp) {
   }
 }
 
-BaseType* Theory::getStructuredSortOperationType(Interpretation i) {
+OperatorType* Theory::getStructuredSortOperationType(Interpretation i) {
   CALL("Theory::getStructuredSortOperationType");
 
   ASS(theory->isStructuredSortInterpretation(i));
@@ -1404,13 +1404,13 @@ BaseType* Theory::getStructuredSortOperationType(Interpretation i) {
 
       switch (ssi) {
         case StructuredSortInterpretation::ARRAY_SELECT:
-          return new FunctionType({ theorySort, indexSort }, valueSort);
+          return OperatorType::getFunctionType({ theorySort, indexSort }, valueSort);
 
         case StructuredSortInterpretation::ARRAY_BOOL_SELECT:
-          return new PredicateType({ theorySort, indexSort });
+          return OperatorType::getPredicateType({ theorySort, indexSort });
 
         case StructuredSortInterpretation::ARRAY_STORE:
-          return new FunctionType({ theorySort, indexSort, innerSort }, valueSort);
+          return OperatorType::getFunctionType({ theorySort, indexSort, innerSort }, valueSort);
 
         default:
           ASSERTION_VIOLATION;
@@ -1424,7 +1424,7 @@ BaseType* Theory::getStructuredSortOperationType(Interpretation i) {
 /**
  * Return type of the function representing interpreted function/predicate @c i.
  */
-BaseType* Theory::getOperationType(Interpretation i)
+OperatorType* Theory::getOperationType(Interpretation i)
 {
   CALL("Theory::getOperationType");
   ASS_NEQ(i, EQUAL);
@@ -1447,9 +1447,9 @@ BaseType* Theory::getOperationType(Interpretation i)
   domainSorts.init(arity, sort);
 
   if (isFunction(i)) {
-    return new FunctionType(arity, domainSorts.array(), sort);
+    return OperatorType::getFunctionType(arity, domainSorts.array(), sort);
   } else {
-    return new PredicateType(arity, domainSorts.array());
+    return OperatorType::getPredicateType(arity, domainSorts.array());
   }
 }
 
@@ -1463,7 +1463,7 @@ void Theory::defineTupleTermAlgebra(unsigned arity, unsigned* sorts) {
   }
 
   unsigned functor = env.signature->addFreshFunction(arity, "tuple");
-  FunctionType* tupleType = new FunctionType(arity, sorts, tupleSort);
+  OperatorType* tupleType = OperatorType::getFunctionType(arity, sorts, tupleSort);
   env.signature->getFunction(functor)->setType(tupleType);
   env.signature->getFunction(functor)->markTermAlgebraCons();
 
@@ -1473,10 +1473,10 @@ void Theory::defineTupleTermAlgebra(unsigned arity, unsigned* sorts) {
     unsigned destructor;
     if (projSort == Sorts::SRT_BOOL) {
       destructor = env.signature->addFreshPredicate(1, "proj");
-      env.signature->getPredicate(destructor)->setType(new PredicateType({ tupleSort }));
+      env.signature->getPredicate(destructor)->setType(OperatorType::getPredicateType({ tupleSort }));
     } else {
       destructor = env.signature->addFreshFunction(1, "proj");
-      env.signature->getFunction(destructor)->setType(new FunctionType({ tupleSort }, projSort));
+      env.signature->getFunction(destructor)->setType(OperatorType::getFunctionType({ tupleSort }, projSort));
     }
     destructors[i] = destructor;
   }

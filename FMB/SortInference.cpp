@@ -117,7 +117,7 @@ void SortInference::doInference()
     for(unsigned f=0;f<env.signature->functions();f++){
       if(_del_f[f]) continue;
       unsigned arity = env.signature->functionArity(f);
-      FunctionType* ftype = env.signature->getFunction(f)->fnType();
+      OperatorType* ftype = env.signature->getFunction(f)->fnType();
       //cout << env.signature->functionName(f) << " : " << env.sorts->sortName(ftype->result()) << endl;;
       unsigned dsort = (*_sig->vampireToDistinct.get(ftype->result()))[0];
       //cout << env.signature->functionName(f) << " : " << dsort << endl;
@@ -134,7 +134,7 @@ void SortInference::doInference()
         unsigned dsort = (*_sig->vampireToDistinct.get(s))[0];
         if(_sig->sortedConstants[dsort].isEmpty()){
           unsigned fresh = env.signature->addFreshFunction(0,"fmbFreshConstant");
-          env.signature->getFunction(fresh)->setType(new FunctionType(s));
+          env.signature->getFunction(fresh)->setType(OperatorType::getConstantsType(s));
           _sig->sortedConstants[dsort].push(fresh);
         }
       }
@@ -145,7 +145,7 @@ void SortInference::doInference()
     for(unsigned f=0;f<env.signature->functions();f++){
       if(f < _del_f.size() && _del_f[f]) continue;
       unsigned arity = env.signature->functionArity(f);
-      FunctionType* ftype = env.signature->getFunction(f)->fnType();
+      OperatorType* ftype = env.signature->getFunction(f)->fnType();
       _sig->functionSignatures[f].ensure(arity+1);
       for(unsigned i=0;i<arity;i++){ 
         _sig->functionSignatures[f][i]=(*_sig->vampireToDistinct.get(ftype->arg(i)))[0]; 
@@ -156,7 +156,7 @@ void SortInference::doInference()
     for(unsigned p=1;p<env.signature->predicates();p++){
       if(_del_p[p]) continue;
       unsigned arity = env.signature->predicateArity(p);
-      PredicateType* ptype = env.signature->getPredicate(p)->predType();
+      OperatorType* ptype = env.signature->getPredicate(p)->predType();
       _sig->predicateSignatures[p].ensure(arity);
       for(unsigned i=0;i<arity;i++){ 
         _sig->predicateSignatures[p][i]=(*_sig->vampireToDistinct.get(ptype->arg(i)))[0]; 
@@ -504,7 +504,7 @@ void SortInference::doInference()
     _sig->functionSignatures[f][arity] = rangeSort;
 
     Signature::Symbol* fnSym = env.signature->getFunction(f);
-    FunctionType* fnType = fnSym->fnType();
+    OperatorType* fnType = fnSym->fnType();
     if(parentSet[rangeSort]){
 #if VDEBUG
       //cout << "FUNCTION " << env.signature->functionName(f) << endl;
@@ -563,7 +563,7 @@ void SortInference::doInference()
     unsigned srt = freshMap.get(f);
     unsigned dsrt = _sig->parents[srt];
     unsigned vsrt = (*_sig->distinctToVampire.get(dsrt))[0];
-    env.signature->getFunction(f)->setType(new FunctionType(vsrt));
+    env.signature->getFunction(f)->setType(OperatorType::getConstantsType(vsrt));
     env.signature->getFunction(f)->markIntroduced();
   }
 
@@ -583,7 +583,7 @@ void SortInference::doInference()
     _sig->predicateSignatures[p].ensure(arity);
 
     Signature::Symbol* prSym = env.signature->getPredicate(p);
-    PredicateType* prType = prSym->predType();
+    OperatorType* prType = prSym->predType();
 
     for(unsigned i=0;i<arity;i++){
       int argRoot = unionFind.root(offset_p[p]+i);

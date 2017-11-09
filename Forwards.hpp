@@ -68,6 +68,7 @@ template<class T> class RCPtr;
 template<typename T> class SingleParamEvent;
 template<class C> class DArray;
 template<class C> class Stack;
+template<class C> class Vector;
 template<typename T> class List;
 template<typename T, class Comparator> class BinaryHeap;
 template<typename T> class SharedSet;

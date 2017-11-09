@@ -1889,10 +1889,10 @@ void TPTP::endBinding() {
                                       : env.signature->addFreshFunction (arity,name.c_str());
 
   if (isPredicate) {
-    PredicateType* type = new PredicateType(arity, argSorts.begin());
+    OperatorType* type = OperatorType::getPredicateType(arity, argSorts.begin());
     env.signature->getPredicate(symbolNumber)->setType(type);
   } else {
-    FunctionType* type = new FunctionType(arity, argSorts.begin(), bindingSort);
+    OperatorType* type = OperatorType::getFunctionType(arity, argSorts.begin(), bindingSort);
     env.signature->getFunction(symbolNumber)->setType(type);
   }
 
@@ -1954,10 +1954,10 @@ void TPTP::endTupleBinding() {
     unsigned symbol;
     if (isPredicate) {
       symbol = env.signature->addFreshPredicate(0, name.c_str());
-      env.signature->getPredicate(symbol)->setType(new PredicateType(0, 0));
+      env.signature->getPredicate(symbol)->setType(OperatorType::getPredicateType(0, 0));
     } else {
       symbol = env.signature->addFreshFunction(0, name.c_str());
-      env.signature->getFunction(symbol)->setType(new FunctionType(sort));
+      env.signature->getFunction(symbol)->setType(OperatorType::getConstantsType(sort));
     }
 
     IntList::push(symbol, constants);
@@ -2499,7 +2499,7 @@ Formula* TPTP::createPredicateApplication(vstring name, unsigned arity)
   }
   // not equality or distinct
   Literal* lit = new(arity) Literal(pred,arity,true,false);
-  PredicateType* type = env.signature->getPredicate(pred)->predType();
+  OperatorType* type = env.signature->getPredicate(pred)->predType();
   bool safe = true;
   for (int i = arity-1;i >= 0;i--) {
     unsigned sort = type->arg(i);
@@ -2543,7 +2543,7 @@ TermList TPTP::createFunctionApplication(vstring name, unsigned arity)
   }
   Term* t = new(arity) Term;
   t->makeSymbol(fun,arity);
-  FunctionType* type = env.signature->getFunction(fun)->fnType();
+  OperatorType* type = env.signature->getFunction(fun)->fnType();
   bool safe = true;
   for (int i = arity-1;i >= 0;i--) {
     unsigned sort = type->arg(i);
@@ -3052,7 +3052,7 @@ void TPTP::endTff()
     if (!added) {
       USER_ERROR("Function symbol type is declared after its use: " + name);
     }
-    env.signature->getFunction(fun)->setType(new FunctionType(sortNumber));
+    env.signature->getFunction(fun)->setType(OperatorType::getConstantsType(sortNumber));
     return;
   }
 
@@ -3099,7 +3099,7 @@ void TPTP::endTff()
       USER_ERROR("Predicate symbol type is declared after its use: " + name);
     }
     symbol = env.signature->getPredicate(pred);
-    symbol->setType(new PredicateType(arity, sorts.begin()));
+    symbol->setType(OperatorType::getPredicateType(arity, sorts.begin()));
   }
   else {
     unsigned fun = arity == 0
@@ -3109,7 +3109,7 @@ void TPTP::endTff()
       USER_ERROR("Function symbol type is declared after its use: " + name);
     }
     symbol = env.signature->getFunction(fun);
-    symbol->setType(new FunctionType(arity, sorts.begin(), returnSortNumber));
+    symbol->setType(OperatorType::getFunctionType(arity, sorts.begin(), returnSortNumber));
   }
 } // endTff
 
@@ -3866,7 +3866,7 @@ unsigned TPTP::addIntegerConstant(const vstring& name, Set<vstring>& overflow, b
     if (added) {
       overflow.insert(name);
       Signature::Symbol* symbol = env.signature->getFunction(fun);
-      symbol->setType(new FunctionType(defaultSort ? Sorts::SRT_DEFAULT : Sorts::SRT_INTEGER));
+      symbol->setType(OperatorType::getConstantsType(defaultSort ? Sorts::SRT_DEFAULT : Sorts::SRT_INTEGER));
     }
     else if (!overflow.contains(name)) {
       USER_ERROR((vstring)"Cannot use name '" + name + "' as an atom name since it collides with an integer number");
@@ -3902,7 +3902,7 @@ unsigned TPTP::addRationalConstant(const vstring& name, Set<vstring>& overflow, 
     if (added) {
       overflow.insert(name);
       Signature::Symbol* symbol = env.signature->getFunction(fun);
-      symbol->setType(new FunctionType(defaultSort ? Sorts::SRT_DEFAULT : Sorts::SRT_RATIONAL));
+      symbol->setType(OperatorType::getConstantsType(defaultSort ? Sorts::SRT_DEFAULT : Sorts::SRT_RATIONAL));
     }
     else if (!overflow.contains(name)) {
       USER_ERROR((vstring)"Cannot use name '" + name + "' as an atom name since it collides with an rational number");
@@ -3934,7 +3934,7 @@ unsigned TPTP::addRealConstant(const vstring& name, Set<vstring>& overflow, bool
     if (added) {
       overflow.insert(name);
       Signature::Symbol* symbol = env.signature->getFunction(fun);
-      symbol->setType(new FunctionType(defaultSort ? Sorts::SRT_DEFAULT : Sorts::SRT_REAL));
+      symbol->setType(OperatorType::getConstantsType(defaultSort ? Sorts::SRT_DEFAULT : Sorts::SRT_REAL));
     }
     else if (!overflow.contains(name)) {
       USER_ERROR((vstring)"Cannot use name '" + name + "' as an atom name since it collides with an real number");

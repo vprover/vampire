@@ -196,7 +196,7 @@ void Monotonicity::addSortPredicates(bool withMon, ClauseList*& clauses, DArray<
     if(!isMonotonic[s]){
       vstring name = "sortPredicate_"+env.sorts->sortName(s);
       unsigned p = env.signature->addFreshPredicate(1,name.c_str());
-      env.signature->getPredicate(p)->setType(new PredicateType({s}));
+      env.signature->getPredicate(p)->setType(OperatorType::getPredicateType({s}));
       sortPredicates[s] = p;
     }
     else{ sortPredicates[s]=0; }
@@ -236,7 +236,7 @@ void Monotonicity::addSortPredicates(bool withMon, ClauseList*& clauses, DArray<
 
     // Next the non-empty constraint
     unsigned skolemConstant = env.signature->addSkolemFunction(0);
-    env.signature->getFunction(skolemConstant)->setType(new FunctionType(s));
+    env.signature->getFunction(skolemConstant)->setType(OperatorType::getConstantsType(s));
     Literal* psk = Literal::create1(p,true,TermList(Term::createConstant(skolemConstant)));
     Clause* nonEmpty = new(1) Clause(1,Unit::InputType::AXIOM, new Inference(Inference::INPUT));
     (*nonEmpty)[0] = psk;
@@ -351,7 +351,7 @@ void Monotonicity::addSortFunctions(bool withMon, ClauseList*& clauses)
     if(!isMonotonic[s]){
       vstring name = "sortFunction_"+env.sorts->sortName(s);
       unsigned f = env.signature->addFreshFunction(1,name.c_str());
-      env.signature->getFunction(f)->setType(new FunctionType({s},s));
+      env.signature->getFunction(f)->setType(OperatorType::getFunctionType({s},s));
       sortFunctions[s] = f;
     }
     else{ sortFunctions[s]=0; }

@@ -78,7 +78,7 @@ public:
    *
    * This function can be called if the mode is at least DECLARE_SORTS.
    */
-  BaseType* getSymbolType(const FunctionInfo& fnInfo);
+  OperatorType* getSymbolType(const FunctionInfo& fnInfo);
 
   /**
    * Return parsed formula.

@@ -77,7 +77,7 @@ public:
   static bool areSortsValid(Clause* cl);
   static bool areImmediateSortsValid(Term* t);
 
-  static BaseType& getType(Term* t);
+  static OperatorType& getType(Term* t);
 
   static bool areSortsValid(Term* t, DHMap<unsigned,unsigned>& varSorts);
 private:

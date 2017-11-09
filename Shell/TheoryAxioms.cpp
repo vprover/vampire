@@ -587,7 +587,7 @@ void TheoryAxioms::addIntegerDividesAxioms(Interpretation divides, Interpretatio
   // create a skolem function with signature srt*srt>srt
   unsigned skolem = env.signature->addSkolemFunction(2);
   Signature::Symbol* sym = env.signature->getFunction(skolem);
-  sym->setType(new FunctionType({srt,srt},srt));
+  sym->setType(OperatorType::getFunctionType({srt,srt},srt));
   TermList skXY(Term::create2(skolem,n,y));
   TermList msxX(Term::create2(mulFun,skXY,n));
   Literal* msxXeqY = Literal::createEquality(true,msxX,y,srt);

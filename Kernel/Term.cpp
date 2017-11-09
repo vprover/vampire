@@ -419,8 +419,8 @@ vstring Term::headToString() const
         bool isPredicate = binding.isTerm() && binding.term()->isBoolean();
         vstring functor = isPredicate ? env.signature->predicateName(sd->getFunctor())
                                       : env.signature->functionName(sd->getFunctor());
-        BaseType* type = isPredicate ? (BaseType*)env.signature->getPredicate(sd->getFunctor())->predType()
-                                     : (BaseType*)env.signature->getFunction(sd->getFunctor())->fnType();
+        OperatorType* type = isPredicate ? env.signature->getPredicate(sd->getFunctor())->predType()
+                                         : env.signature->getFunction(sd->getFunctor())->fnType();
 
         const IntList* variables = sd->getVariables();
         vstring variablesList = "";
@@ -464,7 +464,7 @@ vstring Term::headToString() const
         unsigned tupleFunctor = sd->getFunctor();
         TermList binding = sd->getBinding();
 
-        FunctionType* fnType = env.signature->getFunction(tupleFunctor)->fnType();
+        OperatorType* fnType = env.signature->getFunction(tupleFunctor)->fnType();
 
         vstring symbolsList = "";
         for (unsigned i = 0; i < IntList::length(symbols); i++) {

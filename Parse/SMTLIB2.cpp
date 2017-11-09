@@ -766,14 +766,14 @@ SMTLIB2::DeclaredFunction SMTLIB2::declareFunctionOrPredicate(const vstring& nam
   bool added;
   unsigned symNum;
   Signature::Symbol* sym;
-  BaseType* type;
+  OperatorType* type;
 
   if (rangeSort == Sorts::SRT_BOOL) { // predicate
     symNum = env.signature->addPredicate(name, argSorts.size(), added);
 
     sym = env.signature->getPredicate(symNum);
 
-    type = new PredicateType(argSorts.size(),argSorts.begin());
+    type = OperatorType::getPredicateType(argSorts.size(),argSorts.begin());
 
     LOG1("declareFunctionOrPredicate-Predicate");
   } else { // proper function
@@ -785,7 +785,7 @@ SMTLIB2::DeclaredFunction SMTLIB2::declareFunctionOrPredicate(const vstring& nam
 
     sym = env.signature->getFunction(symNum);
 
-    type = new FunctionType(argSorts.size(), argSorts.begin(), rangeSort);
+    type = OperatorType::getFunctionType(argSorts.size(), argSorts.begin(), rangeSort);
 
     LOG1("declareFunctionOrPredicate-Function");
   }
@@ -978,7 +978,7 @@ TermAlgebraConstructor* SMTLIB2::buildTermAlgebraConstructor(vstring constrName,
   unsigned functor = env.signature->addFunction(constrName, arity, added);
   ASS(added);
 
-  BaseType* constructorType = new FunctionType(arity, argSorts.begin(), taSort);
+  OperatorType* constructorType = OperatorType::getFunctionType(arity, argSorts.begin(), taSort);
   env.signature->getFunction(functor)->setType(constructorType);
   env.signature->getFunction(functor)->markTermAlgebraCons();
 
@@ -1001,8 +1001,8 @@ TermAlgebraConstructor* SMTLIB2::buildTermAlgebraConstructor(vstring constrName,
                                              : env.signature->addFunction(destructorName,  1, added);
     ASS(added);
 
-    BaseType* destructorType = isPredicate ? (BaseType*) new PredicateType(1, &taSort)
-                                           : (BaseType*) new FunctionType(1, &taSort, destructorSort);
+    OperatorType* destructorType = isPredicate ? OperatorType::getPredicateType(1, &taSort)
+                                           : OperatorType::getFunctionType(1, &taSort, destructorSort);
 
     LOG1("build destructor "+destructorName+": "+destructorType->toString());
 
@@ -1296,14 +1296,14 @@ void SMTLIB2::parseLetPrepareLookup(LExpr* exp)
     TermList trm;
     if (sort == Sorts::SRT_BOOL) {
       unsigned symb = env.signature->addFreshPredicate(0,"sLP");
-      PredicateType* type = new PredicateType(0, nullptr);
+      OperatorType* type = OperatorType::getPredicateType(0, nullptr);
       env.signature->getPredicate(symb)->setType(type);
 
       Formula* atom = new AtomicFormula(Literal::create(symb,0,true,false,nullptr));
       trm = TermList(Term::createFormula(atom));
     } else {
       unsigned symb = env.signature->addFreshFunction (0,"sLF");
-      FunctionType* type = new FunctionType(0, nullptr, sort);
+      OperatorType* type = OperatorType::getFunctionType(0, nullptr, sort);
       env.signature->getFunction(symb)->setType(type);
 
       trm = TermList(Term::createConstant(symb));
@@ -1497,8 +1497,7 @@ bool SMTLIB2::parseAsUserDefinedSymbol(const vstring& id,LExpr* exp)
 
   Signature::Symbol* symbol = isTrueFun ? env.signature->getFunction(symbIdx)
                                         : env.signature->getPredicate(symbIdx);
-  BaseType* type = isTrueFun ? static_cast<BaseType*>(symbol->fnType())
-                             : static_cast<BaseType*>(symbol->predType());
+  OperatorType* type = isTrueFun ? symbol->fnType() : symbol->predType();
 
   unsigned arity = symbol->arity();
 
@@ -2044,7 +2043,7 @@ void SMTLIB2::parseRankedFunctionApplication(LExpr* exp)
             bool added;
             unsigned pred = env.signature->addPredicate(c->discriminatorName(), 1, added);
             ASS(added);
-            PredicateType* type = new PredicateType({ sort });
+            OperatorType* type = OperatorType::getPredicateType({ sort });
             env.signature->getPredicate(pred)->setType(type);
             c->addDiscriminator(pred);
             // this predicate is not declare for the parser as it has a reserved name

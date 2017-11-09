@@ -594,7 +594,7 @@ void UIHelper::outputSymbolTypeDeclarationIfNeeded(ostream& out, bool function, 
     }
   }
 
-  BaseType* type = function ? static_cast<BaseType*>(sym->fnType()) : sym->predType();
+  OperatorType* type = function ? sym->fnType() : sym->predType();
 
   if (type->isAllDefault()) {
     return;

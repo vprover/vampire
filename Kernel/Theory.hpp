@@ -451,8 +451,8 @@ public:
   static bool isFunction(Interpretation i);
   static bool isInequality(Interpretation i);
   static Sorts::StructuredSort getInterpretedSort(StructuredSortInterpretation ssi);
-  static BaseType* getOperationType(Interpretation i);
-  static BaseType* getStructuredSortOperationType(Interpretation i);
+  static OperatorType* getOperationType(Interpretation i);
+  static OperatorType* getStructuredSortOperationType(Interpretation i);
   static bool hasSingleSort(Interpretation i);
   static unsigned getOperationSort(Interpretation i);
   static bool isConversionOperation(Interpretation i);
@@ -568,7 +568,7 @@ public:
   Term* representRealConstant(vstring str);
 private:
   Theory();
-  static FunctionType* getConversionOperationType(Interpretation i);
+  static OperatorType* getConversionOperationType(Interpretation i);
 
   DHMap<unsigned,unsigned> _arraySkolemFunctions;
 

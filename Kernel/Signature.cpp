@@ -155,7 +155,7 @@ void Signature::Symbol::addToDistinctGroup(unsigned group,unsigned this_number)
  * should be different from the default type, this function must be
  * called before any call to @c fnType() or @c predType().
  */
-void Signature::Symbol::setType(BaseType* type)
+void Signature::Symbol::setType(OperatorType* type)
 {
   CALL("Signature::Symbol::setType");
   ASS(!_type);
@@ -168,7 +168,7 @@ void Signature::Symbol::setType(BaseType* type)
  * This can be unsafe so should only be used when you know it is safe to
  * change the type i.e. nothing yet relies on the type of this symbol
  */
-void Signature::Symbol::forceType(BaseType* type)
+void Signature::Symbol::forceType(OperatorType* type)
 {
   CALL("Signature::Symbol::forceType");
   if(_type){ delete _type; }
@@ -181,14 +181,14 @@ void Signature::Symbol::forceType(BaseType* type)
  * If the @c setType() function was not called before, the function
  * symbol is assigned a default type.
  */
-FunctionType* Signature::Symbol::fnType() const
+OperatorType* Signature::Symbol::fnType() const
 {
   CALL("Signature::Symbol::fnType");
 
   if (!_type) {
-    _type = new FunctionType(arity(), (unsigned*)0, Sorts::SRT_DEFAULT);
+    _type = OperatorType::getFunctionType(arity(), (unsigned*)0, Sorts::SRT_DEFAULT);
   }
-  return static_cast<FunctionType*>(_type);
+  return _type;
 }
 
 /**
@@ -197,14 +197,14 @@ FunctionType* Signature::Symbol::fnType() const
  * If the @c setType() function was not called before, the function
  * symbol is assigned a default type.
  */
-PredicateType* Signature::Symbol::predType() const
+OperatorType* Signature::Symbol::predType() const
 {
   CALL("Signature::Symbol::predType");
 
   if (!_type) {
-    _type = new PredicateType(arity(), (unsigned*)0);
+    _type = OperatorType::getPredicateType(arity(), (unsigned*)0);
   }
-  return static_cast<PredicateType*>(_type);
+  return _type;
 }
 
 
@@ -285,7 +285,7 @@ unsigned Signature::addInterpretedFunction(Interpretation interpretation, const 
   _funs.push(sym);
   _funNames.insert(symbolKey, fnNum);
   ALWAYS(_iSymbols.insert(interpretation, fnNum));
-  BaseType* fnType = Theory::getOperationType(interpretation);
+  OperatorType* fnType = Theory::getOperationType(interpretation);
   ASS(fnType->isFunctionType());
   sym->setType(fnType);
   return fnNum;
@@ -317,7 +317,7 @@ unsigned Signature::addInterpretedPredicate(Interpretation interpretation, const
   _predNames.insert(symbolKey,predNum);
   ALWAYS(_iSymbols.insert(interpretation, predNum));
   if (predNum!=0) {
-    BaseType* predType = Theory::getOperationType(interpretation);
+    OperatorType* predType = Theory::getOperationType(interpretation);
     ASS_REP(!predType->isFunctionType(), predType->toString());
     sym->setType(predType);
   }

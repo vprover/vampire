@@ -89,7 +89,7 @@ class Signature
     /** marks term algebra constructors */
     unsigned _termAlgebraCons : 1;
     /** Either a FunctionType of a PredicateType object */
-    mutable BaseType* _type;
+    mutable OperatorType* _type;
     /** List of distinct groups the constant is a member of, all members of a distinct group should be distinct from each other */
     List<unsigned>* _distinctGroups;
     /** number of times it is used in the problem */
@@ -198,10 +198,10 @@ class Signature
         Note that this should only be called on a constant **/
     void addToDistinctGroup(unsigned group,unsigned this_number);
 
-    void setType(BaseType* type);
-    void forceType(BaseType* type);
-    FunctionType* fnType() const;
-    PredicateType* predType() const;
+    void setType(OperatorType* type);
+    void forceType(OperatorType* type);
+    OperatorType* fnType() const;
+    OperatorType* predType() const;
 
     CLASS_NAME(Signature::Symbol);
     USE_ALLOCATOR(Symbol);
@@ -244,7 +244,7 @@ class Signature
     {
       CALL("IntegerSymbol");
 
-      setType(new FunctionType(Sorts::SRT_INTEGER));
+      setType(OperatorType::getConstantsType(Sorts::SRT_INTEGER));
     }
     CLASS_NAME(Signature::IntegerSymbol);
     USE_ALLOCATOR(IntegerSymbol);
@@ -264,7 +264,7 @@ class Signature
     {
       CALL("RationalSymbol");
 
-      setType(new FunctionType(Sorts::SRT_RATIONAL));
+      setType(OperatorType::getConstantsType(Sorts::SRT_RATIONAL));
     }
     CLASS_NAME(Signature::RationalSymbol);
     USE_ALLOCATOR(RationalSymbol);
@@ -284,7 +284,7 @@ class Signature
     {
       CALL("RealSymbol");
 
-      setType(new FunctionType(Sorts::SRT_REAL));
+      setType(OperatorType::getConstantsType(Sorts::SRT_REAL));
     }
     CLASS_NAME(Signature::RealSymbol);
     USE_ALLOCATOR(RealSymbol);
@@ -467,9 +467,9 @@ class Signature
   unsigned getFoolConstantSymbol(bool isTrue){ 
     if(!_foolConstantsDefined){
       _foolFalse = addFunction("$$false",0); 
-      getFunction(_foolFalse)->setType(new FunctionType(Sorts::SRT_BOOL));
+      getFunction(_foolFalse)->setType(OperatorType::getConstantsType(Sorts::SRT_BOOL));
       _foolTrue = addFunction("$$true",0);
-      getFunction(_foolTrue)->setType(new FunctionType(Sorts::SRT_BOOL));
+      getFunction(_foolTrue)->setType(OperatorType::getConstantsType(Sorts::SRT_BOOL));
       _foolConstantsDefined=true;
     }
     return isTrue ? _foolTrue : _foolFalse;

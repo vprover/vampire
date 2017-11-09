@@ -1161,7 +1161,7 @@ Literal* Naming::getDefinitionLiteral(Formula* f, Formula::VarList* freeVars) {
     predArgs.push(TermList(uvar, false));
   }
 
-  predSym->setType(new PredicateType(length, domainSorts.begin()));
+  predSym->setType(OperatorType::getPredicateType(length, domainSorts.begin()));
 
   return Literal::create(pred, length, true, false, predArgs.begin());
 }

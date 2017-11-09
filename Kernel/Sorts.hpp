@@ -206,81 +206,130 @@ private:
   Stack<SortInfo*> _sorts;
   /** true if there is a sort different from built-ins */
   bool _hasSort;
-
 };
 
-class BaseType
+/**
+ * The OperatorType class represents the predicate and function types (which are not sorts in first-order logic).
+ * These are determined by their kind (either PREDICATE or FUNCTION), arity, a corresponding list of argument sorts,
+ * and a return sort in the case of functions.
+ *
+ * The class stores all this data in one Vector<unsigned>*, of length arity+1,
+ * where the last element is the return sort for functions and "MAX_UNSIGNED" for predicates (which distinguishes the two kinds).
+ *
+ * The objects of this class are perfectly shared (so that equal predicate / function types correspond to equal pointers)
+ * and are obtained via static methods (to guarantee the sharing).
+ */
+class OperatorType
 {
 public:
-  CLASS_NAME(BaseType);
-  USE_ALLOCATOR(BaseType);
+  CLASS_NAME(OperatorType);
+  USE_ALLOCATOR(OperatorType);
 
-  virtual ~BaseType();
+private:
+  typedef Vector<unsigned> OperatorKey; // Vector of argument sorts together with "FFFF" appended for predicates and resultSort appended for functions
+  OperatorKey* _key;
+
+  // constructors kept private
+  OperatorType(OperatorKey* key) : _key(key) {}
+
+  /**
+   * Convenience functions for creating a key
+   */
+  static OperatorKey* setupKey(unsigned arity, const unsigned* sorts=0);
+  static OperatorKey* setupKey(std::initializer_list<unsigned> sorts);
+  static OperatorKey* setupKeyUniformRange(unsigned arity, unsigned argsSort);
+
+  typedef Map<OperatorKey*,OperatorType*,Hash> OperatorTypes;
+  // we should delete all the stored OperatorTypes inside at the end of the world, when this get destroyed
+  static OperatorTypes _operatorTypes;
+
+  static OperatorType* getTypeFromKey(OperatorKey* key);
+
+  static const unsigned PREDICATE_FLAG = std::numeric_limits<unsigned>::max();
+
+public:
+  ~OperatorType() { _key->deallocate(); }
+
+  static OperatorType* getPredicateType(unsigned arity, const unsigned* sorts=0) {
+    CALL("OperatorType::getPredicateType(unsigned,const unsigned*)");
+
+    OperatorKey* key = setupKey(arity,sorts);
+    (*key)[arity] = PREDICATE_FLAG;
+    return getTypeFromKey(key);
+  }
+
+  static OperatorType* getPredicateType(std::initializer_list<unsigned> sorts) {
+    CALL("OperatorType::getPredicateType(std::initializer_list<unsigned>)");
+
+    OperatorKey* key = setupKey(sorts);
+    (*key)[sorts.size()] = PREDICATE_FLAG;
+    return getTypeFromKey(key);
+  }
+
+  static OperatorType* getPredicateTypeUniformRange(unsigned arity, unsigned argsSort) {
+    CALL("OperatorType::getPredicateTypeUniformRange");
+
+    OperatorKey* key = setupKeyUniformRange(arity,argsSort);
+    (*key)[arity] = PREDICATE_FLAG;
+    return getTypeFromKey(key);
+  }
+
+  static OperatorType* getFunctionType(unsigned arity, const unsigned* sorts, unsigned resultSort) {
+    CALL("OperatorType::getFunctionType");
+
+    OperatorKey* key = setupKey(arity,sorts);
+    (*key)[arity] = resultSort;
+    return getTypeFromKey(key);
+  }
+
+  static OperatorType* getFunctionType(std::initializer_list<unsigned> sorts, unsigned resultSort) {
+    CALL("OperatorType::getFunctionType(std::initializer_list<unsigned>)");
+
+    OperatorKey* key = setupKey(sorts);
+    (*key)[sorts.size()] = resultSort;
+    return getTypeFromKey(key);
+  }
+
+  static OperatorType* getFunctionTypeTypeUniformRange(unsigned arity, unsigned argsSort, unsigned resultSort) {
+    CALL("OperatorType::getFunctionTypeTypeUniformRange");
+
+    OperatorKey* key = setupKeyUniformRange(arity,argsSort);
+    (*key)[arity] = resultSort;
+    return getTypeFromKey(key);
+  }
+
+  /**
+   * Convenience function for creating OperatorType for constants (as symbols).
+   * Constants are function symbols of 0 arity, so just provide the result sort.
+   */
+  static OperatorType* getConstantsType(unsigned resultSort) { return getFunctionType(0,nullptr,resultSort); }
+
+  unsigned arity() const { return _key->length()-1; }
 
   unsigned arg(unsigned idx) const
   {
-    CALL("BaseType::arg");
-    return (*_args)[idx];
+    CALL("OperatorType::arg");
+    return (*_key)[idx];
   }
 
-  unsigned arity() const { return _args ? _args->length() : 0; }
-  virtual bool isSingleSortType(unsigned sort) const;
+  bool isPredicateType() const { return (*_key)[arity()] == PREDICATE_FLAG; };
+  bool isFunctionType() const { return (*_key)[arity()] != PREDICATE_FLAG; };
+  unsigned result() const {
+    CALL("OperatorType::result");
+    ASS(isFunctionType());
+    return (*_key)[arity()];
+  }
+
+  vstring toString() const;
+
+  bool isSingleSortType(unsigned sort) const;
   bool isAllDefault() const { return isSingleSortType(Sorts::SRT_DEFAULT); }
 
-  virtual bool isFunctionType() const { return false; }
+  bool operator==(const OperatorType& o) const { return _key == o._key; }
+  bool operator!=(const OperatorType& o) const { return !(*this==o); }
 
-  bool operator==(const BaseType& o) const;
-  bool operator!=(const BaseType& o) const { return !(*this==o); }
-
-  virtual vstring toString() const = 0;
-protected:
-  BaseType(unsigned arity, const unsigned* sorts=0);
-  BaseType(std::initializer_list<unsigned> sorts);
-
+private:
   vstring argsToString() const;
-private:
-  typedef Vector<unsigned> SortVector;
-  SortVector* _args;
-};
-
-class PredicateType : public BaseType
-{
-public:
-  CLASS_NAME(PredicateType);
-  USE_ALLOCATOR(PredicateType);
-
-  PredicateType(unsigned arity, const unsigned* argumentSorts)
-   : BaseType(arity, argumentSorts) {}
-  PredicateType(std::initializer_list<unsigned> sorts) : BaseType(sorts) {}
-
-  virtual vstring toString() const;
-
-  static PredicateType* makeTypeUniformRange(unsigned arity, unsigned argsSort);
-};
-
-class FunctionType : public BaseType
-{
-public:
-  CLASS_NAME(FunctionType);
-  USE_ALLOCATOR(FunctionType);
-
-  FunctionType(unsigned arity, const unsigned* argumentSorts, unsigned resultSort)
-   : BaseType(arity, argumentSorts), _result(resultSort) {}
-  FunctionType(unsigned resultSort)
-   : BaseType(0, 0), _result(resultSort) {}
-  FunctionType(std::initializer_list<unsigned> argSorts, unsigned resultSort)
-   : BaseType(argSorts), _result(resultSort) {}
-
-  unsigned result() const { return _result; }
-
-  virtual bool isSingleSortType(unsigned sort) const;
-  virtual bool isFunctionType() const { return true; }
-
-  virtual vstring toString() const;
-
-  static FunctionType* makeTypeUniformRange(unsigned arity, unsigned argsSort, unsigned rangeSort);
-private:
-  unsigned _result;
 };
 
 }
