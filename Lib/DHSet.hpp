@@ -53,8 +53,6 @@ public:
   CLASS_NAME(DHSet);
   USE_ALLOCATOR(DHSet);
 
-  DHSet() {}
-
   /** Empty the DHSet */
   void reset()
   {
@@ -161,8 +159,6 @@ public:
     return _map.domain();
   }
 private:
-  /** Copy constructor is private and without a body, because we don't want any. */
-  DHSet(const DHSet& obj);
   /** operator= is private and without a body, because we don't want any. */
   DHSet& operator=(const DHSet& obj);
 
