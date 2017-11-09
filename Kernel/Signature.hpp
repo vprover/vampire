@@ -206,23 +206,6 @@ class Signature
     CLASS_NAME(Signature::Symbol);
     USE_ALLOCATOR(Symbol);
   }; // class Symbol
-
-  
-  class VarSymbol{
-  protected:
-    /** print name*/
-    vstring _name;
-  public: 
-    /**Standard Constructor*/
-    VarSymbol(const vstring& nm);
-    
-    /** Return the name of the symbol*/
-    inline const vstring& name() const {return _name;}
-    
-    CLASS_NAME("Signature::VarSymbol");
-    USE_ALLOCATOR(VarSymbol);
-  };//class VarSymbol
-  
   
   class InterpretedSymbol
   : public Symbol
@@ -307,36 +290,6 @@ class Signature
     USE_ALLOCATOR(RealSymbol);
   };
     
-  //////////////////////////////////////
-  // Variable Symbol declarations
-  //
-  
-  /**
-   * If a variable with this name and arity exists, return its number 
-   * Otherwise, add a new one and return its number 
-   */
-  unsigned addVar(const vstring& name){
-    CALL("Signature::addVar");
-    bool added;
-    return addVar(name, added);
-  }
-  
-  const vstring& varName(Var number){
-    return _vars[number]->name();
-  }
-  
-  /**return the number of variables */
-  size_t vars() const {return _vars.length(); }
-  
-  
-  /**return the function symbol by its number*/
-  inline VarSymbol* getVar(unsigned n){
-    CALL("Signature::getVar");
-    ASS(n<vars());
-    return _vars[n];
-  }
-  
-  unsigned addVar(const vstring& name, bool& added);
   //////////////////////////////////////
   // Uninterpreted symbol declarations
   //
@@ -548,8 +501,6 @@ private:
 
   static bool isProtectedName(vstring name);
   static bool charNeedsQuoting(char c, bool first);
-  /** Stack of function symbols -- used for bound propagation*/
-  Stack<VarSymbol*> _vars;
   /** Stack of function symbols */
   Stack<Symbol*> _funs;
   /** Stack of predicate symbols */
