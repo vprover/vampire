@@ -399,8 +399,7 @@ VS_OBJ = Shell/AnswerExtractor.o\
 #         Shell/HalfBoundingRemover.o\
 #         Shell/SubsumptionRemover.o\
 
-PARSE_OBJ = Parse/SMTLIB.o\
-            Parse/SMTLIB2.o\
+PARSE_OBJ = Parse/SMTLIB2.o\
             Parse/TPTP.o
 
 DP_OBJ = DP/ShortConflictMetaDP.o\

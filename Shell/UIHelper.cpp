@@ -39,7 +39,6 @@
 #include "Kernel/Problem.hpp"
 #include "Kernel/FormulaUnit.hpp"
 
-#include "Parse/SMTLIB.hpp"
 #include "Parse/SMTLIB2.hpp"
 #include "Parse/TPTP.hpp"
 
@@ -251,13 +250,19 @@ Problem* UIHelper::getInputProblem(const Options& opts)
     }
     break;
   case Options::InputSyntax::SMTLIB:
-    {
-      Parse::SMTLIB parser(opts);
-      parser.parse(*input);
-      units = parser.getFormulas();
-      s_haveConjecture=true;
+    /*  {
+        Parse::SMTLIB parser(opts);
+        parser.parse(*input);
+        units = parser.getFormulas();
+        s_haveConjecture=true;
+      }
+      break; */
+    if (outputAllowed()) {
+      env.beginOutput();
+      addCommentSignForSZS(env.out());
+      env.out() << "Vampire no longer supports the old smtlib format, trying with smtlib2 instead." << endl;
+      env.endOutput();
     }
-    break;
   case Options::InputSyntax::SMTLIB2:
   {
 	  Parse::SMTLIB2 parser(opts);
