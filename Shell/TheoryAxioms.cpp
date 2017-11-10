@@ -946,29 +946,40 @@ void TheoryAxioms::addBooleanArrayWriteAxioms(Interpretation select, Interpretat
   ASS(theory->isArrayOperation(select));
   ASS_EQ(theory->getArity(select),2);
 
-
   unsigned pred_select = env.signature->getInterpretingSymbol(select);
   unsigned func_store = env.signature->getInterpretingSymbol(store);
 
-  unsigned rangeSort = theory->getArrayOperationSort(select);
+  //unsigned rangeSort = theory->getArrayOperationSort(select);
   unsigned domainSort = theory->getArrayDomainSort(select);
   //unsigned arraySort = theory->getOperationSort(store);
 
-  TermList i(0,false);
-  TermList j(1,false);
+  TermList a(0,false);
+  TermList i(1,false);
+
+  TermList false_(Term::foolFalse());
+  TermList true_(Term::foolTrue());
+
+  // select(store(A,I,$$true), I)
+  //~select(store(A,I,$$false), I)
+
+  for (TermList bval : {false_,true_}) {
+    TermList args[] = {a, i, bval};
+    TermList wAIV(Term::create(func_store, 3, args)); //store(A,I,bval)
+    Literal* lit = Literal::create2(pred_select, true, wAIV,i);
+    if (bval == false_) {
+      lit = Literal::complementaryLiteral(lit);
+    }
+    Formula* ax = new AtomicFormula(lit);
+    addAndOutputTheoryUnit(new FormulaUnit(ax, new Inference(Inference::THEORY), Unit::AXIOM),CHEAP);
+  }
+
   TermList v(2,false);
-  TermList a(3,false);
+  TermList j(3,false);
+
   TermList args[] = {a, i, v};
 
-  //axiom (!A: arraySort, !I:domainSort, !V:rangeSort: (select(store(A,I,V), I) <=> (V = $$true)
-  TermList wAIV(Term::create(func_store, 3, args)); //store(A,I,V)
-  Formula* sWI = new AtomicFormula(Literal::create2(pred_select, true, wAIV,i)); //select(wAIV,I)
-  TermList true_(Term::foolTrue());
-  Formula* xeqt = new AtomicFormula(Literal::createEquality(true, true_, v, rangeSort));
-  Formula* ax = new BinaryFormula(IFF, xeqt, sWI);
-  addAndOutputTheoryUnit(new FormulaUnit(ax, new Inference(Inference::THEORY), Unit::AXIOM),CHEAP);
-
   //axiom (!A: arraySort, !I,J:domainSort, !V:rangeSort: (I!=J)->(select(store(A,I,V), J) <=> select(A,J)
+  TermList wAIV(Term::create(func_store, 3, args)); //store(A,I,V)
   Formula* sWJ = new AtomicFormula(Literal::create2(pred_select, true, wAIV,j)); //select(wAIV,J)
   Formula* sAJ = new AtomicFormula(Literal::create2(pred_select, true, a, j)); //select(A,J)
 
