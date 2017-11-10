@@ -99,7 +99,6 @@ class Signature
     /** if used in a unit **/
     unsigned _inUnit : 1;
 
-    ~Symbol();
   public:
     /** standard constructor */
     Symbol(const vstring& nm,unsigned arity, bool interpreted=false, bool stringConstant=false,bool numericConstant=false,bool overflownConstant=false);

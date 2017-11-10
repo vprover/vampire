@@ -72,15 +72,6 @@ Signature::Symbol::Symbol(const vstring& nm,unsigned arity, bool interpreted, bo
   }
 } // Symbol::Symbol
 
-Signature::Symbol::~Symbol()
-{
-  CALL("Signature::Symbol::~Symbol");
-
-  if (_type) {
-    delete _type;
-  }
-}
-
 /**
  * Deallocate function Symbol object
  */
