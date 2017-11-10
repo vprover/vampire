@@ -61,8 +61,6 @@ public:
   enum class StructuredSort {
     /** The structured sort for arrays **/
     ARRAY,
-    /** The structured sort for lists, currently unused **/
-    LIST,
     /** The structured sort for tuples */
     TUPLE,
     /** not a real structured sort, it's here to denote the length of the StructuredSort enum */

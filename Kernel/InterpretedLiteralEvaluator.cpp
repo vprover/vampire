@@ -281,13 +281,6 @@ public:
   virtual bool canEvaluate(Interpretation interp)
   {
     CALL("InterpretedLiteralEvaluator::TypedEvaluator::canEvaluate");
-
-    //only interpreted operations with non-single argument sort are array operations
-    if (theory->isArrayOperation(interp))
-    {
-        unsigned opSort = theory->getArrayOperationSort(interp);
-        return opSort==T::getSort();
-    }
     
     // This is why we cannot evaluate Equality here... we cannot determine its sort
     if (!theory->hasSingleSort(interp)) { return false; } //To skip conversions and EQUAL

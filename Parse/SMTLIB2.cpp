@@ -1650,7 +1650,7 @@ bool SMTLIB2::parseAsBuiltinFormulaSymbol(const vstring& id, LExpr* exp)
         lastConjunct = new AtomicFormula(Literal::createEquality(true, first, second, sort));
       } else {
         Interpretation intp = getFormulaSymbolInterpretation(fs,sort);
-        pred = Theory::instance()->getPredNum(intp);
+        pred = env.signature->getInterpretingSymbol(intp);
         lastConjunct = new AtomicFormula(Literal::create2(pred,true,first,second));
       }
 
@@ -1740,7 +1740,7 @@ bool SMTLIB2::parseAsBuiltinFormulaSymbol(const vstring& id, LExpr* exp)
         complainAboutArgShortageOrWrongSorts(BUILT_IN_SYMBOL,exp);
       }
 
-      unsigned pred = Theory::instance()->getPredNum(Theory::REAL_IS_INT);
+      unsigned pred = env.signature->getInterpretingSymbol(Theory::REAL_IS_INT);
       Formula* res = new AtomicFormula(Literal::create1(pred,true,arg));
 
       _results.push(res);
@@ -1819,7 +1819,7 @@ bool SMTLIB2::parseAsBuiltinTermSymbol(const vstring& id, LExpr* exp)
         complainAboutArgShortageOrWrongSorts(BUILT_IN_SYMBOL,exp);
       }
 
-      unsigned fun = Theory::instance()->getFnNum(Theory::INT_TO_REAL);
+      unsigned fun = env.signature->getInterpretingSymbol(Theory::INT_TO_REAL);
       TermList res = TermList(Term::create1(fun,theInt));
 
       _results.push(ParseResult(Sorts::SRT_REAL,res));
@@ -1833,7 +1833,7 @@ bool SMTLIB2::parseAsBuiltinTermSymbol(const vstring& id, LExpr* exp)
         complainAboutArgShortageOrWrongSorts(BUILT_IN_SYMBOL,exp);
       }
 
-      unsigned fun = Theory::instance()->getFnNum(Theory::REAL_TO_INT);
+      unsigned fun = env.signature->getInterpretingSymbol(Theory::REAL_TO_INT);
       TermList res = TermList(Term::create1(fun,theReal));
 
       _results.push(ParseResult(Sorts::SRT_INTEGER,res));
@@ -1858,13 +1858,16 @@ bool SMTLIB2::parseAsBuiltinTermSymbol(const vstring& id, LExpr* exp)
       }
 
       if (arraySort->getInnerSort() == Sorts::SRT_BOOL) {
-        unsigned pred = Theory::instance()->getSymbolForStructuredSort(arraySortIdx,Theory::StructuredSortInterpretation::ARRAY_BOOL_SELECT);
+        OperatorType* predType = Theory::getArrayOperatorType(arraySortIdx,Theory::ARRAY_BOOL_SELECT);
+        unsigned pred = env.signature->getInterpretingSymbol(Theory::ARRAY_BOOL_SELECT,predType);
 
         Formula* res = new AtomicFormula(Literal::create2(pred,true,theArray,theIndex));
 
         _results.push(ParseResult(res));
       } else {
-        unsigned fun = Theory::instance()->getSymbolForStructuredSort(arraySortIdx,Theory::StructuredSortInterpretation::ARRAY_SELECT);
+        OperatorType* funType = Theory::getArrayOperatorType(arraySortIdx,Theory::ARRAY_SELECT);
+        unsigned fun = env.signature->getInterpretingSymbol(Theory::ARRAY_SELECT,funType);
+
         TermList res = TermList(Term::create2(fun,theArray,theIndex));
 
         _results.push(ParseResult(arraySort->getInnerSort(),res));
@@ -1896,7 +1899,8 @@ bool SMTLIB2::parseAsBuiltinTermSymbol(const vstring& id, LExpr* exp)
         complainAboutArgShortageOrWrongSorts(BUILT_IN_SYMBOL,exp);
       }
 
-      unsigned fun = Theory::instance()->getSymbolForStructuredSort(arraySortIdx,Theory::StructuredSortInterpretation::ARRAY_STORE);
+      OperatorType* funType = Theory::getArrayOperatorType(arraySortIdx,Theory::ARRAY_STORE);
+      unsigned fun = env.signature->getInterpretingSymbol(Theory::ARRAY_STORE,funType);
 
       TermList args[] = {theArray, theIndex, theValue};
       TermList res = TermList(Term::Term::create(fun, 3, args));
@@ -1913,7 +1917,7 @@ bool SMTLIB2::parseAsBuiltinTermSymbol(const vstring& id, LExpr* exp)
         complainAboutArgShortageOrWrongSorts(BUILT_IN_SYMBOL,exp);
       }
 
-      unsigned fun = Theory::instance()->getFnNum(Theory::INT_ABS);
+      unsigned fun = env.signature->getInterpretingSymbol(Theory::INT_ABS);
       TermList res = TermList(Term::create1(fun,theInt));
 
       _results.push(ParseResult(Sorts::SRT_INTEGER,res));
@@ -1928,7 +1932,7 @@ bool SMTLIB2::parseAsBuiltinTermSymbol(const vstring& id, LExpr* exp)
         complainAboutArgShortageOrWrongSorts(BUILT_IN_SYMBOL,exp);
       }
 
-      unsigned fun = Theory::instance()->getFnNum(Theory::INT_REMAINDER_E); // TS_MOD is the always positive remainder, therefore INT_REMAINDER_E
+      unsigned fun = env.signature->getInterpretingSymbol(Theory::INT_REMAINDER_E); // TS_MOD is the always positive remainder, therefore INT_REMAINDER_E
       TermList res = TermList(Term::create2(fun,int1,int2));
 
       _results.push(ParseResult(Sorts::SRT_INTEGER,res));
@@ -1951,7 +1955,7 @@ bool SMTLIB2::parseAsBuiltinTermSymbol(const vstring& id, LExpr* exp)
       if (_results.isEmpty() || _results.top().isSeparator()) {
         if (ts == TS_MINUS) { // unary minus
           Interpretation intp = getUnaryMinusInterpretation(sort);
-          unsigned fun = Theory::instance()->getFnNum(intp);
+          unsigned fun = env.signature->getInterpretingSymbol(intp);
 
           TermList res = TermList(Term::create1(fun,first));
 
@@ -1964,7 +1968,7 @@ bool SMTLIB2::parseAsBuiltinTermSymbol(const vstring& id, LExpr* exp)
       }
 
       Interpretation intp = getTermSymbolInterpretation(ts,sort);
-      unsigned fun = Theory::instance()->getFnNum(intp);
+      unsigned fun = env.signature->getInterpretingSymbol(intp);
 
       TermList second;
       if (_results.pop().asTerm(second) != sort) {
@@ -2021,7 +2025,7 @@ void SMTLIB2::parseRankedFunctionApplication(LExpr* exp)
       complainAboutArgShortageOrWrongSorts("ranked function symbol",exp);
     }
 
-    unsigned pred = Theory::instance()->getPredNum(Theory::INT_DIVIDES);
+    unsigned pred = env.signature->getInterpretingSymbol(Theory::INT_DIVIDES);
     env.signature->recordDividesNvalue(divisorTerm);
 
     Formula* res = new AtomicFormula(Literal::create2(pred,true,divisorTerm,arg));

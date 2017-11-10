@@ -262,69 +262,6 @@ Signature::~Signature ()
 } // Signature::~Signature
 
 /**
- * Add interpreted function
- */
-unsigned Signature::addInterpretedFunction(Interpretation interpretation, const vstring& name)
-{
-  CALL("Signature::addInterpretedFunction");
-  ASS(Theory::isFunction(interpretation));
-
-  unsigned res;
-  if (_iSymbols.find(interpretation,res)) { // already declared
-    if (name!=functionName(res)) {
-      USER_ERROR("Interpreted function '"+functionName(res)+"' has the same interpretation as '"+name+"' should have");
-    }
-    return res;
-  }
-
-  vstring symbolKey = name+"_i"+Int::toString(interpretation);
-  ASS(!_funNames.find(symbolKey));
-
-  unsigned fnNum = _funs.length();
-  InterpretedSymbol* sym = new InterpretedSymbol(name, interpretation);
-  _funs.push(sym);
-  _funNames.insert(symbolKey, fnNum);
-  ALWAYS(_iSymbols.insert(interpretation, fnNum));
-  OperatorType* fnType = Theory::getOperationType(interpretation);
-  ASS(fnType->isFunctionType());
-  sym->setType(fnType);
-  return fnNum;
-} // Signature::addInterpretedFunction
-
-/**
- * Add interpreted predicate
- */
-unsigned Signature::addInterpretedPredicate(Interpretation interpretation, const vstring& name)
-{
-  CALL("Signature::addInterpretedPredicate");
-  ASS(!Theory::isFunction(interpretation));
-
-  unsigned res;
-  if (_iSymbols.find(interpretation,res)) { // already declared
-    if (name!=predicateName(res)) {
-      USER_ERROR("Interpreted predicate '"+predicateName(res)+"' has the same interpretation as '"+name+"' should have");
-    }
-    return res;
-  }
-
-  vstring symbolKey = name+"_i"+Int::toString(interpretation);
-
-  ASS(!_predNames.find(symbolKey));
-
-  unsigned predNum = _preds.length();
-  InterpretedSymbol* sym = new InterpretedSymbol(name, interpretation);
-  _preds.push(sym);
-  _predNames.insert(symbolKey,predNum);
-  ALWAYS(_iSymbols.insert(interpretation, predNum));
-  if (predNum!=0) {
-    OperatorType* predType = Theory::getOperationType(interpretation);
-    ASS_REP(!predType->isFunctionType(), predType->toString());
-    sym->setType(predType);
-  }
-  return predNum;
-} // Signature::addInterpretedPredicate
-
-/**
  * Add an integer constant to the signature. If defaultSort is true, treat it as
  * a term of the default sort, otherwise as an interepreted integer value.
  * @since 03/05/2013 train Manchester-London
@@ -476,18 +413,87 @@ unsigned Signature::addRealConstant(const RealConstantType& value)
 }
 
 /**
+ * Add interpreted function
+ */
+unsigned Signature::addInterpretedFunction(Interpretation interpretation, OperatorType* type, const vstring& name)
+{
+  CALL("Signature::addInterpretedFunction(Interpretation,OperatorType*,const vstring&)");
+  ASS(Theory::isFunction(interpretation));
+
+  Theory::MonomorphisedInterpretation mi = std::make_pair(interpretation,type);
+
+  unsigned res;
+  if (_iSymbols.find(mi,res)) { // already declared
+    if (name!=functionName(res)) {
+      USER_ERROR("Interpreted function '"+functionName(res)+"' has the same interpretation as '"+name+"' should have");
+    }
+    return res;
+  }
+
+  vstring symbolKey = name+"_i"+Int::toString(interpretation)+(Theory::isPolymorphic(interpretation) ? type->toString() : "");
+  ASS(!_funNames.find(symbolKey));
+
+  unsigned fnNum = _funs.length();
+  InterpretedSymbol* sym = new InterpretedSymbol(name, interpretation);
+  _funs.push(sym);
+  _funNames.insert(symbolKey, fnNum);
+  ALWAYS(_iSymbols.insert(mi, fnNum));
+
+  OperatorType* fnType = Theory::getNonpolymorphicOperatorType(interpretation);
+  ASS(fnType->isFunctionType());
+  sym->setType(fnType);
+  return fnNum;
+} // Signature::addInterpretedFunction
+
+/**
+ * Add interpreted predicate
+ */
+unsigned Signature::addInterpretedPredicate(Interpretation interpretation, OperatorType* type, const vstring& name)
+{
+  CALL("Signature::addInterpretedPredicate(Interpretation,OperatorType*,const vstring&)");
+  ASS(!Theory::isFunction(interpretation));
+
+  Theory::MonomorphisedInterpretation mi = std::make_pair(interpretation,type);
+
+  unsigned res;
+  if (_iSymbols.find(mi,res)) { // already declared
+    if (name!=predicateName(res)) {
+      USER_ERROR("Interpreted predicate '"+predicateName(res)+"' has the same interpretation as '"+name+"' should have");
+    }
+    return res;
+  }
+
+  vstring symbolKey = name+"_i"+Int::toString(interpretation)+(Theory::isPolymorphic(interpretation) ? type->toString() : "");
+
+  ASS(!_predNames.find(symbolKey));
+
+  unsigned predNum = _preds.length();
+  InterpretedSymbol* sym = new InterpretedSymbol(name, interpretation);
+  _preds.push(sym);
+  _predNames.insert(symbolKey,predNum);
+  ALWAYS(_iSymbols.insert(mi, predNum));
+  if (predNum!=0) {
+    OperatorType* predType = Theory::getNonpolymorphicOperatorType(interpretation);
+    ASS_REP(!predType->isFunctionType(), predType->toString());
+    sym->setType(predType);
+  }
+  return predNum;
+} // Signature::addInterpretedPredicate
+
+
+/**
  * Return number of symbol that is interpreted by Interpretation @b interp.
  *
  * If no such symbol exists, it is created.
  */
-unsigned Signature::getInterpretingSymbol(Interpretation interp)
+unsigned Signature::getInterpretingSymbol(Interpretation interp, OperatorType* type)
 {
-  CALL("Signature::getInterpretingSymbol");
+  CALL("Signature::getInterpretingSymbol(Interpretation,OperatorType*)");
   
-  ASS(Theory::instance()->isValidInterpretation(interp));
-    
+  Theory::MonomorphisedInterpretation mi = std::make_pair(interp,type);
+
   unsigned res;
-  if (_iSymbols.find(interp, res)) {
+  if (_iSymbols.find(mi, res)) {
     return res;
   }
 
@@ -502,7 +508,7 @@ unsigned Signature::getInterpretingSymbol(Interpretation interp)
       }
       name=name+Int::toString(i);
     }
-    addInterpretedFunction(interp, name);
+    addInterpretedFunction(interp, type, name);
   }
   else {
     if (predicateExists(name, arity)) {
@@ -512,17 +518,11 @@ unsigned Signature::getInterpretingSymbol(Interpretation interp)
       }
       name=name+Int::toString(i);
     }
-    addInterpretedPredicate(interp, name);
+    addInterpretedPredicate(interp, type, name);
   }
 
   //we have now registered a new function, so it should be present in the map
-  return _iSymbols.get(interp);
-}
-
-unsigned Signature::getStructureInterpretationFunctor(unsigned theorySort, Theory::StructuredSortInterpretation ssi) {
-  CALL("Signature::getStructureInterpretationFunctor");
-  Interpretation i = Theory::instance()->getInterpretation(theorySort, ssi);
-  return env.signature->getInterpretingSymbol(i);
+  return _iSymbols.get(mi);
 }
 
 const vstring& Signature::functionName(int number)

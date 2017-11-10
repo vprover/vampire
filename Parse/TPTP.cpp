@@ -1480,9 +1480,9 @@ void TPTP::endTheoryFunction() {
    * endTermAsFormula().
    */
 
-  Theory::StructuredSortInterpretation ssi;
+  Theory::Interpretation itp;
   TermList args[3]; // all theory function use up to 3 arguments as for now
-  unsigned theorySort;
+  unsigned arraySort;
 
   TheoryFunction tf = _theoryFunctions.pop();
   switch (tf) {
@@ -1490,7 +1490,7 @@ void TPTP::endTheoryFunction() {
       TermList index = _termLists.pop();
       TermList array = _termLists.pop();
 
-      unsigned arraySort = sortOf(array);
+      arraySort = sortOf(array);
       if (!env.sorts->isOfStructuredSort(arraySort, Sorts::StructuredSort::ARRAY)) {
         USER_ERROR("$select is being incorrectly used on a type of array " + env.sorts->sortName(arraySort) + " that has not be defined");
       }
@@ -1502,12 +1502,11 @@ void TPTP::endTheoryFunction() {
 
       args[0] = array;
       args[1] = index;
-      theorySort = arraySort;
 
       if (env.sorts->getArraySort(arraySort)->getInnerSort() == Sorts::SRT_BOOL) {
-        ssi = Theory::StructuredSortInterpretation::ARRAY_BOOL_SELECT;
+        itp = Theory::Interpretation::ARRAY_BOOL_SELECT;
       } else {
-        ssi = Theory::StructuredSortInterpretation::ARRAY_SELECT;
+        itp = Theory::Interpretation::ARRAY_SELECT;
       }
       break;
     }
@@ -1516,7 +1515,7 @@ void TPTP::endTheoryFunction() {
       TermList index = _termLists.pop();
       TermList array = _termLists.pop();
 
-      unsigned arraySort = sortOf(array);
+      arraySort = sortOf(array);
       if (!env.sorts->isOfStructuredSort(arraySort, Sorts::StructuredSort::ARRAY)) {
         USER_ERROR("store is being incorrectly used on a type of array that has not be defined");
       }
@@ -1535,8 +1534,7 @@ void TPTP::endTheoryFunction() {
       args[1] = index;
       args[2] = value;
 
-      ssi = Theory::StructuredSortInterpretation::ARRAY_STORE;
-      theorySort = arraySort;
+      itp = Theory::Interpretation::ARRAY_STORE;
 
       break;
     }
@@ -1544,11 +1542,11 @@ void TPTP::endTheoryFunction() {
       ASSERTION_VIOLATION_REP(tf);
   }
 
-  Interpretation i = Theory::instance()->getInterpretation(theorySort, ssi);
-  unsigned symbol = env.signature->getStructureInterpretationFunctor(theorySort, ssi);
-  unsigned arity = Theory::getArity(i);
+  OperatorType* type = Theory::getArrayOperatorType(arraySort,itp);
+  unsigned symbol = env.signature->getInterpretingSymbol(itp, type);
+  unsigned arity = Theory::getArity(itp);
 
-  if (Theory::isFunction(i)) {
+  if (Theory::isFunction(itp)) {
     Term* term = Term::create(symbol, arity, args);
     _termLists.push(TermList(term));
   } else {

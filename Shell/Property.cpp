@@ -90,8 +90,7 @@ Property::Property()
     _allQuantifiersEssentiallyExistential(true),
     _smtlibLogic(SMTLIBLogic::SMT_UNDEFINED)
 {
-  //TODO now MaxInterpretedElement is stateful this might be in the wrong place
-  _interpretationPresence.init(Theory::instance()->numberOfInterpretations()+1, false);
+  _interpretationPresence.init(Theory::instance()->numberOfInterpretations(), false);
   env.property = this;
 } // Property::Property
 
@@ -628,15 +627,20 @@ void Property::scanForInterpreted(Term* t)
     itp = theory->interpretFunction(t);
   }
   _hasInterpreted = true;
+
   if(itp < _interpretationPresence.size()){
     _interpretationPresence[itp] = true;
   }
+
+  if (Theory::isPolymorphic(itp)) {
+    OperatorType* type = t->isLiteral() ?
+        env.signature->getPredicate(t->functor())->predType() : env.signature->getFunction(t->functor())->fnType();
+
+    _polymorphicInterpretations.insert(std::make_pair(itp,type));
+  }
+
   if(Theory::isConversionOperation(itp)){
     addProp(PR_NUMBER_CONVERSION);
-    return;
-  }
-  if(Theory::isArrayOperation(itp)){
-    //addProp(PR_HAS_ARRAYS);
     return;
   }
 
