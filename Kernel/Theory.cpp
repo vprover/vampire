@@ -830,8 +830,6 @@ bool Theory::isPolymorphic(Interpretation i)
 
   switch(i) {
   case EQUAL:
-    return false; // for historical reasons equality is treated specially and does not count as polymorphic
-
   case ARRAY_SELECT:
   case ARRAY_BOOL_SELECT:
   case ARRAY_STORE:
@@ -1341,10 +1339,6 @@ OperatorType* Theory::getNonpolymorphicOperatorType(Interpretation i)
 {
   CALL("Theory::getNonpolymorphicOperationType");
   ASS(!isPolymorphic(i));
-
-  if (i == EQUAL) { // equality is special and maybe shouldn't be called interpreted
-    return nullptr;
-  }
 
   if (isConversionOperation(i)) {
     return getConversionOperationType(i);

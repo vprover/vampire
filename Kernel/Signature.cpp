@@ -220,7 +220,7 @@ Signature::Signature ():
   CALL("Signature::Signature");
 
   // initialize equality
-  addInterpretedPredicate(Theory::EQUAL, "=");
+  addInterpretedPredicate(Theory::EQUAL, OperatorType::getPredicateType(2), "=");
   ASS_EQ(predicateName(0), "="); //equality must have number 0
   getPredicate(0)->markSkip();
 
