@@ -92,6 +92,25 @@ public:
     DEALLOC_KNOWN(this,sz,"Vector");
   } // deallocate
 
+  bool operator==(const Vector& v) const
+  {
+    CALL("Vector::operator==");
+
+    if(length()!=v.length()) {
+      return false;
+    }
+    size_t sz = length();
+    for(size_t i=0; i!=sz; ++i) {
+      if((*this)[i]!=v[i]) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  bool operator!=(const Vector& o) const
+  { return !((*this)==o); }
+
   /**
    * Convert the vector to its string representation. To use this function,
    * elements must have a toString() function too.
