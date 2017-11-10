@@ -52,7 +52,9 @@ InductionClauseIterator::InductionClauseIterator(Clause* premise)
 {
   CALL("InductionClauseIterator::InductionClauseIterator");
 
-  if(premise->length()==1){// && premise->inputType() == Unit::CONJECTURE){
+  static Options::Induction kind = env.options->induction();
+
+  if(premise->length()==1 && (kind == Options::Induction::ALL || premise->inputType() == Unit::CONJECTURE)){
     Literal* lit = (*premise)[0];
      // TODO change to allow for positive occurence of <
     if(lit->isNegative() && lit->ground()){
