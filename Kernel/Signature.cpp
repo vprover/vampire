@@ -24,6 +24,7 @@
 #include "Lib/Environment.hpp"
 #include "Lib/Int.hpp"
 #include "Shell/Options.hpp"
+#include "Shell/DistinctGroupExpansion.hpp"
 
 #include "Signature.hpp"
 
@@ -32,10 +33,6 @@ using namespace Kernel;
 using namespace Shell;
 
 const unsigned Signature::STRING_DISTINCT_GROUP = 0;
-const unsigned Signature::INTEGER_DISTINCT_GROUP = 1;
-const unsigned Signature::RATIONAL_DISTINCT_GROUP = 2;
-const unsigned Signature::REAL_DISTINCT_GROUP = 3;
-const unsigned Signature::LAST_BUILT_IN_DISTINCT_GROUP = 3;
 
 /**
  * Standard constructor.
@@ -131,9 +128,10 @@ void Signature::Symbol::addToDistinctGroup(unsigned group,unsigned this_number)
   env.signature->_distinctGroupsAddedTo=true;
 
   Stack<unsigned>* members = env.signature->_distinctGroupMembers[group];
-  // see DistinctGroupExpansion::apply for why 141
-  if(members->size()<141 || env.options->bfnt()
-                       || env.options->saturationAlgorithm()==Options::SaturationAlgorithm::FINITE_MODEL_BUILDING){ 
+  if(members->size() <= DistinctGroupExpansion::EXPAND_UP_TO_SIZE || env.options->bfnt()
+                       || env.options->saturationAlgorithm()==Options::SaturationAlgorithm::FINITE_MODEL_BUILDING){
+    // we add one more than EXPAND_UP_TO_SIZE to signal to DistinctGroupExpansion::apply not to expand
+    // ... instead DistinctEqualitySimplifier will take over
     members->push(this_number);
   }
 
@@ -225,17 +223,8 @@ Signature::Signature ():
   getPredicate(0)->markSkip();
 
   unsigned aux;
-  // Warning! reordering or removing some of below may brake the code in
-  // DistinctGroupExpansion::apply(UnitList*& units)
   aux = createDistinctGroup();
   ASS_EQ(STRING_DISTINCT_GROUP, aux);
-  aux = createDistinctGroup();
-  ASS_EQ(INTEGER_DISTINCT_GROUP, aux);
-  aux = createDistinctGroup();
-  ASS_EQ(RATIONAL_DISTINCT_GROUP, aux);
-  aux = createDistinctGroup();
-  ASS_EQ(REAL_DISTINCT_GROUP, aux);
-
 } // Signature::Signature
 
 /**
@@ -277,10 +266,12 @@ unsigned Signature::addIntegerConstant(const vstring& number,bool defaultSort)
 
   result = _funs.length();
   Symbol* sym = new Symbol(name,0,false,false,true);
+  /*
   sym->addToDistinctGroup(INTEGER_DISTINCT_GROUP,result);
   if(defaultSort){ 
      sym->addToDistinctGroup(STRING_DISTINCT_GROUP,result); // numbers are disctinct from strings
   }
+  */
   _funs.push(sym);
   _funNames.insert(symbolKey,result);
   return result;
@@ -304,8 +295,9 @@ unsigned Signature::addIntegerConstant(const IntegerConstantType& value)
   Symbol* sym = new IntegerSymbol(value);
   _funs.push(sym);
   _funNames.insert(key,result);
+  /*
   sym->addToDistinctGroup(INTEGER_DISTINCT_GROUP,result);
-  //sym->addToDistinctGroup(STRING_DISTINCT_GROUP,result); // numbers are distinct from strings
+  */
   return result;
 } // addIntegerConstant
 
@@ -332,10 +324,12 @@ unsigned Signature::addRationalConstant(const vstring& numerator, const vstring&
   }
   result = _funs.length();
   Symbol* sym = new Symbol(name,0,false,false,true);
+  /*
   if(defaultSort){ 
     sym->addToDistinctGroup(STRING_DISTINCT_GROUP,result); // numbers are distinct from strings
   }
   sym->addToDistinctGroup(RATIONAL_DISTINCT_GROUP,result);
+  */
   _funs.push(sym);
   _funNames.insert(key,result);
   return result;
@@ -378,10 +372,12 @@ unsigned Signature::addRealConstant(const vstring& number,bool defaultSort)
   }
   result = _funs.length();
   Symbol* sym = new Symbol(value.toNiceString(),0,false,false,true);
+  /*
   if(defaultSort){ 
     sym->addToDistinctGroup(STRING_DISTINCT_GROUP,result); // numbers are distinct from strings
   }
   sym->addToDistinctGroup(REAL_DISTINCT_GROUP,result);
+  */
   _funs.push(sym);
   _funNames.insert(key,result);
   return result;

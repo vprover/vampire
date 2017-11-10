@@ -35,6 +35,8 @@ using namespace Kernel;
  */
 class DistinctGroupExpansion {
 public:
+  static const unsigned EXPAND_UP_TO_SIZE = 140;
+
   DistinctGroupExpansion(){}
 
   void apply(Problem& prb);

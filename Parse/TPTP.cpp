@@ -2492,7 +2492,7 @@ Formula* TPTP::createPredicateApplication(vstring name, unsigned arity)
         }
         env.signature->addToDistinctGroup(ts.term()->functor(),grpIdx);
       }
-      return new Formula(true); // we ignore it, it evalutes to true as we have recorded it elsewhere
+      return new Formula(true); // we ignore it, it evaluates to true as we have recorded it elsewhere
     }
   }
   // not equality or distinct

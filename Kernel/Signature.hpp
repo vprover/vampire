@@ -467,10 +467,6 @@ class Signature
   unsigned reals() const {return _reals;}
 
   static const unsigned STRING_DISTINCT_GROUP;
-  static const unsigned INTEGER_DISTINCT_GROUP;
-  static const unsigned RATIONAL_DISTINCT_GROUP;
-  static const unsigned REAL_DISTINCT_GROUP;
-  static const unsigned LAST_BUILT_IN_DISTINCT_GROUP;
 
   unsigned getFoolConstantSymbol(bool isTrue){ 
     if(!_foolConstantsDefined){
