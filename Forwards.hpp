@@ -44,12 +44,6 @@ struct Relocator
   
 struct EmptyStruct {};
 
-
-struct DefaultEq {
-  template<typename T>
-  static bool equals(T o1, T o2) { return o1==o2; }
-};
-
 class Hash;
 struct IdentityHash;
 struct PtrIdentityHash;
