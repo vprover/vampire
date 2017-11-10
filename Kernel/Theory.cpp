@@ -1342,6 +1342,10 @@ OperatorType* Theory::getNonpolymorphicOperatorType(Interpretation i)
   CALL("Theory::getNonpolymorphicOperationType");
   ASS(!isPolymorphic(i));
 
+  if (i == EQUAL) { // equality is special and maybe shouldn't be called interpreted
+    return nullptr;
+  }
+
   if (isConversionOperation(i)) {
     return getConversionOperationType(i);
   }

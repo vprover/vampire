@@ -298,14 +298,27 @@ OperatorType* OperatorType::getTypeFromKey(OperatorType::OperatorKey* key)
 {
   CALL("OperatorType::getTypeFromKey");
 
+  /*
+  cout << "getTypeFromKey(" << key->length() << "): ";
+  for (unsigned i = 0; i < key->length(); i++) {
+    cout << (((*key)[i] == PREDICATE_FLAG) ? "FFFF" : env.sorts->sortName((*key)[i])) << ",";
+  }
+  */
+
   OperatorType* resultType;
   if (_operatorTypes.find(key,resultType)) {
     key->deallocate();
+
+    // cout << " Found " << resultType << endl;
+
     return resultType;
   }
 
   resultType = new OperatorType(key);
   _operatorTypes.insert(key,resultType);
+
+  // cout << " Created new " << resultType << endl;
+
   return resultType;
 }
 

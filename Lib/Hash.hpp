@@ -91,8 +91,8 @@ public:
   { return StackHash<Hash>::hash(obj); }
 
   template<typename T>
-  static unsigned hash(Vector<T>* obj)
-  { return VectorHash<Hash>::hash(*obj); }
+  static unsigned hash(Vector<T>& obj)
+  { return VectorHash<Hash>::hash(obj); }
 
   // Careful: using this default on structs may cause big trouble!
   // Even when all fields are properly initialized, there can remain "holes"
@@ -118,6 +118,17 @@ public:
   static unsigned hash(const unsigned char*,size_t length,unsigned begin);
   
   static unsigned combineHashes(unsigned h1, unsigned h2);
+};
+
+class PointerDereferencingHash {
+public:
+  template<typename T>
+  static bool equals(T o1, T o2)
+  { return (*o1) == (*o2); }
+
+  template<typename T>
+  static unsigned hash(T o1)
+  { return Hash::hash(*o1); }
 };
 
 struct IdentityHash

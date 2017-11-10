@@ -237,7 +237,7 @@ private:
   static OperatorKey* setupKey(std::initializer_list<unsigned> sorts);
   static OperatorKey* setupKeyUniformRange(unsigned arity, unsigned argsSort);
 
-  typedef Map<OperatorKey*,OperatorType*,Hash> OperatorTypes;
+  typedef Map<OperatorKey*,OperatorType*,PointerDereferencingHash> OperatorTypes;
   // we should delete all the stored OperatorTypes inside at the end of the world, when this get destroyed
   static OperatorTypes _operatorTypes;
 
@@ -322,9 +322,6 @@ public:
 
   bool isSingleSortType(unsigned sort) const;
   bool isAllDefault() const { return isSingleSortType(Sorts::SRT_DEFAULT); }
-
-  bool operator==(const OperatorType& o) const { return _key == o._key; }
-  bool operator!=(const OperatorType& o) const { return !(*this==o); }
 
 private:
   vstring argsToString() const;

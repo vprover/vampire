@@ -632,15 +632,16 @@ void Property::scanForInterpreted(Term* t)
     _interpretationPresence[itp] = true;
   }
 
+  if(Theory::isConversionOperation(itp)){
+    addProp(PR_NUMBER_CONVERSION);
+    return;
+  }
+
   if (Theory::isPolymorphic(itp)) {
     OperatorType* type = t->isLiteral() ?
         env.signature->getPredicate(t->functor())->predType() : env.signature->getFunction(t->functor())->fnType();
 
     _polymorphicInterpretations.insert(std::make_pair(itp,type));
-  }
-
-  if(Theory::isConversionOperation(itp)){
-    addProp(PR_NUMBER_CONVERSION);
     return;
   }
 

@@ -439,7 +439,7 @@ unsigned Signature::addInterpretedFunction(Interpretation interpretation, Operat
   _funNames.insert(symbolKey, fnNum);
   ALWAYS(_iSymbols.insert(mi, fnNum));
 
-  OperatorType* fnType = Theory::getNonpolymorphicOperatorType(interpretation);
+  OperatorType* fnType = type;
   ASS(fnType->isFunctionType());
   sym->setType(fnType);
   return fnNum;
@@ -453,6 +453,8 @@ unsigned Signature::addInterpretedPredicate(Interpretation interpretation, Opera
   CALL("Signature::addInterpretedPredicate(Interpretation,OperatorType*,const vstring&)");
   ASS(!Theory::isFunction(interpretation));
 
+  // cout << "addInterpretedPredicate " << (type ? type->toString() : "nullptr") << " " << name << endl;
+
   Theory::MonomorphisedInterpretation mi = std::make_pair(interpretation,type);
 
   unsigned res;
@@ -465,6 +467,8 @@ unsigned Signature::addInterpretedPredicate(Interpretation interpretation, Opera
 
   vstring symbolKey = name+"_i"+Int::toString(interpretation)+(Theory::isPolymorphic(interpretation) ? type->toString() : "");
 
+  // cout << "symbolKey " << symbolKey << endl;
+
   ASS(!_predNames.find(symbolKey));
 
   unsigned predNum = _preds.length();
@@ -473,7 +477,7 @@ unsigned Signature::addInterpretedPredicate(Interpretation interpretation, Opera
   _predNames.insert(symbolKey,predNum);
   ALWAYS(_iSymbols.insert(mi, predNum));
   if (predNum!=0) {
-    OperatorType* predType = Theory::getNonpolymorphicOperatorType(interpretation);
+    OperatorType* predType = type;
     ASS_REP(!predType->isFunctionType(), predType->toString());
     sym->setType(predType);
   }
