@@ -246,7 +246,7 @@ Term* getFreshConstant(unsigned index, unsigned srt)
   Stack<Term*>* sortedConstants = constants[srt]; 
   while(index+1 > sortedConstants->length()){
     unsigned sym = env.signature->addFreshFunction(0,"$inst");
-    FunctionType* type = new FunctionType(srt);
+    OperatorType* type = OperatorType::getConstantsType(srt);
     env.signature->getFunction(sym)->setType(type);
     Term* fresh = Term::createConstant(sym);
     sortedConstants->push(fresh);
