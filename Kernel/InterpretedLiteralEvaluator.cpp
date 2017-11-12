@@ -49,7 +49,7 @@ public:
   
   virtual ~Evaluator() {}
 
-  bool canEvaluateFunc(unsigned func)
+  virtual bool canEvaluateFunc(unsigned func)
   {
     CALL("InterpretedLiteralEvaluator::Evaluator::canEvaluateFunc");
 
@@ -60,7 +60,7 @@ public:
     return canEvaluate(interp);
   }
 
-  bool canEvaluatePred(unsigned pred)
+  virtual bool canEvaluatePred(unsigned pred)
   {
     CALL("InterpretedLiteralEvaluator::Evaluator::canEvaluatePred");
 
@@ -71,7 +71,7 @@ public:
     return canEvaluate(interp);
   }
 
-  virtual bool canEvaluate(Interpretation interp) = 0;
+  virtual bool canEvaluate(Interpretation interp) { return false; }
   virtual bool tryEvaluateFunc(Term* trm, TermList& res) { return false; }
   virtual bool tryEvaluatePred(Literal* trm, bool& res)  { return false; }
 };
@@ -90,15 +90,8 @@ public:
 class InterpretedLiteralEvaluator::EqualityEvaluator
   : public Evaluator
 {
-
-  virtual bool canEvaluate(Interpretation interp)
-  {
-    return interp==Interpretation::EQUAL; 
-  }
-
-  virtual bool tryEvaluateFunc(Term* trm, TermList& res)
-  {
-    ASSERTION_VIOLATION; // EQUAL is a predicate, not a function!
+  bool canEvaluatePred(unsigned pred) override {
+    return pred == 0; // the equality predicate
   }
 
   template<typename T>
@@ -123,14 +116,8 @@ class InterpretedLiteralEvaluator::EqualityEvaluator
   {
     CALL("InterpretedLiteralEvaluator::EqualityEvaluator::tryEvaluatePred");
 
-    // Return if this is not an equality between theory terms
-    if(!theory->isInterpretedPredicate(lit)){ return false; }
-
     try{
-
-      Interpretation itp = theory->interpretPredicate(lit);
-      ASS(itp==Interpretation::EQUAL);
-      ASS(theory->getArity(itp)==2);
+      ASS(lit->isEquality());
     
       // We try and interpret the equality as a number of different sorts
       // If it is not an equality between two constants of the same sort the

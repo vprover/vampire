@@ -590,8 +590,6 @@ unsigned Theory::getArity(Interpretation i)
 
     return 1;
 
-  case EQUAL:
-
   case INT_GREATER:
   case INT_GREATER_EQUAL:
   case INT_LESS:
@@ -729,8 +727,6 @@ bool Theory::isFunction(Interpretation i)
 
     return true;
 
-  case EQUAL:
-
   case INT_GREATER:
   case INT_GREATER_EQUAL:
   case INT_LESS:
@@ -806,7 +802,6 @@ bool Theory::hasSingleSort(Interpretation i)
   CALL("Theory::hasSingleSort");
 
   switch(i) {
-  case EQUAL:  // This not SingleSort because we don't know the sorts of its args
   case INT_TO_RAT:
   case INT_TO_REAL:
   case RAT_TO_INT:
@@ -829,7 +824,6 @@ bool Theory::isPolymorphic(Interpretation i)
   CALL("Theory::isPolymorphic");
 
   switch(i) {
-  case EQUAL:
   case ARRAY_SELECT:
   case ARRAY_BOOL_SELECT:
   case ARRAY_STORE:
@@ -1834,8 +1828,6 @@ vstring Theory::tryGetInterpretedLaTeXName(unsigned func, bool pred,bool polarit
   case INT_UNARY_MINUS:
   case RAT_UNARY_MINUS:
   case REAL_UNARY_MINUS: return "-a0";
-
-  case EQUAL:return "a0 "+pol+"= a1";
 
   case INT_GREATER: return "a0 "+pol+"> a1";
   case INT_GREATER_EQUAL: return "a0 "+pol+"\\geq a1";

@@ -156,53 +156,44 @@ void Instantiation::tryMakeLiteralFalse(Literal* lit, Stack<Substitution>& subs)
 {
   CALL("Instantiation::tryMakeLiteralFalse");
 
-    if(theory->isInterpretedPredicate(lit)){ 
-      Interpretation interpretation = theory->interpretPredicate(lit);
-      //unsigned sort = theory->getOperationSort(interpretation);
+  if(theory->isInterpretedPredicate(lit)){
+    Interpretation interpretation = theory->interpretPredicate(lit);
+    //unsigned sort = theory->getOperationSort(interpretation);
 
-      //TODO, very limited consideration, expand
-      switch(interpretation){
-        case Theory::EQUAL:
-        case Theory::INT_LESS: // do these less_equal cases make sense?
-        case Theory::RAT_LESS:
-        case Theory::REAL_LESS:
-        {
-          TermList* left = lit->nthArgument(0); TermList* right = lit->nthArgument(1); 
-          unsigned var;
-          Term* t = 0;
-          if(left->isVar() && !right->isVar()){
-           t = right->term(); 
-           var = left->var();
-          }
-          if(right->isVar() && !left->isVar()){
-           t = left->term(); 
-           var = right->var();
-          }
-          if(t){
-            // do occurs check
-            VariableIterator vit(t);
-            while(vit.hasNext()) if(vit.next().var()==var) return;
+    //TODO, very limited consideration, expand
+    if (interpretation == Theory::INT_LESS || interpretation == Theory::RAT_LESS || interpretation == Theory::REAL_LESS || lit->isEquality() ) {
+      TermList* left = lit->nthArgument(0); TermList* right = lit->nthArgument(1);
+      unsigned var;
+      Term* t = 0;
+      if(left->isVar() && !right->isVar()){
+       t = right->term();
+       var = left->var();
+      }
+      if(right->isVar() && !left->isVar()){
+       t = left->term();
+       var = right->var();
+      }
+      if(t){
+        // do occurs check
+        VariableIterator vit(t);
+        while(vit.hasNext()) if(vit.next().var()==var) return;
 
-            // we are okay
-            Substitution s1;
-            s1.bind(var,t);
-            subs.push(s1);
-            if(lit->polarity()){
-             t = tryGetDifferentValue(t);
-             if(t){
-               Substitution s2;
-               s2.bind(var,t);
-               subs.push(s2);
-             }
-            }
-          }
-          break;
+        // we are okay
+        Substitution s1;
+        s1.bind(var,t);
+        subs.push(s1);
+        if(lit->polarity()){
+         t = tryGetDifferentValue(t);
+         if(t){
+           Substitution s2;
+           s2.bind(var,t);
+           subs.push(s2);
+         }
         }
-        default: //TODO cover other cases
-          break;
       }
     }
-
+    // TODO cover other cases ...
+  }
 }
 
 Term* Instantiation::tryGetDifferentValue(Term* t)
