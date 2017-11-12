@@ -371,7 +371,7 @@ class Signature
     CALL("Signature::haveInterpretingSymbol(Interpretation, OperatorType*)");
     return _iSymbols.find(std::make_pair(interp,type));
   }
-  unsigned haveInterpretingSymbol(Interpretation interp)
+  bool haveInterpretingSymbol(Interpretation interp)
   {
     CALL("Signature::haveInterpretingSymbol(Interpretation)");
     ASS(!Theory::isPolymorphic(interp));
