@@ -11,6 +11,7 @@ There is a nice Makefile. You can make
  * vampire_rel for a release version
  * vampire_z3_rel to build with z3 (also works with debug) but for this you will need a z3 binary in include to link against
  * clean to clean things up
+
 You can also make
  * vtest for a set of unit tests. Run vtest -ls for help once compiled
  * vampire_gcov for a version with coverage information
