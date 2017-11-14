@@ -957,6 +957,7 @@ namespace z3 {
         unsigned lo() const { assert (is_app() && Z3_get_decl_num_parameters(ctx(), decl()) == 2); return static_cast<unsigned>(Z3_get_decl_int_parameter(ctx(), decl(), 1)); }
         unsigned hi() const { assert (is_app() && Z3_get_decl_num_parameters(ctx(), decl()) == 2); return static_cast<unsigned>(Z3_get_decl_int_parameter(ctx(), decl(), 0)); }
 
+        
         /**
            \brief sequence and regular expression operations.
            + is overloaeded as sequence concatenation and regular expression union.
@@ -1385,6 +1386,63 @@ namespace z3 {
     inline expr ugt(expr const & a, expr const & b) { return to_expr(a.ctx(), Z3_mk_bvugt(a.ctx(), a, b)); }
     inline expr ugt(expr const & a, int b) { return ugt(a, a.ctx().num_val(b, a.get_sort())); }
     inline expr ugt(int a, expr const & b) { return ugt(b.ctx().num_val(a, b.get_sort()), b); }
+    
+    inline expr bvextract(expr hi, expr lo, expr const & in)
+    {
+        Z3_ast r = Z3_mk_extract(in.ctx(), hi.get_numeral_uint(), lo.get_numeral_uint(), in); 
+        in.ctx().check_error();
+        return expr(in.ctx(), r);
+    }
+    inline expr bvnand(expr const & a, expr const & b)
+    {
+          
+          Z3_ast r = Z3_mk_bvnand(a.ctx(),a,b); 
+          a.ctx().check_error();
+          return expr(a.ctx(),r);
+    }
+    inline expr bvnor(expr const & a, expr const & b)
+    {
+          
+          Z3_ast r = Z3_mk_bvnor(a.ctx(),a,b); 
+          a.ctx().check_error();
+          return expr(a.ctx(),r);
+    }
+    inline expr bvxnor(expr const & a, expr const & b)
+    {
+          
+          Z3_ast r = Z3_mk_bvxnor(a.ctx(),a,b); 
+          a.ctx().check_error();
+          return expr(a.ctx(),r);
+    }
+    inline expr bv_rotateleft(expr const & a, expr const & b)
+    {
+          
+          Z3_ast r = Z3_mk_rotate_left(a.ctx(),a.get_numeral_uint(),b); 
+          a.ctx().check_error();
+          return expr(a.ctx(),r);
+    }
+    inline expr bv_rotateright(expr const & a, expr const & b)
+    {
+          
+          Z3_ast r = Z3_mk_rotate_right(a.ctx(),a.get_numeral_uint(),b); 
+          a.ctx().check_error();
+          return expr(a.ctx(),r);
+    }
+    inline expr bv_repeat(expr const & a, expr const & b)
+    {
+          
+          Z3_ast r = Z3_mk_repeat(a.ctx(),a.get_numeral_uint(),b); 
+          a.ctx().check_error();
+          return expr(a.ctx(),r);
+    }
+    
+    inline expr bvsmod(expr const & a, expr const & b)
+    {
+          
+          Z3_ast r = Z3_mk_bvsmod(a.ctx(),a,b); 
+          a.ctx().check_error();
+          return expr(a.ctx(),r);
+    }
     /**
        \brief unsigned division operator for bitvectors.
     */

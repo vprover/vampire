@@ -454,7 +454,10 @@ z3::expr Z3Interfacing::getz3expr(Term* trm,bool isLit,bool&nameExpression,bool 
             // store(array,index,value)
             ret = store(args[0],args[1],args[2]);
             break;
-          case Theory::StructuredSortInterpretation::BVUREM:
+            
+          ////////////////////////////////////////////////////////////////////////////////////////
+          ////////////////////////////////////////////////////////////////////////////////////////  
+          case Theory::StructuredSortInterpretation::BVUREM: 
             ret = urem(args[0],args[1]);    
             break;
           case Theory::StructuredSortInterpretation::BVUDIV:
@@ -466,20 +469,23 @@ z3::expr Z3Interfacing::getz3expr(Term* trm,bool isLit,bool&nameExpression,bool 
           case Theory::StructuredSortInterpretation::BVADD:
             ret = args[0]+args[1];  
             break;
-          case Theory::StructuredSortInterpretation::CONCAT:
-            ret = concat(args[0],args[1]);  //correct concat?
+          case Theory::StructuredSortInterpretation::CONCAT: 
+            ret = concat(args[0],args[1]);  
             break;
           case Theory::StructuredSortInterpretation::EXTRACT:
-            ret = args[2].extract(args[0],args[1]);  //correct?
-            break; 
+            ret = bvextract(args[0], args[1], args[2]);
+            break;   
           case Theory::StructuredSortInterpretation::BVNOT:
-            ret = !args[0];  
+            ret = ~args[0];  
             break;
-          case Theory::StructuredSortInterpretation::BVAND:
+          case Theory::StructuredSortInterpretation::BVAND: 
             ret = args[0]&args[1];  
             break;
-          case Theory::StructuredSortInterpretation::BVOR:
-            ret = args[0]||args[1];  
+          case Theory::StructuredSortInterpretation::BVNAND:
+            ret = bvnand(args[0],args[1]);
+            break;  
+          case Theory::StructuredSortInterpretation::BVOR: 
+            ret = args[0]|args[1];  
             break;
           case Theory::StructuredSortInterpretation::BVNEG:
             ret = -args[0];  
@@ -494,12 +500,12 @@ z3::expr Z3Interfacing::getz3expr(Term* trm,bool isLit,bool&nameExpression,bool 
             ret = lshr(args[0],args[1]);  
             break;
           case Theory::StructuredSortInterpretation::BVNOR:
-            ret = !(args[0]||args[1]);  
+            ret = bvnor(args[0],args[1]);  
             break;
           case Theory::StructuredSortInterpretation::BVXNOR:
-            ret = !(args[0]^args[1]);  //?
+            ret = bvxnor(args[0],args[1]);  
             break;
-          case Theory::StructuredSortInterpretation::BVSUB:
+          case Theory::StructuredSortInterpretation::BVSUB: 
             ret = args[0]-args[1];  
             break;
           case Theory::StructuredSortInterpretation::BVSREM:
@@ -509,10 +515,10 @@ z3::expr Z3Interfacing::getz3expr(Term* trm,bool isLit,bool&nameExpression,bool 
             ret = ashr(args[0],args[1]);  
             break;  
           case Theory::StructuredSortInterpretation::BV_ZERO_EXTEND:
-            ret = zext(args[1],args[0]);  
+            ret = zext(args[1],args[0].get_numeral_uint());  
             break;
           case Theory::StructuredSortInterpretation::BV_SIGN_EXTEND:
-            ret = sext(args[1],args[0]);  
+            ret = sext(args[1],args[0].get_numeral_uint());  
             break;  
           case Theory::StructuredSortInterpretation::BVULT:
             ret = ult(args[0],args[1]);  
@@ -538,13 +544,18 @@ z3::expr Z3Interfacing::getz3expr(Term* trm,bool isLit,bool&nameExpression,bool 
           case Theory::StructuredSortInterpretation::BVSGE:
             ret = args[0]>=args[1];  
             break;  
-          
-          //TODO  
           case Theory::StructuredSortInterpretation::BV_ROTATE_LEFT:
+             ret = bv_rotateleft(args[0],args[1]);
+             break;
           case Theory::StructuredSortInterpretation::BV_ROTATE_RIGHT:
+             ret = bv_rotateright(args[0],args[1]);
+             break;
           case Theory::StructuredSortInterpretation::REPEAT:
+             ret = bv_repeat(args[0],args[1]);
+             break;
           case Theory::StructuredSortInterpretation::BVSMOD:
-          case Theory::StructuredSortInterpretation::BVCOMP:
+              ret = bvsmod(args[0],args[1]);
+          case Theory::StructuredSortInterpretation::BVCOMP: // ??
           default:
             skip=true;//skip it and treat the function as uninterpretted
             break;
