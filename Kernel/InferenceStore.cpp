@@ -3,7 +3,7 @@
  * File InferenceStore.cpp.
  *
  * This file is part of the source code of the software program
- * Vampire 4.2.2. It is protected by applicable
+ * Vampire 4.2.2 (unstable). It is protected by applicable
  * copyright laws.
  *
  * This source code is distributed under the licence found here
