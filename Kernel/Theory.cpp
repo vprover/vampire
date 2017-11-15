@@ -1460,7 +1460,7 @@ bool Theory::isInterpretedPredicate(Literal* lit)
 
   if(lit->isEquality()){
     unsigned srt = SortHelper::getEqualityArgumentSort(lit);
-    return (srt > Sorts::SRT_DEFAULT && srt < Sorts::FIRST_USER_SORT);
+    return (srt == Sorts::SRT_INTEGER || srt == Sorts::SRT_RATIONAL || srt == Sorts::SRT_REAL);
   }
 
   return isInterpretedPredicate(lit->functor());
