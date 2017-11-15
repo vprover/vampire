@@ -179,6 +179,11 @@ class BitVectorConstantType{
      
 private: 
     
+    /**
+     * TODO: Andrei suggested we look into Z3 and use whatever representation they have.
+     * This way we don't need to think of efficient implementations of BV operations (for evaluation) on our side
+     * and also the communication with Z3 about bitvectors will be (should be) simpler.
+     */
     BinArray binArray;
 };
 
