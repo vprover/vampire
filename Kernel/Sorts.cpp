@@ -160,9 +160,9 @@ VirtualIterator<unsigned> Sorts::getStructuredSorts(const StructuredSort ss)
 {
   CALL("Sorts::getStructuredSorts");
   Stack<SortInfo*>::Iterator all(_sorts);
-  VirtualIterator<SortInfo*> arraySorts = pvi(getFilteredIterator(all,
+  VirtualIterator<SortInfo*> structuredSorts = pvi(getFilteredIterator(all,
                [ss](SortInfo* s){ return s->isOfStructuredSort(ss);}));
-  return pvi(getMappingIterator(arraySorts,SortInfoToInt()));
+  return pvi(getMappingIterator(structuredSorts,SortInfoToInt()));
 }
 
 unsigned Sorts::addTupleSort(unsigned arity, unsigned sorts[])
