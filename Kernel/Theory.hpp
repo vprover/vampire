@@ -135,16 +135,12 @@ class BitVectorConstantType{
     vstring toString() const;
 
     unsigned size() const {return binArray.size();}
-    unsigned getSortOld() const{
-         //return sortB;
-        return env.sorts->addBitVectorSort(binArray.size()); // this should probabyl be changed to getBitVectorSort
-    
-    } 
+
     // this function will actually not get called
     static unsigned getSort() {
-        USER_ERROR("this shouldnt get called ");
-    } 
-    
+        ASSERTION_VIOLATION;
+    }
+
     void setBinArray(DArray<bool> setTo)
     {
         binArray.initFromArray(setTo.size(),setTo);

@@ -374,7 +374,7 @@ unsigned Signature::addBitVectorConstant(const BitVectorConstantType& value)
     _funs.push(sym);
     _funNames.insert(key, result);
      // here use the sort of bvonstanttype to look for the distinct group number in a hashmap
-    unsigned bvSort = value.getSortOld();
+    unsigned bvSort = env.sorts->addBitVectorSort(value.size());
     if (!bitVector_D_G_map.find(bvSort))
     {
         LAST_BUILT_IN_DISTINCT_GROUP++;
