@@ -90,7 +90,7 @@ Property::Property()
     _allQuantifiersEssentiallyExistential(true),
     _smtlibLogic(SMTLIBLogic::SMT_UNDEFINED)
 {
-  _interpretationPresence.init(Theory::instance()->numberOfInterpretations(), false);
+  _interpretationPresence.init(Theory::instance()->numberOfFixedInterpretations(), false);
   env.property = this;
 } // Property::Property
 

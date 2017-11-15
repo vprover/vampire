@@ -380,17 +380,52 @@ public:
     INVALID_INTERPRETATION // LEAVE THIS AS THE LAST ELEMENT OF THE ENUM
   };
 
+  enum IndexedInterpretation {
+    FOR_NOW_EMPTY
+  };
+
+  typedef std::pair<IndexedInterpretation, unsigned> ConcreteIndexedInterpretation;
+
+  /**
+   * Interpretations represent the abstract concept of an interpreted operation vampire knows about.
+   *
+   * Some of them are polymorphic, such the ones for ARRAYs, and only become a concrete operation when supplied with OperatorType*.
+   * To identify these, MonomorphisedInterpretation (see below) can be used. However, notice that the appropriate Symbol always carries
+   * an Interpretation (if interpreted) and an OperatorType*.
+   *
+   * Other operations might be, in fact, indexed families of operations, and need an additional index (unsigned) to be specified.
+   * To keep the Symbol structure from growing for their sake, these IndexedInterpretations are instantiated to a concrete member of a family on demand
+   * and we keep track of this instantiation in _indexedInterpretations (see below). Members of _indexedInterpretations
+   * implicitly "inhabit" a range of values in Interpretation after INVALID_INTERPRETATION, so that again an
+   * Interpretation (this time >= INVALID_INTERPRETATION) and an OperatorType* are enough to identify a member of an indexed family.
+   */
+
   typedef std::pair<Interpretation, OperatorType*> MonomorphisedInterpretation;
 
-  bool isValidInterpretation(Interpretation i){
-    return i < INVALID_INTERPRETATION;
-  }
+private:
+  DHMap<ConcreteIndexedInterpretation,Interpretation> _indexedInterpretations;
 
-  unsigned numberOfInterpretations() {
+public:
+
+  static unsigned numberOfFixedInterpretations() {
     return INVALID_INTERPRETATION;
   }
 
-  bool isPlus(Interpretation i){
+  Interpretation interpretationFromIndexedInterpretation(IndexedInterpretation ii, unsigned index)
+  {
+    CALL("inpretationFromIndexedInterpretation");
+
+    ConcreteIndexedInterpretation cii = std::make_pair(ii,index);
+
+    Interpretation res;
+    if (!_indexedInterpretations.find(cii, res)) {
+      res = static_cast<Interpretation>(numberOfFixedInterpretations() + _indexedInterpretations.size());
+      _indexedInterpretations.insert(cii, res);
+    }
+    return res;
+  }
+
+  static bool isPlus(Interpretation i){
     return i == INT_PLUS || i == RAT_PLUS || i == REAL_PLUS;
   }
 

@@ -544,7 +544,7 @@ Theory::Theory()
 unsigned Theory::getArity(Interpretation i)
 {
   CALL("Signature::InterpretedSymbol::getArity");
-  ASS(theory->isValidInterpretation(i));
+  ASS_L(i,INVALID_INTERPRETATION);
 
   switch(i) {
   case INT_IS_INT:
@@ -659,7 +659,7 @@ unsigned Theory::getArity(Interpretation i)
 bool Theory::isFunction(Interpretation i)
 {
   CALL("Signature::InterpretedSymbol::isFunction");
-  ASS(theory->isValidInterpretation(i));
+  ASS_L(i,INVALID_INTERPRETATION);
 
   switch(i) {
   case INT_TO_INT:
@@ -769,7 +769,7 @@ bool Theory::isFunction(Interpretation i)
 bool Theory::isInequality(Interpretation i)
 {
   CALL("Signature::InterpretedSymbol::isInequality");
-  ASS(theory->isValidInterpretation(i));
+  ASS_L(i,INVALID_INTERPRETATION);
 
   switch(i) {
   case INT_GREATER:
@@ -843,7 +843,7 @@ unsigned Theory::getOperationSort(Interpretation i)
   CALL("Theory::getOperationSort");
 
   ASS(hasSingleSort(i));
-  ASS(theory->isValidInterpretation(i));
+  ASS_L(i,INVALID_INTERPRETATION);
   ASS(!isPolymorphic(i));
 
   switch(i) {
