@@ -169,7 +169,7 @@ class BitVectorConstantType{
         setBinArray(t);
     }
     
-    DArray<bool> getBinArray() const&
+    DArray<bool> getBinArray() const
     {
         return binArray;
     }

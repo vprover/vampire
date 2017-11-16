@@ -48,6 +48,7 @@ DEFINE_TYPE(Z3_rcf_num);
 /*@{*/
 
 /** @name Types
+    @{
 
    Most of the types in the C API are opaque pointers.
 
@@ -394,6 +395,33 @@ typedef enum
    - Z3_OP_XOR3 Compute ternary XOR.
        The meaning is given by the equivalence
        (xor3 l1 l2 l3) <=> (xor (xor l1 l2) l3)
+
+   - Z3_OP_BSMUL_NO_OVFL: a predicate to check that bit-wise signed multiplication does not overflow.
+     Signed multiplication overflows if the operands have the same sign and the result of multiplication
+     does not fit within the available bits. \sa Z3_mk_bvmul_no_overflow.
+
+   - Z3_OP_BUMUL_NO_OVFL: check that bit-wise unsigned multiplication does not overflow.
+     Unsigned multiplication overflows if the result does not fit within the available bits.
+     \sa Z3_mk_bvmul_no_overflow.
+
+   - Z3_OP_BSMUL_NO_UDFL: check that bit-wise signed multiplication does not underflow.
+     Signed multiplication underflows if the operands have opposite signs and the result of multiplication
+     does not fit within the avaialble bits. Z3_mk_bvmul_no_underflow.
+
+   - Z3_OP_BSDIV_I: Binary signed division.
+     It has the same semantics as Z3_OP_BSDIV, but created in a context where the second operand can be assumed to be non-zero.
+
+   - Z3_OP_BUDIV_I: Binary unsigned division.
+     It has the same semantics as Z3_OP_BUDIV, but created in a context where the second operand can be assumed to be non-zero.
+
+   - Z3_OP_BSREM_I: Binary signed remainder.
+     It has the same semantics as Z3_OP_BSREM, but created in a context where the second operand can be assumed to be non-zero.
+
+   - Z3_OP_BUREM_I: Binary unsigned remainder.
+     It has the same semantics as Z3_OP_BUREM, but created in a context where the second operand can be assumed to be non-zero.
+
+   - Z3_OP_BSMOD_I: Binary signed modulus.
+     It has the same semantics as Z3_OP_BSMOD, but created in a context where the second operand can be assumed to be non-zero.
 
    - Z3_OP_PR_UNDEF: Undef/Null proof object.
 
@@ -951,7 +979,23 @@ typedef enum
 
       - Z3_OP_FPA_TO_IEEE_BV: Floating-point conversion to IEEE-754 bit-vector
 
-      - Z3_OP_INTERNAL: internal (often interpreted) symbol, but no additional information is exposed. Tools may use the string representation of the function declaration to obtain more information.
+      - Z3_OP_FPA_BVWRAP: (Implicitly) represents the internal bitvector-
+        representation of a floating-point term (used for the lazy encoding
+        of non-relevant terms in theory_fpa)
+
+      - Z3_OP_FPA_BV2RM: Conversion of a 3-bit bit-vector term to a
+        floating-point rouding-mode term
+
+        The conversion uses the following values:
+            0 = 000 = Z3_OP_FPA_RM_NEAREST_TIES_TO_EVEN,
+            1 = 001 = Z3_OP_FPA_RM_NEAREST_TIES_TO_AWAY,
+            2 = 010 = Z3_OP_FPA_RM_TOWARD_POSITIVE,
+            3 = 011 = Z3_OP_FPA_RM_TOWARD_NEGATIVE,
+            4 = 100 = Z3_OP_FPA_RM_TOWARD_ZERO.
+
+      - Z3_OP_INTERNAL: internal (often interpreted) symbol, but no additional
+        information is exposed. Tools may use the string representation of the
+        function declaration to obtain more information.
 
       - Z3_OP_UNINTERPRETED: kind used for uninterpreted symbols.
 */
@@ -1235,8 +1279,8 @@ typedef enum {
 
     Z3_OP_FPA_TO_IEEE_BV,
 
-    Z3_OP_FPA_MIN_I,
-    Z3_OP_FPA_MAX_I,
+    Z3_OP_FPA_BVWRAP,
+    Z3_OP_FPA_BV2RM,
 
     Z3_OP_INTERNAL,
 
@@ -1500,9 +1544,9 @@ extern "C" {
        All main interaction with Z3 happens in the context of a \c Z3_context.
 
        In contrast to #Z3_mk_context_rc, the life time of Z3_ast objects
-       are determined by the scope level of #Z3_push and #Z3_pop.
+       are determined by the scope level of #Z3_solver_push and #Z3_solver_pop.
        In other words, a Z3_ast object remains valid until there is a
-       call to Z3_pop that takes the current scope below the level where
+       call to Z3_solver_pop that takes the current scope below the level where
        the object was created.
 
        Note that all other reference counted objects, including Z3_model,
@@ -1836,6 +1880,17 @@ extern "C" {
        def_API('Z3_mk_array_sort', SORT, (_in(CONTEXT), _in(SORT), _in(SORT)))
     */
     Z3_sort Z3_API Z3_mk_array_sort(Z3_context c, Z3_sort domain, Z3_sort range);
+
+    /**
+       \brief Create an array type with N arguments
+
+       \sa Z3_mk_select_n
+       \sa Z3_mk_store_n
+
+       def_API('Z3_mk_array_sort_n', SORT, (_in(CONTEXT), _in(UINT), _in_array(1, SORT), _in(SORT)))
+    */
+    Z3_sort Z3_API Z3_mk_array_sort_n(Z3_context c, unsigned n, Z3_sort const * domain, Z3_sort range);
+
 
     /**
        \brief Create a tuple type.
@@ -2930,6 +2985,15 @@ extern "C" {
     Z3_ast Z3_API Z3_mk_select(Z3_context c, Z3_ast a, Z3_ast i);
 
     /**
+       \brief n-ary Array read.
+       The argument \c a is the array and \c idxs are the indices of the array that gets read.
+
+       def_API('Z3_mk_select_n', AST, (_in(CONTEXT), _in(AST), _in(UINT), _in_array(2, AST)))
+
+    */
+    Z3_ast Z3_API Z3_mk_select_n(Z3_context c, Z3_ast a, unsigned n, Z3_ast const* idxs);
+
+    /**
        \brief Array update.
 
        The node \c a must have an array sort \ccode{[domain -> range]}, \c i must have sort \c domain,
@@ -2946,6 +3010,14 @@ extern "C" {
        def_API('Z3_mk_store', AST, (_in(CONTEXT), _in(AST), _in(AST), _in(AST)))
     */
     Z3_ast Z3_API Z3_mk_store(Z3_context c, Z3_ast a, Z3_ast i, Z3_ast v);
+
+    /**
+       \brief n-ary Array update.
+
+       def_API('Z3_mk_store_n', AST, (_in(CONTEXT), _in(AST), _in(UINT), _in_array(2, AST), _in(AST)))
+
+    */
+    Z3_ast Z3_API Z3_mk_store_n(Z3_context c, Z3_ast a, unsigned n, Z3_ast const* idxs, Z3_ast v);
 
     /**
         \brief Create the constant array.
@@ -2987,6 +3059,15 @@ extern "C" {
         def_API('Z3_mk_array_default', AST, (_in(CONTEXT), _in(AST)))
     */
     Z3_ast Z3_API Z3_mk_array_default(Z3_context c, Z3_ast array);
+
+    /**
+       \brief Create array with the same interpretation as a function.
+       The array satisfies the property (f x) = (select (_ as-array f) x) 
+       for every argument x.
+
+       def_API('Z3_mk_as_array', AST, (_in(CONTEXT), _in(FUNC_DECL)))
+     */
+    Z3_ast Z3_API Z3_mk_as_array(Z3_context c, Z3_func_decl f);
     /*@}*/
 
     /** @name Sets */
@@ -3091,8 +3172,8 @@ extern "C" {
        \brief Create a numeral of a given sort.
 
        \param c logical context.
-       \param numeral A string representing the numeral value in decimal notation. The string may be of the form \code{[num]*[.[num]*][E[+|-][num]+]}.
-                      If the given sort is a real, then the numeral can be a rational, that is, a string of the form \ccode{[num]* / [num]*}.
+       \param numeral A string representing the numeral value in decimal notation. The string may be of the form `[num]*[.[num]*][E[+|-][num]+]`.
+                      If the given sort is a real, then the numeral can be a rational, that is, a string of the form `[num]* / [num]*` .
        \param ty The sort of the numeral. In the current implementation, the given sort can be an int, real, finite-domain, or bit-vectors of arbitrary size.
 
        \sa Z3_mk_int
@@ -3166,6 +3247,14 @@ extern "C" {
        def_API('Z3_mk_unsigned_int64', AST, (_in(CONTEXT), _in(UINT64), _in(SORT)))
     */
     Z3_ast Z3_API Z3_mk_unsigned_int64(Z3_context c, __uint64 v, Z3_sort ty);
+
+    /**
+       \brief create a bit-vector numeral from a vector of Booleans.
+       
+       \sa Z3_mk_numeral
+       def_API('Z3_mk_bv_numeral', AST, (_in(CONTEXT), _in(UINT), _in_array(1, BOOL)))
+    */
+    Z3_ast Z3_API Z3_mk_bv_numeral(Z3_context c, unsigned sz, Z3_bool const* bits);
 
     /*@}*/
 
@@ -3306,7 +3395,7 @@ extern "C" {
     Z3_ast Z3_API Z3_mk_seq_replace(Z3_context c, Z3_ast s, Z3_ast src, Z3_ast dst);
 
     /**
-       \brief Retrieve from \s the unit sequence positioned at position \c index.
+       \brief Retrieve from \c s the unit sequence positioned at position \c index.
 
        def_API('Z3_mk_seq_at' ,AST ,(_in(CONTEXT), _in(AST), _in(AST)))
      */
@@ -3333,7 +3422,7 @@ extern "C" {
        \brief Convert string to integer.
 
        def_API('Z3_mk_str_to_int' ,AST ,(_in(CONTEXT), _in(AST)))
-     */    
+     */
     Z3_ast Z3_API Z3_mk_str_to_int(Z3_context c, Z3_ast s);
 
 
@@ -3341,7 +3430,7 @@ extern "C" {
        \brief Integer to string conversion.
 
        def_API('Z3_mk_int_to_str' ,AST ,(_in(CONTEXT), _in(AST)))
-     */    
+     */
     Z3_ast Z3_API Z3_mk_int_to_str(Z3_context c, Z3_ast s);
 
     /**
@@ -3810,6 +3899,7 @@ extern "C" {
 
     /**
        \brief Return the domain of the given array sort.
+       In the case of a multi-dimensional array, this function returns the sort of the first dimension.
 
        \pre Z3_get_sort_kind(c, t) == Z3_ARRAY_SORT
 
@@ -4006,7 +4096,7 @@ extern "C" {
        def_API('Z3_mk_pble', AST, (_in(CONTEXT), _in(UINT), _in_array(1,AST), _in_array(1,INT), _in(INT)))
     */
     Z3_ast Z3_API Z3_mk_pble(Z3_context c, unsigned num_args,
-                             Z3_ast const args[], int coeffs[],
+                             Z3_ast const args[], int const coeffs[],
                              int k);
 
     /**
@@ -4017,7 +4107,7 @@ extern "C" {
        def_API('Z3_mk_pbge', AST, (_in(CONTEXT), _in(UINT), _in_array(1,AST), _in_array(1,INT), _in(INT)))
     */
     Z3_ast Z3_API Z3_mk_pbge(Z3_context c, unsigned num_args,
-                             Z3_ast const args[], int coeffs[],
+                             Z3_ast const args[], int const coeffs[],
                              int k);
 
     /**
@@ -4028,7 +4118,7 @@ extern "C" {
        def_API('Z3_mk_pbeq', AST, (_in(CONTEXT), _in(UINT), _in_array(1,AST), _in_array(1,INT), _in(INT)))
     */
     Z3_ast Z3_API Z3_mk_pbeq(Z3_context c, unsigned num_args,
-                             Z3_ast const args[], int coeffs[],
+                             Z3_ast const args[], int const coeffs[],
                              int k);
 
     /**
@@ -4652,6 +4742,14 @@ extern "C" {
 
     /** @name Models */
     /*@{*/
+
+    /**
+       \brief Create a fresh model object. It has reference count 0.
+
+       def_API('Z3_mk_model', MODEL, (_in(CONTEXT),))
+    */
+    Z3_model Z3_API Z3_mk_model(Z3_context c);
+
     /**
        \brief Increment the reference counter of the given model.
 
@@ -4823,6 +4921,26 @@ extern "C" {
     Z3_func_decl Z3_API Z3_get_as_array_func_decl(Z3_context c, Z3_ast a);
 
     /**
+       \brief Create a fresh func_interp object, add it to a model for a specified function.
+       It has reference count 0.
+
+       \param c context
+       \param m model
+       \param f function declaration
+       \param default_value default value for function interpretation
+
+       def_API('Z3_add_func_interp', FUNC_INTERP, (_in(CONTEXT), _in(MODEL), _in(FUNC_DECL), _in(AST)))
+    */
+    Z3_func_interp Z3_API Z3_add_func_interp(Z3_context c, Z3_model m, Z3_func_decl f, Z3_ast default_value);
+
+    /**
+       \brief Add a constant interpretation.
+
+       def_API('Z3_add_const_interp', VOID, (_in(CONTEXT), _in(MODEL), _in(FUNC_DECL), _in(AST)))
+     */
+    void Z3_API Z3_add_const_interp(Z3_context c, Z3_model m, Z3_func_decl f, Z3_ast a);
+
+    /**
        \brief Increment the reference counter of the given Z3_func_interp object.
 
        def_API('Z3_func_interp_inc_ref', VOID, (_in(CONTEXT), _in(FUNC_INTERP)))
@@ -4870,11 +4988,37 @@ extern "C" {
     Z3_ast Z3_API Z3_func_interp_get_else(Z3_context c, Z3_func_interp f);
 
     /**
+       \brief Return the 'else' value of the given function interpretation.
+
+       A function interpretation is represented as a finite map and an 'else' value.
+       This procedure can be used to update the 'else' value.
+
+       def_API('Z3_func_interp_set_else', VOID, (_in(CONTEXT), _in(FUNC_INTERP), _in(AST)))
+    */
+    void Z3_API Z3_func_interp_set_else(Z3_context c, Z3_func_interp f, Z3_ast else_value);
+
+    /**
        \brief Return the arity (number of arguments) of the given function interpretation.
 
        def_API('Z3_func_interp_get_arity', UINT, (_in(CONTEXT), _in(FUNC_INTERP)))
     */
     unsigned Z3_API Z3_func_interp_get_arity(Z3_context c, Z3_func_interp f);
+
+    /**
+       \brief add a function entry to a function interpretation.
+
+       \param c logical context
+       \param fi a function interpregation to be updated.
+       \param args list of arguments. They should be constant values (such as integers) and be of the same types as the domain of the function.
+       \param value value of the function when the parameters match args.
+
+       It is assumed that entries added to a function cover disjoint arguments.
+       If an two entries are added with the same arguments, only the second insertion survives and the
+       first inserted entry is removed.
+
+       def_API('Z3_func_interp_add_entry', VOID, (_in(CONTEXT), _in(FUNC_INTERP), _in(AST_VECTOR), _in(AST)))
+     */
+    void Z3_API Z3_func_interp_add_entry(Z3_context c, Z3_func_interp fi, Z3_ast_vector args, Z3_ast value);
 
     /**
        \brief Increment the reference counter of the given Z3_func_entry object.
@@ -5238,7 +5382,6 @@ extern "C" {
        def_API('Z3_get_error_msg', STRING, (_in(CONTEXT), _in(ERROR_CODE)))
     */
     Z3_string Z3_API Z3_get_error_msg(Z3_context c, Z3_error_code err);
-    /*@}*/
 
     /**
        \brief Return a string describing the given error code.
@@ -5349,6 +5492,13 @@ extern "C" {
 
     /**
        \brief Add a new formula \c a to the given goal.
+        The formula is split according to the following procedure that is applied
+        until a fixed-point:
+           Conjunctions are split into separate formulas.
+           Negations are distributed over disjunctions, resulting in separate formulas.
+        If the goal is \c false, adding new formulas is a no-op.
+        If the formula \c a is \c true, then nothing is added.
+        If the formula \c a is \c false, then the entire goal is replaced by the formula \c false.
 
        def_API('Z3_goal_assert', VOID, (_in(CONTEXT), _in(GOAL), _in(AST)))
     */
@@ -5791,9 +5941,35 @@ extern "C" {
     /** @name Solvers*/
     /*@{*/
     /**
-       \brief Create a new (incremental) solver. This solver also uses a
-       set of builtin tactics for handling the first check-sat command, and
-       check-sat commands that take more than a given number of milliseconds to be solved.
+       \brief Create a new solver. This solver is a "combined solver" (see
+       combined_solver module) that internally uses a non-incremental (solver1) and an
+       incremental solver (solver2). This combined solver changes its behaviour based
+       on how it is used and how its parameters are set.
+
+       If the solver is used in a non incremental way (i.e. no calls to
+       `Z3_solver_push()` or `Z3_solver_pop()`, and no calls to
+       `Z3_solver_assert()` or `Z3_solver_assert_and_track()` after checking
+       satisfiability without an intervening `Z3_solver_reset()`) then solver1
+       will be used. This solver will apply Z3's "default" tactic.
+
+       The "default" tactic will attempt to probe the logic used by the
+       assertions and will apply a specialized tactic if one is supported.
+       Otherwise the general `(and-then simplify smt)` tactic will be used.
+
+       If the solver is used in an incremental way then the combined solver
+       will switch to using solver2 (which behaves similarly to the general
+       "smt" tactic).
+
+       Note however it is possible to set the `solver2_timeout`,
+       `solver2_unknown`, and `ignore_solver1` parameters of the combined
+       solver to change its behaviour.
+
+       The function #Z3_solver_get_model retrieves a model if the
+       assertions is satisfiable (i.e., the result is \c
+       Z3_L_TRUE) and model construction is enabled.
+       The function #Z3_solver_get_model can also be used even
+       if the result is \c Z3_L_UNDEF, but the returned model
+       is not guaranteed to satisfy quantified assertions.
 
        \remark User must use #Z3_solver_inc_ref and #Z3_solver_dec_ref to manage solver objects.
        Even if the context was created using #Z3_mk_context instead of #Z3_mk_context_rc.
@@ -5803,7 +5979,17 @@ extern "C" {
     Z3_solver Z3_API Z3_mk_solver(Z3_context c);
 
     /**
-       \brief Create a new (incremental) solver.
+       \brief Create a new incremental solver.
+
+       This is equivalent to applying the "smt" tactic.
+
+       Unlike `Z3_mk_solver()` this solver
+         - Does not attempt to apply any logic specific tactics.
+         - Does not change its behaviour based on whether it used
+           incrementally/non-incrementally.
+
+       Note that these differences can result in very different performance
+       compared to `Z3_mk_solver()`.
 
        The function #Z3_solver_get_model retrieves a model if the
        assertions is satisfiable (i.e., the result is \c

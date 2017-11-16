@@ -473,19 +473,20 @@ z3::expr Z3Interfacing::getz3expr(Term* trm,bool isLit,bool&nameExpression,bool 
              ret = sext(args[0],index);
              break;
           case Theory::BV_ROTATE_LEFT:
-             ret = bv_rotateleft(_context.int_val(index) , args[0]);
+             ret = args[0].rotate_left(index);
              break;
           case Theory::BV_ROTATE_RIGHT:
-             ret = bv_rotateright(_context.int_val(index), args[0]);
+             ret = args[0].rotate_right(index);
              break;
           case Theory::REPEAT:
-             ret = bv_repeat(_context.int_val(index), args[0]);
+             ret = args[0].repeat(index);
              break;
           case Theory::EXTRACT: {
             OperatorType* t = env.signature->getFunction(trm->functor())->fnType();
             unsigned resSize = env.sorts->getBitVectorSort(t->result())->getSize();
 
-            ret = bvextract(_context.int_val(index), _context.int_val(index-resSize+1), args[0]);
+            ret = args[0].extract(_context.int_val(index),_context.int_val(index-resSize+1));
+
             break;
           }
           default:
@@ -531,7 +532,7 @@ z3::expr Z3Interfacing::getz3expr(Term* trm,bool isLit,bool&nameExpression,bool 
               ret = args[0]&args[1];
               break;
             case Theory::BVNAND:
-              ret = bvnand(args[0],args[1]);
+              ret = nand(args[0],args[1]);
               break;
             case Theory::BVOR:
               ret = args[0]|args[1];
@@ -549,10 +550,10 @@ z3::expr Z3Interfacing::getz3expr(Term* trm,bool isLit,bool&nameExpression,bool 
               ret = lshr(args[0],args[1]);
               break;
             case Theory::BVNOR:
-              ret = bvnor(args[0],args[1]);
+              ret = nor(args[0],args[1]);
               break;
             case Theory::BVXNOR:
-              ret = bvxnor(args[0],args[1]);
+              ret = xnor(args[0],args[1]);
               break;
             case Theory::BVSUB:
               ret = args[0]-args[1];
@@ -588,8 +589,9 @@ z3::expr Z3Interfacing::getz3expr(Term* trm,bool isLit,bool&nameExpression,bool 
               ret = args[0]>=args[1];
               break;
             case Theory::BVSMOD:
-                ret = bvsmod(args[0],args[1]);
-            case Theory::BVCOMP: // TODO
+                ret = smod(args[0],args[1]);
+            case Theory::BVCOMP:
+              ret = ite(args[0]==args[1],_context.bv_val(1,1),_context.bv_val(0,1));
             default:
               skip=true;//skip it and treat the function as uninterpretted
               break;
