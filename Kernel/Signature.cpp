@@ -932,7 +932,7 @@ bool Signature::symbolNeedsQuoting(vstring name, bool interpreted, unsigned arit
   CALL("Signature::symbolNeedsQuoting");
   ASS_G(name.length(),0);
 
-  if (interpreted && (name=="=" || arity==0)) {
+  if (name=="=" || (interpreted && arity==0)) {
     return false;
   }
 
