@@ -773,8 +773,7 @@ protected:
 };
 
  
-
-class InterpretedLiteralEvaluator::BitVectorEvaluator : public TypedEvaluator<BitVectorConstantType> 
+class InterpretedLiteralEvaluator::BitVectorEvaluator : public Evaluator
 {
   protected:
 
@@ -787,7 +786,6 @@ class InterpretedLiteralEvaluator::BitVectorEvaluator : public TypedEvaluator<Bi
         return true;
   }
   
-  virtual TermList getZero(){ return TermList(); }
   TermList getZero(unsigned size)
   {
       return TermList(theory->representConstant(getZeroBVCT(size)));
@@ -800,7 +798,7 @@ class InterpretedLiteralEvaluator::BitVectorEvaluator : public TypedEvaluator<Bi
         }
         return res;
   }
-  virtual bool isOne(BitVectorConstantType arg)
+  bool isOne(BitVectorConstantType arg)
   {
       if (!arg.getValueAt(0))
             return false;
@@ -812,15 +810,15 @@ class InterpretedLiteralEvaluator::BitVectorEvaluator : public TypedEvaluator<Bi
         return true;
   }
 
-  virtual bool isAddition(Interpretation interp)
+  bool isAddition(Interpretation interp)
   {
       return (interp == Theory::BVADD);
   }
-  virtual bool isProduct(Interpretation interp)
+  bool isProduct(Interpretation interp)
   {
       return (interp == Theory::BVMUL);
   }
-  virtual bool isDivision(Interpretation interp)
+  bool isDivision(Interpretation interp)
   {
       return (interp == Theory::BVUDIV || interp == Theory::BVSDIV);
   }
@@ -1051,7 +1049,7 @@ class InterpretedLiteralEvaluator::BitVectorEvaluator : public TypedEvaluator<Bi
       return res;
   }
 
-  bool tryEvaluateSimpleUnaryFunc(Interpretation op, const Value& arg, Value& res)
+  bool tryEvaluateSimpleUnaryFunc(Interpretation op, const BitVectorConstantType& arg, BitVectorConstantType& res)
   {
     CALL("InterpretedLiteralEvaluator::BitVectorEvaluator::tryEvaluateSimpleUnaryFunc")
     switch(op){
@@ -1069,7 +1067,7 @@ class InterpretedLiteralEvaluator::BitVectorEvaluator : public TypedEvaluator<Bi
     }
   }
   
-  virtual bool tryEvaluateBinaryFunc(Interpretation op, const Value& arg1, const Value& arg2, Value& res)
+  bool tryEvaluateBinaryFunc(Interpretation op, const BitVectorConstantType& arg1, const BitVectorConstantType& arg2, BitVectorConstantType& res)
   {
     CALL("InterpretedLiteralEvaluator::BitVectorEvaluator::tryEvaluateBinaryFunc");
 
@@ -1138,8 +1136,8 @@ class InterpretedLiteralEvaluator::BitVectorEvaluator : public TypedEvaluator<Bi
   }
 
   
-  virtual bool tryEvaluateBinaryPred(Interpretation op, const Value& arg1,
-      const Value& arg2, bool& res)
+  bool tryEvaluateBinaryPred(Interpretation op, const BitVectorConstantType& arg1,
+      const BitVectorConstantType& arg2, bool& res)
   {
       TimeCounter td(TC_BITVECTOPREDICATEEVALUATION);
       
@@ -1245,8 +1243,10 @@ bool InterpretedLiteralEvaluator::balancable(Literal* lit)
   if(!theory->isInterpretedPredicate(lit->functor())) return false;
 
   // the perdicate must be binary
-  Interpretation ip = theory->interpretPredicate(lit->functor());
-  if(theory->getArity(ip)!=2) return false;
+  if (!lit->isEquality()) {
+    Interpretation ip = theory->interpretPredicate(lit->functor());
+    if(theory->getArity(ip)!=2) return false;
+  }
 
   // one side must be a constant and the other interpretted
   // the other side can contain at most one variable or uninterpreted subterm 

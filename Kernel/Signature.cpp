@@ -429,7 +429,7 @@ unsigned Signature::addRealConstant(const RealConstantType& value)
 unsigned Signature::addInterpretedFunction(Interpretation interpretation, OperatorType* type, const vstring& name)
 {
   CALL("Signature::addInterpretedFunction(Interpretation,OperatorType*,const vstring&)");
-  ASS(Theory::isFunction(interpretation));
+  ASS(theory->isFunction(interpretation));
 
   Theory::MonomorphisedInterpretation mi = std::make_pair(interpretation,type);
 
@@ -462,7 +462,7 @@ unsigned Signature::addInterpretedFunction(Interpretation interpretation, Operat
 unsigned Signature::addInterpretedPredicate(Interpretation interpretation, OperatorType* type, const vstring& name)
 {
   CALL("Signature::addInterpretedPredicate(Interpretation,OperatorType*,const vstring&)");
-  ASS(!Theory::isFunction(interpretation));
+  ASS(!theory->isFunction(interpretation));
 
   // cout << "addInterpretedPredicate " << (type ? type->toString() : "nullptr") << " " << name << endl;
 
@@ -515,7 +515,7 @@ unsigned Signature::getInterpretingSymbol(Interpretation interp, OperatorType* t
   vstring name = theory->getInterpretationName(interp);
   unsigned arity = theory->getArity(interp);
   
-  if (Theory::isFunction(interp)) {
+  if (theory->isFunction(interp)) {
     if (functionExists(name, arity)) {
       int i=0;
       while(functionExists(name+Int::toString(i), arity)) {

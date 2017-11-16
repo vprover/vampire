@@ -1546,7 +1546,7 @@ void TPTP::endTheoryFunction() {
   unsigned symbol = env.signature->getInterpretingSymbol(itp, type);
   unsigned arity = theory->getArity(itp);
 
-  if (Theory::isFunction(itp)) {
+  if (theory->isFunction(itp)) {
     Term* term = Term::create(symbol, arity, args);
     _termLists.push(TermList(term));
   } else {

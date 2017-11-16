@@ -543,7 +543,7 @@ public:
 
   vstring getInterpretationName(Interpretation i);
   unsigned getArity(Interpretation i);
-  static bool isFunction(Interpretation i);
+  bool isFunction(Interpretation i);
   static bool isInequality(Interpretation i);
   OperatorType* getNonpolymorphicOperatorType(Interpretation i);
 

@@ -746,10 +746,26 @@ unsigned Theory::getArity(Interpretation i)
  */
 bool Theory::isFunction(Interpretation i)
 {
-  //cout<<" problem Interpretation "<< i;
   CALL("Signature::InterpretedSymbol::isFunction");
 
-  ASS_L(i,INVALID_INTERPRETATION);
+  if (i >= numberOfFixedInterpretations()) {
+    ConcreteIndexedInterpretation cii = intepretationToIndexedInterpretation(i);
+    IndexedInterpretation ii = cii.first;
+
+    switch (ii) {
+      case EXTRACT:
+      case REPEAT:
+      case BV_ZERO_EXTEND:
+      case BV_SIGN_EXTEND:
+      case BV_ROTATE_RIGHT:
+      case BV_ROTATE_LEFT:
+        return true;
+      default:
+        ASSERTION_VIOLATION_REP(ii);
+    }
+
+    return false;
+  }
 
   switch(i) {
   case INT_TO_INT:
