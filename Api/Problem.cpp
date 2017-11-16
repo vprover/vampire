@@ -1773,7 +1773,7 @@ void Problem::outputTypeDefinitions(ostream& out, bool outputAllTypeDefs)
   DefaultHelperCore* core0 = _data->getCore();
   bool dummyNames = core0 && core0->outputDummyNames();
   FBHelperCore* core = (core0 && core0->isFBHelper()) ? static_cast<FBHelperCore*>(core0) : 0;
-  unsigned sorts = env.sorts->sorts();
+  unsigned sorts = env.sorts->count();
   for(unsigned i=Sorts::FIRST_USER_SORT; i<sorts; i++) {
     out << "tff(sort_def_" << i << ",type, " << env.sorts->sortName(i) << ": $tType";
     if(core) { outputAttributes(out, &core->getSortAttributes(i)); }

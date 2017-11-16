@@ -924,11 +924,11 @@ unsigned FOOLElimination::introduceFreshSymbol(Context context, const char* pref
   CALL("FOOLElimination::introduceFreshSymbol");
 
   unsigned arity = (unsigned)sorts.size();
-  BaseType* type;
+  OperatorType* type;
   if (context == FORMULA_CONTEXT) {
-    type = new PredicateType(arity, sorts.begin());
+    type = OperatorType::getPredicateType(arity, sorts.begin());
   } else {
-    type = new FunctionType(arity, sorts.begin(), resultSort);
+    type = OperatorType::getFunctionType(arity, sorts.begin(), resultSort);
   }
 
   unsigned symbol;

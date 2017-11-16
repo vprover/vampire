@@ -68,7 +68,7 @@ public:
   {
     _onlyKnown = (opt.extensionalityResolution() == Options::ExtensionalityResolution::KNOWN);
     _onlyTagged = (opt.extensionalityResolution() == Options::ExtensionalityResolution::TAGGED);
-    _sortCnt = env.sorts->sorts();
+    _sortCnt = env.sorts->count();
     _clausesBySort.init(_sortCnt, 0);
   }
   Literal* addIfExtensionality(Clause* c);

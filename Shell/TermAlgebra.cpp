@@ -141,7 +141,7 @@ unsigned TermAlgebra::getSubtermPredicate() {
     // declare a binary predicate subterm
     Stack<unsigned> args;
     args.push(_sort); args.push(_sort);
-    env.signature->getPredicate(s)->setType(new PredicateType(args.size(),args.begin()));
+    env.signature->getPredicate(s)->setType(OperatorType::getPredicateType(args.size(),args.begin()));
   }
 
   return s;

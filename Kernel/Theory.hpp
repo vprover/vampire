@@ -138,8 +138,6 @@ std::ostream& operator<< (ostream& out, const IntegerConstantType& val) {
   return out << val.toInner();
 }
 
-
-
 /**
  * A class for representing rational numbers
  *
@@ -287,9 +285,6 @@ public:
   enum Interpretation
   {
     //predicates
-
-    EQUAL,
-
     INT_IS_INT,
     INT_IS_RAT,
     INT_IS_REAL,
@@ -375,84 +370,73 @@ public:
     RAT_TO_REAL,
     REAL_TO_INT,
     REAL_TO_RAT,
-    REAL_TO_REAL
+    REAL_TO_REAL,
 
-    // IMPORTANT - if you add something to end of this, update it in LastNonStructuredInterepretation 
-    
-    //INVALID_INTERPRETATION // replaced by LastNonStructuredInterepretation
-  };
-
-  unsigned LastNonStructuredInterepretation(){ return REAL_TO_REAL; }
-
-    /**
-     * Maximal element number in the enum Interpretation
-     *
-     * At some points we make use of the fact that we can iterate through all
-     * interpretations by going through the set {0,...,MAX_INTERPRETED_ELEMENT}.
-     */
-  unsigned MaxInterpretedElement(){
-    return LastNonStructuredInterepretation() + _structuredSortInterpretations.size(); 
-  }
-
-  unsigned numberOfInterpretations(){
-    return LastNonStructuredInterepretation() + LastStructuredInterpretation();
-  }
-
-  bool isValidInterpretation(Interpretation i){
-    return i <= MaxInterpretedElement();
-  }
-
-  bool isPlus(Interpretation i){
-    return i == INT_PLUS || i == RAT_PLUS || i == REAL_PLUS;
-  }
-
- /*
-  * StructuredSortInterpretations begin from the last interpretation in Interpretation
-  *
-  * They will be initialised as MaxInterpretedElement()+1
-  *
-  */
-
-
-  /** enum for the kinds of StructuredSort interpretations **/
-  enum class StructuredSortInterpretation
-  {
+    // array functions
     ARRAY_SELECT,
     ARRAY_BOOL_SELECT,
     ARRAY_STORE,
-    // currently unused
-    LIST_HEAD,
-    LIST_TAIL,
-    LIST_CONS,
-    LIST_IS_EMPTY
+    
+    INVALID_INTERPRETATION // LEAVE THIS AS THE LAST ELEMENT OF THE ENUM
   };
-  unsigned LastStructuredInterpretation(){
-    return static_cast<unsigned>(StructuredSortInterpretation::LIST_IS_EMPTY);
+
+  enum IndexedInterpretation {
+    FOR_NOW_EMPTY
+  };
+
+  typedef std::pair<IndexedInterpretation, unsigned> ConcreteIndexedInterpretation;
+
+  /**
+   * Interpretations represent the abstract concept of an interpreted operation vampire knows about.
+   *
+   * Some of them are polymorphic, such the ones for ARRAYs, and only become a concrete operation when supplied with OperatorType*.
+   * To identify these, MonomorphisedInterpretation (see below) can be used. However, notice that the appropriate Symbol always carries
+   * an Interpretation (if interpreted) and an OperatorType*.
+   *
+   * Other operations might be, in fact, indexed families of operations, and need an additional index (unsigned) to be specified.
+   * To keep the Symbol structure from growing for their sake, these IndexedInterpretations are instantiated to a concrete member of a family on demand
+   * and we keep track of this instantiation in _indexedInterpretations (see below). Members of _indexedInterpretations
+   * implicitly "inhabit" a range of values in Interpretation after INVALID_INTERPRETATION, so that again an
+   * Interpretation (this time >= INVALID_INTERPRETATION) and an OperatorType* are enough to identify a member of an indexed family.
+   */
+
+  typedef std::pair<Interpretation, OperatorType*> MonomorphisedInterpretation;
+
+private:
+  DHMap<ConcreteIndexedInterpretation,Interpretation> _indexedInterpretations;
+
+public:
+
+  static unsigned numberOfFixedInterpretations() {
+    return INVALID_INTERPRETATION;
   }
-  unsigned getSymbolForStructuredSort(unsigned sort, StructuredSortInterpretation interp);
-  Interpretation getInterpretation(unsigned sort, StructuredSortInterpretation i){
-    auto key = make_pair(sort, i);
-    unsigned interpretation;
-    if (!_structuredSortInterpretations.find(key, interpretation)) {
-      interpretation = MaxInterpretedElement() + 1;
-      _structuredSortInterpretations.insert(key, interpretation);
+
+  Interpretation interpretationFromIndexedInterpretation(IndexedInterpretation ii, unsigned index)
+  {
+    CALL("inpretationFromIndexedInterpretation");
+
+    ConcreteIndexedInterpretation cii = std::make_pair(ii,index);
+
+    Interpretation res;
+    if (!_indexedInterpretations.find(cii, res)) {
+      res = static_cast<Interpretation>(numberOfFixedInterpretations() + _indexedInterpretations.size());
+      _indexedInterpretations.insert(cii, res);
     }
-    return static_cast<Interpretation>(interpretation);
+    return res;
   }
-  bool isStructuredSortInterpretation(Interpretation i){
-    return i > LastNonStructuredInterepretation();
-  }
-  unsigned getSort(Interpretation i){
-    return getData(i).first;
+
+  static bool isPlus(Interpretation i){
+    return i == INT_PLUS || i == RAT_PLUS || i == REAL_PLUS;
   }
 
   static vstring getInterpretationName(Interpretation i);
   static unsigned getArity(Interpretation i);
   static bool isFunction(Interpretation i);
   static bool isInequality(Interpretation i);
-  static Sorts::StructuredSort getInterpretedSort(StructuredSortInterpretation ssi);
-  static BaseType* getOperationType(Interpretation i);
-  static BaseType* getStructuredSortOperationType(Interpretation i);
+  static OperatorType* getNonpolymorphicOperatorType(Interpretation i);
+
+  static OperatorType* getArrayOperatorType(unsigned arraySort, Interpretation i);
+
   static bool hasSingleSort(Interpretation i);
   static unsigned getOperationSort(Interpretation i);
   static bool isConversionOperation(Interpretation i);
@@ -460,9 +444,7 @@ public:
   static bool isNonLinearOperation(Interpretation i);
   static bool isPartialFunction(Interpretation i);
 
-  static bool isArrayOperation(Interpretation i);
-  static unsigned getArrayOperationSort(Interpretation i);
-  static unsigned getArrayDomainSort(Interpretation i);
+  static bool isPolymorphic(Interpretation i);
 
   unsigned getArrayExtSkolemFunction(unsigned i);
     
@@ -497,9 +479,6 @@ public:
   Interpretation interpretPredicate(unsigned pred);
   Interpretation interpretPredicate(Literal* t);
 
-  unsigned getFnNum(Interpretation itp);
-  unsigned getPredNum(Interpretation itp);
-
   void registerLaTeXPredName(unsigned func, bool polarity, vstring temp);
   void registerLaTeXFuncName(unsigned func, vstring temp);
   vstring tryGetInterpretedLaTeXName(unsigned func, bool pred,bool polarity=true);
@@ -511,11 +490,6 @@ private:
   DHMap<unsigned,vstring> _funcLaTeXnames;
 
 public:
-
-  Term* fun1(Interpretation itp, TermList arg);
-  Term* fun2(Interpretation itp, TermList arg1, TermList arg2);
-  Term* fun3(Interpretation itp, TermList arg1, TermList arg2, TermList arg3);
-  Literal* pred2(Interpretation itp, bool polarity, TermList arg1, TermList arg2);
 
   /**
    * Try to interpret the term list as an integer constant. If it is an
@@ -568,29 +542,9 @@ public:
   Term* representRealConstant(vstring str);
 private:
   Theory();
-  static FunctionType* getConversionOperationType(Interpretation i);
+  static OperatorType* getConversionOperationType(Interpretation i);
 
   DHMap<unsigned,unsigned> _arraySkolemFunctions;
-
-public:
-  unsigned getStructuredOperationSort(Interpretation i){
-    return getData(i).first;
-  }
-  StructuredSortInterpretation convertToStructured(Interpretation i){
-    return getData(i).second;
-  }
-private:    
-  pair<unsigned,StructuredSortInterpretation> getData(Interpretation i){
-    ASS(isStructuredSortInterpretation(i));
-    auto it = _structuredSortInterpretations.items();
-    while(it.hasNext()){
-      auto entry = it.next();
-      if(entry.second==i) return entry.first;
-    }
-    ASSERTION_VIOLATION;
-  }
-
-  DHMap<pair<unsigned,StructuredSortInterpretation>,unsigned> _structuredSortInterpretations;
 
 public:
   class Tuples {

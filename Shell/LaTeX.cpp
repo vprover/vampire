@@ -730,19 +730,6 @@ vstring LaTeX::varToString (unsigned num) const
 //  }
 //#endif
 
-  // If the signature uses 6 or fewer variables we use x,y,z,u,v,w
-  if(env.signature->vars()<6){
-    switch(num){
-      case 0 : return "x";
-      case 1 : return "y";
-      case 2 : return "z";
-      case 3 : return "u";
-      case 4 : return "v";
-      case 5 : return "w";
-      default: ASSERTION_VIOLATION;
-    }
-  }
-
   return vstring("x_{") + Int::toString(num) + "}";
 } // LaTeX::toString (Var v)
 

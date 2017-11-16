@@ -161,7 +161,7 @@ Literal* InequalitySplitting::splitLiteral(Literal* lit, Unit::InputType inpType
 
   unsigned predNum=env.signature->addNamePredicate(1);
   unsigned srt = SortHelper::getEqualityArgumentSort(lit);
-  BaseType* type = new PredicateType({srt});
+  OperatorType* type = OperatorType::getPredicateType({srt});
 
   Signature::Symbol* predSym = env.signature->getPredicate(predNum);
   predSym->setType(type);

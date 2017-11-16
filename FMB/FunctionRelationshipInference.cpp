@@ -217,7 +217,7 @@ ClauseList* FunctionRelationshipInference::getCheckingClauses()
   unsigned initial_functions = env.signature->functions();
   for(unsigned f=0; f < initial_functions; f++){
 
-    FunctionType* ftype = env.signature->getFunction(f)->fnType();
+    OperatorType* ftype = env.signature->getFunction(f)->fnType();
     unsigned ret_srt = ftype->result();
     unsigned arity = env.signature->functionArity(f);
 

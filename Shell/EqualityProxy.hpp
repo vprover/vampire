@@ -74,7 +74,7 @@ private:
   void addAxioms(UnitList*& units);
   void addCongruenceAxioms(UnitList*& units);
   bool getArgumentEqualityLiterals(unsigned cnt, LiteralStack& lits, Stack<TermList>& vars1,
-      Stack<TermList>& vars2, BaseType* symbolType, bool skipSortsWithoutEquality);
+      Stack<TermList>& vars2, OperatorType* symbolType, bool skipSortsWithoutEquality);
   Literal* apply(Literal* lit);
   Literal* makeProxyLiteral(bool polarity, TermList arg0, TermList arg1, unsigned sort);
 

@@ -25,6 +25,7 @@
 #include "Lib/List.hpp"
 #include "Lib/Array.hpp"
 #include "Lib/VString.hpp"
+#include "Kernel/Sorts.hpp"
 
 namespace Shell {
   class TermAlgebraConstructor {
@@ -59,7 +60,7 @@ namespace Shell {
     Lib::vstring discriminatorName();
     
   private:
-    Kernel::FunctionType* _type;
+    Kernel::OperatorType* _type;
     unsigned _functor;
     bool _hasDiscriminator;
     unsigned _discriminator;

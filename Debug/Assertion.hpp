@@ -203,7 +203,6 @@ private:
 #define DEBUG_CODE(X)
 
 #define ASS(Cond)
-#define ASSERT(Cond)
 #define ALWAYS(Cond) Cond
 #define NEVER(Cond) Cond
 

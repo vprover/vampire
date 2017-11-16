@@ -544,19 +544,7 @@ Theory::Theory()
 unsigned Theory::getArity(Interpretation i)
 {
   CALL("Signature::InterpretedSymbol::getArity");
-  ASS(theory->isValidInterpretation(i));
-
-  if (theory->isStructuredSortInterpretation(i)){
-    switch (theory->convertToStructured(i)) {
-      case StructuredSortInterpretation::ARRAY_SELECT:
-      case StructuredSortInterpretation::ARRAY_BOOL_SELECT:
-        return 2;
-      case StructuredSortInterpretation::ARRAY_STORE:
-        return 3;
-      default:
-        return 1;
-    }
-  }
+  ASS_L(i,INVALID_INTERPRETATION);
 
   switch(i) {
   case INT_IS_INT:
@@ -602,8 +590,6 @@ unsigned Theory::getArity(Interpretation i)
 
     return 1;
 
-  case EQUAL:
-
   case INT_GREATER:
   case INT_GREATER_EQUAL:
   case INT_LESS:
@@ -651,8 +637,15 @@ unsigned Theory::getArity(Interpretation i)
   case REAL_REMAINDER_E:
   case REAL_REMAINDER_T:
   case REAL_REMAINDER_F:
+
+  case ARRAY_SELECT:
+  case ARRAY_BOOL_SELECT:
+
     return 2;
           
+  case ARRAY_STORE:
+
+    return 3;
           
   default:
     ASSERTION_VIOLATION_REP(i);
@@ -666,16 +659,7 @@ unsigned Theory::getArity(Interpretation i)
 bool Theory::isFunction(Interpretation i)
 {
   CALL("Signature::InterpretedSymbol::isFunction");
-  ASS(theory->isValidInterpretation(i));
-
-  if(theory->isStructuredSortInterpretation(i)){
-    switch(theory->convertToStructured(i)){
-      case StructuredSortInterpretation::ARRAY_BOOL_SELECT:
-        return false;
-      default:
-        return true;
-    }
-  }
+  ASS_L(i,INVALID_INTERPRETATION);
 
   switch(i) {
   case INT_TO_INT:
@@ -738,9 +722,10 @@ bool Theory::isFunction(Interpretation i)
   case REAL_TRUNCATE:
   case REAL_ROUND:
           
-    return true;
+  case ARRAY_SELECT:
+  case ARRAY_STORE:
 
-  case EQUAL:
+    return true;
 
   case INT_GREATER:
   case INT_GREATER_EQUAL:
@@ -767,6 +752,9 @@ bool Theory::isFunction(Interpretation i)
   case REAL_IS_INT:
   case REAL_IS_RAT:
   case REAL_IS_REAL:
+
+  case ARRAY_BOOL_SELECT:
+
     return false;
 
   default:
@@ -781,7 +769,7 @@ bool Theory::isFunction(Interpretation i)
 bool Theory::isInequality(Interpretation i)
 {
   CALL("Signature::InterpretedSymbol::isInequality");
-  ASS(theory->isValidInterpretation(i));
+  ASS_L(i,INVALID_INTERPRETATION);
 
   switch(i) {
   case INT_GREATER:
@@ -814,16 +802,35 @@ bool Theory::hasSingleSort(Interpretation i)
   CALL("Theory::hasSingleSort");
 
   switch(i) {
-  case EQUAL:  // This not SingleSort because we don't know the sorts of its args
   case INT_TO_RAT:
   case INT_TO_REAL:
   case RAT_TO_INT:
   case RAT_TO_REAL:
   case REAL_TO_INT:
   case REAL_TO_RAT:
+
+  case ARRAY_SELECT:
+  case ARRAY_BOOL_SELECT:
+  case ARRAY_STORE:
+
     return false;
   default:
     return true;
+  }
+}
+
+bool Theory::isPolymorphic(Interpretation i)
+{
+  CALL("Theory::isPolymorphic");
+
+  switch(i) {
+  case ARRAY_SELECT:
+  case ARRAY_BOOL_SELECT:
+  case ARRAY_STORE:
+
+    return true;
+  default:
+    return false;
   }
 }
 
@@ -835,13 +842,9 @@ unsigned Theory::getOperationSort(Interpretation i)
 {
   CALL("Theory::getOperationSort");
 
-  
   ASS(hasSingleSort(i));
-  ASS(theory->isValidInterpretation(i));
-
-  if (theory->isStructuredSortInterpretation(i)) {
-    return theory->getStructuredOperationSort(i);
-  }
+  ASS_L(i,INVALID_INTERPRETATION);
+  ASS(!isPolymorphic(i));
 
   switch(i) {
   case INT_GREATER:
@@ -1032,66 +1035,6 @@ bool Theory::isPartialFunction(Interpretation i)
   }
 }
 
-unsigned Theory::getSymbolForStructuredSort(unsigned sort, StructuredSortInterpretation interp)
-{
-    return env.signature->getInterpretingSymbol(getInterpretation(sort,interp));
-}
-
-/**
- * Return true if interpreted function @c i is an array operation.
- * @author Laura Kovacs
- * @since 31/08/2012, Vienna
- */
-bool Theory::isArrayOperation(Interpretation i)
-{
-  CALL("Theory::isArrayFunction");
-  if(!theory->isStructuredSortInterpretation(i)) return false;
-  return env.sorts->hasStructuredSort(theory->getSort(i),Sorts::StructuredSort::ARRAY);
-}
-
-/**
-* This function can be called for array operations 
-* it returns the range domain (the sort of the output) of select and store
-* @author Laura Kovacs
-* @since 31/08/2012, Vienna
-*/
-unsigned Theory::getArrayOperationSort(Interpretation i)
-{
-    CALL("Theory::getArrayOperationSort");
-    ASS(isArrayOperation(i));
-    
-    unsigned sort = theory->getSort(i);
-
-    switch(theory->convertToStructured(i))
-    {
-      case StructuredSortInterpretation::ARRAY_SELECT:
-      case StructuredSortInterpretation::ARRAY_BOOL_SELECT:
-        return env.sorts->getArraySort(sort)->getInnerSort();
-      case StructuredSortInterpretation::ARRAY_STORE:
-        return sort; 
-      default:
-        ASSERTION_VIOLATION;
-    }
-}
-    
-        
-    
-/**
-* This function returns the domain of array indexes (SRT_INT)
-* @author Laura Kovacs
-* @since 31/08/2012, Vienna
-* @since 7/10/2015 update to support polymorphism in the index sort
-*/
-unsigned Theory::getArrayDomainSort(Interpretation i)
-{
-    CALL("Theory::getArrayDomainSort");
-    ASS(isArrayOperation(i));
-        
-    unsigned sort = theory->getSort(i);
-
-    return  env.sorts->getArraySort(sort)->getIndexSort();
-}
-
 /**
  * Get the number of the skolem function symbol used in the clause form of the
  * array extensionality axiom (of particular sort).
@@ -1110,15 +1053,10 @@ unsigned Theory::getArrayExtSkolemFunction(unsigned sort) {
     return _arraySkolemFunctions.get(sort);
   }
 
-  bool isBool = (env.sorts->getArraySort(sort)->getInnerSort() == Sorts::SRT_BOOL);
+  Sorts::ArraySort* arraySort = env.sorts->getArraySort(sort);
 
-  Interpretation store = getInterpretation(sort, StructuredSortInterpretation::ARRAY_STORE);
-  Interpretation select = getInterpretation(sort, isBool ? StructuredSortInterpretation::ARRAY_BOOL_SELECT
-                                                         : StructuredSortInterpretation::ARRAY_SELECT);
-
-  unsigned arraySort = getArrayOperationSort(store);
-  unsigned indexSort = theory->getArrayDomainSort(select);
-  unsigned params[] = {arraySort, arraySort};
+  unsigned indexSort = arraySort->getIndexSort();
+  unsigned params[] = {sort, sort};
   unsigned skolemFunction = Shell::Skolem::addSkolemFunction(2, params, indexSort, "arrayDiff");
 
   _arraySkolemFunctions.insert(sort,skolemFunction);
@@ -1134,7 +1072,7 @@ unsigned Theory::Tuples::getFunctor(unsigned arity, unsigned* sorts) {
 unsigned Theory::Tuples::getFunctor(unsigned tupleSort) {
   CALL("Theory::Tuples::getFunctor(unsigned tupleSort)");
 
-  ASS_REP(env.sorts->hasStructuredSort(tupleSort, Sorts::StructuredSort::TUPLE),
+  ASS_REP(env.sorts->isOfStructuredSort(tupleSort, Sorts::StructuredSort::TUPLE),
           env.sorts->sortName(tupleSort));
 
   Sorts::TupleSort* tuple = env.sorts->getTupleSort(tupleSort);
@@ -1151,13 +1089,13 @@ unsigned Theory::Tuples::getFunctor(unsigned tupleSort) {
 bool Theory::Tuples::isFunctor(unsigned functor) {
   CALL("Theory::Tuples::isFunctor(unsigned)");
   unsigned tupleSort = env.signature->getFunction(functor)->fnType()->result();
-  return env.sorts->hasStructuredSort(tupleSort, Sorts::StructuredSort::TUPLE);
+  return env.sorts->isOfStructuredSort(tupleSort, Sorts::StructuredSort::TUPLE);
 }
 
 unsigned Theory::Tuples::getProjectionFunctor(unsigned proj, unsigned tupleSort) {
   CALL("Theory::Tuples::getProjectionFunctor");
 
-  ASS_REP(env.sorts->hasStructuredSort(tupleSort, Sorts::StructuredSort::TUPLE),
+  ASS_REP(env.sorts->isOfStructuredSort(tupleSort, Sorts::StructuredSort::TUPLE),
           env.sorts->sortName(tupleSort));
 
   Sorts::TupleSort* tuple = env.sorts->getTupleSort(tupleSort);
@@ -1179,8 +1117,8 @@ unsigned Theory::Tuples::getProjectionFunctor(unsigned proj, unsigned tupleSort)
 bool Theory::Tuples::findProjection(unsigned projFunctor, bool isPredicate, unsigned &proj) {
   CALL("Theory::Tuples::findProjection");
 
-  BaseType* projType = isPredicate ? static_cast<BaseType*>(env.signature->getPredicate(projFunctor)->predType())
-                                   : static_cast<BaseType*>(env.signature->getFunction(projFunctor)->fnType());
+  OperatorType* projType = isPredicate ? env.signature->getPredicate(projFunctor)->predType()
+                                       : env.signature->getFunction(projFunctor)->fnType();
 
   if (projType->arity() != 1) {
     return false;
@@ -1188,7 +1126,7 @@ bool Theory::Tuples::findProjection(unsigned projFunctor, bool isPredicate, unsi
 
   unsigned tupleSort = projType->arg(0);
 
-  if (!env.sorts->hasStructuredSort(tupleSort, Sorts::StructuredSort::TUPLE)) {
+  if (!env.sorts->isOfStructuredSort(tupleSort, Sorts::StructuredSort::TUPLE)) {
     return false;
   }
 
@@ -1213,7 +1151,7 @@ bool Theory::Tuples::findProjection(unsigned projFunctor, bool isPredicate, unsi
  *
  * @c i must be a type conversion operation.
  */
-FunctionType* Theory::getConversionOperationType(Interpretation i)
+OperatorType* Theory::getConversionOperationType(Interpretation i)
 {
   CALL("Theory::getConversionOperationType");
 
@@ -1246,176 +1184,143 @@ FunctionType* Theory::getConversionOperationType(Interpretation i)
   default:
     ASSERTION_VIOLATION;
   }
-  return new FunctionType({from}, to);
-}
-
-Sorts::StructuredSort Theory::getInterpretedSort(StructuredSortInterpretation ssi) {
-  switch (ssi) {
-    case StructuredSortInterpretation::ARRAY_SELECT:
-    case StructuredSortInterpretation::ARRAY_BOOL_SELECT:
-    case StructuredSortInterpretation::ARRAY_STORE:
-      return Sorts::StructuredSort::ARRAY;
-    case StructuredSortInterpretation::LIST_HEAD:
-    case StructuredSortInterpretation::LIST_TAIL:
-    case StructuredSortInterpretation::LIST_CONS:
-    case StructuredSortInterpretation::LIST_IS_EMPTY:
-      return Sorts::StructuredSort::LIST;
-    default:
-      ASSERTION_VIOLATION;
-  }
+  return OperatorType::getFunctionType({from}, to);
 }
 
 vstring Theory::getInterpretationName(Interpretation interp) {
   CALL("Theory::getInterpretationName");
 
-  if (Theory::instance()->isStructuredSortInterpretation(interp)) {
-    switch (Theory::instance()->convertToStructured(interp)) {
-      case StructuredSortInterpretation::ARRAY_SELECT:
-      case StructuredSortInterpretation::ARRAY_BOOL_SELECT:
-        return "$select";
-      case StructuredSortInterpretation::ARRAY_STORE:
-        return "$store";
-      default:
-        ASSERTION_VIOLATION_REP(interp);
-    }
-  } else {
-    switch (interp) {
-      case Theory::INT_SUCCESSOR:
-        //this one is not according the TPTP arithmetic (it doesn't have successor)
-        return "$successor";
-      case Theory::INT_DIVIDES:
-        return "$divides";
-      case Theory::INT_UNARY_MINUS:
-      case Theory::RAT_UNARY_MINUS:
-      case Theory::REAL_UNARY_MINUS:
-        return "$uminus";
-      case Theory::INT_PLUS:
-      case Theory::RAT_PLUS:
-      case Theory::REAL_PLUS:
-        return "$sum";
-      case Theory::INT_MINUS:
-      case Theory::RAT_MINUS:
-      case Theory::REAL_MINUS:
-        return "$difference";
-      case Theory::INT_MULTIPLY:
-      case Theory::RAT_MULTIPLY:
-      case Theory::REAL_MULTIPLY:
-        return "$product";
-      case Theory::INT_GREATER:
-      case Theory::RAT_GREATER:
-      case Theory::REAL_GREATER:
-        return "$greater";
-      case Theory::INT_GREATER_EQUAL:
-      case Theory::RAT_GREATER_EQUAL:
-      case Theory::REAL_GREATER_EQUAL:
-        return "$greatereq";
-      case Theory::INT_LESS:
-      case Theory::RAT_LESS:
-      case Theory::REAL_LESS:
-        return "$less";
-      case Theory::INT_LESS_EQUAL:
-      case Theory::RAT_LESS_EQUAL:
-      case Theory::REAL_LESS_EQUAL:
-        return "$lesseq";
-      case Theory::INT_IS_INT:
-      case Theory::RAT_IS_INT:
-      case Theory::REAL_IS_INT:
-        return "$is_int";
-      case Theory::INT_IS_RAT:
-      case Theory::RAT_IS_RAT:
-      case Theory::REAL_IS_RAT:
-        return "$is_rat";
-      case Theory::INT_IS_REAL:
-      case Theory::RAT_IS_REAL:
-      case Theory::REAL_IS_REAL:
-        return "$is_real";
-      case Theory::INT_TO_INT:
-      case Theory::RAT_TO_INT:
-      case Theory::REAL_TO_INT:
-        return "$to_int";
-      case Theory::INT_TO_RAT:
-      case Theory::RAT_TO_RAT:
-      case Theory::REAL_TO_RAT:
-        return "$to_rat";
-      case Theory::INT_TO_REAL:
-      case Theory::RAT_TO_REAL:
-      case Theory::REAL_TO_REAL:
-        return "$to_real";
-      case Theory::INT_ABS:
-        return "$abs";
-      case Theory::INT_QUOTIENT_E:
-      case Theory::RAT_QUOTIENT_E:
-      case Theory::REAL_QUOTIENT_E:
-        return "$quotient_e";
-      case Theory::INT_QUOTIENT_T:
-      case Theory::RAT_QUOTIENT_T:
-      case Theory::REAL_QUOTIENT_T:
-        return "$quotient_t";
-      case Theory::INT_QUOTIENT_F:
-      case Theory::RAT_QUOTIENT_F:
-      case Theory::REAL_QUOTIENT_F:
-        return "$quotient_f";
-      case Theory::INT_REMAINDER_T:
-      case Theory::RAT_REMAINDER_T:
-      case Theory::REAL_REMAINDER_T:
-        return "$remainder_t";
-      case Theory::INT_REMAINDER_F:
-      case Theory::RAT_REMAINDER_F:
-      case Theory::REAL_REMAINDER_F:
-        return "$remainder_f";
-      case Theory::INT_REMAINDER_E:
-      case Theory::RAT_REMAINDER_E:
-      case Theory::REAL_REMAINDER_E:
-        return "$remainder_e";
-      case Theory::RAT_QUOTIENT:
-      case Theory::REAL_QUOTIENT:
-        return "$quotient";
-      case Theory::INT_TRUNCATE:
-      case Theory::RAT_TRUNCATE:
-      case Theory::REAL_TRUNCATE:
-        return "truncate";
-      case Theory::INT_FLOOR:
-      case Theory::RAT_FLOOR:
-      case Theory::REAL_FLOOR:
-        return "floor";
-      case Theory::INT_CEILING:
-      case Theory::RAT_CEILING:
-      case Theory::REAL_CEILING:
-        return "ceiling";
-      default:
-        ASSERTION_VIOLATION_REP(interp);
-    }
+  switch (interp) {
+    case INT_SUCCESSOR:
+      //this one is not according the TPTP arithmetic (it doesn't have successor)
+      return "$successor";
+    case INT_DIVIDES:
+      return "$divides";
+    case INT_UNARY_MINUS:
+    case RAT_UNARY_MINUS:
+    case REAL_UNARY_MINUS:
+      return "$uminus";
+    case INT_PLUS:
+    case RAT_PLUS:
+    case REAL_PLUS:
+      return "$sum";
+    case INT_MINUS:
+    case RAT_MINUS:
+    case REAL_MINUS:
+      return "$difference";
+    case INT_MULTIPLY:
+    case RAT_MULTIPLY:
+    case REAL_MULTIPLY:
+      return "$product";
+    case INT_GREATER:
+    case RAT_GREATER:
+    case REAL_GREATER:
+      return "$greater";
+    case INT_GREATER_EQUAL:
+    case RAT_GREATER_EQUAL:
+    case REAL_GREATER_EQUAL:
+      return "$greatereq";
+    case INT_LESS:
+    case RAT_LESS:
+    case REAL_LESS:
+      return "$less";
+    case INT_LESS_EQUAL:
+    case RAT_LESS_EQUAL:
+    case REAL_LESS_EQUAL:
+      return "$lesseq";
+    case INT_IS_INT:
+    case RAT_IS_INT:
+    case REAL_IS_INT:
+      return "$is_int";
+    case INT_IS_RAT:
+    case RAT_IS_RAT:
+    case REAL_IS_RAT:
+      return "$is_rat";
+    case INT_IS_REAL:
+    case RAT_IS_REAL:
+    case REAL_IS_REAL:
+      return "$is_real";
+    case INT_TO_INT:
+    case RAT_TO_INT:
+    case REAL_TO_INT:
+      return "$to_int";
+    case INT_TO_RAT:
+    case RAT_TO_RAT:
+    case REAL_TO_RAT:
+      return "$to_rat";
+    case INT_TO_REAL:
+    case RAT_TO_REAL:
+    case REAL_TO_REAL:
+      return "$to_real";
+    case INT_ABS:
+      return "$abs";
+    case INT_QUOTIENT_E:
+    case RAT_QUOTIENT_E:
+    case REAL_QUOTIENT_E:
+      return "$quotient_e";
+    case INT_QUOTIENT_T:
+    case RAT_QUOTIENT_T:
+    case REAL_QUOTIENT_T:
+      return "$quotient_t";
+    case INT_QUOTIENT_F:
+    case RAT_QUOTIENT_F:
+    case REAL_QUOTIENT_F:
+      return "$quotient_f";
+    case INT_REMAINDER_T:
+    case RAT_REMAINDER_T:
+    case REAL_REMAINDER_T:
+      return "$remainder_t";
+    case INT_REMAINDER_F:
+    case RAT_REMAINDER_F:
+    case REAL_REMAINDER_F:
+      return "$remainder_f";
+    case INT_REMAINDER_E:
+    case RAT_REMAINDER_E:
+    case REAL_REMAINDER_E:
+      return "$remainder_e";
+    case RAT_QUOTIENT:
+    case REAL_QUOTIENT:
+      return "$quotient";
+    case INT_TRUNCATE:
+    case RAT_TRUNCATE:
+    case REAL_TRUNCATE:
+      return "truncate";
+    case INT_FLOOR:
+    case RAT_FLOOR:
+    case REAL_FLOOR:
+      return "floor";
+    case INT_CEILING:
+    case RAT_CEILING:
+    case REAL_CEILING:
+      return "ceiling";
+    case ARRAY_SELECT:
+    case ARRAY_BOOL_SELECT:
+      return "$select";
+    case ARRAY_STORE:
+      return "$store";
+    default:
+      ASSERTION_VIOLATION_REP(interp);
   }
 }
 
-BaseType* Theory::getStructuredSortOperationType(Interpretation i) {
-  CALL("Theory::getStructuredSortOperationType");
+OperatorType* Theory::getArrayOperatorType(unsigned arraySort, Interpretation i) {
+  CALL("Theory::getArrayOperatorType");
 
-  ASS(theory->isStructuredSortInterpretation(i));
+  Sorts::ArraySort* info = env.sorts->getArraySort(arraySort);
 
-  unsigned theorySort = theory->getSort(i);
-  StructuredSortInterpretation ssi = theory->convertToStructured(i);
+  unsigned indexSort = info->getIndexSort();
+  unsigned innerSort = info->getInnerSort();
 
-  switch (theory->getInterpretedSort(ssi)) {
-    case Sorts::StructuredSort::ARRAY: {
-      unsigned indexSort = getArrayDomainSort(i);
-      unsigned valueSort = getArrayOperationSort(i);
-      unsigned innerSort = env.sorts->getArraySort(theorySort)->getInnerSort();
+  switch (i) {
+    case Interpretation::ARRAY_SELECT:
+      return OperatorType::getFunctionType({ arraySort, indexSort }, innerSort);
 
-      switch (ssi) {
-        case StructuredSortInterpretation::ARRAY_SELECT:
-          return new FunctionType({ theorySort, indexSort }, valueSort);
+    case Interpretation::ARRAY_BOOL_SELECT:
+      return OperatorType::getPredicateType({ arraySort, indexSort });
 
-        case StructuredSortInterpretation::ARRAY_BOOL_SELECT:
-          return new PredicateType({ theorySort, indexSort });
+    case Interpretation::ARRAY_STORE:
+      return OperatorType::getFunctionType({ arraySort, indexSort, innerSort }, arraySort);
 
-        case StructuredSortInterpretation::ARRAY_STORE:
-          return new FunctionType({ theorySort, indexSort, innerSort }, valueSort);
-
-        default:
-          ASSERTION_VIOLATION;
-      }
-    }
     default:
       ASSERTION_VIOLATION;
   }
@@ -1424,17 +1329,13 @@ BaseType* Theory::getStructuredSortOperationType(Interpretation i) {
 /**
  * Return type of the function representing interpreted function/predicate @c i.
  */
-BaseType* Theory::getOperationType(Interpretation i)
+OperatorType* Theory::getNonpolymorphicOperatorType(Interpretation i)
 {
-  CALL("Theory::getOperationType");
-  ASS_NEQ(i, EQUAL);
+  CALL("Theory::getNonpolymorphicOperationType");
+  ASS(!isPolymorphic(i));
 
   if (isConversionOperation(i)) {
     return getConversionOperationType(i);
-  }
-
-  if (theory->isStructuredSortInterpretation(i)) {
-    return getStructuredSortOperationType(i);
   }
 
   unsigned sort;
@@ -1447,9 +1348,9 @@ BaseType* Theory::getOperationType(Interpretation i)
   domainSorts.init(arity, sort);
 
   if (isFunction(i)) {
-    return new FunctionType(arity, domainSorts.array(), sort);
+    return OperatorType::getFunctionType(arity, domainSorts.array(), sort);
   } else {
-    return new PredicateType(arity, domainSorts.array());
+    return OperatorType::getPredicateType(arity, domainSorts.array());
   }
 }
 
@@ -1463,7 +1364,7 @@ void Theory::defineTupleTermAlgebra(unsigned arity, unsigned* sorts) {
   }
 
   unsigned functor = env.signature->addFreshFunction(arity, "tuple");
-  FunctionType* tupleType = new FunctionType(arity, sorts, tupleSort);
+  OperatorType* tupleType = OperatorType::getFunctionType(arity, sorts, tupleSort);
   env.signature->getFunction(functor)->setType(tupleType);
   env.signature->getFunction(functor)->markTermAlgebraCons();
 
@@ -1473,10 +1374,10 @@ void Theory::defineTupleTermAlgebra(unsigned arity, unsigned* sorts) {
     unsigned destructor;
     if (projSort == Sorts::SRT_BOOL) {
       destructor = env.signature->addFreshPredicate(1, "proj");
-      env.signature->getPredicate(destructor)->setType(new PredicateType({ tupleSort }));
+      env.signature->getPredicate(destructor)->setType(OperatorType::getPredicateType({ tupleSort }));
     } else {
       destructor = env.signature->addFreshFunction(1, "proj");
-      env.signature->getFunction(destructor)->setType(new FunctionType({ tupleSort }, projSort));
+      env.signature->getFunction(destructor)->setType(OperatorType::getFunctionType({ tupleSort }, projSort));
     }
     destructors[i] = destructor;
   }
@@ -1559,7 +1460,7 @@ bool Theory::isInterpretedPredicate(Literal* lit)
 
   if(lit->isEquality()){
     unsigned srt = SortHelper::getEqualityArgumentSort(lit);
-    return (srt > Sorts::SRT_DEFAULT && srt < Sorts::FIRST_USER_SORT);
+    return (srt == Sorts::SRT_INTEGER || srt == Sorts::SRT_RATIONAL || srt == Sorts::SRT_REAL);
   }
 
   return isInterpretedPredicate(lit->functor());
@@ -1840,97 +1741,6 @@ Term* Theory::representRealConstant(vstring str)
 }
 
 /**
- * Return term containing unary function interpreted as @b itp with
- * @b arg as its first argument
- */
-Term* Theory::fun1(Interpretation itp, TermList arg)
-{
-  CALL("Theory::fun1");
-  ASS(isFunction(itp));
-  ASS_EQ(getArity(itp), 1);
-
-  unsigned fn=theory->getFnNum(itp);
-  return Term::create(fn, 1, &arg);
-}
-
-/**
- * Return term containing binary function interpreted as @b itp with
- * arguments @b arg1 and @b arg2
- */
-Term* Theory::fun2(Interpretation itp, TermList arg1, TermList arg2)
-{
-  CALL("Theory::fun2");
-  ASS(isFunction(itp));
-  ASS_EQ(getArity(itp), 2);
-
-  TermList args[]= {arg1, arg2};
-
-  unsigned fn=theory->getFnNum(itp);
-  return Term::create(fn, 2, args);
-}
-
-    
-/**
-* Return term containing trenary function interpreted as @b itp with
-* arguments @b arg1 ,  @b arg2, @b arg3
-*/
-Term* Theory::fun3(Interpretation itp, TermList arg1, TermList arg2, TermList arg3)
-    {
-        CALL("Theory::fun3");
-        ASS(isFunction(itp));
-        ASS_EQ(getArity(itp), 3);
-        
-        TermList args[]= {arg1, arg2, arg3};
-        
-        unsigned fn=theory->getFnNum(itp);
-        return Term::create(fn, 3, args);
-    }
-
-
-    
-    
-/**
- * Return literal containing binary predicate interpreted as @b itp with
- * arguments @b arg1 and @b arg2
- *
- * Equality cannot be created using this function, Term::createEquality has to be used.
- */
-Literal* Theory::pred2(Interpretation itp, bool polarity, TermList arg1, TermList arg2)
-{
-  CALL("Theory::fun2");
-  ASS(!isFunction(itp));
-  ASS_EQ(getArity(itp), 2);
-  ASS_NEQ(itp,EQUAL);
-
-  TermList args[]= {arg1, arg2};
-
-  unsigned pred=theory->getPredNum(itp);
-  return Literal::create(pred, 2, polarity, false, args);
-}
-
-/**
- * Return number of function that is intepreted as @b itp
- */
-unsigned Theory::getFnNum(Interpretation itp)
-{
-  CALL("Theory::getFnNum");
-  ASS(isFunction(itp));
-  
-  return env.signature->getInterpretingSymbol(itp);
-}
-
-/**
- * Return number of predicate that is intepreted as @b itp
- */
-unsigned Theory::getPredNum(Interpretation itp)
-{
-  CALL("Theory::getPredNum");
-  ASS(!isFunction(itp));
-  
-  return env.signature->getInterpretingSymbol(itp);
-}
-
-/**
  * Register that a predicate pred with a given polarity has the given
  * template. See tryGetInterpretedLaTeXName for explanation of templates 
  */
@@ -2018,8 +1828,6 @@ vstring Theory::tryGetInterpretedLaTeXName(unsigned func, bool pred,bool polarit
   case INT_UNARY_MINUS:
   case RAT_UNARY_MINUS:
   case REAL_UNARY_MINUS: return "-a0";
-
-  case EQUAL:return "a0 "+pol+"= a1";
 
   case INT_GREATER: return "a0 "+pol+"> a1";
   case INT_GREATER_EQUAL: return "a0 "+pol+"\\geq a1";

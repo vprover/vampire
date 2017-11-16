@@ -305,7 +305,7 @@ z3::sort Z3Interfacing::getz3sort(unsigned s)
   if(s==Sorts::SRT_RATIONAL) return _context.real_sort(); // Drop notion of rationality 
 
   // Deal with arrays
-  if(env.sorts->hasStructuredSort(s,Sorts::StructuredSort::ARRAY)){
+  if(env.sorts->isOfStructuredSort(s,Sorts::StructuredSort::ARRAY)){
     
     z3::sort index_sort = getz3sort(env.sorts->getArraySort(s)->getIndexSort());
     z3::sort value_sort = getz3sort(env.sorts->getArraySort(s)->getInnerSort());
@@ -345,11 +345,11 @@ z3::expr Z3Interfacing::getz3expr(Term* trm,bool isLit,bool&nameExpression,bool 
 
     Signature::Symbol* symb; 
     unsigned range_sort;
-    BaseType* type;
+    OperatorType* type;
     bool is_equality = false;
     if(isLit){
       symb = env.signature->getPredicate(trm->functor());
-      PredicateType* ptype = symb->predType();
+      OperatorType* ptype = symb->predType();
       type = ptype;
       range_sort = Sorts::SRT_BOOL;
       // check for equality
@@ -359,7 +359,7 @@ z3::expr Z3Interfacing::getz3expr(Term* trm,bool isLit,bool&nameExpression,bool 
       }
     }else{
       symb = env.signature->getFunction(trm->functor());
-      FunctionType* ftype = symb->fnType(); 
+      OperatorType* ftype = symb->fnType();
       type = ftype;
       range_sort = ftype->result();
     }
@@ -434,16 +434,16 @@ z3::expr Z3Interfacing::getz3expr(Term* trm,bool isLit,bool&nameExpression,bool 
       bool skip=false; 
       unsigned argsToPop=theory->getArity(interp);
 
-      if(theory->isStructuredSortInterpretation(interp)){
+      if(Theory::isPolymorphic(interp)){
         nameExpression = true;
-        switch(theory->convertToStructured(interp)){
-          case Theory::StructuredSortInterpretation::ARRAY_SELECT:
-          case Theory::StructuredSortInterpretation::ARRAY_BOOL_SELECT:
+        switch(interp){
+          case Theory::ARRAY_SELECT:
+          case Theory::ARRAY_BOOL_SELECT:
             // select(array,index)
             ret = select(args[0],args[1]);
             break;
 
-          case Theory::StructuredSortInterpretation::ARRAY_STORE:
+          case Theory::ARRAY_STORE:
             // store(array,index,value)
             ret = store(args[0],args[1],args[2]);
             break;

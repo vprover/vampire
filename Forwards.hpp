@@ -44,12 +44,6 @@ struct Relocator
   
 struct EmptyStruct {};
 
-
-struct DefaultEq {
-  template<typename T>
-  static bool equals(T o1, T o2) { return o1==o2; }
-};
-
 class Hash;
 struct IdentityHash;
 struct PtrIdentityHash;
@@ -68,6 +62,7 @@ template<class T> class RCPtr;
 template<typename T> class SingleParamEvent;
 template<class C> class DArray;
 template<class C> class Stack;
+template<class C> class Vector;
 template<typename T> class List;
 template<typename T, class Comparator> class BinaryHeap;
 template<typename T> class SharedSet;

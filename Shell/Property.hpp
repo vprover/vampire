@@ -31,6 +31,7 @@
 
 #include "Lib/DArray.hpp"
 #include "Lib/Array.hpp"
+#include "Lib/DHSet.hpp"
 #include "Kernel/Unit.hpp"
 #include "Kernel/Theory.hpp"
 #include "Lib/VString.hpp"
@@ -215,11 +216,14 @@ public:
    */
   void scanForInterpreted(Term* t);
 
-  bool hasInterpretedOperation(Interpretation i) const { 
+  bool hasInterpretedOperation(Interpretation i) const {
     if(i >= _interpretationPresence.size()){ return false; }
     return _interpretationPresence[i]; 
   }
-  //bool hasArrayOperation(Interpretation i) const { return true; }
+  bool hasInterpretedOperation(Interpretation i, OperatorType* type) const {
+    return _polymorphicInterpretations.find(std::make_pair(i,type));
+  }
+
   /** Problem contains an interpreted symbol excluding equality */
   bool hasInterpretedOperations() const { return _hasInterpreted; }
   bool hasInterpretedEquality() const { return _hasInterpretedEquality; }
@@ -321,8 +325,13 @@ public:
   /** Problem contains non-default sorts */
   bool _hasNonDefaultSorts;
   unsigned _sortsUsed;
-  DArray<bool> _interpretationPresence;
   Array<bool> _usesSort;
+
+  /** Makes sense for all interpretations, but for polymorphic ones we also keep
+   *  the more precise information about which monomorphisations are present (see below).
+   */
+  DArray<bool> _interpretationPresence;
+  DHSet<Theory::MonomorphisedInterpretation> _polymorphicInterpretations;
 
   bool _hasFOOL;
 

@@ -133,7 +133,7 @@ namespace FMB {
         if(!_introduced.find(t)){
           unsigned newConstant = env.signature->addFreshFunction(0,"fmbdef");
           unsigned srt = SortHelper::getResultSort(t);
-          env.signature->getFunction(newConstant)->setType(new FunctionType(srt));
+          env.signature->getFunction(newConstant)->setType(OperatorType::getConstantsType(srt));
           Term* c = Term::createConstant(newConstant); 
           _introduced.insert(t,c);
           if(term==t) retC=c;

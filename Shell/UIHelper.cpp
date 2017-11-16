@@ -39,7 +39,6 @@
 #include "Kernel/Problem.hpp"
 #include "Kernel/FormulaUnit.hpp"
 
-#include "Parse/SMTLIB.hpp"
 #include "Parse/SMTLIB2.hpp"
 #include "Parse/TPTP.hpp"
 
@@ -251,13 +250,19 @@ Problem* UIHelper::getInputProblem(const Options& opts)
     }
     break;
   case Options::InputSyntax::SMTLIB:
-    {
-      Parse::SMTLIB parser(opts);
-      parser.parse(*input);
-      units = parser.getFormulas();
-      s_haveConjecture=true;
+    /*  {
+        Parse::SMTLIB parser(opts);
+        parser.parse(*input);
+        units = parser.getFormulas();
+        s_haveConjecture=true;
+      }
+      break; */
+    if (outputAllowed()) {
+      env.beginOutput();
+      addCommentSignForSZS(env.out());
+      env.out() << "Vampire no longer supports the old smtlib format, trying with smtlib2 instead." << endl;
+      env.endOutput();
     }
-    break;
   case Options::InputSyntax::SMTLIB2:
   {
 	  Parse::SMTLIB2 parser(opts);
@@ -589,12 +594,12 @@ void UIHelper::outputSymbolTypeDeclarationIfNeeded(ostream& out, bool function, 
 
   if (function) {
     unsigned sort = env.signature->getFunction(symNumber)->fnType()->result();
-    if (env.sorts->hasStructuredSort(sort, Sorts::StructuredSort::TUPLE)) {
+    if (env.sorts->isOfStructuredSort(sort, Sorts::StructuredSort::TUPLE)) {
       return;
     }
   }
 
-  BaseType* type = function ? static_cast<BaseType*>(sym->fnType()) : sym->predType();
+  OperatorType* type = function ? sym->fnType() : sym->predType();
 
   if (type->isAllDefault()) {
     return;
@@ -639,12 +644,12 @@ void UIHelper::outputSortDeclarations(ostream& out)
 {
   CALL("UIHelper::outputSortDeclarations");
 
-  unsigned sorts = (*env.sorts).sorts();
+  unsigned sorts = (*env.sorts).count();
   for (unsigned sort = Sorts::SRT_BOOL; sort < sorts; ++sort) {
     if (sort < Sorts::FIRST_USER_SORT && ((sort != Sorts::SRT_BOOL) || !env.options->showFOOL())) {
       continue;
     }
-    if ((*env.sorts).hasStructuredSort(sort)) {
+    if ((*env.sorts).isStructuredSort(sort)) {
       continue;
     }
     out << "tff(type_def_" << sort << ", type, " << env.sorts->sortName(sort) << ": $tType)." << endl;

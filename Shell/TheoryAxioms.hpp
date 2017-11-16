@@ -89,9 +89,11 @@ private:
                            Interpretation unaryMinus, TermList zeroElement);
   void addIntegerDividesAxioms(Interpretation divides, Interpretation multiply, TermList zero, TermList n);
 
-  void addBooleanArrayExtensionalityAxioms(Interpretation select, Interpretation store, unsigned skolem);
-  void addArrayExtensionalityAxioms(Interpretation select, Interpretation store, unsigned skolem);
-  void addBooleanArrayWriteAxioms(Interpretation select, Interpretation store);
+  void addBooleanArrayExtensionalityAxioms(unsigned arraySort, unsigned skolem);
+  void addArrayExtensionalityAxioms(unsigned arraySort, unsigned skolem);
+  void addBooleanArrayWriteAxioms(unsigned arraySort);
+  void addArrayWriteAxioms(unsigned arraySort);
+
   void addTupleAxioms(unsigned tupleSort);
   void addFloorAxioms(Interpretation floor, Interpretation less, Interpretation unaryMinus,
                       Interpretation plus, TermList oneElement);
@@ -100,7 +102,6 @@ private:
   void addRoundAxioms(Interpretation round, Interpretation floor, Interpretation ceiling); 
   void addTruncateAxioms(Interpretation truncate, Interpretation less, Interpretation unaryMinus,
                       Interpretation plus, TermList zeroElement, TermList oneElement);
-  void addArrayWriteAxioms(Interpretation select, Interpretation store);
 
   // term algebra axioms
   void addExhaustivenessAxiom(TermAlgebra* ta);
