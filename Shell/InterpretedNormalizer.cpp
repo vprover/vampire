@@ -259,17 +259,18 @@ public:
   {
     CALL("InterpretedNormalizer::NLiteralTransformer::apply");
 
-    if(theory->isInterpretedPredicate(lit)) {
+    if (!lit->isEquality() && theory->isInterpretedPredicate(lit)) // don't do this for equality which is interpreted, but does not have an interpretation
+    {
       Interpretation itp = theory->interpretPredicate(lit);
       if(isTrivialInterpretation(itp)) {
-	constantRes = true;
-	boolRes = lit->isPositive();
-	return;
+        constantRes = true;
+        boolRes = lit->isPositive();
+        return;
       }
     }
+
     constantRes = false;
     litRes = transform(lit);
-
     unsigned pred = litRes->functor();
     IneqTranslator* transl = getIneqTranslator(pred);
     if(transl) {

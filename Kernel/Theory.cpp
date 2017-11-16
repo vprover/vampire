@@ -958,7 +958,7 @@ bool Theory::isPolymorphic(Interpretation i)
 {
   CALL("Theory::isPolymorphic");
 
-  if (i > numberOfFixedInterpretations()) { // indexed are all polymorphic (for now)
+  if (i >= numberOfFixedInterpretations()) { // indexed are all polymorphic (for now)
     return true;
   }
 
@@ -1785,7 +1785,7 @@ bool Theory::isInterpretedPredicate(unsigned pred)
 {
   CALL("Theory::isInterpretedPredicate(unsigned)");
 
-  return env.signature->getPredicate(pred)->interpreted();
+  return pred == 0 || env.signature->getPredicate(pred)->interpreted();
 }
 
 /**
@@ -1951,7 +1951,7 @@ Interpretation Theory::interpretPredicate(unsigned pred)
  */
 Interpretation Theory::interpretPredicate(Literal* lit)
 {
-  CALL("Theory::interpretFunction");
+  CALL("Theory::interpretPredicate");
   ASS(isInterpretedPredicate(lit));
 
   return interpretPredicate(lit->functor());
