@@ -1,3 +1,21 @@
+
+/*
+ * File Signature.cpp.
+ *
+ * This file is part of the source code of the software program
+ * Vampire. It is protected by applicable
+ * copyright laws.
+ *
+ * This source code is distributed under the licence found here
+ * https://vprover.github.io/license.html
+ * and in the source directory
+ *
+ * In summary, you are allowed to use Vampire for non-commercial
+ * purposes but not allowed to distribute, modify, copy, create derivatives,
+ * or use in competitions. 
+ * For other uses of Vampire please contact developers for a different
+ * licence, which we will make an effort to provide. 
+ */
 /**
  * @file Signature.cpp
  * Implements class Signature for handling signatures
@@ -6,6 +24,7 @@
 #include "Lib/Environment.hpp"
 #include "Lib/Int.hpp"
 #include "Shell/Options.hpp"
+#include "Shell/DistinctGroupExpansion.hpp"
 
 #include "Signature.hpp"
 
@@ -16,11 +35,6 @@ using namespace Kernel;
 using namespace Shell;
 
 const unsigned Signature::STRING_DISTINCT_GROUP = 0;
-const unsigned Signature::INTEGER_DISTINCT_GROUP = 1;
-const unsigned Signature::RATIONAL_DISTINCT_GROUP = 2;
-const unsigned Signature::REAL_DISTINCT_GROUP = 3;
-//const unsigned Signature::BITVECTOR_DISTINCT_GROUP = 4;
-unsigned Signature::LAST_BUILT_IN_DISTINCT_GROUP = 3;
 
 /**
  * Standard constructor.
@@ -56,15 +70,6 @@ Signature::Symbol::Symbol(const vstring& nm,unsigned arity, bool interpreted, bo
     markProtected();
   }
 } // Symbol::Symbol
-
-Signature::Symbol::~Symbol()
-{
-  CALL("Signature::Symbol::~Symbol");
-
-  if (_type) {
-    delete _type;
-  }
-}
 
 /**
  * Deallocate function Symbol object
@@ -128,9 +133,10 @@ void Signature::Symbol::addToDistinctGroup(unsigned group,unsigned this_number)
   env.signature->_distinctGroupsAddedTo=true;
 
   Stack<unsigned>* members = env.signature->_distinctGroupMembers[group];
-  // see DistinctGroupExpansion::apply for why 141
-  if(members->size()<141 || env.options->bfnt()
-                       || env.options->saturationAlgorithm()==Options::SaturationAlgorithm::FINITE_MODEL_BUILDING){ 
+  if(members->size() <= DistinctGroupExpansion::EXPAND_UP_TO_SIZE || env.options->bfnt()
+                       || env.options->saturationAlgorithm()==Options::SaturationAlgorithm::FINITE_MODEL_BUILDING){
+    // we add one more than EXPAND_UP_TO_SIZE to signal to DistinctGroupExpansion::apply not to expand
+    // ... instead DistinctEqualitySimplifier will take over
     members->push(this_number);
   }
 
@@ -143,7 +149,7 @@ void Signature::Symbol::addToDistinctGroup(unsigned group,unsigned this_number)
  * should be different from the default type, this function must be
  * called before any call to @c fnType() or @c predType().
  */
-void Signature::Symbol::setType(BaseType* type)
+void Signature::Symbol::setType(OperatorType* type)
 {
   CALL("Signature::Symbol::setType");
   ASS(!_type);
@@ -156,7 +162,7 @@ void Signature::Symbol::setType(BaseType* type)
  * This can be unsafe so should only be used when you know it is safe to
  * change the type i.e. nothing yet relies on the type of this symbol
  */
-void Signature::Symbol::forceType(BaseType* type)
+void Signature::Symbol::forceType(OperatorType* type)
 {
   CALL("Signature::Symbol::forceType");
   if(_type){ delete _type; }
@@ -169,14 +175,14 @@ void Signature::Symbol::forceType(BaseType* type)
  * If the @c setType() function was not called before, the function
  * symbol is assigned a default type.
  */
-FunctionType* Signature::Symbol::fnType() const
+OperatorType* Signature::Symbol::fnType() const
 {
   CALL("Signature::Symbol::fnType");
 
   if (!_type) {
-    _type = new FunctionType(arity(), (unsigned*)0, Sorts::SRT_DEFAULT);
+    _type = OperatorType::getFunctionType(arity(), (unsigned*)0, Sorts::SRT_DEFAULT);
   }
-  return static_cast<FunctionType*>(_type);
+  return _type;
 }
 
 /**
@@ -185,14 +191,14 @@ FunctionType* Signature::Symbol::fnType() const
  * If the @c setType() function was not called before, the function
  * symbol is assigned a default type.
  */
-PredicateType* Signature::Symbol::predType() const
+OperatorType* Signature::Symbol::predType() const
 {
   CALL("Signature::Symbol::predType");
 
   if (!_type) {
-    _type = new PredicateType(arity(), (unsigned*)0);
+    _type = OperatorType::getPredicateType(arity(), (unsigned*)0);
   }
-  return static_cast<PredicateType*>(_type);
+  return _type;
 }
 
 
@@ -217,23 +223,13 @@ Signature::Signature ():
   CALL("Signature::Signature");
 
   // initialize equality
-  addInterpretedPredicate(Theory::EQUAL, "=");
+  addPredicate("=", 2);
   ASS_EQ(predicateName(0), "="); //equality must have number 0
   getPredicate(0)->markSkip();
 
   unsigned aux;
-  // Warning! reordering or removing some of below may brake the code in
-  // DistinctGroupExpansion::apply(UnitList*& units)
   aux = createDistinctGroup();
   ASS_EQ(STRING_DISTINCT_GROUP, aux);
-  aux = createDistinctGroup();
-  ASS_EQ(INTEGER_DISTINCT_GROUP, aux);
-  aux = createDistinctGroup();
-  ASS_EQ(RATIONAL_DISTINCT_GROUP, aux);
-  aux = createDistinctGroup();
-  ASS_EQ(REAL_DISTINCT_GROUP, aux);
-  //aux = createDistinctGroup();asd
- // ASS_EQ(BITVECTOR_DISTINCT_GROUP, aux);
 } // Signature::Signature
 
 /**
@@ -249,76 +245,7 @@ Signature::~Signature ()
   for (int i = _preds.length()-1;i >= 0;i--) {
     _preds[i]->destroyPredSymbol();
   }
-    
-  for (int i = _vars.length()-1; i>= 0 ; i--){
-      
-    delete _vars[i];
-  }
 } // Signature::~Signature
-
-/**
- * Add interpreted function
- */
-unsigned Signature::addInterpretedFunction(Interpretation interpretation, const vstring& name)
-{
-  CALL("Signature::addInterpretedFunction");
-  ASS(Theory::isFunction(interpretation));
-
-  unsigned res;
-  if (_iSymbols.find(interpretation,res)) { // already declared
-    if (name!=functionName(res)) {
-      USER_ERROR("Interpreted function '"+functionName(res)+"' has the same interpretation as '"+name+"' should have");
-    }
-    return res;
-  }
-
-  vstring symbolKey = name+"_i"+Int::toString(interpretation);
-  ASS(!_funNames.find(symbolKey));
-
-  unsigned fnNum = _funs.length();
-  InterpretedSymbol* sym = new InterpretedSymbol(name, interpretation);
-  _funs.push(sym);
-  _funNames.insert(symbolKey, fnNum);
-  ALWAYS(_iSymbols.insert(interpretation, fnNum));
-  BaseType* fnType = Theory::getOperationType(interpretation);
-  ASS(fnType->isFunctionType());
-  sym->setType(fnType);
-  return fnNum;
-} // Signature::addInterpretedFunction
-
-/**
- * Add interpreted predicate
- */
-unsigned Signature::addInterpretedPredicate(Interpretation interpretation, const vstring& name)
-{
-  CALL("Signature::addInterpretedPredicate");
-  ASS(!Theory::isFunction(interpretation));
- 
-  unsigned res;
-  if (_iSymbols.find(interpretation,res)) { // already declared
-    if (name!=predicateName(res)) {
-      USER_ERROR("Interpreted predicate '"+predicateName(res)+"' has the same interpretation as '"+name+"' should have");
-    }
-    return res;
-  }
-
-  vstring symbolKey = name+"_i"+Int::toString(interpretation);
-
-  ASS(!_predNames.find(symbolKey));
-
-  unsigned predNum = _preds.length();
-  InterpretedSymbol* sym = new InterpretedSymbol(name, interpretation);
-  _preds.push(sym);
-  _predNames.insert(symbolKey,predNum);
-  ALWAYS(_iSymbols.insert(interpretation, predNum));
-  if (predNum!=0) {
-    BaseType* predType = Theory::getOperationType(interpretation);
-    ASS_REP(!predType->isFunctionType(), predType->toString());
-    sym->setType(predType);
-  }
-  return predNum;
-} // Signature::addInterpretedPredicate
-
 
 /**
  * Add an integer constant to the signature. If defaultSort is true, treat it as
@@ -345,53 +272,33 @@ unsigned Signature::addIntegerConstant(const vstring& number,bool defaultSort)
 
   result = _funs.length();
   Symbol* sym = new Symbol(name,0,false,false,true);
-  sym->addToDistinctGroup(INTEGER_DISTINCT_GROUP,result);
-  if(defaultSort){ 
-     sym->addToDistinctGroup(STRING_DISTINCT_GROUP,result); // numbers are disctinct from strings
-  }
   _funs.push(sym);
   _funNames.insert(symbolKey,result);
   return result;
 } // Signature::addIntegerConstant
+
 unsigned Signature::addBitVectorConstant(const BitVectorConstantType& value)
 {
-    CALL("Signature::addBitVectorConstant(vstring, vstring)");
-    
-    vstring key;
-    DArray<bool> t = value.getBinArray();
-    vstring forKey = BitVectorOperations::boolArraytoString(t); 
-    
-    key = Int::toString(value.size()) + "_" + forKey + "_bv";
-    unsigned result;
-    if (_funNames.find(key, result)){
-        return result;
-    }
-    
-    _bitvectors++;
-    result = _funs.length();
-    Symbol* sym = new BitVectorSymbol(value);
-    
-    _funs.push(sym);
-    _funNames.insert(key, result);
-     // here use the sort of bvonstanttype to look for the distinct group number in a hashmap
-    unsigned bvSort = env.sorts->addBitVectorSort(value.size());
-    if (!bitVector_D_G_map.find(bvSort))
-    {
-        LAST_BUILT_IN_DISTINCT_GROUP++;
-        unsigned aux = createDistinctGroup();
-        ASS_EQ(LAST_BUILT_IN_DISTINCT_GROUP,aux);
-        bitVector_D_G_map.insert(bvSort,LAST_BUILT_IN_DISTINCT_GROUP);
-        sym->addToDistinctGroup(LAST_BUILT_IN_DISTINCT_GROUP , result);
-    }
-    else 
-    {
-        unsigned vall = bitVector_D_G_map.get(bvSort);
-        sym->addToDistinctGroup(vall , result);
-        
-    }
-    
-    sym->addToDistinctGroup(STRING_DISTINCT_GROUP,result); // numbers are distinct from strings
-    return result;
+  CALL("Signature::addBitVectorConstant");
+
+  vstring key;
+  const DArray<bool>& t = value.getBinArray();
+  vstring forKey = BitVectorOperations::boolArraytoString(t);
+
+  key = Int::toString(value.size()) + "_" + forKey + "_bv";
+  unsigned result;
+  if (_funNames.find(key, result)){
+      return result;
+  }
+
+  _bitvectors++;
+  result = _funs.length();
+  Symbol* sym = new BitVectorSymbol(value);
+
+  _funs.push(sym);
+  _funNames.insert(key, result);
+
+  return result;
 }
 
 /**
@@ -412,8 +319,9 @@ unsigned Signature::addIntegerConstant(const IntegerConstantType& value)
   Symbol* sym = new IntegerSymbol(value);
   _funs.push(sym);
   _funNames.insert(key,result);
+  /*
   sym->addToDistinctGroup(INTEGER_DISTINCT_GROUP,result);
-  //sym->addToDistinctGroup(STRING_DISTINCT_GROUP,result); // numbers are distinct from strings
+  */
   return result;
 } // addIntegerConstant
 
@@ -440,10 +348,12 @@ unsigned Signature::addRationalConstant(const vstring& numerator, const vstring&
   }
   result = _funs.length();
   Symbol* sym = new Symbol(name,0,false,false,true);
+  /*
   if(defaultSort){ 
     sym->addToDistinctGroup(STRING_DISTINCT_GROUP,result); // numbers are distinct from strings
   }
   sym->addToDistinctGroup(RATIONAL_DISTINCT_GROUP,result);
+  */
   _funs.push(sym);
   _funNames.insert(key,result);
   return result;
@@ -486,10 +396,12 @@ unsigned Signature::addRealConstant(const vstring& number,bool defaultSort)
   }
   result = _funs.length();
   Symbol* sym = new Symbol(value.toNiceString(),0,false,false,true);
+  /*
   if(defaultSort){ 
     sym->addToDistinctGroup(STRING_DISTINCT_GROUP,result); // numbers are distinct from strings
   }
   sym->addToDistinctGroup(REAL_DISTINCT_GROUP,result);
+  */
   _funs.push(sym);
   _funNames.insert(key,result);
   return result;
@@ -512,26 +424,96 @@ unsigned Signature::addRealConstant(const RealConstantType& value)
 }
 
 /**
+ * Add interpreted function
+ */
+unsigned Signature::addInterpretedFunction(Interpretation interpretation, OperatorType* type, const vstring& name)
+{
+  CALL("Signature::addInterpretedFunction(Interpretation,OperatorType*,const vstring&)");
+  ASS(Theory::isFunction(interpretation));
+
+  Theory::MonomorphisedInterpretation mi = std::make_pair(interpretation,type);
+
+  unsigned res;
+  if (_iSymbols.find(mi,res)) { // already declared
+    if (name!=functionName(res)) {
+      USER_ERROR("Interpreted function '"+functionName(res)+"' has the same interpretation as '"+name+"' should have");
+    }
+    return res;
+  }
+
+  vstring symbolKey = name+"_i"+Int::toString(interpretation)+(Theory::isPolymorphic(interpretation) ? type->toString() : "");
+  ASS(!_funNames.find(symbolKey));
+
+  unsigned fnNum = _funs.length();
+  InterpretedSymbol* sym = new InterpretedSymbol(name, interpretation);
+  _funs.push(sym);
+  _funNames.insert(symbolKey, fnNum);
+  ALWAYS(_iSymbols.insert(mi, fnNum));
+
+  OperatorType* fnType = type;
+  ASS(fnType->isFunctionType());
+  sym->setType(fnType);
+  return fnNum;
+} // Signature::addInterpretedFunction
+
+/**
+ * Add interpreted predicate
+ */
+unsigned Signature::addInterpretedPredicate(Interpretation interpretation, OperatorType* type, const vstring& name)
+{
+  CALL("Signature::addInterpretedPredicate(Interpretation,OperatorType*,const vstring&)");
+  ASS(!Theory::isFunction(interpretation));
+
+  // cout << "addInterpretedPredicate " << (type ? type->toString() : "nullptr") << " " << name << endl;
+
+  Theory::MonomorphisedInterpretation mi = std::make_pair(interpretation,type);
+
+  unsigned res;
+  if (_iSymbols.find(mi,res)) { // already declared
+    if (name!=predicateName(res)) {
+      USER_ERROR("Interpreted predicate '"+predicateName(res)+"' has the same interpretation as '"+name+"' should have");
+    }
+    return res;
+  }
+
+  vstring symbolKey = name+"_i"+Int::toString(interpretation)+(Theory::isPolymorphic(interpretation) ? type->toString() : "");
+
+  // cout << "symbolKey " << symbolKey << endl;
+
+  ASS(!_predNames.find(symbolKey));
+
+  unsigned predNum = _preds.length();
+  InterpretedSymbol* sym = new InterpretedSymbol(name, interpretation);
+  _preds.push(sym);
+  _predNames.insert(symbolKey,predNum);
+  ALWAYS(_iSymbols.insert(mi, predNum));
+  if (predNum!=0) {
+    OperatorType* predType = type;
+    ASS_REP(!predType->isFunctionType(), predType->toString());
+    sym->setType(predType);
+  }
+  return predNum;
+} // Signature::addInterpretedPredicate
+
+
+/**
  * Return number of symbol that is interpreted by Interpretation @b interp.
  *
  * If no such symbol exists, it is created.
  */
-unsigned Signature::getInterpretingSymbol(Interpretation interp)
+unsigned Signature::getInterpretingSymbol(Interpretation interp, OperatorType* type)
 {
-    return getInterpretingSymbol(interp, -1 , -1);
-}
-unsigned Signature::getInterpretingSymbol(Interpretation interp, int sortArg1, int sortArg2)
-{
-  CALL("Signature::getInterpretingSymbol");
-  ASS(Theory::instance()->isValidInterpretation(interp));
+  CALL("Signature::getInterpretingSymbol(Interpretation,OperatorType*)");
   
+  Theory::MonomorphisedInterpretation mi = std::make_pair(interp,type);
+
   unsigned res;
-  if (_iSymbols.find(interp, res)) {
+  if (_iSymbols.find(mi, res)) {
     return res;
   }
 
   vstring name = theory->getInterpretationName(interp);
-  unsigned arity = Theory::getArity(interp);
+  unsigned arity = theory->getArity(interp);
   
   if (Theory::isFunction(interp)) {
     if (functionExists(name, arity)) {
@@ -541,7 +523,7 @@ unsigned Signature::getInterpretingSymbol(Interpretation interp, int sortArg1, i
       }
       name=name+Int::toString(i);
     }
-    addInterpretedFunction(interp, name);
+    addInterpretedFunction(interp, type, name);
   }
   else {
     if (predicateExists(name, arity)) {
@@ -551,22 +533,11 @@ unsigned Signature::getInterpretingSymbol(Interpretation interp, int sortArg1, i
       }
       name=name+Int::toString(i);
     }
-    addInterpretedPredicate(interp, name);
+    addInterpretedPredicate(interp, type, name);
   }
 
   //we have now registered a new function, so it should be present in the map
-  return _iSymbols.get(interp);
-}
-
-unsigned Signature::getStructureInterpretationFunctor(unsigned theorySort, Theory::StructuredSortInterpretation ssi) {
-  CALL("Signature::getStructureInterpretationFunctor unsigned Theory::StructuredSortInterpretation");
-  return getStructureInterpretationFunctor(theorySort,ssi,-1,-1);
-}
-
-unsigned Signature::getStructureInterpretationFunctor(unsigned theorySort, Theory::StructuredSortInterpretation ssi, unsigned arg1,unsigned arg2) {
-  CALL("Signature::getStructureInterpretationFunctor");
-  Interpretation i = Theory::instance()->getInterpretation(theorySort, ssi,arg1,arg2);
-  return env.signature->getInterpretingSymbol(i);
+  return _iSymbols.get(mi);
 }
 
 const vstring& Signature::functionName(int number)
@@ -994,56 +965,6 @@ bool Signature::symbolNeedsQuoting(vstring name, bool interpreted, unsigned arit
   }
   return true;
 } // Signature::symbolNeedsQuoting
-
-/** standard constructor for VarSymbol*/
-Signature::VarSymbol::VarSymbol(const vstring& nm)
-  : _name(nm)
-{
-
-  //handle quoting
-  const char* c=_name.c_str();
-  bool quote=charNeedsQuoting(*c, true);
-  c++;
-  while(*c) {
-    if(charNeedsQuoting(*c, false)) {
-      quote=true;
-      break;
-    }
-    c++;
-  }
-  if(quote) {
-    _name="'"+_name+"'";
-  }
-}
-
-/**
- * If a variable with this name and arity exists, return its number.
- * Otherwise, add a new one and return its number.
- *
- * @param name name of the symbol
- * @param added will be set to true if the function did not exist
- */
-unsigned Signature::addVar (const vstring& name,
-				 bool& added)
-{
-  CALL("Signature::addFunction - tkv");
-
-#if VDEBUG
-  unsigned result = 0;
-#else
-  unsigned result;
-#endif
-  if (_varNames.find(name,result)) {
-    added = false;
-    return result;
-  }
-
-  result = _vars.length();
-  _vars.push(new VarSymbol(name));
-  _varNames.insert(name,result);
-  added = true;
-  return result;
-} // Signature::addFunction
 
 TermAlgebraConstructor* Signature::getTermAlgebraConstructor(unsigned functor)
 {

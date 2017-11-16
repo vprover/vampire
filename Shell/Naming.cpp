@@ -1,3 +1,21 @@
+
+/*
+ * File Naming.cpp.
+ *
+ * This file is part of the source code of the software program
+ * Vampire. It is protected by applicable
+ * copyright laws.
+ *
+ * This source code is distributed under the licence found here
+ * https://vprover.github.io/license.html
+ * and in the source directory
+ *
+ * In summary, you are allowed to use Vampire for non-commercial
+ * purposes but not allowed to distribute, modify, copy, create derivatives,
+ * or use in competitions. 
+ * For other uses of Vampire please contact developers for a different
+ * licence, which we will make an effort to provide. 
+ */
 /**
  * @file Naming.cpp
  * Implements the naming technique
@@ -1143,7 +1161,7 @@ Literal* Naming::getDefinitionLiteral(Formula* f, Formula::VarList* freeVars) {
     predArgs.push(TermList(uvar, false));
   }
 
-  predSym->setType(new PredicateType(length, domainSorts.begin()));
+  predSym->setType(OperatorType::getPredicateType(length, domainSorts.begin()));
 
   return Literal::create(pred, length, true, false, predArgs.begin());
 }

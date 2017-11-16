@@ -1,0 +1,19 @@
+Vampire Software Licence Agreement
+Copyright (c) 2017, Andrei Voronkov, the University of Manchester
+
+In the below, this Software refers to the tool known as Vampire in any form, including an executable binary, source code, any executable produced form this source code, and supporting documentation. In addition, this licence applies to all content contained within the GitHub repository including all source files (where those files are not covered by a different licence) and commit messages on all branches.
+
+Permission is hereby granted, free of charge, to use this Software for evaluation and research purposes.
+
+This license does not allow this Software to be used in a commercial context. Users wishing to use the Software in a commercial context should contact the copyright holder for an alternative licence.
+
+It is further prohibited to use this Software or a substantial portion of it in a competition or a similar competetive event, such as the CASC or SMT-COMP competitions or evaluations, without explicit written permission by the copyright holder. However, competition organizers are allowed to use this software as part of the evaluation process of a particular competition, evaluation or competetive event, if the copyright holder of this software submitted this software to this particular competition, evaluation or event explicitly.
+
+All other usage is reserved. To remove doubt, the redistribution or modification of the Software is prohibited by this licence and users wishing to do either should contact the copyright holder for an alternative licence.
+
+The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+
+This licence supersedes all previous licences covering usage of Vampire.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+

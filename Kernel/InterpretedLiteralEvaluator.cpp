@@ -1,3 +1,21 @@
+
+/*
+ * File InterpretedLiteralEvaluator.cpp.
+ *
+ * This file is part of the source code of the software program
+ * Vampire. It is protected by applicable
+ * copyright laws.
+ *
+ * This source code is distributed under the licence found here
+ * https://vprover.github.io/license.html
+ * and in the source directory
+ *
+ * In summary, you are allowed to use Vampire for non-commercial
+ * purposes but not allowed to distribute, modify, copy, create derivatives,
+ * or use in competitions. 
+ * For other uses of Vampire please contact developers for a different
+ * licence, which we will make an effort to provide. 
+ */
 /**
  * @file InterpretedLiteralEvaluator.cpp
  * Implements class InterpretedLiteralEvaluator.
@@ -32,7 +50,7 @@ public:
   
   virtual ~Evaluator() {}
 
-  bool canEvaluateFunc(unsigned func)
+  virtual bool canEvaluateFunc(unsigned func)
   {
     CALL("InterpretedLiteralEvaluator::Evaluator::canEvaluateFunc");
 
@@ -43,7 +61,7 @@ public:
     return canEvaluate(interp);
   }
 
-  bool canEvaluatePred(unsigned pred)
+  virtual bool canEvaluatePred(unsigned pred)
   {
     CALL("InterpretedLiteralEvaluator::Evaluator::canEvaluatePred");
         
@@ -54,7 +72,7 @@ public:
     return canEvaluate(interp);
   }
 
-  virtual bool canEvaluate(Interpretation interp) = 0;
+  virtual bool canEvaluate(Interpretation interp) { return false; }
   virtual bool tryEvaluateFunc(Term* trm, TermList& res) { return false; }
   virtual bool tryEvaluatePred(Literal* trm, bool& res)  { return false; }
 };
@@ -73,15 +91,8 @@ public:
 class InterpretedLiteralEvaluator::EqualityEvaluator
   : public Evaluator
 {
-
-  virtual bool canEvaluate(Interpretation interp)
-  {
-    return interp==Interpretation::EQUAL; 
-  }
-
-  virtual bool tryEvaluateFunc(Term* trm, TermList& res)
-  {
-    ASSERTION_VIOLATION; // EQUAL is a predicate, not a function!
+  bool canEvaluatePred(unsigned pred) override {
+    return pred == 0; // the equality predicate
   }
 
   template<typename T>
@@ -110,10 +121,7 @@ class InterpretedLiteralEvaluator::EqualityEvaluator
     if(!theory->isInterpretedPredicate(lit)){ return false; }
 
     try{
-
-      Interpretation itp = theory->interpretPredicate(lit);
-      ASS(itp==Interpretation::EQUAL);
-      ASS(theory->getArity(itp)==2);
+      ASS(lit->isEquality());
     
       // We try and interpret the equality as a number of different sorts
       // If it is not an equality between two constants of the same sort the
@@ -263,13 +271,6 @@ public:
   virtual bool canEvaluate(Interpretation interp)
   {
     CALL("InterpretedLiteralEvaluator::TypedEvaluator::canEvaluate");
-     
-    //only interpreted operations with non-single argument sort are array operations
-    if (theory->isArrayOperation(interp))
-    {
-        unsigned opSort = theory->getArrayOperationSort(interp);
-        return opSort==T::getSort();
-    }
     
     // This is why we cannot evaluate Equality here... we cannot determine its sort
     if (!theory->hasSingleSort(interp)) { return false; } //To skip conversions and EQUAL
@@ -813,233 +814,229 @@ class InterpretedLiteralEvaluator::BitVectorEvaluator : public TypedEvaluator<Bi
 
   virtual bool isAddition(Interpretation interp)
   {
-      Theory::StructuredSortInterpretation ssi = theory->convertToStructured(interp);
-      if (ssi == Theory::StructuredSortInterpretation::BVADD)
-          return true;
-      return false;
+      return (interp == Theory::BVADD);
   }
   virtual bool isProduct(Interpretation interp)
   {
-      Theory::StructuredSortInterpretation ssi = theory->convertToStructured(interp);
-      if (ssi == Theory::StructuredSortInterpretation::BVMUL)
-          return true;
-      return false;
+      return (interp == Theory::BVMUL);
   }
   virtual bool isDivision(Interpretation interp)
   {
-      Theory::StructuredSortInterpretation ssi = theory->convertToStructured(interp);
-      if (ssi == Theory::StructuredSortInterpretation::BVUDIV || ssi == Theory::StructuredSortInterpretation::BVSDIV)
-          return true;
-      return false; 
+      return (interp == Theory::BVUDIV || interp == Theory::BVSDIV);
   }
   bool isUnsignedDivision(Interpretation interp)
   {
-      Theory::StructuredSortInterpretation ssi = theory->convertToStructured(interp);
-      if (ssi == Theory::StructuredSortInterpretation::BVUDIV)
-          return true;
-      return false; 
+      return (interp == Theory::BVUDIV);
   }
   
   bool isUnsignedRemainder(Interpretation interp)
   {
-      Theory::StructuredSortInterpretation ssi = theory->convertToStructured(interp);
-      if (ssi == Theory::StructuredSortInterpretation::BVUREM)
-          return true;
-      return false; 
+      return (interp == Theory::BVUREM);
   }
   bool isSignedDivision(Interpretation interp)
   {
-      Theory::StructuredSortInterpretation ssi = theory->convertToStructured(interp);
-      if (ssi == Theory::StructuredSortInterpretation::BVSDIV)
-          return true;
-      return false; 
+      return (interp == Theory::BVSDIV);
   }
   
-  virtual bool canEvaluate(Interpretation interp)
+  bool canEvaluateFunc(unsigned func) override
   {
-      return theory->isBitVectorOperation(interp);
+    CALL("InterpretedLiteralEvaluator::BitVectorEvaluator::canEvaluateFunc");
+
+    if (!theory->isInterpretedFunction(func)) {
+      return false;
+    }
+
+    OperatorType* t = env.signature->getFunction(func)->fnType();
+
+    return (t->arity() > 0 && env.sorts->isOfStructuredSort(t->arg(0),Sorts::StructuredSort::BITVECTOR));
   }
+
+  bool canEvaluatePred(unsigned pred) override
+  {
+    CALL("InterpretedLiteralEvaluator::BitVectorEvaluator::canEvaluatePred");
+
+    if (!theory->isInterpretedPredicate(pred)) {
+      return false;
+    }
+
+    OperatorType* t = env.signature->getPredicate(pred)->predType();
+
+    return (t->arity() > 0 && env.sorts->isOfStructuredSort(t->arg(0),Sorts::StructuredSort::BITVECTOR));
+  }
+
   virtual bool tryEvaluateFunc(Term* trm, TermList& res)
   {
-      TimeCounter tc(TC_BITVECTOFUNCTIONEVALUATION);
-      Interpretation itp = theory->interpretFunction(trm);
-      ASS(theory->isFunction(itp));
-      unsigned arity = theory->getArity(itp);
-      Theory::StructuredSortInterpretation ssi = theory->convertToStructured(itp);
-      // certain interpretations need special attention 
-      if (arity == 1)
-      {
-          TermList arg1Trm = *trm->nthArgument(0);
-          BitVectorConstantType arg1,resNum;
-          if (theory->tryInterpretConstant(arg1Trm, arg1))
-          {if (!tryEvaluateUnaryFunc(itp, arg1, resNum)) 
-                {return false;}}
-          else
-            {return false;}
-          
-          
-          res = TermList(theory->representConstant(resNum));
+    TimeCounter tc(TC_BITVECTOFUNCTIONEVALUATION);
+    Interpretation itp = theory->interpretFunction(trm);
+    ASS(theory->isFunction(itp));
+    // certain interpretations need special attention
+    if (itp == Theory::BVNEG || itp == Theory::BVNOT) {
+      TermList arg1Trm = *trm->nthArgument(0);
+      BitVectorConstantType arg1, resNum;
+      if (!theory->tryInterpretConstant(arg1Trm, arg1)
+          || !tryEvaluateSimpleUnaryFunc(itp, arg1, resNum)) {
+        return false;
+      }
+
+      res = TermList(theory->representConstant(resNum));
+      return true;
+    }
+
+    if (itp < Theory::numberOfFixedInterpretations()) { //for bvand and such
+      ASS_EQ(trm->arity(), 2);
+      TermList arg1Trm = *trm->nthArgument(0);
+      TermList arg2Trm = *trm->nthArgument(1);
+      BitVectorConstantType argBv1;
+      BitVectorConstantType argBv2;
+      bool specialCase = true;
+      BitVectorConstantType conArg;
+      TermList nonConTerm;
+
+      if (theory->tryInterpretConstant(arg1Trm, argBv1)
+          && (isZero(argBv1) || isOne(argBv1))
+          && !theory->tryInterpretConstant(arg2Trm, argBv2)) {
+        conArg = argBv1;
+        nonConTerm = arg2Trm;
+      } else if (theory->tryInterpretConstant(arg2Trm, argBv2)
+          && (isZero(argBv2) || isOne(argBv2))
+          && !theory->tryInterpretConstant(arg1Trm, argBv1)) {
+        conArg = argBv2;
+        nonConTerm = arg1Trm;
+      } else {
+        specialCase = false;
+      }
+      if (specialCase) {
+        //Special case where itp is division and arg2 is '1'
+        //   Important... this is a non-symmetric case!
+        if (theory->tryInterpretConstant(arg2Trm, argBv2) && isOne(argBv2)
+            && isDivision(itp)) {
+          res = arg1Trm;
           return true;
-      
-      }
-      if (ssi == Theory::StructuredSortInterpretation::BV_ROTATE_RIGHT || 
-              ssi == Theory::StructuredSortInterpretation::BV_ROTATE_LEFT || 
-              ssi == Theory::StructuredSortInterpretation::BV_SIGN_EXTEND || 
-              ssi == Theory::StructuredSortInterpretation::BV_ZERO_EXTEND || ssi == Theory::StructuredSortInterpretation::REPEAT)
-      {
-              TermList arg1Trm = *trm->nthArgument(0);
-              TermList arg2Trm = *trm->nthArgument(1);
-              
-              IntegerConstantType rotateBy;
-              if (!theory->tryInterpretConstant(arg1Trm, rotateBy))
-              {
-                  return false;
-              }
-              BitVectorConstantType argBv;
-              if (!theory->tryInterpretConstant(arg2Trm, argBv))
-              {
-                  return false;
-              }
-              
-              
-              // if sign extend or zero extend size accordingly
-              unsigned resSize = argBv.size();
-              if (ssi == Theory::StructuredSortInterpretation::BV_SIGN_EXTEND || ssi == Theory::StructuredSortInterpretation::BV_ZERO_EXTEND)
-                  resSize = argBv.size() + rotateBy.toInner();
-              else if (ssi == Theory::StructuredSortInterpretation::REPEAT)
-                  resSize = argBv.size() * rotateBy.toInner();
-              BitVectorConstantType resNum(resSize);
-              if (ssi == Theory::StructuredSortInterpretation::BV_ROTATE_RIGHT)
-                BitVectorOperations::rotate_right(rotateBy.toInner(),argBv,resNum);
-              else if (ssi == Theory::StructuredSortInterpretation::BV_ROTATE_LEFT)
-                BitVectorOperations::rotate_left(rotateBy.toInner(),argBv,resNum);
-              else if (ssi == Theory::StructuredSortInterpretation::BV_SIGN_EXTEND)
-                BitVectorOperations::sign_extend(rotateBy.toInner(),argBv,resNum);  
-              else if (ssi == Theory::StructuredSortInterpretation::BV_ZERO_EXTEND)
-                BitVectorOperations::zero_extend(rotateBy.toInner(),argBv,resNum);
-              else if (ssi == Theory::StructuredSortInterpretation::REPEAT)
-                BitVectorOperations::repeat(rotateBy.toInner(),argBv,resNum);
-              res = TermList(theory->representConstant(resNum));
-              return true;
-              
-      }
-      // TODO: error handling 
-      else if (ssi == Theory::StructuredSortInterpretation::EXTRACT)
-      {
-              TermList arg1Trm = *trm->nthArgument(0);
-              TermList arg2Trm = *trm->nthArgument(1);
-              TermList arg3Trm = *trm->nthArgument(2);
-              
-              IntegerConstantType from;
-              IntegerConstantType to;
-              BitVectorConstantType argBv;
-              
-              if (!theory->tryInterpretConstant(arg1Trm, from)
-                      || !theory->tryInterpretConstant(arg2Trm, to) || !theory->tryInterpretConstant(arg3Trm, argBv))
-                    return false;
-              
-              unsigned resSize = from.toInner()-to.toInner()+1;
-              BitVectorConstantType resNum(resSize);
-              BitVectorOperations::extract(from.toInner(),to.toInner(),argBv,resNum);
-              res = TermList(theory->representConstant(resNum));
-              return true;
-      }
-      else //for bvand and such
-      {
-          TermList arg1Trm = *trm->nthArgument(0);
-          TermList arg2Trm = *trm->nthArgument(1);
-          BitVectorConstantType argBv1;
-          BitVectorConstantType argBv2;
-          bool specialCase = true;
-          BitVectorConstantType conArg;
-          TermList nonConTerm;
-          
-          if (theory->tryInterpretConstant(arg1Trm, argBv1) && (isZero(argBv1) || isOne(argBv1)) && 
-            !theory->tryInterpretConstant(arg2Trm, argBv2)) 
-          {
-            conArg = argBv1;
-            nonConTerm = arg2Trm;
-          }
-          else if(theory->tryInterpretConstant(arg2Trm, argBv2) && (isZero(argBv2) || isOne(argBv2)) && 
-            !theory->tryInterpretConstant(arg1Trm, argBv1)) 
-          {
-            conArg = argBv2;
-            nonConTerm = arg1Trm;
-          }
-          else
-          {
-             specialCase = false;
-          }
-          if (specialCase)
-          {
-            //Special case where itp is division and arg2 is '1'
-            //   Important... this is a non-symmetric case!
-            if(theory->tryInterpretConstant(arg2Trm, argBv2) && isOne(argBv2) && isDivision(itp)){
-              res = arg1Trm;
-              return true;
-            }
-          
-            //special case where itp is division and second arg is zero... 
-            //returns a bitvector of all ones 
-            if(theory->tryInterpretConstant(arg2Trm, argBv2) && isZero(argBv2) && isUnsignedDivision(itp)){
-              res = TermList(theory->representConstant(BitVectorOperations::getAllOnesBVCT(argBv2.size())));
-              return true;
-            }
-          
-            if(theory->tryInterpretConstant(arg2Trm, argBv2) && isZero(argBv2) && isUnsignedRemainder(itp)){
-              res = arg1Trm;
-              return true;
-            }
-            
-            if(theory->tryInterpretConstant(arg2Trm, argBv2) && isOne(argBv2) && isUnsignedRemainder(itp)){
-              res = TermList(theory->representConstant(BitVectorOperations::getZeroBVCT(argBv2.size())));
-              return true;
-            }
-            
-            //Special case where itp is addition and conArg is '0'
-            if(isZero(conArg) && isAddition(itp)){
-              res = nonConTerm;
-              return true;
-            }
-            //Special case where itp is multiplication and conArg  is '1'
-            if(isOne(conArg) && isProduct(itp)){
-              res = nonConTerm;
-              return true;
-            }
-            
-            //Special case where itp is multiplication and conArg is '0'
-            if(isZero(conArg) && isProduct(itp)){
-              //res = getZero(argBv1.size());
-              res = TermList(theory->representConstant(BitVectorOperations::getZeroBVCT(conArg.size())));
-              return true;
-            }
-          }
-          
-          if (!theory->tryInterpretConstant(arg1Trm, argBv1) || !theory->tryInterpretConstant(arg2Trm, argBv2))
-          {
-              return false;
-          }
-          
-          // here check what operation is done... according to that determine the size 
-          unsigned resSize = argBv1.size();
-          if (ssi == Theory::StructuredSortInterpretation::CONCAT)
-              resSize = argBv1.size() + argBv2.size();
-          else if (ssi == Theory::StructuredSortInterpretation::BVCOMP )
-              resSize = 1;
-          BitVectorConstantType resNum(resSize);
-          
-          if (!tryEvaluateBinaryFunc(itp, argBv1, argBv2, resNum)) 
-          { 
-              return false;
-          }
-          
-          res = TermList(theory->representConstant(resNum));
+        }
+
+        //special case where itp is division and second arg is zero...
+        //returns a bitvector of all ones
+        if (theory->tryInterpretConstant(arg2Trm, argBv2) && isZero(argBv2)
+            && isUnsignedDivision(itp)) {
+          res = TermList(
+              theory->representConstant(
+                  BitVectorOperations::getAllOnesBVCT(argBv2.size())));
           return true;
-          
+        }
+
+        if (theory->tryInterpretConstant(arg2Trm, argBv2) && isZero(argBv2)
+            && isUnsignedRemainder(itp)) {
+          res = arg1Trm;
+          return true;
+        }
+
+        if (theory->tryInterpretConstant(arg2Trm, argBv2) && isOne(argBv2)
+            && isUnsignedRemainder(itp)) {
+          res = TermList(
+              theory->representConstant(
+                  BitVectorOperations::getZeroBVCT(argBv2.size())));
+          return true;
+        }
+
+        //Special case where itp is addition and conArg is '0'
+        if (isZero(conArg) && isAddition(itp)) {
+          res = nonConTerm;
+          return true;
+        }
+        //Special case where itp is multiplication and conArg  is '1'
+        if (isOne(conArg) && isProduct(itp)) {
+          res = nonConTerm;
+          return true;
+        }
+
+        //Special case where itp is multiplication and conArg is '0'
+        if (isZero(conArg) && isProduct(itp)) {
+          //res = getZero(argBv1.size());
+          res = TermList(
+              theory->representConstant(
+                  BitVectorOperations::getZeroBVCT(conArg.size())));
+          return true;
+        }
       }
+
+      if (!theory->tryInterpretConstant(arg1Trm, argBv1)
+          || !theory->tryInterpretConstant(arg2Trm, argBv2)) {
+        return false;
+      }
+
+      // here check what operation is done... according to that determine the size
+      unsigned resSize = argBv1.size();
+      if (itp == Theory::CONCAT)
+        resSize = argBv1.size() + argBv2.size();
+      else if (itp == Theory::BVCOMP)
+        resSize = 1;
+      BitVectorConstantType resNum(resSize);
+
+      if (!tryEvaluateBinaryFunc(itp, argBv1, argBv2, resNum)) {
+        return false;
+      }
+
+      res = TermList(theory->representConstant(resNum));
+      return true;
+    } else {
+      Theory::ConcreteIndexedInterpretation cii = theory->intepretationToIndexedInterpretation(itp);
+
+      Theory::IndexedInterpretation ii = cii.first;
+      unsigned index = cii.second;
+
+      if (ii == Theory::BV_ROTATE_RIGHT
+          || ii == Theory::BV_ROTATE_LEFT
+          || ii == Theory::BV_SIGN_EXTEND
+          || ii == Theory::BV_ZERO_EXTEND
+          || ii == Theory::REPEAT) {
+        TermList arg1Trm = *trm->nthArgument(0);
+
+        BitVectorConstantType argBv;
+        if (!theory->tryInterpretConstant(arg1Trm, argBv)) {
+          return false;
+        }
+
+        // if sign extend or zero extend size accordingly
+        unsigned resSize = argBv.size();
+        if (ii == Theory::BV_SIGN_EXTEND
+            || ii == Theory::BV_ZERO_EXTEND)
+          resSize = argBv.size() + index;
+        else if (ii == Theory::REPEAT)
+          resSize = argBv.size() * index;
+        BitVectorConstantType resNum(resSize);
+        if (ii == Theory::BV_ROTATE_RIGHT)
+          BitVectorOperations::rotate_right(index, argBv, resNum);
+        else if (ii == Theory::BV_ROTATE_LEFT)
+          BitVectorOperations::rotate_left(index, argBv, resNum);
+        else if (ii == Theory::BV_SIGN_EXTEND)
+          BitVectorOperations::sign_extend(index, argBv, resNum);
+        else if (ii == Theory::BV_ZERO_EXTEND)
+          BitVectorOperations::zero_extend(index, argBv, resNum);
+        else if (ii == Theory::REPEAT)
+          BitVectorOperations::repeat(index, argBv, resNum);
+        res = TermList(theory->representConstant(resNum));
+        return true;
+
+      }
+
+      if (ii == Theory::EXTRACT) {
+        TermList arg1Trm = *trm->nthArgument(0);
+        BitVectorConstantType argBv;
+
+        if (!theory->tryInterpretConstant(arg1Trm, argBv))
+          return false;
+
+        OperatorType* t = env.signature->getFunction(trm->functor())->fnType();
+        unsigned resSize = env.sorts->getBitVectorSort(t->result())->getSize();
+
+        BitVectorConstantType resNum(resSize);
+        BitVectorOperations::extract(index, index-resSize+1, argBv,resNum);
+        res = TermList(theory->representConstant(resNum));
+        return true;
+      }
+    }
+
       return false; // hav to do representConstant in every if else branch  
-      
-      
   }
   // return BVCT representing one with the given size 
   BitVectorConstantType getOne(unsigned size)
@@ -1054,92 +1051,88 @@ class InterpretedLiteralEvaluator::BitVectorEvaluator : public TypedEvaluator<Bi
       return res;
   }
 
- 
-  
-  virtual bool tryEvaluateUnaryFunc(Interpretation op, const Value& arg, Value& res)
+  bool tryEvaluateSimpleUnaryFunc(Interpretation op, const Value& arg, Value& res)
   {
-      
-      Theory::StructuredSortInterpretation ssi = theory->convertToStructured(op);
-      switch(ssi){
-          case Theory::StructuredSortInterpretation::BVNEG:
-              res.prepareBinArray(arg.size());
-              BitVectorOperations::bvneg(arg, res);
-              return true;
-          case Theory::StructuredSortInterpretation::BVNOT:
-              res.prepareBinArray(arg.size());
-              BitVectorOperations::bvnot(arg, res);
-              return true;
-          default:
-              USER_ERROR("Add here1");
-              return false;
-      }
-      
+    CALL("InterpretedLiteralEvaluator::BitVectorEvaluator::tryEvaluateSimpleUnaryFunc")
+    switch(op){
+      case Theory::BVNEG:
+          res.prepareBinArray(arg.size());
+          BitVectorOperations::bvneg(arg, res);
+          return true;
+      case Theory::BVNOT:
+          res.prepareBinArray(arg.size());
+          BitVectorOperations::bvnot(arg, res);
+          return true;
+      default:
+          ASSERTION_VIOLATION;
+          return false;
+    }
   }
   
-  virtual bool tryEvaluateBinaryFunc(Interpretation op, const Value& arg1,
-      const Value& arg2, Value& res)
+  virtual bool tryEvaluateBinaryFunc(Interpretation op, const Value& arg1, const Value& arg2, Value& res)
   {
-     Theory::StructuredSortInterpretation ssi = theory->convertToStructured(op);
-     switch(ssi){
-          case Theory::StructuredSortInterpretation::BVAND:
+    CALL("InterpretedLiteralEvaluator::BitVectorEvaluator::tryEvaluateBinaryFunc");
+
+     switch(op){
+          case Theory::BVAND:
               BitVectorOperations::bvand(arg1, arg2,res);
               return true;
-          case Theory::StructuredSortInterpretation::BVNAND:
+          case Theory::BVNAND:
               BitVectorOperations::bvnand(arg1, arg2,res);
               return true;
-          case Theory::StructuredSortInterpretation::BVXOR:
+          case Theory::BVXOR:
               BitVectorOperations::bvxor(arg1, arg2,res);
               return true;
-          case Theory::StructuredSortInterpretation::BVOR:
+          case Theory::BVOR:
               BitVectorOperations::bvor(arg1, arg2,res);
               return true;
-          case Theory::StructuredSortInterpretation::BVNOR:
+          case Theory::BVNOR:
               BitVectorOperations::bvnor(arg1, arg2,res);
               return true;    
-          case Theory::StructuredSortInterpretation::BVXNOR:
+          case Theory::BVXNOR:
               BitVectorOperations::bvxnor(arg1, arg2,res);
               return true;
-          case Theory::StructuredSortInterpretation::BVADD:
+          case Theory::BVADD:
               BitVectorOperations::bvadd(arg1, arg2,res);
               return true;
-          case Theory::StructuredSortInterpretation::BVSHL:
+          case Theory::BVSHL:
               BitVectorOperations::bvshl(arg1, arg2,res);
               return true;
-          case Theory::StructuredSortInterpretation::BVLSHR:
+          case Theory::BVLSHR:
               BitVectorOperations::bvlshr(arg1, arg2,res);
               return true;
-          case Theory::StructuredSortInterpretation::BVASHR:
+          case Theory::BVASHR:
               BitVectorOperations::bvashr(arg1, arg2,res);
               return true;    
-          case Theory::StructuredSortInterpretation::BVSUB:
+          case Theory::BVSUB:
               BitVectorOperations::bvsub(arg1, arg2,res);
               return true;
-          case Theory::StructuredSortInterpretation::BVUDIV:
+          case Theory::BVUDIV:
               BitVectorOperations::bvudiv_fast(arg1, arg2,res);
               return true;
-          case Theory::StructuredSortInterpretation::BVSDIV:
+          case Theory::BVSDIV:
               BitVectorOperations::bvsdiv(arg1, arg2,res);
               return true;    
-          case Theory::StructuredSortInterpretation::BVUREM:
+          case Theory::BVUREM:
               BitVectorOperations::bvurem_fast(arg1, arg2,res);
               return true; 
-          case Theory::StructuredSortInterpretation::BVSREM:
+          case Theory::BVSREM:
               BitVectorOperations::bvsrem(arg1, arg2,res);
               return true;
-          case Theory::StructuredSortInterpretation::BVSMOD:
+          case Theory::BVSMOD:
               BitVectorOperations::bvsmod(arg1, arg2,res);
               return true;    
-           case Theory::StructuredSortInterpretation::BVCOMP:
+           case Theory::BVCOMP:
               BitVectorOperations::bvcomp(arg1, arg2,res);
               return true; 
-           case Theory::StructuredSortInterpretation::CONCAT:
+           case Theory::CONCAT:
               BitVectorOperations::concat(arg1, arg2,res);
               return true;
-           case Theory::StructuredSortInterpretation::BVMUL:
+           case Theory::BVMUL:
               BitVectorOperations::bvmul(arg1, arg2,res);
               return true;   
           default:
-              USER_ERROR("Add here"); // remove this
+              ASSERTION_VIOLATION;
               return false;
       }
   }
@@ -1150,49 +1143,48 @@ class InterpretedLiteralEvaluator::BitVectorEvaluator : public TypedEvaluator<Bi
   {
       TimeCounter td(TC_BITVECTOPREDICATEEVALUATION);
       
-      Theory::StructuredSortInterpretation ssi = theory->convertToStructured(op);
-      if (ssi==Theory::StructuredSortInterpretation::BVUGE)
+      if (op==Theory::BVUGE)
       {       
              BitVectorOperations::bvuge(arg1, arg2,res);
              return true;
       }
-      if (ssi==Theory::StructuredSortInterpretation::BVUGT)
+      if (op==Theory::BVUGT)
       {       
              BitVectorOperations::bvugt(arg1, arg2,res);
              return true;
       }
-      if (ssi==Theory::StructuredSortInterpretation::BVULE)
+      if (op==Theory::BVULE)
       {       
              BitVectorOperations::bvule(arg1, arg2,res);
              return true;
       }
-      if (ssi==Theory::StructuredSortInterpretation::BVULT)
+      if (op==Theory::BVULT)
       {       
              BitVectorOperations::bvult(arg1, arg2,res);
              return true;
       }
-      if (ssi==Theory::StructuredSortInterpretation::BVSLT)
+      if (op==Theory::BVSLT)
       {
           BitVectorOperations::bvslt(arg1, arg2,res);
           return true;
       }
-      if (ssi==Theory::StructuredSortInterpretation::BVSLE)
+      if (op==Theory::BVSLE)
       {
           BitVectorOperations::bvsle(arg1, arg2,res);
           return true;
       }
-      if (ssi==Theory::StructuredSortInterpretation::BVSGT)
+      if (op==Theory::BVSGT)
       {
           BitVectorOperations::bvsgt(arg1, arg2,res);
           return true;
       }
-      if (ssi==Theory::StructuredSortInterpretation::BVSGE)
+      if (op==Theory::BVSGE)
       {
           BitVectorOperations::bvsge(arg1, arg2,res);
           return true;
       }
       
-      USER_ERROR("Add here2");
+      ASSERTION_VIOLATION;
       return false;
       
   }

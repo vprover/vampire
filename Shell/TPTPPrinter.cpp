@@ -1,3 +1,21 @@
+
+/*
+ * File TPTPPrinter.cpp.
+ *
+ * This file is part of the source code of the software program
+ * Vampire. It is protected by applicable
+ * copyright laws.
+ *
+ * This source code is distributed under the licence found here
+ * https://vprover.github.io/license.html
+ * and in the source directory
+ *
+ * In summary, you are allowed to use Vampire for non-commercial
+ * purposes but not allowed to distribute, modify, copy, create derivatives,
+ * or use in competitions. 
+ * For other uses of Vampire please contact developers for a different
+ * licence, which we will make an effort to provide. 
+ */
 /**
  * @file TPTPPrinter.cpp
  * Implements class TPTPPrinter.
@@ -183,7 +201,7 @@ void TPTPPrinter::outputSymbolTypeDefinitions(unsigned symNumber, bool function)
 
   Signature::Symbol* sym = function ?
       env.signature->getFunction(symNumber) : env.signature->getPredicate(symNumber);
-  BaseType* type = function ? static_cast<BaseType*>(sym->fnType()) : static_cast<BaseType*>(sym->predType());
+  OperatorType* type = function ? sym->fnType() : sym->predType();
 
   if(type->isAllDefault()) {
     return;
@@ -240,13 +258,13 @@ void TPTPPrinter::ensureNecesarySorts()
   }
   unsigned i;
   List<unsigned> *_usedSorts(0);
-  BaseType* type;
+  OperatorType* type;
   Signature::Symbol* sym;
-  unsigned sorts = env.sorts->sorts();
+  unsigned sorts = env.sorts->count();
   //check the sorts of the function symbols and collect information about used sorts
   for (i = 0; i < env.signature->functions(); i++) {
     sym = env.signature->getFunction(i);
-    type = static_cast<BaseType*>(sym->fnType());
+    type = sym->fnType();
     unsigned arity = sym->arity();
     if (arity > 0) {
       for (unsigned i = 0; i < arity; i++) {
@@ -258,7 +276,7 @@ void TPTPPrinter::ensureNecesarySorts()
   //check the sorts of the predicates and collect information about used sorts
   for (i = 0; i < env.signature->predicates(); i++) {
     sym = env.signature->getPredicate(i);
-    type = static_cast<BaseType*>(sym->predType());
+    type = sym->predType();
     unsigned arity = sym->arity();
     if (arity > 0) {
       for (unsigned i = 0; i < arity; i++) {

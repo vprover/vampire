@@ -1,3 +1,21 @@
+
+/*
+ * File Map.hpp.
+ *
+ * This file is part of the source code of the software program
+ * Vampire. It is protected by applicable
+ * copyright laws.
+ *
+ * This source code is distributed under the licence found here
+ * https://vprover.github.io/license.html
+ * and in the source directory
+ *
+ * In summary, you are allowed to use Vampire for non-commercial
+ * purposes but not allowed to distribute, modify, copy, create derivatives,
+ * or use in competitions. 
+ * For other uses of Vampire please contact developers for a different
+ * licence, which we will make an effort to provide. 
+ */
 /**
  * @file Map.hpp
  * Defines class Map<Key,Val> of arbitrary maps and its companion.
@@ -28,7 +46,7 @@ namespace Lib {
  *        anything that can be hashed to an unsigned integer
  *        and compared using ==
  * @param Val values, can be anything
- * @param Hash class containig the hash function for keys
+ * @param Hash class containing the "hash" and "equals" functions for keys
  */
 template <typename Key, typename Val,class Hash>
 class Map
@@ -106,13 +124,10 @@ protected:
       code = 1;
     }
     Entry* entry;
-    for (entry = firstEntryForCode(code);
-	 entry->occupied();
-	 entry = nextEntry(entry)) {
-      if (entry->code == code &&
-	  entry->key == key) {
-	found = entry->value;
-	return true;
+    for (entry = firstEntryForCode(code); entry->occupied(); entry = nextEntry(entry)) {
+      if (entry->code == code && Hash::equals(entry->key,key)) {
+        found = entry->value;
+        return true;
       }
     }
 
@@ -133,9 +148,7 @@ protected:
       code = 1;
     }
     Entry* entry;
-    for (entry = firstEntryForCode(code);
-	 entry->key != key;
-	 entry = nextEntry(entry)) {
+    for (entry = firstEntryForCode(code); !Hash::equals(entry->key,key); entry = nextEntry(entry)) {
       ASS(entry->occupied());
     }
     ASS(entry->occupied());
@@ -198,12 +211,9 @@ protected:
     CALL("Map::insert/2");
 
     Entry* entry;
-    for (entry = firstEntryForCode(code);
-	 entry->occupied();
-	 entry = nextEntry(entry)) {
-      if (entry->code == code &&
-	  entry->key == key) {
-	return entry->value;
+    for (entry = firstEntryForCode(code); entry->occupied(); entry = nextEntry(entry)) {
+      if (entry->code == code && Hash::equals(entry->key,key)) {
+        return entry->value;
       }
     }
     // entry is not occupied
@@ -234,11 +244,8 @@ protected:
       code = 1;
     }
     Entry* entry;
-    for (entry = firstEntryForCode(code);
-				 entry->occupied();
-				 entry = nextEntry(entry)) {
-      if (entry->code == code &&
-					entry->key == key) {
+    for (entry = firstEntryForCode(code); entry->occupied(); entry = nextEntry(entry)) {
+      if (entry->code == code && Hash::equals(entry->key, key)) {
 				entry->value = val;
 				return true;
       }
@@ -270,13 +277,10 @@ protected:
       code = 1;
     }
     Entry* entry;
-    for (entry = firstEntryForCode(code);
-	 entry->occupied();
-	 entry = nextEntry(entry)) {
-      if (entry->code == code &&
-	  entry->key == key) {
-	entry->value = val;
-	return;
+    for (entry = firstEntryForCode(code); entry->occupied(); entry = nextEntry(entry)) {
+      if (entry->code == code && Hash::equals(entry->key, key)) {
+        entry->value = val;
+        return;
       }
     }
 #if VDEBUG
@@ -303,13 +307,10 @@ protected:
       code = 1;
     }
     Entry* entry;
-    for (entry = firstEntryForCode(code);
-	 entry->occupied();
-	 entry = nextEntry(entry)) {
-      if (entry->code == code &&
-	  Lib::DefaultEq::equals(entry->key, key)) {
-	pval = &entry->value;
-	return false;
+    for (entry = firstEntryForCode(code); entry->occupied(); entry = nextEntry(entry)) {
+      if (entry->code == code && Hash::equals(entry->key, key)) {
+        pval = &entry->value;
+        return false;
       }
     }
     // entry is not occupied
@@ -334,7 +335,7 @@ protected:
     for (int i = _capacity-1;i >= 0;i--) {
       Entry& e = _entries[i];
       if (e.occupied()) {
-	delete e.value;
+        delete e.value;
       }
     }
   } // deleteAll
@@ -358,7 +359,7 @@ protected:
     for (int i = _capacity-1;i >= 0;i--) {
       Entry& e = _entries[i];
       if (e.occupied()) {
-	e.value->destroy();
+        e.value->destroy();
       }
     }
   } // destroyAll
@@ -403,7 +404,7 @@ protected:
     while (remaining != 0) {
       // find first occupied entry
       while (! current->occupied()) {
-	current ++;
+        current ++;
       }
       // now current is occupied
       insert(current->key,current->value,current->code);
@@ -425,8 +426,7 @@ public:
   public:
     /** Create a new iterator */
     inline Iterator(const Map& map)
-      : _next(map._entries),
-	_last(map._afterLast)
+      : _next(map._entries), _last(map._afterLast)
     {
     } // Map::Iterator
 
@@ -437,10 +437,10 @@ public:
     bool hasNext()
     {
       while (_next != _last) {
-	if (_next->occupied()) {
-	  return true;
-	}
-	_next++;
+        if (_next->occupied()) {
+          return true;
+        }
+        _next++;
       }
       return false;
     }

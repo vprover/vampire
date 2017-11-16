@@ -1,3 +1,21 @@
+
+/*
+ * File Signature.hpp.
+ *
+ * This file is part of the source code of the software program
+ * Vampire. It is protected by applicable
+ * copyright laws.
+ *
+ * This source code is distributed under the licence found here
+ * https://vprover.github.io/license.html
+ * and in the source directory
+ *
+ * In summary, you are allowed to use Vampire for non-commercial
+ * purposes but not allowed to distribute, modify, copy, create derivatives,
+ * or use in competitions. 
+ * For other uses of Vampire please contact developers for a different
+ * licence, which we will make an effort to provide. 
+ */
 /**
  * @file Signature.hpp
  * Defines class Signature for handling signatures
@@ -72,7 +90,7 @@ class Signature
     /** marks term algebra constructors */
     unsigned _termAlgebraCons : 1;
     /** Either a FunctionType of a PredicateType object */
-    mutable BaseType* _type;
+    mutable OperatorType* _type;
     /** List of distinct groups the constant is a member of, all members of a distinct group should be distinct from each other */
     List<unsigned>* _distinctGroups;
     /** number of times it is used in the problem */
@@ -82,7 +100,6 @@ class Signature
     /** if used in a unit **/
     unsigned _inUnit : 1;
 
-    ~Symbol();
   public:
     /** standard constructor */
     Symbol(const vstring& nm,unsigned arity, bool interpreted=false, bool stringConstant=false,bool numericConstant=false,bool overflownConstant=false);
@@ -164,9 +181,7 @@ class Signature
     
     // changed from return interpreted() && arity()==0 && env.sorts->hasStructuredSort(fnType()->result() to below
     inline bool bitVectorConstant() const
-    { return interpreted() && arity()==0 && env.sorts->hasStructuredSort(fnType()->result(), Sorts::StructuredSort::BITVECTOR);}
-    
-    
+    { return interpreted() && arity()==0 && env.sorts->isOfStructuredSort(fnType()->result(), Sorts::StructuredSort::BITVECTOR);}
     
     /** return true if an interpreted number, note subtle but significant difference from numericConstant **/
     inline bool interpretedNumber() const
@@ -190,31 +205,14 @@ class Signature
         Note that this should only be called on a constant **/
     void addToDistinctGroup(unsigned group,unsigned this_number);
 
-    void setType(BaseType* type);
-    void forceType(BaseType* type);
-    FunctionType* fnType() const;
-    PredicateType* predType() const;
+    void setType(OperatorType* type);
+    void forceType(OperatorType* type);
+    OperatorType* fnType() const;
+    OperatorType* predType() const;
 
     CLASS_NAME(Signature::Symbol);
     USE_ALLOCATOR(Symbol);
   }; // class Symbol
-
-  
-  class VarSymbol{
-  protected:
-    /** print name*/
-    vstring _name;
-  public: 
-    /**Standard Constructor*/
-    VarSymbol(const vstring& nm);
-    
-    /** Return the name of the symbol*/
-    inline const vstring& name() const {return _name;}
-    
-    CLASS_NAME("Signature::VarSymbol");
-    USE_ALLOCATOR(VarSymbol);
-  };//class VarSymbol
-  
   
   class InterpretedSymbol
   : public Symbol
@@ -223,26 +221,20 @@ class Signature
     friend class Symbol;
   protected:
     Interpretation _interp;
-    bool _containsInterp;
 
   public:
 
     InterpretedSymbol(const vstring& nm, Interpretation interp)
-    : Symbol(nm, Theory::getArity(interp), true), _interp(interp), _containsInterp(true)
+    : Symbol(nm, theory->getArity(interp), true), _interp(interp)
     {
       CALL("InterpretedSymbol");
     }
 
-    InterpretedSymbol(const vstring& nm)
-    : Symbol(nm, 0, true), _containsInterp(false)
-    {
-      CALL("InterpretedSymbol");
-    }
     CLASS_NAME(Signature::InterpretedSymbol);
     USE_ALLOCATOR(InterpretedSymbol);
 
     /** Return the interpreted function that corresponds to this symbol */
-    inline Interpretation getInterpretation() const { ASS_REP(interpreted(), _name); ASS_REP(_containsInterp, _name); return _interp; }
+    inline Interpretation getInterpretation() const { ASS_REP(interpreted(), _name); return _interp; }
   };
   
   class IntegerSymbol
@@ -259,7 +251,7 @@ class Signature
     {
       CALL("IntegerSymbol");
 
-      setType(new FunctionType(Sorts::SRT_INTEGER));
+      setType(OperatorType::getConstantsType(Sorts::SRT_INTEGER));
     }
     CLASS_NAME(Signature::IntegerSymbol);
     USE_ALLOCATOR(IntegerSymbol);
@@ -279,7 +271,7 @@ class Signature
     {
       CALL("RationalSymbol");
 
-      setType(new FunctionType(Sorts::SRT_RATIONAL));
+      setType(OperatorType::getConstantsType(Sorts::SRT_RATIONAL));
     }
     CLASS_NAME(Signature::RationalSymbol);
     USE_ALLOCATOR(RationalSymbol);
@@ -299,7 +291,7 @@ class Signature
     {
       CALL("RealSymbol");
 
-      setType(new FunctionType(Sorts::SRT_REAL));
+      setType(OperatorType::getConstantsType(Sorts::SRT_REAL));
     }
     CLASS_NAME(Signature::RealSymbol);
     USE_ALLOCATOR(RealSymbol);
@@ -321,43 +313,13 @@ class BitVectorSymbol
         
         unsigned outSort = env.sorts->addBitVectorSort(val.size());
         
-        setType(new FunctionType(outSort));
+        setType(OperatorType::getConstantsType(outSort));
         
       }
       CLASS_NAME(Signature::BitVectorSymbol);
       USE_ALLOCATOR(BitVectorSymbol);
     };
   
-  //////////////////////////////////////
-  // Variable Symbol declarations
-  //
-  
-  /**
-   * If a variable with this name and arity exists, return its number 
-   * Otherwise, add a new one and return its number 
-   */
-  unsigned addVar(const vstring& name){
-    CALL("Signature::addVar");
-    bool added;
-    return addVar(name, added);
-  }
-  
-  const vstring& varName(Var number){
-    return _vars[number]->name();
-  }
-  
-  /**return the number of variables */
-  size_t vars() const {return _vars.length(); }
-  
-  
-  /**return the function symbol by its number*/
-  inline VarSymbol* getVar(unsigned n){
-    CALL("Signature::getVar");
-    ASS(n<vars());
-    return _vars[n];
-  }
-  
-  unsigned addVar(const vstring& name, bool& added);
   //////////////////////////////////////
   // Uninterpreted symbol declarations
   //
@@ -403,12 +365,7 @@ class BitVectorSymbol
   unsigned addNamePredicate(unsigned arity);
 
   // Interpreted symbol declarations
-
-  unsigned addInterpretedFunction(Interpretation itp, const vstring& name);
-  unsigned addInterpretedPredicate(Interpretation itp, const vstring& name);
- /////////////////////////////////////////////////////////
   unsigned addBitVectorConstant(const BitVectorConstantType& value);
- /////////////////////////////////////////////////////////
   unsigned addIntegerConstant(const vstring& number,bool defaultSort);
   unsigned addRationalConstant(const vstring& numerator, const vstring& denominator,bool defaultSort);
   unsigned addRealConstant(const vstring& number,bool defaultSort);
@@ -417,29 +374,40 @@ class BitVectorSymbol
   unsigned addRationalConstant(const RationalConstantType& number);
   unsigned addRealConstant(const RealConstantType& number);
 
-  vstring getInterpretationName(Interpretation interp);
-  unsigned getInterpretingSymbol(Interpretation interp);
-  unsigned getInterpretingSymbol(Interpretation interp, int argSort1, int argSort2);
+  unsigned addInterpretedFunction(Interpretation itp, OperatorType* type, const vstring& name);
+  unsigned addInterpretedFunction(Interpretation itp, const vstring& name)
+  {
+    CALL("Signature::addInterpretedFunction(Interpretation,const vstring&)");
+    ASS(!Theory::isPolymorphic(itp));
+    return addInterpretedFunction(itp,Theory::getNonpolymorphicOperatorType(itp),name);
+  }
 
-  unsigned getStructureInterpretationFunctor(unsigned theorySort, Theory::StructuredSortInterpretation ssi, unsigned arg1, unsigned arg2);
-  unsigned getStructureInterpretationFunctor(unsigned theorySort, Theory::StructuredSortInterpretation ssi);
+  unsigned addInterpretedPredicate(Interpretation itp, OperatorType* type, const vstring& name);
+  unsigned addInterpretedPredicate(Interpretation itp, const vstring& name)
+  {
+    CALL("Signature::addInterpretedPredicate(Interpretation,const vstring&)");
+    ASS(!Theory::isPolymorphic(itp));
+    return addInterpretedPredicate(itp,Theory::getNonpolymorphicOperatorType(itp),name);
+  }
+
+  unsigned getInterpretingSymbol(Interpretation interp, OperatorType* type);
+  unsigned getInterpretingSymbol(Interpretation interp)
+  {
+    CALL("Signature::getInterpretingSymbol(Interpretation)");
+    ASS(!Theory::isPolymorphic(interp));
+    return getInterpretingSymbol(interp,Theory::getNonpolymorphicOperatorType(interp));
+  }
 
   /** Return true iff there is a symbol interpreted by Interpretation @b interp */
-  bool haveInterpretingSymbol(Interpretation interp) const { return _iSymbols.find(interp); }
-
-  /**
-   * Return true iff we have any declared interpreted symbols
-   *
-   * The equality symbol is always present and is interpreted,
-   * so we return true only if we have any other interpreted
-   * symbols.
-   */
-  bool anyInterpretedSymbols() const
+  bool haveInterpretingSymbol(Interpretation interp, OperatorType* type) const {
+    CALL("Signature::haveInterpretingSymbol(Interpretation, OperatorType*)");
+    return _iSymbols.find(std::make_pair(interp,type));
+  }
+  bool haveInterpretingSymbol(Interpretation interp)
   {
-    CALL("Signature::anyInterpretedSymbols");
-    ASS_G(_iSymbols.size(),0); //we always have equality which is interpreted
-
-    return _iSymbols.size()!=1;
+    CALL("Signature::haveInterpretingSymbol(Interpretation)");
+    ASS(!Theory::isPolymorphic(interp));
+    return haveInterpretingSymbol(interp,Theory::getNonpolymorphicOperatorType(interp));
   }
 
   /** return the name of a function with a given number */
@@ -533,18 +501,13 @@ class BitVectorSymbol
   unsigned bitvectors() const {return _bitvectors;}
 
   static const unsigned STRING_DISTINCT_GROUP;
-  static const unsigned INTEGER_DISTINCT_GROUP;
-  static const unsigned RATIONAL_DISTINCT_GROUP;
-  static const unsigned REAL_DISTINCT_GROUP;
-  static unsigned LAST_BUILT_IN_DISTINCT_GROUP;
-  //static const unsigned BITVECTOR_DISTINCT_GROUP;
 
   unsigned getFoolConstantSymbol(bool isTrue){ 
     if(!_foolConstantsDefined){
       _foolFalse = addFunction("$$false",0); 
-      getFunction(_foolFalse)->setType(new FunctionType(Sorts::SRT_BOOL));
+      getFunction(_foolFalse)->setType(OperatorType::getConstantsType(Sorts::SRT_BOOL));
       _foolTrue = addFunction("$$true",0);
-      getFunction(_foolTrue)->setType(new FunctionType(Sorts::SRT_BOOL));
+      getFunction(_foolTrue)->setType(OperatorType::getConstantsType(Sorts::SRT_BOOL));
       _foolConstantsDefined=true;
     }
     return isTrue ? _foolTrue : _foolFalse;
@@ -567,31 +530,16 @@ class BitVectorSymbol
 
   static bool symbolNeedsQuoting(vstring name, bool interpreted, unsigned arity);
   
-  unsigned getArg1(){ return _arg1; }
-  unsigned getArg2(){ return _arg2; }
-  void setArg1(unsigned a1){
-      _arg1 = a1;
-  } 
-  
-  void setArg2(unsigned a2){
-      _arg2 = a2;
-  }
-
 private:
     
-    
-  DHMap<unsigned,unsigned> bitVector_D_G_map;
   Stack<TermList> _dividesNvalues;
-  unsigned _arg1;
-  unsigned _arg2;
+
   bool _foolConstantsDefined;
   unsigned _foolTrue;
   unsigned _foolFalse;
 
   static bool isProtectedName(vstring name);
   static bool charNeedsQuoting(char c, bool first);
-  /** Stack of function symbols -- used for bound propagation*/
-  Stack<VarSymbol*> _vars;
   /** Stack of function symbols */
   Stack<Symbol*> _funs;
   /** Stack of predicate symbols */
@@ -624,13 +572,14 @@ private:
   bool _distinctGroupsAddedTo;
 
   /**
-   * Map from Interpretation values to function and predicate symbols representing them
+   * Map from MonomorphisedInterpretation values to function and predicate symbols representing them
    *
    * We mix here function and predicate symbols, but it is not a problem, as
-   * the Interpretation value already determines whether we deal with a function
+   * the MonomorphisedInterpretation value already determines whether we deal with a function
    * or a predicate.
    */
-  DHMap<Interpretation, unsigned> _iSymbols;
+  DHMap<Theory::MonomorphisedInterpretation, unsigned> _iSymbols;
+
   /** the number of string constants */
   unsigned _strings;
   /** the number of integer constants */

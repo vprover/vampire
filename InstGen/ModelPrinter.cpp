@@ -1,3 +1,21 @@
+
+/*
+ * File ModelPrinter.cpp.
+ *
+ * This file is part of the source code of the software program
+ * Vampire. It is protected by applicable
+ * copyright laws.
+ *
+ * This source code is distributed under the licence found here
+ * https://vprover.github.io/license.html
+ * and in the source directory
+ *
+ * In summary, you are allowed to use Vampire for non-commercial
+ * purposes but not allowed to distribute, modify, copy, create derivatives,
+ * or use in competitions. 
+ * For other uses of Vampire please contact developers for a different
+ * licence, which we will make an effort to provide. 
+ */
 /**
  * @file ModelPrinter.cpp
  * Implements class ModelPrinter.
@@ -39,12 +57,12 @@ bool ModelPrinter::haveNonDefaultSorts()
 
   unsigned funs = env.signature->functions();
   for(unsigned i=0; i<funs; i++) {
-    FunctionType* type = env.signature->getFunction(i)->fnType();
+    OperatorType* type = env.signature->getFunction(i)->fnType();
     if(!type->isAllDefault()) { return false; }
   }
   unsigned preds = env.signature->predicates();
   for(unsigned i=1; i<preds; i++) {
-    PredicateType* type = env.signature->getPredicate(i)->predType();
+    OperatorType* type = env.signature->getPredicate(i)->predType();
     if(!type->isAllDefault()) { return false; }
   }
   return true;
@@ -188,7 +206,7 @@ void ModelPrinter::generateNewInstances(Literal* base, TermStack& domain, DHSet<
   static DArray<TermList> args;
   static DArray<bool> variables;
   static DArray<unsigned> nextIndexes;
-  PredicateType* predType = env.signature->getPredicate(base->functor())->predType();
+  OperatorType* predType = env.signature->getPredicate(base->functor())->predType();
 
   args.ensure(arity);
   variables.ensure(arity);
@@ -325,7 +343,7 @@ void ModelPrinter::analyzeEqualityAndPopulateDomain()
     vstring firstTermStr = firstTerm.toString();
     unsigned eqClassSort = SortHelper::getResultSort(firstTerm.term());
     unsigned reprFunc = env.signature->addStringConstant(firstTermStr);
-    FunctionType* reprType = new FunctionType(eqClassSort);
+    OperatorType* reprType = OperatorType::getConstantsType(eqClassSort);
     env.signature->getFunction(reprFunc)->setType(reprType);
     TermList reprTerm = TermList(Term::create(reprFunc, 0, 0));
     _rewrites.insert(firstTerm, reprTerm);

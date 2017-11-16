@@ -1,3 +1,21 @@
+
+/*
+ * File FiniteModelBuilder.cpp.
+ *
+ * This file is part of the source code of the software program
+ * Vampire. It is protected by applicable
+ * copyright laws.
+ *
+ * This source code is distributed under the licence found here
+ * https://vprover.github.io/license.html
+ * and in the source directory
+ *
+ * In summary, you are allowed to use Vampire for non-commercial
+ * purposes but not allowed to distribute, modify, copy, create derivatives,
+ * or use in competitions. 
+ * For other uses of Vampire please contact developers for a different
+ * licence, which we will make an effort to provide. 
+ */
 /**
  * @file FiniteModelBuilder.cpp
  * Implements class FiniteModelBuilder.
@@ -447,8 +465,8 @@ void FiniteModelBuilder::init()
 
   // Store distinct constants by type
   DArray<DHMap<unsigned,DHSet<unsigned>*>*> _distinctConstants;
-  _distinctConstants.ensure(env.sorts->sorts());
-  for(unsigned i=0;i<env.sorts->sorts();i++){ _distinctConstants[i]=0; }
+  _distinctConstants.ensure(env.sorts->count());
+  for(unsigned i=0;i<env.sorts->count();i++){ _distinctConstants[i]=0; }
 
   // Apply flattening and split clauses into ground and non-ground
   while(cit.hasNext()){
@@ -666,7 +684,7 @@ void FiniteModelBuilder::init()
 
     // if we've done the sort expansion thing then the max for the parent should be
     // the max of all children
-    for(unsigned s=0;s<env.sorts->sorts();s++){
+    for(unsigned s=0;s<env.sorts->count();s++){
       if((env.property->usesSort(s) || s >= Sorts::FIRST_USER_SORT) && _sortedSignature->vampireToDistinct.find(s)){
         Stack<unsigned>* dmembers = _sortedSignature->vampireToDistinct.get(s);
         ASS(dmembers);
@@ -684,7 +702,7 @@ void FiniteModelBuilder::init()
     }
 
     //_distinctConstants
-    for(unsigned s=0;s<env.sorts->sorts();s++){
+    for(unsigned s=0;s<env.sorts->count();s++){
       if(_distinctConstants[s]!=0){
 
         ASS(_sortedSignature->vampireToDistinct.find(s));
@@ -696,7 +714,7 @@ void FiniteModelBuilder::init()
           _distinctSortMins[ds.next()]=max;
         }
 #if VTRACE_FMB
-        cout << "Setting min for " << env.sorts->sortName(s) << " to " << max << endl;
+        cout << "Setting min for " << env.count->sortName(s) << " to " << max << endl;
 #endif
       }
     }
@@ -1840,7 +1858,7 @@ void FiniteModelBuilder::onModelFound()
 
 
  DHMap<unsigned,unsigned> vampireSortSizes;
- for(unsigned vSort=0;vSort<env.sorts->sorts();vSort++){
+ for(unsigned vSort=0;vSort<env.sorts->count();vSort++){
    unsigned size = 0;
    unsigned dsort;
    if(_sortedSignature->vampireToDistinctParent.find(vSort,dsort)){

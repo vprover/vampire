@@ -1,3 +1,21 @@
+
+/*
+ * File Statistics.cpp.
+ *
+ * This file is part of the source code of the software program
+ * Vampire. It is protected by applicable
+ * copyright laws.
+ *
+ * This source code is distributed under the licence found here
+ * https://vprover.github.io/license.html
+ * and in the source directory
+ *
+ * In summary, you are allowed to use Vampire for non-commercial
+ * purposes but not allowed to distribute, modify, copy, create derivatives,
+ * or use in competitions. 
+ * For other uses of Vampire please contact developers for a different
+ * licence, which we will make an effort to provide. 
+ */
 /**
  * @file Statistics.cpp
  * Implements proof-search statistics
@@ -147,7 +165,7 @@ void Statistics::print(ostream& out)
 
   bool separable=false;
 #define HEADING(text,num) if (num) { addCommentSignForSZS(out); out << ">>> " << (text) << endl;}
-#define COND_OUT(text, num) if (num) { addCommentSignForSZS(out); out << (text) << ": " << (num) << endl; separable = true; }
+#define COND_OUT(text, num) if (num) { addCommentSignForSZS(out); out << (text) << ": " << (num) << std::endl; separable = true; }
 #define SEPARATOR if (separable) { addCommentSignForSZS(out); out << endl; separable = false; }
 
   addCommentSignForSZS(out);
@@ -353,6 +371,7 @@ void Statistics::print(ostream& out)
   SEPARATOR;
 
   // BitVector Statistics
+  /*
   HEADING("BitVectorOperations",1);
   auto it = theory->getSSIItems();
   while(it.hasNext()){
@@ -389,6 +408,7 @@ void Statistics::print(ostream& out)
       COND_OUT(name,Theory::instance()->getFromCountmap(entry.second));
   }
   SEPARATOR; 
+  */
   
   }
 

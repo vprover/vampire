@@ -1,3 +1,21 @@
+
+/*
+ * File Preprocess.cpp.
+ *
+ * This file is part of the source code of the software program
+ * Vampire. It is protected by applicable
+ * copyright laws.
+ *
+ * This source code is distributed under the licence found here
+ * https://vprover.github.io/license.html
+ * and in the source directory
+ *
+ * In summary, you are allowed to use Vampire for non-commercial
+ * purposes but not allowed to distribute, modify, copy, create derivatives,
+ * or use in competitions. 
+ * For other uses of Vampire please contact developers for a different
+ * licence, which we will make an effort to provide. 
+ */
 /**
  * @file Shell/Preprocess.cpp
  * Implements class Preprocess for preprocessing.
@@ -162,6 +180,18 @@ void Preprocess::preprocess(Problem& prb)
     env.interpretedOperationsUsed = true;
   }
 
+  if (prb.hasFOOL()) {
+    // This is the point to extend the signature with $$true and $$false
+    // If we don't have fool then these constants get in the way (a lot)
+  
+    if (!_options.newCNF()) {
+      if (env.options->showPreprocessing())
+        env.out() << "FOOL elimination" << std::endl;
+      TheoryAxioms(prb).applyFOOL();
+      FOOLElimination().apply(prb);
+    }
+  }
+
     // If there are interpreted operations
   if (prb.hasInterpretedOperations() || env.signature->hasTermAlgebras()){
     // Normalize them e.g. replace $greater with not $lesseq
@@ -173,18 +203,6 @@ void Preprocess::preprocess(Problem& prb)
         env.out() << "adding theory axioms" << std::endl;
 
       TheoryAxioms(prb).apply();
-    }
-  }
-
-  if (prb.hasFOOL()) {
-    // This is the point to extend the signature with $$true and $$false
-    // If we don't have fool then these constants get in the way (a lot)
-  
-    if (!_options.newCNF()) {
-      if (env.options->showPreprocessing())
-        env.out() << "FOOL elimination" << std::endl;
-      TheoryAxioms(prb).applyFOOL();
-      FOOLElimination().apply(prb);
     }
   }
 

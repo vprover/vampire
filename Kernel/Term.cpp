@@ -1,3 +1,21 @@
+
+/*
+ * File Term.cpp.
+ *
+ * This file is part of the source code of the software program
+ * Vampire. It is protected by applicable
+ * copyright laws.
+ *
+ * This source code is distributed under the licence found here
+ * https://vprover.github.io/license.html
+ * and in the source directory
+ *
+ * In summary, you are allowed to use Vampire for non-commercial
+ * purposes but not allowed to distribute, modify, copy, create derivatives,
+ * or use in competitions. 
+ * For other uses of Vampire please contact developers for a different
+ * licence, which we will make an effort to provide. 
+ */
 /**
  * @file Term.cpp
  * Implements class Term.
@@ -401,8 +419,8 @@ vstring Term::headToString() const
         bool isPredicate = binding.isTerm() && binding.term()->isBoolean();
         vstring functor = isPredicate ? env.signature->predicateName(sd->getFunctor())
                                       : env.signature->functionName(sd->getFunctor());
-        BaseType* type = isPredicate ? (BaseType*)env.signature->getPredicate(sd->getFunctor())->predType()
-                                     : (BaseType*)env.signature->getFunction(sd->getFunctor())->fnType();
+        OperatorType* type = isPredicate ? env.signature->getPredicate(sd->getFunctor())->predType()
+                                         : env.signature->getFunction(sd->getFunctor())->fnType();
 
         const IntList* variables = sd->getVariables();
         vstring variablesList = "";
@@ -446,7 +464,7 @@ vstring Term::headToString() const
         unsigned tupleFunctor = sd->getFunctor();
         TermList binding = sd->getBinding();
 
-        FunctionType* fnType = env.signature->getFunction(tupleFunctor)->fnType();
+        OperatorType* fnType = env.signature->getFunction(tupleFunctor)->fnType();
 
         vstring symbolsList = "";
         for (unsigned i = 0; i < IntList::length(symbols); i++) {
@@ -872,7 +890,7 @@ Term* Term::createTupleLet(unsigned tupleFunctor, IntList* symbols, TermList bin
 #if VDEBUG
   Signature::Symbol* tupleSymbol = env.signature->getFunction(tupleFunctor);
   ASS_EQ(tupleSymbol->arity(), IntList::length(symbols));
-  ASS_REP(env.sorts->hasStructuredSort(tupleSymbol->fnType()->result(), Sorts::StructuredSort::TUPLE), tupleFunctor);
+  ASS_REP(env.sorts->isOfStructuredSort(tupleSymbol->fnType()->result(), Sorts::StructuredSort::TUPLE), tupleFunctor);
 
   Set<pair<int,bool> > distinctSymbols;
   IntList::Iterator sit(symbols);

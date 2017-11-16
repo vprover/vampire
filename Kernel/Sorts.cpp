@@ -1,3 +1,21 @@
+
+/*
+ * File Sorts.cpp.
+ *
+ * This file is part of the source code of the software program
+ * Vampire. It is protected by applicable
+ * copyright laws.
+ *
+ * This source code is distributed under the licence found here
+ * https://vprover.github.io/license.html
+ * and in the source directory
+ *
+ * In summary, you are allowed to use Vampire for non-commercial
+ * purposes but not allowed to distribute, modify, copy, create derivatives,
+ * or use in competitions. 
+ * For other uses of Vampire please contact developers for a different
+ * licence, which we will make an effort to provide. 
+ */
 /**
  * @file Sorts.cpp
  * Implements class Sorts for handling collections of sorts.
@@ -162,10 +180,9 @@ VirtualIterator<unsigned> Sorts::getStructuredSorts(const StructuredSort ss)
 {
   CALL("Sorts::getStructuredSorts");
   Stack<SortInfo*>::Iterator all(_sorts);
-  VirtualIterator<SortInfo*> arraySorts = pvi(getFilteredIterator(all,
-               [ss](SortInfo* s){ return s->hasStructuredSort(ss);}));
-  //auto map = ([](SortInfo* s)->unsigned{ return s->id(); });
-  return pvi(getMappingIterator(arraySorts,SortInfoToInt()));
+  VirtualIterator<SortInfo*> structuredSorts = pvi(getFilteredIterator(all,
+               [ss](SortInfo* s){ return s->isOfStructuredSort(ss);}));
+  return pvi(getMappingIterator(structuredSorts,SortInfoToInt()));
 }
 
 unsigned Sorts::addTupleSort(unsigned arity, unsigned sorts[])
@@ -226,122 +243,114 @@ const vstring& Sorts::sortName(unsigned idx) const
 } // Sorts::sortName
 
 /**
- * Initialise a base type. If @c sorts is is NULL, all arguments will be
- * initalised by the default sort, otherwise, by sorts from the array @c sorts
+ * Pre-initialise an OperatorKey.
+ *
+ * If @c sorts is is NULL, all arguments will be initalized by the default sort,
+ * otherwise, by sorts from the array @c sorts
  * @author Andrei Voronkov
  */
-BaseType::BaseType(unsigned arity, const unsigned* sorts)
+OperatorType::OperatorKey* OperatorType::setupKey(unsigned arity, const unsigned* sorts)
 {
-  CALL("BaseType::BaseType");
+  CALL("OperatorType::setupKey(unsigned,const unsigned*)");
 
-  if (!arity) {
-    _args = 0;
-    return;
-  }
+  OperatorKey* key = OperatorKey::allocate(arity+1);
 
-  _args = SortVector::allocate(arity);
   if (!sorts) {
     // initialise all argument types to the default type
     for (unsigned i = 0; i < arity; i++) {
-      (*_args)[i] = Sorts::SRT_DEFAULT;
+      (*key)[i] = Sorts::SRT_DEFAULT;
     }
-    return;
+  } else {
+    // initialise all the argument types to those taken from sorts
+    for (unsigned i = 0; i < arity; i++) {
+      (*key)[i] = sorts[i];
+    }
   }
-  // initialise all the argument types to thos taken from sorts
-  for (unsigned i = 0; i < arity; i++) {
-    (*_args)[i] = sorts[i];
-  }
-} // BaseType::BaseType
+  return key;
+}
 
 /**
- * Initialise a base type from an initializer list of sorts.
+ * Pre-initialise an OperatorKey from an initializer list of sorts.
  */
-BaseType::BaseType(std::initializer_list<unsigned> sorts)
+OperatorType::OperatorKey* OperatorType::setupKey(std::initializer_list<unsigned> sorts)
 {
-  CALL("BaseType::BaseType");
+  CALL("OperatorType::setupKey(std::initializer_list<unsigned>)");
 
-  if (sorts.size() == 0) {
-    _args = 0;
-    return;
-  }
+  OperatorKey* key = OperatorKey::allocate(sorts.size()+1);
 
-  _args = SortVector::allocate(sorts.size());
-  // initialise all the argument types to thos taken from sorts
+  // initialise all the argument types to those taken from sorts
   unsigned i = 0;
   for (auto sort : sorts) {
-    (*_args)[i++] = sort;
+    (*key)[i++] = sort;
   }
-} // BaseType::BaseType
+
+  return key;
+}
 
 /**
- * Destrory the type and deallocate its arguments, if any
- * @author Andrei Voronkov 
- */ 
-BaseType::~BaseType()
-{
-  CALL("BaseType::~BaseType");
-
-  if (_args) {
-    _args->deallocate();
-  }
-} // BaseType::~BaseType
-
-/**
- * True if all arguments of this type have sort @c str.
- * @author Andrei Voronkov 
- */ 
-bool BaseType::isSingleSortType(unsigned srt) const
-{
-  CALL("BaseType::isAllDefault");
-
-  unsigned len = arity();
-  for (unsigned i = 0; i <len; i++) {
-    if (arg(i) != srt) {
-      return false;
-    }
-  }
-  return true;
-} // isSingleSortType
-
-/**
- * Return true if two types are equal. Two are are equal if their argument types
- * coincide and their return types coincide.
- * @author Andrei Voronkov
+ * Pre-initialise an OperatorKey from unsing a uniform range.
  */
-bool BaseType::operator==(const BaseType& o) const
+OperatorType::OperatorKey* OperatorType::setupKeyUniformRange(unsigned arity, unsigned argsSort)
 {
-  CALL("BaseType::operator==");
+  CALL("OperatorType::setupKeyUniformRange");
 
-  if (isFunctionType() != o.isFunctionType()) {
-    return false;
-  }
-  if (isFunctionType()) {
-    if (static_cast<const FunctionType&>(*this).result() != 
-	static_cast<const FunctionType&>(o).result()) {
-      return false;
-    }
-  }
-  unsigned len = arity();
-  if (len != o.arity()) {
-    return false;
-  }
-  for (unsigned i=0; i < len; i++) {
-    if (arg(i) != o.arg(i)) {
-      return false;
-    }
-  }
-  return true;
-} // BaseType::operator==
+  OperatorKey* key = OperatorKey::allocate(arity+1);
 
-/** 
+  static Stack<unsigned> argSorts;
+  argSorts.reset();
+  for (unsigned i=0; i<arity; i++) {
+    argSorts.push(argsSort);
+  }
+
+  return key;
+}
+
+OperatorType::OperatorTypes OperatorType::_operatorTypes;
+
+/**
+ * Check if OperatorType corresponding to the given key
+ * already exists. If so return it, if not create new,
+ * store it for future retrieval and return it.
+ *
+ * Release key if not needed.
+ */
+OperatorType* OperatorType::getTypeFromKey(OperatorType::OperatorKey* key)
+{
+  CALL("OperatorType::getTypeFromKey");
+
+  /*
+  cout << "getTypeFromKey(" << key->length() << "): ";
+  for (unsigned i = 0; i < key->length(); i++) {
+    cout << (((*key)[i] == PREDICATE_FLAG) ? "FFFF" : env.sorts->sortName((*key)[i])) << ",";
+  }
+  */
+
+  OperatorType* resultType;
+  if (_operatorTypes.find(key,resultType)) {
+    key->deallocate();
+
+    // cout << " Found " << resultType << endl;
+
+    return resultType;
+  }
+
+  resultType = new OperatorType(key);
+  _operatorTypes.insert(key,resultType);
+
+  // cout << " Created new " << resultType << endl;
+
+  return resultType;
+}
+
+/**
  * Return the string representation of arguments of a non-atomic
  * functional or a predicate sort in the form (t1 * ... * tn)
  * @since 04/05/2013 bug fix (comma was used instead of *)
  * @author Andrei Voronkov
  */
-vstring BaseType::argsToString() const
+vstring OperatorType::argsToString() const
 {
-  CALL("BaseType::argsToString");
+  CALL("OperatorType::argsToString");
 
   vstring res = "(";
   unsigned ar = arity();
@@ -354,72 +363,38 @@ vstring BaseType::argsToString() const
   }
   res += ')';
   return res;
-} // BaseType::argsToString()
+} // OperatorType::argsToString()
 
 /**
- * Return the TPTP string representation of the predicate type.
+ * Return the TPTP string representation of the OpertorType.
+ */
+vstring OperatorType::toString() const
+{
+  CALL("OperatorType::toString");
+
+  return (arity() ? argsToString() + " > " : "") +
+      (isPredicateType() ? "$o" : env.sorts->sortName(result()));
+}
+
+/**
+ * True if all arguments of this type have sort @c str
+ * and so is the result sort if we are talking about a function type.
  * @author Andrei Voronkov
  */
-vstring PredicateType::toString() const
+bool OperatorType::isSingleSortType(unsigned srt) const
 {
-  CALL("PredicateType::toString");
-  return arity() ? argsToString() + " > $o" : "$o";
-} // PredicateType::toString
+  CALL("OperatorType::isAllDefault");
 
-/**
- * Create a type of the form (argSort * ... * argSort) -> rangeSort
- * @author Evgeny Kotelnikov
- */
-PredicateType* PredicateType::makeTypeUniformRange(unsigned arity, unsigned argsSort)
-{
-  CALL("PredicateType::makeTypeUniformRange");
-
-  static Stack<unsigned> argSorts;
-  argSorts.reset();
-  for (unsigned i=0; i<arity; i++) {
-    argSorts.push(argsSort);
+  unsigned len = arity();
+  for (unsigned i = 0; i <len; i++) {
+    if (arg(i) != srt) {
+      return false;
+    }
   }
-  return new PredicateType(arity, argSorts.begin());
-} // PredicateType::makeTypeUniformRange
 
-
-/**
- * Return the TPTP string representation of the function type.
- * @author Andrei Voronkov
- */
-vstring FunctionType::toString() const
-{
-  CALL("FunctionType::toString");
-  return (arity() ? argsToString() + " > " : "") + env.sorts->sortName(result());
-} // FunctionType::toString
-
-/**
- * True if this function type has the form (srt * ... * srt) -> srt
- * @author Andrei Voronkov
- */
-bool FunctionType::isSingleSortType(unsigned srt) const
-{
-  CALL("FunctionType::isSingleSortType");
-
-  if (result() != srt) {
+  if (isFunctionType() && result() != srt) {
     return false;
   }
-  return BaseType::isSingleSortType(srt);
-} // FunctionType::isSingleSortType
 
-/**
- * Create a type of the form (argSort * ... * argSort) -> rangeSort
- * @author Andrei Voronkov
- * @author Evgeny Kotelnikov, move to FunctionType
- */
-FunctionType* FunctionType::makeTypeUniformRange(unsigned arity, unsigned argsSort, unsigned rangeSort)
-{
-  CALL("FunctionType::makeTypeUniformRange");
-
-  static Stack<unsigned> argSorts;
-  argSorts.reset();
-  for (unsigned i=0; i<arity; i++) {
-    argSorts.push(argsSort);
-  }
-  return new FunctionType(arity, argSorts.begin(), rangeSort);
-} // FunctionType::makeTypeUniformRange
+  return true;
+} // isSingleSortType

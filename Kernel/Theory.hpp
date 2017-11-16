@@ -1,3 +1,21 @@
+
+/*
+ * File Theory.hpp.
+ *
+ * This file is part of the source code of the software program
+ * Vampire. It is protected by applicable
+ * copyright laws.
+ *
+ * This source code is distributed under the licence found here
+ * https://vprover.github.io/license.html
+ * and in the source directory
+ *
+ * In summary, you are allowed to use Vampire for non-commercial
+ * purposes but not allowed to distribute, modify, copy, create derivatives,
+ * or use in competitions. 
+ * For other uses of Vampire please contact developers for a different
+ * licence, which we will make an effort to provide. 
+ */
 /**
  * @file Theory.hpp
  * Defines class Theory.
@@ -122,7 +140,6 @@ inline
 std::ostream& operator<< (ostream& out, const IntegerConstantType& val) {
   return out << val.toInner();
 }
-
 
 class BitVectorConstantType{
        
@@ -334,9 +351,6 @@ public:
   enum Interpretation
   {
     //predicates
-
-    EQUAL,
-
     INT_IS_INT,
     INT_IS_RAT,
     INT_IS_REAL,
@@ -422,57 +436,14 @@ public:
     RAT_TO_REAL,
     REAL_TO_INT,
     REAL_TO_RAT,
-    REAL_TO_REAL
-    
-    // IMPORTANT - if you add something to end of this, update it in LastNonStructuredInterepretation 
-    
-    //INVALID_INTERPRETATION // replaced by LastNonStructuredInterepretation
-  };
+    REAL_TO_REAL,
 
-  unsigned LastNonStructuredInterepretation(){ return REAL_TO_REAL; }
-
-    /**
-     * Maximal element number in the enum Interpretation
-     *
-     * At some points we make use of the fact that we can iterate through all
-     * interpretations by going through the set {0,...,MAX_INTERPRETED_ELEMENT}.
-     */
-  unsigned MaxInterpretedElement(){
-    return LastNonStructuredInterepretation() + _structuredSortInterpretations.size(); 
-  }
-
-  unsigned numberOfInterpretations(){
-      return LastNonStructuredInterepretation() + LastStructuredInterpretation();
-  }
-
-  bool isValidInterpretation(Interpretation i){
-    return i <= MaxInterpretedElement();
-  }
-
-  bool isPlus(Interpretation i){
-    return i == INT_PLUS || i == RAT_PLUS || i == REAL_PLUS;
-  }
-
- /*
-  * StructuredSortInterpretations begin from the last interpretation in Interpretation
-  *
-  * They will be initialised as MaxInterpretedElement()+1
-  *
-  */
-
-
-  /** enum for the kinds of StructuredSort interpretations **/
-  enum class StructuredSortInterpretation
-  {
+    // array functions
     ARRAY_SELECT,
     ARRAY_BOOL_SELECT,
     ARRAY_STORE,
-    // currently unused
-    LIST_HEAD,
-    LIST_TAIL,
-    LIST_CONS,
-    LIST_IS_EMPTY,
     
+    // bitvector functions
     BVADD,
     BVAND,
     BVASHR,
@@ -501,59 +472,85 @@ public:
     BVUREM,
     BVXNOR,
     BVXOR,
-    
+    CONCAT,
+
+    INVALID_INTERPRETATION // LEAVE THIS AS THE LAST ELEMENT OF THE ENUM
+  };
+
+  enum IndexedInterpretation {
     BV_ROTATE_LEFT,
     BV_ROTATE_RIGHT,
     BV_SIGN_EXTEND,
     BV_ZERO_EXTEND,
-    CONCAT,
     EXTRACT,
     REPEAT
   };
-  unsigned LastStructuredInterpretation(){
-    return static_cast<unsigned>(StructuredSortInterpretation::REPEAT);
-  }
-  
-  
-  unsigned getSymbolForStructuredSort(unsigned sort, StructuredSortInterpretation interp, int arg1, int arg2);
-  unsigned getSymbolForStructuredSort(unsigned sort, StructuredSortInterpretation interp);
-  
-  Interpretation getInterpretation(unsigned sort, StructuredSortInterpretation i){
-      return getInterpretation(sort, i, -1,-1);
-  }
-  
-  unsigned getFromCountmap(unsigned itp)
-  {
-    return count_map.get(itp); 
-  }
-  
-  Interpretation getInterpretation(unsigned sort, StructuredSortInterpretation i, int arg1, int arg2){
-    // key = make_pair(sort, i);
-    AKey key(sort, i, arg1, arg2);
-    unsigned interpretation;
-    if (!_structuredSortInterpretations.find(key, interpretation)) {
-      interpretation = MaxInterpretedElement() + 1;
-      _structuredSortInterpretations.insert(key, interpretation);
-      count_map.set(interpretation,0);
-    }
-    count_map.set(interpretation,count_map.get(interpretation)+1);
-    return static_cast<Interpretation>(interpretation);
-  }
-  
-  bool isStructuredSortInterpretation(Interpretation i){
-    return i > LastNonStructuredInterepretation();
-  }
-  unsigned getSort(Interpretation i){
-    return getData(i).getResultSort();
+
+  typedef std::pair<IndexedInterpretation, unsigned> ConcreteIndexedInterpretation;
+
+  /**
+   * Interpretations represent the abstract concept of an interpreted operation vampire knows about.
+   *
+   * Some of them are polymorphic, such the ones for ARRAYs, and only become a concrete operation when supplied with OperatorType*.
+   * To identify these, MonomorphisedInterpretation (see below) can be used. However, notice that the appropriate Symbol always carries
+   * an Interpretation (if interpreted) and an OperatorType*.
+   *
+   * Other operations might be, in fact, indexed families of operations, and need an additional index (unsigned) to be specified.
+   * To keep the Symbol structure from growing for their sake, these IndexedInterpretations are instantiated to a concrete member of a family on demand
+   * and we keep track of this instantiation in _indexedInterpretations (see below). Members of _indexedInterpretations
+   * implicitly "inhabit" a range of values in Interpretation after INVALID_INTERPRETATION, so that again an
+   * Interpretation (this time >= INVALID_INTERPRETATION) and an OperatorType* are enough to identify a member of an indexed family.
+   */
+
+  typedef std::pair<Interpretation, OperatorType*> MonomorphisedInterpretation;
+
+private:
+  DHMap<ConcreteIndexedInterpretation,Interpretation> _indexedInterpretations;
+  DHMap<Interpretation,ConcreteIndexedInterpretation> _indexedInterpretationsInv;
+
+public:
+
+  static unsigned numberOfFixedInterpretations() {
+    return INVALID_INTERPRETATION;
   }
 
-  static vstring getInterpretationName(Interpretation i);
+  Interpretation interpretationFromIndexedInterpretation(IndexedInterpretation ii, unsigned index)
+  {
+    CALL("inpretationFromIndexedInterpretation");
+
+    ConcreteIndexedInterpretation cii = std::make_pair(ii,index);
+
+    Interpretation res;
+    if (!_indexedInterpretations.find(cii, res)) {
+      res = static_cast<Interpretation>(numberOfFixedInterpretations() + _indexedInterpretations.size());
+      _indexedInterpretations.insert(cii, res);
+      _indexedInterpretationsInv.insert(res, cii);
+    }
+    return res;
+  }
+
+  ConcreteIndexedInterpretation intepretationToIndexedInterpretation(Interpretation i) {
+    CALL("intepretationToIndexedInterpretation");
+
+    ASS_GE(i,INVALID_INTERPRETATION);
+    return _indexedInterpretationsInv.get(i);
+  }
+
+
+  static bool isPlus(Interpretation i){
+    return i == INT_PLUS || i == RAT_PLUS || i == REAL_PLUS;
+  }
+
+  vstring getInterpretationName(Interpretation i);
   static unsigned getArity(Interpretation i);
   static bool isFunction(Interpretation i);
   static bool isInequality(Interpretation i);
-  static Sorts::StructuredSort getInterpretedSort(StructuredSortInterpretation ssi);
-  static BaseType* getOperationType(Interpretation i);
-  static BaseType* getStructuredSortOperationType(Interpretation i);
+  static OperatorType* getNonpolymorphicOperatorType(Interpretation i);
+
+  static OperatorType* getArrayOperatorType(unsigned arraySort, Interpretation i);
+  static OperatorType* getBitvectorOperatorType(unsigned bvSort, Interpretation i, unsigned auxSort);
+  static OperatorType* getBitvectorIndexedOperatorType(unsigned mainSort, unsigned auxSort, IndexedInterpretation i);
+
   static bool hasSingleSort(Interpretation i);
   static unsigned getOperationSort(Interpretation i);
   static bool isConversionOperation(Interpretation i);
@@ -561,15 +558,7 @@ public:
   static bool isNonLinearOperation(Interpretation i);
   static bool isPartialFunction(Interpretation i);
 
-  static bool isArrayOperation(Interpretation i);
-  static unsigned getArrayOperationSort(Interpretation i);
-  static unsigned getArrayDomainSort(Interpretation i);
-  
-  static bool isBitVectorOperation(Interpretation i);
-  static unsigned getBitVectorArg1Sort(Interpretation i );
-  static unsigned getBitVectorArg2Sort(Interpretation i );
-  
-  
+  static bool isPolymorphic(Interpretation i);
 
   unsigned getArrayExtSkolemFunction(unsigned i);
     
@@ -604,9 +593,6 @@ public:
   Interpretation interpretPredicate(unsigned pred);
   Interpretation interpretPredicate(Literal* t);
 
-  unsigned getFnNum(Interpretation itp);
-  unsigned getPredNum(Interpretation itp);
-
   void registerLaTeXPredName(unsigned func, bool polarity, vstring temp);
   void registerLaTeXFuncName(unsigned func, vstring temp);
   vstring tryGetInterpretedLaTeXName(unsigned func, bool pred,bool polarity=true);
@@ -619,25 +605,18 @@ private:
 
 public:
 
-  Term* fun1(Interpretation itp, TermList arg);
-  Term* fun2(Interpretation itp, TermList arg1, TermList arg2);
-  Term* fun3(Interpretation itp, TermList arg1, TermList arg2, TermList arg3);
-  Literal* pred2(Interpretation itp, bool polarity, TermList arg1, TermList arg2);
-
-  
   bool tryInterpretConstant(TermList trm, BitVectorConstantType& res)
   {
       CALL("Theory::tryInterpretConstant(TermList,BitVectorConstantType)");
-      
+
       if (!trm.isTerm()) {
         return false;
       }
       return tryInterpretConstant(trm.term(),res);
   }
-  
+
   bool tryInterpretConstant(const Term* t, BitVectorConstantType& res);
-  
-  
+
   /**
    * Try to interpret the term list as an integer constant. If it is an
    * integer constant, return true and save the constant in @c res, otherwise
@@ -680,58 +659,7 @@ public:
     return tryInterpretConstant(trm.term(),res);
   }
   bool tryInterpretConstant(const Term* t, RealConstantType& res);
-
-  class AKey {
-  public:
     
-    AKey(){}
-    AKey(unsigned resultSort, Theory::StructuredSortInterpretation ssi,  unsigned arg1, unsigned arg2):
-    _ssi(ssi), _resultSort(resultSort), _arg1(arg1), _arg2(arg2)
-    {
-        
-    }
-    /*AKey(Theory::StructuredSortInterpretation ssi,  unsigned resultSort):
-    _ssi(ssi), _resultSort(resultSort), _arg1(-1), _arg2(-1)
-    {
-        
-    }*/
-  AKey& operator=(const AKey& o){
-		(*this)._resultSort = o._resultSort;
-		(*this)._arg1 = o._arg1;
-                (*this)._arg2 = o._arg2;
-                (*this)._ssi = o._ssi;
-		return static_cast<AKey&>(*this);
-	}
-  bool operator==(const AKey& o) const {
-		return ((*this)._resultSort == o._resultSort && (*this)._ssi == o._ssi 
-                        && (*this)._arg1 == o._arg1 && (*this)._arg2 == o._arg2) ;
-	}
-  bool operator!=(const AKey& o) const {
-		return (!((*this)._resultSort == o._resultSort && (*this)._ssi == o._ssi 
-                        && (*this)._arg1 == o._arg1 && (*this)._arg2 == o._arg2)) ;
-	}
-  unsigned getResultSort(){
-      return _resultSort;
-  }
-  int getArg1(){
-      return _arg1;
-  }
-  int getArg2(){
-      return _arg2;
-  }
-  
-  StructuredSortInterpretation getSSI(){
-      return _ssi;
-  }
-  private:
-      StructuredSortInterpretation _ssi;
-      unsigned _resultSort;
-      int _arg1;
-      int _arg2;
-      
-  };
-  
-  
   Term* representConstant(const IntegerConstantType& num);
   Term* representConstant(const RationalConstantType& num);
   Term* representConstant(const RealConstantType& num);
@@ -741,41 +669,10 @@ public:
   Term* representRealConstant(vstring str);
 private:
   Theory();
-  static FunctionType* getConversionOperationType(Interpretation i);
+  static OperatorType* getConversionOperationType(Interpretation i);
 
   DHMap<unsigned,unsigned> _arraySkolemFunctions;
 
-public:
-  unsigned getStructuredOperationSort(Interpretation i){
-    return getData(i).getResultSort();
-  }
-  StructuredSortInterpretation convertToStructured(Interpretation i){
-    return getData(i).getSSI();
-  }
-  unsigned getNumSSIs(){
-      return _structuredSortInterpretations.size();
-  }
-  
-  typedef std::pair<AKey,unsigned> Item;
-  VirtualIterator<Item> getSSIItems(){
-      return _structuredSortInterpretations.items();
-  }
-  
-private:    
-    AKey getData(Interpretation i){
-    ASS(isStructuredSortInterpretation(i));
-    auto it = _structuredSortInterpretations.items();
-    while(it.hasNext()){
-      auto entry = it.next();
-      if(entry.second==i) return entry.first;
-    }
-    ASSERTION_VIOLATION;
-  }
-
-  DHMap<AKey,unsigned> _structuredSortInterpretations;
-  DHMap<unsigned, unsigned> count_map;
-
-  
 public:
   class Tuples {
   public:

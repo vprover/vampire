@@ -1,3 +1,20 @@
+#/*
+# * This file is part of the source code of the software program
+# * Vampire 4.2.2. It is protected by applicable
+# * copyright laws.
+# *
+# * This source code is distributed under the licence found here
+# * https://vprover.github.io/license.html
+# * and in the source directory
+# *
+# * In summary, you are allowed to use Vampire for non-commercial
+# * uses but not allowed to distribute, modify, copy, create derivatives,
+# * or use in competitions. 
+# * For other uses of Vampire please contact developers for a different
+# * licence, which we will make an effort to provide. 
+# */
+
+
 
 ###############################################################
 # File:    makefile 
@@ -190,6 +207,7 @@ VK_OBJ= Kernel/Clause.o\
         Kernel/KBOForEPR.o\
         Kernel/LiteralSelector.o\
         Kernel/LookaheadLiteralSelector.o\
+	Kernel/LPO.o\
         Kernel/MainLoop.o\
         Kernel/Matcher.o\
         Kernel/MaximalLiteralSelector.o\
@@ -382,8 +400,7 @@ VS_OBJ = Shell/AnswerExtractor.o\
 #         Shell/HalfBoundingRemover.o\
 #         Shell/SubsumptionRemover.o\
 
-PARSE_OBJ = Parse/SMTLIB.o\
-            Parse/SMTLIB2.o\
+PARSE_OBJ = Parse/SMTLIB2.o\
             Parse/TPTP.o
 
 DP_OBJ = DP/ShortConflictMetaDP.o\

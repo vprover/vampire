@@ -1,3 +1,21 @@
+
+/*
+ * File FunctionRelationshipInference.cpp.
+ *
+ * This file is part of the source code of the software program
+ * Vampire. It is protected by applicable
+ * copyright laws.
+ *
+ * This source code is distributed under the licence found here
+ * https://vprover.github.io/license.html
+ * and in the source directory
+ *
+ * In summary, you are allowed to use Vampire for non-commercial
+ * purposes but not allowed to distribute, modify, copy, create derivatives,
+ * or use in competitions. 
+ * For other uses of Vampire please contact developers for a different
+ * licence, which we will make an effort to provide. 
+ */
 /**
  * @file FunctionRelationshipInference.cpp
  * Implements class FunctionRelationshipInference.
@@ -199,7 +217,7 @@ ClauseList* FunctionRelationshipInference::getCheckingClauses()
   unsigned initial_functions = env.signature->functions();
   for(unsigned f=0; f < initial_functions; f++){
 
-    FunctionType* ftype = env.signature->getFunction(f)->fnType();
+    OperatorType* ftype = env.signature->getFunction(f)->fnType();
     unsigned ret_srt = ftype->result();
     unsigned arity = env.signature->functionArity(f);
 

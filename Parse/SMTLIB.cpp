@@ -1,3 +1,21 @@
+
+/*
+ * File SMTLIB.cpp.
+ *
+ * This file is part of the source code of the software program
+ * Vampire. It is protected by applicable
+ * copyright laws.
+ *
+ * This source code is distributed under the licence found here
+ * https://vprover.github.io/license.html
+ * and in the source directory
+ *
+ * In summary, you are allowed to use Vampire for non-commercial
+ * purposes but not allowed to distribute, modify, copy, create derivatives,
+ * or use in competitions. 
+ * For other uses of Vampire please contact developers for a different
+ * licence, which we will make an effort to provide. 
+ */
 /**
  * @file SMTLIB.cpp
  * Implements class SMTLIB.
@@ -288,7 +306,7 @@ void SMTLIB::doSortDeclarations()
   }
 }
 
-BaseType* SMTLIB::getSymbolType(const FunctionInfo& fnInfo)
+OperatorType* SMTLIB::getSymbolType(const FunctionInfo& fnInfo)
 {
   CALL("SMTLIB::getSymbolType");
   
@@ -305,7 +323,7 @@ BaseType* SMTLIB::getSymbolType(const FunctionInfo& fnInfo)
     argSorts.push(getSort(argSortName));
   }
 
-  return new FunctionType(arity, argSorts.begin(), rangeSort);
+  return OperatorType::getFunctionType(arity, argSorts.begin(), rangeSort);
 }
 
 void SMTLIB::doFunctionDeclarations()
@@ -317,8 +335,8 @@ void SMTLIB::doFunctionDeclarations()
     FunctionInfo& fnInfo = _funcs[i];
     unsigned arity = fnInfo.argSorts.size();
     
-    BaseType* type = getSymbolType(fnInfo);
-    bool isPred = !type->isFunctionType();
+    OperatorType* type = getSymbolType(fnInfo);
+    bool isPred = type->isPredicateType();
 
     unsigned symNum;
     Signature::Symbol* sym;
@@ -500,7 +518,7 @@ void SMTLIB::ensureArgumentSorts(bool pred, unsigned symNum, TermList* args)
 {
   CALL("SMTLIB::ensureArgumentSorts");
 
-  BaseType* type;
+  OperatorType* type;
   if(pred) {
     type = env.signature->getPredicate(symNum)->predType();
   }
@@ -1174,7 +1192,7 @@ bool SMTLIB::tryReadDistinct(LExpr* e, Formula*& res)
   }
 
   bool added;
-  BaseType* type = PredicateType::makeTypeUniformRange(arity, sort);
+  OperatorType* type = OperatorType::getPredicateTypeUniformRange(arity, sort);
 
   //this is a bit of a quick hack, we need to come up with
   //a proper way to have a polymorphic $distinct predicate
@@ -1183,7 +1201,7 @@ bool SMTLIB::tryReadDistinct(LExpr* e, Formula*& res)
     env.signature->getPredicate(predNum)->setType(type);
   }
   else {
-    BaseType* prevType = env.signature->getPredicate(predNum)->predType();
+    OperatorType* prevType = env.signature->getPredicate(predNum)->predType();
     if(*type==*prevType) {
       delete type;
     }
@@ -1402,7 +1420,7 @@ Formula* SMTLIB::nameFormula(Formula* f, vstring fletVarName)
 
   fletVarName = StringUtils::sanitizeSuffix(fletVarName);
   unsigned predNum = env.signature->addFreshPredicate(varCnt, "sP", fletVarName.c_str());
-  BaseType* type = new PredicateType(varCnt, argSorts.begin());
+  OperatorType* type = OperatorType::getPredicateType(varCnt, argSorts.begin());
 
   Signature::Symbol* predSym = env.signature->getPredicate(predNum);
   predSym->setType(type);

@@ -1,3 +1,21 @@
+
+/*
+ * File TPTP.cpp.
+ *
+ * This file is part of the source code of the software program
+ * Vampire. It is protected by applicable
+ * copyright laws.
+ *
+ * This source code is distributed under the licence found here
+ * https://vprover.github.io/license.html
+ * and in the source directory
+ *
+ * In summary, you are allowed to use Vampire for non-commercial
+ * purposes but not allowed to distribute, modify, copy, create derivatives,
+ * or use in competitions. 
+ * For other uses of Vampire please contact developers for a different
+ * licence, which we will make an effort to provide. 
+ */
 /**
  * @file Parse/TPTP.cpp
  * Implements class TPTP for parsing TPTP files
@@ -204,6 +222,7 @@ void TPTP::parse()
       endBinding();
       break;
     case TUPLE_BINDING:
+      if(!env.options->newCNF()){ USER_ERROR("Set --newcnf on if using tuples"); }
       tupleBinding();
       break;
     case END_TUPLE_BINDING:
@@ -216,6 +235,7 @@ void TPTP::parse()
       endTheoryFunction();
       break;
     case END_TUPLE:
+      if(!env.options->newCNF()){ USER_ERROR("Set --newcnf on if using tuples"); }
       endTuple();
       break;
     default:
@@ -1460,9 +1480,9 @@ void TPTP::endTheoryFunction() {
    * endTermAsFormula().
    */
 
-  Theory::StructuredSortInterpretation ssi;
+  Theory::Interpretation itp;
   TermList args[3]; // all theory function use up to 3 arguments as for now
-  unsigned theorySort;
+  unsigned arraySort;
 
   TheoryFunction tf = _theoryFunctions.pop();
   switch (tf) {
@@ -1470,8 +1490,8 @@ void TPTP::endTheoryFunction() {
       TermList index = _termLists.pop();
       TermList array = _termLists.pop();
 
-      unsigned arraySort = sortOf(array);
-      if (!env.sorts->hasStructuredSort(arraySort, Sorts::StructuredSort::ARRAY)) {
+      arraySort = sortOf(array);
+      if (!env.sorts->isOfStructuredSort(arraySort, Sorts::StructuredSort::ARRAY)) {
         USER_ERROR("$select is being incorrectly used on a type of array " + env.sorts->sortName(arraySort) + " that has not be defined");
       }
 
@@ -1482,12 +1502,11 @@ void TPTP::endTheoryFunction() {
 
       args[0] = array;
       args[1] = index;
-      theorySort = arraySort;
 
       if (env.sorts->getArraySort(arraySort)->getInnerSort() == Sorts::SRT_BOOL) {
-        ssi = Theory::StructuredSortInterpretation::ARRAY_BOOL_SELECT;
+        itp = Theory::Interpretation::ARRAY_BOOL_SELECT;
       } else {
-        ssi = Theory::StructuredSortInterpretation::ARRAY_SELECT;
+        itp = Theory::Interpretation::ARRAY_SELECT;
       }
       break;
     }
@@ -1496,8 +1515,8 @@ void TPTP::endTheoryFunction() {
       TermList index = _termLists.pop();
       TermList array = _termLists.pop();
 
-      unsigned arraySort = sortOf(array);
-      if (!env.sorts->hasStructuredSort(arraySort, Sorts::StructuredSort::ARRAY)) {
+      arraySort = sortOf(array);
+      if (!env.sorts->isOfStructuredSort(arraySort, Sorts::StructuredSort::ARRAY)) {
         USER_ERROR("store is being incorrectly used on a type of array that has not be defined");
       }
 
@@ -1515,8 +1534,7 @@ void TPTP::endTheoryFunction() {
       args[1] = index;
       args[2] = value;
 
-      ssi = Theory::StructuredSortInterpretation::ARRAY_STORE;
-      theorySort = arraySort;
+      itp = Theory::Interpretation::ARRAY_STORE;
 
       break;
     }
@@ -1524,11 +1542,11 @@ void TPTP::endTheoryFunction() {
       ASSERTION_VIOLATION_REP(tf);
   }
 
-  Interpretation i = Theory::instance()->getInterpretation(theorySort, ssi);
-  unsigned symbol = env.signature->getStructureInterpretationFunctor(theorySort, ssi);
-  unsigned arity = Theory::getArity(i);
+  OperatorType* type = Theory::getArrayOperatorType(arraySort,itp);
+  unsigned symbol = env.signature->getInterpretingSymbol(itp, type);
+  unsigned arity = Theory::getArity(itp);
 
-  if (Theory::isFunction(i)) {
+  if (Theory::isFunction(itp)) {
     Term* term = Term::create(symbol, arity, args);
     _termLists.push(TermList(term));
   } else {
@@ -1869,10 +1887,10 @@ void TPTP::endBinding() {
                                       : env.signature->addFreshFunction (arity,name.c_str());
 
   if (isPredicate) {
-    PredicateType* type = new PredicateType(arity, argSorts.begin());
+    OperatorType* type = OperatorType::getPredicateType(arity, argSorts.begin());
     env.signature->getPredicate(symbolNumber)->setType(type);
   } else {
-    FunctionType* type = new FunctionType(arity, argSorts.begin(), bindingSort);
+    OperatorType* type = OperatorType::getFunctionType(arity, argSorts.begin(), bindingSort);
     env.signature->getFunction(symbolNumber)->setType(type);
   }
 
@@ -1910,7 +1928,7 @@ void TPTP::endTupleBinding() {
   TermList binding = _termLists.top();
   unsigned bindingSort = sortOf(binding);
 
-  if (!env.sorts->hasStructuredSort(bindingSort, Sorts::StructuredSort::TUPLE)) {
+  if (!env.sorts->isOfStructuredSort(bindingSort, Sorts::StructuredSort::TUPLE)) {
     USER_ERROR("The binding of a tuple let expression is not a tuple but has the sort " + env.sorts->sortName(bindingSort));
   }
 
@@ -1934,10 +1952,10 @@ void TPTP::endTupleBinding() {
     unsigned symbol;
     if (isPredicate) {
       symbol = env.signature->addFreshPredicate(0, name.c_str());
-      env.signature->getPredicate(symbol)->setType(new PredicateType(0, 0));
+      env.signature->getPredicate(symbol)->setType(OperatorType::getPredicateType(0, 0));
     } else {
       symbol = env.signature->addFreshFunction(0, name.c_str());
-      env.signature->getFunction(symbol)->setType(new FunctionType(sort));
+      env.signature->getFunction(symbol)->setType(OperatorType::getConstantsType(sort));
     }
 
     IntList::push(symbol, constants);
@@ -2474,12 +2492,12 @@ Formula* TPTP::createPredicateApplication(vstring name, unsigned arity)
         }
         env.signature->addToDistinctGroup(ts.term()->functor(),grpIdx);
       }
-      return new Formula(true); // we ignore it, it evalutes to true as we have recorded it elsewhere
+      return new Formula(true); // we ignore it, it evaluates to true as we have recorded it elsewhere
     }
   }
   // not equality or distinct
   Literal* lit = new(arity) Literal(pred,arity,true,false);
-  PredicateType* type = env.signature->getPredicate(pred)->predType();
+  OperatorType* type = env.signature->getPredicate(pred)->predType();
   bool safe = true;
   for (int i = arity-1;i >= 0;i--) {
     unsigned sort = type->arg(i);
@@ -2523,7 +2541,7 @@ TermList TPTP::createFunctionApplication(vstring name, unsigned arity)
   }
   Term* t = new(arity) Term;
   t->makeSymbol(fun,arity);
-  FunctionType* type = env.signature->getFunction(fun)->fnType();
+  OperatorType* type = env.signature->getFunction(fun)->fnType();
   bool safe = true;
   for (int i = arity-1;i >= 0;i--) {
     unsigned sort = type->arg(i);
@@ -3032,7 +3050,7 @@ void TPTP::endTff()
     if (!added) {
       USER_ERROR("Function symbol type is declared after its use: " + name);
     }
-    env.signature->getFunction(fun)->setType(new FunctionType(sortNumber));
+    env.signature->getFunction(fun)->setType(OperatorType::getConstantsType(sortNumber));
     return;
   }
 
@@ -3079,7 +3097,7 @@ void TPTP::endTff()
       USER_ERROR("Predicate symbol type is declared after its use: " + name);
     }
     symbol = env.signature->getPredicate(pred);
-    symbol->setType(new PredicateType(arity, sorts.begin()));
+    symbol->setType(OperatorType::getPredicateType(arity, sorts.begin()));
   }
   else {
     unsigned fun = arity == 0
@@ -3089,7 +3107,7 @@ void TPTP::endTff()
       USER_ERROR("Function symbol type is declared after its use: " + name);
     }
     symbol = env.signature->getFunction(fun);
-    symbol->setType(new FunctionType(arity, sorts.begin(), returnSortNumber));
+    symbol->setType(OperatorType::getFunctionType(arity, sorts.begin(), returnSortNumber));
   }
 } // endTff
 
@@ -3876,7 +3894,7 @@ unsigned TPTP::addIntegerConstant(const vstring& name, Set<vstring>& overflow, b
     if (added) {
       overflow.insert(name);
       Signature::Symbol* symbol = env.signature->getFunction(fun);
-      symbol->setType(new FunctionType(defaultSort ? Sorts::SRT_DEFAULT : Sorts::SRT_INTEGER));
+      symbol->setType(OperatorType::getConstantsType(defaultSort ? Sorts::SRT_DEFAULT : Sorts::SRT_INTEGER));
     }
     else if (!overflow.contains(name)) {
       USER_ERROR((vstring)"Cannot use name '" + name + "' as an atom name since it collides with an integer number");
@@ -3912,7 +3930,7 @@ unsigned TPTP::addRationalConstant(const vstring& name, Set<vstring>& overflow, 
     if (added) {
       overflow.insert(name);
       Signature::Symbol* symbol = env.signature->getFunction(fun);
-      symbol->setType(new FunctionType(defaultSort ? Sorts::SRT_DEFAULT : Sorts::SRT_RATIONAL));
+      symbol->setType(OperatorType::getConstantsType(defaultSort ? Sorts::SRT_DEFAULT : Sorts::SRT_RATIONAL));
     }
     else if (!overflow.contains(name)) {
       USER_ERROR((vstring)"Cannot use name '" + name + "' as an atom name since it collides with an rational number");
@@ -3944,7 +3962,7 @@ unsigned TPTP::addRealConstant(const vstring& name, Set<vstring>& overflow, bool
     if (added) {
       overflow.insert(name);
       Signature::Symbol* symbol = env.signature->getFunction(fun);
-      symbol->setType(new FunctionType(defaultSort ? Sorts::SRT_DEFAULT : Sorts::SRT_REAL));
+      symbol->setType(OperatorType::getConstantsType(defaultSort ? Sorts::SRT_DEFAULT : Sorts::SRT_REAL));
     }
     else if (!overflow.contains(name)) {
       USER_ERROR((vstring)"Cannot use name '" + name + "' as an atom name since it collides with an real number");

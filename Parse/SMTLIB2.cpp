@@ -1,3 +1,21 @@
+
+/*
+ * File SMTLIB2.cpp.
+ *
+ * This file is part of the source code of the software program
+ * Vampire. It is protected by applicable
+ * copyright laws.
+ *
+ * This source code is distributed under the licence found here
+ * https://vprover.github.io/license.html
+ * and in the source directory
+ *
+ * In summary, you are allowed to use Vampire for non-commercial
+ * purposes but not allowed to distribute, modify, copy, create derivatives,
+ * or use in competitions. 
+ * For other uses of Vampire please contact developers for a different
+ * licence, which we will make an effort to provide. 
+ */
 /**
  * @file SMTLIB.cpp
  * Implements class SMTLIB.
@@ -807,14 +825,14 @@ SMTLIB2::DeclaredFunction SMTLIB2::declareFunctionOrPredicate(const vstring& nam
   bool added;
   unsigned symNum;
   Signature::Symbol* sym;
-  BaseType* type;
+  OperatorType* type;
 
   if (rangeSort == Sorts::SRT_BOOL) { // predicate
     symNum = env.signature->addPredicate(name, argSorts.size(), added);
 
     sym = env.signature->getPredicate(symNum);
 
-    type = new PredicateType(argSorts.size(),argSorts.begin());
+    type = OperatorType::getPredicateType(argSorts.size(),argSorts.begin());
 
     LOG1("declareFunctionOrPredicate-Predicate");
   } else { // proper function
@@ -826,7 +844,7 @@ SMTLIB2::DeclaredFunction SMTLIB2::declareFunctionOrPredicate(const vstring& nam
 
     sym = env.signature->getFunction(symNum);
 
-    type = new FunctionType(argSorts.size(), argSorts.begin(), rangeSort);
+    type = OperatorType::getFunctionType(argSorts.size(), argSorts.begin(), rangeSort);
 
     LOG1("declareFunctionOrPredicate-Function");
   }
@@ -1020,7 +1038,7 @@ TermAlgebraConstructor* SMTLIB2::buildTermAlgebraConstructor(vstring constrName,
   unsigned functor = env.signature->addFunction(constrName, arity, added);
   ASS(added);
 
-  BaseType* constructorType = new FunctionType(arity, argSorts.begin(), taSort);
+  OperatorType* constructorType = OperatorType::getFunctionType(arity, argSorts.begin(), taSort);
   env.signature->getFunction(functor)->setType(constructorType);
   env.signature->getFunction(functor)->markTermAlgebraCons();
 
@@ -1043,8 +1061,8 @@ TermAlgebraConstructor* SMTLIB2::buildTermAlgebraConstructor(vstring constrName,
                                              : env.signature->addFunction(destructorName,  1, added);
     ASS(added);
 
-    BaseType* destructorType = isPredicate ? (BaseType*) new PredicateType(1, &taSort)
-                                           : (BaseType*) new FunctionType(1, &taSort, destructorSort);
+    OperatorType* destructorType = isPredicate ? OperatorType::getPredicateType(1, &taSort)
+                                           : OperatorType::getFunctionType(1, &taSort, destructorSort);
 
     LOG1("build destructor "+destructorName+": "+destructorType->toString());
 
@@ -1339,14 +1357,14 @@ void SMTLIB2::parseLetPrepareLookup(LExpr* exp)
     TermList trm;
     if (sort == Sorts::SRT_BOOL) {
       unsigned symb = env.signature->addFreshPredicate(0,"sLP");
-      PredicateType* type = new PredicateType(0, nullptr);
+      OperatorType* type = OperatorType::getPredicateType(0, nullptr);
       env.signature->getPredicate(symb)->setType(type);
 
       Formula* atom = new AtomicFormula(Literal::create(symb,0,true,false,nullptr));
       trm = TermList(Term::createFormula(atom));
     } else {
       unsigned symb = env.signature->addFreshFunction (0,"sLF");
-      FunctionType* type = new FunctionType(0, nullptr, sort);
+      OperatorType* type = OperatorType::getFunctionType(0, nullptr, sort);
       env.signature->getFunction(symb)->setType(type);
 
       trm = TermList(Term::createConstant(symb));
@@ -1654,8 +1672,7 @@ bool SMTLIB2::parseAsUserDefinedSymbol(const vstring& id,LExpr* exp)
 
   Signature::Symbol* symbol = isTrueFun ? env.signature->getFunction(symbIdx)
                                         : env.signature->getPredicate(symbIdx);
-  BaseType* type = isTrueFun ? static_cast<BaseType*>(symbol->fnType())
-                             : static_cast<BaseType*>(symbol->predType());
+  OperatorType* type = isTrueFun ? symbol->fnType() : symbol->predType();
 
   unsigned arity = symbol->arity();
 
@@ -1799,7 +1816,7 @@ bool SMTLIB2::parseAsBuiltinFormulaSymbol(const vstring& id, LExpr* exp)
         complainAboutArgShortageOrWrongSorts(BUILT_IN_SYMBOL,exp);
         }
         unsigned bvSortIdx1 = _results.pop().asTerm(firstBv);
-        if (!env.sorts->hasStructuredSort(bvSortIdx1,Sorts::StructuredSort::BITVECTOR)) {
+        if (!env.sorts->isOfStructuredSort(bvSortIdx1,Sorts::StructuredSort::BITVECTOR)) {
           complainAboutArgShortageOrWrongSorts(BUILT_IN_SYMBOL,exp);
         }
         
@@ -1809,9 +1826,9 @@ bool SMTLIB2::parseAsBuiltinFormulaSymbol(const vstring& id, LExpr* exp)
            complainAboutArgShortageOrWrongSorts(BUILT_IN_SYMBOL,exp);
         }
         
-        Theory::StructuredSortInterpretation t =  getSSIfromFS(fs);
-        unsigned pred =Theory::instance()->getSymbolForStructuredSort(bvSortIdx1,t,-1,-1);
-        
+        Theory::Interpretation i =  getBitVectorInterpretationFromFS(fs);
+        unsigned pred = env.signature->getInterpretingSymbol(i,OperatorType::getPredicateType({bvSortIdx1,bvSortIdx1}));
+
         Formula* res = new AtomicFormula(Literal::create2(pred,true,firstBv,secondBv));
         _results.push(ParseResult(res));
        
@@ -1844,7 +1861,7 @@ bool SMTLIB2::parseAsBuiltinFormulaSymbol(const vstring& id, LExpr* exp)
       } else {
           
         Interpretation intp = getFormulaSymbolInterpretation(fs,sort);
-        pred = Theory::instance()->getPredNum(intp);
+        pred = env.signature->getInterpretingSymbol(intp);
         lastConjunct = new AtomicFormula(Literal::create2(pred,true,first,second));
       }
 
@@ -1934,7 +1951,7 @@ bool SMTLIB2::parseAsBuiltinFormulaSymbol(const vstring& id, LExpr* exp)
         complainAboutArgShortageOrWrongSorts(BUILT_IN_SYMBOL,exp);
       }
 
-      unsigned pred = Theory::instance()->getPredNum(Theory::REAL_IS_INT);
+      unsigned pred = env.signature->getInterpretingSymbol(Theory::REAL_IS_INT);
       Formula* res = new AtomicFormula(Literal::create1(pred,true,arg));
 
       _results.push(res);
@@ -2014,7 +2031,7 @@ bool SMTLIB2::parseAsBuiltinTermSymbol(const vstring& id, LExpr* exp)
         complainAboutArgShortageOrWrongSorts(BUILT_IN_SYMBOL,exp);
       }
 
-      unsigned fun = Theory::instance()->getFnNum(Theory::INT_TO_REAL);
+      unsigned fun = env.signature->getInterpretingSymbol(Theory::INT_TO_REAL);
       TermList res = TermList(Term::create1(fun,theInt));
 
       _results.push(ParseResult(Sorts::SRT_REAL,res));
@@ -2028,7 +2045,7 @@ bool SMTLIB2::parseAsBuiltinTermSymbol(const vstring& id, LExpr* exp)
         complainAboutArgShortageOrWrongSorts(BUILT_IN_SYMBOL,exp);
       }
 
-      unsigned fun = Theory::instance()->getFnNum(Theory::REAL_TO_INT);
+      unsigned fun = env.signature->getInterpretingSymbol(Theory::REAL_TO_INT);
       TermList res = TermList(Term::create1(fun,theReal));
 
       _results.push(ParseResult(Sorts::SRT_INTEGER,res));
@@ -2042,7 +2059,7 @@ bool SMTLIB2::parseAsBuiltinTermSymbol(const vstring& id, LExpr* exp)
         complainAboutArgShortageOrWrongSorts(BUILT_IN_SYMBOL,exp);
       }
       unsigned arraySortIdx = _results.pop().asTerm(theArray);
-      if (!env.sorts->hasStructuredSort(arraySortIdx,Sorts::StructuredSort::ARRAY)) {
+      if (!env.sorts->isOfStructuredSort(arraySortIdx,Sorts::StructuredSort::ARRAY)) {
         complainAboutArgShortageOrWrongSorts(BUILT_IN_SYMBOL,exp);
       }
       Sorts::ArraySort* arraySort = env.sorts->getArraySort(arraySortIdx);
@@ -2054,13 +2071,16 @@ bool SMTLIB2::parseAsBuiltinTermSymbol(const vstring& id, LExpr* exp)
       }
 
       if (arraySort->getInnerSort() == Sorts::SRT_BOOL) {
-        unsigned pred = Theory::instance()->getSymbolForStructuredSort(arraySortIdx,Theory::StructuredSortInterpretation::ARRAY_BOOL_SELECT,-1,-1);
+        OperatorType* predType = Theory::getArrayOperatorType(arraySortIdx,Theory::ARRAY_BOOL_SELECT);
+        unsigned pred = env.signature->getInterpretingSymbol(Theory::ARRAY_BOOL_SELECT,predType);
 
         Formula* res = new AtomicFormula(Literal::create2(pred,true,theArray,theIndex));
 
         _results.push(ParseResult(res));
       } else {
-        unsigned fun = Theory::instance()->getSymbolForStructuredSort(arraySortIdx,Theory::StructuredSortInterpretation::ARRAY_SELECT,-1,-1);
+        OperatorType* funType = Theory::getArrayOperatorType(arraySortIdx,Theory::ARRAY_SELECT);
+        unsigned fun = env.signature->getInterpretingSymbol(Theory::ARRAY_SELECT,funType);
+
         TermList res = TermList(Term::create2(fun,theArray,theIndex));
 
         _results.push(ParseResult(arraySort->getInnerSort(),res));
@@ -2075,7 +2095,7 @@ bool SMTLIB2::parseAsBuiltinTermSymbol(const vstring& id, LExpr* exp)
         complainAboutArgShortageOrWrongSorts(BUILT_IN_SYMBOL,exp);
       }
       unsigned arraySortIdx = _results.pop().asTerm(theArray);
-      if (!env.sorts->hasStructuredSort(arraySortIdx,Sorts::StructuredSort::ARRAY)) {
+      if (!env.sorts->isOfStructuredSort(arraySortIdx,Sorts::StructuredSort::ARRAY)) {
         complainAboutArgShortageOrWrongSorts(BUILT_IN_SYMBOL,exp);
       }
       Sorts::ArraySort* arraySort = env.sorts->getArraySort(arraySortIdx);
@@ -2092,7 +2112,8 @@ bool SMTLIB2::parseAsBuiltinTermSymbol(const vstring& id, LExpr* exp)
         complainAboutArgShortageOrWrongSorts(BUILT_IN_SYMBOL,exp);
       }
 
-      unsigned fun = Theory::instance()->getSymbolForStructuredSort(arraySortIdx,Theory::StructuredSortInterpretation::ARRAY_STORE,-1,-1);
+      OperatorType* funType = Theory::getArrayOperatorType(arraySortIdx,Theory::ARRAY_STORE);
+      unsigned fun = env.signature->getInterpretingSymbol(Theory::ARRAY_STORE,funType);
 
       TermList args[] = {theArray, theIndex, theValue};
       TermList res = TermList(Term::Term::create(fun, 3, args));
@@ -2112,21 +2133,18 @@ bool SMTLIB2::parseAsBuiltinTermSymbol(const vstring& id, LExpr* exp)
         complainAboutArgShortageOrWrongSorts(BUILT_IN_SYMBOL,exp);
         }
         unsigned sort2 = _results.pop().asTerm(second);
-        if (!env.sorts->hasStructuredSort(sort,Sorts::StructuredSort::BITVECTOR) ||
-                !env.sorts->hasStructuredSort(sort2,Sorts::StructuredSort::BITVECTOR))
+        if (!env.sorts->isOfStructuredSort(sort,Sorts::StructuredSort::BITVECTOR) ||
+                !env.sorts->isOfStructuredSort(sort2,Sorts::StructuredSort::BITVECTOR))
             complainAboutArgShortageOrWrongSorts(BUILT_IN_SYMBOL,exp);
         
         unsigned size1 = env.sorts->getBitVectorSort(sort)->getSize();
         unsigned size2 = env.sorts->getBitVectorSort(sort2)->getSize();
         
         unsigned resultSize = size1 + size2;
-        env.signature->setArg1(size1);
-        env.signature->setArg2(size2);
-        
         unsigned resultSort = env.sorts->addBitVectorSort(resultSize);
-        
-        unsigned fun = Theory::instance()->getSymbolForStructuredSort(resultSort, Theory::StructuredSortInterpretation::CONCAT,sort,sort2);
-        
+
+        unsigned fun = env.signature->getInterpretingSymbol(Theory::CONCAT,OperatorType::getFunctionType({sort,sort2},resultSort));
+
         TermList res = TermList(Term::Term::create2(fun, first, second));
         _results.push(ParseResult(resultSort, res));
         
@@ -2144,7 +2162,7 @@ bool SMTLIB2::parseAsBuiltinTermSymbol(const vstring& id, LExpr* exp)
         }
         unsigned sort = _results.pop().asTerm(first);
         
-        if (!env.sorts->hasStructuredSort(sort,Sorts::StructuredSort::BITVECTOR) ||_results.isEmpty() 
+        if (!env.sorts->isOfStructuredSort(sort,Sorts::StructuredSort::BITVECTOR) ||_results.isEmpty()
                 || _results.top().isSeparator()) {
             complainAboutArgShortageOrWrongSorts(BUILT_IN_SYMBOL,exp);
         }
@@ -2153,9 +2171,9 @@ bool SMTLIB2::parseAsBuiltinTermSymbol(const vstring& id, LExpr* exp)
             complainAboutArgShortageOrWrongSorts(BUILT_IN_SYMBOL,exp);
         }
         
-        Theory::StructuredSortInterpretation t =  getSSIfromTS(ts);
-        unsigned fun = Theory::instance()->getSymbolForStructuredSort(sort, t,-1,-1);
-      
+        Theory::Interpretation i =  getBitVectorInterpretationFromTS(ts);
+        unsigned fun = env.signature->getInterpretingSymbol(i,OperatorType::getFunctionType({sort,sort},sort));
+
         bool done = false;
         
         TermList res = TermList(Term::Term::create2(fun, first, second));
@@ -2163,14 +2181,13 @@ bool SMTLIB2::parseAsBuiltinTermSymbol(const vstring& id, LExpr* exp)
             done = true;
         _results.push(ParseResult(sort, res));
         
-       
         while(!done){
             TermList third, fourth;
             if (_results.isEmpty() || _results.top().isSeparator()) {
                 complainAboutArgShortageOrWrongSorts(BUILT_IN_SYMBOL,exp);
             }
             unsigned sort3 = _results.pop().asTerm(third);
-            if (!env.sorts->hasStructuredSort(sort3,Sorts::StructuredSort::BITVECTOR) || _results.isEmpty() 
+            if (!env.sorts->isOfStructuredSort(sort3,Sorts::StructuredSort::BITVECTOR) || _results.isEmpty()
                     || _results.top().isSeparator())
                 complainAboutArgShortageOrWrongSorts(BUILT_IN_SYMBOL,exp);
             unsigned sort4 = _results.pop().asTerm(fourth);
@@ -2206,7 +2223,7 @@ bool SMTLIB2::parseAsBuiltinTermSymbol(const vstring& id, LExpr* exp)
       }
       unsigned sort = _results.pop().asTerm(first);
       if (_results.isEmpty() || _results.top().isSeparator() 
-              || !env.sorts->hasStructuredSort(sort,Sorts::StructuredSort::BITVECTOR)) {
+              || !env.sorts->isOfStructuredSort(sort,Sorts::StructuredSort::BITVECTOR)) {
         complainAboutArgShortageOrWrongSorts(BUILT_IN_SYMBOL,exp);
       }
       unsigned sort2 = _results.pop().asTerm(second);
@@ -2215,9 +2232,9 @@ bool SMTLIB2::parseAsBuiltinTermSymbol(const vstring& id, LExpr* exp)
           complainAboutArgShortageOrWrongSorts(BUILT_IN_SYMBOL,exp);
       }
       
-      Theory::StructuredSortInterpretation t =  getSSIfromTS(ts);
-      unsigned fun = Theory::instance()->getSymbolForStructuredSort(sort, t,-1,-1);
-      
+      Theory::Interpretation i =  getBitVectorInterpretationFromTS(ts);
+      unsigned fun = env.signature->getInterpretingSymbol(i,OperatorType::getFunctionType({sort,sort},sort));
+
       TermList res = TermList(Term::Term::create2(fun, first, second));
       _results.push(ParseResult(sort, res));
       
@@ -2232,7 +2249,7 @@ bool SMTLIB2::parseAsBuiltinTermSymbol(const vstring& id, LExpr* exp)
       }
       unsigned sort = _results.pop().asTerm(first);
       if (_results.isEmpty() || _results.top().isSeparator() 
-              || !env.sorts->hasStructuredSort(sort,Sorts::StructuredSort::BITVECTOR)) {
+              || !env.sorts->isOfStructuredSort(sort,Sorts::StructuredSort::BITVECTOR)) {
         complainAboutArgShortageOrWrongSorts(BUILT_IN_SYMBOL,exp);
       }
       unsigned sort2 = _results.pop().asTerm(second);
@@ -2240,11 +2257,13 @@ bool SMTLIB2::parseAsBuiltinTermSymbol(const vstring& id, LExpr* exp)
           complainAboutArgShortageOrWrongSorts(BUILT_IN_SYMBOL,exp);
       }
       
-      Theory::StructuredSortInterpretation t =  getSSIfromTS(ts);
-      unsigned fun = Theory::instance()->getSymbolForStructuredSort(sort, t,-1,-1);
+      unsigned resultSort = env.sorts->addBitVectorSort(1);
+
+      Theory::Interpretation i =  getBitVectorInterpretationFromTS(ts);
+      unsigned fun = env.signature->getInterpretingSymbol(i,OperatorType::getFunctionType({sort,sort},resultSort));
       
       TermList res = TermList(Term::Term::create2(fun, first, second));
-      _results.push(ParseResult(env.sorts->addBitVectorSort(1), res));
+      _results.push(ParseResult(resultSort, res));
       
       return true;
     }
@@ -2256,11 +2275,11 @@ bool SMTLIB2::parseAsBuiltinTermSymbol(const vstring& id, LExpr* exp)
         complainAboutArgShortageOrWrongSorts(BUILT_IN_SYMBOL,exp);
       }
       unsigned sort = _results.pop().asTerm(first);
-      if (!env.sorts->hasStructuredSort(sort,Sorts::StructuredSort::BITVECTOR)){
+      if (!env.sorts->isOfStructuredSort(sort,Sorts::StructuredSort::BITVECTOR)){
           complainAboutArgShortageOrWrongSorts(BUILT_IN_SYMBOL,exp);
       }
-      Theory::StructuredSortInterpretation te = getSSIfromTS(ts);
-      unsigned fun = Theory::instance()->getSymbolForStructuredSort(sort, te);
+      Theory::Interpretation i =  getBitVectorInterpretationFromTS(ts);
+      unsigned fun = env.signature->getInterpretingSymbol(i,OperatorType::getFunctionType({sort},sort));
       
       TermList res = TermList(Term::Term::create1(fun, first));
       _results.push(ParseResult(sort, res));
@@ -2275,7 +2294,7 @@ bool SMTLIB2::parseAsBuiltinTermSymbol(const vstring& id, LExpr* exp)
         complainAboutArgShortageOrWrongSorts(BUILT_IN_SYMBOL,exp);
       }
 
-      unsigned fun = Theory::instance()->getFnNum(Theory::INT_ABS);
+      unsigned fun = env.signature->getInterpretingSymbol(Theory::INT_ABS);
       TermList res = TermList(Term::create1(fun,theInt));
 
       _results.push(ParseResult(Sorts::SRT_INTEGER,res));
@@ -2289,8 +2308,8 @@ bool SMTLIB2::parseAsBuiltinTermSymbol(const vstring& id, LExpr* exp)
           _results.isEmpty() || _results.top().isSeparator() || _results.pop().asTerm(int2) != Sorts::SRT_INTEGER) {
         complainAboutArgShortageOrWrongSorts(BUILT_IN_SYMBOL,exp);
       }
-      
-      unsigned fun = Theory::instance()->getFnNum(Theory::INT_REMAINDER_E); // TS_MOD is the always positive remainder, therefore INT_REMAINDER_E
+
+      unsigned fun = env.signature->getInterpretingSymbol(Theory::INT_REMAINDER_E); // TS_MOD is the always positive remainder, therefore INT_REMAINDER_E
       TermList res = TermList(Term::create2(fun,int1,int2));
 
       _results.push(ParseResult(Sorts::SRT_INTEGER,res));
@@ -2313,7 +2332,7 @@ bool SMTLIB2::parseAsBuiltinTermSymbol(const vstring& id, LExpr* exp)
       if (_results.isEmpty() || _results.top().isSeparator()) {
         if (ts == TS_MINUS) { // unary minus
           Interpretation intp = getUnaryMinusInterpretation(sort);
-          unsigned fun = Theory::instance()->getFnNum(intp);
+          unsigned fun = env.signature->getInterpretingSymbol(intp);
 
           TermList res = TermList(Term::create1(fun,first));
 
@@ -2326,7 +2345,7 @@ bool SMTLIB2::parseAsBuiltinTermSymbol(const vstring& id, LExpr* exp)
       }
 
       Interpretation intp = getTermSymbolInterpretation(ts,sort);
-      unsigned fun = Theory::instance()->getFnNum(intp);
+      unsigned fun = env.signature->getInterpretingSymbol(intp);
 
       TermList second;
       if (_results.pop().asTerm(second) != sort) {
@@ -2375,99 +2394,99 @@ void SMTLIB2::parseRankedFunctionApplication(LExpr* exp)
     if (!StringUtils::isPositiveInteger(numeral2)) 
          USER_ERROR("Expected numeral as an argument of a ranked function in "+head->toString());
     
-    unsigned fromSymbol = TPTP::addIntegerConstant(numeral,_overflow,false);
-    TermList fromTerm = TermList(Term::createConstant(fromSymbol));
+    unsigned fromVal;
+    Int::stringToUnsignedInt(numeral,fromVal);
+    unsigned toVal;
+    Int::stringToUnsignedInt(numeral2,toVal);
 
-    unsigned numBitsSymbol = TPTP::addIntegerConstant(numeral2,_overflow,false);
-    TermList numBitsTerm = TermList(Term::createConstant(numBitsSymbol)); 
-    
-    unsigned fromBitInt;
-    Int::stringToUnsignedInt(numeral,fromBitInt);
-    unsigned numBitsInt;
-    Int::stringToUnsignedInt(numeral2,numBitsInt);
-    unsigned resultSize = fromBitInt - numBitsInt + 1;
+    unsigned resultSize = fromVal - toVal + 1;
     TermList arg;
     if (_results.isEmpty() || _results.top().isSeparator() ){
           complainAboutArgShortageOrWrongSorts(BUILT_IN_SYMBOL,exp);
       }
-    unsigned tempSort = _results.pop().asTerm(arg);
-    if (!env.sorts->hasStructuredSort(tempSort,Sorts::StructuredSort::BITVECTOR)){
+    unsigned argSort = _results.pop().asTerm(arg);
+    if (!env.sorts->isOfStructuredSort(argSort,Sorts::StructuredSort::BITVECTOR)){
           complainAboutArgShortageOrWrongSorts(BUILT_IN_SYMBOL,exp);
       }                   
-    unsigned argSize = env.sorts->getBitVectorSort(tempSort)->getSize();
+    unsigned argSize = env.sorts->getBitVectorSort(argSort)->getSize();
     // error handling
-    if (fromBitInt >= argSize || numBitsInt>fromBitInt)
+    if (fromVal >= argSize || toVal >=argSize || fromVal < toVal)
         USER_ERROR("Invalid extract application");
-    env.signature->setArg1(argSize);
-    tempSort = env.sorts->addBitVectorSort(argSize);
-             
+
     unsigned resultSort = env.sorts->addBitVectorSort(resultSize);
             
     // now we have all the arguments we need..
-    TermList args[] = {fromTerm, numBitsTerm, arg};
-    unsigned fun = Theory::instance()->getSymbolForStructuredSort(resultSort, Theory::StructuredSortInterpretation::EXTRACT,tempSort,-1);
-    TermList res = TermList(Term::Term::create(fun, 3, args));
+    OperatorType* t = OperatorType::getFunctionType({argSort},resultSort);
+    Interpretation i = theory->interpretationFromIndexedInterpretation(Theory::EXTRACT,fromVal);
+    unsigned fun = env.signature->getInterpretingSymbol(i,t);
+
+    TermList res = TermList(Term::Term::create1(fun, arg));
     _results.push(ParseResult(resultSort, res));
             
     return;    
    }
   else if (operation == "zero_extend" || operation == "sign_extend" || operation == "repeat"){
     TermSymbol ts = getBuiltInTermSymbol(operation);
-    Theory::StructuredSortInterpretation te = getSSIfromTS(ts);
+    Theory::IndexedInterpretation ii = getBitVectorIndexedInterpretationFromTS(ts);
     const vstring& numeral = headRdr.readAtom();
     if (!StringUtils::isPositiveInteger(numeral)) 
         USER_ERROR("Expected numeral as an argument of a ranked function in "+head->toString());
     if ((operation =="repeat") && (!StringUtils::isBiggerThanZero(numeral)))
         USER_ERROR("repeat expects a number bigger than 0 in "+head->toString());
-    unsigned argSymbol = TPTP::addIntegerConstant(numeral,_overflow,false);
-    TermList argTerm = TermList(Term::createConstant(argSymbol));
-    unsigned numeralInt;
-    Int::stringToUnsignedInt(numeral,numeralInt);
+
+    unsigned index;
+    Int::stringToUnsignedInt(numeral,index);
+
     TermList arg;
     if (_results.isEmpty() || _results.top().isSeparator()) {
         complainAboutArgShortageOrWrongSorts(BUILT_IN_SYMBOL,exp);
     }
-    unsigned tempSort = _results.pop().asTerm(arg);
-    if (!env.sorts->hasStructuredSort(tempSort,Sorts::StructuredSort::BITVECTOR)){
+    unsigned argSort = _results.pop().asTerm(arg);
+    if (!env.sorts->isOfStructuredSort(argSort,Sorts::StructuredSort::BITVECTOR)){
           complainAboutArgShortageOrWrongSorts(BUILT_IN_SYMBOL,exp);
     }
     
-    unsigned argSize = env.sorts->getBitVectorSort(tempSort)->getSize();
+    unsigned argSize = env.sorts->getBitVectorSort(argSort)->getSize();
     unsigned resultSize; // = numeralInt + argSize;
     if (operation == "repeat")
-        resultSize = numeralInt * argSize;
+        resultSize = index * argSize;
     else
-        resultSize = numeralInt + argSize;
-    env.signature->setArg1(argSize);
+        resultSize = index + argSize;
+
     unsigned resultSort = env.sorts->addBitVectorSort(resultSize);
-    // now we have all the arguments we need..
-    unsigned fun = Theory::instance()->getSymbolForStructuredSort(resultSort, te,tempSort,-1);
-    TermList res = TermList(Term::Term::create2(fun, argTerm, arg));
+
+    Interpretation i = theory->interpretationFromIndexedInterpretation(ii,index);
+    OperatorType* t = OperatorType::getFunctionType({argSort},resultSort);
+    unsigned fun = env.signature->getInterpretingSymbol(i,t);
+
+    TermList res = TermList(Term::Term::create1(fun, arg));
     _results.push(ParseResult(resultSort, res));
     return;
    }
   else if (operation == "rotate_left" || operation == "rotate_right"){
     TermSymbol ts = getBuiltInTermSymbol(operation);
-    Theory::StructuredSortInterpretation te = getSSIfromTS(ts);
+    Theory::IndexedInterpretation ii = getBitVectorIndexedInterpretationFromTS(ts);
     const vstring& numeral = headRdr.readAtom();
     if (!StringUtils::isPositiveInteger(numeral)) 
         USER_ERROR("Expected numeral as an argument of a ranked function in "+head->toString());
-    unsigned argSymbol = TPTP::addIntegerConstant(numeral,_overflow,false);
-    TermList argTerm = TermList(Term::createConstant(argSymbol));
-    unsigned numeralInt;
-    Int::stringToUnsignedInt(numeral,numeralInt);
+
+    unsigned index;
+    Int::stringToUnsignedInt(numeral,index);
     TermList arg;
     if (_results.isEmpty() || _results.top().isSeparator()) {
         complainAboutArgShortageOrWrongSorts(BUILT_IN_SYMBOL,exp);
     }
-    unsigned resultSort = _results.pop().asTerm(arg);
-    if (!env.sorts->hasStructuredSort(resultSort,Sorts::StructuredSort::BITVECTOR)){
+    unsigned argSort = _results.pop().asTerm(arg);
+    if (!env.sorts->isOfStructuredSort(argSort,Sorts::StructuredSort::BITVECTOR)){
           complainAboutArgShortageOrWrongSorts(BUILT_IN_SYMBOL,exp);
     }       
-    // now we have all the arguments we need..
-    unsigned fun = Theory::instance()->getSymbolForStructuredSort(resultSort, te,-1,-1);
-    TermList res = TermList(Term::Term::create2(fun, argTerm, arg));
-    _results.push(ParseResult(resultSort, res));
+
+    Interpretation i = theory->interpretationFromIndexedInterpretation(ii,index);
+    OperatorType* t = OperatorType::getFunctionType({argSort},argSort);
+    unsigned fun = env.signature->getInterpretingSymbol(i,t);
+
+    TermList res = TermList(Term::Term::create1(fun, arg));
+    _results.push(ParseResult(argSort, res));
     return;
    }
   else if (operation == "divisble"){
@@ -2486,7 +2505,7 @@ void SMTLIB2::parseRankedFunctionApplication(LExpr* exp)
       complainAboutArgShortageOrWrongSorts("ranked function symbol",exp);
     }
 
-    unsigned pred = Theory::instance()->getPredNum(Theory::INT_DIVIDES);
+    unsigned pred = env.signature->getInterpretingSymbol(Theory::INT_DIVIDES);
     env.signature->recordDividesNvalue(divisorTerm);
 
     Formula* res = new AtomicFormula(Literal::create2(pred,true,divisorTerm,arg));
@@ -2508,7 +2527,7 @@ void SMTLIB2::parseRankedFunctionApplication(LExpr* exp)
             bool added;
             unsigned pred = env.signature->addPredicate(c->discriminatorName(), 1, added);
             ASS(added);
-            PredicateType* type = new PredicateType({ sort });
+            OperatorType* type = OperatorType::getPredicateType({ sort });
             env.signature->getPredicate(pred)->setType(type);
             c->addDiscriminator(pred);
             // this predicate is not declare for the parser as it has a reserved name

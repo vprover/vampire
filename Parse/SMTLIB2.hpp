@@ -1,3 +1,21 @@
+
+/*
+ * File SMTLIB2.hpp.
+ *
+ * This file is part of the source code of the software program
+ * Vampire. It is protected by applicable
+ * copyright laws.
+ *
+ * This source code is distributed under the licence found here
+ * https://vprover.github.io/license.html
+ * and in the source directory
+ *
+ * In summary, you are allowed to use Vampire for non-commercial
+ * purposes but not allowed to distribute, modify, copy, create derivatives,
+ * or use in competitions. 
+ * For other uses of Vampire please contact developers for a different
+ * licence, which we will make an effort to provide. 
+ */
 /**
  * @file SMTLIB.hpp
  * Defines class SMTLIB.
@@ -250,89 +268,98 @@ private:
   };
   static const char * s_termSymbolNameStrings[];
   
-  //////////////
- /* get the ssi from ts, eg: argument is TS_CONCAT, it returns StructuredSortInterpretation::CONCAT*/
-  Theory::StructuredSortInterpretation getSSIfromTS(TermSymbol ts){
-      switch(ts){
-          case TS_BVADD:
-              return Theory::StructuredSortInterpretation::BVADD;
-          case TS_BVAND:
-              return Theory::StructuredSortInterpretation::BVAND;
-          case TS_BVASHR:
-              return Theory::StructuredSortInterpretation::BVASHR;
-          case TS_BVCOMP:
-              return Theory::StructuredSortInterpretation::BVCOMP;
-          case TS_BVLSHR:
-              return Theory::StructuredSortInterpretation::BVLSHR;
-          case TS_BVMUL:
-              return Theory::StructuredSortInterpretation::BVMUL;
-          case TS_BVNAND:
-              return Theory::StructuredSortInterpretation::BVNAND;
-          case TS_BVNEG:
-              return Theory::StructuredSortInterpretation::BVNEG;
-          case TS_BVNOR:
-              return Theory::StructuredSortInterpretation::BVNOR;
-          case TS_BVNOT:
-              return Theory::StructuredSortInterpretation::BVNOT;
-          case TS_BVOR:
-              return Theory::StructuredSortInterpretation::BVOR;
-          case TS_BVSDIV:
-              return Theory::StructuredSortInterpretation::BVSDIV;
-          case TS_BVSMOD:
-              return Theory::StructuredSortInterpretation::BVSMOD;
-          case TS_BVSHL:
-              return Theory::StructuredSortInterpretation::BVSHL;
-          case TS_BVSREM:
-              return Theory::StructuredSortInterpretation::BVSREM;
-           case TS_BVSUB:
-              return Theory::StructuredSortInterpretation::BVSUB;
-          case TS_BVUDIV:
-              return Theory::StructuredSortInterpretation::BVUDIV;
-          case TS_BVUREM:
-              return Theory::StructuredSortInterpretation::BVUREM;
-          case TS_BVXNOR:
-              return Theory::StructuredSortInterpretation::BVXNOR;
-          case TS_BVXOR:
-              return Theory::StructuredSortInterpretation::BVXOR;
-          case TS_BV_ZERO_EXTEND:
-              return Theory::StructuredSortInterpretation::BV_ZERO_EXTEND;
-          case TS_BV_SIGN_EXTEND:
-              return Theory::StructuredSortInterpretation::BV_SIGN_EXTEND;
-          case TS_BV_ROTATE_LEFT:
-              return Theory::StructuredSortInterpretation::BV_ROTATE_LEFT;
-          case TS_BV_ROTATE_RIGHT:
-              return Theory::StructuredSortInterpretation::BV_ROTATE_RIGHT;
-          case TS_REPEAT:
-              return Theory::StructuredSortInterpretation::REPEAT;    
-          default:
-              ASS_EQ(1,2);    
-              
-      }
+  Theory::Interpretation getBitVectorInterpretationFromTS(TermSymbol ts)
+  {
+    CALL("SMTLIB2::getBitVectorIndexedInterpretationFromTS");
+    switch(ts){
+      case TS_BVADD:
+        return Theory::BVADD;
+      case TS_BVAND:
+        return Theory::BVAND;
+      case TS_BVASHR:
+        return Theory::BVASHR;
+      case TS_BVCOMP:
+        return Theory::BVCOMP;
+      case TS_BVLSHR:
+        return Theory::BVLSHR;
+      case TS_BVMUL:
+        return Theory::BVMUL;
+      case TS_BVNAND:
+        return Theory::BVNAND;
+      case TS_BVNEG:
+        return Theory::BVNEG;
+      case TS_BVNOR:
+        return Theory::BVNOR;
+      case TS_BVNOT:
+        return Theory::BVNOT;
+      case TS_BVOR:
+        return Theory::BVOR;
+      case TS_BVSDIV:
+        return Theory::BVSDIV;
+      case TS_BVSMOD:
+        return Theory::BVSMOD;
+      case TS_BVSHL:
+        return Theory::BVSHL;
+      case TS_BVSREM:
+        return Theory::BVSREM;
+      case TS_BVSUB:
+        return Theory::BVSUB;
+      case TS_BVUDIV:
+        return Theory::BVUDIV;
+      case TS_BVUREM:
+        return Theory::BVUREM;
+      case TS_BVXNOR:
+        return Theory::BVXNOR;
+      case TS_BVXOR:
+        return Theory::BVXOR;
+      default:
+      ASSERTION_VIOLATION;
+    }
+  }
+
+  Theory::IndexedInterpretation getBitVectorIndexedInterpretationFromTS(TermSymbol ts) {
+    CALL("SMTLIB2::getBitVectorIndexedInterpretationFromTS");
+
+    switch(ts){
+      case TS_BV_ZERO_EXTEND:
+        return Theory::BV_ZERO_EXTEND;
+      case TS_BV_SIGN_EXTEND:
+        return Theory::BV_SIGN_EXTEND;
+      case TS_BV_ROTATE_LEFT:
+        return Theory::BV_ROTATE_LEFT;
+      case TS_BV_ROTATE_RIGHT:
+        return Theory::BV_ROTATE_RIGHT;
+      case TS_REPEAT:
+        return Theory::REPEAT;
+      default:
+      ASSERTION_VIOLATION;
+    }
   }
   
-  Theory::StructuredSortInterpretation getSSIfromFS(FormulaSymbol fs){
-      switch(fs){
-          case FS_BVSLT:
-              return Theory::StructuredSortInterpretation::BVSLT;
-          case FS_BVULE:
-              return Theory::StructuredSortInterpretation::BVULE;
-          case FS_BVUGT:
-              return Theory::StructuredSortInterpretation::BVUGT;
-          case FS_BVUGE:
-              return Theory::StructuredSortInterpretation::BVUGE;
-          case FS_BVSLE:
-              return Theory::StructuredSortInterpretation::BVSLE;
-          case FS_BVSGT:
-              return Theory::StructuredSortInterpretation::BVSGT;
-          case FS_BVSGE:
-              return Theory::StructuredSortInterpretation::BVSGE;
-          case FS_BVULT:
-              return Theory::StructuredSortInterpretation::BVULT;
-              
-          default:
-              ASS_EQ(1,2);    
-        }
+  Theory::Interpretation getBitVectorInterpretationFromFS(FormulaSymbol fs) {
+    switch(fs) {
+      case FS_BVSLT:
+        return Theory::BVSLT;
+      case FS_BVULE:
+        return Theory::BVULE;
+      case FS_BVUGT:
+        return Theory::BVUGT;
+      case FS_BVUGE:
+        return Theory::BVUGE;
+      case FS_BVSLE:
+        return Theory::BVSLE;
+      case FS_BVSGT:
+        return Theory::BVSGT;
+      case FS_BVSGE:
+        return Theory::BVSGE;
+      case FS_BVULT:
+        return Theory::BVULT;
+
+      default:
+        ASSERTION_VIOLATION;
+    }
   }
+
   /**
    * Lookup to see if vstring is a built-in TermSymbol.
    */

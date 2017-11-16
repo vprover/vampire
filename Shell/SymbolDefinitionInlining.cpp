@@ -1,3 +1,21 @@
+
+/*
+ * File SymbolDefinitionInlining.cpp.
+ *
+ * This file is part of the source code of the software program
+ * Vampire. It is protected by applicable
+ * copyright laws.
+ *
+ * This source code is distributed under the licence found here
+ * https://vprover.github.io/license.html
+ * and in the source directory
+ *
+ * In summary, you are allowed to use Vampire for non-commercial
+ * purposes but not allowed to distribute, modify, copy, create derivatives,
+ * or use in competitions. 
+ * For other uses of Vampire please contact developers for a different
+ * licence, which we will make an effort to provide. 
+ */
 #include "Kernel/Substitution.hpp"
 #include "Kernel/Formula.hpp"
 
@@ -160,7 +178,7 @@ TermList SymbolDefinitionInlining::process(TermList ts) {
 bool SymbolDefinitionInlining::mirroredTuple(Term* tuple, TermList &tupleConstant) {
   bool foundTupleConstant = false;
   unsigned tupleSort = env.signature->getFunction(tuple->functor())->fnType()->result();
-  ASS(env.sorts->hasStructuredSort(tupleSort, Sorts::StructuredSort::TUPLE));
+  ASS(env.sorts->isOfStructuredSort(tupleSort, Sorts::StructuredSort::TUPLE));
   for (unsigned i = 0; i < tuple->arity(); i++) {
     if (!tuple->nthArgument(i)->isTerm()) {
       return false;
