@@ -579,9 +579,7 @@ unsigned Theory::getArity(Interpretation i)
 {
   CALL("Signature::InterpretedSymbol::getArity");
 
-  ASS_L(i, numberOfFixedInterpretations());
-
-  // if (i < numberOfFixedInterpretations()) {
+  if (i < numberOfFixedInterpretations()) {
     switch(i) {
     case INT_IS_INT:
     case INT_IS_RAT:
@@ -723,7 +721,6 @@ unsigned Theory::getArity(Interpretation i)
     default:
       ASSERTION_VIOLATION_REP(i);
     }
-    /*
   } else {
     ConcreteIndexedInterpretation cii = intepretationToIndexedInterpretation(i);
 
@@ -740,7 +737,7 @@ unsigned Theory::getArity(Interpretation i)
       default:
         ASSERTION_VIOLATION_REP(ii);
     }
-  } */ // would need to a non-static version to work for indexed interpretations
+  }
 }
 
 /**

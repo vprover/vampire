@@ -542,10 +542,10 @@ public:
   }
 
   vstring getInterpretationName(Interpretation i);
-  static unsigned getArity(Interpretation i);
+  unsigned getArity(Interpretation i);
   static bool isFunction(Interpretation i);
   static bool isInequality(Interpretation i);
-  static OperatorType* getNonpolymorphicOperatorType(Interpretation i);
+  OperatorType* getNonpolymorphicOperatorType(Interpretation i);
 
   static OperatorType* getArrayOperatorType(unsigned arraySort, Interpretation i);
   static OperatorType* getBitvectorOperatorType(unsigned bvSort, Interpretation i, unsigned auxSort);

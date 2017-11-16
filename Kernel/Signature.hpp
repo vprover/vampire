@@ -379,7 +379,7 @@ class BitVectorSymbol
   {
     CALL("Signature::addInterpretedFunction(Interpretation,const vstring&)");
     ASS(!Theory::isPolymorphic(itp));
-    return addInterpretedFunction(itp,Theory::getNonpolymorphicOperatorType(itp),name);
+    return addInterpretedFunction(itp,theory->getNonpolymorphicOperatorType(itp),name);
   }
 
   unsigned addInterpretedPredicate(Interpretation itp, OperatorType* type, const vstring& name);
@@ -387,7 +387,7 @@ class BitVectorSymbol
   {
     CALL("Signature::addInterpretedPredicate(Interpretation,const vstring&)");
     ASS(!Theory::isPolymorphic(itp));
-    return addInterpretedPredicate(itp,Theory::getNonpolymorphicOperatorType(itp),name);
+    return addInterpretedPredicate(itp,theory->getNonpolymorphicOperatorType(itp),name);
   }
 
   unsigned getInterpretingSymbol(Interpretation interp, OperatorType* type);
@@ -395,7 +395,7 @@ class BitVectorSymbol
   {
     CALL("Signature::getInterpretingSymbol(Interpretation)");
     ASS(!Theory::isPolymorphic(interp));
-    return getInterpretingSymbol(interp,Theory::getNonpolymorphicOperatorType(interp));
+    return getInterpretingSymbol(interp,theory->getNonpolymorphicOperatorType(interp));
   }
 
   /** Return true iff there is a symbol interpreted by Interpretation @b interp */
@@ -407,7 +407,7 @@ class BitVectorSymbol
   {
     CALL("Signature::haveInterpretingSymbol(Interpretation)");
     ASS(!Theory::isPolymorphic(interp));
-    return haveInterpretingSymbol(interp,Theory::getNonpolymorphicOperatorType(interp));
+    return haveInterpretingSymbol(interp,theory->getNonpolymorphicOperatorType(interp));
   }
 
   /** return the name of a function with a given number */

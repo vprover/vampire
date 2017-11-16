@@ -1544,7 +1544,7 @@ void TPTP::endTheoryFunction() {
 
   OperatorType* type = Theory::getArrayOperatorType(arraySort,itp);
   unsigned symbol = env.signature->getInterpretingSymbol(itp, type);
-  unsigned arity = Theory::getArity(itp);
+  unsigned arity = theory->getArity(itp);
 
   if (Theory::isFunction(itp)) {
     Term* term = Term::create(symbol, arity, args);
