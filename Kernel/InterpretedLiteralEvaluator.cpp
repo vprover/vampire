@@ -272,6 +272,8 @@ public:
     // This is why we cannot evaluate Equality here... we cannot determine its sort
     if (!theory->hasSingleSort(interp)) { return false; } //To skip conversions and EQUAL
 
+    if (theory->isPolymorphic(interp)) {return false; } // typed evaulator not for polymorphic stuff
+
     unsigned opSort = theory->getOperationSort(interp);
     return opSort==T::getSort();
   }
