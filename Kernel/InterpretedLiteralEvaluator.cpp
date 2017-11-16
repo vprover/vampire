@@ -50,29 +50,9 @@ public:
   
   virtual ~Evaluator() {}
 
-  virtual bool canEvaluateFunc(unsigned func)
-  {
-    CALL("InterpretedLiteralEvaluator::Evaluator::canEvaluateFunc");
+  virtual bool canEvaluateFunc(unsigned func) { return false; }
+  virtual bool canEvaluatePred(unsigned pred) { return false; }
 
-    if (!theory->isInterpretedFunction(func)) {
-      return false;
-    }
-    Interpretation interp = theory->interpretFunction(func);
-    return canEvaluate(interp);
-  }
-
-  virtual bool canEvaluatePred(unsigned pred)
-  {
-    CALL("InterpretedLiteralEvaluator::Evaluator::canEvaluatePred");
-        
-    if (!theory->isInterpretedPredicate(pred)) {
-      return false;
-    }
-    Interpretation interp = theory->interpretPredicate(pred);
-    return canEvaluate(interp);
-  }
-
-  virtual bool canEvaluate(Interpretation interp) { return false; }
   virtual bool tryEvaluateFunc(Term* trm, TermList& res) { return false; }
   virtual bool tryEvaluatePred(Literal* trm, bool& res)  { return false; }
 };
@@ -143,7 +123,6 @@ class InterpretedLiteralEvaluator::EqualityEvaluator
     }
 
   }
-
 };
 
 /**
@@ -154,10 +133,14 @@ class InterpretedLiteralEvaluator::ConversionEvaluator
   : public Evaluator
 {
 public:
-  virtual bool canEvaluate(Interpretation interp)
+  bool canEvaluateFunc(unsigned func) override
   {
-    CALL("InterpretedLiteralEvaluator::ConversionEvaluator::canEvaluate");
-    return theory->isConversionOperation(interp);
+    CALL("InterpretedLiteralEvaluator::ConversionEvaluator::canEvaluateFunc");
+
+    if (!theory->isInterpretedFunction(func)) {
+      return false;
+    }
+    return theory->isConversionOperation(theory->interpretFunction(func));
   }
 
   virtual bool tryEvaluateFunc(Term* trm, TermList& res)
@@ -275,7 +258,7 @@ public:
     // This is why we cannot evaluate Equality here... we cannot determine its sort
     if (!theory->hasSingleSort(interp)) { return false; } //To skip conversions and EQUAL
 
-    if (theory->isPolymorphic(interp)) {return false; } // typed evaulator not for polymorphic stuff
+    if (theory->isPolymorphic(interp)) { return false; } // typed evaulator not for polymorphic stuff
 
     unsigned opSort = theory->getOperationSort(interp);
     return opSort==T::getSort();
@@ -403,6 +386,33 @@ public:
     }
 
   }
+
+  bool canEvaluateFunc(unsigned func) override
+  {
+    CALL("InterpretedLiteralEvaluator::TypedEvaluator::canEvaluateFunc");
+
+    if (!theory->isInterpretedFunction(func)) {
+      return false;
+    }
+    Interpretation interp = theory->interpretFunction(func);
+    return canEvaluate(interp);
+  }
+
+  bool canEvaluatePred(unsigned pred) override
+  {
+    CALL("InterpretedLiteralEvaluator::TypedEvaluator::canEvaluatePred");
+
+    if (pred == 0) { // these guyes don't do it for equality
+      return false;
+    }
+
+    if (!theory->isInterpretedPredicate(pred)) {
+      return false;
+    }
+    Interpretation interp = theory->interpretPredicate(pred);
+    return canEvaluate(interp);
+  }
+
 protected:
   virtual bool tryEvaluateUnaryFunc(Interpretation op, const T& arg, T& res)
   { return false; }
