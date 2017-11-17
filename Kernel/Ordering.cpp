@@ -287,8 +287,8 @@ Ordering::Result PrecedenceOrdering::compare(Literal* l1, Literal* l2) const
 int PrecedenceOrdering::predicateLevel (unsigned pred) const
 {
   int basic=pred >= _predicates ? 1 : _predicateLevels[pred];
-  if(NONINTERPRETED_LEVEL_BOOST && !env.signature->getPredicate(pred)->interpreted()) {
-    ASS_NEQ(pred,0); //equality is always interpreted
+  if(NONINTERPRETED_LEVEL_BOOST && !env.signature->getPredicate(pred)->interpreted()
+      && pred != 0) { // special case for equality - we don't call it interpreted anymore
     basic+=NONINTERPRETED_LEVEL_BOOST;
   }
   if(env.signature->predicateColored(pred)) {
