@@ -401,7 +401,10 @@ z3::expr Z3Interfacing::getz3expr(Term* trm,bool isLit,bool&nameExpression,bool 
       }
       if (symb->bitVectorConstant()){
           BitVectorConstantType value = symb->bitVectorValue();
-          return _context.bv_val(BitVectorOperations::boolArraytoString(value.getBinArray()).c_str(),value.size());
+          // cout << "val to z3: " << value.getBinArray() << endl;
+          auto ret = _context.bv_val(value.size(), value.getBinArray().array());
+          // cout << "val in z3: " << ret << endl;
+          return ret;
       }
       if(!isLit && env.signature->isFoolConstantSymbol(true,trm->functor())){
         return _context.bool_val(true);
@@ -485,7 +488,7 @@ z3::expr Z3Interfacing::getz3expr(Term* trm,bool isLit,bool&nameExpression,bool 
             OperatorType* t = env.signature->getFunction(trm->functor())->fnType();
             unsigned resSize = env.sorts->getBitVectorSort(t->result())->getSize();
 
-            ret = args[0].extract(_context.int_val(index),_context.int_val(index-resSize+1));
+            ret = args[0].extract(index,index-resSize+1);
 
             break;
           }
