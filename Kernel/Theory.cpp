@@ -837,7 +837,9 @@ bool Theory::isFunction(Interpretation i)
   case BVNAND:
   case BVOR:
   case BVXOR:
+  case BVNEG:
   case BVNOR:
+  case BVNOT:
   case BVXNOR:
   case BVASHR:
   case BVCOMP:
@@ -973,7 +975,9 @@ bool Theory::isPolymorphic(Interpretation i)
   case BVNAND:
   case BVOR:
   case BVXOR:
+  case BVNOT:
   case BVNOR:
+  case BVNEG:
   case BVXNOR:
   case BVASHR:
   case BVCOMP:
