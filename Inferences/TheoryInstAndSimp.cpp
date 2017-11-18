@@ -204,7 +204,11 @@ void TheoryInstAndSimp::selectTheoryLiterals(Clause* cl, Stack<Literal*>& theory
       while(nit.hasNext() && !deselect){
         Term* t = nit.next().term();
         deselect = !(theory->isInterpretedFunction(t->functor()) || theory->isInterpretedConstant(t->functor())); 
-        if(deselect){ cout << t->toString() << endl; }
+        if(deselect){
+#if DPRINT
+          cout << "deselect " << t->toString() << endl;
+#endif
+        }
       }
       if(deselect){ deselected.push(lit);}
     }
