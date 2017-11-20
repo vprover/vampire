@@ -729,6 +729,8 @@ bool Theory::isFunction(Interpretation i)
 
     return true;
 
+  case EQUAL:
+
   case INT_GREATER:
   case INT_GREATER_EQUAL:
   case INT_LESS:
