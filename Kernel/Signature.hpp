@@ -98,6 +98,8 @@ class Signature
     unsigned _inGoal : 1;
     /** if used in a unit **/
     unsigned _inUnit : 1;
+    /** if induction skolem **/
+    unsigned _inductionSkolem : 1;
 
   public:
     /** standard constructor */
@@ -168,6 +170,9 @@ class Signature
     inline void markInUnit(){ _inUnit=1; }
     inline bool inUnit(){ return _inUnit; }
 
+    inline void markInductionSkolem(){ _inductionSkolem=1;}
+    inline bool inductionSkolem(){ return _inductionSkolem;}
+      
     /** Return true if symbol is an integer constant */
     inline bool integerConstant() const
     { return interpreted() && arity()==0 && fnType()->result()==Sorts::SRT_INTEGER; }

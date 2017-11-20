@@ -1,3 +1,20 @@
+/*
+ * File Induction 
+ *
+ * This file is part of the source code of the software program
+ * Vampire. It is protected by applicable
+ * copyright laws.
+ *
+ * This source code is distributed under the licence found here
+ * https://vprover.github.io/license.html
+ * and in the source directory
+ *
+ * In summary, you are allowed to use Vampire for non-commercial
+ * purposes but not allowed to distribute, modify, copy, create derivatives,
+ * or use in competitions. 
+ * For other uses of Vampire please contact developers for a different
+ * licence, which we will make an effort to provide. 
+ */
 /**
  * @file Induction.cpp
  * Implements class Induction.
@@ -52,10 +69,38 @@ InductionClauseIterator::InductionClauseIterator(Clause* premise)
 {
   CALL("InductionClauseIterator::InductionClauseIterator");
 
-  static Options::Induction kind = env.options->induction();
+  static bool structInd = env.options->induction() == Options::Induction::BOTH ||
+                         env.options->induction() == Options::Induction::STRUCTURAL;
+  static bool mathInd = env.options->induction() == Options::Induction::BOTH ||
+                         env.options->induction() == Options::Induction::MATHEMATICAL;
 
-  if(premise->length()==1 && (kind == Options::Induction::ALL || premise->inputType() == Unit::CONJECTURE)){
+  static Options::InductionChoice kind = env.options->inductionChoice();
+  static bool con = (kind == Options::InductionChoice::CONJECTURE || kind == Options::InductionChoice::CONJECTURE_PLUS);
+  static bool inp = (kind == Options::InductionChoice::INPUT || kind == Options::InductionChoice::INPUT_PLUS); 
+  static bool plus = (kind == Options::InductionChoice::CONJECTURE_PLUS || kind == Options::InductionChoice::INPUT_PLUS);
+
+  if(premise->length()==1 && 
+       (kind == Options::InductionChoice::ALL 
+     || (con && premise->inputType() == Unit::CONJECTURE)
+     || (inp && premise->inference()->rule() == Inference::INPUT)
+     || plus) // do check next 
+    )
+  {
     Literal* lit = (*premise)[0];
+    if(plus){
+      bool okay = false;
+      NonVariableIterator it(lit);
+      while(it.hasNext()){
+        Term* t = it.next().term();
+        if(t->arity()==0 && env.signature->getFunction(t->functor())->inductionSkolem()){
+          okay=true;
+          break;
+        }
+      }
+      if(!okay){ return; }
+    }
+
+
      // TODO change to allow for positive occurence of <
     if(lit->isNegative() && lit->ground()){
 
@@ -64,13 +109,15 @@ InductionClauseIterator::InductionClauseIterator(Clause* premise)
       TermFunIterator it(lit);
       while(it.hasNext()){
         unsigned f = it.next();
-        if(env.signature->functionArity(f)==0 && 
-           env.signature->isTermAlgebraSort(env.signature->getFunction(f)->fnType()->result())){
-          ta_constants.insert(f);
-        }
-        if(env.signature->functionArity(f)==0 && 
-           env.signature->getFunction(f)->fnType()->result()==Sorts::SRT_INTEGER){
-          int_constants.insert(f);
+        if(env.signature->functionArity(f)==0 &&
+           (!plus || env.signature->getFunction(f)->inductionSkolem())
+        ){
+         if(structInd && env.signature->isTermAlgebraSort(env.signature->getFunction(f)->fnType()->result())){
+            ta_constants.insert(f);
+          }
+          if(mathInd && env.signature->getFunction(f)->fnType()->result()==Sorts::SRT_INTEGER){
+            int_constants.insert(f);
+          }
         }
       }
       // deal with integer constants
@@ -87,6 +134,7 @@ InductionClauseIterator::InductionClauseIterator(Clause* premise)
         unsigned freshS = env.signature->addSkolemFunction(0);
         Signature::Symbol* symbol = env.signature->getFunction(freshS);
         symbol->setType(new FunctionType(Sorts::SRT_INTEGER));
+        symbol->markInductionSkolem();
         TermList fresh(Term::createConstant(freshS));
 
         TermList zero(theory->representConstant(IntegerConstantType(0)));
@@ -187,6 +235,7 @@ InductionClauseIterator::InductionClauseIterator(Clause* premise)
                 unsigned xn = env.signature->addSkolemFunction(0);
                 Signature::Symbol* symbol = env.signature->getFunction(xn);
                 symbol->setType(new FunctionType(srt));
+                symbol->markInductionSkolem();
                 skolemTerms[srt].push(TermList(Term::createConstant(xn)));
               }
               ASS(skolemTerms[srt].size() >= skolemIndex[srt]+1);
