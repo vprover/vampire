@@ -285,6 +285,8 @@ public:
   enum Interpretation
   {
     //predicates
+    EQUAL,
+
     INT_IS_INT,
     INT_IS_RAT,
     INT_IS_REAL,

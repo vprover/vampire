@@ -71,7 +71,7 @@ class InterpretedLiteralEvaluator::EqualityEvaluator
   : public Evaluator
 {
   bool canEvaluatePred(unsigned pred) override {
-    return pred == 0; // the equality predicate
+    return Signature::isEqualityPredicate(pred);
   }
 
   template<typename T>
@@ -398,10 +398,6 @@ public:
   bool canEvaluatePred(unsigned pred) override
   {
     CALL("InterpretedLiteralEvaluator::TypedEvaluator::canEvaluatePred");
-
-    if (pred == 0) { // these guyes don't do it for equality
-      return false;
-    }
 
     if (!theory->isInterpretedPredicate(pred)) {
       return false;
@@ -833,10 +829,8 @@ bool InterpretedLiteralEvaluator::balancable(Literal* lit)
   if(!theory->isInterpretedPredicate(lit->functor())) return false;
 
   // the perdicate must be binary
-  if (!lit->isEquality()) {
-    Interpretation ip = theory->interpretPredicate(lit->functor());
-    if(theory->getArity(ip)!=2) return false;
-  }
+  Interpretation ip = theory->interpretPredicate(lit->functor());
+  if(theory->getArity(ip)!=2) return false;
 
   // one side must be a constant and the other interpretted
   // the other side can contain at most one variable or uninterpreted subterm 

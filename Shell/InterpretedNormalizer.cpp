@@ -259,7 +259,7 @@ public:
   {
     CALL("InterpretedNormalizer::NLiteralTransformer::apply");
 
-    if (!lit->isEquality() && theory->isInterpretedPredicate(lit)) // don't do this for equality which is interpreted, but does not have an interpretation
+    if (!lit->isEquality() && theory->isInterpretedPredicate(lit))
     {
       Interpretation itp = theory->interpretPredicate(lit);
       if(isTrivialInterpretation(itp)) {

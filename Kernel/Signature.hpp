@@ -434,6 +434,12 @@ class Signature
     return _preds[n];
   } // getPredicate
 
+  static inline bool isEqualityPredicate(unsigned p)
+  {
+    // we make sure equality is always 0
+    return (p == 0); // see the ASSERT in Signature::Signature
+  }
+
   Signature();
   ~Signature();
 
