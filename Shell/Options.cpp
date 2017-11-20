@@ -858,13 +858,21 @@ void Options::Options::init()
            _lookup.insert(&_unificationWithAbstraction);
            _unificationWithAbstraction.setExperimental();
 
-            _induction = ChoiceOptionValue<Induction>("induction","ind",Induction::OFF,
-                                {"off","all","con","conp"});
-            _induction.description = "Apply structural and mathematical induction on datatypes and integers";
+            _induction = ChoiceOptionValue<Induction>("induction","ind",Induction::NONE,
+                                {"none","struct","math","both"});
+            _induction.description = "Apply structural and/or mathematical induction on datatypes and integers";
             _induction.tag(OptionTag::INFERENCES);
             _lookup.insert(&_induction);
             //_induction.setRandomChoices
             _induction.setExperimental();
+
+            _inductionChoice = ChoiceOptionValue<InductionChoice>("induction_choice","indc",InductionChoice::ALL,
+                                {"all","con","conp","input","inputp"});
+            _inductionChoice.description="Where to apply induction. Note that con and conp do not apply to "
+                                         "problems in SMTLIB as they require a conjecture";
+            _inductionChoice.tag(OptionTag::INFERENCES);
+            _lookup.insert(&_inductionChoice);
+            _inductionChoice.setExperimental();
 
 	    _instantiation = ChoiceOptionValue<Instantiation>("instantiation","inst",Instantiation::OFF,{"off","on"});
 	    _instantiation.description = "Heuristically instantiate variables";

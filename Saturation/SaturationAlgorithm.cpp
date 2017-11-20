@@ -1338,7 +1338,7 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
   CompositeGIE* gie=new CompositeGIE();
 
   //TODO here induction is last, is that right?
-  if(opt.induction()!=Options::Induction::OFF){
+  if(opt.induction()!=Options::Induction::NONE){
     gie->addFront(new Induction());
   }
 
