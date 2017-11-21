@@ -202,6 +202,11 @@ public:
     ~EnableBypassChecking() { _tolerantZone = _save; }
   };
 
+  /** A helper struct used for implementing the BYPASSING_ALLOCATOR macro. */
+  struct DisableBypassChecking {
+    DisableBypassChecking() { _tolerantZone = 1; }
+  };
+
   /** A helper struct used for implementing the BYPASSING_ALLOCATOR macro. */  
   struct AllowBypassing {
     AllowBypassing() { _tolerantZone++; }
@@ -425,7 +430,10 @@ std::ostream& operator<<(std::ostream& out, const Allocator::Descriptor& d);
 
 #define START_CHECKING_FOR_BYPASSES(SEED) Allocator::EnableBypassChecking _tmpBypass_##SEED;
 #define START_CHECKING_FOR_ALLOCATOR_BYPASSES START_CHECKING_FOR_BYPASSES(__LINE__)
-     
+
+#define STOP_CHECKING_FOR_BYPASSES(SEED) Allocator::DisableBypassChecking _tmpBypass_##SEED;
+#define STOP_CHECKING_FOR_ALLOCATOR_BYPASSES STOP_CHECKING_FOR_BYPASSES(__LINE__)
+
 #else
 
 #define CLASS_NAME(name)
@@ -456,6 +464,7 @@ std::ostream& operator<<(std::ostream& out, const Allocator::Descriptor& d);
   (Lib::Allocator::current->deallocateUnknown(obj))
 
 #define START_CHECKING_FOR_ALLOCATOR_BYPASSES
+#define STOP_CHECKING_FOR_ALLOCATOR_BYPASSES
 #define BYPASSING_ALLOCATOR
      
 #endif
