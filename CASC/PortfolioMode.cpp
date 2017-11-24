@@ -546,6 +546,8 @@ void PortfolioMode::runSlice(Options& strategyOpt)
     */
   }
 
+  STOP_CHECKING_FOR_ALLOCATOR_BYPASSES;
+
   exit(resultValue);
 } // runSlice
 

@@ -75,20 +75,18 @@ protected:
   template<typename ConstantType>
   bool balanceMultiply(Interpretation divide,ConstantType zero,             
                        Term* AmultiplyB, TermList* A, TermList C, TermList& result,
-                       Interpretation under, bool& swap, Stack<Literal*>& sideConditions);
+                       bool& swap, Stack<Literal*>& sideConditions);
 
   bool balanceIntegerMultiply(
                                                   Term* AmultiplyB, TermList* A, TermList C, TermList& result,
-                                                  Interpretation under, bool& swap,
-                                                  Stack<Literal*>& sideConditions);
+                                                  bool& swap, Stack<Literal*>& sideConditions);
 
   // take AoverB, A and C and let result=C*B, AoverB must be that way round
   // ignore the case of BoverA for now
   // rat and real versions only
   // like above, need to consider polairty of B
   bool balanceDivide(Interpretation multiply, 
-                       Term* AmultiplyB, TermList* A, TermList C, TermList& result,
-                       Interpretation under, bool& swap, Stack<Literal*>& sideConditions);
+                       Term* AmultiplyB, TermList* A, TermList C, TermList& result, bool& swap, Stack<Literal*>& sideConditions);
   
 };
 

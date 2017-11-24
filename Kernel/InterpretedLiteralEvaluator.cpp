@@ -72,7 +72,7 @@ class InterpretedLiteralEvaluator::EqualityEvaluator
   : public Evaluator
 {
   bool canEvaluatePred(unsigned pred) override {
-    return pred == 0; // the equality predicate
+    return Signature::isEqualityPredicate(pred);
   }
 
   template<typename T>
@@ -401,10 +401,6 @@ public:
   bool canEvaluatePred(unsigned pred) override
   {
     CALL("InterpretedLiteralEvaluator::TypedEvaluator::canEvaluatePred");
-
-    if (pred == 0) { // these guyes don't do it for equality
-      return false;
-    }
 
     if (!theory->isInterpretedPredicate(pred)) {
       return false;
@@ -1305,7 +1301,6 @@ bool InterpretedLiteralEvaluator::balance(Literal* lit,Literal*& resLit,Stack<Li
 
   ASS(theory->isInterpretedPredicate(lit->functor()));
 
-  Interpretation predicate = theory->interpretPredicate(lit->functor());
   // at the end this tells us if the predicate needs to be swapped, only applies if non-equality
   bool swap = false; 
 
@@ -1377,27 +1372,27 @@ bool InterpretedLiteralEvaluator::balance(Literal* lit,Literal*& resLit,Stack<Li
 
       case Theory::INT_MULTIPLY: 
       {
-        okay=balanceIntegerMultiply(t2term,to_unwrap,t1,result,predicate,swap,sideConditions);
+        okay=balanceIntegerMultiply(t2term,to_unwrap,t1,result,swap,sideConditions);
         break;
       }
       case Theory::RAT_MULTIPLY:
       {
         RationalConstantType zero(0,1);
-        okay=balanceMultiply(Theory::RAT_QUOTIENT,zero,t2term,to_unwrap,t1,result,predicate,swap,sideConditions);
+        okay=balanceMultiply(Theory::RAT_QUOTIENT,zero,t2term,to_unwrap,t1,result,swap,sideConditions);
         break;
       }
       case Theory::REAL_MULTIPLY:
       {
         RealConstantType zero(RationalConstantType(0, 1));
-        okay=balanceMultiply(Theory::REAL_QUOTIENT,zero,t2term,to_unwrap,t1,result,predicate,swap,sideConditions);
+        okay=balanceMultiply(Theory::REAL_QUOTIENT,zero,t2term,to_unwrap,t1,result,swap,sideConditions);
         break;
        }
 
       case Theory::RAT_QUOTIENT:
-        okay=balanceDivide(Theory::RAT_MULTIPLY,t2term,to_unwrap,t1,result,predicate,swap,sideConditions);
+        okay=balanceDivide(Theory::RAT_MULTIPLY,t2term,to_unwrap,t1,result,swap,sideConditions);
         break;
       case Theory::REAL_QUOTIENT:
-        okay=balanceDivide(Theory::REAL_MULTIPLY,t2term,to_unwrap,t1,result,predicate,swap,sideConditions);
+        okay=balanceDivide(Theory::REAL_MULTIPLY,t2term,to_unwrap,t1,result,swap,sideConditions);
         break;
 
       default:
@@ -1463,8 +1458,7 @@ bool InterpretedLiteralEvaluator::balancePlus(Interpretation plus, Interpretatio
 template<typename ConstantType>
 bool InterpretedLiteralEvaluator::balanceMultiply(Interpretation divide,ConstantType zero, 
                                                   Term* AmultiplyB, TermList* A, TermList C, TermList& result,
-                                                  Interpretation under, bool& swap,
-                                                  Stack<Literal*>& sideConditions)
+                                                  bool& swap, Stack<Literal*>& sideConditions)
 {
     CALL("InterpretedLiteralEvaluator::balanceMultiply");
     unsigned srt = theory->getOperationSort(divide); 
@@ -1500,8 +1494,7 @@ bool InterpretedLiteralEvaluator::balanceMultiply(Interpretation divide,Constant
 
 bool InterpretedLiteralEvaluator::balanceIntegerMultiply(
                                                   Term* AmultiplyB, TermList* A, TermList C, TermList& result,
-                                                  Interpretation under, bool& swap,
-                                                  Stack<Literal*>& sideConditions)
+                                                  bool& swap, Stack<Literal*>& sideConditions)
 {
     CALL("InterpretedLiteralEvaluator::balanceIntegerMultiply");
 
@@ -1532,8 +1525,7 @@ bool InterpretedLiteralEvaluator::balanceIntegerMultiply(
 }
 
 bool InterpretedLiteralEvaluator::balanceDivide(Interpretation multiply, 
-                       Term* AoverB, TermList* A, TermList C, TermList& result,
-                       Interpretation under, bool& swap, Stack<Literal*>& sideConditions)
+                       Term* AoverB, TermList* A, TermList C, TermList& result, bool& swap, Stack<Literal*>& sideConditions)
 {
     CALL("InterpretedLiteralEvaluator::balanceDivide");
     unsigned srt = theory->getOperationSort(multiply); 

@@ -964,6 +964,7 @@ bool SubstitutionTree::UnificationsIterator::associate(TermList query, TermList 
           okay &= (nodeInterp || env.signature->functionArity(nodeTranslated.term()->functor()));
           break;  
         case Options::UnificationWithAbstraction::ALL:
+        case Options::UnificationWithAbstraction::GROUND:
           break;
         default:
           ASSERTION_VIOLATION; 

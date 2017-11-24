@@ -157,11 +157,11 @@ void Instantiation::tryMakeLiteralFalse(Literal* lit, Stack<Substitution>& subs)
   CALL("Instantiation::tryMakeLiteralFalse");
 
   if(theory->isInterpretedPredicate(lit)){
-    Interpretation interpretation = theory->interpretPredicate(lit);
+    Interpretation itp = theory->interpretPredicate(lit);
     //unsigned sort = theory->getOperationSort(interpretation);
 
     //TODO, very limited consideration, expand
-    if (interpretation == Theory::INT_LESS || interpretation == Theory::RAT_LESS || interpretation == Theory::REAL_LESS || lit->isEquality() ) {
+    if (itp == Theory::EQUAL || itp == Theory::INT_LESS || itp == Theory::RAT_LESS || itp == Theory::REAL_LESS) {
       TermList* left = lit->nthArgument(0); TermList* right = lit->nthArgument(1);
       unsigned var;
       Term* t = 0;
