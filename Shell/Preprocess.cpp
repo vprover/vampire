@@ -182,8 +182,6 @@ void Preprocess::preprocess(Problem& prb)
 
   // If there are interpreted operations
   if (prb.hasInterpretedOperations() || env.signature->hasTermAlgebras()){
-    // Normalize them e.g. replace $greater with not $lesseq
-    InterpretedNormalizer().apply(prb);
     // Add theory axioms if needed
     if( _options.theoryAxioms() != Options::TheoryAxiomLevel::OFF){
       env.statistics->phase=Statistics::INCLUDING_THEORY_AXIOMS;
@@ -204,6 +202,11 @@ void Preprocess::preprocess(Problem& prb)
       TheoryAxioms(prb).applyFOOL();
       FOOLElimination().apply(prb);
     }
+  }
+
+  if (prb.hasInterpretedOperations() || env.signature->hasTermAlgebras()){
+    // Normalize them e.g. replace $greater with not $lesseq
+    InterpretedNormalizer().apply(prb);
   }
 
   // Expansion of distinct groups happens before other preprocessing
