@@ -1,3 +1,21 @@
+
+/*
+ * File Monotonicity.cpp.
+ *
+ * This file is part of the source code of the software program
+ * Vampire. It is protected by applicable
+ * copyright laws.
+ *
+ * This source code is distributed under the licence found here
+ * https://vprover.github.io/license.html
+ * and in the source directory
+ *
+ * In summary, you are allowed to use Vampire for non-commercial
+ * purposes but not allowed to distribute, modify, copy, create derivatives,
+ * or use in competitions. 
+ * For other uses of Vampire please contact developers for a different
+ * licence, which we will make an effort to provide. 
+ */
 /**
  * @file Monotonicity.cpp
  * Implements class Monotonicity.
@@ -157,8 +175,8 @@ void Monotonicity::addSortPredicates(bool withMon, ClauseList*& clauses, DArray<
   CALL("Monotonicity::addSortPredicates");
 
   // First compute the monotonic sorts
-  DArray<bool> isMonotonic(env.sorts->sorts());
-  for(unsigned s=0;s<env.sorts->sorts();s++){
+  DArray<bool> isMonotonic(env.sorts->count());
+  for(unsigned s=0;s<env.sorts->count();s++){
     if(env.property->usesSort(s) || s >= Sorts::FIRST_USER_SORT){
        if(withMon){
          Monotonicity m(clauses,s);
@@ -173,12 +191,12 @@ void Monotonicity::addSortPredicates(bool withMon, ClauseList*& clauses, DArray<
   }
 
   // Now create a sort predicate per non-monotonic sort
-  DArray<unsigned> sortPredicates(env.sorts->sorts());
-  for(unsigned s=0;s<env.sorts->sorts();s++){
+  DArray<unsigned> sortPredicates(env.sorts->count());
+  for(unsigned s=0;s<env.sorts->count();s++){
     if(!isMonotonic[s]){
       vstring name = "sortPredicate_"+env.sorts->sortName(s);
       unsigned p = env.signature->addFreshPredicate(1,name.c_str());
-      env.signature->getPredicate(p)->setType(new PredicateType({s}));
+      env.signature->getPredicate(p)->setType(OperatorType::getPredicateType({s}));
       sortPredicates[s] = p;
     }
     else{ sortPredicates[s]=0; }
@@ -192,7 +210,7 @@ void Monotonicity::addSortPredicates(bool withMon, ClauseList*& clauses, DArray<
   // 2) for each function f with return sort s 
   //    !args : p(f(args))
   unsigned function_count = env.signature->functions();
-  for(unsigned s=0;s<env.sorts->sorts();s++){
+  for(unsigned s=0;s<env.sorts->count();s++){
     if(isMonotonic[s]) continue;
 
     unsigned p = sortPredicates[s];
@@ -218,7 +236,7 @@ void Monotonicity::addSortPredicates(bool withMon, ClauseList*& clauses, DArray<
 
     // Next the non-empty constraint
     unsigned skolemConstant = env.signature->addSkolemFunction(0);
-    env.signature->getFunction(skolemConstant)->setType(new FunctionType(s));
+    env.signature->getFunction(skolemConstant)->setType(OperatorType::getConstantsType(s));
     Literal* psk = Literal::create1(p,true,TermList(Term::createConstant(skolemConstant)));
     Clause* nonEmpty = new(1) Clause(1,Unit::InputType::AXIOM, new Inference(Inference::INPUT));
     (*nonEmpty)[0] = psk;
@@ -312,8 +330,8 @@ void Monotonicity::addSortFunctions(bool withMon, ClauseList*& clauses)
   CALL("Monotonicity::addSortFunctions");
 
   // First compute the monotonic sorts
-  DArray<bool> isMonotonic(env.sorts->sorts());
-  for(unsigned s=0;s<env.sorts->sorts();s++){
+  DArray<bool> isMonotonic(env.sorts->count());
+  for(unsigned s=0;s<env.sorts->count();s++){
     if(env.property->usesSort(s) || s >= Sorts::FIRST_USER_SORT){
        if(withMon){
          Monotonicity m(clauses,s);
@@ -328,12 +346,12 @@ void Monotonicity::addSortFunctions(bool withMon, ClauseList*& clauses)
   }
 
   // Now create a sort function per non-monotonic sort
-  DArray<unsigned> sortFunctions(env.sorts->sorts());
-  for(unsigned s=0;s<env.sorts->sorts();s++){
+  DArray<unsigned> sortFunctions(env.sorts->count());
+  for(unsigned s=0;s<env.sorts->count();s++){
     if(!isMonotonic[s]){
       vstring name = "sortFunction_"+env.sorts->sortName(s);
       unsigned f = env.signature->addFreshFunction(1,name.c_str());
-      env.signature->getFunction(f)->setType(new FunctionType({s},s));
+      env.signature->getFunction(f)->setType(OperatorType::getFunctionType({s},s));
       sortFunctions[s] = f;
     }
     else{ sortFunctions[s]=0; }

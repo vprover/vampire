@@ -1,3 +1,21 @@
+
+/*
+ * File Vector.hpp.
+ *
+ * This file is part of the source code of the software program
+ * Vampire. It is protected by applicable
+ * copyright laws.
+ *
+ * This source code is distributed under the licence found here
+ * https://vprover.github.io/license.html
+ * and in the source directory
+ *
+ * In summary, you are allowed to use Vampire for non-commercial
+ * purposes but not allowed to distribute, modify, copy, create derivatives,
+ * or use in competitions. 
+ * For other uses of Vampire please contact developers for a different
+ * licence, which we will make an effort to provide. 
+ */
 /**
  * @file Vector.hpp
  * Defines a class of constant-size generic vectors. The size is given as an
@@ -73,6 +91,25 @@ public:
     size_t sz=sizeof(Vector) + (_length-1)*sizeof(C);
     DEALLOC_KNOWN(this,sz,"Vector");
   } // deallocate
+
+  bool operator==(const Vector& v) const
+  {
+    CALL("Vector::operator==");
+
+    if(length()!=v.length()) {
+      return false;
+    }
+    size_t sz = length();
+    for(size_t i=0; i!=sz; ++i) {
+      if((*this)[i]!=v[i]) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  bool operator!=(const Vector& o) const
+  { return !((*this)==o); }
 
   /**
    * Convert the vector to its string representation. To use this function,

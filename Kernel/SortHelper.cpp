@@ -1,3 +1,21 @@
+
+/*
+ * File SortHelper.cpp.
+ *
+ * This file is part of the source code of the software program
+ * Vampire. It is protected by applicable
+ * copyright laws.
+ *
+ * This source code is distributed under the licence found here
+ * https://vprover.github.io/license.html
+ * and in the source directory
+ *
+ * In summary, you are allowed to use Vampire for non-commercial
+ * purposes but not allowed to distribute, modify, copy, create derivatives,
+ * or use in competitions. 
+ * For other uses of Vampire please contact developers for a different
+ * licence, which we will make an effort to provide. 
+ */
 /**
  * @file SortHelper.cpp
  * Implements class SortHelper.
@@ -21,7 +39,7 @@ using namespace Kernel;
  * Return the type of a term or a literal @c t
  * @author Andrei Voronkov
  */
-BaseType& SortHelper::getType(Term* t)
+OperatorType& SortHelper::getType(Term* t)
 {
   CALL("SortHelper::getType(Term*)");
 
@@ -750,7 +768,7 @@ bool SortHelper::areImmediateSortsValid(Term* t)
     return true;
   }
 
-  BaseType& type = getType(t);
+  OperatorType& type = getType(t);
   unsigned arity = t->arity();
   for (unsigned i=0; i<arity; i++) {
     TermList arg = *t->nthArgument(i);

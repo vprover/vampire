@@ -1,3 +1,21 @@
+
+/*
+ * File TheoryInstAndSimp.cpp.
+ *
+ * This file is part of the source code of the software program
+ * Vampire. It is protected by applicable
+ * copyright laws.
+ *
+ * This source code is distributed under the licence found here
+ * https://vprover.github.io/license.html
+ * and in the source directory
+ *
+ * In summary, you are allowed to use Vampire for non-commercial
+ * purposes but not allowed to distribute, modify, copy, create derivatives,
+ * or use in competitions. 
+ * For other uses of Vampire please contact developers for a different
+ * licence, which we will make an effort to provide. 
+ */
 /**
  * @file TheoryInstAndSimp.cpp
  * Implements class TheoryInstAndSimp.
@@ -186,7 +204,11 @@ void TheoryInstAndSimp::selectTheoryLiterals(Clause* cl, Stack<Literal*>& theory
       while(nit.hasNext() && !deselect){
         Term* t = nit.next().term();
         deselect = !(theory->isInterpretedFunction(t->functor()) || theory->isInterpretedConstant(t->functor())); 
-        if(deselect){ cout << t->toString() << endl; }
+        if(deselect){
+#if DPRINT
+          cout << "deselect " << t->toString() << endl;
+#endif
+        }
       }
       if(deselect){ deselected.push(lit);}
     }
@@ -228,7 +250,7 @@ Term* getFreshConstant(unsigned index, unsigned srt)
   Stack<Term*>* sortedConstants = constants[srt]; 
   while(index+1 > sortedConstants->length()){
     unsigned sym = env.signature->addFreshFunction(0,"$inst");
-    FunctionType* type = new FunctionType(srt);
+    OperatorType* type = OperatorType::getConstantsType(srt);
     env.signature->getFunction(sym)->setType(type);
     Term* fresh = Term::createConstant(sym);
     sortedConstants->push(fresh);
