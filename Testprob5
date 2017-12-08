@@ -1,0 +1,6 @@
+thf(a, type, f: $o > $o).
+thf(a, type, g: $int > $o).
+thf(a, axiom, ![X:$o]:(f @ X)).
+thf(a, axiom, ![Y:$int]:(g @ Y)).
+thf(a, conjecture, ![Z:$int]:(f @ (g @ Z)) =  $true).
+

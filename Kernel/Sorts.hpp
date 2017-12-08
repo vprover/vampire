@@ -191,7 +191,7 @@ public:
 
   unsigned addFunctionSort(unsigned domainSort, unsigned rangeSort);
   FunctionSort* getFuncSort(unsigned sort){
-    ASS(hasStructuredSort(sort,StructuredSort::HIGHER_ORD_CONST));
+    ASS(isOfStructuredSort(sort,StructuredSort::HIGHER_ORD_CONST));
     return static_cast<FunctionSort*>(_sorts[sort]);
   }
  

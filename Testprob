@@ -1,0 +1,3 @@
+tff(a,type, i : ($rat * $rat) > $rat).
+tff(a,axiom, ![X:$rat, Y:$rat]:i(X, Y) =  X).
+tff(a,conjecture, ![X:$rat, Y:$rat] : (X = i(X,Y))).

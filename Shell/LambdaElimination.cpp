@@ -323,7 +323,7 @@ void LambdaElimination::process(){
         Term* lExpTerm = _processing.term();
         IntList* freeVars = lExpTerm->freeVariables();
         
-        if(freeVars->member(lambdaVar)){
+        if(IntList::member(lambdaVar, freeVars)){
            if(lExpTerm->isSpecial()){
                 
                switch(lExpTerm->functor()){
@@ -457,23 +457,23 @@ void LambdaElimination::dealWithApp(TermList lhs, TermList rhs, unsigned sort, i
     IntList* lhsFVs = lhs.freeVariables();
     IntList* rhsFVs = rhs.freeVariables();
     
-    if(rhs.isVar() && (rhs.var() == (unsigned)lambdaVar) && !lhsFVs->member(lambdaVar)){
+    if(rhs.isVar() && (rhs.var() == (unsigned)lambdaVar) && !IntList::member(lambdaVar, lhsFVs)){
         //This is the case [\x. exp @ x] wehere x is not free in exp.
         lhs.isTerm() ? addToProcessed(processBeyondLambda(lhs.term())) : addToProcessed(lhs);
         return;
     }
 
-    if ((lhsFVs->member(lambdaVar)) && (rhsFVs->member(lambdaVar))){
+    if ((IntList::member(lambdaVar, lhsFVs)) && (IntList::member(lambdaVar, rhsFVs))){
         _combinators.push(Term::S_COMB);
         _argNums.push(0);
         _toBeProcessed.push(lhs);
         _toBeProcessed.push(rhs); 
-    }else if(lhsFVs->member(lambdaVar)){
+    }else if(IntList::member(lambdaVar, lhsFVs)){
         _combinators.push(Term::C_COMB);
         _argNums.push(0);
         _toBeProcessed.push(lhs);
         rhs.isTerm() ? addToProcessed(processBeyondLambda(rhs.term())) : addToProcessed(rhs);  
-    }else if(rhsFVs->member(lambdaVar)){
+    }else if(IntList::member(lambdaVar, rhsFVs)){
         _combinators.push(Term::B_COMB);            
         _argNums.push(0);
         _toBeProcessed.push(rhs);
@@ -556,7 +556,7 @@ TermList LambdaElimination::addHolConstant(vstring name, unsigned sort, bool& ad
 
     unsigned fun = env.signature->addFunction(name + "_" +  Lib::Int::toString(sort),0,added);
     if(added){//first time constant added. Set type
-        env.signature->getFunction(fun)->setType(new FunctionType(sort));   
+        env.signature->getFunction(fun)->setType(OperatorType::getConstantsType(sort));   
     }
     Term* t = Term::createConstant(fun);
     t->setCombinator(combType);
@@ -593,8 +593,7 @@ unsigned LambdaElimination::introduceAppSymbol(unsigned sort1, unsigned sort2, u
   
   Stack<unsigned> sorts;
   sorts.push(sort1); sorts.push(sort2);
-  BaseType* type = new FunctionType(2, sorts.begin(), resultSort);
-
+  OperatorType* type = OperatorType::getFunctionType(2, sorts.begin(), resultSort);
   unsigned symbol;
   bool added;
   
@@ -606,7 +605,7 @@ unsigned LambdaElimination::introduceAppSymbol(unsigned sort1, unsigned sort2, u
   
   if(added){
    env.signature->getFunction(symbol)->setType(type);
-   if (env.options->showPreprocessing() & added) {
+   if (env.options->showPreprocessing()) {
     env.beginOutput();
     env.out() << "[PP] Lambda or application elimination introduced ";
     env.out() << "function symbol " << env.signature->functionName(symbol) << endl;
@@ -781,8 +780,8 @@ void LambdaElimination::buildFuncApp(unsigned symbol, TermList arg1, TermList ar
     varForm = toEquality(var2);
     qAxiom = toEquality(functionApplied);
     qAxiom = new BinaryFormula(IFF, qAxiom, new QuantifiedFormula(conn, varList, sortList, varForm));
-    varList = varList->append(varList2);
-    sortList = sortList->append(sortList2);
+    varList = List<int>::append(varList, varList2);
+    sortList = List<unsigned>::append(sortList, sortList2);
     
     qAxiom = new QuantifiedFormula(FORALL, varList,sortList, qAxiom); 
     
@@ -878,7 +877,7 @@ void LambdaElimination::buildFuncApp(unsigned symbol, TermList arg1, TermList ar
     
     if(conn == AND || conn == OR){
         FormulaList* args = new FormulaList(toEquality(var1));
-        args = args->cons(toEquality(var2));
+        args = FormulaList::cons(toEquality(var2), args);
         varFormula = new JunctionFormula(conn, args);
     }else{
         varFormula = new BinaryFormula(conn, toEquality(var1), toEquality(var2));

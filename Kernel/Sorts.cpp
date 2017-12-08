@@ -402,19 +402,4 @@ bool OperatorType::isSingleSortType(unsigned srt) const
   return true;
 } // isSingleSortType
 
-/**
- * Create a type of the form (argSort * ... * argSort) -> rangeSort
- * @author Andrei Voronkov
- * @author Evgeny Kotelnikov, move to FunctionType
- */
-FunctionType* FunctionType::makeTypeUniformRange(unsigned arity, unsigned argsSort, unsigned rangeSort)
-{
-  CALL("FunctionType::makeTypeUniformRange");
 
-  static Stack<unsigned> argSorts;
-  argSorts.reset();
-  for (unsigned i=0; i<arity; i++) {
-    argSorts.push(argsSort);
-  }
-  return new FunctionType(arity, argSorts.begin(), rangeSort);
-} // FunctionType::makeTypeUniformRange

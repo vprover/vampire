@@ -1,0 +1,3 @@
+tff(impl, type, impl:($o * $o) > $o).
+tff(impl_def, axiom, ![X:$o, Y:$o]: (impl(X,Y) <=> (~X|Y))).
+tff(modus_ponens, conjecture, ![X:$o, Y:$o]:((impl(X,Y) & X) => Y)).

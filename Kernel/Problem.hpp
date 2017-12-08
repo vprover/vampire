@@ -150,7 +150,11 @@ public:
   }
   
   void reportFormulasAdded()
-  
+  {
+    invalidateProperty();
+    _mayHaveFormulas = true;
+    _hasFormulas = true;
+  }
   
   void reportAppEliminated()
   {
@@ -162,12 +166,6 @@ public:
 	_hasLambda = false;  
   }
   
-  void refortFormulasAdded()
-  {
-    invalidateProperty();
-    _mayHaveFormulas = true;
-    _hasFormulas = true;
-  }
   /**
    * Report that equality was added into the problem
    *

@@ -1,0 +1,5 @@
+thf(a, type, f:$int > $int).
+thf(a, type, g:$int > $int).
+thf(a, axiom, (f = ^[X:$int]:X)).
+thf(a, axiom, (g = ^[X:$int]:X)).
+thf(a, conjecture, ![X:$int]:((f @ (g @ X)) = X)).
