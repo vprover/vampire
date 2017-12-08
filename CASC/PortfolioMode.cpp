@@ -1,4 +1,3 @@
-
 /*
  * File PortfolioMode.cpp.
  *
@@ -16,6 +15,7 @@
  * For other uses of Vampire please contact developers for a different
  * licence, which we will make an effort to provide. 
  */
+
 /**
  * @file PortfolioMode.cpp
  * Implements class PortfolioMode.
@@ -44,6 +44,7 @@
 #include "Kernel/Problem.hpp"
 
 #include "Schedules.hpp"
+#include "ScheduleExecutor.hpp"
 
 #include "PortfolioMode.hpp"
 
@@ -265,139 +266,77 @@ static unsigned milliToDeci(unsigned timeInMiliseconds) {
   return timeInMiliseconds/100;
 }
 
+// Simple one-after-the-other priority.
+class PortfolioProcessPriorityPolicy : public ProcessPriorityPolicy
+{
+public:
+  float staticPriority(vstring sliceCode) override
+  {
+    static float priority = 0.;
+    priority += 1.;
+    return priority;
+  }
+
+  //should never be called
+  float dynamicPriority(pid_t pid) override
+  {
+    ASSERTION_VIOLATION;
+    return 0.;
+  }
+};
+
+class PortfolioSliceExecutor : public SliceExecutor
+{
+public:
+  PortfolioSliceExecutor(PortfolioMode *mode) : _mode(mode) {}
+
+  void runSlice(vstring sliceCode, int terminationTime) override
+  {
+    vstring chopped;
+    int sliceTime = _mode->getSliceTime(sliceCode, chopped);
+
+    int elapsedTime = milliToDeci(env.timer->elapsedMilliseconds());
+    int remainingTime = terminationTime - elapsedTime;
+    if (sliceTime > remainingTime)
+    {
+      sliceTime = remainingTime;
+    }
+
+    ASS_GE(sliceTime,0);
+    try
+    {
+      _mode->runSlice(sliceCode, sliceTime);
+    }
+    catch(Exception &e)
+    {
+      if(outputAllowed())
+      {
+	std::cerr << "% Exception at run slice level" << std::endl;
+	e.cry(std::cerr);
+      }
+      System::terminateImmediately(1); // didn't find proof
+    }
+  }
+
+private:
+  PortfolioMode *_mode;
+};
+
 /**
  * Run a schedule.
  * Return true if a proof was found, otherwise return false.
- * It spawns processes by calling runSlice()
  */
 bool PortfolioMode::runSchedule(Schedule& schedule, int terminationTime)
 {
   CALL("PortfolioMode::runSchedule");
 
-  // keep track of strategies and times they were used with not to repeat useless work
-  DHMap<vstring,int> used;
-
-  // compute the number of parallel processes depending on the number of available cores
-  unsigned coreNumber = System::getNumberOfCores();
-  if (coreNumber < 1) { coreNumber = 1; }
-
-  int parallelProcesses = min(coreNumber,env.options->multicore());
-
-  // if requested is 0 then use (a sensible) max
-  if (parallelProcesses == 0) {
-    if (coreNumber >= 8) {
-      coreNumber = coreNumber-2;
-    }
-    parallelProcesses = coreNumber;
-  }
-
   UIHelper::portfolioParent = true; // to report on overall-solving-ended in Timer.cpp
 
-  if (outputAllowed()) {
-    env.beginOutput();
-    addCommentSignForSZS(env.out());
-    env.out() << "Starting " << (parallelProcesses == 1 ? "sequential " : "") <<
-        "portfolio solving with schedule \"" << env.options->scheduleName() << "\"";
-    if (parallelProcesses > 1) {
-      env.out() << " and " << parallelProcesses << " parallel processes.";
-    }
-    env.out() << endl;
-    env.endOutput();
-  }
+  PortfolioProcessPriorityPolicy policy;
+  PortfolioSliceExecutor executor(this);
+  ScheduleExecutor sched(&policy, &executor);
 
-  int processesLeft = parallelProcesses;
-  Schedule::BottomFirstIterator it(schedule);
-
-  int slices = schedule.length();
-  while (it.hasNext()) {
-    while (processesLeft) {
-      slices--;
-      ASS_G(processesLeft,0);
-
-      /*
-      env.beginOutput();
-      addCommentSignForSZS(env.out()) << "Slices left: " << slices << endl;
-      addCommentSignForSZS(env.out()) << "Processes available: " << processesLeft << endl;
-      env.endOutput();
-      */
-
-      int elapsedTime = milliToDeci(env.timer->elapsedMilliseconds());
-      if (elapsedTime >= terminationTime) {
-        // time limit reached
-        goto finish_up;
-      }
-
-      vstring sliceCode = it.next();
-      vstring chopped;
-
-      // slice time in deciseconds
-      int sliceTime = getSliceTime(sliceCode,chopped);
-      int usedTime;
-      if (used.find(chopped,usedTime) && usedTime >= sliceTime) {
-        // this slice was already used with at least as long time as currently requested
-        continue;
-      }
-      used.insert(chopped,sliceTime);
-
-      int remainingTime = terminationTime - elapsedTime;
-      if (sliceTime > remainingTime) {
-        sliceTime = remainingTime;
-      }
-      ASS_GE(sliceTime,0);
-
-      pid_t childId=Multiprocessing::instance()->fork();
-      ASS_NEQ(childId,-1);
-      if (!childId) {
-        //we're in a proving child
-        try {
-          runSlice(sliceCode,sliceTime); //start proving
-        } catch (Exception& exc) {
-          if (outputAllowed()) {
-            cerr << "% Exception at run slice level" << endl;
-            exc.cry(cerr);
-          }
-          System::terminateImmediately(1); //we didn't find the proof, so we return nonzero status code
-        }
-        ASSERTION_VIOLATION; //the runSlice function should never return
-      }
-      Timer::syncClock();
-      ASS(childIds.insert(childId));
-
-      if (outputAllowed()) {
-        env.beginOutput();
-        addCommentSignForSZS(env.out()) << "spawned child "<< childId << " with time: " << sliceTime << " (total remaining time " << remainingTime << ")" << endl;
-        env.endOutput();
-      }
-
-      processesLeft--;
-      if (!it.hasNext()) {
-        break;
-      }
-    }
-
-    /*
-    env.beginOutput();
-    lineOutput() << "No processes available: " << endl;
-    env.endOutput();
-    */
-
-    if (processesLeft==0) {
-      if(waitForChildAndCheckIfProofFound()) { return true; }
-      // proof search failed
-      processesLeft++;
-    }
-  }
-
-  finish_up:
-
-  while (parallelProcesses!=processesLeft) {
-    ASS_L(processesLeft, parallelProcesses);
-    if(waitForChildAndCheckIfProofFound()) { return true; }
-    // proof search failed
-    processesLeft++;
-    Timer::syncClock();
-  }
-  return false;
+  return sched.run(schedule, terminationTime);
 }
 
 /**

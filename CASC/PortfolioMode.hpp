@@ -54,6 +54,11 @@ class PortfolioMode {
 
 public:
   static bool perform(float slowness);
+  // moved to public as I need access from internal classes
+  // probably should be a nicer way to do this
+  // FIXME: have a think
+  void runSlice(vstring slice, unsigned timeLimitInDeciseconds) NO_RETURN;
+  unsigned getSliceTime(vstring sliceCode,vstring& chopped);
 
 private:
 
@@ -63,9 +68,7 @@ private:
   bool performStrategy(Shell::Property* property);
   void getSchedules(Property& prop, Schedule& quick, Schedule& fallback);
   bool runSchedule(Schedule& schedule, int terminationTime);
-  unsigned getSliceTime(vstring sliceCode,vstring& chopped);
   bool waitForChildAndCheckIfProofFound();
-  void runSlice(vstring slice, unsigned timeLimitInDeciseconds) NO_RETURN;
   void runSlice(Options& strategyOpt) NO_RETURN;
 
 #if VDEBUG
