@@ -58,6 +58,7 @@ public:
   static FormulaUnit* rectify(FormulaUnit*, bool removeUnusedVars=true);
   static void rectify(UnitList*& units);
 private:
+  typedef List<unsigned> SortList;
   typedef List<int> VarList;
   typedef pair<int,bool> VarWithUsageInfo;
   typedef List<VarWithUsageInfo> VarUsageTrackingList;
@@ -96,7 +97,7 @@ private:
   FormulaList* rectify(FormulaList*);
   void bindVars(VarList*);
   void unbindVars(VarList*);
-  VarList* rectifyBoundVars(VarList*);
+  VarList* rectifyBoundVars(VarList*, bool removeUnusedVars = false);
   TermList rectify(TermList);
   Term* rectify(Term* t);
   Term* rectifySpecialTerm(Term* t);
@@ -112,6 +113,8 @@ private:
   Renaming _renaming;
   /** placeholder for free variables */
   List<int>* _free;
+  /** used to store sorts of quantified variables being rectified */
+  SortList* _sorts;
 
   /** if true, unused quantified variables will be removed */
   bool _removeUnusedVars;

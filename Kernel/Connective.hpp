@@ -63,8 +63,12 @@ enum Connective
   TRUE = 11u,
   /** name for named formula */
   NAME = 12u,
+  /** operator lambda */
+  LAMBDA = 13u,
+  /** application of any number of terms */
+  APP = 14u,
   /** fake connective terminator */
-  NOCONN = 13u
+  NOCONN = 15u
 }; // enum Connective
 
 }

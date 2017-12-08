@@ -23,6 +23,11 @@
  * Kotelnikov, Kovacs and Voronkov.
  *
  * [1] http://arxiv.org/abs/1505.01682
+ *
+ * @since 22/11/2017, file extended to implement THF0-to-FOL translation 
+ * Translation of application and lambdas 'hacked' in here rather than 
+ * being caried out in separate class as idea is to eventually migrate 
+ * translation to VCNF.
  */
 
 #include "Indexing/TermSharing.hpp"
@@ -42,6 +47,7 @@
 
 #include "Rectify.hpp"
 
+#include "LambdaElimination.hpp"
 #include "FOOLElimination.hpp"
 
 using namespace Lib;
@@ -66,8 +72,8 @@ bool FOOLElimination::needsElimination(FormulaUnit* unit) {
    * and Property::_hasFOOL!
    *
    * The former checks that the formula has subterms that are not syntactically
-   * first-order. That only includes boolean variables, used as formulas,
-   * formulas, used as terms, $let and $ite. This check is needed to decide
+   * first-order. That only includes boolean variables used as formulas,
+   * formulas used as terms, $let and $ite. This check is needed to decide
    * whether any of the transformations from FOOLElimination are yet to be
    * applied.
    *
@@ -387,6 +393,7 @@ void FOOLElimination::process(TermList ts, Context context, TermList& termResult
   }
 
   // preprocessing of the term does not affect the sort
+  
   ASS_EQ(sort, SortHelper::getResultSort(termResult, _varSorts));
 }
 
@@ -443,6 +450,7 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
    * checks that free variables of the input and the result coincide.
    */
 
+  
   if (!term->isSpecial()) {
     /**
      * If term is not special, simply propagate processing to its arguments.
@@ -735,7 +743,40 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
         termResult = freshSymbolApplication;
         break;
       }
-
+	  case Term::SF_LAMBDA: {
+	    /** lambda terms are translated to FOL using SKIBC combinators which are extensively described in 
+		    the literature. 
+		*/
+		LambdaElimination le = LambdaElimination(_varSorts);
+		TermList translatedTerm = le.elimLambda(term);
+		termResult = translatedTerm;
+		_defs = UnitList::concat(_defs, le.axioms());
+		break;
+	  }
+	  case Term::SF_APP: {
+		TermList lhs = term->getSpecialData()->getAppLhs();
+        TermList rhs = *term->nthArgument(0);
+         
+        if(!lhs.isVar()){ //What about if it is HOL constant?
+             lhs = process(lhs.term());
+        }
+        if(!rhs.isVar()){
+             rhs = process(rhs.term());
+        }
+         
+        unsigned lhsSort = SortHelper::getResultSort(lhs, _varSorts);
+        unsigned rhsSort = SortHelper::getResultSort(rhs, _varSorts);
+        unsigned appSort = term->getSpecialData()->getSort();
+        unsigned app = LambdaElimination::introduceAppSymbol(lhsSort, rhsSort, appSort);
+         
+        LambdaElimination::buildFuncApp(app, lhs, rhs, termResult);
+		 
+		if (context == FORMULA_CONTEXT) {
+		   formulaResult = toEquality(termResult);         	
+        }
+        break;
+		 
+	  }
 #if VDEBUG
       default:
         ASSERTION_VIOLATION;
@@ -761,12 +802,15 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
     unsigned var = (unsigned)ufv.next();
     ASS_REP(Formula::VarList::member(var, resultFreeVars), var);
   }
+  /* //Current algorithm does introduce free variables in FORALL and EXISTS elimination. AYB
   Formula::VarList::Iterator pfv(resultFreeVars);
   while (pfv.hasNext()) {
     unsigned var = (unsigned)pfv.next();
     ASS_REP(Formula::VarList::member(var, freeVars), var);
   }
-
+  */
+  
+  
   // special subterms should be eliminated
   if (context == TERM_CONTEXT) {
     ASS_REP(termResult.isSafe(), termResult);
@@ -973,3 +1017,5 @@ void FOOLElimination::reportProcessed(vstring inputRepr, vstring outputRepr) {
     env.endOutput();
   }
 }
+
+ 

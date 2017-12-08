@@ -250,7 +250,7 @@ void Formula::destroy ()
 vstring Formula::toString (Connective c)
 {
   static vstring names [] =
-    { "", "&", "|", "=>", "<=>", "<~>", "~", "!", "?", "$var", "$false", "$true", "",""};
+    { "", "&", "|", "=>", "<=>", "<~>", "~", "!", "?", "@", "^", "$var", "$false", "$true", "",""};
   ASS_EQ(sizeof(names)/sizeof(vstring), NOCONN+1);
 
   return names[(int)c];
@@ -262,22 +262,23 @@ vstring Formula::toString (Connective c)
 vstring Formula::toString(const Formula* formula)
 {
   CALL("Formula::toString(const Formula*)");
-
+  
   vstring res;
-
+  
   // render a connective if specified, and then a Formula (or ")" of formula is nullptr)
   typedef struct {
     bool wrapInParenthesis;
     Connective renderConnective; // NOCONN means ""
     const Formula* theFormula;   // nullptr means render ")" instead
   } Todo;
-
+  
   Stack<Todo> stack;
   stack.push({false,NOCONN,formula});
 
   while (stack.isNonEmpty()) {
     Todo todo = stack.pop();
 
+	//cout << "The formula so far is: " + res << endl;
     // in any case start by rendering the connective passed from "above"
     {
       vstring con = toString(todo.renderConnective);
@@ -346,11 +347,11 @@ vstring Formula::toString(const Formula* formula)
         continue;
       }
     case FORALL:
-    case EXISTS:
-      {
+    case EXISTS: {
         res += toString(c) + " [";
         VarList::Iterator vs(f->vars());
         SortList::Iterator ss(f->sorts());
+		
         bool hasSorts = f->sorts();
         bool first=true;
         while (vs.hasNext()) {

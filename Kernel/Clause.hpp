@@ -28,14 +28,14 @@
 
 #include <iosfwd>
 
-#include "Forwards.hpp"
+#include "../Forwards.hpp"
 
-#include "Lib/Allocator.hpp"
-#include "Lib/Event.hpp"
-#include "Lib/InverseLookup.hpp"
-#include "Lib/Metaiterators.hpp"
-#include "Lib/Reflection.hpp"
-#include "Lib/Stack.hpp"
+#include "../Lib/Allocator.hpp"
+#include "../Lib/Event.hpp"
+#include "../Lib/InverseLookup.hpp"
+#include "../Lib/Metaiterators.hpp"
+#include "../Lib/Reflection.hpp"
+#include "../Lib/Stack.hpp"
 
 #include "Unit.hpp"
 
@@ -78,7 +78,7 @@ public:
     /** queue of unprocessed clauses */
     UNPROCESSED = 2u,
     /** anything else */
-    NONE = 3u,  
+    NONE = 3u,
     /** clause is selected from the passive container
      * and is not added to the active one yet */
     SELECTED = 4u
@@ -198,7 +198,7 @@ public:
 
   bool isTheoryDescendant() const { return _theoryDescendant; }
   void setTheoryDescendant(bool t) { _theoryDescendant=t; }
-  
+
   bool skip() const;
 
   unsigned getLiteralPosition(Literal* lit);
@@ -258,7 +258,7 @@ public:
     ASS(replace || !_splits);
     _splits=splits;
   }
-  
+
   int getNumActiveSplits() const { return _numActiveSplits; }
   void setNumActiveSplits(int newVal) { _numActiveSplits = newVal; }
   void incNumActiveSplits() { _numActiveSplits++; }

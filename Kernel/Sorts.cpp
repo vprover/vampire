@@ -191,6 +191,30 @@ unsigned Sorts::addTupleSort(unsigned arity, unsigned sorts[])
   return result;
 }
 
+/** Adds a function sort and returns number of sort
+  * @author Ahmed Bhayat
+  */
+unsigned Sorts::addFunctionSort(unsigned domainSort, unsigned rangeSort)
+{
+  CALL("Sorts::addFunctionSort");
+ 
+  vstring name = "(";
+  name += env.sorts->sortName(domainSort) + " > ";
+  name += env.sorts->sortName(rangeSort) + ")";
+  unsigned result;
+  if (findSort(name, result)) {
+     return result;
+  }
+
+  _hasSort = true;
+  result = _sorts.length();
+
+  _sorts.push(new FunctionSort(name,domainSort,rangeSort,result));
+  _sortNames.insert(name, result);
+
+  return result; 
+}
+
 /**
  * True if this collection contains the sort @c name.
  * @author Andrei Voronkov
@@ -375,6 +399,22 @@ bool OperatorType::isSingleSortType(unsigned srt) const
   if (isFunctionType() && result() != srt) {
     return false;
   }
-
   return true;
 } // isSingleSortType
+
+/**
+ * Create a type of the form (argSort * ... * argSort) -> rangeSort
+ * @author Andrei Voronkov
+ * @author Evgeny Kotelnikov, move to FunctionType
+ */
+FunctionType* FunctionType::makeTypeUniformRange(unsigned arity, unsigned argsSort, unsigned rangeSort)
+{
+  CALL("FunctionType::makeTypeUniformRange");
+
+  static Stack<unsigned> argSorts;
+  argSorts.reset();
+  for (unsigned i=0; i<arity; i++) {
+    argSorts.push(argsSort);
+  }
+  return new FunctionType(arity, argSorts.begin(), rangeSort);
+} // FunctionType::makeTypeUniformRange

@@ -124,6 +124,13 @@ bool SortHelper::getResultSortOrMasterVariable(const Term* t, unsigned& resultSo
       resultSort = getResultSort(t->getSpecialData()->getTupleTerm());
       return true;
     }
+    case Term::SF_LAMBDA: {
+      resultSort = t->getSpecialData()->getSort();
+      return true;
+    }
+    case Term::SF_APP:
+      resultSort = t->getSpecialData()->getSort();
+      return true;
     default:
       ASS(!t->isSpecial());
       resultSort = getResultSort(t);
@@ -410,6 +417,33 @@ void SortHelper::collectVariableSortsIter(CollectTask task, DHMap<unsigned,unsig
             todo.push(newTask);
           } break;
 
+		  case Term::SF_LAMBDA: {
+			CollectTask newTask;
+			newTask.fncTag = COLLECT_TERMLIST;
+            newTask.contextSort = sd->getLambdaExpSort();
+			newTask.ts = sd->getLambdaExp();
+            todo.push(newTask);  			 
+		  } break;
+		  
+		  case Term::SF_APP: {
+			CollectTask newTask;
+
+            newTask.fncTag = COLLECT_TERMLIST;
+			TermList lhs = sd->getAppLhs();
+			TermList rhs =  *term->nthArgument(0);
+	
+			unsigned lhsSort = sd->getAppLhsSort();
+			unsigned rhsSort = env.sorts->getFuncSort(lhsSort)->getDomainSort();
+			
+            newTask.contextSort = lhsSort;
+            newTask.ts = lhs;
+            todo.push(newTask);
+
+		    newTask.contextSort = rhsSort;
+            newTask.ts = rhs;
+            todo.push(newTask);
+		  } break;
+		  
       #if VDEBUG
           default:
             ASSERTION_VIOLATION;
@@ -753,6 +787,7 @@ bool SortHelper::areImmediateSortsValid(Term* t)
 {
   CALL("SortHelper::areImmediateSortsValid");
 
+  
   if (t->isLiteral() && static_cast<Literal*>(t)->isEquality()) {
     Literal* lit = static_cast<Literal*>(t);
     unsigned eqSrt = getEqualityArgumentSort(lit);
@@ -762,6 +797,7 @@ bool SortHelper::areImmediateSortsValid(Term* t)
       Term* ta = arg.term();
       unsigned argSort = getResultSort(ta);
       if (eqSrt != argSort) {
+		
         return false;
       }
     }

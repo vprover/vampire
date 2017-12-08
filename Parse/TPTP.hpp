@@ -201,6 +201,8 @@ public:
     SIMPLE_FORMULA,
     /** build formula from a connective and one or more formulas */
     END_FORMULA,
+    /** build a HOL formula from a connective and one or more formulas */
+    END_HOL_FUNCTION,
     /** read a formula that whould be put inside a term */
     FORMULA_INSIDE_TERM,
     /** */
@@ -227,6 +229,14 @@ public:
     INCLUDE,
     /** after the equality */
     END_EQ,
+    /** Read a HOL function */
+    HOL_FUNCTION,
+    /** Read a higher-order constant or variable */
+    HOL_TERM,
+    /** Read after a HOL term */
+    END_HOL_TERM,
+    /** create a special application term after reading an app */
+    END_APP,
     /** tff declaration */
     TFF,
     /** THF declaration */
@@ -261,6 +271,13 @@ public:
     END_TUPLE_BINDING,
     /** end of a theory function */
     END_THEORY_FUNCTION
+  };
+  
+  enum LastPushed {
+	  /**last item pushed was a formula */
+	  FORM,
+	  /**last item pushed was a term */
+	  TM,
   };
 
   /** token */
@@ -321,7 +338,7 @@ private:
   enum TypeTag {
     TT_ATOMIC,
     TT_PRODUCT,
-    TT_ARROW
+    TT_ARROW,
   };
 
   /**
@@ -336,6 +353,7 @@ private:
     explicit Type(TypeTag tag) : _tag(tag) {}
     /** return the kind of this sort */
     TypeTag tag() const {return _tag;}
+    //virtual unsigned sortNumber() const;
   protected:
     /** kind of this type */
     TypeTag _tag;
@@ -540,6 +558,9 @@ private:
   /** true if the last read unit is fof() or cnf() due to a subtle difference
    * between fof() and tff() in treating numeric constants */ 
   bool _isFof;
+  /** true reading a thf unit. Used when parsing types of the form typ -> typ since
+    * syntactically these can be higher-order or first order */
+  bool _isThf = false;
   /** various strings saved during parsing */
   Stack<vstring> _strings;
   /** various connectives saved during parsing */ // they must be int, since non-existing value -1 can be used
@@ -591,6 +612,8 @@ private:
   bool findLetSymbol(bool isPredicate, vstring name, unsigned arity, unsigned& symbol);
   /** the scope of the currently parsed $let-term */
   LetFunctionsScope _currentLetScope;
+  /** Record wether a formula or term has been pushed more recently */
+  LastPushed _lastPushed;
 
   typedef pair<unsigned, bool> LetBinding;
   typedef Stack<LetBinding> LetBindingScope;
@@ -732,6 +755,11 @@ private:
   void include();
   void type();
   void endIte();
+  void endApp();
+  void holFunction();
+  void endHolFunction();
+  void holTerm();
+  void endHolTerm();
   void binding();
   void endBinding();
   void endTupleBinding();
@@ -740,6 +768,8 @@ private:
   void endTuple();
   void addTagState(Tag);
 
+  unsigned readHOLSort();
+  void foldl(Stack<int>*);
   unsigned readSort();
   void bindVariable(int var,unsigned sortNumber);
   void unbindVariables();

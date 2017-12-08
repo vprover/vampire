@@ -26,6 +26,7 @@
 
 #include "Forwards.hpp"
 
+#include "Lib/Environment.hpp"
 #include "Lib/DArray.hpp"
 #include "Lib/Map.hpp"
 #include "Lib/Stack.hpp"
@@ -63,6 +64,8 @@ public:
     ARRAY,
     /** The structured sort for tuples */
     TUPLE,
+    /** The structured sort for all higher order symbols */
+    HIGHER_ORD_CONST,
     /** not a real structured sort, it's here to denote the length of the StructuredSort enum */
     LAST_STRUCTURED_SORT
   };
@@ -154,6 +157,23 @@ public:
     DArray<unsigned> _sorts;
   };
 
+  class FunctionSort : public StructuredSortInfo  
+  {  
+  public:    
+     CLASS_NAME(FunctionSort);    
+     USE_ALLOCATOR(FunctionSort);    
+     
+     FunctionSort(vstring name, unsigned domainSort, unsigned rangeSort,unsigned id) 
+       : StructuredSortInfo(name,StructuredSort::HIGHER_ORD_CONST, id),  
+         _domainSort(domainSort), _rangeSort(rangeSort){}    
+     unsigned getDomainSort(){ return _domainSort; }    
+     unsigned getRangeSort(){ return _rangeSort; }
+  
+  private:    
+     unsigned _domainSort;    
+     unsigned _rangeSort;  
+  };
+  
   unsigned addSort(const vstring& name, bool& added, bool interpreted);
   unsigned addSort(const vstring& name, bool interpreted);
 
@@ -169,6 +189,12 @@ public:
     return static_cast<TupleSort*>(_sorts[sort]);
   }
 
+  unsigned addFunctionSort(unsigned domainSort, unsigned rangeSort);
+  FunctionSort* getFuncSort(unsigned sort){
+    ASS(hasStructuredSort(sort,StructuredSort::HIGHER_ORD_CONST));
+    return static_cast<FunctionSort*>(_sorts[sort]);
+  }
+ 
   bool haveSort(const vstring& name);
   bool findSort(const vstring& name, unsigned& idx);
 
@@ -327,6 +353,6 @@ private:
   vstring argsToString() const;
 };
 
-}
+};
 
 #endif // __Sorts__

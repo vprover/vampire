@@ -579,6 +579,16 @@ void Property::scan(TermList ts,bool unit,bool goal)
         addProp(PR_HAS_ITE);
         break;
 
+	  case Term::SF_APP:
+	    addProp(PR_HAS_APP);
+        _hasApp = true; //Need to add prop? AYB
+        break;
+      
+      case Term::SF_LAMBDA:
+	     addProp(PR_HAS_LAMBDA);
+         _hasLambda = true;
+         break;		 
+		
       case Term::SF_LET:
       case Term::SF_LET_TUPLE:
         addProp(PR_HAS_LET_IN);

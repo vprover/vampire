@@ -34,6 +34,7 @@
 #include "Kernel/Term.hpp"
 #include "Kernel/TermIterators.hpp"
 #include "Kernel/Unit.hpp"
+#include "Kernel/Connective.hpp"
 
 #include "Indexing/TermSharing.hpp"
 
@@ -230,6 +231,37 @@ Term* Rectify::rectifySpecialTerm(Term* t)
     }
     return Term::createTuple(rectifiedTupleTerm);
   }
+  case Term::SF_APP:
+  {
+	ASS_EQ(t->arity(),1);
+	
+	TermList lhs = rectify(sd->getAppLhs());
+	TermList rhs = rectify(*t->nthArgument(0));
+    if(lhs == sd->getAppLhs() && rhs == *t->nthArgument(0)){
+		return t;
+	}
+	return Term::createApp(lhs, rhs, sd->getAppLhsSort(), sd->getSort());
+  }
+  case Term::SF_LAMBDA:
+  {
+	ASS_EQ(t->arity(),0);
+	bindVars(sd->getLambdaVars());
+    TermList lambdaTerm = rectify(sd->getLambdaExp());
+	 /**
+     * We don't want to remove unused variables from the variable list,
+     * ^[X].exp is not equivalent to exp.
+     */
+    bool removeUnusedVars = _removeUnusedVars;
+    _removeUnusedVars = false;
+    VarList* vs = rectifyBoundVars(sd->getLambdaVars());
+	_removeUnusedVars = removeUnusedVars; // restore the status quo
+    unbindVars(sd->getLambdaVars());
+    if (vs == sd->getLambdaVars() && lambdaTerm == sd->getLambdaExp()) {
+      return t;
+    }
+    return Term::createLambda(lambdaTerm, Connective::LAMBDA, vs, sd->getVarSorts(), sd->getLambdaExpSort()); 
+    //t->getVarSorts dodgy, look at comment above. AYB	
+  }
   default:
     ASSERTION_VIOLATION;
   }
@@ -393,6 +425,8 @@ Formula* Rectify::rectify (Formula* f)
 {
   CALL("Rectify::rectify (Formula*)");
 
+  //cout << "The formula is: " + f->toString() << endl; to be removed AYB
+  
   switch (f->connective()) {
   case LITERAL: 
   {
@@ -436,7 +470,13 @@ Formula* Rectify::rectify (Formula* f)
   {
     bindVars(f->vars());
     Formula* arg = rectify(f->qarg());
-    VarList* vs = rectifyBoundVars(f->vars());
+	_sorts = f->sorts();
+	VarList* vs;
+	if(!SortList::isEmpty(_sorts)){//hacky in the extreme - AYB
+       vs = rectifyBoundVars(f->vars(),true);
+	}else{
+	   vs = rectifyBoundVars(f->vars());	
+	}
     unbindVars(f->vars());
     if (vs == f->vars() && arg == f->qarg()) {
       return f;
@@ -447,7 +487,7 @@ Formula* Rectify::rectify (Formula* f)
     //TODO should update the sorts from f->sorts() wrt to updated vs
     //     or is the rectification just renaming, if so f->sorts can 
     //     just be reused
-    return new QuantifiedFormula(f->connective(),vs,0,arg);
+    return new QuantifiedFormula(f->connective(),vs,_sorts,arg); 
   }
 
   case TRUE:
@@ -541,21 +581,33 @@ void Rectify::unbindVars(VarList* vs)
  * Rectify a list of variables.
  *
  * @param vs the list to rectify
+ * @date updated on 04/12/2017 to drop sorts of vars removed.
+ * Code works on the assumption that prior to rectification every var 
+ * has a sort. Is assumption valid?
  */
-Rectify::VarList* Rectify::rectifyBoundVars (VarList* vs)
+Rectify::VarList* Rectify::rectifyBoundVars (VarList* vs, bool removeUnusedSorts)
 {
   CALL ("Rectify::rectifyBoundVars(VarList*)");
 
   if (VarList::isEmpty(vs)) {
     return vs;
   }
-
+ 
+  Stack<unsigned> sorts;
   Stack<VarList*> args;
   while (VarList::isNonEmpty(vs)) {
     args.push(vs);
     vs = vs->tail();
   }
-
+  
+  if(removeUnusedSorts){
+	SortList::Iterator sit(_sorts);
+	while(sit.hasNext()){
+	   sorts.push(sit.next());  
+	}
+	_sorts = _sorts->empty();
+  }
+  
   VarList* res = args.top()->tail();
   ASS(VarList::isEmpty(res));
 
@@ -571,12 +623,17 @@ Rectify::VarList* Rectify::rectifyBoundVars (VarList* vs)
     if (wWithUsg.second || !_removeUnusedVars) {
       w = wWithUsg.first;
 
+	  if(removeUnusedSorts){
+	    _sorts = _sorts->cons(sorts.pop());
+	  }
       if (v == w && vtail == ws) {
         res = vs;
       } else {
         res = new VarList(w,ws);
       }
-    }
+    }else if(removeUnusedSorts){	   
+	   sorts.pop();
+	}
     // else nothing, because "else" means dropping the variable from the list and returning ws, but res == ws already ...
   }
 

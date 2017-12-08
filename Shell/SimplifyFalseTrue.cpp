@@ -86,13 +86,15 @@ FormulaUnit* SimplifyFalseTrue::simplify (FormulaUnit* unit)
 Formula* SimplifyFalseTrue::simplify (Formula* f)
 {
   CALL("SimplifyFalseTrue::simplify(Formula*)");
+ 
 
   Connective con = f->connective();
+  
   switch (con) {
   case TRUE:
   case FALSE:
     return f;
-
+  
   case BOOL_TERM:
     {
       TermList ts = simplify(f->getBooleanTerm());
@@ -112,7 +114,7 @@ Formula* SimplifyFalseTrue::simplify (Formula* f)
   case LITERAL:
     {
       Literal* literal = f->literal();
-
+	  
       if (!literal->shared()) {
         bool simplified = false;
         Stack<TermList> arguments;

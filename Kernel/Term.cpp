@@ -61,6 +61,8 @@ using namespace Kernel;
 const unsigned Term::SF_ITE;
 const unsigned Term::SF_LET;
 const unsigned Term::SF_FORMULA;
+const unsigned Term::SF_LAMBDA;
+const unsigned Term::SF_APP;
 const unsigned Term::SPECIAL_FUNCTOR_LOWER_BOUND;
 
 /**
@@ -479,6 +481,36 @@ vstring Term::headToString() const
 
         return "$let([" + symbolsList + "] := " + binding.toString() + ", ";
       }
+      case Term:: SF_LAMBDA: {
+         IntList* vars = sd->getLambdaVars(); //Need to add these functions to class!
+         SortList* sorts = sd->getVarSorts();
+         TermList lambdaExp = sd->getLambdaExp();
+		 
+         vstring varList = "[";
+         
+         IntList::Iterator vs(vars);
+         SortList::Iterator ss(sorts);
+         unsigned sort;
+         bool first = true;
+         while(vs.hasNext()) {
+           if (!first){
+              varList += ", ";
+           }else{ first = false; }
+           varList += Term::variableToString(vs.next()) + " : ";
+           sort = ss.next(); //Assuming that sort is avaible. Dangerous, change!
+            //if (sort != Sorts::SRT_DEFAULT){
+              varList += env.sorts->sortName(sort); 
+           //}
+         }
+
+         varList += "]";        
+         return "^" + varList + " : " + lambdaExp.toString() + ", ";
+
+      }
+      case Term::SF_APP: {
+          TermList lhs = sd->getAppLhs();
+          return "(" + lhs.toString() + " @ ";      
+      }
       default:
         ASSERTION_VIOLATION;
     }
@@ -826,6 +858,20 @@ Term* Term::createNonShared(Term* t,TermList* args)
   return s;
 } // Term::createNonShared(const Term* t,Term* args)
 
+Term* Term::createApp(TermList _lhs, TermList _rhs, unsigned lhsSort, unsigned appSort)
+{
+  CALL("Term::createApp");
+  Term* s = new(1,sizeof(SpecialTermData)) Term;
+  s->makeSymbol(SF_APP, 1);
+  TermList* ss = s->args();
+  *ss = _rhs;
+  ASS(ss->next()->isEmpty());
+  s->getSpecialData()->_appData.lhs = _lhs;
+  s->getSpecialData()->_appData.sort = appSort;
+  s->getSpecialData()->_appData.lhsSort = lhsSort;
+  return s;
+}
+
 /**
  * Create a (condition ? thenBranch : elseBranch) expression
  * and return the resulting term
@@ -932,6 +978,34 @@ Term* Term::createFormula(Formula* formula)
   s->getSpecialData()->_formulaData.formula = formula;
   return s;
 }
+
+/**
+ * Create a lambda term from a list of lambda vars and an 
+ * expression and returns the resulting term
+ */
+Term* Term::createLambda(TermList lambdaExp, Connective con, IntList* vars, SortList* sorts, unsigned expSort){
+  CALL("Term::createLambda");
+  
+  Term* s = new(0, sizeof(SpecialTermData)) Term;
+  s->makeSymbol(SF_LAMBDA, 0);
+  s->getSpecialData()->_lambdaData.lambdaExp = lambdaExp;
+  s->getSpecialData()->_lambdaData.con = con;
+  s->getSpecialData()->_lambdaData._vars = vars;
+  s->getSpecialData()->_lambdaData._sorts = sorts;
+  s->getSpecialData()->_lambdaData.expSort = expSort;
+  SortList::Iterator sit(sorts);
+  Stack<unsigned> revSorts;
+  unsigned lambdaTmSort = expSort;
+  while(sit.hasNext()){
+	 revSorts.push(sit.next());
+  }
+  while(!revSorts.isEmpty()){
+	 unsigned varSort = revSorts.pop();
+     lambdaTmSort = env.sorts->addFunctionSort(varSort, lambdaTmSort);
+  }
+  s->getSpecialData()->_lambdaData.sort = lambdaTmSort;
+  return s;
+} 
 
 Term* Term::createTuple(unsigned arity, unsigned* sorts, TermList* elements) {
   CALL("Term::createTuple");
@@ -1076,6 +1150,7 @@ bool Term::isBoolean() const {
     switch (term->getSpecialData()->getType()) {
       case SF_FORMULA:
         return true;
+	  case SF_LAMBDA:
       case SF_TUPLE:
         return false;
       case SF_ITE:
@@ -1089,6 +1164,13 @@ bool Term::isBoolean() const {
           break;
         }
       }
+	  case SF_APP: {
+		if (term->getSpecialData()->getSort() == Sorts::SRT_BOOL){
+			return true;
+		}else{
+		    return false;
+		}
+	  }
       default:
         ASSERTION_VIOLATION_REP(term->toString());
     }
@@ -1185,6 +1267,9 @@ Literal* Literal::create(Literal* l,TermList* args)
   ASS_EQ(l->getPreDataSize(), 0);
 
   if (l->isEquality()) {
+	cout << "The literal is: " + l->toString() << endl;
+	cout << "the first arg is: " + args[0].toString();
+	cout << "   the second arg is: " + args[1].toString() << endl;
     return createEquality(l->polarity(), args[0], args[1], SortHelper::getEqualityArgumentSort(l));
   }
 
@@ -1218,7 +1303,7 @@ Literal* Literal::createEquality (bool polarity, TermList arg1, TermList arg2, u
    CALL("Literal::createEquality/4");
 
    unsigned srt1, srt2;
-
+   
    if (!SortHelper::tryGetResultSort(arg1, srt1)) {
      if (!SortHelper::tryGetResultSort(arg2, srt2)) {
        ASS_REP(arg1.isVar(), arg1.toString());
@@ -1228,6 +1313,7 @@ Literal* Literal::createEquality (bool polarity, TermList arg1, TermList arg2, u
      ASS_EQ(srt2, sort);
    }
    else {
+	// ASS_REP2(srt1 == sort, arg1.toString(), arg2.toString());
      ASS_EQ(srt1, sort);
 #if VDEBUG
      if (SortHelper::tryGetResultSort(arg2, srt2)) {
