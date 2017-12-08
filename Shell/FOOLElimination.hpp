@@ -36,6 +36,7 @@ using namespace Shell;
  * - terms in formula context
  * - $ite-terms
  * - $let-terms
+ * @since 22/11/2017 class updated to eliminate expressions containing apps (@) and lambdas (^).
  */
 class FOOLElimination {
 public:
@@ -120,6 +121,9 @@ private:
   // Report that a given formula or a term has been rewritten during defooling
   // The term or formula is passed as its string representation
   static void reportProcessed(vstring inputRepr, vstring outputRepr);
+  
+  
+
 };
 
 #endif // __FOOLElimination__

@@ -160,6 +160,10 @@ public:
   static const uint64_t PR_HAS_DT_CONSTRUCTORS = 1099511627776ul; // 2^40
   /* has co-algrebaic data type constructors */
   static const uint64_t PR_HAS_CDT_CONSTRUCTORS = 2199023255552ul; // 2^41
+  /** has lambda */
+  static const uint64_t PR_HAS_LAMBDA = 4398046511104ul; // 2^42
+  /** has app */
+  static const uint64_t PR_HAS_APP = 8796093022208ul; // 2^43 
 
  public:
   CLASS_NAME(Property);
@@ -230,6 +234,8 @@ public:
   /** Problem contains non-default sorts */
   bool hasNonDefaultSorts() const { return _hasNonDefaultSorts; }
   bool hasFOOL() const { return _hasFOOL; }
+  bool hasApp() const { return _hasApp; }
+  bool hasLambda() const { return _hasLambda; }
   bool usesSort(unsigned sort) const { 
     CALL("Property::usesSort");
     if(_usesSort.size() <= sort) return false;
@@ -334,6 +340,8 @@ public:
   DHSet<Theory::MonomorphisedInterpretation> _polymorphicInterpretations;
 
   bool _hasFOOL;
+  bool _hasApp;
+  bool _hasLambda;
 
   bool _onlyFiniteDomainDatatypes;
   bool _knownInfiniteDomain;

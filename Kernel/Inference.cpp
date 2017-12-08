@@ -266,6 +266,25 @@ vstring Inference::ruleName(Rule rule)
     return "fool $let elimination";
   case FOOL_PARAMODULATION:
     return "fool paramodulation";
+  case LAMBDA_ELIMINATION_S_COMB: 
+    return "lambda elimination S combinator axiom";
+  case LAMBDA_ELIMINATION_B_COMB: 
+    return "lambda elimination B combinator axiom";
+  case LAMBDA_ELIMINATION_C_COMB: 
+    return "lambda elimination C combinator axiom";
+  case LAMBDA_ELIMINATION_K_COMB: 
+    return "lambda elimination K combinator axiom";
+  case LAMBDA_ELIMINATION_I_COMB: 
+    return "lambda elimination I combinator axiom";
+  case LAMBDA_ELIMINATION_EQUALITY:
+    return "lambda elimination eqaulity constant axiom";
+  case LAMBDA_ELIMINATION_NOT:
+    return "lambda elimination NOT constant axiom";
+  case LAMBDA_ELIMINATION_QUANTIFIER:
+    return "lambda elimination quantification axiom";	
+  case LAMBDA_ELIMINATION_BIN_CON:
+    return "lambda elimination binary connective axiom";
+	
 //  case CHOICE_AXIOM:
 //  case MONOTONE_REPLACEMENT:
 //  case FORALL_ELIMINATION:

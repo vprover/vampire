@@ -164,6 +164,7 @@ void Signature::Symbol::forceType(OperatorType* type)
   _type = type;
 }
 
+
 /**
  * Return the type of a function symbol
  *

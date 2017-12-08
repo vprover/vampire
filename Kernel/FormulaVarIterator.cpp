@@ -25,6 +25,7 @@
  * @since 02/09/2009 Redmond, reimplemented to work with non-rectified
  * formulas and return each variable only once
  * @since 15/05/2015 Gothenburg, FOOL support added
+ * @since 08/11/2017 Manchester, THF support added
  */
 
 #include "Debug/Tracer.hpp"
@@ -170,6 +171,19 @@ bool FormulaVarIterator::hasNext()
               _formulas.push(sd->getCondition());
               break;
 
+            case Term::SF_APP:              
+              _instructions.push(FVI_TERM_LIST);
+              _termLists.push(sd->getAppLhs()); //TODO lambda AYB
+              break;
+  
+            case Term::SF_LAMBDA:
+              _instructions.push(FVI_UNBIND);
+              _instructions.push(FVI_TERM_LIST);
+              _termLists.push(sd->getLambdaExp());
+              _instructions.push(FVI_BIND);
+              _vars.push(sd->getLambdaVars());
+              break;
+
             case Term::SF_FORMULA:
               _instructions.push(FVI_FORMULA);
               _formulas.push(sd->getFormula());
@@ -186,7 +200,7 @@ bool FormulaVarIterator::hasNext()
 
               break;
             }
-
+			
             case Term::SF_LET_TUPLE: {
               _instructions.push(FVI_TERM_LIST);
               _termLists.push(sd->getBinding());

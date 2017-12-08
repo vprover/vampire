@@ -214,6 +214,23 @@ bool SubformulaIterator::hasNext ()
             _reserve = new Element(tupleTerm, polarity, rest);
             break;
           }
+		  case Term::SF_APP: {
+			 delete _reserve;
+             _reserve = rest;
+			 break;
+			 //lhs of an app can never be a formula. Cannot be of type $o.
+		  }
+		  case Term::SF_LAMBDA: {
+			 delete _reserve;
+             TermList lambdaExp = term->getSpecialData()->getLambdaExp();
+             if (!lambdaExp.isTerm()) {
+               _reserve = rest;
+             } else {
+               // TODO: should be 1 instead of polarity?
+               _reserve = new Element(lambdaExp.term(), polarity, rest);
+             }
+             break;			 
+		  }
 #if VDEBUG
           default:
             ASSERTION_VIOLATION;

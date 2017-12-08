@@ -43,6 +43,8 @@
 #include "Lib/Metaiterators.hpp"
 #include "Lib/VString.hpp"
 
+#include "Kernel/Connective.hpp"
+
 // #include "MatchTag.hpp" // MS: disconnecting MatchTag, January 2017
 #define USE_MATCH_TAG 0
 
@@ -223,14 +225,32 @@ ASS_STATIC(sizeof(TermList)==sizeof(size_t));
 class Term
 {
 public:
+  typedef List<unsigned> SortList;
   //special functor values
   static const unsigned SF_ITE = 0xFFFFFFFF;
   static const unsigned SF_LET = 0xFFFFFFFE;
   static const unsigned SF_FORMULA = 0xFFFFFFFD;
   static const unsigned SF_TUPLE = 0xFFFFFFFC;
   static const unsigned SF_LET_TUPLE = 0xFFFFFFFB;
-  static const unsigned SPECIAL_FUNCTOR_LOWER_BOUND = 0xFFFFFFFB;
+  static const unsigned SF_LAMBDA = 0xFFFFFFFA;
+  static const unsigned SF_APP = 0xFFFFFFF9; 
+  static const unsigned SPECIAL_FUNCTOR_LOWER_BOUND = 0xFFFFFFF9;
 
+  enum Comb {
+	/** I combinator */
+    I_COMB,
+    /** S combinator */
+    S_COMB,
+    /** K combinator */
+    K_COMB,
+    /** C combinator */
+    C_COMB,
+    /** B combinator */
+    B_COMB,
+    /** Null value */	
+	NULL_COMB,  
+  };
+  
   class SpecialTermData
   {
     friend class Term;
@@ -260,6 +280,19 @@ public:
         size_t binding;
         unsigned sort;
       } _letTupleData;
+      struct {
+        Connective con;//con included in case reuse structure for other HOL connectives - AYB
+        TermList lambdaExp; //review this in light of Evgeny's comment above. Can TermList be used here?
+        IntList* _vars;
+        SortList* _sorts;  
+        unsigned sort; 
+		unsigned expSort;
+      } _lambdaData;
+      struct {
+        TermList lhs;
+        unsigned sort;
+		unsigned lhsSort;
+      } _appData;
     };
     /** Return pointer to the term to which this object is attached */
     const Term* getTerm() const { return reinterpret_cast<const Term*>(this+1); }
@@ -274,12 +307,18 @@ public:
       ASS_REP(getType() == SF_LET || getType() == SF_LET_TUPLE, getType());
       return getType() == SF_LET ? _letData.functor : _letTupleData.functor;
     }
+    IntList* getLambdaVars() const { ASS_EQ(getType(), SF_LAMBDA); return _lambdaData._vars; }
     IntList* getVariables() const { ASS_EQ(getType(), SF_LET); return _letData.variables; }
     IntList* getTupleSymbols() const { return _letTupleData.symbols; }
+    SortList* getVarSorts() const { ASS_EQ(getType(), SF_LAMBDA); return _lambdaData._sorts; }
+    TermList getLambdaExp() const { ASS_EQ(getType(), SF_LAMBDA); return _lambdaData.lambdaExp; }
+    TermList getAppLhs() const { ASS_EQ(getType(), SF_APP); return _appData.lhs; }
     TermList getBinding() const {
       ASS_REP(getType() == SF_LET || getType() == SF_LET_TUPLE, getType());
       return TermList(getType() == SF_LET ? _letData.binding : _letTupleData.binding);
     }
+	unsigned getAppLhsSort() const { ASS_EQ(getType(), SF_APP); return _appData.lhsSort; }
+	unsigned getLambdaExpSort() const { ASS_EQ(getType(), SF_LAMBDA); return _lambdaData.expSort; }
     unsigned getSort() const {
       switch (getType()) {
         case SF_ITE:
@@ -288,6 +327,10 @@ public:
           return _letData.sort;
         case SF_LET_TUPLE:
           return _letTupleData.sort;
+        case SF_LAMBDA:
+          return _lambdaData.sort;
+        case SF_APP:
+          return _appData.sort;
         default:
           ASSERTION_VIOLATION_REP(getType());
       }
@@ -310,6 +353,8 @@ public:
   static Term* createConstant(unsigned symbolNumber) { return create(symbolNumber,0,0); }
   static Term* createITE(Formula * condition, TermList thenBranch, TermList elseBranch, unsigned branchSort);
   static Term* createLet(unsigned functor, IntList* variables, TermList binding, TermList body, unsigned bodySort);
+  static Term* createLambda(TermList lambdaExp, Connective con, IntList* vars, SortList* sorts, unsigned expSort);
+  static Term* createApp(TermList lhs, TermList rhs, unsigned lhsSort, unsigned appSort);
   static Term* createTupleLet(unsigned functor, IntList* symbols, TermList binding, TermList body, unsigned bodySort);
   static Term* createFormula(Formula* formula);
   static Term* createTuple(unsigned arity, unsigned* sorts, TermList* elements);
@@ -444,6 +489,15 @@ public:
     return _isTwoVarEquality;
   }
 
+  const bool isSKICombinator()
+  {
+	return (_combinator != NULL_COMB);  
+  } 
+  void setCombinator(Comb comb)
+  {
+	  _combinator = comb;
+  }
+  
   const vstring& functionName() const;
 
   /** True if the term is, in fact, a literal */
@@ -543,6 +597,8 @@ public:
   bool isTupleLet() const { return functor() == SF_LET_TUPLE; }
   bool isTuple() const { return functor() == SF_TUPLE; }
   bool isFormula() const { return functor() == SF_FORMULA; }
+  bool isLambda() const { return functor() == SF_LAMBDA; }
+  bool isApp() const { return functor() == SF_APP; }
   bool isBoolean() const;
   /** Return pointer to structure containing extra data for special terms such as
    * if-then-else or let...in */
@@ -605,6 +661,9 @@ protected:
 
 #endif
 
+   /** If term represents a combinator, set to relevent value. 
+       Otherwise equal to NULL_COMB */
+  Comb _combinator = NULL_COMB;
   /** The number of this symbol in a signature */
   unsigned _functor;
   /** Arity of the symbol */

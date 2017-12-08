@@ -192,14 +192,14 @@ void Preprocess::preprocess(Problem& prb)
     }
   }
 
-  if (prb.hasFOOL()) {
+  if (prb.hasFOOL() | prb.hasApp() | prb.hasLambda()) {
     // This is the point to extend the signature with $$true and $$false
     // If we don't have fool then these constants get in the way (a lot)
 
     if (!_options.newCNF()) {
       if (env.options->showPreprocessing())
-        env.out() << "FOOL elimination" << std::endl;
-      TheoryAxioms(prb).applyFOOL();
+        env.out() << "FOOL, Application & Lambda elimination" << std::endl;
+      TheoryAxioms().applyFOOL(prb);
       FOOLElimination().apply(prb);
     }
   }
