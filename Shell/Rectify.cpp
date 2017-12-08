@@ -624,7 +624,7 @@ Rectify::VarList* Rectify::rectifyBoundVars (VarList* vs, bool removeUnusedSorts
       w = wWithUsg.first;
 
 	  if(removeUnusedSorts){
-	    _sorts = _sorts->cons(sorts.pop());
+	    _sorts = SortList::cons(sorts.pop(), _sorts);
 	  }
       if (v == w && vtail == ws) {
         res = vs;

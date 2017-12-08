@@ -199,7 +199,7 @@ void Preprocess::preprocess(Problem& prb)
     if (!_options.newCNF()) {
       if (env.options->showPreprocessing())
         env.out() << "FOOL, Application & Lambda elimination" << std::endl;
-      TheoryAxioms().applyFOOL(prb);
+      TheoryAxioms(prb).applyFOOL();
       FOOLElimination().apply(prb);
     }
   }

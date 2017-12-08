@@ -1,0 +1,4 @@
+tff(a,type, predP : ($i > $o )).
+tff(a,type, predQ : ($i > $o )).
+tff(a,axiom, ![X:$i] :predP(X)).
+tff(a,conjecture, predP(X) = $true).
