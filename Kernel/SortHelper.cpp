@@ -417,33 +417,33 @@ void SortHelper::collectVariableSortsIter(CollectTask task, DHMap<unsigned,unsig
             todo.push(newTask);
           } break;
 
-		  case Term::SF_LAMBDA: {
-			CollectTask newTask;
-			newTask.fncTag = COLLECT_TERMLIST;
+          case Term::SF_LAMBDA: {
+            CollectTask newTask;
+            newTask.fncTag = COLLECT_TERMLIST;
             newTask.contextSort = sd->getLambdaExpSort();
-			newTask.ts = sd->getLambdaExp();
-            todo.push(newTask);  			 
-		  } break;
-		  
-		  case Term::SF_APP: {
-			CollectTask newTask;
+            newTask.ts = sd->getLambdaExp();
+            todo.push(newTask);              
+          } break;
+          
+          case Term::SF_APP: {
+            CollectTask newTask;
 
             newTask.fncTag = COLLECT_TERMLIST;
-			TermList lhs = sd->getAppLhs();
-			TermList rhs =  *term->nthArgument(0);
-	
-			unsigned lhsSort = sd->getAppLhsSort();
-			unsigned rhsSort = env.sorts->getFuncSort(lhsSort)->getDomainSort();
-			
+            TermList lhs = sd->getAppLhs();
+            TermList rhs =  *term->nthArgument(0);
+    
+            unsigned lhsSort = sd->getAppLhsSort();
+            unsigned rhsSort = env.sorts->getFuncSort(lhsSort)->getDomainSort();
+            
             newTask.contextSort = lhsSort;
             newTask.ts = lhs;
             todo.push(newTask);
 
-		    newTask.contextSort = rhsSort;
+            newTask.contextSort = rhsSort;
             newTask.ts = rhs;
             todo.push(newTask);
-		  } break;
-		  
+          } break;
+          
       #if VDEBUG
           default:
             ASSERTION_VIOLATION;
@@ -759,6 +759,37 @@ bool SortHelper::tryGetVariableSort(TermList var, Term* t0, unsigned& result)
       }
       continue;
     }
+    if (t->isApp()) {
+        Stack<TermList> terms;
+        Stack<unsigned> sorts;
+        
+        terms.push(t->getSpecialData()->getAppLhs());
+        terms.push(*t->nthArgument(0));
+        
+        sorts.push(t->getSpecialData()->getAppLhsSort());
+        sorts.push(env.sorts->getFuncSort(sorts.top())->getDomainSort());
+        
+        TermList current;
+        unsigned currSort;
+        while(!terms.isEmpty()){
+            current = terms.pop();
+            currSort = sorts.pop();
+            if(current.isVar() && current == var){
+                result = currSort;
+                return true;
+            }else if(current.isTerm() && current.term()->isApp()){
+                Term* tm = current.term();
+                terms.push(tm->getSpecialData()->getAppLhs());
+                terms.push(*tm->nthArgument(0));
+        
+                sorts.push(tm->getSpecialData()->getAppLhsSort());
+                sorts.push(env.sorts->getFuncSort(sorts.top())->getDomainSort());
+            }else{
+                //need to deal with this AYB!
+            }
+        }
+        continue; 
+    }
     if (t->shared() && t->ground()) {
       sit.right();
       continue;
@@ -797,7 +828,7 @@ bool SortHelper::areImmediateSortsValid(Term* t)
       Term* ta = arg.term();
       unsigned argSort = getResultSort(ta);
       if (eqSrt != argSort) {
-		
+        
         return false;
       }
     }
@@ -861,18 +892,18 @@ bool SortHelper::areSortsValid(Term* t0, DHMap<unsigned,unsigned>& varSorts)
       unsigned argSrt = getArgSort(t,idx);
       TermList arg = *args;
       if (arg.isVar()) {
-	unsigned varSrt;
-	if (!varSorts.findOrInsert(arg.var(), varSrt, argSrt)) {
-	  //the variable is not new
-	  if (varSrt != argSrt) {
-	    return false;
-	  }
-	}
+    unsigned varSrt;
+    if (!varSorts.findOrInsert(arg.var(), varSrt, argSrt)) {
+      //the variable is not new
+      if (varSrt != argSrt) {
+        return false;
+      }
+    }
       }
       else {
-	if (argSrt != getResultSort(arg.term())) {
-	  return false;
-	}
+    if (argSrt != getResultSort(arg.term())) {
+      return false;
+    }
       }
       idx++;
       args=args->next();

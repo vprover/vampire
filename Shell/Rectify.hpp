@@ -97,7 +97,7 @@ private:
   FormulaList* rectify(FormulaList*);
   void bindVars(VarList*);
   void unbindVars(VarList*);
-  VarList* rectifyBoundVars(VarList*, bool removeUnusedVars = false);
+  VarList* rectifyBoundVars(VarList*, bool removeUnusedSorts = false);
   TermList rectify(TermList);
   Term* rectify(Term* t);
   Term* rectifySpecialTerm(Term* t);

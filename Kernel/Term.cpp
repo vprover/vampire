@@ -1267,9 +1267,6 @@ Literal* Literal::create(Literal* l,TermList* args)
   ASS_EQ(l->getPreDataSize(), 0);
 
   if (l->isEquality()) {
-	cout << "The literal is: " + l->toString() << endl;
-	cout << "the first arg is: " + args[0].toString();
-	cout << "   the second arg is: " + args[1].toString() << endl;
     return createEquality(l->polarity(), args[0], args[1], SortHelper::getEqualityArgumentSort(l));
   }
 
@@ -1314,6 +1311,7 @@ Literal* Literal::createEquality (bool polarity, TermList arg1, TermList arg2, u
    }
    else {
 	// ASS_REP2(srt1 == sort, arg1.toString(), arg2.toString());
+	 ASS_REP(srt1 == sort, env.sorts->sortName(sort));
      ASS_EQ(srt1, sort);
 #if VDEBUG
      if (SortHelper::tryGetResultSort(arg2, srt2)) {
