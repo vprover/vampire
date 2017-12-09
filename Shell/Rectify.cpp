@@ -259,8 +259,7 @@ Term* Rectify::rectifySpecialTerm(Term* t)
     if (vs == sd->getLambdaVars() && lambdaTerm == sd->getLambdaExp()) {
       return t;
     }
-    return Term::createLambda(lambdaTerm, Connective::LAMBDA, vs, sd->getVarSorts(), sd->getLambdaExpSort()); 
-    //t->getVarSorts dodgy, look at comment above. AYB	
+    return Term::createLambda(lambdaTerm, Connective::LAMBDA, vs, sd->getVarSorts(), sd->getLambdaExpSort()); 	
   }
   default:
     ASSERTION_VIOLATION;
@@ -472,8 +471,8 @@ Formula* Rectify::rectify (Formula* f)
     Formula* arg = rectify(f->qarg());
 	_sorts = f->sorts();
 	VarList* vs;
-	if(!SortList::isEmpty(_sorts)){//hacky in the extreme - AYB
-       vs = rectifyBoundVars(f->vars(),true);
+	if(!SortList::isEmpty(_sorts)){
+       vs = rectifyBoundVars(f->vars(), true);
 	}else{
 	   vs = rectifyBoundVars(f->vars());	
 	}
@@ -487,7 +486,7 @@ Formula* Rectify::rectify (Formula* f)
     //TODO should update the sorts from f->sorts() wrt to updated vs
     //     or is the rectification just renaming, if so f->sorts can 
     //     just be reused
-    return new QuantifiedFormula(f->connective(),vs,_sorts,arg); 
+    return new QuantifiedFormula(f->connective(),vs,0,arg); 
   }
 
   case TRUE:

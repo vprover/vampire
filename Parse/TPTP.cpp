@@ -1417,7 +1417,7 @@ void TPTP::tff()
          USER_ERROR("Function symbol type is declared after its use: " + nm);
       }
       symbol = env.signature->getFunction(fun);
-      symbol->setType(new FunctionType(sort));
+      symbol->setType(OperatorType::getConstantsType(sort));
 	  while (lpars--) {
 	consumeToken(T_RPAR);
       }

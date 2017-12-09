@@ -651,7 +651,7 @@ void LambdaElimination::buildFuncApp(unsigned symbol, TermList arg1, TermList ar
      
      switch(comb){
         case Term::I_COMB: {    
-            combAxiom = createEquality(functionApplied, var1);
+            combAxiom = createEquality(functionApplied, var1, argSort);
             combAxiom = new QuantifiedFormula(FORALL, varList, sortList, combAxiom);
             break;
         }
@@ -665,7 +665,7 @@ void LambdaElimination::buildFuncApp(unsigned symbol, TermList arg1, TermList ar
             varList = varList->addLast(varList, var2.var());
             sortList = sortList->addLast(sortList, arg1Sort);
                     
-            combAxiom = createEquality(functionApplied2, var1);
+            combAxiom = createEquality(functionApplied2, var1, argSort);
             combAxiom = new QuantifiedFormula(FORALL, varList, sortList, combAxiom); 
             break; 
         }
@@ -720,7 +720,7 @@ void LambdaElimination::buildFuncApp(unsigned symbol, TermList arg1, TermList ar
                 buildFuncApp(appFun, functionApplied5, var2, functionApplied6); 
             }
 
-            combAxiom = createEquality(functionApplied3, functionApplied6);
+            combAxiom = createEquality(functionApplied3, functionApplied6, sortOf(functionApplied3));
             combAxiom = new QuantifiedFormula(FORALL, varList,sortList, combAxiom); 
             break;
         }
@@ -840,7 +840,7 @@ void LambdaElimination::buildFuncApp(unsigned symbol, TermList arg1, TermList ar
     appFun = introduceAppSymbol( range(equalsSort), argsSort, range(range(equalsSort)));
     buildFuncApp(appFun, functionApplied, var2, functionApplied);
     
-    equalityBetweenVars = createEquality(var1, var2);
+    equalityBetweenVars = createEquality(var1, var2, argsSort);
     
     equalityAxiom = toEquality(functionApplied);
     equalityAxiom = new BinaryFormula(IFF, equalityAxiom, equalityBetweenVars);
@@ -893,8 +893,8 @@ void LambdaElimination::buildFuncApp(unsigned symbol, TermList arg1, TermList ar
     addAxiom(new FormulaUnit(binaryConnAxiom, binConInf, Unit::AXIOM));  
  }
  
- Formula* LambdaElimination::createEquality(TermList t1, TermList t2) {
-   Literal* equality = Literal::createEquality(true, t1, t2, sortOf(t1));
+ Formula* LambdaElimination::createEquality(TermList t1, TermList t2, unsigned sort) {
+   Literal* equality = Literal::createEquality(true, t1, t2, sort);
    return new AtomicFormula(equality);
      
  }

@@ -60,7 +60,7 @@ private:
   unsigned range(unsigned sort);
   unsigned domain(unsigned sort);
   
-  Formula* createEquality(TermList t1, TermList t2);
+  Formula* createEquality(TermList t1, TermList t2, unsigned sort);
   Formula* toEquality(TermList booleanTerm);
   
   TermList processBeyondLambda(Term* term);
