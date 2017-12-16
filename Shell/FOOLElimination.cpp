@@ -802,13 +802,12 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
     unsigned var = (unsigned)ufv.next();
     ASS_REP(Formula::VarList::member(var, resultFreeVars), var);
   }
-  /* //Current algorithm does introduce free variables in FORALL and EXISTS elimination. AYB
+
   Formula::VarList::Iterator pfv(resultFreeVars);
   while (pfv.hasNext()) {
     unsigned var = (unsigned)pfv.next();
     ASS_REP(Formula::VarList::member(var, freeVars), var);
   }
-  */
   
   
   // special subterms should be eliminated

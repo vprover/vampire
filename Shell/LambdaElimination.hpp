@@ -41,7 +41,7 @@ private:
   unsigned sortOf(TermList t);
 
   
-  void addToProcessed(TermList ts);
+  void addToProcessed(TermList ts, 	Stack<unsigned> &_argNums);
   /** Add a new definitions to _defs */
   void addAxiom(FormulaUnit* axiom);
 
@@ -55,7 +55,7 @@ private:
   // Introduces a fresh predicate or function (depending on the context) symbol
   // with given arguments and result sort
 
-  void dealWithApp(TermList lhs, TermList rhs, unsigned sort, int lambdaVar);
+  void dealWithApp(TermList lhs, TermList rhs, unsigned sort, int lambdaVar, Stack<TermList> &_toBeProcessed, Stack<unsigned> &_argNums);
   
   unsigned range(unsigned sort);
   unsigned domain(unsigned sort);
@@ -68,15 +68,15 @@ private:
   TermList addComb(unsigned appliedToArgs, TermList arg1, TermList arg2, Term::Comb comb);
   
   TermList addHolConstant(vstring name, unsigned sort, bool& added, Term::Comb combType);
-  void process();
+  void process(Stack<int> _vars, Stack<unsigned> _sorts, Stack<TermList> _toBeProcessed);
   
   /** Lexical scope of the current unit */
   DHMap<unsigned,unsigned> _varSorts;
   
-  Stack<int> _vars;
-  Stack<unsigned> _sorts;
-  Stack<unsigned> _argNums;
-  Stack<TermList> _toBeProcessed;
+  //Stack<int> _vars;
+  //Stack<unsigned> _sorts;
+  //Stack<unsigned> _argNums;
+  //Stack<TermList> _toBeProcessed;
   Stack<TermList> _processed;
   Stack<Term::Comb> _combinators;
   Stack<unsigned> _combSorts;
