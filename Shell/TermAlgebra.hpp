@@ -24,7 +24,10 @@
 #include "Lib/Allocator.hpp"
 #include "Lib/List.hpp"
 #include "Lib/Array.hpp"
+#include "Lib/Environment.hpp"
+#include "Lib/Map.hpp"
 #include "Lib/VString.hpp"
+#include "Kernel/Signature.hpp"
 #include "Kernel/Sorts.hpp"
 
 namespace Shell {
@@ -40,9 +43,10 @@ namespace Shell {
     TermAlgebraConstructor(unsigned functor, unsigned discriminator, Lib::Array<unsigned> destructors);
     ~TermAlgebraConstructor() {}
 
-    unsigned arity();
-    unsigned argSort(unsigned ith);
-    unsigned rangeSort();
+    unsigned arity() { return _type->arity(); }
+    unsigned argSort(unsigned ith) { return _type->arg(ith); }
+    unsigned rangeSort() { return _type->result(); }
+    Lib::vstring name();
 
     /* True iff one of the arguments has the same sort as the range */
     bool recursive();
@@ -58,6 +62,9 @@ namespace Shell {
     void addDiscriminator(unsigned d) { ASS(!_hasDiscriminator); _hasDiscriminator = true; _discriminator = d; }
 
     Lib::vstring discriminatorName();
+
+    Lib::vstring getCtxFunctionName();
+    unsigned getCtxFunction();
     
   private:
     Kernel::OperatorType* _type;
@@ -90,6 +97,7 @@ namespace Shell {
     unsigned nConstructors() { return _n; }
     TermAlgebraConstructor* constructor(unsigned ith) { ASS_L(ith, _n); return _constrs[ith]; }
     bool allowsCyclicTerms() { return _allowsCyclicTerms; }
+    Lib::vstring name() { return Lib::env.sorts->sortName(_sort); }
 
     /* True iff the algebra defines an empty domain, which could be
        due to:
@@ -103,20 +111,28 @@ namespace Shell {
     /* True iff one of the constructors is recursive */
     bool infiniteDomain();
 
-    /* The predicate of the subterm relation, used only if the option
-       -tac is set to "axiom" and allowsCyclicTerms is false */
+    /* True iff a term of the term algebra ta can appear under
+       constructors of this algebra */
+    bool subtermReachable(TermAlgebra* ta);
+
+    /* The predicate of the subterm relation for axioms of
+       datatypes */
     Lib::vstring getSubtermPredicateName();
     unsigned getSubtermPredicate();
 
-    /* The substitution and cycle functions, used only if the option
-       -tac is set to "axiom" and allowsCyclicTerms is true*/
-    Lib::vstring getSubstFunctionName();
-    unsigned getSubstFunction();
+    /* The constant-context, cycle and application functions, used
+       only for axioms of co-datatypes */
+    unsigned contextSort(TermAlgebra* ta);
+    Lib::vstring getCstFunctionName();
+    unsigned getCstFunction();
     Lib::vstring getCycleFunctionName();
     unsigned getCycleFunction();
+    Lib::vstring getAppFunctionName(TermAlgebra* ta);
+    unsigned getAppFunction(TermAlgebra* ta);
 
   private:
     unsigned _sort;
+    Lib::Map<TermAlgebra*, unsigned> _contextSorts; /* sorts of context (used to axiomatize codatatypes) */
     unsigned _n; /* number of constructors */
     bool _allowsCyclicTerms;
     ConstructorArray _constrs;

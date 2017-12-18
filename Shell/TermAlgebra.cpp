@@ -26,31 +26,39 @@ using namespace Lib;
 
 namespace Shell {
 
+vstring TermAlgebraConstructor::name()
+{
+  return Lib::env.signature->functionName(_functor);
+}
+
 TermAlgebraConstructor::TermAlgebraConstructor(unsigned functor, Lib::Array<unsigned> destructors)
-  : _functor(functor), _hasDiscriminator(false), _destructors(destructors)
+  : _functor(functor),
+    _hasDiscriminator(false),
+    _destructors(destructors)
 {
   _type = env.signature->getFunction(_functor)->fnType();
-  ASS_REP(env.signature->getFunction(_functor)->termAlgebraCons(), env.signature->functionName(_functor));
+  ASS_REP(env.signature->getFunction(_functor)->termAlgebraCons(),
+          env.signature->functionName(_functor));
   ASS_EQ(_type->arity(), destructors.size());
 }
 
 TermAlgebraConstructor::TermAlgebraConstructor(unsigned functor, unsigned discriminator, Lib::Array<unsigned> destructors)
-  : _functor(functor), _hasDiscriminator(true), _discriminator(discriminator), _destructors(destructors)
+  : _functor(functor),
+    _hasDiscriminator(true),
+    _discriminator(discriminator),
+    _destructors(destructors)
 {
   _type = env.signature->getFunction(_functor)->fnType();
-  ASS_REP(env.signature->getFunction(_functor)->termAlgebraCons(), env.signature->functionName(_functor));
+  ASS_REP(env.signature->getFunction(_functor)->termAlgebraCons(),
+          env.signature->functionName(_functor));
   ASS_EQ(_type->arity(), destructors.size());
 }
-
-unsigned TermAlgebraConstructor::arity()               { return _type->arity();  }
-unsigned TermAlgebraConstructor::argSort(unsigned ith) { return _type->arg(ith); }
-unsigned TermAlgebraConstructor::rangeSort()           { return _type->result(); }
 
 bool TermAlgebraConstructor::recursive()
 {
   CALL("TermAlgebraConstructor::recursive");
 
-  for (unsigned i=0; i < _type->arity(); i++) {
+  for (unsigned i=0; i < arity(); i++) {
     if (_type->arg(i) == _type->result()) {
       // this constructor has a recursive argument
       return true;
@@ -63,7 +71,25 @@ Lib::vstring TermAlgebraConstructor::discriminatorName()
 {
   CALL("TermAlgebraConstructor::discriminatorName");
 
-  return "$is" + env.signature->functionName(_functor);
+  return "$is_" + name();
+}
+
+Lib::vstring TermAlgebraConstructor::getCtxFunctionName() {
+  return "$ctx_" + name();
+}
+
+unsigned TermAlgebraConstructor::getCtxFunction() {
+  CALL("TermAlgebra::getCtxFunction");
+
+  bool added;
+  unsigned s = env.signature->addFunction(getCtxFunctionName(), arity(), added);
+
+  //TODO
+  /*if (added) {
+    env.signature->getFunction(s)->setType(OperatorType::getFunctionType({contextSort(), _sort}, _sort));
+    }*/
+
+  return s;
 }
 
 TermAlgebra::TermAlgebra(unsigned sort,
@@ -126,9 +152,27 @@ bool TermAlgebra::infiniteDomain()
 
   return false;
 }
+
+bool TermAlgebra::subtermReachable(TermAlgebra *ta)
+{
+  CALL("TermAlgebra::subtermReachable");
+
+  for (unsigned i = 0; i < _n; i++) {
+    TermAlgebraConstructor* c = _constrs[i];
+    for (unsigned j = 0; j < c->arity(); j++) {
+      unsigned s = c->argSort(j);
+      if (s == ta->sort() ||
+          (env.signature->isTermAlgebraSort(s)
+           && env.signature->getTermAlgebraOfSort(s)->subtermReachable(ta))) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
   
 Lib::vstring TermAlgebra::getSubtermPredicateName() {
-  return "$subterm" + env.sorts->sortName(_sort);
+  return "$subterm_" + env.sorts->sortName(_sort);
 }
 
 unsigned TermAlgebra::getSubtermPredicate() {
@@ -139,43 +183,68 @@ unsigned TermAlgebra::getSubtermPredicate() {
 
   if (added) {
     // declare a binary predicate subterm
-    env.signature->getPredicate(s)->setType(new PredicateType({_sort, _sort}));
+    env.signature->getPredicate(s)->setType(OperatorType::getPredicateType({_sort, _sort}));
   }
 
   return s;
 }
 
-Lib::vstring TermAlgebra::getSubstFunctionName() {
-  return "$subst" + env.sorts->sortName(_sort);
+unsigned TermAlgebra::contextSort(TermAlgebra* ta) {
+  if (_contextSorts.find(ta)) {
+    return _contextSorts.get(ta);
+  } else {
+    unsigned s = env.sorts->addSort("ctx_" + name() + "_" + ta->name(), false);
+    _contextSorts.insert(ta, s);
+    return s;
+  }
 }
 
-unsigned TermAlgebra::getSubstFunction() {
-  CALL("TermAlgebra::getSubstFunction");
+Lib::vstring TermAlgebra::getCstFunctionName() {
+  return "$cst_" + name();
+}
+
+unsigned TermAlgebra::getCstFunction() {
+  CALL("TermAlgebra::getCstFunction");
 
   bool added;
-  unsigned s = env.signature->addFunction(getSubstFunctionName(), 3, added);
+  unsigned s = env.signature->addFunction(getSubstFunctionName(), 1, added);
 
   if (added) {
-    // declare a ternary function subst
-    env.signature->getFunction(s)->setType(new FunctionType({_sort, _sort, _sort}, _sort));
+    env.signature->getFunction(s)->setType(OperatorType::getFunctionType({_sort}, contextSort(this)));
   }
 
   return s;
 }
 
 Lib::vstring TermAlgebra::getCycleFunctionName() {
-  return "$cycle" + env.sorts->sortName(_sort);
+  return "$cycle_" + name();
 }
 
 unsigned TermAlgebra::getCycleFunction() {
   CALL("TermAlgebra::getCycleFunction");
 
   bool added;
+  unsigned s = env.signature->addFunction(getCycleFunctionName(), 1, added);
+
+  if (added) {
+    env.signature->getFunction(s)->setType(OperatorType::getFunctionType({contextSort(this)}, _sort));
+  }
+
+  return s;
+}
+
+Lib::vstring TermAlgebra::getAppFunctionName(TermAlgebra* ta) {
+  return "$app_" + name() + "_" + ta->name();
+}
+
+unsigned TermAlgebra::getAppFunction(TermAlgebra* ta) {
+  CALL("TermAlgebra::getAppFunction");
+
+  bool added;
   unsigned s = env.signature->addFunction(getCycleFunctionName(), 2, added);
 
   if (added) {
-    // declare a binary function cycle
-    env.signature->getFunction(s)->setType(new FunctionType({_sort, _sort}, _sort));
+    env.signature->getFunction(s)->setType(OperatorType::getFunctionType({contextSort(ta), ta->sort()}, _sort));
   }
 
   return s;
