@@ -1130,229 +1130,229 @@ private:
         vstring getStringOfValue(long value) const{ return Lib::Int::toString(value); }
     };
     
-    struct FloatOptionValue : public OptionValue<float>{
-        FloatOptionValue(){}
-        FloatOptionValue(vstring l,vstring s, float d) : OptionValue(l,s,d){}
-        bool setValue(const vstring& value){
-            return Int::stringToFloat(value.c_str(),actualValue);
-        }
-        vstring getStringOfValue(float value) const{ return Lib::Int::toString(value); }
-    };
-    
-    /**
-     * Ratios have two actual values and two default values
-     * Therefore, we often need to tread them specially
-     * @author Giles
-     */
-    struct RatioOptionValue : public OptionValue<int> {
-        
-        CLASS_NAME(RatioOptionValue);
-        USE_ALLOCATOR(RatioOptionValue);
-        
-        RatioOptionValue(){}
-        RatioOptionValue(vstring l, vstring s, int def, int other, char sp=':') :
-        OptionValue(l,s,def), sep(sp), defaultOtherValue(other), otherValue(other) {};
-        
-        virtual OptionValueConstraint<int>* getNotDefault() override { return isNotDefaultRatio(); }
+struct FloatOptionValue : public OptionValue<float>{
+FloatOptionValue(){}
+FloatOptionValue(vstring l,vstring s, float d) : OptionValue(l,s,d){}
+bool setValue(const vstring& value){
+    return Int::stringToFloat(value.c_str(),actualValue);
+}
+vstring getStringOfValue(float value) const{ return Lib::Int::toString(value); }
+};
 
-        template<typename S>
-        void addConstraintIfNotDefault(WrappedConstraint<S>* c){
-            addConstraint(If(isNotDefaultRatio()).then(c));
-        }
-        
-        bool readRatio(const char* val,char seperator);
-        bool setValue(const vstring& value) override {
-            return readRatio(value.c_str(),sep);
-        }
-        
-        char sep;
-        int defaultOtherValue;
-        int otherValue;
-        
-        virtual void output(ostream& out) const override {
-            AbstractOptionValue::output(out);
-            out << "\tdefault left: " << defaultValue << endl;
-            out << "\tdefault right: " << defaultOtherValue << endl;
-        }
-        
-        virtual vstring getStringOfValue(int value) const override { ASSERTION_VIOLATION;}
-        virtual vstring getStringOfActual() const override {
-            return Lib::Int::toString(actualValue)+sep+Lib::Int::toString(otherValue);
-        }
-        
-    };
-    
-    // We now have a number of option-specific values
-    // These are necessary when the option needs to be read in a special way
-    
-    /**
-     * Oddly gets set with a float value and then creates a ratio of value*100/100
-     * @author Giles
-     */
-    struct NonGoalWeightOptionValue : public OptionValue<float>{
-        
-        CLASS_NAME(NonGoalWeightOptionValue);
-        USE_ALLOCATOR(NonGoalWeightOptionValue);
-        
-        NonGoalWeightOptionValue(){}
-        NonGoalWeightOptionValue(vstring l, vstring s, float def) :
-        OptionValue(l,s,def), numerator(1), denominator(1) {};
-        
-        bool setValue(const vstring& value);
-        
-        // output does not output numerator and denominator as they
-        // are produced from defaultValue
-        int numerator;
-        int denominator;
-        
-        virtual vstring getStringOfValue(float value) const{ return Lib::Int::toString(value); }
-    };
-    
-    /**
-     * Selection is defined by a set of integers (TODO: make enum)
-     * For now we need to check the integer is a valid one
-     * @author Giles
-     */
-    struct SelectionOptionValue : public OptionValue<int>{
-        SelectionOptionValue(){}
-        SelectionOptionValue(vstring l,vstring s, int def):
-        OptionValue(l,s,def){};
-        
-        bool setValue(const vstring& value);
-        
-        virtual void output(ostream& out) const {
-            AbstractOptionValue::output(out);
-            out << "\tdefault: " << defaultValue << endl;;
-        }
-        
-        virtual vstring getStringOfValue(int value) const{ return Lib::Int::toString(value); }
+/**
+* Ratios have two actual values and two default values
+* Therefore, we often need to tread them specially
+* @author Giles
+*/
+struct RatioOptionValue : public OptionValue<int> {
+
+CLASS_NAME(RatioOptionValue);
+USE_ALLOCATOR(RatioOptionValue);
+
+RatioOptionValue(){}
+RatioOptionValue(vstring l, vstring s, int def, int other, char sp=':') :
+OptionValue(l,s,def), sep(sp), defaultOtherValue(other), otherValue(other) {};
+
+virtual OptionValueConstraint<int>* getNotDefault() override { return isNotDefaultRatio(); }
+
+template<typename S>
+void addConstraintIfNotDefault(WrappedConstraint<S>* c){
+    addConstraint(If(isNotDefaultRatio()).then(c));
+}
+
+bool readRatio(const char* val,char seperator);
+bool setValue(const vstring& value) override {
+    return readRatio(value.c_str(),sep);
+}
+
+char sep;
+int defaultOtherValue;
+int otherValue;
+
+virtual void output(ostream& out) const override {
+    AbstractOptionValue::output(out);
+    out << "\tdefault left: " << defaultValue << endl;
+    out << "\tdefault right: " << defaultOtherValue << endl;
+}
+
+virtual vstring getStringOfValue(int value) const override { ASSERTION_VIOLATION;}
+virtual vstring getStringOfActual() const override {
+    return Lib::Int::toString(actualValue)+sep+Lib::Int::toString(otherValue);
+}
+
+};
+
+// We now have a number of option-specific values
+// These are necessary when the option needs to be read in a special way
+
+/**
+* Oddly gets set with a float value and then creates a ratio of value*100/100
+* @author Giles
+*/
+struct NonGoalWeightOptionValue : public OptionValue<float>{
+
+CLASS_NAME(NonGoalWeightOptionValue);
+USE_ALLOCATOR(NonGoalWeightOptionValue);
+
+NonGoalWeightOptionValue(){}
+NonGoalWeightOptionValue(vstring l, vstring s, float def) :
+OptionValue(l,s,def), numerator(1), denominator(1) {};
+
+bool setValue(const vstring& value);
+
+// output does not output numerator and denominator as they
+// are produced from defaultValue
+int numerator;
+int denominator;
+
+virtual vstring getStringOfValue(float value) const{ return Lib::Int::toString(value); }
+};
+
+/**
+* Selection is defined by a set of integers (TODO: make enum)
+* For now we need to check the integer is a valid one
+* @author Giles
+*/
+struct SelectionOptionValue : public OptionValue<int>{
+SelectionOptionValue(){}
+SelectionOptionValue(vstring l,vstring s, int def):
+OptionValue(l,s,def){};
+
+bool setValue(const vstring& value);
+
+virtual void output(ostream& out) const {
+    AbstractOptionValue::output(out);
+    out << "\tdefault: " << defaultValue << endl;;
+}
+
+virtual vstring getStringOfValue(int value) const{ return Lib::Int::toString(value); }
 
 
-        WrappedConstraint<int>* isLookAheadSelection(){
-          return new WrappedConstraint<int>(this,new isLookAheadSelectionConstraint());
-        }
-    };
-    
-    /**
-     * This also updates problemName
-     * @author Giles
-     */
-    struct InputFileOptionValue : public OptionValue<vstring>{
-        InputFileOptionValue(){}
-        InputFileOptionValue(vstring l,vstring s, vstring def,Options* p):
-        OptionValue(l,s,def), parent(p){};
-        
-        bool setValue(const vstring& value);
-        
-        virtual void output(ostream& out) const {
-            AbstractOptionValue::output(out);
-            out << "\tdefault: " << defaultValue << endl;;
-        }
-        virtual vstring getStringOfValue(vstring value) const{ return value; }
-    private:
-        Options* parent;
-        
-    };
-    /**
-     * We need to decode the encoded option string
-     * @author Giles
-     */
-    struct DecodeOptionValue : public OptionValue<vstring>{
-        DecodeOptionValue(){ AbstractOptionValue::_should_copy=false;}
-        DecodeOptionValue(vstring l,vstring s,Options* p):
-        OptionValue(l,s,""), parent(p){ AbstractOptionValue::_should_copy=false;}
-        
-        bool setValue(const vstring& value){
-            parent->readFromEncodedOptions(value);
-            return true;
-        }
-        virtual vstring getStringOfValue(vstring value) const{ return value; }
-        
-    private:
-        Options* parent;
-        
-    };
-    /**
-     * Need to read the time limit. By default it assumes seconds (and stores deciseconds) but you can give
-     * a multiplier i.e. d,s,m,h,D for deciseconds,seconds,minutes,hours,Days
-     * @author Giles
-     */
-    struct TimeLimitOptionValue : public OptionValue<int>{
-        TimeLimitOptionValue(){}
-        TimeLimitOptionValue(vstring l, vstring s, float def) :
-        OptionValue(l,s,def) {};
-        
-        bool setValue(const vstring& value);
-        
-        virtual void output(ostream& out) const {
-            CALL("Options::TimeLimitOptionValue::output");
-            AbstractOptionValue::output(out);
-            out << "\tdefault: " << defaultValue << "d" << endl;
-        }
-        virtual vstring getStringOfValue(int value) const{ return Lib::Int::toString(value)+"d"; }
-    };
-    
-    /**
-     * NOTE on OptionValueConstraints
-     *
-     * OptionValueConstraints are used to declare constraints on and between option values
-     * these are checked in checkGlobalOptionConstraints, which should be called after
-     * Options is updated
-     *
-     * As usual, see Options.cpp for examples.
-     *
-     * There are two kinds of ValueConstraints (see below for ProblemConstraints)
-     *
-     * - Unary constraints such as greaterThan, equals, ...
-     * - If-then constraints that capture dependencies
-     *
-     * In both cases an attempt has been made to make the declaration of constraints
-     * in Options.cpp as readable as possible. For example, an If-then constraint is
-     * written as follows
-     *
-     *  If(equals(0)).then(_otherOption.is(lessThan(5)))
-     *
-     * Note that the equals(0) will apply to the OptionValue that the constraint belongs to
-     *
-     * WrappedConstraints are produced by OptionValue.is and are used to provide constraints
-     * on other OptionValues, as seen in the example above. Most functions work with both
-     * OptionValueConstraint and WrappedConstraint but in some cases one of these options
-     * may need to be added. In this case see examples from AddWrapper below.
-     *
-     */
-    template<typename T>
-    struct WrappedConstraint;
-    
-    template<typename T>
-    struct OptionValueConstraint{
-        CLASS_NAME(OptionValueConstraint);
-        USE_ALLOCATOR(OptionValueConstraint);
-        OptionValueConstraint() : _hard(false) {}
-        
-        virtual bool check(OptionValue<T>* value) = 0;
-        virtual bool check(){ ASSERTION_VIOLATION; }
-        virtual vstring msg(OptionValue<T>* value) = 0;
-        virtual vstring msg() { ASSERTION_VIOLATION; }
-        
-        // By default cannot force constraint
-        virtual bool force(OptionValue<T>* value){ return false;}
-        // TODO - allow for hard constraints
-        bool isHard(){ return _hard; }
-        void setHard(){ _hard=true;}
-        bool _hard;
-        
-        OptionValueConstraint<T>* And(OptionValueConstraint<T>* another);
-        OptionValueConstraint<T>* Or(OptionValueConstraint<T>* another);
-        
-        template<typename S>
-        OptionValueConstraint<T>* And(WrappedConstraint<S>* another);
-        template<typename S>
-        OptionValueConstraint<T>* Or(WrappedConstraint<S>* another);
-        
-    };
-    
-    
-    // A Wrapped Constraint takes an OptionValue and a Constraint
+WrappedConstraint<int>* isLookAheadSelection(){
+  return new WrappedConstraint<int>(this,new isLookAheadSelectionConstraint());
+}
+};
+
+/**
+* This also updates problemName
+* @author Giles
+*/
+struct InputFileOptionValue : public OptionValue<vstring>{
+InputFileOptionValue(){}
+InputFileOptionValue(vstring l,vstring s, vstring def,Options* p):
+OptionValue(l,s,def), parent(p){};
+
+bool setValue(const vstring& value);
+
+virtual void output(ostream& out) const {
+    AbstractOptionValue::output(out);
+    out << "\tdefault: " << defaultValue << endl;;
+}
+virtual vstring getStringOfValue(vstring value) const{ return value; }
+private:
+Options* parent;
+
+};
+/**
+* We need to decode the encoded option string
+* @author Giles
+*/
+struct DecodeOptionValue : public OptionValue<vstring>{
+DecodeOptionValue(){ AbstractOptionValue::_should_copy=false;}
+DecodeOptionValue(vstring l,vstring s,Options* p):
+OptionValue(l,s,""), parent(p){ AbstractOptionValue::_should_copy=false;}
+
+bool setValue(const vstring& value){
+    parent->readFromEncodedOptions(value);
+    return true;
+}
+virtual vstring getStringOfValue(vstring value) const{ return value; }
+
+private:
+Options* parent;
+
+};
+/**
+* Need to read the time limit. By default it assumes seconds (and stores deciseconds) but you can give
+* a multiplier i.e. d,s,m,h,D for deciseconds,seconds,minutes,hours,Days
+* @author Giles
+*/
+struct TimeLimitOptionValue : public OptionValue<int>{
+TimeLimitOptionValue(){}
+TimeLimitOptionValue(vstring l, vstring s, float def) :
+OptionValue(l,s,def) {};
+
+bool setValue(const vstring& value);
+
+virtual void output(ostream& out) const {
+    CALL("Options::TimeLimitOptionValue::output");
+    AbstractOptionValue::output(out);
+    out << "\tdefault: " << defaultValue << "d" << endl;
+}
+virtual vstring getStringOfValue(int value) const{ return Lib::Int::toString(value)+"d"; }
+};
+
+/**
+* NOTE on OptionValueConstraints
+*
+* OptionValueConstraints are used to declare constraints on and between option values
+* these are checked in checkGlobalOptionConstraints, which should be called after
+* Options is updated
+*
+* As usual, see Options.cpp for examples.
+*
+* There are two kinds of ValueConstraints (see below for ProblemConstraints)
+*
+* - Unary constraints such as greaterThan, equals, ...
+* - If-then constraints that capture dependencies
+*
+* In both cases an attempt has been made to make the declaration of constraints
+* in Options.cpp as readable as possible. For example, an If-then constraint is
+* written as follows
+*
+*  If(equals(0)).then(_otherOption.is(lessThan(5)))
+*
+* Note that the equals(0) will apply to the OptionValue that the constraint belongs to
+*
+* WrappedConstraints are produced by OptionValue.is and are used to provide constraints
+* on other OptionValues, as seen in the example above. Most functions work with both
+* OptionValueConstraint and WrappedConstraint but in some cases one of these options
+* may need to be added. In this case see examples from AddWrapper below.
+*
+*/
+template<typename T>
+struct WrappedConstraint;
+
+template<typename T>
+struct OptionValueConstraint{
+CLASS_NAME(OptionValueConstraint);
+USE_ALLOCATOR(OptionValueConstraint);
+OptionValueConstraint() : _hard(false) {}
+
+virtual bool check(OptionValue<T>* value) = 0;
+virtual bool check(){ ASSERTION_VIOLATION; }
+virtual vstring msg(OptionValue<T>* value) = 0;
+virtual vstring msg() { ASSERTION_VIOLATION; }
+
+// By default cannot force constraint
+virtual bool force(OptionValue<T>* value){ return false;}
+// TODO - allow for hard constraints
+bool isHard(){ return _hard; }
+void setHard(){ _hard=true;}
+bool _hard;
+
+OptionValueConstraint<T>* And(OptionValueConstraint<T>* another);
+OptionValueConstraint<T>* Or(OptionValueConstraint<T>* another);
+
+template<typename S>
+OptionValueConstraint<T>* And(WrappedConstraint<S>* another);
+template<typename S>
+OptionValueConstraint<T>* Or(WrappedConstraint<S>* another);
+
+};
+
+
+// A Wrapped Constraint takes an OptionValue and a Constraint
     // It allows us to supply a constraint on another OptionValue in an If constraint for example
     template<typename T>
     struct WrappedConstraint{
