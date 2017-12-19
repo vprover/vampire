@@ -238,10 +238,10 @@ public:
  
   enum class InductionChoice : unsigned int {
     ALL,
-    CONJECTURE,               // only apply induction to constants appearing in the conjecture
-    CONJECTURE_PLUS,          // above plus skolem terms introduced in induction inferences
-    INPUT,                    // only apply induction to input clauses
-    INPUT_PLUS                // above plus skolem terms introduced in induction inferences
+    GOAL,                     // only apply induction to goal constants
+                              // a goal constant is one appearing in an explicit goal, or if gtg is used
+                              // a constant that is used to lift a clause to a goal (uniqueness or Skolem) 
+    GOAL_PLUS,                // above plus skolem terms introduced in induction inferences
   };
 
   enum class TheoryAxiomLevel : unsigned int {

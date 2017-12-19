@@ -75,37 +75,13 @@ InductionClauseIterator::InductionClauseIterator(Clause* premise)
                          env.options->induction() == Options::Induction::MATHEMATICAL;
 
   static Options::InductionChoice kind = env.options->inductionChoice();
-  static bool con = (kind == Options::InductionChoice::CONJECTURE || kind == Options::InductionChoice::CONJECTURE_PLUS);
-  static bool inp = (kind == Options::InductionChoice::INPUT || kind == Options::InductionChoice::INPUT_PLUS); 
-  static bool plus = (kind == Options::InductionChoice::CONJECTURE_PLUS || kind == Options::InductionChoice::INPUT_PLUS);
+  static bool all = (kind == Options::InductionChoice::ALL);
+  static bool goal = (kind == Options::InductionChoice::GOAL);
+  static bool goal_plus = (kind == Options::InductionChoice::GOAL_PLUS);
 
-  cout << "HERE with " << premise->toString() << endl;
-  cout << premise->inputType() << endl;
-  if(premise->length()==1 && 
-       (kind == Options::InductionChoice::ALL 
-     || (con && premise->inputType() != Unit::AXIOM)
-     || (inp && premise->inference()->rule() == Inference::INPUT)
-     )
-     //|| plus) // do check next 
-    )
+  if(premise->length()==1 && (all || ( (goal || goal_plus) && premise->isGoal())) )
   {
-    cout << "inside with " << premise->toString() << endl;
     Literal* lit = (*premise)[0];
-/*
-    if(plus){
-      bool okay = false;
-      NonVariableIterator it(lit);
-      while(it.hasNext()){
-        Term* t = it.next().term();
-        if(t->arity()==0 && env.signature->getFunction(t->functor())->inductionSkolem()){
-          okay=true;
-          break;
-        }
-      }
-      if(!okay){ return; }
-    }
-    cout << "passed" << endl;
-*/
 
      // TODO change to allow for positive occurence of <
     if(lit->isNegative() && lit->ground()){
@@ -117,7 +93,11 @@ InductionClauseIterator::InductionClauseIterator(Clause* premise)
       while(it.hasNext()){
         unsigned f = it.next();
         if(env.signature->functionArity(f)==0 &&
-           (!plus || env.signature->getFunction(f)->inductionSkolem())
+           (
+               all
+            || env.signature->getFunction(f)->inGoal()
+            || (goal_plus && env.signature->getFunction(f)->inductionSkolem())
+           )
         ){
          if(structInd && env.signature->isTermAlgebraSort(env.signature->getFunction(f)->fnType()->result())){
             ta_constants.insert(f);
