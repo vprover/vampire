@@ -1590,6 +1590,7 @@ void Options::Options::init()
     _lookup.insert(&_restrictNWCtoGC);
     _restrictNWCtoGC.tag(OptionTag::SATURATION);
     _restrictNWCtoGC.setExperimental();
+    _restrictNWCtoGC.reliesOn(_nonGoalWeightCoefficient.is(notEqual(1.0)));
 
 
     _normalize = BoolOptionValue("normalize","norm",false);
