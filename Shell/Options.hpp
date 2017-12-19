@@ -1942,6 +1942,7 @@ public:
   unsigned extensionalityMaxLength() const { return _extensionalityMaxLength.actualValue; }
   bool extensionalityAllowPosEq() const { return _extensionalityAllowPosEq.actualValue; }
   float nongoalWeightCoefficient() const { return _nonGoalWeightCoefficient.actualValue; }
+  bool restrictNWCtoGC() const { return _restrictNWCtoGC.actualValue; }
   Sos sos() const { return _sos.actualValue; }
   unsigned sosTheoryLimit() const { return _sosTheoryLimit.actualValue; }
   //void setSos(Sos newVal) { _sos = newVal; }
@@ -2414,6 +2415,7 @@ private:
   OptionChoiceValues _tagNames;
 
   NonGoalWeightOptionValue _nonGoalWeightCoefficient;
+  BoolOptionValue _restrictNWCtoGC;
 
   SelectionOptionValue _selection;
   SelectionOptionValue _instGenSelection;

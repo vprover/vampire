@@ -1578,6 +1578,12 @@ void Options::Options::init()
     _nonGoalWeightCoefficient.tag(OptionTag::SATURATION);
     _nonGoalWeightCoefficient.setRandomChoices({"1","1.1","1.2","1.3","1.5","1.7","2","2.5","3","4","5","10"});
 
+    _restrictNWCtoGC = BoolOptionValue("restrict_nwc_to_goal_constants","rnwc",false);
+    _restrictNWCtoGC.description = "restrict nongoal_weight_coefficient to those containing goal constants";
+    _lookup.insert(&_restrictNWCtoGC);
+    _restrictNWCtoGC.tag(OptionTag::SATURATION);
+    _restrictNWCtoGC.setExperimental();
+
 
     _normalize = BoolOptionValue("normalize","norm",false);
     _normalize.description="Normalize the problem so that the ordering of clauses etc does not effect proof search.";
