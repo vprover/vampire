@@ -79,14 +79,19 @@ InductionClauseIterator::InductionClauseIterator(Clause* premise)
   static bool inp = (kind == Options::InductionChoice::INPUT || kind == Options::InductionChoice::INPUT_PLUS); 
   static bool plus = (kind == Options::InductionChoice::CONJECTURE_PLUS || kind == Options::InductionChoice::INPUT_PLUS);
 
+  cout << "HERE with " << premise->toString() << endl;
+  cout << premise->inputType() << endl;
   if(premise->length()==1 && 
        (kind == Options::InductionChoice::ALL 
-     || (con && premise->inputType() == Unit::CONJECTURE)
+     || (con && premise->inputType() != Unit::AXIOM)
      || (inp && premise->inference()->rule() == Inference::INPUT)
-     || plus) // do check next 
+     )
+     //|| plus) // do check next 
     )
   {
+    cout << "inside with " << premise->toString() << endl;
     Literal* lit = (*premise)[0];
+/*
     if(plus){
       bool okay = false;
       NonVariableIterator it(lit);
@@ -99,7 +104,8 @@ InductionClauseIterator::InductionClauseIterator(Clause* premise)
       }
       if(!okay){ return; }
     }
-
+    cout << "passed" << endl;
+*/
 
      // TODO change to allow for positive occurence of <
     if(lit->isNegative() && lit->ground()){
@@ -107,6 +113,7 @@ InductionClauseIterator::InductionClauseIterator(Clause* premise)
       Set<unsigned> ta_constants;
       Set<unsigned> int_constants;
       TermFunIterator it(lit);
+      it.next(); // to move past the lit symbol
       while(it.hasNext()){
         unsigned f = it.next();
         if(env.signature->functionArity(f)==0 &&
@@ -129,6 +136,7 @@ InductionClauseIterator::InductionClauseIterator(Clause* premise)
       Set<unsigned>::Iterator citer1(int_constants);
       while(citer1.hasNext()){
         unsigned c = citer1.next();
+        cout << "PERFORM INDUCTION on " << env.signature->functionName(c) << endl;
 
         // create fresh
         unsigned freshS = env.signature->addSkolemFunction(0);
@@ -204,6 +212,7 @@ InductionClauseIterator::InductionClauseIterator(Clause* premise)
       Set<unsigned>::Iterator citer2(ta_constants);
       while(citer2.hasNext()){
         unsigned c = citer2.next();
+        cout << "PERFORM INDUCTION on " << env.signature->functionName(c) << endl;
 
         TermAlgebra* ta = env.signature->getTermAlgebraOfSort(env.signature->getFunction(c)->fnType()->result());
         unsigned ta_sort = ta->sort();
