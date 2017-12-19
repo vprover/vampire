@@ -141,7 +141,7 @@ InductionClauseIterator::InductionClauseIterator(Clause* premise)
         // create fresh
         unsigned freshS = env.signature->addSkolemFunction(0);
         Signature::Symbol* symbol = env.signature->getFunction(freshS);
-        symbol->setType(new FunctionType(Sorts::SRT_INTEGER));
+        symbol->setType(OperatorType::getConstantsType(Sorts::SRT_INTEGER));
         symbol->markInductionSkolem();
         TermList fresh(Term::createConstant(freshS));
 
@@ -217,7 +217,7 @@ InductionClauseIterator::InductionClauseIterator(Clause* premise)
         TermAlgebra* ta = env.signature->getTermAlgebraOfSort(env.signature->getFunction(c)->fnType()->result());
         unsigned ta_sort = ta->sort();
 
-        Array<Stack<TermList>> skolemTerms(env.sorts->sorts());
+        Array<Stack<TermList>> skolemTerms(env.sorts->count());
 
         Stack<Literal*> baseLits;
         Stack<Literal*> conLits;
@@ -236,14 +236,14 @@ InductionClauseIterator::InductionClauseIterator(Clause* premise)
             // first create the new term
             // need to quantify & skolemize over the missing bits of the constructor
             Stack<TermList> argTerms; 
-            ZIArray<unsigned> skolemIndex(env.sorts->sorts());
+            ZIArray<unsigned> skolemIndex(env.sorts->count());
             for(unsigned i=0;i<con->arity();i++){
               unsigned srt = con->argSort(i);
 
               if(skolemTerms[srt].size()<skolemIndex[srt]+1){         
                 unsigned xn = env.signature->addSkolemFunction(0);
                 Signature::Symbol* symbol = env.signature->getFunction(xn);
-                symbol->setType(new FunctionType(srt));
+                symbol->setType(OperatorType::getConstantsType(srt));
                 symbol->markInductionSkolem();
                 skolemTerms[srt].push(TermList(Term::createConstant(xn)));
               }
