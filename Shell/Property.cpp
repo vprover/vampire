@@ -92,6 +92,7 @@ Property::Property()
 {
   _interpretationPresence.init(Theory::instance()->numberOfFixedInterpretations(), false);
   env.property = this;
+  _symbolsInFormula = new DHSet<int>();
 } // Property::Property
 
 /**
@@ -224,6 +225,9 @@ void Property::scan(Unit* unit)
 {
   CALL("Property::scan(const Unit*)");
 
+  ASS(_symbolsInFormula);
+  _symbolsInFormula->reset();
+
   if (unit->isClause()) {
     scan(static_cast<Clause*>(unit));
   }
@@ -238,6 +242,18 @@ void Property::scan(Unit* unit)
       FunctionDefinition::deleteDef(def);
     }
   }
+
+  DHSet<int>::Iterator it(*_symbolsInFormula);
+  while(it.hasNext()){
+    int symbol = it.next();
+    if(symbol >= 0){
+      env.signature->getFunction(symbol)->incUnitUsageCnt();
+    }else{
+      symbol = -symbol;
+      env.signature->getPredicate(symbol)->incUnitUsageCnt();
+    }
+  }
+
 } // Property::scan(const Unit* unit)
 
 /**
@@ -360,6 +376,7 @@ void Property::scan(Clause* clause)
 void Property::scan(FormulaUnit* unit)
 {
   CALL("Property::scan(const FormulaUnit*)");
+
 
   if (unit->inputType() == Unit::AXIOM) {
     _axiomFormulas ++;
@@ -514,6 +531,7 @@ void Property::scan(Literal* lit, int polarity, unsigned cLen, bool goal)
     scanSort(SortHelper::getEqualityArgumentSort(lit));
   }
   else {
+    _symbolsInFormula->insert(-lit->functor());
     int arity = lit->arity();
     if (arity > _maxPredArity) {
       _maxPredArity = arity;
@@ -590,6 +608,7 @@ void Property::scan(TermList ts,bool unit,bool goal)
   } else {
     scanForInterpreted(t);
 
+    _symbolsInFormula->insert(t->functor());
     Signature::Symbol* func = env.signature->getFunction(t->functor());
     func->incUsageCnt();
     if(unit){ func->markInUnit();}
