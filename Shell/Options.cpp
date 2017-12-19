@@ -880,9 +880,10 @@ void Options::Options::init()
             _induction.setExperimental();
 
             _inductionChoice = ChoiceOptionValue<InductionChoice>("induction_choice","indc",InductionChoice::ALL,
-                                {"all","con","conp","input","inputp"});
-            _inductionChoice.description="Where to apply induction. Note that con and conp do not apply to "
-                                         "problems in SMTLIB as they require a conjecture";
+                                {"all","goal","goal_plus"});
+            _inductionChoice.description="Where to apply induction. Goal only applies to constants in goal, goal_plus"
+                                         " extends this with skolem constants introduced by induction. Consider using" 
+                                         " guess_the_goal for problems in SMTLIB as they do not come with a conjecture";
             _inductionChoice.tag(OptionTag::INFERENCES);
             _lookup.insert(&_inductionChoice);
             _inductionChoice.setExperimental();

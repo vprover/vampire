@@ -436,6 +436,7 @@ vstring Clause::toString() const
   if (numSelected()>0) {
     result += ':' + Int::toString(numSelected());
   }
+  if(isGoal()){ result += ":G"; }
   result += ") ";
   if(isTheoryDescendant()){
     result += "T ";

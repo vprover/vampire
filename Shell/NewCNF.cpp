@@ -863,9 +863,15 @@ Term* NewCNF::createSkolemTerm(unsigned var, VarSet* free)
   bool isPredicate = rangeSort == Sorts::SRT_BOOL;
   if (isPredicate) {
     unsigned pred = Skolem::addSkolemPredicate(arity, domainSorts.begin(), var);
+    if(_beingClausified->isGoal()){
+      env.signature->getPredicate(pred)->markInGoal();
+    }
     res = Term::createFormula(new AtomicFormula(Literal::create(pred, arity, true, false, fnArgs.begin())));
   } else {
     unsigned fun = Skolem::addSkolemFunction(arity, domainSorts.begin(), rangeSort, var);
+    if(_beingClausified->isGoal()){
+      env.signature->getFunction(fun)->markInGoal();
+    }
     res = Term::create(fun, arity, fnArgs.begin());
   }
 

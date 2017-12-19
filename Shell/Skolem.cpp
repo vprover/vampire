@@ -112,6 +112,9 @@ FormulaUnit* Skolem::skolemiseImpl (FormulaUnit* unit)
   while(_introducedSkolemFuns.isNonEmpty()) {
     unsigned fn = _introducedSkolemFuns.pop();
     InferenceStore::instance()->recordIntroducedSymbol(res,true,fn);
+    if(unit->isGoal()){
+      env.signature->getFunction(fn)->markInGoal();
+    }
   }
 
   return res;
