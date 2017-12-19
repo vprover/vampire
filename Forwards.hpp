@@ -157,10 +157,6 @@ class V2CIndex;
 class Sorts;
 class Signature;
 
-class BaseType;
-class FunctionType;
-class PredicateType;
-
 typedef VirtualIterator<Var> VarIterator;
 typedef RCPtr<Constraint> ConstraintRCPtr;
 typedef List<Constraint*> ConstraintList;
