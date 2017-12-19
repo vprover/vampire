@@ -880,6 +880,7 @@ void Options::Options::init()
             _inductionChoice.tag(OptionTag::INFERENCES);
             _lookup.insert(&_inductionChoice);
             _inductionChoice.setExperimental();
+            _inductionChoice.reliesOn(_induction.is(notEqual(Induction::NONE)));
 
 	    _instantiation = ChoiceOptionValue<Instantiation>("instantiation","inst",Instantiation::OFF,{"off","on"});
 	    _instantiation.description = "Heuristically instantiate variables";
