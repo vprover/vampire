@@ -888,6 +888,8 @@ void Options::Options::init()
             _lookup.insert(&_inductionChoice);
             _inductionChoice.setExperimental();
             _inductionChoice.reliesOn(_induction.is(notEqual(Induction::NONE)));
+            _inductionChoice.addHardConstraint(If(equal(InductionChoice::GOAL)->Or(equal(InductionChoice::GOAL_PLUS))).then(
+              _inputSyntax.is(equal(InputSyntax::TPTP))->Or<InductionChoice>(_guessTheGoal.is(equal(true)))));
 
 	    _instantiation = ChoiceOptionValue<Instantiation>("instantiation","inst",Instantiation::OFF,{"off","on"});
 	    _instantiation.description = "Heuristically instantiate variables";
