@@ -606,17 +606,27 @@ float Clause::getEffectiveWeight(const Options& opt)
   CALL("Clause::getEffectiveWeight");
 
   static float nongoalWeightCoef=opt.nongoalWeightCoefficient();
+  static bool restrictNWC = opt.restrictNWCtoGC();
+
+  bool goal = isGoal();
+  if(goal && restrictNWC){
+    bool found = false;
+    for(unsigned i=0;i<_length;i++){
+      TermFunIterator it(_literals[i]);
+      it.next(); // skip literal symbol
+      while(it.hasNext()){
+        found |= env.signature->getFunction(it.next())->inGoal();
+      }
+    }
+    if(!found){ goal=false; }
+  } 
 
   unsigned w=weight();
-  // Now in weight() by default
-  //if (opt.nonliteralsInClauseWeight()) {
-  //  w+=+splitWeight(); // no longer includes propWeight
-  //}
   if (opt.increasedNumeralWeight()) {
-    return (2*w+getNumeralWeight()) * ( (!isGoal()) ? nongoalWeightCoef : 1.0f);
+    return (2*w+getNumeralWeight()) * ( !goal ? nongoalWeightCoef : 1.0f);
   }
   else {
-    return w * ( (!isGoal()) ? nongoalWeightCoef : 1.0f);
+    return w * ( !goal ? nongoalWeightCoef : 1.0f);
   }
 }
 
