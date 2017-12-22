@@ -111,17 +111,21 @@ bool GoalGuessing::apply(Literal* lit)
 {
   CALL("GoalGuessing::apply(Literal* lit)");
 
+     //if(lit->isSpecial()){ return false; }
+
     // do we care if we have predicate symbols only appearing in the goal?
     //unsigned p = lit->functor();
     bool found = false;
 
     TermFunIterator it(lit);
+    ASS(it.hasNext());
     it.next(); // to move past the lit symbol 
     while(it.hasNext()){
       unsigned f = it.next();
+      if(f > env.signature->functions()){ continue; }
       unsigned unitUsageCnt = env.signature->getFunction(f)->unitUsageCnt();
       if(unitUsageCnt == 1){
-        cout << "IDENTIFIED AS GOAL symbol " << env.signature->functionName(f) << endl;
+        //cout << "IDENTIFIED AS GOAL symbol " << env.signature->functionName(f) << endl;
         env.signature->getFunction(f)->markInGoal();
         found = true;
       }
