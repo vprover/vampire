@@ -1,3 +1,21 @@
+
+/*
+ * File Unit.hpp.
+ *
+ * This file is part of the source code of the software program
+ * Vampire. It is protected by applicable
+ * copyright laws.
+ *
+ * This source code is distributed under the licence found here
+ * https://vprover.github.io/license.html
+ * and in the source directory
+ *
+ * In summary, you are allowed to use Vampire for non-commercial
+ * purposes but not allowed to distribute, modify, copy, create derivatives,
+ * or use in competitions. 
+ * For other uses of Vampire please contact developers for a different
+ * licence, which we will make an effort to provide. 
+ */
 /**
  * @file Unit.hpp
  * Defines class Unit for all kinds of proof units
@@ -50,9 +68,9 @@ public:
     NEGATED_CONJECTURE = 3,
     /** Vampire-only, for the consequence-finding mode */
     CLAIM = 4,
-    /** Used in parsing and preprocessing for extensionality clause tagging */
+    /** Used in parsing and preprocessing for extensionality clause tagging, should not appear in proof search */
     EXTENSIONALITY_AXIOM = 5,
-    /** Used to seperate model definitions in model_check mode */
+    /** Used to seperate model definitions in model_check mode, should not appear in proof search */
     MODEL_DEFINITION = 6
   };
 
@@ -78,6 +96,9 @@ public:
   /** set the input type of the unit */
   void setInputType(InputType it)
   { _inputType=it; }
+  /** return true if inputType relates to a goal **/
+  bool isGoal() const 
+  { return _inputType > ASSUMPTION; }  
 
   /** Return the number of this unit */
   unsigned number() const { return _number; }

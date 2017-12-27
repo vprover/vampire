@@ -1,3 +1,21 @@
+
+/*
+ * File TermAlgebraReasoning.cpp.
+ *
+ * This file is part of the source code of the software program
+ * Vampire. It is protected by applicable
+ * copyright laws.
+ *
+ * This source code is distributed under the licence found here
+ * https://vprover.github.io/license.html
+ * and in the source directory
+ *
+ * In summary, you are allowed to use Vampire for non-commercial
+ * purposes but not allowed to distribute, modify, copy, create derivatives,
+ * or use in competitions. 
+ * For other uses of Vampire please contact developers for a different
+ * licence, which we will make an effort to provide. 
+ */
 /**
  * @file TermAlgebraReasoning.cpp
  */
@@ -194,7 +212,7 @@ namespace Inferences {
     unsigned int _index; // between 0 and _length
     Literal* _lit;
     Clause* _clause;
-    FunctionType* _type; // type of f
+    OperatorType* _type; // type of f
   };
 
   struct InjectivityGIE::SubtermEqualityFn
@@ -234,7 +252,7 @@ namespace Inferences {
       Literal *lit = (*c)[i];
       if (sameConstructorsEquality(lit) && lit->isPositive()) {
         if (lit->nthArgument(0)->term()->arity() == 1) {
-          FunctionType *type = env.signature->getFunction(lit->nthArgument(0)->term()->functor())->fnType();
+          OperatorType *type = env.signature->getFunction(lit->nthArgument(0)->term()->functor())->fnType();
           Literal *newlit = Literal::createEquality(true,
                                                     *lit->nthArgument(0)->term()->nthArgument(0),
                                                     *lit->nthArgument(1)->term()->nthArgument(0),
@@ -255,7 +273,7 @@ namespace Inferences {
     Literal *lit = (*c)[i];
     if (sameConstructorsEquality(lit) && !lit->polarity()) {
       unsigned arity = lit->nthArgument(0)->term()->arity();
-      FunctionType *type = env.signature->getFunction(lit->nthArgument(0)->term()->functor())->fnType();
+      OperatorType *type = env.signature->getFunction(lit->nthArgument(0)->term()->functor())->fnType();
       for (unsigned j = 0; j < arity; j++) {
         Literal *l = Literal::createEquality(true,
                                              *lit->nthArgument(0)->term()->nthArgument(j),
@@ -285,7 +303,7 @@ namespace Inferences {
     for (int i = length - 1; i >= 0; i--) {
       if (litCondition(c, i)) {
         Literal *lit = (*c)[i];
-        FunctionType *type = env.signature->getFunction(lit->nthArgument(0)->term()->functor())->fnType();
+        OperatorType *type = env.signature->getFunction(lit->nthArgument(0)->term()->functor())->fnType();
         unsigned oldLength = c->length();
         unsigned arity = lit->nthArgument(0)->term()->arity();
         unsigned newLength = oldLength + arity - 1;

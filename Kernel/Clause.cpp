@@ -1,3 +1,21 @@
+
+/*
+ * File Clause.cpp.
+ *
+ * This file is part of the source code of the software program
+ * Vampire. It is protected by applicable
+ * copyright laws.
+ *
+ * This source code is distributed under the licence found here
+ * https://vprover.github.io/license.html
+ * and in the source directory
+ *
+ * In summary, you are allowed to use Vampire for non-commercial
+ * purposes but not allowed to distribute, modify, copy, create derivatives,
+ * or use in competitions. 
+ * For other uses of Vampire please contact developers for a different
+ * licence, which we will make an effort to provide. 
+ */
 /**
  * @file Clause.cpp
  * Implements class Clause for units consisting of clauses
@@ -594,10 +612,10 @@ float Clause::getEffectiveWeight(const Options& opt)
   //  w+=+splitWeight(); // no longer includes propWeight
   //}
   if (opt.increasedNumeralWeight()) {
-    return (2*w+getNumeralWeight()) * ( (inputType()==0) ? nongoalWeightCoef : 1.0f);
+    return (2*w+getNumeralWeight()) * ( (!isGoal()) ? nongoalWeightCoef : 1.0f);
   }
   else {
-    return w * ( (inputType()==0) ? nongoalWeightCoef : 1.0f);
+    return w * ( (!isGoal()) ? nongoalWeightCoef : 1.0f);
   }
 }
 

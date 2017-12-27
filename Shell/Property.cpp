@@ -1,3 +1,21 @@
+
+/*
+ * File Property.cpp.
+ *
+ * This file is part of the source code of the software program
+ * Vampire. It is protected by applicable
+ * copyright laws.
+ *
+ * This source code is distributed under the licence found here
+ * https://vprover.github.io/license.html
+ * and in the source directory
+ *
+ * In summary, you are allowed to use Vampire for non-commercial
+ * purposes but not allowed to distribute, modify, copy, create derivatives,
+ * or use in competitions. 
+ * For other uses of Vampire please contact developers for a different
+ * licence, which we will make an effort to provide. 
+ */
 /**
  * @file Property.cpp (syntactic properties of problems)
  *
@@ -72,8 +90,7 @@ Property::Property()
     _allQuantifiersEssentiallyExistential(true),
     _smtlibLogic(SMTLIBLogic::SMT_UNDEFINED)
 {
-  //TODO now MaxInterpretedElement is stateful this might be in the wrong place
-  _interpretationPresence.init(Theory::instance()->numberOfInterpretations()+1, false);
+  _interpretationPresence.init(Theory::instance()->numberOfFixedInterpretations(), false);
   env.property = this;
 } // Property::Property
 
@@ -444,7 +461,7 @@ void Property::scanSort(unsigned sort)
   env.statistics->hasTypes=true;
 
   if(sort >= Sorts::FIRST_USER_SORT){
-    if(env.sorts->hasStructuredSort(sort,Sorts::StructuredSort::ARRAY)){
+    if(env.sorts->isOfStructuredSort(sort,Sorts::StructuredSort::ARRAY)){
       addProp(PR_HAS_ARRAYS);
     }
     if (env.signature->isTermAlgebraSort(sort)) {
@@ -513,7 +530,7 @@ void Property::scan(Literal* lit, int polarity, unsigned cLen, bool goal)
       pred->markInGoal();
     }
 
-    PredicateType* type = pred->predType();
+    OperatorType* type = pred->predType();
     for (int i=0; i<arity; i++) {
       scanSort(type->arg(i));
     }
@@ -579,7 +596,7 @@ void Property::scan(TermList ts,bool unit,bool goal)
     if(goal){ func->markInGoal();}
 
     int arity = t->arity();
-    FunctionType* type = func->fnType();
+    OperatorType* type = func->fnType();
     for (int i = 0; i < arity; i++) {
       scanSort(type->arg(i));
     }
@@ -598,27 +615,33 @@ void Property::scanForInterpreted(Term* t)
   if (t->isLiteral()) {
     Literal* lit = static_cast<Literal*>(t);
     if (!theory->isInterpretedPredicate(lit)) { return; }
-    itp = theory->interpretPredicate(lit);
-    if(itp==Theory::EQUAL){ 
+    if (lit->isEquality()) {
       //cout << "this is interpreted equality " << t->toString() << endl;
       _hasInterpretedEquality=true;
       return; 
     }
+    itp = theory->interpretPredicate(lit);
   }
   else {
     if (!theory->isInterpretedFunction(t)) { return; }
     itp = theory->interpretFunction(t);
   }
   _hasInterpreted = true;
+
   if(itp < _interpretationPresence.size()){
     _interpretationPresence[itp] = true;
   }
+
   if(Theory::isConversionOperation(itp)){
     addProp(PR_NUMBER_CONVERSION);
     return;
   }
-  if(Theory::isArrayOperation(itp)){
-    //addProp(PR_HAS_ARRAYS);
+
+  if (Theory::isPolymorphic(itp)) {
+    OperatorType* type = t->isLiteral() ?
+        env.signature->getPredicate(t->functor())->predType() : env.signature->getFunction(t->functor())->fnType();
+
+    _polymorphicInterpretations.insert(std::make_pair(itp,type));
     return;
   }
 

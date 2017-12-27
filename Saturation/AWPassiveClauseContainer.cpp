@@ -1,3 +1,21 @@
+
+/*
+ * File AWPassiveClauseContainer.cpp.
+ *
+ * This file is part of the source code of the software program
+ * Vampire. It is protected by applicable
+ * copyright laws.
+ *
+ * This source code is distributed under the licence found here
+ * https://vprover.github.io/license.html
+ * and in the source directory
+ *
+ * In summary, you are allowed to use Vampire for non-commercial
+ * purposes but not allowed to distribute, modify, copy, create derivatives,
+ * or use in competitions. 
+ * For other uses of Vampire please contact developers for a different
+ * licence, which we will make an effort to provide. 
+ */
 /**
  * @file AWPassiveClauseContainer.cpp
  * Implements class AWPassiveClauseContainer for the queue of passive clauses.
@@ -82,9 +100,9 @@ Comparison AWPassiveClauseContainer::compareWeight(Clause* cl1, Clause* cl2, con
   int nwcNumer = opt.nonGoalWeightCoeffitientNumerator();
   int nwcDenom = opt.nonGoalWeightCoeffitientDenominator();
 
-  if (cl1->inputType()==0 && cl2->inputType()!=0) {
+  if (!cl1->isGoal() && cl2->isGoal()) {
     return Int::compare(cl1Weight*nwcNumer, cl2Weight*nwcDenom);
-  } else if (cl1->inputType()!=0 && cl2->inputType()==0) {
+  } else if (cl1->isGoal() && !cl2->isGoal()) {
     return Int::compare(cl1Weight*nwcDenom, cl2Weight*nwcNumer);
   }
   return Int::compare(cl1Weight, cl2Weight);

@@ -1,22 +1,26 @@
 # Vampire
 
-This is a brief introduction to this repository. You will increase the liklihood of understanding things if you get your hands dirty and give things a poke.
+This is a brief introduction to this repository. Please see <a href="https://vprover.github.io/">the Vampire website</a> for more general information about Vampire. Please see LICENCE for usage restrictions. Note that Vampire makes use of minisat and z3 and some of this code is included in this codebase, such code is provided under their own licence.
 
-Do not work on the master branch - if you want to play create your own branch.
+Found a bug? Have a feature request? Please use the GitHub Issues tab for these.
 
 ## Making
 
 There is a nice Makefile. You can make
- * vampire_dbg for a debug version - this is usually the first thing you will do
+ * vampire_dbg for a debug version 
  * vampire_rel for a release version
+ * vampire_z3_rel to build with z3 (also works with debug) but for this you will need a z3 binary in include to link against
  * clean to clean things up
+
 You can also make
  * vtest for a set of unit tests. Run vtest -ls for help once compiled
  * vampire_gcov for a version with coverage information
  * vampire_static for a statically linked version, necessary for portability
  
 
-## Top level files
+## Some notes for developers
+
+Please do not work on master! 
 
 The main top level file is vampire.cpp. This is the head of the main vampire executable. The main method parses options and checks the mode.
 
@@ -26,7 +30,7 @@ There are some other top-level files that are left over from previous use cases.
 
 Note that Forwards.hpp contains a lot of forward declarations of things.
 
-## Namespaces
+### Namespaces
 
 The code is organised into a number of namespaces. Here is a brief overview.
 
@@ -51,13 +55,12 @@ Other key namespaces are
 
 Other namespaces have specific purposes that you will find out by looking at them.
 
-## Documentation
+### Documentation
 
-Running make doc makes documentation. It would also be nice to use the GitHub wiki pages to document things such as coding style.
+Running make doc makes documentation using doxygen; this has not been fully maintained but ideally each function and class would have an appropriate comment to be parsed by doxygen. 
 
-There are (unmaintained) 'explanation' files in each directory that might contain additional explanation.
 
-## Scripts
+### Scripts
 
 There are some scripts that might be useful. This list can be expanded:
  * dogcov.sh produces coverage data when running vampire_gcov

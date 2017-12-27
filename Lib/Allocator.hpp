@@ -1,3 +1,21 @@
+
+/*
+ * File Allocator.hpp.
+ *
+ * This file is part of the source code of the software program
+ * Vampire. It is protected by applicable
+ * copyright laws.
+ *
+ * This source code is distributed under the licence found here
+ * https://vprover.github.io/license.html
+ * and in the source directory
+ *
+ * In summary, you are allowed to use Vampire for non-commercial
+ * purposes but not allowed to distribute, modify, copy, create derivatives,
+ * or use in competitions. 
+ * For other uses of Vampire please contact developers for a different
+ * licence, which we will make an effort to provide. 
+ */
 /**
  * @file Allocator.hpp
  * Defines the class Allocator plus the global allocator for Vampire.
@@ -182,6 +200,11 @@ public:
     unsigned _save;
     EnableBypassChecking() { _save = _tolerantZone; _tolerantZone = 0; }
     ~EnableBypassChecking() { _tolerantZone = _save; }
+  };
+
+  /** A helper struct used for implementing the BYPASSING_ALLOCATOR macro. */
+  struct DisableBypassChecking {
+    DisableBypassChecking() { _tolerantZone = 1; }
   };
 
   /** A helper struct used for implementing the BYPASSING_ALLOCATOR macro. */  
@@ -407,7 +430,10 @@ std::ostream& operator<<(std::ostream& out, const Allocator::Descriptor& d);
 
 #define START_CHECKING_FOR_BYPASSES(SEED) Allocator::EnableBypassChecking _tmpBypass_##SEED;
 #define START_CHECKING_FOR_ALLOCATOR_BYPASSES START_CHECKING_FOR_BYPASSES(__LINE__)
-     
+
+#define STOP_CHECKING_FOR_BYPASSES(SEED) Allocator::DisableBypassChecking _tmpBypass_##SEED;
+#define STOP_CHECKING_FOR_ALLOCATOR_BYPASSES STOP_CHECKING_FOR_BYPASSES(__LINE__)
+
 #else
 
 #define CLASS_NAME(name)
@@ -438,6 +464,7 @@ std::ostream& operator<<(std::ostream& out, const Allocator::Descriptor& d);
   (Lib::Allocator::current->deallocateUnknown(obj))
 
 #define START_CHECKING_FOR_ALLOCATOR_BYPASSES
+#define STOP_CHECKING_FOR_ALLOCATOR_BYPASSES
 #define BYPASSING_ALLOCATOR
      
 #endif

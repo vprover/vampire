@@ -1,3 +1,21 @@
+
+/*
+ * File InterpretedLiteralEvaluator.hpp.
+ *
+ * This file is part of the source code of the software program
+ * Vampire. It is protected by applicable
+ * copyright laws.
+ *
+ * This source code is distributed under the licence found here
+ * https://vprover.github.io/license.html
+ * and in the source directory
+ *
+ * In summary, you are allowed to use Vampire for non-commercial
+ * purposes but not allowed to distribute, modify, copy, create derivatives,
+ * or use in competitions. 
+ * For other uses of Vampire please contact developers for a different
+ * licence, which we will make an effort to provide. 
+ */
 /**
  * @file InterpretedLiteralEvaluator.hpp
  * Defines class InterpretedLiteralEvaluator.
@@ -56,20 +74,18 @@ protected:
   template<typename ConstantType>
   bool balanceMultiply(Interpretation divide,ConstantType zero,             
                        Term* AmultiplyB, TermList* A, TermList C, TermList& result,
-                       Interpretation under, bool& swap, Stack<Literal*>& sideConditions);
+                       bool& swap, Stack<Literal*>& sideConditions);
 
   bool balanceIntegerMultiply(
                                                   Term* AmultiplyB, TermList* A, TermList C, TermList& result,
-                                                  Interpretation under, bool& swap,
-                                                  Stack<Literal*>& sideConditions);
+                                                  bool& swap, Stack<Literal*>& sideConditions);
 
   // take AoverB, A and C and let result=C*B, AoverB must be that way round
   // ignore the case of BoverA for now
   // rat and real versions only
   // like above, need to consider polairty of B
   bool balanceDivide(Interpretation multiply, 
-                       Term* AmultiplyB, TermList* A, TermList C, TermList& result,
-                       Interpretation under, bool& swap, Stack<Literal*>& sideConditions);
+                       Term* AmultiplyB, TermList* A, TermList C, TermList& result, bool& swap, Stack<Literal*>& sideConditions);
   
 };
 

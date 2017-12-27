@@ -1,3 +1,21 @@
+
+/*
+ * File Z3Interfacing.cpp.
+ *
+ * This file is part of the source code of the software program
+ * Vampire. It is protected by applicable
+ * copyright laws.
+ *
+ * This source code is distributed under the licence found here
+ * https://vprover.github.io/license.html
+ * and in the source directory
+ *
+ * In summary, you are allowed to use Vampire for non-commercial
+ * purposes but not allowed to distribute, modify, copy, create derivatives,
+ * or use in competitions. 
+ * For other uses of Vampire please contact developers for a different
+ * licence, which we will make an effort to provide. 
+ */
 /**
  * @file Z3Interfacing.cpp
  * Implements class Z3Interfacing
@@ -48,6 +66,18 @@ Z3Interfacing::Z3Interfacing(const Shell::Options& opts,SAT2FO& s2f, bool unsatC
     _solver.set(p);
 }
   
+unsigned Z3Interfacing::newVar()
+{
+  CALL("Z3Interfacing::newVar");
+
+  ++_varCnt;
+
+  // to make sure all the literals we will ask about later have allocated counterparts internally
+  getRepresentation(SATLiteral(_varCnt,1),false);
+
+  return _varCnt;
+}
+
 void Z3Interfacing::addClause(SATClause* cl,bool withGuard)
 {
   CALL("Z3Interfacing::addClause");
@@ -68,7 +98,7 @@ void Z3Interfacing::addClause(SATClause* cl,bool withGuard)
   
   if(_showZ3){
     env.beginOutput();
-    env.out() << "[Z3] add: " << z3clause << std::endl;
+    env.out() << "[Z3] add (clause): " << z3clause << std::endl;
     env.endOutput();
   }
   _solver.add(z3clause);
@@ -174,6 +204,7 @@ SATSolver::VarAssignment Z3Interfacing::getAssignment(unsigned var)
 
   ASS_EQ(_status,SATISFIABLE);
   bool named = _namedExpressions.find(var);
+  //cout << "named:" << named << endl;
   z3::expr rep = named ? getNameExpr(var) : getRepresentation(SATLiteral(var,1),false);
   //cout << "rep is " << rep << " named was " << named << endl;
   z3::expr assignment = _model.eval(rep,true /*model_completion*/);
@@ -287,7 +318,7 @@ z3::sort Z3Interfacing::getz3sort(unsigned s)
   if(s==Sorts::SRT_RATIONAL) return _context.real_sort(); // Drop notion of rationality 
 
   // Deal with arrays
-  if(env.sorts->hasStructuredSort(s,Sorts::StructuredSort::ARRAY)){
+  if(env.sorts->isOfStructuredSort(s,Sorts::StructuredSort::ARRAY)){
     
     z3::sort index_sort = getz3sort(env.sorts->getArraySort(s)->getIndexSort());
     z3::sort value_sort = getz3sort(env.sorts->getArraySort(s)->getInnerSort());
@@ -327,11 +358,11 @@ z3::expr Z3Interfacing::getz3expr(Term* trm,bool isLit,bool&nameExpression,bool 
 
     Signature::Symbol* symb; 
     unsigned range_sort;
-    BaseType* type;
+    OperatorType* type;
     bool is_equality = false;
     if(isLit){
       symb = env.signature->getPredicate(trm->functor());
-      PredicateType* ptype = symb->predType();
+      OperatorType* ptype = symb->predType();
       type = ptype;
       range_sort = Sorts::SRT_BOOL;
       // check for equality
@@ -341,7 +372,7 @@ z3::expr Z3Interfacing::getz3expr(Term* trm,bool isLit,bool&nameExpression,bool 
       }
     }else{
       symb = env.signature->getFunction(trm->functor());
-      FunctionType* ftype = symb->fnType(); 
+      OperatorType* ftype = symb->fnType();
       type = ftype;
       range_sort = ftype->result();
     }
@@ -416,16 +447,16 @@ z3::expr Z3Interfacing::getz3expr(Term* trm,bool isLit,bool&nameExpression,bool 
       bool skip=false; 
       unsigned argsToPop=theory->getArity(interp);
 
-      if(theory->isStructuredSortInterpretation(interp)){
+      if(Theory::isPolymorphic(interp)){
         nameExpression = true;
-        switch(theory->convertToStructured(interp)){
-          case Theory::StructuredSortInterpretation::ARRAY_SELECT:
-          case Theory::StructuredSortInterpretation::ARRAY_BOOL_SELECT:
+        switch(interp){
+          case Theory::ARRAY_SELECT:
+          case Theory::ARRAY_BOOL_SELECT:
             // select(array,index)
             ret = select(args[0],args[1]);
             break;
 
-          case Theory::StructuredSortInterpretation::ARRAY_STORE:
+          case Theory::ARRAY_STORE:
             // store(array,index,value)
             ret = store(args[0],args[1],args[2]);
             break;
@@ -667,6 +698,8 @@ z3::expr Z3Interfacing::getRepresentation(SATLiteral slit,bool withGuard)
   CALL("Z3Interfacing::getRepresentation");
   BYPASSING_ALLOCATOR;
 
+  //cout << "slit: " << slit.toString() << endl;
+
   //First, does this represent a ground literal
   Literal* lit = sat2fo.toFO(slit);
   if(lit && lit->ground()){
@@ -685,7 +718,7 @@ z3::expr Z3Interfacing::getRepresentation(SATLiteral slit,bool withGuard)
         _solver.add(naming);
   if(_showZ3){
     env.beginOutput();
-    env.out() << "[Z3] add: " << naming << std::endl;
+    env.out() << "[Z3] add (naming): " << naming << std::endl;
     env.endOutput();
   }
       }
@@ -775,7 +808,7 @@ void Z3Interfacing::addRealNonZero(z3::expr t)
    z3::expr side = t!=zero;
   if(_showZ3){
     env.beginOutput();
-    env.out() << "[Z3] add: " << side << std::endl;
+    env.out() << "[Z3] add (RealNonZero): " << side << std::endl;
     env.endOutput();
   }
   _solver.add(side);

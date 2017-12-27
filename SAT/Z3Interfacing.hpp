@@ -1,3 +1,21 @@
+
+/*
+ * File Z3Interfacing.hpp.
+ *
+ * This file is part of the source code of the software program
+ * Vampire. It is protected by applicable
+ * copyright laws.
+ *
+ * This source code is distributed under the licence found here
+ * https://vprover.github.io/license.html
+ * and in the source directory
+ *
+ * In summary, you are allowed to use Vampire for non-commercial
+ * purposes but not allowed to distribute, modify, copy, create derivatives,
+ * or use in competitions. 
+ * For other uses of Vampire please contact developers for a different
+ * licence, which we will make an effort to provide. 
+ */
 /**
  * @file Z3Interfacing.hpp
  * Defines class Z3Interfacing
@@ -74,16 +92,15 @@ public:
    */
   virtual SATClause* getZeroImpliedCertificate(unsigned var) override;
 
-  // Not required for Z3, but let's keep track of the counter
-  virtual void ensureVarCount(unsigned newVarCnt) override {
+  void ensureVarCount(unsigned newVarCnt) override {
     CALL("Z3Interfacing::ensureVarCnt");
-    _varCnt = max(newVarCnt,_varCnt);
+
+    while (_varCnt < newVarCnt) {
+      newVar();
+    }
   }
 
-  virtual unsigned newVar() override {
-    CALL("Z3Interfacing::newVar");
-    return ++_varCnt;
-  }
+  unsigned newVar() override;
 
   // Currently not implemented for Z3
   virtual void suggestPolarity(unsigned var, unsigned pol) override {}

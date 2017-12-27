@@ -1,3 +1,21 @@
+
+/*
+ * File Forwards.hpp.
+ *
+ * This file is part of the source code of the software program
+ * Vampire.(unstable). It is protected by applicable
+ * copyright laws.
+ *
+ * This source code is distributed under the licence found here
+ * https://vprover.github.io/license.html
+ * and in the source directory
+ *
+ * In summary, you are allowed to use Vampire for non-commercial
+ * purposes but not allowed to distribute, modify, copy, create derivatives,
+ * or use in competitions. 
+ * For other uses of Vampire please contact developers for a different
+ * licence, which we will make an effort to provide. 
+ */
 /**
  * @file Forwards.hpp
  * Forward declarations of some classes
@@ -26,12 +44,6 @@ struct Relocator
   
 struct EmptyStruct {};
 
-
-struct DefaultEq {
-  template<typename T>
-  static bool equals(T o1, T o2) { return o1==o2; }
-};
-
 class Hash;
 struct IdentityHash;
 struct PtrIdentityHash;
@@ -50,6 +62,7 @@ template<class T> class RCPtr;
 template<typename T> class SingleParamEvent;
 template<class C> class DArray;
 template<class C> class Stack;
+template<class C> class Vector;
 template<typename T> class List;
 template<typename T, class Comparator> class BinaryHeap;
 template<typename T> class SharedSet;
@@ -143,10 +156,6 @@ class V2CIndex;
 
 class Sorts;
 class Signature;
-
-class BaseType;
-class FunctionType;
-class PredicateType;
 
 typedef VirtualIterator<Var> VarIterator;
 typedef RCPtr<Constraint> ConstraintRCPtr;

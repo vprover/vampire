@@ -1,3 +1,21 @@
+
+/*
+ * File DistinctGroupExpansion.cpp.
+ *
+ * This file is part of the source code of the software program
+ * Vampire. It is protected by applicable
+ * copyright laws.
+ *
+ * This source code is distributed under the licence found here
+ * https://vprover.github.io/license.html
+ * and in the source directory
+ *
+ * In summary, you are allowed to use Vampire for non-commercial
+ * purposes but not allowed to distribute, modify, copy, create derivatives,
+ * or use in competitions. 
+ * For other uses of Vampire please contact developers for a different
+ * licence, which we will make an effort to provide. 
+ */
 /**
  * @file DistinctGroupExpansion.cpp
  * Expands distinct groups
@@ -63,20 +81,8 @@ bool DistinctGroupExpansion::apply(UnitList*& units)
 
   for(unsigned i=0;i<group_members.size();i++){
     Stack<unsigned>* members = group_members[i];
-    if(i==Signature::STRING_DISTINCT_GROUP && !env.signature->strings()){ continue;} // If there are no strings do not expand group
-    if(members->size() > 0){
-      // If the non-empty distinct group represents numbers then we need to keep
-      // the distinct processing later as new numbers can be generated from the
-      // existing ones
-
-      Signature::Symbol* sym = env.signature->getFunction(members->top());
-      unsigned grp_sort = sym->fnType()->result();
-
-      if(grp_sort==Sorts::SRT_INTEGER || grp_sort==Sorts::SRT_RATIONAL || grp_sort==Sorts::SRT_REAL){ someLeft=true; }
-
-      // This 140 is a magic number, if it is changed then the corresponding
-      // 141 should be changed in Kernel::Signature::Symbol::addToDistinctGroup
-      if( members->size()>1 && (members->size() < 140 || expandEverything)){
+    if(members->size() > 0) {
+      if( members->size()>1 && (members->size() <= EXPAND_UP_TO_SIZE || expandEverything)) {
         added=true;
         Formula* expansion = expand(*members);
         if(env.options->showPreprocessing()){

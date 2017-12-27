@@ -1,3 +1,21 @@
+
+/*
+ * File Skolem.cpp.
+ *
+ * This file is part of the source code of the software program
+ * Vampire. It is protected by applicable
+ * copyright laws.
+ *
+ * This source code is distributed under the licence found here
+ * https://vprover.github.io/license.html
+ * and in the source directory
+ *
+ * In summary, you are allowed to use Vampire for non-commercial
+ * purposes but not allowed to distribute, modify, copy, create derivatives,
+ * or use in competitions. 
+ * For other uses of Vampire please contact developers for a different
+ * licence, which we will make an effort to provide. 
+ */
 /**
  * @file Skolem.cpp
  * Implementing Skolemisation.
@@ -121,7 +139,7 @@ unsigned Skolem::addSkolemFunction(unsigned arity, unsigned* domainSorts,
 
   unsigned fun = env.signature->addSkolemFunction(arity, suffix);
   Signature::Symbol* fnSym = env.signature->getFunction(fun);
-  fnSym->setType(new FunctionType(arity, domainSorts, rangeSort));
+  fnSym->setType(OperatorType::getFunctionType(arity, domainSorts, rangeSort));
   return fun;
 }
 
@@ -145,7 +163,7 @@ unsigned Skolem::addSkolemPredicate(unsigned arity, unsigned* domainSorts, const
 
   unsigned pred = env.signature->addSkolemPredicate(arity, suffix);
   Signature::Symbol* pSym = env.signature->getPredicate(pred);
-  pSym->setType(new PredicateType(arity, domainSorts));
+  pSym->setType(OperatorType::getPredicateType(arity, domainSorts));
   return pred;
 }
 
