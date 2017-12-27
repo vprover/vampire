@@ -66,6 +66,18 @@ Z3Interfacing::Z3Interfacing(const Shell::Options& opts,SAT2FO& s2f, bool unsatC
     _solver.set(p);
 }
   
+unsigned Z3Interfacing::newVar()
+{
+  CALL("Z3Interfacing::newVar");
+
+  ++_varCnt;
+
+  // to make sure all the literals we will ask about later have allocated counterparts internally
+  getRepresentation(SATLiteral(_varCnt,1),false);
+
+  return _varCnt;
+}
+
 void Z3Interfacing::addClause(SATClause* cl,bool withGuard)
 {
   CALL("Z3Interfacing::addClause");
@@ -86,7 +98,7 @@ void Z3Interfacing::addClause(SATClause* cl,bool withGuard)
   
   if(_showZ3){
     env.beginOutput();
-    env.out() << "[Z3] add: " << z3clause << std::endl;
+    env.out() << "[Z3] add (clause): " << z3clause << std::endl;
     env.endOutput();
   }
   _solver.add(z3clause);
@@ -192,6 +204,7 @@ SATSolver::VarAssignment Z3Interfacing::getAssignment(unsigned var)
 
   ASS_EQ(_status,SATISFIABLE);
   bool named = _namedExpressions.find(var);
+  //cout << "named:" << named << endl;
   z3::expr rep = named ? getNameExpr(var) : getRepresentation(SATLiteral(var,1),false);
   //cout << "rep is " << rep << " named was " << named << endl;
   z3::expr assignment = _model.eval(rep,true /*model_completion*/);
@@ -685,6 +698,8 @@ z3::expr Z3Interfacing::getRepresentation(SATLiteral slit,bool withGuard)
   CALL("Z3Interfacing::getRepresentation");
   BYPASSING_ALLOCATOR;
 
+  //cout << "slit: " << slit.toString() << endl;
+
   //First, does this represent a ground literal
   Literal* lit = sat2fo.toFO(slit);
   if(lit && lit->ground()){
@@ -703,7 +718,7 @@ z3::expr Z3Interfacing::getRepresentation(SATLiteral slit,bool withGuard)
         _solver.add(naming);
   if(_showZ3){
     env.beginOutput();
-    env.out() << "[Z3] add: " << naming << std::endl;
+    env.out() << "[Z3] add (naming): " << naming << std::endl;
     env.endOutput();
   }
       }
@@ -793,7 +808,7 @@ void Z3Interfacing::addRealNonZero(z3::expr t)
    z3::expr side = t!=zero;
   if(_showZ3){
     env.beginOutput();
-    env.out() << "[Z3] add: " << side << std::endl;
+    env.out() << "[Z3] add (RealNonZero): " << side << std::endl;
     env.endOutput();
   }
   _solver.add(side);

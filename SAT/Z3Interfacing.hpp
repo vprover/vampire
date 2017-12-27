@@ -92,16 +92,15 @@ public:
    */
   virtual SATClause* getZeroImpliedCertificate(unsigned var) override;
 
-  // Not required for Z3, but let's keep track of the counter
-  virtual void ensureVarCount(unsigned newVarCnt) override {
+  void ensureVarCount(unsigned newVarCnt) override {
     CALL("Z3Interfacing::ensureVarCnt");
-    _varCnt = max(newVarCnt,_varCnt);
+
+    while (_varCnt < newVarCnt) {
+      newVar();
+    }
   }
 
-  virtual unsigned newVar() override {
-    CALL("Z3Interfacing::newVar");
-    return ++_varCnt;
-  }
+  unsigned newVar() override;
 
   // Currently not implemented for Z3
   virtual void suggestPolarity(unsigned var, unsigned pol) override {}
