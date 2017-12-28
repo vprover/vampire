@@ -1,3 +1,22 @@
+
+/*
+ * File CVC4Interfacing.hpp.
+ *
+ * This file is part of the source code of the software program
+ * Vampire. It is protected by applicable
+ * copyright laws.
+ *
+ * This source code is distributed under the licence found here
+ * https://vprover.github.io/license.html
+ * and in the source directory
+ *
+ * In summary, you are allowed to use Vampire for non-commercial
+ * purposes but not allowed to distribute, modify, copy, create derivatives,
+ * or use in competitions. 
+ * For other uses of Vampire please contact developers for a different
+ * licence, which we will make an effort to provide. 
+ */
+
 /**
  * @file CVC4Interfacing.hpp
  * Defines class CVC4Interfacing
@@ -19,13 +38,13 @@
 
 #include "cvc4.h"
 
-namespace SAT {
+namespace SAT{
 
-  struct UninterpretedForZ3Exception : public ThrowableBase
+  struct UninterpretedForCVC4Exception : public ThrowableBase
   {
-    UninterpretedForZ3Exception() 
+    UninterpretedForCVC4Exception()
     {
-      CALL("CVC4Interfacing::UninterpretedForZ3Exception::UninterpretedForZ3Exception");
+      CALL("CVC4Interfacing::UninterpretedForCVC4Exception::UninterpretedForCVC4Exception");
     }
   };
 
@@ -74,16 +93,15 @@ public:
    */
   virtual SATClause* getZeroImpliedCertificate(unsigned var) override;
 
-  // Not required for Z3, but let's keep track of the counter
-  virtual void ensureVarCount(unsigned newVarCnt) override {
+  void ensureVarCount(unsigned newVarCnt) override {
     CALL("CVC4Interfacing::ensureVarCnt");
-    _varCnt = max(newVarCnt,_varCnt);
+
+    while (_varCnt < newVarCnt) {
+      newVar();
+    }
   }
 
-  virtual unsigned newVar() override {
-    CALL("CVC4Interfacing::newVar");
-    return ++_varCnt;
-  }
+  unsigned newVar() override;
 
   // Currently not implemented for Z3
   virtual void suggestPolarity(unsigned var, unsigned pol) override {}
@@ -121,7 +139,21 @@ public:
     _solver.reset();
     _status = UNKNOWN; // I set it to unknown as I do not reset
   }
+
 private:
+  CVC4::ExprManager _manager;
+  CVC4::SmtEngine _engine;
+
+  CVC4::Expr getRepr(SATLiteral lit,bool withGuard);
+  CVC4::Expr getcvc4expr(Term* trm, bool islit, bool withGuard=false);
+
+  bool _showCVC4;
+  DHMap<Literal*,CVC4::Expr> _representations;
+
+
+
+
+
   // just to conform to the interface
   unsigned _varCnt;
 
@@ -158,24 +190,10 @@ private:
   void addRealNonZero(z3::expr);
 
 public:
-
-
-
   // not sure why this one is public
   z3::expr getz3expr(Term* trm,bool islit,bool&nameExpression, bool withGuard=false);
   Term* evaluateInModel(Term* trm);
 private:
-  CVC4::ExprManager _manager;
-  CVC4::SmtEngine _engine;
-
-  CVC4::Expr getRepr(SATLiteral lit,bool withGuard);
-  CVC4::Expr getcvc4expr(Term* trm, bool islit, bool withGuard=false);
-
-  bool _showCVC4;
-  DHMap<Literal*,CVC4::Expr> _representations;
-
-
-
   z3::expr getRepresentation(SATLiteral lit,bool withGuard);
 
   Status _status;
@@ -186,7 +204,7 @@ private:
   z3::expr_vector _assumptions;
   bool _unsatCoreForAssumptions;
 
-
+  bool _showZ3;
   bool _unsatCoreForRefutations;
 
   DHSet<unsigned> _namedExpressions; 

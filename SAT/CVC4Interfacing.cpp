@@ -1,3 +1,22 @@
+
+/*
+ * File CVC4Interfacing.cpp.
+ *
+ * This file is part of the source code of the software program
+ * Vampire. It is protected by applicable
+ * copyright laws.
+ *
+ * This source code is distributed under the licence found here
+ * https://vprover.github.io/license.html
+ * and in the source directory
+ *
+ * In summary, you are allowed to use Vampire for non-commercial
+ * purposes but not allowed to distribute, modify, copy, create derivatives,
+ * or use in competitions. 
+ * For other uses of Vampire please contact developers for a different
+ * licence, which we will make an effort to provide. 
+ */
+
 /**
  * @file CVC4Interfacing.cpp
  * Implements class CVC4Interfacing
@@ -16,6 +35,8 @@
 #include "Kernel/Sorts.hpp"
 #include "Kernel/SortHelper.hpp"
 
+#include "Shell/UIHelper.hpp"
+
 #include "Indexing/TermSharing.hpp"
 
 #include "CVC4Interfacing.hpp"
@@ -27,29 +48,36 @@ using namespace Shell;
 using namespace Lib;  
   
 CVC4Interfacing::CVC4Interfacing(const Shell::Options& opts,SAT2FO& s2f, bool unsatCoresForAssumptions):
-  _varCnt(0), sat2fo(s2f),_status(SATISFIABLE),
-  _solver(_context), _engine(&_manager),
-  _model((_solver.check(),_solver.get_model())),
-  _assumptions(_context),
-  _unsatCoreForAssumptions(unsatCoresForAssumptions),
-  _showCVC4(true /* TODO: init from an option? */),
-  _unsatCoreForRefutations(true /*opts.z3UnsatCores()*/)
+   _engine(&_manager),
+  _varCnt(0), sat2fo(s2f),_status(SATISFIABLE), _solver(_context),
+  _model((_solver.check(),_solver.get_model())), _assumptions(_context), _unsatCoreForAssumptions(unsatCoresForAssumptions),
+  _showZ3(opts.showZ3()),_unsatCoreForRefutations(opts.z3UnsatCores())
 {
   CALL("CVC4Interfacing::CVC4Interfacing");
+  _solver.reset();
 
   _engine.setOption("incremental", CVC4::SExpr("true")); // Enable incremental solving
 
-
-  // old z3 code:
-  _solver.reset();
-  z3::params p(_context);
+    z3::params p(_context);
   if (_unsatCoreForAssumptions) {
     p.set(":unsat-core", true);
   }
-  //p.set(":smtlib2-compliant",true);
-  _solver.set(p);
+    //p.set(":smtlib2-compliant",true);
+    _solver.set(p);
 }
   
+unsigned CVC4Interfacing::newVar()
+{
+  CALL("CVC4Interfacing::newVar");
+
+  ++_varCnt;
+
+  // to make sure all the literals we will ask about later have allocated counterparts internally
+  getRepresentation(SATLiteral(_varCnt,1),false);
+
+  return _varCnt;
+}
+
 void CVC4Interfacing::addClause(SATClause* cl,bool withGuard)
 {
   CALL("CVC4Interfacing::addClause");
@@ -59,24 +87,6 @@ void CVC4Interfacing::addClause(SATClause* cl,bool withGuard)
   // store to later generate the refutation
   PrimitiveProofRecordingSATSolver::addClause(cl);
 
-  CVC4::Expr cvc4clause = _manager.mkConst(false);
-
-  unsigned clen=cl->length();
-  for(unsigned i=0;i<clen;i++){
-    SATLiteral l = (*cl)[i];
-    CVC4::Expr e = getRepr(l,withGuard);
-    cvc4clause = _manager.mkExpr(CVC4::kind::OR, cvc4clause, e);
-  }
-
-  if(_showCVC4) {
-    env.beginOutput();
-    env.out() << "[CVC4] add: " << cvc4clause << std::endl;
-    env.endOutput();
-  }
-  _engine.assertFormula(cvc4clause);
-
-  // THE Z3 part:
-  {
   z3::expr z3clause = _context.bool_val(false);
 
   unsigned clen=cl->length();
@@ -86,13 +96,12 @@ void CVC4Interfacing::addClause(SATClause* cl,bool withGuard)
     z3clause = z3clause || e;
   }
   
-  if(_showCVC4){
+  if(_showZ3){
     env.beginOutput();
-    env.out() << "[Z3] add: " << z3clause << std::endl;
+    env.out() << "[Z3] add (clause): " << z3clause << std::endl;
     env.endOutput();
   }
   _solver.add(z3clause);
-  }
 }
 
 void CVC4Interfacing::addAssumption(SATLiteral lit,bool withGuard)
@@ -195,6 +204,7 @@ SATSolver::VarAssignment CVC4Interfacing::getAssignment(unsigned var)
 
   ASS_EQ(_status,SATISFIABLE);
   bool named = _namedExpressions.find(var);
+  //cout << "named:" << named << endl;
   z3::expr rep = named ? getNameExpr(var) : getRepresentation(SATLiteral(var,1),false);
   //cout << "rep is " << rep << " named was " << named << endl;
   z3::expr assignment = _model.eval(rep,true /*model_completion*/);
@@ -308,7 +318,7 @@ z3::sort CVC4Interfacing::getz3sort(unsigned s)
   if(s==Sorts::SRT_RATIONAL) return _context.real_sort(); // Drop notion of rationality 
 
   // Deal with arrays
-  if(env.sorts->hasStructuredSort(s,Sorts::StructuredSort::ARRAY)){
+  if(env.sorts->isOfStructuredSort(s,Sorts::StructuredSort::ARRAY)){
     
     z3::sort index_sort = getz3sort(env.sorts->getArraySort(s)->getIndexSort());
     z3::sort value_sort = getz3sort(env.sorts->getArraySort(s)->getInnerSort());
@@ -348,11 +358,11 @@ z3::expr CVC4Interfacing::getz3expr(Term* trm,bool isLit,bool&nameExpression,boo
 
     Signature::Symbol* symb; 
     unsigned range_sort;
-    BaseType* type;
+    OperatorType* type;
     bool is_equality = false;
     if(isLit){
       symb = env.signature->getPredicate(trm->functor());
-      PredicateType* ptype = symb->predType();
+      OperatorType* ptype = symb->predType();
       type = ptype;
       range_sort = Sorts::SRT_BOOL;
       // check for equality
@@ -362,7 +372,7 @@ z3::expr CVC4Interfacing::getz3expr(Term* trm,bool isLit,bool&nameExpression,boo
       }
     }else{
       symb = env.signature->getFunction(trm->functor());
-      FunctionType* ftype = symb->fnType(); 
+      OperatorType* ftype = symb->fnType();
       type = ftype;
       range_sort = ftype->result();
     }
@@ -437,16 +447,16 @@ z3::expr CVC4Interfacing::getz3expr(Term* trm,bool isLit,bool&nameExpression,boo
       bool skip=false; 
       unsigned argsToPop=theory->getArity(interp);
 
-      if(theory->isStructuredSortInterpretation(interp)){
+      if(Theory::isPolymorphic(interp)){
         nameExpression = true;
-        switch(theory->convertToStructured(interp)){
-          case Theory::StructuredSortInterpretation::ARRAY_SELECT:
-          case Theory::StructuredSortInterpretation::ARRAY_BOOL_SELECT:
+        switch(interp){
+          case Theory::ARRAY_SELECT:
+          case Theory::ARRAY_BOOL_SELECT:
             // select(array,index)
             ret = select(args[0],args[1]);
             break;
 
-          case Theory::StructuredSortInterpretation::ARRAY_STORE:
+          case Theory::ARRAY_STORE:
             // store(array,index,value)
             ret = store(args[0],args[1],args[2]);
             break;
@@ -656,7 +666,7 @@ z3::expr CVC4Interfacing::getz3expr(Term* trm,bool isLit,bool&nameExpression,boo
 
         default: 
           if(withGuard){
-            throw UninterpretedForZ3Exception();
+            throw UninterpretedForCVC4Exception();
           }
           skip=true;//skip it and treat the function as uninterpretted
           break;
@@ -683,39 +693,12 @@ z3::expr CVC4Interfacing::getz3expr(Term* trm,bool isLit,bool&nameExpression,boo
     return e;
 }
 
-CVC4::Expr CVC4Interfacing::getRepr(SATLiteral slit, bool withGuard)
-{
-  CALL("CVC4Interfacing::getRepr");
-  BYPASSING_ALLOCATOR;
-
-  Literal* lit = sat2fo.toFO(slit);
-
-  CVC4::Expr res;
-  if(_representations.find(lit,res)) {
-    return res;
-  }
-
-  res = getcvc4expr(lit,true,withGuard);
-  if (lit->isNegative()) {
-    res = _manager.mkExpr(CVC4::kind::NOT,res);
-  }
-
-  _representations.insert(lit,res);
-
-  if(_showCVC4){
-    env.beginOutput();
-    env.out() << "[CVC4] add: " << res << std::endl;
-    env.endOutput();
-  }
-
-  return res;
-}
-
-
 z3::expr CVC4Interfacing::getRepresentation(SATLiteral slit,bool withGuard)
 {
   CALL("CVC4Interfacing::getRepresentation");
   BYPASSING_ALLOCATOR;
+
+  //cout << "slit: " << slit.toString() << endl;
 
   //First, does this represent a ground literal
   Literal* lit = sat2fo.toFO(slit);
@@ -733,9 +716,9 @@ z3::expr CVC4Interfacing::getRepresentation(SATLiteral slit,bool withGuard)
         //cout << "Naming " << e << " as " << bname << endl;
         z3::expr naming = (bname == e);
         _solver.add(naming);
-  if(_showCVC4){
+  if(_showZ3){
     env.beginOutput();
-    env.out() << "[Z3] add: " << naming << std::endl;
+    env.out() << "[Z3] add (naming): " << naming << std::endl;
     env.endOutput();
   }
       }
@@ -823,9 +806,9 @@ void CVC4Interfacing::addRealNonZero(z3::expr t)
 
    z3::expr zero = _context.real_val(0);
    z3::expr side = t!=zero;
-  if(_showCVC4){
+  if(_showZ3){
     env.beginOutput();
-    env.out() << "[Z3] add: " << side << std::endl;
+    env.out() << "[Z3] add (RealNonZero): " << side << std::endl;
     env.endOutput();
   }
   _solver.add(side);
