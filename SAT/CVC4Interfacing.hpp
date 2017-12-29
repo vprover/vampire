@@ -103,9 +103,8 @@ public:
 
   unsigned newVar() override;
 
-  // Currently not implemented for Z3
+  // Currently not implemented for CVC4
   virtual void suggestPolarity(unsigned var, unsigned pol) override {}
-  
   virtual void addAssumption(SATLiteral lit) override { NOT_IMPLEMENTED; }
   virtual void retractAllAssumptions() override { NOT_IMPLEMENTED; }
   virtual bool hasAssumptions() const override { NOT_IMPLEMENTED; }
@@ -119,12 +118,12 @@ public:
   * In TWLSolver this is used for computing niceness values
   */
   virtual void recordSource(unsigned satlitvar, Literal* lit) override {
-    // unsupported by Z3; intentionally no-op
+    // unsupported by CVC4; intentionally no-op
   };
   
   /**
    * The set of inserted clauses may not be propositionally UNSAT
-   * due to theory reasoning inside Z3.
+   * due to theory reasoning inside CVC4.
    * We cannot later minimize this set with minisat.
    *
    * TODO: think of extracting true refutation from Z3 instead.
@@ -133,7 +132,9 @@ public:
 
   SATClause* getRefutation() override;  
 
-  void reset(){
+  // for the theory instantiation inference (separate concern)
+  Term* evaluateInModel(Term* trm);
+  void reset() {
     sat2fo.reset();
     _solver.reset();
     _status = UNKNOWN; // I set it to unknown as I do not reset
@@ -188,11 +189,7 @@ private:
   void addIntNonZero(z3::expr);
   void addRealNonZero(z3::expr);
 
-public:
-  // not sure why this one is public
   z3::expr getz3expr(Term* trm,bool islit,bool&nameExpression, bool withGuard=false);
-  Term* evaluateInModel(Term* trm);
-private:
   z3::expr getRepresentation(SATLiteral lit,bool withGuard);
 
   Status _status;
