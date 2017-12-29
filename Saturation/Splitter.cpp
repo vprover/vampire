@@ -52,7 +52,7 @@
 #include "SAT/BufferedSolver.hpp"
 #include "SAT/FallbackSolverWrapper.hpp"
 #include "SAT/MinisatInterfacing.hpp"
-#include "SAT/Z3Interfacing.hpp"
+#include "SAT/CVC4Interfacing.hpp"
 
 #include "DP/ShortConflictMetaDP.hpp"
 
@@ -86,7 +86,7 @@ void SplittingBranchSelector::init()
 #if VZ3
     case Options::SatSolver::Z3:
       { BYPASSING_ALLOCATOR
-        _solver = new Z3Interfacing(_parent.getOptions(),_parent.satNaming());
+        _solver = new CVC4Interfacing(_parent.getOptions(),_parent.satNaming());
         if(_parent.getOptions().satFallbackForSMT()){
           // TODO make fallback minimizing?
           SATSolver* fallback = new MinisatInterfacing(_parent.getOptions(),true);
