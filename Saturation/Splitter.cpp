@@ -1248,12 +1248,13 @@ SplitLevel Splitter::addNonGroundComponent(unsigned size, Literal* const * lits,
   _db.push(0);
   ASS_L(compName,_db.size());
 
-  _branchSelector.updateVarCnt();
-  _branchSelector.considerPolarityAdvice(posLit);
-
   compCl = buildAndInsertComponentClause(compName, size, lits, orig);
 
   _sat2fo.bindVarToComponentClause(var,compCl);
+
+  // only after adding the binding, so that the solver can see it on newVar:
+  _branchSelector.updateVarCnt();
+  _branchSelector.considerPolarityAdvice(posLit);
 
   return compName;
 }
