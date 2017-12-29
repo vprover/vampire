@@ -60,7 +60,7 @@ public:
    * this feature to extract a subset of used assumptions when
    * called via solveUnderAssumptions.
    */
-  CVC4Interfacing(const Shell::Options& opts, SAT2FO& s2f, bool unsatCoresForAssumptions = false);
+  CVC4Interfacing(const Shell::Options& opts, SAT2FO& s2f);
 
   void addClause(SATClause* cl, bool withGuard);
   void addClause(SATClause* cl) override { addClause(cl,false); }
@@ -106,10 +106,9 @@ public:
   // Currently not implemented for Z3
   virtual void suggestPolarity(unsigned var, unsigned pol) override {}
   
-  void addAssumption(SATLiteral lit, bool withGuard);
-  virtual void addAssumption(SATLiteral lit) override { addAssumption(lit,false); }
-  virtual void retractAllAssumptions() override { _assumptions.resize(0); }
-  virtual bool hasAssumptions() const override { return !_assumptions.empty(); }
+  virtual void addAssumption(SATLiteral lit) override { NOT_IMPLEMENTED; }
+  virtual void retractAllAssumptions() override { NOT_IMPLEMENTED; }
+  virtual bool hasAssumptions() const override { NOT_IMPLEMENTED; }
 
   Status solveUnderAssumptions(const SATLiteralStack& assumps, unsigned,bool,bool);
   virtual Status solveUnderAssumptions(const SATLiteralStack& assumps, unsigned c, bool p) override
@@ -200,9 +199,6 @@ private:
   z3::context _context;
   z3::solver _solver;
   z3::model _model;
-
-  z3::expr_vector _assumptions;
-  bool _unsatCoreForAssumptions;
 
   bool _showZ3;
   bool _unsatCoreForRefutations;

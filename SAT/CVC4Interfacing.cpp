@@ -47,23 +47,19 @@ namespace SAT
 using namespace Shell;  
 using namespace Lib;  
   
-CVC4Interfacing::CVC4Interfacing(const Shell::Options& opts,SAT2FO& s2f, bool unsatCoresForAssumptions):
+CVC4Interfacing::CVC4Interfacing(const Shell::Options& opts,SAT2FO& s2f):
    _engine(&_manager),
-  _varCnt(0), sat2fo(s2f),_status(SATISFIABLE), _solver(_context),
-  _model((_solver.check(),_solver.get_model())), _assumptions(_context), _unsatCoreForAssumptions(unsatCoresForAssumptions),
+
+  _varCnt(0), sat2fo(s2f), _status(SATISFIABLE),
+
+  _solver(_context), _model((_solver.check(),_solver.get_model())),
+
   _showZ3(opts.showZ3()),_unsatCoreForRefutations(opts.z3UnsatCores())
 {
   CALL("CVC4Interfacing::CVC4Interfacing");
   _solver.reset();
 
   _engine.setOption("incremental", CVC4::SExpr("true")); // Enable incremental solving
-
-    z3::params p(_context);
-  if (_unsatCoreForAssumptions) {
-    p.set(":unsat-core", true);
-  }
-    //p.set(":smtlib2-compliant",true);
-    _solver.set(p);
 }
   
 unsigned CVC4Interfacing::newVar()
@@ -104,19 +100,12 @@ void CVC4Interfacing::addClause(SATClause* cl,bool withGuard)
   _solver.add(z3clause);
 }
 
-void CVC4Interfacing::addAssumption(SATLiteral lit,bool withGuard)
-{
-  CALL("CVC4Interfacing::addAssumption");
-
-  _assumptions.push_back(getRepresentation(lit,withGuard));
-}
-
 SATSolver::Status CVC4Interfacing::solve(unsigned conflictCountLimit)
 {
   CALL("CVC4Interfacing::solve");
   BYPASSING_ALLOCATOR;
 
-  z3::check_result result = _assumptions.empty() ? _solver.check() : _solver.check(_assumptions);
+  z3::check_result result = _solver.check();
 
   //cout << "solve result: " << result << endl;
 
@@ -147,54 +136,7 @@ SATSolver::Status CVC4Interfacing::solveUnderAssumptions(const SATLiteralStack& 
 {
   CALL("CVC4Interfacing::solveUnderAssumptions");
 
-  if (!_unsatCoreForAssumptions) {
-    return SATSolverWithAssumptions::solveUnderAssumptions(assumps,conflictCountLimit,onlyProperSubusets);
-  }
-
-  ASS(!hasAssumptions());
-
-  _solver.push();
-
-  // load assumptions:
-  SATLiteralStack::ConstIterator it(assumps);
-
-  static DHMap<vstring,SATLiteral> lookup;
-  lookup.reset();
-  unsigned n=0;
-  vstring ps="$_$_$";
-
-  while (it.hasNext()) {
-    SATLiteral v_assump = it.next();
-    z3::expr z_assump = getRepresentation(v_assump,withGuard);
-
-    vstring p = ps+Int::toString(n++);
-    _solver.add(z_assump,p.c_str());
-    lookup.insert(p,v_assump);
-  }
-
-  z3::check_result result = _solver.check();
-
-  _solver.pop();
-
-  if (result == z3::check_result::unsat) {
-
-    _failedAssumptionBuffer.reset();
-
-    z3::expr_vector  core = _solver.unsat_core();
-    for (unsigned i = 0; i < core.size(); i++) {
-      z3::expr ci = core[i];
-      vstring cip = vstring(ci.to_string().c_str());
-      SATLiteral v_assump = lookup.get(cip);
-      _failedAssumptionBuffer.push(v_assump);
-    }
-
-    return UNSATISFIABLE;
-  } else if (result == z3::check_result::sat) {
-    _model = _solver.get_model();
-    return SATISFIABLE;
-  } else {
-    return UNKNOWN;
-  }
+  return SATSolverWithAssumptions::solveUnderAssumptions(assumps,conflictCountLimit,onlyProperSubusets);
 }
 
 SATSolver::VarAssignment CVC4Interfacing::getAssignment(unsigned var)
@@ -738,7 +680,6 @@ z3::expr CVC4Interfacing::getRepresentation(SATLiteral slit,bool withGuard)
 }
 
 SATClause* CVC4Interfacing::getRefutation() {
-
     if(!_unsatCoreForRefutations)
       return PrimitiveProofRecordingSATSolver::getRefutation(); 
 
