@@ -1239,7 +1239,8 @@ SplitLevel Splitter::addNonGroundComponent(unsigned size, Literal* const * lits,
   ASS(forAll(getArrayishObjectIterator(lits, size), 
           [] (Literal* l) { return !l->ground(); } )); //none of the literals can be ground
 
-  SATLiteral posLit(_sat2fo.createSpareSatVar(), true);
+  unsigned var = _sat2fo.createSpareSatVar();
+  SATLiteral posLit(var, true);
   SplitLevel compName = getNameFromLiteralUnsafe(posLit);
   ASS_EQ(compName&1,0); //positive levels are even
   ASS_GE(compName,_db.size());
@@ -1251,6 +1252,8 @@ SplitLevel Splitter::addNonGroundComponent(unsigned size, Literal* const * lits,
   _branchSelector.considerPolarityAdvice(posLit);
 
   compCl = buildAndInsertComponentClause(compName, size, lits, orig);
+
+  _sat2fo.bindVarToComponentClause(var,compCl);
 
   return compName;
 }

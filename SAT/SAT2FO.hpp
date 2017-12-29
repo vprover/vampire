@@ -26,6 +26,7 @@
 
 #include "Forwards.hpp"
 
+#include "Lib/DHMap.hpp"
 #include "Lib/Numbering.hpp"
 
 #include "Kernel/Inference.hpp"
@@ -50,6 +51,17 @@ public:
 
   unsigned createSpareSatVar();
 
+  void bindVarToComponentClause(unsigned var, Clause* compCl)
+  {
+    CALL("SAT2FO::bindVarToComponentClause");
+    ALWAYS(_nonGroundComponents.insert(var,compCl)); // insert only once per variable
+  }
+  Clause* lookupComponentClause(unsigned var)
+  {
+    CALL("SAT2FO::lookupComponentClause");
+    return _nonGroundComponents.get(var); // only ask if you know it's there
+  }
+
   void collectAssignment(SATSolver& solver, LiteralStack& res) const;
   SATClause* createConflictClause(LiteralStack& unsatCore, Inference::Rule rule=Inference::THEORY);
 
@@ -59,6 +71,9 @@ public:
 private:
   typedef Numbering<Literal *, 1 /* variables start from 1 */ > TwoWayMap;
   TwoWayMap _posMap;
+
+  // used only by Splitter in cooperation with CVC4Interfacing (for now) -- to pass the information about non-ground components
+  DHMap<unsigned,Clause*> _nonGroundComponents;
 };
 
 }
