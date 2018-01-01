@@ -51,7 +51,7 @@ private:
   void addEqualityAxiom(TermList equals, unsigned argsSort, unsigned eqaulsSorts);
   
   void addCombinatorAxiom(TermList combinator, unsigned combinatorSort, unsigned argSort,
-                          Term::Comb comb, int arg1Sort = -1, int arg2Sort = -1);
+                          Signature::Symbol::HOLConstant comb, int arg1Sort = -1, int arg2Sort = -1);
   // Introduces a fresh predicate or function (depending on the context) symbol
   // with given arguments and result sort
 
@@ -65,9 +65,9 @@ private:
   
   TermList processBeyondLambda(Term* term);
   TermList addKComb(unsigned appliedToArg, TermList arg);
-  TermList addComb(unsigned appliedToArgs, TermList arg1, TermList arg2, Term::Comb comb);
+  TermList addComb(unsigned appliedToArgs, TermList arg1, TermList arg2, Signature::Symbol::HOLConstant comb);
   
-  TermList addHolConstant(vstring name, unsigned sort, bool& added, Term::Comb combType);
+  TermList addHolConstant(vstring name, unsigned sort, bool& added, Signature::Symbol::HOLConstant constant);
   void process(Stack<int> _vars, Stack<unsigned> _sorts, Stack<TermList> _toBeProcessed);
   
   /** Lexical scope of the current unit */
@@ -78,7 +78,7 @@ private:
   //Stack<unsigned> _argNums;
   //Stack<TermList> _toBeProcessed;
   Stack<TermList> _processed;
-  Stack<Term::Comb> _combinators;
+  Stack<Signature::Symbol::HOLConstant> _combinators;
   Stack<unsigned> _combSorts;
   
   TermList _processing; 

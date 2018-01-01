@@ -235,21 +235,6 @@ public:
   static const unsigned SF_LAMBDA = 0xFFFFFFFA;
   static const unsigned SF_APP = 0xFFFFFFF9; 
   static const unsigned SPECIAL_FUNCTOR_LOWER_BOUND = 0xFFFFFFF9;
-
-  enum Comb {
-	/** I combinator */
-    I_COMB,
-    /** S combinator */
-    S_COMB,
-    /** K combinator */
-    K_COMB,
-    /** C combinator */
-    C_COMB,
-    /** B combinator */
-    B_COMB,
-    /** Null value */	
-	NULL_COMB,  
-  };
   
   class SpecialTermData
   {
@@ -488,15 +473,6 @@ public:
   {
     return _isTwoVarEquality;
   }
-
-  const bool isSKICombinator()
-  {
-	return (_combinator != NULL_COMB);  
-  } 
-  void setCombinator(Comb comb)
-  {
-	  _combinator = comb;
-  }
   
   const vstring& functionName() const;
 
@@ -661,9 +637,6 @@ protected:
 
 #endif
 
-   /** If term represents a combinator, set to relevent value. 
-       Otherwise equal to NULL_COMB */
-  Comb _combinator = NULL_COMB;
   /** The number of this symbol in a signature */
   unsigned _functor;
   /** Arity of the symbol */
