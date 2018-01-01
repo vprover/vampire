@@ -6,9 +6,6 @@
  * ^[X]:(^[Y]:(^[Z]:exp)). I.e. as three lambdas in a single term.
  */
  
- //Need to deal with the following situation:
- // \X. (g@X) @ (\Y.\Z.f@Y@Z) or even worse,
- // \X. (g@X) @ (w @ (\Y.\Z.f@Y@Z))
 
 #include "Indexing/TermSharing.hpp"
 
@@ -32,17 +29,13 @@ using namespace Lib;
 using namespace Kernel;
 using namespace Shell;
 
-  /*********************************************
-  * Lambda and application elimination functions
-  *********************************************/
+/** Function removes all apps, lambdas and top level connectives from
+  * a lambda expression via 
+  */
 
-  
-  
-  
 TermList LambdaElimination::processBeyondLambda(Term* term)
 {
    CALL("LambdaElimination::processBeyondLambda(Term*)");
-
 
    TermList appTerm; //The resulting term to be pushed onto _toBeProcessed 
 
@@ -70,7 +63,7 @@ TermList LambdaElimination::processBeyondLambda(Term* term)
               unsigned equalsSort = env.sorts->addFunctionSort(lhsSort, appSort);
                                 
               bool added;
-              constant = addHolConstant("vEQUALS", equalsSort, added, Term::NULL_COMB);
+              constant = addHolConstant("vEQUALS", equalsSort, added, Signature::Symbol::EQUALS);
               if(added){
                  addEqualityAxiom(constant, lhsSort, equalsSort);
               }          
@@ -91,11 +84,11 @@ TermList LambdaElimination::processBeyondLambda(Term* term)
               TermList form;
               bool added;
               if(conn == IFF){
-                 constant = addHolConstant("vIFF", constSort2, added, Term::NULL_COMB);
+                 constant = addHolConstant("vIFF", constSort2, added, Signature::Symbol::IFF);
               }else if(conn == IMP){
-                 constant = addHolConstant("vIMP", constSort2, added, Term::NULL_COMB);
+                 constant = addHolConstant("vIMP", constSort2, added, Signature::Symbol::IMP);
               }else{
-                 constant = addHolConstant("vXOR", constSort2, added, Term::NULL_COMB);
+                 constant = addHolConstant("vXOR", constSort2, added, Signature::Symbol::XOR);
               }
               if(added){
                  addBinaryConnAxiom(constant, conn, constSort2, constSort1);
@@ -128,9 +121,9 @@ TermList LambdaElimination::processBeyondLambda(Term* term)
               TermList form;
               bool added;
               if(conn == AND){
-                 constant = addHolConstant("vAND", constSort2, added, Term::NULL_COMB);
+                 constant = addHolConstant("vAND", constSort2, added, Signature::Symbol::AND);
               }else{
-                 constant = addHolConstant("vOR", constSort2, added, Term::NULL_COMB);
+                 constant = addHolConstant("vOR", constSort2, added, Signature::Symbol::OR);
               }
               if(added){
                  addBinaryConnAxiom(constant, conn, constSort2, constSort1);
@@ -156,12 +149,12 @@ TermList LambdaElimination::processBeyondLambda(Term* term)
                         buildFuncApp(app1arg, constant, appTerm, appTerm); 
                       }
                       oddNumber = false;
-                    }else{
-                      buildFuncApp(app2arg, appTerm, form, appTerm);
-                      oddNumber = true;
-                    }
-                }
-                return appTerm;                           
+                  }else{
+                    buildFuncApp(app2arg, appTerm, form, appTerm);
+                    oddNumber = true;
+                  }
+              }
+              return appTerm;                           
              }
              case NOT: {
                 Formula* subForm = fm->uarg(); 
@@ -169,7 +162,7 @@ TermList LambdaElimination::processBeyondLambda(Term* term)
                 bool added;
                 TermList form;
                 unsigned notsort = env.sorts->addFunctionSort(Sorts::SRT_BOOL, Sorts::SRT_BOOL);
-                constant = addHolConstant("vNOT", notsort, added, Term::NULL_COMB);
+                constant = addHolConstant("vNOT", notsort, added, Signature::Symbol::NOT);
                 if(added){
                     addNotConnAxiom(constant, notsort);
                 }
@@ -221,9 +214,9 @@ TermList LambdaElimination::processBeyondLambda(Term* term)
                 
                 bool added;
                 if(conn == FORALL){
-                   constant = addHolConstant("vPI", constSort, added, Term::NULL_COMB);   
+                   constant = addHolConstant("vPI", constSort, added, Signature::Symbol::PI);   
                 }else{
-                   constant = addHolConstant("vSIGMA", constSort, added, Term::NULL_COMB);
+                   constant = addHolConstant("vSIGMA", constSort, added, Signature::Symbol::SIGMA);
                 }
                 if(added){
                     addQuantifierAxiom(constant, constSort, conn, lambdaExpSort);
@@ -232,7 +225,7 @@ TermList LambdaElimination::processBeyondLambda(Term* term)
                 unsigned app = introduceAppSymbol( constSort, lambdaExpSort, Sorts::SRT_BOOL); 
                 
                 buildFuncApp(app, constant, translatedArg, appTerm);
-
+				
                 return appTerm;
              }
              case TRUE:
@@ -271,10 +264,9 @@ TermList LambdaElimination::processBeyondLambda(Term* term)
       default:
           ASSERTION_VIOLATION;    
     }
-   }else{
-    return TermList(term);
-   }   
-    
+   }
+   
+   return TermList(term); 
 }   
   
   
@@ -308,8 +300,7 @@ TermList LambdaElimination::elimLambda(Term* lambdaTerm)
     lambdaExp = sd->getLambdaExp();
     _toBeProcessed.push(lambdaExp);
 	
-    process(_vars, _sorts, _toBeProcessed);
-    
+    process(_vars, _sorts, _toBeProcessed);    
 	
     return _processed.pop();
     
@@ -322,7 +313,7 @@ void LambdaElimination::process(Stack<int> _vars, Stack<unsigned> _sorts, Stack<
     
    int lambdaVar;
    unsigned lambdaVarSort;
-   	Stack<unsigned> _argNums;
+   Stack<unsigned> _argNums;
    
    while(!_vars.isEmpty()){
        
@@ -381,9 +372,9 @@ void LambdaElimination::process(Stack<int> _vars, Stack<unsigned> _sorts, Stack<
        bool added;       
        if(_processing.var() == (unsigned)lambdaVar){ //an expression of the form \x.x
             unsigned iSort = env.sorts->addFunctionSort(lambdaVarSort, lambdaVarSort);
-            TermList ts = addHolConstant("iCOMB", iSort, added, Term::I_COMB);
+            TermList ts = addHolConstant("iCOMB", iSort, added, Signature::Symbol::I_COMB);
             if(added){
-                addCombinatorAxiom(ts, iSort, lambdaVarSort, Term::I_COMB);
+                addCombinatorAxiom(ts, iSort, lambdaVarSort, Signature::Symbol::I_COMB);
             }
             addToProcessed(ts, _argNums);
         }else{ //an expression of the form \x.y 
@@ -420,13 +411,13 @@ void LambdaElimination::addToProcessed(TermList ts, Stack<unsigned> &_argNums){
         return;
     }else{
       while(true){
-        Term::Comb comb = _combinators.pop();
+        Signature::Symbol::HOLConstant comb = _combinators.pop();
 
         TermList arg1 = _processed.pop();   
         TermList arg2 = _processed.pop();
 		
         unsigned combSort = _combSorts.pop();   
-        if(comb == Term::B_COMB){
+        if(comb == Signature::Symbol::B_COMB){
             _processed.push(addComb(combSort,arg2, arg1,comb));
         }else{
             _processed.push(addComb(combSort,arg1, arg2,comb));
@@ -461,17 +452,17 @@ void LambdaElimination::dealWithApp(TermList lhs, TermList rhs, unsigned sort, i
     }
 
     if ((IntList::member(lambdaVar, lhsFVs)) && (IntList::member(lambdaVar, rhsFVs))){
-        _combinators.push(Term::S_COMB);
+        _combinators.push(Signature::Symbol::S_COMB);
         _argNums.push(0);
         _toBeProcessed.push(lhs);
         _toBeProcessed.push(rhs); 
     }else if(IntList::member(lambdaVar, lhsFVs)){
-        _combinators.push(Term::C_COMB);
+        _combinators.push(Signature::Symbol::C_COMB);
         _argNums.push(0);
         _toBeProcessed.push(lhs);
         rhs.isTerm() ? addToProcessed(processBeyondLambda(rhs.term()), _argNums) : addToProcessed(rhs, _argNums);  
     }else if(IntList::member(lambdaVar, rhsFVs)){
-        _combinators.push(Term::B_COMB);            
+        _combinators.push(Signature::Symbol::B_COMB);            
         _argNums.push(0);
         _toBeProcessed.push(rhs);
         lhs.isTerm() ? addToProcessed(processBeyondLambda(lhs.term()), _argNums) : addToProcessed(lhs, _argNums);   
@@ -488,9 +479,9 @@ TermList LambdaElimination::addKComb(unsigned appliedToArg, TermList arg)
     unsigned appliedToZeroArgs = env.sorts->addFunctionSort(argSort, appliedToArg);
                 
     bool added;
-    ts = addHolConstant("kCOMB",appliedToZeroArgs, added, Term::K_COMB);
+    ts = addHolConstant("kCOMB",appliedToZeroArgs, added, Signature::Symbol::K_COMB);
     if(added){
-       addCombinatorAxiom(ts, appliedToZeroArgs, argSort, Term::K_COMB, domain(appliedToArg));
+       addCombinatorAxiom(ts, appliedToZeroArgs, argSort, Signature::Symbol::K_COMB, domain(appliedToArg));
     }   
     TermList applied;
     unsigned app = introduceAppSymbol( appliedToZeroArgs, argSort, appliedToArg);
@@ -499,7 +490,7 @@ TermList LambdaElimination::addKComb(unsigned appliedToArg, TermList arg)
     return applied;
 }   
     
-TermList LambdaElimination::addComb(unsigned appliedToArgs, TermList arg1, TermList arg2, Term::Comb comb)
+TermList LambdaElimination::addComb(unsigned appliedToArgs, TermList arg1, TermList arg2, Signature::Symbol::HOLConstant comb)
 {
     CALL("LambdaElimination::addComb");
     
@@ -512,13 +503,13 @@ TermList LambdaElimination::addComb(unsigned appliedToArgs, TermList arg1, TermL
     
     bool added;
     switch(comb){
-       case Term::S_COMB:
+       case Signature::Symbol::S_COMB:
           ts = addHolConstant("sCOMB",appliedToZeroArgs, added, comb);
           break;
-       case Term::C_COMB:
+       case Signature::Symbol::C_COMB:
           ts = addHolConstant("cCOMB",appliedToZeroArgs, added, comb);
           break;
-       case Term::B_COMB:
+       case Signature::Symbol::B_COMB:
           ts = addHolConstant("bCOMB",appliedToZeroArgs, added, comb);
           break;
        default:
@@ -547,16 +538,17 @@ unsigned LambdaElimination::range(unsigned sort){
     return range;
 }
 
-TermList LambdaElimination::addHolConstant(vstring name, unsigned sort, bool& added, Term::Comb combType){
+TermList LambdaElimination::addHolConstant(vstring name, unsigned sort, bool& added, Signature::Symbol::HOLConstant cnst){
 
     CALL("LambdaElimination::addHolConstant");
 
     unsigned fun = env.signature->addFunction(name + "_" +  Lib::Int::toString(sort),0,added);
     if(added){//first time constant added. Set type
-        env.signature->getFunction(fun)->setType(OperatorType::getConstantsType(sort));   
+        Signature::Symbol* symbol = env.signature->getFunction(fun);  
+        symbol->setType(OperatorType::getConstantsType(sort));
+        symbol->setHOLConstant(cnst);		
     }
     Term* t = Term::createConstant(fun);
-    t->setCombinator(combType);
     TermList ts(t);
     return ts;
 }
@@ -596,8 +588,7 @@ unsigned LambdaElimination::introduceAppSymbol(unsigned sort1, unsigned sort2, u
   
   vstring srt1 = Lib::Int::toString(sort1);
   vstring srt2 = Lib::Int::toString(sort2);
-  vstring srt3 = Lib::Int::toString(resultSort);
-  symbol = env.signature->addFunction("vAPP_" + srt1 + "_" + srt2 + "_" + srt3, 2, added);
+  symbol = env.signature->addFunction("vAPP_" + srt1 + "_" + srt2, 2, added);
 
   
   if(added){
@@ -624,7 +615,7 @@ void LambdaElimination::buildFuncApp(unsigned symbol, TermList arg1, TermList ar
 }
 
  void LambdaElimination::addCombinatorAxiom(TermList combinator, unsigned combinatorSort, unsigned argSort,
-                                            Term::Comb comb, int arg1Sort, int arg2Sort )
+                                            Signature::Symbol::HOLConstant comb, int arg1Sort, int arg2Sort )
  {
      CALL("LambdaElimination::addCombinatorAxiom"); 
      
@@ -640,12 +631,12 @@ void LambdaElimination::buildFuncApp(unsigned symbol, TermList arg1, TermList ar
      buildFuncApp(appFun, combinator, var1, functionApplied);
      
      switch(comb){
-        case Term::I_COMB: {    
+        case Signature::Symbol::I_COMB: {    
             combAxiom = createEquality(functionApplied, var1, argSort);
             combAxiom = new QuantifiedFormula(FORALL, varList, sortList, combAxiom);
             break;
         }
-        case Term::K_COMB: {
+        case Signature::Symbol::K_COMB: {
             TermList functionApplied2;
             TermList var2 = TermList(1, false); 
             
@@ -659,9 +650,9 @@ void LambdaElimination::buildFuncApp(unsigned symbol, TermList arg1, TermList ar
             combAxiom = new QuantifiedFormula(FORALL, varList, sortList, combAxiom); 
             break; 
         }
-        case Term::B_COMB:
-        case Term::C_COMB:
-        case Term::S_COMB: {
+        case Signature::Symbol::B_COMB:
+        case Signature::Symbol::C_COMB:
+        case Signature::Symbol::S_COMB: {
             TermList functionApplied2;
             TermList var2 = TermList(1, false); 
             
@@ -683,7 +674,7 @@ void LambdaElimination::buildFuncApp(unsigned symbol, TermList arg1, TermList ar
             TermList functionApplied4, functionApplied5, functionApplied6;
             
             
-            if(comb == Term::S_COMB){
+            if(comb == Signature::Symbol::S_COMB){
                 appFun = introduceAppSymbol( argSort, arg2Sort, range(argSort));
                 buildFuncApp(appFun, var1, var3, functionApplied4);
              
@@ -694,7 +685,7 @@ void LambdaElimination::buildFuncApp(unsigned symbol, TermList arg1, TermList ar
                 buildFuncApp(appFun, functionApplied4, functionApplied5, functionApplied6);     
             }
             
-            if(comb == Term::B_COMB){
+            if(comb == Signature::Symbol::B_COMB){
                 appFun = introduceAppSymbol( arg1Sort, arg2Sort, range(arg1Sort));
                 buildFuncApp(appFun, var2, var3, functionApplied5);
              
@@ -702,7 +693,7 @@ void LambdaElimination::buildFuncApp(unsigned symbol, TermList arg1, TermList ar
                 buildFuncApp(appFun, var1, functionApplied5, functionApplied6);     
             }
             
-            if(comb == Term::C_COMB){
+            if(comb == Signature::Symbol::C_COMB){
                 appFun = introduceAppSymbol( argSort, arg2Sort, range(argSort));
                 buildFuncApp(appFun, var1, var3, functionApplied5);
                 
@@ -723,19 +714,19 @@ void LambdaElimination::buildFuncApp(unsigned symbol, TermList arg1, TermList ar
      Inference* lambdaInference;
      
      switch(comb){
-         case Term::I_COMB:
+         case Signature::Symbol::I_COMB:
             lambdaInference = new Inference(Inference::LAMBDA_ELIMINATION_I_COMB);
             break;
-         case Term::K_COMB:
+         case Signature::Symbol::K_COMB:
             lambdaInference = new Inference(Inference::LAMBDA_ELIMINATION_K_COMB);
             break;
-         case Term::B_COMB:
+         case Signature::Symbol::B_COMB:
             lambdaInference = new Inference(Inference::LAMBDA_ELIMINATION_B_COMB);
             break;
-         case Term::C_COMB:
+         case Signature::Symbol::C_COMB:
             lambdaInference = new Inference(Inference::LAMBDA_ELIMINATION_C_COMB);
             break;
-         case Term::S_COMB:
+         case Signature::Symbol::S_COMB:
             lambdaInference = new Inference(Inference::LAMBDA_ELIMINATION_S_COMB);
             break;
          default:
@@ -899,7 +890,6 @@ void LambdaElimination::buildFuncApp(unsigned symbol, TermList arg1, TermList ar
    return new AtomicFormula(equality);
      
  }
- 
  
 Formula* LambdaElimination::toEquality(TermList booleanTerm) {
   TermList truth(Term::foolTrue());
