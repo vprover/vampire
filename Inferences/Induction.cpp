@@ -116,7 +116,7 @@ InductionClauseIterator::InductionClauseIterator(Clause* premise)
       Set<unsigned>::Iterator citer1(int_constants);
       while(citer1.hasNext()){
         unsigned c = citer1.next();
-        cout << "PERFORM INDUCTION on " << env.signature->functionName(c) << endl;
+        //cout << "PERFORM INDUCTION on " << env.signature->functionName(c) << endl;
 
         // create fresh
         unsigned freshS = env.signature->addSkolemFunction(0);
@@ -192,7 +192,7 @@ InductionClauseIterator::InductionClauseIterator(Clause* premise)
       Set<unsigned>::Iterator citer2(ta_constants);
       while(citer2.hasNext()){
         unsigned c = citer2.next();
-        cout << "PERFORM INDUCTION on " << env.signature->functionName(c) << endl;
+        //cout << "PERFORM INDUCTION on " << env.signature->functionName(c) << endl;
 
         TermAlgebra* ta = env.signature->getTermAlgebraOfSort(env.signature->getFunction(c)->fnType()->result());
         unsigned ta_sort = ta->sort();
