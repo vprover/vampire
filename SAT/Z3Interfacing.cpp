@@ -415,7 +415,7 @@ z3::expr Z3Interfacing::getz3expr(Term* trm,bool isLit,bool&nameExpression,bool 
 
       // If not value then create constant symbol
       //cout << "HERE " << env.sorts->sortName(range_sort) << " for " << symb->name() << endl; 
-      return _context.constant(symb->name().c_str(),getz3sort(range_sort));
+      return getNameConst(symb->name(),getz3sort(range_sort));
     }
     ASS(trm->arity()>0);
 
