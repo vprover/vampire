@@ -48,7 +48,7 @@ using namespace Shell;
 using namespace Lib;  
   
 CVC4Interfacing::CVC4Interfacing(const Shell::Options& opts,SAT2FO& s2f):
-   _engine(&_manager), _showCVC4(true),
+   _engine(&_manager), _showCVC4(false),
 
   _varCnt(0), sat2fo(s2f), _status(SATISFIABLE),
 
@@ -102,6 +102,12 @@ CVC4::Expr CVC4Interfacing::createRepresentation(unsigned satVar)
 
     ASS(lit->isPositive());
 
+    if(_showCVC4) {
+      env.beginOutput();
+      env.out() << "[CVC4] create repr for: " << lit->toString() << std::endl;
+      env.endOutput();
+    }
+
     CVC4::Expr e = getRepr(lit,vars);
 
     ASS(vars.isEmpty());
@@ -114,6 +120,12 @@ CVC4::Expr CVC4Interfacing::createRepresentation(unsigned satVar)
   } else {
     // the non-ground component case
     Clause* cl = sat2fo.lookupComponentClause(satVar);
+
+    if(_showCVC4) {
+      env.beginOutput();
+      env.out() << "[CVC4] create repr for: " << cl->toString() << std::endl;
+      env.endOutput();
+    }
 
     CVC4::Expr cvc4clause = _manager.mkConst(false);
 
@@ -187,7 +199,7 @@ SATSolver::Status CVC4Interfacing::solve(unsigned conflictCountLimit)
   CVC4::Result result = _engine.checkSat();
   ASS_EQ(result.getType(),CVC4::Result::TYPE_SAT);
 
-  cout << "CVC4 result: " << result << endl;
+  // cout << "CVC4 result: " << result << endl;
 
   // In CVC4, for the purposes of AVATAR, UNKNOWN should be understood as SAT
   if (result == CVC4::Result(CVC4::Result::UNSAT)) {
@@ -260,10 +272,16 @@ CVC4::Expr CVC4Interfacing::getRepr(Term* trm, VarMap& vars)
   Signature::Symbol* symb;
   unsigned range_sort;
   OperatorType* type;
+  bool is_equality = false;
   if (trm->isLiteral()) {
     symb = env.signature->getPredicate(trm->functor());
     type = symb->predType();
     range_sort = Sorts::SRT_BOOL;
+    // check for equality
+    if(trm->functor()==0){
+       is_equality=true;
+       ASS(trm->arity()==2);
+    }
   } else {
     symb = env.signature->getFunction(trm->functor());
     type = symb->fnType();
@@ -346,8 +364,7 @@ CVC4::Expr CVC4Interfacing::getRepr(Term* trm, VarMap& vars)
 
   // now the actual operation
 
-  if (trm->functor()==0) { // equality
-    ASS(trm->arity()==2);
+  if (is_equality) { // equality
     return _manager.mkExpr(CVC4::kind::EQUAL,args);
   }
 
