@@ -256,9 +256,6 @@ private:
   float _flushQuotient;
   Options::SplittingDeleteDeactivated _deleteDeactivated;
   Options::SplittingCongruenceClosure _congruenceClosure;
-#if VZ3
-  bool hasSMTSolver;
-#endif
 
   //utility objects
   SplittingBranchSelector _branchSelector;
