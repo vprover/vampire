@@ -62,20 +62,21 @@ public:
    */
   CVC4Interfacing(const Shell::Options& opts, SAT2FO& s2f);
 
-  void addClause(SATClause* cl, bool withGuard);
-  void addClause(SATClause* cl) override { addClause(cl,false); }
+  ~CVC4Interfacing() { cout << "CVC4 dying" << endl; }
+
+  void addClause(SATClause* cl) override;
 
   virtual Status solve(unsigned conflictCountLimit) override;
   /**
    * If status is @c SATISFIABLE, return assignment of variable @c var
    */
-  virtual VarAssignment getAssignment(unsigned var) override;
+  VarAssignment getAssignment(unsigned var) override;
 
   /**
    * If status is @c SATISFIABLE, return 0 if the assignment of @c var is
    * implied only by unit propagation (i.e. does not depend on any decisions)
    */
-  virtual bool isZeroImplied(unsigned var) override;
+  bool isZeroImplied(unsigned var) override { return false; }
   /**
    * Collect zero-implied literals.
    *
@@ -83,7 +84,7 @@ public:
    *
    * @see isZeroImplied()
    */
-  virtual void collectZeroImplied(SATLiteralStack& acc) override;
+  void collectZeroImplied(SATLiteralStack& acc) override { NOT_IMPLEMENTED; }
   /**
    * Return a valid clause that contains the zero-implied literal
    * and possibly the assumptions that implied it. Return 0 if @c var
@@ -91,7 +92,11 @@ public:
    * If called on a proof producing solver, the clause will have
    * a proper proof history.
    */
-  virtual SATClause* getZeroImpliedCertificate(unsigned var) override;
+  SATClause* getZeroImpliedCertificate(unsigned var) override {
+    NOT_IMPLEMENTED;
+
+    return 0;
+  }
 
   void ensureVarCount(unsigned newVarCnt) override {
     CALL("CVC4Interfacing::ensureVarCnt");
@@ -108,10 +113,6 @@ public:
   virtual void addAssumption(SATLiteral lit) override { NOT_IMPLEMENTED; }
   virtual void retractAllAssumptions() override { NOT_IMPLEMENTED; }
   virtual bool hasAssumptions() const override { NOT_IMPLEMENTED; }
-
-  Status solveUnderAssumptions(const SATLiteralStack& assumps, unsigned,bool,bool);
-  virtual Status solveUnderAssumptions(const SATLiteralStack& assumps, unsigned c, bool p) override
-  { return solveUnderAssumptions(assumps,c,p,false); }
 
  /**
   * Record the association between a SATLiteral var and a Literal
@@ -133,79 +134,67 @@ public:
   SATClause* getRefutation() override;  
 
   // for the theory instantiation inference (separate concern)
+  /*
   Term* evaluateInModel(Term* trm);
   void reset() {
     sat2fo.reset();
     _solver.reset();
     _status = UNKNOWN; // I set it to unknown as I do not reset
   }
+  */
 
 private:
+  // for properly managing newVar calls
+  unsigned _varCnt;
+
   CVC4::ExprManager _manager;
   CVC4::SmtEngine _engine;
 
-  CVC4::Expr getRepr(SATLiteral lit,bool withGuard);
-  CVC4::Expr getcvc4expr(Term* trm, bool islit, bool withGuard=false);
+  CVC4::Expr createRepresentation(unsigned satVar);
+
+  typedef DHMap<unsigned,CVC4::Expr> VarMap;
+
+  VarMap _representations; // from the SAT variables to CVC4 expressions
+
+  /*
+   * Recursively translate vampire term (which can be a literal) to a CVC4 expression.
+   * Vampire variables are looked up in vars, which will get extended if no binding is found.
+   * Polarity of the literal (if applicable) is ignored.
+   */
+  CVC4::Expr getRepr(Term* trm, VarMap& vars);
+
+  CVC4::Type getCVC4sort(unsigned srt);
+
+  // Fresh is just to stress what mkVar does. Not that we would like it that much
+  CVC4::Expr createFreshExprName(unsigned satVar) {
+    CALL("CVC4Interfacing::createFreshExprName");
+    vstring name = "v"+Lib::Int::toString(satVar);
+    return _manager.mkVar(string(name.c_str()),_manager.booleanType()); // mkVar creates a constant, don't worry!
+  }
+
+  // Fresh is just to stress what mkVar does. Not that we would like it that much
+  CVC4::Expr createFreshConst(const vstring& symbName, CVC4::Type srt) {
+    CALL("CVC4Interfacing::createFreshConst");
+    vstring name = "c"+symbName;
+    return _manager.mkVar(string(name.c_str()),srt); // mkVar creates a constant, don't worry!
+  }
+
+  typedef DHMap<std::pair<unsigned,unsigned>,  // vampire symbol id, vampire sort id
+                                  CVC4::Expr> SortedSymbolMap;
+
+  SortedSymbolMap _constants;
+  SortedSymbolMap _nonZeroAritySymbols; // can be both functions and predicates, the attached sort is the "range sort", just to distinguish function symbols and predicate symbols
+
+  DHMap<unsigned, CVC4::Type> _sorts;
 
   bool _showCVC4;
-  DHMap<Literal*,CVC4::Expr> _representations;
-
-
-
-
-
-  // just to conform to the interface
-  unsigned _varCnt;
 
   // Memory belongs to Splitter
   SAT2FO& sat2fo;
 
-  //DHMap<unsigned,Z3_sort> _sorts;
-  z3::sort getz3sort(unsigned s);
-
-  // Helper funtions for the translation
-  z3::expr to_int(z3::expr e) {
-        return z3::expr(e.ctx(), Z3_mk_real2int(e.ctx(), e));
-  }
-  z3::expr to_real(z3::expr e) {
-        return z3::expr(e.ctx(), Z3_mk_int2real(e.ctx(), e));
-  }
-  z3::expr ceiling(z3::expr e){
-        return -to_real(to_int((e)));
-  }
-  z3::expr is_even(z3::expr e) {
-        z3::context& ctx = e.ctx();
-        z3::expr two = ctx.int_val(2);
-        z3::expr m = z3::expr(ctx, Z3_mk_mod(ctx, e, two));
-        return m == 0;
-  }
-
-  z3::expr truncate(z3::expr e) {
-        return ite(e >= 0, to_int(e), ceiling(e));
-  }
-
-  void addTruncatedOperations(z3::expr_vector, Interpretation qi, Interpretation ti, unsigned srt);
-  void addFloorOperations(z3::expr_vector, Interpretation qi, Interpretation ti, unsigned srt);
-  void addIntNonZero(z3::expr);
-  void addRealNonZero(z3::expr);
-
-  z3::expr getz3expr(Term* trm,bool islit,bool&nameExpression, bool withGuard=false);
-  z3::expr getRepresentation(SATLiteral lit,bool withGuard);
-
   Status _status;
-  z3::context _context;
-  z3::solver _solver;
-  z3::model _model;
 
-  bool _showZ3;
   bool _unsatCoreForRefutations;
-
-  DHSet<unsigned> _namedExpressions; 
-  z3::expr getNameExpr(unsigned var){
-    vstring name = "v"+Lib::Int::toString(var);
-    return  _context.bool_const(name.c_str());
-  }
-
 };
 
 }//end SAT namespace
