@@ -16,7 +16,7 @@
 
 // these gestures are used to avoid a public header dependence on cvc4autoconfig.h
 
-#if 1
+#if 0
 #  define CVC4_NEED_INT64_T_OVERLOADS
 #endif
 
