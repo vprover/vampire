@@ -48,7 +48,7 @@ using namespace Shell;
 using namespace Lib;  
   
 CVC4Interfacing::CVC4Interfacing(const Shell::Options& opts,SAT2FO& s2f):
-   _engine(&_manager), _showCVC4(false),
+   _engine(&_manager), _showCVC4(true),
 
   _varCnt(0), sat2fo(s2f), _status(SATISFIABLE),
 
@@ -56,9 +56,8 @@ CVC4Interfacing::CVC4Interfacing(const Shell::Options& opts,SAT2FO& s2f):
 {
   CALL("CVC4Interfacing::CVC4Interfacing");
 
-  _engine.setOption("incremental", true);     // enable incremental solving
+  _engine.setOption("incremental", true);
   _engine.setOption("produce-models", true);
-
   _engine.setOption("e-matching", false);
 }
   
@@ -92,8 +91,7 @@ CVC4::Expr CVC4Interfacing::createRepresentation(unsigned satVar)
   // ASSUMES sat2fo already has a nice first-order value for us (either ground or non-ground).
 
   // for collecting variables when translating clauses
-  static VarMap vars;
-  ASS(vars.isEmpty());
+  VarMap vars; // cannot be static, since DHMap's reset doesn't destroy Vals and it's too late to destroy them in ~DHMap, because by then _manager could be gone, and that's bad!
 
   Literal* lit = sat2fo.toFO(SATLiteral(satVar,1)); // annoyingly, we cannot ask sat2fo about the variable directly, so we create a positive literal
   if (lit) {
@@ -144,19 +142,19 @@ CVC4::Expr CVC4Interfacing::createRepresentation(unsigned satVar)
 
     // the universal closure
     if (!vars.isEmpty()) {
-      static vector<CVC4::Expr> bound_vars;
-      ASS(bound_vars.empty());
+      static vector<CVC4::Expr> bound_vars; // here static is fine. vector calls destructors on clear()
+      ASS(bound_vars.empty()); // just need to keep it empty between the calls. Capacity can still be allocated.
 
       VarMap::Iterator it(vars);
       while (it.hasNext()) {
         bound_vars.push_back(it.next());
       }
       CVC4::Expr bound_var_list = _manager.mkExpr(CVC4::kind::BOUND_VAR_LIST, bound_vars);
+
       bound_vars.clear();
 
       cvc4clause = _manager.mkExpr(CVC4::kind::FORALL, bound_var_list, cvc4clause);
     }
-    vars.reset();
 
     return cvc4clause;
   }

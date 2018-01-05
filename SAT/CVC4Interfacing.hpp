@@ -62,8 +62,6 @@ public:
    */
   CVC4Interfacing(const Shell::Options& opts, SAT2FO& s2f);
 
-  ~CVC4Interfacing() { cout << "CVC4 dying" << endl; }
-
   void addClause(SATClause* cl) override;
 
   virtual Status solve(unsigned conflictCountLimit) override;
@@ -144,9 +142,6 @@ public:
   */
 
 private:
-  // for properly managing newVar calls
-  unsigned _varCnt;
-
   CVC4::ExprManager _manager;
   CVC4::SmtEngine _engine;
 
@@ -188,6 +183,9 @@ private:
   DHMap<unsigned, CVC4::Type> _sorts;
 
   bool _showCVC4;
+
+  // for properly managing newVar calls
+  unsigned _varCnt;
 
   // Memory belongs to Splitter
   SAT2FO& sat2fo;
