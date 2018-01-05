@@ -127,7 +127,7 @@ ifneq (,$(filter %_dbg_static,$(MAKECMDGOALS)))
 XFLAGS = $(STATIC) $(DBG_FLAGS) $(Z3FLAG)
 endif
 ifneq (,$(filter %_rel_static,$(MAKECMDGOALS)))
-XFLAGS = $(STATIC) $(REL_FLAGS) $(Z3FLAG)
+XFLAGS = $(STATIC) $(REL_FLAGS) $(Z3FLAG) -lgmp -lgmpxx
 MINISAT_FLAGS = $(MINISAT_REL_FLAGS)
 endif
 
