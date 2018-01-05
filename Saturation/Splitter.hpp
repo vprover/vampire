@@ -67,12 +67,10 @@ class SplittingBranchSelector {
 public:
   SplittingBranchSelector(Splitter& parent) : _ccModel(false), _parent(parent)  {}
   ~SplittingBranchSelector(){
-#if VZ3
 {
 BYPASSING_ALLOCATOR;
 _solver=0;
 }
-#endif
   }
 
   /** To be called from Splitter::init() */

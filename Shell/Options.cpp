@@ -1443,9 +1443,9 @@ void Options::Options::init()
 
     _satSolver = ChoiceOptionValue<SatSolver>("sat_solver","sas",SatSolver::MINISAT,
 #if VZ3
-            {"minisat","vampire","z3"});
+            {"cvc4","minisat","vampire","z3"});
 #else
-    {"minisat","vampire"});
+    {"cvc4","minisat","vampire"});
 #endif
     _satSolver.description=
     "Select the SAT solver to be used throughout the solver. This will be used in AVATAR (for splitting) when the saturation algorithm is discount,lrs or otter and in instance generation for selection and global subsumption.";
