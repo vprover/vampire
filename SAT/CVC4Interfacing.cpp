@@ -48,11 +48,9 @@ using namespace Shell;
 using namespace Lib;  
   
 CVC4Interfacing::CVC4Interfacing(const Shell::Options& opts,SAT2FO& s2f):
-   _engine(&_manager), _showCVC4(true),
+   _engine(&_manager), _showCVC4(opts.showCVC4()),
 
-  _varCnt(0), sat2fo(s2f), _status(SATISFIABLE),
-
-  _unsatCoreForRefutations(opts.z3UnsatCores())
+  _varCnt(0), sat2fo(s2f), _status(SATISFIABLE)
 {
   CALL("CVC4Interfacing::CVC4Interfacing");
 

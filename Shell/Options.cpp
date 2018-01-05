@@ -660,6 +660,11 @@ void Options::Options::init()
     _showZ3.tag(OptionTag::DEVELOPMENT);
 #endif
 
+    _showCVC4 = BoolOptionValue("show_cvc4","",false);
+    _showCVC4.description="Print stuff being added to CVC4";
+    _lookup.insert(&_showCVC4);
+    _showCVC4.tag(OptionTag::DEVELOPMENT);
+
     _showFOOL = BoolOptionValue("show_fool","",false);
     _showFOOL.description="Reveal the internal representation of FOOL terms";
     _lookup.insert(&_showFOOL);

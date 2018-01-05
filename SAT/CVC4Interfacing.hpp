@@ -188,8 +188,6 @@ private:
   SAT2FO& sat2fo;
 
   Status _status;
-
-  bool _unsatCoreForRefutations;
 };
 
 }//end SAT namespace

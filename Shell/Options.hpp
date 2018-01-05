@@ -1837,6 +1837,7 @@ public:
 #if VZ3
   bool showZ3() const { return showAll() || _showZ3.actualValue; }
 #endif
+  bool showCVC4() const { return showAll() || _showCVC4.actualValue; }
   
   // end of show commands
 
@@ -2328,6 +2329,7 @@ private:
   BoolOptionValue _showTheoryAxioms;
   BoolOptionValue _showFOOL;
   BoolOptionValue _showFMBsortInfo;
+  BoolOptionValue _showCVC4;
 #if VZ3
   BoolOptionValue _showZ3;
   BoolOptionValue _z3UnsatCores;
