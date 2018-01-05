@@ -81,7 +81,7 @@ PRE_XFLAGS = -Wfatal-errors -g -DVDEBUG=1 -DCHECK_LEAKS=0 -DGNUMP=$(GNUMPF)# sta
 #PRE_XFLAGS = -O6 -DVDEBUG=0 -DUSE_SYSTEM_ALLOCATION=1 -DEFENCE=1 -g -lefence #Electric Fence
 #PRE_XFLAGS = -O6 -DVDEBUG=0 -DUSE_SYSTEM_ALLOCATION=1 -g
 
-INCLUDES= -I. -Linclude -Iz3/api -Iz3/api/c++ -Icvc4
+INCLUDES= -I. -Linclude -Iz3/api -Iz3/api/c++ -Icvc4/include -Lcvc4/lib
 Z3FLAG= -DVZ3=1
 Z3LIB= -lz3
 ifeq (,$(shell echo $(MAKECMDGOALS) | sed 's/.*z3.*//g')) 

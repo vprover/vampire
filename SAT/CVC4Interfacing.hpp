@@ -33,9 +33,6 @@
 #include "SATInference.hpp"
 #include "SAT2FO.hpp"
 
-#include "z3++.h"
-#include "z3_api.h"
-
 #include "cvc4.h"
 
 namespace SAT{
