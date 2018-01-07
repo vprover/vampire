@@ -142,7 +142,7 @@ private:
   CVC4::ExprManager _manager;
   CVC4::SmtEngine _engine;
 
-  CVC4::Expr createRepresentation(unsigned satVar);
+  void createAndNameRepresentation(unsigned satVar, CVC4::Expr name);
 
   typedef DHMap<unsigned,CVC4::Expr> VarMap;
 
@@ -180,6 +180,8 @@ private:
   DHMap<unsigned, CVC4::Type> _sorts;
 
   bool _showCVC4;
+
+  bool _translateNongnd;
 
   // for properly managing newVar calls
   unsigned _varCnt;

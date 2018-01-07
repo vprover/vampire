@@ -648,7 +648,7 @@ public:
 
   enum class SplittingNonsplittableComponents : unsigned int {
     ALL = 0,
-    ALL_DEPENDENT = 1,
+    ALL_GROUND = 1,
     KNOWN = 2,
     NONE = 3
   };
@@ -1839,7 +1839,9 @@ public:
   bool showZ3() const { return showAll() || _showZ3.actualValue; }
 #endif
   bool showCVC4() const { return showAll() || _showCVC4.actualValue; }
-  
+  bool cvc4TranslateNonGnd() const { return _cvc4TranslateNonGnd.actualValue; }
+  bool cvc4WithEMatching() const { return _cvc4WithEMatching.actualValue; }
+
   // end of show commands
 
   bool showNonconstantSkolemFunctionTrace() const { return _showNonconstantSkolemFunctionTrace.actualValue; }
@@ -2331,6 +2333,8 @@ private:
   BoolOptionValue _showFOOL;
   BoolOptionValue _showFMBsortInfo;
   BoolOptionValue _showCVC4;
+  BoolOptionValue _cvc4TranslateNonGnd;
+  BoolOptionValue _cvc4WithEMatching;
 #if VZ3
   BoolOptionValue _showZ3;
   BoolOptionValue _z3UnsatCores;

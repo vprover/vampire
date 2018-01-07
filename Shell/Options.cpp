@@ -660,6 +660,14 @@ void Options::Options::init()
     _showZ3.tag(OptionTag::DEVELOPMENT);
 #endif
 
+    _cvc4TranslateNonGnd = BoolOptionValue("cvc4_translate_nongnd","cvc4tng",false);
+    _lookup.insert(&_cvc4TranslateNonGnd);
+    _cvc4TranslateNonGnd.tag(OptionTag::DEVELOPMENT);
+
+    _cvc4WithEMatching = BoolOptionValue("cvc4_with_ematching","cvc4wem",false);
+    _lookup.insert(&_cvc4WithEMatching);
+    _cvc4WithEMatching.tag(OptionTag::DEVELOPMENT);
+
     _showCVC4 = BoolOptionValue("show_cvc4","",false);
     _showCVC4.description="Print stuff being added to CVC4";
     _lookup.insert(&_showCVC4);
@@ -1345,17 +1353,17 @@ void Options::Options::init()
 
     _splittingNonsplittableComponents = ChoiceOptionValue<SplittingNonsplittableComponents>("avatar_nonsplittable_components","anc",
                                                                                               SplittingNonsplittableComponents::KNOWN,
-                                                                                              {"all","all_dependent","known","none"});
+                                                                                              {"all","all_ground","known","none"});
     _splittingNonsplittableComponents.description=
     "Decide what to do with a nonsplittable component:\n"
     "  -known: SAT clauses will be learnt from non-splittable clauses that have corresponding components (if there is a component C with name SAT l, clause C | {l1,..ln} will give SAT clause ~l1 \\/ … \\/ ~ln \\/ l). When we add the sat clause, we discard the original FO clause C | {l1,..ln} and let the component selection update model, possibly adding the component clause C | {l}.\n"
     "  -all: like known, except when we see a non-splittable clause that doesn't have a name, we introduce the name for it.\n"
-    "  -all_dependent: like all, but we don't introduce names for non-splittable clauses that don't depend on any components";
+    "  -all_ground: like known, but we also expose to the solver all other components that are ground (this makes sense with SMT solvers)";
     _lookup.insert(&_splittingNonsplittableComponents);
     _splittingNonsplittableComponents.tag(OptionTag::AVATAR);
     //_splittingNonsplittableComponents.setExperimental();
     _splittingNonsplittableComponents.reliesOn(_splitting.is(equal(true)));
-    _splittingNonsplittableComponents.setRandomChoices({"all","all_dependent","known","none"});
+    _splittingNonsplittableComponents.setRandomChoices({"all","all_ground","known","none"});
 
 
     _nonliteralsInClauseWeight = BoolOptionValue("nonliterals_in_clause_weight","nicw",false);

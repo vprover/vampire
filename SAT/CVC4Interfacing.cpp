@@ -49,6 +49,7 @@ using namespace Lib;
   
 CVC4Interfacing::CVC4Interfacing(const Shell::Options& opts,SAT2FO& s2f):
    _engine(&_manager), _showCVC4(opts.showCVC4()),
+   _translateNongnd(opts.cvc4TranslateNonGnd()),
 
   _varCnt(0), sat2fo(s2f), _status(SATISFIABLE)
 {
@@ -56,7 +57,9 @@ CVC4Interfacing::CVC4Interfacing(const Shell::Options& opts,SAT2FO& s2f):
 
   _engine.setOption("incremental", true);
   _engine.setOption("produce-models", true);
-  _engine.setOption("e-matching", false);
+  if (!opts.cvc4WithEMatching()) {
+    _engine.setOption("e-matching", false);
+  }
 }
   
 unsigned CVC4Interfacing::newVar()
@@ -66,25 +69,19 @@ unsigned CVC4Interfacing::newVar()
 
   _varCnt++;
 
-  CVC4::Expr expr = createRepresentation(_varCnt);
   CVC4::Expr name = createFreshExprName(_varCnt);
-
-  CVC4::Expr namingAxiom = _manager.mkExpr(CVC4::kind::EQUAL, expr, name);
-  if(_showCVC4) {
-    env.beginOutput();
-    env.out() << "[CVC4] add naming axiom: " << namingAxiom << std::endl;
-    env.endOutput();
-  }
-  _engine.assertFormula(namingAxiom);
-
   ALWAYS(_representations.insert(_varCnt,name)); // we store the name, not the actual expr!
+
+  createAndNameRepresentation(_varCnt,name);
 
   return _varCnt;
 }
 
-CVC4::Expr CVC4Interfacing::createRepresentation(unsigned satVar)
+void CVC4Interfacing::createAndNameRepresentation(unsigned satVar, CVC4::Expr name)
 {
-  CALL("CVC4Interfacing::createRepresentation");
+  CALL("CVC4Interfacing::createAndNameRepresentation");
+
+  CVC4::Expr repr;
 
   // ASSUMES sat2fo already has a nice first-order value for us (either ground or non-ground).
 
@@ -104,16 +101,19 @@ CVC4::Expr CVC4Interfacing::createRepresentation(unsigned satVar)
       env.endOutput();
     }
 
-    CVC4::Expr e = getRepr(lit,vars);
+    repr = getRepr(lit,vars);
 
     ASS(vars.isEmpty());
 
     if (lit->isNegative()) {
-      e = _manager.mkExpr(CVC4::kind::NOT,e);
+      repr = _manager.mkExpr(CVC4::kind::NOT,repr);
+    }
+  } else {
+    // simply skip, if we don't want translation of non-gnd components
+    if (!_translateNongnd) {
+      return;
     }
 
-    return e;
-  } else {
     // the non-ground component case
     Clause* cl = sat2fo.lookupComponentClause(satVar);
 
@@ -123,7 +123,7 @@ CVC4::Expr CVC4Interfacing::createRepresentation(unsigned satVar)
       env.endOutput();
     }
 
-    CVC4::Expr cvc4clause = _manager.mkConst(false);
+    repr = _manager.mkConst(false);
 
     unsigned clen=cl->length();
     for(unsigned i=0;i<clen;i++) {
@@ -135,7 +135,7 @@ CVC4::Expr CVC4Interfacing::createRepresentation(unsigned satVar)
         e = _manager.mkExpr(CVC4::kind::NOT,e);
       }
 
-      cvc4clause = _manager.mkExpr(CVC4::kind::OR, cvc4clause, e);
+      repr = _manager.mkExpr(CVC4::kind::OR, repr, e);
     }
 
     // the universal closure
@@ -151,11 +151,19 @@ CVC4::Expr CVC4Interfacing::createRepresentation(unsigned satVar)
 
       bound_vars.clear();
 
-      cvc4clause = _manager.mkExpr(CVC4::kind::FORALL, bound_var_list, cvc4clause);
+      repr = _manager.mkExpr(CVC4::kind::FORALL, bound_var_list, repr);
     }
 
-    return cvc4clause;
   }
+
+  CVC4::Expr namingAxiom = _manager.mkExpr(CVC4::kind::EQUAL, repr, name);
+  if(_showCVC4) {
+    env.beginOutput();
+    env.out() << "[CVC4] add naming axiom: " << namingAxiom << std::endl;
+    env.endOutput();
+  }
+  _engine.assertFormula(namingAxiom);
+
 }
 
 void CVC4Interfacing::addClause(SATClause* cl)

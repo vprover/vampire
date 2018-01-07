@@ -608,6 +608,7 @@ void SplittingBranchSelector::recomputeModel(SplitLevelStack& addedComps, SplitL
       _solver->randomizeForNextAssignment(maxSatVar);
     }
     stat = _solver->solve();
+    RSTAT_CTR_INC("avatar_sat_call");
   }
   if (stat == SATSolver::SATISFIABLE) {
     stat = processDPConflicts();
@@ -855,7 +856,7 @@ bool Splitter::shouldAddClauseForNonSplittable(Clause* cl, unsigned& compName, C
     return false;
   }
 
-  if((_congruenceClosure != Options::SplittingCongruenceClosure::OFF)
+  if(((_congruenceClosure != Options::SplittingCongruenceClosure::OFF) || (_nonsplComps == Options::SplittingNonsplittableComponents::ALL_GROUND))
       && cl->length()==1 && (*cl)[0]->ground() ) {
     //we add ground unit clauses if we use congruence closure...
     // (immediately zero implied!)
@@ -869,21 +870,8 @@ bool Splitter::shouldAddClauseForNonSplittable(Clause* cl, unsigned& compName, C
   }
 
   if(!tryGetExistingComponentName(cl->length(), cl->literals(), compName, compCl)) {
-    bool canCreate;
-    switch(_nonsplComps) {
-    case Options::SplittingNonsplittableComponents::ALL:
-      canCreate = true;
-      break;
-    case Options::SplittingNonsplittableComponents::ALL_DEPENDENT:
-      canCreate = !cl->splits()->isEmpty();
-      break;
-    case Options::SplittingNonsplittableComponents::KNOWN:
-      canCreate = false;
-      break;
-    default:
-      ASSERTION_VIOLATION;
-    }
-    if(!canCreate) {
+    // not known (and not ground -- see above), so now only ALL can force the addition
+    if(_nonsplComps != Options::SplittingNonsplittableComponents::ALL) {
       return false;
     }
     RSTAT_CTR_INC("ssat_non_splittable_introduced_components");
