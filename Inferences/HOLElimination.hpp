@@ -55,6 +55,28 @@ public:
 /*
   Simplification rules:
 
+  vAPP(vAPP(vEQUALS, t1), t2) = $true \/ C
+  ----------------------------------------
+             t1 = t2 \/ C
+
+  vAPP(vAPP(vEQUALS, t1), t2) = $false \/ C
+  -----------------------------------------
+            ~(t1 = t2) \/ C
+
+*/
+
+class EQUALSRemovalISE
+   : public ImmediateSimplificationEngine
+{
+  CLASS_NAME(EQUALSRemovalISE);
+  USE_ALLOCATOR(EQUALSRemovalISE);
+  
+  Kernel::Clause* simplify(Kernel::Clause* c);	      
+};
+
+/*
+  Simplification rules:
+
   vAPP(vAPP(vOR, t1), t2) = $true \/ C
   ------------------------------------
       t1 = $true \/ t2 = $true \/ C
@@ -73,17 +95,86 @@ class ORIMPANDRemovalISE
 {
 
 public:
-  CLASS_NAME(ORIMPRemovalISE);
-  USE_ALLOCATOR(ORIMPRemovalISE);
+  CLASS_NAME(ORIMPANDRemovalISE);
+  USE_ALLOCATOR(ORIMPANDRemovalISE);
   
   Kernel::Clause* simplify(Kernel::Clause* c);
 };
 
-class HOLElimination : public GeneratingInferenceEngine {
+
+/*
+  Simplification rules:
+
+  vAPP(vPI, t1) = $true \/ C
+  --------------------------
+   vAPP(t1, X) = $true \/ C
+
+   
+      vAPP(vPI, t1) = $false \/ C
+  ----------------------------------
+   vAPP(t1, f(X1..Xn)) = $true \/ C
+
+The converse of the above rules for vSIGMA   
+		  
+*/
+
+class PISIGMARemovalISE
+   : public ImmediateSimplificationEngine
+{
+  CLASS_NAME(PISIGMARemovalISE);
+  USE_ALLOCATOR(PISIGMARemovalISE);
+  
+  Kernel::Clause* simplify(Kernel::Clause* c);	   
+};
+
+/*Generating rules:
+  
+  vAPP(vAPP(vOR, t1), t2) = $false \/ C
+  ------------------------------------
+           t1 = $false \/ C
+	       t2 = $false \/ C
+
+  vAPP(vAPP(vIMP, t1), t2) = $false \/ C
+  -------------------------------------
+           t1 = $true \/ C 
+	       t2 = $false \/ C
+
+  vAPP(vAPP(vAND, t1), t2) = $true \/ C
+  -------------------------------------
+           t1 = $true \/ C 
+	       t2 = $true \/ C 
+  
+  vAPP(vAPP(vIFF, t1), t2) = $true \/ C
+  -------------------------------------
+     t1 = $true \/ t2 = $false \/ C 
+	 t1 = $false \/ t2 = $true \/ C   
+
+  vAPP(vAPP(vIFF, t1), t2) = $false \/ C
+  -------------------------------------
+      t1 = $true \/ t2 = $true \/ C 
+	 t1 = $false \/ t2 = $false \/ C 
+
+  vAPP(vAPP(vXOR, t1), t2) = $true \/ C
+  -------------------------------------
+     t1 = $true \/ t2 = $true \/ C 
+	t1 = $false \/ t2 = $false \/ C 
+
+  vAPP(vAPP(vXOR, t1), t2) = $false \/ C
+  -------------------------------------
+     t1 = $true \/ t2 = $false \/ C 
+	 t1 = $false \/ t2 = $true \/ C	
+*/
+
+class ORIMPANDIFFXORRemovalGIE : public GeneratingInferenceEngine {
   public:
-    CLASS_NAME(ANDElimination);
-    USE_ALLOCATOR(ANDElimination);
-    ClauseIterator generateClauses(Clause* premise);
+    CLASS_NAME(ORIMPANDIFFXORRemovalGIE);
+    USE_ALLOCATOR(ORIMPANDIFFXORRemovalGIE);
+	Kernel::ClauseIterator generateClauses(Kernel::Clause* c);
+
+  private:
+    struct SubtermIterator;
+    struct SubtermEqualityFn;
+
 };
 
 }
