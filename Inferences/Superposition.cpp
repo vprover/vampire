@@ -432,6 +432,7 @@ Clause* Superposition::performSuperposition(
   ASS(rwClause->store()==Clause::ACTIVE);
   ASS(eqClause->store()==Clause::ACTIVE);
 
+ 
   //cout << "performSuperposition with " << rwClause->toString() << " and " << eqClause->toString() << endl;
   //cout << "rwTerm " << rwTerm.toString() << " eqLHSS " << eqLHS.toString() << endl;
 
