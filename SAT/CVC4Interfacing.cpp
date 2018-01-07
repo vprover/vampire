@@ -355,7 +355,7 @@ CVC4::Expr CVC4Interfacing::getRepr(Term* trm, VarMap& vars)
       unsigned var = arg->var();
       if (!vars.find(var,e)) {
         vstring varName = "X"+Lib::Int::toString(var);
-        CVC4::Type varSrt = getCVC4sort(type->arg(i));
+        CVC4::Type varSrt = getCVC4sort(SortHelper::getArgSort(trm,i));
         e = _manager.mkBoundVar(string(varName.c_str()),varSrt);
         ALWAYS(vars.insert(var,e));
       }
