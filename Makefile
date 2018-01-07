@@ -123,12 +123,17 @@ else
 STATIC = -static
 endif
 
+CVC4LIB = -lcvc4
+
 ifneq (,$(filter %_dbg_static,$(MAKECMDGOALS)))
 XFLAGS = $(STATIC) $(DBG_FLAGS) $(Z3FLAG)
+CVC4LIB = -lcvc4 -lgmp
 endif
+
 ifneq (,$(filter %_rel_static,$(MAKECMDGOALS)))
-XFLAGS = $(STATIC) $(REL_FLAGS) $(Z3FLAG) -lgmp -lgmpxx
+XFLAGS = $(STATIC) $(REL_FLAGS) $(Z3FLAG) -lgmp
 MINISAT_FLAGS = $(MINISAT_REL_FLAGS)
+CVC4LIB = -lcvc4 -lgmp
 endif
 
 
@@ -615,7 +620,7 @@ LGMP = -lgmp -lgmpxx
 endif 
 
 define COMPILE_CMD
-$(CXX) $(CXXFLAGS) $(filter -l%, $+) $(filter %.o, $^) -o $@_$(BRANCH)_$(COM_CNT) $(LGMP) $(Z3LIB) -lcvc4
+$(CXX) $(CXXFLAGS) $(filter -l%, $+) $(filter %.o, $^) -o $@_$(BRANCH)_$(COM_CNT) $(LGMP) $(Z3LIB) $(CVC4LIB)
 @#$(CXX) -static $(CXXFLAGS) $(Z3LIB) $(filter %.o, $^) -o $@
 @#strip $@
 endef
