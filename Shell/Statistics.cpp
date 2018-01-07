@@ -123,7 +123,6 @@ Statistics::Statistics()
     finalExtensionalityClauses(0),
     splitClauses(0),
     splitComponents(0),
-    uniqueComponents(0),
     satClauses(0),
     unitSatClauses(0),
     binarySatClauses(0),
@@ -132,6 +131,7 @@ Statistics::Statistics()
 
     satSplits(0),
     satSplitRefutations(0),
+    avatarSolverCalls(0),
 
     smtFallbacks(0),
 
@@ -331,13 +331,12 @@ void Statistics::print(ostream& out)
   COND_OUT("Negative injectivity simplifications",taNegativeInjectivitySimplifications);
   COND_OUT("Disequalities generated from acyclicity",taAcyclicityGeneratedDisequalities);
 
-  HEADING("AVATAR",splitClauses+splitComponents+uniqueComponents+satSplits+
-        satSplitRefutations);
+  HEADING("AVATAR",splitClauses+splitComponents+satSplits+
+        satSplitRefutations+avatarSolverCalls);
   COND_OUT("Split clauses", splitClauses);
   COND_OUT("Split components", splitComponents);
-  COND_OUT("Unique components", uniqueComponents);
-  //COND_OUT("Sat splits", satSplits); // same as split clauses
   COND_OUT("Sat splitting refutations", satSplitRefutations);
+  COND_OUT("Avatar solver calls", avatarSolverCalls);
   COND_OUT("SMT fallbacks",smtFallbacks);
   SEPARATOR;
 

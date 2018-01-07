@@ -212,8 +212,6 @@ public:
 
   unsigned splitClauses;
   unsigned splitComponents;
-  //TODO currently not set, set it?
-  unsigned uniqueComponents;
   /** Number of clauses generated for the SAT solver */
   unsigned satClauses;
   /** Number of unit clauses generated for the SAT solver */
@@ -227,6 +225,7 @@ public:
 
   unsigned satSplits;
   unsigned satSplitRefutations;
+  unsigned avatarSolverCalls;
 
   unsigned smtFallbacks;
 

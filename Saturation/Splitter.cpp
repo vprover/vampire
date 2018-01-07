@@ -609,6 +609,7 @@ void SplittingBranchSelector::recomputeModel(SplitLevelStack& addedComps, SplitL
     }
     stat = _solver->solve();
     RSTAT_CTR_INC("avatar_sat_call");
+    env.statistics->avatarSolverCalls++;
   }
   if (stat == SATSolver::SATISFIABLE) {
     stat = processDPConflicts();
