@@ -20,6 +20,9 @@
 #include "Kernel/Formula.hpp"
 #include "Kernel/FormulaUnit.hpp"
 #include "Kernel/Inference.hpp"
+#include "Kernel/Signature.hpp"
+
+#include "Lib/Stack.hpp"
 
 using namespace Kernel;
 using namespace Lib;
@@ -97,6 +100,8 @@ TermAlgebra::TermAlgebra(unsigned sort,
                          TermAlgebraConstructor** constrs,
                          bool allowsCyclicTerms) :
   _sort(sort),
+  _mutualTypes(nullptr),
+  _contextSorts(),
   _n(n),
   _allowsCyclicTerms(allowsCyclicTerms),
   _constrs(n)
@@ -127,9 +132,36 @@ bool TermAlgebra::emptyDomain()
   return true;
 }
 
+bool TermAlgebra::hasRecursiveConstructors()
+{
+  CALL("TermAlgebra::hasRecursiveConstructors");
+
+  for (unsigned i = 0; i < _n; i++) {
+    if (_constrs[i]->recursive()) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+bool TermAlgebra::singletonCodatatype()
+{
+  CALL("TermAlgebra::singletonCodatatype");
+
+  return (_allowsCyclicTerms
+          && _n == 1
+          && _constrs[0]->recursive()
+          && _constrs[0]->arity() == 1);
+}
+
 bool TermAlgebra::finiteDomain()
 {
   CALL("TermAlgebra::finiteDomain");
+
+  if (singletonCodatatype()) {
+    return true;
+  }
 
   for (unsigned i = 0; i < _n; i++) {
     if (_constrs[i]->arity() > 0) {
@@ -144,46 +176,33 @@ bool TermAlgebra::infiniteDomain()
 {
   CALL("TermAlgebra::infiniteDomain");
 
-  for (unsigned i = 0; i < _n; i++) {
-    if (_constrs[i]->recursive()) {
-      return true;
-    }
-  }
-
-  return false;
+  return (isMutualType(this) && !singletonCodatatype());
 }
 
-bool TermAlgebra::subtermReachable(TermAlgebra *ta)
+bool TermAlgebra::isMutualType(TermAlgebra *ta)
 {
-  CALL("TermAlgebra::subtermReachable");
+  CALL("TermAlgebra::isMutualType");
 
-  for (unsigned i = 0; i < _n; i++) {
-    TermAlgebraConstructor* c = _constrs[i];
-    for (unsigned j = 0; j < c->arity(); j++) {
-      unsigned s = c->argSort(j);
-      if (s == ta->sort() ||
-          (env.signature->isTermAlgebraSort(s)
-           && env.signature->getTermAlgebraOfSort(s)->subtermReachable(ta))) {
-        return true;
-      }
-    }
+  if (!_mutualTypes) {
+    setMutualTypes();
   }
-  return false;
+
+  return _mutualTypes->contains(ta);
 }
   
-Lib::vstring TermAlgebra::getSubtermPredicateName() {
-  return "$subterm_" + env.sorts->sortName(_sort);
+Lib::vstring TermAlgebra::getSubtermPredicateName(TermAlgebra* ta) {
+  return "$subterm_" + ta->name() + "_" + name();
 }
 
-unsigned TermAlgebra::getSubtermPredicate() {
+unsigned TermAlgebra::getSubtermPredicate(TermAlgebra* ta) {
   CALL("TermAlgebra::getSubtermPredicate");
 
   bool added;
-  unsigned s = env.signature->addPredicate(getSubtermPredicateName(), 2, added);
+  unsigned s = env.signature->addPredicate(getSubtermPredicateName(ta), 2, added);
 
   if (added) {
     // declare a binary predicate subterm
-    env.signature->getPredicate(s)->setType(OperatorType::getPredicateType({_sort, _sort}));
+    env.signature->getPredicate(s)->setType(OperatorType::getPredicateType({ta->sort(), _sort}));
   }
 
   return s;
@@ -207,7 +226,7 @@ unsigned TermAlgebra::getCstFunction() {
   CALL("TermAlgebra::getCstFunction");
 
   bool added;
-  unsigned s = env.signature->addFunction(getSubstFunctionName(), 1, added);
+  unsigned s = env.signature->addFunction(getCstFunctionName(), 1, added);
 
   if (added) {
     env.signature->getFunction(s)->setType(OperatorType::getFunctionType({_sort}, contextSort(this)));
@@ -248,6 +267,65 @@ unsigned TermAlgebra::getAppFunction(TermAlgebra* ta) {
   }
 
   return s;
+}
+
+void TermAlgebra::setMutualTypes()
+{
+  CALL("TermAlgebra::setMutualTypes");
+
+  ASS(!_mutualTypes);
+  _mutualTypes = new Set<TermAlgebra*>();
+
+  // This is a DFS is the tree formed by the algebra declaration (the
+  // types of its constructors) to detect cycles (mutually recursive
+  // types)
+  
+  Stack<TermAlgebra*> path; // path in DFS is kept because we need all the vertices in the cycle
+  Stack<std::pair<TermAlgebra*, unsigned>> toVisit; // the integer represents the depth of the node in the DFS
+  Set<TermAlgebra*> visited;
+
+  // start DFS
+  toVisit.push(make_pair(this, 0));
+
+  while (toVisit.isNonEmpty()) {
+    std::pair<TermAlgebra*, unsigned> n = toVisit.pop();
+    TermAlgebra *ta = n.first;
+    unsigned depth = n.second;
+    // unstack path
+    while (path.size() > depth) {
+      path.pop();
+    }
+
+    if ((ta == this && depth != 0) || _mutualTypes->contains(ta)) {
+      // push path into _mutualTypes
+      _mutualTypes->insertFromIterator(Stack<TermAlgebra*>::Iterator(path));
+    } else if (!visited.contains(ta)) {
+      path.push(ta);
+      visited.insert(ta);
+
+      // push adjacent nodes on toVisit with depth + 1
+      for (unsigned i = 0; i < ta->nConstructors(); i++) {
+        TermAlgebraConstructor *c = ta->constructor(i);
+        for (unsigned j = 0; j < c->arity(); j++) {
+          unsigned s = c->argSort(j);
+          if (env.signature->isTermAlgebraSort(s)) {
+            toVisit.push(make_pair(env.signature->getTermAlgebraOfSort(s), depth + 1));
+          }
+        }
+      }
+    }
+  }
+
+  // since the 'mutual type' relation is symmetric, set the other
+  // types' mutualType field
+  Set<TermAlgebra*>::Iterator it(*_mutualTypes);
+  while (it.hasNext()) {
+    TermAlgebra *ta = it.next();
+    if (ta != this && !ta->_mutualTypes) {
+      ta->_mutualTypes = new Set<TermAlgebra*>();
+      ta->_mutualTypes->insertFromIterator(Set<TermAlgebra*>::Iterator(*_mutualTypes));
+    }
+  }
 }
 
 }

@@ -22,12 +22,13 @@
 #include "Forwards.hpp"
 
 #include "Lib/Allocator.hpp"
-#include "Lib/List.hpp"
 #include "Lib/Array.hpp"
 #include "Lib/Environment.hpp"
+#include "Lib/List.hpp"
 #include "Lib/Map.hpp"
+#include "Lib/Set.hpp"
 #include "Lib/VString.hpp"
-#include "Kernel/Signature.hpp"
+
 #include "Kernel/Sorts.hpp"
 
 namespace Shell {
@@ -105,20 +106,21 @@ namespace Shell {
        - not allowing cyclic terms and having only recursive constructors
      */
     bool emptyDomain();
-
-    /* True iff all the constructors are constants */
+    /* True iff co-datatype with only one unary recursive constructor */
+    bool singletonCodatatype();
+    /* True iff all the constructors are constants, or singleton co-datatype (false does NOT mean that the domain is necessarily infinite) */
     bool finiteDomain();
-    /* True iff one of the constructors is recursive */
+    /* True iff  has recursive constructors and not a singleton co-datatype (false does not NOT mean that the domain is necessarily finite) */
     bool infiniteDomain();
 
     /* True iff a term of the term algebra ta can appear under
        constructors of this algebra */
-    bool subtermReachable(TermAlgebra* ta);
+    bool isMutualType(TermAlgebra* ta);
 
     /* The predicate of the subterm relation for axioms of
        datatypes */
-    Lib::vstring getSubtermPredicateName();
-    unsigned getSubtermPredicate();
+    Lib::vstring getSubtermPredicateName(TermAlgebra* ta);
+    unsigned getSubtermPredicate(TermAlgebra* ta);
 
     /* The constant-context, cycle and application functions, used
        only for axioms of co-datatypes */
@@ -131,7 +133,10 @@ namespace Shell {
     unsigned getAppFunction(TermAlgebra* ta);
 
   private:
+    void setMutualTypes();
+    
     unsigned _sort;
+    Lib::Set<TermAlgebra*>* _mutualTypes; /* This contains the types mutually defined. null if not initialized, else its content should also be set */
     Lib::Map<TermAlgebra*, unsigned> _contextSorts; /* sorts of context (used to axiomatize codatatypes) */
     unsigned _n; /* number of constructors */
     bool _allowsCyclicTerms;
