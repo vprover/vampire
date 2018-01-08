@@ -316,7 +316,6 @@ void InductionClauseIterator::performStructInductionOne(Clause* premise, Literal
           unsigned size = conLits.size()+baseLits.size();
           Clause* r = new(size) Clause(size,premise->inputType(),inf);
   
-          cout << size << endl;
           unsigned i=0;
           for(;i<conLits.size();i++){ 
             (*r)[i]= conLits[i]; 
