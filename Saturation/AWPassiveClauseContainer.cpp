@@ -100,9 +100,9 @@ Comparison AWPassiveClauseContainer::compareWeight(Clause* cl1, Clause* cl2, con
   int nwcNumer = opt.nonGoalWeightCoeffitientNumerator();
   int nwcDenom = opt.nonGoalWeightCoeffitientDenominator();
 
-  if (cl1->inputType()==0 && cl2->inputType()!=0) {
+  if (!cl1->isGoal() && cl2->isGoal()) {
     return Int::compare(cl1Weight*nwcNumer, cl2Weight*nwcDenom);
-  } else if (cl1->inputType()!=0 && cl2->inputType()==0) {
+  } else if (cl1->isGoal() && !cl2->isGoal()) {
     return Int::compare(cl1Weight*nwcDenom, cl2Weight*nwcNumer);
   }
   return Int::compare(cl1Weight, cl2Weight);

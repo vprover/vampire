@@ -612,10 +612,10 @@ float Clause::getEffectiveWeight(const Options& opt)
   //  w+=+splitWeight(); // no longer includes propWeight
   //}
   if (opt.increasedNumeralWeight()) {
-    return (2*w+getNumeralWeight()) * ( (inputType()==0) ? nongoalWeightCoef : 1.0f);
+    return (2*w+getNumeralWeight()) * ( (!isGoal()) ? nongoalWeightCoef : 1.0f);
   }
   else {
-    return w * ( (inputType()==0) ? nongoalWeightCoef : 1.0f);
+    return w * ( (!isGoal()) ? nongoalWeightCoef : 1.0f);
   }
 }
 

@@ -157,7 +157,7 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQ
 	&& limits->weightLimited();
   unsigned weightLimit;
   if(shouldLimitWeight) {
-    bool isNonGoal=queryCl->inputType()==0 && qr.clause->inputType()==0;
+    bool isNonGoal= !queryCl->isGoal() && !qr.clause->isGoal();
     if(isNonGoal) {
       weightLimit=limits->nonGoalWeightLimit();
     } else {
