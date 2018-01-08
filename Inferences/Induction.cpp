@@ -107,15 +107,41 @@ InductionClauseIterator::InductionClauseIterator(Clause* premise)
           }
         }
       }
+      Set<unsigned>::Iterator citer1(int_constants);
+      while(citer1.hasNext()){
+        unsigned c = citer1.next();
+        performMathInduction(premise,lit,c);
+      }
+      Set<unsigned>::Iterator citer2(ta_constants);
+      while(citer2.hasNext()){
+        unsigned c = citer2.next();
+        //cout << "PERFORM INDUCTION on " << env.signature->functionName(c) << endl;
+        static bool one = env.options->structInduction() == Options::StructuralInductionKind::ONE ||
+                          env.options->structInduction() == Options::StructuralInductionKind::ALL; 
+        static bool two = env.options->structInduction() == Options::StructuralInductionKind::ONE ||
+                          env.options->structInduction() == Options::StructuralInductionKind::ALL; 
+
+        if(one){
+          performStructInductionOne(premise,lit,c);
+        }
+        if(two){
+          performStructInductionTwo(premise,lit,c);
+        }
+      } 
+    }
+  }
+}
+
       // deal with integer constants
       // introduce new clauses per eligable constant:
       // L[zero] | L[fresh+1] | L[fresh-1] 
       // L[zero] | L[fresh+1] | c<0
       // L[zero] | ~[fresh] 
       // where fresh is a fresh constant
-      Set<unsigned>::Iterator citer1(int_constants);
-      while(citer1.hasNext()){
-        unsigned c = citer1.next();
+void InductionClauseIterator::performMathInduction(Clause* premise, Literal* lit, unsigned c)
+{
+  CALL("InductionClauseIterator::performMathInduction");
+
         //cout << "PERFORM INDUCTION on " << env.signature->functionName(c) << endl;
 
         // create fresh
@@ -153,7 +179,7 @@ InductionClauseIterator::InductionClauseIterator(Clause* premise)
         // put it all together i.e. create three clauses
         // L[zero] | L[fresh+1] | L[fresh-1] 
         // L[zero] | L[fresh+1] | c<0
-        // L[zero] | ~[fresh] 
+        // L[zero] | ~L[fresh] 
         Inference* inf1 = new Inference1(Inference::INDUCTION,premise);
         Inference* inf2 = new Inference1(Inference::INDUCTION,premise);
         Inference* inf3 = new Inference1(Inference::INDUCTION,premise);
@@ -176,28 +202,27 @@ InductionClauseIterator::InductionClauseIterator(Clause* premise)
         _clauses.push(r2);
         _clauses.push(r3);
 
-      }
+ }
 
       // Now deal with term algebra constants
       // introduce new clauses per eligable constant:
-      // L[b1] | L[con1(xf1)] | ... | L[conN(xfn)] 
-      // L[b2] | L[con1(xf1)] | ... | L[conN(xfn)] 
-      // L[b1] | ~L[xf1] 
-      // L[b2] | ~L[xf1] 
-      // ...
-      // L[b1] | ~L[xfn] 
-      // L[b2] | ~L[xfn] 
-      // where xn is a fresh constant
+      // L[b1] | ... | L[bn] | ~L[kx1]
+      // L[b1] | ... | L[bn] | L[c1[..xi...]] | ... L[cm[...xi...]]
+      // where kxn are fresh constants
 
-      Set<unsigned>::Iterator citer2(ta_constants);
-      while(citer2.hasNext()){
-        unsigned c = citer2.next();
-        //cout << "PERFORM INDUCTION on " << env.signature->functionName(c) << endl;
+void InductionClauseIterator::performStructInductionOne(Clause* premise, Literal* lit, unsigned c)
+{
+  CALL("InductionClauseIterator::performStructInductionOne"); 
 
         TermAlgebra* ta = env.signature->getTermAlgebraOfSort(env.signature->getFunction(c)->fnType()->result());
         unsigned ta_sort = ta->sort();
 
-        Array<Stack<TermList>> skolemTerms(env.sorts->count());
+        //TODO don't think I need this
+        //Array<Stack<TermList>> skolemTerms(env.sorts->count());
+        //but this instead
+        Stack<TermList> skolemTerms;
+        //and probably this here
+        unsigned vars = 0;
 
         Stack<Literal*> baseLits;
         Stack<Literal*> conLits;
@@ -215,21 +240,30 @@ InductionClauseIterator::InductionClauseIterator(Clause* premise)
           else{
             // first create the new term
             // need to quantify & skolemize over the missing bits of the constructor
+            // TODO actually... no I don't, they should be variables
             Stack<TermList> argTerms; 
-            ZIArray<unsigned> skolemIndex(env.sorts->count());
+            //ZIArray<unsigned> skolemIndex(env.sorts->count());
+            unsigned skolems = 0;
             for(unsigned i=0;i<con->arity();i++){
               unsigned srt = con->argSort(i);
 
-              if(skolemTerms[srt].size()<skolemIndex[srt]+1){         
-                unsigned xn = env.signature->addSkolemFunction(0);
-                Signature::Symbol* symbol = env.signature->getFunction(xn);
-                symbol->setType(OperatorType::getConstantsType(srt));
-                symbol->markInductionSkolem();
-                skolemTerms[srt].push(TermList(Term::createConstant(xn)));
+              if(srt == ta_sort){
+                if(skolemTerms.size() <= skolems){
+                  unsigned xn = env.signature->addSkolemFunction(0);
+                  Signature::Symbol* symbol = env.signature->getFunction(xn);
+                  symbol->setType(OperatorType::getConstantsType(srt));
+                  symbol->markInductionSkolem();
+                  skolemTerms.push(TermList(Term::createConstant(xn)));
+                } 
+                ASS(skolemTerms.size() > skolems); 
+                argTerms.push(skolemTerms[skolems]);
+                skolems++;
               }
-              ASS(skolemTerms[srt].size() >= skolemIndex[srt]+1);
-              argTerms.push(skolemTerms[srt][skolemIndex[srt]]); 
-              skolemIndex[srt] = skolemIndex[srt]+1;
+              else{
+                argTerms.push(TermList(vars,false)); 
+                vars++;
+              }
+
             }
             TermList cont(Term::create(con->functor(),(unsigned)argTerms.size(), argTerms.begin()));
             ConstantReplacement cr(c,cont);
@@ -239,52 +273,73 @@ InductionClauseIterator::InductionClauseIterator(Clause* premise)
 
         Stack<Literal*> xfnLits;
 
-        Stack<TermList>::Iterator xnit(skolemTerms[ta_sort]);
+        Stack<TermList>::Iterator xnit(skolemTerms);
         while(xnit.hasNext()){
-          // construct ~L[xn]
+          // construct ~L[x1]
           TermList xnt = xnit.next();
           ConstantReplacement crX(c,xnt);
           Literal* nLxn = Literal::complementaryLiteral(crX.transform(lit));
           xfnLits.push(nLxn);
         }
 
-      // L[b1] | L[con1(xf1)] | ... | L[conN(xfn)] 
-      // L[b2] | L[con1(xf1)] | ... | L[conN(xfn)] 
-      // L[b1] | ~L[xf1] 
-      // L[b2] | ~L[xf1] 
-      // ...
-      // L[b1] | ~L[xfn] 
-      // L[b2] | ~L[xfn] 
+      // now create
+      // L[b1] | ... | L[bn] | ~L[xi]
+      // L[b1] | ... | L[bn] | L[c1[..xi...]] | ... L[cm[...xi...]]
     
-      // For each zero-arity constructor
-      Stack<Literal*>::Iterator bit(baseLits);
-      while(bit.hasNext()){
-        Literal* blit = bit.next();
-
-        // one clause for the non-zero constructors
-        {
-          Inference* inf = new Inference1(Inference::INDUCTION,premise);
-          unsigned size = conLits.size()+1;
-          Clause* r = new(size) Clause(size,premise->inputType(),inf);
-          for(unsigned i=0;i<conLits.size();i++){ (*r)[i]= conLits[i]; }
-          (*r)[size-1]=blit;
-          _clauses.push(r);
-        }
-
-        // a clause each for the skolems the constructors use
+        // L[b1] | ... | L[bn] | ~L[xi] 
+      {
         Stack<Literal*>::Iterator xnit(xfnLits);
         while(xnit.hasNext()){
+
           Literal* xnlit = xnit.next();
           Inference* inf = new Inference1(Inference::INDUCTION,premise);
-          Clause* r = new(2) Clause(2,premise->inputType(),inf);
-          (*r)[0]=xnlit;
-          (*r)[1]=blit;
+          unsigned size = baseLits.size()+1;
+          Clause* r = new(size) Clause(size,premise->inputType(),inf);
+
+          (*r)[0] = xnlit;
+
+          unsigned i = 1;
+          Stack<Literal*>::Iterator bit(baseLits);
+          while(bit.hasNext()){
+            Literal* blit = bit.next();
+            (*r)[i] = blit;
+            i++;
+          }
+
           _clauses.push(r);
         }
       }
-    }
-    }
-  }
+
+      //  L[b1] | ... | L[bn] | L[c1[..xi...]] | ... L[cm[...xi...]]
+      {
+          Inference* inf = new Inference1(Inference::INDUCTION,premise);
+          unsigned size = conLits.size()+baseLits.size();
+          Clause* r = new(size) Clause(size,premise->inputType(),inf);
+  
+          cout << size << endl;
+          unsigned i=0;
+          for(;i<conLits.size();i++){ 
+            (*r)[i]= conLits[i]; 
+          }
+          for(unsigned j=0;j<baseLits.size();j++){
+            ASS(i<size);
+            (*r)[i] = baseLits[j]; 
+            i++;
+          }
+ 
+          _clauses.push(r);
+
+
+      }
+}
+
+void InductionClauseIterator::performStructInductionTwo(Clause* premise, Literal* lit, unsigned c)
+{
+
+  TermAlgebra* ta = env.signature->getTermAlgebraOfSort(env.signature->getFunction(c)->fnType()->result());
+  unsigned ta_sort = ta->sort();
+
+
 }
 
 }
