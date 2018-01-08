@@ -238,6 +238,11 @@ public:
     MATHEMATICAL,
     BOTH
   };
+  enum class StructuralInductionKind : unsigned int {
+    ONE,
+    TWO,
+    ALL
+  };
  
   enum class InductionChoice : unsigned int {
     ALL,
@@ -1995,6 +2000,7 @@ public:
   bool theoryFlattening() const { return _theoryFlattening.actualValue; }
 
   Induction induction() const { return _induction.actualValue; }
+  StructuralInductionKind structInduction() const { return _structInduction.actualValue; }
   InductionChoice inductionChoice() const { return _inductionChoice.actualValue; }
 
   float instGenBigRestartRatio() const { return _instGenBigRestartRatio.actualValue; }
@@ -2272,6 +2278,7 @@ private:
   BoolOptionValue _interpretedSimplification;
 
   ChoiceOptionValue<Induction> _induction;
+  ChoiceOptionValue<StructuralInductionKind> _structInduction;
   ChoiceOptionValue<InductionChoice> _inductionChoice;
 
   StringOptionValue _latexOutput;

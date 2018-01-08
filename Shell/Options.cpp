@@ -879,6 +879,13 @@ void Options::Options::init()
             //_induction.setRandomChoices
             _induction.setExperimental();
 
+            _structInduction = ChoiceOptionValue<StructuralInductionKind>("structural_induction_kind","sik",
+                                 StructuralInductionKind::ONE,{"one","two","all"});
+            _structInduction.description="";
+            _structInduction.tag(OptionTag::INFERENCES);
+            _lookup.insert(&_structInduction);
+            _structInduction.setExperimental();
+
             _inductionChoice = ChoiceOptionValue<InductionChoice>("induction_choice","indc",InductionChoice::ALL,
                                 {"all","goal","goal_plus"});
             _inductionChoice.description="Where to apply induction. Goal only applies to constants in goal, goal_plus"

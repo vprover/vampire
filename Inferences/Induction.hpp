@@ -72,6 +72,9 @@ public:
   inline OWN_ELEMENT_TYPE next() { return _clauses.pop(); }
 
 private:
+  void performMathInduction(Clause* premise, Literal* lit, unsigned constant);
+  void performStructInductionOne(Clause* premise, Literal* lit, unsigned constant);
+  void performStructInductionTwo(Clause* premise, Literal* lit, unsigned constant);
   Stack<Clause*> _clauses;
 };
 
