@@ -96,11 +96,12 @@ unsigned TermAlgebraConstructor::getCtxFunction(TermAlgebra* ta) {
         TermAlgebra* tai = env.signature->getTermAlgebraOfSort(argSort(i));
         if (tai->isMutualType(ta)) {
           argSorts.push(tai->contextSort(ta));
-        } {
+        } else {
           argSorts.push(argSort(i));
         }        
       }      
     }
+    ASS_EQ(argSorts.size(), arity());
     unsigned resultSort = env.signature->getTermAlgebraOfSort(rangeSort())->contextSort(ta);
     env.signature->getFunction(s)->setType(OperatorType::getFunctionType(arity(),
                                                                          argSorts.begin(),
