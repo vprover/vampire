@@ -118,7 +118,7 @@ InductionClauseIterator::InductionClauseIterator(Clause* premise)
         //cout << "PERFORM INDUCTION on " << env.signature->functionName(c) << endl;
         static bool one = env.options->structInduction() == Options::StructuralInductionKind::ONE ||
                           env.options->structInduction() == Options::StructuralInductionKind::ALL; 
-        static bool two = env.options->structInduction() == Options::StructuralInductionKind::ONE ||
+        static bool two = env.options->structInduction() == Options::StructuralInductionKind::TWO ||
                           env.options->structInduction() == Options::StructuralInductionKind::ALL; 
 
         if(one){
@@ -349,21 +349,33 @@ void InductionClauseIterator::performStructInductionOne(Clause* premise, Literal
 void InductionClauseIterator::performStructInductionTwo(Clause* premise, Literal* lit, unsigned c)
 {
 
+  // only perform on Skolem constants but not on those introduced via induction
+  if(env.signature->getFunction(c)->inductionSkolem()){
+    return;
+  }
+
   TermAlgebra* ta = env.signature->getTermAlgebraOfSort(env.signature->getFunction(c)->fnType()->result());
   unsigned ta_sort = ta->sort();
 
-  unsigned sk = env.signature->addSkolemFunction(0);
-  Signature::Symbol* symbol = env.signature->getFunction(sk);
-  symbol->setType(OperatorType::getConstantsType(ta_sort));
-  symbol->markInductionSkolem();
-  TermList skt = TermList(Term::createConstant(sk));
+  Term* skt = 0;
 
-  // make L[k]
-  {
-    ConstantReplacement cr(c,skt);
-    Clause* r = new(1) Clause(1,premise->inputType(),new Inference1(Inference::INDUCTION,premise));
-    (*r)[0] = cr.transform(lit);
-    _clauses.push(r);
+  if(env.signature->getFunction(c)->skolem()){
+    skt = Term::createConstant(c);
+  }
+  else{
+    unsigned sk = env.signature->addSkolemFunction(0);
+    Signature::Symbol* symbol = env.signature->getFunction(sk);
+    symbol->setType(OperatorType::getConstantsType(ta_sort));
+    symbol->markInductionSkolem();
+    skt = Term::createConstant(sk);
+
+    // make L[k]
+    {
+      ConstantReplacement cr(c,TermList(skt));
+      Clause* r = new(1) Clause(1,premise->inputType(),new Inference1(Inference::INDUCTION,premise));
+      (*r)[0] = cr.transform(lit);
+      _clauses.push(r);
+    }
   }
 
   // make 
@@ -388,7 +400,7 @@ void InductionClauseIterator::performStructInductionTwo(Clause* premise, Literal
       Stack<TermList> taTerms; 
       for(unsigned j=0;j<arity;j++){
         unsigned dj = con->destructorFunctor(j);
-        TermList djk(Term::create1(dj,skt));
+        TermList djk(Term::create1(dj,TermList(skt)));
         argTerms.push(djk);
         if(con->argSort(j) == ta_sort){
           taTerms.push(djk);
@@ -396,7 +408,7 @@ void InductionClauseIterator::performStructInductionTwo(Clause* premise, Literal
       }
       // create k != con1(...d1(k)...d2(k)...)
       TermList coni(Term::create(con->functor(),(unsigned)argTerms.size(), argTerms.begin()));
-      Literal* kneq = Literal::createEquality(false,skt,coni,ta_sort);
+      Literal* kneq = Literal::createEquality(false,TermList(skt),coni,ta_sort);
       // now create the clauses
       Stack<TermList>::Iterator tit(taTerms);
       while(tit.hasNext()){

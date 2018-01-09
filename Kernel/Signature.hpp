@@ -102,6 +102,8 @@ class Signature
     unsigned _inUnit : 1;
     /** if induction skolem **/
     unsigned _inductionSkolem : 1;
+    /** if skolem function in general **/
+    unsigned _skolem : 1;
 
   public:
     /** standard constructor */
@@ -176,7 +178,10 @@ class Signature
     inline void markInUnit(){ _inUnit=1; }
     inline bool inUnit(){ return _inUnit; }
 
-    inline void markInductionSkolem(){ _inductionSkolem=1;}
+    inline void markSkolem(){ _skolem = 1;}
+    inline bool skolem(){ return _skolem; }
+
+    inline void markInductionSkolem(){ _inductionSkolem=1; _skolem=1;}
     inline bool inductionSkolem(){ return _inductionSkolem;}
       
     /** Return true if symbol is an integer constant */
