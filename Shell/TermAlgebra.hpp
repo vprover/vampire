@@ -32,6 +32,9 @@
 #include "Kernel/Sorts.hpp"
 
 namespace Shell {
+
+  class TermAlgebra;
+  
   class TermAlgebraConstructor {
   public:
     CLASS_NAME(TermAlgebraConstructor);
@@ -64,8 +67,8 @@ namespace Shell {
 
     Lib::vstring discriminatorName();
 
-    Lib::vstring getCtxFunctionName();
-    unsigned getCtxFunction();
+    Lib::vstring getCtxFunctionName(TermAlgebra* ta);
+    unsigned getCtxFunction(TermAlgebra* ta);
     
   private:
     Kernel::OperatorType* _type;
@@ -89,6 +92,7 @@ namespace Shell {
        the option -tar is not set to off, then the acyclicity rule
        will be enforced for terms of this algebra*/
     TermAlgebra(unsigned sort,
+                Lib::vstring name,
                 unsigned n,
                 TermAlgebraConstructor** constrs,
                 bool allowsCyclicTerms = false);
@@ -98,7 +102,7 @@ namespace Shell {
     unsigned nConstructors() { return _n; }
     TermAlgebraConstructor* constructor(unsigned ith) { ASS_L(ith, _n); return _constrs[ith]; }
     bool allowsCyclicTerms() { return _allowsCyclicTerms; }
-    Lib::vstring name() { return Lib::env.sorts->sortName(_sort); }
+    Lib::vstring name() { return _name; }
 
     /* True iff the algebra defines an empty domain, which could be
        due to:
@@ -116,6 +120,7 @@ namespace Shell {
     /* True iff a term of the term algebra ta can appear under
        constructors of this algebra */
     bool isMutualType(TermAlgebra* ta);
+    Lib::Set<TermAlgebra*>& mutualTypes();
 
     /* The predicate of the subterm relation for axioms of
        datatypes */
@@ -127,6 +132,8 @@ namespace Shell {
     unsigned contextSort(TermAlgebra* ta);
     Lib::vstring getCstFunctionName();
     unsigned getCstFunction();
+    Lib::vstring getHoleConstantName();
+    unsigned getHoleConstant();
     Lib::vstring getCycleFunctionName();
     unsigned getCycleFunction();
     Lib::vstring getAppFunctionName(TermAlgebra* ta);
@@ -136,6 +143,7 @@ namespace Shell {
     void setMutualTypes();
     
     unsigned _sort;
+    Lib::vstring _name;
     Lib::Set<TermAlgebra*>* _mutualTypes; /* This contains the types mutually defined. null if not initialized, else its content should also be set */
     Lib::Map<TermAlgebra*, unsigned> _contextSorts; /* sorts of context (used to axiomatize codatatypes) */
     unsigned _n; /* number of constructors */

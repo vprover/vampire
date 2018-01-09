@@ -1395,7 +1395,7 @@ void Theory::defineTupleTermAlgebra(unsigned arity, unsigned* sorts) {
   Shell::TermAlgebraConstructor* constructor = new Shell::TermAlgebraConstructor(functor, destructors);
 
   Shell::TermAlgebraConstructor* constructors[] = { constructor };
-  env.signature->addTermAlgebra(new Shell::TermAlgebra(tupleSort, 1, constructors, false));
+  env.signature->addTermAlgebra(new Shell::TermAlgebra(tupleSort, env.sorts->sortName(tupleSort), 1, constructors, false));
 }
 
 bool Theory::isInterpretedConstant(unsigned func)

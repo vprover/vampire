@@ -115,9 +115,8 @@ private:
   void addSubtermIrreflexivity(TermAlgebra* ta);
 
   /* Same thing for the subst and cycle functions, used to axiomatize infinite trees (a.k.a. co-datatypes) */
-  void addCtxFunctionDefinitions(TermAlgebraConstructor* c);
-  void addAppFunctionDefinitions(TermAlgebra* ta);
-  void addCycleFunctionDefinitions(TermAlgebra* ta);
+  void addCtxFunctionDefinitions(TermAlgebra* ta);
+  void addConstructorCtxDefinitions(TermAlgebra* ta, TermAlgebraConstructor* c);
 
   void addTheoryUnitClause(Literal* lit, unsigned level);
   void addTheoryUnitClause(Literal* lit, Inference* inf, unsigned level);

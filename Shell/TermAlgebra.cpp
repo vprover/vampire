@@ -77,29 +77,46 @@ Lib::vstring TermAlgebraConstructor::discriminatorName()
   return "$is_" + name();
 }
 
-Lib::vstring TermAlgebraConstructor::getCtxFunctionName() {
-  return "$ctx_" + name();
+Lib::vstring TermAlgebraConstructor::getCtxFunctionName(TermAlgebra* ta) {
+  return "$ctx_" + name() + "_" + ta->name();
 }
 
-unsigned TermAlgebraConstructor::getCtxFunction() {
+unsigned TermAlgebraConstructor::getCtxFunction(TermAlgebra* ta) {
   CALL("TermAlgebra::getCtxFunction");
 
   bool added;
-  unsigned s = env.signature->addFunction(getCtxFunctionName(), arity(), added);
-
-  //TODO
-  /*if (added) {
-    env.signature->getFunction(s)->setType(OperatorType::getFunctionType({contextSort(), _sort}, _sort));
-    }*/
+  unsigned s = env.signature->addFunction(getCtxFunctionName(ta), arity(), added);  
+  
+  if (added) {
+    Stack<unsigned> argSorts;
+    for (unsigned i; i < arity(); i++) {
+      if (!env.signature->isTermAlgebraSort(argSort(i))) {
+        argSorts.push(argSort(i));
+      } else {
+        TermAlgebra* tai = env.signature->getTermAlgebraOfSort(argSort(i));
+        if (tai->isMutualType(ta)) {
+          argSorts.push(tai->contextSort(ta));
+        } {
+          argSorts.push(argSort(i));
+        }        
+      }      
+    }
+    unsigned resultSort = env.signature->getTermAlgebraOfSort(rangeSort())->contextSort(ta);
+    env.signature->getFunction(s)->setType(OperatorType::getFunctionType(arity(),
+                                                                         argSorts.begin(),
+                                                                         resultSort));
+  }
 
   return s;
 }
 
 TermAlgebra::TermAlgebra(unsigned sort,
+                         Lib::vstring name,
                          unsigned n,
                          TermAlgebraConstructor** constrs,
                          bool allowsCyclicTerms) :
   _sort(sort),
+  _name(name),
   _mutualTypes(nullptr),
   _contextSorts(),
   _n(n),
@@ -130,19 +147,6 @@ bool TermAlgebra::emptyDomain()
     }
   }
   return true;
-}
-
-bool TermAlgebra::hasRecursiveConstructors()
-{
-  CALL("TermAlgebra::hasRecursiveConstructors");
-
-  for (unsigned i = 0; i < _n; i++) {
-    if (_constrs[i]->recursive()) {
-      return true;
-    }
-  }
-
-  return false;
 }
 
 bool TermAlgebra::singletonCodatatype()
@@ -188,6 +192,17 @@ bool TermAlgebra::isMutualType(TermAlgebra *ta)
   }
 
   return _mutualTypes->contains(ta);
+}
+
+Lib::Set<TermAlgebra*>& TermAlgebra::mutualTypes()
+{
+  CALL("TermAlgebra::mutualTypes");
+
+  if (!_mutualTypes) {
+    setMutualTypes();
+  }
+
+  return *_mutualTypes;
 }
   
 Lib::vstring TermAlgebra::getSubtermPredicateName(TermAlgebra* ta) {
@@ -235,6 +250,23 @@ unsigned TermAlgebra::getCstFunction() {
   return s;
 }
 
+Lib::vstring TermAlgebra::getHoleConstantName() {
+  return "$hole_" + name();
+}
+
+unsigned TermAlgebra::getHoleConstant() {
+  CALL("TermAlgebra::getHoleConstant");
+  
+  bool added;
+  unsigned s = env.signature->addFunction(getHoleConstantName(), 0, added);
+
+  if (added) {
+    env.signature->getFunction(s)->setType(OperatorType::getConstantsType(contextSort(this)));
+  }
+
+  return s;
+}
+
 Lib::vstring TermAlgebra::getCycleFunctionName() {
   return "$cycle_" + name();
 }
@@ -260,7 +292,7 @@ unsigned TermAlgebra::getAppFunction(TermAlgebra* ta) {
   CALL("TermAlgebra::getAppFunction");
 
   bool added;
-  unsigned s = env.signature->addFunction(getCycleFunctionName(), 2, added);
+  unsigned s = env.signature->addFunction(getAppFunctionName(ta), 2, added);
 
   if (added) {
     env.signature->getFunction(s)->setType(OperatorType::getFunctionType({contextSort(ta), ta->sort()}, _sort));
@@ -276,7 +308,7 @@ void TermAlgebra::setMutualTypes()
   ASS(!_mutualTypes);
   _mutualTypes = new Set<TermAlgebra*>();
 
-  // This is a DFS is the tree formed by the algebra declaration (the
+  // This is a BFS is the tree formed by the algebra declaration (the
   // types of its constructors) to detect cycles (mutually recursive
   // types)
   
@@ -296,20 +328,22 @@ void TermAlgebra::setMutualTypes()
       path.pop();
     }
 
-    if ((ta == this && depth != 0) || _mutualTypes->contains(ta)) {
-      // push path into _mutualTypes
-      _mutualTypes->insertFromIterator(Stack<TermAlgebra*>::Iterator(path));
-    } else if (!visited.contains(ta)) {
-      path.push(ta);
-      visited.insert(ta);
+    path.push(ta);
+    visited.insert(ta);
 
-      // push adjacent nodes on toVisit with depth + 1
-      for (unsigned i = 0; i < ta->nConstructors(); i++) {
-        TermAlgebraConstructor *c = ta->constructor(i);
-        for (unsigned j = 0; j < c->arity(); j++) {
-          unsigned s = c->argSort(j);
-          if (env.signature->isTermAlgebraSort(s)) {
-            toVisit.push(make_pair(env.signature->getTermAlgebraOfSort(s), depth + 1));
+    for (unsigned i = 0; i < ta->nConstructors(); i++) {
+      TermAlgebraConstructor *c = ta->constructor(i);
+      for (unsigned j = 0; j < c->arity(); j++) {
+        unsigned s = c->argSort(j);
+        if (env.signature->isTermAlgebraSort(s)) {
+          TermAlgebra* ta2 = env.signature->getTermAlgebraOfSort(s);
+          if (ta2 == this || _mutualTypes->contains(ta2)) {
+            // push path into _mutualTypes
+            _mutualTypes->insertFromIterator(Stack<TermAlgebra*>::Iterator(path));
+          }
+          if (!visited.contains(ta2)) {
+            // push adjacent nodes on toVisit with depth + 1
+            toVisit.push(make_pair(ta2, depth + 1));
           }
         }
       }
@@ -317,7 +351,7 @@ void TermAlgebra::setMutualTypes()
   }
 
   // since the 'mutual type' relation is symmetric, set the other
-  // types' mutualType field
+  // types' mutualType field to avoid re-computing later
   Set<TermAlgebra*>::Iterator it(*_mutualTypes);
   while (it.hasNext()) {
     TermAlgebra *ta = it.next();
