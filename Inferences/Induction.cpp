@@ -332,13 +332,83 @@ void InductionClauseIterator::performStructInductionOne(Clause* premise, Literal
       }
 }
 
+/**
+ * This idea (taken from the CVC4 paper) is that there exists some smallest k that makes lit true
+ * Remember! that lit is (by construction) a negative literal... so lit = !L and we're talking about the
+ * smallest k that makes L[k] false
+ *
+ * The clauses we generate are (where L is lit here)
+ * L[k]
+ * k != con1(...d1(k)...d2(k)...) | ~L[d1(k)] 
+ * k != con1(...d1(k)...d2(k)...) | ~L[d2(k)] 
+ * k != con2( ...
+ * ...
+ *
+ *
+ */
 void InductionClauseIterator::performStructInductionTwo(Clause* premise, Literal* lit, unsigned c)
 {
 
   TermAlgebra* ta = env.signature->getTermAlgebraOfSort(env.signature->getFunction(c)->fnType()->result());
   unsigned ta_sort = ta->sort();
 
+  unsigned sk = env.signature->addSkolemFunction(0);
+  Signature::Symbol* symbol = env.signature->getFunction(sk);
+  symbol->setType(OperatorType::getConstantsType(ta_sort));
+  symbol->markInductionSkolem();
+  TermList skt = TermList(Term::createConstant(sk));
 
+  // make L[k]
+  {
+    ConstantReplacement cr(c,skt);
+    Clause* r = new(1) Clause(1,premise->inputType(),new Inference1(Inference::INDUCTION,premise));
+    (*r)[0] = cr.transform(lit);
+    _clauses.push(r);
+  }
+
+  // make 
+  //
+  // k != con1(...d1(k)...d2(k)...) | ~L[d1(k)] 
+  // k != con1(...d1(k)...d2(k)...) | ~L[d2(k)] 
+  // ..
+  //
+  // for each coni
+  for(unsigned i=0;i<ta->nConstructors();i++){
+    TermAlgebraConstructor* con = ta->constructor(i);
+    unsigned arity = con->arity();
+  
+    // ignore a constructor if it doesn't mention ta_sort
+    bool ignore = (arity == 0);
+    for(unsigned j=0;j<arity && ignore; j++){ ignore &= (con->argSort(j)!=ta_sort); } 
+
+    if(!ignore){
+  
+      // First generate all argTerms and remember those that are of sort ta_sort 
+      Stack<TermList> argTerms;
+      Stack<TermList> taTerms; 
+      for(unsigned j=0;j<arity;j++){
+        unsigned dj = con->destructorFunctor(j);
+        TermList djk(Term::create1(dj,skt));
+        argTerms.push(djk);
+        if(con->argSort(j) == ta_sort){
+          taTerms.push(djk);
+        }
+      }
+      // create k != con1(...d1(k)...d2(k)...)
+      TermList coni(Term::create(con->functor(),(unsigned)argTerms.size(), argTerms.begin()));
+      Literal* kneq = Literal::createEquality(false,skt,coni,ta_sort);
+      // now create the clauses
+      Stack<TermList>::Iterator tit(taTerms);
+      while(tit.hasNext()){
+        TermList djk = tit.next();
+        Clause* r = new(2) Clause(2,premise->inputType(),new Inference1(Inference::INDUCTION,premise));
+        (*r)[0] = kneq;
+        ConstantReplacement cr(c,djk);
+        (*r)[1] = Literal::complementaryLiteral(cr.transform(lit));
+        _clauses.push(r);
+      }
+    }
+  }
 }
 
 }
