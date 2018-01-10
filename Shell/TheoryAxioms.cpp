@@ -1479,6 +1479,21 @@ void TheoryAxioms::addCtxFunctionDefinitions(TermAlgebra* ta)
   (*c)[3] = Literal::createEquality(true, y, z, ta->sort());
   
   addAndOutputTheoryUnit(c, CHEAP);
+
+  // TODO compare both versions
+  // unicity alternative axiom
+  // x = hole \/ y =! app(x, y) \/ y = cyc(x)
+  /*
+  Clause* c = new(3) Clause(3, Unit::AXIOM, new Inference(Inference::TERM_ALGEBRA_CYCLES));
+  (*c)[0] = Literal::createEquality(true, x, hole, ta->contextSort(ta));
+  (*c)[1] = Literal::createEquality(false,
+                                    y,
+                                    TermList(Term::create2(ta->getAppFunction(ta), x, y)),
+                                    ta->sort());
+  (*c)[2] = Literal::createEquality(true, y, cycx, ta->sort());
+  
+  addAndOutputTheoryUnit(c, CHEAP);
+  */
 }
 
 void TheoryAxioms::addConstructorCtxDefinitions(TermAlgebra* ta, TermAlgebraConstructor* c)
