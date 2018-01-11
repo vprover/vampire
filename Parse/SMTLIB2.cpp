@@ -955,12 +955,17 @@ void SMTLIB2::readDeclareDatatypes(LExprList* sorts, LExprList* datatypes, bool 
 
     ASS(!env.signature->isTermAlgebraSort(taSort));
     TermAlgebra* ta = new TermAlgebra(taSort, taName, constructors.size(), constructors.begin(), codatatype);
-
-    if (ta->emptyDomain()) {
-      USER_ERROR("Datatype " + taName + " defines an empty sort");
-    }
-
+    
     env.signature->addTermAlgebra(ta);
+  }
+
+  // this check can only be done after all the mutual definitions have been added
+  VirtualIterator<TermAlgebra*> it = env.signature->termAlgebrasIterator();
+  while (it.hasNext()) {
+    TermAlgebra *ta = it.next();
+    if (ta->emptyDomain()) {
+      USER_ERROR("Datatype " + ta->name() + " defines an empty sort");
+    }
   }
 }
 

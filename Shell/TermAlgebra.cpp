@@ -122,7 +122,8 @@ TermAlgebra::TermAlgebra(unsigned sort,
   _contextSorts(),
   _n(n),
   _allowsCyclicTerms(allowsCyclicTerms),
-  _constrs(n)
+  _constrs(n),
+  _domain(DomainSize::NOT_COMPUTED)
 {
   for (unsigned i = 0; i < n; i++) {
     ASS(constrs[i]->rangeSort() == _sort);
@@ -130,58 +131,112 @@ TermAlgebra::TermAlgebra(unsigned sort,
   }
 }
 
+void TermAlgebra::computeDomainSize() {
+  CALL("TermAlgebra::computeDomainSize");
+  ASS_EQ(_domain, DomainSize::NOT_COMPUTED);
+
+  _domain = DomainSize::EMPTY;
+  if (_n == 0) {
+    return;
+  }
+
+  if (_allowsCyclicTerms
+      && _n == 1
+      && _constrs[0]->recursive()
+      && _constrs[0]->arity() == 1) {
+    _domain = DomainSize::SINGLETON_CDT;
+    return;
+  }
+
+  // for recursively defined types (possibly mutual), must check that
+  // there exists a smallest element
+  if (isMutualType(this)) {
+    if (_allowsCyclicTerms) {
+      _domain = DomainSize::INFINITE;
+    } else {
+      Set<TermAlgebra*>::Iterator it(*_mutualTypes);
+      while (it.hasNext()) {
+        if (it.next()->existsSmallestTerm()) {
+          _domain = DomainSize::INFINITE;
+          return;
+        }
+      }
+      _domain = DomainSize::EMPTY;
+    }
+    return;
+  }
+
+  for (unsigned i = 0; i < _n; i++) {
+    if (_constrs[i]->arity() > 0) {
+      _domain = DomainSize::UNKNOWN;
+      return;
+    }
+  }
+  _domain = DomainSize::FINITE;
+}
+
+bool TermAlgebra::existsSmallestTerm() {
+  CALL("TermAlgebra::existsSmallestTerm");
+
+  for (unsigned i = 0; i < _n; i++) {
+    TermAlgebraConstructor* c = _constrs[i];
+    unsigned j;
+    for (j = 0; j < c->arity(); j++) {
+      unsigned s = c->argSort(j);
+      if (env.signature->isTermAlgebraSort(s) &&
+          !env.signature->getTermAlgebraOfSort(s)->_allowsCyclicTerms) {
+        break;
+      }
+    }
+    if (j == c->arity()) {
+      return true;
+    }
+  }
+  return false;
+}
+
 bool TermAlgebra::emptyDomain()
 {
   CALL("TermAlgebra::emptyDomain");
 
-  if (_n == 0) {
-    return true;
+  if (_domain == DomainSize::NOT_COMPUTED) {
+    computeDomainSize();
   }
 
-  if (_allowsCyclicTerms) {
-    return false;
-  }
-
-  for (unsigned i = 0; i < _n; i++) {
-    if (!(_constrs[i]->recursive())) {
-      return false;
-    }
-  }
-  return true;
+  return _domain == DomainSize::EMPTY;
 }
 
 bool TermAlgebra::singletonCodatatype()
 {
   CALL("TermAlgebra::singletonCodatatype");
 
-  return (_allowsCyclicTerms
-          && _n == 1
-          && _constrs[0]->recursive()
-          && _constrs[0]->arity() == 1);
+  if (_domain == DomainSize::NOT_COMPUTED) {
+    computeDomainSize();
+  }
+
+  return _domain == DomainSize::SINGLETON_CDT;
 }
 
 bool TermAlgebra::finiteDomain()
 {
   CALL("TermAlgebra::finiteDomain");
 
-  if (singletonCodatatype()) {
-    return true;
+  if (_domain == DomainSize::NOT_COMPUTED) {
+    computeDomainSize();
   }
 
-  for (unsigned i = 0; i < _n; i++) {
-    if (_constrs[i]->arity() > 0) {
-      return false;
-    }
-  }
-
-  return true;
+  return (_domain == DomainSize::FINITE || _domain == DomainSize::SINGLETON_CDT);
 }
 
 bool TermAlgebra::infiniteDomain()
 {
   CALL("TermAlgebra::infiniteDomain");
 
-  return (isMutualType(this) && !singletonCodatatype());
+  if (_domain == DomainSize::NOT_COMPUTED) {
+    computeDomainSize();
+  }
+
+  return _domain == DomainSize::INFINITE;
 }
 
 bool TermAlgebra::isMutualType(TermAlgebra *ta)

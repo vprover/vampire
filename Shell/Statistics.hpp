@@ -184,6 +184,7 @@ public:
   unsigned taInjectivitySimplifications;
   unsigned taNegativeInjectivitySimplifications;
   unsigned taAcyclicityGeneratedDisequalities;
+  unsigned taInfinitenessSimplifications;
 
   // Saturation
   /** all clauses ever occurring in the unprocessed queue */

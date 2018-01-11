@@ -138,10 +138,14 @@ ImmediateSimplificationEngine* MainLoop::createISE(Problem& prb, const Options& 
     res->addFront(new DistinctEqualitySimplifier());
   }
   if(prb.hasEquality() && env.signature->hasTermAlgebras()) {
-    if (opt.termAlgebraInferences()) {
+    if (opt.termAlgebraInferences() == Options::TAInferences::SIMPL) {
       res->addFront(new DistinctnessISE());
       res->addFront(new InjectivityISE());
       res->addFront(new NegativeInjectivityISE());
+    } else if (opt.termAlgebraInferences() == Options::TAInferences::FULL) {
+      res->addFront(new DistinctnessISE());
+      res->addFront(new InjectivityISE());
+      res->addFront(new InfinitenessISE());
     }
   }
   if(prb.hasInterpretedOperations() || prb.hasInterpretedEquality()) {

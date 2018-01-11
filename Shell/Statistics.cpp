@@ -110,6 +110,7 @@ Statistics::Statistics()
     taInjectivitySimplifications(0),
     taNegativeInjectivitySimplifications(0),
     taAcyclicityGeneratedDisequalities(0),
+    taInfinitenessSimplifications(0),
     generatedClauses(0),
     passiveClauses(0),
     activeClauses(0),
@@ -324,12 +325,14 @@ void Statistics::print(ostream& out)
 
   HEADING("Term algebra simplifications",taDistinctnessSimplifications+
       taDistinctnessTautologyDeletions+taInjectivitySimplifications+
-      taAcyclicityGeneratedDisequalities+taNegativeInjectivitySimplifications);
+      taAcyclicityGeneratedDisequalities+taNegativeInjectivitySimplifications+
+      taInfinitenessSimplifications);
   COND_OUT("Distinctness simplifications",taDistinctnessSimplifications);
   COND_OUT("Distinctness tautology deletions",taDistinctnessTautologyDeletions);
   COND_OUT("Injectivity simplifications",taInjectivitySimplifications);
   COND_OUT("Negative injectivity simplifications",taNegativeInjectivitySimplifications);
   COND_OUT("Disequalities generated from acyclicity",taAcyclicityGeneratedDisequalities);
+  COND_OUT("Infiniteness simplifications",taInfinitenessSimplifications);
 
   HEADING("AVATAR",splitClauses+splitComponents+uniqueComponents+satSplits+
         satSplitRefutations);

@@ -234,6 +234,8 @@ public:
     TERM_ALGEBRA_ACYCLICITY,
     /** inference rule for infinite terms algebras/co-datatypes (existence of unique cyclic terms)*/
     TERM_ALGEBRA_CYCLES,
+    /** inference rule for terms algebras/co-datatypes with infinite domains */
+    TERM_ALGEBRA_INFINITENESS,
     /** one of two axioms of FOOL (distinct constants or finite domain) */
     FOOL_AXIOM,
     //** Flatten a clause to separate theory literals */

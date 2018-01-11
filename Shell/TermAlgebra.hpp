@@ -104,10 +104,18 @@ namespace Shell {
     bool allowsCyclicTerms() { return _allowsCyclicTerms; }
     Lib::vstring name() { return _name; }
 
+    enum DomainSize {
+      NOT_COMPUTED,
+      UNKNOWN,
+      EMPTY,
+      SINGLETON_CDT,
+      FINITE,
+      INFINITE
+    };
     /* True iff the algebra defines an empty domain, which could be
        due to:
        - having no constructors
-       - not allowing cyclic terms and having only recursive constructors
+       - not allowing cyclic terms and having only recursive constructors (possibly mutual)
      */
     bool emptyDomain();
     /* True iff co-datatype with only one unary recursive constructor */
@@ -140,7 +148,11 @@ namespace Shell {
     unsigned getAppFunction(TermAlgebra* ta);
 
   private:
+    void computeDomainSize();
     void setMutualTypes();
+
+    /* true if there exists a constructor without datatype arguments */ 
+    bool existsSmallestTerm();
     
     unsigned _sort;
     Lib::vstring _name;
@@ -149,6 +161,7 @@ namespace Shell {
     unsigned _n; /* number of constructors */
     bool _allowsCyclicTerms;
     ConstructorArray _constrs;
+    DomainSize _domain;
   };
 }
 

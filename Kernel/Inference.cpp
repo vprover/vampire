@@ -447,6 +447,8 @@ vstring Inference::ruleName(Rule rule)
     return "term algebras acyclicity";
   case TERM_ALGEBRA_CYCLES:
     return "infinite terms cyclicity";
+  case TERM_ALGEBRA_INFINITENESS:
+    return "term algebra infiniteness";
   case EXTERNAL:
     return "external";
   case CLAIM_DEFINITION:

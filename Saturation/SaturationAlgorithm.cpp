@@ -1361,13 +1361,19 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
     gie->addFront(new FOOLParamodulation());
   }
   if(prb.hasEquality() && env.signature->hasTermAlgebras()) {
-    if (opt.termAlgebraCyclicityCheck() == Options::TACyclicityCheck::RULE) {
+    if (opt.termAlgebraCyclicityCheck() == Options::TACyclicityCheck::OLDRULE) {
       gie->addFront(new AcyclicityGIE());
     } else if (opt.termAlgebraCyclicityCheck() == Options::TACyclicityCheck::RULELIGHT) {
       gie->addFront(new AcyclicityGIE1());
     }
-    if (opt.termAlgebraInferences()) {
+    if (opt.termAlgebraInferences() == Options::TAInferences::SIMPL) {
       gie->addFront(new InjectivityGIE());
+    } else if (opt.termAlgebraInferences() == Options::TAInferences::FULL) {
+      gie->addFront(new InjectivityGIE());
+      gie->addFront(new Injectivity1GIE());
+      gie->addFront(new Injectivity2GIE());
+      gie->addFront(new Distinctness1GIE());
+      gie->addFront(new Distinctness2GIE());
     }
   }
 #if VZ3

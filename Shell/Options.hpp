@@ -682,19 +682,19 @@ public:
     THEORY = 3
   };
 
-  enum class TARules : unsigned int {
+  enum class TAInferences : unsigned int {
     OFF = 0,
-    INJECTGEN = 1,
-    INJECTSIMPL = 2,
-    INJECTOPT = 2,
-    FULL = 3  
+    SIMPL = 1,
+    FULL = 2,
   };
 
+  // TODO clean up after experiments
   enum class TACyclicityCheck : unsigned int {
     OFF = 0,
     AXIOM = 1,
-    RULE = 2,
-    RULELIGHT = 3
+    OLDRULE = 2, // n-ary rule, incomplete with variables
+    RULELIGHT = 3, // generating disequalities (very incomplete)
+    NEWRULE = 4 // n-ary rule, complete
   };
 
 
@@ -1921,7 +1921,7 @@ public:
   RuleActivity equalityResolutionWithDeletion() const { return _equalityResolutionWithDeletion.actualValue; }
   ExtensionalityResolution extensionalityResolution() const { return _extensionalityResolution.actualValue; }
   bool FOOLParamodulation() const { return _FOOLParamodulation.actualValue; }
-  bool termAlgebraInferences() const { return _termAlgebraInferences.actualValue; }
+  TAInferences termAlgebraInferences() const { return _termAlgebraInferences.actualValue; }
   TACyclicityCheck termAlgebraCyclicityCheck() const { return _termAlgebraCyclicityCheck.actualValue; }
   unsigned extensionalityMaxLength() const { return _extensionalityMaxLength.actualValue; }
   bool extensionalityAllowPosEq() const { return _extensionalityAllowPosEq.actualValue; }
@@ -2187,7 +2187,7 @@ private:
 
   BoolOptionValue _FOOLParamodulation;
 
-  BoolOptionValue _termAlgebraInferences;
+  ChoiceOptionValue<TAInferences> _termAlgebraInferences;
   ChoiceOptionValue<TACyclicityCheck> _termAlgebraCyclicityCheck;
 
   BoolOptionValue _fmbNonGroundDefs;

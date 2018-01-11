@@ -158,6 +158,40 @@ namespace Inferences {
     return c;
   }
 
+  ClauseIterator Distinctness1GIE::generateClauses(Clause* c)
+  {
+    CALL("Distinctness1GIE::generateClause");
+
+    // TODO
+    return pvi(VirtualIterator<Clause*>::getEmpty());
+  }
+
+  void Distinctness2GIE::attach(SaturationAlgorithm* salg)
+  {
+    CALL("Distinctness2GIE::attach");
+
+    GeneratingInferenceEngine::attach(salg);
+
+    // TODO
+  }
+
+  void Distinctness2GIE::detach()
+  {
+    CALL("Distinctness2GIE::detach");
+
+    // TODO
+    
+    GeneratingInferenceEngine::detach();
+  }
+
+  ClauseIterator Distinctness2GIE::generateClauses(Clause* c)
+  {
+    CALL("Distinctness2GIE::generateClause");
+
+    // TODO
+    return pvi(VirtualIterator<Clause*>::getEmpty());
+  }
+
   /*
    * Given a clause f(x1, ..., xn) = f(y1, ... yn) \/ A, this iterator
    * returns the clauses x1 = y1 \/ A up to xn = yn \/ A. For any
@@ -267,6 +301,40 @@ namespace Inferences {
 
     // no equalities between similar constructors were found
     return c;
+  }
+
+  ClauseIterator Injectivity1GIE::generateClauses(Clause* c)
+  {
+    CALL("Injectivity1GIE::generateClause");
+
+    // TODO
+    return pvi(VirtualIterator<Clause*>::getEmpty());
+  }
+
+  void Injectivity2GIE::attach(SaturationAlgorithm* salg)
+  {
+    CALL("Injectivity2GIE::attach");
+
+    GeneratingInferenceEngine::attach(salg);
+
+    // TODO
+  }
+
+  void Injectivity2GIE::detach()
+  {
+    CALL("Injectivity2GIE::detach");
+    ASS(_salg);
+
+    // TODO
+    GeneratingInferenceEngine::detach();
+  }
+
+  ClauseIterator Injectivity2GIE::generateClauses(Clause* c)
+  {
+    CALL("Injectivity2GIE::generateClause");
+
+    // TODO
+    return pvi(VirtualIterator<Clause*>::getEmpty());
   }
 
   bool NegativeInjectivityISE::litCondition(Clause *c, unsigned i) {
@@ -591,6 +659,97 @@ namespace Inferences {
     auto it2 = getMappingIterator(it1, SubtermDisequalityFn(c));
     auto it3 = getFlattenedIterator(it2);
     return pvi(it3);
+  }
+
+  Clause* InfinitenessISE::simplify(Clause* c)
+  {
+    CALL("InfinitenessISE::simplify");
+    
+    if (c->isTheoryDescendant())
+      return c;
+
+    bool *pos = nullptr;
+    Clause *r = nullptr;
+    
+    int length = c->length();
+    for (int i = length - 1; i >= 0; i--) {
+      Literal *lit = (*c)[i];
+
+      if (lit->isEquality()) {
+        unsigned s = SortHelper::getEqualityArgumentSort(lit);
+        if (env.signature->isTermAlgebraSort(s)) {
+          TermAlgebra* ta = env.signature->getTermAlgebraOfSort(s);
+          if (ta->infiniteDomain()) {
+            if (!pos) {
+              pos = static_cast<bool*>ALLOC_KNOWN(c->length() * sizeof(bool), "InfinitenessISE::simplify::pos");
+            }
+            if (lit->nthArgument(0)->isVar() && (r = deleteLits(c, lit->nthArgument(0), pos))) {
+              goto ret;
+            }
+            if (lit->nthArgument(1)->isVar() && (r = deleteLits(c, lit->nthArgument(1), pos))) {
+              goto ret;
+            }
+          }
+        }
+      }
+    }
+    // no deletable literals found
+    r = c;
+
+  ret:
+    if (pos) {
+      DEALLOC_KNOWN(pos, c->length() * sizeof(bool), "InfinitenessISE::simplify::pos");
+    }
+    return c;
+  }
+
+  Clause* InfinitenessISE::deleteLits(Kernel::Clause* c, TermList* var, bool* positions)
+  {
+    CALL("InfinitenessISE::deleteLits");
+    ASS(var->isVar());
+
+    unsigned toDelete = 0;
+    unsigned length = c->length();
+    
+    for (int i = length - 1; i >= 0; i--) {
+      Literal *lit = (*c)[i];
+
+      if (lit->isEquality()) {
+        TermList *s = lit->nthArgument(0);
+        TermList *t = lit->nthArgument(1);
+        if (s->isTerm() && s->containsSubterm(*var)) {
+          return nullptr;
+        }
+        if (t->isTerm() && t->containsSubterm(*var)) {
+          return nullptr;
+        }
+        positions[i] = (TermList::equals(*s, *var) || TermList::equals(*t, *var));
+        toDelete += positions[i];
+      } else {
+        if (lit->containsSubterm(*var)) {
+          return nullptr;
+        }
+      }
+    }
+
+    if (toDelete == 0) {
+      return nullptr;
+    } else {
+      unsigned resLength = length - toDelete;
+      Clause* res = new(length) Clause(resLength,
+                                       c->inputType(),
+                                       new Inference1(Inference::TERM_ALGEBRA_INFINITENESS, c));
+      unsigned i = length - 1;
+      for (int j = length - 1; j >= 0; j--) {
+        if (!positions[j]) {
+          (*res)[i] = (*c)[j];
+          i--;
+        }
+      }
+      res->setAge(c->age());
+      env.statistics->taInfinitenessSimplifications++;
+      return res;
+    }
   }
  
 }
