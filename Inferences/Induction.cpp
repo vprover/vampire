@@ -33,12 +33,20 @@
 #include "Kernel/Inference.hpp"
 #include "Kernel/Sorts.hpp"
 #include "Kernel/Theory.hpp"
-
+#include "Kernel/Formula.hpp"
+#include "Kernel/FormulaUnit.hpp"
+#include "Kernel/Connective.hpp"
 
 #include "Saturation/SaturationAlgorithm.hpp"
 
 #include "Shell/Options.hpp"
 #include "Shell/Statistics.hpp"
+#include "Shell/NewCNF.hpp"
+#include "Shell/NNF.hpp"
+
+#include "Indexing/Index.hpp"
+#include "Indexing/ResultSubstitution.hpp"
+#include "Inferences/BinaryResolution.hpp"
 
 #include "Induction.hpp"
 
@@ -142,6 +150,8 @@ void InductionClauseIterator::performMathInduction(Clause* premise, Literal* lit
 {
   CALL("InductionClauseIterator::performMathInduction");
 
+        NOT_IMPLEMENTED;
+
         //cout << "PERFORM INDUCTION on " << env.signature->functionName(c) << endl;
 
         // create fresh
@@ -204,132 +214,106 @@ void InductionClauseIterator::performMathInduction(Clause* premise, Literal* lit
 
  }
 
-      // Now deal with term algebra constants
-      // introduce new clauses per eligable constant:
-      // L[b1] | ... | L[bn] | ~L[kx1]
-      // L[b1] | ... | L[bn] | L[c1[..xi...]] | ... L[cm[...xi...]]
-      // where kxn are fresh constants
+/**
+ * Introduce the Induction Hypothesis
+ * ( L[base1] & ... & L[basen] & (L[x] => L[c1(x)]) & ... (L[x] => L[cm(x)]) ) => L[x]
+ * for some lit ~L[a]
+ * and then force binary resolution on L for each resultant clause
+ */
 
 void InductionClauseIterator::performStructInductionOne(Clause* premise, Literal* lit, unsigned c)
 {
   CALL("InductionClauseIterator::performStructInductionOne"); 
 
-        TermAlgebra* ta = env.signature->getTermAlgebraOfSort(env.signature->getFunction(c)->fnType()->result());
-        unsigned ta_sort = ta->sort();
+  TermAlgebra* ta = env.signature->getTermAlgebraOfSort(env.signature->getFunction(c)->fnType()->result());
+  unsigned ta_sort = ta->sort();
 
-        //TODO don't think I need this
-        //Array<Stack<TermList>> skolemTerms(env.sorts->count());
-        //but this instead
-        Stack<TermList> skolemTerms;
-        //and probably this here
-        unsigned vars = 0;
+  FormulaList* formulas = FormulaList::empty();
 
-        Stack<Literal*> baseLits;
-        Stack<Literal*> conLits;
+  Literal* clit = Literal::complementaryLiteral(lit);
+  unsigned var = 0;
 
-        for(unsigned i=0;i<ta->nConstructors();i++){
-          TermAlgebraConstructor* con = ta->constructor(i);
+  // first produce the formula
+  for(unsigned i=0;i<ta->nConstructors();i++){
+    TermAlgebraConstructor* con = ta->constructor(i);
+    unsigned arity = con->arity();
+    Formula* f = 0;
 
-          // if a base constructor then construct L[base]
-          if(con->arity()==0){
-            TermList cont(Term::createConstant(con->functor()));
-            ConstantReplacement cr(c,cont);
-            baseLits.push(cr.transform(lit));
-          }
-          // otherwise construct L[con(xn)] e.g. L[cons(i,xn)]
-          else{
-            // first create the new term
-            // need to quantify & skolemize over the missing bits of the constructor
-            // TODO actually... no I don't, they should be variables
-            Stack<TermList> argTerms; 
-            //ZIArray<unsigned> skolemIndex(env.sorts->count());
-            unsigned skolems = 0;
-            for(unsigned i=0;i<con->arity();i++){
-              unsigned srt = con->argSort(i);
-
-              if(srt == ta_sort){
-                if(skolemTerms.size() <= skolems){
-                  unsigned xn = env.signature->addSkolemFunction(0);
-                  Signature::Symbol* symbol = env.signature->getFunction(xn);
-                  symbol->setType(OperatorType::getConstantsType(srt));
-                  symbol->markInductionSkolem();
-                  skolemTerms.push(TermList(Term::createConstant(xn)));
-                } 
-                ASS(skolemTerms.size() > skolems); 
-                argTerms.push(skolemTerms[skolems]);
-                skolems++;
-              }
-              else{
-                argTerms.push(TermList(vars,false)); 
-                vars++;
-              }
-
-            }
-            TermList cont(Term::create(con->functor(),(unsigned)argTerms.size(), argTerms.begin()));
-            ConstantReplacement cr(c,cont);
-            conLits.push(cr.transform(lit));
-          }
-        }
-
-        Stack<Literal*> xfnLits;
-
-        Stack<TermList>::Iterator xnit(skolemTerms);
-        while(xnit.hasNext()){
-          // construct ~L[x1]
-          TermList xnt = xnit.next();
-          ConstantReplacement crX(c,xnt);
-          Literal* nLxn = Literal::complementaryLiteral(crX.transform(lit));
-          xfnLits.push(nLxn);
-        }
-
-      // now create
-      // L[b1] | ... | L[bn] | ~L[xi]
-      // L[b1] | ... | L[bn] | L[c1[..xi...]] | ... L[cm[...xi...]]
-    
-        // L[b1] | ... | L[bn] | ~L[xi] 
-      {
-        Stack<Literal*>::Iterator xnit(xfnLits);
-        while(xnit.hasNext()){
-
-          Literal* xnlit = xnit.next();
-          Inference* inf = new Inference1(Inference::INDUCTION,premise);
-          unsigned size = baseLits.size()+1;
-          Clause* r = new(size) Clause(size,premise->inputType(),inf);
-
-          (*r)[0] = xnlit;
-
-          unsigned i = 1;
-          Stack<Literal*>::Iterator bit(baseLits);
-          while(bit.hasNext()){
-            Literal* blit = bit.next();
-            (*r)[i] = blit;
-            i++;
-          }
-
-          _clauses.push(r);
-        }
+    // non recursive get L[_]
+    if(!con->recursive()){
+      if(arity==0){
+        ConstantReplacement cr(c,TermList(Term::createConstant(con->functor())));
+        f = new AtomicFormula(cr.transform(clit)); 
       }
+      else{
+        Stack<TermList> argTerms;
+        for(unsigned i=0;i<arity;i++){
+          argTerms.push(TermList(var,false));
+          var++;
+        }
+        ConstantReplacement cr(c,TermList(Term::create(con->functor(),(unsigned)argTerms.size(), argTerms.begin())));
+        f = new AtomicFormula(cr.transform(clit));
+      }
+    }
+    // recursive get (L[x] => L[c(x)])
+    else{
+      ASS(arity>0);
+      Stack<TermList> argTerms;
+      Stack<TermList> ta_vars;
+      for(unsigned i=0;i<arity;i++){
+        TermList x(var,false);
+        var++;
+        if(con->argSort(i) == ta_sort){
+          ta_vars.push(x);
+        }
+        argTerms.push(x);
+      }
+      ConstantReplacement cr(c,TermList(Term::create(con->functor(),(unsigned)argTerms.size(), argTerms.begin())));
+      Formula* right = new AtomicFormula(cr.transform(clit));
+      Formula* left = 0;
+      ASS(ta_vars.size()>=1);
+      if(ta_vars.size()==1){
+        ConstantReplacement cr(c,ta_vars[0]);
+        left = new AtomicFormula(cr.transform(clit));
+      }
+      else{
+        FormulaList* args = FormulaList::empty();
+        Stack<TermList>::Iterator tvit(ta_vars);
+        while(tvit.hasNext()){
+          ConstantReplacement cr(c,tvit.next());
+          args = new FormulaList(new AtomicFormula(cr.transform(clit)),args);
+        }
+        left = new JunctionFormula(Connective::AND,args);
+      }
+      f = new BinaryFormula(Connective::IMP,left,right);
+    }
 
-      //  L[b1] | ... | L[bn] | L[c1[..xi...]] | ... L[cm[...xi...]]
-      {
-          Inference* inf = new Inference1(Inference::INDUCTION,premise);
-          unsigned size = conLits.size()+baseLits.size();
-          Clause* r = new(size) Clause(size,premise->inputType(),inf);
+    ASS(f);
+    formulas = new FormulaList(f,formulas);
+  }
+  ConstantReplacement cr(c,TermList(var,false));
+  Literal* conclusion = cr.transform(clit);
+  Formula* hypothesis = new BinaryFormula(Connective::IMP,
+                            Formula::quantify(new JunctionFormula(Connective::AND,formulas)),
+                            Formula::quantify(new AtomicFormula(conclusion)));
+
+  NewCNF cnf(0);
+  Stack<Clause*> hyp_clauses;
+  cnf.clausify(NNF::ennf(new FormulaUnit(hypothesis,new Inference(Inference::INDUCTION),Unit::AXIOM)), hyp_clauses);
+
+  // Now perform resolution between lit and the hyp_clauses on clit, which should be contained in each clause!
+  Stack<Clause*>::Iterator cit(hyp_clauses);
+  cout << "Do BR" << endl;
+  while(cit.hasNext()){
+    Clause* c = cit.next();
+    cout << "On " << c->toString() << endl;
+    static ResultSubstitutionSP identity = ResultSubstitutionSP(new IdentitySubstitution());
+    SLQueryResult qr(lit,premise,identity);
+    Clause* r = BinaryResolution::generateClause(c,clit,qr,*env.options);
+    cout << "Create " << r->toString() << endl;
+    _clauses.push(r);
+  }
   
-          unsigned i=0;
-          for(;i<conLits.size();i++){ 
-            (*r)[i]= conLits[i]; 
-          }
-          for(unsigned j=0;j<baseLits.size();j++){
-            ASS(i<size);
-            (*r)[i] = baseLits[j]; 
-            i++;
-          }
- 
-          _clauses.push(r);
-
-
-      }
 }
 
 /**
@@ -358,6 +342,7 @@ void InductionClauseIterator::performStructInductionTwo(Clause* premise, Literal
   unsigned ta_sort = ta->sort();
 
   Term* skt = 0;
+  Clause* Lk = 0; // add if it gets set
 
   if(env.signature->getFunction(c)->skolem()){
     skt = Term::createConstant(c);
@@ -372,9 +357,8 @@ void InductionClauseIterator::performStructInductionTwo(Clause* premise, Literal
     // make L[k]
     {
       ConstantReplacement cr(c,TermList(skt));
-      Clause* r = new(1) Clause(1,premise->inputType(),new Inference1(Inference::INDUCTION,premise));
-      (*r)[0] = cr.transform(lit);
-      _clauses.push(r);
+      Lk = new(1) Clause(1,premise->inputType(),new Inference1(Inference::INDUCTION,premise));
+      (*Lk)[0] = cr.transform(lit);
     }
   }
 
@@ -385,6 +369,7 @@ void InductionClauseIterator::performStructInductionTwo(Clause* premise, Literal
   // ..
   //
   // for each coni
+  bool recursive_constructors = false;
   for(unsigned i=0;i<ta->nConstructors();i++){
     TermAlgebraConstructor* con = ta->constructor(i);
     unsigned arity = con->arity();
@@ -411,6 +396,7 @@ void InductionClauseIterator::performStructInductionTwo(Clause* premise, Literal
       Literal* kneq = Literal::createEquality(false,TermList(skt),coni,ta_sort);
       // now create the clauses
       Stack<TermList>::Iterator tit(taTerms);
+      recursive_constructors |= tit.hasNext();
       while(tit.hasNext()){
         TermList djk = tit.next();
         Clause* r = new(2) Clause(2,premise->inputType(),new Inference1(Inference::INDUCTION,premise));
@@ -421,6 +407,15 @@ void InductionClauseIterator::performStructInductionTwo(Clause* premise, Literal
       }
     }
   }
+  // if Lk was created add it now - didn't do this before as we might find that
+  // there are no recursive constructors and no point doing this 
+  if(recursive_constructors && Lk){_clauses.push(Lk);}
+}
+
+void InductionClauseIterator::performStructInductionThree(Clause* premise, Literal* lit, unsigned constant)
+{
+  CALL("InductionClauseIterator::performStructInductionThree");
+
 }
 
 }
