@@ -184,6 +184,13 @@ public:
   unsigned taInjectivitySimplifications;
   unsigned taNegativeInjectivitySimplifications;
   unsigned taAcyclicityGeneratedDisequalities;
+  
+  /** statistics of HOL constant elimination rules */
+  unsigned holORIMPANDsimplifications;
+  unsigned holEQAULSsimplifications;
+  unsigned holNOTsimplifications;
+  unsigned holPISIGMAsimplifications;
+  unsigned holBINARYCONNgeneratingrules;
 
   // Saturation
   /** all clauses ever occurring in the unprocessed queue */

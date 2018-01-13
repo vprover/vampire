@@ -972,6 +972,28 @@ void Options::Options::init()
 	    _extensionalityResolution.reliesOn(_inequalitySplitting.is(equal(0)));
 	    _extensionalityResolution.setRandomChoices({"filter","known","off","off"});
 
+		_HOLConstantElimination = BoolOptionValue("hol_constant_elimination","holcelim",false);
+		_HOLConstantElimination.description=
+	      "Turns on a set of inference rules used to eliminate "
+		  "HOL constants from clauses. An example rule is: \n"
+	      "app(vNOT, t1) = $true \\/ C\n"
+	      "--------------------------,\n"
+	      "    t1 = $false \\/ C\n"
+	      "where t1 is a boolean term. This rule is needed for effecient "
+	      "treatment of HOL constants.";		
+		_lookup.insert(&_HOLConstantElimination);
+	    _HOLConstantElimination.tag(OptionTag::INFERENCES);
+		
+		_combinatorElimination = BoolOptionValue("combinator_elimination","combelim",false);
+		_combinatorElimination.description=
+	      "Turns on a set of inference rules used to eliminate "
+		  "SKI combinator from clauses. An example rule is: \n"
+          "C[app(app(app(C, t1), t2), t3)]\n"
+          "-------------------------------\n"
+          "    C[app(app(t1,t3),t2)]      \n";		
+		_lookup.insert(&_combinatorElimination);
+	    _combinatorElimination.tag(OptionTag::INFERENCES);
+		
 	    _FOOLParamodulation = BoolOptionValue("fool_paramodulation","foolp",false);
 	    _FOOLParamodulation.description=
 	      "Turns on the following inference rule:\n"

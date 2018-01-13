@@ -110,6 +110,11 @@ Statistics::Statistics()
     taInjectivitySimplifications(0),
     taNegativeInjectivitySimplifications(0),
     taAcyclicityGeneratedDisequalities(0),
+	holBINARYCONNgeneratingrules(0),
+	holEQAULSsimplifications(0),
+	holNOTsimplifications(0),
+	holORIMPANDsimplifications(0),
+	holPISIGMAsimplifications(0),
     generatedClauses(0),
     passiveClauses(0),
     activeClauses(0),
@@ -331,6 +336,14 @@ void Statistics::print(ostream& out)
   COND_OUT("Negative injectivity simplifications",taNegativeInjectivitySimplifications);
   COND_OUT("Disequalities generated from acyclicity",taAcyclicityGeneratedDisequalities);
 
+  HEADING("HOL constant elimination simplifications", holORIMPANDsimplifications +
+       holEQAULSsimplifications + holNOTsimplifications + holPISIGMAsimplifications);
+  COND_OUT("OR, IMP and AND simplifications", holORIMPANDsimplifications);
+  COND_OUT("NOT simplifications", holNOTsimplifications);
+  COND_OUT("EQUALS simplifications", holEQAULSsimplifications);
+  COND_OUT("PI and SIGMA simplifications", holPISIGMAsimplifications);
+  COND_OUT("Clauses generated from binary connective eliminations", holBINARYCONNgeneratingrules);
+  
   HEADING("AVATAR",splitClauses+splitComponents+uniqueComponents+satSplits+
         satSplitRefutations);
   COND_OUT("Split clauses", splitClauses);

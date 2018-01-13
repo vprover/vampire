@@ -1920,6 +1920,8 @@ public:
   EqualityProxy equalityProxy() const { return _equalityProxy.actualValue; }
   RuleActivity equalityResolutionWithDeletion() const { return _equalityResolutionWithDeletion.actualValue; }
   ExtensionalityResolution extensionalityResolution() const { return _extensionalityResolution.actualValue; }
+  bool HOLConstantElimination () const { return _HOLConstantElimination.actualValue; }
+  bool combinatorElimination () const { return _combinatorElimination.actualValue; }
   bool FOOLParamodulation() const { return _FOOLParamodulation.actualValue; }
   bool termAlgebraInferences() const { return _termAlgebraInferences.actualValue; }
   TACyclicityCheck termAlgebraCyclicityCheck() const { return _termAlgebraCyclicityCheck.actualValue; }
@@ -2186,7 +2188,8 @@ private:
   BoolOptionValue _extensionalityAllowPosEq;
 
   BoolOptionValue _FOOLParamodulation;
-
+  BoolOptionValue _HOLConstantElimination;
+  BoolOptionValue _combinatorElimination;
   BoolOptionValue _termAlgebraInferences;
   ChoiceOptionValue<TACyclicityCheck> _termAlgebraCyclicityCheck;
 

@@ -329,6 +329,31 @@ public:
     INSTANTIATION,
     /* Finite model not found */
     MODEL_NOT_FOUND,
+	/* HOL Not Elimination:
+	E.g. app(vNOT, t1) = $true \/ C
+	     --------------------------
+		      t1 = $false \/ C
+    */
+    HOL_NOT_ELIMINATION,	
+	/* Binary Combinator Elimination:
+	
+	E.g. app(app(vOR, t1), t2) = $true \/ C
+	     ----------------------------------
+		           t1 \/ t2 \/ C
+	*/
+	BINARY_CONN_ELIMINATION,
+	/* Equality Elimination:
+	E.g. app(app(vEQUALS, t1), t2) = $true \/ C
+	     --------------------------------------
+		           t1 = t2 \/ C
+    */
+    HOL_EQUALITY_ELIMINATION,
+	/* vPI Elimination */
+	VPI_ELIMINATION,
+	/* vSIGMA Elimination */
+	VSIGMA_ELIMINATION,
+	/* combinator elimination */
+	COMBINATOR_ELIMINATION,
   }; // class Inference::Rule
 
   explicit Inference(Rule r);

@@ -32,6 +32,7 @@
 #include "Inferences/InferenceEngine.hpp"
 #include "Inferences/InterpretedEvaluation.hpp"
 #include "Inferences/TermAlgebraReasoning.hpp"
+#include "Inferences/HOLElimination.hpp"
 #include "Inferences/TautologyDeletionISE.hpp"
 #include "Inferences/EquationalTautologyRemoval.hpp"
 
@@ -133,6 +134,16 @@ ImmediateSimplificationEngine* MainLoop::createISE(Problem& prb, const Options& 
     break;
   }
 
+  if(opt.HOLConstantElimination()){
+	res->addFront(new PISIGMARemovalISE());
+	res->addFront(new ORIMPANDRemovalISE());
+	res->addFront(new EQUALSRemovalISE());
+	res->addFront(new NOTRemovalISE());
+  }
+  
+  if(opt.combinatorElimination()){
+	res->addFront(new CombinatorEliminationISE());
+  }
   // Only add if there are distinct groups 
   if(prb.hasEquality() && env.signature->hasDistinctGroups()) {
     res->addFront(new DistinctEqualitySimplifier());

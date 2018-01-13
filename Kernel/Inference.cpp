@@ -488,6 +488,18 @@ vstring Inference::ruleName(Rule rule)
     return "instantiation";
   case MODEL_NOT_FOUND:
     return "finite model not found";
+  case HOL_NOT_ELIMINATION:
+    return "HOL not constant elimination";
+  case BINARY_CONN_ELIMINATION:
+    return "HOL binary constant elimination";
+  case HOL_EQUALITY_ELIMINATION:
+	return "HOL equality elimination";
+  case VPI_ELIMINATION:
+	return "HOL PI constant elimination";
+  case VSIGMA_ELIMINATION:
+    return "HOL SIGMA constant elimination"; 
+  case COMBINATOR_ELIMINATION:
+    return "combinator elimination";
   default:
     ASSERTION_VIOLATION;
     return "!UNKNOWN INFERENCE RULE!";

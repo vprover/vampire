@@ -303,7 +303,12 @@ void Preprocess::preprocess(Problem& prb)
       clausify(prb);
     }
   }
-
+  
+  //lambda elimination may have introduced function definitions. This requires checking
+  //One way around this would be to update code that checks for functions to recognise lambda
+  //definitions.
+  prb.getProperty();
+  
   if (prb.mayHaveFunctionDefinitions()) {
     env.statistics->phase=Statistics::FUNCTION_DEFINITION_ELIMINATION;
     if (env.options->showPreprocessing())

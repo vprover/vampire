@@ -56,6 +56,7 @@
 #include "Inferences/EqualityResolution.hpp"
 #include "Inferences/ExtensionalityResolution.hpp"
 #include "Inferences/FOOLParamodulation.hpp"
+#include "Inferences/HOLElimination.hpp"
 #include "Inferences/Factoring.hpp"
 #include "Inferences/ForwardDemodulation.hpp"
 #include "Inferences/ForwardLiteralRewriting.hpp"
@@ -1362,6 +1363,9 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
   }
   if (opt.FOOLParamodulation()) {
     gie->addFront(new FOOLParamodulation());
+  }
+  if(opt.HOLConstantElimination()){
+	gie->addFront(new ORIMPANDIFFXORRemovalGIE());  
   }
   if(prb.hasEquality() && env.signature->hasTermAlgebras()) {
     if (opt.termAlgebraCyclicityCheck() == Options::TACyclicityCheck::RULE) {

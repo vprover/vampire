@@ -26,13 +26,15 @@
 #include "Kernel/Clause.hpp"
 #include "Kernel/EqHelper.hpp"
 #include "Kernel/Inference.hpp"
+#include "Kernel/Signature.hpp"
 #include "Kernel/Formula.hpp"
 #include "Kernel/Term.hpp"
 #include "Kernel/TermIterators.hpp"
 #include "Kernel/Signature.hpp"
 #include "Kernel/Sorts.hpp"
 #include "Kernel/SortHelper.hpp"
-#include "Inferences/TermAlgebraReasoning.hpp"
+
+#include "Shell/Statistics.hpp"
 
 #include "HOLElimination.hpp"
 
@@ -42,12 +44,14 @@ unsigned introduceAppSymbol(unsigned sort1, unsigned sort2, unsigned resultSort)
     
   CALL("HOLElimination::introduceAppSymbol");
 
+  ASS(env.sorts->getFuncSort(sort1)->getDomainSort() == sort2);
+  ASS(env.sorts->getFuncSort(sort1)->getRangeSort() == resultSort);
   
   Stack<unsigned> sorts;
   sorts.push(sort1); sorts.push(sort2);
   OperatorType* type = OperatorType::getFunctionType(2, sorts.begin(), resultSort);
   unsigned symbol;
-  bool added;
+  bool added = false;
   
   vstring srt1 = Lib::Int::toString(sort1);
   vstring srt2 = Lib::Int::toString(sort2);
@@ -56,21 +60,39 @@ unsigned introduceAppSymbol(unsigned sort1, unsigned sort2, unsigned resultSort)
   
   if(added){
    env.signature->getFunction(symbol)->setType(type);
+   env.signature->getFunction(symbol)->markHOLAPP();
   }
-
+  
   return symbol;
 }
 
 
-bool isUnaryConstantApp(Literal* lit)
+bool isUnaryConstantApp(Literal* lit, int &onRight)
 {
     CALL("isUnaryConstantApp");
 
     if(!lit->isEquality())
         return false;    
     
+	onRight = 0;
+	
     TermList lhs = *lit->nthArgument(0);
+    TermList rhs = *lit->nthArgument(1);
     
+    if(rhs.isTerm()){
+        Term* rhst = rhs.term();
+        Signature::Symbol* symbol = env.signature->getFunction(rhst->functor());
+        if(symbol->hOLAPP()){ //if rhs is of form vAPP(...
+            TermList firstArg = *rhst->nthArgument(0);
+            if(firstArg.isTerm()){
+                rhst = firstArg.term();
+                symbol = env.signature->getFunction(rhst->functor());
+                if(!(symbol->getConst() == Signature::Symbol::NULL_CONSTANT)){
+                   onRight = 1; return true;
+                }
+            }
+        }
+    }
     if(lhs.isTerm()){
         Term* lhst = lhs.term();
         Signature::Symbol* symbol = env.signature->getFunction(lhst->functor());
@@ -89,15 +111,39 @@ bool isUnaryConstantApp(Literal* lit)
 }
 
 
-bool isBinaryConstantApp(Literal* lit)
+bool isBinaryConstantApp(Literal* lit, int &onRight)
 {
     CALL("isBinaryConstantApp");
     
     if(!lit->isEquality())
         return false;   
-    
+  
+    onRight = 0;
+  
     TermList lhs = *lit->nthArgument(0);
-        
+    TermList rhs = *lit->nthArgument(1);    
+
+    if(rhs.isTerm()){
+        Term* rhst = rhs.term();
+        Signature::Symbol* symbol = env.signature->getFunction(rhst->functor());
+        if(symbol->hOLAPP()){ //if rhs is of form vAPP(...
+            TermList firstArg = *rhst->nthArgument(0);
+            if(firstArg.isTerm()){
+                rhst = firstArg.term();
+                symbol = env.signature->getFunction(rhst->functor());
+                if(symbol->hOLAPP()){ //if rhs is of form vAPP(vAPP(...
+                    firstArg = *rhst->nthArgument(0);
+                    if(firstArg.isTerm()){
+                        Term* cont = firstArg.term();
+                        symbol = env.signature->getFunction(cont->functor());
+                        if(!(symbol->getConst() == Signature::Symbol::NULL_CONSTANT)){
+                            onRight = 1; return true;
+                        }
+                    }
+                }
+            }
+        }
+    }   
     if(lhs.isTerm()){
         Term* lhst = lhs.term();
         Signature::Symbol* symbol = env.signature->getFunction(lhst->functor());
@@ -119,46 +165,52 @@ bool isBinaryConstantApp(Literal* lit)
             }
         }
     }
+
     return false;   
 }
 
 
-
-
-
+int isBoolValue(TermList tl){
+	CALL("isBoolValue");
+	
+	if(!tl.isTerm()) return -1;
+	if(env.signature->isFoolConstantSymbol(true, tl.term()->functor())) return 1;
+    if(env.signature->isFoolConstantSymbol(false, tl.term()->functor())) return 0;
+	
+	return -1;
+}
 
 
 bool isPISIGMAapp(Literal* lit, TermList &t1, TermList &rhs, bool &rhsIsTrue, bool &rhsIsFalse, bool &isPI,
-                  unsigned &srt1, unsigned &srt2)
+                  unsigned &srt1)
 {
     CALL("isPISIGMAapp");
 
-    if(!isUnaryConstantApp(lit))
+    int onRight;
+    if(!isUnaryConstantApp(lit, onRight))
        return false;
-
-    TermList lhs = *lit->nthArgument(0); 
-    rhs = *lit->nthArgument(1);    	
-	
-	if(env.signature->isFoolConstantSymbol(true, rhs.term()->functor()))
-		 rhsIsTrue = true;
-	else rhsIsTrue = false;
-    
-    if(env.signature->isFoolConstantSymbol(true, rhs.term()->functor()))
-		 rhsIsFalse = true;
-	else rhsIsFalse = false;
-	
-    t1 = *lhs.term()->nthArgument(1);
    
-    Term* constant = lhs.term()->nthArgument(0)->term();
+    TermList appTerm = *lit->nthArgument(onRight); 
+    rhs = *lit->nthArgument(1 - onRight);    
+  
+    int rhsValue = isBoolValue(rhs);
+    if (rhsValue > -1){
+      rhsIsTrue  = (rhsValue == lit->polarity()); 
+	  rhsIsFalse = !rhsIsTrue;
+	}else{
+	  rhsIsTrue = false;
+	  rhsIsFalse = false;
+	}
+
+    t1 = *appTerm.term()->nthArgument(1);  
+   
+    Term* constant = appTerm.term()->nthArgument(0)->term();
     Signature::Symbol* sym = env.signature->getFunction(constant->functor());
-    if(sym->getConst() == Signature::Symbol::PI ||
-	   sym->getConst() == Signature::Symbol::SIGMA ){
-		
-        isPI = sym->getConst() == Signature::Symbol::PI ? true : false;
-		 
-		srt1 = sym->fnType()->result();
-		srt1 = env.sorts->getFuncSort(srt1)->getRangeSort();
-		srt2 = env.sorts->getFuncSort(srt1)->getRangeSort();
+	Signature::Symbol::HOLConstant cont = sym->getConst();
+    if(cont == Signature::Symbol::PI || cont== Signature::Symbol::SIGMA){      
+        isPI = cont == Signature::Symbol::PI ? true : false;
+        srt1 = sym->fnType()->result();
+        srt1 = env.sorts->getFuncSort(srt1)->getDomainSort();
         return true;
     }               
     
@@ -170,26 +222,23 @@ bool isEQUALSApp(Literal* lit, TermList &t1, TermList &t2, bool &positive)
 {
     CALL("isEQUALSApp");
 
-    if(!(isBinaryConstantApp(lit)))
+	int onRight;
+    if(!(isBinaryConstantApp(lit, onRight)))
         return false;
+   	 
+
+	Term* appTerm = lit->nthArgument(onRight)->term();
+    TermList truthValue = *lit->nthArgument(1 - onRight); 
+
+	int val = isBoolValue(truthValue);
+    if(val < 0){return false; }
+    else {positive = (val == lit->polarity());}
     
-    TermList rhs = *lit->nthArgument(1); 
-    Term* rhst = rhs.term();
-    
-    bool rightHandSideIsTrue = env.signature->isFoolConstantSymbol(true, rhst->functor());
-    bool rightHandSideIsFalse = env.signature->isFoolConstantSymbol(false, rhst->functor());
-    
-    if(!rightHandSideIsTrue && !rightHandSideIsFalse) 
-        return false;
-    else 
-        positive = rightHandSideIsTrue;
-    
-    Term* lhst = lit->nthArgument(0)->term();
-    Term* constant = lhst->nthArgument(0)->term()->nthArgument(0)->term();
+    Term* constant = appTerm->nthArgument(0)->term()->nthArgument(0)->term();
     Signature::Symbol* symbol = env.signature->getFunction(constant->functor());
     if(symbol->getConst() == Signature::Symbol::EQUALS){
-        t1 = *lhst->nthArgument(0)->term()->nthArgument(1);
-        t2 = *lhst->nthArgument(1);
+        t1 = *appTerm->nthArgument(0)->term()->nthArgument(1);
+        t2 = *appTerm->nthArgument(1);
         return true;
     }
     
@@ -200,39 +249,41 @@ bool appOfORorIMPorAND(Literal* lit, TermList &lhs1, TermList &rhs1, TermList &l
 {
     CALL("appOfORorIMPorAnd");
 
-    if(!(isBinaryConstantApp(lit)))
+	int onRight;
+    if(!(isBinaryConstantApp(lit, onRight)))
         return false;
-    
-    TermList rhs = *lit->nthArgument(1); 
-    Term* rhst = rhs.term();
-    Term* lhst = lit->nthArgument(0)->term();
-    
-    bool rightHandSideIsTrue = env.signature->isFoolConstantSymbol(true, rhst->functor());
-    bool rightHandSideIsFalse = env.signature->isFoolConstantSymbol(false, rhst->functor());
-    
-    Term* constant = lhst->nthArgument(0)->term()->nthArgument(0)->term();
-    lhs1 = *lhst->nthArgument(0)->term()->nthArgument(1);
-    lhs2 = *lhst->nthArgument(1);
-    
+
+	Term* constant;
+ 
+    Term* appTerm = lit->nthArgument(onRight)->term();
+    TermList otherTerm = *lit->nthArgument(1 - onRight);
+
+    int val = isBoolValue(otherTerm); 
+    if(val < 0) return false;
+   
+    constant = appTerm->nthArgument(0)->term()->nthArgument(0)->term();
     Signature::Symbol* symbol = env.signature->getFunction(constant->functor());
-    switch(symbol->getConst()){ //switching first arg of second app
-      case Signature::Symbol::AND:
-        if(rightHandSideIsFalse){
-            rhs1 = rhs; rhs2 = rhs; //rule for and is t1 = $false \/ t2 = $false ...
-            return true;
-        }
-        break;
+    Signature::Symbol::HOLConstant cont = symbol->getConst();	
+	if((cont == Signature::Symbol::AND) && ((val + lit->polarity()) % 2 == 0)) return false;
+	if((cont == Signature::Symbol::OR)  && ((val + lit->polarity()) % 2 == 1)) return false;	
+	if((cont == Signature::Symbol::IMP) && ((val + lit->polarity()) % 2 == 1)) return false;
+	
+    lhs1 = *appTerm->nthArgument(0)->term()->nthArgument(1);
+    lhs2 = *appTerm->nthArgument(1);
+	
+    TermList troo = TermList(Term::foolTrue());
+    TermList fals = TermList(Term::foolFalse());
+   
+    switch(cont){ //switching first arg of second app
+	  case Signature::Symbol::AND:
+        rhs1 = fals; rhs2 = fals; //rule for and is t1 = $false \/ t2 = $false ...
+        return true;
       case Signature::Symbol::OR:
-        if(rightHandSideIsTrue){
-            rhs1 = rhs; rhs2 = rhs;
-            return true;
-        }
-        break;
+        rhs1 = troo; rhs2 = troo;
+        return true;
       case Signature::Symbol::IMP:
-        if(rightHandSideIsTrue){
-            rhs1 = TermList(Term::foolFalse()); rhs2 = rhs;
-            return true;
-        }
+        rhs1 = fals; rhs2 = troo;
+        return true;
       default:
         return false;
     }
@@ -241,26 +292,106 @@ bool appOfORorIMPorAND(Literal* lit, TermList &lhs1, TermList &rhs1, TermList &l
 }
 
 
-bool isNOTEquality(Literal* lit, TermList &newEqlhs, TermList &newEqrhs)
+bool isNOTEquality(Literal* lit, TermList &newEqlhs, TermList &newEqrhs, bool &polarity)
 {
     CALL("isNOTEquality");
-	
-    if (!isUnaryConstantApp(lit))
-        return false;
     
-    TermList lhs = *lit->nthArgument(0); 
-    newEqrhs = *lit->nthArgument(1);    
-    newEqlhs = *lhs.term()->nthArgument(1);
-   
-    Term* constant = lhs.term()->nthArgument(0)->term();
+	int onRight;
+    if (!isUnaryConstantApp(lit, onRight))
+        return false;
+	
+    TermList appTerm = *lit->nthArgument(onRight); 
+	newEqrhs = *lit->nthArgument((onRight + 1) % 2);
+    newEqlhs = *appTerm.term()->nthArgument(1);
+
+    TermList boolValues[] = {TermList(Term::foolFalse()),TermList(Term::foolTrue())};
+	
+	int val = isBoolValue(newEqrhs);
+    if(val > -1){
+		polarity = true;
+        newEqrhs = boolValues[(val + lit->polarity()) % 2]; //check this AYB
+	}else{
+		polarity = 1 - lit->polarity();
+	}
+		
+    Term* constant = appTerm.term()->nthArgument(0)->term();
     Signature::Symbol* sym = env.signature->getFunction(constant->functor());
     if(sym->getConst() == Signature::Symbol::NOT){
         return true;
     }               
-    
+   
     return false;
 }
 
+bool isITerm(TermList term, TermList &t1)
+{
+	CALL("isITerm");
+	
+	TermList firstArg = *term.term()->nthArgument(0);
+	if(firstArg.isTerm()){
+		Signature::Symbol* sym = env.signature->getFunction(firstArg.term()->functor());
+		if(sym->getConst() == Signature::Symbol::I_COMB){
+		  t1 = *term.term()->nthArgument(1);
+		  return true;	
+		}  
+	}
+	
+	return false;
+}
+
+bool isKTerm(TermList term, TermList &t1)
+{
+	CALL("isKTerm");
+
+	TermList firstArg = *term.term()->nthArgument(0);
+	if(firstArg.isTerm()){
+		Signature::Symbol* sym = env.signature->getFunction(firstArg.term()->functor());
+		if(sym->hOLAPP()){
+		  TermList comb = *firstArg.term()->nthArgument(0);
+          if(comb.isTerm()){	
+             Signature::Symbol* sym = env.signature->getFunction(comb.term()->functor());
+			 if(sym->getConst() == Signature::Symbol::K_COMB){
+				t1 = *firstArg.term()->nthArgument(1);
+			    return true;	
+			 }
+		  }		  
+		}  
+	}
+	
+	return false;	
+	
+}
+
+bool isTenaryCombinatorTerm(TermList term, TermList &t1, TermList &t2, TermList &t3, Signature::Symbol::HOLConstant &combi)
+{
+	CALL("isTenaryCombinatorTerm");
+	
+	TermList arg1 = *term.term()->nthArgument(0);
+	if(arg1.isTerm()){
+		Signature::Symbol* sym = env.signature->getFunction(arg1.term()->functor());
+		if(sym->hOLAPP()){
+		  TermList arg1ofarg1 = *arg1.term()->nthArgument(0);
+          if(arg1ofarg1.isTerm()){	
+             Signature::Symbol* sym = env.signature->getFunction(arg1ofarg1.term()->functor());
+			 if(sym->hOLAPP()){
+				TermList comb = *arg1ofarg1.term()->nthArgument(0);
+			    Signature::Symbol* sym = env.signature->getFunction(comb.term()->functor());
+			    if(sym->getConst() == Signature::Symbol::B_COMB || sym->getConst() == Signature::Symbol::C_COMB ||
+				   sym->getConst() == Signature::Symbol::S_COMB){
+				  t1 = *arg1ofarg1.term()->nthArgument(1);
+				  t2 = *arg1.term()->nthArgument(1);
+				  t3 = *term.term()->nthArgument(1);
+				  combi = sym->getConst();
+			      return true;	
+			    }	
+			 }
+		  }		  
+		}  
+	}
+	
+	return false;	
+	
+}
 
 Clause* replaceLit2(Clause *c, Literal *a, Literal *b, Inference *inf, Literal *d = NULL, Literal* e = NULL )
 {
@@ -287,8 +418,8 @@ Clause* replaceLit2(Clause *c, Literal *a, Literal *b, Inference *inf, Literal *
 
 Clause* ORIMPANDRemovalISE::simplify(Clause* c)
   {
-    CALL("ORIMPRemovalISE::simplify");
-
+    CALL("ORIMPRemovalISE::simplify");   
+    
     int length = c->length();
     for (int i = length - 1; i >= 0; i--) {
       TermList lhs1, rhs1, lhs2, rhs2;
@@ -296,9 +427,9 @@ Clause* ORIMPANDRemovalISE::simplify(Clause* c)
       if (appOfORorIMPorAND(lit, lhs1, rhs1, lhs2, rhs2)) {
         Literal* newLit1 = Literal::createEquality(true, lhs1, rhs1, Sorts::SRT_BOOL);
         Literal* newLit2 = Literal::createEquality(true, lhs2, rhs2, Sorts::SRT_BOOL);
-        Clause* res = replaceLit2(c, lit, newLit1, new Inference1(Inference::TERM_ALGEBRA_DISTINCTNESS, c), newLit2);//Change inference AYB
+        Clause* res = replaceLit2(c, lit, newLit1, new Inference1(Inference::BINARY_CONN_ELIMINATION, c), newLit2);
         res->setAge(c->age());
-        //env.statistics->taDistinctnessSimplifications++;
+        env.statistics->holORIMPANDsimplifications++;
         return res;
       }
     }
@@ -310,22 +441,18 @@ Clause* ORIMPANDRemovalISE::simplify(Clause* c)
 Clause* NOTRemovalISE::simplify(Clause* c)
   {
     CALL("NOTRemovalISE::simplify");
-
+	
     int length = c->length();
     for (int i = length - 1; i >= 0; i--) {
       TermList lhs, rhs;
+	  bool polarity;
       Literal *lit = (*c)[i];
-      if (isNOTEquality(lit, lhs, rhs)) {
+      if (isNOTEquality(lit, lhs, rhs, polarity)) {
         Literal *newLit;
-        if(env.signature->isFoolConstantSymbol(true, rhs.term()->functor()) ||
-           env.signature->isFoolConstantSymbol(false, rhs.term()->functor())){ 
-            newLit = Literal::createEquality(true, lhs, rhs, Sorts::SRT_BOOL);//Check this in particular polarity, AYB
-        }else{
-            newLit = Literal::createEquality(false, lhs, rhs, Sorts::SRT_BOOL);//Check this in particular polarity, AYB
-        }
-        Clause* res = replaceLit2(c, lit, newLit, new Inference1(Inference::TERM_ALGEBRA_DISTINCTNESS, c));//Change inference AYB
+        newLit = Literal::createEquality(polarity, lhs, rhs, Sorts::SRT_BOOL);//Check this in particular polarity, AYB
+        Clause* res = replaceLit2(c, lit, newLit, new Inference1(Inference::HOL_NOT_ELIMINATION, c));//Change inference AYB
         res->setAge(c->age());
-        //env.statistics->taDistinctnessSimplifications++;
+        env.statistics->holNOTsimplifications++;
         return res;
       }
     }
@@ -336,18 +463,18 @@ Clause* NOTRemovalISE::simplify(Clause* c)
 
 Clause* EQUALSRemovalISE::simplify(Clause* c)
   {
-    CALL("NOTRemovalISE::simplify");
-
+    CALL("EQUALSRemovalISE::simplify");
+	
     int length = c->length();
     for (int i = length - 1; i >= 0; i--) {
-      TermList lhs, rhs, t3;
-      bool positive;
+      TermList lhs, rhs;
+      bool polarity;
       Literal *lit = (*c)[i];
-      if (isEQUALSApp(lit, lhs, rhs, positive)) {
-        Literal *newLit = Literal::createEquality(positive, lhs, rhs, Sorts::SRT_BOOL);//Check this in particular polarity, AYB
-        Clause* res = replaceLit2(c, lit, newLit, new Inference1(Inference::TERM_ALGEBRA_DISTINCTNESS, c));//Change inference AYB
+      if (isEQUALSApp(lit, lhs, rhs, polarity)) {
+        Literal *newLit = Literal::createEquality(polarity, lhs, rhs, Sorts::SRT_BOOL);//Check this in particular polarity, AYB
+        Clause* res = replaceLit2(c, lit, newLit, new Inference1(Inference::HOL_EQUALITY_ELIMINATION, c));//Change inference AYB
         res->setAge(c->age());
-        //env.statistics->taDistinctnessSimplifications++;
+        env.statistics->holEQAULSsimplifications++;
         return res;
       }
     }
@@ -362,62 +489,195 @@ Clause* PISIGMARemovalISE::simplify(Clause* c)
 
     int length = c->length();
     for (int i = length - 1; i >= 0; i--) {
-      TermList t1, rhs; bool isTrue, isFalse, isPI;
-	  unsigned srt1, srt2;
+      TermList t1, rhs; 
+	  bool isTrue, isFalse, isPI;
+      unsigned expsrt;
       Literal *lit = (*c)[i];
-      if (isPISIGMAapp(lit, t1, rhs, isTrue, isFalse, isPI, srt1, srt2)) {
+      if (isPISIGMAapp(lit, t1, rhs, isTrue, isFalse, isPI, expsrt)) {
         Literal *newLit;
-		int maxVar = 0;
-		if((isTrue && isPI) || (isPI && !isTrue && !isFalse) || (isFalse && !isPI)){
-	      Formula::VarList::Iterator fvi(t1.freeVariables());
+        int maxVar = 0;
+		TermList lhs = t1;
+		
+        if((isTrue && isPI) || (isPI && !isTrue && !isFalse) || (isFalse && !isPI)){
+          Formula::VarList::Iterator fvi(t1.freeVariables());
           while (fvi.hasNext()) {
             int var = fvi.next();
             if (var > maxVar) { maxVar = var;}
           }
-		  TermList newVar = TermList(maxVar + 1, false);
-          unsigned symbol = introduceAppSymbol(srt1, srt2, Sorts::SRT_BOOL);		  
-		  TermList lhs = TermList(Term::create2(symbol, t1, newVar));
-          newLit = Literal::createEquality(true, lhs, rhs, Sorts::SRT_BOOL);          		  
-		}
-		if((isFalse && isPI) || (isTrue && !isPI) || (!isPI && !isTrue && !isFalse)){
+		  do{	
+		    maxVar++;
+            TermList newVar = TermList(maxVar, false);
+			unsigned srt2 = env.sorts->getFuncSort(expsrt)->getDomainSort();
+            unsigned symbol = introduceAppSymbol(expsrt, srt2, env.sorts->getFuncSort(expsrt)->getRangeSort());  
+			lhs = TermList(Term::create2(symbol, lhs, newVar));
+			expsrt = env.sorts->getFuncSort(expsrt)->getRangeSort();
+		  }while(!(expsrt == Sorts::SRT_BOOL));		                  
+        }
+        if((isFalse && isPI) || (isTrue && !isPI) || (!isPI && !isTrue && !isFalse)){
           Stack<unsigned> sorts;
-		  Formula::VarList* vars = t1.freeVariables();
-		  Formula::VarList::Iterator fvi(vars);
-		  DHMap<unsigned,unsigned> _varSorts;
-		  SortHelper::collectVariableSorts(t1.term(), _varSorts);
+          Formula::VarList* vars = t1.freeVariables();
+          Formula::VarList::Iterator fvi(vars);
+          DHMap<unsigned,unsigned> _varSorts;
+          SortHelper::collectVariableSorts(t1.term(), _varSorts);
           while (fvi.hasNext()) {
              unsigned var = (unsigned)fvi.next();
              sorts.push(_varSorts.get(var));
-          }			
-		  unsigned arity = (unsigned)sorts.size();
-          OperatorType* type = OperatorType::getFunctionType(arity, sorts.begin(), srt2);
-
-          unsigned symbol = env.signature->addSkolemFunction(arity);    
-          env.signature->getFunction(symbol)->setType(type);
+          }         
+          unsigned arity = (unsigned)sorts.size();
 		  
-		  Stack<TermList> arguments;
-          Formula::VarList::Iterator vit(vars);
-          while (vit.hasNext()) {
+		  do{ 
+		    unsigned srt2 = env.sorts->getFuncSort(expsrt)->getDomainSort();
+            OperatorType* type = OperatorType::getFunctionType(arity, sorts.begin(), srt2);
+
+            unsigned symbol = env.signature->addSkolemFunction(arity);    
+            env.signature->getFunction(symbol)->setType(type);
+          
+            Stack<TermList> arguments;
+            Formula::VarList::Iterator vit(vars);
+            while (vit.hasNext()) {
               unsigned var = (unsigned)vit.next();
               arguments.push(TermList(var, false));
-          }
-		  TermList skolemFunc = TermList(Term::create(symbol, arity, arguments.begin()));
-          symbol = introduceAppSymbol(srt1, srt2, Sorts::SRT_BOOL);
-		  
-		  TermList lhs = TermList(Term::create2(symbol, t1, skolemFunc));
-          newLit = Literal::createEquality(true, lhs, rhs, Sorts::SRT_BOOL);   	  
-		}
-
-        Clause* res = replaceLit2(c, lit, newLit, new Inference1(Inference::TERM_ALGEBRA_DISTINCTNESS, c));//Change inference AYB
+            }
+            TermList skolemFunc = TermList(Term::create(symbol, arity, arguments.begin()));
+            symbol = introduceAppSymbol(expsrt, srt2, env.sorts->getFuncSort(expsrt)->getRangeSort());
+            lhs = TermList(Term::create2(symbol, lhs, skolemFunc));
+			
+			expsrt = env.sorts->getFuncSort(expsrt)->getRangeSort();
+		  }while(!(expsrt == Sorts::SRT_BOOL)); 
+        }	  
+        newLit = Literal::createEquality(true, lhs, rhs, Sorts::SRT_BOOL);     
+        Clause* res;
+        if(isPI){
+           res = replaceLit2(c, lit, newLit, new Inference1(Inference::VPI_ELIMINATION, c));//Change inference AYB
+        }else{
+           res = replaceLit2(c, lit, newLit, new Inference1(Inference::VSIGMA_ELIMINATION, c));//Change inference AYB
+        }           
         res->setAge(c->age());
-        //env.statistics->taDistinctnessSimplifications++;
+		
+        env.statistics->holPISIGMAsimplifications++;
         return res;
       }
     }
-
+	
     // no literals of the form app(app(vOR... or app(app(vIMP... were found
     return c;
-  }   
+  } 
+
+  Clause* CombinatorEliminationISE::simplify(Clause* premise)
+  {
+	CALL("CombinatorEliminationISE::simplify");
+	 
+    TermList combinatorTerm;
+	TermList newTerm;
+    unsigned literalPosition = 0;
+	
+    //ArrayishObjectIterator<Clause> literals = premise->getSelectedLiteralIterator();
+    for (int i = premise->length() - 1; i >= 0; i--) {
+      Literal *literal = (*premise)[i];
+	  
+      NonVariableIterator nvi(literal);
+      while (nvi.hasNext()) {
+
+        TermList subterm = nvi.next();
+        unsigned functor = subterm.term()->functor();
+        Signature::Symbol* sym = env.signature->getFunction(functor);
+        
+        if(!(sym->hOLAPP())){
+			continue; //only interested in terms which start vAPP(...
+		}				
+		
+		TermList t1, t2, t3;
+		DHMap<unsigned,unsigned> _varSorts;
+        SortHelper::collectVariableSorts(subterm.term(), _varSorts);
+		
+        if (isITerm(subterm, t1)) {
+		  combinatorTerm = subterm;
+          newTerm = t1;
+          goto substitution;
+        }
+		
+		if (isKTerm(subterm, t1)) {
+	      combinatorTerm = subterm;		
+		  newTerm = t1;
+          goto substitution;
+		}
+		
+		Signature::Symbol::HOLConstant comb;
+		if (isTenaryCombinatorTerm(subterm, t1, t2, t3, comb)){
+			unsigned t1sort = SortHelper::getResultSort(t1, _varSorts);
+			unsigned t2sort = SortHelper::getResultSort(t2, _varSorts);
+			unsigned t3sort = SortHelper::getResultSort(t3, _varSorts);
+			unsigned ranget1 = env.sorts->getFuncSort(t1sort)->getRangeSort();
+			unsigned ranget2 = env.sorts->getFuncSort(t2sort)->getRangeSort();
+			unsigned rangeOfRangeOft1 = env.sorts->getFuncSort(ranget1)->getRangeSort();
+			
+			switch(comb){
+			  case Signature::Symbol::B_COMB:{
+			    unsigned appt2tot3 = introduceAppSymbol(t2sort, t3sort, ranget2);
+			    unsigned appt1     = introduceAppSymbol(t1sort, ranget2, ranget1);
+			
+			    TermList appOft2tot3 = TermList(Term::create2(appt2tot3, t2, t3));
+			    TermList appOft1     = TermList(Term::create2(appt1, t1, appOft2tot3));
+
+			    combinatorTerm = subterm;			
+			    newTerm = appOft1;
+			    goto substitution;
+			  }
+			  case Signature::Symbol::C_COMB:{
+				unsigned appt1tot3 = introduceAppSymbol(t1sort, t3sort, ranget1);
+			    unsigned appt1tot3tot2 = introduceAppSymbol(ranget1, t2sort, rangeOfRangeOft1);
+			
+			    TermList appOft1tot3 = TermList(Term::create2(appt1tot3, t1, t3));
+			    TermList apptot2     = TermList(Term::create2(appt1tot3tot2, appOft1tot3, t2));
+
+			    combinatorTerm = subterm;			
+			    newTerm = apptot2;
+			    goto substitution;
+			  }
+			  case Signature::Symbol::S_COMB:{
+			    unsigned appt1tot3 = introduceAppSymbol(t1sort, t3sort, ranget1);
+			    unsigned appt2tot3 = introduceAppSymbol(t2sort, t3sort, ranget2);			
+			    unsigned app = introduceAppSymbol(ranget1, ranget2, rangeOfRangeOft1);
+			
+			    TermList appOft1tot3 = TermList(Term::create2(appt1tot3, t1, t3));
+			    TermList appOft2tot3 = TermList(Term::create2(appt2tot3, t2, t3));
+			    TermList appOf       = TermList(Term::create2(app, appOft1tot3, appOft2tot3));
+			
+			    combinatorTerm = subterm;
+			    newTerm = appOf;
+			    goto substitution;  
+			  }
+			  default:
+			    ASSERTION_VIOLATION;
+			}
+		}
+	
+      }
+      literalPosition++;
+    }
+
+  // If we reached this point, it means that no fully applied combinator
+  // was found, so we no simplification can be carried out. 
+  return premise;
+
+  substitution:
+
+  // Found a fully applied combinator term!
+  unsigned conclusionLength = premise->length();
+  Inference* inference = new Inference1(Inference::COMBINATOR_ELIMINATION, premise); 
+  Clause* conclusion = new(conclusionLength) Clause(conclusionLength, premise->inputType(), inference);
+  conclusion->setAge(premise->age());
+  
+  // Copy the literals from the premise except for the one at `literalPosition`,
+  for (unsigned i = 0; i < conclusionLength; i++) {
+    (*conclusion)[i] = i == literalPosition ? EqHelper::replace((*premise)[i], combinatorTerm, newTerm) : (*premise)[i];
+  }
+  
+  return conclusion;
+	    
+  }
+
+  
   /*
    * Given a clause app(app(binConn, t1), t2) = boolval \/ A, this iterator
    * returns the clauses:
@@ -430,36 +690,41 @@ Clause* PISIGMARemovalISE::simplify(Clause* c)
   {
     SubtermIterator(Clause *clause, Literal *lit)
       : _lit(lit),
-        _clause(clause)
+        _clause(clause),
+		_pol(lit->polarity())
     {
-        
-      if (isBinaryConstantApp(lit)) {
+ 
+      CALL("ORIMPANDIFFXORRemovalGIE::SubtermIterator");
+	  
+      int onRight;
+      if (isBinaryConstantApp(lit, onRight)) {	   
+     
         _count = 0;
-        TermList rhs = *lit->nthArgument(1); 
-        Term* rhst = rhs.term();
-        Term* lhst = lit->nthArgument(0)->term();
-    
-        bool rightHandSideIsTrue = env.signature->isFoolConstantSymbol(true, rhst->functor());
-        bool rightHandSideIsFalse = env.signature->isFoolConstantSymbol(false, rhst->functor()); 
+
+        TermList otherTermt = *lit->nthArgument((onRight + 1) % 2);
+        Term *appTerm = lit->nthArgument(onRight)->term();
         
-        if(!rightHandSideIsTrue && !rightHandSideIsFalse)
-          _rhsIsTerm = true;
-    
-        Term* constant = lhst->nthArgument(0)->term()->nthArgument(0)->term();
+        int val = isBoolValue(otherTermt);
+		if(val < 0) _rhsIsTerm = true;
+		
+        Term* constant = appTerm->nthArgument(0)->term()->nthArgument(0)->term();
         Signature::Symbol* sym = env.signature->getFunction(constant->functor());
-        
+        		
         _constant = sym->getConst(); 
         
-        if(((_constant == Signature::Symbol::OR || _constant == Signature::Symbol::IMP) && !_rhsIsTerm && rightHandSideIsTrue) ||
-           ((_constant == Signature::Symbol::AND) && !_rhsIsTerm && rightHandSideIsFalse) ||
-            (_constant == Signature::Symbol::EQUALS && !_rhsIsTerm))
+        if(((_constant == Signature::Symbol::OR || _constant == Signature::Symbol::IMP) && !_rhsIsTerm && (val == _pol)) ||
+           ((_constant == Signature::Symbol::AND) && !_rhsIsTerm && (val != _pol)) ||
+            (_constant == Signature::Symbol::EQUALS && !_rhsIsTerm) || _constant == Signature::Symbol::S_COMB ||
+			 _constant == Signature::Symbol::C_COMB || _constant == Signature::Symbol::B_COMB ||
+			 _constant == Signature::Symbol::K_COMB || _constant == Signature::Symbol::I_COMB)
         {
           _count = 4;
         }else{
-          _polarity = rightHandSideIsTrue;
-          _terms.push(*lhst->nthArgument(0)->term()->nthArgument(1));
-          _terms.push(*lhst->nthArgument(1));
-          if(_rhsIsTerm){_terms.push(rhs);}   
+          _rhsIsTrue = (val != _pol) && (val > -1);
+		  _rhsIsFalse = (val == _pol) && (val > -1);
+          _terms.push(*appTerm->nthArgument(0)->term()->nthArgument(1));
+          _terms.push(*appTerm->nthArgument(1));
+          if(_rhsIsTerm){_terms.push(otherTermt);}   
         }
       } else {
         _count = 4;
@@ -468,7 +733,7 @@ Clause* PISIGMARemovalISE::simplify(Clause* c)
 
     DECL_ELEMENT_TYPE(Clause *);
 
-    bool hasNext() { 
+    bool hasNext() { 	
        if((  (_constant == Signature::Symbol::AND)  || (_constant == Signature::Symbol::OR)
            ||(_constant == Signature::Symbol::IMP)) && _rhsIsTerm)
               return _count < 3; 
@@ -484,78 +749,81 @@ Clause* PISIGMARemovalISE::simplify(Clause* c)
     {
       CALL("ORIMPANDIFFXORRemovalGIE::SubtermIterator::next()");
 
-      Stack<TermList> boolValues;
-      boolValues.push(TermList(Term::foolTrue()));
-      boolValues.push(TermList(Term::foolFalse()));
-      
+      TermList boolValues[] = {TermList(Term::foolTrue()), TermList(Term::foolFalse())};
+	  
       Clause *res;
-      Inference *inf = new Inference1(Inference::TERM_ALGEBRA_INJECTIVITY, _clause);
+      Inference *inf;
+      if(_constant == Signature::Symbol::EQUALS){     
+        inf = new Inference1(Inference::HOL_EQUALITY_ELIMINATION, _clause);   
+      }else{
+        inf =  new Inference1(Inference::BINARY_CONN_ELIMINATION, _clause);
+      }
       Literal* l1 = NULL;
       Literal* l2 = NULL;
       Literal* l3 = NULL;      
-      
+	  
       switch(_constant){
         case Signature::Symbol::OR:
           if(_count < 2){
             l1 = Literal::createEquality(true, _terms[_count], boolValues[1], Sorts::SRT_BOOL);
-            l2 = _rhsIsTerm ? Literal::createEquality(true, _terms[2], boolValues[0], Sorts::SRT_BOOL) : NULL; 
+            l2 = _rhsIsTerm ? Literal::createEquality(true, _terms[2], boolValues[1 - _pol], Sorts::SRT_BOOL) : NULL; 
           }else{
             l1 = Literal::createEquality(true, _terms[0], boolValues[0], Sorts::SRT_BOOL);
             l2 = Literal::createEquality(true, _terms[1], boolValues[0], Sorts::SRT_BOOL);
-            l3 = Literal::createEquality(true, _terms[2], boolValues[1], Sorts::SRT_BOOL);
+            l3 = Literal::createEquality(true, _terms[2], boolValues[_pol], Sorts::SRT_BOOL);
           }       
           break;
         case Signature::Symbol::AND:
           if(_count < 2){
             l1 = Literal::createEquality(true, _terms[_count], boolValues[0], Sorts::SRT_BOOL); 
-            l2 = _rhsIsTerm ? Literal::createEquality(true, _terms[2], boolValues[1], Sorts::SRT_BOOL) : NULL;          
+            l2 = _rhsIsTerm ? Literal::createEquality(true, _terms[2], boolValues[_pol], Sorts::SRT_BOOL) : NULL; 
           }else{
             l1 = Literal::createEquality(true, _terms[0], boolValues[1], Sorts::SRT_BOOL);
             l2 = Literal::createEquality(true, _terms[1], boolValues[1], Sorts::SRT_BOOL);
-            l3 = Literal::createEquality(true, _terms[2], boolValues[0], Sorts::SRT_BOOL);
+            l3 = Literal::createEquality(true, _terms[2], boolValues[1 - _pol], Sorts::SRT_BOOL);
           }       
           break;        
         case Signature::Symbol::IMP:
           if(_count < 2){
             l1 = Literal::createEquality(true, _terms[_count], boolValues[_count], Sorts::SRT_BOOL);  
-            l2 = _rhsIsTerm ? Literal::createEquality(true, _terms[2], boolValues[0], Sorts::SRT_BOOL) : NULL;
+            l2 = _rhsIsTerm ? Literal::createEquality(true, _terms[2], boolValues[1 - _pol], Sorts::SRT_BOOL) : NULL;
           }else{
             l1 = Literal::createEquality(true, _terms[0], boolValues[1], Sorts::SRT_BOOL);
             l2 = Literal::createEquality(true, _terms[1], boolValues[0], Sorts::SRT_BOOL);
-            l3 = Literal::createEquality(true, _terms[2], boolValues[1], Sorts::SRT_BOOL);           
+            l3 = Literal::createEquality(true, _terms[2], boolValues[_pol], Sorts::SRT_BOOL);           
           }
           break;
         case Signature::Symbol::IFF:
-          if(_polarity || (_rhsIsTerm && _count < 2)){
+          if(_rhsIsTrue || (_rhsIsTerm && _count < 2)){
             l1 = Literal::createEquality(true, _terms[0], boolValues[_count], Sorts::SRT_BOOL); 
             l2 = Literal::createEquality(true, _terms[1], boolValues[(_count + 1) % 2] , Sorts::SRT_BOOL); 
-            l3 = _rhsIsTerm ? Literal::createEquality(true, _terms[2], boolValues[1], Sorts::SRT_BOOL) : NULL; 
+            l3 = _rhsIsTerm ? Literal::createEquality(true, _terms[2], boolValues[1 - _pol], Sorts::SRT_BOOL) : NULL; 
             break;          
           }
-          if(!_polarity || (_rhsIsTerm && _count > 1)){
+          if(_rhsIsFalse || (_rhsIsTerm && _count > 1)){
             l1 = Literal::createEquality(true, _terms[0], boolValues[_count], Sorts::SRT_BOOL); 
             l2 = Literal::createEquality(true, _terms[1], boolValues[_count], Sorts::SRT_BOOL);             
-            l3 = _rhsIsTerm ? Literal::createEquality(true, _terms[2], boolValues[0], Sorts::SRT_BOOL) : NULL;
+            l3 = _rhsIsTerm ? Literal::createEquality(true, _terms[2], boolValues[_pol], Sorts::SRT_BOOL) : NULL;
             break;
           }       
         case Signature::Symbol::XOR:
-          if(_polarity || (_rhsIsTerm && _count < 2)){
+          if(_rhsIsTrue || (_rhsIsTerm && _count < 2)){
             l1 = Literal::createEquality(true, _terms[0], boolValues[_count], Sorts::SRT_BOOL); 
             l2 = Literal::createEquality(true, _terms[1], boolValues[_count], Sorts::SRT_BOOL);         
-            l3 = _rhsIsTerm ? Literal::createEquality(true, _terms[2], boolValues[0], Sorts::SRT_BOOL) : NULL;
+            l3 = _rhsIsTerm ? Literal::createEquality(true, _terms[2], boolValues[_pol], Sorts::SRT_BOOL) : NULL;
             break;
           }
-          if(!_polarity || (_rhsIsTerm && _count > 1)){
+          if(_rhsIsFalse || (_rhsIsTerm && _count > 1)){
             l1 = Literal::createEquality(true, _terms[0], boolValues[_count], Sorts::SRT_BOOL); 
             l2 = Literal::createEquality(true, _terms[1], boolValues[(_count + 1) % 2] , Sorts::SRT_BOOL);                
-            l3 = _rhsIsTerm ? Literal::createEquality(true, _terms[2], boolValues[1], Sorts::SRT_BOOL) : NULL; 
+            l3 = _rhsIsTerm ? Literal::createEquality(true, _terms[2], boolValues[1 - _pol], Sorts::SRT_BOOL) : NULL; 
             break;  
           }
         case Signature::Symbol::EQUALS:
            l1 = Literal::createEquality(_count, _terms[0], _terms[1], Sorts::SRT_BOOL);
            l2 = Literal::createEquality(true, _terms[2], boolValues[_count], Sorts::SRT_BOOL);
            break;
-        default:        
+        default:
           ASSERTION_VIOLATION;
       }
       
@@ -566,19 +834,22 @@ Clause* PISIGMARemovalISE::simplify(Clause* c)
       }else{
           res = replaceLit2(_clause, _lit, l1, inf);
       }
-      
+	  
       _count++;
       
       res->setAge(_clause->age()+1);
-      //env.statistics->taInjectivitySimplifications++;
+      
+      env.statistics->holBINARYCONNgeneratingrules++;
       return res;
     }
   private:
     unsigned _count;
     Literal* _lit;
     Clause* _clause;
+	int _pol;
     bool _rhsIsTerm;
-    bool _polarity;
+    bool _rhsIsTrue;
+	bool _rhsIsFalse;
     Stack<TermList> _terms;
     Signature::Symbol::HOLConstant _constant;
   };
