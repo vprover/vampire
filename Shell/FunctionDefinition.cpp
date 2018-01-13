@@ -267,7 +267,7 @@ bool FunctionDefinition::removeAllDefinitions(UnitList*& units)
     if(d) {
       d->defCl=cl;
       if(_defs.insert(d->fun, d)) {
-//	cout<<"Found: "<<(*(*d->defCl)[0])<<endl;
+	//cout<<"Found: "<<(*(*d->defCl)[0])<<endl;
 	scanIterator.del();
       } else {
 	delete d;
@@ -786,7 +786,7 @@ FunctionDefinition::isFunctionDefinition (Literal* lit)
       ! lit->shared()) {
     return 0;
   }
-
+  
   // the atom is an equality
   TermList* args = lit->args();
   if (args->isVar()) {
@@ -846,6 +846,8 @@ FunctionDefinition::defines (Term* lhs, Term* rhs)
   if (occurs(f,*rhs)) {
     return 0;
   }
+  
+  /*
   if (lhs->arity() == 0) {
     if (rhs->arity() != 0) { // c = f(...)
       return 0;
@@ -854,7 +856,7 @@ FunctionDefinition::defines (Term* lhs, Term* rhs)
       return 0;
     }
     return new Def(lhs,rhs,true,true);
-  }
+  }*/
 
   int vars = 0; // counter of variables occurring in the lhs
 

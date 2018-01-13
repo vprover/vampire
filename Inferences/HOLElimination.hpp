@@ -68,6 +68,8 @@ public:
 class EQUALSRemovalISE
    : public ImmediateSimplificationEngine
 {
+
+public:
   CLASS_NAME(EQUALSRemovalISE);
   USE_ALLOCATOR(EQUALSRemovalISE);
   
@@ -121,6 +123,8 @@ The converse of the above rules for vSIGMA
 class PISIGMARemovalISE
    : public ImmediateSimplificationEngine
 {
+	
+public:
   CLASS_NAME(PISIGMARemovalISE);
   USE_ALLOCATOR(PISIGMARemovalISE);
   
@@ -175,6 +179,40 @@ class ORIMPANDIFFXORRemovalGIE : public GeneratingInferenceEngine {
     struct SubtermIterator;
     struct SubtermEqualityFn;
 
+};
+
+/* implements the following inference rules:
+
+  C[app(I, t1)]
+  -------------
+      C[t1]
+
+  C[app(app(K, t1), t2)]		  
+  ----------------------
+         C[t1]
+
+  C[app(app(app(B, t1), t2), t3)]
+  -------------------------------
+       C[app(t1,app(t2,t3))]
+
+  C[app(app(app(C, t1), t2), t3)]
+  -------------------------------
+       C[app(app(t1,t3),t2)]
+	   
+  C[app(app(app(S, t1), t2), t3)]
+  -------------------------------
+   C[app(app(t1,t3),app(t2, t3)]
+	   
+*/
+
+class CombinatorEliminationISE : public ImmediateSimplificationEngine {
+
+public:
+  CLASS_NAME(CombinatorEliminationISE);
+  USE_ALLOCATOR(CombinatorEliminationISE);
+  
+  Kernel::Clause* simplify(Kernel::Clause* premise);		
+	
 };
 
 }
