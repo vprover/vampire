@@ -90,30 +90,28 @@ bool ScheduleExecutor::run(const Schedule &schedule, int terminationTime)
 			poolSize++;
 		}
 
-		// check if any pool processes died or suspended
-		Pool::Iterator deathIt(pool);
-		while(deathIt.hasNext())
-		{
-			pid_t process = deathIt.next();
-			bool stopped, exited;
-			int code;
-			Multiprocessing::instance()->poll_child(process, stopped, exited, code);
+		bool stopped, exited;
+		int code;
+		// sleep until process changes state
+		pid_t process = Multiprocessing::instance()
+			->poll_children(stopped, exited, code);
 
-			if(exited)
+		// child died, remove it from the pool and check if succeeded
+		if(exited)
+		{
+			pool = Pool::remove(process, pool);
+			if(!code)
 			{
-				pool = Pool::remove(process, pool);
-				if(!code)
-				{
-					success = true;
-					goto exit;
-				}
+				success = true;
+				goto exit;
 			}
-			else if(stopped)
-			{
-				pool = Pool::remove(process, pool);
-				float priority = _policy->dynamicPriority(process);
-				queue.insert(priority, Item(process));
-			}
+		}
+		// child stopped, re-insert it in the queue
+		else if(stopped)
+		{
+			pool = Pool::remove(process, pool);
+			float priority = _policy->dynamicPriority(process);
+			queue.insert(priority, Item(process));
 		}
 
 		// pool empty and queue exhausted - we failed

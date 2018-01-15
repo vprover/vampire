@@ -36,6 +36,7 @@
 
 #include "Shell/Property.hpp"
 #include "Schedules.hpp"
+#include "ScheduleExecutor.hpp"
 
 namespace CASC
 {
@@ -44,6 +45,26 @@ using namespace std;
 using namespace Lib;
 using namespace Shell;
 
+class PortfolioMode;
+
+// Simple one-after-the-other priority.
+class PortfolioProcessPriorityPolicy : public ProcessPriorityPolicy
+{
+public:
+  float staticPriority(vstring sliceCode) override;
+  float dynamicPriority(pid_t pid) override;
+};
+
+class PortfolioSliceExecutor : public SliceExecutor
+{
+public:
+  PortfolioSliceExecutor(PortfolioMode *mode);
+  void runSlice(vstring sliceCode, int terminationTime) override;
+
+private:
+  PortfolioMode *_mode;
+};
+
 class PortfolioMode {
   enum {
     SEM_LOCK = 0,
@@ -51,13 +72,10 @@ class PortfolioMode {
   };
 
   PortfolioMode();
-
+  friend void PortfolioSliceExecutor::runSlice
+    (vstring sliceCode, int terminationTime);
 public:
   static bool perform(float slowness);
-  // moved to public as I need access from internal classes
-  // probably should be a nicer way to do this
-  // FIXME: have a think
-  void runSlice(vstring slice, unsigned timeLimitInDeciseconds) NO_RETURN;
   unsigned getSliceTime(vstring sliceCode,vstring& chopped);
 
 private:
@@ -69,6 +87,7 @@ private:
   void getSchedules(Property& prop, Schedule& quick, Schedule& fallback);
   bool runSchedule(Schedule& schedule, int terminationTime);
   bool waitForChildAndCheckIfProofFound();
+  void runSlice(vstring slice, unsigned timeLimitInDeciseconds) NO_RETURN;
   void runSlice(Options& strategyOpt) NO_RETURN;
 
 #if VDEBUG

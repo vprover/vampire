@@ -44,7 +44,6 @@
 #include "Kernel/Problem.hpp"
 
 #include "Schedules.hpp"
-#include "ScheduleExecutor.hpp"
 
 #include "PortfolioMode.hpp"
 
@@ -267,60 +266,52 @@ static unsigned milliToDeci(unsigned timeInMiliseconds) {
 }
 
 // Simple one-after-the-other priority.
-class PortfolioProcessPriorityPolicy : public ProcessPriorityPolicy
+float PortfolioProcessPriorityPolicy::staticPriority(vstring sliceCode)
 {
-public:
-  float staticPriority(vstring sliceCode) override
-  {
-    static float priority = 0.;
-    priority += 1.;
-    return priority;
-  }
+  static float priority = 0.;
+  priority += 1.;
+  return priority;
+}
 
-  //should never be called
-  float dynamicPriority(pid_t pid) override
-  {
-    ASSERTION_VIOLATION;
-    return 0.;
-  }
-};
-
-class PortfolioSliceExecutor : public SliceExecutor
+//should never be called
+float PortfolioProcessPriorityPolicy::dynamicPriority(pid_t pid)
 {
-public:
-  PortfolioSliceExecutor(PortfolioMode *mode) : _mode(mode) {}
+  ASSERTION_VIOLATION;
+  return 0.;
+}
 
-  void runSlice(vstring sliceCode, int terminationTime) override
+PortfolioSliceExecutor::PortfolioSliceExecutor(PortfolioMode *mode)
+  : _mode(mode)
+{}
+
+void PortfolioSliceExecutor::runSlice
+  (vstring sliceCode, int terminationTime)
+{
+  vstring chopped;
+  int sliceTime = _mode->getSliceTime(sliceCode, chopped);
+
+  int elapsedTime = milliToDeci(env.timer->elapsedMilliseconds());
+  int remainingTime = terminationTime - elapsedTime;
+  if (sliceTime > remainingTime)
   {
-    vstring chopped;
-    int sliceTime = _mode->getSliceTime(sliceCode, chopped);
-
-    int elapsedTime = milliToDeci(env.timer->elapsedMilliseconds());
-    int remainingTime = terminationTime - elapsedTime;
-    if (sliceTime > remainingTime)
-    {
-      sliceTime = remainingTime;
-    }
-
-    ASS_GE(sliceTime,0);
-    try
-    {
-      _mode->runSlice(sliceCode, sliceTime);
-    }
-    catch(Exception &e)
-    {
-      if(outputAllowed())
-      {
-	std::cerr << "% Exception at run slice level" << std::endl;
-	e.cry(std::cerr);
-      }
-      System::terminateImmediately(1); // didn't find proof
-    }
+    sliceTime = remainingTime;
   }
 
-private:
-  PortfolioMode *_mode;
-};
+  ASS_GE(sliceTime,0);
+  try
+  {
+    _mode->runSlice(sliceCode, sliceTime);
+  }
+  catch(Exception &e)
+  {
+    if(outputAllowed())
+    {
+      std::cerr << "% Exception at run slice level" << std::endl;
+      e.cry(std::cerr);
+    }
+    System::terminateImmediately(1); // didn't find proof
+  }
+}
 
 /**
  * Run a schedule.
