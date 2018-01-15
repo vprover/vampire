@@ -114,7 +114,7 @@ namespace Inferences {
     return (s && t && s != t);
   }
 
-  // true iff the literal has the form f(x1 ... xn) = f(y1 ... yn)
+  // true iff the literal has the form f(x1 ... xn) =? f(y1 ... yn)
   // where f is a term algebra constructor
   bool sameConstructorsEquality(Literal *lit)
   {
@@ -137,7 +137,7 @@ namespace Inferences {
       return c;
     
     int length = c->length();
-    for (int i = length - 1; i >= 0; i--) {
+    for (int i = 0; i < length; i++) {
       Literal *lit = (*c)[i];
       if (distinctConstructorsEquality(lit)) {
         if (lit->isPositive()) {
@@ -158,12 +158,126 @@ namespace Inferences {
     return c;
   }
 
+  /*
+   * Given a clause f(x1, ..., xn) = y \/ A, this iterator returns the
+   * clauses A { y <- g(z1, ..., zm) } for every constructor g (zi's
+   * are fresh variables)
+   */
+  struct Distinctness1GIE::Distinctness1GenIterator
+  {
+    Distinctness1GenIterator(Clause *clause, Literal *lit)
+      : _clause(clause),
+        _lit(lit),
+        _index(0),
+        _varoccurs(false),
+        _ta(nullptr)
+    {
+      ASS(_lit);
+
+      if (_lit->polarity() && _lit->isEquality()) {
+        if (_lit->nthArgument(0)->isVar() && termAlgebraConstructor(_lit->nthArgument(1))) {
+          ASS(_lit->nthArgument(1)->isTerm());
+          _functor = _lit->nthArgument(1)->term()->functor();
+          _var = lit->nthArgument(0);
+          _ta = env.signature->getTermAlgebraOfSort(SortHelper::getEqualityArgumentSort(_lit));
+        } else if (_lit->nthArgument(1)->isVar() && termAlgebraConstructor(_lit->nthArgument(0))) {
+          ASS(_lit->nthArgument(0)->isTerm());
+          _functor = _lit->nthArgument(0)->term()->functor();
+          _var = _lit->nthArgument(1);
+          _ta = env.signature->getTermAlgebraOfSort(SortHelper::getEqualityArgumentSort(_lit));
+        }
+      }
+      if (_ta && _ta->constructor(_index)->functor() == _functor) {
+        _index++;
+      }
+    }
+
+    DECL_ELEMENT_TYPE(Clause *);
+
+    bool hasNext() { return (_ta && _index < _ta->nConstructors()); }
+    OWN_ELEMENT_TYPE next()
+    {
+      CALL("Distinctness1GIE::Distinctness1GenIterator::next()");
+
+      // create substitution sigma
+      TermAlgebraConstructor* ctr = _ta->constructor(_index);
+      unsigned freshVar = _clause->maxVar() + 1;
+      Stack<TermList> args;
+      Substitution subst;
+      for (unsigned i = 0; i < ctr->arity(); i++) {
+        args.push(TermList(freshVar + i, false));
+      }
+      subst.bind(_var->var(), Term::create(ctr->functor(), ctr->arity(), args.begin()));
+
+      Inference *inf = new Inference1(Inference::TERM_ALGEBRA_DISTINCTNESS, _clause);
+      unsigned length = _clause->length();
+      Clause* res = new(length - 1) Clause(length - 1,
+                                           _clause->inputType(),
+                                           inf);
+      unsigned j = 0;
+      for (unsigned i = 0; i < length; i++) {
+        if ((*_clause)[i] != _lit) {
+          if ((*_clause)[i]->containsSubterm(*_var)) {
+            _varoccurs = true;
+            (*res)[j] = (*_clause)[i]->apply(subst);
+          } else {
+            (*res)[j] = (*_clause)[i];
+          }
+          j++;
+        }
+      }
+
+      if (_varoccurs) {
+        _index++;
+        if (_index < _ta->nConstructors() && _ta->constructor(_index)->functor() == _functor) {
+          // skip the constructor f
+          _index++;
+        }
+      } else {
+        // if x does not occurs in A, only one conclusion has to be generated
+        _index = _ta->nConstructors();
+      }
+      res->setAge(_clause->age()+1);
+      env.statistics->taDistinctness1Generations++;
+      return res;
+    }
+  private:
+    Clause *_clause;
+    Literal *_lit;
+    unsigned _index;
+    bool _varoccurs; // whether x occurs in A
+    unsigned _functor; // functor of f
+    TermList* _var;
+    TermAlgebra *_ta;
+  };
+
+  struct Distinctness1GIE::Distinctness1GenFn
+  {
+    Distinctness1GenFn(Clause* premise)
+      :
+      _premise(premise)
+    {}
+    
+    DECL_RETURN_TYPE(VirtualIterator<Clause*>);
+
+    OWN_RETURN_TYPE operator()(Literal* lit)
+    {
+      CALL("Distinctness1GIE::Distinctness1GenFn::operator()");
+
+      return pvi(Distinctness1GenIterator(_premise, lit));
+    }
+  private:
+    Clause* _premise;
+  };
+
   ClauseIterator Distinctness1GIE::generateClauses(Clause* c)
   {
     CALL("Distinctness1GIE::generateClause");
 
-    // TODO
-    return pvi(VirtualIterator<Clause*>::getEmpty());
+    auto it1 = c->getSelectedLiteralIterator();
+    auto it2 = getMappingIterator(it1, Distinctness1GenFn(c));
+    auto it3 = getFlattenedIterator(it2);
+    return pvi(it3);
   }
 
   void Distinctness2GIE::attach(SaturationAlgorithm* salg)
@@ -282,9 +396,9 @@ namespace Inferences {
       return c;
 
     int length = c->length();
-    for (int i = length - 1; i >= 0; i--) {
+    for (int i = 0; i < length; i++) {
       Literal *lit = (*c)[i];
-      if (sameConstructorsEquality(lit) && lit->isPositive()) {
+      if (lit->polarity() && sameConstructorsEquality(lit)) {
         if (lit->nthArgument(0)->term()->arity() == 1) {
           OperatorType *type = env.signature->getFunction(lit->nthArgument(0)->term()->functor())->fnType();
           Literal *newlit = Literal::createEquality(true,
@@ -303,12 +417,121 @@ namespace Inferences {
     return c;
   }
 
+    /*
+   * Given a clause f(s1, ..., sn) = x \/ A, this iterator returns the
+   * clauses (si = yi \/ A) { x <- f(y1, ..., yn) } for 0 <= i < n (yi's
+   * are fresh variables)
+   */
+  struct Injectivity1GIE::Injectivity1GenIterator
+  {
+    Injectivity1GenIterator(Clause *clause, Literal *lit)
+      : _clause(clause),
+        _lit(lit),
+        _index(0),
+        _fx(nullptr),
+        _tac(nullptr),
+        _subst()
+    {
+      unsigned var;
+      if (_lit->polarity() && _lit->isEquality()) {
+        if (_lit->nthArgument(0)->isVar() && termAlgebraConstructor(_lit->nthArgument(1))) {
+          _fx = _lit->nthArgument(1);
+          var = _lit->nthArgument(0)->var();
+        } else if (_lit->nthArgument(1)->isVar() && termAlgebraConstructor(_lit->nthArgument(0))) {
+          ASS(_lit->nthArgument(0)->isTerm());
+          _fx = _lit->nthArgument(0);
+          var = _lit->nthArgument(1)->var();
+        }
+      }
+      if (_fx) {
+        ASS(_fx->isTerm());
+        _tac = env.signature->getTermAlgebraConstructor(_fx->term()->functor());
+
+        // create substitution sigma
+        _freshVar = _clause->maxVar() + 1;
+        Stack<TermList> args;
+        for (unsigned i = 0; i < _tac->arity(); i++) {
+          args.push(TermList(_freshVar + i, false));
+        }
+        _subst.bind(var, Term::create(_tac->functor(), _tac->arity(), args.begin()));
+
+        // compute A\sigma
+        unsigned length = _clause->length();
+        _asigma = new(length) Clause(length,
+                                     _clause->inputType(),
+                                     new Inference1(Inference::TERM_ALGEBRA_INJECTIVITY, _clause));
+        
+        for (unsigned i = 0; i < length; i++) {
+          if ((*_clause)[i] == _lit) {
+            (*_asigma)[i] = _lit;
+          } else {
+            (*_asigma)[i] = (*_clause)[i]->apply(_subst);
+          }
+        }
+      }
+    }
+
+    ~Injectivity1GenIterator() {
+      // TODO deallocate asigma
+    }
+
+    DECL_ELEMENT_TYPE(Clause *);
+
+    bool hasNext() { return (_tac && _index < _tac->arity()); }
+    OWN_ELEMENT_TYPE next()
+    {
+      CALL("Injectivity1GIE::Injectivity1GenIterator::next()");
+
+      Inference *inf = new Inference1(Inference::TERM_ALGEBRA_INJECTIVITY, _clause);
+      Literal* newLit = Literal::createEquality(true,
+                                                TermList(_freshVar + _index, false),
+                                                *_fx->term()->nthArgument(_index),
+                                                _tac->argSort(_index));
+      Clause* res = replaceLit(_asigma, _lit, newLit->apply(_subst), inf);
+      _index++;
+      res->setAge(_clause->age()+1);
+      env.statistics->taInjectivity1Generations++;
+      return res;
+    }
+  private:
+    Clause *_clause;
+    Literal *_lit;
+    unsigned _index;
+    TermList* _fx;
+    TermAlgebraConstructor *_tac;
+    unsigned _freshVar;
+    Substitution _subst;
+    Clause *_asigma;
+    unsigned _litpos;
+  };
+
+  struct Injectivity1GIE::Injectivity1GenFn
+  {
+    Injectivity1GenFn(Clause* premise)
+      :
+      _premise(premise)
+    {}
+    
+    DECL_RETURN_TYPE(VirtualIterator<Clause*>);
+
+    OWN_RETURN_TYPE operator()(Literal* lit)
+    {
+      CALL("Injectivity1GIE::Injectivity1GenFn::operator()");
+
+      return pvi(Injectivity1GenIterator(_premise, lit));
+    }
+  private:
+    Clause* _premise;
+  };
+
   ClauseIterator Injectivity1GIE::generateClauses(Clause* c)
   {
     CALL("Injectivity1GIE::generateClause");
 
-    // TODO
-    return pvi(VirtualIterator<Clause*>::getEmpty());
+    auto it1 = c->getSelectedLiteralIterator();
+    auto it2 = getMappingIterator(it1, Injectivity1GenFn(c));
+    auto it3 = getFlattenedIterator(it2);
+    return pvi(it3);
   }
 
   void Injectivity2GIE::attach(SaturationAlgorithm* salg)
@@ -339,7 +562,7 @@ namespace Inferences {
 
   bool NegativeInjectivityISE::litCondition(Clause *c, unsigned i) {
     Literal *lit = (*c)[i];
-    if (sameConstructorsEquality(lit) && !lit->polarity()) {
+    if (!lit->polarity() && sameConstructorsEquality(lit)) {
       unsigned arity = lit->nthArgument(0)->term()->arity();
       OperatorType *type = env.signature->getFunction(lit->nthArgument(0)->term()->functor())->fnType();
       for (unsigned j = 0; j < arity; j++) {
@@ -368,7 +591,7 @@ namespace Inferences {
       return c;
 
     int length = c->length();
-    for (int i = length - 1; i >= 0; i--) {
+    for (int i = 0; i < length; i++) {
       if (litCondition(c, i)) {
         Literal *lit = (*c)[i];
         OperatorType *type = env.signature->getFunction(lit->nthArgument(0)->term()->functor())->fnType();
@@ -664,18 +887,19 @@ namespace Inferences {
   Clause* InfinitenessISE::simplify(Clause* c)
   {
     CALL("InfinitenessISE::simplify");
-    
-    if (c->isTheoryDescendant())
+
+    if (c->isTheoryDescendant()) {
       return c;
+    }
 
     bool *pos = nullptr;
     Clause *r = nullptr;
     
     int length = c->length();
-    for (int i = length - 1; i >= 0; i--) {
+    for (int i = 0; i < length; i++) {
       Literal *lit = (*c)[i];
 
-      if (lit->isEquality()) {
+      if (lit->isEquality() && lit->isPositive()) {
         unsigned s = SortHelper::getEqualityArgumentSort(lit);
         if (env.signature->isTermAlgebraSort(s)) {
           TermAlgebra* ta = env.signature->getTermAlgebraOfSort(s);
@@ -693,14 +917,14 @@ namespace Inferences {
         }
       }
     }
-    // no deletable literals found
+    // no deletable literals found, return unsimplified clause
     r = c;
 
   ret:
     if (pos) {
       DEALLOC_KNOWN(pos, c->length() * sizeof(bool), "InfinitenessISE::simplify::pos");
     }
-    return c;
+    return r;
   }
 
   Clause* InfinitenessISE::deleteLits(Kernel::Clause* c, TermList* var, bool* positions)
@@ -711,7 +935,7 @@ namespace Inferences {
     unsigned toDelete = 0;
     unsigned length = c->length();
     
-    for (int i = length - 1; i >= 0; i--) {
+    for (unsigned i = 0; i < length; i++) {
       Literal *lit = (*c)[i];
 
       if (lit->isEquality()) {
@@ -723,7 +947,7 @@ namespace Inferences {
         if (t->isTerm() && t->containsSubterm(*var)) {
           return nullptr;
         }
-        positions[i] = (TermList::equals(*s, *var) || TermList::equals(*t, *var));
+        positions[i] = lit->isPositive() && (TermList::equals(*s, *var) || TermList::equals(*t, *var));
         toDelete += positions[i];
       } else {
         if (lit->containsSubterm(*var)) {
@@ -736,14 +960,14 @@ namespace Inferences {
       return nullptr;
     } else {
       unsigned resLength = length - toDelete;
-      Clause* res = new(length) Clause(resLength,
-                                       c->inputType(),
-                                       new Inference1(Inference::TERM_ALGEBRA_INFINITENESS, c));
-      unsigned i = length - 1;
-      for (int j = length - 1; j >= 0; j--) {
+      Clause* res = new(resLength) Clause(resLength,
+                                          c->inputType(),
+                                          new Inference1(Inference::TERM_ALGEBRA_INFINITENESS, c));
+      unsigned i = 0;
+      for (unsigned j = 0; j < length; j++) {
         if (!positions[j]) {
           (*res)[i] = (*c)[j];
-          i--;
+          i++;
         }
       }
       res->setAge(c->age());

@@ -181,7 +181,9 @@ public:
   /** statistics of term algebra rules */
   unsigned taDistinctnessSimplifications;
   unsigned taDistinctnessTautologyDeletions;
+  unsigned taDistinctness1Generations;
   unsigned taInjectivitySimplifications;
+  unsigned taInjectivity1Generations;
   unsigned taNegativeInjectivitySimplifications;
   unsigned taAcyclicityGeneratedDisequalities;
   unsigned taInfinitenessSimplifications;

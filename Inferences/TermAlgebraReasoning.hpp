@@ -84,6 +84,10 @@ public:
   USE_ALLOCATOR(Distinctness1GIE);
 
   Kernel::ClauseIterator generateClauses(Kernel::Clause* c);
+
+private:
+  struct Distinctness1GenFn;
+  struct Distinctness1GenIterator; 
 };
 
 /*
@@ -170,6 +174,10 @@ public:
   USE_ALLOCATOR(Injectivity1GIE);
 
   Kernel::ClauseIterator generateClauses(Kernel::Clause* c);
+
+private:
+  struct Injectivity1GenIterator;
+  struct Injectivity1GenFn;
 };
 
 /*
