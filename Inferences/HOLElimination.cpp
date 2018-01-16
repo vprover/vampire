@@ -56,7 +56,6 @@ unsigned introduceAppSymbol(unsigned sort1, unsigned sort2, unsigned resultSort)
   vstring srt1 = Lib::Int::toString(sort1);
   vstring srt2 = Lib::Int::toString(sort2);
   symbol = env.signature->addFunction("vAPP_" + srt1 + "_" + srt2, 2, added);
-
   
   if(added){
    env.signature->getFunction(symbol)->setType(type);
@@ -197,6 +196,7 @@ bool isPISIGMAapp(Literal* lit, TermList &t1, TermList &rhs, bool &rhsIsTrue, bo
     if (rhsValue > -1){
       rhsIsTrue  = (rhsValue == lit->polarity()); 
 	  rhsIsFalse = !rhsIsTrue;
+	  rhs = rhsIsTrue ? TermList(Term::foolTrue()) : TermList(Term::foolFalse());
 	}else{
 	  rhsIsTrue = false;
 	  rhsIsFalse = false;
@@ -301,15 +301,13 @@ bool isNOTEquality(Literal* lit, TermList &newEqlhs, TermList &newEqrhs, bool &p
         return false;
 	
     TermList appTerm = *lit->nthArgument(onRight); 
-	newEqrhs = *lit->nthArgument((onRight + 1) % 2);
+	newEqrhs = *lit->nthArgument(1 - onRight);
     newEqlhs = *appTerm.term()->nthArgument(1);
-
-    TermList boolValues[] = {TermList(Term::foolFalse()),TermList(Term::foolTrue())};
 	
 	int val = isBoolValue(newEqrhs);
     if(val > -1){
 		polarity = true;
-        newEqrhs = boolValues[(val + lit->polarity()) % 2]; //check this AYB
+        newEqrhs = val == lit->polarity() ? TermList(Term::foolTrue()) :  TermList(Term::foolFalse()); //check this AYB
 	}else{
 		polarity = 1 - lit->polarity();
 	}
@@ -430,7 +428,7 @@ Clause* ORIMPANDRemovalISE::simplify(Clause* c)
         Clause* res = replaceLit2(c, lit, newLit1, new Inference1(Inference::BINARY_CONN_ELIMINATION, c), newLit2);
         res->setAge(c->age());
         env.statistics->holORIMPANDsimplifications++;
-        return res;
+		return res;
       }
     }
 
@@ -555,6 +553,7 @@ Clause* PISIGMARemovalISE::simplify(Clause* c)
         res->setAge(c->age());
 		
         env.statistics->holPISIGMAsimplifications++;
+		
         return res;
       }
     }
@@ -570,7 +569,7 @@ Clause* PISIGMARemovalISE::simplify(Clause* c)
     TermList combinatorTerm;
 	TermList newTerm;
     unsigned literalPosition = 0;
-	
+		
     //ArrayishObjectIterator<Clause> literals = premise->getSelectedLiteralIterator();
     for (int i = premise->length() - 1; i >= 0; i--) {
       Literal *literal = (*premise)[i];
@@ -608,11 +607,14 @@ Clause* PISIGMARemovalISE::simplify(Clause* c)
 			unsigned t2sort = SortHelper::getResultSort(t2, _varSorts);
 			unsigned t3sort = SortHelper::getResultSort(t3, _varSorts);
 			unsigned ranget1 = env.sorts->getFuncSort(t1sort)->getRangeSort();
-			unsigned ranget2 = env.sorts->getFuncSort(t2sort)->getRangeSort();
-			unsigned rangeOfRangeOft1 = env.sorts->getFuncSort(ranget1)->getRangeSort();
 			
 			switch(comb){
 			  case Signature::Symbol::B_COMB:{
+			    //cout << "currently dealing with: " + subterm.toString() << endl;
+				//cout << "t1 is : " + t1.toString() + " and has sort " << t1sort<< endl;
+				//cout << "t2 is : " + t2.toString() + " and has sort " << t2sort<< endl;
+				//cout << "t3 is : " + t3.toString() + " and has sort " << t3sort<< endl;
+			    unsigned ranget2 = env.sorts->getFuncSort(t2sort)->getRangeSort();
 			    unsigned appt2tot3 = introduceAppSymbol(t2sort, t3sort, ranget2);
 			    unsigned appt1     = introduceAppSymbol(t1sort, ranget2, ranget1);
 			
@@ -624,6 +626,7 @@ Clause* PISIGMARemovalISE::simplify(Clause* c)
 			    goto substitution;
 			  }
 			  case Signature::Symbol::C_COMB:{
+			    unsigned rangeOfRangeOft1 = env.sorts->getFuncSort(ranget1)->getRangeSort();
 				unsigned appt1tot3 = introduceAppSymbol(t1sort, t3sort, ranget1);
 			    unsigned appt1tot3tot2 = introduceAppSymbol(ranget1, t2sort, rangeOfRangeOft1);
 			
@@ -635,6 +638,8 @@ Clause* PISIGMARemovalISE::simplify(Clause* c)
 			    goto substitution;
 			  }
 			  case Signature::Symbol::S_COMB:{
+			    unsigned rangeOfRangeOft1 = env.sorts->getFuncSort(ranget1)->getRangeSort();
+				unsigned ranget2 = env.sorts->getFuncSort(t2sort)->getRangeSort();
 			    unsigned appt1tot3 = introduceAppSymbol(t1sort, t3sort, ranget1);
 			    unsigned appt2tot3 = introduceAppSymbol(t2sort, t3sort, ranget2);			
 			    unsigned app = introduceAppSymbol(ranget1, ranget2, rangeOfRangeOft1);
@@ -672,7 +677,7 @@ Clause* PISIGMARemovalISE::simplify(Clause* c)
   for (unsigned i = 0; i < conclusionLength; i++) {
     (*conclusion)[i] = i == literalPosition ? EqHelper::replace((*premise)[i], combinatorTerm, newTerm) : (*premise)[i];
   }
-  
+    
   return conclusion;
 	    
   }

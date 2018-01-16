@@ -843,7 +843,7 @@ bool SortHelper::areImmediateSortsValid(Term* t)
     Term* ta = arg.term();
     unsigned argSort = getResultSort(ta);
     if (type.arg(i) != argSort) {
-      //cout << "error with expected " << type.arg(i) << " and actual " << argSort << " when functor is " << t->functor() << " and arg is " << arg << endl;
+      //cout << "error with expected " + env.sorts->sortName(type.arg(i)) + " and actual " << argSort << + " when functor is " << t->functor() << " and arg is " << arg << endl;
       return false;
     }
   }

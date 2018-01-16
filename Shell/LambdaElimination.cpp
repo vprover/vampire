@@ -254,7 +254,7 @@ TermList LambdaElimination::processBeyondLambda(Term* term)
           unsigned lhsSort = SortHelper::getResultSort(lhs, _varSorts);
           unsigned rhsSort = SortHelper::getResultSort(rhs, _varSorts);
           unsigned appSort = term->getSpecialData()->getSort();
-          unsigned app = LambdaElimination::introduceAppSymbol(lhsSort, rhsSort, appSort);
+          unsigned app = introduceAppSymbol(lhsSort, rhsSort, appSort);
          
           TermList termResult;
           buildFuncApp(app, lhs, rhs, termResult);  
@@ -593,7 +593,6 @@ unsigned LambdaElimination::introduceAppSymbol(unsigned sort1, unsigned sort2, u
   vstring srt1 = Lib::Int::toString(sort1);
   vstring srt2 = Lib::Int::toString(sort2);
   symbol = env.signature->addFunction("vAPP_" + srt1 + "_" + srt2, 2, added);
-
   
   if(added){
    env.signature->getFunction(symbol)->setType(type);

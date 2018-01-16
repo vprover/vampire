@@ -796,6 +796,7 @@ Term* Term::create(Term* t,TermList* args)
     s = env.sharing->insert(s);
   }
   return s;
+  
 }
 
 /** Create a new complex term, and insert it into the sharing
