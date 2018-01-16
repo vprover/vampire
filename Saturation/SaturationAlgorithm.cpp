@@ -46,6 +46,7 @@
 #include "Kernel/Problem.hpp"
 #include "Kernel/SubformulaIterator.hpp"
 #include "Kernel/Unit.hpp"
+#include "Kernel/SortHelper.hpp"
 
 #include "Inferences/InferenceEngine.hpp"
 #include "Inferences/BackwardDemodulation.hpp"
@@ -715,7 +716,18 @@ void SaturationAlgorithm::addNewClause(Clause* cl)
 {
   CALL("SaturationAlgorithm::addNewClause");
 
-  //cout << "new clause: " << cl->toString() << endl;
+  cout << "new clause: " << cl->toString() << endl;
+  #if VDEBUG
+  DHMap<unsigned,unsigned> vsorts;
+  SortHelper::collectVariableSorts(cl,vsorts);
+  DHSet<unsigned> vars;
+  cl->collectVars(vars);
+  DHSet<unsigned>::Iterator vit(vars);
+  while(vit.hasNext()){
+    unsigned v = vit.next();
+    cout << "X" << v << " <- " << vsorts.get(v) << endl;
+  }
+  #endif
 
   //we increase the reference counter here so that the clause wouldn't
   //get destroyed during handling in the onNewClause handler
