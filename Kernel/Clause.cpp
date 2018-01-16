@@ -427,8 +427,6 @@ vstring Clause::toString() const
     result += " C" + Int::toString(color()) + " ";
   }
 
-  cout << result << endl;
-  
   result += vstring(" (") + Int::toString(_age) + ':' + Int::toString(weight());
   
   
