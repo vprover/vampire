@@ -360,7 +360,7 @@ vstring TPTPPrinter::toString(const Formula* formula)
   CALL("TPTPPrinter::toString(const Formula*)");
   static vstring names [] =
     { "", " & ", " | ", " => ", " <=> ", " <~> ",
-      "~", "!", "?", "$term", "$false", "$true", "", ""};
+      "~", "!", "?", "$term", "$false", "$true", "^", "@", "", ""};
   ASS_EQ(sizeof(names)/sizeof(vstring), NOCONN+1);
 
   vstring res;

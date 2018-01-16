@@ -428,6 +428,9 @@ Clause* Superposition::performSuperposition(
     UnificationConstraintStackSP constraints)
 {
   CALL("Superposition::performSuperposition");
+
+  cout << "Super " << rwClause->toString() << " with " << eqClause->toString() << endl;
+
   // we want the rwClause and eqClause to be active
   ASS(rwClause->store()==Clause::ACTIVE);
   ASS(eqClause->store()==Clause::ACTIVE);
