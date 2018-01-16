@@ -20,6 +20,8 @@
  * @file TermAlgebraReasoning.cpp
  */
 
+
+#include "Kernel/EqHelper.hpp"
 #include "Kernel/Inference.hpp"
 #include "Kernel/Ordering.hpp"
 #include "Kernel/Renaming.hpp"
@@ -280,30 +282,220 @@ namespace Inferences {
     return pvi(it3);
   }
 
-  void Distinctness2GIE::attach(SaturationAlgorithm* salg)
+  struct DistAndInj2GIE::Injectivity2Iterator
   {
-    CALL("Distinctness2GIE::attach");
+    Injectivity2Iterator(Clause *c1, Clause *c2,
+                         Literal *lit1, Literal *lit2,
+                         TermList* f1, TermList* f2,
+                         ResultSubstitutionSP sigma)
+      :
+      _c1(c1),
+      _c2(c2),
+      _index(0),
+      _functor(f1->term()->functor()),
+      _arity(env.signature->getFunction(_functor)->arity()),
+      _age(Int::max(c1->age(), c2->age()) + 1),
+      _sigma(sigma),
+      _f1(f1),
+      _f2(f2),
+      _sort(env.signature->getFunction(_functor)->fnType()->result())
+    {
+      ASS_EQ(f1->term()->functor(), f1->term()->functor());
 
-    GeneratingInferenceEngine::attach(salg);
+      _length = c1->length() + c2->length() - 1;
+      // pre-compute the common part of the conclusions
+      _csigma = static_cast<Literal**>ALLOC_KNOWN((_length - 1) * sizeof(Literal*), "Injectivity2Iterator::_csigma");
 
-    // TODO
+      unsigned i = 0;
+      for (unsigned j = 0; j < c1->length(); j++) {
+        if ((*c1)[j] != lit1) {
+          _csigma[i++] = sigma->applyToResult((*c1)[j]);
+        }
+      }
+      for (unsigned j = 0; j < c2->length(); j++) {
+        if ((*c2)[j] != lit2) {
+          _csigma[i++] = sigma->applyToResult((*c2)[j]);
+        }
+      }
+      ASS_EQ(i, _length - 1);
+    }
+
+    ~Injectivity2Iterator()
+    {
+      DEALLOC_KNOWN(_csigma, (_length - 1) * sizeof(Literal*), "Injectivity2Iterator::_csigma");
+    }
+
+    DECL_ELEMENT_TYPE(Clause*);
+
+    bool hasNext() { return _index < _arity; }
+
+    OWN_ELEMENT_TYPE next() {
+      Literal * newLit = Literal::createEquality(true,
+                                                 _sigma->applyToResult(*_f1->term()->nthArgument(_index)),
+                                                 _sigma->applyToResult(*_f2->term()->nthArgument(_index)),
+                                                 _sort);
+      Clause* res = new(_length) Clause(_length,
+                                        _c1->inputType(),
+                                        new Inference2(Inference::TERM_ALGEBRA_INJECTIVITY, _c1, _c2));
+      std::memcpy(res->literals(), _csigma, (_length - 1) * sizeof(Literal*));
+      (*res)[_length - 1] = newLit;
+      res->setAge(_age);
+      env.statistics->taInjectivity2Generations++; 
+    }
+
+  private:
+    Clause* _c1;
+    Clause* _c2;
+    unsigned _index;
+    unsigned _functor;
+    unsigned _arity;
+    unsigned _age;
+    ResultSubstitutionSP _sigma;
+    Literal** _csigma;
+    unsigned _length;
+    TermList* _f1;
+    TermList* _f2;
+    unsigned _sort;
+  };
+
+  struct DistAndInj2GIE::DistAndInj2PerformFn
+  {
+    DistAndInj2PerformFn(Clause* premise, Literal *lit, TermList* lhs, TermList* rhs, Ordering& ord)
+      :
+      _premise(premise),
+      _lit(lit),
+      _lhs(lhs),
+      _rhs(rhs),
+      _ord(ord)
+    {}
+
+    DECL_RETURN_TYPE(VirtualIterator<Clause*>);
+    
+    OWN_RETURN_TYPE operator()(TermQueryResult tqr)
+    {
+      // premises must be distinct, otherwise the conclusion is redondant
+      Clause *premise2 = tqr.clause;
+      
+      if (premise2 == _premise) {
+        return VirtualIterator<Clause*>::getEmpty();
+      }
+
+      // TODO applyToQuery or applyToResult?
+      // check ordering contrainst after substitution
+      if (Ordering::isGorGEorE(_ord.compare(tqr.substitution->applyToQuery(*_rhs),
+                                            tqr.substitution->applyToQuery(*_lhs)))) {
+        return VirtualIterator<Clause*>::getEmpty();
+      }
+      // same thing in the target clause
+      TermList rhs2 = tqr.term;
+      TermList lhs2 = EqHelper::getOtherEqualitySide(tqr.literal, rhs2);
+      if (Ordering::isGorGEorE(_ord.compare(tqr.substitution->applyToQuery(rhs2),
+                                            tqr.substitution->applyToQuery(lhs2)))) {
+        return VirtualIterator<Clause*>::getEmpty();
+      }
+
+      if (_lhs->term()->functor() == lhs2.term()->functor()) {
+        return VirtualIterator<Clause*>::getEmpty(); // TODO
+      } else {
+        Clause *c = distinctnessConclusion(_premise, premise2, _lit, tqr.literal, tqr.substitution);
+        return pvi(getSingletonIterator(c));
+      }
+    }
+
+  private:
+    Clause* _premise;
+    Literal* _lit;
+    TermList* _lhs;
+    TermList* _rhs;
+    Ordering& _ord;
+  };
+
+  Clause* DistAndInj2GIE::distinctnessConclusion(Clause *c1, Clause *c2,
+                                                 Literal *lit1, Literal *lit2,
+                                                 ResultSubstitutionSP sigma)
+  {
+    CALL("DistAndInj2GIE::distinctnessConclusion");
+
+    unsigned length1 = c1->length();
+    unsigned length2 = c2->length();
+    Clause* res = new(length1 + length2 - 2) Clause(length1 + length2 - 2,
+                                                    c1->inputType(),
+                                                    new Inference2(Inference::TERM_ALGEBRA_DISTINCTNESS, c1, c2));
+      
+    unsigned i = 0;
+    for (unsigned j = 0; j < length1; j++) {
+      if ((*c1)[j] != lit1) {
+        (*res)[i++] = sigma->applyToResult((*c1)[j]);
+      }
+    }
+    for (unsigned j = 0; j < length2; j++) {
+      if ((*c2)[j] != lit2) {
+        (*res)[i++] = sigma->applyToResult((*c2)[j]);
+      }
+    }
+    ASS_EQ(i, length1 + length2 - 2);
+    res->setAge(Int::max(c1->age(), c2->age()) + 1);
+    env.statistics->taDistinctness2Generations++;
+      
+    return res;
   }
 
-  void Distinctness2GIE::detach()
+  struct DistAndInj2GIE::DistAndInj2GenFn
   {
-    CALL("Distinctness2GIE::detach");
+    DistAndInj2GenFn(Clause* premise, Ordering& ord, TARulesRHSIndex* index)
+      :
+      _premise(premise),
+      _ord(ord),
+      _index(index)
+    {}
 
-    // TODO
-    
+    DECL_RETURN_TYPE(VirtualIterator<Clause*>);
+
+    OWN_RETURN_TYPE operator()(Literal* lit)
+    {
+      CALL("AcyclicityGIE::AyclicityGenFn::operator()");
+
+      TermList *lhs, *rhs;
+      if (Indexing::TARulesRHSIndex::rhsEligible(lit, _ord, lhs, rhs)) {
+        // TODO find clauses matching rhs
+        auto it1 = _index->getUnifications(*rhs, true);
+        auto it2 = getMappingIterator(it1, DistAndInj2PerformFn(_premise, lit, lhs, rhs, _ord));
+        auto it3 = getFlattenedIterator(it2);
+        return pvi(it3);
+      }
+      return pvi(VirtualIterator<Clause*>::getEmpty());
+    }
+  private:
+    Clause* _premise;
+    Ordering &_ord;
+    TARulesRHSIndex* _index;
+  };
+
+  void DistAndInj2GIE::attach(SaturationAlgorithm* salg)
+  {
+    CALL("DistAndInj2GIE::attach");
+
+    GeneratingInferenceEngine::attach(salg);
+    _index = static_cast<TARulesRHSIndex*>(_salg->getIndexManager()->request(TA_RULES_RHS_INDEX) );
+  }
+
+  void DistAndInj2GIE::detach()
+  {
+    CALL("DistAndInj2GIE::detach");
+
+    _index = nullptr;
+    _salg->getIndexManager()->release(TA_RULES_RHS_INDEX);
     GeneratingInferenceEngine::detach();
   }
 
-  ClauseIterator Distinctness2GIE::generateClauses(Clause* c)
+  ClauseIterator DistAndInj2GIE::generateClauses(Clause* c)
   {
-    CALL("Distinctness2GIE::generateClause");
+    CALL("DistAndInj2GIE::generateClause");
 
-    // TODO
-    return pvi(VirtualIterator<Clause*>::getEmpty());
+    auto it1 = c->getSelectedLiteralIterator();
+    auto it2 = getMappingIterator(it1, DistAndInj2GenFn(c, _salg->getOrdering(), _index));
+    auto it3 = getFlattenedIterator(it2);
+    return pvi(it3);
   }
 
   /*
@@ -382,6 +574,8 @@ namespace Inferences {
   {
     CALL("InjectivityGIE::generateClauses");
 
+    // TODO delete premise?
+
     auto it1 = c->getSelectedLiteralIterator();
     auto it2 = getMappingIterator(it1, SubtermEqualityFn(c));
     auto it3 = getFlattenedIterator(it2);
@@ -426,21 +620,20 @@ namespace Inferences {
   {
     Injectivity1GenIterator(Clause *clause, Literal *lit)
       : _clause(clause),
-        _lit(lit),
         _index(0),
         _fx(nullptr),
         _tac(nullptr),
         _subst()
     {
       unsigned var;
-      if (_lit->polarity() && _lit->isEquality()) {
-        if (_lit->nthArgument(0)->isVar() && termAlgebraConstructor(_lit->nthArgument(1))) {
-          _fx = _lit->nthArgument(1);
-          var = _lit->nthArgument(0)->var();
-        } else if (_lit->nthArgument(1)->isVar() && termAlgebraConstructor(_lit->nthArgument(0))) {
-          ASS(_lit->nthArgument(0)->isTerm());
-          _fx = _lit->nthArgument(0);
-          var = _lit->nthArgument(1)->var();
+      if (lit->polarity() && lit->isEquality()) {
+        if (lit->nthArgument(0)->isVar() && termAlgebraConstructor(lit->nthArgument(1))) {
+          _fx = lit->nthArgument(1);
+          var = lit->nthArgument(0)->var();
+        } else if (lit->nthArgument(1)->isVar() && termAlgebraConstructor(lit->nthArgument(0))) {
+          ASS(lit->nthArgument(0)->isTerm());
+          _fx = lit->nthArgument(0);
+          var = lit->nthArgument(1)->var();
         }
       }
       if (_fx) {
@@ -455,29 +648,32 @@ namespace Inferences {
         }
         _subst.bind(var, Term::create(_tac->functor(), _tac->arity(), args.begin()));
 
-        // compute A\sigma
+        // compute the common part of the conclusions
         unsigned length = _clause->length();
-        _asigma = new(length) Clause(length,
-                                     _clause->inputType(),
-                                     new Inference1(Inference::TERM_ALGEBRA_INJECTIVITY, _clause));
-        
+        _asigma = static_cast<Literal**>ALLOC_KNOWN(length * sizeof(Literal*), "Injectivity1GenIterator::_asigma");
+
+        // TODO fix allocation
         for (unsigned i = 0; i < length; i++) {
-          if ((*_clause)[i] == _lit) {
-            (*_asigma)[i] = _lit;
+          if ((*_clause)[i] == lit) {
+            _asigma[i] = lit;
+            _litpos = i;
           } else {
-            (*_asigma)[i] = (*_clause)[i]->apply(_subst);
+            _asigma[i] = (*_clause)[i]->apply(_subst);
           }
         }
       }
     }
 
     ~Injectivity1GenIterator() {
-      // TODO deallocate asigma
+      if (_fx) {
+        DEALLOC_KNOWN(_asigma, _clause->length() * sizeof(Literal*), "Injectivity1GenIterator::_asigma");
+      }
     }
 
     DECL_ELEMENT_TYPE(Clause *);
 
     bool hasNext() { return (_tac && _index < _tac->arity()); }
+    
     OWN_ELEMENT_TYPE next()
     {
       CALL("Injectivity1GIE::Injectivity1GenIterator::next()");
@@ -487,7 +683,14 @@ namespace Inferences {
                                                 TermList(_freshVar + _index, false),
                                                 *_fx->term()->nthArgument(_index),
                                                 _tac->argSort(_index));
-      Clause* res = replaceLit(_asigma, _lit, newLit->apply(_subst), inf);
+      unsigned length = _clause->length();
+      Clause* res = new(length) Clause(length,
+                                       _clause->inputType(),
+                                       inf);
+      
+      std::memcpy(res->literals(), _asigma, length * sizeof(Literal*));
+      (*res)[_litpos] = newLit->apply(_subst);
+      
       _index++;
       res->setAge(_clause->age()+1);
       env.statistics->taInjectivity1Generations++;
@@ -495,13 +698,12 @@ namespace Inferences {
     }
   private:
     Clause *_clause;
-    Literal *_lit;
     unsigned _index;
     TermList* _fx;
     TermAlgebraConstructor *_tac;
     unsigned _freshVar;
     Substitution _subst;
-    Clause *_asigma;
+    Literal **_asigma;
     unsigned _litpos;
   };
 
@@ -532,32 +734,6 @@ namespace Inferences {
     auto it2 = getMappingIterator(it1, Injectivity1GenFn(c));
     auto it3 = getFlattenedIterator(it2);
     return pvi(it3);
-  }
-
-  void Injectivity2GIE::attach(SaturationAlgorithm* salg)
-  {
-    CALL("Injectivity2GIE::attach");
-
-    GeneratingInferenceEngine::attach(salg);
-
-    // TODO
-  }
-
-  void Injectivity2GIE::detach()
-  {
-    CALL("Injectivity2GIE::detach");
-    ASS(_salg);
-
-    // TODO
-    GeneratingInferenceEngine::detach();
-  }
-
-  ClauseIterator Injectivity2GIE::generateClauses(Clause* c)
-  {
-    CALL("Injectivity2GIE::generateClause");
-
-    // TODO
-    return pvi(VirtualIterator<Clause*>::getEmpty());
   }
 
   bool NegativeInjectivityISE::litCondition(Clause *c, unsigned i) {
@@ -631,7 +807,6 @@ namespace Inferences {
     CALL("AcyclicityGIE::attach");
 
     GeneratingInferenceEngine::attach(salg);
-
     _acyclIndex = static_cast<AcyclicityIndex*>(_salg->getIndexManager()->request(ACYCLICITY_INDEX));
   }
 
@@ -639,7 +814,7 @@ namespace Inferences {
   {
     CALL("AcyclicityGIE::detach");
 
-    _acyclIndex = 0;
+    _acyclIndex = nullptr;
     _salg->getIndexManager()->release(ACYCLICITY_INDEX);
     GeneratingInferenceEngine::detach();
   }
@@ -788,7 +963,7 @@ namespace Inferences {
    
   }
 
-  struct AcyclicityGIE1::SubtermDisequalityIterator
+  struct AcyclicityLightGIE::SubtermDisequalityIterator
   {
     SubtermDisequalityIterator(Clause *clause, Literal *lit)
       :
@@ -837,14 +1012,14 @@ namespace Inferences {
     unsigned _sort;
   };
 
-  struct AcyclicityGIE1::SubtermDisequalityFn
+  struct AcyclicityLightGIE::SubtermDisequalityFn
   {
     SubtermDisequalityFn(Clause* premise)
       : _premise(premise) {}
     DECL_RETURN_TYPE(VirtualIterator<Clause*>);
     OWN_RETURN_TYPE operator()(Literal* lit)
     {
-      CALL("AcyclicityGIE1::SubtermDisequalityFn::operator()");
+      CALL("AcyclicityLightGIE::SubtermDisequalityFn::operator()");
 
       return pvi(SubtermDisequalityIterator(_premise, lit));
     }
@@ -852,7 +1027,7 @@ namespace Inferences {
     Clause* _premise;
   };
 
-  struct AcyclicityGIE1::LiteralIterator
+  struct AcyclicityLightGIE::LiteralIterator
   {
     LiteralIterator(Clause *clause)
       :
@@ -874,9 +1049,9 @@ namespace Inferences {
   };
 
 
-  ClauseIterator AcyclicityGIE1::generateClauses(Clause* c)
+  ClauseIterator AcyclicityLightGIE::generateClauses(Clause* c)
   {
-    CALL("AcyclicityGIE1::generateClauses");
+    CALL("AcyclicityLightGIE::generateClauses");
 
     LiteralIterator it1(c);
     auto it2 = getMappingIterator(it1, SubtermDisequalityFn(c));

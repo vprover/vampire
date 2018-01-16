@@ -182,8 +182,10 @@ public:
   unsigned taDistinctnessSimplifications;
   unsigned taDistinctnessTautologyDeletions;
   unsigned taDistinctness1Generations;
+  unsigned taDistinctness2Generations;
   unsigned taInjectivitySimplifications;
   unsigned taInjectivity1Generations;
+  unsigned taInjectivity2Generations;
   unsigned taNegativeInjectivitySimplifications;
   unsigned taAcyclicityGeneratedDisequalities;
   unsigned taInfinitenessSimplifications;

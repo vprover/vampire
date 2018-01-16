@@ -239,8 +239,7 @@ VK_OBJ= Kernel/Clause.o\
 #         Kernel/V2CIndex.o\
     
 
-VI_OBJ = Indexing/AcyclicityIndex.o\
-	 Indexing/ClauseCodeTree.o\
+VI_OBJ = Indexing/ClauseCodeTree.o\
          Indexing/ClauseVariantIndex.o\
          Indexing/CodeTree.o\
          Indexing/CodeTreeInterfaces.o\
@@ -255,6 +254,7 @@ VI_OBJ = Indexing/AcyclicityIndex.o\
          Indexing/SubstitutionTree_FastGen.o\
          Indexing/SubstitutionTree_FastInst.o\
          Indexing/SubstitutionTree_Nodes.o\
+         Indexing/TermAlgebraIndex.o\
          Indexing/TermCodeTree.o\
          Indexing/TermIndex.o\
          Indexing/TermSharing.o\

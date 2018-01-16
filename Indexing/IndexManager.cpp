@@ -27,12 +27,12 @@
 
 #include "Saturation/SaturationAlgorithm.hpp"
 
-#include "AcyclicityIndex.hpp"
 #include "ArithmeticIndex.hpp"
 #include "CodeTreeInterfaces.hpp"
 #include "GroundingIndex.hpp"
 #include "LiteralIndex.hpp"
 #include "LiteralSubstitutionTree.hpp"
+#include "TermAlgebraIndex.hpp"
 #include "TermIndex.hpp"
 #include "TermSubstitutionTree.hpp"
 
@@ -201,6 +201,11 @@ Index* IndexManager::create(IndexType t)
   case ACYCLICITY_INDEX:
     tis = new TermSubstitutionTree();
     res = new AcyclicityIndex(tis);
+    isGenerating = true;
+    break;
+  case TA_RULES_RHS_INDEX:
+    tis = new TermSubstitutionTree();
+    res = new TARulesRHSIndex(tis, _alg->getOrdering());
     isGenerating = true;
     break;
 

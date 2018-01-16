@@ -29,8 +29,7 @@
 
 #include "Forwards.hpp"
 
-#include "Indexing/AcyclicityIndex.hpp"
-#include "Indexing/TermIndex.hpp"
+#include "Indexing/TermAlgebraIndex.hpp"
 
 #include "Inferences/InferenceEngine.hpp"
 
@@ -91,7 +90,9 @@ private:
 };
 
 /*
-  Generating rule:
+  This class implements two generating rules at once:
+
+  Distinctness rule:
 
   f(...) = u \/ A      g(...) = u' \/ B
   -------------------------------------
@@ -99,18 +100,38 @@ private:
 
   where sigma = mgu(u, u')
         f(...)\sigma not smaller than u\sigma
-        g(...)\sigma not smaller than u'\sigma  
+        g(...)\sigma not smaller than u'\sigma
+
+  Injectivity rule:
+
+  f(s1 ... sn) = u \/ A      f(t1 ... tn) = u' \/ B
+  -------------------------------------------------
+             (si = ti \/ A \/ B)\sigma
+
+  where sigma = mgu(u, u')
+        f(...)\sigma not smaller than u\sigma
+        f(...)\sigma not smaller than u'\sigma
+
  */
-class Distinctness2GIE
+class DistAndInj2GIE
   : public GeneratingInferenceEngine {
 public:
-  CLASS_NAME(Distinctness2GIE);
-  USE_ALLOCATOR(Distinctness2GIE);
+  CLASS_NAME(DistAndInj2GIE);
+  USE_ALLOCATOR(DistAndInj2GIE);
 
   void attach(SaturationAlgorithm* salg);
   void detach();
 
   Kernel::ClauseIterator generateClauses(Kernel::Clause* c);
+
+private:
+  struct DistAndInj2PerformFn;
+  struct DistAndInj2GenFn;
+  struct Injectivity2Iterator;
+
+  static Clause* distinctnessConclusion(Clause *c1, Clause *c2, Literal *lit1, Literal *lit2, ResultSubstitutionSP sigma);
+
+  Indexing::TARulesRHSIndex *_index;
 };
 
 /*
@@ -181,37 +202,14 @@ private:
 };
 
 /*
-  Generating rule:
-
-  f(s1 ... sn) = u \/ A      f(t1 ... tn) = u' \/ B
-  -------------------------------------------------
-             (si = ti \/ A \/ B)\sigma
-
-  where sigma = mgu(u, u')
-        f(...)\sigma not smaller than u\sigma
-        f(...)\sigma not smaller than u'\sigma
- */
-class Injectivity2GIE
-  : public GeneratingInferenceEngine {
-public:
-  CLASS_NAME(Injectivity2GIE);
-  USE_ALLOCATOR(Injectivity2GIE);
-
-  void attach(SaturationAlgorithm* salg);
-  void detach();
-
-  Kernel::ClauseIterator generateClauses(Kernel::Clause* c);
-};
-
-/*
   Simplification rule:
 
   f(s1 ... sn) != f(t1 ... tn) \/ A
   ---------------------------------
   s1 != t1 \/ ... \/ t1 != tn \/ A
 
-  Actually this is not a property of injectivity but only of the f
-  being a function.
+  Actually this is not a property of injectivity but only of f being a
+  function.
 
   TODO: remove? further in the proof, this rule will cause n
   applications of equality resolution instead of only one
@@ -257,11 +255,11 @@ private:
 
    where f is a constructor and s a proper subterm of f[s]
  */
-class AcyclicityGIE1
+class AcyclicityLightGIE
   : public GeneratingInferenceEngine {
 public:
-  CLASS_NAME(AcyclicityGIE1);
-  USE_ALLOCATOR(AcyclicityGIE1);
+  CLASS_NAME(AcyclicityLightGIE);
+  USE_ALLOCATOR(AcyclicityLightGIE);
   
   Kernel::ClauseIterator generateClauses(Kernel::Clause* c);
 

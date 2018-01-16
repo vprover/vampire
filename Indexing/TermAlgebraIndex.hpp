@@ -1,6 +1,6 @@
 
 /*
- * File AcyclicityIndex.hpp.
+ * File TermAlgebraIndex.hpp.
  *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
@@ -27,8 +27,10 @@
 #include "Indexing/Index.hpp"
 
 #include "Kernel/Clause.hpp"
+#include "Kernel/Ordering.hpp"
 #include "Kernel/Term.hpp"
 
+#include "Indexing/TermIndex.hpp"
 #include "Indexing/TermIndexingStructure.hpp"
 
 #include "Lib/DHMap.hpp"
@@ -93,6 +95,25 @@ private:
 
   Lib::DHMap<unsigned, SIndex*> _sIndexes;
   Indexing::TermIndexingStructure* _tis;
+};
+
+class TARulesRHSIndex
+: public TermIndex
+{
+public:
+  CLASS_NAME(TARulesRHSIndex);
+  USE_ALLOCATOR(TARulesRHSIndex);
+
+  TARulesRHSIndex(TermIndexingStructure* is, Ordering& ord)
+    : TermIndex(is), _ord(ord)
+  {};
+
+  static bool rhsEligible(Literal* lit, const Ordering& ord, TermList*& lhs, TermList*& rhs);
+  
+protected:
+  void handleClause(Clause* c, bool adding);
+private:
+  Ordering& _ord;
 };
 
 }

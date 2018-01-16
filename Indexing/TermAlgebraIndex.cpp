@@ -1,6 +1,6 @@
 
 /*
- * File AcyclicityIndex.cpp.
+ * File TermAlgebraIndex.cpp.
  *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
@@ -30,7 +30,7 @@
 #include "Lib/Environment.hpp"
 #include "Lib/Stack.hpp"
 
-#include "AcyclicityIndex.hpp"
+#include "TermAlgebraIndex.hpp"
 
 using namespace Kernel;
 using namespace Lib;
@@ -412,6 +412,8 @@ namespace Indexing
   {
     CALL("AcyclicityIndex::handleClause");
 
+    // TODO timer?
+    
     ArrayishObjectIterator<Clause> it = c->getSelectedLiteralIterator();
     while (it.hasNext()) {
       if (adding) {
@@ -473,5 +475,58 @@ namespace Indexing
     CALL("AcyclicityIndex::queryCycle");
 
     return pvi(CycleSearchIterator(lit, c, *this));
+  }
+
+  bool TARulesRHSIndex::rhsEligible(Literal* lit, const Ordering& ord, TermList*& lhs, TermList*& rhs)
+  {
+    CALL("TARulesRHSIndex::rhsEligible");
+
+    if (lit->isEquality()
+        && lit->isPositive()
+        && env.signature->isTermAlgebraSort(SortHelper::getEqualityArgumentSort(lit))) {
+
+      TermList *s = lit->nthArgument(0);
+      TermList *t = lit->nthArgument(1);
+      bool cons0 =  s->isTerm() && env.signature->getFunction(s->term()->functor())->termAlgebraCons();
+      bool cons1 =  t->isTerm() && env.signature->getFunction(t->term()->functor())->termAlgebraCons();
+
+      if (cons0) {
+        if (cons1) {
+          // literals of the form f(...) = g(...) should already have
+          // been simplified, no need to consider them
+          return false;
+        }
+        lhs = lit->nthArgument(0);
+        rhs = lit->nthArgument(1);
+        Ordering::Result o = ord.getEqualityArgumentOrder(lit);
+        return (o == Ordering::INCOMPARABLE || o == Ordering::GREATER || o == Ordering::GREATER_EQ);
+      } else if (cons1) {
+        lhs = lit->nthArgument(1);
+        rhs = lit->nthArgument(0);
+        Ordering::Result o = ord.getEqualityArgumentOrder(lit);
+        return (o == Ordering::INCOMPARABLE || o == Ordering::LESS || o == Ordering::LESS_EQ);
+      }
+    }
+    return false;
+  }
+
+  void TARulesRHSIndex::handleClause(Clause* c, bool adding)
+  {
+    CALL("TARulesRHSIndex::handleClause");
+
+    // TODO timer?
+
+    unsigned selCnt=c->numSelected();
+    TermList *lhs, *rhs;
+    for (unsigned i=0; i<selCnt; i++) {
+      Literal* lit=(*c)[i];
+      if (rhsEligible(lit, _ord, lhs, rhs)) {
+        if (adding) {
+          _is->insert(*rhs, lit, c);
+        } else {
+          _is->remove(*rhs, lit, c);
+        }
+      }        
+    }
   }
 }
