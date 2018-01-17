@@ -232,6 +232,9 @@ public:
   ArrayishObjectIterator<Clause> getSelectedLiteralIterator()
   { return ArrayishObjectIterator<Clause>(*this,numSelected()); }
 
+  ArrayishObjectIterator<Clause> getLiteralIterator()
+  { return ArrayishObjectIterator<Clause>(*this,length()); }
+
   bool isGround();
   bool isPropositional();
   bool isHorn();

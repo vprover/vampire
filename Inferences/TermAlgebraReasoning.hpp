@@ -208,11 +208,11 @@ private:
   ---------------------------------
   s1 != t1 \/ ... \/ t1 != tn \/ A
 
-  Actually this is not a property of injectivity but only of f being a
-  function.
-
-  TODO: remove? further in the proof, this rule will cause n
-  applications of equality resolution instead of only one
+  The soundness of the rule is not a property of injectivity but only
+  of f being a function.
+  
+  However since f is injective the conclusion is equivalent to the
+  premise and can be removed (not true of arbitrary functions)
  */
 class NegativeInjectivityISE
   : public ImmediateSimplificationEngine
@@ -265,7 +265,6 @@ public:
 
 private:
   struct SubtermDisequalityFn;
-  struct LiteralIterator;
   struct SubtermDisequalityIterator;
 };
 
@@ -289,7 +288,7 @@ public:
   Kernel::Clause* simplify(Kernel::Clause* c);
 
 private:
-  Kernel::Clause* deleteLits(Kernel::Clause* c, TermList* var, bool* positions);
+  Kernel::Clause* deleteLits(Kernel::Clause* c, TermList var, bool* positions);
 };
   
 };
