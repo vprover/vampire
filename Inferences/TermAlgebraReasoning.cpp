@@ -169,6 +169,9 @@ namespace Inferences {
   struct Distinctness1GIE::Distinctness1GenIterator
     : IteratorCore<Clause*>
   {
+    CLASS_NAME(Distinctness1GenIterator);
+    USE_ALLOCATOR(Distinctness1GenIterator);
+    
     Distinctness1GenIterator(Clause *clause, Literal *lit)
       : _clause(clause),
         _lit(lit),
@@ -182,12 +185,12 @@ namespace Inferences {
         if (_lit->nthArgument(0)->isVar() && termAlgebraConstructor(_lit->nthArgument(1))) {
           ASS(_lit->nthArgument(1)->isTerm());
           _functor = _lit->nthArgument(1)->term()->functor();
-          _var = lit->nthArgument(0);
+          _var = _lit->nthArgument(0)->var();
           _ta = env.signature->getTermAlgebraOfSort(SortHelper::getEqualityArgumentSort(_lit));
         } else if (_lit->nthArgument(1)->isVar() && termAlgebraConstructor(_lit->nthArgument(0))) {
           ASS(_lit->nthArgument(0)->isTerm());
           _functor = _lit->nthArgument(0)->term()->functor();
-          _var = _lit->nthArgument(1);
+          _var = _lit->nthArgument(1)->var();
           _ta = env.signature->getTermAlgebraOfSort(SortHelper::getEqualityArgumentSort(_lit));
         }
       }
@@ -210,7 +213,7 @@ namespace Inferences {
       for (unsigned i = 0; i < ctr->arity(); i++) {
         args.push(TermList(freshVar + i, false));
       }
-      subst.bind(_var->var(), Term::create(ctr->functor(), ctr->arity(), args.begin()));
+      subst.bind(_var, Term::create(ctr->functor(), ctr->arity(), args.begin()));
 
       Inference *inf = new Inference1(Inference::TERM_ALGEBRA_DISTINCTNESS, _clause);
       unsigned length = _clause->length();
@@ -220,7 +223,7 @@ namespace Inferences {
       unsigned j = 0;
       for (unsigned i = 0; i < length; i++) {
         if ((*_clause)[i] != _lit) {
-          if ((*_clause)[i]->containsSubterm(*_var)) {
+          if (IntList::member(_var, (*_clause)[i]->freeVariables())) {
             _varoccurs = true;
             (*res)[j] = (*_clause)[i]->apply(subst);
           } else {
@@ -250,7 +253,7 @@ namespace Inferences {
     unsigned _index;
     bool _varoccurs; // whether x occurs in A
     unsigned _functor; // functor of f
-    TermList* _var;
+    unsigned _var;
     TermAlgebra *_ta;
   };
 
@@ -290,6 +293,9 @@ namespace Inferences {
   struct DistAndInj2GIE::Injectivity2Iterator
     : IteratorCore<Clause*>
   {
+    CLASS_NAME(Injectivity2Iterator);
+    USE_ALLOCATOR(Injectivity2Iterator);
+    
     Injectivity2Iterator(Clause *c1, Clause *c2,
                          Literal *lit1, Literal *lit2,
                          TermList f1, TermList f2,
@@ -303,26 +309,27 @@ namespace Inferences {
       _age(Int::max(c1->age(), c2->age()) + 1),
       _sigma(sigma),
       _f1(f1),
-      _f2(f2),
-      _sort(env.signature->getFunction(_functor)->fnType()->result())
+      _f2(f2)
     {
       ASS(_f1.isTerm());
       ASS(_f2.isTerm());
       ASS_EQ(_f1.term()->functor(), _f2.term()->functor());
 
-      _length = c1->length() + c2->length() - 1;
       // pre-compute the common part of the conclusions
-      _csigma = static_cast<Literal**>ALLOC_KNOWN((_length - 1) * sizeof(Literal*), "Injectivity2Iterator::_csigma");
-
+      _length = c1->length() + c2->length() - 1;
       unsigned i = 0;
-      for (unsigned j = 0; j < c1->length(); j++) {
-        if ((*c1)[j] != lit1) {
-          _csigma[i++] = sigma->applyToResult((*c1)[j]);
+      if (_length > 1) {
+        _csigma = static_cast<Literal**>ALLOC_KNOWN((_length - 1) * sizeof(Literal*), "Injectivity2Iterator::_csigma");
+
+        for (unsigned j = 0; j < c1->length(); j++) {
+          if ((*c1)[j] != lit1) {
+            _csigma[i++] = sigma->applyToQuery((*c1)[j]);
+          }
         }
-      }
-      for (unsigned j = 0; j < c2->length(); j++) {
-        if ((*c2)[j] != lit2) {
-          _csigma[i++] = sigma->applyToResult((*c2)[j]);
+        for (unsigned j = 0; j < c2->length(); j++) {
+          if ((*c2)[j] != lit2) {
+            _csigma[i++] = sigma->applyToResult((*c2)[j]);
+          }
         }
       }
       ASS_EQ(i, _length - 1);
@@ -330,7 +337,9 @@ namespace Inferences {
 
     ~Injectivity2Iterator()
     {
-      DEALLOC_KNOWN(_csigma, (_length - 1) * sizeof(Literal*), "Injectivity2Iterator::_csigma");
+      if (_csigma) {
+        DEALLOC_KNOWN(_csigma, (_length - 1) * sizeof(Literal*), "Injectivity2Iterator::_csigma");
+      }
     }
 
     bool hasNext() { return _index < _arity; }
@@ -341,13 +350,15 @@ namespace Inferences {
       ASS_L(_index, _f2.term()->arity());
 
       Literal * newLit = Literal::createEquality(true,
-                                                 _sigma->applyToResult(*_f1.term()->nthArgument(_index)),
+                                                 _sigma->applyToQuery(*_f1.term()->nthArgument(_index)),
                                                  _sigma->applyToResult(*_f2.term()->nthArgument(_index)),
-                                                 _sort);
+                                                 env.signature->getFunction(_functor)->fnType()->arg(_index));
       Clause* res = new(_length) Clause(_length,
                                         _c1->inputType(),
                                         new Inference2(Inference::TERM_ALGEBRA_INJECTIVITY, _c1, _c2));
-      std::memcpy(res->literals(), _csigma, (_length - 1) * sizeof(Literal*));
+      if (_csigma) {
+        std::memcpy(res->literals(), _csigma, (_length - 1) * sizeof(Literal*));
+      }
       (*res)[_length - 1] = newLit;
       res->setAge(_age);
       env.statistics->taInjectivity2Generations++;
@@ -367,7 +378,6 @@ namespace Inferences {
     unsigned _length;
     TermList _f1;
     TermList _f2;
-    unsigned _sort;
   };
 
   struct DistAndInj2GIE::DistAndInj2PerformFn
@@ -379,30 +389,40 @@ namespace Inferences {
       _lhs(lhs),
       _rhs(rhs),
       _ord(ord)
-    {}
+    {
+      ASS(lit->isEquality());
+    }
 
     DECL_RETURN_TYPE(VirtualIterator<Clause*>);
     
     OWN_RETURN_TYPE operator()(TermQueryResult tqr)
     {
-      // premises must be distinct, otherwise the conclusion is redondant
+      CALL("DistAndInj2GIE::DistAndInj2PerformFn::operator()");
+      
+      // premises must be distinct, otherwise the conclusion is redundant
       Clause *premise2 = tqr.clause;
       
       if (premise2 == _premise) {
         return VirtualIterator<Clause*>::getEmpty();
       }
 
-      // TODO applyToQuery or applyToResult?
+      ASS(tqr.literal->isEquality());
+      if (SortHelper::getEqualityArgumentSort(_lit) != SortHelper::getEqualityArgumentSort(tqr.literal)) {
+        // despite the unification, this can happen
+        // probably if the unified temr is a variable?
+        return VirtualIterator<Clause*>::getEmpty();
+      }
+
       // check ordering contrainst after substitution
       if (Ordering::isGorGEorE(_ord.compare(tqr.substitution->applyToQuery(_rhs),
-                                            tqr.substitution->applyToQuery(_lhs)))) {
+                                            tqr.substitution->applyToResult(_lhs)))) {
         return VirtualIterator<Clause*>::getEmpty();
       }
       // same thing in the target clause
       TermList rhs2 = tqr.term;
       TermList lhs2 = EqHelper::getOtherEqualitySide(tqr.literal, rhs2);
       if (Ordering::isGorGEorE(_ord.compare(tqr.substitution->applyToQuery(rhs2),
-                                            tqr.substitution->applyToQuery(lhs2)))) {
+                                            tqr.substitution->applyToResult(lhs2)))) {
         return VirtualIterator<Clause*>::getEmpty();
       }
 
@@ -428,6 +448,9 @@ namespace Inferences {
   {
     CALL("DistAndInj2GIE::distinctnessConclusion");
 
+    ASS_EQ(SortHelper::getEqualityArgumentSort(lit1),
+           SortHelper::getEqualityArgumentSort(lit2));
+
     unsigned length1 = c1->length();
     unsigned length2 = c2->length();
     Clause* res = new(length1 + length2 - 2) Clause(length1 + length2 - 2,
@@ -437,7 +460,7 @@ namespace Inferences {
     unsigned i = 0;
     for (unsigned j = 0; j < length1; j++) {
       if ((*c1)[j] != lit1) {
-        (*res)[i++] = sigma->applyToResult((*c1)[j]);
+        (*res)[i++] = sigma->applyToQuery((*c1)[j]);
       }
     }
     for (unsigned j = 0; j < length2; j++) {
@@ -465,7 +488,7 @@ namespace Inferences {
 
     OWN_RETURN_TYPE operator()(Literal* lit)
     {
-      CALL("AcyclicityGIE::AyclicityGenFn::operator()");
+      CALL("DistAndInj2GIE::DistAndInj2GenFn::operator()");
 
       TermList *lhs, *rhs;
       if (Indexing::TARulesRHSIndex::rhsEligible(lit, _ord, lhs, rhs)) {
@@ -476,6 +499,7 @@ namespace Inferences {
       }
       return pvi(VirtualIterator<Clause*>::getEmpty());
     }
+    
   private:
     Clause* _premise;
     Ordering &_ord;
@@ -517,6 +541,9 @@ namespace Inferences {
   struct InjectivityGIE::SubtermIterator
     : IteratorCore<Clause*>
   {
+    CLASS_NAME(SubtermIterator);
+    USE_ALLOCATOR(SubtermIterator);
+    
     SubtermIterator(Clause *clause, Literal *lit)
       : _index(0),
         _lit(lit),
@@ -647,17 +674,16 @@ namespace Inferences {
       unsigned var;
       if (lit->polarity() && lit->isEquality()) {
         if (lit->nthArgument(0)->isVar() && termAlgebraConstructor(lit->nthArgument(1))) {
-          _fx = lit->nthArgument(1);
+          _fx = lit->nthArgument(1)->term();
           var = lit->nthArgument(0)->var();
         } else if (lit->nthArgument(1)->isVar() && termAlgebraConstructor(lit->nthArgument(0))) {
           ASS(lit->nthArgument(0)->isTerm());
-          _fx = lit->nthArgument(0);
+          _fx = lit->nthArgument(0)->term();
           var = lit->nthArgument(1)->var();
         }
       }
       if (_fx) {
-        ASS(_fx->isTerm());
-        _tac = env.signature->getTermAlgebraConstructor(_fx->term()->functor());
+        _tac = env.signature->getTermAlgebraConstructor(_fx->functor());
 
         // create substitution sigma
         _freshVar = _clause->maxVar() + 1;
@@ -698,7 +724,7 @@ namespace Inferences {
       Inference *inf = new Inference1(Inference::TERM_ALGEBRA_INJECTIVITY, _clause);
       Literal* newLit = Literal::createEquality(true,
                                                 TermList(_freshVar + _index, false),
-                                                *_fx->term()->nthArgument(_index),
+                                                *_fx->nthArgument(_index),
                                                 _tac->argSort(_index));
       unsigned length = _clause->length();
       Clause* res = new(length) Clause(length,
@@ -716,7 +742,7 @@ namespace Inferences {
   private:
     Clause *_clause;
     unsigned _index;
-    TermList* _fx;
+    Term* _fx;
     TermAlgebraConstructor *_tac;
     unsigned _freshVar;
     Substitution _subst;
@@ -841,6 +867,9 @@ namespace Inferences {
   struct AcyclicityGIE::AcyclicityGenIterator
     : IteratorCore<Clause*>
   {
+    CLASS_NAME(AcyclicityGenIterator);
+    USE_ALLOCATOR(AcyclicityGenIterator);
+    
     AcyclicityGenIterator(Clause *premise, Indexing::CycleQueryResultsIterator results)
       :
       _premise(premise),
@@ -984,6 +1013,9 @@ namespace Inferences {
   struct AcyclicityLightGIE::SubtermDisequalityIterator
     : IteratorCore<Clause*>
   {
+    CLASS_NAME(SubtermDisequalityIterator);
+    USE_ALLOCATOR(SubtermDisequalityIterator);
+    
     SubtermDisequalityIterator(Clause *clause, Literal *lit)
       :
       _clause(clause),
