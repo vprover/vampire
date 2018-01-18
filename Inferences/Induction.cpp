@@ -299,18 +299,18 @@ void InductionClauseIterator::performStructInductionOne(Clause* premise, Literal
 
   NewCNF cnf(0);
   Stack<Clause*> hyp_clauses;
-  cnf.clausify(NNF::ennf(new FormulaUnit(hypothesis,new Inference(Inference::INDUCTION),Unit::AXIOM)), hyp_clauses);
+  FormulaUnit* fu = new FormulaUnit(hypothesis,new Inference(Inference::INDUCTION),Unit::AXIOM);
+  cnf.clausify(NNF::ennf(fu), hyp_clauses);
+
+  //cout << "Clausify " << fu->toString() << endl;
 
   // Now perform resolution between lit and the hyp_clauses on clit, which should be contained in each clause!
   Stack<Clause*>::Iterator cit(hyp_clauses);
-  cout << "Do BR" << endl;
   while(cit.hasNext()){
     Clause* c = cit.next();
-    cout << "On " << c->toString() << endl;
     static ResultSubstitutionSP identity = ResultSubstitutionSP(new IdentitySubstitution());
     SLQueryResult qr(lit,premise,identity);
-    Clause* r = BinaryResolution::generateClause(c,clit,qr,*env.options);
-    cout << "Create " << r->toString() << endl;
+    Clause* r = BinaryResolution::generateClause(c,conclusion,qr,*env.options);
     _clauses.push(r);
   }
   
