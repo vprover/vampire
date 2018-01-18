@@ -41,35 +41,38 @@
 
 namespace Indexing {
 
-struct CycleQueryResult {
-  CycleQueryResult(Lib::List<Kernel::Literal*>* l,
+struct ChainQueryResult {
+  ChainQueryResult(Lib::List<Kernel::Literal*>* l,
                    Lib::List<Kernel::Clause*>* p,
-                   Lib::List<Kernel::Clause*>* c)
+                   Lib::List<Kernel::Clause*>* c,
+                   Literal* lit)
     :
     literals(l),
     premises(p),
-    clausesTheta(c)
+    clausesTheta(c),
+    subLit(lit)
   {}
 
-  CLASS_NAME(CycleQueryResult);
-  USE_ALLOCATOR(CycleQueryResult);
+  CLASS_NAME(ChainQueryResult);
+  USE_ALLOCATOR(ChainQueryResult);
 
   unsigned totalLengthClauses();
+  bool isCycle() { return !subLit; }
   
   Lib::List<Kernel::Literal*>* literals;
   Lib::List<Kernel::Clause*>* premises;
   Lib::List<Kernel::Clause*>* clausesTheta; // the three lists should be the same length
+  Kernel::Literal* subLit; // null if chain is a cycle
 };
-
-typedef Lib::VirtualIterator<CycleQueryResult*> CycleQueryResultsIterator;
 
 class AcyclicityIndex
 : public Index
 {
 public:
-  AcyclicityIndex(Indexing::TermIndexingStructure* tis) :
-    _sIndexes(),
-    _tis(tis)
+  AcyclicityIndex(Indexing::TermIndexingStructure* tis, Ordering& ord) :
+    _lIndex(),
+    _tis(tis),
+    _ord(ord)
   {}
 
   ~AcyclicityIndex() {}
@@ -77,7 +80,7 @@ public:
   void insert(Kernel::Literal *lit, Kernel::Clause *c);
   void remove(Kernel::Literal *lit, Kernel::Clause *c);
 
-  CycleQueryResultsIterator queryCycles(Kernel::Literal *lit, Kernel::Clause *c);
+  Lib::VirtualIterator<ChainQueryResult> queryChains(Kernel::Literal *lit, Kernel::Clause *c);
              
   CLASS_NAME(AcyclicityIndex);
   USE_ALLOCATOR(AcyclicityIndex);
@@ -88,13 +91,14 @@ private:
   Lib::List<TermList>* getSubterms(Kernel::Term *t);
   
   struct IndexEntry;
-  struct CycleSearchTreeNode;
-  struct CycleSearchIterator;
+  struct ChainSearchTreeNode;
+  struct ChainSearchIterator;
   typedef pair<Kernel::Literal*, Kernel::Clause*> ULit;
-  typedef Lib::DHMap<ULit, IndexEntry*> SIndex;
+  typedef Lib::DHMap<ULit, IndexEntry*> LIndex;
 
-  Lib::DHMap<unsigned, SIndex*> _sIndexes;
+  LIndex _lIndex;
   Indexing::TermIndexingStructure* _tis;
+  Ordering& _ord;
 };
 
 class TARulesRHSIndex

@@ -200,7 +200,7 @@ Index* IndexManager::create(IndexType t)
 
   case ACYCLICITY_INDEX:
     tis = new TermSubstitutionTree();
-    res = new AcyclicityIndex(tis);
+    res = new AcyclicityIndex(tis, _alg->getOrdering());
     isGenerating = true;
     break;
   case TA_RULES_RHS_INDEX:

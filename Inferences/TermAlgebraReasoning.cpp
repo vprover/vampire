@@ -597,7 +597,9 @@ namespace Inferences {
   {
     SubtermEqualityFn(Clause* premise)
       : _premise(premise) {}
+    
     DECL_RETURN_TYPE(VirtualIterator<Clause*>);
+    
     OWN_RETURN_TYPE operator()(Literal* lit)
     {
       CALL("InjectivityGIE::SubtermEqualityFn::operator()");
@@ -870,7 +872,7 @@ namespace Inferences {
     CLASS_NAME(AcyclicityGenIterator);
     USE_ALLOCATOR(AcyclicityGenIterator);
     
-    AcyclicityGenIterator(Clause *premise, Indexing::CycleQueryResultsIterator results)
+    AcyclicityGenIterator(Clause *premise, VirtualIterator<Indexing::ChainQueryResult> results)
       :
       _premise(premise),
       _queryResults(results)
@@ -882,16 +884,16 @@ namespace Inferences {
     {
       CALL("AcyclicityGIE::AcyclicityGenIterator::next()");
 
-      Indexing::CycleQueryResult *qres = _queryResults.next();
+      Indexing::ChainQueryResult qres = _queryResults.next();
 
-      ASS_EQ(LiteralList::length(qres->literals), ClauseList::length(qres->premises));
-      ASS_EQ(LiteralList::length(qres->literals), ClauseList::length(qres->clausesTheta));
+      ASS_EQ(LiteralList::length(qres.literals), ClauseList::length(qres.premises));
+      ASS_EQ(LiteralList::length(qres.literals), ClauseList::length(qres.clausesTheta));
 
-      LiteralList::Iterator literals(qres->literals);
-      ClauseList::Iterator premises(qres->premises);
-      ClauseList::Iterator clausesTheta(qres->clausesTheta);
+      LiteralList::Iterator literals(qres.literals);
+      ClauseList::Iterator premises(qres.premises);
+      ClauseList::Iterator clausesTheta(qres.clausesTheta);
       
-      unsigned length = qres->totalLengthClauses() - LiteralList::length(qres->literals);
+      unsigned length = qres.totalLengthClauses() - LiteralList::length(qres.literals) + (qres.isCycle() ? 0 : 1);
       UnitList* ulpremises = UnitList::empty();
       while (premises.hasNext()) {
         UnitList::push(premises.next(), ulpremises);
@@ -901,7 +903,7 @@ namespace Inferences {
                                        _premise->inputType(),
                                        inf);
 
-      premises.reset(qres->premises);
+      premises.reset(qres.premises);
       unsigned i = 0;
       unsigned maxVar = 0;
 
@@ -917,21 +919,26 @@ namespace Inferences {
             (*res)[i++] = (*c)[j];
           }
         }
-
         maxVar++;
       }
+
+      if (!qres.isCycle()) {
+        (*res)[i++] = qres.subLit;
+      }
+      
       ASS (!literals.hasNext());
       ASS (!premises.hasNext());
       ASS (!clausesTheta.hasNext());
       ASS_EQ(i, length);
 
       res->setAge(_premise->age() + 1);
+      env.statistics->taAcyclicityResolution++;
       return res;
     }
   private:
 
     Clause *_premise;
-    Indexing::CycleQueryResultsIterator _queryResults;
+    Lib::VirtualIterator<Indexing::ChainQueryResult> _queryResults;
   };
 
   struct AcyclicityGIE::AcyclicityGenFn
@@ -946,7 +953,7 @@ namespace Inferences {
     {
       CALL("AcyclicityGIE::AyclicityGenFn::operator()");
 
-      return vi(new AcyclicityGenIterator(_premise, _aidx->queryCycles(lit, _premise)));
+      return vi(new AcyclicityGenIterator(_premise, _aidx->queryChains(lit, _premise)));
     }
   private:
     Indexing::AcyclicityIndex *_aidx;
@@ -1156,6 +1163,7 @@ namespace Inferences {
         if (lit->containsSubterm(var)) {
           return nullptr;
         }
+        positions[i] = false;
       }
     }
 
@@ -1173,6 +1181,8 @@ namespace Inferences {
           i++;
         }
       }
+      ASS_EQ(i, resLength);
+      
       res->setAge(c->age());
       env.statistics->taInfinitenessSimplifications++;
       return res;

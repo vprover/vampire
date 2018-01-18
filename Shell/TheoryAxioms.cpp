@@ -1519,7 +1519,7 @@ void TheoryAxioms::addConstructorCtxDefinitions(TermAlgebra* ta, TermAlgebraCons
   TermList y(c->arity(), false);
    
   // forall types of holes
-  Set<TermAlgebra*>::Iterator it(ta->mutualTypes());
+  VirtualIterator<TermAlgebra*> it = ta->mutualTypes();
   while (it.hasNext()) {
     TermAlgebra *tah = it.next();
     args2.reset();

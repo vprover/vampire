@@ -27,6 +27,7 @@
 #include "Lib/List.hpp"
 #include "Lib/Map.hpp"
 #include "Lib/Set.hpp"
+#include "Lib/VirtualIterator.hpp"
 #include "Lib/VString.hpp"
 
 #include "Kernel/Sorts.hpp"
@@ -128,7 +129,9 @@ namespace Shell {
     /* True iff a term of the term algebra ta can appear under
        constructors of this algebra */
     bool isMutualType(TermAlgebra* ta);
-    Lib::Set<TermAlgebra*>& mutualTypes();
+    bool isMutualTypeSort(unsigned tasort);
+    Lib::VirtualIterator<TermAlgebra*> mutualTypes();
+    Lib::VirtualIterator<unsigned> mutualTypesSorts();
 
     /* The predicate of the subterm relation for axioms of
        datatypes */
@@ -156,7 +159,7 @@ namespace Shell {
     
     unsigned _sort;
     Lib::vstring _name;
-    Lib::Set<TermAlgebra*>* _mutualTypes; /* This contains the types mutually defined. null if not initialized, else its content should also be set */
+    Lib::Set<unsigned>* _mutualTypes; /* This contains the sorts of types mutually defined. null if not initialized, else its content should also be set */
     Lib::Map<TermAlgebra*, unsigned> _contextSorts; /* sorts of context (used to axiomatize codatatypes) */
     unsigned _n; /* number of constructors */
     bool _allowsCyclicTerms;

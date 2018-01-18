@@ -31,10 +31,10 @@ namespace Shell {
 
 vstring TermAlgebraConstructor::name()
 {
-  return Lib::env.signature->functionName(_functor);
+  return env.signature->functionName(_functor);
 }
 
-TermAlgebraConstructor::TermAlgebraConstructor(unsigned functor, Lib::Array<unsigned> destructors)
+TermAlgebraConstructor::TermAlgebraConstructor(unsigned functor, Array<unsigned> destructors)
   : _functor(functor),
     _hasDiscriminator(false),
     _destructors(destructors)
@@ -45,7 +45,7 @@ TermAlgebraConstructor::TermAlgebraConstructor(unsigned functor, Lib::Array<unsi
   ASS_EQ(_type->arity(), destructors.size());
 }
 
-TermAlgebraConstructor::TermAlgebraConstructor(unsigned functor, unsigned discriminator, Lib::Array<unsigned> destructors)
+TermAlgebraConstructor::TermAlgebraConstructor(unsigned functor, unsigned discriminator, Array<unsigned> destructors)
   : _functor(functor),
     _hasDiscriminator(true),
     _discriminator(discriminator),
@@ -70,14 +70,14 @@ bool TermAlgebraConstructor::recursive()
   return false;
 }
 
-Lib::vstring TermAlgebraConstructor::discriminatorName()
+vstring TermAlgebraConstructor::discriminatorName()
 {
   CALL("TermAlgebraConstructor::discriminatorName");
 
   return "$is_" + name();
 }
 
-Lib::vstring TermAlgebraConstructor::getCtxFunctionName(TermAlgebra* ta) {
+vstring TermAlgebraConstructor::getCtxFunctionName(TermAlgebra* ta) {
   return "$ctx_" + name() + "_" + ta->name();
 }
 
@@ -112,7 +112,7 @@ unsigned TermAlgebraConstructor::getCtxFunction(TermAlgebra* ta) {
 }
 
 TermAlgebra::TermAlgebra(unsigned sort,
-                         Lib::vstring name,
+                         vstring name,
                          unsigned n,
                          TermAlgebraConstructor** constrs,
                          bool allowsCyclicTerms) :
@@ -154,7 +154,7 @@ void TermAlgebra::computeDomainSize() {
     if (_allowsCyclicTerms) {
       _domain = DomainSize::INFINITE;
     } else {
-      Set<TermAlgebra*>::Iterator it(*_mutualTypes);
+      VirtualIterator<TermAlgebra*> it = mutualTypes();
       while (it.hasNext()) {
         if (it.next()->existsSmallestTerm()) {
           _domain = DomainSize::INFINITE;
@@ -243,14 +243,31 @@ bool TermAlgebra::isMutualType(TermAlgebra *ta)
 {
   CALL("TermAlgebra::isMutualType");
 
+  return isMutualTypeSort(ta->sort());
+}
+
+bool TermAlgebra::isMutualTypeSort(unsigned tasort)
+{
+  CALL("TermAlgebra::isMutualType");
+
   if (!_mutualTypes) {
     setMutualTypes();
   }
 
-  return _mutualTypes->contains(ta);
+  return _mutualTypes->contains(tasort);
 }
 
-Lib::Set<TermAlgebra*>& TermAlgebra::mutualTypes()
+struct TermAlgebraOfSortFn
+{
+  DECL_RETURN_TYPE(TermAlgebra*);
+
+  OWN_RETURN_TYPE operator()(unsigned sort)
+  {
+    return env.signature->getTermAlgebraOfSort(sort);
+  }
+};
+
+VirtualIterator<TermAlgebra*> TermAlgebra::mutualTypes()
 {
   CALL("TermAlgebra::mutualTypes");
 
@@ -258,10 +275,23 @@ Lib::Set<TermAlgebra*>& TermAlgebra::mutualTypes()
     setMutualTypes();
   }
 
-  return *_mutualTypes;
+  Set<unsigned>::Iterator it(*_mutualTypes);
+  auto it2 = getMappingIterator(it, TermAlgebraOfSortFn());
+  return pvi(it2);
+}
+
+VirtualIterator<unsigned> TermAlgebra::mutualTypesSorts()
+{
+  CALL("TermAlgebra::mutualTypesSorts");
+
+  if (!_mutualTypes) {
+    setMutualTypes();
+  }
+
+  return pvi(Set<unsigned>::Iterator(*_mutualTypes));
 }
   
-Lib::vstring TermAlgebra::getSubtermPredicateName(TermAlgebra* ta) {
+vstring TermAlgebra::getSubtermPredicateName(TermAlgebra* ta) {
   return "$subterm_" + ta->name() + "_" + name();
 }
 
@@ -289,7 +319,7 @@ unsigned TermAlgebra::contextSort(TermAlgebra* ta) {
   }
 }
 
-Lib::vstring TermAlgebra::getCstFunctionName() {
+vstring TermAlgebra::getCstFunctionName() {
   return "$cst_" + name();
 }
 
@@ -306,7 +336,7 @@ unsigned TermAlgebra::getCstFunction() {
   return s;
 }
 
-Lib::vstring TermAlgebra::getHoleConstantName() {
+vstring TermAlgebra::getHoleConstantName() {
   return "$hole_" + name();
 }
 
@@ -323,7 +353,7 @@ unsigned TermAlgebra::getHoleConstant() {
   return s;
 }
 
-Lib::vstring TermAlgebra::getCycleFunctionName() {
+vstring TermAlgebra::getCycleFunctionName() {
   return "$cycle_" + name();
 }
 
@@ -340,7 +370,7 @@ unsigned TermAlgebra::getCycleFunction() {
   return s;
 }
 
-Lib::vstring TermAlgebra::getAppFunctionName(TermAlgebra* ta) {
+vstring TermAlgebra::getAppFunctionName(TermAlgebra* ta) {
   return "$app_" + name() + "_" + ta->name();
 }
 
@@ -362,7 +392,7 @@ void TermAlgebra::setMutualTypes()
   CALL("TermAlgebra::setMutualTypes");
 
   ASS(!_mutualTypes);
-  _mutualTypes = new Set<TermAlgebra*>();
+  _mutualTypes = new Set<unsigned>();
 
   // This is a BFS is the tree formed by the algebra declaration (the
   // types of its constructors) to detect cycles (mutually recursive
@@ -393,9 +423,12 @@ void TermAlgebra::setMutualTypes()
         unsigned s = c->argSort(j);
         if (env.signature->isTermAlgebraSort(s)) {
           TermAlgebra* ta2 = env.signature->getTermAlgebraOfSort(s);
-          if (ta2 == this || _mutualTypes->contains(ta2)) {
+          if (ta2 == this || _mutualTypes->contains(s)) {
             // push path into _mutualTypes
-            _mutualTypes->insertFromIterator(Stack<TermAlgebra*>::Iterator(path));
+            Stack<TermAlgebra*>::Iterator it(path);
+            while (it.hasNext()) {
+              _mutualTypes->insert(it.next()->sort());
+            }
           }
           if (!visited.contains(ta2)) {
             // push adjacent nodes on toVisit with depth + 1
@@ -408,12 +441,12 @@ void TermAlgebra::setMutualTypes()
 
   // since the 'mutual type' relation is symmetric, set the other
   // types' mutualType field to avoid re-computing later
-  Set<TermAlgebra*>::Iterator it(*_mutualTypes);
+  Set<unsigned>::Iterator it(*_mutualTypes);
   while (it.hasNext()) {
-    TermAlgebra *ta = it.next();
+    TermAlgebra *ta = env.signature->getTermAlgebraOfSort(it.next());
     if (ta != this && !ta->_mutualTypes) {
-      ta->_mutualTypes = new Set<TermAlgebra*>();
-      ta->_mutualTypes->insertFromIterator(Set<TermAlgebra*>::Iterator(*_mutualTypes));
+      ta->_mutualTypes = new Set<unsigned>();
+      ta->_mutualTypes->insertFromIterator(Set<unsigned>::Iterator(*_mutualTypes));
     }
   }
 }
