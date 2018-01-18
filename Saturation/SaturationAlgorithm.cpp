@@ -992,8 +992,6 @@ bool SaturationAlgorithm::activate(Clause* cl)
 {
   CALL("SaturationAlgorithm::activate");
 
-  cout << "ACTIVATE " << cl->toString() << endl;
-
   if (_consFinder && _consFinder->isRedundant(cl)) {
     return false;
   }
