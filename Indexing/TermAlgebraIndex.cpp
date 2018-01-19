@@ -244,7 +244,6 @@ namespace Indexing
       if (_aindex.matchesPattern(queryLit, fs, t, &_querySort)
           && _aindex._lIndex.find(make_pair(queryLit, queryClause))) {
         _queryTerm = TermList(*t);
-        cout << "starting search from " << queryLit->toString() << endl;
         IndexEntry *entry = aindex._lIndex.get(make_pair(queryLit, queryClause));
         _stack.push(ChainSearchTreeNode::unificationNode(entry->t,
                                                          queryLit,
@@ -291,23 +290,18 @@ namespace Indexing
       ClauseList* c = ClauseList::empty();
       ClauseList* cTheta = ClauseList::empty();
 
-      cout << "start of cycle with queryTerm " << _queryTerm.toString() << endl;
       ChainSearchTreeNode *n = node;
       while (n && n->parent) {
         ASS(n);
         ASS(n->isUnificationNode);
         ASS(n->parent->clause);
         ASS(n->parent->clause->store() == Clause::ACTIVE);
-        cout << "unification node with term " << n->term.toString() << " and literal " << n->lit->toString() << endl;
-        cout << "subterm node with term " << n->parent->term.toString() << " and literal " << _subst->apply(n->parent->lit, n->parent->substIndex)->toString() << endl;
         // TODO test order after subst
         LiteralList::push(n->parent->lit, l);
         ClauseList::push(n->parent->clause, c);
         ClauseList::push(applySubstitution(n->parent->clause, n->parent->substIndex), cTheta);
         n = n->parent->parent;
       }
-      cout << "unification node with term " << n->term.toString() << " and literal " << n->lit->toString() << endl;
-      cout << "end of cycle" << endl;
       ASS_EQ(ClauseList::length(c), LiteralList::length(l));
       ASS_EQ(ClauseList::length(c), ClauseList::length(cTheta));
 
@@ -321,7 +315,6 @@ namespace Indexing
       ASS(node);
       ASS(!node->isUnificationNode);
 
-      cout << "start of chain with queryTerm " << _queryTerm.toString() << endl;
       ChainSearchTreeNode *n = node;
       LiteralList* l = LiteralList::empty();
       ClauseList* c = ClauseList::empty();
@@ -336,20 +329,12 @@ namespace Indexing
         ASS(n->isUnificationNode);
         ASS(n->parent->clause);
         ASS(n->parent->clause->store() == Clause::ACTIVE);
-        cout << "unification node with term " << n->term.toString() << " and literal " << n->lit->toString() << endl;
-        cout << "subterm node with term " << n->parent->term.toString() << " and literal " << _subst->apply(n->parent->lit, n->parent->substIndex)->toString() << endl;
         // TODO test order after subst
         LiteralList::push(n->parent->lit, l);
         ClauseList::push(n->parent->clause, c);
         ClauseList::push(applySubstitution(n->parent->clause, n->parent->substIndex), cTheta);
         n = n->parent->parent;
-      }
-      ASS(n);
-      ASS(!n->parent);
-      ASS(n->isUnificationNode);
-      cout << "unification node with term " << n->term.toString() << " and literal " << n->lit->toString() << endl;
-      cout << "end of chain" << endl;
-      
+      }     
       ASS_EQ(ClauseList::length(c), LiteralList::length(l));
       ASS_EQ(ClauseList::length(c), ClauseList::length(cTheta));
 
@@ -496,7 +481,6 @@ namespace Indexing
               ASS(btData.isEmpty());
             }
             if (!closed) {
-              cout << "chain found" << endl;
               delete _nextResult;
               TermList t1 = _subst->apply(_queryTerm, 0);
               TermList tn = _subst->apply(n->term, n->substIndex);
