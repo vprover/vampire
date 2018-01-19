@@ -167,7 +167,8 @@ namespace Indexing
      of the tree is that a unification node has for parent a subterm
      node, as well as the other way around.
 
-     The root of the tree is a unification node (with empty unifier)
+     The root of the tree is a unification node (with the literal that
+     the query originates from)
    */
   struct AcyclicityIndex::ChainSearchTreeNode
   {
@@ -278,18 +279,19 @@ namespace Indexing
       return res;
     }
 
-    ChainQueryResult *resultFromNode(ChainSearchTreeNode *node, TermList t1, TermList tn, unsigned tnsort)
+    ChainQueryResult *cycleResult(ChainSearchTreeNode *node)
     {
-      CALL("AcyclicityIndex::ChainSearchIterator::resultFromNode");
+      CALL("AcyclicityIndex::ChainSearchIterator::cycleResult");
 
       ASS(node);
       ASS(node->parent);
+      ASS(node->isUnificationNode);
 
       LiteralList* l = LiteralList::empty();
       ClauseList* c = ClauseList::empty();
       ClauseList* cTheta = ClauseList::empty();
 
-      cout << "start of chain with queryTerm " << _queryTerm.toString() << endl;
+      cout << "start of cycle with queryTerm " << _queryTerm.toString() << endl;
       ChainSearchTreeNode *n = node;
       while (n && n->parent) {
         ASS(n);
@@ -297,19 +299,53 @@ namespace Indexing
         ASS(n->parent->clause);
         ASS(n->parent->clause->store() == Clause::ACTIVE);
         cout << "unification node with term " << n->term.toString() << " and literal " << n->lit->toString() << endl;
-        cout << "subterm node with term " << n->parent->term.toString() << " and literal " << n->parent->lit->toString() << endl;
+        cout << "subterm node with term " << n->parent->term.toString() << " and literal " << _subst->apply(n->parent->lit, n->parent->substIndex)->toString() << endl;
         // TODO test order after subst
-        Clause *cl = applySubstitution(n->parent->clause, n->parent->substIndex);
         LiteralList::push(n->parent->lit, l);
         ClauseList::push(n->parent->clause, c);
-        ClauseList::push(cl, cTheta);
-        /*if (!n->parent->parent->parent) {
-          // last iteration before exiting loop, get t1
-          t1 = TermList(_subst->apply(_queryTerm, n->parent->substIndex));
-          }*/
+        ClauseList::push(applySubstitution(n->parent->clause, n->parent->substIndex), cTheta);
+        n = n->parent->parent;
+      }
+      cout << "unification node with term " << n->term.toString() << " and literal " << n->lit->toString() << endl;
+      cout << "end of cycle" << endl;
+      ASS_EQ(ClauseList::length(c), LiteralList::length(l));
+      ASS_EQ(ClauseList::length(c), ClauseList::length(cTheta));
+
+      return new ChainQueryResult(l, c, cTheta, nullptr);
+    }
+
+    ChainQueryResult *openChainResult(ChainSearchTreeNode *node, TermList t1, TermList tn, unsigned tnsort)
+    {
+      CALL("AcyclicityIndex::ChainSearchIterator::openChainResult");
+
+      ASS(node);
+      ASS(!node->isUnificationNode);
+
+      cout << "start of chain with queryTerm " << _queryTerm.toString() << endl;
+      ChainSearchTreeNode *n = node;
+      LiteralList* l = LiteralList::empty();
+      ClauseList* c = ClauseList::empty();
+      ClauseList* cTheta = ClauseList::empty();
+      LiteralList::push(n->lit, l);
+      ClauseList::push(n->clause, c);
+      ClauseList::push(applySubstitution(n->clause, n->substIndex), cTheta);
+      n = n->parent;
+      
+      while (n && n->parent) {
+        ASS(n);
+        ASS(n->isUnificationNode);
+        ASS(n->parent->clause);
+        ASS(n->parent->clause->store() == Clause::ACTIVE);
+        cout << "unification node with term " << n->term.toString() << " and literal " << n->lit->toString() << endl;
+        cout << "subterm node with term " << n->parent->term.toString() << " and literal " << _subst->apply(n->parent->lit, n->parent->substIndex)->toString() << endl;
+        // TODO test order after subst
+        LiteralList::push(n->parent->lit, l);
+        ClauseList::push(n->parent->clause, c);
+        ClauseList::push(applySubstitution(n->parent->clause, n->parent->substIndex), cTheta);
         n = n->parent->parent;
       }
       ASS(n);
+      ASS(!n->parent);
       ASS(n->isUnificationNode);
       cout << "unification node with term " << n->term.toString() << " and literal " << n->lit->toString() << endl;
       cout << "end of chain" << endl;
@@ -322,7 +358,7 @@ namespace Indexing
       if (_querySort != tnsort || !TermList::equals(t1, tn)) {
         TermAlgebra* ta1 = env.signature->getTermAlgebraOfSort(_querySort);
         TermAlgebra* tan = env.signature->getTermAlgebraOfSort(tnsort);
-        unsigned pred = tan->getSubtermPredicate(ta1);
+        unsigned pred = ta1->getSubtermPredicate(tan);
         subLit = Literal::create2(pred,
                                   true,
                                   tn,
@@ -331,31 +367,43 @@ namespace Indexing
       return new ChainQueryResult(l, c, cTheta, subLit);
     }
 
-    void pushUnificationsOnStack(TermList t, ChainSearchTreeNode *parent)
+    void pushUnificationsOnStack(ChainSearchTreeNode *n)
     {
       CALL("Acyclicity::pushUnificationOnStack");
+      ASS(!n->isUnificationNode);
 
-      TermQueryResultIterator tqrIt = _aindex._tis->getUnifications(t);
+      TermQueryResultIterator tqrIt = _aindex._tis->getUnifications(_subst->apply(n->term, n->substIndex));
+      unsigned sort = SortHelper::getTermSort(n->term, n->lit);
       int index;
       while (tqrIt.hasNext()) {
         TermQueryResult tqr = tqrIt.next();
-        if (tqr.literal == _queryLit || notInAncestors(parent, tqr.literal)) {
-          if (tqr.literal == _queryLit) {
-            index = 0;
-          } else if (parent && tqr.clause == parent->clause) {
-            index = parent->substIndex;
-          } else {
-            index = _nextAvailableIndex++;
+        if (n->term.isVar() && tqr.literal != _queryLit) {
+          // found a variable-ended chain, no need to explore further
+          continue;
+        }
+        // check sort to avoid unfication with variable of wrong type
+        if (SortHelper::getTermSort(tqr.term, tqr.literal) == sort) {
+          // avoid cycles in the search tree
+          if (tqr.literal == _queryLit || notInAncestors(n, tqr.literal)) {
+            if (tqr.literal == _queryLit) {
+              index = 0;
+            } else if (n && tqr.clause == n->clause) {
+              index = n->substIndex;
+            } else {
+              index = _nextAvailableIndex++;
+            }
+            _stack.push(ChainSearchTreeNode::unificationNode(tqr.term,
+                                                             tqr.literal,
+                                                             tqr.clause,
+                                                             n,
+                                                             index));
           }
-          _stack.push(ChainSearchTreeNode::unificationNode(tqr.term,
-                                                           tqr.literal,
-                                                           tqr.clause,
-                                                           parent,
-                                                           index));
         }
       }
     }
 
+    // check that the literal is not found in the path from the root
+    // to the node (to avoid infinite cycles in the search)
     bool notInAncestors(ChainSearchTreeNode *node, Literal *l)
     {
       CALL("AcyclicityIndex::ChainSearchIterator::notInAncestors");
@@ -410,17 +458,14 @@ namespace Indexing
               continue;
             }
           }
-          if (n->parent) {
+          if (n->parent) { // not the root of the search tree
             TermList t1 = _subst->apply(_queryTerm, 0);
             TermList tn = _subst->apply(n->term, n->substIndex);
-            if (/*n->term.isVar() ||*/ TermList::equals(t1, tn)) {
+            if (n->lit == _queryLit && TermList::equals(t1, tn)) {
+              // found a cycle
               delete _nextResult;
-              _nextResult = resultFromNode(n,
-                                           t1,
-                                           tn,
-                                           SortHelper::getTermSort(n->term, n->lit));
+              _nextResult = cycleResult(n);
               return true;
-            
             }
           }
           if (_aindex._lIndex.find(make_pair(n->lit, n->clause))) {
@@ -436,7 +481,37 @@ namespace Indexing
             }
           }
         } else {
-          pushUnificationsOnStack(_subst->apply(n->term, n->substIndex), n);
+          if (n->term.isVar()) {
+            // if the subterm is a variable, either we can close the
+            // chain or have to return a variable-ended chain
+            bool closed = false;
+            if (SortHelper::getTermSort(n->term, n->lit) == _querySort) {
+              BacktrackData btData;
+              _subst->bdRecord(btData);
+              closed = _subst->unify(_queryTerm, 0, n->term, n->substIndex);
+              if (closed) {
+                btData.backtrack();
+              }
+              _subst->bdDone();
+              ASS(btData.isEmpty());
+            }
+            if (!closed) {
+              cout << "chain found" << endl;
+              delete _nextResult;
+              TermList t1 = _subst->apply(_queryTerm, 0);
+              TermList tn = _subst->apply(n->term, n->substIndex);
+              _nextResult = openChainResult(n,
+                                            t1,
+                                            tn,
+                                            SortHelper::getTermSort(n->term, n->lit));
+              return true;
+            }
+          }
+          // either not a variable or a variable closing the chain
+          // look for unifications
+          // if a variable, this will only push the unification with
+          // the queryTerm
+          pushUnificationsOnStack(n);
         }
       }
       return false;
