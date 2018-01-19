@@ -112,7 +112,7 @@ private:
 
   /* Subterm definitions used by the acyclicity axiom. */
   void addSubtermDefinitions(TermAlgebra* ta, TermAlgebraConstructor* c);
-  void addSubtermIrreflexivity(TermAlgebra* ta);
+  void addSubtermReflexivity(TermAlgebra* ta);
 
   /* Same thing for the subst and cycle functions, used to axiomatize infinite trees (a.k.a. co-datatypes) */
   void addCtxFunctionDefinitions(TermAlgebra* ta);

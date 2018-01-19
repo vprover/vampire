@@ -1361,7 +1361,7 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
     gie->addFront(new FOOLParamodulation());
   }
   if(prb.hasEquality() && env.signature->hasTermAlgebras()) {
-    if (opt.termAlgebraCyclicityCheck() == Options::TACyclicityCheck::OLDRULE) {
+    if (opt.termAlgebraCyclicityCheck() == Options::TACyclicityCheck::RULE) {
       gie->addFront(new AcyclicityGIE());
     } else if (opt.termAlgebraCyclicityCheck() == Options::TACyclicityCheck::RULELIGHT) {
       gie->addFront(new AcyclicityLightGIE());

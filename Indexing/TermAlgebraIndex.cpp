@@ -308,12 +308,16 @@ namespace Indexing
       return new ChainQueryResult(l, c, cTheta, nullptr);
     }
 
-    ChainQueryResult *openChainResult(ChainSearchTreeNode *node, TermList t1, TermList tn, unsigned tnsort)
+    ChainQueryResult *openChainResult(ChainSearchTreeNode *node)
     {
       CALL("AcyclicityIndex::ChainSearchIterator::openChainResult");
 
       ASS(node);
       ASS(!node->isUnificationNode);
+
+      TermList t1(_subst->apply(_queryTerm, 0));
+      TermList tn(_subst->apply(node->term, node->substIndex));
+      unsigned tnsort = SortHelper::getTermSort(node->term, node->lit);
 
       ChainSearchTreeNode *n = node;
       LiteralList* l = LiteralList::empty();
@@ -338,16 +342,15 @@ namespace Indexing
       ASS_EQ(ClauseList::length(c), LiteralList::length(l));
       ASS_EQ(ClauseList::length(c), ClauseList::length(cTheta));
 
-      // TODO change predicate when axioms are changed
       Literal *subLit = nullptr;
       if (_querySort != tnsort || !TermList::equals(t1, tn)) {
         TermAlgebra* ta1 = env.signature->getTermAlgebraOfSort(_querySort);
         TermAlgebra* tan = env.signature->getTermAlgebraOfSort(tnsort);
-        unsigned pred = ta1->getSubtermPredicate(tan);
+        unsigned pred = tan->getSubtermPredicate(ta1);
         subLit = Literal::create2(pred,
-                                  true,
-                                  tn,
-                                  t1);
+                                  false,
+                                  t1,
+                                  tn);
       }
       return new ChainQueryResult(l, c, cTheta, subLit);
     }
@@ -467,34 +470,11 @@ namespace Indexing
           }
         } else {
           if (n->term.isVar()) {
-            // if the subterm is a variable, either we can close the
-            // chain or have to return a variable-ended chain
-            bool closed = false;
-            if (SortHelper::getTermSort(n->term, n->lit) == _querySort) {
-              BacktrackData btData;
-              _subst->bdRecord(btData);
-              closed = _subst->unify(_queryTerm, 0, n->term, n->substIndex);
-              if (closed) {
-                btData.backtrack();
-              }
-              _subst->bdDone();
-              ASS(btData.isEmpty());
-            }
-            if (!closed) {
-              delete _nextResult;
-              TermList t1 = _subst->apply(_queryTerm, 0);
-              TermList tn = _subst->apply(n->term, n->substIndex);
-              _nextResult = openChainResult(n,
-                                            t1,
-                                            tn,
-                                            SortHelper::getTermSort(n->term, n->lit));
-              return true;
-            }
+            delete _nextResult;
+            _nextResult = openChainResult(n);
+            return true;
           }
-          // either not a variable or a variable closing the chain
-          // look for unifications
-          // if a variable, this will only push the unification with
-          // the queryTerm
+          // not a variable, look for unifications
           pushUnificationsOnStack(n);
         }
       }

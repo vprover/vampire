@@ -319,7 +319,7 @@ namespace Inferences {
       _length = c1->length() + c2->length() - 1;
       unsigned i = 0;
       if (_length > 1) {
-        _csigma = static_cast<Literal**>ALLOC_KNOWN((_length - 1) * sizeof(Literal*), "Injectivity2Iterator::_csigma");
+        _csigma = (Literal**)ALLOC_KNOWN((_length - 1) * sizeof(Literal*), "Injectivity2Iterator::csigma");
 
         for (unsigned j = 0; j < c1->length(); j++) {
           if ((*c1)[j] != lit1) {
@@ -331,6 +331,8 @@ namespace Inferences {
             _csigma[i++] = sigma->applyToResult((*c2)[j]);
           }
         }
+      } else {
+        _csigma = nullptr;
       }
       ASS_EQ(i, _length - 1);
     }
@@ -338,7 +340,7 @@ namespace Inferences {
     ~Injectivity2Iterator()
     {
       if (_csigma) {
-        DEALLOC_KNOWN(_csigma, (_length - 1) * sizeof(Literal*), "Injectivity2Iterator::_csigma");
+        DEALLOC_KNOWN(_csigma, (_length - 1) * sizeof(Literal*), "Injectivity2Iterator::csigma");
       }
     }
 
@@ -347,7 +349,7 @@ namespace Inferences {
     Clause* next() {
       CALL("Injectivity2Iterator::next()");
       ASS_L(_index, _f1.term()->arity());
-      ASS_L(_index, _f2.term()->arity());
+      ASS_L(_index, _f2.term()->arity());     
 
       Literal * newLit = Literal::createEquality(true,
                                                  _sigma->applyToQuery(*_f1.term()->nthArgument(_index)),
@@ -696,7 +698,7 @@ namespace Inferences {
         _subst.bind(var, Term::create(_tac->functor(), _tac->arity(), args.begin()));
 
         // compute the common part of the conclusions
-        _asigma = static_cast<Literal**>ALLOC_KNOWN(_length * sizeof(Literal*), "Injectivity1GenIterator::_asigma");
+        _asigma = (Literal**)ALLOC_KNOWN(_length * sizeof(Literal*), "Injectivity1GenIterator::asigma");
         
         for (unsigned i = 0; i < _length; i++) {
           if ((*_clause)[i] == lit) {
@@ -713,7 +715,7 @@ namespace Inferences {
 
     ~Injectivity1GenIterator() {
       if (_asigma) {
-        DEALLOC_KNOWN(_asigma, _length * sizeof(Literal*), "Injectivity1GenIterator::_asigma");
+        DEALLOC_KNOWN(_asigma, _length * sizeof(Literal*), "Injectivity1GenIterator::asigma");
       }
     }
 
@@ -1115,7 +1117,7 @@ namespace Inferences {
           TermAlgebra* ta = env.signature->getTermAlgebraOfSort(s);
           if (ta->infiniteDomain()) {
             if (!pos) {
-              pos = static_cast<bool*>ALLOC_KNOWN(c->length() * sizeof(bool), "InfinitenessISE::simplify::pos");
+              pos = (bool*)ALLOC_KNOWN(c->length() * sizeof(bool), "InfinitenessISE::simplify::pos");
             }
             if (lit->nthArgument(0)->isVar() && (r = deleteLits(c, *lit->nthArgument(0), pos))) {
               goto ret;

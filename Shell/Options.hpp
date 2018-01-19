@@ -692,9 +692,8 @@ public:
   enum class TACyclicityCheck : unsigned int {
     OFF = 0,
     AXIOM = 1,
-    OLDRULE = 2, // n-ary rule, incomplete with variables
-    RULELIGHT = 3, // generating disequalities (very incomplete)
-    NEWRULE = 4 // n-ary rule, complete
+    RULELIGHT = 2, // generating disequalities (very incomplete)
+    RULE = 3 // n-ary rule, complete
   };
 
 

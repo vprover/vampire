@@ -1174,7 +1174,8 @@ void TheoryAxioms::apply()
     addInjectivityAxiom(ta);
     addDiscriminationAxiom(ta);
 
-    if (env.options->termAlgebraCyclicityCheck() == Options::TACyclicityCheck::AXIOM) {
+    if (env.options->termAlgebraCyclicityCheck() == Options::TACyclicityCheck::AXIOM
+        || env.options->termAlgebraCyclicityCheck() == Options::TACyclicityCheck::RULE) {
       addCyclicityAxiom(ta);
     }
 
@@ -1364,7 +1365,7 @@ void TheoryAxioms::addCyclicityAxiom(TermAlgebra* ta)
     for (unsigned i = 0; i < ta->nConstructors(); i++) {
       addSubtermDefinitions(ta, ta->constructor(i));
     }
-    addSubtermIrreflexivity(ta);
+    addSubtermReflexivity(ta);
   }
 }
 
@@ -1389,9 +1390,11 @@ void TheoryAxioms::addSubtermDefinitions(TermAlgebra* ta, TermAlgebraConstructor
 
     TermList y(i, false);
 
-    // Direct subterms are subterms: Sub(y, c(x1, ... y ..., xn))
-    Literal* sub = Literal::create2(ta->getSubtermPredicate(ta2), true, y, right);
-    addTheoryUnitClause(sub, new Inference(Inference::TERM_ALGEBRA_ACYCLICITY),CHEAP);
+    if (env.options->termAlgebraCyclicityCheck() == Options::TACyclicityCheck::AXIOM) {
+      // Direct subterms cannot be subterm subterms: ~Sub(c(x1, ... y ..., xn), y)
+      Literal* sub = Literal::create2(ta2->getSubtermPredicate(ta), false, right, y);
+      addTheoryUnitClause(sub, new Inference(Inference::TERM_ALGEBRA_ACYCLICITY),CHEAP);
+    }
 
     // Transitivity of the subterm relation: Sub(z, y) -> Sub(z, c(x1, ... y , xn))
     // one axiom for every mutual type (type of z)
@@ -1408,11 +1411,11 @@ void TheoryAxioms::addSubtermDefinitions(TermAlgebra* ta, TermAlgebraConstructor
   }
 }
 
-void TheoryAxioms::addSubtermIrreflexivity(TermAlgebra* ta) {
-  CALL("TheoryAxioms::addSubtermIrreflexivity");
+void TheoryAxioms::addSubtermReflexivity(TermAlgebra* ta) {
+  CALL("TheoryAxioms::addSubtermReflexivity");
 
   TermList x(0, false);
-  Literal* sub = Literal::create2(ta->getSubtermPredicate(ta), false, x, x);
+  Literal* sub = Literal::create2(ta->getSubtermPredicate(ta), true, x, x);
   addTheoryUnitClause(sub, new Inference(Inference::TERM_ALGEBRA_ACYCLICITY), CHEAP);
 }
 
@@ -1465,6 +1468,7 @@ void TheoryAxioms::addCtxFunctionDefinitions(TermAlgebra* ta)
 
   // unicity
   // x = hole \/ y != app(x, y) \/ z != app(x, z) \/ y = z
+  /*
   TermList z(2, false);
   Clause* c = new(4) Clause(4, Unit::AXIOM, new Inference(Inference::TERM_ALGEBRA_CYCLES));
   (*c)[0] = Literal::createEquality(true, x, hole, ta->contextSort(ta));
@@ -1478,12 +1482,11 @@ void TheoryAxioms::addCtxFunctionDefinitions(TermAlgebra* ta)
                                     ta->sort());
   (*c)[3] = Literal::createEquality(true, y, z, ta->sort());
   
-  addAndOutputTheoryUnit(c, CHEAP);
+  addAndOutputTheoryUnit(c, CHEAP);*/
 
   // TODO compare both versions
   // unicity alternative axiom
   // x = hole \/ y =! app(x, y) \/ y = cyc(x)
-  /*
   Clause* c = new(3) Clause(3, Unit::AXIOM, new Inference(Inference::TERM_ALGEBRA_CYCLES));
   (*c)[0] = Literal::createEquality(true, x, hole, ta->contextSort(ta));
   (*c)[1] = Literal::createEquality(false,
@@ -1493,7 +1496,6 @@ void TheoryAxioms::addCtxFunctionDefinitions(TermAlgebra* ta)
   (*c)[2] = Literal::createEquality(true, y, cycx, ta->sort());
   
   addAndOutputTheoryUnit(c, CHEAP);
-  */
 }
 
 void TheoryAxioms::addConstructorCtxDefinitions(TermAlgebra* ta, TermAlgebraConstructor* c)
