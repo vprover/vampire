@@ -69,7 +69,11 @@ public:
   DECL_ELEMENT_TYPE(Clause*);
 
   inline bool hasNext() { return _clauses.isNonEmpty(); }
-  inline OWN_ELEMENT_TYPE next() { return _clauses.pop(); }
+  inline OWN_ELEMENT_TYPE next() { 
+    Clause* c = _clauses.pop();
+    c->incInductionDepth();
+    return c; 
+  }
 
 private:
   void performMathInduction(Clause* premise, Literal* lit, unsigned constant);

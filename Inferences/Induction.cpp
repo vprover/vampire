@@ -87,7 +87,13 @@ InductionClauseIterator::InductionClauseIterator(Clause* premise)
   static bool goal = (kind == Options::InductionChoice::GOAL);
   static bool goal_plus = (kind == Options::InductionChoice::GOAL_PLUS);
 
-  if(premise->length()==1 && (all || ( (goal || goal_plus) && premise->isGoal())) )
+  static unsigned maxD = env.options->maxInductionDepth();
+
+
+  if(premise->length()==1 && 
+     (all || ( (goal || goal_plus) && premise->isGoal())) &&
+     (maxD == 0 || premise->inductionDepth() < maxD)
+    )
   {
     Literal* lit = (*premise)[0];
 
@@ -107,7 +113,10 @@ InductionClauseIterator::InductionClauseIterator(Clause* premise)
             || (goal_plus && env.signature->getFunction(f)->inductionSkolem())
            )
         ){
-         if(structInd && env.signature->isTermAlgebraSort(env.signature->getFunction(f)->fnType()->result())){
+         if(structInd && 
+            env.signature->isTermAlgebraSort(env.signature->getFunction(f)->fnType()->result()) &&
+            !env.signature->getFunction(f)->termAlgebraCons()
+           ){
             ta_constants.insert(f);
           }
           if(mathInd && env.signature->getFunction(f)->fnType()->result()==Sorts::SRT_INTEGER){

@@ -891,6 +891,16 @@ void Options::Options::init()
             _inductionChoice.addHardConstraint(If(equal(InductionChoice::GOAL)->Or(equal(InductionChoice::GOAL_PLUS))).then(
               _inputSyntax.is(equal(InputSyntax::TPTP))->Or<InductionChoice>(_guessTheGoal.is(equal(true)))));
 
+
+            _maxInductionDepth = UnsignedOptionValue("induction_max_depth","indmd",0);
+            _maxInductionDepth.description = "Set maximum depth of induction where 0 means no max.";
+            _maxInductionDepth.setExperimental();
+            _maxInductionDepth.tag(OptionTag::INFERENCES);
+            _maxInductionDepth.reliesOn(_induction.is(notEqual(Induction::NONE)));
+            _maxInductionDepth.addHardConstraint(lessThan(33u));
+            _lookup.insert(&_maxInductionDepth);
+
+
 	    _instantiation = ChoiceOptionValue<Instantiation>("instantiation","inst",Instantiation::OFF,{"off","on"});
 	    _instantiation.description = "Heuristically instantiate variables";
 	    _instantiation.tag(OptionTag::INFERENCES);

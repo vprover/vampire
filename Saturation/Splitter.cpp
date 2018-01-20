@@ -1202,6 +1202,7 @@ Clause* Splitter::buildAndInsertComponentClause(SplitLevel name, unsigned size, 
           new Inference1(Inference::AVATAR_COMPONENT,def_u));
 
   if(orig && orig->isTheoryDescendant()){ compCl->setTheoryDescendant(true); }
+  if(orig){ compCl->setInductionDepth(orig->inductionDepth()); }
 
   //cout << "Name " << getLiteralFromName(name).toString() << " for " << compCl->toString() << endl; 
 
