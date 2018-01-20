@@ -80,6 +80,9 @@ private:
   void performStructInductionOne(Clause* premise, Literal* lit, unsigned constant);
   void performStructInductionTwo(Clause* premise, Literal* lit, unsigned constant);
   void performStructInductionThree(Clause* premise, Literal* lit, unsigned constant);
+
+  bool notDone(Literal* lit, unsigned constant);
+
   Stack<Clause*> _clauses;
 };
 

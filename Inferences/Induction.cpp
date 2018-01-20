@@ -138,11 +138,14 @@ InductionClauseIterator::InductionClauseIterator(Clause* premise)
         static bool two = env.options->structInduction() == Options::StructuralInductionKind::TWO ||
                           env.options->structInduction() == Options::StructuralInductionKind::ALL; 
 
-        if(one){
-          performStructInductionOne(premise,lit,c);
-        }
-        if(two){
-          performStructInductionTwo(premise,lit,c);
+        if(notDone(lit,c)){
+
+          if(one){
+            performStructInductionOne(premise,lit,c);
+          }
+          if(two){
+            performStructInductionTwo(premise,lit,c);
+          }
         }
       } 
     }
@@ -330,21 +333,15 @@ void InductionClauseIterator::performStructInductionOne(Clause* premise, Literal
  * Remember! that lit is (by construction) a negative literal... so lit = !L and we're talking about the
  * smallest k that makes L[k] false
  *
- * The clauses we generate are (where L is lit here)
- * L[k]
- * k != con1(...d1(k)...d2(k)...) | ~L[d1(k)] 
- * k != con1(...d1(k)...d2(k)...) | ~L[d2(k)] 
- * k != con2( ...
- * ...
  *
  *
  */
 void InductionClauseIterator::performStructInductionTwo(Clause* premise, Literal* lit, unsigned c)
 {
 
-  // only perform on Skolem constants but not on those introduced via induction
+  // don't perform on skolem constants introduced via induction, to prevent looping
   if(env.signature->getFunction(c)->inductionSkolem()){
-    return;
+    cout << "HERE" << endl;
   }
 
   TermAlgebra* ta = env.signature->getTermAlgebraOfSort(env.signature->getFunction(c)->fnType()->result());
@@ -425,6 +422,33 @@ void InductionClauseIterator::performStructInductionThree(Clause* premise, Liter
 {
   CALL("InductionClauseIterator::performStructInductionThree");
 
+}
+
+bool InductionClauseIterator::notDone(Literal* lit, unsigned constant)
+{
+  CALL("InductionClauseIterator::notDone");
+
+  static DHSet<Literal*> done;
+  static DHMap<unsigned,TermList> blanks; 
+  unsigned srt = env.signature->getFunction(constant)->fnType()->result();
+
+  if(!blanks.find(srt)){
+    unsigned fresh = env.signature->addFreshFunction(0,"blank");
+    env.signature->getFunction(fresh)->setType(OperatorType::getConstantsType(srt));
+    TermList blank = TermList(Term::createConstant(fresh));
+    blanks.insert(srt,blank);
+  }
+
+  ConstantReplacement cr(constant,blanks.get(srt));
+  Literal* rep = cr.transform(lit);
+
+  if(done.contains(rep)){ 
+    return false; 
+  }
+
+  done.insert(rep);
+
+  return true;
 }
 
 }
