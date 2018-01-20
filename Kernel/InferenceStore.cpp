@@ -345,6 +345,9 @@ protected:
       if(cl->isTheoryDescendant()){
         out << "(TD) ";
       }
+      if(cl->inductionDepth()>0){
+        out << "(I " << cl->inductionDepth() << ") ";
+      }
     }
     else {
       FormulaUnit* fu=static_cast<FormulaUnit*>(cs);

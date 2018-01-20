@@ -74,6 +74,7 @@ Clause::Clause(unsigned length,InputType it,Inference* inf)
     _extensionalityTag(false),
     _component(false),
     _theoryDescendant(false),
+    _inductionDepth(0),
     _numSelected(0),
     _age(0),
     _weight(0),
@@ -92,15 +93,17 @@ Clause::Clause(unsigned length,InputType it,Inference* inf)
     _extensionalityTag = true;
     setInputType(Unit::AXIOM);
   }
-  static bool hasTheoryAxioms = env.options->theoryAxioms() != Options::TheoryAxiomLevel::OFF;
-  if(hasTheoryAxioms){
+  static bool check = env.options->theoryAxioms() != Options::TheoryAxiomLevel::OFF ||
+                      env.options->induction() != Options::Induction::NONE;
+  if(check){
     Inference::Iterator it = inf->iterator();
     bool td = inf->hasNext(it); // td should be false if there are no parents
-    while(inf->hasNext(it) && td){
+    unsigned id = 0; 
+    while(inf->hasNext(it)){
       Unit* parent = inf->next(it);
       if(parent->isClause()){
         td &= static_cast<Clause*>(parent)->isTheoryDescendant();
-        if(!td){break;}
+        id = max(id,static_cast<Clause*>(parent)->inductionDepth());
       }
       else{
         // if a parent is not a clause then it cannot be (i) a theory axiom itself, 
@@ -109,6 +112,7 @@ Clause::Clause(unsigned length,InputType it,Inference* inf)
       }
     }
     _theoryDescendant=td;
+    _inductionDepth=id;
   }
 
 //#if VDEBUG
@@ -441,6 +445,9 @@ vstring Clause::toString() const
   if(isTheoryDescendant()){
     result += "T ";
   }
+  //if(inductionDepth()>0){
+    result += "I("+Int::toString(inductionDepth())+") ";
+  //}
   result +=  inferenceAsString();
   return result;
 }
