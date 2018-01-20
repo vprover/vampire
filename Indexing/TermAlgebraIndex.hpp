@@ -45,24 +45,48 @@ struct ChainQueryResult {
   ChainQueryResult(Lib::List<Kernel::Literal*>* l,
                    Lib::List<Kernel::Clause*>* p,
                    Lib::List<Kernel::Clause*>* c,
-                   Literal* lit)
+                   TermList t1,
+                   unsigned t1sort,
+                   TermList tn,
+                   unsigned tnsort)
     :
     literals(l),
     premises(p),
     clausesTheta(c),
-    subLit(lit)
+    term1(t1),
+    term1sort(t1sort),
+    termn(tn),
+    termnsort(tnsort),
+    isCycle(false)
+  {}
+
+  ChainQueryResult(Lib::List<Kernel::Literal*>* l,
+                   Lib::List<Kernel::Clause*>* p,
+                   Lib::List<Kernel::Clause*>* c)
+    :
+    literals(l),
+    premises(p),
+    clausesTheta(c),
+    term1(),
+    term1sort(0),
+    termn(),
+    termnsort(0),
+    isCycle(true)
   {}
 
   CLASS_NAME(ChainQueryResult);
   USE_ALLOCATOR(ChainQueryResult);
 
   unsigned totalLengthClauses();
-  bool isCycle() { return !subLit; }
   
   Lib::List<Kernel::Literal*>* literals;
   Lib::List<Kernel::Clause*>* premises;
   Lib::List<Kernel::Clause*>* clausesTheta; // the three lists should be the same length
-  Kernel::Literal* subLit; // null if chain is a cycle
+  Kernel::TermList term1;
+  unsigned term1sort;
+  Kernel::TermList termn; // null if chain is a cycle
+  unsigned termnsort;
+  bool isCycle;
 };
 
 class AcyclicityIndex

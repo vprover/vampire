@@ -895,7 +895,7 @@ namespace Inferences {
       ClauseList::Iterator premises(qres.premises);
       ClauseList::Iterator clausesTheta(qres.clausesTheta);
       
-      unsigned length = qres.totalLengthClauses() - LiteralList::length(qres.literals) + (qres.isCycle() ? 0 : 1);
+      unsigned length = qres.totalLengthClauses() - LiteralList::length(qres.literals) + (qres.isCycle ? 0 : 1);
       UnitList* ulpremises = UnitList::empty();
       while (premises.hasNext()) {
         UnitList::push(premises.next(), ulpremises);
@@ -924,8 +924,11 @@ namespace Inferences {
         maxVar++;
       }
 
-      if (!qres.isCycle()) {
-        (*res)[i++] = qres.subLit;
+      if (!qres.isCycle) {
+        TermAlgebra* ta1 = env.signature->getTermAlgebraOfSort(qres.term1sort);
+        TermAlgebra* tan = env.signature->getTermAlgebraOfSort(qres.termnsort);
+        unsigned pred = tan->getSubtermPredicate(ta1);
+        (*res)[i++] = Literal::create2(pred, false, qres.term1, qres.termn);
       }
       
       ASS (!literals.hasNext());

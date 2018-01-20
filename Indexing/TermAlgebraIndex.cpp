@@ -186,8 +186,13 @@ namespace Indexing
       parent(n),
       depth(d),
       substIndex(i),
-      isUnificationNode(b)
-    {}
+      isUnificationNode(b),
+      refCnt(0)
+    {
+      if (parent) {
+        parent->refCnt++;
+      }
+    }
 
     static ChainSearchTreeNode *subtermNode(TermList t,
                                             Literal *l,
@@ -217,7 +222,7 @@ namespace Indexing
     unsigned depth;
     unsigned substIndex;
     bool isUnificationNode;
-
+    unsigned refCnt;
   };
 
   struct AcyclicityIndex::ChainSearchIterator
@@ -256,6 +261,7 @@ namespace Indexing
 
     ~ChainSearchIterator()
     {
+      ASS(_stack.isEmpty());
       if (_nextResult) {
         delete _nextResult;
       }
@@ -305,7 +311,7 @@ namespace Indexing
       ASS_EQ(ClauseList::length(c), LiteralList::length(l));
       ASS_EQ(ClauseList::length(c), ClauseList::length(cTheta));
 
-      return new ChainQueryResult(l, c, cTheta, nullptr);
+      return new ChainQueryResult(l, c, cTheta);
     }
 
     ChainQueryResult *openChainResult(ChainSearchTreeNode *node)
@@ -342,17 +348,11 @@ namespace Indexing
       ASS_EQ(ClauseList::length(c), LiteralList::length(l));
       ASS_EQ(ClauseList::length(c), ClauseList::length(cTheta));
 
-      Literal *subLit = nullptr;
       if (_querySort != tnsort || !TermList::equals(t1, tn)) {
-        TermAlgebra* ta1 = env.signature->getTermAlgebraOfSort(_querySort);
-        TermAlgebra* tan = env.signature->getTermAlgebraOfSort(tnsort);
-        unsigned pred = tan->getSubtermPredicate(ta1);
-        subLit = Literal::create2(pred,
-                                  false,
-                                  t1,
-                                  tn);
+        return new ChainQueryResult(l, c, cTheta, t1, _querySort, tn, tnsort);
       }
-      return new ChainQueryResult(l, c, cTheta, subLit);
+      // this is actually a cycle
+      return new ChainQueryResult(l, c, cTheta);
     }
 
     void pushUnificationsOnStack(ChainSearchTreeNode *n)
@@ -406,6 +406,19 @@ namespace Indexing
 
       return true;
     }
+    
+    void deleteNodeAndParents(ChainSearchTreeNode *n) {
+      CALL("AcyclicityIndex::ChainSearchIterator::deleteNodeAndParents");
+      
+      ChainSearchTreeNode* node = n;
+
+      while (node && node->refCnt == 0) {
+        ChainSearchTreeNode* next = n->parent;
+        next->refCnt--;
+        delete node;
+        node = next;
+      }
+    }
 
     bool hasNext()
     {
@@ -425,7 +438,7 @@ namespace Indexing
         }
 
         if (n->isUnificationNode) {
-          if (n->parent) {
+          if (n->parent) { // not the root
             BacktrackData btData;
             _subst->bdRecord(btData);
             if (_subst->unify(n->parent->term,
@@ -436,6 +449,15 @@ namespace Indexing
               _currentDepth++;
               ASS_EQ(_currentDepth, _substChanges.size());
               _subst->bdDone();
+              // check whether we found a cycle
+              TermList t1 = _subst->apply(_queryTerm, 0);
+              TermList tn = _subst->apply(n->term, n->substIndex);
+              if (n->lit == _queryLit && TermList::equals(t1, tn)) {
+                delete _nextResult;
+                _nextResult = cycleResult(n);
+                deleteNodeAndParents(n);
+                return true;
+              }
             } else {
               _subst->bdDone();
               ASS(btData.isEmpty());
@@ -443,19 +465,11 @@ namespace Indexing
               // structure can return "false positives", i.e. terms
               // that cannot unify (because they come from the same
               // clause)
+              deleteNodeAndParents(n);
               continue;
             }
           }
-          if (n->parent) { // not the root of the search tree
-            TermList t1 = _subst->apply(_queryTerm, 0);
-            TermList tn = _subst->apply(n->term, n->substIndex);
-            if (n->lit == _queryLit && TermList::equals(t1, tn)) {
-              // found a cycle
-              delete _nextResult;
-              _nextResult = cycleResult(n);
-              return true;
-            }
-          }
+          // add subterm nodes to the stack if applicable
           if (_aindex._lIndex.find(make_pair(n->lit, n->clause))) {
             IndexEntry *entry = _aindex._lIndex.get(make_pair(n->lit, n->clause));
             List<TermList>::Iterator it(entry->subterms);
@@ -468,16 +482,20 @@ namespace Indexing
                                                            n->substIndex));
             }
           }
-        } else {
+        } else { // n is a subterm node
           if (n->term.isVar()) {
             delete _nextResult;
             _nextResult = openChainResult(n);
+            deleteNodeAndParents(n);
             return true;
           }
           // not a variable, look for unifications
           pushUnificationsOnStack(n);
         }
+        // this deletes only if the node has no children
+        deleteNodeAndParents(n);
       }
+      // delete last popped node, if it has no children
       return false;
     }
     
