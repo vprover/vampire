@@ -1170,9 +1170,12 @@ void TheoryAxioms::apply()
     TermAlgebra* ta = tas.next();
 
     addExhaustivenessAxiom(ta);
-    addDistinctnessAxiom(ta);
-    addInjectivityAxiom(ta);
-    addDiscriminationAxiom(ta);
+    // the other axioms can be replaced by the full inference system
+    if (env.options->termAlgebraInferences() != Options::TAInferences::FULL) {
+      addDistinctnessAxiom(ta);
+      addInjectivityAxiom(ta);
+      addDiscriminationAxiom(ta);
+    }
 
     if (env.options->termAlgebraCyclicityCheck() == Options::TACyclicityCheck::AXIOM
         || env.options->termAlgebraCyclicityCheck() == Options::TACyclicityCheck::RULE) {
