@@ -352,8 +352,12 @@ public:
 	VPI_ELIMINATION,
 	/* vSIGMA Elimination */
 	VSIGMA_ELIMINATION,
-	/* combinator elimination */
-	COMBINATOR_ELIMINATION,
+	/*combinator eliminations */
+	I_COMBINATOR_ELIMINATION,
+  K_COMBINATOR_ELIMINATION,
+  B_COMBINATOR_ELIMINATION,
+  C_COMBINATOR_ELIMINATION,
+  S_COMBINATOR_ELIMINATION,
   }; // class Inference::Rule
 
   explicit Inference(Rule r);

@@ -1001,6 +1001,7 @@ unsigned FOOLElimination::introduceFreshSymbol(Context context, const char* pref
 void FOOLElimination::reportProcessed(vstring inputRepr, vstring outputRepr) {
   CALL("FOOLElimination::reportProcessed");
 
+  /*  */
   if (inputRepr != outputRepr) {
     /**
      * If show_fool is set to off, the string representations of the input
@@ -1010,10 +1011,11 @@ void FOOLElimination::reportProcessed(vstring inputRepr, vstring outputRepr) {
      * the output seeming the same, we will not log such processings at
      * all. Setting show_fool to on, however, will display everything.
      */
+     /*
     env.beginOutput();
     env.out() << "[PP] FOOL in:  " << inputRepr  << endl;
     env.out() << "[PP] FOOL out: " << outputRepr << endl;
-    env.endOutput();
+    env.endOutput(); */
   }
 }
 
