@@ -183,8 +183,7 @@ bool TermAlgebra::existsSmallestTerm() {
     unsigned j;
     for (j = 0; j < c->arity(); j++) {
       unsigned s = c->argSort(j);
-      if (env.signature->isTermAlgebraSort(s) &&
-          !env.signature->getTermAlgebraOfSort(s)->_allowsCyclicTerms) {
+      if (isMutualTypeSort(s)) {
         break;
       }
     }
