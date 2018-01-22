@@ -239,7 +239,9 @@ pid_t Multiprocessing::poll_children(bool &stopped, bool &exited, int &code)
   stopped = WIFSTOPPED(status);
   exited = WIFEXITED(status);
   if(exited)
+  {
     code = WEXITSTATUS(status);
+  }
   return pid;
 }
 
