@@ -411,19 +411,19 @@ namespace Inferences {
       ASS(tqr.literal->isEquality());
       if (SortHelper::getEqualityArgumentSort(_lit) != SortHelper::getEqualityArgumentSort(tqr.literal)) {
         // despite the unification, this can happen
-        // probably if the unified temr is a variable?
+        // probably if the unified term is a variable?
         return VirtualIterator<Clause*>::getEmpty();
       }
 
       // check ordering contrainst after substitution
       if (Ordering::isGorGEorE(_ord.compare(tqr.substitution->applyToQuery(_rhs),
-                                            tqr.substitution->applyToResult(_lhs)))) {
+                                            tqr.substitution->applyToQuery(_lhs)))) {
         return VirtualIterator<Clause*>::getEmpty();
       }
       // same thing in the target clause
       TermList rhs2 = tqr.term;
       TermList lhs2 = EqHelper::getOtherEqualitySide(tqr.literal, rhs2);
-      if (Ordering::isGorGEorE(_ord.compare(tqr.substitution->applyToQuery(rhs2),
+      if (Ordering::isGorGEorE(_ord.compare(tqr.substitution->applyToResult(rhs2),
                                             tqr.substitution->applyToResult(lhs2)))) {
         return VirtualIterator<Clause*>::getEmpty();
       }
