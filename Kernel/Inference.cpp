@@ -498,8 +498,16 @@ vstring Inference::ruleName(Rule rule)
 	return "HOL PI constant elimination";
   case VSIGMA_ELIMINATION:
     return "HOL SIGMA constant elimination"; 
-  case COMBINATOR_ELIMINATION:
-    return "combinator elimination";
+  case I_COMBINATOR_ELIMINATION:
+    return "I combinator elimination";
+  case K_COMBINATOR_ELIMINATION:
+    return "K combinator elimination";
+  case B_COMBINATOR_ELIMINATION:
+    return "B combinator elimination";
+  case C_COMBINATOR_ELIMINATION:
+    return "C combinator elimination";
+  case S_COMBINATOR_ELIMINATION:
+    return "S combinator elimination";
   default:
     ASSERTION_VIOLATION;
     return "!UNKNOWN INFERENCE RULE!";

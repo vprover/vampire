@@ -147,7 +147,7 @@ TermList LambdaElimination::processBeyondLambda(Term* term)
                         first = false;
                       }else{
                         buildFuncApp(app1arg, constant, appTerm, appTerm); 
-						buildFuncApp(app2arg, appTerm, form, appTerm); 
+                        buildFuncApp(app2arg, appTerm, form, appTerm); 
                       }
                       oddNumber = false;
                   }else{
@@ -182,7 +182,7 @@ TermList LambdaElimination::processBeyondLambda(Term* term)
                 Formula::VarList::Iterator vit(vars);
                 Formula::SortList* sorts = fm->sorts();
                 Stack<unsigned> sortsRev;
-				
+
                 TermList form;
                 
                 Formula* qform = fm->qarg();
@@ -195,22 +195,22 @@ TermList LambdaElimination::processBeyondLambda(Term* term)
                   unsigned res;
                   while(vit.hasNext()){
                     if(SortHelper::tryGetVariableSort(vit.next(), qform, res)){
-					  sorts = sorts->addLast(sorts, res);
-					}
+                      sorts = sorts->addLast(sorts, res);
+                    }
                   }
                 }
                 unsigned lambdaExpSort = Sorts::SRT_BOOL;
-			    Formula::SortList::Iterator sit(sorts);
-				while(sit.hasNext()){
-					sortsRev.push(sit.next());
-				}
-				while(!sortsRev.isEmpty()){
-					lambdaExpSort = env.sorts->addFunctionSort(sortsRev.pop(), lambdaExpSort);
-				}
-				
-                Term* lambdaArg = Term::createLambda(form, LAMBDA, vars, sorts, Sorts::SRT_BOOL);			
-                TermList translatedArg = elimLambda(lambdaArg);              	
-			
+                Formula::SortList::Iterator sit(sorts);
+                while(sit.hasNext()){
+                  sortsRev.push(sit.next());
+                }
+                while(!sortsRev.isEmpty()){
+                  lambdaExpSort = env.sorts->addFunctionSort(sortsRev.pop(), lambdaExpSort);
+                }
+        
+                Term* lambdaArg = Term::createLambda(form, LAMBDA, vars, sorts, Sorts::SRT_BOOL);     
+                TermList translatedArg = elimLambda(lambdaArg);               
+      
                 unsigned constSort = env.sorts->addFunctionSort(lambdaExpSort, Sorts::SRT_BOOL);
                 
                 bool added;
@@ -226,7 +226,7 @@ TermList LambdaElimination::processBeyondLambda(Term* term)
                 unsigned app = introduceAppSymbol( constSort, lambdaExpSort, Sorts::SRT_BOOL); 
                 
                 buildFuncApp(app, constant, translatedArg, appTerm);
-				
+        
                 return appTerm;
              }
              case TRUE:
@@ -275,10 +275,10 @@ TermList LambdaElimination::elimLambda(Term* lambdaTerm)
 {
     CALL("LambdaElimination::elimLambda");
     
-	Stack<int> _vars;
+    Stack<int> _vars;
     Stack<unsigned> _sorts;
-	Stack<TermList> _toBeProcessed;
-	
+    Stack<TermList> _toBeProcessed;
+  
     ASS(lambdaTerm->isSpecial());
     Term::SpecialTermData* sd = lambdaTerm->getSpecialData();
     ASS_EQ(sd->getType(), Term::SF_LAMBDA);
@@ -300,9 +300,9 @@ TermList LambdaElimination::elimLambda(Term* lambdaTerm)
 
     lambdaExp = sd->getLambdaExp();
     _toBeProcessed.push(lambdaExp);
-	
+  
     process(_vars, _sorts, _toBeProcessed);    
-	
+  
     return _processed.pop();
     
 }
@@ -322,9 +322,9 @@ void LambdaElimination::process(Stack<int> _vars, Stack<unsigned> _sorts, Stack<
     lambdaVarSort = _sorts.pop();
     
     while (!_toBeProcessed.isEmpty()){  
-	 
+   
        _processing = _toBeProcessed.pop(); 
-	   	 
+       
        if (_processing.isTerm()){ 
         
         Term* lExpTerm = _processing.term();
@@ -347,8 +347,8 @@ void LambdaElimination::process(Stack<int> _vars, Stack<unsigned> _sorts, Stack<
                       break;
                   }
                   case Term::SF_LAMBDA: {
-					  _toBeProcessed.push(elimLambda(lExpTerm));
-					  break;
+                      _toBeProcessed.push(elimLambda(lExpTerm));
+                      break;
                   }
                   default:
                       ASSERTION_VIOLATION;
@@ -397,7 +397,7 @@ void LambdaElimination::process(Stack<int> _vars, Stack<unsigned> _sorts, Stack<
 
 void LambdaElimination::addToProcessed(TermList ts, Stack<unsigned> &_argNums){
     CALL("LambdaElimination::addToProcessed");
-	
+  
     unsigned numOfArgs;
     _processed.push(ts);
     if(!_argNums.isEmpty()){
@@ -416,7 +416,7 @@ void LambdaElimination::addToProcessed(TermList ts, Stack<unsigned> &_argNums){
 
         TermList arg1 = _processed.pop();   
         TermList arg2 = _processed.pop();
-		
+    
         unsigned combSort = _combSorts.pop();   
         if(comb == Signature::Symbol::B_COMB){
             _processed.push(addComb(combSort,arg2, arg1,comb));
@@ -445,7 +445,7 @@ void LambdaElimination::dealWithApp(TermList lhs, TermList rhs, unsigned sort, i
     
     IntList* lhsFVs = lhs.freeVariables();
     IntList* rhsFVs = rhs.freeVariables();
-	
+  
     if(rhs.isVar() && (rhs.var() == (unsigned)lambdaVar) && !IntList::member(lambdaVar, lhsFVs)){
         //This is the case [\x. exp @ x] wehere x is not free in exp.
         lhs.isTerm() ? addToProcessed(processBeyondLambda(lhs.term()), _argNums) : addToProcessed(lhs, _argNums);
@@ -504,7 +504,7 @@ TermList LambdaElimination::addComb(unsigned appliedToArgs, TermList arg1, TermL
     
     bool added;
     switch(comb){
-       case Signature::Symbol::S_COMB:	
+       case Signature::Symbol::S_COMB:  
           ts = addHolConstant("sCOMB",appliedToZeroArgs, added, comb);
           break;
        case Signature::Symbol::C_COMB:
@@ -547,7 +547,7 @@ TermList LambdaElimination::addHolConstant(vstring name, unsigned sort, bool& ad
     if(added){//first time constant added. Set type
         Signature::Symbol* symbol = env.signature->getFunction(fun);  
         symbol->setType(OperatorType::getConstantsType(sort));
-        symbol->setHOLConstant(cnst);		
+        symbol->setHOLConstant(cnst);   
     }
     Term* t = Term::createConstant(fun);
     TermList ts(t);
@@ -597,13 +597,13 @@ unsigned LambdaElimination::introduceAppSymbol(unsigned sort1, unsigned sort2, u
   if(added){
    env.signature->getFunction(symbol)->setType(type);
    env.signature->getFunction(symbol)->markHOLAPP();
-   if (env.options->showPreprocessing()) {
+   /*if (env.options->showPreprocessing()) {
     env.beginOutput();
     env.out() << "[PP] Lambda or application elimination introduced ";
     env.out() << "function symbol " << env.signature->functionName(symbol) << endl;
     //env.out() << " of the sort " << type->toString() << endl; This produces really long and horrible output.
     env.endOutput();
-   }
+   }*/
   }
 
   return symbol;
@@ -622,7 +622,7 @@ void LambdaElimination::buildFuncApp(unsigned symbol, TermList arg1, TermList ar
                                             Signature::Symbol::HOLConstant comb, int arg1Sort, int arg2Sort )
  {
      CALL("LambdaElimination::addCombinatorAxiom"); 
-	 
+   
      Formula* combAxiom;
        
      TermList functionApplied;
@@ -633,7 +633,7 @@ void LambdaElimination::buildFuncApp(unsigned symbol, TermList arg1, TermList ar
      
      unsigned appFun = introduceAppSymbol( combinatorSort, argSort, range(combinatorSort));
      buildFuncApp(appFun, combinator, var1, functionApplied);
-	 
+   
      switch(comb){
         case Signature::Symbol::I_COMB: {    
             combAxiom = createEquality(functionApplied, var1, argSort);
@@ -681,12 +681,12 @@ void LambdaElimination::buildFuncApp(unsigned symbol, TermList arg1, TermList ar
             if(comb == Signature::Symbol::S_COMB){ 
                 appFun = introduceAppSymbol( argSort, arg2Sort, range(argSort));
                 buildFuncApp(appFun, var1, var3, functionApplied4);
-			 
+       
                 appFun = introduceAppSymbol( arg1Sort, arg2Sort, range(arg1Sort));
                 buildFuncApp(appFun, var2, var3, functionApplied5);
    
                 appFun = introduceAppSymbol( range(argSort), range(arg1Sort), range(range(argSort)));
-                buildFuncApp(appFun, functionApplied4, functionApplied5, functionApplied6);  			
+                buildFuncApp(appFun, functionApplied4, functionApplied5, functionApplied6);       
             }
             
             if(comb == Signature::Symbol::B_COMB){
@@ -751,7 +751,7 @@ void LambdaElimination::buildFuncApp(unsigned symbol, TermList arg1, TermList ar
     TermList functionApplied2;
     Formula::VarList* vars = Formula::VarList::empty();
     Formula::SortList* sorts = Formula::SortList::empty();
-	
+  
     TermList var1 = TermList(0, false);
     List<int>* varList = new List<int>(var1.var());
     List<unsigned>* sortList = new List<unsigned>(argSort);
@@ -759,28 +759,28 @@ void LambdaElimination::buildFuncApp(unsigned symbol, TermList arg1, TermList ar
     unsigned appFun = introduceAppSymbol(constSort, argSort, Sorts::SRT_BOOL);
     buildFuncApp(appFun, constant, var1, functionApplied);
 
-	TermList var;
-	unsigned varNum = 1;
-	unsigned currSort;
+  TermList var;
+  unsigned varNum = 1;
+  unsigned currSort;
     functionApplied2 = var1;
-    do{		
-		currSort = domain(argSort);
-		sorts = sorts->addLast(sorts, currSort);
+    do{   
+    currSort = domain(argSort);
+    sorts = sorts->addLast(sorts, currSort);
 
-		var = TermList(varNum, false);
-		vars = vars->addLast(vars, var.var());
-		varNum += 1;
+    var = TermList(varNum, false);
+    vars = vars->addLast(vars, var.var());
+    varNum += 1;
 
-		unsigned appFun = introduceAppSymbol(argSort, currSort, range(argSort));
+    unsigned appFun = introduceAppSymbol(argSort, currSort, range(argSort));
         buildFuncApp(appFun, functionApplied2, var, functionApplied2);
-		argSort = range(argSort);
-	}while(!(argSort == Sorts::SRT_BOOL));
+    argSort = range(argSort);
+  }while(!(argSort == Sorts::SRT_BOOL));
 
     qAxiom = toEquality(functionApplied);
     qAxiom = new BinaryFormula(IFF, qAxiom, new QuantifiedFormula(conn, vars, sorts, toEquality(functionApplied2)));
     qAxiom = new QuantifiedFormula(FORALL, varList, sortList, qAxiom); 
     
-	
+  
     Inference* qInference;
     qInference = new Inference(Inference::LAMBDA_ELIMINATION_QUANTIFIER);
     

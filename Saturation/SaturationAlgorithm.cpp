@@ -716,18 +716,7 @@ void SaturationAlgorithm::addNewClause(Clause* cl)
 {
   CALL("SaturationAlgorithm::addNewClause");
 
-  cout << "new clause: " << cl->toString() << endl;
-  #if VDEBUG
-  DHMap<unsigned,unsigned> vsorts;
-  SortHelper::collectVariableSorts(cl,vsorts);
-  DHSet<unsigned> vars;
-  cl->collectVars(vars);
-  DHSet<unsigned>::Iterator vit(vars);
-  while(vit.hasNext()){
-    unsigned v = vit.next();
-    cout << "X" << v << " <- " << vsorts.get(v) << endl;
-  }
-  #endif
+  //cout << "new clause: " << cl->toString() << endl;
 
   //we increase the reference counter here so that the clause wouldn't
   //get destroyed during handling in the onNewClause handler
