@@ -997,7 +997,6 @@ void Options::Options::init()
             _lookup.insert(&_termAlgebraInferences);
             _termAlgebraInferences.tag(OptionTag::INFERENCES);
 
-            // TODO clean up after experiments
             _termAlgebraCyclicityCheck = ChoiceOptionValue<TACyclicityCheck>("term_algebra_acyclicity",
                                                                              "tac",
                                                                              TACyclicityCheck::OFF,

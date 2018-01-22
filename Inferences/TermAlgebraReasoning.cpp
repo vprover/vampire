@@ -753,7 +753,6 @@ namespace Inferences {
     Literal **_asigma;
     unsigned _litpos;
     unsigned _length;
-    unsigned _refCnt;
   };
 
   struct Injectivity1GIE::Injectivity1GenFn

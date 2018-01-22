@@ -414,7 +414,9 @@ namespace Indexing
 
       while (node && node->refCnt == 0) {
         ChainSearchTreeNode* next = n->parent;
-        next->refCnt--;
+        if (next) {
+          next->refCnt--;
+        }
         delete node;
         node = next;
       }
