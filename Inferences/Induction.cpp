@@ -119,7 +119,10 @@ InductionClauseIterator::InductionClauseIterator(Clause* premise)
            ){
             ta_constants.insert(f);
           }
-          if(mathInd && env.signature->getFunction(f)->fnType()->result()==Sorts::SRT_INTEGER){
+          if(mathInd && 
+             env.signature->getFunction(f)->fnType()->result()==Sorts::SRT_INTEGER &&
+             !theory->isInterpretedConstant(f)
+            ){
             int_constants.insert(f);
           }
         }
@@ -161,8 +164,6 @@ InductionClauseIterator::InductionClauseIterator(Clause* premise)
 void InductionClauseIterator::performMathInduction(Clause* premise, Literal* lit, unsigned c)
 {
   CALL("InductionClauseIterator::performMathInduction");
-
-        NOT_IMPLEMENTED;
 
         //cout << "PERFORM INDUCTION on " << env.signature->functionName(c) << endl;
 
@@ -333,16 +334,9 @@ void InductionClauseIterator::performStructInductionOne(Clause* premise, Literal
  * Remember! that lit is (by construction) a negative literal... so lit = !L and we're talking about the
  * smallest k that makes L[k] false
  *
- *
- *
  */
 void InductionClauseIterator::performStructInductionTwo(Clause* premise, Literal* lit, unsigned c)
 {
-
-  // don't perform on skolem constants introduced via induction, to prevent looping
-  if(env.signature->getFunction(c)->inductionSkolem()){
-    cout << "HERE" << endl;
-  }
 
   TermAlgebra* ta = env.signature->getTermAlgebraOfSort(env.signature->getFunction(c)->fnType()->result());
   unsigned ta_sort = ta->sort();
