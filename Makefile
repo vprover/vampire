@@ -144,7 +144,7 @@ endif
 ################################################################
 
 CXX = g++
-CXXFLAGS = $(XFLAGS) -Wall -std=c++11 -Wno-unknown-warning-option -Wno-terminate $(INCLUDES)
+CXXFLAGS = $(XFLAGS) -Wall -std=c++11 -Wno-terminate $(INCLUDES) # -Wno-unknown-warning-option for clang
 
 CC = gcc 
 CCFLAGS = -Wall -O3 -DNDBLSCR -DNLGLOG -DNDEBUG -DNCHKSOL -DNLGLPICOSAT 

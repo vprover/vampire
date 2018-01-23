@@ -75,7 +75,7 @@ namespace Shell
     using namespace Kernel;
     
     
-#pragma mark - preprocessing proof
+//preprocessing proof
     
     void InterpolantsNew::removeTheoryInferences(Unit* refutation)
     {
@@ -144,7 +144,7 @@ namespace Shell
     }
     
     
-#pragma mark - main method
+//main method
 
     /*
      * main method
@@ -179,7 +179,7 @@ namespace Shell
     }
     
     
-#pragma mark - main helper methods
+//main helper methods
     
     /*
      * compute the maximal A-subproofs of the proofs using standard union-find ideas as described in the thesis
@@ -423,7 +423,7 @@ namespace Shell
     }
 
 
-    #pragma mark - splitting function
+    // splitting function
  
     /*
      * implements local splitting function from the thesis (improved version of approach #2, cf. section 3.3)
@@ -504,7 +504,7 @@ namespace Shell
         return splittingFunction;
     }
 
-#pragma mark - helper method for unit weight
+// helper method for unit weight
 
     double InterpolantsNew::weightForUnit(Kernel::Unit* unit, UnitWeight weightFunction)
     {
@@ -522,7 +522,7 @@ namespace Shell
     }
 
 
-#pragma mark - union find helper methods
+// union find helper methods
     
   /*
    * standard implementation of union-find following

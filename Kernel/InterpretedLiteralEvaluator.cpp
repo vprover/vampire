@@ -92,7 +92,7 @@ class InterpretedLiteralEvaluator::EqualityEvaluator
     return true;
   }
 
-  bool tryEvaluatePred(Literal* lit, bool& res)
+  bool tryEvaluatePred(Literal* lit, bool& res) override
   {
     CALL("InterpretedLiteralEvaluator::EqualityEvaluator::tryEvaluatePred");
 
@@ -140,7 +140,7 @@ public:
     return theory->isConversionOperation(theory->interpretFunction(func));
   }
 
-  virtual bool tryEvaluateFunc(Term* trm, TermList& res)
+  virtual bool tryEvaluateFunc(Term* trm, TermList& res) override
   {
     CALL("InterpretedLiteralEvaluator::ConversionEvaluator::tryEvaluateFunc");
     ASS(theory->isInterpretedFunction(trm));
@@ -261,7 +261,7 @@ public:
     return opSort==T::getSort();
   }
 
-  virtual bool tryEvaluateFunc(Term* trm, TermList& res)
+  virtual bool tryEvaluateFunc(Term* trm, TermList& res) override
   {
     CALL("InterpretedLiteralEvaluator::tryEvaluateFunc");
     ASS(theory->isInterpretedFunction(trm));
@@ -347,7 +347,7 @@ public:
     }
   }
 
-  virtual bool tryEvaluatePred(Literal* lit, bool& res)
+  virtual bool tryEvaluatePred(Literal* lit, bool& res) override
   {
     CALL("InterpretedLiteralEvaluator::tryEvaluatePred");
     ASS(theory->isInterpretedPredicate(lit));
