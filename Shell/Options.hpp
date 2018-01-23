@@ -1841,6 +1841,8 @@ public:
   bool showCVC4() const { return showAll() || _showCVC4.actualValue; }
   bool cvc4TranslateNonGnd() const { return _cvc4TranslateNonGnd.actualValue; }
   bool cvc4WithEMatching() const { return _cvc4WithEMatching.actualValue; }
+  int cvc4InstantiationLimit() const { return _cvc4InstLimit.actualValue; }
+  int cvc4InstantiationLimitAll() const { return _cvc4InstLimitAll.actualValue; }
 
   // end of show commands
 
@@ -2335,6 +2337,8 @@ private:
   BoolOptionValue _showCVC4;
   BoolOptionValue _cvc4TranslateNonGnd;
   BoolOptionValue _cvc4WithEMatching;
+  IntOptionValue _cvc4InstLimit;
+  IntOptionValue _cvc4InstLimitAll;
 #if VZ3
   BoolOptionValue _showZ3;
   BoolOptionValue _z3UnsatCores;

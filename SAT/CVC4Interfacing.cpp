@@ -60,6 +60,20 @@ CVC4Interfacing::CVC4Interfacing(const Shell::Options& opts,SAT2FO& s2f):
   if (!opts.cvc4WithEMatching()) {
     _engine.setOption("e-matching", false);
   }
+
+  // _engine.setOption("help",true);
+
+  if (opts.cvc4InstantiationLimit() > 0) {
+    _engine.setOption("inst-round-limit",CVC4::SExpr(opts.cvc4InstantiationLimit()));
+  }
+
+  if (opts.cvc4InstantiationLimitAll() > 0) {
+    _engine.setOption("inst-round-limit-all",CVC4::SExpr(opts.cvc4InstantiationLimitAll()));
+  }
+
+  // dumping stuff
+  //_engine.setOption("output-language",CVC4::SExpr("smt2"));
+  //_engine.setOption("dump",CVC4::SExpr("assertions"));
 }
   
 unsigned CVC4Interfacing::newVar()

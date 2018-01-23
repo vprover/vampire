@@ -668,6 +668,18 @@ void Options::Options::init()
     _lookup.insert(&_cvc4WithEMatching);
     _cvc4WithEMatching.tag(OptionTag::DEVELOPMENT);
 
+    _cvc4InstLimit = IntOptionValue("cvc4_instantiation_round_limit","cvc4il", 0);
+    // "which limits the number of instantiation rounds of E-matching to N.  With this option, the number of rounds of conflict-based instantiation is still unlimited."
+    // zero counts as unlimited
+    _lookup.insert(&_cvc4InstLimit);
+    _cvc4InstLimit.tag(OptionTag::DEVELOPMENT);
+
+    _cvc4InstLimitAll = IntOptionValue("cvc4_instantiation_round_limit_all","cvc4ila", 0);
+    // "which limits the number of instantiation rounds of *any* instantiation technique (including cbi) to N."
+    // zero counts as unlimited
+    _lookup.insert(&_cvc4InstLimitAll);
+    _cvc4InstLimitAll.tag(OptionTag::DEVELOPMENT);
+
     _showCVC4 = BoolOptionValue("show_cvc4","",false);
     _showCVC4.description="Print stuff being added to CVC4";
     _lookup.insert(&_showCVC4);
