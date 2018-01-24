@@ -154,6 +154,9 @@ public:
 
   bool isSafe() const;
 
+  static bool positionIn(TermList& subterm,TermList* term, vstring& position);
+  static bool positionIn(TermList& subterm,Term* term, vstring& position);
+
   IntList* freeVariables() const;
 
 #if VDEBUG
@@ -320,9 +323,6 @@ public:
   //** fool constants
   static Term* foolTrue(); 
   static Term* foolFalse();
-
-  static bool positionIn(TermList& subterm,TermList* term, vstring& position);
-  static bool positionIn(TermList& subterm,Term* term, vstring& position);
 
   IntList* freeVariables() const;
 

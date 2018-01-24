@@ -549,7 +549,7 @@ Clause* Superposition::performSuperposition(
     vstring eqPlace = Lib::Int::toString(eqClause->getLiteralPosition(eqLit));
 
     vstring rwPos="_";
-    ALWAYS(Inference::positionIn(rwTerm,rwLit,rwPos));
+    ALWAYS(TermList::positionIn(rwTerm,rwLit,rwPos));
     vstring eqPos = "("+eqPlace+").2";
     rwPos = "("+rwPlace+")."+rwPos;
 
