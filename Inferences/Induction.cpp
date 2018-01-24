@@ -89,6 +89,8 @@ InductionClauseIterator::InductionClauseIterator(Clause* premise)
 
   static unsigned maxD = env.options->maxInductionDepth();
 
+  bool negOnly = env.options->inductionNegOnly();
+
 
   if(premise->length()==1 && 
      (all || ( (goal || goal_plus) && premise->isGoal())) &&
@@ -98,7 +100,11 @@ InductionClauseIterator::InductionClauseIterator(Clause* premise)
     Literal* lit = (*premise)[0];
 
      // TODO change to allow for positive occurence of <
-    if(lit->isNegative() && lit->ground()){
+    if((!negOnly || lit->isNegative() || 
+         (theory->isInterpretedPredicate(lit) && theory->isInequality(theory->interpretPredicate(lit)))
+       )&& 
+       lit->ground()
+      ){
 
       Set<unsigned> ta_constants;
       Set<unsigned> int_constants;
