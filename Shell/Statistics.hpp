@@ -189,6 +189,7 @@ public:
   unsigned taNegativeInjectivitySimplifications;
   unsigned taAcyclicityGeneratedDisequalities;
   unsigned taAcyclicityResolution;
+  unsigned taUniquenessResolution;
   unsigned taInfinitenessSimplifications;
 
   // Saturation

@@ -198,9 +198,9 @@ Index* IndexManager::create(IndexType t)
     isGenerating = true;
     break;
 
-  case ACYCLICITY_INDEX:
+  case CHAIN_INDEX:
     tis = new TermSubstitutionTree();
-    res = new AcyclicityIndex(tis, _alg->getOrdering());
+    res = new ChainIndex(tis, _alg->getOrdering());
     isGenerating = true;
     break;
   case TA_RULES_RHS_INDEX:

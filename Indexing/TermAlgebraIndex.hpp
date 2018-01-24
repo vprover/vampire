@@ -45,10 +45,13 @@ struct ChainQueryResult {
   ChainQueryResult(Lib::List<Kernel::Literal*>* l,
                    Lib::List<Kernel::Clause*>* p,
                    Lib::List<Kernel::Clause*>* c,
-                   TermList t1,
+                   Kernel::TermList t1,
                    unsigned t1sort,
-                   TermList tn,
-                   unsigned tnsort)
+                   Kernel::TermList tn,
+                   unsigned tnsort,
+                   bool cycle,
+                   Kernel::TermList ctx,
+                   Kernel::TermList::Position* pos)
     :
     literals(l),
     premises(p),
@@ -57,21 +60,9 @@ struct ChainQueryResult {
     term1sort(t1sort),
     termn(tn),
     termnsort(tnsort),
-    isCycle(false)
-  {}
-
-  ChainQueryResult(Lib::List<Kernel::Literal*>* l,
-                   Lib::List<Kernel::Clause*>* p,
-                   Lib::List<Kernel::Clause*>* c)
-    :
-    literals(l),
-    premises(p),
-    clausesTheta(c),
-    term1(),
-    term1sort(0),
-    termn(),
-    termnsort(0),
-    isCycle(true)
+    isCycle(cycle),
+    context(ctx),
+    position(pos)
   {}
 
   CLASS_NAME(ChainQueryResult);
@@ -87,32 +78,34 @@ struct ChainQueryResult {
   Kernel::TermList termn; // null if chain is a cycle
   unsigned termnsort;
   bool isCycle;
+  Kernel::TermList context;
+  Kernel::TermList::Position* position;
 };
 
-class AcyclicityIndex
+class ChainIndex
 : public Index
 {
 public:
-  AcyclicityIndex(Indexing::TermIndexingStructure* tis, Ordering& ord) :
+  ChainIndex(Indexing::TermIndexingStructure* tis, Ordering& ord) :
     _lIndex(),
     _tis(tis),
     _ord(ord)
   {}
 
-  ~AcyclicityIndex() {}
+  ~ChainIndex() {}
   
   void insert(Kernel::Literal *lit, Kernel::Clause *c);
   void remove(Kernel::Literal *lit, Kernel::Clause *c);
 
-  Lib::VirtualIterator<ChainQueryResult> queryChains(Kernel::Literal *lit, Kernel::Clause *c);
-             
-  CLASS_NAME(AcyclicityIndex);
-  USE_ALLOCATOR(AcyclicityIndex);
+  Lib::VirtualIterator<ChainQueryResult> queryChains(Kernel::Literal *lit, Kernel::Clause *c, bool codatatypes);
+  static Lib::List<TermList>* getSubterms(Kernel::Term *t);
+  
+  CLASS_NAME(ChainIndex);
+  USE_ALLOCATOR(ChainIndex);
 protected:
   void handleClause(Kernel::Clause* c, bool adding);
 private:
-  bool matchesPattern(Kernel::Literal *lit, Kernel::TermList *&fs, Kernel::TermList *&t, unsigned *sort);
-  Lib::List<TermList>* getSubterms(Kernel::Term *t);
+  bool matchesPattern(Kernel::Literal *lit, Kernel::TermList *&fs, Kernel::TermList *&t, unsigned *sort, bool matchDT, bool matchCDT);
   
   struct IndexEntry;
   struct ChainSearchTreeNode;

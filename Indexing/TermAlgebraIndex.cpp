@@ -17,8 +17,8 @@
  * licence, which we will make an effort to provide. 
  */
 /**
- * @file AcyclicityIndex.cpp
- * Implements class AcyclicityIndex
+ * @file ChainIndex.cpp
+ * Implements class ChainIndex
  */
 
 #include "Kernel/Inference.hpp"
@@ -52,12 +52,14 @@ namespace Indexing
     return n;
   }
 
+  // add t if not already present in l (set union, but based on term
+  // equality)
   void addSubterm(TermList t, List<TermList>*& l)
   {
     CALL("addSubterm");
+    
     List<TermList>::Iterator it(l);
     while (it.hasNext()) {
-      // TODO test for unifiability, keep only most general term
       if (TermList::equals(t, it.next())) {
         return;
       }
@@ -65,9 +67,9 @@ namespace Indexing
     List<TermList>::push(t, l);
   }
   
-  List<TermList>* AcyclicityIndex::getSubterms(Term *t)
+  List<TermList>* ChainIndex::getSubterms(Term *t)
   {
-    CALL("AcyclicityIndex::getSubterms");
+    CALL("ChainIndex::getSubterms");
     
     Stack<Term*> toVisit;
     List<TermList>* res = List<TermList>::empty();
@@ -76,15 +78,7 @@ namespace Indexing
     ASS(env.signature->isTermAlgebraSort(sort));
     TermAlgebra* ta = env.signature->getTermAlgebraOfSort(sort);
 
-    for (unsigned i = 0; i < t->arity(); i++) {
-      if (ta->isMutualTypeSort(SortHelper::getArgSort(t, i))) {
-        TermList *s = t->nthArgument(i);
-        addSubterm(*s, res);
-        if (s->isTerm()) {
-          toVisit.push(s->term());
-        }
-      }
-    }
+    toVisit.push(t);
 
     while (toVisit.isNonEmpty()) {
       Term *u = toVisit.pop();
@@ -104,16 +98,22 @@ namespace Indexing
     return res;
   }
 
-  bool AcyclicityIndex::matchesPattern(Literal *lit, TermList *&fs, TermList *&t, unsigned *sort)
+  bool ChainIndex::matchesPattern(Literal *lit, TermList *&fs, TermList *&t, unsigned *sort, bool matchDT, bool matchCDT)
   {
-    CALL("AcyclicityIndex::matchesPattern");
+    CALL("ChainIndex::matchesPattern");
 
     if (!lit->isEquality() || !lit->polarity()) {
       return false;
     }
 
     *sort = SortHelper::getEqualityArgumentSort(lit);
-    if (!env.signature->isTermAlgebraSort(*sort) || env.signature->getTermAlgebraOfSort(*sort)->allowsCyclicTerms()) {
+    if (!env.signature->isTermAlgebraSort(*sort)) {
+      return false;
+    }
+    if (!matchCDT && env.signature->getTermAlgebraOfSort(*sort)->allowsCyclicTerms()) {
+      return false;
+    }
+    if (!matchDT && !env.signature->getTermAlgebraOfSort(*sort)->allowsCyclicTerms()) {
       return false;
     }
 
@@ -138,7 +138,7 @@ namespace Indexing
     }
   }
   
-  struct AcyclicityIndex::IndexEntry {
+  struct ChainIndex::IndexEntry {
   public:
     IndexEntry(Literal *l, Clause *c, TermList t, List<TermList>* subterms) :
       lit(l),
@@ -147,8 +147,8 @@ namespace Indexing
       subterms(subterms)
     {}
 
-    CLASS_NAME(AcyclicityIndex::IndexEntry);
-    USE_ALLOCATOR(AcyclicityIndex::IndexEntry);
+    CLASS_NAME(ChainIndex::IndexEntry);
+    USE_ALLOCATOR(ChainIndex::IndexEntry);
 
     Literal* lit;
     Clause* clause;
@@ -170,7 +170,7 @@ namespace Indexing
      The root of the tree is a unification node (with the literal that
      the query originates from)
    */
-  struct AcyclicityIndex::ChainSearchTreeNode
+  struct ChainIndex::ChainSearchTreeNode
   {
     ChainSearchTreeNode(TermList t,
                         Literal *l,
@@ -212,8 +212,8 @@ namespace Indexing
       return new ChainSearchTreeNode(t, l, c, n, n ? n->depth : 0, substIndex, true);
     }
 
-    CLASS_NAME(AcyclicityIndex::ChainSearchTreeNode);
-    USE_ALLOCATOR(AcyclicityIndex::ChainSearchTreeNode);
+    CLASS_NAME(ChainIndex::ChainSearchTreeNode);
+    USE_ALLOCATOR(ChainIndex::ChainSearchTreeNode);
 
     TermList term;
     Literal *lit;
@@ -225,32 +225,33 @@ namespace Indexing
     unsigned refCnt;
   };
 
-  struct AcyclicityIndex::ChainSearchIterator
+  struct ChainIndex::ChainSearchIterator
     : public IteratorCore<ChainQueryResult>
   {
     ChainSearchIterator(Literal *queryLit,
                         Clause *queryClause,
-                        AcyclicityIndex& aindex)
+                        ChainIndex& cindex,
+                        bool codatatype)
       :
       _queryLit(queryLit),
       _queryClause(queryClause),
-      _aindex(aindex),
+      _cindex(cindex),
       _nextResult(nullptr),
       _stack(0),
       _subst(new RobSubstitution()),
       _substChanges(0),
       _nextAvailableIndex(0),
-      _currentDepth(0)
+      _currentDepth(0),
+      _withContext(codatatype)
     {
-      CALL("AcyclicityIndex::ChainSearchIterator");
+      CALL("ChainIndex::ChainSearchIterator");
 
       TermList *t;
       TermList *fs;
-      if (_aindex.matchesPattern(queryLit, fs, t, &_querySort)
-          && _aindex._lIndex.find(make_pair(queryLit, queryClause))) {
+      if (_cindex.matchesPattern(queryLit, fs, t, &_querySort, !codatatype, codatatype)) {
+        ASS(_cindex._lIndex.find(make_pair(queryLit, queryClause)));
         _queryTerm = TermList(*t);
-        IndexEntry *entry = aindex._lIndex.get(make_pair(queryLit, queryClause));
-        _stack.push(ChainSearchTreeNode::unificationNode(entry->t,
+        _stack.push(ChainSearchTreeNode::unificationNode(_queryTerm,
                                                          queryLit,
                                                          queryClause,
                                                          nullptr,
@@ -269,7 +270,7 @@ namespace Indexing
     
     Clause *applySubstitution(Clause *c, unsigned index)
     {
-      CALL("AcyclicityIndex::ChainSearchIterator::applySubstitution");
+      CALL("ChainIndex::ChainSearchIterator::applySubstitution");
       
       unsigned clen = c->length();
       Inference* inf = new Inference1(Inference::INSTANTIATION, c);
@@ -284,131 +285,150 @@ namespace Indexing
       return res;
     }
 
-    ChainQueryResult *cycleResult(ChainSearchTreeNode *node)
+    void buildContext(TermList &context, TermList &t, Literal *lit, unsigned substIndex, TermList::Position*& pos)
     {
-      CALL("AcyclicityIndex::ChainSearchIterator::cycleResult");
+      CALL("ChainIndex::ChainSearchIterator::buildContext");
 
-      ASS(node);
-      ASS(node->parent);
-      ASS(node->isUnificationNode);
-
-      LiteralList* l = LiteralList::empty();
-      ClauseList* c = ClauseList::empty();
-      ClauseList* cTheta = ClauseList::empty();
-
-      ChainSearchTreeNode *n = node;
-      while (n && n->parent) {
-        ASS(n);
-        ASS(n->isUnificationNode);
-        ASS(n->parent->clause);
-        ASS(n->parent->clause->store() == Clause::ACTIVE);
-        // TODO test order after subst
-        LiteralList::push(n->parent->lit, l);
-        ClauseList::push(n->parent->clause, c);
-        ClauseList::push(applySubstitution(n->parent->clause, n->parent->substIndex), cTheta);
-        n = n->parent->parent;
+      // hack to detect first call for the chain
+      bool first = TermList::Position::isEmpty(pos);
+      
+      TermList *cons = lit->nthArgument(0);
+      TermList *tnext;
+      if (!cons->isTerm() || !env.signature->getFunction(cons->term()->functor())->termAlgebraCons()) {
+        cons = lit->nthArgument(1);
+        tnext = lit->nthArgument(0);
+      } else {
+        tnext = lit->nthArgument(1);
       }
-      ASS_EQ(ClauseList::length(c), LiteralList::length(l));
-      ASS_EQ(ClauseList::length(c), ClauseList::length(cTheta));
 
-      return new ChainQueryResult(l, c, cTheta);
+      TermList::Position* newPos = TermList::Position::empty();
+      TermList consS = _subst->apply(*cons, substIndex);
+      ALWAYS(TermList::positionIn(t, &consS, newPos));
+      t = _subst->apply(*tnext, substIndex);
+
+      if (first) {
+        context = consS;
+      } else {
+        context = TermList::replacePosition(context, *cons, newPos);
+      }
+      pos = TermList::Position::append(newPos, pos);
     }
 
-    ChainQueryResult *openChainResult(ChainSearchTreeNode *node)
+    ChainQueryResult *resultFromNode(ChainSearchTreeNode *node, bool withContext)
     {
-      CALL("AcyclicityIndex::ChainSearchIterator::openChainResult");
+      CALL("ChainIndex::ChainSearchIterator::openChainResult");
 
       ASS(node);
       ASS(!node->isUnificationNode);
 
-      TermList t1(_subst->apply(_queryTerm, 0));
-      TermList tn(_subst->apply(node->term, node->substIndex));
-      unsigned tnsort = SortHelper::getTermSort(node->term, node->lit);
-
       ChainSearchTreeNode *n = node;
       LiteralList* l = LiteralList::empty();
       ClauseList* c = ClauseList::empty();
       ClauseList* cTheta = ClauseList::empty();
-      LiteralList::push(n->lit, l);
-      ClauseList::push(n->clause, c);
-      ClauseList::push(applySubstitution(n->clause, n->substIndex), cTheta);
-      n = n->parent;
-      
-      while (n && n->parent) {
-        ASS(n);
-        ASS(n->isUnificationNode);
-        ASS(n->parent->clause);
-        ASS(n->parent->clause->store() == Clause::ACTIVE);
-        // TODO test order after subst
-        LiteralList::push(n->parent->lit, l);
-        ClauseList::push(n->parent->clause, c);
-        ClauseList::push(applySubstitution(n->parent->clause, n->parent->substIndex), cTheta);
-        n = n->parent->parent;
-      }     
-      ASS_EQ(ClauseList::length(c), LiteralList::length(l));
-      ASS_EQ(ClauseList::length(c), ClauseList::length(cTheta));
+      TermList t1(_subst->apply(_queryTerm, 0));
+      TermList tn(_subst->apply(n->term, n->substIndex));
+      unsigned tnsort = SortHelper::getTermSort(node->term, node->lit);
+      bool cycle = (_querySort == tnsort && TermList::equals(t1, tn));
+      TermList context = TermList();
+      TermList::Position* position = TermList::Position::empty();
 
-      if (_querySort != tnsort || !TermList::equals(t1, tn)) {
-        return new ChainQueryResult(l, c, cTheta, t1, _querySort, tn, tnsort);
+      TermList t;
+      if (withContext) {
+        t = tn;
       }
-      // this is actually a cycle
-      return new ChainQueryResult(l, c, cTheta);
+      
+      while (n) {
+        ASS(!n->isUnificationNode);
+        LiteralList::push(n->lit, l);
+        ClauseList::push(n->clause, c);
+        ClauseList::push(applySubstitution(n->clause, n->substIndex), cTheta);
+        if (withContext) {
+          buildContext(context, t, n->lit, n->substIndex, position);
+        }
+        n = n->parent->parent;
+      }
+
+      return new ChainQueryResult(l, c, cTheta, t1, _querySort, tn, tnsort, cycle, context, position);
     }
 
-    void pushUnificationsOnStack(ChainSearchTreeNode *n)
+    // if there exists an extension of the chain that uses the same
+    // clause twice, or the chain is a cycle, this method returns
+    // false and does nothing. If n->term is a variable it returns
+    // true and does nothing. Otherwise it pushes all unifications of
+    // n->term and the stack and returns true
+    bool pushUnificationsOnStack(ChainSearchTreeNode *n)
     {
       CALL("Acyclicity::pushUnificationOnStack");
       ASS(!n->isUnificationNode);
 
-      TermQueryResultIterator tqrIt = _aindex._tis->getUnifications(_subst->apply(n->term, n->substIndex));
+      if (n->term.isVar()) {
+        // only unary variable-ended chains can be eligible, no need
+        // to look further here
+        return true;
+      }
+
+      Stack<TermQueryResult> tmpStack;
+
+      TermQueryResultIterator tqrIt = _cindex._tis->getUnifications(_subst->apply(n->term, n->substIndex));
       unsigned sort = SortHelper::getTermSort(n->term, n->lit);
       int index;
+      // go through results before to avoid some unneeded allocations
       while (tqrIt.hasNext()) {
         TermQueryResult tqr = tqrIt.next();
+        if (alreadyInChain(n, tqr.literal)) {
+          // this means there exists a "bad extension" or that the
+          // chain is a cycle
+          return false;
+        }
+        tmpStack.push(tqr);
+      }
+
+      while (tmpStack.isNonEmpty()) {
+        TermQueryResult tqr = tmpStack.pop();
         if (n->term.isVar() && tqr.literal != _queryLit) {
           // found a variable-ended chain, no need to explore further
           continue;
         }
-        // check sort to avoid unfication with variable of wrong type
+        // check sort to avoid unification with variable of wrong type
         if (SortHelper::getTermSort(tqr.term, tqr.literal) == sort) {
-          // avoid cycles in the search tree
-          if (tqr.literal == _queryLit || notInAncestors(n, tqr.literal)) {
-            if (tqr.literal == _queryLit) {
-              index = 0;
-            } else if (n && tqr.clause == n->clause) {
-              index = n->substIndex;
-            } else {
-              index = _nextAvailableIndex++;
-            }
-            _stack.push(ChainSearchTreeNode::unificationNode(tqr.term,
-                                                             tqr.literal,
-                                                             tqr.clause,
-                                                             n,
-                                                             index));
+          if (tqr.literal == _queryLit) {
+            index = 0;
+          } else if (n && tqr.clause == n->clause) {
+            index = n->substIndex;
+          } else {
+            index = _nextAvailableIndex++;
           }
+          _stack.push(ChainSearchTreeNode::unificationNode(tqr.term,
+                                                           tqr.literal,
+                                                           tqr.clause,
+                                                           n,
+                                                           index));
         }
       }
+      return true;
     }
 
     // check that the literal is not found in the path from the root
-    // to the node (to avoid infinite cycles in the search)
-    bool notInAncestors(ChainSearchTreeNode *node, Literal *l)
+    // to the node (either the chain is a cycle or there is an
+    // extension of the chain that uses the same clause twice)
+    bool alreadyInChain(ChainSearchTreeNode *node, Literal *l)
     {
-      CALL("AcyclicityIndex::ChainSearchIterator::notInAncestors");
+      CALL("ChainIndex::ChainSearchIterator::alreadyInChain");
 
       ChainSearchTreeNode *n = node;
       while (n) {
         if (n->lit == l) {
-          return false;
+          return true;
         }
         n = n->parent;
       }
 
-      return true;
+      return false;
     }
-    
+
+    // this deletes only if the node has no children
     void deleteNodeAndParents(ChainSearchTreeNode *n) {
-      CALL("AcyclicityIndex::ChainSearchIterator::deleteNodeAndParents");
+      CALL("ChainIndex::ChainSearchIterator::deleteNodeAndParents");
       
       ChainSearchTreeNode* node = n;
 
@@ -424,12 +444,12 @@ namespace Indexing
 
     bool hasNext()
     {
-      CALL("AcyclicityIndex::ChainSearchIterator::hasNext");
+      CALL("ChainIndex::ChainSearchIterator::hasNext");
 
       // if hasNext() has already been called without being followed
       // by a call to next(), the next value is already computed
       if (_nextResult) { return true; }
-
+      
       while (_stack.isNonEmpty()) {
         ChainSearchTreeNode *n = _stack.pop();
 
@@ -451,15 +471,6 @@ namespace Indexing
               _currentDepth++;
               ASS_EQ(_currentDepth, _substChanges.size());
               _subst->bdDone();
-              // check whether we found a cycle
-              TermList t1 = _subst->apply(_queryTerm, 0);
-              TermList tn = _subst->apply(n->term, n->substIndex);
-              if (n->lit == _queryLit && TermList::equals(t1, tn)) {
-                delete _nextResult;
-                _nextResult = cycleResult(n);
-                deleteNodeAndParents(n);
-                return true;
-              }
             } else {
               _subst->bdDone();
               ASS(btData.isEmpty());
@@ -472,8 +483,8 @@ namespace Indexing
             }
           }
           // add subterm nodes to the stack if applicable
-          if (_aindex._lIndex.find(make_pair(n->lit, n->clause))) {
-            IndexEntry *entry = _aindex._lIndex.get(make_pair(n->lit, n->clause));
+          if (_cindex._lIndex.find(make_pair(n->lit, n->clause))) {
+            IndexEntry *entry = _cindex._lIndex.get(make_pair(n->lit, n->clause));
             List<TermList>::Iterator it(entry->subterms);
             while (it.hasNext()) {
               TermList t = it.next();
@@ -485,25 +496,25 @@ namespace Indexing
             }
           }
         } else { // n is a subterm node
-          if (n->term.isVar()) {
+          // if n is a variable, return a variable-ended chain, else
+          // check that we don't have a cycle or there doesn't exist a
+          // bad extension, in which cases we must return a result.
+          // If none of those conditions are met, push unifications
+          if (n->term.isVar() || !pushUnificationsOnStack(n)) {
             delete _nextResult;
-            _nextResult = openChainResult(n);
+            _nextResult = resultFromNode(n, _withContext);
             deleteNodeAndParents(n);
             return true;
           }
-          // not a variable, look for unifications
-          pushUnificationsOnStack(n);
         }
-        // this deletes only if the node has no children
         deleteNodeAndParents(n);
       }
-      // delete last popped node, if it has no children
       return false;
     }
     
     ChainQueryResult next()
     {
-      CALL("AcyclicityIndex::ChainSearchIterator::next()");
+      CALL("ChainIndex::ChainSearchIterator::next()");
 
       ASS(_nextResult);
       ChainQueryResult *res = _nextResult;
@@ -515,18 +526,19 @@ namespace Indexing
     Clause *_queryClause;
     TermList _queryTerm;
     unsigned _querySort;
-    AcyclicityIndex &_aindex;
+    ChainIndex &_cindex;
     ChainQueryResult *_nextResult;
     Stack<ChainSearchTreeNode*> _stack;
     RobSubstitution *_subst;
     Stack<BacktrackData> _substChanges;
     int _nextAvailableIndex;
     unsigned _currentDepth;
+    bool _withContext; // should the result include the constructor context
   };
 
-  void AcyclicityIndex::handleClause(Clause* c, bool adding)
+  void ChainIndex::handleClause(Clause* c, bool adding)
   {
-    CALL("AcyclicityIndex::handleClause");
+    CALL("ChainIndex::handleClause");
 
     // TODO timer?
     
@@ -540,15 +552,18 @@ namespace Indexing
     }
   }
     
-  void AcyclicityIndex::insert(Literal *lit, Clause *c)
+  void ChainIndex::insert(Literal *lit, Clause *c)
   {
-    CALL("AcyclicityIndex::insert");
+    CALL("ChainIndex::insert");
 
     TermList *fs;
     TermList *t;
     unsigned sort;
-    
-    if (matchesPattern(lit, fs, t, &sort)) {
+
+    static bool matchDT = (env.options->termAlgebraCyclicityCheck() == Options::TACyclicityCheck::RULE);
+    static bool matchCDT = (env.options->termAlgebraUniquenessCheck() == Options::TAUniquenessCheck::RULE);
+
+    if (matchesPattern(lit, fs, t, &sort, matchDT, matchCDT)) {
       ASS(fs->isTerm());
 
       ULit ulit = make_pair(lit, c);
@@ -559,15 +574,15 @@ namespace Indexing
     }
   }
 
-  void AcyclicityIndex::remove(Literal *lit, Clause *c)
+  void ChainIndex::remove(Literal *lit, Clause *c)
   {
-    CALL("AcyclicityIndex::remove");
+    CALL("ChainIndex::remove");
 
     TermList *fs;
     TermList *t;
     unsigned sort;
      
-    if (matchesPattern(lit, fs, t, &sort)) {
+    if (matchesPattern(lit, fs, t, &sort, true, true)) {
       ULit ulit = make_pair(lit, c);
       if (!_lIndex.find(ulit))
         return;
@@ -577,11 +592,11 @@ namespace Indexing
     }
   }
 
-  VirtualIterator<ChainQueryResult> AcyclicityIndex::queryChains(Literal *lit, Clause *c)
+  VirtualIterator<ChainQueryResult> ChainIndex::queryChains(Literal *lit, Clause *c, bool withContext)
   {
-    CALL("AcyclicityIndex::queryCycle");
+    CALL("ChainIndex::queryCycle");
 
-    return vi(new ChainSearchIterator(lit, c, *this));
+    return vi(new ChainSearchIterator(lit, c, *this, withContext));
   }
 
   bool TARulesRHSIndex::rhsEligible(Literal* lit, const Ordering& ord, TermList*& lhs, TermList*& rhs)

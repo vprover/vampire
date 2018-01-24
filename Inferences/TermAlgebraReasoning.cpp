@@ -855,15 +855,15 @@ namespace Inferences {
     CALL("AcyclicityGIE::attach");
 
     GeneratingInferenceEngine::attach(salg);
-    _acyclIndex = static_cast<AcyclicityIndex*>(_salg->getIndexManager()->request(ACYCLICITY_INDEX));
+    _chainIndex = static_cast<ChainIndex*>(_salg->getIndexManager()->request(CHAIN_INDEX));
   }
 
   void AcyclicityGIE::detach()
   {
     CALL("AcyclicityGIE::detach");
 
-    _acyclIndex = nullptr;
-    _salg->getIndexManager()->release(ACYCLICITY_INDEX);
+    _chainIndex = nullptr;
+    _salg->getIndexManager()->release(CHAIN_INDEX);
     GeneratingInferenceEngine::detach();
   }
 
@@ -906,7 +906,6 @@ namespace Inferences {
 
       premises.reset(qres.premises);
       unsigned i = 0;
-      unsigned maxVar = 0;
 
       while(literals.hasNext() && premises.hasNext() && clausesTheta.hasNext()) {              
         Literal *l = literals.next();
@@ -920,7 +919,6 @@ namespace Inferences {
             (*res)[i++] = (*c)[j];
           }
         }
-        maxVar++;
       }
 
       if (!qres.isCycle) {
@@ -947,9 +945,9 @@ namespace Inferences {
 
   struct AcyclicityGIE::AcyclicityGenFn
   {
-    AcyclicityGenFn(Indexing::AcyclicityIndex* aidx, Clause* premise)
+    AcyclicityGenFn(Indexing::ChainIndex* cidx, Clause* premise)
       :
-      _aidx(aidx),
+      _cidx(cidx),
       _premise(premise)
     {}
     DECL_RETURN_TYPE(VirtualIterator<Clause*>);
@@ -957,10 +955,10 @@ namespace Inferences {
     {
       CALL("AcyclicityGIE::AyclicityGenFn::operator()");
 
-      return vi(new AcyclicityGenIterator(_premise, _aidx->queryChains(lit, _premise)));
+      return vi(new AcyclicityGenIterator(_premise, _cidx->queryChains(lit, _premise, false)));
     }
   private:
-    Indexing::AcyclicityIndex *_aidx;
+    Indexing::ChainIndex *_cidx;
     Clause* _premise;
   };
 
@@ -969,131 +967,192 @@ namespace Inferences {
     CALL("AcyclicityGIE::generateClauses");
 
     auto it1 = c->getSelectedLiteralIterator();
-    auto it2 = getMappingIterator(it1, AcyclicityGenFn(_acyclIndex, c));
+    auto it2 = getMappingIterator(it1, AcyclicityGenFn(_chainIndex, c));
     auto it3 = getFlattenedIterator(it2);
     return pvi(it3);
   }
 
-  void pushSubterms(TermList tl, Stack<TermList> &stack)
+  void UniquenessGIE::attach(SaturationAlgorithm* salg)
   {
-    CALL("getSubterms");
+    CALL("UniquenessGIE::attach");
 
-    if (!termAlgebraConstructor(&tl)) {
-      return;
-    }
-
-    ASS(tl.isTerm());
-    Term *t = tl.term();
-    
-    unsigned sort = SortHelper::getResultSort(t);
-    ASS(env.signature->isTermAlgebraSort(sort));
-
-    if (env.signature->getTermAlgebraOfSort(sort)->allowsCyclicTerms()) {
-      return;
-    }
-
-    Stack<Term*> toVisit;
-
-    for (unsigned i = 0; i < t->arity(); i++) {
-      if (SortHelper::getArgSort(t, i) == sort) {
-        TermList *s = t->nthArgument(i);
-        stack.push(*s);
-        if (s->isTerm()) {
-          toVisit.push(s->term());
-        }
-      }
-    }
-
-    while (toVisit.isNonEmpty()) {
-      Term *u = toVisit.pop();
-      if (env.signature->getFunction(u->functor())->termAlgebraCons()) {
-        for (unsigned i = 0; i < u->arity(); i++) {
-          if (SortHelper::getArgSort(u, i) == sort) {
-            TermList *s = u->nthArgument(i);
-            stack.push(*s);
-            if (s->isTerm()) {
-              toVisit.push(s->term());
-            }
-          }
-        }
-      }
-    }
-   
+    GeneratingInferenceEngine::attach(salg);
+    _chainIndex = static_cast<ChainIndex*>(_salg->getIndexManager()->request(CHAIN_INDEX));
   }
 
-  struct AcyclicityLightGIE::SubtermDisequalityIterator
+  void UniquenessGIE::detach()
+  {
+    CALL("UniquenessGIE::detach");
+
+    _chainIndex = nullptr;
+    _salg->getIndexManager()->release(CHAIN_INDEX);
+    GeneratingInferenceEngine::detach();
+  }
+
+  struct UniquenessGIE::UniquenessGenIterator
     : IteratorCore<Clause*>
   {
-    CLASS_NAME(SubtermDisequalityIterator);
-    USE_ALLOCATOR(SubtermDisequalityIterator);
+    CLASS_NAME(UniquenessGenIterator);
+    USE_ALLOCATOR(UniquenessGenIterator);
     
-    SubtermDisequalityIterator(Clause *clause, Literal *lit)
+    UniquenessGenIterator(Clause *premise, VirtualIterator<Indexing::ChainQueryResult> results)
       :
-      _clause(clause),
-      _lit(lit),
-      _subterms(0),
-      _leftSide(false)
-    {
-      if (!lit->isEquality() || !lit->polarity()) {
-        _leftSide = true;
-      } else {
-        _sort = SortHelper::getEqualityArgumentSort(_lit);
-        pushSubterms(*_lit->nthArgument(0), _subterms);
-      }
-    }
+      _premise(premise),
+      _queryResults(results)
+    {}
 
-    bool hasNext() {
-      if (!_leftSide && _subterms.isEmpty()) {
-        _leftSide = true;
-        pushSubterms(*_lit->nthArgument(1), _subterms);
+    bool hasNext() { return _queryResults.hasNext(); }
+
+    TermList makeContext(TermList t, unsigned tsort,
+                         TermList::Position* pos,
+                         TermList x,
+                         ChainQueryResult qres,
+                         unsigned* freshVar, LiteralList*& sideConditions)
+    {
+      CALL("UniquenessGIE::UniquenessGenIterator::makeContext");
+
+      if (TermList::Position::isEmpty(pos)) {
+        TermAlgebra* ta1 = env.signature->getTermAlgebraOfSort(qres.term1sort);
+        TermAlgebra* tan = env.signature->getTermAlgebraOfSort(tsort);
+        if (tan && ta1->isMutualType(tan)) {
+          unsigned appFun = tan->getAppFunction(ta1); // TODO sort might be wrong
+          TermList y(*freshVar++, false);
+          Literal *sc = Literal::createEquality(false,
+                                                t,
+                                                TermList(Term::create2(appFun, y, qres.term1)),
+                                                tsort);
+          LiteralList::push(sc, sideConditions);
+          return TermList(Term::create2(appFun, y, x));
+        } else {
+          return t;
+        }
+      } else {
+        // recursive case
+        ASS(t.isTerm());
+        ASS_L(pos->head(), t.term()->arity());
+        Term *term = t.term();
+
+        Stack<TermList> args;
+        for (unsigned i = 0; i < term->arity(); i++) {
+          unsigned argSort = SortHelper::getArgSort(term, i);
+          if (i == pos->head()) {
+            args.push(makeContext(*term->nthArgument(i), argSort, pos->tail(), x, qres, freshVar, sideConditions));
+          } else {
+            // call with empty position to trigger the base case
+            args.push(makeContext(*term->nthArgument(i), argSort, TermList::Position::empty(), x, qres, freshVar, sideConditions));
+          }
+        }
+        return TermList(Term::create(t.term()->functor(), t.term()->arity(), args.begin()));
       }
-      return (_subterms.isNonEmpty());
     }
     
     Clause* next()
     {
-      CALL("InjectivityGIE::SubtermIterator::next()");
+      CALL("UniquenessGIE::UniquenessGenIterator::next()");
 
-      Literal *newlit = Literal::createEquality(false,
-                                                *_lit->nthArgument(_leftSide ? 0 : 1),
-                                                _subterms.pop(),
-                                                _sort);
-      Clause* res = replaceLit(_clause, _lit, newlit, new Inference1(Inference::TERM_ALGEBRA_ACYCLICITY, _clause));
-      res->setAge(_clause->age() + 1);
-      env.statistics->taAcyclicityGeneratedDisequalities++;
+      Indexing::ChainQueryResult qres = _queryResults.next();
+
+      ASS_EQ(LiteralList::length(qres.literals), ClauseList::length(qres.premises));
+      ASS_EQ(LiteralList::length(qres.literals), ClauseList::length(qres.clausesTheta));
+
+      LiteralList::Iterator literals(qres.literals);
+      ClauseList::Iterator premises(qres.premises);
+      ClauseList::Iterator clausesTheta(qres.clausesTheta);
+
+      unsigned freshVar = 0;
+      while (clausesTheta.hasNext()) {
+        freshVar = Int::max(freshVar, clausesTheta.next()->maxVar());
+      }
+      clausesTheta.reset(qres.clausesTheta);
+      freshVar++;
+
+      LiteralList* sideConditions = LiteralList::empty();
+      TermList x(freshVar++, false);
+      TermList ctx = makeContext(qres.context, qres.term1sort, qres.position, x, qres, &freshVar, sideConditions);
+      
+      unsigned length = qres.totalLengthClauses() - LiteralList::length(qres.literals) + LiteralList::length(sideConditions) + 2;
+      UnitList* ulpremises = UnitList::empty();
+      while (premises.hasNext()) {
+        UnitList::push(premises.next(), ulpremises);
+      }
+      Inference* inf = new InferenceMany(Inference::TERM_ALGEBRA_CYCLES, ulpremises);
+      Clause* res = new(length) Clause(length,
+                                       _premise->inputType(),
+                                       inf);
+
+      premises.reset(qres.premises);
+      unsigned i = 0;
+
+      while(literals.hasNext() && premises.hasNext() && clausesTheta.hasNext()) {              
+        Literal *l = literals.next();
+        Clause *p = premises.next();
+        Clause *c = clausesTheta.next();
+
+        ASS_EQ(p->length(), c->length());
+
+        for (unsigned j = 0; j < c->length(); j++) {
+          if ((*p)[j] != l) {
+            (*res)[i++] = (*c)[j];
+          }
+        }
+      }
+      ASS (!literals.hasNext());
+      ASS (!premises.hasNext());
+      ASS (!clausesTheta.hasNext());
+
+      LiteralList::Iterator scIt(sideConditions);
+      while (scIt.hasNext()) {
+        (*res)[i++] = scIt.next();
+      }
+      (*res)[i++] = Literal::createEquality(false,
+                                            x,
+                                            ctx,
+                                            qres.term1sort);
+      (*res)[i++] = Literal::createEquality(true,
+                                            x,
+                                            qres.term1,
+                                            qres.term1sort);
+
+      ASS_EQ(i, length);
+
+      res->setAge(_premise->age() + 1);
+      env.statistics->taUniquenessResolution++;
       return res;
     }
-        
+    
   private:
-    Clause *_clause;
-    Literal *_lit;
-    Stack<TermList> _subterms;
-    bool _leftSide;
-    unsigned _sort;
+    Clause *_premise;
+    VirtualIterator<Indexing::ChainQueryResult> _queryResults;
   };
 
-  struct AcyclicityLightGIE::SubtermDisequalityFn
+  struct UniquenessGIE::UniquenessGenFn
   {
-    SubtermDisequalityFn(Clause* premise)
-      : _premise(premise) {}
+    UniquenessGenFn(Indexing::ChainIndex* cidx, Clause* premise)
+      :
+      _cidx(cidx),
+      _premise(premise)
+    {}
+    
     DECL_RETURN_TYPE(VirtualIterator<Clause*>);
+
     OWN_RETURN_TYPE operator()(Literal* lit)
     {
-      CALL("AcyclicityLightGIE::SubtermDisequalityFn::operator()");
+      CALL("UniquenessGIE::UniquenessGenFn::operator()");
 
-      return vi(new SubtermDisequalityIterator(_premise, lit));
+      return vi(new UniquenessGenIterator(_premise, _cidx->queryChains(lit, _premise, true)));
     }
+    
   private:
+    Indexing::ChainIndex *_cidx;
     Clause* _premise;
   };
 
-
-  ClauseIterator AcyclicityLightGIE::generateClauses(Clause* c)
+  ClauseIterator UniquenessGIE::generateClauses(Clause *c)
   {
-    CALL("AcyclicityLightGIE::generateClauses");
+    CALL("UniquenessGIE::generateClauses");
 
-    auto it1 = c->getLiteralIterator();
-    auto it2 = getMappingIterator(it1, SubtermDisequalityFn(c));
+    auto it1 = c->getSelectedLiteralIterator();
+    auto it2 = getMappingIterator(it1, UniquenessGenFn(_chainIndex, c));
     auto it3 = getFlattenedIterator(it2);
     return pvi(it3);
   }

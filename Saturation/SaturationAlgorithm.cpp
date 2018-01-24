@@ -1363,8 +1363,9 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
   if(prb.hasEquality() && env.signature->hasTermAlgebras()) {
     if (opt.termAlgebraCyclicityCheck() == Options::TACyclicityCheck::RULE) {
       gie->addFront(new AcyclicityGIE());
-    } else if (opt.termAlgebraCyclicityCheck() == Options::TACyclicityCheck::RULELIGHT) {
-      gie->addFront(new AcyclicityLightGIE());
+    }
+    if (opt.termAlgebraUniquenessCheck() == Options::TAUniquenessCheck::RULE) {
+      gie->addFront(new UniquenessGIE());
     }
     if (opt.termAlgebraInferences() == Options::TAInferences::SIMPL) {
       gie->addFront(new InjectivityGIE());

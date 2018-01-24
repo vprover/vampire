@@ -1000,15 +1000,26 @@ void Options::Options::init()
             _termAlgebraCyclicityCheck = ChoiceOptionValue<TACyclicityCheck>("term_algebra_acyclicity",
                                                                              "tac",
                                                                              TACyclicityCheck::OFF,
-                                                                             {"off","axiom","light","rule"});
+                                                                             {"off","axiom","rule"});
             _termAlgebraCyclicityCheck.description=
               "Activates the cyclicity rule for term algebras (such as algebraic datatypes in SMT-LIB):\n"
               "- off : the cyclicity rule is not enforced (this is sound but incomplete)\n"
               "- axiom : the cyclicity rule is axiomatized with a transitive predicate describing the subterm relation over terms\n"
-              "- rule : the cyclicity rule is enforced by a n-ary rule that finds chains of equalities\n"
-              "- light : the cyclicity rule is enforced by rule generating disequality between a term and its known subterms (incomplete)";
+              "- rule : the cyclicity rule is enforced by a n-ary rule that finds chains of equalities";
             _lookup.insert(&_termAlgebraCyclicityCheck);
             _termAlgebraCyclicityCheck.tag(OptionTag::INFERENCES);
+
+            _termAlgebraUniquenessCheck = ChoiceOptionValue<TAUniquenessCheck>("term_algebra_uniqueness",
+                                                                               "tau",
+                                                                               TAUniquenessCheck::OFF,
+                                                                               {"off","axiom","rule"});
+            _termAlgebraUniquenessCheck.description=
+              "Activates the uniqueness rule for infinite term algebras (such as co-algebraic datatypes in SMT-LIB):\n"
+              "- off : the uniqueness rule is not enforced (this is sound but incomplete)\n"
+              "- axiom : the uniqueness rule is axiomatized with a new sort for term contexts\n"
+              "- rule : the uniqueness rule is enforced by a n-ary rule that finds chains of equalities";
+            _lookup.insert(&_termAlgebraUniquenessCheck);
+            _termAlgebraUniquenessCheck.tag(OptionTag::INFERENCES);
 
 	    _forwardDemodulation = ChoiceOptionValue<Demodulation>("forward_demodulation","fd",Demodulation::ALL,{"all","off","preordered"});
 	    _forwardDemodulation.description=

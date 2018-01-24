@@ -108,7 +108,8 @@ private:
   void addDistinctnessAxiom(TermAlgebra* ta);
   void addInjectivityAxiom(TermAlgebra* ta);
   void addDiscriminationAxiom(TermAlgebra* ta);
-  void addCyclicityAxiom(TermAlgebra* ta);
+  void addAcyclicityAxioms(TermAlgebra* ta);
+  void addFixpointAxioms(TermAlgebra* ta);
 
   /* Subterm definitions used by the acyclicity axiom. */
   void addSubtermDefinitions(TermAlgebra* ta, TermAlgebraConstructor* c);

@@ -692,8 +692,13 @@ public:
   enum class TACyclicityCheck : unsigned int {
     OFF = 0,
     AXIOM = 1,
-    RULELIGHT = 2, // generating disequalities (very incomplete)
-    RULE = 3 // n-ary rule, complete
+    RULE = 2 // n-ary rule, complete
+  };
+
+  enum class TAUniquenessCheck : unsigned int {
+    OFF = 0,
+    AXIOM = 1,
+    RULE = 2 // n-ary rule, complete
   };
 
 
@@ -1922,6 +1927,7 @@ public:
   bool FOOLParamodulation() const { return _FOOLParamodulation.actualValue; }
   TAInferences termAlgebraInferences() const { return _termAlgebraInferences.actualValue; }
   TACyclicityCheck termAlgebraCyclicityCheck() const { return _termAlgebraCyclicityCheck.actualValue; }
+  TAUniquenessCheck termAlgebraUniquenessCheck() const { return _termAlgebraUniquenessCheck.actualValue; }
   unsigned extensionalityMaxLength() const { return _extensionalityMaxLength.actualValue; }
   bool extensionalityAllowPosEq() const { return _extensionalityAllowPosEq.actualValue; }
   float nongoalWeightCoefficient() const { return _nonGoalWeightCoefficient.actualValue; }
@@ -2188,6 +2194,7 @@ private:
 
   ChoiceOptionValue<TAInferences> _termAlgebraInferences;
   ChoiceOptionValue<TACyclicityCheck> _termAlgebraCyclicityCheck;
+  ChoiceOptionValue<TAUniquenessCheck> _termAlgebraUniquenessCheck;
 
   BoolOptionValue _fmbNonGroundDefs;
   UnsignedOptionValue _fmbStartSize;

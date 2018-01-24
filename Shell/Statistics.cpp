@@ -115,6 +115,7 @@ Statistics::Statistics()
     taNegativeInjectivitySimplifications(0),
     taAcyclicityGeneratedDisequalities(0),
     taAcyclicityResolution(0),
+    taUniquenessResolution(0),
     taInfinitenessSimplifications(0),
     generatedClauses(0),
     passiveClauses(0),
@@ -333,7 +334,7 @@ void Statistics::print(ostream& out)
       taDistinctness2Generations+taInjectivitySimplifications+
       taInjectivity1Generations+taInjectivity2Generations+
       taAcyclicityGeneratedDisequalities+taAcyclicityResolution+
-      taNegativeInjectivitySimplifications+taInfinitenessSimplifications);
+      taUniquenessResolution+taNegativeInjectivitySimplifications+taInfinitenessSimplifications);
   COND_OUT("Distinctness simplifications",taDistinctnessSimplifications);
   COND_OUT("Distinctness tautology deletions",taDistinctnessTautologyDeletions);
   COND_OUT("Distinctness generations (unary)",taDistinctness1Generations);
@@ -344,6 +345,7 @@ void Statistics::print(ostream& out)
   COND_OUT("Negative injectivity simplifications",taNegativeInjectivitySimplifications);
   COND_OUT("Disequalities generated from acyclicity",taAcyclicityGeneratedDisequalities);
   COND_OUT("Acyclicity resolution",taAcyclicityResolution);
+  COND_OUT("Uniqueness resolution",taUniquenessResolution);
   COND_OUT("Infiniteness simplifications",taInfinitenessSimplifications);
   SEPARATOR;
 

@@ -243,29 +243,23 @@ private:
   struct AcyclicityGenIterator;
   struct AcyclicityGenFn;
   
-  Indexing::AcyclicityIndex *_acyclIndex;
+  Indexing::ChainIndex *_chainIndex;
 };
 
-/*
-  Lightweight rule for acyclicity
-
-  f[s] = t \/ A
-  -------------
-   s != t \/ A
-
-   where f is a constructor and s a proper subterm of f[s]
- */
-class AcyclicityLightGIE
+class UniquenessGIE
   : public GeneratingInferenceEngine {
 public:
-  CLASS_NAME(AcyclicityLightGIE);
-  USE_ALLOCATOR(AcyclicityLightGIE);
-  
-  Kernel::ClauseIterator generateClauses(Kernel::Clause* c);
+  CLASS_NAME(UniquenessGIE);
+  USE_ALLOCATOR(UniquenessGIE);
 
+  void attach(Saturation::SaturationAlgorithm* salg);
+  void detach();
+  Kernel::ClauseIterator generateClauses(Kernel::Clause *c);
 private:
-  struct SubtermDisequalityFn;
-  struct SubtermDisequalityIterator;
+  struct UniquenessGenIterator;
+  struct UniquenessGenFn;
+  
+  Indexing::ChainIndex *_chainIndex;
 };
 
 /*
