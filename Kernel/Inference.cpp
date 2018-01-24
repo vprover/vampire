@@ -471,6 +471,8 @@ vstring Inference::ruleName(Rule rule)
     return "finite model not found";
   case INDUCTION:
     return "induction hypothesis";
+  case INDUCTIVE_STRENGTH:
+    return "inductive strengthening";
   default:
     ASSERTION_VIOLATION;
     return "!UNKNOWN INFERENCE RULE!";

@@ -344,8 +344,10 @@ void InductionClauseIterator::performStructInductionTwo(Clause* premise, Literal
   Term* skt = 0;
   Clause* Lk = 0; // add if it gets set
 
-  if(env.signature->getFunction(c)->skolem()){
+  static DHSet<unsigned> usedSkolems;
+  if(env.signature->getFunction(c)->skolem() && !usedSkolems.contains(c)){
     skt = Term::createConstant(c);
+    usedSkolems.insert(c);
   }
   else{
     unsigned sk = env.signature->addSkolemFunction(0);
@@ -357,7 +359,7 @@ void InductionClauseIterator::performStructInductionTwo(Clause* premise, Literal
     // make L[k]
     {
       ConstantReplacement cr(c,TermList(skt));
-      Lk = new(1) Clause(1,premise->inputType(),new Inference1(Inference::INDUCTION,premise));
+      Lk = new(1) Clause(1,premise->inputType(),new Inference1(Inference::INDUCTIVE_STRENGTH,premise));
       (*Lk)[0] = cr.transform(lit);
     }
   }
@@ -399,7 +401,7 @@ void InductionClauseIterator::performStructInductionTwo(Clause* premise, Literal
       recursive_constructors |= tit.hasNext();
       while(tit.hasNext()){
         TermList djk = tit.next();
-        Clause* r = new(2) Clause(2,premise->inputType(),new Inference1(Inference::INDUCTION,premise));
+        Clause* r = new(2) Clause(2,premise->inputType(),new Inference1(Inference::INDUCTIVE_STRENGTH,premise));
         (*r)[0] = kneq;
         ConstantReplacement cr(c,djk);
         (*r)[1] = Literal::complementaryLiteral(cr.transform(lit));
