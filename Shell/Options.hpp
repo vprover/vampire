@@ -1998,6 +1998,7 @@ public:
   StructuralInductionKind structInduction() const { return _structInduction.actualValue; }
   InductionChoice inductionChoice() const { return _inductionChoice.actualValue; }
   unsigned maxInductionDepth() const { return _maxInductionDepth.actualValue; }
+  bool inductionNegOnly() const { return _inductionNegOnly.actualValue; }
 
   float instGenBigRestartRatio() const { return _instGenBigRestartRatio.actualValue; }
   bool instGenPassiveReactivation() const { return _instGenPassiveReactivation.actualValue; }
@@ -2277,6 +2278,7 @@ private:
   ChoiceOptionValue<StructuralInductionKind> _structInduction;
   ChoiceOptionValue<InductionChoice> _inductionChoice;
   UnsignedOptionValue _maxInductionDepth;
+  BoolOptionValue _inductionNegOnly;
 
   StringOptionValue _latexOutput;
   BoolOptionValue _latexUseDefaultSymbols;

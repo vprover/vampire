@@ -900,6 +900,12 @@ void Options::Options::init()
             _maxInductionDepth.addHardConstraint(lessThan(33u));
             _lookup.insert(&_maxInductionDepth);
 
+            _inductionNegOnly = BoolOptionValue("induction_neg_only","indn",true);
+            _inductionNegOnly.description = "Only apply induction to negative literals";
+            _inductionNegOnly.setExperimental();
+            _inductionNegOnly.tag(OptionTag::INFERENCES);
+            _inductionNegOnly.reliesOn(_induction.is(notEqual(Induction::NONE)));
+            _lookup.insert(&_inductionNegOnly);
 
 	    _instantiation = ChoiceOptionValue<Instantiation>("instantiation","inst",Instantiation::OFF,{"off","on"});
 	    _instantiation.description = "Heuristically instantiate variables";
