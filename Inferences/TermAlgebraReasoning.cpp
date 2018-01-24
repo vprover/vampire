@@ -1211,7 +1211,7 @@ namespace Inferences {
     for (unsigned i = 0; i < length; i++) {
       Literal *lit = (*c)[i];
 
-      if (lit->isEquality()) {
+      if (lit->isEquality() && lit->isPositive()) {
         TermList *s = lit->nthArgument(0);
         TermList *t = lit->nthArgument(1);
         if (s->isTerm() && s->containsSubterm(var)) {
@@ -1220,7 +1220,7 @@ namespace Inferences {
         if (t->isTerm() && t->containsSubterm(var)) {
           return nullptr;
         }
-        positions[i] = lit->isPositive() && (TermList::equals(*s, var) || TermList::equals(*t, var));
+        positions[i] = (TermList::equals(*s, var) || TermList::equals(*t, var));
         toDelete += positions[i];
       } else {
         if (lit->containsSubterm(var)) {
