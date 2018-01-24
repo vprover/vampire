@@ -342,7 +342,7 @@ class BoolTermFormula
       _ts(ts)
   {
     // only boolean terms in formula context are expected here
-    ASS_REP(ts.isVar() || ts.term()->isITE() || ts.term()->isLet() || ts.term()->isTupleLet() || ts.term()->isApp(), ts.toString());
+    ASS_REP(ts.isVar() || !ts.term()->arity() || ts.term()->isITE() || ts.term()->isLet() || ts.term()->isTupleLet() || ts.term()->isApp(), ts.toString());
   }
 
   static Formula* create(TermList ts) {
