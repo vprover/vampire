@@ -349,11 +349,6 @@ public:
   static vstring ruleName(Rule rule);
   vstring name() const { return ruleName(_rule); }
 
-  // TODO used in some proofExtra output
-  //      find a better place for this
-  static bool positionIn(TermList& subterm,TermList* term, vstring& position);
-  static bool positionIn(TermList& subterm,Term* term, vstring& position);
-
   CLASS_NAME(Inference);
   USE_ALLOCATOR(Inference);
 
