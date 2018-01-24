@@ -312,7 +312,9 @@ public:
     /* Finite model not found */
     MODEL_NOT_FOUND,
     /* Induction hypothesis*/
-    INDUCTION
+    INDUCTION,
+    /* Inductive strengthening*/
+    INDUCTIVE_STRENGTH
   }; // class Inference::Rule
 
   explicit Inference(Rule r);
