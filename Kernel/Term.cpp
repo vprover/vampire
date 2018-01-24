@@ -1311,7 +1311,7 @@ Literal* Literal::createEquality (bool polarity, TermList arg1, TermList arg2, u
    }
    else {
 	// ASS_REP2(srt1 == sort, arg1.toString(), arg2.toString());
-	 ASS_REP2(srt1 == sort, arg1.toString(), env.sorts->sortName(srt1));
+	 ASS_REP2(srt1 == sort, arg1.toString(), env.sorts->sortName(sort));
      ASS_EQ(srt1, sort);
 #if VDEBUG
      if (SortHelper::tryGetResultSort(arg2, srt2)) {

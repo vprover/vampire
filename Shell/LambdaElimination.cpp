@@ -51,7 +51,7 @@ TermList LambdaElimination::processBeyondLambda(Term* term)
            case LITERAL: {
               Literal* literal = fm->literal();
               ASS(literal->isEquality()); //Is this a valid assumption?
-              ASS_EQ(literal->arity(), 2); // can there be equality between several terms?
+              ASS_EQ(literal->arity(), 2); 
               TermList lhs = *literal->nthArgument(0);
               TermList rhs = *literal->nthArgument(1);
                                 
@@ -99,14 +99,20 @@ TermList LambdaElimination::processBeyondLambda(Term* term)
 
               if(lhs->connective() == Connective::BOOL_TERM){
                   form = lhs->getBooleanTerm();
+                  if(form.isTerm()){
+                    form = processBeyondLambda(form.term());
+                  }
               }else{
-                  form = TermList(Term::createFormula(lhs)); //needs updating!
+                  form = processBeyondLambda(Term::createFormula(lhs)); //needs updating!
               }           
               buildFuncApp(app1arg, constant, form, appTerm); 
               if(rhs->connective() == Connective::BOOL_TERM){
                   form = rhs->getBooleanTerm();
+                  if(form.isTerm()){
+                    form = processBeyondLambda(form.term());
+                  }
               }else{
-                  form = TermList(Term::createFormula(rhs));
+                  form = processBeyondLambda(Term::createFormula(rhs));
               }
               buildFuncApp(app2arg, appTerm, form, appTerm);  
               return appTerm;
@@ -138,6 +144,9 @@ TermList LambdaElimination::processBeyondLambda(Term* term)
                   Formula* arg = argsIt.next();
                   if(arg->connective() == Connective::BOOL_TERM){
                       form = arg->getBooleanTerm();
+                      if(form.isTerm()){
+                        form = processBeyondLambda(form.term());
+                      }
                   }else{
                       form = processBeyondLambda(Term::createFormula(arg));
                   }
@@ -170,6 +179,9 @@ TermList LambdaElimination::processBeyondLambda(Term* term)
                 unsigned notapp = introduceAppSymbol(notsort, Sorts::SRT_BOOL, Sorts::SRT_BOOL); 
                 if(subForm->connective() == Connective::BOOL_TERM){
                     form = subForm->getBooleanTerm();
+                    if(form.isTerm()){
+                        form = processBeyondLambda(form.term());
+                    }
                 }else{
                     form = processBeyondLambda(Term::createFormula(subForm));
                 }
@@ -188,6 +200,9 @@ TermList LambdaElimination::processBeyondLambda(Term* term)
                 Formula* qform = fm->qarg();
                 if(qform->connective() == Connective::BOOL_TERM){
                     form = qform->getBooleanTerm();
+                    if(form.isTerm()){
+                      form = processBeyondLambda(form.term());
+                    }
                 }else{
                     form = processBeyondLambda(Term::createFormula(qform));
                 }

@@ -1501,7 +1501,7 @@ void TPTP::holFunction()
 
   case T_FORALL:
   case T_EXISTS:
-    _states.push(UNBIND_VARIABLES);
+   // _states.push(UNBIND_VARIABLES);
   case T_LAMBDA:
     resetToks();
     consumeToken(T_LBRA);
@@ -1687,10 +1687,10 @@ void TPTP::endHolFunction()
   int con = _connectives.pop();
 
   if (con == -2){
-	if(_termLists.size() == 1){
+	  if(_termLists.size() == 1){
        endTermAsFormula();
-	}
-	return;
+	  }
+	  return;
   }  
   
   if ((con != APP) & (con != LAMBDA) & (con != -1) & (_lastPushed == TM)){
@@ -1718,15 +1718,16 @@ void TPTP::endHolFunction()
   case NOT:
     f = _formulas.pop();
     _formulas.push(new NegatedFormula(f));
-	_lastPushed = FORM;
+	  _lastPushed = FORM;
     _states.push(END_HOL_FUNCTION);
     return;
   case FORALL:
   case EXISTS:
     f = _formulas.pop();
     _formulas.push(new QuantifiedFormula((Connective)con,_varLists.pop(),_sortLists.pop(),f));
-	_lastPushed = FORM;
+	 _lastPushed = FORM;
     _states.push(END_HOL_FUNCTION);
+    _states.push(UNBIND_VARIABLES);
     return;
   case LAMBDA:{
 	 if(_lastPushed == FORM){
@@ -1738,7 +1739,7 @@ void TPTP::endHolFunction()
 	 _lastPushed = TM;
      _states.push(END_HOL_FUNCTION);
 	 _states.push(UNBIND_VARIABLES);
-    return; 
+     return; 
     }
   case LITERAL:
   default:
@@ -1806,7 +1807,7 @@ void TPTP::endHolFunction()
 	f = new BinaryFormula((Connective)con,_formulas.pop(),f);
       }
       _formulas.push(f);
-	  _lastPushed = FORM;
+	    _lastPushed = FORM;
       _states.push(END_HOL_FUNCTION);
       return;
     
@@ -1819,7 +1820,7 @@ void TPTP::endHolFunction()
       f = _formulas.pop();
       f = new BinaryFormula((Connective)con,_formulas.pop(),f);
       _formulas.push(f);
-	  _lastPushed = FORM;
+	    _lastPushed = FORM;
       _states.push(END_HOL_FUNCTION);
       return;
 
@@ -1831,7 +1832,7 @@ void TPTP::endHolFunction()
 	f = new NegatedFormula(f);
       }
       _formulas.push(f);
-	  _lastPushed = FORM;
+	    _lastPushed = FORM;
       _states.push(END_HOL_FUNCTION);
       return;
 
@@ -1845,23 +1846,23 @@ void TPTP::endHolFunction()
   }
 
   if ((c != APP) & (con == -1) & (_lastPushed == TM)){
-	endTermAsFormula();
+	  endTermAsFormula();
   }
 
   
   // con and c are binary connectives
   if (higherPrecedence(con,c)) {
-	if (con == APP){
+	  if (con == APP){
       _states.push(END_HOL_FUNCTION);
       _states.push(END_APP);
       return;  
-	}
+	  }
     f = _formulas.pop(); 
     Formula* g = _formulas.pop();
     if (con == AND || con == OR) {
       f = makeJunction((Connective)con,g,f);
       if (conReverse) {
-	f = new NegatedFormula(f);
+	      f = new NegatedFormula(f);
       }
     }
     else if (con == IMP && conReverse) {
@@ -1870,7 +1871,7 @@ void TPTP::endHolFunction()
       f = new BinaryFormula((Connective)con,g,f);
     }
     _formulas.push(f);
-	_lastPushed = FORM;
+	  _lastPushed = FORM;
     _states.push(END_HOL_FUNCTION);
     return;
   }
@@ -2617,7 +2618,7 @@ void TPTP::varList()
     vars.push(var);
     resetToks();
     bool sortDeclared = false;
-  afterVar:
+    afterVar:
     tok = getTok(0);
     switch (tok.tag) {
     case T_COLON: // v: type
@@ -2642,14 +2643,14 @@ void TPTP::varList()
 	  bindVariable(var,Sorts::SRT_DEFAULT);
 	}
 	Formula::VarList* vs = Formula::VarList::empty();
-        Formula::SortList* ss = Formula::SortList::empty();
+  Formula::SortList* ss = Formula::SortList::empty();
 	while (!vars.isEmpty()) {
-          int v = vars.pop();
+    int v = vars.pop();
 	  vs = new Formula::VarList(v,vs);
-          ss = new Formula::SortList(sortOf(TermList(v,false)),ss);
+    ss = new Formula::SortList(sortOf(TermList(v,false)),ss);
 	}
 	_varLists.push(vs);
-        _sortLists.push(ss);
+  _sortLists.push(ss);
 	_bindLists.push(vs);
 	return;
       }
@@ -3256,6 +3257,7 @@ void TPTP::endTermAsFormula()
   TermList t = _termLists.pop();
   if (sortOf(t) != Sorts::SRT_BOOL) {
     vstring sortName = env.sorts->sortName(sortOf(t));
+    ASSERTION_VIOLATION;
     USER_ERROR("Non-boolean term " + t.toString() + " of sort " + sortName + " is used in a formula context");
   }
   if (t.isTerm() && t.term()->isFormula()) {

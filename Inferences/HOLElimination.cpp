@@ -220,7 +220,7 @@ bool isPISIGMAapp(Literal* lit, TermList &t1, TermList &rhs, bool &rhsIsTrue, bo
     
 }
 
-bool isEQUALSApp(Literal* lit, TermList &t1, TermList &t2, bool &positive)
+bool isEQUALSApp(Literal* lit, TermList &t1, TermList &t2, bool &positive, unsigned &sort)
 {
     CALL("isEQUALSApp");
 
@@ -240,6 +240,8 @@ bool isEQUALSApp(Literal* lit, TermList &t1, TermList &t2, bool &positive)
     if(symbol->getConst() == Signature::Symbol::EQUALS){
         t1 = *appTerm->nthArgument(0)->term()->nthArgument(1);
         t2 = *appTerm->nthArgument(1);
+        sort = symbol->fnType()->result();
+        sort = env.sorts->getFuncSort(sort)->getDomainSort();
         return true;
     }
     
@@ -432,12 +434,6 @@ Clause* ORIMPANDRemovalISE::simplify(Clause* c)
         Clause* res = replaceLit2(c, lit, newLit1, new Inference1(Inference::BINARY_CONN_ELIMINATION, c), newLit2);
         res->setAge(c->age());
         env.statistics->holORIMPANDsimplifications++;
-        
-                  cout << "-----------------------------" << endl;
-  cout << "The premise is : " + c->toString() << endl;
-  cout << "The conclusion : " + res->toString() << endl;
-  cout << "-----------------------------" << endl;
-        
         return res;
       }
     }
@@ -461,13 +457,6 @@ Clause* NOTRemovalISE::simplify(Clause* c)
         Clause* res = replaceLit2(c, lit, newLit, new Inference1(Inference::HOL_NOT_ELIMINATION, c));//Change inference AYB
         res->setAge(c->age());
         env.statistics->holNOTsimplifications++;
-      
-          cout << "-----------------------------" << endl;
-  cout << "The premise is : " + c->toString() << endl;
-  cout << "The conclusion : " + res->toString() << endl;
-  cout << "-----------------------------" << endl;
-        
-      
         return res;
       }
     }
@@ -484,19 +473,13 @@ Clause* EQUALSRemovalISE::simplify(Clause* c)
     for (int i = length - 1; i >= 0; i--) {
       TermList lhs, rhs;
       bool polarity;
+      unsigned sort;
       Literal *lit = (*c)[i];
-      if (isEQUALSApp(lit, lhs, rhs, polarity)) {
-        Literal *newLit = Literal::createEquality(polarity, lhs, rhs, Sorts::SRT_BOOL);//Check this in particular polarity, AYB
+      if (isEQUALSApp(lit, lhs, rhs, polarity, sort)) {
+        Literal *newLit = Literal::createEquality(polarity, lhs, rhs, sort);//Check this in particular polarity, AYB
         Clause* res = replaceLit2(c, lit, newLit, new Inference1(Inference::HOL_EQUALITY_ELIMINATION, c));//Change inference AYB
         res->setAge(c->age());
         env.statistics->holEQAULSsimplifications++;
-        
-                  cout << "-----------------------------" << endl;
-  cout << "The premise is : " + c->toString() << endl;
-  cout << "The conclusion : " + res->toString() << endl;
-  cout << "-----------------------------" << endl;
-        
-        
         return res;
       }
     }
@@ -579,12 +562,6 @@ Clause* PISIGMARemovalISE::simplify(Clause* c)
         res->setAge(c->age());
     
         env.statistics->holPISIGMAsimplifications++;
-        
-          cout << "-----------------------------" << endl;
-  cout << "The premise is : " + c->toString() << endl;
-  cout << "The conclusion : " + res->toString() << endl;
-  cout << "-----------------------------" << endl;
-        
         return res;
       }
     }
@@ -710,12 +687,6 @@ Clause* PISIGMARemovalISE::simplify(Clause* c)
   for (unsigned i = 0; i < conclusionLength; i++) {
     (*conclusion)[i] = i == literalPosition ? EqHelper::replace((*premise)[i], combinatorTerm, newTerm) : (*premise)[i];
   }
-  
-  cout << "-----------------------------" << endl;
-  cout << "The premise is : " + premise->toString() << endl;
-  cout << "The conclusion : " + conclusion->toString() << endl;
-  cout << "-----------------------------" << endl;
-  
   return conclusion;
       
   }
