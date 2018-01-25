@@ -339,6 +339,7 @@ namespace Inferences {
 
     ~Injectivity2Iterator()
     {
+      CALL("DistAndInj2GIE::Injectivity2Iterator::~Injectivity2Iterator");
       if (_csigma) {
         DEALLOC_KNOWN(_csigma, (_length - 1) * sizeof(Literal*), "Injectivity2Iterator::csigma");
       }
@@ -714,6 +715,7 @@ namespace Inferences {
     }
 
     ~Injectivity1GenIterator() {
+      CALL("Injectivity1GIE::Injectivity1GenIterator::~InjectivityIterator");
       if (_asigma) {
         DEALLOC_KNOWN(_asigma, _length * sizeof(Literal*), "Injectivity1GenIterator::asigma");
       }
@@ -1013,9 +1015,11 @@ namespace Inferences {
 
       if (TermList::Position::isEmpty(pos)) {
         TermAlgebra* ta1 = env.signature->getTermAlgebraOfSort(qres.term1sort);
-        TermAlgebra* tan = env.signature->getTermAlgebraOfSort(tsort);
-        if (tan && ta1->isMutualType(tan)) {
-          unsigned appFun = tan->getAppFunction(ta1); // TODO sort might be wrong
+        ASS(ta1);
+        TermAlgebra* tan;
+        if (env.signature->isTermAlgebraSort(tsort)
+            && (tan = env.signature->getTermAlgebraOfSort(tsort))->isMutualType(ta1)) {
+          unsigned appFun = tan->getAppFunction(ta1);
           TermList y(*freshVar++, false);
           Literal *sc = Literal::createEquality(false,
                                                 t,

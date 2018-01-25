@@ -262,6 +262,7 @@ namespace Indexing
 
     ~ChainSearchIterator()
     {
+      CALL("ChainIndex::ChainSearchIterator::~ChainSearchIterator");
       ASS(_stack.isEmpty());
       if (_nextResult) {
         delete _nextResult;
