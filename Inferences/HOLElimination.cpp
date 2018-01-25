@@ -369,24 +369,25 @@ bool isKTerm(TermList term, TermList &t1)
 bool isTenaryCombinatorTerm(TermList term, TermList &t1, TermList &t2, TermList &t3, Signature::Symbol::HOLConstant &combi)
 {
   CALL("isTenaryCombinatorTerm");
-  
+
   TermList arg1 = *term.term()->nthArgument(0);
   if(arg1.isTerm()){
     Signature::Symbol* sym = env.signature->getFunction(arg1.term()->functor());
     if(sym->hOLAPP()){
       TermList arg1ofarg1 = *arg1.term()->nthArgument(0);
-          if(arg1ofarg1.isTerm()){  
-             Signature::Symbol* sym = env.signature->getFunction(arg1ofarg1.term()->functor());
-       if(sym->hOLAPP()){
-        TermList comb = *arg1ofarg1.term()->nthArgument(0);
+      if(arg1ofarg1.isTerm()){  
+        Signature::Symbol* sym = env.signature->getFunction(arg1ofarg1.term()->functor());
+        if(sym->hOLAPP()){
+          TermList comb = *arg1ofarg1.term()->nthArgument(0);
+          if(!comb.isTerm()){ return false; }
           Signature::Symbol* sym = env.signature->getFunction(comb.term()->functor());
           if(sym->getConst() == Signature::Symbol::B_COMB || sym->getConst() == Signature::Symbol::C_COMB ||
            sym->getConst() == Signature::Symbol::S_COMB){
-          t1 = *arg1ofarg1.term()->nthArgument(1);
-          t2 = *arg1.term()->nthArgument(1);
-          t3 = *term.term()->nthArgument(1);
-          combi = sym->getConst();
-            return true;  
+           t1 = *arg1ofarg1.term()->nthArgument(1);
+           t2 = *arg1.term()->nthArgument(1);
+           t3 = *term.term()->nthArgument(1);
+           combi = sym->getConst();
+           return true;  
           } 
        }
       }     

@@ -226,10 +226,10 @@ void SymCounter::count(Term* term, int polarity, int add)
       switch (sd->getType()) {
         case Term::SF_FORMULA:
           count(sd->getFormula(), polarity, add);
-              break;
+          break;
         case Term::SF_ITE:
           count(sd->getCondition(), 0, add);
-              break;
+          break;
         case Term::SF_LET:
         case Term::SF_LET_TUPLE: {
           TermList binding = sd->getBinding();
@@ -240,6 +240,24 @@ void SymCounter::count(Term* term, int polarity, int add)
         }
         case Term::SF_TUPLE: {
           count(sd->getTupleTerm(), 0, add);
+          break;
+        }
+        case Term::SF_APP: {
+          TermList lhs = sd->getAppLhs();
+          TermList rhs = *term->nthArgument(0);
+          if(lhs.isTerm()){
+            count(lhs.term(), 1, add); //Polarity? AYB
+          }
+          if(rhs.isTerm()){
+            count(rhs.term(), 1, add); //Polarity? AYB
+          }
+          break;
+        }
+        case Term::SF_LAMBDA: {
+          TermList lambdaExp = sd->getLambdaExp();
+          if(lambdaExp.isTerm()){
+            count(lambdaExp.term(), 1, add); //Polarity? AYB
+          }
           break;
         }
         default:
