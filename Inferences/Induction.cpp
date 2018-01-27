@@ -230,6 +230,7 @@ void InductionClauseIterator::performMathInduction(Clause* premise, Literal* lit
         _clauses.push(r1);
         _clauses.push(r2);
         _clauses.push(r3);
+        env.statistics->induction++;
 
  }
 
@@ -332,14 +333,13 @@ void InductionClauseIterator::performStructInductionOne(Clause* premise, Literal
     Clause* r = BinaryResolution::generateClause(c,conclusion,qr,*env.options);
     _clauses.push(r);
   }
-  
+  env.statistics->induction++;
 }
 
 /**
  * This idea (taken from the CVC4 paper) is that there exists some smallest k that makes lit true
- * Remember! that lit is (by construction) a negative literal... so lit = !L and we're talking about the
- * smallest k that makes L[k] false
- *
+ * We produce the clause ~L[x] \/ ?y : L[y] & !z (z subterm y -> ~L[z])
+ * and perform resolution with lit L[c]
  */
 void InductionClauseIterator::performStructInductionTwo(Clause* premise, Literal* lit, unsigned c)
 {
@@ -347,44 +347,24 @@ void InductionClauseIterator::performStructInductionTwo(Clause* premise, Literal
   TermAlgebra* ta = env.signature->getTermAlgebraOfSort(env.signature->getFunction(c)->fnType()->result());
   unsigned ta_sort = ta->sort();
 
-  Term* skt = 0;
-  Clause* Lk = 0; // add if it gets set
+  Literal* clit = Literal::complementaryLiteral(lit);
 
-  static DHSet<unsigned> usedSkolems;
-  if(env.signature->getFunction(c)->skolem() && !usedSkolems.contains(c)){
-    skt = Term::createConstant(c);
-    usedSkolems.insert(c);
-  }
-  else{
-    unsigned sk = env.signature->addSkolemFunction(0);
-    Signature::Symbol* symbol = env.signature->getFunction(sk);
-    symbol->setType(OperatorType::getConstantsType(ta_sort));
-    symbol->markInductionSkolem();
-    skt = Term::createConstant(sk);
+  // make L[y]
+  TermList y(0,false); 
+  ConstantReplacement cr(c,y);
+  Literal* Ly = cr.transform(lit);
 
-    // make L[k]
-    {
-      ConstantReplacement cr(c,TermList(skt));
-      Lk = new(1) Clause(1,premise->inputType(),new Inference1(Inference::INDUCTIVE_STRENGTH,premise));
-      (*Lk)[0] = cr.transform(lit);
-    }
-  }
+  // for each constructor and destructor make
+  // ![Z] : y = cons(Z,dec(y)) -> ( ~L[dec1(y)] & ~L[dec2(y)]
+  FormulaList* formulas = FormulaList::empty();
 
-  // make 
-  //
-  // k != con1(...d1(k)...d2(k)...) | ~L[d1(k)] 
-  // k != con1(...d1(k)...d2(k)...) | ~L[d2(k)] 
-  // ..
-  //
-  // for each coni
-  bool recursive_constructors = false;
   for(unsigned i=0;i<ta->nConstructors();i++){
     TermAlgebraConstructor* con = ta->constructor(i);
     unsigned arity = con->arity();
   
     // ignore a constructor if it doesn't mention ta_sort
     bool ignore = (arity == 0);
-    for(unsigned j=0;j<arity && ignore; j++){ ignore &= (con->argSort(j)!=ta_sort); } 
+    for(unsigned j=0;j<arity; j++){ ignore &= (con->argSort(j)!=ta_sort); } 
 
     if(!ignore){
   
@@ -393,31 +373,62 @@ void InductionClauseIterator::performStructInductionTwo(Clause* premise, Literal
       Stack<TermList> taTerms; 
       for(unsigned j=0;j<arity;j++){
         unsigned dj = con->destructorFunctor(j);
-        TermList djk(Term::create1(dj,TermList(skt)));
-        argTerms.push(djk);
+        TermList djy(Term::create1(dj,y));
+        argTerms.push(djy);
         if(con->argSort(j) == ta_sort){
-          taTerms.push(djk);
+          taTerms.push(djy);
         }
       }
-      // create k != con1(...d1(k)...d2(k)...)
+      // create y != con1(...d1(y)...d2(y)...)
       TermList coni(Term::create(con->functor(),(unsigned)argTerms.size(), argTerms.begin()));
-      Literal* kneq = Literal::createEquality(false,TermList(skt),coni,ta_sort);
-      // now create the clauses
+      Literal* kneq = Literal::createEquality(true,y,coni,ta_sort);
+      FormulaList* And = FormulaList::empty(); 
       Stack<TermList>::Iterator tit(taTerms);
-      recursive_constructors |= tit.hasNext();
+      unsigned and_terms = 0;
       while(tit.hasNext()){
-        TermList djk = tit.next();
-        Clause* r = new(2) Clause(2,premise->inputType(),new Inference1(Inference::INDUCTIVE_STRENGTH,premise));
-        (*r)[0] = kneq;
-        ConstantReplacement cr(c,djk);
-        (*r)[1] = Literal::complementaryLiteral(cr.transform(lit));
-        _clauses.push(r);
+        TermList djy = tit.next();
+        ConstantReplacement cr(c,djy);
+        Literal* nLdjy = cr.transform(clit);
+        Formula* f = new AtomicFormula(nLdjy); 
+        And = new FormulaList(f,And);
+        and_terms++;
       }
+      ASS(and_terms>0);
+      Formula* imp = new BinaryFormula(Connective::IMP,
+                            new AtomicFormula(kneq),
+                            (and_terms>1) ? new JunctionFormula(Connective::AND,And)
+                                          : And->head()
+                            );
+      formulas = new FormulaList(imp,formulas);
+      
     }
   }
-  // if Lk was created add it now - didn't do this before as we might find that
-  // there are no recursive constructors and no point doing this 
-  if(recursive_constructors && Lk){_clauses.push(Lk);}
+  Formula* exists = new QuantifiedFormula(Connective::EXISTS, new Formula::VarList(y.var(),0),0,
+                  new JunctionFormula(Connective::AND,new FormulaList(new AtomicFormula(Ly),formulas))); 
+  
+  ConstantReplacement cr2(c,TermList(1,false));
+  Literal* conclusion = cr2.transform(clit);
+  FormulaList* orf = new FormulaList(exists,new FormulaList(Formula::quantify(new AtomicFormula(conclusion)),FormulaList::empty()));
+  Formula* hypothesis = new JunctionFormula(Connective::OR,orf);
+
+  NewCNF cnf(0);
+  Stack<Clause*> hyp_clauses;
+  FormulaUnit* fu = new FormulaUnit(hypothesis,new Inference(Inference::INDUCTION),Unit::AXIOM);
+  cnf.clausify(NNF::ennf(fu), hyp_clauses);
+
+  //cout << "Clausify " << fu->toString() << endl;
+
+  // Now perform resolution between lit and the hyp_clauses on clit, which should be contained in each clause!
+  Stack<Clause*>::Iterator cit(hyp_clauses);
+  while(cit.hasNext()){
+    Clause* c = cit.next();
+    static ResultSubstitutionSP identity = ResultSubstitutionSP(new IdentitySubstitution());
+    SLQueryResult qr(lit,premise,identity);
+    Clause* r = BinaryResolution::generateClause(c,conclusion,qr,*env.options);
+    _clauses.push(r);
+  }
+  env.statistics->induction++;  
+
 }
 
 void InductionClauseIterator::performStructInductionThree(Clause* premise, Literal* lit, unsigned constant)
