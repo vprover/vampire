@@ -1999,6 +1999,7 @@ public:
   InductionChoice inductionChoice() const { return _inductionChoice.actualValue; }
   unsigned maxInductionDepth() const { return _maxInductionDepth.actualValue; }
   bool inductionNegOnly() const { return _inductionNegOnly.actualValue; }
+  bool inductionUnitOnly() const { return _inductionUnitOnly.actualValue; }
 
   float instGenBigRestartRatio() const { return _instGenBigRestartRatio.actualValue; }
   bool instGenPassiveReactivation() const { return _instGenPassiveReactivation.actualValue; }
@@ -2279,6 +2280,7 @@ private:
   ChoiceOptionValue<InductionChoice> _inductionChoice;
   UnsignedOptionValue _maxInductionDepth;
   BoolOptionValue _inductionNegOnly;
+  BoolOptionValue _inductionUnitOnly;
 
   StringOptionValue _latexOutput;
   BoolOptionValue _latexUseDefaultSymbols;

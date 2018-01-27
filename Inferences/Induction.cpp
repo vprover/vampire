@@ -77,30 +77,41 @@ InductionClauseIterator::InductionClauseIterator(Clause* premise)
 {
   CALL("InductionClauseIterator::InductionClauseIterator");
 
-  static bool structInd = env.options->induction() == Options::Induction::BOTH ||
-                         env.options->induction() == Options::Induction::STRUCTURAL;
-  static bool mathInd = env.options->induction() == Options::Induction::BOTH ||
-                         env.options->induction() == Options::Induction::MATHEMATICAL;
+  static Options::InductionChoice kind = env.options->inductionChoice();
+  static bool all = (kind == Options::InductionChoice::ALL);
+  static bool goal = (kind == Options::InductionChoice::GOAL);
+  static bool goal_plus = (kind == Options::InductionChoice::GOAL_PLUS);
+  static unsigned maxD = env.options->maxInductionDepth();
+  static bool unitOnly = env.options->inductionUnitOnly();
+
+
+  if((!unitOnly || premise->length()==1) && 
+     (all || ( (goal || goal_plus) && premise->isGoal())) &&
+     (maxD == 0 || premise->inductionDepth() < maxD)
+    )
+  {
+    for(unsigned i=0;i<premise->length();i++){
+      process(premise,(*premise)[i]);
+    }
+  }
+}
+
+
+void InductionClauseIterator::process(Clause* premise, Literal* lit)
+{
+  CALL("Induction::ClauseIterator::process");
 
   static Options::InductionChoice kind = env.options->inductionChoice();
   static bool all = (kind == Options::InductionChoice::ALL);
   static bool goal = (kind == Options::InductionChoice::GOAL);
   static bool goal_plus = (kind == Options::InductionChoice::GOAL_PLUS);
+  static bool negOnly = env.options->inductionNegOnly();
+  static bool structInd = env.options->induction() == Options::Induction::BOTH ||
+                         env.options->induction() == Options::Induction::STRUCTURAL;
+  static bool mathInd = env.options->induction() == Options::Induction::BOTH ||
+                         env.options->induction() == Options::Induction::MATHEMATICAL;
 
-  static unsigned maxD = env.options->maxInductionDepth();
-
-  bool negOnly = env.options->inductionNegOnly();
-
-
-  if(premise->length()==1 && 
-     (all || ( (goal || goal_plus) && premise->isGoal())) &&
-     (maxD == 0 || premise->inductionDepth() < maxD)
-    )
-  {
-    Literal* lit = (*premise)[0];
-
-     // TODO change to allow for positive occurence of <
-    if((!negOnly || lit->isNegative() || 
+  if((!negOnly || lit->isNegative() || 
          (theory->isInterpretedPredicate(lit) && theory->isInequality(theory->interpretPredicate(lit)))
        )&& 
        lit->ground()
@@ -157,8 +168,7 @@ InductionClauseIterator::InductionClauseIterator(Clause* premise)
           }
         }
       } 
-    }
-  }
+   }
 }
 
       // deal with integer constants
@@ -170,6 +180,7 @@ InductionClauseIterator::InductionClauseIterator(Clause* premise)
 void InductionClauseIterator::performMathInduction(Clause* premise, Literal* lit, unsigned c)
 {
   CALL("InductionClauseIterator::performMathInduction");
+  ASSERTION_VIOLATION;
 
         //cout << "PERFORM INDUCTION on " << env.signature->functionName(c) << endl;
 

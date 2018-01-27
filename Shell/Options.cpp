@@ -907,6 +907,13 @@ void Options::Options::init()
             _inductionNegOnly.reliesOn(_induction.is(notEqual(Induction::NONE)));
             _lookup.insert(&_inductionNegOnly);
 
+            _inductionUnitOnly = BoolOptionValue("induction_unit_only","indu",true);
+            _inductionUnitOnly.description = "Only apply induction to unit clauses";
+            _inductionUnitOnly.setExperimental();
+            _inductionUnitOnly.tag(OptionTag::INFERENCES);
+            _inductionUnitOnly.reliesOn(_induction.is(notEqual(Induction::NONE)));
+            _lookup.insert(&_inductionUnitOnly);
+
 	    _instantiation = ChoiceOptionValue<Instantiation>("instantiation","inst",Instantiation::OFF,{"off","on"});
 	    _instantiation.description = "Heuristically instantiate variables";
 	    _instantiation.tag(OptionTag::INFERENCES);
