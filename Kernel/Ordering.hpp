@@ -162,8 +162,8 @@ class PrecedenceOrdering
 : public Ordering
 {
 public:
-  virtual Result compare(Literal* l1,Literal* l2) const;
-  virtual Comparison compareFunctors(unsigned fun1, unsigned fun2) const;
+  Result compare(Literal* l1,Literal* l2) const override;
+  Comparison compareFunctors(unsigned fun1, unsigned fun2) const override;
 
 protected:
   // l1 and l2 are not equalities and have the same predicate

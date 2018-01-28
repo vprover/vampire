@@ -68,9 +68,9 @@ public:
     NEGATED_CONJECTURE = 3,
     /** Vampire-only, for the consequence-finding mode */
     CLAIM = 4,
-    /** Used in parsing and preprocessing for extensionality clause tagging */
+    /** Used in parsing and preprocessing for extensionality clause tagging, should not appear in proof search */
     EXTENSIONALITY_AXIOM = 5,
-    /** Used to seperate model definitions in model_check mode */
+    /** Used to seperate model definitions in model_check mode, should not appear in proof search */
     MODEL_DEFINITION = 6
   };
 
@@ -96,6 +96,9 @@ public:
   /** set the input type of the unit */
   void setInputType(InputType it)
   { _inputType=it; }
+  /** return true if inputType relates to a goal **/
+  bool isGoal() const 
+  { return _inputType > ASSUMPTION; }  
 
   /** Return the number of this unit */
   unsigned number() const { return _number; }

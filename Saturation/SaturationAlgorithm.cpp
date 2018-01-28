@@ -546,6 +546,7 @@ int SaturationAlgorithm::elapsedTime()
 void SaturationAlgorithm::addInputClause(Clause* cl)
 {
   CALL("SaturationAlgorithm::addInputClause");
+  ASS_LE(cl->inputType(),Clause::CLAIM); // larger input types should not appear in proof search
 
   cl->markInput();
 

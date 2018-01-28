@@ -269,7 +269,7 @@ int Superposition::getWeightLimit(Clause* eqClause, Clause* rwClause, Limits* li
   if(!limits->ageLimited() || newAge <= limits->ageLimit() || !limits->weightLimited()) {
     return -1;
   }
-  bool isNonGoal=rwClause->inputType()==Unit::AXIOM && eqClause->inputType()==Unit::AXIOM;
+  bool isNonGoal=!rwClause->isGoal() && !eqClause->isGoal();
   if(isNonGoal) {
     return limits->nonGoalWeightLimit();
   } else {

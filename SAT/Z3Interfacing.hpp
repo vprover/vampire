@@ -92,16 +92,15 @@ public:
    */
   virtual SATClause* getZeroImpliedCertificate(unsigned var) override;
 
-  // Not required for Z3, but let's keep track of the counter
-  virtual void ensureVarCount(unsigned newVarCnt) override {
+  void ensureVarCount(unsigned newVarCnt) override {
     CALL("Z3Interfacing::ensureVarCnt");
-    _varCnt = max(newVarCnt,_varCnt);
+
+    while (_varCnt < newVarCnt) {
+      newVar();
+    }
   }
 
-  virtual unsigned newVar() override {
-    CALL("Z3Interfacing::newVar");
-    return ++_varCnt;
-  }
+  unsigned newVar() override;
 
   // Currently not implemented for Z3
   virtual void suggestPolarity(unsigned var, unsigned pol) override {}
@@ -193,11 +192,18 @@ private:
   bool _showZ3;
   bool _unsatCoreForRefutations;
 
-  DHSet<unsigned> _namedExpressions; 
+  DHSet<unsigned> _namedExpressions;
+
   z3::expr getNameExpr(unsigned var){
     vstring name = "v"+Lib::Int::toString(var);
     return  _context.bool_const(name.c_str());
   }
+  // careful: keep native constants' names distinct from the above ones (hence the "c"-prefix below)
+  z3::expr getNameConst(const vstring& symbName, z3::sort srt){
+    vstring name = "c"+symbName;
+    return _context.constant(name.c_str(),srt);
+  }
+
 
 };
 

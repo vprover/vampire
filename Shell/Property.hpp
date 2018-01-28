@@ -75,91 +75,91 @@ public:
 
   // Various boolean properties.
   /** CNF of the problem has a positive literal x=y */
-  static const unsigned long PR_HAS_X_EQUALS_Y = 1ul; // 2^0
+  static const uint64_t PR_HAS_X_EQUALS_Y = 1ul; // 2^0
   /** Problem has function definitions f(X) = t[X] */
-  static const unsigned long PR_HAS_FUNCTION_DEFINITIONS = 2ul; // 2^1
+  static const uint64_t PR_HAS_FUNCTION_DEFINITIONS = 2ul; // 2^1
   /** Problem contains a subset axiom */
-  static const unsigned long PR_HAS_SUBSET = 4ul; // 2^2
+  static const uint64_t PR_HAS_SUBSET = 4ul; // 2^2
   /** Problem contains extensionality axiom */
-  static const unsigned long PR_HAS_EXTENSIONALITY = 8ul; // 2^3
+  static const uint64_t PR_HAS_EXTENSIONALITY = 8ul; // 2^3
   /** Problem contains an axiomatisation of group theory */
-  static const unsigned long PR_GROUP = 16ul; // 2^4
+  static const uint64_t PR_GROUP = 16ul; // 2^4
   /** Problem contains an axiomatisation of ring theory */
-  static const unsigned long PR_RING = 32ul; // 2^5
+  static const uint64_t PR_RING = 32ul; // 2^5
   /** Problem contains an axiomatisation of robbins algebras */
-  static const unsigned long PR_ROBBINS_ALGEBRA = 64ul; // 2^6
+  static const uint64_t PR_ROBBINS_ALGEBRA = 64ul; // 2^6
   /** Problem contains an axiomatisation of non-associative rings */
-  static const unsigned long PR_NA_RING = 128ul; // 2^7
+  static const uint64_t PR_NA_RING = 128ul; // 2^7
   /** Problem contains an axiomatisation of boolean algebras */
-  static const unsigned long PR_BOOLEAN_ALGEBRA = 256ul; // 2^8
+  static const uint64_t PR_BOOLEAN_ALGEBRA = 256ul; // 2^8
   /** Problem contains an axiomatisation of lattice theory */
-  static const unsigned long PR_LATTICE = 512ul; // 2^9
+  static const uint64_t PR_LATTICE = 512ul; // 2^9
   /** Problem contains an axiomatisation of lattice-ordered groups */
-  static const unsigned long PR_LO_GROUP = 1024ul; // 2^10
+  static const uint64_t PR_LO_GROUP = 1024ul; // 2^10
   /** Problem contains an axiomatisation of the B combinator */
-  static const unsigned long PR_COMBINATOR_B = 2048ul; // 2^11
+  static const uint64_t PR_COMBINATOR_B = 2048ul; // 2^11
   /** Problem contains an axiomatisation of a combinator S,T,O or Q */
-  static const unsigned long PR_COMBINATOR = 4096ul; // 2^12
+  static const uint64_t PR_COMBINATOR = 4096ul; // 2^12
   /** Problem contains the condensed detachment axiom
    *  ~theorem(X) \/ ~theorem(imply(X,Y)) \/ theorem(Y) */
-  static const unsigned long PR_HAS_CONDENSED_DETACHMENT1 = 8192ul; // 2^13
+  static const uint64_t PR_HAS_CONDENSED_DETACHMENT1 = 8192ul; // 2^13
   /** Problem contains the condensed detachment axiom
    *  ~theorem(X) \/ ~theorem(or(not(X),Y)) \/ theorem(Y) */
-  static const unsigned long PR_HAS_CONDENSED_DETACHMENT2 = 16384ul; // 2^14
+  static const uint64_t PR_HAS_CONDENSED_DETACHMENT2 = 16384ul; // 2^14
   /** field axioms from TPTP */
-  static const unsigned long PR_HAS_FLD1 = 32768ul; // 2^15
+  static const uint64_t PR_HAS_FLD1 = 32768ul; // 2^15
   /** other field axioms from TPTP */
-  static const unsigned long PR_HAS_FLD2 = 65536ul; // 2^16
+  static const uint64_t PR_HAS_FLD2 = 65536ul; // 2^16
   /** Problem contains literal X=t with t non-containing X */
-  static const unsigned long PR_HAS_INEQUALITY_RESOLVABLE_WITH_DELETION = 131072ul; // 2^17
+  static const uint64_t PR_HAS_INEQUALITY_RESOLVABLE_WITH_DELETION = 131072ul; // 2^17
   /** Uses string sort */
-  static const unsigned long PR_HAS_STRINGS = 262144ul; // 2^18
+  static const uint64_t PR_HAS_STRINGS = 262144ul; // 2^18
   /** Uses integer sort */
-  static const unsigned long PR_HAS_INTEGERS = 524288ul; // 2^19
+  static const uint64_t PR_HAS_INTEGERS = 524288ul; // 2^19
   /** Uses rational sort */
-  static const unsigned long PR_HAS_RATS = 1048576ul; // 2^20
+  static const uint64_t PR_HAS_RATS = 1048576ul; // 2^20
   /** Uses real sort */
-  static const unsigned long PR_HAS_REALS = 2097152ul; // 2^21
+  static const uint64_t PR_HAS_REALS = 2097152ul; // 2^21
   /** Has sort declarations */
-  static const unsigned long PR_SORTS = 4194304ul; // 2^22
+  static const uint64_t PR_SORTS = 4194304ul; // 2^22
   /** Uses integer comparisons $less, $lesseq, $greater, $greatereq */
-  static const unsigned long PR_INTEGER_COMPARISON = 8388608ul; // 2^23
+  static const uint64_t PR_INTEGER_COMPARISON = 8388608ul; // 2^23
   /** Uses rational comparisons $less, $lesseq, $greater, $greatereq */
-  static const unsigned long PR_RAT_COMPARISON = 16777216ul; // 2^24
+  static const uint64_t PR_RAT_COMPARISON = 16777216ul; // 2^24
   /** Uses real comparisons $less, $lesseq, $greater, $greatereq */
-  static const unsigned long PR_REAL_COMPARISON = 33554432ul; // 2^25
+  static const uint64_t PR_REAL_COMPARISON = 33554432ul; // 2^25
   /** Uses integer functions $uminus,$sum,$difference */
-  static const unsigned long PR_INTEGER_LINEAR = 67108864ul; // 2^26
+  static const uint64_t PR_INTEGER_LINEAR = 67108864ul; // 2^26
   /** Uses rational functions $uminus,$sum,$difference */
-  static const unsigned long PR_RAT_LINEAR = 134217728ul; // 2^27
+  static const uint64_t PR_RAT_LINEAR = 134217728ul; // 2^27
   /** Uses real functions $uminus,$sum,$difference */
-  static const unsigned long PR_REAL_LINEAR = 268435456ul; // 2^28
+  static const uint64_t PR_REAL_LINEAR = 268435456ul; // 2^28
   /** Uses integer non-linear functions $product,$quotient,$remainder */
-  static const unsigned long PR_INTEGER_NONLINEAR = 536870912ul; // 2^29
+  static const uint64_t PR_INTEGER_NONLINEAR = 536870912ul; // 2^29
   /** Uses integer non-linear functions $product,$quotient,$remainder */
-  static const unsigned long PR_RAT_NONLINEAR = 1073741824ul; // 2^30
+  static const uint64_t PR_RAT_NONLINEAR = 1073741824ul; // 2^30
   /** Uses integer non-linear functions $product,$quotient,$remainder */
-  static const unsigned long PR_REAL_NONLINEAR = 2147483648ul; // 2^31
+  static const uint64_t PR_REAL_NONLINEAR = 2147483648ul; // 2^31
   /** Uses number conversion functions $floor, $ceiling, $truncate, $round, $is_int, $is_rat, $to_int, $to_int, $to_rat, $to_real */
-  static const unsigned long PR_NUMBER_CONVERSION = 4294967296ul; // 2^32
+  static const uint64_t PR_NUMBER_CONVERSION = 4294967296ul; // 2^32
   /** when skolemised, will become ground, probably useless */
-  static const unsigned long PR_ESSENTIALLY_GROUND = 8589934592ul; // 2^33
+  static const uint64_t PR_ESSENTIALLY_GROUND = 8589934592ul; // 2^33
   /** uses list axioms */
-  static const unsigned long PR_LIST_AXIOMS = 17179869184ul; // 2^34
+  static const uint64_t PR_LIST_AXIOMS = 17179869184ul; // 2^34
   /** uses boolean variables */
-  static const unsigned long PR_HAS_BOOLEAN_VARIABLES =  34359738368ul; // 2^35
+  static const uint64_t PR_HAS_BOOLEAN_VARIABLES =  34359738368ul; // 2^35
   /** uses Arrays, should these be split? */
-  static const unsigned long PR_HAS_ARRAYS = 68719476736ul; // 2^36
+  static const uint64_t PR_HAS_ARRAYS = 68719476736ul; // 2^36
   /** has a finite domain axiom */
-  static const unsigned long PR_HAS_FINITE_DOMAIN = 137438953472ul; // 2^37
+  static const uint64_t PR_HAS_FINITE_DOMAIN = 137438953472ul; // 2^37
   /** has if-then-else */
-  static const unsigned long PR_HAS_ITE = 274877906944ul; // 2^38
+  static const uint64_t PR_HAS_ITE = 274877906944ul; // 2^38
   /** has let-in */
-  static const unsigned long PR_HAS_LET_IN = 549755813888ul; // 2^39
+  static const uint64_t PR_HAS_LET_IN = 549755813888ul; // 2^39
   /* has data type constructors */
-  static const unsigned long PR_HAS_DT_CONSTRUCTORS = 1099511627776ul; // 2^40
+  static const uint64_t PR_HAS_DT_CONSTRUCTORS = 1099511627776ul; // 2^40
   /* has co-algrebaic data type constructors */
-  static const unsigned long PR_HAS_CDT_CONSTRUCTORS = 2199023255552ul; // 2^41
+  static const uint64_t PR_HAS_CDT_CONSTRUCTORS = 2199023255552ul; // 2^41
   /* has bitvectors */
   static const unsigned long PR_HAS_BITVECTORS = 4398046511104ul; // 2^42
  
@@ -202,13 +202,13 @@ public:
   int totalNumberOfVariables() const { return _totalNumberOfVariables;}
 
   /** The problem has property p */
-  bool hasProp(unsigned long p) const { return _props & p; }
+  bool hasProp(uint64_t p) const { return _props & p; }
   /** Add property p to the list of properties */
-  void addProp(unsigned long p) { _props |= p; }
+  void addProp(uint64_t p) { _props |= p; }
   /** Remove a property from the list of properties */
-  void dropProp(unsigned long p) { _props &= ~p; }
+  void dropProp(uint64_t p) { _props &= ~p; }
   /** Return props as an integer, mainly for debugging */
-  unsigned long int props() const { return _props; }
+  uint64_t props() const { return _props; }
 
   /**
    * To be used from outside of the Property class when a preprocessing
@@ -316,7 +316,7 @@ public:
   int _maxVariablesInClause;
 
   /** Bitwise OR of all properties of this problem */
-  unsigned long _props;
+  uint64_t _props;
 
   /** CASC category of the problem, computed by read() */
   Category _category;
