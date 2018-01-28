@@ -36,6 +36,7 @@
 #include "Kernel/Formula.hpp"
 #include "Kernel/FormulaUnit.hpp"
 #include "Kernel/Connective.hpp"
+#include "Kernel/RobSubstitution.hpp"
 
 #include "Saturation/SaturationAlgorithm.hpp"
 
@@ -103,7 +104,6 @@ void InductionClauseIterator::process(Clause* premise, Literal* lit)
 
   static Options::InductionChoice kind = env.options->inductionChoice();
   static bool all = (kind == Options::InductionChoice::ALL);
-  static bool goal = (kind == Options::InductionChoice::GOAL);
   static bool goal_plus = (kind == Options::InductionChoice::GOAL_PLUS);
   static bool negOnly = env.options->inductionNegOnly();
   static bool structInd = env.options->induction() == Options::Induction::BOTH ||
@@ -171,78 +171,100 @@ void InductionClauseIterator::process(Clause* premise, Literal* lit)
    }
 }
 
-      // deal with integer constants
-      // introduce new clauses per eligable constant:
-      // L[zero] | L[fresh+1] | L[fresh-1] 
-      // L[zero] | L[fresh+1] | c<0
-      // L[zero] | ~[fresh] 
-      // where fresh is a fresh constant
+      // deal with integer constants using two hypotheses
+      // (L[0] & (![X] : (X>=0 & L[X]) -> L[x+1])) -> (![Y] : Y>=0 -> L[Y])
+      // (L[0] & (![X] : (X<=0 & L[X]) -> L[x-1])) -> (![Y] : Y<=0 -> L[Y])
+      // for some ~L[a]
 void InductionClauseIterator::performMathInduction(Clause* premise, Literal* lit, unsigned c)
 {
   CALL("InductionClauseIterator::performMathInduction");
-  ASSERTION_VIOLATION;
 
         //cout << "PERFORM INDUCTION on " << env.signature->functionName(c) << endl;
-
-        // create fresh
-        unsigned freshS = env.signature->addSkolemFunction(0);
-        Signature::Symbol* symbol = env.signature->getFunction(freshS);
-        symbol->setType(OperatorType::getConstantsType(Sorts::SRT_INTEGER));
-        symbol->markInductionSkolem();
-        TermList fresh(Term::createConstant(freshS));
 
         TermList zero(theory->representConstant(IntegerConstantType(0)));
         TermList one(theory->representConstant(IntegerConstantType(1)));
         TermList mone(theory->representConstant(IntegerConstantType(-1)));
 
+        TermList x(0,false);
+        TermList y(1,false);
+
+        Literal* clit = Literal::complementaryLiteral(lit);
+
         // create L[zero]
         ConstantReplacement cr1(c,zero);
-        Literal* Lzero = cr1.transform(lit);
+        Formula* Lzero = new AtomicFormula(cr1.transform(clit));
 
-        // create L[fresh+1]
-        TermList fpo(Term::create2(env.signature->getInterpretingSymbol(Theory::INT_PLUS),fresh,one));
-        ConstantReplacement cr2(c,fpo);
-        Literal* Lfpo = cr2.transform(lit);
+        // create L[X] 
+        ConstantReplacement cr2(c,x);
+        Formula* Lx = new AtomicFormula(cr2.transform(clit));
 
-        // create L[fresh-1]
-        TermList fpmo(Term::create2(env.signature->getInterpretingSymbol(Theory::INT_PLUS),fresh,mone));
-        ConstantReplacement cr3(c,fpmo);
-        Literal* Lfpmo = cr3.transform(lit);
+        // create L[Y] 
+        ConstantReplacement cr3(c,y);
+        Formula* Ly = new AtomicFormula(cr3.transform(clit));
 
-        // create ~L[fresh]
-        ConstantReplacement cr4(c,fresh);
-        Literal* nLfresh = Literal::complementaryLiteral(cr4.transform(lit));
+        // create L[X+1] 
+        TermList fpo(Term::create2(env.signature->getInterpretingSymbol(Theory::INT_PLUS),x,one));
+        ConstantReplacement cr4(c,fpo);
+        Formula* Lxpo = new AtomicFormula(cr4.transform(clit));
 
-        // create c<0
-        Literal* cLz = Literal::create2(env.signature->getInterpretingSymbol(Theory::INT_LESS),true,TermList(Term::createConstant(c)),zero);
+        // create L[X-1]
+        TermList fmo(Term::create2(env.signature->getInterpretingSymbol(Theory::INT_PLUS),x,mone));
+        ConstantReplacement cr5(c,fmo);
+        Formula* Lxmo = new AtomicFormula(cr5.transform(clit));
 
-        // put it all together i.e. create three clauses
-        // L[zero] | L[fresh+1] | L[fresh-1] 
-        // L[zero] | L[fresh+1] | c<0
-        // L[zero] | ~L[fresh] 
-        Inference* inf1 = new Inference1(Inference::INDUCTION,premise);
-        Inference* inf2 = new Inference1(Inference::INDUCTION,premise);
-        Inference* inf3 = new Inference1(Inference::INDUCTION,premise);
-        Clause* r1 = new(3) Clause(3,premise->inputType(),inf1);
-        Clause* r2 = new(3) Clause(3,premise->inputType(),inf2);
-        Clause* r3 = new(2) Clause(2,premise->inputType(),inf3);
+        // create X>=0, which is ~X<0
+        Formula* Lxgz = new AtomicFormula(Literal::create2(env.signature->getInterpretingSymbol(Theory::INT_LESS),
+                                         false,x,zero));
+        // create Y>=0, which is ~Y<0
+        Formula* Lygz = new AtomicFormula(Literal::create2(env.signature->getInterpretingSymbol(Theory::INT_LESS),
+                                         false,y,zero));
+        // create X<=0, which is ~0<X
+        Formula* Lxlz = new AtomicFormula(Literal::create2(env.signature->getInterpretingSymbol(Theory::INT_LESS),
+                                         false,zero,x));
+        // create Y<=0, which is ~0<Y
+        Formula* Lylz = new AtomicFormula(Literal::create2(env.signature->getInterpretingSymbol(Theory::INT_LESS),
+                                         false,zero,y));
 
-        (*r1)[0] = Lzero;
-        (*r1)[1] = Lfpo; 
-        (*r1)[2] = Lfpmo;
 
-        (*r2)[0] = Lzero;
-        (*r2)[1] = Lfpo;
-        (*r2)[2] = cLz;
+        // (L[0] & (![X] : (X>=0 & L[X]) -> L[x+1])) -> (![Y] : Y>=0 -> L[Y])
 
-        (*r3)[0] = Lzero;
-        (*r3)[1] = nLfresh;
+        Formula* hyp1 = new BinaryFormula(Connective::IMP,
+                          new JunctionFormula(Connective::AND,new FormulaList(Lzero,new FormulaList(
+                            Formula::quantify(new BinaryFormula(Connective::IMP,
+                              new JunctionFormula(Connective::AND, new FormulaList(Lxgz,new FormulaList(Lx,0))),
+                              Lxpo)) 
+                          ,0))),
+                          Formula::quantify(new BinaryFormula(Connective::IMP,Lygz,Ly)));
 
-        _clauses.push(r1);
-        _clauses.push(r2);
-        _clauses.push(r3);
+        // (L[0] & (![X] : (X<=0 & L[X]) -> L[x-1])) -> (![Y] : Y<=0 -> L[Y])
+
+        Formula* hyp2 = new BinaryFormula(Connective::IMP,
+                          new JunctionFormula(Connective::AND,new FormulaList(Lzero,new FormulaList(
+                            Formula::quantify(new BinaryFormula(Connective::IMP,
+                              new JunctionFormula(Connective::AND, new FormulaList(Lxlz,new FormulaList(Lx,0))),
+                              Lxmo))
+                          ,0))),
+                          Formula::quantify(new BinaryFormula(Connective::IMP,Lylz,Ly)));
+  
+        NewCNF cnf(0);
+        Stack<Clause*> hyp_clauses;
+        FormulaUnit* fu1 = new FormulaUnit(hyp1,new Inference(Inference::INDUCTION),Unit::AXIOM);
+        FormulaUnit* fu2 = new FormulaUnit(hyp2,new Inference(Inference::INDUCTION),Unit::AXIOM);
+        cnf.clausify(NNF::ennf(fu1), hyp_clauses);
+        cnf.clausify(NNF::ennf(fu2), hyp_clauses);
+
+        // Now perform resolution between lit and the hyp_clauses on clit, which should be contained in each clause!
+        Stack<Clause*>::Iterator cit(hyp_clauses);
+        while(cit.hasNext()){
+          Clause* c = cit.next();
+          //TODO destroy this?
+          RobSubstitution* subst = new RobSubstitution();
+          subst->unify(TermList(lit),0,TermList(Ly->literal()),1);
+          SLQueryResult qr(lit,premise,ResultSubstitution::fromSubstitution(subst,1,0));
+          Clause* r = BinaryResolution::generateClause(c,Ly->literal(),qr,*env.options);
+          _clauses.push(r);
+        }
         env.statistics->induction++;
-
  }
 
 /**
