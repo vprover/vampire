@@ -872,6 +872,9 @@ Term* NewCNF::createSkolemTerm(unsigned var, VarSet* free)
     if(_beingClausified->isGoal()){
       env.signature->getFunction(fun)->markInGoal();
     }
+    if(_forInduction){
+      env.signature->getFunction(fun)->markInductionSkolem();
+    }
     res = Term::create(fun, arity, fnArgs.begin());
   }
 

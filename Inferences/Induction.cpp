@@ -127,7 +127,7 @@ void InductionClauseIterator::process(Clause* premise, Literal* lit)
            (
                all
             || env.signature->getFunction(f)->inGoal()
-            || (goal_plus && env.signature->getFunction(f)->inductionSkolem())
+            || (goal_plus && env.signature->getFunction(f)->inductionSkolem()) // set in NewCNF
            )
         ){
          if(structInd && 
@@ -247,6 +247,7 @@ void InductionClauseIterator::performMathInduction(Clause* premise, Literal* lit
                           Formula::quantify(new BinaryFormula(Connective::IMP,Lylz,Ly)));
   
         NewCNF cnf(0);
+        cnf.setForInduction();
         Stack<Clause*> hyp_clauses;
         FormulaUnit* fu1 = new FormulaUnit(hyp1,new Inference(Inference::INDUCTION),Unit::AXIOM);
         FormulaUnit* fu2 = new FormulaUnit(hyp2,new Inference(Inference::INDUCTION),Unit::AXIOM);
@@ -351,6 +352,7 @@ void InductionClauseIterator::performStructInductionOne(Clause* premise, Literal
                             Formula::quantify(new AtomicFormula(conclusion)));
 
   NewCNF cnf(0);
+  cnf.setForInduction();
   Stack<Clause*> hyp_clauses;
   FormulaUnit* fu = new FormulaUnit(hypothesis,new Inference(Inference::INDUCTION),Unit::AXIOM);
   cnf.clausify(NNF::ennf(fu), hyp_clauses);
@@ -445,6 +447,7 @@ void InductionClauseIterator::performStructInductionTwo(Clause* premise, Literal
   Formula* hypothesis = new JunctionFormula(Connective::OR,orf);
 
   NewCNF cnf(0);
+  cnf.setForInduction();
   Stack<Clause*> hyp_clauses;
   FormulaUnit* fu = new FormulaUnit(hypothesis,new Inference(Inference::INDUCTION),Unit::AXIOM);
   cnf.clausify(NNF::ennf(fu), hyp_clauses);
@@ -464,9 +467,36 @@ void InductionClauseIterator::performStructInductionTwo(Clause* premise, Literal
 
 }
 
+/*
+ * A variant of Two where we are stronger with respect to all subterms. here the existential part is
+ *
+ * ?y : L[y] & smallerThanY(destructor(y)) & (!x : smallerThanY(x) -> smallerThanY(destructor(x))) & !z : smallerThanY(z) => ~L[z]
+ *
+ * i.e. we add a new special predicat that is true when its argument is smaller than Y
+ *
+ */
 void InductionClauseIterator::performStructInductionThree(Clause* premise, Literal* lit, unsigned constant)
 {
   CALL("InductionClauseIterator::performStructInductionThree");
+
+/*
+  TermAlgebra* ta = env.signature->getTermAlgebraOfSort(env.signature->getFunction(c)->fnType()->result());
+  unsigned ta_sort = ta->sort();
+
+  Literal* clit = Literal::complementaryLiteral(lit);
+
+  // make L[y]
+  TermList y(0,false); 
+  ConstantReplacement cr(c,y);
+  Literal* Ly = cr.transform(lit);
+
+  // make smallerThanY
+  unsigned sty = env.signature->addFreshPredicate(1,"smallerThan");
+  env.signature->getPredicate(sty)->setType(OperatorType::getPredicateType(ta_sort));
+
+  // make smallerThanY(destructor(y)) for each destructor
+  Stack<Term*> smallThanTerms;
+*/  
 
 }
 
