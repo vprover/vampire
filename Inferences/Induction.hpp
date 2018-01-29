@@ -77,7 +77,10 @@ public:
 
 private:
   void process(Clause* premise, Literal* lit);
-  void performMathInduction(Clause* premise, Literal* lit, unsigned constant);
+
+  void performMathInductionOne(Clause* premise, Literal* lit, unsigned constant);
+  void performMathInductionTwo(Clause* premise, Literal* lit, unsigned constant);
+
   void performStructInductionOne(Clause* premise, Literal* lit, unsigned constant);
   void performStructInductionTwo(Clause* premise, Literal* lit, unsigned constant);
   void performStructInductionThree(Clause* premise, Literal* lit, unsigned constant);

@@ -873,11 +873,20 @@ void Options::Options::init()
             _induction.setExperimental();
 
             _structInduction = ChoiceOptionValue<StructuralInductionKind>("structural_induction_kind","sik",
-                                 StructuralInductionKind::ONE,{"one","two","all"});
+                                 StructuralInductionKind::ONE,{"one","two","three","all"});
             _structInduction.description="";
             _structInduction.tag(OptionTag::INFERENCES);
+            _structInduction.reliesOn(_induction.is(equal(Induction::STRUCTURAL))->Or<StructuralInductionKind>(_induction.is(equal(Induction::BOTH))));
             _lookup.insert(&_structInduction);
             _structInduction.setExperimental();
+
+            _mathInduction = ChoiceOptionValue<MathInductionKind>("math_induction_kind","mik",
+                                 MathInductionKind::ONE,{"one","two","all"});
+            _mathInduction.description="";
+            _mathInduction.tag(OptionTag::INFERENCES);
+            _mathInduction.setExperimental();
+            _mathInduction.reliesOn(_induction.is(equal(Induction::MATHEMATICAL))->Or<MathInductionKind>(_induction.is(equal(Induction::BOTH))));
+            _lookup.insert(&_mathInduction);
 
             _inductionChoice = ChoiceOptionValue<InductionChoice>("induction_choice","indc",InductionChoice::ALL,
                                 {"all","goal","goal_plus"});
