@@ -44,6 +44,7 @@
 #include "Shell/Statistics.hpp"
 #include "Shell/NewCNF.hpp"
 #include "Shell/NNF.hpp"
+#include "Shell/Rectify.hpp"
 
 #include "Indexing/Index.hpp"
 #include "Indexing/ResultSubstitution.hpp"
@@ -147,7 +148,18 @@ void InductionClauseIterator::process(Clause* premise, Literal* lit)
       Set<unsigned>::Iterator citer1(int_constants);
       while(citer1.hasNext()){
         unsigned c = citer1.next();
-        performMathInduction(premise,lit,c);
+        static bool one = env.options->mathInduction() == Options::MathInductionKind::ONE ||
+                          env.options->mathInduction() == Options::MathInductionKind::ALL;
+        static bool two = env.options->mathInduction() == Options::MathInductionKind::TWO ||
+                          env.options->mathInduction() == Options::MathInductionKind::ALL;
+        if(notDone(lit,c)){
+          if(one){
+            performMathInductionOne(premise,lit,c);
+          }
+          if(two){
+            performMathInductionTwo(premise,lit,c);
+          }
+        }
       }
       Set<unsigned>::Iterator citer2(ta_constants);
       while(citer2.hasNext()){
@@ -157,6 +169,8 @@ void InductionClauseIterator::process(Clause* premise, Literal* lit)
                           env.options->structInduction() == Options::StructuralInductionKind::ALL; 
         static bool two = env.options->structInduction() == Options::StructuralInductionKind::TWO ||
                           env.options->structInduction() == Options::StructuralInductionKind::ALL; 
+        static bool three = env.options->structInduction() == Options::StructuralInductionKind::THREE ||
+                          env.options->structInduction() == Options::StructuralInductionKind::ALL;
 
         if(notDone(lit,c)){
 
@@ -165,6 +179,9 @@ void InductionClauseIterator::process(Clause* premise, Literal* lit)
           }
           if(two){
             performStructInductionTwo(premise,lit,c);
+          }
+          if(three){
+            performStructInductionThree(premise,lit,c);
           }
         }
       } 
@@ -175,9 +192,9 @@ void InductionClauseIterator::process(Clause* premise, Literal* lit)
       // (L[0] & (![X] : (X>=0 & L[X]) -> L[x+1])) -> (![Y] : Y>=0 -> L[Y])
       // (L[0] & (![X] : (X<=0 & L[X]) -> L[x-1])) -> (![Y] : Y<=0 -> L[Y])
       // for some ~L[a]
-void InductionClauseIterator::performMathInduction(Clause* premise, Literal* lit, unsigned c)
+void InductionClauseIterator::performMathInductionOne(Clause* premise, Literal* lit, unsigned c)
 {
-  CALL("InductionClauseIterator::performMathInduction");
+  CALL("InductionClauseIterator::performMathInductionOne");
 
         //cout << "PERFORM INDUCTION on " << env.signature->functionName(c) << endl;
 
@@ -267,6 +284,13 @@ void InductionClauseIterator::performMathInduction(Clause* premise, Literal* lit
         }
         env.statistics->induction++;
  }
+
+void InductionClauseIterator::performMathInductionTwo(Clause* premise, Literal* lit, unsigned c)
+{
+  CALL("InductionClauseIterator::performMathInductionTwo");
+
+  NOT_IMPLEMENTED;
+}
 
 /**
  * Introduce the Induction Hypothesis
@@ -414,7 +438,7 @@ void InductionClauseIterator::performStructInductionTwo(Clause* premise, Literal
           taTerms.push(djy);
         }
       }
-      // create y != con1(...d1(y)...d2(y)...)
+      // create y = con1(...d1(y)...d2(y)...)
       TermList coni(Term::create(con->functor(),(unsigned)argTerms.size(), argTerms.begin()));
       Literal* kneq = Literal::createEquality(true,y,coni,ta_sort);
       FormulaList* And = FormulaList::empty(); 
@@ -470,34 +494,137 @@ void InductionClauseIterator::performStructInductionTwo(Clause* premise, Literal
 /*
  * A variant of Two where we are stronger with respect to all subterms. here the existential part is
  *
- * ?y : L[y] & smallerThanY(destructor(y)) & (!x : smallerThanY(x) -> smallerThanY(destructor(x))) & !z : smallerThanY(z) => ~L[z]
+ * ?y : L[y] &_{con_i} ( y = con_i(..dec(y)..) -> smaller(dec(y))) 
+             & (!x : smallerThanY(x) -> smallerThanY(destructor(x))) 
+             & !z : smallerThanY(z) => ~L[z]
  *
  * i.e. we add a new special predicat that is true when its argument is smaller than Y
  *
  */
-void InductionClauseIterator::performStructInductionThree(Clause* premise, Literal* lit, unsigned constant)
+void InductionClauseIterator::performStructInductionThree(Clause* premise, Literal* lit, unsigned c) 
 {
   CALL("InductionClauseIterator::performStructInductionThree");
 
-/*
+
   TermAlgebra* ta = env.signature->getTermAlgebraOfSort(env.signature->getFunction(c)->fnType()->result());
   unsigned ta_sort = ta->sort();
 
   Literal* clit = Literal::complementaryLiteral(lit);
 
   // make L[y]
-  TermList y(0,false); 
+  TermList x(0,false); 
+  TermList y(1,false); 
+  TermList z(2,false); 
   ConstantReplacement cr(c,y);
   Literal* Ly = cr.transform(lit);
 
   // make smallerThanY
   unsigned sty = env.signature->addFreshPredicate(1,"smallerThan");
-  env.signature->getPredicate(sty)->setType(OperatorType::getPredicateType(ta_sort));
+  env.signature->getPredicate(sty)->setType(OperatorType::getPredicateType({ta_sort}));
 
-  // make smallerThanY(destructor(y)) for each destructor
-  Stack<Term*> smallThanTerms;
-*/  
+  // make ( y = con_i(..dec(y)..) -> smaller(dec(y)))  for each constructor 
+  FormulaList* conjunction = new FormulaList(new AtomicFormula(Ly),0); 
+  for(unsigned i=0;i<ta->nConstructors();i++){
+    TermAlgebraConstructor* con = ta->constructor(i);
+    unsigned arity = con->arity();
 
+    // ignore a constructor if it doesn't mention ta_sort
+    bool ignore = (arity == 0);
+    for(unsigned j=0;j<arity; j++){ ignore &= (con->argSort(j)!=ta_sort); } 
+
+    if(!ignore){
+      // First generate all argTerms and remember those that are of sort ta_sort 
+      Stack<TermList> argTerms;
+      Stack<TermList> taTerms; 
+      Stack<unsigned> ta_vars;
+      Stack<TermList> varTerms;
+      unsigned vars = 3;
+      for(unsigned j=0;j<arity;j++){
+        unsigned dj = con->destructorFunctor(j);
+        TermList djy(Term::create1(dj,y));
+        argTerms.push(djy);
+        TermList xj(vars,false);
+        varTerms.push(xj);
+        if(con->argSort(j) == ta_sort){
+          taTerms.push(djy);
+          ta_vars.push(vars);
+        }
+        vars++;
+      }
+      // create y = con1(...d1(y)...d2(y)...)
+      TermList coni(Term::create(con->functor(),(unsigned)argTerms.size(), argTerms.begin()));
+      Literal* kneq = Literal::createEquality(true,y,coni,ta_sort);
+
+      // create smaller(cons(x1,..,xn))
+      Formula* smaller_coni = new AtomicFormula(Literal::create1(sty,true,
+                                TermList(Term::create(con->functor(),(unsigned)varTerms.size(),varTerms.begin()))));
+
+      FormulaList* smallers = 0;
+      Stack<unsigned>::Iterator vtit(ta_vars);
+      while(vtit.hasNext()){
+        smallers = new FormulaList(new AtomicFormula(Literal::create1(sty,true,TermList(vtit.next(),false))),smallers);
+      }
+      Formula* ax = Formula::quantify(new BinaryFormula(Connective::IMP,smaller_coni, 
+                     (FormulaList::length(smallers) > 1) ? new JunctionFormula(Connective::AND,smallers)
+                                            : smallers->head()
+                     ));
+
+      // now create a conjunction of smaller(d(y)) for each d
+      FormulaList* And = FormulaList::empty(); 
+      Stack<TermList>::Iterator tit(taTerms);
+      unsigned and_terms = 0;
+      while(tit.hasNext()){
+        Formula* f = new AtomicFormula(Literal::create1(sty,true,tit.next()));
+        And = new FormulaList(f,And);
+        and_terms++;
+      }
+      ASS(and_terms>0);
+      Formula* imp = new BinaryFormula(Connective::IMP,
+                            new AtomicFormula(kneq),
+                            (and_terms>1) ? new JunctionFormula(Connective::AND,And)
+                                          : And->head()
+                            );
+      
+
+      conjunction = new FormulaList(imp,conjunction);
+      conjunction = new FormulaList(ax,conjunction);
+    } 
+  }
+  // now !z : smallerThanY(z) => ~L[z]
+  ConstantReplacement cr2(c,z);
+  Formula* smallerImpNL = Formula::quantify(new BinaryFormula(Connective::IMP, 
+                            new AtomicFormula(Literal::create1(sty,true,z)),
+                            new AtomicFormula(cr2.transform(clit))));
+
+  conjunction = new FormulaList(smallerImpNL,conjunction);
+  Formula* exists = new QuantifiedFormula(Connective::EXISTS, new Formula::VarList(y.var(),0),0,
+                       new JunctionFormula(Connective::AND,conjunction));
+
+  ConstantReplacement cr3(c,x);
+  Literal* conclusion = cr3.transform(clit);
+  FormulaList* orf = new FormulaList(exists,new FormulaList(Formula::quantify(new AtomicFormula(conclusion)),0));
+  Formula* hypothesis = new JunctionFormula(Connective::OR,orf);
+
+  //cout << hypothesis->toString() << endl;
+
+  NewCNF cnf(0);
+  cnf.setForInduction();
+  Stack<Clause*> hyp_clauses;
+  FormulaUnit* fu = new FormulaUnit(hypothesis,new Inference(Inference::INDUCTION),Unit::AXIOM);
+  cnf.clausify(NNF::ennf(fu), hyp_clauses);
+
+  //cout << "Clausify " << fu->toString() << endl;
+
+  // Now perform resolution between lit and the hyp_clauses on clit, which should be contained in each clause!
+  Stack<Clause*>::Iterator cit(hyp_clauses);
+  while(cit.hasNext()){
+    Clause* c = cit.next();
+    static ResultSubstitutionSP identity = ResultSubstitutionSP(new IdentitySubstitution());
+    SLQueryResult qr(lit,premise,identity);
+    Clause* r = BinaryResolution::generateClause(c,conclusion,qr,*env.options);
+    _clauses.push(r);
+  }
+  env.statistics->induction++; 
 }
 
 bool InductionClauseIterator::notDone(Literal* lit, unsigned constant)
