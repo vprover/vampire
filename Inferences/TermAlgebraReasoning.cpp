@@ -1020,7 +1020,8 @@ namespace Inferences {
         if (env.signature->isTermAlgebraSort(tsort)
             && (tan = env.signature->getTermAlgebraOfSort(tsort))->isMutualType(ta1)) {
           unsigned appFun = tan->getAppFunction(ta1);
-          TermList y(*freshVar++, false);
+
+          TermList y((*freshVar)++, false);
           Literal *sc = Literal::createEquality(false,
                                                 t,
                                                 TermList(Term::create2(appFun, y, qres.term1)),
@@ -1035,18 +1036,21 @@ namespace Inferences {
         ASS(t.isTerm());
         ASS_L(pos->head(), t.term()->arity());
         Term *term = t.term();
+        unsigned p = pos->head();
 
         Stack<TermList> args;
         for (unsigned i = 0; i < term->arity(); i++) {
           unsigned argSort = SortHelper::getArgSort(term, i);
-          if (i == pos->head()) {
+          if (i == p) {
+            // recursive construction
             args.push(makeContext(*term->nthArgument(i), argSort, pos->tail(), x, qres, freshVar, sideConditions));
           } else {
             // call with empty position to trigger the base case
             args.push(makeContext(*term->nthArgument(i), argSort, TermList::Position::empty(), x, qres, freshVar, sideConditions));
           }
         }
-        return TermList(Term::create(t.term()->functor(), t.term()->arity(), args.begin()));
+        ASS(env.signature->getFunction(term->functor())->termAlgebraCons());
+        return TermList(Term::create(term->functor(), term->arity(), args.begin()));
       }
     }
     
@@ -1069,7 +1073,7 @@ namespace Inferences {
       }
       clausesTheta.reset(qres.clausesTheta);
       freshVar++;
-
+      
       LiteralList* sideConditions = LiteralList::empty();
       TermList x(freshVar++, false);
       TermList ctx = makeContext(qres.context, qres.term1sort, qres.position, x, qres, &freshVar, sideConditions);

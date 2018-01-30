@@ -286,6 +286,39 @@ namespace Indexing
       return res;
     }
 
+    bool constructorPositionIn(TermList& subterm, TermList* term, TermList::Position*& position)
+    {
+      CALL("ChainIndex::ChainSearchIterator::constructorPositionIn(TermList)");
+
+      if(!term->isTerm()){
+        if(subterm.isTerm()) return false;
+        if (term->var()==subterm.var()) {
+          return true;
+        }
+        return false;
+      }
+      return constructorPositionIn(subterm, term->term(), position);
+    }
+
+    bool constructorPositionIn(TermList& subterm, Term* term, TermList::Position*& position)
+    {
+      CALL("TermList::constructorPositionIn(Term, List<unsigned>)");
+
+      if(subterm.isTerm() && subterm.term() == term) {
+        return true;
+      }
+
+      if (env.signature->getFunction(term->functor())->termAlgebraCons()) {
+        for (unsigned i = 0; i < term->arity(); i++) {
+          if (constructorPositionIn(subterm, term->nthArgument(i), position)) {
+            TermList::Position::push(i, position);
+            return true;
+          }
+        }
+      }
+      return false;
+    }
+
     void buildContext(TermList &context, TermList &t, Literal *lit, unsigned substIndex, TermList::Position*& pos)
     {
       CALL("ChainIndex::ChainSearchIterator::buildContext");
@@ -304,13 +337,13 @@ namespace Indexing
 
       TermList::Position* newPos = TermList::Position::empty();
       TermList consS = _subst->apply(*cons, substIndex);
-      ALWAYS(TermList::positionIn(t, &consS, newPos));
+      ALWAYS(constructorPositionIn(t, &consS, newPos));
       t = _subst->apply(*tnext, substIndex);
 
       if (first) {
         context = consS;
       } else {
-        context = TermList::replacePosition(context, *cons, newPos);
+        context = TermList::replacePosition(context, consS, newPos);
       }
       pos = TermList::Position::append(newPos, pos);
     }

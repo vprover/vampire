@@ -999,7 +999,7 @@ void Options::Options::init()
 
             _termAlgebraCyclicityCheck = ChoiceOptionValue<TACyclicityCheck>("term_algebra_acyclicity",
                                                                              "tac",
-                                                                             TACyclicityCheck::OFF,
+                                                                             TACyclicityCheck::AXIOM,
                                                                              {"off","axiom","rule"});
             _termAlgebraCyclicityCheck.description=
               "Activates the cyclicity rule for term algebras (such as algebraic datatypes in SMT-LIB):\n"
@@ -1011,7 +1011,7 @@ void Options::Options::init()
 
             _termAlgebraUniquenessCheck = ChoiceOptionValue<TAUniquenessCheck>("term_algebra_uniqueness",
                                                                                "tau",
-                                                                               TAUniquenessCheck::OFF,
+                                                                               TAUniquenessCheck::AXIOM,
                                                                                {"off","axiom","rule"});
             _termAlgebraUniquenessCheck.description=
               "Activates the uniqueness rule for infinite term algebras (such as co-algebraic datatypes in SMT-LIB):\n"
