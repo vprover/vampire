@@ -1839,6 +1839,7 @@ public:
   bool normalize() const { return _normalize.actualValue; }
   void setNormalize(bool normalize) { _normalize.actualValue = normalize; }
   bool guessTheGoal() const { return _guessTheGoal.actualValue; }
+  unsigned gtgLimit() const { return _guessTheGoalLimit.actualValue; }
 
   void setNaming(int n){ _naming.actualValue = n;} //TODO: ensure global constraints
   vstring include() const { return _include.actualValue; }
@@ -2261,6 +2262,7 @@ private:
   ChoiceOptionValue<GlobalSubsumptionExplicitMinim> _globalSubsumptionExplicitMinim;
   ChoiceOptionValue<GlobalSubsumptionAvatarAssumptions> _globalSubsumptionAvatarAssumptions;
   BoolOptionValue _guessTheGoal;
+  UnsignedOptionValue _guessTheGoalLimit;
 
   BoolOptionValue _hyperSuperposition;
 

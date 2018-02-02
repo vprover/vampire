@@ -378,6 +378,14 @@ void Options::Options::init()
                                 "really make sense if there is already a goal.";
     _lookup.insert(&_guessTheGoal);
     _guessTheGoal.tag(OptionTag::INPUT);
+    _guessTheGoal.setExperimental();
+
+    _guessTheGoalLimit = UnsignedOptionValue("guess_the_goal_limit","gtgl",1);
+    _guessTheGoalLimit.description = "The maximum number of input units a symbol appears for it to be considered in a goal";
+    _guessTheGoalLimit.tag(OptionTag::INPUT);
+    _guessTheGoalLimit.setExperimental();
+    _guessTheGoalLimit.reliesOn(_guessTheGoal.is(equal(true)));
+    _lookup.insert(&_guessTheGoalLimit);
 
 
 //*********************** Preprocessing  ***********************
