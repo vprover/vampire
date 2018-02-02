@@ -318,18 +318,18 @@ unsigned TermAlgebra::contextSort(TermAlgebra* ta) {
   }
 }
 
-vstring TermAlgebra::getCstFunctionName() {
-  return "$cst_" + name();
+vstring TermAlgebra::getCstFunctionName(TermAlgebra* ta) {
+  return "$cst_" + name() + ta->name();
 }
 
-unsigned TermAlgebra::getCstFunction() {
+unsigned TermAlgebra::getCstFunction(TermAlgebra* ta) {
   CALL("TermAlgebra::getCstFunction");
 
   bool added;
-  unsigned s = env.signature->addFunction(getCstFunctionName(), 1, added);
+  unsigned s = env.signature->addFunction(getCstFunctionName(ta), 1, added);
 
   if (added) {
-    env.signature->getFunction(s)->setType(OperatorType::getFunctionType({_sort}, contextSort(this)));
+    env.signature->getFunction(s)->setType(OperatorType::getFunctionType({_sort}, contextSort(ta)));
   }
 
   return s;

@@ -141,8 +141,8 @@ namespace Shell {
     /* The constant-context, cycle and application functions, used
        only for axioms of co-datatypes */
     unsigned contextSort(TermAlgebra* ta);
-    Lib::vstring getCstFunctionName();
-    unsigned getCstFunction();
+    Lib::vstring getCstFunctionName(TermAlgebra* ta);
+    unsigned getCstFunction(TermAlgebra* ta);
     Lib::vstring getHoleConstantName();
     unsigned getHoleConstant();
     Lib::vstring getCycleFunctionName();

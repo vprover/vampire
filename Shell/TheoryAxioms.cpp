@@ -1456,21 +1456,26 @@ void TheoryAxioms::addCtxFunctionDefinitions(TermAlgebra* ta)
 
   addTheoryUnitClause(l, new Inference(Inference::TERM_ALGEBRA_CYCLES), CHEAP);
 
-  // app(cst(x), y) = x
-  TermList cstx(Term::create1(ta->getCstFunction(), x));
+  // app(cst(x), y) = x for each mutual type
   TermList y(1, false);
-  l = Literal::createEquality(true,
-                              x,
-                              TermList(Term::create2(ta->getAppFunction(ta),
-                                                     cstx,
-                                                     y)),
-                              ta->sort());
-
-  addTheoryUnitClause(l, new Inference(Inference::TERM_ALGEBRA_CYCLES), CHEAP);
-
+  Lib::VirtualIterator<TermAlgebra*> it = ta->mutualTypes();
+  while (it.hasNext()) {
+    TermAlgebra *tah = it.next();
+    TermList cstx(Term::create1(ta->getCstFunction(tah), x));
+    l = Literal::createEquality(true,
+                                x,
+                                TermList(Term::create2(ta->getAppFunction(tah),
+                                                       cstx,
+                                                       y)),
+                                ta->sort());
+  
+    addTheoryUnitClause(l, new Inference(Inference::TERM_ALGEBRA_CYCLES), CHEAP);
+  }
+  
   if (env.options->termAlgebraCyclicityCheck() != Options::TACyclicityCheck::RULE) {
     // hole != cst(x)
     TermList hole(Term::createConstant(ta->getHoleConstant()));
+    TermList cstx(Term::create1(ta->getCstFunction(ta), x));
     l = Literal::createEquality(false,
                                 hole,
                                 cstx,
