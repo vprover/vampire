@@ -125,7 +125,7 @@ bool GoalGuessing::apply(Literal* lit)
       if(f > env.signature->functions()){ continue; }
       unsigned unitUsageCnt = env.signature->getFunction(f)->unitUsageCnt();
       static unsigned unitUsageCntLimit = env.options->gtgLimit();
-      if(unitUsageCnt == unitUsageCntLimit){
+      if(unitUsageCnt <= unitUsageCntLimit){
         //cout << "IDENTIFIED AS GOAL symbol " << env.signature->functionName(f) << endl;
         env.signature->getFunction(f)->markInGoal();
         found = true;
