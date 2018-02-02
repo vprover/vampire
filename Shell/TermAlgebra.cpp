@@ -308,6 +308,7 @@ unsigned TermAlgebra::getSubtermPredicate(TermAlgebra* ta) {
   return s;
 }
 
+// context of type this, with hole of type ta
 unsigned TermAlgebra::contextSort(TermAlgebra* ta) {
   if (_contextSorts.find(ta)) {
     return _contextSorts.get(ta);

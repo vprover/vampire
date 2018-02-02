@@ -1455,7 +1455,7 @@ void TheoryAxioms::addCtxFunctionDefinitions(TermAlgebra* ta)
                                        ta->sort());
 
   addTheoryUnitClause(l, new Inference(Inference::TERM_ALGEBRA_CYCLES), CHEAP);
-
+  
   // app(cst(x), y) = x for each mutual type
   TermList y(1, false);
   Lib::VirtualIterator<TermAlgebra*> it = ta->mutualTypes();
@@ -1471,28 +1471,28 @@ void TheoryAxioms::addCtxFunctionDefinitions(TermAlgebra* ta)
   
     addTheoryUnitClause(l, new Inference(Inference::TERM_ALGEBRA_CYCLES), CHEAP);
   }
+
+  // app(hole, x) = x
+  TermList hole(Term::createConstant(ta->getHoleConstant()));
+  l = Literal::createEquality(true,
+                              x,
+                              TermList(Term::create2(ta->getAppFunction(ta),
+                                                     hole,
+                                                     x)),
+                              ta->sort());
+
+  addTheoryUnitClause(l, new Inference(Inference::TERM_ALGEBRA_CYCLES), CHEAP);
   
   if (env.options->termAlgebraCyclicityCheck() != Options::TACyclicityCheck::RULE) {
     // hole != cst(x)
-    TermList hole(Term::createConstant(ta->getHoleConstant()));
     TermList cstx(Term::create1(ta->getCstFunction(ta), x));
     l = Literal::createEquality(false,
                                 hole,
                                 cstx,
                                 ta->contextSort(ta));
-
+  
     addTheoryUnitClause(l, new Inference(Inference::TERM_ALGEBRA_CYCLES), CHEAP);
-
-    // app(hole, x) = x
-    l = Literal::createEquality(true,
-                                x,
-                                TermList(Term::create2(ta->getAppFunction(ta),
-                                                       hole,
-                                                       x)),
-                                ta->sort());
-
-    addTheoryUnitClause(l, new Inference(Inference::TERM_ALGEBRA_CYCLES), CHEAP);
-
+    
     // unicity
     // x = hole \/ y != app(x, y) \/ z != app(x, z) \/ y = z
     /*
@@ -1538,14 +1538,18 @@ void TheoryAxioms::addConstructorCtxDefinitions(TermAlgebra* ta, TermAlgebraCons
     args1.push(TermList(i, false));
   }
   ASS_EQ(args1.size(), c->arity());
-  // hole != f_ctx(x1 ... xn)
-  Literal * l = Literal::createEquality(false,
-                                        TermList(Term::createConstant(ta->getHoleConstant())),
-                                        TermList(Term::create(c->getCtxFunction(ta), c->arity(), args1.begin())),
-                                        ta->contextSort(ta));
-    
-  addTheoryUnitClause(l, new Inference(Inference::TERM_ALGEBRA_CYCLES), CHEAP);
 
+  Literal *l;
+  if (env.options->termAlgebraCyclicityCheck() != Options::TACyclicityCheck::RULE) {
+      // hole != f_ctx(x1 ... xn)
+    l = Literal::createEquality(false,
+                                TermList(Term::createConstant(ta->getHoleConstant())),
+                                TermList(Term::create(c->getCtxFunction(ta), c->arity(), args1.begin())),
+                                ta->contextSort(ta));
+    
+    addTheoryUnitClause(l, new Inference(Inference::TERM_ALGEBRA_CYCLES), CHEAP);
+  }
+  
   TermList y(c->arity(), false);
    
   // forall types of holes

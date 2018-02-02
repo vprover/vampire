@@ -110,6 +110,7 @@ private:
   struct IndexEntry;
   struct ChainSearchTreeNode;
   struct ChainSearchIterator;
+  struct NextLinkIterator;
   typedef pair<Kernel::Literal*, Kernel::Clause*> ULit;
   typedef Lib::DHMap<ULit, IndexEntry*> LIndex;
 
