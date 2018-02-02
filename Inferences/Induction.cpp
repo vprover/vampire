@@ -419,11 +419,19 @@ void InductionClauseIterator::performStructInductionTwo(Clause* premise, Literal
 
   for(unsigned i=0;i<ta->nConstructors();i++){
     TermAlgebraConstructor* con = ta->constructor(i);
+    //cout << env.signature->functionName(con->functor()) << endl;
     unsigned arity = con->arity();
   
     // ignore a constructor if it doesn't mention ta_sort
     bool ignore = (arity == 0);
-    for(unsigned j=0;j<arity; j++){ ignore &= (con->argSort(j)!=ta_sort); } 
+    if(!ignore){
+      ignore=true;
+      for(unsigned j=0;j<arity; j++){ 
+        if(con->argSort(j)==ta_sort){           
+          ignore=false;
+        }
+      }
+    }
 
     if(!ignore){
   
@@ -530,7 +538,14 @@ void InductionClauseIterator::performStructInductionThree(Clause* premise, Liter
 
     // ignore a constructor if it doesn't mention ta_sort
     bool ignore = (arity == 0);
-    for(unsigned j=0;j<arity; j++){ ignore &= (con->argSort(j)!=ta_sort); } 
+    if(!ignore){
+      ignore=true;
+      for(unsigned j=0;j<arity; j++){ 
+        if(con->argSort(j)==ta_sort){
+          ignore=false;
+        } 
+      } 
+    }
 
     if(!ignore){
       // First generate all argTerms and remember those that are of sort ta_sort 
