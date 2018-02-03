@@ -103,6 +103,8 @@ void InductionClauseIterator::process(Clause* premise, Literal* lit)
 {
   CALL("Induction::ClauseIterator::process");
 
+  //cout << "PROCESS " << premise->toString() << endl;
+
   static Options::InductionChoice kind = env.options->inductionChoice();
   static bool all = (kind == Options::InductionChoice::ALL);
   static bool goal_plus = (kind == Options::InductionChoice::GOAL_PLUS);
@@ -402,6 +404,7 @@ void InductionClauseIterator::performStructInductionOne(Clause* premise, Literal
  */
 void InductionClauseIterator::performStructInductionTwo(Clause* premise, Literal* lit, unsigned c)
 {
+  //cout << "TWO " << premise->toString() << endl;
 
   TermAlgebra* ta = env.signature->getTermAlgebraOfSort(env.signature->getFunction(c)->fnType()->result());
   unsigned ta_sort = ta->sort();

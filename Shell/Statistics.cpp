@@ -86,6 +86,8 @@ Statistics::Statistics()
     theoryInstSimpTautologies(0),
     theoryInstSimpLostSolution(0),
     induction(0),
+    maxInductionDepth(0),
+    inductionInProof(0),
     duplicateLiterals(0),
     trivialInequalities(0),
     forwardSubsumptionResolution(0),
@@ -322,6 +324,8 @@ void Statistics::print(ostream& out)
   COND_OUT("TheoryInstSimpTautologies",theoryInstSimpTautologies);
   COND_OUT("TheoryInstSimpLostSolution",theoryInstSimpLostSolution);
   COND_OUT("Induction",induction);
+  COND_OUT("MaxInductionDepth",maxInductionDepth);
+  COND_OUT("InductionStepsInProof",inductionInProof);
   SEPARATOR;
 
   HEADING("Term algebra simplifications",taDistinctnessSimplifications+

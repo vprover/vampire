@@ -323,6 +323,11 @@ protected:
     Inference::Rule rule;
     UnitIterator parents=_is->getParents(cs, rule);
 
+    if(rule == Inference::INDUCTION){
+      cout << "ping" << endl;
+      env.statistics->inductionInProof++;
+    }
+
     out << _is->getUnitIdStr(cs) << ". ";
     if (cs->isClause()) {
       Clause* cl=cs->asClause();

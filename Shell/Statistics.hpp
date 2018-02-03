@@ -135,6 +135,8 @@ public:
   unsigned theoryInstSimpLostSolution;
   /** number of induction applications **/
   unsigned induction;
+  unsigned maxInductionDepth;
+  unsigned inductionInProof;
 
   // Simplifying inferences
   /** number of duplicate literals deleted */
