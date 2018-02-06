@@ -527,13 +527,13 @@ void TheoryAxioms::addBVUleAxiom1(Interpretation bvule, Interpretation bvult)
 void TheoryAxioms::addBVNandAxiom1(std::pair<Theory::MonomorphisedInterpretation,unsigned> entry, Interpretation bvnot, Interpretation bvand)
 {
     //(bvnand s t) abbreviates (bvnot (bvand s t))
-    unsigned arity = theory->getArity(entry.first.first);
+    unsigned arity = theory->getArity(entry.first.first); 
     unsigned resultSort = entry.first.second->result();
     unsigned int temp[2] = {resultSort,resultSort};
     unsigned int *arg = temp;
     
     unsigned nand = entry.second;// env.signature->getInterpretingSymbol(entry.first.first,OperatorType::getFunctionType(arity,arg,resultSort));
-    unsigned _not = env.signature->getInterpretingSymbol(bvnot,OperatorType::getFunctionType(arity,arg,resultSort));
+    unsigned _not = env.signature->getInterpretingSymbol(bvnot,OperatorType::getFunctionType(1,arg,resultSort)); // error handling would be nice: no errors if arity 2 is given 
     unsigned _and = env.signature->getInterpretingSymbol(bvand,OperatorType::getFunctionType(arity,arg,resultSort));
     
     TermList s(0,false);
