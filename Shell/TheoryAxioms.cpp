@@ -498,7 +498,7 @@ void TheoryAxioms::addBVUleAxiom1(Interpretation bvule, Interpretation bvult)
     addAndOutputTheoryUnit(new FormulaUnit(res, new Inference(Inference::THEORY), Unit::AXIOM), EXPENSIVE);
     
 }
-void TheoryAxioms::addBVNandAxiom1(Interpretation bvnand, Interpretation bvnot, Interpretation bvand)
+/*void TheoryAxioms::addBVNandAxiom1(Interpretation bvnand, Interpretation bvnot, Interpretation bvand)
 {
     //(bvnand s t) abbreviates (bvnot (bvand s t))
     unsigned nand = env.signature->getInterpretingSymbol(bvnand);
@@ -522,6 +522,33 @@ void TheoryAxioms::addBVNandAxiom1(Interpretation bvnand, Interpretation bvnot, 
     Literal* eq1 = Literal::createEquality(true,bvnand_s_t,bvnot_bvand_s_t,srt);
     addTheoryUnitClause(eq1, EXPENSIVE);
     
+}*/
+
+void TheoryAxioms::addBVNandAxiom1(std::pair<Theory::MonomorphisedInterpretation,unsigned> entry, Interpretation bvnot, Interpretation bvand)
+{
+    //(bvnand s t) abbreviates (bvnot (bvand s t))
+    unsigned arity = theory->getArity(entry.first.first);
+    unsigned resultSort = entry.first.second->result();
+    unsigned int temp[2] = {resultSort,resultSort};
+    unsigned int *arg = temp;
+    
+    unsigned nand = entry.second;// env.signature->getInterpretingSymbol(entry.first.first,OperatorType::getFunctionType(arity,arg,resultSort));
+    unsigned _not = env.signature->getInterpretingSymbol(bvnot,OperatorType::getFunctionType(arity,arg,resultSort));
+    unsigned _and = env.signature->getInterpretingSymbol(bvand,OperatorType::getFunctionType(arity,arg,resultSort));
+    
+    TermList s(0,false);
+    TermList t(1,false);
+    
+    //(bvnand s t) 
+    TermList bvnand_s_t(Term::create2(nand,s,t));
+    
+    //(bvand s t)
+    TermList bvand_s_t(Term::create2(_and,s,t));
+    //(bvnot (bvand s t))
+    TermList bvnot_bvand_s_t(Term::create1(_not,bvand_s_t));
+    
+    Literal* eq1 = Literal::createEquality(true,bvnand_s_t,bvnot_bvand_s_t,resultSort);
+    addTheoryUnitClause(eq1, EXPENSIVE);
 }
 
 void TheoryAxioms::addBVSUBAxiom1(Interpretation bvsub, Interpretation bvadd , Interpretation bvneg)
@@ -1500,6 +1527,13 @@ void TheoryAxioms::apply()
     }
 
     modified = true;
+  }
+  auto it = env.signature->getSSIItems();
+  while(it.hasNext()){
+      auto entry = it.next();
+      if (entry.first.first == Theory::BVNAND){
+          addBVNandAxiom1(entry,Theory::BVNOT,Theory::BVAND);
+       }
   }
   
   // bitvector axioms

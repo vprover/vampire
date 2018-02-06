@@ -85,7 +85,7 @@ private:
    */               
   void addCertainBitVectorAxioms(Interpretation plus, Interpretation unaryMinus,
   TermList zeroElement, TermList oneElement, Interpretation less);
-  void addBVNandAxiom1(Interpretation bvnand, Interpretation bvnot, Interpretation bvand);
+  void addBVNandAxiom1(std::pair<Theory::MonomorphisedInterpretation,unsigned> entry, Interpretation bvnot, Interpretation bvand);
   void addBVNorAxiom1(Interpretation bvnor, Interpretation bvnot, Interpretation bvor);
   void addBVXORAxiom1(Interpretation bvxorInterpretation, Interpretation bvorInterpretation , Interpretation bvandInterpretation, Interpretation bvnotInterpretation);
   void addBVXNORAxiom1(Interpretation bvxnor, Interpretation bvor , Interpretation bvand, Interpretation bvnot);

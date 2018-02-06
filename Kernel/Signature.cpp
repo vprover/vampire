@@ -496,6 +496,12 @@ unsigned Signature::addInterpretedPredicate(Interpretation interpretation, Opera
 } // Signature::addInterpretedPredicate
 
 
+// this function may be needed for bitvector axioms
+VirtualIterator<std::pair<Theory::MonomorphisedInterpretation,unsigned>> Signature::getSSIItems()
+{
+    return _iSymbols.items();
+}
+
 /**
  * Return number of symbol that is interpreted by Interpretation @b interp.
  *
@@ -506,7 +512,7 @@ unsigned Signature::getInterpretingSymbol(Interpretation interp, OperatorType* t
   CALL("Signature::getInterpretingSymbol(Interpretation,OperatorType*)");
   
   Theory::MonomorphisedInterpretation mi = std::make_pair(interp,type);
-
+ 
   unsigned res;
   if (_iSymbols.find(mi, res)) {
     return res;

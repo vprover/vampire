@@ -535,7 +535,7 @@ class BitVectorSymbol
   Stack<TermList>& getDividesNvalues(){ return _dividesNvalues; }
 
   static bool symbolNeedsQuoting(vstring name, bool interpreted, unsigned arity);
-  
+  VirtualIterator<std::pair<Theory::MonomorphisedInterpretation,unsigned>> getSSIItems(); //TODO: use _polymorphicInterpretations in Property instead??
 private:
     
   Stack<TermList> _dividesNvalues;
@@ -585,7 +585,7 @@ private:
    * or a predicate.
    */
   DHMap<Theory::MonomorphisedInterpretation, unsigned> _iSymbols;
-
+  
   /** the number of string constants */
   unsigned _strings;
   /** the number of integer constants */
