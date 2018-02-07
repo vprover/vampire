@@ -568,7 +568,7 @@ void TheoryAxioms::addBVNandAxiom1(std::pair<Theory::MonomorphisedInterpretation
 void TheoryAxioms::addCertainBitVectorAxioms(std::pair<Theory::MonomorphisedInterpretation,unsigned> entry, Interpretation unaryMinus, TermList zeroElement, TermList oneElement, Interpretation less)
 {
       OperatorType* npredType = OperatorType::getPredicateType({entry.first.second->result(),entry.first.second->result()});
-      addPolyMorphicNonReflexivity(less,npredType);
+      addPolyMorphicNonReflexivity(less,npredType); 
       //addCommutativity(entry.first.first);
 }
 

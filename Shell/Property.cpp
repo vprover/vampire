@@ -643,7 +643,7 @@ void Property::scanForInterpreted(Term* t)
   if (Theory::isPolymorphic(itp)) {
     OperatorType* type = t->isLiteral() ?
         env.signature->getPredicate(t->functor())->predType() : env.signature->getFunction(t->functor())->fnType();
-
+   
     _polymorphicInterpretations.insert(std::make_pair(itp,type));
     return;
   }

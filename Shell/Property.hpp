@@ -222,6 +222,11 @@ public:
     if(i >= _interpretationPresence.size()){ return false; }
     return _interpretationPresence[i]; 
   }
+  
+  VirtualIterator<Kernel::Theory::MonomorphisedInterpretation> getPolymorphicInterpretations()
+  {
+      return _polymorphicInterpretations.iterator();
+  }
   bool hasInterpretedOperation(Interpretation i, OperatorType* type) const {
     return _polymorphicInterpretations.find(std::make_pair(i,type));
   }
