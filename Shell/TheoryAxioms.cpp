@@ -300,6 +300,19 @@ void TheoryAxioms::addNonReflexivity(Interpretation op)
   addTheoryUnitClause(l11, CHEAP);
 } // addNonReflexivity
 
+void TheoryAxioms::addPolyMorphicNonReflexivity(Interpretation op, OperatorType* type)
+{
+  CALL("TheoryAxioms::addPolyMorphicNonReflexivity");
+
+  ASS(!theory->isFunction(op));
+  ASS_EQ(theory->getArity(op),2);
+
+  unsigned opPred = env.signature->getInterpretingSymbol(op, type);
+  TermList x(0,false);
+  Literal* l11 = Literal::create2(opPred, false, x, x);
+  addTheoryUnitClause(l11, CHEAP);
+} // addNonReflexivity
+
 /**
  * Add axiom ~op(X,Y) | ~op(Y,Z) | op(X,Z)
  */
@@ -551,6 +564,14 @@ void TheoryAxioms::addBVNandAxiom1(std::pair<Theory::MonomorphisedInterpretation
     addTheoryUnitClause(eq1, EXPENSIVE);
 }
 
+//addCertainBitVectorAxioms(entry,Theory::BVNEG, zero,one,Theory::BVULT);
+void TheoryAxioms::addCertainBitVectorAxioms(std::pair<Theory::MonomorphisedInterpretation,unsigned> entry, Interpretation unaryMinus, TermList zeroElement, TermList oneElement, Interpretation less)
+{
+      OperatorType* npredType = OperatorType::getPredicateType({entry.first.second->result(),entry.first.second->result()});
+      addPolyMorphicNonReflexivity(less,npredType);
+      //addCommutativity(entry.first.first);
+}
+
 void TheoryAxioms::addBVSUBAxiom1(Interpretation bvsub, Interpretation bvadd , Interpretation bvneg)
 {
     //(bvsub s t) abbreviates (bvadd s (bvneg t))
@@ -751,10 +772,10 @@ void TheoryAxioms::addMulBitVectorAxioms(Interpretation plus, Interpretation una
         
 } 
 
-void TheoryAxioms::addCertainBitVectorAxioms(Interpretation plus, Interpretation unaryMinus,
+/*void TheoryAxioms::addCertainBitVectorAxioms(Interpretation plus, Interpretation unaryMinus,
     TermList zeroElement, TermList oneElement, Interpretation less)
-{
-       /* addCommutativity(op,units);
+{*/
+      /* addCommutativity(op,units);
             addAssociativity(op,units);
             addRightIdentity(op,e,units);
             i(f(x,y)) = f(i(y),i(x))
@@ -764,7 +785,7 @@ void TheoryAxioms::addCertainBitVectorAxioms(Interpretation plus, Interpretation
         // addCommutativeGroupAxioms(plus, unaryMinus,zeroElement,units);
         
          //Add axioms of reflexivity, transitivity and total ordering for predicate
-         addTotalOrderAxioms(less);
+   /*      addTotalOrderAxioms(less);
       
          
          //Add axiom less(X,Y) | less(Y,X) | X=Y
@@ -779,7 +800,7 @@ void TheoryAxioms::addCertainBitVectorAxioms(Interpretation plus, Interpretation
          Literal* mmkEqk = Literal::createEquality(true,mmk,k,varSort);
          addTheoryUnitClause(mmkEqk,EXPENSIVE);
          
-}
+}*/
 /**
  * Add axioms for addition, multiplication, unary minus and ordering
  */
@@ -1533,7 +1554,12 @@ void TheoryAxioms::apply()
       auto entry = it.next();
       if (entry.first.first == Theory::BVNAND){
           addBVNandAxiom1(entry,Theory::BVNOT,Theory::BVAND);
-       }
+          
+          unsigned size = env.sorts->getBitVectorSort(entry.first.second->result())->getSize();
+          TermList zero(theory->representConstant(BitVectorOperations::getZeroBVCT(size)));
+          TermList one(theory->representConstant(BitVectorOperations::getOneBVCT(size)));
+          addCertainBitVectorAxioms(entry,Theory::BVNEG, zero,one,Theory::BVULT);
+       }      
   }
   
   // bitvector axioms

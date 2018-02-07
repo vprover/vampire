@@ -67,6 +67,7 @@ private:
   void addRightInverse(Interpretation op, Interpretation inverse);
 
   void addNonReflexivity(Interpretation op);
+  void addPolyMorphicNonReflexivity(Interpretation op, OperatorType* type);
   void addTransitivity(Interpretation op);
   void addOrderingTotality(Interpretation less);
   void addTotalOrderAxioms(Interpretation less);
@@ -83,9 +84,9 @@ private:
   /*void addConcatAxiom(Interpretation concatInterpretation, unsigned sortArg1,unsigned sortArg2,unsigned resultSort, UnitList*& units);*/
   /*void addBVsdivAxiom(Interpretation bvsdivInterpretation, Interpretation extractInterpretation,Interpretation bvudivI, Interpretation bvnegI, unsigned n,UnitList*& units);
    */               
-  void addCertainBitVectorAxioms(Interpretation plus, Interpretation unaryMinus,
-  TermList zeroElement, TermList oneElement, Interpretation less);
+  //void addCertainBitVectorAxioms(Interpretation plus, Interpretation unaryMinus,TermList zeroElement, TermList oneElement, Interpretation less);
   void addBVNandAxiom1(std::pair<Theory::MonomorphisedInterpretation,unsigned> entry, Interpretation bvnot, Interpretation bvand);
+  void addCertainBitVectorAxioms(std::pair<Theory::MonomorphisedInterpretation,unsigned> entry, Interpretation unaryMinus,TermList zeroElement, TermList oneElement, Interpretation less);
   void addBVNorAxiom1(Interpretation bvnor, Interpretation bvnot, Interpretation bvor);
   void addBVXORAxiom1(Interpretation bvxorInterpretation, Interpretation bvorInterpretation , Interpretation bvandInterpretation, Interpretation bvnotInterpretation);
   void addBVXNORAxiom1(Interpretation bvxnor, Interpretation bvor , Interpretation bvand, Interpretation bvnot);

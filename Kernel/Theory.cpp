@@ -753,7 +753,7 @@ bool Theory::isFunction(Interpretation i)
   if (i >= numberOfFixedInterpretations()) {
     ConcreteIndexedInterpretation cii = intepretationToIndexedInterpretation(i);
     IndexedInterpretation ii = cii.first;
-
+    
     switch (ii) {
       case EXTRACT:
       case REPEAT:
