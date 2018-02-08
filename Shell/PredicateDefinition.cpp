@@ -906,7 +906,17 @@ void PredicateDefinition::count (TermList ts,int add, Unit* unit)
       case Term::SF_TUPLE:
         count(TermList(sd->getTupleTerm()), add, unit);
         break;
-
+        
+      //not sure of the purpose of count function so code requires review, AYB  
+      case Term::SF_APP:
+        count(sd->getAppLhs(), add, unit);
+        count(*term->nthArgument(0), add, unit);
+        break;
+      
+      case Term::SF_LAMBDA:
+        count(sd->getLambdaExp(), add, unit);
+        break;
+        
       default:
         ASSERTION_VIOLATION;
     }

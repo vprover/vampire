@@ -95,8 +95,8 @@ FormulaUnit* Rectify::rectify (FormulaUnit* unit0, bool removeUnusedVars)
 
   if (f != g) {
     unit = new FormulaUnit(g,
-			   new Inference1(Inference::RECTIFY,unit),
-			   unit->inputType());
+         new Inference1(Inference::RECTIFY,unit),
+         unit->inputType());
     if(unit0->included()) {
       unit->markIncluded();
     }
@@ -105,8 +105,8 @@ FormulaUnit* Rectify::rectify (FormulaUnit* unit0, bool removeUnusedVars)
   if (VarList::isNonEmpty(vars)) {
     //TODO do we know the sorts of vars?
     unit = new FormulaUnit(new QuantifiedFormula(FORALL,vars,0,g),
-			   new Inference1(Inference::CLOSURE,unit),
-			   unit->inputType());
+         new Inference1(Inference::CLOSURE,unit),
+         unit->inputType());
     if(unit0->included()) {
       unit->markIncluded();
     }
@@ -130,7 +130,7 @@ void Rectify::rectify(UnitList*& units)
     FormulaUnit* fu = static_cast<FormulaUnit*>(u);
     FormulaUnit* v = rectify(fu);
     if (v != fu) {
-	us.replace(v);
+  us.replace(v);
     }
   }
 }
@@ -171,7 +171,7 @@ Term* Rectify::rectifySpecialTerm(Term* t)
     TermList th = rectify(*t->nthArgument(0));
     TermList el = rectify(*t->nthArgument(1));
     if(c==sd->getCondition() && th==*t->nthArgument(0) && el==*t->nthArgument(1)) {
-	return t;
+  return t;
     }
     return Term::createITE(c, th, el, sd->getSort());
   }
@@ -233,33 +233,33 @@ Term* Rectify::rectifySpecialTerm(Term* t)
   }
   case Term::SF_APP:
   {
-	ASS_EQ(t->arity(),1);
-	
-	TermList lhs = rectify(sd->getAppLhs());
-	TermList rhs = rectify(*t->nthArgument(0));
+    ASS_EQ(t->arity(),1);
+  
+    TermList lhs = rectify(sd->getAppLhs());
+    TermList rhs = rectify(*t->nthArgument(0));
     if(lhs == sd->getAppLhs() && rhs == *t->nthArgument(0)){
-		return t;
-	}
-	return Term::createApp(lhs, rhs, sd->getAppLhsSort(), sd->getSort());
+      return t;
+    }
+    return Term::createApp(lhs, rhs, sd->getAppLhsSort(), sd->getSort());
   }
   case Term::SF_LAMBDA:
   {
-	ASS_EQ(t->arity(),0);
-	bindVars(sd->getLambdaVars());
+    ASS_EQ(t->arity(),0);
+    bindVars(sd->getLambdaVars());
     TermList lambdaTerm = rectify(sd->getLambdaExp());
-	 /**
+    /**
      * We don't want to remove unused variables from the variable list,
      * ^[X].exp is not equivalent to exp.
      */
     bool removeUnusedVars = _removeUnusedVars;
     _removeUnusedVars = false;
     VarList* vs = rectifyBoundVars(sd->getLambdaVars());
-	_removeUnusedVars = removeUnusedVars; // restore the status quo
+    _removeUnusedVars = removeUnusedVars; // restore the status quo
     unbindVars(sd->getLambdaVars());
     if (vs == sd->getLambdaVars() && lambdaTerm == sd->getLambdaExp()) {
       return t;
     }
-    return Term::createLambda(lambdaTerm, Connective::LAMBDA, vs, sd->getVarSorts(), sd->getLambdaExpSort()); 	
+    return Term::createLambda(lambdaTerm, Connective::LAMBDA, vs, sd->getVarSorts(), sd->getLambdaExpSort());   
   }
   default:
     ASSERTION_VIOLATION;
@@ -326,12 +326,12 @@ Literal* Rectify::rectify (Literal* l)
   if (rectify(l->args(),m->args())) {
     if(TermList::allShared(m->args())) {
       if(l->isEquality() && m->nthArgument(0)->isVar() && m->nthArgument(1)->isVar()) {
-	ASS(l->shared());
-	unsigned srt = SortHelper::getEqualityArgumentSort(l);
-	return env.sharing->insertVariableEquality(m, srt);
+  ASS(l->shared());
+  unsigned srt = SortHelper::getEqualityArgumentSort(l);
+  return env.sharing->insertVariableEquality(m, srt);
       }
       else {
-	return env.sharing->insert(m);
+  return env.sharing->insert(m);
       }
     }
     else {
@@ -359,7 +359,7 @@ bool Rectify::rectify(TermList* from,TermList* to)
       int newV = rectifyVar(v);
       to->makeVar(newV);
       if (v != newV) { // rename variable to itself
-	changed = true;
+  changed = true;
       }
     }
     else { // from is not a variable
@@ -367,7 +367,7 @@ bool Rectify::rectify(TermList* from,TermList* to)
       Term* t = rectify(f);
       to->setTerm(t);
       if (f != t) {
-	changed = true;
+  changed = true;
       }
     }
     from = from->next();
@@ -469,13 +469,13 @@ Formula* Rectify::rectify (Formula* f)
   {
     bindVars(f->vars());
     Formula* arg = rectify(f->qarg());
-	_sorts = f->sorts();
-	VarList* vs;
-	if(!SortList::isEmpty(_sorts)){
+  _sorts = f->sorts();
+  VarList* vs;
+  if(!SortList::isEmpty(_sorts)){
        vs = rectifyBoundVars(f->vars(), true);
-	}else{
-	   vs = rectifyBoundVars(f->vars());	
-	}
+  }else{
+     vs = rectifyBoundVars(f->vars());  
+  }
     unbindVars(f->vars());
     if (vs == f->vars() && arg == f->qarg()) {
       return f;
@@ -600,11 +600,11 @@ Rectify::VarList* Rectify::rectifyBoundVars (VarList* vs, bool removeUnusedSorts
   }
   
   if(removeUnusedSorts){
-	SortList::Iterator sit(_sorts);
-	while(sit.hasNext()){
-	   sorts.push(sit.next());  
-	}
-	_sorts = _sorts->empty();
+  SortList::Iterator sit(_sorts);
+  while(sit.hasNext()){
+     sorts.push(sit.next());  
+  }
+  _sorts = _sorts->empty();
   }
   
   VarList* res = args.top()->tail();
@@ -622,17 +622,17 @@ Rectify::VarList* Rectify::rectifyBoundVars (VarList* vs, bool removeUnusedSorts
     if (wWithUsg.second || !_removeUnusedVars) {
       w = wWithUsg.first;
 
-	  if(removeUnusedSorts){
-	    _sorts = SortList::cons(sorts.pop(), _sorts);
-	  }
+    if(removeUnusedSorts){
+      _sorts = SortList::cons(sorts.pop(), _sorts);
+    }
       if (v == w && vtail == ws) {
         res = vs;
       } else {
         res = new VarList(w,ws);
       }
-    }else if(removeUnusedSorts){	   
-	   sorts.pop();
-	}
+    }else if(removeUnusedSorts){     
+     sorts.pop();
+  }
     // else nothing, because "else" means dropping the variable from the list and returning ws, but res == ws already ...
   }
 

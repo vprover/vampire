@@ -92,6 +92,24 @@ void SineSymbolExtractor::addSymIds(Term* term, Stack<SymId>& ids)
           addSymIds(sd->getTupleTerm(), ids);
           break;
         }
+        case Term::SF_APP: {
+          TermList lhs = sd->getAppLhs();
+          TermList rhs = *term->nthArgument(0);
+          if(lhs.isTerm()){          
+            addSymIds(lhs.term(), ids);
+          }
+          if(rhs.isTerm()){
+            addSymIds(rhs.term(), ids);
+          }          
+          break;
+        }
+        case Term::SF_LAMBDA: {
+          TermList lambdaExp = sd->getLambdaExp();
+          if(lambdaExp.isTerm()){
+            addSymIds(lambdaExp.term(), ids);
+          }
+          break;
+        }
         default:
           ASSERTION_VIOLATION;
       }
