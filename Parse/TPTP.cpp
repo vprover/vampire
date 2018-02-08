@@ -130,7 +130,7 @@ void TPTP::parse()
       fof(true);
       break;
     case THF:
-	  if(env.options->arityCheck()){ USER_ERROR("thf depends on arity_check being off");};
+      if(env.options->arityCheck()){ USER_ERROR("thf depends on arity_check being off");};
       _isThf = true;
     case TFF:
       _isFof = false;
@@ -703,39 +703,39 @@ void TPTP::skipWhiteSpacesAndComments()
     for (;;) {
       int c = getChar(0);
       if (c == 0) {
-	return;
+    return;
       }
       resetChars();
       if (c == '\n') {
         _lineNumber++;
-	break;
+    break;
       }
     }
     break;
 
     case '/': // potential comment
       if (getChar(1) != '*') {
-	return;
+    return;
       }
       resetChars();
       // search for the end of this comment
       for (;;) {
-	int c = getChar(0);
+    int c = getChar(0);
         if( c == '\n' || c == '\r'){ _lineNumber++; }
-	if (!c) {
-	  return;
-	}
-	resetChars();
-	if (c != '*') {
-	  continue;
-	}
-	// c == '*'
-	c = getChar(0);
-	resetChars();
-	if (c != '/') {
-	  continue;
-	}
-	break;
+    if (!c) {
+      return;
+    }
+    resetChars();
+    if (c != '*') {
+      continue;
+    }
+    // c == '*'
+    c = getChar(0);
+    resetChars();
+    if (c != '/') {
+      continue;
+    }
+    break;
       }
       break;
 
@@ -1002,7 +1002,7 @@ void TPTP::readString(Token& tok)
     if (c == '\\') { // escape
       c = getChar(++n);
       if (!c) {
-	PARSE_ERROR("non-terminated string",_gpos);
+    PARSE_ERROR("non-terminated string",_gpos);
       }
       continue;
     }
@@ -1030,7 +1030,7 @@ void TPTP::readAtom(Token& tok)
     if (c == '\\') { // escape
       c = getChar(++n);
       if (!c) {
-	PARSE_ERROR("non-terminated quoted atom",_gpos);
+    PARSE_ERROR("non-terminated quoted atom",_gpos);
       }
       continue;
     }
@@ -1102,8 +1102,8 @@ TPTP::Tag TPTP::readNumber(Token& tok)
       }
       c = getChar(pos);
       if (c == 'e' || c == 'E') {
-	c = getChar(pos+1);
-	pos = decimal((c == '+' || c == '-') ? pos+2 : pos+1);
+    c = getChar(pos+1);
+    pos = decimal((c == '+' || c == '-') ? pos+2 : pos+1);
       }
       tok.content.assign(_chars.content(),pos);
       shiftChars(pos);
@@ -1331,7 +1331,7 @@ void TPTP::fof(bool fo)
   }
   else {
     PARSE_ERROR((vstring)"unit type, such as axiom or definition expected but " + tp + " found",
-		    start);
+            start);
   }
   consumeToken(T_COMMA);
   _states.push(END_FOF);
@@ -1383,7 +1383,7 @@ void TPTP::tff()
     for (;;) {
       tok = getTok(0);
       if (tok.tag != T_LPAR) {
-	break;
+    break;
       }
       lpars++;
       resetToks();
@@ -1396,21 +1396,21 @@ void TPTP::tff()
       bool added;
       env.sorts->addSort(nm,added,false);
       if (!added) {
-	PARSE_ERROR("Sort name must be unique",tok);
+    PARSE_ERROR("Sort name must be unique",tok);
       }
       resetToks();
       while (lpars--) {
-	consumeToken(T_RPAR);
+    consumeToken(T_RPAR);
       }
       consumeToken(T_RPAR);
       consumeToken(T_DOT);
       return;
     }else if(_isThf){
-	  //We now know that this must be an interpreted costant
+      //We now know that this must be an interpreted costant
       //either a HOL constant or a normal consant.
       Signature::Symbol* symbol;
       bool added; 
-	  _gpos = 0;
+      _gpos = 0;
       unsigned sort = readHOLSort();
       unsigned fun = addUninterpretedConstant(nm,_overflow,added);
       if (!added) {
@@ -1418,13 +1418,13 @@ void TPTP::tff()
       }
       symbol = env.signature->getFunction(fun);
       symbol->setType(OperatorType::getConstantsType(sort));
-	  while (lpars--) {
-	consumeToken(T_RPAR);
+      while (lpars--) {
+    consumeToken(T_RPAR);
       }
       consumeToken(T_RPAR);
       consumeToken(T_DOT);
       return;
-	}
+    }
     // the matching number of rpars will be read
     _ints.push(lpars);
     // remember type name
@@ -1471,7 +1471,7 @@ void TPTP::tff()
   }
   else {
     PARSE_ERROR((vstring)"unit type, such as axiom or definition expected but " + tp + " found",
-		    start);
+            start);
   }
 
   consumeToken(T_COMMA);
@@ -1506,7 +1506,7 @@ void TPTP::holFunction()
     resetToks();
     consumeToken(T_LBRA);
     _connectives.push(tok.tag == T_FORALL ? FORALL : (tok.tag == T_LAMBDA ? LAMBDA : EXISTS));
-	_states.push(HOL_FUNCTION);
+    _states.push(HOL_FUNCTION);
     addTagState(T_COLON);
     addTagState(T_RBRA);
     _states.push(VAR_LIST);
@@ -1532,12 +1532,12 @@ void TPTP::holFunction()
   case T_TRUE:
     resetToks();
     _formulas.push(new Formula(true));
-	_lastPushed = FORM;
+    _lastPushed = FORM;
     return;
   case T_FALSE:
     resetToks();
     _formulas.push(new Formula(false));
-	_lastPushed = FORM;
+    _lastPushed = FORM;
     return;
   case T_NAME:
   case T_VAR:
@@ -1664,7 +1664,7 @@ void TPTP::endHolTerm()
     // it was a variable
     unsigned var = (unsigned)_vars.insert(name);
     _termLists.push(TermList(var, false));
-	_lastPushed = TM;
+    _lastPushed = TM;
     return;
   }
 
@@ -1687,10 +1687,10 @@ void TPTP::endHolFunction()
   int con = _connectives.pop();
 
   if (con == -2){
-	  if(_termLists.size() == 1){
+      if(_termLists.size() == 1){
        endTermAsFormula();
-	  }
-	  return;
+      }
+      return;
   }  
   
   if ((con != APP) & (con != LAMBDA) & (con != -1) & (_lastPushed == TM)){
@@ -1718,27 +1718,27 @@ void TPTP::endHolFunction()
   case NOT:
     f = _formulas.pop();
     _formulas.push(new NegatedFormula(f));
-	  _lastPushed = FORM;
+      _lastPushed = FORM;
     _states.push(END_HOL_FUNCTION);
     return;
   case FORALL:
   case EXISTS:
     f = _formulas.pop();
     _formulas.push(new QuantifiedFormula((Connective)con,_varLists.pop(),_sortLists.pop(),f));
-	 _lastPushed = FORM;
+     _lastPushed = FORM;
     _states.push(END_HOL_FUNCTION);
     _states.push(UNBIND_VARIABLES);
     return;
   case LAMBDA:{
-	 if(_lastPushed == FORM){
-	   endFormulaInsideTerm();
-	 }
+     if(_lastPushed == FORM){
+       endFormulaInsideTerm();
+     }
      fun = _termLists.pop();
      TermList ts(Term::createLambda(fun, (Connective)con, _varLists.pop(), _sortLists.pop(), sortOf(fun)));
      _termLists.push(ts);
-	 _lastPushed = TM;
+     _lastPushed = TM;
      _states.push(END_HOL_FUNCTION);
-	 _states.push(UNBIND_VARIABLES);
+     _states.push(UNBIND_VARIABLES);
      return; 
     }
   case LITERAL:
@@ -1791,7 +1791,7 @@ void TPTP::endHolFunction()
     _states.push(MID_EQ);
     if(_lastPushed == FORM){
        endFormulaInsideTerm();
-	   //equality is evaluated between two terms
+       //equality is evaluated between two terms
     }
     return;
   }
@@ -1801,13 +1801,13 @@ void TPTP::endHolFunction()
     case IMP:
       f = _formulas.pop();
       if (conReverse) {
-	f = new BinaryFormula((Connective)con,f,_formulas.pop());
+    f = new BinaryFormula((Connective)con,f,_formulas.pop());
       }
       else {
-	f = new BinaryFormula((Connective)con,_formulas.pop(),f);
+    f = new BinaryFormula((Connective)con,_formulas.pop(),f);
       }
       _formulas.push(f);
-	    _lastPushed = FORM;
+        _lastPushed = FORM;
       _states.push(END_HOL_FUNCTION);
       return;
     
@@ -1820,7 +1820,7 @@ void TPTP::endHolFunction()
       f = _formulas.pop();
       f = new BinaryFormula((Connective)con,_formulas.pop(),f);
       _formulas.push(f);
-	    _lastPushed = FORM;
+        _lastPushed = FORM;
       _states.push(END_HOL_FUNCTION);
       return;
 
@@ -1829,10 +1829,10 @@ void TPTP::endHolFunction()
       f = _formulas.pop();
       f = makeJunction((Connective)con,_formulas.pop(),f);
       if (conReverse) {
-	f = new NegatedFormula(f);
+    f = new NegatedFormula(f);
       }
       _formulas.push(f);
-	    _lastPushed = FORM;
+        _lastPushed = FORM;
       _states.push(END_HOL_FUNCTION);
       return;
 
@@ -1846,23 +1846,23 @@ void TPTP::endHolFunction()
   }
 
   if ((c != APP) & (con == -1) & (_lastPushed == TM)){
-	  endTermAsFormula();
+      endTermAsFormula();
   }
 
   
   // con and c are binary connectives
   if (higherPrecedence(con,c)) {
-	  if (con == APP){
+      if (con == APP){
       _states.push(END_HOL_FUNCTION);
       _states.push(END_APP);
       return;  
-	  }
+      }
     f = _formulas.pop(); 
     Formula* g = _formulas.pop();
     if (con == AND || con == OR) {
       f = makeJunction((Connective)con,g,f);
       if (conReverse) {
-	      f = new NegatedFormula(f);
+          f = new NegatedFormula(f);
       }
     }
     else if (con == IMP && conReverse) {
@@ -1871,7 +1871,7 @@ void TPTP::endHolFunction()
       f = new BinaryFormula((Connective)con,g,f);
     }
     _formulas.push(f);
-	  _lastPushed = FORM;
+      _lastPushed = FORM;
     _states.push(END_HOL_FUNCTION);
     return;
   }
@@ -1901,7 +1901,7 @@ void TPTP::endApp()
   CALL("TPTP::endApp");
 
   if(_lastPushed == FORM){
-	 endFormulaInsideTerm();   	 
+     endFormulaInsideTerm();     
   }
   TermList rhs = _termLists.pop();
   TermList lhs = _termLists.pop();
@@ -2068,17 +2068,17 @@ void TPTP::include()
     for(;;) {
       tok = getTok(0);
       if (tok.tag != T_NAME) {
-	PARSE_ERROR((vstring)"formula name expected",tok);
+    PARSE_ERROR((vstring)"formula name expected",tok);
       }
       vstring axName=tok.content;
       resetToks();
       if (!ignore) {
-	_allowedNames->insert(axName);
+    _allowedNames->insert(axName);
       }
       tok = getTok(0);
       if (tok.tag == T_RBRA) {
-	resetToks();
-	break;
+    resetToks();
+    break;
       }
       consumeToken(T_COMMA);
     }
@@ -2152,7 +2152,7 @@ void TPTP::formula()
   if(_isThf){
     _connectives.push(-2); //special connective for HOL funcs
     _connectives.push(-1);
-	_states.push(END_HOL_FUNCTION);
+    _states.push(END_HOL_FUNCTION);
     _states.push(END_HOL_FUNCTION);
     _states.push(HOL_FUNCTION);
   }else{
@@ -2623,7 +2623,7 @@ void TPTP::varList()
     switch (tok.tag) {
     case T_COLON: // v: type
       if (sortDeclared) {
-	PARSE_ERROR("two declarations of variable sort",tok);
+    PARSE_ERROR("two declarations of variable sort",tok);
       }
       resetToks();
       bindVariable(var,(_isThf ? readHOLSort() : readSort()));
@@ -2632,27 +2632,27 @@ void TPTP::varList()
 
     case T_COMMA:
       if (!sortDeclared) {
-	bindVariable(var,Sorts::SRT_DEFAULT);
+    bindVariable(var,Sorts::SRT_DEFAULT);
       }
       resetToks();
       break;
 
     default:
       {
-	if (!sortDeclared) {
-	  bindVariable(var,Sorts::SRT_DEFAULT);
-	}
-	Formula::VarList* vs = Formula::VarList::empty();
+    if (!sortDeclared) {
+      bindVariable(var,Sorts::SRT_DEFAULT);
+    }
+    Formula::VarList* vs = Formula::VarList::empty();
   Formula::SortList* ss = Formula::SortList::empty();
-	while (!vars.isEmpty()) {
+    while (!vars.isEmpty()) {
     int v = vars.pop();
-	  vs = new Formula::VarList(v,vs);
+      vs = new Formula::VarList(v,vs);
     ss = new Formula::SortList(sortOf(TermList(v,false)),ss);
-	}
-	_varLists.push(vs);
+    }
+    _varLists.push(vs);
   _sortLists.push(ss);
-	_bindLists.push(vs);
-	return;
+    _bindLists.push(vs);
+    return;
       }
     }
   }
@@ -2866,7 +2866,7 @@ void TPTP::endEquality()
   _insideEqualityArgument--;
   
   if((_isThf) & (_lastPushed == FORM)){
-	endFormulaInsideTerm();
+    endFormulaInsideTerm();
   }
 
   TermList rhs = _termLists.pop();
@@ -3148,10 +3148,10 @@ void TPTP::endFormula()
     case IMP:
       f = _formulas.pop();
       if (conReverse) {
-	f = new BinaryFormula((Connective)con,f,_formulas.pop());
+    f = new BinaryFormula((Connective)con,f,_formulas.pop());
       }
       else {
-	f = new BinaryFormula((Connective)con,_formulas.pop(),f);
+    f = new BinaryFormula((Connective)con,_formulas.pop(),f);
       }
       _formulas.push(f);
       _states.push(END_FORMULA);
@@ -3170,7 +3170,7 @@ void TPTP::endFormula()
       f = _formulas.pop();
       f = makeJunction((Connective)con,_formulas.pop(),f);
       if (conReverse) {
-	f = new NegatedFormula(f);
+    f = new NegatedFormula(f);
       }
       _formulas.push(f);
       _states.push(END_FORMULA);
@@ -3192,7 +3192,7 @@ void TPTP::endFormula()
     if (con == AND || con == OR) {
       f = makeJunction((Connective)con,g,f);
       if (conReverse) {
-	f = new NegatedFormula(f);
+    f = new NegatedFormula(f);
       }
     }
     else if (con == IMP && conReverse) {
@@ -3262,7 +3262,7 @@ void TPTP::endTermAsFormula()
   }
   if (t.isTerm() && t.term()->isFormula()) {
     _formulas.push(t.term()->getSpecialData()->getFormula());
-	_lastPushed = FORM;
+    _lastPushed = FORM;
   } else {
     _formulas.push(new BoolTermFormula(t));
     _lastPushed = FORM;
@@ -3375,36 +3375,36 @@ void TPTP::endFof()
       f = forms.pop();
       switch (f->connective()) {
       case OR:
-	{
-	  FormulaList::Iterator fs(static_cast<JunctionFormula*>(f)->getArgs());
-	  while (fs.hasNext()) {
-	    forms.push(fs.next());
-	  }
-	}
-	break;
+    {
+      FormulaList::Iterator fs(static_cast<JunctionFormula*>(f)->getArgs());
+      while (fs.hasNext()) {
+        forms.push(fs.next());
+      }
+    }
+    break;
 
       case LITERAL:
       case NOT:
-	{
-	  bool positive = true;
-	  while (f->connective() == NOT) {
-	    f = static_cast<NegatedFormula*>(f)->subformula();
-	    positive = !positive;
-	  }
-	  if (f->connective() != LITERAL) {
-	    USER_ERROR((vstring)"input formula not in CNF: " + g->toString());
-	  }
-	  Literal* l = static_cast<AtomicFormula*>(f)->literal();
-	  lits.push(positive ? l : Literal::complementaryLiteral(l));
-	}
-	break;
+    {
+      bool positive = true;
+      while (f->connective() == NOT) {
+        f = static_cast<NegatedFormula*>(f)->subformula();
+        positive = !positive;
+      }
+      if (f->connective() != LITERAL) {
+        USER_ERROR((vstring)"input formula not in CNF: " + g->toString());
+      }
+      Literal* l = static_cast<AtomicFormula*>(f)->literal();
+      lits.push(positive ? l : Literal::complementaryLiteral(l));
+    }
+    break;
 
       case TRUE:
-	return;
+    return;
       case FALSE:
-	break;
+    break;
       default:
-	USER_ERROR((vstring)"input formula not in CNF: " + g->toString());
+    USER_ERROR((vstring)"input formula not in CNF: " + g->toString());
       }
     }
     unit = Clause::fromStack(lits,(Unit::InputType)_lastInputType,new Inference(Inference::INPUT));
@@ -3441,29 +3441,29 @@ void TPTP::endFof()
       Formula::VarList::Iterator vs(g->vars());
       int i = 0;
       while (vs.hasNext()) {
-	a->nthArgument(i++)->makeVar(vs.next());
+    a->nthArgument(i++)->makeVar(vs.next());
       }
       a = env.sharing->insert(a);
       f = new QuantifiedFormula(FORALL,
-				g->vars(),
+                g->vars(),
                                 g->sorts(),
-				new BinaryFormula(IMP,g->subformula(),new AtomicFormula(a)));
+                new BinaryFormula(IMP,g->subformula(),new AtomicFormula(a)));
       unit = new FormulaUnit(f,
-			     new Inference1(Inference::ANSWER_LITERAL,unit),
-			     Unit::CONJECTURE);
+                 new Inference1(Inference::ANSWER_LITERAL,unit),
+                 Unit::CONJECTURE);
     }
     else {
       Formula::VarList* vs = f->freeVariables();
       if (Formula::VarList::isEmpty(vs)) {
-	f = new NegatedFormula(f);
+    f = new NegatedFormula(f);
       }
       else {
         // TODO can we use sortOf to get the sorts of vs? 
-	f = new NegatedFormula(new QuantifiedFormula(FORALL,vs,0,f));
+    f = new NegatedFormula(new QuantifiedFormula(FORALL,vs,0,f));
       }
       unit = new FormulaUnit(f,
-			     new Inference1(Inference::NEGATED_CONJECTURE,unit),
-			     Unit::CONJECTURE);
+                 new Inference1(Inference::NEGATED_CONJECTURE,unit),
+                 Unit::CONJECTURE);
     }
     break;
 
@@ -3472,7 +3472,7 @@ void TPTP::endFof()
       bool added;
       unsigned pred = env.signature->addPredicate(nm,0,added);
       if (!added) {
-	USER_ERROR("Names of claims must be unique: "+nm);
+    USER_ERROR("Names of claims must be unique: "+nm);
       }
       env.signature->getPredicate(pred)->markLabel();
       Literal* a = new(0) Literal(pred,0,true,false);
@@ -3481,12 +3481,12 @@ void TPTP::endFof()
       Formula::VarList* vs = f->freeVariables();
       if (Formula::VarList::isNonEmpty(vs)) {
         //TODO can we use sortOf to get sorts of vs?
-	f = new QuantifiedFormula(FORALL,vs,0,f);
+    f = new QuantifiedFormula(FORALL,vs,0,f);
       }
       f = new BinaryFormula(IFF,claim,f);
       unit = new FormulaUnit(f,
-			     new Inference1(Inference::CLAIM_DEFINITION,unit),
-			     Unit::ASSUMPTION);
+                 new Inference1(Inference::CLAIM_DEFINITION,unit),
+                 Unit::ASSUMPTION);
     }
     break;
 
@@ -3540,7 +3540,7 @@ void TPTP::endTff()
     if (sortNumber == Sorts::SRT_BOOL) {
       env.signature->addPredicate(name,0,added);
       if (!added) {
-	USER_ERROR("Predicate symbol type is declared after its use: " + name);
+    USER_ERROR("Predicate symbol type is declared after its use: " + name);
       }
       return;
     }
@@ -3739,7 +3739,7 @@ void TPTP::skipToRPAR()
       resetToks();
       balance--;
       if (balance == -1) {
-	return;
+    return;
       }
       break;
     default:
@@ -3896,31 +3896,31 @@ unsigned TPTP::readHOLSort()
    Token tok = getTok(0);
    unsigned sort;
    while((tok.tag != T_COMMA) & (tok.tag != T_RBRA)){
-	   switch(tok.tag){
-		   case T_LPAR: //This will need changing when we read tuple types - AYB
-		      subSorts.push(-1);
-			  inBrackets += 1;
-			  break;
-		   case T_ARROW:
-		      break;
-		   case T_RPAR:
-		      inBrackets -= 1;
-			  if(inBrackets < 0){_gpos = 0; goto afterWhile;}
-			  foldl(&subSorts);
-		      break;
-		   default:{
-			  sort = readSort();
-              subSorts.push(sort);			     
-		   }
-	   }
-	   resetToks();
-	   tok = getTok(0);
+       switch(tok.tag){
+           case T_LPAR: //This will need changing when we read tuple types - AYB
+              subSorts.push(-1);
+              inBrackets += 1;
+              break;
+           case T_ARROW:
+              break;
+           case T_RPAR:
+              inBrackets -= 1;
+              if(inBrackets < 0){_gpos = 0; goto afterWhile;}
+              foldl(&subSorts);
+              break;
+           default:{
+              sort = readSort();
+              subSorts.push(sort);               
+           }
+       }
+       resetToks();
+       tok = getTok(0);
    }
 afterWhile:
    if(subSorts.size() != 1){
-	   foldl(&subSorts);
+       foldl(&subSorts);
    }
-   return (unsigned)subSorts.pop();	
+   return (unsigned)subSorts.pop(); 
 }
  
 void TPTP::foldl(Stack<int>* sorts)
@@ -3930,14 +3930,14 @@ void TPTP::foldl(Stack<int>* sorts)
    int item1 = sorts->pop();
    int item2 = sorts->pop();
    while(!(sorts->isEmpty()) & (item2 != -1)){
-	   item1 = env.sorts->addFunctionSort((unsigned)item2, (unsigned)item1);
-	   item2 = sorts->pop();
+       item1 = env.sorts->addFunctionSort((unsigned)item2, (unsigned)item1);
+       item2 = sorts->pop();
    }
    if (item2 != -1){
-	   item1 = env.sorts->addFunctionSort((unsigned)item2, (unsigned)item1);
+       item1 = env.sorts->addFunctionSort((unsigned)item2, (unsigned)item1);
    }
    sorts->push(item1);
-}	
+}   
  
 /**
  * Read a sort and return its number. If a sort is not built-in, then raise an
@@ -3957,7 +3957,7 @@ unsigned TPTP::readSort()
       bool added;
       unsigned sortNumber = env.sorts->addSort(tok.content,added,false);
       if (added) {
-      	PARSE_ERROR("undeclared sort",tok);
+        PARSE_ERROR("undeclared sort",tok);
       }
       return sortNumber;
     }
@@ -4078,13 +4078,13 @@ Formula* TPTP::makeJunction (Connective c,Formula* lhs,Formula* rhs)
   // lhs' connective is not c
   if (rhs->connective() == c) {
     static_cast<JunctionFormula*>(rhs)->setArgs(new FormulaList(lhs,
-								rhs->args()));
+                                rhs->args()));
     return rhs;
   }
   // both connectives are not c
   return new JunctionFormula(c,
-			     new FormulaList(lhs,
-					     new FormulaList(rhs)));
+                 new FormulaList(lhs,
+                         new FormulaList(rhs)));
 } // makeJunction
 
 /** Add a function to the signature
@@ -4100,28 +4100,28 @@ unsigned TPTP::addFunction(vstring name,int arity,bool& added,TermList& arg)
 
   if (name == "$sum") {
     return addOverloadedFunction(name,arity,2,added,arg,
-				 Theory::INT_PLUS,
-				 Theory::RAT_PLUS,
-				 Theory::REAL_PLUS);
+                 Theory::INT_PLUS,
+                 Theory::RAT_PLUS,
+                 Theory::REAL_PLUS);
   }
   if (name == "$difference") {
     return addOverloadedFunction(name,arity,2,added,arg,
-				 Theory::INT_MINUS,
-				 Theory::RAT_MINUS,
-				 Theory::REAL_MINUS);
+                 Theory::INT_MINUS,
+                 Theory::RAT_MINUS,
+                 Theory::REAL_MINUS);
   }
   if (name == "$product") {
     return addOverloadedFunction(name,arity,2,added,arg,
-				 Theory::INT_MULTIPLY,
-				 Theory::RAT_MULTIPLY,
-				 Theory::REAL_MULTIPLY);
+                 Theory::INT_MULTIPLY,
+                 Theory::RAT_MULTIPLY,
+                 Theory::REAL_MULTIPLY);
   }
   // An odd leftover, maps to the 'most natural' kind of division
   if (name == "$divide") {
     return addOverloadedFunction(name,arity,2,added,arg,
-				 Theory::INT_QUOTIENT_E,
-				 Theory::RAT_QUOTIENT,
-				 Theory::REAL_QUOTIENT);
+                 Theory::INT_QUOTIENT_E,
+                 Theory::RAT_QUOTIENT,
+                 Theory::REAL_QUOTIENT);
   }
   if (name == "$modulo"){
     if(sortOf(arg)!=Sorts::SRT_INTEGER){
@@ -4188,9 +4188,9 @@ unsigned TPTP::addFunction(vstring name,int arity,bool& added,TermList& arg)
   }
   if (name == "$uminus") {
     return addOverloadedFunction(name,arity,1,added,arg,
-				 Theory::INT_UNARY_MINUS,
-				 Theory::RAT_UNARY_MINUS,
-				 Theory::REAL_UNARY_MINUS);
+                 Theory::INT_UNARY_MINUS,
+                 Theory::RAT_UNARY_MINUS,
+                 Theory::REAL_UNARY_MINUS);
   }
   if (name == "$successor"){
     if(sortOf(arg)!=Sorts::SRT_INTEGER){
@@ -4227,21 +4227,21 @@ unsigned TPTP::addFunction(vstring name,int arity,bool& added,TermList& arg)
   }
   if (name == "$to_int") {
     return addOverloadedFunction(name,arity,1,added,arg,
-				 Theory::INT_TO_INT,
-				 Theory::RAT_TO_INT,
-				 Theory::REAL_TO_INT);
+                 Theory::INT_TO_INT,
+                 Theory::RAT_TO_INT,
+                 Theory::REAL_TO_INT);
   }
   if (name == "$to_rat") {
     return addOverloadedFunction(name,arity,1,added,arg,
-				 Theory::INT_TO_RAT,
-				 Theory::RAT_TO_RAT,
-				 Theory::REAL_TO_RAT);
+                 Theory::INT_TO_RAT,
+                 Theory::RAT_TO_RAT,
+                 Theory::REAL_TO_RAT);
   }
   if (name == "$to_real") {
     return addOverloadedFunction(name,arity,1,added,arg,
-				 Theory::INT_TO_REAL,
-				 Theory::RAT_TO_REAL,
-				 Theory::REAL_TO_REAL);
+                 Theory::INT_TO_REAL,
+                 Theory::RAT_TO_REAL,
+                 Theory::REAL_TO_REAL);
   }
 
   if (arity > 0) {
@@ -4268,33 +4268,33 @@ int TPTP::addPredicate(vstring name,int arity,bool& added,TermList& arg)
   }
   if (name == "$less") {
     return addOverloadedPredicate(name,arity,2,added,arg,
-				  Theory::INT_LESS,
-				  Theory::RAT_LESS,
-				  Theory::REAL_LESS);
+                  Theory::INT_LESS,
+                  Theory::RAT_LESS,
+                  Theory::REAL_LESS);
   }
   if (name == "$lesseq") {
     return addOverloadedPredicate(name,arity,2,added,arg,
-				  Theory::INT_LESS_EQUAL,
-				  Theory::RAT_LESS_EQUAL,
-				  Theory::REAL_LESS_EQUAL);
+                  Theory::INT_LESS_EQUAL,
+                  Theory::RAT_LESS_EQUAL,
+                  Theory::REAL_LESS_EQUAL);
   }
   if (name == "$greater") {
     return addOverloadedPredicate(name,arity,2,added,arg,
-				  Theory::INT_GREATER,
-				  Theory::RAT_GREATER,
-				  Theory::REAL_GREATER);
+                  Theory::INT_GREATER,
+                  Theory::RAT_GREATER,
+                  Theory::REAL_GREATER);
   }
   if (name == "$greatereq") {
     return addOverloadedPredicate(name,arity,2,added,arg,
-				  Theory::INT_GREATER_EQUAL,
-				  Theory::RAT_GREATER_EQUAL,
-				  Theory::REAL_GREATER_EQUAL);
+                  Theory::INT_GREATER_EQUAL,
+                  Theory::RAT_GREATER_EQUAL,
+                  Theory::REAL_GREATER_EQUAL);
   }
   if (name == "$is_int") {
     return addOverloadedPredicate(name,arity,1,added,arg,
-				  Theory::INT_IS_INT,
-				  Theory::RAT_IS_INT,
-				  Theory::REAL_IS_INT);
+                  Theory::INT_IS_INT,
+                  Theory::RAT_IS_INT,
+                  Theory::REAL_IS_INT);
   }
   if (name == "$divides"){
     if(sortOf(arg)!=Sorts::SRT_INTEGER){
@@ -4307,9 +4307,9 @@ int TPTP::addPredicate(vstring name,int arity,bool& added,TermList& arg)
   }
   if (name == "$is_rat") {
     return addOverloadedPredicate(name,arity,1,added,arg,
-				  Theory::INT_IS_RAT,
-				  Theory::RAT_IS_RAT,
-				  Theory::REAL_IS_RAT);
+                  Theory::INT_IS_RAT,
+                  Theory::RAT_IS_RAT,
+                  Theory::REAL_IS_RAT);
   }
   if(name == "$distinct"){
     // special case for distinct, dealt with in formulaInfix
@@ -4320,8 +4320,8 @@ int TPTP::addPredicate(vstring name,int arity,bool& added,TermList& arg)
 
 
 unsigned TPTP::addOverloadedFunction(vstring name,int arity,int symbolArity,bool& added,TermList& arg,
-				     Theory::Interpretation integer,Theory::Interpretation rational,
-				     Theory::Interpretation real)
+                     Theory::Interpretation integer,Theory::Interpretation rational,
+                     Theory::Interpretation real)
 {
   CALL("TPTP::addOverloadedFunction");
 
@@ -4347,8 +4347,8 @@ unsigned TPTP::addOverloadedFunction(vstring name,int arity,int symbolArity,bool
 } // addOverloadedFunction
 
 unsigned TPTP::addOverloadedPredicate(vstring name,int arity,int symbolArity,bool& added,TermList& arg,
-				     Theory::Interpretation integer,Theory::Interpretation rational,
-				     Theory::Interpretation real)
+                     Theory::Interpretation integer,Theory::Interpretation rational,
+                     Theory::Interpretation real)
 {
   CALL("TPTP::addOverloadedPredicate");
 
@@ -4388,7 +4388,7 @@ unsigned TPTP::sortOf(TermList t)
     if (t.isVar()) {
       SortList* sorts;
       if (_variableSorts.find(t.var(),sorts) && SortList::isNonEmpty(sorts)) {
-	return sorts->head();
+    return sorts->head();
       }
       // there might be variables whose sort is undeclared,
       // in this case they have the default sort
@@ -4455,8 +4455,8 @@ unsigned TPTP::addRationalConstant(const vstring& name, Set<vstring>& overflow, 
   ASS(i != vstring::npos);
   try {
     return env.signature->addRationalConstant(name.substr(0,i),
-					      name.substr(i+1),
-					      defaultSort);
+                          name.substr(i+1),
+                          defaultSort);
   }
   catch(Kernel::ArithmeticException&) {
     bool added;
