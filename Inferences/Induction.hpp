@@ -36,13 +36,13 @@ namespace Inferences
 using namespace Kernel;
 using namespace Saturation;
 
-class ConstantReplacement : public TermTransformer {
+class TermReplacement : public TermTransformer {
 
 public:
-  ConstantReplacement(unsigned f, TermList r) : _f(f), _r(r) {} 
+  TermReplacement(Term* o, TermList r) : _o(o), _r(r) {} 
   virtual TermList transformSubterm(TermList trm);
 private:
-  unsigned _f;
+  Term* _o;
   TermList _r;
 };
 
@@ -78,14 +78,14 @@ public:
 private:
   void process(Clause* premise, Literal* lit);
 
-  void performMathInductionOne(Clause* premise, Literal* lit, unsigned constant);
-  void performMathInductionTwo(Clause* premise, Literal* lit, unsigned constant);
+  void performMathInductionOne(Clause* premise, Literal* lit, Term* t); 
+  void performMathInductionTwo(Clause* premise, Literal* lit, Term* t);
 
-  void performStructInductionOne(Clause* premise, Literal* lit, unsigned constant);
-  void performStructInductionTwo(Clause* premise, Literal* lit, unsigned constant);
-  void performStructInductionThree(Clause* premise, Literal* lit, unsigned constant);
+  void performStructInductionOne(Clause* premise, Literal* lit, Term* t);
+  void performStructInductionTwo(Clause* premise, Literal* lit, Term* t);
+  void performStructInductionThree(Clause* premise, Literal* lit, Term* t);
 
-  bool notDone(Literal* lit, unsigned constant);
+  bool notDone(Literal* lit, Term* t);
 
   Stack<Clause*> _clauses;
 };
