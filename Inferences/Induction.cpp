@@ -58,11 +58,11 @@ using namespace Kernel;
 using namespace Lib; 
 
 
-TermList ConstantReplacement::transformSubterm(TermList trm)
+TermList TermReplacement::transformSubterm(TermList trm)
 {
-  CALL("ConstantReplacement::transformSubterm");
+  CALL("TermReplacement::transformSubterm");
 
-  if(trm.isTerm() && trm.term()->functor()==_f){
+  if(trm.isTerm() && trm.term()==_o){
    return _r;
   }
   return trm;
@@ -120,12 +120,14 @@ void InductionClauseIterator::process(Clause* premise, Literal* lit)
        lit->ground()
       ){
 
-      Set<unsigned> ta_constants;
-      Set<unsigned> int_constants;
-      TermFunIterator it(lit);
+      Set<Term*> ta_terms;
+      Set<Term*> int_terms;
+      SubtermIterator it(lit);
       it.next(); // to move past the lit symbol
       while(it.hasNext()){
-        unsigned f = it.next();
+        TermList ts = it.next();
+        if(!ts.term()){ continue; }
+        unsigned f = ts.term()->functor(); 
         if(env.signature->functionArity(f)==0 &&
            (
                all
@@ -137,35 +139,35 @@ void InductionClauseIterator::process(Clause* premise, Literal* lit)
             env.signature->isTermAlgebraSort(env.signature->getFunction(f)->fnType()->result()) &&
             !env.signature->getFunction(f)->termAlgebraCons()
            ){
-            ta_constants.insert(f);
+            ta_terms.insert(ts.term());
           }
           if(mathInd && 
              env.signature->getFunction(f)->fnType()->result()==Sorts::SRT_INTEGER &&
              !theory->isInterpretedConstant(f)
             ){
-            int_constants.insert(f);
+            int_terms.insert(ts.term());
           }
         }
       }
-      Set<unsigned>::Iterator citer1(int_constants);
+      Set<Term*>::Iterator citer1(int_terms);
       while(citer1.hasNext()){
-        unsigned c = citer1.next();
+        Term* t = citer1.next();
         static bool one = env.options->mathInduction() == Options::MathInductionKind::ONE ||
                           env.options->mathInduction() == Options::MathInductionKind::ALL;
         static bool two = env.options->mathInduction() == Options::MathInductionKind::TWO ||
                           env.options->mathInduction() == Options::MathInductionKind::ALL;
-        if(notDone(lit,c)){
+        if(notDone(lit,t)){
           if(one){
-            performMathInductionOne(premise,lit,c);
+            performMathInductionOne(premise,lit,t);
           }
           if(two){
-            performMathInductionTwo(premise,lit,c);
+            performMathInductionTwo(premise,lit,t);
           }
         }
       }
-      Set<unsigned>::Iterator citer2(ta_constants);
+      Set<Term*>::Iterator citer2(ta_terms);
       while(citer2.hasNext()){
-        unsigned c = citer2.next();
+        Term* t = citer2.next();
         //cout << "PERFORM INDUCTION on " << env.signature->functionName(c) << endl;
         static bool one = env.options->structInduction() == Options::StructuralInductionKind::ONE ||
                           env.options->structInduction() == Options::StructuralInductionKind::ALL; 
@@ -174,16 +176,16 @@ void InductionClauseIterator::process(Clause* premise, Literal* lit)
         static bool three = env.options->structInduction() == Options::StructuralInductionKind::THREE ||
                           env.options->structInduction() == Options::StructuralInductionKind::ALL;
 
-        if(notDone(lit,c)){
+        if(notDone(lit,t)){
 
           if(one){
-            performStructInductionOne(premise,lit,c);
+            performStructInductionOne(premise,lit,t);
           }
           if(two){
-            performStructInductionTwo(premise,lit,c);
+            performStructInductionTwo(premise,lit,t);
           }
           if(three){
-            performStructInductionThree(premise,lit,c);
+            performStructInductionThree(premise,lit,t);
           }
         }
       } 
@@ -194,7 +196,7 @@ void InductionClauseIterator::process(Clause* premise, Literal* lit)
       // (L[0] & (![X] : (X>=0 & L[X]) -> L[x+1])) -> (![Y] : Y>=0 -> L[Y])
       // (L[0] & (![X] : (X<=0 & L[X]) -> L[x-1])) -> (![Y] : Y<=0 -> L[Y])
       // for some ~L[a]
-void InductionClauseIterator::performMathInductionOne(Clause* premise, Literal* lit, unsigned c)
+void InductionClauseIterator::performMathInductionOne(Clause* premise, Literal* lit, Term* term) 
 {
   CALL("InductionClauseIterator::performMathInductionOne");
 
@@ -210,25 +212,25 @@ void InductionClauseIterator::performMathInductionOne(Clause* premise, Literal* 
         Literal* clit = Literal::complementaryLiteral(lit);
 
         // create L[zero]
-        ConstantReplacement cr1(c,zero);
+        TermReplacement cr1(term,zero);
         Formula* Lzero = new AtomicFormula(cr1.transform(clit));
 
         // create L[X] 
-        ConstantReplacement cr2(c,x);
+        TermReplacement cr2(term,x);
         Formula* Lx = new AtomicFormula(cr2.transform(clit));
 
         // create L[Y] 
-        ConstantReplacement cr3(c,y);
+        TermReplacement cr3(term,y);
         Formula* Ly = new AtomicFormula(cr3.transform(clit));
 
         // create L[X+1] 
         TermList fpo(Term::create2(env.signature->getInterpretingSymbol(Theory::INT_PLUS),x,one));
-        ConstantReplacement cr4(c,fpo);
+        TermReplacement cr4(term,fpo);
         Formula* Lxpo = new AtomicFormula(cr4.transform(clit));
 
         // create L[X-1]
         TermList fmo(Term::create2(env.signature->getInterpretingSymbol(Theory::INT_PLUS),x,mone));
-        ConstantReplacement cr5(c,fmo);
+        TermReplacement cr5(term,fmo);
         Formula* Lxmo = new AtomicFormula(cr5.transform(clit));
 
         // create X>=0, which is ~X<0
@@ -287,7 +289,7 @@ void InductionClauseIterator::performMathInductionOne(Clause* premise, Literal* 
         env.statistics->induction++;
  }
 
-void InductionClauseIterator::performMathInductionTwo(Clause* premise, Literal* lit, unsigned c)
+void InductionClauseIterator::performMathInductionTwo(Clause* premise, Literal* lit, Term* term) 
 {
   CALL("InductionClauseIterator::performMathInductionTwo");
 
@@ -301,11 +303,11 @@ void InductionClauseIterator::performMathInductionTwo(Clause* premise, Literal* 
  * and then force binary resolution on L for each resultant clause
  */
 
-void InductionClauseIterator::performStructInductionOne(Clause* premise, Literal* lit, unsigned c)
+void InductionClauseIterator::performStructInductionOne(Clause* premise, Literal* lit, Term* term) 
 {
   CALL("InductionClauseIterator::performStructInductionOne"); 
 
-  TermAlgebra* ta = env.signature->getTermAlgebraOfSort(env.signature->getFunction(c)->fnType()->result());
+  TermAlgebra* ta = env.signature->getTermAlgebraOfSort(env.signature->getFunction(term->functor())->fnType()->result());
   unsigned ta_sort = ta->sort();
 
   FormulaList* formulas = FormulaList::empty();
@@ -322,7 +324,7 @@ void InductionClauseIterator::performStructInductionOne(Clause* premise, Literal
     // non recursive get L[_]
     if(!con->recursive()){
       if(arity==0){
-        ConstantReplacement cr(c,TermList(Term::createConstant(con->functor())));
+        TermReplacement cr(term,TermList(Term::createConstant(con->functor())));
         f = new AtomicFormula(cr.transform(clit)); 
       }
       else{
@@ -331,7 +333,7 @@ void InductionClauseIterator::performStructInductionOne(Clause* premise, Literal
           argTerms.push(TermList(var,false));
           var++;
         }
-        ConstantReplacement cr(c,TermList(Term::create(con->functor(),(unsigned)argTerms.size(), argTerms.begin())));
+        TermReplacement cr(term,TermList(Term::create(con->functor(),(unsigned)argTerms.size(), argTerms.begin())));
         f = new AtomicFormula(cr.transform(clit));
       }
     }
@@ -348,19 +350,19 @@ void InductionClauseIterator::performStructInductionOne(Clause* premise, Literal
         }
         argTerms.push(x);
       }
-      ConstantReplacement cr(c,TermList(Term::create(con->functor(),(unsigned)argTerms.size(), argTerms.begin())));
+      TermReplacement cr(term,TermList(Term::create(con->functor(),(unsigned)argTerms.size(), argTerms.begin())));
       Formula* right = new AtomicFormula(cr.transform(clit));
       Formula* left = 0;
       ASS(ta_vars.size()>=1);
       if(ta_vars.size()==1){
-        ConstantReplacement cr(c,ta_vars[0]);
+        TermReplacement cr(term,ta_vars[0]);
         left = new AtomicFormula(cr.transform(clit));
       }
       else{
         FormulaList* args = FormulaList::empty();
         Stack<TermList>::Iterator tvit(ta_vars);
         while(tvit.hasNext()){
-          ConstantReplacement cr(c,tvit.next());
+          TermReplacement cr(term,tvit.next());
           args = new FormulaList(new AtomicFormula(cr.transform(clit)),args);
         }
         left = new JunctionFormula(Connective::AND,args);
@@ -371,7 +373,7 @@ void InductionClauseIterator::performStructInductionOne(Clause* premise, Literal
     ASS(f);
     formulas = new FormulaList(f,formulas);
   }
-  ConstantReplacement cr(c,TermList(var,false));
+  TermReplacement cr(term,TermList(var,false));
   Literal* conclusion = cr.transform(clit);
   Formula* hypothesis = new BinaryFormula(Connective::IMP,
                             Formula::quantify(new JunctionFormula(Connective::AND,formulas)),
@@ -402,18 +404,18 @@ void InductionClauseIterator::performStructInductionOne(Clause* premise, Literal
  * We produce the clause ~L[x] \/ ?y : L[y] & !z (z subterm y -> ~L[z])
  * and perform resolution with lit L[c]
  */
-void InductionClauseIterator::performStructInductionTwo(Clause* premise, Literal* lit, unsigned c)
+void InductionClauseIterator::performStructInductionTwo(Clause* premise, Literal* lit, Term* term) 
 {
   //cout << "TWO " << premise->toString() << endl;
 
-  TermAlgebra* ta = env.signature->getTermAlgebraOfSort(env.signature->getFunction(c)->fnType()->result());
+  TermAlgebra* ta = env.signature->getTermAlgebraOfSort(env.signature->getFunction(term->functor())->fnType()->result());
   unsigned ta_sort = ta->sort();
 
   Literal* clit = Literal::complementaryLiteral(lit);
 
   // make L[y]
   TermList y(0,false); 
-  ConstantReplacement cr(c,y);
+  TermReplacement cr(term,y);
   Literal* Ly = cr.transform(lit);
 
   // for each constructor and destructor make
@@ -457,7 +459,7 @@ void InductionClauseIterator::performStructInductionTwo(Clause* premise, Literal
       unsigned and_terms = 0;
       while(tit.hasNext()){
         TermList djy = tit.next();
-        ConstantReplacement cr(c,djy);
+        TermReplacement(term,djy);
         Literal* nLdjy = cr.transform(clit);
         Formula* f = new AtomicFormula(nLdjy); 
         And = new FormulaList(f,And);
@@ -476,7 +478,7 @@ void InductionClauseIterator::performStructInductionTwo(Clause* premise, Literal
   Formula* exists = new QuantifiedFormula(Connective::EXISTS, new Formula::VarList(y.var(),0),0,
                   new JunctionFormula(Connective::AND,new FormulaList(new AtomicFormula(Ly),formulas))); 
   
-  ConstantReplacement cr2(c,TermList(1,false));
+  TermReplacement cr2(term,TermList(1,false));
   Literal* conclusion = cr2.transform(clit);
   FormulaList* orf = new FormulaList(exists,new FormulaList(Formula::quantify(new AtomicFormula(conclusion)),FormulaList::empty()));
   Formula* hypothesis = new JunctionFormula(Connective::OR,orf);
@@ -512,12 +514,12 @@ void InductionClauseIterator::performStructInductionTwo(Clause* premise, Literal
  * i.e. we add a new special predicat that is true when its argument is smaller than Y
  *
  */
-void InductionClauseIterator::performStructInductionThree(Clause* premise, Literal* lit, unsigned c) 
+void InductionClauseIterator::performStructInductionThree(Clause* premise, Literal* lit, Term* term) 
 {
   CALL("InductionClauseIterator::performStructInductionThree");
 
 
-  TermAlgebra* ta = env.signature->getTermAlgebraOfSort(env.signature->getFunction(c)->fnType()->result());
+  TermAlgebra* ta = env.signature->getTermAlgebraOfSort(env.signature->getFunction(term->functor())->fnType()->result());
   unsigned ta_sort = ta->sort();
 
   Literal* clit = Literal::complementaryLiteral(lit);
@@ -526,7 +528,7 @@ void InductionClauseIterator::performStructInductionThree(Clause* premise, Liter
   TermList x(0,false); 
   TermList y(1,false); 
   TermList z(2,false); 
-  ConstantReplacement cr(c,y);
+  TermReplacement cr(term,y);
   Literal* Ly = cr.transform(lit);
 
   // make smallerThanY
@@ -609,7 +611,7 @@ void InductionClauseIterator::performStructInductionThree(Clause* premise, Liter
     } 
   }
   // now !z : smallerThanY(z) => ~L[z]
-  ConstantReplacement cr2(c,z);
+  TermReplacement cr2(term,z);
   Formula* smallerImpNL = Formula::quantify(new BinaryFormula(Connective::IMP, 
                             new AtomicFormula(Literal::create1(sty,true,z)),
                             new AtomicFormula(cr2.transform(clit))));
@@ -618,7 +620,7 @@ void InductionClauseIterator::performStructInductionThree(Clause* premise, Liter
   Formula* exists = new QuantifiedFormula(Connective::EXISTS, new Formula::VarList(y.var(),0),0,
                        new JunctionFormula(Connective::AND,conjunction));
 
-  ConstantReplacement cr3(c,x);
+  TermReplacement cr3(term,x);
   Literal* conclusion = cr3.transform(clit);
   FormulaList* orf = new FormulaList(exists,new FormulaList(Formula::quantify(new AtomicFormula(conclusion)),0));
   Formula* hypothesis = new JunctionFormula(Connective::OR,orf);
@@ -645,13 +647,13 @@ void InductionClauseIterator::performStructInductionThree(Clause* premise, Liter
   env.statistics->induction++; 
 }
 
-bool InductionClauseIterator::notDone(Literal* lit, unsigned constant)
+bool InductionClauseIterator::notDone(Literal* lit, Term* term)
 {
   CALL("InductionClauseIterator::notDone");
 
   static DHSet<Literal*> done;
   static DHMap<unsigned,TermList> blanks; 
-  unsigned srt = env.signature->getFunction(constant)->fnType()->result();
+  unsigned srt = env.signature->getFunction(term->functor())->fnType()->result();
 
   if(!blanks.find(srt)){
     unsigned fresh = env.signature->addFreshFunction(0,"blank");
@@ -660,7 +662,7 @@ bool InductionClauseIterator::notDone(Literal* lit, unsigned constant)
     blanks.insert(srt,blank);
   }
 
-  ConstantReplacement cr(constant,blanks.get(srt));
+  TermReplacement cr(term,blanks.get(srt));
   Literal* rep = cr.transform(lit);
 
   if(done.contains(rep)){ 
