@@ -80,17 +80,18 @@ private:
 						  TermList zeroElement, TermList oneElement,
                                                   Interpretation less, Interpretation multiply);
 
-  void addBVUdivAxiom1(Interpretation bvudiv, TermList zeroElement, TermList oneElement);
+  void addBVUdivAxiom1(std::pair<Theory::MonomorphisedInterpretation,unsigned>& entry, TermList zeroElement, TermList oneElement);
   /*void addConcatAxiom(Interpretation concatInterpretation, unsigned sortArg1,unsigned sortArg2,unsigned resultSort, UnitList*& units);*/
   /*void addBVsdivAxiom(Interpretation bvsdivInterpretation, Interpretation extractInterpretation,Interpretation bvudivI, Interpretation bvnegI, unsigned n,UnitList*& units);
    */               
   //void addCertainBitVectorAxioms(Interpretation plus, Interpretation unaryMinus,TermList zeroElement, TermList oneElement, Interpretation less);
-  void addBVNandAxiom1(std::pair<Theory::MonomorphisedInterpretation,unsigned> entry, Interpretation bvnot, Interpretation bvand);
+  void addBVNandAxiom1(std::pair<Theory::MonomorphisedInterpretation,unsigned>& entry, Interpretation bvnot, Interpretation bvand);
+  void addRightIdentity(std::pair<Theory::MonomorphisedInterpretation,unsigned>& entry, TermList neutralElement);
   void addCertainBitVectorAxioms(std::pair<Theory::MonomorphisedInterpretation,unsigned> entry, Interpretation unaryMinus,TermList zeroElement, TermList oneElement, Interpretation less);
   void addBVNorAxiom1(Interpretation bvnor, Interpretation bvnot, Interpretation bvor);
   void addBVXORAxiom1(Interpretation bvxorInterpretation, Interpretation bvorInterpretation , Interpretation bvandInterpretation, Interpretation bvnotInterpretation);
   void addBVXNORAxiom1(Interpretation bvxnor, Interpretation bvor , Interpretation bvand, Interpretation bvnot);
-  void addBVSUBAxiom1(Interpretation subInterpretation, Interpretation bvaddInterpretation , Interpretation bvnegInterpretation);
+  void addBVSUBAxiom1(std::pair<Theory::MonomorphisedInterpretation,unsigned>& entry, Interpretation bvaddInterpretation , Interpretation bvnegInterpretation);
   void addBVUleAxiom1(Interpretation bvule, Interpretation bvult);
   void addBVReverseAxiom(Interpretation bvugt, Interpretation bvult);
   void addMulBitVectorAxioms(Interpretation plus, Interpretation unaryMinus,

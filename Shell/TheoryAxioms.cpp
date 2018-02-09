@@ -537,7 +537,9 @@ void TheoryAxioms::addBVUleAxiom1(Interpretation bvule, Interpretation bvult)
     
 }*/
 
-void TheoryAxioms::addBVNandAxiom1(std::pair<Theory::MonomorphisedInterpretation,unsigned> entry, Interpretation bvnot, Interpretation bvand)
+// f(X,Y) = g(z(X,Y))
+// (bvnand s t) abbreviates (bvnot (bvand s t))
+void TheoryAxioms::addBVNandAxiom1(std::pair<Theory::MonomorphisedInterpretation,unsigned>& entry, Interpretation bvnot, Interpretation bvand)
 {
     //(bvnand s t) abbreviates (bvnot (bvand s t))
     unsigned arity = theory->getArity(entry.first.first); 
@@ -546,7 +548,7 @@ void TheoryAxioms::addBVNandAxiom1(std::pair<Theory::MonomorphisedInterpretation
     unsigned int *arg = temp;
     
     unsigned nand = entry.second;// env.signature->getInterpretingSymbol(entry.first.first,OperatorType::getFunctionType(arity,arg,resultSort));
-    unsigned _not = env.signature->getInterpretingSymbol(bvnot,OperatorType::getFunctionType(1,arg,resultSort)); // error handling would be nice: no errors if arity 2 is given 
+    unsigned _not = env.signature->getInterpretingSymbol(bvnot,OperatorType::getFunctionType(1, arg,resultSort)); // ok to use arg?? 
     unsigned _and = env.signature->getInterpretingSymbol(bvand,OperatorType::getFunctionType(arity,arg,resultSort));
     
     TermList s(0,false);
@@ -572,14 +574,33 @@ void TheoryAxioms::addCertainBitVectorAxioms(std::pair<Theory::MonomorphisedInte
       //addCommutativity(entry.first.first);
 }
 
-void TheoryAxioms::addBVSUBAxiom1(Interpretation bvsub, Interpretation bvadd , Interpretation bvneg)
+// e.g. bvadd a 0 = a
+// f(X,c) = X
+void TheoryAxioms::addRightIdentity(std::pair<Theory::MonomorphisedInterpretation,unsigned>& entry, TermList neutralElement)
 {
-    //(bvsub s t) abbreviates (bvadd s (bvneg t))
-    unsigned sub = env.signature->getInterpretingSymbol(bvsub);
-    unsigned add = env.signature->getInterpretingSymbol(bvadd);
-    unsigned neg = env.signature->getInterpretingSymbol(bvneg);
+    unsigned srt = entry.first.second->result();//theory->getOperationSort(plus);
     
-    unsigned srt = theory->getOperationSort(bvsub);
+    //axiom( X0+zero==X0 );
+    unsigned addFun = entry.second;//env.signature->getInterpretingSymbol(entry.first.first,entry.first.second);
+    TermList x(0,false);
+    TermList xPlusZero(Term::create2(addFun, x, neutralElement));
+    Literal* r = Literal::createEquality(true, xPlusZero, x, srt);
+    addTheoryUnitClause(r, EXPENSIVE);
+}
+
+// not tested 
+//(bvsub s t) abbreviates (bvadd s (bvneg t))
+void TheoryAxioms::addBVSUBAxiom1(std::pair<Theory::MonomorphisedInterpretation,unsigned>& entry, Interpretation bvadd , Interpretation bvneg)
+{
+    unsigned arity = theory->getArity(entry.first.first); 
+    unsigned resultSort = entry.first.second->result();
+    unsigned int temp[2] = {resultSort,resultSort};
+    unsigned int *arg = temp;
+    
+    //(bvsub s t) abbreviates (bvadd s (bvneg t))
+    unsigned sub = entry.second;
+    unsigned add = env.signature->getInterpretingSymbol(bvadd,OperatorType::getFunctionType(arity,arg,resultSort));
+    unsigned neg = env.signature->getInterpretingSymbol(bvneg,OperatorType::getFunctionType(1,arg,resultSort));
     
     TermList s(0,false);
     TermList t(1,false);
@@ -594,17 +615,17 @@ void TheoryAxioms::addBVSUBAxiom1(Interpretation bvsub, Interpretation bvadd , I
     // (bvadd s (bvneg t))
     TermList bvadd_s_bvneg_t(Term::create2(add,s,bvneg_t));
     
-    Literal* eq1 = Literal::createEquality(true,bvsub_s_t,bvadd_s_bvneg_t,srt);
+    Literal* eq1 = Literal::createEquality(true,bvsub_s_t,bvadd_s_bvneg_t,resultSort);
     addTheoryUnitClause(eq1,EXPENSIVE);
     
 }
 
   
-void TheoryAxioms::addBVUdivAxiom1(Interpretation bvudiv, TermList zeroElement, TermList allOneElement)
+void TheoryAxioms::addBVUdivAxiom1(std::pair<Theory::MonomorphisedInterpretation,unsigned>& entry, TermList zeroElement, TermList allOneElement)
 {
     // bvudiv now returns a vector of all 1's if the second operand is 0
-    unsigned udiv = env.signature->getInterpretingSymbol(bvudiv);
-    unsigned srt = theory->getOperationSort(bvudiv);
+    unsigned udiv = entry.second;
+    unsigned srt = entry.first.second->result();
     
     TermList x(0,false);
     //(bvudiv x zero) = allones 
@@ -1559,7 +1580,35 @@ void TheoryAxioms::apply()
           TermList zero(theory->representConstant(BitVectorOperations::getZeroBVCT(size)));
           TermList one(theory->representConstant(BitVectorOperations::getOneBVCT(size)));
           addCertainBitVectorAxioms(entry,Theory::BVNEG, zero,one,Theory::BVULT);
-       }      
+       }      // add neutral element for addition multiplication subtraction
+                // special constant axiom; add that f(X,c) = d
+                // neutral element axiom; add that f(X,c) = X 
+                // add that f(f(X)) = X, for bvnot and bvneg
+      else if (entry.first.first == Theory::BVADD){
+          unsigned size = env.sorts->getBitVectorSort(entry.first.second->result())->getSize();
+          TermList zero(theory->representConstant(BitVectorOperations::getZeroBVCT(size)));
+          // add that (bvadd (X zero)) = X
+          addRightIdentity(entry,zero);
+          // add communitativity
+          // maybe add that X-X = 0, for subtraction
+          
+      }
+      else if (entry.first.first == Theory::BVMUL){
+          // neutral element is 1
+          unsigned size = env.sorts->getBitVectorSort(entry.first.second->result())->getSize();
+          TermList one(theory->representConstant(BitVectorOperations::getOneBVCT(size)));
+          // add that (bvmul (X 1)) = X
+          addRightIdentity(entry,one);
+       }
+      else if (entry.first.first == Theory::BVSUB){
+          addBVSUBAxiom1(entry, Theory::BVADD , Theory::BVNEG);
+      }
+      else if (entry.first.first == Theory::BVUDIV){
+          unsigned size = env.sorts->getBitVectorSort(entry.first.second->result())->getSize();
+          TermList zero(theory->representConstant(BitVectorOperations::getZeroBVCT(size)));
+          TermList allOnes(theory->representConstant(BitVectorOperations::getAllOnesBVCT(size)));
+          addBVUdivAxiom1(entry, zero, allOnes);
+      }
   }
   
   // bitvector axioms
