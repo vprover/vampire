@@ -412,6 +412,9 @@ void FiniteModelBuilder::createSymmetryOrdering()
         }
       }
     }
+    case Options::FMBWidgetOrders::OTHER:
+      //TODO: fill in
+      break;
     }
 
   }

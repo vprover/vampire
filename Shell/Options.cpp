@@ -733,7 +733,7 @@ void Options::Options::init()
 
     _fmbSymmetryWidgetOrders = ChoiceOptionValue<FMBWidgetOrders>("fmb_symmetry_widget_order","fmbswo",
                                                      FMBWidgetOrders::FUNCTION_FIRST,
-                                                     {"function_first","argument_first","diagonal"});
+                                                                  {"function_first","argument_first","diagonal","other"});
     _fmbSymmetryWidgetOrders.description = "";
     _lookup.insert(&_fmbSymmetryWidgetOrders);
     _fmbSymmetryWidgetOrders.setExperimental();
