@@ -43,6 +43,7 @@
 
 #include "Options.hpp"
 #include "Statistics.hpp"
+#include "Kernel/Signature.hpp"
 
 
 using namespace std;
@@ -370,6 +371,51 @@ void Statistics::print(ostream& out)
   COND_OUT("Pure propositional variables eliminated by SAT solver", satPureVarsEliminated);
   SEPARATOR;
 
+  HEADING("BitVectorOperations",1);
+  VirtualIterator<std::pair<Theory::MonomorphisedInterpretation,unsigned>> it = env.signature->getSSIItems();
+  
+  while (it.hasNext()){
+      std::pair<Theory::MonomorphisedInterpretation,unsigned> entry = it.next();
+      
+      if ((unsigned)entry.first.first==0) // ??
+          continue;
+      vstring name = theory->getInterpretationName(entry.first.first);
+      //cout<<endl<<"talking about function "<<endl<<entry.first.second->toString()<<" int is "<<entry.first.first<<endl;
+      
+      unsigned resultSize; 
+      if (entry.first.second->isFunctionType())
+        resultSize = env.sorts->getBitVectorSort(entry.first.second->result())->getSize();
+      
+     // if it is function type get the result sort, otherwise dont
+      if (entry.first.first == Theory::BVNEG || 
+              entry.first.first == Theory::BVNOT)
+      {
+          name = name+"{" +Int::toString(resultSize)+"}";
+      } 
+      /*else if (ii == Theory::BV_ROTATE_RIGHT || 
+              ii == Theory::BV_ROTATE_LEFT || 
+              ii == Theory::BV_SIGN_EXTEND || 
+              ii == Theory::BV_ZERO_EXTEND || ii == Theory::REPEAT)
+      {
+          name = name+ "{Int, " +Int::toString(resultSize)+ "}";
+      }
+      else if (entry.first == Theory::EXTRACT)
+      {
+          unsigned argSize = env.sorts->getBitVectorSort(entry.first.getArg1())->getSize();
+          name = name+ "{Int,Int, " +Int::toString(argSize) + "} -> " +Int::toString(resultSize);
+      }
+      else if (entry.first == Theory::CONCAT)
+      {
+          unsigned argSize1 = env.sorts->getBitVectorSort(entry.first.getArg1())->getSize();
+          unsigned argSize2 = env.sorts->getBitVectorSort(entry.first.getArg2())->getSize();
+          name = name+ "{" +Int::toString(argSize1) + ", " +Int::toString(argSize2)+"} -> "+Int::toString(resultSize);
+      }*/
+      else
+        {name = name+ "{" +Int::toString(resultSize) + ", " +Int::toString(resultSize)+ "}";}
+      //COND_OUT(name,Theory::instance()->getFromCountmap(entry.second)); 
+      //somewhere map an entry (Interpretation, and OperatorType) to an unsigned (number of occurences)
+  }
+  SEPARATOR;
   // BitVector Statistics 
  /* HEADING("BitVectorOperations",1);
   
