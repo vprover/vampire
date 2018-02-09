@@ -1790,6 +1790,7 @@ public:
   FMBWidgetOrders fmbSymmetryWidgetOrders() { return _fmbSymmetryWidgetOrders.actualValue;}
   FMBSymbolOrders fmbSymmetryOrderSymbols() const {return _fmbSymmetryOrderSymbols.actualValue; }
   FMBAdjustSorts fmbAdjustSorts() const {return _fmbAdjustSorts.actualValue; }
+  unsigned fmbSymmetryExperiment() const { return _fmbSymmetryExperiment.actualValue; }
   bool fmbDetectSortBounds() const { return _fmbDetectSortBounds.actualValue; }
   unsigned fmbDetectSortBoundsTimeLimit() const { return _fmbDetectSortBoundsTimeLimit.actualValue; }
   unsigned fmbSizeWeightRatio() const { return _fmbSizeWeightRatio.actualValue; }
@@ -2191,6 +2192,7 @@ private:
   BoolOptionValue _termAlgebraInferences;
   ChoiceOptionValue<TACyclicityCheck> _termAlgebraCyclicityCheck;
 
+  UnsignedOptionValue _fmbSymmetryExperiment;
   BoolOptionValue _fmbNonGroundDefs;
   UnsignedOptionValue _fmbStartSize;
   FloatOptionValue _fmbSymmetryRatio;

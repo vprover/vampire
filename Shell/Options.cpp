@@ -707,6 +707,13 @@ void Options::Options::init()
     _lookup.insert(&_smtForGround);
 #endif
 
+    // THIS IS A HACK JUST FOR SOME EXPERIMENTS
+    // 0 is default, no change
+    // 1 means no symmetry breaking at all
+    // 2 means only symmetry break on constants
+    _fmbSymmetryExperiment = UnsignedOptionValue("fmbse","fmbse",0);
+    _fmbSymmetryExperiment.setExperimental();
+    _lookup.insert(&_fmbSymmetryExperiment);
 
     _fmbNonGroundDefs = BoolOptionValue("fmb_nonground_defs","fmbngd",false);
     _fmbNonGroundDefs.description = "Introduce definitions for non ground terms in preprocessing for fmb";
