@@ -417,11 +417,22 @@ void FiniteModelBuilder::createSymmetryOrdering()
       }
     }
     case Options::FMBWidgetOrders::OTHER:
+      NOT_IMPLEMENTED;
+    case Options::FMBWidgetOrders::RANDOM:
       //TODO: fill in
       break;
     }
 
   }
+  }
+  if(env.options->fmbSymmetryWidgetOrders() == Options::FMBWidgetOrders::RANDOM){ 
+        unsigned sgt = _sortedGroundedTerms.size();
+        for(unsigned i=0;i<sgt;i++){
+          unsigned j = Random::getInteger(sgt-i)+i;
+          auto tmp = _sortedGroundedTerms[j];
+          _sortedGroundedTerms[j]=_sortedGroundedTerms[i];
+          _sortedGroundedTerms[i]=tmp;
+        }
   }
 }
 

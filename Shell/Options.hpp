@@ -245,6 +245,7 @@ public:
     FUNCTION_FIRST, // f(1) f(2) f(3) ... g(1) g(2) ...
     ARGUMENT_FIRST, // f(1) g(1) h(1) ... f(2) g(2) ...
     DIAGONAL,       // f(1) g(2) h(3) f(2) g(3) h(1) f(3) g(1) h(2)
+    RANDOM,
     OTHER           // to be defined
   };
   enum class FMBSymbolOrders : unsigned int {
