@@ -374,90 +374,52 @@ void Statistics::print(ostream& out)
   HEADING("BitVectorOperations",1);
   VirtualIterator<std::pair<Theory::MonomorphisedInterpretation,unsigned>> it = env.signature->getSSIItems();
   
+  // alternative way of doing things
+  /*for(unsigned f=0; f<env.signature->functions();f++){
+      Signature::Symbol* func = env.signature->getFunction(f);
+      vstring name = func->name();
+      if (func->arity()!=0)
+        COND_OUT(name,func->usageCnt());
+  }*/
+  
   while (it.hasNext()){
       std::pair<Theory::MonomorphisedInterpretation,unsigned> entry = it.next();
-      
       if ((unsigned)entry.first.first==0) // ??
           continue;
-      vstring name = theory->getInterpretationName(entry.first.first);
+      vstring name = theory->getInterpretationName(entry.first.first); 
       //cout<<endl<<"talking about function "<<endl<<entry.first.second->toString()<<" int is "<<entry.first.first<<endl;
       
-      unsigned resultSize; 
+      unsigned arg1Size = env.sorts->getBitVectorSort(entry.first.second->arg(0))->getSize();
+      Signature::Symbol* funcOrPred;
       if (entry.first.second->isFunctionType())
-        resultSize = env.sorts->getBitVectorSort(entry.first.second->result())->getSize();
-      
-     // if it is function type get the result sort, otherwise dont
+          funcOrPred = env.signature->getFunction(entry.second);
+      else
+          funcOrPred = env.signature->getPredicate(entry.second);
+            
       if (entry.first.first == Theory::BVNEG || 
-              entry.first.first == Theory::BVNOT)
+           entry.first.first == Theory::BVNOT)
       {
-          name = name+"{" +Int::toString(resultSize)+"}";
+           name = name+"{" +Int::toString(arg1Size)+"}";
       } 
-      /*else if (ii == Theory::BV_ROTATE_RIGHT || 
-              ii == Theory::BV_ROTATE_LEFT || 
-              ii == Theory::BV_SIGN_EXTEND || 
-              ii == Theory::BV_ZERO_EXTEND || ii == Theory::REPEAT)
+
+      else if (entry.first.first == Theory::CONCAT) 
       {
-          name = name+ "{Int, " +Int::toString(resultSize)+ "}";
+           unsigned argSize2 = env.sorts->getBitVectorSort(entry.first.second->arg(1))->getSize();
+           unsigned rSize = env.sorts->getBitVectorSort(entry.first.second->result() )->getSize();
+           name = name+ "{" +Int::toString(arg1Size) + ", " +Int::toString(argSize2)+"} -> "+Int::toString(argSize1+argSize2);
       }
-      else if (entry.first == Theory::EXTRACT)
+      else if (entry.first.first<Theory::numberOfFixedInterpretations())
       {
-          unsigned argSize = env.sorts->getBitVectorSort(entry.first.getArg1())->getSize();
-          name = name+ "{Int,Int, " +Int::toString(argSize) + "} -> " +Int::toString(resultSize);
+           name = name+ "{" +Int::toString(arg1Size) + ", " +Int::toString(arg1Size)+ "}";
       }
-      else if (entry.first == Theory::CONCAT)
+      else // this should be the sign extend family
       {
-          unsigned argSize1 = env.sorts->getBitVectorSort(entry.first.getArg1())->getSize();
-          unsigned argSize2 = env.sorts->getBitVectorSort(entry.first.getArg2())->getSize();
-          name = name+ "{" +Int::toString(argSize1) + ", " +Int::toString(argSize2)+"} -> "+Int::toString(resultSize);
-      }*/
-      else
-        {name = name+ "{" +Int::toString(resultSize) + ", " +Int::toString(resultSize)+ "}";}
-      //COND_OUT(name,Theory::instance()->getFromCountmap(entry.second)); 
-      //somewhere map an entry (Interpretation, and OperatorType) to an unsigned (number of occurences)
-  }
-  SEPARATOR;
-  // BitVector Statistics 
- /* HEADING("BitVectorOperations",1);
-  
-  VirtualIterator<Theory::MonomorphisedInterpretation> it = env.property->getPolymorphicInterpretations();
-  while(it.hasNext()){
-      auto entry = it.next();
-      vstring name = theory->getInterpretationName(entry.first);
-      unsigned resultSize = env.sorts->getBitVectorSort(entry.second->result())->getSize();
-      
-      Theory::ConcreteIndexedInterpretation cii = theory->intepretationToIndexedInterpretation(entry.first);
-      Kernel::Theory::IndexedInterpretation ii = cii.first;
-      if (entry.first == Theory::BVNEG || 
-              entry.first == Theory::BVNOT)
-      {
-          name = name+"{" +Int::toString(resultSize)+"}";
-      } 
-      else if (ii == Theory::BV_ROTATE_RIGHT || 
-              ii == Theory::BV_ROTATE_LEFT || 
-              ii == Theory::BV_SIGN_EXTEND || 
-              ii == Theory::BV_ZERO_EXTEND || ii == Theory::REPEAT)
-      {
-          name = name+ "{Int, " +Int::toString(resultSize)+ "}";
+           name = name+ "{" +Int::toString(arg1Size)+ "}";
       }
-      else if (entry.first == Theory::EXTRACT)
-      {
-          unsigned argSize = env.sorts->getBitVectorSort(entry.first.getArg1())->getSize();
-          name = name+ "{Int,Int, " +Int::toString(argSize) + "} -> " +Int::toString(resultSize);
-      }
-      else if (entry.first == Theory::CONCAT)
-      {
-          unsigned argSize1 = env.sorts->getBitVectorSort(entry.first.getArg1())->getSize();
-          unsigned argSize2 = env.sorts->getBitVectorSort(entry.first.getArg2())->getSize();
-          name = name+ "{" +Int::toString(argSize1) + ", " +Int::toString(argSize2)+"} -> "+Int::toString(resultSize);
-      }
-      else
-        {name = name+ "{" +Int::toString(resultSize) + ", " +Int::toString(resultSize)+ "}";}
-      //COND_OUT(name,Theory::instance()->getFromCountmap(entry.second));
-      COND_OUT(name,2);
-  }
-  SEPARATOR;
-  */
-  
+      COND_OUT(name,funcOrPred->usageCnt());
+    }
+    
+    SEPARATOR;
   }
 
   COND_OUT("Memory used [KB]", Allocator::getUsedMemory()/1024);
