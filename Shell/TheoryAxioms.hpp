@@ -90,7 +90,7 @@ private:
   void addCertainBitVectorAxioms(std::pair<Theory::MonomorphisedInterpretation,unsigned> entry, Interpretation unaryMinus,TermList zeroElement, TermList oneElement, Interpretation less);
   void addBVNorAxiom1(Interpretation bvnor, Interpretation bvnot, Interpretation bvor);
   void addBVXORAxiom1(Interpretation bvxorInterpretation, Interpretation bvorInterpretation , Interpretation bvandInterpretation, Interpretation bvnotInterpretation);
-  void addBVXNORAxiom1(Interpretation bvxnor, Interpretation bvor , Interpretation bvand, Interpretation bvnot);
+  void addBVXNORAxiom1(std::pair<Theory::MonomorphisedInterpretation,unsigned>&, Interpretation bvor , Interpretation bvand, Interpretation bvnot);
   void addBVSUBAxiom1(std::pair<Theory::MonomorphisedInterpretation,unsigned>& entry, Interpretation bvaddInterpretation , Interpretation bvnegInterpretation);
   void addBVUleAxiom1(Interpretation bvule, Interpretation bvult);
   void addBVReverseAxiom(Interpretation bvugt, Interpretation bvult);

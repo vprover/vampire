@@ -588,7 +588,6 @@ void TheoryAxioms::addRightIdentity(std::pair<Theory::MonomorphisedInterpretatio
     addTheoryUnitClause(r, EXPENSIVE);
 }
 
-// not tested 
 //(bvsub s t) abbreviates (bvadd s (bvneg t))
 void TheoryAxioms::addBVSUBAxiom1(std::pair<Theory::MonomorphisedInterpretation,unsigned>& entry, Interpretation bvadd , Interpretation bvneg)
 {
@@ -635,13 +634,17 @@ void TheoryAxioms::addBVUdivAxiom1(std::pair<Theory::MonomorphisedInterpretation
     addTheoryUnitClause(eq1, EXPENSIVE);
     
 }
-void TheoryAxioms::addBVXNORAxiom1(Interpretation bvxnor, Interpretation bvor , Interpretation bvand, Interpretation bvnot)
+void TheoryAxioms::addBVXNORAxiom1(std::pair<Theory::MonomorphisedInterpretation,unsigned>& entry, Interpretation bvor , Interpretation bvand, Interpretation bvnot)
 {
+    unsigned resultSort = entry.first.second->result();
+    unsigned int temp[2] = {resultSort,resultSort};
+    unsigned int *arg = temp;
+    
     //(bvxnor s t) abbreviates (bvor (bvand s t) (bvand (bvnot s) (bvnot t)))
-    unsigned _xnor = env.signature->getInterpretingSymbol(bvxnor);
-    unsigned _or = env.signature->getInterpretingSymbol(bvor);
-    unsigned _not = env.signature->getInterpretingSymbol(bvnot);
-    unsigned _and = env.signature->getInterpretingSymbol(bvand);
+    unsigned _xnor = entry.second;
+    unsigned _or = env.signature->getInterpretingSymbol(bvor,OperatorType::getFunctionType(2,arg,resultSort));
+    unsigned _not = env.signature->getInterpretingSymbol(bvnot,OperatorType::getFunctionType(1,arg,resultSort));
+    unsigned _and = env.signature->getInterpretingSymbol(bvand,OperatorType::getFunctionType(2,arg,resultSort));
     
     unsigned srt = theory->getOperationSort(bvor);
     
