@@ -29,6 +29,24 @@
 
 namespace Inferences {
 
+struct ConstantTerm{
+  
+  CLASS_NAME(ConstantTerm);
+  USE_ALLOCATOR(ConstantTerm);
+  
+  Signature::Symbol::HOLConstant cnst;
+  Term* constant;
+  TermList t1;
+  TermList t2;
+  TermList t3;
+  int onRight;
+  
+  ConstantTerm() {}
+};
+
+ConstantTerm* isHolConstantApp(Literal* lit, unsigned unaryBinaryOrTenary);
+ConstantTerm* isHolConstantApp(TermList tl, unsigned unaryBinaryOrTenary);
+
 /*
   Simplification rules:
 
@@ -103,6 +121,17 @@ public:
   Kernel::Clause* simplify(Kernel::Clause* c);
 };
 
+
+class ORIMPANDRemovalISE2
+  : public ImmediateSimplificationEngine
+{
+
+public:
+  CLASS_NAME(ORIMPANDRemovalISE2);
+  USE_ALLOCATOR(ORIMPANDRemovalISE2);
+  
+  Kernel::Clause* simplify(Kernel::Clause* c);
+};
 
 /*
   Simplification rules:

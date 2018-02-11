@@ -137,6 +137,7 @@ ImmediateSimplificationEngine* MainLoop::createISE(Problem& prb, const Options& 
   if(opt.HOLConstantElimination()){
 	res->addFront(new PISIGMARemovalISE());
 	res->addFront(new ORIMPANDRemovalISE());
+  res->addFront(new ORIMPANDRemovalISE2());
 	res->addFront(new EQUALSRemovalISE());
 	res->addFront(new NOTRemovalISE());
   }
