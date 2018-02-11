@@ -406,7 +406,7 @@ void Statistics::print(ostream& out)
       {
            unsigned argSize2 = env.sorts->getBitVectorSort(entry.first.second->arg(1))->getSize();
            unsigned rSize = env.sorts->getBitVectorSort(entry.first.second->result() )->getSize();
-           name = name+ "{" +Int::toString(arg1Size) + ", " +Int::toString(argSize2)+"} -> "+Int::toString(argSize1+argSize2);
+           name = name+ "{" +Int::toString(arg1Size) + ", " +Int::toString(argSize2)+"} -> "+Int::toString(rSize);
       }
       else if (entry.first.first<Theory::numberOfFixedInterpretations())
       {
