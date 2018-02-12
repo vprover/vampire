@@ -186,12 +186,14 @@ public:
   unsigned taAcyclicityGeneratedDisequalities;
   
   /** statistics of HOL constant elimination rules */
-  unsigned holORIMPANDsimplifications;
+  unsigned holBINARYCONNgeneratingrules;
   unsigned holEQAULSsimplifications;
   unsigned holNOTsimplifications;
+  unsigned holORIMPANDshortCircuitEval;
+  unsigned holORIMPANDsimplifications;
   unsigned holPISIGMAsimplifications;
-  unsigned holBINARYCONNgeneratingrules;
-
+  
+  
   // Saturation
   /** all clauses ever occurring in the unprocessed queue */
   unsigned generatedClauses;

@@ -135,15 +135,18 @@ ImmediateSimplificationEngine* MainLoop::createISE(Problem& prb, const Options& 
   }
 
   if(opt.HOLConstantElimination()){
-	res->addFront(new PISIGMARemovalISE());
-	res->addFront(new ORIMPANDRemovalISE());
-  res->addFront(new ORIMPANDRemovalISE2());
-	res->addFront(new EQUALSRemovalISE());
-	res->addFront(new NOTRemovalISE());
+	  res->addFront(new PISIGMARemovalISE());
+	  res->addFront(new ORIMPANDRemovalISE());
+	  res->addFront(new EQUALSRemovalISE());
+	  res->addFront(new NOTRemovalISE());
+  }
+  
+  if(opt.HOLconstantShortCircuitEval()){
+    res->addFront(new ORIMPANDRemovalISE2());
   }
   
   if(opt.combinatorElimination()){
-	res->addFront(new CombinatorEliminationISE());
+	  res->addFront(new CombinatorEliminationISE());
   }
   // Only add if there are distinct groups 
   if(prb.hasEquality() && env.signature->hasDistinctGroups()) {

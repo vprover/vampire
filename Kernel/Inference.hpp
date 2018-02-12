@@ -247,24 +247,24 @@ public:
     FOOL_LET_ELIMINATION,
     /** Replaces a literal of the form C[s] with C[true] \/ s = false, where s is a boolean non-variable term */
     FOOL_PARAMODULATION,
-	/** Elimination of lambda expressions by adding S comb*/
-	LAMBDA_ELIMINATION_S_COMB,
-	/** Elimination of lambda expressions by adding B comb*/
-	LAMBDA_ELIMINATION_B_COMB,
-	/** Elimination of lambda expressions by adding C comb*/
-	LAMBDA_ELIMINATION_C_COMB,
-	/** Elimination of lambda expressions by adding K comb*/
-	LAMBDA_ELIMINATION_K_COMB,
-	/** Elimination of lambda expressions by adding I comb*/
-	LAMBDA_ELIMINATION_I_COMB,
-	/** Axiom for equality constant introduced by lambda elimination*/
-	LAMBDA_ELIMINATION_EQUALITY,
-	/** */
+  /** Elimination of lambda expressions by adding S comb*/
+  LAMBDA_ELIMINATION_S_COMB,
+  /** Elimination of lambda expressions by adding B comb*/
+  LAMBDA_ELIMINATION_B_COMB,
+  /** Elimination of lambda expressions by adding C comb*/
+  LAMBDA_ELIMINATION_C_COMB,
+  /** Elimination of lambda expressions by adding K comb*/
+  LAMBDA_ELIMINATION_K_COMB,
+  /** Elimination of lambda expressions by adding I comb*/
+  LAMBDA_ELIMINATION_I_COMB,
+  /** Axiom for equality constant introduced by lambda elimination*/
+  LAMBDA_ELIMINATION_EQUALITY,
+  /** */
     LAMBDA_ELIMINATION_NOT,
-	/** */
-    LAMBDA_ELIMINATION_QUANTIFIER,	
-	/** Axiom for &, | and other binary connective constants introduced by lambda elimination */
-	LAMBDA_ELIMINATION_BIN_CON,
+  /** */
+    LAMBDA_ELIMINATION_QUANTIFIER,  
+  /** Axiom for &, | and other binary connective constants introduced by lambda elimination */
+  LAMBDA_ELIMINATION_BIN_CON,
     /** definition introduced by AVATAR */
     AVATAR_DEFINITION,
     /** component introduced by AVATAR */
@@ -329,35 +329,41 @@ public:
     INSTANTIATION,
     /* Finite model not found */
     MODEL_NOT_FOUND,
-	/* HOL Not Elimination:
-	E.g. app(vNOT, t1) = $true \/ C
-	     --------------------------
-		      t1 = $false \/ C
+    /* HOL Not Elimination:
+    E.g. app(vNOT, t1) = $true \/ C
+         --------------------------
+            t1 = $false \/ C
     */
-    HOL_NOT_ELIMINATION,	
-	/* Binary Combinator Elimination:
-	
-	E.g. app(app(vOR, t1), t2) = $true \/ C
-	     ----------------------------------
-		           t1 \/ t2 \/ C
-	*/
-	BINARY_CONN_ELIMINATION,
-	/* Equality Elimination:
-	E.g. app(app(vEQUALS, t1), t2) = $true \/ C
-	     --------------------------------------
-		           t1 = t2 \/ C
+    HOL_NOT_ELIMINATION,  
+    /* Binary Combinator Elimination:
+  
+    E.g. app(app(vOR, t1), t2) = $true \/ C
+         ----------------------------------
+                 t1 \/ t2 \/ C
     */
+    BINARY_CONN_ELIMINATION,
+    /*
+    E.g. C[app(app(vOR, true), t2)] 
+         --------------------------
+                 C[true]
+    */
+    BINARY_CONN_SHORT_CIRUCIT_EVAL,
+    /* Equality Elimination:
+    E.g. app(app(vEQUALS, t1), t2) = $true \/ C
+         --------------------------------------
+                 t1 = t2 \/ C
+      */
     HOL_EQUALITY_ELIMINATION,
-	/* vPI Elimination */
-	VPI_ELIMINATION,
-	/* vSIGMA Elimination */
-	VSIGMA_ELIMINATION,
-	/*combinator eliminations */
-	I_COMBINATOR_ELIMINATION,
-  K_COMBINATOR_ELIMINATION,
-  B_COMBINATOR_ELIMINATION,
-  C_COMBINATOR_ELIMINATION,
-  S_COMBINATOR_ELIMINATION,
+    /* vPI Elimination */
+    VPI_ELIMINATION,
+    /* vSIGMA Elimination */
+    VSIGMA_ELIMINATION,
+    /*combinator eliminations */
+    I_COMBINATOR_ELIMINATION,
+    K_COMBINATOR_ELIMINATION,
+    B_COMBINATOR_ELIMINATION,
+    C_COMBINATOR_ELIMINATION,
+    S_COMBINATOR_ELIMINATION,
   }; // class Inference::Rule
 
   explicit Inference(Rule r);

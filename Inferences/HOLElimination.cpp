@@ -37,6 +37,7 @@
 #include "Shell/Statistics.hpp"
 
 #include "HOLElimination.hpp"
+#include <memory>
 
 namespace Inferences {
 
@@ -66,7 +67,7 @@ unsigned introduceAppSymbol(unsigned sort1, unsigned sort2, unsigned resultSort)
   return symbol;
 }
 
-ConstantTerm* isHolConstantApp(Literal* lit, unsigned unaryBinaryOrTenary)
+unique_ptr<ConstantTerm> isHolConstantApp(Literal* lit, unsigned unaryBinaryOrTenary)
 {
   CALL("isHolConstantApp(Literal* lit)");
   
@@ -75,27 +76,27 @@ ConstantTerm* isHolConstantApp(Literal* lit, unsigned unaryBinaryOrTenary)
   TermList lhs = *lit->nthArgument(0);
   TermList rhs = *lit->nthArgument(1);  
   
-  ConstantTerm* cnst = isHolConstantApp(lhs, unaryBinaryOrTenary);
+  unique_ptr<ConstantTerm> cnst = isHolConstantApp(lhs, unaryBinaryOrTenary);
   if(cnst){
     cnst->onRight = 0;
-    return cnst;
+    return std::move(cnst);
   }
   
   cnst = isHolConstantApp(rhs, unaryBinaryOrTenary);
   if(cnst){
     cnst->onRight = 1;
-    return cnst;
+    return std::move(cnst);
   }  
   
   return NULL;
   
 }
 
-ConstantTerm* isHolConstantApp(TermList tl, unsigned unaryBinaryOrTenary)
+unique_ptr<ConstantTerm> isHolConstantApp(TermList tl, unsigned unaryBinaryOrTenary)
 {
   CALL("isHolConstantApp(TermList tl)");
   
-  ConstantTerm* cnst = new ConstantTerm();
+  unique_ptr<ConstantTerm> cnst (new ConstantTerm());
   Signature::Symbol* sym;
   
   ASS(unaryBinaryOrTenary > 0 && unaryBinaryOrTenary < 4);
@@ -116,7 +117,7 @@ ConstantTerm* isHolConstantApp(TermList tl, unsigned unaryBinaryOrTenary)
         cnst->constant = term2;
         cnst->t1 = arg2;
         cnst->cnst = sym->getConst();
-        return cnst;
+        return std::move(cnst);
       }
 
       if(sym->hOLAPP()){
@@ -134,7 +135,7 @@ ConstantTerm* isHolConstantApp(TermList tl, unsigned unaryBinaryOrTenary)
           cnst->constant = term3;
           cnst->t2 = arg2;
           cnst->t1 = arg2of1;
-          return cnst;
+          return std::move(cnst);
         }
       
         if(sym->hOLAPP()){
@@ -151,7 +152,7 @@ ConstantTerm* isHolConstantApp(TermList tl, unsigned unaryBinaryOrTenary)
           cnst->t1 = arg2of1of1;
           cnst->constant = term4;
           cnst->cnst = sym->getConst();
-          return cnst;
+          return std::move(cnst);
         }
       }
     }
@@ -179,7 +180,7 @@ bool isPISIGMAapp(Literal* lit, TermList &t1, TermList &rhs, bool &rhsIsTrue, bo
 {
     CALL("isPISIGMAapp");
    
-    ConstantTerm* cnst = isHolConstantApp(lit, 1);
+    unique_ptr<ConstantTerm> cnst = isHolConstantApp(lit, 1);
     if(!cnst){return false;}
    
     if(cnst->cnst != Signature::Symbol::PI && cnst->cnst != Signature::Symbol::SIGMA){
@@ -210,7 +211,7 @@ bool isEQUALSApp(Literal* lit, TermList &t1, TermList &t2, bool &positive, unsig
 {
     CALL("isEQUALSApp");
    
-    ConstantTerm* cnst = isHolConstantApp(lit, 2);
+    unique_ptr<ConstantTerm> cnst = isHolConstantApp(lit, 2);
     if(!cnst){return false;}
     if(!(cnst->cnst == Signature::Symbol::EQUALS)){ return false; }
     
@@ -232,7 +233,7 @@ bool appOfORorIMPorAND(Literal* lit, TermList &lhs1, TermList &rhs1, TermList &l
 {
   CALL("appOfORorIMPorAnd");
 
-  ConstantTerm* cnst = isHolConstantApp(lit, 2);
+  unique_ptr<ConstantTerm> cnst = isHolConstantApp(lit, 2);
   if(!cnst){return false;}
 
   TermList otherTerm = *lit->nthArgument(1 - cnst->onRight);
@@ -271,7 +272,7 @@ bool isNOTEquality(Literal* lit, TermList &newEqlhs, TermList &newEqrhs, bool &p
 {
     CALL("isNOTEquality");
     
-    ConstantTerm* cnst = isHolConstantApp(lit, 1);
+    unique_ptr<ConstantTerm> cnst = isHolConstantApp(lit, 1);
     if(!cnst){return false;}
     if(!(cnst->cnst == Signature::Symbol::NOT)){ return false; }    
     
@@ -344,7 +345,7 @@ Clause* ORIMPANDRemovalISE2::simplify(Clause* c)
     TermList newTerm;
     unsigned literalPosition = 0;
     unsigned premLength = c->length();
-    Inference* inference = new Inference1(Inference::BINARY_CONN_ELIMINATION, c);
+    Inference* inference = new Inference1(Inference::BINARY_CONN_SHORT_CIRUCIT_EVAL, c);
     
     while(literalPosition < premLength){
       Literal *literal = (*c)[literalPosition];
@@ -353,24 +354,25 @@ Clause* ORIMPANDRemovalISE2::simplify(Clause* c)
       while (nvi.hasNext()) {
         subterm = nvi.next();
 
-        ConstantTerm* cnst = isHolConstantApp(subterm, 1);
+        unique_ptr<ConstantTerm> cnst = isHolConstantApp(subterm, 2);
         if(cnst){
          int val = isBoolValue(cnst->t1);
+         int val2 = isBoolValue(cnst->t2);
          switch(cnst->cnst){
           case Signature::Symbol::AND:
-            if(val == -1){
+            if(val == 0 || val2 == 0){
               newTerm = TermList(Term::foolFalse());
               goto substitution; 
             }
             break;
           case Signature::Symbol::OR:
-            if(val == 1){ 
+            if(val == 1 || val2 == 1){ 
               newTerm = TermList(Term::foolTrue());
               goto substitution; 
             }
             break;
           case Signature::Symbol::IMP:
-            if(val == -1){ 
+            if(val == 0){ 
               newTerm = TermList(Term::foolTrue());
               goto substitution; 
             }
@@ -380,6 +382,7 @@ Clause* ORIMPANDRemovalISE2::simplify(Clause* c)
          }         
         }
       }
+      literalPosition++;
     }
 
     return c;
@@ -395,6 +398,7 @@ Clause* ORIMPANDRemovalISE2::simplify(Clause* c)
     for (unsigned i = 0; i < conclusionLength; i++) {
       (*conclusion)[i] = i == literalPosition ? EqHelper::replace((*c)[i], subterm, newTerm) : (*c)[i];
     }
+    env.statistics->holORIMPANDshortCircuitEval++;
     return conclusion;
     
   }
@@ -547,7 +551,7 @@ Clause* PISIGMARemovalISE::simplify(Clause* c)
         DHMap<unsigned,unsigned> _varSorts;
         SortHelper::collectVariableSorts(subterm.term(), _varSorts);
     
-        ConstantTerm* cnst = isHolConstantApp(subterm, 1);
+        unique_ptr<ConstantTerm> cnst = isHolConstantApp(subterm, 1);
         if(cnst && cnst->cnst == Signature::Symbol::I_COMB) {
           inference = new Inference1(Inference::I_COMBINATOR_ELIMINATION, premise); 
           combinatorTerm = subterm;
@@ -668,7 +672,7 @@ Clause* PISIGMARemovalISE::simplify(Clause* c)
       CALL("ORIMPANDIFFXORRemovalGIE::SubtermIterator");
     
     
-      ConstantTerm* cnst = isHolConstantApp(lit, 2);
+      unique_ptr<ConstantTerm> cnst = isHolConstantApp(lit, 2);
       if (cnst) {     
      
         _count = 0;

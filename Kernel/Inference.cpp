@@ -281,10 +281,10 @@ vstring Inference::ruleName(Rule rule)
   case LAMBDA_ELIMINATION_NOT:
     return "lambda elimination NOT constant axiom";
   case LAMBDA_ELIMINATION_QUANTIFIER:
-    return "lambda elimination quantification axiom";	
+    return "lambda elimination quantification axiom"; 
   case LAMBDA_ELIMINATION_BIN_CON:
     return "lambda elimination binary connective axiom";
-	
+  
 //  case CHOICE_AXIOM:
 //  case MONOTONE_REPLACEMENT:
 //  case FORALL_ELIMINATION:
@@ -490,12 +490,14 @@ vstring Inference::ruleName(Rule rule)
     return "finite model not found";
   case HOL_NOT_ELIMINATION:
     return "HOL not constant elimination";
+  case BINARY_CONN_SHORT_CIRUCIT_EVAL:
+    return "HOL short circuit evaluation";
   case BINARY_CONN_ELIMINATION:
     return "HOL binary constant elimination";
   case HOL_EQUALITY_ELIMINATION:
-	return "HOL equality elimination";
+    return "HOL equality elimination";
   case VPI_ELIMINATION:
-	return "HOL PI constant elimination";
+    return "HOL PI constant elimination";
   case VSIGMA_ELIMINATION:
     return "HOL SIGMA constant elimination"; 
   case I_COMBINATOR_ELIMINATION:
