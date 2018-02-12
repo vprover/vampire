@@ -772,7 +772,8 @@ void FiniteModelBuilder::init()
 
     // Fragile, change if extend FMBSymbolOrders as it assumes that the values that
     //          are not occurence depend on usage (as per FMBSymmetryFunctionComparator)
-    if(env.options->fmbSymmetryOrderSymbols() != Options::FMBSymbolOrders::OCCURENCE){
+    if(env.options->fmbSymmetryOrderSymbols() != Options::FMBSymbolOrders::OCCURENCE &&
+       env.options->fmbSymmetryOrderSymbols() != Options::FMBSymbolOrders::RANDOM){
       // Let's try sorting constants and functions in the sorted signature
       for(unsigned s=0;s<_sortedSignature->sorts;s++){
         Stack<unsigned> sortedConstants =  _sortedSignature->sortedConstants[s];
@@ -780,6 +781,23 @@ void FiniteModelBuilder::init()
         sort<FMBSymmetryFunctionComparator>(sortedConstants.begin(),sortedConstants.end());
         sort<FMBSymmetryFunctionComparator>(sortedFunctions.begin(),sortedFunctions.end());
       }
+    }
+    if(env.options->fmbSymmetryOrderSymbols() == Options::FMBSymbolOrders::RANDOM){
+        unsigned sc = _sortedConstants.size();
+        for(unsigned i=0;i<sc;i++){
+          unsigned j = Random::getInteger(sc-i)+i;
+          auto tmp = _sortedConstants[j];
+          _sortedConstants[j]=_sortedConstants[i];
+          _sortedConstants[i]=tmp;
+        }
+        unsigned sf = _sortedFunctions.size();
+        for(unsigned i=0;i<sf;i++){
+          unsigned j = Random::getInteger(sf-i)+i;
+          auto tmp = _sortedFunctions[j];
+          _sortedFunctions[j]=_sortedFunctions[i];
+          _sortedFunctions[i]=tmp;
+        }
+
     }
   }
 
