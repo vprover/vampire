@@ -26,6 +26,7 @@
 
 #include "Forwards.hpp"
 #include "InferenceEngine.hpp"
+#include <memory>
 
 namespace Inferences {
 
@@ -44,8 +45,8 @@ struct ConstantTerm{
   ConstantTerm() {}
 };
 
-ConstantTerm* isHolConstantApp(Literal* lit, unsigned unaryBinaryOrTenary);
-ConstantTerm* isHolConstantApp(TermList tl, unsigned unaryBinaryOrTenary);
+unique_ptr<ConstantTerm> isHolConstantApp(Literal* lit, unsigned unaryBinaryOrTenary);
+unique_ptr<ConstantTerm> isHolConstantApp(TermList tl, unsigned unaryBinaryOrTenary);
 
 /*
   Simplification rules:

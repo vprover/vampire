@@ -1920,6 +1920,7 @@ public:
   EqualityProxy equalityProxy() const { return _equalityProxy.actualValue; }
   RuleActivity equalityResolutionWithDeletion() const { return _equalityResolutionWithDeletion.actualValue; }
   ExtensionalityResolution extensionalityResolution() const { return _extensionalityResolution.actualValue; }
+  bool HOLconstantShortCircuitEval() const { return _HOLConstantShortCircuitEval.actualValue; }
   bool HOLConstantElimination () const { return _HOLConstantElimination.actualValue; }
   bool combinatorElimination () const { return _combinatorElimination.actualValue; }
   bool FOOLParamodulation() const { return _FOOLParamodulation.actualValue; }
@@ -2188,6 +2189,7 @@ private:
   BoolOptionValue _extensionalityAllowPosEq;
 
   BoolOptionValue _FOOLParamodulation;
+  BoolOptionValue _HOLConstantShortCircuitEval;
   BoolOptionValue _HOLConstantElimination;
   BoolOptionValue _combinatorElimination;
   BoolOptionValue _termAlgebraInferences;
