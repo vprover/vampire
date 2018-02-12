@@ -196,7 +196,9 @@ void Preprocess::preprocess(Problem& prb)
     // This is the point to extend the signature with $$true and $$false
     // If we don't have fool then these constants get in the way (a lot)
 
-    if (!_options.newCNF()) {
+    if (!_options.newCNF() | prb.hasApp() | prb.hasLambda()) { 
+      //Quick and nasty way of getting around the fact that newCNF has not been
+      //updated to handle HOL.
       if (env.options->showPreprocessing())
         env.out() << "FOOL, Application & Lambda elimination" << std::endl;
 	  if (prb.hasFOOL()){
@@ -278,7 +280,9 @@ void Preprocess::preprocess(Problem& prb)
     preprocess2(prb);
   }
 
-  if (prb.mayHaveFormulas() && _options.newCNF()) {
+  if (prb.mayHaveFormulas() && _options.newCNF() && !prb.hasApp() && !prb.hasLambda()) {
+  	//Quick and nasty way of getting around the fact that newCNF has not been
+    //updated to handle HOL.
     if (env.options->showPreprocessing())
       env.out() << "newCnf" << std::endl;
 
@@ -464,7 +468,10 @@ void Preprocess::preprocess1 (Problem& prb)
     fu = Rectify::rectify(fu);
     FormulaUnit* rectFu = fu;
     // Simplify the formula if it contains true or false
-    if (!_options.newCNF()) {
+    if (!_options.newCNF() | prb.hasApp() | prb.hasLambda()) {
+      //Quick and nasty way of getting around the fact that newCNF has not been
+      //updated to handle HOL.
+    	
       // NewCNF effectively implements this simplification already
       fu = SimplifyFalseTrue::simplify(fu);
     }
