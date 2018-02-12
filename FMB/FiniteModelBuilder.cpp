@@ -783,19 +783,19 @@ void FiniteModelBuilder::init()
       }
     }
     if(env.options->fmbSymmetryOrderSymbols() == Options::FMBSymbolOrders::RANDOM){
-        unsigned sc = _sortedSignature->_sortedConstants.size();
+        unsigned sc = _sortedSignature->sortedConstants.size();
         for(unsigned i=0;i<sc;i++){
           unsigned j = Random::getInteger(sc-i)+i;
-          auto tmp = _sortedSignature->_sortedConstants[j];
-          _sortedSignature->_sortedConstants[j]=_sortedSignature->_sortedConstants[i];
-          _sortedSignature->_sortedConstants[i]=tmp;
+          auto tmp = _sortedSignature->sortedConstants[j];
+          _sortedSignature->sortedConstants[j]=_sortedSignature->sortedConstants[i];
+          _sortedSignature->sortedConstants[i]=tmp;
         }
-        unsigned sf = _sortedSignature->_sortedFunctions.size();
+        unsigned sf = _sortedSignature->sortedFunctions.size();
         for(unsigned i=0;i<sf;i++){
           unsigned j = Random::getInteger(sf-i)+i;
-          auto tmp = _sortedSignature->_sortedFunctions[j];
-          _sortedSignature->_sortedFunctions[j]=_sortedSignature->_sortedFunctions[i];
-          _sortedSignature->_sortedFunctions[i]=tmp;
+          auto tmp = _sortedSignature->sortedFunctions[j];
+          _sortedSignature->sortedFunctions[j]=_sortedSignature->sortedFunctions[i];
+          _sortedSignature->sortedFunctions[i]=tmp;
         }
 
     }
