@@ -312,6 +312,24 @@ struct FMBSymmetryFunctionComparator
     return Int::compare(c2,c1);
   }
 };
+struct FMBSymmetryFunctionComparatorReverse
+{
+  static Comparison compare(unsigned f1, unsigned f2)
+  {
+    unsigned c1 = env.signature->getFunction(f1)->usageCnt();
+    unsigned c2 = env.signature->getFunction(f2)->usageCnt();
+    return Int::compare(c1,c2);
+  }
+};
+struct FMBSymmetryFunctionComparatorArity
+{
+  static Comparison compare(unsigned f1, unsigned f2)
+  {
+    unsigned c1 = env.signature->functionArity(f1);
+    unsigned c2 = env.signature->functionArity(f2);
+    return Int::compare(c1,c2);
+  }
+};
 
 void FiniteModelBuilder::createSymmetryOrdering()
 {
@@ -778,26 +796,43 @@ void FiniteModelBuilder::init()
       for(unsigned s=0;s<_sortedSignature->sorts;s++){
         Stack<unsigned> sortedConstants =  _sortedSignature->sortedConstants[s];
         Stack<unsigned> sortedFunctions = _sortedSignature->sortedFunctions[s];
-        sort<FMBSymmetryFunctionComparator>(sortedConstants.begin(),sortedConstants.end());
-        sort<FMBSymmetryFunctionComparator>(sortedFunctions.begin(),sortedFunctions.end());
+        if(env.options->fmbSymmetryOrderSymbols() == Options::FMBSymbolOrders::INPUT_USAGE ||
+          env.options->fmbSymmetryOrderSymbols() == Options::FMBSymbolOrders::PREPROCESSED_USAGE){ 
+          sort<FMBSymmetryFunctionComparator>(sortedConstants.begin(),sortedConstants.end());
+          sort<FMBSymmetryFunctionComparator>(sortedFunctions.begin(),sortedFunctions.end());
+        }
+        if(env.options->fmbSymmetryOrderSymbols() == Options::FMBSymbolOrders::REVERSE_INPUT_USAGE ||
+          env.options->fmbSymmetryOrderSymbols() == Options::FMBSymbolOrders::REVERSE_PREPROCESSED_USAGE){ 
+          sort<FMBSymmetryFunctionComparatorReverse>(sortedConstants.begin(),sortedConstants.end());
+          sort<FMBSymmetryFunctionComparatorReverse>(sortedFunctions.begin(),sortedFunctions.end());
+        }
+        if(env.options->fmbSymmetryOrderSymbols() == Options::FMBSymbolOrders::ARITY){
+          sort<FMBSymmetryFunctionComparatorArity>(sortedConstants.begin(),sortedConstants.end());
+          sort<FMBSymmetryFunctionComparatorArity>(sortedFunctions.begin(),sortedFunctions.end());
+        }
+        //for(unsigned i=0;i<sortedFunctions.size();i++){
+        //  cout << env.signature->functionName(sortedFunctions[i]) << endl;
+        //}
+        //ASSERTION_VIOLATION;
       }
     }
     if(env.options->fmbSymmetryOrderSymbols() == Options::FMBSymbolOrders::RANDOM){
-        unsigned sc = _sortedSignature->sortedConstants.size();
+      for(unsigned s=0;s<_sortedSignature->sorts;s++){
+        unsigned sc = _sortedSignature->sortedConstants[s].size();
         for(unsigned i=0;i<sc;i++){
           unsigned j = Random::getInteger(sc-i)+i;
-          auto tmp = _sortedSignature->sortedConstants[j];
-          _sortedSignature->sortedConstants[j]=_sortedSignature->sortedConstants[i];
-          _sortedSignature->sortedConstants[i]=tmp;
+          auto tmp = _sortedSignature->sortedConstants[s][j];
+          _sortedSignature->sortedConstants[s][j]=_sortedSignature->sortedConstants[s][i];
+          _sortedSignature->sortedConstants[s][i]=tmp;
         }
-        unsigned sf = _sortedSignature->sortedFunctions.size();
+        unsigned sf = _sortedSignature->sortedFunctions[s].size();
         for(unsigned i=0;i<sf;i++){
           unsigned j = Random::getInteger(sf-i)+i;
-          auto tmp = _sortedSignature->sortedFunctions[j];
-          _sortedSignature->sortedFunctions[j]=_sortedSignature->sortedFunctions[i];
-          _sortedSignature->sortedFunctions[i]=tmp;
+          auto tmp = _sortedSignature->sortedFunctions[s][j];
+          _sortedSignature->sortedFunctions[s][j]=_sortedSignature->sortedFunctions[s][i];
+          _sortedSignature->sortedFunctions[s][i]=tmp;
         }
-
+      }
     }
   }
 

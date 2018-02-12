@@ -733,7 +733,9 @@ void Options::Options::init()
 
     _fmbSymmetryOrderSymbols = ChoiceOptionValue<FMBSymbolOrders>("fmb_symmetry_symbol_order","fmbsso",
                                                      FMBSymbolOrders::OCCURENCE,
-                                                     {"occurence","input_usage","preprocessed_usage","random"}); 
+                                                     {"occurence","input_usage","preprocessed_usage",
+                                                      "reverse_input_usage","reverse_preprocessed_usage",
+                                                      "arity","random"}); 
     _fmbSymmetryOrderSymbols.description = "";
     _lookup.insert(&_fmbSymmetryOrderSymbols);
     _fmbSymmetryOrderSymbols.setExperimental();
