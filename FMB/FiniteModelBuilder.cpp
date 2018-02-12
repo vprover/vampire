@@ -783,19 +783,19 @@ void FiniteModelBuilder::init()
       }
     }
     if(env.options->fmbSymmetryOrderSymbols() == Options::FMBSymbolOrders::RANDOM){
-        unsigned sc = _sortedConstants.size();
+        unsigned sc = _sortedSignature->_sortedConstants.size();
         for(unsigned i=0;i<sc;i++){
           unsigned j = Random::getInteger(sc-i)+i;
-          auto tmp = _sortedConstants[j];
-          _sortedConstants[j]=_sortedConstants[i];
-          _sortedConstants[i]=tmp;
+          auto tmp = _sortedSignature->_sortedConstants[j];
+          _sortedSignature->_sortedConstants[j]=_sortedSignature->_sortedConstants[i];
+          _sortedSignature->_sortedConstants[i]=tmp;
         }
-        unsigned sf = _sortedFunctions.size();
+        unsigned sf = _sortedSignature->_sortedFunctions.size();
         for(unsigned i=0;i<sf;i++){
           unsigned j = Random::getInteger(sf-i)+i;
-          auto tmp = _sortedFunctions[j];
-          _sortedFunctions[j]=_sortedFunctions[i];
-          _sortedFunctions[i]=tmp;
+          auto tmp = _sortedSignature->_sortedFunctions[j];
+          _sortedSignature->_sortedFunctions[j]=_sortedSignature->_sortedFunctions[i];
+          _sortedSignature->_sortedFunctions[i]=tmp;
         }
 
     }
