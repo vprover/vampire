@@ -59,8 +59,10 @@ private:
   Problem& _prb;
 
   void addCommutativity(Interpretation op);
+  void addPolyMorphicCommutativity(Interpretation op, unsigned size);
   void addAssociativity(Interpretation op);
   void addRightIdentity(Interpretation op, TermList idElement);
+  void addPolyMorphicRightIdentity(Interpretation i, TermList idElement, unsigned size);
   void addLeftIdentity(Interpretation op, TermList idElement);
   void addCommutativeGroupAxioms(Interpretation op, Interpretation inverse, TermList idElement);
 
@@ -80,24 +82,16 @@ private:
 						  TermList zeroElement, TermList oneElement,
                                                   Interpretation less, Interpretation multiply);
 
-  void addBVUdivAxiom1(std::pair<Theory::MonomorphisedInterpretation,unsigned>& entry, TermList zeroElement, TermList oneElement);
-  /*void addConcatAxiom(Interpretation concatInterpretation, unsigned sortArg1,unsigned sortArg2,unsigned resultSort, UnitList*& units);*/
-  /*void addBVsdivAxiom(Interpretation bvsdivInterpretation, Interpretation extractInterpretation,Interpretation bvudivI, Interpretation bvnegI, unsigned n,UnitList*& units);
-   */               
-  //void addCertainBitVectorAxioms(Interpretation plus, Interpretation unaryMinus,TermList zeroElement, TermList oneElement, Interpretation less);
-  void addBVNandAxiom1(std::pair<Theory::MonomorphisedInterpretation,unsigned>& entry, Interpretation bvnot, Interpretation bvand);
-  void addRightIdentity(std::pair<Theory::MonomorphisedInterpretation,unsigned>& entry, TermList neutralElement);
-  void addCertainBitVectorAxioms(std::pair<Theory::MonomorphisedInterpretation,unsigned> entry, Interpretation unaryMinus,TermList zeroElement, TermList oneElement, Interpretation less);
-  void addBVNorAxiom1(Interpretation bvnor, Interpretation bvnot, Interpretation bvor);
-  void addBVXORAxiom1(Interpretation bvxorInterpretation, Interpretation bvorInterpretation , Interpretation bvandInterpretation, Interpretation bvnotInterpretation);
-  void addBVXNORAxiom1(std::pair<Theory::MonomorphisedInterpretation,unsigned>&, Interpretation bvor , Interpretation bvand, Interpretation bvnot);
-  void addBVSUBAxiom1(std::pair<Theory::MonomorphisedInterpretation,unsigned>& entry, Interpretation bvaddInterpretation , Interpretation bvnegInterpretation);
-  void addBVUleAxiom1(Interpretation bvule, Interpretation bvult);
-  void addBVReverseAxiom(Interpretation bvugt, Interpretation bvult);
-  void addMulBitVectorAxioms(Interpretation plus, Interpretation unaryMinus,
-    TermList zeroElement, TermList oneElement, Interpretation less, Interpretation multiply);
+  void addPolyMorphicSpecialConstantAxiom(Interpretation op, TermList arg, TermList out, unsigned size);
+  void addPolyMorphicBinaryFunctionEquivalentToUnaryFunctionAppliedToBinaryFunction(Interpretation f, Interpretation unary, Interpretation binary, unsigned size);
+  void addPolyMorphicBinaryFunctionEquivalentToBinaryFunctionAppliedToUnaryFunction(Interpretation f, Interpretation binary, Interpretation unary, unsigned size);
   
-
+  void addBVXORAxiom1(Interpretation bvxorInterpretation, Interpretation bvorInterpretation , Interpretation bvandInterpretation, Interpretation bvnotInterpretation, unsigned size);
+  void addBVXNORAxiom1(Interpretation xnor, Interpretation bvor , Interpretation bvand, Interpretation bvnot, unsigned size);
+  void addBVUleAxiom1(Interpretation bvule, Interpretation bvult,unsigned size);
+  void addBVReverseAndMoreAxiom(Interpretation bvugt, Interpretation bvult,unsigned size);
+ 
+  
   void addExtraIntegerOrderingAxiom(Interpretation plus, TermList oneElement, Interpretation less);
 
   void addQuotientAxioms(Interpretation quotient, Interpretation multiply, TermList zeroElement, TermList oneElement,
