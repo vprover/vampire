@@ -216,12 +216,7 @@ BitVectorConstantType BitVectorOperations::getBVCTFromVString(vstring& numberToR
     
     // add condition to this loop
     for(unsigned i = 1; i<numberToRepresent.length(); i++) {
-        if (size==1)
-            sum.setValueAt(0,false);
-        else if (size==2)
-            specialMultBVCTByTen(sum);
-        else
-            multBVCTByTen(sum);
+        multBVCTByTen(sum);
         c = numberToRepresent[i]; 
         setBVCTFromDec(c,initialBoolArray);
         addBVCTs(sum,initialBoolArray);
@@ -251,15 +246,16 @@ BitVectorConstantType BitVectorOperations::getBVCTFromVString(vstring& numberToR
  {
     CALL("BitVectorOperations::inplaceShiftLeft(BitVectorConstantType&,unsigned)"); 
     //int startAt = in.size()-shiftByNum - 1;
-    unsigned startAt = in.size() - shiftByNum;
-        
+    int startAt = in.size() - shiftByNum;
+    
     while (startAt>0)
     {
         in.setValueAt(startAt+shiftByNum-1,in.getValueAt(startAt-1));
         --startAt;
     }
-    for (unsigned i = 0 ; i < shiftByNum; ++i){
-        in.setValueAt(i,false);
+    
+    for (unsigned i = 0 ; i < shiftByNum && i<in.size(); ++i){
+      in.setValueAt(i,false);
     }
  }
 
@@ -288,7 +284,6 @@ BitVectorConstantType BitVectorOperations::getBVCTFromVString(vstring& numberToR
     }
  }
    
- //error for size one and two
 void BitVectorOperations::multBVCTByTen(BitVectorConstantType& arg1)
 {
     CALL("BitVectorOperations::multBVCTByTen(BitVectorConstantType&)"); 
