@@ -382,33 +382,37 @@ void Statistics::print(ostream& out)
         COND_OUT(name,func->usageCnt());
   }*/
   
+  Interpretation itp;
+  OperatorType* opt;
   while (it.hasNext()){
       std::pair<Theory::MonomorphisedInterpretation,unsigned> entry = it.next();
-      if ((unsigned)entry.first.first==0) // ??
+      itp = entry.first.first;
+      opt = entry.first.second;
+      unsigned u_symb = entry.second;
+      if (itp==Theory::EQUAL) 
           continue;
-      vstring name = theory->getInterpretationName(entry.first.first); 
+      vstring name = theory->getInterpretationName(itp); 
       //cout<<endl<<"talking about function "<<endl<<entry.first.second->toString()<<" int is "<<entry.first.first<<endl;
       
-      unsigned arg1Size = env.sorts->getBitVectorSort(entry.first.second->arg(0))->getSize();
+      unsigned arg1Size = env.sorts->getBitVectorSort(opt->arg(0))->getSize();
       Signature::Symbol* funcOrPred;
-      if (entry.first.second->isFunctionType())
-          funcOrPred = env.signature->getFunction(entry.second);
+      if (opt->isFunctionType())
+          funcOrPred = env.signature->getFunction(u_symb);
       else
-          funcOrPred = env.signature->getPredicate(entry.second);
+          funcOrPred = env.signature->getPredicate(u_symb);
             
-      if (entry.first.first == Theory::BVNEG || 
-           entry.first.first == Theory::BVNOT)
+      if (itp == Theory::BVNEG || itp == Theory::BVNOT)
       {
            name = name+"{" +Int::toString(arg1Size)+"}";
       } 
 
-      else if (entry.first.first == Theory::CONCAT) 
+      else if (itp == Theory::CONCAT) 
       {
-           unsigned argSize2 = env.sorts->getBitVectorSort(entry.first.second->arg(1))->getSize();
-           unsigned rSize = env.sorts->getBitVectorSort(entry.first.second->result() )->getSize();
+           unsigned argSize2 = env.sorts->getBitVectorSort(opt->arg(1))->getSize();
+           unsigned rSize = env.sorts->getBitVectorSort(opt->result() )->getSize();
            name = name+ "{" +Int::toString(arg1Size) + ", " +Int::toString(argSize2)+"} -> "+Int::toString(rSize);
       }
-      else if (entry.first.first<Theory::numberOfFixedInterpretations())
+      else if (itp<Theory::numberOfFixedInterpretations())
       {
            name = name+ "{" +Int::toString(arg1Size) + ", " +Int::toString(arg1Size)+ "}";
       }
