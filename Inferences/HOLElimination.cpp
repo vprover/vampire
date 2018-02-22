@@ -175,8 +175,7 @@ int isBoolValue(TermList tl){
 }
 
 
-bool isPISIGMAapp(Literal* lit, TermList &t1, TermList &rhs, bool &rhsIsTrue, bool &rhsIsFalse, bool &isPI,
-                  unsigned &srt1)
+bool isPISIGMAapp(Literal* lit, TermList &t1, TermList &rhs, bool &applyPIrule, unsigned &srt1)
 {
     CALL("isPISIGMAapp");
    
@@ -186,22 +185,25 @@ bool isPISIGMAapp(Literal* lit, TermList &t1, TermList &rhs, bool &rhsIsTrue, bo
     if(cnst->cnst != Signature::Symbol::PI && cnst->cnst != Signature::Symbol::SIGMA){
       return false;
     }
-   
-    rhs = *lit->nthArgument(1 - cnst->onRight);    
+ 
+    rhs = *lit->nthArgument(1 - cnst->onRight); 
     int rhsValue = isBoolValue(rhs);
-    if (rhsValue > -1){
-      rhsIsTrue  = (rhsValue == lit->polarity()); 
-      rhsIsFalse = !rhsIsTrue;
-      rhs = rhsIsTrue ? TermList(Term::foolTrue()) : TermList(Term::foolFalse());
+
+    Signature::Symbol* sym = env.signature->getFunction(cnst->constant->functor());
+    bool isPI = cnst->cnst == Signature::Symbol::PI ? true : false;
+  
+    if((isPI && (rhsValue < 0)) || (isPI && (rhsValue == lit->polarity()))|| (!isPI && (rhsValue == (1 - lit->polarity()))))
+    {
+      applyPIrule = true;
     }else{
-      rhsIsTrue = false;
-      rhsIsFalse = false;
+      applyPIrule = false;
+    }
+
+    if (rhsValue > -1){
+      rhs = rhsValue == lit->polarity() ? TermList(Term::foolTrue()) : TermList(Term::foolFalse());
     }
 
     t1 = cnst->t1;  
-  
-    Signature::Symbol* sym = env.signature->getFunction(cnst->constant->functor());
-    isPI = cnst->cnst == Signature::Symbol::PI ? true : false;
     srt1 = sym->fnType()->result();
     srt1 = env.sorts->getFuncSort(srt1)->getDomainSort();
     return true; 
@@ -456,15 +458,15 @@ Clause* PISIGMARemovalISE::simplify(Clause* c)
     int length = c->length();
     for (int i = length - 1; i >= 0; i--) {
       TermList t1, rhs; 
-      bool isTrue, isFalse, isPI;
+      bool applyPIrule;
       unsigned expsrt;
       Literal *lit = (*c)[i];
-      if (isPISIGMAapp(lit, t1, rhs, isTrue, isFalse, isPI, expsrt)) {
+      if (isPISIGMAapp(lit, t1, rhs, applyPIrule, expsrt)) {
         Literal *newLit;
         unsigned maxVar = 0;
         TermList lhs = t1;
     
-        if((isTrue && isPI) || (isPI && !isTrue && !isFalse) || (isFalse && !isPI)){
+        if(applyPIrule){
           DHSet<unsigned> vars;
           c->collectVars(vars);
           DHSet<unsigned>::Iterator vit(vars);
@@ -480,8 +482,7 @@ Clause* PISIGMARemovalISE::simplify(Clause* c)
             lhs = TermList(Term::create2(symbol, lhs, newVar));
             expsrt = env.sorts->getFuncSort(expsrt)->getRangeSort();
           }while(!(expsrt == Sorts::SRT_BOOL));                     
-        }
-        if((isFalse && isPI) || (isTrue && !isPI) || (!isPI && !isTrue && !isFalse)){
+        }else{
           Stack<unsigned> sorts;
           Formula::VarList* vars = t1.freeVariables();
           Formula::VarList::Iterator fvi(vars);
@@ -512,16 +513,25 @@ Clause* PISIGMARemovalISE::simplify(Clause* c)
       
             expsrt = env.sorts->getFuncSort(expsrt)->getRangeSort();
           }while(!(expsrt == Sorts::SRT_BOOL)); 
-        }   
-        newLit = Literal::createEquality(true, lhs, rhs, Sorts::SRT_BOOL);     
+        } 
+
+        if(isBoolValue(rhs) > -1){
+          newLit = Literal::createEquality(true, lhs, rhs, Sorts::SRT_BOOL); 
+        }else{
+          newLit = Literal::createEquality(lit->polarity(), lhs, rhs, Sorts::SRT_BOOL); 
+        }
+
         Clause* res;
-        if(isPI){
+        if(applyPIrule){
            res = replaceLit2(c, lit, newLit, new Inference1(Inference::VPI_ELIMINATION, c));//Change inference AYB
         }else{
            res = replaceLit2(c, lit, newLit, new Inference1(Inference::VSIGMA_ELIMINATION, c));//Change inference AYB
         }           
         res->setAge(c->age());
     
+        //    cout << "The original clase was: " + c->toString() << endl;
+        //cout << "And the new clause is: " + res->toString() << endl;
+
         env.statistics->holPISIGMAsimplifications++;
         return res;
       }

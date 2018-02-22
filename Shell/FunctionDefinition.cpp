@@ -847,16 +847,19 @@ FunctionDefinition::defines (Term* lhs, Term* rhs)
     return 0;
   }
   
-  /*
   if (lhs->arity() == 0) {
-    if (rhs->arity() != 0) { // c = f(...)
+    if(env.signature->isFoolConstantSymbol(true, lhs->functor()) ||
+       env.signature->isFoolConstantSymbol(false, lhs->functor())){
+         return 0;
+       }
+    /*if (rhs->arity() != 0) { // c = f(...)
       return 0;
-    }
+    }*/
     if (rhs->functor() == f) {
       return 0;
     }
-    return new Def(lhs,rhs,true,true);
-  }*/
+    /*return new Def(lhs,rhs,true,true);*/
+  }
 
   int vars = 0; // counter of variables occurring in the lhs
 

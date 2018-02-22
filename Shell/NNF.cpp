@@ -353,8 +353,8 @@ TermList NNF::ennf(TermList ts, bool polarity)
         TermList lhs = sd->getAppLhs();
         TermList rhs = *term->nthArgument(0);
         
-        TermList ennfLhs = ennf(lhs, polarity); //is passing the polarity on correct? AYB
-        TermList ennfRhs = ennf(rhs, polarity);
+        TermList ennfLhs = ennf(lhs, true);
+        TermList ennfRhs = ennf(rhs, true);
         if(lhs == ennfLhs && rhs == ennfRhs){
           return ts;
         } else {
@@ -364,7 +364,7 @@ TermList NNF::ennf(TermList ts, bool polarity)
       }
       
       case Term::SF_LAMBDA: {
-        TermList lambdaExp = ennf(sd->getLambdaExp(), polarity);//is passing the polarity on correct? AYB
+        TermList lambdaExp = ennf(sd->getLambdaExp(), true);
         if(lambdaExp == sd->getLambdaExp()){
            return ts;
         }        
