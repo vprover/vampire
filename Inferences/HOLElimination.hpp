@@ -40,6 +40,9 @@ struct ConstantTerm{
   TermList t1;
   TermList t2;
   TermList t3;
+  unsigned t1Sort;
+  unsigned t2Sort;
+  unsigned t3Sort;
   int onRight;
   
   ConstantTerm() {}
