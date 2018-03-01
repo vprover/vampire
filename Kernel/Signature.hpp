@@ -76,7 +76,7 @@ class Signature
 	  C_COMB,
 	  I_COMB,
 	  K_COMB,
-      NULL_CONSTANT,
+    NULL_CONSTANT,
   };
   
   protected:
@@ -120,9 +120,9 @@ class Signature
     /** if used in a unit **/
     unsigned _inUnit : 1;
     /** if is a HOL app function **/
-	unsigned _isAPP : 1;
-	/** if symbol is  HOL constant, records which one **/
-	HOLConstant _HOLconst : NULL_CONSTANT;
+	  unsigned _isAPP : 1;
+	  /** if symbol is  HOL constant, records which one **/
+	  HOLConstant _HOLconst : NULL_CONSTANT;
 	
   public:
      
@@ -185,15 +185,15 @@ class Signature
     inline bool overflownConstant() const { return _overflownConstant; }
     /** Return true iff symbol is a term algebra constructor */
     inline bool termAlgebraCons() const { return _termAlgebraCons; }
-	/** Return true iff symbol is a HOL app symbol */
-	inline bool hOLAPP() const { return _isAPP; }
+	  /** Return true iff symbol is a HOL app symbol */
+	  inline bool hOLAPP() const { return _isAPP; }
 
     /** Increase the usage count of this symbol **/
     inline void incUsageCnt(){ _usageCount++; }
     /** Return the usage count of this symbol **/
     inline unsigned usageCnt() const { return _usageCount; }
-	/** Returns the HOL constant that this symbol represents, set to NULL_CONSTANT if not HOL constant. */
-	inline HOLConstant getConst() const { return _HOLconst; };
+	  /** Returns the HOL constant that this symbol represents, set to NULL_CONSTANT if not HOL constant. */
+	  inline HOLConstant getConst() const { return _HOLconst; };
     /** Reset usage count to zero, to start again! **/
     inline void resetUsageCnt(){ _usageCount=0; }
 
@@ -536,8 +536,16 @@ class Signature
 
   static bool symbolNeedsQuoting(vstring name, bool interpreted, unsigned arity);
 
+  bool isHOL() const { return _isHigherOrder; }  
+  void setHigherOrder(){
+    _isHigherOrder = true;
+  }
+
 private:
   Stack<TermList> _dividesNvalues;
+
+  /** true if the problem contains higher-order features or is labelled as such */
+  bool _isHigherOrder;
 
   bool _foolConstantsDefined;
   unsigned _foolTrue;

@@ -558,7 +558,7 @@ private:
   /** true if the last read unit is fof() or cnf() due to a subtle difference
    * between fof() and tff() in treating numeric constants */ 
   bool _isFof;
-  /** true reading a thf unit. Used when parsing types of the form typ -> typ since
+  /** true if reading a thf unit. Used when parsing types of the form typ -> typ since
     * syntactically these can be higher-order or first order */
   bool _isThf = false;
   /** various strings saved during parsing */

@@ -83,6 +83,8 @@ Property::Property()
     _hasNonDefaultSorts(false),
     _sortsUsed(0),
     _hasFOOL(false),
+    _hasApp(false),
+    _hasLambda(false),
     _onlyFiniteDomainDatatypes(true),
     _knownInfiniteDomain(false),
     _allClausesGround(true),
@@ -579,15 +581,17 @@ void Property::scan(TermList ts,bool unit,bool goal)
         addProp(PR_HAS_ITE);
         break;
 
-	  case Term::SF_APP:
-	    addProp(PR_HAS_APP);
+	    case Term::SF_APP:
+	      addProp(PR_HAS_APP);
         _hasApp = true; //Need to add prop? AYB
+        env.signature->setHigherOrder();
         break;
       
       case Term::SF_LAMBDA:
-	     addProp(PR_HAS_LAMBDA);
-         _hasLambda = true;
-         break;		 
+	      addProp(PR_HAS_LAMBDA);
+        _hasLambda = true;
+        env.signature->setHigherOrder();
+        break;		 
 		
       case Term::SF_LET:
       case Term::SF_LET_TUPLE:
@@ -718,6 +722,8 @@ vstring Property::categoryToString(Category cat)
       return "EPR";
     case UEQ:
       return "UEQ";
+    case THF: 
+      return "THF";
 #if VDEBUG
     default:
       ASSERTION_VIOLATION;

@@ -158,12 +158,12 @@ public:
   
   void reportAppEliminated()
   {
-	_hasApp = false;
+	  _hasApp = false;
   }
   
   void reportLambdaEliminated()
   {
-	_hasLambda = false;  
+	  _hasLambda = false;  
   }
   
   /**
