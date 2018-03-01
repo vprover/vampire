@@ -70,7 +70,8 @@ public:
     FEQ,
     FNE,
     EPR,
-    UEQ
+    UEQ, 
+    THF //currently not used by scheduler
   };
 
   // Various boolean properties.
@@ -245,7 +246,7 @@ public:
   unsigned sortsUsed() const { return _sortsUsed; }
   bool onlyFiniteDomainDatatypes() const { return _onlyFiniteDomainDatatypes; }
   bool knownInfiniteDomain() const { return _knownInfiniteDomain; }
-  
+
   void setSMTLIBLogic(SMTLIBLogic smtLibLogic) { 
     _smtlibLogic = smtLibLogic; 
   }

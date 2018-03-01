@@ -594,7 +594,13 @@ protected:
     CALL("InferenceStore::TPTPProofPrinter::getFofString");
 
     vstring kind = "fof";
-    if(env.statistics->hasTypes){ kind="tff"; }
+    if(env.statistics->hasTypes){ 
+      if(env.signature->isHOL()){
+      	kind="thf";
+      }else{
+    	kind="tff";
+      } 
+    }
 
     return kind+"("+id+","+getRole(rule,origin)+",("+"\n"
 	+"  "+formula+"),\n"
@@ -886,7 +892,13 @@ protected:
     UIHelper::outputSymbolDeclarations(out);
 
     vstring kind = "fof";
-    if(env.statistics->hasTypes){ kind="tff"; } 
+    if(env.statistics->hasTypes){
+       if(env.signature->isHOL()){
+         kind="thf";
+       }else{
+         kind="tff";
+       } 
+    } 
 
     out << kind
         << "(r"<<_is->getUnitIdStr(cs)
