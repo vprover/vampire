@@ -59,10 +59,10 @@ private:
   Problem& _prb;
 
   void addCommutativity(Interpretation op);
-  void addPolyMorphicCommutativity(Interpretation op, unsigned size);
+  void addBitVectorCommutativity(Interpretation op, unsigned size);
   void addAssociativity(Interpretation op);
   void addRightIdentity(Interpretation op, TermList idElement);
-  void addPolyMorphicRightIdentity(Interpretation i, TermList idElement, unsigned size);
+  void addBitVectorRightIdentity(Interpretation i, TermList idElement, unsigned size);
   void addLeftIdentity(Interpretation op, TermList idElement);
   void addCommutativeGroupAxioms(Interpretation op, Interpretation inverse, TermList idElement);
 

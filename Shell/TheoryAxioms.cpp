@@ -162,17 +162,16 @@ void TheoryAxioms::addCommutativity(Interpretation op)
  * @since 17/02/2018, Vienna
  * @author David Damestani
  */
-void TheoryAxioms::addPolyMorphicCommutativity(Interpretation op, unsigned size)
+void TheoryAxioms::addBitVectorCommutativity(Interpretation op, unsigned size)
 {
     CALL("TheoryAxioms::addPolyMorphicCommutativity");
     ASS(theory->isFunction(op));
     ASS(theory->isPolymorphic(op));
     ASS_EQ(theory->getArity(op),2);
     unsigned srt = env.sorts->addBitVectorSort(size);
-    unsigned int temp[2] = {srt,srt};
-    unsigned int *arg = temp;
+    unsigned argSorts[2] = {srt,srt};
     
-    unsigned f = env.signature->getInterpretingSymbol(op,OperatorType::getFunctionType(2,arg,srt));
+    unsigned f = env.signature->getInterpretingSymbol(op,OperatorType::getFunctionType(2,argSorts,srt));
     TermList x(0,false);
     TermList y(1,false);
     TermList fxy(Term::create2(f,x,y));
@@ -549,12 +548,11 @@ void TheoryAxioms::addBVUleAxiom1(Interpretation bvule, Interpretation bvult, un
 void TheoryAxioms::addPolyMorphicBinaryFunctionEquivalentToUnaryFunctionAppliedToBinaryFunction(Interpretation f_i, Interpretation unary_i, Interpretation binary_i, unsigned size)
 {
     unsigned srt = env.sorts->addBitVectorSort(size);
-    unsigned int temp[2] = {srt,srt};
-    unsigned int *arg = temp;
+    unsigned argSorts[2] = {srt,srt};
     
-    unsigned f = env.signature->getInterpretingSymbol(f_i,OperatorType::getFunctionType(2, arg,srt));
-    unsigned unary = env.signature->getInterpretingSymbol(unary_i,OperatorType::getFunctionType(1, arg,srt));
-    unsigned binary = env.signature->getInterpretingSymbol(binary_i,OperatorType::getFunctionType(2, arg,srt));
+    unsigned f = env.signature->getInterpretingSymbol(f_i,OperatorType::getFunctionType(2, argSorts,srt));
+    unsigned unary = env.signature->getInterpretingSymbol(unary_i,OperatorType::getFunctionType(1, argSorts,srt));
+    unsigned binary = env.signature->getInterpretingSymbol(binary_i,OperatorType::getFunctionType(2, argSorts,srt));
     
     TermList s(0,false);
     TermList t(1,false);
@@ -574,11 +572,10 @@ void TheoryAxioms::addPolyMorphicBinaryFunctionEquivalentToUnaryFunctionAppliedT
 
 // f(X,c) = X
 // e.g. bvadd a 0 = a
-void TheoryAxioms::addPolyMorphicRightIdentity(Interpretation f_i, TermList neutralElement, unsigned size)
+void TheoryAxioms::addBitVectorRightIdentity(Interpretation f_i, TermList neutralElement, unsigned size)
 {
     unsigned srt = env.sorts->addBitVectorSort(size);
-    unsigned int temp[1] = {srt};
-    unsigned int *arg = temp;
+    unsigned  arg[1] = {srt};
     
     unsigned f = env.signature->getInterpretingSymbol(f_i,OperatorType::getFunctionType(2, arg,srt));
     // f(X,c) = X
@@ -594,12 +591,11 @@ void TheoryAxioms::addPolyMorphicRightIdentity(Interpretation f_i, TermList neut
 void TheoryAxioms::addPolyMorphicBinaryFunctionEquivalentToBinaryFunctionAppliedToUnaryFunction(Interpretation op, Interpretation binary, Interpretation unary, unsigned size)
 {
     unsigned srt = env.sorts->addBitVectorSort(size);
-    unsigned int temp[2] = {srt,srt};
-    unsigned int *arg = temp;
+    unsigned int argSorts[2] = {srt,srt};
     
-    unsigned f = env.signature->getInterpretingSymbol(op,OperatorType::getFunctionType(2,arg,srt));
-    unsigned b = env.signature->getInterpretingSymbol(binary,OperatorType::getFunctionType(2,arg,srt));
-    unsigned u = env.signature->getInterpretingSymbol(unary,OperatorType::getFunctionType(1,arg,srt));
+    unsigned f = env.signature->getInterpretingSymbol(op,OperatorType::getFunctionType(2,argSorts,srt));
+    unsigned b = env.signature->getInterpretingSymbol(binary,OperatorType::getFunctionType(2,argSorts,srt));
+    unsigned u = env.signature->getInterpretingSymbol(unary,OperatorType::getFunctionType(1,argSorts,srt));
     
     TermList x(0,false);
     TermList y(1,false);
@@ -626,10 +622,9 @@ void TheoryAxioms::addPolyMorphicBinaryFunctionEquivalentToBinaryFunctionApplied
 void TheoryAxioms::addPolyMorphicSpecialConstantAxiom(Interpretation op, TermList arg, TermList out,unsigned size)
 {
     unsigned srt = env.sorts->addBitVectorSort(size);
-    unsigned int temp[2] = {srt,srt};
-    unsigned int *argS = temp;
+    unsigned argSorts[2] = {srt,srt};
     
-    unsigned f = env.signature->getInterpretingSymbol(op,OperatorType::getFunctionType(2,argS,srt));
+    unsigned f = env.signature->getInterpretingSymbol(op,OperatorType::getFunctionType(2,argSorts,srt));
     
     TermList x(0,false);
     
@@ -644,14 +639,13 @@ void TheoryAxioms::addPolyMorphicSpecialConstantAxiom(Interpretation op, TermLis
 void TheoryAxioms::addBVXNORAxiom1(Interpretation bvxnor , Interpretation bvor , Interpretation bvand, Interpretation bvnot, unsigned size)
 {
     unsigned srt = env.sorts->addBitVectorSort(size);
-    unsigned int temp[2] = {srt,srt};
-    unsigned int *arg = temp;
+    unsigned argSorts[2] = {srt,srt};
     
     //(bvxnor s t) abbreviates (bvor (bvand s t) (bvand (bvnot s) (bvnot t)))
-    unsigned _xnor = env.signature->getInterpretingSymbol(bvxnor,OperatorType::getFunctionType(2,arg,srt));
-    unsigned _or = env.signature->getInterpretingSymbol(bvor,OperatorType::getFunctionType(2,arg,srt));
-    unsigned _not = env.signature->getInterpretingSymbol(bvnot,OperatorType::getFunctionType(1,arg,srt));
-    unsigned _and = env.signature->getInterpretingSymbol(bvand,OperatorType::getFunctionType(2,arg,srt));
+    unsigned _xnor = env.signature->getInterpretingSymbol(bvxnor,OperatorType::getFunctionType(2,argSorts,srt));
+    unsigned _or = env.signature->getInterpretingSymbol(bvor,OperatorType::getFunctionType(2,argSorts,srt));
+    unsigned _not = env.signature->getInterpretingSymbol(bvnot,OperatorType::getFunctionType(1,argSorts,srt));
+    unsigned _and = env.signature->getInterpretingSymbol(bvand,OperatorType::getFunctionType(2,argSorts,srt));
     
     
     TermList s(0,false);
@@ -684,14 +678,13 @@ void TheoryAxioms::addBVXNORAxiom1(Interpretation bvxnor , Interpretation bvor ,
 void TheoryAxioms::addBVXORAxiom1(Interpretation bvxor, Interpretation bvor , Interpretation bvand, Interpretation bvnot, unsigned size)
 {
     unsigned srt = env.sorts->addBitVectorSort(size);
-    unsigned int temp[2] = {srt,srt};
-    unsigned int *arg = temp;
+    unsigned argSorts[2] = {srt,srt};
     
     //(bvxor s t) abbreviates (bvor (bvand s (bvnot t)) (bvand (bvnot s) t))
-    unsigned _xor = env.signature->getInterpretingSymbol(bvxor,OperatorType::getFunctionType(2,arg,srt));
-    unsigned _or = env.signature->getInterpretingSymbol(bvor,OperatorType::getFunctionType(2,arg,srt));
-    unsigned _not = env.signature->getInterpretingSymbol(bvnot,OperatorType::getFunctionType(1,arg,srt));
-    unsigned _and = env.signature->getInterpretingSymbol(bvand,OperatorType::getFunctionType(2,arg,srt));
+    unsigned _xor = env.signature->getInterpretingSymbol(bvxor,OperatorType::getFunctionType(2,argSorts,srt));
+    unsigned _or = env.signature->getInterpretingSymbol(bvor,OperatorType::getFunctionType(2,argSorts,srt));
+    unsigned _not = env.signature->getInterpretingSymbol(bvnot,OperatorType::getFunctionType(1,argSorts,srt));
+    unsigned _and = env.signature->getInterpretingSymbol(bvand,OperatorType::getFunctionType(2,argSorts,srt));
     
 
     TermList s(0,false);
@@ -1575,14 +1568,13 @@ void TheoryAxioms::apply()
       else if (itp == Theory::BVADD){
         TermList zero(theory->representConstant(BitVectorOperations::getZeroBVCT(size)));
         // add that (bvadd (X zero)) = X
-        addPolyMorphicRightIdentity(Theory::BVADD,zero,size);
-        addPolyMorphicCommutativity(Theory::BVADD,size);
-        // maybe add that X-X = 0, for subtraction 
+        addBitVectorRightIdentity(Theory::BVADD,zero,size);
+        addBitVectorCommutativity(Theory::BVADD,size); 
       }
       else if (itp == Theory::BVMUL){
         TermList one(theory->representConstant(BitVectorOperations::getOneBVCT(size)));
         // add that (bvmul (X 1)) = X
-        addPolyMorphicRightIdentity(Theory::BVMUL,one,size);
+        addBitVectorRightIdentity(Theory::BVMUL,one,size);
        }
       else if (itp == Theory::BVSUB){
           addPolyMorphicBinaryFunctionEquivalentToBinaryFunctionAppliedToUnaryFunction(Theory::BVSUB, Theory::BVADD, Theory::BVNEG,size);
@@ -1595,7 +1587,7 @@ void TheoryAxioms::apply()
       }
       else if (itp== Theory::BVUREM){// bvurem returns its first operand if the second operand is 0
           TermList zero(theory->representConstant(BitVectorOperations::getZeroBVCT(size)));
-          addPolyMorphicRightIdentity(Theory::BVUREM,zero,size);
+          addBitVectorRightIdentity(Theory::BVUREM,zero,size);
       } 
       
       modified = true;
