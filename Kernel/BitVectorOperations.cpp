@@ -210,17 +210,15 @@ BitVectorConstantType BitVectorOperations::getBVCTFromVString(vstring& numberToR
 {
     CALL("BitVectorOperations::getBVCTFromVString(vstring&,unsigned)");
     char c = numberToRepresent[0];
-    BitVectorConstantType initialBoolArray(size);
-    setBVCTFromDec(c,initialBoolArray);
-    BitVectorConstantType sum(initialBoolArray.getBinArray());
+    BitVectorConstantType currentDec(size);
+    setBVCTFromDec(c,currentDec);
+    BitVectorConstantType sum(currentDec.getBinArray());
     
-    // add condition to this loop
     for(unsigned i = 1; i<numberToRepresent.length(); i++) {
         multBVCTByTen(sum);
         c = numberToRepresent[i]; 
-        setBVCTFromDec(c,initialBoolArray);
-        addBVCTs(sum,initialBoolArray);
-        
+        setBVCTFromDec(c,currentDec);
+        addBVCTs(sum,currentDec);
     }
     return sum;
 } 
@@ -682,7 +680,7 @@ void BitVectorOperations::bvsdiv(const BitVectorConstantType& arg1, const BitVec
         bvneg(div,result);
         return;
     }
-    // negated both and do a bvudiv
+    // negate both and do a bvudiv
     BitVectorConstantType arg1Negated(arg1.size());
     BitVectorConstantType arg2Negated(arg2.size());
     bvneg(arg1,arg1Negated);
