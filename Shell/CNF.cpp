@@ -103,6 +103,7 @@ void CNF::clausify (Formula* f)
       for (int i = length-1;i >= 0;i--) {
 	(*clause)[i] = _literals[i];
       }
+      clause->setHOLADescendant(_unit->isHOLADescendant());
       _result->push(clause);
     }
     else {

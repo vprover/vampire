@@ -118,9 +118,13 @@ FormulaUnit* Naming::apply(FormulaUnit* unit, UnitList*& defs) {
   defs = _defs;
   UnitList* premises = UnitList::copy(_defs);
   UnitList::push(unit, premises);
-  return new FormulaUnit(g,
+  FormulaUnit* res = new FormulaUnit(g,
       new InferenceMany(Inference::DEFINITION_FOLDING, premises),
       unit->inputType());
+  if(unit->isHOLADescendant()){
+    res->setHOLADescendant(true);
+  }
+  return res;
 } // Naming::apply
 
 Formula* Naming::apply_iter(Formula* top_f) {

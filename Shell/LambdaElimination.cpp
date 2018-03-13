@@ -580,6 +580,8 @@ unsigned LambdaElimination::sortOf(TermList t)
 void LambdaElimination::addAxiom(FormulaUnit* axiom) {
   CALL("LambdaElimination::addAxiom");
 
+  axiom->setHOLADescendant(true);
+
   //ASS_REP(!needsElimination(def), def->toString()); To be looked at later AYB
 
   _axioms = new UnitList(axiom, _axioms);

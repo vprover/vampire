@@ -562,7 +562,10 @@ void SaturationAlgorithm::addInputClause(Clause* cl)
   bool isTheory = cl->inference()->rule()==Inference::THEORY;
   bool sosForTheory = _opt.sos() == Options::Sos::THEORY && _opt.sosTheoryLimit() == 0;
 
-  if (sosForAxioms || (isTheory && sosForTheory)){
+  bool isHOLA = cl->isHOLADescendant();
+  bool sosForHOL = _opt.sos() == Options::Sos::HOL && _opt.sosHOLLimit() == 0;
+
+  if (sosForAxioms || (isTheory && sosForTheory) || (isHOLA && sosForHOL)){
     addInputSOSClause(cl);
   } else {
     addNewClause(cl);
@@ -681,8 +684,13 @@ Clause* SaturationAlgorithm::doImmediateSimplification(Clause* cl0)
 
   static bool sosTheoryLimit = _opt.sos()==Options::Sos::THEORY;
   static unsigned sosTheoryLimitDepth = _opt.sosTheoryLimit();
+  static bool sosHOLLimit = _opt.sos() == Options::Sos::HOL;
+  static unsigned sosHOLLimitDepth = _opt.sosHOLLimit();
 
   if(sosTheoryLimit && cl0->isTheoryDescendant() && cl0->inference()->maxDepth() > sosTheoryLimitDepth){
+    return 0;
+  }
+  if(sosHOLLimit && cl0->isHOLADescendant() && cl0->inference()->maxDepth() > sosHOLLimitDepth){
     return 0;
   }
 

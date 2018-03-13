@@ -353,6 +353,9 @@ protected:
       }
       out << fu->formula()->toString() << ' ';
     }
+    if(cs->isHOLADescendant()){
+        out << "(HD) ";
+    }
 
     out <<"["<<Inference::ruleName(rule);
 

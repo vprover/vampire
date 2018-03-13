@@ -442,6 +442,9 @@ vstring Clause::toString() const
   if(isTheoryDescendant()){
     result += "T ";
   }
+  if(isHOLADescendant()){
+    result += "H ";
+  }
   result +=  inferenceAsString();
   return result;
 }

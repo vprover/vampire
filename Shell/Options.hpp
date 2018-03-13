@@ -679,7 +679,8 @@ public:
     ALL = 0,
     OFF = 1,
     ON = 2,
-    THEORY = 3
+    THEORY = 3,
+    HOL = 4
   };
 
   enum class TARules : unsigned int {
@@ -1931,6 +1932,7 @@ public:
   float nongoalWeightCoefficient() const { return _nonGoalWeightCoefficient.actualValue; }
   Sos sos() const { return _sos.actualValue; }
   unsigned sosTheoryLimit() const { return _sosTheoryLimit.actualValue; }
+  unsigned sosHOLLimit() const { return _sosHOLLimit.actualValue; }
   //void setSos(Sos newVal) { _sos = newVal; }
   FunctionDefinitionElimination functionDefinitionElimination() const { return _functionDefinitionElimination.actualValue; }
   bool outputAxiomNames() const { return _outputAxiomNames.actualValue; }
@@ -2350,6 +2352,7 @@ private:
   BoolOptionValue _smtlibFletAsDefinition;
   ChoiceOptionValue<Sos> _sos;
   UnsignedOptionValue _sosTheoryLimit;
+  UnsignedOptionValue _sosHOLLimit;
   BoolOptionValue _splitting;
   BoolOptionValue _splitAtActivation;
   ChoiceOptionValue<SplittingAddComplementary> _splittingAddComplementary;
