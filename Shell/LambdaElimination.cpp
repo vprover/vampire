@@ -774,22 +774,22 @@ void LambdaElimination::buildFuncApp(unsigned symbol, TermList arg1, TermList ar
     unsigned appFun = introduceAppSymbol(constSort, argSort, Sorts::SRT_BOOL);
     buildFuncApp(appFun, constant, var1, functionApplied);
 
-  TermList var;
-  unsigned varNum = 1;
-  unsigned currSort;
+    TermList var;
+    unsigned varNum = 1;
+    unsigned currSort;
     functionApplied2 = var1;
     do{   
-    currSort = domain(argSort);
-    sorts = sorts->addLast(sorts, currSort);
+      currSort = domain(argSort);
+      sorts = sorts->addLast(sorts, currSort);
 
-    var = TermList(varNum, false);
-    vars = vars->addLast(vars, var.var());
-    varNum += 1;
+      var = TermList(varNum, false);
+      vars = vars->addLast(vars, var.var());
+      varNum += 1;
 
-    unsigned appFun = introduceAppSymbol(argSort, currSort, range(argSort));
-        buildFuncApp(appFun, functionApplied2, var, functionApplied2);
-    argSort = range(argSort);
-  }while(!(argSort == Sorts::SRT_BOOL));
+      unsigned appFun = introduceAppSymbol(argSort, currSort, range(argSort));
+      buildFuncApp(appFun, functionApplied2, var, functionApplied2);
+      argSort = range(argSort);
+    }while(!(argSort == Sorts::SRT_BOOL));
 
     qAxiom = toEquality(functionApplied);
     qAxiom = new BinaryFormula(IFF, qAxiom, new QuantifiedFormula(conn, vars, sorts, toEquality(functionApplied2)));

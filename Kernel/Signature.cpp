@@ -541,11 +541,11 @@ const vstring& Signature::functionName(int number)
 /**
  * Return true if specified function exists
  */
-bool Signature::functionExists(const vstring& name,unsigned arity) const
+bool Signature::functionExists(const vstring& name) const
 {
   CALL("Signature::functionExists");
 
-  return _funNames.find(key(name, arity));
+  return _funNames.find(name);
 }
 
 /**
@@ -555,23 +555,23 @@ bool Signature::predicateExists(const vstring& name,unsigned arity) const
 {
   CALL("Signature::predicateExists");
 
-  return _predNames.find(key(name, arity));
+  return _predNames.find(name);
 }
 
-unsigned Signature::getFunctionNumber(const vstring& name, unsigned arity) const
+unsigned Signature::getFunctionNumber(const vstring& name) const
 {
   CALL("Signature::getFunctionNumber");
 
-  ASS(_funNames.find(key(name, arity)));
-  return _funNames.get(key(name, arity));
+  ASS(_funNames.find(name));
+  return _funNames.get(name);
 }
 
-unsigned Signature::getPredicateNumber(const vstring& name, unsigned arity) const
+unsigned Signature::getPredicateNumber(const vstring& name) const
 {
   CALL("Signature::getPredicateNumber");
 
-  ASS(_predNames.find(key(name, arity)));
-  return _predNames.get(key(name, arity));
+  ASS(_predNames.find(name));
+  return _predNames.get(name);
 }
 
 /**
@@ -590,7 +590,7 @@ unsigned Signature::addFunction (const vstring& name,
 {
   CALL("Signature::addFunction");
 
-  vstring symbolKey = key(name,arity);
+  vstring symbolKey = name; //cannot have same name with different arities!
   unsigned result;
   if (_funNames.find(symbolKey,result)) {
     added = false;
@@ -626,7 +626,7 @@ unsigned Signature::addStringConstant(const vstring& name)
 {
   CALL("Signature::addStringConstant");
 
-  vstring symbolKey = name + "_c";
+  vstring symbolKey = name;
   unsigned result;
   if (_funNames.find(symbolKey,result)) {
     return result;
@@ -661,7 +661,7 @@ unsigned Signature::addPredicate (const vstring& name,
 {
   CALL("Signature::addPredicate");
 
-  vstring symbolKey = key(name,arity);
+  vstring symbolKey = name;
   unsigned result;
   if (_predNames.find(symbolKey,result)) {
     added = false;

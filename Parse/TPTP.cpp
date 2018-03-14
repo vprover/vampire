@@ -1425,7 +1425,6 @@ void TPTP::tff()
       symbol = env.signature->getFunction(fun);
       symbol->setType(OperatorType::getFunctionType(arity, sorts.begin(), returnSort));
 
-      cout << "The type of function " + nm + " is " + symbol->fnType()->toString() << endl;
       
       while (lpars--) {
         consumeToken(T_RPAR);
@@ -1625,9 +1624,13 @@ void TPTP::holTerm()
       _ints.push(-1); // dummy arity to indicate a variable
       return;
 
-    case T_NAME:
+    case T_NAME:{
+      unsigned funcNum = env.signature->getFunctionNumber(tok.content);
+      unsigned arity = env.signature->functionArity(funcNum);
+
       _ints.push(0); // arity
       return;
+    }
 
     default:
       PARSE_ERROR("unexpected token", tok);

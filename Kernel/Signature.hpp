@@ -425,6 +425,7 @@ class Signature
     CALL("Signature::functionArity");
     return _funs[number]->arity();
   }
+
   /** return the arity of a predicate with a given number */
   const unsigned predicateArity(int number)
   {
@@ -480,11 +481,11 @@ class Signature
   CLASS_NAME(Signature);
   USE_ALLOCATOR(Signature);
 
-  bool functionExists(const vstring& name,unsigned arity) const;
-  bool predicateExists(const vstring& name,unsigned arity) const;
+  bool functionExists(const vstring& name) const;
+  bool predicateExists(const vstring& name) const;
 
-  unsigned getFunctionNumber(const vstring& name, unsigned arity) const;
-  unsigned getPredicateNumber(const vstring& name, unsigned arity) const;
+  unsigned getFunctionNumber(const vstring& name) const;
+  unsigned getPredicateNumber(const vstring& name) const;
   
   Unit* getDistinctGroupPremise(unsigned group);
   unsigned createDistinctGroup(Unit* premise = 0);
