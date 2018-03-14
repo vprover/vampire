@@ -38,7 +38,7 @@
 #include "Kernel/Unit.hpp"
 #include "Kernel/Theory.hpp"
 
-//#define DEBUG_SHOW_STATE
+#define DEBUG_SHOW_STATE
 
 using namespace std;
 using namespace Lib;
@@ -768,7 +768,8 @@ private:
   void endTuple();
   void addTagState(Tag);
 
-  unsigned readHOLSort();
+  Stack<unsigned> readHOLSort();
+  Stack<unsigned> convertToUnsigned(Stack<int>);
   void foldl(Stack<int>*);
   unsigned readSort();
   void bindVariable(int var,unsigned sortNumber);

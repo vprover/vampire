@@ -51,7 +51,6 @@ using namespace Kernel;
 using namespace Shell;
 using namespace Parse;
 
-//#define DEBUG_SHOW_STATE 0
 #define DEBUG_SHOW_TOKENS 0
 #define DEBUG_SHOW_UNITS 0
 #define DEBUG_SOURCE 0
@@ -1397,11 +1396,11 @@ void TPTP::tff()
       bool added;
       env.sorts->addSort(nm,added,false);
       if (!added) {
-    PARSE_ERROR("Sort name must be unique",tok);
+        PARSE_ERROR("Sort name must be unique",tok);
       }
       resetToks();
       while (lpars--) {
-    consumeToken(T_RPAR);
+        consumeToken(T_RPAR);
       }
       consumeToken(T_RPAR);
       consumeToken(T_DOT);
@@ -1412,15 +1411,24 @@ void TPTP::tff()
       Signature::Symbol* symbol;
       bool added; 
       _gpos = 0;
-      unsigned sort = readHOLSort();
-      unsigned fun = addUninterpretedConstant(nm,_overflow,added);
+      Stack<unsigned> sorts = readHOLSort();
+      
+      unsigned returnSort = sorts.pop();
+      
+      unsigned arity = sorts.size();
+      unsigned fun = arity == 0
+                   ? addUninterpretedConstant(nm,_overflow,added)
+                   : env.signature->addFunction(nm,arity,added);
       if (!added) {
-         USER_ERROR("Function symbol type is declared after its use: " + nm);
+        USER_ERROR("Function symbol type is declared after its use: " + nm);
       }
       symbol = env.signature->getFunction(fun);
-      symbol->setType(OperatorType::getConstantsType(sort));
+      symbol->setType(OperatorType::getFunctionType(arity, sorts.begin(), returnSort));
+
+      cout << "The type of function " + nm + " is " + symbol->fnType()->toString() << endl;
+      
       while (lpars--) {
-    consumeToken(T_RPAR);
+        consumeToken(T_RPAR);
       }
       consumeToken(T_RPAR);
       consumeToken(T_DOT);
@@ -2627,7 +2635,7 @@ void TPTP::varList()
     PARSE_ERROR("two declarations of variable sort",tok);
       }
       resetToks();
-      bindVariable(var,(_isThf ? readHOLSort() : readSort()));
+      bindVariable(var, readSort());
       sortDeclared = true;
       goto afterVar;
 
@@ -3541,7 +3549,7 @@ void TPTP::endTff()
     if (sortNumber == Sorts::SRT_BOOL) {
       env.signature->addPredicate(name,0,added);
       if (!added) {
-    USER_ERROR("Predicate symbol type is declared after its use: " + name);
+        USER_ERROR("Predicate symbol type is declared after its use: " + name);
       }
       return;
     }
@@ -3888,7 +3896,7 @@ void TPTP::simpleType()
  * @author Ahmed Bhayat
  */
  
-unsigned TPTP::readHOLSort()
+Stack<unsigned> TPTP::readHOLSort()
 {
    CALL("TPTP::readHOLSort");
 
@@ -3906,7 +3914,10 @@ unsigned TPTP::readHOLSort()
               break;
            case T_RPAR:
               inBrackets -= 1;
-              if(inBrackets < 0){_gpos = 0; goto afterWhile;}
+              if(inBrackets < 0){
+                _gpos = 0;                
+                return convertToUnsigned(subSorts);
+              }
               foldl(&subSorts);
               break;
            default:{
@@ -3917,12 +3928,18 @@ unsigned TPTP::readHOLSort()
        resetToks();
        tok = getTok(0);
    }
-afterWhile:
-   if(subSorts.size() != 1){
-       foldl(&subSorts);
-   }
-   return (unsigned)subSorts.pop(); 
+   return convertToUnsigned(subSorts);
 }
+ 
+Stack<unsigned> TPTP::convertToUnsigned(Stack<int> sorts){
+   CALL("convertToUnsigned");
+   
+   Stack<unsigned> converted;
+   for(unsigned i = 0; i < sorts.size(); i ++){
+     converted.push((unsigned)sorts[i]);
+   }
+   return converted;
+}  
  
 void TPTP::foldl(Stack<int>* sorts)
 {
