@@ -235,6 +235,10 @@ public:
     HOL_TERM,
     /** Read after a HOL term */
     END_HOL_TERM,
+    /** Read sub-term of a hol applicative term */
+    HOL_SUB_TERM,
+    /** read after sub-term */
+    END_HOL_SUB_TERM,
     /** create a special application term after reading an app */
     END_APP,
     /** tff declaration */
@@ -760,6 +764,8 @@ private:
   void endHolFunction();
   void holTerm();
   void endHolTerm();
+  void holSubTerm();
+  void endHolSubTerm();
   void binding();
   void endBinding();
   void endTupleBinding();

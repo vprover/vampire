@@ -199,6 +199,12 @@ void TPTP::parse()
     case END_HOL_TERM:
       endHolTerm();
       break;
+    case HOL_SUB_TERM:
+      holSubTerm();
+      break;
+    case END_HOL_SUB_TERM:
+      endHolSubTerm();
+      break;
     case FORMULA_INSIDE_TERM:
       formulaInsideTerm();
       break;
@@ -1497,7 +1503,7 @@ void TPTP::tff()
 
 void TPTP::holFunction()
 {
-  CALL("TPTP::holFunctio");
+  CALL("TPTP::holFunction");
   Token tok = getTok(0);
 
   switch (tok.tag) {
@@ -1581,45 +1587,7 @@ void TPTP::holTerm()
   }
 
   switch (tok.tag) {//TODO update this for HOL -AYB
-    case T_THEORY_FUNCTION:
-      consumeToken(T_LPAR);
-      addTagState(T_RPAR);
-      switch (getTheoryFunction(tok)) {
-        case TF_SELECT:
-          _states.push(TERM);
-          addTagState(T_COMMA);
-          _states.push(TERM);
-          break;
-        case TF_STORE:
-          _states.push(TERM);
-          addTagState(T_COMMA);
-          _states.push(TERM);
-          addTagState(T_COMMA);
-          _states.push(TERM);
-          break;
-        default:
-          ASSERTION_VIOLATION_REP(tok.content);
-      }
-      return;
-
-    case T_ITE:  //TODO update this for HOL -AYB
-      consumeToken(T_LPAR);
-      addTagState(T_RPAR);
-      _states.push(TERM);
-      addTagState(T_COMMA);
-      _states.push(TERM);
-      addTagState(T_COMMA);
-      _states.push(FORMULA);
-      return;
-
-    case T_LET:  //TODO update this for HOL -AYB
-      addTagState(T_RPAR);
-      _states.push(TERM);
-      addTagState(T_COMMA);
-      _states.push(BINDING);
-      consumeToken(T_LPAR);
-      return;
-
+  
     case T_VAR:
       _ints.push(-1); // dummy arity to indicate a variable
       return;
@@ -1627,8 +1595,9 @@ void TPTP::holTerm()
     case T_NAME:{
       unsigned funcNum = env.signature->getFunctionNumber(tok.content);
       unsigned arity = env.signature->functionArity(funcNum);
-
-      _ints.push(0); // arity
+      _ints.push(arity); // arity
+      _states.push(END_HOL_SUB_TERM);
+      _states.push(HOL_SUB_TERM);
       return;
     }
 
@@ -1648,28 +1617,6 @@ void TPTP::endHolTerm()
   
   vstring name = _strings.pop();
 
-  if (name == toString(T_ITE)) {//TODO update for HOL -AYB
-    _states.push(END_ITE);
-    return;
-  }
-
-  if (name == toString(T_LET)) {//TODO update for HOL -AYB
-    _states.push(END_LET);
-    return;
-  }
-
-  if (name == toString(T_TUPLE)) {//TODO update for HOL -AYB
-    _states.push(END_TUPLE);
-    return;
-  }
-
-  TheoryFunction tf;
-  if (findTheoryFunction(name, tf)) {
-    _theoryFunctions.push(tf);
-    _states.push(END_THEORY_FUNCTION);
-    return;
-  }
-
   int arity = _ints.pop();
 
   if (arity == -1) {
@@ -1682,6 +1629,41 @@ void TPTP::endHolTerm()
 
   _termLists.push(createFunctionApplication(name, arity));
   _lastPushed = TM;  
+}
+
+void TPTP::holSubTerm(){
+  CALL("TPTP::holSubTerm");
+  
+  Token tok = getTok(0);
+  if(tok.tag != T_APP){
+    return;
+  }
+  resetToks();
+  Token tok = getTok(0);
+  resetToks();
+  
+  switch (tok.tag) {//TODO update this for HOL -AYB
+    case T_LBRA:
+      _states.push(END_HOL_TERM);
+      _states.push(HOL_TERM);
+      return;
+    case T_NAME:
+      _strings.push(tok.content);
+      return;
+    default:
+
+  }    
+  
+}
+
+void TPTP::endHolSubTerm(){
+  CALL("TPTP::endHolSubTerm");
+  
+  unsigned funcNum = env.signature->getFunctionNumber(_strings.pop());
+  unsigned arity = env.signature->functionArity(funcNum);
+
+  
+    
 }
 
 /**
@@ -1813,13 +1795,13 @@ void TPTP::endHolFunction()
     case IMP:
       f = _formulas.pop();
       if (conReverse) {
-    f = new BinaryFormula((Connective)con,f,_formulas.pop());
+        f = new BinaryFormula((Connective)con,f,_formulas.pop());
       }
       else {
-    f = new BinaryFormula((Connective)con,_formulas.pop(),f);
+        f = new BinaryFormula((Connective)con,_formulas.pop(),f);
       }
       _formulas.push(f);
-        _lastPushed = FORM;
+      _lastPushed = FORM;
       _states.push(END_HOL_FUNCTION);
       return;
     
@@ -1832,7 +1814,7 @@ void TPTP::endHolFunction()
       f = _formulas.pop();
       f = new BinaryFormula((Connective)con,_formulas.pop(),f);
       _formulas.push(f);
-        _lastPushed = FORM;
+      _lastPushed = FORM;
       _states.push(END_HOL_FUNCTION);
       return;
 
@@ -1841,10 +1823,10 @@ void TPTP::endHolFunction()
       f = _formulas.pop();
       f = makeJunction((Connective)con,_formulas.pop(),f);
       if (conReverse) {
-    f = new NegatedFormula(f);
+        f = new NegatedFormula(f);
       }
       _formulas.push(f);
-        _lastPushed = FORM;
+      _lastPushed = FORM;
       _states.push(END_HOL_FUNCTION);
       return;
 
@@ -1860,15 +1842,14 @@ void TPTP::endHolFunction()
   if ((c != APP) & (con == -1) & (_lastPushed == TM)){
       endTermAsFormula();
   }
-
   
   // con and c are binary connectives
   if (higherPrecedence(con,c)) {
-      if (con == APP){
+    if (con == APP){
       _states.push(END_HOL_FUNCTION);
       _states.push(END_APP);
       return;  
-      }
+    }
     f = _formulas.pop(); 
     Formula* g = _formulas.pop();
     if (con == AND || con == OR) {
@@ -4786,6 +4767,10 @@ const char* TPTP::toString(State s)
     return "HOL_TERM";
   case END_HOL_TERM:
     return "END_HOL_TERM";
+  case HOL_SUB_TERM:
+    return "HOL_SUB_TERM";
+  case HOL_END_SUB_TERM:
+    return "END_HOL_SUB_TERM";
   case END_TYPE:
     return "END_TYPE";
   case SIMPLE_TYPE:
