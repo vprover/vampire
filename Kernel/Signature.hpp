@@ -79,6 +79,15 @@ class Signature
     NULL_CONSTANT,
   };
   
+  /* Note on current implementation of du bruijn indices: 
+     Name of symbol is the index, i.e. index 1 will be a symbol name "1"
+     On beta-reduction these names have to be manipulated. This is not ideal.
+     
+     A future improvement would be to make all indices the same constant and add 
+     an unsigned "index" field. This would then require updating to unification 
+     algorithm to ensure that unification takes this index field into account. 
+  */
+
   protected:
     /** print name */
     vstring _name;
@@ -121,6 +130,10 @@ class Signature
     unsigned _inUnit : 1;
     /** if is a HOL app function **/
 	  unsigned _isAPP : 1;
+    /** constant represents a du bruijn index */
+    unsigned _isIndex : 1;
+    /** marks lambda abstractors */
+    unsigned _isLambda : 1;
 	  /** if symbol is  HOL constant, records which one **/
 	  HOLConstant _HOLconst : NULL_CONSTANT;
 	
@@ -151,8 +164,12 @@ class Signature
     void markOverflownConstant() { _overflownConstant=1; }
     /** mark symbol as a term algebra constructor */
     void markTermAlgebraCons() { _termAlgebraCons=1; }
-	/** mark symbol as a HOL APP symbol*/
+	  /** mark symbol as a HOL APP symbol*/
     void markHOLAPP() { _isAPP=1; }
+    /** mark lambda */
+    void markLambda() { _isLambda = true; }
+    /** mark Du Bruijn Index */
+    void markDuBruijnIndex() { _isIndex = true; }
 
     void setHOLConstant(HOLConstant cnst) { _HOLconst = cnst;}
 	
@@ -187,6 +204,10 @@ class Signature
     inline bool termAlgebraCons() const { return _termAlgebraCons; }
 	  /** Return true iff symbol is a HOL app symbol */
 	  inline bool hOLAPP() const { return _isAPP; }
+    /** Return true iff constant is a du bruijn index */
+    inline bool duBruijnIndex() const { return _isIndex; }
+    /** Return true iff symbol is a lambda abstractor */
+    inline bool lambda() const { return _isLambda; }
 
     /** Increase the usage count of this symbol **/
     inline void incUsageCnt(){ _usageCount++; }

@@ -573,6 +573,7 @@ private:
   Stack<bool> _bools;
   /** various integer values saved during parsing */
   Stack<int> _ints;
+  Stack<unsigned> _lambdaVarSorts;
   /** variable lists for building formulas */
   Stack<Formula::VarList*> _varLists;
   /** sort lists for building formulas */
@@ -593,7 +594,6 @@ private:
   Stack<Type*> _types;
   /** various type tags saved during parsing */
   Stack<TypeTag> _typeTags;
-  typedef List<unsigned> SortList;
   /**  */
   Stack<TheoryFunction> _theoryFunctions;
   /** bindings of variables to sorts */
@@ -774,6 +774,8 @@ private:
   void endTuple();
   void addTagState(Tag);
 
+  TermList abstract(TermList term, unsigned sort);
+  TermList etaExpand(unsigned funcNum, vstring name, unsigned arity, unsigned argsOnStack);
   Stack<unsigned> readHOLSort();
   Stack<unsigned> convertToUnsigned(Stack<int>);
   void foldl(Stack<int>*);

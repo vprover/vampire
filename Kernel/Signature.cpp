@@ -57,8 +57,10 @@ Signature::Symbol::Symbol(const vstring& nm,unsigned arity, bool interpreted, bo
     _type(0),
     _distinctGroups(0),
     _usageCount(0),
-	_isAPP(0),
-	_HOLconst(NULL_CONSTANT)
+	  _isAPP(0),
+    _isIndex(0),
+    _isLambda(0),
+	  _HOLconst(NULL_CONSTANT)
 {
   CALL("Signature::Symbol::Symbol");
   ASS(!stringConstant || arity==0);
@@ -495,9 +497,9 @@ unsigned Signature::getInterpretingSymbol(Interpretation interp, OperatorType* t
   unsigned arity = Theory::getArity(interp);
   
   if (Theory::isFunction(interp)) {
-    if (functionExists(name, arity)) {
+    if (functionExists(name)) {
       int i=0;
-      while(functionExists(name+Int::toString(i), arity)) {
+      while(functionExists(name+Int::toString(i))) {
         i++;
       }
       name=name+Int::toString(i);
@@ -505,9 +507,9 @@ unsigned Signature::getInterpretingSymbol(Interpretation interp, OperatorType* t
     addInterpretedFunction(interp, type, name);
   }
   else {
-    if (predicateExists(name, arity)) {
+    if (predicateExists(name)) {
       int i=0;
-      while(predicateExists(name+Int::toString(i), arity)) {
+      while(predicateExists(name+Int::toString(i))) {
         i++;
       }
       name=name+Int::toString(i);
@@ -551,7 +553,7 @@ bool Signature::functionExists(const vstring& name) const
 /**
  * Return true if specified predicate exists
  */
-bool Signature::predicateExists(const vstring& name,unsigned arity) const
+bool Signature::predicateExists(const vstring& name) const
 {
   CALL("Signature::predicateExists");
 

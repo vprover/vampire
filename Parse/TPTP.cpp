@@ -202,9 +202,6 @@ void TPTP::parse()
     case HOL_SUB_TERM:
       holSubTerm();
       break;
-    case END_HOL_SUB_TERM:
-      endHolSubTerm();
-      break;
     case FORMULA_INSIDE_TERM:
       formulaInsideTerm();
       break;
@@ -1516,16 +1513,24 @@ void TPTP::holFunction()
   case T_FORALL:
   case T_EXISTS:
    // _states.push(UNBIND_VARIABLES);
-  case T_LAMBDA:
+
     resetToks();
     consumeToken(T_LBRA);
-    _connectives.push(tok.tag == T_FORALL ? FORALL : (tok.tag == T_LAMBDA ? LAMBDA : EXISTS));
+    _connectives.push(tok.tag == T_FORALL ? FORALL : EXISTS);
     _states.push(HOL_FUNCTION);
     addTagState(T_COLON);
     addTagState(T_RBRA);
     _states.push(VAR_LIST);
     return;
-
+  case T_LAMBDA:
+    resetToks();
+    consumeToken(T_LBRA);
+    _connectives.push(tok.tag == T_FORALL ? FORALL : EXISTS);
+    _states.push(HOL_FUNCTION);
+    addTagState(T_COLON);
+    addTagState(T_RBRA);
+    _states.push(LAMBDA_VAR_LIST);
+    return;
   case T_LPAR:
     resetToks();
     addTagState(T_RPAR);
@@ -1596,7 +1601,6 @@ void TPTP::holTerm()
       unsigned funcNum = env.signature->getFunctionNumber(tok.content);
       unsigned arity = env.signature->functionArity(funcNum);
       _ints.push(arity); // arity
-      _states.push(END_HOL_SUB_TERM);
       _states.push(HOL_SUB_TERM);
       return;
     }
@@ -1617,8 +1621,16 @@ void TPTP::endHolTerm()
   
   vstring name = _strings.pop();
 
-  int arity = _ints.pop();
+  unsigned funcNum = env.signature->getFunctionNumber(name);
+  unsigned arity = env.signature->functionArity(funcNum);
 
+  //Following makes the assumption that we cannot have more termlists on the stack than arity.
+  //This ought to be reviewed.
+  _termLists.push(etaExpand(funcNum, name, arity, _termLists.size()));
+  _lastPushed = TM;
+
+  
+  /*
   if (arity == -1) {
     // it was a variable
     unsigned var = (unsigned)_vars.insert(name);
@@ -1629,6 +1641,7 @@ void TPTP::endHolTerm()
 
   _termLists.push(createFunctionApplication(name, arity));
   _lastPushed = TM;  
+  */
 }
 
 void TPTP::holSubTerm(){
@@ -1636,10 +1649,11 @@ void TPTP::holSubTerm(){
   
   Token tok = getTok(0);
   if(tok.tag != T_APP){
+    _gpos = 0; 
     return;
   }
   resetToks();
-  Token tok = getTok(0);
+  tok = getTok(0);
   resetToks();
   
   switch (tok.tag) {//TODO update this for HOL -AYB
@@ -1647,24 +1661,83 @@ void TPTP::holSubTerm(){
       _states.push(END_HOL_TERM);
       _states.push(HOL_TERM);
       return;
-    case T_NAME:
-      _strings.push(tok.content);
+    case T_VAR:{
+      // Variables can have function type. Assuming that variable types will be declared by their binders (and do not require inferring from their position)
+      // Need to maintain during parsing an array of variable types seen in current formula.
+      unsigned var = (unsigned)_vars.insert(tok.content);
+      _termLists.push(TermList(var, false));
+      _lastPushed = TM;
+      _states.push(HOL_SUB_TERM);
       return;
+    }
+    case T_NAME:{
+      vstring funcName = tok.content;
+      unsigned funcNum = env.signature->getFunctionNumber(funcName);
+      unsigned arity = env.signature->functionArity(funcNum);
+      
+      _termLists.push(etaExpand(funcNum, funcName, arity, 0));
+      _lastPushed = TM; 
+      _states.push(HOL_SUB_TERM);
+      return;
+    }
     default:
-
+      ASSERTION_VIOLATION;
   }    
   
 }
 
-void TPTP::endHolSubTerm(){
-  CALL("TPTP::endHolSubTerm");
-  
-  unsigned funcNum = env.signature->getFunctionNumber(_strings.pop());
-  unsigned arity = env.signature->functionArity(funcNum);
+TermList TPTP::etaExpand(unsigned funcNum, vstring name, unsigned arity, unsigned argsOnStack){
 
-  
+  bool added;
+  unsigned count = argsOnStack;
+  OperatorType* type = env.signature->getFunction(funcNum)->fnType();
+   
+  for( unsigned i = arity; i > argsOnStack; i--){
     
+    unsigned sort = type->arg(count);
+    unsigned fun = env.signature->addFunction(Int::toString(i - argsOnStack) + "_" + Int::toString(sort),0,added);
+    if(added){//first time constant added. Set type
+        Signature::Symbol* symbol = env.signature->getFunction(fun);  
+        symbol->setType(OperatorType::getConstantsType(sort));
+        symbol->markDuBruijnIndex();   
+    }
+    Term* t = Term::createConstant(fun);
+    TermList ts(t);
+    _termLists.push(ts);
+    count++;
+  }
+  TermList expandedTerm = createFunctionApplication(name, arity);
+  count = arity - 1;
+  for( unsigned i = argsOnStack; i < arity; i++){
+    expandedTerm = abstract(expandedTerm, type->arg(count));
+    count--;
+  }  
+  
+  return expandedTerm;
 }
+
+TermList TPTP::abstract(TermList term, unsigned sort){
+  
+   CALL("TPTP::abstract");
+
+   unsigned termSort = sortOf(term);
+   unsigned lamSort = env.sorts->addFunctionSort(sort, termSort);
+
+   Stack<unsigned> sorts;
+   sorts.push(termSort);
+   OperatorType* type = OperatorType::getFunctionType(1, sorts.begin(), lamSort);
+
+   bool added;
+   unsigned fun = env.signature->addFunction("lam_" + Int::toString(lamSort),1,added);
+   if(added){//first time constant added. Set type
+     Signature::Symbol* symbol = env.signature->getFunction(fun);  
+     symbol->setType(type);
+     symbol->markLambda();   
+   } 
+
+   return TermList(Term::create1(fun, term));   
+}
+
 
 /**
   * Process the end of a HOL function.
@@ -2616,7 +2689,7 @@ void TPTP::varList()
     switch (tok.tag) {
     case T_COLON: // v: type
       if (sortDeclared) {
-    PARSE_ERROR("two declarations of variable sort",tok);
+        PARSE_ERROR("two declarations of variable sort",tok);
       }
       resetToks();
       bindVariable(var, readSort());
@@ -2625,7 +2698,7 @@ void TPTP::varList()
 
     case T_COMMA:
       if (!sortDeclared) {
-    bindVariable(var,Sorts::SRT_DEFAULT);
+        bindVariable(var,Sorts::SRT_DEFAULT);
       }
       resetToks();
       break;
@@ -2636,14 +2709,14 @@ void TPTP::varList()
       bindVariable(var,Sorts::SRT_DEFAULT);
     }
     Formula::VarList* vs = Formula::VarList::empty();
-  Formula::SortList* ss = Formula::SortList::empty();
+    Formula::SortList* ss = Formula::SortList::empty();
     while (!vars.isEmpty()) {
     int v = vars.pop();
       vs = new Formula::VarList(v,vs);
     ss = new Formula::SortList(sortOf(TermList(v,false)),ss);
     }
     _varLists.push(vs);
-  _sortLists.push(ss);
+    _sortLists.push(ss);
     _bindLists.push(vs);
     return;
       }
@@ -2772,7 +2845,7 @@ void TPTP::endTerm()
   }
 
   unsigned symbol;
-  if (env.signature->predicateExists(name, arity) ||
+  if (env.signature->predicateExists(name) ||
       findLetSymbol(true, name, arity, symbol) ||
       findInterpretedPredicate(name, arity)) {
     // if the function symbol is actually a predicate,
@@ -4390,7 +4463,7 @@ unsigned TPTP::sortOf(TermList t)
     if (t.isVar()) {
       SortList* sorts;
       if (_variableSorts.find(t.var(),sorts) && SortList::isNonEmpty(sorts)) {
-    return sorts->head();
+        return sorts->head();
       }
       // there might be variables whose sort is undeclared,
       // in this case they have the default sort
@@ -4769,8 +4842,6 @@ const char* TPTP::toString(State s)
     return "END_HOL_TERM";
   case HOL_SUB_TERM:
     return "HOL_SUB_TERM";
-  case HOL_END_SUB_TERM:
-    return "END_HOL_SUB_TERM";
   case END_TYPE:
     return "END_TYPE";
   case SIMPLE_TYPE:
