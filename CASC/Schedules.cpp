@@ -6244,6 +6244,7 @@ void Schedules::getSmtcomp2016Schedule(const Property& property, Schedule& quick
     fallback.push("ott+2_8:1_bsr=on:br=off:ile=on:irw=on:nm=2:nwc=2.5:av=off:sp=reverse_arity:urr=on_3000");
     return;
   case SMT_UF:
+  case SMT_UNDEFINED:
     quick.push("lrs+11_1_cond=on:gsp=input_only:gs=on:gsem=on:ile=on:lma=on:nm=2:nwc=1:stl=30:sos=theory:add=off:afp=10000:afq=1.1:anc=none:sp=reverse_arity:urr=on_7");
     quick.push("lrs+1011_1_cond=on:ile=on:nwc=1.2:stl=30:add=off:afr=on:afp=4000:afq=1.0:urr=ec_only:updr=off_63");
     quick.push("fmb+10_1_fmbsr=1.8:ile=on:nm=64:newcnf=on:av=off_65");
@@ -7304,7 +7305,7 @@ void Schedules::getSmtcomp2016Schedule(const Property& property, Schedule& quick
   case SMT_QF_UFLRA:
   case SMT_QF_UFNIA:
   case SMT_QF_UFNRA:
-  case SMT_UNDEFINED:
+  //case SMT_UNDEFINED:
     throw UserErrorException("This version cannot be used with this logic!");
   }
 }
@@ -10209,8 +10210,8 @@ void Schedules::getSmtcomp2017Schedule(const Property& property, Schedule& quick
   case SMT_BV:
   case SMT_UFBV:
     throw UserErrorException("Sorry, we don't deal with bit-vectors!");
-  case SMT_UNDEFINED:
-    throw UserErrorException("This version cannot be used with this logic!");
+//  case SMT_UNDEFINED:
+//    throw UserErrorException("This version cannot be used with this logic!");
   }
 
   fallback.push("dis+1002_5:1_aac=none:afr=on:afp=4000:afq=1.1:amm=sco:anc=none:bsr=on:br=off:cond=on:fsr=off:gsp=input_only:gs=on:gsem=on:inw=on:ile=on:irw=on:lma=on:nm=32:newcnf=on:nwc=1.1:sas=z3:sp=reverse_arity:tha=off:urr=on_600");
