@@ -29,6 +29,8 @@ using namespace Lib;
 using namespace Kernel;
 using namespace Shell;
 
+bool LambdaElimination::_holAxiomsAdded = false; 
+
 /** Function removes all apps, lambdas and top level connectives from
   * a lambda expression via 
   */
@@ -579,6 +581,8 @@ unsigned LambdaElimination::sortOf(TermList t)
 
 void LambdaElimination::addAxiom(FormulaUnit* axiom) {
   CALL("LambdaElimination::addAxiom");
+
+  _holAxiomsAdded = true;
 
   axiom->setHOLADescendant(true);
 

@@ -31,6 +31,8 @@ public:
 	 return _axioms;
   }
 
+  static bool _holAxiomsAdded;
+
 private:
   /*********************************************
   * Lambda and application elimination functions

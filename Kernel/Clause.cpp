@@ -40,6 +40,7 @@
 #include "SAT/SATClause.hpp"
 
 #include "Shell/Options.hpp"
+#include "Shell/LambdaElimination.hpp"
 
 #include "Inference.hpp"
 #include "Signature.hpp"
@@ -109,6 +110,21 @@ Clause::Clause(unsigned length,InputType it,Inference* inf)
       }
     }
     _theoryDescendant=td;
+  }
+  //TODO WARNING - if input has cnf in it then this will be set before
+  // LambdaElimination is run!
+
+  //TODO Interestingly, LambdaElimination is not actually in the Shell namespace
+  static bool hasHOLAxioms = LambdaElimination::_holAxiomsAdded; 
+  if(hasHOLAxioms){
+    Inference::Iterator it = inf->iterator();
+    bool hd = inf->hasNext(it); // hd should be false if there are no parents
+    while(inf->hasNext(it) && hd){
+      Unit* parent = inf->next(it);
+      hd &= static_cast<Clause*>(parent)->isHOLADescendant();
+      if(!hd){break;}
+    }
+    setHOLADescendant(hd);
   }
 
 //#if VDEBUG
