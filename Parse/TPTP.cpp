@@ -1510,27 +1510,20 @@ void TPTP::holFunction()
     _states.push(HOL_FUNCTION);
     return;
 
+  case T_LAMBDA:
   case T_FORALL:
   case T_EXISTS:
    // _states.push(UNBIND_VARIABLES);
-
     resetToks();
     consumeToken(T_LBRA);
-    _connectives.push(tok.tag == T_FORALL ? FORALL : EXISTS);
+    _connectives.push(tok.tag == T_FORALL ? FORALL : (tok.tag == T_EXISTS ? EXISTS : LAMBDA));
     _states.push(HOL_FUNCTION);
     addTagState(T_COLON);
     addTagState(T_RBRA);
     _states.push(VAR_LIST);
+    _lastBinder = tok.tag == T_FORALL ? UNIV : (tok.tag == T_EXISTS ? EXIS : LAMB);
     return;
-  case T_LAMBDA:
-    resetToks();
-    consumeToken(T_LBRA);
-    _connectives.push(tok.tag == T_FORALL ? FORALL : EXISTS);
-    _states.push(HOL_FUNCTION);
-    addTagState(T_COLON);
-    addTagState(T_RBRA);
-    _states.push(LAMBDA_VAR_LIST);
-    return;
+
   case T_LPAR:
     resetToks();
     addTagState(T_RPAR);
@@ -1585,18 +1578,23 @@ void TPTP::holTerm()
   Token tok = getTok(0);
   resetToks();
 
-  if (tok.tag == T_LBRA) {
-    _strings.push(toString(T_TUPLE));
-  } else {
-    _strings.push(tok.content);
-  }
+  _strings.push(tok.content);
 
   switch (tok.tag) {//TODO update this for HOL -AYB
   
-    case T_VAR:
-      _ints.push(-1); // dummy arity to indicate a variable
+    case T_VAR:{//This requires updating for variable heads.
+      unsigned var = (unsigned)_vars.insert(tok.content);
+      BindList* binders;
+      ALWAYS(_varBinders.find(var, binders)); //assuming that all terms are closed.
+      if(binders->head() == LAMB){
+        _termLists.push(createDuBruijnIndex(var));
+      }else{
+        _termLists.push(TermList(var, false));
+      }
+      _lastPushed = TM;
+      _states.push(HOL_SUB_TERM);
       return;
-
+    }
     case T_NAME:{
       unsigned funcNum = env.signature->getFunctionNumber(tok.content);
       unsigned arity = env.signature->functionArity(funcNum);
@@ -1688,22 +1686,12 @@ void TPTP::holSubTerm(){
 
 TermList TPTP::etaExpand(unsigned funcNum, vstring name, unsigned arity, unsigned argsOnStack){
 
-  bool added;
   unsigned count = argsOnStack;
   OperatorType* type = env.signature->getFunction(funcNum)->fnType();
    
   for( unsigned i = arity; i > argsOnStack; i--){
-    
     unsigned sort = type->arg(count);
-    unsigned fun = env.signature->addFunction(Int::toString(i - argsOnStack) + "_" + Int::toString(sort),0,added);
-    if(added){//first time constant added. Set type
-        Signature::Symbol* symbol = env.signature->getFunction(fun);  
-        symbol->setType(OperatorType::getConstantsType(sort));
-        symbol->markDuBruijnIndex();   
-    }
-    Term* t = Term::createConstant(fun);
-    TermList ts(t);
-    _termLists.push(ts);
+    _termLists.push(addDuBruijnIndex(Int::toString(i - argsOnStack), sort));
     count++;
   }
   TermList expandedTerm = createFunctionApplication(name, arity);
@@ -1714,6 +1702,35 @@ TermList TPTP::etaExpand(unsigned funcNum, vstring name, unsigned arity, unsigne
   }  
   
   return expandedTerm;
+}
+
+TermList TPTP::addDuBruijnIndex(vstring name, unsigned sort){
+  CALL("TPTP::addDuBruijnIndex");
+
+  bool added;
+  unsigned fun = env.signature->addFunction(name + "_" +  Lib::Int::toString(sort),0,added);
+  if(added){//first time constant added. Set type
+    Signature::Symbol* symbol = env.signature->getFunction(fun);  
+    symbol->setType(OperatorType::getConstantsType(sort));
+    symbol->markDuBruijnIndex();  
+  }
+  Term* t = Term::createConstant(fun);
+  TermList ts(t);
+  return ts;
+}
+
+TermList TPTP::createDuBruijnIndex(int var){
+  CALL("TPTP::createDuBruijnIndex");
+  
+  unsigned count = _lambdaVars.size() - 1; 
+  while( count >= 0 ){
+     if( _lambdaVars[count] == var ){
+       vstring name = Int::toString(_lambdaVars.size() - count);
+       return addDuBruijnIndex(name, _lambdaVarSorts[count]);
+     }
+     count--;
+  }  
+  ASSERTION_VIOLATION;
 }
 
 TermList TPTP::abstract(TermList term, unsigned sort){
@@ -1801,8 +1818,13 @@ void TPTP::endHolFunction()
        endFormulaInsideTerm();
      }
      fun = _termLists.pop();
-     TermList ts(Term::createLambda(fun, (Connective)con, _varLists.pop(), _sortLists.pop(), sortOf(fun)));
-     _termLists.push(ts);
+     TermList abstractedTerm;
+     _varLists.pop();
+     SortList* sorts = _sortLists.pop();
+     for( int i = SortList::length(sorts) - 1 ; i > -1; i--){
+       abstractedTerm = abstract(fun, SortList::nth(sorts, i)); //This is going to iterate over the complete list. Improve when I get opp.
+     }
+     _termLists.push(abstractedTerm);
      _lastPushed = TM;
      _states.push(END_HOL_FUNCTION);
      _states.push(UNBIND_VARIABLES);
@@ -2654,7 +2676,14 @@ void TPTP::bindVariable(int var,unsigned sortNumber)
 {
   CALL("TPTP::bindVariable");
 
+  BindList* binders;
   SortList* bindings;
+  if (_varBinders.find(var, binders)){
+    _varBinders.replace(var, new BindList(_lastBinder, binders));
+  }
+  else {
+    _varBinders.insert(var, new BindList(_lastBinder));
+  }
   if (_variableSorts.find(var,bindings)) {
     _variableSorts.replace(var,new SortList(sortNumber,bindings));
   }
@@ -2682,47 +2711,50 @@ void TPTP::varList()
     }
     int var = _vars.insert(tok.content);
     vars.push(var);
+    if(_lastBinder == LAMB){ _lambdaVars.push(var); }
     resetToks();
     bool sortDeclared = false;
     afterVar:
     tok = getTok(0);
     switch (tok.tag) {
-    case T_COLON: // v: type
+    case T_COLON:{ // v: type
       if (sortDeclared) {
         PARSE_ERROR("two declarations of variable sort",tok);
       }
       resetToks();
-      bindVariable(var, readSort());
+      unsigned sort = readSort();
+      bindVariable(var, sort);
+      if(_lastBinder == LAMB){ _lambdaVarSorts.push(sort); }
       sortDeclared = true;
       goto afterVar;
-
+    }
     case T_COMMA:
       if (!sortDeclared) {
-        bindVariable(var,Sorts::SRT_DEFAULT);
+        bindVariable(var,Sorts::SRT_DEFAULT); //in lambda var list sorts always declared?
       }
       resetToks();
       break;
 
-    default:
-      {
-    if (!sortDeclared) {
-      bindVariable(var,Sorts::SRT_DEFAULT);
-    }
-    Formula::VarList* vs = Formula::VarList::empty();
-    Formula::SortList* ss = Formula::SortList::empty();
-    while (!vars.isEmpty()) {
-    int v = vars.pop();
-      vs = new Formula::VarList(v,vs);
-    ss = new Formula::SortList(sortOf(TermList(v,false)),ss);
-    }
-    _varLists.push(vs);
-    _sortLists.push(ss);
-    _bindLists.push(vs);
-    return;
+    default:{
+      if (!sortDeclared) {
+        bindVariable(var,Sorts::SRT_DEFAULT);
       }
+      Formula::VarList* vs = Formula::VarList::empty();
+      SortList* ss = SortList::empty();
+      while (!vars.isEmpty()) {
+        int v = vars.pop();
+        vs = new Formula::VarList(v,vs);
+        ss = new SortList(sortOf(TermList(v,false)),ss);
+      }
+      _varLists.push(vs);
+      _sortLists.push(ss);
+      _bindLists.push(vs);
+      return;
+    }
     }
   }
 } // varList
+
 
 /**
  * Read a non-empty sequence of constants and save the resulting
@@ -3919,12 +3951,21 @@ void TPTP::unbindVariables()
 {
   CALL("TPTP::unbindVariables");
 
-  Formula::VarList::Iterator vs(_bindLists.pop());
+  Formula::VarList* varlist = _bindLists.pop();
+  for( unsigned i = 0; i < Formula::VarList::length(varlist); i++){
+     _lambdaVars.pop();
+     _lambdaVarSorts.pop();
+  }  
+  
+  Formula::VarList::Iterator vs(varlist);
   while (vs.hasNext()) {
     int var = vs.next();
     SortList* sorts;
+    BindList* binders;
     ALWAYS(_variableSorts.find(var,sorts));
+    ALWAYS(_varBinders.find(var,binders));
     _variableSorts.replace(var,sorts->tail());
+    _varBinders.replace(var,binders->tail());
   }
 } // unbindVariables
 

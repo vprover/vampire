@@ -284,6 +284,15 @@ public:
 	  TM,
   };
 
+  enum Binder {
+    UNIV,
+    EXIS,
+    LAMB,
+  };
+  
+  typedef List<Binder> BindList;
+  typedef List<unsigned> SortList;
+  
   /** token */
   struct Token {
     /** token type */
@@ -573,11 +582,12 @@ private:
   Stack<bool> _bools;
   /** various integer values saved during parsing */
   Stack<int> _ints;
+  Stack<int> _lambdaVars;
   Stack<unsigned> _lambdaVarSorts;
   /** variable lists for building formulas */
   Stack<Formula::VarList*> _varLists;
   /** sort lists for building formulas */
-  Stack<Formula::SortList*> _sortLists;
+  Stack<SortList*> _sortLists;
   /** variable lists for binding variables */
   Stack<Formula::VarList*> _bindLists;
   /** various tokens to consume */
@@ -598,6 +608,8 @@ private:
   Stack<TheoryFunction> _theoryFunctions;
   /** bindings of variables to sorts */
   Map<int,SortList*> _variableSorts;
+  /** binding of variables to their binders */
+  Map<int,BindList*> _varBinders;
   /** overflown arithmetical constants for which uninterpreted constants are introduced */
   Set<vstring> _overflow;
   /** current color, if the input contains colors */
@@ -618,6 +630,8 @@ private:
   LetFunctionsScope _currentLetScope;
   /** Record wether a formula or term has been pushed more recently */
   LastPushed _lastPushed;
+  /** Records most recently crossed binder */
+  Binder _lastBinder;
 
   typedef pair<unsigned, bool> LetBinding;
   typedef Stack<LetBinding> LetBindingScope;
@@ -774,6 +788,8 @@ private:
   void endTuple();
   void addTagState(Tag);
 
+  TermList createDuBruijnIndex(int var);
+  TermList addDuBruijnIndex(vstring name, unsigned sort);
   TermList abstract(TermList term, unsigned sort);
   TermList etaExpand(unsigned funcNum, vstring name, unsigned arity, unsigned argsOnStack);
   Stack<unsigned> readHOLSort();
