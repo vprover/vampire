@@ -290,6 +290,7 @@ public:
     LAMB,
   };
   
+  typedef List<OperatorType> TypeList;
   typedef List<Binder> BindList;
   typedef List<unsigned> SortList;
   
@@ -582,6 +583,9 @@ private:
   Stack<bool> _bools;
   /** various integer values saved during parsing */
   Stack<int> _ints;
+  /** number of arguments for current head symbol parsed */
+  Stack<int> _argsSoFar;
+  /** Stack of variables bound by lambdas in current formula */
   Stack<int> _lambdaVars;
   Stack<unsigned> _lambdaVarSorts;
   /** variable lists for building formulas */
@@ -610,6 +614,8 @@ private:
   Map<int,SortList*> _variableSorts;
   /** binding of variables to their binders */
   Map<int,BindList*> _varBinders;
+  /** binding of variables to types (Will get rid of _variableSorts at some point) */
+  Map<int,TypeList*> _varTypes;
   /** overflown arithmetical constants for which uninterpreted constants are introduced */
   Set<vstring> _overflow;
   /** current color, if the input contains colors */
@@ -789,8 +795,9 @@ private:
   void addTagState(Tag);
 
   TermList createDuBruijnIndex(int var);
-  TermList addDuBruijnIndex(vstring name, unsigned sort);
+  unsigned addDuBruijnIndex(vstring name, unsigned sort);
   TermList abstract(TermList term, unsigned sort);
+  OperatorType* toType(unsigned sort);
   TermList etaExpand(unsigned funcNum, vstring name, unsigned arity, unsigned argsOnStack);
   Stack<unsigned> readHOLSort();
   Stack<unsigned> convertToUnsigned(Stack<int>);

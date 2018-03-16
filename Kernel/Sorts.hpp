@@ -65,7 +65,7 @@ public:
     /** The structured sort for tuples */
     TUPLE,
     /** The structured sort for all higher order symbols */
-    HIGHER_ORD_CONST,
+    FUNCTION,
     /** not a real structured sort, it's here to denote the length of the StructuredSort enum */
     LAST_STRUCTURED_SORT
   };
@@ -164,7 +164,7 @@ public:
      USE_ALLOCATOR(FunctionSort);    
      
      FunctionSort(vstring name, unsigned domainSort, unsigned rangeSort,unsigned id) 
-       : StructuredSortInfo(name,StructuredSort::HIGHER_ORD_CONST, id),  
+       : StructuredSortInfo(name,StructuredSort::FUNCTION, id),  
          _domainSort(domainSort), _rangeSort(rangeSort){}    
      unsigned getDomainSort(){ return _domainSort; }    
      unsigned getRangeSort(){ return _rangeSort; }
@@ -191,7 +191,7 @@ public:
 
   unsigned addFunctionSort(unsigned domainSort, unsigned rangeSort);
   FunctionSort* getFuncSort(unsigned sort){
-    ASS(isOfStructuredSort(sort,StructuredSort::HIGHER_ORD_CONST));
+    ASS(isOfStructuredSort(sort,StructuredSort::FUNCTION));
     return static_cast<FunctionSort*>(_sorts[sort]);
   }
  

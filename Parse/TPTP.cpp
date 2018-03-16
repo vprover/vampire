@@ -1583,15 +1583,8 @@ void TPTP::holTerm()
   switch (tok.tag) {//TODO update this for HOL -AYB
   
     case T_VAR:{//This requires updating for variable heads.
-      unsigned var = (unsigned)_vars.insert(tok.content);
-      BindList* binders;
-      ALWAYS(_varBinders.find(var, binders)); //assuming that all terms are closed.
-      if(binders->head() == LAMB){
-        _termLists.push(createDuBruijnIndex(var));
-      }else{
-        _termLists.push(TermList(var, false));
-      }
-      _lastPushed = TM;
+      _ints.push(-1); //var
+      _argsSoFar.push(0);
       _states.push(HOL_SUB_TERM);
       return;
     }
@@ -1599,6 +1592,7 @@ void TPTP::holTerm()
       unsigned funcNum = env.signature->getFunctionNumber(tok.content);
       unsigned arity = env.signature->functionArity(funcNum);
       _ints.push(arity); // arity
+      _argsSoFar.push(0);
       _states.push(HOL_SUB_TERM);
       return;
     }
@@ -1618,13 +1612,24 @@ void TPTP::endHolTerm()
   CALL("TPTP::endHolTerm");
   
   vstring name = _strings.pop();
+  unsigned arity = _ints.pop();
+
+  if(arity == -1){ //that was a variable
+      unsigned var = (unsigned)_vars.insert(name);
+      BindList* binders;
+      ALWAYS(_varBinders.find(var, binders)); //assuming that all terms are closed.
+      if(binders->head() == LAMB){
+        _termLists.push(createDuBruijnIndex(var));
+      }else{
+        _termLists.push(TermList(var, false));
+      }
+      _lastPushed = TM;
+
+  }
 
   unsigned funcNum = env.signature->getFunctionNumber(name);
-  unsigned arity = env.signature->functionArity(funcNum);
 
-  //Following makes the assumption that we cannot have more termlists on the stack than arity.
-  //This ought to be reviewed.
-  _termLists.push(etaExpand(funcNum, name, arity, _termLists.size()));
+  _termLists.push(etaExpand(funcNum, name, arity, _argsSoFar.pop()));
   _lastPushed = TM;
 
   
@@ -1654,8 +1659,12 @@ void TPTP::holSubTerm(){
   tok = getTok(0);
   resetToks();
   
+  _argsSoFar.push(_argsSoFar.pop() + 1);
+
   switch (tok.tag) {//TODO update this for HOL -AYB
-    case T_LBRA:
+    case T_LPAR:
+      _states.push(HOL_SUB_TERM);
+      addTagState(T_RPAR);
       _states.push(END_HOL_TERM);
       _states.push(HOL_TERM);
       return;
@@ -1684,6 +1693,7 @@ void TPTP::holSubTerm(){
   
 }
 
+//Need to eta-expand recursively!
 TermList TPTP::etaExpand(unsigned funcNum, vstring name, unsigned arity, unsigned argsOnStack){
 
   unsigned count = argsOnStack;
@@ -1691,7 +1701,13 @@ TermList TPTP::etaExpand(unsigned funcNum, vstring name, unsigned arity, unsigne
    
   for( unsigned i = arity; i > argsOnStack; i--){
     unsigned sort = type->arg(count);
-    _termLists.push(addDuBruijnIndex(Int::toString(i - argsOnStack), sort));
+    unsigned index = addDuBruijnIndex(Int::toString(i - argsOnStack), sort));
+    if(!env.sorts->isOfStructuredSort(sort, Sorts::StructuredSort::Function)){
+      _termLists.push(TermList(Term::createConstant(fun)));
+    }else{
+      vstring name2 = Int::toString(i - argsOnStack) + "_" +  Lib::Int::toString(sort);
+      _termLists.push(etaExpand(fun, name2,  ));
+    }
     count++;
   }
   TermList expandedTerm = createFunctionApplication(name, arity);
@@ -1704,19 +1720,18 @@ TermList TPTP::etaExpand(unsigned funcNum, vstring name, unsigned arity, unsigne
   return expandedTerm;
 }
 
-TermList TPTP::addDuBruijnIndex(vstring name, unsigned sort){
+unsigned TPTP::addDuBruijnIndex(vstring name, unsigned sort){
   CALL("TPTP::addDuBruijnIndex");
 
   bool added;
+  //Arity not necessarily 0!
   unsigned fun = env.signature->addFunction(name + "_" +  Lib::Int::toString(sort),0,added);
   if(added){//first time constant added. Set type
     Signature::Symbol* symbol = env.signature->getFunction(fun);  
-    symbol->setType(OperatorType::getConstantsType(sort));
+    symbol->setType(toType(sort));
     symbol->markDuBruijnIndex();  
   }
-  Term* t = Term::createConstant(fun);
-  TermList ts(t);
-  return ts;
+  return fun;
 }
 
 TermList TPTP::createDuBruijnIndex(int var){
@@ -1755,6 +1770,20 @@ TermList TPTP::abstract(TermList term, unsigned sort){
    return TermList(Term::create1(fun, term));   
 }
 
+OperatorType* TPTP::toType(unsigned sort){
+  CALL("TPTP::toType");
+
+  Stack<unsigned> sorts;  
+  if(env.sorts->isOfStructuredSort(sort, Sorts::StructuredSort::FUNCTION)){
+    while(env.sorts->isOfStructuredSort(sort, Sorts::StructuredSort::FUNCTION)){
+      sorts.push(env.sorts->getFuncSort(sort)->getDomainSort());
+      sort = env.sorts->getFuncSort(sort)->getRangeSort();
+    }
+    return OperatorType::getFunctionType(sorts.size(), sorts.begin(), sort);
+
+  }
+  return OperatorType::getConstantsType(sort);
+}
 
 /**
   * Process the end of a HOL function.
