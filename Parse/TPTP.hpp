@@ -239,8 +239,6 @@ public:
     HOL_SUB_TERM,
     /** read after sub-term */
     END_HOL_SUB_TERM,
-    /** create a special application term after reading an app */
-    END_APP,
     /** tff declaration */
     TFF,
     /** THF declaration */
@@ -290,7 +288,7 @@ public:
     LAMB,
   };
   
-  typedef List<OperatorType> TypeList;
+  typedef List<OperatorType*> TypeList;
   typedef List<Binder> BindList;
   typedef List<unsigned> SortList;
   
@@ -614,7 +612,7 @@ private:
   Map<int,SortList*> _variableSorts;
   /** binding of variables to their binders */
   Map<int,BindList*> _varBinders;
-  /** binding of variables to types (Will get rid of _variableSorts at some point) */
+  /** binding of variables to types */
   Map<int,TypeList*> _varTypes;
   /** overflown arithmetical constants for which uninterpreted constants are introduced */
   Set<vstring> _overflow;
@@ -779,7 +777,6 @@ private:
   void include();
   void type();
   void endIte();
-  void endApp();
   void holFunction();
   void endHolFunction();
   void holTerm();
@@ -793,17 +790,33 @@ private:
   void endTheoryFunction();
   void endTuple();
   void addTagState(Tag);
-
-  TermList createDuBruijnIndex(int var);
-  unsigned addDuBruijnIndex(vstring name, unsigned sort);
+  
+  /** All Du Bruijn indices in @tl greater than @cutoff are lifted by @value and new TermList returned */
+  TermList lift(TermList tl, unsigned value, unsigned cutoff);
+  bool lift(TermList* fromtl, TermList* totl, unsigned value, unsigned cutoff);
+  Term* lift(Term* term, unsigned value, unsigned cutoff);
+  Formula* lift(Formula* formula, unsigned value, unsigned cutoff);
+  FormulaList* lift(FormulaList* fs, unsigned value, unsigned cutoff);
+  void dealWithVar(vstring name, bool applied);
+  /** for top @termNum TermLists on _termLists stack, all free Du Bruijn idices are lifted by @value */
+  void lift(unsigned termNum, unsigned value);
+  /**if @name represents Du Bruijn Index, lifts it by @value */
+  vstring lift(vstring name, unsigned value);
+  /** returns true iff @index represents an index of value greater than @cutoff */
+  bool indexGreater(vstring index, unsigned cutoff);
+  vstring nameToIndex(int var);
+  unsigned addDuBruijnIndex(vstring name, OperatorType* type);
+  /** abstracts term to create Lambda(term) of sort 'sort -> sortOf(term)' */
   TermList abstract(TermList term, unsigned sort);
   OperatorType* toType(unsigned sort);
-  TermList etaExpand(unsigned funcNum, vstring name, unsigned arity, unsigned argsOnStack);
+  TermList etaExpand(OperatorType* type, vstring name, unsigned arity, unsigned argsOnStack, bool isIndex);
   Stack<unsigned> readHOLSort();
   Stack<unsigned> convertToUnsigned(Stack<int>);
   void foldl(Stack<int>*);
+  unsigned foldl(Stack<unsigned>);
   unsigned readSort();
   void bindVariable(int var,unsigned sortNumber);
+  void bindVariable(int var,OperatorType* type);
   void unbindVariables();
   void skipToRPAR();
   void skipToRBRA();
