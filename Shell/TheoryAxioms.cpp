@@ -492,12 +492,12 @@ void TheoryAxioms::addBVReverseAndMoreAxiom(Interpretation op, Interpretation g_
     addAndOutputTheoryUnit(new FormulaUnit(res, new Inference(Inference::THEORY), Unit::AXIOM), EXPENSIVE);
     
     // (bvugt s t) XOR (bvult s t) XOR (= s t)
-    Formula* bvult_s_t = new AtomicFormula(Literal::create2(g,true,s,t));
+   /* Formula* bvult_s_t = new AtomicFormula(Literal::create2(g,true,s,t));
     Formula* eq_s_t = new AtomicFormula(Literal::createEquality(true, s, t, srt));
     
     Formula*  _xor1 = new BinaryFormula(XOR, bvult_s_t, bvugt_s_t);
     Formula*  _xor2 = new BinaryFormula(XOR, _xor1, eq_s_t);
-    addAndOutputTheoryUnit(new FormulaUnit(_xor2, new Inference(Inference::THEORY), Unit::AXIOM), EXPENSIVE);
+    addAndOutputTheoryUnit(new FormulaUnit(_xor2, new Inference(Inference::THEORY), Unit::AXIOM), EXPENSIVE);*/
     
 } 
 
@@ -711,75 +711,6 @@ void TheoryAxioms::addBVXORAxiom1(Interpretation bvxor, Interpretation bvor , In
     addTheoryUnitClause(eq1, EXPENSIVE);
     
 }
- /*(bvsdiv s t) abbreviates
-      (let ((?msb_s ((_ extract |m-1| |m-1|) s))
-            (?msb_t ((_ extract |m-1| |m-1|) t)))
-        (ite (and (= ?msb_s #b0) (= ?msb_t #b0))
-             (bvudiv s t)
-        (ite (and (= ?msb_s #b1) (= ?msb_t #b0))
-             (bvneg (bvudiv (bvneg s) t))
-        (ite (and (= ?msb_s #b0) (= ?msb_t #b1))
-             (bvneg (bvudiv s (bvneg t)))
-             (bvudiv (bvneg s) (bvneg t))))))*/
-/*void TheoryAxioms::addBVsdivAxiom(Interpretation bvsdivInterpretation, Interpretation extractInterpretation,Interpretation bvudivI, Interpretation bvnegI, 
-        unsigned lastIndex,UnitList*& units)
-{
-    unsigned _bvsdiv = env.signature->getInterpretingSymbol(bvsdivInterpretation);
-    unsigned _extract = env.signature->getInterpretingSymbol(extractInterpretation);
-    unsigned _bvudiv = env.signature->getInterpretingSymbol(bvudivI);
-    unsigned _bvneg = env.signature->getInterpretingSymbol(bvnegI);
-    
-    TermList s(0,false);
-    TermList t(1,false);
-    TermList indexTL(theory->representConstant(IntegerConstantType(lastIndex)));
-    
-    TermList args[] = {indexTL, indexTL, s};
-    TermList extract_LB_s = TermList(Term::Term::create(_extract, 3, args));
-    
-    TermList args2[] = {indexTL, indexTL, t};
-    TermList extract_LB_t = TermList(Term::Term::create(_extract, 3, args2));
-    
-    // #b0
-    TermList b_0(theory->representConstant(BitVectorOperations::getZeroBVCT(1)));
-    // #b1
-    TermList b_1(theory->representConstant(BitVectorOperations::getOneBVCT(1)));
-    
-    
-    //(bvneg t)
-    TermList bvneg_t(Term::create1(_bvneg,t));
-    //(bvneg s)
-    TermList bvneg_s(Term::create1(_bvneg,s));
-    //last line
-    //(bvudiv (bvneg s) (bvneg t))))))
-    TermList bvudiv_bvneg_s_bvneg_t(Term::create2(_bvudiv,bvneg_s, bvneg_t));
-    //middle line 
-    //(bvudiv s (bvneg t))
-    TermList bvudiv_s_bvneg_t(Term::create2(_bvudiv,s, bvneg_t));
-    //(bvneg (bvudiv s (bvneg t)))
-    TermList bvneg_bvudiv_s_bvneg_t(Term::create1(_bvneg,bvudiv_s_bvneg_t));
-    // condition
-    //(= ?msb_t #b1)
-    Formula* msb_t_eq_b_1 = new AtomicFormula(Literal::createEquality(true, extract_LB_t, b_1, env.sorts->addBitVectorSort(1)));
-    // (= ?msb_s #b0)
-    Formula* msb_s_eq_b_0 = new AtomicFormula(Literal::createEquality(true, extract_LB_s, b_0, env.sorts->addBitVectorSort(1)));
-    
-    FormulaList* argLst = nullptr;
-    FormulaList::push(msb_t_eq_b_1,argLst);
-    FormulaList::push(msb_s_eq_b_0,argLst);
-    
-    Formula*  _and = new JunctionFormula(AND, argLst);
-    
-    unsigned srt = theory->getOperationSort(bvsdivInterpretation);
-    // lhs
-    TermList lhs(Term::create2(_bvsdiv,s,t));
-    // rhs
-    TermList ite(Term::createITE(_and,bvneg_bvudiv_s_bvneg_t,bvudiv_bvneg_s_bvneg_t,srt));
-    Formula* whole = new AtomicFormula(Literal::createEquality(true, lhs, ite, srt));
-    
-    // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    //condition in file Kernel/Clause.cpp, line 484 violated:_literals[i]->shared()
-    addAndOutputTheoryUnit(new FormulaUnit(whole, new Inference(Inference::THEORY), Unit::AXIOM), units);
-} */
 
 /**
  * Add axioms for addition, multiplication, unary minus and ordering
