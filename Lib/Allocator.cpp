@@ -134,6 +134,14 @@ string Lib::___prettyFunToClassName(std::string str)
 
 #endif
 
+void* Allocator::operator new(size_t s) {
+  return malloc(s);
+}
+
+void Allocator::operator delete(void* obj) {
+  free(obj);
+}
+
 /**
  * Create a new allocator.
  * @since 10/01/2008 Manchester
@@ -310,7 +318,7 @@ void Allocator::cleanup()
       _pages[i] = pg->next;
       
       char* mem = reinterpret_cast<char*>(pg);
-      ::delete[] mem;
+      free(mem);
 #if VDEBUG && TRACE_ALLOCATIONS
       cnt++;
 #endif    
@@ -363,7 +371,6 @@ void Allocator::deallocateKnown(void* obj,size_t size)
   desc->allocated = 0;
 #endif
   free(obj);
-//  delete obj;
   return;
 #else   // ! USE_SYSTEM_ALLOCATION
   if (size >= REQUIRES_PAGE) {
@@ -435,7 +442,6 @@ void Allocator::deallocateUnknown(void* obj)
 #if USE_SYSTEM_ALLOCATION
   char* memObj = reinterpret_cast<char*>(obj) - sizeof(Known);
   free(memObj);
-//  delete obj;
   return;
 #endif
 
@@ -614,12 +620,8 @@ Allocator::Page* Allocator::allocatePages(size_t size)
     }
     _usedMemory = newSize;
 
-    char* mem;
-    try {
-      BYPASSING_ALLOCATOR;
-      
-      mem = new char[realSize];
-    } catch(bad_alloc) {
+    char* mem = static_cast<char*>(malloc(realSize));
+    if (!mem) {
       env.beginOutput();
       reportSpiderStatus('m');
       env.out() << "Memory limit exceeded!\n";
@@ -1022,6 +1024,14 @@ ostream& Lib::operator<<(ostream& out, const Allocator::Descriptor& d) {
       << ",page:" << (d.page ? "yes" : "no") << ']';  
   
   return out;
+}
+
+void* Allocator::Descriptor::operator new[](size_t s) {
+  return malloc(s);
+}
+
+void Allocator::Descriptor::operator delete[](void* obj) {
+  free(obj);
 }
 
 /**
