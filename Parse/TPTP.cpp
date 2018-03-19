@@ -2087,11 +2087,11 @@ void TPTP::endHolFunction()
        endFormulaInsideTerm();
      }
      fun = _termLists.pop();
-     TermList abstractedTerm;
+     TermList abstractedTerm = fun;
      _varLists.pop();
      SortList* sorts = _sortLists.pop();
      for( int i = SortList::length(sorts) - 1 ; i > -1; i--){
-       abstractedTerm = abstract(fun, SortList::nth(sorts, i)); //This is going to iterate over the complete list. Improve when I get opp.
+       abstractedTerm = abstract(abstractedTerm, SortList::nth(sorts, i)); //This is going to iterate over the complete list. Improve when I get opp.
      }
      _termLists.push(abstractedTerm);
      _lastPushed = TM;
@@ -2980,18 +2980,18 @@ void TPTP::varList()
         PARSE_ERROR("two declarations of variable sort",tok);
       }
       resetToks();
-      Stack<unsigned> sorts = readHOLSort();
+      Stack<unsigned> sorts = readHOLSort();  
+      if(_lastBinder == LAMB){     
+          _lambdaVarSorts.push(foldl(sorts)); //At the moment the only use of _lambdaVarSorts is to 
+        //make the name of different indices different by appending their sorts to the end.
+        //Consider removing in the future.
+      }
       if(sorts.size() == 1){      
         bindVariable(var, sorts.pop());
       }else{
         unsigned returnSort = sorts.pop();
         OperatorType* type = OperatorType::getFunctionType(sorts.size(), sorts.begin(), returnSort);
         bindVariable(var, type);        
-      }
-      if(_lastBinder == LAMB){ 
-        _lambdaVarSorts.push(foldl(sorts)); //At the moment the only use of _lambdaVarSorts is to 
-        //make the name of different indices different by appending their sorts to the end.
-        //Consider removing in the future.
       }
       sortDeclared = true;
       goto afterVar;
@@ -4333,6 +4333,9 @@ unsigned TPTP::foldl(Stack<unsigned> sorts)
 {
    CALL("TPTP::foldl(Stack<unsigned>)");
    
+   if(sorts.size() == 1){
+     return sorts.pop();
+   }
    unsigned item1 = sorts.pop();
    unsigned item2 = sorts.pop();
    while(!(sorts.isEmpty())){
