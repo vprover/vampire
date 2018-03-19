@@ -1678,7 +1678,7 @@ void TPTP::dealWithVar(vstring name, bool applied){
     if(binders->head() == LAMB){ //DuBruijn index
       vstring indexName = nameToIndex(var); //finding du-bruijn index equivalent to var
       unsigned varSort = sorts->head();
-      unsigned index = addDuBruijnIndex(indexName + "_" + Int::toString(varSort), toType(varSort));
+      unsigned index = addDuBruijnIndex(indexName, toType(varSort));
       _termLists.push(TermList(Term::createConstant(index)));
     }else{ //Classic var (phew!)
       _termLists.push(TermList(var, false));
@@ -1709,6 +1709,7 @@ TermList TPTP::etaExpand(OperatorType* type, vstring name, unsigned arity, unsig
   if(arity - argsOnStack > 0){
     if(isIndex){
       name = lift(name, arity - argsOnStack); //head symbol is a Du Bruijn index that requires lifting by arity - argsonstack
+      addDuBruijnIndex(name, type);
     }
     lift(argsOnStack, arity - argsOnStack);//recursively lift the arguments already on the stack
   }
@@ -1721,8 +1722,9 @@ TermList TPTP::etaExpand(OperatorType* type, vstring name, unsigned arity, unsig
       _termLists.push(TermList(Term::createConstant(index)));
     }else{
       OperatorType* subType = toType(sort);
+      cout << "The subtype is " + subType->toString() << endl;
       unsigned subArity = subType->arity();
-      vstring name2 = Int::toString(i - argsOnStack + subArity) + "_" + Int::toString(sort);
+      vstring name2 = Int::toString(i - argsOnStack) + "_" + Int::toString(sort);
       /* The addition of subArity in the above is the 'lift operation */
       _termLists.push(etaExpand(subType, name2, subArity ,0, true));
     }
@@ -1992,7 +1994,9 @@ TermList TPTP::abstract(TermList term, unsigned sort){
   
    CALL("TPTP::abstract");
 
+   cout << "The term is: " + term.toString() << endl;
    unsigned termSort = sortOf(term);
+   cout << "The sort is: " + env.sorts->sortName(termSort) << endl;
    unsigned lamSort = env.sorts->addFunctionSort(sort, termSort);
 
    Stack<unsigned> sorts;
