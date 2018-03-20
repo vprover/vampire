@@ -1671,30 +1671,26 @@ void TPTP::dealWithVar(vstring name, bool applied){
   
   unsigned var = (unsigned)_vars.insert(name);
   BindList* binders;
-  SortList* sorts;
   TypeList* types;
   ALWAYS(_varBinders.find(var, binders)); //assuming that all terms are closed.
-  if(_variableSorts.find(var, sorts)){ //This is a first-order variable has sort not type.
-    if(binders->head() == LAMB){ //DuBruijn index
-      vstring indexName = nameToIndex(var); //finding du-bruijn index equivalent to var
-      unsigned varSort = sorts->head();
-      unsigned index = addDuBruijnIndex(indexName, toType(varSort));
+  ALWAYS(_varTypes.find(var, types));
+  OperatorType* varType = types->head();
+  if(binders->head() == LAMB){ //DuBruijn index
+    vstring indexName = nameToIndex(var); //finding du-bruijn index equivalent to var
+    unsigned index = addDuBruijnIndex(indexName, varType);
+    if(varType->arity() == 0){ //constant  
       _termLists.push(TermList(Term::createConstant(index)));
-    }else{ //Classic var (phew!)
-      _termLists.push(TermList(var, false));
-    }
-  }else{ //higher-order variable.
-    ALWAYS(_varTypes.find(var, types));
-    if(binders->head() == LAMB){ //higher-order bound var
-      vstring indexName = nameToIndex(var);
-      OperatorType* varType = types->head();
-      addDuBruijnIndex(indexName, varType);
+    }else{ //higher-order DU Bruijn index
       if(!applied){
         _termLists.push(etaExpand(varType, indexName,  varType->arity(), 0, true)); 
       }else{
         _termLists.push(etaExpand(varType, indexName,  varType->arity(), _argsSoFar.pop(), true));  
       }
-    }else{//higher-order existentially or universally quantified var. Leave this for later!
+    }
+  }else{ //existentially or universally quantified var.
+    if(varType->arity() == 0){//Classic var (phew!)
+      _termLists.push(TermList(var, false));
+    }else{//higher-order, leave for later!
           
     }
   }
@@ -1722,7 +1718,6 @@ TermList TPTP::etaExpand(OperatorType* type, vstring name, unsigned arity, unsig
       _termLists.push(TermList(Term::createConstant(index)));
     }else{
       OperatorType* subType = toType(sort);
-      cout << "The subtype is " + subType->toString() << endl;
       unsigned subArity = subType->arity();
       vstring name2 = Int::toString(i - argsOnStack) + "_" + Int::toString(sort);
       /* The addition of subArity in the above is the 'lift operation */
@@ -1994,9 +1989,7 @@ TermList TPTP::abstract(TermList term, unsigned sort){
   
    CALL("TPTP::abstract");
 
-   cout << "The term is: " + term.toString() << endl;
    unsigned termSort = sortOf(term);
-   cout << "The sort is: " + env.sorts->sortName(termSort) << endl;
    unsigned lamSort = env.sorts->addFunctionSort(sort, termSort);
 
    Stack<unsigned> sorts;
@@ -2089,13 +2082,13 @@ void TPTP::endHolFunction()
   case LAMBDA:{
      if(_lastPushed == FORM){
        endFormulaInsideTerm();
-     }
-     fun = _termLists.pop();
-     TermList abstractedTerm = fun;
+     } 
+     TermList abstractedTerm = _termLists.pop();
      _varLists.pop();
      SortList* sorts = _sortLists.pop();
      for( int i = SortList::length(sorts) - 1 ; i > -1; i--){
-       abstractedTerm = abstract(abstractedTerm, SortList::nth(sorts, i)); //This is going to iterate over the complete list. Improve when I get opp.
+       abstractedTerm = abstract(abstractedTerm, _lambdaVarSorts.pop());
+       _lambdaVars.pop();
      }
      _termLists.push(abstractedTerm);
      _lastPushed = TM;
@@ -2985,18 +2978,18 @@ void TPTP::varList()
       }
       resetToks();
       Stack<unsigned> sorts = readHOLSort();  
+      unsigned sort = foldl(sorts);
       if(_lastBinder == LAMB){     
-          _lambdaVarSorts.push(foldl(sorts)); //At the moment the only use of _lambdaVarSorts is to 
+          _lambdaVarSorts.push(sort);
+        //At the moment the only use of _lambdaVarSorts is to 
         //make the name of different indices different by appending their sorts to the end.
         //Consider removing in the future.
       }
-      if(sorts.size() == 1){      
-        bindVariable(var, sorts.pop());
-      }else{
-        unsigned returnSort = sorts.pop();
-        OperatorType* type = OperatorType::getFunctionType(sorts.size(), sorts.begin(), returnSort);
-        bindVariable(var, type);        
-      }
+      unsigned returnSort = sorts.pop();
+      OperatorType* type = OperatorType::getFunctionType(sorts.size(), sorts.begin(), returnSort);
+      bindVariable(var, type);        
+      bindVariable(var, sort);
+      //bind every variable to sort and type. Must be better way utilising polymorphism/template class
       sortDeclared = true;
       goto afterVar;
     }
@@ -4224,10 +4217,6 @@ void TPTP::unbindVariables()
   CALL("TPTP::unbindVariables");
 
   Formula::VarList* varlist = _bindLists.pop();
-  for( unsigned i = 0; i < Formula::VarList::length(varlist); i++){
-     _lambdaVars.pop();
-     _lambdaVarSorts.pop();
-  }  
   
   Formula::VarList::Iterator vs(varlist);
   while (vs.hasNext()) {
