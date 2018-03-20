@@ -361,7 +361,7 @@ public:
 
   /** Function or predicate symbol of a term */
   const unsigned functor() const { return _functor; }
-  const bool isHigherOrderVar() const{ return _functor > VARIABLE_HEAD_LOWER_BOUND; }
+  const bool isHigherOrderVar() const{ return (_functor > VARIABLE_HEAD_LOWER_BOUND) && (_functor < SPECIAL_FUNCTOR_LOWER_BOUND); }
 
   static XMLElement variableToXML(unsigned var);
   vstring toString() const;

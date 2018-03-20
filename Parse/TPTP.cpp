@@ -1705,9 +1705,9 @@ void TPTP::dealWithVar(vstring name, bool applied){
         count--;
       }  
       if(!applied){
-        _termLists.push(etaExpand(varType, name,  varType->arity(), 0, true, count + 1)); 
+        _termLists.push(etaExpand(varType, name,  varType->arity(), 0, false, count + 1)); 
       }else{
-        _termLists.push(etaExpand(varType, name,  varType->arity(), _argsSoFar.pop(), true, count +1));  
+        _termLists.push(etaExpand(varType, name,  varType->arity(), _argsSoFar.pop(), false, count +1));  
       }
     }
   }
@@ -1720,7 +1720,7 @@ void TPTP::dealWithVar(vstring name, bool applied){
   * @author Ahmed Bhayat
   */
 TermList TPTP::etaExpand(OperatorType* type, vstring name, unsigned arity, unsigned argsOnStack, bool isIndex, unsigned hoVar){
-
+  CALL("TPTP::etaExpand");
   unsigned count = argsOnStack;
    
   if(arity - argsOnStack > 0){
@@ -2098,7 +2098,7 @@ void TPTP::endHolFunction()
       return;
   }  
   
-  if ((con != APP) & (con != LAMBDA) & (con != -1) & (_lastPushed == TM)){
+  if ( (con != LAMBDA) && (con != -1) && (_lastPushed == TM)){
     //At the moment, APP and LAMBDA are the only connectives that can take functions of type
     //Other than $o as arguments.
     endTermAsFormula();
@@ -2133,7 +2133,9 @@ void TPTP::endHolFunction()
     Formula::SortList* sorts = _sortLists.pop();
     _formulas.push(new QuantifiedFormula((Connective)con,vars,sorts,f));
     for( int i = Formula::VarList::length(vars) - 1 ; i > -1; i--){
-      _hoFaExvars.pop();
+      if(env.sorts->isOfStructuredSort(SortList::pop(sorts), Sorts::StructuredSort::FUNCTION)){
+        _hoFaExvars.pop();
+      }
     }
     _lastPushed = FORM;
     _states.push(END_HOL_FUNCTION);
