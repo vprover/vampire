@@ -1068,7 +1068,6 @@ unsigned Allocator::Descriptor::hash (const void* addr)
 
 #endif
 
-#if VDEBUG
 /**
  * In debug mode we replace the global new and delete (also the array versions)
  * and terminate in cases when they are used "unwillingly".
@@ -1076,6 +1075,9 @@ unsigned Allocator::Descriptor::hash (const void* addr)
  * and yet they attempt to call global new (and not the class specific versions 
  * built on top of Allocator).
  * 
+ * Update: In release, we newly use global new/delete as well,
+ * but just silently redirect the allocations to our Allocator.
+ *
  * This is a link about some requirements on new/delete: 
  * http://stackoverflow.com/questions/7194127/how-should-i-write-iso-c-standard-conformant-custom-new-and-delete-operators/
  * (Note that we ignore the globalHandler issue here.)
@@ -1084,18 +1086,12 @@ unsigned Allocator::Descriptor::hash (const void* addr)
 void* operator new(size_t sz) {    
   ASS_REP(Allocator::_tolerantZone > 0,"Attempted to use global new operator, thus bypassing Allocator!");
   // Please read: https://github.com/easychair/vampire/wiki/Attempted-to-use-global-new-operator,-thus-bypassing-Allocator!
-
-  if(Allocator::_tolerantZone == 0){
-    Debug::Tracer::printStack(cout);
-  
-    cout << "Warning, bypassing Allocator" << endl;
-  }
   
   if (sz == 0)
     sz = 1;
-      
-  void* res = malloc(sz);  
   
+  void* res = ALLOC_UNKNOWN(sz,"global new");
+
   if (!res)
     throw bad_alloc();
   
@@ -1106,17 +1102,11 @@ void* operator new[](size_t sz) {
   ASS_REP(Allocator::_tolerantZone > 0,"Attempted to use global new[] operator, thus bypassing Allocator!");
   // Please read: https://github.com/easychair/vampire/wiki/Attempted-to-use-global-new-operator,-thus-bypassing-Allocator!
 
-  if(Allocator::_tolerantZone == 0){
-    Debug::Tracer::printStack(cout);
-    
-    cout << "Warning, bypassing Allocator" << endl;
-  }
-  
   if (sz == 0)
     sz = 1;
-      
-  void* res = malloc(sz);  
   
+  void* res = ALLOC_UNKNOWN(sz,"global new[]");
+
   if (!res)
     throw bad_alloc();
   
@@ -1127,26 +1117,15 @@ void operator delete(void* obj) throw() {
   ASS_REP(Allocator::_tolerantZone > 0,"Custom operator new matched by global delete!");
   // Please read: https://github.com/easychair/vampire/wiki/Attempted-to-use-global-new-operator,-thus-bypassing-Allocator!
 
-  if(Allocator::_tolerantZone==0){
-    Debug::Tracer::printStack(cout);
-    
-    cout << "Warning, custom new matched by global delete" << endl;
-  }
-  free(obj);
+  DEALLOC_UNKNOWN(obj,"global new");
 }
 
 void operator delete[](void* obj) throw() {  
   ASS_REP(Allocator::_tolerantZone > 0,"Custom operator new[] matched by global delete[]!");
   // Please read: https://github.com/easychair/vampire/wiki/Attempted-to-use-global-new-operator,-thus-bypassing-Allocator!
 
-  if(Allocator::_tolerantZone==0){
-        Debug::Tracer::printStack(cout);
-  
-    cout << "Warning, custom new matched by global delete[]" << endl;
-  }
-  free(obj);
+  DEALLOC_UNKNOWN(obj,"global new[]");
 }
-#endif // VDEBUG
 
 #if VTEST
 
