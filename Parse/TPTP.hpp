@@ -585,6 +585,8 @@ private:
   Stack<int> _argsSoFar;
   /** Stack of variables bound by lambdas in current formula */
   Stack<int> _lambdaVars;
+  /** Stack of higher order variables bound in current formula by forall and exists quantifiers */
+  Stack<int> _hoFaExvars;
   /** variable lists for building formulas */
   Stack<Formula::VarList*> _varLists;
   /** sort lists for building formulas */
@@ -762,6 +764,7 @@ private:
   Literal* createEquality(bool polarity,TermList& lhs,TermList& rhs);
   Formula* createPredicateApplication(vstring name,unsigned arity);
   TermList createFunctionApplication(vstring name,unsigned arity);
+  TermList createHigherOrderVarApp(unsigned hoVar, OperatorType* type);
   void endEquality();
   void midEquality();
   void formulaInfix();
@@ -808,7 +811,7 @@ private:
   /** abstracts term to create Lambda(term) of sort 'sort -> sortOf(term)' */
   TermList abstract(TermList term, unsigned sort);
   OperatorType* toType(unsigned sort);
-  TermList etaExpand(OperatorType* type, vstring name, unsigned arity, unsigned argsOnStack, bool isIndex);
+  TermList etaExpand(OperatorType* type, vstring name, unsigned arity, unsigned argsOnStack, bool isIndex, unsigned hoVar = 0);
   Stack<unsigned> readHOLSort();
   Stack<unsigned> convertToUnsigned(Stack<int>);
   void foldl(Stack<int>*);

@@ -1697,7 +1697,18 @@ void TPTP::dealWithVar(vstring name, bool applied){
     if(varType->arity() == 0){//Classic var (phew!)
       _termLists.push(TermList(var, false));
     }else{//higher-order, leave for later!
-          
+      unsigned count = _hoFaExvars.size() - 1; 
+      while( count >= 0 ){
+        if( (unsigned)_hoFaExvars[count] == var ){
+          break;
+        }
+        count--;
+      }  
+      if(!applied){
+        _termLists.push(etaExpand(varType, name,  varType->arity(), 0, true, count + 1)); 
+      }else{
+        _termLists.push(etaExpand(varType, name,  varType->arity(), _argsSoFar.pop(), true, count +1));  
+      }
     }
   }
   _lastPushed = TM;
@@ -1708,7 +1719,7 @@ void TPTP::dealWithVar(vstring name, bool applied){
   * @since 19/03/2018
   * @author Ahmed Bhayat
   */
-TermList TPTP::etaExpand(OperatorType* type, vstring name, unsigned arity, unsigned argsOnStack, bool isIndex){
+TermList TPTP::etaExpand(OperatorType* type, vstring name, unsigned arity, unsigned argsOnStack, bool isIndex, unsigned hoVar){
 
   unsigned count = argsOnStack;
    
@@ -1735,7 +1746,12 @@ TermList TPTP::etaExpand(OperatorType* type, vstring name, unsigned arity, unsig
     }
     count++;
   }
-  TermList expandedTerm = createFunctionApplication(name, arity);
+  TermList expandedTerm;
+  if(!hoVar){
+    expandedTerm = createFunctionApplication(name, arity);
+  }else{
+    expandedTerm = createHigherOrderVarApp(hoVar, type);
+  }
   count = arity - 1;
   for( unsigned i = argsOnStack; i < arity; i++){
     expandedTerm = abstract(expandedTerm, type->arg(count));
@@ -1780,7 +1796,6 @@ void TPTP::lift(unsigned argNum, unsigned value){
 TermList TPTP::lift(TermList ts, unsigned value, unsigned cutoff){
   CALL("TPTP:::lift(TermList, unsigned, unsigned)");
   
-  cout << " Attempting to lift " + ts.toString() << endl;
   if(ts.isVar()){
     return ts;
   }
@@ -1813,7 +1828,7 @@ Term* TPTP::lift(Term* term, unsigned value, unsigned cutoff){
     liftedTerm = Term::create(fun, term->arity(), term->args());
     modified = true;
   }else{
-      liftedTerm = new(term->arity()) Term(*term);
+    liftedTerm = Term::cloneNonShared(term);
   }
   if((!sym->lambda() && lift(term->args(), liftedTerm->args(), value, cutoff)) ||
       (sym->lambda() && lift(term->args(), liftedTerm->args(), value, cutoff+1)) ||
@@ -2112,13 +2127,19 @@ void TPTP::endHolFunction()
     _states.push(END_HOL_FUNCTION);
     return;
   case FORALL:
-  case EXISTS:
+  case EXISTS:{
     f = _formulas.pop();
-    _formulas.push(new QuantifiedFormula((Connective)con,_varLists.pop(),_sortLists.pop(),f));
-     _lastPushed = FORM;
+    Formula::VarList* vars = _varLists.pop();
+    Formula::SortList* sorts = _sortLists.pop();
+    _formulas.push(new QuantifiedFormula((Connective)con,vars,sorts,f));
+    for( int i = Formula::VarList::length(vars) - 1 ; i > -1; i--){
+      _hoFaExvars.pop();
+    }
+    _lastPushed = FORM;
     _states.push(END_HOL_FUNCTION);
     _states.push(UNBIND_VARIABLES);
     return;
+  }
   case LAMBDA:{
      if(_lastPushed == FORM){
        endFormulaInsideTerm();
@@ -3015,6 +3036,9 @@ void TPTP::varList()
       unsigned sort = foldl(sorts);
       unsigned returnSort = sorts.pop();
       OperatorType* type = OperatorType::getFunctionType(sorts.size(), sorts.begin(), returnSort);
+      if(_lastBinder != LAMB && type->arity() != 0){ //higher-order bound var
+        _hoFaExvars.push(var);
+      }
       bindVariable(var, type);        
       bindVariable(var, sort);
       //bind every variable to sort and type. Must be better way utilising polymorphism/template class
@@ -3428,6 +3452,33 @@ TermList TPTP::createFunctionApplication(vstring name, unsigned arity)
   Term* t = new(arity) Term;
   t->makeSymbol(fun,arity);
   OperatorType* type = env.signature->getFunction(fun)->fnType();
+  bool safe = true;
+  for (int i = arity-1;i >= 0;i--) {
+    unsigned sort = type->arg(i);
+    TermList ss = _termLists.pop();
+    unsigned ssSort = sortOf(ss);
+    if (sort != ssSort) {
+      USER_ERROR("The sort " + env.sorts->sortName(ssSort) + " of function argument " + ss.toString() + " "
+                 "does not match the expected sort " + env.sorts->sortName(sort));
+    }
+    *(t->nthArgument(i)) = ss;
+    safe = safe && ss.isSafe();
+  }
+  if (safe) {
+    t = env.sharing->insert(t);
+  }
+  TermList ts(t);
+  return ts;
+}
+
+TermList TPTP::createHigherOrderVarApp(unsigned hoVar, OperatorType* type){
+  CALL("PTP::createHigherOrderVarApp");
+  
+  unsigned fun = hoVar + Term::VARIABLE_HEAD_LOWER_BOUND;
+  unsigned arity = type->arity();
+  Term* t = new(arity) Term;
+  t->makeSymbol(fun,arity);
+
   bool safe = true;
   for (int i = arity-1;i >= 0;i--) {
     unsigned sort = type->arg(i);

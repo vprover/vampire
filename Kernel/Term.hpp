@@ -235,6 +235,9 @@ public:
   static const unsigned SF_LAMBDA = 0xFFFFFFFA;
   static const unsigned SF_APP = 0xFFFFFFF9; 
   static const unsigned SPECIAL_FUNCTOR_LOWER_BOUND = 0xFFFFFFF9;
+
+
+  static const unsigned VARIABLE_HEAD_LOWER_BOUND = 0x7FFFFFFF;
   
   class SpecialTermData
   {
@@ -358,6 +361,7 @@ public:
 
   /** Function or predicate symbol of a term */
   const unsigned functor() const { return _functor; }
+  const bool isHigherOrderVar() const{ return _functor > VARIABLE_HEAD_LOWER_BOUND; }
 
   static XMLElement variableToXML(unsigned var);
   vstring toString() const;

@@ -405,7 +405,11 @@ vstring Term::variableToString(TermList var)
 vstring Term::headToString() const
 {
   CALL("Term::headToString");
-
+  
+  if(isHigherOrderVar()){
+    return "Y" + Int::toString(_functor - VARIABLE_HEAD_LOWER_BOUND);
+  }
+  
   if (isSpecial()) {
     const Term::SpecialTermData* sd = getSpecialData();
 
