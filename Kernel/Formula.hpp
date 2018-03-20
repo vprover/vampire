@@ -342,7 +342,9 @@ class BoolTermFormula
       _ts(ts)
   {
     // only boolean terms in formula context are expected here
-    //ASS_REP(ts.isVar() || !ts.term()->arity() || ts.term()->isITE() || ts.term()->isLet() || ts.term()->isTupleLet() || ts.term()->isApp(), ts.toString());
+    if(!env.signature->isHigherOrder()){// In eta-long-form HOL, boolean terms can be of the form f(arg_1...arg_n)
+      ASS_REP(ts.isVar() || ts.term()->isITE() || ts.term()->isLet() || ts.term()->isTupleLet(), ts.toString());
+    }
   }
 
   static Formula* create(TermList ts) {

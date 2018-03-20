@@ -140,7 +140,7 @@ class Signature
   public:
      
     /** standard constructor */
-    Symbol(const vstring& nm,unsigned arity, bool interpreted=false, bool stringConstant=false,bool numericConstant=false,bool overflownConstant=false);
+    Symbol(const vstring& nm,unsigned arity, bool interpreted=false, bool stringConstant=false,bool numericConstant=false,bool overflownConstant=false, bool index = false);
     void destroyFnSymbol();
     void destroyPredSymbol();
 
@@ -349,7 +349,7 @@ class Signature
   //
 
   unsigned addPredicate(const vstring& name,unsigned arity,bool& added);
-  unsigned addFunction(const vstring& name,unsigned arity,bool& added,bool overflowConstant = false);
+  unsigned addFunction(const vstring& name,unsigned arity,bool& added,bool overflowConstant = false, bool index = false);
 
   /**
    * If a predicate with this name and arity exists, return its number.
@@ -556,7 +556,7 @@ class Signature
   }
   Stack<TermList>& getDividesNvalues(){ return _dividesNvalues; }
 
-  static bool symbolNeedsQuoting(vstring name, bool interpreted, unsigned arity);
+  static bool symbolNeedsQuoting(vstring name, bool interpreted, unsigned arity, bool index = false);
 
   bool isHOL() const { return _isHigherOrder; }  
   void setHigherOrder(){

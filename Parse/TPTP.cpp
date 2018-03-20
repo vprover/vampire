@@ -1666,6 +1666,12 @@ void TPTP::holSubTerm(){
   
 }
 
+/**
+  * Checks whether a variable is a lambda var, higher-order or first-order and 
+  * then actions as appropriate.
+  * @since 19/03/2018
+  * @author Ahmed Bhayat
+  */
 void TPTP::dealWithVar(vstring name, bool applied){
   CALL("TPTP::dealWithVar");
   
@@ -1697,7 +1703,11 @@ void TPTP::dealWithVar(vstring name, bool applied){
   _lastPushed = TM;
 }
 
-//Need to eta-expand recursively!
+/**
+  * Recursively eta expands a function with name @name, type @type and arity @arity
+  * @since 19/03/2018
+  * @author Ahmed Bhayat
+  */
 TermList TPTP::etaExpand(OperatorType* type, vstring name, unsigned arity, unsigned argsOnStack, bool isIndex){
 
   unsigned count = argsOnStack;
@@ -1735,6 +1745,11 @@ TermList TPTP::etaExpand(OperatorType* type, vstring name, unsigned arity, unsig
   return expandedTerm;
 }
 
+/**
+  * If @name represents a Du Bruijn0 index, it is lifted by @value 
+  * @since 19/03/2018
+  * @author Ahmed Bhayat
+  */
 vstring TPTP::lift(vstring name, unsigned value){
   CALL("TPTP::lift(vstring, unsigned)");
   
@@ -1748,9 +1763,14 @@ vstring TPTP::lift(vstring name, unsigned value){
   return Int::toString(liftedIndex) + name.substr(underPos);
 }
 
+/**
+  * Recursively lifts all Du Bruijn indices in top @argNum terms on _termLists by @value
+  * @since 19/03/2018
+  * @author Ahmed Bhayat
+  */
 void TPTP::lift(unsigned argNum, unsigned value){
   CALL("TPTP::lift(unsigned, unsigned)");
-  
+
   for(unsigned i = 1; i <= argNum; i ++){ 
     _termLists[_termLists.size() - i] = lift(_termLists[_termLists.size() - i], value, 0);
   }
@@ -1760,6 +1780,7 @@ void TPTP::lift(unsigned argNum, unsigned value){
 TermList TPTP::lift(TermList ts, unsigned value, unsigned cutoff){
   CALL("TPTP:::lift(TermList, unsigned, unsigned)");
   
+  cout << " Attempting to lift " + ts.toString() << endl;
   if(ts.isVar()){
     return ts;
   }
@@ -1785,25 +1806,23 @@ Term* TPTP::lift(Term* term, unsigned value, unsigned cutoff){
 
   Term* liftedTerm;
   Signature::Symbol* sym = env.signature->getFunction(term->functor()); 
-  if(sym->duBruijnIndex()){
-    vstring index = sym->name();
-    if(indexGreater(index, cutoff)){
-      vstring newIndex = lift(index, value);
-      unsigned fun = addDuBruijnIndex(newIndex, sym->fnType());
-      liftedTerm = Term::create(fun, term->arity(), term->args());
-      modified = true;
-    }
+  vstring index = sym->name();
+  if(sym->duBruijnIndex() && indexGreater(index, cutoff)){
+    vstring newIndex = lift(index, value);
+    unsigned fun = addDuBruijnIndex(newIndex, sym->fnType());
+    liftedTerm = Term::create(fun, term->arity(), term->args());
+    modified = true;
   }else{
-    liftedTerm = new(term->arity()) Term(*term);
+      liftedTerm = new(term->arity()) Term(*term);
   }
   if((!sym->lambda() && lift(term->args(), liftedTerm->args(), value, cutoff)) ||
       (sym->lambda() && lift(term->args(), liftedTerm->args(), value, cutoff+1)) ||
        modified){
-        if(TermList::allShared(liftedTerm->args())) {
+        if(TermList::allShared(liftedTerm->args()) && !liftedTerm->shared()) {
           return env.sharing->insert(liftedTerm);
-        }else {
-          return liftedTerm; 
-        } //if statement copied from rectify.cpp. 
+        } else {
+          return liftedTerm;
+        }
       }
   liftedTerm->destroy();
   return term;
@@ -1812,7 +1831,7 @@ Term* TPTP::lift(Term* term, unsigned value, unsigned cutoff){
 
 bool TPTP::lift(TermList* from, TermList* to, unsigned value, unsigned cutoff){
   CALL("lift(TermList*, TermList*, unsigned , unsigned)");
-  
+
   bool changed = false;
   while (!from->isEmpty()) {
     if (from->isVar()) {
@@ -1946,38 +1965,54 @@ FormulaList* TPTP::lift (FormulaList* fs, unsigned value, unsigned cutoff){
   return res;
 } 
 
+/**
+  * Returns true if @index represents a Du Bruijn index greater than @cutoff
+  * @since 19/03/2018
+  * @author Ahmed Bhayat
+  */
 bool TPTP::indexGreater(vstring index, unsigned cutoff){
    CALL("indexGreater");
    
    int ind = 0;
    Int::stringToInt(index.substr(0,index.find("_")), ind);
-   if(ind > cutoff){
+   if((unsigned)ind > cutoff){
      return true;
    }
    return false;
 }  
 
-
+/**
+  * Add function with name @name and type @type and amrk as an index
+  * @since 19/03/2018
+  * @author Ahmed Bhayat
+  */
 unsigned TPTP::addDuBruijnIndex(vstring name, OperatorType* type){
   CALL("TPTP::addDuBruijnIndex");
 
   bool added;
-  unsigned fun = env.signature->addFunction(name ,type->arity(),added);
+  unsigned fun = env.signature->addFunction(name ,type->arity(),added, false, true);
   if(added){//first time constant added. Set type
     Signature::Symbol* symbol = env.signature->getFunction(fun);  
-    symbol->setType(type);
-    symbol->markDuBruijnIndex();  
+    symbol->setType(type); 
   }
   return fun;
+
 }
 
+/**
+  * Converts int @var to equivalent Du Bruijn index and returns string representation
+  * @since 19/03/2018
+  * @author Ahmed Bhayat
+  */
 vstring TPTP::nameToIndex(int var){
   CALL("TPTP::nameToIndex");
   
   unsigned count = _lambdaVars.size() - 1; 
   while( count >= 0 ){
      if( _lambdaVars[count] == var ){
-       vstring name = Int::toString(_lambdaVars.size() - count) + "_" + Int::toString(_lambdaVarSorts[count]);
+       SortList* sorts;
+       ALWAYS(_variableSorts.find(var, sorts));
+       vstring name = Int::toString(_lambdaVars.size() - count) + "_" + Int::toString(sorts->head());
        return name;
      }
      count--;
@@ -1985,6 +2020,11 @@ vstring TPTP::nameToIndex(int var){
   ASSERTION_VIOLATION;
 }
 
+/**
+  * Creates an abstraction of @term with sort sort -> sortOf(term)
+  * @since 19/03/2018
+  * @author Ahmed Bhayat
+  */
 TermList TPTP::abstract(TermList term, unsigned sort){
   
    CALL("TPTP::abstract");
@@ -2084,11 +2124,12 @@ void TPTP::endHolFunction()
        endFormulaInsideTerm();
      } 
      TermList abstractedTerm = _termLists.pop();
-     _varLists.pop();
-     SortList* sorts = _sortLists.pop();
-     for( int i = SortList::length(sorts) - 1 ; i > -1; i--){
-       abstractedTerm = abstract(abstractedTerm, _lambdaVarSorts.pop());
-       _lambdaVars.pop();
+     Formula::VarList* vars = _varLists.pop();
+     _sortLists.pop();
+     for( int i = Formula::VarList::length(vars) - 1 ; i > -1; i--){
+       SortList* sorts;
+       ALWAYS(_variableSorts.find(_lambdaVars.pop(), sorts))
+       abstractedTerm = abstract(abstractedTerm, sorts->head());
      }
      _termLists.push(abstractedTerm);
      _lastPushed = TM;
@@ -2904,14 +2945,7 @@ void TPTP::bindVariable(int var,unsigned sortNumber)
 {
   CALL("TPTP::bindVariable");
 
-  BindList* binders;
   SortList* bindings;
-  if (_varBinders.find(var, binders)){
-    _varBinders.replace(var, new BindList(_lastBinder, binders));
-  }
-  else {
-    _varBinders.insert(var, new BindList(_lastBinder));
-  }
   if (_variableSorts.find(var,bindings)) {
     _variableSorts.replace(var,new SortList(sortNumber,bindings));
   }
@@ -2979,12 +3013,6 @@ void TPTP::varList()
       resetToks();
       Stack<unsigned> sorts = readHOLSort();  
       unsigned sort = foldl(sorts);
-      if(_lastBinder == LAMB){     
-          _lambdaVarSorts.push(sort);
-        //At the moment the only use of _lambdaVarSorts is to 
-        //make the name of different indices different by appending their sorts to the end.
-        //Consider removing in the future.
-      }
       unsigned returnSort = sorts.pop();
       OperatorType* type = OperatorType::getFunctionType(sorts.size(), sorts.begin(), returnSort);
       bindVariable(var, type);        

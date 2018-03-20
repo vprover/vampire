@@ -39,7 +39,7 @@ const unsigned Signature::STRING_DISTINCT_GROUP = 0;
  * @since 03/05/2013 train London-Manchester, argument numericConstant added
  * @author Andrei Voronkov
  */
-Signature::Symbol::Symbol(const vstring& nm,unsigned arity, bool interpreted, bool stringConstant,bool numericConstant, bool overflownConstant)
+Signature::Symbol::Symbol(const vstring& nm,unsigned arity, bool interpreted, bool stringConstant,bool numericConstant, bool overflownConstant, bool index)
   : _name(nm),
     _arity(arity),
     _interpreted(interpreted ? 1 : 0),
@@ -58,14 +58,14 @@ Signature::Symbol::Symbol(const vstring& nm,unsigned arity, bool interpreted, bo
     _distinctGroups(0),
     _usageCount(0),
 	  _isAPP(0),
-    _isIndex(0),
+    _isIndex(index ? 1 : 0),
     _isLambda(0),
 	  _HOLconst(NULL_CONSTANT)
 {
   CALL("Signature::Symbol::Symbol");
   ASS(!stringConstant || arity==0);
 
-  if (!stringConstant && !numericConstant && !overflownConstant && symbolNeedsQuoting(_name, interpreted,arity)) {
+  if (!stringConstant && !numericConstant && !overflownConstant && !index && symbolNeedsQuoting(_name, interpreted, arity)) {
     _name="'"+_name+"'";
   }
   if (_interpreted || isProtectedName(nm)) {
@@ -588,7 +588,8 @@ unsigned Signature::getPredicateNumber(const vstring& name) const
 unsigned Signature::addFunction (const vstring& name,
 				 unsigned arity,
 				 bool& added,
-				 bool overflowConstant)
+				 bool overflowConstant,
+         bool index)
 {
   CALL("Signature::addFunction");
 
@@ -613,7 +614,7 @@ unsigned Signature::addFunction (const vstring& name,
   }
 
   result = _funs.length();
-  _funs.push(new Symbol(name, arity, false, false, false, overflowConstant));
+  _funs.push(new Symbol(name, arity, false, false, false, overflowConstant, index));
   _funNames.insert(symbolKey, result);
   added = true;
   return result;
@@ -908,7 +909,7 @@ bool Signature::isProtectedName(vstring name)
  * @since 03/05/2013 train Manchester-London
  * @since 04/05/2015 Gothenburg -- do not quote FOOL true and false
  */
-bool Signature::symbolNeedsQuoting(vstring name, bool interpreted, unsigned arity)
+bool Signature::symbolNeedsQuoting(vstring name, bool interpreted, unsigned arity, bool index)
 {
   CALL("Signature::symbolNeedsQuoting");
   ASS_G(name.length(),0);

@@ -585,7 +585,6 @@ private:
   Stack<int> _argsSoFar;
   /** Stack of variables bound by lambdas in current formula */
   Stack<int> _lambdaVars;
-  Stack<unsigned> _lambdaVarSorts;
   /** variable lists for building formulas */
   Stack<Formula::VarList*> _varLists;
   /** sort lists for building formulas */
