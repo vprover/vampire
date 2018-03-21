@@ -46,6 +46,9 @@ OperatorType& SortHelper::getType(Term* t)
   if (t->isLiteral()) {
     return *(env.signature->getPredicate(t->functor())->predType());
   }
+  if(t->isHigherOrderVar()){
+    return *(env.signature->getVarType(t->functor()));
+  }
   return *env.signature->getFunction(t->functor())->fnType();
 } // getType
 
@@ -59,6 +62,9 @@ unsigned SortHelper::getResultSort(const Term* t)
   ASS(!t->isSpecial());
   ASS(!t->isLiteral());
 
+  if(t->isHigherOrderVar()){
+    return env.signature->getVarType(t->functor())->result();
+  }
   Signature::Symbol* sym = env.signature->getFunction(t->functor());
   return sym->fnType()->result();
 }

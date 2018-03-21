@@ -1633,23 +1633,30 @@ void TPTP::holSubTerm(){
   }
   resetToks();
   tok = getTok(0);
-  resetToks();
   
   _argsSoFar.push(_argsSoFar.pop() + 1);
 
   switch (tok.tag) {//TODO update this for HOL -AYB
     case T_LPAR:
+      resetToks();
       _states.push(HOL_SUB_TERM);
       addTagState(T_RPAR);
       _states.push(END_HOL_TERM);
       _states.push(HOL_TERM);
       return;
     case T_VAR:{
+      resetToks();
       dealWithVar(tok.content, false);
       _states.push(HOL_SUB_TERM);
       return;
     }
+    case T_LAMBDA:{
+      _states.push(END_HOL_FUNCTION);
+      _states.push(HOL_FUNCTION);
+      return;
+    }
     case T_NAME:{
+      resetToks();
       vstring funcName = tok.content;
       unsigned funcNum = env.signature->getFunctionNumber(funcName);
       unsigned arity = env.signature->functionArity(funcNum);
@@ -1697,17 +1704,12 @@ void TPTP::dealWithVar(vstring name, bool applied){
     if(varType->arity() == 0){//Classic var (phew!)
       _termLists.push(TermList(var, false));
     }else{//higher-order, leave for later!
-      unsigned count = _hoFaExvars.size() - 1; 
-      while( count >= 0 ){
-        if( (unsigned)_hoFaExvars[count] == var ){
-          break;
-        }
-        count--;
-      }  
+      FuncList* functors;
+      ALWAYS(_varFunctors.find(var, functors))
       if(!applied){
-        _termLists.push(etaExpand(varType, name,  varType->arity(), 0, false, count + 1)); 
+        _termLists.push(etaExpand(varType, name,  varType->arity(), 0, false, functors->head())); 
       }else{
-        _termLists.push(etaExpand(varType, name,  varType->arity(), _argsSoFar.pop(), false, count +1));  
+        _termLists.push(etaExpand(varType, name,  varType->arity(), _argsSoFar.pop(), false, functors->head()));  
       }
     }
   }
@@ -1719,8 +1721,9 @@ void TPTP::dealWithVar(vstring name, bool applied){
   * @since 19/03/2018
   * @author Ahmed Bhayat
   */
-TermList TPTP::etaExpand(OperatorType* type, vstring name, unsigned arity, unsigned argsOnStack, bool isIndex, unsigned hoVar){
+TermList TPTP::etaExpand(OperatorType* type, vstring name, unsigned arity, unsigned argsOnStack, bool isIndex, unsigned hoVarFunc){
   CALL("TPTP::etaExpand");
+
   unsigned count = argsOnStack;
    
   if(arity - argsOnStack > 0){
@@ -1741,16 +1744,15 @@ TermList TPTP::etaExpand(OperatorType* type, vstring name, unsigned arity, unsig
       OperatorType* subType = toType(sort);
       unsigned subArity = subType->arity();
       vstring name2 = Int::toString(i - argsOnStack) + "_" + Int::toString(sort);
-      /* The addition of subArity in the above is the 'lift operation */
       _termLists.push(etaExpand(subType, name2, subArity ,0, true));
     }
     count++;
   }
   TermList expandedTerm;
-  if(!hoVar){
+  if(!hoVarFunc){
     expandedTerm = createFunctionApplication(name, arity);
   }else{
-    expandedTerm = createHigherOrderVarApp(hoVar, type);
+    expandedTerm = createHigherOrderVarApp(hoVarFunc, type);
   }
   count = arity - 1;
   for( unsigned i = argsOnStack; i < arity; i++){
@@ -2129,14 +2131,7 @@ void TPTP::endHolFunction()
   case FORALL:
   case EXISTS:{
     f = _formulas.pop();
-    Formula::VarList* vars = _varLists.pop();
-    Formula::SortList* sorts = _sortLists.pop();
-    _formulas.push(new QuantifiedFormula((Connective)con,vars,sorts,f));
-    for( int i = Formula::VarList::length(vars) - 1 ; i > -1; i--){
-      if(env.sorts->isOfStructuredSort(SortList::pop(sorts), Sorts::StructuredSort::FUNCTION)){
-        _hoFaExvars.pop();
-      }
-    }
+    _formulas.push(new QuantifiedFormula((Connective)con,_varLists.pop(),_sortLists.pop(),f));
     _lastPushed = FORM;
     _states.push(END_HOL_FUNCTION);
     _states.push(UNBIND_VARIABLES);
@@ -2978,10 +2973,9 @@ void TPTP::bindVariable(int var,unsigned sortNumber)
 } // bindVariable
 
 /**
- * Bind a variable to a sort
- * @since 22/04/2011 Manchester
+ * Bind a variable to a type and a binder
+ * @since 20/03/2018 Manchester
  */
- //Broken function for FOL AYB - need to replace with old function!
 void TPTP::bindVariable(int var, OperatorType* type)
 {
   CALL("TPTP::bindVariable");
@@ -2999,6 +2993,23 @@ void TPTP::bindVariable(int var, OperatorType* type)
   }
   else {
     _varTypes.insert(var,new TypeList(type));
+  }
+} // bindVariable
+
+/**
+ * Bind a variable to a type and a binder
+ * @since 20/03/2018 Manchester
+ */
+void TPTP::bindVariableToFunc(int var, unsigned func)
+{
+  CALL("TPTP::bindVariableToFunc");
+
+  FuncList* functors;
+  if (_varFunctors.find(var,functors)) {
+    _varFunctors.replace(var,new SortList(func,functors));
+  }
+  else {
+    _varFunctors.insert(var,new SortList(func));
   }
 } // bindVariable
 
@@ -3038,8 +3049,9 @@ void TPTP::varList()
       unsigned sort = foldl(sorts);
       unsigned returnSort = sorts.pop();
       OperatorType* type = OperatorType::getFunctionType(sorts.size(), sorts.begin(), returnSort);
-      if(_lastBinder != LAMB && type->arity() != 0){ //higher-order bound var
-        _hoFaExvars.push(var);
+      if(_lastBinder != LAMB && type->arity() != 0){ //higher-order var (not index)
+        unsigned functor = env.signature->addFreshHOVar(type, "X" + Int::toString(var));
+        bindVariableToFunc(var, functor);
       }
       bindVariable(var, type);        
       bindVariable(var, sort);
@@ -3473,13 +3485,12 @@ TermList TPTP::createFunctionApplication(vstring name, unsigned arity)
   return ts;
 }
 
-TermList TPTP::createHigherOrderVarApp(unsigned hoVar, OperatorType* type){
+TermList TPTP::createHigherOrderVarApp(unsigned func, OperatorType* type){
   CALL("PTP::createHigherOrderVarApp");
   
-  unsigned fun = hoVar + Term::VARIABLE_HEAD_LOWER_BOUND;
   unsigned arity = type->arity();
   Term* t = new(arity) Term;
-  t->makeSymbol(fun,arity);
+  t->makeSymbol(func,arity);
 
   bool safe = true;
   for (int i = arity-1;i >= 0;i--) {
@@ -4300,19 +4311,22 @@ void TPTP::unbindVariables()
   Formula::VarList* varlist = _bindLists.pop();
   
   Formula::VarList::Iterator vs(varlist);
-  while (vs.hasNext()) {
+  while (vs.hasNext()) {//really messy. Need to clean up different maps.
     int var = vs.next();
     TypeList* types;
     SortList* sorts;
     BindList* binders;
-    if(_variableSorts.find(var,sorts)){
-      _variableSorts.replace(var,sorts->tail());
-    }else{
-      ALWAYS(_varTypes.find(var,types)); //variable must have either a sort or a type, not both
-      _varTypes.replace(var, types->tail()); 
-    }
+    ALWAYS(_variableSorts.find(var,sorts));
+    _variableSorts.replace(var,sorts->tail());
+    ALWAYS(_varTypes.find(var,types)); 
+    _varTypes.replace(var, types->tail()); 
     ALWAYS(_varBinders.find(var,binders));
     _varBinders.replace(var,binders->tail());
+    if(binders->head() != LAMB && types->head()->arity() != 0){ //higher-order var, not index
+      FuncList* functors;
+      ALWAYS(_varFunctors.find(var, functors));
+      _varFunctors.replace(var, functors->tail());
+    }
   }
 } // unbindVariables
 

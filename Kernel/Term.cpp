@@ -405,11 +405,11 @@ vstring Term::variableToString(TermList var)
 vstring Term::headToString() const
 {
   CALL("Term::headToString");
-  
+
   if(isHigherOrderVar()){
-    return "Y" + Int::toString(_functor - VARIABLE_HEAD_LOWER_BOUND);
+    return env.signature->getVarName(_functor) + "(";
   }
-  
+
   if (isSpecial()) {
     const Term::SpecialTermData* sd = getSpecialData();
 
@@ -485,36 +485,6 @@ vstring Term::headToString() const
 
         return "$let([" + symbolsList + "] := " + binding.toString() + ", ";
       }
-      case Term:: SF_LAMBDA: {
-         IntList* vars = sd->getLambdaVars(); //Need to add these functions to class!
-         SortList* sorts = sd->getVarSorts();
-         TermList lambdaExp = sd->getLambdaExp();
-		 
-         vstring varList = "[";
-         
-         IntList::Iterator vs(vars);
-         SortList::Iterator ss(sorts);
-         unsigned sort;
-         bool first = true;
-         while(vs.hasNext()) {
-           if (!first){
-              varList += ", ";
-           }else{ first = false; }
-           varList += Term::variableToString(vs.next()) + " : ";
-           sort = ss.next(); //Assuming that sort is avaible. Dangerous, change!
-            //if (sort != Sorts::SRT_DEFAULT){
-              varList += env.sorts->sortName(sort); 
-           //}
-         }
-
-         varList += "]";        
-         return "^" + varList + " : " + lambdaExp.toString() + ", ";
-
-      }
-      case Term::SF_APP: {
-          TermList lhs = sd->getAppLhs();
-          return "(" + lhs.toString() + " @ ";      
-      }
       default:
         ASSERTION_VIOLATION;
     }
@@ -522,6 +492,11 @@ vstring Term::headToString() const
     unsigned proj;
     if (Theory::tuples()->findProjection(functor(), false, proj)) {
       return "$proj(" + Int::toString(proj) + ", ";
+    }
+    Signature::Symbol* sym = env.signature->getFunction(_functor);
+    if(sym->lambda() || sym->duBruijnIndex()){
+      vstring name = env.signature->functionName(_functor);
+      return (name.substr(0, name.find("_")) + (arity() ? "(" : ""));
     }
     return (isLiteral() ? static_cast<const Literal *>(this)->predicateName() : functionName()) + (arity() ? "(" : "");
   }

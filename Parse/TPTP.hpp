@@ -585,8 +585,6 @@ private:
   Stack<int> _argsSoFar;
   /** Stack of variables bound by lambdas in current formula */
   Stack<int> _lambdaVars;
-  /** Stack of higher order variables bound in current formula by forall and exists quantifiers */
-  Stack<int> _hoFaExvars;
   /** variable lists for building formulas */
   Stack<Formula::VarList*> _varLists;
   /** sort lists for building formulas */
@@ -615,6 +613,9 @@ private:
   Map<int,BindList*> _varBinders;
   /** binding of variables to types */
   Map<int,TypeList*> _varTypes;
+  typedef List<unsigned> FuncList; 
+  /** binding higher-order variables to their function numbers */
+  Map<int, FuncList*> _varFunctors;
   /** overflown arithmetical constants for which uninterpreted constants are introduced */
   Set<vstring> _overflow;
   /** current color, if the input contains colors */
@@ -819,6 +820,7 @@ private:
   unsigned readSort();
   void bindVariable(int var,unsigned sortNumber);
   void bindVariable(int var,OperatorType* type);
+  void bindVariableToFunc(int var, unsigned func);
   void unbindVariables();
   void skipToRPAR();
   void skipToRBRA();

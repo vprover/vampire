@@ -59,7 +59,7 @@ class Signature
   /** Function or predicate symbol */
   class Symbol {
   
-  public: enum HOLConstant { //get rid of combinator type from term class, AYB
+  public: enum HOLConstant {
 	  AND,
 	  OR,
 	  IMP,
@@ -351,6 +351,9 @@ class Signature
   unsigned addPredicate(const vstring& name,unsigned arity,bool& added);
   unsigned addFunction(const vstring& name,unsigned arity,bool& added,bool overflowConstant = false, bool index = false);
 
+  unsigned addFreshHOVar(OperatorType* type, vstring name);
+  bool addHOVar(unsigned functor, OperatorType* type, vstring name);
+
   /**
    * If a predicate with this name and arity exists, return its number.
    * Otherwise, add a new one and return its number.
@@ -413,6 +416,14 @@ class Signature
     return addInterpretedPredicate(itp,Theory::getNonpolymorphicOperatorType(itp),name);
   }
 
+  /** Returns the type of hogher-order variable */
+  OperatorType* getVarType(unsigned functor);
+  vstring getVarName(unsigned functor);
+  const unsigned getNextFreshVarNum()
+  {
+    CALL("Signature::getNextFreshVarNum()");
+    return _nextFreshVarNumber + 1;
+  }
   unsigned getInterpretingSymbol(Interpretation interp, OperatorType* type);
   unsigned getInterpretingSymbol(Interpretation interp)
   {
@@ -590,8 +601,13 @@ private:
   SymbolMap _predNames;
   /** Map for the arity_check options: maps symbols to their arities */
   SymbolMap _arityCheck;
+  /** Map of higher-order variable functors to their types */
+  typedef pair<OperatorType*, vstring> HOVarFuncInfo;
+  Map<unsigned,HOVarFuncInfo> _hoVarMap;
   /** Last number used for fresh functions and predicates */
   int _nextFreshSymbolNumber;
+  /** Last number used for higher-order variables */
+  unsigned _nextFreshVarNumber;
 
   /** Number of Skolem functions (this is just for LaTeX output) */
   unsigned _skolemFunctionCount;
