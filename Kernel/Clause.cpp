@@ -41,6 +41,7 @@
 
 #include "Shell/Options.hpp"
 #include "Shell/LambdaElimination.hpp"
+#include "Shell/Statistics.hpp"
 
 #include "Inference.hpp"
 #include "Signature.hpp"
@@ -109,6 +110,7 @@ Clause::Clause(unsigned length,InputType it,Inference* inf)
         td = false;
       }
     }
+    if(td){ env.statistics->theoryDescendants++;}
     _theoryDescendant=td;
   }
   //TODO WARNING - if input has cnf in it then this will be set before
@@ -121,9 +123,11 @@ Clause::Clause(unsigned length,InputType it,Inference* inf)
     bool hd = inf->hasNext(it); // hd should be false if there are no parents
     while(inf->hasNext(it) && hd){
       Unit* parent = inf->next(it);
-      hd &= static_cast<Clause*>(parent)->isHOLADescendant();
-      if(!hd){break;}
+      hd &= parent->isHOLADescendant();
+      //if(!hd){break;}
+      if(parent->isHOLADescendant()){ cout << "XXX" << endl; }
     }
+    if(hd){ env.statistics->holDescendants++;}
     setHOLADescendant(hd);
   }
 
