@@ -406,7 +406,7 @@ vstring Term::headToString() const
 {
   CALL("Term::headToString");
 
-  if(isHigherOrderVar()){
+  if(hasVarHead()){
     return env.signature->getVarName(_functor) + "(";
   }
 

@@ -1514,6 +1514,7 @@ void TPTP::holFunction()
     resetToks();
     consumeToken(T_LBRA);
     _connectives.push(tok.tag == T_FORALL ? FORALL : (tok.tag == T_EXISTS ? EXISTS : LAMBDA));
+    _states.push(END_HOL_FUNCTION);
     _states.push(HOL_FUNCTION);
     addTagState(T_COLON);
     addTagState(T_RBRA);
@@ -1573,19 +1574,24 @@ void TPTP::holTerm()
 {
   CALL("TPTP::holTerm");
   Token tok = getTok(0);
-  resetToks();
 
   _strings.push(tok.content);
 
   switch (tok.tag) {//TODO update this for HOL -AYB
   
     case T_VAR:{//This requires updating for variable heads.
+      resetToks();
       _ints.push(-1); //var
       _argsSoFar.push(0);
       _states.push(HOL_SUB_TERM);
       return;
     }
+    case T_LAMBDA:{
+      _states.push(HOL_FUNCTION);
+      return;
+    }
     case T_NAME:{
+      resetToks();
       unsigned funcNum = env.signature->getFunctionNumber(tok.content);
       unsigned arity = env.signature->functionArity(funcNum);
       _ints.push(arity); // arity
@@ -1651,7 +1657,6 @@ void TPTP::holSubTerm(){
       return;
     }
     case T_LAMBDA:{
-      _states.push(END_HOL_FUNCTION);
       _states.push(HOL_FUNCTION);
       return;
     }
@@ -1822,12 +1827,23 @@ Term* TPTP::lift(Term* term, unsigned value, unsigned cutoff){
   bool modified = false;
 
   Term* liftedTerm;
-  Signature::Symbol* sym = env.signature->getFunction(term->functor()); 
-  vstring index = sym->name();
-  if(sym->duBruijnIndex() && indexGreater(index, cutoff)){
+  Signature::Symbol* sym;
+  vstring index;
+  if(!term->hasVarHead()){
+    sym = env.signature->getFunction(term->functor()); 
+    index = sym->name();
+  }
+  if(!term->hasVarHead() && sym->duBruijnIndex() && indexGreater(index, cutoff)){
     vstring newIndex = lift(index, value);
     unsigned fun = addDuBruijnIndex(newIndex, sym->fnType());
-    liftedTerm = Term::create(fun, term->arity(), term->args());
+    unsigned arity = term->arity();
+    liftedTerm = new(arity) Term;
+    liftedTerm->makeSymbol(fun, arity);
+    for (int i = arity-1;i >= 0;i--) {
+      TermList ss = *(term->nthArgument(i));
+      *(liftedTerm->nthArgument(i)) = ss;
+    }
+    liftedTerm = env.sharing->insert(liftedTerm);
     modified = true;
   }else{
     liftedTerm = Term::cloneNonShared(term);
@@ -2133,7 +2149,7 @@ void TPTP::endHolFunction()
     f = _formulas.pop();
     _formulas.push(new QuantifiedFormula((Connective)con,_varLists.pop(),_sortLists.pop(),f));
     _lastPushed = FORM;
-    _states.push(END_HOL_FUNCTION);
+    //_states.push(END_HOL_FUNCTION);
     _states.push(UNBIND_VARIABLES);
     return;
   }
@@ -2151,7 +2167,7 @@ void TPTP::endHolFunction()
      }
      _termLists.push(abstractedTerm);
      _lastPushed = TM;
-     _states.push(END_HOL_FUNCTION);
+     //_states.push(END_HOL_FUNCTION);
      _states.push(UNBIND_VARIABLES);
      return; 
     }
