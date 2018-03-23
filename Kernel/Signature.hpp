@@ -349,7 +349,7 @@ class Signature
   //
 
   unsigned addPredicate(const vstring& name,unsigned arity,bool& added);
-  unsigned addFunction(const vstring& name,unsigned arity,bool& added,bool overflowConstant = false, bool index = false);
+  unsigned addFunction(const vstring& name,unsigned arity,bool& added,bool overflowConstant = false, bool hoFunc = false);
 
   unsigned addFreshHOVar(OperatorType* type, vstring name);
   bool addHOVar(unsigned functor, OperatorType* type, vstring name);
@@ -513,11 +513,11 @@ class Signature
   CLASS_NAME(Signature);
   USE_ALLOCATOR(Signature);
 
-  bool functionExists(const vstring& name) const;
-  bool predicateExists(const vstring& name) const;
+  bool functionExists(const vstring& name,unsigned arity) const;
+  bool predicateExists(const vstring& name,unsigned arity) const;
 
-  unsigned getFunctionNumber(const vstring& name) const;
-  unsigned getPredicateNumber(const vstring& name) const;
+  unsigned getFunctionNumber(const vstring& name, unsigned arity) const;
+  unsigned getPredicateNumber(const vstring& name, unsigned arity) const;
   
   Unit* getDistinctGroupPremise(unsigned group);
   unsigned createDistinctGroup(Unit* premise = 0);
@@ -528,7 +528,7 @@ class Signature
 
   bool hasTermAlgebras() { return !_termAlgebras.isEmpty(); }
       
-  static vstring key(const vstring& name,int arity);
+  static vstring key(const vstring& name,int arity, bool higherOrder = false);
 
   /** the number of string constants */
   unsigned strings() const {return _strings;}

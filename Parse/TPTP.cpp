@@ -1416,9 +1416,7 @@ void TPTP::tff()
       unsigned returnSort = sorts.pop();
       
       unsigned arity = sorts.size();
-      unsigned fun = arity == 0
-                   ? addUninterpretedConstant(nm,_overflow,added)
-                   : env.signature->addFunction(nm,arity,added);
+      unsigned fun = env.signature->addFunction(nm,arity,added,false,true);
       if (!added) {
         USER_ERROR("Function symbol type is declared after its use: " + nm);
       }
@@ -1592,7 +1590,9 @@ void TPTP::holTerm()
     }
     case T_NAME:{
       resetToks();
-      unsigned funcNum = env.signature->getFunctionNumber(tok.content);
+      bool added;
+      unsigned funcNum = env.signature->addFunction(tok.content, 0 , added, false, true); //dummy arity
+      ASS_REP(!added, tok.content);
       unsigned arity = env.signature->functionArity(funcNum);
       _ints.push(arity); // arity
       _argsSoFar.push(0);
@@ -1622,7 +1622,9 @@ void TPTP::endHolTerm()
       return;
   }
 
-  unsigned funcNum = env.signature->getFunctionNumber(name);
+  bool added;
+  unsigned funcNum = env.signature->addFunction(name, 0 , added, false, true);
+  ASS_REP(!added, name);
   OperatorType* type = env.signature->getFunction(funcNum)->fnType();
   
   _termLists.push(etaExpand(type, name, arity, _argsSoFar.pop(), false));
@@ -1663,7 +1665,9 @@ void TPTP::holSubTerm(){
     case T_NAME:{
       resetToks();
       vstring funcName = tok.content;
-      unsigned funcNum = env.signature->getFunctionNumber(funcName);
+      bool added;
+      unsigned funcNum = env.signature->addFunction(funcName, 0 , added, false, true); //dummy arity!
+      ASS_REP(!added, funcName);
       unsigned arity = env.signature->functionArity(funcNum);
       OperatorType* type = env.signature->getFunction(funcNum)->fnType();
       
@@ -3224,7 +3228,7 @@ void TPTP::endTerm()
   }
 
   unsigned symbol;
-  if (env.signature->predicateExists(name) ||
+  if (env.signature->predicateExists(name, arity) ||
       findLetSymbol(true, name, arity, symbol) ||
       findInterpretedPredicate(name, arity)) {
     // if the function symbol is actually a predicate,
@@ -3473,7 +3477,10 @@ TermList TPTP::createFunctionApplication(vstring name, unsigned arity)
   unsigned fun;
   bool added;
   if (!findLetSymbol(false, name, arity, fun)) {
-    if (arity > 0) {
+    if(_isThf){
+      //bypassing all string constant, integer constant, real consant etc. Bad, change in the future.
+      fun = env.signature->addFunction(name,arity,added, false, true);
+    }else if (arity > 0) {
       fun = addFunction(name, arity, added, _termLists.top());
     } else {
       fun = addUninterpretedConstant(name, _overflow, added);

@@ -498,9 +498,9 @@ unsigned Signature::getInterpretingSymbol(Interpretation interp, OperatorType* t
   unsigned arity = Theory::getArity(interp);
   
   if (Theory::isFunction(interp)) {
-    if (functionExists(name)) {
+    if (functionExists(name, arity)) {
       int i=0;
-      while(functionExists(name+Int::toString(i))) {
+      while(functionExists(name+Int::toString(i), arity)) {
         i++;
       }
       name=name+Int::toString(i);
@@ -508,9 +508,9 @@ unsigned Signature::getInterpretingSymbol(Interpretation interp, OperatorType* t
     addInterpretedFunction(interp, type, name);
   }
   else {
-    if (predicateExists(name)) {
+    if (predicateExists(name, arity)) {
       int i=0;
-      while(predicateExists(name+Int::toString(i))) {
+      while(predicateExists(name+Int::toString(i), arity)) {
         i++;
       }
       name=name+Int::toString(i);
@@ -544,37 +544,37 @@ const vstring& Signature::functionName(int number)
 /**
  * Return true if specified function exists
  */
-bool Signature::functionExists(const vstring& name) const
+bool Signature::functionExists(const vstring& name,unsigned arity) const
 {
   CALL("Signature::functionExists");
 
-  return _funNames.find(name);
+  return _funNames.find(key(name, arity));
 }
 
 /**
  * Return true if specified predicate exists
  */
-bool Signature::predicateExists(const vstring& name) const
+bool Signature::predicateExists(const vstring& name,unsigned arity) const
 {
   CALL("Signature::predicateExists");
 
-  return _predNames.find(name);
+  return _predNames.find(key(name, arity));
 }
 
-unsigned Signature::getFunctionNumber(const vstring& name) const
+unsigned Signature::getFunctionNumber(const vstring& name, unsigned arity) const
 {
   CALL("Signature::getFunctionNumber");
 
-  ASS(_funNames.find(name));
-  return _funNames.get(name);
+  ASS(_funNames.find(key(name, arity)));
+  return _funNames.get(key(name, arity));
 }
 
-unsigned Signature::getPredicateNumber(const vstring& name) const
+unsigned Signature::getPredicateNumber(const vstring& name, unsigned arity) const
 {
   CALL("Signature::getPredicateNumber");
 
-  ASS(_predNames.find(name));
-  return _predNames.get(name);
+  ASS(_predNames.find(key(name, arity)));
+  return _predNames.get(key(name, arity));
 }
 
 /**
@@ -590,11 +590,11 @@ unsigned Signature::addFunction (const vstring& name,
 				 unsigned arity,
 				 bool& added,
 				 bool overflowConstant,
-         bool index)
+         bool hoFunc)
 {
   CALL("Signature::addFunction");
 
-  vstring symbolKey = name; //cannot have same name with different arities!
+  vstring symbolKey = key(name, arity, hoFunc);
   unsigned result;
   if (_funNames.find(symbolKey,result)) {
     added = false;
@@ -615,7 +615,7 @@ unsigned Signature::addFunction (const vstring& name,
   }
 
   result = _funs.length();
-  _funs.push(new Symbol(name, arity, false, false, false, overflowConstant, index));
+  _funs.push(new Symbol(name, arity, false, false, false, overflowConstant, hoFunc));
   _funNames.insert(symbolKey, result);
   added = true;
   return result;
@@ -630,7 +630,7 @@ unsigned Signature::addStringConstant(const vstring& name)
 {
   CALL("Signature::addStringConstant");
 
-  vstring symbolKey = name;
+  vstring symbolKey = name + "_c";;
   unsigned result;
   if (_funNames.find(symbolKey,result)) {
     return result;
@@ -862,13 +862,13 @@ vstring Signature::getVarName(unsigned functor){
  * Return the key "name_arity" used for hashing. This key is obtained by
  * concatenating the name, underscore character and the arity. The key is
  * created in such a way that it does not collide with special keys, such as
- * those for string constants.
+ * those for string constants or higher-order functions.
  * @since 27/02/2006 Redmond
  * @author Andrei Voronkov
  */
-vstring Signature::key(const vstring& name,int arity)
+vstring Signature::key(const vstring& name,int arity, bool hoFunc)
 {
-  return name + '_' + Int::toString(arity);
+  return name + '_' + (hoFunc ? "_h" : Int::toString(arity)) ;
 } // Signature::key
 
 
