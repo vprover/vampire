@@ -1416,7 +1416,7 @@ void TPTP::tff()
       unsigned returnSort = sorts.pop();
       
       unsigned arity = sorts.size();
-      unsigned fun = env.signature->addFunction(nm,arity,added,false,true);
+      unsigned fun = env.signature->addFunction(nm,arity,added,false,1);
       if (!added) {
         USER_ERROR("Function symbol type is declared after its use: " + nm);
       }
@@ -1591,7 +1591,7 @@ void TPTP::holTerm()
     case T_NAME:{
       resetToks();
       bool added;
-      unsigned funcNum = env.signature->addFunction(tok.content, 0 , added, false, true); //dummy arity
+      unsigned funcNum = env.signature->addFunction(tok.content, 0 , added, false, 1); //dummy arity
       ASS_REP(!added, tok.content);
       unsigned arity = env.signature->functionArity(funcNum);
       _ints.push(arity); // arity
@@ -1623,7 +1623,7 @@ void TPTP::endHolTerm()
   }
 
   bool added;
-  unsigned funcNum = env.signature->addFunction(name, 0 , added, false, true);
+  unsigned funcNum = env.signature->addFunction(name, 0 , added, false, 1);
   ASS_REP(!added, name);
   OperatorType* type = env.signature->getFunction(funcNum)->fnType();
   
@@ -1666,7 +1666,7 @@ void TPTP::holSubTerm(){
       resetToks();
       vstring funcName = tok.content;
       bool added;
-      unsigned funcNum = env.signature->addFunction(funcName, 0 , added, false, true); //dummy arity!
+      unsigned funcNum = env.signature->addFunction(funcName, 0 , added, false, 1); //dummy arity!
       ASS_REP(!added, funcName);
       unsigned arity = env.signature->functionArity(funcNum);
       OperatorType* type = env.signature->getFunction(funcNum)->fnType();
@@ -2023,10 +2023,10 @@ unsigned TPTP::addDuBruijnIndex(vstring name, OperatorType* type){
   CALL("TPTP::addDuBruijnIndex");
 
   bool added;
-  unsigned fun = env.signature->addFunction(name ,type->arity(),added, false, true);
+  unsigned fun = env.signature->addFunction(name ,type->arity(),added, false, 2);
   if(added){//first time constant added. Set type
     Signature::Symbol* symbol = env.signature->getFunction(fun);  
-    symbol->setType(type); 
+    symbol->setType(type);
   }
   return fun;
 
@@ -3465,7 +3465,7 @@ Formula* TPTP::createPredicateApplication(vstring name, unsigned arity)
  * the arguments are assumed to be on the _termLists stack.
  * @since 13/04/2015 Gothenburg, major changes to support FOOL
  */
-TermList TPTP::createFunctionApplication(vstring name, unsigned arity)
+TermList TPTP::createFunctionApplication(vstring name, unsigned arity, bool index)
 {
   CALL("TPTP::createFunctionApplication");
   ASS_GE(_termLists.size(), arity);
@@ -3475,7 +3475,7 @@ TermList TPTP::createFunctionApplication(vstring name, unsigned arity)
   if (!findLetSymbol(false, name, arity, fun)) {
     if(_isThf){
       //bypassing all string constant, integer constant, real consant etc. Bad, change in the future.
-      fun = env.signature->addFunction(name,arity,added, false, true);
+      fun = env.signature->addFunction(name,arity,added, false, index ? 2 : 1);
     }else if (arity > 0) {
       fun = addFunction(name, arity, added, _termLists.top());
     } else {

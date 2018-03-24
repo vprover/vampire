@@ -590,11 +590,11 @@ unsigned Signature::addFunction (const vstring& name,
 				 unsigned arity,
 				 bool& added,
 				 bool overflowConstant,
-         bool hoFunc)
+         int hoFunc)
 {
   CALL("Signature::addFunction");
 
-  vstring symbolKey = key(name, arity, hoFunc);
+  vstring symbolKey = key(name, arity, (hoFunc > 0));
   unsigned result;
   if (_funNames.find(symbolKey,result)) {
     added = false;
@@ -615,7 +615,7 @@ unsigned Signature::addFunction (const vstring& name,
   }
 
   result = _funs.length();
-  _funs.push(new Symbol(name, arity, false, false, false, overflowConstant, hoFunc));
+  _funs.push(new Symbol(name, arity, false, false, false, overflowConstant, (hoFunc > 1)));
   _funNames.insert(symbolKey, result);
   added = true;
   return result;

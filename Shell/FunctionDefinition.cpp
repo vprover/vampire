@@ -262,7 +262,7 @@ bool FunctionDefinition::removeAllDefinitions(UnitList*& units)
   UnitList::DelIterator scanIterator(units);
   while(scanIterator.hasNext()) {
     Clause* cl=static_cast<Clause*>(scanIterator.next());
-    ASS(cl->isClause());
+    ASS_REP(cl->isClause(), cl->toString());
     Def* d=isFunctionDefinition(cl);
     if(d) {
       d->defCl=cl;

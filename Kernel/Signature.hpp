@@ -349,7 +349,7 @@ class Signature
   //
 
   unsigned addPredicate(const vstring& name,unsigned arity,bool& added);
-  unsigned addFunction(const vstring& name,unsigned arity,bool& added,bool overflowConstant = false, bool hoFunc = false);
+  unsigned addFunction(const vstring& name,unsigned arity,bool& added,bool overflowConstant = false, int hoFunc = 0);
 
   unsigned addFreshHOVar(OperatorType* type, vstring name);
   bool addHOVar(unsigned functor, OperatorType* type, vstring name);

@@ -171,6 +171,20 @@ void Preprocess::preprocess(Problem& prb)
     }
   }
 
+  if (prb.mayHaveFunctionDefinitions()) {
+    env.statistics->phase=Statistics::FUNCTION_DEFINITION_ELIMINATION;
+    if (env.options->showPreprocessing())
+      env.out() << "function definition elimination" << std::endl;
+
+    if (_options.functionDefinitionElimination() == Options::FunctionDefinitionElimination::ALL) {
+      FunctionDefinition fd;
+      fd.removeAllDefinitions(prb);
+    }
+    else if (_options.functionDefinitionElimination() == Options::FunctionDefinitionElimination::UNUSED) {
+      FunctionDefinition::removeUnusedDefinitions(prb);
+    }
+  }
+
   //we ensure that in the beginning we have a valid property object, to
   //know that the queries to uncertain problem properties will be precise
   //enough
@@ -192,7 +206,7 @@ void Preprocess::preprocess(Problem& prb)
     }
   }
 
-  if (prb.hasFOOL() | prb.hasApp() | prb.hasLambda()) {
+  if (prb.hasFOOL()) {
     // This is the point to extend the signature with $$true and $$false
     // If we don't have fool then these constants get in the way (a lot)
 
@@ -201,9 +215,9 @@ void Preprocess::preprocess(Problem& prb)
       //updated to handle HOL.
       if (env.options->showPreprocessing())
         env.out() << "FOOL, Application & Lambda elimination" << std::endl;
-	  if (prb.hasFOOL()){
+	    if (prb.hasFOOL()){
         TheoryAxioms(prb).applyFOOL();
-	  }
+	    }
       FOOLElimination().apply(prb);
     }
   }
@@ -307,25 +321,6 @@ void Preprocess::preprocess(Problem& prb)
         env.out() << "clausify" << std::endl;
 
       clausify(prb);
-    }
-  }
-  
-  //lambda elimination may have introduced function definitions. This requires checking
-  //One way around this would be to update code that checks for functions to recognise lambda
-  //definitions.
-  prb.getProperty();
-  
-  if (prb.mayHaveFunctionDefinitions()) {
-    env.statistics->phase=Statistics::FUNCTION_DEFINITION_ELIMINATION;
-    if (env.options->showPreprocessing())
-      env.out() << "function definition elimination" << std::endl;
-
-    if (_options.functionDefinitionElimination() == Options::FunctionDefinitionElimination::ALL) {
-      FunctionDefinition fd;
-      fd.removeAllDefinitions(prb);
-    }
-    else if (_options.functionDefinitionElimination() == Options::FunctionDefinitionElimination::UNUSED) {
-      FunctionDefinition::removeUnusedDefinitions(prb);
     }
   }
 

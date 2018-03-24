@@ -38,7 +38,7 @@
 #include "Kernel/Unit.hpp"
 #include "Kernel/Theory.hpp"
 
-#define DEBUG_SHOW_STATE
+//#define DEBUG_SHOW_STATE
 
 using namespace std;
 using namespace Lib;
@@ -764,7 +764,7 @@ private:
   void endArgs();
   Literal* createEquality(bool polarity,TermList& lhs,TermList& rhs);
   Formula* createPredicateApplication(vstring name,unsigned arity);
-  TermList createFunctionApplication(vstring name,unsigned arity);
+  TermList createFunctionApplication(vstring name,unsigned arity,bool index = false);
   TermList createHigherOrderVarApp(unsigned hoVar, OperatorType* type);
   void endEquality();
   void midEquality();
