@@ -800,7 +800,7 @@ private:
   Term* lift(Term* term, unsigned value, unsigned cutoff);
   Formula* lift(Formula* formula, unsigned value, unsigned cutoff);
   FormulaList* lift(FormulaList* fs, unsigned value, unsigned cutoff);
-  void dealWithVar(vstring name, bool applied);
+  void dealWithVar(vstring name, unsigned argNum);
   /** for top @termNum TermLists on _termLists stack, all free Du Bruijn idices are lifted by @value */
   void lift(unsigned termNum, unsigned value);
   /**if @name represents Du Bruijn Index, lifts it by @value */

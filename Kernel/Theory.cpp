@@ -1492,7 +1492,7 @@ bool Theory::isInterpretedFunction(unsigned func)
 {
   CALL("Theory::isInterpretedFunction(unsigned)");
 
-  if (func>=Term::SPECIAL_FUNCTOR_LOWER_BOUND) {
+  if (func>=Term::VARIABLE_HEAD_LOWER_BOUND) {
     return false;
   }
 

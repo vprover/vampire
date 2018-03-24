@@ -416,7 +416,7 @@ class Signature
     return addInterpretedPredicate(itp,Theory::getNonpolymorphicOperatorType(itp),name);
   }
 
-  /** Returns the type of hogher-order variable */
+  /** Returns the type of higher-order variable */
   OperatorType* getVarType(unsigned functor);
   vstring getVarName(unsigned functor);
   const unsigned getNextFreshVarNum()

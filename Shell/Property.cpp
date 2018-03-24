@@ -579,19 +579,7 @@ void Property::scan(TermList ts,bool unit,bool goal)
     switch(t->functor()) {
       case Term::SF_ITE:
         addProp(PR_HAS_ITE);
-        break;
-
-	    case Term::SF_APP:
-	      addProp(PR_HAS_APP);
-        _hasApp = true; //Need to add prop? AYB
-        env.signature->setHigherOrder();
-        break;
-      
-      case Term::SF_LAMBDA:
-	      addProp(PR_HAS_LAMBDA);
-        _hasLambda = true;
-        env.signature->setHigherOrder();
-        break;		 
+        break;	 
 		
       case Term::SF_LET:
       case Term::SF_LET_TUPLE:
@@ -603,14 +591,19 @@ void Property::scan(TermList ts,bool unit,bool goal)
     }
   } else {
     scanForInterpreted(t);
-
-    Signature::Symbol* func = env.signature->getFunction(t->functor());
-    func->incUsageCnt();
-    if(unit){ func->markInUnit();}
-    if(goal){ func->markInGoal();}
-
+    
+    OperatorType* type;
+    if(!t->hasVarHead()){
+      Signature::Symbol* func = env.signature->getFunction(t->functor());
+      func->incUsageCnt();
+      if(unit){ func->markInUnit();}
+      if(goal){ func->markInGoal();}
+      type = func->fnType();
+    } else {
+      type = env.signature->getVarType(t->functor());
+    }
     int arity = t->arity();
-    OperatorType* type = func->fnType();
+
     for (int i = 0; i < arity; i++) {
       scanSort(type->arg(i));
     }

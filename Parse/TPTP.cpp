@@ -1618,8 +1618,8 @@ void TPTP::endHolTerm()
   int arity = _ints.pop();
 
   if(arity == -1){ //that was a variable
-      dealWithVar(name, true);
-      return;
+    dealWithVar(name, _argsSoFar.pop());
+    return;
   }
 
   bool added;
@@ -1654,7 +1654,7 @@ void TPTP::holSubTerm(){
       return;
     case T_VAR:{
       resetToks();
-      dealWithVar(tok.content, false);
+      dealWithVar(tok.content, 0);
       _states.push(HOL_SUB_TERM);
       return;
     }
@@ -1688,7 +1688,7 @@ void TPTP::holSubTerm(){
   * @since 19/03/2018
   * @author Ahmed Bhayat
   */
-void TPTP::dealWithVar(vstring name, bool applied){
+void TPTP::dealWithVar(vstring name, unsigned argNum){
   CALL("TPTP::dealWithVar");
   
   unsigned var = (unsigned)_vars.insert(name);
@@ -1703,11 +1703,7 @@ void TPTP::dealWithVar(vstring name, bool applied){
     if(varType->arity() == 0){ //constant  
       _termLists.push(TermList(Term::createConstant(index)));
     }else{ //higher-order DU Bruijn index
-      if(!applied){
-        _termLists.push(etaExpand(varType, indexName,  varType->arity(), 0, true)); 
-      }else{
-        _termLists.push(etaExpand(varType, indexName,  varType->arity(), _argsSoFar.pop(), true));  
-      }
+      _termLists.push(etaExpand(varType, indexName,  varType->arity(), argNum, true));  
     }
   }else{ //existentially or universally quantified var.
     if(varType->arity() == 0){//Classic var (phew!)
@@ -1715,11 +1711,7 @@ void TPTP::dealWithVar(vstring name, bool applied){
     }else{//higher-order, leave for later!
       FuncList* functors;
       ALWAYS(_varFunctors.find(var, functors))
-      if(!applied){
-        _termLists.push(etaExpand(varType, name,  varType->arity(), 0, false, functors->head())); 
-      }else{
-        _termLists.push(etaExpand(varType, name,  varType->arity(), _argsSoFar.pop(), false, functors->head()));  
-      }
+      _termLists.push(etaExpand(varType, name,  varType->arity(), argNum, false, functors->head()));  
     }
   }
   _lastPushed = TM;
@@ -1828,16 +1820,21 @@ Term* TPTP::lift(Term* term, unsigned value, unsigned cutoff){
     return Term::createFormula(orig);
   }
   
-  bool modified = false;
-
+  bool headModified = false;
   Term* liftedTerm;
-  Signature::Symbol* sym;
-  vstring index;
-  if(!term->hasVarHead()){
-    sym = env.signature->getFunction(term->functor()); 
-    index = sym->name();
+  
+  if(term->hasVarHead()){
+    liftedTerm = Term::cloneNonShared(term);
+    if(lift(term->args(), liftedTerm->args(), value, cutoff)){
+      return env.sharing->insert(liftedTerm);      
+    }else{
+      return term;
+    }
   }
-  if(!term->hasVarHead() && sym->duBruijnIndex() && indexGreater(index, cutoff)){
+  
+  Signature::Symbol* sym = env.signature->getFunction(term->functor()); 
+  vstring index = sym->name();
+  if(sym->duBruijnIndex() && indexGreater(index, cutoff)){
     vstring newIndex = lift(index, value);
     unsigned fun = addDuBruijnIndex(newIndex, sym->fnType());
     unsigned arity = term->arity();
@@ -1847,20 +1844,19 @@ Term* TPTP::lift(Term* term, unsigned value, unsigned cutoff){
       TermList ss = *(term->nthArgument(i));
       *(liftedTerm->nthArgument(i)) = ss;
     }
-    liftedTerm = env.sharing->insert(liftedTerm);
-    modified = true;
+    headModified = true;
   }else{
     liftedTerm = Term::cloneNonShared(term);
   }
-  if((!sym->lambda() && lift(term->args(), liftedTerm->args(), value, cutoff)) ||
-      (sym->lambda() && lift(term->args(), liftedTerm->args(), value, cutoff+1)) ||
-       modified){
-        if(TermList::allShared(liftedTerm->args()) && !liftedTerm->shared()) {
-          return env.sharing->insert(liftedTerm);
-        } else {
-          return liftedTerm;
-        }
-      }
+  bool argsChanged = sym->lambda() ? lift(term->args(), liftedTerm->args(), value, cutoff+1) :
+                                     lift(term->args(), liftedTerm->args(), value, cutoff);
+  if(argsChanged || headModified){
+    if(TermList::allShared(liftedTerm->args())){
+      return env.sharing->insert(liftedTerm);
+    } else {
+      return liftedTerm;
+    }
+  }
   liftedTerm->destroy();
   return term;
   
@@ -5364,6 +5360,12 @@ void TPTP::printStacks() {
   while (iit.hasNext()) cout << " " << iit.next();
   cout << endl;
 
+  Stack<int>::Iterator ags(_argsSoFar);
+  cout << "argsSoFar:";
+  if   (!ags.hasNext()) cout << " <empty>";
+  while (ags.hasNext()) cout << " " << ags.next();
+  cout << endl;
+  
   /*
   Stack<Tag>::Iterator tags(_tags);
   cout << "Tags:";
