@@ -407,7 +407,7 @@ vstring Term::headToString() const
   CALL("Term::headToString");
 
   if(hasVarHead()){
-    return env.signature->getVarName(_functor) + "(";
+    return "X" + Int::toString(env.signature->getVarName(_functor)) + "(";
   }
 
   if (isSpecial()) {

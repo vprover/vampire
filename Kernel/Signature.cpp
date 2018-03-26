@@ -804,11 +804,11 @@ unsigned Signature::addSkolemPredicate(unsigned arity, const char* suffix)
   * Adds a fresh variable functor to map and returns its 
   * function number.
   */
-unsigned Signature::addFreshHOVar(OperatorType* type, vstring name){
+unsigned Signature::addFreshHOVar(OperatorType* type, int var){
   CALL("Signature::addFreshHOVar");
 
   _nextFreshVarNumber++;
-  HOVarFuncInfo info(type, name);
+  HOVarFuncInfo info(type, var);
   _hoVarMap.insert(_nextFreshVarNumber, info);
   return _nextFreshVarNumber + Term::VARIABLE_HEAD_LOWER_BOUND;
 }
@@ -817,7 +817,7 @@ unsigned Signature::addFreshHOVar(OperatorType* type, vstring name){
  * Adds a variable functor to map if it doesn't already exist and returns true.
  * Otherwise returns false
  */
-bool Signature::addHOVar(unsigned functor, OperatorType* type, vstring name){
+bool Signature::addHOVar(unsigned functor, OperatorType* type, int var){
   CALL("Signature::addHOVar");
   //Caller must take responsibility for ensuring that the variable
   //functor already exists or is the next available var num 
@@ -826,10 +826,11 @@ bool Signature::addHOVar(unsigned functor, OperatorType* type, vstring name){
   if(_hoVarMap.find(functor - Term::VARIABLE_HEAD_LOWER_BOUND, info)){
     //both should point to same type
     ASS_REP(info.first == type, "Attempting to add an existing HO variable with new type!");
-    ASS_REP(info.second == name, "Attempting to add an existing HO variable with new name!");
+    ASS_REP(info.second == var, "Attempting to add an existing HO variable with new name!");
     return false;
   }
-  _hoVarMap.insert(functor - Term::VARIABLE_HEAD_LOWER_BOUND, info);
+  HOVarFuncInfo info2(type, var);
+  _hoVarMap.insert(functor - Term::VARIABLE_HEAD_LOWER_BOUND, info2);
   _nextFreshVarNumber++;
   return true;
 }
@@ -849,7 +850,7 @@ OperatorType* Signature::getVarType(unsigned functor){
 /**
  * Returns the name of a higher-order variable based on its functor.
  */
-vstring Signature::getVarName(unsigned functor){
+int Signature::getVarName(unsigned functor){
   CALL("Signature::getVarName");
 
   HOVarFuncInfo info;

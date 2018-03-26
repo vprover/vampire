@@ -452,11 +452,18 @@ void SortHelper::collectVariableSortsIter(CollectTask task, DHMap<unsigned,unsig
                   ASS_EQ(Sorts::SRT_BOOL, map.get(ts.var()));
                 }
               } else {
-                ASS_REP(ts.isTerm() && (ts.term()->isSpecial() || !ts.term()->arity()), ts.toString());
+                //ASS_REP(ts.isTerm() && (ts.term()->isSpecial() || !ts.term()->arity()), ts.toString());
                 
                 if (ts.term()->isSpecial()){
                   CollectTask newTask;
                   newTask.fncTag = COLLECT_SPECIALTERM;
+                  newTask.t = ts.term();
+                  newTask.contextSort = Sorts::SRT_BOOL;
+
+                  todo.push(newTask);
+                } else {
+                  CollectTask newTask;
+                  newTask.fncTag = COLLECT_TERM;
                   newTask.t = ts.term();
                   newTask.contextSort = Sorts::SRT_BOOL;
 

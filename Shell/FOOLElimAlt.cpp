@@ -6,6 +6,7 @@
  * translation for formulas in term context.
  */
  
+#include "Parse/TPTP.hpp"
 
 #include "Indexing/TermSharing.hpp"
 
@@ -32,10 +33,10 @@ using namespace Shell;
 
 TermList FOOLElimAlt::formulaToTerm(Formula* fm)
 {
-   CALL("FOOLElimAlt::formulaToTerm");
+  CALL("FOOLElimAlt::formulaToTerm");
 
-   Connective conn = fm->connective();
-                      
+  Connective conn = fm->connective();
+  
   switch(conn){
     case LITERAL: {
       Literal* literal = fm->literal();
@@ -48,7 +49,7 @@ TermList FOOLElimAlt::formulaToTerm(Formula* fm)
       unsigned equalsSort = sortOf(lhs);      
                                 
       bool added = false; 
-      unsigned logicalSym = addLogicalConnSym("vEQUALS" + Int::toString(equalsSort), equalsSort, 2, added);
+      unsigned logicalSym = addLogicalConnSym("vEQUALS_" + Int::toString(equalsSort), equalsSort, 2, added);
       if(added && !env.options->HOLConstantElimination()){
         addConnAxiom(logicalSym, conn, equalsSort);
       }          
@@ -93,7 +94,7 @@ TermList FOOLElimAlt::formulaToTerm(Formula* fm)
   
       Stack<Formula*> args;  
       while(argsIt.hasNext()){
-         args.push(process(argsIt.next());
+         args.push(argsIt.next());
       }
       TermList f1 = formulaToTerm(args.pop());
       TermList f2;
@@ -115,27 +116,26 @@ TermList FOOLElimAlt::formulaToTerm(Formula* fm)
      }
      case FORALL:
      case EXISTS: {
+
         Formula::VarList* vars = fm->vars();
-        Formula::VarList::Iterator vit(vars);
-        Formula::SortList* sorts = fm->sorts();
         Stack<unsigned> sortsRev;
+        Stack<int> varsRev;
         
         TermList qform = formulaToTerm(fm->qarg());
 
-        if(Formula::SortList::isEmpty(sorts)){
-          unsigned res;
-          while(vit.hasNext()){
-            if(SortHelper::tryGetVariableSort(vit.next(), fm->qarg(), res)){
-              sorts = sorts->addLast(sorts, res);
-            }
-          }
+        Formula::VarList::Iterator vit(vars);
+        while(vit.hasNext()){
+          varsRev.push(vit.next());
         }
 
-        Formula::SortList::Iterator sit(sorts);
-        while(sit.hasNext()){
-          sortsRev.push(sit.next());
+        vit.reset(vars);
+        while(vit.hasNext()){
+           sortsRev.push(_varSorts.get(vit.next()));
         }
 
+        qform = lift(qform, varsRev.size(), 0);
+        qform = convertToDuBruijnIndices(qform, varsRev);
+        cout << "The converted term is " + qform.toString() << endl;
         TermList abstractedTerm = abstract(qform, sortsRev);
         
         unsigned logicalSym;
@@ -143,19 +143,24 @@ TermList FOOLElimAlt::formulaToTerm(Formula* fm)
         if(conn == FORALL){
           logicalSym = addLogicalConnSym("vPI", sortOf(abstractedTerm) , 1, added);   
         }else{
-          logicalSym = addLogicalConnSym("vSIGMA", sortOf(abstractedTermSort) , 1, added); 
+          logicalSym = addLogicalConnSym("vSIGMA", sortOf(abstractedTerm) , 1, added); 
         }
+        /* No axioms for FORALL and EXISTS, only inference rules
         if(added && !env.options->HOLConstantElimination()){
             addQuantifierAxiom(constant, constSort, conn, lambdaExpSort);
-        }
+        }*/
         
-        return applyLogicalConn(logicalSym, abstractedTerm);
+        TermList dummy;
+        return applyLogicalConn(logicalSym, abstractedTerm, dummy, false);
      }
+     case BOOL_TERM:
+        return fm->getBooleanTerm();
      case TRUE:
         return TermList(Term::foolTrue());
      case FALSE:
         return TermList(Term::foolFalse());
      default:
+        //cout << "Dealing with formula " + fm->toString() << endl;
         ASSERTION_VIOLATION;
   
   }//switch conn
@@ -185,32 +190,6 @@ TermList FOOLElimAlt::process(TermList ts){
    return TermList(Term::create(term, arguments.begin()));
 }
   
-  
-unsigned FOOLElimAlt::domain(unsigned sort){   
-    unsigned dom = env.sorts->getFuncSort(sort)->getDomainSort();
-    return dom;
-}
-
-unsigned FOOLElimAlt::range(unsigned sort){
-    unsigned range = env.sorts->getFuncSort(sort)->getRangeSort();
-    return range;
-}
-
-TermList FOOLElimAlt::addHolConstant(vstring name, unsigned sort, bool& added, Signature::Symbol::HOLConstant cnst){
-
-    CALL("FOOLElimAlt::addHolConstant");
-
-    unsigned fun = env.signature->addFunction(name + "_" +  Lib::Int::toString(sort),0,added);
-    if(added){//first time constant added. Set type
-        Signature::Symbol* symbol = env.signature->getFunction(fun);  
-        symbol->setType(OperatorType::getConstantsType(sort));
-        symbol->setHOLConstant(cnst);   
-    }
-    Term* t = Term::createConstant(fun);
-    TermList ts(t);
-    return ts;
-}
-
 unsigned FOOLElimAlt::sortOf(TermList t)
 {
   CALL("FOOLElimAlt::sortOf");
@@ -228,7 +207,7 @@ void FOOLElimAlt::addAxiom(FormulaUnit* axiom) {
 
   if (env.options->showPreprocessing()) {
     env.beginOutput();
-    env.out() << "[PP] Lambda Elimination added axiom: " << axiom->toString() << endl;
+    env.out() << "[PP] FOOL elimination added axiom: " << axiom->toString() << endl;
     env.endOutput();
   }
 }
@@ -238,7 +217,7 @@ unsigned FOOLElimAlt::addLogicalConnSym(vstring name, unsigned sort1, unsigned a
   CALL("FOOLElimAlt::addLogicalConnSym");
  
   Stack<unsigned> sorts;
-  for (int i = 0; i < argNum; i ++){
+  for (unsigned i = 0; i < argNum; i ++){
     sorts.push(sort1); 
   }
   
@@ -246,11 +225,11 @@ unsigned FOOLElimAlt::addLogicalConnSym(vstring name, unsigned sort1, unsigned a
   unsigned symbol = env.signature->addFunction(name, argNum, added, false, true);
   
   if(added){
-   //TO DO mark symbol in someway to allow fo special inference rules.
+   //TO DO mark symbol in someway to allow for special inference rules.
    env.signature->getFunction(symbol)->setType(type);
    if (env.options->showPreprocessing()) {
     env.beginOutput();
-    env.out() << "[PP] Lambda or application elimination introduced ";
+    env.out() << "[PP] FOOL elimination introduced ";
     env.out() << "function symbol " << env.signature->functionName(symbol) << endl;
     env.out() << " of the sort " << type->toString() << endl; //This produces really long and horrible output.
     env.endOutput();
@@ -284,13 +263,13 @@ TermList FOOLElimAlt::applyLogicalConn(unsigned symbol, TermList arg1, TermList 
     TermList var2 = TermList(1, false);
      
     Formula::VarList* vl = new Formula::VarList(var1.var());
-    Formula::SortList* sl = new Formula::SortList(argsSort);
+    Formula::SortList* sl = new Formula::SortList(argSort);
     if(conn != NOT){
       vl = vl->addLast(vl, var2.var());
-      sl = sl->addLast(sl, argsSort);
+      sl = sl->addLast(sl, argSort);
     }
     
-    TermList functionApplied = applyLogicalConn(fun, var1, conn != NOT ? var2);
+    TermList functionApplied = applyLogicalConn(fun, var1, var2, conn == NOT ? false : true);
     
     switch(conn){
       case AND:
@@ -301,7 +280,7 @@ TermList FOOLElimAlt::applyLogicalConn(unsigned symbol, TermList arg1, TermList 
         break;
       }
       case LITERAL: {
-        varFormula = createEquality(var1, var2, argsSort);
+        varFormula = createEquality(var1, var2, argSort);
         break;
       }
       case NOT: {
@@ -315,10 +294,10 @@ TermList FOOLElimAlt::applyLogicalConn(unsigned symbol, TermList arg1, TermList 
     
     axiom = toEquality(functionApplied);
     axiom = new BinaryFormula(IFF, axiom, varFormula);
-    axiom = new QuantifiedFormula(FORALL, varList, sortList, binaryConnAxiom); 
+    axiom = new QuantifiedFormula(FORALL, vl, sl, axiom); 
     
     //Change this!
-    Inference* binConInf = binConInf = new Inference(Inference::LAMBDA_ELIMINATION_BIN_CON);
+    Inference* binConInf = new Inference(Inference::LAMBDA_ELIMINATION_BIN_CON);
     
     addAxiom(new FormulaUnit(axiom, binConInf, Unit::AXIOM));  
  }
@@ -366,3 +345,332 @@ TermList FOOLElimAlt::abstract(TermList term, Stack<unsigned> sorts){
 
    return abstractedTerm;   
 }
+
+TermList FOOLElimAlt::convertToDuBruijnIndices(TermList t, Stack<int> vars){
+  CALL("FOOLElimAlt::convertToDuBruijnIndices");
+
+  if(t.isVar()){
+    for(unsigned i = vars.size() - 1; i >= 0; i --){
+      if(vars[i] != -1 && (unsigned)vars[i] == t.var()){
+        unsigned sort = sortOf(t);
+        vstring name = Int::toString(vars.size() - i) + "_" + Int::toString(sort);
+        OperatorType* type =  OperatorType::getConstantsType(sort);
+        unsigned fun = addDuBruijnIndex(name, type);
+        return TermList(Term::createConstant(fun));
+      }
+    }
+  }
+
+  Term* term = t.term();
+  
+  unsigned fun = 0;
+  if(!term->hasVarHead()){
+  	Signature::Symbol* sym = env.signature->getFunction(term->functor());
+  	if(sym->lambda()){ vars.push(-1); }
+  } else {
+  	int headVar = env.signature->getVarName(term->functor());
+  	for(unsigned i = vars.size() - 1; i >= 0; i --){
+      if(vars[i] == headVar){
+  	    OperatorType* type = env.signature->getVarType(term->functor());
+  	    vstring name = Int::toString(vars.size() - i) + "_" + Int::toString(toSort(type));
+        fun = addDuBruijnIndex(name, type);
+      }
+    }
+  }
+ 
+  bool modified = false;
+  TermList* args = term->args();
+  TermList* newArgs;
+  unsigned count = 0;
+  while(!args->isEmpty()){
+  	count ++;
+  	*newArgs = *args;
+  	*newArgs = convertToDuBruijnIndices(*newArgs, vars);
+  	if(!TermList::equals(*newArgs, *args)){
+  		modified = true;
+  	}
+  	newArgs++;
+  	args = args->next();
+  }
+
+
+  if(fun){
+    Term* newTerm = Term::create(fun, term->arity(), newArgs - count);
+    cout << "reached here with " + newTerm->toString() << endl;
+    return TermList(newTerm);
+  }
+
+  if(modified){
+    Term* newTerm = Term::create(term, newArgs - count);
+    return TermList(newTerm);
+  }
+
+  return t;
+
+}
+
+/**
+  * Adds function with name @name and type @type and amrk as an index
+  * @since 19/03/2018
+  * @author Ahmed Bhayat
+  */
+unsigned FOOLElimAlt::addDuBruijnIndex(vstring name, OperatorType* type){
+  CALL("FOOLElimAlt:::addDuBruijnIndex");
+
+  bool added;
+  unsigned fun = env.signature->addFunction(name ,type->arity(),added, false, 2);
+  if(added){//first time constant added. Set type
+    Signature::Symbol* symbol = env.signature->getFunction(fun);  
+    symbol->setType(type);
+  }
+  return fun;
+
+}
+
+unsigned FOOLElimAlt::toSort(OperatorType* type){
+  CALL("FOOLElimAlt::toSort");
+  
+  unsigned sort = type->result();
+  for (unsigned i = type->arity() - 1; i >= 0; i--){
+    sort = env.sorts->addFunctionSort(type->arg(i), sort);
+  }
+
+  return sort;
+
+}
+
+/**
+  * If @name represents a Du Bruijn index, it is lifted by @value 
+  * @since 19/03/2018
+  * @author Ahmed Bhayat
+  */
+vstring FOOLElimAlt::lift(vstring name, unsigned value){
+  CALL("FOOLElimAlt::lift(vstring, unsigned)");
+  
+  ASS_REP(name.find("_") > 0, name);
+  
+  unsigned underPos = name.find("_");
+  vstring index = name.substr(0, underPos);
+  int liftedIndex;
+  Int::stringToInt(index, liftedIndex);
+  liftedIndex = liftedIndex + value;
+  return Int::toString(liftedIndex) + name.substr(underPos);
+}
+
+
+TermList FOOLElimAlt::lift(TermList ts, unsigned value, unsigned cutoff){
+  CALL("FOOLElimAlt:::lift(TermList, unsigned, unsigned)");
+  
+  if(ts.isVar()){
+    return ts;
+  }
+  return TermList(lift(ts.term(), value, cutoff));
+  
+}
+
+Term* FOOLElimAlt::lift(Term* term, unsigned value, unsigned cutoff){
+  CALL("FOOLElimAlt:::lift(Term*, unsigned, unsigned)");
+
+  if(term->isSpecial()){
+    ASS_REP(term->functor() == Term::SF_FORMULA, term->toString());
+    ASS_EQ(term->arity(),0);   
+    Term::SpecialTermData* sd = term->getSpecialData();
+    Formula* orig = lift(sd->getFormula(), value, cutoff);
+    if(orig==sd->getFormula()) {
+      return term;
+    }
+    return Term::createFormula(orig);
+  }
+  
+  bool headModified = false;
+  Term* liftedTerm;
+  
+  if(term->hasVarHead()){
+    liftedTerm = Term::cloneNonShared(term);
+    if(lift(term->args(), liftedTerm->args(), value, cutoff)){
+      return env.sharing->insert(liftedTerm);      
+    }else{
+      return term;
+    }
+  }
+  
+  Signature::Symbol* sym = env.signature->getFunction(term->functor()); 
+  vstring index = sym->name();
+  if(sym->duBruijnIndex() && indexGreater(index, cutoff)){
+    vstring newIndex = lift(index, value);
+    unsigned fun = FOOLElimAlt::addDuBruijnIndex(newIndex, sym->fnType());
+    unsigned arity = term->arity();
+    liftedTerm = new(arity) Term;
+    liftedTerm->makeSymbol(fun, arity);
+    for (int i = arity-1;i >= 0;i--) {
+      TermList ss = *(term->nthArgument(i));
+      *(liftedTerm->nthArgument(i)) = ss;
+    }
+    headModified = true;
+  }else{
+    liftedTerm = Term::cloneNonShared(term);
+  }
+  bool argsChanged = sym->lambda() ? lift(term->args(), liftedTerm->args(), value, cutoff+1) :
+                                     lift(term->args(), liftedTerm->args(), value, cutoff);
+  if(argsChanged || headModified){
+    if(TermList::allShared(liftedTerm->args())){
+      return env.sharing->insert(liftedTerm);
+    } else {
+      return liftedTerm;
+    }
+  }
+  liftedTerm->destroy();
+  return term;
+  
+}
+
+bool FOOLElimAlt::lift(TermList* from, TermList* to, unsigned value, unsigned cutoff){
+  CALL("lift(TermList*, TermList*, unsigned , unsigned)");
+
+  bool changed = false;
+  while (!from->isEmpty()) {
+    if (from->isVar()) {
+      to->makeVar(from->var());
+    }
+    else { // from is not a variable
+      Term* f = from->term();
+      Term* t = lift(f, value, cutoff);
+      to->setTerm(t);
+      if (f != t) {
+        changed = true;
+      }
+    }
+    from = from->next();
+    ASS(! to->isEmpty());
+    to = to->next();
+  }
+  ASS(to->isEmpty());
+  return changed;
+}
+
+Formula* FOOLElimAlt::lift(Formula* f, unsigned value, unsigned cutoff){
+  CALL("FOOLElimAlt::lift(Formula*, unsigned, unsigned)");
+ 
+  switch (f->connective()) {
+  case LITERAL: 
+  {
+    Literal* l = f->literal();
+    ASS(l->isEquality());
+    Literal* m = new(l->arity()) Literal(*l);
+    if (lift(l->args(),m->args(), value, cutoff)) {
+      if(TermList::allShared(m->args())) {
+        return new AtomicFormula(env.sharing->insert(m));
+      } else {
+        return new AtomicFormula(m);
+      }
+    }
+    // literal not changed
+    m->destroy();
+    return f;
+  }
+
+  case AND: 
+  case OR: 
+  {
+    FormulaList* newArgs = lift(f->args(), value, cutoff);
+    if (newArgs == f->args()) {
+      return f;
+    }
+    return new JunctionFormula(f->connective(), newArgs);
+  }
+
+  case IMP: 
+  case IFF: 
+  case XOR:
+  {
+    Formula* l = lift(f->left(), value, cutoff);
+    Formula* r = lift(f->right(), value, cutoff);
+    if (l == f->left() && r == f->right()) {
+      return f;
+    }
+    return new BinaryFormula(f->connective(), l, r);
+  }
+
+  case NOT:
+  {
+    Formula* arg = lift(f->uarg(), value, cutoff);
+    if (f->uarg() == arg) {
+      return f;
+    }
+    return new NegatedFormula(arg);
+  }
+
+  case FORALL: 
+  case EXISTS:
+  {
+    Formula* arg = lift(f->qarg(), value, cutoff);
+    if (f->qarg() == arg) {
+      return f;
+    }
+    return new QuantifiedFormula(f->connective(),f->vars(),0,arg); 
+  }
+
+  case TRUE:
+  case FALSE:
+    return f;
+
+  case BOOL_TERM:
+     return new BoolTermFormula(lift(f->getBooleanTerm(), value, cutoff));
+
+  default:
+    ASSERTION_VIOLATION;
+
+  }
+  
+}
+
+FormulaList* FOOLElimAlt::lift (FormulaList* fs, unsigned value, unsigned cutoff){
+  CALL ("FOOLElimAlt::lift (FormulaList*, unsigned , unsigned )");
+
+  Stack<FormulaList*>* els;
+  Recycler::get(els);
+  els->reset();
+
+  FormulaList* el = fs;
+  while(el) {
+    els->push(el);
+    el = el->tail();
+  }
+
+  FormulaList* res = 0;
+
+  bool modified = false;
+  while(els->isNonEmpty()) {
+    FormulaList* el = els->pop();
+    Formula* f = el->head();
+    Formula* g = lift(f, value, cutoff);
+    if(!modified && f!=g) {
+      modified = true;
+    }
+    if(modified) {
+      FormulaList::push(g, res);
+    }
+    else {
+      res = el;
+    }
+  }
+
+  Recycler::release(els);
+  return res;
+} 
+
+/**
+  * Returns true if @index represents a Du Bruijn index greater than @cutoff
+  * @since 19/03/2018
+  * @author Ahmed Bhayat
+  */
+bool FOOLElimAlt::indexGreater(vstring index, unsigned cutoff){
+   CALL("FOOLElimAlt::indexGreater");
+   
+   int ind = 0;
+   Int::stringToInt(index.substr(0,index.find("_")), ind);
+   if((unsigned)ind > cutoff){
+     return true;
+   }
+   return false;
+}  

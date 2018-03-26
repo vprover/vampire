@@ -188,10 +188,6 @@ FormulaUnit* FOOLElimination::apply(FormulaUnit* unit) {
 Formula* FOOLElimination::process(Formula* formula) {
   CALL("FOOLElimination::process(Formula*)");
 
-  if( _behindLambdas > 0 ){
-    return processBeyondLambda(formula);
-  }
-  
   switch (formula->connective()) {
     case LITERAL: {
       Literal* literal = formula->literal();
@@ -218,6 +214,9 @@ Formula* FOOLElimination::process(Formula* formula) {
         ASS_EQ(literal->arity(), 2); // can there be equality between several terms?
         TermList lhs = *literal->nthArgument(0);
         TermList rhs = *literal->nthArgument(1);
+
+        cout << "the lhs is " + lhs.toString() << endl;
+        cout << "the rhs is " + rhs.toString() << endl;
 
         bool lhsIsFormula = lhs.isTerm() && lhs.term()->isBoolean();
         bool rhsIsFormula = rhs.isTerm() && rhs.term()->isBoolean();
@@ -453,7 +452,6 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
    * remove occurrences of variables. An assertion at the end of this method
    * checks that free variables of the input and the result coincide.
    */
-
   
   if (!term->isSpecial()) {
     /**
@@ -739,9 +737,8 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
          *  translated to functions with boolean return type.
          */
 
-        Formula *formula = process(sd->getFormula());
-
         if( _behindLambdas == 0 ){
+          Formula *formula = process(sd->getFormula());
           // create a fresh symbol g and build g(X1, ..., Xn)
           unsigned freshSymbol = introduceFreshSymbol(context, BOOL_PREFIX, freeVarsSorts, Sorts::SRT_BOOL);
           TermList freshSymbolApplication = buildFunctionApplication(freshSymbol, freeVars);
@@ -761,7 +758,10 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
 
           termResult = freshSymbolApplication;
         } else {
-          
+
+          FOOLElimAlt fe = FOOLElimAlt(_varSorts);
+          termResult = fe.formulaToTerm(sd->getFormula());
+          _defs = UnitList::concat(_defs, fe.axioms());
         }
         break;
       }

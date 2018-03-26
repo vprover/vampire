@@ -21,11 +21,21 @@ class FOOLElimAlt {
 public:
 
   FOOLElimAlt(DHMap<unsigned,unsigned> varSorts) : _axioms(0), _varSorts(varSorts){};
- 
+  static unsigned addDuBruijnIndex(vstring name, OperatorType* type);
   TermList formulaToTerm(Formula* fm);  
-  static unsigned addLogicalConnSym(vstring name, unsigned sort1, unsigned argNum, bool &added); 
-  static TermList applyLogicalConn(unsigned function, TermList args1, TermList arg2, bool bothArgs = true);
-  
+
+  //All functions below are here temporarily until a more suitable class is created for them, AYB!
+  /** All Du Bruijn indices in @tl greater than @cutoff are lifted by @value and new TermList returned */
+  static TermList lift(TermList tl, unsigned value, unsigned cutoff);
+  static bool lift(TermList* fromtl, TermList* totl, unsigned value, unsigned cutoff);
+  static Term* lift(Term* term, unsigned value, unsigned cutoff);
+  static Formula* lift(Formula* formula, unsigned value, unsigned cutoff);
+  static FormulaList* lift(FormulaList* fs, unsigned value, unsigned cutoff);
+  /**if @name represents Du Bruijn Index, lifts it by @value */
+  static vstring lift(vstring name, unsigned value);
+  /** returns true iff @index represents an index of value greater than @cutoff */
+  static bool indexGreater(vstring index, unsigned cutoff);
+
   UnitList* axioms(){
 	 return _axioms;
   }
@@ -33,6 +43,10 @@ public:
 private:
   UnitList* _axioms;
   
+  static unsigned addLogicalConnSym(vstring name, unsigned sort1, unsigned argNum, bool &added); 
+  static TermList applyLogicalConn(unsigned function, TermList args1, TermList arg2, bool bothArgs = true);
+
+  TermList convertToDuBruijnIndices(TermList t, Stack<int> vars);
   TermList abstract(TermList term, Stack<unsigned> sorts);
   TermList process(TermList t);
   unsigned sortOf(TermList t);
@@ -40,17 +54,13 @@ private:
     /** Add a new definitions to _axioms */
   void addAxiom(FormulaUnit* axiom);
 
-  void addQuantifierAxiom(TermList constant, unsigned constSort, Connective conn, unsigned qvarSort);
   void addConnAxiom(unsigned fun, Connective conn, unsigned argSort);  
 
-  unsigned range(unsigned sort);
-  unsigned domain(unsigned sort);
-  
+  unsigned toSort(OperatorType* type);
+
   Formula* createEquality(TermList t1, TermList t2, unsigned sort);
   Formula* toEquality(TermList booleanTerm);
-  
-  TermList addHolConstant(vstring name, unsigned sort, bool& added, Signature::Symbol::HOLConstant constant);
-  
+    
   /** Lexical scope of the current unit */
   DHMap<unsigned,unsigned> _varSorts;
 

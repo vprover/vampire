@@ -231,36 +231,6 @@ Term* Rectify::rectifySpecialTerm(Term* t)
     }
     return Term::createTuple(rectifiedTupleTerm);
   }
-  case Term::SF_APP:
-  {
-    ASS_EQ(t->arity(),1);
-  
-    TermList lhs = rectify(sd->getAppLhs());
-    TermList rhs = rectify(*t->nthArgument(0));
-    if(lhs == sd->getAppLhs() && rhs == *t->nthArgument(0)){
-      return t;
-    }
-    return Term::createApp(lhs, rhs, sd->getAppLhsSort(), sd->getSort());
-  }
-  case Term::SF_LAMBDA:
-  {
-    ASS_EQ(t->arity(),0);
-    bindVars(sd->getLambdaVars());
-    TermList lambdaTerm = rectify(sd->getLambdaExp());
-    /**
-     * We don't want to remove unused variables from the variable list,
-     * ^[X].exp is not equivalent to exp.
-     */
-    bool removeUnusedVars = _removeUnusedVars;
-    _removeUnusedVars = false;
-    VarList* vs = rectifyBoundVars(sd->getLambdaVars());
-    _removeUnusedVars = removeUnusedVars; // restore the status quo
-    unbindVars(sd->getLambdaVars());
-    if (vs == sd->getLambdaVars() && lambdaTerm == sd->getLambdaExp()) {
-      return t;
-    }
-    return Term::createLambda(lambdaTerm, Connective::LAMBDA, vs, sd->getVarSorts(), sd->getLambdaExpSort());   
-  }
   default:
     ASSERTION_VIOLATION;
   }

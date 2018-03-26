@@ -38,6 +38,7 @@
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/Theory.hpp"
 
+#include "Shell/FOOLElimAlt.hpp"
 #include "Shell/Options.hpp"
 #include "Shell/Statistics.hpp"
 #include "Shell/DistinctGroupExpansion.hpp"
@@ -1699,7 +1700,7 @@ void TPTP::dealWithVar(vstring name, unsigned argNum){
   OperatorType* varType = types->head();
   if(binders->head() == LAMB){ //DuBruijn index
     vstring indexName = nameToIndex(var); //finding du-bruijn index equivalent to var
-    unsigned index = addDuBruijnIndex(indexName, varType);
+    unsigned index = FOOLElimAlt::addDuBruijnIndex(indexName, varType);
     if(varType->arity() == 0){ //constant  
       _termLists.push(TermList(Term::createConstant(index)));
     }else{ //higher-order DU Bruijn index
@@ -1729,8 +1730,8 @@ TermList TPTP::etaExpand(OperatorType* type, vstring name, unsigned arity, unsig
    
   if(arity - argsOnStack > 0){
     if(isIndex){
-      name = lift(name, arity - argsOnStack); //head symbol is a Du Bruijn index that requires lifting by arity - argsonstack
-      addDuBruijnIndex(name, type);
+      name = FOOLElimAlt::lift(name, arity - argsOnStack); //head symbol is a Du Bruijn index that requires lifting by arity - argsonstack
+      FOOLElimAlt::addDuBruijnIndex(name, type);
     }
     lift(argsOnStack, arity - argsOnStack);//recursively lift the arguments already on the stack
   }
@@ -1739,7 +1740,7 @@ TermList TPTP::etaExpand(OperatorType* type, vstring name, unsigned arity, unsig
     unsigned sort = type->arg(count);
     OperatorType* subType = toType(sort);
     if(!env.sorts->isOfStructuredSort(sort, Sorts::StructuredSort::FUNCTION)){
-      unsigned index = addDuBruijnIndex(Int::toString(i - argsOnStack) + "_" + Int::toString(sort), subType);
+      unsigned index = FOOLElimAlt::addDuBruijnIndex(Int::toString(i - argsOnStack) + "_" + Int::toString(sort), subType);
       _termLists.push(TermList(Term::createConstant(index)));
     }else{
       OperatorType* subType = toType(sort);
@@ -1764,23 +1765,6 @@ TermList TPTP::etaExpand(OperatorType* type, vstring name, unsigned arity, unsig
   return expandedTerm;
 }
 
-/**
-  * If @name represents a Du Bruijn0 index, it is lifted by @value 
-  * @since 19/03/2018
-  * @author Ahmed Bhayat
-  */
-vstring TPTP::lift(vstring name, unsigned value){
-  CALL("TPTP::lift(vstring, unsigned)");
-  
-  ASS_REP(name.find("_") > 0, name);
-  
-  unsigned underPos = name.find("_");
-  vstring index = name.substr(0, underPos);
-  int liftedIndex;
-  Int::stringToInt(index, liftedIndex);
-  liftedIndex = liftedIndex + value;
-  return Int::toString(liftedIndex) + name.substr(underPos);
-}
 
 /**
   * Recursively lifts all Du Bruijn indices in top @argNum terms on _termLists by @value
@@ -1791,245 +1775,9 @@ void TPTP::lift(unsigned argNum, unsigned value){
   CALL("TPTP::lift(unsigned, unsigned)");
 
   for(unsigned i = 1; i <= argNum; i ++){ 
-    _termLists[_termLists.size() - i] = lift(_termLists[_termLists.size() - i], value, 0);
+    _termLists[_termLists.size() - i] = FOOLElimAlt::lift(_termLists[_termLists.size() - i], value, 0);
   }
   
-}
-
-TermList TPTP::lift(TermList ts, unsigned value, unsigned cutoff){
-  CALL("TPTP:::lift(TermList, unsigned, unsigned)");
-  
-  if(ts.isVar()){
-    return ts;
-  }
-  return TermList(lift(ts.term(), value, cutoff));
-  
-}
-
-Term* TPTP::lift(Term* term, unsigned value, unsigned cutoff){
-  CALL("TPTP:::lift(Term*, unsigned, unsigned)");
-
-  if(term->isSpecial()){
-    ASS_REP(term->functor() == Term::SF_FORMULA, term->toString());
-    ASS_EQ(term->arity(),0);   
-    Term::SpecialTermData* sd = term->getSpecialData();
-    Formula* orig = lift(sd->getFormula(), value, cutoff);
-    if(orig==sd->getFormula()) {
-      return term;
-    }
-    return Term::createFormula(orig);
-  }
-  
-  bool headModified = false;
-  Term* liftedTerm;
-  
-  if(term->hasVarHead()){
-    liftedTerm = Term::cloneNonShared(term);
-    if(lift(term->args(), liftedTerm->args(), value, cutoff)){
-      return env.sharing->insert(liftedTerm);      
-    }else{
-      return term;
-    }
-  }
-  
-  Signature::Symbol* sym = env.signature->getFunction(term->functor()); 
-  vstring index = sym->name();
-  if(sym->duBruijnIndex() && indexGreater(index, cutoff)){
-    vstring newIndex = lift(index, value);
-    unsigned fun = addDuBruijnIndex(newIndex, sym->fnType());
-    unsigned arity = term->arity();
-    liftedTerm = new(arity) Term;
-    liftedTerm->makeSymbol(fun, arity);
-    for (int i = arity-1;i >= 0;i--) {
-      TermList ss = *(term->nthArgument(i));
-      *(liftedTerm->nthArgument(i)) = ss;
-    }
-    headModified = true;
-  }else{
-    liftedTerm = Term::cloneNonShared(term);
-  }
-  bool argsChanged = sym->lambda() ? lift(term->args(), liftedTerm->args(), value, cutoff+1) :
-                                     lift(term->args(), liftedTerm->args(), value, cutoff);
-  if(argsChanged || headModified){
-    if(TermList::allShared(liftedTerm->args())){
-      return env.sharing->insert(liftedTerm);
-    } else {
-      return liftedTerm;
-    }
-  }
-  liftedTerm->destroy();
-  return term;
-  
-}
-
-bool TPTP::lift(TermList* from, TermList* to, unsigned value, unsigned cutoff){
-  CALL("lift(TermList*, TermList*, unsigned , unsigned)");
-
-  bool changed = false;
-  while (!from->isEmpty()) {
-    if (from->isVar()) {
-      to->makeVar(from->var());
-    }
-    else { // from is not a variable
-      Term* f = from->term();
-      Term* t = lift(f, value, cutoff);
-      to->setTerm(t);
-      if (f != t) {
-        changed = true;
-      }
-    }
-    from = from->next();
-    ASS(! to->isEmpty());
-    to = to->next();
-  }
-  ASS(to->isEmpty());
-  return changed;
-}
-
-Formula* TPTP::lift(Formula* f, unsigned value, unsigned cutoff){
-  CALL("TPTP::lift(Formula*, unsigned, unsigned)");
- 
-  switch (f->connective()) {
-  case LITERAL: 
-  {
-    Literal* l = f->literal();
-    ASS(l->isEquality());
-    Literal* m = new(l->arity()) Literal(*l);
-    if (lift(l->args(),m->args(), value, cutoff)) {
-      if(TermList::allShared(m->args())) {
-        return new AtomicFormula(env.sharing->insert(m));
-      } else {
-        return new AtomicFormula(m);
-      }
-    }
-    // literal not changed
-    m->destroy();
-    return f;
-  }
-
-  case AND: 
-  case OR: 
-  {
-    FormulaList* newArgs = lift(f->args(), value, cutoff);
-    if (newArgs == f->args()) {
-      return f;
-    }
-    return new JunctionFormula(f->connective(), newArgs);
-  }
-
-  case IMP: 
-  case IFF: 
-  case XOR:
-  {
-    Formula* l = lift(f->left(), value, cutoff);
-    Formula* r = lift(f->right(), value, cutoff);
-    if (l == f->left() && r == f->right()) {
-      return f;
-    }
-    return new BinaryFormula(f->connective(), l, r);
-  }
-
-  case NOT:
-  {
-    Formula* arg = lift(f->uarg(), value, cutoff);
-    if (f->uarg() == arg) {
-      return f;
-    }
-    return new NegatedFormula(arg);
-  }
-
-  case FORALL: 
-  case EXISTS:
-  {
-    Formula* arg = lift(f->qarg(), value, cutoff);
-    if (f->qarg() == arg) {
-      return f;
-    }
-    return new QuantifiedFormula(f->connective(),f->vars(),0,arg); 
-  }
-
-  case TRUE:
-  case FALSE:
-    return f;
-
-  case BOOL_TERM:
-     return new BoolTermFormula(lift(f->getBooleanTerm(), value, cutoff));
-
-#if VDEBUG
-  default:
-    ASSERTION_VIOLATION;
-#endif
-  }
-  
-}
-
-FormulaList* TPTP::lift (FormulaList* fs, unsigned value, unsigned cutoff){
-  CALL ("TPTP::lift (FormulaList*, unsigned , unsigned )");
-
-  Stack<FormulaList*>* els;
-  Recycler::get(els);
-  els->reset();
-
-  FormulaList* el = fs;
-  while(el) {
-    els->push(el);
-    el = el->tail();
-  }
-
-  FormulaList* res = 0;
-
-  bool modified = false;
-  while(els->isNonEmpty()) {
-    FormulaList* el = els->pop();
-    Formula* f = el->head();
-    Formula* g = lift(f, value, cutoff);
-    if(!modified && f!=g) {
-      modified = true;
-    }
-    if(modified) {
-      FormulaList::push(g, res);
-    }
-    else {
-      res = el;
-    }
-  }
-
-  Recycler::release(els);
-  return res;
-} 
-
-/**
-  * Returns true if @index represents a Du Bruijn index greater than @cutoff
-  * @since 19/03/2018
-  * @author Ahmed Bhayat
-  */
-bool TPTP::indexGreater(vstring index, unsigned cutoff){
-   CALL("indexGreater");
-   
-   int ind = 0;
-   Int::stringToInt(index.substr(0,index.find("_")), ind);
-   if((unsigned)ind > cutoff){
-     return true;
-   }
-   return false;
-}  
-
-/**
-  * Add function with name @name and type @type and amrk as an index
-  * @since 19/03/2018
-  * @author Ahmed Bhayat
-  */
-unsigned TPTP::addDuBruijnIndex(vstring name, OperatorType* type){
-  CALL("TPTP::addDuBruijnIndex");
-
-  bool added;
-  unsigned fun = env.signature->addFunction(name ,type->arity(),added, false, 2);
-  if(added){//first time constant added. Set type
-    Signature::Symbol* symbol = env.signature->getFunction(fun);  
-    symbol->setType(type);
-  }
-  return fun;
-
 }
 
 /**
@@ -3066,7 +2814,7 @@ void TPTP::varList()
       unsigned returnSort = sorts.pop();
       OperatorType* type = OperatorType::getFunctionType(sorts.size(), sorts.begin(), returnSort);
       if(_lastBinder != LAMB && type->arity() != 0){ //higher-order var (not index)
-        unsigned functor = env.signature->addFreshHOVar(type, "X" + Int::toString(var));
+        unsigned functor = env.signature->addFreshHOVar(type, var);
         bindVariableToFunc(var, functor);
       }
       bindVariable(var, type);        
@@ -3505,7 +3253,7 @@ TermList TPTP::createFunctionApplication(vstring name, unsigned arity, bool inde
 }
 
 TermList TPTP::createHigherOrderVarApp(unsigned func, OperatorType* type){
-  CALL("PTP::createHigherOrderVarApp");
+  CALL("TPTP::createHigherOrderVarApp");
   
   unsigned arity = type->arity();
   Term* t = new(arity) Term;

@@ -351,8 +351,8 @@ class Signature
   unsigned addPredicate(const vstring& name,unsigned arity,bool& added);
   unsigned addFunction(const vstring& name,unsigned arity,bool& added,bool overflowConstant = false, int hoFunc = 0);
 
-  unsigned addFreshHOVar(OperatorType* type, vstring name);
-  bool addHOVar(unsigned functor, OperatorType* type, vstring name);
+  unsigned addFreshHOVar(OperatorType* type, int var);
+  bool addHOVar(unsigned functor, OperatorType* type, int var);
 
   /**
    * If a predicate with this name and arity exists, return its number.
@@ -418,7 +418,7 @@ class Signature
 
   /** Returns the type of higher-order variable */
   OperatorType* getVarType(unsigned functor);
-  vstring getVarName(unsigned functor);
+  int getVarName(unsigned functor);
   const unsigned getNextFreshVarNum()
   {
     CALL("Signature::getNextFreshVarNum()");
@@ -602,7 +602,7 @@ private:
   /** Map for the arity_check options: maps symbols to their arities */
   SymbolMap _arityCheck;
   /** Map of higher-order variable functors to their types */
-  typedef pair<OperatorType*, vstring> HOVarFuncInfo;
+  typedef pair<OperatorType*, int> HOVarFuncInfo;
   Map<unsigned,HOVarFuncInfo> _hoVarMap;
   /** Last number used for fresh functions and predicates */
   int _nextFreshSymbolNumber;
