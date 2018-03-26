@@ -267,10 +267,10 @@ bool FunctionDefinition::removeAllDefinitions(UnitList*& units)
     if(d) {
       d->defCl=cl;
       if(_defs.insert(d->fun, d)) {
-	//cout<<"Found: "<<(*(*d->defCl)[0])<<endl;
-	scanIterator.del();
+        //cout<<"Found: "<<(*(*d->defCl)[0])<<endl;
+        scanIterator.del();
       } else {
-	delete d;
+        delete d;
       }
     }
   }

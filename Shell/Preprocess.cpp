@@ -171,20 +171,6 @@ void Preprocess::preprocess(Problem& prb)
     }
   }
 
-  if (prb.mayHaveFunctionDefinitions()) {
-    env.statistics->phase=Statistics::FUNCTION_DEFINITION_ELIMINATION;
-    if (env.options->showPreprocessing())
-      env.out() << "function definition elimination" << std::endl;
-
-    if (_options.functionDefinitionElimination() == Options::FunctionDefinitionElimination::ALL) {
-      FunctionDefinition fd;
-      fd.removeAllDefinitions(prb);
-    }
-    else if (_options.functionDefinitionElimination() == Options::FunctionDefinitionElimination::UNUSED) {
-      FunctionDefinition::removeUnusedDefinitions(prb);
-    }
-  }
-
   //we ensure that in the beginning we have a valid property object, to
   //know that the queries to uncertain problem properties will be precise
   //enough
@@ -210,11 +196,12 @@ void Preprocess::preprocess(Problem& prb)
     // This is the point to extend the signature with $$true and $$false
     // If we don't have fool then these constants get in the way (a lot)
 
-    if (!_options.newCNF() | prb.hasApp() | prb.hasLambda()) { 
+    if (!_options.newCNF() || env.signature->isHOL()) { 
       //Quick and nasty way of getting around the fact that newCNF has not been
       //updated to handle HOL.
-      if (env.options->showPreprocessing())
+      if (env.options->showPreprocessing()){
         env.out() << "FOOL, Application & Lambda elimination" << std::endl;
+      }
 	    if (prb.hasFOOL()){
         TheoryAxioms(prb).applyFOOL();
 	    }
@@ -294,6 +281,20 @@ void Preprocess::preprocess(Problem& prb)
     preprocess2(prb);
   }
 
+  if (prb.mayHaveFunctionDefinitions()) {
+    env.statistics->phase=Statistics::FUNCTION_DEFINITION_ELIMINATION;
+    if (env.options->showPreprocessing())
+      env.out() << "function definition elimination" << std::endl;
+
+    if (_options.functionDefinitionElimination() == Options::FunctionDefinitionElimination::ALL) {
+      FunctionDefinition fd;
+      fd.removeAllDefinitions(prb);
+    }
+    else if (_options.functionDefinitionElimination() == Options::FunctionDefinitionElimination::UNUSED) {
+      FunctionDefinition::removeUnusedDefinitions(prb);
+    }
+  }
+  
   if (prb.mayHaveFormulas() && _options.newCNF() && !prb.hasApp() && !prb.hasLambda()) {
   	//Quick and nasty way of getting around the fact that newCNF has not been
     //updated to handle HOL.

@@ -422,33 +422,6 @@ void SortHelper::collectVariableSortsIter(CollectTask task, DHMap<unsigned,unsig
             newTask.t = sd->getTupleTerm();
             todo.push(newTask);
           } break;
-
-          case Term::SF_LAMBDA: {
-            CollectTask newTask;
-            newTask.fncTag = COLLECT_TERMLIST;
-            newTask.contextSort = sd->getLambdaExpSort();
-            newTask.ts = sd->getLambdaExp();
-            todo.push(newTask);              
-          } break;
-          
-          case Term::SF_APP: {
-            CollectTask newTask;
-
-            newTask.fncTag = COLLECT_TERMLIST;
-            TermList lhs = sd->getAppLhs();
-            TermList rhs =  *term->nthArgument(0);
-    
-            unsigned lhsSort = sd->getAppLhsSort();
-            unsigned rhsSort = env.sorts->getFuncSort(lhsSort)->getDomainSort();
-            
-            newTask.contextSort = lhsSort;
-            newTask.ts = lhs;
-            todo.push(newTask);
-
-            newTask.contextSort = rhsSort;
-            newTask.ts = rhs;
-            todo.push(newTask);
-          } break;
           
       #if VDEBUG
           default:
@@ -479,7 +452,7 @@ void SortHelper::collectVariableSortsIter(CollectTask task, DHMap<unsigned,unsig
                   ASS_EQ(Sorts::SRT_BOOL, map.get(ts.var()));
                 }
               } else {
-                ASS(ts.isTerm() && (ts.term()->isSpecial() || !ts.term()->arity()));
+                ASS_REP(ts.isTerm() && (ts.term()->isSpecial() || !ts.term()->arity()), ts.toString());
                 
                 if (ts.term()->isSpecial()){
                   CollectTask newTask;

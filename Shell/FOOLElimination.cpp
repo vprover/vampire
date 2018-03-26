@@ -47,7 +47,7 @@
 
 #include "Rectify.hpp"
 
-#include "LambdaElimination.hpp"
+#include "FOOLElimAlt.hpp"
 #include "FOOLElimination.hpp"
 
 using namespace Lib;
@@ -62,7 +62,7 @@ const char* FOOLElimination::BOOL_PREFIX = "bG";
 // The default input type of introduced definitions
 const Unit::InputType FOOLElimination::DEFINITION_INPUT_TYPE = Unit::AXIOM;
 
-FOOLElimination::FOOLElimination() : _defs(0) {}
+FOOLElimination::FOOLElimination() : _defs(0) , _behindLambdas(0){}
 
 bool FOOLElimination::needsElimination(FormulaUnit* unit) {
   CALL("FOOLElimination::needsElimination");
@@ -188,6 +188,10 @@ FormulaUnit* FOOLElimination::apply(FormulaUnit* unit) {
 Formula* FOOLElimination::process(Formula* formula) {
   CALL("FOOLElimination::process(Formula*)");
 
+  if( _behindLambdas > 0 ){
+    return processBeyondLambda(formula);
+  }
+  
   switch (formula->connective()) {
     case LITERAL: {
       Literal* literal = formula->literal();
@@ -455,13 +459,23 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
     /**
      * If term is not special, simply propagate processing to its arguments.
      */
-
+    if(!term->hasVarHead() && env.signature->getFunction(term->functor())->lambda()){
+      _behindLambdas++;
+    }
+    
     Stack<TermList> arguments;
     Term::Iterator ait(term);
     while (ait.hasNext()) {
       arguments.push(process(ait.next()));
     }
-
+    
+    /**
+     * Finished processing behind lambda.
+     */
+    if(!term->hasVarHead() && env.signature->getFunction(term->functor())->lambda()){
+      _behindLambdas--;
+    }
+    
     TermList processedTerm = TermList(Term::create(term, arguments.begin()));
 
     if (context == FORMULA_CONTEXT) {
@@ -719,64 +733,38 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
          *  2) Add the definition: ![X1, ..., Xn]: (f <=> g(X1, ..., Xn) = true),
          *     where true is FOOL constant
          *  3) Replace the term with g(X1, ..., Xn)
+         *
+         *  The above is when the formula is not embedded within a lambda. If embedded within a lambda,
+         *  then an alternative translation is used whereby all logical connectives in the formula are
+         *  translated to functions with boolean return type.
          */
 
         Formula *formula = process(sd->getFormula());
 
-        // create a fresh symbol g and build g(X1, ..., Xn)
-        unsigned freshSymbol = introduceFreshSymbol(context, BOOL_PREFIX, freeVarsSorts, Sorts::SRT_BOOL);
-        TermList freshSymbolApplication = buildFunctionApplication(freshSymbol, freeVars);
+        if( _behindLambdas == 0 ){
+          // create a fresh symbol g and build g(X1, ..., Xn)
+          unsigned freshSymbol = introduceFreshSymbol(context, BOOL_PREFIX, freeVarsSorts, Sorts::SRT_BOOL);
+          TermList freshSymbolApplication = buildFunctionApplication(freshSymbol, freeVars);
 
-        // build f <=> g(X1, ..., Xn) = true
-        Formula* freshSymbolDefinition = new BinaryFormula(IFF, formula, toEquality(freshSymbolApplication));
+          // build f <=> g(X1, ..., Xn) = true
+          Formula* freshSymbolDefinition = new BinaryFormula(IFF, formula, toEquality(freshSymbolApplication));
 
-        // build ![X1, ..., Xn]: (f <=> g(X1, ..., Xn) = true)
-        if (Formula::VarList::length(freeVars) > 0) {
-          // TODO do we know the sorts of freeVars?
-          freshSymbolDefinition = new QuantifiedFormula(FORALL, freeVars,0, freshSymbolDefinition);
+          // build ![X1, ..., Xn]: (f <=> g(X1, ..., Xn) = true)
+          if (Formula::VarList::length(freeVars) > 0) {
+            // TODO do we know the sorts of freeVars?
+            freshSymbolDefinition = new QuantifiedFormula(FORALL, freeVars,0, freshSymbolDefinition);
+          }
+
+          // add the introduced definition
+          Inference* inference = new Inference1(Inference::FOOL_ELIMINATION, _unit);
+          addDefinition(new FormulaUnit(freshSymbolDefinition, inference, DEFINITION_INPUT_TYPE));
+
+          termResult = freshSymbolApplication;
+        } else {
+          
         }
-
-        // add the introduced definition
-        Inference* inference = new Inference1(Inference::FOOL_ELIMINATION, _unit);
-        addDefinition(new FormulaUnit(freshSymbolDefinition, inference, DEFINITION_INPUT_TYPE));
-
-        termResult = freshSymbolApplication;
         break;
       }
-	  case Term::SF_LAMBDA: {
-	    /** lambda terms are translated to FOL using SKIBC combinators which are extensively described in 
-		    the literature. 
-		*/
-		LambdaElimination le = LambdaElimination(_varSorts);
-		TermList translatedTerm = le.elimLambda(term);
-		termResult = translatedTerm;
-		_defs = UnitList::concat(_defs, le.axioms());
-		break;
-	  }
-	  case Term::SF_APP: {
-		TermList lhs = term->getSpecialData()->getAppLhs();
-        TermList rhs = *term->nthArgument(0);
-         
-        if(!lhs.isVar()){ //What about if it is HOL constant?
-             lhs = process(lhs.term());
-        }
-        if(!rhs.isVar()){
-             rhs = process(rhs.term());
-        }
-         
-        unsigned lhsSort = SortHelper::getResultSort(lhs, _varSorts);
-        unsigned rhsSort = SortHelper::getResultSort(rhs, _varSorts);
-        unsigned appSort = term->getSpecialData()->getSort();
-        unsigned app = LambdaElimination::introduceAppSymbol(lhsSort, rhsSort, appSort);
-         
-        LambdaElimination::buildFuncApp(app, lhs, rhs, termResult);
-		 
-		if (context == FORMULA_CONTEXT) {
-		   formulaResult = toEquality(termResult);         	
-        }
-        break;
-		 
-	  }
 #if VDEBUG
       default:
         ASSERTION_VIOLATION;
@@ -816,6 +804,7 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
   }
 #endif
 }
+
 
 /**
  * A shortcut of process(Term*, context) for TERM_CONTEXT.
@@ -1018,5 +1007,4 @@ void FOOLElimination::reportProcessed(vstring inputRepr, vstring outputRepr) {
     env.endOutput(); */
   }
 }
-
  

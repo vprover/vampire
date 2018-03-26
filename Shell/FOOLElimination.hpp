@@ -80,7 +80,7 @@ private:
   // Shortcuts for process(TermList)
   TermList process(TermList terms);
   Formula* processAsFormula(TermList terms);
-
+  
   // Shortcuts for process(Term*)
   TermList process(Term* term);
   Formula* processAsFormula(Term* term);
@@ -109,6 +109,10 @@ private:
   static unsigned introduceFreshSymbol(Context context, const char* prefix,
                                        Stack<unsigned> sorts, unsigned resultSort);
 
+  // Counts the number of lambdas we are processing 'within'. Only if this number is 0,
+  // can 'old-style' FOOL elimination be carried out.   
+  unsigned _behindLambdas;
+                                       
   // In order to add some meaning to a fresh symbol we prefix it with a given string
   // Three different prefixes for three kinds of fresh symbols
   static const char* ITE_PREFIX;
