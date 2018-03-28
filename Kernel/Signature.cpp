@@ -859,6 +859,19 @@ int Signature::getVarName(unsigned functor){
   return info.second;
 }
 
+void Signature::setVar(unsigned functor, int var){
+  CALL("Signature::setVar");
+  
+  HOVarFuncInfo info;
+  ALWAYS(_hoVarMap.find(functor - Term::VARIABLE_HEAD_LOWER_BOUND, info))
+  if(info.second == var){ return;}
+  
+  OperatorType* type = getVarType(functor);
+  HOVarFuncInfo info2(type, var);
+  bool inserted  = _hoVarMap.replaceOrInsert(functor - Term::VARIABLE_HEAD_LOWER_BOUND, info2);
+  ASS(inserted);
+}
+
 /**
  * Return the key "name_arity" used for hashing. This key is obtained by
  * concatenating the name, underscore character and the arity. The key is

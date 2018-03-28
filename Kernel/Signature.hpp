@@ -419,6 +419,7 @@ class Signature
   /** Returns the type of higher-order variable */
   OperatorType* getVarType(unsigned functor);
   int getVarName(unsigned functor);
+  void setVar(unsigned functor, int var);
   const unsigned getNextFreshVarNum()
   {
     CALL("Signature::getNextFreshVarNum()");

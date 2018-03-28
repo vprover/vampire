@@ -280,20 +280,6 @@ void Preprocess::preprocess(Problem& prb)
 
     preprocess2(prb);
   }
-
-  if (prb.mayHaveFunctionDefinitions()) {
-    env.statistics->phase=Statistics::FUNCTION_DEFINITION_ELIMINATION;
-    if (env.options->showPreprocessing())
-      env.out() << "function definition elimination" << std::endl;
-
-    if (_options.functionDefinitionElimination() == Options::FunctionDefinitionElimination::ALL) {
-      FunctionDefinition fd;
-      fd.removeAllDefinitions(prb);
-    }
-    else if (_options.functionDefinitionElimination() == Options::FunctionDefinitionElimination::UNUSED) {
-      FunctionDefinition::removeUnusedDefinitions(prb);
-    }
-  }
   
   if (prb.mayHaveFormulas() && _options.newCNF() && !prb.hasApp() && !prb.hasLambda()) {
   	//Quick and nasty way of getting around the fact that newCNF has not been
@@ -325,7 +311,20 @@ void Preprocess::preprocess(Problem& prb)
     }
   }
 
+  if (prb.mayHaveFunctionDefinitions()) {
+    env.statistics->phase=Statistics::FUNCTION_DEFINITION_ELIMINATION;
+    if (env.options->showPreprocessing())
+      env.out() << "function definition elimination" << std::endl;
 
+    if (_options.functionDefinitionElimination() == Options::FunctionDefinitionElimination::ALL) {
+      FunctionDefinition fd;
+      fd.removeAllDefinitions(prb);
+    }
+    else if (_options.functionDefinitionElimination() == Options::FunctionDefinitionElimination::UNUSED) {
+      FunctionDefinition::removeUnusedDefinitions(prb);
+    }
+  }
+  
   if (prb.mayHaveEquality() && _options.inequalitySplitting() != 0) {
     if (env.options->showPreprocessing())
       env.out() << "inequality splitting" << std::endl;

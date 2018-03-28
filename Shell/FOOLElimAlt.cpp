@@ -104,64 +104,61 @@ TermList FOOLElimAlt::formulaToTerm(Formula* fm)
       }
       return f1;                           
      }
-     case NOT: {        
-        bool added;
-        unsigned logicalSym = addLogicalConnSym("vNOT", Sorts::SRT_BOOL, 1, added);
-        if(added && !env.options->HOLConstantElimination()){
-            addConnAxiom(logicalSym, conn, Sorts::SRT_BOOL);
-        }
-        
-        TermList dummy;
-        return applyLogicalConn(logicalSym, formulaToTerm(fm->uarg()), dummy, false);                                                    
+   case NOT: {        
+     bool added;
+     unsigned logicalSym = addLogicalConnSym("vNOT", Sorts::SRT_BOOL, 1, added);
+     if(added && !env.options->HOLConstantElimination()){
+       addConnAxiom(logicalSym, conn, Sorts::SRT_BOOL);
      }
-     case FORALL:
-     case EXISTS: {
-
-        Formula::VarList* vars = fm->vars();
-        Stack<unsigned> sortsRev;
-        Stack<int> varsRev;
         
-        TermList qform = formulaToTerm(fm->qarg());
+     TermList dummy;
+     return applyLogicalConn(logicalSym, formulaToTerm(fm->uarg()), dummy, false);                                                    
+   }
+   case FORALL:
+   case EXISTS: {
+     
+      Formula::VarList* vars = fm->vars();
+      Stack<unsigned> sortsRev;
+      Stack<int> varsRev;
+      
+      TermList qform = formulaToTerm(fm->qarg());
 
-        Formula::VarList::Iterator vit(vars);
-        while(vit.hasNext()){
-          varsRev.push(vit.next());
-        }
+      Formula::VarList::Iterator vit(vars);
+      while(vit.hasNext()){
+        varsRev.push(vit.next());
+      }
 
-        vit.reset(vars);
-        while(vit.hasNext()){
-           sortsRev.push(_varSorts.get(vit.next()));
-        }
+      vit.reset(vars);
+      while(vit.hasNext()){
+         int var = vit.next();
+         sortsRev.push(_varSorts.get(var));
+      }
 
-        qform = lift(qform, varsRev.size(), 0);
-        qform = convertToDuBruijnIndices(qform, varsRev);
-        cout << "The converted term is " + qform.toString() << endl;
-        TermList abstractedTerm = abstract(qform, sortsRev);
-        
-        unsigned logicalSym;
-        bool added;
-        if(conn == FORALL){
-          logicalSym = addLogicalConnSym("vPI", sortOf(abstractedTerm) , 1, added);   
-        }else{
-          logicalSym = addLogicalConnSym("vSIGMA", sortOf(abstractedTerm) , 1, added); 
-        }
-        /* No axioms for FORALL and EXISTS, only inference rules
-        if(added && !env.options->HOLConstantElimination()){
-            addQuantifierAxiom(constant, constSort, conn, lambdaExpSort);
-        }*/
-        
-        TermList dummy;
-        return applyLogicalConn(logicalSym, abstractedTerm, dummy, false);
-     }
-     case BOOL_TERM:
-        return fm->getBooleanTerm();
-     case TRUE:
-        return TermList(Term::foolTrue());
-     case FALSE:
-        return TermList(Term::foolFalse());
-     default:
-        //cout << "Dealing with formula " + fm->toString() << endl;
-        ASSERTION_VIOLATION;
+      qform = lift(qform, varsRev.size(), 0);
+      qform = convertToDuBruijnIndices(qform, varsRev);
+      TermList abstractedTerm = abstract(qform, sortsRev);
+      unsigned sort = sortOf(abstractedTerm);
+      
+      unsigned logicalSym;
+      bool added;
+      if(conn == FORALL){
+        logicalSym = addLogicalConnSym("vPI_" + Int::toString(sort), sort , 1, added);   
+      }else{
+        logicalSym = addLogicalConnSym("vSIGMA_"  + Int::toString(sort), sort , 1, added); 
+      }
+      
+      TermList dummy;
+      return applyLogicalConn(logicalSym, abstractedTerm, dummy, false);
+   }
+   case BOOL_TERM:
+      return fm->getBooleanTerm();
+   case TRUE:
+      return TermList(Term::foolTrue());
+   case FALSE:
+      return TermList(Term::foolFalse());
+   default:
+      //cout << "Dealing with formula " + fm->toString() << endl;
+      ASSERTION_VIOLATION;
   
   }//switch conn
   
@@ -348,9 +345,9 @@ TermList FOOLElimAlt::abstract(TermList term, Stack<unsigned> sorts){
 
 TermList FOOLElimAlt::convertToDuBruijnIndices(TermList t, Stack<int> vars){
   CALL("FOOLElimAlt::convertToDuBruijnIndices");
-
+  
   if(t.isVar()){
-    for(unsigned i = vars.size() - 1; i >= 0; i --){
+    for(int i = vars.size() - 1; i >= 0; i--){
       if(vars[i] != -1 && (unsigned)vars[i] == t.var()){
         unsigned sort = sortOf(t);
         vstring name = Int::toString(vars.size() - i) + "_" + Int::toString(sort);
@@ -359,52 +356,46 @@ TermList FOOLElimAlt::convertToDuBruijnIndices(TermList t, Stack<int> vars){
         return TermList(Term::createConstant(fun));
       }
     }
+    return t;
   }
-
-  Term* term = t.term();
   
-  unsigned fun = 0;
+  bool modified = false;
+  Term* term = t.term();
+  Term* newTerm = Term::cloneNonShared(term);
+  
   if(!term->hasVarHead()){
   	Signature::Symbol* sym = env.signature->getFunction(term->functor());
   	if(sym->lambda()){ vars.push(-1); }
   } else {
   	int headVar = env.signature->getVarName(term->functor());
-  	for(unsigned i = vars.size() - 1; i >= 0; i --){
+  	for(int i = vars.size() - 1; i >= 0; i --){
       if(vars[i] == headVar){
   	    OperatorType* type = env.signature->getVarType(term->functor());
   	    vstring name = Int::toString(vars.size() - i) + "_" + Int::toString(toSort(type));
-        fun = addDuBruijnIndex(name, type);
+        unsigned fun = addDuBruijnIndex(name, type);
+        newTerm->makeSymbol(fun, newTerm->arity());
+        modified = true;
       }
     }
   }
  
-  bool modified = false;
   TermList* args = term->args();
-  TermList* newArgs;
-  unsigned count = 0;
+  TermList* newArgs = newTerm->args();
   while(!args->isEmpty()){
-  	count ++;
-  	*newArgs = *args;
-  	*newArgs = convertToDuBruijnIndices(*newArgs, vars);
-  	if(!TermList::equals(*newArgs, *args)){
+  	TermList ts = convertToDuBruijnIndices(*args, vars);
+  	if(!TermList::equals(ts, *args)){
+      *newArgs = ts;
   		modified = true;
   	}
-  	newArgs++;
   	args = args->next();
-  }
-
-
-  if(fun){
-    Term* newTerm = Term::create(fun, term->arity(), newArgs - count);
-    cout << "reached here with " + newTerm->toString() << endl;
-    return TermList(newTerm);
+    newArgs = newArgs->next();
   }
 
   if(modified){
-    Term* newTerm = Term::create(term, newArgs - count);
-    return TermList(newTerm);
+    return TermList(env.sharing->insert(newTerm));
   }
 
+  newTerm->destroy();
   return t;
 
 }
@@ -431,7 +422,7 @@ unsigned FOOLElimAlt::toSort(OperatorType* type){
   CALL("FOOLElimAlt::toSort");
   
   unsigned sort = type->result();
-  for (unsigned i = type->arity() - 1; i >= 0; i--){
+  for (int i = type->arity() - 1; i >= 0; i--){
     sort = env.sorts->addFunctionSort(type->arg(i), sort);
   }
 

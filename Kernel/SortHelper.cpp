@@ -33,6 +33,7 @@
 
 #include "SortHelper.hpp"
 
+#include "Shell/FOOLElimAlt.hpp"
 using namespace Kernel;
 
 /**
@@ -295,6 +296,15 @@ void SortHelper::collectVariableSortsIter(CollectTask task, DHMap<unsigned,unsig
       case COLLECT_TERM: {
         Term* term = task.t;
 
+        if(term->hasVarHead()){
+          int var = env.signature->getVarName(term->functor());
+          OperatorType* type = env.signature->getVarType(term->functor());
+          unsigned sort = FOOLElimAlt::toSort(type);
+          if (!map.insert(var, sort)) {
+            ASS_EQ(sort, map.get(var));
+          }          
+        }
+        
         unsigned position = 0;
         for (TermList* ts = term->args(); ts->isNonEmpty(); ts = ts->next()) {
           CollectTask newTask;
@@ -831,7 +841,7 @@ bool SortHelper::areImmediateSortsValid(Term* t)
     Term* ta = arg.term();
     unsigned argSort = getResultSort(ta);
     if (type.arg(i) != argSort) {
-      //cout << "error with expected " + env.sorts->sortName(type.arg(i)) + " and actual " << argSort << + " when functor is " << t->functor() << " and arg is " << arg << endl;
+      cout << "error with expected " + env.sorts->sortName(type.arg(i)) + " and actual " << env.sorts->sortName(argSort) << + " when functor is " << t->functor() << " and arg is " << arg << endl;
       return false;
     }
   }

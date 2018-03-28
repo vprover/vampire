@@ -155,9 +155,9 @@ FormulaUnit* FOOLElimination::apply(FormulaUnit* unit) {
   }
 
   FormulaUnit* rectifiedUnit = Rectify::rectify(unit);
-
+  
   Formula* formula = rectifiedUnit->formula();
-
+  
   _unit = rectifiedUnit;
   _varSorts.reset();
 
@@ -215,8 +215,8 @@ Formula* FOOLElimination::process(Formula* formula) {
         TermList lhs = *literal->nthArgument(0);
         TermList rhs = *literal->nthArgument(1);
 
-        cout << "the lhs is " + lhs.toString() << endl;
-        cout << "the rhs is " + rhs.toString() << endl;
+        //cout << "the lhs is " + lhs.toString() << endl;
+        //cout << "the rhs is " + rhs.toString() << endl;
 
         bool lhsIsFormula = lhs.isTerm() && lhs.term()->isBoolean();
         bool rhsIsFormula = rhs.isTerm() && rhs.term()->isBoolean();
@@ -439,7 +439,7 @@ Formula* FOOLElimination::processAsFormula(TermList terms) {
  */
 void FOOLElimination::process(Term* term, Context context, TermList& termResult, Formula*& formulaResult) {
   CALL("FOOLElimination::process(Term* term, Context context, ...)");
-
+  
   // collect free variables of the term and their sorts
   Formula::VarList* freeVars = term->freeVariables();
   Stack<unsigned> freeVarsSorts = collectSorts(freeVars);
@@ -758,7 +758,6 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
 
           termResult = freshSymbolApplication;
         } else {
-
           FOOLElimAlt fe = FOOLElimAlt(_varSorts);
           termResult = fe.formulaToTerm(sd->getFormula());
           _defs = UnitList::concat(_defs, fe.axioms());

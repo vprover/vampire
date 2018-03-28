@@ -35,7 +35,8 @@ public:
   static vstring lift(vstring name, unsigned value);
   /** returns true iff @index represents an index of value greater than @cutoff */
   static bool indexGreater(vstring index, unsigned cutoff);
-
+  static unsigned toSort(OperatorType* type);
+  
   UnitList* axioms(){
 	 return _axioms;
   }
@@ -56,7 +57,7 @@ private:
 
   void addConnAxiom(unsigned fun, Connective conn, unsigned argSort);  
 
-  unsigned toSort(OperatorType* type);
+
 
   Formula* createEquality(TermList t1, TermList t2, unsigned sort);
   Formula* toEquality(TermList booleanTerm);

@@ -47,7 +47,7 @@ using namespace Shell;
 bool Rectify::Renaming::tryGetBoundAndMarkUsed (int var,int& boundTo) const
 {
   CALL("Rectify::Renaming::tryGetBoundAndMarkUsed");
-
+  
   if ((unsigned)var >= _capacity) {
     return false;
   }
@@ -254,6 +254,16 @@ Term* Rectify::rectify (Term* t)
     return rectifySpecialTerm(t);
   }
 
+  if(t->hasVarHead()){
+    if(_functors.insert(t->functor())){
+      int var = env.signature->getVarName(t->functor());
+      int newVar = rectifyVar(var);
+      if(newVar != var){
+        env.signature->setVar(t->functor(), newVar);
+      }
+    }
+  }
+  
   Term* s = new(t->arity()) Term(*t);
   if (rectify(t->args(),s->args())) {
     if(TermList::allShared(s->args())) {
@@ -439,13 +449,13 @@ Formula* Rectify::rectify (Formula* f)
   {
     bindVars(f->vars());
     Formula* arg = rectify(f->qarg());
-  _sorts = f->sorts();
-  VarList* vs;
-  if(!SortList::isEmpty(_sorts)){
-       vs = rectifyBoundVars(f->vars(), true);
-  }else{
-     vs = rectifyBoundVars(f->vars());  
-  }
+    _sorts = f->sorts();
+    VarList* vs;
+    if(!SortList::isEmpty(_sorts)){
+      vs = rectifyBoundVars(f->vars(), true);
+    }else{
+      vs = rectifyBoundVars(f->vars());  
+    }
     unbindVars(f->vars());
     if (vs == f->vars() && arg == f->qarg()) {
       return f;
@@ -570,11 +580,11 @@ Rectify::VarList* Rectify::rectifyBoundVars (VarList* vs, bool removeUnusedSorts
   }
   
   if(removeUnusedSorts){
-  SortList::Iterator sit(_sorts);
-  while(sit.hasNext()){
+    SortList::Iterator sit(_sorts);
+    while(sit.hasNext()){
      sorts.push(sit.next());  
-  }
-  _sorts = _sorts->empty();
+    }
+    _sorts = _sorts->empty();
   }
   
   VarList* res = args.top()->tail();
@@ -592,9 +602,9 @@ Rectify::VarList* Rectify::rectifyBoundVars (VarList* vs, bool removeUnusedSorts
     if (wWithUsg.second || !_removeUnusedVars) {
       w = wWithUsg.first;
 
-    if(removeUnusedSorts){
-      _sorts = SortList::cons(sorts.pop(), _sorts);
-    }
+      if(removeUnusedSorts){
+        _sorts = SortList::cons(sorts.pop(), _sorts);
+      }
       if (v == w && vtail == ws) {
         res = vs;
       } else {
@@ -602,7 +612,7 @@ Rectify::VarList* Rectify::rectifyBoundVars (VarList* vs, bool removeUnusedSorts
       }
     }else if(removeUnusedSorts){     
      sorts.pop();
-  }
+    }
     // else nothing, because "else" means dropping the variable from the list and returning ws, but res == ws already ...
   }
 

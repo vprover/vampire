@@ -115,7 +115,11 @@ private:
   List<int>* _free;
   /** used to store sorts of quantified variables being rectified */
   SortList* _sorts;
-
+  /** used to store the higher-order vars that have been rectified, so that they are not re-rectified
+    * higher-order vars are shared unlike first-order vars.
+    */
+  DHSet<unsigned> _functors;
+  
   /** if true, unused quantified variables will be removed */
   bool _removeUnusedVars;
 

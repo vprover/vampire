@@ -112,10 +112,10 @@ Term* TermSharing::insert(Term* t)
       else 
       {
           ASS_REP(tt->term()->shared(), tt->term()->toString());
-          
+              
           Term* r = tt->term();
     
-          vars += r->vars();
+          vars += (r->vars() + r->hasVarHead()); 
           weight += r->weight();
           if (env.colorUsed) {
               color = static_cast<Color>(color | r->color());
@@ -125,6 +125,7 @@ Term* TermSharing::insert(Term* t)
           }
       }
     }
+    vars += t->hasVarHead();
     t->markShared();
     t->setVars(vars);
     t->setWeight(weight);
