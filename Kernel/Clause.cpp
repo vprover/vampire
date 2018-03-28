@@ -117,15 +117,17 @@ Clause::Clause(unsigned length,InputType it,Inference* inf)
   // LambdaElimination is run!
 
   //TODO Interestingly, LambdaElimination is not actually in the Shell namespace
-  static bool hasHOLAxioms = LambdaElimination::_holAxiomsAdded; 
+  bool hasHOLAxioms = LambdaElimination::_holAxiomsAdded; 
+  //cout << "hasHOLAxioms: " << hasHOLAxioms << endl;
   if(hasHOLAxioms){
     Inference::Iterator it = inf->iterator();
     bool hd = inf->hasNext(it); // hd should be false if there are no parents
     while(inf->hasNext(it) && hd){
       Unit* parent = inf->next(it);
+      //cout << "parent " << parent->toString() << endl;
       hd &= parent->isHOLADescendant();
       //if(!hd){break;}
-      if(parent->isHOLADescendant()){ cout << "XXX" << endl; }
+      //if(parent->isHOLADescendant()){ cout << "XXX" << endl; }
     }
     if(hd){ env.statistics->holDescendants++;}
     setHOLADescendant(hd);
