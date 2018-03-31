@@ -1292,7 +1292,7 @@ void TPTP::fof(bool fo)
   tok = getTok(0);
   int start = tok.start;
   vstring tp = name();
-
+  
   _isQuestion = false;
   if(_modelDefinition){
     _lastInputType = Unit::MODEL_DEFINITION;
@@ -1305,7 +1305,11 @@ void TPTP::fof(bool fo)
     _lastInputType = Unit::EXTENSIONALITY_AXIOM;
   }
   else if (tp == "definition") {
-    _lastInputType = Unit::AXIOM;
+    if(_isThf){
+      _lastInputType = Unit::DEFINITION;
+    }else{
+      _lastInputType = Unit::AXIOM;
+    }
   }
   else if (tp == "conjecture") {
     _containsConjecture = true;
@@ -1451,7 +1455,11 @@ void TPTP::tff()
     _lastInputType = Unit::EXTENSIONALITY_AXIOM;
   }
   else if (tp == "definition") {
-    _lastInputType = Unit::AXIOM;
+    if(_isThf){
+      _lastInputType = Unit::DEFINITION;
+    }else{
+      _lastInputType = Unit::AXIOM;
+    }
   }
   else if (tp == "conjecture") {
     _containsConjecture = true;

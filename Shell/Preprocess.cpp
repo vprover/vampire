@@ -38,6 +38,7 @@
 #include "EqResWithDeletion.hpp"
 #include "EqualityProxy.hpp"
 #include "Flattening.hpp"
+#include "HoFunctionDefinition.hpp"
 #include "FunctionDefinition.hpp"
 #include "GeneralSplitting.hpp"
 #include "InequalitySplitting.hpp"
@@ -170,7 +171,7 @@ void Preprocess::preprocess(Problem& prb)
       env.out() << "[PP] input: " << u->toString() << std::endl;
     }
   }
-
+  
   //we ensure that in the beginning we have a valid property object, to
   //know that the queries to uncertain problem properties will be precise
   //enough
@@ -200,7 +201,7 @@ void Preprocess::preprocess(Problem& prb)
       //Quick and nasty way of getting around the fact that newCNF has not been
       //updated to handle HOL.
       if (env.options->showPreprocessing()){
-        env.out() << "FOOL, Application & Lambda elimination" << std::endl;
+        env.out() << "FOOL elimination" << std::endl;
       }
 	    if (prb.hasFOOL()){
         TheoryAxioms(prb).applyFOOL();
@@ -208,7 +209,7 @@ void Preprocess::preprocess(Problem& prb)
       FOOLElimination().apply(prb);
     }
   }
-
+  
   if (prb.hasInterpretedOperations() || env.signature->hasTermAlgebras()){
     // Normalize them e.g. replace $greater with not $lesseq
     InterpretedNormalizer().apply(prb);
@@ -310,7 +311,12 @@ void Preprocess::preprocess(Problem& prb)
       clausify(prb);
     }
   }
-
+  
+  if(env.signature->isHOL()){
+    HoFunctionDefinition hfd;
+    hfd.removeAllDefinitions(prb);
+  }
+  
   if (prb.mayHaveFunctionDefinitions()) {
     env.statistics->phase=Statistics::FUNCTION_DEFINITION_ELIMINATION;
     if (env.options->showPreprocessing())

@@ -1,3 +1,20 @@
+/*
+ * File FOOLElimAlt.cpp.
+ *
+ * This file is part of the source code of the software program
+ * Vampire. It is protected by applicable
+ * copyright laws.
+ *
+ * This source code is distributed under the licence found here
+ * https://vprover.github.io/license.html
+ * and in the source directory
+ *
+ * In summary, you are allowed to use Vampire for non-commercial
+ * purposes but not allowed to distribute, modify, copy, create derivatives,
+ * or use in competitions. 
+ * For other uses of Vampire please contact developers for a different
+ * licence, which we will make an effort to provide. 
+ */
 /**
  * @file FOOLElimAlt.cpp
  * FOOLElimination.cpp translates formulas in term contexts by renaming them.
@@ -222,8 +239,9 @@ unsigned FOOLElimAlt::addLogicalConnSym(vstring name, unsigned sort1, unsigned a
   unsigned symbol = env.signature->addFunction(name, argNum, added, false, true);
   
   if(added){
-   //TO DO mark symbol in someway to allow for special inference rules.
-   env.signature->getFunction(symbol)->setType(type);
+   Signature::Symbol* sym = env.signature->getFunction(symbol);
+   sym->setType(type);
+   sym->markHoLogicalConn();
    if (env.options->showPreprocessing()) {
     env.beginOutput();
     env.out() << "[PP] FOOL elimination introduced ";
@@ -401,7 +419,7 @@ TermList FOOLElimAlt::convertToDuBruijnIndices(TermList t, Stack<int> vars){
 }
 
 /**
-  * Adds function with name @name and type @type and amrk as an index
+  * Adds function with name @b name and type @b type and amrk as an index
   * @since 19/03/2018
   * @author Ahmed Bhayat
   */
@@ -651,7 +669,7 @@ FormulaList* FOOLElimAlt::lift (FormulaList* fs, unsigned value, unsigned cutoff
 } 
 
 /**
-  * Returns true if @index represents a Du Bruijn index greater than @cutoff
+  * Returns true if @b index represents a Du Bruijn index greater than @b cutoff
   * @since 19/03/2018
   * @author Ahmed Bhayat
   */

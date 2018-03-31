@@ -134,6 +134,8 @@ class Signature
     unsigned _isIndex : 1;
     /** marks lambda abstractors */
     unsigned _isLambda : 1;
+    /** marks symbol as HO logical const */
+    unsigned _isHoLogicalConn : 1;
 	  /** if symbol is  HOL constant, records which one **/
 	  HOLConstant _HOLconst : NULL_CONSTANT;
 	
@@ -170,7 +172,9 @@ class Signature
     void markLambda() { _isLambda = true; }
     /** mark Du Bruijn Index */
     void markDuBruijnIndex() { _isIndex = true; }
-
+    /** mark HO logical const */
+    void markHoLogicalConn() { _isHoLogicalConn = true; }
+    
     void setHOLConstant(HOLConstant cnst) { _HOLconst = cnst;}
 	
     /** return true iff symbol is marked as skip for the purpose of symbol elimination */
@@ -208,6 +212,8 @@ class Signature
     inline bool duBruijnIndex() const { return _isIndex; }
     /** Return true iff symbol is a lambda abstractor */
     inline bool lambda() const { return _isLambda; }
+    /** Return true iff symbol is a HO logical conn */
+    inline bool hoLogicalConn() { return _isHoLogicalConn; }
 
     /** Increase the usage count of this symbol **/
     inline void incUsageCnt(){ _usageCount++; }
