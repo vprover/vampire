@@ -232,9 +232,7 @@ public:
   static const unsigned SF_FORMULA = 0xFFFFFFFD;
   static const unsigned SF_TUPLE = 0xFFFFFFFC;
   static const unsigned SF_LET_TUPLE = 0xFFFFFFFB;
-  static const unsigned SF_LAMBDA = 0xFFFFFFFA;
-  static const unsigned SF_APP = 0xFFFFFFF9; 
-  static const unsigned SPECIAL_FUNCTOR_LOWER_BOUND = 0xFFFFFFF9;
+  static const unsigned SPECIAL_FUNCTOR_LOWER_BOUND = 0xFFFFFFFA;
 
 
   static const unsigned VARIABLE_HEAD_LOWER_BOUND = 0x7FFFFFFF;

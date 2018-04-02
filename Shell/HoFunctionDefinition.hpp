@@ -70,6 +70,7 @@ public:
 
 private:
   
+  bool isSafe(HoDef* def);
   static HoDef* isFunctionDefinition (Clause*);
   /*static Def* isFunctionDefinition (FormulaUnit&); */
   static HoDef* isFunctionDefinition (Literal*);
@@ -78,7 +79,9 @@ private:
  
   static int isEtaExpandedFunctionSymbol(Term*); 
   static bool isValidDefinens(Term*, unsigned, Stack<unsigned>&);
- 
+
+  Term* unfoldDefs(Term* term);
+  
   Clause* applyDefinitions(Clause* cl);
   
   typedef DHMap<int, HoDef*> Fn2DefMap;
@@ -87,7 +90,7 @@ private:
   DHSet<unsigned> _safeFunctors;
   
   Stack<HoDef*> _safeDefs;
-  
+  Stack<unsigned> _possiblyUnsafeFunctors;
 }; // class FunctionDefinition
 
 

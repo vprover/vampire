@@ -61,8 +61,6 @@ using namespace Kernel;
 const unsigned Term::SF_ITE;
 const unsigned Term::SF_LET;
 const unsigned Term::SF_FORMULA;
-const unsigned Term::SF_LAMBDA;
-const unsigned Term::SF_APP;
 const unsigned Term::SPECIAL_FUNCTOR_LOWER_BOUND;
 
 /**
@@ -837,20 +835,6 @@ Term* Term::createNonShared(Term* t,TermList* args)
   return s;
 } // Term::createNonShared(const Term* t,Term* args)
 
-Term* Term::createApp(TermList _lhs, TermList _rhs, unsigned lhsSort, unsigned appSort)
-{
-  CALL("Term::createApp");
-  Term* s = new(1,sizeof(SpecialTermData)) Term;
-  s->makeSymbol(SF_APP, 1);
-  TermList* ss = s->args();
-  *ss = _rhs;
-  ASS(ss->next()->isEmpty());
-  s->getSpecialData()->_appData.lhs = _lhs;
-  s->getSpecialData()->_appData.sort = appSort;
-  s->getSpecialData()->_appData.lhsSort = lhsSort;
-  return s;
-}
-
 /**
  * Create a (condition ? thenBranch : elseBranch) expression
  * and return the resulting term
@@ -1143,13 +1127,6 @@ bool Term::isBoolean() const {
           break;
         }
       }
-	  case SF_APP: {
-		if (term->getSpecialData()->getSort() == Sorts::SRT_BOOL){
-			return true;
-		}else{
-		    return false;
-		}
-	  }
       default:
         ASSERTION_VIOLATION_REP(term->toString());
     }

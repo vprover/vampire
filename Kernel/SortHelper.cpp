@@ -131,13 +131,6 @@ bool SortHelper::getResultSortOrMasterVariable(const Term* t, unsigned& resultSo
       resultSort = getResultSort(t->getSpecialData()->getTupleTerm());
       return true;
     }
-    case Term::SF_LAMBDA: {
-      resultSort = t->getSpecialData()->getSort();
-      return true;
-    }
-    case Term::SF_APP:
-      resultSort = t->getSpecialData()->getSort();
-      return true;
     default:
       ASS(!t->isSpecial());
       resultSort = getResultSort(t);

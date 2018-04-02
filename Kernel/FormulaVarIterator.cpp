@@ -171,19 +171,6 @@ bool FormulaVarIterator::hasNext()
               _formulas.push(sd->getCondition());
               break;
 
-            case Term::SF_APP:              
-              _instructions.push(FVI_TERM_LIST);
-              _termLists.push(sd->getAppLhs()); //TODO lambda AYB
-              break;
-  
-            case Term::SF_LAMBDA:
-              _instructions.push(FVI_UNBIND);
-              _instructions.push(FVI_TERM_LIST);
-              _termLists.push(sd->getLambdaExp());
-              _instructions.push(FVI_BIND);
-              _vars.push(sd->getLambdaVars());
-              break;
-
             case Term::SF_FORMULA:
               _instructions.push(FVI_FORMULA);
               _formulas.push(sd->getFormula());

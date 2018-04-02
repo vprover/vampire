@@ -43,6 +43,7 @@
 #include "Kernel/TermIterators.hpp"
 
 #include "Shell/Options.hpp"
+#include "Shell/BetaReductionEngine.hpp"
 
 #include "Statistics.hpp"
 
@@ -113,13 +114,156 @@ bool HoFunctionDefinition::removeAllDefinitions(UnitList*& units)
     ASS_REP(cl->isClause(), cl->toString());
     HoDef* def = isFunctionDefinition(cl);
     if(def) {
-       cout << "Have found a definition! " + cl->toString() << endl;
+      scanIterator.del();
+      if(isSafe(def)){
+        _safeDefs.push(def);
+        _safeFunctors.insert(def->definiendum);
+      }else{
+        _defs.insert(def->definiendum, def);
+        _possiblyUnsafeFunctors.push(def->definiendum);
+      }
     }
   }
-  ASSERTION_VIOLATION;
+  bool modified = true;
+  while(!_defs.isEmpty() && modified){
+    modified = false;
+    for(unsigned i = 0; i < _possiblyUnsafeFunctors.size(); i ++){
+      HoDef* def;
+      _defs.insert(_possiblyUnsafeFunctors[i], def);
+      if(isSafe(def)){
+        _defs.remove(_possiblyUnsafeFunctors[i]);
+        modified = true;
+      }
+    }
+  }
+  if(!_defs.isEmpty()){
+    USER_ERROR("Input problem contains circular definition");
+  }
+  
+  //At this point the ith def in _safeDefs refers to definitions stored in 
+  //_safeDefs[j] for some j < i.
+  //Next each definition is rewritten and added to _defs.  
+ 
+  for(unsigned i = 0; i < _safeDefs.size(); i++){
+    HoDef* def = _safeDefs[i];
+    def->definiens = unfoldDefs(def->definiens);
+    _defs.insert(def->definiendum, def);    
+    cout << "unfolded and beta-reduced definition is: " + def->definiens->toString() << endl;    
+  }
+ 
+  //Unfold definitions within units
+ 
+  //TO DO destroy _defs.
   return true;
 }
 
+Term* HoFunctionDefinition::unfoldDefs(Term* term)
+{
+  CALL("HoFunctionDefinition::unfoldDefs");
+  
+  ASS(term->shared());
+
+  static Stack<TermList*> toDo(8);
+  static Stack<Term*> terms(8);
+  static Stack<bool> modified(8);
+  static Stack<TermList> args(8);
+  ASS(toDo.isEmpty());
+  ASS(terms.isEmpty());
+  modified.reset();
+  args.reset();
+
+  modified.push(false);
+  toDo.push(term->args());
+
+  for (;;) {
+    TermList* tt=toDo.pop();
+    if (tt->isEmpty()) {
+      if (terms.isEmpty()) {
+        //we're done, args stack contains modified arguments
+        //of the literal.
+        ASS(toDo.isEmpty());
+        break;
+      }
+      Term* orig=terms.pop();
+      if (!modified.pop()) {
+        args.truncate(args.length() - orig->arity());
+        args.push(TermList(orig));
+        continue;
+      }
+      //here we assume, that stack is an array with
+      //second topmost element as &top()-1, third at
+      //&top()-2, etc...
+      TermList* argLst=&args.top() - (orig->arity()-1);
+      args.truncate(args.length() - orig->arity());
+
+      args.push(TermList(Term::create(orig,argLst)));
+      modified.setTop(true);
+      continue;
+    }
+    toDo.push(tt->next());
+
+    TermList tl=*tt;
+    if (tl.isVar()) {
+      args.push(tl);
+      continue;
+    }
+    ASS(tl.isTerm());
+    Term* t=tl.term();
+    HoDef* def;
+    if(_defs.find(t->functor(), def)){
+      BetaReductionEngine bre = BetaReductionEngine();
+      Term* newTerm = def->definiens;
+      for(unsigned j = 0; j < t->arity(); j++){
+        TermList ts = *(t->nthArgument(j));
+        newTerm = bre.BetaReduce(newTerm, ts); 
+      }
+      terms.push(newTerm);//push oto terms the beta reduce version of def->definiens
+      modified.setTop(true);
+      modified.push(false);
+      toDo.push(newTerm->args());
+      continue;
+    }
+    terms.push(t);
+    modified.push(false);
+    toDo.push(t->args());
+  }
+  ASS(toDo.isEmpty());
+  ASS(terms.isEmpty());
+  ASS_EQ(modified.length(),1);
+  ASS_EQ(args.length(),term->arity());
+
+  if (!modified.pop()) {
+    // we call replace in superposition only if we already know,
+    // there is something to be replaced.
+    // ASSERTION_VIOLATION; // MS: but there is now a new use in InnerRewriting which does not like this extra check
+    return term;
+  }
+
+  // here we assume, that stack is an array with
+  // second topmost element as &top()-1, third at
+  // &top()-2, etc...
+  TermList* argLst=&args.top() - (term->arity()-1);
+  if (term->isLiteral()) {
+    Literal* lit = static_cast<Literal*>(term);
+    ASS_EQ(args.size(), lit->arity());
+    return Literal::create(lit,argLst);
+  }
+  return Term::create(term,argLst);
+  
+}
+
+bool HoFunctionDefinition::isSafe(HoDef* def)
+{
+  CALL("HoFunctionDefinition::isSafe");
+  
+  Stack<unsigned> defFuncs = def->_rhsFunctors;
+  for(unsigned i = 0; i < defFuncs.size(); i++){
+    if(!_safeFunctors.find(defFuncs[i])){
+      return false;
+    }         
+  }
+  return true;
+}
 
 /**
  * If the the clause if a function definition f(x1,...,xn) = t,
@@ -177,9 +321,9 @@ HoFunctionDefinition::HoDef*
 HoFunctionDefinition::defines (Term* l, Term* r)
 {
   CALL("HoFunctionDefinition::defines");
-  
+    
   int functor = isEtaExpandedFunctionSymbol(l);
-  
+    
   if(functor == -1){
     return 0;
   }else{
@@ -207,9 +351,12 @@ int HoFunctionDefinition::isEtaExpandedFunctionSymbol(Term* term)
     sym = env.signature->getFunction(func);
   }
   
-  if(sym->hoLogicalConn() || sym->duBruijnIndex()){
+  if(sym->hoLogicalConn() || sym->duBruijnIndex() ||
+     env.signature->isFoolConstantSymbol(true, func) ||
+     env.signature->isFoolConstantSymbol(false, func)) {
     return -1;
   }
+  
   
   //Does this iterator only return proper subterms or the term itself as well?
   SubtermIterator sti(term);
@@ -218,7 +365,7 @@ int HoFunctionDefinition::isEtaExpandedFunctionSymbol(Term* term)
     if(ts.isVar()){ return -1; }
     term = ts.term();
     sym = env.signature->getFunction(term->functor());
-    if(!sym->duBruijnIndex()){ return -1; }    
+    if(!sym->duBruijnIndex() && !sym->lambda()){ return -1; }    
   }
   
   return func;
@@ -241,7 +388,9 @@ bool HoFunctionDefinition::isValidDefinens(Term* r, unsigned functor, Stack<unsi
       return false; 
     }else{
       Signature::Symbol* sym = env.signature->getFunction(func);
-      if(!sym->duBruijnIndex() && !sym->lambda() && !sym->hoLogicalConn()){
+      if(!sym->duBruijnIndex() && !sym->lambda() && !sym->hoLogicalConn() && 
+         !env.signature->isFoolConstantSymbol(true, func) &&
+         !env.signature->isFoolConstantSymbol(false,func)){
         rhsFunctors.push(func);
       }
     }

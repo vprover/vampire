@@ -59,26 +59,6 @@ class Signature
   /** Function or predicate symbol */
   class Symbol {
   
-  public: enum HOLConstant {
-	  AND,
-	  OR,
-	  IMP,
-	  FORALL,
-	  EXISTS,
-	  IFF,
-	  XOR,
-	  NOT,
-	  PI,
-	  SIGMA,
-	  EQUALS,
-	  S_COMB,
-	  B_COMB,
-	  C_COMB,
-	  I_COMB,
-	  K_COMB,
-    NULL_CONSTANT,
-  };
-  
   /* Note on current implementation of du bruijn indices: 
      Name of symbol is the index, i.e. index 1 will be a symbol name "1"
      On beta-reduction these names have to be manipulated. This is not ideal.
@@ -128,16 +108,12 @@ class Signature
     unsigned _inGoal : 1;
     /** if used in a unit **/
     unsigned _inUnit : 1;
-    /** if is a HOL app function **/
-	  unsigned _isAPP : 1;
     /** constant represents a du bruijn index */
     unsigned _isIndex : 1;
     /** marks lambda abstractors */
     unsigned _isLambda : 1;
     /** marks symbol as HO logical const */
     unsigned _isHoLogicalConn : 1;
-	  /** if symbol is  HOL constant, records which one **/
-	  HOLConstant _HOLconst : NULL_CONSTANT;
 	
   public:
      
@@ -166,17 +142,13 @@ class Signature
     void markOverflownConstant() { _overflownConstant=1; }
     /** mark symbol as a term algebra constructor */
     void markTermAlgebraCons() { _termAlgebraCons=1; }
-	  /** mark symbol as a HOL APP symbol*/
-    void markHOLAPP() { _isAPP=1; }
     /** mark lambda */
     void markLambda() { _isLambda = true; }
     /** mark Du Bruijn Index */
     void markDuBruijnIndex() { _isIndex = true; }
     /** mark HO logical const */
     void markHoLogicalConn() { _isHoLogicalConn = true; }
-    
-    void setHOLConstant(HOLConstant cnst) { _HOLconst = cnst;}
-	
+    	
     /** return true iff symbol is marked as skip for the purpose of symbol elimination */
     bool skip() const { return _skip; }
     /** return true iff the symbol is marked as name predicate
@@ -206,8 +178,6 @@ class Signature
     inline bool overflownConstant() const { return _overflownConstant; }
     /** Return true iff symbol is a term algebra constructor */
     inline bool termAlgebraCons() const { return _termAlgebraCons; }
-	  /** Return true iff symbol is a HOL app symbol */
-	  inline bool hOLAPP() const { return _isAPP; }
     /** Return true iff constant is a du bruijn index */
     inline bool duBruijnIndex() const { return _isIndex; }
     /** Return true iff symbol is a lambda abstractor */
@@ -219,8 +189,6 @@ class Signature
     inline void incUsageCnt(){ _usageCount++; }
     /** Return the usage count of this symbol **/
     inline unsigned usageCnt() const { return _usageCount; }
-	  /** Returns the HOL constant that this symbol represents, set to NULL_CONSTANT if not HOL constant. */
-	  inline HOLConstant getConst() const { return _HOLconst; };
     /** Reset usage count to zero, to start again! **/
     inline void resetUsageCnt(){ _usageCount=0; }
 

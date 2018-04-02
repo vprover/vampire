@@ -289,9 +289,9 @@ VINF_OBJ=Inferences/BackwardDemodulation.o\
          Inferences/Superposition.o\
          Inferences/TautologyDeletionISE.o\
          Inferences/TermAlgebraReasoning.o\
-		 Inferences/HOLElimination.o\
          Inferences/TheoryInstAndSimp.o\
          Inferences/URResolution.o
+#        Inferences/HOLElimination.o\
 #         Inferences/CTFwSubsAndRes.o\
 
 VSAT_OBJ=SAT/ClauseDisposer.o\
@@ -341,6 +341,7 @@ VS_OBJ = Shell/AnswerExtractor.o\
          Shell/Flattening.o\
          Shell/FunctionDefinition.o\
          Shell/HoFunctionDefinition.o\
+         Shell/BetaReductionEngine.o\
          Shell/GeneralSplitting.o\
          Shell/Grounding.o\
          Shell/InequalitySplitting.o\

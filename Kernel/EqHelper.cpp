@@ -109,16 +109,16 @@ Term* EqHelper::replace(Term* trm0, TermList tSrc, TermList tDest)
     TermList* tt=toDo.pop();
     if (tt->isEmpty()) {
       if (terms.isEmpty()) {
-	//we're done, args stack contains modified arguments
-	//of the literal.
-	ASS(toDo.isEmpty());
-	break;
+        //we're done, args stack contains modified arguments
+        //of the literal.
+        ASS(toDo.isEmpty());
+        break;
       }
       Term* orig=terms.pop();
       if (!modified.pop()) {
-	args.truncate(args.length() - orig->arity());
-	args.push(TermList(orig));
-	continue;
+        args.truncate(args.length() - orig->arity());
+        args.push(TermList(orig));
+        continue;
       }
       //here we assume, that stack is an array with
       //second topmost element as &top()-1, third at
