@@ -83,6 +83,7 @@ private:
   Term* unfoldDefs(Term* term);
   
   Clause* applyDefinitions(Clause* cl);
+  Term* applyDefinitions(Literal* lit, Stack<HoDef*>* usedDefs);
   
   typedef DHMap<int, HoDef*> Fn2DefMap;
   Fn2DefMap _defs;

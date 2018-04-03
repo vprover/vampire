@@ -214,7 +214,7 @@ bool SubformulaIterator::hasNext ()
             _reserve = new Element(tupleTerm, polarity, rest);
             break;
           }		 
-		  }
+		  
 #if VDEBUG
           default:
             ASSERTION_VIOLATION;

@@ -59,6 +59,22 @@ class Signature
   /** Function or predicate symbol */
   class Symbol {
   
+  //That NULL_CONSTANT is 0 is utilised elsewhere in code
+  public: enum HOLConstant {
+	  AND = 10,
+	  OR = 9,
+	  IMP = 8,
+	  FORALL = 7,
+	  EXISTS = 6,
+	  IFF = 6,
+	  XOR = 5,
+	  NOT = 4,
+	  PI = 3,
+	  SIGMA = 2,
+	  EQUALS = 1,
+    NULL_CONSTANT = 0,
+  };
+  
   /* Note on current implementation of du bruijn indices: 
      Name of symbol is the index, i.e. index 1 will be a symbol name "1"
      On beta-reduction these names have to be manipulated. This is not ideal.
@@ -113,7 +129,7 @@ class Signature
     /** marks lambda abstractors */
     unsigned _isLambda : 1;
     /** marks symbol as HO logical const */
-    unsigned _isHoLogicalConn : 1;
+    HOLConstant _isHoLogicalConn;
 	
   public:
      
@@ -147,7 +163,7 @@ class Signature
     /** mark Du Bruijn Index */
     void markDuBruijnIndex() { _isIndex = true; }
     /** mark HO logical const */
-    void markHoLogicalConn() { _isHoLogicalConn = true; }
+    void markHoLogicalConn(HOLConstant cnst) { _isHoLogicalConn = cnst; }
     	
     /** return true iff symbol is marked as skip for the purpose of symbol elimination */
     bool skip() const { return _skip; }
@@ -183,7 +199,7 @@ class Signature
     /** Return true iff symbol is a lambda abstractor */
     inline bool lambda() const { return _isLambda; }
     /** Return true iff symbol is a HO logical conn */
-    inline bool hoLogicalConn() { return _isHoLogicalConn; }
+    inline HOLConstant hoLogicalConn() { return _isHoLogicalConn; }
 
     /** Increase the usage count of this symbol **/
     inline void incUsageCnt(){ _usageCount++; }

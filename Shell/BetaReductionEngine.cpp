@@ -81,6 +81,7 @@ Term* BetaReductionEngine::BetaReduce(Term* abstractedTerm, TermList redax)
     Stack<Term*>::Iterator tit(terms);
     Stack<TermList*>::Iterator sit(toDo);
     Stack<TermList>::Iterator ait(args);
+    Stack<bool>::Iterator bit(modified);
     
     cout << "---------------------------" << endl;
     cout << "The termlists are : " << endl;
@@ -102,8 +103,18 @@ Term* BetaReductionEngine::BetaReduce(Term* abstractedTerm, TermList redax)
       cout << ait.next().toString() << endl;
     }
     cout << "---------------------------" << endl;
+    
+    cout << "---------------------------" << endl;
+    cout << "The modified are : " << endl;
+    while(bit.hasNext()){
+      cout << (bit.next() ? "true" : "false") << endl;
+    }
+    cout << "---------------------------" << endl;
+    
     cout << "############END FOR CYCLE##########" << endl;
+    
     */
+    
     TermList* tt=toDo.pop();
     if (tt->isEmpty()) {
       if (terms.isEmpty()) {
@@ -121,6 +132,10 @@ Term* BetaReductionEngine::BetaReduce(Term* abstractedTerm, TermList redax)
         args.truncate(args.length() - orig->arity());
         args.push(TermList(orig));
         continue;
+      }
+      if(!orig->arity()){
+        args.push(TermList(env.sharing->insert(orig)));
+        continue;        
       }
       //here we assume, that stack is an array with
       //second topmost element as &top()-1, third at
@@ -163,7 +178,7 @@ Term* BetaReductionEngine::BetaReduce(Term* abstractedTerm, TermList redax)
         newTerm->makeSymbol(fun, t->arity()); 
         terms.push(newTerm);
         modified.setTop(true);        
-        modified.push(false);
+        modified.push(true);
         toDo.push(newTerm->args());
         continue;
       }      

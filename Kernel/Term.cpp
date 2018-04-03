@@ -942,34 +942,6 @@ Term* Term::createFormula(Formula* formula)
   return s;
 }
 
-/**
- * Create a lambda term from a list of lambda vars and an 
- * expression and returns the resulting term
- */
-Term* Term::createLambda(TermList lambdaExp, Connective con, IntList* vars, SortList* sorts, unsigned expSort){
-  CALL("Term::createLambda");
-  
-  Term* s = new(0, sizeof(SpecialTermData)) Term;
-  s->makeSymbol(SF_LAMBDA, 0);
-  s->getSpecialData()->_lambdaData.lambdaExp = lambdaExp;
-  s->getSpecialData()->_lambdaData.con = con;
-  s->getSpecialData()->_lambdaData._vars = vars;
-  s->getSpecialData()->_lambdaData._sorts = sorts;
-  s->getSpecialData()->_lambdaData.expSort = expSort;
-  SortList::Iterator sit(sorts);
-  Stack<unsigned> revSorts;
-  unsigned lambdaTmSort = expSort;
-  while(sit.hasNext()){
-	 revSorts.push(sit.next());
-  }
-  while(!revSorts.isEmpty()){
-	 unsigned varSort = revSorts.pop();
-     lambdaTmSort = env.sorts->addFunctionSort(varSort, lambdaTmSort);
-  }
-  s->getSpecialData()->_lambdaData.sort = lambdaTmSort;
-  return s;
-} 
-
 Term* Term::createTuple(unsigned arity, unsigned* sorts, TermList* elements) {
   CALL("Term::createTuple");
   unsigned tupleFunctor = Theory::tuples()->getFunctor(arity, sorts);
@@ -1113,7 +1085,6 @@ bool Term::isBoolean() const {
     switch (term->getSpecialData()->getType()) {
       case SF_FORMULA:
         return true;
-	  case SF_LAMBDA:
       case SF_TUPLE:
         return false;
       case SF_ITE:
@@ -1221,7 +1192,7 @@ Literal* Literal::create(Literal* l,TermList* args)
 {
   CALL("Literal::create(Literal*,TermList*)");
   ASS_EQ(l->getPreDataSize(), 0);
-
+  
   if (l->isEquality()) {
     return createEquality(l->polarity(), args[0], args[1], SortHelper::getEqualityArgumentSort(l));
   }
@@ -1275,9 +1246,10 @@ Literal* Literal::createEquality (bool polarity, TermList arg1, TermList arg2, u
      }
 #endif
    }
+   
    Literal* lit=new(2) Literal(0,2,polarity,true);
    *lit->nthArgument(0)=arg1;
-   *lit->nthArgument(1)=arg2;
+   *lit->nthArgument(1)=arg2;  
    if (arg1.isSafe() && arg2.isSafe()) {
      lit = env.sharing->insert(lit);
    }

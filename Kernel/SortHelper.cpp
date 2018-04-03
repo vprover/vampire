@@ -750,37 +750,6 @@ bool SortHelper::tryGetVariableSort(TermList var, Term* t0, unsigned& result)
       }
       continue;
     }
-    if (t->isApp()) {
-        Stack<TermList> terms;
-        Stack<unsigned> sorts;
-        
-        terms.push(t->getSpecialData()->getAppLhs());
-        terms.push(*t->nthArgument(0));
-        
-        sorts.push(t->getSpecialData()->getAppLhsSort());
-        sorts.push(env.sorts->getFuncSort(sorts.top())->getDomainSort());
-        
-        TermList current;
-        unsigned currSort;
-        while(!terms.isEmpty()){
-            current = terms.pop();
-            currSort = sorts.pop();
-            if(current.isVar() && current == var){
-                result = currSort;
-                return true;
-            }else if(current.isTerm() && current.term()->isApp()){
-                Term* tm = current.term();
-                terms.push(tm->getSpecialData()->getAppLhs());
-                terms.push(*tm->nthArgument(0));
-        
-                sorts.push(tm->getSpecialData()->getAppLhsSort());
-                sorts.push(env.sorts->getFuncSort(sorts.top())->getDomainSort());
-            }else{
-                //need to deal with this AYB!
-            }
-        }
-        continue; 
-    }
     if (t->shared() && t->ground()) {
       sit.right();
       continue;

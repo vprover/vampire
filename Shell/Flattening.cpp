@@ -334,35 +334,6 @@ TermList Flattening::flatten (TermList ts)
           return TermList(Term::createTuple(flattenedTupleTerm.term()));
         }
       }
-
-      case Term::SF_APP: {
-        TermList lhs = sd->getAppLhs();
-        TermList rhs = *term->nthArgument(0);
-        
-        TermList flattenedLhs = flatten(lhs);
-        TermList flattenedRhs = flatten(rhs);
-        if(lhs == flattenedLhs && rhs == flattenedRhs){
-          return ts;
-        } else {
-          return TermList(Term::createApp(flattenedLhs, flattenedRhs, sd->getAppLhsSort(), sd->getSort()));
-        }
-      }
-      
-      case Term::SF_LAMBDA: {
-        TermList lambdaExp = flatten(sd->getLambdaExp());
-        if (!lambdaExp.isTerm() || !lambdaExp.term()->isSpecial() || (lambdaExp.term()->functor() != Term::SF_LAMBDA)){
-          if(lambdaExp == sd->getLambdaExp()){
-             return ts;
-          }        
-          return TermList(Term::createLambda(lambdaExp, Connective::LAMBDA, 
-                          sd->getLambdaVars(), sd->getVarSorts(), sd->getLambdaExpSort()));           
-        }
-        Term::SpecialTermData* sd2 = lambdaExp.term()->getSpecialData();        
-
-        Formula::SortList* sl = Formula::SortList::append(sd->getVarSorts(), sd2->getVarSorts());
-        Formula::VarList* vs =  Formula::VarList::append(sd->getLambdaVars(),sd2->getLambdaVars());
-        return TermList(Term::createLambda(sd->getLambdaExp(), Connective::LAMBDA, vs, sl, sd->getLambdaExpSort()));   
-      }
       
       default:
         ASSERTION_VIOLATION;

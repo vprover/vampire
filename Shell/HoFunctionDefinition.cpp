@@ -65,7 +65,9 @@ struct HoFunctionDefinition::HoDef {
   Term* definiens;
   /** stack of non-index functors appearing in the definiens */
   Stack<unsigned> _rhsFunctors;
-
+  /** clause that states definition. used to create inference */
+  Clause* defCl;
+  
   HoDef(Term* defin, unsigned definien, Stack<unsigned> functors)
     : definiendum(definien),
       definiens(defin),
@@ -89,6 +91,7 @@ HoFunctionDefinition::HoFunctionDefinition ()
 HoFunctionDefinition::~HoFunctionDefinition ()
 {
   CALL("HoFunctionDefinition::~HoFunctionDefinition");
+  // delete _defs here?
 }
 
 void HoFunctionDefinition::removeAllDefinitions(Problem& prb)
@@ -114,6 +117,7 @@ bool HoFunctionDefinition::removeAllDefinitions(UnitList*& units)
     ASS_REP(cl->isClause(), cl->toString());
     HoDef* def = isFunctionDefinition(cl);
     if(def) {
+      def->defCl = cl;
       scanIterator.del();
       if(isSafe(def)){
         _safeDefs.push(def);
@@ -146,12 +150,32 @@ bool HoFunctionDefinition::removeAllDefinitions(UnitList*& units)
  
   for(unsigned i = 0; i < _safeDefs.size(); i++){
     HoDef* def = _safeDefs[i];
-    def->definiens = unfoldDefs(def->definiens);
+    Term* unfoldedterm = unfoldDefs(def->definiens);
+    if(def->definiens != unfoldedterm){
+      if (env.options->showPreprocessing()) {
+        env.beginOutput();
+        env.out() << "[PP] HO fn def discovered: " + env.signature->functionName(def->definiendum) + " = " + def->definiens->toString()
+        + "\n  unfolded: " + env.signature->functionName(def->definiendum) + " = " +  unfoldedterm->toString() << std::endl;
+        env.endOutput();
+      }
+      def->definiens = unfoldedterm;
+    }
     _defs.insert(def->definiendum, def);    
-    cout << "unfolded and beta-reduced definition is: " + def->definiens->toString() << endl;    
   }
- 
+  
   //Unfold definitions within units
+ 
+  UnitList::DelIterator unfoldIterator(units);
+  while(unfoldIterator.hasNext()) {
+    Clause* cl=static_cast<Clause*>(unfoldIterator.next());
+    ASS(cl->isClause());
+    Clause* newCl=applyDefinitions(cl);
+    if(cl!=newCl) {
+//      cout<<"D- "<<(*cl)<<endl;
+//      cout<<"D+ "<<(*newCl)<<endl;
+      unfoldIterator.replace(newCl);
+    }
+  }
  
   //TO DO destroy _defs.
   return true;
@@ -175,7 +199,7 @@ Term* HoFunctionDefinition::unfoldDefs(Term* term)
   modified.push(false);
   toDo.push(term->args());
 
-  for (;;) {
+  for (;;) {    
     TermList* tt=toDo.pop();
     if (tt->isEmpty()) {
       if (terms.isEmpty()) {
@@ -265,12 +289,174 @@ bool HoFunctionDefinition::isSafe(HoDef* def)
   return true;
 }
 
-/**
- * If the the clause if a function definition f(x1,...,xn) = t,
- * return the Def structure representing information about the definition.
- * @since 05/06/2004 Manchester
- * @since 26/05/2007 Manchester modified for new data structures
- */
+Clause* HoFunctionDefinition::applyDefinitions(Clause* cl)
+{
+  CALL("HoFunctionDefinition::applyDefinitions(Clause*)");
+  
+  unsigned clen=cl->length();
+
+  static Stack<HoDef*> usedDefs(8);
+  static Stack<Literal*> resLits(8);
+  ASS(usedDefs.isEmpty());
+  resLits.reset();
+
+  bool modified=false;
+  for(unsigned i=0;i<clen;i++) {
+    Literal* lit=(*cl)[i];
+    Literal* rlit=static_cast<Literal*>(applyDefinitions(lit, &usedDefs));
+    resLits.push(rlit);
+    modified|= rlit!=lit;
+  }
+  if(!modified) {
+    ASS(usedDefs.isEmpty());
+    return cl;
+  }
+
+  UnitList* premises=0;
+  Unit::InputType inpType = cl->inputType();
+  while(usedDefs.isNonEmpty()) {
+    Clause* defCl=usedDefs.pop()->defCl;
+    UnitList::push(defCl, premises);
+    //Hack requires sorting at some point - AYB
+    if(inpType != Unit::CONJECTURE){
+      inpType = (Unit::InputType)	Int::max(inpType, defCl->inputType());
+    }
+  }
+  UnitList::push(cl, premises);
+  Inference* inf = new InferenceMany(Inference::DEFINITION_UNFOLDING, premises);
+
+  Clause* res = new(clen) Clause(clen, inpType, inf);
+  res->setAge(cl->age());
+
+  for(unsigned i=0;i<clen;i++) {
+    (*res)[i] = resLits[i];
+  }
+
+  return res;
+}
+
+
+Term* HoFunctionDefinition::applyDefinitions(Literal* lit, Stack<HoDef*>* usedDefs)
+{
+  CALL("HoFunctionDefinition::applyDefinitions");
+    
+  if (env.options->showPreprocessing()) {
+    env.beginOutput();
+    env.out() << "[PP] applying HO function definitions to literal "<<(*lit) << std::endl;
+    env.endOutput();
+  }
+  
+  static Stack<TermList*> toDo(8);
+  static Stack<Term*> terms(8);
+  static Stack<bool> modified(8);
+  static Stack<TermList> args(8);
+  ASS(toDo.isEmpty());
+  ASS(terms.isEmpty());
+  modified.reset();
+  args.reset();
+
+  modified.push(false);
+  toDo.push(lit->args());
+
+  for (;;) {
+    /*    
+    Stack<Term*>::Iterator tit(terms);
+    Stack<TermList*>::Iterator sit(toDo);
+    Stack<TermList>::Iterator ait(args);
+    
+    cout << "---------------------------" << endl;
+    cout << "The termlists are : " << endl;
+    while(sit.hasNext()){
+      cout << sit.next()->toString() << endl;
+    }
+    cout << "---------------------------" << endl;
+    
+    cout << "---------------------------" << endl;
+    cout << "The terms are : " << endl;
+    while(tit.hasNext()){
+      cout << tit.next()->toString() << endl;
+    }
+    cout << "---------------------------" << endl;
+
+    cout << "---------------------------" << endl;
+    cout << "The args are : " << endl;
+    while(ait.hasNext()){
+      cout << ait.next().toString() << endl;
+    }
+    cout << "---------------------------" << endl;
+    cout << "############END FOR CYCLE##########" << endl;
+    */
+    TermList* tt=toDo.pop();
+    if (tt->isEmpty()) {
+      if (terms.isEmpty()) {
+        //we're done, args stack contains modified arguments
+        //of the literal.
+        ASS(toDo.isEmpty());
+        break;
+      }
+      Term* orig=terms.pop();
+      if (!modified.pop()) {
+        args.truncate(args.length() - orig->arity());
+        args.push(TermList(orig));
+        continue;
+      }
+      //here we assume, that stack is an array with
+      //second topmost element as &top()-1, third at
+      //&top()-2, etc...
+      TermList* argLst=&args.top() - (orig->arity()-1);
+      args.truncate(args.length() - orig->arity());
+
+      Term* tempTerm = Term::create(orig,argLst);      
+      args.push(TermList(tempTerm));
+      modified.setTop(true);
+      continue;
+    }
+    toDo.push(tt->next());
+
+    TermList tl=*tt;
+    if (tl.isVar()) {
+      args.push(tl);
+      continue;
+    }
+    ASS(tl.isTerm());
+    Term* t=tl.term();
+    HoDef* def;
+    if(_defs.find(t->functor(), def)){
+      usedDefs->push(def);
+      BetaReductionEngine bre = BetaReductionEngine();
+      Term* newTerm = def->definiens;
+      for(unsigned j = 0; j < t->arity(); j++){
+        TermList ts = *(t->nthArgument(j));
+        newTerm = bre.BetaReduce(newTerm, ts); 
+      }
+      terms.push(newTerm);//push to terms the beta reduce version of def->definiens
+      modified.setTop(true);
+      modified.push(false);
+      toDo.push(newTerm->args());
+      continue;
+    }
+    terms.push(t);
+    modified.push(false);
+    toDo.push(t->args());
+  }
+  ASS(toDo.isEmpty());
+  ASS(terms.isEmpty());
+  ASS_EQ(modified.length(),1);
+  ASS_EQ(args.length(),lit->arity());
+
+  if (!modified.pop()) {
+    return lit;
+  }
+    
+  // here we assume, that stack is an array with
+  // second topmost element as &top()-1, third at
+  // &top()-2, etc...
+  TermList* argLst=&args.top() - (lit->arity()-1);
+  return Literal::create(static_cast<Literal*>(lit),argLst);
+ 
+}
+
+
 HoFunctionDefinition::HoDef* 
 HoFunctionDefinition::isFunctionDefinition (Clause* clause)
 {

@@ -66,7 +66,7 @@ TermList FOOLElimAlt::formulaToTerm(Formula* fm)
       unsigned equalsSort = sortOf(lhs);      
                                 
       bool added = false; 
-      unsigned logicalSym = addLogicalConnSym("vEQUALS_" + Int::toString(equalsSort), equalsSort, 2, added);
+      unsigned logicalSym = addLogicalConnSym("vEQUALS_" + Int::toString(equalsSort), equalsSort, 2, added, SigSym::EQUALS);
       if(added && !env.options->HOLConstantElimination()){
         addConnAxiom(logicalSym, conn, equalsSort);
       }          
@@ -81,11 +81,11 @@ TermList FOOLElimAlt::formulaToTerm(Formula* fm)
       unsigned logicalSym;
       bool added;
       if(conn == IFF){
-         logicalSym = addLogicalConnSym("vIFF", Sorts::SRT_BOOL, 2, added);
+         logicalSym = addLogicalConnSym("vIFF", Sorts::SRT_BOOL, 2, added, SigSym::IFF);
       }else if(conn == IMP){
-         logicalSym = addLogicalConnSym("vIMP", Sorts::SRT_BOOL, 2, added);
+         logicalSym = addLogicalConnSym("vIMP", Sorts::SRT_BOOL, 2, added, SigSym::IMP);
       }else{
-         logicalSym = addLogicalConnSym("vXOR", Sorts::SRT_BOOL, 2, added);
+         logicalSym = addLogicalConnSym("vXOR", Sorts::SRT_BOOL, 2, added, SigSym::XOR);
       }
       if(added && !env.options->HOLConstantElimination()){
          addConnAxiom(logicalSym, conn, Sorts::SRT_BOOL);
@@ -101,9 +101,9 @@ TermList FOOLElimAlt::formulaToTerm(Formula* fm)
       unsigned logicalSym;
       bool added;
       if(conn == AND){
-         logicalSym = addLogicalConnSym("vAND", Sorts::SRT_BOOL, 2, added);
+         logicalSym = addLogicalConnSym("vAND", Sorts::SRT_BOOL, 2, added, SigSym::AND);
       }else{
-         logicalSym = addLogicalConnSym("vOR", Sorts::SRT_BOOL, 2, added);
+         logicalSym = addLogicalConnSym("vOR", Sorts::SRT_BOOL, 2, added, SigSym::OR);
       }
       if(added && !env.options->HOLConstantElimination()){
          addConnAxiom(logicalSym, conn, Sorts::SRT_BOOL);
@@ -123,7 +123,7 @@ TermList FOOLElimAlt::formulaToTerm(Formula* fm)
      }
    case NOT: {        
      bool added;
-     unsigned logicalSym = addLogicalConnSym("vNOT", Sorts::SRT_BOOL, 1, added);
+     unsigned logicalSym = addLogicalConnSym("vNOT", Sorts::SRT_BOOL, 1, added, SigSym::NOT);
      if(added && !env.options->HOLConstantElimination()){
        addConnAxiom(logicalSym, conn, Sorts::SRT_BOOL);
      }
@@ -159,9 +159,9 @@ TermList FOOLElimAlt::formulaToTerm(Formula* fm)
       unsigned logicalSym;
       bool added;
       if(conn == FORALL){
-        logicalSym = addLogicalConnSym("vPI_" + Int::toString(sort), sort , 1, added);   
+        logicalSym = addLogicalConnSym("vPI_" + Int::toString(sort), sort , 1, added, SigSym::PI);   
       }else{
-        logicalSym = addLogicalConnSym("vSIGMA_"  + Int::toString(sort), sort , 1, added); 
+        logicalSym = addLogicalConnSym("vSIGMA_"  + Int::toString(sort), sort , 1, added, SigSym::SIGMA); 
       }
       
       TermList dummy;
@@ -226,7 +226,8 @@ void FOOLElimAlt::addAxiom(FormulaUnit* axiom) {
   }
 }
   
-unsigned FOOLElimAlt::addLogicalConnSym(vstring name, unsigned sort1, unsigned argNum, bool &added) {
+unsigned FOOLElimAlt::addLogicalConnSym(vstring name, unsigned sort1, unsigned argNum, bool &added, SigSymHol cnst) 
+{
     
   CALL("FOOLElimAlt::addLogicalConnSym");
  
@@ -241,7 +242,7 @@ unsigned FOOLElimAlt::addLogicalConnSym(vstring name, unsigned sort1, unsigned a
   if(added){
    Signature::Symbol* sym = env.signature->getFunction(symbol);
    sym->setType(type);
-   sym->markHoLogicalConn();
+   sym->markHoLogicalConn(cnst);
    if (env.options->showPreprocessing()) {
     env.beginOutput();
     env.out() << "[PP] FOOL elimination introduced ";

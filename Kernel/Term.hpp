@@ -266,19 +266,6 @@ public:
         size_t binding;
         unsigned sort;
       } _letTupleData;
-      struct {
-        Connective con;//con included in case reuse structure for other HOL connectives - AYB
-        TermList lambdaExp; //review this in light of Evgeny's comment above. Can TermList be used here?
-        IntList* _vars;
-        SortList* _sorts;  
-        unsigned sort; 
-		unsigned expSort;
-      } _lambdaData;
-      struct {
-        TermList lhs;
-        unsigned sort;
-		unsigned lhsSort;
-      } _appData;
     };
     /** Return pointer to the term to which this object is attached */
     const Term* getTerm() const { return reinterpret_cast<const Term*>(this+1); }
@@ -293,18 +280,12 @@ public:
       ASS_REP(getType() == SF_LET || getType() == SF_LET_TUPLE, getType());
       return getType() == SF_LET ? _letData.functor : _letTupleData.functor;
     }
-    IntList* getLambdaVars() const { ASS_EQ(getType(), SF_LAMBDA); return _lambdaData._vars; }
     IntList* getVariables() const { ASS_EQ(getType(), SF_LET); return _letData.variables; }
     IntList* getTupleSymbols() const { return _letTupleData.symbols; }
-    SortList* getVarSorts() const { ASS_EQ(getType(), SF_LAMBDA); return _lambdaData._sorts; }
-    TermList getLambdaExp() const { ASS_EQ(getType(), SF_LAMBDA); return _lambdaData.lambdaExp; }
-    TermList getAppLhs() const { ASS_EQ(getType(), SF_APP); return _appData.lhs; }
     TermList getBinding() const {
       ASS_REP(getType() == SF_LET || getType() == SF_LET_TUPLE, getType());
       return TermList(getType() == SF_LET ? _letData.binding : _letTupleData.binding);
     }
-	unsigned getAppLhsSort() const { ASS_EQ(getType(), SF_APP); return _appData.lhsSort; }
-	unsigned getLambdaExpSort() const { ASS_EQ(getType(), SF_LAMBDA); return _lambdaData.expSort; }
     unsigned getSort() const {
       switch (getType()) {
         case SF_ITE:
@@ -313,10 +294,6 @@ public:
           return _letData.sort;
         case SF_LET_TUPLE:
           return _letTupleData.sort;
-        case SF_LAMBDA:
-          return _lambdaData.sort;
-        case SF_APP:
-          return _appData.sort;
         default:
           ASSERTION_VIOLATION_REP(getType());
       }
@@ -575,8 +552,6 @@ public:
   bool isTupleLet() const { return functor() == SF_LET_TUPLE; }
   bool isTuple() const { return functor() == SF_TUPLE; }
   bool isFormula() const { return functor() == SF_FORMULA; }
-  bool isLambda() const { return functor() == SF_LAMBDA; }
-  bool isApp() const { return functor() == SF_APP; }
   bool isBoolean() const;
   /** Return pointer to structure containing extra data for special terms such as
    * if-then-else or let...in */

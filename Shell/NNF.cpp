@@ -348,30 +348,6 @@ TermList NNF::ennf(TermList ts, bool polarity)
         }
         break;
       }
-
-      case Term::SF_APP: {
-        TermList lhs = sd->getAppLhs();
-        TermList rhs = *term->nthArgument(0);
-        
-        TermList ennfLhs = ennf(lhs, true);
-        TermList ennfRhs = ennf(rhs, true);
-        if(lhs == ennfLhs && rhs == ennfRhs){
-          return ts;
-        } else {
-          return TermList(Term::createApp(ennfLhs, ennfRhs, sd->getAppLhsSort(), sd->getSort()));
-        } 
-        break;        
-      }
-      
-      case Term::SF_LAMBDA: {
-        TermList lambdaExp = ennf(sd->getLambdaExp(), true);
-        if(lambdaExp == sd->getLambdaExp()){
-           return ts;
-        }        
-        return TermList(Term::createLambda(lambdaExp, Connective::LAMBDA, 
-                          sd->getLambdaVars(), sd->getVarSorts(), sd->getLambdaExpSort()));           
-        break;       
-      }
       
       default:
         ASSERTION_VIOLATION;

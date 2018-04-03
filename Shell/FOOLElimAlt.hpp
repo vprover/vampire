@@ -59,9 +59,12 @@ public:
   }
 
 private:
+  typedef Signature::Symbol::HOLConstant SigSymHol;
+  typedef Signature::Symbol SigSym;
+
   UnitList* _axioms;
   
-  static unsigned addLogicalConnSym(vstring name, unsigned sort1, unsigned argNum, bool &added); 
+  static unsigned addLogicalConnSym(vstring name, unsigned sort1, unsigned argNum, bool &added, SigSymHol cnst); 
   static TermList applyLogicalConn(unsigned function, TermList args1, TermList arg2, bool bothArgs = true);
 
   TermList convertToDuBruijnIndices(TermList t, Stack<int> vars);

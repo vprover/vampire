@@ -242,24 +242,6 @@ void SymCounter::count(Term* term, int polarity, int add)
           count(sd->getTupleTerm(), 0, add);
           break;
         }
-        case Term::SF_APP: {
-          TermList lhs = sd->getAppLhs();
-          TermList rhs = *term->nthArgument(0);
-          if(lhs.isTerm()){
-            count(lhs.term(), 1, add); //Polarity? AYB
-          }
-          if(rhs.isTerm()){
-            count(rhs.term(), 1, add); //Polarity? AYB
-          }
-          break;
-        }
-        case Term::SF_LAMBDA: {
-          TermList lambdaExp = sd->getLambdaExp();
-          if(lambdaExp.isTerm()){
-            count(lambdaExp.term(), 1, add); //Polarity? AYB
-          }
-          break;
-        }
         default:
           ASSERTION_VIOLATION;
       }
