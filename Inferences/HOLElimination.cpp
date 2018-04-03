@@ -653,7 +653,7 @@ Clause* PISIGMARemovalISE::simplify(Clause* c)
     }
 
   // If we reached this point, it means that no fully applied combinator
-  // was found, so we no simplification can be carried out. 
+  // was found, so we know that no simplification can be carried out. 
   return premise;
 
   substitution:
