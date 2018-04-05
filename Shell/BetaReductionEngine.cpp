@@ -161,12 +161,20 @@ Term* BetaReductionEngine::BetaReduce(Term* abstractedTerm, TermList redax)
       if(sym->duBruijnIndex() &&  areEqual(sym->name(), replace)){
         //replace index with appropriately lifted redax
         TermList liftedTerm = FOOLElimAlt::lift(redax, replace - 1, 0);
-        Term* reducedTerm = liftedTerm.term();
-        for(unsigned j = 0; j < t->arity(); j++){
-          TermList ts = *(t->nthArgument(j));
-          reducedTerm = BetaReduce(reducedTerm, ts); 
+        if(t->arity()){
+          //The is the case index(args list)
+          //We assume that the redax is a lambda term
+          //with number of prefixing lambdas at lease as many
+          //as args in args list
+          Term* reducedTerm = liftedTerm.term();
+          for(unsigned j = 0; j < t->arity(); j++){
+            TermList ts = *(t->nthArgument(j));
+            reducedTerm = BetaReduce(reducedTerm, ts); 
+          }
+          args.push(TermList(reducedTerm));
+        }else{
+          args.push(liftedTerm);
         }
-        args.push(t->arity() ? TermList(reducedTerm) : liftedTerm);
         modified.setTop(true);
         continue;
       }

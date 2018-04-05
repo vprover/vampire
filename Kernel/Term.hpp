@@ -88,6 +88,8 @@ public:
    * special variables and ordinary variables have an empty intersection */
   TermList(unsigned var, bool special)
   {
+    //ensuring that normal variables and variable heads are disjoint.
+    //ASS(var < Term::VARIABLE_HEAD_LOWER_BOUND);
     if (special) {
       makeSpecialVar(var);
     }
@@ -226,15 +228,14 @@ class Term
 {
 public:
   typedef List<unsigned> SortList;
-  //special functor values
+  //special functor values  
+
   static const unsigned SF_ITE = 0xFFFFFFFF;
   static const unsigned SF_LET = 0xFFFFFFFE;
   static const unsigned SF_FORMULA = 0xFFFFFFFD;
   static const unsigned SF_TUPLE = 0xFFFFFFFC;
   static const unsigned SF_LET_TUPLE = 0xFFFFFFFB;
   static const unsigned SPECIAL_FUNCTOR_LOWER_BOUND = 0xFFFFFFFA;
-
-
   static const unsigned VARIABLE_HEAD_LOWER_BOUND = 0x7FFFFFFF;
   
   class SpecialTermData

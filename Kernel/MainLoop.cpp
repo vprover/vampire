@@ -32,7 +32,7 @@
 #include "Inferences/InferenceEngine.hpp"
 #include "Inferences/InterpretedEvaluation.hpp"
 #include "Inferences/TermAlgebraReasoning.hpp"
-//#include "Inferences/HOLElimination.hpp"
+#include "Inferences/HOLElimination.hpp"
 #include "Inferences/TautologyDeletionISE.hpp"
 #include "Inferences/EquationalTautologyRemoval.hpp"
 
@@ -134,6 +134,10 @@ ImmediateSimplificationEngine* MainLoop::createISE(Problem& prb, const Options& 
     break;
   }
 
+  if(env.signature->isHOL()){
+    res->addFront(new PISIGMARemovalISE());
+  }
+  
   if(opt.HOLConstantElimination()){
     /*
 	  res->addFront(new PISIGMARemovalISE());

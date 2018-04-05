@@ -61,11 +61,9 @@ class Signature
   
   //That NULL_CONSTANT is 0 is utilised elsewhere in code
   public: enum HOLConstant {
-	  AND = 10,
-	  OR = 9,
-	  IMP = 8,
-	  FORALL = 7,
-	  EXISTS = 6,
+	  AND = 9,
+	  OR = 8,
+	  IMP = 7,
 	  IFF = 6,
 	  XOR = 5,
 	  NOT = 4,
@@ -130,7 +128,9 @@ class Signature
     unsigned _isLambda : 1;
     /** marks symbol as HO logical const */
     HOLConstant _isHoLogicalConn;
-	
+	  /** in HO Skolem functions can have a minimum number of arguments */ 
+    unsigned _necessaryArgs = 1; 
+     
   public:
      
     /** standard constructor */
@@ -164,7 +164,9 @@ class Signature
     void markDuBruijnIndex() { _isIndex = true; }
     /** mark HO logical const */
     void markHoLogicalConn(HOLConstant cnst) { _isHoLogicalConn = cnst; }
-    	
+    /** set necessary args of Skolem Function Symbol */
+    void setNecessaryArgs(unsigned min){ _necessaryArgs = min; }    
+      
     /** return true iff symbol is marked as skip for the purpose of symbol elimination */
     bool skip() const { return _skip; }
     /** return true iff the symbol is marked as name predicate
@@ -200,7 +202,10 @@ class Signature
     inline bool lambda() const { return _isLambda; }
     /** Return true iff symbol is a HO logical conn */
     inline HOLConstant hoLogicalConn() { return _isHoLogicalConn; }
-
+    /** return the number of necessary aruments of symbol 
+        if > 0 we know this is a skolem function symbol */
+    inline unsigned necessaryArgs() { return _necessaryArgs; } 
+    
     /** Increase the usage count of this symbol **/
     inline void incUsageCnt(){ _usageCount++; }
     /** Return the usage count of this symbol **/
@@ -375,8 +380,8 @@ class Signature
    * The added constant is of sort Sorts::SRT_DEFAULT.
    */
   unsigned addStringConstant(const vstring& name);
-  unsigned addFreshFunction(unsigned arity, const char* prefix, const char* suffix = 0);
-  unsigned addSkolemFunction(unsigned arity,const char* suffix = 0);
+  unsigned addFreshFunction(unsigned arity, const char* prefix, const char* suffix = 0, unsigned necessaryArgs = 0);
+  unsigned addSkolemFunction(unsigned arity,const char* suffix = 0, unsigned necessaryArgs = 0);
   unsigned addFreshPredicate(unsigned arity, const char* prefix, const char* suffix = 0);
   unsigned addSkolemPredicate(unsigned arity,const char* suffix = 0);
   unsigned addNamePredicate(unsigned arity);

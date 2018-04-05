@@ -163,6 +163,24 @@ bool FormulaVarIterator::hasNext()
           _termLists.push(ts.next());
         }
 
+        if(t->hasVarHead()){
+          int var = env.signature->getVarName(t->functor());
+          unsigned varf = t->functor();
+          if(var != -1){
+            if(!_bound.get(var) && !_free.get(var)){
+              _nextVar = var;
+              _found = true;
+              _free.inc(var);
+              return true;              
+            }
+          }else if (!_freeHoVars.find(varf)) {
+            _nextVar = varf;
+            _found = true;
+            _freeHoVars.insert(varf);
+            return true;
+          }          
+        }
+        
         if (t->isSpecial()) {
           const Term::SpecialTermData* sd = t->getSpecialData();
           switch (t->functor()) {

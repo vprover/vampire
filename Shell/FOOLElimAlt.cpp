@@ -153,7 +153,7 @@ TermList FOOLElimAlt::formulaToTerm(Formula* fm)
 
       qform = lift(qform, varsRev.size(), 0);
       qform = convertToDuBruijnIndices(qform, varsRev);
-      TermList abstractedTerm = abstract(qform, sortsRev);
+      TermList abstractedTerm = abstract(qform, Sorts::SRT_BOOL, sortsRev);
       unsigned sort = sortOf(abstractedTerm);
       
       unsigned logicalSym;
@@ -330,14 +330,13 @@ Formula* FOOLElimAlt::toEquality(TermList booleanTerm) {
   return new AtomicFormula(equality);
 }
 
-TermList FOOLElimAlt::abstract(TermList term, Stack<unsigned> sorts){
+TermList FOOLElimAlt::abstract(TermList term, unsigned termSort, Stack<unsigned> sorts){
   
    CALL("FOOLElimAlt::abstract");
 
    TermList abstractedTerm = term;
-   
-   unsigned lamSort = env.sorts->addFunctionSort(sorts.pop(), Sorts::SRT_BOOL);
-   unsigned termSort = Sorts::SRT_BOOL;
+
+   unsigned lamSort = env.sorts->addFunctionSort(sorts.pop(), termSort);
    
    while(true){
      Stack<unsigned> sorts2;
@@ -447,6 +446,21 @@ unsigned FOOLElimAlt::toSort(OperatorType* type){
 
   return sort;
 
+}
+
+OperatorType* FOOLElimAlt::toType(unsigned sort){
+  CALL("FOOLElimAlt::toType");
+
+  Stack<unsigned> sorts;  
+  if(env.sorts->isOfStructuredSort(sort, Sorts::StructuredSort::FUNCTION)){
+    while(env.sorts->isOfStructuredSort(sort, Sorts::StructuredSort::FUNCTION)){
+      sorts.push(env.sorts->getFuncSort(sort)->getDomainSort());
+      sort = env.sorts->getFuncSort(sort)->getRangeSort();
+    }
+    return OperatorType::getFunctionType(sorts.size(), sorts.begin(), sort);
+
+  }
+  return OperatorType::getConstantsType(sort);
 }
 
 /**
@@ -684,3 +698,39 @@ bool FOOLElimAlt::indexGreater(vstring index, unsigned cutoff){
    }
    return false;
 }  
+
+TermList FOOLElimAlt::etaExpand(unsigned fun, OperatorType* type, bool ex, Stack<TermList> existingArgs){
+  CALL("FOOLElimAlt::etaExpand");
+
+  unsigned arity = type->arity();
+  static Stack<TermList> args(arity);
+  
+  unsigned exargs = 0;
+  if(ex){ 
+    exargs = existingArgs.size();
+    for(unsigned i = 0; i < exargs; i++){
+      args.push(existingArgs[i]);
+    }    
+  }
+  unsigned count = exargs;  
+  Stack<unsigned> sorts;
+  
+  for(int i = arity; i > exargs; i--){
+    unsigned sort = type->arg(count);
+    sorts.push(sort);
+    OperatorType* subType = toType(sort);
+    unsigned index = addDuBruijnIndex(Int::toString(i + subType->arity()) + "_" + Int::toString(sort), subType);
+    if(!subType->arity()){
+      args.push(TermList(Term::createConstant(index)));
+    }else{
+      Stack<TermList> dummy;
+      args.push(etaExpand(index, subType, false, dummy));
+    }
+    count++;
+  }
+  
+  Term* expandedTerm = Term::create(fun, arity, args.begin());
+  TermList et = abstract(TermList(expandedTerm), type->result(), sorts);
+ 
+  return et;
+}

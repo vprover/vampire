@@ -313,6 +313,11 @@ void Preprocess::preprocess(Problem& prb)
   }
   
   if(env.signature->isHOL()){
+    //Skolemization and clausification complete. Can now set all HO
+    //vars to -1
+    for(unsigned i = Term::VARIABLE_HEAD_LOWER_BOUND + 1; i < env.signature->getNextFreshVarNum(); i++){
+      env.signature->setVar(i, -1);
+    }
     HoFunctionDefinition hfd;
     hfd.removeAllDefinitions(prb);
   }

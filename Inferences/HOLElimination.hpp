@@ -30,26 +30,24 @@
 
 namespace Inferences {
 
+typedef Signature::Symbol SigSym;
+
 struct ConstantTerm{
   
   CLASS_NAME(ConstantTerm);
   USE_ALLOCATOR(ConstantTerm);
   
-  Signature::Symbol::HOLConstant cnst;
-  Term* constant;
-  TermList t1;
-  TermList t2;
-  TermList t3;
-  unsigned t1Sort;
-  unsigned t2Sort;
-  unsigned t3Sort;
+  SigSym::HOLConstant cnst;
+  Term* cnstTerm;
+  TermList arg1;
+  TermList arg2;
   int onRight;
   
   ConstantTerm() {}
 };
 
-unique_ptr<ConstantTerm> isHolConstantApp(Literal* lit, unsigned unaryBinaryOrTenary);
-unique_ptr<ConstantTerm> isHolConstantApp(TermList tl, unsigned unaryBinaryOrTenary);
+unique_ptr<ConstantTerm> isHolConstantEquality(Literal* lit);
+unique_ptr<ConstantTerm> isHolConstantTerm(TermList tl);
 
 /*
   Simplification rules:

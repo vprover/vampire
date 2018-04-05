@@ -91,7 +91,11 @@ HoFunctionDefinition::HoFunctionDefinition ()
 HoFunctionDefinition::~HoFunctionDefinition ()
 {
   CALL("HoFunctionDefinition::~HoFunctionDefinition");
-  // delete _defs here?
+  
+  Fn2DefMap::Iterator dit(_defs);
+  while(dit.hasNext()) {
+    delete dit.next();
+  }
 }
 
 void HoFunctionDefinition::removeAllDefinitions(Problem& prb)
@@ -177,7 +181,6 @@ bool HoFunctionDefinition::removeAllDefinitions(UnitList*& units)
     }
   }
  
-  //TO DO destroy _defs.
   return true;
 }
 
@@ -241,7 +244,7 @@ Term* HoFunctionDefinition::unfoldDefs(Term* term)
         TermList ts = *(t->nthArgument(j));
         newTerm = bre.BetaReduce(newTerm, ts); 
       }
-      terms.push(newTerm);//push oto terms the beta reduce version of def->definiens
+      terms.push(newTerm);//push to terms the beta reduce version of def->definiens
       modified.setTop(true);
       modified.push(false);
       toDo.push(newTerm->args());
@@ -359,33 +362,7 @@ Term* HoFunctionDefinition::applyDefinitions(Literal* lit, Stack<HoDef*>* usedDe
   toDo.push(lit->args());
 
   for (;;) {
-    /*    
-    Stack<Term*>::Iterator tit(terms);
-    Stack<TermList*>::Iterator sit(toDo);
-    Stack<TermList>::Iterator ait(args);
-    
-    cout << "---------------------------" << endl;
-    cout << "The termlists are : " << endl;
-    while(sit.hasNext()){
-      cout << sit.next()->toString() << endl;
-    }
-    cout << "---------------------------" << endl;
-    
-    cout << "---------------------------" << endl;
-    cout << "The terms are : " << endl;
-    while(tit.hasNext()){
-      cout << tit.next()->toString() << endl;
-    }
-    cout << "---------------------------" << endl;
 
-    cout << "---------------------------" << endl;
-    cout << "The args are : " << endl;
-    while(ait.hasNext()){
-      cout << ait.next().toString() << endl;
-    }
-    cout << "---------------------------" << endl;
-    cout << "############END FOR CYCLE##########" << endl;
-    */
     TermList* tt=toDo.pop();
     if (tt->isEmpty()) {
       if (terms.isEmpty()) {
@@ -452,8 +429,15 @@ Term* HoFunctionDefinition::applyDefinitions(Literal* lit, Stack<HoDef*>* usedDe
   // second topmost element as &top()-1, third at
   // &top()-2, etc...
   TermList* argLst=&args.top() - (lit->arity()-1);
-  return Literal::create(static_cast<Literal*>(lit),argLst);
- 
+  Literal* newLit = Literal::create(static_cast<Literal*>(lit),argLst);
+
+  if(env.options->showPreprocessing()){
+    env.beginOutput();
+    env.out() << " Discovered definition(s) is literal. The unfolded beta-reduced version is "<<(*lit) << std::endl;
+    env.endOutput();
+  }  
+  
+  return newLit;
 }
 
 

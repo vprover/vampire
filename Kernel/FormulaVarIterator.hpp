@@ -81,6 +81,8 @@ private:
   /** The variable to be returned by next() */
   unsigned _nextVar;
 
+  /** store previously found HO variable functors */
+  DHSet<unsigned> _freeHoVars;
   /** Counter used to store bound variables, together with the number of times they are bound */
   MultiCounter _bound;
   /** To store previously found free variables */

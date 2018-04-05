@@ -289,8 +289,15 @@ void SortHelper::collectVariableSortsIter(CollectTask task, DHMap<unsigned,unsig
       case COLLECT_TERM: {
         Term* term = task.t;
 
+        // During preprocessing, hoVars are associated with variables in bindlists
+        // Once preprocessing is complete, these are all set to -1        
         if(term->hasVarHead()){
-          int var = env.signature->getVarName(term->functor());
+          unsigned var;
+          if(env.signature->getVarName(term->functor()) != -1){ 
+            var = env.signature->getVarName(term->functor());
+          }else{
+            var  = term->functor();
+          }
           OperatorType* type = env.signature->getVarType(term->functor());
           unsigned sort = FOOLElimAlt::toSort(type);
           if (!map.insert(var, sort)) {

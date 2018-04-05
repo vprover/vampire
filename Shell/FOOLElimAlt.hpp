@@ -53,6 +53,19 @@ public:
   /** returns true iff @index represents an index of value greater than @cutoff */
   static bool indexGreater(vstring index, unsigned cutoff);
   static unsigned toSort(OperatorType* type);
+  static OperatorType* toType(unsigned sort);
+  /** 
+   * eta-expands function with number @b fun and @c type
+   * This function cannot be used to eta-exapnd a function 
+   * which already ahs arguments. If @b fun is a Du Bruijn
+   * index then it is assumed that it has been pre-lifted.   
+   *
+   * if @b args is not null it is assumed that these arguments
+   * are already eta-expanded and lifted suitably.
+   */ 
+  static TermList etaExpand(unsigned fun, OperatorType* type, bool ex, Stack<TermList> existingArgs);
+  static TermList abstract(TermList term, unsigned termSort, Stack<unsigned> sorts);
+
   
   UnitList* axioms(){
 	 return _axioms;
@@ -66,11 +79,12 @@ private:
   
   static unsigned addLogicalConnSym(vstring name, unsigned sort1, unsigned argNum, bool &added, SigSymHol cnst); 
   static TermList applyLogicalConn(unsigned function, TermList args1, TermList arg2, bool bothArgs = true);
-
-  TermList convertToDuBruijnIndices(TermList t, Stack<int> vars);
-  TermList abstract(TermList term, Stack<unsigned> sorts);
-  TermList process(TermList t);
   unsigned sortOf(TermList t);
+  
+  TermList convertToDuBruijnIndices(TermList t, Stack<int> vars);
+
+  TermList process(TermList t);
+
 
     /** Add a new definitions to _axioms */
   void addAxiom(FormulaUnit* axiom);

@@ -290,8 +290,8 @@ VINF_OBJ=Inferences/BackwardDemodulation.o\
          Inferences/TautologyDeletionISE.o\
          Inferences/TermAlgebraReasoning.o\
          Inferences/TheoryInstAndSimp.o\
-         Inferences/URResolution.o
-#        Inferences/HOLElimination.o\
+         Inferences/URResolution.o\
+         Inferences/HOLElimination.o
 #         Inferences/CTFwSubsAndRes.o\
 
 VSAT_OBJ=SAT/ClauseDisposer.o\

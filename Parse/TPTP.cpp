@@ -1717,7 +1717,7 @@ void TPTP::dealWithVar(vstring name, unsigned argNum){
   }else{ //existentially or universally quantified var.
     if(varType->arity() == 0){//Classic var (phew!)
       _termLists.push(TermList(var, false));
-    }else{//higher-order, leave for later!
+    }else{
       FuncList* functors;
       ALWAYS(_varFunctors.find(var, functors))
       _termLists.push(etaExpand(varType, name,  varType->arity(), argNum, false, functors->head()));  
@@ -1744,14 +1744,13 @@ TermList TPTP::etaExpand(OperatorType* type, vstring name, unsigned arity, unsig
     lift(argsOnStack, arity - argsOnStack);//recursively lift the arguments already on the stack
   }
    
-  for( unsigned i = arity; i > argsOnStack; i--){
+  for(int i = arity; i > argsOnStack; i--){
     unsigned sort = type->arg(count);
     OperatorType* subType = toType(sort);
     if(!env.sorts->isOfStructuredSort(sort, Sorts::StructuredSort::FUNCTION)){
       unsigned index = FOOLElimAlt::addDuBruijnIndex(Int::toString(i - argsOnStack) + "_" + Int::toString(sort), subType);
       _termLists.push(TermList(Term::createConstant(index)));
     }else{
-      OperatorType* subType = toType(sort);
       unsigned subArity = subType->arity();
       vstring name2 = Int::toString(i - argsOnStack) + "_" + Int::toString(sort);
       _termLists.push(etaExpand(subType, name2, subArity ,0, true));

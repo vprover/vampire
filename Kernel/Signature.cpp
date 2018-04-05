@@ -707,7 +707,7 @@ unsigned Signature::addNamePredicate(unsigned arity)
  * prefixI_suffix. The new function will be marked as skip for the purpose of equality
  * elimination.
  */
-unsigned Signature::addFreshFunction(unsigned arity, const char* prefix, const char* suffix)
+unsigned Signature::addFreshFunction(unsigned arity, const char* prefix, const char* suffix, unsigned necessaryArgs)
 {
   CALL("Signature::addFreshFunction");
 
@@ -728,6 +728,9 @@ unsigned Signature::addFreshFunction(unsigned arity, const char* prefix, const c
   Symbol* sym = getFunction(result);
   sym->markIntroduced();
   sym->markSkip();
+  if(necessaryArgs){
+    sym->setNecessaryArgs(necessaryArgs); 
+  }
   return result;
 } // addFreshFunction
 
@@ -768,11 +771,11 @@ unsigned Signature::addFreshPredicate(unsigned arity, const char* prefix, const 
  * into the name of the Skolem function.
  * @since 01/07/2005 Manchester
  */
-unsigned Signature::addSkolemFunction (unsigned arity, const char* suffix)
+unsigned Signature::addSkolemFunction (unsigned arity, const char* suffix, unsigned necessaryArgs)
 {
   CALL("Signature::addSkolemFunction");
 
-  unsigned f = addFreshFunction(arity, "sK", suffix);
+  unsigned f = addFreshFunction(arity, "sK", suffix, necessaryArgs);
 
   // Register it as a LaTeX function
   theory->registerLaTeXFuncName(f,"\\sigma_{"+Int::toString(_skolemFunctionCount)+"}(a0)");

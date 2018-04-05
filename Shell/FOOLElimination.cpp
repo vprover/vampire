@@ -444,6 +444,7 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
   Formula::VarList* freeVars = term->freeVariables();
   Stack<unsigned> freeVarsSorts = collectSorts(freeVars);
 
+  
   /**
    * Note that we collected free variables before processing subterms. That
    * assumes that process() preserves free variables. This assumption relies
