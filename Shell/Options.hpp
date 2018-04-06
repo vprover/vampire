@@ -680,7 +680,8 @@ public:
     OFF = 1,
     ON = 2,
     THEORY = 3,
-    HOL = 4
+    HOL = 4,
+    BOTH = 5
   };
 
   enum class TARules : unsigned int {
