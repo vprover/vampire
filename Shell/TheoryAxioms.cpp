@@ -294,6 +294,8 @@ void TheoryAxioms::addCommutativeGroupAxioms(Interpretation op, Interpretation i
  */
 void TheoryAxioms::addRightInverse(Interpretation op, Interpretation inverse)
 {
+  CALL("TheoryAxioms::addRightInverse");
+
   TermList x(0,false);
   TermList y(0,false);
   unsigned f = env.signature->getInterpretingSymbol(op);
@@ -476,6 +478,8 @@ void TheoryAxioms::addAdditionAndOrderingAxioms(Interpretation plus, Interpretat
 // (bvugt s t) XOR (bvult s t) XOR (= s t)
 void TheoryAxioms::addBVReverseAndMoreAxiom(Interpretation op, Interpretation g_i, unsigned size)
 {
+  CALL("TheoryAxioms::addBVReverseAndMoreAxiom");
+
     unsigned srt = env.sorts->addBitVectorSort(size);
     
     unsigned f = env.signature->getInterpretingSymbol(op,OperatorType::getPredicateType({srt,srt}));
@@ -547,6 +551,8 @@ void TheoryAxioms::addBVUleAxiom1(Interpretation bvule, Interpretation bvult, un
 // f(X,Y) = u(b(X,Y))
 void TheoryAxioms::addPolyMorphicBinaryFunctionEquivalentToUnaryFunctionAppliedToBinaryFunction(Interpretation f_i, Interpretation unary_i, Interpretation binary_i, unsigned size)
 {
+  CALL("TheoryAxioms::addPolyMorphicBinaryFunctionEquivalentToUnaryFunctionAppliedToBinaryFunction");
+
     unsigned srt = env.sorts->addBitVectorSort(size);
     unsigned argSorts[2] = {srt,srt};
     
@@ -574,6 +580,8 @@ void TheoryAxioms::addPolyMorphicBinaryFunctionEquivalentToUnaryFunctionAppliedT
 // e.g. bvadd a 0 = a
 void TheoryAxioms::addBitVectorRightIdentity(Interpretation f_i, TermList neutralElement, unsigned size)
 {
+  CALL("TheoryAxioms::addBitVectorRightIdentity");
+
     unsigned srt = env.sorts->addBitVectorSort(size);
     unsigned  arg[1] = {srt};
     
@@ -590,6 +598,8 @@ void TheoryAxioms::addBitVectorRightIdentity(Interpretation f_i, TermList neutra
 //(bvsub x y) abbreviates (bvadd x (bvneg y))
 void TheoryAxioms::addPolyMorphicBinaryFunctionEquivalentToBinaryFunctionAppliedToUnaryFunction(Interpretation op, Interpretation binary, Interpretation unary, unsigned size)
 {
+  CALL("TheoryAxioms::addPolyMorphicBinaryFunctionEquivalentToBinaryFunctionAppliedToUnaryFunction");
+
     unsigned srt = env.sorts->addBitVectorSort(size);
     unsigned int argSorts[2] = {srt,srt};
     
@@ -621,6 +631,8 @@ void TheoryAxioms::addPolyMorphicBinaryFunctionEquivalentToBinaryFunctionApplied
 // e.g (bvudiv x zero) = allones 
 void TheoryAxioms::addPolyMorphicSpecialConstantAxiom(Interpretation op, TermList arg, TermList out,unsigned size)
 {
+  CALL("TheoryAxioms::addPolyMorphicSpecialConstantAxiom");
+
     unsigned srt = env.sorts->addBitVectorSort(size);
     unsigned argSorts[2] = {srt,srt};
     
@@ -638,6 +650,8 @@ void TheoryAxioms::addPolyMorphicSpecialConstantAxiom(Interpretation op, TermLis
 }
 void TheoryAxioms::addBVXNORAxiom1(Interpretation bvxnor , Interpretation bvor , Interpretation bvand, Interpretation bvnot, unsigned size)
 {
+  CALL("TheoryAxioms::addBVXNORAxiom1");
+
     unsigned srt = env.sorts->addBitVectorSort(size);
     unsigned argSorts[2] = {srt,srt};
     
@@ -677,6 +691,8 @@ void TheoryAxioms::addBVXNORAxiom1(Interpretation bvxnor , Interpretation bvor ,
 
 void TheoryAxioms::addBVXORAxiom1(Interpretation bvxor, Interpretation bvor , Interpretation bvand, Interpretation bvnot, unsigned size)
 {
+  CALL("TheoryAxioms::addBVXORAxiom1");
+
     unsigned srt = env.sorts->addBitVectorSort(size);
     unsigned argSorts[2] = {srt,srt};
     
