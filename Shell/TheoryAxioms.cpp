@@ -1465,39 +1465,38 @@ void TheoryAxioms::apply()
   VirtualIterator<Theory::MonomorphisedInterpretation> it = env.property->getPolymorphicInterpretations();
   unsigned size;
   while(it.hasNext()){
-      Theory::MonomorphisedInterpretation entry = it.next();
+	  Theory::MonomorphisedInterpretation entry = it.next();
+
+
       Interpretation itp = entry.first;
-      
+      if (itp>=Theory::ARRAY_SELECT && itp<=Theory::ARRAY_STORE)
+    	  	  continue;
+
       if (entry.second->isFunctionType())
-          size = env.sorts->getBitVectorSort(entry.second->result())->getSize();
+    	  	  size = env.sorts->getBitVectorSort(entry.second->result())->getSize();
       else
-          size = env.sorts->getBitVectorSort(entry.second->arg(0))->getSize();
-      
+    	  	  size = env.sorts->getBitVectorSort(entry.second->arg(0))->getSize();
+
       if (itp == Theory::BVNAND){
-          addPolyMorphicBinaryFunctionEquivalentToUnaryFunctionAppliedToBinaryFunction(Theory::BVNAND,Theory::BVNOT,Theory::BVAND,size);
-          
-       }   
+    	  	  addPolyMorphicBinaryFunctionEquivalentToUnaryFunctionAppliedToBinaryFunction(Theory::BVNAND,Theory::BVNOT,Theory::BVAND,size);
+      }
       else if(itp == Theory::BVNOR){
-        addPolyMorphicBinaryFunctionEquivalentToUnaryFunctionAppliedToBinaryFunction(Theory::BVNOR,Theory::BVNOT,Theory::BVOR,size);
+    	  	addPolyMorphicBinaryFunctionEquivalentToUnaryFunctionAppliedToBinaryFunction(Theory::BVNOR,Theory::BVNOT,Theory::BVOR,size);
       }
       else if(itp == Theory::BVXOR){
-        addBVXORAxiom1(Theory::BVXOR, Theory::BVOR , Theory::BVAND, Theory::BVNOT, size);
-  
+    	  	  addBVXORAxiom1(Theory::BVXOR, Theory::BVOR , Theory::BVAND, Theory::BVNOT, size);
       }
       else if(itp == Theory::BVXNOR){
-        addBVXNORAxiom1(Theory::BVXNOR, Theory::BVOR , Theory::BVAND, Theory::BVNOT, size);
-  
+    	    addBVXNORAxiom1(Theory::BVXNOR, Theory::BVOR , Theory::BVAND, Theory::BVNOT, size);
       }
       else if(itp == Theory::BVULE){
-        addBVUleAxiom1(Theory::BVULE, Theory::BVULT,size);
-  
+    	    addBVUleAxiom1(Theory::BVULE, Theory::BVULT,size);
       }
       else if(itp == Theory::BVUGT){
-        addBVReverseAndMoreAxiom(Theory::BVUGT, Theory::BVULT,size);
-  
+    	  	  addBVReverseAndMoreAxiom(Theory::BVUGT, Theory::BVULT,size);
       }
       else if (itp == Theory::BVADD){
-        TermList zero(theory->representConstant(BitVectorOperations::getZeroBVCT(size)));
+    	    TermList zero(theory->representConstant(BitVectorOperations::getZeroBVCT(size)));
         // add that (bvadd (X zero)) = X
         addBitVectorRightIdentity(Theory::BVADD,zero,size);
         addBitVectorCommutativity(Theory::BVADD,size); 
@@ -1517,7 +1516,8 @@ void TheoryAxioms::apply()
           //addBVUdivAxiom1(entry, zero, allOnes);
       }
       else if (itp== Theory::BVUREM){// bvurem returns its first operand if the second operand is 0
-          TermList zero(theory->representConstant(BitVectorOperations::getZeroBVCT(size)));
+
+    	  TermList zero(theory->representConstant(BitVectorOperations::getZeroBVCT(size)));
           addBitVectorRightIdentity(Theory::BVUREM,zero,size);
       } 
       
