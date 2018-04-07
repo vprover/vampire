@@ -103,8 +103,10 @@ FiniteModelBuilder::FiniteModelBuilder(Problem& prb, const Options& opt)
             || prop.hasProp(Property::PR_HAS_INTEGERS)
             || prop.hasProp(Property::PR_HAS_REALS)
             || prop.hasProp(Property::PR_HAS_RATS)
-            || prop.knownInfiniteDomain() || // recursive data type provably infinite --> don't bother model building
-      env.property->hasInterpretedOperations()) {
+            || prop.knownInfiniteDomain() // recursive data type provably infinite --> don't bother model building
+            || prop.hasLambda()
+            || prop.hasApp() 
+            || env.property->hasInterpretedOperations()) {
     _isAppropriate = false;
 
     // to ensure it is initialised
