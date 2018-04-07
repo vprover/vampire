@@ -33,8 +33,8 @@ using namespace Kernel;
 namespace Shell {
 
 /**
- * Class implementing the naming technique.
- * @since 05/05/2005 Manchester
+ * Class implementing beta-reduction.
+ * @since 05/04/2018
  */
 class BetaReductionEngine
 {
@@ -42,6 +42,7 @@ public:
   BetaReductionEngine ();
   Term* BetaReduce(Term* abstractedTerm, TermList redax);
 private:
+  static TermList lift(TermList tl, unsigned value, unsigned cutoff);
   bool areEqual(vstring indexName, unsigned replace);
   vstring decIndex(vstring index);  
 

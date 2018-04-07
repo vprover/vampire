@@ -41,8 +41,10 @@ public:
   static unsigned addDuBruijnIndex(vstring name, OperatorType* type);
   TermList formulaToTerm(Formula* fm);  
 
-  //All functions below are here temporarily until a more suitable class is created for them, AYB!
-  /** All Du Bruijn indices in @tl greater than @cutoff are lifted by @value and new TermList returned */
+  /** All Du Bruijn indices in @tl greater than @cutoff are lifted by @value and new TermList returned 
+    * The lift functions defined below are used during parsing and preprocessing. A non-recursive
+    * lift function that assumes the absence of specials is implemented in BetaReductionEngine.hpp
+    */
   static TermList lift(TermList tl, unsigned value, unsigned cutoff);
   static bool lift(TermList* fromtl, TermList* totl, unsigned value, unsigned cutoff);
   static Term* lift(Term* term, unsigned value, unsigned cutoff);
@@ -55,10 +57,9 @@ public:
   static unsigned toSort(OperatorType* type);
   static OperatorType* toType(unsigned sort);
   /** 
-   * eta-expands function with number @b fun and @c type
-   * This function cannot be used to eta-exapnd a function 
-   * which already ahs arguments. If @b fun is a Du Bruijn
-   * index then it is assumed that it has been pre-lifted.   
+   * eta-expands function with functor @b fun and @c type
+   * If @b fun is a Du Bruijn index then it is assumed that 
+   * it has been pre-lifted.   
    *
    * if @b args is not null it is assumed that these arguments
    * are already eta-expanded and lifted suitably.

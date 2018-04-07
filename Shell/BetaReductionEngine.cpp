@@ -57,8 +57,6 @@ Term* BetaReductionEngine::BetaReduce(Term* abstractedTerm, TermList redax)
 {
   CALL("BetaReductionEngine::BetaReduce");
   
-  //cout << "reducing abstracted term " + abstractedTerm->toString() << endl;
-  //cout << "the redax is : " + redax.toString() << endl;
   
   Signature::Symbol* sym = env.signature->getFunction(abstractedTerm->functor());
   ASS_REP(sym->lambda(), abstractedTerm->toString());
@@ -68,10 +66,6 @@ Term* BetaReductionEngine::BetaReduce(Term* abstractedTerm, TermList redax)
   Stack<Term*> terms;
   Stack<bool> modified;
   Stack<TermList> args;
-  //ASS_REP(toDo.isEmpty(), toDo.top()->toString());
-  //ASS(terms.isEmpty());
-  //modified.reset();
-  //args.reset();
 
   modified.push(false);
   toDo.push(abstractedTerm->args());
@@ -160,7 +154,7 @@ Term* BetaReductionEngine::BetaReduce(Term* abstractedTerm, TermList redax)
       Signature::Symbol* sym = env.signature->getFunction(t->functor());
       if(sym->duBruijnIndex() &&  areEqual(sym->name(), replace)){
         //replace index with appropriately lifted redax
-        TermList liftedTerm = FOOLElimAlt::lift(redax, replace - 1, 0);
+        TermList liftedTerm = lift(redax, replace - 1, 0);
         if(t->arity()){
           //The is the case index(args list)
           //We assume that the redax is a lambda term
@@ -207,18 +201,6 @@ Term* BetaReductionEngine::BetaReduce(Term* abstractedTerm, TermList redax)
   //the form lam(X). In that case we want to return X, but X is not 
   //a term.   
   return args.top().term();
-  // here we assume, that stack is an array with
-  // second topmost element as &top()-1, third at
-  // &top()-2, etc...
-  /*
-  TermList* argLst=&args.top() - (abstractedTerm->arity()-1);
-  if (abstractedTerm->isLiteral()) {
-    Literal* lit = static_cast<Literal*>(abstractedTerm);
-    ASS_EQ(args.size(), lit->arity());
-    return Literal::create(lit,argLst);
-  }
-  return Term::create(abstractedTerm, argLst);
-  */
   
 }
 
@@ -244,3 +226,120 @@ vstring BetaReductionEngine::decIndex(vstring index)
   return Int::toString(ind - 1) + index.substr(underpos); 
 }  
   
+TermList BetaReductionEngine::lift(TermList tl, unsigned value, unsigned cutoff)
+{
+  CALL("BetaReductionEngine::lift");
+        
+  static Stack<TermList*> toDo(8);
+  static Stack<Term*> terms(8);
+  static Stack<bool> modified(8);
+  static Stack<TermList> args(8);
+  ASS(toDo.isEmpty());
+  ASS(terms.isEmpty());
+  modified.reset();
+  args.reset();
+
+  if(tl.isVar()){
+    return tl;
+  }
+  
+  Term* term = tl.term();
+  if(!term->hasVarHead()){
+    Signature::Symbol* sym = env.signature->getFunction(term->functor());
+    if(sym->lambda()){
+      cutoff++;
+    }
+    if(sym->duBruijnIndex() &&  FOOLElimAlt::indexGreater(sym->name(), cutoff)){
+      //Du Bruijn index greater than cutoff. Increase by value 
+      vstring newInd = FOOLElimAlt::lift(sym->name(), value);
+      unsigned fun = FOOLElimAlt::addDuBruijnIndex(newInd, sym->fnType());
+      Term* newTerm = Term::cloneNonShared(term);     
+      newTerm->makeSymbol(fun, term->arity()); 
+      modified.push(true);
+      term = newTerm;
+    }else{
+      modified.push(false);
+    }
+  }else{
+    modified.push(false);
+  }
+  toDo.push(term->args());
+  
+  for (;;) {
+    TermList* tt=toDo.pop();
+    if (tt->isEmpty()) {
+      if (terms.isEmpty()) {
+        //we're done, args stack contains modified arguments
+        //of the literal.
+        ASS(toDo.isEmpty());
+        break;
+      }
+      Term* orig=terms.pop();
+      if(!orig->hasVarHead()){
+        Signature::Symbol* sym = env.signature->getFunction(orig->functor());
+        if(sym->lambda()){ cutoff--; }
+      }
+      if (!modified.pop()) {
+        args.truncate(args.length() - orig->arity());
+        args.push(TermList(orig));
+        continue;
+      }
+      if(!orig->arity()){
+        args.push(TermList(env.sharing->insert(orig)));
+        continue;        
+      }
+      //here we assume, that stack is an array with
+      //second topmost element as &top()-1, third at
+      //&top()-2, etc...
+      TermList* argLst=&args.top() - (orig->arity()-1);
+      args.truncate(args.length() - orig->arity());
+     
+      args.push(TermList(Term::create(orig,argLst)));
+      modified.setTop(true);
+      continue;
+    }
+    toDo.push(tt->next());
+
+    TermList tl=*tt;
+    if (tl.isVar()) {
+      args.push(tl);
+      continue;
+    }
+    ASS(tl.isTerm());
+    Term* t=tl.term();
+    if(!t->hasVarHead()){
+      Signature::Symbol* sym = env.signature->getFunction(t->functor());
+      if(sym->duBruijnIndex() &&  FOOLElimAlt::indexGreater(sym->name(), cutoff)){
+        //Du Bruijn index greater than cutoff. Increase by value 
+        vstring newInd = FOOLElimAlt::lift(sym->name(), value);
+        unsigned fun = FOOLElimAlt::addDuBruijnIndex(newInd, sym->fnType());
+        Term* newTerm = Term::cloneNonShared(t);     
+        newTerm->makeSymbol(fun, t->arity()); 
+        terms.push(newTerm);
+        modified.setTop(true);        
+        modified.push(true);
+        toDo.push(newTerm->args());
+        continue;
+      }      
+      if(sym->lambda()){ cutoff++; }
+    }
+    terms.push(t);
+    modified.push(false);
+    toDo.push(t->args());
+  }
+  ASS(toDo.isEmpty());
+  ASS(terms.isEmpty());
+  ASS_EQ(modified.length(),1);
+  ASS_EQ(args.length(),term->arity());
+
+  if (!modified.pop()) {
+    return tl;
+  }
+  if(!term->arity()){
+   return TermList(env.sharing->insert(term));       
+  }
+  
+  TermList* argLst=&args.top() - (term->arity()-1);
+  return TermList(Term::create(term,argLst));
+  
+}
