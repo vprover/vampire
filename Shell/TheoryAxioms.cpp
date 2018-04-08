@@ -580,10 +580,11 @@ void TheoryAxioms::addPolyMorphicBinaryFunctionEquivalentToUnaryFunctionAppliedT
 // e.g. bvadd a 0 = a
 void TheoryAxioms::addBitVectorRightIdentity(Interpretation f_i, TermList neutralElement, unsigned size)
 {
-  CALL("TheoryAxioms::addBitVectorRightIdentity");
-
+    CALL("TheoryAxioms::addBitVectorRightIdentity");
+    ASS(theory->isFunction(f_i));
+    ASS_EQ(theory->getArity(f_i),2);
     unsigned srt = env.sorts->addBitVectorSort(size);
-    unsigned  arg[1] = {srt};
+    unsigned  arg[2] = {srt,srt};
     
     unsigned f = env.signature->getInterpretingSymbol(f_i,OperatorType::getFunctionType(2, arg,srt));
     // f(X,c) = X
