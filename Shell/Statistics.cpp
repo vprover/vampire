@@ -389,7 +389,8 @@ void Statistics::print(ostream& out)
       itp = entry.first.first;
       opt = entry.first.second;
       unsigned u_symb = entry.second;
-      if (itp==Theory::EQUAL) 
+     
+      if (itp==Theory::EQUAL || (itp>=Theory::ARRAY_SELECT && itp<=Theory::ARRAY_STORE)) 
           continue;
       vstring name = theory->getInterpretationName(itp); 
       //cout<<endl<<"talking about function "<<endl<<entry.first.second->toString()<<" int is "<<entry.first.first<<endl;
@@ -400,7 +401,7 @@ void Statistics::print(ostream& out)
           funcOrPred = env.signature->getFunction(u_symb);
       else
           funcOrPred = env.signature->getPredicate(u_symb);
-            
+           
       if (itp == Theory::BVNEG || itp == Theory::BVNOT)
       {
            name = name+"{" +Int::toString(arg1Size)+"}";
