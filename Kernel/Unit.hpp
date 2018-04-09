@@ -74,6 +74,13 @@ public:
     MODEL_DEFINITION = 6
   };
 
+ enum DescendantType {
+   THEORY = 0,
+   BOOL = 1,
+   HOL_COMB = 2,
+   HOL_OTHER = 3
+ } 
+
   static InputType getInputType(UnitList* units);
   static InputType getInputType(InputType t1, InputType t2);
 
