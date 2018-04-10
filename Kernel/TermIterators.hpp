@@ -111,6 +111,81 @@ private:
   TermList _aux[2];
 };
 
+/**
+ * Iterator that yields terms with variable heads that are sub-terms of
+ * @b term in DFS left to right order.
+ */
+
+
+class VarHeadTermIterator
+: public IteratorCore<TermList>
+{
+public:
+  DECL_ELEMENT_TYPE(TermList);
+  VarHeadTermIterator() : _stack(8), _used(false) {}
+
+  VarHeadTermIterator(const Term* term) : _stack(8), _used(false)
+  {
+    if(!term->shared() || !term->ground()) {
+      if(term->hasVarHead()){
+        _stack.push(&TermList(term));
+      } else { 
+        _stack.push(term->args);
+      }
+    }
+  }
+
+  VarHeadTermIterator(TermList t) : _stack(8), _used(false)
+  {
+    if(!t.isVar()) {
+      Term* term=t.term();
+      if(!term->shared() || !term->ground()) {
+        _stack.push(term->args());
+      }
+    }
+  }
+
+  void reset(const Term* term)
+  {
+    _stack.reset();
+    _used = false;
+    if(!term->shared() || !term->ground()) {
+      if(term->hasVarHead()){
+        _stack.push(&TermList(term));
+      } else { 
+        _stack.push(term->args);
+      }
+    }
+  }
+
+  void reset(TermList t)
+  {
+    _stack.reset();
+    _used = false;
+    if(!t.isVar()) {
+      Term* term=t.term();
+      if(!term->shared() || !term->ground()) {
+        _stack.push(term->args());
+      }
+    }
+  }
+
+
+  bool hasNext();
+
+  TermList next()
+  {
+    ASS(!_used);
+    ASS(_stack.top()->isTerm() && _stack.top().term()->hasVarHead());
+    _used=true;
+    return *_stack.top();
+  }
+private:
+  Stack<const TermList*> _stack;
+  bool _used;
+};
+
+
 struct VariableIteratorFn
 {
   DECL_RETURN_TYPE(VirtualIterator<TermList>);

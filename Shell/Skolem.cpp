@@ -118,26 +118,31 @@ FormulaUnit* Skolem::skolemiseImpl (FormulaUnit* unit)
 }
 
 unsigned Skolem::addSkolemFunction(unsigned arity, unsigned* domainSorts,
-    unsigned rangeSort, unsigned var)
+    unsigned rangeSort, unsigned var, unsigned minArgs)
 {
   CALL("Skolem::addSkolemFunction(unsigned,unsigned*,unsigned,unsigned)");
 
   if(VarManager::varNamePreserving()) {
     vstring varName=VarManager::getVarName(var);
-    return addSkolemFunction(arity, domainSorts, rangeSort, varName.c_str());
+    return addSkolemFunction(arity, domainSorts, rangeSort, varName.c_str(), minArgs);
   }
   else {
-    return addSkolemFunction(arity, domainSorts, rangeSort);
+    return addSkolemFunction(arity, domainSorts, rangeSort, 0, minArgs);
   }
 }
 
 unsigned Skolem::addSkolemFunction(unsigned arity, unsigned* domainSorts,
-    unsigned rangeSort, const char* suffix)
+    unsigned rangeSort, const char* suffix, unsigned minArgs)
 {
   CALL("Skolem::addSkolemFunction(unsigned,unsigned*,unsigned,const char*)");
   ASS(arity==0 || domainSorts!=0);
 
-  unsigned fun = env.signature->addSkolemFunction(arity, suffix);
+  unsigned fun;
+  if(minArgs){
+    fun = env.signature->addSkolemFunction(arity, suffix, minArgs);
+  } else {
+    fun = env.signature->addSkolemFunction(arity, suffix);
+  }
   Signature::Symbol* fnSym = env.signature->getFunction(fun);
   fnSym->setType(OperatorType::getFunctionType(arity, domainSorts, rangeSort));
   return fun;
@@ -193,6 +198,7 @@ void Skolem::preskolemise (Formula* f)
       const Literal* l = f->literal();
 
       VariableIterator it(l);
+      VarHeadTermIterator vhit(l);
       while (it.hasNext()) {
         TermList v = it.next();
         ASS(v.isVar());
@@ -202,6 +208,10 @@ void Skolem::preskolemise (Formula* f)
         if (BoolList::isNonEmpty(varOccInfo.occurs_below)) { // below a quantifier ...
           *varOccInfo.occurs_below->headPtr() = true;         // ... occurs in this literal
         }
+      }
+      while(whit.hasNext()){
+        
+
       }
       return;
     }
@@ -403,8 +413,16 @@ Formula* Skolem::skolemise (Formula* f)
       VarSet::Iterator vuIt(*dep);
       while(vuIt.hasNext()) {
         unsigned uvar = vuIt.next();
-        domainSorts.push(_varSorts.get(uvar, Sorts::SRT_DEFAULT));
-        fnArgs.push(TermList(uvar, false));
+        unsigned varsort = _varSorts.get(uvar, Sorts::SRT_DEFAULT);
+        domainSorts.push(varsort);
+        if(env.sorts->isOfStructuredSort(varsort, Sorts::StructuredSort::FUNCTION)){
+          Stack<TermList> dummy;
+          unsigned functor;
+          ALWAYS(_varFunctors.find(uvar, functor));
+          fnArgs.push(FOOLElimAlt::etaExpand(functor,FOOLElimAlt::toType(varsort),false,dummy))
+        } else {
+          fnArgs.push(TermList(uvar, false));
+        }
         Formula::VarList::push(uvar,var_args);
         arity++;
       }
@@ -413,13 +431,36 @@ Formula* Skolem::skolemise (Formula* f)
       while (vs.hasNext()) {
         int v = vs.next();
         unsigned rangeSort=_varSorts.get(v, Sorts::SRT_DEFAULT);
+        Term* skolemTerm;
+        unsigned fun
 
-        unsigned fun = addSkolemFunction(arity, domainSorts.begin(), rangeSort, v);
-        _introducedSkolemFuns.push(fun);
+        if(!env.sorts->isOfStructuredSort(rangeSort, Sorts::FUNCTION)){
+          if(env.signature->isHol()){
+            fun = addSkolemFunction(arity, domainSorts.begin(), rangeSort, v, arity);
+          } else {
+            fun = addSkolemFunction(arity, domainSorts.begin(), rangeSort, v);
+          }
+          _introducedSkolemFuns.push(fun);
 
-        env.statistics->skolemFunctions++;
+          env.statistics->skolemFunctions++;
+          skolemTerm = Term::create(fun, arity, fnArgs.begin());
+        } else {
+          while(env.sorts->isOfStructuredSort(rangeSort, Sorts::FUNCTION)){
+          	domainSorts.push(env.sorts->getFunctionSort(rangeSort)->getDomain());
+          	rangeSort = env.sorts->getFunctionSort(rangeSort)->getRange();
+          }
+          fun = env.signature->addSkolemFunction(domainSorts.size(), 0, arity);
+          OperatorType* type = env.sorts->getFunctionType(domainSorts.size(), domainSorts, rangeSort);
+          
+          Signature::Symbol* sym = env.signature->getFunction(fun);
+          sym->setType(type);
 
-        Term* skolemTerm = Term::create(fun, arity, fnArgs.begin());
+          _introducedSkolemFuns.push(fun);
+          env.statistics->skolemFunctions++;
+
+          TermList sklm = FOOLElimAlt::etaExpand(fun,type, true, fnArgs);
+          skolemTerm = sklm.term();
+        }
         _subst.bind(v,skolemTerm);
         localSubst.bind(v,skolemTerm);
 

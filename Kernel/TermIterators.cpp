@@ -68,6 +68,45 @@ bool VariableIterator::hasNext()
 }
 
 
+/**
+ * True if there exists next term with variable head
+ */
+
+bool VarHeadTermIterator::hasNext()
+{
+  CALL("VarHeadTermIterator::hasNext");
+  if(_stack.isEmpty()) {
+    return false;
+  }
+  if(!_used && _stack.top()->isTerm() && 
+      _stack.top()->term()->hasVarHead()){
+    return true;
+  }
+  while(!_stack.isEmpty()) {
+    const TermList* t=_stack.pop();
+    if(_used && t->term()->hasVarHead()) {
+      _used=false;
+      t=t->next();
+    }
+    if(t->isEmpty()) {
+      continue;
+    }
+    if(!t->isVar() && t->term()->hasVarHead()) {
+      ASS(!_used);
+      _stack.push(t);
+      return true;
+    }
+    _stack.push(t->next());
+    if(t->isTerm()){
+      const Term* trm=t->term();
+      if(!trm->shared() || !trm->ground()) {
+        _stack.push(trm->args());
+      }
+    }
+  }
+  return false;
+}
+
 ///////////////////////////////////////////
 
 
@@ -352,7 +391,7 @@ TermVarIterator::TermVarIterator (const Term* t)
  * @since 26/05/2007 Manchester, reimplemented
  */
 TermVarIterator::TermVarIterator (const TermList* ts)
-  : _stack(64)
+  : _nextFunctor(0), _stack(64) 
 {
   CALL("TermVarIterator::TermVarIterator");
   _stack.push(ts);
@@ -378,6 +417,8 @@ bool TermVarIterator::hasNext ()
       _next = ts->var();
       return true;
     }
+    ASS(ts->isTerm());
+    Term* term = ts->term();
     _stack.push(ts->term()->args());
   }
   return false;

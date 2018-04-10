@@ -36,7 +36,6 @@
 #include "Kernel/SubformulaIterator.hpp"
 #include "Kernel/Term.hpp"
 
-#include "Shell/Statistics.hpp"
 #include "Shell/Options.hpp"
 #include "Shell/FOOLElimAlt.hpp"
 

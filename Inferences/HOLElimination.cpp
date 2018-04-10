@@ -147,7 +147,8 @@ TermList sigmaRemoval(TermList sigmaTerm, unsigned expsrt){
     }
     
     OperatorType* type = OperatorType::getFunctionType(arity + addedToSorts, sorts.begin(), srt2);    
-    unsigned sklm = env.signature->addSkolemFunction(arity + addedToSorts, "" ,arity);    
+    unsigned sklm = env.signature->addSkolemFunction(arity + addedToSorts, 0 ,arity);
+    env.statistics->skolemFunctions++;    
     env.signature->getFunction(sklm)->setType(type);
  
     TermList skolemFunc;  

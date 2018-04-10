@@ -53,9 +53,9 @@ class Skolem
 public:
   static FormulaUnit* skolemise(FormulaUnit*);
   static unsigned addSkolemFunction(unsigned arity, unsigned* domainSorts,
-      unsigned rangeSort, unsigned var);
+      unsigned rangeSort, unsigned var, unsigned minArgs = 0);
   static unsigned addSkolemFunction(unsigned arity, unsigned* domainSorts,
-      unsigned rangeSort, const char* suffix=0);
+      unsigned rangeSort, const char* suffix=0, unsigned minArgs = 0);
   static unsigned addSkolemPredicate(unsigned arity, unsigned* domainSorts, unsigned var);
   static unsigned addSkolemPredicate(unsigned arity, unsigned* domainSorts, const char* suffix=0);
 private:
@@ -101,6 +101,9 @@ private:
 
   /** map var --> sort */
   DHMap<unsigned,unsigned> _varSorts;
+
+  /** map var --> functor */
+  DHMap<unsigned,unsigned> _varFunctors;
 
   Stack<unsigned> _introducedSkolemFuns;
 
