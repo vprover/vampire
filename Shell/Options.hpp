@@ -1975,6 +1975,8 @@ public:
 
   bool colorUnblocking() const { return _colorUnblocking.actualValue; }
 
+  bool detectSledgehammerAxioms () const { return _detectSledgehammerAxioms.actualValue; }
+
   Instantiation instantiation() const { return _instantiation.actualValue; }
   bool theoryFlattening() const { return _theoryFlattening.actualValue; }
 
@@ -2227,6 +2229,8 @@ private:
   ChoiceOptionValue<GlobalSubsumptionAvatarAssumptions> _globalSubsumptionAvatarAssumptions;
 
   BoolOptionValue _hyperSuperposition;
+
+  BoolOptionValue _detectSledgehammerAxioms;
 
   BoolOptionValue _innerRewriting;
   BoolOptionValue _equationalTautologyRemoval;

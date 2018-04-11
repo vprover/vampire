@@ -375,6 +375,12 @@ void Options::Options::init()
 
 //*********************** Preprocessing  ***********************
 
+    _detectSledgehammerAxioms = BoolOptionValue("detect_sledgehammer_axioms","dsa",false);
+    _detectSledgehammerAxioms.description = "If an axioms name starts with help_ we mark it as a HOL axiom";
+    _lookup.insert(&_detectSledgehammerAxioms);
+    _detectSledgehammerAxioms.tag(OptionTag::INPUT);
+    _detectSledgehammerAxioms.setExperimental();
+
     _inequalitySplitting = IntOptionValue("inequality_splitting","ins",0);
     _inequalitySplitting.description=
     "Defines a weight threshold w such that any clause C \\/ s!=t where s (or conversely t) is ground "
