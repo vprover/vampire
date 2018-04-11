@@ -209,9 +209,18 @@ void Skolem::preskolemise (Formula* f)
           *varOccInfo.occurs_below->headPtr() = true;         // ... occurs in this literal
         }
       }
-      while(whit.hasNext()){
-        
+      while(vhit.hasNext()){
+        Term* varHeadTerm = vhit.next();
+        ASS(varHeadTerm->hasVarHead());
 
+        unsigned v = env.signature->getVarName(varHeadTerm->functor());
+        VarOccInfo varOccInfo;
+        ALWAYS(_varOccs.find(v, varOccInfo));
+
+        if (BoolList::isNonEmpty(varOccInfo.occurs_below)) { // below a quantifier ...
+          *varOccInfo.occurs_below->headPtr() = true;         // ... occurs in this literal
+        }
+        _varFunctors.insert(v, varHeadTerm->functor());
       }
       return;
     }
