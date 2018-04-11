@@ -681,7 +681,8 @@ public:
     ON = 2,
     THEORY = 3,
     HOL = 4,
-    BOTH = 5
+    HOL_INVERSE = 5,
+    BOTH = 6
   };
 
   enum class TARules : unsigned int {
