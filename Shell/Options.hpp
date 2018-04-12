@@ -728,7 +728,13 @@ public:
     RULELIGHT = 3
   };
 
-
+  enum class GoalGuess : unsigned int {
+    OFF = 0,
+    ALL = 1,
+    EXISTS_TOP = 2,
+    EXISTS_ALL = 3,
+    POSITION = 4
+  };
     
     //==========================================================
     // The Internals
@@ -1838,7 +1844,7 @@ public:
   void setInputSyntax(InputSyntax newVal) { _inputSyntax.actualValue = newVal; }
   bool normalize() const { return _normalize.actualValue; }
   void setNormalize(bool normalize) { _normalize.actualValue = normalize; }
-  bool guessTheGoal() const { return _guessTheGoal.actualValue; }
+  GoalGuess guessTheGoal() const { return _guessTheGoal.actualValue; }
   unsigned gtgLimit() const { return _guessTheGoalLimit.actualValue; }
 
   void setNaming(int n){ _naming.actualValue = n;} //TODO: ensure global constraints
@@ -2261,7 +2267,7 @@ private:
   ChoiceOptionValue<GlobalSubsumptionSatSolverPower> _globalSubsumptionSatSolverPower;
   ChoiceOptionValue<GlobalSubsumptionExplicitMinim> _globalSubsumptionExplicitMinim;
   ChoiceOptionValue<GlobalSubsumptionAvatarAssumptions> _globalSubsumptionAvatarAssumptions;
-  BoolOptionValue _guessTheGoal;
+  ChoiceOptionValue<GoalGuess> _guessTheGoal;
   UnsignedOptionValue _guessTheGoalLimit;
 
   BoolOptionValue _hyperSuperposition;

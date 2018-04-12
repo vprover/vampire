@@ -34,6 +34,9 @@ using namespace Kernel;
 class GoalGuessing
 {
 public:
+  CLASS_NAME(GoalGuessing);
+  USE_ALLOCATOR(GoalGuessing);
+
   void apply(Problem& prb);
 private:
   bool apply(UnitList*& units);
@@ -41,6 +44,9 @@ private:
   bool apply(FormulaUnit* fu);
   bool apply(Literal* lit);
 
+  bool _lookInside;
+  bool _checkSymbols;
+  bool _checkPosition;
 };
 
 };

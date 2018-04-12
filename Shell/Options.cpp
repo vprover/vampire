@@ -373,7 +373,7 @@ void Options::Options::init()
     _smtlibFletAsDefinition.setExperimental();
     _smtlibFletAsDefinition.tag(OptionTag::INPUT);
 
-    _guessTheGoal = BoolOptionValue("guess_the_goal","gtg",false);
+    _guessTheGoal = ChoiceOptionValue<GoalGuess>("guess_the_goal","gtg",GoalGuess::OFF,{"off","all","exists_top","exists_all","position"});
     _guessTheGoal.description = "Use heuristics to guess formulas that correspond to the goal. Doesn't "
                                 "really make sense if there is already a goal.";
     _lookup.insert(&_guessTheGoal);
@@ -384,7 +384,7 @@ void Options::Options::init()
     _guessTheGoalLimit.description = "The maximum number of input units a symbol appears for it to be considered in a goal";
     _guessTheGoalLimit.tag(OptionTag::INPUT);
     _guessTheGoalLimit.setExperimental();
-    _guessTheGoalLimit.reliesOn(_guessTheGoal.is(equal(true)));
+    //_guessTheGoalLimit.reliesOn(_guessTheGoal.is(equal(true)));
     _lookup.insert(&_guessTheGoalLimit);
 
 
@@ -912,8 +912,8 @@ void Options::Options::init()
             //_lookup.insert(&_inductionChoice);
             _inductionChoice.setExperimental();
             _inductionChoice.reliesOn(_induction.is(notEqual(Induction::NONE)));
-            _inductionChoice.addHardConstraint(If(equal(InductionChoice::GOAL)->Or(equal(InductionChoice::GOAL_PLUS))).then(
-              _inputSyntax.is(equal(InputSyntax::TPTP))->Or<InductionChoice>(_guessTheGoal.is(equal(true)))));
+            //_inductionChoice.addHardConstraint(If(equal(InductionChoice::GOAL)->Or(equal(InductionChoice::GOAL_PLUS))).then(
+            //  _inputSyntax.is(equal(InputSyntax::TPTP))->Or<InductionChoice>(_guessTheGoal.is(equal(true)))));
 
 
             _maxInductionDepth = UnsignedOptionValue("induction_max_depth","indmd",0);

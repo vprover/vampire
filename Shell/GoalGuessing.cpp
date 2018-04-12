@@ -46,6 +46,16 @@ void GoalGuessing::apply(Problem& prb)
 {
   CALL("GoalGuessing::apply(Problem&)");
 
+  _lookInside = env.options->guessTheGoal() != Options::GoalGuess::POSITION;
+  _checkSymbols = env.options->guessTheGoal() == Options::GoalGuess::EXISTS_ALL;
+  _checkPosition = env.options->guessTheGoal() == Options::GoalGuess::POSITION;
+
+  if(env.options->guessTheGoal() == Options::GoalGuess::ALL){
+    _lookInside=true;
+    _checkSymbols=true;
+    _checkPosition=true;
+  }
+
   if(apply(prb.units())) {
     prb.invalidateByRemoval();
   }
@@ -60,13 +70,23 @@ bool GoalGuessing::apply(UnitList*& units)
   UnitList::Iterator uit(units);
   while(uit.hasNext()) {
     Unit* u = uit.next();
-    if(u->isClause()) {
-      Clause* cl = static_cast<Clause*>(u);
-      modified |= apply(cl);
+
+    if(_checkPosition){
+      if(u->number() == Unit::getLastParsingNumber()){
+        u->setInputType(Unit::NEGATED_CONJECTURE);
+        modified=true;
+      }
     }
-    else {
-      FormulaUnit* fu = static_cast<FormulaUnit*>(u);
-      modified |= apply(fu);
+
+    if(_lookInside){
+     if(u->isClause()) {
+       Clause* cl = static_cast<Clause*>(u);
+       modified |= apply(cl);
+     }
+     else {
+       FormulaUnit* fu = static_cast<FormulaUnit*>(u);
+       modified |= apply(fu);
+     }
     }
   }
   return modified;
@@ -75,6 +95,8 @@ bool GoalGuessing::apply(UnitList*& units)
 bool GoalGuessing::apply(Clause* cl)
 {
   CALL("GoalGuessing::apply(Clause* cl)");
+
+  if(cl->isTheoryDescendant()){ return false; }
 
   unsigned clen = cl->length();
   bool looksLikeGoal = false;
@@ -95,6 +117,10 @@ bool GoalGuessing::apply(FormulaUnit* fu)
   if(fu->formula()->connective() == EXISTS){
     looksLikeGoal = true;
   }
+  // negated universal quantification at the top level is conjecture-like
+  if(fu->formula()->connective() == NOT && fu->formula()->uarg()->connective() == FORALL){
+    looksLikeGoal = true;
+  }
 
   SubformulaIterator sfit(fu->formula());
   while (sfit.hasNext()) {
@@ -110,6 +136,8 @@ bool GoalGuessing::apply(FormulaUnit* fu)
 bool GoalGuessing::apply(Literal* lit)
 {
   CALL("GoalGuessing::apply(Literal* lit)");
+
+  if(!_checkSymbols){ return false; }
 
      //if(lit->isSpecial()){ return false; }
 

@@ -440,23 +440,38 @@ struct InferenceStore::ProofPropertyPrinter
   CLASS_NAME(InferenceStore::ProofPropertyPrinter);
   USE_ALLOCATOR(InferenceStore::ProofPropertyPrinter);
 
-  ProofPropertyPrinter(ostream& out, InferenceStore* is) : ProofPrinter(out,is) 
+  ProofPropertyPrinter(ostream& out, InferenceStore* is) : ProofPrinter(out,is)
   {
     CALL("InferenceStore::ProofPropertyPrinter::ProofPropertyPrinter");
 
     max_theory_clause_depth = 0;
+    for(unsigned i=0;i<11;i++){ buckets.push(0); }
+    last_one = false;
   }
 
   void print()
   {
     ProofPrinter::print();
-    out << "max_theory_clause_depth:"<<max_theory_clause_depth << endl;
+    for(unsigned i=0;i<11;i++){ out << buckets[i] << " ";}
+    out << endl;
+    if(last_one){ out << "yes" << endl; }
+    else{ out << "no" << endl; }
   }
 
 protected:
 
   void printStep(Unit* us)
   {
+    static unsigned lastP = Unit::getLastParsingNumber();
+    static float chunk = lastP / 10.0;
+    if(us->number() <= lastP){
+      if(us->number() == lastP){ 
+        last_one = true;
+      }
+      unsigned bucket = (unsigned)(us->number() / chunk);
+      buckets[bucket]++;
+    }
+
     // TODO we could make clauses track this information, but I am not sure that that's worth it
     if(us->isClause() && static_cast<Clause*>(us)->isTheoryDescendant()){
       //cout << "HERE with " << us->toString() << endl;
@@ -501,6 +516,8 @@ protected:
   }
 
   unsigned max_theory_clause_depth;
+  bool last_one;
+  Stack<unsigned> buckets;
 
 };
 
