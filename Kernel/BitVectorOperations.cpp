@@ -659,7 +659,7 @@ void BitVectorOperations::bvsdiv(const BitVectorConstantType& arg1, const BitVec
     bool msb_arg2 = arg2.getValueAt(arg2.size()-1);
     if (!msb_arg1 && !msb_arg2)
     {
-        bvudiv(arg1,arg2,result);
+        bvudiv_fast(arg1,arg2,result);
         return;
     }
     if (msb_arg1 && !msb_arg2)
@@ -668,7 +668,7 @@ void BitVectorOperations::bvsdiv(const BitVectorConstantType& arg1, const BitVec
         bvneg(arg1,arg1Negated);
             
         BitVectorConstantType div(arg1.size());
-        bvudiv(arg1Negated,arg2,div);
+        bvudiv_fast(arg1Negated,arg2,div);
         bvneg(div,result);
         return;
     }
@@ -676,7 +676,7 @@ void BitVectorOperations::bvsdiv(const BitVectorConstantType& arg1, const BitVec
     {
         BitVectorConstantType arg2Negated(arg2.size());
         BitVectorConstantType div(arg1.size());
-        bvudiv(arg1,arg2Negated,div);
+        bvudiv_fast(arg1,arg2Negated,div);
         bvneg(div,result);
         return;
     }
@@ -685,7 +685,7 @@ void BitVectorOperations::bvsdiv(const BitVectorConstantType& arg1, const BitVec
     BitVectorConstantType arg2Negated(arg2.size());
     bvneg(arg1,arg1Negated);
     bvneg(arg2,arg2Negated);
-    bvudiv(arg1Negated,arg2Negated,result);
+    bvudiv_fast(arg1Negated,arg2Negated,result);
 }
    
 void BitVectorOperations::bvsrem(const BitVectorConstantType& arg1, const BitVectorConstantType& arg2 , BitVectorConstantType& result)
@@ -699,7 +699,7 @@ void BitVectorOperations::bvsrem(const BitVectorConstantType& arg1, const BitVec
         
     if (!msb_arg1 && !msb_arg2)
     {
-        bvurem(arg1,arg2,result);
+        bvurem_fast(arg1,arg2,result);
         return;
     }
         
@@ -708,7 +708,7 @@ void BitVectorOperations::bvsrem(const BitVectorConstantType& arg1, const BitVec
         BitVectorConstantType arg1Negated(arg1.size());
         bvneg(arg1,arg1Negated);
         BitVectorConstantType rem(arg1.size());
-        bvurem(arg1Negated,arg2,rem);
+        bvurem_fast(arg1Negated,arg2,rem);
         bvneg(rem,result);
         return;
     }
@@ -717,7 +717,7 @@ void BitVectorOperations::bvsrem(const BitVectorConstantType& arg1, const BitVec
     {
         BitVectorConstantType arg2Negated(arg1.size());
         bvneg(arg2,arg2Negated);
-        bvurem(arg1,arg2Negated,result);
+        bvurem_fast(arg1,arg2Negated,result);
         return;
     }
         
@@ -727,7 +727,7 @@ void BitVectorOperations::bvsrem(const BitVectorConstantType& arg1, const BitVec
     bvneg(arg2,arg2Negated);
         
     BitVectorConstantType rem(arg2.size());
-    bvurem(arg1Negated,arg2Negated,rem);
+    bvurem_fast(arg1Negated,arg2Negated,rem);
         
     bvneg(rem,result);
 }
@@ -758,7 +758,7 @@ void BitVectorOperations::bvsrem(const BitVectorConstantType& arg1, const BitVec
         }
         
         BitVectorConstantType u(arg1.size());
-        bvurem(arg1Abs,arg2Abs,u);
+        bvurem_fast(arg1Abs,arg2Abs,u);
         
         if (isZero(u))
         {
