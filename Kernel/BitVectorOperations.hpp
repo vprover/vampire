@@ -1,19 +1,6 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
+#ifndef __BitVectors__
+#define __BitVectors__
 
-/* 
- * File:   BitVectorOperations.hpp
- * Author: dam
- *
- * Created on July 19, 2017, 8:51 AM
- */
-
-#ifndef __BEE_VEE__
-#define __BEE_VEE__
-#include <iostream>
 #include "Debug/Assertion.hpp"
 #include "Lib/DArray.hpp"
 #include "Sorts.hpp"
@@ -104,5 +91,5 @@ namespace Kernel {
     };  
 }
 
-#endif /* __BEE_VEE__ */
+#endif /* __BitVectors__ */
 

@@ -79,7 +79,6 @@ void CompositeISE::addFront(ImmediateSimplificationEngine* ise)
 }
 Clause* CompositeISE::simplify(Clause* cl)
 {
-  //cout<<"root of clause ";
   ISList* curr=_inners;
   while(curr && cl) {
     Clause* newCl=curr->head()->simplify(cl);

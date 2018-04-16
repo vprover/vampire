@@ -36,7 +36,7 @@
 #include "Sorts.hpp"
 #include "Term.hpp"
 #include "BitVectorOperations.hpp"
-#include "Lib/Environment.hpp"
+
 
 namespace Kernel {
 
@@ -184,7 +184,6 @@ class BitVectorConstantType{
         binArray[index] = value;
     }
     
-    /// RE
     BitVectorConstantType& operator=(const BitVectorConstantType& o)
     {
        setBinArray(o.getBinArray());

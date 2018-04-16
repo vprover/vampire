@@ -184,7 +184,6 @@ public:
 
   unsigned addArraySort(unsigned indexSort, unsigned innerSort);
   unsigned addBitVectorSort(unsigned size);
-  //unsigned addBitVectorSort2(unsigned size, unsigned sizeArg1, unsigned sizeArg2);
   
   ArraySort* getArraySort(unsigned sort){
     ASS(isOfStructuredSort(sort,StructuredSort::ARRAY));

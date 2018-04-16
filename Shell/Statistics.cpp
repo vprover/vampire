@@ -374,14 +374,6 @@ void Statistics::print(ostream& out)
   HEADING("BitVectorOperations",1);
   VirtualIterator<std::pair<Theory::MonomorphisedInterpretation,unsigned>> it = env.signature->getSSIItems();
   
-  // alternative way of doing things
-  /*for(unsigned f=0; f<env.signature->functions();f++){
-      Signature::Symbol* func = env.signature->getFunction(f);
-      vstring name = func->name();
-      if (func->arity()!=0)
-        COND_OUT(name,func->usageCnt());
-  }*/
-  
   Interpretation itp;
   OperatorType* opt;
   while (it.hasNext()){

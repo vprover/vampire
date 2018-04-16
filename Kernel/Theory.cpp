@@ -221,7 +221,6 @@ vstring IntegerConstantType::toString() const
 vstring BitVectorConstantType::toString() const
 {
     CALL("BitVectorConstantType::toString");
-    //BitVectorOperations::printBoolArrayContent(binArray);
     return "$bv" + BitVectorOperations::boolArraytoString(binArray);
 }
 bool BitVectorConstantType::operator==(const BitVectorConstantType& num) const

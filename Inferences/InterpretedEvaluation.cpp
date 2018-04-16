@@ -87,7 +87,7 @@ Clause* InterpretedEvaluation::simplify(Clause* cl)
   CALL("InterpretedEvaluation::perform");
 
   TimeCounter tc(TC_INTERPRETED_EVALUATION);
-  //cout<<endl<<"a step above :"<< cl->toNiceString()<<endl;
+  
   // do not evaluate theory axioms
   if(cl->inference()->rule()==Inference::THEORY) return cl;
 

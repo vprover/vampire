@@ -615,8 +615,6 @@ unsigned SMTLIB2::declareSort(LExpr* sExpr)
 
       // try built-ins
       BuiltInSorts bs = getBuiltInSortFromString(id);
-      //cout<<"\n buil in sort from string id: "<< id;
-      //cout<<"\n buil in sort from string bs: "<< bs;
       
       switch (bs) {
         case BS_BOOL:
@@ -1562,13 +1560,8 @@ bool SMTLIB2::parseAsBitVectorDescriptor(const vstring& id)
     }
     return false;
 }
-/////// !!!!!!!!!!!!!!!!!!!!!!!
-////// !!!!!!!!!!!!!!!
-// for BitVec constants that look like: #b01001 or #xABC
 
-////// !!!!!!!!!!!!!!!
-/////// !!!!!!!!!!!!!!!!!!!!!!!
-
+/* for BitVec constants of the form  #b01001 or #xABC*/
 bool SMTLIB2::parseAsBitVectorConstant(const vstring& id)
 {
     CALL("SMTLIB2::parseAsBitVectorConstant");
@@ -1580,7 +1573,6 @@ bool SMTLIB2::parseAsBitVectorConstant(const vstring& id)
         unsigned bvContentSize = bvContent.length();
         if (hexSlashBin == "#x")
         {
-            //DArray<char> hexCharArray = BitVectorOperations::getHexArrayFromString(bvContent);
             bvContentSize = 4 * bvContentSize;
             unsigned resultSort = env.sorts->addBitVectorSort(bvContentSize);
 
@@ -2603,13 +2595,8 @@ SMTLIB2::ParseResult SMTLIB2::parseTermOrFormula(LExpr* body)
             }
 
             if (id == UNDERSCORE) {
-              //USER_ERROR("Indexed identifiers in general term position are not supported: "+exp->toString());
-                
-                // if the expression starts with an underscore, then it is an expression of type 
-                
-                    parseUnderScoredExpression(exp);
-                    continue;                 
-              // we only support indexed identifiers as functors applied to something (see just below)
+              parseUnderScoredExpression(exp);
+              continue;                 
             }
           } else {
             // this has to be an UNDERSCORE, otherwise we error later when we PO_PARSE_APPLICATION
