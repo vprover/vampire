@@ -719,7 +719,7 @@ TermList FOOLElimAlt::etaExpand(unsigned fun, OperatorType* type, bool ex, Stack
     unsigned sort = type->arg(count);
     sorts.push(sort);
     OperatorType* subType = toType(sort);
-    unsigned index = addDuBruijnIndex(Int::toString(i + subType->arity()) + "_" + Int::toString(sort), subType);
+    unsigned index = addDuBruijnIndex(Int::toString(i - exargs + subType->arity()) + "_" + Int::toString(sort), subType);
     if(!subType->arity()){
       args.push(TermList(Term::createConstant(index)));
     }else{

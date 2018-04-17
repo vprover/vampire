@@ -36,14 +36,14 @@ namespace Kernel
  * Bind @b v to @b t.
  * @pre @b v must previously be unbound
  */
-void Substitution::bind(int v,Term* t)
+void Substitution::bind(unsigned v,Term* t)
 {
-  CALL("Substitution::bind(int,Term*)");
+  CALL("Substitution::bind(unsigned,Term*)");
   TermList ts;
   ts.setTerm(t);
   bind(v,ts);
 }
-void Substitution::rebind(int v,Term* t)
+void Substitution::rebind(unsigned v,Term* t)
 {
   TermList ts;
   ts.setTerm(t);
@@ -54,14 +54,14 @@ void Substitution::rebind(int v,Term* t)
  * Bind @b v to @b t.
  * @pre @b v must previously be unbound
  */
-void Substitution::bind(int v,TermList t)
+void Substitution::bind(unsigned v,TermList t)
 {
   CALL("Substitution::bind(int,TermList)");
 
   ALWAYS(_map.insert(v, t));
 } // Substitution::bind
 
-void Substitution::rebind(int v,TermList t)
+void Substitution::rebind(unsigned v,TermList t)
 {
   _map.set(v,t);
 }
@@ -72,7 +72,7 @@ void Substitution::rebind(int v,TermList t)
  * @since 04/05/2006 Bellevue
  * @since 30/12/2007 Manchester
  */
-void Substitution::unbind(int v)
+void Substitution::unbind(unsigned v)
 {
   CALL("Substitution::unbind");
 
@@ -102,10 +102,10 @@ TermList Substitution::apply(unsigned var)
 }
 
 /**
- * If @c var is bound, assign bingind into @c res and return true.
+ * If @c var is bound, assign binding into @c res and return true.
  * Otherwise return false and do nothing.
  */
-bool Substitution::findBinding(int var, TermList& res) const
+bool Substitution::findBinding(unsigned var, TermList& res) const
 {
   CALL("Substitution::findBinding");
 

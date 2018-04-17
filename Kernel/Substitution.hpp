@@ -54,13 +54,13 @@ public:
 
   Substitution() {}
 
-  void bind(int v,Term* t);
-  void bind(int v,TermList t);
-  void rebind(int v, Term* t);
-  void rebind(int v, TermList t);
-  bool findBinding(int var, TermList& res) const;
+  void bind(unsigned v,Term* t);
+  void bind(unsigned v,TermList t);
+  void rebind(unsigned v, Term* t);
+  void rebind(unsigned v, TermList t);
+  bool findBinding(unsigned var, TermList& res) const;
   TermList apply(unsigned var);
-  void unbind(int var);
+  void unbind(unsigned var);
   void reset();
   bool isEmpty() const { return _map.isEmpty(); }
 #if VDEBUG

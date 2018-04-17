@@ -35,6 +35,7 @@
 #include "Lib/SharedSet.hpp"
 
 #include "Shell/Statistics.hpp"
+#include "Shell/FOOLElimAlt.hpp"
 
 #include "Indexing/TermSharing.hpp"
 
@@ -127,7 +128,12 @@ unsigned Skolem::addSkolemFunction(unsigned arity, unsigned* domainSorts,
     return addSkolemFunction(arity, domainSorts, rangeSort, varName.c_str(), minArgs);
   }
   else {
-    return addSkolemFunction(arity, domainSorts, rangeSort, 0, minArgs);
+    //Hack return to this!
+    if(minArgs > 0){
+      return addSkolemFunction(arity, domainSorts, rangeSort, "HO", minArgs);
+    }else{
+      return addSkolemFunction(arity, domainSorts, rangeSort);
+    }
   }
 }
 
@@ -210,7 +216,7 @@ void Skolem::preskolemise (Formula* f)
         }
       }
       while(vhit.hasNext()){
-        Term* varHeadTerm = vhit.next();
+        const Term* varHeadTerm = vhit.next();
         ASS(varHeadTerm->hasVarHead());
 
         unsigned v = env.signature->getVarName(varHeadTerm->functor());
@@ -424,11 +430,12 @@ Formula* Skolem::skolemise (Formula* f)
         unsigned uvar = vuIt.next();
         unsigned varsort = _varSorts.get(uvar, Sorts::SRT_DEFAULT);
         domainSorts.push(varsort);
-        if(env.sorts->isOfStructuredSort(varsort, Sorts::StructuredSort::FUNCTION)){
+        if(env.sorts->isOfStructuredSort(varsort, ss::FUNCTION)){
           Stack<TermList> dummy;
           unsigned functor;
+          //Is this correct?
           ALWAYS(_varFunctors.find(uvar, functor));
-          fnArgs.push(FOOLElimAlt::etaExpand(functor,FOOLElimAlt::toType(varsort),false,dummy))
+          fnArgs.push(FOOLElimAlt::etaExpand(functor,FOOLElimAlt::toType(varsort),false,dummy));
         } else {
           fnArgs.push(TermList(uvar, false));
         }
@@ -441,10 +448,10 @@ Formula* Skolem::skolemise (Formula* f)
         int v = vs.next();
         unsigned rangeSort=_varSorts.get(v, Sorts::SRT_DEFAULT);
         Term* skolemTerm;
-        unsigned fun
+        unsigned fun;
 
-        if(!env.sorts->isOfStructuredSort(rangeSort, Sorts::FUNCTION)){
-          if(env.signature->isHol()){
+        if(!env.sorts->isOfStructuredSort(rangeSort, ss::FUNCTION)){
+          if(env.signature->isHOL()){
             fun = addSkolemFunction(arity, domainSorts.begin(), rangeSort, v, arity);
           } else {
             fun = addSkolemFunction(arity, domainSorts.begin(), rangeSort, v);
@@ -453,13 +460,15 @@ Formula* Skolem::skolemise (Formula* f)
 
           env.statistics->skolemFunctions++;
           skolemTerm = Term::create(fun, arity, fnArgs.begin());
+          _subst.bind(v,skolemTerm);
+          localSubst.bind(v,skolemTerm);
         } else {
-          while(env.sorts->isOfStructuredSort(rangeSort, Sorts::FUNCTION)){
-          	domainSorts.push(env.sorts->getFunctionSort(rangeSort)->getDomain());
-          	rangeSort = env.sorts->getFunctionSort(rangeSort)->getRange();
+          while(env.sorts->isOfStructuredSort(rangeSort, ss::FUNCTION)){
+          	domainSorts.push(env.sorts->getFuncSort(rangeSort)->getDomainSort());
+          	rangeSort = env.sorts->getFuncSort(rangeSort)->getRangeSort();
           }
           fun = env.signature->addSkolemFunction(domainSorts.size(), 0, arity);
-          OperatorType* type = env.sorts->getFunctionType(domainSorts.size(), domainSorts, rangeSort);
+          OperatorType* type = OperatorType::getFunctionType(domainSorts.size(), domainSorts.begin(), rangeSort);
           
           Signature::Symbol* sym = env.signature->getFunction(fun);
           sym->setType(type);
@@ -469,9 +478,14 @@ Formula* Skolem::skolemise (Formula* f)
 
           TermList sklm = FOOLElimAlt::etaExpand(fun,type, true, fnArgs);
           skolemTerm = sklm.term();
+          unsigned functor;
+          //We dont know that the variabe appears in qarg. If it does than its functor
+          //will have been added to _varFunctors in preskolemise.
+          if(_varFunctors.find(v, functor)){
+            _subst.bind(functor,skolemTerm);
+            localSubst.bind(functor,skolemTerm);
+          }
         }
-        _subst.bind(v,skolemTerm);
-        localSubst.bind(v,skolemTerm);
 
         if (env.options->showSkolemisations()) {
           env.beginOutput();

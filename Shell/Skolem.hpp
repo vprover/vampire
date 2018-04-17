@@ -59,6 +59,9 @@ public:
   static unsigned addSkolemPredicate(unsigned arity, unsigned* domainSorts, unsigned var);
   static unsigned addSkolemPredicate(unsigned arity, unsigned* domainSorts, const char* suffix=0);
 private:
+  
+  typedef Sorts::StructuredSort ss;
+
   /** Initialise a Skolem object */
   Skolem () :  _beingSkolemised(0) {}
   FormulaUnit* skolemiseImpl(FormulaUnit*);

@@ -118,65 +118,58 @@ private:
 
 
 class VarHeadTermIterator
-: public IteratorCore<Term*>
+: public IteratorCore<const Term*>
 {
 public:
   DECL_ELEMENT_TYPE(Term*);
-  VarHeadTermIterator() : _stack(8), _next(0) , _first(true){}
-
-  VarHeadTermIterator(const Term* term) : _stack(8), _next(0), _first(true)
+  VarHeadTermIterator() : _stack(8){}
+  
+  VarHeadTermIterator(const Term* term) : _stack(8)
   {
     if(!term->shared() || !term->ground()) {
-      if(term->hasVarHead()){
-        _next = term; 
-      } 
-      _stack.push(term->args);
+      _stack.push(term);
     }
   }
 
-  VarHeadTermIterator(TermList t) : _stack(8), _next(0), _first(true)
+  VarHeadTermIterator(TermList t) : _stack(8)
   {
     if(!t.isVar()) {
       Term* term=t.term();
-      VarHeadTermIterator(term);
+      if(!term->shared() || !term->ground()) {
+        _stack.push(term);
+      }
     }
   }
 
   void reset(const Term* term)
   {
     _stack.reset();
-    _next = 0;
-    _first = true;
     if(!term->shared() || !term->ground()) {
-      if(term->hasVarHead()){
-        _next = term;
-      }
-      _stack.push(term->args);
+      _stack.push(term);
     }
   }
 
   void reset(TermList t)
   {
-    _stack.reset();
-    _next = 0;
-    _first = true;
     if(!t.isVar()) {
       Term* term=t.term();
-      reset(term);
+      if(!term->shared() || !term->ground()) {
+        _stack.push(term);
+      }
     }
   }
 
 
   bool hasNext();
 
-  Term* next()
+  const Term* next()
   {
-    return _next;
+    ASS(!_varHeadTermStack.isEmpty());
+    return _varHeadTermStack.pop();
   }
 private:
-  Stack<const TermList*> _stack;
-  Term* _next;
-  bool _first;
+  Stack<const Term*> _stack;
+  Stack<const Term*> _varHeadTermStack;
 };
 
 
