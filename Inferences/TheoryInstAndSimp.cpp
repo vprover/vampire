@@ -71,6 +71,28 @@ void TheoryInstAndSimp::attach(SaturationAlgorithm* salg)
   _splitter = salg->getSplitter();
 }
 
+bool TheoryInstAndSimp::isInterpretedSort(unsigned sort) {
+  return sort == 0; // TODO: find out which sorts are int etc.
+}
+
+
+bool TheoryInstAndSimp::isPure(Literal* lit) {
+  if (lit->isSpecial())
+    return false;
+  if (! lit->hasInterpretedConstants() )
+    return false;
+  
+  return false;
+}
+
+
+void TheoryInstAndSimp::selectTrivialLiterals(Clause* cl, Stack<Literal*>& trivialLits) {
+  Clause::Iterator it(*cl);
+  
+  
+  
+}
+  
 /**
  * 
  **/
@@ -91,8 +113,10 @@ void TheoryInstAndSimp::selectTheoryLiterals(Clause* cl, Stack<Literal*>& theory
   
 
   Clause::Iterator it(*cl);
+  std::cerr << "Thi: " << cl -> toNiceString() << std::endl;
   while(it.hasNext()){
     Literal* lit = it.next();
+    std::cerr << "Iterating: " << lit -> toString() << std::endl;
     bool interpreted = theory->isInterpretedPredicate(lit);
 
     // two var equalities are correctly identified as interpreted and should be added

@@ -925,10 +925,15 @@ bool SubstitutionTree::UnificationsIterator::enter(Node* n, BacktrackData& bd)
   return success;
 }
 
+/**
+ * TODO: explain properly what associate does
+ * called from enter(...)
+ */
 bool SubstitutionTree::UnificationsIterator::associate(TermList query, TermList node, BacktrackData& bd)
 {
   CALL("SubstitutionTree::UnificationsIterator::associate");
 
+  // check for syntactic (robinson) unifiability
   bool result = subst.unify(query,NORM_QUERY_BANK,node,NORM_RESULT_BANK);
 
 #if VDEBUG
@@ -937,6 +942,7 @@ bool SubstitutionTree::UnificationsIterator::associate(TermList query, TermList 
   }
 #endif
 
+  // if unification with abstraction enabled and no syntactic unifier exists
   if(useConstraints && !result){
     TermList queryTranslated = subst.apply(query,NORM_QUERY_BANK);
     TermList nodeTranslated = subst.apply(node,NORM_RESULT_BANK);

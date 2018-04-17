@@ -65,6 +65,9 @@ public:
 private:
 
   void selectTheoryLiterals(Clause* cl, Stack<Literal*>& theoryLits,bool forZ3);
+  void selectTrivialLiterals(Clause* cl, Stack<Literal*>& trivialLits);
+  bool isPure(Literal* lit);
+  bool isInterpretedSort(unsigned sort);
 
   Splitter* _splitter;
   //SAT2F0 _naming;
