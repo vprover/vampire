@@ -128,7 +128,7 @@ TermList sigmaRemoval(TermList sigmaTerm, unsigned expsrt){
         unsigned sort = sorts[count];
         unsigned var = (unsigned)fvi.next();
         if(env.sorts->isOfStructuredSort(sort, Sorts::StructuredSort::FUNCTION)){
-          //ASS_G(var, Term::VARIABLE_HEAD_LOWER_BOUND);
+          ASS_G(var, Term::VARIABLE_HEAD_LOWER_BOUND);
           Stack<TermList> dummy;
           args.push(FOOLElimAlt::etaExpand(var, FOOLElimAlt::toType(sort), false, dummy));
         }else{

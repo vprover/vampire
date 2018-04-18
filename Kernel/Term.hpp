@@ -89,7 +89,8 @@ public:
   TermList(unsigned var, bool special)
   {
     //ensuring that normal variables and variable heads are disjoint.
-    //ASS(var < Term::VARIABLE_HEAD_LOWER_BOUND);
+    //HACK - beware!
+    ASS(var < 0x7FFFFFFF/*Term::VARIABLE_HEAD_LOWER_BOUND*/);
     if (special) {
       makeSpecialVar(var);
     }
@@ -661,7 +662,7 @@ protected:
   friend class MatchTag;
   friend class Indexing::TermSharing;
   friend class Ordering;
-
+  
 public:
   /**
    * Iterator returning arguments of a term left-to-right.
