@@ -485,6 +485,8 @@ Formula* Skolem::skolemise (Formula* f)
             _subst.bind(functor,skolemTerm);
             localSubst.bind(functor,skolemTerm);
           }
+          //remove extra sorts added in while loop above
+          for(unsigned i = domainSorts.size(); i > arity; i--){ domainSorts.pop(); }
         }
 
         if (env.options->showSkolemisations()) {
