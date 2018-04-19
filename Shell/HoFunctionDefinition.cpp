@@ -320,10 +320,11 @@ Clause* HoFunctionDefinition::applyDefinitions(Clause* cl)
   while(usedDefs.isNonEmpty()) {
     Clause* defCl=usedDefs.pop()->defCl;
     UnitList::push(defCl, premises);
-    //Hack requires sorting at some point - AYB
-    if(inpType != Unit::CONJECTURE){
+    //The only type of clauses that can be definitions are those marked DEFINITION
+    //We are not interested in these in the remainder of proof search.
+    /*if(inpType != Unit::CONJECTURE){
       inpType = (Unit::InputType)	Int::max(inpType, defCl->inputType());
-    }
+    }*/
   }
   UnitList::push(cl, premises);
   Inference* inf = new InferenceMany(Inference::DEFINITION_UNFOLDING, premises);
@@ -433,7 +434,7 @@ Term* HoFunctionDefinition::applyDefinitions(Literal* lit, Stack<HoDef*>* usedDe
 
   if(env.options->showPreprocessing()){
     env.beginOutput();
-    env.out() << " Discovered definition(s) is literal. The unfolded beta-reduced version is "<<(*lit) << std::endl;
+    env.out() << " Discovered definition(s) in literal. The unfolded beta-reduced version is "<<(*newLit) << std::endl;
     env.endOutput();
   }  
   
@@ -511,12 +512,16 @@ int HoFunctionDefinition::isEtaExpandedFunctionSymbol(Term* term)
 {
   CALL("HoFunctionDefinition::isEtaExpandedFunctionSymbol"); 
   
+  cout << "checking " + term->toString() << endl;
+
+  if(term->hasVarHead()){ return -1; }
   unsigned func = term->functor();
   Signature::Symbol* sym = env.signature->getFunction(func);
   while(sym->lambda()){
     TermList ts = *(term->nthArgument(0));
     if(ts.isVar()){ return -1; }
     term = ts.term();
+    if(term->hasVarHead()){ return -1; }
     func = term->functor();
     sym = env.signature->getFunction(func);
   }
@@ -534,6 +539,7 @@ int HoFunctionDefinition::isEtaExpandedFunctionSymbol(Term* term)
     TermList ts = sti.next();
     if(ts.isVar()){ return -1; }
     term = ts.term();
+    if(term->hasVarHead()){ return -1; }
     sym = env.signature->getFunction(term->functor());
     if(!sym->duBruijnIndex() && !sym->lambda()){ return -1; }    
   }

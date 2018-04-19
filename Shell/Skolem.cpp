@@ -390,6 +390,7 @@ Formula* Skolem::skolemise (Formula* f)
 
   case EXISTS: 
     {
+      //cout << "currently skolemising " + f->toString() << endl;
       // create the skolems for the existentials here
       // and bind them in _subst
       unsigned arity = 0;
@@ -435,6 +436,7 @@ Formula* Skolem::skolemise (Formula* f)
           unsigned functor;
           //Is this correct?
           ALWAYS(_varFunctors.find(uvar, functor));
+          //cout << "dealing with variable X" << uvar << " and it has sort " + env.sorts->sortName(varsort) << endl; 
           fnArgs.push(FOOLElimAlt::etaExpand(functor,FOOLElimAlt::toType(varsort),false,dummy));
         } else {
           fnArgs.push(TermList(uvar, false));
@@ -464,8 +466,8 @@ Formula* Skolem::skolemise (Formula* f)
           localSubst.bind(v,skolemTerm);
         } else {
           while(env.sorts->isOfStructuredSort(rangeSort, ss::FUNCTION)){
-          	domainSorts.push(env.sorts->getFuncSort(rangeSort)->getDomainSort());
-          	rangeSort = env.sorts->getFuncSort(rangeSort)->getRangeSort();
+            domainSorts.push(env.sorts->getFuncSort(rangeSort)->getDomainSort());
+            rangeSort = env.sorts->getFuncSort(rangeSort)->getRangeSort();
           }
           fun = env.signature->addSkolemFunction(domainSorts.size(), 0, arity);
           OperatorType* type = OperatorType::getFunctionType(domainSorts.size(), domainSorts.begin(), rangeSort);
@@ -517,7 +519,6 @@ Formula* Skolem::skolemise (Formula* f)
         if (arity > 0) {
           def = new QuantifiedFormula(FORALL,var_args,nullptr,def);
         }
-
         Unit* defUnit = new FormulaUnit(def, new Inference(Inference::CHOICE_AXIOM), Unit::AXIOM);
         UnitList::push(defUnit,_skolimizingDefinitions);
       }

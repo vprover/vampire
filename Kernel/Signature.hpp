@@ -451,7 +451,11 @@ class Signature
   const unsigned functionArity(int number)
   {
     CALL("Signature::functionArity");
-    return _funs[number]->arity();
+    if((unsigned) number < Term::VARIABLE_HEAD_LOWER_BOUND){
+      return _funs[number]->arity();
+    } else {
+      return getVarType(number)->arity();
+    }
   }
 
   /** return the arity of a predicate with a given number */

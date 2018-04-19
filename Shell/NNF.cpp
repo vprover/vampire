@@ -84,9 +84,18 @@ FormulaUnit* NNF::nnf(FormulaUnit* unit)
     return unit;
   }
 
-  return new FormulaUnit(g,
+  FormulaUnit* res =  new FormulaUnit(g,
 			 new Inference1(Inference::NNF,unit),
 			 unit->inputType());
+
+  if (env.options->showPreprocessing()) {
+    env.beginOutput();
+    env.out() << "[PP] nnf in: " << unit->toString() << std::endl;
+    env.out() << "[PP] nnf out: " << res->toString() << std::endl;
+    env.endOutput();
+  }
+
+  return res;
 } // NNF::nnf
 
 

@@ -703,7 +703,7 @@ TermList FOOLElimAlt::etaExpand(unsigned fun, OperatorType* type, bool ex, Stack
   CALL("FOOLElimAlt::etaExpand");
 
   unsigned arity = type->arity();
-  static Stack<TermList> args(arity);
+  Stack<TermList> args(arity);
   
   unsigned exargs = 0;
   if(ex){ 

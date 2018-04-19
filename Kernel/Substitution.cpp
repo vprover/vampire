@@ -96,7 +96,12 @@ TermList Substitution::apply(unsigned var)
 {
   TermList res;
   if(!findBinding(var, res)) {
-    res = TermList(var,false);
+    if(var > Term::VARIABLE_HEAD_LOWER_BOUND){
+      //Dummy variable. Will never be used. 
+      res = TermList(0, false);
+    } else {
+      res = TermList(var,false);
+    }
   }
   return res;
 }

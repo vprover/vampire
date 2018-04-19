@@ -399,7 +399,7 @@ Term* SubstHelper::applyImpl(Term* trm, Applicator& applicator, bool noSharing)
     if(t->hasVarHead()){
       TermList tDest = applicator.apply(t->functor());
       //If these is no substitution for this higher-order variable,
-      //Substitution class will return a normal var.
+      //Substitution class will return a dummy variable X0.
       if(!tDest.isVar()){
         BetaReductionEngine bre = BetaReductionEngine();
         Term* newTerm = tDest.term();
