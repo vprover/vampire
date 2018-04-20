@@ -67,6 +67,12 @@ public:
   static TermList etaExpand(unsigned fun, OperatorType* type, bool ex, Stack<TermList> existingArgs);
   static TermList abstract(TermList term, unsigned termSort, Stack<unsigned> sorts);
 
+  //During preprocessing if a formula is ever copied, its variable heads
+  //require naming away from each other.
+  typedef NatMap DHSet<unsigned>;
+  static Formula* renameVarHeads(Formula* f, NatMap newFuncs);
+  static Term* renameVarHeads(Term* term, NatMap newFuncs);
+  static TermList renameVarHeads(TermList ts, NatMap newFuncs);
   
   UnitList* axioms(){
 	 return _axioms;

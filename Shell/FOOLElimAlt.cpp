@@ -734,3 +734,81 @@ TermList FOOLElimAlt::etaExpand(unsigned fun, OperatorType* type, bool ex, Stack
  
   return et;
 }
+
+Formula* FOOLElimAlt::renameVarHeads(Formula* f, NatMap newfuncs)
+{
+  CALL("FOOLElimAlt::renameVarHeads(Formula*)"); 
+    
+  switch (f->connective()) {
+  case LITERAL: 
+  {
+    Literal* l = f->literal();
+    ASS(l->isEquality());
+    Literal* m = new(l->arity()) Literal(*l);
+    if (lift(l->args(),m->args(), value, cutoff)) {
+      if(TermList::allShared(m->args())) {
+        return new AtomicFormula(env.sharing->insert(m));
+      } else {
+        return new AtomicFormula(m);
+      }
+    }
+    // literal not changed
+    m->destroy();
+    return f;
+  }
+
+  case AND: 
+  case OR: 
+  {
+    FormulaList* newArgs = lift(f->args(), newfuncs);
+    if (newArgs == f->args()) {
+      return f;
+    }
+    return new JunctionFormula(f->connective(), newArgs);
+  }
+
+  case IMP: 
+  case IFF: 
+  case XOR:
+  {
+    Formula* l = lift(f->left(), newfuncs);
+    Formula* r = lift(f->right(), newfuncs);
+    if (l == f->left() && r == f->right()) {
+      return f;
+    }
+    return new BinaryFormula(f->connective(), l, r);
+  }
+
+  case NOT:
+  {
+    Formula* arg = lift(f->uarg(), newfuncs);
+    if (f->uarg() == arg) {
+      return f;
+    }
+    return new NegatedFormula(arg);
+  }
+
+  case FORALL: 
+  case EXISTS:
+  {
+    Formula* arg = lift(f->qarg(), newfuncs);
+    if (f->qarg() == arg) {
+      return f;
+    }
+    return new QuantifiedFormula(f->connective(),f->vars(),0,arg); 
+  }
+
+  case TRUE:
+  case FALSE:
+    return f;
+
+  case BOOL_TERM:
+     return new BoolTermFormula(lift(f->getBooleanTerm(), newfuncs));
+
+  default:
+    ASSERTION_VIOLATION;
+
+  }
+  
+}
+
