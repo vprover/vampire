@@ -493,7 +493,7 @@ TermList FOOLElimAlt::lift(TermList ts, unsigned value, unsigned cutoff){
 }
 
 Term* FOOLElimAlt::lift(Term* term, unsigned value, unsigned cutoff){
-  CALL("FOOLElimAlt:::lift(Term*, unsigned, unsigned)");
+  CALL("FOOLElimAlt::lift(Term*, unsigned, unsigned)");
 
   if(term->isSpecial()){
     ASS_REP(term->functor() == Term::SF_FORMULA, term->toString());
@@ -549,7 +549,7 @@ Term* FOOLElimAlt::lift(Term* term, unsigned value, unsigned cutoff){
 }
 
 bool FOOLElimAlt::lift(TermList* from, TermList* to, unsigned value, unsigned cutoff){
-  CALL("lift(TermList*, TermList*, unsigned , unsigned)");
+  CALL("FOOLElimAlt::lift(TermList*, TermList*, unsigned , unsigned)");
 
   bool changed = false;
   while (!from->isEmpty()) {
@@ -735,7 +735,9 @@ TermList FOOLElimAlt::etaExpand(unsigned fun, OperatorType* type, bool ex, Stack
   return et;
 }
 
-Formula* FOOLElimAlt::renameVarHeads(Formula* f, NatMap newfuncs)
+
+
+Formula* FOOLElimAlt::renameVarHeads(Formula* f, NatSet newfuncs)
 {
   CALL("FOOLElimAlt::renameVarHeads(Formula*)"); 
     
@@ -745,7 +747,7 @@ Formula* FOOLElimAlt::renameVarHeads(Formula* f, NatMap newfuncs)
     Literal* l = f->literal();
     ASS(l->isEquality());
     Literal* m = new(l->arity()) Literal(*l);
-    if (lift(l->args(),m->args(), value, cutoff)) {
+    if (renameVarHeads(l->args(),m->args(), newfuncs)) {
       if(TermList::allShared(m->args())) {
         return new AtomicFormula(env.sharing->insert(m));
       } else {
@@ -760,7 +762,7 @@ Formula* FOOLElimAlt::renameVarHeads(Formula* f, NatMap newfuncs)
   case AND: 
   case OR: 
   {
-    FormulaList* newArgs = lift(f->args(), newfuncs);
+    FormulaList* newArgs = renameVarHeads(f->args(), newfuncs);
     if (newArgs == f->args()) {
       return f;
     }
@@ -771,8 +773,8 @@ Formula* FOOLElimAlt::renameVarHeads(Formula* f, NatMap newfuncs)
   case IFF: 
   case XOR:
   {
-    Formula* l = lift(f->left(), newfuncs);
-    Formula* r = lift(f->right(), newfuncs);
+    Formula* l = renameVarHeads(f->left(), newfuncs);
+    Formula* r = renameVarHeads(f->right(), newfuncs);
     if (l == f->left() && r == f->right()) {
       return f;
     }
@@ -781,7 +783,7 @@ Formula* FOOLElimAlt::renameVarHeads(Formula* f, NatMap newfuncs)
 
   case NOT:
   {
-    Formula* arg = lift(f->uarg(), newfuncs);
+    Formula* arg = renameVarHeads(f->uarg(), newfuncs);
     if (f->uarg() == arg) {
       return f;
     }
@@ -791,7 +793,7 @@ Formula* FOOLElimAlt::renameVarHeads(Formula* f, NatMap newfuncs)
   case FORALL: 
   case EXISTS:
   {
-    Formula* arg = lift(f->qarg(), newfuncs);
+    Formula* arg = renameVarHeads(f->qarg(), newfuncs);
     if (f->qarg() == arg) {
       return f;
     }
@@ -803,7 +805,7 @@ Formula* FOOLElimAlt::renameVarHeads(Formula* f, NatMap newfuncs)
     return f;
 
   case BOOL_TERM:
-     return new BoolTermFormula(lift(f->getBooleanTerm(), newfuncs));
+     return new BoolTermFormula(renameVarHeads(f->getBooleanTerm(), newfuncs));
 
   default:
     ASSERTION_VIOLATION;
@@ -812,3 +814,124 @@ Formula* FOOLElimAlt::renameVarHeads(Formula* f, NatMap newfuncs)
   
 }
 
+FormulaList* FOOLElimAlt::renameVarHeads (FormulaList* fs, NatSet newfuncs){
+  CALL ("FOOLElimAlt::renameVarHeads (FormulaList*)");
+
+  Stack<FormulaList*>* els;
+  Recycler::get(els);
+  els->reset();
+
+  FormulaList* el = fs;
+  while(el) {
+    els->push(el);
+    el = el->tail();
+  }
+
+  FormulaList* res = 0;
+
+  bool modified = false;
+  while(els->isNonEmpty()) {
+    FormulaList* el = els->pop();
+    Formula* f = el->head();
+    Formula* g = renameVarHeads(f, newfuncs);
+    if(!modified && f!=g) {
+      modified = true;
+    }
+    if(modified) {
+      FormulaList::push(g, res);
+    }
+    else {
+      res = el;
+    }
+  }
+
+  Recycler::release(els);
+  return res;
+}
+
+bool FOOLElimAlt::renameVarHeads(TermList* from, TermList* to, NatSet newfuncs){
+  CALL("FOOLElimAlt::renameVarHeads(TermList*, TermList*)");
+
+  bool changed = false;
+  while (!from->isEmpty()) {
+    if (from->isVar()) {
+      to->makeVar(from->var());
+    }
+    else { // from is not a variable
+      Term* f = from->term();
+      Term* t = renameVarHeads(f, newfuncs);
+      to->setTerm(t);
+      if (f != t) {
+        changed = true;
+      }
+    }
+    from = from->next();
+    ASS(! to->isEmpty());
+    to = to->next();
+  }
+  ASS(to->isEmpty());
+  return changed;
+}
+
+Term* FOOLElimAlt::renameVarHeads(Term* term, NatSet newfuncs){
+  CALL("FOOLElimAlt::renameVarHeads(Term*)");
+
+  if(term->isSpecial()){
+    ASS_REP(term->functor() == Term::SF_FORMULA, term->toString());
+    ASS_EQ(term->arity(),0);   
+    Term::SpecialTermData* sd = term->getSpecialData();
+    Formula* orig = renameVarHeads(sd->getFormula(), newfuncs);
+    if(orig==sd->getFormula()) {
+      return term;
+    }
+    return Term::createFormula(orig);
+  }
+  
+  bool headModified = false;
+  Term* newterm;
+  
+  if(term->hasVarHead()){
+    if(!newfuncs.find(term->functor())){
+      //Haven't come accross this this functor before. Rename.
+      OperatorType* type = env.signature->getVarType(term->functor());
+      unsigned var = env.signature->getVarName(term->functor());
+      unsigned fun = env.signature->addFreshHOVar(type, var);
+      ALWAYS(newfuncs.insert(fun));
+      unsigned arity = term->arity();
+      newterm = new(arity) Term;
+      newterm->makeSymbol(fun, arity);
+      for (int i = arity-1;i >= 0;i--) {
+        TermList ss = *(term->nthArgument(i));
+        *(newterm->nthArgument(i)) = ss;
+      }      
+      headModified = true;
+    }else{
+      newterm = Term::cloneNonShared(term);
+    }
+  }else{
+    newterm = Term::cloneNonShared(term);
+  }
+  
+  bool argsChanged = renameVarHeads(term->args(), newterm->args(), newfuncs);
+  if(argsChanged || headModified){
+    if(TermList::allShared(newterm->args())){
+      return env.sharing->insert(newterm);
+    } else {
+      return newterm;
+    }
+  }
+  newterm->destroy();
+  return term;
+  
+}
+
+
+TermList FOOLElimAlt::renameVarHeads(TermList ts, NatSet newfuncs){
+  CALL("FOOLElimAlt:::lift(TermList)");
+  
+  if(ts.isVar()){
+    return ts;
+  }
+  return TermList(renameVarHeads(ts.term(), newfuncs));
+  
+}

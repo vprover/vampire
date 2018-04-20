@@ -27,7 +27,9 @@
 #include "Kernel/Inference.hpp"
 #include "Kernel/FormulaUnit.hpp"
 #include "Kernel/Term.hpp"
+#include "Kernel/Signature.hpp"
 
+#include "Shell/FOOLElimAlt.hpp"
 #include "Shell/Options.hpp"
 
 #include "NNF.hpp"
@@ -479,23 +481,28 @@ Formula* NNF::nnf (Formula* f, bool polarity)
       Formula* r = f->right();
       Formula* g;
 
+      NatSet funcs;
+      Formula* renamedR = FOOLElimAlt::renameVarHeads(r, funcs);
+      Formula* renamedL = FOOLElimAlt::renameVarHeads(l, funcs);
+
       if (polarity ? c == IFF : c == XOR) {
 	// essentially l <=> r
 	// replace f by (l => r) & (r => l) and apply NNF to it
+
 	g = new JunctionFormula(AND,
 				new FormulaList(new BinaryFormula(IMP,l,r),
-						new FormulaList(new BinaryFormula(IMP,r,l))));
+						new FormulaList(new BinaryFormula(IMP,renamedR,renamedL))));
       }
       else {
 	// essentially l XOR r
 	// replace f by (l \/ r) & (~l \/ ~r) and apply NNF to it
-	g = new JunctionFormula(AND,
-				new FormulaList(new JunctionFormula(OR,
-								    new FormulaList(l,
-										    new FormulaList(r))),
-						new FormulaList(new JunctionFormula(OR,
-										    new FormulaList(new NegatedFormula(l),
-												    new FormulaList(new NegatedFormula(r)))))));
+  g = new JunctionFormula(AND,
+          new FormulaList(new JunctionFormula(OR,
+                      new FormulaList(l,
+                          new FormulaList(r))),
+              new FormulaList(new JunctionFormula(OR,
+                          new FormulaList(new NegatedFormula(renamedL),
+                              new FormulaList(new NegatedFormula(renamedR)))))));
       }
       return nnf(g,true);
     }

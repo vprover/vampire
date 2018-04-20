@@ -69,11 +69,13 @@ public:
 
   //During preprocessing if a formula is ever copied, its variable heads
   //require naming away from each other.
-  typedef NatMap DHSet<unsigned>;
-  static Formula* renameVarHeads(Formula* f, NatMap newFuncs);
-  static Term* renameVarHeads(Term* term, NatMap newFuncs);
-  static TermList renameVarHeads(TermList ts, NatMap newFuncs);
-  
+  typedef DHSet<unsigned> NatSet;
+  static Formula* renameVarHeads(Formula* f, NatSet newFuncs);
+  static Term* renameVarHeads(Term* term, NatSet newFuncs);
+  static TermList renameVarHeads(TermList ts, NatSet newFuncs);
+  static FormulaList* renameVarHeads(FormulaList* fs, NatSet newFuncs);
+  static bool renameVarHeads(TermList* fromtl, TermList* totl, NatSet newFuncs);
+ 
   UnitList* axioms(){
 	 return _axioms;
   }

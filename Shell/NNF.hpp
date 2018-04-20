@@ -46,6 +46,7 @@ public:
   static FormulaUnit* nnf(FormulaUnit* unit);
   static Formula* ennf(Formula*, bool polarity);
 private:
+  typedef DHSet<unsigned> NatSet;
   static Literal* ennf(Literal*, bool polarity);
   static TermList ennf(TermList, bool polarity);
   static FormulaList* ennf(FormulaList*, bool polarity);
