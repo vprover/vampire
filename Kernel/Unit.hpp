@@ -71,9 +71,7 @@ public:
     /** Used in parsing and preprocessing for extensionality clause tagging, should not appear in proof search */
     EXTENSIONALITY_AXIOM = 5,
     /** Used to seperate model definitions in model_check mode, should not appear in proof search */
-    MODEL_DEFINITION = 6,
-    /** Used as a quick fix for recognising HO defintions. Should not appear in proof search */
-    DEFINITION = 7
+    MODEL_DEFINITION = 6
   };
 
   static InputType getInputType(UnitList* units);

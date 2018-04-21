@@ -1305,11 +1305,7 @@ void TPTP::fof(bool fo)
     _lastInputType = Unit::EXTENSIONALITY_AXIOM;
   }
   else if (tp == "definition") {
-    if(_isThf){
-      _lastInputType = Unit::DEFINITION;
-    }else{
-      _lastInputType = Unit::AXIOM;
-    }
+    _lastInputType = Unit::AXIOM;
   }
   else if (tp == "conjecture") {
     _containsConjecture = true;
@@ -1455,11 +1451,7 @@ void TPTP::tff()
     _lastInputType = Unit::EXTENSIONALITY_AXIOM;
   }
   else if (tp == "definition") {
-    if(_isThf){
-      _lastInputType = Unit::DEFINITION;
-    }else{
-      _lastInputType = Unit::AXIOM;
-    }
+    _lastInputType = Unit::AXIOM;
   }
   else if (tp == "conjecture") {
     _containsConjecture = true;

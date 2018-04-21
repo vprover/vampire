@@ -136,18 +136,29 @@ bool HoFunctionDefinition::removeAllDefinitions(UnitList*& units)
   while(!_defs.isEmpty() && modified){
     modified = false;
     for(unsigned i = 0; i < _possiblyUnsafeFunctors.size(); i ++){
-      HoDef* def;
-      _defs.insert(_possiblyUnsafeFunctors[i], def);
-      if(isSafe(def)){
-        _defs.remove(_possiblyUnsafeFunctors[i]);
-        modified = true;
+      //Could possibly have been removed on a previous pass through
+      //the loop.
+      if(_defs.find(_possiblyUnsafeFunctors[i])){
+        HoDef* def = _defs.get(_possiblyUnsafeFunctors[i]);
+        if(isSafe(def)){
+          _defs.remove(_possiblyUnsafeFunctors[i]);
+          _safeDefs.push(def);
+          modified = true;
+        }
       }
     }
   }
   if(!_defs.isEmpty()){
-    USER_ERROR("Input problem contains circular definition");
+    Fn2DefMap::Iterator dit(_defs);
+    //Couldn't prove these units to be safe definitions.
+    //Add them back to unitlist.
+    while(dit.hasNext()) {
+      HoDef* def = dit.next();
+      UnitList::push(def->defCl, units);
+    }
+    _defs.reset();
+    //USER_ERROR("Input problem contains circular definition");
   }
-  
   //At this point the ith def in _safeDefs refers to definitions stored in 
   //_safeDefs[j] for some j < i.
   //Next each definition is rewritten and added to _defs.  
@@ -278,6 +289,12 @@ Term* HoFunctionDefinition::unfoldDefs(Term* term)
   return Term::create(term,argLst);
   
 }
+
+/* Returns true if all the function symbols
+ * occuring on the right-hand side of the definition
+ * have been defined in definitions already stored in
+ * _safeDefs
+ */
 
 bool HoFunctionDefinition::isSafe(HoDef* def)
 {
@@ -493,11 +510,18 @@ HoFunctionDefinition::defines (Term* l, Term* r)
 {
   CALL("HoFunctionDefinition::defines");
     
+  if (env.signature->isFoolConstantSymbol(true, l->functor()) ||
+      env.signature->isFoolConstantSymbol(true, r->functor()) ||
+      env.signature->isFoolConstantSymbol(false, l->functor())||
+      env.signature->isFoolConstantSymbol(false, r->functor())){
+        return 0;
+      }
+    
   int functor = isEtaExpandedFunctionSymbol(l);
     
   if(functor == -1){
     return 0;
-  }else{
+  } else {
     Stack<unsigned> rhsFunctors;
     if(isValidDefinens(r, functor, rhsFunctors)){
       HoDef* def = new HoDef(r, functor, rhsFunctors);
@@ -512,8 +536,6 @@ int HoFunctionDefinition::isEtaExpandedFunctionSymbol(Term* term)
 {
   CALL("HoFunctionDefinition::isEtaExpandedFunctionSymbol"); 
   
-  cout << "checking " + term->toString() << endl;
-
   if(term->hasVarHead()){ return -1; }
   unsigned func = term->functor();
   Signature::Symbol* sym = env.signature->getFunction(func);

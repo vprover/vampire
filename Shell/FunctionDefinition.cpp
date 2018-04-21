@@ -850,7 +850,9 @@ FunctionDefinition::defines (Term* lhs, Term* rhs)
   
   if (lhs->arity() == 0) {
     if(env.signature->isFoolConstantSymbol(true, lhs->functor()) ||
-       env.signature->isFoolConstantSymbol(false, lhs->functor())){
+       env.signature->isFoolConstantSymbol(false, lhs->functor())||
+       env.signature->isFoolConstantSymbol(true, rhs->functor()) ||
+       env.signature->isFoolConstantSymbol(false, rhs->functor())){
          return 0;
        }
     /*if (rhs->arity() != 0) { // c = f(...)

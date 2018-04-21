@@ -91,6 +91,7 @@ FormulaUnit* Skolem::skolemiseImpl (FormulaUnit* unit)
   _subst.reset();
   _varDeps.reset();
   _blockLookup.reset();
+  _varFunctors.reset();
 
   Formula* f = unit->formula();
   preskolemise(f);
@@ -220,6 +221,7 @@ void Skolem::preskolemise (Formula* f)
         ASS(varHeadTerm->hasVarHead());
 
         unsigned v = env.signature->getVarName(varHeadTerm->functor());
+        
         VarOccInfo varOccInfo;
         ALWAYS(_varOccs.find(v, varOccInfo));
 
@@ -425,7 +427,7 @@ Formula* Skolem::skolemise (Formula* f)
 
       // store updated, for the existentials below us to lookup as well
       depInfo.univ = dep;
-
+        
       VarSet::Iterator vuIt(*dep);
       while(vuIt.hasNext()) {
         unsigned uvar = vuIt.next();

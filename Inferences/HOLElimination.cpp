@@ -105,6 +105,8 @@ TermList sigmaRemoval(TermList sigmaTerm, unsigned expsrt){
   ASS(sigmaTerm.isTerm());
   ASS(env.signature->getFunction(sigmaTerm.term()->functor())->lambda());
   
+  cout << "performing sigma removal on ts " + sigmaTerm.toString() << endl;
+  
   Stack<unsigned> sorts;
   Formula::VarList* vars = sigmaTerm.freeVariables();
   Formula::VarList::Iterator fvi(vars);

@@ -701,7 +701,7 @@ bool FOOLElimAlt::indexGreater(vstring index, unsigned cutoff){
 
 TermList FOOLElimAlt::etaExpand(unsigned fun, OperatorType* type, bool ex, Stack<TermList> existingArgs){
   CALL("FOOLElimAlt::etaExpand");
-
+  
   unsigned arity = type->arity();
   Stack<TermList> args(arity);
   
@@ -745,7 +745,6 @@ Formula* FOOLElimAlt::renameVarHeads(Formula* f, NatSet newfuncs)
   case LITERAL: 
   {
     Literal* l = f->literal();
-    ASS(l->isEquality());
     Literal* m = new(l->arity()) Literal(*l);
     if (renameVarHeads(l->args(),m->args(), newfuncs)) {
       if(TermList::allShared(m->args())) {

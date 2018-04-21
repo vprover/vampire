@@ -122,7 +122,12 @@ TermList EqResWithDeletion::apply(unsigned var)
   if(_subst.find(var, res)) {
     return res;
   } else {
-    return TermList(var, false);
+    if(var > Term::VARIABLE_HEAD_LOWER_BOUND){
+      //Dummy variable. Will never be used. 
+      return TermList(0, false);
+    } else {
+      return TermList(var,false);
+    }
   }
 }
 
