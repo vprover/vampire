@@ -419,6 +419,7 @@ public:
     SMTCOMP,
     SPIDER,
     TCLAUSIFY,
+    TPREPROCESS,
     VAMPIRE
 };
 
