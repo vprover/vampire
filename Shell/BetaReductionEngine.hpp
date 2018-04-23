@@ -40,7 +40,7 @@ class BetaReductionEngine
 {
 public:
   BetaReductionEngine ();
-  Term* BetaReduce(Term* abstractedTerm, TermList redax);
+  TermList betaReduce(Term* abstractedTerm, TermList redax);
 private:
   static TermList lift(TermList tl, unsigned value, unsigned cutoff);
   bool areEqual(vstring indexName, unsigned replace);

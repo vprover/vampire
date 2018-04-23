@@ -433,6 +433,14 @@ public:
     _vars = v;
   } // setVars
 
+  /** Set the number of higher-order variables */
+  void setHoVars(unsigned v)
+  {
+    CALL("Term::setHoVars");
+    
+    _higherOrderVars = v;
+  } // setHoVars
+  
   /** Return the number of variables */
   unsigned vars() const
   {
@@ -443,6 +451,14 @@ public:
     return _vars;
   } // vars()
 
+  /** Return the number of higher-order variables */
+  unsigned hoVars() const
+  {
+    ASS(shared());
+
+    return _higherOrderVars;
+  } // hoVars()
+  
   /**
    * Return true iff the object is an equality between two variables.
    *
@@ -628,6 +644,8 @@ protected:
   unsigned _isTwoVarEquality : 1;
   /** Weight of the symbol */
   unsigned _weight;
+  /** Number of higher-order variable */
+  unsigned _higherOrderVars;
   union {
     /** If _isTwoVarEquality is false, this value is valid and contains
      * number of occurrences of variables */

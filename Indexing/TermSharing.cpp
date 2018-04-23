@@ -100,6 +100,7 @@ Term* TermSharing::insert(Term* t)
    if (s == t) {
     unsigned weight = 1;
     unsigned vars = 0;
+    unsigned hovars = 0;
     bool hasInterpretedConstants=t->arity()==0 &&
 	  env.signature->getFunction(t->functor())->interpreted();
     Color color = COLOR_TRANSPARENT;
@@ -115,7 +116,8 @@ Term* TermSharing::insert(Term* t)
               
           Term* r = tt->term();
     
-          vars += (r->vars() + r->hasVarHead()); 
+          vars += (r->vars() + r->hasVarHead());
+          hovars += (r->hoVars() + r->hasVarHead());          
           weight += r->weight();
           if (env.colorUsed) {
               color = static_cast<Color>(color | r->color());
@@ -126,8 +128,10 @@ Term* TermSharing::insert(Term* t)
       }
     }
     vars += t->hasVarHead();
+    hovars += t->hasVarHead();
     t->markShared();
     t->setVars(vars);
+    t->setHoVars(hovars);
     t->setWeight(weight);
     if (env.colorUsed) {
       Color fcolor = env.signature->getFunction(t->functor())->color();

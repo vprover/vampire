@@ -104,9 +104,7 @@ TermList sigmaRemoval(TermList sigmaTerm, unsigned expsrt){
   
   ASS(sigmaTerm.isTerm());
   ASS(env.signature->getFunction(sigmaTerm.term()->functor())->lambda());
-  
-  cout << "performing sigma removal on ts " + sigmaTerm.toString() << endl;
-  
+    
   Stack<unsigned> sorts;
   Formula::VarList* vars = sigmaTerm.freeVariables();
   Formula::VarList::Iterator fvi(vars);
@@ -119,7 +117,6 @@ TermList sigmaRemoval(TermList sigmaTerm, unsigned expsrt){
   fvi.reset(vars);  
   unsigned arity = (unsigned)sorts.size();
       
-  Term* st = sigmaTerm.term();
   do{ 
     unsigned srt2 = env.sorts->getFuncSort(expsrt)->getDomainSort();         
      
@@ -162,12 +159,13 @@ TermList sigmaRemoval(TermList sigmaTerm, unsigned expsrt){
     }    
           
     BetaReductionEngine bre = BetaReductionEngine();
-    st = bre.BetaReduce(st, skolemFunc); 
+    ASS(sigmaTerm.isTerm());
+    sigmaTerm = bre.betaReduce(sigmaTerm.term(), skolemFunc); 
       
     expsrt = env.sorts->getFuncSort(expsrt)->getRangeSort();
   }while(!(expsrt == Sorts::SRT_BOOL));   
-  
-  return TermList(st);
+    
+  return sigmaTerm;
 }
 
 TermList piRemoval(TermList piTerm, Clause* clause, unsigned expsrt){
@@ -176,9 +174,7 @@ TermList piRemoval(TermList piTerm, Clause* clause, unsigned expsrt){
   
   ASS(piTerm.isTerm());
   ASS(env.signature->getFunction(piTerm.term()->functor())->lambda());
-  
-  Term* piTm = piTerm.term();
-  
+    
   unsigned maxVar = clause->maxVar();
   do{ 
     maxVar++;
@@ -194,12 +190,13 @@ TermList piRemoval(TermList piTerm, Clause* clause, unsigned expsrt){
       newVar = TermList(maxVar, false);
     }
     BetaReductionEngine bre = BetaReductionEngine();
-    piTm = bre.BetaReduce(piTm, newVar); 
+    ASS(piTerm.isTerm());
+    piTerm = bre.betaReduce(piTerm.term(), newVar); 
    
     expsrt = env.sorts->getFuncSort(expsrt)->getRangeSort();
   }while(!(expsrt == Sorts::SRT_BOOL)); 
   
-  return TermList(piTm);
+  return piTerm;
 }
 
 /* returns 0 if t1 is a termList representing false, 1

@@ -75,7 +75,7 @@ FlatTerm::FlatTerm(size_t length)
 size_t FlatTerm::getEntryCount(Term* t)
 {
   //functionEntryCount entries per function and one per variable
-  return t->weight()*functionEntryCount-(functionEntryCount-1)*t->vars();
+  return t->weight()*functionEntryCount-(functionEntryCount-1)*(t->vars() - t->hoVars());
 }
 
 FlatTerm* FlatTerm::create(Term* t)

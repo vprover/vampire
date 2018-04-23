@@ -402,16 +402,25 @@ Term* SubstHelper::applyImpl(Term* trm, Applicator& applicator, bool noSharing)
       //Substitution class will return a dummy variable X0.
       if(!tDest.isVar()){
         BetaReductionEngine bre = BetaReductionEngine();
-        Term* newTerm = tDest.term();
+        TermList newTerm = tDest;
         for(unsigned j = 0; j < t->arity(); j++){
           TermList ts = *(t->nthArgument(j));
-          newTerm = bre.BetaReduce(newTerm, ts); 
+          ASS(newTerm.isTerm());
+          newTerm = bre.betaReduce(newTerm.term(), ts); 
         }
-        terms->push(newTerm);//push to terms the beta reduce version of substitution
         modified->setTop(true);
-        modified->push(false);
-        toDo->push(newTerm->args());
-        continue;        
+        if(newTerm.isTerm()){
+          Term* nt = newTerm.term();
+          terms->push(nt);//push to terms the beta reduce version of substitution
+          modified->push(false);
+          toDo->push(nt->args());
+          continue;        
+        } else {
+          //beta reduction returned variable.
+          TermList dest=applicator.apply(newTerm.var());
+          args->push(dest);
+          continue;
+        }
       }
     }
     if(t->shared() && t->ground()) {

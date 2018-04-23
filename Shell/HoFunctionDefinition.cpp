@@ -250,16 +250,24 @@ Term* HoFunctionDefinition::unfoldDefs(Term* term)
     HoDef* def;
     if(_defs.find(t->functor(), def)){
       BetaReductionEngine bre = BetaReductionEngine();
-      Term* newTerm = def->definiens;
+      TermList newTerm = TermList(def->definiens);
       for(unsigned j = 0; j < t->arity(); j++){
         TermList ts = *(t->nthArgument(j));
-        newTerm = bre.BetaReduce(newTerm, ts); 
-      }
-      terms.push(newTerm);//push to terms the beta reduce version of def->definiens
+        ASS(newTerm.isTerm());
+        newTerm = bre.betaReduce(newTerm.term(), ts); 
+      }        
       modified.setTop(true);
-      modified.push(false);
-      toDo.push(newTerm->args());
-      continue;
+      if(newTerm.isTerm()){
+        Term* nt = newTerm.term();
+        terms.push(nt);//push to terms the beta reduce version of def->definiens
+        modified.push(false);
+        toDo.push(nt->args());
+        continue;
+      } else {
+        //beta reduction returned variable.
+        args.push(newTerm);
+        continue;
+      }
     }
     terms.push(t);
     modified.push(false);
@@ -419,16 +427,24 @@ Term* HoFunctionDefinition::applyDefinitions(Literal* lit, Stack<HoDef*>* usedDe
     if(_defs.find(t->functor(), def)){
       usedDefs->push(def);
       BetaReductionEngine bre = BetaReductionEngine();
-      Term* newTerm = def->definiens;
+      TermList newTerm = TermList(def->definiens);
       for(unsigned j = 0; j < t->arity(); j++){
         TermList ts = *(t->nthArgument(j));
-        newTerm = bre.BetaReduce(newTerm, ts); 
-      }
-      terms.push(newTerm);//push to terms the beta reduce version of def->definiens
+        ASS(newTerm.isTerm());
+        newTerm = bre.betaReduce(newTerm.term(), ts); 
+      }   
       modified.setTop(true);
-      modified.push(false);
-      toDo.push(newTerm->args());
-      continue;
+      if(newTerm.isTerm()){
+        Term* nt = newTerm.term();
+        terms.push(nt);//push to terms the beta reduce version of def->definiens
+        modified.push(false);
+        toDo.push(nt->args());
+        continue;
+      } else {
+        //beta reduction returned variable.
+        args.push(newTerm);
+        continue;
+      }
     }
     terms.push(t);
     modified.push(false);

@@ -52,7 +52,7 @@ using namespace Shell;
  */ 
 BetaReductionEngine::BetaReductionEngine()  {} // BetaReductionEngine::BetaReductionEngine
 
-Term* BetaReductionEngine::BetaReduce(Term* abstractedTerm, TermList redax)
+TermList BetaReductionEngine::betaReduce(Term* abstractedTerm, TermList redax)
 {
   CALL("BetaReductionEngine::BetaReduce");
   
@@ -157,17 +157,15 @@ Term* BetaReductionEngine::BetaReduce(Term* abstractedTerm, TermList redax)
         if(t->arity()){
           //The is the case index(args list)
           //We assume that the redax is a lambda term
-          //with number of prefixing lambdas at lease as many
+          //with number of prefixing lambdas at least as many
           //as args in args list
-          Term* reducedTerm = liftedTerm.term();
           for(unsigned j = 0; j < t->arity(); j++){
             TermList ts = *(t->nthArgument(j));
-            reducedTerm = BetaReduce(reducedTerm, ts); 
+            ASS_REP(liftedTerm.isTerm(), liftedTerm.toString());
+            liftedTerm = betaReduce(liftedTerm.term(), ts); 
           }
-          args.push(TermList(reducedTerm));
-        }else{
-          args.push(liftedTerm);
         }
+        args.push(liftedTerm);
         modified.setTop(true);
         continue;
       }
@@ -199,7 +197,7 @@ Term* BetaReductionEngine::BetaReduce(Term* abstractedTerm, TermList redax)
   //arity 1. Currently, there is a problem if the abstractedTerm is of 
   //the form lam(X). In that case we want to return X, but X is not 
   //a term.   
-  return args.top().term();
+  return args.top();
   
 }
 
