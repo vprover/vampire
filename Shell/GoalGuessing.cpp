@@ -47,7 +47,8 @@ void GoalGuessing::apply(Problem& prb)
   CALL("GoalGuessing::apply(Problem&)");
 
   _lookInside = env.options->guessTheGoal() != Options::GoalGuess::POSITION;
-  _checkSymbols = env.options->guessTheGoal() == Options::GoalGuess::EXISTS_ALL;
+  _checkTop = env.options->guessTheGoal() == Options::GoalGuess::EXISTS_TOP || env.options->guessTheGoal() == Options::GoalGuess::EXISTS_ALL;
+  _checkSymbols = env.options->guessTheGoal() == Options::GoalGuess::EXISTS_SYM || env.options->guessTheGoal() == Options::GoalGuess::EXISTS_ALL;
   _checkPosition = env.options->guessTheGoal() == Options::GoalGuess::POSITION;
 
   if(env.options->guessTheGoal() == Options::GoalGuess::ALL){
@@ -114,11 +115,11 @@ bool GoalGuessing::apply(FormulaUnit* fu)
   bool looksLikeGoal = false;
 
   // existential quantification at the top-level is conjecture-like
-  if(fu->formula()->connective() == EXISTS){
+  if(_checkTop && fu->formula()->connective() == EXISTS){
     looksLikeGoal = true;
   }
   // negated universal quantification at the top level is conjecture-like
-  if(fu->formula()->connective() == NOT && fu->formula()->uarg()->connective() == FORALL){
+  if(_checkTop && fu->formula()->connective() == NOT && fu->formula()->uarg()->connective() == FORALL){
     looksLikeGoal = true;
   }
 

@@ -375,7 +375,7 @@ void Options::Options::init()
     _smtlibFletAsDefinition.setExperimental();
     _smtlibFletAsDefinition.tag(OptionTag::INPUT);
 
-    _guessTheGoal = ChoiceOptionValue<GoalGuess>("guess_the_goal","gtg",GoalGuess::OFF,{"off","all","exists_top","exists_all","position"});
+    _guessTheGoal = ChoiceOptionValue<GoalGuess>("guess_the_goal","gtg",GoalGuess::OFF,{"off","all","exists_top","exists_all","exists_sym","position"});
     _guessTheGoal.description = "Use heuristics to guess formulas that correspond to the goal. Doesn't "
                                 "really make sense if there is already a goal.";
     _lookup.insert(&_guessTheGoal);

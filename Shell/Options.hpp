@@ -734,7 +734,8 @@ public:
     ALL = 1,
     EXISTS_TOP = 2,
     EXISTS_ALL = 3,
-    POSITION = 4
+    EXISTS_SYM = 4,
+    POSITION = 5
   };
     
     //==========================================================

@@ -45,6 +45,7 @@ private:
   bool apply(Literal* lit);
 
   bool _lookInside;
+  bool _checkTop;
   bool _checkSymbols;
   bool _checkPosition;
 };
