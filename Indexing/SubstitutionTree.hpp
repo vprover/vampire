@@ -581,6 +581,8 @@ public:
     };
     typedef SkipList<Node*,NodePtrComparator> NodeSkipList;
     NodeSkipList _nodes;
+    /** List to store child nodes that contain terms with var heads */
+    NodeSkipList _hoVarNodes;
   };
 
 
@@ -647,6 +649,8 @@ public:
   int _nextVar;
   /** Array of nodes */
   ZIArray<Node*> _nodes;
+  /**  Array to terms that have variable heads */
+  ZIArray<Node*> _hoVarNodes;
   /** enable searching with constraints for this tree */
   bool _useC;
 

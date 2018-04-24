@@ -42,7 +42,7 @@ using namespace Lib;
 using namespace Kernel;
 
 TermSubstitutionTree::TermSubstitutionTree(bool useC)
-: SubstitutionTree(env.signature->functions(),useC)
+: SubstitutionTree(env.signature->functions(), env.signature->getNextFreshVarNum()-1, useC)
 {
 }
 
@@ -85,9 +85,17 @@ void TermSubstitutionTree::handleTerm(TermList t, Literal* lit, Clause* cls, boo
     unsigned rootNodeIndex=getRootNodeIndex(normTerm);
 
     if(insert) {
-      SubstitutionTree::insert(&_nodes[rootNodeIndex], svBindings, ld);
+      if(!normTerm->hasVarHead()){
+        SubstitutionTree::insert(&_nodes[rootNodeIndex], svBindings, ld);
+      } else {
+        SubstitutionTree::insert(&_hoVarNodes[rootNodeIndex], svBindings, ld);
+      }
     } else {
-      SubstitutionTree::remove(&_nodes[rootNodeIndex], svBindings, ld);
+      if(!normTerm->hasVarHead()){
+        SubstitutionTree::remove(&_nodes[rootNodeIndex], svBindings, ld);
+      } else {
+        SubstitutionTree::remove(&_hoVarNodes[rootNodeIndex], svBindings, ld);
+      }
     }
   }
 }
@@ -151,7 +159,12 @@ bool TermSubstitutionTree::generalizationExists(TermList t)
   }
   Term* trm=t.term();
   unsigned rootIndex=getRootNodeIndex(trm);
-  Node* root=_nodes[rootIndex];
+  Node* root;
+  if(!trm->hasVarHead){
+    root=_nodes[rootIndex];
+  } else {
+    root=_hoVarNodes[rootIndex];
+  }
   if(!root) {
     return false;
   }
@@ -221,8 +234,13 @@ TermQueryResultIterator TermSubstitutionTree::getResultIterator(Term* trm,
 
   TermQueryResultIterator result = TermQueryResultIterator::getEmpty();
   
-  Node* root = _nodes[getRootNodeIndex(trm)];
-
+  unsigned rootIndex=getRootNodeIndex(trm);
+  Node* root;
+  if(!trm->hasVarHead()){
+    root = _nodes[rootIndex];
+  } else {
+    root = _hoVarNodes[rootIndex];
+  }
   if(root){
     if(root->isLeaf()) {
       LDIterator ldit=static_cast<Leaf*>(root)->allChildren();

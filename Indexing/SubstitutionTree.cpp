@@ -60,8 +60,8 @@ using namespace Indexing;
  * Initialise the substitution tree.
  * @since 16/08/2008 flight Sydney-San Francisco
  */
-SubstitutionTree::SubstitutionTree(int nodes,bool useC)
-  : tag(false), _nextVar(0), _nodes(nodes), _useC(useC)
+SubstitutionTree::SubstitutionTree(int nodes, bool useC, int hoVarNodes = 0)
+  : tag(false), _nextVar(0), _nodes(nodes), _useC(useC), _hoVarNodes(hoVarNodes),
 {
   CALL("SubstitutionTree::SubstitutionTree");
 
@@ -83,6 +83,12 @@ SubstitutionTree::~SubstitutionTree()
   for (unsigned i = 0; i<_nodes.size(); i++) {
     if(_nodes[i]!=0) {
       delete _nodes[i];
+    }
+  }
+
+  for (unsigned i = 0; i<_hoVarNodes.size(); i++) {
+    if(_hoVarNodes[i]!=0) {
+      delete _hoVarNodes[i];
     }
   }
 } // SubstitutionTree::~SubstitutionTree
@@ -194,31 +200,31 @@ start:
       Node* child=inode->_nodes[0];
       bool removeProblematicNode=false;
       if(svBindings.find(boundVar)) {
-	TermList term=svBindings.get(boundVar);
-	bool wouldDescendIntoChild = inode->childByTop(term,false)!=0;
-	ASS_EQ(wouldDescendIntoChild, TermList::sameTop(term, child->term));
-	if(!wouldDescendIntoChild) {
-	  //if we'd have to perform all postponed splitting due to
-	  //node with a single child, we rather remove that node
-	  //from the tree and deal with the binding, it represented,
-	  //later.
-	  removeProblematicNode=true;
-	}
+        TermList term=svBindings.get(boundVar);
+        bool wouldDescendIntoChild = inode->childByTop(term,false)!=0;
+        ASS_EQ(wouldDescendIntoChild, TermList::sameTop(term, child->term));
+        if(!wouldDescendIntoChild) {
+          //if we'd have to perform all postponed splitting due to
+          //node with a single child, we rather remove that node
+          //from the tree and deal with the binding, it represented,
+          //later.
+          removeProblematicNode=true;
+        }
       } else if(!child->term.isTerm() || child->term.term()->shared()) {
-	//We can remove nodes binding to special variables undefined in our branch
-	//of the tree, as long as we're sure, that during split resolving we put these
-	//binding nodes below nodes that define spec. variables they bind.
-	removeProblematicNode=true;
+        //We can remove nodes binding to special variables undefined in our branch
+        //of the tree, as long as we're sure, that during split resolving we put these
+        //binding nodes below nodes that define spec. variables they bind.
+        removeProblematicNode=true;
       } else {
-	canPostponeSplits = false;
+        canPostponeSplits = false;
       }
       if(removeProblematicNode) {
-	unresolvedSplits.insert(UnresolvedSplitRecord(inode->childVar, child->term));
-	child->term=inode->term;
-	*pnode=child;
-	inode->makeEmpty();
-	delete inode;
-	goto start;
+        unresolvedSplits.insert(UnresolvedSplitRecord(inode->childVar, child->term));
+        child->term=inode->term;
+        *pnode=child;
+        inode->makeEmpty();
+        delete inode;
+        goto start;
       }
     }
   }
@@ -303,43 +309,43 @@ start:
       ASS(s->functor() == t->functor());
 
       if (s->shared()) {
-	// create a shallow copy of s
-	s = Term::cloneNonShared(s);
-	ss->setTerm(s);
+        // create a shallow copy of s
+        s = Term::cloneNonShared(s);
+        ss->setTerm(s);
       }
 
       ss = s->args();
       tt = t->args();
       if (ss->next()->isEmpty()) {
-	continue;
+        continue;
       }
       subterms.push(ss->next());
       subterms.push(tt->next());
     } else {
       if (! TermList::sameTop(*ss,*tt)) {
-	unsigned x;
-	if(!ss->isSpecialVar()) {
-	  x = _nextVar++;
+        unsigned x;
+        if(!ss->isSpecialVar()) {
+          x = _nextVar++;
 #if REORDERING
-	  unresolvedSplits.insert(UnresolvedSplitRecord(x,*ss));
-	  ss->makeSpecialVar(x);
+          unresolvedSplits.insert(UnresolvedSplitRecord(x,*ss));
+          ss->makeSpecialVar(x);
 #else
-	  Node::split(pnode,ss,x);
+          Node::split(pnode,ss,x);
 #endif
-	} else {
-	  x=ss->var();
-	}
-	svBindings.set(x,*tt);
+        } else {
+          x=ss->var();
+        }
+        svBindings.set(x,*tt);
       }
 
       if (subterms.isEmpty()) {
-	break;
+         break;
       }
       tt = subterms.pop();
       ss = subterms.pop();
       if (! ss->next()->isEmpty()) {
-	subterms.push(ss->next());
-	subterms.push(tt->next());
+        subterms.push(ss->next());
+        subterms.push(tt->next());
       }
     }
   }
@@ -407,27 +413,27 @@ void SubstitutionTree::remove(Node** pnode,BindingMap& svBindings,LeafData ld)
       TermList* tt = subterms.pop();
       ss = subterms.pop();
       if (tt->next()->isEmpty()) {
-	ASS(ss->next()->isEmpty());
+    ASS(ss->next()->isEmpty());
       }
       else {
-	subterms.push(ss->next());
-	subterms.push(tt->next());
+    subterms.push(ss->next());
+    subterms.push(tt->next());
       }
       if (*ss==*tt) {
-	continue;
+    continue;
       }
       if (ss->isVar()) {
-	ASS(ss->isSpecialVar());
-	svBindings.set(ss->var(),*tt);
-	continue;
+    ASS(ss->isSpecialVar());
+    svBindings.set(ss->var(),*tt);
+    continue;
       }
       ASS(! tt->isVar());
       ASS(ss->term()->functor() == tt->term()->functor());
       ss = ss->term()->args();
       if (! ss->isEmpty()) {
-	ASS(! tt->term()->args()->isEmpty());
-	subterms.push(ss);
-	subterms.push(tt->term()->args());
+    ASS(! tt->term()->args()->isEmpty());
+    subterms.push(ss);
+    subterms.push(tt->term()->args());
       }
     }
   }
@@ -500,27 +506,27 @@ SubstitutionTree::Leaf* SubstitutionTree::findLeaf(Node* root, BindingMap& svBin
       TermList* tt = subterms.pop();
       ss = subterms.pop();
       if (tt->next()->isEmpty()) {
-	ASS(ss->next()->isEmpty());
+    ASS(ss->next()->isEmpty());
       }
       else {
-	subterms.push(ss->next());
-	subterms.push(tt->next());
+    subterms.push(ss->next());
+    subterms.push(tt->next());
       }
       if (*ss==*tt) {
-	continue;
+    continue;
       }
       if (ss->isSpecialVar()) {
-	svBindings.set(ss->var(),*tt);
-	continue;
+    svBindings.set(ss->var(),*tt);
+    continue;
       }
       if(ss->isVar() || tt->isVar() || ss->term()->functor()!=tt->term()->functor()) {
-	return 0;
+    return 0;
       }
       ss = ss->term()->args();
       if (! ss->isEmpty()) {
-	ASS(! tt->term()->args()->isEmpty());
-	subterms.push(ss);
-	subterms.push(tt->term()->args());
+    ASS(! tt->term()->args()->isEmpty());
+    subterms.push(ss);
+    subterms.push(tt->term()->args());
       }
     }
   }
@@ -535,7 +541,7 @@ vstring getIndentStr(int n)
 {
   vstring res;
   for(int indCnt=0;indCnt<n;indCnt++) {
-	res+="  ";
+    res+="  ";
   }
   return res;
 }
@@ -556,30 +562,30 @@ vstring SubstitutionTree::nodeToString(Node* topNode)
     int indent=indentStack.pop();
 
     if(!node) {
-	continue;
+    continue;
     }
     if(!node->term.isEmpty()) {
       res+=getIndentStr(indent)+node->term.toString()+"  "+
-	  Int::toHexString(reinterpret_cast<size_t>(node))+"\n";
+      Int::toHexString(reinterpret_cast<size_t>(node))+"\n";
     }
 
     if(node->isLeaf()) {
-	Leaf* lnode = static_cast<Leaf*>(node);
-	LDIterator ldi(lnode->allChildren());
+    Leaf* lnode = static_cast<Leaf*>(node);
+    LDIterator ldi(lnode->allChildren());
 
-	while(ldi.hasNext()) {
-	  LeafData ld=ldi.next();
-	  res+=getIndentStr(indent) + "Lit: " + ld.literal->toString() + "\n";
-	  res+=ld.clause->toString()+"\n";
-	}
+    while(ldi.hasNext()) {
+      LeafData ld=ldi.next();
+      res+=getIndentStr(indent) + "Lit: " + ld.literal->toString() + "\n";
+      res+=ld.clause->toString()+"\n";
+    }
     } else {
-	IntermediateNode* inode = static_cast<IntermediateNode*>(node);
-	res+=getIndentStr(indent) + " S" + Int::toString(inode->childVar)+":\n";
-	NodeIterator noi(inode->allChildren());
-	while(noi.hasNext()) {
-	  stack.push(*noi.next());
-	  indentStack.push(indent+1);
-	}
+    IntermediateNode* inode = static_cast<IntermediateNode*>(node);
+    res+=getIndentStr(indent) + " S" + Int::toString(inode->childVar)+":\n";
+    NodeIterator noi(inode->allChildren());
+    while(noi.hasNext()) {
+      stack.push(*noi.next());
+      indentStack.push(indent+1);
+    }
     }
   }
   return res;
@@ -664,10 +670,10 @@ bool SubstitutionTree::LeafIterator::hasNext()
     }
     if(_nodeIterators.isEmpty()) {
       do {
-	if(_nextRootPtr==_afterLastRootPtr) {
-	  return false;
-	}
-	_curr=*(_nextRootPtr++);
+    if(_nextRootPtr==_afterLastRootPtr) {
+      return false;
+    }
+    _curr=*(_nextRootPtr++);
       } while(_curr==0);
     } else {
       _curr=*_nodeIterators.top().next();
@@ -681,7 +687,7 @@ bool SubstitutionTree::LeafIterator::hasNext()
 }
 
 SubstitutionTree::UnificationsIterator::UnificationsIterator(SubstitutionTree* parent,
-	Node* root, Term* query, bool retrieveSubstitution, bool reversed, bool withoutTop, bool useC)
+    Node* root, Term* query, bool retrieveSubstitution, bool reversed, bool withoutTop, bool useC)
 : tag(parent->tag), 
 svStack(32), literalRetrieval(query->isLiteral()),
   retrieveSubstitution(retrieveSubstitution), inLeaf(false),
@@ -818,7 +824,7 @@ SubstitutionTree::QueryResult SubstitutionTree::UnificationsIterator::next()
     subst.denormalize(queryNormalizer,NORM_QUERY_BANK,QUERY_BANK);
 
     return QueryResult(make_pair(&ld, ResultSubstitution::fromSubstitution(
-	    &subst, QUERY_BANK, RESULT_BANK)),
+        &subst, QUERY_BANK, RESULT_BANK)),
             UnificationConstraintStackSP(new Stack<UnificationConstraint>(constraints))); 
   } else {
     return QueryResult(make_pair(&ld, ResultSubstitutionSP()),UnificationConstraintStackSP());
@@ -1006,8 +1012,8 @@ SubstitutionTree::NodeIterator
     if(match) {
       return pvi( 
         getConcatenatedIterator(
-	   getSingletonIterator(match),
-	   n->variableChildren() 
+       getSingletonIterator(match),
+       n->variableChildren() 
        ));
     } else {
       return n->variableChildren();
@@ -1035,7 +1041,7 @@ SubstitutionTree::NodeIterator
     Node** match=n->childByTop(qt, false);
     if(match) {
       return pvi( getConcatenatedIterator(getSingletonIterator(match),
-	      n->variableChildren()) );
+          n->variableChildren()) );
     } else {
       return n->variableChildren();
     }

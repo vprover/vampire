@@ -91,7 +91,11 @@ private:
   inline
   unsigned getRootNodeIndex(Term* t)
   {
-    return t->functor();
+    if(!t->hasVarHead()){
+      return t->functor();
+    } else {
+      return t->functor() - Term::VARIABLE_HEAD_LOWER_BOUND;
+    } 
   }
 
 
