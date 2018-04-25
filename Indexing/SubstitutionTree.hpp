@@ -84,7 +84,7 @@ public:
   CLASS_NAME(SubstitutionTree);
   USE_ALLOCATOR(SubstitutionTree);
 
-  SubstitutionTree(int nodes,bool useC=false);
+  SubstitutionTree(int nodes,bool useC=false, int hoVarNodes = 0);
   ~SubstitutionTree();
 
   // Tags are used as a debug tool to turn debugging on for a particular instance

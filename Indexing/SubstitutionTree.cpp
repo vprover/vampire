@@ -60,8 +60,8 @@ using namespace Indexing;
  * Initialise the substitution tree.
  * @since 16/08/2008 flight Sydney-San Francisco
  */
-SubstitutionTree::SubstitutionTree(int nodes, bool useC, int hoVarNodes = 0)
-  : tag(false), _nextVar(0), _nodes(nodes), _useC(useC), _hoVarNodes(hoVarNodes),
+SubstitutionTree::SubstitutionTree(int nodes, bool useC, int hoVarNodes)
+  : tag(false), _nextVar(0), _nodes(nodes), _hoVarNodes(hoVarNodes), _useC(useC) 
 {
   CALL("SubstitutionTree::SubstitutionTree");
 
@@ -597,7 +597,7 @@ vstring SubstitutionTree::toString() const
 
   vstring res;
 
-  for(unsigned tli=0;tli<_nodes.size();tli++) {
+  /*for(unsigned tli=0;tli<_nodes.size();tli++) {
     res+=Int::toString(tli);
     res+=":\n";
 
@@ -605,6 +605,16 @@ vstring SubstitutionTree::toString() const
     Stack<Node*> stack(10);
 
     res+=nodeToString(_nodes[tli]);
+  }*/
+  res += "\n\n\n\n VARIABLE HEAD TREE";
+  for(unsigned tli=0;tli<_hoVarNodes.size();tli++) {
+    res+=Int::toString(tli);
+    res+=":\n";
+
+    Stack<int> indentStack(10);
+    Stack<Node*> stack(10);
+
+    res+=nodeToString(_hoVarNodes[tli]);
   }
   return res;
 }
