@@ -88,7 +88,7 @@ void TermSubstitutionTree::handleTerm(TermList t, Literal* lit, Clause* cls, boo
       if(!normTerm->hasVarHead()){
         SubstitutionTree::insert(&_nodes[rootNodeIndex], svBindings, ld);
       } else {
-        cout << "The term is " + normTerm->toString() + " and the root node index is " << rootNodeIndex << endl;
+        //cout << "The term is " + normTerm->toString() + " and the root node index is " << rootNodeIndex << endl;
         SubstitutionTree::insert(&_hoVarNodes[rootNodeIndex], svBindings, ld);
         cout << SubstitutionTree::toString() << endl;
       }

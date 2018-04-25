@@ -86,7 +86,7 @@ bool RobSubstitution::unifyArgs(Term* t1,int index1, Term* t2, int index2)
 }
 
 bool RobSubstitution::match(TermList base,int baseIndex,
-	TermList instance, int instanceIndex)
+  TermList instance, int instanceIndex)
 {
   CALL("RobSubstitution::match(TermList...)");
   return match(TermSpec(base,baseIndex), TermSpec(instance,instanceIndex));
@@ -97,7 +97,7 @@ bool RobSubstitution::match(TermList base,int baseIndex,
  * @b t1 and @b t2 can be either terms or literals.
  */
 bool RobSubstitution::matchArgs(Term* base,int baseIndex,
-	Term* instance, int instanceIndex)
+  Term* instance, int instanceIndex)
 {
   CALL("RobSubstitution::match(Literal*...)");
   ASS_EQ(base->functor(),instance->functor());
@@ -147,7 +147,7 @@ bool RobSubstitution::isUnbound(VarSpec v) const
 
 /**
  * If special variable @b specialVar is bound to a proper term,
- * return a term, thjat has the same top functor. Otherwise
+ * return a term, that has the same top functor. Otherwise
  * return an arbitrary variable.
  */
 TermList RobSubstitution::getSpecialVarTop(unsigned specialVar) const
@@ -274,7 +274,7 @@ void RobSubstitution::unifyUnbound(VarSpec v, TermSpec ts)
   if(ts.isVar()) {
     VarSpec v2=root(getVarSpec(ts));
     if(v!=v2) {
-    	makeEqual(v, v2, deref(v2));
+      makeEqual(v, v2, deref(v2));
     }
   } else {
     bind(v,ts);
@@ -310,14 +310,14 @@ bool RobSubstitution::occurs(VarSpec vs, TermSpec ts)
     while(vit.hasNext()) {
       VarSpec tvar=root(getVarSpec(vit.next(), ts.index));
       if(tvar==vs) {
-	return true;
+        return true;
       }
       if(!encountered.find(tvar)) {
-	TermSpec dtvar=derefBound(TermSpec(tvar));
-	if(!dtvar.isVar()) {
-	  encountered.insert(tvar);
-	  toDo.push(dtvar);
-	}
+        TermSpec dtvar=derefBound(TermSpec(tvar));
+        if(!dtvar.isVar()) {
+          encountered.insert(tvar);
+          toDo.push(dtvar);
+        }
       }
     }
 
@@ -356,15 +356,15 @@ bool RobSubstitution::unify(TermSpec t1, TermSpec t2)
     } else if(dt1.isVar()) {
       VarSpec v1=getVarSpec(dt1);
       if(occurs(v1, dt2)) {
-	mismatch=true;
-	break;
+  mismatch=true;
+  break;
       }
       bind(v1,dt2);
     } else if(dt2.isVar()) {
       VarSpec v2=getVarSpec(dt2);
       if(occurs(v2, dt1)) {
-	mismatch=true;
-	break;
+  mismatch=true;
+  break;
       }
       bind(v2,dt1);
     } else {
@@ -394,12 +394,12 @@ bool RobSubstitution::unify(TermSpec t1, TermSpec t2)
             if(ss->isVar()||tt->isVar()) {
               TTPair itm(tsss,tstt);
               if((itm.first.isVar() && isUnbound(getVarSpec(itm.first))) ||
-        	  (itm.second.isVar() && isUnbound(getVarSpec(itm.second))) ) {
+            (itm.second.isVar() && isUnbound(getVarSpec(itm.second))) ) {
                 toDo.push(itm);
               } else if(!encountered.find(itm)) {
-        	  toDo.push(itm);
-        	  encountered.insert(itm);
-        	}
+            toDo.push(itm);
+            encountered.insert(itm);
+          }
             } else {
               mismatch=true;
               break;
@@ -488,44 +488,44 @@ bool RobSubstitution::match(TermSpec base, TermSpec instance)
       it = t->args();
     } else {
       if (! TermList::sameTopFunctor(bts.term,its.term)) {
-	if(bts.term.isSpecialVar()) {
-	  VarSpec bvs(bts.term.var(), SPECIAL_INDEX);
-	  if(_bank.find(bvs, binding1)) {
-	    ASS_EQ(binding1.index, base.index);
-	    bt=&binding1.term;
-	    continue;
-	  } else {
-	    bind(bvs,its);
-	  }
-	} else if(its.term.isSpecialVar()) {
-	  VarSpec ivs(its.term.var(), SPECIAL_INDEX);
-	  if(_bank.find(ivs, binding2)) {
-	    ASS_EQ(binding2.index, instance.index);
-	    it=&binding2.term;
-	    continue;
-	  } else {
-	    bind(ivs,bts);
-	  }
-	} else if(bts.term.isOrdinaryVar()) {
-	  VarSpec bvs(bts.term.var(), bts.index);
-	  if(_bank.find(bvs, binding1)) {
-	    ASS_EQ(binding1.index, instance.index);
-	    if(!TermList::equals(binding1.term, its.term))
-	    {
-	      mismatch=true;
-	      break;
-	    }
-	  } else {
-	    bind(bvs,its);
-	  }
-	} else {
-	  mismatch=true;
-	  break;
-	}
+  if(bts.term.isSpecialVar()) {
+    VarSpec bvs(bts.term.var(), SPECIAL_INDEX);
+    if(_bank.find(bvs, binding1)) {
+      ASS_EQ(binding1.index, base.index);
+      bt=&binding1.term;
+      continue;
+    } else {
+      bind(bvs,its);
+    }
+  } else if(its.term.isSpecialVar()) {
+    VarSpec ivs(its.term.var(), SPECIAL_INDEX);
+    if(_bank.find(ivs, binding2)) {
+      ASS_EQ(binding2.index, instance.index);
+      it=&binding2.term;
+      continue;
+    } else {
+      bind(ivs,bts);
+    }
+  } else if(bts.term.isOrdinaryVar()) {
+    VarSpec bvs(bts.term.var(), bts.index);
+    if(_bank.find(bvs, binding1)) {
+      ASS_EQ(binding1.index, instance.index);
+      if(!TermList::equals(binding1.term, its.term))
+      {
+        mismatch=true;
+        break;
+      }
+    } else {
+      bind(bvs,its);
+    }
+  } else {
+    mismatch=true;
+    break;
+  }
       }
 
       if (subterms.isEmpty()) {
-	break;
+  break;
       }
       bt = subterms.pop();
       it = subterms.pop();
@@ -606,15 +606,15 @@ TermList RobSubstitution::apply(TermList trm, int index) const
 
       VarSpec ref=termRefVars.pop();
       if(ref!=nilVS) {
-	ALWAYS(known.insert(ref,constructed));
+  ALWAYS(known.insert(ref,constructed));
       }
       continue;
     } else {
       //if tt==&trm, we're dealing with the top
       //term, for which the next() is undefined
       if(tt!=&trm) {
-	toDo.push(tt->next());
-	toDoIndex.push(index);
+  toDo.push(tt->next());
+  toDoIndex.push(index);
       }
     }
 
@@ -626,15 +626,15 @@ TermList RobSubstitution::apply(TermList trm, int index) const
 
       TermList found;
       if(known.find(vs, found)) {
-	args.push(found);
-	continue;
+  args.push(found);
+  continue;
       }
 
       ts=deref(vs);
       if(ts.term.isVar()) {
-	ASS(ts.index==UNBOUND_INDEX);
-	args.push(ts.term);
-	continue;
+  ASS(ts.index==UNBOUND_INDEX);
+  args.push(ts.term);
+  continue;
       }
     } else {
       vs=nilVS;
@@ -687,22 +687,22 @@ size_t RobSubstitution::getApplicationResultWeight(TermList trm, int index) cons
       size_t* szArr=&argSizes.top() - (orig->arity()-1);
       size_t sz = 1; //1 for the function symbol
       for(unsigned i=0; i<arity; i++) {
-	sz += szArr[i];
+  sz += szArr[i];
       }
       argSizes.truncate(argSizes.length() - arity);
       argSizes.push(sz);
 
       VarSpec ref=termRefVars.pop();
       if(ref!=nilVS) {
-	ALWAYS(known.insert(ref,sz));
+  ALWAYS(known.insert(ref,sz));
       }
       continue;
     } else {
       //if tt==&trm, we're dealing with the top
       //term, for which the next() is undefined
       if(tt!=&trm) {
-	toDo.push(tt->next());
-	toDoIndex.push(index);
+  toDo.push(tt->next());
+  toDoIndex.push(index);
       }
     }
 
@@ -714,15 +714,15 @@ size_t RobSubstitution::getApplicationResultWeight(TermList trm, int index) cons
 
       size_t found;
       if(known.find(vs, found)) {
-	argSizes.push(found);
-	continue;
+  argSizes.push(found);
+  continue;
       }
 
       ts=deref(vs);
       if(ts.term.isVar()) {
-	ASS(ts.index==UNBOUND_INDEX);
-	argSizes.push(1);
-	continue;
+  ASS(ts.index==UNBOUND_INDEX);
+  argSizes.push(1);
+  continue;
       }
     } else {
       vs=nilVS;
@@ -770,10 +770,10 @@ size_t RobSubstitution::getApplicationResultWeight(Literal* lit, int index) cons
  * RobSubstitution::AssocIterator.
  */
 SubstIterator RobSubstitution::matches(Literal* base, int baseIndex,
-	Literal* instance, int instanceIndex, bool complementary)
+  Literal* instance, int instanceIndex, bool complementary)
 {
   return getAssocIterator<MatchingFn>(this, base, baseIndex,
-	  instance, instanceIndex, complementary);
+    instance, instanceIndex, complementary);
 }
 
 /**
@@ -783,15 +783,15 @@ SubstIterator RobSubstitution::matches(Literal* base, int baseIndex,
  * RobSubstitution::AssocIterator.
  */
 SubstIterator RobSubstitution::unifiers(Literal* l1, int l1Index,
-	Literal* l2, int l2Index, bool complementary)
+  Literal* l2, int l2Index, bool complementary)
 {
   return getAssocIterator<UnificationFn>(this, l1, l1Index,
-	  l2, l2Index, complementary);
+    l2, l2Index, complementary);
 }
 
 template<class Fn>
 SubstIterator RobSubstitution::getAssocIterator(RobSubstitution* subst,
-	  Literal* l1, int l1Index, Literal* l2, int l2Index, bool complementary)
+    Literal* l1, int l1Index, Literal* l2, int l2Index, bool complementary)
 {
   CALL("RobSubstitution::getAssocIterator");
 
@@ -802,10 +802,10 @@ SubstIterator RobSubstitution::getAssocIterator(RobSubstitution* subst,
 
   if( !l1->commutative() ) {
     return pvi( getContextualIterator(getSingletonIterator(subst),
-	    AssocContext<Fn>(l1, l1Index, l2, l2Index)) );
+      AssocContext<Fn>(l1, l1Index, l2, l2Index)) );
   } else {
     return vi(
-	    new AssocIterator<Fn>(subst, l1, l1Index, l2, l2Index));
+      new AssocIterator<Fn>(subst, l1, l1Index, l2, l2Index));
   }
 }
 
@@ -859,9 +859,9 @@ private:
  * Template parameter class Fn has to contain following
  * methods:
  * bool associate(RobSubstitution*, Literal* l1, int l1Index,
- * 	Literal* l2, int l2Index, bool complementary)
+ *  Literal* l2, int l2Index, bool complementary)
  * bool associate(RobSubstitution*, TermList t1, int t1Index,
- * 	TermList t2, int t2Index)
+ *  TermList t2, int t2Index)
  * There is supposed to be one Fn class for unification and
  * one for matching.
  *
@@ -873,7 +873,7 @@ class RobSubstitution::AssocIterator
 {
 public:
   AssocIterator(RobSubstitution* subst, Literal* l1, int l1Index,
-	  Literal* l2, int l2Index)
+    Literal* l2, int l2Index)
   : _subst(subst), _l1(l1), _l1i(l1Index), _l2(l2),
   _l2i(l2Index), _state(FIRST), _used(true)
   {
@@ -886,7 +886,7 @@ public:
     CALL("RobSubstitution::AssocIterator::~AssocIterator");
 
     if(_state!=FINISHED && _state!=FIRST) {
-	backtrack();
+  backtrack();
     }
     ASS(_bdata.isEmpty());
   }
@@ -910,8 +910,8 @@ public:
     switch(_state) {
     case NEXT_STRAIGHT:
       if(Fn::associate(_subst, _l1, _l1i, _l2, _l2i)) {
-	_state=NEXT_REVERSED;
-	break;
+  _state=NEXT_REVERSED;
+  break;
       }
       //no break here intentionally
     case NEXT_REVERSED:
@@ -921,12 +921,12 @@ public:
       TermList t21=*_l2->nthArgument(0);
       TermList t22=*_l2->nthArgument(1);
       if(Fn::associate(_subst, t11, _l1i, t22, _l2i)) {
-	if(Fn::associate(_subst, t12, _l1i, t21, _l2i)) {
-	  _state=NEXT_CLEANUP;
-	  break;
-	}
-	//the first successful association will be undone
-	//in case NEXT_CLEANUP
+  if(Fn::associate(_subst, t12, _l1i, t21, _l2i)) {
+    _state=NEXT_CLEANUP;
+    break;
+  }
+  //the first successful association will be undone
+  //in case NEXT_CLEANUP
       }
     }
     //no break here intentionally
@@ -983,20 +983,20 @@ private:
 };
 struct RobSubstitution::MatchingFn {
   static bool associate(RobSubstitution* subst, Literal* l1, int l1Index,
-	  Literal* l2, int l2Index)
+    Literal* l2, int l2Index)
   { return subst->matchArgs(l1,l1Index,l2,l2Index); }
 
   static bool associate(RobSubstitution* subst, TermList t1, int t1Index,
-	  TermList t2, int t2Index)
+    TermList t2, int t2Index)
   { return subst->match(t1,t1Index,t2,t2Index); }
 };
 struct RobSubstitution::UnificationFn {
   static bool associate(RobSubstitution* subst, Literal* l1, int l1Index,
-	  Literal* l2, int l2Index)
+    Literal* l2, int l2Index)
   { return subst->unifyArgs(l1,l1Index,l2,l2Index); }
 
   static bool associate(RobSubstitution* subst, TermList t1, int t1Index,
-	  TermList t2, int t2Index)
+    TermList t2, int t2Index)
   { return subst->unify(t1,t1Index,t2,t2Index); }
 };
 

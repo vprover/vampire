@@ -642,7 +642,12 @@ public:
 
   Leaf* findLeaf(Node* root, BindingMap& svBindings);
 
-  void insert(Node** node,BindingMap& binding,LeafData ld);
+  enum Mode{
+    NORMAL_TERM,
+    VAR_HEAD_TERM
+  };
+
+  void insert(Node** node,BindingMap& binding,LeafData ld, Mode mode = NORMAL_TERM);
   void remove(Node** node,BindingMap& binding,LeafData ld);
 
   /** Number of the next variable */

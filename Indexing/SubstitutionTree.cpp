@@ -155,7 +155,7 @@ struct BindingComparator
  * top symbol of the term/literal being inserted, and
  * @b bh contains its arguments.
  */
-void SubstitutionTree::insert(Node** pnode,BindingMap& svBindings,LeafData ld)
+void SubstitutionTree::insert(Node** pnode,BindingMap& svBindings,LeafData ld, Mode mode)
 {
   CALL("SubstitutionTree::insert/3");
   ASS_EQ(_iteratorCnt,0);
@@ -570,22 +570,22 @@ vstring SubstitutionTree::nodeToString(Node* topNode)
     }
 
     if(node->isLeaf()) {
-    Leaf* lnode = static_cast<Leaf*>(node);
-    LDIterator ldi(lnode->allChildren());
+      Leaf* lnode = static_cast<Leaf*>(node);
+      LDIterator ldi(lnode->allChildren());
 
-    while(ldi.hasNext()) {
-      LeafData ld=ldi.next();
-      res+=getIndentStr(indent) + "Lit: " + ld.literal->toString() + "\n";
-      res+=ld.clause->toString()+"\n";
-    }
+      while(ldi.hasNext()) {
+        LeafData ld=ldi.next();
+        res+=getIndentStr(indent) + "Lit: " + ld.literal->toString() + "\n";
+        res+=ld.clause->toString()+"\n";
+      }
     } else {
-    IntermediateNode* inode = static_cast<IntermediateNode*>(node);
-    res+=getIndentStr(indent) + " S" + Int::toString(inode->childVar)+":\n";
-    NodeIterator noi(inode->allChildren());
-    while(noi.hasNext()) {
-      stack.push(*noi.next());
-      indentStack.push(indent+1);
-    }
+      IntermediateNode* inode = static_cast<IntermediateNode*>(node);
+      res+=getIndentStr(indent) + " S" + Int::toString(inode->childVar)+":\n";
+      NodeIterator noi(inode->allChildren());
+      while(noi.hasNext()) {
+        stack.push(*noi.next());
+        indentStack.push(indent+1);
+      }
     }
   }
   return res;
@@ -597,7 +597,7 @@ vstring SubstitutionTree::toString() const
 
   vstring res;
 
-  /*for(unsigned tli=0;tli<_nodes.size();tli++) {
+  for(unsigned tli=0;tli<_nodes.size();tli++) {
     res+=Int::toString(tli);
     res+=":\n";
 
@@ -605,7 +605,7 @@ vstring SubstitutionTree::toString() const
     Stack<Node*> stack(10);
 
     res+=nodeToString(_nodes[tli]);
-  }*/
+  }
   res += "\n\n\n\n VARIABLE HEAD TREE";
   for(unsigned tli=0;tli<_hoVarNodes.size();tli++) {
     res+=Int::toString(tli);
@@ -680,10 +680,10 @@ bool SubstitutionTree::LeafIterator::hasNext()
     }
     if(_nodeIterators.isEmpty()) {
       do {
-    if(_nextRootPtr==_afterLastRootPtr) {
-      return false;
-    }
-    _curr=*(_nextRootPtr++);
+        if(_nextRootPtr==_afterLastRootPtr) {
+          return false;
+        }
+        _curr=*(_nextRootPtr++);
       } while(_curr==0);
     } else {
       _curr=*_nodeIterators.top().next();
