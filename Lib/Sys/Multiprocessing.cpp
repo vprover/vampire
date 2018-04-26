@@ -224,6 +224,26 @@ void Multiprocessing::kill(pid_t child, int signal)
   }
 }
 
-}
+void Multiprocessing::killNoCheck(pid_t child, int signal)
+{
+  CALL("Multiprocessing::killNoCheck");
+  ::kill(child, signal);
 }
 
+pid_t Multiprocessing::poll_children(bool &stopped, bool &exited, int &code)
+{
+  CALL("Multiprocessing::poll_child");
+
+  int status;
+  pid_t pid = waitpid(-1, &status, WUNTRACED);
+  stopped = WIFSTOPPED(status);
+  exited = WIFEXITED(status);
+  if(exited)
+  {
+    code = WEXITSTATUS(status);
+  }
+  return pid;
+}
+
+}
+}
