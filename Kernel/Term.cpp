@@ -406,7 +406,12 @@ vstring Term::headToString() const
   CALL("Term::headToString");
 
   if(hasVarHead()){
-    return "X" + Int::toString(env.signature->getVarName(_functor)) + "(";
+    int var = env.signature->getVarName(_functor);
+    if(var != -1){
+      return "X" + Int::toString(env.signature->getVarName(_functor)) + "(";
+    } else {
+      return "X" + Int::toString(_functor - VARIABLE_HEAD_LOWER_BOUND) + "(";
+    }
   }
 
   if (isSpecial()) {

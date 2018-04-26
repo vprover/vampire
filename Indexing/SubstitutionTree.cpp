@@ -597,6 +597,7 @@ vstring SubstitutionTree::toString() const
 
   vstring res;
 
+  res += "\n\n\n\n NORMAL TREE\n";
   for(unsigned tli=0;tli<_nodes.size();tli++) {
     res+=Int::toString(tli);
     res+=":\n";
@@ -606,7 +607,7 @@ vstring SubstitutionTree::toString() const
 
     res+=nodeToString(_nodes[tli]);
   }
-  res += "\n\n\n\n VARIABLE HEAD TREE";
+  res += "\n\n\n\n VARIABLE HEAD TREE\n";
   for(unsigned tli=0;tli<_hoVarNodes.size();tli++) {
     res+=Int::toString(tli);
     res+=":\n";
