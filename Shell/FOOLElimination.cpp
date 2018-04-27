@@ -970,6 +970,9 @@ unsigned FOOLElimination::introduceFreshSymbol(Context context, const char* pref
   } else {
     symbol = env.signature->addFreshFunction(arity, prefix);
     env.signature->getFunction(symbol)->setType(type);
+    if(env.signature->isHOL()){
+      env.signature->setFunctorSort(symbol, type);
+    }
   }
 
   if (env.options->showPreprocessing()) {

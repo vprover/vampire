@@ -155,10 +155,12 @@ struct BindingComparator
  * top symbol of the term/literal being inserted, and
  * @b bh contains its arguments.
  */
-void SubstitutionTree::insert(Node** pnode,BindingMap& svBindings,LeafData ld, Mode mode)
+void SubstitutionTree::insert(Node** pnode,BindingMap& svBindings,LeafData ld, Term* initialTerm, Mode mode)
 {
   CALL("SubstitutionTree::insert/3");
   ASS_EQ(_iteratorCnt,0);
+  ASS(!initialTerm || mode == VAR_HEAD_TERM);
+  ASS(!(svBindings.isEmpty() && mode == VAR_HEAD_TERM));
 
 #if VDEBUG
   if(tag){cout << "Insert " << ld.toString() << endl;}
@@ -168,7 +170,11 @@ void SubstitutionTree::insert(Node** pnode,BindingMap& svBindings,LeafData ld, M
     if(svBindings.isEmpty()) {
       *pnode=createLeaf();
     } else {
-      *pnode=createIntermediateNode(svBindings.getOneKey(),_useC);
+      if(mode){
+        *pnode=createIntermediateNode(TermList(initialTerm), svBindings.getOneKey(),_useC);
+      } else {
+        *pnode=createIntermediateNode(svBindings.getOneKey(),_useC);
+      }
     }
   }
   if(svBindings.isEmpty()) {
@@ -259,7 +265,11 @@ start:
   //So in the case we do insert, we might check whether this node
   //needs expansion.
   Node** pparent=pnode;
-  pnode=inode->childByTop(term,true);
+  if(term.isTerm() && term.term()->hasVarHead()){
+    pnode=inode->varHeadChildBySort(term,true);
+  } else {
+    pnode=inode->childByTop(term,true);
+  }
 
   if (*pnode == 0) {
     BindingMap::Iterator svit(svBindings);
@@ -413,27 +423,27 @@ void SubstitutionTree::remove(Node** pnode,BindingMap& svBindings,LeafData ld)
       TermList* tt = subterms.pop();
       ss = subterms.pop();
       if (tt->next()->isEmpty()) {
-    ASS(ss->next()->isEmpty());
+        ASS(ss->next()->isEmpty());
       }
       else {
-    subterms.push(ss->next());
-    subterms.push(tt->next());
+        subterms.push(ss->next());
+        subterms.push(tt->next());
       }
       if (*ss==*tt) {
-    continue;
+        continue;
       }
       if (ss->isVar()) {
-    ASS(ss->isSpecialVar());
-    svBindings.set(ss->var(),*tt);
-    continue;
+        ASS(ss->isSpecialVar());
+        svBindings.set(ss->var(),*tt);
+        continue;
       }
       ASS(! tt->isVar());
       ASS(ss->term()->functor() == tt->term()->functor());
       ss = ss->term()->args();
       if (! ss->isEmpty()) {
-    ASS(! tt->term()->args()->isEmpty());
-    subterms.push(ss);
-    subterms.push(tt->term()->args());
+        ASS(! tt->term()->args()->isEmpty());
+        subterms.push(ss);
+        subterms.push(tt->term()->args());
       }
     }
   }
@@ -562,7 +572,7 @@ vstring SubstitutionTree::nodeToString(Node* topNode)
     int indent=indentStack.pop();
 
     if(!node) {
-    continue;
+      continue;
     }
     if(!node->term.isEmpty()) {
       res+=getIndentStr(indent)+node->term.toString()+"  "+
@@ -597,7 +607,7 @@ vstring SubstitutionTree::toString() const
 
   vstring res;
 
-  res += "\n\n\n\n NORMAL TREE\n";
+  res += "---------------NORMAL TREE--------------------\n";
   for(unsigned tli=0;tli<_nodes.size();tli++) {
     res+=Int::toString(tli);
     res+=":\n";
@@ -607,7 +617,7 @@ vstring SubstitutionTree::toString() const
 
     res+=nodeToString(_nodes[tli]);
   }
-  res += "\n\n\n\n VARIABLE HEAD TREE\n";
+  res += "-------------VARIABLE HEAD TREE---------------\n";
   for(unsigned tli=0;tli<_hoVarNodes.size();tli++) {
     res+=Int::toString(tli);
     res+=":\n";

@@ -81,16 +81,22 @@ void TermSubstitutionTree::handleTerm(TermList t, Literal* lit, Clause* cls, boo
 
     BindingMap svBindings;
     getBindings(normTerm, svBindings);
+    
+    if(normTerm->hasVarHead()){
+      normTerm = argsToInitialBindings(normTerm);
+    }
 
     unsigned rootNodeIndex=getRootNodeIndex(normTerm);
 
     if(insert) {
       if(!normTerm->hasVarHead()){
-        SubstitutionTree::insert(&_nodes[rootNodeIndex], svBindings, ld);
-      } else {
+        //cout << "\n\n\n" << endl;
         //cout << "The term is " + normTerm->toString() + " and the root node index is " << rootNodeIndex << endl;
+        //cout << "THE TREE PRIOR TO INSERTION \n --------------------------------------------- \n" +  SubstitutionTree::toString() << endl;
+        SubstitutionTree::insert(&_nodes[rootNodeIndex], svBindings, ld);
+        //cout << "\n\nTHE TREE AFTER INSERTION \n --------------------------------------------- \n " +  SubstitutionTree::toString() << endl;
+      } else {
         SubstitutionTree::insert(&_hoVarNodes[rootNodeIndex], svBindings, ld);
-        cout << SubstitutionTree::toString() << endl;
       }
     } else {
       if(!normTerm->hasVarHead()){

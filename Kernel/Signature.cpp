@@ -874,6 +874,33 @@ void Signature::setVar(unsigned functor, int var){
   ASS(inserted);
 }
 
+/** When operating in higher-order mode this 
+ *  function will pair with a function symbol
+ *  its higher-order sort.
+ */
+
+void Signature::setFunctorSort(unsigned functor, unsigned sort){
+  CALL("Signature::setFunctorSort");
+  
+  ASS_REP(!_functorSorts.find(functor), "Attempting to change sort of existing functor. Not allowed");
+  ALWAY(_functorSorts.insert(functor, sort));
+}
+
+void Signature::setFunctorSort(unsigned functor, OperatorType* type){
+  CALL("Signature::setFunctorSort");
+  
+  ASS_REP(!_functorSorts.find(functor), "Attempting to change sort of existing functor. Not allowed");
+  ALWAY(_functorSorts.insert(functor, toSort(type)));
+}
+
+unsigned Signature::getFunctorSort(unsigned functor){
+  CALL("Signature::getFunctorSort");
+  
+  ASS_REP(_functorSorts.find(functor), "Functor does not exist");
+  return _functorSorts.get(functor);
+}
+
+
 /**
  * Return the key "name_arity" used for hashing. This key is obtained by
  * concatenating the name, underscore character and the arity. The key is

@@ -180,6 +180,35 @@ SubstitutionTree::Node** SubstitutionTree::UArrIntermediateNode::
   return 0;
 }
 
+SubstitutionTree::Node** SubstitutionTree::HoUArrIntermediateNode::
+  varHeadChildByType(TermList t, bool canCreate)
+{
+  CALL("SubstitutionTree::UArrIntermediateNode::varHeadChildBySort");
+
+  ASS(t.isTerm());
+  Term* searchTerm = t.term();
+  OperatorType* searchType;
+
+  if(searchTerm->hasVarHead()){
+    searchType = env.signature->getVarType(searchTerm->functor());
+  } else {
+    searchType = env.signature->getFunction(searchTerm->functor())->fnType();
+  }
+
+  for(int i=0;i<_varHeadChildrenSize;i++) {
+    if(searchType == _hoVarNodes[i]->termType){
+      return &_nodes[i];
+    }
+  }
+  if(canCreate) {
+    ASS_L(_varHeadChildrenSize,UARR_INTERMEDIATE_NODE_MAX_SIZE);
+    ASS_EQ(_hoVarNodes[_varHeadChildrenSize],0);
+    _hoVarNodes[++_varHeadChildrenSize]=0;
+    return &_nodes[_varHeadChildrenSize-1];
+  }
+  return 0;
+}
+
 void SubstitutionTree::UArrIntermediateNode::remove(TermList t)
 {
   CALL("SubstitutionTree::UArrIntermediateNode::remove");

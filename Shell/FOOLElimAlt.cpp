@@ -241,6 +241,7 @@ unsigned FOOLElimAlt::addLogicalConnSym(vstring name, unsigned sort1, unsigned a
   
   if(added){
    Signature::Symbol* sym = env.signature->getFunction(symbol);
+   env.signature->setFunctorSort(symbol, type);
    sym->setType(type);
    sym->markHoLogicalConn(cnst);
    if (env.options->showPreprocessing()) {
@@ -347,6 +348,7 @@ TermList FOOLElimAlt::abstract(TermList term, unsigned termSort, Stack<unsigned>
      unsigned fun = env.signature->addFunction("lam_" + Int::toString(lamSort),1,added);
      if(added){//first time constant added. Set type
        Signature::Symbol* symbol = env.signature->getFunction(fun);  
+       env.signature->setFunctorSort(fun, type);
        symbol->setType(type);
        symbol->markLambda();   
      } 
@@ -388,8 +390,8 @@ TermList FOOLElimAlt::convertToDuBruijnIndices(TermList t, Stack<int> vars){
   	int headVar = env.signature->getVarName(term->functor());
   	for(int i = vars.size() - 1; i >= 0; i --){
       if(vars[i] == headVar){
-  	    OperatorType* type = env.signature->getVarType(term->functor());
-  	    vstring name = Int::toString(vars.size() - i) + "_" + Int::toString(toSort(type));
+  	    unsigned sort = env.signature->getFunctorSort(term->functor());
+  	    vstring name = Int::toString(vars.size() - i) + "_" + Int::toString(sort);
         unsigned fun = addDuBruijnIndex(name, type);
         newTerm->makeSymbol(fun, newTerm->arity());
         modified = true;
@@ -430,12 +432,14 @@ unsigned FOOLElimAlt::addDuBruijnIndex(vstring name, OperatorType* type){
   unsigned fun = env.signature->addFunction(name ,type->arity(),added, false, 2);
   if(added){//first time constant added. Set type
     Signature::Symbol* symbol = env.signature->getFunction(fun);  
+    env.signature_>setFunctorSort(fun, type);
     symbol->setType(type);
   }
   return fun;
 
 }
 
+/*CAN BE REMOVED
 unsigned FOOLElimAlt::toSort(OperatorType* type){
   CALL("FOOLElimAlt::toSort");
   
@@ -446,7 +450,7 @@ unsigned FOOLElimAlt::toSort(OperatorType* type){
 
   return sort;
 
-}
+}*/
 
 OperatorType* FOOLElimAlt::toType(unsigned sort){
   CALL("FOOLElimAlt::toType");
@@ -895,6 +899,7 @@ Term* FOOLElimAlt::renameVarHeads(Term* term, NatSet newfuncs){
       OperatorType* type = env.signature->getVarType(term->functor());
       unsigned var = env.signature->getVarName(term->functor());
       unsigned fun = env.signature->addFreshHOVar(type, var);
+      env.signature->setFunctorSort(fun, sort);
       ALWAYS(newfuncs.insert(fun));
       unsigned arity = term->arity();
       newterm = new(arity) Term;

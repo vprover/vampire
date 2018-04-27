@@ -421,7 +421,7 @@ public:
   {
   public:
     inline
-    UArrIntermediateNode(unsigned childVar) : IntermediateNode(childVar), _size(0)
+    UArrIntermediateNode(unsigned childVar) : IntermediateNode(childVar), _size(0), 
     {
       _nodes[0]=0;
     }
@@ -438,16 +438,16 @@ public:
       }
     }
 
-    void removeAllChildren()
+    virtual void removeAllChildren()
     {
       _size=0;
       _nodes[0]=0;
     }
 
     NodeAlgorithm algorithm() const { return UNSORTED_LIST; }
-    bool isEmpty() const { return !_size; }
-    int size() const { return _size; }
-    NodeIterator allChildren()
+    virtual bool isEmpty() const { return !_size; }
+    virtual int size() const { return _size; }
+    virtual NodeIterator allChildren()
     { return pvi( PointerPtrIterator<Node*>(&_nodes[0],&_nodes[_size]) ); }
 
     NodeIterator variableChildren()
@@ -470,6 +470,70 @@ public:
 
     int _size;
     Node* _nodes[UARR_INTERMEDIATE_NODE_MAX_SIZE+1];
+  };
+
+  class HoUArrIntermediateNode
+  : public UArrIntermediateNode
+  {
+  public:
+    inline
+    HoUArrIntermediateNode(unsigned childVar) : UArrIntermediateNode(childVar),
+    _varHeadChildrenSize(0)
+    {
+      termType = NULL;
+      _hoVarNodes[0]=0;
+    }
+    inline
+    HoUArrIntermediateNode(TermList ts, unsigned childVar) : UArrIntermediateNode(ts, childVar)
+    _varHeadChildrenSize(0)
+    {
+      ASS(ts.isTerm());
+      Term* t = ts.term();
+      termType = env.signature->getVarType(t->functor());
+      _hoVarNodes[0]=0;
+    }
+
+    ~HoUArrIntermediateNode()
+    {
+      if(!isEmpty()) {
+        destroyChildren();
+      }
+    }
+
+    void removeAllChildren()
+    {
+      _size=0;
+      _nodes[0]=0;
+      _varHeadChildrenSize=0;
+      _hoVarNodes[0]=0;
+    }
+
+    bool isEmpty const { return !_varHeadChildrenSize && !_size; }
+    int size() const { return _size + _varHeadChildrenSize; }
+    NodeIterator allChildren()
+    { return pvi( getConcatenatedIterator(PointerPtrIterator<Node*>(&_hoVarNodes[0],&_hoVarNodes[_varHeadChildrenSize]),
+                                          PointerPtrIterator<Node*>(&_nodes[0],&_nodes[_size]) ) ); }
+   
+    /*
+    NodeIterator variableChildren()
+    {
+      return pvi( getFilteredIterator(PointerPtrIterator<Node*>(&_nodes[0],&_nodes[_size]),
+        IsPtrToVarNodeFn()) );
+    }*/
+
+    virtual Node** varHeadChildByType(TermList t, bool canCreate);
+    //Does this require overriding?
+    //void remove(TermList t);
+
+    CLASS_NAME(SubstitutionTree::HoUArrIntermediateNode);
+    USE_ALLOCATOR(HoUArrIntermediateNode);
+
+    /** As terms with variable heads are always terms and never variables,
+        their head symbol always has a type. If this node contains a non-empty
+        term, its type is stored in termType */
+    OperatorType* termType;
+    int _varHeadChildrenSize;
+    Node* _hoVarNodes[UARR_INTERMEDIATE_NODE_MAX_SIZE+1];
   };
 
   class UArrIntermediateNodeWithSorts
@@ -582,6 +646,7 @@ public:
     typedef SkipList<Node*,NodePtrComparator> NodeSkipList;
     NodeSkipList _nodes;
     /** List to store child nodes that contain terms with var heads */
+    //Not implemented yet!
     NodeSkipList _hoVarNodes;
   };
 
@@ -638,16 +703,20 @@ public:
   typedef BinaryHeap<unsigned,SpecVarComparator> SpecVarQueue;
   typedef Stack<unsigned> VarStack;
 
+  inline
+  unsigned headSymbolSort(Term* t){
+    return env.signature->getFunctorSort(t->functor());
+  }
   void getBindings(Term* t, BindingMap& binding);
 
   Leaf* findLeaf(Node* root, BindingMap& svBindings);
 
   enum Mode{
-    NORMAL_TERM,
-    VAR_HEAD_TERM
+    NORMAL_TERM = 0,
+    VAR_HEAD_TERM = 1
   };
 
-  void insert(Node** node,BindingMap& binding,LeafData ld, Mode mode = NORMAL_TERM);
+  void insert(Node** node,BindingMap& binding,LeafData ld, Term* initialTerm = NULL, Mode mode = NORMAL_TERM);
   void remove(Node** node,BindingMap& binding,LeafData ld);
 
   /** Number of the next variable */

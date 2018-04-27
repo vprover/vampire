@@ -54,7 +54,8 @@ public:
   static vstring lift(vstring name, unsigned value);
   /** returns true iff @index represents an index of value greater than @cutoff */
   static bool indexGreater(vstring index, unsigned cutoff);
-  static unsigned toSort(OperatorType* type);
+  /* can be removed
+  static unsigned toSort(OperatorType* type);*/
   static OperatorType* toType(unsigned sort);
   /** 
    * eta-expands function with functor @b fun and @c type

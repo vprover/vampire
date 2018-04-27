@@ -1421,8 +1421,10 @@ void TPTP::tff()
       if (!added) {
         USER_ERROR("Function symbol type is declared after its use: " + nm);
       }
+      OperatorType* type = OperatorType::getFunctionType(arity, sorts.begin(), returnSort);
+      env.signature->setFunctorSort(fun, type);
       symbol = env.signature->getFunction(fun);
-      symbol->setType(OperatorType::getFunctionType(arity, sorts.begin(), returnSort));
+      symbol->setType(type);
 
       
       while (lpars--) {
@@ -1819,6 +1821,7 @@ TermList TPTP::abstract(TermList term, unsigned sort){
    bool added;
    unsigned fun = env.signature->addFunction("lam_" + Int::toString(lamSort),1,added);
    if(added){//first time constant added. Set type
+     env.signature->setFunctorSort(fun, type);
      Signature::Symbol* symbol = env.signature->getFunction(fun);  
      symbol->setType(type);
      symbol->markLambda();   
@@ -2814,6 +2817,7 @@ void TPTP::varList()
       OperatorType* type = OperatorType::getFunctionType(sorts.size(), sorts.begin(), returnSort);
       if(_lastBinder != LAMB && type->arity() != 0){ //higher-order var (not index)
         unsigned functor = env.signature->addFreshHOVar(type, var);
+        env.signature->setFunctorSort(functor, type);
         bindVariableToFunc(var, functor);
       }
       bindVariable(var, type);        

@@ -33,6 +33,8 @@
 #include "TermIndexingStructure.hpp"
 #include "SubstitutionTree.hpp"
 
+#include "Shell/FOOLElimAlt.hpp"
+
 namespace Indexing {
 
 class TermSubstitutionTree
@@ -89,12 +91,29 @@ private:
 	  bool retrieveSubstitutions,bool withConstraints);
 
   inline
+  Term* argsToInitialBindings(Term* t)
+  {
+    var = 1;
+    TermList* args = t->args;
+    while(!args->isEmpty()){
+      args->makeSpecialVar(var);
+      args = args->next();
+      var++
+    }
+    return t;
+  }
+
+
+  inline
   unsigned getRootNodeIndex(Term* t)
   {
     if(!t->hasVarHead()){
       return t->functor();
     } else {
-      return t->functor() - Term::VARIABLE_HEAD_LOWER_BOUND;
+      unsigned sort = env.signature->getFunctorSort(t->functor);
+      //return sort number related to this variable minus
+      //number of default sorts.
+      return sort - 5;
     } 
   }
 

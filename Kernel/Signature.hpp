@@ -411,6 +411,23 @@ class Signature
     return addInterpretedPredicate(itp,Theory::getNonpolymorphicOperatorType(itp),name);
   }
 
+  /** During higher-order proof search, a map of function symbols
+    * and higher-order variables to their sorts is maintained.
+    * the following three functions are used for this 
+    */
+  void setFunctorSort(unsigned functor, unsigned sort);
+  void setFunctorSort(unsigned functor, OperatorType* type);
+  unsigned getFunctorSort(unsigned functor);
+
+  inline
+  static unsigned toSort(OperatorType* type){
+    unsigned sort = type->result();
+    for (int i = type->arity() - 1; i >= 0; i--){
+      sort = env.sorts->addFunctionSort(type->arg(i), sort);
+    }
+    return sort;
+  }
+
   /** Returns the type of higher-order variable */
   OperatorType* getVarType(unsigned functor);
   int getVarName(unsigned functor);
@@ -604,6 +621,10 @@ private:
   /** Map of higher-order variable functors to their types */
   typedef pair<OperatorType*, int> HOVarFuncInfo;
   Map<unsigned,HOVarFuncInfo> _hoVarMap;
+  /** when dealing with HOL the sorts of all function symbols 
+      and higher-order variables are stored in this map */
+  DHMap<unsigned, unsigned> _functorSorts;
+
   /** Last number used for fresh functions and predicates */
   int _nextFreshSymbolNumber;
   /** Last number used for higher-order variables */

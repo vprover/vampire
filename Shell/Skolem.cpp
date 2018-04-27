@@ -150,8 +150,12 @@ unsigned Skolem::addSkolemFunction(unsigned arity, unsigned* domainSorts,
   } else {
     fun = env.signature->addSkolemFunction(arity, suffix);
   }
+  OperatorType* type = OperatorType::getFunctionType(arity, domainSorts, rangeSort);
   Signature::Symbol* fnSym = env.signature->getFunction(fun);
-  fnSym->setType(OperatorType::getFunctionType(arity, domainSorts, rangeSort));
+  if(env.signature->isHOL()){
+    env.signature->setFunctorSort(fun, type);
+  }
+  fnSym->setType(type);
   return fun;
 }
 

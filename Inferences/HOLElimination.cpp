@@ -149,7 +149,8 @@ TermList sigmaRemoval(TermList sigmaTerm, unsigned expsrt){
     unsigned sklm = env.signature->addSkolemFunction(arity + addedToSorts, 0 ,arity);
     env.statistics->skolemFunctions++;    
     env.signature->getFunction(sklm)->setType(type);
- 
+    env.signature->setFunctorSort(sklm, type);
+
     TermList skolemFunc;  
     if(addedToSorts){
       skolemFunc = FOOLElimAlt::etaExpand(sklm, type, true, args);
@@ -184,7 +185,8 @@ TermList piRemoval(TermList piTerm, Clause* clause, unsigned expsrt){
     {
       Stack<TermList> dummy;
       OperatorType* type = FOOLElimAlt::toType(srt2);
-      unsigned functor = env.signature->addFreshHOVar(type, maxVar);      
+      unsigned functor = env.signature->addFreshHOVar(type, maxVar);
+      env.signature->setFunctorSort(functor, type);      
       newVar = FOOLElimAlt::etaExpand(functor, type, false, dummy);
     } else {
       newVar = TermList(maxVar, false);

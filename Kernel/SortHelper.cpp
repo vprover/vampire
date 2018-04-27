@@ -296,10 +296,9 @@ void SortHelper::collectVariableSortsIter(CollectTask task, DHMap<unsigned,unsig
           if(env.signature->getVarName(term->functor()) != -1){ 
             var = env.signature->getVarName(term->functor());
           }else{
-            var  = term->functor();
+            var = term->functor();
           }
-          OperatorType* type = env.signature->getVarType(term->functor());
-          unsigned sort = FOOLElimAlt::toSort(type);
+          unsigned sort = env.signature->getFunctorSort(term->functor());
           if (!map.insert(var, sort)) {
             ASS_EQ(sort, map.get(var));
           }          
