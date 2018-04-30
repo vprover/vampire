@@ -195,6 +195,55 @@ bool TermList::sameTopFunctor(TermList ss, TermList tt)
 }
 
 /**
+ * Return true if @b ss and @b tt are not variables and they
+ * both their head symbols are variables which have the same type.
+ * @since 29/04/2018 Leicester.
+ */
+bool TermList::equivVarHeads(TermList ss,TermList tt)
+{
+  if (ss.isVar() || tt.isVar()) {
+    return false;
+  }
+  Term* ssTerm = ss.term();
+  Term* ttTerm = tt.term();
+  if(!ssTerm->hasVarHead() || !ttTerm->hasVarHead()){
+    return false;
+  }
+  unsigned ssFunctor = ssTerm->functor();
+  unsigned ttFunctor = ttTerm->functor();
+  
+  return env.signature->getFunctorSort(ssFunctor) == 
+         env.signature->getFunctorSort(ttFunctor);
+}
+
+/**
+ * Return true if @b ss and @b tt are both terms with identical
+ * arhument lists.
+ * @since 29/04/2018 Leicester.
+ */
+bool TermList::sameArgs(TermList ss,TermList tt)
+{
+  if (ss.isVar() || tt.isVar()) {
+    return false;
+  }
+  Term* s = ss.term();
+  Term* t = tt.term();
+  if(t->arity() != s->arity()){
+    return false;
+  }
+  TermList* sArgs = s->args();
+  TermList* tArgs = t->args();
+  while(!sArgs->isEmpty() && !tArgs->isEmpty()){
+    if(*sArgs != *tArgs){
+      return false;
+    }
+    sArgs = sArgs->next();
+    tArgs = tArgs->next();
+  }
+  return true;
+}
+
+/**
  * Return true if @b ss and @b tt are both complex terms with the
  * same function symbol.
  */

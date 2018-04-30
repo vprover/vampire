@@ -171,7 +171,7 @@ void SubstitutionTree::insert(Node** pnode,BindingMap& svBindings,LeafData ld, T
       *pnode=createLeaf();
     } else {
       if(mode){
-        *pnode=createIntermediateNode(TermList(initialTerm), svBindings.getOneKey(),_useC);
+        *pnode=createIntermediateNode(TermList(initialTerm), svBindings.getOneKey(),_useC, true);
       } else {
         *pnode=createIntermediateNode(svBindings.getOneKey(),_useC);
       }
@@ -256,20 +256,18 @@ start:
 
   IntermediateNode* inode = static_cast<IntermediateNode*>(*pnode);
   ASS(inode);
-
+  
   unsigned boundVar=inode->childVar;
   TermList term=svBindings.get(boundVar);
   svBindings.remove(boundVar);
-
+  bool hasVarHead = term.isTerm() && term.term()->hasVarHead();
+  
   //Into pparent we store the node, we might be inserting into.
   //So in the case we do insert, we might check whether this node
   //needs expansion.
   Node** pparent=pnode;
-  if(term.isTerm() && term.term()->hasVarHead()){
-    pnode=inode->varHeadChildBySort(term,true);
-  } else {
-    pnode=inode->childByTop(term,true);
-  }
+  pnode= hasVarHead ? inode->varHeadChildByType(term,true) :
+                      inode->childByTop(term,true);
 
   if (*pnode == 0) {
     BindingMap::Iterator svit(svBindings);
@@ -279,15 +277,20 @@ start:
       svit.next(b.var, b.term);
       remainingBindings.insert(b);
     }
+
     while (!remainingBindings.isEmpty()) {
       Binding b=remainingBindings.pop();
-      IntermediateNode* inode = createIntermediateNode(term, b.var,_useC);
+      IntermediateNode* inode = createIntermediateNode(term, b.var,_useC, hasVarHead);
       term=b.term;
+      
+      hasVarHead = term.isTerm() && term.term()->hasVarHead();
 
       *pnode = inode;
-      pnode = inode->childByTop(term,true);
+      pnode = hasVarHead ? inode->varHeadChildByType(term,true) :
+                           inode->childByTop(term,true);  
+      ASS(!pnode);                           
     }
-    Leaf* lnode=createLeaf(term);
+    Leaf* lnode=hasVarHead ? createLeaf(term, true) : createLeaf(term);
     *pnode=lnode;
     lnode->insert(ld);
 
@@ -299,15 +302,24 @@ start:
   TermList* tt = &term;
   TermList* ss = &(*pnode)->term;
 
-  ASS(TermList::sameTop(*ss, *tt));
-
+  
+  bool equivVarHeads = false;
+  bool sameArgs = false;
+  if(!hasVarHead){
+    ASS(TermList::sameTop(*ss, *tt));
+  } else {
+    ASS(ld.isHoLeafData());
+    ld.insertFunctorPair(ss, tt);
+    equivVarHeads = true;
+    sameArgs = TermList::sameArgs(*ss, *tt);
+  }
 
   // ss is the term in node, tt is the term to be inserted
   // ss and tt have the same top symbols but are not equal
   // create the common subterm of ss,tt and an alternative node
   Stack<TermList*> subterms(64);
   for (;;) {
-    if (*tt!=*ss && TermList::sameTop(*ss,*tt)) {
+    if ((*tt!=*ss && TermList::sameTop(*ss,*tt)) || (!sameArgs && equivVarHeads)) {
       // ss and tt have the same tops and are different, so must be non-variables
       ASS(! ss->isVar());
       ASS(! tt->isVar());
@@ -316,7 +328,7 @@ start:
       Term* t = tt->term();
 
       ASS(s->arity() > 0);
-      ASS(s->functor() == t->functor());
+      ASS((s->functor() == t->functor()) || equivVarHeads);
 
       if (s->shared()) {
         // create a shallow copy of s
@@ -329,10 +341,16 @@ start:
       if (ss->next()->isEmpty()) {
         continue;
       }
+      equivVarHeads = TermList::equivVarHeads(*ss, *tt);
+      sameArgs = TermList::sameArgs(*ss, *tt);
+      if(equivVarHeads){
+        ASS(ld.isHoLeafData());
+        ld.insertFunctorPair(ss, tt);
+      }
       subterms.push(ss->next());
       subterms.push(tt->next());
     } else {
-      if (! TermList::sameTop(*ss,*tt)) {
+      if (! TermList::sameTop(*ss,*tt) && !equivVarHeads) {
         unsigned x;
         if(!ss->isSpecialVar()) {
           x = _nextVar++;
@@ -647,18 +665,26 @@ void SubstitutionTree::Node::split(Node** pnode, TermList* where, int var)
   CALL("SubstitutionTree::Node::split");
 
   Node* node=*pnode;
-
-  IntermediateNode* newNode = createIntermediateNode(node->term, var,node->withSorts());
+  bool childHasVarHead = where->isTerm() ? where->term()->hasVarHead() : 0;
+  
+  IntermediateNode* newNode = createIntermediateNode(node->term, var,node->withSorts(), childHasVarHead);
   node->term=*where;
   *pnode=newNode;
 
   where->makeSpecialVar(var);
 
-  Node** nodePosition=newNode->childByTop(node->term, true);
+  TermList term = node->term;
+  Node** nodePosition;
+  if(childHasVarHead){
+    nodePosition=newNode->varHeadChildByType(term, true);
+  } else {
+    nodePosition=newNode->childByTop(term, true);
+  }
   ASS(!*nodePosition);
   *nodePosition=node;
 }
 
+//This requires modification AYB.
 void SubstitutionTree::IntermediateNode::loadChildren(NodeIterator children)
 {
   CALL("SubstitutionTree::IntermediateNode::loadChildren");

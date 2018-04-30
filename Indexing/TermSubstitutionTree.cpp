@@ -65,7 +65,8 @@ void TermSubstitutionTree::handleTerm(TermList t, Literal* lit, Clause* cls, boo
 {
   CALL("TermSubstitutionTree::handleTerm");
 
-  LeafData ld(cls, lit, t);
+  LeafData ld = createLeafData(cls, lit, t, env.signature->isHOL());
+                                         
   if(t.isOrdinaryVar()) {
     if(insert) {
       _vars.insert(ld);
@@ -90,11 +91,11 @@ void TermSubstitutionTree::handleTerm(TermList t, Literal* lit, Clause* cls, boo
 
     if(insert) {
       if(!normTerm->hasVarHead()){
-        //cout << "\n\n\n" << endl;
-        //cout << "The term is " + normTerm->toString() + " and the root node index is " << rootNodeIndex << endl;
-        //cout << "THE TREE PRIOR TO INSERTION \n --------------------------------------------- \n" +  SubstitutionTree::toString() << endl;
+        cout << "\n\n\n" << endl;
+        cout << "The term is " + normTerm->toString() + " and the root node index is " << rootNodeIndex << endl;
+        cout << "THE TREE PRIOR TO INSERTION \n --------------------------------------------- \n" +  SubstitutionTree::toString() << endl;
         SubstitutionTree::insert(&_nodes[rootNodeIndex], svBindings, ld);
-        //cout << "\n\nTHE TREE AFTER INSERTION \n --------------------------------------------- \n " +  SubstitutionTree::toString() << endl;
+        cout << "\n\nTHE TREE AFTER INSERTION \n --------------------------------------------- \n " +  SubstitutionTree::toString() << endl;
       } else {
         SubstitutionTree::insert(&_hoVarNodes[rootNodeIndex], svBindings, ld);
       }

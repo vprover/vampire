@@ -42,7 +42,7 @@ public:
   UListLeaf() : _children(0), _size(0) {}
   inline
   UListLeaf(TermList ts) : Leaf(ts), _children(0), _size(0) {}
-  ~UListLeaf()
+  virtual ~UListLeaf()
   {
     LDList::destroy(_children);
   }
@@ -79,6 +79,28 @@ private:
   int _size;
 };
 
+
+class SubstitutionTree::HoUListLeaf
+: public UListLeaf
+{
+public:
+
+  inline
+  HoUListLeaf(TermList ts) : UListLeaf(ts) { 
+    ASS(ts.isTerm());
+    Term* t = ts.term();
+    ASS(t->hasVarHead());
+    termType = env.signature->getVarType(t->functor());
+  }
+  ~HoUListLeaf()
+  {
+  }
+
+  CLASS_NAME(SubstitutionTree::HoUListLeaf);
+  USE_ALLOCATOR(HoUListLeaf);
+private:
+  OperatorType* termType;
+};
 
 class SubstitutionTree::SListLeaf
 : public Leaf
@@ -120,8 +142,9 @@ SubstitutionTree::Leaf* SubstitutionTree::createLeaf()
   return new UListLeaf();
 }
 
-SubstitutionTree::Leaf* SubstitutionTree::createLeaf(TermList ts)
+SubstitutionTree::Leaf* SubstitutionTree::createLeaf(TermList ts, bool ho)
 {
+  if(ho){ return new HoUListLeaf(ts); }
   return new UListLeaf(ts);
 }
 
@@ -132,9 +155,10 @@ SubstitutionTree::IntermediateNode* SubstitutionTree::createIntermediateNode(uns
   return new UArrIntermediateNode(childVar);
 }
 
-SubstitutionTree::IntermediateNode* SubstitutionTree::createIntermediateNode(TermList ts, unsigned childVar,bool useC)
+SubstitutionTree::IntermediateNode* SubstitutionTree::createIntermediateNode(TermList ts, unsigned childVar,bool useC, bool ho)
 {
   CALL("SubstitutionTree::createIntermediateNode/3");
+  if(ho){ return new HoUArrIntermediateNode(ts, childVar); }
   if(useC){ return new UArrIntermediateNodeWithSorts(ts, childVar); }
   return new UArrIntermediateNode(ts, childVar);
 }
@@ -196,8 +220,8 @@ SubstitutionTree::Node** SubstitutionTree::HoUArrIntermediateNode::
   }
 
   for(int i=0;i<_varHeadChildrenSize;i++) {
-    if(searchType == _hoVarNodes[i]->termType){
-      return &_nodes[i];
+    if(searchType == _hoVarNodes[i]->getType()){
+      return &_hoVarNodes[i];
     }
   }
   if(canCreate) {

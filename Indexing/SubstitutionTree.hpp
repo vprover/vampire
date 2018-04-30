@@ -47,6 +47,7 @@
 #include "Kernel/Clause.hpp"
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/Sorts.hpp"
+#include "Kernel/Signature.hpp"
 
 #include "Lib/Allocator.hpp"
 
@@ -107,6 +108,10 @@ public:
     Literal* literal;
     TermList term;
 
+    virtual unsigned getFunctor(unsigned f) { NOT_IMPLEMENTED; }
+    virtual void insertFunctorPair(TermList* tt, TermList* ss) { NOT_IMPLEMENTED; }
+    virtual bool isHoLeafData() { return false; }
+    
     vstring toString(){
       vstring ret = "LD " + literal->toString();// + " in " + clause->literalsOnlyToString();
       if(!term.isEmpty()){ ret += " with " +term.toString(); }
@@ -114,6 +119,50 @@ public:
     }
 
   };
+  
+  struct HoLeafData :
+   public LeafData {
+     
+    HoLeafData() {}
+    HoLeafData(Clause* cls, Literal* literal, TermList term)
+    : LeafData(cls, literal, term), funcToFuncMap() {}
+    HoLeafData(Clause* cls, Literal* literal)
+    : LeafData(cls, literal), funcToFuncMap() {}
+
+    virtual bool isHoLeafData() { return true; }
+    
+    /** 
+      On inserting into substitution tree, it is possible that some 
+      higher-order variable functors will require 'renaming'. These are 
+      recorded in the map below. For example Term X_1(a,b) is in the 
+      tree where X_1 has functor 9. Next, we attempt to insert X_2(a,b) 
+      where X_2 has functor 10. In this case (9, 10) will be inserted 
+      into map for the leaf data related to X_2(a,b). This is necessary 
+      for correct recording of higher-order substituions required during 
+      unification.
+    */   
+  
+    virtual void insertFunctorPair(TermList* treeTerm, TermList* insertTerm){
+      ASS(treeTerm->isTerm());
+      ASS(insertTerm->isTerm());
+      
+      Term* t = treeTerm->term();
+      Term* s = insertTerm->term();
+      
+      if(t->functor() != s->functor()){
+        unsigned res = funcToFuncMap.findOrInsert(t->functor(), s->functor());
+        ASS_EQ(res, s->functor());
+      }
+    }  
+    virtual unsigned getFunctor(unsigned functor){
+      unsigned res = 0;
+      ALWAYS(funcToFuncMap.find(functor, res));
+      return res;
+    }    
+    DHMap<unsigned, unsigned> funcToFuncMap;    
+  };
+  
+  
   typedef VirtualIterator<LeafData&> LDIterator;
 
   class LDComparator
@@ -186,7 +235,10 @@ public:
      */
     virtual void makeEmpty() { term.makeEmpty(); }
     static void split(Node** pnode, TermList* where, int var);
-
+  
+  /** Returns the type of the head symbol of term stroed in node
+        if node is higher-order intermediate node */
+    virtual OperatorType* getType() { NOT_IMPLEMENTED; }
 #if VDEBUG
     virtual void assertValid() const {};
 #endif
@@ -297,7 +349,7 @@ public:
      * suitable child does not exist.
      */
     virtual Node** childByTop(TermList t, bool canCreate) = 0;
-
+    virtual Node** varHeadChildByType(TermList t, bool canCreate){ NOT_IMPLEMENTED; }
 
     /**
      * Remove child which points to node with top symbol of @b t.
@@ -397,14 +449,20 @@ public:
 
   //These classes and methods are defined in SubstitutionTree_Nodes.cpp
   class UListLeaf;
+  class HoUListLeaf;
   class SListIntermediateNode;
   class SListLeaf;
   class SetLeaf;
   static Leaf* createLeaf();
-  static Leaf* createLeaf(TermList ts);
+  static Leaf* createLeaf(TermList ts, bool ho = false);
   static void ensureLeafEfficiency(Leaf** l);
+  inline
+  static LeafData createLeafData(Clause* cls, Literal* lit, TermList t, bool ho = false){
+    if(ho){ return HoLeafData(cls, lit, t); }
+    return LeafData(cls, lit, t);    
+  }
   static IntermediateNode* createIntermediateNode(unsigned childVar,bool constraints);
-  static IntermediateNode* createIntermediateNode(TermList ts, unsigned childVar,bool constraints);
+  static IntermediateNode* createIntermediateNode(TermList ts, unsigned childVar,bool constraints, bool higherOrder = false);
   static void ensureIntermediateNodeEfficiency(IntermediateNode** inode);
 
   struct IsPtrToVarNodeFn
@@ -421,7 +479,7 @@ public:
   {
   public:
     inline
-    UArrIntermediateNode(unsigned childVar) : IntermediateNode(childVar), _size(0), 
+    UArrIntermediateNode(unsigned childVar) : IntermediateNode(childVar), _size(0) 
     {
       _nodes[0]=0;
     }
@@ -480,15 +538,16 @@ public:
     HoUArrIntermediateNode(unsigned childVar) : UArrIntermediateNode(childVar),
     _varHeadChildrenSize(0)
     {
-      termType = NULL;
+      termType = 0;
       _hoVarNodes[0]=0;
     }
     inline
-    HoUArrIntermediateNode(TermList ts, unsigned childVar) : UArrIntermediateNode(ts, childVar)
+    HoUArrIntermediateNode(TermList ts, unsigned childVar) : UArrIntermediateNode(ts, childVar),
     _varHeadChildrenSize(0)
     {
       ASS(ts.isTerm());
       Term* t = ts.term();
+      ASS(t->hasVarHead());
       termType = env.signature->getVarType(t->functor());
       _hoVarNodes[0]=0;
     }
@@ -508,8 +567,10 @@ public:
       _hoVarNodes[0]=0;
     }
 
-    bool isEmpty const { return !_varHeadChildrenSize && !_size; }
-    int size() const { return _size + _varHeadChildrenSize; }
+    inline
+    virtual OperatorType* getType() { return termType; }
+    virtual bool isEmpty() const { return !_varHeadChildrenSize && !_size; }
+    virtual int size() const { return _size + _varHeadChildrenSize; }
     NodeIterator allChildren()
     { return pvi( getConcatenatedIterator(PointerPtrIterator<Node*>(&_hoVarNodes[0],&_hoVarNodes[_varHeadChildrenSize]),
                                           PointerPtrIterator<Node*>(&_nodes[0],&_nodes[_size]) ) ); }

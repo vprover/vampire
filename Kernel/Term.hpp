@@ -148,6 +148,9 @@ public:
   /** make the term into a reference */
   inline void setTerm(Term* t)
   { _term = t; }
+  
+  static bool sameArgs(TermList ss, TermList tt);
+  static bool equivVarHeads(TermList ss, TermList tt);
   static bool sameTop(TermList ss, TermList tt);
   static bool sameTopFunctor(TermList ss, TermList tt);
   static bool equals(TermList t1, TermList t2);

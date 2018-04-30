@@ -93,12 +93,12 @@ private:
   inline
   Term* argsToInitialBindings(Term* t)
   {
-    var = 1;
-    TermList* args = t->args;
+    unsigned var = 1;
+    TermList* args = t->args();
     while(!args->isEmpty()){
       args->makeSpecialVar(var);
       args = args->next();
-      var++
+      var++;
     }
     return t;
   }
@@ -110,7 +110,7 @@ private:
     if(!t->hasVarHead()){
       return t->functor();
     } else {
-      unsigned sort = env.signature->getFunctorSort(t->functor);
+      unsigned sort = env.signature->getFunctorSort(t->functor());
       //return sort number related to this variable minus
       //number of default sorts.
       return sort - 5;

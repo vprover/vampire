@@ -883,14 +883,14 @@ void Signature::setFunctorSort(unsigned functor, unsigned sort){
   CALL("Signature::setFunctorSort");
   
   ASS_REP(!_functorSorts.find(functor), "Attempting to change sort of existing functor. Not allowed");
-  ALWAY(_functorSorts.insert(functor, sort));
+  ALWAYS(_functorSorts.insert(functor, sort));
 }
 
 void Signature::setFunctorSort(unsigned functor, OperatorType* type){
   CALL("Signature::setFunctorSort");
   
   ASS_REP(!_functorSorts.find(functor), "Attempting to change sort of existing functor. Not allowed");
-  ALWAY(_functorSorts.insert(functor, toSort(type)));
+  ALWAYS(_functorSorts.insert(functor, toSort(type)));
 }
 
 unsigned Signature::getFunctorSort(unsigned functor){
