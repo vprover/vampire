@@ -161,7 +161,9 @@ void SubstitutionTree::insert(Node** pnode,BindingMap& svBindings,LeafData ld, T
   ASS_EQ(_iteratorCnt,0);
   ASS(!initialTerm || mode == VAR_HEAD_TERM);
   ASS(!(svBindings.isEmpty() && mode == VAR_HEAD_TERM));
-
+  
+  cout << "Insert " << ld.toString() << endl;
+  
 #if VDEBUG
   if(tag){cout << "Insert " << ld.toString() << endl;}
 #endif
@@ -264,12 +266,13 @@ start:
   
   //Into pparent we store the node, we might be inserting into.
   //So in the case we do insert, we might check whether this node
-  //needs expansion.
+  //needs expansion.  
+  
   Node** pparent=pnode;
   pnode= hasVarHead ? inode->varHeadChildByType(term,true) :
                       inode->childByTop(term,true);
-
-  if (*pnode == 0) {
+                      
+  if (*pnode == 0) { 
     BindingMap::Iterator svit(svBindings);
     BinaryHeap<Binding, BindingComparator> remainingBindings;
     while (svit.hasNext()) {
@@ -280,15 +283,15 @@ start:
 
     while (!remainingBindings.isEmpty()) {
       Binding b=remainingBindings.pop();
+      hasVarHead = b.term.isTerm() && b.term.term()->hasVarHead();
+
       IntermediateNode* inode = createIntermediateNode(term, b.var,_useC, hasVarHead);
       term=b.term;
       
-      hasVarHead = term.isTerm() && term.term()->hasVarHead();
-
       *pnode = inode;
       pnode = hasVarHead ? inode->varHeadChildByType(term,true) :
                            inode->childByTop(term,true);  
-      ASS(!pnode);                           
+      //ASS(!pnode);                           
     }
     Leaf* lnode=hasVarHead ? createLeaf(term, true) : createLeaf(term);
     *pnode=lnode;

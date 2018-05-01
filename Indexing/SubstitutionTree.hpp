@@ -546,9 +546,17 @@ public:
     _varHeadChildrenSize(0)
     {
       ASS(ts.isTerm());
-      Term* t = ts.term();
-      ASS(t->hasVarHead());
-      termType = env.signature->getVarType(t->functor());
+      if(ts.isTerm()){
+        Term* t = ts.term();
+        //This is a commonly required code construct. Turn into macro?
+        if(t->hasVarHead()){
+          termType = env.signature->getVarType(t->functor());
+        } else {
+          termType = env.signature->getFunction(t->functor())->fnType();
+        }
+      } else { //variable
+        termType = 0;
+      }
       _hoVarNodes[0]=0;
     }
 
