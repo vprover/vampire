@@ -96,6 +96,9 @@ public:
   {
   }
 
+  inline
+  virtual OperatorType* getType() { return termType; }
+
   CLASS_NAME(SubstitutionTree::HoUListLeaf);
   USE_ALLOCATOR(HoUListLeaf);
 private:
@@ -228,7 +231,7 @@ SubstitutionTree::Node** SubstitutionTree::HoUArrIntermediateNode::
     ASS_L(_varHeadChildrenSize,UARR_INTERMEDIATE_NODE_MAX_SIZE);
     ASS_EQ(_hoVarNodes[_varHeadChildrenSize],0);
     _hoVarNodes[++_varHeadChildrenSize]=0;
-    return &_nodes[_varHeadChildrenSize-1];
+    return &_hoVarNodes[_varHeadChildrenSize-1];
   }
   return 0;
 }

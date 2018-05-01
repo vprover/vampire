@@ -69,7 +69,9 @@ using namespace Kernel;
 
 #define UARR_INTERMEDIATE_NODE_MAX_SIZE 4
 
-#define REORDERING 1
+//SWITCHED OFF REORDERING FOR HIGHER ORDER DEVELOPMENT.
+//ENSURE THAT SWITCH BACK ON ONCE UPDATED.
+#define REORDERING 0
 
 namespace Indexing {
 
@@ -97,9 +99,12 @@ public:
   struct LeafData {
     LeafData() {}
     LeafData(Clause* cls, Literal* literal, TermList term)
-    : clause(cls), literal(literal), term(term) {}
+    : clause(cls), literal(literal), term(term), higherOrder(false){}
     LeafData(Clause* cls, Literal* literal)
-    : clause(cls), literal(literal) { term.makeEmpty(); }
+    : clause(cls), literal(literal), higherOrder(false){ 
+      term.makeEmpty(); 
+    }
+
     inline
     bool operator==(const LeafData& o)
     { return clause==o.clause && literal==o.literal && term==o.term; }
@@ -107,59 +112,35 @@ public:
     Clause* clause;
     Literal* literal;
     TermList term;
+    bool higherOrder;
+    Stack<pair<unsigned, unsigned>> funcToFuncMap;  
 
-    virtual unsigned getFunctor(unsigned f) { NOT_IMPLEMENTED; }
-    virtual void insertFunctorPair(TermList* tt, TermList* ss) { NOT_IMPLEMENTED; }
-    virtual bool isHoLeafData() { return false; }
-    
+    void insertFunctorPair(TermList* treeTerm, TermList* insertTerm){
+      ASS(treeTerm->isTerm());
+      ASS(insertTerm->isTerm());
+      ASS(higherOrder);
+
+      Term* t = treeTerm->term();
+      Term* s = insertTerm->term();
+      
+      if(t->functor() != s->functor()){
+        funcToFuncMap.push(make_pair(t->functor(), s->functor()));
+      }
+    } 
+    /* 
+    unsigned getFunctor(unsigned functor){
+      ASS(higherOrder);
+      unsigned res = 0;
+      ALWAYS(funcToFuncMap.find(functor, res));
+      return res;
+    } */  
+
     vstring toString(){
       vstring ret = "LD " + literal->toString();// + " in " + clause->literalsOnlyToString();
       if(!term.isEmpty()){ ret += " with " +term.toString(); }
       return ret;
     }
 
-  };
-  
-  struct HoLeafData :
-   public LeafData {
-     
-    HoLeafData() {}
-    HoLeafData(Clause* cls, Literal* literal, TermList term)
-    : LeafData(cls, literal, term), funcToFuncMap() {}
-    HoLeafData(Clause* cls, Literal* literal)
-    : LeafData(cls, literal), funcToFuncMap() {}
-
-    virtual bool isHoLeafData() { return true; }
-    
-    /** 
-      On inserting into substitution tree, it is possible that some 
-      higher-order variable functors will require 'renaming'. These are 
-      recorded in the map below. For example Term X_1(a,b) is in the 
-      tree where X_1 has functor 9. Next, we attempt to insert X_2(a,b) 
-      where X_2 has functor 10. In this case (9, 10) will be inserted 
-      into map for the leaf data related to X_2(a,b). This is necessary 
-      for correct recording of higher-order substituions required during 
-      unification.
-    */   
-  
-    virtual void insertFunctorPair(TermList* treeTerm, TermList* insertTerm){
-      ASS(treeTerm->isTerm());
-      ASS(insertTerm->isTerm());
-      
-      Term* t = treeTerm->term();
-      Term* s = insertTerm->term();
-      
-      if(t->functor() != s->functor()){
-        unsigned res = funcToFuncMap.findOrInsert(t->functor(), s->functor());
-        ASS_EQ(res, s->functor());
-      }
-    }  
-    virtual unsigned getFunctor(unsigned functor){
-      unsigned res = 0;
-      ALWAYS(funcToFuncMap.find(functor, res));
-      return res;
-    }    
-    DHMap<unsigned, unsigned> funcToFuncMap;    
   };
   
   
@@ -458,8 +439,14 @@ public:
   static void ensureLeafEfficiency(Leaf** l);
   inline
   static LeafData createLeafData(Clause* cls, Literal* lit, TermList t, bool ho = false){
-    if(ho){ return HoLeafData(cls, lit, t); }
-    return LeafData(cls, lit, t);    
+    LeafData ld  = LeafData(cls, lit, t);
+    if(ho){ld.higherOrder = true;} 
+    return ld;   
+  }
+  static LeafData createLeafData(Clause* cls, Literal* lit, bool ho = false){
+    LeafData ld  = LeafData(cls, lit);
+    if(ho){ld.higherOrder = true;} 
+    return ld;    
   }
   static IntermediateNode* createIntermediateNode(unsigned childVar,bool constraints);
   static IntermediateNode* createIntermediateNode(TermList ts, unsigned childVar,bool constraints, bool higherOrder = false);
