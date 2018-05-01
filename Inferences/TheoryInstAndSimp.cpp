@@ -81,20 +81,54 @@ bool TheoryInstAndSimp::isPure(Literal* lit) {
     return false;
   if (! lit->hasInterpretedConstants() )
     return false;
-  
   return false;
 }
 
-
-void TheoryInstAndSimp::selectTrivialLiterals(Clause* cl, Stack<Literal*>& trivialLits) {
-  Clause::Iterator it(*cl);
-  
-  
-  
-}
-  
 /**
- * 
+ * Scans through a clause and selects all trivial literals
+ **/
+void TheoryInstAndSimp::selectTrivialLiterals(Clause* cl,
+                                              Stack<Literal*>& trivialLits)
+{
+  cout << "selecting trivial literals" << endl ;
+  /* find trivial candidates of the form x != t (x not occurring in t) */
+  Clause::Iterator it(*cl);
+  Stack<Literal*> triv_candidates;
+  Stack<Literal*> nontrivial;
+  while( it.hasNext() ) {
+    Literal* c = it.next();
+    if (c->isNegative()
+        && c->isEquality()) {
+      const TermList* left = c->nthArgument(0);
+      const TermList* right = c->nthArgument(1);
+      if (left->isVar() &&
+          right->isTerm() &&
+          !IntList::member(left->var(), right->term()->freeVariables()) ) {
+        triv_candidates.push(c);
+      } else if(left->isVar() &&
+                right->isTerm() &&
+                !IntList::member(right->var(), left->term()->freeVariables()) ) {
+        triv_candidates.push(c);
+      } else if(left->isVar() && right->isVar()) {
+        //TODO:special treatment
+        cout << "Found variable equality " << c << endl;
+      } else {
+        nontrivial.push(c);
+      }
+
+    }
+    else {
+      nontrivial.push(c);
+    }
+  }
+  cout << "Found " << triv_candidates.length() << " trivial candidates." << endl;
+  cout << "Found " << nontrivial.length() << " nontrivial literals." << endl;
+
+}
+
+
+/**
+ * Scans through a clause and selects candidates for theory instantiation
  **/
 void TheoryInstAndSimp::selectTheoryLiterals(Clause* cl, Stack<Literal*>& theoryLits,bool forZ3)
 {
@@ -106,24 +140,26 @@ void TheoryInstAndSimp::selectTheoryLiterals(Clause* cl, Stack<Literal*>& theory
   static Shell::Options::TheoryInstSimp selection = env.options->theoryInstAndSimp();
   ASS(selection!=Shell::Options::TheoryInstSimp::OFF);
 
+  Stack<Literal*> trivial_lits;
+  selectTrivialLiterals(cl, trivial_lits);
+
   Stack<Literal*> weak;
   Set<unsigned> strong_vars;
   Set<unsigned> strong_symbols;
   Array<Stack<Literal*>> var_to_lits(cl->varCnt());
-  
 
   Clause::Iterator it(*cl);
-  std::cerr << "Thi: " << cl -> toNiceString() << std::endl;
+  std::cerr << "Thi: " << cl->toNiceString() << std::endl;
   while(it.hasNext()){
     Literal* lit = it.next();
-    std::cerr << "Iterating: " << lit -> toString() << std::endl;
+    std::cerr << "Iterating: " << lit->toString() << std::endl;
     bool interpreted = theory->isInterpretedPredicate(lit);
 
     // two var equalities are correctly identified as interpreted and should be added
     // for the other equalities, we make sure they don't contain uninterpreted stuff (after flattenning)
 
     //TODO I do this kind of check all over the place but differently every time!
-    if(interpreted && lit->isEquality() && !lit->isTwoVarEquality()) {  
+    if(interpreted && lit->isEquality() && !lit->isTwoVarEquality()) {
       for(TermList* ts = lit->args(); ts->isNonEmpty(); ts = ts->next()){
         if(ts->isTerm() && !env.signature->getFunction(ts->term()->functor())->interpreted()){
           interpreted=false;
