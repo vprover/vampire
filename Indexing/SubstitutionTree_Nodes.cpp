@@ -54,6 +54,8 @@ public:
   inline
   int size() const { return _size; }
   inline
+  bool isHigherOrder() const { return false; } 
+  inline
   LDIterator allChildren()
   {
     return pvi( LDList::RefIterator(_children) );
@@ -73,10 +75,12 @@ public:
 
   CLASS_NAME(SubstitutionTree::UListLeaf);
   USE_ALLOCATOR(UListLeaf);
-private:
+protected:
   typedef List<LeafData> LDList;
   LDList* _children;
   int _size;
+
+  friend class SubstitutionTree;
 };
 
 
@@ -97,6 +101,8 @@ public:
   }
 
   inline
+  bool isHigherOrder() const { return true; } 
+  inline
   virtual OperatorType* getType() { return termType; }
 
   CLASS_NAME(SubstitutionTree::HoUListLeaf);
@@ -112,12 +118,14 @@ public:
   SListLeaf() {}
   SListLeaf(TermList ts) : Leaf(ts) {}
 
-  static SListLeaf* assimilate(Leaf* orig);
+  static SListLeaf* assimilate(Leaf* orig, bool ho = false);
 
   inline
   NodeAlgorithm algorithm() const { return SKIP_LIST; }
   inline
   bool isEmpty() const { return _children.isEmpty(); }
+  inline
+  bool isHigherOrder() const { return false; } 
 #if VDEBUG
   inline
   int size() const { return _children.size(); }
@@ -132,11 +140,35 @@ public:
 
   CLASS_NAME(SubstitutionTree::SListLeaf);
   USE_ALLOCATOR(SListLeaf);
-private:
+protected:
   typedef SkipList<LeafData,LDComparator> LDSkipList;
   LDSkipList _children;
 
   friend class SubstitutionTree;
+};
+
+
+class SubstitutionTree::HoSListLeaf
+: public SListLeaf
+{
+public:
+  HoSListLeaf() {}
+  HoSListLeaf(TermList ts) : SListLeaf(ts) {
+    ASS(ts.isTerm());
+    Term* t = ts.term();
+    ASS(t->hasVarHead());
+    termType = env.signature->getVarType(t->functor());
+  }
+
+  inline
+  virtual OperatorType* getType() { return termType; }
+  inline
+  bool isHigherOrder() const { return true; } 
+
+  CLASS_NAME(SubstitutionTree::HoSListLeaf);
+  USE_ALLOCATOR(HoSListLeaf);
+private:
+  OperatorType* termType;
 };
 
 
@@ -164,6 +196,36 @@ SubstitutionTree::IntermediateNode* SubstitutionTree::createIntermediateNode(Ter
   if(ho){ return new HoUArrIntermediateNode(ts, childVar); }
   if(useC){ return new UArrIntermediateNodeWithSorts(ts, childVar); }
   return new UArrIntermediateNode(ts, childVar);
+}
+
+SubstitutionTree::IntermediateNode* SubstitutionTree::convertToHigherOrder(IntermediateNode* node)
+{
+  ASS(!node->isHigherOrder())
+  IntermediateNode* hoNode;
+  if(node->algorithm() == SKIP_LIST){
+    hoNode = new HoSListIntermediateNode(node->term, node->childVar);
+    static_cast<SListIntermediateNode*>(hoNode)->_nodes = 
+              static_cast<SListIntermediateNode*>(node)->_nodes;
+  } else {
+    hoNode = new HoUArrIntermediateNode(node->term, node->childVar);
+    static_cast<UArrIntermediateNode*>(hoNode)->_nodes[0] = 
+          static_cast<UArrIntermediateNode*>(node)->_nodes[0];
+  }
+  return hoNode;
+}
+
+SubstitutionTree::Leaf* SubstitutionTree::convertToHigherOrder(Leaf* leaf)
+{
+  ASS(!leaf->isHigherOrder())
+  Leaf* hoLeaf;
+  if(leaf->algorithm() == SKIP_LIST){
+    hoLeaf = new HoSListLeaf(leaf->term);
+    static_cast<SListLeaf*>(hoLeaf)->_children = static_cast<SListLeaf*>(leaf)->_children;
+  } else {
+    hoLeaf = new HoUListLeaf(leaf->term);
+    static_cast<UListLeaf*>(hoLeaf)->_children = static_cast<UListLeaf*>(leaf)->_children;
+  }
+  return hoLeaf;
 }
 
 void SubstitutionTree::IntermediateNode::destroyChildren()
@@ -223,6 +285,7 @@ SubstitutionTree::Node** SubstitutionTree::HoUArrIntermediateNode::
   }
 
   for(int i=0;i<_varHeadChildrenSize;i++) {
+    cout << " currently checking for type equality with term " + _hoVarNodes[i]->term.toString() << endl;
     if(searchType == _hoVarNodes[i]->getType()){
       return &_hoVarNodes[i];
     }
@@ -285,12 +348,14 @@ void SubstitutionTree::HoUArrIntermediateNode::remove(TermList t)
  * SListIntermediateNode with the same content.
  */
 SubstitutionTree::IntermediateNode* SubstitutionTree::SListIntermediateNode
-	::assimilate(IntermediateNode* orig)
+	::assimilate(IntermediateNode* orig, bool ho)
 {
   CALL("SubstitutionTree::SListIntermediateNode::assimilate");
 
   IntermediateNode* res= 0;
-  if(orig->withSorts()){
+  if(ho){
+    res = new HoSListIntermediateNode(orig->term, orig->childVar);
+  }else if(orig->withSorts()){
     res = new SListIntermediateNodeWithSorts(orig->term, orig->childVar);
   }else{
     res = new SListIntermediateNode(orig->term, orig->childVar);
@@ -305,32 +370,38 @@ SubstitutionTree::IntermediateNode* SubstitutionTree::SListIntermediateNode
  * Take a Leaf, destroy it, and return SListLeaf
  * with the same content.
  */
-SubstitutionTree::SListLeaf* SubstitutionTree::SListLeaf::assimilate(Leaf* orig)
+SubstitutionTree::SListLeaf* SubstitutionTree::SListLeaf::assimilate(Leaf* orig, bool ho)
 {
   CALL("SubstitutionTree::SListLeaf::assimilate");
 
-  SListLeaf* res=new SListLeaf(orig->term);
+  SListLeaf* res= 0;
+  if(ho){
+    res = new HoSListLeaf(orig->term);
+  } else {
+    res = new SListLeaf(orig->term);
+  }
   res->loadChildren(orig->allChildren());
   orig->makeEmpty();
   delete orig;
   return res;
 }
 
-void SubstitutionTree::ensureLeafEfficiency(Leaf** leaf)
+void SubstitutionTree::ensureLeafEfficiency(Leaf** leaf, bool ho)
 {
   CALL("SubstitutionTree::ensureLeafEfficiency");
 
   if( (*leaf)->algorithm()==UNSORTED_LIST && (*leaf)->size()>5 ) {
-    *leaf=SListLeaf::assimilate(*leaf);
+    *leaf=SListLeaf::assimilate(*leaf, ho);
   }
 }
 
-void SubstitutionTree::ensureIntermediateNodeEfficiency(IntermediateNode** inode)
+void SubstitutionTree::ensureIntermediateNodeEfficiency(IntermediateNode** inode, bool ho)
 {
   CALL("SubstitutionTree::ensureIntermediateNodeEfficiency");
 
   if( (*inode)->algorithm()==UNSORTED_LIST && (*inode)->size()>3 ) {
-    *inode=SListIntermediateNode::assimilate(*inode);
+    cout << "ENSURING EFFICIENCECY OF NODE WITH TERM " + (*inode)->term.toString() + " and it is a higher-order node: " << ho << endl; 
+    *inode=SListIntermediateNode::assimilate(*inode, ho);
   }
 }
 

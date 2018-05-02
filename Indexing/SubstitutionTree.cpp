@@ -179,7 +179,7 @@ void SubstitutionTree::insert(Node** pnode,BindingMap& svBindings,LeafData ld, T
   }
   if(svBindings.isEmpty()) {
     ASS((*pnode)->isLeaf());
-    ensureLeafEfficiency(reinterpret_cast<Leaf**>(pnode));
+    ensureLeafEfficiency(reinterpret_cast<Leaf**>(pnode), (*pnode)->isHigherOrder());
     static_cast<Leaf*>(*pnode)->insert(ld);
     return;
   }
@@ -266,8 +266,9 @@ start:
   //So in the case we do insert, we might check whether this node
   //needs expansion.  
   
-  if(!tag){ cout << "reached here with term " + term.toString() << endl; } 
-  
+  if(!tag){ cout << "reached here with pnode term " + (*pnode)->term.toString() + " and boundVar S" << boundVar << endl; } 
+  if(!tag){ cout << "we are searching for term, either by type or functor " + term.toString()  << endl; } 
+
   Node** pparent=pnode;
   pnode= hasVarHead ? inode->varHeadChildByType(term,true) :
                       inode->childByTop(term,true);
@@ -302,16 +303,16 @@ start:
     Leaf* lnode=hoIntermediateNode ? createLeaf(term, true) : createLeaf(term);
     *pnode=lnode;
     lnode->insert(ld);
-
-    ensureIntermediateNodeEfficiency(reinterpret_cast<IntermediateNode**>(pparent));
+    
+    ensureIntermediateNodeEfficiency(reinterpret_cast<IntermediateNode**>(pparent), (*pparent)->isHigherOrder());
     return;
   }
+
+  if(!tag){ cout << "reached here with pnode term " + (*pnode)->term.toString() << endl; } 
 
   TermList* tt = &term;
   TermList* ss = &(*pnode)->term;
   
-  if(!tag){ cout << "reached here with node term " + ss->toString() << endl; } 
-
   bool equivVarHeads = false;
   bool sameArgs = false;
   if(!hasVarHead){
@@ -389,7 +390,7 @@ start:
 
   if (svBindings.isEmpty()) {
     ASS((*pnode)->isLeaf());
-    ensureLeafEfficiency(reinterpret_cast<Leaf**>(pnode));
+    ensureLeafEfficiency(reinterpret_cast<Leaf**>(pnode), (*pnode)->isHigherOrder());
     Leaf* leaf = static_cast<Leaf*>(*pnode);
     leaf->insert(ld);
     return;
@@ -483,7 +484,7 @@ void SubstitutionTree::remove(Node** pnode,BindingMap& svBindings,LeafData ld)
 
   Leaf* lnode = static_cast<Leaf*>(*pnode);
   lnode->remove(ld);
-  ensureLeafEfficiency(reinterpret_cast<Leaf**>(pnode));
+  ensureLeafEfficiency(reinterpret_cast<Leaf**>(pnode), (*pnode)->isHigherOrder());
 
   while( (*pnode)->isEmpty() ) {
     TermList term=(*pnode)->term;
@@ -497,7 +498,7 @@ void SubstitutionTree::remove(Node** pnode,BindingMap& svBindings,LeafData ld)
       parent->remove(term);
       delete node;
       pnode=history.pop();
-      ensureIntermediateNodeEfficiency(reinterpret_cast<IntermediateNode**>(pnode));
+      ensureIntermediateNodeEfficiency(reinterpret_cast<IntermediateNode**>(pnode), (*pnode)->isHigherOrder());
     }
   }
 } // SubstitutionTree::remove
@@ -677,20 +678,17 @@ void SubstitutionTree::Node::split(Node** pnode, TermList* where, int var)
   CALL("SubstitutionTree::Node::split");
 
   Node* node=*pnode;
-
+ 
   TermList ts = node->term;
   bool childHasVarHead = where->isTerm() && where->term()->hasVarHead();
   bool hoIntermediateNode = childHasVarHead || (ts.isTerm() && ts.term()->hasVarHead());
-  
-  cout << "SPLITTING " + ts.toString() + " and hoIntermediateNode is : " << hoIntermediateNode << endl;
-  
+   
   IntermediateNode* newNode = createIntermediateNode(ts, var,node->withSorts(), hoIntermediateNode);
-  node->term=*where;
   *pnode=newNode;
 
   where->makeSpecialVar(var);
 
-  TermList term = node->term;
+  TermList term = *where;
   Node** nodePosition;
   if(childHasVarHead){
     nodePosition=newNode->varHeadChildByType(term, true);
@@ -698,7 +696,19 @@ void SubstitutionTree::Node::split(Node** pnode, TermList* where, int var)
     nodePosition=newNode->childByTop(term, true);
   }
   ASS(!*nodePosition);
-  *nodePosition=node;
+  node->term=*where;
+  if(node->isHigherOrder() || !childHasVarHead){
+    *nodePosition=node;
+  } else {
+    if(node->isLeaf()){
+      *nodePosition=convertToHigherOrder(static_cast<Leaf*>(node));
+    } else {
+      *nodePosition=convertToHigherOrder(static_cast<IntermediateNode*>(node));
+    }
+    //check what happens on deleting. Does this remove all children for UArr array?
+    //if so I have problems here.
+    delete node;
+  }
 }
 
 //This requires modification AYB.
@@ -708,7 +718,13 @@ void SubstitutionTree::IntermediateNode::loadChildren(NodeIterator children)
 
   while(children.hasNext()) {
     Node* ext=*children.next();
-    Node** own=childByTop(ext->term, true);
+    TermList extterm = ext->term;
+    Node** own;
+    if(extterm.isTerm() && extterm.term()->hasVarHead()){
+      own=varHeadChildByType(ext->term, true);
+    } else {
+      own=childByTop(ext->term, true);
+    }
     ASS(! *own);
     *own=ext;
   }
