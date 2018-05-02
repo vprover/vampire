@@ -251,6 +251,35 @@ void SubstitutionTree::UArrIntermediateNode::remove(TermList t)
   ASSERTION_VIOLATION;
 }
 
+void SubstitutionTree::HoUArrIntermediateNode::remove(TermList t)
+{
+  CALL("SubstitutionTree::UArrIntermediateNode::remove");
+
+  if(t.isTerm() && t.term()->hasVarHead()){
+    Term* searchTerm = t.term();
+    OperatorType* searchType = env.signature->getVarType(searchTerm->functor());
+    for(int i=0;i<_varHeadChildrenSize;i++) {
+      if(searchType == _hoVarNodes[i]->getType()){
+        _varHeadChildrenSize--;
+        _hoVarNodes[i]=_hoVarNodes[_varHeadChildrenSize];
+        _hoVarNodes[_varHeadChildrenSize]=0;
+        return;
+      }
+    }
+    ASSERTION_VIOLATION;   
+  }
+  
+  for(int i=0;i<_size;i++) {
+    if(TermList::sameTop(t, _nodes[i]->term)) {
+      _size--;
+      _nodes[i]=_nodes[_size];
+      _nodes[_size]=0;
+      return;
+    }
+  }
+  ASSERTION_VIOLATION;
+}
+
 /**
  * Take an IntermediateNode, destroy it, and return
  * SListIntermediateNode with the same content.

@@ -501,7 +501,7 @@ public:
   	    IsPtrToVarNodeFn()) );
     }
     virtual Node** childByTop(TermList t, bool canCreate);
-    void remove(TermList t);
+    virtual void remove(TermList t);
 
 #if VDEBUG
     virtual void assertValid() const
@@ -578,8 +578,7 @@ public:
     }*/
 
     virtual Node** varHeadChildByType(TermList t, bool canCreate);
-    //Does this require overriding?
-    //void remove(TermList t);
+    virtual void remove(TermList t);
 
     CLASS_NAME(SubstitutionTree::HoUArrIntermediateNode);
     USE_ALLOCATOR(HoUArrIntermediateNode);

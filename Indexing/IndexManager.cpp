@@ -156,7 +156,7 @@ Index* IndexManager::create(IndexType t)
   case GENERATING_SUBST_TREE:
     is=new LiteralSubstitutionTree(useConstraints);
 #if VDEBUG
-    //is->markTagged();
+    is->markTagged();
 #endif
     _genLitIndex=is;
     res=new GeneratingLiteralIndex(is);
@@ -164,22 +164,34 @@ Index* IndexManager::create(IndexType t)
     break;
   case SIMPLIFYING_SUBST_TREE:
     is=new LiteralSubstitutionTree();
+#if VDEBUG
+    is->markTagged();
+#endif
     res=new SimplifyingLiteralIndex(is);
     isGenerating = false;
     break;
 
   case SIMPLIFYING_UNIT_CLAUSE_SUBST_TREE:
     is=new LiteralSubstitutionTree();
+#if VDEBUG
+    is->markTagged();
+#endif
     res=new UnitClauseLiteralIndex(is);
     isGenerating = false;
     break;
   case GENERATING_UNIT_CLAUSE_SUBST_TREE:
     is=new LiteralSubstitutionTree();
+#if VDEBUG
+    is->markTagged();
+#endif
     res=new UnitClauseLiteralIndex(is);
     isGenerating = true;
     break;
   case GENERATING_NON_UNIT_CLAUSE_SUBST_TREE:
     is=new LiteralSubstitutionTree();
+#if VDEBUG
+    is->markTagged();
+#endif
     res=new NonUnitClauseLiteralIndex(is);
     isGenerating = true;
     break;
@@ -187,7 +199,7 @@ Index* IndexManager::create(IndexType t)
   case SUPERPOSITION_SUBTERM_SUBST_TREE:
     tis=new TermSubstitutionTree(useConstraints);
 #if VDEBUG
-    //tis->markTagged();
+    tis->markTagged();
 #endif
     res=new SuperpositionSubtermIndex(tis, _alg->getOrdering());
     isGenerating = true;
@@ -224,12 +236,18 @@ Index* IndexManager::create(IndexType t)
   case FW_SUBSUMPTION_SUBST_TREE:
     is=new LiteralSubstitutionTree();
 //    is=new CodeTreeLIS();
+#if VDEBUG
+    is->markTagged();
+#endif
     res=new FwSubsSimplifyingLiteralIndex(is);
     isGenerating = false;
     break;
 
   case REWRITE_RULE_SUBST_TREE:
     is=new LiteralSubstitutionTree();
+#if VDEBUG
+    is->markTagged();
+#endif
     res=new RewriteRuleIndex(is, _alg->getOrdering());
     isGenerating = false;
     break;

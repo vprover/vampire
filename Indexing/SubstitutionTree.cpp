@@ -161,11 +161,9 @@ void SubstitutionTree::insert(Node** pnode,BindingMap& svBindings,LeafData ld, T
   ASS_EQ(_iteratorCnt,0);
   ASS(!initialTerm || mode == VAR_HEAD_TERM);
   ASS(!(svBindings.isEmpty() && mode == VAR_HEAD_TERM));
-  
-  //cout << "Insert " << ld.toString() << endl;
-  
+    
 #if VDEBUG
-  if(tag){cout << "Insert " << ld.toString() << endl;}
+  if(!tag){cout << "Insert " << ld.toString() << endl;}
 #endif
 
   if(*pnode == 0) {
@@ -268,6 +266,8 @@ start:
   //So in the case we do insert, we might check whether this node
   //needs expansion.  
   
+  if(!tag){ cout << "reached here with term " + term.toString() << endl; } 
+  
   Node** pparent=pnode;
   pnode= hasVarHead ? inode->varHeadChildByType(term,true) :
                       inode->childByTop(term,true);
@@ -307,9 +307,10 @@ start:
     return;
   }
 
-
   TermList* tt = &term;
   TermList* ss = &(*pnode)->term;
+  
+  if(!tag){ cout << "reached here with node term " + ss->toString() << endl; } 
 
   bool equivVarHeads = false;
   bool sameArgs = false;
@@ -348,12 +349,12 @@ start:
       tt = t->args();
       equivVarHeads = TermList::equivVarHeads(*ss, *tt);
       sameArgs = TermList::sameArgs(*ss, *tt);
-      if (ss->next()->isEmpty()) {
-        continue;
-      }
       if(equivVarHeads){
         ASS(ld.higherOrder);
         ld.insertFunctorPair(ss, tt);
+      }
+      if (ss->next()->isEmpty()) {
+        continue;
       }
       subterms.push(ss->next());
       subterms.push(tt->next());
@@ -424,7 +425,7 @@ void SubstitutionTree::remove(Node** pnode,BindingMap& svBindings,LeafData ld)
 
     unsigned boundVar=inode->childVar;
     TermList t = svBindings.get(boundVar);
-    bool hasVarHead = t.isTerm() && t.term()->hasVarHead()
+    bool hasVarHead = t.isTerm() && t.term()->hasVarHead();
 
     pnode= hasVarHead ? inode->varHeadChildByType(t,false) : 
                         inode->childByTop(t,false) ;
@@ -432,7 +433,7 @@ void SubstitutionTree::remove(Node** pnode,BindingMap& svBindings,LeafData ld)
 
 
     TermList* s = &(*pnode)->term;
-    ASS(TermList::sameTop(*s,t));
+    ASS(TermList::sameTop(*s,t) || TermList::equivVarHeads(*s, t));
 
     if(*s==t) {
       continue;
@@ -466,7 +467,8 @@ void SubstitutionTree::remove(Node** pnode,BindingMap& svBindings,LeafData ld)
         continue;
       }
       ASS(! tt->isVar());
-      ASS(ss->term()->functor() == tt->term()->functor());
+      ASS(ss->term()->functor() == tt->term()->functor() ||
+          TermList::equivVarHeads(*ss, *tt));
       ss = ss->term()->args();
       if (! ss->isEmpty()) {
         ASS(! tt->term()->args()->isEmpty());
@@ -679,6 +681,8 @@ void SubstitutionTree::Node::split(Node** pnode, TermList* where, int var)
   TermList ts = node->term;
   bool childHasVarHead = where->isTerm() && where->term()->hasVarHead();
   bool hoIntermediateNode = childHasVarHead || (ts.isTerm() && ts.term()->hasVarHead());
+  
+  cout << "SPLITTING " + ts.toString() + " and hoIntermediateNode is : " << hoIntermediateNode << endl;
   
   IntermediateNode* newNode = createIntermediateNode(ts, var,node->withSorts(), hoIntermediateNode);
   node->term=*where;

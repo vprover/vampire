@@ -62,12 +62,19 @@ void LiteralSubstitutionTree::handleLiteral(Literal* lit, Clause* cls, bool inse
   BindingMap svBindings;
   getBindings(normLit, svBindings);
   if(insert) {
-    cout << "THE TREE IS " + SubstitutionTree::toString() << endl;
+    if( !this->tag ){
+    cout << "THE TREE IS: \n " + SubstitutionTree::toString() << endl;
     cout << "Into " << this << " insert " << lit->toString() + " at index " << getRootNodeIndex(normLit) << endl;
+    }
     SubstitutionTree::insert(&_nodes[getRootNodeIndex(normLit)], svBindings, ld);
-    cout << " NOW THE TREE IS " + SubstitutionTree::toString() << endl;
+    if( !this->tag ){
+    cout << " NOW THE TREE IS: \n " + SubstitutionTree::toString() << endl;
+    }
   } else {
+    cout << "THE TREE IS: \n " + SubstitutionTree::toString() << endl;
+    cout << "From " << this << " remove " << lit->toString() + " at index " << getRootNodeIndex(normLit) << endl;
     SubstitutionTree::remove(&_nodes[getRootNodeIndex(normLit)], svBindings, ld);
+    cout << " NOW THE TREE IS: \n " + SubstitutionTree::toString() << endl;
   }
 }
 
