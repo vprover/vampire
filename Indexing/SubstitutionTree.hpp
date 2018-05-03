@@ -157,25 +157,25 @@ public:
           //cout << "XXX " << ld1.clause << " and " << ld2.clause << endl;
           //cout << ld2.clause->toString() << endl;
         //}
-  ASS_NEQ(ld1.clause->number(), ld2.clause->number());
-  return (ld1.clause->number()<ld2.clause->number()) ? LESS : GREATER;
+        ASS_NEQ(ld1.clause->number(), ld2.clause->number());
+        return (ld1.clause->number()<ld2.clause->number()) ? LESS : GREATER;
       }
       Comparison res;
       if(ld1.literal && ld2.literal && ld1.literal!=ld2.literal) {
-  res=(ld1.literal->weight()>ld2.literal->weight())? LESS ://minimizing the non-determinism
-    (ld1.literal->weight()<ld2.literal->weight())? GREATER :
-    (ld1.literal<ld2.literal)? LESS : GREATER;
-  ASS_NEQ(res, EQUAL);
+        res=(ld1.literal->weight()>ld2.literal->weight())? LESS ://minimizing the non-determinism
+          (ld1.literal->weight()<ld2.literal->weight())? GREATER :
+          (ld1.literal<ld2.literal)? LESS : GREATER;
+        ASS_NEQ(res, EQUAL);
       } else {
-  ASS_EQ(ld1.clause,ld2.clause);
-  ASS_EQ(ld1.literal,ld2.literal);
-//  if(ld1.term.isEmpty()) {
-//    ASS(ld2.term.isEmpty());
-//    res=EQUAL;
-//  } else {
-//    res=Term::lexicographicCompare(ld1.term,ld2.term);
-//  }
-  res=(ld1.term<ld2.term)? LESS : (ld1.term>ld2.term)? GREATER : EQUAL;
+        ASS_EQ(ld1.clause,ld2.clause);
+        ASS_EQ(ld1.literal,ld2.literal);
+      //  if(ld1.term.isEmpty()) {
+      //    ASS(ld2.term.isEmpty());
+      //    res=EQUAL;
+      //  } else {
+      //    res=Term::lexicographicCompare(ld1.term,ld2.term);
+      //  }
+        res=(ld1.term<ld2.term)? LESS : (ld1.term>ld2.term)? GREATER : EQUAL;
       }
       return res;
     }
@@ -242,64 +242,87 @@ public:
   typedef List<Node*> NodeList;
   class IntermediateNode;
     
-    class ChildBySortHelper
-    {
-    public:
-        
-        CLASS_NAME(SubstitutionTree::ChildBySortHelper);
-        USE_ALLOCATOR(ChildBySortHelper);
-        
-        ChildBySortHelper(IntermediateNode* p):  _parent(p)
-        {
-            bySort.ensure(Sorts::FIRST_USER_SORT);
-            bySortTerms.ensure(Sorts::FIRST_USER_SORT);
-        }
-        
-        /**
-         * Return an iterator of child nodes whose top term has the same sort
-         * as Termlist t. Only consider interpreted sorts.
-         *
-         */
-        NodeIterator childBySort(TermList t)
-        {
-            CALL("SubstitutionTree::ChildBySortHelper::childBySort");
-            unsigned srt;
-            // only consider interpreted sorts
-            if(SortHelper::tryGetResultSort(t,srt) && srt < Sorts::FIRST_USER_SORT && srt!=Sorts::SRT_DEFAULT){
-                unsigned top = t.term()->functor();
-                Stack<TermList>::Iterator fit(bySortTerms[srt]);
-                auto withoutThisTop = getFilteredIterator(fit,NotTop(top));
-                auto nodes = getMappingIterator(withoutThisTop,ByTopFn(this));
-                return pvi(getFilteredIterator(nodes,NonzeroFn()));
-            }
-            return NodeIterator::getEmpty();
-        }
-        
-        DArray<DHSet<unsigned>> bySort;
-        DArray<Stack<TermList>> bySortTerms;
-        
-        IntermediateNode* _parent;
-        /*
-         * This is used for recording terms that might
-         */
-        void mightExistAsTop(TermList t)
-        {
-            CALL("SubstitutionTree::ChildBySortHelper::mightExistAsTop");
-            if(!t.isTerm()){ return; }
-            unsigned srt;
-            if(SortHelper::tryGetResultSort(t,srt)){
-                if(srt > Sorts::SRT_DEFAULT && srt < Sorts::FIRST_USER_SORT){
-                    unsigned f = t.term()->functor();
-                    if(bySort[srt].insert(f)){
-                        bySortTerms[srt].push(t);
-                    }
-                }
-            }
-        }
-        
-    };// class SubstitutionTree::ChildBySortHelper
+  class ChildBySortHelper
+  {
+  public:
+      
+      CLASS_NAME(SubstitutionTree::ChildBySortHelper);
+      USE_ALLOCATOR(ChildBySortHelper);
+      
+      ChildBySortHelper(IntermediateNode* p):  _parent(p)
+      {
+          bySort.ensure(Sorts::FIRST_USER_SORT);
+          bySortTerms.ensure(Sorts::FIRST_USER_SORT);
+      }
+      
+      /**
+       * Return an iterator of child nodes whose top term has the same sort
+       * as Termlist t. Only consider interpreted sorts.
+       *
+       */
+      NodeIterator childBySort(TermList t)
+      {
+          CALL("SubstitutionTree::ChildBySortHelper::childBySort");
+          unsigned srt;
+          // only consider interpreted sorts
+          if(SortHelper::tryGetResultSort(t,srt) && srt < Sorts::FIRST_USER_SORT && srt!=Sorts::SRT_DEFAULT){
+              unsigned top = t.term()->functor();
+              Stack<TermList>::Iterator fit(bySortTerms[srt]);
+              auto withoutThisTop = getFilteredIterator(fit,NotTop(top));
+              auto nodes = getMappingIterator(withoutThisTop,ByTopFn(this));
+              return pvi(getFilteredIterator(nodes,NonzeroFn()));
+          }
+          return NodeIterator::getEmpty();
+      }
+      
+      DArray<DHSet<unsigned>> bySort;
+      DArray<Stack<TermList>> bySortTerms;
+      
+      IntermediateNode* _parent;
+      /*
+       * This is used for recording terms that might
+       */
+      void mightExistAsTop(TermList t)
+      {
+          CALL("SubstitutionTree::ChildBySortHelper::mightExistAsTop");
+          if(!t.isTerm()){ return; }
+          unsigned srt;
+          if(SortHelper::tryGetResultSort(t,srt)){
+              if(srt > Sorts::SRT_DEFAULT && srt < Sorts::FIRST_USER_SORT){
+                  unsigned f = t.term()->functor();
+                  if(bySort[srt].insert(f)){
+                      bySortTerms[srt].push(t);
+                  }
+              }
+          }
+      }
+      
+  };// class SubstitutionTree::ChildBySortHelper
     
-    
+  class HoNode
+  {
+  public:
+      
+      CLASS_NAME(SubstitutionTree::HoNode);
+      USE_ALLOCATOR(HoNode);
+      
+      inline
+      HoNode(TermList ts){
+        if(ts.isTerm()){
+          termType = getFunctorType(ts.term());
+        } else { //variable
+          termType = 0;
+        }
+      }
+
+      virtual Node** varHeadChildByType(TermList t, bool canCreate) = 0;
+      virtual 
+
+      OperatorType* termType;
+      
+      
+  };// HoNode
+
 
   class IntermediateNode
       : public Node
@@ -545,6 +568,25 @@ public:
       }
       _hoVarNodes[0]=0;
     }
+    HoUArrIntermediateNode(const UArrIntermediateNode* node) : UArrIntermediateNode(node->term, node->childVar),
+    _varHeadChildrenSize(0)
+    {
+      TermList ts = node->term;
+      if(ts.isTerm()){
+        termType = getFunctorType(ts.term());
+      } else { //variable
+        termType = 0;
+      }
+      _size = node->size();
+      //Looping through UArr to copy it. Probably a better method,
+      //but as constructor will only be called rarely should be OK.
+      for(int i = 0; i < _size; i++){
+        _nodes[i] = node->_nodes[i];
+      }
+       _nodes[_size]=0;
+      _hoVarNodes[0]=0;
+    }
+
 
     ~HoUArrIntermediateNode()
     {
@@ -712,12 +754,23 @@ public:
   {
   public:
     HoSListIntermediateNode(unsigned childVar) : SListIntermediateNode(childVar) {}
-    HoSListIntermediateNode(TermList ts, unsigned childVar) : SListIntermediateNode(ts, childVar) {
+    HoSListIntermediateNode(TermList ts, unsigned childVar) : SListIntermediateNode(ts, childVar) 
+    {
       if(ts.isTerm()){
         termType = getFunctorType(ts.term());
       } else { //variable
         termType = 0;
       }
+    }
+    HoSListIntermediateNode(const SListIntermediateNode* node) : SListIntermediateNode(node->term, node->childVar) 
+    {
+      TermList ts = node->term;
+      if(ts.isTerm()){
+        termType = getFunctorType(ts.term());
+      } else { //variable
+        termType = 0;
+      }
+      _nodes.insertFromIterator(NodeSkipList::Iterator(node->_nodes));
     }
 
     ~HoSListIntermediateNode()

@@ -96,6 +96,15 @@ public:
     ASS(t->hasVarHead());
     termType = env.signature->getVarType(t->functor());
   }
+  HoUListLeaf(const UListLeaf* leaf) : UListLeaf(leaf->term) { 
+    TermList ts = leaf->term;
+    ASS(ts.isTerm());
+    Term* t = ts.term();
+    ASS(t->hasVarHead());
+    termType = env.signature->getVarType(t->functor());
+    _children = leaf->_children;
+    _size = leaf->_size;
+  }
   ~HoUListLeaf()
   {
   }
@@ -159,6 +168,14 @@ public:
     ASS(t->hasVarHead());
     termType = env.signature->getVarType(t->functor());
   }
+  HoSListLeaf(const SListLeaf* leaf) : SListLeaf(leaf->term) {
+    TermList ts = leaf->term;
+    ASS(ts.isTerm());
+    Term* t = ts.term();
+    ASS(t->hasVarHead());
+    termType = env.signature->getVarType(t->functor());
+    _children.insertFromIterator(LDSkipList::Iterator(leaf->_children));
+  }
 
   inline
   virtual OperatorType* getType() { return termType; }
@@ -203,14 +220,9 @@ SubstitutionTree::IntermediateNode* SubstitutionTree::convertToHigherOrder(Inter
   ASS(!node->isHigherOrder())
   IntermediateNode* hoNode;
   if(node->algorithm() == SKIP_LIST){
-    hoNode = new HoSListIntermediateNode(node->term, node->childVar);
-    static_cast<SListIntermediateNode*>(hoNode)->_nodes = 
-              static_cast<SListIntermediateNode*>(node)->_nodes;
+    hoNode = new HoSListIntermediateNode(static_cast<SListIntermediateNode*>(node));
   } else {
-    hoNode = new HoUArrIntermediateNode(node->term, node->childVar);
-    static_cast<UArrIntermediateNode*>(hoNode)->_nodes[0] = 
-          static_cast<UArrIntermediateNode*>(node)->_nodes[0];
-         // cout << "just created a new honode with term " + hoNode->term.toString() << endl;
+    hoNode = new HoUArrIntermediateNode(static_cast<UArrIntermediateNode*>(node));
   }
   return hoNode;
 }
@@ -220,11 +232,9 @@ SubstitutionTree::Leaf* SubstitutionTree::convertToHigherOrder(Leaf* leaf)
   ASS(!leaf->isHigherOrder())
   Leaf* hoLeaf;
   if(leaf->algorithm() == SKIP_LIST){
-    hoLeaf = new HoSListLeaf(leaf->term);
-    static_cast<SListLeaf*>(hoLeaf)->_children = static_cast<SListLeaf*>(leaf)->_children;
+    hoLeaf = new HoSListLeaf(static_cast<SListLeaf*>(leaf));
   } else {
-    hoLeaf = new HoUListLeaf(leaf->term);
-    static_cast<UListLeaf*>(hoLeaf)->_children = static_cast<UListLeaf*>(leaf)->_children;
+    hoLeaf = new HoUListLeaf(static_cast<UListLeaf*>(leaf));
   }
   return hoLeaf;
 }

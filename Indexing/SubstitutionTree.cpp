@@ -163,7 +163,7 @@ void SubstitutionTree::insert(Node** pnode,BindingMap& svBindings,LeafData ld, T
   ASS(!(svBindings.isEmpty() && mode == VAR_HEAD_TERM));
     
 #if VDEBUG
-  if(!tag){cout << "Insert " << ld.toString() << endl;}
+  if(tag){cout << "Insert " << ld.toString() << endl;}
 #endif
 
   if(*pnode == 0) {
@@ -265,11 +265,16 @@ start:
   //Into pparent we store the node, we might be inserting into.
   //So in the case we do insert, we might check whether this node
   //needs expansion.  
-  
-  if(!tag){ cout << "reached here with pnode term " + (*pnode)->term.toString() + " and boundVar S" << boundVar << endl; } 
-  if(!tag){ cout << "we are searching for term, either by type or functor " + term.toString()  << endl; } 
 
   Node** pparent=pnode;
+  if(hasVarHead && !inode->isHigherOrder()){
+    IntermediateNode* tempNode = inode;
+    inode = convertToHigherOrder(tempNode);
+    *pnode = inode;
+    tempNode->makeEmpty(); 
+    delete tempNode;
+  }
+  if(tag){ cout << "reached here with pnode term " + (*pnode)->term.toString() + " and boundVar S" << boundVar << endl; } 
   pnode= hasVarHead ? inode->varHeadChildByType(term,true) :
                       inode->childByTop(term,true);
               
@@ -708,8 +713,6 @@ void SubstitutionTree::Node::split(Node** pnode, TermList* where, int var)
     } else {
       *nodePosition=convertToHigherOrder(static_cast<IntermediateNode*>(node));
     }
-    //check what happens on deleting. Does this remove all children for UArr array?
-    //if so I have problems here.
     node->makeEmpty();
     delete node;
   }
