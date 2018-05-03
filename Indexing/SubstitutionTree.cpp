@@ -679,6 +679,8 @@ void SubstitutionTree::Node::split(Node** pnode, TermList* where, int var)
 
   Node* node=*pnode;
  
+  cout << "SPLITTING term " + node->term.toString() + " on " + where->toString() + " and spec var is S" << var << endl;
+ 
   TermList ts = node->term;
   bool childHasVarHead = where->isTerm() && where->term()->hasVarHead();
   bool hoIntermediateNode = childHasVarHead || (ts.isTerm() && ts.term()->hasVarHead());
@@ -686,9 +688,11 @@ void SubstitutionTree::Node::split(Node** pnode, TermList* where, int var)
   IntermediateNode* newNode = createIntermediateNode(ts, var,node->withSorts(), hoIntermediateNode);
   *pnode=newNode;
 
+  node->term=*where;
+  TermList term = *where;
+  
   where->makeSpecialVar(var);
 
-  TermList term = *where;
   Node** nodePosition;
   if(childHasVarHead){
     nodePosition=newNode->varHeadChildByType(term, true);
@@ -696,7 +700,6 @@ void SubstitutionTree::Node::split(Node** pnode, TermList* where, int var)
     nodePosition=newNode->childByTop(term, true);
   }
   ASS(!*nodePosition);
-  node->term=*where;
   if(node->isHigherOrder() || !childHasVarHead){
     *nodePosition=node;
   } else {
@@ -707,8 +710,10 @@ void SubstitutionTree::Node::split(Node** pnode, TermList* where, int var)
     }
     //check what happens on deleting. Does this remove all children for UArr array?
     //if so I have problems here.
+    node->makeEmpty();
     delete node;
   }
+  cout << "AFTER SPLITTING the parent term is : " + newNode->term.toString() + " and the child term is " + (*nodePosition)->term.toString() << endl; 
 }
 
 //This requires modification AYB.

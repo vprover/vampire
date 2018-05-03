@@ -210,6 +210,7 @@ SubstitutionTree::IntermediateNode* SubstitutionTree::convertToHigherOrder(Inter
     hoNode = new HoUArrIntermediateNode(node->term, node->childVar);
     static_cast<UArrIntermediateNode*>(hoNode)->_nodes[0] = 
           static_cast<UArrIntermediateNode*>(node)->_nodes[0];
+         // cout << "just created a new honode with term " + hoNode->term.toString() << endl;
   }
   return hoNode;
 }
@@ -272,7 +273,7 @@ SubstitutionTree::Node** SubstitutionTree::UArrIntermediateNode::
 SubstitutionTree::Node** SubstitutionTree::HoUArrIntermediateNode::
   varHeadChildByType(TermList t, bool canCreate)
 {
-  CALL("SubstitutionTree::UArrIntermediateNode::varHeadChildBySort");
+  CALL("SubstitutionTree::UArrIntermediateNode::varHeadChildByType");
 
   ASS(t.isTerm());
   Term* searchTerm = t.term();
@@ -285,7 +286,7 @@ SubstitutionTree::Node** SubstitutionTree::HoUArrIntermediateNode::
   }
 
   for(int i=0;i<_varHeadChildrenSize;i++) {
-    cout << " currently checking for type equality with term " + _hoVarNodes[i]->term.toString() << endl;
+    //cout << " currently checking for type equality with term " + _hoVarNodes[i]->term.toString() << endl;
     if(searchType == _hoVarNodes[i]->getType()){
       return &_hoVarNodes[i];
     }
