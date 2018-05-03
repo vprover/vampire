@@ -171,7 +171,7 @@ void SubstitutionTree::insert(Node** pnode,BindingMap& svBindings,LeafData ld, T
       *pnode=createLeaf();
     } else {
       if(mode){
-        *pnode=createIntermediateNode(TermList(initialTerm), svBindings.getOneKey(),_useC, true);
+        *pnode=createIntermediateNode(TermList(initialTerm), svBindings.getOneKey(),_useC);
       } else {
         *pnode=createIntermediateNode(svBindings.getOneKey(),_useC);
       }
@@ -179,7 +179,7 @@ void SubstitutionTree::insert(Node** pnode,BindingMap& svBindings,LeafData ld, T
   }
   if(svBindings.isEmpty()) {
     ASS((*pnode)->isLeaf());
-    ensureLeafEfficiency(reinterpret_cast<Leaf**>(pnode), (*pnode)->isHigherOrder());
+    ensureLeafEfficiency(reinterpret_cast<Leaf**>(pnode));
     static_cast<Leaf*>(*pnode)->insert(ld);
     return;
   }
@@ -255,25 +255,22 @@ start:
   ASS(!(*pnode)->isLeaf());
  
   IntermediateNode* inode = static_cast<IntermediateNode*>(*pnode);
-  ASS(inode);
-  
+  ASS(inode);  
+ 
   unsigned boundVar=inode->childVar;
   TermList term=svBindings.get(boundVar);
   svBindings.remove(boundVar);
   bool hasVarHead = term.isTerm() && term.term()->hasVarHead();
-  
+
+  if(hasVarHead && !inode->hasHigherOrderData()){
+    inode->initialiseHoData();
+  }
   //Into pparent we store the node, we might be inserting into.
   //So in the case we do insert, we might check whether this node
   //needs expansion.  
 
   Node** pparent=pnode;
-  if(hasVarHead && !inode->isHigherOrder()){
-    IntermediateNode* tempNode = inode;
-    inode = convertToHigherOrder(tempNode);
-    *pnode = inode;
-    tempNode->makeEmpty(); 
-    delete tempNode;
-  }
+
   if(tag){ cout << "reached here with pnode term " + (*pnode)->term.toString() + " and boundVar S" << boundVar << endl; } 
   pnode= hasVarHead ? inode->varHeadChildByType(term,true) :
                       inode->childByTop(term,true);
@@ -290,26 +287,26 @@ start:
 
     while (!remainingBindings.isEmpty()) {
       Binding b=remainingBindings.pop();
-      hasVarHead = (b.term.isTerm() && b.term.term()->hasVarHead());
-      bool hoIntermediateNode = hasVarHead || (term.isTerm() && term.term()->hasVarHead());
+      hasVarHead = b.term.isTerm() && b.term.term()->hasVarHead();
       //cout << "The bound var is " << b.var << " and it is binding " + b.term.toString() << endl;
       //cout << "The term is " + term.toString() << endl;
       //cout << "creating ho intermediate node? " << hoIntermediateNode << endl;
 
-      IntermediateNode* inode = createIntermediateNode(term, b.var,_useC, hoIntermediateNode);
+      IntermediateNode* inode = createIntermediateNode(term, b.var,_useC);
+      if(hasVarHead && !inode->hasHigherOrderData()){
+        inode->initialiseHoData();
+      }
       term=b.term;
-      
       *pnode = inode;
       pnode = hasVarHead ? inode->varHeadChildByType(term,true) :
                            inode->childByTop(term,true);  
       //ASS(!pnode);                           
     }
-    bool hoIntermediateNode = hasVarHead || (term.isTerm() && term.term()->hasVarHead());
-    Leaf* lnode=hoIntermediateNode ? createLeaf(term, true) : createLeaf(term);
+    Leaf* lnode=createLeaf(term);
     *pnode=lnode;
     lnode->insert(ld);
     
-    ensureIntermediateNodeEfficiency(reinterpret_cast<IntermediateNode**>(pparent), (*pparent)->isHigherOrder());
+    ensureIntermediateNodeEfficiency(reinterpret_cast<IntermediateNode**>(pparent));
     return;
   }
 
@@ -395,7 +392,7 @@ start:
 
   if (svBindings.isEmpty()) {
     ASS((*pnode)->isLeaf());
-    ensureLeafEfficiency(reinterpret_cast<Leaf**>(pnode), (*pnode)->isHigherOrder());
+    ensureLeafEfficiency(reinterpret_cast<Leaf**>(pnode));
     Leaf* leaf = static_cast<Leaf*>(*pnode);
     leaf->insert(ld);
     return;
@@ -489,7 +486,7 @@ void SubstitutionTree::remove(Node** pnode,BindingMap& svBindings,LeafData ld)
 
   Leaf* lnode = static_cast<Leaf*>(*pnode);
   lnode->remove(ld);
-  ensureLeafEfficiency(reinterpret_cast<Leaf**>(pnode), (*pnode)->isHigherOrder());
+  ensureLeafEfficiency(reinterpret_cast<Leaf**>(pnode));
 
   while( (*pnode)->isEmpty() ) {
     TermList term=(*pnode)->term;
@@ -503,7 +500,7 @@ void SubstitutionTree::remove(Node** pnode,BindingMap& svBindings,LeafData ld)
       parent->remove(term);
       delete node;
       pnode=history.pop();
-      ensureIntermediateNodeEfficiency(reinterpret_cast<IntermediateNode**>(pnode), (*pnode)->isHigherOrder());
+      ensureIntermediateNodeEfficiency(reinterpret_cast<IntermediateNode**>(pnode));
     }
   }
 } // SubstitutionTree::remove
@@ -688,12 +685,14 @@ void SubstitutionTree::Node::split(Node** pnode, TermList* where, int var)
  
   TermList ts = node->term;
   bool childHasVarHead = where->isTerm() && where->term()->hasVarHead();
-  bool hoIntermediateNode = childHasVarHead || (ts.isTerm() && ts.term()->hasVarHead());
-   
-  IntermediateNode* newNode = createIntermediateNode(ts, var,node->withSorts(), hoIntermediateNode);
+  IntermediateNode* newNode = createIntermediateNode(ts, var,node->withSorts());
+  if(childHasVarHead && !newNode->hasHigherOrderData()){
+    newNode->initialiseHoData();
+  }
+
   *pnode=newNode;
 
-  node->term=*where;
+  node->setTerm(*where);
   TermList term = *where;
   
   where->makeSpecialVar(var);
@@ -705,17 +704,10 @@ void SubstitutionTree::Node::split(Node** pnode, TermList* where, int var)
     nodePosition=newNode->childByTop(term, true);
   }
   ASS(!*nodePosition);
-  if(node->isHigherOrder() || !childHasVarHead){
-    *nodePosition=node;
-  } else {
-    if(node->isLeaf()){
-      *nodePosition=convertToHigherOrder(static_cast<Leaf*>(node));
-    } else {
-      *nodePosition=convertToHigherOrder(static_cast<IntermediateNode*>(node));
-    }
-    node->makeEmpty();
-    delete node;
-  }
+  *nodePosition=node;
+  node->makeEmpty();
+  delete node;
+
   cout << "AFTER SPLITTING the parent term is : " + newNode->term.toString() + " and the child term is " + (*nodePosition)->term.toString() << endl; 
 }
 
@@ -729,6 +721,9 @@ void SubstitutionTree::IntermediateNode::loadChildren(NodeIterator children)
     TermList extterm = ext->term;
     Node** own;
     if(extterm.isTerm() && extterm.term()->hasVarHead()){
+      if(!hasHigherOrderData()){
+        initialiseHoData();
+      }
       own=varHeadChildByType(ext->term, true);
     } else {
       own=childByTop(ext->term, true);

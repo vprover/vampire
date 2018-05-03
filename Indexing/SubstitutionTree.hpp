@@ -206,6 +206,7 @@ public:
      */
     virtual int size() const { NOT_IMPLEMENTED; }
     virtual NodeAlgorithm algorithm() const = 0;
+    virtual void setTerm(TermList ts) = 0;
 
     /**
      * Remove all referenced structures without destroying them.
@@ -218,9 +219,9 @@ public:
     static void split(Node** pnode, TermList* where, int var);
   
   /** Returns the type of the head symbol of term stroed in node
-        if node is higher-order intermediate node */
+      Node must contain higher-order data before this method can
+      be called */
     virtual OperatorType* getType() { NOT_IMPLEMENTED; }
-    virtual bool isHigherOrder() const = 0;
 #if VDEBUG
     virtual void assertValid() const {};
 #endif
@@ -308,19 +309,228 @@ public:
       
       inline
       HoNode(TermList ts){
-        if(ts.isTerm()){
+        //only if the term has a higher-order variable head does
+        //it require a type stored.
+        if(ts.isTerm() && ts.term()->hasVarHead()){
           termType = getFunctorType(ts.term());
-        } else { //variable
+        } else { 
           termType = 0;
         }
       }
+      inline
+      HoNode(OperatorType* type){
+        termType = type;
+      }
 
-      virtual Node** varHeadChildByType(TermList t, bool canCreate) = 0;
-      virtual 
+      ~HoNode(){}
 
+      inline void updateType(TermList ts){
+        ASS(ts.isTerm() && ts.term()->hasVarHead())
+        termType = getFunctorType(ts.term());
+      }
+
+      OperatorType* getType() { return termType; }
+
+  protected:
       OperatorType* termType;
+       
+  };// HoNode
+
+  class IntermediateHoNode 
+      : public HoNode
+  {
+  public:
       
+      CLASS_NAME(SubstitutionTree::IntermediateHoNode);
+      USE_ALLOCATOR(IntermediateHoNode);
       
+      inline
+      IntermediateHoNode(TermList ts): HoNode(ts) {}
+      inline
+      IntermediateHoNode(OperatorType* type): HoNode(type) {}
+
+      void destroyChildren();
+      void loadChildren(NodeIterator children);
+
+      virtual NodeAlgorithm algorithm() const = 0;
+      virtual Node** varHeadChildByType(TermList t, bool canCreate) = 0;
+      virtual bool isEmpty() const = 0;
+      virtual int size() const = 0;
+      virtual NodeIterator allChildren() = 0;
+      virtual void remove(TermList t) = 0;
+      virtual void removeAllChildren() = 0;
+
+      void makeEmpty()
+      {
+        removeAllChildren();
+      }
+  };// IntermediateHoNode
+
+  class UArrIntermediateHoNode 
+      : public IntermediateHoNode
+  {
+  public:
+      
+      CLASS_NAME(SubstitutionTree::UArrIntermediateHoNode);
+      USE_ALLOCATOR(UArrIntermediateHoNode);
+      
+      inline
+      UArrIntermediateHoNode(TermList ts): IntermediateHoNode(ts), _varHeadChildrenSize(0) {
+        _hoVarNodes[0]=0;
+      }
+
+      ~UArrIntermediateHoNode()
+      {
+        if(!isEmpty()) {
+          destroyChildren();
+        }
+      }
+
+      NodeAlgorithm algorithm() const { return UNSORTED_LIST; }
+      virtual Node** varHeadChildByType(TermList t, bool canCreate);
+      virtual NodeIterator allChildren() {
+        return pvi(PointerPtrIterator<Node*>(&_hoVarNodes[0],&_hoVarNodes[_varHeadChildrenSize]));
+      }
+
+      inline
+      bool isEmpty() const { return  !_varHeadChildrenSize; }
+      inline
+      int size() const { return _varHeadChildrenSize; }
+
+      virtual void remove(TermList t);
+      virtual void removeAllChildren(){
+        _varHeadChildrenSize=0;
+        _hoVarNodes[0]=0;
+      }
+
+      void makeEmpty()
+      {
+        removeAllChildren();
+      }
+
+      int _varHeadChildrenSize;
+      Node* _hoVarNodes[UARR_INTERMEDIATE_NODE_MAX_SIZE+1];
+  };// UArrIntermediateHoNode
+
+  class SListIntermediateHoNode 
+      : public IntermediateHoNode
+  {
+  public:
+      
+      CLASS_NAME(SubstitutionTree::SListIntermediateHoNode);
+      USE_ALLOCATOR(SListIntermediateHoNode);
+      
+      inline
+      SListIntermediateHoNode(TermList ts):  IntermediateHoNode(ts) {}
+      inline
+      SListIntermediateHoNode(OperatorType* type):  IntermediateHoNode(type) {}
+
+
+      ~SListIntermediateHoNode()
+      {
+        if(!isEmpty()) {
+          destroyChildren();
+        }
+      }
+
+      void removeAllChildren()
+      {
+        while(!_hoVarNodes.isEmpty()) {
+          _hoVarNodes.pop();
+        }
+      }
+
+      static IntermediateHoNode* assimilate(IntermediateHoNode* orig);
+
+      NodeAlgorithm algorithm() const { return SKIP_LIST; }
+      virtual OperatorType* getType() { return termType; }
+      inline
+      bool isEmpty() const { return _hoVarNodes.isEmpty(); }
+      inline
+      int size() const { return _hoVarNodes.size(); }
+
+      inline
+      NodeIterator allChildren()
+      {
+        return pvi( HoNodeSkipList::PtrIterator(_hoVarNodes));
+      }
+
+      virtual Node** varHeadChildByType(TermList t, bool canCreate)
+      {
+        CALL("SubstitutionTree::SListIntermediateNode::childByTop");
+
+        Node** res;
+        bool found=_hoVarNodes.getPosition(t,res,canCreate);
+        if(!found) {
+          if(canCreate) {
+            *res=0;
+          } else {
+            res=0;
+          }
+        }
+        return res;
+      }
+
+      inline
+      void remove(TermList t)
+      {
+        ASS(t.isTerm() && t.term()->hasVarHead());
+        _hoVarNodes.remove(t);
+      }
+
+      void makeEmpty()
+      {
+        removeAllChildren();
+      }
+
+
+      class HoNodePtrComparator
+      {
+      public:
+        static Comparison compare(TermList t1,TermList t2)
+        {
+          CALL("SubstitutionTree::SListIntermediateNode::NodePtrComparator::compare");
+
+          if(t1.isVar()) {
+            if(t2.isVar()) {
+              return Int::compare(t1.var(), t2.var());
+            }
+            return LESS;
+          }
+          if(t2.isVar()) {
+            return GREATER;
+          }
+          OperatorType* t1Type = getFunctorType(t1.term());
+          OperatorType* t2Type = getFunctorType(t2.term());
+          if(t1Type == t2Type){
+            return EQUAL;
+          }
+          if(t1Type->arity() > t2Type->arity()){
+            return GREATER;
+          } else if (t1Type->arity() < t2Type->arity()) {
+            return LESS;
+          } else {
+            for (unsigned i = 0; i > t1Type->arity(); i++) {
+              if(t1Type->arg(i) > t2Type->arg(1)){
+                return GREATER;
+              } else if (t1Type->arg(i) < t2Type->arg(1)) {
+                return LESS;
+              }
+            }
+          }
+          // if we reach here, both types are equal,
+          // this should have been caught above.
+          ASSERTION_VIOLATION;
+        }
+
+        static Comparison compare(Node* n1, Node* n2)
+        { return compare(n1->term, n2->term); }
+        static Comparison compare(TermList t1, Node* n2)
+        { return compare(t1, n2->term); }
+      };
+
+      typedef SkipList<Node*,HoNodePtrComparator> HoNodeSkipList;
+      HoNodeSkipList _hoVarNodes;
   };// HoNode
 
 
@@ -330,11 +540,17 @@ public:
   public:
     /** Build a new intermediate node which will serve as the root*/
     inline
-    IntermediateNode(unsigned childVar) : childVar(childVar),_childBySortHelper(0) {}
+    IntermediateNode(unsigned childVar) : childVar(childVar),_childBySortHelper(0), _hoData(0) {}
 
     /** Build a new intermediate node */
     inline
-    IntermediateNode(TermList ts, unsigned childVar) : Node(ts), childVar(childVar),_childBySortHelper(0) {}
+    IntermediateNode(TermList ts, unsigned childVar) : Node(ts), childVar(childVar),_childBySortHelper(0) {
+      if(ts.isTerm() && ts.term()->hasVarHead()){
+        _hoData = new UArrIntermediateHoNode(ts);
+      } else {
+        _hoData = 0;
+      }
+    }
 
     inline
     bool isLeaf() const { return false; };
@@ -354,8 +570,45 @@ public:
      * suitable child does not exist.
      */
     virtual Node** childByTop(TermList t, bool canCreate) = 0;
-    virtual Node** varHeadChildByType(TermList t, bool canCreate){ NOT_IMPLEMENTED; }
+    Node** varHeadChildByType(TermList t, bool canCreate){
+      ASS(hasHigherOrderData());
+      return _hoData->varHeadChildByType(t, canCreate);
+    }
+    inline
+    OperatorType* getType() { 
+      ASS(hasHigherOrderData());
+      return _hoData->getType();
+    }
+    inline
+    int hoDataSize(){
+      if(hasHigherOrderData()){
+        return _hoData->size();
+      }
+      return 0;
+    }
+    inline
+    NodeAlgorithm hoDataAlgorithm(){
+      if(hasHigherOrderData()){
+        return _hoData->algorithm();
+      }
+      ASSERTION_VIOLATION;
+    }
+    inline void initialiseHoData(){
+      _hoData = new UArrIntermediateHoNode(term);
+    }
+    inline 
+    void setTerm(TermList ts){
+      if(ts.isTerm() && ts.term()->hasVarHead()){
+        if(!hasHigherOrderData()){
+          _hoData = new UArrIntermediateHoNode(ts);
+        } else {
+          _hoData->updateType(ts);
+        }
+      } 
+      term = ts;
+    }
 
+    inline bool hasHigherOrderData() const {return _hoData; }
     /**
      * Remove child which points to node with top symbol of @b t.
      * This node has to still exist in time of the call to remove method.
@@ -391,6 +644,7 @@ public:
 
     const unsigned childVar;
     ChildBySortHelper* _childBySortHelper;
+    IntermediateHoNode* _hoData;
 
     virtual void print(unsigned depth=0){
        auto children = allChildren();
@@ -435,7 +689,25 @@ public:
     {}
     /** Build a new leaf */
     inline
-    Leaf(TermList ts) : Node(ts) {}
+    Leaf(TermList ts) : Node(ts){
+      if(ts.isTerm() && ts.term()->hasVarHead()){
+        _hoData = new HoNode(ts);
+      } else {
+        _hoData = 0;
+      }
+    }
+
+    inline 
+    void setTerm(TermList ts){
+      if(ts.isTerm() && ts.term()->hasVarHead()){
+        if(!hasHigherOrderData()){
+          _hoData = new HoNode(ts);
+        } else {
+          _hoData->updateType(ts);
+        }
+      } 
+      term = ts;
+    }
 
     inline
     bool isLeaf() const { return true; };
@@ -443,6 +715,14 @@ public:
     virtual void insert(LeafData ld) = 0;
     virtual void remove(LeafData ld) = 0;
     void loadChildren(LDIterator children);
+
+    HoNode* _hoData; 
+    inline bool hasHigherOrderData() const {return _hoData; }
+    inline
+    OperatorType* getType() { 
+      ASS(hasHigherOrderData());
+      return _hoData->getType();
+    }
 
     virtual void print(unsigned depth=0){
        auto children = allChildren();
@@ -461,8 +741,8 @@ public:
   class HoSListLeaf;
   class SetLeaf;
   static Leaf* createLeaf();
-  static Leaf* createLeaf(TermList ts, bool ho = false);
-  static void ensureLeafEfficiency(Leaf** l, bool ho = false);
+  static Leaf* createLeaf(TermList ts);
+  static void ensureLeafEfficiency(Leaf** l);
   inline
   static LeafData createLeafData(Clause* cls, Literal* lit, TermList t, bool ho = false){
     LeafData ld  = LeafData(cls, lit, t);
@@ -474,11 +754,9 @@ public:
     if(ho){ld.higherOrder = true;} 
     return ld;    
   }
-  static Leaf* convertToHigherOrder(Leaf* leaf);
-  static IntermediateNode* convertToHigherOrder(IntermediateNode* node);
   static IntermediateNode* createIntermediateNode(unsigned childVar,bool constraints);
-  static IntermediateNode* createIntermediateNode(TermList ts, unsigned childVar,bool constraints, bool higherOrder = false);
-  static void ensureIntermediateNodeEfficiency(IntermediateNode** inode, bool ho = false);
+  static IntermediateNode* createIntermediateNode(TermList ts, unsigned childVar,bool constraints);
+  static void ensureIntermediateNodeEfficiency(IntermediateNode** inode);
 
   struct IsPtrToVarNodeFn
   {
@@ -507,22 +785,41 @@ public:
     ~UArrIntermediateNode()
     {
       if(!isEmpty()) {
-  destroyChildren();
+        if(hasHigherOrderData()){
+          _hoData->destroyChildren();
+          delete _hoData;
+        }
+        destroyChildren();
       }
     }
 
     virtual void removeAllChildren()
     {
+      if(hasHigherOrderData()){
+        _hoData->removeAllChildren();
+      }
       _size=0;
       _nodes[0]=0;
     }
 
     NodeAlgorithm algorithm() const { return UNSORTED_LIST; }
-    virtual bool isHigherOrder() const { return false; }
-    virtual bool isEmpty() const { return !_size; }
-    virtual int size() const { return _size; }
+    virtual bool isEmpty() const {
+      if(hasHigherOrderData()){
+        return !_hoData->size() && !_size;
+      }
+      return !_size; 
+    }
+    virtual int size() const {
+      return _size; 
+    }
     virtual NodeIterator allChildren()
-    { return pvi( PointerPtrIterator<Node*>(&_nodes[0],&_nodes[_size]) ); }
+    { 
+      if(hasHigherOrderData()){
+        return pvi(getConcatenatedIterator(PointerPtrIterator<Node*>(&_nodes[0],&_nodes[_size]),
+                                           _hoData->allChildren()));
+      }
+      return pvi( PointerPtrIterator<Node*>(&_nodes[0],&_nodes[_size]) ); 
+    }
 
     NodeIterator variableChildren()
     {
@@ -546,92 +843,6 @@ public:
     Node* _nodes[UARR_INTERMEDIATE_NODE_MAX_SIZE+1];
   };
 
-  class HoUArrIntermediateNode
-  : public UArrIntermediateNode
-  {
-  public:
-    inline
-    HoUArrIntermediateNode(unsigned childVar) : UArrIntermediateNode(childVar),
-    _varHeadChildrenSize(0)
-    {
-      termType = 0;
-      _hoVarNodes[0]=0;
-    }
-    inline
-    HoUArrIntermediateNode(TermList ts, unsigned childVar) : UArrIntermediateNode(ts, childVar),
-    _varHeadChildrenSize(0)
-    {
-      if(ts.isTerm()){
-        termType = getFunctorType(ts.term());
-      } else { //variable
-        termType = 0;
-      }
-      _hoVarNodes[0]=0;
-    }
-    HoUArrIntermediateNode(const UArrIntermediateNode* node) : UArrIntermediateNode(node->term, node->childVar),
-    _varHeadChildrenSize(0)
-    {
-      TermList ts = node->term;
-      if(ts.isTerm()){
-        termType = getFunctorType(ts.term());
-      } else { //variable
-        termType = 0;
-      }
-      _size = node->size();
-      //Looping through UArr to copy it. Probably a better method,
-      //but as constructor will only be called rarely should be OK.
-      for(int i = 0; i < _size; i++){
-        _nodes[i] = node->_nodes[i];
-      }
-       _nodes[_size]=0;
-      _hoVarNodes[0]=0;
-    }
-
-
-    ~HoUArrIntermediateNode()
-    {
-      if(!isEmpty()) {
-        destroyChildren();
-      }
-    }
-
-    void removeAllChildren()
-    {
-      _size=0;
-      _nodes[0]=0;
-      _varHeadChildrenSize=0;
-      _hoVarNodes[0]=0;
-    }
-
-    inline
-    virtual bool isHigherOrder() const { return true; }
-    virtual OperatorType* getType() { return termType; }
-    virtual bool isEmpty() const { return !_varHeadChildrenSize && !_size; }
-    virtual int size() const { return _size + _varHeadChildrenSize; }
-    NodeIterator allChildren()
-    { return pvi( getConcatenatedIterator(PointerPtrIterator<Node*>(&_hoVarNodes[0],&_hoVarNodes[_varHeadChildrenSize]),
-                                          PointerPtrIterator<Node*>(&_nodes[0],&_nodes[_size]) ) ); }
-   
-    /*
-    NodeIterator variableChildren()
-    {
-      return pvi( getFilteredIterator(PointerPtrIterator<Node*>(&_nodes[0],&_nodes[_size]),
-        IsPtrToVarNodeFn()) );
-    }*/
-
-    virtual Node** varHeadChildByType(TermList t, bool canCreate);
-    virtual void remove(TermList t);
-
-    CLASS_NAME(SubstitutionTree::HoUArrIntermediateNode);
-    USE_ALLOCATOR(HoUArrIntermediateNode);
-
-    /** As terms with variable heads are always terms and never variables,
-        their head symbol always has a type. If this node contains a non-empty
-        term, its type is stored in termType */
-    OperatorType* termType;
-    int _varHeadChildrenSize;
-    Node* _hoVarNodes[UARR_INTERMEDIATE_NODE_MAX_SIZE+1];
-  };
 
   class UArrIntermediateNodeWithSorts
   : public UArrIntermediateNode
@@ -655,25 +866,35 @@ public:
     ~SListIntermediateNode()
     {
       if(!isEmpty()) {
+        if(hasHigherOrderData()){
+          _hoData->destroyChildren();
+          delete _hoData;
+        }
         destroyChildren();
       }
     }
 
     void removeAllChildren()
     {
+      if(hasHigherOrderData()){
+        _hoData->removeAllChildren();
+      }
       while(!_nodes.isEmpty()) {
         _nodes.pop();
       }
     }
 
-    static IntermediateNode* assimilate(IntermediateNode* orig, bool ho = false);
+    static IntermediateNode* assimilate(IntermediateNode* orig);
 
     inline
     NodeAlgorithm algorithm() const { return SKIP_LIST; }
     inline
-    bool isHigherOrder() const { return false; }
-    inline
-    bool isEmpty() const { return _nodes.isEmpty(); }
+    bool isEmpty() const { 
+      if(hasHigherOrderData()){
+        return _nodes.isEmpty() && _hoData->isEmpty();
+      }
+      return _nodes.isEmpty(); 
+    }
     int size() const { return _nodes.size(); }
 #if VDEBUG
     virtual void assertValid() const
@@ -684,6 +905,9 @@ public:
     inline
     NodeIterator allChildren()
     {
+      if(hasHigherOrderData()){
+         return pvi(getConcatenatedIterator(NodeSkipList::PtrIterator(_nodes), _hoData->allChildren()));
+      }
       return pvi( NodeSkipList::PtrIterator(_nodes) );
     }
     inline
@@ -712,6 +936,11 @@ public:
     inline
     void remove(TermList t)
     {
+      if(t.isTerm() && t.term()->hasVarHead()){
+        ASS(hasHigherOrderData());
+        _hoData->remove(t);
+        return;
+      }
       _nodes.remove(t);
     }
 
@@ -746,153 +975,6 @@ public:
     typedef SkipList<Node*,NodePtrComparator> NodeSkipList;
     NodeSkipList _nodes;
     
-  };
-
-
-  class HoSListIntermediateNode
-  : public SListIntermediateNode
-  {
-  public:
-    HoSListIntermediateNode(unsigned childVar) : SListIntermediateNode(childVar) {}
-    HoSListIntermediateNode(TermList ts, unsigned childVar) : SListIntermediateNode(ts, childVar) 
-    {
-      if(ts.isTerm()){
-        termType = getFunctorType(ts.term());
-      } else { //variable
-        termType = 0;
-      }
-    }
-    HoSListIntermediateNode(const SListIntermediateNode* node) : SListIntermediateNode(node->term, node->childVar) 
-    {
-      TermList ts = node->term;
-      if(ts.isTerm()){
-        termType = getFunctorType(ts.term());
-      } else { //variable
-        termType = 0;
-      }
-      _nodes.insertFromIterator(NodeSkipList::Iterator(node->_nodes));
-    }
-
-    ~HoSListIntermediateNode()
-    {
-      if(!isEmpty()) { //requires updating?
-        destroyChildren();
-      }
-    }
-
-    void removeAllChildren()
-    {
-      while(!_nodes.isEmpty()) {
-        _nodes.pop();
-      }
-      while(!_hoVarNodes.isEmpty()) {
-        _hoVarNodes.pop();
-      }
-    }
-
-    virtual OperatorType* getType() { return termType; }
-    inline
-    bool isHigherOrder() const { return true; }
-    inline
-    bool isEmpty() const { return _nodes.isEmpty() && _hoVarNodes.isEmpty(); }
-    int size() const { return _nodes.size() + _hoVarNodes.size(); }
-#if VDEBUG
-    virtual void assertValid() const
-    {
-      ASS_ALLOC_TYPE(this,"SubstitutionTree::SListIntermediateNode");
-    }
-#endif
-    inline
-    NodeIterator allChildren()
-    {
-      return pvi( getConcatenatedIterator(NodeSkipList::PtrIterator(_nodes),
-                                          HoNodeSkipList::PtrIterator(_hoVarNodes)));
-    }
-    /*
-    inline
-    NodeIterator variableChildren()
-    {
-      return pvi( getWhileLimitedIterator(
-          NodeSkipList::PtrIterator(_nodes),
-          IsPtrToVarNodeFn()) );
-    }*/
-    virtual Node** varHeadChildByType(TermList t, bool canCreate)
-    {
-      CALL("SubstitutionTree::SListIntermediateNode::childByTop");
-
-      Node** res;
-      bool found=_hoVarNodes.getPosition(t,res,canCreate);
-      if(!found) {
-        if(canCreate) {
-          *res=0;
-        } else {
-          res=0;
-        }
-      }
-      return res;
-    }
-
-    inline
-    void remove(TermList t)
-    {
-      if(t.isTerm() && t.term()->hasVarHead()){
-        _hoVarNodes.remove(t);
-      } else {
-        _nodes.remove(t);
-      }
-    }
-
-    CLASS_NAME(SubstitutionTree::HoSListIntermediateNode);
-    USE_ALLOCATOR(HoSListIntermediateNode);
-
-    class HoNodePtrComparator
-    {
-    public:
-      static Comparison compare(TermList t1,TermList t2)
-      {
-        CALL("SubstitutionTree::SListIntermediateNode::NodePtrComparator::compare");
-
-        if(t1.isVar()) {
-          if(t2.isVar()) {
-            return Int::compare(t1.var(), t2.var());
-          }
-          return LESS;
-        }
-        if(t2.isVar()) {
-          return GREATER;
-        }
-        OperatorType* t1Type = getFunctorType(t1.term());
-        OperatorType* t2Type = getFunctorType(t2.term());
-        if(t1Type == t2Type){
-          return EQUAL;
-        }
-        if(t1Type->arity() > t2Type->arity()){
-          return GREATER;
-        } else if (t1Type->arity() < t2Type->arity()) {
-          return LESS;
-        } else {
-          for (unsigned i = 0; i > t1Type->arity(); i++) {
-            if(t1Type->arg(i) > t2Type->arg(1)){
-              return GREATER;
-            } else if (t1Type->arg(i) < t2Type->arg(1)) {
-              return LESS;
-            }
-          }
-        }
-        // if we reach here, both types are equal,
-        // this should have been caught above.
-        ASSERTION_VIOLATION;
-      }
-
-      static Comparison compare(Node* n1, Node* n2)
-      { return compare(n1->term, n2->term); }
-      static Comparison compare(TermList t1, Node* n2)
-      { return compare(t1, n2->term); }
-    };
-
-    OperatorType* termType;
-    typedef SkipList<Node*,HoNodePtrComparator> HoNodeSkipList;
-    HoNodeSkipList _hoVarNodes;
   };
 
   class SListIntermediateNodeWithSorts
