@@ -711,7 +711,6 @@ void SubstitutionTree::Node::split(Node** pnode, TermList* where, int var)
   cout << "AFTER SPLITTING the parent term is : " + newNode->term.toString() + " and the child term is " + (*nodePosition)->term.toString() << endl; 
 }
 
-//This requires modification AYB.
 void SubstitutionTree::IntermediateNode::loadChildren(NodeIterator children)
 {
   CALL("SubstitutionTree::IntermediateNode::loadChildren");
@@ -728,6 +727,21 @@ void SubstitutionTree::IntermediateNode::loadChildren(NodeIterator children)
     } else {
       own=childByTop(ext->term, true);
     }
+    ASS(! *own);
+    *own=ext;
+  }
+}
+
+void SubstitutionTree::IntermediateHoNode::loadChildren(NodeIterator children)
+{
+  CALL("SubstitutionTree::IntermediateNode::loadChildren");
+
+  while(children.hasNext()) {
+    Node* ext=*children.next();
+    TermList extterm = ext->term;
+    ASS(extterm.isTerm() && extterm.term()->hasVarHead());
+    Node** own;
+    own=varHeadChildByType(ext->term, true);
     ASS(! *own);
     *own=ext;
   }

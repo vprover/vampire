@@ -348,7 +348,9 @@ public:
       IntermediateHoNode(TermList ts): HoNode(ts) {}
       inline
       IntermediateHoNode(OperatorType* type): HoNode(type) {}
-
+      
+      virtual ~IntermediateHoNode(){}
+      
       void destroyChildren();
       void loadChildren(NodeIterator children);
 
