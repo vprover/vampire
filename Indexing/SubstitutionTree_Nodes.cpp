@@ -46,6 +46,8 @@ public:
   {
     LDList::destroy(_children);
     if(hasHigherOrderData()){
+      cout << "hoData is " << _hoData << endl;
+      cout << "the type stored in this data is " + _hoData->getType()->toString() << endl;
       delete _hoData;
     }
   }

@@ -429,6 +429,7 @@ void SubstitutionTree::remove(Node** pnode,BindingMap& svBindings,LeafData ld)
     unsigned boundVar=inode->childVar;
     TermList t = svBindings.get(boundVar);
     bool hasVarHead = t.isTerm() && t.term()->hasVarHead();
+    if(hasVarHead){ ASS(inode->hasHigherOrderData()); }
 
     pnode= hasVarHead ? inode->varHeadChildByType(t,false) : 
                         inode->childByTop(t,false) ;
@@ -705,8 +706,6 @@ void SubstitutionTree::Node::split(Node** pnode, TermList* where, int var)
   }
   ASS(!*nodePosition);
   *nodePosition=node;
-  node->makeEmpty();
-  delete node;
 
   cout << "AFTER SPLITTING the parent term is : " + newNode->term.toString() + " and the child term is " + (*nodePosition)->term.toString() << endl; 
 }

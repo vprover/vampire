@@ -206,6 +206,12 @@ public:
      */
     virtual int size() const { NOT_IMPLEMENTED; }
     virtual NodeAlgorithm algorithm() const = 0;
+    /*
+     * This method should always be used when updating the term of a node.
+     * In the case that the node contains higher-order data, using this method
+     * will ensure that type data in the higher-order data will be updated.
+     * By-passing the method could result in unsound proofs.
+     */
     virtual void setTerm(TermList ts) = 0;
 
     /**
@@ -218,9 +224,10 @@ public:
     virtual void makeEmpty() { term.makeEmpty(); }
     static void split(Node** pnode, TermList* where, int var);
   
-  /** Returns the type of the head symbol of term stroed in node
-      Node must contain higher-order data before this method can
-      be called */
+  /** Returns the type of the head symbol of term strored in the node.
+    * The node must contain higher-order data before this method can
+    * be called 
+    */ 
     virtual OperatorType* getType() { NOT_IMPLEMENTED; }
 #if VDEBUG
     virtual void assertValid() const {};
@@ -302,11 +309,11 @@ public:
     
   class HoNode
   {
-  public:
-      
+  public: 
+
       CLASS_NAME(SubstitutionTree::HoNode);
       USE_ALLOCATOR(HoNode);
-      
+
       inline
       HoNode(TermList ts){
         //only if the term has a higher-order variable head does
@@ -336,13 +343,26 @@ public:
        
   };// HoNode
 
+/*
+  class LeafHoNode
+      : public HoNode
+  {
+  public:
+
+    CLASS_NAME(SubstitutionTree::LeafHoNode);
+    USE_ALLOCATOR(LeafHoNode);
+
+    inline
+    LeafHoNode(TermList ts) : HoNode(ts){}
+
+    ~LeafHoNode(){}
+  }; //LeafHoNode*/
+
+
   class IntermediateHoNode 
       : public HoNode
   {
   public:
-      
-      CLASS_NAME(SubstitutionTree::IntermediateHoNode);
-      USE_ALLOCATOR(IntermediateHoNode);
       
       inline
       IntermediateHoNode(TermList ts): HoNode(ts) {}
@@ -685,10 +705,13 @@ public:
   : public Node
   {
   public:
+
     /** Build a new leaf which will serve as the root */
     inline
     Leaf()
-    {}
+    {
+      _hoData = 0;
+    }
     /** Build a new leaf */
     inline
     Leaf(TermList ts) : Node(ts){
@@ -788,7 +811,7 @@ public:
     {
       if(!isEmpty()) {
         if(hasHigherOrderData()){
-          _hoData->destroyChildren();
+          //_hoData->destroyChildren();
           delete _hoData;
         }
         destroyChildren();
@@ -869,7 +892,7 @@ public:
     {
       if(!isEmpty()) {
         if(hasHigherOrderData()){
-          _hoData->destroyChildren();
+          //_hoData->destroyChildren();
           delete _hoData;
         }
         destroyChildren();
