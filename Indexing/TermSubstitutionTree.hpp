@@ -93,14 +93,22 @@ private:
   inline
   Term* argsToInitialBindings(Term* t)
   {
+    Term* term;
+    if(t->shared()){
+      //create shallow copy.
+      term = Term::cloneNonShared(t);
+    }   else {
+      term = t;
+    }
     unsigned var = 1;
-    TermList* args = t->args();
+    TermList* args = term->args();
     while(!args->isEmpty()){
       args->makeSpecialVar(var);
       args = args->next();
       var++;
     }
-    return t;
+    return term;
+    
   }
 
 

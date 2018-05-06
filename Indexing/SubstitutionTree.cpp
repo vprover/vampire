@@ -80,12 +80,15 @@ SubstitutionTree::~SubstitutionTree()
   CALL("SubstitutionTree::~SubstitutionTree");
   ASS_EQ(_iteratorCnt,0);
 
+  cout << "THE TREE PRIOR TO DESTROYING \n " + this->toString() << endl;
+  
   for (unsigned i = 0; i<_nodes.size(); i++) {
+    cout << "destroying node " << i << " with contents " + _nodes[i]->term.toString() << endl;
     if(_nodes[i]!=0) {
       delete _nodes[i];
     }
   }
-
+  
   for (unsigned i = 0; i<_hoVarNodes.size(); i++) {
     if(_hoVarNodes[i]!=0) {
       delete _hoVarNodes[i];
@@ -271,7 +274,7 @@ start:
 
   Node** pparent=pnode;
 
-  if(tag){ cout << "reached here with pnode term " + (*pnode)->term.toString() + " and boundVar S" << boundVar << endl; } 
+  //if(tag){ cout << "reached here with pnode term " + (*pnode)->term.toString() + " and boundVar S" << boundVar << endl; } 
   pnode= hasVarHead ? inode->varHeadChildByType(term,true) :
                       inode->childByTop(term,true);
               
@@ -310,7 +313,7 @@ start:
     return;
   }
 
-  if(!tag){ cout << "reached here with pnode term " + (*pnode)->term.toString() << endl; } 
+  //if(tag){ cout << "reached here with pnode term " + (*pnode)->term.toString() << endl; } 
 
   TermList* tt = &term;
   TermList* ss = &(*pnode)->term;
@@ -682,11 +685,10 @@ void SubstitutionTree::Node::split(Node** pnode, TermList* where, int var)
 
   Node* node=*pnode;
  
-  cout << "SPLITTING term " + node->term.toString() + " on " + where->toString() + " and spec var is S" << var << endl;
- 
   TermList ts = node->term;
-  bool childHasVarHead = where->isTerm() && where->term()->hasVarHead();
   IntermediateNode* newNode = createIntermediateNode(ts, var,node->withSorts());
+ 
+  bool childHasVarHead = where->isTerm() && where->term()->hasVarHead();
   if(childHasVarHead && !newNode->hasHigherOrderData()){
     newNode->initialiseHoData();
   }
@@ -706,8 +708,6 @@ void SubstitutionTree::Node::split(Node** pnode, TermList* where, int var)
   }
   ASS(!*nodePosition);
   *nodePosition=node;
-
-  cout << "AFTER SPLITTING the parent term is : " + newNode->term.toString() + " and the child term is " + (*nodePosition)->term.toString() << endl; 
 }
 
 void SubstitutionTree::IntermediateNode::loadChildren(NodeIterator children)

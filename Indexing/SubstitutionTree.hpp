@@ -329,7 +329,7 @@ public:
         termType = type;
       }
 
-      ~HoNode(){}
+      virtual ~HoNode(){}
 
       inline void updateType(TermList ts){
         ASS(ts.isTerm() && ts.term()->hasVarHead())
@@ -369,7 +369,9 @@ public:
       inline
       IntermediateHoNode(OperatorType* type): HoNode(type) {}
       
-      virtual ~IntermediateHoNode(){}
+     /* virtual ~IntermediateHoNode(){
+        cout << "BASIC DESTRUCTOR CALLED" << endl;
+      }*/
       
       void destroyChildren();
       void loadChildren(NodeIterator children);
@@ -448,8 +450,9 @@ public:
       SListIntermediateHoNode(OperatorType* type):  IntermediateHoNode(type) {}
 
 
-      ~SListIntermediateHoNode()
+      virtual ~SListIntermediateHoNode()
       {
+        cout << "SLIST DESTRUCTOR CALLED" << endl;
         if(!isEmpty()) {
           destroyChildren();
         }
@@ -810,11 +813,12 @@ public:
     ~UArrIntermediateNode()
     {
       if(!isEmpty()) {
-        if(hasHigherOrderData()){
-          //_hoData->destroyChildren();
-          delete _hoData;
-        }
         destroyChildren();
+      }
+      if(hasHigherOrderData()){
+        //cout << "and now deleting its ho data" << endl;
+        //_hoData->destroyChildren();
+        delete _hoData;
       }
     }
 
@@ -891,11 +895,10 @@ public:
     ~SListIntermediateNode()
     {
       if(!isEmpty()) {
-        if(hasHigherOrderData()){
-          //_hoData->destroyChildren();
-          delete _hoData;
-        }
         destroyChildren();
+      }    
+      if(hasHigherOrderData()){
+        delete _hoData;
       }
     }
 

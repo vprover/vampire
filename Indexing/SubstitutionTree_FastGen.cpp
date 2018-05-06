@@ -72,9 +72,9 @@ public:
     int res=0;
     VarStack::Iterator vsit(_boundVars);
     while(vsit.hasNext()) {
-	if(vsit.next()==BACKTRACK_SEPARATOR) {
-	  res++;
-	}
+      if(vsit.next()==BACKTRACK_SEPARATOR) {
+        res++;
+      }
     }
     return res;
   }
@@ -162,6 +162,7 @@ struct SubstitutionTree::GenMatcher::Applicator
   inline
   Applicator(GenMatcher* parent, Renaming* resultNormalizer)
   : _parent(parent), _resultNormalizer(resultNormalizer) {}
+  
   TermList apply(unsigned var)
   {
     TermList* cacheEntry;
@@ -278,7 +279,7 @@ bool SubstitutionTree::GenMatcher::matchNext(unsigned specVar, TermList nodeTerm
       ASS(nt->arity()>0);
 
       success = queryTerm.isTerm() && queryTerm.term()->functor()==nt->functor() &&
-	MatchingUtils::matchArgs(nt, queryTerm.term(), binder);
+	              MatchingUtils::matchArgs(nt, queryTerm.term(), binder);
     }
   } else {
     ASS_METHOD(nodeTerm,isOrdinaryVar());
@@ -294,11 +295,11 @@ bool SubstitutionTree::GenMatcher::matchNext(unsigned specVar, TermList nodeTerm
     if(separate) {
       //we have to unbind ordinary variables, that were bound.
       for(;;) {
-	unsigned boundVar=_boundVars.pop();
-	if(boundVar==BACKTRACK_SEPARATOR) {
-	  break;
-	}
-	_bindings->remove(boundVar);
+        unsigned boundVar=_boundVars.pop();
+        if(boundVar==BACKTRACK_SEPARATOR) {
+          break;
+        }
+        _bindings->remove(boundVar);
       }
     }
   }
@@ -493,23 +494,23 @@ main_loop_start:
 
     if(curr) {
       if(sibilingsRemain) {
-	ASS(_nodeTypes.top()!=UNSORTED_LIST || *static_cast<Node**>(_alternatives.top()));
-	currSpecVar=_specVarNumbers.top();
+        ASS(_nodeTypes.top()!=UNSORTED_LIST || *static_cast<Node**>(_alternatives.top()));
+        currSpecVar=_specVarNumbers.top();
       } else {
-	currSpecVar=_specVarNumbers.pop();
+        currSpecVar=_specVarNumbers.pop();
       }
     }
     //let's find a node we haven't been to...
     while(curr==0 && _alternatives.isNonEmpty()) {
       void* currAlt=_alternatives.pop();
       if(!currAlt) {
-	//there's no alternative at this level, we have to backtrack
-	_nodeTypes.pop();
-	_specVarNumbers.pop();
-	if(_alternatives.isNonEmpty()) {
-	  _subst->backtrack();
-	}
-	continue;
+        //there's no alternative at this level, we have to backtrack
+        _nodeTypes.pop();
+        _specVarNumbers.pop();
+        if(_alternatives.isNonEmpty()) {
+          _subst->backtrack();
+        }
+        continue;
       }
 
       NodeAlgorithm parentType=_nodeTypes.top();
@@ -517,42 +518,42 @@ main_loop_start:
       //proper term nodes that we want to enter don't appear
       //on _alternatives stack (as we always enter them first)
       if(parentType==UNSORTED_LIST) {
-	Node** alts=static_cast<Node**>(currAlt);
-	while(*alts && !(*alts)->term.isVar()) {
-	  alts++;
-	}
-	curr=*(alts++);
-	while(*alts && !(*alts)->term.isVar()) {
-	  alts++;
-	}
-	if(*alts) {
-	  _alternatives.push(alts);
-	  sibilingsRemain=true;
-	} else {
-	  sibilingsRemain=false;
-	}
+        Node** alts=static_cast<Node**>(currAlt);
+        while(*alts && !(*alts)->term.isVar()) {
+          alts++;
+        }
+        curr=*(alts++);
+        while(*alts && !(*alts)->term.isVar()) {
+          alts++;
+        }
+        if(*alts) {
+          _alternatives.push(alts);
+          sibilingsRemain=true;
+        } else {
+          sibilingsRemain=false;
+        }
       } else {
-	ASS_EQ(parentType,SKIP_LIST)
-	NodeList* alts=static_cast<NodeList*>(currAlt);
-	if(alts->head()->term.isVar()) {
-	  curr=alts->head();
-	  if(alts->tail() && alts->second()->term.isVar()) {
-	    _alternatives.push(alts->tail());
-	    sibilingsRemain=true;
-	  } else {
-	    sibilingsRemain=false;
-	  }
-	}
+        ASS_EQ(parentType,SKIP_LIST)
+        NodeList* alts=static_cast<NodeList*>(currAlt);
+        if(alts->head()->term.isVar()) {
+          curr=alts->head();
+          if(alts->tail() && alts->second()->term.isVar()) {
+            _alternatives.push(alts->tail());
+            sibilingsRemain=true;
+          } else {
+            sibilingsRemain=false;
+          }
+        }
       }
 
       if(sibilingsRemain) {
-	currSpecVar=_specVarNumbers.top();
+        currSpecVar=_specVarNumbers.top();
       } else {
-	_nodeTypes.pop();
-	currSpecVar=_specVarNumbers.pop();
+        _nodeTypes.pop();
+        currSpecVar=_specVarNumbers.pop();
       }
       if(curr) {
-	break;
+        break;
       }
     }
     if(!curr) {
@@ -563,7 +564,7 @@ main_loop_start:
       //match unsuccessful, try next alternative
       curr=0;
       if(!sibilingsRemain && _alternatives.isNonEmpty()) {
-	_subst->backtrack();
+        _subst->backtrack();
       }
       continue;
     }
@@ -574,14 +575,14 @@ main_loop_start:
       ASS(curr);
       ASSERT_VALID(*curr);
       if(!_subst->matchNext(specVar, curr->term, false)) {
-	//matching failed, let's go back to the node, that had multiple children
-	//_subst->backtrack();
-	if(sibilingsRemain || _alternatives.isNonEmpty()) {
-	  //this backtrack can happen for two different reasons and have two different meanings:
-	  //either matching at [1] was separated from the previous one and we're backtracking it,
-	  //or it was not, which means it had no sibilings and we're backtracking from its parent.
-	  _subst->backtrack();
-	}
+        //matching failed, let's go back to the node, that had multiple children
+        //_subst->backtrack();
+        if(sibilingsRemain || _alternatives.isNonEmpty()) {
+          //this backtrack can happen for two different reasons and have two different meanings:
+          //either matching at [1] was separated from the previous one and we're backtracking it,
+          //or it was not, which means it had no sibilings and we're backtracking from its parent.
+          _subst->backtrack();
+        }
         curr=0;
         goto main_loop_start;
       }
@@ -655,7 +656,7 @@ bool SubstitutionTree::FastGeneralizationsIterator::enterNode(Node*& curr)
     if(!curr && *nl) {
       curr=*(nl++);
       while(*nl && (*nl)->term.isTerm()) {
-	nl++;
+        nl++;
       }
     }
     if(curr) {
@@ -673,7 +674,7 @@ bool SubstitutionTree::FastGeneralizationsIterator::enterNode(Node*& curr)
     if(binding.isTerm()) {
       Node** byTop=inode->childByTop(binding, false);
       if(byTop) {
-	curr=*byTop;
+        curr=*byTop;
       }
     }
     if(!curr && nl->head()->term.isVar()) {

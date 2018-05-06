@@ -89,22 +89,27 @@ void TermSubstitutionTree::handleTerm(TermList t, Literal* lit, Clause* cls, boo
 
     unsigned rootNodeIndex=getRootNodeIndex(normTerm);
 
-    if(insert) {
+    if(insert) {      
+      //cout << "\n\n\n" << endl;
+      //cout << "The term is " + normTerm->toString() + " and the root node index is " << rootNodeIndex << endl;
+      //cout << "THE TREE PRIOR TO INSERTION \n --------------------------------------------- \n" +  SubstitutionTree::toString() << endl;
       if(!normTerm->hasVarHead()){
-        //cout << "\n\n\n" << endl;
-        //cout << "The term is " + normTerm->toString() + " and the root node index is " << rootNodeIndex << endl;
-        //cout << "THE TREE PRIOR TO INSERTION \n --------------------------------------------- \n" +  SubstitutionTree::toString() << endl;
         SubstitutionTree::insert(&_nodes[rootNodeIndex], svBindings, ld);
-        //cout << "\n\nTHE TREE AFTER INSERTION \n --------------------------------------------- \n " +  SubstitutionTree::toString() << endl;
       } else {
         SubstitutionTree::insert(&_hoVarNodes[rootNodeIndex], svBindings, ld, normTerm, VAR_HEAD_TERM);
-      }
+      }       
+      //cout << "\n\nTHE TREE AFTER INSERTION \n --------------------------------------------- \n " +  SubstitutionTree::toString() << endl;
     } else {
+        cout << "\n\n\n" << endl;
+        cout << "The term is " + normTerm->toString() + " and the root node index is " << rootNodeIndex << endl;
+        cout << "THE TREE PRIOR TO REMOVAL \n --------------------------------------------- \n" +  SubstitutionTree::toString() << endl;
       if(!normTerm->hasVarHead()){
         SubstitutionTree::remove(&_nodes[rootNodeIndex], svBindings, ld);
       } else {
         SubstitutionTree::remove(&_hoVarNodes[rootNodeIndex], svBindings, ld);
       }
+      cout << "\n\nTHE TREE AFTER REMOVAL \n --------------------------------------------- \n " +  SubstitutionTree::toString() << endl;
+      ASSERTION_VIOLATION;
     }
   }
 }
@@ -114,6 +119,7 @@ TermQueryResultIterator TermSubstitutionTree::getUnifications(TermList t,
 	  bool retrieveSubstitutions)
 {
   CALL("TermSubstitutionTree::getUnifications");
+
   if(t.isOrdinaryVar()) {
     return getAllUnifyingIterator(t,retrieveSubstitutions,false);
   } else {
@@ -211,7 +217,7 @@ TermQueryResultIterator TermSubstitutionTree::getGeneralizations(TermList t,
 TermQueryResultIterator TermSubstitutionTree::getInstances(TermList t,
 	  bool retrieveSubstitutions)
 {
-  CALL("TermSubstitutionTree::getInstances");
+  CALL("TermSubstitutionTree::getInstances");  
   if(t.isOrdinaryVar()) {
     return getAllUnifyingIterator(t,retrieveSubstitutions,false);
   } else {

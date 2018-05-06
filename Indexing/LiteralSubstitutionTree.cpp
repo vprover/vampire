@@ -55,26 +55,27 @@ void LiteralSubstitutionTree::remove(Literal* lit, Clause* cls)
 void LiteralSubstitutionTree::handleLiteral(Literal* lit, Clause* cls, bool insert)
 {
   CALL("LiteralSubstitutionTree::handleLiteral");
-
+  
   Literal* normLit=Renaming::normalize(lit);
   LeafData ld = createLeafData(cls, lit, env.signature->isHOL());
 
   BindingMap svBindings;
   getBindings(normLit, svBindings);
   if(insert) {
-    if( !this->tag ){
-    cout << "THE TREE IS: \n " + SubstitutionTree::toString() << endl;
-    cout << "Into " << this << " insert " << lit->toString() + " at index " << getRootNodeIndex(normLit) << endl;
-    }
+    //if( this->tag ){
+    //cout << "THE TREE IS: \n " + SubstitutionTree::toString() << endl;
+    //cout << "Into " << this << " insert " << lit->toString() + " at index " << getRootNodeIndex(normLit) << endl;
+    //}
     SubstitutionTree::insert(&_nodes[getRootNodeIndex(normLit)], svBindings, ld);
-    if( !this->tag ){
+    /*if( !this->tag ){
     cout << " NOW THE TREE IS: \n " + SubstitutionTree::toString() << endl;
-    }
+    }*/
   } else {
     cout << "THE TREE IS: \n " + SubstitutionTree::toString() << endl;
     cout << "From " << this << " remove " << lit->toString() + " at index " << getRootNodeIndex(normLit) << endl;
     SubstitutionTree::remove(&_nodes[getRootNodeIndex(normLit)], svBindings, ld);
     cout << " NOW THE TREE IS: \n " + SubstitutionTree::toString() << endl;
+    ASSERTION_VIOLATION;
   }
 }
 
@@ -82,6 +83,9 @@ SLQueryResultIterator LiteralSubstitutionTree::getUnifications(Literal* lit,
 	  bool complementary, bool retrieveSubstitutions)
 {
   CALL("LiteralSubstitutionTree::getUnifications");
+
+  cout << "attempting to get unifiers of literal " + lit->toString() << endl;
+
   return getResultIterator<UnificationsIterator>(lit,
 	  complementary, retrieveSubstitutions,false);
 }
@@ -97,13 +101,24 @@ SLQueryResultIterator LiteralSubstitutionTree::getGeneralizations(Literal* lit,
 	  bool complementary, bool retrieveSubstitutions)
 {
   CALL("LiteralSubstitutionTree::getGeneralizations");
-
+ 
   SLQueryResultIterator res=
 //  getResultIterator<GeneralizationsIterator>(lit,
     getResultIterator<FastGeneralizationsIterator>(lit,
 	  	  complementary, retrieveSubstitutions,false);
 //  ASS_EQ(res.hasNext(), getResultIterator<GeneralizationsIterator>(lit,
 //	  	  complementary, retrieveSubstitutions).hasNext());
+
+  /*if(tag){  
+    cout << "Generalisations of " + lit->toString() << endl;
+    unsigned i = 1;
+    while(res.hasNext()){
+      SLQueryResult slqr = res.next();
+      cout << i  << ". " + slqr.literal->toString() << endl;
+      i++;
+    }
+    //res.reset();
+  }*/
   return res;
 }
 
@@ -112,6 +127,9 @@ SLQueryResultIterator LiteralSubstitutionTree::getInstances(Literal* lit,
 {
   CALL("LiteralSubstitutionTree::getInstances");
 
+   cout << "attempting to get instances of literal " + lit->toString() << endl;
+
+  
 //  return getResultIterator<InstancesIterator>(lit, complementary, true);
 
   if(retrieveSubstitutions) {
