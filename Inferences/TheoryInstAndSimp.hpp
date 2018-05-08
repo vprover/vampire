@@ -66,8 +66,13 @@ private:
 
   void selectTheoryLiterals(Clause* cl, Stack<Literal*>& theoryLits,bool forZ3);
   void selectTrivialLiterals(Clause* cl, Stack<Literal*>& trivialLits);
-  bool isPure(Literal* lit);
+  bool isPure(const Literal* lit);
   bool isInterpretedSort(unsigned sort);
+
+  /**
+   Checks if left = right is of the form X = t where X does not occur in t.
+   */
+  static inline bool isXeqTerm(const TermList* left,const TermList* right);
 
   Splitter* _splitter;
   //SAT2F0 _naming;

@@ -39,6 +39,7 @@
 #include "Kernel/Substitution.hpp"
 #include "Kernel/TermIterators.hpp"
 #include "Kernel/SubstHelper.hpp"
+#include "Kernel/Sorts.hpp"
 
 #include "Saturation/SaturationAlgorithm.hpp"
 #include "Saturation/Splitter.hpp"
@@ -52,6 +53,7 @@
 #include "SAT/Z3Interfacing.hpp"
 
 #include "TheoryInstAndSimp.hpp"
+
 
 namespace Inferences
 {
@@ -72,18 +74,48 @@ void TheoryInstAndSimp::attach(SaturationAlgorithm* salg)
 }
 
 bool TheoryInstAndSimp::isInterpretedSort(unsigned sort) {
-  return sort == 0; // TODO: find out which sorts are int etc.
+  return sort == Kernel::Sorts::SRT_INTEGER; // TODO: find out which sorts are int etc.
 }
 
 
-bool TheoryInstAndSimp::isPure(Literal* lit) {
-  if (lit->isSpecial())
+bool TheoryInstAndSimp::isPure(const Literal* lit) {
+  if (lit->isSpecial()) /* TODO: extend for let .. in / if then else */
     return false;
   if (! lit->hasInterpretedConstants() )
     return false;
-  return false;
+
+  SubtermIterator sti(lit);
+  /* TODO: add special case for X = Y to check the sort */
+  while( sti.hasNext() ) {
+    TermList tl = sti.next();
+    if ( tl.isEmpty() || tl.isVar() )
+      continue;
+    if ( tl.isTerm() ) {
+      const Term* term = tl.term();
+      cout << "looking at subterm " << term->toString();
+      
+      /* only special terms have sorts */
+      if(!term->isSpecial())
+        return false;
+
+      /* check if sort can be passed to SMT solver */
+      if ( !isInterpretedSort( term->getSpecialData()->getSort() ) )
+        return false;
+    }
+    /* predicates can be ignored */
+  }
+         
+  return true;
 }
 
+bool TheoryInstAndSimp::isXeqTerm(const TermList* left, const TermList* right) {
+  bool r = left->isVar() &&
+    right->isTerm() &&
+    !IntList::member(right->var(), left->term()->freeVariables());
+  return r;
+}
+
+  
 /**
  * Scans through a clause and selects all trivial literals
  **/
@@ -101,16 +133,11 @@ void TheoryInstAndSimp::selectTrivialLiterals(Clause* cl,
         && c->isEquality()) {
       const TermList* left = c->nthArgument(0);
       const TermList* right = c->nthArgument(1);
-      if (left->isVar() &&
-          right->isTerm() &&
-          !IntList::member(left->var(), right->term()->freeVariables()) ) {
-        triv_candidates.push(c);
-      } else if(left->isVar() &&
-                right->isTerm() &&
-                !IntList::member(right->var(), left->term()->freeVariables()) ) {
+      if (TheoryInstAndSimp::isXeqTerm(left, right) ||
+          TheoryInstAndSimp::isXeqTerm(right, left) ) {
         triv_candidates.push(c);
       } else if(left->isVar() && right->isVar()) {
-        //TODO:special treatment
+        //TODO:special treatment because we have to check the type differently
         cout << "Found variable equality " << c << endl;
       } else {
         nontrivial.push(c);
