@@ -71,11 +71,11 @@ void LiteralSubstitutionTree::handleLiteral(Literal* lit, Clause* cls, bool inse
     cout << " NOW THE TREE IS: \n " + SubstitutionTree::toString() << endl;
     }*/
   } else {
-    cout << "THE TREE IS: \n " + SubstitutionTree::toString() << endl;
-    cout << "From " << this << " remove " << lit->toString() + " at index " << getRootNodeIndex(normLit) << endl;
+    //cout << "THE TREE IS: \n " + SubstitutionTree::toString() << endl;
+    //cout << "From " << this << " remove " << lit->toString() + " at index " << getRootNodeIndex(normLit) << endl;
     SubstitutionTree::remove(&_nodes[getRootNodeIndex(normLit)], svBindings, ld);
-    cout << " NOW THE TREE IS: \n " + SubstitutionTree::toString() << endl;
-    ASSERTION_VIOLATION;
+    //cout << " NOW THE TREE IS: \n " + SubstitutionTree::toString() << endl;
+    //ASSERTION_VIOLATION;
   }
 }
 

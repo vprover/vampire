@@ -278,7 +278,8 @@ bool SubstitutionTree::GenMatcher::matchNext(unsigned specVar, TermList nodeTerm
       Binder binder(this);
       ASS(nt->arity()>0);
 
-      success = queryTerm.isTerm() && queryTerm.term()->functor()==nt->functor() &&
+      success = queryTerm.isTerm() && 
+                (queryTerm.term()->functor()==nt->functor() || nt->hasVarhead()) &&
 	              MatchingUtils::matchArgs(nt, queryTerm.term(), binder);
     }
   } else {

@@ -44,6 +44,7 @@ using namespace Kernel;
 TermSubstitutionTree::TermSubstitutionTree(bool useC)
 : SubstitutionTree(env.signature->functions(), env.signature->getNextFreshVarNum()-1, useC)
 {
+  termsDeleted = 0;
 }
 
 void TermSubstitutionTree::insert(TermList t, Literal* lit, Clause* cls)
@@ -102,14 +103,18 @@ void TermSubstitutionTree::handleTerm(TermList t, Literal* lit, Clause* cls, boo
     } else {
         cout << "\n\n\n" << endl;
         cout << "The term is " + normTerm->toString() + " and the root node index is " << rootNodeIndex << endl;
-        cout << "THE TREE PRIOR TO REMOVAL \n --------------------------------------------- \n" +  SubstitutionTree::toString() << endl;
+        cout << "and it comes from literal " + lit->toString() << endl;
+        //cout << "THE TREE PRIOR TO REMOVAL \n --------------------------------------------- \n" +  SubstitutionTree::toString() << endl;
       if(!normTerm->hasVarHead()){
         SubstitutionTree::remove(&_nodes[rootNodeIndex], svBindings, ld);
       } else {
         SubstitutionTree::remove(&_hoVarNodes[rootNodeIndex], svBindings, ld);
       }
-      cout << "\n\nTHE TREE AFTER REMOVAL \n --------------------------------------------- \n " +  SubstitutionTree::toString() << endl;
-      ASSERTION_VIOLATION;
+        //cout << "\n\nTHE TREE AFTER REMOVAL \n --------------------------------------------- \n " +  SubstitutionTree::toString() << endl;
+        termsDeleted++;
+        if(termsDeleted > 60){
+        ASSERTION_VIOLATION;
+        }
     }
   }
 }

@@ -199,6 +199,7 @@ public:
     virtual bool isLeaf() const = 0;
     virtual bool isEmpty() const = 0;
     virtual bool withSorts(){ return false; }
+    virtual bool hasEmptyHoData(){ return false; }
     /**
      * Return number of elements held in the node.
      *
@@ -452,7 +453,6 @@ public:
 
       virtual ~SListIntermediateHoNode()
       {
-        cout << "SLIST DESTRUCTOR CALLED" << endl;
         if(!isEmpty()) {
           destroyChildren();
         }
@@ -617,6 +617,10 @@ public:
         return _hoData->algorithm();
       }
       ASSERTION_VIOLATION;
+    }
+    inline
+    bool hasEmptyHoData(){
+      return hasHigherOrderData() && !hoDataSize();
     }
     inline void initialiseHoData(){
       _hoData = new UArrIntermediateHoNode(term);

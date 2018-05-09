@@ -296,7 +296,8 @@ bool MatchingUtils::matchArgs(Term* base, Term* instance, Binder& binder)
 {
   CALL("MatchingUtils::matchArgs");
   ASS_EQ(base->functor(),instance->functor());
-  if(base->shared() && instance->shared()) {
+  //weight is not defined for higher-order functor symbols yet. AYB
+  if(base->shared() && instance->shared() && !base->hoVars()) {
     if(base->weight() > instance->weight() || !instance->couldArgsBeInstanceOf(base)) {
       return false;
     }
@@ -320,30 +321,33 @@ bool MatchingUtils::matchArgs(Term* base, Term* instance, Binder& binder)
       binder.specVar(it->var(), *bt);
     } else if(bt->isTerm()) {
       if(!it->isTerm()) {
-	return false;
+        return false;
       }
       Term* s = bt->term();
       Term* t = it->term();
-      if(s->functor()!=t->functor()) {
-	return false;
+      bool equivVarHeads = TermList::equivVarHeads(*bt, *it);
+      if(s->functor()!=t->functor() && !equivVarHeads) {
+        return false;
       }
-      if(bt->term()->shared() && it->term()->shared()) {
-	if(bt->term()->ground() && *bt!=*it) {
-	  return false;
-	}
-	if(s->weight() > t->weight()) {
-	  return false;
-	}
+      //both terms shared and base term doesn't contain 
+      //higher-order variables.
+      if(s->shared() && t->shared() && !s->hoVars()) {
+        if(s->ground() && *bt!=*it) {
+          return false;
+        }
+        if(s->weight() > t->weight()) {
+          return false;
+        }
       }
       if(s->arity() > 0) {
-	bt = s->args();
-	it = t->args();
-	continue;
+        bt = s->args();
+        it = t->args();
+        continue;
       }
     } else {
       ASS(bt->isOrdinaryVar());
       if(!binder.bind(bt->var(), *it)) {
-	return false;
+        return false;
       }
     }
     if(subterms.isEmpty()) {

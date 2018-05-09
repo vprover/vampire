@@ -125,6 +125,9 @@ private:
     } 
   }
 
+  //FOR DEBUGGING
+  unsigned termsDeleted;
+  
 
   typedef SkipList<LeafData,LDComparator> LDSkipList;
   LDSkipList _vars;

@@ -80,10 +80,9 @@ SubstitutionTree::~SubstitutionTree()
   CALL("SubstitutionTree::~SubstitutionTree");
   ASS_EQ(_iteratorCnt,0);
 
-  cout << "THE TREE PRIOR TO DESTROYING \n " + this->toString() << endl;
+ // cout << "THE TREE PRIOR TO DESTROYING \n " + this->toString() << endl;
   
   for (unsigned i = 0; i<_nodes.size(); i++) {
-    cout << "destroying node " << i << " with contents " + _nodes[i]->term.toString() << endl;
     if(_nodes[i]!=0) {
       delete _nodes[i];
     }
@@ -438,7 +437,6 @@ void SubstitutionTree::remove(Node** pnode,BindingMap& svBindings,LeafData ld)
                         inode->childByTop(t,false) ;
     ASS(pnode);
 
-
     TermList* s = &(*pnode)->term;
     ASS(TermList::sameTop(*s,t) || TermList::equivVarHeads(*s, t));
 
@@ -492,17 +490,33 @@ void SubstitutionTree::remove(Node** pnode,BindingMap& svBindings,LeafData ld)
   lnode->remove(ld);
   ensureLeafEfficiency(reinterpret_cast<Leaf**>(pnode));
 
-  while( (*pnode)->isEmpty() ) {
+  while( (*pnode)->isEmpty() || (*pnode)->hasEmptyHoData()) {
     TermList term=(*pnode)->term;
     if(history.isEmpty()) {
-      delete *pnode;
-      *pnode=0;
+      if((*pnode)->isEmpty()){
+        delete *pnode;
+        *pnode=0;
+      } else { 
+        // This is the case where the deletion of data has resulted in an empty
+        // higher-order addendum.
+        ASS(!(*pnode)->isLeaf());
+        IntermediateNode* inode = static_cast<IntermediateNode*>(*pnode);
+        delete inode->_hoData;
+        inode->_hoData = 0;
+      }
       return;
     } else {
       Node* node=*pnode;
       IntermediateNode* parent=static_cast<IntermediateNode*>(*history.top());
       parent->remove(term);
-      delete node;
+      if(node->isEmpty()){
+        delete node;
+      } else {
+        ASS(!node->isLeaf());
+        IntermediateNode* inode = static_cast<IntermediateNode*>(node);
+        delete inode->_hoData;
+        inode->_hoData = 0;        
+      }      
       pnode=history.pop();
       ensureIntermediateNodeEfficiency(reinterpret_cast<IntermediateNode**>(pnode));
     }
