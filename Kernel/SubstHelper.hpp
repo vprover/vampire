@@ -397,27 +397,20 @@ Term* SubstHelper::applyImpl(Term* trm, Applicator& applicator, bool noSharing)
     ASS(tl.isTerm());
     Term* t=tl.term();
     if(t->hasVarHead()){
-      TermList tDest = applicator.apply(t->functor());
-      //If these is no substitution for this higher-order variable,
-      //Substitution class will return a dummy variable X0.
-      if(!tDest.isVar()){
-        BetaReductionEngine bre = BetaReductionEngine();
-        TermList newTerm = tDest;
-        for(unsigned j = 0; j < t->arity(); j++){
-          TermList ts = *(t->nthArgument(j));
-          ASS(newTerm.isTerm());
-          newTerm = bre.betaReduce(newTerm.term(), ts); 
-        }
+      TermList tDest = applicator.applyHigherOrder(t);
+      //If these is no substitution for this higher-order variriabe,
+      //applyHigherOrder will return original term wrapped up in TermList.
+      if(!(tDest.isTerm() && tDest.term() == t)){
         modified->setTop(true);
-        if(newTerm.isTerm()){
-          Term* nt = newTerm.term();
+        if(tDest.isTerm()){
+          Term* nt = tDest.term();
           terms->push(nt);//push to terms the beta reduce version of substitution
           modified->push(false);
           toDo->push(nt->args());
           continue;        
         } else {
-          //beta reduction returned variable.
-          TermList dest=applicator.apply(newTerm.var());
+          //beta-reduction returned variable.
+          TermList dest=applicator.apply(tDest.var());
           args->push(dest);
           continue;
         }

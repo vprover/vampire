@@ -116,6 +116,14 @@ struct DisjunctQueryAndResultVariablesSubstitution::Applicator
 
     return res;
   }
+
+  TermList applyHigherOrder(Term* varHeadTerm)
+  {
+    //dummy for compilation purposes. To be updated if required. AYB
+    TermList res;
+    return res;
+  }
+
 private:
   bool _isQuery;
   Renaming& _renaming;

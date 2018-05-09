@@ -180,6 +180,7 @@ public:
   bool tryNextMatch();
 
   TermList apply(unsigned var);
+  TermList applyHigherOrder(Term* varHeadTerm);
   TermList apply(TermList t);
   Literal* apply(Literal* lit);
 
@@ -297,7 +298,7 @@ bool MatchingUtils::matchArgs(Term* base, Term* instance, Binder& binder)
   CALL("MatchingUtils::matchArgs");
   ASS_EQ(base->functor(),instance->functor());
   //weight is not defined for higher-order functor symbols yet. AYB
-  if(base->shared() && instance->shared() && !base->hoVars()) {
+  if(!base->hoVars() && !instance->hoVars() && base->shared() && instance->shared()) {
     if(base->weight() > instance->weight() || !instance->couldArgsBeInstanceOf(base)) {
       return false;
     }
@@ -329,13 +330,12 @@ bool MatchingUtils::matchArgs(Term* base, Term* instance, Binder& binder)
       if(s->functor()!=t->functor() && !equivVarHeads) {
         return false;
       }
-      //both terms shared and base term doesn't contain 
-      //higher-order variables.
-      if(s->shared() && t->shared() && !s->hoVars()) {
+      //both terms shared 
+      if(s->shared() && t->shared()) {
         if(s->ground() && *bt!=*it) {
           return false;
         }
-        if(s->weight() > t->weight()) {
+        if(!s->hoVars() && !t->hoVars() && s->weight() > t->weight()) {
           return false;
         }
       }

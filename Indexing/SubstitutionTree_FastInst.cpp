@@ -207,6 +207,15 @@ private:
 	return TermList(var, false);
       }
     }
+
+    TermList applyHigherOrder(Term* varHeadTerm)
+    {
+      //dummy for compilation purposes. To be updated if required. AYB
+      TermList res;
+      return res;
+    }
+
+
     TermList applyToSpecVar(unsigned specVar)
     {
       CALL("SubstitutionTree::InstMatcher::DerefApplicator::applyToSpecVar");
@@ -257,6 +266,13 @@ public:
     TermList normalized=_parent->derefQueryBinding(var);
     ASS_REP(!normalized.isTerm() || normalized.term()->shared(), normalized);
     return _resultDenormalizer->apply(normalized);
+  }
+
+  TermList applyHigherOrder(Term* varHeadTerm)
+  {
+    //dummy for compilation purposes. To be updated if required. AYB
+    TermList res;
+    return res;
   }
 
   bool isIdentityOnResultWhenQueryBound() { return true; }

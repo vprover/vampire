@@ -27,7 +27,11 @@
 #  include "Term.hpp"
 #endif
 
+#include "Shell/BetaReductionEngine.hpp"
+
 #include "Substitution.hpp"
+
+using namespace Shell;
 
 namespace Kernel
 {
@@ -43,6 +47,7 @@ void Substitution::bind(unsigned v,Term* t)
   ts.setTerm(t);
   bind(v,ts);
 }
+
 void Substitution::rebind(unsigned v,Term* t)
 {
   TermList ts;
@@ -58,13 +63,36 @@ void Substitution::bind(unsigned v,TermList t)
 {
   CALL("Substitution::bind(int,TermList)");
 
-  ALWAYS(_map.insert(v, t));
+  if(v < Term::VARIABLE_HEAD_LOWER_BOUND){
+    ALWAYS(_map.insert(v, t));
+  } else {
+    ALWAYS(_hoLambdaMap.insert(v, t));
+  }
 } // Substitution::bind
+
+void Substitution::bind(unsigned v, Prefix p)
+{
+  CALL("Substitution::bind(int,Prefix)");
+
+  ALWAYS(_hoPrefixMap.insert(v, p));
+}
 
 void Substitution::rebind(unsigned v,TermList t)
 {
-  _map.set(v,t);
+  if(v < Term::VARIABLE_HEAD_LOWER_BOUND){
+    _map.set(v,t);
+  } else {
+    _hoLambdaMap.set(v,t);
+  }
 }
+
+void Substitution::rebind(unsigned v, Prefix p)
+{
+  CALL("Substitution::bind(int,Prefix)");
+
+  _hoPrefixMap.set(v,p);
+}
+
 
 /**
  * Remove the binding for @b v from the substitution.
@@ -75,8 +103,12 @@ void Substitution::rebind(unsigned v,TermList t)
 void Substitution::unbind(unsigned v)
 {
   CALL("Substitution::unbind");
-
-  ALWAYS(_map.remove(v));
+  
+  if(v < Term::VARIABLE_HEAD_LOWER_BOUND){
+    ALWAYS(_map.remove(v));
+  } else { 
+    ALWAYS(_hoLambdaMap.remove(v));  
+  }
 } // Substitution::unbind
 
 void Substitution::reset()
@@ -84,6 +116,8 @@ void Substitution::reset()
   CALL("Substitution::reset");
 
   _map.reset();
+  _hoLambdaMap.reset();
+  _hoPrefixMap.reset();
 }
 
 /**
@@ -94,16 +128,41 @@ void Substitution::reset()
  */
 TermList Substitution::apply(unsigned var)
 {
+  ASS(var < Term::VARIABLE_HEAD_LOWER_BOUND);
   TermList res;
   if(!findBinding(var, res)) {
-    if(var > Term::VARIABLE_HEAD_LOWER_BOUND){
-      //Dummy variable. Will never be used. 
-      res = TermList(0, false);
-    } else {
-      res = TermList(var,false);
-    }
+    res = TermList(var,false);
   }
   return res;
+}
+
+TermList Substitution::applyHigherOrder(Term* varHeadTerm){
+   ASS(varHeadTerm->hasVarHead());
+   TermList ts;
+   Prefix p;
+  
+   unsigned var = varHeadTerm->functor();
+   if(findBinding(var, ts)){
+      //ts contains a lambda term. Carry out beta reduction and return result.
+
+      BetaReductionEngine bre = BetaReductionEngine();
+      TermList newTerm = ts;
+      for(unsigned j = 0; j < varHeadTerm->arity(); j++){
+        TermList tss = *(varHeadTerm->nthArgument(j));
+        ASS(newTerm.isTerm());
+        newTerm = bre.betaReduce(newTerm.term(), tss); 
+      }
+
+      return newTerm;      
+   }
+   if(findBinding(var, p)){
+     //p contains a prefix. Return varHeadTerm with variable head replaced by p[refix
+     Term* newTerm = Term::create(p.functor(), p.prefixLength() + varHeadTerm->arity(),
+                                  p.prefixArgs(), varHeadTerm->args());
+     return TermList(newTerm);
+   }
+   return TermList(varHeadTerm);
+
 }
 
 /**
@@ -114,8 +173,21 @@ bool Substitution::findBinding(unsigned var, TermList& res) const
 {
   CALL("Substitution::findBinding");
 
-  return _map.find(var, res);
+  if(var < Term::VARIABLE_HEAD_LOWER_BOUND){
+    return _map.find(var, res);
+  } else {
+    return _hoLambdaMap.find(var, res);
+  }
 } // Substitution::bound
+
+
+bool Substitution::findBinding(unsigned var, Prefix& res) const
+{
+  CALL("Substitution::findBinding(unsigned, Prefix)");
+
+  return _hoPrefixMap.find(var, res);
+} // Substitution::findBinding
+
 
 
 #if VDEBUG
@@ -130,7 +202,28 @@ bool Substitution::findBinding(unsigned var, TermList& res) const
      first=false;
      result += Lib::Int::toString(item.first) + " -> " + item.second.toString(); 
    }
+   
+   result += "]\n High-order subsitutions: \n[";
+   VirtualIterator<std::pair<unsigned,TermList>> items2 = _hoLambdaMap.items();
+   first=true;
+   while(items2.hasNext()){
+     std::pair<unsigned,TermList> item = items2.next();
+     if(!first){result+=",";}
+     first=false;
+     result += Lib::Int::toString(item.first) + " -> " + item.second.toString(); 
+   }
+   result += "] \n [";
+
+   VirtualIterator<std::pair<unsigned,TermList>> items3 = _hoLambdaMap.items();
+   first=true;
+   while(items3.hasNext()){
+     std::pair<unsigned,TermList> item = items3.next();
+     if(!first){result+=",";}
+     first=false;
+     result += Lib::Int::toString(item.first) + " -> " + item.second.toString(); 
+   }
    result += ']';
+
    return result;
  } // Substitution::toString()
 #endif

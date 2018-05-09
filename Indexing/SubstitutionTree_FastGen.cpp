@@ -174,6 +174,14 @@ struct SubstitutionTree::GenMatcher::Applicator
     }
     return *cacheEntry;
   }
+
+  TermList applyHigherOrder(Term* varHeadTerm)
+  {
+    //dummy for compilation purposes. To be updated if required. AYB
+    TermList res;
+    return res;
+  }
+
 private:
   GenMatcher* _parent;
   Renaming* _resultNormalizer;
@@ -279,7 +287,7 @@ bool SubstitutionTree::GenMatcher::matchNext(unsigned specVar, TermList nodeTerm
       ASS(nt->arity()>0);
 
       success = queryTerm.isTerm() && 
-                (queryTerm.term()->functor()==nt->functor() || nt->hasVarhead()) &&
+                (queryTerm.term()->functor()==nt->functor() || nt->hasVarHead()) &&
 	              MatchingUtils::matchArgs(nt, queryTerm.term(), binder);
     }
   } else {

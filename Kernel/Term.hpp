@@ -315,6 +315,8 @@ public:
   static Term* createNonShared(Term* t,TermList* args);
   static Term* createNonShared(Term* t);
   static Term* cloneNonShared(Term* t);
+  /** used to merge  args lists when carrying out higher-order prefix unification*/
+  static Term* create(unsigned functor, unsigned arity, TermList* prefix, TermList* suffix);
 
   static Term* createConstant(const vstring& name);
   /** Create a new constant and insert in into the sharing structure */

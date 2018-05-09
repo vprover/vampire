@@ -396,7 +396,7 @@ Formula* Skolem::skolemise (Formula* f)
 
   case EXISTS: 
     {
-      //cout << "currently skolemising " + f->toString() << endl;
+      cout << "currently skolemising " + f->toString() << endl;
       // create the skolems for the existentials here
       // and bind them in _subst
       unsigned arity = 0;
@@ -455,7 +455,8 @@ Formula* Skolem::skolemise (Formula* f)
       while (vs.hasNext()) {
         int v = vs.next();
         unsigned rangeSort=_varSorts.get(v, Sorts::SRT_DEFAULT);
-        Term* skolemTerm;
+        Term* skolemTerm = 0;
+        Prefix pref;
         unsigned fun;
 
         if(!env.sorts->isOfStructuredSort(rangeSort, ss::FUNCTION)){
@@ -471,6 +472,7 @@ Formula* Skolem::skolemise (Formula* f)
           _subst.bind(v,skolemTerm);
           localSubst.bind(v,skolemTerm);
         } else {
+
           while(env.sorts->isOfStructuredSort(rangeSort, ss::FUNCTION)){
             domainSorts.push(env.sorts->getFuncSort(rangeSort)->getDomainSort());
             rangeSort = env.sorts->getFuncSort(rangeSort)->getRangeSort();
@@ -484,23 +486,29 @@ Formula* Skolem::skolemise (Formula* f)
           _introducedSkolemFuns.push(fun);
           env.statistics->skolemFunctions++;
 
-          TermList sklm = FOOLElimAlt::etaExpand(fun,type, true, fnArgs);
-          skolemTerm = sklm.term();
+          pref = Prefix(fun, fnArgs.end(), arity);
           unsigned functor;
+
           //We dont know that the variabe appears in qarg. If it does than its functor
           //will have been added to _varFunctors in preskolemise.
           if(_varFunctors.find(v, functor)){
-            _subst.bind(functor,skolemTerm);
-            localSubst.bind(functor,skolemTerm);
+            _subst.bind(functor,pref);
+            localSubst.bind(functor,pref);
           }
           //remove extra sorts added in while loop above
           for(unsigned i = domainSorts.size(); i > arity; i--){ domainSorts.pop(); }
+          	cout << "reached here2" << endl;
         }
 
         if (env.options->showSkolemisations()) {
           env.beginOutput();
-          env.out() << "Skolemising: "<<skolemTerm->toString()<<" for X"<< v
+          if(skolemTerm){
+            env.out() << "Skolemising: "<<skolemTerm->toString()<<" for X"<< v
             <<" in "<<f->toString()<<" in formula "<<_beingSkolemised->toString() << endl;
+          } else {
+          	env.out() << "Skolemising: "<<pref.toString()<<" for X"<< v
+            <<" in "<<f->toString()<<" in formula "<<_beingSkolemised->toString() << endl;
+          }
           env.endOutput();
         }
 

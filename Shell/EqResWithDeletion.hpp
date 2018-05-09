@@ -43,6 +43,7 @@ public:
   bool apply(UnitList*& units);
 
   TermList apply(unsigned var);
+  TermList applyHigherOrder(Term* varHeadTerm);
   Clause* apply(Clause* cl);
 private:
   bool scan(Literal* lit);

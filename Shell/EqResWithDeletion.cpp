@@ -122,13 +122,14 @@ TermList EqResWithDeletion::apply(unsigned var)
   if(_subst.find(var, res)) {
     return res;
   } else {
-    if(var > Term::VARIABLE_HEAD_LOWER_BOUND){
-      //Dummy variable. Will never be used. 
-      return TermList(0, false);
-    } else {
-      return TermList(var,false);
-    }
+    return TermList(var,false);
   }
+}
+
+TermList EqResWithDeletion::applyHigherOrder(Term* varHeadTerm)
+{
+  //dummy for compilation purposes. To be updated if required. AYB
+  return TermList(varHeadTerm);
 }
 
 bool EqResWithDeletion::scan(Literal* lit)

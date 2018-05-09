@@ -90,6 +90,13 @@ private:
       return res;
     }
 
+    TermList applyHigherOrder(Term* varHeadTerm)
+    {
+      //dummy for compilation purposes. To be updated if required. AYB
+      TermList res;
+      return res;
+    }
+
     CLASS_NAME(CodeTreeSubstitution::Applicator);
     USE_ALLOCATOR(Applicator);
   private:

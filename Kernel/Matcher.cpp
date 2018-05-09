@@ -44,6 +44,13 @@ public:
     return res;
   }
 
+  TermList applyHigherOrder(Term* varHeadTerm)
+  {
+    //dummy for compilation purposes. To be updated if required. AYB
+    TermList res;
+    return res;
+  }
+
   bool bind(unsigned var, TermList term)
   {
     TermList* aux;
@@ -392,6 +399,12 @@ TermList OCMatchIterator::apply(unsigned var)
   }
   //variable is unbound
   return TermList(var, false);
+}
+
+TermList OCMatchIterator::applyHigherOrder(Term* varHeadTerm)
+{
+  //dummy for compilation purposes. To be updated if required. AYB
+  return TermList(varHeadTerm);
 }
 
 TermList OCMatchIterator::apply(TermList t)

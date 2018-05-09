@@ -109,6 +109,13 @@ private:
   /** This is to allow use of SubstHelper::apply with the rectify object as applicator*/
   TermList apply(unsigned var) { return TermList(rectifyVar(var), false); }
 
+  TermList applyHigherOrder(Term* varHeadTerm)
+  {
+    //dummy for compilation purposes. To be updated if required. AYB
+    TermList res;
+    return res;
+  }
+
   /** Renaming to store bindings for both free and bound variables */
   Renaming _renaming;
   /** placeholder for free variables */

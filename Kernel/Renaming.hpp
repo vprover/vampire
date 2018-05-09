@@ -101,6 +101,14 @@ private:
     Applicator(Renaming* parent) : _parent(parent) {}
     TermList apply(unsigned var)
     { return TermList(_parent->getOrBind(var), false); }
+
+    TermList applyHigherOrder(Term* varHeadTerm)
+    {
+      //dummy for compilation purposes. To be updated if required. AYB
+      TermList res;
+      return res;
+    }
+
   private:
     Renaming* _parent;
   };

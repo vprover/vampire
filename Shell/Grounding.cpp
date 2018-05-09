@@ -97,6 +97,13 @@ TermList Grounding::GroundingApplicator::apply(unsigned var)
   return _constants[_indexes[_varNumbering.get(var)]];
 }
 
+TermList Grounding::GroundingApplicator::applyHigherOrder(Term* varHeadTerm)
+{
+  //dummy for compilation purposes. To be updated if required. AYB
+  TermList res;
+  return res;
+}
+
 ClauseList* Grounding::ground(Clause* cl)
 {
   CALL("Grounding::ground");

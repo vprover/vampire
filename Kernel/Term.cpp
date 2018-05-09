@@ -861,6 +861,50 @@ Term* Term::create(unsigned function, unsigned arity, TermList* args)
   return s;
 }
 
+Term* Term::create(unsigned functor, unsigned arity, TermList* prefix, TermList* suffix)
+{
+  CALL("Term::create/4");
+
+  Term* s = new(arity) Term;
+  s->makeSymbol(functor,arity);
+#if VDEBUG
+  unsigned functorArity = functor < VARIABLE_HEAD_LOWER_BOUND ?
+                          env.signature->functionArity(functor) : 
+                          env.signature->getVarType(functor)->arity();
+  ASS_EQ(functorArity, arity);
+#endif
+
+  bool share = true;
+  TermList* ss = s->args();
+
+  TermList* curArg = suffix;
+  while (curArg->isNonEmpty()) {
+    *ss = *curArg;
+    --ss;
+    if (!curArg->isSafe()) {
+      share = false;
+    }
+    curArg = curArg->next();
+  }
+  
+  curArg = prefix;
+  while (curArg->isNonEmpty()) {
+    *ss = *curArg;
+    --ss;
+    if (!curArg->isSafe()) {
+      share = false;
+    }
+    curArg = curArg->next();
+  }
+
+  if (share) {
+    s = env.sharing->insert(s);
+  }
+  return s;
+}
+
+
+
 /** Create a new constant and insert in into the sharing
  *  structure.
  */

@@ -279,6 +279,13 @@ public:
 //    return TermList(0, false);
     return _tgtTerm;
   }
+
+  TermList applyHigherOrder(Term* varHeadTerm)
+  {
+    //dummy for compilation purposes. To be updated if required. AYB
+    TermList res;
+    return res;
+  }
 };
 
 /**

@@ -56,6 +56,7 @@ private:
     void initForClause(Clause* cl);
     bool newAssignment();
     TermList apply(unsigned var);
+    TermList applyHigherOrder(Term* varHeadTerm);
   private:
     DHMap<unsigned, unsigned, IdentityHash> _varNumbering;
     Stack<TermList> _constants;
