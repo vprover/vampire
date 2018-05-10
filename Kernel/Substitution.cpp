@@ -66,7 +66,7 @@ void Substitution::bind(unsigned v,TermList t)
   if(v < Term::VARIABLE_HEAD_LOWER_BOUND){
     ALWAYS(_map.insert(v, t));
   } else {
-    ALWAYS(_hoLambdaMap.insert(v, t));
+    ALWAYS(_hoLambdaMap.insert(v - Term::VARIABLE_HEAD_LOWER_BOUND, t));
   }
 } // Substitution::bind
 
@@ -74,7 +74,10 @@ void Substitution::bind(unsigned v, Prefix p)
 {
   CALL("Substitution::bind(int,Prefix)");
 
-  ALWAYS(_hoPrefixMap.insert(v, p));
+  ALWAYS(_hoPrefixMap.insert((v - Term::VARIABLE_HEAD_LOWER_BOUND), p));
+
+  //cout << "prefix " + p.toString() + " bound" << endl;
+  //cout << "the substitution is now " + this->toString() << endl;
 }
 
 void Substitution::rebind(unsigned v,TermList t)
@@ -82,7 +85,7 @@ void Substitution::rebind(unsigned v,TermList t)
   if(v < Term::VARIABLE_HEAD_LOWER_BOUND){
     _map.set(v,t);
   } else {
-    _hoLambdaMap.set(v,t);
+    _hoLambdaMap.set(v - Term::VARIABLE_HEAD_LOWER_BOUND,t);
   }
 }
 
@@ -90,7 +93,7 @@ void Substitution::rebind(unsigned v, Prefix p)
 {
   CALL("Substitution::bind(int,Prefix)");
 
-  _hoPrefixMap.set(v,p);
+  _hoPrefixMap.set(v - Term::VARIABLE_HEAD_LOWER_BOUND,p);
 }
 
 
@@ -107,7 +110,9 @@ void Substitution::unbind(unsigned v)
   if(v < Term::VARIABLE_HEAD_LOWER_BOUND){
     ALWAYS(_map.remove(v));
   } else { 
-    ALWAYS(_hoLambdaMap.remove(v));  
+    if(!_hoLambdaMap.remove(v - Term::VARIABLE_HEAD_LOWER_BOUND)){
+      ALWAYS(_hoPrefixMap.remove(v - Term::VARIABLE_HEAD_LOWER_BOUND));  
+    }
   }
 } // Substitution::unbind
 
@@ -137,6 +142,8 @@ TermList Substitution::apply(unsigned var)
 }
 
 TermList Substitution::applyHigherOrder(Term* varHeadTerm){
+   CALL("Substitution::applyHigherOrder");
+
    ASS(varHeadTerm->hasVarHead());
    TermList ts;
    Prefix p;
@@ -176,7 +183,7 @@ bool Substitution::findBinding(unsigned var, TermList& res) const
   if(var < Term::VARIABLE_HEAD_LOWER_BOUND){
     return _map.find(var, res);
   } else {
-    return _hoLambdaMap.find(var, res);
+    return _hoLambdaMap.find(var - Term::VARIABLE_HEAD_LOWER_BOUND, res);
   }
 } // Substitution::bound
 
@@ -185,7 +192,7 @@ bool Substitution::findBinding(unsigned var, Prefix& res) const
 {
   CALL("Substitution::findBinding(unsigned, Prefix)");
 
-  return _hoPrefixMap.find(var, res);
+  return _hoPrefixMap.find((var - Term::VARIABLE_HEAD_LOWER_BOUND), res);
 } // Substitution::findBinding
 
 
@@ -210,14 +217,14 @@ bool Substitution::findBinding(unsigned var, Prefix& res) const
      std::pair<unsigned,TermList> item = items2.next();
      if(!first){result+=",";}
      first=false;
-     result += Lib::Int::toString(item.first) + " -> " + item.second.toString(); 
+     result += Lib::Int::toString(item.first + Term::VARIABLE_HEAD_LOWER_BOUND) + " -> " + item.second.toString(); 
    }
    result += "] \n [";
 
-   VirtualIterator<std::pair<unsigned,TermList>> items3 = _hoLambdaMap.items();
+   VirtualIterator<std::pair<unsigned,Prefix>> items3 = _hoPrefixMap.items();
    first=true;
    while(items3.hasNext()){
-     std::pair<unsigned,TermList> item = items3.next();
+     std::pair<unsigned,Prefix> item = items3.next();
      if(!first){result+=",";}
      first=false;
      result += Lib::Int::toString(item.first) + " -> " + item.second.toString(); 

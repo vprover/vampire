@@ -481,9 +481,11 @@ Formula* NNF::nnf (Formula* f, bool polarity)
       Formula* r = f->right();
       Formula* g;
 
-      NatSet funcs;
-      Formula* renamedR = FOOLElimAlt::renameVarHeads(r, funcs);
-      Formula* renamedL = FOOLElimAlt::renameVarHeads(l, funcs);
+      Formula* renamedR = FOOLElimAlt::renameVarHeadsInFormula(r);
+      Formula* renamedL = FOOLElimAlt::renameVarHeadsInFormula(l);
+
+      cout << renamedL->toString() << endl;
+      cout << renamedR->toString() << endl;
 
       if (polarity ? c == IFF : c == XOR) {
 	// essentially l <=> r

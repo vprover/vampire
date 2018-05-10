@@ -396,7 +396,7 @@ Formula* Skolem::skolemise (Formula* f)
 
   case EXISTS: 
     {
-      cout << "currently skolemising " + f->toString() << endl;
+      //cout << "currently skolemising " + f->toString() << endl;
       // create the skolems for the existentials here
       // and bind them in _subst
       unsigned arity = 0;
@@ -486,14 +486,11 @@ Formula* Skolem::skolemise (Formula* f)
           _introducedSkolemFuns.push(fun);
           env.statistics->skolemFunctions++;
           
-          if(fnArgs.size()){
-            pref = Prefix(fun, fnArgs.end() - 1, arity);
-          } else {
-            pref = Prefix(fun, 0, arity);
-          }
+          pref = Prefix(fun, fnArgs.end() - 1, arity);
+
           unsigned functor;
 
-          //We dont know that the variabe appears in qarg. If it does than its functor
+          //We dont know that the varialbe appears in qarg. If it does than its functor
           //will have been added to _varFunctors in preskolemise.
           if(_varFunctors.find(v, functor)){
             _subst.bind(functor,pref);

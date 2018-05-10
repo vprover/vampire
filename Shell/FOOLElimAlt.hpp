@@ -37,6 +37,7 @@ using namespace Shell;
 class FOOLElimAlt {
 public:
 
+  FOOLElimAlt() : _axioms(0){};
   FOOLElimAlt(DHMap<unsigned,unsigned> varSorts) : _axioms(0), _varSorts(varSorts){};
   static unsigned addDuBruijnIndex(vstring name, OperatorType* type);
   TermList formulaToTerm(Formula* fm);  
@@ -69,14 +70,11 @@ public:
   static TermList abstract(TermList term, unsigned termSort, Stack<unsigned> sorts);
 
   //During preprocessing if a formula is ever copied, its variable heads
-  //require naming away from each other.
-  typedef DHSet<unsigned> NatSet;
-  static Formula* renameVarHeads(Formula* f, NatSet newFuncs);
-  static Term* renameVarHeads(Term* term, NatSet newFuncs);
-  static TermList renameVarHeads(TermList ts, NatSet newFuncs);
-  static FormulaList* renameVarHeads(FormulaList* fs, NatSet newFuncs);
-  static bool renameVarHeads(TermList* fromtl, TermList* totl, NatSet newFuncs);
- 
+  //require naming away from each oth
+
+
+  static Formula* renameVarHeadsInFormula(Formula* f);
+
   UnitList* axioms(){
 	 return _axioms;
   }
@@ -85,8 +83,22 @@ private:
   typedef Signature::Symbol::HOLConstant SigSymHol;
   typedef Signature::Symbol SigSym;
 
+  Formula* renameVarHeads(Formula* f);
+  Term* renameVarHeads(Term* term);
+  TermList renameVarHeads(TermList ts);
+  FormulaList* renameVarHeads(FormulaList* fs);
+  bool renameVarHeads(TermList* fromtl, TermList* totl);
+
+  //holds all new functors introduced by renaming
+  DHSet<unsigned> newFuncs;
+  //holds a list of those variables whose corresponding higher-order functors require renaming
+  DHSet<unsigned> varsToRename;
+  //maps old functors to new ones, so that terms with identical functors will be updated correctly.
+  DHMap<unsigned, unsigned> oldToNewFunctors;
+
+
   UnitList* _axioms;
-  
+
   static unsigned addLogicalConnSym(vstring name, unsigned sort1, unsigned argNum, bool &added, SigSymHol cnst); 
   static TermList applyLogicalConn(unsigned function, TermList args1, TermList arg2, bool bothArgs = true);
   unsigned sortOf(TermList t);

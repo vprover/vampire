@@ -298,7 +298,7 @@ bool MatchingUtils::matchArgs(Term* base, Term* instance, Binder& binder)
   CALL("MatchingUtils::matchArgs");
   ASS_EQ(base->functor(),instance->functor());
   //weight is not defined for higher-order functor symbols yet. AYB
-  if(!base->hoVars() && !instance->hoVars() && base->shared() && instance->shared()) {
+  if(!base->shared() && instance->shared() && base->hoVars() && !instance->hoVars()) {
     if(base->weight() > instance->weight() || !instance->couldArgsBeInstanceOf(base)) {
       return false;
     }

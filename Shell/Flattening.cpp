@@ -72,6 +72,10 @@ FormulaUnit* Flattening::flatten (FormulaUnit* unit)
   CALL("Flattening::flatten (Unit*)");
   ASS(! unit->isClause());
 
+  if(unit->number() == 1535){
+    cout << "FROM FLATTENING" + unit->toString() << endl;
+  }
+
   Formula* f = unit->formula();
   Formula* g = flatten(f);
   if (f == g) { // not changed
@@ -84,7 +88,7 @@ FormulaUnit* Flattening::flatten (FormulaUnit* unit)
   if(unit->included()) {
     res->markIncluded();
   }
-  if (env.options->showPreprocessing()) {
+  if (/*env.options->showPreprocessing()*/true) {
     env.beginOutput();
     env.out() << "[PP] flatten in: " << unit->toString() << std::endl;
     env.out() << "[PP] flatten out: " << res->toString() << std::endl;

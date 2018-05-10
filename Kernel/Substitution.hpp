@@ -56,12 +56,10 @@ public:
   //USE_ALLOCATOR(Prefix);
  
   Prefix(){}
-  Prefix(unsigned f, TermList* terms, unsigned length) : _argsLength(length), _functor(f)
+  Prefix(unsigned f, TermList* terms, unsigned length) : _argsLength(length), _functor(f), _prefixArgs(terms)
   {
-    if(!terms){
-      _prefixArgs->makeEmpty();
-    } else {
-      _prefixArgs = terms;
+    if(!length){
+      _prefixArgs->makeEmpty(); 
     }
   }
 
@@ -75,6 +73,7 @@ public:
 #if VDEBUG
   vstring toString() const {
     CALL("Prefix::toString");
+
     bool first = true;
     vstring res;
    // if(_functor < )

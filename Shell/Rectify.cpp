@@ -403,8 +403,6 @@ TermList Rectify::rectify(TermList t)
 Formula* Rectify::rectify (Formula* f)
 {
   CALL("Rectify::rectify (Formula*)");
-
-  //cout << "The formula is: " + f->toString() << endl; to be removed AYB
   
   switch (f->connective()) {
   case LITERAL: 
