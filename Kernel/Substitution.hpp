@@ -56,7 +56,13 @@ public:
   //USE_ALLOCATOR(Prefix);
  
   Prefix(){}
-  Prefix(unsigned f, TermList* terms, unsigned length) : _argsLength(length), _functor(f), _prefixArgs(terms) {
+  Prefix(unsigned f, TermList* terms, unsigned length) : _argsLength(length), _functor(f)
+  {
+    if(!terms){
+      _prefixArgs->makeEmpty();
+    } else {
+      _prefixArgs = terms;
+    }
   }
 
   //Do prefixTerms require destroying in the destructor? AYB
@@ -69,14 +75,13 @@ public:
 #if VDEBUG
   vstring toString() const {
     CALL("Prefix::toString");
-
     bool first = true;
     vstring res;
    // if(_functor < )
     res = env.signature->getFunction(_functor)->name();
     res += "(";
     TermList* tl = _prefixArgs;
-    while(tl->isNonEmpty()){
+    while(tl->isNonEmpty()){  
       res += first ? tl->toString() : ", " + tl->toString();
       first = false;
       tl = tl->next();

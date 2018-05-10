@@ -485,8 +485,12 @@ Formula* Skolem::skolemise (Formula* f)
 
           _introducedSkolemFuns.push(fun);
           env.statistics->skolemFunctions++;
-
-          pref = Prefix(fun, fnArgs.end(), arity);
+          
+          if(fnArgs.size()){
+            pref = Prefix(fun, fnArgs.end() - 1, arity);
+          } else {
+            pref = Prefix(fun, 0, arity);
+          }
           unsigned functor;
 
           //We dont know that the variabe appears in qarg. If it does than its functor
@@ -497,7 +501,6 @@ Formula* Skolem::skolemise (Formula* f)
           }
           //remove extra sorts added in while loop above
           for(unsigned i = domainSorts.size(); i > arity; i--){ domainSorts.pop(); }
-          	cout << "reached here2" << endl;
         }
 
         if (env.options->showSkolemisations()) {
