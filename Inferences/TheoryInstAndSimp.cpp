@@ -130,14 +130,18 @@ bool TheoryInstAndSimp::isPure(Literal* lit) {
              theory->isInterpretedConstant(term) ))
         return false;
 
-      //we can also stop if we found a polymorphic operator
-      Kernel::Theory::Interpretation inter = theory->interpretFunction(term);
-      if ( !theory->hasSingleSort(inter))
+      //check if return value of term is supported
+      if (! isSupportedSort(SortHelper::getResultSort(lit)))
         return false;
 
-      //and we can stop when we found an unsupported interpreted symbol
-      if (! isSupportedSort( theory->getOperationSort(inter) ) )
-        return true;
+      //check if arguments of term are supported. covers e.g. f(X) = 0 where
+      // f could map uninterpreted sorts to integer. when iterating over X
+      // itself, its sort cannot be checked.
+      for (unsigned i=0; i=term->arity(); i++) {
+        unsigned sort = SortHelper::getArgSort(term,i);
+        if (! isSupportedSort(sort))
+          return false;
+      }
 
       cout << "found subterm with pure head: " << term->toString() << endl;
     }
