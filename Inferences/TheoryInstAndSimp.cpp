@@ -94,7 +94,7 @@ bool TheoryInstAndSimp::isSupportedLiteral(Literal* lit) {
     return false;
 
   //check if arguments of predicate are supported
-  for (unsigned i=0; i=lit->arity(); i++) {
+  for (unsigned i=0; i<lit->arity(); i++) {
     unsigned sort = SortHelper::getArgSort(lit,i);
     if (! isSupportedSort(sort))
       return false;
@@ -113,13 +113,14 @@ bool TheoryInstAndSimp::isPure(Literal* lit) {
   //check if the predicate is a theory predicate
   Theory* theory = Theory::instance();
   if (! isSupportedLiteral(lit) ) {
-    cout << "uninterpreted predicate symbol " << lit -> toString() << endl;
+    //    cout << "uninterpreted predicate symbol " << lit -> toString() << endl;
     return false;
   }
-
+  //check all (proper) subterms
   SubtermIterator sti(lit);
   while( sti.hasNext() ) {
     TermList tl = sti.next();
+    cout << "looking at subterm " << tl.toString() << endl;
     if ( tl.isEmpty() || tl.isVar() )
       continue;
     if ( tl.isTerm()   ) {
@@ -137,15 +138,16 @@ bool TheoryInstAndSimp::isPure(Literal* lit) {
       //check if arguments of term are supported. covers e.g. f(X) = 0 where
       // f could map uninterpreted sorts to integer. when iterating over X
       // itself, its sort cannot be checked.
-      for (unsigned i=0; i=term->arity(); i++) {
+      for (unsigned i=0; i<term->arity(); i++) {
         unsigned sort = SortHelper::getArgSort(term,i);
         if (! isSupportedSort(sort))
           return false;
       }
 
-      cout << "found subterm with pure head: " << term->toString() << endl;
     }
   }
+
+  cout << "found pure literal: " << lit->toString() << endl;
   return true;
 }
 
@@ -169,7 +171,7 @@ void TheoryInstAndSimp::selectTrivialLiterals(Clause* cl,
   Stack<Literal*> nontrivial;
   while( it.hasNext() ) {
     Literal* c = it.next();
-    cout << "pure?" << isPure(c) << endl;
+    isPure(c);//just call for side-effects atm
     if (c->isNegative()
         && c->isEquality()) {
       const TermList* left = c->nthArgument(0);
@@ -189,6 +191,7 @@ void TheoryInstAndSimp::selectTrivialLiterals(Clause* cl,
       nontrivial.push(c);
     }
   }
+  cout << "done selecting trivial literals" << endl ;
   cout << "Found " << triv_candidates.length() << " trivial candidates." << endl;
   cout << "Found " << nontrivial.length() << " nontrivial literals." << endl;
 
