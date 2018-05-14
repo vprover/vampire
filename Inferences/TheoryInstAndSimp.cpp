@@ -40,6 +40,7 @@
 #include "Kernel/TermIterators.hpp"
 #include "Kernel/SubstHelper.hpp"
 #include "Kernel/Sorts.hpp"
+#include "Kernel/Theory.hpp"
 
 #include "Saturation/SaturationAlgorithm.hpp"
 #include "Saturation/Splitter.hpp"
@@ -73,38 +74,74 @@ void TheoryInstAndSimp::attach(SaturationAlgorithm* salg)
   _splitter = salg->getSplitter();
 }
 
-bool TheoryInstAndSimp::isInterpretedSort(unsigned sort) {
-  return sort == Kernel::Sorts::SRT_INTEGER; // TODO: find out which sorts are int etc.
+bool TheoryInstAndSimp::isSupportedSort(const unsigned sort) {
+  //TODO: extend for more sorts (arrays, datatypes)
+  return (sort == Kernel::Sorts::SRT_INTEGER);
+}
+
+/**
+  Wraps around interpretePredicate to support interpreted equality
+ */
+bool TheoryInstAndSimp::isSupportedLiteral(Literal* lit) {
+  //check equality spearately (X=Y needs special handling)
+  if (lit->isEquality()) {
+    unsigned sort = SortHelper::getEqualityArgumentSort(lit);
+    return isSupportedSort(sort);
+  }
+
+  //check if predicate is interpreted
+  if (! theory->isInterpretedPredicate(lit))
+    return false;
+
+  //check if arguments of predicate are supported
+  for (unsigned i=0; i=lit->arity(); i++) {
+    unsigned sort = SortHelper::getArgSort(lit,i);
+    if (! isSupportedSort(sort))
+      return false;
+  }
+
+  return true;
 }
 
 
-bool TheoryInstAndSimp::isPure(const Literal* lit) {
-  if (lit->isSpecial()) /* TODO: extend for let .. in / if then else */
+bool TheoryInstAndSimp::isPure(Literal* lit) {
+  if (lit->isSpecial()) /* TODO: extend for let .. in / if then else */ {
+    cout << "special lit " << lit -> toString() << endl;
     return false;
-  if (! lit->hasInterpretedConstants() )
+  }
+
+  //check if the predicate is a theory predicate
+  Theory* theory = Theory::instance();
+  if (! isSupportedLiteral(lit) ) {
+    cout << "uninterpreted predicate symbol " << lit -> toString() << endl;
     return false;
+  }
 
   SubtermIterator sti(lit);
-  /* TODO: add special case for X = Y to check the sort */
   while( sti.hasNext() ) {
     TermList tl = sti.next();
     if ( tl.isEmpty() || tl.isVar() )
       continue;
-    if ( tl.isTerm() ) {
-      const Term* term = tl.term();
-      cout << "looking at subterm " << term->toString();
-      
-      /* only special terms have sorts */
-      if(!term->isSpecial())
+    if ( tl.isTerm()   ) {
+      Term* term = tl.term();
+
+      //we can stop if we found an uninterpreted function / constant
+      if (! (theory->isInterpretedFunction(term)  ||
+             theory->isInterpretedConstant(term) ))
         return false;
 
-      /* check if sort can be passed to SMT solver */
-      if ( !isInterpretedSort( term->getSpecialData()->getSort() ) )
+      //we can also stop if we found a polymorphic operator
+      Kernel::Theory::Interpretation inter = theory->interpretFunction(term);
+      if ( !theory->hasSingleSort(inter))
         return false;
+
+      //and we can stop when we found an unsupported interpreted symbol
+      if (! isSupportedSort( theory->getOperationSort(inter) ) )
+        return true;
+
+      cout << "found subterm with pure head: " << term->toString() << endl;
     }
-    /* predicates can be ignored */
   }
-         
   return true;
 }
 
@@ -115,7 +152,6 @@ bool TheoryInstAndSimp::isXeqTerm(const TermList* left, const TermList* right) {
   return r;
 }
 
-  
 /**
  * Scans through a clause and selects all trivial literals
  **/
@@ -129,6 +165,7 @@ void TheoryInstAndSimp::selectTrivialLiterals(Clause* cl,
   Stack<Literal*> nontrivial;
   while( it.hasNext() ) {
     Literal* c = it.next();
+    cout << "pure?" << isPure(c) << endl;
     if (c->isNegative()
         && c->isEquality()) {
       const TermList* left = c->nthArgument(0);

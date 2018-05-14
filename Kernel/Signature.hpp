@@ -167,7 +167,7 @@ class Signature
     inline bool inGoal(){ return _inGoal; }
     inline void markInUnit(){ _inUnit=1; }
     inline bool inUnit(){ return _inUnit; }
-      
+
     /** Return true if symbol is an integer constant */
     inline bool integerConstant() const
     { return interpreted() && arity()==0 && fnType()->result()==Sorts::SRT_INTEGER; }
@@ -177,11 +177,11 @@ class Signature
     /** Return true if symbol is a real constant */
     inline bool realConstant() const
     { return interpreted() && arity()==0 && fnType()->result()==Sorts::SRT_REAL; }
-          
+
     /** return true if an interpreted number, note subtle but significant difference from numericConstant **/
     inline bool interpretedNumber() const
     { return integerConstant() || rationalConstant() || realConstant(); }
-    
+
     /** Return value of an integer constant */
     inline IntegerConstantType integerValue() const
     { ASS(integerConstant()); return static_cast<const IntegerSymbol*>(this)->_intValue; }
@@ -205,7 +205,7 @@ class Signature
     CLASS_NAME(Signature::Symbol);
     USE_ALLOCATOR(Symbol);
   }; // class Symbol
-  
+
   class InterpretedSymbol
   : public Symbol
   {
@@ -288,7 +288,7 @@ class Signature
     CLASS_NAME(Signature::RealSymbol);
     USE_ALLOCATOR(RealSymbol);
   };
-    
+
   //////////////////////////////////////
   // Uninterpreted symbol declarations
   //
