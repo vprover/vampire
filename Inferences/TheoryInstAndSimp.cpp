@@ -120,7 +120,7 @@ bool TheoryInstAndSimp::isPure(Literal* lit) {
   SubtermIterator sti(lit);
   while( sti.hasNext() ) {
     TermList tl = sti.next();
-    cout << "looking at subterm " << tl.toString() << endl;
+    //    cout << "looking at subterm " << tl.toString() << endl;
     if ( tl.isEmpty() || tl.isVar() )
       continue;
     if ( tl.isTerm()   ) {
@@ -158,43 +158,135 @@ bool TheoryInstAndSimp::isXeqTerm(const TermList* left, const TermList* right) {
   return r;
 }
 
+unsigned TheoryInstAndSimp::varOfXeqTerm(const Literal* lit) {
+  //add assertion
+  if (lit->isEquality()) {
+    const TermList* left = lit->nthArgument(0);
+    const TermList* right = lit->nthArgument(1);
+    if (isXeqTerm(left,right)) return left->var();
+    if (isXeqTerm(right,left)) return right->var();
+  }
+  ASSERTION_VIOLATION ;
+  return -1; //TODO: do something proper to prevent compilation warnings
+}
+
+/** checks if variable v is contained in literal lit */
+bool TheoryInstAndSimp::literalContainsVar(const Literal* lit, unsigned v) {
+  SubtermIterator it(lit);
+  while (it.hasNext()) {
+    const TermList t = it.next();
+    if ((t.isVar()) && (t.var() == v))
+      return true;
+  }
+  return false;
+}
+
+
 /**
- * Scans through a clause and selects all trivial literals
+ * Scans through a clause C and selects the largest set T s.t. all literals in
+ * T are trivial. A literal L is trivial in C if:
+ *   1 L is of the form X != s where X does not occur in s
+ *   2 L is pure
+ *   3 for all literals L' in C that X (different from L) either
+ *      + L' is not pure
+ *      + L' is trivial in C
+ * some observations:
+ *   - consider X != Y + 1 | Y != X - 1 | p(X,Y)
+ *     then {} as well as {X != Y+1, Y != X-1} are sets of trivial literals
+ *   - we can partition the clause into pure and impure literals
+ *   - trivial literals are always a subset of the pure literals
+ *   - a literal that violates condition is pure and not trivial
+ * the algorithm is as follows:
+ *   - find the set of trivial candidates TC that fulfill conditions 1 and 2
+ *   - define the set of certainly non-trivial pure literals NT as
+ *     { X in C | X is pure, X not in TC}
+ *   - move all X from TC to NT that do not fulfill criterion 3
+ *     (by checking against all elements of NT)
+ *   - repeat this step until no element was removed or TC is empty
+ * the algorithm can be optimized by only checking the freshly removed elements
  **/
 void TheoryInstAndSimp::selectTrivialLiterals(Clause* cl,
                                               Stack<Literal*>& trivialLits)
 {
-  cout << "selecting trivial literals" << endl ;
+  cout << "selecting trivial literals in " << cl->toString() << endl ;
   /* find trivial candidates of the form x != t (x not occurring in t) */
   Clause::Iterator it(*cl);
+  /* invariants:
+       triv_candidates \cup nontriv_pure \cup impure = cl
+       triv_candidates \cap nontriv_pure = 0
+       triv_candidates \cap impure = 0
+       nontriv_pure \cap impure = 0 */
   Stack<Literal*> triv_candidates;
-  Stack<Literal*> nontrivial;
+  Stack<Literal*> nontriv_pure;
+  Stack<Literal*> impure;
   while( it.hasNext() ) {
     Literal* c = it.next();
-    isPure(c);//just call for side-effects atm
-    if (c->isNegative()
-        && c->isEquality()) {
-      const TermList* left = c->nthArgument(0);
-      const TermList* right = c->nthArgument(1);
-      if (TheoryInstAndSimp::isXeqTerm(left, right) ||
-          TheoryInstAndSimp::isXeqTerm(right, left) ) {
-        triv_candidates.push(c);
-      } else if(left->isVar() && right->isVar()) {
-        //TODO:special treatment because we have to check the type differently
-        cout << "Found variable equality " << c << endl;
-      } else {
-        nontrivial.push(c);
+    if (isPure(c)) {
+      //a liteal X != s is possibly trivial
+      if (c->isNegative()
+          && c->isEquality()) {
+        const TermList* left = c->nthArgument(0);
+        const TermList* right = c->nthArgument(1);
+        /* distinguish between X = s where s not a variable, X = Y and X = X */
+        if (TheoryInstAndSimp::isXeqTerm(left, right) ||
+            TheoryInstAndSimp::isXeqTerm(right, left) ) {
+          triv_candidates.push(c);
+        } else if( left->isVar()
+                   && right->isVar()) {
+          if (left->var() != right->var()) {
+            triv_candidates.push(c);
+          } else {
+            //this is required by the definition, but making X=X trivial would
+            //make more sense
+            nontriv_pure.push(c);
+          }
+        }
+        else {
+          //mark as nontrivial pure
+          nontriv_pure.push(c);
+        }
       }
-
-    }
-    else {
-      nontrivial.push(c);
+    } else { // !isPure(c)
+      impure.push(c);
     }
   }
-  cout << "done selecting trivial literals" << endl ;
-  cout << "Found " << triv_candidates.length() << " trivial candidates." << endl;
-  cout << "Found " << nontrivial.length() << " nontrivial literals." << endl;
 
+  cout << "Found " << triv_candidates.length() << " trivial candidates." << endl;
+  cout << "Found " << nontriv_pure.length() << " nontrivial pure literals." << endl;
+  cout << "Found " << impure.length() << " impure literals." << endl;
+
+  /* remove all candidates where the variable occurs in other pure
+     non-trivial lits  */
+  Stack<Literal*> nt_pure_tocheck(nontriv_pure);
+  Stack<Literal*> nt_new;
+
+  while( ! (nt_pure_tocheck.isEmpty() || triv_candidates.isEmpty()) ) {
+    //for each candidate X=s, check if any literal in nt_pure_tocheck contains X
+    //if yes, put it onto the removal list
+
+    Stack<Literal*>::Iterator cand_it(triv_candidates);
+    while(cand_it.hasNext() ) {
+      Literal* cand = cand_it.next();
+      Stack<Literal*>::Iterator tocheck_it(nt_pure_tocheck);
+      while (tocheck_it.hasNext()) {
+        Literal* checklit = tocheck_it.next();
+        if (literalContainsVar(checklit, varOfXeqTerm(cand))) {
+          nt_new.push(cand);
+        }
+      } // ! nt_pure_tocheck.hasNext()
+    }   // ! cand_it.hasNext()
+    //remove nt_new from candidates, replace tocheck by nt_new
+    Stack<Literal*>::Iterator nt_new_it(nt_new);
+    while(nt_new_it.hasNext()) {
+      triv_candidates.remove(it.next());
+    }
+    nt_pure_tocheck = nt_new;
+  }
+
+  cout << "Found " << triv_candidates.length() << " trivial literals." << endl;
+
+  //copy triv_candidates to trivialLits
+  trivialLits = triv_candidates;
 }
 
 
@@ -414,9 +506,9 @@ VirtualIterator<Solution> TheoryInstAndSimp::getSolutions(Stack<Literal*>& theor
   while(it.hasNext()){
     // get the complementary of the literal
     Literal* lit = Literal::complementaryLiteral(it.next());
-    // replace variables consistently by fresh constants 
+    // replace variables consistently by fresh constants
     DHMap<unsigned,unsigned > srtMap;
-    SortHelper::collectVariableSorts(lit,srtMap); 
+    SortHelper::collectVariableSorts(lit,srtMap);
     TermVarIterator vit(lit);
     while(vit.hasNext()){
       unsigned var = vit.next();

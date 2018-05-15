@@ -76,6 +76,8 @@ private:
    */
   static inline bool isXeqTerm(const TermList* left,const TermList* right);
 
+  unsigned varOfXeqTerm(const Literal* lit);
+
   /**
      Checks if models for sort can be mapped back to terms.
   */
@@ -87,10 +89,10 @@ private:
    */
   bool isSupportedLiteral(Literal* lit);
 
-  /** Check if the head symbol of term has a in interpretation that can be mapped
-      back to terms
-  bool hasInterpretableHeadsymbol(Term* term);
-  */
+
+  /** Checks if literal lit contains the variable v
+   */
+  bool literalContainsVar(const Literal* lit, unsigned v);
 
   Splitter* _splitter;
   //SAT2F0 _naming;
