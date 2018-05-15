@@ -164,7 +164,7 @@ TermList Substitution::applyHigherOrder(Term* varHeadTerm){
    }
    if(findBinding(var, p)){
      //p contains a prefix. Return varHeadTerm with variable head replaced by p[refix
-     Term* newTerm = Term::create(p.functor(), p.prefixLength() + varHeadTerm->arity(),
+     Term* newTerm = Term::create(p.functor(), p.prefixLength(), varHeadTerm->arity(),
                                   p.prefixArgs(), varHeadTerm->args());
      return TermList(newTerm);
    }

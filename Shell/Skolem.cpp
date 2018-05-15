@@ -97,7 +97,11 @@ FormulaUnit* Skolem::skolemiseImpl (FormulaUnit* unit)
   preskolemise(f);
   ASS_EQ(_varOccs.size(),0);
 
+  //cout << "Skolemizing formula " + f->toString() << endl;
+
   Formula* g = skolemise(f);
+
+  //cout << "The skolemized version is " + g->toString() << endl;
 
   _beingSkolemised = 0;
 
@@ -452,6 +456,7 @@ Formula* Skolem::skolemise (Formula* f)
       }
 
       Formula::VarList::Iterator vs(f->vars());
+
       while (vs.hasNext()) {
         int v = vs.next();
         unsigned rangeSort=_varSorts.get(v, Sorts::SRT_DEFAULT);
@@ -486,9 +491,10 @@ Formula* Skolem::skolemise (Formula* f)
           _introducedSkolemFuns.push(fun);
           env.statistics->skolemFunctions++;
           
-          pref = Prefix(fun, fnArgs.end() - 1, arity);
-
+          
           unsigned functor;
+
+          pref = Prefix(fun, fnArgs.end() - 1, arity);
 
           //We dont know that the varialbe appears in qarg. If it does than its functor
           //will have been added to _varFunctors in preskolemise.

@@ -642,14 +642,18 @@ Unit* Preprocess::preprocess3 (Unit* u)
   FormulaUnit* fu = static_cast<FormulaUnit*>(u);
   // Transform the formula to NNF
   fu = NNF::nnf(fu);
+
   // flatten it
   fu = Flattening::flatten(fu);
+
 // (Optional) miniscope the formula
 //     if (_options.miniscope()) {
 //       Miniscope::miniscope(fu);
 //     }
 //   return unit;
+
   fu = Skolem::skolemise(fu);
+
   return fu;
 }
 
@@ -672,6 +676,8 @@ void Preprocess::preprocess3 (Problem& prb)
 
   env.statistics->phase=Statistics::PREPROCESS_3;
   UnitList::DelIterator us(prb.units());
+
+
   while (us.hasNext()) {
     Unit* u = us.next();
     Unit* v = preprocess3(u);

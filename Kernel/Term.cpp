@@ -861,10 +861,11 @@ Term* Term::create(unsigned function, unsigned arity, TermList* args)
   return s;
 }
 
-Term* Term::create(unsigned functor, unsigned arity, TermList* prefix, TermList* suffix)
+Term* Term::create(unsigned functor, unsigned prefarity, unsigned sufarity, TermList* prefix, TermList* suffix)
 {
   CALL("Term::create/4");
 
+  unsigned arity = prefarity + sufarity;
   Term* s = new(arity) Term;
   s->makeSymbol(functor,arity);
 #if VDEBUG
@@ -878,23 +879,25 @@ Term* Term::create(unsigned functor, unsigned arity, TermList* prefix, TermList*
   TermList* ss = s->args();
 
   TermList* curArg = suffix;
-  while (curArg->isNonEmpty()) {
+  TermList* argStopper = curArg-sufarity;
+  while (curArg != argStopper) {
     *ss = *curArg;
     --ss;
     if (!curArg->isSafe()) {
       share = false;
     }
-    curArg = curArg->next();
+    --curArg;
   }
   
   curArg = prefix;
-  while (curArg->isNonEmpty()) {
+  argStopper = curArg-prefarity;
+  while (curArg != argStopper) {
     *ss = *curArg;
     --ss;
     if (!curArg->isSafe()) {
       share = false;
     }
-    curArg = curArg->next();
+    --curArg;
   }
 
   if (share) {

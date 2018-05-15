@@ -57,11 +57,7 @@ public:
  
   Prefix(){}
   Prefix(unsigned f, TermList* terms, unsigned length) : _argsLength(length), _functor(f), _prefixArgs(terms)
-  {
-    if(!length){
-      _prefixArgs->makeEmpty(); 
-    }
-  }
+  {}
 
   //Do prefixTerms require destroying in the destructor? AYB
   ~Prefix(){}
@@ -80,10 +76,11 @@ public:
     res = env.signature->getFunction(_functor)->name();
     res += "(";
     TermList* tl = _prefixArgs;
-    while(tl->isNonEmpty()){  
+    TermList* limit = _prefixArgs-_argsLength;
+    while(tl != limit){  
       res += first ? tl->toString() : ", " + tl->toString();
       first = false;
-      tl = tl->next();
+      --tl;
     }
     res += "...";
     return res;
