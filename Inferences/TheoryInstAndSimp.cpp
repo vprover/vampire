@@ -120,7 +120,7 @@ bool TheoryInstAndSimp::isPure(Literal* lit) {
   SubtermIterator sti(lit);
   while( sti.hasNext() ) {
     TermList tl = sti.next();
-    //    cout << "looking at subterm " << tl.toString() << endl;
+    //cout << "looking at subterm " << tl.toString() << endl;
     if ( tl.isEmpty() || tl.isVar() )
       continue;
     if ( tl.isTerm()   ) {
@@ -132,7 +132,7 @@ bool TheoryInstAndSimp::isPure(Literal* lit) {
         return false;
 
       //check if return value of term is supported
-      if (! isSupportedSort(SortHelper::getResultSort(lit)))
+      if (! isSupportedSort(SortHelper::getResultSort(term)))
         return false;
 
       //check if arguments of term are supported. covers e.g. f(X) = 0 where
