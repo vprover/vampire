@@ -154,7 +154,7 @@ bool TheoryInstAndSimp::isPure(Literal* lit) {
 bool TheoryInstAndSimp::isXeqTerm(const TermList* left, const TermList* right) {
   bool r = left->isVar() &&
     right->isTerm() &&
-    !IntList::member(right->var(), left->term()->freeVariables());
+    !IntList::member(left->var(), right->term()->freeVariables());
   return r;
 }
 
@@ -278,7 +278,7 @@ void TheoryInstAndSimp::selectTrivialLiterals(Clause* cl,
     //remove nt_new from candidates, replace tocheck by nt_new
     Stack<Literal*>::Iterator nt_new_it(nt_new);
     while(nt_new_it.hasNext()) {
-      triv_candidates.remove(it.next());
+      triv_candidates.remove(nt_new_it.next());
     }
     nt_pure_tocheck = nt_new;
   }
@@ -381,7 +381,7 @@ void TheoryInstAndSimp::selectTheoryLiterals(Clause* cl, Stack<Literal*>& theory
   while(wit.hasNext()){
     Literal* lit = wit.next();
 #if DPRINT
-	cout << "consider weak " << lit->toString() << endl;
+    cout << "consider weak " << lit->toString() << endl;
 #endif
     VariableIterator vit(lit);
     bool add = false;
@@ -389,7 +389,7 @@ void TheoryInstAndSimp::selectTheoryLiterals(Clause* cl, Stack<Literal*>& theory
       if(strong_vars.contains(vit.next().var())){
         add=true;
 #if DPRINT
-	cout << "add weak as has strong var" << endl;
+        cout << "add weak as has strong var" << endl;
 #endif
       }
     }
@@ -440,7 +440,7 @@ void TheoryInstAndSimp::selectTheoryLiterals(Clause* cl, Stack<Literal*>& theory
       Literal* lit = dit.next();
       theoryLits.remove(lit);
 #if DPRINT
-	cout << "deselect1 " << lit->toString() << endl;
+      cout << "deselect1 " << lit->toString() << endl;
 #endif
     }
   }
