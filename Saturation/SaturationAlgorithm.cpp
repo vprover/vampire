@@ -1347,6 +1347,9 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
     gie->addFront(new EqualityResolution());
     gie->addFront(new Superposition());
   }
+  else if(opt.unificationWithAbstraction()!=Options::UnificationWithAbstraction::OFF){
+    gie->addFront(new EqualityResolution()); 
+  }
   gie->addFront(new Factoring());
   if (opt.binaryResolution()) {
     gie->addFront(new BinaryResolution());
