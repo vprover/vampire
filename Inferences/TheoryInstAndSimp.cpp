@@ -12,9 +12,9 @@
  *
  * In summary, you are allowed to use Vampire for non-commercial
  * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
+ * or use in competitions.
  * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
+ * licence, which we will make an effort to provide.
  */
 /**
  * @file TheoryInstAndSimp.cpp
@@ -350,13 +350,13 @@ void TheoryInstAndSimp::selectTheoryLiterals(Clause* cl, Stack<Literal*>& theory
     }
     }
 
-    if(interpreted){    
-      VariableIterator vit(lit); 
+    if(interpreted){
+      VariableIterator vit(lit);
       bool pos_equality = lit->isEquality() && lit->polarity();
       // currently weak literals are postive equalities or ground literals
       bool is_weak = !vit.hasNext() || pos_equality;
-      if(selection != Shell::Options::TheoryInstSimp::ALL && 
-         selection != Shell::Options::TheoryInstSimp::FULL && 
+      if(selection != Shell::Options::TheoryInstSimp::ALL &&
+         selection != Shell::Options::TheoryInstSimp::FULL &&
          is_weak){
         weak.push(lit);
       }
@@ -365,15 +365,15 @@ void TheoryInstAndSimp::selectTheoryLiterals(Clause* cl, Stack<Literal*>& theory
         cout << "select " << lit->toString() << endl;
 #endif
         theoryLits.push(lit);
-        while(vit.hasNext()){ 
+        while(vit.hasNext()){
           unsigned v = vit.next().var();
-          strong_vars.insert(v); 
+          strong_vars.insert(v);
           var_to_lits[v].push(lit);
         }
         NonVariableIterator nit(lit);
         while(nit.hasNext()){ strong_symbols.insert(nit.next().term()->functor());}
       }
-    } 
+    }
   }
   if(selection == Shell::Options::TheoryInstSimp::OVERLAP){
 
@@ -387,14 +387,14 @@ void TheoryInstAndSimp::selectTheoryLiterals(Clause* cl, Stack<Literal*>& theory
     bool add = false;
     while(vit.hasNext() && !add){
       if(strong_vars.contains(vit.next().var())){
-        add=true; 
+        add=true;
 #if DPRINT
 	cout << "add weak as has strong var" << endl;
 #endif
       }
     }
     if(!add){
-      NonVariableIterator nit(lit); 
+      NonVariableIterator nit(lit);
       while(nit.hasNext() && !add){
         if(strong_symbols.contains(nit.next().term()->functor())){
           add=true;
@@ -410,10 +410,10 @@ void TheoryInstAndSimp::selectTheoryLiterals(Clause* cl, Stack<Literal*>& theory
 #endif
         theoryLits.push(lit);
         VariableIterator vit(lit);
-        while(vit.hasNext()){ var_to_lits[vit.next().var()].push(lit); } 
+        while(vit.hasNext()){ var_to_lits[vit.next().var()].push(lit); }
     }
   }
- 
+
   }
   // now remove bad things
   // if this is the forZ3 pass then ensure that nothing is uninterpreted
@@ -426,7 +426,7 @@ void TheoryInstAndSimp::selectTheoryLiterals(Clause* cl, Stack<Literal*>& theory
       bool deselect=false;
       while(nit.hasNext() && !deselect){
         Term* t = nit.next().term();
-        deselect = !(theory->isInterpretedFunction(t->functor()) || theory->isInterpretedConstant(t->functor())); 
+        deselect = !(theory->isInterpretedFunction(t->functor()) || theory->isInterpretedConstant(t->functor()));
         if(deselect){
 #if DPRINT
           cout << "deselect " << t->toString() << endl;
@@ -436,7 +436,7 @@ void TheoryInstAndSimp::selectTheoryLiterals(Clause* cl, Stack<Literal*>& theory
       if(deselect){ deselected.push(lit);}
     }
     Stack<Literal*>::Iterator dit(deselected);
-    while(dit.hasNext()){ 
+    while(dit.hasNext()){
       Literal* lit = dit.next();
       theoryLits.remove(lit);
 #if DPRINT
@@ -446,10 +446,10 @@ void TheoryInstAndSimp::selectTheoryLiterals(Clause* cl, Stack<Literal*>& theory
   }
   for(unsigned i=0;i<var_to_lits.size();i++){
     if(var_to_lits[i].size()==1){
-      Literal * lit = var_to_lits[i][0]; 
+      Literal * lit = var_to_lits[i][0];
       // is of the form X!=t where X only occurs in this literal (from theory literals)
       if(lit->isEquality() && !lit->polarity() &&
-         ((lit->nthArgument(0)->isVar() && lit->nthArgument(0)->var()==i) || 
+         ((lit->nthArgument(0)->isVar() && lit->nthArgument(0)->var()==i) ||
           (lit->nthArgument(1)->isVar() && lit->nthArgument(1)->var()==i))
          ){
 #if DPRINT
@@ -470,7 +470,7 @@ Term* getFreshConstant(unsigned index, unsigned srt)
     Stack<Term*>* stack = new Stack<Term*>;
     constants.push(stack);
   }
-  Stack<Term*>* sortedConstants = constants[srt]; 
+  Stack<Term*>* sortedConstants = constants[srt];
   while(index+1 > sortedConstants->length()){
     unsigned sym = env.signature->addFreshFunction(0,"$inst");
     OperatorType* type = OperatorType::getConstantsType(srt);
@@ -540,7 +540,7 @@ VirtualIterator<Solution> TheoryInstAndSimp::getSolutions(Stack<Literal*>& theor
     static SATLiteralStack satLits;
     satLits.reset();
     satLits.push(slit);
-    SATClause* sc = SATClause::fromStack(satLits); 
+    SATClause* sc = SATClause::fromStack(satLits);
     //clause->setInference(new FOConversionInference(cl));
     // guarded is normally true, apart from when we are checking a theory tautology
     try{
@@ -591,18 +591,18 @@ VirtualIterator<Solution> TheoryInstAndSimp::getSolutions(Stack<Literal*>& theor
 #endif
 
   // SMT solving was incomplete
-  return VirtualIterator<Solution>::getEmpty(); 
+  return VirtualIterator<Solution>::getEmpty();
 
 }
 
 
 struct InstanceFn
 {
-  InstanceFn(Clause* premise, Clause* cl,Stack<Literal*>& tl,Splitter* splitter, 
-             SaturationAlgorithm* salg, TheoryInstAndSimp* parent,bool& red) : 
-         _premise(premise), _cl(cl), _theoryLits(tl), _splitter(splitter), 
+  InstanceFn(Clause* premise, Clause* cl,Stack<Literal*>& tl,Splitter* splitter,
+             SaturationAlgorithm* salg, TheoryInstAndSimp* parent,bool& red) :
+         _premise(premise), _cl(cl), _theoryLits(tl), _splitter(splitter),
          _salg(salg), _parent(parent), _red(red) {}
-  
+
   DECL_RETURN_TYPE(Clause*);
   OWN_RETURN_TYPE operator()(Solution sol)
   {
@@ -671,7 +671,7 @@ partial_check_end:
       (*inst)[i] = lit_inst;
       // we implicitly remove all theoryLits as the solution makes their combination false
       if(!_theoryLits.find(lit)){
-        (*res)[j] = lit_inst; 
+        (*res)[j] = lit_inst;
         j++;
       }
 #if VDEBUG
