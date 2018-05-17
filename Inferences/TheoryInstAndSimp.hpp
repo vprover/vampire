@@ -66,6 +66,8 @@ private:
 
   void selectTheoryLiterals(Clause* cl, Stack<Literal*>& theoryLits,bool forZ3);
 
+  void originalSelectTheoryLiterals(Clause* cl, Stack<Literal*>& theoryLits,bool forZ3);
+
   /** Fills trivialLits with all clauses trivial in cl
    */
   void selectTrivialLiterals(Clause* cl, Stack<Literal*>& trivialLits);

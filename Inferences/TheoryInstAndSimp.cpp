@@ -106,7 +106,9 @@ bool TheoryInstAndSimp::isSupportedLiteral(Literal* lit) {
 
 bool TheoryInstAndSimp::isPure(Literal* lit) {
   if (lit->isSpecial()) /* TODO: extend for let .. in / if then else */ {
+#if DPRINT
     cout << "special lit " << lit -> toString() << endl;
+#endif
     return false;
   }
 
@@ -147,7 +149,9 @@ bool TheoryInstAndSimp::isPure(Literal* lit) {
     }
   }
 
+#if DPRINT
   cout << "found pure literal: " << lit->toString() << endl;
+#endif
   return true;
 }
 
@@ -208,7 +212,10 @@ bool TheoryInstAndSimp::literalContainsVar(const Literal* lit, unsigned v) {
 void TheoryInstAndSimp::selectTrivialLiterals(Clause* cl,
                                               Stack<Literal*>& trivialLits)
 {
+  CALL("TheoryInstAndSimp::selectTrivialLiterals");
+#if DPRINT
   cout << "selecting trivial literals in " << cl->toString() << endl ;
+#endif
   /* find trivial candidates of the form x != t (x not occurring in t) */
   Clause::Iterator it(*cl);
   /* invariants:
@@ -225,36 +232,47 @@ void TheoryInstAndSimp::selectTrivialLiterals(Clause* cl,
       //a liteal X != s is possibly trivial
       if (c->isNegative()
           && c->isEquality()) {
+#if DPRINT
+        cout << "checking " << c->toString() << endl;
+#endif
         const TermList* left = c->nthArgument(0);
         const TermList* right = c->nthArgument(1);
         /* distinguish between X = s where s not a variable, X = Y and X = X */
         if (TheoryInstAndSimp::isXeqTerm(left, right) ||
             TheoryInstAndSimp::isXeqTerm(right, left) ) {
           triv_candidates.push(c);
-        } else if( left->isVar()
-                   && right->isVar()) {
-          if (left->var() != right->var()) {
-            triv_candidates.push(c);
-          } else {
-            //this is required by the definition, but making X=X trivial would
-            //make more sense
+        } else {
+          // X=Y case
+          if( left->isVar()
+              && right->isVar()) {
+            if (left->var() != right->var()) {
+              triv_candidates.push(c);
+            } else {
+              //this is required by the definition, but making X=X trivial would
+              //make more sense
+              nontriv_pure.push(c);
+            }
+          } else { //term = term case
             nontriv_pure.push(c);
           }
         }
-        else {
-          //mark as nontrivial pure
-          nontriv_pure.push(c);
-        }
+      } else {
+        //mark as nontrivial pure
+#if DPRINT
+        cout << "non trivial pure found " << c->toString() << endl;
+#endif
+        nontriv_pure.push(c);
       }
     } else { // !isPure(c)
       impure.push(c);
     }
   }
 
+#if DPRINT
   cout << "Found " << triv_candidates.length() << " trivial candidates." << endl;
   cout << "Found " << nontriv_pure.length() << " nontrivial pure literals." << endl;
   cout << "Found " << impure.length() << " impure literals." << endl;
-
+#endif
   /* remove all candidates where the variable occurs in other pure
      non-trivial lits  */
   Stack<Literal*> nt_pure_tocheck(nontriv_pure);
@@ -283,19 +301,46 @@ void TheoryInstAndSimp::selectTrivialLiterals(Clause* cl,
     nt_pure_tocheck = nt_new;
   }
 
+#if DPRINT
   cout << "Found " << triv_candidates.length() << " trivial literals." << endl;
-
+#endif
+  
   //copy triv_candidates to trivialLits
   trivialLits = triv_candidates;
 }
 
 
+void TheoryInstAndSimp::selectTheoryLiterals(Clause* cl, Stack<Literal*>& theoryLits,bool forZ3) {
+  CALL("TheoryInstAndSimp::selectTheoryLiterals");
+#if DPRINT
+  cout << "selectTheoryLiterals["<<forZ3<<"] in " << cl->toString() << endl;
+#endif
+
+  static Shell::Options::TheoryInstSimp selection = env.options->theoryInstAndSimp();
+  ASS(selection!=Shell::Options::TheoryInstSimp::OFF);
+
+  //  Stack<Literal*> pure_lits;
+  Stack<Literal*> trivial_lits;
+  selectTrivialLiterals(cl, trivial_lits);
+
+  Clause::Iterator cl_it(*cl);
+  while (cl_it.hasNext()) {
+    auto lit = cl_it.next();
+    if (isPure(lit) && !trivial_lits.find(lit))
+      theoryLits.push(lit);
+  }
+  
+}
+
+
+
+
 /**
  * Scans through a clause and selects candidates for theory instantiation
  **/
-void TheoryInstAndSimp::selectTheoryLiterals(Clause* cl, Stack<Literal*>& theoryLits,bool forZ3)
+void TheoryInstAndSimp::originalSelectTheoryLiterals(Clause* cl, Stack<Literal*>& theoryLits,bool forZ3)
 {
-  CALL("TheoryInstAndSimp::selectTheoryLiterals");
+  CALL("TheoryInstAndSimp::originalSelectTheoryLiterals");
 #if DPRINT
   cout << "selectTheoryLiterals["<<forZ3<<"] in " << cl->toString() << endl;
 #endif
@@ -312,7 +357,6 @@ void TheoryInstAndSimp::selectTheoryLiterals(Clause* cl, Stack<Literal*>& theory
   Array<Stack<Literal*>> var_to_lits(cl->varCnt());
 
   Clause::Iterator it(*cl);
-  std::cerr << "Thi: " << cl->toNiceString() << std::endl;
   while(it.hasNext()){
     Literal* lit = it.next();
     std::cerr << "Iterating: " << lit->toString() << std::endl;
