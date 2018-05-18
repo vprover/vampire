@@ -75,9 +75,14 @@ void TheoryInstAndSimp::attach(SaturationAlgorithm* salg)
 }
 
 bool TheoryInstAndSimp::isSupportedSort(const unsigned sort) {
-  //TODO: GR: First extend for SRT_RATIONAL and SRT_REAL, this is important for initial experiments
   //TODO: extend for more sorts (arrays, datatypes)
-  return (sort == Kernel::Sorts::SRT_INTEGER);
+  switch (sort) {
+  case Kernel::Sorts::SRT_INTEGER:
+  case Kernel::Sorts::SRT_RATIONAL:
+  case Kernel::Sorts::SRT_REAL:
+    return true;
+  }
+  return false;
 }
 
 /**
@@ -337,7 +342,43 @@ void TheoryInstAndSimp::selectTheoryLiterals(Clause* cl, Stack<Literal*>& theory
 }
 
 
+// literals containing top-level terms that are partial functions with 0 on the right should never be selected
+// we only focus on top-level terms as otherwise the literal can be selected and have such terms abstracted out (abstraction treats
+// these terms as uninterpreted) and then in the abstracted version we want them to not be selected!
+  void TheoryInstAndSimp::filterDivisionByZero(Stack<Literal*>& theoryLits, Stack<Literal*>& filteredLits) {
+  Stack<Literal*>::BottomFirstIterator it(theoryLits);
+  while(it.hasNext()) {
+    Literal* lit = it.next();
+    bool keep_lit = true;
+    for(TermList* ts = lit->args(); ts->isNonEmpty(); ts = ts->next()){
+      
+      if(ts->isTerm()){
+        Term* t = ts->term();
+        if(theory->isInterpretedPartialFunction(t->functor()) &&
+           theory->isZero(*(t->nthArgument(1)))){
+          // treat this literal as uninterpreted
+          keep_lit = false;
+#if DPRINT
+          cout << "divisiion by zero removed: " << lit->toString() << endl;
+#endif
+        }
+      }
+    }
 
+    if (keep_lit) {
+      filteredLits.push(lit);
+    }
+  }
+}
+
+void TheoryInstAndSimp::applyFilters(Stack<Literal*>& theoryLits, bool forZ3) {
+  //TODO: too much copying, optimize
+  if (forZ3) {
+    Stack<Literal*> filteredLits;
+    filterDivisionByZero(theoryLits, filteredLits);
+    theoryLits=filteredLits; 
+  }
+}
 
 /**
  * Scans through a clause and selects candidates for theory instantiation

@@ -68,6 +68,9 @@ private:
 
   void originalSelectTheoryLiterals(Clause* cl, Stack<Literal*>& theoryLits,bool forZ3);
 
+  void applyFilters(Stack<Literal*>& theoryLits, bool forZ3);
+  void filterDivisionByZero(Stack<Literal*>& theoryLits, Stack<Literal*>& filteredLits);
+  
   /** Fills trivialLits with all clauses trivial in cl
    */
   void selectTrivialLiterals(Clause* cl, Stack<Literal*>& trivialLits);
