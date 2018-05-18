@@ -812,7 +812,7 @@ ClauseIterator TheoryInstAndSimp::generateClauses(Clause* premise,bool& premiseR
 
   auto it2 = getMappingIterator(it1,
                //InstanceFn(premise,flattened,theoryLiterals,_splitter,_salg,this,premiseRedundant));
-               InstanceFn(premise,flattened,selectedLiterals,_splitter,_salg,this,premiseRedundant));
+               InstanceFn(premise,premise,selectedLiterals,_splitter,_salg,this,premiseRedundant));
 
   // filter out only non-zero results
   auto it3 = getFilteredIterator(it2, NonzeroFn());
