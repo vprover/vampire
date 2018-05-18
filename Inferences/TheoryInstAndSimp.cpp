@@ -351,6 +351,9 @@ void TheoryInstAndSimp::selectTheoryLiterals(Clause* cl, Stack<Literal*>& theory
     Literal* lit = it.next();
     bool keep_lit = true;
     for(TermList* ts = lit->args(); ts->isNonEmpty(); ts = ts->next()){
+#if DPRINT
+          cout << "div zero filtering checking: " << lit->toString() << endl;
+#endif
       
       if(ts->isTerm()){
         Term* t = ts->term();
@@ -372,9 +375,15 @@ void TheoryInstAndSimp::selectTheoryLiterals(Clause* cl, Stack<Literal*>& theory
 }
 
 void TheoryInstAndSimp::filterDivisionByZeroDeep(Stack<Literal*>& theoryLits, Stack<Literal*>& filteredLits) {
+#if DPRINT
+  cout << "div zero filtering checking!" << endl;
+#endif
   Stack<Literal*>::BottomFirstIterator it(theoryLits);
   while(it.hasNext()) {
     Literal* lit = it.next();
+#if DPRINT
+    cout << "div zero filtering checking: " << lit->toString() << endl;
+#endif
     bool keep_lit = true;
     SubtermIterator sit(lit);
     while(sit.hasNext()){
@@ -827,7 +836,7 @@ ClauseIterator TheoryInstAndSimp::generateClauses(Clause* premise,bool& premiseR
   selectedLiterals.reset();
 
   selectTheoryLiterals(premise,selectedLiterals,false);
-  applyFilters(selectedLiterals,false);
+  applyFilters(selectedLiterals,true);
 
   // if there are no eligable theory literals selected then there is nothing to do
   if(selectedLiterals.isEmpty()){
