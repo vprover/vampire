@@ -371,11 +371,38 @@ void TheoryInstAndSimp::selectTheoryLiterals(Clause* cl, Stack<Literal*>& theory
   }
 }
 
+void TheoryInstAndSimp::filterDivisionByZeroDeep(Stack<Literal*>& theoryLits, Stack<Literal*>& filteredLits) {
+  Stack<Literal*>::BottomFirstIterator it(theoryLits);
+  while(it.hasNext()) {
+    Literal* lit = it.next();
+    bool keep_lit = true;
+    SubtermIterator sit(lit);
+    while(sit.hasNext()){
+      auto ts = sit.next();
+      if(ts.isTerm()){
+        Term* t = ts.term();
+        if(theory->isInterpretedPartialFunction(t->functor()) &&
+           theory->isZero(*(t->nthArgument(1)))){
+          // treat this literal as uninterpreted
+          keep_lit = false;
+#if DPRINT
+          cout << "division by zero removed: " << lit->toString() << endl;
+#endif
+        }
+      }
+    }
+
+    if (keep_lit) {
+      filteredLits.push(lit);
+    }
+  }
+}
+
 void TheoryInstAndSimp::applyFilters(Stack<Literal*>& theoryLits, bool forZ3) {
   //TODO: too much copying, optimize
   if (forZ3) {
     Stack<Literal*> filteredLits;
-    filterDivisionByZero(theoryLits, filteredLits);
+    filterDivisionByZeroDeep(theoryLits, filteredLits);
     theoryLits=filteredLits; 
   }
 }

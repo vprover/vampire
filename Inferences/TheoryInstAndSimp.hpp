@@ -70,6 +70,7 @@ private:
 
   void applyFilters(Stack<Literal*>& theoryLits, bool forZ3);
   void filterDivisionByZero(Stack<Literal*>& theoryLits, Stack<Literal*>& filteredLits);
+  void filterDivisionByZeroDeep(Stack<Literal*>& theoryLits, Stack<Literal*>& filteredLits);
   
   /** Fills trivialLits with all clauses trivial in cl
    */
