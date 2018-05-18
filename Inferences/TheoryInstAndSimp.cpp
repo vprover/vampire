@@ -23,7 +23,7 @@
 
 #if VZ3
 
-#define DPRINT 0
+#define DPRINT 1
 
 #include "Debug/RuntimeStatistics.hpp"
 
@@ -359,7 +359,7 @@ void TheoryInstAndSimp::selectTheoryLiterals(Clause* cl, Stack<Literal*>& theory
           // treat this literal as uninterpreted
           keep_lit = false;
 #if DPRINT
-          cout << "divisiion by zero removed: " << lit->toString() << endl;
+          cout << "division by zero removed: " << lit->toString() << endl;
 #endif
         }
       }
@@ -800,6 +800,7 @@ ClauseIterator TheoryInstAndSimp::generateClauses(Clause* premise,bool& premiseR
   selectedLiterals.reset();
 
   selectTheoryLiterals(premise,selectedLiterals,false);
+  applyFilters(selectedLiterals,false);
 
   // if there are no eligable theory literals selected then there is nothing to do
   if(selectedLiterals.isEmpty()){
@@ -833,6 +834,7 @@ ClauseIterator TheoryInstAndSimp::generateClauses(Clause* premise,bool& premiseR
     // Now go through the abstracted clause and select the things we send to SMT
     // Selection and abstraction could be done in a single step but we are reusing existing theory flattening
     selectTheoryLiterals(flattened,theoryLiterals,true);
+    applyFilters(selectedLiterals,true);
 
     // At this point theoryLiterals should contain abstracted versions of what is in selectedLiterals
     // all of the namings will be ineligable as, by construction, they will contain uninterpreted things
