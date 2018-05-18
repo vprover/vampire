@@ -75,6 +75,7 @@ void TheoryInstAndSimp::attach(SaturationAlgorithm* salg)
 }
 
 bool TheoryInstAndSimp::isSupportedSort(const unsigned sort) {
+  //TODO: GR: First extend for SRT_RATIONAL and SRT_REAL, this is important for initial experiments
   //TODO: extend for more sorts (arrays, datatypes)
   return (sort == Kernel::Sorts::SRT_INTEGER);
 }
@@ -90,8 +91,9 @@ bool TheoryInstAndSimp::isSupportedLiteral(Literal* lit) {
   }
 
   //check if predicate is interpreted
-  if (! theory->isInterpretedPredicate(lit))
+  if (! theory->isInterpretedPredicate(lit)){
     return false;
+  }
 
   //check if arguments of predicate are supported
   for (unsigned i=0; i<lit->arity(); i++) {
@@ -123,20 +125,21 @@ bool TheoryInstAndSimp::isPure(Literal* lit) {
   while( sti.hasNext() ) {
     TermList tl = sti.next();
     //cout << "looking at subterm " << tl.toString() << endl;
-    if ( tl.isEmpty() || tl.isVar() )
+    if ( tl.isEmpty() || tl.isVar() ){
       continue;
+    }
     if ( tl.isTerm()   ) {
       Term* term = tl.term();
 
       //we can stop if we found an uninterpreted function / constant
       if (! (theory->isInterpretedFunction(term)  ||
-             theory->isInterpretedConstant(term) ))
+             theory->isInterpretedConstant(term) )){
         return false;
-
+      }
       //check if return value of term is supported
-      if (! isSupportedSort(SortHelper::getResultSort(term)))
+      if (! isSupportedSort(SortHelper::getResultSort(term))){
         return false;
-
+      }
       //check if arguments of term are supported. covers e.g. f(X) = 0 where
       // f could map uninterpreted sorts to integer. when iterating over X
       // itself, its sort cannot be checked.
@@ -167,8 +170,8 @@ unsigned TheoryInstAndSimp::varOfXeqTerm(const Literal* lit) {
   if (lit->isEquality()) {
     const TermList* left = lit->nthArgument(0);
     const TermList* right = lit->nthArgument(1);
-    if (isXeqTerm(left,right)) return left->var();
-    if (isXeqTerm(right,left)) return right->var();
+    if (isXeqTerm(left,right)){ return left->var();}
+    if (isXeqTerm(right,left)){ return right->var();}
   }
   ASSERTION_VIOLATION ;
   return -1; //TODO: do something proper to prevent compilation warnings
@@ -179,8 +182,9 @@ bool TheoryInstAndSimp::literalContainsVar(const Literal* lit, unsigned v) {
   SubtermIterator it(lit);
   while (it.hasNext()) {
     const TermList t = it.next();
-    if ((t.isVar()) && (t.var() == v))
+    if ((t.isVar()) && (t.var() == v)){
       return true;
+    }
   }
   return false;
 }
@@ -768,42 +772,47 @@ ClauseIterator TheoryInstAndSimp::generateClauses(Clause* premise,bool& premiseR
   // TODO use limits
   //Limits* limits = _salg->getLimits();
 
-  // we will use flattening which is non-recursive and sharing
-  static Options::TheoryInstSimp thi = env.options->theoryInstAndSimp();
-  static TheoryFlattening flattener((thi==Options::TheoryInstSimp::FULL),true);
 
-  Clause* flattened = flattener.apply(premise,selectedLiterals);
+  if(false){
+    // we will use flattening which is non-recursive and sharing
+    static Options::TheoryInstSimp thi = env.options->theoryInstAndSimp();
+    static TheoryFlattening flattener((thi==Options::TheoryInstSimp::FULL),true);
 
-  ASS(flattened);
+    Clause* flattened = flattener.apply(premise,selectedLiterals);
 
-  // ensure that splits are copied to flattened
-  if(_splitter && flattened!=premise){
-    _splitter->onNewClause(flattened);
-  }
+    ASS(flattened);
 
-  static Stack<Literal*> theoryLiterals;
-  theoryLiterals.reset();
+    // ensure that splits are copied to flattened
+    if(_splitter && flattened!=premise){
+      _splitter->onNewClause(flattened);
+    }
 
-  // Now go through the abstracted clause and select the things we send to SMT
-  // Selection and abstraction could be done in a single step but we are reusing existing theory flattening
-  selectTheoryLiterals(flattened,theoryLiterals,true);
+    static Stack<Literal*> theoryLiterals;
+    theoryLiterals.reset();
 
-  // At this point theoryLiterals should contain abstracted versions of what is in selectedLiterals
-  // all of the namings will be ineligable as, by construction, they will contain uninterpreted things
+    // Now go through the abstracted clause and select the things we send to SMT
+    // Selection and abstraction could be done in a single step but we are reusing existing theory flattening
+    selectTheoryLiterals(flattened,theoryLiterals,true);
+
+    // At this point theoryLiterals should contain abstracted versions of what is in selectedLiterals
+    // all of the namings will be ineligable as, by construction, they will contain uninterpreted things
 
 #if DPRINT
   cout << "Generate instances of " << premise->toString() << endl;
   cout << "With flattened " << flattened->toString() << endl;
 #endif
-  if(theoryLiterals.isEmpty()){
-     //cout << "None" << endl;
-     return ClauseIterator::getEmpty();
+    if(theoryLiterals.isEmpty()){
+       //cout << "None" << endl;
+       return ClauseIterator::getEmpty();
+    }
   }
 
-  auto it1 = getSolutions(theoryLiterals);
+  //auto it1 = getSolutions(theoryLiterals);
+  auto it1 = getSolutions(selectedLiterals);
 
   auto it2 = getMappingIterator(it1,
-               InstanceFn(premise,flattened,theoryLiterals,_splitter,_salg,this,premiseRedundant));
+               //InstanceFn(premise,flattened,theoryLiterals,_splitter,_salg,this,premiseRedundant));
+               InstanceFn(premise,flattened,selectedLiterals,_splitter,_salg,this,premiseRedundant));
 
   // filter out only non-zero results
   auto it3 = getFilteredIterator(it2, NonzeroFn());
