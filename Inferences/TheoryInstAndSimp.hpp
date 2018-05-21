@@ -64,7 +64,7 @@ public:
 
 private:
 
-  void selectTheoryLiterals(Clause* cl, Stack<Literal*>& theoryLits,bool forZ3);
+  void selectTheoryLiterals(Clause* cl, Stack<Literal*>& theoryLits);
 
   void originalSelectTheoryLiterals(Clause* cl, Stack<Literal*>& theoryLits,bool forZ3);
 
