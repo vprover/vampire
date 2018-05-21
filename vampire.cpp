@@ -93,6 +93,8 @@
 #include "SAT/TWLSolver.hpp"
 #include "SAT/Preprocess.hpp"
 
+#include "Shell/AppTranslator.hpp"
+
 #include "FMB/ModelCheck.hpp"
 
 #if GNUMP
@@ -702,6 +704,11 @@ void clausifyMode(bool theory)
   while (cit.hasNext()) {
     Clause* cl = cit.next();
     cl = simplifier.simplify(cl);
+
+    if(env.options->mode() == Options::Mode::CLAUSIFY_APP){
+      cl = AppTranslator::translate(cl);
+    }
+
     if (!cl) {
       continue;
     }
@@ -952,6 +959,8 @@ int main(int argc, char* argv[])
       break;
 
     case Options::Mode::CLAUSIFY:
+    case Options::Mode::CLAUSIFY_APP:
+    case Options::Mode::CLAUSIFY_HOL:
       clausifyMode(false);
       break;
 

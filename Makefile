@@ -328,6 +328,7 @@ VST_OBJ= Saturation/AWPassiveClauseContainer.o\
          Saturation/SymElOutput.o
 
 VS_OBJ = Shell/AnswerExtractor.o\
+         Shell/AppTranslator.o\
          Shell/BFNT.o\
          Shell/BFNTMainLoop.o\
          Shell/CommandLine.o\

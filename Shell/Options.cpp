@@ -110,7 +110,7 @@ void Options::Options::init()
                                         "casc",
                                         "casc_sat",
                                         "casc_ltb",
-                                        "clausify",
+                                        "clausify","clausify_app","clausify_hol",
                                         "consequence_elimination",
                                         "grounding",
                                         "model_check",
