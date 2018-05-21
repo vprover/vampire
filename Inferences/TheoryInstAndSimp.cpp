@@ -322,7 +322,7 @@ void TheoryInstAndSimp::selectTrivialLiterals(Clause* cl,
 void TheoryInstAndSimp::selectTheoryLiterals(Clause* cl, Stack<Literal*>& theoryLits) {
   CALL("TheoryInstAndSimp::selectTheoryLiterals");
 #if DPRINT
-  cout << "selectTheoryLiterals["<<forZ3<<"] in " << cl->toString() << endl;
+  cout << "selectTheoryLiterals in " << cl->toString() << endl;
 #endif
 
   static Shell::Options::TheoryInstSimp selection = env.options->theoryInstAndSimp();
@@ -869,7 +869,7 @@ ClauseIterator TheoryInstAndSimp::generateClauses(Clause* premise,bool& premiseR
 
     // Now go through the abstracted clause and select the things we send to SMT
     // Selection and abstraction could be done in a single step but we are reusing existing theory flattening
-    selectTheoryLiterals(flattened,theoryLiterals,true);
+    selectTheoryLiterals(flattened,theoryLiterals);
     applyFilters(selectedLiterals,true);
 
     // At this point theoryLiterals should contain abstracted versions of what is in selectedLiterals
