@@ -423,7 +423,21 @@ private:
    *
    * On success results in a single formula added to _formulas.
    */
-  void readAssert(LExpr* body, bool negated = false);
+  void readAssert(LExpr* body);
+
+  /**
+   * Unofficial command
+   *
+   * Behaves like conjecture declaration in TPTP
+   */
+  void readAssertNot(LExpr* body);
+
+  /**
+   * Unofficial command
+   *
+   * Behaves like conjecture declaration in TPTP
+   */
+  void colorSymbol(const vstring& name, Color color);
 
   /**
    * Units collected during parsing.

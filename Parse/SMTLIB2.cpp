@@ -221,7 +221,24 @@ void SMTLIB2::readBenchmark(LExprList* bench)
     }
 
     if (ibRdr.tryAcceptAtom("assert-not")) {
-      readAssert(ibRdr.readNext(), true);
+      readAssertNot(ibRdr.readNext());
+
+      ibRdr.acceptEOL();
+
+      continue;
+    }
+
+    // not an official SMTLIB command
+    if (ibRdr.tryAcceptAtom("color-symbol")) {
+      vstring symbol = ibRdr.readAtom();
+
+      if (ibRdr.tryAcceptAtom(":left")) {
+        colorSymbol(symbol, Color::COLOR_LEFT);
+      } else if (ibRdr.tryAcceptAtom(":right")) {
+        colorSymbol(symbol, Color::COLOR_RIGHT);
+      } else {
+        USER_ERROR("'"+ibRdr.readAtom()+"' is not a color keyword");
+      }
 
       ibRdr.acceptEOL();
 
@@ -2223,7 +2240,7 @@ SMTLIB2::ParseResult SMTLIB2::parseTermOrFormula(LExpr* body)
   }
 }
 
-void SMTLIB2::readAssert(LExpr* body, bool negated)
+void SMTLIB2::readAssert(LExpr* body)
 {
   CALL("SMTLIB2::readAssert");
 
@@ -2237,19 +2254,47 @@ void SMTLIB2::readAssert(LExpr* body, bool negated)
     USER_ERROR("Asserted expression of non-boolean sort "+body->toString());
   }
 
-  FormulaUnit* fu;
-
-  if (negated) {
-    // TODO check that this produces the same inference as TPTP conjectures
-    fu = new FormulaUnit(fla, new Inference(Inference::INPUT), Unit::CONJECTURE);
-    fu = new FormulaUnit(new NegatedFormula(fla),
-                         new Inference1(Inference::NEGATED_CONJECTURE, fu),
-                         Unit::CONJECTURE);
-  } else {
-    fu = new FormulaUnit(fla, new Inference(Inference::INPUT), Unit::ASSUMPTION);
-  }
-  
+  FormulaUnit* fu = new FormulaUnit(fla, new Inference(Inference::INPUT), Unit::ASSUMPTION);
   UnitList::push(fu, _formulas);
+}
+
+void SMTLIB2::readAssertNot(LExpr* body)
+{
+  CALL("SMTLIB2::readAssert");
+
+  _nextVar = 0;
+  ASS(_scopes.isEmpty());
+
+  ParseResult res = parseTermOrFormula(body);
+
+  Formula* fla;
+  if (!res.asFormula(fla)) {
+    USER_ERROR("Asserted expression of non-boolean sort "+body->toString());
+  }
+
+  FormulaUnit* fu = new FormulaUnit(fla, new Inference(Inference::INPUT), Unit::CONJECTURE);
+  fu = new FormulaUnit(new NegatedFormula(fla),
+                       new Inference1(Inference::NEGATED_CONJECTURE, fu),
+                       Unit::CONJECTURE);  
+  UnitList::push(fu, _formulas);
+}
+
+void SMTLIB2::colorSymbol(const vstring& name, Color color)
+{
+  CALL("SMTLIB2::colorSymbol");
+
+  if (!_declaredFunctions.find(name)) {
+    USER_ERROR("'"+name+"' is not a user symbol");
+  }
+  DeclaredFunction& f = _declaredFunctions.get(name);
+
+  env.colorUsed = true;
+  
+  Signature::Symbol* sym = f.second
+    ? env.signature->getFunction(f.first)
+    : env.signature->getPredicate(f.first);
+
+  sym->addColor(color);
 }
 
 }
