@@ -220,6 +220,14 @@ void SMTLIB2::readBenchmark(LExprList* bench)
       continue;
     }
 
+    if (ibRdr.tryAcceptAtom("assert-not")) {
+      readAssert(ibRdr.readNext(), true);
+
+      ibRdr.acceptEOL();
+
+      continue;
+    }
+
     if (ibRdr.tryAcceptAtom("check-sat")) {
       if (bRdr.hasNext()) {
         LispListReader exitRdr(bRdr.readList());
@@ -2215,7 +2223,7 @@ SMTLIB2::ParseResult SMTLIB2::parseTermOrFormula(LExpr* body)
   }
 }
 
-void SMTLIB2::readAssert(LExpr* body)
+void SMTLIB2::readAssert(LExpr* body, bool negated)
 {
   CALL("SMTLIB2::readAssert");
 
@@ -2229,8 +2237,18 @@ void SMTLIB2::readAssert(LExpr* body)
     USER_ERROR("Asserted expression of non-boolean sort "+body->toString());
   }
 
-  FormulaUnit* fu = new FormulaUnit(fla, new Inference(Inference::INPUT), Unit::ASSUMPTION);
+  FormulaUnit* fu;
 
+  if (negated) {
+    // TODO check that this produces the same inference as TPTP conjectures
+    fu = new FormulaUnit(fla, new Inference(Inference::INPUT), Unit::CONJECTURE);
+    fu = new FormulaUnit(new NegatedFormula(fla),
+                         new Inference1(Inference::NEGATED_CONJECTURE, fu),
+                         Unit::CONJECTURE);
+  } else {
+    fu = new FormulaUnit(fla, new Inference(Inference::INPUT), Unit::ASSUMPTION);
+  }
+  
   UnitList::push(fu, _formulas);
 }
 

@@ -423,7 +423,7 @@ private:
    *
    * On success results in a single formula added to _formulas.
    */
-  void readAssert(LExpr* body);
+  void readAssert(LExpr* body, bool negated = false);
 
   /**
    * Units collected during parsing.
