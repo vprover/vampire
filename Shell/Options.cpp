@@ -1004,6 +1004,13 @@ void Options::Options::init()
       _lookup.insert(&_combinatorElimination);
       _combinatorElimination.tag(OptionTag::INFERENCES);
     
+      _heuristicallyAddCombinators = BoolOptionValue("add_combinators","addcomb",false);
+      _heuristicallyAddCombinators.description=
+      "Adds combinator constants and their defining equations to the search space \n"
+      "heuristically";    
+      _lookup.insert(&_heuristicallyAddCombinators);
+      _heuristicallyAddCombinators.tag(OptionTag::PREPROCESSING);
+    
       _FOOLParamodulation = BoolOptionValue("fool_paramodulation","foolp",false);
       _FOOLParamodulation.description=
         "Turns on the following inference rule:\n"

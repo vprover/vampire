@@ -3258,7 +3258,7 @@ void TPTP::endTermAsFormula()
   TermList t = _termLists.pop();
   if (sortOf(t) != Sorts::SRT_BOOL) {
     vstring sortName = env.sorts->sortName(sortOf(t));
-    ASSERTION_VIOLATION;
+    //ASSERTION_VIOLATION;
     USER_ERROR("Non-boolean term " + t.toString() + " of sort " + sortName + " is used in a formula context");
   }
   if (t.isTerm() && t.term()->isFormula()) {
@@ -3921,7 +3921,12 @@ afterWhile:
    if(subSorts.size() != 1){
        foldl(&subSorts);
    }
-   return (unsigned)subSorts.pop(); 
+   unsigned finalSort = (unsigned)subSorts.pop();
+   if(env.sorts->isOfStructuredSort(finalSort,Sorts::StructuredSort::HIGHER_ORD_CONST)){
+     //In this case we can heuristically add combinator combinations with this sort and remain sound
+     env.sorts->getFuncSort(finalSort)->makeInstantiable();
+   }
+   return finalSort;   
 }
  
 void TPTP::foldl(Stack<int>* sorts)

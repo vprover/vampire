@@ -165,6 +165,81 @@ VirtualIterator<unsigned> Sorts::getStructuredSorts(const StructuredSort ss)
   return pvi(getMappingIterator(structuredSorts,SortInfoToInt()));
 }
 
+/**
+ * @author Ahmed
+ */
+Stack<unsigned> Sorts::getInstantiableFunctionSorts()
+{
+  CALL("Sorts::getInstantiableFunctionSorts");
+  Stack<SortInfo*>::Iterator all(_sorts);
+  
+  Stack<unsigned> sorts;
+  while(all.hasNext()){
+    SortInfo* s = all.next();
+    if(s->isOfStructuredSort(StructuredSort::HIGHER_ORD_CONST)){
+      if(static_cast<FunctionSort*>(s)->instantiable()){
+        sorts.push(s->id());
+      }
+    }
+  }
+  return sorts;
+}
+
+/**
+ * @author Ahmed
+ */
+Stack<unsigned> Sorts::getSortsWithReturnSort(vstring returnSort)
+{
+  CALL("Sorts::getSortWithReturnSort");
+  Stack<SortInfo*>::Iterator all(_sorts); 
+ 
+  Stack<unsigned> sorts;
+  while(all.hasNext()){
+    SortInfo* s = all.next();
+    if(s->isOfStructuredSort(StructuredSort::HIGHER_ORD_CONST)){
+      if(static_cast<FunctionSort*>(s)->instantiable()){
+        if(suffix(s, returnSort)){
+          sorts.push(s->id());
+        }
+      }
+    }
+  }
+  return sorts;
+}
+
+Stack<unsigned> Sorts::getUsedAndInstantiableSorts()
+{
+  CALL("Sorts::getUsedAndInstantiableSorts");
+  Stack<SortInfo*>::Iterator all(_sorts); 
+
+  Stack<unsigned> sorts;  
+  while(all.hasNext()){
+    SortInfo* s = all.next();
+    if(s->isOfStructuredSort(StructuredSort::HIGHER_ORD_CONST)){
+      if(static_cast<FunctionSort*>(s)->instantiable()){
+        sorts.push(s->id());
+        continue;
+      }
+    }
+    if(!s->isStructuredSort()){
+      if(env.property->usesSort(s->id())){
+        sorts.push(s->id());
+      }      
+    }
+  }
+  return sorts;
+}
+
+
+bool Sorts::suffix (SortInfo* s, vstring const &ending) {
+    
+    CALL("Sorts::suffix");
+  
+    vstring sortName = env.sorts->sortName(static_cast<FunctionSort*>(s)->getRangeSort());
+    return sortName == ending;
+}
+
+
 unsigned Sorts::addTupleSort(unsigned arity, unsigned sorts[])
 {
   CALL("Sorts::addTupleSort");

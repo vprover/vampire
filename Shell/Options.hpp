@@ -1923,6 +1923,7 @@ public:
   bool HOLconstantShortCircuitEval() const { return _HOLConstantShortCircuitEval.actualValue; }
   bool HOLConstantElimination () const { return _HOLConstantElimination.actualValue; }
   bool combinatorElimination () const { return _combinatorElimination.actualValue; }
+  bool addCombinatorsHeuristically() const { return _heuristicallyAddCombinators.actualValue; }
   bool FOOLParamodulation() const { return _FOOLParamodulation.actualValue; }
   bool termAlgebraInferences() const { return _termAlgebraInferences.actualValue; }
   TACyclicityCheck termAlgebraCyclicityCheck() const { return _termAlgebraCyclicityCheck.actualValue; }
@@ -2192,6 +2193,7 @@ private:
   BoolOptionValue _HOLConstantShortCircuitEval;
   BoolOptionValue _HOLConstantElimination;
   BoolOptionValue _combinatorElimination;
+  BoolOptionValue _heuristicallyAddCombinators;
   BoolOptionValue _termAlgebraInferences;
   ChoiceOptionValue<TACyclicityCheck> _termAlgebraCyclicityCheck;
 

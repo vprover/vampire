@@ -10,6 +10,7 @@
 #include "Indexing/TermSharing.hpp"
 
 #include "Lib/Environment.hpp"
+#include "Lib/Deque.hpp"
 
 #include "Kernel/Clause.hpp"
 #include "Kernel/FormulaUnit.hpp"
@@ -29,10 +30,247 @@ using namespace Lib;
 using namespace Kernel;
 using namespace Shell;
 
+void LambdaElimination::addCombinatorsHeuristically(){
+  CALL("LambdaElimination::addCombinatorsHeuristically"); 
+  
+  //first add identity combinators for relevant sorts
+  Stack<unsigned> sorts = env.sorts->getUsedAndInstantiableSorts();
+  while(!sorts.isEmpty()){
+    bool added;
+    unsigned sort = sorts.pop();
+    unsigned iSort = env.sorts->addFunctionSort(sort, sort);
+    env.sorts->getFuncSort(iSort)->makeInstantiable();
+    TermList ts = addHolConstant("iCOMB", iSort, added, Signature::Symbol::I_COMB);
+    if(added){
+      addCombinatorAxiom(ts, iSort, sort, Signature::Symbol::I_COMB);
+      if (env.options->showPreprocessing()) {
+        env.beginOutput();
+        env.out() << "[PP] Heuristically added combinator: " << ts.toString() + " of sort " + env.sorts->sortName(iSort) << endl;
+        env.endOutput();
+      }
+    }  
+  }
+    
+  //Deque<unsigned> sortQ;
+  
+  //add K combinators for relevant sorts
+  sorts = env.sorts->getUsedAndInstantiableSorts();
+  while(!sorts.isEmpty()){
+    bool added;
+    unsigned sort = sorts.pop();
+    Stack<unsigned> secondSorts = env.sorts->getUsedAndInstantiableSorts();
+    while(!secondSorts.isEmpty()){
+      unsigned secondSort = secondSorts.pop();
+      unsigned kSort = env.sorts->addFunctionSort(secondSort, sort);
+      kSort = env.sorts->addFunctionSort(sort, kSort);
+      env.sorts->getFuncSort(kSort)->makeInstantiable();
+      TermList ts = addHolConstant("kCOMB", kSort, added, Signature::Symbol::K_COMB);
+      if(added){
+        addCombinatorAxiom(ts, kSort, sort, Signature::Symbol::K_COMB, secondSort);
+        if (env.options->showPreprocessing()) {
+          env.beginOutput();
+          env.out() << "[PP] Heuristically added combinator: " << ts.toString() + " of sort " + env.sorts->sortName(kSort) << endl;
+          env.endOutput();
+        }
+      }  
+    }
+  }
+  
+  
+  //now add other combinators as relevant
+  Stack<unsigned> instSorts = env.sorts->getInstantiableFunctionSorts();
+  while(!instSorts.isEmpty()){
+    unsigned sort = instSorts.pop();
+    tryAddCombinatorFromSort(sort);  
+  }
+
+/*  
+  unsigned added = 0;
+  while(!sortQ.isEmpty() && added < 50){
+    unsigned sort = sortQ.pop_front();
+    if(tryAddCombinatorFromSort(sort, sortQ)){
+      added++;
+    }
+  }
+  
+  while(!sortQ.isEmpty()){
+    sortQ.pop_front();
+  }
+  */
+}
+
+bool LambdaElimination::tryAddCombinatorFromSort(unsigned sort){
+  CALL("LambdaElimination::tryAddCombinatorFromSort");
+  
+  bool addedCombinator = false;
+  unsigned arg1sort = 0;
+  unsigned arg2sort = 0;
+  unsigned arg3sort = 0;
+  
+  arg1sort = domain(sort);
+  arg2sort = range(sort);
+  
+  TermList ts; 
+  unsigned combinatorSort;
+  SortStack combinatorSorts;
+  Signature::Symbol::HOLConstant comb;
+  
+  if(isBCompatible(sort, arg1sort, arg2sort, combinatorSorts)){
+    ASS(!combinatorSorts.isEmpty());
+    while(!combinatorSorts.isEmpty()){
+      combinatorSort = combinatorSorts.pop();
+      bool added = false;
+      comb = Signature::Symbol::B_COMB;
+      ts = addHolConstant("bCOMB",combinatorSort, added, comb);
+      if(added){
+        addedCombinator = true;
+        //env.sorts->getFuncSort(combinatorSort)->instantiable();
+        //sortQ.push_back(combinatorSort);
+        unsigned s1 = domain(combinatorSort);
+        unsigned s2 = domain(range(combinatorSort));
+        unsigned s3 = domain(range(range(combinatorSort)));      
+        addCombinatorAxiom(ts, combinatorSort, s1, comb, s2, s3);
+        
+        if (env.options->showPreprocessing()) {
+          env.beginOutput();
+          env.out() << "[PP] Heuristically added combinator: " << ts.toString() + " of sort " + env.sorts->sortName(combinatorSort) << endl;
+          env.endOutput();
+        }
+      }
+    }
+  }
+  
+  if(env.sorts->isStructuredSort(arg2sort)){   
+    arg3sort = range(arg2sort); //order of statements crucial here
+    arg2sort = domain(arg2sort);  
+  } else {
+    return addedCombinator;
+  }
+  
+  if(isSCompatible(sort, arg1sort, arg2sort, arg3sort, combinatorSort)){
+    bool added = false;
+    comb = Signature::Symbol::S_COMB;
+    ts = addHolConstant("sCOMB",combinatorSort, added, comb);
+    if(added){
+      addedCombinator = true;
+      env.sorts->getFuncSort(combinatorSort)->instantiable();
+      //sortQ.push_back(combinatorSort);
+      unsigned s1 = domain(combinatorSort);
+      unsigned s2 = domain(range(combinatorSort));
+      unsigned s3 = domain(range(range(combinatorSort)));
+      addCombinatorAxiom(ts, combinatorSort, s1, comb, s2, s3);
+
+      if (env.options->showPreprocessing()) {
+        env.beginOutput();
+        env.out() << "[PP] Heuristically added combinator: " << ts.toString() + " of sort " + env.sorts->sortName(combinatorSort) << endl;
+        env.endOutput();
+      }
+
+    }
+  }
+
+  if(isCCompatible(sort, arg1sort, arg2sort, arg3sort, combinatorSort)){    
+    bool added = false;
+    comb = Signature::Symbol::C_COMB;
+    ts = addHolConstant("cCOMB",combinatorSort, added, comb);
+    if(added){
+      addedCombinator = true;
+      env.sorts->getFuncSort(combinatorSort)->instantiable();
+      //sortQ.push_back(combinatorSort);
+      unsigned s1 = domain(combinatorSort);
+      unsigned s2 = domain(range(combinatorSort));
+      unsigned s3 = domain(range(range(combinatorSort)));   
+      
+      addCombinatorAxiom(ts, combinatorSort, s1, comb, s2, s3);
+
+      if (env.options->showPreprocessing()) {
+        env.beginOutput();
+        env.out() << "[PP] Heuristically added combinator: " << ts.toString() + " of sort " + env.sorts->sortName(combinatorSort) << endl;
+        env.endOutput();
+      }
+
+    }
+  }   
+  
+  return addedCombinator;
+}
+
+bool LambdaElimination::isSCompatible(unsigned combinedSort, unsigned sort1, unsigned sort2, unsigned sort3, unsigned &combSort)
+{
+  CALL("LambdaElimination::isSCompatible");
+  
+  if(env.sorts->isStructuredSort(sort1)){
+    if(!env.sorts->getFuncSort(sort1)->instantiable()){
+      return false;
+    }
+  }
+  
+  //Check this
+  vstring sname = "(" + env.sorts->sortName(sort1) + " > " + env.sorts->sortName(sort2) + ")";
+  unsigned ysort;
+  
+  if(env.sorts->findSort(sname, ysort)){
+    if(!env.sorts->getFuncSort(ysort)->instantiable()){
+      return false;
+    }
+    combSort = env.sorts->addFunctionSort(sort1, sort3);
+    combSort = env.sorts->addFunctionSort(ysort, combSort);    
+    combSort = env.sorts->addFunctionSort(combinedSort, combSort);
+    return true;
+  }
+  
+  return false;
+}
+
+bool LambdaElimination::isBCompatible(unsigned combinedSort, unsigned sort1, unsigned sort2, SortStack &combSorts)
+{
+  CALL("LambdaElimination::isBCompatible");
+
+  vstring searchSort = env.sorts->sortName(sort1);
+  SortStack ysorts = env.sorts->getSortsWithReturnSort(searchSort);
+  
+  while(!ysorts.isEmpty()){ 
+    unsigned combSort;
+    unsigned ysort = ysorts.pop();
+    unsigned zsort = domain(ysort);
+    if(env.sorts->isStructuredSort(zsort)){
+      if(!env.sorts->getFuncSort(zsort)->instantiable()){
+        continue;
+      }
+    }
+    combSort = env.sorts->addFunctionSort(zsort, sort2);
+    combSort = env.sorts->addFunctionSort(ysort, combSort);
+    combSort = env.sorts->addFunctionSort(combinedSort, combSort);
+    combSorts.push(combSort);
+  }
+  return combSorts.isEmpty() ?  false : true;
+  
+}
+
+bool LambdaElimination::isCCompatible(unsigned combinedSort, unsigned sort1, unsigned sort2, unsigned sort3, unsigned &combSort)
+{
+  CALL("LambdaElimination::isCCompatible"); 
+
+  if(sort1 != sort2){
+    return false;
+  }
+  if(env.sorts->isStructuredSort(sort1)){
+    if(!env.sorts->getFuncSort(sort1)->instantiable()){
+      return false;
+    }
+  }
+  
+  combSort = env.sorts->addFunctionSort(sort1, sort3);
+  combSort = env.sorts->addFunctionSort(sort2, combSort);
+  combSort = env.sorts->addFunctionSort(combinedSort, combSort);
+  return true;
+  
+}
+
 /** Function removes all apps, lambdas and top level connectives from
   * a lambda expression via 
-  */
-
+  */  
+  
 TermList LambdaElimination::processBeyondLambda(Term* term)
 {
    CALL("LambdaElimination::processBeyondLambda(Term*)");
@@ -577,7 +815,7 @@ unsigned LambdaElimination::sortOf(TermList t)
   
 } 
 
-void LambdaElimination::addAxiom(FormulaUnit* axiom) {
+void LambdaElimination::addAxiom(FormulaUnit* axiom, bool elim) {
   CALL("LambdaElimination::addAxiom");
 
   //ASS_REP(!needsElimination(def), def->toString()); To be looked at later AYB
@@ -586,7 +824,11 @@ void LambdaElimination::addAxiom(FormulaUnit* axiom) {
 
   if (env.options->showPreprocessing()) {
     env.beginOutput();
-    env.out() << "[PP] Lambda Elimination added axiom: " << axiom->toString() << endl;
+    if(elim){
+      env.out() << "[PP] Lambda Elimination added axiom: " << axiom->toString() << endl;
+    } else {
+      env.out() << "[PP] Heuristic combinator creation added axiom: " << axiom->toString() << endl;
+    }
     env.endOutput();
   }
 }
@@ -610,6 +852,10 @@ unsigned LambdaElimination::introduceAppSymbol(unsigned sort1, unsigned sort2, u
   symbol = env.signature->addFunction("vAPP_" + srt1 + "_" + srt2, 2, added);
   
   if(added){
+   if(env.sorts->isStructuredSort(resultSort)){
+     //if a -> b and a are occupied in Henkin universe then so must b be.
+     env.sorts->getFuncSort(resultSort)->instantiable();
+   }
    env.signature->getFunction(symbol)->setType(type);
    env.signature->getFunction(symbol)->markHOLAPP();
    /*if (env.options->showPreprocessing()) {
@@ -634,7 +880,7 @@ void LambdaElimination::buildFuncApp(unsigned symbol, TermList arg1, TermList ar
 }
 
  void LambdaElimination::addCombinatorAxiom(TermList combinator, unsigned combinatorSort, unsigned argSort,
-                                            Signature::Symbol::HOLConstant comb, int arg1Sort, int arg2Sort )
+                                            Signature::Symbol::HOLConstant comb, int arg1Sort, int arg2Sort, bool elim )
  {
      CALL("LambdaElimination::addCombinatorAxiom"); 
    
@@ -753,7 +999,7 @@ void LambdaElimination::buildFuncApp(unsigned symbol, TermList arg1, TermList ar
      }
      
      
-     addAxiom(new FormulaUnit(combAxiom, lambdaInference, Unit::AXIOM));
+     addAxiom(new FormulaUnit(combAxiom, lambdaInference, Unit::AXIOM), elim);
      
  }
 
@@ -774,22 +1020,23 @@ void LambdaElimination::buildFuncApp(unsigned symbol, TermList arg1, TermList ar
     unsigned appFun = introduceAppSymbol(constSort, argSort, Sorts::SRT_BOOL);
     buildFuncApp(appFun, constant, var1, functionApplied);
 
-  TermList var;
-  unsigned varNum = 1;
-  unsigned currSort;
+    TermList var;
+    unsigned varNum = 1;
+    unsigned currSort;
     functionApplied2 = var1;
+    
     do{   
-    currSort = domain(argSort);
-    sorts = sorts->addLast(sorts, currSort);
+      currSort = domain(argSort);
+      sorts = sorts->addLast(sorts, currSort);
 
-    var = TermList(varNum, false);
-    vars = vars->addLast(vars, var.var());
-    varNum += 1;
+      var = TermList(varNum, false);
+      vars = vars->addLast(vars, var.var());
+      varNum += 1;
 
-    unsigned appFun = introduceAppSymbol(argSort, currSort, range(argSort));
-        buildFuncApp(appFun, functionApplied2, var, functionApplied2);
-    argSort = range(argSort);
-  }while(!(argSort == Sorts::SRT_BOOL));
+      unsigned appFun = introduceAppSymbol(argSort, currSort, range(argSort));
+      buildFuncApp(appFun, functionApplied2, var, functionApplied2);
+      argSort = range(argSort);
+    }while(!(argSort == Sorts::SRT_BOOL));
 
     qAxiom = toEquality(functionApplied);
     qAxiom = new BinaryFormula(IFF, qAxiom, new QuantifiedFormula(conn, vars, sorts, toEquality(functionApplied2)));

@@ -942,6 +942,10 @@ bool Signature::symbolNeedsQuoting(vstring name, bool interpreted, unsigned arit
     //TODO: a hacky solution not to quote array sorts
     return false;
   }
+  if (name.find(">") >= 0) {
+    //TODO: a hacky solution not to quote function sorts
+    return false;
+  }
   return true;
 } // Signature::symbolNeedsQuoting
 

@@ -6,6 +6,7 @@
 #ifndef __LambdaElimination__
 #define __LambdaElimination__
 
+#include "Lib/Deque.hpp"
 #include "Forwards.hpp"
 
 using namespace Kernel;
@@ -21,8 +22,15 @@ using namespace Shell;
 class LambdaElimination {
 public:
 
+  LambdaElimination(){};
   LambdaElimination(DHMap<unsigned,unsigned> varSorts) : _axioms(0), _varSorts(varSorts){};
   TermList elimLambda(Term* lambdaTerm);
+
+  /** Iterates through sorts in problem and heuristically adds
+    * a set of relevanr combinators to the problem along with their defining
+    * equations.
+    */  
+  void addCombinatorsHeuristically();
   
   static unsigned introduceAppSymbol(unsigned sort1, unsigned sort2, unsigned resultSort); 
   static void buildFuncApp(unsigned function, TermList args1, TermList arg2, TermList& functionApplication);
@@ -32,6 +40,13 @@ public:
   }
 
 private:
+ 
+  typedef Stack<unsigned> SortStack; 
+  bool tryAddCombinatorFromSort(unsigned sort);
+  bool isSCompatible(unsigned combinedSort, unsigned sort1, unsigned sort2, unsigned sort3, unsigned &combSort);
+  bool isBCompatible(unsigned combinedSort, unsigned sort1, unsigned sort2, SortStack &combSort);
+  bool isCCompatible(unsigned combinedSort, unsigned sort1, unsigned sort2, unsigned sort3, unsigned &combSort);
+
   /*********************************************
   * Lambda and application elimination functions
   *********************************************/
@@ -43,7 +58,7 @@ private:
   
   void addToProcessed(TermList ts, 	Stack<unsigned> &_argNums);
   /** Add a new definitions to _defs */
-  void addAxiom(FormulaUnit* axiom);
+  void addAxiom(FormulaUnit* axiom, bool elimination = true);
 
   void addQuantifierAxiom(TermList constant, unsigned constSort, Connective conn, unsigned qvarSort);
   void addNotConnAxiom(TermList constant, unsigned notsort);
@@ -51,7 +66,7 @@ private:
   void addEqualityAxiom(TermList equals, unsigned argsSort, unsigned eqaulsSorts);
   
   void addCombinatorAxiom(TermList combinator, unsigned combinatorSort, unsigned argSort,
-                          Signature::Symbol::HOLConstant comb, int arg1Sort = -1, int arg2Sort = -1);
+                          Signature::Symbol::HOLConstant comb, int arg1Sort = -1, int arg2Sort = -1, bool elimination = true);
   // Introduces a fresh predicate or function (depending on the context) symbol
   // with given arguments and result sort
 

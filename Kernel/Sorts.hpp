@@ -85,6 +85,7 @@ public:
     const vstring& name() const { return _name; }
     const unsigned id() const { return _id; }
 
+    virtual bool isStructuredSort() { return false; }
     virtual bool isOfStructuredSort(StructuredSort sort) { return false; }
 
   protected:
@@ -105,6 +106,9 @@ public:
     StructuredSortInfo(vstring name, StructuredSort sort,unsigned id): 
       SortInfo(name,id), _sort(sort) { (void)_sort; /*to suppress warning about unused*/ }
 
+    bool isStructuredSort() override {
+      return true;
+    }
     bool isOfStructuredSort(StructuredSort sort) override {
       return sort==_sort;
     }
@@ -165,11 +169,14 @@ public:
      
      FunctionSort(vstring name, unsigned domainSort, unsigned rangeSort,unsigned id) 
        : StructuredSortInfo(name,StructuredSort::HIGHER_ORD_CONST, id),  
-         _domainSort(domainSort), _rangeSort(rangeSort){}    
+         _instantiableSort(false), _domainSort(domainSort), _rangeSort(rangeSort){}    
      unsigned getDomainSort(){ return _domainSort; }    
      unsigned getRangeSort(){ return _rangeSort; }
+     void makeInstantiable() { _instantiableSort = true; }
+     bool instantiable() { return _instantiableSort; }
   
-  private:    
+  private:
+     bool _instantiableSort;  
      unsigned _domainSort;    
      unsigned _rangeSort;  
   };
@@ -199,7 +206,11 @@ public:
   bool findSort(const vstring& name, unsigned& idx);
 
   VirtualIterator<unsigned> getStructuredSorts(const StructuredSort ss);
-
+  Stack<unsigned> getInstantiableFunctionSorts();
+  Stack<unsigned> getUsedAndInstantiableSorts();
+  Stack<unsigned> getSortsWithReturnSort(vstring returnSort);
+  bool suffix (SortInfo* s, vstring const &ending);
+  
   bool isStructuredSort(unsigned sort) {
     if(sort > _sorts.size()) return false;
     SortInfo* si = _sorts[sort];

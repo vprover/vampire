@@ -55,6 +55,7 @@
 #include "SineUtils.hpp"
 #include "Statistics.hpp"
 #include "FOOLElimination.hpp"
+#include "LambdaElimination.hpp"
 #include "TheoryAxioms.hpp"
 #include "TheoryFlattening.hpp"
 #include "BlockedClauseElimination.hpp"
@@ -192,19 +193,24 @@ void Preprocess::preprocess(Problem& prb)
     }
   }
 
-  if (prb.hasFOOL() | prb.hasApp() | prb.hasLambda()) {
+  if (prb.hasFOOL() || prb.hasApp() || prb.hasLambda()) {
     // This is the point to extend the signature with $$true and $$false
     // If we don't have fool then these constants get in the way (a lot)
 
-    if (!_options.newCNF() | prb.hasApp() | prb.hasLambda()) { 
+    if (!_options.newCNF() || prb.hasApp() || prb.hasLambda()) { 
       //Quick and nasty way of getting around the fact that newCNF has not been
       //updated to handle HOL.
       if (env.options->showPreprocessing())
         env.out() << "FOOL, Application & Lambda elimination" << std::endl;
-	  if (prb.hasFOOL()){
+      if (prb.hasFOOL()){
         TheoryAxioms(prb).applyFOOL();
-	  }
+      }
+      
       FOOLElimination().apply(prb);
+      
+      if((prb.hasApp() || prb.hasLambda()) && env.options->addCombinatorsHeuristically()){
+        LambdaElimination().addCombinatorsHeuristically();
+      }
     }
   }
 
