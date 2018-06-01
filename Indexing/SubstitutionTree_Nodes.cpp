@@ -212,6 +212,7 @@ SubstitutionTree::IntermediateNode* SubstitutionTree::SListIntermediateNode
     res = new SListIntermediateNode(orig->term, orig->childVar);
   }
   res->loadChildren(orig->allChildren());
+  res->_childBySortHelper = orig->_childBySortHelper;
   orig->makeEmpty();
   delete orig;
   return res;
