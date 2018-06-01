@@ -87,7 +87,7 @@ Z3LIB=
 ifeq (,$(shell echo $(MAKECMDGOALS) | sed 's/.*z3.*//g')) 
 INCLUDES= -I. -Linclude -Iz3/api -Iz3/api/c++ 
 ifeq (,$(shell echo $(MAKECMDGOALS) | sed 's/.*static.*//g'))
-Z3LIB= -lz3 -lgomp -pthread -lrt
+Z3LIB= -lz3 -lgomp -pthread -lrt -ldl
 else
 Z3LIB= -lz3
 endif

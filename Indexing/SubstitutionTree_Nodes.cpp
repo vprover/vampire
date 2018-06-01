@@ -207,6 +207,7 @@ SubstitutionTree::IntermediateNode* SubstitutionTree::SListIntermediateNode
   IntermediateNode* res= 0;
   if(orig->withSorts()){
     res = new SListIntermediateNodeWithSorts(orig->term, orig->childVar);
+    //TODO: this doesnt seem to copy the actual sort information into the specialized class. check if this is a bug
   }else{
     res = new SListIntermediateNode(orig->term, orig->childVar);
   }

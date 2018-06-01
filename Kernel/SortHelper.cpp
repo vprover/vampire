@@ -181,7 +181,7 @@ unsigned SortHelper::getEqualityArgumentSort(const Literal* lit)
   unsigned srt2;
   ALWAYS(tryGetResultSort(arg2, srt2));
   return srt2;
-} // 
+} //
 
 /**
  * Return sort of term @c trm that appears inside literal @c lit.
