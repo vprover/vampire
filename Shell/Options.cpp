@@ -844,7 +844,7 @@ void Options::Options::init()
 #if VZ3
 
            _theoryInstAndSimp = ChoiceOptionValue<TheoryInstSimp>("theory_instantiation","thi",
-                                                TheoryInstSimp::OFF,{"off","all","strong","overlap","full"});
+                                                TheoryInstSimp::OFF,{"off","all","strong","overlap","full","new"});
            _theoryInstAndSimp.description = ""; 
            _theoryInstAndSimp.tag(OptionTag::INFERENCES);
            _lookup.insert(&_theoryInstAndSimp);
@@ -857,6 +857,12 @@ void Options::Options::init()
            _unificationWithAbstraction.tag(OptionTag::INFERENCES);
            _lookup.insert(&_unificationWithAbstraction);
            _unificationWithAbstraction.setExperimental();
+
+           _unificationWithAbstractionFix = BoolOptionValue("unification_with_abstraction_fix","uwaf",false);
+           _unificationWithAbstractionFix.description = "Temp fix";
+           _unificationWithAbstractionFix.tag(OptionTag::INFERENCES);
+           _lookup.insert(&_unificationWithAbstractionFix);
+           _unificationWithAbstractionFix.setExperimental();
 
 	    _instantiation = ChoiceOptionValue<Instantiation>("instantiation","inst",Instantiation::OFF,{"off","on"});
 	    _instantiation.description = "Heuristically instantiate variables";

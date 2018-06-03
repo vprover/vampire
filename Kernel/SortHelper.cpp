@@ -193,6 +193,9 @@ unsigned SortHelper::getTermSort(TermList trm, Literal* lit)
   if (trm.isTerm()) {
     return getResultSort(trm.term());
   }
+  if(!trm.isVar()){
+    cout << "ERROR with " << trm.toString() << " in " << lit->toString() << endl;
+  }
   ASS(trm.isVar());
   return getVariableSort(trm, lit);
 }

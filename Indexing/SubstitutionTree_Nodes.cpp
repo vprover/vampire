@@ -21,12 +21,16 @@
  * Different SubstitutionTree Node implementations.
  */
 
+
 #include "Lib/DHMultiset.hpp"
 #include "Lib/Exception.hpp"
 #include "Lib/List.hpp"
 #include "Lib/Metaiterators.hpp"
 #include "Lib/SkipList.hpp"
 #include "Lib/VirtualIterator.hpp"
+#include "Lib/Environment.hpp"
+
+#include "Shell/Options.hpp"
 
 #include "Index.hpp"
 #include "SubstitutionTree.hpp"
@@ -207,12 +211,14 @@ SubstitutionTree::IntermediateNode* SubstitutionTree::SListIntermediateNode
   IntermediateNode* res= 0;
   if(orig->withSorts()){
     res = new SListIntermediateNodeWithSorts(orig->term, orig->childVar);
-    //TODO: this doesnt seem to copy the actual sort information into the specialized class. check if this is a bug
+    static bool fix = env.options->fixedUWA(); 
+    if(fix){
+      res->_childBySortHelper->loadFrom(orig->_childBySortHelper);
+    }
   }else{
     res = new SListIntermediateNode(orig->term, orig->childVar);
   }
   res->loadChildren(orig->allChildren());
-  res->_childBySortHelper = orig->_childBySortHelper;
   orig->makeEmpty();
   delete orig;
   return res;

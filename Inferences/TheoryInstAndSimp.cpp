@@ -832,11 +832,18 @@ ClauseIterator TheoryInstAndSimp::generateClauses(Clause* premise,bool& premiseR
 
   if(premise->isTheoryDescendant()){ return ClauseIterator::getEmpty(); }
 
+  static Options::TheoryInstSimp thi = env.options->theoryInstAndSimp();
+
   static Stack<Literal*> selectedLiterals;
   selectedLiterals.reset();
 
-  selectTheoryLiterals(premise,selectedLiterals);
-  applyFilters(selectedLiterals,true);
+  if(thi == Options::TheoryInstSimp::NEW){
+    selectTheoryLiterals(premise,selectedLiterals);
+    applyFilters(selectedLiterals,true);
+  }
+  else{
+    originalSelectTheoryLiterals(premise,selectedLiterals,false);
+  }
 
   // if there are no eligable theory literals selected then there is nothing to do
   if(selectedLiterals.isEmpty()){
@@ -850,9 +857,8 @@ ClauseIterator TheoryInstAndSimp::generateClauses(Clause* premise,bool& premiseR
   //Limits* limits = _salg->getLimits();
 
 
-  if(false){
+  if(thi != Options::TheoryInstSimp::NEW){
     // we will use flattening which is non-recursive and sharing
-    static Options::TheoryInstSimp thi = env.options->theoryInstAndSimp();
     static TheoryFlattening flattener((thi==Options::TheoryInstSimp::FULL),true);
 
     Clause* flattened = flattener.apply(premise,selectedLiterals);
@@ -869,8 +875,7 @@ ClauseIterator TheoryInstAndSimp::generateClauses(Clause* premise,bool& premiseR
 
     // Now go through the abstracted clause and select the things we send to SMT
     // Selection and abstraction could be done in a single step but we are reusing existing theory flattening
-    selectTheoryLiterals(flattened,theoryLiterals);
-    applyFilters(selectedLiterals,true);
+    originalSelectTheoryLiterals(flattened,theoryLiterals,true);
 
     // At this point theoryLiterals should contain abstracted versions of what is in selectedLiterals
     // all of the namings will be ineligable as, by construction, they will contain uninterpreted things
@@ -883,6 +888,7 @@ ClauseIterator TheoryInstAndSimp::generateClauses(Clause* premise,bool& premiseR
        //cout << "None" << endl;
        return ClauseIterator::getEmpty();
     }
+    selectedLiterals = theoryLiterals;
   }
 
   //auto it1 = getSolutions(theoryLiterals);

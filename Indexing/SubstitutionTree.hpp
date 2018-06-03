@@ -220,6 +220,16 @@ public:
             bySort.ensure(Sorts::FIRST_USER_SORT);
             bySortTerms.ensure(Sorts::FIRST_USER_SORT);
         }
+
+        void loadFrom(ChildBySortHelper* other){
+          ASS(other->bySort.size() == other->bySortTerms.size());
+          for(unsigned i=0;i<other->bySort.size();i++){
+            DHSet<unsigned>::Iterator it1(other->bySort[i]);
+            bySort[i].loadFromIterator(it1);
+            Stack<TermList>::Iterator it2(other->bySortTerms[i]);
+            bySortTerms[i].loadFromIterator(it2);
+          }
+        }
         
         /**
          * Return an iterator of child nodes whose top term has the same sort
