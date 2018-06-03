@@ -858,7 +858,7 @@ void Options::Options::init()
            _lookup.insert(&_unificationWithAbstraction);
            _unificationWithAbstraction.setExperimental();
 
-           _fixUWA = BoolOptionValue("uwaf","uwaf",false);
+           _fixUWA = BoolOptionValue("uwa_fix","uwaf",false);
            _fixUWA.description="";
            _fixUWA.tag(OptionTag::INFERENCES);
            _lookup.insert(&_fixUWA);
