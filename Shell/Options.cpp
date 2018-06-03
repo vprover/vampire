@@ -858,6 +858,12 @@ void Options::Options::init()
            _lookup.insert(&_unificationWithAbstraction);
            _unificationWithAbstraction.setExperimental();
 
+           _fixUWA = BoolOptionValue("uwaf","uwaf",false);
+           _fixUWA.description="";
+           _fixUWA.tag(OptionTag::INFERENCES);
+           _lookup.insert(&_fixUWA);
+           _fixUWA.setExperimental();
+
 	    _instantiation = ChoiceOptionValue<Instantiation>("instantiation","inst",Instantiation::OFF,{"off","on"});
 	    _instantiation.description = "Heuristically instantiate variables";
 	    _instantiation.tag(OptionTag::INFERENCES);
