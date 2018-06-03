@@ -82,7 +82,7 @@ private:
    */
   static inline bool isXeqTerm(const TermList* left,const TermList* right);
 
-  unsigned varOfXeqTerm(const Literal* lit);
+  unsigned varOfXeqTerm(const Literal* lit,bool flip=false);
 
   /**
      Checks if models for sort can be mapped back to terms.

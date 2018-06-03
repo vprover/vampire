@@ -170,13 +170,19 @@ bool TheoryInstAndSimp::isXeqTerm(const TermList* left, const TermList* right) {
   return r;
 }
 
-unsigned TheoryInstAndSimp::varOfXeqTerm(const Literal* lit) {
+unsigned TheoryInstAndSimp::varOfXeqTerm(const Literal* lit,bool flip) {
   //add assertion
   if (lit->isEquality()) {
     const TermList* left = lit->nthArgument(0);
     const TermList* right = lit->nthArgument(1);
     if (isXeqTerm(left,right)){ return left->var();}
     if (isXeqTerm(right,left)){ return right->var();}
+    ASS(lit->isTwoVarEquality());
+    if(flip){
+      return left->var(); 
+    }else{
+      return right->var();
+    }
   }
   ASSERTION_VIOLATION ;
   return -1; //TODO: do something proper to prevent compilation warnings
@@ -298,6 +304,9 @@ void TheoryInstAndSimp::selectTrivialLiterals(Clause* cl,
       while (tocheck_it.hasNext()) {
         Literal* checklit = tocheck_it.next();
         if (literalContainsVar(checklit, varOfXeqTerm(cand))) {
+          nt_new.push(cand);
+        }
+        if(cand->isTwoVarEquality() && literalContainsVar(checklit,varOfXeqTerm(cand,true))){
           nt_new.push(cand);
         }
       } // ! nt_pure_tocheck.hasNext()
