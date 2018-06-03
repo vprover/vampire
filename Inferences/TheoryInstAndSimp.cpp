@@ -440,7 +440,7 @@ void TheoryInstAndSimp::originalSelectTheoryLiterals(Clause* cl, Stack<Literal*>
   Clause::Iterator it(*cl);
   while(it.hasNext()){
     Literal* lit = it.next();
-    std::cerr << "Iterating: " << lit->toString() << std::endl;
+    //std::cerr << "Iterating: " << lit->toString() << std::endl;
     bool interpreted = theory->isInterpretedPredicate(lit);
 
     // two var equalities are correctly identified as interpreted and should be added
@@ -723,9 +723,9 @@ VirtualIterator<Solution> TheoryInstAndSimp::getSolutions(Stack<Literal*>& theor
 
 struct InstanceFn
 {
-  InstanceFn(Clause* premise, Stack<Literal*>& tl,Splitter* splitter,
+  InstanceFn(Clause* premise,Clause* cl, Stack<Literal*>& tl,Splitter* splitter,
              SaturationAlgorithm* salg, TheoryInstAndSimp* parent,bool& red) :
-         _premise(premise),  _theoryLits(tl), _splitter(splitter),
+         _premise(premise),  _cl(cl), _theoryLits(tl), _splitter(splitter),
          _salg(salg), _parent(parent), _red(red) {}
 
   DECL_RETURN_TYPE(Clause*);
@@ -776,22 +776,25 @@ partial_check_end:
       return 0;
     }
 #if DPRINT
-    cout << "Instantiate " << _premise->toString() << endl;
+    cout << "Instantiate " << _cl->toString() << endl;
     cout << "with " << sol.subst.toString() << endl;
+    cout << "theoryLits are" << endl;
+    Stack<Literal*>::Iterator tit(_theoryLits);
+    while(tit.hasNext()){ cout << "\t" << tit.next()->toString() << endl;}
 #endif
-    Inference* inf_inst = new Inference1(Inference::INSTANTIATION,_premise);
-    Clause* inst = new(_premise->length()) Clause(_premise->length(),_premise->inputType(),inf_inst);
+    Inference* inf_inst = new Inference1(Inference::INSTANTIATION,_cl);
+    Clause* inst = new(_cl->length()) Clause(_cl->length(),_cl->inputType(),inf_inst);
 
     Inference* inf_simp = new Inference1(Inference::INTERPRETED_SIMPLIFICATION,inst);
-    unsigned newLen = _premise->length() - _theoryLits.size();
-    Clause* res = new(newLen) Clause(newLen,_premise->inputType(),inf_simp);
+    unsigned newLen = _cl->length() - _theoryLits.size();
+    Clause* res = new(newLen) Clause(newLen,_cl->inputType(),inf_simp);
 
 #if VDEBUG
     unsigned skip = 0;
 #endif
     unsigned j=0;
-    for(unsigned i=0;i<_premise->length();i++){
-      Literal* lit = (*_premise)[i];
+    for(unsigned i=0;i<_cl->length();i++){
+      Literal* lit = (*_cl)[i];
       Literal* lit_inst = SubstHelper::apply(lit,sol.subst);
       (*inst)[i] = lit_inst;
       // we implicitly remove all theoryLits as the solution makes their combination false
@@ -800,7 +803,7 @@ partial_check_end:
         j++;
       }
 #if VDEBUG
-      else{skip++;}
+      else{skip++;}//cout << "skip " << lit->toString() << endl;}
 #endif
     }
     ASS_EQ(skip, _theoryLits.size());
@@ -819,6 +822,7 @@ partial_check_end:
 
 private:
   Clause* _premise;
+  Clause* _cl;
   Stack<Literal*>& _theoryLits;
   Splitter* _splitter;
   SaturationAlgorithm* _salg;
@@ -856,12 +860,12 @@ ClauseIterator TheoryInstAndSimp::generateClauses(Clause* premise,bool& premiseR
   // TODO use limits
   //Limits* limits = _salg->getLimits();
 
-
+  Clause* flattened = premise;
   if(thi != Options::TheoryInstSimp::NEW){
     // we will use flattening which is non-recursive and sharing
     static TheoryFlattening flattener((thi==Options::TheoryInstSimp::FULL),true);
 
-    Clause* flattened = flattener.apply(premise,selectedLiterals);
+    flattened = flattener.apply(premise,selectedLiterals);
 
     ASS(flattened);
 
@@ -888,15 +892,15 @@ ClauseIterator TheoryInstAndSimp::generateClauses(Clause* premise,bool& premiseR
        //cout << "None" << endl;
        return ClauseIterator::getEmpty();
     }
-    selectedLiterals = theoryLiterals;
+    selectedLiterals.reset();
+    selectedLiterals.loadFromIterator(Stack<Literal*>::Iterator(theoryLiterals));
   }
 
   //auto it1 = getSolutions(theoryLiterals);
   auto it1 = getSolutions(selectedLiterals);
 
   auto it2 = getMappingIterator(it1,
-               //InstanceFn(premise,flattened,theoryLiterals,_splitter,_salg,this,premiseRedundant));
-               InstanceFn(premise,selectedLiterals,_splitter,_salg,this,premiseRedundant));
+               InstanceFn(premise,flattened,selectedLiterals,_splitter,_salg,this,premiseRedundant));
 
   // filter out only non-zero results
   auto it3 = getFilteredIterator(it2, NonzeroFn());

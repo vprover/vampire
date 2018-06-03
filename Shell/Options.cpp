@@ -852,17 +852,11 @@ void Options::Options::init()
 #endif
            _unificationWithAbstraction = ChoiceOptionValue<UnificationWithAbstraction>("unification_with_abstraction","uwa",
                                              UnificationWithAbstraction::OFF,
-                                             {"off","interpreted_only","one_side_interpreted","one_side_constant","all","ground"});
+                                             {"off","interpreted_only","one_side_interpreted","one_side_constant","all","ground","fixed"});
            _unificationWithAbstraction.description="";
            _unificationWithAbstraction.tag(OptionTag::INFERENCES);
            _lookup.insert(&_unificationWithAbstraction);
            _unificationWithAbstraction.setExperimental();
-
-           _unificationWithAbstractionFix = BoolOptionValue("unification_with_abstraction_fix","uwaf",false);
-           _unificationWithAbstractionFix.description = "Temp fix";
-           _unificationWithAbstractionFix.tag(OptionTag::INFERENCES);
-           _lookup.insert(&_unificationWithAbstractionFix);
-           _unificationWithAbstractionFix.setExperimental();
 
 	    _instantiation = ChoiceOptionValue<Instantiation>("instantiation","inst",Instantiation::OFF,{"off","on"});
 	    _instantiation.description = "Heuristically instantiate variables";

@@ -228,7 +228,8 @@ public:
     ONE_INTERP,
     CONSTANT,
     ALL,
-    GROUND
+    GROUND,
+    FIXED
   };
 
   enum class TheoryAxiomLevel : unsigned int {
@@ -1858,7 +1859,6 @@ public:
   TheoryInstSimp theoryInstAndSimp() const { return _theoryInstAndSimp.actualValue; }
 #endif
   UnificationWithAbstraction unificationWithAbstraction() const { return _unificationWithAbstraction.actualValue; }
-  bool fixedUWA() const { return _unificationWithAbstractionFix.actualValue;}
   bool unusedPredicateDefinitionRemoval() const { return _unusedPredicateDefinitionRemoval.actualValue; }
   bool blockedClauseElimination() const { return _blockedClauseElimination.actualValue; }
   void setUnusedPredicateDefinitionRemoval(bool newVal) { _unusedPredicateDefinitionRemoval.actualValue = newVal; }
@@ -2338,7 +2338,6 @@ private:
   ChoiceOptionValue<TheoryInstSimp> _theoryInstAndSimp;
 #endif
   ChoiceOptionValue<UnificationWithAbstraction> _unificationWithAbstraction; 
-  BoolOptionValue _unificationWithAbstractionFix;
   TimeLimitOptionValue _simulatedTimeLimit;
   UnsignedOptionValue _sineDepth;
   UnsignedOptionValue _sineGeneralityThreshold;

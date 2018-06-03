@@ -211,7 +211,7 @@ SubstitutionTree::IntermediateNode* SubstitutionTree::SListIntermediateNode
   IntermediateNode* res= 0;
   if(orig->withSorts()){
     res = new SListIntermediateNodeWithSorts(orig->term, orig->childVar);
-    static bool fix = env.options->fixedUWA(); 
+    static bool fix = env.options->unificationWithAbstraction() == Options::UnificationWithAbstraction::FIXED; 
     if(fix){
       res->_childBySortHelper->loadFrom(orig->_childBySortHelper);
     }
