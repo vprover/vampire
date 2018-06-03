@@ -423,31 +423,28 @@ void TheoryInstAndSimp::originalSelectTheoryLiterals(Clause* cl, Stack<Literal*>
 {
   CALL("TheoryInstAndSimp::originalSelectTheoryLiterals");
 #if DPRINT
-  cout << "selectTheoryLiterals["<<forZ3<<"] in " << cl->toString() << endl;
+  cout << "originalSelectTheoryLiterals["<<forZ3<<"] in " << cl->toString() << endl;
 #endif
 
   static Shell::Options::TheoryInstSimp selection = env.options->theoryInstAndSimp();
   ASS(selection!=Shell::Options::TheoryInstSimp::OFF);
 
-  Stack<Literal*> trivial_lits;
-  selectTrivialLiterals(cl, trivial_lits);
-
   Stack<Literal*> weak;
   Set<unsigned> strong_vars;
   Set<unsigned> strong_symbols;
   Array<Stack<Literal*>> var_to_lits(cl->varCnt());
+  
 
   Clause::Iterator it(*cl);
   while(it.hasNext()){
     Literal* lit = it.next();
-    //std::cerr << "Iterating: " << lit->toString() << std::endl;
     bool interpreted = theory->isInterpretedPredicate(lit);
 
     // two var equalities are correctly identified as interpreted and should be added
     // for the other equalities, we make sure they don't contain uninterpreted stuff (after flattenning)
 
     //TODO I do this kind of check all over the place but differently every time!
-    if(interpreted && lit->isEquality() && !lit->isTwoVarEquality()) {
+    if(interpreted && lit->isEquality() && !lit->isTwoVarEquality()) {  
       for(TermList* ts = lit->args(); ts->isNonEmpty(); ts = ts->next()){
         if(ts->isTerm() && !env.signature->getFunction(ts->term()->functor())->interpreted()){
           interpreted=false;
@@ -475,13 +472,13 @@ void TheoryInstAndSimp::originalSelectTheoryLiterals(Clause* cl, Stack<Literal*>
     }
     }
 
-    if(interpreted){
-      VariableIterator vit(lit);
+    if(interpreted){    
+      VariableIterator vit(lit); 
       bool pos_equality = lit->isEquality() && lit->polarity();
       // currently weak literals are postive equalities or ground literals
       bool is_weak = !vit.hasNext() || pos_equality;
-      if(selection != Shell::Options::TheoryInstSimp::ALL &&
-         selection != Shell::Options::TheoryInstSimp::FULL &&
+      if(selection != Shell::Options::TheoryInstSimp::ALL && 
+         selection != Shell::Options::TheoryInstSimp::FULL && 
          is_weak){
         weak.push(lit);
       }
@@ -490,15 +487,15 @@ void TheoryInstAndSimp::originalSelectTheoryLiterals(Clause* cl, Stack<Literal*>
         cout << "select " << lit->toString() << endl;
 #endif
         theoryLits.push(lit);
-        while(vit.hasNext()){
+        while(vit.hasNext()){ 
           unsigned v = vit.next().var();
-          strong_vars.insert(v);
+          strong_vars.insert(v); 
           var_to_lits[v].push(lit);
         }
         NonVariableIterator nit(lit);
         while(nit.hasNext()){ strong_symbols.insert(nit.next().term()->functor());}
       }
-    }
+    } 
   }
   if(selection == Shell::Options::TheoryInstSimp::OVERLAP){
 
@@ -506,20 +503,20 @@ void TheoryInstAndSimp::originalSelectTheoryLiterals(Clause* cl, Stack<Literal*>
   while(wit.hasNext()){
     Literal* lit = wit.next();
 #if DPRINT
-    cout << "consider weak " << lit->toString() << endl;
+	cout << "consider weak " << lit->toString() << endl;
 #endif
     VariableIterator vit(lit);
     bool add = false;
     while(vit.hasNext() && !add){
       if(strong_vars.contains(vit.next().var())){
-        add=true;
+        add=true; 
 #if DPRINT
-        cout << "add weak as has strong var" << endl;
+	cout << "add weak as has strong var" << endl;
 #endif
       }
     }
     if(!add){
-      NonVariableIterator nit(lit);
+      NonVariableIterator nit(lit); 
       while(nit.hasNext() && !add){
         if(strong_symbols.contains(nit.next().term()->functor())){
           add=true;
@@ -535,10 +532,10 @@ void TheoryInstAndSimp::originalSelectTheoryLiterals(Clause* cl, Stack<Literal*>
 #endif
         theoryLits.push(lit);
         VariableIterator vit(lit);
-        while(vit.hasNext()){ var_to_lits[vit.next().var()].push(lit); }
+        while(vit.hasNext()){ var_to_lits[vit.next().var()].push(lit); } 
     }
   }
-
+ 
   }
   // now remove bad things
   // if this is the forZ3 pass then ensure that nothing is uninterpreted
@@ -551,7 +548,7 @@ void TheoryInstAndSimp::originalSelectTheoryLiterals(Clause* cl, Stack<Literal*>
       bool deselect=false;
       while(nit.hasNext() && !deselect){
         Term* t = nit.next().term();
-        deselect = !(theory->isInterpretedFunction(t->functor()) || theory->isInterpretedConstant(t->functor()));
+        deselect = !(theory->isInterpretedFunction(t->functor()) || theory->isInterpretedConstant(t->functor())); 
         if(deselect){
 #if DPRINT
           cout << "deselect " << t->toString() << endl;
@@ -561,20 +558,20 @@ void TheoryInstAndSimp::originalSelectTheoryLiterals(Clause* cl, Stack<Literal*>
       if(deselect){ deselected.push(lit);}
     }
     Stack<Literal*>::Iterator dit(deselected);
-    while(dit.hasNext()){
+    while(dit.hasNext()){ 
       Literal* lit = dit.next();
       theoryLits.remove(lit);
 #if DPRINT
-      cout << "deselect1 " << lit->toString() << endl;
+	cout << "deselect1 " << lit->toString() << endl;
 #endif
     }
   }
   for(unsigned i=0;i<var_to_lits.size();i++){
     if(var_to_lits[i].size()==1){
-      Literal * lit = var_to_lits[i][0];
+      Literal * lit = var_to_lits[i][0]; 
       // is of the form X!=t where X only occurs in this literal (from theory literals)
       if(lit->isEquality() && !lit->polarity() &&
-         ((lit->nthArgument(0)->isVar() && lit->nthArgument(0)->var()==i) ||
+         ((lit->nthArgument(0)->isVar() && lit->nthArgument(0)->var()==i) || 
           (lit->nthArgument(1)->isVar() && lit->nthArgument(1)->var()==i))
          ){
 #if DPRINT
