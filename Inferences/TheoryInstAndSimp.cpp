@@ -171,6 +171,8 @@ bool TheoryInstAndSimp::isXeqTerm(const TermList* left, const TermList* right) {
 }
 
 unsigned TheoryInstAndSimp::varOfXeqTerm(const Literal* lit,bool flip) {
+  ASS(lit->isEquality());
+  ASS(! lit->isPositive());
   //add assertion
   if (lit->isEquality()) {
     const TermList* left = lit->nthArgument(0);
