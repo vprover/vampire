@@ -63,7 +63,7 @@ void LambdaElimination::addCombinatorsHeuristically(){
       unsigned secondSort = secondSorts.pop();
       unsigned kSort = env.sorts->addFunctionSort(secondSort, sort);
       kSort = env.sorts->addFunctionSort(sort, kSort);
-      env.sorts->getFuncSort(kSort)->makeInstantiable();
+      //env.sorts->getFuncSort(kSort)->makeInstantiable();
       TermList ts = addHolConstant("kCOMB", kSort, added, Signature::Symbol::K_COMB);
       if(added){
         addCombinatorAxiom(ts, kSort, sort, Signature::Symbol::K_COMB, secondSort);
