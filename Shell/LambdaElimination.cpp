@@ -30,7 +30,7 @@ using namespace Lib;
 using namespace Kernel;
 using namespace Shell;
 
-void LambdaElimination::addCombinatorsHeuristically(){
+void LambdaElimination::addCombinatorsHeuristically(UnitList*& units){
   CALL("LambdaElimination::addCombinatorsHeuristically"); 
   
   //first add identity combinators for relevant sorts
@@ -83,6 +83,11 @@ void LambdaElimination::addCombinatorsHeuristically(){
     unsigned sort = instSorts.pop();
     tryAddCombinatorFromSort(sort);  
   }
+ 
+  if(_axioms){
+    units = UnitList::concat(_axioms, units);
+  }
+  _axioms = 0;
 
 /*  
   unsigned added = 0;
@@ -815,7 +820,7 @@ unsigned LambdaElimination::sortOf(TermList t)
   
 } 
 
-void LambdaElimination::addAxiom(FormulaUnit* axiom, bool elim) {
+void LambdaElimination::addAxiom(FormulaUnit* axiom) {
   CALL("LambdaElimination::addAxiom");
 
   //ASS_REP(!needsElimination(def), def->toString()); To be looked at later AYB
@@ -824,7 +829,7 @@ void LambdaElimination::addAxiom(FormulaUnit* axiom, bool elim) {
 
   if (env.options->showPreprocessing()) {
     env.beginOutput();
-    if(elim){
+    if(!_combinatorAdditionMode){
       env.out() << "[PP] Lambda Elimination added axiom: " << axiom->toString() << endl;
     } else {
       env.out() << "[PP] Heuristic combinator creation added axiom: " << axiom->toString() << endl;
@@ -880,7 +885,7 @@ void LambdaElimination::buildFuncApp(unsigned symbol, TermList arg1, TermList ar
 }
 
  void LambdaElimination::addCombinatorAxiom(TermList combinator, unsigned combinatorSort, unsigned argSort,
-                                            Signature::Symbol::HOLConstant comb, int arg1Sort, int arg2Sort, bool elim )
+                                            Signature::Symbol::HOLConstant comb, int arg1Sort, int arg2Sort)
  {
      CALL("LambdaElimination::addCombinatorAxiom"); 
    
@@ -999,7 +1004,7 @@ void LambdaElimination::buildFuncApp(unsigned symbol, TermList arg1, TermList ar
      }
      
      
-     addAxiom(new FormulaUnit(combAxiom, lambdaInference, Unit::AXIOM), elim);
+     addAxiom(new FormulaUnit(combAxiom, lambdaInference, Unit::AXIOM));
      
  }
 

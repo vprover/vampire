@@ -746,12 +746,12 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
 	  case Term::SF_LAMBDA: {
 	    /** lambda terms are translated to FOL using SKIBC combinators which are extensively described in 
 		    the literature. 
-		*/
-		LambdaElimination le = LambdaElimination(_varSorts);
-		TermList translatedTerm = le.elimLambda(term);
-		termResult = translatedTerm;
-		_defs = UnitList::concat(_defs, le.axioms());
-		break;
+      */
+      LambdaElimination le = LambdaElimination(_varSorts);
+      TermList translatedTerm = le.elimLambda(term);
+      termResult = translatedTerm;
+      _defs = UnitList::concat(_defs, le.axioms());
+      break;
 	  }
 	  case Term::SF_APP: {
 		TermList lhs = term->getSpecialData()->getAppLhs();
