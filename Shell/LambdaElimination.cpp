@@ -314,6 +314,18 @@ TermList LambdaElimination::processBeyondLambda(Term* term)
               buildFuncApp(app, constant, lhs, appTerm);
               app = introduceAppSymbol( appSort, lhsSort, Sorts::SRT_BOOL);
               buildFuncApp(app, appTerm, rhs, appTerm);
+              
+              if(!literal->polarity()){
+                added = false;
+                unsigned notsort = env.sorts->addFunctionSort(Sorts::SRT_BOOL, Sorts::SRT_BOOL);
+                constant = addHolConstant("vNOT", notsort, added, Signature::Symbol::NOT);
+                if(added && !env.options->HOLConstantElimination()){
+                    addNotConnAxiom(constant, notsort);
+                }
+                unsigned notapp = introduceAppSymbol(notsort, Sorts::SRT_BOOL, Sorts::SRT_BOOL); 
+                buildFuncApp(notapp, constant, appTerm, appTerm); 
+              }
+              
               return appTerm;
            }
            case IFF:
