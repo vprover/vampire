@@ -1463,7 +1463,7 @@ void Options::Options::init()
 
     _satSolver = ChoiceOptionValue<SatSolver>("sat_solver","sas",SatSolver::MINISAT,
 #if VZ3
-            {"cvc4","minisat","vampire","z3"});
+    {"minisat","vampire","z3"});
 #else
     {"cvc4","minisat","vampire"});
 #endif
@@ -1473,9 +1473,9 @@ void Options::Options::init()
     _satSolver.tag(OptionTag::SAT);
     _satSolver.setRandomChoices(
 #if VZ3
-            {"minisat","vampire","z3"});
+     {"minisat","vampire","z3"});
 #else
-            {"minisat","vampire"});
+     {"minisat","vampire"});
 #endif
 
 #if VZ3

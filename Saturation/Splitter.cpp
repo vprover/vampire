@@ -53,6 +53,7 @@
 #include "SAT/FallbackSolverWrapper.hpp"
 #include "SAT/MinisatInterfacing.hpp"
 #include "SAT/CVC4Interfacing.hpp"
+#include "SAT/Z3Interfacing.hpp"
 
 #include "DP/ShortConflictMetaDP.hpp"
 
@@ -77,11 +78,13 @@ void SplittingBranchSelector::init()
   _literalPolarityAdvice = _parent.getOptions().splittingLiteralPolarityAdvice();
 
   switch(_parent.getOptions().satSolver()){
+#if not VZ3
     case Options::SatSolver::CVC4:
     { BYPASSING_ALLOCATOR;
       _solver = new CVC4Interfacing(_parent.getOptions(), _parent.satNaming());
     }
     break;
+#endif
     case Options::SatSolver::VAMPIRE:  
       _solver = new TWLSolver(_parent.getOptions(), true);
       break;

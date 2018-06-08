@@ -84,12 +84,15 @@ PRE_XFLAGS = -Wfatal-errors -g -DVDEBUG=1 -DCHECK_LEAKS=0 -DGNUMP=$(GNUMPF)# sta
 INCLUDES= -I. -Icvc4/include -Lcvc4/lib
 Z3FLAG= -DVZ3=0
 Z3LIB= 
+CVC4LIB = -lcvc4
 ifeq (,$(shell echo $(MAKECMDGOALS) | sed 's/.*z3.*//g')) 
 INCLUDES= -I. -Linclude -Iz3/api -Iz3/api/c++ 
 ifeq (,$(shell echo $(MAKECMDGOALS) | sed 's/.*static.*//g'))
 Z3LIB= -lz3 -lgomp -pthread -lrt
+CVC4LIB=
 else
 Z3LIB= -lz3
+CVC4LIB=
 endif
 
 Z3FLAG= -DVZ3=1
@@ -123,7 +126,7 @@ else
 STATIC = -static
 endif
 
-CVC4LIB = -lcvc4
+
 
 ifneq (,$(filter %_dbg_static,$(MAKECMDGOALS)))
 XFLAGS = $(STATIC) $(DBG_FLAGS) $(Z3FLAG)
@@ -626,7 +629,7 @@ $(CXX) $(CXXFLAGS) $(filter -l%, $+) $(filter %.o, $^) -o $@_$(BRANCH)_$(COM_CNT
 endef
 
 define COMPILE_CMD_SIMPLE
-$(CXX) $(CXXFLAGS) $(filter -l%, $+) $(filter %.o, $^) -o $@ $(LGMP) $(Z3LIB) -lcvc4
+$(CXX) $(CXXFLAGS) $(filter -l%, $+) $(filter %.o, $^) -o $@ $(LGMP) $(Z3LIB) $(CVC4LIB)
 endef
 
 define COMPILE_CMD_TKV

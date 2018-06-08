@@ -469,11 +469,14 @@ public:
 
   /** Possible values for sat_solver */
   enum class SatSolver : unsigned int {
+#if VZ3
+     MINISAT = 0,
+     VAMPIRE = 1,
+     Z3 = 2
+#else
      CVC4 = 0,
      MINISAT = 1,
      VAMPIRE = 2,
-#if VZ3
-     ,Z3 = 3
 #endif
   };
 

@@ -25,6 +25,8 @@
 #ifndef __CVC4Interfacing__
 #define __CVC4Interfacing__
 
+#if not VZ3
+
 #include "Lib/DHMap.hpp"
 
 #include "SATSolver.hpp"
@@ -193,5 +195,7 @@ private:
 };
 
 }//end SAT namespace
+
+#endif not VZ3
 
 #endif /*CVC4Interfacing*/

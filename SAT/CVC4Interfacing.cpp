@@ -22,6 +22,8 @@
  * Implements class CVC4Interfacing
  */
 
+#if not VZ3
+
 #include "Forwards.hpp"
 
 #include "SATSolver.hpp"
@@ -436,3 +438,4 @@ SATClause* CVC4Interfacing::getRefutation() {
 
 } // namespace SAT
 
+#endif /** if not VZ3 **/
