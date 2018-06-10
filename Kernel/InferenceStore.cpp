@@ -324,7 +324,7 @@ protected:
     UnitIterator parents=_is->getParents(cs, rule);
 
     if(rule == Inference::INDUCTION){
-      cout << "ping" << endl;
+      //cout << "ping" << endl;
       env.statistics->inductionInProof++;
     }
 
