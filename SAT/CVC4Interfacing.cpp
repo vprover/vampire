@@ -57,11 +57,15 @@ CVC4Interfacing::CVC4Interfacing(const Shell::Options& opts,SAT2FO& s2f):
 {
   CALL("CVC4Interfacing::CVC4Interfacing");
 
+  _engine.setLogic("UF");
+
   _engine.setOption("incremental", true);
   _engine.setOption("produce-models", true);
   if (!opts.cvc4WithEMatching()) {
     _engine.setOption("e-matching", false);
   }
+
+  _engine.setOption("symmetry-breaker",false);
 
   // _engine.setOption("help",true);
 
