@@ -170,7 +170,8 @@ void Options::Options::init()
          "ltb_mzr_2017",
          "smtcomp",
          "smtcomp_2016",
-         "smtcomp_2017"});
+         "smtcomp_2017",
+         "smtcomp_2018"});
     _schedule.description = "Schedule to be run by the portfolio mode.";
     _lookup.insert(&_schedule);
     _schedule.reliesOnHard(_mode.is(equal(Mode::CASC)->

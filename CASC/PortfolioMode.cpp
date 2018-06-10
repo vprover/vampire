@@ -190,9 +190,12 @@ void PortfolioMode::getSchedules(Property& prop, Schedule& quick, Schedule& fall
   case Options::Schedule::SMTCOMP_2016:
     Schedules::getSmtcomp2016Schedule(prop,quick,fallback);
     break;
-  case Options::Schedule::SMTCOMP:
   case Options::Schedule::SMTCOMP_2017:
     Schedules::getSmtcomp2017Schedule(prop,quick,fallback);
+    break;
+  case Options::Schedule::SMTCOMP:
+  case Options::Schedule::SMTCOMP_2018:
+    Schedules::getSmtcomp2018Schedule(prop,quick,fallback);
     break;
 
   case Options::Schedule::LTB_HH4_2015_FAST:

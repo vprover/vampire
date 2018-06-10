@@ -429,7 +429,8 @@ public:
     LTB_MZR_2017,
     SMTCOMP,
     SMTCOMP_2016,
-    SMTCOMP_2017
+    SMTCOMP_2017,
+    SMTCOMP_2018
 };
 
 
