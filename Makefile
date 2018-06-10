@@ -290,6 +290,7 @@ VINF_OBJ=Inferences/BackwardDemodulation.o\
          Inferences/TautologyDeletionISE.o\
          Inferences/TermAlgebraReasoning.o\
          Inferences/TheoryInstAndSimp.o\
+         Inferences/Induction.o\
          Inferences/URResolution.o
 #         Inferences/CTFwSubsAndRes.o\
 
@@ -340,6 +341,7 @@ VS_OBJ = Shell/AnswerExtractor.o\
          Shell/Flattening.o\
          Shell/FunctionDefinition.o\
          Shell/GeneralSplitting.o\
+         Shell/GoalGuessing.o\
          Shell/Grounding.o\
          Shell/InequalitySplitting.o\
          Shell/InterpolantMinimizer.o\

@@ -69,6 +69,7 @@
 #include "Inferences/URResolution.hpp"
 #include "Inferences/Instantiation.hpp"
 #include "Inferences/TheoryInstAndSimp.hpp"
+#include "Inferences/Induction.hpp"
 
 #include "Saturation/ExtensionalityClauseContainer.hpp"
 
@@ -1335,6 +1336,11 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
 
   // create generating inference engine
   CompositeGIE* gie=new CompositeGIE();
+
+  //TODO here induction is last, is that right?
+  if(opt.induction()!=Options::Induction::NONE){
+    gie->addFront(new Induction());
+  }
 
   if(opt.instantiation()!=Options::Instantiation::OFF){
     res->_instantiation = new Instantiation();

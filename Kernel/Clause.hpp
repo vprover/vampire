@@ -198,6 +198,18 @@ public:
 
   bool isTheoryDescendant() const { return _theoryDescendant; }
   void setTheoryDescendant(bool t) { _theoryDescendant=t; }
+
+  unsigned inductionDepth() const { return _inductionDepth; }
+  void setInductionDepth(unsigned d){
+    ASS(d < 33);
+    _inductionDepth=d;
+  }
+  void incInductionDepth(){ 
+    // _inductionDepth is 5 bits, max out there
+    if(_inductionDepth < 32){
+      _inductionDepth++; 
+    }
+  }
   
   bool skip() const;
 
@@ -340,7 +352,7 @@ public:
 
 protected:
   /** number of literals */
-  unsigned _length : 25;
+  unsigned _length : 20;
   /** clause color, or COLOR_INVALID if not determined yet */
   mutable unsigned _color : 2;
   /** clause is an input clause for the saturation algorithm */
@@ -355,6 +367,8 @@ protected:
   unsigned _component : 1;
   /** Clause is a theory descendant **/
   unsigned _theoryDescendant : 1;
+  /** Induction depth **/
+  unsigned _inductionDepth : 5;
 
   /** number of selected literals */
   unsigned _numSelected;

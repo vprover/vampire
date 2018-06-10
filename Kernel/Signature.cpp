@@ -56,7 +56,11 @@ Signature::Symbol::Symbol(const vstring& nm,unsigned arity, bool interpreted, bo
     _termAlgebraCons(0),
     _type(0),
     _distinctGroups(0),
-    _usageCount(0)
+    _usageCount(0),
+    _inUnit(0),
+    _inGoal(0),
+    _inductionSkolem(0),
+    _skolem(0)
 {
   CALL("Signature::Symbol::Symbol");
   ASS(!stringConstant || arity==0);
@@ -767,6 +771,7 @@ unsigned Signature::addSkolemFunction (unsigned arity, const char* suffix)
   CALL("Signature::addSkolemFunction");
 
   unsigned f = addFreshFunction(arity, "sK", suffix);
+  getFunction(f)->markSkolem();
 
   // Register it as a LaTeX function
   theory->registerLaTeXFuncName(f,"\\sigma_{"+Int::toString(_skolemFunctionCount)+"}(a0)");
@@ -785,6 +790,7 @@ unsigned Signature::addSkolemPredicate(unsigned arity, const char* suffix)
   CALL("Signature::addSkolemPredicate");
 
   unsigned f = addFreshPredicate(arity, "sK", suffix);
+  getPredicate(f)->markSkolem();
 
   // Register it as a LaTeX function
   theory->registerLaTeXFuncName(f,"\\sigma_{"+Int::toString(_skolemFunctionCount)+"}(a0)");
