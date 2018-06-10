@@ -45,6 +45,7 @@ public:
 
   static void getSmtcomp2016Schedule(const Shell::Property& property, Schedule& quick, Schedule& fallback);
   static void getSmtcomp2017Schedule(const Shell::Property& property, Schedule& quick, Schedule& fallback);
+  static void getSmtcomp2018Schedule(const Shell::Property& property, Schedule& quick, Schedule& fallback);
 
   static void getLtb2015Hh4FastSchedule(const Shell::Property& property, Schedule& sched);
   static void getLtb2015Hh4MiddSchedule(const Shell::Property& property, Schedule& sched);
