@@ -146,6 +146,7 @@ bool PortfolioMode::performStrategy(Shell::Property* property)
 
   getSchedules(*property,main,fallback);
 
+
   // simply insert fallback after main
   Schedule::BottomFirstIterator it(fallback);
   main.loadFromIterator(it);
@@ -156,7 +157,71 @@ bool PortfolioMode::performStrategy(Shell::Property* property)
     return false;
   }
 
-  return runSchedule(main,terminationTime);
+  if(!runSchedule(main,terminationTime)){
+    Schedule extra;
+    getExtraSchedules(*property,extra);
+    terminationTime = env.remainingTime()/100;
+    if (terminationTime <= 0) {
+      return false;
+    }
+    return runSchedule(extra,terminationTime); 
+  }
+  else{ return true;}
+}
+
+void PortfolioMode::getExtraSchedules(Property& prop, Schedule& extra)
+{
+  CALL("PortfolioMode::getExtraSchedules");
+  // Currently just implement something interesting for SMTCOMP
+  // For everything else just return the main schedule with all times expanded
+  if(env.options->schedule() == Options::Schedule::SMTCOMP){
+
+    Schedule main;
+    Schedule fallback;
+
+    getSchedules(prop,main,fallback);     
+    Schedule::BottomFirstIterator fit(fallback);
+    main.loadFromIterator(fit);
+
+    Schedule::Iterator it(main);
+    while(it.hasNext()){
+      vstring s = it.next();
+      vstring ts = s.substr(s.find_last_of("_")+1,vstring::npos);
+      int t;
+      if(Lib::Int::stringToInt(ts,t)){
+        vstring prefix = s.substr(0,s.find_last_of("_")) 
+
+        s = prefix + "_" + Lib::Int::toString(t*3);
+        extra.push(s);
+      }
+      else{ASSERTION_VIOLATION;}
+    }
+
+
+
+  }
+  else{
+    // grab main and fallback and iterate through multiplying time limit by 3
+    Schedule main;
+    Schedule fallback;
+
+    getSchedules(prop,main,fallback);    
+    Schedule::BottomFirstIterator fit(fallback);
+    main.loadFromIterator(fit);
+    Schedule::Iterator it(main);
+    while(it.hasNext()){
+      vstring s = it.next();
+      vstring ts = s.substr(s.find_last_of("_")+1,vstring::npos);
+      int t;
+      if(Lib::Int::stringToInt(ts,t)){
+        s = s.substr(0,s.find_last_of("_")) + "_" + Lib::Int::toString(t*3); 
+        extra.push(s);
+      }
+      else{ASSERTION_VIOLATION;}
+    }
+
+  }
+
 }
 
 void PortfolioMode::getSchedules(Property& prop, Schedule& quick, Schedule& fallback)
