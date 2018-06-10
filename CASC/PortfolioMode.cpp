@@ -144,7 +144,9 @@ bool PortfolioMode::performStrategy(Shell::Property* property)
   Schedule main;
   Schedule fallback;
 
-  getSchedules(*property,main,fallback);
+  cout << "WARNING WARNING WARNING" << endl;
+  //getSchedules(*property,main,fallback);
+  getExtraSchedules(*property,main);
 
 
   // simply insert fallback after main
@@ -183,16 +185,27 @@ void PortfolioMode::getExtraSchedules(Property& prop, Schedule& extra)
     Schedule::BottomFirstIterator fit(fallback);
     main.loadFromIterator(fit);
 
+    Stack<vstring> extra_opts;
+    extra_opts.push("gtg=exists_all");
+    extra_opts.push("uwa=fixed:uwaf=on");
+    if(prop.getSMTLIBLogic() == SMT_UFDT || prop.getSMTLIBLogic() == SMT_AUFDTLIA || prop.getSMTLIBLogic() == SMT_UFDTLIA){
+      extra_opts.push("ind=all");
+      extra_opts.push("ind=all:sik=all");
+    }
+
     Schedule::Iterator it(main);
     while(it.hasNext()){
       vstring s = it.next();
       vstring ts = s.substr(s.find_last_of("_")+1,vstring::npos);
       int t;
       if(Lib::Int::stringToInt(ts,t)){
-        vstring prefix = s.substr(0,s.find_last_of("_")) 
+        vstring prefix = s.substr(0,s.find_last_of("_")); 
 
-        s = prefix + "_" + Lib::Int::toString(t*3);
-        extra.push(s);
+        Stack<vstring>::Iterator addit(extra_opts);
+        while(addit.hasNext()){
+          s = prefix + ":" + addit.next() + "_" + Lib::Int::toString(t*3);
+          extra.push(s);
+        }
       }
       else{ASSERTION_VIOLATION;}
     }

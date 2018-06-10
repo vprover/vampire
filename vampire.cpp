@@ -911,6 +911,7 @@ int main(int argc, char* argv[])
       env.options->setIgnoreMissing(Options::IgnoreMissing::WARN);
       env.options->setInputSyntax(Options::InputSyntax::SMTLIB2);
       env.options->setOutputMode(Options::Output::SMTCOMP);
+      env.options->setSchedule(Options::Schedule::SMTCOMP);
       env.options->setProof(Options::Proof::OFF);
       env.options->setMulticore(0); // use all available cores
       env.options->setTimeLimitInSeconds(1800);
