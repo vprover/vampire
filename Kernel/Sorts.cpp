@@ -285,7 +285,11 @@ OperatorType::OperatorKey* OperatorType::setupKeyUniformRange(unsigned arity, un
   return key;
 }
 
-OperatorType::OperatorTypes OperatorType::_operatorTypes;
+OperatorType::OperatorTypes& OperatorType::operatorTypes() {
+  // we should delete all the stored OperatorTypes inside at the end of the world, when this get destroyed
+  static OperatorType::OperatorTypes _operatorTypes;
+  return _operatorTypes;
+}
 
 /**
  * Check if OperatorType corresponding to the given key
@@ -306,7 +310,7 @@ OperatorType* OperatorType::getTypeFromKey(OperatorType::OperatorKey* key)
   */
 
   OperatorType* resultType;
-  if (_operatorTypes.find(key,resultType)) {
+  if (operatorTypes().find(key,resultType)) {
     key->deallocate();
 
     // cout << " Found " << resultType << endl;
@@ -315,7 +319,7 @@ OperatorType* OperatorType::getTypeFromKey(OperatorType::OperatorKey* key)
   }
 
   resultType = new OperatorType(key);
-  _operatorTypes.insert(key,resultType);
+  operatorTypes().insert(key,resultType);
 
   // cout << " Created new " << resultType << endl;
 
