@@ -133,6 +133,10 @@ public:
   unsigned theoryInstSimpTautologies;
   /** number of theoryInstSimp solutions lost as we could not represent them **/
   unsigned theoryInstSimpLostSolution;
+  /** number of induction applications **/
+  unsigned induction;
+  unsigned maxInductionDepth;
+  unsigned inductionInProof;
 
   // Simplifying inferences
   /** number of duplicate literals deleted */

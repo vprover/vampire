@@ -31,6 +31,8 @@
 #include "Lib/Timer.hpp"
 #include "Kernel/Term.hpp"
 #include "Kernel/Clause.hpp"
+#include "Kernel/Signature.hpp"
+#include "Kernel/TermIterators.hpp"
 #include "Shell/Statistics.hpp"
 #include "Shell/Options.hpp"
 
@@ -97,8 +99,36 @@ Comparison AWPassiveClauseContainer::compareWeight(Clause* cl1, Clause* cl2, con
     cl2Weight=cl2Weight*2+cl2->getNumeralWeight();
   }
 
-  int nwcNumer = opt.nonGoalWeightCoeffitientNumerator();
-  int nwcDenom = opt.nonGoalWeightCoeffitientDenominator();
+  static int nwcNumer = opt.nonGoalWeightCoeffitientNumerator();
+  static int nwcDenom = opt.nonGoalWeightCoeffitientDenominator();
+  static bool restrictNWC = opt.restrictNWCtoGC();
+
+  bool cl1_goal = cl1->isGoal();
+  bool cl2_goal = cl2->isGoal();
+
+  if(cl1_goal && restrictNWC){
+    bool found = false;
+    for(unsigned i=0;i<cl1->length();i++){
+      TermFunIterator it((*cl1)[i]);
+      it.next(); // skip literal symbol
+      while(it.hasNext()){
+        found |= env.signature->getFunction(it.next())->inGoal();
+      }
+    }
+    if(!found){ cl1_goal=false; }
+  }
+  if(cl2_goal && restrictNWC){
+    bool found = false;
+    for(unsigned i=0;i<cl2->length();i++){
+      TermFunIterator it((*cl2)[i]);
+      it.next(); // skip literal symbol
+      while(it.hasNext()){
+        found |= env.signature->getFunction(it.next())->inGoal();
+      }
+    }
+    if(!found){ cl2_goal=false; }
+  }
+  
 
   if (!cl1->isGoal() && cl2->isGoal()) {
     return Int::compare(cl1Weight*nwcNumer, cl2Weight*nwcDenom);

@@ -437,7 +437,7 @@ void outputProblemToLaTeX(Problem* prb)
  * @author Andrei Voronkov
  * @since 02/07/2013 Manchester
  */
-void preprocessMode()
+void preprocessMode(bool theory)
 {
   CALL("preprocessMode()");
 
@@ -461,7 +461,14 @@ void preprocessMode()
         continue;
       }
     }
-    env.out() << TPTPPrinter::toString(u) << "\n";
+
+    if (theory) {
+      Formula* f = u->getFormula();
+      FormulaUnit* fu = new FormulaUnit(f,u->inference(),u->inputType() == Unit::CONJECTURE ? Unit::NEGATED_CONJECTURE : u->inputType()); // CONJECTURE is evil, as it cannot occur multiple times
+      env.out() << TPTPPrinter::toString(fu) << "\n";
+    } else {
+      env.out() << TPTPPrinter::toString(u) << "\n";
+    }
   }
   env.endOutput();
 
@@ -904,6 +911,7 @@ int main(int argc, char* argv[])
       env.options->setIgnoreMissing(Options::IgnoreMissing::WARN);
       env.options->setInputSyntax(Options::InputSyntax::SMTLIB2);
       env.options->setOutputMode(Options::Output::SMTCOMP);
+      env.options->setSchedule(Options::Schedule::SMTCOMP);
       env.options->setProof(Options::Proof::OFF);
       env.options->setMulticore(0); // use all available cores
       env.options->setTimeLimitInSeconds(1800);
@@ -968,7 +976,11 @@ int main(int argc, char* argv[])
       break;
 
     case Options::Mode::PREPROCESS:
-      preprocessMode();
+      preprocessMode(false);
+      break;
+
+    case Options::Mode::TPREPROCESS:
+      preprocessMode(true);
       break;
 
     case Options::Mode::SAT:
