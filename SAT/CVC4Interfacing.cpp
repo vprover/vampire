@@ -67,6 +67,8 @@ CVC4Interfacing::CVC4Interfacing(const Shell::Options& opts,SAT2FO& s2f):
 
   _engine.setOption("symmetry-breaker",false);
 
+  _engine.setOption("decision","internal");
+
   // _engine.setOption("help",true);
 
   if (opts.cvc4InstantiationLimit() > 0) {
