@@ -1004,12 +1004,38 @@ void Options::Options::init()
       _lookup.insert(&_combinatorElimination);
       _combinatorElimination.tag(OptionTag::INFERENCES);
     
-      _heuristicallyAddCombinators = BoolOptionValue("add_combinators","addcomb",false);
-      _heuristicallyAddCombinators.description=
-      "Adds combinator constants and their defining equations to the search space \n"
-      "heuristically";    
-      _lookup.insert(&_heuristicallyAddCombinators);
-      _heuristicallyAddCombinators.tag(OptionTag::PREPROCESSING);
+      _addCombinators = ChoiceOptionValue<AddCombinators>("add_combinators","addc",
+                                                          AddCombinators::OFF,
+                                                          {"off","size","user"});
+      _addCombinators.description=
+      "Heuristically adds combinator definitions to input.\n"
+      "This can be done upto some function of the input size.\n"  
+      "or via the user specifying by using --num_of_combs_to_add.\n";       
+      _lookup.insert(&_addCombinators);
+      _addCombinators.tag(OptionTag::INFERENCES);
+      //_addCombinators.reliesOn(_splitting.is(equal(true)));
+    
+       
+      _combinatorAdditionBy = ChoiceOptionValue<CombinatorAdditionBy>("control_addition","cadd",
+                                                          CombinatorAdditionBy::ALL,
+                                                          {"off","rank","sort"});
+      _combinatorAdditionBy.description=
+      "When adding combinators heuristically, combinators.\n"
+      "Whose sort has rank greater than some in-built value\n"  
+      "can be disgarded. Likewise if the combinator sort contains"
+      "more than a pre-specified number of basic sorts.\n";       
+      _lookup.insert(&_combinatorAdditionBy);
+      _combinatorAdditionBy.tag(OptionTag::INFERENCES);
+      _combinatorAdditionBy.reliesOn(_addCombinators.is(notEqual(AddCombinators::OFF)));
+     
+     
+      _numOfCombinatorsToAdd = UnsignedOptionValue("num_of_combs_to_add","nocto",0);
+      _numOfCombinatorsToAdd.description=
+      "Specifies the maximum number of combinators to add.\n";       
+      _lookup.insert(&_numOfCombinatorsToAdd);
+      _numOfCombinatorsToAdd.tag(OptionTag::INFERENCES);
+      _numOfCombinatorsToAdd.reliesOn(_addCombinators.is(equal(AddCombinators::BY_USER)));
+    
     
       _FOOLParamodulation = BoolOptionValue("fool_paramodulation","foolp",false);
       _FOOLParamodulation.description=

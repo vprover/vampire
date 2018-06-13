@@ -340,6 +340,25 @@ public:
   };
 
   /**
+    * When heuristically adding combinators exclude only
+    * add those with rank smaller than preset rank etc.
+    */
+  enum class CombinatorAdditionBy : unsigned int {
+    ALL = 0,
+    RANK = 1,
+    NUM_OF_BASIC_SORTS = 2
+  };
+  
+  /**
+    * Options for heuristic addition of combinators
+    */
+  enum class AddCombinators : unsigned int {
+    OFF = 0,
+    FUNCTION_OF_PROBLEM_SIZE = 1,
+    BY_USER = 2
+  };
+  
+  /**
    *
    *
    */
@@ -1923,7 +1942,6 @@ public:
   bool HOLconstantShortCircuitEval() const { return _HOLConstantShortCircuitEval.actualValue; }
   bool HOLConstantElimination () const { return _HOLConstantElimination.actualValue; }
   bool combinatorElimination () const { return _combinatorElimination.actualValue; }
-  bool addCombinatorsHeuristically() const { return _heuristicallyAddCombinators.actualValue; }
   bool FOOLParamodulation() const { return _FOOLParamodulation.actualValue; }
   bool termAlgebraInferences() const { return _termAlgebraInferences.actualValue; }
   TACyclicityCheck termAlgebraCyclicityCheck() const { return _termAlgebraCyclicityCheck.actualValue; }
@@ -1947,6 +1965,10 @@ public:
   GlobalSubsumptionExplicitMinim globalSubsumptionExplicitMinim() const { return _globalSubsumptionExplicitMinim.actualValue; }
   GlobalSubsumptionAvatarAssumptions globalSubsumptionAvatarAssumptions() const { return _globalSubsumptionAvatarAssumptions.actualValue; }
 
+  AddCombinators addCombinators() const { return _addCombinators.actualValue; }
+  CombinatorAdditionBy combinatorAdditionBy() const { return _combinatorAdditionBy.actualValue; }
+  unsigned numOfCombinatorsToAdd() const { return _numOfCombinatorsToAdd.actualValue; }
+  
   /** true if calling set() on non-existing options does not result in a user error */
   IgnoreMissing ignoreMissing() const { return _ignoreMissing.actualValue; }
   void setIgnoreMissing(IgnoreMissing newVal) { _ignoreMissing.actualValue = newVal; }
@@ -2193,7 +2215,6 @@ private:
   BoolOptionValue _HOLConstantShortCircuitEval;
   BoolOptionValue _HOLConstantElimination;
   BoolOptionValue _combinatorElimination;
-  BoolOptionValue _heuristicallyAddCombinators;
   BoolOptionValue _termAlgebraInferences;
   ChoiceOptionValue<TACyclicityCheck> _termAlgebraCyclicityCheck;
 
@@ -2225,6 +2246,10 @@ private:
   ChoiceOptionValue<GlobalSubsumptionExplicitMinim> _globalSubsumptionExplicitMinim;
   ChoiceOptionValue<GlobalSubsumptionAvatarAssumptions> _globalSubsumptionAvatarAssumptions;
 
+  ChoiceOptionValue<AddCombinators> _addCombinators;
+  ChoiceOptionValue<CombinatorAdditionBy> _combinatorAdditionBy;
+  UnsignedOptionValue _numOfCombinatorsToAdd;
+  
   BoolOptionValue _hyperSuperposition;
 
   BoolOptionValue _innerRewriting;

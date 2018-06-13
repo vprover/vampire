@@ -208,7 +208,7 @@ void Preprocess::preprocess(Problem& prb)
       
       FOOLElimination().apply(prb);
       
-      if((prb.hasApp() || prb.hasLambda()) && env.options->addCombinatorsHeuristically()){
+      if((prb.hasApp() || prb.hasLambda()) && env.options->addCombinators() != Options::AddCombinators::OFF){
         LambdaElimination().addCombinatorsHeuristically(prb.units());
       }
     }

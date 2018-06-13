@@ -169,14 +169,38 @@ public:
      
      FunctionSort(vstring name, unsigned domainSort, unsigned rangeSort,unsigned id) 
        : StructuredSortInfo(name,StructuredSort::HIGHER_ORD_CONST, id),  
-         _instantiableSort(false), _domainSort(domainSort), _rangeSort(rangeSort){}    
+         _instantiableSort(false), _domainSort(domainSort), _rangeSort(rangeSort){
+
+           unsigned orderDom, orderRange;
+           if(env.sorts->isStructuredSort(domainSort)){
+             orderDom = env.sorts->getFuncSort(domainSort)->order();
+           } else {
+             orderDom = 0;
+           }
+           
+           if(env.sorts->isStructuredSort(rangeSort)){
+             orderRange = env.sorts->getFuncSort(rangeSort)->order();
+           } else {
+             orderRange = 0;
+           }
+           
+           if(orderRange > orderDom){
+             _order = orderRange;
+           } else {
+             _order = orderDom + 1;
+           }
+            
+         }
+         
      unsigned getDomainSort(){ return _domainSort; }    
      unsigned getRangeSort(){ return _rangeSort; }
+     unsigned order() { return _order; }
      void makeInstantiable() { _instantiableSort = true; }
      bool instantiable() { return _instantiableSort; }
   
   private:
      bool _instantiableSort;  
+     unsigned _order;
      unsigned _domainSort;    
      unsigned _rangeSort;  
   };

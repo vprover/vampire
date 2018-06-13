@@ -22,6 +22,13 @@ using namespace Shell;
 class LambdaElimination {
 public:
 
+  //defines the mamximum order of the sort for any combinator
+  //added during heuristic combinator addition. Only utilised
+  //if the by_rank option set
+  static const unsigned MAX_ORDER = 4;
+  static const unsigned MAX_SORTS = 15;
+  static const unsigned MULT_FACTOR = 2;
+
   LambdaElimination() : _axioms(0), _combinatorAdditionMode(true){};
   LambdaElimination(DHMap<unsigned,unsigned> varSorts) : _axioms(0), _varSorts(varSorts), _combinatorAdditionMode(false){};
   TermList elimLambda(Term* lambdaTerm);
@@ -34,6 +41,13 @@ public:
   
   static unsigned introduceAppSymbol(unsigned sort1, unsigned sort2, unsigned resultSort); 
   static void buildFuncApp(unsigned function, TermList args1, TermList arg2, TermList& functionApplication);
+
+  void inline addAxiomsToUnits(UnitList*& units){
+    if(_axioms){
+      units = UnitList::concat(_axioms, units);
+    }
+    _axioms = 0;
+  }
   
   UnitList* axioms(){
 	 return _axioms;
@@ -42,11 +56,18 @@ public:
 private:
  
   typedef Stack<unsigned> SortStack; 
-  bool tryAddCombinatorFromSort(unsigned sort);
+  bool tryAddCombinatorFromSort(unsigned sort, Deque<unsigned>& sortQ);
   bool isSCompatible(unsigned combinedSort, unsigned sort1, unsigned sort2, unsigned sort3, unsigned &combSort);
   bool isBCompatible(unsigned combinedSort, unsigned sort1, unsigned sort2, SortStack &combSort);
   bool isCCompatible(unsigned combinedSort, unsigned sort1, unsigned sort2, unsigned sort3, unsigned &combSort);
 
+  //keeps track of number of combinators added
+  unsigned _combinatorsAdded;
+  //maximum number of combinators that can be added
+  unsigned _maxCombinatorsToBeAdded;
+  
+  unsigned countBasicSorts(Sorts::FunctionSort* fsort);
+  
   /*********************************************
   * Lambda and application elimination functions
   *********************************************/
