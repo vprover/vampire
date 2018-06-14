@@ -56,6 +56,10 @@ FormulaUnit* NNF::ennf(FormulaUnit* unit)
 			 new Inference1(Inference::ENNF,unit),
 			 unit->inputType());
 
+  if(unit->isHOLADescendant()){
+    res->setHOLADescendant(true);
+  }
+
   if (env.options->showPreprocessing()) {
     env.beginOutput();
     env.out() << "[PP] ennf in: " << unit->toString() << std::endl;
@@ -84,9 +88,15 @@ FormulaUnit* NNF::nnf(FormulaUnit* unit)
     return unit;
   }
 
-  return new FormulaUnit(g,
+  FormulaUnit* res =  new FormulaUnit(g,
 			 new Inference1(Inference::NNF,unit),
 			 unit->inputType());
+
+  if(unit->isHOLADescendant()){
+    res->setHOLADescendant(true);
+  }
+  return res;
+
 } // NNF::nnf
 
 

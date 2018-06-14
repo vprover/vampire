@@ -371,6 +371,9 @@ unsigned LambdaElimination::countBasicSorts(Sorts::FunctionSort* fsort){
   return total;
 }
 
+bool LambdaElimination::_holAxiomsAdded = false; 
+
+
 /** Function removes all apps, lambdas and top level connectives from
   * a lambda expression via 
   */  
@@ -933,6 +936,10 @@ unsigned LambdaElimination::sortOf(TermList t)
 
 void LambdaElimination::addAxiom(FormulaUnit* axiom) {
   CALL("LambdaElimination::addAxiom");
+
+  _holAxiomsAdded = true;
+
+  axiom->setHOLADescendant(true);
 
   //ASS_REP(!needsElimination(def), def->toString()); To be looked at later AYB
 

@@ -53,6 +53,8 @@ public:
 	 return _axioms;
   }
 
+  static bool _holAxiomsAdded;
+
 private:
  
   typedef Stack<unsigned> SortStack; 

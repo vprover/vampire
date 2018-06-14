@@ -84,6 +84,9 @@ FormulaUnit* Flattening::flatten (FormulaUnit* unit)
   if(unit->included()) {
     res->markIncluded();
   }
+  if(unit->isHOLADescendant()){
+    res->setHOLADescendant(true);
+  }
   if (env.options->showPreprocessing()) {
     env.beginOutput();
     env.out() << "[PP] flatten in: " << unit->toString() << std::endl;

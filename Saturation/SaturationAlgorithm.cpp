@@ -560,9 +560,13 @@ void SaturationAlgorithm::addInputClause(Clause* cl)
   sosForAxioms = sosForAxioms && cl->inputType()==Clause::AXIOM;
 
   bool isTheory = cl->inference()->rule()==Inference::THEORY;
-  bool sosForTheory = _opt.sos() == Options::Sos::THEORY && _opt.sosTheoryLimit() == 0;
+  bool sosForTheory = (_opt.sos() == Options::Sos::THEORY || _opt.sos() == Options::Sos::BOTH) && _opt.sosTheoryLimit() == 0;
 
-  if (sosForAxioms || (isTheory && sosForTheory)){
+  bool isHOLA = cl->isHOLADescendant();
+  bool sosForHOL = (_opt.sos() == Options::Sos::HOL || _opt.sos() == Options::Sos::BOTH) && _opt.sosHOLLimit() == 0;
+  bool sosForHOLinverse = _opt.sos() == Options::Sos::HOL_INVERSE && _opt.sosHOLLimit() == 0;
+
+  if (sosForAxioms || (isTheory && sosForTheory) || (isHOLA && sosForHOL) || (!isHOLA && sosForHOLinverse)){
     addInputSOSClause(cl);
   } else {
     addNewClause(cl);
@@ -679,10 +683,19 @@ Clause* SaturationAlgorithm::doImmediateSimplification(Clause* cl0)
 {
   CALL("SaturationAlgorithm::doImmediateSimplification");
 
-  static bool sosTheoryLimit = _opt.sos()==Options::Sos::THEORY;
+  static bool sosTheoryLimit = _opt.sos()==Options::Sos::THEORY || _opt.sos() == Options::Sos::BOTH;
   static unsigned sosTheoryLimitDepth = _opt.sosTheoryLimit();
+  static bool sosHOLLimit = _opt.sos() == Options::Sos::HOL || _opt.sos() == Options::Sos::BOTH;
+  static bool sosForHOLinverseLimit = _opt.sos() == Options::Sos::HOL_INVERSE;
+  static unsigned sosHOLLimitDepth = _opt.sosHOLLimit();
 
   if(sosTheoryLimit && cl0->isTheoryDescendant() && cl0->inference()->maxDepth() > sosTheoryLimitDepth){
+    return 0;
+  }
+  if(sosHOLLimit && cl0->isHOLADescendant() && cl0->inference()->maxDepth() > sosHOLLimitDepth){
+    return 0;
+  }
+  if(sosForHOLinverseLimit && !cl0->isHOLADescendant() && cl0->inference()->maxDepth() > sosHOLLimitDepth){
     return 0;
   }
 

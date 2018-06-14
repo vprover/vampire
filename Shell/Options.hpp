@@ -698,7 +698,10 @@ public:
     ALL = 0,
     OFF = 1,
     ON = 2,
-    THEORY = 3
+    THEORY = 3,
+    HOL = 4,
+    HOL_INVERSE = 5,
+    BOTH = 6
   };
 
   enum class TARules : unsigned int {
@@ -1950,6 +1953,7 @@ public:
   float nongoalWeightCoefficient() const { return _nonGoalWeightCoefficient.actualValue; }
   Sos sos() const { return _sos.actualValue; }
   unsigned sosTheoryLimit() const { return _sosTheoryLimit.actualValue; }
+  unsigned sosHOLLimit() const { return _sosHOLLimit.actualValue; }
   //void setSos(Sos newVal) { _sos = newVal; }
   FunctionDefinitionElimination functionDefinitionElimination() const { return _functionDefinitionElimination.actualValue; }
   bool outputAxiomNames() const { return _outputAxiomNames.actualValue; }
@@ -1994,6 +1998,8 @@ public:
   bool smtlibFletAsDefinition() const { return _smtlibFletAsDefinition.actualValue; }
 
   bool colorUnblocking() const { return _colorUnblocking.actualValue; }
+
+  bool detectSledgehammerAxioms () const { return _detectSledgehammerAxioms.actualValue; }
 
   Instantiation instantiation() const { return _instantiation.actualValue; }
   bool theoryFlattening() const { return _theoryFlattening.actualValue; }
@@ -2252,6 +2258,8 @@ private:
   
   BoolOptionValue _hyperSuperposition;
 
+  BoolOptionValue _detectSledgehammerAxioms;
+
   BoolOptionValue _innerRewriting;
   BoolOptionValue _equationalTautologyRemoval;
 
@@ -2377,6 +2385,7 @@ private:
   BoolOptionValue _smtlibFletAsDefinition;
   ChoiceOptionValue<Sos> _sos;
   UnsignedOptionValue _sosTheoryLimit;
+  UnsignedOptionValue _sosHOLLimit;
   BoolOptionValue _splitting;
   BoolOptionValue _splitAtActivation;
   ChoiceOptionValue<SplittingAddComplementary> _splittingAddComplementary;

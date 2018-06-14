@@ -74,6 +74,13 @@ public:
     MODEL_DEFINITION = 6
   };
 
+ enum DescendantType {
+   THEORY = 0,
+   BOOL = 1,
+   HOL_COMB = 2,
+   HOL_OTHER = 3
+ }; 
+
   static InputType getInputType(UnitList* units);
   static InputType getInputType(InputType t1, InputType t2);
 
@@ -168,6 +175,9 @@ public:
 
   static void onPreprocessingEnd();
 
+  bool isHOLADescendant() const { return _holaDescendant; }
+  void setHOLADescendant(bool t) { _holaDescendant=t; }
+
 protected:
   /** Number of this unit, used for printing and statistics */
   unsigned _number;
@@ -179,6 +189,8 @@ protected:
   unsigned _inheritedColor : 2;
   /** true if the unit is read from a TPTP included file  */
   unsigned _included : 1;
+  /** Clause is a HOL axiom descendant **/
+  unsigned _holaDescendant : 1;
   /** inference used to obtain the unit */
   Inference* _inference;
   /** the input unit number this clause is generated from, -1 if none */

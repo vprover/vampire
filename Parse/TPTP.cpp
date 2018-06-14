@@ -3494,6 +3494,13 @@ void TPTP::endFof()
   default:
     break;
   }
+
+  static bool detectSledgehammerAxioms = env.options->detectSledgehammerAxioms();
+  static vstring help("help_");
+  if(detectSledgehammerAxioms && !nm.compare(0,help.size(),help)){
+    unit->setHOLADescendant(true);
+  }
+
   _units.push(unit);
 } // tag
 

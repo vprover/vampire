@@ -64,6 +64,9 @@ FormulaUnit* SimplifyFalseTrue::simplify (FormulaUnit* unit)
   if(unit->included()) {
     res->markIncluded();
   }
+  if(unit->isHOLADescendant()){
+    res->setHOLADescendant(true);
+  }
   if (env.options->showPreprocessing()) {
     env.beginOutput();
     env.out() << "[PP] simplify in: " << unit->toString() << std::endl;

@@ -67,6 +67,9 @@ Statistics::Statistics()
     functionDefinitions(0),
     selectedBySine(0),
     sineIterations(0),
+    blockedClauses(0),
+    theoryDescendants(0),
+    holDescendants(0),
     factoring(0),
     resolution(0),
     urResolution(0),
@@ -253,9 +256,10 @@ void Statistics::print(ostream& out)
   COND_OUT("Split inequalities", splitInequalities);
   SEPARATOR;
 
-  HEADING("Saturation",activeClauses+passiveClauses+extensionalityClauses+
+  HEADING("Saturation",activeClauses+passiveClauses+extensionalityClauses+blockedClauses+
       generatedClauses+finalActiveClauses+finalPassiveClauses+finalExtensionalityClauses+
-      discardedNonRedundantClauses+inferencesSkippedDueToColors+inferencesBlockedForOrderingAftercheck);
+      discardedNonRedundantClauses+inferencesSkippedDueToColors+inferencesBlockedForOrderingAftercheck+
+      theoryDescendants+holDescendants);
   COND_OUT("Initial clauses", initialClauses);
   COND_OUT("Generated clauses", generatedClauses);
   COND_OUT("Active clauses", activeClauses);
@@ -268,6 +272,8 @@ void Statistics::print(ostream& out)
   COND_OUT("Discarded non-redundant clauses", discardedNonRedundantClauses);
   COND_OUT("Inferences skipped due to colors", inferencesSkippedDueToColors);
   COND_OUT("Inferences blocked due to ordering aftercheck", inferencesBlockedForOrderingAftercheck);
+  COND_OUT("Theory Axiom Descendants",theoryDescendants);
+  COND_OUT("HOL Axiom Descendants",holDescendants);
   SEPARATOR;
 
 

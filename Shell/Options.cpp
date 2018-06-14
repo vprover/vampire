@@ -375,6 +375,12 @@ void Options::Options::init()
 
 //*********************** Preprocessing  ***********************
 
+    _detectSledgehammerAxioms = BoolOptionValue("detect_sledgehammer_axioms","dsa",false);
+    _detectSledgehammerAxioms.description = "If an axioms name starts with help_ we mark it as a HOL axiom";
+    _lookup.insert(&_detectSledgehammerAxioms);
+    _detectSledgehammerAxioms.tag(OptionTag::INPUT);
+    _detectSledgehammerAxioms.setExperimental();
+
     _inequalitySplitting = IntOptionValue("inequality_splitting","ins",0);
     _inequalitySplitting.description=
     "Defines a weight threshold w such that any clause C \\/ s!=t where s (or conversely t) is ground "
@@ -385,7 +391,7 @@ void Options::Options::init()
 
     //TODO randomly switch to different values for testing?
 
-    _sos = ChoiceOptionValue<Sos>("sos","sos",Sos::OFF,{"all","off","on","theory"});
+    _sos = ChoiceOptionValue<Sos>("sos","sos",Sos::OFF,{"all","off","on","theory","hol","hol_inverse","both"});
     _sos.description=
     "Set of support strategy. All formulas annotated as axioms are put directly among active clauses, without performing any inferences between them. If all, select all literals of set-of-support clauses, ortherwise use the default literal selector.";
     _lookup.insert(&_sos);
@@ -401,7 +407,12 @@ void Options::Options::init()
     _sosTheoryLimit.tag(OptionTag::PREPROCESSING);
     _sosTheoryLimit.reliesOn(_sos.is(equal(Sos::THEORY)));
 
-
+    _sosHOLLimit = UnsignedOptionValue("sos_hol_limit","sshl",0);
+    _sosHOLLimit.description="When sos=hol the depth of descendants a hol axiom can have";
+    _sosHOLLimit.setExperimental();
+    _lookup.insert(&_sosHOLLimit);
+    _sosHOLLimit.tag(OptionTag::PREPROCESSING);
+    //_sosHOLLimit.reliesOn(_sos.is(equal(Sos::HOL)));
 
     _equalityProxy = ChoiceOptionValue<EqualityProxy>( "equality_proxy","ep",EqualityProxy::OFF,{"R","RS","RST","RSTC","off"});
     _equalityProxy.description="Aplies the equality proxy transformation to the problem. It works as follows:\n"

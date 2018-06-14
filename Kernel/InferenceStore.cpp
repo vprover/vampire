@@ -353,6 +353,9 @@ protected:
       }
       out << fu->formula()->toString() << ' ';
     }
+    if(cs->isHOLADescendant()){
+        out << "(HD) ";
+    }
 
     out <<"["<<Inference::ruleName(rule);
 
@@ -436,13 +439,25 @@ struct InferenceStore::ProofPropertyPrinter
   {
     CALL("InferenceStore::ProofPropertyPrinter::ProofPropertyPrinter");
 
+    print_axioms = false;
     max_theory_clause_depth = 0;
+    max_hol_clause_depth = 0;
   }
 
   void print()
   {
     ProofPrinter::print();
-    out << "max_theory_clause_depth:"<<max_theory_clause_depth << endl;
+    //out << "max_theory_clause_depth:"<<max_theory_clause_depth << endl;
+    out << "max_hol_clause_depth:"<<max_hol_clause_depth << endl;
+    out << "hol_descendants:"<<env.statistics->holDescendants << endl;
+    out << "axiom counts in proof:"<< endl;
+    DHMap<Inference::Rule,unsigned>::Iterator it(inf_count);
+    while(it.hasNext()){
+      Inference::Rule rule;
+      unsigned cnt;
+      it.next(rule,cnt);
+      out << "\t" << Inference::ruleName(rule) << ":" << cnt << endl;
+    }
   }
 
 protected:
@@ -450,13 +465,32 @@ protected:
   void printStep(Unit* us)
   {
     // TODO we could make clauses track this information, but I am not sure that that's worth it
-    if(us->isClause() && static_cast<Clause*>(us)->isTheoryDescendant()){
+    if((us->isClause() && static_cast<Clause*>(us)->isTheoryDescendant()) || us->isHOLADescendant()){
       //cout << "HERE with " << us->toString() << endl;
       Inference* inf = us->inference();
+
+      switch(inf->rule()){
+          case Inference::THEORY:
+          case Inference::LAMBDA_ELIMINATION_I_COMB:
+          case Inference::LAMBDA_ELIMINATION_K_COMB:
+          case Inference::LAMBDA_ELIMINATION_B_COMB:
+          case Inference::LAMBDA_ELIMINATION_C_COMB:
+          case Inference::LAMBDA_ELIMINATION_S_COMB:
+            if(print_axioms){
+              out << us->toString() << endl; 
+            }
+            unsigned cnt;
+            if(!inf_count.find(inf->rule(),cnt)){cnt=0;}
+            inf_count.set(inf->rule(),cnt+1);
+            break;
+          default:
+            break;
+        }
+
       while(inf->rule() == Inference::EVALUATION){
               Inference::Iterator piit = inf->iterator();
               inf = inf->next(piit)->inference();
-     }
+      }
       Stack<Inference*> current;
       current.push(inf);
       unsigned level = 0;
@@ -486,13 +520,19 @@ protected:
       level--;
       //cout << "level is " << level << endl;
       
-      if(level > max_theory_clause_depth){
+      if(us->isClause() && static_cast<Clause*>(us)->isTheoryDescendant() && level > max_theory_clause_depth){
         max_theory_clause_depth=level;
+      }
+      if(us->isHOLADescendant() && level > max_hol_clause_depth){
+        max_hol_clause_depth=level;
       }
     }
   }
 
+  bool print_axioms;
   unsigned max_theory_clause_depth;
+  unsigned max_hol_clause_depth;
+  DHMap<Inference::Rule,unsigned> inf_count;
 
 };
 

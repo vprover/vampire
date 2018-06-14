@@ -108,6 +108,10 @@ FormulaUnit* Skolem::skolemiseImpl (FormulaUnit* unit)
   Inference* inf = new InferenceMany(Inference::SKOLEMIZE,premiseList);
   FormulaUnit* res = new FormulaUnit(g, inf, unit->inputType());
 
+  if(unit->isHOLADescendant()){
+    res->setHOLADescendant(true);
+  }
+
   ASS(_introducedSkolemFuns.isNonEmpty());
   while(_introducedSkolemFuns.isNonEmpty()) {
     unsigned fn = _introducedSkolemFuns.pop();

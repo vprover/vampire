@@ -100,6 +100,9 @@ FormulaUnit* Rectify::rectify (FormulaUnit* unit0, bool removeUnusedVars)
     if(unit0->included()) {
       unit->markIncluded();
     }
+    if(unit0->isHOLADescendant()){
+      unit->setHOLADescendant(true);
+    }
   }
 
   if (VarList::isNonEmpty(vars)) {
@@ -109,6 +112,9 @@ FormulaUnit* Rectify::rectify (FormulaUnit* unit0, bool removeUnusedVars)
          unit->inputType());
     if(unit0->included()) {
       unit->markIncluded();
+    }
+    if(unit0->isHOLADescendant()){
+      unit->setHOLADescendant(true);
     }
   }
   return unit;

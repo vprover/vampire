@@ -40,6 +40,8 @@
 #include "SAT/SATClause.hpp"
 
 #include "Shell/Options.hpp"
+#include "Shell/LambdaElimination.hpp"
+#include "Shell/Statistics.hpp"
 
 #include "Inference.hpp"
 #include "Signature.hpp"
@@ -108,7 +110,27 @@ Clause::Clause(unsigned length,InputType it,Inference* inf)
         td = false;
       }
     }
+    if(td){ env.statistics->theoryDescendants++;}
     _theoryDescendant=td;
+  }
+  //TODO WARNING - if input has cnf in it then this will be set before
+  // LambdaElimination is run!
+
+  //TODO Interestingly, LambdaElimination is not actually in the Shell namespace
+  bool hasHOLAxioms = LambdaElimination::_holAxiomsAdded || env.options->detectSledgehammerAxioms(); 
+  //cout << "hasHOLAxioms: " << hasHOLAxioms << endl;
+  if(hasHOLAxioms){
+    Inference::Iterator it = inf->iterator();
+    bool hd = inf->hasNext(it); // hd should be false if there are no parents
+    while(inf->hasNext(it) && hd){
+      Unit* parent = inf->next(it);
+      //cout << "parent " << parent->toString() << endl;
+      hd &= parent->isHOLADescendant();
+      //if(!hd){break;}
+      //if(parent->isHOLADescendant()){ cout << "XXX" << endl; }
+    }
+    if(hd){ env.statistics->holDescendants++;}
+    setHOLADescendant(hd);
   }
 
 //#if VDEBUG
@@ -441,6 +463,9 @@ vstring Clause::toString() const
   result += ") ";
   if(isTheoryDescendant()){
     result += "T ";
+  }
+  if(isHOLADescendant()){
+    result += "H ";
   }
   result +=  inferenceAsString();
   return result;
