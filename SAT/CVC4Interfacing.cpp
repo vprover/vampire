@@ -272,6 +272,7 @@ CVC4::Type CVC4Interfacing::getCVC4sort(unsigned srt)
   if (!_sorts.find(srt,res)) {
     if (srt==Sorts::SRT_BOOL) {
       res = _manager.booleanType();
+    /*
     } else if (srt==Sorts::SRT_INTEGER) {
       res = _manager.integerType();
     } else if (srt==Sorts::SRT_RATIONAL || srt==Sorts::SRT_REAL) { // Dropping the notion of rationality of rationals
@@ -281,7 +282,7 @@ CVC4::Type CVC4Interfacing::getCVC4sort(unsigned srt)
       CVC4::Type index_sort = getCVC4sort(env.sorts->getArraySort(srt)->getIndexSort());
       CVC4::Type value_sort = getCVC4sort(env.sorts->getArraySort(srt)->getInnerSort());
 
-      res = _manager.mkArrayType(index_sort,value_sort);
+      res = _manager.mkArrayType(index_sort,value_sort); */
     } else {
       res = _manager.mkSort(string(Lib::Int::toString(srt).c_str()));
     }
@@ -394,6 +395,7 @@ CVC4::Expr CVC4Interfacing::getRepr(Term* trm, VarMap& vars)
     return _manager.mkExpr(CVC4::kind::EQUAL,args);
   }
 
+  /*
   if (symb->interpreted()) {
     Interpretation interp = static_cast<Signature::InterpretedSymbol*>(symb)->getInterpretation();
 
@@ -416,9 +418,9 @@ CVC4::Expr CVC4Interfacing::getRepr(Term* trm, VarMap& vars)
       // TODO !!!
 
       // but not relevant for the fof AVATAR
-
     }
   }
+  */
 
   // the uninterpreted symbols and fallthrough from interpreted
   CVC4::Expr theFunction;
