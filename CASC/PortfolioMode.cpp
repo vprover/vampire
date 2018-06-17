@@ -144,10 +144,7 @@ bool PortfolioMode::performStrategy(Shell::Property* property)
   Schedule main;
   Schedule fallback;
 
-  cout << "WARNING WARNING WARNING" << endl;
-  //getSchedules(*property,main,fallback);
-  getExtraSchedules(*property,main);
-
+  getSchedules(*property,main,fallback);
 
   // simply insert fallback after main
   Schedule::BottomFirstIterator it(fallback);
