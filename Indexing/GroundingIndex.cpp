@@ -49,7 +49,9 @@ GroundingIndex::GroundingIndex(const Options& opt)
     	break;
 #if VZ3
     case Options::SatSolver::Z3:
-      //cout << "Warning, Z3 not curently used for Global Subsumption" << endl; 
+      //cout << "Warning, Z3 not curently used for Global Subsumption" << endl;
+#else
+    case Options::SatSolver::CVC4:
 #endif
     case Options::SatSolver::MINISAT:
       _solver = new MinisatInterfacing(opt,true);

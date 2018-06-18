@@ -100,14 +100,13 @@ IGAlgorithm::IGAlgorithm(Problem& prb,const Options& opt)
       _satSolver = new TWLSolver(opt,true);
       break;
     case Options::SatSolver::MINISAT:
-      _satSolver = new MinisatInterfacing(opt,true);
-      break;
 #if VZ3
     case Options::SatSolver::Z3:
-      //cout << "Warning: Z3 not compatible with inst_gen, using Minisat" << endl;
+#else
+    case Options::SatSolver::CVC4:
+#endif
       _satSolver = new MinisatInterfacing(opt,true);
       break;
-#endif
     default:
       ASSERTION_VIOLATION_REP(opt.satSolver());
   }
