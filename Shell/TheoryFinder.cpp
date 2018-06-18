@@ -172,7 +172,7 @@ public:
 
 bool TheoryFinder::matchCode(const void* obj,
 			     const unsigned char* code,
-			     unsigned long prop)
+			     uint64_t prop)
 {
   CALL("TheoryFinder::matchCode/3");
   

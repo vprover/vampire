@@ -207,6 +207,23 @@ void SplittingBranchSelector::handleSatRefutation()
 
   if (!env.colorUsed) { // color oblivious, simple approach
     UnitList* prems = SATInference::getFOPremises(satRefutation);
+
+    UnitList::Iterator pit(prems);
+    unsigned maxInd = 0;
+    while(pit.hasNext()){
+      Unit* u = pit.next();
+      Inference* inf = u->inference();
+      Inference::Iterator iit = inf->iterator();
+      while(inf->hasNext(iit)) {
+        Unit* premUnit = inf->next(iit);
+        if(premUnit->isClause()){
+          unsigned ind = static_cast<Clause*>(premUnit)->inductionDepth();
+          if(ind>maxInd){ maxInd=ind; }
+        } 
+      }     
+    }
+    env.statistics->maxInductionDepth=maxInd;
+
     Inference* foInf = satPremises ? // does our SAT solver support postponed minimization?
         new InferenceFromSatRefutation(Inference::AVATAR_REFUTATION, prems, satPremises) :
         new InferenceMany(Inference::AVATAR_REFUTATION, prems);
@@ -1192,6 +1209,7 @@ Clause* Splitter::buildAndInsertComponentClause(SplitLevel name, unsigned size, 
           new Inference1(Inference::AVATAR_COMPONENT,def_u));
 
   if(orig && orig->isTheoryDescendant()){ compCl->setTheoryDescendant(true); }
+  if(orig){ compCl->setInductionDepth(orig->inductionDepth()); }
 
   //cout << "Name " << getLiteralFromName(name).toString() << " for " << compCl->toString() << endl; 
 

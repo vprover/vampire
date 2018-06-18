@@ -64,7 +64,41 @@ public:
 
 private:
 
-  void selectTheoryLiterals(Clause* cl, Stack<Literal*>& theoryLits,bool forZ3);
+  void selectTheoryLiterals(Clause* cl, Stack<Literal*>& theoryLits);
+
+  void originalSelectTheoryLiterals(Clause* cl, Stack<Literal*>& theoryLits,bool forZ3);
+
+  void applyFilters(Stack<Literal*>& theoryLits, bool forZ3);
+  void filterDivisionByZero(Stack<Literal*>& theoryLits, Stack<Literal*>& filteredLits);
+  void filterDivisionByZeroDeep(Stack<Literal*>& theoryLits, Stack<Literal*>& filteredLits);
+  
+  /** Fills trivialLits with all clauses trivial in cl
+   */
+  void selectTrivialLiterals(Clause* cl, Stack<Literal*>& trivialLits);
+  bool isPure(Literal* lit);
+
+  /**
+   Checks if left = right is of the form X = t where X does not occur in t.
+   */
+  static inline bool isXeqTerm(const TermList* left,const TermList* right);
+
+  unsigned varOfXeqTerm(const Literal* lit,bool flip=false);
+
+  /**
+     Checks if models for sort can be mapped back to terms.
+  */
+  bool isSupportedSort(const unsigned sort);
+
+  /**
+     Checks if literal can be mapped back to terms. Works around
+     Theory::interpretPredicate not reporting interpreted equality.
+   */
+  bool isSupportedLiteral(Literal* lit);
+
+
+  /** Checks if literal lit contains the variable v
+   */
+  bool literalContainsVar(const Literal* lit, unsigned v);
 
   Splitter* _splitter;
   //SAT2F0 _naming;

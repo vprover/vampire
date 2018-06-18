@@ -88,7 +88,7 @@ CVC4LIB = -lcvc4
 ifeq (,$(shell echo $(MAKECMDGOALS) | sed 's/.*z3.*//g')) 
 INCLUDES= -I. -Linclude -Iz3/api -Iz3/api/c++ 
 ifeq (,$(shell echo $(MAKECMDGOALS) | sed 's/.*static.*//g'))
-Z3LIB= -lz3 -lgomp -pthread -lrt
+Z3LIB= -lz3 -lgomp -pthread -lrt -ldl
 CVC4LIB=
 else
 Z3LIB= -lz3
@@ -154,7 +154,7 @@ endif
 ################################################################
 
 CXX = g++
-CXXFLAGS = $(XFLAGS) -Wall -std=c++11 -Wno-deprecated -Wno-unknown-warning-option -Wno-terminate $(INCLUDES) # TODO: we will want -Wdeprecated back!
+CXXFLAGS = $(XFLAGS) -Wall -std=c++11 -Wno-terminate $(INCLUDES) # -Wno-unknown-warning-option for clang
 
 CC = gcc 
 CCFLAGS = -Wall -O3 -DNDBLSCR -DNLGLOG -DNDEBUG -DNCHKSOL -DNLGLPICOSAT 
@@ -300,6 +300,7 @@ VINF_OBJ=Inferences/BackwardDemodulation.o\
          Inferences/TautologyDeletionISE.o\
          Inferences/TermAlgebraReasoning.o\
          Inferences/TheoryInstAndSimp.o\
+         Inferences/Induction.o\
          Inferences/URResolution.o
 #         Inferences/CTFwSubsAndRes.o\
 
@@ -351,6 +352,7 @@ VS_OBJ = Shell/AnswerExtractor.o\
          Shell/Flattening.o\
          Shell/FunctionDefinition.o\
          Shell/GeneralSplitting.o\
+         Shell/GoalGuessing.o\
          Shell/Grounding.o\
          Shell/InequalitySplitting.o\
          Shell/InterpolantMinimizer.o\
@@ -422,6 +424,7 @@ LTB_OBJ = Shell/LTB/Builder.o\
 
 CASC_OBJ = CASC/PortfolioMode.o\
            CASC/Schedules.o\
+	   CASC/ScheduleExecutor.o\
            CASC/CLTBMode.o\
            CASC/CLTBModeLearning.o
 

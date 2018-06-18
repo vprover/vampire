@@ -1,4 +1,3 @@
-
 /*
  * File PortfolioMode.cpp.
  *
@@ -16,6 +15,7 @@
  * For other uses of Vampire please contact developers for a different
  * licence, which we will make an effort to provide. 
  */
+
 /**
  * @file PortfolioMode.cpp
  * Implements class PortfolioMode.
@@ -144,7 +144,10 @@ bool PortfolioMode::performStrategy(Shell::Property* property)
   Schedule main;
   Schedule fallback;
 
-  getSchedules(*property,main,fallback);
+  cout << "WARNING WARNING WARNING" << endl;
+  //getSchedules(*property,main,fallback);
+  getExtraSchedules(*property,main);
+
 
   // simply insert fallback after main
   Schedule::BottomFirstIterator it(fallback);
@@ -156,7 +159,82 @@ bool PortfolioMode::performStrategy(Shell::Property* property)
     return false;
   }
 
-  return runSchedule(main,terminationTime);
+  if(!runSchedule(main,terminationTime)){
+    Schedule extra;
+    getExtraSchedules(*property,extra);
+    terminationTime = env.remainingTime()/100;
+    if (terminationTime <= 0) {
+      return false;
+    }
+    return runSchedule(extra,terminationTime); 
+  }
+  else{ return true;}
+}
+
+void PortfolioMode::getExtraSchedules(Property& prop, Schedule& extra)
+{
+  CALL("PortfolioMode::getExtraSchedules");
+  // Currently just implement something interesting for SMTCOMP
+  // For everything else just return the main schedule with all times expanded
+  if(env.options->schedule() == Options::Schedule::SMTCOMP){
+
+    Schedule main;
+    Schedule fallback;
+
+    getSchedules(prop,main,fallback);     
+    Schedule::BottomFirstIterator fit(fallback);
+    main.loadFromIterator(fit);
+
+    Stack<vstring> extra_opts;
+    extra_opts.push("gtg=exists_all");
+    extra_opts.push("uwa=fixed:uwaf=on");
+    if(prop.getSMTLIBLogic() == SMT_UFDT || prop.getSMTLIBLogic() == SMT_AUFDTLIA || prop.getSMTLIBLogic() == SMT_UFDTLIA){
+      extra_opts.push("ind=all");
+      extra_opts.push("ind=all:sik=all");
+    }
+
+    Schedule::Iterator it(main);
+    while(it.hasNext()){
+      vstring s = it.next();
+      vstring ts = s.substr(s.find_last_of("_")+1,vstring::npos);
+      int t;
+      if(Lib::Int::stringToInt(ts,t)){
+        vstring prefix = s.substr(0,s.find_last_of("_")); 
+
+        Stack<vstring>::Iterator addit(extra_opts);
+        while(addit.hasNext()){
+          s = prefix + ":" + addit.next() + "_" + Lib::Int::toString(t*3);
+          extra.push(s);
+        }
+      }
+      else{ASSERTION_VIOLATION;}
+    }
+
+
+
+  }
+  else{
+    // grab main and fallback and iterate through multiplying time limit by 3
+    Schedule main;
+    Schedule fallback;
+
+    getSchedules(prop,main,fallback);    
+    Schedule::BottomFirstIterator fit(fallback);
+    main.loadFromIterator(fit);
+    Schedule::Iterator it(main);
+    while(it.hasNext()){
+      vstring s = it.next();
+      vstring ts = s.substr(s.find_last_of("_")+1,vstring::npos);
+      int t;
+      if(Lib::Int::stringToInt(ts,t)){
+        s = s.substr(0,s.find_last_of("_")) + "_" + Lib::Int::toString(t*3); 
+        extra.push(s);
+      }
+      else{ASSERTION_VIOLATION;}
+    }
+
+  }
+
 }
 
 void PortfolioMode::getSchedules(Property& prop, Schedule& quick, Schedule& fallback)
@@ -190,9 +268,12 @@ void PortfolioMode::getSchedules(Property& prop, Schedule& quick, Schedule& fall
   case Options::Schedule::SMTCOMP_2016:
     Schedules::getSmtcomp2016Schedule(prop,quick,fallback);
     break;
-  case Options::Schedule::SMTCOMP:
   case Options::Schedule::SMTCOMP_2017:
     Schedules::getSmtcomp2017Schedule(prop,quick,fallback);
+    break;
+  case Options::Schedule::SMTCOMP:
+  case Options::Schedule::SMTCOMP_2018:
+    Schedules::getSmtcomp2018Schedule(prop,quick,fallback);
     break;
 
   case Options::Schedule::LTB_HH4_2015_FAST:
@@ -265,139 +346,69 @@ static unsigned milliToDeci(unsigned timeInMiliseconds) {
   return timeInMiliseconds/100;
 }
 
+// Simple one-after-the-other priority.
+float PortfolioProcessPriorityPolicy::staticPriority(vstring sliceCode)
+{
+  static float priority = 0.;
+  priority += 1.;
+  return priority;
+}
+
+//should never be called
+float PortfolioProcessPriorityPolicy::dynamicPriority(pid_t pid)
+{
+  ASSERTION_VIOLATION;
+  return 0.;
+}
+
+PortfolioSliceExecutor::PortfolioSliceExecutor(PortfolioMode *mode)
+  : _mode(mode)
+{}
+
+void PortfolioSliceExecutor::runSlice
+  (vstring sliceCode, int terminationTime)
+{
+  vstring chopped;
+  int sliceTime = _mode->getSliceTime(sliceCode, chopped);
+
+  int elapsedTime = milliToDeci(env.timer->elapsedMilliseconds());
+  int remainingTime = terminationTime - elapsedTime;
+  if (sliceTime > remainingTime)
+  {
+    sliceTime = remainingTime;
+  }
+
+  ASS_GE(sliceTime,0);
+  try
+  {
+    _mode->runSlice(sliceCode, sliceTime);
+  }
+  catch(Exception &e)
+  {
+    if(outputAllowed())
+    {
+      std::cerr << "% Exception at run slice level" << std::endl;
+      e.cry(std::cerr);
+    }
+    System::terminateImmediately(1); // didn't find proof
+  }
+}
+
 /**
  * Run a schedule.
  * Return true if a proof was found, otherwise return false.
- * It spawns processes by calling runSlice()
  */
 bool PortfolioMode::runSchedule(Schedule& schedule, int terminationTime)
 {
   CALL("PortfolioMode::runSchedule");
 
-  // keep track of strategies and times they were used with not to repeat useless work
-  DHMap<vstring,int> used;
-
-  // compute the number of parallel processes depending on the number of available cores
-  unsigned coreNumber = System::getNumberOfCores();
-  if (coreNumber < 1) { coreNumber = 1; }
-
-  int parallelProcesses = min(coreNumber,env.options->multicore());
-
-  // if requested is 0 then use (a sensible) max
-  if (parallelProcesses == 0) {
-    if (coreNumber >= 8) {
-      coreNumber = coreNumber-2;
-    }
-    parallelProcesses = coreNumber;
-  }
-
   UIHelper::portfolioParent = true; // to report on overall-solving-ended in Timer.cpp
 
-  if (outputAllowed()) {
-    env.beginOutput();
-    addCommentSignForSZS(env.out());
-    env.out() << "Starting " << (parallelProcesses == 1 ? "sequential " : "") <<
-        "portfolio solving with schedule \"" << env.options->scheduleName() << "\"";
-    if (parallelProcesses > 1) {
-      env.out() << " and " << parallelProcesses << " parallel processes.";
-    }
-    env.out() << endl;
-    env.endOutput();
-  }
+  PortfolioProcessPriorityPolicy policy;
+  PortfolioSliceExecutor executor(this);
+  ScheduleExecutor sched(&policy, &executor);
 
-  int processesLeft = parallelProcesses;
-  Schedule::BottomFirstIterator it(schedule);
-
-  int slices = schedule.length();
-  while (it.hasNext()) {
-    while (processesLeft) {
-      slices--;
-      ASS_G(processesLeft,0);
-
-      /*
-      env.beginOutput();
-      addCommentSignForSZS(env.out()) << "Slices left: " << slices << endl;
-      addCommentSignForSZS(env.out()) << "Processes available: " << processesLeft << endl;
-      env.endOutput();
-      */
-
-      int elapsedTime = milliToDeci(env.timer->elapsedMilliseconds());
-      if (elapsedTime >= terminationTime) {
-        // time limit reached
-        goto finish_up;
-      }
-
-      vstring sliceCode = it.next();
-      vstring chopped;
-
-      // slice time in deciseconds
-      int sliceTime = getSliceTime(sliceCode,chopped);
-      int usedTime;
-      if (used.find(chopped,usedTime) && usedTime >= sliceTime) {
-        // this slice was already used with at least as long time as currently requested
-        continue;
-      }
-      used.insert(chopped,sliceTime);
-
-      int remainingTime = terminationTime - elapsedTime;
-      if (sliceTime > remainingTime) {
-        sliceTime = remainingTime;
-      }
-      ASS_GE(sliceTime,0);
-
-      pid_t childId=Multiprocessing::instance()->fork();
-      ASS_NEQ(childId,-1);
-      if (!childId) {
-        //we're in a proving child
-        try {
-          runSlice(sliceCode,sliceTime); //start proving
-        } catch (Exception& exc) {
-          if (outputAllowed()) {
-            cerr << "% Exception at run slice level" << endl;
-            exc.cry(cerr);
-          }
-          System::terminateImmediately(1); //we didn't find the proof, so we return nonzero status code
-        }
-        ASSERTION_VIOLATION; //the runSlice function should never return
-      }
-      Timer::syncClock();
-      ASS(childIds.insert(childId));
-
-      if (outputAllowed()) {
-        env.beginOutput();
-        addCommentSignForSZS(env.out()) << "spawned child "<< childId << " with time: " << sliceTime << " (total remaining time " << remainingTime << ")" << endl;
-        env.endOutput();
-      }
-
-      processesLeft--;
-      if (!it.hasNext()) {
-        break;
-      }
-    }
-
-    /*
-    env.beginOutput();
-    lineOutput() << "No processes available: " << endl;
-    env.endOutput();
-    */
-
-    if (processesLeft==0) {
-      if(waitForChildAndCheckIfProofFound()) { return true; }
-      // proof search failed
-      processesLeft++;
-    }
-  }
-
-  finish_up:
-
-  while (parallelProcesses!=processesLeft) {
-    ASS_L(processesLeft, parallelProcesses);
-    if(waitForChildAndCheckIfProofFound()) { return true; }
-    // proof search failed
-    processesLeft++;
-    Timer::syncClock();
-  }
-  return false;
+  return sched.run(schedule, terminationTime);
 }
 
 /**

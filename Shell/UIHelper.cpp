@@ -267,6 +267,7 @@ Problem* UIHelper::getInputProblem(const Options& opts)
   {
 	  Parse::SMTLIB2 parser(opts);
 	  parser.parse(*input);
+          Unit::onParsingEnd();
 
 	  units = parser.getFormulas();
     smtLibLogic = parser.getLogic();

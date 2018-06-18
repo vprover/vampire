@@ -196,6 +196,6 @@ private:
 
 }//end SAT namespace
 
-#endif not VZ3
+#endif /* not VZ3 */
 
 #endif /*CVC4Interfacing*/
