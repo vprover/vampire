@@ -21,8 +21,6 @@
  * Implements class TheoryInstAndSimp.
  */
 
-#if VZ3
-
 #define DPRINT 0
 
 #include "Debug/RuntimeStatistics.hpp"
@@ -30,6 +28,7 @@
 #include "Lib/Environment.hpp"
 #include "Lib/Metaiterators.hpp"
 #include "Lib/VirtualIterator.hpp"
+#include "Lib/ScopedPtr.hpp"
 
 #include "Kernel/Clause.hpp"
 #include "Kernel/Unit.hpp"
@@ -52,6 +51,7 @@
 #include "SAT/SATLiteral.hpp"
 #include "SAT/SAT2FO.hpp"
 #include "SAT/Z3Interfacing.hpp"
+#include "SAT/CVC4Interfacing.hpp"
 
 #include "TheoryInstAndSimp.hpp"
 
@@ -624,9 +624,12 @@ VirtualIterator<Solution> TheoryInstAndSimp::getSolutions(Stack<Literal*>& theor
   // We use a new SMT solver
   // currently these are not needed outside of this function so we put them here
   static SAT2FO naming;
-  static Z3Interfacing solver(*env.options,naming);
-  solver.reset(); // the solver will reset naming
-
+#if VZ3
+  static ScopedPtr<SolutionFriendlySMTSolver> solver(new Z3Interfacing(*env.options,naming));
+#else
+  static ScopedPtr<SolutionFriendlySMTSolver> solver(new CVC4Interfacing(*env.options,naming));
+#endif
+  solver->reset(); // the solver will reset naming
 
   // Firstly, we need to consistently replace variables by constants (i.e. Skolemize)
   // Secondly, we take the complement of each literal and consider the conjunction
@@ -677,15 +680,15 @@ VirtualIterator<Solution> TheoryInstAndSimp::getSolutions(Stack<Literal*>& theor
     //clause->setInference(new FOConversionInference(cl));
     // guarded is normally true, apart from when we are checking a theory tautology
     try{
-      solver.addClause(sc,guarded);
+      solver->addClause(sc,guarded);
     }
-    catch(UninterpretedForZ3Exception){
+    catch(UninterpretedForSMTException){
       return VirtualIterator<Solution>::getEmpty();
     }
   }
 
   // now we can call the solver
-  SATSolver::Status status = solver.solve(UINT_MAX);
+  SATSolver::Status status = solver->solve(UINT_MAX);
 
   if(status == SATSolver::UNSATISFIABLE){
 #if DPRINT
@@ -701,7 +704,7 @@ VirtualIterator<Solution> TheoryInstAndSimp::getSolutions(Stack<Literal*>& theor
       Term* t = subst.apply(v).term();
       ASS(t);
       //cout << v << ": " << t->toString() << endl;
-      t = solver.evaluateInModel(t);
+      t = solver->evaluateInModel(t);
       // If we could evaluate the term in the model then bind it
       if(t){
         //cout << "evaluate to " << t->toString() << endl;
@@ -921,4 +924,3 @@ ClauseIterator TheoryInstAndSimp::generateClauses(Clause* premise,bool& premiseR
 
 }
 
-#endif

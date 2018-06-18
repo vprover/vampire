@@ -1905,8 +1905,8 @@ public:
   bool z3UnsatCores() const { return _z3UnsatCores.actualValue;}
   bool satFallbackForSMT() const { return _satFallbackForSMT.actualValue; }
   bool smtForGround() const { return _smtForGround.actualValue; }
-  TheoryInstSimp theoryInstAndSimp() const { return _theoryInstAndSimp.actualValue; }
 #endif
+  TheoryInstSimp theoryInstAndSimp() const { return _theoryInstAndSimp.actualValue; }
   UnificationWithAbstraction unificationWithAbstraction() const { return _unificationWithAbstraction.actualValue; }
   bool fixUWA() const { return _fixUWA.actualValue; }
   bool unusedPredicateDefinitionRemoval() const { return _unusedPredicateDefinitionRemoval.actualValue; }
@@ -2409,8 +2409,8 @@ private:
   BoolOptionValue _z3UnsatCores;
   BoolOptionValue _satFallbackForSMT;
   BoolOptionValue _smtForGround;
-  ChoiceOptionValue<TheoryInstSimp> _theoryInstAndSimp;
 #endif
+  ChoiceOptionValue<TheoryInstSimp> _theoryInstAndSimp;
   ChoiceOptionValue<UnificationWithAbstraction> _unificationWithAbstraction; 
   BoolOptionValue _fixUWA;
   TimeLimitOptionValue _simulatedTimeLimit;

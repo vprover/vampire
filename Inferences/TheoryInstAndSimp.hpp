@@ -25,8 +25,6 @@
 #ifndef __TheoryInstAndSimp__
 #define __TheoryInstAndSimp__
 
-#if VZ3
-
 #include "Forwards.hpp"
 #include "InferenceEngine.hpp"
 #include "Kernel/Substitution.hpp"
@@ -107,7 +105,5 @@ private:
 };
 
 };
-
-#endif
 
 #endif /*__TheoryInstAndSimp__*/

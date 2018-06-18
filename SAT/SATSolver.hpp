@@ -436,6 +436,30 @@ private:
   PropInference* _refutationInference;  
 };
 
+/**
+ * A class encapsulating the use case of Z3 (and maybe also CVC4) in TheoryInstAndSimp.
+ * In particular providing the evaluateInModel method.
+ */
+
+struct UninterpretedForSMTException : public ThrowableBase
+{
+  UninterpretedForSMTException()
+  {
+    CALL("UninterpretedForSMTException::UninterpretedForSMTException");
+  }
+};
+
+class SolutionFriendlySMTSolver : public PrimitiveProofRecordingSATSolver {
+public:
+  virtual void reset() = 0; // tell the solver to reset naming
+
+  virtual void addClause(SATClause* cl, bool withGuard) = 0;
+
+  virtual Term* evaluateInModel(Term* trm) = 0;
+
+  virtual ~SolutionFriendlySMTSolver() = default;
+};
+
 
 }
 

@@ -47,7 +47,7 @@ namespace SAT{
     }
   };
 
-class CVC4Interfacing : public PrimitiveProofRecordingSATSolver
+class CVC4Interfacing : public SolutionFriendlySMTSolver
 {
 public: 
   CLASS_NAME(CVC4Interfacing);
@@ -131,14 +131,21 @@ public:
   SATClause* getRefutation() override;  
 
   // for the theory instantiation inference (separate concern)
-  /*
-  Term* evaluateInModel(Term* trm);
-  void reset() {
+
+  // shall we need withGuard for the CVC4 solution?
+  void addClause(SATClause* cl, bool withGuard) override {
+    NOT_IMPLEMENTED;
+  }
+
+  Term* evaluateInModel(Term* trm) override {
+    NOT_IMPLEMENTED;
+  }
+
+  void reset() override {
     sat2fo.reset();
-    _solver.reset();
+    _engine.reset();
     _status = UNKNOWN; // I set it to unknown as I do not reset
   }
-  */
 
 private:
   CVC4::ExprManager _manager;

@@ -39,15 +39,7 @@
 
 namespace SAT{
 
-  struct UninterpretedForZ3Exception : public ThrowableBase
-  {
-    UninterpretedForZ3Exception() 
-    {
-      CALL("Z3Interfacing::UninterpretedForZ3Exception::UninterpretedForZ3Exception");
-    }
-  };
-
-class Z3Interfacing : public PrimitiveProofRecordingSATSolver
+class Z3Interfacing : public SolutionFriendlySMTSolver
 {
 public: 
   CLASS_NAME(Z3Interfacing);
@@ -61,7 +53,7 @@ public:
    */
   Z3Interfacing(const Shell::Options& opts, SAT2FO& s2f, bool unsatCoresForAssumptions = false);
 
-  void addClause(SATClause* cl, bool withGuard);
+  void addClause(SATClause* cl, bool withGuard) override;
   void addClause(SATClause* cl) override { addClause(cl,false); }
 
   virtual Status solve(unsigned conflictCountLimit) override;
@@ -133,7 +125,7 @@ public:
 
   SATClause* getRefutation() override;  
 
-  void reset(){
+  void reset() override {
     sat2fo.reset();
     _solver.reset();
     _status = UNKNOWN; // I set it to unknown as I do not reset
@@ -177,7 +169,7 @@ private:
 public:
   // not sure why this one is public
   z3::expr getz3expr(Term* trm,bool islit,bool&nameExpression, bool withGuard=false);
-  Term* evaluateInModel(Term* trm);
+  Term* evaluateInModel(Term* trm) override;
 private:
   z3::expr getRepresentation(SATLiteral lit,bool withGuard);
 
