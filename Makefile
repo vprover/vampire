@@ -84,7 +84,7 @@ PRE_XFLAGS = -Wfatal-errors -g -DVDEBUG=1 -DCHECK_LEAKS=0 -DGNUMP=$(GNUMPF)# sta
 INCLUDES= -I. -Icvc4/include -Lcvc4/lib
 Z3FLAG= -DVZ3=0
 Z3LIB= 
-CVC4LIB = -lcvc4
+CVC4LIB = -lcvc4 -lgmp
 ifeq (,$(shell echo $(MAKECMDGOALS) | sed 's/.*z3.*//g')) 
 INCLUDES= -I. -Linclude -Iz3/api -Iz3/api/c++ 
 ifeq (,$(shell echo $(MAKECMDGOALS) | sed 's/.*static.*//g'))

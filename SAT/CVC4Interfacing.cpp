@@ -323,11 +323,12 @@ CVC4::Expr CVC4Interfacing::getRepr(Term* trm, VarMap& vars)
     if (env.signature->isFoolConstantSymbol(false,trm->functor())) {
       return _manager.mkConst(false);
     }
-    /*
     if (symb->integerConstant()) {
       IntegerConstantType value = symb->integerValue();
-      return _manager.mkConst(CVC4::Integer(value.toInner()));
+      CVC4::Integer i = CVC4::Integer(value.toInner());
+      return _manager.mkConst(i);
     }
+    /*
     if (symb->realConstant()) {
       RealConstantType value = symb->realValue();
       return _manager.mkConst(CVC4::Rational(value.numerator().toInner(),value.denominator().toInner()));
