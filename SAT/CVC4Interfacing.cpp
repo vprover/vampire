@@ -325,8 +325,8 @@ CVC4::Expr CVC4Interfacing::getRepr(Term* trm, VarMap& vars)
     }
     if (symb->integerConstant()) {
       IntegerConstantType value = symb->integerValue();
-      CVC4::Integer i = CVC4::Integer(value.toInner());
-      return _manager.mkConst(i);
+      //cvc4 represents integers by rationals over 1
+      return _manager.mkConst(CVC4::Rational(value.toInner()));
     }
     /*
     if (symb->realConstant()) {
