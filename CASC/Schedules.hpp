@@ -42,6 +42,7 @@ public:
   static void getCascSat2014Schedule(const Shell::Property& property, Schedule& quick, Schedule& fallback);
   static void getCascSat2016Schedule(const Shell::Property& property, Schedule& quick, Schedule& fallback);
   static void getCascSat2017Schedule(const Shell::Property& property, Schedule& quick, Schedule& fallback);
+  static void getCascSat2018Schedule(const Shell::Property& property, Schedule& quick, Schedule& fallback);
 
   static void getSmtcomp2016Schedule(const Shell::Property& property, Schedule& quick, Schedule& fallback);
   static void getSmtcomp2017Schedule(const Shell::Property& property, Schedule& quick, Schedule& fallback);
