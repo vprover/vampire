@@ -248,9 +248,11 @@ void PortfolioMode::getSchedules(Property& prop, Schedule& quick, Schedule& fall
   case Options::Schedule::CASC_2016:
     Schedules::getCasc2016Schedule(prop,quick,fallback);
     break;
-  case Options::Schedule::CASC:
   case Options::Schedule::CASC_2017:
     Schedules::getCasc2017Schedule(prop,quick,fallback);
+    break;
+  case Options::Schedule::CASC:
+    Schedules::getCasc2018Schedule(prop,quick,fallback);
     break;
   case Options::Schedule::CASC_SAT_2014:
     Schedules::getCascSat2014Schedule(prop,quick,fallback);
