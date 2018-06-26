@@ -885,10 +885,10 @@ int main(int argc, char* argv[])
       env.options->setOutputMode(Options::Output::SZS);
       env.options->setProof(Options::Proof::TPTP);
       env.options->setOutputAxiomNames(true);
-      env.options->setTimeLimitInSeconds(300);
+      // env.options->setTimeLimitInSeconds(300);
       env.options->setMemoryLimit(128000);
 
-      if (CASC::PortfolioMode::perform(1.05)) {
+      if (CASC::PortfolioMode::perform(1.30)) {
         vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
       }
       break;
@@ -899,10 +899,10 @@ int main(int argc, char* argv[])
       env.options->setOutputMode(Options::Output::SZS);
       env.options->setProof(Options::Proof::TPTP);
       env.options->setOutputAxiomNames(true);
-      env.options->setTimeLimitInSeconds(300);
+      // env.options->setTimeLimitInSeconds(300);
       env.options->setMemoryLimit(128000);
 
-      if (CASC::PortfolioMode::perform(1.05)) {
+      if (CASC::PortfolioMode::perform(1.30)) {
         vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
       }
       break;
@@ -922,10 +922,11 @@ int main(int argc, char* argv[])
       // to prevent from terminating by time limit
       env.options->setTimeLimitInSeconds(100000);
 
-      if(CASC::PortfolioMode::perform(1.3)){
-       vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
-      } else {
-       cout << "unknown" << endl;
+      if (CASC::PortfolioMode::perform(1.3)){
+        vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
+      }
+      else {
+        cout << "unknown" << endl;
       }
       break;
 
