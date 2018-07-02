@@ -885,7 +885,7 @@ int main(int argc, char* argv[])
       env.options->setOutputMode(Options::Output::SZS);
       env.options->setProof(Options::Proof::TPTP);
       env.options->setOutputAxiomNames(true);
-      env.options->setTimeLimitInSeconds(300);
+      //env.options->setTimeLimitInSeconds(300);
       env.options->setMemoryLimit(128000);
 
       if (CASC::PortfolioMode::perform(1.30)) {
@@ -899,7 +899,7 @@ int main(int argc, char* argv[])
       env.options->setOutputMode(Options::Output::SZS);
       env.options->setProof(Options::Proof::TPTP);
       env.options->setOutputAxiomNames(true);
-      env.options->setTimeLimitInSeconds(300);
+      //env.options->setTimeLimitInSeconds(300);
       env.options->setMemoryLimit(128000);
 
       if (CASC::PortfolioMode::perform(1.30)) {
