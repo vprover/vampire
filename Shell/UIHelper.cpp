@@ -515,7 +515,7 @@ void UIHelper::outputSatisfiableResult(ostream& out)
 {
   CALL("UIHelper::outputSatisfiableResult");
 
-  out << "Satisfiable!\n";
+  //out << "Satisfiable!\n";
   if (szsOutputMode() && !satisfiableStatusWasAlreadyOutput) {
     out << "% SZS status " << ( UIHelper::haveConjecture() ? "CounterSatisfiable" : "Satisfiable" )
 	  <<" for " << env.options->problemName() << endl;
