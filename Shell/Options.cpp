@@ -394,6 +394,11 @@ void Options::Options::init()
 
 //*********************** Preprocessing  ***********************
 
+    _ignoreConjectureInPreprocessing = BoolOptionValue("ignore_conjecture_in_preprocessing","icip",false);
+    _ignoreConjectureInPreprocessing.description="Make sure we do not delete the conjecture in preprocessing";
+    _lookup.insert(&_ignoreConjectureInPreprocessing);
+    _ignoreConjectureInPreprocessing.tag(OptionTag::PREPROCESSING);
+
     _inequalitySplitting = IntOptionValue("inequality_splitting","ins",0);
     _inequalitySplitting.description=
     "Defines a weight threshold w such that any clause C \\/ s!=t where s (or conversely t) is ground "

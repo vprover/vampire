@@ -1976,6 +1976,9 @@ public:
   Sos sos() const { return _sos.actualValue; }
   unsigned sosTheoryLimit() const { return _sosTheoryLimit.actualValue; }
   //void setSos(Sos newVal) { _sos = newVal; }
+
+  bool ignoreConjectureInPreprocessing() const {return _ignoreConjectureInPreprocessing.actualValue;}
+
   FunctionDefinitionElimination functionDefinitionElimination() const { return _functionDefinitionElimination.actualValue; }
   bool outputAxiomNames() const { return _outputAxiomNames.actualValue; }
   void setOutputAxiomNames(bool newVal) { _outputAxiomNames.actualValue = newVal; }
@@ -2289,6 +2292,9 @@ private:
    * may be extensive, see Clause::getNumeralWeight()
    */
   BoolOptionValue _increasedNumeralWeight;
+
+  BoolOptionValue _ignoreConjectureInPreprocessing;
+
   IntOptionValue _inequalitySplitting;
   ChoiceOptionValue<InputSyntax> _inputSyntax;
   ChoiceOptionValue<Instantiation> _instantiation;
