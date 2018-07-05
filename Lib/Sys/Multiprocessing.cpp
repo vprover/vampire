@@ -133,7 +133,7 @@ pid_t Multiprocessing::waitForChildTerminationOrTime(unsigned timeMs,int& resVal
 
   for(;;) {
     errno=0;
-    childPid = waitpid(WAIT_ANY,&status,WNOHANG);
+    childPid = waitpid(-1,&status,WNOHANG);
     if(childPid==-1) {
       SYSTEM_FAIL("Call to waitpid() function failed.", errno);
     }
