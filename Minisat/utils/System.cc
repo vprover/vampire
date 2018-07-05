@@ -104,10 +104,14 @@ double Minisat::memUsedPeak(bool) {
 
 void Minisat::setX86FPUPrecision()
 {
-#if defined(__linux__) && defined(_FPU_EXTENDED) && defined(_FPU_DOUBLE) && defined(_FPU_GETCW)
+#if defined(__linux__)
     // Only correct FPU precision on Linux architectures that needs and supports it:
-    fpu_control_t oldcw, newcw;
-    _FPU_GETCW(oldcw); newcw = (oldcw & ~_FPU_EXTENDED) | _FPU_DOUBLE; _FPU_SETCW(newcw);
+    fenv_t fenv;
+
+    fegetenv(&fenv);
+    fenv.__control_word &= ~0x300; /* _FPU_EXTENDED */
+    fenv.__control_word |= 0x200; /* _FPU_DOUBLE */
+    fesetenv(&fenv);
     printf("WARNING: for repeatability, setting FPU to use double precision\n");
 #endif
 }
