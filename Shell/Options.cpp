@@ -123,13 +123,15 @@ void Options::Options::init()
                                         "smtcomp",
                                         "spider",
                                         "tclausify",
+                                        "tpreprocess",
                                         "vampire"});
     _mode.description=
     "Select the mode of operation. Choices are:\n"
     "  -vampire: the standard mode of operation for first-order theorem proving\n"
     "  -portfolio: a portfolio mode running a specified schedule (see schedule)\n"
     "  -casc, casc_sat, smtcomp - like portfolio mode, with competition specific presets for schedule, etc.\n"
-    "  -preprocess,axiom_select,clausify,grounding: modes for producing output\n   for other solvers.\n"
+    "  -preprocess,axiom_selection,clausify,grounding: modes for producing output\n   for other solvers.\n"
+    "  -tpreprocess,tclausify: output modes for theory input"
     "  -output,profile: output information about the problem\n"
     "  -sat_solver: accepts problems in DIMACS and uses the internal sat solver\n   directly\n"
     "Some modes are not currently maintained:\n"
@@ -145,10 +147,12 @@ void Options::Options::init()
          "casc_2014_epr",
          "casc_2016",
          "casc_2017",
+         "casc_2018",
          "casc_sat",
          "casc_sat_2014",
          "casc_sat_2016",
          "casc_sat_2017",
+         "casc_sat_2018",
          "ltb_2014",
          "ltb_2014_mzr",
          "ltb_default_2017",
@@ -170,7 +174,8 @@ void Options::Options::init()
          "ltb_mzr_2017",
          "smtcomp",
          "smtcomp_2016",
-         "smtcomp_2017"});
+         "smtcomp_2017",
+         "smtcomp_2018"});
     _schedule.description = "Schedule to be run by the portfolio mode.";
     _lookup.insert(&_schedule);
     _schedule.reliesOnHard(_mode.is(equal(Mode::CASC)->
@@ -372,8 +377,27 @@ void Options::Options::init()
     _smtlibFletAsDefinition.setExperimental();
     _smtlibFletAsDefinition.tag(OptionTag::INPUT);
 
+    _guessTheGoal = ChoiceOptionValue<GoalGuess>("guess_the_goal","gtg",GoalGuess::OFF,{"off","all","exists_top","exists_all","exists_sym","position"});
+    _guessTheGoal.description = "Use heuristics to guess formulas that correspond to the goal. Doesn't "
+                                "really make sense if there is already a goal.";
+    _lookup.insert(&_guessTheGoal);
+    _guessTheGoal.tag(OptionTag::INPUT);
+    _guessTheGoal.setExperimental();
+
+    _guessTheGoalLimit = UnsignedOptionValue("guess_the_goal_limit","gtgl",1);
+    _guessTheGoalLimit.description = "The maximum number of input units a symbol appears for it to be considered in a goal";
+    _guessTheGoalLimit.tag(OptionTag::INPUT);
+    _guessTheGoalLimit.setExperimental();
+    //_guessTheGoalLimit.reliesOn(_guessTheGoal.is(equal(true)));
+    _lookup.insert(&_guessTheGoalLimit);
+
 
 //*********************** Preprocessing  ***********************
+
+    _ignoreConjectureInPreprocessing = BoolOptionValue("ignore_conjecture_in_preprocessing","icip",false);
+    _ignoreConjectureInPreprocessing.description="Make sure we do not delete the conjecture in preprocessing";
+    _lookup.insert(&_ignoreConjectureInPreprocessing);
+    _ignoreConjectureInPreprocessing.tag(OptionTag::PREPROCESSING);
 
     _inequalitySplitting = IntOptionValue("inequality_splitting","ins",0);
     _inequalitySplitting.description=
@@ -844,7 +868,7 @@ void Options::Options::init()
 #if VZ3
 
            _theoryInstAndSimp = ChoiceOptionValue<TheoryInstSimp>("theory_instantiation","thi",
-                                                TheoryInstSimp::OFF,{"off","all","strong","overlap","full"});
+                                                TheoryInstSimp::OFF,{"off","all","strong","overlap","full","new"});
            _theoryInstAndSimp.description = ""; 
            _theoryInstAndSimp.tag(OptionTag::INFERENCES);
            _lookup.insert(&_theoryInstAndSimp);
@@ -852,11 +876,76 @@ void Options::Options::init()
 #endif
            _unificationWithAbstraction = ChoiceOptionValue<UnificationWithAbstraction>("unification_with_abstraction","uwa",
                                              UnificationWithAbstraction::OFF,
-                                             {"off","interpreted_only","one_side_interpreted","one_side_constant","all","ground"});
+                                             {"off","interpreted_only","one_side_interpreted","one_side_constant","all","ground","fixed"});
            _unificationWithAbstraction.description="";
            _unificationWithAbstraction.tag(OptionTag::INFERENCES);
            _lookup.insert(&_unificationWithAbstraction);
            _unificationWithAbstraction.setExperimental();
+
+           _fixUWA = BoolOptionValue("uwa_fix","uwaf",false);
+           _fixUWA.description="";
+           _fixUWA.tag(OptionTag::INFERENCES);
+           _lookup.insert(&_fixUWA);
+           _fixUWA.setExperimental();
+
+            _induction = ChoiceOptionValue<Induction>("induction","ind",Induction::NONE,
+                                {"none","struct","math","both"});
+            _induction.description = "Apply structural and/or mathematical induction on datatypes and integers";
+            _induction.tag(OptionTag::INFERENCES);
+            //_lookup.insert(&_induction);
+            //_induction.setRandomChoices
+            _induction.setExperimental();
+
+            _structInduction = ChoiceOptionValue<StructuralInductionKind>("structural_induction_kind","sik",
+                                 StructuralInductionKind::ONE,{"one","two","three","all"});
+            _structInduction.description="";
+            _structInduction.tag(OptionTag::INFERENCES);
+            _structInduction.reliesOn(_induction.is(equal(Induction::STRUCTURAL))->Or<StructuralInductionKind>(_induction.is(equal(Induction::BOTH))));
+            //_lookup.insert(&_structInduction);
+            _structInduction.setExperimental();
+
+            _mathInduction = ChoiceOptionValue<MathInductionKind>("math_induction_kind","mik",
+                                 MathInductionKind::ONE,{"one","two","all"});
+            _mathInduction.description="";
+            _mathInduction.tag(OptionTag::INFERENCES);
+            _mathInduction.setExperimental();
+            _mathInduction.reliesOn(_induction.is(equal(Induction::MATHEMATICAL))->Or<MathInductionKind>(_induction.is(equal(Induction::BOTH))));
+            //_lookup.insert(&_mathInduction);
+
+            _inductionChoice = ChoiceOptionValue<InductionChoice>("induction_choice","indc",InductionChoice::ALL,
+                                {"all","goal","goal_plus"});
+            _inductionChoice.description="Where to apply induction. Goal only applies to constants in goal, goal_plus"
+                                         " extends this with skolem constants introduced by induction. Consider using" 
+                                         " guess_the_goal for problems in SMTLIB as they do not come with a conjecture";
+            _inductionChoice.tag(OptionTag::INFERENCES);
+            //_lookup.insert(&_inductionChoice);
+            _inductionChoice.setExperimental();
+            _inductionChoice.reliesOn(_induction.is(notEqual(Induction::NONE)));
+            //_inductionChoice.addHardConstraint(If(equal(InductionChoice::GOAL)->Or(equal(InductionChoice::GOAL_PLUS))).then(
+            //  _inputSyntax.is(equal(InputSyntax::TPTP))->Or<InductionChoice>(_guessTheGoal.is(equal(true)))));
+
+
+            _maxInductionDepth = UnsignedOptionValue("induction_max_depth","indmd",0);
+            _maxInductionDepth.description = "Set maximum depth of induction where 0 means no max.";
+            _maxInductionDepth.setExperimental();
+            _maxInductionDepth.tag(OptionTag::INFERENCES);
+            _maxInductionDepth.reliesOn(_induction.is(notEqual(Induction::NONE)));
+            _maxInductionDepth.addHardConstraint(lessThan(33u));
+            //_lookup.insert(&_maxInductionDepth);
+
+            _inductionNegOnly = BoolOptionValue("induction_neg_only","indn",true);
+            _inductionNegOnly.description = "Only apply induction to negative literals";
+            _inductionNegOnly.setExperimental();
+            _inductionNegOnly.tag(OptionTag::INFERENCES);
+            _inductionNegOnly.reliesOn(_induction.is(notEqual(Induction::NONE)));
+            //_lookup.insert(&_inductionNegOnly);
+
+            _inductionUnitOnly = BoolOptionValue("induction_unit_only","indu",true);
+            _inductionUnitOnly.description = "Only apply induction to unit clauses";
+            _inductionUnitOnly.setExperimental();
+            _inductionUnitOnly.tag(OptionTag::INFERENCES);
+            _inductionUnitOnly.reliesOn(_induction.is(notEqual(Induction::NONE)));
+            //_lookup.insert(&_inductionUnitOnly);
 
 	    _instantiation = ChoiceOptionValue<Instantiation>("instantiation","inst",Instantiation::OFF,{"off","on"});
 	    _instantiation.description = "Heuristically instantiate variables";
@@ -1554,6 +1643,13 @@ void Options::Options::init()
     _lookup.insert(&_nonGoalWeightCoefficient);
     _nonGoalWeightCoefficient.tag(OptionTag::SATURATION);
     _nonGoalWeightCoefficient.setRandomChoices({"1","1.1","1.2","1.3","1.5","1.7","2","2.5","3","4","5","10"});
+
+    _restrictNWCtoGC = BoolOptionValue("restrict_nwc_to_goal_constants","rnwc",false);
+    _restrictNWCtoGC.description = "restrict nongoal_weight_coefficient to those containing goal constants";
+    _lookup.insert(&_restrictNWCtoGC);
+    _restrictNWCtoGC.tag(OptionTag::SATURATION);
+    _restrictNWCtoGC.setExperimental();
+    _restrictNWCtoGC.reliesOn(_nonGoalWeightCoefficient.is(notEqual(1.0f)));
 
 
     _normalize = BoolOptionValue("normalize","norm",false);

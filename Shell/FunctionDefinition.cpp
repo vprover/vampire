@@ -748,6 +748,10 @@ FunctionDefinition::Def*
 FunctionDefinition::isFunctionDefinition (Unit& unit)
 {
   CALL("FunctionDefinition::isFunctionDefinition(const Unit&)");
+  if(unit.isGoal() && env.options->ignoreConjectureInPreprocessing()){
+    return 0;
+  }
+
   if (unit.isClause()) {
     return isFunctionDefinition(static_cast<Clause*>(&unit));
   }

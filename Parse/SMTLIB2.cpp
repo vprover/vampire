@@ -1516,7 +1516,13 @@ void SMTLIB2::parseAnnotatedTerm(LExpr* exp)
   const vstring& theExclAtom = lRdr.readAtom();
   ASS_EQ(theExclAtom,EXCLAMATION);
 
-  LExpr* toParse = lRdr.readListExpr();
+  LExpr* toParse = 0;
+  if(lRdr.peekAtNext()->isAtom()){ 
+    toParse = lRdr.next();
+  }
+  else{
+    toParse = lRdr.readListExpr();
+  }
 
   static bool annotation_warning = false; // print warning only once
 

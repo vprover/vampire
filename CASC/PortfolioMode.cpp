@@ -156,7 +156,82 @@ bool PortfolioMode::performStrategy(Shell::Property* property)
     return false;
   }
 
-  return runSchedule(main,terminationTime);
+  if(!runSchedule(main,terminationTime)){
+    Schedule extra;
+    getExtraSchedules(*property,extra);
+    terminationTime = env.remainingTime()/100;
+    if (terminationTime <= 0) {
+      return false;
+    }
+    return runSchedule(extra,terminationTime); 
+  }
+  else{ return true;}
+}
+
+void PortfolioMode::getExtraSchedules(Property& prop, Schedule& extra)
+{
+  CALL("PortfolioMode::getExtraSchedules");
+  // Currently just implement something interesting for SMTCOMP
+  // For everything else just return the main schedule with all times expanded
+  if(env.options->schedule() == Options::Schedule::SMTCOMP){
+
+    Schedule main;
+    Schedule fallback;
+
+    getSchedules(prop,main,fallback);     
+    Schedule::BottomFirstIterator fit(fallback);
+    main.loadFromIterator(fit);
+
+    Stack<vstring> extra_opts;
+    extra_opts.push("gtg=exists_all");
+    extra_opts.push("uwa=fixed:uwaf=on");
+    if(prop.getSMTLIBLogic() == SMT_UFDT || prop.getSMTLIBLogic() == SMT_AUFDTLIA || prop.getSMTLIBLogic() == SMT_UFDTLIA){
+      extra_opts.push("ind=all");
+      extra_opts.push("ind=all:sik=all");
+    }
+
+    Schedule::Iterator it(main);
+    while(it.hasNext()){
+      vstring s = it.next();
+      vstring ts = s.substr(s.find_last_of("_")+1,vstring::npos);
+      int t;
+      if(Lib::Int::stringToInt(ts,t)){
+        vstring prefix = s.substr(0,s.find_last_of("_")); 
+
+        Stack<vstring>::Iterator addit(extra_opts);
+        while(addit.hasNext()){
+          s = prefix + ":" + addit.next() + "_" + Lib::Int::toString(t*3);
+          extra.push(s);
+        }
+      }
+      else{ASSERTION_VIOLATION;}
+    }
+
+
+
+  }
+  else{
+    // grab main and fallback and iterate through multiplying time limit by 3
+    Schedule main;
+    Schedule fallback;
+
+    getSchedules(prop,main,fallback);    
+    Schedule::BottomFirstIterator fit(fallback);
+    main.loadFromIterator(fit);
+    Schedule::Iterator it(main);
+    while(it.hasNext()){
+      vstring s = it.next();
+      vstring ts = s.substr(s.find_last_of("_")+1,vstring::npos);
+      int t;
+      if(Lib::Int::stringToInt(ts,t)){
+        s = s.substr(0,s.find_last_of("_")) + "_" + Lib::Int::toString(t*3); 
+        extra.push(s);
+      }
+      else{ASSERTION_VIOLATION;}
+    }
+
+  }
+
 }
 
 void PortfolioMode::getSchedules(Property& prop, Schedule& quick, Schedule& fallback)
@@ -173,9 +248,12 @@ void PortfolioMode::getSchedules(Property& prop, Schedule& quick, Schedule& fall
   case Options::Schedule::CASC_2016:
     Schedules::getCasc2016Schedule(prop,quick,fallback);
     break;
-  case Options::Schedule::CASC:
   case Options::Schedule::CASC_2017:
     Schedules::getCasc2017Schedule(prop,quick,fallback);
+    break;
+  case Options::Schedule::CASC_2018:
+  case Options::Schedule::CASC:
+    Schedules::getCasc2018Schedule(prop,quick,fallback);
     break;
   case Options::Schedule::CASC_SAT_2014:
     Schedules::getCascSat2014Schedule(prop,quick,fallback);
@@ -183,16 +261,22 @@ void PortfolioMode::getSchedules(Property& prop, Schedule& quick, Schedule& fall
   case Options::Schedule::CASC_SAT_2016:
     Schedules::getCascSat2016Schedule(prop,quick,fallback);
     break;
-  case Options::Schedule::CASC_SAT:
   case Options::Schedule::CASC_SAT_2017:
     Schedules::getCascSat2017Schedule(prop,quick,fallback);
+    break;
+  case Options::Schedule::CASC_SAT_2018:
+  case Options::Schedule::CASC_SAT:
+    Schedules::getCascSat2018Schedule(prop,quick,fallback);
     break;
   case Options::Schedule::SMTCOMP_2016:
     Schedules::getSmtcomp2016Schedule(prop,quick,fallback);
     break;
-  case Options::Schedule::SMTCOMP:
   case Options::Schedule::SMTCOMP_2017:
     Schedules::getSmtcomp2017Schedule(prop,quick,fallback);
+    break;
+  case Options::Schedule::SMTCOMP:
+  case Options::Schedule::SMTCOMP_2018:
+    Schedules::getSmtcomp2018Schedule(prop,quick,fallback);
     break;
 
   case Options::Schedule::LTB_HH4_2015_FAST:

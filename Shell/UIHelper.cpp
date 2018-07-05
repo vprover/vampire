@@ -267,6 +267,7 @@ Problem* UIHelper::getInputProblem(const Options& opts)
   {
 	  Parse::SMTLIB2 parser(opts);
 	  parser.parse(*input);
+          Unit::onParsingEnd();
 
 	  units = parser.getFormulas();
     smtLibLogic = parser.getLogic();
@@ -513,8 +514,9 @@ void UIHelper::outputResult(ostream& out)
 void UIHelper::outputSatisfiableResult(ostream& out)
 {
   CALL("UIHelper::outputSatisfiableResult");
-  
-  out << "Satisfiable!\n";
+
+  //out << "Satisfiable!\n";
+
   if (szsOutputMode() && !satisfiableStatusWasAlreadyOutput) {
     out << "% SZS status " << ( UIHelper::haveConjecture() ? "CounterSatisfiable" : "Satisfiable" )
 	  <<" for " << env.options->problemName() << endl;

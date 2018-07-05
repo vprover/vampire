@@ -31,6 +31,7 @@
 #include "Kernel/Clause.hpp"
 #include "Kernel/Problem.hpp"
 
+#include "GoalGuessing.hpp"
 #include "AnswerExtractor.hpp"
 #include "CNF.hpp"
 #include "NewCNF.hpp"
@@ -180,6 +181,12 @@ void Preprocess::preprocess(Problem& prb)
     env.interpretedOperationsUsed = true;
   }
 
+  if(_options.guessTheGoal() != Options::GoalGuess::OFF){
+    prb.invalidateProperty();
+    prb.getProperty();
+    GoalGuessing().apply(prb);
+  }
+
   // If there are interpreted operations
   if (prb.hasInterpretedOperations() || env.signature->hasTermAlgebras()){
     // Add theory axioms if needed
@@ -208,6 +215,7 @@ void Preprocess::preprocess(Problem& prb)
     // Normalize them e.g. replace $greater with not $lesseq
     InterpretedNormalizer().apply(prb);
   }
+
 
   // Expansion of distinct groups happens before other preprocessing
   // If a distinct group is small enough it will add inequality to describe it

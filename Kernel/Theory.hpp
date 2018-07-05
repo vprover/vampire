@@ -64,7 +64,7 @@ public:
   IntegerConstantType operator*(const IntegerConstantType& num) const;
   IntegerConstantType operator/(const IntegerConstantType& num) const;
   IntegerConstantType operator%(const IntegerConstantType& num) const;
-  
+
   // true if this divides num
   bool divides(const IntegerConstantType& num) const {
     CALL("IntegerConstantType:divides");
@@ -312,11 +312,11 @@ public:
   RealConstantType truncate() const { return RealConstantType(RationalConstantType::truncate()); }
   RealConstantType ceiling() const { return RealConstantType(RationalConstantType::ceiling()); }
 
-  RealConstantType quotientE(const RealConstantType& num) const 
+  RealConstantType quotientE(const RealConstantType& num) const
     { return RealConstantType(RationalConstantType::quotientE(num)); }
-  RealConstantType quotientT(const RealConstantType& num) const 
-    { return RealConstantType(RationalConstantType::quotientT(num)); } 
-  RealConstantType quotientF(const RealConstantType& num) const 
+  RealConstantType quotientT(const RealConstantType& num) const
+    { return RealConstantType(RationalConstantType::quotientT(num)); }
+  RealConstantType quotientF(const RealConstantType& num) const
     { return RealConstantType(RationalConstantType::quotientF(num)); }
 
   vstring toNiceString() const;
@@ -562,19 +562,29 @@ public:
   static bool isPolymorphic(Interpretation i);
 
   unsigned getArrayExtSkolemFunction(unsigned i);
-    
+
   static Theory theory_obj;
   static Theory* instance();
 
   void defineTupleTermAlgebra(unsigned arity, unsigned* sorts);
 
+  /** Returns true if the argument is an interpreted constant
+   */
   bool isInterpretedConstant(unsigned func);
   bool isInterpretedConstant(Term* t);
   bool isInterpretedConstant(TermList t);
+  /** Returns true if the argument is an interpreted number
+   */
   bool isInterpretedNumber(Term* t);
   bool isInterpretedNumber(TermList t);
 
+  /** Returns false if pred is equality.  Returns true if the argument is any
+      other interpreted predicate.
+   */
   bool isInterpretedPredicate(unsigned pred);
+  /** Returns true if the argument is any interpreted predicate (including
+      equality).
+   */
   bool isInterpretedPredicate(Literal* lit);
   bool isInterpretedPredicate(Literal* lit, Interpretation itp);
 
@@ -584,7 +594,6 @@ public:
   bool isInterpretedFunction(Term* t, Interpretation itp);
   bool isInterpretedFunction(TermList t, Interpretation itp);
 
- 
   bool isInterpretedPartialFunction(unsigned func);
   bool isZero(TermList t);
 
@@ -597,7 +606,7 @@ public:
   void registerLaTeXPredName(unsigned func, bool polarity, vstring temp);
   void registerLaTeXFuncName(unsigned func, vstring temp);
   vstring tryGetInterpretedLaTeXName(unsigned func, bool pred,bool polarity=true);
-  
+
 private:
   // For recording the templates for predicate and function symbols
   DHMap<unsigned,vstring> _predLaTeXnamesPos;

@@ -95,10 +95,16 @@ class Signature
     List<unsigned>* _distinctGroups;
     /** number of times it is used in the problem */
     unsigned _usageCount;
+    /** number of units it is used in in the problem */
+    unsigned _unitUsageCount;
     /** if used in the goal **/
     unsigned _inGoal : 1;
     /** if used in a unit **/
     unsigned _inUnit : 1;
+    /** if induction skolem **/
+    unsigned _inductionSkolem : 1;
+    /** if skolem function in general **/
+    unsigned _skolem : 1;
 
   public:
     /** standard constructor */
@@ -164,10 +170,20 @@ class Signature
     /** Reset usage count to zero, to start again! **/
     inline void resetUsageCnt(){ _usageCount=0; }
 
+    inline void incUnitUsageCnt(){ _unitUsageCount++;}
+    inline unsigned unitUsageCnt() const { return _unitUsageCount; }
+    inline void resetUnitUsageCnt(){ _unitUsageCount=0;}
+
     inline void markInGoal(){ _inGoal=1; }
     inline bool inGoal(){ return _inGoal; }
     inline void markInUnit(){ _inUnit=1; }
     inline bool inUnit(){ return _inUnit; }
+
+    inline void markSkolem(){ _skolem = 1;}
+    inline bool skolem(){ return _skolem; }
+
+    inline void markInductionSkolem(){ _inductionSkolem=1; _skolem=1;}
+    inline bool inductionSkolem(){ return _inductionSkolem;}
       
     /** Return true if symbol is an integer constant */
     inline bool integerConstant() const
@@ -182,14 +198,15 @@ class Signature
     /* Return true of symbol is a bitvector constant*/
     inline bool bitVectorConstant() const
     { return interpreted() && arity()==0 && env.sorts->isOfStructuredSort(fnType()->result(), Sorts::StructuredSort::BITVECTOR);}
-    
-    /** return true if an interpreted number, note subtle but significant difference from numericConstant **/
-    inline bool interpretedNumber() const
-    { return integerConstant() || rationalConstant() || realConstant(); }
-    
+
     /** Return value of a bitvector constant */
     inline BitVectorConstantType bitVectorValue() const
     { ASS(bitVectorConstant()); return static_cast<const BitVectorSymbol*>(this)->_theBv; }
+
+    /** return true if an interpreted number, note subtle but significant difference from numericConstant **/
+    inline bool interpretedNumber() const
+    { return integerConstant() || rationalConstant() || realConstant(); }
+
     /** Return value of an integer constant */
     inline IntegerConstantType integerValue() const
     { ASS(integerConstant()); return static_cast<const IntegerSymbol*>(this)->_intValue; }
@@ -213,7 +230,7 @@ class Signature
     CLASS_NAME(Signature::Symbol);
     USE_ALLOCATOR(Symbol);
   }; // class Symbol
-  
+
   class InterpretedSymbol
   : public Symbol
   {
@@ -296,6 +313,7 @@ class Signature
     CLASS_NAME(Signature::RealSymbol);
     USE_ALLOCATOR(RealSymbol);
   };
+
   
 class BitVectorSymbol
   : public Symbol

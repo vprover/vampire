@@ -1108,8 +1108,6 @@ unsigned Theory::getOperationSort(Interpretation i)
   }
 }
 
-
-
 bool Theory::isConversionOperation(Interpretation i)
 {
   CALL("Theory::isConversionOperation");
@@ -1956,7 +1954,8 @@ Interpretation Theory::interpretPredicate(unsigned pred)
 }
 
 /**
- * Assuming @b lit has an interpreted predicate, return its interpretation
+ * Assuming @b lit has an interpreted predicate, return its interpretation.
+ * Does not return the interpretation of equality.
  */
 Interpretation Theory::interpretPredicate(Literal* lit)
 {

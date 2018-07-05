@@ -149,7 +149,11 @@ FiniteModelBuilder::FiniteModelBuilder(Problem& prb, const Options& opt)
 
 FiniteModelBuilder::~FiniteModelBuilder()
 {
+  CALL("FiniteModelBuilder::~FiniteModelBuilder");
+
   if(_dsaEnumerator){
+    BYPASSING_ALLOCATOR;
+
     delete _dsaEnumerator;
   }
 }
