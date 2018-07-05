@@ -65,12 +65,14 @@
 # define ALLOC_SIZE_ATTR
 #endif
 
-
-
 namespace Lib {
 
 class Allocator {
 public:
+  // Allocator is the only class which we don't allocate using Allocator ;)
+  void* operator new (size_t s);
+  void operator delete (void* obj);
+
   Allocator();
   ~Allocator();
   
@@ -216,6 +218,10 @@ public:
   /** Descriptor stores information about allocated pieces of memory */
   struct Descriptor
   {
+    // Allocator (and its Descriptor) are the only classes which we don't allocate using Allocator
+    void* operator new[] (size_t s);
+    void operator delete[] (void* obj);
+
     /** address of a piece of memory */
     const void* address;
     /** class to which it belongs */
