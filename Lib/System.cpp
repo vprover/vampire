@@ -26,7 +26,7 @@
 
 #include <stdlib.h>
 #  include <unistd.h>
-#  if !__APPLE__ && !__CYGWIN__
+#  if !defined(__APPLE__) && !defined(__CYGWIN__)
 #    include <sys/prctl.h>
 #  endif
 
@@ -59,7 +59,7 @@
 
 long long Lib::System::getSystemMemory()
 {
-#if __APPLE__ || __CYGWIN__
+#if defined(__APPLE__) || defined(__CYGWIN__)
   NOT_IMPLEMENTED;
 #else
   long pages = sysconf(_SC_PHYS_PAGES);
@@ -360,7 +360,7 @@ void System::terminateImmediately(int resultStatus)
  */
 void System::registerForSIGHUPOnParentDeath()
 {
-#if __APPLE__ || __CYGWIN__
+#if defined(__APPLE__) || defined(__CYGWIN__)
   // cerr<<"Death of parent process not being handled on Mac and Windows"<<endl;
   // NOT_IMPLEMENTED;
 #else
