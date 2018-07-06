@@ -706,12 +706,14 @@ void clausifyMode(bool theory)
   UIHelper::outputSymbolDeclarations(env.out());
 
   ClauseIterator cit = prb->clauseIterator();
+  bool printed_conjecture = false;
   while (cit.hasNext()) {
     Clause* cl = cit.next();
     cl = simplifier.simplify(cl);
     if (!cl) {
       continue;
     }
+    printed_conjecture |= cl->inputType() == Unit::CONJECTURE || cl->inputType() == Unit::NEGATED_CONJECTURE;
     if (theory) {
       Formula* f = Formula::fromClause(cl);
       FormulaUnit* fu = new FormulaUnit(f,cl->inference(),cl->inputType() == Unit::CONJECTURE ? Unit::NEGATED_CONJECTURE : cl->inputType()); // CONJECTURE is evil, as it cannot occur multiple times
@@ -719,6 +721,13 @@ void clausifyMode(bool theory)
     } else {
       env.out() << TPTPPrinter::toString(cl) << "\n";
     }
+  }
+  if(!printed_conjecture && UIHelper::haveConjecture()){
+    unsigned p = env.signature->addFreshPredicate(0,"p");
+    Clause* c = new(2) Clause(2,Unit::InputType::NEGATED_CONJECTURE,new Inference(Inference::INPUT));
+    (*c)[0] = Literal::create(p,0,true,false,0);
+    (*c)[1] = Literal::create(p,0,false,false,0);
+    env.out() << TPTPPrinter::toString(c) << "\n";
   }
   env.endOutput();
 
