@@ -189,6 +189,8 @@ void Preprocess::preprocess(Problem& prb)
 
   // If there are interpreted operations
   if (prb.hasInterpretedOperations() || env.signature->hasTermAlgebras()){
+    // Normalizer is needed, because the TheoryAxioms code assumes Normalized problem
+    InterpretedNormalizer().apply(prb);
     // Add theory axioms if needed
     if( _options.theoryAxioms() != Options::TheoryAxiomLevel::OFF){
       env.statistics->phase=Statistics::INCLUDING_THEORY_AXIOMS;
@@ -212,7 +214,7 @@ void Preprocess::preprocess(Problem& prb)
   }
 
   if (prb.hasInterpretedOperations() || env.signature->hasTermAlgebras()){
-    // Normalize them e.g. replace $greater with not $lesseq
+    // Some axioms needed to be normalized, so we call InterpretedNormalizer twice
     InterpretedNormalizer().apply(prb);
   }
 
