@@ -49,8 +49,8 @@ namespace SAT
 using namespace Shell;  
 using namespace Lib;  
   
-CVC4Interfacing::CVC4Interfacing(const Shell::Options& opts,SAT2FO& s2f):
-   _engine(&_manager), _showCVC4(opts.showCVC4()),
+CVC4Interfacing::CVC4Interfacing(const Shell::Options& opts,SAT2FO& s2f, bool withGuard):
+    _addingWithGuard(withGuard), _engine(&_manager), _showCVC4(opts.showCVC4()),
    _translateNongnd(opts.cvc4TranslateNonGnd()),
 
   _varCnt(0), sat2fo(s2f), _status(SATISFIABLE)
@@ -413,7 +413,7 @@ CVC4::Expr CVC4Interfacing::getRepr(Term* trm, VarMap& vars)
     } else { // non-polymorphic ones
       switch(interp) {
         case Theory::INT_DIVIDES: {
-          // TODO: guard?
+          if (_addingWithGuard) { addNeqZero(args[0]); }
           CVC4::Expr modulus = _manager.mkExpr(CVC4::kind::INTS_MODULUS,args[1],args[0]);
           CVC4::Expr zero = _manager.mkConst(CVC4::Rational(0,1));
           return _manager.mkExpr(CVC4::kind::EQUAL,modulus,zero);
@@ -442,11 +442,11 @@ CVC4::Expr CVC4Interfacing::getRepr(Term* trm, VarMap& vars)
 
         case Theory::RAT_QUOTIENT:
         case Theory::REAL_QUOTIENT:
-          // TODO: guard?
+          if (_addingWithGuard) { addNeqZero(args[1]); }
           return _manager.mkExpr(CVC4::kind::DIVISION,args);
 
         case Theory::INT_QUOTIENT_E:
-          // TODO: guard?
+          if (_addingWithGuard) { addNeqZero(args[1]); }
           return _manager.mkExpr(CVC4::kind::INTS_DIVISION,args);
 
         case Theory::RAT_TO_INT:
@@ -490,7 +490,7 @@ CVC4::Expr CVC4Interfacing::getRepr(Term* trm, VarMap& vars)
           // wtf are these? Not even TPTP talks about these!
           ASSERTION_VIOLATION;
         case Theory::INT_REMAINDER_E:
-          // TODO: guard?
+          if (_addingWithGuard) { addNeqZero(args[1]); }
           return _manager.mkExpr(CVC4::kind::INTS_MODULUS,args);
 
         case Theory::INT_IS_INT:
@@ -519,7 +519,9 @@ CVC4::Expr CVC4Interfacing::getRepr(Term* trm, VarMap& vars)
           return _manager.mkExpr(CVC4::kind::GEQ,args);
 
         default:
-          // TODO: guard? --> exception?
+          if (_addingWithGuard) {
+            throw UninterpretedForSMTException();
+          }
           break; // treat as uninterpreted
       }
     }
@@ -540,6 +542,52 @@ CVC4::Expr CVC4Interfacing::getRepr(Term* trm, VarMap& vars)
   }
 
   return _manager.mkExpr(CVC4::kind::APPLY_UF,theFunction,args);
+}
+
+Term* CVC4Interfacing::evaluateInModel(Term* trm) {
+  CALL("CVC4Interfacing::evaluateInModel");
+
+  ASS(!trm->isLiteral());
+
+  ASS(trm->ground());
+  static VarMap vars_dummy; // everything should be ground here
+  CVC4::Expr rep = getRepr(trm,vars_dummy);
+  ASS(vars_dummy.isEmpty());
+
+  CVC4::Expr assignment = _engine.getValue(rep);
+
+  ASS(assignment.isConst());
+  auto type = assignment.getType();
+  if (type == _manager.integerType()) {
+    CVC4::Rational i = assignment.getConst<CVC4::Rational>();
+
+    ASS(i.isIntegral());
+    CVC4::Integer ii = i.getNumerator();
+
+    if (ii.fitsSignedInt()) {
+      return theory->representConstant(IntegerConstantType(ii.getSignedInt()));
+    }
+    // else nullptr below
+  } else if (type == _manager.realType()) {
+    CVC4::Rational r = assignment.getConst<CVC4::Rational>();
+
+    CVC4::Integer n = r.getNumerator();
+    CVC4::Integer d = r.getDenominator();
+
+    if (n.fitsSignedInt() && d.fitsSignedInt()) {
+      unsigned srt = SortHelper::getResultSort(trm);
+
+      if(srt == Sorts::SRT_RATIONAL){
+        return theory->representConstant(RationalConstantType(n.getSignedInt(),d.getSignedInt()));
+      } else {
+        ASS(srt == Sorts::SRT_REAL);
+        auto rat = RationalConstantType(n.getSignedInt(),d.getSignedInt());
+        return theory->representConstant(RealConstantType(rat));
+      }
+    }
+  }
+
+  return nullptr;
 }
 
 SATClause* CVC4Interfacing::getRefutation() {

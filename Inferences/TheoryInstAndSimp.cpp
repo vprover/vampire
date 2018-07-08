@@ -627,7 +627,7 @@ VirtualIterator<Solution> TheoryInstAndSimp::getSolutions(Stack<Literal*>& theor
 #if VZ3
   static ScopedPtr<SolutionFriendlySMTSolver> solver(new Z3Interfacing(*env.options,naming));
 #else
-  static ScopedPtr<SolutionFriendlySMTSolver> solver(new CVC4Interfacing(*env.options,naming));
+  static ScopedPtr<SolutionFriendlySMTSolver> solver(new CVC4Interfacing(*env.options,naming,true /* with guard */));
 #endif
   solver->reset(); // the solver will reset naming
 
@@ -671,6 +671,9 @@ VirtualIterator<Solution> TheoryInstAndSimp::getSolutions(Stack<Literal*>& theor
 
     // register the lit in naming in such a way that the solver will pick it up!
     SATLiteral slit = naming.toSAT(lit);
+
+    // create representation in solver, after naming knows about the new variable / literal
+    solver->ensureVarCount(slit.var());
 
     // now add the SAT representation
     static SATLiteralStack satLits;

@@ -59,7 +59,7 @@ public:
    * this feature to extract a subset of used assumptions when
    * called via solveUnderAssumptions.
    */
-  CVC4Interfacing(const Shell::Options& opts, SAT2FO& s2f);
+  CVC4Interfacing(const Shell::Options& opts, SAT2FO& s2f, bool withGuard = false);
 
   void addClause(SATClause* cl) override;
 
@@ -134,20 +134,25 @@ public:
 
   // shall we need withGuard for the CVC4 solution?
   void addClause(SATClause* cl, bool withGuard) override {
-    NOT_IMPLEMENTED;
+    // we ignore with guard here, we set it in the constructor!
+    addClause(cl);
   }
 
-  Term* evaluateInModel(Term* trm) override {
-    NOT_IMPLEMENTED;
-  }
+  Term* evaluateInModel(Term* trm) override;
 
   void reset() override {
-    sat2fo.reset();
-    _engine.reset();
     _status = UNKNOWN; // I set it to unknown as I do not reset
+
+    sat2fo.reset();
+    _representations.reset();
+
+    _engine.reset(); // resets even options:
+    _engine.setOption("produce-models", true);
   }
 
 private:
+  bool _addingWithGuard; // hacking the TheoryInst behavior using a global variable (which is never reset)
+
   CVC4::ExprManager _manager;
   CVC4::SmtEngine _engine;
 
@@ -199,6 +204,12 @@ private:
     CVC4::Expr is_above_middle = _manager.mkExpr(CVC4::kind::GT,e,floored_plus_half);
 
     return _manager.mkExpr(CVC4::kind::ITE,is_above_middle,floored_plus_one,the_loworhalf_case);
+  }
+
+  void addNeqZero(CVC4::Expr e) {
+    CVC4::Expr zero = _manager.mkConst(CVC4::Rational(0,1));
+    CVC4::Expr neq = _manager.mkExpr(CVC4::kind::DISTINCT,e,zero);
+    _engine.assertFormula(neq);
   }
 
   /*
