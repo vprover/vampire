@@ -57,7 +57,7 @@ CVC4Interfacing::CVC4Interfacing(const Shell::Options& opts,SAT2FO& s2f):
 {
   CALL("CVC4Interfacing::CVC4Interfacing");
 
-  _engine.setLogic("UF");
+  _engine.setLogic("ALL");
 
   _engine.setOption("incremental", true);
   _engine.setOption("produce-models", true);
@@ -272,7 +272,6 @@ CVC4::Type CVC4Interfacing::getCVC4sort(unsigned srt)
   if (!_sorts.find(srt,res)) {
     if (srt==Sorts::SRT_BOOL) {
       res = _manager.booleanType();
-    /*
     } else if (srt==Sorts::SRT_INTEGER) {
       res = _manager.integerType();
     } else if (srt==Sorts::SRT_RATIONAL || srt==Sorts::SRT_REAL) { // Dropping the notion of rationality of rationals
@@ -282,7 +281,7 @@ CVC4::Type CVC4Interfacing::getCVC4sort(unsigned srt)
       CVC4::Type index_sort = getCVC4sort(env.sorts->getArraySort(srt)->getIndexSort());
       CVC4::Type value_sort = getCVC4sort(env.sorts->getArraySort(srt)->getInnerSort());
 
-      res = _manager.mkArrayType(index_sort,value_sort); */
+      res = _manager.mkArrayType(index_sort,value_sort);
     } else {
       res = _manager.mkSort(string(Lib::Int::toString(srt).c_str()));
     }
@@ -323,10 +322,9 @@ CVC4::Expr CVC4Interfacing::getRepr(Term* trm, VarMap& vars)
     if (env.signature->isFoolConstantSymbol(false,trm->functor())) {
       return _manager.mkConst(false);
     }
-    /*
     if (symb->integerConstant()) {
       IntegerConstantType value = symb->integerValue();
-      return _manager.mkConst(CVC4::Integer(value.toInner()));
+      return _manager.mkConst(CVC4::Rational(value.toInner(),1));  // treating ints as rationals with denominator=1
     }
     if (symb->realConstant()) {
       RealConstantType value = symb->realValue();
@@ -341,7 +339,7 @@ CVC4::Expr CVC4Interfacing::getRepr(Term* trm, VarMap& vars)
 
       switch (symb->fnType()->result()) {
       case Sorts::SRT_INTEGER:
-        return _manager.mkConst(CVC4::Integer(symb->name().c_str()));
+        return _manager.mkConst(CVC4::Rational(symb->name().c_str()));  // this should work for ints as well!
       case Sorts::SRT_RATIONAL:
         return _manager.mkConst(CVC4::Rational(symb->name().c_str()));
       case Sorts::SRT_REAL:
@@ -351,15 +349,15 @@ CVC4::Expr CVC4Interfacing::getRepr(Term* trm, VarMap& vars)
         // intentional fallthrough; the input is fof (and not tff), so let's just treat this as a constant
       }
     }
-    */
 
     // If not value then create constant symbol
 
     CVC4::Expr e;
     // we cache constants, because CVC4 likes fresh ones and we don't
-    if (!_constants.find(std::make_pair(trm->functor(),range_sort),e)) {
+    auto const_key = std::make_pair(trm->functor(),range_sort);
+    if (!_constants.find(const_key,e)) {
       e = createFreshConst(symb->name(),getCVC4sort(range_sort));
-      ALWAYS(_constants.insert(std::make_pair(trm->functor(),range_sort),e));
+      ALWAYS(_constants.insert(const_key,e));
     }
     return e;
   }
@@ -395,7 +393,6 @@ CVC4::Expr CVC4Interfacing::getRepr(Term* trm, VarMap& vars)
     return _manager.mkExpr(CVC4::kind::EQUAL,args);
   }
 
-  /*
   if (symb->interpreted()) {
     Interpretation interp = static_cast<Signature::InterpretedSymbol*>(symb)->getInterpretation();
 
@@ -413,18 +410,125 @@ CVC4::Expr CVC4Interfacing::getRepr(Term* trm, VarMap& vars)
         default:
           break; // will be treated as uninterpreted
       }
-    } else {
+    } else { // non-polymorphic ones
+      switch(interp) {
+        case Theory::INT_DIVIDES: {
+          // TODO: guard?
+          CVC4::Expr modulus = _manager.mkExpr(CVC4::kind::INTS_MODULUS,args[1],args[0]);
+          CVC4::Expr zero = _manager.mkConst(CVC4::Rational(0,1));
+          return _manager.mkExpr(CVC4::kind::EQUAL,modulus,zero);
+        }
 
-      // TODO !!!
+        case Theory::INT_UNARY_MINUS:
+        case Theory::RAT_UNARY_MINUS:
+        case Theory::REAL_UNARY_MINUS:
+          return _manager.mkExpr(CVC4::kind::UMINUS,args[0]);
 
-      // but not relevant for the fof AVATAR
+        case Theory::INT_PLUS:
+        case Theory::RAT_PLUS:
+        case Theory::REAL_PLUS:
+          return _manager.mkExpr(CVC4::kind::PLUS,args);
+
+        case Theory::INT_MINUS:
+        case Theory::RAT_MINUS:
+        case Theory::REAL_MINUS:
+          ASSERTION_VIOLATION_REP("Binary minus should have been pre-processed away!");
+          break; // take it uninterpreted in release
+
+        case Theory::INT_MULTIPLY:
+        case Theory::RAT_MULTIPLY:
+        case Theory::REAL_MULTIPLY:
+          return _manager.mkExpr(CVC4::kind::MULT,args);
+
+        case Theory::RAT_QUOTIENT:
+        case Theory::REAL_QUOTIENT:
+          // TODO: guard?
+          return _manager.mkExpr(CVC4::kind::DIVISION,args);
+
+        case Theory::INT_QUOTIENT_E:
+          // TODO: guard?
+          return _manager.mkExpr(CVC4::kind::INTS_DIVISION,args);
+
+        case Theory::RAT_TO_INT:
+        case Theory::REAL_TO_INT:
+        case Theory::INT_FLOOR:
+        case Theory::RAT_FLOOR:
+        case Theory::REAL_FLOOR:
+          // int is a subtype of real in cvc4
+          return floor(args[0]);
+
+        case Theory::INT_TO_REAL:
+        case Theory::RAT_TO_REAL:
+        case Theory::INT_TO_RAT:
+          // noop as int is a subtype of real in cvc4
+          return args[0];
+
+        case Theory::INT_CEILING:
+        case Theory::RAT_CEILING:
+        case Theory::REAL_CEILING:
+          return ceiling(args[0]);
+
+        case Theory::INT_TRUNCATE:
+        case Theory::RAT_TRUNCATE:
+        case Theory::REAL_TRUNCATE:
+          return truncate(args[0]);
+
+        case Theory::INT_ROUND:
+        case Theory::RAT_ROUND:
+        case Theory::REAL_ROUND:
+          return round(args[0]);
+
+        case Theory::INT_ABS:
+          return _manager.mkExpr(CVC4::kind::ABS,args[0]);
+
+        // skipping (for now) all the (TPTP-specific) operations for which Z3Interfacing calls addTruncatedOperations/addFloorOperations
+        // Note that should we have add*Operations here, there might be some extra challenges connected
+        // to the presence of first-order variables in the created "axioms"
+
+        case Theory::RAT_REMAINDER_E:
+        case Theory::REAL_REMAINDER_E:
+          // wtf are these? Not even TPTP talks about these!
+          ASSERTION_VIOLATION;
+        case Theory::INT_REMAINDER_E:
+          // TODO: guard?
+          return _manager.mkExpr(CVC4::kind::INTS_MODULUS,args);
+
+        case Theory::INT_IS_INT:
+        case Theory::RAT_IS_INT:
+        case Theory::REAL_IS_INT:
+          return _manager.mkExpr(CVC4::kind::IS_INTEGER,args);
+
+        case Theory::INT_LESS:
+        case Theory::RAT_LESS:
+        case Theory::REAL_LESS:
+          return _manager.mkExpr(CVC4::kind::LT,args);
+
+        case Theory::INT_GREATER:
+        case Theory::RAT_GREATER:
+        case Theory::REAL_GREATER:
+          return _manager.mkExpr(CVC4::kind::GT,args);
+
+        case Theory::INT_LESS_EQUAL:
+        case Theory::RAT_LESS_EQUAL:
+        case Theory::REAL_LESS_EQUAL:
+          return _manager.mkExpr(CVC4::kind::LEQ,args);
+
+        case Theory::INT_GREATER_EQUAL:
+        case Theory::RAT_GREATER_EQUAL:
+        case Theory::REAL_GREATER_EQUAL:
+          return _manager.mkExpr(CVC4::kind::GEQ,args);
+
+        default:
+          // TODO: guard? --> exception?
+          break; // treat as uninterpreted
+      }
     }
   }
-  */
 
   // the uninterpreted symbols and fallthrough from interpreted
   CVC4::Expr theFunction;
-  if (!_nonZeroAritySymbols.find(std::make_pair(trm->functor(),range_sort),theFunction)) {
+  auto fnc_key = std::make_pair(trm->functor(),range_sort);
+  if (!_nonZeroAritySymbols.find(fnc_key,theFunction)) {
     vector<CVC4::Type> domain_sorts;
     for (unsigned i=0; i<type->arity(); i++) {
       domain_sorts.push_back(getCVC4sort(type->arg(i)));
@@ -432,7 +536,7 @@ CVC4::Expr CVC4Interfacing::getRepr(Term* trm, VarMap& vars)
     CVC4::FunctionType fnType = _manager.mkFunctionType(domain_sorts,getCVC4sort(range_sort));
     theFunction = _manager.mkVar(string(symb->name().c_str()),fnType);
 
-    ALWAYS(_nonZeroAritySymbols.insert(std::make_pair(trm->functor(),range_sort),theFunction));
+    ALWAYS(_nonZeroAritySymbols.insert(fnc_key,theFunction));
   }
 
   return _manager.mkExpr(CVC4::kind::APPLY_UF,theFunction,args);

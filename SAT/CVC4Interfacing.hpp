@@ -157,6 +157,50 @@ private:
 
   VarMap _representations; // from the SAT variables to CVC4 expressions
 
+  // helper functions for "defined" expressions:
+  CVC4::Expr floor(CVC4::Expr e) {
+    // note that the semantics of to_int is to floor
+    return _manager.mkExpr(CVC4::kind::TO_INTEGER,e);
+  }
+
+  CVC4::Expr ceiling(CVC4::Expr e) { // -floor(-e)
+    CVC4::Expr me = _manager.mkExpr(CVC4::kind::UMINUS,e);
+    CVC4::Expr fme = floor(me);
+    return _manager.mkExpr(CVC4::kind::UMINUS,fme);
+  }
+
+  CVC4::Expr truncate(CVC4::Expr e) {
+    CVC4::Expr zero = _manager.mkConst(CVC4::Rational(0,1));
+    CVC4::Expr geqz = _manager.mkExpr(CVC4::kind::GEQ,e,zero);
+    return _manager.mkExpr(CVC4::kind::ITE,geqz,floor(e),ceiling(e));
+  }
+
+  CVC4::Expr is_even(CVC4::Expr e) {
+    CVC4::Expr zero = _manager.mkConst(CVC4::Rational(0,1));
+    CVC4::Expr two = _manager.mkConst(CVC4::Rational(2,1));
+    CVC4::Expr mod = _manager.mkExpr(CVC4::kind::INTS_MODULUS,e,two);
+
+    return _manager.mkExpr(CVC4::kind::EQUAL,mod,zero);
+  }
+
+  CVC4::Expr round(CVC4::Expr e) {
+    CVC4::Expr half = _manager.mkConst(CVC4::Rational(1,2));
+    CVC4::Expr one = _manager.mkConst(CVC4::Rational(1,1));
+
+    CVC4::Expr floored = floor(e); // i
+    CVC4::Expr floored_plus_one = _manager.mkExpr(CVC4::kind::PLUS,floored,one);
+    CVC4::Expr floored_plus_half = _manager.mkExpr(CVC4::kind::PLUS,floored,half); // i2
+
+    CVC4::Expr the_half_case = _manager.mkExpr(CVC4::kind::ITE,is_even(floored),floored,floored_plus_one);
+    CVC4::Expr is_in_middle = _manager.mkExpr(CVC4::kind::EQUAL,e,floored_plus_half);
+
+    CVC4::Expr the_loworhalf_case = _manager.mkExpr(CVC4::kind::ITE,is_in_middle,the_half_case,floored);
+
+    CVC4::Expr is_above_middle = _manager.mkExpr(CVC4::kind::GT,e,floored_plus_half);
+
+    return _manager.mkExpr(CVC4::kind::ITE,is_above_middle,floored_plus_one,the_loworhalf_case);
+  }
+
   /*
    * Recursively translate vampire term (which can be a literal) to a CVC4 expression.
    * Vampire variables are looked up in vars, which will get extended if no binding is found.

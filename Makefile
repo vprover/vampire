@@ -81,10 +81,10 @@ PRE_XFLAGS = -Wfatal-errors -g -DVDEBUG=1 -DCHECK_LEAKS=0 -DGNUMP=$(GNUMPF)# sta
 #PRE_XFLAGS = -O6 -DVDEBUG=0 -DUSE_SYSTEM_ALLOCATION=1 -DEFENCE=1 -g -lefence #Electric Fence
 #PRE_XFLAGS = -O6 -DVDEBUG=0 -DUSE_SYSTEM_ALLOCATION=1 -g
 
-INCLUDES= -I. -Icvc4/include -Lcvc4/lib
+INCLUDES= -I. -Icvc4/include -Lcvc4/lib -L/opt/local/lib # the last is for gmp (which cvc4 assumes)
 Z3FLAG= -DVZ3=0
 Z3LIB= 
-CVC4LIB = -lcvc4
+CVC4LIB = -lcvc4 -lgmp
 ifeq (,$(shell echo $(MAKECMDGOALS) | sed 's/.*z3.*//g')) 
 INCLUDES= -I. -Linclude -Iz3/api -Iz3/api/c++ 
 ifeq (,$(shell echo $(MAKECMDGOALS) | sed 's/.*static.*//g'))
