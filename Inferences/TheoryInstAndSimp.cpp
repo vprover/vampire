@@ -676,20 +676,20 @@ VirtualIterator<Solution> TheoryInstAndSimp::getSolutions(Stack<Literal*>& theor
     cout << "named to " << slit.var() << endl;
 #endif
 
-    // create representation in solver, after naming knows about the new variable / literal
-    solver->ensureVarCount(slit.var());
-
-    // now add the SAT representation
-    static SATLiteralStack satLits;
-    satLits.reset();
-    satLits.push(slit);
-    SATClause* sc = SATClause::fromStack(satLits);
-    //clause->setInference(new FOConversionInference(cl));
-    // guarded is normally true, apart from when we are checking a theory tautology
     try{
+      // create representation in solver, after naming knows about the new variable / literal
+      solver->ensureVarCount(slit.var());
+
+      // now add the SAT representation
+      static SATLiteralStack satLits;
+      satLits.reset();
+      satLits.push(slit);
+      SATClause* sc = SATClause::fromStack(satLits);
+      //clause->setInference(new FOConversionInference(cl));
+      // guarded is normally true, apart from when we are checking a theory tautology
+
       solver->addClause(sc,guarded);
-    }
-    catch(UninterpretedForSMTException){
+    } catch(UninterpretedForSMTException){
       return VirtualIterator<Solution>::getEmpty();
     }
   }
