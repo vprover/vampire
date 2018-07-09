@@ -432,8 +432,9 @@ CVC4::Expr CVC4Interfacing::getRepr(Term* trm, VarMap& vars)
         case Theory::INT_MINUS:
         case Theory::RAT_MINUS:
         case Theory::REAL_MINUS:
-          ASSERTION_VIOLATION_REP("Binary minus should have been pre-processed away!");
-          break; // take it uninterpreted in release
+          // TODO: ASSERTION_VIOLATION_REP("Binary minus should have been pre-processed away!");
+          // do the same thing as Z3, so we can compare, and don't worry about the rest
+          return _manager.mkExpr(CVC4::kind::MINUS,args);
 
         case Theory::INT_MULTIPLY:
         case Theory::RAT_MULTIPLY:
