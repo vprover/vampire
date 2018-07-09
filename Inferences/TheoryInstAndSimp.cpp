@@ -672,6 +672,10 @@ VirtualIterator<Solution> TheoryInstAndSimp::getSolutions(Stack<Literal*>& theor
     // register the lit in naming in such a way that the solver will pick it up!
     SATLiteral slit = naming.toSAT(lit);
 
+#if DPRINT
+    cout << "named to " << slit.var() << endl;
+#endif
+
     // create representation in solver, after naming knows about the new variable / literal
     solver->ensureVarCount(slit.var());
 

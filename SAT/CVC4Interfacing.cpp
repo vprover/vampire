@@ -202,7 +202,11 @@ void CVC4Interfacing::addClause(SATClause* cl)
   unsigned clen=cl->length();
   for(unsigned i=0;i<clen;i++){
     SATLiteral l = (*cl)[i];
+
+    // cout << "_representations.get " << l.var() << endl;
     CVC4::Expr e = _representations.get(l.var());
+    // cout << "done" << endl;
+
     if (l.isNegative()) {
       e = _manager.mkExpr(CVC4::kind::NOT,e);
     }

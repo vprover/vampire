@@ -144,6 +144,7 @@ public:
     _status = UNKNOWN; // I set it to unknown as I do not reset
 
     sat2fo.reset();
+    _varCnt = 0;
     _representations.reset();
 
     _engine.reset(); // resets even options:
