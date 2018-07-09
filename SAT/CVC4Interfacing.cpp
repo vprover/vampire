@@ -563,7 +563,11 @@ Term* CVC4Interfacing::evaluateInModel(Term* trm) {
 
   ASS(assignment.isConst());
   auto type = assignment.getType();
-  if (type == _manager.integerType()) {
+  unsigned srt = SortHelper::getResultSort(trm);
+
+  if (srt == Sorts::SRT_INTEGER) {
+    ASS(type == _manager.integerType());
+
     CVC4::Rational i = assignment.getConst<CVC4::Rational>();
 
     ASS(i.isIntegral());
@@ -573,15 +577,16 @@ Term* CVC4Interfacing::evaluateInModel(Term* trm) {
       return theory->representConstant(IntegerConstantType(ii.getSignedInt()));
     }
     // else nullptr below
-  } else if (type == _manager.realType()) {
+  } else if (srt == Sorts::SRT_RATIONAL || srt == Sorts::SRT_REAL) {
+    // it could still be an INT solution to a rat/real question
+    // the main point is that it will always live in CVC4::Rational
+
     CVC4::Rational r = assignment.getConst<CVC4::Rational>();
 
     CVC4::Integer n = r.getNumerator();
     CVC4::Integer d = r.getDenominator();
 
     if (n.fitsSignedInt() && d.fitsSignedInt()) {
-      unsigned srt = SortHelper::getResultSort(trm);
-
       if(srt == Sorts::SRT_RATIONAL){
         return theory->representConstant(RationalConstantType(n.getSignedInt(),d.getSignedInt()));
       } else {
@@ -590,6 +595,7 @@ Term* CVC4Interfacing::evaluateInModel(Term* trm) {
         return theory->representConstant(RealConstantType(rat));
       }
     }
+    // else nullptr below
   }
 
   return nullptr;
