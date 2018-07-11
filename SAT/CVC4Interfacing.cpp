@@ -50,7 +50,7 @@ using namespace Shell;
 using namespace Lib;  
   
 CVC4Interfacing::CVC4Interfacing(const Shell::Options& opts,SAT2FO& s2f, bool withGuard):
-    _addingWithGuard(withGuard), _engine(&_manager), _showCVC4(opts.showCVC4()),
+   _addingWithGuard(withGuard), _engine(&_manager), _showCVC4(opts.showCVC4()),
    _translateNongnd(opts.cvc4TranslateNonGnd()),
 
   _varCnt(0), sat2fo(s2f), _status(SATISFIABLE)
@@ -80,8 +80,8 @@ CVC4Interfacing::CVC4Interfacing(const Shell::Options& opts,SAT2FO& s2f, bool wi
   }
 
   // dumping stuff
-  //_engine.setOption("output-language",CVC4::SExpr("smt2"));
-  //_engine.setOption("dump",CVC4::SExpr("assertions"));
+  // _engine.setOption("output-language",CVC4::SExpr("smt2"));
+  // _engine.setOption("dump",CVC4::SExpr("assertions"));
 }
   
 unsigned CVC4Interfacing::newVar()
@@ -231,11 +231,17 @@ SATSolver::Status CVC4Interfacing::solve(unsigned conflictCountLimit)
 
   // cout << "CVC4 result: " << result << endl;
 
-  // In CVC4, for the purposes of AVATAR, UNKNOWN should be understood as SAT
   if (result == CVC4::Result(CVC4::Result::UNSAT)) {
     _status = UNSATISFIABLE;
-  } else {
+  } else if(result == CVC4::Result(CVC4::Result::SAT)) {
     _status = SATISFIABLE;
+  } else {
+    if (_addingWithGuard) {
+      _status = UNKNOWN;
+    } else {
+      // In CVC4, for the purposes of AVATAR, UNKNOWN should be understood as SAT
+      _status = SATISFIABLE;
+    }
   }
 
   return _status;
