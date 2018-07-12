@@ -76,7 +76,7 @@ void CLTBMode::perform()
     USER_ERROR("Input file must be specified for ltb mode");
   }
   // to prevent from terminating by time limit
-  env.options->setTimeLimitInSeconds(100000);
+  env.options->setTimeLimitInSeconds(1000000);
 
   env.options->setOutputMode(Options::Output::SZS);
   env.options->setProof(Options::Proof::TPTP);
