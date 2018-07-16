@@ -2039,7 +2039,7 @@ public:
   int getFunctionNumber(){return _functionNumber.actualValue;}
 
   int theoryWeightCoeffitientNumerator() const { return _theoryWeightCoefficient.numerator; }
-  int theoryWeightCoeffitientDenomintoar() const { return _theoryWeightCoefficient.denominator; }
+  int theoryWeightCoeffitientDenominator() const { return _theoryWeightCoefficient.denominator; }
 
   int nonGoalWeightCoeffitientNumerator() const { return _nonGoalWeightCoefficient.numerator; }
   int nonGoalWeightCoeffitientDenominator() const { return _nonGoalWeightCoefficient.denominator; }
