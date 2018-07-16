@@ -1624,9 +1624,16 @@ void Options::Options::init()
     _lookup.insert(&_maxWeight);
     _maxWeight.tag(OptionTag::SATURATION);
 
+    _theoryWeightCoefficient = NonGoalWeightOptionValue("theory_weight_coefficent","twc",1.0);
+    _theoryWeightCoefficient.description=
+             "coefficient that will multiply the weight of theory axioms automatically added by Vampire"; 
+    _lookup.insert(&_theoryWeightCoefficient);
+    _theoryWeightCoefficient.tag(OptionTag::SATURATION);
+ 
+
     _nonGoalWeightCoefficient = NonGoalWeightOptionValue("nongoal_weight_coefficient","nwc",1.0);
     _nonGoalWeightCoefficient.description=
-             "coefficient that will multiply the weight of theory clauses (those marked as 'axiom' in TPTP)";
+             "coefficient that will multiply the weight of non-goal clauses (those marked as 'axiom' in TPTP)";
     _lookup.insert(&_nonGoalWeightCoefficient);
     _nonGoalWeightCoefficient.tag(OptionTag::SATURATION);
     _nonGoalWeightCoefficient.setRandomChoices({"1","1.1","1.2","1.3","1.5","1.7","2","2.5","3","4","5","10"});
