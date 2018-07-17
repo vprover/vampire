@@ -158,8 +158,12 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQ
   unsigned weightLimit;
   if(shouldLimitWeight) {
     bool isNonGoal= !queryCl->isGoal() && !qr.clause->isGoal();
+    bool isTheory = queryCl->isHOLADescendant() || queryCl->isTheoryDescendant();
     if(isNonGoal) {
       weightLimit=limits->nonGoalWeightLimit();
+      if(isTheory){
+        weightLimit = min(weightLimit,limits->theoryWeightLimit());
+      }
     } else {
       weightLimit=limits->weightLimit();
     }

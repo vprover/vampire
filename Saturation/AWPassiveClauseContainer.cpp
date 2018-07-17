@@ -97,6 +97,22 @@ Comparison AWPassiveClauseContainer::compareWeight(Clause* cl1, Clause* cl2, con
     cl2Weight=cl2Weight*2+cl2->getNumeralWeight();
   }
 
+  // If one of the clauses is a goal then we fall back to that metric
+  // If they are both non-goals (theory clauses will be non-goal at the moment) then make this compare
+  // TODO: this is a really bad hack
+  if(!cl1->isGoal() && !cl2->isGoal()){
+    int twcNumer = opt.theoryWeightCoeffitientNumerator();
+    int twcDenom = opt.theoryWeightCoeffitientDenominator();
+    bool c1t = cl1->isHOLADescendant() || cl1->isTheoryDescendant();
+    bool c2t = cl2->isHOLADescendant() || cl2->isTheoryDescendant();
+
+    if(!c1t && c2t){
+      return Int::compare(cl1Weight*twcDenom, cl2Weight*twcNumer);
+    }else if(c1t && !c2t){
+      return Int::compare(cl1Weight*twcNumer,cl2Weight*twcDenom);
+    }
+  }
+
   int nwcNumer = opt.nonGoalWeightCoeffitientNumerator();
   int nwcDenom = opt.nonGoalWeightCoeffitientDenominator();
 
@@ -105,6 +121,7 @@ Comparison AWPassiveClauseContainer::compareWeight(Clause* cl1, Clause* cl2, con
   } else if (cl1->isGoal() && !cl2->isGoal()) {
     return Int::compare(cl1Weight*nwcDenom, cl2Weight*nwcNumer);
   }
+
   return Int::compare(cl1Weight, cl2Weight);
 }
 

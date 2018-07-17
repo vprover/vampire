@@ -65,8 +65,10 @@ void Limits::setLimits(int newMaxAge, int newMaxWeight)
     _maxWeight=newMaxWeight;
     if(_maxWeight==-1) {
 	_maxNonGoalWeight=-1;
+        _maxTheoryWeight=-1;
     } else {
 	_maxNonGoalWeight=static_cast<int>(_maxWeight/_opt.nongoalWeightCoefficient());
+        _maxTheoryWeight=static_cast<int>(_maxWeight/_opt.theoryWeightCoefficient());
     }
   }
   if(res!=NO_LIMITS_CHANGE) {

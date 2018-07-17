@@ -60,6 +60,7 @@ public:
 
   unsigned weightLimit() { return _maxWeight; }                 // implicit cast will turn -1 to UINT_MAX, which may be intended
   unsigned nonGoalWeightLimit() { return _maxNonGoalWeight; }   // implicit cast will turn -1 to UINT_MAX, which may be intended
+  unsigned theoryWeightLimit(){ return _maxTheoryWeight; }
   bool weightLimited() { return _maxWeight!=-1; }
 
   bool fulfillsLimits(Clause* cl);
@@ -70,6 +71,7 @@ private:
   int _maxAge;
   int _maxWeight;
   int _maxNonGoalWeight;
+  int _maxTheoryWeight;
   const Options& _opt;
 };
 

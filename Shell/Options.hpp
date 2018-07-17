@@ -1962,6 +1962,7 @@ public:
   TACyclicityCheck termAlgebraCyclicityCheck() const { return _termAlgebraCyclicityCheck.actualValue; }
   unsigned extensionalityMaxLength() const { return _extensionalityMaxLength.actualValue; }
   bool extensionalityAllowPosEq() const { return _extensionalityAllowPosEq.actualValue; }
+  float theoryWeightCoefficient() const { return _theoryWeightCoefficient.actualValue; }
   float nongoalWeightCoefficient() const { return _nonGoalWeightCoefficient.actualValue; }
   Sos sos() const { return _sos.actualValue; }
   unsigned sosTheoryLimit() const { return _sosTheoryLimit.actualValue; }
@@ -2048,6 +2049,9 @@ public:
   void setTimeLimitInDeciseconds(int newVal) { _timeLimitInDeciseconds.actualValue = newVal; }
   int getWhileNumber(){return _whileNumber.actualValue;}
   int getFunctionNumber(){return _functionNumber.actualValue;}
+
+  int theoryWeightCoeffitientNumerator() const { return _theoryWeightCoefficient.numerator; }
+  int theoryWeightCoeffitientDenominator() const { return _theoryWeightCoefficient.denominator; }
 
   int nonGoalWeightCoeffitientNumerator() const { return _nonGoalWeightCoefficient.numerator; }
   int nonGoalWeightCoeffitientDenominator() const { return _nonGoalWeightCoefficient.denominator; }
@@ -2445,6 +2449,7 @@ private:
 
   OptionChoiceValues _tagNames;
 
+  NonGoalWeightOptionValue _theoryWeightCoefficient;
   NonGoalWeightOptionValue _nonGoalWeightCoefficient;
 
   SelectionOptionValue _selection;
