@@ -359,6 +359,16 @@ public:
   };
   
   /**
+    * combinators can either be axiomatised,
+    * dealt with by inference rules or both
+    */
+  enum class CombElimination : unsigned int {
+    AXIOMS = 0,
+    INFERENCE_RULES = 1,
+    BOTH = 3    
+  };
+  
+  /**
    *
    *
    */
@@ -1944,7 +1954,9 @@ public:
   ExtensionalityResolution extensionalityResolution() const { return _extensionalityResolution.actualValue; }
   bool HOLconstantShortCircuitEval() const { return _HOLConstantShortCircuitEval.actualValue; }
   bool HOLConstantElimination () const { return _HOLConstantElimination.actualValue; }
-  bool combinatorElimination () const { return _combinatorElimination.actualValue; }
+  bool functionExtensionality () const { return _functionExtensionality.actualValue; }
+  bool booleanExtensionality () const { return _booleanExtensionality.actualValue; }
+  CombElimination combinatorElimination () const { return _combinatorElimination.actualValue; }
   bool FOOLParamodulation() const { return _FOOLParamodulation.actualValue; }
   bool termAlgebraInferences() const { return _termAlgebraInferences.actualValue; }
   TACyclicityCheck termAlgebraCyclicityCheck() const { return _termAlgebraCyclicityCheck.actualValue; }
@@ -2220,7 +2232,9 @@ private:
   BoolOptionValue _FOOLParamodulation;
   BoolOptionValue _HOLConstantShortCircuitEval;
   BoolOptionValue _HOLConstantElimination;
-  BoolOptionValue _combinatorElimination;
+  BoolOptionValue _functionExtensionality;
+  BoolOptionValue _booleanExtensionality;
+  ChoiceOptionValue<CombElimination> _combinatorElimination;
   BoolOptionValue _termAlgebraInferences;
   ChoiceOptionValue<TACyclicityCheck> _termAlgebraCyclicityCheck;
 

@@ -30,6 +30,80 @@ using namespace Lib;
 using namespace Kernel;
 using namespace Shell;
 
+void LambdaElimination::addFunctionExtensionalityAxioms(UnitList*& units){
+  CALL("LambdaElimination::addFunctionExtensionalityAxioms");
+
+  Stack<unsigned> sorts = env.sorts->getInstantiableFunctionSorts();
+  while(!sorts.isEmpty()){
+    unsigned functionSort = sorts.pop();
+    unsigned firstArgSort = domain(functionSort);
+     
+    Formula* extAxiom;
+    
+    TermList functionApplied;
+    TermList functionApplied2;    
+    
+    TermList var1 = TermList(0, false);
+    TermList var2 = TermList(1, false);
+    List<int>* varList = new List<int>(var1.var());
+    List<unsigned>* sortList = new List<unsigned>(functionSort);
+    varList = varList->addLast(varList, var2.var());
+    sortList = sortList->addLast(sortList, functionSort);
+     
+    TermList var3 = TermList(2, false); 
+    List<int>* varList2 = new List<int>(var2.var());
+    List<unsigned>* sortList2 = new List<unsigned>(firstArgSort);
+
+    
+    unsigned appFun = introduceAppSymbol(functionSort, firstArgSort, range(functionSort));
+    buildFuncApp(appFun, var1, var3, functionApplied);
+    buildFuncApp(appFun, var2, var3, functionApplied2); 
+    
+    Formula* equalityForm = createEquality(functionApplied, functionApplied2, range(functionSort));
+    equalityForm = new QuantifiedFormula(FORALL, varList2,sortList2, equalityForm); 
+    Formula* equalityForm2 = createEquality(var1, var2, functionSort);
+
+    extAxiom = new BinaryFormula(IMP, equalityForm, equalityForm2);
+    extAxiom = new QuantifiedFormula(FORALL, varList,sortList, extAxiom); 
+    
+    //INFERENCE WRONG!!!
+    Inference* notInference;
+    notInference = new Inference(Inference::FUNC_EXT_AXIOM);
+    
+    addAxiom(new FormulaUnit(extAxiom, notInference, Unit::AXIOM), true);  
+  }
+  addAxiomsToUnits(units);
+  return;  
+}
+
+void LambdaElimination::addBooleanExtensionalityAxiom(UnitList*& units){
+  CALL("LambdaElimination::addBooleanExtensionalityAxiom");
+   
+  Formula* boolExtAxiom;  
+  
+  TermList var1 = TermList(0, false);
+  TermList var2 = TermList(1, false);
+  List<int>* varList = new List<int>(var1.var());
+  List<unsigned>* sortList = new List<unsigned>(Sorts::SRT_BOOL);
+  varList = varList->addLast(varList, var2.var());
+  sortList = sortList->addLast(sortList, Sorts::SRT_BOOL);
+
+  boolExtAxiom = new BinaryFormula(IFF, toEquality(var1) , toEquality(var2));
+  boolExtAxiom = new BinaryFormula(IMP, boolExtAxiom , createEquality(var1, var2, Sorts::SRT_BOOL));
+  boolExtAxiom = new QuantifiedFormula(FORALL, varList,sortList, boolExtAxiom); 
+  
+  //INFERENCE WRONG!!!
+  Inference* boolExtInf;
+  boolExtInf = new Inference(Inference::BOOL_EXT_AXIOM);
+  
+  addAxiom(new FormulaUnit(boolExtAxiom, boolExtInf, Unit::AXIOM), true);  
+  
+  addAxiomsToUnits(units);
+  return;  
+  
+}
+
+
 void LambdaElimination::addCombinatorsHeuristically(UnitList*& units){
   CALL("LambdaElimination::addCombinatorsHeuristically"); 
 
@@ -47,19 +121,7 @@ void LambdaElimination::addCombinatorsHeuristically(UnitList*& units){
     bool added;
     unsigned sort = sorts.pop();
     unsigned iSort = env.sorts->addFunctionSort(sort, sort);
-    
-    if(env.options->combinatorAdditionBy() == Options::CombinatorAdditionBy::RANK){
-      if(env.sorts->getFuncSort(iSort)->order() > MAX_ORDER){
-        continue;
-      }
-    }
- 
-    if(env.options->combinatorAdditionBy() == Options::CombinatorAdditionBy::NUM_OF_BASIC_SORTS){
-      if(countBasicSorts(env.sorts->getFuncSort(iSort)) > MAX_SORTS){
-        continue;
-      }
-    }
-    
+    if(!eligible(iSort)){ continue; }
     env.sorts->getFuncSort(iSort)->makeInstantiable();
     TermList ts = addHolConstant("iCOMB", iSort, added, Signature::Symbol::I_COMB);
     if(added){
@@ -88,19 +150,7 @@ void LambdaElimination::addCombinatorsHeuristically(UnitList*& units){
       unsigned kSort = env.sorts->addFunctionSort(secondSort, sort);
       kSort = env.sorts->addFunctionSort(sort, kSort);
       //env.sorts->getFuncSort(kSort)->makeInstantiable();
-
-      if(env.options->combinatorAdditionBy() == Options::CombinatorAdditionBy::RANK){
-        if(env.sorts->getFuncSort(kSort)->order() > MAX_ORDER){
-          continue;
-        }
-      }
-   
-      if(env.options->combinatorAdditionBy() == Options::CombinatorAdditionBy::NUM_OF_BASIC_SORTS){
-        if(countBasicSorts(env.sorts->getFuncSort(kSort)) > MAX_SORTS){
-          continue;
-        }
-      }
-
+      if(!eligible(kSort)){ continue; }
       TermList ts = addHolConstant("kCOMB", kSort, added, Signature::Symbol::K_COMB);
       if(added){
         _combinatorsAdded++;
@@ -266,21 +316,8 @@ bool LambdaElimination::isSCompatible(unsigned combinedSort, unsigned sort1, uns
     }
     combSort = env.sorts->addFunctionSort(sort1, sort3);
     combSort = env.sorts->addFunctionSort(ysort, combSort);    
-    combSort = env.sorts->addFunctionSort(combinedSort, combSort);
-    
-    if(env.options->combinatorAdditionBy() == Options::CombinatorAdditionBy::RANK){
-      if(env.sorts->getFuncSort(combSort)->order() > MAX_ORDER){
-        return false;
-      }
-    }
- 
-    if(env.options->combinatorAdditionBy() == Options::CombinatorAdditionBy::NUM_OF_BASIC_SORTS){
-      if(countBasicSorts(env.sorts->getFuncSort(combSort)) > MAX_SORTS){
-        return false;
-      }
-    }
-    
-    return true;
+    combSort = env.sorts->addFunctionSort(combinedSort, combSort); 
+    return eligible(combSort);
   }
   
   return false;
@@ -305,20 +342,10 @@ bool LambdaElimination::isBCompatible(unsigned combinedSort, unsigned sort1, uns
     combSort = env.sorts->addFunctionSort(zsort, sort2);
     combSort = env.sorts->addFunctionSort(ysort, combSort);
     combSort = env.sorts->addFunctionSort(combinedSort, combSort);
-    combSorts.push(combSort);
- 
-    if(env.options->combinatorAdditionBy() == Options::CombinatorAdditionBy::RANK){
-      if(env.sorts->getFuncSort(combSort)->order() > MAX_ORDER){
-        return false;
-      }
-    }
- 
-    if(env.options->combinatorAdditionBy() == Options::CombinatorAdditionBy::NUM_OF_BASIC_SORTS){
-      if(countBasicSorts(env.sorts->getFuncSort(combSort)) > MAX_SORTS){
-        return false;
-      }
-    }
     
+    if(!eligible(combSort)){ continue;}
+    
+    combSorts.push(combSort);
   }
   return combSorts.isEmpty() ?  false : true;
   
@@ -341,14 +368,21 @@ bool LambdaElimination::isCCompatible(unsigned combinedSort, unsigned sort1, uns
   combSort = env.sorts->addFunctionSort(sort2, combSort);
   combSort = env.sorts->addFunctionSort(combinedSort, combSort);
   
+  return eligible(combSort);
+  
+}
+
+bool LambdaElimination::eligible(unsigned sort){
+  CALL("LambdaElimination::nonEligible");
+  
   if(env.options->combinatorAdditionBy() == Options::CombinatorAdditionBy::RANK){
-    if(env.sorts->getFuncSort(combSort)->order() > MAX_ORDER){
+    if(env.sorts->getFuncSort(sort)->order() > MAX_ORDER){
       return false;
     }
   }
 
   if(env.options->combinatorAdditionBy() == Options::CombinatorAdditionBy::NUM_OF_BASIC_SORTS){
-    if(countBasicSorts(env.sorts->getFuncSort(combSort)) > MAX_SORTS){
+    if(countBasicSorts(env.sorts->getFuncSort(sort)) > MAX_SORTS){
       return false;
     }
   }
@@ -746,7 +780,7 @@ void LambdaElimination::process(Stack<int> _vars, Stack<unsigned> _sorts, Stack<
        if(_processing.var() == (unsigned)lambdaVar){ //an expression of the form \x.x
             unsigned iSort = env.sorts->addFunctionSort(lambdaVarSort, lambdaVarSort);
             TermList ts = addHolConstant("iCOMB", iSort, added, Signature::Symbol::I_COMB);
-            if(added && !env.options->combinatorElimination()){
+            if(added && env.options->combinatorElimination() != Options::CombElimination::INFERENCE_RULES){
                 addCombinatorAxiom(ts, iSort, lambdaVarSort, Signature::Symbol::I_COMB);
             }
             addToProcessed(ts, _argNums);
@@ -853,7 +887,7 @@ TermList LambdaElimination::addKComb(unsigned appliedToArg, TermList arg)
                 
     bool added;
     ts = addHolConstant("kCOMB",appliedToZeroArgs, added, Signature::Symbol::K_COMB);
-    if(added && !env.options->combinatorElimination()){
+    if(added && env.options->combinatorElimination() != Options::CombElimination::INFERENCE_RULES){
        addCombinatorAxiom(ts, appliedToZeroArgs, argSort, Signature::Symbol::K_COMB, domain(appliedToArg));
     }   
     TermList applied;
@@ -888,7 +922,7 @@ TermList LambdaElimination::addComb(unsigned appliedToArgs, TermList arg1, TermL
        default:
           ASSERTION_VIOLATION;
     }
-    if(added && !env.options->combinatorElimination()){
+    if(added && env.options->combinatorElimination() != Options::CombElimination::INFERENCE_RULES){
         addCombinatorAxiom(ts, appliedToZeroArgs, arg1sort, comb, arg2sort, arg3sort);
     }
     
@@ -934,12 +968,12 @@ unsigned LambdaElimination::sortOf(TermList t)
   
 } 
 
-void LambdaElimination::addAxiom(FormulaUnit* axiom) {
+void LambdaElimination::addAxiom(FormulaUnit* axiom, bool extensionalityAx) {
   CALL("LambdaElimination::addAxiom");
 
   _holAxiomsAdded = true;
 
-  axiom->setHOLADescendant(true);
+  axiom->setHOLADescendant(true && !extensionalityAx);
 
   //ASS_REP(!needsElimination(def), def->toString()); To be looked at later AYB
 
@@ -950,7 +984,11 @@ void LambdaElimination::addAxiom(FormulaUnit* axiom) {
     if(!_combinatorAdditionMode){
       env.out() << "[PP] Lambda Elimination added axiom: " << axiom->toString() << endl;
     } else {
-      env.out() << "[PP] Heuristic combinator creation added axiom: " << axiom->toString() << endl;
+      if(extensionalityAx){
+        env.out() << "[PP] Extensionality axiom addition: " << axiom->toString() << endl;        
+      }else{
+        env.out() << "[PP] Heuristic combinator creation added axiom: " << axiom->toString() << endl;
+      }
     }
     env.endOutput();
   }

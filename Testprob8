@@ -1,0 +1,6 @@
+thf(a,type, a : $i).
+thf(a,type, iCOM : $i > $i).
+thf(a,type, kCOM : ($i > $i) > $i > $i > $i).
+thf(a, axiom, (![X:$i > $i, Y:$i] : ((kCOM @ X @ Y) = X))).
+thf(a, axiom, (![X:$i] : ((iCOM @ X) = X))).
+thf(a, conjecture, (?[F:$i > $i > $i] : ((F @ a) = iCOM))).

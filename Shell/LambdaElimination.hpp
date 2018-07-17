@@ -34,10 +34,14 @@ public:
   TermList elimLambda(Term* lambdaTerm);
 
   /** Iterates through sorts in problem and heuristically adds
-    * a set of relevanr combinators to the problem along with their defining
+    * a set of relevant combinators to the problem along with their defining
     * equations.
     */  
   void addCombinatorsHeuristically(UnitList*& units);
+  
+  void addFunctionExtensionalityAxioms(UnitList*& units);
+  void addBooleanExtensionalityAxiom(UnitList*& units);
+  
   
   static unsigned introduceAppSymbol(unsigned sort1, unsigned sort2, unsigned resultSort); 
   static void buildFuncApp(unsigned function, TermList args1, TermList arg2, TermList& functionApplication);
@@ -69,6 +73,7 @@ private:
   unsigned _maxCombinatorsToBeAdded;
   
   unsigned countBasicSorts(Sorts::FunctionSort* fsort);
+  bool eligible(unsigned sort);
   
   /*********************************************
   * Lambda and application elimination functions
@@ -81,7 +86,7 @@ private:
   
   void addToProcessed(TermList ts, 	Stack<unsigned> &_argNums);
   /** Add a new definitions to _defs */
-  void addAxiom(FormulaUnit* axiom);
+  void addAxiom(FormulaUnit* axiom, bool extensionalityAxiom = false);
 
   void addQuantifierAxiom(TermList constant, unsigned constSort, Connective conn, unsigned qvarSort);
   void addNotConnAxiom(TermList constant, unsigned notsort);

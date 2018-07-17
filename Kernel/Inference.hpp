@@ -364,6 +364,8 @@ public:
     B_COMBINATOR_ELIMINATION,
     C_COMBINATOR_ELIMINATION,
     S_COMBINATOR_ELIMINATION,
+    BOOL_EXT_AXIOM,
+    FUNC_EXT_AXIOM,
   }; // class Inference::Rule
 
   explicit Inference(Rule r);

@@ -208,8 +208,16 @@ void Preprocess::preprocess(Problem& prb)
       
       FOOLElimination().apply(prb);
       
-      if((prb.hasApp() || prb.hasLambda()) && env.options->addCombinators() != Options::AddCombinators::OFF){
-        LambdaElimination().addCombinatorsHeuristically(prb.units());
+      if(prb.hasApp() || prb.hasLambda()){
+        if(env.options->functionExtensionality()){
+          LambdaElimination().addFunctionExtensionalityAxioms(prb.units());
+        }
+        if(env.options->booleanExtensionality()){
+          LambdaElimination().addBooleanExtensionalityAxiom(prb.units());          
+        }
+        if(env.options->addCombinators() != Options::AddCombinators::OFF){
+          LambdaElimination().addCombinatorsHeuristically(prb.units());
+        }
       }
     }
   }

@@ -1004,8 +1004,24 @@ void Options::Options::init()
         "treatment of HOL constants.";    
       _lookup.insert(&_HOLConstantElimination);
       _HOLConstantElimination.tag(OptionTag::INFERENCES);
-    
-      _combinatorElimination = BoolOptionValue("combinator_elimination","combelim",false);
+
+      _functionExtensionality = BoolOptionValue("add_func_ext_ax","afea",false);
+      _functionExtensionality.description=
+      "Adds function extensionality axioms for all higher-order input types. \n"
+       "For example: ![F: a -> b, G: a -> b](![X: a] : F X = G X ) => F = G ";    
+      _lookup.insert(&_functionExtensionality);
+      _functionExtensionality.tag(OptionTag::INFERENCES); //This is not inference, change!
+
+      _booleanExtensionality = BoolOptionValue("add_bool_ext_ax","abea",false);
+      _booleanExtensionality.description=
+      "Adds boolean extensionality axiom \n"
+       "![X: o, Y:o] : (X <=> Y) => X = Y";    
+      _lookup.insert(&_booleanExtensionality);
+      _booleanExtensionality.tag(OptionTag::INFERENCES); //This is not inference, change!
+      
+      _combinatorElimination = ChoiceOptionValue<CombElimination>("combinator_elimination","combelim",
+                                                                   CombElimination::AXIOMS,
+                                                                   {"axioms","inference_rules","both"});
       _combinatorElimination.description=
       "Turns on a set of inference rules used to eliminate "
       "SKI combinator from clauses. An example rule is: \n"
@@ -1017,7 +1033,7 @@ void Options::Options::init()
     
       _addCombinators = ChoiceOptionValue<AddCombinators>("add_combinators","addc",
                                                           AddCombinators::OFF,
-                                                          {"off","size","user"});
+                                                          {"off","function_of_input","user"});
       _addCombinators.description=
       "Heuristically adds combinator definitions to input.\n"
       "This can be done upto some function of the input size.\n"  
@@ -1029,10 +1045,10 @@ void Options::Options::init()
        
       _combinatorAdditionBy = ChoiceOptionValue<CombinatorAdditionBy>("control_addition","cadd",
                                                           CombinatorAdditionBy::ALL,
-                                                          {"off","rank","sort"});
+                                                          {"off","order","sort"});
       _combinatorAdditionBy.description=
       "When adding combinators heuristically, combinators.\n"
-      "Whose sort has rank greater than some in-built value\n"  
+      "Whose sort has order greater than some in-built value\n"  
       "can be disgarded. Likewise if the combinator sort contains"
       "more than a pre-specified number of basic sorts.\n";       
       _lookup.insert(&_combinatorAdditionBy);

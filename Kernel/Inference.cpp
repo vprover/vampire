@@ -510,6 +510,10 @@ vstring Inference::ruleName(Rule rule)
     return "C combinator elimination";
   case S_COMBINATOR_ELIMINATION:
     return "S combinator elimination";
+  case BOOL_EXT_AXIOM:
+    return "Boolean Extensionality Axiom";
+  case FUNC_EXT_AXIOM:
+    return "Functional Extensionality Axiom";     
   default:
     ASSERTION_VIOLATION;
     return "!UNKNOWN INFERENCE RULE!";
