@@ -904,19 +904,23 @@ ClauseIterator TheoryInstAndSimp::generateClauses(Clause* premise,bool& premiseR
     selectedLiterals.loadFromIterator(Stack<Literal*>::Iterator(theoryLiterals));
   }
 
-  //auto it1 = getSolutions(theoryLiterals);
-  auto it1 = getSolutions(selectedLiterals);
+  {
+    TimeCounter t(TC_THEORY_INST_SIMP);
 
-  auto it2 = getMappingIterator(it1,
+    //auto it1 = getSolutions(theoryLiterals);
+    auto it1 = getSolutions(selectedLiterals);
+
+    auto it2 = getMappingIterator(it1,
                InstanceFn(premise,flattened,selectedLiterals,_splitter,_salg,this,premiseRedundant));
 
-  // filter out only non-zero results
-  auto it3 = getFilteredIterator(it2, NonzeroFn());
+    // filter out only non-zero results
+    auto it3 = getFilteredIterator(it2, NonzeroFn());
 
-  // measure time of the overall processing
-  auto it4 = getTimeCountedIterator(it3,TC_THEORY_INST_SIMP);
+    // measure time of the overall processing
+    auto it4 = getTimeCountedIterator(it3,TC_THEORY_INST_SIMP);
 
-  return pvi(it4);
+    return pvi(it4);
+  }
 }
 
 }
