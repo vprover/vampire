@@ -51,7 +51,7 @@ void LambdaElimination::addFunctionExtensionalityAxioms(UnitList*& units){
     sortList = sortList->addLast(sortList, functionSort);
      
     TermList var3 = TermList(2, false); 
-    List<int>* varList2 = new List<int>(var2.var());
+    List<int>* varList2 = new List<int>(var3.var());
     List<unsigned>* sortList2 = new List<unsigned>(firstArgSort);
 
     
@@ -65,7 +65,7 @@ void LambdaElimination::addFunctionExtensionalityAxioms(UnitList*& units){
 
     extAxiom = new BinaryFormula(IMP, equalityForm, equalityForm2);
     extAxiom = new QuantifiedFormula(FORALL, varList,sortList, extAxiom); 
-    
+
     //INFERENCE WRONG!!!
     Inference* notInference;
     notInference = new Inference(Inference::FUNC_EXT_AXIOM);
@@ -91,7 +91,7 @@ void LambdaElimination::addBooleanExtensionalityAxiom(UnitList*& units){
   boolExtAxiom = new BinaryFormula(IFF, toEquality(var1) , toEquality(var2));
   boolExtAxiom = new BinaryFormula(IMP, boolExtAxiom , createEquality(var1, var2, Sorts::SRT_BOOL));
   boolExtAxiom = new QuantifiedFormula(FORALL, varList,sortList, boolExtAxiom); 
-  
+
   //INFERENCE WRONG!!!
   Inference* boolExtInf;
   boolExtInf = new Inference(Inference::BOOL_EXT_AXIOM);
