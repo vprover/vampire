@@ -221,6 +221,9 @@ void TPTP::parse()
     case END_BINDING:
       endBinding();
       break;
+    case SYMBOL_BINDING:
+      symbolBinding();
+      break;
     case TUPLE_BINDING:
       if(!env.options->newCNF()){ USER_ERROR("Set --newcnf on if using tuples"); }
       tupleBinding();
@@ -1818,47 +1821,49 @@ void TPTP::binding()
   CALL("TPTP::binding");
 
   switch (getTok(0).tag) {
-    case T_NAME: {
-      _strings.push(getTok(0).content);
-      resetToks();
+    case T_NAME:
+      _states.push(SYMBOL_BINDING);
+      break;
 
-      Token tok = getTok(0);
-
-      switch (tok.tag) {
-        case T_ASS:
-        case T_LPAR:
-          resetToks();
-          _states.push(END_BINDING);
-          _states.push(TERM);
-          if (tok.tag == T_LPAR) {
-            addTagState(T_ASS);
-            addTagState(T_RPAR);
-            _states.push(VAR_LIST);
-          } else {
-            // empty list of vars
-            _varLists.push(0);
-            _sortLists.push(0);
-            _bindLists.push(0);
-          }
-          return;
-
-        default:
-          PARSE_ERROR(toString(T_LPAR) + " or " + toString(T_ASS) + " expected", tok);
-      }
-    }
-    case T_LBRA: {
-      resetToks();
-      _states.push(END_TUPLE_BINDING);
-      _states.push(TERM);
-      addTagState(T_ASS);
-      addTagState(T_RBRA);
+    case T_LBRA:
       _states.push(TUPLE_BINDING);
       break;
-    }
+
     default:
       PARSE_ERROR("name or tuple expected",getTok(0));
   }
-}
+} // TPTP::binding
+
+void TPTP::symbolBinding()
+{
+  CALL("TPTP::binding");
+
+  vstring nm = name();
+  _strings.push(nm);
+
+  Token tok = getTok(0);
+  switch (tok.tag) {
+    case T_ASS:
+    case T_LPAR:
+      resetToks();
+      _states.push(END_BINDING);
+      _states.push(TERM);
+      if (tok.tag == T_LPAR) {
+        addTagState(T_ASS);
+        addTagState(T_RPAR);
+        _states.push(VAR_LIST);
+      } else {
+        // empty list of vars
+        _varLists.push(0);
+        _sortLists.push(0);
+        _bindLists.push(0);
+      }
+      return;
+
+    default:
+      PARSE_ERROR(toString(T_LPAR) + " or " + toString(T_ASS) + " expected", tok);
+  }
+} // TPTP::symbolBinding
 
 void TPTP::endBinding() {
   CALL("TPTP::endBinding");
@@ -2179,6 +2184,12 @@ void TPTP::varList()
 void TPTP::tupleBinding()
 {
   CALL("TPTP::tupleBinding");
+
+  consumeToken(T_LBRA);
+  _states.push(END_TUPLE_BINDING);
+  _states.push(TERM);
+  addTagState(T_ASS);
+  addTagState(T_RBRA);
 
   for (;;) {
     vstring nm = name();
@@ -4203,6 +4214,8 @@ const char* TPTP::toString(State s)
     return "MID_EQ";
   case BINDING:
     return "BINDING";
+  case SYMBOL_BINDING:
+    return "SYMBOL_BINDING";
   case TUPLE_BINDING:
     return "TUPLE_BINDING";
   case END_BINDING:

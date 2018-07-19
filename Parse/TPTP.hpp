@@ -253,6 +253,8 @@ public:
     END_LET,
     /** start of function or predicate binding inside $let */
     BINDING,
+    /** start of a binding of a function or predicate symbol */
+    SYMBOL_BINDING,
     /** start of tuple binding inside $let */
     TUPLE_BINDING,
     /** end of function or predicate binding inside $let */
@@ -710,6 +712,7 @@ private:
   void simpleType();
   void args();
   void varList();
+  void symbolBinding();
   void tupleBinding();
   void term();
   void termInfix();
