@@ -1,6 +1,6 @@
 #/*
 # * This file is part of the source code of the software program
-# * Vampire 4.2.2. It is protected by applicable
+# * Vampire. It is protected by applicable
 # * copyright laws.
 # *
 # * This source code is distributed under the licence found here
@@ -542,7 +542,7 @@ all:#default make disabled
 ################################################################
 # automated generation of Vampire revision information
 
-VERSION_NUMBER = 4.2.2
+VERSION_NUMBER = 4.3.0
 
 # We extract the revision number from svn every time the svn meta-data are modified
 # (that's why there is the dependency on .svn/entries) 
