@@ -113,6 +113,7 @@ public:
     Literal* literal;
     TermList term;
     bool higherOrder;
+    //could this stack be the cause of out of memory error? AYB
     Stack<pair<unsigned, unsigned>> funcToFuncMap;  
 
     void insertFunctorPair(TermList* treeTerm, TermList* insertTerm){

@@ -111,10 +111,6 @@ void TermSubstitutionTree::handleTerm(TermList t, Literal* lit, Clause* cls, boo
         SubstitutionTree::remove(&_hoVarNodes[rootNodeIndex], svBindings, ld);
       }
         //cout << "\n\nTHE TREE AFTER REMOVAL \n --------------------------------------------- \n " +  SubstitutionTree::toString() << endl;
-        termsDeleted++;
-        if(termsDeleted > 60){
-        ASSERTION_VIOLATION;
-        }
     }
   }
 }

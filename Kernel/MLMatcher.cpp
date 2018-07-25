@@ -75,6 +75,12 @@ struct ArrayStoringBinder
   ArrayStoringBinder(TermList* arr, UUMap& v2pos)
   : _arr(arr), _v2pos(v2pos) {}
 
+  bool bind(unsigned var, Prefix pref)
+  {
+    //dummy does nothing at the moment.
+   return false;
+  }
+
   bool bind(unsigned var, TermList term)
   {
     _arr[_v2pos.get(var)]=term;

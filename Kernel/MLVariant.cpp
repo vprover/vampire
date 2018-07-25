@@ -78,6 +78,12 @@ struct ArrayStoringBinder
     return true;
   }
 
+  bool bind(unsigned var, Prefix pref)
+  {
+    //dummy does nothing at the moment.
+   return false;
+  }
+
   void specVar(unsigned var, TermList term)
   { ASSERTION_VIOLATION; }
 private:

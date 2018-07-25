@@ -55,6 +55,11 @@ struct FastCondensation::CondensationBinder
   {
     bindings.reset();
   }
+  bool bind(unsigned var, Prefix pref)
+  {
+    //dummy does nothing at the moment.
+   return false;
+  }
   bool bind(unsigned var, TermList term)
   {
     CALL("CondensationBinder::bind");

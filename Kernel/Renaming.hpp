@@ -105,8 +105,7 @@ private:
     TermList applyHigherOrder(Term* varHeadTerm)
     {
       //dummy for compilation purposes. To be updated if required. AYB
-      TermList res;
-      return res;
+      return TermList(varHeadTerm);
     }
 
   private:

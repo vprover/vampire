@@ -336,6 +336,12 @@ public:
     return (*_key)[idx];
   }
 
+
+  /* Return true if this type is a suffix of @b type is.
+   * Will return true even if types are identical (not testing for being proper suffix)
+   */
+  bool isSuffix (OperatorType* type) const;
+
   bool isPredicateType() const { return (*_key)[arity()] == PREDICATE_FLAG; };
   bool isFunctionType() const { return (*_key)[arity()] != PREDICATE_FLAG; };
   unsigned result() const {

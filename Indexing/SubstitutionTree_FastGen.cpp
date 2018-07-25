@@ -27,6 +27,7 @@
 
 #include "Kernel/Matcher.hpp"
 #include "Kernel/SubstHelper.hpp"
+#include "Kernel/Substitution.hpp"
 
 #include "SubstitutionTree.hpp"
 
@@ -87,6 +88,7 @@ protected:
   class Substitution;
 
   VarStack _boundVars;
+  VarStack _hoBoundVars;
 
   DArray<TermList>* _specVars;
 
@@ -96,12 +98,15 @@ protected:
    * variable that can be bound during the retrievall process.
    */
   unsigned _maxVar;
+  unsigned _maxHoVarNum;
 
   /**
    * Inheritors must ensure that the size of this map will
    * be at least @b _maxVar+1
    */
   ArrayMap<TermList>* _bindings;
+  ArrayMap<TermList>* _hoLambdaBindings;
+  ArrayMap<Prefix>* _hoPrefixBindings;
 };
 
 /**
@@ -117,7 +122,7 @@ struct SubstitutionTree::GenMatcher::Binder
    */
   inline
   Binder(GenMatcher* parent)
-  : _parent(parent), _maxVar(parent->_maxVar) {}
+  : _parent(parent), _maxVar(parent->_maxVar), _maxHoVarNum(_parent->_maxHoVarNum) {}
   /**
    * Ensure variable @b var is bound to @b term. Return false iff
    * it is not possible. If a new binding was creater, push @b var
@@ -125,6 +130,20 @@ struct SubstitutionTree::GenMatcher::Binder
    */
   bool bind(unsigned var, TermList term)
   {
+    if(var > Term::VARIABLE_HEAD_LOWER_BOUND){
+      unsigned var2 = var - Term::VARIABLE_HEAD_LOWER_BOUND;
+      if(var2 > _maxHoVarNum){
+        return false;
+      }
+      TermList* aux;
+      if(_parent->_hoLambdaBindings->getValuePtr(var2,aux,term)) {
+        _parent->_hoBoundVars.push(var);
+        return true;
+      } else {
+        return *aux==term;
+      }
+    }
+
     if(var > _maxVar) {
       return false;
     }
@@ -134,6 +153,22 @@ struct SubstitutionTree::GenMatcher::Binder
       return true;
     } else {
       return *aux==term;
+    }
+  }
+
+  bool bind(unsigned var, Prefix pref)
+  {
+    ASS(var > Term::VARIABLE_HEAD_LOWER_BOUND);
+    unsigned var2 = var - Term::VARIABLE_HEAD_LOWER_BOUND;
+    if(var2 > _maxHoVarNum){
+      return false;
+    }
+    Prefix* aux;
+    if(_parent->_hoPrefixBindings->getValuePtr(var2,aux,pref)) {
+      _parent->_hoBoundVars.push(var);
+      return true;
+    } else {
+      return *aux==pref;
     }
   }
   /**
@@ -152,6 +187,7 @@ private:
    * bigger variable is attempted, it fails.
    */
   unsigned _maxVar;
+  unsigned _maxHoVarNum;
 };
 
 struct SubstitutionTree::GenMatcher::Applicator
@@ -177,6 +213,7 @@ struct SubstitutionTree::GenMatcher::Applicator
 
   TermList applyHigherOrder(Term* varHeadTerm)
   {
+    ASS(varHeadTerm->hasVarHead());
     //dummy for compilation purposes. To be updated if required. AYB
     TermList res;
     return res;
@@ -247,14 +284,23 @@ SubstitutionTree::GenMatcher::GenMatcher(Term* query, unsigned nextSpecVar)
     _specVars->ensure(max(static_cast<unsigned>(_specVars->size()*2), nextSpecVar));
   }
   Recycler::get(_bindings);
+  Recycler::get(_hoLambdaBindings);
+  Recycler::get(_hoPrefixBindings);
   _bindings->ensure(query->weight());
   _bindings->reset();
-
+  _hoLambdaBindings->ensure(query->hoVars() + 1);
+  _hoLambdaBindings->reset();
+  _hoPrefixBindings->ensure(query->hoVars() + 1);
+  _hoPrefixBindings->reset();
+  
   _maxVar=query->weight()-1;
+  _maxHoVarNum = query->hoVars();
 }
 SubstitutionTree::GenMatcher::~GenMatcher()
 {
   Recycler::release(_bindings);
+  Recycler::release(_hoLambdaBindings);
+  Recycler::release(_hoPrefixBindings);
   Recycler::release(_specVars);
 }
 
@@ -455,6 +501,8 @@ SubstitutionTree::QueryResult SubstitutionTree::FastGeneralizationsIterator::nex
   ASS(_ldIterator.hasNext());
   LeafData& ld=_ldIterator.next();
 
+  //need to update this to rename higher-order variables within substitution based on leaf data.
+  //AYB
   if(_retrieveSubstitution) {
     _resultNormalizer.reset();
     if(_literalRetrieval) {

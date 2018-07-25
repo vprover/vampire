@@ -387,7 +387,7 @@ vstring OperatorType::toString() const
  */
 bool OperatorType::isSingleSortType(unsigned srt) const
 {
-  CALL("OperatorType::isAllDefault");
+  CALL("OperatorType::isSingleSortType");
 
   unsigned len = arity();
   for (unsigned i = 0; i <len; i++) {
@@ -403,3 +403,23 @@ bool OperatorType::isSingleSortType(unsigned srt) const
 } // isSingleSortType
 
 
+/* Return true if this type is a suffix of @b type is.
+ * Will return true even if types are identical (not testing for being proper suffix)
+ * @author Ahmed Bhayat
+ */
+bool OperatorType::isSuffix(OperatorType* type) const
+{
+  CALL("OperatorType::isSuffix");
+
+  if (arity() > type->arity()){
+    return false;
+  }
+
+  int sizeDif = type->arity() - arity();
+  for(int i = arity(); i > 0; i--){
+    if(arg(i) != type->arg(i + sizeDif) ){
+      return false;
+    }
+  }
+  return true;
+} // isSuffix

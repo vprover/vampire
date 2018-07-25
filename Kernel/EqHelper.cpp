@@ -182,15 +182,22 @@ TermIterator EqHelper::getRewritableSubtermIterator(Literal* lit, const Ordering
 
 //  if (lit->isEquality()) {
 //    if (lit->isNegative()) {
-//      return TermIterator::getEmpty();
+//      return TermIterator::getEmpty(hoVars);
 //    }
+
+  //currently cannot carry out superposition on higher-order terms variable heads
+  //Separately, requires further updating to avoid returning terms containing free indices
+  if(lit->shared() && lit->hoVars()){
+    return TermIterator::getEmpty();
+  }
+
   if (lit->isEquality() && lit->isPositive()) {
     TermList sel;
     switch(ord.getEqualityArgumentOrder(lit)) {
     case Ordering::INCOMPARABLE:
       {
-	NonVariableIterator nvi(lit);
-	return getUniquePersistentIteratorFromPtr(&nvi);
+        NonVariableIterator nvi(lit);
+        return getUniquePersistentIteratorFromPtr(&nvi);
       }
     case Ordering::EQUAL:
     case Ordering::GREATER:
@@ -299,6 +306,11 @@ TermIterator EqHelper::getDemodulationLHSIterator(Literal* lit, bool forward, co
     if (lit->isNegative()) {
       return TermIterator::getEmpty();
     }
+    //currently cannot carry out demodulation on higher-order terms with variable heads
+    //Separately, requires further updating to avoid returning terms containing free indices
+    if(lit->shared() && lit->hoVars()){
+      return TermIterator::getEmpty();
+    }
     TermList t0=*lit->nthArgument(0);
     TermList t1=*lit->nthArgument(1);
     switch(ord.getEqualityArgumentOrder(lit))
@@ -306,17 +318,17 @@ TermIterator EqHelper::getDemodulationLHSIterator(Literal* lit, bool forward, co
     case Ordering::INCOMPARABLE:
       if ( forward ? (opt.forwardDemodulation() == Options::Demodulation::PREORDERED)
 		  : (opt.backwardDemodulation() == Options::Demodulation::PREORDERED) ) {
-	return TermIterator::getEmpty();
+        return TermIterator::getEmpty();
       }
       if (t0.containsAllVariablesOf(t1)) {
-	if (t1.containsAllVariablesOf(t0)) {
-	  return pvi( getConcatenatedIterator(getSingletonIterator(t0),
-	      getSingletonIterator(t1)) );
-	}
-	return pvi( getSingletonIterator(t0) );
+        if (t1.containsAllVariablesOf(t0)) {
+          return pvi( getConcatenatedIterator(getSingletonIterator(t0),
+              getSingletonIterator(t1)) );
+        }
+        return pvi( getSingletonIterator(t0) );
       }
       if (t1.containsAllVariablesOf(t0)) {
-	return pvi( getSingletonIterator(t1) );
+        return pvi( getSingletonIterator(t1) );
       }
       break;
     case Ordering::GREATER:

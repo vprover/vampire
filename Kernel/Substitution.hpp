@@ -66,6 +66,27 @@ public:
   unsigned functor() { return _functor; }
   unsigned prefixLength() { return _argsLength; }
  
+  bool operator==(Prefix& p) const
+  {
+    if(_functor != p.functor()){
+      return false;
+    }
+    if(_argsLength != p.prefixLength()){
+      return false;
+    }
+    TermList* tl = _prefixArgs;
+    TermList* prefixes = p.prefixArgs();
+    for(unsigned i = 0; i < _argsLength; i++){
+      if(*tl != *prefixes){
+        return false;
+      }
+      --tl;
+      --prefixes;
+    }
+    return true;
+
+  }
+
 #if VDEBUG
   vstring toString() const {
     CALL("Prefix::toString");

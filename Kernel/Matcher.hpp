@@ -33,6 +33,9 @@
 #include "Lib/Stack.hpp"
 #include "Lib/VirtualIterator.hpp"
 
+#include "Signature.hpp"
+
+#include "Substitution.hpp"
 #include "Term.hpp"
 #include "TermIterators.hpp"
 
@@ -150,10 +153,61 @@ public:
     Map& _map;
   };
 
+  inline
+  static OperatorType* getFunctorType(const Term* t){
+    if(t->hasVarHead()){
+      return env.signature->getVarType(t->functor());
+    }
+    return env.signature->getFunction(t->functor())->fnType();
+  }
+
+
+  static bool hasMatchableVarHead(TermList base, TermList inst){
+    CALL("MatchingUtils::hasMatchableVarHead");
+
+    if(!(base.isTerm() && inst.isTerm())){
+      return false;
+    }
+
+    Term* baseT = base.term();
+    Term* instT = inst.term();
+
+    ASS(baseT->hasVarHead());
+
+    OperatorType* baseType = getFunctorType(baseT);
+    OperatorType* instType = getFunctorType(instT);
+    
+    return baseType->isSuffix(instType);
+  }
+
+  // Function getPrefix should only be called after a call
+  // to hasMatchableVarHead. Returns the prefix substituion 
+  // for the variable head to unify terms.
+  static Prefix getPrefix(TermList base, TermList inst){
+    CALL("MatchingUtils::getPrefix");
+
+    ASS(base.isTerm() && inst.isTerm());
+
+    Term* varHeadTerm = base.term();
+    Term* matchableTerm = inst.term();
+
+    ASS(varHeadTerm->hasVarHead());
+
+    unsigned arityDiff = matchableTerm->arity() - varHeadTerm->arity();
+    Prefix pref = Prefix(matchableTerm->functor(), matchableTerm->nthArgument(arityDiff), arityDiff);
+    return pref;
+  }
+
 private:
   typedef DHMap<unsigned,TermList,IdentityHash> BindingMap;
   struct MapBinder
   {
+    bool bind(unsigned var, Prefix pref)
+    {
+      //dummy does nothing at the moment.
+     return false;
+    }
+
     bool bind(unsigned var, TermList term)
     {
       TermList* aux;
@@ -165,6 +219,7 @@ private:
   private:
     BindingMap _map;
   };
+
 
 };
 
@@ -198,6 +253,12 @@ private:
   };
   bool occursCheck();
 
+
+  bool bind(unsigned var, Prefix pref)
+  {
+    //dummy does nothing at the moment.
+   return false;
+  }
 
   bool bind(unsigned var, TermList term)
   {
@@ -247,16 +308,23 @@ private:
   struct MapBinder
   {
     MapBinder(Matcher& parent) : _parent(parent) {}
+
+    bool bind(unsigned var, Prefix pref)
+    {
+      //dummy does nothing at the moment.
+     return false;
+    }
+
     bool bind(unsigned var, TermList term)
     {
       TermList* aux;
       if(_map.getValuePtr(var,aux,term)) {
-	if(_parent.bdIsRecording()) {
-	  _parent.bdAdd(new BindingBacktrackObject(this,var));
-	}
-	return true;
+        if(_parent.bdIsRecording()) {
+          _parent.bdAdd(new BindingBacktrackObject(this,var));
+        }
+        return true;
       } else {
-	return *aux==term;
+        return *aux==term;
       }
     }
     void specVar(unsigned var, TermList term)
@@ -326,17 +394,24 @@ bool MatchingUtils::matchArgs(Term* base, Term* instance, Binder& binder)
       }
       Term* s = bt->term();
       Term* t = it->term();
-      bool equivVarHeads = TermList::equivVarHeads(*bt, *it);
-      if(s->functor()!=t->functor() && !equivVarHeads) {
+      bool matchableVarHead = hasMatchableVarHead(*bt, *it);
+      if(s->functor()!=t->functor() && !matchableVarHead) {
         return false;
       }
-      //both terms shared 
-      if(s->shared() && t->shared()) {
-        if(s->ground() && *bt!=*it) {
+      if(matchableVarHead){
+        Prefix pref = getPrefix(*bt, *it);
+        if(!binder.bind(s->functor(),pref)) {
           return false;
         }
-        if(!s->hoVars() && !t->hoVars() && s->weight() > t->weight()) {
-          return false;
+      } else {
+        //both terms shared 
+        if(s->shared() && t->shared()) {
+          if(s->ground() && *bt!=*it) {
+            return false;
+          }
+          if(!s->hoVars() && !t->hoVars() && s->weight() > t->weight()) {
+            return false;
+          }
         }
       }
       if(s->arity() > 0) {
