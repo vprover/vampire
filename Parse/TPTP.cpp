@@ -224,6 +224,9 @@ void TPTP::parse()
     case SYMBOL_BINDING:
       symbolBinding();
       break;
+    case END_SYMBOL_BINDING:
+      endSymbolBinding();
+      break;
     case TUPLE_BINDING:
       if(!env.options->newCNF()){ USER_ERROR("Set --newcnf on if using tuples"); }
       tupleBinding();
@@ -288,8 +291,6 @@ vstring TPTP::toString(Tag tag)
     return ",";
   case T_COLON:
     return ":";
-  case T_SEMICOLON:
-    return ";";
   case T_NOT:
     return "~";
   case T_AND:
@@ -519,10 +520,6 @@ bool TPTP::readToken(Token& tok)
     }
     tok.tag = T_COLON;
     shiftChars(1);
-    return true;
-  case ';':
-    tok.tag = T_SEMICOLON;
-    resetChars();
     return true;
   case '~':
     if (getChar(1) == '&') {
@@ -1694,7 +1691,6 @@ void TPTP::termInfix()
       _states.push(FORMULA_INFIX);
       return;
     case T_COMMA:
-    case T_SEMICOLON:
     case T_RPAR:
     case T_RBRA:
     case T_ASS:
@@ -1784,13 +1780,81 @@ void TPTP::funApp()
       _states.push(FORMULA);
       return;
 
-    case T_LET:
+    case T_LET: {
+      consumeToken(T_LPAR);
       addTagState(T_RPAR);
       _states.push(TERM);
       addTagState(T_COMMA);
-      _states.push(BINDING);
-      consumeToken(T_LPAR);
-      return;
+
+      // At this point we parse one or more simultaneous definitions.
+      // Simultaneous definitions are of the form `[D1, ..., Dn]` and each
+      // definition is either of a function/predicate symbol `f(X,Y,Z) := t`
+      // or a tuple `[a, b, c] := t`.
+
+      // If the next token is '[', then the definition could either be
+      // a single tuple definition or a list of simultaneous definitions.
+      // This ambiguity is resolved by the next two tokens:
+      // if they are T_NAME and then T_COMMA, then it is a tuple definition,
+      // otherwise it is a a simultaneous definition.
+
+      // The challenge here is how to direct the parser while keeping it
+      // looking only one token ahead, like in the rest of TPTP.cpp.
+      // Essentially, the trick is to
+      //   1) have a boolean flag in _bools that tells whether the current let
+      //      definition is simultaneous or not;
+      //   2) consume the T_NAME token of a symbol definition here and not in
+      //      SYMBOL_BINDING;
+      //   3) consume the sequence T_LBRA, T_NAME, T_COMMA of tokens here and
+      //      not in TUPLE_BINDING.
+
+      switch (getTok(0).tag) {
+        case T_NAME:
+          _bools.push(false); // not a simultaneous definition
+          _strings.push(name());
+          _states.push(SYMBOL_BINDING);
+          return;
+
+        case T_LBRA: {
+          resetToks();
+          switch (getTok(0).tag) {
+            case T_NAME:
+              _strings.push(name());
+              switch (getTok(0).tag) {
+                case T_ASS:
+                case T_LPAR:
+                  _bools.push(true); // is a simultaneous definition
+                  addTagState(T_RBRA);
+                  _states.push(SYMBOL_BINDING);
+                  return;
+
+                case T_COMMA:
+                  resetToks();
+                  _bools.push(false); // not a simultaneous definition
+                  _states.push(TUPLE_BINDING);
+                  return;
+
+                default:
+                  PARSE_ERROR(toString(T_ASS) + " or " + toString(T_LPAR) + " or " + toString(T_COMMA) + " expected",
+                              getTok(0));
+              }
+              return;
+
+            case T_LBRA:
+              resetToks();
+              _bools.push(true); // is a simultaneous definition
+              addTagState(T_RBRA);
+              _states.push(TUPLE_BINDING);
+              return;
+
+            default:
+              PARSE_ERROR("name or " + toString(T_LBRA) + " expected",getTok(0));
+          }
+        }
+
+        default:
+          PARSE_ERROR("name or " + toString(T_LBRA) + " expected",getTok(0));
+      }
+    }
 
     case T_LBRA:
       _states.push(ARGS);
@@ -1822,15 +1886,17 @@ void TPTP::binding()
 
   switch (getTok(0).tag) {
     case T_NAME:
+      _strings.push(name());
       _states.push(SYMBOL_BINDING);
       break;
 
     case T_LBRA:
+      resetToks();
       _states.push(TUPLE_BINDING);
       break;
 
     default:
-      PARSE_ERROR("name or tuple expected",getTok(0));
+      PARSE_ERROR("name or " + toString(T_LBRA) + " expected",getTok(0));
   }
 } // TPTP::binding
 
@@ -1838,15 +1904,12 @@ void TPTP::symbolBinding()
 {
   CALL("TPTP::binding");
 
-  vstring nm = name();
-  _strings.push(nm);
-
   Token tok = getTok(0);
   switch (tok.tag) {
     case T_ASS:
     case T_LPAR:
       resetToks();
-      _states.push(END_BINDING);
+      _states.push(END_SYMBOL_BINDING);
       _states.push(TERM);
       if (tok.tag == T_LPAR) {
         addTagState(T_ASS);
@@ -1865,8 +1928,8 @@ void TPTP::symbolBinding()
   }
 } // TPTP::symbolBinding
 
-void TPTP::endBinding() {
-  CALL("TPTP::endBinding");
+void TPTP::endSymbolBinding() {
+  CALL("TPTP::endSymbolBinding");
 
   Formula::VarList* vars = _varLists.top(); // will be poped in endLet()
   _sortLists.pop();
@@ -1912,20 +1975,10 @@ void TPTP::endBinding() {
   _currentLetScope.push(LetFunction(functionName, functionReference));
   _currentBindingScope.push(LetBinding(symbolNumber, false));
 
-  Token tok = getTok(0);
-  if (tok.tag == T_SEMICOLON) {
-    resetToks();
-    _states.push(BINDING);
-  } else {
-    _letScopes.push(_currentLetScope);
-    _currentLetScope = LetFunctionsScope();
-
-    _letBindings.push(_currentBindingScope);
-    _currentBindingScope = LetBindingScope();
-  }
-
   _states.push(UNBIND_VARIABLES);
-} // endBinding
+
+  _states.push(END_BINDING);
+} // endSymbolBinding
 
 void TPTP::endTupleBinding() {
   CALL("TPTP::endTupleBinding");
@@ -1975,9 +2028,16 @@ void TPTP::endTupleBinding() {
   unsigned tupleFunctor = Theory::tuples()->getFunctor(bindingSort);
   _currentBindingScope.push(LetBinding(tupleFunctor, true));
 
-  Token tok = getTok(0);
-  if (tok.tag == T_SEMICOLON) {
+  _states.push(END_BINDING);
+} // endTupleBinding
+
+void TPTP::endBinding() {
+  CALL("TPTP::endBinding");
+
+  bool multipleDefinitions = _bools.pop();
+  if (multipleDefinitions && getTok(0).tag == T_COMMA) {
     resetToks();
+    _bools.push(multipleDefinitions);
     _states.push(BINDING);
   } else {
     _letScopes.push(_currentLetScope);
@@ -1986,7 +2046,7 @@ void TPTP::endTupleBinding() {
     _letBindings.push(_currentBindingScope);
     _currentBindingScope = LetBindingScope();
   }
-} // endTupleBinding
+} // endBinding
 
 bool TPTP::findLetSymbol(bool isPredicate, vstring name, unsigned arity, unsigned& symbol) {
   CALL("TPTP::findLetSymbol");
@@ -2185,7 +2245,6 @@ void TPTP::tupleBinding()
 {
   CALL("TPTP::tupleBinding");
 
-  consumeToken(T_LBRA);
   _states.push(END_TUPLE_BINDING);
   _states.push(TERM);
   addTagState(T_ASS);
@@ -4214,12 +4273,14 @@ const char* TPTP::toString(State s)
     return "MID_EQ";
   case BINDING:
     return "BINDING";
+  case END_BINDING:
+    return "END_BINDING";
   case SYMBOL_BINDING:
     return "SYMBOL_BINDING";
   case TUPLE_BINDING:
     return "TUPLE_BINDING";
-  case END_BINDING:
-    return "END_BINDING";
+  case END_SYMBOL_BINDING:
+    return "END_SYMBOL_BINDING";
   case END_TUPLE_BINDING:
     return "END_TUPLE_BINDING";
   case END_LET:

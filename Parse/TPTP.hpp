@@ -79,8 +79,6 @@ public:
     T_COMMA,
     /** ':' */
     T_COLON,
-    /** ';' */
-    T_SEMICOLON,
     /** '~' */
     T_NOT,
     /** '&' */
@@ -251,14 +249,16 @@ public:
     MID_EQ,
     /** end of $let expression */
     END_LET,
-    /** start of function or predicate binding inside $let */
+    /** start of a binding inside $let */
     BINDING,
+    /** end of a binding inside $let */
+    END_BINDING,
     /** start of a binding of a function or predicate symbol */
     SYMBOL_BINDING,
+    /** end of function or predicate binding inside $let */
+    END_SYMBOL_BINDING,
     /** start of tuple binding inside $let */
     TUPLE_BINDING,
-    /** end of function or predicate binding inside $let */
-    END_BINDING,
     /** end of tuple binding inside $let */
     END_TUPLE_BINDING,
     /** end of a theory function */
@@ -737,6 +737,7 @@ private:
   void endIte();
   void binding();
   void endBinding();
+  void endSymbolBinding();
   void endTupleBinding();
   void endLet();
   void endTheoryFunction();
