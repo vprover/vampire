@@ -218,6 +218,9 @@ void TPTP::parse()
     case BINDING:
       binding();
       break;
+    case MID_BINDING:
+      midBinding();
+      break;
     case END_BINDING:
       endBinding();
       break;
@@ -1785,75 +1788,8 @@ void TPTP::funApp()
       addTagState(T_RPAR);
       _states.push(TERM);
       addTagState(T_COMMA);
-
-      // At this point we parse one or more simultaneous definitions.
-      // Simultaneous definitions are of the form `[D1, ..., Dn]` and each
-      // definition is either of a function/predicate symbol `f(X,Y,Z) := t`
-      // or a tuple `[a, b, c] := t`.
-
-      // If the next token is '[', then the definition could either be
-      // a single tuple definition or a list of simultaneous definitions.
-      // This ambiguity is resolved by the next two tokens:
-      // if they are T_NAME and then T_COMMA, then it is a tuple definition,
-      // otherwise it is a a simultaneous definition.
-
-      // The challenge here is how to direct the parser while keeping it
-      // looking only one token ahead, like in the rest of TPTP.cpp.
-      // Essentially, the trick is to
-      //   1) have a boolean flag in _bools that tells whether the current let
-      //      definition is simultaneous or not;
-      //   2) consume the T_NAME token of a symbol definition here and not in
-      //      SYMBOL_BINDING;
-      //   3) consume the sequence T_LBRA, T_NAME, T_COMMA of tokens here and
-      //      not in TUPLE_BINDING.
-
-      switch (getTok(0).tag) {
-        case T_NAME:
-          _bools.push(false); // not a simultaneous definition
-          _strings.push(name());
-          _states.push(SYMBOL_BINDING);
-          return;
-
-        case T_LBRA: {
-          resetToks();
-          switch (getTok(0).tag) {
-            case T_NAME:
-              _strings.push(name());
-              switch (getTok(0).tag) {
-                case T_ASS:
-                case T_LPAR:
-                  _bools.push(true); // is a simultaneous definition
-                  addTagState(T_RBRA);
-                  _states.push(SYMBOL_BINDING);
-                  return;
-
-                case T_COMMA:
-                  resetToks();
-                  _bools.push(false); // not a simultaneous definition
-                  _states.push(TUPLE_BINDING);
-                  return;
-
-                default:
-                  PARSE_ERROR(toString(T_ASS) + " or " + toString(T_LPAR) + " or " + toString(T_COMMA) + " expected",
-                              getTok(0));
-              }
-              return;
-
-            case T_LBRA:
-              resetToks();
-              _bools.push(true); // is a simultaneous definition
-              addTagState(T_RBRA);
-              _states.push(TUPLE_BINDING);
-              return;
-
-            default:
-              PARSE_ERROR("name or " + toString(T_LBRA) + " expected",getTok(0));
-          }
-        }
-
-        default:
-          PARSE_ERROR("name or " + toString(T_LBRA) + " expected",getTok(0));
-      }
+      _states.push(BINDING);
+      return;
     }
 
     case T_LBRA:
@@ -1884,6 +1820,80 @@ void TPTP::binding()
 {
   CALL("TPTP::binding");
 
+  // At this point we parse one or more simultaneous definitions.
+  // Simultaneous definitions are of the form `[D1, ..., Dn]` and each
+  // definition is either of a function/predicate symbol `f(X,Y,Z) := t`
+  // or a tuple `[a, b, c] := t`.
+
+  // If the next token is '[', then the definition could either be
+  // a single tuple definition or a list of simultaneous definitions.
+  // This ambiguity is resolved by the next two tokens:
+  // if they are T_NAME and then T_COMMA, then it is a tuple definition,
+  // otherwise it is a a simultaneous definition.
+
+  // The challenge here is how to direct the parser while keeping it
+  // looking only one token ahead, like in the rest of TPTP.cpp.
+  // Essentially, the trick is to
+  //   1) have a boolean flag in _bools that tells whether the current let
+  //      definition is simultaneous or not;
+  //   2) consume the T_NAME token of a symbol definition here and not in
+  //      SYMBOL_BINDING;
+  //   3) consume the sequence T_LBRA, T_NAME, T_COMMA of tokens here and
+  //      not in TUPLE_BINDING.
+
+  switch (getTok(0).tag) {
+    case T_NAME:
+      _bools.push(false); // not a simultaneous definition
+      _strings.push(name());
+      _states.push(SYMBOL_BINDING);
+      return;
+
+    case T_LBRA: {
+      resetToks();
+      switch (getTok(0).tag) {
+        case T_NAME:
+          _strings.push(name());
+          switch (getTok(0).tag) {
+            case T_ASS:
+            case T_LPAR:
+              _bools.push(true); // is a simultaneous definition
+              addTagState(T_RBRA);
+              _states.push(SYMBOL_BINDING);
+              return;
+
+            case T_COMMA:
+              resetToks();
+              _bools.push(false); // not a simultaneous definition
+              _states.push(TUPLE_BINDING);
+              return;
+
+            default:
+              PARSE_ERROR(toString(T_ASS) + " or " + toString(T_LPAR) + " or " + toString(T_COMMA) + " expected",
+                          getTok(0));
+          }
+          return;
+
+        case T_LBRA:
+          resetToks();
+          _bools.push(true); // is a simultaneous definition
+          addTagState(T_RBRA);
+          _states.push(TUPLE_BINDING);
+          return;
+
+        default:
+          PARSE_ERROR("name or " + toString(T_LBRA) + " expected",getTok(0));
+      }
+    }
+
+    default:
+      PARSE_ERROR("name or " + toString(T_LBRA) + " expected",getTok(0));
+  }
+} // TPTP::binding
+
+void TPTP::midBinding()
+{
+  CALL("TPTP::midBinding");
+
   switch (getTok(0).tag) {
     case T_NAME:
       _strings.push(name());
@@ -1898,7 +1908,7 @@ void TPTP::binding()
     default:
       PARSE_ERROR("name or " + toString(T_LBRA) + " expected",getTok(0));
   }
-} // TPTP::binding
+} // TPTP::midBinding
 
 void TPTP::symbolBinding()
 {
@@ -2038,7 +2048,7 @@ void TPTP::endBinding() {
   if (multipleDefinitions && getTok(0).tag == T_COMMA) {
     resetToks();
     _bools.push(multipleDefinitions);
-    _states.push(BINDING);
+    _states.push(MID_BINDING);
   } else {
     _letScopes.push(_currentLetScope);
     _currentLetScope = LetFunctionsScope();
@@ -4273,6 +4283,8 @@ const char* TPTP::toString(State s)
     return "MID_EQ";
   case BINDING:
     return "BINDING";
+  case MID_BINDING:
+    return "MID_BINDING";
   case END_BINDING:
     return "END_BINDING";
   case SYMBOL_BINDING:

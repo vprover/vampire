@@ -251,6 +251,7 @@ public:
     END_LET,
     /** start of a binding inside $let */
     BINDING,
+    MID_BINDING,
     /** end of a binding inside $let */
     END_BINDING,
     /** start of a binding of a function or predicate symbol */
@@ -736,6 +737,7 @@ private:
   void type();
   void endIte();
   void binding();
+  void midBinding();
   void endBinding();
   void endSymbolBinding();
   void endTupleBinding();
