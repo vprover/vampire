@@ -764,6 +764,8 @@ private:
 
   bool findInterpretedPredicate(vstring name, unsigned arity);
 
+  OperatorType* constructOperatorType(Type* t);
+
 public:
   // make the tptp routines for dealing with overflown constants available to other parsers
   static unsigned addIntegerConstant(const vstring&, Set<vstring>& overflow, bool defaultSort);

@@ -3107,89 +3107,107 @@ void TPTP::endTff()
   ASS(_typeTags.isEmpty());
   Type* t = _types.pop();
   ASS(_types.isEmpty());
+
+  OperatorType* ot = constructOperatorType(t);
+
   vstring name = _strings.pop();
 
-  if (t->tag() == TT_PRODUCT) {
-    USER_ERROR("product types are not supported");
-  }
+  unsigned arity = ot->arity();
+  bool isPredicate = ot->isPredicateType();
 
-
-  //atomic types: 0-ary predicates (propositions) and constants (0-ary functions, eg. int constant, array1 constants)
-  if (t->tag() == TT_ATOMIC) {
-    unsigned sortNumber = static_cast<AtomicType*>(t)->sortNumber();
-    bool added;
-    if (sortNumber == Sorts::SRT_BOOL) {
-      env.signature->addPredicate(name,0,added);
-      if (!added) {
-	USER_ERROR("Predicate symbol type is declared after its use: " + name);
-      }
-      return;
-    }
-    // a constant
-    unsigned fun = addUninterpretedConstant(name,_overflow,added);
-    if (!added) {
-      USER_ERROR("Function symbol type is declared after its use: " + name);
-    }
-    env.signature->getFunction(fun)->setType(OperatorType::getConstantsType(sortNumber));
-    return;
-  }
-
-  //non-atomic types, i.e. with arrows
-  ASS(t->tag() == TT_ARROW);
-  ArrowType* at = static_cast<ArrowType*>(t);
-  Type* rhs = at->returnType();
-  if (rhs->tag() != TT_ATOMIC) {
-    USER_ERROR("complex return types are not supported");
-  }
-  unsigned returnSortNumber = static_cast<AtomicType*>(rhs)->sortNumber();
-  Stack<unsigned> sorts;
-  Stack<Type*> types;
-  types.push(at->argumentType());
-  while (!types.isEmpty()) {
-    Type* tp = types.pop();
-    switch (tp->tag()) {
-    case TT_ARROW:
-      USER_ERROR("higher-order types are not supported");
-    case TT_ATOMIC: {
-      unsigned sortNumber = static_cast<AtomicType *>(tp)->sortNumber();
-      sorts.push(sortNumber);
-      break;
-    }
-    case TT_PRODUCT:
-      {
-	ProductType* pt = static_cast<ProductType*>(tp);
-	types.push(pt->rhs());
-	types.push(pt->lhs());
-      }
-      break;
-#if VDEBUG
-    default:
-      ASSERTION_VIOLATION;
-#endif
-    }
-  }
-  unsigned arity = sorts.size();
   bool added;
   Signature::Symbol* symbol;
-  if (returnSortNumber == Sorts::SRT_BOOL) {
-    unsigned pred = env.signature->addPredicate(name,arity,added);
+  if (isPredicate) {
+    unsigned pred = env.signature->addPredicate(name, arity, added);
     if (!added) {
       USER_ERROR("Predicate symbol type is declared after its use: " + name);
     }
     symbol = env.signature->getPredicate(pred);
-    symbol->setType(OperatorType::getPredicateType(arity, sorts.begin()));
-  }
-  else {
+    if (arity != 0) {
+      symbol->setType(ot);
+    }
+  } else {
     unsigned fun = arity == 0
-                   ? addUninterpretedConstant(name,_overflow,added)
-                   : env.signature->addFunction(name,arity,added);
+                   ? addUninterpretedConstant(name, _overflow, added)
+                   : env.signature->addFunction(name, arity, added);
     if (!added) {
       USER_ERROR("Function symbol type is declared after its use: " + name);
     }
     symbol = env.signature->getFunction(fun);
-    symbol->setType(OperatorType::getFunctionType(arity, sorts.begin(), returnSortNumber));
+    symbol->setType(ot);
   }
 } // endTff
+
+OperatorType* TPTP::constructOperatorType(Type* t)
+{
+  CALL("TPTP::constructOperatorType");
+
+  unsigned resultSort;
+  Stack<unsigned> argumentSorts;
+
+  switch (t->tag()) {
+    case TT_PRODUCT:
+      USER_ERROR("product types are not supported");
+
+    case TT_ATOMIC: {
+      // atomic types: 0-ary predicates (propositions) and constants (0-ary functions, eg. int constant, array1 constants)
+      resultSort = static_cast<AtomicType*>(t)->sortNumber();
+      break;
+    }
+
+    case TT_ARROW: {
+      // non-atomic types, i.e. with arrows
+      ArrowType* at = static_cast<ArrowType*>(t);
+      Type* rhs = at->returnType();
+      if (rhs->tag() != TT_ATOMIC) {
+        USER_ERROR("complex return types are not supported");
+      }
+
+      resultSort = static_cast<AtomicType *>(rhs)->sortNumber();
+      Stack<Type*> types;
+      types.push(at->argumentType());
+      while (!types.isEmpty()) {
+        Type *tp = types.pop();
+        switch (tp->tag()) {
+          case TT_ARROW:
+            USER_ERROR("higher-order types are not supported");
+
+          case TT_ATOMIC: {
+            unsigned sortNumber = static_cast<AtomicType*>(tp)->sortNumber();
+            argumentSorts.push(sortNumber);
+            break;
+          }
+
+          case TT_PRODUCT: {
+            ProductType* pt = static_cast<ProductType*>(tp);
+            types.push(pt->rhs());
+            types.push(pt->lhs());
+            break;
+          }
+
+#if VDEBUG
+          default:
+            ASSERTION_VIOLATION;
+#endif
+        }
+      }
+      break;
+    }
+
+#if VDEBUG
+    default:
+      ASSERTION_VIOLATION;
+#endif
+  }
+
+  bool isPredicate = resultSort == Sorts::SRT_BOOL;
+  unsigned arity = (unsigned)argumentSorts.size();
+  if (isPredicate) {
+    return OperatorType::getPredicateType(arity, argumentSorts.begin());
+  } else {
+    return OperatorType::getFunctionType(arity, argumentSorts.begin(), resultSort);
+  }
+} // constructOperatorType
 
 /**
  *
