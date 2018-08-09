@@ -2058,25 +2058,32 @@ void TPTP::endBinding() {
   }
 } // endBinding
 
-bool TPTP::findLetSymbol(bool isPredicate, vstring name, unsigned arity, unsigned& symbol) {
-  CALL("TPTP::findLetSymbol");
-
-  LetFunctionName functionName(name, arity);
+bool TPTP::findLetSymbol(LetFunctionName functionName, LetFunctionReference& functionReference) {
+  CALL("TPTP::findLetSymbol(LetFunctionName,LetFunctionReference)");
 
   Stack<LetFunctionsScope>::TopFirstIterator scopes(_letScopes);
   while (scopes.hasNext()) {
     LetFunctionsScope scope = scopes.next();
-    LetFunctionsScope::Iterator functions(scope);
-    while (functions.hasNext()) {
-      LetFunction function = functions.next();
-      if ((function.first == functionName) && (function.second.second == isPredicate)) {
-        symbol = function.second.first;
-        return true;
-      }
+    if (findLetSymbol(functionName, scope, functionReference)) {
+      return true;
     }
   }
   return false;
-} // findLetSymbol
+} // findLetSymbol(LetFunctionName,LetFunctionReference)
+
+bool TPTP::findLetSymbol(LetFunctionName functionName, LetFunctionsScope scope, LetFunctionReference& functionReference) {
+  CALL("TPTP::findLetSymbol(LetFunctionName,LetFunctionsScope,LetFunctionReference)");
+  LetFunctionsScope::Iterator functions(scope);
+  while (functions.hasNext()) {
+    LetFunction function = functions.next();
+    if (function.first == functionName) {
+      functionReference = function.second;
+      return true;
+    }
+  }
+  return false;
+} // findLetSymbol(LetFunctionName,LetFunctionsScope,LetFunctionReference)
+
 
 /**
  * Process the end of the $let expression
@@ -2367,9 +2374,9 @@ void TPTP::endTerm()
     return;
   }
 
-  unsigned symbol;
+  LetFunctionReference ref;
   if (env.signature->predicateExists(name, arity) ||
-      findLetSymbol(true, name, arity, symbol) ||
+      (findLetSymbol(LetFunctionName(name, arity), ref) && IS_PREDICATE(ref)) ||
       findInterpretedPredicate(name, arity)) {
     // if the function symbol is actually a predicate,
     // we need to construct a formula and wrap it inside a term
@@ -2533,9 +2540,9 @@ Formula* TPTP::createPredicateApplication(vstring name, unsigned arity)
   ASS_GE(_termLists.size(), arity);
 
   int pred;
-  unsigned letPred;
-  if (findLetSymbol(true, name, arity, letPred)) {
-    pred = (int)letPred;
+  LetFunctionReference ref;
+  if (findLetSymbol(LetFunctionName(name, arity), ref) && IS_PREDICATE(ref)) {
+    pred = (int)SYMBOL(ref);
   } else {
     if (arity > 0) {
       bool dummy;
@@ -2610,8 +2617,10 @@ TermList TPTP::createFunctionApplication(vstring name, unsigned arity)
   ASS_GE(_termLists.size(), arity);
 
   unsigned fun;
-
-  if (!findLetSymbol(false, name, arity, fun)) {
+  LetFunctionReference ref;
+  if (findLetSymbol(LetFunctionName(name, arity), ref) && !IS_PREDICATE(ref)) {
+    fun = SYMBOL(ref);
+  } else {
     bool dummy;
     if (arity > 0) {
       fun = addFunction(name, arity, dummy, _termLists.top());

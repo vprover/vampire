@@ -584,6 +584,8 @@ private:
   typedef pair<vstring, unsigned> LetFunctionName;
   /** a symbol number with a predicate/function flag */
   typedef pair<unsigned, bool> LetFunctionReference;
+  #define SYMBOL(ref) (ref.first)
+  #define IS_PREDICATE(ref) (ref.second)
   /** a definition of a function symbol, defined in $let */
   typedef pair<LetFunctionName, LetFunctionReference> LetFunction;
   /** a scope of function definitions */
@@ -591,7 +593,8 @@ private:
   /** a stack of scopes */
   Stack<LetFunctionsScope> _letScopes;
   /** finds if the symbol has been defined in an enclosing $let */
-  bool findLetSymbol(bool isPredicate, vstring name, unsigned arity, unsigned& symbol);
+  bool findLetSymbol(LetFunctionName functionName, LetFunctionReference& functionReference);
+  bool findLetSymbol(LetFunctionName functionName, LetFunctionsScope scope, LetFunctionReference& functionReference);
   /** the scope of the currently parsed $let-term */
   LetFunctionsScope _currentLetScope;
 
