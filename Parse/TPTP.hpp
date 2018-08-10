@@ -598,8 +598,7 @@ private:
   /** the scope of the currently parsed $let-term */
   LetFunctionsScope _currentLetScope;
 
-  typedef pair<unsigned, bool> LetBinding;
-  typedef Stack<LetBinding> LetBindingScope;
+  typedef Stack<LetFunctionReference> LetBindingScope;
   Stack<LetBindingScope> _letBindings;
   LetBindingScope _currentBindingScope;
 

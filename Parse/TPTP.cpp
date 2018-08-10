@@ -1983,7 +1983,7 @@ void TPTP::endSymbolBinding() {
   }
 
   _currentLetScope.push(LetFunction(functionName, functionReference));
-  _currentBindingScope.push(LetBinding(symbolNumber, false));
+  _currentBindingScope.push(LetFunctionReference(symbolNumber, isPredicate));
 
   _states.push(UNBIND_VARIABLES);
 
@@ -2036,7 +2036,7 @@ void TPTP::endTupleBinding() {
   _varLists.push(constants);
 
   unsigned tupleFunctor = Theory::tuples()->getFunctor(bindingSort);
-  _currentBindingScope.push(LetBinding(tupleFunctor, true));
+  _currentBindingScope.push(LetFunctionReference(tupleFunctor, false));
 
   _states.push(END_BINDING);
 } // endTupleBinding
@@ -2100,9 +2100,16 @@ void TPTP::endLet()
   LetBindingScope scope = _letBindings.pop(); // TODO: inlining this crashes the program, WTF?
   LetBindingScope::TopFirstIterator bindings(scope);
   while (bindings.hasNext()) {
-    LetBinding binding = bindings.next();
-    unsigned symbol = binding.first;
-    bool isTuple = binding.second;
+    LetFunctionReference ref = bindings.next();
+    unsigned symbol = SYMBOL(ref);
+    bool isPredicate = IS_PREDICATE(ref);
+
+    bool isTuple = false;
+    if (!isPredicate) {
+      unsigned resultSort = env.signature->getFunction(symbol)->fnType()->result();
+      isTuple = env.sorts->isOfStructuredSort(resultSort, Sorts::StructuredSort::TUPLE);
+    }
+
     if (isTuple) {
       let = TermList(Term::createTupleLet(symbol, _varLists.pop(), _termLists.pop(), let, sort));
     } else {
@@ -4494,35 +4501,44 @@ void TPTP::printStacks() {
   while (lbsit.hasNext()) {
     LetBindingScope lbs = lbsit.next();
     LetBindingScope::Iterator lbit(lbs);
-    unsigned i = (unsigned)lbs.length();
-    if (lbit.hasNext()) {
+    if (!lbit.hasNext()) {
+      cout << "<empty>";
+    } else {
+      cout << "[";
+      unsigned i = (unsigned)lbs.length();
       while (lbit.hasNext()) {
-        LetBinding b = lbit.next();
-        unsigned symbol = b.first;
-        bool isTuple = b.second;
-        if (isTuple) {
-          cout << env.sorts->sortName(env.signature->getFunction(symbol)->fnType()->result());
-        } else {
-          cout << env.signature->functionName(symbol);
+        LetFunctionReference ref = lbit.next();
+        unsigned symbol = SYMBOL(ref);
+        bool isPredicate = IS_PREDICATE(ref);
+        vstring symbolName = isPredicate ? env.signature->predicateName(symbol)
+                                         : env.signature->functionName (symbol);
+        cout << symbolName;
+        if (--i > 0) {
+          cout << ", ";
         }
       }
-      if (--i > 0) {
-        cout << ", ";
-      }
+      cout << "]";
     }
   }
   cout << endl;
 
   LetBindingScope::Iterator clbsit(_currentBindingScope);
-  cout << "Current let bindings scope:";
+  cout << "Current let bindings scope: ";
   if (!clbsit.hasNext()) {
-    cout << " <empty>";
+    cout << "<empty>";
   } else {
+    cout << "[";
+    unsigned i = (unsigned)_currentBindingScope.length();
     while (clbsit.hasNext()) {
-      LetBinding b    = clbsit.next();
-      unsigned symbol = b.first;
-      bool isTuple = b.second;
-      cout << symbol << "," << isTuple << " ";
+      LetFunctionReference ref = clbsit.next();
+      unsigned symbol = SYMBOL(ref);
+      bool isPredicate = IS_PREDICATE(ref);
+      vstring symbolName = isPredicate ? env.signature->predicateName(symbol)
+                                       : env.signature->functionName (symbol);
+      cout << symbolName;
+      if (--i > 0) {
+        cout << ", ";
+      }
     }
   }
   cout << endl;
