@@ -249,6 +249,10 @@ public:
     MID_EQ,
     /** end of $let expression */
     END_LET,
+    /** a type signature in a let expression */
+    LET_TYPE,
+    /** end of let type signature */
+    END_LET_TYPES,
     /** start of a binding inside $let */
     BINDING,
     MID_BINDING,
@@ -256,12 +260,8 @@ public:
     END_BINDING,
     /** start of a binding of a function or predicate symbol */
     SYMBOL_BINDING,
-    /** end of function or predicate binding inside $let */
-    END_SYMBOL_BINDING,
     /** start of tuple binding inside $let */
     TUPLE_BINDING,
-    /** end of tuple binding inside $let */
-    END_TUPLE_BINDING,
     /** end of a theory function */
     END_THEORY_FUNCTION
   };
@@ -592,15 +592,13 @@ private:
   typedef Stack<LetFunction> LetFunctionsScope;
   /** a stack of scopes */
   Stack<LetFunctionsScope> _letScopes;
+  Stack<LetFunctionsScope> _currentLetScopes;
   /** finds if the symbol has been defined in an enclosing $let */
   bool findLetSymbol(LetFunctionName functionName, LetFunctionReference& functionReference);
   bool findLetSymbol(LetFunctionName functionName, LetFunctionsScope scope, LetFunctionReference& functionReference);
-  /** the scope of the currently parsed $let-term */
-  LetFunctionsScope _currentLetScope;
 
   typedef Stack<LetFunctionReference> LetBindingScope;
   Stack<LetBindingScope> _letBindings;
-  LetBindingScope _currentBindingScope;
 
   /** model definition formula */
   bool _modelDefinition;
@@ -738,11 +736,11 @@ private:
   void include();
   void type();
   void endIte();
+  void letType();
+  void endLetTypes();
   void binding();
   void midBinding();
   void endBinding();
-  void endSymbolBinding();
-  void endTupleBinding();
   void endLet();
   void endTheoryFunction();
   void endTuple();

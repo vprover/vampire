@@ -215,6 +215,12 @@ void TPTP::parse()
     case END_ITE:
       endIte();
       break;
+    case LET_TYPE:
+      letType();
+      break;
+    case END_LET_TYPES:
+      endLetTypes();
+      break;
     case BINDING:
       binding();
       break;
@@ -227,15 +233,9 @@ void TPTP::parse()
     case SYMBOL_BINDING:
       symbolBinding();
       break;
-    case END_SYMBOL_BINDING:
-      endSymbolBinding();
-      break;
     case TUPLE_BINDING:
       if(!env.options->newCNF()){ USER_ERROR("Set --newcnf on if using tuples"); }
       tupleBinding();
-      break;
-    case END_TUPLE_BINDING:
-      endTupleBinding();
       break;
     case END_LET:
       endLet();
@@ -1789,6 +1789,20 @@ void TPTP::funApp()
       _states.push(TERM);
       addTagState(T_COMMA);
       _states.push(BINDING);
+      _letBindings.push(LetBindingScope());
+      addTagState(T_COMMA);
+
+      bool multipleLetTypes = false;
+      if (getTok(0).tag == T_LBRA) {
+        resetToks();
+        addTagState(T_RBRA);
+        multipleLetTypes = true;
+      }
+      _bools.push(multipleLetTypes);
+
+      _states.push(END_LET_TYPES);
+      _states.push(LET_TYPE);
+      _currentLetScopes.push(LetFunctionsScope());
       return;
     }
 
@@ -1815,6 +1829,61 @@ void TPTP::funApp()
       PARSE_ERROR("unexpected token", tok);
   }
 } // TPTP::funApp
+
+void TPTP::letType()
+{
+  CALL("TPTP::letType");
+
+  // We cannot use this method in TPTP::tff() because type declarations in the
+  // "type" role TFF units allow declarations of types ($tType), which are not
+  // allowed inside $lets
+
+  _states.push(TYPE);
+  addTagState(T_COLON);
+  _strings.push(name());
+} // TPTP::letType
+
+void TPTP::endLetTypes()
+{
+  CALL("TPTP::endLetTypes");
+
+  vstring name = _strings.pop();
+  Type* t = _types.pop();
+  OperatorType* type = constructOperatorType(t);
+
+  unsigned arity = type->arity();
+  bool isPredicate = type->isPredicateType();
+
+  unsigned symbol = isPredicate
+                  ? env.signature->addFreshPredicate(arity, name.c_str())
+                  : env.signature->addFreshFunction(arity,  name.c_str());
+
+  if (isPredicate) {
+    env.signature->getPredicate(symbol)->setType(type);
+  } else {
+    env.signature->getFunction(symbol)->setType(type);
+  }
+
+  LetFunctionName functionName(name, arity);
+  LetFunctionReference functionReference(symbol, isPredicate);
+
+  LetFunctionsScope scope = _currentLetScopes.pop();
+
+  if (findLetSymbol(functionName, scope, functionReference)) {
+    USER_ERROR("The symbol " + name + " of arity " + Int::toString(arity) + " is defined twice in a $let-expression.");
+  }
+
+  scope.push(LetFunction(functionName, functionReference));
+  _currentLetScopes.push(scope);
+
+  bool multipleLetTypes = _bools.pop();
+  if (multipleLetTypes && getTok(0).tag == T_COMMA) {
+    resetToks();
+    _bools.push(multipleLetTypes);
+    _states.push(END_LET_TYPES);
+    _states.push(LET_TYPE);
+  }
+} // TPTP::endLetTypes
 
 void TPTP::binding()
 {
@@ -1912,137 +1981,167 @@ void TPTP::midBinding()
 
 void TPTP::symbolBinding()
 {
-  CALL("TPTP::binding");
+  CALL("TPTP::symbolBinding");
 
-  Token tok = getTok(0);
-  switch (tok.tag) {
-    case T_ASS:
-    case T_LPAR:
-      resetToks();
-      _states.push(END_SYMBOL_BINDING);
-      _states.push(TERM);
-      if (tok.tag == T_LPAR) {
-        addTagState(T_ASS);
-        addTagState(T_RPAR);
-        _states.push(VAR_LIST);
+  vstring nm = _strings.pop();
+  unsigned arity = 0;
+  Formula::VarList* vs = Formula::VarList::empty();
+
+  Stack<unsigned> vars;
+  if (getTok(0).tag == T_LPAR) {
+    resetToks();
+    for (;;) {
+      if (getTok(0).tag == T_VAR) {
+        int var = _vars.insert(getTok(0).content);
+        vars.push(var);
+        resetToks();
       } else {
-        // empty list of vars
-        _varLists.push(0);
-        _sortLists.push(0);
-        _bindLists.push(0);
+        PARSE_ERROR("variable expected", getTok(0));
       }
-      return;
 
-    default:
-      PARSE_ERROR(toString(T_LPAR) + " or " + toString(T_ASS) + " expected", tok);
+
+      if (getTok(0).tag == T_COMMA) {
+        resetToks();
+        continue;
+      }
+
+      if (getTok(0).tag == T_RPAR) {
+        resetToks();
+        break;
+      }
+
+      PARSE_ERROR("comma or closing bracket expected", getTok(0));
+    }
+    arity = (unsigned)vars.size();
   }
+
+  LetFunctionName name(nm, arity);
+  LetFunctionReference ref;
+  if (!findLetSymbol(name, _currentLetScopes.top(), ref)) {
+    USER_ERROR("Symbol " + nm + " with arity " + Int::toString(arity) + " is used in a let definition without a declared type");
+  }
+
+  unsigned symbol = SYMBOL(ref);
+  bool isPredicate = IS_PREDICATE(ref);
+
+  if (arity > 0) {
+    OperatorType* type = isPredicate
+                       ? env.signature->getPredicate(symbol)->predType()
+                       : env.signature->getFunction(symbol)->fnType();
+
+    unsigned index = 0;
+    while (vars.isNonEmpty()) {
+      int var = vars.pop();
+      unsigned sort = type->arg(arity - 1 - index++);
+      bindVariable(var, sort);
+      vs = new Formula::VarList(var, vs);
+    }
+
+    _bindLists.push(vs);
+    _states.push(UNBIND_VARIABLES);
+  }
+
+  LetBindingScope bindings = _letBindings.pop();
+  bindings.push(LetFunctionReference(symbol, isPredicate));
+  _letBindings.push(bindings);
+
+  _varLists.push(vs);
+
+  _states.push(END_BINDING);
+  consumeToken(T_ASS);
+  _states.push(TERM);
 } // TPTP::symbolBinding
 
-void TPTP::endSymbolBinding() {
-  CALL("TPTP::endSymbolBinding");
+/**
+ * Read a non-empty sequence of constants and save the resulting
+ * sequence of TermList and their number
+ * @since 20/04/2016 Gothenburg
+ */
+void TPTP::tupleBinding()
+{
+  CALL("TPTP::tupleBinding");
 
-  Formula::VarList* vars = _varLists.top(); // will be poped in endLet()
-  _sortLists.pop();
-  Stack<unsigned> argSorts(0);
-  Formula::VarList::Iterator vit(vars);
-  while (vit.hasNext()) {
-    unsigned var = (unsigned)vit.next();
-    ASS_REP(_variableSorts.find(var), var);
-    const SortList* sorts = _variableSorts.get(var);
-    ASS_REP(SortList::isNonEmpty(sorts), var);
-    argSorts.push(sorts->head());
-  }
+  Set<vstring> uniqueConstants;
+  Stack<unsigned> symbols;
+  Stack<unsigned> sorts;
 
-  unsigned arity = Formula::VarList::length(vars);
-
-  TermList binding = _termLists.top();
-  unsigned bindingSort = sortOf(binding);
-  bool isPredicate = bindingSort == Sorts::SRT_BOOL;
-
-  vstring name = _strings.pop();
-
-  unsigned symbolNumber = isPredicate ? env.signature->addFreshPredicate(arity,name.c_str())
-                                      : env.signature->addFreshFunction (arity,name.c_str());
-
-  if (isPredicate) {
-    OperatorType* type = OperatorType::getPredicateType(arity, argSorts.begin());
-    env.signature->getPredicate(symbolNumber)->setType(type);
-  } else {
-    OperatorType* type = OperatorType::getFunctionType(arity, argSorts.begin(), bindingSort);
-    env.signature->getFunction(symbolNumber)->setType(type);
-  }
-
-  LetFunctionName functionName(name, arity);
-  LetFunctionReference functionReference(symbolNumber, isPredicate);
-
-  LetFunctionsScope::Iterator functions(_currentLetScope);
-  while (functions.hasNext()) {
-    if (functions.next().first == functionName) {
-      USER_ERROR("The symbol " + name + " of arity " + Int::toString(arity) + " is defined twice in a $let-expression.");
+  vstring constant = _strings.pop();
+  do {
+    if (uniqueConstants.contains(constant)) {
+      USER_ERROR("The symbol " + constant + " is defined twice in a tuple $let-expression.");
+    } else {
+      uniqueConstants.insert(constant);
     }
-  }
 
-  _currentLetScope.push(LetFunction(functionName, functionReference));
-  _currentBindingScope.push(LetFunctionReference(symbolNumber, isPredicate));
+    LetFunctionName constantName(constant, 0);
+    LetFunctionReference ref;
+    if (!findLetSymbol(constantName, _currentLetScopes.top(), ref)) {
+      USER_ERROR("Constant " + constant + " is used in a tuple let definition without a declared sort");
+    }
 
-  _states.push(UNBIND_VARIABLES);
+    unsigned symbol = SYMBOL(ref);
+    bool isPredicate = IS_PREDICATE(ref);
 
-  _states.push(END_BINDING);
-} // endSymbolBinding
+    symbols.push(symbol);
 
-void TPTP::endTupleBinding() {
-  CALL("TPTP::endTupleBinding");
+    unsigned sort = isPredicate
+                  ? Sorts::SRT_BOOL
+                  : env.signature->getFunction(symbol)->fnType()->result();
+    sorts.push(sort);
 
-  TermList binding = _termLists.top();
-  unsigned bindingSort = sortOf(binding);
+    if (getTok(0).tag == T_NAME) {
+      constant = name();
+      if (getTok(0).tag == T_COMMA) {
+        resetToks();
+      }
+    } else {
+      break;
+    }
+  } while (true);
 
-  if (!env.sorts->isOfStructuredSort(bindingSort, Sorts::StructuredSort::TUPLE)) {
-    USER_ERROR("The binding of a tuple let expression is not a tuple but has the sort " + env.sorts->sortName(bindingSort));
-  }
+  unsigned tupleSort = env.sorts->addTupleSort((unsigned)sorts.length(), sorts.begin());
+  unsigned tupleFunctor = Theory::tuples()->getFunctor(tupleSort);
 
-  Sorts::TupleSort* tupleSort = env.sorts->getTupleSort(bindingSort);
-  unsigned tupleArity = tupleSort->arity();
+  LetBindingScope bindings = _letBindings.pop();
+  bindings.push(LetFunctionReference(tupleFunctor, false));
+  _letBindings.push(bindings);
 
-  Set<vstring> uniqueSymbolNames;
   IntList* constants = IntList::empty();
-  for (unsigned i = 0; i < tupleArity; i++) {
-    vstring name = _strings.pop();
-    if (uniqueSymbolNames.contains(name)) {
-      USER_ERROR("The symbol " + name + " is defined twice in a tuple $let-expression.");
-    } else {
-      uniqueSymbolNames.insert(name);
-    }
-
-    unsigned sort = tupleSort->argument(tupleArity - i - 1);
-
-    bool isPredicate = sort == Sorts::SRT_BOOL;
-
-    unsigned symbol;
-    if (isPredicate) {
-      symbol = env.signature->addFreshPredicate(0, name.c_str());
-      env.signature->getPredicate(symbol)->setType(OperatorType::getPredicateType(0, 0));
-    } else {
-      symbol = env.signature->addFreshFunction(0, name.c_str());
-      env.signature->getFunction(symbol)->setType(OperatorType::getConstantsType(sort));
-    }
-
-    IntList::push(symbol, constants);
-
-    LetFunctionName functionName(name, 0);
-    LetFunctionReference functionReference(symbol, isPredicate);
-    _currentLetScope.push(LetFunction(functionName, functionReference));
-  }
-
+  IntList::pushFromIterator(Stack<unsigned>::Iterator(symbols), constants);
   _varLists.push(constants);
 
-  unsigned tupleFunctor = Theory::tuples()->getFunctor(bindingSort);
-  _currentBindingScope.push(LetFunctionReference(tupleFunctor, false));
-
   _states.push(END_BINDING);
-} // endTupleBinding
+  _states.push(TERM);
+  addTagState(T_ASS);
+  addTagState(T_RBRA);
+} // tupleBinding
 
 void TPTP::endBinding() {
   CALL("TPTP::endBinding");
+
+  LetFunctionReference ref = _letBindings.top().top();
+  unsigned symbol = SYMBOL(ref);
+  bool isPredicate = IS_PREDICATE(ref);
+
+  TermList binding = _termLists.top();
+  unsigned bindingSort = sortOf(binding);
+
+  unsigned refSort = isPredicate
+                     ? Sorts::SRT_BOOL
+                     : env.signature->getFunction(symbol)->fnType()->result();
+
+  if (refSort != bindingSort) {
+    vstring bindingSortName = env.sorts->sortName(bindingSort);
+    vstring refSymbolName = isPredicate
+                            ? env.signature->predicateName(symbol)
+                            : env.signature->functionName(symbol);
+    OperatorType* type = isPredicate
+                         ? env.signature->getPredicate(symbol)->predType()
+                         : env.signature->getFunction(symbol)->fnType();
+    USER_ERROR("The term " + binding.toString() + " of the sort " + bindingSortName +
+               " is used as definition of the symbol " + refSymbolName +
+               " of the type " + type->toString());
+  }
 
   bool multipleDefinitions = _bools.pop();
   if (multipleDefinitions && getTok(0).tag == T_COMMA) {
@@ -2050,11 +2149,7 @@ void TPTP::endBinding() {
     _bools.push(multipleDefinitions);
     _states.push(MID_BINDING);
   } else {
-    _letScopes.push(_currentLetScope);
-    _currentLetScope = LetFunctionsScope();
-
-    _letBindings.push(_currentBindingScope);
-    _currentBindingScope = LetBindingScope();
+    _letScopes.push(_currentLetScopes.pop());
   }
 } // endBinding
 
@@ -2104,6 +2199,9 @@ void TPTP::endLet()
     unsigned symbol = SYMBOL(ref);
     bool isPredicate = IS_PREDICATE(ref);
 
+    Formula::VarList* varList = _varLists.pop();
+    TermList binding = _termLists.pop();
+
     bool isTuple = false;
     if (!isPredicate) {
       unsigned resultSort = env.signature->getFunction(symbol)->fnType()->result();
@@ -2111,9 +2209,9 @@ void TPTP::endLet()
     }
 
     if (isTuple) {
-      let = TermList(Term::createTupleLet(symbol, _varLists.pop(), _termLists.pop(), let, sort));
+      let = TermList(Term::createTupleLet(symbol, varList, binding, let, sort));
     } else {
-      let = TermList(Term::createLet(symbol, _varLists.pop(), _termLists.pop(), let, sort));
+      let = TermList(Term::createLet(symbol, varList, binding, let, sort));
     }
   }
   _termLists.push(let);
@@ -2259,30 +2357,6 @@ void TPTP::varList()
     }
   }
 } // varList
-
-/**
- * Read a non-empty sequence of constants and save the resulting
- * sequence of TermList and their number
- * @since 20/04/2016 Gothenburg
- */
-void TPTP::tupleBinding()
-{
-  CALL("TPTP::tupleBinding");
-
-  _states.push(END_TUPLE_BINDING);
-  _states.push(TERM);
-  addTagState(T_ASS);
-  addTagState(T_RBRA);
-
-  for (;;) {
-    vstring nm = name();
-    _strings.push(nm);
-    if (getTok(0).tag != T_COMMA) {
-      break;
-    }
-    resetToks();
-  }
-} // constantList
 
 /**
  * Read a term and save the resulting TermList
@@ -4315,6 +4389,10 @@ const char* TPTP::toString(State s)
     return "END_ARGS";
   case MID_EQ:
     return "MID_EQ";
+  case LET_TYPE:
+    return "LET_TYPE";
+  case END_LET_TYPES:
+    return "END_LET_TYPES";
   case BINDING:
     return "BINDING";
   case MID_BINDING:
@@ -4325,10 +4403,6 @@ const char* TPTP::toString(State s)
     return "SYMBOL_BINDING";
   case TUPLE_BINDING:
     return "TUPLE_BINDING";
-  case END_SYMBOL_BINDING:
-    return "END_SYMBOL_BINDING";
-  case END_TUPLE_BINDING:
-    return "END_TUPLE_BINDING";
   case END_LET:
     return "END_LET";
   case UNBIND_VARIABLES:
@@ -4475,22 +4549,31 @@ void TPTP::printStacks() {
   }
   cout << endl;
 
-  LetFunctionsScope::Iterator clfsit(_currentLetScope);
-  cout << "Current let functions scope:";
-  if (!clfsit.hasNext()) {
-    cout << " <empty>";
-  } else {
-    while (clfsit.hasNext()) {
-      LetFunction f    = clfsit.next();
-      vstring name     = f.first.first;
-      unsigned arity   = f.first.second;
-      unsigned symbol  = f.second.first;
-      bool isPredicate = f.second.second;
+  Stack<LetFunctionsScope>::Iterator clfsit(_currentLetScopes);
+  cout << "Current let functions scopes: ";
+  if (!clfsit.hasNext()) cout << "<empty>";
+  while (clfsit.hasNext()) {
+    LetFunctionsScope lfs = clfsit.next();
+    LetFunctionsScope::Iterator csit(lfs);
+    if (!csit.hasNext()) {
+      cout << "<empty>";
+    } else {
+      unsigned i = lfs.length();
+      while (csit.hasNext()) {
+        LetFunction f    = csit.next();
+        vstring name     = f.first.first;
+        unsigned arity   = f.first.second;
+        unsigned symbol  = f.second.first;
+        bool isPredicate = f.second.second;
 
-      vstring symbolName = isPredicate ? env.signature->predicateName(symbol)
-                                       : env.signature->functionName (symbol);
+        vstring symbolName = isPredicate ? env.signature->predicateName(symbol)
+                                         : env.signature->functionName (symbol);
 
-      cout << name << "/" << arity << " -> " << symbolName << " ";
+        cout << name << "/" << arity << " -> " << symbolName;
+        if (--i > 0) {
+          cout << ", ";
+        }
+      };
     }
   }
   cout << endl;
@@ -4518,27 +4601,6 @@ void TPTP::printStacks() {
         }
       }
       cout << "]";
-    }
-  }
-  cout << endl;
-
-  LetBindingScope::Iterator clbsit(_currentBindingScope);
-  cout << "Current let bindings scope: ";
-  if (!clbsit.hasNext()) {
-    cout << "<empty>";
-  } else {
-    cout << "[";
-    unsigned i = (unsigned)_currentBindingScope.length();
-    while (clbsit.hasNext()) {
-      LetFunctionReference ref = clbsit.next();
-      unsigned symbol = SYMBOL(ref);
-      bool isPredicate = IS_PREDICATE(ref);
-      vstring symbolName = isPredicate ? env.signature->predicateName(symbol)
-                                       : env.signature->functionName (symbol);
-      cout << symbolName;
-      if (--i > 0) {
-        cout << ", ";
-      }
     }
   }
   cout << endl;
