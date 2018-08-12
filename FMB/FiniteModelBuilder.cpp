@@ -718,7 +718,7 @@ void FiniteModelBuilder::init()
           _distinctSortMins[ds.next()]=max;
         }
 #if VTRACE_FMB
-        cout << "Setting min for " << env.count->sortName(s) << " to " << max << endl;
+        cout << "Setting min for " << env.sorts->sortName(s) << " to " << max << endl;
 #endif
       }
     }
