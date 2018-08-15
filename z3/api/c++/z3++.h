@@ -1654,7 +1654,8 @@ namespace z3 {
         Z3_ast r;
         if (Z3_is_seq_sort(a.ctx(), a.get_sort())) {
             Z3_ast _args[2] = { a, b };
-            r = Z3_mk_seq_concat(a.ctx(), 2, _args);
+            //r = Z3_mk_seq_concat(a.ctx(), 2, _args);
+            r = Z3_mk_concat(a.ctx(), a, b);
         }
         else if (Z3_is_re_sort(a.ctx(), a.get_sort())) {
             Z3_ast _args[2] = { a, b };

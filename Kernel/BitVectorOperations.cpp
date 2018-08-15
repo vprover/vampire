@@ -340,6 +340,31 @@ void BitVectorOperations::makeZeroBVCT(BitVectorConstantType& in)
 }
   
   
+
+BitVectorConstantType BitVectorOperations::getSignedMaxBVCT(unsigned size)
+{
+    CALL("BitVectorOperations::getSignedMaxBVCT(unsigned)");
+    BitVectorConstantType res(size);
+    res.setValueAt(size-1,false);
+    for (unsigned i =0; i < size - 1; ++i){
+        res.setValueAt(i,true);
+    }
+    return res;
+}
+
+BitVectorConstantType BitVectorOperations::getSignedMinBVCT(unsigned size)
+{
+    CALL("BitVectorOperations::getSignedMinBVCT(unsigned)");
+    BitVectorConstantType res(size);
+    res.setValueAt(size-1,true);
+    for (unsigned i =0; i < size - 1; ++i){
+        res.setValueAt(i,false);
+    }
+    return res;
+}
+
+
+
 BitVectorConstantType BitVectorOperations::getOneBVCT(unsigned size)
 {
     CALL("BitVectorOperations::getOneBVCT(unsigned)");

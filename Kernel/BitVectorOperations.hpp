@@ -44,6 +44,9 @@ namespace Kernel {
     static BitVectorConstantType getOneBVCT(unsigned size);
     static void makeAllOnesBVCT(BitVectorConstantType& in);
     static BitVectorConstantType getAllOnesBVCT(unsigned size);
+
+    static BitVectorConstantType getSignedMaxBVCT(unsigned size);
+    static BitVectorConstantType getSignedMinBVCT(unsigned size);
     
     static void bvneg(const BitVectorConstantType& arg, BitVectorConstantType& res);
     static void bvnot(const BitVectorConstantType& arg, BitVectorConstantType& res);
@@ -84,6 +87,8 @@ namespace Kernel {
     static void bvsge(const BitVectorConstantType& arg1, const BitVectorConstantType& arg2 , bool& result);
     
     
+
+
     private:
 
    static DHMap<char, BitVectorConstantType> map;

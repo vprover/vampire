@@ -90,8 +90,19 @@ private:
   void addBVXNORAxiom1(Interpretation xnor, Interpretation bvor , Interpretation bvand, Interpretation bvnot, unsigned size);
   void addBVUleAxiom1(Interpretation bvule, Interpretation bvult,unsigned size);
   void addBVReverseAndMoreAxiom(Interpretation bvugt, Interpretation bvult,unsigned size);
+
+
+
+  ////
+  void addConcatAxiom1(unsigned srt0, unsigned srt1, unsigned resultSrt);
  
-  
+  void addMaxAxiom(Interpretation p, unsigned srt);
+
+  void addFlipOverAxiom(unsigned srt);
+
+  void addBVNotAxiom(unsigned srt);
+  ////
+
   void addExtraIntegerOrderingAxiom(Interpretation plus, TermList oneElement, Interpretation less);
 
   void addQuotientAxioms(Interpretation quotient, Interpretation multiply, TermList zeroElement, TermList oneElement,
