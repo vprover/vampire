@@ -2903,6 +2903,10 @@ bool Options::complete(const Problem& prb) const
     return false;
   }
 
+  if(_maxWeight.actualValue > 0){
+    return false;
+  }
+
   Property& prop = *prb.getProperty();
 
   // general properties causing incompleteness
