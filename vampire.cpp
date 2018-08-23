@@ -115,9 +115,6 @@ using namespace Saturation;
 using namespace Inferences;
 using namespace InstGen;
 
-Problem* globProblem = 0;
-UnitList* globUnitList=0;
-
 /**
  * Return value is non-zero unless we were successful.
  *
@@ -170,7 +167,6 @@ Problem* getPreprocessedProblem()
   Shell::Preprocess prepro(*env.options);
   //phases for preprocessing are being set inside the preprocess method
   prepro.preprocess(*prb);
-  globProblem = prb;
   
   // TODO: could this be the right way to freeing the currently leaking classes like Units, Clauses and Inferences?
   // globUnitList = prb->units();
@@ -1001,10 +997,6 @@ int main(int argc, char* argv[])
       USER_ERROR("Unsupported mode");
     }
 #if CHECK_LEAKS
-    if (globUnitList) {
-      MemoryLeak leak;
-      leak.release(globUnitList);
-    }
     delete env.signature;
     env.signature = 0;
 #endif
