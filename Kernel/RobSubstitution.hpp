@@ -168,20 +168,20 @@ public:
     {
       bool termSameContent=term.sameContent(&ts.term);
       if(!termSameContent && term.isTerm() && term.term()->isLiteral() &&
-	ts.term.isTerm() && ts.term.term()->isLiteral()) {
-	const Literal* l1=static_cast<const Literal*>(term.term());
-	const Literal* l2=static_cast<const Literal*>(ts.term.term());
-	if(l1->functor()==l2->functor() && l1->arity()==0) {
-	  return true;
-	}
+        ts.term.isTerm() && ts.term.term()->isLiteral()) {
+        const Literal* l1=static_cast<const Literal*>(term.term());
+        const Literal* l2=static_cast<const Literal*>(ts.term.term());
+        if(l1->functor()==l2->functor() && l1->arity()==0) {
+          return true;
+        }
       }
       if(!termSameContent) {
-	return false;
+        return false;
       }
       return index==ts.index || term.isSpecialVar() ||
-      	(term.isTerm() && (
-	  (term.term()->shared() && term.term()->ground()) ||
-	  term.term()->arity()==0 ));
+        (term.isTerm() && 
+        ((term.term()->shared() && term.term()->ground()) ||
+        term.term()->arity()==0 ));
     }
 
     bool isVar()

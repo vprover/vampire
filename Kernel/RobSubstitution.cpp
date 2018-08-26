@@ -310,14 +310,14 @@ bool RobSubstitution::occurs(VarSpec vs, TermSpec ts)
     while(vit.hasNext()) {
       VarSpec tvar=root(getVarSpec(vit.next(), ts.index));
       if(tvar==vs) {
-	return true;
+        return true;
       }
       if(!encountered.find(tvar)) {
-	TermSpec dtvar=derefBound(TermSpec(tvar));
-	if(!dtvar.isVar()) {
-	  encountered.insert(tvar);
-	  toDo.push(dtvar);
-	}
+        TermSpec dtvar=derefBound(TermSpec(tvar));
+        if(!dtvar.isVar()) {
+          encountered.insert(tvar);
+          toDo.push(dtvar);
+        }
       }
     }
 
@@ -356,15 +356,15 @@ bool RobSubstitution::unify(TermSpec t1, TermSpec t2)
     } else if(dt1.isVar()) {
       VarSpec v1=getVarSpec(dt1);
       if(occurs(v1, dt2)) {
-	mismatch=true;
-	break;
+	      mismatch=true;
+        break;
       }
       bind(v1,dt2);
     } else if(dt2.isVar()) {
       VarSpec v2=getVarSpec(dt2);
       if(occurs(v2, dt1)) {
-	mismatch=true;
-	break;
+        mismatch=true;
+        break;
       }
       bind(v2,dt1);
     } else {
@@ -394,12 +394,12 @@ bool RobSubstitution::unify(TermSpec t1, TermSpec t2)
             if(ss->isVar()||tt->isVar()) {
               TTPair itm(tsss,tstt);
               if((itm.first.isVar() && isUnbound(getVarSpec(itm.first))) ||
-        	  (itm.second.isVar() && isUnbound(getVarSpec(itm.second))) ) {
+                (itm.second.isVar() && isUnbound(getVarSpec(itm.second))) ) {
                 toDo.push(itm);
               } else if(!encountered.find(itm)) {
-        	  toDo.push(itm);
-        	  encountered.insert(itm);
-        	}
+                toDo.push(itm);
+                encountered.insert(itm);
+              }
             } else {
               mismatch=true;
               break;

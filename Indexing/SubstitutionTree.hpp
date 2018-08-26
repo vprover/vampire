@@ -774,7 +774,7 @@ public:
 
     void createInitialBindings(Term* t);
     /**
-     * For a binary comutative literal, creates initial bindings,
+     * For a binary commutative literal, creates initial bindings,
      * where the order of special variables is reversed.
      */
     void createReversedInitialBindings(Term* t);
