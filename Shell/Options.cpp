@@ -1005,19 +1005,28 @@ void Options::Options::init()
       _lookup.insert(&_HOLConstantElimination);
       _HOLConstantElimination.tag(OptionTag::INFERENCES);
 
+      _combinatoryUnification = BoolOptionValue("combinatory_unif","cunif",false);
+      _combinatoryUnification.description=
+      "Syntactic unification is replaced by  \n"
+      "a restricted version of combinatory unifcation, \n"
+      "i.e., unification modulo the combinator axioms";    
+      _lookup.insert(&_combinatoryUnification);
+      _combinatoryUnification.tag(OptionTag::SATURATION); //This is not inference, change!
+
+
       _functionExtensionality = BoolOptionValue("add_func_ext_ax","afea",false);
       _functionExtensionality.description=
       "Adds function extensionality axioms for all higher-order input types. \n"
        "For example: ![F: a -> b, G: a -> b](![X: a] : F X = G X ) => F = G ";    
       _lookup.insert(&_functionExtensionality);
-      _functionExtensionality.tag(OptionTag::INFERENCES); //This is not inference, change!
+      _functionExtensionality.tag(OptionTag::OTHER); 
 
       _booleanExtensionality = BoolOptionValue("add_bool_ext_ax","abea",false);
       _booleanExtensionality.description=
       "Adds boolean extensionality axiom \n"
        "![X: o, Y:o] : (X <=> Y) => X = Y";    
       _lookup.insert(&_booleanExtensionality);
-      _booleanExtensionality.tag(OptionTag::INFERENCES); //This is not inference, change!
+      _booleanExtensionality.tag(OptionTag::OTHER);
       
       _combinatorElimination = ChoiceOptionValue<CombElimination>("combinator_elimination","combelim",
                                                                    CombElimination::AXIOMS,

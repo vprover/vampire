@@ -77,6 +77,10 @@ void TermSubstitutionTree::handleTerm(TermList t, Literal* lit, Clause* cls, boo
     ASS(t.isTerm());
     Term* term=t.term();
 
+    if(env.options->combinatoryUnification()){
+      term = toPlaceHolders(term);
+    }
+
     Term* normTerm=Renaming::normalize(term);
 
     BindingMap svBindings;
@@ -97,6 +101,7 @@ TermQueryResultIterator TermSubstitutionTree::getUnifications(TermList t,
 	  bool retrieveSubstitutions)
 {
   CALL("TermSubstitutionTree::getUnifications");
+
   if(t.isOrdinaryVar()) {
     return getAllUnifyingIterator(t,retrieveSubstitutions,false);
   } else {
@@ -409,5 +414,16 @@ TermQueryResultIterator TermSubstitutionTree::getAllUnifyingIterator(TermList tr
   }
 }
 
+/** Takes higher-order term in applicative form and replaces
+  * all subterms of the form @(@(...(X, t1) ... tn) or @(@(...(COMB, t1) ... tn)
+  * with a special term called a placeHolder term (represented by #).
+  */
+
+Term* TermSubstitutionTree::toPlaceHolders(Term* term){
+  CALL("TermSubstitutionTree::toPlaceHolders");
+
+
+
+}
 
 }

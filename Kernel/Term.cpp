@@ -1083,6 +1083,16 @@ Term* Term::foolFalse(){
   }
 
 /**
+ * Create placeholder term to stand in place of higherorder term of the form
+ * @(@(...(X, t1) ... tn) or @(@(...(COMB, t1) ... tn). placeholder terms should only
+ * occur within the substituion tree and only when combinatory unification is being used.
+ */
+
+Term* Term::placeHolderTerm(unsigned sort){
+   return createConstant(env.signature->getHigherOrderPlaceHolderTerm(sort));
+}
+
+/**
  * Return the list of all free variables of the term.
  * The result is only non-empty when there are quantified
  * formulas or $let-terms inside the term.

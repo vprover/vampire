@@ -60,6 +60,11 @@ public:
 
   bool unify(TermList t1,int index1, TermList t2, int index2);
   bool match(TermList base,int baseIndex, TermList instance, int instanceIndex);
+  /**
+   * Takes two terms t1 and t2. If they can possibly be unified
+   * using combinatory unification, returns true. Otherwise rteurns false
+   */
+  bool filter(TermList t1,int index1, TermList t2, int index2);
 
   bool unifyArgs(Term* t1,int index1, Term* t2, int index2);
   bool matchArgs(Term* base,int baseIndex, Term* instance, int instanceIndex);
@@ -153,9 +158,9 @@ public:
     explicit TermSpec(const VarSpec& vs) : index(vs.index)
     {
       if(index==SPECIAL_INDEX) {
-	term.makeSpecialVar(vs.var);
+        term.makeSpecialVar(vs.var);
       } else {
-	term.makeVar(vs.var);
+        term.makeVar(vs.var);
       }
     }
     /**
@@ -231,10 +236,13 @@ private:
   VarSpec root(VarSpec v) const;
   bool match(TermSpec base, TermSpec instance);
   bool unify(TermSpec t1, TermSpec t2);
+  bool filter(TermSpec t1, TermSpec t2);
   bool handleDifferentTops(TermSpec t1, TermSpec t2, Stack<TTPair>& toDo, TermList* ct);
   void makeEqual(VarSpec v1, VarSpec v2, TermSpec target);
   void unifyUnbound(VarSpec v, TermSpec ts);
   bool occurs(VarSpec vs, TermSpec ts);
+
+  bool hasVariableOrCombinatorHead(TermSpec ts);
 
   VarSpec getAuxVar(VarSpec target)
   {

@@ -37,6 +37,7 @@
 #include "Kernel/EqHelper.hpp"
 #include "Kernel/Ordering.hpp"
 #include "Kernel/LiteralSelector.hpp"
+#include "Kernel/Signature.hpp"
 #include "Saturation/SaturationAlgorithm.hpp"
 
 #include "EqualityResolution.hpp"
@@ -75,8 +76,15 @@ struct EqualityResolution::ResultFn
 
     static RobSubstitution subst;
     subst.reset();
-    if(!subst.unify(*lit->nthArgument(0),0,*lit->nthArgument(1),0)) {
-      return 0;
+    if(env.signature->isHOL()){
+      //Hack for testing. Filtering should be merely the first step to combinatory unification
+      if(!subst.filter(*lit->nthArgument(0),0,*lit->nthArgument(1),0)) {
+        return 0;
+      }
+    } else {
+      if(!subst.unify(*lit->nthArgument(0),0,*lit->nthArgument(1),0)) {
+        return 0;
+      }
     }
     unsigned newLen=_cLen-1;
 

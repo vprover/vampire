@@ -66,6 +66,7 @@ SubstitutionTree::SubstitutionTree(int nodes,bool useC)
   CALL("SubstitutionTree::SubstitutionTree");
 
 #if VDEBUG
+  //markTagged(); //to be removed AYB
   _iteratorCnt=0;
 #endif
 } // SubstitutionTree::SubstitutionTree
@@ -194,31 +195,31 @@ start:
       Node* child=inode->_nodes[0];
       bool removeProblematicNode=false;
       if(svBindings.find(boundVar)) {
-	TermList term=svBindings.get(boundVar);
-	bool wouldDescendIntoChild = inode->childByTop(term,false)!=0;
-	ASS_EQ(wouldDescendIntoChild, TermList::sameTop(term, child->term));
-	if(!wouldDescendIntoChild) {
-	  //if we'd have to perform all postponed splitting due to
-	  //node with a single child, we rather remove that node
-	  //from the tree and deal with the binding, it represented,
-	  //later.
-	  removeProblematicNode=true;
-	}
+        TermList term=svBindings.get(boundVar);
+        bool wouldDescendIntoChild = inode->childByTop(term,false)!=0;
+        ASS_EQ(wouldDescendIntoChild, TermList::sameTop(term, child->term));
+        if(!wouldDescendIntoChild) {
+          //if we'd have to perform all postponed splitting due to
+          //node with a single child, we rather remove that node
+          //from the tree and deal with the binding, it represented,
+          //later.
+          removeProblematicNode=true;
+        }
       } else if(!child->term.isTerm() || child->term.term()->shared()) {
-	//We can remove nodes binding to special variables undefined in our branch
-	//of the tree, as long as we're sure, that during split resolving we put these
-	//binding nodes below nodes that define spec. variables they bind.
-	removeProblematicNode=true;
+        //We can remove nodes binding to special variables undefined in our branch
+        //of the tree, as long as we're sure, that during split resolving we put these
+        //binding nodes below nodes that define spec. variables they bind.
+        removeProblematicNode=true;
       } else {
-	canPostponeSplits = false;
+        canPostponeSplits = false;
       }
       if(removeProblematicNode) {
-	unresolvedSplits.insert(UnresolvedSplitRecord(inode->childVar, child->term));
-	child->term=inode->term;
-	*pnode=child;
-	inode->makeEmpty();
-	delete inode;
-	goto start;
+        unresolvedSplits.insert(UnresolvedSplitRecord(inode->childVar, child->term));
+        child->term=inode->term;
+        *pnode=child;
+        inode->makeEmpty();
+        delete inode;
+        goto start;
       }
     }
   }
@@ -303,43 +304,43 @@ start:
       ASS(s->functor() == t->functor());
 
       if (s->shared()) {
-	// create a shallow copy of s
-	s = Term::cloneNonShared(s);
-	ss->setTerm(s);
+        // create a shallow copy of s
+        s = Term::cloneNonShared(s);
+        ss->setTerm(s);
       }
 
       ss = s->args();
       tt = t->args();
       if (ss->next()->isEmpty()) {
-	continue;
+        continue;
       }
       subterms.push(ss->next());
       subterms.push(tt->next());
     } else {
       if (! TermList::sameTop(*ss,*tt)) {
-	unsigned x;
-	if(!ss->isSpecialVar()) {
-	  x = _nextVar++;
-#if REORDERING
-	  unresolvedSplits.insert(UnresolvedSplitRecord(x,*ss));
-	  ss->makeSpecialVar(x);
-#else
-	  Node::split(pnode,ss,x);
-#endif
-	} else {
-	  x=ss->var();
-	}
-	svBindings.set(x,*tt);
+        unsigned x;
+        if(!ss->isSpecialVar()) {
+          x = _nextVar++;
+          #if REORDERING
+            unresolvedSplits.insert(UnresolvedSplitRecord(x,*ss));
+            ss->makeSpecialVar(x);
+          #else
+            Node::split(pnode,ss,x);
+          #endif
+        } else {
+          x=ss->var();
+        }
+        svBindings.set(x,*tt);
       }
 
       if (subterms.isEmpty()) {
-	break;
+        break;
       }
       tt = subterms.pop();
       ss = subterms.pop();
       if (! ss->next()->isEmpty()) {
-	subterms.push(ss->next());
-	subterms.push(tt->next());
+        subterms.push(ss->next());
+        subterms.push(tt->next());
       }
     }
   }
@@ -694,6 +695,9 @@ clientBDRecording(false), tree(parent), useConstraints(useC)
   ASS(!useConstraints || parent->_useC);
 
 #if VDEBUG
+ /* cout << "Finding unification partners for " + query->toString() << endl;
+  cout << parent->toString() << endl;
+  cout << "|||||||||||||||||||||||" << endl;*/
   tree->_iteratorCnt++;
 #endif
 
@@ -929,11 +933,16 @@ bool SubstitutionTree::UnificationsIterator::associate(TermList query, TermList 
 {
   CALL("SubstitutionTree::UnificationsIterator::associate");
 
-  bool result = subst.unify(query,NORM_QUERY_BANK,node,NORM_RESULT_BANK);
+  bool result;
+  if(env.signature->isHOL()){
+    result = subst.filter(query,NORM_QUERY_BANK,node,NORM_RESULT_BANK);
+  } else {
+    result = subst.unify(query,NORM_QUERY_BANK,node,NORM_RESULT_BANK);
+  }
 
 #if VDEBUG
   if(tag && result){
-    cout << "unify " << query.toString() << " and " << node.toString() << endl;
+    cout << "Are " << query.toString() << " and " << node.toString() << " unifiable? " << result << endl;
   }
 #endif
 

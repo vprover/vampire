@@ -94,6 +94,7 @@ private:
     return t->functor();
   }
 
+  Term* toPlaceHolders(Term* term);
 
   typedef SkipList<LeafData,LDComparator> LDSkipList;
   LDSkipList _vars;

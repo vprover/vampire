@@ -37,6 +37,7 @@
 #include "SortHelper.hpp"
 #include "Term.hpp"
 #include "TermIterators.hpp"
+#include "Signature.hpp"
 
 #include "Indexing/TermSharing.hpp"
 
@@ -68,6 +69,16 @@ bool RobSubstitution::unify(TermList t1,int index1, TermList t2, int index2)
 {
   CALL("RobSubstitution::unify/4");
   return unify(TermSpec(t1,index1), TermSpec(t2,index2));
+}
+
+/**
+ * If @b t1 and @b t2 can possibly be unified using combinatory unficition,
+ * return true. Otherwise return false.
+ */
+bool RobSubstitution::filter(TermList t1,int index1, TermList t2, int index2)
+{
+  CALL("RobSubstitution::filter");
+  return filter(TermSpec(t1,index1), TermSpec(t2,index2));
 }
 
 /**
@@ -147,7 +158,7 @@ bool RobSubstitution::isUnbound(VarSpec v) const
 
 /**
  * If special variable @b specialVar is bound to a proper term,
- * return a term, thjat has the same top functor. Otherwise
+ * return a term, that has the same top functor. Otherwise
  * return an arbitrary variable.
  */
 TermList RobSubstitution::getSpecialVarTop(unsigned specialVar) const
@@ -445,12 +456,180 @@ bool RobSubstitution::unify(TermSpec t1, TermSpec t2)
   return !mismatch;
 }
 
+bool RobSubstitution::filter(TermSpec t1, TermSpec t2)
+{
+  CALL("RobSubstitution::filter/2");
+
+  if(t1.sameTermContent(t2)) {
+    return true;
+  }
+
+  bool mismatch=false;
+  BacktrackData localBD;
+  bdRecord(localBD);
+
+  static Stack<TTPair> toDo(64);
+  static Stack<TermList*> subterms(64);
+  ASS(toDo.isEmpty() && subterms.isEmpty());
+
+  typedef DHSet<TTPair,TTPairHash> EncStore;
+  EncStore encountered;
+  encountered.reset();
+
+  for(;;) {
+    TermSpec dt1=derefBound(t1);
+    TermSpec dt2=derefBound(t2);
+
+    //cout << "unifying termspec " + dt1.toString() + " with termspec " + dt2.toString() << endl;
+
+    if(dt1.sameTermContent(dt2) ||
+       hasVariableOrCombinatorHead(dt1) ||
+       hasVariableOrCombinatorHead(dt2)){
+    } else if(dt1.isVar()) {
+      VarSpec v1=getVarSpec(dt1);
+      if(occurs(v1, dt2)) {
+        mismatch=true;
+        break;
+      }
+      bind(v1,dt2);
+    } else if(dt2.isVar()) {
+      VarSpec v2=getVarSpec(dt2);
+      if(occurs(v2, dt1)) {
+        mismatch=true;
+        break;
+      }
+      bind(v2,dt1);
+    }else{
+      TermList* ss=&dt1.term;
+      TermList* tt=&dt2.term;
+
+      for (;;) {
+        TermSpec tsss(*ss,dt1.index);
+        TermSpec tstt(*tt,dt2.index);
+
+        bool bypassTests = (hasVariableOrCombinatorHead(tsss) || hasVariableOrCombinatorHead(tstt));
+
+        if (!tsss.sameTermContent(tstt) && TermList::sameTopFunctor(*ss,*tt) && !bypassTests) {
+          ASS(ss->isTerm() && tt->isTerm());
+
+          Term* s = ss->term();
+          Term* t = tt->term();
+          ASS(s->arity() > 0);
+          ASS(s->functor() == t->functor());
+
+          ss = s->args();
+          tt = t->args();
+          if (! ss->next()->isEmpty()) {
+            subterms.push(ss->next());
+            subterms.push(tt->next());
+          }
+        } else {
+          if (! TermList::sameTopFunctor(*ss,*tt) && !bypassTests) {
+            if(ss->isVar()||tt->isVar()) {
+              TTPair itm(tsss,tstt);
+              if((itm.first.isVar() && isUnbound(getVarSpec(itm.first))) ||
+                (itm.second.isVar() && isUnbound(getVarSpec(itm.second))) ) {
+                toDo.push(itm);
+              } else if(!encountered.find(itm)) {
+                toDo.push(itm);
+                encountered.insert(itm);
+              }
+            } else {
+              mismatch=true;
+              break;
+            }
+          }
+
+          if (subterms.isEmpty()) {
+            break;
+          }
+          tt = subterms.pop();
+          ss = subterms.pop();
+          if (! ss->next()->isEmpty()) {
+            subterms.push(ss->next());
+            subterms.push(tt->next());
+          }
+        }
+      }
+    }
+
+    if(toDo.isEmpty()) {
+      break;
+    }
+    t1=toDo.top().first;
+    t2=toDo.pop().second;
+  }
+
+  if(mismatch) {
+    subterms.reset();
+    toDo.reset();
+  }
+
+  bdDone();
+
+  if(mismatch) {
+    localBD.backtrack();
+  } else {
+    if(bdIsRecording()) {
+      bdCommit(localBD);
+    }
+    localBD.drop();
+  }
+
+  return !mismatch;
+}
+
+/**
+  * Returns true if the head symbol of applicative term ts
+  * is either a variable or a combinator. 
+  * @author Ahmed Bhayat
+  * @location Manchester
+  */
+bool RobSubstitution::hasVariableOrCombinatorHead(TermSpec ts)
+{
+  CALL("RobSubstitution::hasVariableOrCombinatorHead");
+  
+  //cout << "The termspec is " + ts.toString() << endl;
+
+  auto isCombSym = [] (Signature::Symbol* sym1) { 
+       return
+      (sym1->getConst() == Signature::Symbol::S_COMB ||
+       sym1->getConst() == Signature::Symbol::B_COMB ||
+       sym1->getConst() == Signature::Symbol::C_COMB ||
+       sym1->getConst() == Signature::Symbol::I_COMB ||
+       sym1->getConst() == Signature::Symbol::K_COMB);
+  };
+
+  if(ts.isVar()){
+    return false;
+  } else {
+    TermList tsTerm = ts.term;
+    ASS(tsTerm.isTerm());
+    Signature::Symbol* sym = env.signature->getFunction(tsTerm.term()->functor());
+    if(isCombSym(sym)){
+      return true;
+    }
+    while(sym->hOLAPP()){
+      tsTerm = *(tsTerm.term()->nthArgument(0));
+      if(tsTerm.isVar()){
+        return tsTerm.isSpecialVar() ? false : true;
+      }
+      sym = env.signature->getFunction(tsTerm.term()->functor());
+      if(isCombSym(sym)){
+        return true;
+      }
+    }
+    return false;
+  }
+
+}
+
 /**
  * Matches @b instance term onto the @b base term.
  * Ordinary variables behave, as one would expect
  * during matching, but special variables aren't
  * being assigned only in the @b base term, but in
- * the instance ass well. (Special variables appear
+ * the instance as well. (Special variables appear
  * only in internal terms of substitution trees and
  * this behavior allows easy instance retrieval.)
  */

@@ -351,6 +351,9 @@ public:
   static Term* foolTrue(); 
   static Term* foolFalse(); 
 
+  /** Placeholder for variable/combinator head terms in substitution tree */
+  static Term* placeHolderTerm(unsigned sort);
+
   IntList* freeVariables() const;
 
   /** Return number of bytes before the start of the term that belong to it */

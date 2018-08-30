@@ -1956,6 +1956,7 @@ public:
   bool HOLConstantElimination () const { return _HOLConstantElimination.actualValue; }
   bool functionExtensionality () const { return _functionExtensionality.actualValue; }
   bool booleanExtensionality () const { return _booleanExtensionality.actualValue; }
+  bool combinatoryUnification () const { return _combinatoryUnification.actualValue; }
   CombElimination combinatorElimination () const { return _combinatorElimination.actualValue; }
   bool FOOLParamodulation() const { return _FOOLParamodulation.actualValue; }
   bool termAlgebraInferences() const { return _termAlgebraInferences.actualValue; }
@@ -2238,6 +2239,7 @@ private:
   BoolOptionValue _HOLConstantElimination;
   BoolOptionValue _functionExtensionality;
   BoolOptionValue _booleanExtensionality;
+  BoolOptionValue _combinatoryUnification;
   ChoiceOptionValue<CombElimination> _combinatorElimination;
   BoolOptionValue _termAlgebraInferences;
   ChoiceOptionValue<TACyclicityCheck> _termAlgebraCyclicityCheck;

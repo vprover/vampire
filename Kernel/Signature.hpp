@@ -60,22 +60,22 @@ class Signature
   class Symbol {
   
   public: enum HOLConstant { //get rid of combinator type from term class, AYB
-	  AND,
-	  OR,
-	  IMP,
-	  FORALL,
-	  EXISTS,
-	  IFF,
-	  XOR,
-	  NOT,
-	  PI,
-	  SIGMA,
-	  EQUALS,
-	  S_COMB,
-	  B_COMB,
-	  C_COMB,
-	  I_COMB,
-	  K_COMB,
+    AND,
+    OR,
+    IMP,
+    FORALL,
+    EXISTS,
+    IFF,
+    XOR,
+    NOT,
+    PI,
+    SIGMA,
+    EQUALS,
+    S_COMB,
+    B_COMB,
+    C_COMB,
+    I_COMB,
+    K_COMB,
     NULL_CONSTANT,
   };
   
@@ -121,6 +121,10 @@ class Signature
     unsigned _inUnit : 1;
     /** if is a HOL app function **/
 	  unsigned _isAPP : 1;
+    /** if is a placeholder symbol
+     *  A placeholder symbol is utilised in place of a term of the form @(@(...(X, t1) ... tn) within a subtituion tree
+     */
+    unsigned _isPlaceHolder : 1;
 	  /** if symbol is  HOL constant, records which one **/
 	  HOLConstant _HOLconst : NULL_CONSTANT;
 	
@@ -151,9 +155,10 @@ class Signature
     void markOverflownConstant() { _overflownConstant=1; }
     /** mark symbol as a term algebra constructor */
     void markTermAlgebraCons() { _termAlgebraCons=1; }
-	/** mark symbol as a HOL APP symbol*/
+    /** mark symbol as a HOL APP symbol*/
     void markHOLAPP() { _isAPP=1; }
-
+    /** mark symbol as a placeholder symbol */
+    void markAsPlaceHolder() { _isPlaceHolder=1; }
     void setHOLConstant(HOLConstant cnst) { _HOLconst = cnst;}
 	
     /** return true iff symbol is marked as skip for the purpose of symbol elimination */
@@ -507,6 +512,13 @@ class Signature
   unsigned reals() const {return _reals;}
 
   static const unsigned STRING_DISTINCT_GROUP;
+
+  unsigned getHigherOrderPlaceHolderTerm(unsigned sort){
+    unsigned func = addFunction("#",0);
+    getFunction(func)->setType(OperatorType::getConstantsType(sort));
+    getFunction(func)->markAsPlaceHolder();
+    return func;
+  }
 
   unsigned getFoolConstantSymbol(bool isTrue){ 
     if(!_foolConstantsDefined){
