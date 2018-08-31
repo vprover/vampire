@@ -78,9 +78,31 @@ void TermSubstitutionTree::handleTerm(TermList t, Literal* lit, Clause* cls, boo
     Term* term=t.term();
 
     if(env.options->combinatoryUnification()){
+      cout << "The term is: " + term->toString() << endl;
       term = toPlaceHolders(term);
+      cout << "The term is: " + term->toString() << endl;
+      
+      if(isPlaceHolder(term)){
+        unsigned sort = SortHelper::getResultSort(term); 
+        if(insert){
+          if(_placeHolders.find(sort)){
+            LDSkipList* lds = _placeHolders.findPtr(sort);
+            lds->insert(ld);          
+          } else {
+            LDSkipList* lds = new LDSkipList();
+            lds->insert(ld);
+            _placeHolders.insert(sort, *lds);          
+          }
+        } else {
+          if(_placeHolders.find(sort)){
+            LDSkipList* lds = _placeHolders.findPtr(sort);
+            lds->remove(ld);          
+          }
+        }
+        return;
+      }
     }
-
+    
     Term* normTerm=Renaming::normalize(term);
 
     BindingMap svBindings;
@@ -90,6 +112,7 @@ void TermSubstitutionTree::handleTerm(TermList t, Literal* lit, Clause* cls, boo
 
     if(insert) {
       SubstitutionTree::insert(&_nodes[rootNodeIndex], svBindings, ld);
+      cout << this->toString() << endl;
     } else {
       SubstitutionTree::remove(&_nodes[rootNodeIndex], svBindings, ld);
     }
@@ -108,13 +131,41 @@ TermQueryResultIterator TermSubstitutionTree::getUnifications(TermList t,
     ASS(t.isTerm());
     if(_vars.isEmpty()) {
       // false here means without constraints
-      return getResultIterator<UnificationsIterator>(t.term(), retrieveSubstitutions,false);
+      if(!env.options->combinatoryUnification()){
+        return getResultIterator<UnificationsIterator>(t.term(), retrieveSubstitutions,false);
+      } else {
+        unsigned sort = SortHelper::getResultSort(t.term());
+        if(_placeHolders.find(sort)){
+          LDSkipList lds = _placeHolders.get(sort);
+          auto it1 = ldIteratorToTQRIterator(LDSkipList::RefIterator(lds), t, false,false);
+          auto it2 = getResultIterator<UnificationsIterator>(t.term(), false,false);
+          return pvi( getConcatenatedIterator(it1, it2));        
+        } else {
+          return getResultIterator<UnificationsIterator>(t.term(), false, false);
+        }
+      }
     } else {
-      return pvi( getConcatenatedIterator(
-          // false here means without constraints
-	  ldIteratorToTQRIterator(LDSkipList::RefIterator(_vars), t, retrieveSubstitutions,false),
-          // false here means without constraints
-	  getResultIterator<UnificationsIterator>(t.term(), retrieveSubstitutions,false)) );
+      if(!env.options->combinatoryUnification()){
+        return pvi( getConcatenatedIterator(
+            // false here means without constraints
+        ldIteratorToTQRIterator(LDSkipList::RefIterator(_vars), t, retrieveSubstitutions,false),
+              // false here means without constraints
+        getResultIterator<UnificationsIterator>(t.term(), retrieveSubstitutions,false)) );
+      } else {
+        unsigned sort = SortHelper::getResultSort(t.term());
+        if(_placeHolders.find(sort)){
+          LDSkipList lds = _placeHolders.get(sort);
+          auto it1 = ldIteratorToTQRIterator(LDSkipList::RefIterator(lds), t, false,false);
+          auto it2 = getResultIterator<UnificationsIterator>(t.term(), false,false);
+          auto it3 = getConcatenatedIterator(it1, it2);
+          auto it4 = ldIteratorToTQRIterator(LDSkipList::RefIterator(_vars), t, false,false);
+          return pvi( getConcatenatedIterator(it3, it4));        
+        } else {
+          auto it1 = getResultIterator<UnificationsIterator>(t.term(), false,false);
+          auto it2 = ldIteratorToTQRIterator(LDSkipList::RefIterator(_vars), t, false,false);
+          return pvi( getConcatenatedIterator(it1, it2));  
+        }
+      }
     }
   }
 }
@@ -422,8 +473,122 @@ TermQueryResultIterator TermSubstitutionTree::getAllUnifyingIterator(TermList tr
 Term* TermSubstitutionTree::toPlaceHolders(Term* term){
   CALL("TermSubstitutionTree::toPlaceHolders");
 
+  static Stack<TermList*> toDo(8);
+  static Stack<Term*> terms(8);
+  static Stack<bool> modified(8);
+  static Stack<TermList> args(8);
+  ASS(toDo.isEmpty());
+  ASS(terms.isEmpty());
+  modified.reset();
+  args.reset();
 
+  if(hasVariableOrCombinatorHead(TermList(term))){
+   return Term::placeHolderTerm(SortHelper::getResultSort(term)); 
+  }
+  
+  modified.push(false);
+  toDo.push(term->args());
+
+  for (;;) {
+    TermList* tt=toDo.pop();
+    if (tt->isEmpty()) {
+      if (terms.isEmpty()) {
+        //we're done, args stack contains modified arguments
+        //of the literal.
+        ASS(toDo.isEmpty());
+        break;
+      }
+      Term* orig=terms.pop();
+      if (!modified.pop()) {
+        args.truncate(args.length() - orig->arity());
+        args.push(TermList(orig));
+        continue;
+      }
+      //here we assume, that stack is an array with
+      //second topmost element as &top()-1, third at
+      //&top()-2, etc...
+      TermList* argLst=&args.top() - (orig->arity()-1);
+      args.truncate(args.length() - orig->arity());
+
+      args.push(TermList(Term::create(orig,argLst)));
+      modified.setTop(true);
+      continue;
+    }
+    toDo.push(tt->next());
+
+    TermList tl=*tt;
+    if (tl.isVar()) {
+      args.push(tl);
+      continue;
+    }
+    ASS(tl.isTerm());
+    if(hasVariableOrCombinatorHead(tl)) {
+      args.push(TermList(Term::placeHolderTerm(SortHelper::getResultSort(tl.term())))); 
+      modified.setTop(true);
+      continue;
+    }
+    Term* t=tl.term();
+    terms.push(t);
+    modified.push(false);
+    toDo.push(t->args());
+  }
+  ASS(toDo.isEmpty());
+  ASS(terms.isEmpty());
+  ASS_EQ(modified.length(),1);
+  ASS_EQ(args.length(),term->arity());
+
+  if (!modified.pop()) {
+    return term;
+  }
+  
+  TermList* argLst=&args.top() - (term->arity()-1);
+  return Term::create(term,argLst);
+
+}
+
+/**
+  * Returns true if the head symbol of applicative term ts
+  * is either a variable or a combinator. 
+  * @author Ahmed Bhayat
+  * @location Manchester
+  */
+bool TermSubstitutionTree::hasVariableOrCombinatorHead(TermList ts)
+{
+  CALL("TermSubstitutionTree::hasVariableOrCombinatorHead");
+  
+  //cout << "The termspec is " + ts.toString() << endl;
+
+  auto isCombSym = [] (Signature::Symbol* sym1) { 
+       return
+      (sym1->getConst() == Signature::Symbol::S_COMB ||
+       sym1->getConst() == Signature::Symbol::B_COMB ||
+       sym1->getConst() == Signature::Symbol::C_COMB ||
+       sym1->getConst() == Signature::Symbol::I_COMB ||
+       sym1->getConst() == Signature::Symbol::K_COMB);
+  };
+
+  if(ts.isVar()){
+    return false;
+  } else {
+    ASS(ts.isTerm());
+    Signature::Symbol* sym = env.signature->getFunction(ts.term()->functor());
+    if(isCombSym(sym)){
+      return true;
+    }
+    while(sym->hOLAPP()){
+      ts = *(ts.term()->nthArgument(0));
+      if(ts.isVar()){
+        return true;
+      }
+      sym = env.signature->getFunction(ts.term()->functor());
+      if(isCombSym(sym)){
+        return true;
+      }
+    }
+    return false;
+  }
 
 }
 
 }
+

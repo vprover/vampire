@@ -482,9 +482,7 @@ bool RobSubstitution::filter(TermSpec t1, TermSpec t2)
 
     //cout << "unifying termspec " + dt1.toString() + " with termspec " + dt2.toString() << endl;
 
-    if(dt1.sameTermContent(dt2) ||
-       hasVariableOrCombinatorHead(dt1) ||
-       hasVariableOrCombinatorHead(dt2)){
+    if(dt1.sameTermContent(dt2) || isPlaceHolderTerm(dt1) || isPlaceHolderTerm(dt2)){
     } else if(dt1.isVar()) {
       VarSpec v1=getVarSpec(dt1);
       if(occurs(v1, dt2)) {
@@ -507,7 +505,7 @@ bool RobSubstitution::filter(TermSpec t1, TermSpec t2)
         TermSpec tsss(*ss,dt1.index);
         TermSpec tstt(*tt,dt2.index);
 
-        bool bypassTests = (hasVariableOrCombinatorHead(tsss) || hasVariableOrCombinatorHead(tstt));
+        bool bypassTests = (isPlaceHolderTerm(tsss) || isPlaceHolderTerm(tstt));
 
         if (!tsss.sameTermContent(tstt) && TermList::sameTopFunctor(*ss,*tt) && !bypassTests) {
           ASS(ss->isTerm() && tt->isTerm());
@@ -579,49 +577,20 @@ bool RobSubstitution::filter(TermSpec t1, TermSpec t2)
   return !mismatch;
 }
 
+
 /**
-  * Returns true if the head symbol of applicative term ts
-  * is either a variable or a combinator. 
-  * @author Ahmed Bhayat
-  * @location Manchester
-  */
-bool RobSubstitution::hasVariableOrCombinatorHead(TermSpec ts)
-{
-  CALL("RobSubstitution::hasVariableOrCombinatorHead");
+ * Returns true if the termspec t1 is wrapping a placeholder term
+ */
+bool RobSubstitution::isPlaceHolderTerm(TermSpec ts){
+  CALL("RobSubstitution::isPlaceHolderTerm");
   
-  //cout << "The termspec is " + ts.toString() << endl;
-
-  auto isCombSym = [] (Signature::Symbol* sym1) { 
-       return
-      (sym1->getConst() == Signature::Symbol::S_COMB ||
-       sym1->getConst() == Signature::Symbol::B_COMB ||
-       sym1->getConst() == Signature::Symbol::C_COMB ||
-       sym1->getConst() == Signature::Symbol::I_COMB ||
-       sym1->getConst() == Signature::Symbol::K_COMB);
-  };
-
   if(ts.isVar()){
     return false;
-  } else {
-    TermList tsTerm = ts.term;
-    ASS(tsTerm.isTerm());
-    Signature::Symbol* sym = env.signature->getFunction(tsTerm.term()->functor());
-    if(isCombSym(sym)){
-      return true;
-    }
-    while(sym->hOLAPP()){
-      tsTerm = *(tsTerm.term()->nthArgument(0));
-      if(tsTerm.isVar()){
-        return tsTerm.isSpecialVar() ? false : true;
-      }
-      sym = env.signature->getFunction(tsTerm.term()->functor());
-      if(isCombSym(sym)){
-        return true;
-      }
-    }
-    return false;
   }
-
+  TermList tl = ts.term;
+  ASS(tl.isTerm());
+  Signature::Symbol* sym = env.signature->getFunction(tl.term()->functor());
+  return sym->isPlaceHolder() ? true : false; 
 }
 
 /**

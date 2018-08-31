@@ -47,6 +47,7 @@
 #include "Kernel/Clause.hpp"
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/Sorts.hpp"
+#include "Kernel/Signature.hpp"
 
 #include "Lib/Allocator.hpp"
 
@@ -297,7 +298,11 @@ public:
      * suitable child does not exist.
      */
     virtual Node** childByTop(TermList t, bool canCreate) = 0;
-
+    /**
+      * If node has a placeholder child, returns pointer to 
+      * pointer to child. Otherwise returns null pointer
+      */
+    virtual Node** placeHolderChild() = 0;
 
     /**
      * Remove child which points to node with top symbol of @b t.
@@ -456,6 +461,7 @@ public:
   	    IsPtrToVarNodeFn()) );
     }
     virtual Node** childByTop(TermList t, bool canCreate);
+    virtual Node** placeHolderChild();
     void remove(TermList t);
 
 #if VDEBUG
@@ -546,6 +552,23 @@ public:
       }
       return res;
     }
+    virtual Node** placeHolderChild()
+    {
+      CALL("SubstitutionTree::SListIntermediateNode::placeHolderChild");
+      
+      //utilising the fact that a node cannot have more than a single
+      //place holder child and that this will appear at the end of
+      //the SkipList
+      Node** res;
+      _nodes.maxPtr(res);
+      //This is an intermediate node and every intermediate node must have at least one child
+      //Therefore we are justified in assuming that res is initialised.
+      TermList ts = (*res)->term;
+      if(!ts.isTerm() || !SubstitutionTree::isPlaceHolder(ts.term())){
+        res = 0; 
+      }
+      return res;
+    }
     inline
     void remove(TermList t)
     {
@@ -560,18 +583,27 @@ public:
     public:
       static Comparison compare(TermList t1,TermList t2)
       {
-	CALL("SubstitutionTree::SListIntermediateNode::NodePtrComparator::compare");
+        CALL("SubstitutionTree::SListIntermediateNode::NodePtrComparator::compare");
 
-	if(t1.isVar()) {
-	  if(t2.isVar()) {
-	    return Int::compare(t1.var(), t2.var());
-	  }
-	  return LESS;
-	}
-	if(t2.isVar()) {
-	  return GREATER;
-	}
-	return Int::compare(t1.term()->functor(), t2.term()->functor());
+        if(t1.isVar()) {
+          if(t2.isVar()) {
+            return Int::compare(t1.var(), t2.var());
+          }
+          return LESS;
+        }
+        if(t2.isVar()) {
+          return GREATER;
+        }
+        
+        if(env.options->combinatoryUnification()){
+          if(SubstitutionTree::isPlaceHolder(t1.term()) && !SubstitutionTree::isPlaceHolder(t2.term())){
+            return GREATER;
+          } else if (SubstitutionTree::isPlaceHolder(t2.term()) && !SubstitutionTree::isPlaceHolder(t1.term())) {
+            return LESS;
+          }        
+        }
+   
+        return Int::compare(t1.term()->functor(), t2.term()->functor());
       }
 
       static Comparison compare(Node* n1, Node* n2)
@@ -650,6 +682,11 @@ public:
   /** enable searching with constraints for this tree */
   bool _useC;
 
+  static inline bool isPlaceHolder(Term* term){
+    Signature::Symbol* sym = env.signature->getFunction(term->functor());
+    return sym->isPlaceHolder();
+  }
+  
   class LeafIterator
   : public IteratorCore<Leaf*>
   {

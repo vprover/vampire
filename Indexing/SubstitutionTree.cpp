@@ -934,7 +934,7 @@ bool SubstitutionTree::UnificationsIterator::associate(TermList query, TermList 
   CALL("SubstitutionTree::UnificationsIterator::associate");
 
   bool result;
-  if(env.signature->isHOL()){
+  if(env.options->combinatoryUnification()){
     result = subst.filter(query,NORM_QUERY_BANK,node,NORM_RESULT_BANK);
   } else {
     result = subst.unify(query,NORM_QUERY_BANK,node,NORM_RESULT_BANK);
@@ -1012,11 +1012,32 @@ SubstitutionTree::NodeIterator
     return n->allChildren();
   } else {
     Node** match=n->childByTop(qt, false);
+    
+    if(env.options->combinatoryUnification()){
+      Node** placeholder=n->placeHolderChild();
+      auto it2 = n->variableChildren();
+      if(match && placeholder){
+        auto it1 = getSingletonIterator(match);
+        auto it3 = getSingletonIterator(placeholder);
+        auto it4 = getConcatenatedIterator(it1, it2);
+        return pvi(getConcatenatedIterator(it3, it4));
+      }
+      if(placeholder){
+        auto it1 = getSingletonIterator(placeholder);
+        return pvi(getConcatenatedIterator(it1, it2));
+      }
+      if(match){
+        auto it1 = getSingletonIterator(match);
+        return pvi(getConcatenatedIterator(it1, it2));        
+      }
+      return it2;
+    }
+    
     if(match) {
       return pvi( 
         getConcatenatedIterator(
-	   getSingletonIterator(match),
-	   n->variableChildren() 
+        getSingletonIterator(match),
+        n->variableChildren() 
        ));
     } else {
       return n->variableChildren();

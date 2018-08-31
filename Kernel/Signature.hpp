@@ -192,7 +192,9 @@ class Signature
     inline bool termAlgebraCons() const { return _termAlgebraCons; }
 	  /** Return true iff symbol is a HOL app symbol */
 	  inline bool hOLAPP() const { return _isAPP; }
-
+    /** Returns true if symbol is placeholder */
+    inline bool isPlaceHolder() const { return _isPlaceHolder; }
+    
     /** Increase the usage count of this symbol **/
     inline void incUsageCnt(){ _usageCount++; }
     /** Return the usage count of this symbol **/
@@ -514,9 +516,12 @@ class Signature
   static const unsigned STRING_DISTINCT_GROUP;
 
   unsigned getHigherOrderPlaceHolderTerm(unsigned sort){
-    unsigned func = addFunction("#",0);
-    getFunction(func)->setType(OperatorType::getConstantsType(sort));
-    getFunction(func)->markAsPlaceHolder();
+    bool added;
+    unsigned func = addFunction("#_" + Int::toString(sort),0,added);
+    if(added){
+      getFunction(func)->setType(OperatorType::getConstantsType(sort));
+      getFunction(func)->markAsPlaceHolder();
+    }
     return func;
   }
 

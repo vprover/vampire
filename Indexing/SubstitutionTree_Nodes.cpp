@@ -180,6 +180,20 @@ SubstitutionTree::Node** SubstitutionTree::UArrIntermediateNode::
   return 0;
 }
 
+SubstitutionTree::Node** SubstitutionTree::UArrIntermediateNode::
+	placeHolderChild()
+{
+  CALL("SubstitutionTree::UArrIntermediateNode::placeHolderChild");
+
+  for(int i=0;i<_size;i++) {
+    TermList ts = _nodes[i]->term;
+    if(ts.isTerm() && isPlaceHolder(ts.term())){
+      return &_nodes[i];
+    }
+  }
+  return 0;
+}
+
 void SubstitutionTree::UArrIntermediateNode::remove(TermList t)
 {
   CALL("SubstitutionTree::UArrIntermediateNode::remove");

@@ -400,6 +400,20 @@ public:
     return node->value;
   }
 
+  /** Returns pointer to the maximal (last) element without removing it. */
+  void maxPtr(Value*& res)
+  {
+    ASS(isNonEmpty());
+    Node* node=_left;
+    for(int h=_top-1;h>=0;h--) {
+      while(node->nodes[h]) {
+	node=node->nodes[h];
+      }
+    }
+    ASS_NEQ(node, _left);
+    res =  &node->value;
+  }
+  
   /**
    * Remove value matching the key from the list.
    *

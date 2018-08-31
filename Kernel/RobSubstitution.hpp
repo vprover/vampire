@@ -241,9 +241,12 @@ private:
   void makeEqual(VarSpec v1, VarSpec v2, TermSpec target);
   void unifyUnbound(VarSpec v, TermSpec ts);
   bool occurs(VarSpec vs, TermSpec ts);
-
-  bool hasVariableOrCombinatorHead(TermSpec ts);
-
+  
+  /**
+   * Returns true if the termspec t1 is wrapping a placeholder term
+   */
+  bool isPlaceHolderTerm(TermSpec ts);
+  
   VarSpec getAuxVar(VarSpec target)
   {
     CALL("RobSubstitution::getAuxVar");

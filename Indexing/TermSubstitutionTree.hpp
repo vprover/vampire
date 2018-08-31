@@ -27,7 +27,9 @@
 
 
 #include "Kernel/Renaming.hpp"
+#include "Kernel/Signature.hpp"
 #include "Lib/SkipList.hpp"
+#include "Lib/DHMap.hpp"
 
 #include "Index.hpp"
 #include "TermIndexingStructure.hpp"
@@ -95,9 +97,13 @@ private:
   }
 
   Term* toPlaceHolders(Term* term);
-
+  bool hasVariableOrCombinatorHead(TermList ts);
+  
   typedef SkipList<LeafData,LDComparator> LDSkipList;
   LDSkipList _vars;
+  
+  DHMap<unsigned, LDSkipList> _placeHolders;
+  
 };
 
 };
