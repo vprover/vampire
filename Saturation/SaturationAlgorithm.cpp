@@ -831,7 +831,8 @@ void SaturationAlgorithm::handleEmptyClause(Clause* cl)
     onNonRedundantClause(cl);
 
     if(cl->isTheoryDescendant() ){
-      ASSERTION_VIOLATION_REP("A pure theory descendant is empty, which means theory axioms are inconsistent");
+    cout << cl->toString() << endl;
+    ASSERTION_VIOLATION_REP("A pure theory descendant is empty, which means theory axioms are inconsistent");
       reportSpiderFail();
       // this is a poor way of handling this in release mode but it prevents unsound proofs
       throw MainLoop::MainLoopFinishedException(Statistics::REFUTATION_NOT_FOUND);

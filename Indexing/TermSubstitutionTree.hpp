@@ -102,7 +102,7 @@ private:
   typedef SkipList<LeafData,LDComparator> LDSkipList;
   LDSkipList _vars;
   
-  DHMap<unsigned, LDSkipList> _placeHolders;
+  DHMap<unsigned, LDSkipList*> _placeHolders;
   
 };
 

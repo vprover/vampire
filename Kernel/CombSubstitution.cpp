@@ -1,6 +1,6 @@
 
 /*
- * File RobSubstitution.cpp.
+ * File CombSubstitution.cpp.
  *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
@@ -17,7 +17,7 @@
  * licence, which we will make an effort to provide. 
  */
 /**
- * @file RobSubstitution.cpp
+ * @file CombSubstitution.cpp
  * Implements polynomial modification of the Robinson unification algorithm.
  */
 
@@ -41,7 +41,7 @@
 
 #include "Indexing/TermSharing.hpp"
 
-#include "RobSubstitution.hpp"
+#include "CombSubstitution.hpp"
 
 #if VDEBUG
 #include "Lib/Int.hpp"
@@ -58,16 +58,16 @@ namespace Kernel
 using namespace std;
 using namespace Lib;
 
-const int RobSubstitution::AUX_INDEX=-3;
-const int RobSubstitution::SPECIAL_INDEX=-2;
-const int RobSubstitution::UNBOUND_INDEX=-1;
+const int CombSubstitution::AUX_INDEX=-3;
+const int CombSubstitution::SPECIAL_INDEX=-2;
+const int CombSubstitution::UNBOUND_INDEX=-1;
 
 /**
  * Unify @b t1 and @b t2, and return true iff it was successful.
  */
-bool RobSubstitution::unify(TermList t1,int index1, TermList t2, int index2)
+bool CombSubstitution::unify(TermList t1,int index1, TermList t2, int index2)
 {
-  CALL("RobSubstitution::unify/4");
+  CALL("CombSubstitution::unify/4");
   return unify(TermSpec(t1,index1), TermSpec(t2,index2));
 }
 
@@ -75,9 +75,9 @@ bool RobSubstitution::unify(TermList t1,int index1, TermList t2, int index2)
  * If @b t1 and @b t2 can possibly be unified using combinatory unficition,
  * return true. Otherwise return false.
  */
-bool RobSubstitution::filter(TermList t1,int index1, TermList t2, int index2)
+bool CombSubstitution::filter(TermList t1,int index1, TermList t2, int index2)
 {
-  CALL("RobSubstitution::filter");
+  CALL("CombSubstitution::filter");
   return filter(TermSpec(t1,index1), TermSpec(t2,index2));
 }
 
@@ -86,9 +86,9 @@ bool RobSubstitution::filter(TermList t1,int index1, TermList t2, int index2)
  *
  * @b t1 and @b t2 can be either terms or literals.
  */
-bool RobSubstitution::unifyArgs(Term* t1,int index1, Term* t2, int index2)
+bool CombSubstitution::unifyArgs(Term* t1,int index1, Term* t2, int index2)
 {
-  CALL("RobSubstitution::unifyArgs");
+  CALL("CombSubstitution::unifyArgs");
   ASS_EQ(t1->functor(),t2->functor());
 
   TermList t1TL(t1);
@@ -96,10 +96,10 @@ bool RobSubstitution::unifyArgs(Term* t1,int index1, Term* t2, int index2)
   return unify(TermSpec(t1TL,index1), TermSpec(t2TL,index2));
 }
 
-bool RobSubstitution::match(TermList base,int baseIndex,
+bool CombSubstitution::match(TermList base,int baseIndex,
 	TermList instance, int instanceIndex)
 {
-  CALL("RobSubstitution::match(TermList...)");
+  CALL("CombSubstitution::match(TermList...)");
   return match(TermSpec(base,baseIndex), TermSpec(instance,instanceIndex));
 }
 /**
@@ -107,10 +107,10 @@ bool RobSubstitution::match(TermList base,int baseIndex,
  *
  * @b t1 and @b t2 can be either terms or literals.
  */
-bool RobSubstitution::matchArgs(Term* base,int baseIndex,
+bool CombSubstitution::matchArgs(Term* base,int baseIndex,
 	Term* instance, int instanceIndex)
 {
-  CALL("RobSubstitution::match(Literal*...)");
+  CALL("CombSubstitution::match(Literal*...)");
   ASS_EQ(base->functor(),instance->functor());
 
   TermList baseTL(base);
@@ -127,9 +127,9 @@ bool RobSubstitution::matchArgs(Term* base,int baseIndex,
  * @warning All variables, that occured in some term that was matched or unified
  * in @b normalIndex, must be also present in the @b normalizer.
  */
-void RobSubstitution::denormalize(const Renaming& normalizer, int normalIndex, int denormalizedIndex)
+void CombSubstitution::denormalize(const Renaming& normalizer, int normalIndex, int denormalizedIndex)
 {
-  CALL("RobSubstitution::denormalize");
+  CALL("CombSubstitution::denormalize");
 
   VirtualIterator<Renaming::Item> nit=normalizer.items();
   while(nit.hasNext()) {
@@ -141,9 +141,9 @@ void RobSubstitution::denormalize(const Renaming& normalizer, int normalIndex, i
   }
 }
 
-bool RobSubstitution::isUnbound(VarSpec v) const
+bool CombSubstitution::isUnbound(VarSpec v) const
 {
-  CALL("RobSubstitution::isUnbound");
+  CALL("CombSubstitution::isUnbound");
   for(;;) {
     TermSpec binding;
     bool found=_bank.find(v,binding);
@@ -161,7 +161,7 @@ bool RobSubstitution::isUnbound(VarSpec v) const
  * return a term, that has the same top functor. Otherwise
  * return an arbitrary variable.
  */
-TermList RobSubstitution::getSpecialVarTop(unsigned specialVar) const
+TermList CombSubstitution::getSpecialVarTop(unsigned specialVar) const
 {
   VarSpec v(specialVar, SPECIAL_INDEX);
   for(;;) {
@@ -182,9 +182,9 @@ TermList RobSubstitution::getSpecialVarTop(unsigned specialVar) const
  * a non-variable term, return the term. Otherwise, return the root variable
  * to which @b t belongs.
  */
-RobSubstitution::TermSpec RobSubstitution::derefBound(TermSpec t) const
+CombSubstitution::TermSpec CombSubstitution::derefBound(TermSpec t) const
 {
-  CALL("RobSubstitution::derefBound");
+  CALL("CombSubstitution::derefBound");
   if(t.term.isTerm()) {
     return t;
   }
@@ -201,16 +201,16 @@ RobSubstitution::TermSpec RobSubstitution::derefBound(TermSpec t) const
   }
 }
 
-RobSubstitution::TermSpec RobSubstitution::deref(VarSpec v) const
+CombSubstitution::TermSpec CombSubstitution::deref(VarSpec v) const
 {
-  CALL("RobSubstitution::deref");
+  CALL("CombSubstitution::deref");
   for(;;) {
     TermSpec binding;
     bool found=_bank.find(v,binding);
     if(!found) {
       binding.index=UNBOUND_INDEX;
       binding.term.makeVar(_nextUnboundAvailable++);
-      const_cast<RobSubstitution&>(*this).bind(v,binding);
+      const_cast<CombSubstitution&>(*this).bind(v,binding);
       return binding;
     } else if(binding.index==UNBOUND_INDEX || binding.term.isTerm()) {
       return binding;
@@ -219,9 +219,9 @@ RobSubstitution::TermSpec RobSubstitution::deref(VarSpec v) const
   }
 }
 
-void RobSubstitution::bind(const VarSpec& v, const TermSpec& b)
+void CombSubstitution::bind(const VarSpec& v, const TermSpec& b)
 {
-  CALL("RobSubstitution::bind");
+  CALL("CombSubstitution::bind");
   ASSERT_VALID(b.term);
   //Aux terms don't contain special variables, ergo
   //should be shared.
@@ -234,17 +234,17 @@ void RobSubstitution::bind(const VarSpec& v, const TermSpec& b)
   _bank.set(v,b);
 }
 
-void RobSubstitution::bindVar(const VarSpec& var, const VarSpec& to)
+void CombSubstitution::bindVar(const VarSpec& var, const VarSpec& to)
 {
-  CALL("RobSubstitution::bindVar");
+  CALL("CombSubstitution::bindVar");
   ASS_NEQ(var,to);
 
   bind(var,TermSpec(to));
 }
 
-RobSubstitution::VarSpec RobSubstitution::root(VarSpec v) const
+CombSubstitution::VarSpec CombSubstitution::root(VarSpec v) const
 {
-  CALL("RobSubstitution::root");
+  CALL("CombSubstitution::root");
   for(;;) {
     TermSpec binding;
     bool found=_bank.find(v,binding);
@@ -255,9 +255,9 @@ RobSubstitution::VarSpec RobSubstitution::root(VarSpec v) const
   }
 }
 
-void RobSubstitution::makeEqual(VarSpec v1, VarSpec v2, TermSpec target)
+void CombSubstitution::makeEqual(VarSpec v1, VarSpec v2, TermSpec target)
 {
-  CALL("RobSubstitution::makeEqual");
+  CALL("CombSubstitution::makeEqual");
 
   v1=root(v1);
   v2=root(v2);
@@ -274,9 +274,9 @@ void RobSubstitution::makeEqual(VarSpec v1, VarSpec v2, TermSpec target)
   }
 }
 
-void RobSubstitution::unifyUnbound(VarSpec v, TermSpec ts)
+void CombSubstitution::unifyUnbound(VarSpec v, TermSpec ts)
 {
-  CALL("RobSubstitution::unifyUnbound");
+  CALL("CombSubstitution::unifyUnbound");
 
   v=root(v);
 
@@ -293,7 +293,7 @@ void RobSubstitution::unifyUnbound(VarSpec v, TermSpec ts)
 }
 
 
-void RobSubstitution::swap(TermSpec& ts1, TermSpec& ts2)
+void CombSubstitution::swap(TermSpec& ts1, TermSpec& ts2)
 {
   TermSpec aux=ts1;
   ts1=ts2;
@@ -301,7 +301,7 @@ void RobSubstitution::swap(TermSpec& ts1, TermSpec& ts2)
 }
 
 
-bool RobSubstitution::occurs(VarSpec vs, TermSpec ts)
+bool CombSubstitution::occurs(VarSpec vs, TermSpec ts)
 {
   vs=root(vs);
   Stack<TermSpec> toDo(8);
@@ -339,9 +339,9 @@ bool RobSubstitution::occurs(VarSpec vs, TermSpec ts)
   }
 }
 
-bool RobSubstitution::unify(TermSpec t1, TermSpec t2)
+bool CombSubstitution::unify(TermSpec t1, TermSpec t2)
 {
-  CALL("RobSubstitution::unify/2");
+  CALL("CombSubstitution::unify/2");
 
   if(t1.sameTermContent(t2)) {
     return true;
@@ -456,9 +456,9 @@ bool RobSubstitution::unify(TermSpec t1, TermSpec t2)
   return !mismatch;
 }
 
-bool RobSubstitution::filter(TermSpec t1, TermSpec t2)
+bool CombSubstitution::filter(TermSpec t1, TermSpec t2)
 {
-  CALL("RobSubstitution::filter/2");
+  CALL("CombSubstitution::filter/2");
 
   if(t1.sameTermContent(t2)) {
     return true;
@@ -581,8 +581,8 @@ bool RobSubstitution::filter(TermSpec t1, TermSpec t2)
 /**
  * Returns true if the termspec t1 is wrapping a placeholder term
  */
-bool RobSubstitution::isPlaceHolderTerm(TermSpec ts){
-  CALL("RobSubstitution::isPlaceHolderTerm");
+bool CombSubstitution::isPlaceHolderTerm(TermSpec ts){
+  CALL("CombSubstitution::isPlaceHolderTerm");
   
   if(ts.isVar()){
     return false;
@@ -602,9 +602,9 @@ bool RobSubstitution::isPlaceHolderTerm(TermSpec ts){
  * only in internal terms of substitution trees and
  * this behavior allows easy instance retrieval.)
  */
-bool RobSubstitution::match(TermSpec base, TermSpec instance)
+bool CombSubstitution::match(TermSpec base, TermSpec instance)
 {
-  CALL("RobSubstitution::match(TermSpec...)");
+  CALL("CombSubstitution::match(TermSpec...)");
 
   if(base.sameTermContent(instance)) {
     return true;
@@ -702,9 +702,9 @@ bool RobSubstitution::match(TermSpec base, TermSpec instance)
 }
 
 
-Literal* RobSubstitution::apply(Literal* lit, int index) const
+Literal* CombSubstitution::apply(Literal* lit, int index) const
 {
-  CALL("RobSubstitution::apply(Literal*...)");
+  CALL("CombSubstitution::apply(Literal*...)");
   static DArray<TermList> ts(32);
 
   if (lit->ground()) {
@@ -720,9 +720,9 @@ Literal* RobSubstitution::apply(Literal* lit, int index) const
   return Literal::create(lit,ts.array());
 }
 
-TermList RobSubstitution::apply(TermList trm, int index) const
+TermList CombSubstitution::apply(TermList trm, int index) const
 {
-  CALL("RobSubstitution::apply(TermList...)");
+  CALL("CombSubstitution::apply(TermList...)");
 
   static Stack<TermList*> toDo(8);
   static Stack<int> toDoIndex(8);
@@ -803,9 +803,9 @@ TermList RobSubstitution::apply(TermList trm, int index) const
   return args.pop();
 }
 
-size_t RobSubstitution::getApplicationResultWeight(TermList trm, int index) const
+size_t CombSubstitution::getApplicationResultWeight(TermList trm, int index) const
 {
-  CALL("RobSubstitution::getApplicationResultWeight");
+  CALL("CombSubstitution::getApplicationResultWeight");
 
   static Stack<TermList*> toDo(8);
   static Stack<int> toDoIndex(8);
@@ -890,9 +890,9 @@ size_t RobSubstitution::getApplicationResultWeight(TermList trm, int index) cons
   return argSizes.pop();
 }
 
-size_t RobSubstitution::getApplicationResultWeight(Literal* lit, int index) const
+size_t CombSubstitution::getApplicationResultWeight(Literal* lit, int index) const
 {
-  CALL("RobSubstitution::getApplicationResultWeight");
+  CALL("CombSubstitution::getApplicationResultWeight");
   static DArray<TermList> ts(32);
 
   if (lit->ground()) {
@@ -915,9 +915,9 @@ size_t RobSubstitution::getApplicationResultWeight(Literal* lit, int index) cons
  * Return iterator on matching substitutions of @b l1 and @b l2.
  *
  * For guides on use of the iterator, see the documentation of
- * RobSubstitution::AssocIterator.
+ * CombSubstitution::AssocIterator.
  */
-SubstIterator RobSubstitution::matches(Literal* base, int baseIndex,
+SubstIterator CombSubstitution::matches(Literal* base, int baseIndex,
 	Literal* instance, int instanceIndex, bool complementary)
 {
   return getAssocIterator<MatchingFn>(this, base, baseIndex,
@@ -928,9 +928,9 @@ SubstIterator RobSubstitution::matches(Literal* base, int baseIndex,
  * Return iterator on unifying substitutions of @b l1 and @b l2.
  *
  * For guides on use of the iterator, see the documentation of
- * RobSubstitution::AssocIterator.
+ * CombSubstitution::AssocIterator.
  */
-SubstIterator RobSubstitution::unifiers(Literal* l1, int l1Index,
+SubstIterator CombSubstitution::unifiers(Literal* l1, int l1Index,
 	Literal* l2, int l2Index, bool complementary)
 {
   return getAssocIterator<UnificationFn>(this, l1, l1Index,
@@ -938,10 +938,10 @@ SubstIterator RobSubstitution::unifiers(Literal* l1, int l1Index,
 }
 
 template<class Fn>
-SubstIterator RobSubstitution::getAssocIterator(RobSubstitution* subst,
+SubstIterator CombSubstitution::getAssocIterator(CombSubstitution* subst,
 	  Literal* l1, int l1Index, Literal* l2, int l2Index, bool complementary)
 {
-  CALL("RobSubstitution::getAssocIterator");
+  CALL("CombSubstitution::getAssocIterator");
 
   if( !Literal::headersMatch(l1,l2,complementary) ) {
     // We also get here if the sorts of equality literals do not match.
@@ -958,11 +958,11 @@ SubstIterator RobSubstitution::getAssocIterator(RobSubstitution* subst,
 }
 
 template<class Fn>
-struct RobSubstitution::AssocContext
+struct CombSubstitution::AssocContext
 {
   AssocContext(Literal* l1, int l1Index, Literal* l2, int l2Index)
   : _l1(l1), _l1i(l1Index), _l2(l2), _l2i(l2Index) {}
-  bool enter(RobSubstitution* subst)
+  bool enter(CombSubstitution* subst)
   {
     subst->bdRecord(_bdata);
     bool res=Fn::associate(subst, _l1, _l1i, _l2, _l2i);
@@ -972,7 +972,7 @@ struct RobSubstitution::AssocContext
     }
     return res;
   }
-  void leave(RobSubstitution* subst)
+  void leave(CombSubstitution* subst)
   {
     subst->bdDone();
     _bdata.backtrack();
@@ -1006,9 +1006,9 @@ private:
  *
  * Template parameter class Fn has to contain following
  * methods:
- * bool associate(RobSubstitution*, Literal* l1, int l1Index,
+ * bool associate(CombSubstitution*, Literal* l1, int l1Index,
  * 	Literal* l2, int l2Index, bool complementary)
- * bool associate(RobSubstitution*, TermList t1, int t1Index,
+ * bool associate(CombSubstitution*, TermList t1, int t1Index,
  * 	TermList t2, int t2Index)
  * There is supposed to be one Fn class for unification and
  * one for matching.
@@ -1016,11 +1016,11 @@ private:
  * [1] associate means either match or unify
  */
 template<class Fn>
-class RobSubstitution::AssocIterator
-:public IteratorCore<RobSubstitution*>
+class CombSubstitution::AssocIterator
+:public IteratorCore<CombSubstitution*>
 {
 public:
-  AssocIterator(RobSubstitution* subst, Literal* l1, int l1Index,
+  AssocIterator(CombSubstitution* subst, Literal* l1, int l1Index,
 	  Literal* l2, int l2Index)
   : _subst(subst), _l1(l1), _l1i(l1Index), _l2(l2),
   _l2i(l2Index), _state(FIRST), _used(true)
@@ -1031,7 +1031,7 @@ public:
   }
   ~AssocIterator()
   {
-    CALL("RobSubstitution::AssocIterator::~AssocIterator");
+    CALL("CombSubstitution::AssocIterator::~AssocIterator");
 
     if(_state!=FINISHED && _state!=FIRST) {
 	backtrack();
@@ -1040,7 +1040,7 @@ public:
   }
   bool hasNext()
   {
-    CALL("RobSubstitution::AssocIterator::hasNext");
+    CALL("CombSubstitution::AssocIterator::hasNext");
 
     if(_state==FINISHED) {
       return false;
@@ -1069,12 +1069,12 @@ public:
       TermList t21=*_l2->nthArgument(0);
       TermList t22=*_l2->nthArgument(1);
       if(Fn::associate(_subst, t11, _l1i, t22, _l2i)) {
-	if(Fn::associate(_subst, t12, _l1i, t21, _l2i)) {
-	  _state=NEXT_CLEANUP;
-	  break;
-	}
-	//the first successful association will be undone
-	//in case NEXT_CLEANUP
+        if(Fn::associate(_subst, t12, _l1i, t21, _l2i)) {
+          _state=NEXT_CLEANUP;
+          break;
+        }
+        //the first successful association will be undone
+        //in case NEXT_CLEANUP
       }
     }
     //no break here intentionally
@@ -1092,7 +1092,7 @@ public:
     return _state!=FINISHED;
   }
 
-  RobSubstitution* next()
+  CombSubstitution* next()
   {
     _used=true;
     return _subst;
@@ -1100,7 +1100,7 @@ public:
 private:
   void backtrack()
   {
-    CALL("RobSubstitution::AssocIterator::backtrack");
+    CALL("CombSubstitution::AssocIterator::backtrack");
 
     ASS_EQ(&_bdata,&_subst->bdGet());
     _subst->bdDone();
@@ -1114,7 +1114,7 @@ private:
     FINISHED=3
   };
 
-  RobSubstitution* _subst;
+  CombSubstitution* _subst;
   Literal* _l1;
   int _l1i;
   Literal* _l2;
@@ -1129,30 +1129,30 @@ private:
    */
   bool _used;
 };
-struct RobSubstitution::MatchingFn {
-  static bool associate(RobSubstitution* subst, Literal* l1, int l1Index,
+struct CombSubstitution::MatchingFn {
+  static bool associate(CombSubstitution* subst, Literal* l1, int l1Index,
 	  Literal* l2, int l2Index)
   { return subst->matchArgs(l1,l1Index,l2,l2Index); }
 
-  static bool associate(RobSubstitution* subst, TermList t1, int t1Index,
+  static bool associate(CombSubstitution* subst, TermList t1, int t1Index,
 	  TermList t2, int t2Index)
   { return subst->match(t1,t1Index,t2,t2Index); }
 };
-struct RobSubstitution::UnificationFn {
-  static bool associate(RobSubstitution* subst, Literal* l1, int l1Index,
+struct CombSubstitution::UnificationFn {
+  static bool associate(CombSubstitution* subst, Literal* l1, int l1Index,
 	  Literal* l2, int l2Index)
   { return subst->unifyArgs(l1,l1Index,l2,l2Index); }
 
-  static bool associate(RobSubstitution* subst, TermList t1, int t1Index,
+  static bool associate(CombSubstitution* subst, TermList t1, int t1Index,
 	  TermList t2, int t2Index)
   { return subst->unify(t1,t1Index,t2,t2Index); }
 };
 
 
 #if VDEBUG
-vstring RobSubstitution::toString(bool deref) const
+vstring CombSubstitution::toString(bool deref) const
 {
-  CALL("RobSubstitution::toString");
+  CALL("CombSubstitution::toString");
   vstring res;
   BankType::Iterator bit(_bank);
   while(bit.hasNext()) {
@@ -1178,7 +1178,7 @@ vstring RobSubstitution::toString(bool deref) const
   return res;
 }
 
-vstring RobSubstitution::VarSpec::toString() const
+vstring CombSubstitution::VarSpec::toString() const
 {
   if(index==SPECIAL_INDEX) {
     return "S"+Int::toString(var);
@@ -1187,17 +1187,17 @@ vstring RobSubstitution::VarSpec::toString() const
   }
 }
 
-vstring RobSubstitution::TermSpec::toString() const
+vstring CombSubstitution::TermSpec::toString() const
 {
   return term.toString()+"/"+Int::toString(index);
 }
 
-ostream& operator<< (ostream& out, RobSubstitution::VarSpec vs )
+ostream& operator<< (ostream& out, CombSubstitution::VarSpec vs )
 {
   return out<<vs.toString();
 }
 
-ostream& operator<< (ostream& out, RobSubstitution::TermSpec ts )
+ostream& operator<< (ostream& out, CombSubstitution::TermSpec ts )
 {
   return out<<ts.toString();
 }
@@ -1207,7 +1207,7 @@ ostream& operator<< (ostream& out, RobSubstitution::TermSpec ts )
 /**
  * First hash function for DHMap.
  */
-unsigned RobSubstitution::VarSpec::Hash1::hash(VarSpec& o, int capacity)
+unsigned CombSubstitution::VarSpec::Hash1::hash(VarSpec& o, int capacity)
 {
 //  return o.var + o.index*(capacity>>1) + (o.index>>1)*(capacity>>3);
 //  return o.var^(o.var/capacity) + o.index*(capacity>>1) + (o.index>bv>2)*(capacity>>3);
@@ -1226,7 +1226,7 @@ unsigned RobSubstitution::VarSpec::Hash1::hash(VarSpec& o, int capacity)
 /**
  * Second hash function for DHMap. It just uses the hash function from Lib::Hash
  */
-unsigned RobSubstitution::VarSpec::Hash2::hash(VarSpec& o)
+unsigned CombSubstitution::VarSpec::Hash2::hash(VarSpec& o)
 {
   return Lib::Hash::hash(reinterpret_cast<const unsigned char*>(&o), sizeof(VarSpec));
 //  return o.var+o.index;

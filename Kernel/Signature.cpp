@@ -57,8 +57,9 @@ Signature::Symbol::Symbol(const vstring& nm,unsigned arity, bool interpreted, bo
     _type(0),
     _distinctGroups(0),
     _usageCount(0),
-	_isAPP(0),
-	_HOLconst(NULL_CONSTANT)
+	  _isAPP(0),
+    _isPlaceHolder(0),
+	  _HOLconst(NULL_CONSTANT)
 {
   CALL("Signature::Symbol::Symbol");
   ASS(!stringConstant || arity==0);

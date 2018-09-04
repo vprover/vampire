@@ -204,7 +204,12 @@ ClauseIterator Superposition::generateClauses(Clause* premise)
   // Get clauses with a literal whose complement unifies with the rewritable subterm,
   // returns a pair with the original pair and the unification result (includes substitution)
   auto itf3 = getMapAndFlattenIterator(itf2,ApplicableRewritesFn(_lhsIndex,withConstraints));
-
+  
+  /*while(itf3.hasNext()){
+    auto item = itf3.next();
+    cout << "Term " + item.first.second.toString() + " in literal " + item.first.first->toString() + " unifies with " + item.second.term.toString() << endl;
+  }*/
+  
   //Perform forward superposition
   auto itf4 = getMappingIterator(itf3,ForwardResultFn(premise, limits, *this));
 
@@ -282,7 +287,7 @@ int Superposition::getWeightLimit(Clause* eqClause, Clause* rwClause, Limits* li
  * performed.
  *
  * This function checks that we don't perform superpositions from
- * variables that occurr in the remainin part of the clause either in
+ * variables that occur in the remaining part of the clause either in
  * a literal which is not an equality, or in a as an argument of a function.
  * Such situation would mean that there is no ground substitution in which
  * @c eqLHS would be the larger argument of the largest literal.
@@ -302,10 +307,10 @@ bool Superposition::checkSuperpositionFromVariable(Clause* eqClause, Literal* eq
     }
     if(lit->isEquality()) {
       for(unsigned aIdx=0; aIdx<2; aIdx++) {
-	TermList arg = *lit->nthArgument(aIdx);
-	if(arg.isTerm() && arg.containsSubterm(eqLHS)) {
-	  return false;
-	}
+        TermList arg = *lit->nthArgument(aIdx);
+        if(arg.isTerm() && arg.containsSubterm(eqLHS)) {
+          return false;
+        }
       }
     }
     else if(lit->containsSubterm(eqLHS)) {

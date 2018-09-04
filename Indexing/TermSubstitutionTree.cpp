@@ -64,7 +64,8 @@ void TermSubstitutionTree::remove(TermList t, Literal* lit, Clause* cls)
 void TermSubstitutionTree::handleTerm(TermList t, Literal* lit, Clause* cls, bool insert)
 {
   CALL("TermSubstitutionTree::handleTerm");
-
+  
+  Term* oldTerm;
   LeafData ld(cls, lit, t);
   if(t.isOrdinaryVar()) {
     if(insert) {
@@ -78,24 +79,22 @@ void TermSubstitutionTree::handleTerm(TermList t, Literal* lit, Clause* cls, boo
     Term* term=t.term();
 
     if(env.options->combinatoryUnification()){
-      cout << "The term is: " + term->toString() << endl;
+      oldTerm = term;
       term = toPlaceHolders(term);
-      cout << "The term is: " + term->toString() << endl;
       
       if(isPlaceHolder(term)){
-        unsigned sort = SortHelper::getResultSort(term); 
+        unsigned sort = SortHelper::getResultSort(term);
+        LDSkipList* lds;        
         if(insert){
-          if(_placeHolders.find(sort)){
-            LDSkipList* lds = _placeHolders.findPtr(sort);
+          if(_placeHolders.find(sort, lds)){
             lds->insert(ld);          
           } else {
             LDSkipList* lds = new LDSkipList();
             lds->insert(ld);
-            _placeHolders.insert(sort, *lds);          
+            _placeHolders.insert(sort, lds);          
           }
         } else {
-          if(_placeHolders.find(sort)){
-            LDSkipList* lds = _placeHolders.findPtr(sort);
+          if(_placeHolders.find(sort, lds)){
             lds->remove(ld);          
           }
         }
@@ -103,6 +102,9 @@ void TermSubstitutionTree::handleTerm(TermList t, Literal* lit, Clause* cls, boo
       }
     }
     
+    cout << "The old term is: " + oldTerm->toString() << endl;
+    cout << "The term is: " + term->toString() << endl;
+
     Term* normTerm=Renaming::normalize(term);
 
     BindingMap svBindings;
@@ -112,7 +114,9 @@ void TermSubstitutionTree::handleTerm(TermList t, Literal* lit, Clause* cls, boo
 
     if(insert) {
       SubstitutionTree::insert(&_nodes[rootNodeIndex], svBindings, ld);
-      cout << this->toString() << endl;
+      if(oldTerm != term){
+        cout << this->toString() << endl; 
+      }
     } else {
       SubstitutionTree::remove(&_nodes[rootNodeIndex], svBindings, ld);
     }
@@ -136,8 +140,8 @@ TermQueryResultIterator TermSubstitutionTree::getUnifications(TermList t,
       } else {
         unsigned sort = SortHelper::getResultSort(t.term());
         if(_placeHolders.find(sort)){
-          LDSkipList lds = _placeHolders.get(sort);
-          auto it1 = ldIteratorToTQRIterator(LDSkipList::RefIterator(lds), t, false,false);
+          LDSkipList* lds = _placeHolders.get(sort);
+          auto it1 = ldIteratorToTQRIterator(LDSkipList::RefIterator(*lds), t, false,false);
           auto it2 = getResultIterator<UnificationsIterator>(t.term(), false,false);
           return pvi( getConcatenatedIterator(it1, it2));        
         } else {
@@ -154,8 +158,8 @@ TermQueryResultIterator TermSubstitutionTree::getUnifications(TermList t,
       } else {
         unsigned sort = SortHelper::getResultSort(t.term());
         if(_placeHolders.find(sort)){
-          LDSkipList lds = _placeHolders.get(sort);
-          auto it1 = ldIteratorToTQRIterator(LDSkipList::RefIterator(lds), t, false,false);
+          LDSkipList* lds = _placeHolders.get(sort);
+          auto it1 = ldIteratorToTQRIterator(LDSkipList::RefIterator(*lds), t, false,false);
           auto it2 = getResultIterator<UnificationsIterator>(t.term(), false,false);
           auto it3 = getConcatenatedIterator(it1, it2);
           auto it4 = ldIteratorToTQRIterator(LDSkipList::RefIterator(_vars), t, false,false);
