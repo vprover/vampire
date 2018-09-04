@@ -1,6 +1,6 @@
 
 /*
- * File CombSubstitution.hpp.
+ * File CombUnification.hpp.
  *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
@@ -17,18 +17,19 @@
  * licence, which we will make an effort to provide. 
  */
 /**
- * @file CombSubstitution.hpp
- * Defines class CombSubstitution.
+ * @file CombUnification.hpp
+ * Defines class CombUnification.
  *
  */
 
-#ifndef __CombSubstitution__
-#define __CombSubstitution__
+#ifndef __CombUnification__
+#define __CombUnification__
 
 #include <utility>
 
 #include "Forwards.hpp"
 #include "Lib/DHMap.hpp"
+#include "Lib/Set.hpp"
 #include "Lib/Backtrackable.hpp"
 #include "Term.hpp"
 
@@ -45,13 +46,88 @@ namespace Kernel
 using namespace std;
 using namespace Lib;
 
-class CombSubstitution
+class CombUnification
 {
 public:
-  CLASS_NAME(CombSubstitution);
-  USE_ALLOCATOR(CombSubstitution);
+  CLASS_NAME(CombUnification);
+  USE_ALLOCATOR(CombUnification);
   
-  CombSubstitution(){}
+  CombUnification(){}
+
+  enum AlgorithmStep{
+     UNDEFINED,
+     ADD_ARG,
+     SPLIT,
+     I_NARROW,
+     K_NARROW,
+     KX_NARROW,
+     B_NARROW,
+     BX_NARROW,
+     C_NARROW,
+     CX_NARROW,
+     S_NARROW,
+     SX_NARROW,
+     I_REDUCE,
+     K_REDUCE,
+     B_REDUCE,
+     C_REDUCE,
+     S_REDUCE,
+     DECOMP,
+     ELIMINATE
+  }
+
+  class CombSubstitution
+  :public Backtrackable
+  {
+    CLASS_NAME(CombSubstitution);
+    USE_ALLOCATOR(CombSubstitution);
+
+    public:
+
+      CombSubstitution(TermList t1,int index1, TermList t2, int index2){
+        _unificationPairs.insert(UnificationPair(t1, index1, t2, index2));
+      }
+
+      TermList apply(TermList t, int index) const;
+      Literal* apply(Literal* lit, int index) const;
+      
+    private:
+
+      struct UnificationPair
+      {
+
+        UnificationPair(TermList t1,int index1, TermList t2, int index2)
+        {
+          unifPair = make_pair(TermSpec(t1,index1),TermSpec(t2,index2));
+          lastStep = UNDEFINED;
+          secondLastStep = UNDEFINED;
+        }
+
+        UnificationPair(TermList t1,int index1, TermList t2, int index2,
+                        AlgorithmStep ls, AlgorithmStep sls)
+        {
+          unifPair = make_pair(TermSpec(t1,index1),TermSpec(t2,index2));
+          lastStep = ls;
+          secondLastStep = sls;
+        }
+
+        AlgorithmStep secondLastStep;
+        AlgorithmStep lastStep;
+        TTPair unifPair;
+      }
+      
+      //if subsitution represents solved system _solved set to true
+      bool _solved;
+
+      DHSet<UnificationPair> _unificationPairs;
+      
+      typedef DHMap<VarSpec,TermSpec,VarSpec::Hash1, VarSpec::Hash2> SolvedType;
+      mutable SolvedType _solvedPairs;
+
+      //perhaps friend declaration is unnecessary (view SubstitutionTree.hpp)
+      friend class CombUnification;
+
+  }
 
  // SubstIterator matches(Literal* base, int baseIndex,
  //  Literal* instance, int instanceIndex, bool complementary);
@@ -99,8 +175,7 @@ public:
   }
   TermList getSpecialVarTop(unsigned specialVar) const;
   */
-  TermList apply(TermList t, int index) const;
-  Literal* apply(Literal* lit, int index) const;
+
   /*
   size_t getApplicationResultWeight(TermList t, int index) const;
   size_t getApplicationResultWeight(Literal* lit, int index) const;
@@ -150,6 +225,7 @@ public:
       static unsigned hash(VarSpec& o);
     };
   };
+  
   struct TermSpec
   {
     /** Create a new VarSpec struct */
@@ -220,9 +296,9 @@ public:
 
 private:
   /** Copy constructor is private and without a body, because we don't want any. */
-  CombSubstitution(const CombSubstitution& obj);
+  CombUnification(const CombUnification& obj);
   /** operator= is private and without a body, because we don't want any. */
-  CombSubstitution& operator=(const CombSubstitution& obj);
+  CombUnification& operator=(const CombUnification& obj);
 
   /*
   static const int AUX_INDEX;
@@ -253,7 +329,7 @@ private:
   /*
   VarSpec getAuxVar(VarSpec target)
   {
-    CALL("CombSubstitution::getAuxVar");
+    CALL("CombUnification::getAuxVar");
     if(target.index==AUX_INDEX) {
       return target;
     }
@@ -269,7 +345,7 @@ private:
   }
   VarSpec getVarSpec(TermList tl, int index) const
   {
-    CALL("CombSubstitution::getVarSpec");
+    CALL("CombUnification::getVarSpec");
     ASS(tl.isVar());
     if(tl.isSpecialVar()) {
       return VarSpec(tl.var(), SPECIAL_INDEX);
@@ -280,13 +356,9 @@ private:
   }
   //static void swap(TermSpec& ts1, TermSpec& ts2);
 
-  //typedef DHMap<VarSpec,TermSpec,VarSpec::Hash1, VarSpec::Hash2> BankType;
-
-  //mutable BankType _bank;
-
 
 /*  template<class Fn>
-  SubstIterator getAssocIterator(CombSubstitution* subst,
+  SubstIterator getAssocIterator(CombUnification* subst,
 	  Literal* l1, int l1Index, Literal* l2, int l2Index, bool complementary);
 
   template<class Fn>
@@ -301,8 +373,8 @@ private:
 
 #if VDEBUG
 
-ostream& operator<< (ostream& out, CombSubstitution::VarSpec vs );
-ostream& operator<< (ostream& out, CombSubstitution::TermSpec vs );
+ostream& operator<< (ostream& out, CombUnification::VarSpec vs );
+ostream& operator<< (ostream& out, CombUnification::TermSpec vs );
 
 #endif
 
@@ -316,10 +388,10 @@ namespace Lib
  * Traits structure specialisation. (See DHMap.hpp)
  */
 template<>
-struct HashTraits<Kernel::CombSubstitution::VarSpec::Hash1>
+struct HashTraits<Kernel::CombUnification::VarSpec::Hash1>
 {
   enum {SINGLE_PARAM_HASH=0};
 };
 };
 
-#endif /*__CombSubstitution__*/
+#endif /*__CombUnification__*/
