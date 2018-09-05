@@ -91,6 +91,8 @@ public:
       TermList apply(TermList t, int index) const;
       Literal* apply(Literal* lit, int index) const;
       
+      VirtualIterator<AlgorithmStep> availableTransforms();
+      
     private:
 
       struct UnificationPair
