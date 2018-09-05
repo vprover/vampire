@@ -47,12 +47,21 @@ using namespace std;
 using namespace Lib;
 
 class CombUnification
+: public IteratorCore<pair<pair<Literal*, TermList>, TermQueryResult>>
 {
 public:
   CLASS_NAME(CombUnification);
   USE_ALLOCATOR(CombUnification);
   
-  CombUnification(){}
+  static const int QUERY_BANK=0;
+  static const int RESULT_BANK=1;
+
+  typedef pair<pair<Literal*, TermList>, TermQueryResult>  CombQueryResult;
+
+  CombUnification(CombQueryResult arg)
+  {
+    _subst = new CombSubstitution(arg.first.second, QUERY_BANK, arg.second.term,RESULT_BANK);
+  }
 
   enum AlgorithmStep{
      UNDEFINED,
@@ -74,7 +83,18 @@ public:
      S_REDUCE,
      DECOMP,
      ELIMINATE
-  }
+  };
+  
+  /**
+    * Used to record whether the algorithm step can be applied to 
+    * the left of the pair, the right or applies to both (for example
+    * ADD_ARG and DECOMP apply to both items in a unif pair).
+    */
+  enum ApplyTo{
+     FIRST = 1,
+     SECOND = 2,
+     BOTH = 3
+  };
 
   class CombSubstitution
   :public Backtrackable
@@ -91,7 +111,7 @@ public:
       TermList apply(TermList t, int index) const;
       Literal* apply(Literal* lit, int index) const;
       
-      VirtualIterator<AlgorithmStep> availableTransforms();
+      VirtualIterator<pair<AlgorithmStep, ApplyTo>> availableTransforms();
       
     private:
 
@@ -113,6 +133,13 @@ public:
           secondLastStep = sls;
         }
 
+        //stack that holds the potential transformations that can be carried out to
+        //the left-hand (first) term of this unification pair
+        Stack<pair<AlgorithmStep, ApplyTo>> transformsLeft;
+        //stack that holds the potential transformations that can be carried out to
+        //the right-hand (second) term of this unification pair
+        Stack<pair<AlgorithmStep, ApplyTo>> transformsRight;
+
         AlgorithmStep secondLastStep;
         AlgorithmStep lastStep;
         TTPair unifPair;
@@ -121,7 +148,7 @@ public:
       //if subsitution represents solved system _solved set to true
       bool _solved;
 
-      DHSet<UnificationPair> _unificationPairs;
+      Stack<UnificationPair> _unificationPairs;
       
       typedef DHMap<VarSpec,TermSpec,VarSpec::Hash1, VarSpec::Hash2> SolvedType;
       mutable SolvedType _solvedPairs;
@@ -131,12 +158,9 @@ public:
 
   }
 
- // SubstIterator matches(Literal* base, int baseIndex,
- //  Literal* instance, int instanceIndex, bool complementary);
- // SubstIterator unifiers(Literal* l1, int l1Index, Literal* l2, int l2Index, bool complementary);
+  bool hasNext();
+  CombQueryResult next();
 
-  bool unify(TermList t1,int index1, TermList t2, int index2);
-  bool match(TermList base,int baseIndex, TermList instance, int instanceIndex);
   /**
    * Takes two terms t1 and t2. If they can possibly be unified
    * using combinatory unification, returns true. Otherwise rteurns false
@@ -312,6 +336,8 @@ private:
   TermSpec derefBound(TermSpec v) const;
   */
   
+  CombSubstitution* _subst;
+
   void bind(const VarSpec& v, const TermSpec& b);
   void bindVar(const VarSpec& var, const VarSpec& to);
   //VarSpec root(VarSpec v) const;
@@ -373,27 +399,3 @@ private:
   */
 };
 
-#if VDEBUG
-
-ostream& operator<< (ostream& out, CombUnification::VarSpec vs );
-ostream& operator<< (ostream& out, CombUnification::TermSpec vs );
-
-#endif
-
-
-};
-
-
-namespace Lib
-{
-/**
- * Traits structure specialisation. (See DHMap.hpp)
- */
-template<>
-struct HashTraits<Kernel::CombUnification::VarSpec::Hash1>
-{
-  enum {SINGLE_PARAM_HASH=0};
-};
-};
-
-#endif /*__CombUnification__*/
