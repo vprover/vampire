@@ -50,12 +50,92 @@
 using namespace Debug;
 #endif
 
-#define DEBUG_RESULT_WEIGHT_COMPUTATION 0
-
 namespace Kernel
 {
 
 using namespace std;
 using namespace Lib;
 
-}}
+void CombSubstitution::populateTransformations()
+{
+  CALL("CombSubstitution::populateTransformations");
+
+  UnificationPair up = _unificationPairs.top();
+  TTPair topPair = up.unifPair;
+  TermSpec tsLeft = topPair.first;
+  TermSpec tsRght = topPair.second; 
+
+  unsigned arityl, arityr;
+  TermList headl = head(tsLeft, arityl);
+  TermList headr = head(tsRght, arityr);
+  
+  int as = isComb(headl, arityl);
+
+  if(as > 1){
+  	Transform trs((AlgorithmStep)as,SECOND);
+  	up.transformsLeft.push(trs);
+  } 
+
+}
+  
+/**
+  * Returns the head symbol of an applicative term. 
+  * @author Ahmed Bhayat
+  * @location Manchester
+  */
+ 
+TermList CombSubstitution::head(TermSpec tspec, unsigned& arity)
+{
+  CALL("CombSubstitution::head");
+  
+  TermList ts = tspec.term;
+  arity = 0;
+
+  if(ts.isVar()){
+    return ts;
+  } else {
+    ASS(ts.isTerm());
+    Signature::Symbol* sym = env.signature->getFunction(ts.term()->functor());
+    while(sym->hOLAPP()){
+      arity++;
+      ts = *(ts.term()->nthArgument(0));
+      if(ts.isVar()){
+        return ts;
+      }
+      sym = env.signature->getFunction(ts.term()->functor());
+    }
+    return ts;
+  }
+}
+
+
+/**
+  * Returns 0 if not a combinator, 1 if is combinator not fully applied
+  * and the relavant AlgorithmStep otherwise 
+  * @author Ahmed Bhayat
+  * @location Manchester
+  */
+int CombSubstitution::isComb(TermList tl, unsigned arity) const
+{
+
+  CALL("CombSubstitution::isComb");
+
+  if(tl.isVar()){ return 0; }
+  SS* sym = env.signature->getFunction(tl.term()->functor());
+  switch(sym->getConst()){
+    case SS::I_COMB:
+      return arity >= 1 ? I_REDUCE : 1;
+    case SS::K_COMB:
+      return arity >= 2 ? K_REDUCE : 1;
+    case SS::B_COMB:
+      return arity >= 3 ? B_REDUCE : 1;
+    case SS::C_COMB:
+      return arity >= 3 ? C_REDUCE : 1;
+    case SS::S_COMB:
+      return arity >= 3 ? S_REDUCE : 1;
+    default:
+      return 0;      
+  }
+}
+
+}

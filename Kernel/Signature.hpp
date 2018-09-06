@@ -59,7 +59,9 @@ class Signature
   /** Function or predicate symbol */
   class Symbol {
   
-  public: enum HOLConstant { //get rid of combinator type from term class, AYB
+  public: 
+
+  enum HOLConstant { //get rid of combinator type from term class, AYB
     AND,
     OR,
     IMP,

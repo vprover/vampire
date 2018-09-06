@@ -49,172 +49,235 @@ namespace Kernel
 using namespace Indexing;
 using namespace Lib;
 
+//should split into separate file
+class CombSubstitution
+:public Backtrackable
+{
+  CLASS_NAME(CombSubstitution);
+  USE_ALLOCATOR(CombSubstitution);
+
+  public:
+
+    CombSubstitution(TermList t1,int index1, TermList t2, int index2){
+      _unificationPairs.push(UnificationPair(t1, index1, t2, index2));
+    }
+
+    TermList apply(TermList t, int index) const;
+    Literal* apply(Literal* lit, int index) const;
+
+    enum AlgorithmStep{
+       UNDEFINED,
+       ADD_ARG,
+       SPLIT,
+       I_NARROW,
+       K_NARROW,
+       KX_NARROW,
+       B_NARROW,
+       BX_NARROW,
+       C_NARROW,
+       CX_NARROW,
+       S_NARROW,
+       SX_NARROW,
+       I_REDUCE,
+       K_REDUCE,
+       B_REDUCE,
+       C_REDUCE,
+       S_REDUCE,
+       DECOMP,
+       ELIMINATE
+    };
+    
+    /**
+      * Used to record whether the algorithm step can be applied to 
+      * the left of the pair, the right or applies to both (for example
+      * ADD_ARG and DECOMP apply to both items in a unif pair).
+      */
+    enum ApplyTo{
+       FIRST = 1,
+       SECOND = 2,
+       BOTH = 3
+    };
+
+    typedef pair<AlgorithmStep, ApplyTo>  Transform;
+    typedef VirtualIterator<Transform> TransformIterator;
+    typedef RobSubstitution::VarSpec VarSpec;
+    typedef Signature::Symbol SS;
+    
+    //TermSpec copied because slightly modified version required
+    struct TermSpec
+    {
+      /** Create a new VarSpec struct */
+      TermSpec() {}
+      /** Create a new VarSpec struct */
+      TermSpec(TermList term, int index) : term(term), index(index) {}
+      /** Create a new VarSpec struct */
+      explicit TermSpec(const VarSpec& vs) : index(vs.index)
+      {
+        term.makeVar(vs.var);
+      }
+      /**
+       * If it's sure, that @b ts has the same content as this TermSpec,
+       * return true. If they don't (or it cannot be easily checked), return
+       * false. Only term content is taken into account, i.e. when two
+       * literals are pointer do by ts.term, their polarity is ignored.
+       */
+      bool sameTermContent(const TermSpec& ts)
+      {
+        bool termSameContent=term.sameContent(&ts.term);
+        if(!termSameContent && term.isTerm() && term.term()->isLiteral() &&
+          ts.term.isTerm() && ts.term.term()->isLiteral()) {
+          const Literal* l1=static_cast<const Literal*>(term.term());
+          const Literal* l2=static_cast<const Literal*>(ts.term.term());
+          if(l1->functor()==l2->functor() && l1->arity()==0) {
+            return true;
+          }
+        }
+        if(!termSameContent) {
+          return false;
+        }
+        return index==ts.index ||
+          (term.isTerm() && 
+          ((term.term()->shared() && term.term()->ground()) ||
+          term.term()->arity()==0 ));
+      }
+
+      bool isVar()
+      {
+        return term.isVar();
+      }
+      bool operator==(const TermSpec& o) const
+      { return term==o.term && index==o.index; }
+  #if VDEBUG
+      vstring toString() const;
+  #endif
+
+      /** term reference */
+      TermList term;
+      /** index of term to which it is bound */
+      int index;
+    };
+    
+    typedef pair<TermSpec,TermSpec> TTPair;  
+          
+  private:
+
+    struct UnificationPair
+    {
+      //CLASS_NAME(UnificationPair);
+      //USE_ALLOCATOR(UnificationPair);
+
+      UnificationPair(TermList t1,int index1, TermList t2, int index2)
+      {
+        unifPair = make_pair(TermSpec(t1,index1),TermSpec(t2,index2));
+        lastStep = UNDEFINED;
+        secondLastStep = UNDEFINED;
+      }
+
+      //stack that holds the potential transformations that can be carried out to
+      //the left-hand (first) term of this unification pair
+      Stack<Transform> transformsLeft;
+      Stack<Transform> transformsRight;
+
+      AlgorithmStep secondLastStep;
+      AlgorithmStep lastStep;
+      TTPair unifPair;
+    };
+
+    TransformIterator availableTransforms();
+    /*
+     * Finds all relevant trandformations for top unif pair 
+     * in _unifcationPairs of _unifSystem. Populates transformation
+     * stacks.
+     */
+    void populateTransformations();    
+    int isComb(TermList tl, unsigned arity) const;
+    TermList head(TermSpec ts, unsigned& arity); 
+
+    //if subsitution represents solved system _solved set to true
+    bool _solved;
+
+    Stack<UnificationPair> _unificationPairs;
+    
+    typedef DHMap<VarSpec,TermSpec,VarSpec::Hash1, VarSpec::Hash2> SolvedType;
+    mutable SolvedType _solvedPairs;
+
+    class BindingBacktrackObject
+    : public BacktrackObject
+    {
+    public:
+      BindingBacktrackObject(CombSubstitution* subst, VarSpec v)
+      :_subst(subst), _var(v)
+      {}
+
+      void backtrack()
+      {
+        _subst->_solvedPairs.remove(_var);
+      }
+
+      CLASS_NAME(CombSubstitution::BindingBacktrackObject);
+      USE_ALLOCATOR(CombSubstitution);
+    private:
+      CombSubstitution* _subst;
+      VarSpec _var;
+    };
+
+    class StackBacktrackObject
+    : public BacktrackObject
+    {
+    public:
+      StackBacktrackObject(CombSubstitution* subst, Stack<UnificationPair> st)
+      :_subst(subst), _st(st)
+      {}
+      
+      void backtrack()
+      {
+        // Not particularly elegant or efficient. 
+        // Just resetting the whole stack
+        // Should only be resetting elements that have changed.
+        _subst->_unificationPairs = _st;
+      }
+
+      CLASS_NAME(CombSubstitution::StackBacktrackObject);
+      USE_ALLOCATOR(CombSubstitution);
+    private:
+      CombSubstitution* _subst;
+       Stack<UnificationPair> _st;
+    };
+
+    friend class CombUnification;
+};
+
+
+
 class CombUnification
-: public IteratorCore<pair<pair<Literal*, TermList>, TermQueryResult>>
+: public IteratorCore<CombSubstitution*>
 {
 public:
   CLASS_NAME(CombUnification);
   USE_ALLOCATOR(CombUnification);
   
-  static const int QUERY_BANK=0;
-  static const int RESULT_BANK=1;
-
-  typedef pair<pair<Literal*, TermList>, TermQueryResult>  CombQueryResult;
-  typedef RobSubstitution::VarSpec VarSpec;
-  
-  CombUnification(CombQueryResult arg): _arg(arg)
+  CombUnification(TermList t1,int index1, TermList t2, int index2)
   {
-    _unifSystem = new CombSubstitution(arg.first.second, QUERY_BANK, arg.second.term,RESULT_BANK);
+    _unifSystem = new CombSubstitution(t1, index1, t2, index2);
+    _unifSystem->populateTransformations();
   }
 
-  enum AlgorithmStep{
-     UNDEFINED,
-     ADD_ARG,
-     SPLIT,
-     I_NARROW,
-     K_NARROW,
-     KX_NARROW,
-     B_NARROW,
-     BX_NARROW,
-     C_NARROW,
-     CX_NARROW,
-     S_NARROW,
-     SX_NARROW,
-     I_REDUCE,
-     K_REDUCE,
-     B_REDUCE,
-     C_REDUCE,
-     S_REDUCE,
-     DECOMP,
-     ELIMINATE
-  };
+  bool hasNext(){
+    return hasNextUnifier();
+  }
+  /* 
+   * Only valid if has been previous call to hasNext that
+   * has returned true! Calling next multiple times for one
+   * call of hasNext will result in the same unifier being return
+   * multiple times.
+   */
+  CombSubstitution* next(){
+    return _unifSystem;
+  }
   
-  /**
-    * Used to record whether the algorithm step can be applied to 
-    * the left of the pair, the right or applies to both (for example
-    * ADD_ARG and DECOMP apply to both items in a unif pair).
-    */
-  enum ApplyTo{
-     FIRST = 1,
-     SECOND = 2,
-     BOTH = 3
-  };
-
-
-  //TermSpec copied because slightly modified version required
-  struct TermSpec
-  {
-    /** Create a new VarSpec struct */
-    TermSpec() {}
-    /** Create a new VarSpec struct */
-    TermSpec(TermList term, int index) : term(term), index(index) {}
-    /** Create a new VarSpec struct */
-    explicit TermSpec(const VarSpec& vs) : index(vs.index)
-    {
-      term.makeVar(vs.var);
-    }
-    /**
-     * If it's sure, that @b ts has the same content as this TermSpec,
-     * return true. If they don't (or it cannot be easily checked), return
-     * false. Only term content is taken into account, i.e. when two
-     * literals are pointer do by ts.term, their polarity is ignored.
-     */
-    bool sameTermContent(const TermSpec& ts)
-    {
-      bool termSameContent=term.sameContent(&ts.term);
-      if(!termSameContent && term.isTerm() && term.term()->isLiteral() &&
-        ts.term.isTerm() && ts.term.term()->isLiteral()) {
-        const Literal* l1=static_cast<const Literal*>(term.term());
-        const Literal* l2=static_cast<const Literal*>(ts.term.term());
-        if(l1->functor()==l2->functor() && l1->arity()==0) {
-          return true;
-        }
-      }
-      if(!termSameContent) {
-        return false;
-      }
-      return index==ts.index ||
-        (term.isTerm() && 
-        ((term.term()->shared() && term.term()->ground()) ||
-        term.term()->arity()==0 ));
-    }
-
-    bool isVar()
-    {
-      return term.isVar();
-    }
-    bool operator==(const TermSpec& o) const
-    { return term==o.term && index==o.index; }
-#if VDEBUG
-    vstring toString() const;
-#endif
-
-    /** term reference */
-    TermList term;
-    /** index of term to which it is bound */
-    int index;
-  };
-  
-  typedef pair<TermSpec,TermSpec> TTPair;  
-  
-  class CombSubstitution
-  :public Backtrackable
-  {
-    CLASS_NAME(CombSubstitution);
-    USE_ALLOCATOR(CombSubstitution);
-
-    public:
-
-      CombSubstitution(TermList t1,int index1, TermList t2, int index2){
-        _unificationPairs.push(UnificationPair(t1, index1, t2, index2));
-      }
-
-      TermList apply(TermList t, int index) const;
-      Literal* apply(Literal* lit, int index) const;
-      
-      VirtualIterator<pair<AlgorithmStep, ApplyTo>> availableTransforms();
-      
-    private:
-
-      struct UnificationPair
-      {
-
-        UnificationPair(TermList t1,int index1, TermList t2, int index2)
-        {
-          unifPair = make_pair(TermSpec(t1,index1),TermSpec(t2,index2));
-          lastStep = UNDEFINED;
-          secondLastStep = UNDEFINED;
-        }
-
-        //stack that holds the potential transformations that can be carried out to
-        //the left-hand (first) term of this unification pair
-        Stack<pair<AlgorithmStep, ApplyTo>> transformsLeft;
-        //stack that holds the potential transformations that can be carried out to
-        //the right-hand (second) term of this unification pair
-        Stack<pair<AlgorithmStep, ApplyTo>> transformsRight;
-
-        AlgorithmStep secondLastStep;
-        AlgorithmStep lastStep;
-        TTPair unifPair;
-      };
-      
-      //if subsitution represents solved system _solved set to true
-      bool _solved;
-
-      Stack<UnificationPair> _unificationPairs;
-      
-      typedef DHMap<VarSpec,TermSpec,VarSpec::Hash1, VarSpec::Hash2> SolvedType;
-      mutable SolvedType _solvedPairs;
-
-      //perhaps friend declaration is unnecessary (view SubstitutionTree.hpp)
-      friend class CombUnification;
-  };
-
-  bool hasNext();
-  CombQueryResult next();
   
   /** struct containing first hash function of TTPair objects*/
-  struct TTPairHash
+  /*struct TTPairHash
   {
    static unsigned hash(TTPair& o)
    {
@@ -222,8 +285,14 @@ public:
        ((IdentityHash::hash(o.second.term.content())^o.second.index)<<1);
    }
   };
+  */
 
 private:
+
+  typedef CombSubstitution::AlgorithmStep AlgorithmStep;
+  typedef CombSubstitution::ApplyTo ApplyTo;
+  typedef VirtualIterator<pair<AlgorithmStep,ApplyTo>> TransformIterator;
+
   /** Copy constructor is private and without a body, because we don't want any. */
   CombUnification(const CombUnification& obj);
   /** operator= is private and without a body, because we don't want any. */
@@ -231,12 +300,16 @@ private:
 
 
   CombSubstitution* _unifSystem;
-  CombQueryResult _arg;
+  Stack<TransformIterator> transformIterators;
+  Stack<BacktrackData> bdStack;
   
   //These or similar functions required in CombSubsitution class
   //void bind(const VarSpec& v, const TermSpec& b);
   //void bindVar(const VarSpec& var, const VarSpec& to);
 
+  bool hasNextUnifier();
+
+  /*
   bool occurs(VarSpec vs, TermSpec ts);
   
 
@@ -250,7 +323,7 @@ private:
     CALL("CombUnification::getVarSpec");
     ASS(tl.isVar());
     return VarSpec(tl.var(), index);
-  }
+  }*/
   //static void swap(TermSpec& ts1, TermSpec& ts2);
 
 
@@ -268,4 +341,5 @@ private:
   */
 };
 
+}
 #endif /*__CombUnification____*/
