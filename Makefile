@@ -220,6 +220,7 @@ VK_OBJ= Kernel/Clause.o\
         Kernel/Problem.o\
         Kernel/Renaming.o\
         Kernel/RobSubstitution.o\
+        Kernel/CombUnification.o\
         Kernel/Signature.o\
         Kernel/SortHelper.o\
         Kernel/Sorts.o\
@@ -502,6 +503,7 @@ OTHER_CL_DEP = Indexing/FormulaIndex.o\
 	       Kernel/Problem.o\
 	       Kernel/Renaming.o\
 	       Kernel/RobSubstitution.o\
+         Kernel/CombUnification.o\
 	       SAT/ClauseDisposer.o\
 	       SAT/ISSatSweeping.o\
 	       SAT/Preprocess.o\
