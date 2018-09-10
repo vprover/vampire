@@ -58,8 +58,11 @@ class CombSubstitution
 
   public:
 
-    CombSubstitution(TermList t1,int index1, TermList t2, int index2){
-      _unificationPairs.push(UnificationPair(t1, index1, t2, index2));
+    CombSubstitution(TermList t1,int index1, TermList t2, int index2):_solved(false)
+    {
+      UnificationPair up = UnificationPair(t1, index1, t2, index2);
+      populateTransformations(up);
+      _unificationPairs.push(up);
     }
 
     TermList apply(TermList t, int index) const;
@@ -97,70 +100,15 @@ class CombSubstitution
        SECOND = 2,
        BOTH = 3
     };
+          
+  private:
 
     typedef pair<AlgorithmStep, ApplyTo>  Transform;
     typedef VirtualIterator<Transform> TransformIterator;
     typedef RobSubstitution::VarSpec VarSpec;
     typedef Signature::Symbol SS;
     typedef HOSortHelper HSH;
-    
-    //TermSpec copied because slightly modified version required
-    struct TermSpec
-    {
-      /** Create a new VarSpec struct */
-      TermSpec() {}
-      /** Create a new VarSpec struct */
-      TermSpec(TermList term, int index) : term(term), index(index) {}
-      /** Create a new VarSpec struct */
-      explicit TermSpec(const VarSpec& vs) : index(vs.index)
-      {
-        term.makeVar(vs.var);
-      }
-      /**
-       * If it's sure, that @b ts has the same content as this TermSpec,
-       * return true. If they don't (or it cannot be easily checked), return
-       * false. Only term content is taken into account, i.e. when two
-       * literals are pointer do by ts.term, their polarity is ignored.
-       */
-      bool sameTermContent(const TermSpec& ts)
-      {
-        bool termSameContent=term.sameContent(&ts.term);
-        if(!termSameContent && term.isTerm() && term.term()->isLiteral() &&
-          ts.term.isTerm() && ts.term.term()->isLiteral()) {
-          const Literal* l1=static_cast<const Literal*>(term.term());
-          const Literal* l2=static_cast<const Literal*>(ts.term.term());
-          if(l1->functor()==l2->functor() && l1->arity()==0) {
-            return true;
-          }
-        }
-        if(!termSameContent) {
-          return false;
-        }
-        return index==ts.index ||
-          (term.isTerm() && 
-          ((term.term()->shared() && term.term()->ground()) ||
-          term.term()->arity()==0 ));
-      }
-
-      bool isVar()
-      {
-        return term.isVar();
-      }
-      bool operator==(const TermSpec& o) const
-      { return term==o.term && index==o.index; }
-  #if VDEBUG
-      vstring toString() const;
-  #endif
-
-      /** term reference */
-      TermList term;
-      /** index of term to which it is bound */
-      int index;
-    };
-    
-    typedef pair<TermSpec,TermSpec> TTPair;  
-          
-  private:
+    typedef pair<HSH::HOTerm,HSH::HOTerm> TTPair;  
 
     struct UnificationPair
     {
@@ -169,19 +117,23 @@ class CombSubstitution
 
       UnificationPair(TermList t1,int index1, TermList t2, int index2)
       {
-        unifPair = make_pair(TermSpec(t1,index1),TermSpec(t2,index2));
+        unifPair = make_pair(HSH::HOTerm(t1,index1),HSH::HOTerm(t2,index2));
         lastStep = UNDEFINED;
         secondLastStep = UNDEFINED;
       }
-
+      UnificationPair(HSH::HOTerm tl, HSH::HOTerm tr, AlgorithmStep ls, AlgorithmStep sls)
+      : lastStep(ls), secondLastStep(sls)
+      {
+        unifPair = make_pair(tl,tr);
+      }
       //stack that holds the potential transformations that can be carried out to
       //the left-hand (first) term of this unification pair
       Stack<Transform> transformsLeft;
       Stack<Transform> transformsRight;
       Stack<Transform> transformsBoth;
       
+      AlgorithmStep lastStep;      
       AlgorithmStep secondLastStep;
-      AlgorithmStep lastStep;
       TTPair unifPair;
     };
 
@@ -191,15 +143,17 @@ class CombSubstitution
      * in _unifcationPairs of _unifSystem. Populates transformation
      * stacks.
      */
-    void populateTransformations();    
-    int isComb(TermList tl, unsigned arity) const;
+    void populateTransformations(UnificationPair&);   
+    void populateSide(HSH::HOTerm, ApplyTo, Stack<Transform>&);
+    /** Carry out transformation represented bt t on top pair*/ 
+    bool transform(Transform t);
 
     //if subsitution represents solved system _solved set to true
     bool _solved;
 
     Stack<UnificationPair> _unificationPairs;
     
-    typedef DHMap<VarSpec,TermSpec,VarSpec::Hash1, VarSpec::Hash2> SolvedType;
+    typedef DHMap<VarSpec,HSH::HOTerm,VarSpec::Hash1, VarSpec::Hash2> SolvedType;
     mutable SolvedType _solvedPairs;
 
     class BindingBacktrackObject
@@ -260,7 +214,7 @@ public:
   CombUnification(TermList t1,int index1, TermList t2, int index2)
   {
     _unifSystem = new CombSubstitution(t1, index1, t2, index2);
-    _unifSystem->populateTransformations();
+    transformIterators.push(_unifSystem->availableTransforms());
   }
 
   bool hasNext(){
@@ -292,7 +246,8 @@ private:
 
   typedef CombSubstitution::AlgorithmStep AlgorithmStep;
   typedef CombSubstitution::ApplyTo ApplyTo;
-  typedef VirtualIterator<pair<AlgorithmStep,ApplyTo>> TransformIterator;
+  typedef pair<AlgorithmStep,ApplyTo> Transform;
+  typedef VirtualIterator<Transform> TransformIterator;
 
   /** Copy constructor is private and without a body, because we don't want any. */
   CombUnification(const CombUnification& obj);
@@ -309,37 +264,11 @@ private:
   //void bindVar(const VarSpec& var, const VarSpec& to);
 
   bool hasNextUnifier();
+  /** apply transformation t to the top unification pair in current system
+   *  record any chanegs in bd so that transformation can be reversed
+   */
+  bool transform(Transform t, BacktrackData& bd);
 
-  /*
-  bool occurs(VarSpec vs, TermSpec ts);
-  
-
-  inline
-  VarSpec getVarSpec(TermSpec ts) const
-  {
-    return getVarSpec(ts.term, ts.index);
-  }
-  VarSpec getVarSpec(TermList tl, int index) const
-  {
-    CALL("CombUnification::getVarSpec");
-    ASS(tl.isVar());
-    return VarSpec(tl.var(), index);
-  }*/
-  //static void swap(TermSpec& ts1, TermSpec& ts2);
-
-
-/*  template<class Fn>
-  SubstIterator getAssocIterator(CombUnification* subst,
-	  Literal* l1, int l1Index, Literal* l2, int l2Index, bool complementary);
-
-  template<class Fn>
-  struct AssocContext;
-  template<class Fn>
-  class AssocIterator;
-
-  struct MatchingFn;
-  struct UnificationFn;
-  */
 };
 
 }

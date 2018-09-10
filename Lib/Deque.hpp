@@ -42,8 +42,8 @@ class Deque
 {
 private:
   //private and undefined operator= and copy constructor to avoid implicitly generated ones
-  Deque(const Deque&);
-  Deque& operator=(const Deque&);
+  //Deque(const Deque&);
+ // Deque& operator=(const Deque&);
 public:
   class Iterator;
 
@@ -67,6 +67,20 @@ public:
     _end = _data+_capacity;
   }
 
+  Deque(const Deque& s)
+   : _capacity(s._capacity)
+  {
+    CALL("Deque::Deque(const Deque&)");
+
+    void* mem = ALLOC_KNOWN(_capacity*sizeof(C),"Deque<>");
+    _data = static_cast<C*>(mem);    
+    _front = _data;
+    _back = _data;
+    _end = _data+_capacity;
+
+    loadFromIterator(BackToFrontIterator(const_cast<Deque&>(s)));
+  }
+
   /** De-allocate the stack
    * @since 13/01/2008 Manchester
    */
@@ -82,6 +96,29 @@ public:
       (--p)->~C();
     }
     DEALLOC_KNOWN(_data,_capacity*sizeof(C),"Deque<>");
+  }
+
+
+  Deque& operator=(const Deque& s)
+  {
+    CALL("Deque::operator=");
+
+    reset();
+    loadFromIterator(BackToFrontIterator(const_cast<Deque&>(s)));
+    return *this;
+  }
+
+
+  /**
+   * Put all elements of an iterator onto the stack.
+   */
+  template<class It>
+  void loadFromIterator(It it) {
+    CALL("Deque::loadFromIterator");
+
+    while(it.hasNext()) {
+      push_front(it.next());
+    }
   }
 
   /**

@@ -171,11 +171,13 @@ public:
        : StructuredSortInfo(name,StructuredSort::HIGHER_ORD_CONST, id),  
          _instantiableSort(false), _domainSort(domainSort), _rangeSort(rangeSort){
 
-           unsigned orderDom, orderRange;
+           unsigned orderDom, orderRange, arityDom;
            if(env.sorts->isStructuredSort(domainSort)){
              orderDom = env.sorts->getFuncSort(domainSort)->order();
+             arityDom = env.sorts->getFuncSort(domainSort)->arity();
            } else {
              orderDom = 0;
+             arityDom = 0;
            }
            
            if(env.sorts->isStructuredSort(rangeSort)){
@@ -184,6 +186,7 @@ public:
              orderRange = 0;
            }
            
+           _arity = arityDom + 1;
            if(orderRange > orderDom){
              _order = orderRange;
            } else {
@@ -195,11 +198,13 @@ public:
      unsigned getDomainSort(){ return _domainSort; }    
      unsigned getRangeSort(){ return _rangeSort; }
      unsigned order() { return _order; }
+     unsigned arity() { return _arity; }
      void makeInstantiable() { _instantiableSort = true; }
      bool instantiable() { return _instantiableSort; }
   
   private:
      bool _instantiableSort;  
+     unsigned _arity;
      unsigned _order;
      unsigned _domainSort;    
      unsigned _rangeSort;  

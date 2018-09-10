@@ -840,6 +840,19 @@ Term* Term::createConstant(const vstring& name)
   return createConstant(symbolNumber);
 }
 
+
+/** Create a new fresh constant and insert in into the sharing
+ *  structure.
+ */
+Term* Term::createFreshConstant(const vstring& suffix, unsigned sort)
+{
+  CALL("Term::createConstant");
+
+  unsigned symbolNumber = env.signature->addFreshFunction(0, suffix.c_str());
+  env.signature->getFunction(symbolNumber)->setType(OperatorType::getConstantsType(sort));
+  return createConstant(symbolNumber);
+}
+
 /** Create a new complex term, copy from @b t its function symbol and
  *  from the array @b args its arguments. Do not insert it into the sharing
  *  structure.

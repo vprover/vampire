@@ -175,18 +175,28 @@ TermList HOSortHelper::getHead(TermList ts){
 /**
  *  Converts a HOTerm struct into applicative form TermList
  */
-TermList HOSortHelper::HOTerm::toTermList(){
-  CALL("HOSortHelper::HOTerm::toTermList");   
+TermList HOSortHelper::HOTerm::appify(){
+  CALL("HOSortHelper::HOTerm::appify");   
   
   TermList ts = head;
   unsigned sort = headsort;
   while(!args.isEmpty()){
-    unsigned fun = LambdaElimination::introduceAppSymbol(sort, sorts.pop(), range(sort));
+    unsigned fun = LambdaElimination::introduceAppSymbol(sort, sorts.pop_front(), range(sort));
     sort = range(sort);
-    LambdaElimination::buildFuncApp(fun, ts, args.pop(), ts);
+    LambdaElimination::buildFuncApp(fun, ts, args.pop_front(), ts);
   }
   ASS(sorts.isEmpty());
   return ts;
+}
+
+unsigned HOSortHelper::arity(unsigned sort){
+  CALL("HOSortHelper::arity"); 
+  
+  if(env.sorts->isOfStructuredSort(sort, Sorts::StructuredSort::HIGHER_ORD_CONST))
+  {
+    return env.sorts->getFuncSort(sort)->arity();
+  }
+  return 0;
 }
 
 /** Given a functional sort, returns its range */

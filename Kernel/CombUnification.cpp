@@ -26,14 +26,10 @@
 #include "Lib/Hash.hpp"
 #include "Lib/DArray.hpp"
 #include "Lib/List.hpp"
-#include "Lib/Random.hpp"
 #include "Lib/DHSet.hpp"
 #include "Lib/DHMap.hpp"
-#include "Lib/SkipList.hpp"
 #include "Lib/Int.hpp"
 
-#include "Clause.hpp"
-#include "Renaming.hpp"
 #include "SortHelper.hpp"
 #include "Term.hpp"
 #include "TermIterators.hpp"
@@ -57,168 +53,277 @@ namespace Kernel
 using namespace std;
 using namespace Lib;
 
-void CombSubstitution::populateTransformations()
+
+CombSubstitution::TransformIterator CombSubstitution::availableTransforms()
+{
+  CALL("CombSubstitution::availableTransforms");
+
+  UnificationPair up = _unificationPairs.top();
+
+  Stack<Transform>::Iterator both(up.transformsBoth);
+  Stack<Transform>::Iterator left(up.transformsLeft);
+  Stack<Transform>::Iterator right(up.transformsRight);
+
+  auto it = getConcatenatedIterator(left, right);
+
+  return pvi(getConcatenatedIterator(both, it));
+
+}
+
+//really this ought to be a function of UnificationPair;
+void CombSubstitution::populateTransformations(UnificationPair& up)
 {
   CALL("CombSubstitution::populateTransformations");
 
-  UnificationPair up = _unificationPairs.top();
-  TTPair topPair = up.unifPair;
-  TermSpec tsLeft = topPair.first;
-  TermSpec tsRght = topPair.second; 
+  TTPair ttpair = up.unifPair;
 
-  HOSortHelper::HOTerm hoterml = HOSortHelper::HOTerm(tsLeft.term);
-  HOSortHelper::HOTerm hotermr = HOSortHelper::HOTerm(tsRght.term);  
+  HSH::HOTerm hoterml = ttpair.first;
+  HSH::HOTerm hotermr = ttpair.second;   
 
-  if(hoterml.head.isVar() && !hoterml.argnum()){
+  if(hoterml.isVar()){
     Transform trs(ELIMINATE,FIRST);
     up.transformsLeft.push(trs);
     return;        
   }
-  if(hotermr.head.isVar() && !hotermr.argnum()){
+  // if unification is between two variables arbitrarily choose to eliminate
+  // left of pair
+  if(hotermr.isVar() && !hoterml.isVar()){
     Transform trs(ELIMINATE,SECOND);
-    up.transformsLeft.push(trs);
+    up.transformsRight.push(trs);
     return;        
   }  
+
+  if(hoterml.varHead() && (hoterml.argnum() <= hotermr.argnum())){
+    Transform trs(SPLIT,FIRST);
+    up.transformsLeft.push(trs);       
+  }
+
+  if(hotermr.varHead() && (hotermr.argnum() <= hoterml.argnum())){
+    Transform trs(SPLIT,SECOND);
+    up.transformsRight.push(trs);       
+  }
+
+  populateSide(hoterml, FIRST, up.transformsLeft);
+  populateSide(hoterml, SECOND, up.transformsRight);
+
+  if((hoterml.head == hotermr.head) && 
+      !hoterml.varHead() && !hoterml.combHead()){
+    Transform trs(DECOMP,BOTH);
+    up.transformsBoth.push(trs);      
+  }
   
-  if(hoterml.head.isVar()){
-    if(hoterml.argnum() <= hotermr.argnum()){
-      Transform trs(SPLIT,FIRST);
-      up.transformsLeft.push(trs);       
-    }
+  if(hoterml.underAppliedCombTerm() || hoterml.underAppliedCombTerm()){
+    Transform trs(ADD_ARG,BOTH);
+    up.transformsBoth.push(trs); 
+  }
+  
+
+}
+
+
+//not sure about tStack. Will changes to it be local?
+void CombSubstitution::populateSide(HSH::HOTerm hoterm, ApplyTo at, Stack<Transform>& tStack){
+  CALL("CombSubstitution::populateSide");
+
+  if(hoterm.varHead()){
     //KX_NARROW admissable as long as var has a single argument
-    Transform trs(KX_NARROW,FIRST);
-    up.transformsLeft.push(trs);    
+    Transform trs(KX_NARROW,at);
+    tStack.push(trs);    
     
-    if(hoterml.nthArgSort(0) == hoterml.sortOfLengthNPref(1)){
-      Transform trs(I_NARROW,FIRST);
-      up.transformsLeft.push(trs);       
+    if(hoterm.nthArgSort(0) == hoterm.sortOfLengthNPref(1)){
+      Transform trs(I_NARROW,at);
+      tStack.push(trs);       
     }
     
-    if(hoterml.argnum() > 1 && (hoterml.nthArgSort(0) == hoterml.sortOfLengthNPref(2))){
-      Transform trs(K_NARROW,FIRST);
-      up.transformsLeft.push(trs);       
+    if(hoterm.argnum() > 1 && (hoterm.nthArgSort(0) == hoterm.sortOfLengthNPref(2))){
+      Transform trs(K_NARROW,at);
+      tStack.push(trs);       
     }    
     
-    if(hoterml.argnum() > 2)
-      unsigned sort1 = hoterml.nthArgSort(0);
-      unsigned sort2 = hoterml.nthArgSort(1);
-      unsigned sort3 = hoterml.nthArgSort(2);
+    if(hoterm.argnum() > 2){
+      unsigned sort1 = hoterm.nthArgSort(0);
+      unsigned sort2 = hoterm.nthArgSort(1);
+      unsigned sort3 = hoterm.nthArgSort(2);
+      //B narrow  
       if(!(HSH::arity(sort1) < 1) && !(HSH::arity(sort2) < 1)){
-        
+        if((HSH::domain(sort1) == HSH::range(sort2) &&
+           (HSH::domain(sort2) == sort3) &&
+           (HSH::range(sort1) == hoterm.sortOfLengthNPref(3)))){
+          Transform trs(B_NARROW,at);
+          tStack.push(trs);
+        }        
       }
+      //C narrow
+      if(!(HSH::arity(sort1) < 2)){
+        if((HSH::appliedToN(sort1, 2) == hoterm.sortOfLengthNPref(3)) &&
+           (sort2 == sort3) &&
+           (HSH::getNthArgSort(sort1, 0) == sort2) &&
+           (HSH::getNthArgSort(sort1, 1) == sort3)){
+          Transform trs(C_NARROW,at);
+          tStack.push(trs); 
+        }
+      }
+      //S narrow
+      if(!(HSH::arity(sort1) < 2) && !(HSH::arity(sort2) < 1)){
+        if((HSH::appliedToN(sort1, 2) == hoterm.sortOfLengthNPref(3)) &&  
+           (HSH::domain(sort1) == sort3) &&
+           (HSH::domain(sort2) == sort3) &&
+           (HSH::getNthArgSort(sort1, 1) == HSH::range(sort2))){
+          Transform trs(S_NARROW,at);
+          tStack.push(trs);           
+        }
+      }
+    }
+    
+    if(hoterm.argnum() > 1){
+      unsigned sort1 = hoterm.nthArgSort(0);
+      unsigned sort2 = hoterm.nthArgSort(1);
+      if(!(HSH::arity(sort1) < 1)){
+        if(HSH::domain(sort1) == sort2){
+          Transform trs(BX_NARROW,at);
+          tStack.push(trs);
+          Transform trs2(SX_NARROW,at);
+          tStack.push(trs2);
+        }
+      }
+      if(sort1 == sort2){
+        Transform trs(CX_NARROW,at);
+        tStack.push(trs);          
+      }      
+    } 
+
+  }
+
+  if(hoterm.combHead() && !hoterm.underAppliedCombTerm()){
+    AlgorithmStep as;
+    SS::HOLConstant comb = hoterm.headComb();
+    switch(comb){
+      case SS::I_COMB:
+        as = I_REDUCE;
+        break;
+      case SS::K_COMB:
+        as = K_REDUCE;
+        break;
+      case SS::B_COMB:
+        as = B_REDUCE;
+        break;
+      case SS::C_COMB:
+        as = C_REDUCE;
+        break;
+      case SS::S_COMB:
+        as = S_REDUCE;
+        break;
+      default:
+        ASSERTION_VIOLATION;      
+    }
+    Transform trs(as,at);
+    tStack.push(trs);  
+  }
+
+}
+
+bool CombSubstitution::transform(Transform t){
+  CALL("CombSubstitution::transform");
+
+  BacktrackData localBD;
+  bdRecord(localBD);
+
+  bdAdd(new StackBacktrackObject(this, _unificationPairs));
+
+  UnificationPair up = _unificationPairs.pop();
+  HSH::HOTerm terml = up.unifPair.first;
+  HSH::HOTerm termr = up.unifPair.second;
+
+  if(t.second == BOTH){
+    ASS((t.first == ADD_ARG) || (t.first == DECOMP));
+    
+    if(t.first == ADD_ARG){
+      unsigned freshArgSort = HSH::domain(terml.sort());
+      TermList fc = TermList(Term::createFreshConstant("f", freshArgSort));
+      terml.args.push_back(fc);
+      terml.sorts.push_back(freshArgSort);
+      termr.args.push_back(fc);
+      termr.sorts.push_back(freshArgSort);
+      UnificationPair newup = UnificationPair(terml, termr, ADD_ARG, up.lastStep);
+      populateTransformations(newup);
+      _unificationPairs.push(newup);
+      return true;
+    }
+
+    if(t.first == DECOMP){
+      ASS(terml.head == termr.head);
       
-      (HSH::domain(hoterml.nthArgSort(0)) == HSH::range(hoterml.nthArgSort(1))) &&
-      (HSH::domain(hoterml.nthArgSort(1)) == hoterml.nthArgSort(2)) &&
-      (HSH::range(hoterml.nthArgSort(0)) == hoterml.sortOfLengthNPref(3))){
-      Transform trs(B_NARROW,FIRST);
-      up.transformsLeft.push(trs);       
-    }
-    
-    if(hoterml.argnum() > 1 && 
-      (HSH::domain(hoterml.nthArgSort(0)) == hoterml.nthArgSort(1))){
-      Transform trs(BX_NARROW,FIRST);
-      up.transformsLeft.push(trs);
-      Transform trs(SX_NARROW,FIRST);
-      up.transformsLeft.push(trs);      
-    }
-    
-    if(hoterml.argnum > 2 &&
-      (HSH::appliedToN(hoterml.nthArgSort(0), 2) == hoterml.sortOfLengthNPref(3)) &&
-      (hoterml.nthArgSort(1) == hoterml.nthArgSort(2)) &&
-      (HSH::getNthArgSort(hoterml.nthArgSort(0), 0) == hoterml.nthArgSort(1)) &&
-      (HSH::getNthArgSort(hoterml.nthArgSort(0), 1) == hoterml.nthArgSort(1))){
-      Transform trs(C_NARROW,FIRST);
-      up.transformsLeft.push(trs);     
-    }
-    
-    if(hoterml.argnum() > 1 && 
-      (hoterml.nthArgSort(0) == hoterml.nthArgSort(1)){
-      Transform trs(CX_NARROW,FIRST);
-      up.transformsLeft.push(trs);       
-    }    
+      HSH::HOTerm tl, tr;
 
-    if(hoterml.argnum > 2 &&
-      (HSH::appliedToN(hoterml.nthArgSort(0), 2) == hoterml.sortOfLengthNPref(3)) &&
-      (HSH::domain(hoterml.nthArgSort(0)) == hoterml.nthArgSort(2)) &&
-      (HSH::domain(hoterml.nthArgSort(1)) == hoterml.nthArgSort(2))
-      (HSH::getNthArgSort(hoterml.nthArgSort(0), 1) == HSH::range(hoterml.nthArgSort(1)))){
-      Transform trs(S_NARROW,FIRST);
-      up.transformsLeft.push(trs);     
-    }    
-    
-  }
-  
-  
-  /*
-  
-  if(headl.isVar()){
-    if(argnuml >= argnumr){
-      Transform trs(SPLIT,FIRST);
-      up.transformsLeft.push(trs); 
-    }    
+      for(unsigned i = 0; i < terml.argnum(); i++){
+        tl = HSH::HOTerm(terml.ntharg(i), terml.index);
+        tr = HSH::HOTerm(termr.ntharg(i), terml.index);
+        //simplify this
+        if(!tl.varHead() && !tl.combHead() && !tr.varHead() && !tr.combHead() &&
+            tl.head != tr.head){
+          return false;
+        }
+        UnificationPair newup = UnificationPair(tl, tr, DECOMP, up.lastStep);
+        populateTransformations(newup);
+        _unificationPairs.push(newup);
+      }
 
-    //KX_NARROW admissable as long as var has a single argument
-    Transform trs(KX_NARROW,FIRST);
-    up.transformsLeft.push(trs);   
-    
-    unsigned firstargsort = HOSortHelper::getnthArgSort(tsLeft.term,1);
-    unsigned varappliedsort = HOSortHelper::appliedToN(headl,1);
-    if(firstargsort == varappliedsort){
-      Transform trs(I_NARROW,FIRST);
-      up.transformsLeft.push(trs);      
+      return true;
     }
+
+
   }
-  
-  if(headr.isVar()){
-    if(argnumr >= argnuml){
-      Transform trs(SPLIT,SECOND);
-  	  up.transformsRight.push(trs);
-    }
+
+}
+
+//need to comment this code AYB
+bool CombUnification::hasNextUnifier(){
+  CALL("CombUnification::hasNextUnifier");
+
+  if(_unifSystem->_solved) {
+    bdStack.pop().backtrack();
+    _unifSystem->_solved=false;
   }  
-  
-  int as = isComb(headl, argnuml);
 
-  if(as > 1){
-  	Transform trs((AlgorithmStep)as,FIRST);
-  	up.transformsLeft.push(trs);
-  } 
-  
-  as = isComb(headr, arityr);
-  
-  if(as > 1) {
-  	Transform trs((AlgorithmStep)as,SECOND);
-  	up.transformsRight.push(trs);    
-  }
-  */
+  ASS(bdStack.length()+1==transformIterators.length());
+
+  do {
+    while(!transformIterators.top().hasNext() && !bdStack.isEmpty()) {
+      bdStack.pop().backtrack();
+    }
+    if(!transformIterators.top().hasNext()) {
+      return false;
+    }
+    Transform t=transformIterators.top().next();
+
+    BacktrackData bd;
+    bool success=transform(t,bd);
+    if(!success) {
+      bd.backtrack();
+      continue;
+    } else {
+      bdStack.push(bd);
+    }
+  } while(!_unifSystem->_solved);
+  return true;
 }
- 
-/**
-  * Returns 0 if not a combinator, 1 if is combinator not fully applied
-  * and the relavant AlgorithmStep otherwise 
-  * @author Ahmed Bhayat
-  * @location Manchester
-  */
-int CombSubstitution::isComb(TermList tl, unsigned arity) const
-{
 
-  CALL("CombSubstitution::isComb");
+bool CombUnification::transform(Transform t, BacktrackData& bd){
+  CALL("CombUnification::transform");
 
-  if(tl.isVar()){ return 0; }
-  SS* sym = env.signature->getFunction(tl.term()->functor());
-  switch(sym->getConst()){
-    case SS::I_COMB:
-      return arity >= 1 ? I_REDUCE : 1;
-    case SS::K_COMB:
-      return arity >= 2 ? K_REDUCE : 1;
-    case SS::B_COMB:
-      return arity >= 3 ? B_REDUCE : 1;
-    case SS::C_COMB:
-      return arity >= 3 ? C_REDUCE : 1;
-    case SS::S_COMB:
-      return arity >= 3 ? S_REDUCE : 1;
-    default:
-      return 0;      
+  _unifSystem->bdRecord(bd);
+
+  bool success = _unifSystem->transform(t);
+  if(success){
+    if(!_unifSystem->_solved){
+      TransformIterator ti = _unifSystem->availableTransforms();
+      transformIterators.backtrackablePush(ti, bd);
+    }
   }
+  _unifSystem->bdDone();
+  return success;
 }
+
+
 
 }

@@ -61,6 +61,7 @@ class Signature
   
   public: 
 
+  //ORDER OF CONSTANTS IMPORTANT. USED IN HoSortHelper!
   enum HOLConstant { //get rid of combinator type from term class, AYB
     AND,
     OR,
