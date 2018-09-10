@@ -102,6 +102,7 @@ class CombSubstitution
     typedef VirtualIterator<Transform> TransformIterator;
     typedef RobSubstitution::VarSpec VarSpec;
     typedef Signature::Symbol SS;
+    typedef HOSortHelper HSH;
     
     //TermSpec copied because slightly modified version required
     struct TermSpec
@@ -177,7 +178,8 @@ class CombSubstitution
       //the left-hand (first) term of this unification pair
       Stack<Transform> transformsLeft;
       Stack<Transform> transformsRight;
-
+      Stack<Transform> transformsBoth;
+      
       AlgorithmStep secondLastStep;
       AlgorithmStep lastStep;
       TTPair unifPair;
@@ -191,7 +193,6 @@ class CombSubstitution
      */
     void populateTransformations();    
     int isComb(TermList tl, unsigned arity) const;
-    TermList head(TermSpec ts, unsigned& arity); 
 
     //if subsitution represents solved system _solved set to true
     bool _solved;

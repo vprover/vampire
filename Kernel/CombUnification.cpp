@@ -38,6 +38,7 @@
 #include "Term.hpp"
 #include "TermIterators.hpp"
 #include "Signature.hpp"
+#include "HOSortHelper.hpp"
 
 #include "Indexing/TermSharing.hpp"
 
@@ -65,50 +66,132 @@ void CombSubstitution::populateTransformations()
   TermSpec tsLeft = topPair.first;
   TermSpec tsRght = topPair.second; 
 
-  unsigned arityl, arityr;
-  TermList headl = head(tsLeft, arityl);
-  TermList headr = head(tsRght, arityr);
+  HOSortHelper::HOTerm hoterml = HOSortHelper::HOTerm(tsLeft.term);
+  HOSortHelper::HOTerm hotermr = HOSortHelper::HOTerm(tsRght.term);  
+
+  if(hoterml.head.isVar() && !hoterml.argnum()){
+    Transform trs(ELIMINATE,FIRST);
+    up.transformsLeft.push(trs);
+    return;        
+  }
+  if(hotermr.head.isVar() && !hotermr.argnum()){
+    Transform trs(ELIMINATE,SECOND);
+    up.transformsLeft.push(trs);
+    return;        
+  }  
   
-  int as = isComb(headl, arityl);
+  if(hoterml.head.isVar()){
+    if(hoterml.argnum() <= hotermr.argnum()){
+      Transform trs(SPLIT,FIRST);
+      up.transformsLeft.push(trs);       
+    }
+    //KX_NARROW admissable as long as var has a single argument
+    Transform trs(KX_NARROW,FIRST);
+    up.transformsLeft.push(trs);    
+    
+    if(hoterml.nthArgSort(0) == hoterml.sortOfLengthNPref(1)){
+      Transform trs(I_NARROW,FIRST);
+      up.transformsLeft.push(trs);       
+    }
+    
+    if(hoterml.argnum() > 1 && (hoterml.nthArgSort(0) == hoterml.sortOfLengthNPref(2))){
+      Transform trs(K_NARROW,FIRST);
+      up.transformsLeft.push(trs);       
+    }    
+    
+    if(hoterml.argnum() > 2)
+      unsigned sort1 = hoterml.nthArgSort(0);
+      unsigned sort2 = hoterml.nthArgSort(1);
+      unsigned sort3 = hoterml.nthArgSort(2);
+      if(!(HSH::arity(sort1) < 1) && !(HSH::arity(sort2) < 1)){
+        
+      }
+      
+      (HSH::domain(hoterml.nthArgSort(0)) == HSH::range(hoterml.nthArgSort(1))) &&
+      (HSH::domain(hoterml.nthArgSort(1)) == hoterml.nthArgSort(2)) &&
+      (HSH::range(hoterml.nthArgSort(0)) == hoterml.sortOfLengthNPref(3))){
+      Transform trs(B_NARROW,FIRST);
+      up.transformsLeft.push(trs);       
+    }
+    
+    if(hoterml.argnum() > 1 && 
+      (HSH::domain(hoterml.nthArgSort(0)) == hoterml.nthArgSort(1))){
+      Transform trs(BX_NARROW,FIRST);
+      up.transformsLeft.push(trs);
+      Transform trs(SX_NARROW,FIRST);
+      up.transformsLeft.push(trs);      
+    }
+    
+    if(hoterml.argnum > 2 &&
+      (HSH::appliedToN(hoterml.nthArgSort(0), 2) == hoterml.sortOfLengthNPref(3)) &&
+      (hoterml.nthArgSort(1) == hoterml.nthArgSort(2)) &&
+      (HSH::getNthArgSort(hoterml.nthArgSort(0), 0) == hoterml.nthArgSort(1)) &&
+      (HSH::getNthArgSort(hoterml.nthArgSort(0), 1) == hoterml.nthArgSort(1))){
+      Transform trs(C_NARROW,FIRST);
+      up.transformsLeft.push(trs);     
+    }
+    
+    if(hoterml.argnum() > 1 && 
+      (hoterml.nthArgSort(0) == hoterml.nthArgSort(1)){
+      Transform trs(CX_NARROW,FIRST);
+      up.transformsLeft.push(trs);       
+    }    
+
+    if(hoterml.argnum > 2 &&
+      (HSH::appliedToN(hoterml.nthArgSort(0), 2) == hoterml.sortOfLengthNPref(3)) &&
+      (HSH::domain(hoterml.nthArgSort(0)) == hoterml.nthArgSort(2)) &&
+      (HSH::domain(hoterml.nthArgSort(1)) == hoterml.nthArgSort(2))
+      (HSH::getNthArgSort(hoterml.nthArgSort(0), 1) == HSH::range(hoterml.nthArgSort(1)))){
+      Transform trs(S_NARROW,FIRST);
+      up.transformsLeft.push(trs);     
+    }    
+    
+  }
+  
+  
+  /*
+  
+  if(headl.isVar()){
+    if(argnuml >= argnumr){
+      Transform trs(SPLIT,FIRST);
+      up.transformsLeft.push(trs); 
+    }    
+
+    //KX_NARROW admissable as long as var has a single argument
+    Transform trs(KX_NARROW,FIRST);
+    up.transformsLeft.push(trs);   
+    
+    unsigned firstargsort = HOSortHelper::getnthArgSort(tsLeft.term,1);
+    unsigned varappliedsort = HOSortHelper::appliedToN(headl,1);
+    if(firstargsort == varappliedsort){
+      Transform trs(I_NARROW,FIRST);
+      up.transformsLeft.push(trs);      
+    }
+  }
+  
+  if(headr.isVar()){
+    if(argnumr >= argnuml){
+      Transform trs(SPLIT,SECOND);
+  	  up.transformsRight.push(trs);
+    }
+  }  
+  
+  int as = isComb(headl, argnuml);
 
   if(as > 1){
-  	Transform trs((AlgorithmStep)as,SECOND);
+  	Transform trs((AlgorithmStep)as,FIRST);
   	up.transformsLeft.push(trs);
   } 
-
-}
   
-/**
-  * Returns the head symbol of an applicative term. 
-  * @author Ahmed Bhayat
-  * @location Manchester
-  */
- 
-TermList CombSubstitution::head(TermSpec tspec, unsigned& arity)
-{
-  CALL("CombSubstitution::head");
+  as = isComb(headr, arityr);
   
-  TermList ts = tspec.term;
-  arity = 0;
-
-  if(ts.isVar()){
-    return ts;
-  } else {
-    ASS(ts.isTerm());
-    Signature::Symbol* sym = env.signature->getFunction(ts.term()->functor());
-    while(sym->hOLAPP()){
-      arity++;
-      ts = *(ts.term()->nthArgument(0));
-      if(ts.isVar()){
-        return ts;
-      }
-      sym = env.signature->getFunction(ts.term()->functor());
-    }
-    return ts;
+  if(as > 1) {
+  	Transform trs((AlgorithmStep)as,SECOND);
+  	up.transformsRight.push(trs);    
   }
+  */
 }
-
-
+ 
 /**
   * Returns 0 if not a combinator, 1 if is combinator not fully applied
   * and the relavant AlgorithmStep otherwise 

@@ -223,6 +223,7 @@ VK_OBJ= Kernel/Clause.o\
         Kernel/CombUnification.o\
         Kernel/Signature.o\
         Kernel/SortHelper.o\
+        Kernel/HOSortHelper.o\
         Kernel/Sorts.o\
         Kernel/SubformulaIterator.o\
         Kernel/Substitution.o\
@@ -463,6 +464,7 @@ LIB_DEP = Indexing/TermSharing.o\
 	  Kernel/InferenceStore.o\
 	  Kernel/Problem.o\
 	  Kernel/SortHelper.o\
+    Kernel/HOSortHelper.o\
 	  Kernel/Sorts.o\
 	  Kernel/Signature.o\
 	  Kernel/SubformulaIterator.o\
