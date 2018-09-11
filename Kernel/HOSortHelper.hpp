@@ -126,7 +126,25 @@ public:
        if(c == SS::I_COMB && args.size() < 1){ return true; }
        return false;
     }
-
+    /** Returns true if both HOTerms have same non-var non-comb head */
+    bool sameFirstOrderHead(HOTerm hotm){
+      if(varHead() || hotm.varHead()){ return false; }
+      if(combHead() || hotm.combHead()){ return false; }
+      return head.term()->functor() == hotm.head.term()->functor();
+    }
+    /** Returns true if both HOTerms have diff non-var non-comb heads */
+    bool diffFirstOrderHead(HOTerm hotm){
+      if(varHead() || hotm.varHead()){ return false; }
+      if(combHead() || hotm.combHead()){ return false; }
+      return head.term()->functor() != hotm.head.term()->functor();
+    }
+    /**Takes an applicative TermList t, makes the head symbol of t
+     * the head symbol of this HOTerm and pushes 't's args
+     * onto args deque. Example:
+     * current HOTerm K (f b) c d. Poping (f b) and c and then calling
+     * headify with (f b) will result in HOTerm f b d
+     */
+    void headify(TermList tl, int sort = -1);
     TermList appify();
   };
 
@@ -151,7 +169,10 @@ public:
   static unsigned domain(unsigned sort);
   /** Returns the arity of a sort. Basic sorts have arity 0 */
   static unsigned arity(unsigned sort);
-
+  /** Takes two termlists and returns the result of applying the 
+   *  first to the second. Sort conditions must be met
+   */
+  static TermList apply(TermList t1, unsigned s1, TermList t2, unsigned s2);
 };
 
 }

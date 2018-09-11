@@ -144,9 +144,11 @@ class CombSubstitution
      * stacks.
      */
     void populateTransformations(UnificationPair&);   
-    void populateSide(HSH::HOTerm, ApplyTo, Stack<Transform>&);
+    void populateSide(HSH::HOTerm, ApplyTo, Stack<Transform>&,AlgorithmStep,AlgorithmStep);
     /** Carry out transformation represented bt t on top pair*/ 
     bool transform(Transform t);
+    void transform(HSH::HOTerm&,AlgorithmStep);
+    bool canPerformStep(AlgorithmStep, AlgorithmStep, AlgorithmStep);
 
     //if subsitution represents solved system _solved set to true
     bool _solved;

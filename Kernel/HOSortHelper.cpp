@@ -172,6 +172,21 @@ TermList HOSortHelper::getHead(TermList ts){
   
 }
 
+/** Takes two termlists and returns the result of applying the 
+ *  first to the second. Sort conditions must be met
+ */
+TermList HOSortHelper::apply(TermList t1, unsigned s1, TermList t2, unsigned s2){
+  CALL("HOSortHelper::apply");
+  
+  ASS(arity(s1) > 0);
+  ASS(domain(s1) == s2);
+
+  TermList res;
+  unsigned fun = LambdaElimination::introduceAppSymbol(s1, s2, range(s1));
+  LambdaElimination::buildFuncApp(fun, t1, t2, res);
+  return res;
+}
+
 /**
  *  Converts a HOTerm struct into applicative form TermList
  */
@@ -188,6 +203,30 @@ TermList HOSortHelper::HOTerm::appify(){
   ASS(sorts.isEmpty());
   return ts;
 }
+
+void HOSortHelper::HOTerm::headify(TermList ts, int sort){
+  CALL("HOSortHelper::HOTerm::headify");   
+  
+  if(ts.isVar()){
+    head = ts;
+    if(!sort == -1){
+      headsort = (unsigned)sort;
+    }
+  } else {
+    ASS(ts.isTerm());
+    SS* sym = env.signature->getFunction(ts.term()->functor());
+    while(sym->hOLAPP()){
+      args.push_front(*(ts.term()->nthArgument(1)));
+      sorts.push_front(SortHelper::getArgSort(ts.term(), 1));
+      headsort = SortHelper::getArgSort(ts.term(), 0);
+      ts = *(ts.term()->nthArgument(0));
+      if(ts.isVar()){ break; }
+      sym = env.signature->getFunction(ts.term()->functor());
+    }
+    head = ts;
+  }
+}
+
 
 unsigned HOSortHelper::arity(unsigned sort){
   CALL("HOSortHelper::arity"); 

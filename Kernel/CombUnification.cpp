@@ -103,11 +103,10 @@ void CombSubstitution::populateTransformations(UnificationPair& up)
     up.transformsRight.push(trs);       
   }
 
-  populateSide(hoterml, FIRST, up.transformsLeft);
-  populateSide(hoterml, SECOND, up.transformsRight);
+  populateSide(hoterml, FIRST, up.transformsLeft, up.lastStep, up.secondLastStep);
+  populateSide(hoterml, SECOND, up.transformsRight, up.lastStep, up.secondLastStep);
 
-  if((hoterml.head == hotermr.head) && 
-      !hoterml.varHead() && !hoterml.combHead()){
+  if(hoterml.sameFirstOrderHead(hotermr)){
     Transform trs(DECOMP,BOTH);
     up.transformsBoth.push(trs);      
   }
@@ -116,28 +115,33 @@ void CombSubstitution::populateTransformations(UnificationPair& up)
     Transform trs(ADD_ARG,BOTH);
     up.transformsBoth.push(trs); 
   }
-  
 
 }
 
-
 //not sure about tStack. Will changes to it be local?
-void CombSubstitution::populateSide(HSH::HOTerm hoterm, ApplyTo at, Stack<Transform>& tStack){
+void CombSubstitution::populateSide(HSH::HOTerm hoterm, ApplyTo at, Stack<Transform>& tStack,
+                                    AlgorithmStep ls, AlgorithmStep sls){
   CALL("CombSubstitution::populateSide");
 
   if(hoterm.varHead()){
     //KX_NARROW admissable as long as var has a single argument
-    Transform trs(KX_NARROW,at);
-    tStack.push(trs);    
+    if(canPerformStep(ls,sls, KX_NARROW)){
+      Transform trs(KX_NARROW,at);
+      tStack.push(trs);    
+    }
     
     if(hoterm.nthArgSort(0) == hoterm.sortOfLengthNPref(1)){
-      Transform trs(I_NARROW,at);
-      tStack.push(trs);       
+      if(canPerformStep(ls,sls,I_NARROW)){
+        Transform trs(I_NARROW,at);
+        tStack.push(trs); 
+      }      
     }
     
     if(hoterm.argnum() > 1 && (hoterm.nthArgSort(0) == hoterm.sortOfLengthNPref(2))){
-      Transform trs(K_NARROW,at);
-      tStack.push(trs);       
+      if(canPerformStep(ls, sls, K_NARROW)){
+        Transform trs(K_NARROW,at);
+        tStack.push(trs);
+      }       
     }    
     
     if(hoterm.argnum() > 2){
@@ -156,7 +160,6 @@ void CombSubstitution::populateSide(HSH::HOTerm hoterm, ApplyTo at, Stack<Transf
       //C narrow
       if(!(HSH::arity(sort1) < 2)){
         if((HSH::appliedToN(sort1, 2) == hoterm.sortOfLengthNPref(3)) &&
-           (sort2 == sort3) &&
            (HSH::getNthArgSort(sort1, 0) == sort2) &&
            (HSH::getNthArgSort(sort1, 1) == sort3)){
           Transform trs(C_NARROW,at);
@@ -186,10 +189,10 @@ void CombSubstitution::populateSide(HSH::HOTerm hoterm, ApplyTo at, Stack<Transf
           tStack.push(trs2);
         }
       }
-      if(sort1 == sort2){
+      if(canPerformStep(ls, sls, CX_NARROW)){
         Transform trs(CX_NARROW,at);
-        tStack.push(trs);          
-      }      
+        tStack.push(trs);
+      }          
     } 
 
   }
@@ -251,29 +254,118 @@ bool CombSubstitution::transform(Transform t){
     }
 
     if(t.first == DECOMP){
-      ASS(terml.head == termr.head);
-      
+      ASS(terml.sameFirstOrderHead(termr));    
       HSH::HOTerm tl, tr;
-
       for(unsigned i = 0; i < terml.argnum(); i++){
         tl = HSH::HOTerm(terml.ntharg(i), terml.index);
         tr = HSH::HOTerm(termr.ntharg(i), terml.index);
-        //simplify this
-        if(!tl.varHead() && !tl.combHead() && !tr.varHead() && !tr.combHead() &&
-            tl.head != tr.head){
+        if(tl.diffFirstOrderHead(tr)){
           return false;
         }
         UnificationPair newup = UnificationPair(tl, tr, DECOMP, up.lastStep);
         populateTransformations(newup);
         _unificationPairs.push(newup);
       }
-
       return true;
     }
+  }
+  //carry out eliminate transform
 
+  //split here so we can check early for failure
 
+  if(t.second == FIRST){
+    transform(terml,t.first);
+  } else {
+    transform(termr,t.first);
+  }
+  //test for failure 
+
+}
+
+void CombSubstitution::transform(HSH::HOTerm& term,AlgorithmStep as){
+  CALL("CombSubstitution::transform");
+
+  TermList a1, a2, a3;
+  unsigned s1, s2, s3;
+
+  if(as == I_REDUCE){
+    ASS(term.headComb() == SS::I_COMB);
+    a1 = term.args.pop_front();
+    s1 = term.sorts.pop_front();
+    term.headify(a1, s1);
+    return;
   }
 
+  if(as == K_REDUCE){
+    ASS(term.headComb() == SS::K_COMB);
+    ASS(term.argnum() > 1);
+    a1 = term.args.pop_front();
+    s1 = term.sorts.pop_front();
+    term.args.pop_front();
+    term.sorts.pop_front();
+    term.headify(a1, s1);
+    return;
+  }
+
+  if(as == B_REDUCE || as == C_REDUCE || as == S_REDUCE){
+    a1 = term.args.pop_front();
+    s1 = term.sorts.pop_front();
+    a2 = term.args.pop_front();
+    s2 = term.sorts.pop_front();
+    a3 = term.args.pop_front();
+    s3 = term.sorts.pop_front();
+  }
+
+  if(as == B_REDUCE){
+    ASS(term.headComb() == SS::B_COMB);
+    ASS(term.argnum() > 2);
+    term.args.push_front(HSH::apply(a2, s2, a3, s3));
+    term.sorts.push_front(HSH::range(s2));
+    term.headify(a1, s1);
+    return;
+  }
+
+  if(as == C_REDUCE){
+    ASS(term.headComb() == SS::C_COMB);
+    ASS(term.argnum() > 2);
+    term.args.push_front(a2);
+    term.sorts.push_front(s2);
+    term.args.push_front(a3);
+    term.sorts.push_front(s3);
+    term.headify(a1, s1);
+    return;
+  }
+
+  if(as == S_REDUCE){
+    ASS(term.headComb() == SS::S_COMB);
+    ASS(term.argnum() > 2);
+    term.args.push_front(HSH::apply(a2, s2, a3, s3));
+    term.sorts.push_front(HSH::range(s2));
+    term.args.push_front(a3);
+    term.sorts.push_front(s3);
+    term.headify(a1, s1);
+    return;
+  }
+
+
+}
+
+bool CombSubstitution::canPerformStep(AlgorithmStep ls, AlgorithmStep sls, AlgorithmStep curr){
+  CALL("CombSubstitution::canPerformKXStep");
+  switch(curr){
+    case KX_NARROW:
+      return (!(ls == SX_NARROW) && !(ls == BX_NARROW) && 
+              !(ls == CX_NARROW && sls == SX_NARROW) &&
+              !(ls == KX_NARROW && sls == CX_NARROW));
+    case K_NARROW:
+      return (!(ls == SX_NARROW) && !(ls == CX_NARROW));
+    case I_NARROW:
+      return  (!(ls == BX_NARROW) && !(ls == KX_NARROW && sls == CX_NARROW)); 
+    case CX_NARROW:
+      return !(ls == CX_NARROW);   
+    default:
+      return true; 
+  }
 }
 
 //need to comment this code AYB
