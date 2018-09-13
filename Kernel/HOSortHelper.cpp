@@ -188,45 +188,176 @@ TermList HOSortHelper::apply(TermList t1, unsigned s1, TermList t2, unsigned s2)
 }
 
 /**
+  * Prints out HOTerm
+  */
+#if vdebug
+vstring HOSortHelper::HOTerm::toString(bool withSorts){
+  CALL("HOSortHelper::HOTerm::toString");   
+
+  vstring res;
+  if(!withSorts){
+    res = head.toString() + " ";
+  } else {
+    res = head.toString() + "_" + env.sorts->sortName(headsort) + " ";
+  }
+  for(int i = args.size(); i >= 0; i--){
+    if(!args[i].args.size()){
+      res = res + args[i].toString();
+    } else {
+      res = res + "(" + args[i].toString() + ")";
+    }
+  }
+}
+#endif
+
+void HOSortHelper::HOTerm::headify(HOTerm tm){
+  CALL("HOSortHelper::HOTerm::headify");   
+ 
+  head = tm.head;
+  headsort = tm.headsort;
+  while(!tm.args.isEmpty()){
+    args.push_front(tm.args.pop_back());
+  }  
+}
+
+
+/**
  *  Converts a HOTerm struct into applicative form TermList
  */
-TermList HOSortHelper::HOTerm::appify(){
+TermList HOSortHelper::appify(HOTerm ht){
   CALL("HOSortHelper::HOTerm::appify");   
   
-  TermList ts = head;
-  unsigned sort = headsort;
-  while(!args.isEmpty()){
-    unsigned fun = LambdaElimination::introduceAppSymbol(sort, sorts.pop_front(), range(sort));
-    sort = range(sort);
-    LambdaElimination::buildFuncApp(fun, ts, args.pop_front(), ts);
+  Stack<Stack<HOTerm>> toDo;
+  Stack<TermList> done;
+  Stack<unsigned> doneSorts;
+
+  if(ht.args.isEmpty()){
+    return ht.head;
   }
-  ASS(sorts.isEmpty());
-  return ts;
+
+  done.push(ht.head);
+  doneSorts.push(ht.headsort);
+
+  Stack<HOTerm> hts;
+  toDo.push(hts);
+  while(!ht.args.isEmpty()){
+    toDo.top().push(ht.args.pop_back());
+  }
+
+  while(!toDo.isEmpty()){
+    if(toDo.top().isEmpty()){
+      toDo.pop();
+      if(!toDo.isEmpty()){
+        TermList ts = done.pop();
+        unsigned s1 = doneSorts.pop();
+        done.top() = apply(done.top(), doneSorts.top(), ts, s1);
+        doneSorts.top() = range(doneSorts.top());
+      }
+    } else {
+      HOTerm ht2 = toDo.top().pop();
+      if(ht2.args.isEmpty()){
+        done.top() = apply(done.top(), doneSorts.top(), ht2.head, ht2.headsort);
+        doneSorts.top() = range(doneSorts.top());
+      } else {
+        done.push(ht2.head);
+        doneSorts.push(ht2.headsort);
+        Stack<HOTerm> hts;
+        toDo.push(hts);
+        while(!ht2.args.isEmpty()){
+          toDo.top().push(ht2.args.pop_back());
+        }
+      }
+    }
+  }
+  ASS(done.size() ==1);
+  return done.pop();
 }
 
-void HOSortHelper::HOTerm::headify(TermList ts, int sort){
-  CALL("HOSortHelper::HOTerm::headify");   
+HOSortHelper::HOTerm HOSortHelper::deappify(TermList ts){
+  CALL("HOSortHelper::HOTerm::deappify");
   
+  Stack<TermList> toDo;
+  Stack<unsigned> toDoSorts;
+  Stack<HOTerm> done;
+  Stack<unsigned> argnums;
+
   if(ts.isVar()){
-    head = ts;
-    if(!sort == -1){
-      headsort = (unsigned)sort;
-    }
-  } else {
-    ASS(ts.isTerm());
-    SS* sym = env.signature->getFunction(ts.term()->functor());
-    while(sym->hOLAPP()){
-      args.push_front(*(ts.term()->nthArgument(1)));
-      sorts.push_front(SortHelper::getArgSort(ts.term(), 1));
-      headsort = SortHelper::getArgSort(ts.term(), 0);
-      ts = *(ts.term()->nthArgument(0));
-      if(ts.isVar()){ break; }
-      sym = env.signature->getFunction(ts.term()->functor());
-    }
-    head = ts;
+    return HOTerm(ts); 
   }
+
+  toDo.push(ts);
+  toDoSorts.push(SortHelper::getResultSort(ts.term()));
+
+  while(!toDo.isEmpty()){
+    TermList curr = toDo.pop();
+    unsigned sort = toDoSorts.pop();
+
+    if(curr.isVar() || (isConstant(curr) && !done.isEmpty())){
+      done.top().addArg(HOTerm(curr, sort));
+      while(done.top().args.size() == argnums.top()){
+        argnums.pop();
+        if(argnums.isEmpty()){ break; }
+        HOTerm arg = done.pop();
+        done.top().addArg(arg);
+      }
+    } else if (isConstant(curr)){
+      done.push(HOTerm(curr, sort));
+    } else {
+      unsigned headsort = sort;
+      unsigned argnum = 0;
+      Signature::Symbol* sym = env.signature->getFunction(curr.term()->functor());
+      while(sym->hOLAPP()){
+        argnum++;
+        toDo.push(*(curr.term()->nthArgument(1)));
+        toDoSorts.push(SortHelper::getArgSort(curr.term(), 1));
+        headsort = SortHelper::getArgSort(curr.term(), 0);
+        curr = *(curr.term()->nthArgument(0));
+        if(curr.isVar()){ break; }
+        sym = env.signature->getFunction(curr.term()->functor());
+      }
+      //constant
+      done.push(HOTerm(curr, headsort));
+      argnums.push(argnum);
+    }
+  }
+  ASS(done.size());
+  ASS(argnums.isEmpty());
+  return done.pop();
 }
 
+TermList HOSortHelper::getCombTerm(SS::HOLConstant cons, unsigned sort){
+  CALL("HOSortHelper::getCombTerm");
+
+  bool added;
+  vstring name;
+  switch(cons){
+    case SS::I_COMB:
+      name = "iCOMB";
+      break;
+    case SS::K_COMB:
+      name = "kCOMB";
+      break;
+    case SS::B_COMB:
+      name = "cCOMB";
+      break;
+    case SS::C_COMB:
+      name = "bCOMB";
+      break;
+    case SS::S_COMB:
+      name = "sCOMB";
+      break;
+    default:
+      ASSERTION_VIOLATION;
+  }
+
+  unsigned fun = env.signature->addFunction(name + "_" +  Lib::Int::toString(sort),0,added);
+  if(added){//first time constant added. Set type
+      Signature::Symbol* symbol = env.signature->getFunction(fun);  
+      symbol->setType(OperatorType::getConstantsType(sort));
+      symbol->setHOLConstant(cons);   
+  }
+  return TermList(Term::createConstant(fun));
+}
 
 unsigned HOSortHelper::arity(unsigned sort){
   CALL("HOSortHelper::arity"); 

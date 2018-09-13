@@ -60,6 +60,11 @@ class CombSubstitution
 
     CombSubstitution(TermList t1,int index1, TermList t2, int index2):_solved(false)
     {
+      unsigned maxt1 = HOSortHelper::getMaxVar(t1);
+      unsigned maxt2 = HOSortHelper::getMaxVar(t2);
+      _nextFreshVar = max(maxt1, maxt2) + 1;
+      HOSortHelper::HOTerm ht1 = HOSortHelper::deappify(t1);
+      HOSortHelper::HOTerm ht2 = HOSortHelper::deappify(t2);
       UnificationPair up = UnificationPair(t1, index1, t2, index2);
       populateTransformations(up);
       _unificationPairs.push(up);
@@ -108,20 +113,23 @@ class CombSubstitution
     typedef RobSubstitution::VarSpec VarSpec;
     typedef Signature::Symbol SS;
     typedef HOSortHelper HSH;
-    typedef pair<HSH::HOTerm,HSH::HOTerm> TTPair;  
+    typedef pair<HSH::HOTerm, int> HOTermSpec;
+    typedef pair<HOTermSpec,HOTermSpec> TTPair;  
 
     struct UnificationPair
     {
       //CLASS_NAME(UnificationPair);
       //USE_ALLOCATOR(UnificationPair);
 
-      UnificationPair(TermList t1,int index1, TermList t2, int index2)
+      UnificationPair(HSH::HOTerm ht1 ,int index1, HSH::HOTerm ht2, int index2)
       {
-        unifPair = make_pair(HSH::HOTerm(t1,index1),HSH::HOTerm(t2,index2));
+        HOTermSpec hts1 = make_pair(ht1,index1);
+        HOTermSpec hts2 = make_pair(ht2,index2);
+        unifPair = make_pair(hts1,hts2);
         lastStep = UNDEFINED;
         secondLastStep = UNDEFINED;
       }
-      UnificationPair(HSH::HOTerm tl, HSH::HOTerm tr, AlgorithmStep ls, AlgorithmStep sls)
+      UnificationPair(HOTermSpec tl, HOTermSpec tr, AlgorithmStep ls, AlgorithmStep sls)
       : lastStep(ls), secondLastStep(sls)
       {
         unifPair = make_pair(tl,tr);
@@ -145,13 +153,31 @@ class CombSubstitution
      */
     void populateTransformations(UnificationPair&);   
     void populateSide(HSH::HOTerm, ApplyTo, Stack<Transform>&,AlgorithmStep,AlgorithmStep);
+    /** returns the particular narrow step relevant to the arg */
+    AlgorithmStep reduceStep(HSH::HOTerm);
     /** Carry out transformation represented bt t on top pair*/ 
     bool transform(Transform t);
-    void transform(HSH::HOTerm&,AlgorithmStep);
+
+    void transform(HSH::HOTerm&,AlgorithmStep,int);
+    void iRdeuce(HSH::HOTerm&);
+    void kReduce(HSH::HOTerm&);
+    void bcsReduce(HSH::HOTerm&, AlgorithmStep);
+
     bool canPerformStep(AlgorithmStep, AlgorithmStep, AlgorithmStep);
+    bool occurs(const VarSpec, const HOTermSpec);
+    void eliminate(VarSpec, HSH::HOTerm);
+    void eliminate(VarSpec, HSH::HOTerm, HOTermSpec&);
+    void addToSolved(VarSpec, HSH::HOTerm);
+ 
+    inline HSH::HOTerm newVar(unsigned sort){
+      HSH::HOTerm ht = HSH::HOTerm(TermList(_nextFreshVar), sort);
+      _nextFreshVar++;
+      return ht;
+    }
 
     //if subsitution represents solved system _solved set to true
     bool _solved;
+    unsigned _nextFreshVar;
 
     Stack<UnificationPair> _unificationPairs;
     

@@ -43,59 +43,67 @@ public:
 
   struct HOTerm{
     //create a new higher-order term
-    HOTerm(TermList ts, unsigned ind): index(ind)
+    HOTerm(TermList ts,  int hsort = -1)
     {
-      if(ts.isVar()){
-        head = ts;
+      head = ts;
+      if(hsort > -1){
+        headsort = (unsigned)hsort;
+        srt = headsort;
       } else {
-        ASS(ts.isTerm());
-        SS* sym = env.signature->getFunction(ts.term()->functor());
-        while(sym->hOLAPP()){
-          args.push_front(*(ts.term()->nthArgument(1)));
-          sorts.push_front(SortHelper::getArgSort(ts.term(), 1));
-          headsort = SortHelper::getArgSort(ts.term(), 0);
-          ts = *(ts.term()->nthArgument(0));
-          if(ts.isVar()){ break; }
-          sym = env.signature->getFunction(ts.term()->functor());
+        if(!ts.isVar()){
+          headsort = SortHelper::getResultSort(ts.term());
+          srt = headsort;
         }
-        head = ts;
       }
     }
 
-    HOTerm(TermList ts){
-      HOTerm(ts, 0);
-    }
-
-    HOTerm():index(0){}
+    HOTerm(){}
   
     //head symbol of this HOTerm
     TermList head;
     //WARNING if head is variable and argnums is 0 then headsort is not set!    
     unsigned headsort;
-    unsigned index;
+    /** sort of term */
+    //WARNING if headsort not assigned sort is not assigned either!
+    unsigned srt;
     //args of this HOTerm
-    Deque<TermList> args;
-    Deque<unsigned> sorts;
+    Deque<HOTerm> args;
+
+    //would this cause a runtime exception if args hasn't been initialised?
     inline unsigned argnum() { return args.size(); }
     //zero indexed
-    TermList ntharg(unsigned n){
+    HOTerm ntharg(unsigned n){
       unsigned argnum = args.size();
       ASS(n <= argnum);
       return args[n];
+    }
+    HOTerm* nthargptr(unsigned n){
+      unsigned argnum = args.size();
+      ASS(n <= argnum);
+      return &args[n];
     }
     //zero indexed    
     unsigned nthArgSort(unsigned n){
       unsigned argnum = args.size();
       ASS(n <= argnum);
-      return sorts[n];      
+      return args[n].sort();      
     }
     //n must be less than or equal to argnum()
     unsigned sortOfLengthNPref(unsigned n){
       ASS(n <= args.size());
       return appliedToN(headsort, n);
     }
+    /** adds argument to end of args*/
+    void addArg(HOTerm ht){
+  #if vdebug
+      ASS(arity(srt) > 0);
+      ASS(domain(srt) == ht.sort());
+  #endif
+      args.push_back(ht);
+      srt = range(srt);
+    }
     /** Returns the sort of whole term */
-    unsigned sort() { return sortOfLengthNPref(args.size());}
+    unsigned sort() { return srt;}
     /** Returns true if HOTerm has variable head */
     bool varHead() { return head.isVar();}
     /** Returns true if the HOTerm is a variable */
@@ -138,15 +146,14 @@ public:
       if(combHead() || hotm.combHead()){ return false; }
       return head.term()->functor() != hotm.head.term()->functor();
     }
-    /**Takes an applicative TermList t, makes the head symbol of t
-     * the head symbol of this HOTerm and pushes 't's args
-     * onto args deque. Example:
-     * current HOTerm K (f b) c d. Poping (f b) and c and then calling
-     * headify with (f b) will result in HOTerm f b d
-     */
-    void headify(TermList tl, int sort = -1);
-    TermList appify();
+    void headify(HOTerm tm);
+#if vdebug
+    vstring toString(bool withSorts = false);
+#endif
   };
+
+  static TermList appify(HOTerm);
+  static HOTerm deappify(TermList);
 
   /** Returns the sort of the head of an applicative term */
   static unsigned getHeadSort(TermList ts);
@@ -173,6 +180,25 @@ public:
    *  first to the second. Sort conditions must be met
    */
   static TermList apply(TermList t1, unsigned s1, TermList t2, unsigned s2);
+  /** Returns true if the termlist is a constant */
+  static bool isConstant(TermList tl){
+    return (tl.isTerm() && !tl.term()->arity());
+  }
+
+  /** Returns combinator constant */
+  static TermList getCombTerm(SS::HOLConstant cons, unsigned sort);
+  /** Returns the maximum variable peresent in term */
+  static unsigned getMaxVar(TermList ts){
+    TermVarIterator vit(&ts);
+    unsigned max = 0;
+    while(vit.hasNext()){
+      if(vit.next() > max){
+        max = vit.next();
+      }
+    }
+    return max;
+  }
+
 };
 
 }
