@@ -69,23 +69,28 @@ void Otter::onPassiveAdded(Clause* cl)
 
   if(cl->store()==Clause::PASSIVE) {
     _simplCont.add(cl);
-    
-    //TODO: dump interesting clauses here
-    Formula* f = Kernel::Formula::fromClause(cl);
-    FormulaUnit* fu = new FormulaUnit(f,cl->inference(),cl->inputType() == Unit::CONJECTURE ? Unit::NEGATED_CONJECTURE : cl->inputType()); // CONJECTURE is evil, as it cannot occur multiple times
-    //env.out() << TPTPPrinter::toString(fu) << "\n";
+
+    //dumping interesting clauses
     bool have_out = env.haveOutput();
     if (!have_out) {
       env.beginOutput();
     }
-    env.out() << TPTPPrinter::toString(fu) << std::endl;
+    Clause::Iterator cl_it(*cl);
+    while(cl_it.hasNext()) {
+      auto lit = cl_it.next();
+      if (lit->isEquality() && lit->isNegative()
+          && (lit->vars() >= 1) && lit->hasInterpretedConstants() ) {
+        //select if literal is a negative equality with at least two variables and theory symbols
+        Formula* f = Kernel::Formula::fromClause(cl);
+        FormulaUnit* fu = new FormulaUnit(f,cl->inference(),cl->inputType() == Unit::CONJECTURE ? Unit::NEGATED_CONJECTURE : cl->inputType()); // CONJECTURE is evil, as it cannot occur multiple times
+        env.out() << TPTPPrinter::toString(fu);
+      }
+      break;
+    }
+
     if (!have_out) {
       env.endOutput();
     }
-
-    //env.out() << TPTPPrinter::toString(cl) << "\n";
-
-    
   }
 }
 
