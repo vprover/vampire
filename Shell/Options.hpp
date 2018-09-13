@@ -263,7 +263,7 @@ public:
   enum class TheoryAxiomLevel : unsigned int {
     ON,  // all of them
     OFF, // none of them
-    CHEAP 
+    CHEAP
   };
 
   enum class ProofExtra : unsigned int {
@@ -740,8 +740,15 @@ public:
     EXISTS_SYM = 4,
     POSITION = 5
   };
-    
-    //==========================================================
+
+  enum class WatchNewPassiveClauses : unsigned int {
+  OFF = 0,
+  ANYVAR = 1,
+  ONEVAR = 2,
+  TWOVAR = 3
+  };
+
+  //==========================================================
     // The Internals
     //==========================================================
     // Here I define the internal structures used to specify Options
@@ -2101,6 +2108,8 @@ public:
   bool newCNF() const { return _newCNF.actualValue; }
   int getIteInliningThreshold() const { return _iteInliningThreshold.actualValue; }
   bool getIteInlineLet() const { return _inlineLet.actualValue; }
+  WatchNewPassiveClauses watchNewPassiveClauses() const { return _watchNewPassiveClauses.actualValue; }
+
 private:
     
     /**
@@ -2459,6 +2468,8 @@ private:
   IntOptionValue _whileNumber;
 
   StringOptionValue _xmlOutput;
+
+  ChoiceOptionValue<WatchNewPassiveClauses> _watchNewPassiveClauses;
 
   OptionChoiceValues _tagNames;
 

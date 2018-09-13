@@ -1710,6 +1710,19 @@ void Options::Options::init()
     _weightIncrement.tag(OptionTag::OTHER);
 
     //******************************************************************
+    //*********************** Watch clauses ****************************
+    //******************************************************************
+
+
+    _watchNewPassiveClauses = ChoiceOptionValue<WatchNewPassiveClauses>("watch_new_passive_clause","wpc",
+                                                                        WatchNewPassiveClauses::OFF,
+                                                                        {"off","any_var", "one_var","two_var"}); 
+    _watchNewPassiveClauses.description = "Output newly inserted passive clauses that contain negative theory equalities with any number, at least one or at least two variables.";
+    _lookup.insert(&_watchNewPassiveClauses);
+    _watchNewPassiveClauses.setExperimental();
+
+
+    //******************************************************************
     //*********************** Unused ??  *******************************
     //******************************************************************
 

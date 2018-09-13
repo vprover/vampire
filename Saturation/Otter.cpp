@@ -70,26 +70,37 @@ void Otter::onPassiveAdded(Clause* cl)
   if(cl->store()==Clause::PASSIVE) {
     _simplCont.add(cl);
 
-    //dumping interesting clauses
-    bool have_out = env.haveOutput();
-    if (!have_out) {
-      env.beginOutput();
-    }
-    Clause::Iterator cl_it(*cl);
-    while(cl_it.hasNext()) {
-      auto lit = cl_it.next();
-      if (lit->isEquality() && lit->isNegative()
-          && (lit->vars() >= 1) && lit->hasInterpretedConstants() ) {
-        //select if literal is a negative equality with at least two variables and theory symbols
-        Formula* f = Kernel::Formula::fromClause(cl);
-        FormulaUnit* fu = new FormulaUnit(f,cl->inference(),cl->inputType() == Unit::CONJECTURE ? Unit::NEGATED_CONJECTURE : cl->inputType()); // CONJECTURE is evil, as it cannot occur multiple times
-        env.out() << TPTPPrinter::toString(fu);
-      }
-      break;
-    }
+    static Options::WatchNewPassiveClauses watch_option = env.options->watchNewPassiveClauses();
 
-    if (!have_out) {
-      env.endOutput();
+    if (watch_option != Options::WatchNewPassiveClauses::OFF) {
+      static auto anyvar_prop = [](Literal* lit){ return lit->isEquality() && lit->isNegative() && lit->hasInterpretedConstants(); };
+      static auto onevar_prop = [](Literal* lit){ return anyvar_prop(lit) && (lit->vars() >= 1); };
+      static auto twovar_prop = [](Literal* lit){ return anyvar_prop(lit) && (lit->vars() >= 2); };
+
+      static auto has_prop =
+        watch_option == Options::WatchNewPassiveClauses::ANYVAR? anyvar_prop :
+        ( watch_option == Options::WatchNewPassiveClauses::ONEVAR? onevar_prop:twovar_prop) ;
+
+      //dumping interesting clauses
+      bool have_out = env.haveOutput();
+      if (!have_out) {
+        env.beginOutput();
+      }
+      Clause::Iterator cl_it(*cl);
+      while(cl_it.hasNext()) {
+        auto lit = cl_it.next();
+        if ( has_prop(lit) ) {
+          //select if literal is a negative equality with at least two variables and theory symbols
+          Formula* f = Kernel::Formula::fromClause(cl);
+          FormulaUnit* fu = new FormulaUnit(f,cl->inference(),cl->inputType() == Unit::CONJECTURE ? Unit::NEGATED_CONJECTURE : cl->inputType()); // CONJECTURE is evil, as it cannot occur multiple times
+          env.out() << TPTPPrinter::toString(fu);
+        }
+        break;
+      }
+
+      if (!have_out) {
+        env.endOutput();
+      }
     }
   }
 }
