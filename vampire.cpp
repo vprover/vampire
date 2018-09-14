@@ -206,6 +206,21 @@ void doProving()
   // One call to randomize before preprocessing (see Options)
   env.options->randomizeStrategy(0);
 
+  if (env.options->watchNewPassiveClauses() != Options::WatchNewPassiveClauses::OFF) {
+    env.beginOutput();
+    TPTPPrinter p(& env.out());
+    env.out() << "predicates: " << env.signature->predicates() << " functions: " << env.signature->functions() << std::endl;
+    for (unsigned int i=0;i<env.signature->predicates();i++) {
+      env.out() << "predicate " << i << std::endl;
+      p.outputSymbolTypeDefinitions(i,false);
+    }
+    for (unsigned int i=0;i<env.signature->functions();i++) {
+      env.out() << "function " << i << std::endl;
+      p.outputSymbolTypeDefinitions(i,true);
+    }
+    env.endOutput();
+  }
+
   ScopedPtr<Problem> prb(getPreprocessedProblem());
 
   // Then again when the property is here (this will only randomize non-default things if an option is set to do so)

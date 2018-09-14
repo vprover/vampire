@@ -51,12 +51,12 @@ public:
   static vstring toString(const Term*);
   static vstring toString(const Literal*);
 
+  void outputSymbolTypeDefinitions(unsigned symNumber, bool function);
 private:
 
   vstring getBodyStr(Unit* u);
 
   void ensureHeadersPrinted(Unit* u);
-  void outputSymbolTypeDefinitions(unsigned symNumber, bool function);
 
   void ensureNecesarySorts();
   void printTffWrapper(Unit* u, vstring bodyStr);
