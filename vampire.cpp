@@ -206,6 +206,8 @@ void doProving()
   // One call to randomize before preprocessing (see Options)
   env.options->randomizeStrategy(0);
 
+ScopedPtr<Problem> prb(getPreprocessedProblem());
+
   if (env.options->watchNewPassiveClauses() != Options::WatchNewPassiveClauses::OFF) {
     env.beginOutput();
     TPTPPrinter p(& env.out());
@@ -220,8 +222,6 @@ void doProving()
     }
     env.endOutput();
   }
-
-  ScopedPtr<Problem> prb(getPreprocessedProblem());
 
   // Then again when the property is here (this will only randomize non-default things if an option is set to do so)
   env.options->randomizeStrategy(prb->getProperty()); 
