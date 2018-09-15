@@ -482,6 +482,7 @@ bool RobSubstitution::filter(TermSpec t1, TermSpec t2)
 
     //cout << "unifying termspec " + dt1.toString() + " with termspec " + dt2.toString() << endl;
 
+    //This does not work for EqResolution
     if(dt1.sameTermContent(dt2) || isPlaceHolderTerm(dt1) || isPlaceHolderTerm(dt2)){
     } else if(dt1.isVar()) {
       VarSpec v1=getVarSpec(dt1);

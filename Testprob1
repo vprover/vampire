@@ -1,5 +1,6 @@
 thf(a, type, g:$i > $i > $i > $i).
-thf(a, type, m:$i > $i > $i > $i).
-thf(a, type, const1: $i).
+thf(a, type, m:$i > $i > $i).
+thf(a, type, a: $i).
+thf(b, type, b: $i).
 %thf(a, axiom, m = ^[X: $i, Y:$i, Z:$i] : (g @ Z @ X @ Y)).
-thf(a, conjecture, ?[F:$i > $i > $i > $i]: ![X: $i, Y:$i, Z:$i]: ((F @ X @ Y @ Z) = (g @ Z @ X @ Y))).
+thf(a, conjecture, ?[F:$i > $i > $i > $i]: ((F @ a @  b) = (g @ b @ a))).

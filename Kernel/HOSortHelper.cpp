@@ -190,23 +190,24 @@ TermList HOSortHelper::apply(TermList t1, unsigned s1, TermList t2, unsigned s2)
 /**
   * Prints out HOTerm
   */
-#if vdebug
+#if VDEBUG
 vstring HOSortHelper::HOTerm::toString(bool withSorts){
   CALL("HOSortHelper::HOTerm::toString");   
-
+  
   vstring res;
   if(!withSorts){
     res = head.toString() + " ";
   } else {
     res = head.toString() + "_" + env.sorts->sortName(headsort) + " ";
   }
-  for(int i = args.size(); i >= 0; i--){
+  for(unsigned i = 0; i < args.size(); i++){
     if(!args[i].args.size()){
-      res = res + args[i].toString();
+      res = res + args[i].toString(withSorts);
     } else {
-      res = res + "(" + args[i].toString() + ")";
+      res = res + "(" + args[i].toString(withSorts) + ")";
     }
   }
+  return res;
 }
 #endif
 
@@ -226,7 +227,11 @@ void HOSortHelper::HOTerm::headify(HOTerm tm){
  */
 TermList HOSortHelper::appify(HOTerm ht){
   CALL("HOSortHelper::HOTerm::appify");   
-  
+
+  #if VDEBUG
+    //cout << "appifying " + ht.toString() << endl;
+  #endif
+
   Stack<Stack<HOTerm>> toDo;
   Stack<TermList> done;
   Stack<unsigned> doneSorts;
@@ -270,11 +275,19 @@ TermList HOSortHelper::appify(HOTerm ht){
     }
   }
   ASS(done.size() ==1);
+  
+  #if VDEBUG
+    //cout << "The result is " + done.top().toString() << endl;
+  #endif  
   return done.pop();
 }
 
 HOSortHelper::HOTerm HOSortHelper::deappify(TermList ts){
   CALL("HOSortHelper::HOTerm::deappify");
+  
+  #if VDEBUG
+    //cout << "deappifying " + ts.toString() << endl;
+  #endif
   
   Stack<TermList> toDo;
   Stack<unsigned> toDoSorts;
@@ -322,6 +335,11 @@ HOSortHelper::HOTerm HOSortHelper::deappify(TermList ts){
   }
   ASS(done.size());
   ASS(argnums.isEmpty());
+
+  #if VDEBUG
+    //cout << "The result is " + done.top().toString() << endl;
+    //ASSERTION_VIOLATION;
+  #endif
   return done.pop();
 }
 

@@ -31,6 +31,7 @@
 
 #include "Kernel/Term.hpp"
 #include "Kernel/SortHelper.hpp"
+#include "Kernel/TermIterators.hpp"
 
 namespace Kernel {
 
@@ -147,7 +148,7 @@ public:
       return head.term()->functor() != hotm.head.term()->functor();
     }
     void headify(HOTerm tm);
-#if vdebug
+#if VDEBUG
     vstring toString(bool withSorts = false);
 #endif
   };

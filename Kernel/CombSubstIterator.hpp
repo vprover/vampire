@@ -1,6 +1,6 @@
 
 /*
- * File CombUnification.hpp.
+ * File CombSubstIterator.hpp.
  *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
@@ -17,13 +17,13 @@
  * licence, which we will make an effort to provide. 
  */
 /**
- * @file CombUnification.hpp
- * Defines class CombUnification.
+ * @file CombSubstIterator.hpp
+ * Defines class CombSubstIterator.
  *
  */
 
-#ifndef __CombUnification__
-#define __CombUnification__
+#ifndef __CombSubstIterator__
+#define __CombSubstIterator__
 
 #include <utility>
 
@@ -31,10 +31,13 @@
 #include "Lib/DHMap.hpp"
 #include "Lib/Set.hpp"
 #include "Lib/Backtrackable.hpp"
-#include "Term.hpp"
-#include "RobSubstitution.hpp"
 
 #include "Indexing/Index.hpp"
+
+#include "Signature.hpp"
+#include "Term.hpp"
+#include "RobSubstitution.hpp"
+#include "HOSortHelper.hpp"
 
 #if VDEBUG
 
@@ -65,7 +68,7 @@ class CombSubstitution
       _nextFreshVar = max(maxt1, maxt2) + 1;
       HOSortHelper::HOTerm ht1 = HOSortHelper::deappify(t1);
       HOSortHelper::HOTerm ht2 = HOSortHelper::deappify(t2);
-      UnificationPair up = UnificationPair(t1, index1, t2, index2);
+      UnificationPair up = UnificationPair(ht1, index1, ht2, index2);
       populateTransformations(up);
       _unificationPairs.push(up);
     }
@@ -145,6 +148,59 @@ class CombSubstitution
       TTPair unifPair;
     };
 
+   #if VDEBUG
+    vstring unificationPairsToString(){
+      vstring res;
+      res =  "PRINTING THE UNIFICATION PAIRS \n";
+      for(int i = _unificationPairs.size() -1; i >=0; i--){
+         res += "<" + _unificationPairs[i].unifPair.first.first.toString() + " , " + 
+                       _unificationPairs[i].unifPair.second.first.toString()  + ">\n";
+      }
+      return res;
+    }
+    
+    vstring algorithmStepToString(AlgorithmStep as){
+      switch(as){
+       case SPLIT:
+         return "SPLIT";
+       case I_NARROW:
+         return "I_NARROW";
+       case K_NARROW:
+         return "K_NARROW";
+       case KX_NARROW:
+         return "KX_NARROW";
+       case B_NARROW:
+         return "B_NARROW";
+       case BX_NARROW:
+         return "BX_NARROW";
+       case C_NARROW:
+         return "C_NARROW";
+       case CX_NARROW:
+         return "CX_NARROW";
+       case S_NARROW:
+         return "S_NARROW";
+       case SX_NARROW:
+         return "SX_NARROW";
+       case I_REDUCE:
+         return "I_REDUCE";
+       case K_REDUCE:
+         return "K_REDUCE";
+       case B_REDUCE:
+         return "B_REDUCE";
+       case C_REDUCE:
+         return "C_REDUCE";
+       case S_REDUCE:
+         return "S_REDUCE";
+       case DECOMP:
+         return "DECOMP";
+       case ELIMINATE:  
+         return "ELIMINATE";       
+       default:
+         return "UNKNOWN";
+      }
+    }
+   #endif   
+    
     TransformIterator availableTransforms();
     /*
      * Finds all relevant trandformations for top unif pair 
@@ -152,9 +208,9 @@ class CombSubstitution
      * stacks.
      */
     void populateTransformations(UnificationPair&);   
-    void populateSide(HSH::HOTerm, ApplyTo, Stack<Transform>&,AlgorithmStep,AlgorithmStep);
+    void populateSide(HSH::HOTerm&, ApplyTo, Stack<Transform>&,AlgorithmStep,AlgorithmStep);
     /** returns the particular narrow step relevant to the arg */
-    AlgorithmStep reduceStep(HSH::HOTerm);
+    AlgorithmStep reduceStep(HSH::HOTerm&);
     /** Carry out transformation represented bt t on top pair*/ 
     bool transform(Transform t);
 
@@ -168,7 +224,11 @@ class CombSubstitution
     void eliminate(VarSpec, HSH::HOTerm);
     void eliminate(VarSpec, HSH::HOTerm, HOTermSpec&);
     void addToSolved(VarSpec, HSH::HOTerm);
- 
+    void pushNewPair(HSH::HOTerm&, int, HSH::HOTerm&, int, AlgorithmStep,
+                     AlgorithmStep, bool leftChanged = true, bool rightChanged = true);
+    void pushNewPair(HOTermSpec&, HOTermSpec&, AlgorithmStep, AlgorithmStep, 
+                     bool leftChanged = true, bool rightChanged = true);
+                     
     inline HSH::HOTerm newVar(unsigned sort){
       HSH::HOTerm ht = HSH::HOTerm(TermList(_nextFreshVar), sort);
       _nextFreshVar++;
@@ -198,7 +258,7 @@ class CombSubstitution
       }
 
       CLASS_NAME(CombSubstitution::BindingBacktrackObject);
-      USE_ALLOCATOR(CombSubstitution);
+      USE_ALLOCATOR(BindingBacktrackObject);
     private:
       CombSubstitution* _subst;
       VarSpec _var;
@@ -221,25 +281,25 @@ class CombSubstitution
       }
 
       CLASS_NAME(CombSubstitution::StackBacktrackObject);
-      USE_ALLOCATOR(CombSubstitution);
+      USE_ALLOCATOR(StackBacktrackObject);
     private:
       CombSubstitution* _subst;
        Stack<UnificationPair> _st;
     };
 
-    friend class CombUnification;
+    friend class CombSubstIterator;
 };
 
 
 
-class CombUnification
+class CombSubstIterator
 : public IteratorCore<CombSubstitution*>
 {
 public:
-  CLASS_NAME(CombUnification);
-  USE_ALLOCATOR(CombUnification);
+  CLASS_NAME(CombSubstIterator);
+  USE_ALLOCATOR(CombSubstIterator);
   
-  CombUnification(TermList t1,int index1, TermList t2, int index2)
+  CombSubstIterator(TermList t1,int index1, TermList t2, int index2)
   {
     _unifSystem = new CombSubstitution(t1, index1, t2, index2);
     transformIterators.push(_unifSystem->availableTransforms());
@@ -278,9 +338,9 @@ private:
   typedef VirtualIterator<Transform> TransformIterator;
 
   /** Copy constructor is private and without a body, because we don't want any. */
-  CombUnification(const CombUnification& obj);
+  CombSubstIterator(const CombSubstIterator& obj);
   /** operator= is private and without a body, because we don't want any. */
-  CombUnification& operator=(const CombUnification& obj);
+  CombSubstIterator& operator=(const CombSubstIterator& obj);
 
 
   CombSubstitution* _unifSystem;
@@ -297,7 +357,11 @@ private:
    */
   bool transform(Transform t, BacktrackData& bd);
 
+#if VDEBUG
+
+#endif
+  
 };
 
 }
-#endif /*__CombUnification____*/
+#endif /*__CombSubstIterator____*/

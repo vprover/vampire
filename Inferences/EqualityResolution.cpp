@@ -37,6 +37,7 @@
 #include "Kernel/EqHelper.hpp"
 #include "Kernel/Ordering.hpp"
 #include "Kernel/LiteralSelector.hpp"
+#include "Kernel/CombSubstIterator.hpp"
 #include "Kernel/Signature.hpp"
 #include "Saturation/SaturationAlgorithm.hpp"
 
@@ -73,14 +74,16 @@ struct EqualityResolution::ResultFn
 
     ASS(lit->isEquality());
     ASS(lit->isNegative());
-
+    
     static RobSubstitution subst;
     subst.reset();
     if(env.options->combinatoryUnification()){
-      //Hack for testing. Filtering should be merely the first step to combinatory unification
-      if(!subst.filter(*lit->nthArgument(0),0,*lit->nthArgument(1),0)) {
-        return 0;
+      VirtualIterator<CombSubstitution*> csIT = vi(new CombSubstIterator(*lit->nthArgument(0),0,*lit->nthArgument(1),0)); 
+      if(!csIT.hasNext()){
+        cout << "no unifier of these two" << endl;
+        return 0;      
       }
+      ASSERTION_VIOLATION;
     } else {
       if(!subst.unify(*lit->nthArgument(0),0,*lit->nthArgument(1),0)) {
         return 0;
