@@ -102,9 +102,6 @@ void TermSubstitutionTree::handleTerm(TermList t, Literal* lit, Clause* cls, boo
       }
     }
     
-    cout << "The old term is: " + oldTerm->toString() << endl;
-    cout << "The term is: " + term->toString() << endl;
-
     Term* normTerm=Renaming::normalize(term);
 
     BindingMap svBindings;

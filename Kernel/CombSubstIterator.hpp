@@ -112,7 +112,7 @@ class CombSubstitution
   private:
 
     typedef pair<AlgorithmStep, ApplyTo>  Transform;
-    typedef VirtualIterator<Transform> TransformIterator;
+    //typedef VirtualIterator<Transform> TransformIterator;
     typedef RobSubstitution::VarSpec VarSpec;
     typedef Signature::Symbol SS;
     typedef HOSortHelper HSH;
@@ -123,7 +123,6 @@ class CombSubstitution
     {
       //CLASS_NAME(UnificationPair);
       //USE_ALLOCATOR(UnificationPair);
-
       UnificationPair(HSH::HOTerm ht1 ,int index1, HSH::HOTerm ht2, int index2)
       {
         HOTermSpec hts1 = make_pair(ht1,index1);
@@ -143,6 +142,13 @@ class CombSubstitution
       Stack<Transform> transformsRight;
       Stack<Transform> transformsBoth;
       
+    #if VDEBUG
+      vstring toString(){
+        vstring res = "<" + unifPair.first.first.toString() + " , " +
+                            unifPair.second.first.toString() + ">";
+        return res;
+      }
+    #endif    
       AlgorithmStep lastStep;      
       AlgorithmStep secondLastStep;
       TTPair unifPair;
@@ -201,7 +207,8 @@ class CombSubstitution
     }
    #endif   
     
-    TransformIterator availableTransforms();
+    //typedef this
+    Stack<Transform> availableTransforms();
     /*
      * Finds all relevant trandformations for top unif pair 
      * in _unifcationPairs of _unifSystem. Populates transformation
@@ -230,7 +237,8 @@ class CombSubstitution
                      bool leftChanged = true, bool rightChanged = true);
                      
     inline HSH::HOTerm newVar(unsigned sort){
-      HSH::HOTerm ht = HSH::HOTerm(TermList(_nextFreshVar), sort);
+      CALL("CombSubstitution::newvar");
+      HSH::HOTerm ht = HSH::HOTerm(TermList(_nextFreshVar, false), sort);
       _nextFreshVar++;
       return ht;
     }
@@ -244,6 +252,11 @@ class CombSubstitution
     typedef DHMap<VarSpec,HSH::HOTerm,VarSpec::Hash1, VarSpec::Hash2> SolvedType;
     mutable SolvedType _solvedPairs;
 
+  #if VDEBUG
+    //need to add boolean option to allow "collapsing of substitution"
+    vstring toString();
+  #endif
+  
     class BindingBacktrackObject
     : public BacktrackObject
     {
@@ -302,7 +315,7 @@ public:
   CombSubstIterator(TermList t1,int index1, TermList t2, int index2)
   {
     _unifSystem = new CombSubstitution(t1, index1, t2, index2);
-    transformIterators.push(_unifSystem->availableTransforms());
+    transformStacks.push(_unifSystem->availableTransforms());
   }
 
   bool hasNext(){
@@ -335,7 +348,7 @@ private:
   typedef CombSubstitution::AlgorithmStep AlgorithmStep;
   typedef CombSubstitution::ApplyTo ApplyTo;
   typedef pair<AlgorithmStep,ApplyTo> Transform;
-  typedef VirtualIterator<Transform> TransformIterator;
+  //typedef VirtualIterator<Transform> TransformIterator;
 
   /** Copy constructor is private and without a body, because we don't want any. */
   CombSubstIterator(const CombSubstIterator& obj);
@@ -344,7 +357,7 @@ private:
 
 
   CombSubstitution* _unifSystem;
-  Stack<TransformIterator> transformIterators;
+  Stack<Stack<Transform>> transformStacks;
   Stack<BacktrackData> bdStack;
   
   //These or similar functions required in CombSubsitution class

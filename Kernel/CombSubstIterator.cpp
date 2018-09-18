@@ -54,24 +54,23 @@ using namespace std;
 using namespace Lib;
 
 
-CombSubstitution::TransformIterator CombSubstitution::availableTransforms()
+Stack<CombSubstitution::Transform> CombSubstitution::availableTransforms()
 {
   CALL("CombSubstitution::availableTransforms");
 
   UnificationPair up = _unificationPairs.top();
 
-  //cout << "the size of transformsLeft is " << up.transformsLeft.size() << endl;
-  //cout << "the size of transformsRight is " << up.transformsRight.size() << endl;
-  //cout << "the size of transformsBoth is " << up.transformsBoth.size() << endl;
-  
-  Stack<Transform>::Iterator both(_unificationPairs.top().transformsBoth);
-  Stack<Transform>::Iterator left(_unificationPairs.top().transformsLeft);
-  Stack<Transform>::Iterator right(_unificationPairs.top().transformsRight);
-
-  if(!_unificationPairs.top().transformsBoth.isEmpty()){
-    return pvi(getPersistentIterator(both));
+  Stack<Transform> left = up.transformsLeft;
+  Stack<Transform> right = up.transformsRight;
+  Stack<Transform> both = up.transformsBoth;
+ 
+  if(!both.isEmpty()){
+    return both;
   } else {
-    return pvi(getPersistentIterator(getConcatenatedIterator(left, right)));
+    while(!right.isEmpty()){
+      left.push(right.pop());
+    }
+    return left;
   }
 }
 
@@ -87,27 +86,27 @@ void CombSubstitution::populateTransformations(UnificationPair& up)
   HSH::HOTerm hotermr = ttpair.second.first;   
   
   if(hoterml.isVar()){
-    Transform trs(ELIMINATE,FIRST);
+    Transform trs = make_pair(ELIMINATE,FIRST);
     up.transformsLeft.push(trs);
     return;        
   }
   // if unification is between two variables arbitrarily choose to eliminate
   // left of pair
   if(hotermr.isVar() && !hoterml.isVar()){
-    Transform trs(ELIMINATE,SECOND);
+    Transform trs = make_pair(ELIMINATE,SECOND);
     up.transformsRight.push(trs);
     return;        
   }  
 
   if(hoterml.varHead() && hoterml.argnum() > 0 && 
     (hoterml.argnum() <= hotermr.argnum())){
-    Transform trs(SPLIT,FIRST);
+    Transform trs = make_pair(SPLIT,FIRST);
     up.transformsLeft.push(trs);       
   }
 
   if(hotermr.varHead() && hotermr.argnum() > 0 &&  
     (hotermr.argnum() <= hoterml.argnum())){
-    Transform trs(SPLIT,SECOND);
+    Transform trs = make_pair(SPLIT,SECOND);
     up.transformsRight.push(trs);       
   }
 
@@ -115,12 +114,12 @@ void CombSubstitution::populateTransformations(UnificationPair& up)
   populateSide(hotermr, SECOND, up.transformsRight, up.lastStep, up.secondLastStep);
 
   if(hoterml.sameFirstOrderHead(hotermr)){
-    Transform trs(DECOMP,BOTH);
+    Transform trs = make_pair(DECOMP,BOTH);
     up.transformsBoth.push(trs);      
   }
   
   if(hoterml.underAppliedCombTerm() || hoterml.underAppliedCombTerm()){
-    Transform trs(ADD_ARG,BOTH);
+    Transform trs = make_pair(ADD_ARG,BOTH);
     up.transformsBoth.push(trs); 
   }
 
@@ -134,20 +133,20 @@ void CombSubstitution::populateSide(HSH::HOTerm& hoterm, ApplyTo at, Stack<Trans
   if(hoterm.varHead()){
     //KX_NARROW admissable as long as var has a single argument
     if(canPerformStep(ls,sls, KX_NARROW)){
-      Transform trs(KX_NARROW,at);
+      Transform trs = make_pair(KX_NARROW,at);
       tStack.push(trs);    
     }
     
     if(hoterm.nthArgSort(0) == hoterm.sortOfLengthNPref(1)){
       if(canPerformStep(ls,sls,I_NARROW)){
-        Transform trs(I_NARROW,at);
+        Transform trs = make_pair(I_NARROW,at);
         tStack.push(trs); 
       }      
     }
     
     if(hoterm.argnum() > 1 && (hoterm.nthArgSort(0) == hoterm.sortOfLengthNPref(2))){
       if(canPerformStep(ls, sls, K_NARROW)){
-        Transform trs(K_NARROW,at);
+        Transform trs = make_pair(K_NARROW,at);
         tStack.push(trs);
       }       
     }    
@@ -161,7 +160,7 @@ void CombSubstitution::populateSide(HSH::HOTerm& hoterm, ApplyTo at, Stack<Trans
         if((HSH::domain(sort1) == HSH::range(sort2) &&
            (HSH::domain(sort2) == sort3) &&
            (HSH::range(sort1) == hoterm.sortOfLengthNPref(3)))){
-          Transform trs(B_NARROW,at);
+          Transform trs = make_pair(B_NARROW,at);
           tStack.push(trs);
         }        
       }
@@ -170,7 +169,7 @@ void CombSubstitution::populateSide(HSH::HOTerm& hoterm, ApplyTo at, Stack<Trans
         if((HSH::appliedToN(sort1, 2) == hoterm.sortOfLengthNPref(3)) &&
            (HSH::getNthArgSort(sort1, 0) == sort2) &&
            (HSH::getNthArgSort(sort1, 1) == sort3)){
-          Transform trs(C_NARROW,at);
+          Transform trs = make_pair(C_NARROW,at);
           tStack.push(trs); 
         }
       }
@@ -180,7 +179,7 @@ void CombSubstitution::populateSide(HSH::HOTerm& hoterm, ApplyTo at, Stack<Trans
            (HSH::domain(sort1) == sort3) &&
            (HSH::domain(sort2) == sort3) &&
            (HSH::getNthArgSort(sort1, 1) == HSH::range(sort2))){
-          Transform trs(S_NARROW,at);
+          Transform trs = make_pair(S_NARROW,at);
           tStack.push(trs);           
         }
       }
@@ -191,14 +190,14 @@ void CombSubstitution::populateSide(HSH::HOTerm& hoterm, ApplyTo at, Stack<Trans
       unsigned sort2 = hoterm.nthArgSort(1);
       if(!(HSH::arity(sort1) < 1)){
         if(HSH::domain(sort1) == sort2){
-          Transform trs(BX_NARROW,at);
+          Transform trs = make_pair(BX_NARROW,at);
           tStack.push(trs);
-          Transform trs2(SX_NARROW,at);
+          Transform trs2 = make_pair(SX_NARROW,at);
           tStack.push(trs2);
         }
       }
       if(canPerformStep(ls, sls, CX_NARROW)){
-        Transform trs(CX_NARROW,at);
+        Transform trs = make_pair(CX_NARROW,at);
         tStack.push(trs);
       }          
     } 
@@ -207,7 +206,7 @@ void CombSubstitution::populateSide(HSH::HOTerm& hoterm, ApplyTo at, Stack<Trans
 
   if(hoterm.combHead() && !hoterm.underAppliedCombTerm()){
     AlgorithmStep as = reduceStep(hoterm);
-    Transform trs(as,at);
+    Transform trs = make_pair(as,at);
     tStack.push(trs);  
   }
 
@@ -233,10 +232,9 @@ CombSubstitution::AlgorithmStep CombSubstitution::reduceStep(HSH::HOTerm& ht){
   }
 }
 
+//need to check for syntactic identity at some point in algorithm.
 bool CombSubstitution::transform(Transform t){
   CALL("CombSubstitution::transform");
-
-   //cout << "carrying out transformation " + algorithmStepToString(t.first) << endl;
   
   BacktrackData localBD;
   bdRecord(localBD);
@@ -244,6 +242,10 @@ bool CombSubstitution::transform(Transform t){
   bdAdd(new StackBacktrackObject(this, _unificationPairs));
 
   UnificationPair up = _unificationPairs.pop();
+  
+   cout << "carrying out transformation " + algorithmStepToString(t.first) << endl;
+   //cout << "on unification pair" +  up.toString() << endl;
+  
   HOTermSpec hts1 = up.unifPair.first;
   HOTermSpec hts2 = up.unifPair.second;
   HSH::HOTerm terml = hts1.first;
@@ -274,7 +276,7 @@ bool CombSubstitution::transform(Transform t){
           succeeded = false;
           break; 
         }
-        pushNewPair(terml, id1, termr, id2, DECOMP, up.lastStep);
+        pushNewPair(tl, id1, tr, id2, DECOMP, up.lastStep);
       }
     }
   }
@@ -295,7 +297,6 @@ bool CombSubstitution::transform(Transform t){
 
   //split here so we can check early for failure
   if(t.first == SPLIT){
-    cout << "reached here" << endl;
     HOTermSpec toSplit, other;
     toSplit = t.second == FIRST ? hts1 : hts2; 
     other = t.second == FIRST ? hts2 : hts1; 
@@ -318,12 +319,14 @@ bool CombSubstitution::transform(Transform t){
     }
   }
 
-  if(t.second == FIRST){
-    transform(terml,t.first, id1);
-    pushNewPair(terml, id1, termr, id2, t.first, up.lastStep, true, false);
-  } else {
-    transform(termr,t.first, id2);
-    pushNewPair(terml, id1, termr, id2, t.first, up.lastStep, false, true);
+  if(t.first != SPLIT && t.first != ELIMINATE && t.first != DECOMP && t.first != ADD_ARG){
+    if(t.second == FIRST){
+      transform(terml,t.first, id1);
+      pushNewPair(terml, id1, termr, id2, t.first, up.lastStep, true, false);
+    } else {
+      transform(termr,t.first, id2);
+      pushNewPair(terml, id1, termr, id2, t.first, up.lastStep, false, true);
+    }
   }
    
   bdDone();
@@ -471,6 +474,7 @@ void CombSubstitution::bcsReduce(HSH::HOTerm& ht, AlgorithmStep as){
 void CombSubstitution::addToSolved(VarSpec vs, HSH::HOTerm ht){
   CALL("CombSubstitution::addToSolved");
 
+  cout << "adding: X" + Int::toString(vs.var) + " -> " + ht.toString() + " to solved" << endl;
   _solvedPairs.set(vs, ht);
  bdAdd(new BindingBacktrackObject(this, vs)); 
 }
@@ -488,7 +492,7 @@ void CombSubstitution::pushNewPair(HSH::HOTerm& ht1, int ind1, HSH::HOTerm& ht2,
 void CombSubstitution::pushNewPair(HOTermSpec& hts1, HOTermSpec& hts2, AlgorithmStep ls,
                                    AlgorithmStep sls, bool lc, bool rc){
   CALL("CombSubstitution::pushNewPair");
-  
+    
   UnificationPair newup = UnificationPair(hts1, hts2, ls, sls);
   populateTransformations(newup);
   _unificationPairs.push(newup);                                   
@@ -572,6 +576,23 @@ bool CombSubstitution::occurs(VarSpec vs, HOTermSpec hts){
   return false;
 }
 
+#if VDEBUG
+vstring CombSubstitution::toString()
+{
+  CALL("CombSubstitution::toString");
+  vstring res;
+  SolvedType::Iterator spit(_solvedPairs);
+  while(spit.hasNext()) {
+    VarSpec v;
+    HSH::HOTerm ht;
+    spit.next(v,ht);
+    res+="X"+Int::toString(v.var)+"/"+Int::toString(v.index)+ " -> ";
+    res+=ht.toString()+"\n";
+  }
+  return res;
+}
+#endif
+
 //need to comment this code AYB
 bool CombSubstIterator::hasNextUnifier(){
   CALL("CombSubstIterator::hasNextUnifier");
@@ -581,24 +602,30 @@ bool CombSubstIterator::hasNextUnifier(){
     _unifSystem->_solved=false;
   }  
 
-  ASS(bdStack.length()+1==transformIterators.length());
-
+  ASS(bdStack.length()+1==transformStacks.length());
+    
   unsigned count = 0;
   do {
     cout << _unifSystem->unificationPairsToString() << endl;
-    while(!transformIterators.top().hasNext() && !bdStack.isEmpty()) {
+    
+    /*cout << "PRINTING TOP TRANSFORMS" << endl;
+    Stack<Transform> ts = transformStacks.top();
+    cout << "[";
+    for(int j = ts.size() - 1; j >= 0; j--){
+      cout << _unifSystem->algorithmStepToString(ts[j].first) + ",";
+    }
+    cout << "]" << endl;    
+    */
+    
+    while(transformStacks.top().isEmpty() && !bdStack.isEmpty()) {
       bdStack.pop().backtrack();
     }
-    if(!transformIterators.top().hasNext()) {
+    if(transformStacks.top().isEmpty()) {
       return false;
     }
     
-    while(transformIterators.top().hasNext()){
-      cout << "The next transform is: " + _unifSystem->algorithmStepToString(transformIterators.top().next().first) << endl;
-    }
+    Transform t=transformStacks.top().pop();
     
-    Transform t=transformIterators.top().next();
-
     //cout << "Carrying out transform: " + _unifSystem->algorithmStepToString(t.first) << endl;
     
     BacktrackData bd;
@@ -611,7 +638,8 @@ bool CombSubstIterator::hasNextUnifier(){
     }
     count++;
   } while(!_unifSystem->_solved && count < 20);
-  ASSERTION_VIOLATION;
+  cout << "The successful substitution is:\n " + _unifSystem->toString() << endl;
+  ASSERTION_VIOLATION;  
   return true;
 }
 
@@ -623,8 +651,8 @@ bool CombSubstIterator::transform(Transform t, BacktrackData& bd){
   bool success = _unifSystem->transform(t);
   if(success){
     if(!_unifSystem->_solved){
-      TransformIterator ti = _unifSystem->availableTransforms();
-      transformIterators.backtrackablePush(ti, bd);
+      Stack<Transform> ti = _unifSystem->availableTransforms();
+      transformStacks.backtrackablePush(ti, bd);
     }
   }
   _unifSystem->bdDone();
