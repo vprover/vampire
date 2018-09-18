@@ -66,6 +66,7 @@ class CombSubstitution
       unsigned maxt1 = HOSortHelper::getMaxVar(t1);
       unsigned maxt2 = HOSortHelper::getMaxVar(t2);
       _nextFreshVar = max(maxt1, maxt2) + 1;
+      _maxOrigVar = _nextFreshVar - 1;
       HOSortHelper::HOTerm ht1 = HOSortHelper::deappify(t1);
       HOSortHelper::HOTerm ht2 = HOSortHelper::deappify(t2);
       UnificationPair up = UnificationPair(ht1, index1, ht2, index2);
@@ -95,7 +96,8 @@ class CombSubstitution
        C_REDUCE,
        S_REDUCE,
        DECOMP,
-       ELIMINATE
+       ELIMINATE,
+       ID //syntactically identical
     };
     
     /**
@@ -112,7 +114,7 @@ class CombSubstitution
   private:
 
     typedef pair<AlgorithmStep, ApplyTo>  Transform;
-    //typedef VirtualIterator<Transform> TransformIterator;
+    typedef Stack<Transform> TransformStack;
     typedef RobSubstitution::VarSpec VarSpec;
     typedef Signature::Symbol SS;
     typedef HOSortHelper HSH;
@@ -131,6 +133,7 @@ class CombSubstitution
         lastStep = UNDEFINED;
         secondLastStep = UNDEFINED;
       }
+      //WARNING code uses default shellow copy constructor!
       UnificationPair(HOTermSpec tl, HOTermSpec tr, AlgorithmStep ls, AlgorithmStep sls)
       : lastStep(ls), secondLastStep(sls)
       {
@@ -138,9 +141,9 @@ class CombSubstitution
       }
       //stack that holds the potential transformations that can be carried out to
       //the left-hand (first) term of this unification pair
-      Stack<Transform> transformsLeft;
-      Stack<Transform> transformsRight;
-      Stack<Transform> transformsBoth;
+      TransformStack transformsLeft;
+      TransformStack transformsRight;
+      TransformStack transformsBoth;
       
     #if VDEBUG
       vstring toString(){
@@ -200,22 +203,23 @@ class CombSubstitution
        case DECOMP:
          return "DECOMP";
        case ELIMINATE:  
-         return "ELIMINATE";       
+         return "ELIMINATE"; 
+       case ID:
+         return "ID";     
        default:
          return "UNKNOWN";
       }
     }
    #endif   
     
-    //typedef this
-    Stack<Transform> availableTransforms();
+    TransformStack availableTransforms();
     /*
      * Finds all relevant trandformations for top unif pair 
      * in _unifcationPairs of _unifSystem. Populates transformation
      * stacks.
      */
     void populateTransformations(UnificationPair&);   
-    void populateSide(HSH::HOTerm&, ApplyTo, Stack<Transform>&,AlgorithmStep,AlgorithmStep);
+    void populateSide(HSH::HOTerm&, ApplyTo, TransformStack&,AlgorithmStep,AlgorithmStep);
     /** returns the particular narrow step relevant to the arg */
     AlgorithmStep reduceStep(HSH::HOTerm&);
     /** Carry out transformation represented bt t on top pair*/ 
@@ -242,10 +246,14 @@ class CombSubstitution
       _nextFreshVar++;
       return ht;
     }
+    inline bool introduced(unsigned var){
+      return var > _maxOrigVar;
+    }
 
     //if subsitution represents solved system _solved set to true
     bool _solved;
     unsigned _nextFreshVar;
+    unsigned _maxOrigVar;
 
     Stack<UnificationPair> _unificationPairs;
     
@@ -282,7 +290,7 @@ class CombSubstitution
     {
     public:
       StackBacktrackObject(CombSubstitution* subst, Stack<UnificationPair> st)
-      :_subst(subst), _st(st)
+      :_subst(subst), _st(st), _freshVarNum(_subst->_nextFreshVar)
       {}
       
       void backtrack()
@@ -291,13 +299,15 @@ class CombSubstitution
         // Just resetting the whole stack
         // Should only be resetting elements that have changed.
         _subst->_unificationPairs = _st;
+        _subst->_nextFreshVar = _freshVarNum;
       }
 
       CLASS_NAME(CombSubstitution::StackBacktrackObject);
       USE_ALLOCATOR(StackBacktrackObject);
     private:
       CombSubstitution* _subst;
-       Stack<UnificationPair> _st;
+      Stack<UnificationPair> _st;
+      unsigned _freshVarNum;
     };
 
     friend class CombSubstIterator;
@@ -348,7 +358,7 @@ private:
   typedef CombSubstitution::AlgorithmStep AlgorithmStep;
   typedef CombSubstitution::ApplyTo ApplyTo;
   typedef pair<AlgorithmStep,ApplyTo> Transform;
-  //typedef VirtualIterator<Transform> TransformIterator;
+  typedef Stack<Transform> TransformStack;
 
   /** Copy constructor is private and without a body, because we don't want any. */
   CombSubstIterator(const CombSubstIterator& obj);
@@ -357,7 +367,7 @@ private:
 
 
   CombSubstitution* _unifSystem;
-  Stack<Stack<Transform>> transformStacks;
+  Stack<TransformStack> transformStacks;
   Stack<BacktrackData> bdStack;
   
   //These or similar functions required in CombSubsitution class

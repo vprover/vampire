@@ -82,6 +82,9 @@ struct EqualityResolution::ResultFn
       if(!csIT.hasNext()){
         cout << "no unifier of these two" << endl;
         return 0;      
+      } else {  
+        while(csIT.hasNext()){
+        }
       }
       ASSERTION_VIOLATION;
     } else {

@@ -57,6 +57,13 @@ public:
         }
       }
     }
+    //copy constructor
+    HOTerm( const HOTerm &ht){
+      head = ht.head;
+      headsort = ht.headsort;
+      srt = ht.srt;
+      args = ht.args;
+    } 
 
     HOTerm(){}
   
@@ -70,47 +77,47 @@ public:
     //args of this HOTerm
     Deque<HOTerm> args;
 
-    //would this cause a runtime exception if args hasn't been initialised?
-    inline unsigned argnum() { return args.size(); }
+    inline unsigned argnum() const { return args.size(); }
     //zero indexed
     HOTerm ntharg(unsigned n){
       unsigned argnum = args.size();
       ASS(n <= argnum);
       return args[n];
     }
-    HOTerm* nthargptr(unsigned n){
+    HOTerm* nthargptr(unsigned n) {
       unsigned argnum = args.size();
       ASS(n <= argnum);
       return &args[n];
     }
     //zero indexed    
-    unsigned nthArgSort(unsigned n){
+    unsigned nthArgSort(unsigned n) const{
       unsigned argnum = args.size();
       ASS(n <= argnum);
       return args[n].sort();      
     }
     //n must be less than or equal to argnum()
-    unsigned sortOfLengthNPref(unsigned n){
+    unsigned sortOfLengthNPref(unsigned n) const{
       ASS(n <= args.size());
       return appliedToN(headsort, n);
     }
     /** adds argument to end of args*/
     void addArg(HOTerm ht){
-  #if vdebug
-      ASS(arity(srt) > 0);
+      CALL("HOTerm::addArg");
+  #if VDEBUG
+      ASS_REP(arity(srt) > 0, env.sorts->sortName(srt));
       ASS(domain(srt) == ht.sort());
   #endif
       args.push_back(ht);
       srt = range(srt);
     }
     /** Returns the sort of whole term */
-    unsigned sort() { return srt;}
+    unsigned sort() const { return srt;}
     /** Returns true if HOTerm has variable head */
-    bool varHead() { return head.isVar();}
+    bool varHead() const { return head.isVar();}
     /** Returns true if the HOTerm is a variable */
-    bool isVar() { return head.isVar() && !args.size(); }
+    bool isVar() const { return head.isVar() && !args.size(); }
     /** Returns true if HOTerm has combinator as head */
-    bool combHead() { 
+    bool combHead() const { 
       if(head.isVar()){
         return false;
       }
@@ -119,7 +126,7 @@ public:
       return (c >= SS::S_COMB && c <= SS::K_COMB); 
     }
     /** Returns the combinator. Can only be called after a call to isComb */
-    SS::HOLConstant headComb() {
+    SS::HOLConstant headComb() const {
       ASS(!head.isVar());
       SS* sym = env.signature->getFunction(head.term()->functor());
       SS::HOLConstant c = sym->getConst();
@@ -127,7 +134,7 @@ public:
       return c;
     }
     /** Returns true if HOTerm is an underapplied combinator term */
-    bool underAppliedCombTerm() {
+    bool underAppliedCombTerm() const {
        if(!combHead()){ return false; }
        SS::HOLConstant c = headComb();
        if(c >= SS::S_COMB && c <= SS::C_COMB && args.size() < 3){ return true; }
@@ -136,18 +143,24 @@ public:
        return false;
     }
     /** Returns true if both HOTerms have same non-var non-comb head */
-    bool sameFirstOrderHead(HOTerm hotm){
+    bool sameFirstOrderHead(HOTerm hotm) const {
       if(varHead() || hotm.varHead()){ return false; }
       if(combHead() || hotm.combHead()){ return false; }
       return head.term()->functor() == hotm.head.term()->functor();
     }
     /** Returns true if both HOTerms have diff non-var non-comb heads */
-    bool diffFirstOrderHead(HOTerm hotm){
+    bool diffFirstOrderHead(HOTerm hotm) const {
       if(varHead() || hotm.varHead()){ return false; }
       if(combHead() || hotm.combHead()){ return false; }
       return head.term()->functor() != hotm.head.term()->functor();
     }
     void headify(HOTerm tm);
+    /** Returns true if this HOTerm is 
+     *  syntactically equal to the first argument
+     *  if @b vars is false, then non-ground terms 
+     *  will always return false
+     */
+    bool equal(const HOTerm&,bool vars = false ) const;
 #if VDEBUG
     vstring toString(bool withSorts = false);
 #endif
@@ -185,12 +198,19 @@ public:
   static bool isConstant(TermList tl){
     return (tl.isTerm() && !tl.term()->arity());
   }
+  /** Add function sort and returns results */
+  static unsigned addFuncSort(unsigned dom, unsigned range){
+    return env.sorts->addFunctionSort(dom, range);
+  }
 
   /** Returns combinator constant */
   static TermList getCombTerm(SS::HOLConstant cons, unsigned sort);
   /** Returns the maximum variable peresent in term */
   static unsigned getMaxVar(TermList ts){
-    TermVarIterator vit(&ts);
+    if(ts.isVar()){
+      return ts.var();
+    }
+    TermVarIterator vit(ts.term());
     unsigned max = 0;
     while(vit.hasNext()){
       if(vit.next() > max){

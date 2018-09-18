@@ -226,7 +226,7 @@ void HOSortHelper::HOTerm::headify(HOTerm tm){
  *  Converts a HOTerm struct into applicative form TermList
  */
 TermList HOSortHelper::appify(HOTerm ht){
-  CALL("HOSortHelper::HOTerm::appify");   
+  CALL("HOSortHelper::appify");   
 
   #if VDEBUG
     //cout << "appifying " + ht.toString() << endl;
@@ -283,7 +283,7 @@ TermList HOSortHelper::appify(HOTerm ht){
 }
 
 HOSortHelper::HOTerm HOSortHelper::deappify(TermList ts){
-  CALL("HOSortHelper::HOTerm::deappify");
+  CALL("HOSortHelper::deappify");
   
   #if VDEBUG
     //cout << "deappifying " + ts.toString() << endl;
@@ -343,6 +343,43 @@ HOSortHelper::HOTerm HOSortHelper::deappify(TermList ts){
   return done.pop();
 }
 
+/** view comment in .hpp file */
+bool HOSortHelper::HOTerm::equal(const HOTerm& ht,bool vars) const
+{
+  CALL("HOSortHelper::HOTerm::equal");
+  
+  Stack<HOTerm> toDo;
+  toDo.push(*this);
+  toDo.push(ht);
+  
+  while(!toDo.isEmpty()){
+    HOTerm ht1 = toDo.pop();
+    HOTerm ht2 = toDo.pop();
+    if(ht1.varHead() || ht2.varHead()){
+      if(!vars){ return false; }
+      if(ht1.varHead()){
+        if(!ht2.varHead()){
+          return false;
+        } 
+        if(ht1.head.var() != ht2.head.var()){
+          return false;
+        }
+      } else { return false;}
+    } else {
+      if(ht1.head.term()->functor() != ht2.head.term()->functor()){
+        return false;
+      }
+    }
+    if(ht1.argnum() != ht2.argnum()){ return false; }
+    for(unsigned i = 0; i < ht1.argnum(); i++){
+      toDo.push(ht1.ntharg(i));
+      toDo.push(ht2.ntharg(i));
+    }
+  }
+
+  return true;
+}
+
 TermList HOSortHelper::getCombTerm(SS::HOLConstant cons, unsigned sort){
   CALL("HOSortHelper::getCombTerm");
 
@@ -356,10 +393,10 @@ TermList HOSortHelper::getCombTerm(SS::HOLConstant cons, unsigned sort){
       name = "kCOMB";
       break;
     case SS::B_COMB:
-      name = "cCOMB";
+      name = "bCOMB";
       break;
     case SS::C_COMB:
-      name = "bCOMB";
+      name = "cCOMB";
       break;
     case SS::S_COMB:
       name = "sCOMB";
@@ -391,7 +428,8 @@ unsigned HOSortHelper::arity(unsigned sort){
 unsigned HOSortHelper::range(unsigned sort){
   CALL("HOSortHelper::range"); 
   
-  ASS(env.sorts->isOfStructuredSort(sort, Sorts::StructuredSort::HIGHER_ORD_CONST));
+  ASS_REP(env.sorts->isOfStructuredSort(sort, Sorts::StructuredSort::HIGHER_ORD_CONST), 
+          env.sorts->sortName(sort));
   
   unsigned range = env.sorts->getFuncSort(sort)->getRangeSort();
   return range;  
