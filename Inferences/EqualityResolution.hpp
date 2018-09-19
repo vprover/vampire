@@ -46,6 +46,8 @@ public:
   static Clause* tryResolveEquality(Clause* cl, Literal* toResolve);
 private:
   struct ResultFn;
+  struct CombResultIterator;
+  struct CombResultFn;
   struct IsNegativeEqualityFn;
 
 };

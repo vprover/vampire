@@ -25,8 +25,6 @@
 
 #include "Lib/Hash.hpp"
 #include "Lib/DArray.hpp"
-#include "Lib/List.hpp"
-#include "Lib/DHSet.hpp"
 #include "Lib/DHMap.hpp"
 #include "Lib/Int.hpp"
 
@@ -131,7 +129,6 @@ void CombSubstitution::populateTransformations(UnificationPair& up)
 
 }
 
-//not sure about tStack. Will changes to it be local?
 void CombSubstitution::populateSide(HSH::HOTerm& hoterm, ApplyTo at, TransformStack& tStack,
                                     AlgorithmStep ls, AlgorithmStep sls){
   CALL("CombSubstitution::populateSide");
@@ -218,7 +215,8 @@ void CombSubstitution::populateSide(HSH::HOTerm& hoterm, ApplyTo at, TransformSt
 
 }
 
-CombSubstitution::AlgorithmStep CombSubstitution::reduceStep(HSH::HOTerm& ht){
+CombSubstitution::AlgorithmStep CombSubstitution::reduceStep(HSH::HOTerm& ht) const
+{
   CALL("CombSubstitution::reduceStep");
 
   SS::HOLConstant comb = ht.headComb();
@@ -241,9 +239,8 @@ CombSubstitution::AlgorithmStep CombSubstitution::reduceStep(HSH::HOTerm& ht){
 bool CombSubstitution::transform(Transform t){
   CALL("CombSubstitution::transform");
   
-  //minds not working, not sure about this code
+  //mind not working, not sure about this code
   if(t.first == ID){
-    cout << "carrying out transformation " + algorithmStepToString(t.first) << endl;
     _unificationPairs.pop();
     if(_unificationPairs.isEmpty()){
       _solved = true;
@@ -363,7 +360,7 @@ void CombSubstitution::transform(HSH::HOTerm& term,AlgorithmStep as, int ind){
 
   if(as == I_REDUCE){
     ASS(term.headComb() == SS::I_COMB);
-    iRdeuce(term);
+    iReduce(term);
   }
 
   if(as == K_REDUCE){
@@ -379,7 +376,7 @@ void CombSubstitution::transform(HSH::HOTerm& term,AlgorithmStep as, int ind){
 
   if(as == I_NARROW){
     ASS(term.varHead());
-    iRdeuce(term);
+    iReduce(term);
   }
 
   if(as == K_NARROW){
@@ -473,14 +470,14 @@ void CombSubstitution::transform(HSH::HOTerm& term,AlgorithmStep as, int ind){
   }
 }
 
-void CombSubstitution::iRdeuce(HSH::HOTerm& ht){
-  CALL("CombSubstitution::iRdeuce");
+void CombSubstitution::iReduce(HSH::HOTerm& ht) const{ 
+  CALL("CombSubstitution::iReduce");
 
   HSH::HOTerm a1 = ht.args.pop_front();
   ht.headify(a1);
 }
 
-void CombSubstitution::kReduce(HSH::HOTerm& ht){
+void CombSubstitution::kReduce(HSH::HOTerm& ht) const{
   CALL("CombSubstitution::kReduce");
 
   HSH::HOTerm a1 = ht.args.pop_front();
@@ -488,7 +485,7 @@ void CombSubstitution::kReduce(HSH::HOTerm& ht){
   ht.headify(a1);
 }
 
-void CombSubstitution::bcsReduce(HSH::HOTerm& ht, AlgorithmStep as){
+void CombSubstitution::bcsReduce(HSH::HOTerm& ht, AlgorithmStep as) const{
   CALL("CombSubstitution::bcsReduce");
 
   HSH::HOTerm a1 = ht.args.pop_front();
@@ -508,7 +505,6 @@ void CombSubstitution::bcsReduce(HSH::HOTerm& ht, AlgorithmStep as){
 void CombSubstitution::addToSolved(VarSpec vs, HSH::HOTerm ht){
   CALL("CombSubstitution::addToSolved");
 
- cout << "adding: X" + Int::toString(vs.var) + " -> " + ht.toString() + " to solved" << endl;
   _solvedPairs.set(vs, ht);
  bdAdd(new BindingBacktrackObject(this, vs)); 
 }
@@ -549,7 +545,7 @@ void CombSubstitution::eliminate(VarSpec vs, HSH::HOTerm ht, HOTermSpec& target)
   if(vs.index != target.second){ return; }
 
   HSH::HOTerm* targ = &target.first;
-  unsigned var = vs.index;
+  unsigned var = vs.var;
   Stack<HSH::HOTerm*> toDo;
 
   toDo.push(targ);
@@ -558,7 +554,7 @@ void CombSubstitution::eliminate(VarSpec vs, HSH::HOTerm ht, HOTermSpec& target)
     if(targ->head.isVar() && (targ->head.var() == var)){
       targ->headify(ht);
       //If headification has resulted in a weak redex reduce it
-      if(targ->combHead() && !targ->underAppliedCombTerm()){
+      while(targ->combHead() && !targ->underAppliedCombTerm()){
         AlgorithmStep as = reduceStep(*targ);
         transform(*targ, as, target.second);
       }
@@ -585,6 +581,103 @@ bool CombSubstitution::canPerformStep(AlgorithmStep ls, AlgorithmStep sls, Algor
     default:
       return true; 
   }
+}
+
+
+TermList CombSubstitution::apply(TermList t, int index) const
+{
+  CALL("CombSubstitution::apply(TermList...)");  
+
+  Stack<HSH::HOTerm*> toDo;
+  DHMap<VarSpec, HSH::HOTerm, VarSpec::Hash1, VarSpec::Hash2> known;
+  
+  HSH::HOTerm ht = HSH::deappify(t);
+   
+  toDo.push(&ht);
+  
+  while(!toDo.isEmpty()){
+    HSH::HOTerm* hterm = toDo.pop();
+    if(hterm->varHead() && hterm->head.var() <= _maxOrigVar){
+      unsigned var = hterm->head.var();
+      VarSpec vs(var, index);
+      HSH::HOTerm found;
+      bool success = false;
+      if(!known.find(vs, found)){
+        found = deref(vs, success);
+        if(success){
+          known.insert(vs, found);
+        }
+      }
+      if(success){
+        hterm->headify(found);
+        while(hterm->combHead() && !hterm->underAppliedCombTerm()){
+          AlgorithmStep as = reduceStep(*hterm);
+          switch(as){
+            case I_REDUCE:
+              iReduce(*hterm);
+              break;
+            case K_REDUCE:
+              kReduce(*hterm);
+              break;
+            default:
+              bcsReduce(*hterm, as);
+          }
+        }          
+      }
+    }  
+    for(unsigned i = 0; i < hterm->argnum(); i++){
+      toDo.push(hterm->nthargptr(i));
+    }
+  }
+  TermList res = HSH::appify(ht);
+  return res;
+}
+
+Literal* CombSubstitution::apply(Literal* lit, int index) const
+{
+  CALL("CombSubstitution::apply(Literal*...)");
+  static DArray<TermList> ts(32);
+
+  if (lit->ground()) {
+    return lit;
+  }
+
+  int arity = lit->arity();
+  ts.ensure(arity);
+  int i = 0;
+  for (TermList* args = lit->args(); ! args->isEmpty(); args = args->next()) {
+    ts[i++]=apply(*args,index);
+  }
+  return Literal::create(lit,ts.array());
+}
+
+HOSortHelper::HOTerm CombSubstitution::deref(VarSpec vs, bool& success) const{
+  CALL("CombSubstitution::deref");
+  
+  HSH::HOTerm res;
+  if(!_solvedPairs.find(vs, res)){
+    success = false;
+    return res;
+  }  
+  
+  success = true;
+  Stack<HSH::HOTerm*> toDo;
+  toDo.push(&res);
+  
+  while(!toDo.isEmpty()){
+    HSH::HOTerm* hterm = toDo.pop();
+    if(hterm->varHead()){
+      VarSpec vnew(hterm->head.var(), vs.index);
+      HSH::HOTerm found;
+      if(_solvedPairs.find(vnew, found)){
+        hterm->headify(found);
+      }
+    }
+    for(unsigned i = 0; i < hterm->argnum(); i++){
+      toDo.push(hterm->nthargptr(i));
+    }
+  }
+  return res;
 }
 
 bool CombSubstitution::occurs(VarSpec vs, HOTermSpec hts){
@@ -678,7 +771,5 @@ bool CombSubstIterator::transform(Transform t, BacktrackData& bd){
   _unifSystem->bdDone();
   return success;
 }
-
-
 
 }

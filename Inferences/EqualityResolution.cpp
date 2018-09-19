@@ -63,6 +63,64 @@ struct EqualityResolution::IsNegativeEqualityFn
   { return l->isEquality() && l->isNegative(); }
 };
 
+struct EqualityResolution::CombResultIterator
+{
+  CombResultIterator(Clause* cl, Literal* lit): _cl(cl), _lit(lit), _cLen(cl->length())
+  {
+    _csIt = vi(new CombSubstIterator(*lit->nthArgument(0),0,*lit->nthArgument(1),0)); 
+  }
+  
+  DECL_ELEMENT_TYPE(Clause*);
+  
+  bool hasNext() {
+    CALL("EqualityResolution::CombResultIterator::hasNext")
+    return _csIt.hasNext();
+  }
+  
+  OWN_ELEMENT_TYPE next() {
+    CALL("EqualityResolution::CombResultIterator::next")    
+
+    unsigned newLen=_cLen-1;
+    
+    CombSubstitution* cs = _csIt.next();
+    Inference* inf = new Inference1(Inference::EQUALITY_RESOLUTION, _cl);
+    Clause* res = new(newLen) Clause(newLen, _cl->inputType(), inf);
+
+    unsigned next = 0;
+    for(unsigned i=0;i<_cLen;i++) {
+      Literal* curr=(*_cl)[i];
+      if(curr!=_lit) {
+        Literal* currAfter = cs->apply(curr, 0);
+        (*res)[next++] = currAfter;
+      }
+    }
+    ASS_EQ(next,newLen);
+
+    res->setAge(_cl->age()+1);
+    env.statistics->equalityResolution++;
+    return res;
+  }
+  
+private:  
+  VirtualIterator<CombSubstitution*> _csIt;
+  Clause* _cl;
+  Literal* _lit;
+  unsigned _cLen;
+};
+
+struct EqualityResolution::CombResultFn
+{
+  CombResultFn(Clause* cl): _cl(cl) {}
+  
+  DECL_RETURN_TYPE(VirtualIterator<Clause*>);
+  OWN_RETURN_TYPE operator() (Literal* lit){
+    return pvi(CombResultIterator(_cl, lit));
+  }
+  
+private:
+  Clause* _cl;
+};
+
 struct EqualityResolution::ResultFn
 {
   ResultFn(Clause* cl, bool afterCheck = false, Ordering* ord = nullptr)
@@ -77,21 +135,10 @@ struct EqualityResolution::ResultFn
     
     static RobSubstitution subst;
     subst.reset();
-    if(env.options->combinatoryUnification()){
-      VirtualIterator<CombSubstitution*> csIT = vi(new CombSubstIterator(*lit->nthArgument(0),0,*lit->nthArgument(1),0)); 
-      if(!csIT.hasNext()){
-        cout << "no unifier of these two" << endl;
-        return 0;      
-      } else {  
-        while(csIT.hasNext()){
-        }
-      }
-      ASSERTION_VIOLATION;
-    } else {
-      if(!subst.unify(*lit->nthArgument(0),0,*lit->nthArgument(1),0)) {
-        return 0;
-      }
+    if(!subst.unify(*lit->nthArgument(0),0,*lit->nthArgument(1),0)) {
+      return 0;
     }
+    
     unsigned newLen=_cLen-1;
 
     Inference* inf = new Inference1(Inference::EQUALITY_RESOLUTION, _cl);
@@ -128,7 +175,7 @@ struct EqualityResolution::ResultFn
     res->setAge(_cl->age()+1);
     env.statistics->equalityResolution++;
 
-    return res;
+    return res;  
   }
 private:
   bool _afterCheck;
@@ -150,6 +197,12 @@ ClauseIterator EqualityResolution::generateClauses(Clause* premise)
 
   auto it2 = getFilteredIterator(it1,IsNegativeEqualityFn());
 
+  if(env.options->combinatoryUnification()){
+    auto it3 = getMappingIterator(it2, CombResultFn(premise));
+    auto it4 = getFlattenedIterator(it3);
+    return it4;
+  }
+  
   auto it3 = getMappingIterator(it2,ResultFn(premise,
       getOptions().literalMaximalityAftercheck() && _salg->getLiteralSelector().isBGComplete(),
       &_salg->getOrdering()));

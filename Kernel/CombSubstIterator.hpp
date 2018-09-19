@@ -73,10 +73,13 @@ class CombSubstitution
       populateTransformations(up);
       _unificationPairs.push(up);
     }
-
+    
+    typedef RobSubstitution::VarSpec VarSpec;
+    
     TermList apply(TermList t, int index) const;
     Literal* apply(Literal* lit, int index) const;
-
+    HOSortHelper::HOTerm deref(VarSpec vs, bool& success) const;
+    
     enum AlgorithmStep{
        UNDEFINED,
        ADD_ARG,
@@ -115,7 +118,6 @@ class CombSubstitution
 
     typedef pair<AlgorithmStep, ApplyTo>  Transform;
     typedef Stack<Transform> TransformStack;
-    typedef RobSubstitution::VarSpec VarSpec;
     typedef Signature::Symbol SS;
     typedef HOSortHelper HSH;
     typedef pair<HSH::HOTerm, int> HOTermSpec;
@@ -221,14 +223,14 @@ class CombSubstitution
     void populateTransformations(UnificationPair&);   
     void populateSide(HSH::HOTerm&, ApplyTo, TransformStack&,AlgorithmStep,AlgorithmStep);
     /** returns the particular narrow step relevant to the arg */
-    AlgorithmStep reduceStep(HSH::HOTerm&);
+    AlgorithmStep reduceStep(HSH::HOTerm&) const;
     /** Carry out transformation represented bt t on top pair*/ 
     bool transform(Transform t);
 
     void transform(HSH::HOTerm&,AlgorithmStep,int);
-    void iRdeuce(HSH::HOTerm&);
-    void kReduce(HSH::HOTerm&);
-    void bcsReduce(HSH::HOTerm&, AlgorithmStep);
+    void iReduce(HSH::HOTerm&)const;
+    void kReduce(HSH::HOTerm&)const;
+    void bcsReduce(HSH::HOTerm&, AlgorithmStep)const;
 
     bool canPerformStep(AlgorithmStep, AlgorithmStep, AlgorithmStep);
     bool occurs(const VarSpec, const HOTermSpec);
@@ -340,18 +342,6 @@ public:
   CombSubstitution* next(){
     return _unifSystem;
   }
-  
-  
-  /** struct containing first hash function of TTPair objects*/
-  /*struct TTPairHash
-  {
-   static unsigned hash(TTPair& o)
-   {
-     return IdentityHash::hash(o.first.term.content())^o.first.index ^
-       ((IdentityHash::hash(o.second.term.content())^o.second.index)<<1);
-   }
-  };
-  */
 
 private:
 
@@ -370,19 +360,11 @@ private:
   Stack<TransformStack> transformStacks;
   Stack<BacktrackData> bdStack;
   
-  //These or similar functions required in CombSubsitution class
-  //void bind(const VarSpec& v, const TermSpec& b);
-  //void bindVar(const VarSpec& var, const VarSpec& to);
-
   bool hasNextUnifier();
   /** apply transformation t to the top unification pair in current system
    *  record any chanegs in bd so that transformation can be reversed
    */
   bool transform(Transform t, BacktrackData& bd);
-
-#if VDEBUG
-
-#endif
   
 };
 

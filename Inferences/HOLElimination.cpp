@@ -34,6 +34,7 @@
 #include "Kernel/Sorts.hpp"
 #include "Kernel/SortHelper.hpp"
 
+#include "Shell/LambdaElimination.hpp"
 #include "Shell/Statistics.hpp"
 
 #include "HOLElimination.hpp"
@@ -41,31 +42,7 @@
 
 namespace Inferences {
 
-
-unsigned introduceAppSymbol(unsigned sort1, unsigned sort2, unsigned resultSort) {
-    
-  CALL("HOLElimination::introduceAppSymbol");
-
-  ASS(env.sorts->getFuncSort(sort1)->getDomainSort() == sort2);
-  ASS(env.sorts->getFuncSort(sort1)->getRangeSort() == resultSort);
-  
-  Stack<unsigned> sorts;
-  sorts.push(sort1); sorts.push(sort2);
-  OperatorType* type = OperatorType::getFunctionType(2, sorts.begin(), resultSort);
-  unsigned symbol;
-  bool added = false;
-  
-  vstring srt1 = Lib::Int::toString(sort1);
-  vstring srt2 = Lib::Int::toString(sort2);
-  symbol = env.signature->addFunction("vAPP_" + srt1 + "_" + srt2, 2, added);
-  
-  if(added){
-   env.signature->getFunction(symbol)->setType(type);
-   env.signature->getFunction(symbol)->markHOLAPP();
-  }
-  
-  return symbol;
-}
+typedef LambdaElimination LE;
 
 unique_ptr<ConstantTerm> isHolConstantApp(Literal* lit, unsigned unaryBinaryOrTenary)
 {
@@ -192,7 +169,7 @@ TermList sigmaRemoval(TermList sigmaTerm, unsigned expsrt){
       arguments.push(TermList(var, false));
     }
     TermList skolemFunc = TermList(Term::create(symbol, arity, arguments.begin()));
-    symbol = introduceAppSymbol(expsrt, srt2, env.sorts->getFuncSort(expsrt)->getRangeSort());
+    symbol = LE::introduceAppSymbol(expsrt, srt2, env.sorts->getFuncSort(expsrt)->getRangeSort());
     sigmaTerm = TermList(Term::create2(symbol, sigmaTerm, skolemFunc));
       
     expsrt = env.sorts->getFuncSort(expsrt)->getRangeSort();
@@ -215,7 +192,7 @@ TermList piRemoval(TermList piTerm, Clause* clause, unsigned expsrt){
     maxVar++;
     TermList newVar = TermList(maxVar, false);
     unsigned srt2 = env.sorts->getFuncSort(expsrt)->getDomainSort();
-    unsigned symbol = introduceAppSymbol(expsrt, srt2, env.sorts->getFuncSort(expsrt)->getRangeSort());  
+    unsigned symbol = LE::introduceAppSymbol(expsrt, srt2, env.sorts->getFuncSort(expsrt)->getRangeSort());  
     piTerm = TermList(Term::create2(symbol, piTerm, newVar));
     expsrt = env.sorts->getFuncSort(expsrt)->getRangeSort();
   }while(!(expsrt == Sorts::SRT_BOOL)); 
@@ -604,8 +581,8 @@ Clause* PISIGMARemovalISE::simplify(Clause* c)
             case Signature::Symbol::B_COMB:{
               inference = new Inference1(Inference::B_COMBINATOR_ELIMINATION, premise); 
               unsigned ranget2     = env.sorts->getFuncSort(t2sort)->getRangeSort();
-              unsigned appt2tot3   = introduceAppSymbol(t2sort, t3sort, ranget2);
-              unsigned appt1       = introduceAppSymbol(t1sort, ranget2, ranget1);
+              unsigned appt2tot3   = LE::introduceAppSymbol(t2sort, t3sort, ranget2);
+              unsigned appt1       = LE::introduceAppSymbol(t1sort, ranget2, ranget1);
       
               TermList appOft2tot3 = TermList(Term::create2(appt2tot3, t2, t3));
               TermList appOft1     = TermList(Term::create2(appt1, t1, appOft2tot3));
@@ -617,8 +594,8 @@ Clause* PISIGMARemovalISE::simplify(Clause* c)
             case Signature::Symbol::C_COMB:{
               inference = new Inference1(Inference::C_COMBINATOR_ELIMINATION, premise); 
               unsigned rangeOfRangeOft1 = env.sorts->getFuncSort(ranget1)->getRangeSort();
-              unsigned appt1tot3        = introduceAppSymbol(t1sort, t3sort, ranget1);
-              unsigned appt1tot3tot2    = introduceAppSymbol(ranget1, t2sort, rangeOfRangeOft1);
+              unsigned appt1tot3        = LE::introduceAppSymbol(t1sort, t3sort, ranget1);
+              unsigned appt1tot3tot2    = LE::introduceAppSymbol(ranget1, t2sort, rangeOfRangeOft1);
       
               TermList appOft1tot3 = TermList(Term::create2(appt1tot3, t1, t3));
               TermList apptot2     = TermList(Term::create2(appt1tot3tot2, appOft1tot3, t2));
@@ -631,9 +608,9 @@ Clause* PISIGMARemovalISE::simplify(Clause* c)
               inference = new Inference1(Inference::S_COMBINATOR_ELIMINATION, premise); 
               unsigned rangeOfRangeOft1 = env.sorts->getFuncSort(ranget1)->getRangeSort();
               unsigned ranget2          = env.sorts->getFuncSort(t2sort)->getRangeSort();
-              unsigned appt1tot3        = introduceAppSymbol(t1sort, t3sort, ranget1);
-              unsigned appt2tot3        = introduceAppSymbol(t2sort, t3sort, ranget2);     
-              unsigned app              = introduceAppSymbol(ranget1, ranget2, rangeOfRangeOft1);
+              unsigned appt1tot3        = LE::introduceAppSymbol(t1sort, t3sort, ranget1);
+              unsigned appt2tot3        = LE::introduceAppSymbol(t2sort, t3sort, ranget2);     
+              unsigned app              = LE::introduceAppSymbol(ranget1, ranget2, rangeOfRangeOft1);
       
               TermList appOft1tot3 = TermList(Term::create2(appt1tot3, t1, t3));
               TermList appOft2tot3 = TermList(Term::create2(appt2tot3, t2, t3));
