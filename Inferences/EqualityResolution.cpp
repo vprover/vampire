@@ -113,7 +113,7 @@ struct EqualityResolution::CombResultFn
   CombResultFn(Clause* cl): _cl(cl) {}
   
   DECL_RETURN_TYPE(VirtualIterator<Clause*>);
-  OWN_RETURN_TYPE operator() (Literal* lit){
+  VirtualIterator<Clause*> operator() (Literal* lit){
     return pvi(CombResultIterator(_cl, lit));
   }
   
@@ -209,7 +209,7 @@ ClauseIterator EqualityResolution::generateClauses(Clause* premise)
 
   auto it4 = getFilteredIterator(it3,NonzeroFn());
 
-  return pvi( it4 );
+  return pvi( it3 );
 }
 
 /**
