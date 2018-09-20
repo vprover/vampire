@@ -205,6 +205,8 @@ ClauseIterator Superposition::generateClauses(Clause* premise)
   // returns a pair with the original pair and the unification result (includes substitution)
   auto itf3 = getMapAndFlattenIterator(itf2,ApplicableRewritesFn(_lhsIndex,withConstraints));
   
+
+  //at this point we have an iterator that contains terms that may be combinatory unifiable
   /*while(itf3.hasNext()){
     auto item = itf3.next();
     cout << "Term " + item.first.second.toString() + " in literal " + item.first.first->toString() + " unifies with " + item.second.term.toString() << endl;

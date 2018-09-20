@@ -113,6 +113,11 @@ class CombSubstitution
        SECOND = 2,
        BOTH = 3
     };
+
+  #if VDEBUG
+    //need to add boolean option to allow "collapsing of substitution"
+    vstring toString();
+  #endif
           
   private:
 
@@ -261,11 +266,6 @@ class CombSubstitution
     
     typedef DHMap<VarSpec,HSH::HOTerm,VarSpec::Hash1, VarSpec::Hash2> SolvedType;
     mutable SolvedType _solvedPairs;
-
-  #if VDEBUG
-    //need to add boolean option to allow "collapsing of substitution"
-    vstring toString();
-  #endif
   
     class BindingBacktrackObject
     : public BacktrackObject
@@ -328,9 +328,16 @@ public:
   {
     _unifSystem = new CombSubstitution(t1, index1, t2, index2);
     transformStacks.push(_unifSystem->availableTransforms());
+    _calledNext = false;
   }
 
   bool hasNext(){
+    if(!_calledNext){
+      if(_unifSystem->_solved){
+        return true;
+      }
+    }
+    _calledNext = false;
     return hasNextUnifier();
   }
   /* 
@@ -340,6 +347,7 @@ public:
    * multiple times.
    */
   CombSubstitution* next(){
+    _calledNext = true;
     return _unifSystem;
   }
 
@@ -359,7 +367,8 @@ private:
   CombSubstitution* _unifSystem;
   Stack<TransformStack> transformStacks;
   Stack<BacktrackData> bdStack;
-  
+  bool _calledNext;
+
   bool hasNextUnifier();
   /** apply transformation t to the top unification pair in current system
    *  record any chanegs in bd so that transformation can be reversed

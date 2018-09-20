@@ -73,12 +73,13 @@ struct EqualityResolution::CombResultIterator
   DECL_ELEMENT_TYPE(Clause*);
   
   bool hasNext() {
-    CALL("EqualityResolution::CombResultIterator::hasNext")
+    CALL("EqualityResolution::CombResultIterator::hasNext");
+    cout << "Calling has next" << endl;
     return _csIt.hasNext();
   }
   
   OWN_ELEMENT_TYPE next() {
-    CALL("EqualityResolution::CombResultIterator::next")    
+    CALL("EqualityResolution::CombResultIterator::next");   
 
     unsigned newLen=_cLen-1;
     
@@ -98,6 +99,10 @@ struct EqualityResolution::CombResultIterator
 
     res->setAge(_cl->age()+1);
     env.statistics->equalityResolution++;
+
+    cout << "The original clause is: \n" + _cl->toString() << endl;
+    cout << "Using comb substitution " + cs->toString() + " the resultant clause is: \n" +
+            res->toString() << endl;
     return res;
   }
   
@@ -114,6 +119,10 @@ struct EqualityResolution::CombResultFn
   
   DECL_RETURN_TYPE(VirtualIterator<Clause*>);
   VirtualIterator<Clause*> operator() (Literal* lit){
+    
+    ASS(lit->isEquality());
+    ASS(lit->isNegative());
+
     return pvi(CombResultIterator(_cl, lit));
   }
   
@@ -198,9 +207,8 @@ ClauseIterator EqualityResolution::generateClauses(Clause* premise)
   auto it2 = getFilteredIterator(it1,IsNegativeEqualityFn());
 
   if(env.options->combinatoryUnification()){
-    auto it3 = getMappingIterator(it2, CombResultFn(premise));
-    auto it4 = getFlattenedIterator(it3);
-    return it4;
+    auto it3 = getMapAndFlattenIterator(it2, CombResultFn(premise));
+    return pvi( it3 );
   }
   
   auto it3 = getMappingIterator(it2,ResultFn(premise,
@@ -209,7 +217,7 @@ ClauseIterator EqualityResolution::generateClauses(Clause* premise)
 
   auto it4 = getFilteredIterator(it3,NonzeroFn());
 
-  return pvi( it3 );
+  return pvi( it4 );
 }
 
 /**
