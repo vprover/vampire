@@ -39,6 +39,7 @@
 #include "Kernel/TermIterators.hpp"
 #include "Kernel/Unit.hpp"
 #include "Kernel/LiteralSelector.hpp"
+#include "Kernel/CombSubstIterator.hpp"
 
 #include "Indexing/Index.hpp"
 #include "Indexing/IndexManager.hpp"
@@ -139,6 +140,48 @@ private:
   bool _withC;
 };
 
+struct Superposition::CombResultIterator
+{ 
+   const int QUERY_BANK = 0;
+   const int RESULT_BANK = 1;
+   typedef pair<pair<Literal*, TermList>, TermQueryResult> QueryResType;
+   
+   CombResultIterator(QueryResType arg): _arg(arg)
+   {
+     _csIt = vi(new CombSubstIterator(arg.first.second, QUERY_BANK, arg.second.term, RESULT_BANK)); 
+   }
+
+   DECL_ELEMENT_TYPE(QueryResType);
+   
+   bool hasNext(){
+     CALL("Superposition::CombResultIterator::hasNext");
+     return _csIt.hasNext();
+   }
+   
+   OWN_ELEMENT_TYPE next(){
+     CALL("Superposition::CombResultIterator::next");
+     CombSubstitution* cs = _csIt.next();
+     ResultSubstitutionSP s = ResultSubstitution::fromSubstitution(cs, QUERY_BANK, RESULT_BANK);
+     _arg.second.substitution = s;
+     return _arg;
+   }
+   
+private:
+   QueryResType _arg;  
+   VirtualIterator<CombSubstitution*> _csIt;
+};
+
+
+struct Superposition::ApplicableCombRewritesFn
+{
+  typedef pair<pair<Literal*, TermList>, TermQueryResult> QueryResType;
+  ApplicableCombRewritesFn() {}
+  
+  DECL_RETURN_TYPE(VirtualIterator<QueryResType>);
+  OWN_RETURN_TYPE operator() (QueryResType arg){
+    return pvi(CombResultIterator(arg));
+  } 
+};
 
 struct Superposition::ForwardResultFn
 {
@@ -205,6 +248,10 @@ ClauseIterator Superposition::generateClauses(Clause* premise)
   // returns a pair with the original pair and the unification result (includes substitution)
   auto itf3 = getMapAndFlattenIterator(itf2,ApplicableRewritesFn(_lhsIndex,withConstraints));
   
+  if(env.options->combinatoryUnification()){
+    auto itf4 = getMapAndFlattenIterator (itf3, ApplicableCombRewritesFn());
+    
+  }
 
   //at this point we have an iterator that contains terms that may be combinatory unifiable
   /*while(itf3.hasNext()){

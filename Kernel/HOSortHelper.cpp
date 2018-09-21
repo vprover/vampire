@@ -216,6 +216,7 @@ void HOSortHelper::HOTerm::headify(HOTerm tm){
  
   head = tm.head;
   headsort = tm.headsort;
+  headInd = tm.headInd;
   while(!tm.args.isEmpty()){
     args.push_front(tm.args.pop_back());
   }  
@@ -282,7 +283,7 @@ TermList HOSortHelper::appify(HOTerm ht){
   return done.pop();
 }
 
-HOSortHelper::HOTerm HOSortHelper::deappify(TermList ts){
+HOSortHelper::HOTerm HOSortHelper::deappify(TermList ts, int index){
   CALL("HOSortHelper::deappify");
   
   #if VDEBUG
@@ -306,7 +307,7 @@ HOSortHelper::HOTerm HOSortHelper::deappify(TermList ts){
     unsigned sort = toDoSorts.pop();
 
     if(curr.isVar() || (isConstant(curr) && !done.isEmpty())){
-      done.top().addArg(HOTerm(curr, sort));
+      done.top().addArg(HOTerm(curr, sort, index));
       while(done.top().args.size() == argnums.top()){
         argnums.pop();
         if(argnums.isEmpty()){ break; }
@@ -314,7 +315,7 @@ HOSortHelper::HOTerm HOSortHelper::deappify(TermList ts){
         done.top().addArg(arg);
       }
     } else if (isConstant(curr)){
-      done.push(HOTerm(curr, sort));
+      done.push(HOTerm(curr, sort, index));
     } else {
       unsigned headsort = sort;
       unsigned argnum = 0;
@@ -329,7 +330,7 @@ HOSortHelper::HOTerm HOSortHelper::deappify(TermList ts){
         sym = env.signature->getFunction(curr.term()->functor());
       }
       //constant
-      done.push(HOTerm(curr, headsort));
+      done.push(HOTerm(curr, headsort, index));
       argnums.push(argnum);
     }
   }
@@ -344,7 +345,7 @@ HOSortHelper::HOTerm HOSortHelper::deappify(TermList ts){
 }
 
 /** view comment in .hpp file */
-bool HOSortHelper::HOTerm::equal(const HOTerm& ht,bool vars) const
+bool HOSortHelper::HOTerm::equal(const HOTerm& ht,bool useIndices) const
 {
   CALL("HOSortHelper::HOTerm::equal");
   
@@ -355,20 +356,21 @@ bool HOSortHelper::HOTerm::equal(const HOTerm& ht,bool vars) const
   while(!toDo.isEmpty()){
     HOTerm ht1 = toDo.pop();
     HOTerm ht2 = toDo.pop();
-    if(ht1.varHead() || ht2.varHead()){
-      if(!vars){ return false; }
-      if(ht1.varHead()){
-        if(!ht2.varHead()){
-          return false;
-        } 
-        if(ht1.head.var() != ht2.head.var()){
+    if(ht1.varHead() && ht2.varHead()){
+      if(useIndices){
+        if(ht1.headInd != ht2.headInd){
           return false;
         }
-      } else { return false;}
-    } else {
+      } 
+      if(ht1.head.var() != ht2.head.var()){
+        return false;
+      }
+    } else if(ht1.head.isTerm() && ht2.head.isTerm()){
       if(ht1.head.term()->functor() != ht2.head.term()->functor()){
         return false;
       }
+    } else {
+      return false;
     }
     if(ht1.argnum() != ht2.argnum()){ return false; }
     for(unsigned i = 0; i < ht1.argnum(); i++){

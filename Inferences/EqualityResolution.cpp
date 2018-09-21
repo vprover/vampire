@@ -74,7 +74,6 @@ struct EqualityResolution::CombResultIterator
   
   bool hasNext() {
     CALL("EqualityResolution::CombResultIterator::hasNext");
-    cout << "Calling has next" << endl;
     return _csIt.hasNext();
   }
   
@@ -100,9 +99,6 @@ struct EqualityResolution::CombResultIterator
     res->setAge(_cl->age()+1);
     env.statistics->equalityResolution++;
 
-    cout << "The original clause is: \n" + _cl->toString() << endl;
-    cout << "Using comb substitution " + cs->toString() + " the resultant clause is: \n" +
-            res->toString() << endl;
     return res;
   }
   

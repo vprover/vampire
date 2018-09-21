@@ -1,6 +1,5 @@
-
 /*
- * File CombSubstIterator.hpp.
+ * File CombSubstitution.hpp.
  *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
@@ -17,13 +16,13 @@
  * licence, which we will make an effort to provide. 
  */
 /**
- * @file CombSubstIterator.hpp
- * Defines class CombSubstIterator.
+ * @file CombSubstitution.hpp
+ * Defines class CombSubstitution.
  *
  */
 
-#ifndef __CombSubstIterator__
-#define __CombSubstIterator__
+#ifndef __CombSubstitution__
+#define __CombSubstitutionr__
 
 #include <utility>
 
@@ -37,6 +36,7 @@
 #include "Signature.hpp"
 #include "Term.hpp"
 #include "RobSubstitution.hpp"
+#include "CombSubstIterator.hpp";
 #include "HOSortHelper.hpp"
 
 #if VDEBUG
@@ -67,9 +67,9 @@ class CombSubstitution
       unsigned maxt2 = HOSortHelper::getMaxVar(t2);
       _nextFreshVar = max(maxt1, maxt2) + 1;
       _maxOrigVar = _nextFreshVar - 1;
-      HOSortHelper::HOTerm ht1 = HOSortHelper::deappify(t1, index1);
-      HOSortHelper::HOTerm ht2 = HOSortHelper::deappify(t2, index2);
-      UnificationPair up = UnificationPair(ht1, ht2);
+      HOSortHelper::HOTerm ht1 = HOSortHelper::deappify(t1);
+      HOSortHelper::HOTerm ht2 = HOSortHelper::deappify(t2);
+      UnificationPair up = UnificationPair(ht1, index1, ht2, index2);
       populateTransformations(up);
       _unificationPairs.push(up);
     }
@@ -125,20 +125,23 @@ class CombSubstitution
     typedef Stack<Transform> TransformStack;
     typedef Signature::Symbol SS;
     typedef HOSortHelper HSH;
-    typedef pair<HSH::HOTerm,HSH::HOTerm> UnifPair;  
+    typedef pair<HSH::HOTerm, int> HOTermSpec;
+    typedef pair<HOTermSpec,HOTermSpec> TTPair;  
 
     struct UnificationPair
     {
       //CLASS_NAME(UnificationPair);
       //USE_ALLOCATOR(UnificationPair);
-      UnificationPair(HSH::HOTerm ht1, HSH::HOTerm ht2)
+      UnificationPair(HSH::HOTerm ht1 ,int index1, HSH::HOTerm ht2, int index2)
       {
-        unifPair = make_pair(ht1,ht2);
+        HOTermSpec hts1 = make_pair(ht1,index1);
+        HOTermSpec hts2 = make_pair(ht2,index2);
+        unifPair = make_pair(hts1,hts2);
         lastStep = UNDEFINED;
         secondLastStep = UNDEFINED;
       }
       //WARNING code uses default shellow copy constructor!
-      UnificationPair(HSH::HOTerm tl, HSH::HOTerm tr, AlgorithmStep ls, AlgorithmStep sls)
+      UnificationPair(HOTermSpec tl, HOTermSpec tr, AlgorithmStep ls, AlgorithmStep sls)
       : lastStep(ls), secondLastStep(sls)
       {
         unifPair = make_pair(tl,tr);
@@ -151,14 +154,14 @@ class CombSubstitution
       
     #if VDEBUG
       vstring toString(){
-        vstring res = "<" + unifPair.first.toString() + " , " +
-                            unifPair.second.toString() + ">";
+        vstring res = "<" + unifPair.first.first.toString() + " , " +
+                            unifPair.second.first.toString() + ">";
         return res;
       }
     #endif    
       AlgorithmStep lastStep;      
       AlgorithmStep secondLastStep;
-      UnifPair unifPair;
+      TTPair unifPair;
     };
 
    #if VDEBUG
@@ -166,8 +169,8 @@ class CombSubstitution
       vstring res;
       res =  "PRINTING THE UNIFICATION PAIRS \n";
       for(int i = _unificationPairs.size() -1; i >=0; i--){
-         res += "<" + _unificationPairs[i].unifPair.first.toString() + " , " + 
-                      _unificationPairs[i].unifPair.second.toString()  + ">\n";
+         res += "<" + _unificationPairs[i].unifPair.first.first.toString() + " , " + 
+                       _unificationPairs[i].unifPair.second.first.toString()  + ">\n";
       }
       return res;
     }
@@ -229,21 +232,24 @@ class CombSubstitution
     /** Carry out transformation represented bt t on top pair*/ 
     bool transform(Transform t);
 
-    void transform(HSH::HOTerm&, HSH::HOTerm&, AlgorithmStep);
+    void transform(HSH::HOTerm&,AlgorithmStep,int);
     void iReduce(HSH::HOTerm&)const;
     void kReduce(HSH::HOTerm&)const;
     void bcsReduce(HSH::HOTerm&, AlgorithmStep)const;
 
     bool canPerformStep(AlgorithmStep, AlgorithmStep, AlgorithmStep);
-    bool occurs(const VarSpec, const HSH::HOTerm&);
+    bool occurs(const VarSpec, const HOTermSpec);
     void eliminate(VarSpec, HSH::HOTerm);
-    void eliminate(VarSpec, HSH::HOTerm, HSH::HOTerm&);
+    void eliminate(VarSpec, HSH::HOTerm, HOTermSpec&);
     void addToSolved(VarSpec, HSH::HOTerm);
-    void pushNewPair(HSH::HOTerm&, HSH::HOTerm&, AlgorithmStep, AlgorithmStep);
+    void pushNewPair(HSH::HOTerm&, int, HSH::HOTerm&, int, AlgorithmStep,
+                     AlgorithmStep, bool leftChanged = true, bool rightChanged = true);
+    void pushNewPair(HOTermSpec&, HOTermSpec&, AlgorithmStep, AlgorithmStep, 
+                     bool leftChanged = true, bool rightChanged = true);
                      
-    inline HSH::HOTerm newVar(unsigned sort, int index){
+    inline HSH::HOTerm newVar(unsigned sort){
       CALL("CombSubstitution::newvar");
-      HSH::HOTerm ht = HSH::HOTerm(TermList(_nextFreshVar, false), sort, index);
+      HSH::HOTerm ht = HSH::HOTerm(TermList(_nextFreshVar, false), sort);
       _nextFreshVar++;
       return ht;
     }
@@ -309,65 +315,4 @@ class CombSubstitution
     friend class CombSubstIterator;
 };
 
-class CombSubstIterator
-: public IteratorCore<CombSubstitution*>
-{
-public:
-  CLASS_NAME(CombSubstIterator);
-  USE_ALLOCATOR(CombSubstIterator);
-  
-  CombSubstIterator(TermList t1,int index1, TermList t2, int index2)
-  {
-    _unifSystem = new CombSubstitution(t1, index1, t2, index2);
-    transformStacks.push(_unifSystem->availableTransforms());
-    _calledNext = false;
-  }
-
-  bool hasNext(){
-    if(!_calledNext){
-      if(_unifSystem->_solved){
-        return true;
-      }
-    }
-    _calledNext = false;
-    return hasNextUnifier();
-  }
-  /* 
-   * Only valid if has been previous call to hasNext that
-   * has returned true! Calling next multiple times for one
-   * call of hasNext will result in the same unifier being return
-   * multiple times.
-   */
-  CombSubstitution* next(){
-    _calledNext = true;
-    return _unifSystem;
-  }
-
-private:
-
-  typedef CombSubstitution::AlgorithmStep AlgorithmStep;
-  typedef CombSubstitution::ApplyTo ApplyTo;
-  typedef pair<AlgorithmStep,ApplyTo> Transform;
-  typedef Stack<Transform> TransformStack;
-
-  /** Copy constructor is private and without a body, because we don't want any. */
-  CombSubstIterator(const CombSubstIterator& obj);
-  /** operator= is private and without a body, because we don't want any. */
-  CombSubstIterator& operator=(const CombSubstIterator& obj);
-
-
-  CombSubstitution* _unifSystem;
-  Stack<TransformStack> transformStacks;
-  Stack<BacktrackData> bdStack;
-  bool _calledNext;
-
-  bool hasNextUnifier();
-  /** apply transformation t to the top unification pair in current system
-   *  record any chanegs in bd so that transformation can be reversed
-   */
-  bool transform(Transform t, BacktrackData& bd);
-  
-};
-
-}
-#endif /*__CombSubstIterator____*/
+#endif

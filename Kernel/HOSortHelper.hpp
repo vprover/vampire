@@ -44,9 +44,8 @@ public:
 
   struct HOTerm{
     //create a new higher-order term
-    HOTerm(TermList ts,  int hsort = -1)
+    HOTerm(TermList ts,  int hsort = -1, int hind = -1):head(ts),headInd(hind) 
     {
-      head = ts;
       if(hsort > -1){
         headsort = (unsigned)hsort;
         srt = headsort;
@@ -63,6 +62,7 @@ public:
       headsort = ht.headsort;
       srt = ht.srt;
       args = ht.args;
+      headInd = ht.headInd;
     } 
 
     HOTerm(){}
@@ -76,7 +76,9 @@ public:
     unsigned srt;
     //args of this HOTerm
     Deque<HOTerm> args;
-
+    //Only relevant when using structure in combiatory unification
+    int headInd;
+    
     inline unsigned argnum() const { return args.size(); }
     //zero indexed
     HOTerm ntharg(unsigned n){
@@ -154,20 +156,26 @@ public:
       if(combHead() || hotm.combHead()){ return false; }
       return head.term()->functor() != hotm.head.term()->functor();
     }
+    /** returns true if same variable heads */
+    bool sameVarHead(HOTerm hotm, bool useIndices = false) const {
+      if(useIndices && headInd != hotm.headInd){ return false; }
+      if(!varHead() || !hotm.varHead()){ return false; }      
+      return head.var() == hotm.head.var();
+    }
     void headify(HOTerm tm);
     /** Returns true if this HOTerm is 
      *  syntactically equal to the first argument
      *  if @b vars is false, then non-ground terms 
      *  will always return false
      */
-    bool equal(const HOTerm&,bool vars = false ) const;
+    bool equal(const HOTerm&,bool useIndices = false ) const;
 #if VDEBUG
     vstring toString(bool withSorts = false);
 #endif
   };
 
   static TermList appify(HOTerm);
-  static HOTerm deappify(TermList);
+  static HOTerm deappify(TermList,int index = -1);
 
   /** Returns the sort of the head of an applicative term */
   static unsigned getHeadSort(TermList ts);
