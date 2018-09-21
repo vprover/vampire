@@ -22,6 +22,7 @@
  */
 
 #include "Kernel/RobSubstitution.hpp"
+#include "Kernel/CombSubstIterator.hpp"
 #include "Kernel/SubstHelper.hpp"
 
 #include "ResultSubstitution.hpp"
@@ -67,9 +68,43 @@ private:
   int _resultBank;
 };
 
+class CSProxy
+: public ResultSubstitution
+{
+public:
+  CLASS_NAME(CSProxy);
+  USE_ALLOCATOR(CSProxy);
+  
+  CSProxy(CombSubstitution* subst, int queryBank, int resultBank)
+  : _subst(subst), _queryBank(queryBank), _resultBank(resultBank) {}
+
+  TermList applyToQuery(TermList t)
+  { return _subst->apply(t,_queryBank); }
+  Literal* applyToQuery(Literal* l)
+  { return _subst->apply(l,_queryBank); }
+
+  TermList applyToResult(TermList t)
+  { return _subst->apply(t,_resultBank); }
+  Literal* applyToResult(Literal* l)
+  { return _subst->apply(l,_resultBank); }
+
+  CombSubstitution* tryGetCombSubstitution() { return _subst; }
+
+private:
+  CombSubstitution* _subst;
+  int _queryBank;
+  int _resultBank;
+};
+
+
 ResultSubstitutionSP ResultSubstitution::fromSubstitution(RobSubstitution* s, int queryBank, int resultBank)
 {
   return ResultSubstitutionSP(new RSProxy(s, queryBank, resultBank));
+}
+
+ResultSubstitutionSP ResultSubstitution::fromSubstitution(CombSubstitution* s, int queryBank, int resultBank)
+{
+  return ResultSubstitutionSP(new CSProxy(s, queryBank, resultBank));
 }
 
 

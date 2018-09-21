@@ -211,6 +211,9 @@ class EGSubstitution;
 typedef VirtualIterator<EGSubstitution*> RSubstIterator;
 typedef Lib::SmartPtr<EGSubstitution> EGSubstitutionSP;
 
+class CombSubstitution;
+typedef Lib::SmartPtr<CombSubstitution> CombSubstitutionSP;
+
 class Matcher;
 typedef VirtualIterator<Matcher*> MatchIterator;
 

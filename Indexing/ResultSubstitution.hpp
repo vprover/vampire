@@ -1,4 +1,3 @@
-
 /*
  * File ResultSubstitution.hpp.
  *
@@ -30,7 +29,8 @@
 #include "Lib/SmartPtr.hpp"
 #include "Kernel/Term.hpp"
 #include "Kernel/Renaming.hpp"
-
+#include "Kernel/CombSubstIterator.hpp"
+                 
 namespace Indexing {
 
 using namespace Kernel;
@@ -137,11 +137,13 @@ public:
   virtual bool isIdentityOnResultWhenQueryBound() {return false;}
 
   virtual RobSubstitution* tryGetRobSubstitution() { return 0; }
+  virtual CombSubstitution* tryGetCombSubstitution() { return 0; }
 
+  
   static ResultSubstitutionSP fromSubstitution(RobSubstitution* s,
 	  int queryBank, int resultBank);
-//  static ResultSubstitutionSP fromSubstitution(EGSubstitution* s,
-//	  int queryBank, int resultBank);
+  static ResultSubstitutionSP fromSubstitution(CombSubstitution* s,
+	  int queryBank, int resultBank);
 #if VDEBUG
   virtual vstring toString(){ NOT_IMPLEMENTED; }
 #endif
