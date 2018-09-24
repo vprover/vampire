@@ -55,7 +55,18 @@ private:
 	  Clause* eqClause, Literal* eqLiteral, TermList eqLHS,
 	  ResultSubstitutionSP subst, bool eqIsResult, Limits* limits,
           UnificationConstraintStackSP constraints);
-
+  
+  /** Performs superposition with some ordering constraint absent. 
+    * For example no check is carried out to ensure that in literals s = t
+    * s > t. Its primary usage is when using combinatory unifcation where
+    * standard superposition would result in inferences being lost unless
+    * an ordering compatible with combinatory unification can be designed
+    */
+  Clause* performParamodulation(
+	  Clause* rwClause, Literal* rwLiteral, TermList rwTerm,
+	  Clause* eqClause, Literal* eqLiteral, TermList eqLHS,
+	  ResultSubstitutionSP subst, bool eqIsResult, Limits* limits);
+  
   bool checkClauseColorCompatibility(Clause* eqClause, Clause* rwClause);
   static int getWeightLimit(Clause* eqClause, Clause* rwClause, Limits* limits);
   static bool earlyWeightLimitCheck(Clause* eqClause, Literal* eqLit,

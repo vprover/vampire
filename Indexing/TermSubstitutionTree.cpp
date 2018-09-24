@@ -65,7 +65,6 @@ void TermSubstitutionTree::handleTerm(TermList t, Literal* lit, Clause* cls, boo
 {
   CALL("TermSubstitutionTree::handleTerm");
   
-  Term* oldTerm;
   LeafData ld(cls, lit, t);
   if(t.isOrdinaryVar()) {
     if(insert) {
@@ -79,7 +78,6 @@ void TermSubstitutionTree::handleTerm(TermList t, Literal* lit, Clause* cls, boo
     Term* term=t.term();
 
     if(env.options->combinatoryUnification()){
-      oldTerm = term;
       term = toPlaceHolders(term);
       
       if(isPlaceHolder(term)){
@@ -111,9 +109,6 @@ void TermSubstitutionTree::handleTerm(TermList t, Literal* lit, Clause* cls, boo
 
     if(insert) {
       SubstitutionTree::insert(&_nodes[rootNodeIndex], svBindings, ld);
-      if(oldTerm != term){
-        cout << this->toString() << endl; 
-      }
     } else {
       SubstitutionTree::remove(&_nodes[rootNodeIndex], svBindings, ld);
     }

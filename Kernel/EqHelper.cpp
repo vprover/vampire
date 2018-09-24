@@ -306,17 +306,17 @@ TermIterator EqHelper::getDemodulationLHSIterator(Literal* lit, bool forward, co
     case Ordering::INCOMPARABLE:
       if ( forward ? (opt.forwardDemodulation() == Options::Demodulation::PREORDERED)
 		  : (opt.backwardDemodulation() == Options::Demodulation::PREORDERED) ) {
-	return TermIterator::getEmpty();
+        return TermIterator::getEmpty();
       }
       if (t0.containsAllVariablesOf(t1)) {
-	if (t1.containsAllVariablesOf(t0)) {
-	  return pvi( getConcatenatedIterator(getSingletonIterator(t0),
-	      getSingletonIterator(t1)) );
-	}
-	return pvi( getSingletonIterator(t0) );
+        if (t1.containsAllVariablesOf(t0)) {
+          return pvi( getConcatenatedIterator(getSingletonIterator(t0),
+              getSingletonIterator(t1)) );
+        }
+        return pvi( getSingletonIterator(t0) );
       }
       if (t1.containsAllVariablesOf(t0)) {
-	return pvi( getSingletonIterator(t1) );
+        return pvi( getSingletonIterator(t1) );
       }
       break;
     case Ordering::GREATER:

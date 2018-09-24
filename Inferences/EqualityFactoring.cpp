@@ -72,6 +72,98 @@ private:
   Literal* _lit;
 };
 
+struct EqualityFactoring::CombResultIterator
+{
+  typedef pair<pair<Literal*,TermList>,pair<Literal*,TermList>> argType;
+  CombResultIterator(Clause* cl, Ordering& ordering, argType arg): _cl(cl), _ordering(ordering), _arg(arg)
+  {
+    _csIt = vi(new CombSubstIterator(arg.first.second,0,arg.second.second,0)); 
+  }
+  
+  DECL_ELEMENT_TYPE(Clause*);
+  
+  bool hasNext() {
+    CALL("EqualityFactoring::CombResultIterator::hasNext");
+    return _csIt.hasNext();
+  }
+  
+  OWN_ELEMENT_TYPE next() {
+    CALL("EqualityFactoring::CombResultIterator::next");   
+    
+    CombSubstitution* cs = _csIt.next();
+
+    Literal* sLit=_arg.first.first;  // selected literal ( = factored-out literal )
+    Literal* fLit=_arg.second.first; // fairly boring side literal
+    ASS(sLit->isEquality());
+    ASS(fLit->isEquality());
+
+    unsigned srt = SortHelper::getEqualityArgumentSort(sLit);
+    if (srt!=SortHelper::getEqualityArgumentSort(fLit)) {
+      return 0;
+    }
+
+    TermList sLHS=_arg.first.second;
+    TermList sRHS=EqHelper::getOtherEqualitySide(sLit, sLHS);
+    TermList fLHS=_arg.second.second;
+    TermList fRHS=EqHelper::getOtherEqualitySide(fLit, fLHS);
+    ASS_NEQ(sLit, fLit);
+
+    TermList sLHSS = cs->apply(sLHS,0);
+    TermList sRHSS = cs->apply(sRHS,0);
+    if(Ordering::isGorGEorE(_ordering.compare(sRHSS,sLHSS))) {
+      return 0;
+    }
+    TermList fRHSS = cs->apply(fRHS,0);
+    if(Ordering::isGorGEorE(_ordering.compare(fRHSS,sLHSS))) {
+      return 0;
+    }
+
+    Inference* inf = new Inference1(Inference::EQUALITY_FACTORING, _cl);
+    Clause* res = new(_cLen) Clause(_cLen, _cl->inputType(), inf);
+
+    (*res)[0]=Literal::createEquality(false, sRHSS, fRHSS, srt);
+
+    unsigned next = 1;
+    for(unsigned i=0;i<_cLen;i++) {
+      Literal* curr=(*_cl)[i];
+      if(curr!=sLit) {
+        Literal* currAfter = cs->apply(curr, 0);
+        (*res)[next++] = currAfter;
+      }
+    }
+    ASS_EQ(next,_cLen);
+
+    res->setAge(_cl->age()+1);
+    env.statistics->equalityFactoring++;
+
+    return res;
+  }
+  
+private:  
+  VirtualIterator<CombSubstitution*> _csIt;
+  Clause* _cl;
+  Ordering& _ordering;
+  argType _arg;
+  unsigned _cLen;
+};
+
+struct EqualityFactoring::CombResultFn
+{
+  CombResultFn(Clause* cl, Ordering& ordering)
+      : _cl(cl), _ordering(ordering) {}
+  
+  DECL_RETURN_TYPE(VirtualIterator<Clause*>);
+  VirtualIterator<Clause*> operator() (pair<pair<Literal*,TermList>,pair<Literal*,TermList> > arg){
+
+    return pvi(CombResultIterator(_cl, _ordering, arg));
+  }
+  
+private:
+  Clause* _cl;
+  Ordering& _ordering;
+};
+
+
 struct EqualityFactoring::FactorablePairsFn
 {
   FactorablePairsFn(Clause* cl) : _cl(cl) {}
@@ -193,9 +285,14 @@ ClauseIterator EqualityFactoring::generateClauses(Clause* premise)
 
   auto it4 = getMapAndFlattenIterator(it3,FactorablePairsFn(premise));
 
+  if(env.options->combinatoryUnification()) {
+    auto it5 = getMapAndFlattenIterator(it4, CombResultFn(premise, _salg->getOrdering()));
+    return pvi(it5);
+  }  
+  
   auto it5 = getMappingIterator(it4,ResultFn(premise,
-      getOptions().literalMaximalityAftercheck() && _salg->getLiteralSelector().isBGComplete(), _salg->getOrdering()));
-
+      getOptions().literalMaximalityAftercheck() && _salg->getLiteralSelector().isBGComplete(), _salg->getOrdering()));   
+      
   auto it6 = getFilteredIterator(it5,NonzeroFn());
 
   return pvi( it6 );

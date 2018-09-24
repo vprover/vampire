@@ -166,8 +166,8 @@ class CombSubstitution
       vstring res;
       res =  "PRINTING THE UNIFICATION PAIRS \n";
       for(int i = _unificationPairs.size() -1; i >=0; i--){
-         res += "<" + _unificationPairs[i].unifPair.first.toString() + " , " + 
-                      _unificationPairs[i].unifPair.second.toString()  + ">\n";
+         res += "<" + _unificationPairs[i].unifPair.first.toString(false, true) + " , " + 
+                      _unificationPairs[i].unifPair.second.toString(false, true)  + ">\n";
       }
       return res;
     }

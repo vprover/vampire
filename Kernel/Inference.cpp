@@ -340,7 +340,7 @@ vstring Inference::ruleName(Rule rule)
   case DEFINITION_FOLDING:
     return "definition folding";
   case SKOLEM_PREDICATE_INTRODUCTION:
-  return "skolem predicate introduction";
+    return "skolem predicate introduction";
   case PREDICATE_SKOLEMIZE:
     return "predicate skolemization";
 //  case ROW_VARIABLE_EXPANSION:
@@ -372,6 +372,8 @@ vstring Inference::ruleName(Rule rule)
     return "subsumption resolution";
   case SUPERPOSITION:
     return "superposition";
+  case PARAMODULATION:
+    return "paramodulation";
   case CONSTRAINED_SUPERPOSITION:
     return "constrained superposition";
   case EQUALITY_FACTORING:

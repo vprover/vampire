@@ -192,8 +192,13 @@ struct Superposition::ForwardResultFn
     CALL("Superposition::ForwardResultFn::operator()");
 
     TermQueryResult& qr = arg.second;
-    return _parent.performSuperposition(_cl, arg.first.first, arg.first.second,
-	    qr.clause, qr.literal, qr.term, qr.substitution, true, _limits, qr.constraints);
+    if(!env.options->combinatoryUnification()){
+      return _parent.performSuperposition(_cl, arg.first.first, arg.first.second,
+        qr.clause, qr.literal, qr.term, qr.substitution, true, _limits, qr.constraints);
+    } else {
+      return _parent.performParamodulation(_cl, arg.first.first, arg.first.second,
+        qr.clause, qr.literal, qr.term, qr.substitution, true, _limits);
+    }
   }
 private:
   Clause* _cl;
@@ -215,8 +220,13 @@ struct Superposition::BackwardResultFn
     }
 
     TermQueryResult& qr = arg.second;
-    return _parent.performSuperposition(qr.clause, qr.literal, qr.term,
-	    _cl, arg.first.first, arg.first.second, qr.substitution, false, _limits, qr.constraints);
+    if(!env.options->combinatoryUnification()){
+      return _parent.performSuperposition(qr.clause, qr.literal, qr.term,
+        _cl, arg.first.first, arg.first.second, qr.substitution, false, _limits, qr.constraints);
+    } else {
+      return _parent.performParamodulation(qr.clause, qr.literal, qr.term,
+        _cl, arg.first.first, arg.first.second, qr.substitution, false, _limits);      
+    }
   }
 private:
   Clause* _cl;
@@ -248,26 +258,20 @@ ClauseIterator Superposition::generateClauses(Clause* premise)
   // returns a pair with the original pair and the unification result (includes substitution)
   auto itf3 = getMapAndFlattenIterator(itf2,ApplicableRewritesFn(_lhsIndex,withConstraints));
   
-  if(env.options->combinatoryUnification()){
-    auto itf4 = getMapAndFlattenIterator (itf3, ApplicableCombRewritesFn());
-    
-  }
-
-  //at this point we have an iterator that contains terms that may be combinatory unifiable
-  /*while(itf3.hasNext()){
-    auto item = itf3.next();
-    cout << "Term " + item.first.second.toString() + " in literal " + item.first.first->toString() + " unifies with " + item.second.term.toString() << endl;
-  }*/
+  bool cunif = env.options->combinatoryUnification();
+  auto itcf = getMapAndFlattenIterator (itf3, ApplicableCombRewritesFn());
   
   //Perform forward superposition
-  auto itf4 = getMappingIterator(itf3,ForwardResultFn(premise, limits, *this));
+  auto itf4 = getMappingIterator(cunif ? pvi(itcf) : pvi(itf3), ForwardResultFn(premise, limits, *this));
 
   auto itb1 = premise->getSelectedLiteralIterator();
   auto itb2 = getMapAndFlattenIterator(itb1,EqHelper::SuperpositionLHSIteratorFn(_salg->getOrdering(), _salg->getOptions()));
   auto itb3 = getMapAndFlattenIterator(itb2,RewritableResultsFn(_subtermIndex,withConstraints));
 
+  auto itcb = getMapAndFlattenIterator (itb3, ApplicableCombRewritesFn());
+  
   //Perform backward superposition
-  auto itb4 = getMappingIterator(itb3,BackwardResultFn(premise, limits, *this));
+  auto itb4 = getMappingIterator(cunif ? pvi(itcb) : pvi(itb3) ,BackwardResultFn(premise, limits, *this));
 
   // Add the results of forward and backward together
   auto it5 = getConcatenatedIterator(itf4,itb4);
@@ -488,8 +492,10 @@ Clause* Superposition::performSuperposition(
   ASS(eqClause->store()==Clause::ACTIVE);
 
  
-  //cout << "performSuperposition with " << rwClause->toString() << " and " << eqClause->toString() << endl;
-  //cout << "rwTerm " << rwTerm.toString() << " eqLHSS " << eqLHS.toString() << endl;
+  cout << "performSuperposition with " << rwClause->toString() << " and " << eqClause->toString() << endl;
+  cout << "rwTerm " << rwTerm.toString() << endl;
+  cout << "eqLHSS " << eqLHS.toString()  << endl;
+  cout << "substitution " << subst->tryGetCombSubstitution()->toString() << endl;
 
   // the first checks the reference and the second checks the stack
 /*
@@ -544,7 +550,7 @@ Clause* Superposition::performSuperposition(
   TermList rwTermS = subst->apply(rwTerm, !eqIsResult);
 
 #if VDEBUG
-  if(!hasConstraints){
+  if(!hasConstraints && !env.options->combinatoryUnification()){
     ASS_EQ(rwTermS,eqLHSS);
   }
 #endif
@@ -621,7 +627,7 @@ Clause* Superposition::performSuperposition(
 
     inf->setExtra(extra);
   }
-
+  
   bool afterCheck = getOptions().literalMaximalityAftercheck() && _salg->getLiteralSelector().isBGComplete();
 
   Clause* res = new(newLength) Clause(newLength, inpType, inf);
@@ -759,6 +765,195 @@ Clause* Superposition::performSuperposition(
     //NOT_IMPLEMENTED;
   }
 */
+  cout << "reached here with clause: " + res->toString() << endl;
+
+  return res;
+}
+
+/**
+ * If paramodulation should be performed, return result of the paramodulation,
+ * otherwise return 0.
+ */
+Clause* Superposition::performParamodulation(
+    Clause* rwClause, Literal* rwLit, TermList rwTerm,
+    Clause* eqClause, Literal* eqLit, TermList eqLHS,
+    ResultSubstitutionSP subst, bool eqIsResult, Limits* limits)
+{
+  CALL("Superposition::performParamodulation");
+
+  // we want the rwClause and eqClause to be active
+  ASS(rwClause->store()==Clause::ACTIVE);
+  ASS(eqClause->store()==Clause::ACTIVE);
+
+ 
+  cout << "performParamodulation with " << rwClause->toString() << " and " << eqClause->toString() << endl;
+  cout << "rwTerm " << rwTerm.toString() << " eqLHSS " << eqLHS.toString() << endl;
+  cout << "substitution " + subst->tryGetCombSubstitution()->toString();
+
+  unsigned sort = SortHelper::getEqualityArgumentSort(eqLit);
+
+  if(SortHelper::getTermSort(rwTerm, rwLit)!=sort) {
+    //cannot perform superposition because sorts don't match
+    return 0;
+  }
+
+  if(eqLHS.isVar()) {
+    if(!checkSuperpositionFromVariable(eqClause, eqLit, eqLHS)) {
+      return 0;
+    }
+  }
+
+  unsigned rwLength = rwClause->length();
+  unsigned eqLength = eqClause->length();
+
+  int newAge=Int::max(rwClause->age(),eqClause->age())+1;
+
+  TermList tgtTerm = EqHelper::getOtherEqualitySide(eqLit, eqLHS);
+
+  int weightLimit = getWeightLimit(eqClause, rwClause, limits);
+  if(weightLimit!=-1) {
+    if(!earlyWeightLimitCheck(eqClause, eqLit, rwClause, rwLit, rwTerm, eqLHS, tgtTerm, subst, eqIsResult, weightLimit)) {
+      return 0;
+    }
+  }
+
+  TermList eqLHSS = subst->apply(eqLHS, eqIsResult);
+  TermList tgtTermS = subst->apply(tgtTerm, eqIsResult);
+
+  Literal* rwLitS = subst->apply(rwLit, !eqIsResult);
+  TermList rwTermS = subst->apply(rwTerm, !eqIsResult);
+
+#if VDEBUG
+  if(!env.options->combinatoryUnification()){
+    ASS_EQ(rwTermS,eqLHSS);
+  }
+#endif
+
+  Literal* tgtLitS = EqHelper::replace(rwLitS,rwTermS,tgtTermS);
+
+  //check we don't create an equational tautology (this happens during self-superposition)
+  if(EqHelper::isEqTautology(tgtLitS)) {
+    return 0;
+  }
+
+  unsigned newLength = rwLength+eqLength-1;
+
+  Inference* inf = new Inference2(Inference::PARAMODULATION,rwClause, eqClause);
+  Unit::InputType inpType = (Unit::InputType)
+  	    Int::max(rwClause->inputType(), eqClause->inputType());
+
+  // If proof extra is on let's compute the positions we have performed
+  // superposition on 
+  if(env.options->proofExtra()==Options::ProofExtra::FULL){
+    /*
+    cout << "rwClause " << rwClause->toString() << endl;
+    cout << "eqClause " << eqClause->toString() << endl;
+    cout << "rwLit " << rwLit->toString() << endl;
+    cout << "eqLit " << eqLit->toString() << endl;
+    cout << "rwTerm " << rwTerm.toString() << endl;
+    cout << "eqLHS " << eqLHS.toString() << endl;
+     */
+    //cout << subst->toString() << endl;
+
+    // First find which literal it is in the clause, as selection has occured already
+    // this should remain the same...?
+    vstring rwPlace = Lib::Int::toString(rwClause->getLiteralPosition(rwLit));
+    vstring eqPlace = Lib::Int::toString(eqClause->getLiteralPosition(eqLit));
+
+    vstring rwPos="_";
+    ALWAYS(Inference::positionIn(rwTerm,rwLit,rwPos));
+    vstring eqPos = "("+eqPlace+").2";
+    rwPos = "("+rwPlace+")."+rwPos;
+
+    vstring eqClauseNum = Lib::Int::toString(eqClause->number());
+    vstring rwClauseNum = Lib::Int::toString(rwClause->number());
+
+    vstring extra = eqClauseNum + " into " + rwClauseNum+", unify on "+
+        eqPos+" in "+eqClauseNum+" and "+
+        rwPos+" in "+rwClauseNum;
+
+    //cout << extra << endl;
+    //NOT_IMPLEMENTED;
+
+    inf->setExtra(extra);
+  }
+
+  Clause* res = new(newLength) Clause(newLength, inpType, inf);
+
+  (*res)[0] = tgtLitS;
+  int next = 1;
+  int weight=tgtLitS->weight();
+  for(unsigned i=0;i<rwLength;i++) {
+    Literal* curr=(*rwClause)[i];
+    if(curr!=rwLit) {
+      Literal* currAfter = subst->apply(curr, !eqIsResult);
+
+      if(EqHelper::isEqTautology(currAfter)) {
+        goto construction_fail;
+      }
+
+      if(weightLimit!=-1) {
+        weight+=currAfter->weight();
+        if(weight>weightLimit) {
+          RSTAT_CTR_INC("superpositions skipped for weight limit while constructing other literals");
+          env.statistics->discardedNonRedundantClauses++;
+          goto construction_fail;
+        }
+      }
+      
+      (*res)[next++] = currAfter;
+    }
+  }
+
+  
+  for(unsigned i=0;i<eqLength;i++) {
+    Literal* curr=(*eqClause)[i];
+    if(curr!=eqLit) {
+      Literal* currAfter = subst->apply(curr, eqIsResult);
+
+      if(EqHelper::isEqTautology(currAfter)) {
+        goto construction_fail;
+      }
+      if(weightLimit!=-1) {
+        weight+=currAfter->weight();
+        if(weight>weightLimit) {
+          RSTAT_CTR_INC("superpositions skipped for weight limit while constructing other literals");
+          env.statistics->discardedNonRedundantClauses++;
+          goto construction_fail;
+        }
+      }
+      (*res)[next++] = currAfter;
+    }
+  }
+  
+
+  if(weightLimit!=-1 && weight>weightLimit) {
+    RSTAT_CTR_INC("superpositions skipped for weight limit after the clause was built");
+    env.statistics->discardedNonRedundantClauses++;
+    construction_fail:
+    res->destroy();
+    return 0;
+  }
+  ASS(weightLimit==-1 || weight<=weightLimit);
+
+  res->setAge(newAge);
+
+  //update this, paramodulation
+  if(rwClause==eqClause) {
+    env.statistics->selfSuperposition++;
+  } else if(eqIsResult) {
+    env.statistics->forwardSuperposition++;
+  } else {
+    env.statistics->backwardSuperposition++;
+  }
+
+/*
+  if(hasConstraints){ 
+    cout << "RETURNING " << res->toString() << endl;
+    //NOT_IMPLEMENTED;
+  }
+*/
+  cout << "The result is : " + res->toString() << endl;
 
   return res;
 }

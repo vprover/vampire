@@ -108,9 +108,7 @@ unsigned HOSortHelper::argNum(TermList ts){
  */
 unsigned HOSortHelper::appliedToN(unsigned funcSort, unsigned n){
   CALL("HOSortHelper::appliedToN");  
-  
-  ASS(n > 0);
-  
+    
   for(unsigned i = 0; i < n; i++){
     if(env.sorts->isOfStructuredSort(funcSort, Sorts::StructuredSort::HIGHER_ORD_CONST)){
       funcSort = range(funcSort);
@@ -177,7 +175,7 @@ TermList HOSortHelper::getHead(TermList ts){
  */
 TermList HOSortHelper::apply(TermList t1, unsigned s1, TermList t2, unsigned s2){
   CALL("HOSortHelper::apply");
-  
+ 
   ASS(arity(s1) > 0);
   ASS(domain(s1) == s2);
 
@@ -191,20 +189,21 @@ TermList HOSortHelper::apply(TermList t1, unsigned s1, TermList t2, unsigned s2)
   * Prints out HOTerm
   */
 #if VDEBUG
-vstring HOSortHelper::HOTerm::toString(bool withSorts){
+vstring HOSortHelper::HOTerm::toString(bool withSorts, bool withIndices){
   CALL("HOSortHelper::HOTerm::toString");   
   
   vstring res;
   if(!withSorts){
-    res = head.toString() + " ";
+    vstring tween = (withIndices && head.isVar()) ? "/" + Int::toString(headInd) : "";
+    res = head.toString() + tween +  " ";
   } else {
     res = head.toString() + "_" + env.sorts->sortName(headsort) + " ";
   }
   for(unsigned i = 0; i < args.size(); i++){
     if(!args[i].args.size()){
-      res = res + args[i].toString(withSorts);
+      res = res + args[i].toString(withSorts, withIndices);
     } else {
-      res = res + "(" + args[i].toString(withSorts) + ")";
+      res = res + "(" + args[i].toString(withSorts, withIndices) + ")";
     }
   }
   return res;

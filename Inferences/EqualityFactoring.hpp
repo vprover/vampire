@@ -48,7 +48,8 @@ private:
   struct IsDifferentPositiveEqualityFn;
   struct FactorablePairsFn;
   struct ResultFn;
-
+  struct CombResultFn;
+  struct CombResultIterator;
 };
 
 

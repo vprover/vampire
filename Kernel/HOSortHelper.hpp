@@ -118,6 +118,8 @@ public:
     bool varHead() const { return head.isVar();}
     /** Returns true if the HOTerm is a variable */
     bool isVar() const { return head.isVar() && !args.size(); }
+    /** returns true if var with args */
+    bool isAppliedVar() const { return head.isVar() && args.size() > 0; }
     /** Returns true if HOTerm has combinator as head */
     bool combHead() const { 
       if(head.isVar()){
@@ -170,7 +172,7 @@ public:
      */
     bool equal(const HOTerm&,bool useIndices = false ) const;
 #if VDEBUG
-    vstring toString(bool withSorts = false);
+    vstring toString(bool withSorts = false, bool withIndices = false);
 #endif
   };
 

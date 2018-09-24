@@ -169,29 +169,29 @@ struct BackwardDemodulation::ResultFn
       TermList other=EqHelper::getOtherEqualitySide(qr.literal, qr.term);
       Ordering::Result tord=_ordering.compare(rhsS, other);
       if(tord!=Ordering::LESS && tord!=Ordering::LESS_EQ) {
-	unsigned eqSort = SortHelper::getEqualityArgumentSort(qr.literal);
-	Literal* eqLitS=Literal::createEquality(true, lhsS, rhsS, eqSort);
-	bool isMax=true;
-	Clause::Iterator cit(*qr.clause);
-	while(cit.hasNext()) {
-	  Literal* lit2=cit.next();
-	  if(qr.literal==lit2) {
-	    continue;
-	  }
-	  if(_ordering.compare(eqLitS, lit2)==Ordering::LESS) {
-	    isMax=false;
-	    break;
-	  }
-	}
-	if(isMax) {
-//	  RSTAT_CTR_INC("bw subsumptions prevented by tlCheck");
-	  //The demodulation is this case which doesn't preserve completeness:
-	  //s = t     s = t1 \/ C
-	  //---------------------
-	  //     t = t1 \/ C
-	  //where t > t1 and s = t > C
-	  return BwSimplificationRecord(0);
-	}
+        unsigned eqSort = SortHelper::getEqualityArgumentSort(qr.literal);
+        Literal* eqLitS=Literal::createEquality(true, lhsS, rhsS, eqSort);
+        bool isMax=true;
+        Clause::Iterator cit(*qr.clause);
+        while(cit.hasNext()) {
+          Literal* lit2=cit.next();
+          if(qr.literal==lit2) {
+            continue;
+          }
+          if(_ordering.compare(eqLitS, lit2)==Ordering::LESS) {
+            isMax=false;
+            break;
+          }
+        }
+        if(isMax) {
+        //	  RSTAT_CTR_INC("bw subsumptions prevented by tlCheck");
+          //The demodulation is this case which doesn't preserve completeness:
+          //s = t     s = t1 \/ C
+          //---------------------
+          //     t = t1 \/ C
+          //where t > t1 and s = t > C
+          return BwSimplificationRecord(0);
+        }
       }
 
     }

@@ -102,23 +102,25 @@ void CombSubstitution::populateTransformations(UnificationPair& up)
     return;        
   }  
 
-  if(hoterml.varHead() && hoterml.argnum() > 0 && 
-    (hoterml.argnum() <= hotermr.argnum()) &&
-    !hoterml.sameVarHead(hotermr,true)){
+  int diff = hoterml.argnum() - hotermr.argnum();
+  
+  if(hoterml.isAppliedVar() && diff <= 0 &&
+    !hoterml.sameVarHead(hotermr,true)   &&
+     hoterml.headsort == hotermr.sortOfLengthNPref(abs(diff))){
     Transform trs = make_pair(SPLIT,FIRST);
     up.transformsLeft.push(trs);       
   }
 
-  if(hotermr.varHead() && hotermr.argnum() > 0 &&  
-    ((hotermr.argnum() < hoterml.argnum()) || 
-     ((hotermr.argnum() == hoterml.argnum()) && !hoterml.varHead())) &&
-    !hotermr.sameVarHead(hoterml,true)){
+  if(hotermr.isAppliedVar()                        &&  
+    (diff > 0|| (diff == 0 && !hoterml.varHead())) &&
+    !hotermr.sameVarHead(hoterml,true)             &&
+     hotermr.headsort == hoterml.sortOfLengthNPref(diff)){
     Transform trs = make_pair(SPLIT,SECOND);
     up.transformsRight.push(trs);       
   }
 
   populateSide(hoterml, FIRST, up.transformsLeft, up.lastStep, up.secondLastStep);
-  //If both sides have the same variable head (flex -flex) then a change on one
+  //If both sides have the same variable head (flex-flex) then a change on one
   //side will automatically take place on the other via eliminate
   if(!hoterml.sameVarHead(hotermr, true)){
     populateSide(hotermr, SECOND, up.transformsRight, up.lastStep, up.secondLastStep);
@@ -444,7 +446,8 @@ void CombSubstitution::transform(HSH::HOTerm& term, HSH::HOTerm& other, Algorith
 
   HSH::HOTerm newvar;
   unsigned oldvar = term.varHead() ? term.head.var() : 0;
-
+  unsigned oldsort = term.headsort;
+  
   if(as == KX_NARROW){
     ASS(term.varHead());
     ASS(term.argnum() > 0);
@@ -466,7 +469,7 @@ void CombSubstitution::transform(HSH::HOTerm& term, HSH::HOTerm& other, Algorith
     VarSpec vs = VarSpec(oldvar, term.headInd);
     if(as == KX_NARROW || as == BX_NARROW || 
        as == CX_NARROW || as == SX_NARROW){
-      unsigned combSort = HSH::addFuncSort(newvar.sort(), term.headsort);
+      unsigned combSort = HSH::addFuncSort(newvar.sort(), oldsort);      
       ht = HSH::HOTerm(HSH::getCombTerm(convert(as), combSort));
       ht.addArg(newvar);
     } else {
@@ -610,7 +613,9 @@ TermList CombSubstitution::apply(TermList t, int index) const
       VarSpec vs(var, index);
       HSH::HOTerm found;
       bool success = false;
-      if(!known.find(vs, found)){
+      if(known.find(vs, found)){
+        success = true;
+      } else {
         found = deref(vs, success);
         if(success){
           known.insert(vs, found);
@@ -675,7 +680,7 @@ HOSortHelper::HOTerm CombSubstitution::deref(VarSpec vs, bool& success) const{
   while(!toDo.isEmpty()){
     HSH::HOTerm* hterm = toDo.pop();
     if(hterm->varHead()){
-      VarSpec vnew(hterm->head.var(), vs.index);
+      VarSpec vnew(hterm->head.var(), hterm->headInd);
       HSH::HOTerm found;
       if(_solvedPairs.find(vnew, found)){
         hterm->headify(found);
@@ -720,7 +725,7 @@ vstring CombSubstitution::toString()
     HSH::HOTerm ht;
     spit.next(v,ht);
     res+="X"+Int::toString(v.var)+"/"+Int::toString(v.index)+ " -> ";
-    res+=ht.toString()+"\n";
+    res+=ht.toString(false, true)+"\n";
   }
   return res;
 }
@@ -739,7 +744,7 @@ bool CombSubstIterator::hasNextUnifier(){
   ASS(bdStack.length()+1==transformStacks.length());
 
   do {
-    cout << _unifSystem->unificationPairsToString() << endl;
+    //cout << _unifSystem->unificationPairsToString() << endl;
     
     while(transformStacks.top().isEmpty() && !bdStack.isEmpty()) {
       bdStack.pop().backtrack();
@@ -758,7 +763,7 @@ bool CombSubstIterator::hasNextUnifier(){
       bdStack.push(bd);
     }
   } while(!_unifSystem->_solved);
-  cout << "The successful substitution is:\n " + _unifSystem->toString() << endl; 
+  //cout << "The successful substitution is:\n " + _unifSystem->toString() << endl; 
   return true;
 }
 

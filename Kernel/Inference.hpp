@@ -184,6 +184,8 @@ public:
     SUBSUMPTION_RESOLUTION,
     /** superposition inference */
     SUPERPOSITION,
+    /** paramodulation inference (semi-order superposition, not complete) */
+    PARAMODULATION,
     /** superposition with constraints */
     CONSTRAINED_SUPERPOSITION,
     /** equality factoring inference */
