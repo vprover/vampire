@@ -217,6 +217,7 @@ typedef Lib::SmartPtr<CombSubstitution> CombSubstitutionSP;
 class Matcher;
 typedef VirtualIterator<Matcher*> MatchIterator;
 
+class CombSubstIterator;
 class TermTransformer;
 class TermTransformerTransformTransformed;
 class FormulaTransformer;

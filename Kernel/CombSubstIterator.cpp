@@ -119,11 +119,11 @@ void CombSubstitution::populateTransformations(UnificationPair& up)
     up.transformsRight.push(trs);       
   }
 
-  populateSide(hoterml, FIRST, up.transformsLeft, up.lastStep, up.secondLastStep);
+  populateSide(hoterml, FIRST, up.transformsLeft, up.lsLeft, up.lsRight);
   //If both sides have the same variable head (flex-flex) then a change on one
   //side will automatically take place on the other via eliminate
   if(!hoterml.sameVarHead(hotermr, true)){
-    populateSide(hotermr, SECOND, up.transformsRight, up.lastStep, up.secondLastStep);
+    populateSide(hotermr, SECOND, up.transformsRight, up.lsRight, up.slsRight);
   }
   
   if(hoterml.sameFirstOrderHead(hotermr)){
@@ -257,6 +257,8 @@ bool CombSubstitution::transform(Transform t){
     return true;
   }
 
+  //cout << "The unifcaition pairs are: " + _parent->_unifSystem->unificationPairsToString() << endl;
+
   BacktrackData localBD;
   bdRecord(localBD);
 
@@ -269,6 +271,7 @@ bool CombSubstitution::transform(Transform t){
  
   HSH::HOTerm terml = up.unifPair.first;
   HSH::HOTerm termr = up.unifPair.second;
+
   bool succeeded = true;
   //need to deal with indices.
 
@@ -280,7 +283,7 @@ bool CombSubstitution::transform(Transform t){
       HSH::HOTerm fc = HSH::HOTerm(TermList(Term::createFreshConstant("f", freshArgSort)));
       terml.addArg(fc);
       termr.addArg(fc);
-      pushNewPair(terml, termr, ADD_ARG, up.lastStep);
+      pushNewPair(terml, termr, ADD_ARG, up.lsLeft, ADD_ARG, up.lsRight);
     }
 
     if(t.first == DECOMP){
@@ -293,7 +296,7 @@ bool CombSubstitution::transform(Transform t){
           succeeded = false;
           break; 
         }
-        pushNewPair(tl, tr, DECOMP, up.lastStep);
+        pushNewPair(tl, tr, DECOMP, up.lsLeft, DECOMP, up.lsRight);
       }
     }
   }
@@ -333,9 +336,9 @@ bool CombSubstitution::transform(Transform t){
       eliminate(vs, ht);
       addToSolved(vs, ht);
       if(t.second == FIRST){
-        pushNewPair(toSplit, other, DECOMP, up.lastStep);
+        pushNewPair(toSplit, other, SPLIT, up.lsLeft, up.lsRight, up.slsRight);
       } else {
-        pushNewPair(other, toSplit, DECOMP, up.lastStep);      
+        pushNewPair(other, toSplit, up.lsLeft, up.slsLeft, SPLIT, up.lsRight);      
       }
     }
   }
@@ -343,10 +346,10 @@ bool CombSubstitution::transform(Transform t){
   if(t.first != SPLIT && t.first != ELIMINATE && t.first != DECOMP && t.first != ADD_ARG){
     if(t.second == FIRST){
       transform(terml, termr, t.first);
-      pushNewPair(terml, termr, t.first, up.lastStep);
+      pushNewPair(terml, termr, t.first, up.lsLeft, up.lsRight, up.slsRight);
     } else {
       transform(termr, terml, t.first);
-      pushNewPair(terml, termr, t.first, up.lastStep);
+      pushNewPair(terml, termr, up.lsLeft, up.slsLeft, t.first, up.lsRight);
     }
   }
    
@@ -381,21 +384,6 @@ void CombSubstitution::transform(HSH::HOTerm& term, HSH::HOTerm& other, Algorith
   if(as == B_REDUCE || as == C_REDUCE || as == S_REDUCE){
     ASS(term.argnum() > 2);
     bcsReduce(term,as);
-  }
-
-  if(as == I_NARROW){
-    ASS(term.varHead());
-    iReduce(term);
-  }
-
-  if(as == K_NARROW){
-    ASS(term.varHead());
-    kReduce(term);
-  }
-
-  if(as == B_NARROW || as == C_NARROW || as == S_NARROW){
-    ASS(term.varHead());
-    bcsReduce(term, as);
   }
 
   auto convert = [] (AlgorithmStep as) { 
@@ -448,6 +436,21 @@ void CombSubstitution::transform(HSH::HOTerm& term, HSH::HOTerm& other, Algorith
   unsigned oldvar = term.varHead() ? term.head.var() : 0;
   unsigned oldsort = term.headsort;
   
+  if(as == I_NARROW){
+    ASS(term.varHead());
+    iReduce(term);
+  }
+
+  if(as == K_NARROW){
+    ASS(term.varHead());
+    kReduce(term);
+  }
+
+  if(as == B_NARROW || as == C_NARROW || as == S_NARROW){
+    ASS(term.varHead());
+    bcsReduce(term, as);
+  }
+
   if(as == KX_NARROW){
     ASS(term.varHead());
     ASS(term.argnum() > 0);
@@ -473,7 +476,7 @@ void CombSubstitution::transform(HSH::HOTerm& term, HSH::HOTerm& other, Algorith
       ht = HSH::HOTerm(HSH::getCombTerm(convert(as), combSort));
       ht.addArg(newvar);
     } else {
-      ht = HSH::HOTerm(HSH::getCombTerm(convert(as), term.headsort));
+      ht = HSH::HOTerm(HSH::getCombTerm(convert(as), oldsort));
     }
     eliminate(vs, ht, term);
     eliminate(vs, ht, other);
@@ -523,10 +526,10 @@ void CombSubstitution::addToSolved(VarSpec vs, HSH::HOTerm ht){
 }
 
 void CombSubstitution::pushNewPair(HSH::HOTerm& ht1, HSH::HOTerm& ht2,
-              AlgorithmStep ls, AlgorithmStep sls){
+     AlgorithmStep lsl, AlgorithmStep slsl, AlgorithmStep lsr, AlgorithmStep slsr ){
   CALL("CombSubstitution::pushNewPair");
   
-  UnificationPair newup = UnificationPair(ht1, ht2, ls, sls);
+  UnificationPair newup = UnificationPair(ht1, ht2, lsl, slsl, lsr, slsr);
   populateTransformations(newup);
   _unificationPairs.push(newup);                                       
 }
@@ -602,15 +605,15 @@ TermList CombSubstitution::apply(TermList t, int index) const
   Stack<HSH::HOTerm*> toDo;
   DHMap<VarSpec, HSH::HOTerm, VarSpec::Hash1, VarSpec::Hash2> known;
   
-  HSH::HOTerm ht = HSH::deappify(t);
+  HSH::HOTerm ht = HSH::deappify(t, index);
    
   toDo.push(&ht);
-  
+
   while(!toDo.isEmpty()){
     HSH::HOTerm* hterm = toDo.pop();
     if(hterm->varHead() && hterm->head.var() <= _maxOrigVar){
       unsigned var = hterm->head.var();
-      VarSpec vs(var, index);
+      VarSpec vs(var, hterm->headInd);
       HSH::HOTerm found;
       bool success = false;
       if(known.find(vs, found)){
@@ -635,9 +638,11 @@ TermList CombSubstitution::apply(TermList t, int index) const
             default:
               bcsReduce(*hterm, as);
           }
-        }          
+        }
+        toDo.push(hterm);
+        continue;         
       }
-    }  
+    }
     for(unsigned i = 0; i < hterm->argnum(); i++){
       toDo.push(hterm->nthargptr(i));
     }
@@ -744,8 +749,8 @@ bool CombSubstIterator::hasNextUnifier(){
   ASS(bdStack.length()+1==transformStacks.length());
 
   do {
-    //cout << _unifSystem->unificationPairsToString() << endl;
-    
+    cout << _unifSystem->unificationPairsToString() << endl;
+
     while(transformStacks.top().isEmpty() && !bdStack.isEmpty()) {
       bdStack.pop().backtrack();
     }
@@ -754,7 +759,7 @@ bool CombSubstIterator::hasNextUnifier(){
     }
     
     Transform t=transformStacks.top().pop();
-        
+    
     BacktrackData bd;
     bool success=transform(t,bd);
     if(!success){
@@ -763,7 +768,7 @@ bool CombSubstIterator::hasNextUnifier(){
       bdStack.push(bd);
     }
   } while(!_unifSystem->_solved);
-  //cout << "The successful substitution is:\n " + _unifSystem->toString() << endl; 
+  cout << "The successful substitution is:\n " + _unifSystem->toString() << endl; 
   return true;
 }
 

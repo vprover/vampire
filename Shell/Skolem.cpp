@@ -32,6 +32,7 @@
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/SubformulaIterator.hpp"
 #include "Kernel/TermIterators.hpp"
+#include "Kernel/HOSortHelper.hpp"
 #include "Lib/SharedSet.hpp"
 
 #include "Shell/Statistics.hpp"
@@ -417,13 +418,25 @@ Formula* Skolem::skolemise (Formula* f)
       while (vs.hasNext()) {
         int v = vs.next();
         unsigned rangeSort=_varSorts.get(v, Sorts::SRT_DEFAULT);
+       
+        Term* skolemTerm;
 
-        unsigned fun = addSkolemFunction(arity, domainSorts.begin(), rangeSort, v);
-        _introducedSkolemFuns.push(fun);
+        if(!env.options->combinatoryUnification()){
+          unsigned fun = addSkolemFunction(arity, domainSorts.begin(), rangeSort, v);
+          _introducedSkolemFuns.push(fun);
+          skolemTerm = Term::create(fun, arity, fnArgs.begin());
+        } else {
+          //WARNING assuming axiom of choice. Otherwise, procedure below
+          //is unsoun
+          unsigned skSymSort = HOSortHelper::getHigherOrderSort(domainSorts, rangeSort);
+          unsigned fun = addSkolemFunction(0, 0, skSymSort, v);
+          _introducedSkolemFuns.push(fun);
+          TermList head = TermList(Term::createConstant(fun));
+          skolemTerm = HOSortHelper::createAppifiedTerm(head, skSymSort, domainSorts, fnArgs);
+        }
 
         env.statistics->skolemFunctions++;
 
-        Term* skolemTerm = Term::create(fun, arity, fnArgs.begin());
         _subst.bind(v,skolemTerm);
         localSubst.bind(v,skolemTerm);
 

@@ -31,6 +31,7 @@
 #include "Lib/DHMap.hpp"
 #include "Lib/Set.hpp"
 #include "Lib/Backtrackable.hpp"
+#include "Lib/Deque.hpp"
 
 #include "Indexing/Index.hpp"
 
@@ -61,7 +62,8 @@ class CombSubstitution
 
   public:
 
-    CombSubstitution(TermList t1,int index1, TermList t2, int index2):_solved(false)
+    CombSubstitution(TermList t1,int index1, TermList t2, int index2):
+    _solved(false)
     {
       unsigned maxt1 = HOSortHelper::getMaxVar(t1);
       unsigned maxt2 = HOSortHelper::getMaxVar(t2);
@@ -134,12 +136,15 @@ class CombSubstitution
       UnificationPair(HSH::HOTerm ht1, HSH::HOTerm ht2)
       {
         unifPair = make_pair(ht1,ht2);
-        lastStep = UNDEFINED;
-        secondLastStep = UNDEFINED;
+        lsLeft = UNDEFINED;
+        slsLeft = UNDEFINED;
+        lsRight = UNDEFINED;
+        slsRight = UNDEFINED;
       }
       //WARNING code uses default shellow copy constructor!
-      UnificationPair(HSH::HOTerm tl, HSH::HOTerm tr, AlgorithmStep ls, AlgorithmStep sls)
-      : lastStep(ls), secondLastStep(sls)
+      UnificationPair(HSH::HOTerm tl, HSH::HOTerm tr, 
+                      AlgorithmStep lsl, AlgorithmStep slsl, AlgorithmStep lsr, AlgorithmStep slsr)
+      : lsLeft(lsl), slsLeft(slsl), lsRight(lsr), slsRight(slsr)
       {
         unifPair = make_pair(tl,tr);
       }
@@ -150,14 +155,16 @@ class CombSubstitution
       TransformStack transformsBoth;
       
     #if VDEBUG
-      vstring toString(){
+      vstring toString() const{
         vstring res = "<" + unifPair.first.toString() + " , " +
                             unifPair.second.toString() + ">";
         return res;
       }
     #endif    
-      AlgorithmStep lastStep;      
-      AlgorithmStep secondLastStep;
+      AlgorithmStep lsLeft;      
+      AlgorithmStep slsLeft;
+      AlgorithmStep lsRight;      
+      AlgorithmStep slsRight;
       UnifPair unifPair;
     };
 
@@ -239,7 +246,7 @@ class CombSubstitution
     void eliminate(VarSpec, HSH::HOTerm);
     void eliminate(VarSpec, HSH::HOTerm, HSH::HOTerm&);
     void addToSolved(VarSpec, HSH::HOTerm);
-    void pushNewPair(HSH::HOTerm&, HSH::HOTerm&, AlgorithmStep, AlgorithmStep);
+    void pushNewPair(HSH::HOTerm&, HSH::HOTerm&, AlgorithmStep, AlgorithmStep, AlgorithmStep, AlgorithmStep);
                      
     inline HSH::HOTerm newVar(unsigned sort, int index){
       CALL("CombSubstitution::newvar");
@@ -297,6 +304,16 @@ class CombSubstitution
         _subst->_unificationPairs = _st;
         _subst->_nextFreshVar = _freshVarNum;
       }
+  
+    #if VDEBUG
+      vstring toString() const {
+        vstring res;
+        for (int i = _st.size() -1; i >= 0; i--){
+          res+= _st[i].toString() + "\n";
+        }
+        return res;
+      }
+    #endif
 
       CLASS_NAME(CombSubstitution::StackBacktrackObject);
       USE_ALLOCATOR(StackBacktrackObject);
@@ -343,6 +360,21 @@ public:
     return _unifSystem;
   }
 
+#if VDEBUG
+  vstring bdStackToString() {
+    vstring res;
+    unsigned count = 0;
+    for(int i = bdStack.size() - 1; i >= 0; i--){
+      count++;
+      res += bdStack[i].toString();
+      if(count > 2){
+        break;
+      }
+    }
+    return res;
+  }
+#endif
+
 private:
 
   typedef CombSubstitution::AlgorithmStep AlgorithmStep;
@@ -366,7 +398,7 @@ private:
    *  record any chanegs in bd so that transformation can be reversed
    */
   bool transform(Transform t, BacktrackData& bd);
-  
+
 };
 
 }

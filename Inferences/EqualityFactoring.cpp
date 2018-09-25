@@ -75,7 +75,8 @@ private:
 struct EqualityFactoring::CombResultIterator
 {
   typedef pair<pair<Literal*,TermList>,pair<Literal*,TermList>> argType;
-  CombResultIterator(Clause* cl, Ordering& ordering, argType arg): _cl(cl), _ordering(ordering), _arg(arg)
+  CombResultIterator(Clause* cl, Ordering& ordering, argType arg): 
+                    _cl(cl), _ordering(ordering), _arg(arg), _cLen(cl->length())
   {
     _csIt = vi(new CombSubstIterator(arg.first.second,0,arg.second.second,0)); 
   }
@@ -84,6 +85,10 @@ struct EqualityFactoring::CombResultIterator
   
   bool hasNext() {
     CALL("EqualityFactoring::CombResultIterator::hasNext");
+    cout << "calling next from EqualityFactoring" << endl;
+    cout << "The first literal is " + _arg.first.first->toString() + "\nsLHS " + _arg.first.second.toString() << endl;
+    cout << "The second literal is " + _arg.second.first->toString() + "\ntfLHS " + _arg.second.second.toString() << endl;
+    cout << "The clause is " + _cl->toString() << endl;
     return _csIt.hasNext();
   }
   
@@ -110,13 +115,18 @@ struct EqualityFactoring::CombResultIterator
 
     TermList sLHSS = cs->apply(sLHS,0);
     TermList sRHSS = cs->apply(sRHS,0);
+
+    /*
     if(Ordering::isGorGEorE(_ordering.compare(sRHSS,sLHSS))) {
       return 0;
-    }
+    }*/
     TermList fRHSS = cs->apply(fRHS,0);
-    if(Ordering::isGorGEorE(_ordering.compare(fRHSS,sLHSS))) {
+    /*if(Ordering::isGorGEorE(_ordering.compare(fRHSS,sLHSS))) {
       return 0;
     }
+    */
+    cout << "fRHSS: " + fRHSS.toString() << endl;
+    cout << "sRHSS: " + sRHSS.toString() << endl;
 
     Inference* inf = new Inference1(Inference::EQUALITY_FACTORING, _cl);
     Clause* res = new(_cLen) Clause(_cLen, _cl->inputType(), inf);
@@ -135,6 +145,8 @@ struct EqualityFactoring::CombResultIterator
 
     res->setAge(_cl->age()+1);
     env.statistics->equalityFactoring++;
+
+    cout << "returning " + res->toString() << endl;
 
     return res;
   }

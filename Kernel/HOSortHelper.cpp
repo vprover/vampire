@@ -175,7 +175,10 @@ TermList HOSortHelper::getHead(TermList ts){
  */
 TermList HOSortHelper::apply(TermList t1, unsigned s1, TermList t2, unsigned s2){
   CALL("HOSortHelper::apply");
- 
+  
+  //cout << "t1 " + t1.toString() + " of sort " + env.sorts->sortName(s1) << endl;
+  //cout << "t1 " + t2.toString() + " of sort " + env.sorts->sortName(s2) << endl;  
+
   ASS(arity(s1) > 0);
   ASS(domain(s1) == s2);
 
@@ -189,7 +192,8 @@ TermList HOSortHelper::apply(TermList t1, unsigned s1, TermList t2, unsigned s2)
   * Prints out HOTerm
   */
 #if VDEBUG
-vstring HOSortHelper::HOTerm::toString(bool withSorts, bool withIndices){
+vstring HOSortHelper::HOTerm::toString(bool withSorts, bool withIndices) const
+{
   CALL("HOSortHelper::HOTerm::toString");   
   
   vstring res;
@@ -229,7 +233,7 @@ TermList HOSortHelper::appify(HOTerm ht){
   CALL("HOSortHelper::appify");   
 
   #if VDEBUG
-    //cout << "appifying " + ht.toString() << endl;
+    //cout << "appifying " + ht.toString(false, true) << endl;
   #endif
 
   Stack<Stack<HOTerm>> toDo;
@@ -295,7 +299,7 @@ HOSortHelper::HOTerm HOSortHelper::deappify(TermList ts, int index){
   Stack<unsigned> argnums;
 
   if(ts.isVar()){
-    return HOTerm(ts); 
+    return HOTerm(ts, 0, index); 
   }
 
   toDo.push(ts);
@@ -337,7 +341,7 @@ HOSortHelper::HOTerm HOSortHelper::deappify(TermList ts, int index){
   ASS(argnums.isEmpty());
 
   #if VDEBUG
-    //cout << "The result is " + done.top().toString() << endl;
+    //cout << "The result is " + done.top().toString(true, true) << endl;
     //ASSERTION_VIOLATION;
   #endif
   return done.pop();
@@ -444,4 +448,35 @@ unsigned HOSortHelper::domain(unsigned sort){
   
   unsigned dom = env.sorts->getFuncSort(sort)->getDomainSort();
   return dom;
+}
+
+unsigned HOSortHelper::getHigherOrderSort(const Stack<unsigned>& argsSorts, unsigned range)
+{
+  CALL("HOSortHelper::getHigherOrderSort");
+  
+  unsigned res = range;
+
+  for(unsigned i = 0; i < argsSorts.size(); i++){
+    res = env.sorts->addFunctionSort(argsSorts[i], res);
+  }
+  return res;
+
+}
+
+Term* HOSortHelper::createAppifiedTerm(TermList head, unsigned headsort,
+                                       const Stack<unsigned>& argSorts,
+                                       const Stack<TermList>& args){
+  CALL("HOSortHelper::createAppifiedTerm");
+
+  ASS(argSorts.size() == args.size());
+
+  TermList res = head;
+  unsigned sort = headsort;
+
+  for(int i = args.size() - 1; i >= 0; i--){
+    res = apply(res, sort, args[i], argSorts[i]);
+    sort = range(sort);
+  }
+
+  return res.isTerm() ? res.term() : 0; 
 }

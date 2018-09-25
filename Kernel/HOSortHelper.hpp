@@ -172,7 +172,7 @@ public:
      */
     bool equal(const HOTerm&,bool useIndices = false ) const;
 #if VDEBUG
-    vstring toString(bool withSorts = false, bool withIndices = false);
+    vstring toString (bool withSorts = false, bool withIndices = false) const;
 #endif
   };
 
@@ -212,7 +212,13 @@ public:
   static unsigned addFuncSort(unsigned dom, unsigned range){
     return env.sorts->addFunctionSort(dom, range);
   }
-
+  /** returns the higher-order sort with @b argSorts as its domain sorts and
+      @b range as its range */
+  static unsigned getHigherOrderSort(const Stack<unsigned>& argsSorts, unsigned range);
+  /** returns appified term with args (including head) in @args and sorts in @argSorts */
+  static Term* createAppifiedTerm(TermList head, unsigned headsort,
+                                  const Stack<unsigned>& argSorts,
+                                  const Stack<TermList>& args);
   /** Returns combinator constant */
   static TermList getCombTerm(SS::HOLConstant cons, unsigned sort);
   /** Returns the maximum variable peresent in term */
