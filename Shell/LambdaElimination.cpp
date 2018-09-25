@@ -459,7 +459,6 @@ TermList LambdaElimination::processBeyondLambda(Term* term)
                 unsigned notapp = introduceAppSymbol(notsort, Sorts::SRT_BOOL, Sorts::SRT_BOOL); 
                 buildFuncApp(notapp, constant, appTerm, appTerm); 
               }
-              
               return appTerm;
            }
            case IFF:
@@ -516,42 +515,37 @@ TermList LambdaElimination::processBeyondLambda(Term* term)
               TermList form;
               bool added;
               if(conn == AND){
-                 constant = addHolConstant("vAND", constSort2, added, Signature::Symbol::AND);
+                constant = addHolConstant("vAND", constSort2, added, Signature::Symbol::AND);
               }else{
-                 constant = addHolConstant("vOR", constSort2, added, Signature::Symbol::OR);
+                constant = addHolConstant("vOR", constSort2, added, Signature::Symbol::OR);
               }
               if(added && !env.options->HOLConstantElimination()){
-                 addBinaryConnAxiom(constant, conn, constSort2, constSort1);
+                addBinaryConnAxiom(constant, conn, constSort2, constSort1);
               }
                 
               unsigned app1arg = introduceAppSymbol( constSort2, Sorts::SRT_BOOL, constSort1); 
               unsigned app2arg = introduceAppSymbol( constSort1, Sorts::SRT_BOOL, Sorts::SRT_BOOL); 
                 
-              bool oddNumber = true;
-              bool first = true;
+              unsigned count = 1;
               while(argsIt.hasNext()){
                   Formula* arg = argsIt.next();
                   if(arg->connective() == Connective::BOOL_TERM){
-                      form = arg->getBooleanTerm();
-                      if(form.isTerm()){
-                        form = processBeyondLambda(form.term());
-                      }
+                    form = arg->getBooleanTerm();
+                    if(form.isTerm()){
+                      form = processBeyondLambda(form.term());
+                    }
                   }else{
-                      form = processBeyondLambda(Term::createFormula(arg));
+                    form = processBeyondLambda(Term::createFormula(arg));
                   }
-                  if(oddNumber){
-                      if(first){
-                        buildFuncApp(app1arg, constant, form, appTerm);
-                        first = false;
-                      }else{
-                        buildFuncApp(app1arg, constant, appTerm, appTerm); 
-                        buildFuncApp(app2arg, appTerm, form, appTerm); 
-                      }
-                      oddNumber = false;
-                  }else{
+                  if(count == 1){
+                    buildFuncApp(app1arg, constant, form, appTerm);
+                  }else if(count == 2){
                     buildFuncApp(app2arg, appTerm, form, appTerm);
-                    oddNumber = true;
+                  }else{
+                    buildFuncApp(app1arg, constant, appTerm, appTerm); 
+                    buildFuncApp(app2arg, appTerm, form, appTerm); 
                   }
+                  count++;
               }
               return appTerm;                           
              }
@@ -661,7 +655,7 @@ TermList LambdaElimination::processBeyondLambda(Term* term)
           unsigned app = introduceAppSymbol(lhsSort, rhsSort, appSort);
          
           TermList termResult;
-          buildFuncApp(app, lhs, rhs, termResult);  
+          buildFuncApp(app, lhs, rhs, termResult); 
           return termResult;
       }
       case Term::SF_LAMBDA:
@@ -714,64 +708,62 @@ TermList LambdaElimination::elimLambda(Term* lambdaTerm)
 
 void LambdaElimination::process(Stack<int> _vars, Stack<unsigned> _sorts, Stack<TermList> _toBeProcessed){
    
-   CALL("LambdaElimination::process");   
+  CALL("LambdaElimination::process");   
     
-   int lambdaVar;
-   unsigned lambdaVarSort;
-   Stack<unsigned> _argNums;
+  int lambdaVar;
+  unsigned lambdaVarSort;
+  Stack<unsigned> _argNums;
    
-   while(!_vars.isEmpty()){
+  while(!_vars.isEmpty()){
        
     lambdaVar = _vars.pop();
     lambdaVarSort = _sorts.pop();
     
     while (!_toBeProcessed.isEmpty()){  
    
-       _processing = _toBeProcessed.pop(); 
+      _processing = _toBeProcessed.pop(); 
        
-       if (_processing.isTerm()){ 
+      if (_processing.isTerm()){ 
         
         Term* lExpTerm = _processing.term();
         IntList* freeVars = lExpTerm->freeVariables();
         
         if(IntList::member(lambdaVar, freeVars)){
-           if(lExpTerm->isSpecial()){
+          if(lExpTerm->isSpecial()){          
+            switch(lExpTerm->functor()){
+              case Term::SF_FORMULA: {
+                _toBeProcessed.push(processBeyondLambda(lExpTerm));
+                break;
+              }
+              case Term::SF_APP: {
+                TermList lhs = lExpTerm->getSpecialData()->getAppLhs();
+                TermList rhs = *lExpTerm->nthArgument(0);
                 
-               switch(lExpTerm->functor()){
-                  case Term::SF_FORMULA: {
-                      _toBeProcessed.push(processBeyondLambda(lExpTerm));
-                      break;
-                  }
-                  case Term::SF_APP: {
-                      TermList lhs = lExpTerm->getSpecialData()->getAppLhs();
-                      TermList rhs = *lExpTerm->nthArgument(0);
-                      
-                      unsigned sort = env.sorts->addFunctionSort(lambdaVarSort, lExpTerm->getSpecialData()->getSort());
-                      dealWithApp(lhs,rhs,sort, lambdaVar, _toBeProcessed, _argNums); 
-                      break;
-                  }
-                  case Term::SF_LAMBDA: {
-                      _toBeProcessed.push(elimLambda(lExpTerm));
-                      break;
-                  }
-                  default:
-                      ASSERTION_VIOLATION;
-                      //Not deailing with ITEs, Lets and Tuples at the moment.
-               }                    
-            }
-            else //not special. Of the sort app(X,Y).
-            {
-                TermList firstArg = *lExpTerm->nthArgument(0);
-                TermList secondArg = *lExpTerm->nthArgument(1);
-                unsigned sort = env.sorts->addFunctionSort(lambdaVarSort, SortHelper::getResultSort(lExpTerm)); 
-                dealWithApp(firstArg,secondArg,sort, lambdaVar, _toBeProcessed, _argNums);                
-            }
+                unsigned sort = env.sorts->addFunctionSort(lambdaVarSort, lExpTerm->getSpecialData()->getSort());
+                dealWithApp(lhs,rhs,sort, lambdaVar, _toBeProcessed, _argNums); 
+                break;
+              }
+              case Term::SF_LAMBDA: {
+                _toBeProcessed.push(elimLambda(lExpTerm));
+                break;
+              }
+              default:
+                ASSERTION_VIOLATION;
+                //Not deailing with ITEs, Lets and Tuples at the moment.
+            }                    
+          }
+          else //not special. Of the sort app(X,Y).
+          {
+            TermList firstArg = *lExpTerm->nthArgument(0);
+            TermList secondArg = *lExpTerm->nthArgument(1);
+            unsigned sort = env.sorts->addFunctionSort(lambdaVarSort, SortHelper::getResultSort(lExpTerm)); 
+            dealWithApp(firstArg,secondArg,sort, lambdaVar, _toBeProcessed, _argNums);                
+          }
         }
         else //In the case \x.exp where x is not free in exp.
         {
             unsigned kSort = env.sorts->addFunctionSort(lambdaVarSort, sortOf(_processing));
-            addToProcessed(addKComb(kSort, processBeyondLambda(_processing.term())), _argNums);                
-            
+            addToProcessed(addKComb(kSort, processBeyondLambda(_processing.term())), _argNums);                  
         }
       }else{//lambda expression is a variable. If it is the lambda var, then this will be translated to I
        bool added;       
@@ -790,11 +782,11 @@ void LambdaElimination::process(Stack<int> _vars, Stack<unsigned> _sorts, Stack<
         }       
        //freeVars = List<unsigned>(sd->getLambdaExp().var());
       }
-   }//of while
+    }//of while
    
-   if(!_vars.isEmpty()){
-       _toBeProcessed.push(_processed.pop());
-   }
+    if(!_vars.isEmpty()){
+      _toBeProcessed.push(_processed.pop());
+    }
    
   }//outer while      
 }

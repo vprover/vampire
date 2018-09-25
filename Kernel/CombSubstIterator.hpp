@@ -72,7 +72,6 @@ class CombSubstitution
       HOSortHelper::HOTerm ht1 = HOSortHelper::deappify(t1, index1);
       HOSortHelper::HOTerm ht2 = HOSortHelper::deappify(t2, index2);
       UnificationPair up = UnificationPair(ht1, ht2);
-      populateTransformations(up);
       _unificationPairs.push(up);
     }
     
@@ -216,7 +215,9 @@ class CombSubstitution
        case ELIMINATE:  
          return "ELIMINATE"; 
        case ID:
-         return "ID";     
+         return "ID"; 
+       case ADD_ARG:
+         return "ADD_ARG";   
        default:
          return "UNKNOWN";
       }
@@ -336,6 +337,7 @@ public:
   CombSubstIterator(TermList t1,int index1, TermList t2, int index2)
   {
     _unifSystem = new CombSubstitution(t1, index1, t2, index2);
+    cout << "STARTING ITERATOR WITH " + _unifSystem->_unificationPairs.top().toString() << endl;
     transformStacks.push(_unifSystem->availableTransforms());
     _calledNext = false;
   }

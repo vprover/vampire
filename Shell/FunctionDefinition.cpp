@@ -179,18 +179,18 @@ bool FunctionDefinition::removeUnusedDefinitions(UnitList*& units, Problem* prb)
     if(d) {
       d->defCl=cl;
       if(!def[d->fun]) {
-	defStack.push(d);
-	def[d->fun]=d;
-	scanIterator.del();
+        defStack.push(d);
+        def[d->fun]=d;
+        scanIterator.del();
       } else {
-	delete d;
+        delete d;
       }
     }
     for(unsigned i=0;i<clen;i++) {
       NonVariableIterator nvit((*cl)[i]);
       while(nvit.hasNext()) {
-	unsigned fn=nvit.next().term()->functor();
-	occCounter[fn]++;
+        unsigned fn=nvit.next().term()->functor();
+        occCounter[fn]++;
       }
     }
   }
@@ -216,7 +216,7 @@ bool FunctionDefinition::removeUnusedDefinitions(UnitList*& units, Problem* prb)
       unsigned fn=nvit.next().term()->functor();
       occCounter[fn]--;
       if(occCounter[fn]==1 && def[fn]) {
-	toDo.push(def[fn]);
+        toDo.push(def[fn]);
       }
     }
     ASS_EQ(occCounter[d->fun], 0);
@@ -228,8 +228,8 @@ bool FunctionDefinition::removeUnusedDefinitions(UnitList*& units, Problem* prb)
     if(d->mark==Def::REMOVED) {
       modified = true;
       if(prb) {
-	ASS_EQ(d->defCl->length(), 1);
-	prb->addEliminatedFunction(d->fun, (*d->defCl)[0]);
+        ASS_EQ(d->defCl->length(), 1);
+        prb->addEliminatedFunction(d->fun, (*d->defCl)[0]);
       }
     }
     else {
@@ -267,10 +267,10 @@ bool FunctionDefinition::removeAllDefinitions(UnitList*& units)
     if(d) {
       d->defCl=cl;
       if(_defs.insert(d->fun, d)) {
-	//cout<<"Found: "<<(*(*d->defCl)[0])<<endl;
-	scanIterator.del();
+        //cout<<"Found: "<<(*(*d->defCl)[0])<<endl;
+        scanIterator.del();
       } else {
-	delete d;
+        delete d;
       }
     }
   }
@@ -384,48 +384,48 @@ void FunctionDefinition::checkDefinitions(Def* def0)
       termArgStack.pop();
       ASS(!d || d->mark==Def::LOOP);
       if(d && d->mark==Def::LOOP) {
-	//the definition is safe (i.e. doesn't contain cycle of non-blocked definitions)
-	assignArgOccursData(d);
-	_safeDefs.push(d);
-	d->mark=Def::SAFE;
+        //the definition is safe (i.e. doesn't contain cycle of non-blocked definitions)
+        assignArgOccursData(d);
+        _safeDefs.push(d);
+        d->mark=Def::SAFE;
       }
     } else if(t.isTerm()) {
       Term* trm=t.term();
       Def* checkedDef=0;
     toplevel_def:
       if(!_defs.find(trm->functor(), d) || d->mark==Def::BLOCKED) {
-	d=0;
+        d=0;
       }
       if(trm->arity() || checkedDef) {
-	stack.push(trm->args());
-	defCheckingStack.push(checkedDef);
-	defArgStack.push(d);
-	termArgStack.push(trm);
+        stack.push(trm->args());
+        defCheckingStack.push(checkedDef);
+        defArgStack.push(d);
+        termArgStack.push(trm);
       }
       if(d) {
-	if(d->mark==Def::UNTOUCHED) {
-	  //enter the definition
-	  d->mark=Def::LOOP;
-	  trm=d->rhs;
-	  checkedDef=d;
-	  goto toplevel_def;
-	} else if(d->mark==Def::LOOP) {
-	  //unroll stacks until the point when the current
-	  //definition was entered
-	  do{
-	    stack.pop();
+        if(d->mark==Def::UNTOUCHED) {
+          //enter the definition
+          d->mark=Def::LOOP;
+          trm=d->rhs;
+          checkedDef=d;
+          goto toplevel_def;
+        } else if(d->mark==Def::LOOP) {
+          //unroll stacks until the point when the current
+          //definition was entered
+          do{
+            stack.pop();
 
-	    defArgStack.pop();
-	    termArgStack.pop();
-	    d=defCheckingStack.pop();
-	  } while(!d);
-	  ASS_EQ(d->mark, Def::LOOP);
-	  d->mark=Def::BLOCKED;
-	  defArgStack.setTop(0);
-	  _blockedDefs.push(d);
-	} else {
-	  ASS_EQ(d->mark, Def::SAFE);
-	}
+            defArgStack.pop();
+            termArgStack.pop();
+            d=defCheckingStack.pop();
+          } while(!d);
+          ASS_EQ(d->mark, Def::LOOP);
+          d->mark=Def::BLOCKED;
+          defArgStack.setTop(0);
+          _blockedDefs.push(d);
+        } else {
+          ASS_EQ(d->mark, Def::SAFE);
+        }
       }
     }
     if(stack.isEmpty()) {
@@ -435,16 +435,16 @@ void FunctionDefinition::checkDefinitions(Def* def0)
     if(ts->isNonEmpty()) {
       Def* argDef=defArgStack.top();
       if(argDef) {
-	ASS_EQ(argDef->mark,Def::SAFE);
-	Term* parentTerm=termArgStack.top();
-	while(ts->isNonEmpty() && !argDef->argOccurs[parentTerm->getArgumentIndex(ts)]) {
-	  ts=ts->next();
-	}
-	if(ts->isNonEmpty()) {
-	  stack.push(ts->next());
-	}
+        ASS_EQ(argDef->mark,Def::SAFE);
+        Term* parentTerm=termArgStack.top();
+        while(ts->isNonEmpty() && !argDef->argOccurs[parentTerm->getArgumentIndex(ts)]) {
+          ts=ts->next();
+        }
+        if(ts->isNonEmpty()) {
+          stack.push(ts->next());
+        }
       } else {
-	stack.push(ts->next());
+        stack.push(ts->next());
       }
     }
     t=*ts;

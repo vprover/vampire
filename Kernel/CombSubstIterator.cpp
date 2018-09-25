@@ -55,6 +55,8 @@ Stack<CombSubstitution::Transform> CombSubstitution::availableTransforms()
 {
   CALL("CombSubstitution::availableTransforms");
 
+  populateTransformations(_unificationPairs.top());
+
   UnificationPair up = _unificationPairs.top();
 
   TransformStack left = up.transformsLeft;
@@ -530,7 +532,6 @@ void CombSubstitution::pushNewPair(HSH::HOTerm& ht1, HSH::HOTerm& ht2,
   CALL("CombSubstitution::pushNewPair");
   
   UnificationPair newup = UnificationPair(ht1, ht2, lsl, slsl, lsr, slsr);
-  populateTransformations(newup);
   _unificationPairs.push(newup);                                       
 }
 
