@@ -176,8 +176,8 @@ TermList HOSortHelper::getHead(TermList ts){
 TermList HOSortHelper::apply(TermList t1, unsigned s1, TermList t2, unsigned s2){
   CALL("HOSortHelper::apply");
   
-  //cout << "t1 " + t1.toString() + " of sort " + env.sorts->sortName(s1) << endl;
-  //cout << "t1 " + t2.toString() + " of sort " + env.sorts->sortName(s2) << endl;  
+  cout << "t1 " + t1.toString() + " of sort " + env.sorts->sortName(s1) << endl;
+  cout << "t2 " + t2.toString() + " of sort " + env.sorts->sortName(s2) << endl;  
 
   ASS(arity(s1) > 0);
   ASS(domain(s1) == s2);
@@ -233,7 +233,7 @@ TermList HOSortHelper::appify(HOTerm ht){
   CALL("HOSortHelper::appify");   
 
   #if VDEBUG
-    //cout << "appifying " + ht.toString(false, true) << endl;
+    //cout << "appifying " + ht.toString(true, true) << endl;
   #endif
 
   Stack<Stack<HOTerm>> toDo;

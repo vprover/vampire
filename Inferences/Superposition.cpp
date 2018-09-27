@@ -953,7 +953,10 @@ Clause* Superposition::performParamodulation(
     //NOT_IMPLEMENTED;
   }
 */
-  cout << "The result is : " + res->toString() << endl;
 
+  cout << "The result is : " + res->toString() << endl;
+  if(res->number() == 254){
+    ASSERTION_VIOLATION;
+  }
   return res;
 }

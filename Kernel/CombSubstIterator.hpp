@@ -63,7 +63,7 @@ class CombSubstitution
   public:
 
     CombSubstitution(TermList t1,int index1, TermList t2, int index2):
-    _solved(false)
+    _solved(false), _nextUnboundAvailable(0)
     {
       unsigned maxt1 = HOSortHelper::getMaxVar(t1);
       unsigned maxt2 = HOSortHelper::getMaxVar(t2);
@@ -79,7 +79,7 @@ class CombSubstitution
     
     TermList apply(TermList t, int index) const;
     Literal* apply(Literal* lit, int index) const;
-    HOSortHelper::HOTerm deref(VarSpec vs, bool& success) const;
+    HOSortHelper::HOTerm deref(VarSpec vs, bool& success, unsigned sort) const;
     
     enum AlgorithmStep{
        UNDEFINED,
@@ -102,6 +102,14 @@ class CombSubstitution
        DECOMP,
        ELIMINATE,
        ID //syntactically identical
+    };
+
+    enum PairType{
+      FLEX_FLEX_SAME_HEAD = 0,
+      FLEX_FLEX_DIFF_HEAD = 1,
+      FLEX_RIGID_LEFT = 2,
+      FLEX_RIGID_RIGHT = 3,
+      RIGID_RIGID = 4
     };
     
     /**
@@ -130,6 +138,23 @@ class CombSubstitution
 
     struct UnificationPair
     {
+
+      PairType getPairType(HSH::HOTerm ht1, HSH::HOTerm ht2) { 
+        if(ht1.varHead()){
+          if(ht2.varHead()){
+            if(ht1.sameVarHead(ht2, true)){
+              return FLEX_FLEX_SAME_HEAD;
+            } else {
+              return FLEX_FLEX_DIFF_HEAD;
+            }
+          } else {
+            return FLEX_RIGID_LEFT;
+          }
+        } else if(ht2.varHead()){
+          return FLEX_RIGID_RIGHT;
+        }
+        return RIGID_RIGID;
+      }
       //CLASS_NAME(UnificationPair);
       //USE_ALLOCATOR(UnificationPair);
       UnificationPair(HSH::HOTerm ht1, HSH::HOTerm ht2)
@@ -139,13 +164,16 @@ class CombSubstitution
         slsLeft = UNDEFINED;
         lsRight = UNDEFINED;
         slsRight = UNDEFINED;
+        mostRecentSide = BOTH;
+        pairType = getPairType(ht1, ht2);
       }
       //WARNING code uses default shellow copy constructor!
       UnificationPair(HSH::HOTerm tl, HSH::HOTerm tr, 
-                      AlgorithmStep lsl, AlgorithmStep slsl, AlgorithmStep lsr, AlgorithmStep slsr)
-      : lsLeft(lsl), slsLeft(slsl), lsRight(lsr), slsRight(slsr)
+      AlgorithmStep lsl, AlgorithmStep slsl, AlgorithmStep lsr, AlgorithmStep slsr, ApplyTo mr)
+      : lsLeft(lsl), slsLeft(slsl), lsRight(lsr), slsRight(slsr), mostRecentSide(mr)
       {
         unifPair = make_pair(tl,tr);
+        pairType = getPairType(tl, tr);
       }
       //stack that holds the potential transformations that can be carried out to
       //the left-hand (first) term of this unification pair
@@ -159,11 +187,13 @@ class CombSubstitution
                             unifPair.second.toString() + ">";
         return res;
       }
-    #endif    
+    #endif
+      PairType pairType;
       AlgorithmStep lsLeft;      
       AlgorithmStep slsLeft;
-      AlgorithmStep lsRight;      
+      AlgorithmStep lsRight;
       AlgorithmStep slsRight;
+      ApplyTo mostRecentSide;
       UnifPair unifPair;
     };
 
@@ -219,14 +249,14 @@ class CombSubstitution
        case ADD_ARG:
          return "ADD_ARG";   
        default:
-         return "UNKNOWN";
+         return "UNDEFINED";
       }
     }
    #endif   
     
     TransformStack availableTransforms();
     /*
-     * Finds all relevant trandformations for top unif pair 
+     * Finds all relevant transformations for top unif pair 
      * in _unifcationPairs of _unifSystem. Populates transformation
      * stacks.
      */
@@ -247,7 +277,12 @@ class CombSubstitution
     void eliminate(VarSpec, HSH::HOTerm);
     void eliminate(VarSpec, HSH::HOTerm, HSH::HOTerm&);
     void addToSolved(VarSpec, HSH::HOTerm);
-    void pushNewPair(HSH::HOTerm&, HSH::HOTerm&, AlgorithmStep, AlgorithmStep, AlgorithmStep, AlgorithmStep);
+    void pushNewPair(const HSH::HOTerm&, const HSH::HOTerm&, AlgorithmStep, AlgorithmStep,
+                     AlgorithmStep, AlgorithmStep, ApplyTo);
+    void pushNewPair(const HSH::HOTerm& ht1, const HSH::HOTerm& ht2){
+      UnificationPair newup = UnificationPair(ht1, ht2);
+      _unificationPairs.push(newup); 
+    }
                      
     inline HSH::HOTerm newVar(unsigned sort, int index){
       CALL("CombSubstitution::newvar");
@@ -263,11 +298,12 @@ class CombSubstitution
     bool _solved;
     unsigned _nextFreshVar;
     unsigned _maxOrigVar;
-
+    mutable unsigned _nextUnboundAvailable;
     Stack<UnificationPair> _unificationPairs;
     
     typedef DHMap<VarSpec,HSH::HOTerm,VarSpec::Hash1, VarSpec::Hash2> SolvedType;
     mutable SolvedType _solvedPairs;
+    mutable SolvedType _unboundVariables;
   
     class BindingBacktrackObject
     : public BacktrackObject
@@ -337,8 +373,8 @@ public:
   CombSubstIterator(TermList t1,int index1, TermList t2, int index2)
   {
     _unifSystem = new CombSubstitution(t1, index1, t2, index2);
-    cout << "STARTING ITERATOR WITH " + _unifSystem->_unificationPairs.top().toString() << endl;
     transformStacks.push(_unifSystem->availableTransforms());
+    cout << "STARTING ITERATOR WITH " + _unifSystem->_unificationPairs.top().toString() << endl; 
     _calledNext = false;
   }
 
@@ -359,6 +395,8 @@ public:
    */
   CombSubstitution* next(){
     _calledNext = true;
+    _unifSystem->_nextUnboundAvailable = 0;
+    _unifSystem->_unboundVariables.reset();
     return _unifSystem;
   }
 
@@ -372,6 +410,18 @@ public:
       if(count > 2){
         break;
       }
+    }
+    return res;
+  }
+
+  vstring transformStacksToString() {
+    vstring res = "TRANSFORM STACK: \n";
+    for(int i = transformStacks.size() - 1; i >= 0; i--){
+      res += "[";
+      for(int j = transformStacks[i].size()-1; j >=0; j--){
+        res += _unifSystem->algorithmStepToString(transformStacks[i][j].first) + ", ";
+      }
+      res += "]\n";
     }
     return res;
   }

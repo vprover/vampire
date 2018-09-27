@@ -104,6 +104,30 @@ void CombSubstitution::populateTransformations(UnificationPair& up)
     return;        
   }  
 
+  if(hoterml.sameFirstOrderHead(hotermr)){
+    Transform trs = make_pair(DECOMP,BOTH);
+    up.transformsBoth.push(trs);
+    return;      
+  }
+  
+  if(hoterml.underAppliedCombTerm() || hoterml.underAppliedCombTerm()){
+    Transform trs = make_pair(ADD_ARG,BOTH);
+    up.transformsBoth.push(trs);
+    return; 
+  }
+
+  if(hoterml.combHead() && !hoterml.underAppliedCombTerm()){
+    AlgorithmStep as = reduceStep(hoterml);
+    Transform trs = make_pair(as,FIRST);
+    up.transformsLeft.push(trs);
+    return;  
+  } else if(hotermr.combHead() && !hotermr.underAppliedCombTerm()){
+    AlgorithmStep as = reduceStep(hotermr);
+    Transform trs = make_pair(as,SECOND);
+    up.transformsRight.push(trs);
+    return;
+  }
+
   int diff = hoterml.argnum() - hotermr.argnum();
   
   if(hoterml.isAppliedVar() && diff <= 0 &&
@@ -121,21 +145,22 @@ void CombSubstitution::populateTransformations(UnificationPair& up)
     up.transformsRight.push(trs);       
   }
 
-  populateSide(hoterml, FIRST, up.transformsLeft, up.lsLeft, up.lsRight);
-  //If both sides have the same variable head (flex-flex) then a change on one
-  //side will automatically take place on the other via eliminate
-  if(!hoterml.sameVarHead(hotermr, true)){
+  if(up.pairType == FLEX_FLEX_SAME_HEAD){
+    //If both sides have the same variable head (flex-flex) then a change on one
+    //side will automatically take place on the other via eliminate
+    populateSide(hoterml, FIRST, up.transformsLeft, up.lsLeft, up.slsLeft);
+  }else if(up.pairType == FLEX_FLEX_DIFF_HEAD && 
+           up.mostRecentSide == SECOND){
     populateSide(hotermr, SECOND, up.transformsRight, up.lsRight, up.slsRight);
-  }
-  
-  if(hoterml.sameFirstOrderHead(hotermr)){
-    Transform trs = make_pair(DECOMP,BOTH);
-    up.transformsBoth.push(trs);      
-  }
-  
-  if(hoterml.underAppliedCombTerm() || hoterml.underAppliedCombTerm()){
-    Transform trs = make_pair(ADD_ARG,BOTH);
-    up.transformsBoth.push(trs); 
+  }else if(up.pairType == FLEX_FLEX_DIFF_HEAD && 
+          (up.mostRecentSide == FIRST || up.mostRecentSide == BOTH)){
+    populateSide(hoterml, FIRST, up.transformsLeft, up.lsLeft, up.slsLeft);
+    populateSide(hotermr, SECOND, up.transformsRight, up.lsRight, up.slsRight);
+  }else if (up.pairType == FLEX_RIGID_LEFT){
+    populateSide(hoterml, FIRST, up.transformsLeft, up.lsLeft, up.slsLeft);
+  }else if (up.pairType == FLEX_RIGID_RIGHT){
+    //cout << "FLEX_RIGID_RIGHT with ls " + algorithmStepToString(up.lsRight) + " and sls " + algorithmStepToString(up.slsRight) << endl;
+    populateSide(hotermr, SECOND, up.transformsRight, up.lsRight, up.slsRight);
   }
 
 }
@@ -144,85 +169,77 @@ void CombSubstitution::populateSide(HSH::HOTerm& hoterm, ApplyTo at, TransformSt
                                     AlgorithmStep ls, AlgorithmStep sls){
   CALL("CombSubstitution::populateSide");
   
-  if(hoterm.varHead()){
-    //KX_NARROW admissable as long as var has a single argument
-    if(canPerformStep(ls,sls, KX_NARROW)){
-      Transform trs = make_pair(KX_NARROW,at);
-      tStack.push(trs);    
+  ASS(hoterm.varHead());
+  //KX_NARROW admissable as long as var has a single argument
+  if(canPerformStep(ls,sls, KX_NARROW)){
+    Transform trs = make_pair(KX_NARROW,at);
+    tStack.push(trs);    
+  }
+  
+  if(hoterm.nthArgSort(0) == hoterm.sortOfLengthNPref(1)){
+    if(canPerformStep(ls,sls,I_NARROW)){
+      Transform trs = make_pair(I_NARROW,at);
+      tStack.push(trs); 
+    }      
+  }
+  
+  if(hoterm.argnum() > 1 && (hoterm.nthArgSort(0) == hoterm.sortOfLengthNPref(2))){
+    if(canPerformStep(ls, sls, K_NARROW)){
+      Transform trs = make_pair(K_NARROW,at);
+      tStack.push(trs);
+    }       
+  }    
+  
+  if(hoterm.argnum() > 2){
+    unsigned sort1 = hoterm.nthArgSort(0);
+    unsigned sort2 = hoterm.nthArgSort(1);
+    unsigned sort3 = hoterm.nthArgSort(2);
+    //B narrow  
+    if(!(HSH::arity(sort1) < 1) && !(HSH::arity(sort2) < 1)){
+      if((HSH::domain(sort1) == HSH::range(sort2) &&
+         (HSH::domain(sort2) == sort3) &&
+         (HSH::range(sort1) == hoterm.sortOfLengthNPref(3)))){
+        Transform trs = make_pair(B_NARROW,at);
+        tStack.push(trs);
+      }        
     }
-    
-    if(hoterm.nthArgSort(0) == hoterm.sortOfLengthNPref(1)){
-      if(canPerformStep(ls,sls,I_NARROW)){
-        Transform trs = make_pair(I_NARROW,at);
+    //C narrow
+    if(!(HSH::arity(sort1) < 2)){
+      if((HSH::appliedToN(sort1, 2) == hoterm.sortOfLengthNPref(3)) &&
+         (HSH::getNthArgSort(sort1, 0) == sort2) &&
+         (HSH::getNthArgSort(sort1, 1) == sort3)){
+        Transform trs = make_pair(C_NARROW,at);
         tStack.push(trs); 
-      }      
-    }
-    
-    if(hoterm.argnum() > 1 && (hoterm.nthArgSort(0) == hoterm.sortOfLengthNPref(2))){
-      if(canPerformStep(ls, sls, K_NARROW)){
-        Transform trs = make_pair(K_NARROW,at);
-        tStack.push(trs);
-      }       
-    }    
-    
-    if(hoterm.argnum() > 2){
-      unsigned sort1 = hoterm.nthArgSort(0);
-      unsigned sort2 = hoterm.nthArgSort(1);
-      unsigned sort3 = hoterm.nthArgSort(2);
-      //B narrow  
-      if(!(HSH::arity(sort1) < 1) && !(HSH::arity(sort2) < 1)){
-        if((HSH::domain(sort1) == HSH::range(sort2) &&
-           (HSH::domain(sort2) == sort3) &&
-           (HSH::range(sort1) == hoterm.sortOfLengthNPref(3)))){
-          Transform trs = make_pair(B_NARROW,at);
-          tStack.push(trs);
-        }        
-      }
-      //C narrow
-      if(!(HSH::arity(sort1) < 2)){
-        if((HSH::appliedToN(sort1, 2) == hoterm.sortOfLengthNPref(3)) &&
-           (HSH::getNthArgSort(sort1, 0) == sort2) &&
-           (HSH::getNthArgSort(sort1, 1) == sort3)){
-          Transform trs = make_pair(C_NARROW,at);
-          tStack.push(trs); 
-        }
-      }
-      //S narrow
-      if(!(HSH::arity(sort1) < 2) && !(HSH::arity(sort2) < 1)){
-        if((HSH::appliedToN(sort1, 2) == hoterm.sortOfLengthNPref(3)) &&  
-           (HSH::domain(sort1) == sort3) &&
-           (HSH::domain(sort2) == sort3) &&
-           (HSH::getNthArgSort(sort1, 1) == HSH::range(sort2))){
-          Transform trs = make_pair(S_NARROW,at);
-          tStack.push(trs);           
-        }
       }
     }
-    
-    if(hoterm.argnum() > 1){
-      unsigned sort1 = hoterm.nthArgSort(0);
-      unsigned sort2 = hoterm.nthArgSort(1);
-      if(!(HSH::arity(sort1) < 1)){
-        if(HSH::domain(sort1) == sort2){
-          Transform trs = make_pair(BX_NARROW,at);
-          tStack.push(trs);
-          Transform trs2 = make_pair(SX_NARROW,at);
-          tStack.push(trs2);
-        }
+    //S narrow
+    if(!(HSH::arity(sort1) < 2) && !(HSH::arity(sort2) < 1)){
+      if((HSH::appliedToN(sort1, 2) == hoterm.sortOfLengthNPref(3)) &&  
+         (HSH::domain(sort1) == sort3) &&
+         (HSH::domain(sort2) == sort3) &&
+         (HSH::getNthArgSort(sort1, 1) == HSH::range(sort2))){
+        Transform trs = make_pair(S_NARROW,at);
+        tStack.push(trs);           
       }
-      if(canPerformStep(ls, sls, CX_NARROW)){
-        Transform trs = make_pair(CX_NARROW,at);
+    }
+  }
+  
+  if(hoterm.argnum() > 1){
+    unsigned sort1 = hoterm.nthArgSort(0);
+    unsigned sort2 = hoterm.nthArgSort(1);
+    if(!(HSH::arity(sort1) < 1)){
+      if(HSH::domain(sort1) == sort2){
+        Transform trs = make_pair(BX_NARROW,at);
         tStack.push(trs);
-      }          
-    } 
-
-  }
-
-  if(hoterm.combHead() && !hoterm.underAppliedCombTerm()){
-    AlgorithmStep as = reduceStep(hoterm);
-    Transform trs = make_pair(as,at);
-    tStack.push(trs);  
-  }
+        Transform trs2 = make_pair(SX_NARROW,at);
+        tStack.push(trs2);
+      }
+    }
+    if(canPerformStep(ls, sls, CX_NARROW)){
+      Transform trs = make_pair(CX_NARROW,at);
+      tStack.push(trs);
+    }          
+  } 
 
 }
 
@@ -285,7 +302,7 @@ bool CombSubstitution::transform(Transform t){
       HSH::HOTerm fc = HSH::HOTerm(TermList(Term::createFreshConstant("f", freshArgSort)));
       terml.addArg(fc);
       termr.addArg(fc);
-      pushNewPair(terml, termr, ADD_ARG, up.lsLeft, ADD_ARG, up.lsRight);
+      pushNewPair(terml, termr);
     }
 
     if(t.first == DECOMP){
@@ -298,7 +315,7 @@ bool CombSubstitution::transform(Transform t){
           succeeded = false;
           break; 
         }
-        pushNewPair(tl, tr, DECOMP, up.lsLeft, DECOMP, up.lsRight);
+        pushNewPair(tl, tr);
       }
     }
   }
@@ -338,9 +355,11 @@ bool CombSubstitution::transform(Transform t){
       eliminate(vs, ht);
       addToSolved(vs, ht);
       if(t.second == FIRST){
-        pushNewPair(toSplit, other, SPLIT, up.lsLeft, up.lsRight, up.slsRight);
+        //have made left head same as right, so make last steps on left side same as those
+        //on right
+        pushNewPair(toSplit, other, up.lsRight, up.slsRight, up.lsRight, up.slsRight, FIRST);
       } else {
-        pushNewPair(other, toSplit, up.lsLeft, up.slsLeft, SPLIT, up.lsRight);      
+        pushNewPair(other, toSplit, up.lsLeft, up.slsLeft, up.lsLeft, up.slsLeft, SECOND);      
       }
     }
   }
@@ -348,10 +367,10 @@ bool CombSubstitution::transform(Transform t){
   if(t.first != SPLIT && t.first != ELIMINATE && t.first != DECOMP && t.first != ADD_ARG){
     if(t.second == FIRST){
       transform(terml, termr, t.first);
-      pushNewPair(terml, termr, t.first, up.lsLeft, up.lsRight, up.slsRight);
+      pushNewPair(terml, termr, t.first, up.lsLeft, up.lsRight, up.slsRight, FIRST);
     } else {
       transform(termr, terml, t.first);
-      pushNewPair(terml, termr, up.lsLeft, up.slsLeft, t.first, up.lsRight);
+      pushNewPair(terml, termr, up.lsLeft, up.slsLeft, t.first, up.lsRight, SECOND);
     }
   }
    
@@ -437,6 +456,7 @@ void CombSubstitution::transform(HSH::HOTerm& term, HSH::HOTerm& other, Algorith
   HSH::HOTerm newvar;
   unsigned oldvar = term.varHead() ? term.head.var() : 0;
   unsigned oldsort = term.headsort;
+  int oldInd = term.headInd; //index may become -1 on the non X' narrow steps
   
   if(as == I_NARROW){
     ASS(term.varHead());
@@ -471,7 +491,7 @@ void CombSubstitution::transform(HSH::HOTerm& term, HSH::HOTerm& other, Algorith
 
   if(as >= I_NARROW && as <= SX_NARROW){
     HSH::HOTerm ht;
-    VarSpec vs = VarSpec(oldvar, term.headInd);
+    VarSpec vs = VarSpec(oldvar, oldInd);
     if(as == KX_NARROW || as == BX_NARROW || 
        as == CX_NARROW || as == SX_NARROW){
       unsigned combSort = HSH::addFuncSort(newvar.sort(), oldsort);      
@@ -527,11 +547,11 @@ void CombSubstitution::addToSolved(VarSpec vs, HSH::HOTerm ht){
  bdAdd(new BindingBacktrackObject(this, vs)); 
 }
 
-void CombSubstitution::pushNewPair(HSH::HOTerm& ht1, HSH::HOTerm& ht2,
-     AlgorithmStep lsl, AlgorithmStep slsl, AlgorithmStep lsr, AlgorithmStep slsr ){
+void CombSubstitution::pushNewPair(const HSH::HOTerm& ht1, const HSH::HOTerm& ht2, 
+  AlgorithmStep lsl, AlgorithmStep slsl, AlgorithmStep lsr, AlgorithmStep slsr, ApplyTo mr){
   CALL("CombSubstitution::pushNewPair");
-  
-  UnificationPair newup = UnificationPair(ht1, ht2, lsl, slsl, lsr, slsr);
+
+  UnificationPair newup = UnificationPair(ht1, ht2, lsl, slsl, lsr, slsr, mr);
   _unificationPairs.push(newup);                                       
 }
 
@@ -581,7 +601,8 @@ void CombSubstitution::eliminate(VarSpec vs, HSH::HOTerm ht, HSH::HOTerm& target
 }
 
 bool CombSubstitution::canPerformStep(AlgorithmStep ls, AlgorithmStep sls, AlgorithmStep curr){
-  CALL("CombSubstitution::canPerformKXStep");
+  CALL("CombSubstitution::canPerformStep");
+
   switch(curr){
     case KX_NARROW:
       return (!(ls == SX_NARROW) && !(ls == BX_NARROW) && 
@@ -612,37 +633,33 @@ TermList CombSubstitution::apply(TermList t, int index) const
 
   while(!toDo.isEmpty()){
     HSH::HOTerm* hterm = toDo.pop();
+    cout << "the hterm is " + hterm->toString() << endl;
     if(hterm->varHead() && hterm->head.var() <= _maxOrigVar){
       unsigned var = hterm->head.var();
       VarSpec vs(var, hterm->headInd);
       HSH::HOTerm found;
-      bool success = false;
-      if(known.find(vs, found)){
-        success = true;
-      } else {
-        found = deref(vs, success);
-        if(success){
+      if(!known.find(vs, found)){
+        bool present = false;
+        found = deref(vs, present, hterm->headsort);
+        if(present){
           known.insert(vs, found);
         }
       }
-      if(success){
-        hterm->headify(found);
-        while(hterm->combHead() && !hterm->underAppliedCombTerm()){
-          AlgorithmStep as = reduceStep(*hterm);
-          switch(as){
-            case I_REDUCE:
-              iReduce(*hterm);
-              break;
-            case K_REDUCE:
-              kReduce(*hterm);
-              break;
-            default:
-              bcsReduce(*hterm, as);
-          }
+      hterm->headify(found);
+      cout << "the hterm is " + hterm->toString() << endl;
+      while(hterm->combHead() && !hterm->underAppliedCombTerm()){
+        AlgorithmStep as = reduceStep(*hterm);
+        switch(as){
+          case I_REDUCE:
+            iReduce(*hterm);
+            break;
+          case K_REDUCE:
+            kReduce(*hterm);
+            break;
+          default:
+            bcsReduce(*hterm, as);
         }
-        toDo.push(hterm);
-        continue;         
-      }
+      }      
     }
     for(unsigned i = 0; i < hterm->argnum(); i++){
       toDo.push(hterm->nthargptr(i));
@@ -670,13 +687,16 @@ Literal* CombSubstitution::apply(Literal* lit, int index) const
   return Literal::create(lit,ts.array());
 }
 
-HOSortHelper::HOTerm CombSubstitution::deref(VarSpec vs, bool& success) const{
+HOSortHelper::HOTerm CombSubstitution::deref(VarSpec vs, bool& success, unsigned varSort) const{
   CALL("CombSubstitution::deref");
   
   HSH::HOTerm res;
   if(!_solvedPairs.find(vs, res)){
-    success = false;
-    return res;
+    if(!_unboundVariables.find(vs, res)){
+      res = HSH::HOTerm(TermList(_nextUnboundAvailable++, false), varSort, vs.index);
+      _unboundVariables.set(vs, res);
+      return res;
+    }
   }  
   
   success = true;
@@ -689,6 +709,14 @@ HOSortHelper::HOTerm CombSubstitution::deref(VarSpec vs, bool& success) const{
       VarSpec vnew(hterm->head.var(), hterm->headInd);
       HSH::HOTerm found;
       if(_solvedPairs.find(vnew, found)){
+        hterm->headify(found);
+        toDo.push(hterm);
+        continue;
+      } else {
+        if(!_unboundVariables.find(vnew,found)){
+          found = HSH::HOTerm(TermList(_nextUnboundAvailable++, false), hterm->headsort, vnew.index);
+          _unboundVariables.set(vnew, found);
+        }
         hterm->headify(found);
       }
     }
@@ -751,6 +779,7 @@ bool CombSubstIterator::hasNextUnifier(){
 
   do {
     cout << _unifSystem->unificationPairsToString() << endl;
+    //cout << transformStacksToString() << endl;
 
     while(transformStacks.top().isEmpty() && !bdStack.isEmpty()) {
       bdStack.pop().backtrack();
@@ -758,7 +787,7 @@ bool CombSubstIterator::hasNextUnifier(){
     if(transformStacks.top().isEmpty()) {
       return false;
     }
-    
+
     Transform t=transformStacks.top().pop();
     
     BacktrackData bd;

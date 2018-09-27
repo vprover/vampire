@@ -148,6 +148,10 @@ struct EqualityFactoring::CombResultIterator
 
     cout << "returning " + res->toString() << endl;
 
+    if(res->number() == 254){
+      ASSERTION_VIOLATION;
+    }
+
     return res;
   }
   

@@ -90,8 +90,6 @@ struct EqualityResolution::CombResultIterator
     for(unsigned i=0;i<_cLen;i++) {
       Literal* curr=(*_cl)[i];
       if(curr!=_lit) {
-        cout << "the literal is " + _lit->toString() << endl; 
-        cout << "applying to " + curr->toString() + " subst " + cs->toString() << endl;
         Literal* currAfter = cs->apply(curr, 0);
         (*res)[next++] = currAfter;
       }
@@ -181,6 +179,10 @@ struct EqualityResolution::ResultFn
 
     res->setAge(_cl->age()+1);
     env.statistics->equalityResolution++;
+
+    if(res->number() == 254){
+      ASSERTION_VIOLATION;
+    }
 
     return res;  
   }
