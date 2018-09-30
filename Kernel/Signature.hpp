@@ -128,6 +128,8 @@ class Signature
      *  A placeholder symbol is utilised in place of a term of the form @(@(...(X, t1) ... tn) within a subtituion tree
      */
     unsigned _isPlaceHolder : 1;
+    /** symbol is a dummy argument used only in unification */
+    unsigned _dummyArg: 1;
 	  /** if symbol is  HOL constant, records which one **/
 	  HOLConstant _HOLconst : NULL_CONSTANT;
 	
@@ -162,8 +164,11 @@ class Signature
     void markHOLAPP() { _isAPP=1; }
     /** mark symbol as a placeholder symbol */
     void markAsPlaceHolder() { _isPlaceHolder=1; }
+    /** marks a symbol as a particular constant */
     void setHOLConstant(HOLConstant cnst) { _HOLconst = cnst;}
-	
+	  /** marks symbol as dummy arg used in combinatory substitution */
+    void markAsDummyArg() { _dummyArg = 1; }
+  
     /** return true iff symbol is marked as skip for the purpose of symbol elimination */
     bool skip() const { return _skip; }
     /** return true iff the symbol is marked as name predicate
@@ -197,6 +202,8 @@ class Signature
 	  inline bool hOLAPP() const { return _isAPP; }
     /** Returns true if symbol is placeholder */
     inline bool isPlaceHolder() const { return _isPlaceHolder; }
+    /** Returns true if symbol is a dummy argument */
+    inline bool isDummyArg() const { return _dummyArg; }
     
     /** Increase the usage count of this symbol **/
     inline void incUsageCnt(){ _usageCount++; }
@@ -464,7 +471,7 @@ class Signature
   unsigned functions() const { return _funs.length(); }
   /** return the number of predicates */
   unsigned predicates() const { return _preds.length(); }
-
+  
   /** Return the function symbol by its number */
   inline Symbol* getFunction(unsigned n)
   {
@@ -603,7 +610,7 @@ private:
   Stack<Stack<unsigned>*> _distinctGroupMembers;
   // Flag to indicate if any distinct groups have members
   bool _distinctGroupsAddedTo;
-
+  
   /**
    * Map from MonomorphisedInterpretation values to function and predicate symbols representing them
    *

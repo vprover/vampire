@@ -103,8 +103,8 @@ struct EqualityFactoring::CombResultIterator
     ASS(fLit->isEquality());
 
     unsigned srt = SortHelper::getEqualityArgumentSort(sLit);
-    if (srt!=SortHelper::getEqualityArgumentSort(fLit)) {
-      return 0;
+    if (srt!=SortHelper::getEqualityArgumentSort(fLit)) {    
+      ASSERTION_VIOLATION;
     }
 
     TermList sLHS=_arg.first.second;
@@ -168,9 +168,25 @@ struct EqualityFactoring::CombResultFn
   CombResultFn(Clause* cl, Ordering& ordering)
       : _cl(cl), _ordering(ordering) {}
   
+  unsigned litSort(Literal* lit) const 
+  {
+    CALL("Literal::litSort");
+    if(lit->isTwoVarEquality()){
+      return lit->twoVarEqSort();
+    }
+    if(!lit->nthArgument(0)->isVar()){
+      return SortHelper::getResultSort(lit->nthArgument(0)->term());
+    }
+    return SortHelper::getResultSort(lit->nthArgument(1)->term());
+  }
+  
   DECL_RETURN_TYPE(VirtualIterator<Clause*>);
   VirtualIterator<Clause*> operator() (pair<pair<Literal*,TermList>,pair<Literal*,TermList> > arg){
-
+    Literal* lit1 = arg.first.first;
+    Literal* lit2 = arg.second.first;
+    if(litSort(lit1) != litSort(lit2)){
+      return ClauseIterator::getEmpty();  
+    }
     return pvi(CombResultIterator(_cl, _ordering, arg));
   }
   
@@ -303,7 +319,11 @@ ClauseIterator EqualityFactoring::generateClauses(Clause* premise)
 
   if(env.options->combinatoryUnification()) {
     auto it5 = getMapAndFlattenIterator(it4, CombResultFn(premise, _salg->getOrdering()));
-    return pvi(it5);
+    //At the moment filter below not requried as all ordering checks have been commented
+    //out. This means a it5 can not contain any 0 results. However, this may change
+    //in the future
+    auto it6 = getFilteredIterator(it5,NonzeroFn());
+    return pvi(it6);
   }  
   
   auto it5 = getMappingIterator(it4,ResultFn(premise,

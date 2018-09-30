@@ -190,7 +190,7 @@ struct Superposition::ForwardResultFn
   OWN_RETURN_TYPE operator()(pair<pair<Literal*, TermList>, TermQueryResult> arg)
   {
     CALL("Superposition::ForwardResultFn::operator()");
-
+    
     TermQueryResult& qr = arg.second;
     if(!env.options->combinatoryUnification()){
       return _parent.performSuperposition(_cl, arg.first.first, arg.first.second,
@@ -955,8 +955,6 @@ Clause* Superposition::performParamodulation(
 */
 
   cout << "The result is : " + res->toString() << endl;
-  if(res->number() == 254){
-    ASSERTION_VIOLATION;
-  }
+
   return res;
 }

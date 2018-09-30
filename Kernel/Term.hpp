@@ -334,7 +334,7 @@ public:
   static Term* cloneNonShared(Term* t);
 
   static Term* createConstant(const vstring& name);
-  static Term* createFreshConstant(const vstring& suffix, unsigned sort);
+  static Term* createFreshConstant(const vstring& suffix, unsigned sort, bool dummyArg = false);
   /** Create a new constant and insert in into the sharing structure */
   static Term* createConstant(unsigned symbolNumber) { return create(symbolNumber,0,0); }
   static Term* createITE(Formula * condition, TermList thenBranch, TermList elseBranch, unsigned branchSort);
@@ -852,7 +852,6 @@ public:
 
     _sort = sort;
   }
-
 
   /** Return a new equality literal */
   static inline Literal* equality (bool polarity)

@@ -26,6 +26,7 @@
 #define __EqualityFactoring__
 
 #include "Forwards.hpp"
+#include "Kernel/SortHelper.hpp"
 
 #include "InferenceEngine.hpp"
 
@@ -44,6 +45,7 @@ public:
 
   ClauseIterator generateClauses(Clause* premise);
 private:
+
   struct IsPositiveEqualityFn;
   struct IsDifferentPositiveEqualityFn;
   struct FactorablePairsFn;

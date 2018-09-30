@@ -76,6 +76,7 @@ class CombSubstitution
     }
     
     typedef RobSubstitution::VarSpec VarSpec;
+    static const int UNBOUND_INDEX = -2;
     
     TermList apply(TermList t, int index) const;
     Literal* apply(Literal* lit, int index) const;
@@ -138,8 +139,33 @@ class CombSubstitution
 
     struct UnificationPair
     {
-
-      PairType getPairType(HSH::HOTerm ht1, HSH::HOTerm ht2) { 
+      //CLASS_NAME(UnificationPair);
+      //USE_ALLOCATOR(UnificationPair);
+      UnificationPair(HSH::HOTerm ht1, HSH::HOTerm ht2)
+      {
+        unifPair = make_pair(ht1,ht2);
+        lsLeft = UNDEFINED;
+        slsLeft = UNDEFINED;
+        lsRight = UNDEFINED;
+        slsRight = UNDEFINED;
+        mostRecentSide = BOTH;
+      }
+      //WARNING code uses default shellow copy constructor!
+      UnificationPair(HSH::HOTerm tl, HSH::HOTerm tr, 
+      AlgorithmStep lsl, AlgorithmStep slsl, AlgorithmStep lsr, AlgorithmStep slsr, ApplyTo mr)
+      : lsLeft(lsl), slsLeft(slsl), lsRight(lsr), slsRight(slsr), mostRecentSide(mr)
+      {
+        unifPair = make_pair(tl,tr);
+      }
+      //stack that holds the potential transformations that can be carried out to
+      //the left-hand (first) term of this unification pair
+      TransformStack transformsLeft;
+      TransformStack transformsRight;
+      TransformStack transformsBoth;
+     
+      PairType getPairType() {
+        HSH::HOTerm ht1 = unifPair.first;
+        HSH::HOTerm ht2 = unifPair.second;        
         if(ht1.varHead()){
           if(ht2.varHead()){
             if(ht1.sameVarHead(ht2, true)){
@@ -155,32 +181,7 @@ class CombSubstitution
         }
         return RIGID_RIGID;
       }
-      //CLASS_NAME(UnificationPair);
-      //USE_ALLOCATOR(UnificationPair);
-      UnificationPair(HSH::HOTerm ht1, HSH::HOTerm ht2)
-      {
-        unifPair = make_pair(ht1,ht2);
-        lsLeft = UNDEFINED;
-        slsLeft = UNDEFINED;
-        lsRight = UNDEFINED;
-        slsRight = UNDEFINED;
-        mostRecentSide = BOTH;
-        pairType = getPairType(ht1, ht2);
-      }
-      //WARNING code uses default shellow copy constructor!
-      UnificationPair(HSH::HOTerm tl, HSH::HOTerm tr, 
-      AlgorithmStep lsl, AlgorithmStep slsl, AlgorithmStep lsr, AlgorithmStep slsr, ApplyTo mr)
-      : lsLeft(lsl), slsLeft(slsl), lsRight(lsr), slsRight(slsr), mostRecentSide(mr)
-      {
-        unifPair = make_pair(tl,tr);
-        pairType = getPairType(tl, tr);
-      }
-      //stack that holds the potential transformations that can be carried out to
-      //the left-hand (first) term of this unification pair
-      TransformStack transformsLeft;
-      TransformStack transformsRight;
-      TransformStack transformsBoth;
-      
+     
     #if VDEBUG
       vstring toString() const{
         vstring res = "<" + unifPair.first.toString() + " , " +
@@ -188,7 +189,6 @@ class CombSubstitution
         return res;
       }
     #endif
-      PairType pairType;
       AlgorithmStep lsLeft;      
       AlgorithmStep slsLeft;
       AlgorithmStep lsRight;
@@ -273,7 +273,7 @@ class CombSubstitution
     void bcsReduce(HSH::HOTerm&, AlgorithmStep)const;
 
     bool canPerformStep(AlgorithmStep, AlgorithmStep, AlgorithmStep);
-    bool occurs(const VarSpec, const HSH::HOTerm&);
+    bool occursOrNotPure(const VarSpec, const HSH::HOTerm&);
     void eliminate(VarSpec, HSH::HOTerm);
     void eliminate(VarSpec, HSH::HOTerm, HSH::HOTerm&);
     void addToSolved(VarSpec, HSH::HOTerm);
@@ -282,6 +282,15 @@ class CombSubstitution
     void pushNewPair(const HSH::HOTerm& ht1, const HSH::HOTerm& ht2){
       UnificationPair newup = UnificationPair(ht1, ht2);
       _unificationPairs.push(newup); 
+    }
+    bool isDummyArg(const HSH::HOTerm& ht) const {
+      CALL("CombSubstitution::isDummyArg");
+      
+      if(!ht.varHead()){
+        SS* sym = env.signature->getFunction(ht.head.term()->functor());
+        return sym->isDummyArg();        
+      }
+      return false;
     }
                      
     inline HSH::HOTerm newVar(unsigned sort, int index){
