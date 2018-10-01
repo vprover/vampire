@@ -83,6 +83,7 @@ private:
                                                   Interpretation less, Interpretation multiply);
 
   void addPolyMorphicSpecialConstantAxiom(Interpretation op, TermList arg, TermList out, unsigned size);
+  void addPolyMorphicSpecialConstantAxiomVariation(Interpretation op, TermList arg, TermList out, unsigned size);
   void addPolyMorphicBinaryFunctionEquivalentToUnaryFunctionAppliedToBinaryFunction(Interpretation f, Interpretation unary, Interpretation binary, unsigned size);
   void addPolyMorphicBinaryFunctionEquivalentToBinaryFunctionAppliedToUnaryFunction(Interpretation f, Interpretation binary, Interpretation unary, unsigned size);
   
@@ -92,16 +93,42 @@ private:
   void addBVReverseAndMoreAxiom(Interpretation bvugt, Interpretation bvult,unsigned size);
 
 
+  void addEqualsImpliesBinaryPredicate(Interpretation itp, unsigned srt);
+  void addBinaryFunctionEqualityAxiom(Interpretation f, unsigned srt, bool eq);
+  void addConcatArgumentsNotEqualEquivalentToConcatResultsNotEqual(unsigned srt0, unsigned srt1, unsigned resultSort);
+  void addConcatResultsEqualImpliesArgumentsEqual(unsigned srt0, unsigned srt1, unsigned resultSort);
 
-  ////
+// ************
+  void addBVUREMwithPredicateAxiom(Interpretation f, Interpretation p, unsigned srt);
+  void addFunctionWithSameArgumentEqualsConstant(Interpretation f, TermList constant, unsigned srt);
+  void addFunctionWithSameArgumentEqualArgument(Interpretation f, unsigned srt);
+  void addFunctionAppliedToConstantPredicateFirstArg(Interpretation f, Interpretation p, TermList constant, unsigned srt);
+  void addFunctionAppliedToConstantPredicateFirstArgVariation(Interpretation f, Interpretation p, TermList constant, unsigned srt);
+
+
+
+  void addConcatArgsPredicateImpliesWholePredicate(Interpretation predicate, unsigned srt0, unsigned srt1, unsigned resultSort);
+  void addEveryThingSmallerOrEqualToSignedMax(Interpretation p, TermList constant, unsigned srt);
+  void addEveryThingSmallerOrEqualToSignedMaxVariation(Interpretation p, TermList constant, unsigned srt);
+
+  void addSomeAdditionAxiom(unsigned srt);
+  void addUnaryFunctionAppliedTwiceEqualsArgument(Interpretation f, unsigned srt);
+
+  void addBVNOTQuantAxiom(unsigned srt);
+
+// ***********
+
+// ------------
   void addConcatAxiom1(unsigned srt0, unsigned srt1, unsigned resultSrt);
- 
+  void addConcatAxiom2(unsigned srt0, unsigned srt1, unsigned resultSrt);
+  void isPredicateWithEqualRemovedOrEqualAxiom(Interpretation completePredicate, Interpretation predicateWithEqualRemoved, unsigned sort);
+  void addSignedMaxAxiom(Interpretation p, unsigned srt);
   void addMaxAxiom(Interpretation p, unsigned srt);
-
   void addFlipOverAxiom(unsigned srt);
-
   void addBVNotAxiom(unsigned srt);
-  ////
+
+// ------------
+
 
   void addExtraIntegerOrderingAxiom(Interpretation plus, TermList oneElement, Interpretation less);
 
