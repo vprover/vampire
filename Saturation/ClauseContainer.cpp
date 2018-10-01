@@ -175,9 +175,11 @@ void ActiveClauseContainer::onLimitsUpdated(LimitsChangeType change)
   }
   Limits* limits=getSaturationAlgorithm()->getLimits();
 
+  ASS(limits);
   if (!limits->ageLimited() || !limits->weightLimited()) {
     return;
   }
+
   unsigned ageLimit=limits->ageLimit();
   unsigned weightLimit=limits->weightLimit();
 
@@ -189,6 +191,7 @@ void ActiveClauseContainer::onLimitsUpdated(LimitsChangeType change)
   SLQueryResultIterator rit=gis->getAll();
   while (rit.hasNext()) {
     Clause* cl=rit.next().clause;
+    ASS(cl);
     if (cl->age()<ageLimit || checked.contains(cl)) {
       continue;
     }

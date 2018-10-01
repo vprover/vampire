@@ -2903,6 +2903,10 @@ bool Options::complete(const Problem& prb) const
     return false;
   }
 
+  if(_maxWeight.actualValue > 0){
+    return false;
+  }
+
   Property& prop = *prb.getProperty();
 
   // general properties causing incompleteness
@@ -2910,9 +2914,8 @@ bool Options::complete(const Problem& prb) const
       || prop.hasProp(Property::PR_HAS_INTEGERS)
       || prop.hasProp(Property::PR_HAS_REALS)
       || prop.hasProp(Property::PR_HAS_RATS)
-      || prop.hasProp(Property::PR_HAS_DT_CONSTRUCTORS)
-      || prop.hasProp(Property::PR_HAS_CDT_CONSTRUCTORS)
-      || prop.hasProp(Property::PR_HAS_BITVECTORS) 
+	  || prop.hasProp(Property::PR_HAS_ARRAYS)
+	  || prop.hasProp(Property::PR_HAS_BITVECTORS)
       || (!prop.onlyFiniteDomainDatatypes() && prop.hasProp(Property::PR_HAS_DT_CONSTRUCTORS))
       || (!prop.onlyFiniteDomainDatatypes() && prop.hasProp(Property::PR_HAS_CDT_CONSTRUCTORS))) {
 

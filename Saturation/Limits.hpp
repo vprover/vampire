@@ -64,7 +64,7 @@ public:
 
   bool fulfillsLimits(Clause* cl);
 
-  void setLimits(int newMaxAge, int newMaxWeight);
+  void setLimits(int newMaxAge, int newMaxWeight,bool initial=false);
 
 private:
   int _maxAge;
