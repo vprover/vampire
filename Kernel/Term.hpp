@@ -608,7 +608,7 @@ protected:
   /** The number of this symbol in a signature */
   unsigned _functor;
   /** Arity of the symbol */
-  unsigned _arity : 27;
+  unsigned _arity : 27; //TODO: remove one bit and use the constant
   /** colour, used in interpolation and symbol elimination */
   unsigned _color : 2;
   /** Equal to 1 if the term/literal contains any interpreted constants */

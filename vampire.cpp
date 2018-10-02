@@ -211,23 +211,20 @@ ScopedPtr<Problem> prb(getPreprocessedProblem());
   if (env.options->watchNewPassiveClauses() != Options::WatchNewPassiveClauses::OFF) {
     env.beginOutput();
     TPTPPrinter p(& env.out());
-    env.out() << "predicates: " << env.signature->predicates() << " functions: " << env.signature->functions() << std::endl;
     for (unsigned int i=0;i<env.signature->predicates();i++) {
-      env.out() << "predicate " << i << std::endl;
       p.outputSymbolTypeDefinitions(i,false);
     }
     for (unsigned int i=0;i<env.signature->functions();i++) {
-      env.out() << "function " << i << std::endl;
       p.outputSymbolTypeDefinitions(i,true);
     }
     env.endOutput();
   }
 
   // Then again when the property is here (this will only randomize non-default things if an option is set to do so)
-  env.options->randomizeStrategy(prb->getProperty()); 
+  env.options->randomizeStrategy(prb->getProperty());
 
   // this will provide warning if options don't make sense for problem
-  //env.options->checkProblemOptionConstraints(prb->getProperty()); 
+  //env.options->checkProblemOptionConstraints(prb->getProperty());
 
   ProvingHelper::runVampireSaturation(*prb, *env.options);
 }
