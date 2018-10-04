@@ -32,6 +32,7 @@
 #include "Kernel/Term.hpp"
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/TermIterators.hpp"
+#include <memory>
 
 namespace Kernel {
 
@@ -43,6 +44,10 @@ public:
   typedef Signature::Symbol SS;
 
   struct HOTerm{
+
+    CLASS_NAME(HOTerm);
+    USE_ALLOCATOR(HOTerm);
+
     //create a new higher-order term
     HOTerm(TermList ts,  int hsort = -1, int hind = -1):head(ts),headInd(hind) 
     {
@@ -58,6 +63,7 @@ public:
     }
     //copy constructor
     HOTerm( const HOTerm &ht){
+      cout << "CALLING HOTerm COPY CONSTRUCTOR with " + ht.toString(false, true) << endl;
       head = ht.head;
       headsort = ht.headsort;
       srt = ht.srt;
@@ -103,7 +109,7 @@ public:
       return appliedToN(headsort, n);
     }
     /** adds argument to end of args*/
-    void addArg(HOTerm ht){
+    void addArg(const HOTerm& ht){
       CALL("HOTerm::addArg");
   #if VDEBUG
       ASS_REP(arity(srt) > 0, env.sorts->sortName(srt));
@@ -147,23 +153,24 @@ public:
        return false;
     }
     /** Returns true if both HOTerms have same non-var non-comb head */
-    bool sameFirstOrderHead(HOTerm hotm) const {
+    bool sameFirstOrderHead(const HOTerm& hotm) const {
       if(varHead() || hotm.varHead()){ return false; }
       if(combHead() || hotm.combHead()){ return false; }
       return head.term()->functor() == hotm.head.term()->functor();
     }
     /** Returns true if both HOTerms have diff non-var non-comb heads */
-    bool diffFirstOrderHead(HOTerm hotm) const {
+    bool diffFirstOrderHead(const HOTerm& hotm) const {
       if(varHead() || hotm.varHead()){ return false; }
       if(combHead() || hotm.combHead()){ return false; }
       return head.term()->functor() != hotm.head.term()->functor();
     }
     /** returns true if same variable heads */
-    bool sameVarHead(HOTerm hotm, bool useIndices = false) const {
+    bool sameVarHead(const HOTerm& hotm, bool useIndices = false) const {
       if(useIndices && headInd != hotm.headInd){ return false; }
       if(!varHead() || !hotm.varHead()){ return false; }      
       return head.var() == hotm.head.var();
     }
+    //make const HOTerm
     void headify(HOTerm tm);
     /** Returns true if this HOTerm is 
      *  syntactically equal to the first argument
@@ -175,6 +182,8 @@ public:
     vstring toString (bool withSorts = false, bool withIndices = false) const;
 #endif
   };
+
+  typedef unique_ptr<HOTerm> HOTerm_ptr;
 
   static TermList appify(HOTerm);
   static HOTerm deappify(TermList,int index = -1);
@@ -221,20 +230,6 @@ public:
                                   const Stack<TermList>& args);
   /** Returns combinator constant */
   static TermList getCombTerm(SS::HOLConstant cons, unsigned sort);
-  /** Returns the maximum variable peresent in term */
-  static unsigned getMaxVar(TermList ts){
-    if(ts.isVar()){
-      return ts.var();
-    }
-    TermVarIterator vit(ts.term());
-    unsigned max = 0;
-    while(vit.hasNext()){
-      if(vit.next() > max){
-        max = vit.next();
-      }
-    }
-    return max;
-  }
 
 };
 

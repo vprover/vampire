@@ -63,21 +63,22 @@ class CombSubstitution
   public:
 
     CombSubstitution(TermList t1,int index1, TermList t2, int index2):
-    _solved(false), _nextUnboundAvailable(0)
+    _solved(false),_nextFreshVar(0), _nextUnboundAvailable(0)
     {
-      unsigned maxt1 = HOSortHelper::getMaxVar(t1);
-      unsigned maxt2 = HOSortHelper::getMaxVar(t2);
-      _nextFreshVar = max(maxt1, maxt2) + 1;
-      _maxOrigVar = _nextFreshVar - 1;
       HOSortHelper::HOTerm ht1 = HOSortHelper::deappify(t1, index1);
+      cout << "AND NOW HERE" << endl;
       HOSortHelper::HOTerm ht2 = HOSortHelper::deappify(t2, index2);
+          cout << "AND NOW HERE2" << endl;
       UnificationPair up = UnificationPair(ht1, ht2);
       _unificationPairs.push(up);
     }
+
+    ~CombSubstitution(){}
     
     typedef RobSubstitution::VarSpec VarSpec;
     static const int UNBOUND_INDEX = -2;
-    
+    static const int AUX_INDEX = -3;
+
     TermList apply(TermList t, int index) const;
     Literal* apply(Literal* lit, int index) const;
     HOSortHelper::HOTerm deref(VarSpec vs, bool& success, unsigned sort) const;
@@ -163,12 +164,24 @@ class CombSubstitution
       TransformStack transformsRight;
       TransformStack transformsBoth;
      
+      void emptyTransforms(){
+        while(!transformsLeft.isEmpty()){
+          transformsLeft.pop();
+        }
+        while(!transformsRight.isEmpty()){
+          transformsRight.pop();
+        }
+        while(!transformsBoth.isEmpty()){
+          transformsBoth.pop();
+        }        
+      }
+
       PairType getPairType() {
-        HSH::HOTerm ht1 = unifPair.first;
-        HSH::HOTerm ht2 = unifPair.second;        
-        if(ht1.varHead()){
-          if(ht2.varHead()){
-            if(ht1.sameVarHead(ht2, true)){
+        HSH::HOTerm* ht1 = &unifPair.first;
+        HSH::HOTerm* ht2 = &unifPair.second;        
+        if(ht1->varHead()){
+          if(ht2->varHead()){
+            if(ht1->sameVarHead(*ht2, true)){
               return FLEX_FLEX_SAME_HEAD;
             } else {
               return FLEX_FLEX_DIFF_HEAD;
@@ -176,7 +189,7 @@ class CombSubstitution
           } else {
             return FLEX_RIGID_LEFT;
           }
-        } else if(ht2.varHead()){
+        } else if(ht2->varHead()){
           return FLEX_RIGID_RIGHT;
         }
         return RIGID_RIGID;
@@ -194,6 +207,7 @@ class CombSubstitution
       AlgorithmStep lsRight;
       AlgorithmStep slsRight;
       ApplyTo mostRecentSide;
+      //get rid of this pair and make two HOTerms
       UnifPair unifPair;
     };
 
@@ -261,9 +275,9 @@ class CombSubstitution
      * stacks.
      */
     void populateTransformations(UnificationPair&);   
-    void populateSide(HSH::HOTerm&, ApplyTo, TransformStack&,AlgorithmStep,AlgorithmStep);
+    void populateSide(const HSH::HOTerm*, ApplyTo, TransformStack&,AlgorithmStep,AlgorithmStep);
     /** returns the particular narrow step relevant to the arg */
-    AlgorithmStep reduceStep(HSH::HOTerm&) const;
+    AlgorithmStep reduceStep(const HSH::HOTerm&) const;
     /** Carry out transformation represented bt t on top pair*/ 
     bool transform(Transform t);
 
@@ -273,10 +287,10 @@ class CombSubstitution
     void bcsReduce(HSH::HOTerm&, AlgorithmStep)const;
 
     bool canPerformStep(AlgorithmStep, AlgorithmStep, AlgorithmStep);
-    bool occursOrNotPure(const VarSpec, const HSH::HOTerm&);
-    void eliminate(VarSpec, HSH::HOTerm);
-    void eliminate(VarSpec, HSH::HOTerm, HSH::HOTerm&);
-    void addToSolved(VarSpec, HSH::HOTerm);
+    bool occursOrNotPure(const VarSpec&, const HSH::HOTerm&);
+    void eliminate(const VarSpec&, const HSH::HOTerm&);
+    void eliminate(const VarSpec&, const HSH::HOTerm&, HSH::HOTerm&);
+    void addToSolved(const VarSpec&, const HSH::HOTerm&);
     void pushNewPair(const HSH::HOTerm&, const HSH::HOTerm&, AlgorithmStep, AlgorithmStep,
                      AlgorithmStep, AlgorithmStep, ApplyTo);
     void pushNewPair(const HSH::HOTerm& ht1, const HSH::HOTerm& ht2){
@@ -295,18 +309,16 @@ class CombSubstitution
                      
     inline HSH::HOTerm newVar(unsigned sort, int index){
       CALL("CombSubstitution::newvar");
-      HSH::HOTerm ht = HSH::HOTerm(TermList(_nextFreshVar, false), sort, index);
-      _nextFreshVar++;
+      HSH::HOTerm ht = HSH::HOTerm(TermList(_nextFreshVar++, false), sort, AUX_INDEX);
       return ht;
     }
-    inline bool introduced(unsigned var){
-      return var > _maxOrigVar;
-    }
+    //inline bool introduced(unsigned var){
+    //  return var > _maxOrigVar;
+    //}
 
     //if subsitution represents solved system _solved set to true
     bool _solved;
     unsigned _nextFreshVar;
-    unsigned _maxOrigVar;
     mutable unsigned _nextUnboundAvailable;
     Stack<UnificationPair> _unificationPairs;
     
@@ -387,6 +399,10 @@ public:
     _calledNext = false;
   }
 
+  ~CombSubstIterator(){
+    delete _unifSystem;
+  }
+
   bool hasNext(){
     if(!_calledNext){
       if(_unifSystem->_solved){
@@ -403,6 +419,7 @@ public:
    * multiple times.
    */
   CombSubstitution* next(){
+    ASS(_unifSystem->_solved);
     _calledNext = true;
     _unifSystem->_nextUnboundAvailable = 0;
     _unifSystem->_unboundVariables.reset();

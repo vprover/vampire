@@ -427,7 +427,7 @@ Formula* Skolem::skolemise (Formula* f)
           skolemTerm = Term::create(fun, arity, fnArgs.begin());
         } else {
           //WARNING assuming axiom of choice. Otherwise, procedure below
-          //is unsoun
+          //is unsound
           unsigned skSymSort = HOSortHelper::getHigherOrderSort(domainSorts, rangeSort);
           unsigned fun = addSkolemFunction(0, 0, skSymSort, v);
           _introducedSkolemFuns.push(fun);
