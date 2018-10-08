@@ -159,7 +159,8 @@ void CombSubstitution::populateTransformations(UnificationPair& up)
   }else if(pt == FLEX_FLEX_DIFF_HEAD && up.mostRecentSide == SECOND){
     //Once transformations are carried out on the right, cannot swap
     //back to left
-    populateSide(hotermr, SECOND, up.transformsRight, up.lsRight, up.slsRight);
+    cout << "Reached here" << endl;
+     populateSide(hotermr, SECOND, up.transformsRight, up.lsRight, up.slsRight);
   }else if(pt == FLEX_FLEX_DIFF_HEAD){
     populateSide(hoterml, FIRST, up.transformsLeft, up.lsLeft, up.slsLeft);
     populateSide(hotermr, SECOND, up.transformsRight, up.lsRight, up.slsRight);
@@ -307,9 +308,11 @@ bool CombSubstitution::transform(Transform t){
     
     if(t.first == ADD_ARG){
       unsigned freshArgSort = HSH::domain(terml->sort());
-      HOTerm_ptr fc = HOTerm_ptr(new HSH::HOTerm(TermList(Term::createFreshConstant("f",freshArgSort, true))));
-      terml->addArg(fc);
-      termr->addArg(fc);
+      TermList newArg = TermList(Term::createFreshConstant("f",freshArgSort, true));
+      HOTerm_ptr fcl = HOTerm_ptr(new HSH::HOTerm(newArg));
+      HOTerm_ptr fcr = HOTerm_ptr(new HSH::HOTerm(newArg));
+      terml->addArg(fcl);
+      termr->addArg(fcr);
       up->lsRight = UNDEFINED;
       up->lsLeft = UNDEFINED;
       up->slsRight = UNDEFINED;
@@ -378,7 +381,6 @@ bool CombSubstitution::transform(Transform t){
         up->slsRight = up->slsLeft;      
       }
     }
-    cout << "AFTER SPLIT The substitution so far is " + toString() << endl;     
   }
 
   if(t.first != SPLIT && t.first != ELIMINATE && t.first != DECOMP && t.first != ADD_ARG){
@@ -391,6 +393,7 @@ bool CombSubstitution::transform(Transform t){
       up->slsRight = up->lsRight;
       up->lsRight = t.first;
     }
+    up->mostRecentSide = t.second;
   }
    
   bdDone();

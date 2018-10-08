@@ -42,8 +42,8 @@ class Deque
 {
 private:
   //private and undefined operator= and copy constructor to avoid implicitly generated ones
-  //Deque(const Deque&);
- // Deque& operator=(const Deque&);
+  Deque(const Deque&);
+  Deque& operator=(const Deque&);
 public:
   class Iterator;
 
@@ -67,6 +67,7 @@ public:
     _end = _data+_capacity;
   }
 
+  /*
   Deque(const Deque& s)
    : _capacity(s._capacity)
   {
@@ -79,7 +80,7 @@ public:
     _end = _data+_capacity;
 
     loadFromIterator(BackToFrontIterator(const_cast<Deque&>(s)));
-  }
+  }*/
 
   /** De-allocate the stack
    * @since 13/01/2008 Manchester
@@ -98,7 +99,7 @@ public:
     DEALLOC_KNOWN(_data,_capacity*sizeof(C),"Deque<>");
   }
 
-
+  /*
   Deque& operator=(const Deque& s)
   {
     CALL("Deque::operator=");
@@ -106,7 +107,7 @@ public:
     reset();
     loadFromIterator(BackToFrontIterator(const_cast<Deque&>(s)));
     return *this;
-  }
+  }*/
 
 
   /**

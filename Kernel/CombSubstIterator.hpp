@@ -75,7 +75,6 @@ class CombSubstitution
       HOTerm_ptr ht2 = HOSortHelper::deappify(t2, index2);
       UnificationPair up = UnificationPair(ht1, ht2);
       _unificationPairs.push(up);
-      cout << _unificationPairs.top().terml->toString(false, true) << endl;
     }
 
     ~CombSubstitution(){}
@@ -155,18 +154,6 @@ class CombSubstitution
         slsRight = UNDEFINED;
         mostRecentSide = BOTH;
       }
-      
-      /*
-      UnificationPair(const UnificationPair &up){
-        lsLeft = up.lsLeft;
-        slsLeft = up.slsLeft;
-        lsRight = up.lsRight;
-        slsRight = up.slsRight;
-        mostRecentSide = up.mostRecentSide;
-        //dont copy transforms because dont want to for now.
-        terml = HOTerm_ptr(new HSH::HOTerm(*(up.terml)));        
-        termr = HOTerm_ptr(new HSH::HOTerm(*(up.termr)));
-      } */
       
       UnificationPair(HOTerm_ptr tl, HOTerm_ptr tr, 
       AlgorithmStep lsl, AlgorithmStep slsl, AlgorithmStep lsr, AlgorithmStep slsr, ApplyTo mr)
@@ -468,7 +455,15 @@ public:
     for(int i = transformStacks.size() - 1; i >= 0; i--){
       res += "[";
       for(int j = transformStacks[i].size()-1; j >=0; j--){
-        res += _unifSystem->algorithmStepToString(transformStacks[i][j].first) + ", ";
+        vstring side;
+        if(transformStacks[i][j].second == CombSubstitution::FIRST){
+          side = ", LEFT), ";
+        }else if(transformStacks[i][j].second == CombSubstitution::SECOND){
+          side = ", RIGHT), ";
+        }else{
+          side = ", ";
+        }
+        res += "(" + _unifSystem->algorithmStepToString(transformStacks[i][j].first) + side;
       }
       res += "]\n";
     }

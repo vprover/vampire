@@ -66,7 +66,7 @@ public:
     }
     //copy constructor
     HOTerm(const HOTerm &ht){
-      cout << "CALLING HOTerm COPY CONSTRUCTOR with " + ht.toString(false, true) << endl;
+      //cout << "CALLING HOTerm COPY CONSTRUCTOR with " + ht.toString(false, true) << endl;
       head = ht.head;
       headsort = ht.headsort;
       srt = ht.srt;
@@ -77,6 +77,10 @@ public:
     } 
 
     HOTerm(){}
+
+    ~HOTerm(){
+      //cout << "DESTROYING THE HOTERM " + toString(false, true) << endl;
+    }
   
     //head symbol of this HOTerm
     TermList head;
