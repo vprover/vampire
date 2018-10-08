@@ -147,7 +147,8 @@ struct Superposition::CombResultIterator
    typedef pair<pair<Literal*, TermList>, TermQueryResult> QueryResType;
    
    CombResultIterator(QueryResType arg): _arg(arg)
-   {
+   {  
+     cout << "starting iterator from SUPERPOSITION" << endl;
      _csIt = vi(new CombSubstIterator(arg.first.second, QUERY_BANK, arg.second.term, RESULT_BANK)); 
    }
 

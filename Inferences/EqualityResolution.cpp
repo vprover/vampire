@@ -67,6 +67,7 @@ struct EqualityResolution::CombResultIterator
 {
   CombResultIterator(Clause* cl, Literal* lit): _cl(cl), _lit(lit), _cLen(cl->length())
   {
+    cout << "Strating iterator from equalityResolution" << endl;
     _csIt = vi(new CombSubstIterator(*lit->nthArgument(0),0,*lit->nthArgument(1),0)); 
   }
   

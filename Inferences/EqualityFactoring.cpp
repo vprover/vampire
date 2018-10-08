@@ -78,6 +78,7 @@ struct EqualityFactoring::CombResultIterator
   CombResultIterator(Clause* cl, Ordering& ordering, argType arg): 
                     _cl(cl), _ordering(ordering), _arg(arg), _cLen(cl->length())
   {
+    cout << "Starting Iterator from equalityFactoring" << endl; 
     _csIt = vi(new CombSubstIterator(arg.first.second,0,arg.second.second,0)); 
   }
   

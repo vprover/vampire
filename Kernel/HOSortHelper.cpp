@@ -34,6 +34,7 @@
 #include "HOSortHelper.hpp"
 #include "SortHelper.hpp"
 #include "Shell/LambdaElimination.hpp"
+#include "Lib/SmartPtr.hpp"
 
 using namespace Kernel;
 
@@ -203,53 +204,55 @@ vstring HOSortHelper::HOTerm::toString(bool withSorts, bool withIndices) const
     res = head.toString() + "_" + env.sorts->sortName(headsort) + " ";
   }
   for(unsigned i = 0; i < args.size(); i++){
-    if(!args[i].args.size()){
-      res = res + args[i].toString(withSorts, withIndices);
+    if(!args[i]->args.size()){
+      res = res + args[i]->toString(withSorts, withIndices);
     } else {
-      res = res + "(" + args[i].toString(withSorts, withIndices) + ")";
+      res = res + "(" + args[i]->toString(withSorts, withIndices) + ")";
     }
   }
   return res;
 }
 #endif
 
-void HOSortHelper::HOTerm::headify(HOTerm tm){
+void HOSortHelper::HOTerm::headify(HOTerm_ptr tm){
   CALL("HOSortHelper::HOTerm::headify");   
  
-  head = tm.head;
-  headsort = tm.headsort;
-  headInd = tm.headInd;
-  while(!tm.args.isEmpty()){
-    args.push_front(tm.args.pop_back());
+  head = tm->head;
+  headsort = tm->headsort;
+  headInd = tm->headInd;
+  for(int i = tm->args.size() - 1; i >=0; i--){
+    args.push_front(tm->args[i]);
   }  
+  //Do I need ti delete tm?
 }
 
 
 /**
  *  Converts a HOTerm struct into applicative form TermList
  */
-TermList HOSortHelper::appify(HOTerm ht){
+TermList HOSortHelper::appify(HOTerm_ptr ht){
   CALL("HOSortHelper::appify");   
 
   #if VDEBUG
-    //cout << "appifying " + ht.toString(true, true) << endl;
+    cout << "appifying " + ht->toString(false, true) << endl;
   #endif
 
-  Stack<Stack<HOTerm>> toDo;
+  Stack<Stack<HOTerm_ptr>> toDo;
   Stack<TermList> done;
   Stack<unsigned> doneSorts;
 
-  if(ht.args.isEmpty()){
-    return ht.head;
+  if(ht->args.isEmpty()){
+    return ht->head;
   }
 
-  done.push(ht.head);
-  doneSorts.push(ht.headsort);
+  done.push(ht->head);
+  doneSorts.push(ht->headsort);
 
-  Stack<HOTerm> hts;
+  Stack<HOTerm_ptr> hts;
   toDo.push(hts);
-  while(!ht.args.isEmpty()){
-    toDo.top().push(ht.args.pop_back());
+  
+  for(int i = ht->args.size() - 1; i >=0; i--){
+    toDo.top().push(ht->args[i]);
   }
 
   while(!toDo.isEmpty()){
@@ -262,17 +265,17 @@ TermList HOSortHelper::appify(HOTerm ht){
         doneSorts.top() = range(doneSorts.top());
       }
     } else {
-      HOTerm ht2 = toDo.top().pop();
-      if(ht2.args.isEmpty()){
-        done.top() = apply(done.top(), doneSorts.top(), ht2.head, ht2.headsort);
+      HOTerm_ptr ht2 = toDo.top().pop();
+      if(ht2->args.isEmpty()){
+        done.top() = apply(done.top(), doneSorts.top(), ht2->head, ht2->headsort);
         doneSorts.top() = range(doneSorts.top());
       } else {
-        done.push(ht2.head);
-        doneSorts.push(ht2.headsort);
-        Stack<HOTerm> hts;
+        done.push(ht2->head);
+        doneSorts.push(ht2->headsort);
+        Stack<HOTerm_ptr> hts;
         toDo.push(hts);
-        while(!ht2.args.isEmpty()){
-          toDo.top().push(ht2.args.pop_back());
+        for(int i = ht2->args.size() - 1; i >=0; i--){
+          toDo.top().push(ht2->args[i]);
         }
       }
     }
@@ -285,7 +288,7 @@ TermList HOSortHelper::appify(HOTerm ht){
   return done.pop();
 }
 
-HOSortHelper::HOTerm HOSortHelper::deappify(TermList ts, int index){
+HOSortHelper::HOTerm_ptr HOSortHelper::deappify(TermList ts, int index, int sort){
   CALL("HOSortHelper::deappify");
   
   #if VDEBUG
@@ -294,12 +297,12 @@ HOSortHelper::HOTerm HOSortHelper::deappify(TermList ts, int index){
   
   Stack<TermList> toDo;
   Stack<unsigned> toDoSorts;
-  Stack<HOTerm> done;
+  Stack<HOTerm_ptr> done;
   Stack<unsigned> argnums;
 
   if(ts.isVar()){
-    //DANGER! sort arbitrarily set to $i!
-    return HOTerm(ts, 0, index); 
+    //ASS(sort > -1);
+    return HOTerm_ptr(new HOTerm(ts, sort, index)); 
   }
 
   toDo.push(ts);
@@ -310,15 +313,15 @@ HOSortHelper::HOTerm HOSortHelper::deappify(TermList ts, int index){
     unsigned sort = toDoSorts.pop();
 
     if(curr.isVar() || (isConstant(curr) && !done.isEmpty())){
-      done.top().addArg(HOTerm(curr, sort, index));
-      while(done.top().args.size() == argnums.top()){
+      done.top()->addArg(HOTerm_ptr(new HOTerm(curr, sort, index)));
+      while(done.top()->args.size() == argnums.top()){
         argnums.pop();
         if(argnums.isEmpty()){ break; }
-        HOTerm arg = done.pop();
-        done.top().addArg(arg);
+        HOTerm_ptr arg = done.pop();
+        done.top()->addArg(arg);
       }
     } else if (isConstant(curr)){
-      done.push(HOTerm(curr, sort, index));
+      done.push(HOTerm_ptr(new HOTerm(curr, sort, index)));
     } else {
       unsigned headsort = sort;
       unsigned argnum = 0;
@@ -333,7 +336,7 @@ HOSortHelper::HOTerm HOSortHelper::deappify(TermList ts, int index){
         sym = env.signature->getFunction(curr.term()->functor());
       }
       //constant
-      done.push(HOTerm(curr, headsort, index));
+      done.push(HOTerm_ptr(new HOTerm(curr, headsort, index)));
       argnums.push(argnum);
     }
   }
@@ -341,45 +344,43 @@ HOSortHelper::HOTerm HOSortHelper::deappify(TermList ts, int index){
   ASS(argnums.isEmpty());
 
   #if VDEBUG
-    //cout << "The result is " + done.top().toString(true, true) << endl;
+    //cout << "The result is " + done.top()->toString(false, true) << endl;
     //ASSERTION_VIOLATION;
   #endif
-  cout << "DEAPPING ENDED" << endl;
   return done.pop();
 }
 
 /** view comment in .hpp file */
-bool HOSortHelper::HOTerm::equal(const HOTerm& ht,bool useIndices) const
+bool HOSortHelper::equal(const HOTerm_ptr hterm1, const HOTerm_ptr hterm2, bool useIndices)
 {
   CALL("HOSortHelper::HOTerm::equal");
   
-  Stack<HOTerm> toDo;
-  toDo.push(*this);
-  toDo.push(ht);
+  Stack<HOTerm_ptr> toDo;
+
+  toDo.push(hterm1);
+  toDo.push(hterm2);
   
   while(!toDo.isEmpty()){
-    HOTerm ht1 = toDo.pop();
-    HOTerm ht2 = toDo.pop();
-    if(ht1.varHead() && ht2.varHead()){
-      if(useIndices){
-        if(ht1.headInd != ht2.headInd){
-          return false;
-        }
+    HOTerm_ptr ht1 = toDo.pop();
+    HOTerm_ptr ht2 = toDo.pop();
+    if(ht1->varHead() && ht2->varHead()){
+      if(useIndices && (ht1->headInd != ht2->headInd)){
+        return false;
       } 
-      if(ht1.head.var() != ht2.head.var()){
+      if(ht1->head.var() != ht2->head.var()){
         return false;
       }
-    } else if(ht1.head.isTerm() && ht2.head.isTerm()){
-      if(ht1.head.term()->functor() != ht2.head.term()->functor()){
+    } else if(ht1->head.isTerm() && ht2->head.isTerm()){
+      if(ht1->head.term()->functor() != ht2->head.term()->functor()){
         return false;
       }
     } else {
       return false;
     }
-    if(ht1.argnum() != ht2.argnum()){ return false; }
-    for(unsigned i = 0; i < ht1.argnum(); i++){
-      toDo.push(ht1.ntharg(i));
-      toDo.push(ht2.ntharg(i));
+    if(ht1->argnum() != ht2->argnum()){ return false; }
+    for(unsigned i = 0; i < ht1->argnum(); i++){
+      toDo.push(ht1->ntharg(i));
+      toDo.push(ht2->ntharg(i));
     }
   }
 

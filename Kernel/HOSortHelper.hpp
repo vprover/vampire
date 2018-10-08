@@ -28,6 +28,7 @@
 
 #include "Lib/DHMap.hpp"
 #include "Lib/Deque.hpp"
+#include "Lib/SmartPtr.hpp"
 
 #include "Kernel/Term.hpp"
 #include "Kernel/SortHelper.hpp"
@@ -48,6 +49,8 @@ public:
     CLASS_NAME(HOTerm);
     USE_ALLOCATOR(HOTerm);
 
+    typedef SmartPtr<HOTerm> HOTerm_ptr;
+    
     //create a new higher-order term
     HOTerm(TermList ts,  int hsort = -1, int hind = -1):head(ts),headInd(hind) 
     {
@@ -62,12 +65,14 @@ public:
       }
     }
     //copy constructor
-    HOTerm( const HOTerm &ht){
+    HOTerm(const HOTerm &ht){
       cout << "CALLING HOTerm COPY CONSTRUCTOR with " + ht.toString(false, true) << endl;
       head = ht.head;
       headsort = ht.headsort;
       srt = ht.srt;
-      args = ht.args;
+      for(unsigned i = 0; i < ht.args.size(); i++){
+        args.push_back(HOTerm_ptr(new HOTerm(*ht.args[i])));
+      }
       headInd = ht.headInd;
     } 
 
@@ -81,27 +86,27 @@ public:
     //WARNING if headsort not assigned sort is not assigned either!
     unsigned srt;
     //args of this HOTerm
-    Deque<HOTerm> args;
+    Deque<HOTerm_ptr> args;
     //Only relevant when using structure in combiatory unification
     int headInd;
     
     inline unsigned argnum() const { return args.size(); }
     //zero indexed
-    HOTerm ntharg(unsigned n){
+    HOTerm_ptr ntharg(unsigned n){
       unsigned argnum = args.size();
       ASS(n <= argnum);
       return args[n];
     }
-    HOTerm* nthargptr(unsigned n) {
+    /*HOTerm* nthargptr(unsigned n) {
       unsigned argnum = args.size();
       ASS(n <= argnum);
       return &args[n];
-    }
+    }*/
     //zero indexed    
     unsigned nthArgSort(unsigned n) const{
       unsigned argnum = args.size();
       ASS(n <= argnum);
-      return args[n].sort();      
+      return args[n]->sort();      
     }
     //n must be less than or equal to argnum()
     unsigned sortOfLengthNPref(unsigned n) const{
@@ -109,11 +114,11 @@ public:
       return appliedToN(headsort, n);
     }
     /** adds argument to end of args*/
-    void addArg(const HOTerm& ht){
+    void addArg(HOTerm_ptr ht){
       CALL("HOTerm::addArg");
   #if VDEBUG
       ASS_REP(arity(srt) > 0, env.sorts->sortName(srt));
-      ASS(domain(srt) == ht.sort());
+      ASS(domain(srt) == ht->sort());
   #endif
       args.push_back(ht);
       srt = range(srt);
@@ -153,41 +158,41 @@ public:
        return false;
     }
     /** Returns true if both HOTerms have same non-var non-comb head */
-    bool sameFirstOrderHead(const HOTerm& hotm) const {
-      if(varHead() || hotm.varHead()){ return false; }
-      if(combHead() || hotm.combHead()){ return false; }
-      return head.term()->functor() == hotm.head.term()->functor();
+    bool sameFirstOrderHead(const HOTerm_ptr hotm) const {
+      if(varHead() || hotm->varHead()){ return false; }
+      if(combHead() || hotm->combHead()){ return false; }
+      return head.term()->functor() == hotm->head.term()->functor();
     }
     /** Returns true if both HOTerms have diff non-var non-comb heads */
-    bool diffFirstOrderHead(const HOTerm& hotm) const {
-      if(varHead() || hotm.varHead()){ return false; }
-      if(combHead() || hotm.combHead()){ return false; }
-      return head.term()->functor() != hotm.head.term()->functor();
+    bool diffFirstOrderHead(const HOTerm_ptr hotm) const {
+      if(varHead() || hotm->varHead()){ return false; }
+      if(combHead() || hotm->combHead()){ return false; }
+      return head.term()->functor() != hotm->head.term()->functor();
     }
     /** returns true if same variable heads */
-    bool sameVarHead(const HOTerm& hotm, bool useIndices = false) const {
-      if(useIndices && headInd != hotm.headInd){ return false; }
-      if(!varHead() || !hotm.varHead()){ return false; }      
-      return head.var() == hotm.head.var();
+    bool sameVarHead(const HOTerm_ptr hotm, bool useIndices = false) const {
+      if(useIndices && headInd != hotm->headInd){ return false; }
+      if(!varHead() || !hotm->varHead()){ return false; }      
+      return head.var() == hotm->head.var();
     }
     //make const HOTerm
-    void headify(HOTerm tm);
+    void headify(HOTerm_ptr tm);
     /** Returns true if this HOTerm is 
      *  syntactically equal to the first argument
      *  if @b vars is false, then non-ground terms 
      *  will always return false
      */
-    bool equal(const HOTerm&,bool useIndices = false ) const;
 #if VDEBUG
     vstring toString (bool withSorts = false, bool withIndices = false) const;
 #endif
   };
 
-  typedef unique_ptr<HOTerm> HOTerm_ptr;
+  typedef SmartPtr<HOTerm> HOTerm_ptr;
 
-  static TermList appify(HOTerm);
-  static HOTerm deappify(TermList,int index = -1);
+  static TermList appify(HOTerm_ptr);
+  static HOTerm_ptr deappify(TermList,int index = -1, int sort = -1);
 
+  static bool equal(const HOTerm_ptr, const HOTerm_ptr, bool useIndices = false );
   /** Returns the sort of the head of an applicative term */
   static unsigned getHeadSort(TermList ts);
   /** Returns the sort of the nth argument of the applicative term ts*/
