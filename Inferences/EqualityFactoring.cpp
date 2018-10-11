@@ -76,20 +76,39 @@ struct EqualityFactoring::CombResultIterator
 {
   typedef pair<pair<Literal*,TermList>,pair<Literal*,TermList>> argType;
   CombResultIterator(Clause* cl, Ordering& ordering, argType arg): 
-                    _cl(cl), _ordering(ordering), _arg(arg), _cLen(cl->length())
+                    _cl(cl), _ordering(ordering), _cLen(cl->length())
   {
-    cout << "Starting Iterator from equalityFactoring" << endl; 
-    _csIt = vi(new CombSubstIterator(arg.first.second,0,arg.second.second,0)); 
+    //cout << "Starting Iterator from equalityFactoring" << endl; 
+    _sLit = arg.first.first;  // selected literal ( = factored-out literal )
+    _fLit = arg.second.first; // fairly boring side literal
+
+    ASS(_sLit->isEquality());
+    ASS(_fLit->isEquality());
+    ASS_NEQ(_sLit, _fLit);
+
+    unsigned sort = SortHelper::getEqualityArgumentSort(_sLit);
+
+    if (sort!=SortHelper::getEqualityArgumentSort(_fLit)) {    
+      ASSERTION_VIOLATION;
+    }
+
+    _sLHS = arg.first.second;
+    _sRHS = EqHelper::getOtherEqualitySide(_sLit, _sLHS);
+    _fLHS = arg.second.second;
+    _fRHS = EqHelper::getOtherEqualitySide(_fLit, _fLHS);
+    _csIt = vi(new CombSubstIterator(_sLHS, sort,0, _fLHS, sort,0)); 
   }
   
   DECL_ELEMENT_TYPE(Clause*);
   
   bool hasNext() {
     CALL("EqualityFactoring::CombResultIterator::hasNext");
-    cout << "calling next from EqualityFactoring" << endl;
-    cout << "The first literal is " + _arg.first.first->toString() + "\nsLHS " + _arg.first.second.toString() << endl;
-    cout << "The second literal is " + _arg.second.first->toString() + "\ntfLHS " + _arg.second.second.toString() << endl;
-    cout << "The clause is " + _cl->toString() << endl;
+    //cout << "calling next from EqualityFactoring" << endl;
+    /*cout << "The first literal is " + _arg.first.first->toString() + "\nsLHS " + _arg.first.second.toString() 
+            + " of sort " + env.sorts->sortName(SortHelper::getEqualityArgumentSort(_arg.first.first)) << endl;
+    cout << "The second literal is " + _arg.second.first->toString() + "\nfLHS " + _arg.second.second.toString() 
+           + " of sort " + env.sorts->sortName(SortHelper::getEqualityArgumentSort(_arg.second.first)) << endl;
+    cout << "The clause is " + _cl->toString() << endl;*/
     return _csIt.hasNext();
   }
   
@@ -98,46 +117,39 @@ struct EqualityFactoring::CombResultIterator
     
     CombSubstitution* cs = _csIt.next();
 
-    Literal* sLit=_arg.first.first;  // selected literal ( = factored-out literal )
-    Literal* fLit=_arg.second.first; // fairly boring side literal
-    ASS(sLit->isEquality());
-    ASS(fLit->isEquality());
+    //cout << "The selected literal is " + sLit->toString() << endl;
+    //cout << "The side literal is " + fLit->toString() << endl;
+    //cout << "The LHS of selected lit is " + sLHS.toString() << endl;
+    //cout << "The LHS of side lit is " + fLHS.toString() << endl;
 
-    unsigned srt = SortHelper::getEqualityArgumentSort(sLit);
-    if (srt!=SortHelper::getEqualityArgumentSort(fLit)) {    
-      ASSERTION_VIOLATION;
-    }
-
-    TermList sLHS=_arg.first.second;
-    TermList sRHS=EqHelper::getOtherEqualitySide(sLit, sLHS);
-    TermList fLHS=_arg.second.second;
-    TermList fRHS=EqHelper::getOtherEqualitySide(fLit, fLHS);
-    ASS_NEQ(sLit, fLit);
-
-    TermList sLHSS = cs->apply(sLHS,0);
-    TermList sRHSS = cs->apply(sRHS,0);
+    unsigned sort = SortHelper::getEqualityArgumentSort(_sLit);
+    TermList sRHSS = _sRHS.isVar() ? cs->apply(_sRHS,0,sort) : cs->apply(_sRHS,0);
 
     /*
     if(Ordering::isGorGEorE(_ordering.compare(sRHSS,sLHSS))) {
       return 0;
     }*/
-    TermList fRHSS = cs->apply(fRHS,0);
+
+    TermList fRHSS = _fRHS.isVar() ? cs->apply(_fRHS,0,sort) : cs->apply(_fRHS,0);
+
     /*if(Ordering::isGorGEorE(_ordering.compare(fRHSS,sLHSS))) {
       return 0;
     }
     */
-    cout << "fRHSS: " + fRHSS.toString() << endl;
-    cout << "sRHSS: " + sRHSS.toString() << endl;
+    
+    //cout << "The clause is " + _cl->toString() << endl;
+    //cout << "fRHSS: " + fRHSS.toString() << endl;
+    //cout << "sRHSS: " + sRHSS.toString() << endl;
 
     Inference* inf = new Inference1(Inference::EQUALITY_FACTORING, _cl);
     Clause* res = new(_cLen) Clause(_cLen, _cl->inputType(), inf);
 
-    (*res)[0]=Literal::createEquality(false, sRHSS, fRHSS, srt);
+    (*res)[0]=Literal::createEquality(false, sRHSS, fRHSS, sort);
 
     unsigned next = 1;
     for(unsigned i=0;i<_cLen;i++) {
       Literal* curr=(*_cl)[i];
-      if(curr!=sLit) {
+      if(curr!=_sLit) {
         Literal* currAfter = cs->apply(curr, 0);
         (*res)[next++] = currAfter;
       }
@@ -147,12 +159,6 @@ struct EqualityFactoring::CombResultIterator
     res->setAge(_cl->age()+1);
     env.statistics->equalityFactoring++;
 
-    cout << "returning " + res->toString() << endl;
-
-    if(res->number() == 254){
-      ASSERTION_VIOLATION;
-    }
-
     return res;
   }
   
@@ -160,7 +166,12 @@ private:
   VirtualIterator<CombSubstitution*> _csIt;
   Clause* _cl;
   Ordering& _ordering;
-  argType _arg;
+  Literal* _sLit;
+  Literal* _fLit;
+  TermList _sLHS;
+  TermList _sRHS;
+  TermList _fLHS;
+  TermList _fRHS;
   unsigned _cLen;
 };
 

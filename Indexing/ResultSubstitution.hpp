@@ -54,6 +54,8 @@ public:
   virtual Literal* applyToQuery(Literal* l) { NOT_IMPLEMENTED; }
   virtual TermList applyToResult(TermList t) { NOT_IMPLEMENTED; }
   virtual Literal* applyToResult(Literal* l) { NOT_IMPLEMENTED; }
+  virtual TermList applyToQuery(TermList t, int sort) { NOT_IMPLEMENTED; }
+  virtual TermList applyToResult(TermList t, int sort) { NOT_IMPLEMENTED; }
 
   /** if implementation cannot easily give result for this, zero is returned */
   virtual size_t getQueryApplicationWeight(TermList t) { return 0; }
@@ -71,6 +73,16 @@ public:
       return applyToResult(t);
     } else {
       return applyToQuery(t);
+    }
+  }
+
+  template<typename T>
+  T apply(T t, bool result, int sort)
+  {
+    if(result) {
+      return applyToResult(t, sort);
+    } else {
+      return applyToQuery(t, sort);
     }
   }
 

@@ -67,8 +67,12 @@ struct EqualityResolution::CombResultIterator
 {
   CombResultIterator(Clause* cl, Literal* lit): _cl(cl), _lit(lit), _cLen(cl->length())
   {
-    cout << "Strating iterator from equalityResolution" << endl;
-    _csIt = vi(new CombSubstIterator(*lit->nthArgument(0),0,*lit->nthArgument(1),0)); 
+    //cout << "Starting iterator from equalityResolution" << endl;
+    //cout << "The clause is " + _cl->toString() << endl;
+    TermList t1 = *lit->nthArgument(0);
+    TermList t2 = *lit->nthArgument(1);
+    unsigned sort = SortHelper::getEqualityArgumentSort(lit);
+    _csIt = vi(new CombSubstIterator(t1,sort,0,t2,sort,0)); 
   }
   
   DECL_ELEMENT_TYPE(Clause*);
@@ -99,6 +103,10 @@ struct EqualityResolution::CombResultIterator
 
     res->setAge(_cl->age()+1);
     env.statistics->equalityResolution++;
+
+    //cout << "performing EqualityResolution on " + _cl->toString() << endl;
+    //cout << "With substitution " + cs->toString() << endl;
+    //cout << "the result is " + res->toString() << endl;
 
     return res;
   }

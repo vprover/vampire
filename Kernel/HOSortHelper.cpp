@@ -219,6 +219,7 @@ void HOSortHelper::HOTerm::headify(HOTerm_ptr tm){
  
   head = tm->head;
   headsort = tm->headsort;
+  //srt = tm->srt;
   headInd = tm->headInd;
   for(int i = tm->args.size() - 1; i >=0; i--){
     args.push_front(tm->args[i]);
@@ -234,7 +235,7 @@ TermList HOSortHelper::appify(HOTerm_ptr ht){
   CALL("HOSortHelper::appify");   
 
   #if VDEBUG
-    cout << "appifying " + ht->toString(false, true) << endl;
+    //cout << "appifying " + ht->toString(false, true) << endl;
   #endif
 
   Stack<Stack<HOTerm_ptr>> toDo;
@@ -263,18 +264,28 @@ TermList HOSortHelper::appify(HOTerm_ptr ht){
         unsigned s1 = doneSorts.pop();
         done.top() = apply(done.top(), doneSorts.top(), ts, s1);
         doneSorts.top() = range(doneSorts.top());
+        /*cout << "\nDONE:" << endl;
+        for(int i = done.size()-1; i >=0; i--){
+          cout << done[i].toString() + " of sort " + env.sorts->sortName(doneSorts[i]) << endl;
+        }*/
       }
     } else {
       HOTerm_ptr ht2 = toDo.top().pop();
       if(ht2->args.isEmpty()){
         done.top() = apply(done.top(), doneSorts.top(), ht2->head, ht2->headsort);
         doneSorts.top() = range(doneSorts.top());
+        /*cout << "\nDONE:" << endl;
+        for(int i = done.size()-1; i >=0; i--){
+          cout << done[i].toString() + " of sort " + env.sorts->sortName(doneSorts[i]) << endl;
+        }*/
       } else {
         done.push(ht2->head);
         doneSorts.push(ht2->headsort);
+        //cout << "\nPushing head " + ht2->head.toString() + " with sort " + env.sorts->sortName(ht2->headsort) << endl;
         Stack<HOTerm_ptr> hts;
         toDo.push(hts);
         for(int i = ht2->args.size() - 1; i >=0; i--){
+          //cout << "Pushing arg " + ht2->args[i]->toString(false, true) + " with sort " + env.sorts->sortName(ht2->args[i]->srt) << endl;
           toDo.top().push(ht2->args[i]);
         }
       }
@@ -301,8 +312,11 @@ HOSortHelper::HOTerm_ptr HOSortHelper::deappify(TermList ts, int index, int sort
   Stack<unsigned> argnums;
 
   if(ts.isVar()){
-    //ASS(sort > -1);
-    return HOTerm_ptr(new HOTerm(ts, sort, index)); 
+    if(sort > -1){
+      return HOTerm_ptr(new HOTerm(ts, sort, index)); 
+    } else {
+      return HOTerm_ptr(new HOTerm(ts, 0, index));      
+    }
   }
 
   toDo.push(ts);

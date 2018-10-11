@@ -67,12 +67,13 @@ class CombSubstitution
     typedef RobSubstitution::VarSpec VarSpec;
     typedef SmartPtr<HSH::HOTerm> HOTerm_ptr;
   
-    CombSubstitution(TermList t1,int index1, TermList t2, int index2):
+    CombSubstitution(TermList t1, int index1, TermList t2, int index2,
+                     unsigned sort):
     _solved(false),_nextFreshVar(0), _nextUnboundAvailable(0)
     {
       //if t1 or t2 are vars, need to provide sorts...
-      HOTerm_ptr ht1 = HOSortHelper::deappify(t1, index1);
-      HOTerm_ptr ht2 = HOSortHelper::deappify(t2, index2);
+      HOTerm_ptr ht1 = HOSortHelper::deappify(t1, index1, sort);
+      HOTerm_ptr ht2 = HOSortHelper::deappify(t2, index2, sort);
       UnificationPair up = UnificationPair(ht1, ht2);
       _unificationPairs.push(up);
     }
@@ -82,7 +83,7 @@ class CombSubstitution
     static const int UNBOUND_INDEX = -2;
     static const int AUX_INDEX = -3;
 
-    TermList apply(TermList t, int index) const;
+    TermList apply(TermList t, int index, int sort = -1) const;
     Literal* apply(Literal* lit, int index) const;
     HOTerm_ptr deref(VarSpec vs, bool& success, unsigned sort) const;
     
@@ -400,12 +401,14 @@ public:
   CLASS_NAME(CombSubstIterator);
   USE_ALLOCATOR(CombSubstIterator);
   
-  CombSubstIterator(TermList t1,int index1, TermList t2, int index2)
+  CombSubstIterator(TermList t1, unsigned s1, int index1,
+                   TermList t2, unsigned s2, int index2)
   {
-    _unifSystem = new CombSubstitution(t1, index1, t2, index2);
+    ASS(s1 == s2);
+    _unifSystem = new CombSubstitution(t1, index1, t2, index2, s1);
     transformStacks.push(_unifSystem->availableTransforms());
-    cout << "STARTING ITERATOR WITH " + _unifSystem->_unificationPairs.top().toString() << endl; 
-    cout << transformStacksToString() << endl;
+    //cout << "STARTING ITERATOR WITH " + _unifSystem->_unificationPairs.top().toString() << endl; 
+    //cout << transformStacksToString() << endl;
     _calledNext = false;
   }
 

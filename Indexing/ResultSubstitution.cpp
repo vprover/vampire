@@ -50,6 +50,8 @@ public:
   { return _subst->apply(t,_resultBank); }
   Literal* applyToResult(Literal* l)
   { return _subst->apply(l,_resultBank); }
+  TermList applyToQuery(TermList t, int sort) { NOT_IMPLEMENTED; }
+  TermList applyToResult(TermList t, int sort) { NOT_IMPLEMENTED; }
 
   virtual size_t getQueryApplicationWeight(TermList t) { return _subst->getApplicationResultWeight(t, _queryBank); }
   virtual size_t getQueryApplicationWeight(Literal* l) { return _subst->getApplicationResultWeight(l, _queryBank); }
@@ -87,6 +89,10 @@ public:
   { return _subst->apply(t,_resultBank); }
   Literal* applyToResult(Literal* l)
   { return _subst->apply(l,_resultBank); }
+  TermList applyToQuery(TermList t, int sort) 
+  { return _subst->apply(t,_queryBank, sort); }
+  TermList applyToResult(TermList t, int sort) 
+  { return _subst->apply(t,_resultBank, sort); }
 
   CombSubstitution* tryGetCombSubstitution() { return _subst; }
 

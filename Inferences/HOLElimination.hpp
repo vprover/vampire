@@ -26,6 +26,7 @@
 
 #include "Forwards.hpp"
 #include "InferenceEngine.hpp"
+#include "Kernel/HOSortHelper.hpp"
 #include <memory>
 
 namespace Inferences {
@@ -37,19 +38,19 @@ struct ConstantTerm{
   
   Signature::Symbol::HOLConstant cnst;
   Term* constant;
-  TermList t1;
-  TermList t2;
-  TermList t3;
-  unsigned t1Sort;
-  unsigned t2Sort;
-  unsigned t3Sort;
+  Stack<TermList> args; //first arg at top
+  Stack<unsigned> sorts; //first sort at top
   int onRight;
   
   ConstantTerm() {}
 };
 
-unique_ptr<ConstantTerm> isHolConstantApp(Literal* lit, unsigned unaryBinaryOrTenary);
-unique_ptr<ConstantTerm> isHolConstantApp(TermList tl, unsigned unaryBinaryOrTenary);
+
+typedef Signature::Symbol SS;
+typedef unique_ptr<ConstantTerm> ct_ptr;
+//ct_ptr isHolConstantApp(Literal* lit, unsigned unaryBinaryOrTenary, bool flex = false);
+//ct_ptr isHolConstantApp(TermList tl, unsigned unaryBinaryOrTenary);
+
 
 /*
   Simplification rules:
@@ -209,8 +210,8 @@ class ORIMPANDIFFXORRemovalGIE : public GeneratingInferenceEngine {
 	Kernel::ClauseIterator generateClauses(Kernel::Clause* c);
 
   private:
-    struct SubtermIterator;
-    struct SubtermEqualityFn;
+    struct ProxyEliminationIterator;
+    struct ProxyEliminationFn;
 
 };
 

@@ -50,6 +50,7 @@ TermList EqHelper::getOtherEqualitySide(Literal* eq, TermList lhs)
   return *eq->nthArgument(0);
 } // getOtherEqualitySide
 
+
 bool EqHelper::hasGreaterEqualitySide(Literal* eq, const Ordering& ord, TermList& lhs, TermList& rhs)
 {
   CALL("EqHelper::hasGreaterEqualitySide");

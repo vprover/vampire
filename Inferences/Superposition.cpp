@@ -148,8 +148,11 @@ struct Superposition::CombResultIterator
    
    CombResultIterator(QueryResType arg): _arg(arg)
    {  
-     cout << "starting iterator from SUPERPOSITION" << endl;
-     _csIt = vi(new CombSubstIterator(arg.first.second, QUERY_BANK, arg.second.term, RESULT_BANK)); 
+     //cout << "starting iterator from SUPERPOSITION" << endl;
+     TermList t1 = arg.first.second;
+     TermList t2 = arg.second.term;
+    unsigned sort = SortHelper::getEqualityArgumentSort(arg.first.first);
+     _csIt = vi(new CombSubstIterator(t1, sort, QUERY_BANK, t2, sort, RESULT_BANK)); 
    }
 
    DECL_ELEMENT_TYPE(QueryResType);
@@ -493,10 +496,10 @@ Clause* Superposition::performSuperposition(
   ASS(eqClause->store()==Clause::ACTIVE);
 
  
-  cout << "performSuperposition with " << rwClause->toString() << " and " << eqClause->toString() << endl;
-  cout << "rwTerm " << rwTerm.toString() << endl;
-  cout << "eqLHSS " << eqLHS.toString()  << endl;
-  cout << "substitution " << subst->tryGetCombSubstitution()->toString() << endl;
+  //cout << "performSuperposition with " << rwClause->toString() << " and " << eqClause->toString() << endl;
+  //cout << "rwTerm " << rwTerm.toString() << endl;
+  //cout << "eqLHSS " << eqLHS.toString()  << endl;
+  //cout << "substitution " << subst->tryGetCombSubstitution()->toString() << endl;
 
   // the first checks the reference and the second checks the stack
 /*
@@ -787,9 +790,9 @@ Clause* Superposition::performParamodulation(
   ASS(eqClause->store()==Clause::ACTIVE);
 
  
-  cout << "performParamodulation with " << rwClause->toString() << " and " << eqClause->toString() << endl;
-  cout << "rwTerm " << rwTerm.toString() << " eqLHSS " << eqLHS.toString() << endl;
-  cout << "substitution " + subst->tryGetCombSubstitution()->toString();
+  //cout << "performParamodulation with " << rwClause->toString() << " and " << eqClause->toString() << endl;
+  //cout << "rwTerm " << rwTerm.toString() << " eqLHSS " << eqLHS.toString() << endl;
+  //cout << "substitution " + subst->tryGetCombSubstitution()->toString();
 
   unsigned sort = SortHelper::getEqualityArgumentSort(eqLit);
 
@@ -817,11 +820,23 @@ Clause* Superposition::performParamodulation(
       return 0;
     }
   }
+  
+  TermList eqLHSS;
+  if(eqLHS.isVar()){
+    eqLHSS = subst->apply(eqLHS, eqIsResult, SortHelper::getEqualityArgumentSort(eqLit));
+  } else {
+    eqLHSS = subst->apply(eqLHS, eqIsResult);
+  }
 
-  TermList eqLHSS = subst->apply(eqLHS, eqIsResult);
-  TermList tgtTermS = subst->apply(tgtTerm, eqIsResult);
+  TermList tgtTermS; 
+  if(tgtTerm.isVar()){
+    tgtTermS = subst->apply(tgtTerm, eqIsResult, SortHelper::getEqualityArgumentSort(eqLit));
+  } else {
+    tgtTermS = subst->apply(tgtTerm, eqIsResult);
+  }
 
   Literal* rwLitS = subst->apply(rwLit, !eqIsResult);
+  //no need for isVar() check because rwTerm can never be var
   TermList rwTermS = subst->apply(rwTerm, !eqIsResult);
 
 #if VDEBUG
@@ -955,7 +970,7 @@ Clause* Superposition::performParamodulation(
   }
 */
 
-  cout << "The result is : " + res->toString() << endl;
+  //cout << "The result is : " + res->toString() << endl;
 
   return res;
 }
