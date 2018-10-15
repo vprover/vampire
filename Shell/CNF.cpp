@@ -97,11 +97,11 @@ void CNF::clausify (Formula* f)
       // collect the clause
       int length = _literals.length();
       Clause* clause = new(length) Clause(length,
-					  _unit->inputType(),
-					  new Inference1(Inference::CLAUSIFY,
-							 _unit));;
+                      _unit->inputType(),
+                      new Inference1(Inference::CLAUSIFY,
+                      _unit));
       for (int i = length-1;i >= 0;i--) {
-	(*clause)[i] = _literals[i];
+        (*clause)[i] = _literals[i];
       }
       clause->setHOLADescendant(_unit->isHOLADescendant());
       _result->push(clause);
@@ -118,7 +118,7 @@ void CNF::clausify (Formula* f)
     {
       FormulaList::Iterator fs(f->args());
       while (fs.hasNext()) {
-	clausify(fs.next());
+        clausify(fs.next());
       }
     }
     return;
@@ -129,7 +129,7 @@ void CNF::clausify (Formula* f)
 
       FormulaList::Iterator fs(f->args());
       while (fs.hasNext()) {
-	_formulas.push(fs.next());
+        _formulas.push(fs.next());
       }
       clausify(_formulas.pop());
       _formulas.truncate(ln);

@@ -193,6 +193,7 @@ public:
      */
 #if VDEBUG
     vstring toString (bool withSorts = false, bool withIndices = false) const;
+    vstring toStringWithTopLevelSorts(bool topLevel = true) const;
 #endif
   };
 

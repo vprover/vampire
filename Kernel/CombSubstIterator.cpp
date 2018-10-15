@@ -172,6 +172,8 @@ void CombSubstitution::populateSide(const HOTerm_ptr hoterm, ApplyTo at, Transfo
                                     AlgorithmStep ls, AlgorithmStep sls){
   CALL("CombSubstitution::populateSide");
 
+  //cout << "Populating for term " + hoterm->toStringWithTopLevelSorts() << endl;
+
   ASS(hoterm->varHead());
   //KX_NARROW admissable as long as var has a single argument
   if(canPerformStep(ls,sls, KX_NARROW)){
@@ -191,9 +193,10 @@ void CombSubstitution::populateSide(const HOTerm_ptr hoterm, ApplyTo at, Transfo
       Transform trs = make_pair(K_NARROW,at);
       tStack.push(trs);
     }       
-  }    
-  
+  }
+
   if(hoterm->argnum() > 2){
+    cout << hoterm->toStringWithTopLevelSorts() << endl;
     unsigned sort1 = hoterm->nthArgSort(0);
     unsigned sort2 = hoterm->nthArgSort(1);
     unsigned sort3 = hoterm->nthArgSort(2);
@@ -547,14 +550,22 @@ void CombSubstitution::kReduce(HOTerm_ptr ht) const{
 void CombSubstitution::bcsReduce(HOTerm_ptr ht, AlgorithmStep as) const{
   CALL("CombSubstitution::bcsReduce");
 
+  //cout << "The sort of the head symbol is " + env.sorts->sortName(ht->headsort) << endl;
+
   HOTerm_ptr a1 = ht->args.pop_front();
+  //cout << "The sort of arg1 is " + env.sorts->sortName(a1->srt) << endl;
   HOTerm_ptr a2 = ht->args.pop_front();
+  //cout << "The sort of arg2 is " + env.sorts->sortName(a2->srt) << endl;
   HOTerm_ptr a3 = ht->args.pop_front();
+  //cout << "The sort of arg3 is " + env.sorts->sortName(a3->srt) << endl;
 
   if(as == B_REDUCE || as == S_REDUCE){
     a2->addArg(a3);
   }
   ht->args.push_front(a2);
+  if(as == S_REDUCE){
+    a3 = HOTerm_ptr(new HSH::HOTerm(*a3));
+  }
   if(as == C_REDUCE || as == S_REDUCE){
     ht->args.push_front(a3);
   }

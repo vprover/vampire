@@ -200,8 +200,10 @@ class CombSubstitution
      
     #if VDEBUG
       vstring toString() const{
-        vstring res = "<" + terml->toString() + " , " +
-                            termr->toString() + ">";
+        vstring res = "<" + terml->toString() + " of sort " + 
+                            env.sorts->sortName(terml->srt) + " , \n\n" +
+                            termr->toString() + " of sort " + 
+                            env.sorts->sortName(termr->srt) + ">";
         return res;
       }
     #endif

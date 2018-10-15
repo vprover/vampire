@@ -212,6 +212,38 @@ vstring HOSortHelper::HOTerm::toString(bool withSorts, bool withIndices) const
   }
   return res;
 }
+
+
+vstring HOSortHelper::HOTerm::toStringWithTopLevelSorts(bool topLevel) const
+{
+  CALL("HOSortHelper::HOTerm::toStringWithTopLevelSorts");   
+  
+  vstring res = head.toString();
+  if(topLevel){
+   res = res + " of sort " + env.sorts->sortName(headsort) + " ";
+  }
+  
+  for(unsigned i = 0; i < args.size(); i++){
+    if(!args[i]->args.size()){
+      if(topLevel){
+        res = res + "\n arg" + Int::toString(i+1) + ":  ";
+      }
+      res = res + args[i]->toString(false);
+      if(topLevel){
+        res = res + " of sort " + env.sorts->sortName(args[i]->srt);
+      }
+    } else {
+      if(topLevel){
+        res = res + "\n arg" + Int::toString(i+1) + ":  ";
+      }
+      res = res + "(" + args[i]->toString(false) + ")";
+      if(topLevel){
+        res = res + " of sort " + env.sorts->sortName(args[i]->srt);
+      }
+    }
+  }
+  return res;
+}
 #endif
 
 void HOSortHelper::HOTerm::headify(HOTerm_ptr tm){
