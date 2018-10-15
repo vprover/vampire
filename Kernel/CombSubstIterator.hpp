@@ -282,8 +282,11 @@ class CombSubstitution
     void populateSide(HOTerm_ptr, ApplyTo, TransformStack&,AlgorithmStep,AlgorithmStep);
     /** returns the particular narrow step relevant to the arg */
     AlgorithmStep reduceStep(const HOTerm_ptr) const;
-    /** Carry out transformation represented bt t on top pair*/ 
-    bool transform(Transform t);
+    /** Carry out transformation represented bt t on top pair
+        If further options set to true, unification system prior 
+        to carrying out transform will be saved to backtrack to.
+        Otherwise not */    
+    bool transform(Transform t, bool furtherOptions);
 
     void transform(HOTerm_ptr, HOTerm_ptr, AlgorithmStep);
     void iReduce(HOTerm_ptr)const;
@@ -407,7 +410,7 @@ public:
     ASS(s1 == s2);
     _unifSystem = new CombSubstitution(t1, index1, t2, index2, s1);
     transformStacks.push(_unifSystem->availableTransforms());
-    //cout << "STARTING ITERATOR WITH " + _unifSystem->_unificationPairs.top().toString() << endl; 
+    cout << "STARTING ITERATOR WITH " + _unifSystem->_unificationPairs.top().toString() << endl; 
     //cout << transformStacksToString() << endl;
     _calledNext = false;
   }
@@ -496,7 +499,7 @@ private:
   /** apply transformation t to the top unification pair in current system
    *  record any chanegs in bd so that transformation can be reversed
    */
-  bool transform(Transform t, BacktrackData& bd);
+  bool transform(Transform t, bool b, BacktrackData& bd);
 
 };
 

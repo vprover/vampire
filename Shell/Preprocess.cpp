@@ -302,7 +302,7 @@ void Preprocess::preprocess(Problem& prb)
 
     newCnf(prb);
   } else {
-    if (prb.mayHaveFormulas() && _options.naming()) {
+    if (prb.mayHaveFormulas() && _options.naming() && !prb.hasApp() && !prb.hasLambda()) {
       if (env.options->showPreprocessing())
         env.out() << "naming" << std::endl;
 

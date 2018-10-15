@@ -96,7 +96,7 @@ ct_ptr isHolConstantApp(Literal* lit, unsigned unaryBinaryOrTenary)
   CALL("isHolConstantApp(Literal* lit)");
   
   //higher-order setting
-  ASS(lit->isEquality());
+  ASS_REP(lit->isEquality(), lit->toString());
   
   TermList lhs = *lit->nthArgument(0);
   TermList rhs = *lit->nthArgument(1);  
@@ -235,13 +235,11 @@ bool isPISIGMAapp(Literal* lit, TermList &t1, TermList &rhs, bool &applyPIrule, 
 {
     CALL("isPISIGMAapp");
    
-    unique_ptr<ConstantTerm> cnst = isHolConstantApp(lit, 1);
-    if(!cnst){return false;}
-   
-    if(cnst->cnst != SS::PI && cnst->cnst != SS::SIGMA){
+    ct_ptr cnst = isHolConstantApp(lit, 1);
+    if(!cnst || (cnst->cnst != SS::PI && cnst->cnst != SS::SIGMA)){
       return false;
     }
- 
+   
     rhs = *lit->nthArgument(1 - cnst->onRight); 
     int rhsValue = isBoolValue(rhs);
 
@@ -249,14 +247,9 @@ bool isPISIGMAapp(Literal* lit, TermList &t1, TermList &rhs, bool &applyPIrule, 
     
     bool isPI = cnst->cnst == SS::PI ? true : false;
   
-    if((isPI && (rhsValue == lit->polarity()))|| (!isPI && (rhsValue == (1 - lit->polarity()))))
-    {
-      applyPIrule = true;
-    }else{
-      applyPIrule = false;
-    }
-
-    rhs = rhsValue == lit->polarity() ? TermList(Term::foolTrue()) : TermList(Term::foolFalse());
+    bool positive = rhsValue == lit->polarity();
+    applyPIrule = (isPI && positive) || (!isPI && !positive);
+    rhs = positive ? TermList(Term::foolTrue()) : TermList(Term::foolFalse());
 
     t1 = cnst->args.pop();  
     srt1 = HSH::domain(SortHelper::getResultSort(cnst->constant));
@@ -268,8 +261,7 @@ bool isEQUALSApp(Literal* lit, TermList &t1, TermList &t2, bool &positive, unsig
     CALL("isEQUALSApp");
    
     ct_ptr cnst = isHolConstantApp(lit, 2);
-    if(!cnst){return false;}
-    if(!(cnst->cnst == SS::EQUALS)){ return false; }
+    if(!cnst || cnst->cnst != SS::EQUALS){return false;}
     
     TermList truthValue = *lit->nthArgument(1 - cnst->onRight); 
 
@@ -327,8 +319,7 @@ bool isNOTEquality(Literal* lit, TermList &newEqlhs, TermList &newEqrhs, bool &p
     CALL("isNOTEquality");
     
     ct_ptr cnst = isHolConstantApp(lit, 1);
-    if(!cnst){return false;}
-    if(!(cnst->cnst == SS::NOT)){ return false; }    
+    if(!cnst || cnst->cnst != SS::NOT){return false;}  
     
     newEqrhs = *lit->nthArgument(1 - cnst->onRight);
     newEqlhs = cnst->args.pop();
@@ -458,7 +449,7 @@ Clause* ORIMPANDRemovalISE2::simplify(Clause* c)
 Clause* NOTRemovalISE::simplify(Clause* c)
 {
   CALL("NOTRemovalISE::simplify");
-
+  
   int length = c->length();
   for (int i = length - 1; i >= 0; i--) {
     TermList lhs, rhs;
@@ -710,20 +701,18 @@ struct ORIMPANDIFFXORRemovalGIE::ProxyEliminationIterator
       }
     } else {
       cnst = isHolConstantApp(lit, 1);
-      if(cnst){
+      if(cnst && (cnst->cnst == SS::PI || cnst->cnst == SS::SIGMA)){
         TermList otherTermt = *lit->nthArgument(1 - cnst->onRight);
         if (isBoolValue(otherTermt) > -1){
           _count = 4;
-        }else if(cnst->cnst == SS::PI || cnst->cnst == SS::SIGMA){
+        } else {
           _constant = cnst->cnst; 
           _terms.push(cnst->args.pop());
           _terms.push(otherTermt);
           SS* sym = env.signature->getFunction(cnst->constant->functor());
           _expsort = sym->fnType()->result();
           _expsort = env.sorts->getFuncSort(_expsort)->getDomainSort();
-        }else{
-          _count = 4;
-        }         
+        }      
       }else{
         _count = 4; //Iterator returns nothing (Must be a better way of doing this!)
       }

@@ -267,29 +267,25 @@ CombSubstitution::AlgorithmStep CombSubstitution::reduceStep(const HOTerm_ptr ht
   }
 }
 
-bool CombSubstitution::transform(Transform t){
+bool CombSubstitution::transform(Transform t, bool furtherOptions){
   CALL("CombSubstitution::transform");
   
-  //mind not working, not sure about this code
-  if(t.first == ID){
-    _unificationPairs.pop();
-    if(_unificationPairs.isEmpty()){
-      _solved = true;
-    }
-    return true;
-  }
-
   BacktrackData localBD;
   bdRecord(localBD);
 
-  bdAdd(new StackBacktrackObject(this, _unificationPairs));
+  //Only want to record existing unification pairs if there is the possibility of 
+  //backtracking to them. If from existing system, no the current transform is the only
+  //available transform, then there is no point in recording the pairs.
+  if(furtherOptions){
+    bdAdd(new StackBacktrackObject(this, _unificationPairs));
+  }
 
   UnificationPair* up = &_unificationPairs.top();
   //temporary measure, in the long run, manipulate transforms rather than emptying them.
   up->emptyTransforms();
 
-  //cout << "carrying out transformation " + algorithmStepToString(t.first) << endl;
-  //cout << "on unification pair" +  up->toString() << endl;
+  cout << "carrying out transformation " + algorithmStepToString(t.first) << endl;
+  cout << "on unification pair" +  up->toString() << endl;
   //cout << "The substitution so far is " + toString() << endl; 
  
   HOTerm_ptr terml = up->terml;
@@ -298,7 +294,11 @@ bool CombSubstitution::transform(Transform t){
   bool succeeded = true;
   //need to deal with indices.
 
-  if(t.second == BOTH){
+  if(t.first == ID){
+    _unificationPairs.pop();
+  }
+  
+  if(t.second == BOTH && t.first != ID){
     ASS((t.first == ADD_ARG) || (t.first == DECOMP));
     
     if(t.first == ADD_ARG){
@@ -400,7 +400,7 @@ bool CombSubstitution::transform(Transform t){
     bdCommit(localBD);
     localBD.drop();
   }
-  if(_unificationPairs.isEmpty()){
+  if(_unificationPairs.isEmpty() && succeeded){
     _solved = true;
   }
   return succeeded;
@@ -826,8 +826,8 @@ bool CombSubstIterator::hasNextUnifier(){
   ASS(bdStack.length()+1==transformStacks.length());
 
   do {
-    //cout << _unifSystem->unificationPairsToString() << endl;
-    // /cout << transformStacksToString() << endl;
+    cout << _unifSystem->unificationPairsToString() << endl;
+    //cout << transformStacksToString() << endl;
     //ASSERTION_VIOLATION;
     
     while(transformStacks.top().isEmpty() && !bdStack.isEmpty()) {
@@ -838,29 +838,30 @@ bool CombSubstIterator::hasNextUnifier(){
     }
 
     Transform t=transformStacks.top().pop();
+    bool furtherOptions = !transformStacks.top().isEmpty();
     
     BacktrackData bd;
-    bool success=transform(t,bd);
+    bool success=transform(t,furtherOptions, bd);
     if(!success){
       bd.backtrack();
     } else {
       bdStack.push(bd);
     }
   } while(!_unifSystem->_solved);
-  //cout << "The successful substitution is:\n " + _unifSystem->toString() << endl; 
+  cout << "The successful substitution is:\n " + _unifSystem->toString() << endl; 
   return true;
 }
 
-bool CombSubstIterator::transform(Transform t, BacktrackData& bd){
+bool CombSubstIterator::transform(Transform t, bool furtherOptions, BacktrackData& bd){
   CALL("CombSubstIterator::transform");
 
   _unifSystem->bdRecord(bd);
 
-  bool success = _unifSystem->transform(t);
+  bool success = _unifSystem->transform(t, furtherOptions);
   if(success){
     if(!_unifSystem->_solved){
-      TransformStack ti = _unifSystem->availableTransforms();
-      transformStacks.backtrackablePush(ti, bd);
+      TransformStack ts = _unifSystem->availableTransforms();
+      transformStacks.backtrackablePush(ts, bd);
     }
   }
   _unifSystem->bdDone();

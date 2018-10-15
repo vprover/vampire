@@ -1221,6 +1221,7 @@ Formula* Naming::introduceDefinition(Formula* f, bool iff) {
     env.beginOutput();
     env.out() << "[PP] naming defs: " << definition->toString() << std::endl;
     env.endOutput();
+    ASSERTION_VIOLATION;
   }
 
   return name;

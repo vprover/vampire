@@ -35,6 +35,10 @@
 #include "Kernel/TermIterators.hpp"
 #include <memory>
 
+#if VDEBUG
+  #include "Debug/Tracer.hpp"
+#endif
+
 namespace Kernel {
 
 class HOSortHelper {
@@ -67,6 +71,7 @@ public:
     //copy constructor
     HOTerm(const HOTerm &ht){
       //cout << "CALLING HOTerm COPY CONSTRUCTOR with " + ht.toString(false, true) << endl;
+      //Debug::Tracer::printStack(cout);
       head = ht.head;
       headsort = ht.headsort;
       srt = ht.srt;
@@ -122,7 +127,7 @@ public:
       CALL("HOTerm::addArg");
   #if VDEBUG
       ASS_REP(arity(srt) > 0, env.sorts->sortName(srt));
-      ASS(domain(srt) == ht->sort());
+      ASS_REP(domain(srt) == ht->sort(), "The hterm is " + toString(true, false) + "The sort is " + env.sorts->sortName(srt) + "The arg is " + ht->toString(true, false) + "its sort is " + env.sorts->sortName(ht->sort()));
   #endif
       args.push_back(ht);
       srt = range(srt);
