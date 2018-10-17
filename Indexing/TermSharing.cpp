@@ -102,6 +102,8 @@ Term* TermSharing::insert(Term* t)
     unsigned vars = 0;
     bool hasInterpretedConstants=t->arity()==0 &&
 	env.signature->getFunction(t->functor())->interpreted();
+    bool hasInterpretedFunctions=t->arity()>0 &&
+	env.signature->getFunction(t->functor())->interpreted();
     Color color = COLOR_TRANSPARENT;
     for (TermList* tt = t->args(); ! tt->isEmpty(); tt = tt->next()) {
       if (tt->isVar()) {
@@ -109,19 +111,22 @@ Term* TermSharing::insert(Term* t)
           vars++;
           weight += 1;
       }
-      else 
+      else
       {
           ASS_REP(tt->term()->shared(), tt->term()->toString());
-          
+
           Term* r = tt->term();
-    
+
           vars += r->vars();
           weight += r->weight();
           if (env.colorUsed) {
               color = static_cast<Color>(color | r->color());
           }
           if(!hasInterpretedConstants && r->hasInterpretedConstants()) {
-              hasInterpretedConstants=true; 
+              hasInterpretedConstants=true;
+          }
+          if(!hasInterpretedFunctions && r->hasInterpretedFunctions()) {
+              hasInterpretedFunctions=true;
           }
       }
     }
@@ -133,10 +138,11 @@ Term* TermSharing::insert(Term* t)
       color = static_cast<Color>(color | fcolor);
       t->setColor(color);
     }
-      
+
     t->setInterpretedConstantsPresence(hasInterpretedConstants);
+    t->setInterpretedFunctionsPresence(hasInterpretedFunctions);
     _totalTerms++;
-     
+
     ASS_REP(SortHelper::areImmediateSortsValid(t), t->toString());
     if (!SortHelper::areImmediateSortsValid(t)){
       USER_ERROR("Immediate (shared) subterms of  term/literal "+t->toString()+" have different types/not well-typed!");
@@ -184,6 +190,7 @@ Literal* TermSharing::insert(Literal* t)
     unsigned vars = 0;
     Color color = COLOR_TRANSPARENT;
     bool hasInterpretedConstants=false;
+    bool hasInterpretedFunctions=false;
     for (TermList* tt = t->args(); ! tt->isEmpty(); tt = tt->next()) {
       if (tt->isVar()) {
 	ASS(tt->isOrdinaryVar());
@@ -202,6 +209,9 @@ Literal* TermSharing::insert(Literal* t)
 	if(!hasInterpretedConstants && r->hasInterpretedConstants()) {
 	  hasInterpretedConstants=true;
 	}
+	if(!hasInterpretedFunctions && r->hasInterpretedFunctions()) {
+	  hasInterpretedFunctions=true;
+	}
       }
     }
     t->markShared();
@@ -213,6 +223,7 @@ Literal* TermSharing::insert(Literal* t)
       t->setColor(color);
     }
     t->setInterpretedConstantsPresence(hasInterpretedConstants);
+    t->setInterpretedFunctionsPresence(hasInterpretedFunctions);
     _totalLiterals++;
 
     ASS_REP(SortHelper::areImmediateSortsValid(t), t->toString());

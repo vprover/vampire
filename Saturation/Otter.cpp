@@ -73,7 +73,8 @@ void Otter::onPassiveAdded(Clause* cl)
     static Options::WatchNewPassiveClauses watch_option = env.options->watchNewPassiveClauses();
 
     if (watch_option != Options::WatchNewPassiveClauses::OFF) {
-      static auto anyvar_prop = [](Literal* lit){ return lit->isEquality() && lit->isNegative() && lit->hasInterpretedConstants(); };
+      static auto anyvar_prop = [](Literal* lit){ return lit->isEquality() && lit->isNegative()
+          && (lit->hasInterpretedConstants() || lit->hasInterpretedFunctions()) ; };
       static auto onevar_prop = [](Literal* lit){ return anyvar_prop(lit) && (lit->vars() >= 1); };
       static auto twovar_prop = [](Literal* lit){ return anyvar_prop(lit) && (lit->vars() >= 2); };
 

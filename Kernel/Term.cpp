@@ -1283,6 +1283,7 @@ Term::Term(const Term& t) throw()
     _arity(t._arity),
     _color(COLOR_TRANSPARENT),
     _hasInterpretedConstants(0),
+    _hasInterpretedFunctions(0),
     _isTwoVarEquality(0),
     _weight(0),
     _vars(0)
@@ -1312,6 +1313,7 @@ Term::Term() throw()
    _arity(0),
    _color(COLOR_TRANSPARENT),
    _hasInterpretedConstants(0),
+   _hasInterpretedFunctions(0),
    _isTwoVarEquality(0),
    _weight(0),
    _vars(0)

@@ -536,6 +536,11 @@ public:
   /** Assign value that will be returned by the hasInterpretedConstants() function */
   void setInterpretedConstantsPresence(bool value) { _hasInterpretedConstants=value; }
 
+  /** Return true if term is an interpreted constant or contains one as its subterm */
+  bool hasInterpretedFunctions() const { return _hasInterpretedConstants; }
+  /** Assign value that will be returned by the hasInterpretedConstants() function */
+  void setInterpretedFunctionsPresence(bool value) { _hasInterpretedFunctions=value; }
+
   /** Return true if term is either an if-then-else or a let...in expression */
   bool isSpecial() const { return functor()>=SPECIAL_FUNCTOR_LOWER_BOUND; }
   bool isITE() const { return functor() == SF_ITE; }
@@ -608,11 +613,13 @@ protected:
   /** The number of this symbol in a signature */
   unsigned _functor;
   /** Arity of the symbol */
-  unsigned _arity : 27; //TODO: remove one bit and use the constant
+  unsigned _arity : 26;
   /** colour, used in interpolation and symbol elimination */
   unsigned _color : 2;
   /** Equal to 1 if the term/literal contains any interpreted constants */
   unsigned _hasInterpretedConstants : 1;
+  /** Equal to 1 if the term/literal contains any interpreted functions */
+  unsigned _hasInterpretedFunctions : 1;
   /** If true, the object is an equality literal between two variables */
   unsigned _isTwoVarEquality : 1;
   /** Weight of the symbol */
