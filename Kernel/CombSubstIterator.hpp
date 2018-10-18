@@ -85,7 +85,7 @@ class CombSubstitution
 
     TermList apply(TermList t, int index, int sort = -1) const;
     Literal* apply(Literal* lit, int index) const;
-    HOTerm_ptr deref(VarSpec vs, bool& success, unsigned sort) const;
+    HOTerm_ptr deref(VarSpec vs, unsigned sort) const;
     
     enum AlgorithmStep{
        UNDEFINED,
@@ -201,7 +201,7 @@ class CombSubstitution
     #if VDEBUG
       vstring toString() const{
         vstring res = "<" + terml->toString() + " of sort " + 
-                            env.sorts->sortName(terml->srt) + " , \n\n" +
+                            env.sorts->sortName(terml->srt) + " , \n " +
                             termr->toString() + " of sort " + 
                             env.sorts->sortName(termr->srt) + ">";
         return res;
@@ -412,7 +412,7 @@ public:
     ASS(s1 == s2);
     _unifSystem = new CombSubstitution(t1, index1, t2, index2, s1);
     transformStacks.push(_unifSystem->availableTransforms());
-    cout << "STARTING ITERATOR WITH " + _unifSystem->_unificationPairs.top().toString() << endl; 
+    //cout << "STARTING ITERATOR WITH\n" + _unifSystem->_unificationPairs.top().toString() << endl; 
     //cout << transformStacksToString() << endl;
     _calledNext = false;
   }

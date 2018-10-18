@@ -44,7 +44,7 @@ public:
   CLASS_NAME(TermSubstitutionTree);
   USE_ALLOCATOR(TermSubstitutionTree);
 
-  TermSubstitutionTree(bool useC=false);
+  TermSubstitutionTree(bool useC=false, bool usePlcHlds=false);
 
   void insert(TermList t, Literal* lit, Clause* cls);
   void remove(TermList t, Literal* lit, Clause* cls);
@@ -103,7 +103,8 @@ private:
   LDSkipList _vars;
   
   DHMap<unsigned, LDSkipList*> _placeHolders;
-  
+  bool _usePlcHlds;
+
 };
 
 };

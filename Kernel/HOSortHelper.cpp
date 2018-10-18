@@ -180,7 +180,9 @@ TermList HOSortHelper::apply(TermList t1, unsigned s1, TermList t2, unsigned s2)
   //cout << "t2 " + t2.toString() + " of sort " + env.sorts->sortName(s2) << endl;  
   
   ASS(arity(s1) > 0);
-  ASS(domain(s1) == s2 || (t2.isVar() && s2 == 0));
+  ASS_REP(domain(s1) == s2 || (t2.isVar() && s2 == 0), 
+    "t1 " + t1.toString() + " of sort " + env.sorts->sortName(s1) +
+    "\nt2 " + t2.toString() + " of sort " + env.sorts->sortName(s2));
 
   TermList res;
   unsigned fun = LambdaElimination::introduceAppSymbol(s1, domain(s1), range(s1));

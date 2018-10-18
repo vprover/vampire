@@ -196,7 +196,6 @@ void CombSubstitution::populateSide(const HOTerm_ptr hoterm, ApplyTo at, Transfo
   }
 
   if(hoterm->argnum() > 2){
-    cout << hoterm->toStringWithTopLevelSorts() << endl;
     unsigned sort1 = hoterm->nthArgSort(0);
     unsigned sort2 = hoterm->nthArgSort(1);
     unsigned sort3 = hoterm->nthArgSort(2);
@@ -287,8 +286,8 @@ bool CombSubstitution::transform(Transform t, bool furtherOptions){
   //temporary measure, in the long run, manipulate transforms rather than emptying them.
   up->emptyTransforms();
 
-  cout << "carrying out transformation " + algorithmStepToString(t.first) << endl;
-  cout << "on unification pair" +  up->toString() << endl;
+  //cout << "carrying out transformation " + algorithmStepToString(t.first) << endl;
+  //cout << "on unification pair" +  up->toString() << endl;
   //cout << "The substitution so far is " + toString() << endl; 
  
   HOTerm_ptr terml = up->terml;
@@ -553,11 +552,8 @@ void CombSubstitution::bcsReduce(HOTerm_ptr ht, AlgorithmStep as) const{
   //cout << "The sort of the head symbol is " + env.sorts->sortName(ht->headsort) << endl;
 
   HOTerm_ptr a1 = ht->args.pop_front();
-  //cout << "The sort of arg1 is " + env.sorts->sortName(a1->srt) << endl;
   HOTerm_ptr a2 = ht->args.pop_front();
-  //cout << "The sort of arg2 is " + env.sorts->sortName(a2->srt) << endl;
   HOTerm_ptr a3 = ht->args.pop_front();
-  //cout << "The sort of arg3 is " + env.sorts->sortName(a3->srt) << endl;
 
   if(as == B_REDUCE || as == S_REDUCE){
     a2->addArg(a3);
@@ -603,7 +599,7 @@ void CombSubstitution::eliminate(const VarSpec& vs, HOTerm_ptr ht, HOTerm_ptr ta
     targ = toDo.pop();
     if(targ->head.isVar() && (targ->head.var() == var)
                           && (targ->headInd == vs.index)){
-      targ->headify(ht);
+      targ->headify(HOTerm_ptr(new HSH::HOTerm(*ht)));
       //If headification has resulted in a weak redex reduce it
       while(targ->combHead() && !targ->underAppliedCombTerm()){
         AlgorithmStep as = reduceStep(targ);
@@ -652,13 +648,12 @@ TermList CombSubstitution::apply(TermList t, int index, int sort) const
   ASS(sort > -1 || !t.isVar());
 
   Stack<HOTerm_ptr> toDo;
-  DHMap<VarSpec, HOTerm_ptr, VarSpec::Hash1, VarSpec::Hash2> known;
+  //DHMap<VarSpec, HOTerm_ptr, VarSpec::Hash1, VarSpec::Hash2> known;
     
   HOTerm_ptr ht = HSH::deappify(t, index, sort);
   
- // cout << "applying to " + ht->toString(false, true) + " of sort " + (sort > -1 ?
-   //       env.sorts->sortName(sort) : "") << endl; 
-  
+  //cout << "applying to " + ht->toStringWithTopLevelSorts() << endl; 
+
   toDo.push(ht);
 
   while(!toDo.isEmpty()){
@@ -668,18 +663,11 @@ TermList CombSubstitution::apply(TermList t, int index, int sort) const
 
       unsigned var = hterm->head.var();
       VarSpec vs(var, hterm->headInd);
-      HOTerm_ptr found;
-      if(!known.find(vs, found)){
-        bool present = false;
-        found = deref(vs, present, hterm->headsort);
-        if(present){
-          known.insert(vs, found);
-        }
-      }
+      HOTerm_ptr found = deref(vs, hterm->headsort);
       ASS_REP(hterm->headsort == found->srt || hterm->isVar(), 
               hterm->toString(true, false) + " and " + found->toString(true, false) +  
                     " found of sort " + env.sorts->sortName(found->srt));
-      //cout << "Dereffed " + vs.toString() + " to " + found.toString(false, true) << endl;
+      //cout << "Dereffed " + vs.toString() + " to " + found->toString(false, true) << endl;
       hterm->headify(found);
       while(hterm->combHead() && !hterm->underAppliedCombTerm()){
         AlgorithmStep as = reduceStep(hterm);
@@ -694,7 +682,8 @@ TermList CombSubstitution::apply(TermList t, int index, int sort) const
             bcsReduce(hterm, as);
         }
       }
-      ASS(hterm->headInd != AUX_INDEX)
+      //cout << "The hterm post headification is " + hterm->toString(false, true) << endl;
+      ASS(hterm->headInd != AUX_INDEX) 
       if(hterm->varHead()  && hterm->headInd != UNBOUND_INDEX){
         toDo.push(hterm);
         continue;
@@ -704,6 +693,7 @@ TermList CombSubstitution::apply(TermList t, int index, int sort) const
       toDo.push(hterm->ntharg(i));
     }
   }
+  //cout << "after application" + ht->toStringWithTopLevelSorts() << endl;  
   TermList res = HSH::appify(ht);
   //cout << "returning post application " + res.toString() << endl;
   return res;
@@ -731,7 +721,7 @@ Literal* CombSubstitution::apply(Literal* lit, int index) const
   return Literal::createEquality (lit->polarity(),arg1, arg2, sort);
 }
 
-CombSubstitution::HOTerm_ptr CombSubstitution::deref(VarSpec vs, bool& success, unsigned varSort) const{
+CombSubstitution::HOTerm_ptr CombSubstitution::deref(VarSpec vs, unsigned varSort) const{
   CALL("CombSubstitution::deref");
   
   //cout << "Dereffing " + vs.toString() << endl;
@@ -748,7 +738,6 @@ CombSubstitution::HOTerm_ptr CombSubstitution::deref(VarSpec vs, bool& success, 
   }  
   
   HOTerm_ptr resCopied = HOTerm_ptr(new HSH::HOTerm(*res));
-  success = true;
   Stack<HOTerm_ptr> toDo;
   toDo.push(resCopied);
 
@@ -837,7 +826,7 @@ bool CombSubstIterator::hasNextUnifier(){
   ASS(bdStack.length()+1==transformStacks.length());
 
   do {
-    cout << _unifSystem->unificationPairsToString() << endl;
+    //cout << _unifSystem->unificationPairsToString() << endl;
     //cout << transformStacksToString() << endl;
     //ASSERTION_VIOLATION;
     
@@ -859,7 +848,7 @@ bool CombSubstIterator::hasNextUnifier(){
       bdStack.push(bd);
     }
   } while(!_unifSystem->_solved);
-  cout << "The successful substitution is:\n " + _unifSystem->toString() << endl; 
+  //cout << "The successful substitution is:\n " + _unifSystem->toString() << endl; 
   return true;
 }
 

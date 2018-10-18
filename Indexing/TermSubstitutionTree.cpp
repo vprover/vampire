@@ -41,8 +41,8 @@ namespace Indexing
 using namespace Lib;
 using namespace Kernel;
 
-TermSubstitutionTree::TermSubstitutionTree(bool useC)
-: SubstitutionTree(env.signature->functions(),useC)
+TermSubstitutionTree::TermSubstitutionTree(bool useC, bool usePlcHlds)
+: SubstitutionTree(env.signature->functions(),useC), _usePlcHlds(usePlcHlds)
 {
 }
 
@@ -77,7 +77,7 @@ void TermSubstitutionTree::handleTerm(TermList t, Literal* lit, Clause* cls, boo
     ASS(t.isTerm());
     Term* term=t.term();
 
-    if(env.options->combinatoryUnification()){
+    if(_usePlcHlds){
       term = toPlaceHolders(term);
       
       if(isPlaceHolder(term)){
@@ -127,7 +127,7 @@ TermQueryResultIterator TermSubstitutionTree::getUnifications(TermList t,
     ASS(t.isTerm());
     if(_vars.isEmpty()) {
       // false here means without constraints
-      if(!env.options->combinatoryUnification()){
+      if(!_usePlcHlds){
         return getResultIterator<UnificationsIterator>(t.term(), retrieveSubstitutions,false);
       } else {
         unsigned sort = SortHelper::getResultSort(t.term());
@@ -141,7 +141,7 @@ TermQueryResultIterator TermSubstitutionTree::getUnifications(TermList t,
         }
       }
     } else {
-      if(!env.options->combinatoryUnification()){
+      if(!_usePlcHlds){
         return pvi( getConcatenatedIterator(
             // false here means without constraints
         ldIteratorToTQRIterator(LDSkipList::RefIterator(_vars), t, retrieveSubstitutions,false),
