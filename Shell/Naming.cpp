@@ -37,6 +37,7 @@
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/SubformulaIterator.hpp"
 #include "Kernel/Term.hpp"
+#include "Kernel/HOSortHelper.hpp"
 
 #include "Shell/Statistics.hpp"
 #include "Shell/Options.hpp"
@@ -1139,7 +1140,7 @@ Literal* Naming::getDefinitionLiteral(Formula* f, Formula::VarList* freeVars) {
   unsigned pred;
   Signature::Symbol* sym;
   if(env.options->combinatoryUnification()){
-    pred  = env.signature->addNameFunction(length);
+    pred  = env.signature->addNameFunction(0);
     sym = env.signature->getFunction(pred);
   } else {
     pred  = env.signature->addNamePredicate(length);
@@ -1149,10 +1150,10 @@ Literal* Naming::getDefinitionLiteral(Formula* f, Formula::VarList* freeVars) {
   if (env.colorUsed) {
     Color fc = f->getColor();
     if (fc != COLOR_TRANSPARENT) {
-      predSym->addColor(fc);
+      sym->addColor(fc);
     }
     if (f->getSkip()) {
-      predSym->markSkip();
+      sym->markSkip();
     }
   }
 
@@ -1173,10 +1174,11 @@ Literal* Naming::getDefinitionLiteral(Formula* f, Formula::VarList* freeVars) {
   }
 
   if(env.options->combinatoryUnification()){
-    sym->setType(OperatorType::getFunctionType(length, domainSorts.begin(), Sorts::SRT_BOOL));
-    Term* term = Term::create(pred, length, args.begin());
-    TermList truth(Term::foolTrue());
-    return  Literal::createEquality(true, TermList(term), truth, Sorts::SRT_BOOL);       
+    unsigned headSort = HOSortHelper::getHigherOrderSort(domainSorts, Sorts::SRT_BOOL);
+    sym->setType(OperatorType::getConstantsType(headSort)); 
+    TermList head = TermList(Term::createConstant(pred));
+    Term* term = HOSortHelper::createAppifiedTerm(head, headSort, domainSorts, args);
+    return  Literal::createEquality(true, TermList(term), TermList(Term::foolTrue()), Sorts::SRT_BOOL);       
   } else {
     sym->setType(OperatorType::getPredicateType(length, domainSorts.begin()));
   }
@@ -1234,7 +1236,6 @@ Formula* Naming::introduceDefinition(Formula* f, bool iff) {
     env.beginOutput();
     env.out() << "[PP] naming defs: " << definition->toString() << std::endl;
     env.endOutput();
-    ASSERTION_VIOLATION;
   }
 
   return name;

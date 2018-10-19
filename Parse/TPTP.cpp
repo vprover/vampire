@@ -51,7 +51,6 @@ using namespace Kernel;
 using namespace Shell;
 using namespace Parse;
 
-//#define DEBUG_SHOW_STATE 0
 #define DEBUG_SHOW_TOKENS 0
 #define DEBUG_SHOW_UNITS 0
 #define DEBUG_SOURCE 0
@@ -1490,9 +1489,9 @@ void TPTP::tff()
 
 void TPTP::holFunction()
 {
-  CALL("TPTP::holFunctio");
+  CALL("TPTP::holFunction");
   Token tok = getTok(0);
-
+  
   switch (tok.tag) {
   case T_NOT:
     resetToks();
@@ -1520,6 +1519,21 @@ void TPTP::holFunction()
     _states.push(END_HOL_FUNCTION);
     _states.push(HOL_FUNCTION);
     return;
+    
+  //higher order syntax wierdly allows (~) @ (...)
+  //in cases such as this, undo whatever T_LPAR has done and continue
+  case T_RPAR: {
+    ASS(_connectives.top() == NOT);
+    resetToks();
+    Connective c =  (Connective) _connectives.pop();
+    _connectives.pop();
+    _connectives.push(c);
+    _states.pop();
+    _states.pop();
+    _states.pop();
+    _states.push(HOL_FUNCTION);
+    return;
+  }
 
   case T_STRING:
   case T_INT:
@@ -1549,6 +1563,13 @@ void TPTP::holFunction()
     _states.push(END_HOL_TERM);
     _states.push(HOL_TERM);
     return;
+  case T_APP:
+    //higher-order syntax allows for ~ @ fomrula  
+    if(_connectives.top() == NOT){
+      resetToks();
+      _states.push(HOL_FUNCTION);
+      return;
+    }
   //AYB ADDED, TO BE MODIFIED
   default:
     PARSE_ERROR("formula or term expected",tok);

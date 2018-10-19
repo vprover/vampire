@@ -364,7 +364,7 @@ public:
   const unsigned functor() const { return _functor; }
 
   static XMLElement variableToXML(unsigned var);
-  vstring toString() const;
+  vstring toString(bool withoutApps = true) const;
   static vstring variableToString(unsigned var);
   static vstring variableToString(TermList var);
   /** return the arguments */

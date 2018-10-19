@@ -35,6 +35,7 @@
 #include "Kernel/Signature.hpp"
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/Term.hpp"
+#include "Kernel/HOSortHelper.hpp"
 #include "Kernel/TermIterators.hpp"
 #include "Kernel/Unit.hpp"
 
@@ -156,18 +157,18 @@ bool GeneralSplitting::apply(Clause*& cl, UnitList*& resultStack)
 
       Set<unsigned>::Iterator sit2=sit;
       while(sit2.hasNext()) {
-	unsigned v2=sit2.next();
-	ASS_NEQ(v1,v2);
-	bool inserted;
-	if(v1>v2) {
-	  inserted= connections.insert(make_pair(v2,v1))==1;
-	} else {
-	  inserted= connections.insert(make_pair(v1,v2))==1;
-	}
-	if(inserted) {
-	  degrees.insert(v1);
-	  degrees.insert(v2);
-	}
+        unsigned v2=sit2.next();
+        ASS_NEQ(v1,v2);
+        bool inserted;
+        if(v1>v2) {
+          inserted= connections.insert(make_pair(v2,v1))==1;
+        } else {
+          inserted= connections.insert(make_pair(v1,v2))==1;
+        }
+        if(inserted) {
+          degrees.insert(v1);
+          degrees.insert(v2);
+        }
       }
     }
   }
@@ -241,9 +242,14 @@ bool GeneralSplitting::apply(Clause*& cl, UnitList*& resultStack)
   }
 
 
-  unsigned namingPred=env.signature->addNamePredicate(minDeg);
-  OperatorType* npredType = OperatorType::getPredicateType(minDeg, argSorts.begin());
-  env.signature->getPredicate(namingPred)->setType(npredType);
+  unsigned namingPred;
+  if(env.options->combinatoryUnification()){  
+    namingPred = env.signature->addNameFunction(0);
+  } else {
+    namingPred = env.signature->addNamePredicate(minDeg); 
+    OperatorType* npredType = OperatorType::getPredicateType(minDeg, argSorts.begin());
+    env.signature->getPredicate(namingPred)->setType(npredType);
+  }
 
   if(mdvColor!=COLOR_TRANSPARENT && otherColor!=COLOR_TRANSPARENT) {
     ASS_EQ(mdvColor, otherColor);
@@ -256,9 +262,24 @@ bool GeneralSplitting::apply(Clause*& cl, UnitList*& resultStack)
 
 
   ASS_EQ(args.size(), minDeg);
-  Literal* pnLit=Literal::create(namingPred, minDeg, true, false, args.begin());
+  Literal* pnLit;
+  Term* term;
+  if(env.options->combinatoryUnification()){  
+    unsigned headSort = HOSortHelper::getHigherOrderSort(argSorts, Sorts::SRT_BOOL);
+    env.signature->getFunction(namingPred)->setType(OperatorType::getConstantsType(headSort)); 
+    TermList head = TermList(Term::createConstant(namingPred));
+    term = HOSortHelper::createAppifiedTerm(head, headSort, argSorts, args);
+    pnLit = Literal::createEquality(true, TermList(term), TermList(Term::foolTrue()), Sorts::SRT_BOOL); 
+  } else {
+    pnLit = Literal::create(namingPred, minDeg, true, false, args.begin());
+  }
   mdvLits.push(pnLit);
-  Literal* nnLit=Literal::create(namingPred, minDeg, false, false, args.begin());
+  Literal* nnLit;
+  if(env.options->combinatoryUnification()){  
+    nnLit = Literal::createEquality(true, TermList(term), TermList(Term::foolFalse()), Sorts::SRT_BOOL); 
+  } else {
+    nnLit = Literal::create(namingPred, minDeg, false, false, args.begin());
+  }
   otherLits.push(nnLit);
 
   Clause* mdvCl=Clause::fromStack(mdvLits, cl->inputType(), new Inference(Inference::GENERAL_SPLITTING_COMPONENT));

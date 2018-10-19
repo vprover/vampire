@@ -593,10 +593,21 @@ vstring TermList::toString() const
  * Return the result of conversion of a term into a vstring.
  * @since 16/05/2007 Manchester
  */
-vstring Term::toString() const
-{
+vstring Term::toString(bool withoutApps) const
+{ 
   CALL("Term::toString");
 
+  if(withoutApps && !isSpecial()){
+    Signature::Symbol* sym = env.signature->getFunction(_functor);
+    if(sym->hOLAPP()){
+      ASS(_arity == 2);
+      vstring res = "(" + args()->toString();
+      res = res + " @ " + args()->next()->toString() + ")";    
+      //ASS(argus->next()->isEmpty());
+      return res;
+    }
+  }
+  
   vstring s = headToString();
 
   if (_arity) {
@@ -1177,7 +1188,7 @@ bool Term::isBoolean() const {
     switch (term->getSpecialData()->getType()) {
       case SF_FORMULA:
         return true;
-	  case SF_LAMBDA:
+	    case SF_LAMBDA:
       case SF_TUPLE:
         return false;
       case SF_ITE:
@@ -1192,14 +1203,10 @@ bool Term::isBoolean() const {
         }
       }
 	  case SF_APP: {
-		if (term->getSpecialData()->getSort() == Sorts::SRT_BOOL){
-			return true;
-		}else{
-		    return false;
-		}
+      return term->getSpecialData()->getSort() == Sorts::SRT_BOOL;
 	  }
-      default:
-        ASSERTION_VIOLATION_REP(term->toString());
+    default:
+      ASSERTION_VIOLATION_REP(term->toString());
     }
   }
   return false;
