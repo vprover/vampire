@@ -700,6 +700,17 @@ unsigned Signature::addNamePredicate(unsigned arity)
   return addFreshPredicate(arity,"sP");
 } // addNamePredicate
 
+
+/**
+ * Create a new name.
+ * @since 19/10/2018 Manchester
+ */
+unsigned Signature::addNameFunction(unsigned arity)
+{
+  CALL("Signature::addNameFunction");
+  return addFreshFunction(arity,"sP");
+} // addNameFunction
+
 /**
  * Add fresh function of a given arity and with a given prefix. If suffix is non-zero,
  * the function name will be prefixI, where I is an integer, otherwise it will be

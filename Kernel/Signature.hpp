@@ -383,6 +383,8 @@ class Signature
   unsigned addFreshPredicate(unsigned arity, const char* prefix, const char* suffix = 0);
   unsigned addSkolemPredicate(unsigned arity,const char* suffix = 0);
   unsigned addNamePredicate(unsigned arity);
+  unsigned addNameFunction(unsigned arity);
+
 
   // Interpreted symbol declarations
   unsigned addIntegerConstant(const vstring& number,bool defaultSort);

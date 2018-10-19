@@ -1136,8 +1136,15 @@ Literal* Naming::getDefinitionLiteral(Formula* f, Formula::VarList* freeVars) {
   CALL("Naming::getDefinitionLiteral");
 
   unsigned length = Formula::VarList::length(freeVars);
-  unsigned pred = env.signature->addNamePredicate(length);
-  Signature::Symbol* predSym = env.signature->getPredicate(pred);
+  unsigned pred;
+  Signature::Symbol* sym;
+  if(env.options->combinatoryUnification()){
+    pred  = env.signature->addNameFunction(length);
+    sym = env.signature->getFunction(pred);
+  } else {
+    pred  = env.signature->addNamePredicate(length);
+    sym = env.signature->getPredicate(pred);
+  }
 
   if (env.colorUsed) {
     Color fc = f->getColor();
@@ -1150,10 +1157,10 @@ Literal* Naming::getDefinitionLiteral(Formula* f, Formula::VarList* freeVars) {
   }
 
   static Stack<unsigned> domainSorts;
-  static Stack<TermList> predArgs;
+  static Stack<TermList> args;
   static DHMap<unsigned, unsigned> varSorts;
   domainSorts.reset();
-  predArgs.reset();
+  args.reset();
   varSorts.reset();
 
   SortHelper::collectVariableSorts(f, varSorts);
@@ -1162,12 +1169,18 @@ Literal* Naming::getDefinitionLiteral(Formula* f, Formula::VarList* freeVars) {
   while (vit.hasNext()) {
     unsigned uvar = vit.next();
     domainSorts.push(varSorts.get(uvar, Sorts::SRT_DEFAULT));
-    predArgs.push(TermList(uvar, false));
+    args.push(TermList(uvar, false));
   }
 
-  predSym->setType(OperatorType::getPredicateType(length, domainSorts.begin()));
-
-  return Literal::create(pred, length, true, false, predArgs.begin());
+  if(env.options->combinatoryUnification()){
+    sym->setType(OperatorType::getFunctionType(length, domainSorts.begin(), Sorts::SRT_BOOL));
+    Term* term = Term::create(pred, length, args.begin());
+    TermList truth(Term::foolTrue());
+    return  Literal::createEquality(true, TermList(term), truth, Sorts::SRT_BOOL);       
+  } else {
+    sym->setType(OperatorType::getPredicateType(length, domainSorts.begin()));
+  }
+  return Literal::create(pred, length, true, false, args.begin());
 }
 
 /**
