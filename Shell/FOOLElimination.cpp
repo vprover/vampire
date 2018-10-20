@@ -41,6 +41,7 @@
 #include "Kernel/Signature.hpp"
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/SubformulaIterator.hpp"
+#include "Kernel/HOSortHelper.hpp"
 
 #include "Shell/Options.hpp"
 #include "Shell/SymbolOccurrenceReplacement.hpp"
@@ -724,9 +725,17 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
         Formula *formula = process(sd->getFormula());
 
         // create a fresh symbol g and build g(X1, ..., Xn)
-        unsigned freshSymbol = introduceFreshSymbol(context, BOOL_PREFIX, freeVarsSorts, Sorts::SRT_BOOL);
-        TermList freshSymbolApplication = buildFunctionApplication(freshSymbol, freeVars);
-
+        TermList freshSymbolApplication;
+        if(env.options->combinatoryUnification()){
+          unsigned freshSymbolSort = HOSortHelper::getHigherOrderSort(freeVarsSorts, Sorts::SRT_BOOL);
+          Stack<unsigned> dummy;
+          unsigned freshSymbol = introduceFreshSymbol(context, BOOL_PREFIX, dummy, freshSymbolSort);
+          TermList head = TermList(Term::createConstant(freshSymbol));
+          freshSymbolApplication = buildAppifiedFunction(head, freshSymbolSort, freeVarsSorts, freeVars);
+        } else {
+          unsigned freshSymbol = introduceFreshSymbol(context, BOOL_PREFIX, freeVarsSorts, Sorts::SRT_BOOL);
+          freshSymbolApplication = buildFunctionApplication(freshSymbol, freeVars);
+        }
         // build f <=> g(X1, ..., Xn) = true
         Formula* freshSymbolDefinition = new BinaryFormula(IFF, formula, toEquality(freshSymbolApplication));
 
@@ -875,6 +884,20 @@ void FOOLElimination::buildApplication(unsigned symbol, Formula::VarList* vars, 
     functionApplication = TermList(Term::create(symbol, arity, arguments.begin()));
   }
 }
+
+TermList FOOLElimination::buildAppifiedFunction(TermList head, unsigned hsort, 
+                                                const Stack<unsigned>& sorts, 
+                                                Formula::VarList* vars){
+  CALL("FOOLElimination::buildAppifiedFunction");                                                
+    Stack<TermList> arguments;
+    Formula::VarList::Iterator vit(vars);
+    while (vit.hasNext()) {
+      unsigned var = (unsigned)vit.next();
+      arguments.push(TermList(var, false));
+    }
+    Term* term = HOSortHelper::createAppifiedTerm(head, hsort, sorts, arguments);
+    return TermList(term);
+  }
 
 /**
  * A shortcut of buildApplication for TERM_CONTEXT.

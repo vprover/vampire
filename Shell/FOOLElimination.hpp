@@ -90,6 +90,7 @@ private:
                                TermList& functionApplication, Formula*& predicateApplication);
   // Shortcuts for buildApplication
   static TermList buildFunctionApplication(unsigned function, Formula::VarList* vars);
+  static TermList buildAppifiedFunction(TermList head, unsigned hsort, const Stack<unsigned>&, Formula::VarList* vars);
   static Formula* buildPredicateApplication(unsigned predicate, Formula::VarList* vars);
 
   // Depending on the context, build an equivalence or an equality
