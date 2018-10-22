@@ -127,11 +127,24 @@ public:
       CALL("HOTerm::addArg");
   #if VDEBUG
       ASS_REP(arity(srt) > 0, env.sorts->sortName(srt));
-      ASS_REP(domain(srt) == ht->sort(), "The hterm is " + toString(true, false) + "The sort is " + env.sorts->sortName(srt) + "The arg is " + ht->toString(true, false) + "its sort is " + env.sorts->sortName(ht->sort()));
+      ASS_REP(domain(srt) == ht->sort(), "The hterm is " + toStringWithTopLevelSorts() + " The arg is " + ht->toStringWithTopLevelSorts());
   #endif
       args.push_back(ht);
       srt = range(srt);
     }
+  #if VDEBUG
+    bool wellSorted(){
+      for(unsigned n = 0; n < argnum(); n++){
+        if(args[n]->srt != getNthArgSort(headsort, n)){
+          return false;
+        }
+      }
+      if(srt != appliedToN(headsort, argnum())){
+        return false;
+      }
+      return true;
+    }
+  #endif  
     /** Returns the sort of whole term */
     unsigned sort() const { return srt;}
     /** Returns true if HOTerm has variable head */

@@ -313,6 +313,20 @@ class CombSubstitution
       }
       return false;
     }
+
+  #if VDEBUG
+    bool systemIsWellSorted(){
+      for(unsigned i = 0; i < _unificationPairs.size(); i++){
+        if(!_unificationPairs[i].terml->wellSorted() ||
+           !_unificationPairs[i].termr->wellSorted()){
+          cout << "terml " + _unificationPairs[i].terml->toStringWithTopLevelSorts() << endl;
+          cout << "termr " + _unificationPairs[i].termr->toStringWithTopLevelSorts() << endl;
+          return false;
+        }
+      }
+      return true;
+    }
+  #endif
                      
     inline HOTerm_ptr newVar(unsigned sort, int index){
       CALL("CombSubstitution::newvar");
@@ -408,11 +422,10 @@ public:
   
   CombSubstIterator(TermList t1, unsigned s1, int index1,
                    TermList t2, unsigned s2, int index2)
-  {
-    ASS(s1 == s2);
+  {  
     _unifSystem = new CombSubstitution(t1, index1, t2, index2, s1);
     transformStacks.push(_unifSystem->availableTransforms());
-    //cout << "STARTING ITERATOR WITH\n" + _unifSystem->_unificationPairs.top().toString() << endl; 
+    //cout << "STARTING ITERATOR WITH\n" + _unifSystem->_unificationPairs.top().toString() << endl;
     //cout << transformStacksToString() << endl;
     _calledNext = false;
   }

@@ -146,19 +146,27 @@ struct Superposition::CombResultIterator
    const int RESULT_BANK = 1;
    typedef pair<pair<Literal*, TermList>, TermQueryResult> QueryResType;
    
-   CombResultIterator(QueryResType arg): _arg(arg)
+   CombResultIterator(QueryResType arg): _conflictingSorts(false), _arg(arg)
    {  
      //cout << "starting iterator from SUPERPOSITION" << endl;
      TermList t1 = arg.first.second;
      TermList t2 = arg.second.term;
-    unsigned sort = SortHelper::getEqualityArgumentSort(arg.first.first);
-     _csIt = vi(new CombSubstIterator(t1, sort, QUERY_BANK, t2, sort, RESULT_BANK)); 
+     unsigned t1s = SortHelper::getTermSort(t1, arg.first.first);
+     unsigned t2s = SortHelper::getTermSort(t2, arg.second.literal);
+     if(t1s != t2s){
+       _conflictingSorts = true;
+     } else {
+       _csIt = vi(new CombSubstIterator(t1, t1s, QUERY_BANK, t2, t2s, RESULT_BANK)); 
+     }
    }
 
    DECL_ELEMENT_TYPE(QueryResType);
    
    bool hasNext(){
      CALL("Superposition::CombResultIterator::hasNext");
+     if(_conflictingSorts){
+      return false;
+     }
      return _csIt.hasNext();
    }
    
@@ -171,6 +179,7 @@ struct Superposition::CombResultIterator
    }
    
 private:
+   bool _conflictingSorts;
    QueryResType _arg;  
    VirtualIterator<CombSubstitution*> _csIt;
 };
@@ -263,19 +272,18 @@ ClauseIterator Superposition::generateClauses(Clause* premise)
   auto itf3 = getMapAndFlattenIterator(itf2,ApplicableRewritesFn(_lhsIndex,withConstraints));
   
   bool cunif = env.options->combinatoryUnification();
-  auto itcf = getMapAndFlattenIterator (itf3, ApplicableCombRewritesFn());
   
   //Perform forward superposition
-  auto itf4 = getMappingIterator(cunif ? pvi(itcf) : pvi(itf3), ForwardResultFn(premise, limits, *this));
+  auto itf4 = getMappingIterator(cunif ? pvi(getMapAndFlattenIterator (itf3, ApplicableCombRewritesFn())) 
+                                       : pvi(itf3), ForwardResultFn(premise, limits, *this));
 
   auto itb1 = premise->getSelectedLiteralIterator();
   auto itb2 = getMapAndFlattenIterator(itb1,EqHelper::SuperpositionLHSIteratorFn(_salg->getOrdering(), _salg->getOptions()));
   auto itb3 = getMapAndFlattenIterator(itb2,RewritableResultsFn(_subtermIndex,withConstraints));
 
-  auto itcb = getMapAndFlattenIterator (itb3, ApplicableCombRewritesFn());
-  
   //Perform backward superposition
-  auto itb4 = getMappingIterator(cunif ? pvi(itcb) : pvi(itb3) ,BackwardResultFn(premise, limits, *this));
+  auto itb4 = getMappingIterator(cunif ? pvi(getMapAndFlattenIterator (itb3, ApplicableCombRewritesFn())) 
+                                       : pvi(itb3) ,BackwardResultFn(premise, limits, *this));
 
   // Add the results of forward and backward together
   auto it5 = getConcatenatedIterator(itf4,itb4);
@@ -769,7 +777,7 @@ Clause* Superposition::performSuperposition(
     //NOT_IMPLEMENTED;
   }
 */
-  cout << "reached here with clause: " + res->toString() << endl;
+ // cout << "reached here with clause: " + res->toString() << endl;
 
   return res;
 }

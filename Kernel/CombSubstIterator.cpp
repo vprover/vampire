@@ -82,6 +82,11 @@ void CombSubstitution::populateTransformations(UnificationPair& up)
   HOTerm_ptr hoterml = up.terml;
   HOTerm_ptr hotermr = up.termr;   
 
+  ASS_REP(hoterml->srt == hotermr->srt, 
+          "hoterml " + hoterml->toStringWithTopLevelSorts() +
+          "hotermr " + hotermr->toStringWithTopLevelSorts());
+  ASS(systemIsWellSorted());
+
   //cout << "terml is " + hoterml->toString(false, true) << endl;
   //cout << "termr is " + hotermr->toString(false, true) << endl;
   
@@ -107,6 +112,9 @@ void CombSubstitution::populateTransformations(UnificationPair& up)
   }  
 
   if(hoterml->sameFirstOrderHead(hotermr)){
+    ASS_REP(hoterml->argnum() == hotermr->argnum(),
+      hoterml->toStringWithTopLevelSorts() + "\n" + 
+      hotermr->toStringWithTopLevelSorts())
     Transform trs = make_pair(DECOMP,BOTH);
     up.transformsBoth.push(trs);
     return;      
@@ -211,8 +219,8 @@ void CombSubstitution::populateSide(const HOTerm_ptr hoterm, ApplyTo at, Transfo
     //C narrow
     if(!(HSH::arity(sort1) < 2)){
       if((HSH::appliedToN(sort1, 2) == hoterm->sortOfLengthNPref(3)) &&
-         (HSH::getNthArgSort(sort1, 0) == sort2) &&
-         (HSH::getNthArgSort(sort1, 1) == sort3)){
+         (HSH::getNthArgSort(sort1, 0) == sort3) &&
+         (HSH::getNthArgSort(sort1, 1) == sort2)){
         Transform trs = make_pair(C_NARROW,at);
         tStack.push(trs); 
       }
@@ -288,6 +296,7 @@ bool CombSubstitution::transform(Transform t, bool furtherOptions){
 
   //cout << "carrying out transformation " + algorithmStepToString(t.first) << endl;
   //cout << "on unification pair" +  up->toString() << endl;
+
   //cout << "The substitution so far is " + toString() << endl; 
  
   HOTerm_ptr terml = up->terml;
@@ -358,7 +367,8 @@ bool CombSubstitution::transform(Transform t, bool furtherOptions){
     HOTerm_ptr ht = HOTerm_ptr(new HSH::HOTerm(other->head, other->headsort));
     ht->headInd = other->headInd;
     for(unsigned i = 0; i < other->argnum() - toSplit->argnum(); i ++){
-      ht->addArg(other->ntharg(i));
+      HOTerm_ptr arg = HOTerm_ptr(new HSH::HOTerm(*other->ntharg(i)));
+      ht->addArg(arg);
     }
     
     if(occursOrNotPure(vs, ht)){
@@ -410,7 +420,7 @@ bool CombSubstitution::transform(Transform t, bool furtherOptions){
 }
 
 void CombSubstitution::transform(HOTerm_ptr term, HOTerm_ptr other, AlgorithmStep as){
-  CALL("CombSubstitution::transform");
+  CALL("CombSubstitution::transform2");
 
   //cout << "carrying out transformation with " + term->toString(false, true) << endl;
 
@@ -465,10 +475,13 @@ void CombSubstitution::transform(HOTerm_ptr term, HOTerm_ptr other, AlgorithmSte
 
   auto getReduceEquiv =[](AlgorithmStep as){
     switch(as){
+      case B_NARROW:
       case BX_NARROW:
         return B_REDUCE;
+      case C_NARROW:
       case CX_NARROW:
         return C_REDUCE;
+      case S_NARROW:
       case SX_NARROW:
         return S_REDUCE;
       default:
@@ -493,7 +506,7 @@ void CombSubstitution::transform(HOTerm_ptr term, HOTerm_ptr other, AlgorithmSte
 
   if(as == B_NARROW || as == C_NARROW || as == S_NARROW){
     ASS(term->varHead());
-    bcsReduce(term, as);
+    bcsReduce(term, getReduceEquiv(as));
   }
 
   if(as == KX_NARROW){
