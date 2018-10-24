@@ -36,11 +36,13 @@
 #include "Kernel/Clause.hpp"
 #include "Kernel/FormulaUnit.hpp"
 #include "Kernel/SortHelper.hpp"
+#include "Kernel/HOSortHelper.hpp"
 #include "Kernel/Theory.hpp"
 
 #include "Shell/Options.hpp"
 #include "Shell/Statistics.hpp"
 #include "Shell/DistinctGroupExpansion.hpp"
+#include "Shell/LambdaElimination.hpp"
 
 #include "Indexing/TermSharing.hpp"
 
@@ -318,9 +320,9 @@ vstring TPTP::toString(Tag tag)
   case T_EXISTS:
     return "?";
   case T_PI:
-    return "??";
-  case T_SIGMA:
     return "!!";
+  case T_SIGMA:
+    return "??";
   case T_IMPLY:
     return "=>";
   case T_XOR:
@@ -604,7 +606,7 @@ bool TPTP::readToken(Token& tok)
       return true;
     }
     if (getChar(1) == '!') {
-      tok.tag = T_SIGMA;
+      tok.tag = T_PI;
       resetChars();
       return true;
     }
@@ -613,7 +615,7 @@ bool TPTP::readToken(Token& tok)
     return true;
   case '?':
     if (getChar(1) == '?') {
-      tok.tag = T_PI;
+      tok.tag = T_SIGMA;
       resetChars();
       return true;
     }
@@ -1499,6 +1501,18 @@ void TPTP::holFunction()
     _states.push(HOL_FUNCTION);
     return;
 
+  case T_SIGMA:
+    resetToks();
+    _connectives.push(SIGMA);
+    _states.push(HOL_FUNCTION);
+    return;
+  
+  case T_PI:
+    resetToks();
+    _connectives.push(PI);
+    _states.push(HOL_FUNCTION);
+    return;
+
   case T_FORALL:
   case T_EXISTS:
    // _states.push(UNBIND_VARIABLES);
@@ -1521,17 +1535,12 @@ void TPTP::holFunction()
     return;
     
   //higher order syntax wierdly allows (~) @ (...)
-  //in cases such as this, undo whatever T_LPAR has done and continue
   case T_RPAR: {
     ASS(_connectives.top() == NOT);
-    resetToks();
-    Connective c =  (Connective) _connectives.pop();
     _connectives.pop();
-    _connectives.push(c);
-    _states.pop();
-    _states.pop();
-    _states.pop();
-    _states.push(HOL_FUNCTION);
+    _strings.push("vNOT");
+    _ints.push(0);
+    _states.push(END_HOL_TERM);
     return;
   }
 
@@ -1554,6 +1563,10 @@ void TPTP::holFunction()
     _formulas.push(new Formula(false));
     _lastPushed = FORM;
     return;
+  case T_AND:
+  case T_OR:
+  case T_IMPLY:
+  case T_IFF:
   case T_NAME:
   case T_VAR:
   case T_ITE:
@@ -1565,7 +1578,9 @@ void TPTP::holFunction()
     return;
   case T_APP:
     //higher-order syntax allows for ~ @ fomrula  
-    if(_connectives.top() == NOT){
+    if(_connectives.top() == NOT ||
+       _connectives.top() == PI  ||
+       _connectives.top() == SIGMA){
       resetToks();
       _states.push(HOL_FUNCTION);
       return;
@@ -1632,6 +1647,31 @@ void TPTP::holTerm()
       addTagState(T_COMMA);
       _states.push(BINDING);
       consumeToken(T_LPAR);
+      return;
+
+    case T_AND:
+      _strings.top() = "vAND";
+      _ints.push(0);
+      return;
+
+    case T_OR:
+      _strings.top() = "vOR";
+      _ints.push(0);
+      return;
+    
+    case T_IMPLY:
+      _strings.top() = "vIMP";
+      _ints.push(0);
+      return;
+    
+    case T_IFF:
+      _strings.top() = "vIFF";
+      _ints.push(0);
+      return;
+    
+    case T_XOR:
+      _strings.top() = "vXOR";
+      _ints.push(0);
       return;
 
     case T_VAR:
@@ -1715,8 +1755,9 @@ void TPTP::endHolFunction()
       return;
   }  
   
-  if ((con != APP) & (con != LAMBDA) & (con != -1) & (_lastPushed == TM)){
-    //At the moment, APP and LAMBDA are the only connectives that can take functions of type
+  if ((con != APP) && (con != LAMBDA) && (con != -1) && 
+      (con != PI)  && (con != SIGMA)  && (_lastPushed == TM)){
+    //At the moment, APP and LAMBDA are the only connectives that can take terms of type
     //Other than $o as arguments.
     endTermAsFormula();
   }
@@ -1740,14 +1781,25 @@ void TPTP::endHolFunction()
   case NOT:
     f = _formulas.pop();
     _formulas.push(new NegatedFormula(f));
-      _lastPushed = FORM;
+    _lastPushed = FORM;
     _states.push(END_HOL_FUNCTION);
     return;
+  case PI:
+  case SIGMA: {
+    vstring name = con == PI ? "vPI" : "vSIGMA";
+    TermList t = _termLists.pop();
+    _termLists.push(createFunctionApplication(name, 0, sortOf(t)));
+    _termLists.push(t);
+    _states.push(END_HOL_FUNCTION);
+    _states.push(END_APP);
+    return;
+  }
+
   case FORALL:
   case EXISTS:
     f = _formulas.pop();
     _formulas.push(new QuantifiedFormula((Connective)con,_varLists.pop(),_sortLists.pop(),f));
-     _lastPushed = FORM;
+    _lastPushed = FORM;
     _states.push(END_HOL_FUNCTION);
     _states.push(UNBIND_VARIABLES);
     return;
@@ -1868,23 +1920,23 @@ void TPTP::endHolFunction()
   }
 
   if ((c != APP) & (con == -1) & (_lastPushed == TM)){
-      endTermAsFormula();
+    endTermAsFormula();
   }
 
   
   // con and c are binary connectives
   if (higherPrecedence(con,c)) {
-      if (con == APP){
+    if (con == APP){
       _states.push(END_HOL_FUNCTION);
       _states.push(END_APP);
       return;  
-      }
+    }
     f = _formulas.pop(); 
     Formula* g = _formulas.pop();
     if (con == AND || con == OR) {
       f = makeJunction((Connective)con,g,f);
       if (conReverse) {
-          f = new NegatedFormula(f);
+        f = new NegatedFormula(f);
       }
     }
     else if (con == IMP && conReverse) {
@@ -1893,7 +1945,7 @@ void TPTP::endHolFunction()
       f = new BinaryFormula((Connective)con,g,f);
     }
     _formulas.push(f);
-      _lastPushed = FORM;
+    _lastPushed = FORM;
     _states.push(END_HOL_FUNCTION);
     return;
   }
@@ -3042,22 +3094,65 @@ Formula* TPTP::createPredicateApplication(vstring name, unsigned arity)
  * the arguments are assumed to be on the _termLists stack.
  * @since 13/04/2015 Gothenburg, major changes to support FOOL
  */
-TermList TPTP::createFunctionApplication(vstring name, unsigned arity)
+TermList TPTP::createFunctionApplication(vstring name, unsigned arity, unsigned argSort)
 {
   CALL("TPTP::createFunctionApplication");
   ASS_GE(_termLists.size(), arity);
 
+  typedef Signature::Symbol SS;
+  typedef HOSortHelper HSH;
+
+  auto convert = [] (SS::HOLConstant hc) { 
+    switch(hc){
+      case SS::AND:
+        return AND;
+      case SS::OR:
+        return OR;
+      case SS::IMP:
+        return IMP;
+      case SS::IFF:
+        return IFF;
+      case SS::XOR:
+        return XOR;
+      case SS::NOT:
+        return NOT;
+      case SS::PI:
+        return FORALL;
+      case SS::SIGMA:
+        return EXISTS;
+      default:
+        ASSERTION_VIOLATION;
+    }
+  };
+
   unsigned fun;
-  bool added;
+  bool added = false;
   if (!findLetSymbol(false, name, arity, fun)) {
     if (arity > 0) {
       fun = addFunction(name, arity, added, _termLists.top());
     } else {
-      fun = addUninterpretedConstant(name, _overflow, added);
+      fun = addUninterpretedConstant(name, _overflow, added, argSort);
     }
   }
   Term* t = new(arity) Term;
   t->makeSymbol(fun,arity);
+  if(env.signature->getFunction(fun)->getConst() != SS::NULL_CONSTANT 
+    && added && !env.options->HOLConstantElimination()){
+    ASS(arity == 0);
+    SS::HOLConstant cnst = env.signature->getFunction(fun)->getConst();
+    TermList constant = TermList(t);
+    unsigned sort = sortOf(constant);  
+    FormulaUnit* unit;
+    if(cnst == SS::NOT){
+      unit = LambdaElimination::addNotConnAxiom(constant, sort);
+    } else if (cnst == SS::PI || cnst == SS::SIGMA){
+      unit = LambdaElimination::addQuantifierAxiom(constant, sort, convert(cnst), HSH::domain(sort));
+    } else {
+      unit = LambdaElimination::addBinaryConnAxiom(constant, sort, convert(cnst), HSH::range(sort));
+    }
+    unit->setHOLADescendant(true);
+    _units.push(unit);
+  }
   OperatorType* type = env.signature->getFunction(fun)->fnType();
   bool safe = true;
   for (int i = arity-1;i >= 0;i--) {
@@ -4546,14 +4641,57 @@ unsigned TPTP::addRealConstant(const vstring& name, Set<vstring>& overflow, bool
  * created by the parser from overflown input numbers.
  * @since 22/07/2011 Manchester
  */
-unsigned TPTP::addUninterpretedConstant(const vstring& name, Set<vstring>& overflow, bool& added)
+unsigned TPTP::addUninterpretedConstant(const vstring& name, Set<vstring>& overflow, bool& added, unsigned argSort)
 {
   CALL("TPTP::addUninterpretedConstant");
 
   if (overflow.contains(name)) {
     USER_ERROR((vstring)"Cannot use name '" + name + "' as an atom name since it collides with an integer number");
   }
-  return env.signature->addFunction(name,0,added);
+  typedef Signature::Symbol SS;
+  SS::HOLConstant cnst = SS::NULL_CONSTANT;
+  if(name == "vAND"){
+    cnst = SS::AND;
+  } else if(name == "vOR"){
+    cnst = SS::OR;
+  } else if(name == "vIMP"){
+    cnst = SS::IMP;
+  } else if(name == "vIFF"){
+    cnst = SS::IFF;
+  } else if(name == "vXOR"){
+    cnst = SS::XOR;
+  } else if(name == "vNOT"){
+    cnst = SS::NOT;
+  } else if(name == "vPI"){
+    cnst = SS::PI;
+  } else if(name == "vSIGMA"){
+    cnst = SS::SIGMA;
+  }
+  unsigned fun;
+  unsigned sort;
+  //add proxy here, but not sure where to axiomatise it if 
+  //using axioms. Think it should be here, but that may well result
+  //in code duplication
+  if(cnst != SS::NULL_CONSTANT){
+    if(cnst == SS::PI || cnst == SS::SIGMA){
+      sort = env.sorts->addFunctionSort(argSort, Sorts::SRT_BOOL);
+    } else {
+      sort = env.sorts->addFunctionSort(Sorts::SRT_BOOL, Sorts::SRT_BOOL); 
+      if(cnst != SS::NOT){
+        sort = env.sorts->addFunctionSort(Sorts::SRT_BOOL, sort);
+      }
+    }
+    fun = env.signature->addFunction(name + "_" +  Lib::Int::toString(sort),0,added);
+  } else {
+    fun = env.signature->addFunction(name,0,added);
+  }
+
+  if(added && cnst != SS::NULL_CONSTANT){
+    SS* symbol = env.signature->getFunction(fun);
+    symbol->setType(OperatorType::getConstantsType(sort));  
+    symbol->setHOLConstant(cnst); 
+  }
+  return fun;
 } // TPTP::addUninterpretedConstant
 
 /**

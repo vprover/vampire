@@ -740,7 +740,7 @@ private:
   void endArgs();
   Literal* createEquality(bool polarity,TermList& lhs,TermList& rhs);
   Formula* createPredicateApplication(vstring name,unsigned arity);
-  TermList createFunctionApplication(vstring name,unsigned arity);
+  TermList createFunctionApplication(vstring name,unsigned arity, unsigned argSort = 0);
   void endEquality();
   void midEquality();
   void formulaInfix();
@@ -793,7 +793,7 @@ public:
   static unsigned addIntegerConstant(const vstring&, Set<vstring>& overflow, bool defaultSort);
   static unsigned addRationalConstant(const vstring&, Set<vstring>& overflow, bool defaultSort);
   static unsigned addRealConstant(const vstring&, Set<vstring>& overflow, bool defaultSort);
-  static unsigned addUninterpretedConstant(const vstring& name, Set<vstring>& overflow, bool& added);
+  static unsigned addUninterpretedConstant(const vstring& name, Set<vstring>& overflow, bool& added, unsigned argSort = 0);
 
   /**
    * Used to store the contents of the 'source' of an input formula

@@ -248,6 +248,20 @@ vstring HOSortHelper::HOTerm::toStringWithTopLevelSorts(bool topLevel) const
 }
 #endif
 
+
+HOSortHelper::HOTerm_ptr HOSortHelper::createHOTerm(TermList head, int hsort, int index){
+  CALL("HOSortHelper::createHOTerm/1"); 
+  
+  return HOTerm_ptr(new HOTerm(head, hsort, index));
+}
+  
+/** creates a new HOTerm with same head and args as @b ht */
+HOSortHelper::HOTerm_ptr HOSortHelper::createHOTerm(HOTerm_ptr ht){
+  CALL("HOSortHelper::createHOTerm/2"); 
+
+  return HOTerm_ptr(new HOTerm(*ht));
+}
+
 void HOSortHelper::HOTerm::headify(HOTerm_ptr tm){
   CALL("HOSortHelper::HOTerm::headify");   
  
@@ -258,7 +272,6 @@ void HOSortHelper::HOTerm::headify(HOTerm_ptr tm){
   for(int i = tm->args.size() - 1; i >=0; i--){
     args.push_front(tm->args[i]);
   }  
-  //Do I need ti delete tm?
 }
 
 
@@ -308,10 +321,6 @@ TermList HOSortHelper::appify(HOTerm_ptr ht){
       if(ht2->args.isEmpty()){
         done.top() = apply(done.top(), doneSorts.top(), ht2->head, ht2->headsort);
         doneSorts.top() = range(doneSorts.top());
-        /*cout << "\nDONE:" << endl;
-        for(int i = done.size()-1; i >=0; i--){
-          cout << done[i].toString() + " of sort " + env.sorts->sortName(doneSorts[i]) << endl;
-        }*/
       } else {
         done.push(ht2->head);
         doneSorts.push(ht2->headsort);
@@ -483,8 +492,7 @@ unsigned HOSortHelper::arity(unsigned sort){
 unsigned HOSortHelper::range(unsigned sort){
   CALL("HOSortHelper::range"); 
   
-  ASS_REP(env.sorts->isOfStructuredSort(sort, Sorts::StructuredSort::HIGHER_ORD_CONST), 
-          env.sorts->sortName(sort));
+  ASS(env.sorts->isOfStructuredSort(sort, Sorts::StructuredSort::HIGHER_ORD_CONST));
   
   unsigned range = env.sorts->getFuncSort(sort)->getRangeSort();
   return range;  

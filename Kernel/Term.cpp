@@ -852,7 +852,7 @@ Term* Term::createConstant(const vstring& name)
 }
 
 
-/** Create a new fresh constant and insert in into the sharing
+/** Create a new fresh constant and insert tn into the sharing
  *  structure.
  */
 Term* Term::createFreshConstant(const vstring& suffix, unsigned sort, bool dummyArg)

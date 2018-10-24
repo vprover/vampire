@@ -8,6 +8,7 @@
 
 #include "Lib/Deque.hpp"
 #include "Forwards.hpp"
+#include "Kernel/HOSortHelper.hpp"
 
 using namespace Kernel;
 using namespace Shell;
@@ -45,6 +46,12 @@ public:
   
   static unsigned introduceAppSymbol(unsigned sort1, unsigned sort2, unsigned resultSort); 
   static void buildFuncApp(unsigned function, TermList args1, TermList arg2, TermList& functionApplication);
+  static FormulaUnit* addQuantifierAxiom(TermList constant, unsigned constSort, Connective conn, unsigned qvarSort);
+  static FormulaUnit* addNotConnAxiom(TermList constant, unsigned notsort);
+  static FormulaUnit* addBinaryConnAxiom(TermList constant, unsigned connSort, Connective conn, unsigned appedOnce);
+  static FormulaUnit* addEqualityAxiom(TermList equals, unsigned argsSort, unsigned eqaulsSorts);
+  static Formula* createEquality(TermList t1, TermList t2, unsigned sort);
+  static Formula* toEquality(TermList booleanTerm);
 
   void inline addAxiomsToUnits(UnitList*& units){
     if(_axioms){
@@ -62,6 +69,7 @@ public:
 private:
  
   typedef Stack<unsigned> SortStack; 
+  typedef HOSortHelper HSH;
   bool tryAddCombinatorFromSort(unsigned sort, Deque<unsigned>& sortQ);
   bool isSCompatible(unsigned combinedSort, unsigned sort1, unsigned sort2, unsigned sort3, unsigned &combSort);
   bool isBCompatible(unsigned combinedSort, unsigned sort1, unsigned sort2, SortStack &combSort);
@@ -87,24 +95,12 @@ private:
   void addToProcessed(TermList ts, 	Stack<unsigned> &_argNums);
   /** Add a new definitions to _defs */
   void addAxiom(FormulaUnit* axiom, bool extensionalityAxiom = false);
-
-  void addQuantifierAxiom(TermList constant, unsigned constSort, Connective conn, unsigned qvarSort);
-  void addNotConnAxiom(TermList constant, unsigned notsort);
-  void addBinaryConnAxiom(TermList constant, Connective conn, unsigned connSort, unsigned appedOnce);
-  void addEqualityAxiom(TermList equals, unsigned argsSort, unsigned eqaulsSorts);
-  
   void addCombinatorAxiom(TermList combinator, unsigned combinatorSort, unsigned argSort,
                           Signature::Symbol::HOLConstant comb, int arg1Sort = -1, int arg2Sort = -1);
   // Introduces a fresh predicate or function (depending on the context) symbol
   // with given arguments and result sort
 
   void dealWithApp(TermList lhs, TermList rhs, unsigned sort, int lambdaVar, Stack<TermList> &_toBeProcessed, Stack<unsigned> &_argNums);
-  
-  unsigned range(unsigned sort);
-  unsigned domain(unsigned sort);
-  
-  Formula* createEquality(TermList t1, TermList t2, unsigned sort);
-  Formula* toEquality(TermList booleanTerm);
   
   TermList processBeyondLambda(Term* term);
   TermList addKComb(unsigned appliedToArg, TermList arg);

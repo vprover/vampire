@@ -29,7 +29,6 @@
 
 #include "Forwards.hpp"
 #include "Lib/DHMap.hpp"
-#include "Lib/Set.hpp"
 #include "Lib/Backtrackable.hpp"
 #include "Lib/Deque.hpp"
 #include "Lib/SmartPtr.hpp"
@@ -37,7 +36,6 @@
 #include "Indexing/Index.hpp"
 
 #include "Signature.hpp"
-#include "Term.hpp"
 #include "RobSubstitution.hpp"
 #include "HOSortHelper.hpp"
 

@@ -67,8 +67,12 @@ enum Connective
   LAMBDA = 13u,
   /** application of any number of terms */
   APP = 14u,
+  /** Pi function for universal quantification */
+  PI = 15u,
+  /** Sigma function for existential quantification */
+  SIGMA = 16u,
   /** fake connective terminator */
-  NOCONN = 15u
+  NOCONN = 17u
 }; // enum Connective
 
 }

@@ -215,6 +215,10 @@ public:
   static TermList appify(HOTerm_ptr);
   static HOTerm_ptr deappify(TermList,int index = -1, int sort = -1);
 
+  static HOTerm_ptr createHOTerm(TermList, int sort = -1, int ind = -1);
+  /** creates a new HOTerm with same head and args as @b ht */
+  static HOTerm_ptr createHOTerm(HOTerm_ptr ht);
+  /** returns true if terms are syntactically equivalent */  
   static bool equal(const HOTerm_ptr, const HOTerm_ptr, bool useIndices = false );
   /** Returns the sort of the head of an applicative term */
   static unsigned getHeadSort(TermList ts);
