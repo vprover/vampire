@@ -96,8 +96,9 @@ ct_ptr isHolConstantApp(Literal* lit, unsigned unaryBinaryOrTenary)
   CALL("isHolConstantApp(Literal* lit)");
   
   //higher-order setting
-  ASS_REP(lit->isEquality(), lit->toString());
-  
+  //ASS_REP(lit->isEquality(), lit->toString());
+  if(!lit->isEquality()){ return 0; }
+
   TermList lhs = *lit->nthArgument(0);
   TermList rhs = *lit->nthArgument(1);  
   
@@ -156,8 +157,7 @@ TermList sigmaRemoval(TermList sigmaTerm, unsigned expsrt){
   while (fvi.hasNext()) {
     unsigned var = (unsigned)fvi.next();
     sorts.push(_varSorts.get(var));
-  }         
-  unsigned arity = sorts.size();
+  }
       
   do{ 
     unsigned domain = HSH::domain(expsrt);
@@ -169,23 +169,15 @@ TermList sigmaRemoval(TermList sigmaTerm, unsigned expsrt){
       unsigned var = (unsigned)vit.next();
       arguments.push(TermList(var, false));
     }
-    TermList skolemFunc;
 
-    if(!env.options->combinatoryUnification()){
-      OperatorType* type = OperatorType::getFunctionType(arity, sorts.begin(), domain);
-      unsigned symbol = env.signature->addSkolemFunction(arity);    
-      env.signature->getFunction(symbol)->setType(type);
-      skolemFunc = TermList(Term::create(symbol, arity, arguments.begin()));
-    } else {
-      unsigned skSymSort = HSH::getHigherOrderSort(sorts, domain);
-      unsigned symbol = env.signature->addSkolemFunction(0);
-      env.signature->getFunction(symbol)->setType(OperatorType::getConstantsType(skSymSort));
-      TermList head = TermList(Term::createConstant(symbol));
-      skolemFunc = TermList(HSH::createAppifiedTerm(head, skSymSort, sorts, arguments));
-    }
-
-    unsigned symbol = LE::introduceAppSymbol(expsrt, domain, HSH::range(expsrt));
-    sigmaTerm = TermList(Term::create2(symbol, sigmaTerm, skolemFunc));
+    unsigned skSymSort = HSH::getHigherOrderSort(sorts, domain);
+    unsigned symbol = env.signature->addSkolemFunction(0);
+    env.signature->getFunction(symbol)->setType(OperatorType::getConstantsType(skSymSort));
+    TermList head = TermList(Term::createConstant(symbol));
+    TermList skolemFunc = TermList(HSH::createAppifiedTerm(head, skSymSort, sorts, arguments));
+  
+    unsigned app = LE::introduceAppSymbol(expsrt, domain, HSH::range(expsrt));
+    sigmaTerm = TermList(Term::create2(app, sigmaTerm, skolemFunc));
       
     expsrt = HSH::range(expsrt);
   }while(!(expsrt == Sorts::SRT_BOOL));   
@@ -197,14 +189,7 @@ TermList sigmaRemoval(TermList sigmaTerm, unsigned expsrt){
 
 TermList piRemoval(TermList piTerm, Clause* clause, unsigned expsrt){
   
-  unsigned maxVar = 0;
-  DHSet<unsigned> vars;
-  clause->collectVars(vars);
-  DHSet<unsigned>::Iterator vit(vars);
-  while(vit.hasNext()){
-    unsigned var = vit.next();
-    if (var > maxVar) { maxVar = var;}
-  }
+  unsigned maxVar = clause->maxVar();
   do{ 
     maxVar++;
     TermList newVar = TermList(maxVar, false);

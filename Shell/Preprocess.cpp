@@ -193,11 +193,11 @@ void Preprocess::preprocess(Problem& prb)
     }
   }
 
-  if (prb.hasFOOL() || prb.hasApp() || prb.hasLambda()) {
+  if (prb.hasFOOL() || prb.higherOrder()) {
     // This is the point to extend the signature with $$true and $$false
     // If we don't have fool then these constants get in the way (a lot)
 
-    if (!_options.newCNF() || prb.hasApp() || prb.hasLambda()) { 
+    if (!_options.newCNF() || prb.higherOrder()) { 
       //Quick and nasty way of getting around the fact that newCNF has not been
       //updated to handle HOL.
       if (env.options->showPreprocessing())
@@ -208,7 +208,7 @@ void Preprocess::preprocess(Problem& prb)
       
       FOOLElimination().apply(prb);
       
-      if(prb.hasApp() || prb.hasLambda()){
+      if(prb.higherOrder()){
         if(env.options->functionExtensionality()){
           LambdaElimination().addFunctionExtensionalityAxioms(prb.units());
         }
@@ -294,7 +294,7 @@ void Preprocess::preprocess(Problem& prb)
     preprocess2(prb);
   }
 
-  if (prb.mayHaveFormulas() && _options.newCNF() && !prb.hasApp() && !prb.hasLambda()) {
+  if (prb.mayHaveFormulas() && _options.newCNF() && !prb.higherOrder()) {
   	//Quick and nasty way of getting around the fact that newCNF has not been
     //updated to handle HOL.
     if (env.options->showPreprocessing())
@@ -482,7 +482,7 @@ void Preprocess::preprocess1 (Problem& prb)
     fu = Rectify::rectify(fu);
     FormulaUnit* rectFu = fu;
     // Simplify the formula if it contains true or false
-    if (!_options.newCNF() | prb.hasApp() | prb.hasLambda()) {
+    if (!_options.newCNF() || prb.higherOrder()) {
       //Quick and nasty way of getting around the fact that newCNF has not been
       //updated to handle HOL.
     	

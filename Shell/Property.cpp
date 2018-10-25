@@ -83,8 +83,7 @@ Property::Property()
     _hasNonDefaultSorts(false),
     _sortsUsed(0),
     _hasFOOL(false),
-    _hasApp(false),
-    _hasLambda(false),
+    _higherOrder(false),
     _onlyFiniteDomainDatatypes(true),
     _knownInfiniteDomain(false),
     _allClausesGround(true),
@@ -583,14 +582,14 @@ void Property::scan(TermList ts,bool unit,bool goal)
 
 	    case Term::SF_APP:
 	      addProp(PR_HAS_APP);
-        _hasApp = true; //Need to add prop? AYB
-        env.signature->setHigherOrder();
+        _higherOrder = true; //Need to add prop? AYB
+        env.statistics->hasHigherOrderSyntax = true;
         break;
       
       case Term::SF_LAMBDA:
 	      addProp(PR_HAS_LAMBDA);
-        _hasLambda = true;
-        env.signature->setHigherOrder();
+        _higherOrder = true;
+        env.statistics->hasHigherOrderSyntax = true;
         break;		 
 		
       case Term::SF_LET:
@@ -608,6 +607,10 @@ void Property::scan(TermList ts,bool unit,bool goal)
     func->incUsageCnt();
     if(unit){ func->markInUnit();}
     if(goal){ func->markInGoal();}
+
+    if(func->hOLAPP() || func->getConst() != Signature::Symbol::NULL_CONSTANT){
+      _higherOrder = true;
+    }
 
     int arity = t->arity();
     OperatorType* type = func->fnType();

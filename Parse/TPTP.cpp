@@ -264,7 +264,6 @@ void TPTP::parse()
       throw ParseErrorException("Don't know how to process state ",_lineNumber);
 #endif
     }
-    if(_isThf){ env.signature->setHigherOrder(); }
 #ifdef DEBUG_SHOW_STATE
     cout << "----------------------------------------" << endl;
     printStacks();

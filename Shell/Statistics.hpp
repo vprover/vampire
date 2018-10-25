@@ -71,6 +71,8 @@ public:
   unsigned inputFormulas;
   /** has types */
   bool hasTypes;
+  /** has higher-order syntax */
+  bool hasHigherOrderSyntax;
 
   // Preprocessing
   /** number of formula names introduced during preprocessing */

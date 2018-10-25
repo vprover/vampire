@@ -235,8 +235,7 @@ public:
   /** Problem contains non-default sorts */
   bool hasNonDefaultSorts() const { return _hasNonDefaultSorts; }
   bool hasFOOL() const { return _hasFOOL; }
-  bool hasApp() const { return _hasApp; }
-  bool hasLambda() const { return _hasLambda; }
+  bool higherOrder() { return _higherOrder; }
   bool usesSort(unsigned sort) const { 
     CALL("Property::usesSort");
     if(_usesSort.size() <= sort) return false;
@@ -341,8 +340,7 @@ public:
   DHSet<Theory::MonomorphisedInterpretation> _polymorphicInterpretations;
 
   bool _hasFOOL;
-  bool _hasApp;
-  bool _hasLambda;
+  bool _higherOrder;
 
   bool _onlyFiniteDomainDatatypes;
   bool _knownInfiniteDomain;

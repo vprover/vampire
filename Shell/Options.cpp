@@ -2924,11 +2924,11 @@ bool Options::complete(const Problem& prb) const
       || prop.hasProp(Property::PR_HAS_RATS)
       || (!prop.onlyFiniteDomainDatatypes() && prop.hasProp(Property::PR_HAS_DT_CONSTRUCTORS))
       || (!prop.onlyFiniteDomainDatatypes() && prop.hasProp(Property::PR_HAS_CDT_CONSTRUCTORS))
-      || env.signature->isHOL()
      ) {
     return false;
   }
 
+  if(prop.higherOrder()){ return false; }
   // preprocessing
   if (env.signature->hasDistinctGroups()) {
     return false;

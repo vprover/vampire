@@ -119,7 +119,7 @@ Formula* Flattening::flatten (Formula* f)
     {
       Literal* lit = f->literal();
 
-      if (env.options->newCNF() && !env.property->hasApp() && !env.property->hasLambda()) {
+      if (env.options->newCNF() && !env.property->higherOrder()) {
         // Convert equality between boolean FOOL terms to equivalence
         if (lit->isEquality()) {
           TermList lhs = *lit->nthArgument(0);
