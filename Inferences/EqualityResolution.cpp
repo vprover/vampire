@@ -188,11 +188,6 @@ struct EqualityResolution::ResultFn
 
     res->setAge(_cl->age()+1);
     env.statistics->equalityResolution++;
-
-    if(res->number() == 254){
-      ASSERTION_VIOLATION;
-    }
-
     return res;  
   }
 private:

@@ -371,8 +371,6 @@ ClauseIterator URResolution::generateClauses(Clause* cl)
 {
   CALL("URResolution::generateClauses");
 
-  cout<< "The premise is " + cl->toString() << endl;
-
   unsigned clen = cl->size();
   if(clen<1) {
     return ClauseIterator::getEmpty();

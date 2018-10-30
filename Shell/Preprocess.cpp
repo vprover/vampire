@@ -209,7 +209,6 @@ void Preprocess::preprocess(Problem& prb)
       FOOLElimination().apply(prb);
       
       if(prb.higherOrder()){
-        cout << "REACHED HERE" << endl;
         if(env.options->functionExtensionality()){
           LambdaElimination().addFunctionExtensionalityAxioms(prb.units());
         }
