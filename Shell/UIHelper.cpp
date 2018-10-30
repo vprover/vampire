@@ -605,7 +605,9 @@ void UIHelper::outputSymbolTypeDeclarationIfNeeded(ostream& out, bool function, 
     return;
   }
 
-  out << "tff(" << (function ? "func" : "pred") << "_def_" << symNumber << ", type, "
+  bool thf = env.statistics->hasHigherOrderSyntax;
+
+  out <<  (thf ? "thf(" : "tff(") << (function ? "func" : "pred") << "_def_" << symNumber << ", type, "
       << sym->name() << ": ";
 
   unsigned arity = sym->arity();

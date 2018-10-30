@@ -170,15 +170,15 @@ struct URResolution::Item
     unsigned clen = _lits.size();
     for(unsigned i=0; i<clen; i++) {
       if(_lits[i]!=0) {
-	ASS_EQ(single,0);
-	ASS_EQ(_premises[i],0);
-	single = _lits[i];
+        ASS_EQ(single,0);
+        ASS_EQ(_premises[i],0);
+        single = _lits[i];
       }
       else {
-	Clause* premise = _premises[i];
-	ASS(premise);
-	premisesAge = max(premisesAge, premise->age());
-	UnitList::push(premise, premLst);
+        Clause* premise = _premises[i];
+        ASS(premise);
+        premisesAge = max(premisesAge, premise->age());
+        UnitList::push(premise, premLst);
       }
     }
     Unit::InputType inpType = Unit::getInputType(premLst);
@@ -296,9 +296,9 @@ void URResolution::processLiteral(ItemList*& itms, unsigned idx)
       iit.insert(itm2);
 
       if(itm->_atMostOneNonGround) {
-	//if there is only one non-ground literal left, there is no need to retrieve
-	//all unifications
-	break;
+        //if there is only one non-ground literal left, there is no need to retrieve
+        //all unifications
+        break;
       }
     }
 
@@ -370,6 +370,8 @@ void URResolution::doBackwardInferences(Clause* cl, ClauseList*& acc)
 ClauseIterator URResolution::generateClauses(Clause* cl)
 {
   CALL("URResolution::generateClauses");
+
+  cout<< "The premise is " + cl->toString() << endl;
 
   unsigned clen = cl->size();
   if(clen<1) {

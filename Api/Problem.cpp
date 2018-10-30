@@ -1735,7 +1735,9 @@ void outputSymbolTypeDefinitions(ostream& out, unsigned symNumber, bool function
 
   vstring symName = dummyNames ? (DefaultHelperCore::getDummyName(!function, symNumber)) : sym->name();
 
-  out << "tff(" << (function ? "func" : "pred") << "_def_" << symNumber << ",type, "
+  bool thf = env.statistics->hasHigherOrderSyntax;
+  
+  out << thf ? "thf(" : "tff(" << (function ? "func" : "pred") << "_def_" << symNumber << ",type, "
       << symName << ": ";
 
   unsigned arity = sym->arity();
@@ -1746,10 +1748,10 @@ void outputSymbolTypeDefinitions(ostream& out, unsigned symNumber, bool function
     else {
       out << "(";
       for(unsigned i=0; i<arity; i++) {
-	if(i>0) {
-	  out << " * ";
-	}
-	out << env.sorts->sortName(type->arg(i));
+        if(i>0) {
+          out << " * ";
+        }
+        out << env.sorts->sortName(type->arg(i));
       }
       out << ")";
     }

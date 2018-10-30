@@ -828,7 +828,7 @@ bool CombSubstIterator::hasNextUnifier(){
   ASS(bdStack.length()+1==transformStacks.length());
 
   do {
-    //cout << _unifSystem->unificationPairsToString() << endl;
+    cout << _unifSystem->unificationPairsToString() << endl;
     //cout << transformStacksToString() << endl;
     //ASSERTION_VIOLATION;
     

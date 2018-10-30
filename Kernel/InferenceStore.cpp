@@ -635,10 +635,10 @@ protected:
 
     vstring kind = "fof";
     if(env.statistics->hasTypes){ 
-      if(env.signature->isHOL()){
+      if(env.statistics->hasHigherOrderSyntax){
       	kind="thf";
       }else{
-    	kind="tff";
+    	  kind="tff";
       } 
     }
 
@@ -933,7 +933,7 @@ protected:
 
     vstring kind = "fof";
     if(env.statistics->hasTypes){
-       if(env.signature->isHOL()){
+       if(env.statistics->hasHigherOrderSyntax){
          kind="thf";
        }else{
          kind="tff";

@@ -565,16 +565,8 @@ class Signature
 
   static bool symbolNeedsQuoting(vstring name, bool interpreted, unsigned arity);
 
-  bool isHOL() const { return _isHigherOrder; }  
-  void setHigherOrder(){
-    _isHigherOrder = true;
-  }
-
 private:
   Stack<TermList> _dividesNvalues;
-
-  /** true if the problem contains higher-order features or is labelled as such */
-  bool _isHigherOrder;
 
   bool _foolConstantsDefined;
   unsigned _foolTrue;

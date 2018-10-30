@@ -44,6 +44,7 @@ private:
 public:
   inline
   ScopedPtr() : _obj(0) {}
+
   /**
    * Create a scoped pointer containing pointer @b obj
    */

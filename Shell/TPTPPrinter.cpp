@@ -39,6 +39,7 @@
 #include "Kernel/Formula.hpp"
 #include "Kernel/FormulaUnit.hpp"
 #include "Kernel/Clause.hpp"
+#include "Shell/Statistics.hpp"
 
 #include "TPTPPrinter.hpp"
 
@@ -221,7 +222,9 @@ void TPTPPrinter::outputSymbolTypeDefinitions(unsigned symNumber, bool function)
     }
   }
 
-  tgt() << "tff(" << (function ? "func" : "pred") << "_def_" << symNumber << ",type, "
+  bool thf = env.statistics->hasHigherOrderSyntax;
+
+  tgt() << (thf ? "thf" : "tff(") << (function ? "func" : "pred") << "_def_" << symNumber << ",type, "
       << sym->name() << ": ";
 
   unsigned arity = sym->arity();
