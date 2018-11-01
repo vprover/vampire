@@ -395,7 +395,7 @@ const Formula::VarList* Formula::vars() const
 inline
 Formula::VarList* Formula::vars()
 {
-  ASS(_connective == FORALL || _connective == EXISTS);
+  ASS_REP(_connective == FORALL || _connective == EXISTS, this->toString());
   return static_cast<QuantifiedFormula*>(this)->varList();
 }
 

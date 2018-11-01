@@ -238,10 +238,10 @@ Comparison Normalisation::compare (Formula* fm1, Formula* fm2)
     }
     Formula* f1 = sf1.next();
     Formula* f2 = sf2.next();
-
+ 
     Comparison comp = compare ((int)f1->connective(),
 			       (int)f2->connective ());
-    if (comp != EQUAL) {
+    if (comp != EQUAL){ 
       return comp;
     }
 
@@ -250,18 +250,19 @@ Comparison Normalisation::compare (Formula* fm1, Formula* fm2)
     case LITERAL:
       comp = compare(f1->literal(),f2->literal());
       if (comp != EQUAL) {
-	return comp;
+        return comp;
       }
       break;
 
     case BOOL_TERM: {
       TermList ts1 = f1->getBooleanTerm();
       TermList ts2 = f2->getBooleanTerm();
-      comp = compare(&ts1, &ts2);
+      comp = compare(ts1, ts2);
       if (comp != EQUAL) {
         return comp;
       }
     }
+    break;
 
     case FORALL:
     case EXISTS:
@@ -270,7 +271,7 @@ Comparison Normalisation::compare (Formula* fm1, Formula* fm2)
       comp = compare((int) Formula::VarList::length(f1->vars()),
                      (int) Formula::VarList::length(f2->vars()));
       if (comp != EQUAL) {
-	return comp;
+        return comp;
       }
       break;
 
@@ -371,7 +372,15 @@ Comparison Normalisation::compare (Literal* l1, Literal* l2)
     }
   }
 
-  return compare(l1->args(),l2->args());
+  for(unsigned i = 0; i < l1->arity(); i++){
+    TermList* ts1 = l1->nthArgument(i);
+    TermList* ts2 = l2->nthArgument(i);
+    comp = compare(*ts1,*ts2);
+    if (comp != EQUAL) {
+      return comp;
+    }
+  }
+  return EQUAL;
 } // Normalisation::compare(const Literal*...)
 
 
@@ -393,44 +402,27 @@ Comparison Normalisation::compare (Literal* l1, Literal* l2)
  * </ol>
  * @since 03/06/2007 Manchester, changed to new data structures
  */
-Comparison Normalisation::compare(TermList* ts1, TermList* ts2)
+Comparison Normalisation::compare(TermList ts1, TermList ts2)
 {
   CALL("Normalisation::compare(TermList*...)");
 
-  while (! ts1->isEmpty()) {
-    if (ts2->isEmpty()) {
-      return GREATER;
-    }
-
-    // both non-empty
-    if (ts1->isVar()) {
-      if (ts2->isVar()) {
-	ts1 = ts1->next();
-	ts2 = ts2->next();
-	continue;
-      }
-      return LESS;
-    }
-
-    if (ts2->isVar()) {
-      return GREATER;
-    }
-    // both non-variables
-
-    const Term* t1 = ts1->term();
-    const Term* t2 = ts2->term();
-    Comparison ct = compare(t1,t2);
-    switch (ct) {
-    case EQUAL:
-      ts1 = ts1->next();
-      ts2 = ts2->next();
-      break;
-    default:
-      return ct;
-    }
+  // both non-empty
+  if (ts1.isVar() && !ts2.isVar()) {
+     return LESS;
   }
 
-  return ts2->isEmpty() ? EQUAL : LESS;
+  if (!ts1.isVar() && ts2.isVar()) {
+    return GREATER;
+  }
+
+  if(ts1.isVar() && ts2.isVar()){
+    return EQUAL;
+  }
+  // both non-variables
+
+  Term* t1 = ts1.term();
+  Term* t2 = ts2.term();
+  return compare(t1,t2);
 } // Normalisation::compare (const TermList*...)
 
 
@@ -440,12 +432,12 @@ Comparison Normalisation::compare(TermList* ts1, TermList* ts2)
  */
 Comparison Normalisation::compare(Term* t1, Term* t2)
 {
-  ASS("Normalisation::compare(const Term*...)");
+  CALL("Normalisation::compare(const Term*...)");
 
   if (t1 == t2) {
     return EQUAL;
   }
-
+ 
   Comparison comp;
 
   if (!t1->shared() && t2->shared()) {
@@ -483,7 +475,7 @@ Comparison Normalisation::compare(Term* t1, Term* t2)
         }
         TermList b1 = t1->getSpecialData()->getBinding();
         TermList b2 = t2->getSpecialData()->getBinding();
-        comp = compare(&b1, &b2);
+        comp = compare(b1, b2);
         if (comp != EQUAL) {
           return comp;
         }
@@ -497,7 +489,7 @@ Comparison Normalisation::compare(Term* t1, Term* t2)
         }
         TermList b1 = t1->getSpecialData()->getBinding();
         TermList b2 = t2->getSpecialData()->getBinding();
-        comp = compare(&b1, &b2);
+        comp = compare(b1, b2);
         if (comp != EQUAL) {
           return comp;
         }
@@ -508,6 +500,30 @@ Comparison Normalisation::compare(Term* t1, Term* t2)
         if (comp != EQUAL) {
           return comp;
         }
+      }
+
+      case Term::SF_APP: {
+        TermList b1 = t1->getSpecialData()->getAppLhs();
+        TermList b2 = t2->getSpecialData()->getAppLhs();
+
+        comp = compare(b1, b2);
+        if (comp != EQUAL) {
+          return comp;
+        }
+        comp = compare(*(t1->nthArgument(0)), *(t2->nthArgument(0)));
+        return comp;
+      }
+
+      case Term::SF_LAMBDA: {
+        comp = compare((int) Formula::VarList::length(t1->getSpecialData()->getLambdaVars()),
+                       (int) Formula::VarList::length(t2->getSpecialData()->getLambdaVars()));
+        if (comp != EQUAL) {
+          return comp;
+        }
+        TermList b1 = t1->getSpecialData()->getLambdaExp();
+        TermList b2 = t2->getSpecialData()->getLambdaExp();
+        comp = compare(b1, b2);
+        return comp;
       }
 
       default:
@@ -538,5 +554,13 @@ Comparison Normalisation::compare(Term* t1, Term* t2)
     }
   }
 
-  return compare(t1->args(),t2->args());
+  for(unsigned i = 0; i < t1->arity(); i++){
+    TermList* ts1 = t1->nthArgument(i);
+    TermList* ts2 = t2->nthArgument(i);
+    comp = compare(*ts1,*ts2);
+    if (comp != EQUAL) {
+      return comp;
+    }
+  }
+  return EQUAL;
 } // Normalisation::compare(const Term*...)

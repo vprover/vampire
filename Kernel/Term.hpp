@@ -271,7 +271,7 @@ public:
         IntList* _vars;
         SortList* _sorts;  
         unsigned sort; 
-		unsigned expSort;
+        unsigned expSort;
       } _lambdaData;
       struct {
         TermList lhs;

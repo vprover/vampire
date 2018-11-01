@@ -357,8 +357,6 @@ Clause* ORIMPANDRemovalISE::simplify(Clause* c)
         Clause* res = replaceLit2(c, lit, newLit1, new Inference1(Inference::BINARY_CONN_ELIMINATION, c), newLit2);
         res->setAge(c->age());
         env.statistics->holORIMPANDsimplifications++;
-        cout << "ORIMPAND the premise is " + c->toString() << endl;  
-        cout << "ORIMPAND the conclusion is " + res->toString() << endl;
         return res;
       }
     }
@@ -448,8 +446,6 @@ Clause* NOTRemovalISE::simplify(Clause* c)
       Clause* res = replaceLit2(c, lit, newLit, new Inference1(Inference::HOL_NOT_ELIMINATION, c));//Change inference AYB
       res->setAge(c->age());
       env.statistics->holNOTsimplifications++;
-      cout << "NOT ELIM the premise is " + c->toString() << endl;  
-      cout << "NOT ELIM the conclusion is " + res->toString() << endl;
       return res;
     }
   }
@@ -474,8 +470,6 @@ Clause* EQUALSRemovalISE::simplify(Clause* c)
       Clause* res = replaceLit2(c, lit, newLit, new Inference1(Inference::HOL_EQUALITY_ELIMINATION, c));//Change inference AYB
       res->setAge(c->age());
       env.statistics->holEQAULSsimplifications++;
-      cout << "EQUAL ELIM the premise is " + c->toString() << endl;  
-      cout << "EQUAL ELIM the conclusion is " + res->toString() << endl;
       return res;
     }
   }
@@ -514,8 +508,6 @@ Clause* PISIGMARemovalISE::simplify(Clause* c)
       res->setAge(c->age());
 
       env.statistics->holPISIGMAsimplifications++;
-      cout << "PI SIGMA ELIM the premise is " + c->toString() << endl;  
-      cout << "PI SIGMA ELIM the conclusion is " + res->toString() << endl;
       return res;
     }
   }
@@ -623,9 +615,6 @@ conclusion->setAge(premise->age());
 for (unsigned i = 0; i < conclusionLength; i++) {
   (*conclusion)[i] = i == literalPosition ? EqHelper::replace((*premise)[i], combinatorTerm, newTerm) : (*premise)[i];
 }
-
-cout << "COMB ELIM The premise is " + premise->toString() << endl;
-cout << "COMB ELIM The result is " + conclusion->toString() << endl;
 
 return conclusion;
     
@@ -834,8 +823,8 @@ struct ORIMPANDIFFXORRemovalGIE::ProxyEliminationIterator
     
     
     //if(_constant == SS::AND || _constant == SS::OR || _constant == SS::IMP){
-      cout << "The original clause is: " + _clause->toString() << endl;
-      cout << "The new clause is: " + res->toString() << endl;
+      //cout << "The original clause is: " + _clause->toString() << endl;
+      //cout << "The new clause is: " + res->toString() << endl;
     //}
 
     res->setAge(_clause->age()+1);

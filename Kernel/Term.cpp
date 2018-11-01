@@ -886,15 +886,15 @@ Term* Term::createNonShared(Term* t,TermList* args)
   return s;
 } // Term::createNonShared(const Term* t,Term* args)
 
-Term* Term::createApp(TermList _lhs, TermList _rhs, unsigned lhsSort, unsigned appSort)
+Term* Term::createApp(TermList lhs, TermList rhs, unsigned lhsSort, unsigned appSort)
 {
   CALL("Term::createApp");
-  Term* s = new(1,sizeof(SpecialTermData)) Term;
+  Term* s = new(1,sizeof(SpecialTermData)) Term; //should just store both lhs and rhs in args
   s->makeSymbol(SF_APP, 1);
   TermList* ss = s->args();
-  *ss = _rhs;
+  *ss = rhs;
   ASS(ss->next()->isEmpty());
-  s->getSpecialData()->_appData.lhs = _lhs;
+  s->getSpecialData()->_appData.lhs = lhs;
   s->getSpecialData()->_appData.sort = appSort;
   s->getSpecialData()->_appData.lhsSort = lhsSort;
   return s;
@@ -1016,6 +1016,7 @@ Term* Term::createLambda(TermList lambdaExp, Connective con, IntList* vars, Sort
   
   Term* s = new(0, sizeof(SpecialTermData)) Term;
   s->makeSymbol(SF_LAMBDA, 0);
+  //should store body of lambda in args
   s->getSpecialData()->_lambdaData.lambdaExp = lambdaExp;
   s->getSpecialData()->_lambdaData.con = con;
   s->getSpecialData()->_lambdaData._vars = vars;

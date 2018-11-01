@@ -162,6 +162,14 @@ void Preprocess::preprocess(Problem& prb)
 {
   CALL("Preprocess::preprocess");
 
+  if (_options.normalize()) {
+    env.statistics->phase=Statistics::NORMALIZATION;
+    /*if (env.options->showPreprocessing())
+      env.out() << "normalization" << std::endl;*/
+
+    Normalisation().normalise(prb);
+  }
+
   if (env.options->showPreprocessing()) {
     env.beginOutput();
     env.out() << "preprocessing started" << std::endl;
@@ -236,13 +244,13 @@ void Preprocess::preprocess(Problem& prb)
   }
 
   // reorder units
-  if (_options.normalize()) {
+  /*if (_options.normalize()) {
     env.statistics->phase=Statistics::NORMALIZATION;
     if (env.options->showPreprocessing())
       env.out() << "normalization" << std::endl;
 
     Normalisation().normalise(prb);
-  }
+  }*/
 
   if (_options.sineSelection()!=Options::SineSelection::OFF) {
     env.statistics->phase=Statistics::SINE_SELECTION;
