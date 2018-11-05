@@ -421,7 +421,7 @@ vstring Clause::toString() const
 {
   CALL("Clause::toString()");
 
-  vstring result = Int::toString(_number) + ". " + literalsOnlyToString();
+  vstring result = Int::toString(_number) + ". " + Int::toString(size()) + " " + literalsOnlyToString();
 
   if (splits() && !splits()->isEmpty()) {
     result += vstring(" {") + splits()->toString() + "}";
@@ -446,7 +446,7 @@ vstring Clause::toString() const
     result += "T ";
   }
   //if(inductionDepth()>0){
-    result += "I("+Int::toString(inductionDepth())+") ";
+  //  result += "I("+Int::toString(inductionDepth())+") ";
   //}
   result +=  inferenceAsString();
   return result;

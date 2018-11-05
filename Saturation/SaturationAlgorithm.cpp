@@ -269,7 +269,8 @@ void SaturationAlgorithm::onActiveAdded(Clause* c)
   CALL("SaturationAlgorithm::onActiveAdded");
 
   if (env.options->showActive()) {
-    env.beginOutput();    
+    env.beginOutput();
+    env.out() << "Timing: " << env.timer->elapsedMilliseconds() << endl;
     env.out() << "[SA] active: " << c->toString() << std::endl;
     env.endOutput();             
   }          
@@ -312,6 +313,7 @@ void SaturationAlgorithm::onPassiveAdded(Clause* c)
 {
   if (env.options->showPassive()) {
     env.beginOutput();
+    env.out() << "Timing: " << env.timer->elapsedMilliseconds() << endl;
     env.out() << "[SA] passive: " << c->toString() << std::endl;
     env.endOutput();
   }
@@ -380,6 +382,7 @@ void SaturationAlgorithm::onNewClause(Clause* cl)
 
   if (env.options->showNew()) {
     env.beginOutput();
+    env.out() << "Timing: " << env.timer->elapsedMilliseconds() << endl;
     env.out() << "[SA] new: " << cl->toString() << std::endl;
     env.endOutput();
   }
@@ -456,6 +459,7 @@ void SaturationAlgorithm::onClauseReduction(Clause* cl, Clause* replacement,
 
   if (env.options->showReductions()) {
     env.beginOutput();
+    env.out() << "Timing: " << env.timer->elapsedMilliseconds() << endl;
     env.out() << "[SA] " << (forward ? "forward" : "backward") << " reduce: " << cl->toString() << endl;
     if(replacement){ env.out() << "     replaced by " << replacement->toString() << endl; }
     ClauseStack::Iterator pit(premStack);
@@ -1183,6 +1187,13 @@ void SaturationAlgorithm::doOneAlgorithmStep()
   ASS_EQ(cl->store(),Clause::PASSIVE);
   cl->setStore(Clause::SELECTED);
 
+  if (env.options->showActive()) {
+    env.beginOutput();
+    env.out() << "Timing: " << env.timer->elapsedMilliseconds() << endl;
+    env.out() << "[SA] selected: " << cl->toString() << std::endl;
+    env.endOutput();
+  }
+
   if (!handleClauseBeforeActivation(cl)) {
     return;
   }
@@ -1202,12 +1213,18 @@ MainLoopResult SaturationAlgorithm::runImpl()
 {
   CALL("SaturationAlgorithm::runImpl");
 
-  unsigned l = 0;
+  unsigned l = 1;
   try
   {
     for (;;l++) {
       if (_activationLimit && l > _activationLimit) {
         throw ActivationLimitExceededException();
+      }
+
+      if (env.options->showActive()) {
+        env.beginOutput();
+        env.out() << "Looping: " << l << endl;
+        env.endOutput();
       }
 
       doOneAlgorithmStep();
