@@ -26,6 +26,7 @@
 #include "Lib/Environment.hpp"
 #include "Lib/DHSet.hpp"
 #include "Lib/Stack.hpp"
+#include "Lib/Timer.hpp"
 #include "Kernel/Clause.hpp"
 #include "Shell/Statistics.hpp"
 
@@ -224,6 +225,13 @@ void ActiveClauseContainer::onLimitsUpdated(LimitsChangeType change)
   while (toRemove.isNonEmpty()) {
     Clause* removed=toRemove.pop();
     ASS(removed->store()==Clause::ACTIVE);
+
+    if (env.options->showReductions()) {
+      env.beginOutput();
+      env.out() << "Timing: " << env.timer->elapsedMilliseconds() << endl;
+      env.out() << "[SA] discard: " << removed->toString() << endl;
+      env.endOutput();
+    }
 
     RSTAT_CTR_INC("clauses discarded from active on weight limit update");
     env.statistics->discardedNonRedundantClauses++;
