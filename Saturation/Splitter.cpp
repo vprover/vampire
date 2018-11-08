@@ -31,6 +31,7 @@
 #include "Lib/Metaiterators.hpp"
 #include "Lib/SharedSet.hpp"
 #include "Lib/TimeCounter.hpp"
+#include "Lib/Timer.hpp"
 
 #include "Kernel/Signature.hpp"
 #include "Kernel/Clause.hpp"
@@ -841,7 +842,16 @@ void Splitter::onAllProcessed()
   toRemove.reset();  
 
   _branchSelector.recomputeModel(toAdd, toRemove, flushing);
+
+  // we want to track non-trivial model updates (just additions are boring; stemming from new clauses slit, but not from new empty clauses found)
+  if (_showSplitting && toRemove.size() > 0) {
+    env.beginOutput();
+    env.out() << "Timing: " << env.timer->elapsedMilliseconds() << endl;
+    env.out() << "[AVATAR] recompute-removing: " << toRemove.size() << endl; // the number is just for fun
+    env.endOutput();
+  }
   
+  /*
   if (_showSplitting) { // TODO: this is just one of many ways Splitter could report about changes
     env.beginOutput();
     env.out() << "[AVATAR] recomputeModel: +";
@@ -855,6 +865,7 @@ void Splitter::onAllProcessed()
     env.out() << std::endl;
     env.endOutput();
   }
+  */
 
   {
     TimeCounter tc(TC_SPLITTING_MODEL_UPDATE); // includes component removals and additions, also processing fast clauses and zero implied splits
@@ -875,6 +886,14 @@ void Splitter::onAllProcessed()
       // but would need to maintain them even when _deleteDeactivated == Options::SplittingDeleteDeactivated::ON
       if (allSplitLevelsActive(rcl->splits())) {
         RSTAT_CTR_INC("fast_clauses_restored");
+
+        if (_showSplitting) {
+          env.beginOutput();
+          env.out() << "Timing: " << env.timer->elapsedMilliseconds() << endl;
+          env.out() << "[AVATAR] add: " << rcl->toString() << endl; // the number is just for fun
+          env.endOutput();
+        }
+
         _sa->addNewClause(rcl);
       } else {
         RSTAT_CTR_INC("fast_clauses_not_restored");
@@ -1005,7 +1024,8 @@ bool Splitter::handleNonSplittable(Clause* cl)
 
     if (_showSplitting) {
       env.beginOutput();
-      env.out() << "[AVATAR] registering a non-splittable: "<< cl->toString() << std::endl;
+      env.out() << "Timing: " << env.timer->elapsedMilliseconds() << endl;
+      env.out() << "[AVATAR] non-splittable: "<< cl->toString() << std::endl;
       env.endOutput();
     }
 
@@ -1155,7 +1175,8 @@ bool Splitter::doSplitting(Clause* cl)
 
   if (_showSplitting) {
     env.beginOutput();
-    env.out() << "[AVATAR] split a clause: "<< cl->toString() << std::endl;
+    env.out() << "Timing: " << env.timer->elapsedMilliseconds() << endl;
+    env.out() << "[AVATAR] splittable: "<< cl->toString() << std::endl;
     env.endOutput();
   }
 
@@ -1294,6 +1315,13 @@ SplitLevel Splitter::addNonGroundComponent(unsigned size, Literal* const * lits,
   _db.push(0);
   ASS_L(compName,_db.size());
 
+  if (_showSplitting) {
+    env.beginOutput();
+    env.out() << "Timing: " << env.timer->elapsedMilliseconds() << endl;
+    env.out() << "[AVATAR] satvar: " << _sat2fo.maxSATVar() << std::endl;
+    env.endOutput();
+  }
+
   _branchSelector.updateVarCnt();
   _branchSelector.considerPolarityAdvice(posLit);
 
@@ -1314,6 +1342,13 @@ SplitLevel Splitter::addGroundComponent(Literal* lit, Clause* orig, Clause*& com
   if(compName>=_db.size()) {
     _db.push(0);
     _db.push(0);
+
+    if (_showSplitting) {
+      env.beginOutput();
+      env.out() << "Timing: " << env.timer->elapsedMilliseconds() << endl;
+      env.out() << "[AVATAR] satvar: " << _sat2fo.maxSATVar() << std::endl;
+      env.endOutput();
+    }
   }
   else {
     ASS_EQ(_complBehavior,Options::SplittingAddComplementary::NONE); 
@@ -1613,6 +1648,13 @@ void Splitter::SplitRecord::addReduced(Clause* cl)
 void Splitter::addSatClauseToSolver(SATClause* cl, bool refutation) {
   CALL("Splitter::addSatClauseToSolver");
 
+  if (_showSplitting) {
+    env.beginOutput();
+    env.out() << "Timing: " << env.timer->elapsedMilliseconds() << endl;
+    env.out() << "[AVATAR] satcl: " << cl->toString() << std::endl;
+    env.endOutput();
+  }
+
   _clausesAdded = true;
   if (refutation) {
     _haveBranchRefutation = true;
@@ -1654,6 +1696,13 @@ bool Splitter::handleEmptyClause(Clause* cl)
 
   addSatClauseToSolver(confl,true);
 
+  if (_showSplitting) {
+    env.beginOutput();
+    env.out() << "Timing: " << env.timer->elapsedMilliseconds() << endl;
+    env.out() << "[AVATAR] empty: "<< cl->toString() << std::endl;
+    env.endOutput();
+  }
+
   env.statistics->satSplitRefutations++;
   return true;
 }
@@ -1676,6 +1725,14 @@ void Splitter::addComponents(const SplitLevelStack& toAdd)
       //we need to put the component clause among children, 
       //so that it is backtracked when we remove the component
       sr->children.push(sr->component);
+
+      if (_showSplitting) {
+        env.beginOutput();
+        env.out() << "Timing: " << env.timer->elapsedMilliseconds() << endl;
+        env.out() << "[AVATAR] add: " << sr->component->toString() << endl; // the number is just for fun
+        env.endOutput();
+      }
+
       _sa->addNewClause(sr->component);
     } else {
       // children were kept, so we just put them back
@@ -1686,6 +1743,14 @@ void Splitter::addComponents(const SplitLevelStack& toAdd)
         cl->incNumActiveSplits();
         if (cl->getNumActiveSplits() == (int)cl->splits()->size()) {
           reactivated_cnt++;
+
+          if (_showSplitting) {
+            env.beginOutput();
+            env.out() << "Timing: " << env.timer->elapsedMilliseconds() << endl;
+            env.out() << "[AVATAR] add: " << sr->component->toString() << endl; // the number is just for fun
+            env.endOutput();
+          }
+
           _sa->addNewClause(cl);
           //check that restored clause does not depend on inactive splits
           ASS(allSplitLevelsActive(cl->splits()));
@@ -1722,6 +1787,14 @@ void Splitter::removeComponents(const SplitLevelStack& toRemove)
       Clause* ccl=chit.next();
       ASS(ccl->splits()->member(bl));
       if(ccl->store()!=Clause::NONE) {
+
+        if (_showSplitting) {
+          env.beginOutput();
+          env.out() << "Timing: " << env.timer->elapsedMilliseconds() << endl;
+          env.out() << "[AVATAR] removing: " << ccl->toString() << endl; // the number is just for fun
+          env.endOutput();
+        }
+
         _sa->removeActiveOrPassiveClause(ccl);
         ASS_EQ(ccl->store(), Clause::NONE);
       }
@@ -1755,6 +1828,14 @@ void Splitter::removeComponents(const SplitLevelStack& toRemove)
         ASS_EQ(rcl->store(), Clause::NONE);
         
         rcl->invalidateMyReductionRecords(); // to make sure we don't unfreeze this clause a second time
+
+        if (_showSplitting) {
+          env.beginOutput();
+          env.out() << "Timing: " << env.timer->elapsedMilliseconds() << endl;
+          env.out() << "[AVATAR] add: " << rcl->toString() << endl; // the number is just for fun
+          env.endOutput();
+        }
+
         _sa->addNewClause(rcl);
               
         // TODO: keep statistics in release ?
