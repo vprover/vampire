@@ -85,6 +85,8 @@ struct FunctionDefinition::Def
   bool linear;
   /** strict means that all lhs variables occur in rhs */
   bool strict;
+  /** true if def is of the form c = c' */
+  bool twoConstDef;
   /** first defined function that is used in @b rhs, or -1 if there isn't such */
   int containedFn;
 
@@ -106,6 +108,7 @@ struct FunctionDefinition::Def
       mark(UNTOUCHED),
       linear(lin),
       strict(str),
+      twoConstDef(0),
       containedFn(-1),
       dependentFns(0),
       argOccurs(0)
@@ -266,10 +269,21 @@ bool FunctionDefinition::removeAllDefinitions(UnitList*& units)
     Def* d=isFunctionDefinition(cl);
     if(d) {
       d->defCl=cl;
+      bool inserted = false;
       if(_defs.insert(d->fun, d)) {
-        //cout<<"Found: "<<(*(*d->defCl)[0])<<endl;
+        inserted = true;
         scanIterator.del();
-      } else {
+      } else if(d->twoConstDef){
+        Term* temp = d->lhs;
+        d->lhs = d->rhs;
+        d->rhs = temp;
+        d->fun = d->lhs->functor();
+        if(_defs.insert(d->fun, d)) {
+          inserted = true;
+          scanIterator.del();
+        }    
+      } 
+      if(!inserted){
         delete d;
       }
     }
@@ -634,6 +648,7 @@ Term* FunctionDefinition::applyDefinitions(Literal* lit, Stack<Def*>* usedDefs)
     }
 
     Def* d;
+    //cout << "t is " + t->toString() + " in defs? " << _defs.find(t->functor(), d) << endl;
     if( !defIndex && _defs.find(t->functor(), d) && d->mark!=Def::BLOCKED) {
       ASS_EQ(d->mark, Def::UNFOLDED);
       usedDefs->push(d);
@@ -848,8 +863,8 @@ FunctionDefinition::defines (Term* lhs, Term* rhs)
   }
   
   if (lhs->arity() == 0) {
-    if(env.signature->isFoolConstantSymbol(true, lhs->functor()) ||
-       env.signature->isFoolConstantSymbol(false, lhs->functor())){
+    if(env.signature->isFoolConstantSymbol(true , f) ||
+       env.signature->isFoolConstantSymbol(false, f)){
          return 0;
        }
     /*if (rhs->arity() != 0) { // c = f(...)
@@ -904,6 +919,11 @@ FunctionDefinition::defines (Term* lhs, Term* rhs)
   }
 
   Def* res=new Def(lhs,rhs,linear,!vars);
+  
+  if(!lhs->arity() && !rhs->arity()){
+    res->twoConstDef = true;
+  }
+
   return res;
 } // FunctionDefinition::defines
 

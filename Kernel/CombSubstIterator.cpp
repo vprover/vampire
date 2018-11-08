@@ -82,7 +82,7 @@ void CombSubstitution::populateTransformations(UnificationPair& up)
 
   //cout << "terml is " + hoterml->toString(false, true) << endl;
   //cout << "termr is " + hotermr->toString(false, true) << endl;
-  
+
   //true here means that indices are used in the comparison
   if(HSH::equal(hotermr, hoterml, true)){
     Transform trs = make_pair(ID,BOTH);
@@ -113,7 +113,7 @@ void CombSubstitution::populateTransformations(UnificationPair& up)
     return;      
   }
   
-  if(hoterml->underAppliedCombTerm() || hoterml->underAppliedCombTerm()){
+  if(hoterml->underAppliedCombTerm() || hotermr->underAppliedCombTerm()){
     Transform trs = make_pair(ADD_ARG,BOTH);
     up.transformsBoth.push(trs);
     return; 
@@ -287,8 +287,8 @@ bool CombSubstitution::transform(Transform t, bool furtherOptions){
   //temporary measure, in the long run, manipulate transforms rather than emptying them.
   up->emptyTransforms();
 
-  //cout << "carrying out transformation " + algorithmStepToString(t.first) << endl;
-  //cout << "on unification pair" +  up->toString() << endl;
+  cout << "carrying out transformation " + algorithmStepToString(t.first) << endl;
+  cout << "on unification pair" +  up->toString() << endl;
 
   //cout << "The substitution so far is " + toString() << endl; 
  

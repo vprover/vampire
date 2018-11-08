@@ -33,6 +33,7 @@ public:
   LambdaElimination() : _axioms(0), _combinatorAdditionMode(true){};
   LambdaElimination(DHMap<unsigned,unsigned> varSorts) : _axioms(0), _varSorts(varSorts), _combinatorAdditionMode(false){};
   TermList elimLambda(Term* lambdaTerm);
+  TermList processBeyondLambda(Term* term);
 
   /** Iterates through sorts in problem and heuristically adds
     * a set of relevant combinators to the problem along with their defining
@@ -102,7 +103,6 @@ private:
 
   void dealWithApp(TermList lhs, TermList rhs, unsigned sort, int lambdaVar, Stack<TermList> &_toBeProcessed, Stack<unsigned> &_argNums);
   
-  TermList processBeyondLambda(Term* term);
   TermList addKComb(unsigned appliedToArg, TermList arg);
   TermList addComb(unsigned appliedToArgs, TermList arg1, TermList arg2, Signature::Symbol::HOLConstant comb);
   

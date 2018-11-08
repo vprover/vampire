@@ -1956,6 +1956,8 @@ public:
   bool HOLConstantElimination () const { return _HOLConstantElimination.actualValue; }
   bool functionExtensionality () const { return _functionExtensionality.actualValue; }
   bool booleanExtensionality () const { return _booleanExtensionality.actualValue; }
+  bool equalityToEquivalence () const { return _equalityToEquivalence.actualValue; } 
+  bool alwaysUseProxies () const { return _alwaysUseProxies.actualValue; } 
   bool combinatoryUnification () const { return _combinatoryUnification.actualValue; }
   CombElimination combinatorElimination () const { return _combinatorElimination.actualValue; }
   bool FOOLParamodulation() const { return _FOOLParamodulation.actualValue; }
@@ -2239,6 +2241,8 @@ private:
   BoolOptionValue _HOLConstantElimination;
   BoolOptionValue _functionExtensionality;
   BoolOptionValue _booleanExtensionality;
+  BoolOptionValue _equalityToEquivalence;
+  BoolOptionValue _alwaysUseProxies;
   BoolOptionValue _combinatoryUnification;
   ChoiceOptionValue<CombElimination> _combinatorElimination;
   BoolOptionValue _termAlgebraInferences;

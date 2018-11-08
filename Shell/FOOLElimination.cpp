@@ -211,7 +211,7 @@ Formula* FOOLElimination::process(Formula* formula) {
        * between FOOL boolean terms.
        */
 
-      if (literal->isEquality()) {
+      if (literal->isEquality() && env.options->equalityToEquivalence()) {
         ASS_EQ(literal->arity(), 2); // can there be equality between several terms?
         TermList lhs = *literal->nthArgument(0);
         TermList rhs = *literal->nthArgument(1);
@@ -722,34 +722,45 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
          *  3) Replace the term with g(X1, ..., Xn)
          */
 
-        Formula *formula = process(sd->getFormula());
+        if(!env.options->alwaysUseProxies()){
+          Formula *formula = process(sd->getFormula());
 
-        // create a fresh symbol g and build g(X1, ..., Xn)
-        TermList freshSymbolApplication;
-        if(env.options->combinatoryUnification()){
-          unsigned freshSymbolSort = HOSortHelper::getHigherOrderSort(freeVarsSorts, Sorts::SRT_BOOL);
-          Stack<unsigned> dummy;
-          unsigned freshSymbol = introduceFreshSymbol(context, BOOL_PREFIX, dummy, freshSymbolSort);
-          TermList head = TermList(Term::createConstant(freshSymbol));
-          freshSymbolApplication = buildAppifiedFunction(head, freshSymbolSort, freeVarsSorts, freeVars);
+          // create a fresh symbol g and build g(X1, ..., Xn)
+          TermList freshSymbolApplication;
+          //Pretty nasty hack here to deal with two issues:
+          // 1) Resolution hasn't been updated with combinatory unification
+          // 2) In at least one place in combinatory unification code, the assumption
+          //    that all literals are equalities is made.
+          // Long term, better to deal with (1) and (2) and clean up code like that below 
+          if(env.options->combinatoryUnification()){ 
+            unsigned freshSymbolSort = HOSortHelper::getHigherOrderSort(freeVarsSorts, Sorts::SRT_BOOL);
+            Stack<unsigned> dummy;
+            unsigned freshSymbol = introduceFreshSymbol(context, BOOL_PREFIX, dummy, freshSymbolSort);
+            TermList head = TermList(Term::createConstant(freshSymbol));
+            freshSymbolApplication = buildAppifiedFunction(head, freshSymbolSort, freeVarsSorts, freeVars);
+          } else {
+            unsigned freshSymbol = introduceFreshSymbol(context, BOOL_PREFIX, freeVarsSorts, Sorts::SRT_BOOL);
+            freshSymbolApplication = buildFunctionApplication(freshSymbol, freeVars);
+          }
+          // build f <=> g(X1, ..., Xn) = true
+          Formula* freshSymbolDefinition = new BinaryFormula(IFF, formula, toEquality(freshSymbolApplication));
+
+          // build ![X1, ..., Xn]: (f <=> g(X1, ..., Xn) = true)
+          if (Formula::VarList::length(freeVars) > 0) {
+            // TODO do we know the sorts of freeVars?
+            freshSymbolDefinition = new QuantifiedFormula(FORALL, freeVars,0, freshSymbolDefinition);
+          }
+
+          // add the introduced definition
+          Inference* inference = new Inference1(Inference::FOOL_ELIMINATION, _unit);
+          addDefinition(new FormulaUnit(freshSymbolDefinition, inference, DEFINITION_INPUT_TYPE));
+
+          termResult = freshSymbolApplication;
         } else {
-          unsigned freshSymbol = introduceFreshSymbol(context, BOOL_PREFIX, freeVarsSorts, Sorts::SRT_BOOL);
-          freshSymbolApplication = buildFunctionApplication(freshSymbol, freeVars);
+          LambdaElimination le = LambdaElimination(_varSorts);
+          termResult = le.processBeyondLambda(term);
+          _defs = UnitList::concat(_defs, le.axioms()); 
         }
-        // build f <=> g(X1, ..., Xn) = true
-        Formula* freshSymbolDefinition = new BinaryFormula(IFF, formula, toEquality(freshSymbolApplication));
-
-        // build ![X1, ..., Xn]: (f <=> g(X1, ..., Xn) = true)
-        if (Formula::VarList::length(freeVars) > 0) {
-          // TODO do we know the sorts of freeVars?
-          freshSymbolDefinition = new QuantifiedFormula(FORALL, freeVars,0, freshSymbolDefinition);
-        }
-
-        // add the introduced definition
-        Inference* inference = new Inference1(Inference::FOOL_ELIMINATION, _unit);
-        addDefinition(new FormulaUnit(freshSymbolDefinition, inference, DEFINITION_INPUT_TYPE));
-
-        termResult = freshSymbolApplication;
         break;
       }
 	  case Term::SF_LAMBDA: {
@@ -757,8 +768,7 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
 		    the literature. 
       */
       LambdaElimination le = LambdaElimination(_varSorts);
-      TermList translatedTerm = le.elimLambda(term);
-      termResult = translatedTerm;
+      termResult = le.elimLambda(term);
       _defs = UnitList::concat(_defs, le.axioms());
       break;
 	  }

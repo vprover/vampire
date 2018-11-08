@@ -71,7 +71,7 @@ unsigned SortHelper::getResultSort(const Term* t)
 bool SortHelper::tryGetResultSort(const Term* t, unsigned& result)
 {
   CALL("tryGetResultSort(Term*,unsigned&)");
-  ASS(!t->isLiteral());
+  ASS_REP(!t->isLiteral(), t->toString());
 
   TermList masterVar;
   return getResultSortOrMasterVariable(t, result, masterVar);

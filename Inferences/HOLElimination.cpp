@@ -470,6 +470,8 @@ Clause* EQUALSRemovalISE::simplify(Clause* c)
       Clause* res = replaceLit2(c, lit, newLit, new Inference1(Inference::HOL_EQUALITY_ELIMINATION, c));//Change inference AYB
       res->setAge(c->age());
       env.statistics->holEQAULSsimplifications++;
+      //cout << "The premise is " + c->toString() << endl;
+      //cout << "The conclusion is " + res->toString() << endl; 
       return res;
     }
   }
@@ -616,6 +618,9 @@ for (unsigned i = 0; i < conclusionLength; i++) {
   (*conclusion)[i] = i == literalPosition ? EqHelper::replace((*premise)[i], combinatorTerm, newTerm) : (*premise)[i];
 }
 
+//cout << "The premise is " + premise->toString() << endl;
+//cout << "The conclusion is " + conclusion->toString() << endl;
+
 return conclusion;
     
 }
@@ -642,7 +647,7 @@ struct ORIMPANDIFFXORRemovalGIE::ProxyEliminationIterator
   
     ct_ptr cnst = isHolConstantApp(lit, 2);
     if (cnst) {     
-
+           
       TermList otherTermt = *lit->nthArgument(1 - cnst->onRight);
       
       int val = isBoolValue(otherTermt);
@@ -759,17 +764,17 @@ struct ORIMPANDIFFXORRemovalGIE::ProxyEliminationIterator
           l3 = Literal::createEquality(true, _terms[2], boolValues[_pol], Sorts::SRT_BOOL);           
         }
         break;
-      case SS::IFF:
+      case SS::IFF:      
         if(_rhsIsTrue || (_rhsIsTerm && _count < 2)){
           l1 = Literal::createEquality(true, _terms[0], boolValues[_count], Sorts::SRT_BOOL); 
           l2 = Literal::createEquality(true, _terms[1], boolValues[(_count + 1) % 2] , Sorts::SRT_BOOL); 
-          l3 = _rhsIsTerm ? Literal::createEquality(true, _terms[2], boolValues[1 - _pol], Sorts::SRT_BOOL) : NULL; 
+          l3 = _rhsIsTerm ? Literal::createEquality(true, _terms[2], boolValues[_pol], Sorts::SRT_BOOL) : NULL; 
           break;          
         }
         if(_rhsIsFalse || (_rhsIsTerm && _count > 1)){
-          l1 = Literal::createEquality(true, _terms[0], boolValues[_count], Sorts::SRT_BOOL); 
-          l2 = Literal::createEquality(true, _terms[1], boolValues[_count], Sorts::SRT_BOOL);             
-          l3 = _rhsIsTerm ? Literal::createEquality(true, _terms[2], boolValues[_pol], Sorts::SRT_BOOL) : NULL;
+          l1 = Literal::createEquality(true, _terms[0], boolValues[_count % 2], Sorts::SRT_BOOL); 
+          l2 = Literal::createEquality(true, _terms[1], boolValues[_count % 2], Sorts::SRT_BOOL);             
+          l3 = _rhsIsTerm ? Literal::createEquality(true, _terms[2], boolValues[1 - _pol], Sorts::SRT_BOOL) : NULL;
           break;
         }       
       case SS::XOR:
@@ -780,7 +785,7 @@ struct ORIMPANDIFFXORRemovalGIE::ProxyEliminationIterator
           break;
         }
         if(_rhsIsFalse || (_rhsIsTerm && _count > 1)){
-          l1 = Literal::createEquality(true, _terms[0], boolValues[_count], Sorts::SRT_BOOL); 
+          l1 = Literal::createEquality(true, _terms[0], boolValues[_count % 2], Sorts::SRT_BOOL); 
           l2 = Literal::createEquality(true, _terms[1], boolValues[(_count + 1) % 2] , Sorts::SRT_BOOL);                
           l3 = _rhsIsTerm ? Literal::createEquality(true, _terms[2], boolValues[1 - _pol], Sorts::SRT_BOOL) : NULL; 
           break;  
@@ -822,10 +827,13 @@ struct ORIMPANDIFFXORRemovalGIE::ProxyEliminationIterator
     _count++;
     
     
-    //if(_constant == SS::AND || _constant == SS::OR || _constant == SS::IMP){
-      //cout << "The original clause is: " + _clause->toString() << endl;
-      //cout << "The new clause is: " + res->toString() << endl;
-    //}
+    /*if(_constant == SS::IFF || _constant == SS::OR || _constant == SS::IMP){
+      if(_count == 1){
+        cout << "The original clause is: " + _clause->toString() << endl;
+      }
+      cout << "l1 is " + l1->toString() << endl;
+      cout << "l2 is " + l2->toString() << endl;
+    }*/
 
     res->setAge(_clause->age()+1);
     

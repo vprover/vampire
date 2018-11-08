@@ -1027,7 +1027,22 @@ void Options::Options::init()
        "![X: o, Y:o] : (X <=> Y) => X = Y";    
       _lookup.insert(&_booleanExtensionality);
       _booleanExtensionality.tag(OptionTag::OTHER);
+
+      _equalityToEquivalence = BoolOptionValue("equality_to_equiv","e2e",true);
+      _equalityToEquivalence.description=
+      "Equality between boolean terms changed to equivalence \n"
+      "t1 : $o = t2 : $o is changed to t1 <=> t2";    
+      _lookup.insert(&_equalityToEquivalence);
+      _equalityToEquivalence.tag(OptionTag::OTHER);
       
+
+      _alwaysUseProxies = BoolOptionValue("always_use_proxies","aup",false);
+      _alwaysUseProxies.description=
+      "When preprocessing formulas in term positions, translate using proxy functions \n"
+      "If option is false, other translations are used by default";    
+      _lookup.insert(&_alwaysUseProxies);
+      _alwaysUseProxies.tag(OptionTag::OTHER);
+
       _combinatorElimination = ChoiceOptionValue<CombElimination>("combinator_elimination","combelim",
                                                                    CombElimination::AXIOMS,
                                                                    {"axioms","inference_rules","both"});
