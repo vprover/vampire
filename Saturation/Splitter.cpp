@@ -991,6 +991,13 @@ bool Splitter::handleNonSplittable(Clause* cl)
     //This derivation is therefore redundant, so we can skip it.
     // (would result in a propositional tautology)
 
+    if (_showSplitting) {
+      env.beginOutput();
+      env.out() << "Timing: " << env.timer->elapsedMilliseconds() << endl;
+      env.out() << "[AVATAR] self-dependent_component: "<< cl->toString() << std::endl;
+      env.endOutput();
+    }
+
     RSTAT_CTR_INC("ssat_self_dependent_component");
   } else {
     static SATLiteralStack satLits;
@@ -1139,6 +1146,13 @@ bool Splitter::doSplitting(Clause* cl)
   }
 
   if (_fastRestart && _haveBranchRefutation) {
+    if (_showSplitting) {
+      env.beginOutput();
+      env.out() << "Timing: " << env.timer->elapsedMilliseconds() << endl;
+      env.out() << "[AVATAR] fast-clause: " << cl->toString() << endl; // the number is just for fun
+      env.endOutput();
+    }
+
     _fastClauses.push(cl);
     return true; // the clause is ours now
   }

@@ -1253,7 +1253,7 @@ MainLoopResult SaturationAlgorithm::runImpl()
 
       if (env.options->showActive()) {
         env.beginOutput();
-        env.out() << "Looping: " << l << endl;
+        env.out() << "Looping: " << l << " " << _active->size() << " " << _passive->size() << endl;
         env.endOutput();
       }
 
