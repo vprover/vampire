@@ -1005,6 +1005,17 @@ void Options::Options::init()
       _lookup.insert(&_HOLConstantElimination);
       _HOLConstantElimination.tag(OptionTag::INFERENCES);
 
+      _extendedNarrowing = BoolOptionValue("extended_narrowing","e_n",false);
+      _extendedNarrowing.description=
+      "Equivalent to primitive substitution. "
+      "Attempts to match a literal with a variable head with the left-hand side of \n"
+      "a literal rewrite rule and then perform the rewrite: \n" 
+        "     X t1 t2 = $true \\/ C\n"
+        "----------------------------------,\n"
+        " t1 = $true \\/ t2 = $true \\/ C\n";    
+      _lookup.insert(&_extendedNarrowing);
+      _extendedNarrowing.tag(OptionTag::INFERENCES);
+      
       _combinatoryUnification = BoolOptionValue("combinatory_unif","cunif",false);
       _combinatoryUnification.description=
       "Syntactic unification is replaced by  \n"

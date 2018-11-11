@@ -87,8 +87,6 @@ private:
 
   struct CombResultIterator;
   struct ApplicableCombRewritesFn;
-  struct ForwardCombResultFn;
-  struct BackwardCombResultFn;
   
   SuperpositionSubtermIndex* _subtermIndex;
   SuperpositionLHSIndex* _lhsIndex;

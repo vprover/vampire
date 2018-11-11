@@ -374,6 +374,8 @@ vstring Inference::ruleName(Rule rule)
     return "superposition";
   case PARAMODULATION:
     return "paramodulation";
+  case EXTENDED_NARROWING:
+    return "extended narrowing";
   case CONSTRAINED_SUPERPOSITION:
     return "constrained superposition";
   case EQUALITY_FACTORING:

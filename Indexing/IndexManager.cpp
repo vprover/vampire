@@ -205,6 +205,12 @@ Index* IndexManager::create(IndexType t)
     isGenerating = true;
     break;
 
+  case EXTENDED_NARROWING_INDEX:
+    tis=new TermSubstitutionTree();
+    res=new ExtendedNarrowingIndex(tis); 
+    isGenerating = true;
+    break;    
+    
   case DEMODULATION_SUBTERM_SUBST_TREE:
     tis=new TermSubstitutionTree();
     res=new DemodulationSubtermIndex(tis);
@@ -239,7 +245,7 @@ Index* IndexManager::create(IndexType t)
     res = new GroundingIndex(_alg->getOptions());
     isGenerating = false;
     break;
-
+  
 //  case ARITHMETIC_INDEX:
 //    res=new ArithmeticIndex();
 //    isGenerating = false;

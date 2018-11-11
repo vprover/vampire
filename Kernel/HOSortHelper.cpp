@@ -58,6 +58,17 @@ unsigned HOSortHelper::getHeadSort(TermList ts){
   return tsSort;
 }
 
+TermList HOSortHelper::getNthArg(TermList ts, unsigned n){
+  CALL("HOSortHelper::getNthArg");
+
+  unsigned argnum = argNum(ts);
+  if(argnum <= n){ ASSERTION_VIOLATION; }
+  for(unsigned i = argnum; i > n+1; i--){
+    ts = *(ts.term()->nthArgument(0));    
+  }
+  return *(ts.term()->nthArgument(1));  
+}
+
 //BAD CODE!
 /** 
  * Returns the sort of the nth argument of the applicative term ts

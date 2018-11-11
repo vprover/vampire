@@ -28,6 +28,9 @@
 #include "Kernel/Ordering.hpp"
 #include "Kernel/Term.hpp"
 #include "Kernel/TermIterators.hpp"
+#include "Kernel/HOSortHelper.hpp"
+
+#include "Shell/LambdaElimination.hpp"
 
 #include "TermIndexingStructure.hpp"
 #include "TermIndex.hpp"
@@ -66,6 +69,52 @@ TermQueryResultIterator TermIndex::getInstances(TermList t,
   return _is->getInstances(t, retrieveSubstitutions);
 }
 
+
+void ExtendedNarrowingIndex::populateIndex()
+{
+  CALL("ExtendedNarrowingIndex::populateIndex");
+ 
+  typedef LambdaElimination LE; 
+  typedef HOSortHelper HSH;
+ 
+  TermList andTerm, orTerm, notTerm, impTerm, iffTerm, xorTerm;
+  
+  bool added;
+  unsigned boolS = Sorts::SRT_BOOL; 
+  unsigned boolToBoolS = env.sorts->addFunctionSort(Sorts::SRT_BOOL, Sorts::SRT_BOOL);
+  unsigned boolToBoolToBools = env.sorts->addFunctionSort(Sorts::SRT_BOOL, boolToBoolS);
+  
+  Stack<unsigned> argSorts;
+  Stack<TermList> args;
+  
+  argSorts.push(boolS);
+  argSorts.push(boolS);
+  
+  args.push(TermList(1, false));
+  args.push(TermList(0, false));
+  
+  TermList andConstant = LE::addHolConstant("vAND", boolToBoolToBools, added, Signature::Symbol::AND);
+  TermList orConstant  = LE::addHolConstant("vOR",  boolToBoolToBools, added, Signature::Symbol::OR);
+  TermList impConstant = LE::addHolConstant("vIMP", boolToBoolToBools, added, Signature::Symbol::IMP);
+ // TermList iffConstant = LE::addHolConstant("vIFF", boolToBoolToBools, added, Signature::Symbol::IFF);
+  //TermList xorConstant = LE::addHolConstant("vXOR", boolToBoolToBools, added, Signature::Symbol::XOR);
+  TermList notConstant = LE::addHolConstant("vNOT", boolToBoolS, added, Signature::Symbol::NOT);
+  
+  andTerm = TermList(HSH::createAppifiedTerm(andConstant, boolToBoolToBools, argSorts, args));
+  orTerm  = TermList(HSH::createAppifiedTerm(orConstant, boolToBoolToBools, argSorts, args));
+  impTerm = TermList(HSH::createAppifiedTerm(impConstant, boolToBoolToBools, argSorts, args));
+  //iffTerm = TermList(HSH::createAppifiedTerm(iffConstant, boolToBoolToBools, argSorts, args));
+  //xorTerm = TermList(HSH::createAppifiedTerm(xorConstant, boolToBoolToBools, argSorts, args));
+  args.pop(); argSorts.pop();
+  notTerm = TermList(HSH::createAppifiedTerm(notConstant, boolToBoolS, argSorts, args));
+ 
+  _is->insert(andTerm, 0, 0);
+  _is->insert(orTerm, 0, 0);
+  _is->insert(impTerm, 0, 0);
+  //_is->insert(iffTerm, 0, 0);
+  //_is->insert(xorTerm, 0, 0);
+  _is->insert(notTerm, 0, 0);  
+}
 
 void SuperpositionSubtermIndex::handleClause(Clause* c, bool adding)
 {

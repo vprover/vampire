@@ -53,7 +53,8 @@ public:
   static FormulaUnit* addEqualityAxiom(TermList equals, unsigned argsSort, unsigned eqaulsSorts);
   static Formula* createEquality(TermList t1, TermList t2, unsigned sort);
   static Formula* toEquality(TermList booleanTerm);
-
+  static TermList addHolConstant(vstring name, unsigned sort, bool& added, Signature::Symbol::HOLConstant constant);
+  
   void inline addAxiomsToUnits(UnitList*& units){
     if(_axioms){
       units = UnitList::concat(_axioms, units);
@@ -106,7 +107,6 @@ private:
   TermList addKComb(unsigned appliedToArg, TermList arg);
   TermList addComb(unsigned appliedToArgs, TermList arg1, TermList arg2, Signature::Symbol::HOLConstant comb);
   
-  TermList addHolConstant(vstring name, unsigned sort, bool& added, Signature::Symbol::HOLConstant constant);
   void process(Stack<int> _vars, Stack<unsigned> _sorts, Stack<TermList> _toBeProcessed);
   
   /** Lexical scope of the current unit */

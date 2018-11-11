@@ -156,6 +156,7 @@ class V2CIndex;
 
 class Sorts;
 class Signature;
+class Symbol;
 
 typedef VirtualIterator<Var> VarIterator;
 typedef RCPtr<Constraint> ConstraintRCPtr;

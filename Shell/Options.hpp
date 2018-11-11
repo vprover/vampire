@@ -1954,6 +1954,7 @@ public:
   ExtensionalityResolution extensionalityResolution() const { return _extensionalityResolution.actualValue; }
   bool HOLconstantShortCircuitEval() const { return _HOLConstantShortCircuitEval.actualValue; }
   bool HOLConstantElimination () const { return _HOLConstantElimination.actualValue; }
+  bool extendedNarrowing () const { return _extendedNarrowing.actualValue; }
   bool functionExtensionality () const { return _functionExtensionality.actualValue; }
   bool booleanExtensionality () const { return _booleanExtensionality.actualValue; }
   bool equalityToEquivalence () const { return _equalityToEquivalence.actualValue; } 
@@ -2239,6 +2240,7 @@ private:
   BoolOptionValue _FOOLParamodulation;
   BoolOptionValue _HOLConstantShortCircuitEval;
   BoolOptionValue _HOLConstantElimination;
+  BoolOptionValue _extendedNarrowing;
   BoolOptionValue _functionExtensionality;
   BoolOptionValue _booleanExtensionality;
   BoolOptionValue _equalityToEquivalence;

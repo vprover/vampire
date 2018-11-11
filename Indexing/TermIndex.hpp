@@ -53,6 +53,22 @@ protected:
   TermIndexingStructure* _is;
 };
 
+class ExtendedNarrowingIndex
+: public TermIndex
+{
+public:
+  CLASS_NAME(ExtendedNarrowingIndex);  
+  USE_ALLOCATOR(ExtendedNarrowingIndex);
+  
+  ExtendedNarrowingIndex(TermIndexingStructure* is) : TermIndex(is)
+  {
+    populateIndex();    
+  }
+protected:
+  void populateIndex();
+
+};
+
 class SuperpositionSubtermIndex
 : public TermIndex
 {

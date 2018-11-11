@@ -184,8 +184,10 @@ public:
     SUBSUMPTION_RESOLUTION,
     /** superposition inference */
     SUPERPOSITION,
-    /** paramodulation inference (semi-order superposition, not complete) */
+    /** paramodulation inference (semi-ordered superposition, not complete. used in higher-order) */
     PARAMODULATION,
+    /** extended narrowing inference. used in higher-order mode */
+    EXTENDED_NARROWING,
     /** superposition with constraints */
     CONSTRAINED_SUPERPOSITION,
     /** equality factoring inference */

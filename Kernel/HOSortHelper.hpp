@@ -18,7 +18,7 @@
  */
 /**
  * @file HOSortHelper.hpp
- * Defines class HigherOrderHOSortHelper.
+ * Defines class HOSortHelper.
  */
 
 #ifndef __HOSortHelper__
@@ -33,6 +33,7 @@
 #include "Kernel/Term.hpp"
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/TermIterators.hpp"
+#include "Kernel/Signature.hpp"
 #include <memory>
 
 #if VDEBUG
@@ -222,6 +223,8 @@ public:
   static bool equal(const HOTerm_ptr, const HOTerm_ptr, bool useIndices = false );
   /** Returns the sort of the head of an applicative term */
   static unsigned getHeadSort(TermList ts);
+  /** Returns the nth arg of the applicative term ts */
+  static TermList getNthArg(TermList ts, unsigned n);
   /** Returns the sort of the nth argument of the applicative term ts*/
   static unsigned getNthArgSort(TermList ts, unsigned n);
   /** Returns the number of args the head of an applicative term is applied to */

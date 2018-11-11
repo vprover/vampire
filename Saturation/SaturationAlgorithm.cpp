@@ -71,6 +71,7 @@
 #include "Inferences/URResolution.hpp"
 #include "Inferences/Instantiation.hpp"
 #include "Inferences/TheoryInstAndSimp.hpp"
+#include "Inferences/ExtendedNarrowing.hpp"
 
 #include "Saturation/ExtensionalityClauseContainer.hpp"
 
@@ -1361,6 +1362,9 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
     gie->addFront(new EqualityResolution());
     gie->addFront(new Superposition());
   }
+  if (opt.extendedNarrowing()){
+    gie->addFront(new ExtendedNarrowing());
+  }
   else if(opt.unificationWithAbstraction()!=Options::UnificationWithAbstraction::OFF){
     gie->addFront(new EqualityResolution()); 
   }
@@ -1378,7 +1382,7 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
     gie->addFront(new FOOLParamodulation());
   }
   if(opt.HOLConstantElimination()){
-	gie->addFront(new ORIMPANDIFFXORRemovalGIE());  
+    gie->addFront(new ORIMPANDIFFXORRemovalGIE());  
   }
   if(prb.hasEquality() && env.signature->hasTermAlgebras()) {
     if (opt.termAlgebraCyclicityCheck() == Options::TACyclicityCheck::RULE) {

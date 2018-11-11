@@ -322,7 +322,7 @@ bool isNOTEquality(Literal* lit, TermList &newEqlhs, TermList &newEqrhs, bool &p
     return true;
 }
 
-Clause* replaceLit2(Clause *c, Literal *a, Literal *b, Inference *inf, Literal *d = NULL, Literal* e = NULL )
+Clause* replaceLit2(Clause *c, Literal *a, Literal *b, Inference *inf, Literal *d = 0, Literal* e = 0 )
 {
     CALL("replaceLit");
 
@@ -345,8 +345,8 @@ Clause* replaceLit2(Clause *c, Literal *a, Literal *b, Inference *inf, Literal *
 
 Clause* ORIMPANDRemovalISE::simplify(Clause* c)
   {
-    CALL("ORIMPRemovalISE::simplify");   
-    
+    CALL("ORIMPRemovalISE::simplify");
+  
     int length = c->length();
     for (int i = length - 1; i >= 0; i--) {
       TermList lhs1, rhs1, lhs2, rhs2;
@@ -729,15 +729,15 @@ struct ORIMPANDIFFXORRemovalGIE::ProxyEliminationIterator
     Clause *res;
     Inference *inf = new Inference1(constToInfRule(_constant), _clause);
 
-    Literal* l1 = NULL;
-    Literal* l2 = NULL;
-    Literal* l3 = NULL;      
+    Literal* l1 = 0;
+    Literal* l2 = 0;
+    Literal* l3 = 0;      
   
     switch(_constant){
       case SS::OR:
         if(_count < 2){
           l1 = Literal::createEquality(true, _terms[_count], boolValues[1], Sorts::SRT_BOOL);
-          l2 = _rhsIsTerm ? Literal::createEquality(true, _terms[2], boolValues[1 - _pol], Sorts::SRT_BOOL) : NULL; 
+          l2 = _rhsIsTerm ? Literal::createEquality(true, _terms[2], boolValues[1 - _pol], Sorts::SRT_BOOL) : 0; 
         }else{
           l1 = Literal::createEquality(true, _terms[0], boolValues[0], Sorts::SRT_BOOL);
           l2 = Literal::createEquality(true, _terms[1], boolValues[0], Sorts::SRT_BOOL);
@@ -747,7 +747,7 @@ struct ORIMPANDIFFXORRemovalGIE::ProxyEliminationIterator
       case SS::AND:
         if(_count < 2){
           l1 = Literal::createEquality(true, _terms[_count], boolValues[0], Sorts::SRT_BOOL); 
-          l2 = _rhsIsTerm ? Literal::createEquality(true, _terms[2], boolValues[_pol], Sorts::SRT_BOOL) : NULL; 
+          l2 = _rhsIsTerm ? Literal::createEquality(true, _terms[2], boolValues[_pol], Sorts::SRT_BOOL) : 0; 
         }else{
           l1 = Literal::createEquality(true, _terms[0], boolValues[1], Sorts::SRT_BOOL);
           l2 = Literal::createEquality(true, _terms[1], boolValues[1], Sorts::SRT_BOOL);
@@ -757,7 +757,7 @@ struct ORIMPANDIFFXORRemovalGIE::ProxyEliminationIterator
       case SS::IMP:
         if(_count < 2){
           l1 = Literal::createEquality(true, _terms[_count], boolValues[_count], Sorts::SRT_BOOL);  
-          l2 = _rhsIsTerm ? Literal::createEquality(true, _terms[2], boolValues[1 - _pol], Sorts::SRT_BOOL) : NULL;
+          l2 = _rhsIsTerm ? Literal::createEquality(true, _terms[2], boolValues[1 - _pol], Sorts::SRT_BOOL) : 0;
         }else{
           l1 = Literal::createEquality(true, _terms[0], boolValues[1], Sorts::SRT_BOOL);
           l2 = Literal::createEquality(true, _terms[1], boolValues[0], Sorts::SRT_BOOL);
@@ -768,26 +768,26 @@ struct ORIMPANDIFFXORRemovalGIE::ProxyEliminationIterator
         if(_rhsIsTrue || (_rhsIsTerm && _count < 2)){
           l1 = Literal::createEquality(true, _terms[0], boolValues[_count], Sorts::SRT_BOOL); 
           l2 = Literal::createEquality(true, _terms[1], boolValues[(_count + 1) % 2] , Sorts::SRT_BOOL); 
-          l3 = _rhsIsTerm ? Literal::createEquality(true, _terms[2], boolValues[_pol], Sorts::SRT_BOOL) : NULL; 
+          l3 = _rhsIsTerm ? Literal::createEquality(true, _terms[2], boolValues[_pol], Sorts::SRT_BOOL) : 0; 
           break;          
         }
         if(_rhsIsFalse || (_rhsIsTerm && _count > 1)){
           l1 = Literal::createEquality(true, _terms[0], boolValues[_count % 2], Sorts::SRT_BOOL); 
           l2 = Literal::createEquality(true, _terms[1], boolValues[_count % 2], Sorts::SRT_BOOL);             
-          l3 = _rhsIsTerm ? Literal::createEquality(true, _terms[2], boolValues[1 - _pol], Sorts::SRT_BOOL) : NULL;
+          l3 = _rhsIsTerm ? Literal::createEquality(true, _terms[2], boolValues[1 - _pol], Sorts::SRT_BOOL) : 0;
           break;
         }       
       case SS::XOR:
         if(_rhsIsTrue || (_rhsIsTerm && _count < 2)){
           l1 = Literal::createEquality(true, _terms[0], boolValues[_count], Sorts::SRT_BOOL); 
           l2 = Literal::createEquality(true, _terms[1], boolValues[_count], Sorts::SRT_BOOL);         
-          l3 = _rhsIsTerm ? Literal::createEquality(true, _terms[2], boolValues[_pol], Sorts::SRT_BOOL) : NULL;
+          l3 = _rhsIsTerm ? Literal::createEquality(true, _terms[2], boolValues[_pol], Sorts::SRT_BOOL) : 0;
           break;
         }
         if(_rhsIsFalse || (_rhsIsTerm && _count > 1)){
           l1 = Literal::createEquality(true, _terms[0], boolValues[_count % 2], Sorts::SRT_BOOL); 
           l2 = Literal::createEquality(true, _terms[1], boolValues[(_count + 1) % 2] , Sorts::SRT_BOOL);                
-          l3 = _rhsIsTerm ? Literal::createEquality(true, _terms[2], boolValues[1 - _pol], Sorts::SRT_BOOL) : NULL; 
+          l3 = _rhsIsTerm ? Literal::createEquality(true, _terms[2], boolValues[1 - _pol], Sorts::SRT_BOOL) : 0; 
           break;  
         }
       case SS::EQUALS:
