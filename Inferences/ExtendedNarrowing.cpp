@@ -28,6 +28,9 @@
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/Signature.hpp"
 #include "Kernel/Inference.hpp"
+#include "Kernel/Substitution.hpp"
+
+#include "Shell/LambdaElimination.hpp"
 
 #include "Lib/Environment.hpp"
 #include "Lib/Metaiterators.hpp"
@@ -99,7 +102,6 @@ struct ExtendedNarrowing::IsNarrowableBoolEquality
 
 struct ExtendedNarrowing::NarrowingResultIterator
 {    
-
    const int QUERY = 0;
    const int RESULT = 1;
    
@@ -224,7 +226,8 @@ struct ExtendedNarrowing::NarrowingResultIterator
      ASS_EQ(next,newLen);
 
      res->setAge(_cl->age()+1);
-     
+     env.statistics->extendedNarrows++;
+
      _returnedSoFar++;
      return res;
    }
@@ -240,6 +243,95 @@ private:
    ResultSubstitutionSP _subst;
 };
 
+struct ExtendedNarrowing::PSNarrowingResultIterator
+{
+   typedef Signature::Symbol SS;
+   typedef LambdaElimination LE;
+   typedef HOSortHelper HSH;
+
+   PSNarrowingResultIterator(Clause* cl, Literal* l): 
+    _cl(cl), _lit(l), _returned(0)
+   { 
+
+     TermList* lhs = l->args();
+     TermList* rhs = lhs->next();
+     
+     if(value(*lhs) == -1){
+      _narrowableTerm = *lhs;
+     } else {
+      _narrowableTerm = *rhs;
+     }
+  
+     unsigned argnum = HSH::argNum(_narrowableTerm);
+     if(argnum != 1){ 
+       _toBeReturned = 0;
+     } else {
+       unsigned sort = HSH::getNthArgSort(_narrowableTerm, 0);
+       unsigned output = HSH::outputSort(sort);
+       if(output != Sorts::SRT_BOOL){
+         _toBeReturned = 0;
+       } else {
+         _narrowedVar = HSH::getHead(_narrowableTerm).var();
+         _narrowedVarSort = HSH::getHeadSort(_narrowableTerm);
+         _toBeReturned = 2;
+       }
+     }
+   }
+
+   DECL_ELEMENT_TYPE(Clause*);
+   
+   bool hasNext(){
+     CALL("ExtendedNarrowing::PSNarrowingResultIterator::hasNext");
+     return _returned < _toBeReturned;
+   }
+
+   OWN_ELEMENT_TYPE next(){
+     CALL("ExtendedNarrowing::PSNarrowingResultIterator::next");
+
+     static Substitution subst;
+     subst.reset();
+    
+     TermList quantiifer;
+     
+     bool added;                
+     if(!_returned){
+       quantiifer = LE::addHolConstant("vPI", _narrowedVarSort, added, SS::PI);
+     } else {
+       quantiifer = LE::addHolConstant("vSIGMA", _narrowedVarSort, added, SS::SIGMA);
+     }
+
+     subst.bind(_narrowedVar, quantiifer);
+
+     unsigned cLen = _cl->length();
+     
+     Inference* inf = new Inference1(Inference::EXTENDED_NARROWING, _cl); 
+     Clause* res = new(cLen) Clause(cLen, _cl->inputType(), inf);
+
+     
+     for(unsigned i=0;i<cLen;i++) {
+       Literal* curr=(*_cl)[i];
+       Literal* currAfter = curr->apply(subst);
+       (*res)[i] = currAfter;
+     }
+
+     res->setAge(_cl->age()+1);
+     env.statistics->extendedNarrows++;
+
+     _returned++;
+
+     return res;  
+   }
+
+private:
+   unsigned _narrowedVar;
+   unsigned _narrowedVarSort;
+   unsigned _toBeReturned;
+   TermList _narrowableTerm;
+   Clause* _cl;
+   Literal* _lit;
+   unsigned _returned;
+};
+
 struct ExtendedNarrowing::ResultFn
 {
   ResultFn(Clause* cl): _cl(cl){}
@@ -253,6 +345,20 @@ struct ExtendedNarrowing::ResultFn
                                        qr.term, qr.substitution));
   }
   
+private:
+  Clause* _cl;
+};
+
+struct ExtendedNarrowing::PiSigmaResultFn
+{
+  PiSigmaResultFn(Clause* cl): _cl(cl){}
+
+  DECL_RETURN_TYPE(VirtualIterator<Clause*>);
+  OWN_RETURN_TYPE operator() (Literal* l){
+  
+    return pvi(PSNarrowingResultIterator(_cl, l));
+  }
+
 private:
   Clause* _cl;
 };
@@ -278,7 +384,7 @@ struct ExtendedNarrowing::ApplicableRewritesFn
       p = make_pair(l, 1);
     }
      
-    return pvi( pushPairIntoRightIterator(p, _index->getUnifications((p.second ? *rhs : *lhs), true)) );
+    return pvi( pushPairIntoRightIterator(p, _index->getUnifications((p.second ? *rhs : *lhs), true)));
   
   }
 private:
@@ -301,7 +407,11 @@ ClauseIterator ExtendedNarrowing::generateClauses(Clause* premise)
   //apply rewrite rules to literals
   auto it4 = getMapAndFlattenIterator(it3, ResultFn(premise));
   
-  return pvi( it4 );
+  auto it5 = getMapAndFlattenIterator(it2, PiSigmaResultFn(premise));
+
+  auto it6 = getConcatenatedIterator(it4, it5);
+
+  return pvi( it6 );
   
 }
 

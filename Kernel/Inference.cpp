@@ -515,9 +515,11 @@ vstring Inference::ruleName(Rule rule)
   case S_COMBINATOR_ELIMINATION:
     return "S combinator elimination";
   case BOOL_EXT_AXIOM:
-    return "Boolean Extensionality Axiom";
+    return "boolean bxtensionality axiom";
   case FUNC_EXT_AXIOM:
-    return "Functional Extensionality Axiom";     
+    return "functional extensionality axiom";
+  case DEFINED_TO_PRIMITIVE_EQUALITY:
+    return "defined to primitve equality";
   default:
     ASSERTION_VIOLATION;
     return "!UNKNOWN INFERENCE RULE!";

@@ -50,8 +50,8 @@ unsigned HOSortHelper::getHeadSort(TermList ts){
   unsigned tsSort;
   Signature::Symbol* sym = env.signature->getFunction(ts.term()->functor());
   while(sym->hOLAPP()){
-    ts = *(ts.term()->nthArgument(0));
     tsSort = SortHelper::getArgSort(ts.term(), 0);
+    ts = *(ts.term()->nthArgument(0));
     if(ts.isVar()){ break; }
     sym = env.signature->getFunction(ts.term()->functor());
   }
@@ -497,6 +497,16 @@ unsigned HOSortHelper::arity(unsigned sort){
     return env.sorts->getFuncSort(sort)->arity();
   }
   return 0;
+}
+
+unsigned HOSortHelper::outputSort(unsigned sort){
+  CALL("HOSortHelper::outputSort"); 
+  
+  while(env.sorts->isOfStructuredSort(sort, Sorts::StructuredSort::HIGHER_ORD_CONST))
+  {
+    sort = range(sort);
+  }
+  return sort; 
 }
 
 /** Given a functional sort, returns its range */

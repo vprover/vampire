@@ -244,6 +244,8 @@ public:
   static unsigned domain(unsigned sort);
   /** Returns the arity of a sort. Basic sorts have arity 0 */
   static unsigned arity(unsigned sort);
+  /** returns the atomic output sort */
+  static unsigned outputSort(unsigned sort);
   /** Takes two termlists and returns the result of applying the 
    *  first to the second. Sort conditions must be met
    */

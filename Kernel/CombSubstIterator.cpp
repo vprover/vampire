@@ -287,8 +287,8 @@ bool CombSubstitution::transform(Transform t, bool furtherOptions){
   //temporary measure, in the long run, manipulate transforms rather than emptying them.
   up->emptyTransforms();
 
-  cout << "carrying out transformation " + algorithmStepToString(t.first) << endl;
-  cout << "on unification pair" +  up->toString() << endl;
+  //cout << "carrying out transformation " + algorithmStepToString(t.first) << endl;
+  //cout << "on unification pair" +  up->toString() << endl;
 
   //cout << "The substitution so far is " + toString() << endl; 
  

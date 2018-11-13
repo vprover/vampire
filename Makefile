@@ -291,7 +291,7 @@ VINF_OBJ=Inferences/BackwardDemodulation.o\
          Inferences/Superposition.o\
          Inferences/TautologyDeletionISE.o\
          Inferences/TermAlgebraReasoning.o\
-         Inferences/HOLElimination.o\
+         Inferences/ProxyElimination.o\
          Inferences/ExtendedNarrowing.o\
          Inferences/TheoryInstAndSimp.o\
          Inferences/URResolution.o
@@ -343,6 +343,7 @@ VS_OBJ = Shell/AnswerExtractor.o\
          Shell/EqualityProxy.o\
          Shell/Flattening.o\
          Shell/FunctionDefinition.o\
+         Shell/DefinedEqualityConverter.o\
          Shell/GeneralSplitting.o\
          Shell/Grounding.o\
          Shell/InequalitySplitting.o\
@@ -351,7 +352,7 @@ VS_OBJ = Shell/AnswerExtractor.o\
          Shell/Interpolants.o\
          Shell/InterpolantsNew.o\
          Shell/InterpretedNormalizer.o\
-		 Shell/LambdaElimination.o\
+         Shell/LambdaElimination.o\
          Shell/LaTeX.o\
          Shell/LispLexer.o\
          Shell/LispParser.o\
@@ -465,7 +466,7 @@ LIB_DEP = Indexing/TermSharing.o\
 	  Kernel/InferenceStore.o\
 	  Kernel/Problem.o\
 	  Kernel/SortHelper.o\
-    Kernel/HOSortHelper.o\
+	  Kernel/HOSortHelper.o\
 	  Kernel/Sorts.o\
 	  Kernel/Signature.o\
 	  Kernel/SubformulaIterator.o\
@@ -478,6 +479,7 @@ LIB_DEP = Indexing/TermSharing.o\
 	  Parse/TPTP.o\
 	  Saturation/ClauseContainer.o\
 	  Shell/FunctionDefinition.o\
+	  Shell/DefinedEqualityConverter.o\
 	  Shell/Options.o\
 	  Shell/Property.o\
 	  Shell/Statistics.o\

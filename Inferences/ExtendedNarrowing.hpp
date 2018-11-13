@@ -68,10 +68,12 @@ private:
   static Literal* toTruth(TermList boolTerm) {
     return Literal::createEquality(true, boolTerm, TermList(Term::foolTrue()), Sorts::SRT_BOOL);
   }
-  
+
   struct ApplicableRewritesFn;
   struct ResultFn;  
+  struct PiSigmaResultFn;
   struct NarrowingResultIterator;
+  struct PSNarrowingResultIterator;
   struct IsNarrowableBoolEquality;
   
 };

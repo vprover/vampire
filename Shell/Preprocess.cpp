@@ -60,6 +60,7 @@
 #include "TheoryFlattening.hpp"
 #include "BlockedClauseElimination.hpp"
 #include "TrivialPredicateRemover.hpp"
+#include "DefinedEqualityConverter.hpp"
 
 #include "UIHelper.hpp"
 #if GNUMP
@@ -351,6 +352,17 @@ void Preprocess::preprocess(Problem& prb)
     }
   }
 
+  // Find instances of defined equality and 
+  // converting to primitive equality. Note that the origianl clauses
+  // are left in place
+  if(prb.higherOrder()){
+    if (env.options->showPreprocessing()){
+      env.out() << "defined equality conversion" << std::endl;
+    }
+    env.statistics->phase=Statistics::DEFINED_EQUALITY_CONVERSION;
+    DefinedEqualityConverter def;
+    def.convert(prb);
+  }
 
   if (prb.mayHaveEquality() && _options.inequalitySplitting() != 0) {
     if (env.options->showPreprocessing())

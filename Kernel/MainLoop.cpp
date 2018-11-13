@@ -32,7 +32,7 @@
 #include "Inferences/InferenceEngine.hpp"
 #include "Inferences/InterpretedEvaluation.hpp"
 #include "Inferences/TermAlgebraReasoning.hpp"
-#include "Inferences/HOLElimination.hpp"
+#include "Inferences/ProxyElimination.hpp"
 #include "Inferences/TautologyDeletionISE.hpp"
 #include "Inferences/EquationalTautologyRemoval.hpp"
 
@@ -135,18 +135,18 @@ ImmediateSimplificationEngine* MainLoop::createISE(Problem& prb, const Options& 
   }
 
   if(opt.HOLConstantElimination()){
-	  res->addFront(new PISIGMARemovalISE());
-	  res->addFront(new ORIMPANDRemovalISE());
-	  res->addFront(new EQUALSRemovalISE());
-	  res->addFront(new NOTRemovalISE());
+	  res->addFront(new ProxyElimination::PISIGMARemovalISE());
+	  res->addFront(new ProxyElimination::ORIMPANDRemovalISE());
+	  res->addFront(new ProxyElimination::EQUALSRemovalISE());
+	  res->addFront(new ProxyElimination::NOTRemovalISE());
   }
   
   if(opt.HOLconstantShortCircuitEval()){
-    res->addFront(new ORIMPANDRemovalISE2());
+    res->addFront(new ProxyElimination::ORIMPANDRemovalISE2());
   }
   
   if(opt.combinatorElimination() != Options::CombElimination::AXIOMS){
-	  res->addFront(new CombinatorEliminationISE());
+	  res->addFront(new ProxyElimination::CombinatorEliminationISE());
   }
   // Only add if there are distinct groups 
   if(prb.hasEquality() && env.signature->hasDistinctGroups()) {

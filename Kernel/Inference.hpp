@@ -251,24 +251,24 @@ public:
     FOOL_LET_ELIMINATION,
     /** Replaces a literal of the form C[s] with C[true] \/ s = false, where s is a boolean non-variable term */
     FOOL_PARAMODULATION,
-  /** Elimination of lambda expressions by adding S comb*/
-  LAMBDA_ELIMINATION_S_COMB,
-  /** Elimination of lambda expressions by adding B comb*/
-  LAMBDA_ELIMINATION_B_COMB,
-  /** Elimination of lambda expressions by adding C comb*/
-  LAMBDA_ELIMINATION_C_COMB,
-  /** Elimination of lambda expressions by adding K comb*/
-  LAMBDA_ELIMINATION_K_COMB,
-  /** Elimination of lambda expressions by adding I comb*/
-  LAMBDA_ELIMINATION_I_COMB,
-  /** Axiom for equality constant introduced by lambda elimination*/
-  LAMBDA_ELIMINATION_EQUALITY,
-  /** */
+    /** Elimination of lambda expressions by adding S comb*/
+    LAMBDA_ELIMINATION_S_COMB,
+    /** Elimination of lambda expressions by adding B comb*/
+    LAMBDA_ELIMINATION_B_COMB,
+    /** Elimination of lambda expressions by adding C comb*/
+    LAMBDA_ELIMINATION_C_COMB,
+    /** Elimination of lambda expressions by adding K comb*/
+    LAMBDA_ELIMINATION_K_COMB,
+    /** Elimination of lambda expressions by adding I comb*/
+    LAMBDA_ELIMINATION_I_COMB,
+    /** Axiom for equality constant introduced by lambda elimination*/
+    LAMBDA_ELIMINATION_EQUALITY,
+    /** */
     LAMBDA_ELIMINATION_NOT,
-  /** */
+    /** */
     LAMBDA_ELIMINATION_QUANTIFIER,  
-  /** Axiom for &, | and other binary connective constants introduced by lambda elimination */
-  LAMBDA_ELIMINATION_BIN_CON,
+    /** Axiom for &, | and other binary connective constants introduced by lambda elimination */
+    LAMBDA_ELIMINATION_BIN_CON,
     /** definition introduced by AVATAR */
     AVATAR_DEFINITION,
     /** component introduced by AVATAR */
@@ -370,6 +370,8 @@ public:
     S_COMBINATOR_ELIMINATION,
     BOOL_EXT_AXIOM,
     FUNC_EXT_AXIOM,
+    /* transformation of Leibniz or Andrew's equality to defined equality */
+    DEFINED_TO_PRIMITIVE_EQUALITY
   }; // class Inference::Rule
 
   explicit Inference(Rule r);
