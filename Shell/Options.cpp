@@ -2383,6 +2383,12 @@ bool Options::RatioOptionValue::readRatio(const char* val, char separator)
       return false;
     }
     otherValue = weight;
+
+    // don't allow ratios 0:0
+    if (actualValue == 0 && otherValue == 0) {
+      return false;
+    }
+
     return true;
   }
   actualValue = 1;

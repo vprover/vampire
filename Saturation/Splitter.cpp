@@ -865,11 +865,6 @@ bool Splitter::shouldAddClauseForNonSplittable(Clause* cl, unsigned& compName, C
 {
   CALL("Splitter::shouldAddClauseForNonSplittable");
   
-  //!! this check is important or we might end up looping !!
-  if(cl->isComponent()) {    
-    return false;
-  }
-
   if((_congruenceClosure != Options::SplittingCongruenceClosure::OFF
 #if VZ3
       || hasSMTSolver
@@ -1085,6 +1080,11 @@ bool Splitter::getComponents(Clause* cl, Stack<LiteralStack>& acc)
 bool Splitter::doSplitting(Clause* cl)
 {
   CALL("Splitter::doSplitting");
+
+  //!! this check is important or we might end up looping !!
+  if(cl->isComponent()) {
+    return false;
+  }
 
   if (_fastRestart && _haveBranchRefutation) {
     _fastClauses.push(cl);
