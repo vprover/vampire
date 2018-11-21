@@ -94,7 +94,6 @@ private:
 
 
   void addEqualsImpliesBinaryPredicate(Interpretation itp, unsigned srt);
-  void addBinaryFunctionEqualityAxiom(Interpretation f, unsigned srt, bool eq);
   void addConcatArgumentsNotEqualEquivalentToConcatResultsNotEqual(unsigned srt0, unsigned srt1, unsigned resultSort);
   void addConcatResultsEqualImpliesArgumentsEqual(unsigned srt0, unsigned srt1, unsigned resultSort);
 
@@ -106,7 +105,7 @@ private:
   void addFunctionAppliedToConstantPredicateFirstArgVariation(Interpretation f, Interpretation p, TermList constant, unsigned srt);
 
 
-
+  void addConcatArgsPredicateImpliesWholePredicateVariation(Interpretation predicate, unsigned srt0, unsigned srt1, unsigned resultSort);
   void addConcatArgsPredicateImpliesWholePredicate(Interpretation predicate, unsigned srt0, unsigned srt1, unsigned resultSort);
   void addEveryThingSmallerOrEqualToSignedMax(Interpretation p, TermList constant, unsigned srt);
   void addEveryThingSmallerOrEqualToSignedMaxVariation(Interpretation p, TermList constant, unsigned srt);
@@ -129,6 +128,48 @@ private:
 
 // ------------
 
+
+  // NEWSET
+  void addBitVectorOrderingAxiom(unsigned srt0, Interpretation pred, TermList constant);
+  void addPredicateImpliesNotOtherPredicate(unsigned srt0, Interpretation p, Interpretation other);
+  void addPredicateImpliesNotOtherPredicateReverse(unsigned srt0, Interpretation p, Interpretation other);
+ // void addFunctionWithIdenticalArgumentsEqualsArgument(unsigned srt, Interpretation func); //D
+  void predicateTrueForArgumentsOfAFunction(unsigned srt, Interpretation func, Interpretation pred);
+  //
+
+
+  void addPredicateOnConcatArgsImpliesPredicateConcatFirstArg(unsigned srt0, unsigned srt1, unsigned resultSrt, Interpretation predicate);
+
+
+  void addXNEqualToConstantImpliesAxiom(unsigned srt, Interpretation predicate, TermList constant);
+
+  void addTempOrAxiom(unsigned srt, Interpretation pred1, Interpretation pred2, Interpretation func);
+  void addTempOrAxiom2(unsigned srt, Interpretation pred1, Interpretation func);
+
+  void addBVANDSignedPredicatesAxiom(unsigned srt, Interpretation pred1, Interpretation pred2, Interpretation func,
+		  TermList constant1, TermList constant2);
+
+  void addOtherBVANDSignedPredicatesAxiom(unsigned srt, Interpretation pred, Interpretation func,
+  		  TermList constant);
+
+  void addSpecialEqualAndAxiom(unsigned srt, Interpretation func);
+
+  void addPredicateTrueImpliesSecondArgNEqualToConstant(unsigned srt, Interpretation pred, TermList constant);
+
+  void addShiftingAxiom(unsigned srt, Interpretation func1, Interpretation func2);
+
+  void addORSignedOperatorWithConstantAxiom(unsigned srt0, Interpretation pred, Interpretation func,TermList constant);
+
+  void addNotOrSpecialConstantAxiom(unsigned srt, Interpretation unaryFunc, Interpretation binaryFunc, TermList constant);
+
+
+  void addDivisionZeroAxiom(unsigned srt);
+  void addDivisionOneAxiom(unsigned srt);
+  void addAnotherDivisionAxiom(unsigned srt);
+
+  void addDivisionSameArgAxiom(unsigned srt);
+
+  void addDivAxiomGT(unsigned srt);
 
   void addExtraIntegerOrderingAxiom(Interpretation plus, TermList oneElement, Interpretation less);
 
