@@ -74,7 +74,12 @@ void Otter::onPassiveAdded(Clause* cl)
 
     if (watch_option != Options::WatchNewPassiveClauses::OFF &&
         !cl->isTheoryDescendant() ) {
-      static auto anyvar_prop = [](Literal* lit){ return lit->isEquality() && lit->isNegative()
+      static auto isDisequality = [](Literal* lit){
+                                    auto t = Theory::instance();
+                                    return (t->isInterpretedPredicate(lit) && Theory::isInequality(t->interpretPredicate(lit)));
+                                  };
+
+      static auto anyvar_prop = [](Literal* lit){ return ((lit->isEquality() && lit->isNegative()) || isDisequality(lit))
           && (lit->hasInterpretedConstants() || lit->hasInterpretedFunctions()) ; };
       static auto onevar_prop = [](Literal* lit){ return anyvar_prop(lit) && (lit->vars() >= 1); };
       static auto twovar_prop = [](Literal* lit){ return anyvar_prop(lit) && (lit->vars() >= 2); };
