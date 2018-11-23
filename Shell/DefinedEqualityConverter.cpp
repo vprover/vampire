@@ -107,7 +107,8 @@ Clause* DefinedEqualityConverter::findAndConvert(Clause* c)
       addedToSub = true;
     }else if(isLeibnizEquality(lit, ler)){
       LeibEqRec ler2;
-      if(vom.find(ler.var, ler2)){
+      TermList dum;
+      if(!subst.findBinding(ler.var, dum) && vom.find(ler.var, ler2)){
         if(ler.polarity != ler2.polarity){
           //found a defined equality
           removed.insert(ler.lit);
@@ -120,7 +121,7 @@ Clause* DefinedEqualityConverter::findAndConvert(Clause* c)
 
           TermList def = getLeibnizDef(ler);
           unsigned definedVar = ler.var;
-          subst.bind(definedVar, def); 
+          subst.bind(definedVar, def);
           addedToSub = true;
         }
       } else {
@@ -137,7 +138,8 @@ Clause* DefinedEqualityConverter::findAndConvert(Clause* c)
 
     unsigned n = 0;
     while(!added.isEmpty()){
-      (*res)[n++]=added.pop();
+      Literal* curr = added.pop();
+      (*res)[n++] = curr->apply(subst);
     }
 
     for(unsigned i=0;i<length;i++) {
@@ -265,6 +267,16 @@ bool DefinedEqualityConverter::isLeibnizEquality(Literal* l, LeibEqRec& ler){
 
   ler.var = head.var();
   ler.arg = HSH::getNthArg(*tm, 0);
+ 
+  //fail on occurs
+  TermIterator varIt = Term::getVariableIterator(ler.arg);
+  while(varIt.hasNext()){
+    TermList var = varIt.next();
+    if(var.var() == ler.var){
+      return false;
+    }
+  }
+
   ler.argSort = HSH::getNthArgSort(*tm,0);
   ler.lit = l;
 

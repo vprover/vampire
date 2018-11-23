@@ -149,29 +149,38 @@ TermList ProxyElimination::sigmaRemoval(TermList sigmaTerm, unsigned expsrt){
 
   CALL("ProxyElimination::sigmaRemoval");
 
-  //cout << "INTO sigmaRemoval " + sigmaTerm.toString() << endl;
+  Formula::VarList* vars = sigmaTerm.freeVariables(); 
+  DHMap<unsigned,unsigned> _varSorts;
+  if(sigmaTerm.isTerm()){
+    SortHelper::collectVariableSorts(sigmaTerm.term(), _varSorts);
+  }
 
   Stack<unsigned> sorts;
-  Formula::VarList* vars = sigmaTerm.freeVariables();
   Formula::VarList::Iterator fvi(vars);
-  DHMap<unsigned,unsigned> _varSorts;
-  SortHelper::collectVariableSorts(sigmaTerm.term(), _varSorts);
-  while (fvi.hasNext()) {
-    unsigned var = (unsigned)fvi.next();
-    sorts.push(_varSorts.get(var));
+  if(sigmaTerm.isTerm()){
+    while (fvi.hasNext()) {
+      unsigned var = (unsigned)fvi.next();
+      sorts.push(_varSorts.get(var));
+    }
+  } else {
+    sorts.push(expsrt);
   }
-      
-  do{ 
-    unsigned domain = HSH::domain(expsrt);
-    
-    //should be able to move this out of the loop
-    Stack<TermList> arguments;
-    Formula::VarList::Iterator vit(vars);
+
+  Stack<TermList> arguments;
+  Formula::VarList::Iterator vit(vars);
+  if(sigmaTerm.isTerm()){
     while (vit.hasNext()) {
       unsigned var = (unsigned)vit.next();
       arguments.push(TermList(var, false));
     }
+  } else {
+    arguments.push(sigmaTerm);
+  }
 
+  do{ 
+    unsigned domain = HSH::domain(expsrt);
+    
+    //should be able to move this out of the loop
     unsigned skSymSort = HSH::getHigherOrderSort(sorts, domain);
     unsigned symbol = env.signature->addSkolemFunction(0);
     env.signature->getFunction(symbol)->setType(OperatorType::getConstantsType(skSymSort));
@@ -608,15 +617,14 @@ return premise;
 substitution:
 
 // Found a fully applied combinator term!
-unsigned conclusionLength = premise->length();
 
-Clause* conclusion = new(conclusionLength) Clause(conclusionLength, premise->inputType(), inference);
+Clause* conclusion = new(premLength) Clause(premLength, premise->inputType(), inference);
 conclusion->setAge(premise->age());
 
 //cout << "replacing " + combinatorTerm.toString() + " with " + newTerm.toString() + " in premise " + premise->toString() << endl;
 
 // Copy the literals from the premise except for the one at `literalPosition`,
-for (unsigned i = 0; i < conclusionLength; i++) {
+for (unsigned i = 0; i < premLength; i++) {
   (*conclusion)[i] = i == literalPosition ? EqHelper::replace((*premise)[i], combinatorTerm, newTerm) : (*premise)[i];
 }
 

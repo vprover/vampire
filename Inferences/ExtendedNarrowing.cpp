@@ -154,6 +154,7 @@ struct ExtendedNarrowing::NarrowingResultIterator
                        (_const == SS::OR  &&  _pol) ||
                        (_const == SS::IMP &&  _pol);
      
+
      if(_const != SS::NOT){
        var1 = HOSortHelper::getNthArg(_rwRuleLHS,0);
        var2 = HOSortHelper::getNthArg(_rwRuleLHS,1);
@@ -197,11 +198,12 @@ struct ExtendedNarrowing::NarrowingResultIterator
            l1 = toTruth(var1S);           
          } else if(_const == SS::IMP && _returnedSoFar) {
            l1 = toFalsity(var2S);           
-         } else {
-           ASS(_const == SS::NOT);
-           l1 = (_pol ? toFalsity(var1S) : toTruth(var1S));
-         }
+         }          
        }
+     } else {
+       var1 = HOSortHelper::getNthArg(_rwRuleLHS,0);   
+       TermList var1S = _subst->apply(var1, RESULT);
+       l1 = (_pol ? toFalsity(var1S) : toTruth(var1S));
      }
      
      unsigned cLen = _cl->length();
@@ -229,6 +231,9 @@ struct ExtendedNarrowing::NarrowingResultIterator
      env.statistics->extendedNarrows++;
 
      _returnedSoFar++;
+
+     //cout << "Narrowing " + _cl->toString() << endl;
+     //cout << "Returning " + res->toString() << endl;
      return res;
    }
    
@@ -287,7 +292,7 @@ struct ExtendedNarrowing::PSNarrowingResultIterator
 
    OWN_ELEMENT_TYPE next(){
      CALL("ExtendedNarrowing::PSNarrowingResultIterator::next");
-
+   
      static Substitution subst;
      subst.reset();
     
@@ -318,6 +323,8 @@ struct ExtendedNarrowing::PSNarrowingResultIterator
      env.statistics->extendedNarrows++;
 
      _returned++;
+
+     //cout << "Returning " + res->toString() << endl;
 
      return res;  
    }

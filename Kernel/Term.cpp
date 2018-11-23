@@ -504,7 +504,7 @@ vstring Term::headToString() const
          }
 
          varList += "]";        
-         return "^" + varList + " : " + lambdaExp.toString() + ", ";
+         return "^" + varList + " : " + lambdaExp.toString();
 
       }
       case Term::SF_APP: {
@@ -575,7 +575,7 @@ vstring TermList::asArgsToString() const
  * Write as a vstring the head of the term list.
  * @since 27/02/2008 Manchester
  */
-vstring TermList::toString() const
+vstring TermList::toString(bool left) const
 {
   CALL("TermList::toString");
 
@@ -585,7 +585,7 @@ vstring TermList::toString() const
   if (isVar()) {
     return Term::variableToString(*this);
   }
-  return term()->toString();
+  return term()->toString(true, left);
 } // TermList::toString
 
 
@@ -593,7 +593,7 @@ vstring TermList::toString() const
  * Return the result of conversion of a term into a vstring.
  * @since 16/05/2007 Manchester
  */
-vstring Term::toString(bool withoutApps) const
+vstring Term::toString(bool withoutApps, bool left) const
 { 
   CALL("Term::toString");
 
@@ -601,8 +601,8 @@ vstring Term::toString(bool withoutApps) const
     Signature::Symbol* sym = env.signature->getFunction(_functor);
     if(sym->hOLAPP()){
       ASS(_arity == 2);
-      vstring res = "(" + args()->toString();
-      res = res + " @ " + args()->next()->toString() + ")";    
+      vstring res = (!left ? "(" : "") + args()->toString();
+      res = res + " @ " + args()->next()->toString(false) + (!left ? ")" : "");    
       //ASS(argus->next()->isEmpty());
       return res;
     }
