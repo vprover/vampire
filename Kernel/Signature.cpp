@@ -516,17 +516,13 @@ unsigned Signature::getInterpretingSymbol(Interpretation interp, OperatorType* t
   CALL("Signature::getInterpretingSymbol(Interpretation,OperatorType*)");
   
   Theory::MonomorphisedInterpretation mi = std::make_pair(interp,type);
-  cout<<"symbol number "<<interp<<endl;
+
   unsigned res;
   if (_iSymbols.find(mi, res)) {
-	  cout<<endl<<"symbol found in isymbols "<<interp<<endl;
-
-    return res;
+	  return res;
   }
 
-  cout<<"symbol not found in isymbols"<<interp<<endl;
   vstring name = theory->getInterpretationName(interp);
-  cout<<endl<<"Get interpretation name returns "<<name<<endl;
   unsigned arity = theory->getArity(interp);
   
   if (theory->isFunction(interp)) {
@@ -537,7 +533,6 @@ unsigned Signature::getInterpretingSymbol(Interpretation interp, OperatorType* t
       }
       name=name+Int::toString(i);
     }
-    cout<<"adding function "<<name;
     addInterpretedFunction(interp, type, name);
   }
   else {

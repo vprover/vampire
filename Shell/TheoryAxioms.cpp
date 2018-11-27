@@ -1582,20 +1582,16 @@ void TheoryAxioms::addDivAxiomGT(unsigned srt)
 {
 	CALL("TheoryAxioms::addConfidentAxiomWow");
 
-	cout<<endl<<"Interpretation number "<<Interpretation::BVUGT<<endl;
-
 	unsigned bvudiv = env.signature->getInterpretingSymbol(Theory::BVUDIV,OperatorType::getFunctionType({srt,srt},srt));
-	unsigned bvugt = env.signature->getInterpretingSymbol(Interpretation::BVUGT,OperatorType::getPredicateType({srt,srt}));
+	unsigned bvugt = env.signature->getInterpretingSymbol(Theory::BVUGT,OperatorType::getPredicateType({srt,srt}));
 	unsigned size = env.sorts->getBitVectorSort(srt)->getSize();
-
-
 
 	TermList t(0,false);
 	TermList s(1,false);
 	TermList zero(theory->representConstant(BitVectorOperations::getZeroBVCT(size)));
 
 	//lhs
-	Formula* lhs = new AtomicFormula(Literal::create2(true,bvugt,t,s));
+	Formula* lhs = new AtomicFormula(Literal::create2(bvugt,true,t,s));
 
 	//rhs
 	TermList sDivt(Term::create2(bvudiv,s,t));
@@ -1603,7 +1599,6 @@ void TheoryAxioms::addDivAxiomGT(unsigned srt)
 
 	Formula* implication = new BinaryFormula(IMP,lhs,rhs);
 
-	cout<<endl<<"FORMULA IS "<< implication->toString()<<endl;
 	addAndOutputTheoryUnit(new FormulaUnit(implication, new Inference(Inference::THEORY), Unit::AXIOM),CHEAP);
 }
 
