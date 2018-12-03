@@ -1602,6 +1602,121 @@ void TheoryAxioms::addDivAxiomGT(unsigned srt)
 	addAndOutputTheoryUnit(new FormulaUnit(implication, new Inference(Inference::THEORY), Unit::AXIOM),CHEAP);
 }
 
+/* Add that
+ * t=s & t!=0 -> s/t = 1
+ * */
+void TheoryAxioms::addDivONEAxiom(unsigned srt)
+{
+	CALL("TheoryAxioms::addDivONEAxiom(unsigned srt)");
+
+	unsigned bvudiv = env.signature->getInterpretingSymbol(Theory::BVUDIV,OperatorType::getFunctionType({srt,srt},srt));
+	unsigned size = env.sorts->getBitVectorSort(srt)->getSize();
+
+	TermList t(0,false);
+	TermList s(1,false);
+	TermList zero(theory->representConstant(BitVectorOperations::getZeroBVCT(size)));
+	TermList one(theory->representConstant(BitVectorOperations::getOneBVCT(size)));
+
+	//lhs
+	Formula* tEs = new AtomicFormula(Literal::createEquality(true,s,t,srt));
+	Formula* tNEz = new AtomicFormula(Literal::createEquality(false,t,zero,srt));
+	FormulaList* argLst = nullptr;
+	FormulaList::push(tEs,argLst);
+	FormulaList::push(tNEz,argLst);
+	Formula* lhs = new JunctionFormula(AND,argLst);
+
+	//rhs
+	TermList sDivT(Term::create2(bvudiv,s,t));
+	Formula* rhs = new AtomicFormula(Literal::createEquality(true,sDivT,one,srt));
+
+	Formula* implication = new BinaryFormula(IMP,lhs,rhs);
+	addAndOutputTheoryUnit(new FormulaUnit(implication, new Inference(Inference::THEORY), Unit::AXIOM),CHEAP);
+
+
+}
+/* Add that (unsigned)
+ * (s>t) -> (s/t > 0)
+ *
+ * */
+void TheoryAxioms::addDivAxiomGT2(unsigned srt)
+{
+	CALL("addDivAxiomGT2(unsigned srt)");
+
+	unsigned bvudiv = env.signature->getInterpretingSymbol(Theory::BVUDIV,OperatorType::getFunctionType({srt,srt},srt));
+	unsigned bvugt = env.signature->getInterpretingSymbol(Theory::BVUGT,OperatorType::getPredicateType({srt,srt}));
+	unsigned size = env.sorts->getBitVectorSort(srt)->getSize();
+
+	TermList s(0,false);
+	TermList t(1,false);
+
+	TermList zero(theory->representConstant(BitVectorOperations::getZeroBVCT(size)));
+
+	//lhs
+	Formula* lhs = new AtomicFormula(Literal::create2(bvugt,true,s,t));
+
+	//rhs
+	TermList sDt(Term::create2(bvudiv,s,t));
+	Formula* rhs = new AtomicFormula(Literal::create2(bvugt,true,sDt,zero));
+
+	Formula* implication = new BinaryFormula(IMP,lhs,rhs);
+	addAndOutputTheoryUnit(new FormulaUnit(implication, new Inference(Inference::THEORY), Unit::AXIOM),CHEAP);
+
+
+}
+
+/* Add that
+ * s>t XOR t>s XOR t = s
+ *
+ * */
+
+void TheoryAxioms::addGTOrdering(unsigned srt)
+{
+	CALL("TheoryAxioms::addGTOrdering(unsigned srt)");
+	unsigned bvugt = env.signature->getInterpretingSymbol(Theory::BVUGT,OperatorType::getPredicateType({srt,srt}));
+	TermList s(0,false);
+	TermList t(1,false);
+
+	// (bvugt s t) XOR (bvult s t) XOR (= s t)
+	Formula* p1 = new AtomicFormula(Literal::create2(bvugt,true,s,t));
+	Formula* p2 = new AtomicFormula(Literal::create2(bvugt,true,t,s));
+	Formula* p3 = new AtomicFormula(Literal::createEquality(true, s, t, srt));
+
+	Formula*  _xor1 = new BinaryFormula(XOR, p1, p2);
+	Formula*  _xor2 = new BinaryFormula(XOR, _xor1, p3);
+
+	addAndOutputTheoryUnit(new FormulaUnit(_xor2, new Inference(Inference::THEORY), Unit::AXIOM),CHEAP);
+}
+
+
+/* Add that
+ * s/x = t -> (s/(s/t)) = t
+ * */
+void TheoryAxioms::addTempAxiom(unsigned srt)
+{
+	CALL("TheoryAxioms::addDivGE(unsigned srt)");
+
+	unsigned bvuge = env.signature->getInterpretingSymbol(Theory::BVUGE,OperatorType::getPredicateType({srt,srt}));
+	unsigned bvudiv = env.signature->getInterpretingSymbol(Theory::BVUDIV,OperatorType::getFunctionType({srt,srt},srt));
+	unsigned bvmul = env.signature->getInterpretingSymbol(Theory::BVMUL,OperatorType::getFunctionType({srt,srt},srt));
+	unsigned size = env.sorts->getBitVectorSort(srt)->getSize();
+	TermList s(0,false);
+	TermList x(1,false);
+	TermList t(2,false);
+
+	//lhs
+
+	TermList sDx(Term::create2(bvudiv,s,x));
+	Formula* lhs = new AtomicFormula(Literal::createEquality(true,sDx,t,srt));
+
+	//rhs
+	TermList sDt(Term::create2(bvudiv,s,t));
+	TermList sDsDt(Term::create2(bvudiv,s,sDt));
+	Formula* rhs = new AtomicFormula(Literal::createEquality(true,sDsDt,t,srt));
+
+	Formula* implication = new BinaryFormula(IMP,lhs,rhs);
+	addAndOutputTheoryUnit(new FormulaUnit(implication, new Inference(Inference::THEORY), Unit::AXIOM),CHEAP);
+}
+
 // x!=MAX -> bvugt(x+1 x)
 void TheoryAxioms::addMaxAxiom(Interpretation p, unsigned srt)
 {
@@ -2859,9 +2974,18 @@ void TheoryAxioms::apply()
           // x!=MAX -> bvugt(x+1 x)
           addMaxAxiom(Theory::BVUGT, srt0);
 
-         // addUnknownDivisionAxiom(srt0);
-          //addUnknownDivisionAxiomWow(srt0);
+          // (t>s) -> (s/t = 0)
           addDivAxiomGT(srt0);
+          //(s>t) -> (s/t > 0)
+          addDivAxiomGT2(srt0);
+
+          //t=s & t!=0 -> s/t = 1
+          addDivONEAxiom(srt0);
+          // (x / s = t) -> (t >> s) << s = t
+          // addShiftingAxiom(srt0, Theory::BVUDIV, Theory::BVMUL);
+          //addDivGE(srt0);
+          //s/x = t -> (s/(s/t)) = t
+          addTempAxiom(srt0);
 
 
       }
@@ -3095,7 +3219,7 @@ void TheoryAxioms::apply()
     	  addXNEqualToConstantImpliesAxiom(srt0,itp,signedMin);*/
       }
       else if(itp == Theory::BVSGT || itp == Theory::BVULT) {
-    /*	  unsigned srt0 = entry.second->arg(0);
+    	  unsigned srt0 = entry.second->arg(0);
     	  TermList signedMax(theory->representConstant(BitVectorOperations::getSignedMaxBVCT(size)));
     	  TermList zero(theory->representConstant(BitVectorOperations::getZeroBVCT(size)));
 
@@ -3125,7 +3249,7 @@ void TheoryAxioms::apply()
 
     	  addBVANDSignedPredicatesAxiom(srt0, Theory::BVSGT, Theory::BVSLT, Theory::BVAND,
     	  		  zero, signedMax);
-    	  addOtherBVANDSignedPredicatesAxiom(srt0, Theory::BVSGT, Theory::BVAND,signedMax);*/
+    	  addOtherBVANDSignedPredicatesAxiom(srt0, Theory::BVSGT, Theory::BVAND,signedMax);
 
       }
       /* ------------------------------------------

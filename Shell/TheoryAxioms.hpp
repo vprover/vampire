@@ -171,6 +171,14 @@ private:
 
   void addDivAxiomGT(unsigned srt);
 
+  void addDivONEAxiom(unsigned srt);
+
+  void addDivAxiomGT2(unsigned srt);
+
+  void addGTOrdering(unsigned srt);
+
+  void addTempAxiom(unsigned srt);
+
   void addExtraIntegerOrderingAxiom(Interpretation plus, TermList oneElement, Interpretation less);
 
   void addQuotientAxioms(Interpretation quotient, Interpretation multiply, TermList zeroElement, TermList oneElement,
