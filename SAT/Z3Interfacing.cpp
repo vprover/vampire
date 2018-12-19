@@ -568,6 +568,9 @@ z3::expr Z3Interfacing::getz3expr(Term* trm,bool isLit,bool&nameExpression,bool 
             case Theory::BVNOR:
               ret = nor(args[0],args[1]);
               break;
+            case Theory::BVXOR:
+              ret = (args[0]^args[1]);
+              break;
             case Theory::BVXNOR:
               ret = xnor(args[0],args[1]);
               break;
