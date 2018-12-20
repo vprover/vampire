@@ -360,6 +360,12 @@ HOSortHelper::HOTerm_ptr HOSortHelper::deappify(TermList ts, int index, int sort
     //cout << "deappifying " + ts.toString() << endl;
   #endif
   
+  bool print = false;
+/*  if(ts.toString() == "X1 @ (sK1 @ X1 @ (kCOMB_15 @ X0))"){
+    cout << "DEAPPIFYING" << endl;
+    print = true;
+  }*/
+
   Stack<TermList> toDo;
   Stack<unsigned> toDoSorts;
   Stack<HOTerm_ptr> done;
@@ -378,6 +384,9 @@ HOSortHelper::HOTerm_ptr HOSortHelper::deappify(TermList ts, int index, int sort
 
   while(!toDo.isEmpty()){
     TermList curr = toDo.pop();
+    /*if(print){
+      cout << curr.toString() << endl;
+    }*/
     unsigned sort = toDoSorts.pop();
 
     if(curr.isVar() || (isConstant(curr) && !done.isEmpty())){

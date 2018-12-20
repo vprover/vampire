@@ -119,8 +119,17 @@ Clause* DefinedEqualityConverter::findAndConvert(Clause* c)
 
           numRemoved++;
 
-          TermList def = getLeibnizDef(ler);
-          unsigned definedVar = ler.var;
+          TermList def; 
+          unsigned definedVar;
+          if(!ler.polarity){
+           definedVar = ler.var;
+           def = getLeibnizDef(ler);
+          } else {
+           ASS(!ler2.polarity);
+           definedVar = ler2.var;
+           def = getLeibnizDef(ler2);
+          }
+          
           subst.bind(definedVar, def);
           addedToSub = true;
         }

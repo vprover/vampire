@@ -232,8 +232,8 @@ struct ExtendedNarrowing::NarrowingResultIterator
 
      _returnedSoFar++;
 
-     //cout << "Narrowing " + _cl->toString() << endl;
-     //cout << "Returning " + res->toString() << endl;
+     cout << "Narrowing " + _cl->toString() << endl;
+     cout << "Returning " + res->toString() + "\n" << endl;
      return res;
    }
    
@@ -324,7 +324,8 @@ struct ExtendedNarrowing::PSNarrowingResultIterator
 
      _returned++;
 
-     //cout << "Returning " + res->toString() << endl;
+     cout << "Narrowing " + _cl->toString() << endl;
+     cout << "Returning " + res->toString() + "\n" << endl;
 
      return res;  
    }
@@ -419,7 +420,7 @@ ClauseIterator ExtendedNarrowing::generateClauses(Clause* premise)
   auto it6 = getConcatenatedIterator(it4, it5);
 
   return pvi( it6 );
-  
+
 }
 
 }
