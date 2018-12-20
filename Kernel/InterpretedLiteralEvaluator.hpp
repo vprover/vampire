@@ -49,10 +49,12 @@ protected:
   class Evaluator;
   class EqualityEvaluator;
   class ConversionEvaluator;
+  template<class T> class ACFunEvaluator;
   template<class T> class TypedEvaluator;
   class IntEvaluator;
   class RatEvaluator;
   class RealEvaluator;
+  class IntPlusEvaluator;
 
   typedef Stack<Evaluator*> EvalStack;
   virtual TermList transformSubterm(TermList trm);
