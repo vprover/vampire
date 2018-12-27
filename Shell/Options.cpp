@@ -1014,6 +1014,11 @@ void Options::Options::init()
 	    _literalMaximalityAftercheck.tag(OptionTag::SATURATION);
 	    _literalMaximalityAftercheck.setExperimental();
 
+    _randomAWR = BoolOptionValue("random_awr","rawr",false);
+    _lookup.insert(&_randomAWR);
+    _randomAWR.tag(OptionTag::SATURATION);
+    _randomAWR.setExperimental();
+
       _lrsFirstTimeCheck = IntOptionValue("lrs_first_time_check","",5);
       _lrsFirstTimeCheck.description=
       "Percentage of time limit at which the LRS algorithm will for the first time estimate the number of reachable clauses.";

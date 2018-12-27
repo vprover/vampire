@@ -669,7 +669,7 @@ PrecedenceOrdering::PrecedenceOrdering(Problem& prb, const Options& opt)
     } else {
       // since the below sorts are stable, a proper input shuffling manifests itself (also) by initializing aux with a random permutation rather then the identity one
       if (opt.shuffleInput() && opt.symbolPrecedence() != Shell::Options::SymbolPrecedence::SCRAMBLE) {
-        Shuffling::shuffleArray(aux,nFunctions);
+        Shuffling::shuffleArray(aux,_functions);
         // in particular shuffleInput causes OCCURRENCE to be also random
       }
 
@@ -731,7 +731,7 @@ PrecedenceOrdering::PrecedenceOrdering(Problem& prb, const Options& opt)
   } else {
     // since the below sorts are stable, a proper input shuffling manifests itself (also) by initializing aux with a random permutation rather then the identity one
     if (opt.shuffleInput() && opt.symbolPrecedence() != Shell::Options::SymbolPrecedence::SCRAMBLE) {
-      Shuffling::shuffleArray(aux,nPredicates);
+      Shuffling::shuffleArray(aux,_predicates);
       // in particular shuffleInput causes OCCURRENCE to be also random
     }
 
