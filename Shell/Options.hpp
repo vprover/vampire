@@ -2088,6 +2088,7 @@ public:
 	AgeWeightRatioShape ageWeightRatioShape() const { return _ageWeightRatioShape.actualValue; }
 	int ageWeightRatioShapeFrequency() const { return _ageWeightRatioShapeFrequency.actualValue; }
   bool literalMaximalityAftercheck() const { return _literalMaximalityAftercheck.actualValue; }
+  bool randomAWR() const { return _randomAWR.actualValue; }
   bool superpositionFromVariables() const { return _superpositionFromVariables.actualValue; }
   EqualityProxy equalityProxy() const { return _equalityProxy.actualValue; }
   RuleActivity equalityResolutionWithDeletion() const { return _equalityResolutionWithDeletion.actualValue; }
@@ -2345,6 +2346,7 @@ private:
   RatioOptionValue _ageWeightRatio;
 	ChoiceOptionValue<AgeWeightRatioShape> _ageWeightRatioShape;
 	UnsignedOptionValue _ageWeightRatioShapeFrequency;
+
   BoolOptionValue _useTheorySplitQueues;
   StringOptionValue _theorySplitQueueRatios;
   StringOptionValue _theorySplitQueueCutoffs;
@@ -2362,6 +2364,7 @@ private:
   StringOptionValue _positiveLiteralSplitQueueRatios;
   StringOptionValue _positiveLiteralSplitQueueCutoffs;
   BoolOptionValue _positiveLiteralSplitQueueLayeredArrangement;
+	BoolOptionValue _randomAWR;
   BoolOptionValue _literalMaximalityAftercheck;
   BoolOptionValue _arityCheck;
   
