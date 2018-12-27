@@ -964,10 +964,24 @@ void Options::init()
     _lookup.insert(&_literalMaximalityAftercheck);
     _literalMaximalityAftercheck.tag(OptionTag::SATURATION);
 
+
     _sineToAge = BoolOptionValue("sine_to_age","s2a",false);
     _sineToAge.description = "Use SInE levels to postpone introducing clauses more distant from the conjecture to proof search by artificially making them younger (age := sine_level).";
     _lookup.insert(&_sineToAge);
     _sineToAge.tag(OptionTag::SATURATION);
+
+    _randomAWR = BoolOptionValue("random_awr","rawr",false);
+    _lookup.insert(&_randomAWR);
+    _randomAWR.tag(OptionTag::SATURATION);
+    _randomAWR.setExperimental();
+
+    _lrsFirstTimeCheck = IntOptionValue("lrs_first_time_check","",5);
+    _lrsFirstTimeCheck.description=
+    "Percentage of time limit at which the LRS algorithm will for the first time estimate the number of reachable clauses.";
+    _lookup.insert(&_lrsFirstTimeCheck);
+    _lrsFirstTimeCheck.tag(OptionTag::LRS);
+    _lrsFirstTimeCheck.addConstraint(greaterThanEq(0));
+    _lrsFirstTimeCheck.addConstraint(lessThan(100));
 
     _sineToPredLevels = ChoiceOptionValue<PredicateSineLevels>("sine_to_pred_levels","s2pl",PredicateSineLevels::OFF,{"no","off","on"});
     _sineToPredLevels.description = "Assign levels to predicate symbols as they are used to trigger axioms during SInE computation. "
