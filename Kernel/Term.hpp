@@ -427,7 +427,7 @@ public:
   /** Return the weight. Applicable only to shared terms */
   unsigned weight() const
   {
-    ASS(shared());
+    ASS_REP(shared(), toString());
     return _weight;
   }
 

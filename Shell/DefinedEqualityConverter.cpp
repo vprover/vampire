@@ -79,11 +79,13 @@ Clause* DefinedEqualityConverter::findAndConvert(Clause* c)
 {
   CALL("DefinedEqualityConverter::findAndConvert");
 
-  static VarOccMap vom;
-  vom.reset();
+  //static 
+  VarOccMap vom;
+  //vom.reset();
 
-  static Substitution subst;
-  subst.reset(); 
+  //static 
+  Substitution subst;
+  //subst.reset(); 
 
   Stack<Literal*> added;
   Set<Literal*> removed;
@@ -155,6 +157,8 @@ Clause* DefinedEqualityConverter::findAndConvert(Clause* c)
       Literal* curr=(*c)[i];
       if(!removed.contains(curr)) {
         (*res)[n++] = curr->apply(subst);
+      } else {
+        removed.remove(curr);
       }
     }
     ASS_EQ(n,newLen);

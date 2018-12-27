@@ -381,7 +381,7 @@ Clause* ProxyElimination::ORIMPANDRemovalISE::simplify(Clause* c)
 Clause* ProxyElimination::ORIMPANDRemovalISE2::simplify(Clause* c)
 {
   CALL("ORIMPRemovalISE2::simplify");   
-  
+
   TermList subterm;
   TermList newTerm;
   unsigned literalPosition = 0;

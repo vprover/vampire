@@ -66,7 +66,6 @@ public:
   }
 protected:
   void populateIndex();
-
 };
 
 class SuperpositionSubtermIndex

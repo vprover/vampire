@@ -116,6 +116,7 @@ void ExtendedNarrowingIndex::populateIndex()
   _is->insert(notTerm, 0, 0);  
 }
 
+
 void SuperpositionSubtermIndex::handleClause(Clause* c, bool adding)
 {
   CALL("SuperpositionSubtermIndex::handleClause");

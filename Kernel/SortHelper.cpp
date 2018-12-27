@@ -281,6 +281,10 @@ void SortHelper::collectVariableSortsIter(CollectTask task, DHMap<unsigned,unsig
 
   Stack<CollectTask> todo;
 
+  if(task.fncTag == COLLECT_FORMULA){
+  cout << "collecting variable sorts for " + task.f->toString() << endl;
+  }
+
   todo.push(task);
   while (todo.isNonEmpty()) {
     CollectTask task = todo.pop();
@@ -320,6 +324,8 @@ void SortHelper::collectVariableSortsIter(CollectTask task, DHMap<unsigned,unsig
         } else if (ts.isOrdinaryVar()) {
           unsigned var = ts.var();
           if (!map.insert(var, task.contextSort)) {
+            cout << "The term V" << var << " cs is " + env.sorts->sortName(task.contextSort) << endl;
+            cout << "In map sort is " + env.sorts->sortName(map.get(var)) << endl;
             ASS_EQ(task.contextSort, map.get(var));
           }
         }

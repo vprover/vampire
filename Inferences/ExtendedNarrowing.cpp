@@ -147,8 +147,8 @@ struct ExtendedNarrowing::NarrowingResultIterator
      TermList var1;
      TermList var2;
      
-     Literal* l1;
-     Literal* l2;
+     Literal* l1 = 0;
+     Literal* l2 = 0;
      
      bool addTwoLits = (_const == SS::AND && !_pol) || 
                        (_const == SS::OR  &&  _pol) ||
@@ -232,9 +232,13 @@ struct ExtendedNarrowing::NarrowingResultIterator
 
      _returnedSoFar++;
 
-     cout << "Narrowing " + _cl->toString() << endl;
-     cout << "Returning " + res->toString() + "\n" << endl;
-     return res;
+     //cout << "The rewrite rule LHS is " + _rwRuleLHS.toString() << endl; 
+     //cout << "The connective is " + constToString(_const) << endl;
+     //cout << "Narrowing " + _cl->toString() << endl;
+     //cout << "Returning " + res->toString() + "\n" << endl;
+      return res;
+     
+     return _cl;
    }
    
 private:
@@ -272,13 +276,17 @@ struct ExtendedNarrowing::PSNarrowingResultIterator
        _toBeReturned = 0;
      } else {
        unsigned sort = HSH::getNthArgSort(_narrowableTerm, 0);
-       unsigned output = HSH::outputSort(sort);
-       if(output != Sorts::SRT_BOOL){
-         _toBeReturned = 0;
+       if(!env.sorts->isOfStructuredSort(sort, Sorts::StructuredSort::HIGHER_ORD_CONST)){
+         _toBeReturned = 0;        
        } else {
-         _narrowedVar = HSH::getHead(_narrowableTerm).var();
-         _narrowedVarSort = HSH::getHeadSort(_narrowableTerm);
-         _toBeReturned = 2;
+         unsigned range = HSH::range(sort);
+         if(range != Sorts::SRT_BOOL){
+           _toBeReturned = 0;
+         } else {
+           _narrowedVar = HSH::getHead(_narrowableTerm).var();
+           _narrowedVarSort = HSH::getHeadSort(_narrowableTerm);
+           _toBeReturned = 2;
+         }
        }
      }
    }
@@ -293,8 +301,8 @@ struct ExtendedNarrowing::PSNarrowingResultIterator
    OWN_ELEMENT_TYPE next(){
      CALL("ExtendedNarrowing::PSNarrowingResultIterator::next");
    
-     static Substitution subst;
-     subst.reset();
+     Substitution subst;
+     //subst.reset();
     
      TermList quantiifer;
      
@@ -324,8 +332,8 @@ struct ExtendedNarrowing::PSNarrowingResultIterator
 
      _returned++;
 
-     cout << "Narrowing " + _cl->toString() << endl;
-     cout << "Returning " + res->toString() + "\n" << endl;
+     //cout << "Pi Sigma Narrowing " + _cl->toString() << endl;
+     //cout << "Returning " + res->toString() + "\n" << endl;
 
      return res;  
    }
@@ -415,9 +423,11 @@ ClauseIterator ExtendedNarrowing::generateClauses(Clause* premise)
   //apply rewrite rules to literals
   auto it4 = getMapAndFlattenIterator(it3, ResultFn(premise));
   
+  
   auto it5 = getMapAndFlattenIterator(it2, PiSigmaResultFn(premise));
 
   auto it6 = getConcatenatedIterator(it4, it5);
+
 
   return pvi( it6 );
 
