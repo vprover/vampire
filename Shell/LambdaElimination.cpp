@@ -429,12 +429,13 @@ TermList LambdaElimination::processBeyondLambda(Term* term)
               Literal* literal = fm->literal();
               ASS(literal->isEquality()); //Is this a valid assumption?
               ASS_EQ(literal->arity(), 2); 
+            
               TermList lhs = *literal->nthArgument(0);
-              TermList rhs = *literal->nthArgument(1);
-                                
+              TermList rhs = *literal->nthArgument(1);                                
+
               if (lhs.isTerm()) { lhs = processBeyondLambda(lhs.term()); }
               if (rhs.isTerm()) { rhs = processBeyondLambda(rhs.term()); }            
-                                
+                        
               unsigned lhsSort = sortOf(lhs);      
               unsigned appSort = env.sorts->addFunctionSort(lhsSort, Sorts::SRT_BOOL);
               unsigned equalsSort = env.sorts->addFunctionSort(lhsSort, appSort);
@@ -602,6 +603,8 @@ TermList LambdaElimination::processBeyondLambda(Term* term)
                     }
                   }
                 }
+
+                ASS_EQ(Formula::VarList::length(vars), Formula::SortList::length(sorts));
                 unsigned lambdaExpSort = Sorts::SRT_BOOL;
                 Formula::SortList::Iterator sit(sorts);
                 while(sit.hasNext()){
@@ -688,15 +691,13 @@ TermList LambdaElimination::elimLambda(Term* lambdaTerm)
     ASS_EQ(sd->getType(), Term::SF_LAMBDA);
     
     TermList lambdaExp;
-    Term::SortList* sorts;
-    IntList* vars;
-    
-    vars = sd->getLambdaVars();
-    sorts = sd->getVarSorts();
+    Term::SortList* sorts = sd->getVarSorts();
+    IntList* vars = sd->getLambdaVars();
     
     IntList::Iterator vlit(vars);
     Term::SortList::Iterator slit(sorts);
     
+
     while(vlit.hasNext()){
        _vars.push(vlit.next());
        _sorts.push(slit.next());
@@ -721,7 +722,6 @@ void LambdaElimination::process(Stack<int> _vars, Stack<unsigned> _sorts, Stack<
   Stack<unsigned> _argNums;
    
   while(!_vars.isEmpty()){
-       
     lambdaVar = _vars.pop();
     lambdaVarSort = _sorts.pop();
     
@@ -735,7 +735,7 @@ void LambdaElimination::process(Stack<int> _vars, Stack<unsigned> _sorts, Stack<
         IntList* freeVars = lExpTerm->freeVariables();
         
         if(IntList::member(lambdaVar, freeVars)){
-          if(lExpTerm->isSpecial()){          
+          if(lExpTerm->isSpecial()){ 
             switch(lExpTerm->functor()){
               case Term::SF_FORMULA: {
                 _toBeProcessed.push(processBeyondLambda(lExpTerm));
@@ -791,9 +791,9 @@ void LambdaElimination::process(Stack<int> _vars, Stack<unsigned> _sorts, Stack<
     }//of while
    
     if(!_vars.isEmpty()){
-      _toBeProcessed.push(_processed.pop());
+      _toBeProcessed.push(_processed.pop());     
     }
-   
+
   }//outer while      
 }
 
@@ -845,10 +845,10 @@ void LambdaElimination::addToProcessed(TermList ts, Stack<unsigned> &_argNums){
 void LambdaElimination::dealWithApp(TermList lhs, TermList rhs, unsigned sort, int lambdaVar, Stack<TermList> &_toBeProcessed, Stack<unsigned> &_argNums)
 {
     CALL("LambdaElimination::dealWithApp");
-    
+  
     IntList* lhsFVs = lhs.freeVariables();
     IntList* rhsFVs = rhs.freeVariables();
-  
+
     if(rhs.isVar() && (rhs.var() == (unsigned)lambdaVar) && !IntList::member(lambdaVar, lhsFVs)){
       //This is the case [\x. exp @ x] wehere x is not free in exp.
       lhs.isTerm() ? addToProcessed(processBeyondLambda(lhs.term()), _argNums) : addToProcessed(lhs, _argNums);

@@ -276,7 +276,7 @@ public:
       struct {
         TermList lhs;
         unsigned sort;
-		unsigned lhsSort;
+		    unsigned lhsSort;
       } _appData;
     };
     /** Return pointer to the term to which this object is attached */

@@ -281,10 +281,6 @@ void SortHelper::collectVariableSortsIter(CollectTask task, DHMap<unsigned,unsig
 
   Stack<CollectTask> todo;
 
-  if(task.fncTag == COLLECT_FORMULA){
-  cout << "collecting variable sorts for " + task.f->toString() << endl;
-  }
-
   todo.push(task);
   while (todo.isNonEmpty()) {
     CollectTask task = todo.pop();
@@ -324,8 +320,8 @@ void SortHelper::collectVariableSortsIter(CollectTask task, DHMap<unsigned,unsig
         } else if (ts.isOrdinaryVar()) {
           unsigned var = ts.var();
           if (!map.insert(var, task.contextSort)) {
-            cout << "The term V" << var << " cs is " + env.sorts->sortName(task.contextSort) << endl;
-            cout << "In map sort is " + env.sorts->sortName(map.get(var)) << endl;
+            //cout << "The term X" << var << " cs is " + env.sorts->sortName(task.contextSort) << endl;
+            //cout << "In map sort is " + env.sorts->sortName(map.get(var)) << endl;
             ASS_EQ(task.contextSort, map.get(var));
           }
         }
@@ -733,10 +729,11 @@ bool SortHelper::tryGetVariableSort(TermList var, Term* t0, unsigned& result)
 {
   CALL("SortHelper::tryGetVariableSort");
   ASS(var.isVar());
-
+ 
   NonVariableIterator sit(t0,true);
   while (sit.hasNext()) {
     Term* t = sit.next().term();
+
     if(t->isLet()){
       TermList binding = t->getSpecialData()->getBinding();
       if(binding.isVar()) {
@@ -768,35 +765,41 @@ bool SortHelper::tryGetVariableSort(TermList var, Term* t0, unsigned& result)
       continue;
     }
     if (t->isApp()) {
-        Stack<TermList> terms;
-        Stack<unsigned> sorts;
-        
-        terms.push(t->getSpecialData()->getAppLhs());
-        terms.push(*t->nthArgument(0));
-        
-        sorts.push(t->getSpecialData()->getAppLhsSort());
-        sorts.push(env.sorts->getFuncSort(sorts.top())->getDomainSort());
-        
-        TermList current;
-        unsigned currSort;
-        while(!terms.isEmpty()){
-            current = terms.pop();
-            currSort = sorts.pop();
-            if(current.isVar() && current == var){
-                result = currSort;
-                return true;
-            }else if(current.isTerm() && current.term()->isApp()){
-                Term* tm = current.term();
-                terms.push(tm->getSpecialData()->getAppLhs());
-                terms.push(*tm->nthArgument(0));
-        
-                sorts.push(tm->getSpecialData()->getAppLhsSort());
-                sorts.push(env.sorts->getFuncSort(sorts.top())->getDomainSort());
-            }else{
-                //need to deal with this AYB!
-            }
+      TermList lhs = t->getSpecialData()->getAppLhs();
+      unsigned lhsSort = t->getSpecialData()->getAppLhsSort();
+      TermList rhs = *t->nthArgument(0);
+
+      if(lhs.isVar()){
+        if(lhs == var){
+          result = lhsSort;
+          return true;
         }
-        continue; 
+      } else if(tryGetVariableSort(var, lhs.term(),result)){
+        return true;
+      }
+
+      if(rhs == var){
+        result = env.sorts->getFuncSort(lhsSort)->getDomainSort();
+        return true;
+      }
+
+      continue; 
+    }
+    if (t->isLambda()) {
+      unsigned sort = t->getSpecialData()->getLambdaExpSort();
+      TermList lambdaTerm = t->getSpecialData()->getLambdaExp();
+
+      if(lambdaTerm.isTerm()){
+        if(tryGetVariableSort(var, lambdaTerm.term(),result)){
+          return true;
+        }
+      } else {
+        if(lambdaTerm == var){
+          result = sort;
+          return true;
+        }
+      }
+      continue;
     }
     if (t->shared() && t->ground()) {
       sit.right();

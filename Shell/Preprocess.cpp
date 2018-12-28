@@ -358,10 +358,10 @@ void Preprocess::preprocess(Problem& prb)
   if(prb.higherOrder()){
     if (env.options->showPreprocessing()){
       env.out() << "defined equality conversion" << std::endl;
-    }/*
+    }
     env.statistics->phase=Statistics::DEFINED_EQUALITY_CONVERSION;
     DefinedEqualityConverter def;
-    def.convert(prb); */
+    def.convert(prb);
   }
 
   if (prb.mayHaveEquality() && _options.inequalitySplitting() != 0) {

@@ -79,13 +79,11 @@ Clause* DefinedEqualityConverter::findAndConvert(Clause* c)
 {
   CALL("DefinedEqualityConverter::findAndConvert");
 
-  //static 
-  VarOccMap vom;
-  //vom.reset();
+  static VarOccMap vom;
+  vom.reset();
 
-  //static 
-  Substitution subst;
-  //subst.reset(); 
+  static Substitution subst;
+  subst.reset(); 
 
   Stack<Literal*> added;
   Set<Literal*> removed;
@@ -96,6 +94,7 @@ Clause* DefinedEqualityConverter::findAndConvert(Clause* c)
   unsigned side;
 
   LeibEqRec ler;
+  TermList dum;
 
   unsigned length = c->length();
   for (int i = length - 1; i >= 0; i--) {
@@ -105,11 +104,12 @@ Clause* DefinedEqualityConverter::findAndConvert(Clause* c)
       removed.insert(lit);
       TermList def = getAndrewsDef(lit, side);
       unsigned definedVar = getVar(lit, side);
-      subst.bind(definedVar, def);
-      addedToSub = true;
+      if(!subst.findBinding(definedVar, dum)){
+        subst.bind(definedVar, def);
+        addedToSub = true;
+      }
     }else if(isLeibnizEquality(lit, ler)){
       LeibEqRec ler2;
-      TermList dum;
       if(!subst.findBinding(ler.var, dum) && vom.find(ler.var, ler2)){
         if(ler.polarity != ler2.polarity){
           //found a defined equality
