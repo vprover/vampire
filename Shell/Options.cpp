@@ -117,6 +117,7 @@ void Options::Options::init()
                                         "output",
                                         "portfolio",
                                         "preprocess",
+                                        "preprocess2",
                                         "profile",
                                         "random_strategy",
                                         "sat_solver",
