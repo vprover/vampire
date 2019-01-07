@@ -54,7 +54,6 @@ protected:
   class IntEvaluator;
   class RatEvaluator;
   class RealEvaluator;
-  class IntPlusEvaluator;
 
   typedef Stack<Evaluator*> EvalStack;
   virtual TermList transformSubterm(TermList trm);

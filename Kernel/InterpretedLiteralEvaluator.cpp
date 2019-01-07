@@ -32,7 +32,7 @@
 
 #include "InterpretedLiteralEvaluator.hpp"
 
-#define IDEBUG 1
+#define IDEBUG 0
 
 namespace Kernel
 {
@@ -63,23 +63,24 @@ public:
  * will not do this. The idea here is to collapse the term tree into a list of terms
  * and, combine together the numbers, and then rebuild a term
  *
- * One should create an instance
- *
  * @author Giles
  * @since 06/12/18
  */
-
 template<class T>
 class InterpretedLiteralEvaluator::ACFunEvaluator
    : public Evaluator
 {
-protected:
-  virtual T getIdentity() = 0;
-  virtual T update(T acc, T thing) = 0;
 public:
+  CLASS_NAME(InterpretedLiteralEvaluator::ACFunEvaluator<T>);
+  USE_ALLOCATOR(InterpretedLiteralEvaluator::ACFunEvaluator<T>);
 
-  ACFunEvaluator(unsigned f) : _fun(f) {}
+  ACFunEvaluator(unsigned f, Evaluator* e, Term* id) : _fun(f),_eval(e),_identity(id) {
+    T check;
+    ASS(theory->tryInterpretConstant(_identity,check));
+  }
   unsigned _fun;
+  Evaluator* _eval;
+  Term* _identity;
 
   virtual bool canEvaluatePred(unsigned pred) { return false; }
   virtual bool tryEvaluatePred(Literal* trm, bool& res)  { return false; }
@@ -109,12 +110,16 @@ public:
 
     Stack<TermList*>::Iterator it(done);
     Stack<TermList*> keep;
-    T acc = getIdentity();
+    Term* acc = _identity;
     while(it.hasNext()){ 
       TermList* t = it.next();
       T thing;
       if(t->isTerm() && theory->tryInterpretConstant(t->term(),thing)){
-        acc = update(acc,thing);
+        TermList tmp;
+	Term* evalThis = Term::create2(_fun,TermList(acc),*t);
+        ALWAYS(_eval->tryEvaluateFunc(evalThis,tmp));
+        ASS(tmp.isTerm());
+        acc = tmp.term();
       }
       else{ keep.push(t); }
     } 
@@ -122,36 +127,20 @@ public:
  
     // Now build a new term from kept and acc (if not identity)
     // We keep acc if it is identify if there's no other terms
-    if(getIdentity()!=acc || keep.length()==0){
-      TermList accT(theory->representConstant(acc));
+    if(_identity!=acc || keep.length()==0){
+      TermList accT(acc);
       // Safe because we just use this pointer locally
       keep.push(&accT);
     }
-    //TODO check if acc=0 for product
     ASS(keep.length()>0);
-    res = *keep.pop();
-    while(keep.length()>0){
-      TermList* t = keep.pop(); 
+    Stack<TermList*>::BottomFirstIterator kit(keep);
+    res = *kit.next();
+    while(kit.hasNext()){
+      TermList* t = kit.next(); 
       res = TermList(Term::create2(_fun,res,*t));
     }
     return true;
   }
-};
-
-class InterpretedLiteralEvaluator::IntPlusEvaluator
-   : public ACFunEvaluator<IntegerConstantType>
-{
-protected:
-  virtual IntegerConstantType getIdentity() {
-    return IntegerConstantType(0);
-  }
-  virtual IntegerConstantType update(IntegerConstantType acc, IntegerConstantType thing){
-    return acc+thing;
-  } 
-public:
-  CLASS_NAME(InterpretedLiteralEvaluator::IntPlusEvaluator);
-  USE_ALLOCATOR(InterpretedLiteralEvaluator::IntPlusEvaluator);
-  IntPlusEvaluator() : ACFunEvaluator(env.signature->getInterpretingSymbol(Theory::INT_PLUS)) {}
 };
 
 
@@ -932,7 +921,34 @@ InterpretedLiteralEvaluator::InterpretedLiteralEvaluator()
   _evals.push(new RealEvaluator());
   _evals.push(new ConversionEvaluator());
   _evals.push(new EqualityEvaluator());
-  _evals.push(new IntPlusEvaluator()); 
+
+  // Special AC evaluators are added to be tried first for Plus and Multiply
+  _evals.push(new ACFunEvaluator<IntegerConstantType>(
+		env.signature->getInterpretingSymbol(Theory::INT_PLUS),
+		new IntEvaluator(),
+		theory->representConstant(IntegerConstantType(0)))); 
+  _evals.push(new ACFunEvaluator<IntegerConstantType>(
+                env.signature->getInterpretingSymbol(Theory::INT_MULTIPLY),
+                new IntEvaluator(),
+                theory->representConstant(IntegerConstantType(1))));
+
+  _evals.push(new ACFunEvaluator<RationalConstantType>(
+                env.signature->getInterpretingSymbol(Theory::RAT_PLUS),
+                new RatEvaluator(),
+                theory->representConstant(RationalConstantType(0))));
+  _evals.push(new ACFunEvaluator<RationalConstantType>(
+                env.signature->getInterpretingSymbol(Theory::RAT_MULTIPLY),
+                new RatEvaluator(),
+                theory->representConstant(RationalConstantType(1))));
+
+  _evals.push(new ACFunEvaluator<RealConstantType>(
+                env.signature->getInterpretingSymbol(Theory::REAL_PLUS),
+                new RealEvaluator(),
+                theory->representConstant(RealConstantType(RationalConstantType(0)))));
+  _evals.push(new ACFunEvaluator<RealConstantType>(
+                env.signature->getInterpretingSymbol(Theory::REAL_MULTIPLY),
+                new RealEvaluator(),
+                theory->representConstant(RealConstantType(RationalConstantType(1)))));
 
   _funEvaluators.ensure(0);
   _predEvaluators.ensure(0);
