@@ -631,6 +631,11 @@ void Options::Options::init()
     _lookup.insert(&_showNew);
     _showNew.tag(OptionTag::DEVELOPMENT);
 
+    _showEmpty = BoolOptionValue("show_empty","",false);
+    _showEmpty.description="A hacky option: reports on the derivation of the empty clause and does NOT terminate saturation at that point!";
+    _lookup.insert(&_showEmpty);
+    _showEmpty.tag(OptionTag::DEVELOPMENT);
+
     _showSplitting = BoolOptionValue("show_splitting","",false);
     _showSplitting.description="Show updates within AVATAR";
     _lookup.insert(&_showSplitting);

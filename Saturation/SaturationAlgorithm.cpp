@@ -819,6 +819,16 @@ void SaturationAlgorithm::handleEmptyClause(Clause* cl)
   CALL("SaturationAlgorithm::handleEmptyClause");
   ASS(cl->isEmpty());
 
+  if (env.options->showEmpty()) {
+    env.beginOutput();
+    env.out() << "Timing: " << env.timer->elapsedMilliseconds() << endl;
+    env.out() << "[SA] empty: " << cl->toString() << std::endl;
+    env.endOutput();
+
+    // CAREFUL: big hack - can we saturate past the first empty clause?
+    return;
+  }
+
   if (isRefutation(cl)) {
     onNonRedundantClause(cl);
 
