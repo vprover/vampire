@@ -1886,6 +1886,7 @@ public:
   bool showNew() const { return showAll() || _showNew.actualValue; }
   bool sineToAge() const { return _sineToAge.actualValue; }
   PredicateSineLevels sineToPredLevels() const { return _sineToPredLevels.actualValue; }
+  bool showForKarel() const { return _showForKarel.actualValue; }
   bool showSplitting() const { return showAll() || _showSplitting.actualValue; }
   bool showNewPropositional() const { return showAll() || _showNewPropositional.actualValue; }
   bool showPassive() const { return showAll() || _showPassive.actualValue; }
@@ -2416,6 +2417,7 @@ private:
   BoolOptionValue _showNew;
   BoolOptionValue _sineToAge;
   ChoiceOptionValue<PredicateSineLevels> _sineToPredLevels;
+  BoolOptionValue _showForKarel;
   BoolOptionValue _showSplitting;
   BoolOptionValue _showNewPropositional;
   BoolOptionValue _showNonconstantSkolemFunctionTrace;
