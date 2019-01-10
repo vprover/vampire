@@ -442,7 +442,7 @@ void Preprocess::preprocess(Problem& prb)
      }
    }
 
-   if (_options.printClausifierPremises()) {
+   if (env.options->printClausifierPremises()) {
      UIHelper::outputAllPremises(env.out(), prb.units());
    }
 

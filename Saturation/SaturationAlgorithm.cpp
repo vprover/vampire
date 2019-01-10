@@ -389,6 +389,22 @@ void SaturationAlgorithm::onNewClause(Clause* cl)
     _splitter->onNewClause(cl);
   }
 
+  if (_opt.showForKarel()) {
+    Inference* inf = cl->inference();
+    cout << "inf: " << cl->number();
+
+    inf->minimizePremises(); // this is here only formally, we don't look into avatar stuff (yet)
+    Inference::Iterator iit = inf->iterator();
+    while(inf->hasNext(iit)) {
+       Unit* premUnit = inf->next(iit);
+       cout << " par: " << premUnit->number();
+    }
+    Inference::Rule rule = inf->rule();
+    cout <<" rule: " << rule << " name: " << Inference::ruleName(rule) << endl;
+
+    cout << "new: " << cl->number() << " age: " << cl->age() << " weight: " << cl->weight() << " len: " << cl->length() << endl;
+  }
+
   if (env.options->showNew()) {
     env.beginOutput();
     env.out() << "Timing: " << env.timer->elapsedMilliseconds() << endl;
@@ -585,6 +601,10 @@ void SaturationAlgorithm::addInputClause(Clause* cl)
     cl->setAge(level);
   }
 
+  if (_opt.showForKarel()) {
+    cout << "init: " << cl->number() << " isGoal: " << cl->isGoal() << " isTheory: " << isTheory << endl;
+  }
+
   if (sosForAxioms || (isTheory && sosForTheory)){
     addInputSOSClause(cl);
   } else {
@@ -679,6 +699,10 @@ void SaturationAlgorithm::init()
   CALL("SaturationAlgorithm::init");
 
   ClauseIterator toAdd = _prb.clauseIterator();
+
+  if (_opt.showForKarel()) {
+    cout << "saturation_init" << endl;
+  }
 
   while (toAdd.hasNext()) {
     Clause* cl=toAdd.next();
