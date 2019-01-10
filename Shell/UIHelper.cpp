@@ -139,7 +139,7 @@ void UIHelper::outputAllPremises(ostream& out, UnitList* units, vstring prefix)
   CALL("UIHelper::outputAllPremises");
 
 #if 1
-  InferenceStore::instance()->outputProof(cerr, units);
+  InferenceStore::instance()->outputProof(out, units);
 #else
   Stack<UnitSpec> prems;
   Stack<UnitSpec> toDo;
