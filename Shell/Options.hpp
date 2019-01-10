@@ -266,6 +266,12 @@ public:
     CHEAP 
   };
 
+  enum class AgeWeightBlending : unsigned int {
+    LINEAR,
+    LOGLINEAR,
+    QUEUES
+  };
+
   enum class ProofExtra : unsigned int {
     OFF,
     FREE,
@@ -1962,6 +1968,7 @@ public:
   void setAgeRatio(int v){ _ageWeightRatio.actualValue = v; }
   int weightRatio() const { return _ageWeightRatio.otherValue; }
   void setWeightRatio(int v){ _ageWeightRatio.otherValue = v; }
+  AgeWeightBlending ageWeightBlending() const { return _ageWeightBlending.actualValue; }
   bool literalMaximalityAftercheck() const { return _literalMaximalityAftercheck.actualValue; }
   bool superpositionFromVariables() const { return _superpositionFromVariables.actualValue; }
   EqualityProxy equalityProxy() const { return _equalityProxy.actualValue; }
@@ -2210,6 +2217,7 @@ private:
   BoolOptionValue _encode;
 
   RatioOptionValue _ageWeightRatio;
+  ChoiceOptionValue<AgeWeightBlending> _ageWeightBlending;
   BoolOptionValue _literalMaximalityAftercheck;
   BoolOptionValue _arityCheck;
   

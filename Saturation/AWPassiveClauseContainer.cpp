@@ -49,6 +49,76 @@ namespace Saturation
 using namespace Lib;
 using namespace Kernel;
 
+bool AWBlendQueue::lessThan(Clause* c1,Clause* c2)
+{
+  CALL("AWBlendQueue::lessThan");
+
+  if (_linear) {
+    return _ageCoef*c1->age() + _weightCoef*c1->weight() < _ageCoef*c2->age() + _weightCoef*c2->weight();
+  } else { // loglinear
+    return _ageCoef*log(c1->age()+1) + _weightCoef*log(c1->weight()) < _ageCoef*log(c2->age()+1) + _weightCoef*log(c2->weight());
+  }
+}
+
+SingleQueuePassiveClauseContainer::~SingleQueuePassiveClauseContainer()
+{
+  CALL("SingleQueuePassiveClauseContainer::SingleQueuePassiveClauseContainer");
+
+  ClauseQueue::Iterator cit(_queue);
+  while (cit.hasNext()) {
+    Clause* cl=cit.next();
+    ASS(cl->store()==Clause::PASSIVE);
+    cl->setStore(Clause::NONE);
+  }
+}
+
+void SingleQueuePassiveClauseContainer::add(Clause* cl)
+{
+  CALL("SingleQueuePassiveClauseContainer::add");
+
+  _queue.insert(cl);
+  _size++;
+  addedEvent.fire(cl);
+}
+
+void SingleQueuePassiveClauseContainer::remove(Clause* cl)
+{
+  CALL("SingleQueuePassiveClauseContainer::remove");
+  ASS(cl->store()==Clause::PASSIVE);
+
+  ALWAYS(_queue.remove(cl));
+  _size--;
+  removedEvent.fire(cl);
+  ASS(cl->store()!=Clause::PASSIVE);
+}
+
+Clause* SingleQueuePassiveClauseContainer::popSelected()
+{
+  CALL("SingleQueuePassiveClauseContainer::popSelected");
+  ASS( ! isEmpty());
+
+  _size--;
+  Clause* cl = _queue.pop();
+  selectedEvent.fire(cl);
+  return cl;
+}
+
+ClauseIterator SingleQueuePassiveClauseContainer::iterator()
+{
+  return pvi( ClauseQueue::Iterator(_queue) );
+}
+
+void SingleQueuePassiveClauseContainer::updateLimits(long long estReachableCnt)
+{
+  // TODO -- LRS stuff
+}
+
+void SingleQueuePassiveClauseContainer::onLimitsUpdated(LimitsChangeType change)
+{
+  // TODO -- LRS stuff
+}
+
+// ------------------------------------------------------------------------------------
 
 AWPassiveClauseContainer::AWPassiveClauseContainer(const Options& opt)
 :  _ageQueue(opt), _weightQueue(opt), _balance(0), _size(0), _opt(opt)

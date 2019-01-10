@@ -139,7 +139,11 @@ SaturationAlgorithm::SaturationAlgorithm(Problem& prb, const Options& opt)
   _completeOptionSettings = opt.complete(prb);
 
   _unprocessed = new UnprocessedClauseContainer();
-  _passive = new AWPassiveClauseContainer(opt);
+  if (opt.ageWeightBlending() == Options::AgeWeightBlending::QUEUES) {
+    _passive = new AWPassiveClauseContainer(opt);
+  } else {
+    _passive = new SingleQueuePassiveClauseContainer(opt);
+  }
   _active = new ActiveClauseContainer(opt);
 
   _active->attach(this);

@@ -36,6 +36,60 @@ namespace Saturation {
 
 using namespace Kernel;
 
+// ------------------------------------------------------------------------------------
+
+class AWBlendQueue
+: public ClauseQueue
+{
+public:
+  AWBlendQueue(const Options& opt) :
+    _linear(opt.ageWeightBlending() == Options::AgeWeightBlending::LINEAR),
+    _ageCoef(opt.ageRatio()), _weightCoef(opt.weightRatio()) {}
+protected:
+  virtual bool lessThan(Clause*,Clause*);
+
+  friend class SingleQueuePassiveClauseContainer;
+private:
+  bool _linear;
+  int _ageCoef, _weightCoef;
+};
+
+// ------------------------------------
+
+class SingleQueuePassiveClauseContainer
+  : public PassiveClauseContainer
+{
+public:
+  CLASS_NAME(SingleQueuePassiveClauseContainer);
+  USE_ALLOCATOR(SingleQueuePassiveClauseContainer);
+
+  SingleQueuePassiveClauseContainer(const Options& opt) :
+    _queue(opt), _size(0) {}
+  virtual ~SingleQueuePassiveClauseContainer();
+
+  void add(Clause* cl);
+  void remove(Clause* cl);
+  Clause* popSelected();
+  /** True if there are no passive clauses */
+  bool isEmpty() const
+  { return _queue.isEmpty(); }
+
+  ClauseIterator iterator();
+
+  void updateLimits(long long estReachableCnt);
+
+  virtual unsigned size() const { return _size; }
+protected:
+  void onLimitsUpdated(LimitsChangeType change);
+
+private:
+  AWBlendQueue _queue;
+
+  unsigned _size;
+}; // class SingleQueuePassiveClauseContainer
+
+// ------------------------------------------------------------------------------------
+
 class AgeQueue
 : public ClauseQueue
 {
@@ -63,6 +117,8 @@ protected:
 private:
   const Options& _opt;
 };
+
+// ------------------------------------
 
 /**
  * Defines the class Passive of passive clauses
@@ -115,6 +171,8 @@ private:
 
   const Options& _opt;
 }; // class AWPassiveClauseContainer
+
+// ------------------------------------------------------------------------------------
 
 /**
  * Light-weight version of the AWPassiveClauseContainer that
