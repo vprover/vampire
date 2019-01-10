@@ -636,6 +636,10 @@ void Options::Options::init()
     _lookup.insert(&_showEmpty);
     _showEmpty.tag(OptionTag::DEVELOPMENT);
 
+    _showForKarel = BoolOptionValue("show_for_karel","s4k",false);
+    _lookup.insert(&_showForKarel);
+    _showForKarel.tag(OptionTag::DEVELOPMENT);
+
     _showSplitting = BoolOptionValue("show_splitting","",false);
     _showSplitting.description="Show updates within AVATAR";
     _lookup.insert(&_showSplitting);

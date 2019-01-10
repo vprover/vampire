@@ -1876,6 +1876,7 @@ public:
   bool showDefinitions() const { return showAll() || _showDefinitions.actualValue; }
   bool showNew() const { return showAll() || _showNew.actualValue; }
   bool showEmpty() const { return _showEmpty.actualValue; }
+  bool showForKarel() const { return _showForKarel.actualValue; }
   bool showSplitting() const { return showAll() || _showSplitting.actualValue; }
   bool showNewPropositional() const { return showAll() || _showNewPropositional.actualValue; }
   bool showPassive() const { return showAll() || _showPassive.actualValue; }
@@ -2393,6 +2394,7 @@ private:
   ChoiceOptionValue<InterpolantMode> _showInterpolant;
   BoolOptionValue _showNew;
   BoolOptionValue _showEmpty;
+  BoolOptionValue _showForKarel;
   BoolOptionValue _showSplitting;
   BoolOptionValue _showNewPropositional;
   BoolOptionValue _showNonconstantSkolemFunctionTrace;
