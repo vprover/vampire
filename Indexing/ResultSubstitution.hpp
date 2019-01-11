@@ -65,6 +65,8 @@ public:
   virtual size_t getResultApplicationWeight(TermList t) { return 0; }
   /** if implementation cannot easily give result for this, zero is returned */
   virtual size_t getResultApplicationWeight(Literal* l) { return 0; }
+  /** need to distinguish between Rob and comb substitution objects */
+  virtual bool isCombSubs() { return false; }
 
   template<typename T>
   T apply(T t, bool result)

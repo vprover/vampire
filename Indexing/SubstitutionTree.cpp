@@ -44,6 +44,7 @@
 #if VDEBUG
 #include "Kernel/Signature.hpp"
 #include "Lib/Environment.hpp"
+#include "Debug/Tracer.hpp"
 #include "Lib/Int.hpp"
 
 vstring SingleTermListToString(const TermList* ts);
@@ -695,9 +696,9 @@ clientBDRecording(false), tree(parent), useConstraints(useC)
   ASS(!useConstraints || parent->_useC);
 
 #if VDEBUG
- /* cout << "Finding unification partners for " + query->toString() << endl;
-  cout << parent->toString() << endl;
-  cout << "|||||||||||||||||||||||" << endl;*/
+  //cout << "Finding unification partners for " + query->toString() << endl;
+  //Debug::Tracer::printOnlyStack(cout);
+  //cout << parent->toString() << endl;
   tree->_iteratorCnt++;
 #endif
 
@@ -795,7 +796,15 @@ SubstitutionTree::QueryResult SubstitutionTree::UnificationsIterator::next()
 
   LeafData& ld=ldIterator.next();
 
-  if(retrieveSubstitution) {
+  bool retSub;
+
+  if(env.options->combinatoryUnification()){
+    retSub = retrieveSubstitution && fo(nodeEntrances); 
+  } else {
+    retSub = retrieveSubstitution;
+  }
+
+  if(retSub) {
     Renaming normalizer;
     if(literalRetrieval) {
       normalizer.normalizeVariables(ld.literal);
@@ -894,6 +903,7 @@ bool SubstitutionTree::UnificationsIterator::enter(Node* n, BacktrackData& bd)
   } 
 #endif
 
+  bool foAssoc=true;
   bool success=true;
   bool recording=false;
   if(!n->term.isEmpty()) {
@@ -903,10 +913,11 @@ bool SubstitutionTree::UnificationsIterator::enter(Node* n, BacktrackData& bd)
 
     recording=true;
     subst.bdRecord(bd);
-    success=associate(qt,n->term,bd);
+    success=associate(qt,n->term,bd,foAssoc);
   }
   if(success) {
     if(n->isLeaf()) {
+      nodeEntrances.backtrackablePush(foAssoc, bd);
       ldIterator=static_cast<Leaf*>(n)->allChildren();
       inLeaf=true;
     } else {
@@ -919,6 +930,8 @@ bool SubstitutionTree::UnificationsIterator::enter(Node* n, BacktrackData& bd)
         nodeIterators.backtrackablePush(enit,bd);
       }
       else{
+        //if not using combUnif foAssoc will always be true
+        nodeEntrances.backtrackablePush(foAssoc, bd);
         nodeIterators.backtrackablePush(nit, bd);
       }
     }
@@ -929,16 +942,11 @@ bool SubstitutionTree::UnificationsIterator::enter(Node* n, BacktrackData& bd)
   return success;
 }
 
-bool SubstitutionTree::UnificationsIterator::associate(TermList query, TermList node, BacktrackData& bd)
+bool SubstitutionTree::UnificationsIterator::associate(TermList query, TermList node, BacktrackData& bd, bool& foAssoc)
 {
   CALL("SubstitutionTree::UnificationsIterator::associate");
 
-  bool result;
-  if(env.options->combinatoryUnification()){
-    result = subst.filter(query,NORM_QUERY_BANK,node,NORM_RESULT_BANK);
-  } else {
-    result = subst.unify(query,NORM_QUERY_BANK,node,NORM_RESULT_BANK);
-  }
+  bool result = subst.unify(query,NORM_QUERY_BANK,node,NORM_RESULT_BANK,foAssoc);
 
 #if VDEBUG
   if(tag && result){

@@ -202,7 +202,12 @@ struct Superposition::ApplicableCombRewritesFn
   
   DECL_RETURN_TYPE(VirtualIterator<QueryResType>);
   OWN_RETURN_TYPE operator() (QueryResType arg){
-    return pvi(CombResultIterator(arg));
+    //subsitution is a smartPtr to a ResultSubstituion object. 
+    if(!arg.second.substitution.isEmpty()){
+      return pvi(getSingletonIterator(arg));
+    } else {
+      return pvi(CombResultIterator(arg));
+    }
   } 
 };
 
@@ -215,7 +220,7 @@ struct Superposition::ForwardResultFn
     CALL("Superposition::ForwardResultFn::operator()");
     
     TermQueryResult& qr = arg.second;
-    if(!env.options->combinatoryUnification()){
+    if(!qr.substitution->isCombSubs()){
       return _parent.performSuperposition(_cl, arg.first.first, arg.first.second,
         qr.clause, qr.literal, qr.term, qr.substitution, true, _limits, qr.constraints);
     } else {
@@ -243,7 +248,7 @@ struct Superposition::BackwardResultFn
     }
 
     TermQueryResult& qr = arg.second;
-    if(!env.options->combinatoryUnification()){
+    if(!qr.substitution->isCombSubs()){
       return _parent.performSuperposition(qr.clause, qr.literal, qr.term,
         _cl, arg.first.first, arg.first.second, qr.substitution, false, _limits, qr.constraints);
     } else {
@@ -267,7 +272,6 @@ ClauseIterator Superposition::generateClauses(Clause* premise)
 
   //TODO probably shouldn't go here!
   static bool withConstraints = env.options->unificationWithAbstraction()!=Options::UnificationWithAbstraction::OFF;
-
 
   auto itf1 = premise->getSelectedLiteralIterator();
 
@@ -513,11 +517,11 @@ Clause* Superposition::performSuperposition(
   ASS(rwClause->store()==Clause::ACTIVE);
   ASS(eqClause->store()==Clause::ACTIVE);
 
- 
-  //cout << "performSuperposition with " << rwClause->toString() << " and " << eqClause->toString() << endl;
-  //cout << "rwTerm " << rwTerm.toString() << endl;
-  //cout << "eqLHSS " << eqLHS.toString()  << endl;
-  //cout << "substitution " << subst->tryGetCombSubstitution()->toString() << endl;
+
+  cout << "performSuperposition with " << rwClause->toString() << " and " << eqClause->toString() << endl;
+  cout << "rwTerm " << rwTerm.toString() << endl;
+  cout << "eqLHSS " << eqLHS.toString()  << endl;
+  //cout << "substitution " << subst->tryGetRobSubstitution()->toString() << endl;
 
   // the first checks the reference and the second checks the stack
 /*
@@ -787,7 +791,7 @@ Clause* Superposition::performSuperposition(
     //NOT_IMPLEMENTED;
   }
 */
- // cout << "reached here with clause: " + res->toString() << endl;
+  cout << "The Sup result is : " + res->toString() << endl;
 
   return res;
 }
@@ -808,8 +812,9 @@ Clause* Superposition::performParamodulation(
   ASS(eqClause->store()==Clause::ACTIVE);
 
  
-  //cout << "performParamodulation with " << rwClause->toString() << " and " << eqClause->toString() << endl;
-  //cout << "rwTerm " << rwTerm.toString() << " eqLHSS " << eqLHS.toString() << endl;
+  cout << "performParamodulatio with " << rwClause->toString() << " and " << eqClause->toString() << endl;
+  cout << "rwTerm " << rwTerm.toString() << endl;
+  cout << "eqLHSS " << eqLHS.toString() << endl;
   //cout << "substitution " + subst->tryGetCombSubstitution()->toString();
 
   unsigned sort = SortHelper::getEqualityArgumentSort(eqLit);
@@ -988,7 +993,7 @@ Clause* Superposition::performParamodulation(
   }
 */
 
-  //cout << "The result is : " + res->toString() << endl;
+  cout << "The Par result is : " + res->toString() << endl;
 
   return res;
 }

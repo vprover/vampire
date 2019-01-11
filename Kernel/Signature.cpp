@@ -218,6 +218,7 @@ Signature::Signature ():
     _integers(0),
     _rationals(0),
     _reals(0),
+    _isHigherOrderSig(0),
     _termAlgebras()
 {
   CALL("Signature::Signature");

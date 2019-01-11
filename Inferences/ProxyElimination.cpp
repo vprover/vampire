@@ -358,8 +358,10 @@ Clause* ProxyElimination::replaceLit2(Clause *c, Literal *a, Literal *b, Inferen
 
 Clause* ProxyElimination::ORIMPANDRemovalISE::simplify(Clause* c)
   {
-    CALL("ORIMPRemovalISE::simplify");
+    CALL("ORIMPANDRemovalISE::simplify");
   
+    //cout << "Attempting to simplify" + c->toString() << endl;
+
     int length = c->length();
     for (int i = length - 1; i >= 0; i--) {
       TermList lhs1, rhs1, lhs2, rhs2;
@@ -380,7 +382,7 @@ Clause* ProxyElimination::ORIMPANDRemovalISE::simplify(Clause* c)
  
 Clause* ProxyElimination::ORIMPANDRemovalISE2::simplify(Clause* c)
 {
-  CALL("ORIMPRemovalISE2::simplify");   
+  CALL("ORIMPANDRemovalISE2::simplify");   
 
   TermList subterm;
   TermList newTerm;

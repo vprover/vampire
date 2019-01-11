@@ -806,7 +806,7 @@ public:
     QueryResult next();
     bool tag;
   protected:
-    virtual bool associate(TermList query, TermList node, BacktrackData& bd);
+    virtual bool associate(TermList query, TermList node, BacktrackData& bd, bool& foAssoc);
     virtual NodeIterator getNodeIterator(IntermediateNode* n);
 
     void createInitialBindings(Term* t);
@@ -818,6 +818,13 @@ public:
     bool findNextLeaf();
     bool enter(Node* n, BacktrackData& bd);
 
+    bool fo(const Stack<bool>& entrances){
+      bool res = true;
+      for(unsigned i = 0; i < entrances.size(); i++){
+        res = res && entrances[i]; //minor efficiency gain to be made here by returning as soon as res becomes false
+      }
+      return res;
+    }
 
     static const int QUERY_BANK=0;
     static const int RESULT_BANK=1;
@@ -832,6 +839,7 @@ public:
     bool retrieveSubstitution;
     bool inLeaf;
     LDIterator ldIterator;
+    Stack<bool> nodeEntrances;
     Stack<NodeIterator> nodeIterators;
     Stack<BacktrackData> bdStack;
     bool clientBDRecording;

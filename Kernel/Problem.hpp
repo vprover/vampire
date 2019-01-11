@@ -121,7 +121,6 @@ public:
   bool hasInterpretedEquality() const;
   /** Problem contains let terms or formulas, or term if-then-else */
   bool hasFOOL() const;
-  bool higherOrder() const;
 
   bool mayHaveEquality() const { return _mayHaveEquality; }
   bool mayHaveFormulas() const { return _mayHaveFormulas; }
@@ -226,7 +225,6 @@ private:
   mutable MaybeBool _hasEquality;
   mutable MaybeBool _hasInterpretedOperations;
   mutable MaybeBool _hasFOOL;
-  mutable MaybeBool _higherOrder;
   mutable MaybeBool _hasInterpretedEquality;
 
   SMTLIBLogic _smtlibLogic;

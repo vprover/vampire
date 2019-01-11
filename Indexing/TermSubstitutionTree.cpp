@@ -125,41 +125,43 @@ TermQueryResultIterator TermSubstitutionTree::getUnifications(TermList t,
     return getAllUnifyingIterator(t,retrieveSubstitutions,false);
   } else {
     ASS(t.isTerm());
-    if(_vars.isEmpty()) {
-      // false here means without constraints
+
+    Term* term;
+
+    if(_usePlcHlds){
+      term = toPlaceHolders(t.term());
+    } else {
+      term = t.term();
+    }
+
+    // false here means without constraints
+    auto it1 = getResultIterator<UnificationsIterator>(term, retrieveSubstitutions,false);
+    if(_vars.isEmpty()) { 
       if(!_usePlcHlds){
-        return getResultIterator<UnificationsIterator>(t.term(), retrieveSubstitutions,false);
+        return it1;
       } else {
         unsigned sort = SortHelper::getResultSort(t.term());
         if(_placeHolders.find(sort)){
           LDSkipList* lds = _placeHolders.get(sort);
-          auto it1 = ldIteratorToTQRIterator(LDSkipList::RefIterator(*lds), t, false,false);
-          auto it2 = getResultIterator<UnificationsIterator>(t.term(), false,false);
+          auto it2 = ldIteratorToTQRIterator(LDSkipList::RefIterator(*lds), t, false,false);
           return pvi( getConcatenatedIterator(it1, it2));        
         } else {
-          return getResultIterator<UnificationsIterator>(t.term(), false, false);
+          return it1;
         }
       }
     } else {
+      auto it2 = ldIteratorToTQRIterator(LDSkipList::RefIterator(_vars), t, retrieveSubstitutions,false);
+      auto it3 = getConcatenatedIterator(it1, it2);
       if(!_usePlcHlds){
-        return pvi( getConcatenatedIterator(
-            // false here means without constraints
-        ldIteratorToTQRIterator(LDSkipList::RefIterator(_vars), t, retrieveSubstitutions,false),
-              // false here means without constraints
-        getResultIterator<UnificationsIterator>(t.term(), retrieveSubstitutions,false)) );
+        return pvi( it3 );
       } else {
         unsigned sort = SortHelper::getResultSort(t.term());
         if(_placeHolders.find(sort)){
           LDSkipList* lds = _placeHolders.get(sort);
-          auto it1 = ldIteratorToTQRIterator(LDSkipList::RefIterator(*lds), t, false,false);
-          auto it2 = getResultIterator<UnificationsIterator>(t.term(), false,false);
-          auto it3 = getConcatenatedIterator(it1, it2);
-          auto it4 = ldIteratorToTQRIterator(LDSkipList::RefIterator(_vars), t, false,false);
+          auto it4 = ldIteratorToTQRIterator(LDSkipList::RefIterator(*lds), t, false,false);
           return pvi( getConcatenatedIterator(it3, it4));        
         } else {
-          auto it1 = getResultIterator<UnificationsIterator>(t.term(), false,false);
-          auto it2 = ldIteratorToTQRIterator(LDSkipList::RefIterator(_vars), t, false,false);
-          return pvi( getConcatenatedIterator(it1, it2));  
+          return pvi( it3 );  
         }
       }
     }

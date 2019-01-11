@@ -202,11 +202,11 @@ void Preprocess::preprocess(Problem& prb)
     }
   }
 
-  if (prb.hasFOOL() || prb.higherOrder()) {
+  if (prb.hasFOOL() || env.signature->higherOrderSig()) {
     // This is the point to extend the signature with $$true and $$false
     // If we don't have fool then these constants get in the way (a lot)
 
-    if (!_options.newCNF() || prb.higherOrder()) { 
+    if (!_options.newCNF() || env.signature->higherOrderSig()) { 
       //Quick and nasty way of getting around the fact that newCNF has not been
       //updated to handle HOL.
       if (env.options->showPreprocessing())
@@ -217,7 +217,7 @@ void Preprocess::preprocess(Problem& prb)
       
       FOOLElimination().apply(prb);
       
-      if(prb.higherOrder()){
+      if(env.signature->higherOrderSig()){
         if(env.options->functionExtensionality()){
           LambdaElimination().addFunctionExtensionalityAxioms(prb.units());
         }
@@ -303,7 +303,7 @@ void Preprocess::preprocess(Problem& prb)
     preprocess2(prb);
   }
 
-  if (prb.mayHaveFormulas() && _options.newCNF() && !prb.higherOrder()) {
+  if (prb.mayHaveFormulas() && _options.newCNF() && !env.signature->higherOrderSig()){
   	//Quick and nasty way of getting around the fact that newCNF has not been
     //updated to handle HOL.
     if (env.options->showPreprocessing())
@@ -355,7 +355,7 @@ void Preprocess::preprocess(Problem& prb)
   // Find instances of defined equality and 
   // converting to primitive equality. Note that the origianl clauses
   // are left in place
-  if(prb.higherOrder()){
+  if(env.signature->higherOrderSig()){
     if (env.options->showPreprocessing()){
       env.out() << "defined equality conversion" << std::endl;
     }
@@ -503,7 +503,7 @@ void Preprocess::preprocess1 (Problem& prb)
     fu = Rectify::rectify(fu);
     FormulaUnit* rectFu = fu;
     // Simplify the formula if it contains true or false
-    if (!_options.newCNF() || prb.higherOrder()) {
+    if (!_options.newCNF() || env.signature->higherOrderSig()) {
       //Quick and nasty way of getting around the fact that newCNF has not been
       //updated to handle HOL.
     	

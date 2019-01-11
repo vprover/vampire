@@ -305,7 +305,6 @@ void Problem::readDetailsFromProperty() const
   _hasFormulas = _property->hasFormulas();
   _hasEquality = _property->equalityAtoms()!=0;
   _hasInterpretedOperations = _property->hasInterpretedOperations();
-  _higherOrder = _property->higherOrder();
   _hasFOOL = _property->hasFOOL();
   _hasInterpretedEquality = _property->hasInterpretedEquality();
 
@@ -412,13 +411,6 @@ bool Problem::hasFOOL() const
   return _hasFOOL.value();
 }
 
-bool Problem::higherOrder() const
-{
-  CALL("Problem::higherOrder");
-
-  if(!_higherOrder.known()) { refreshProperty(); }
-  return _higherOrder.value();
-}
 
 ///////////////////////
 // utility functions

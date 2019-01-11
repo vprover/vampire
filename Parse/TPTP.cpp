@@ -132,6 +132,9 @@ void TPTP::parse()
       break;
     case THF:
       if(env.options->arityCheck()){ USER_ERROR("thf depends on arity_check being off");};
+      //Setting signture to higher-order has the effect
+      //of causing newCNF not to be run
+      env.signature->setToHigherOrder();
       _isThf = true;
     case TFF:
       _isFof = false;
@@ -1697,6 +1700,10 @@ void TPTP::endHolTerm()
   
   vstring name = _strings.pop();
 
+  if(name.at(0) == '$'){
+    USER_ERROR("vampire higher-order is currently not compatible with theory reasoning");
+  }
+
   if (name == toString(T_ITE)) {//TODO update for HOL -AYB
     _states.push(END_ITE);
     return;
@@ -1980,7 +1987,9 @@ void TPTP::endApp()
   TermList lhs = _termLists.pop();
   unsigned domainSort, rangeSort, lhsSort;
   lhsSort = sortOf(lhs);
+
   Sorts::FunctionSort* fs = env.sorts->getFuncSort(lhsSort);
+
   domainSort = fs->getDomainSort();
   rangeSort = fs->getRangeSort();
   if(domainSort != sortOf(rhs)) {
@@ -4012,33 +4021,33 @@ void TPTP::simpleType()
  
 unsigned TPTP::readHOLSort()
 {
-   CALL("TPTP::readHOLSort");
+  CALL("TPTP::readHOLSort");
 
-   int inBrackets = 0;
-   Stack<int> subSorts;
-   Token tok = getTok(0);
-   unsigned sort;
-   while((tok.tag != T_COMMA) & (tok.tag != T_RBRA)){
-       switch(tok.tag){
-           case T_LPAR: //This will need changing when we read tuple types - AYB
-              subSorts.push(-1);
-              inBrackets += 1;
-              break;
-           case T_ARROW:
-              break;
-           case T_RPAR:
-              inBrackets -= 1;
-              if(inBrackets < 0){_gpos = 0; goto afterWhile;}
-              foldl(&subSorts);
-              break;
-           default:{
-              sort = readSort();
-              subSorts.push(sort);               
-           }
-       }
-       resetToks();
-       tok = getTok(0);
-   }
+  int inBrackets = 0;
+  Stack<int> subSorts;
+  Token tok = getTok(0);
+  unsigned sort;
+  while((tok.tag != T_COMMA) & (tok.tag != T_RBRA)){
+    switch(tok.tag){
+      case T_LPAR: //This will need changing when we read tuple types - AYB
+        subSorts.push(-1);
+        inBrackets += 1;
+        break;
+      case T_ARROW:
+        break;
+      case T_RPAR:
+        inBrackets -= 1;
+        if(inBrackets < 0){_gpos = 0; goto afterWhile;}
+          foldl(&subSorts);
+          break;
+      default:{
+        sort = readSort();
+        subSorts.push(sort);               
+      }
+    }
+    resetToks();
+    tok = getTok(0);
+  }
 afterWhile:
    if(subSorts.size() != 1){
        foldl(&subSorts);
@@ -4141,6 +4150,9 @@ unsigned TPTP::readSort()
     }
     consumeToken(T_RPAR);
     return sort;
+  }
+  case T_THF_QUANT_ALL: {
+    USER_ERROR("polymorphic types not supported");
   }
   default:
     PARSE_ERROR("sort expected",tok);

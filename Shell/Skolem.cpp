@@ -421,7 +421,7 @@ Formula* Skolem::skolemise (Formula* f)
        
         Term* skolemTerm;
 
-        if(!env.property->higherOrder()){
+        if(!env.signature->higherOrderSig()){
           unsigned fun = addSkolemFunction(arity, domainSorts.begin(), rangeSort, v);
           _introducedSkolemFuns.push(fun);
           skolemTerm = Term::create(fun, arity, fnArgs.begin());

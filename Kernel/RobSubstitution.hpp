@@ -58,13 +58,9 @@ public:
 	  Literal* instance, int instanceIndex, bool complementary);
   SubstIterator unifiers(Literal* l1, int l1Index, Literal* l2, int l2Index, bool complementary);
 
-  bool unify(TermList t1,int index1, TermList t2, int index2);
   bool match(TermList base,int baseIndex, TermList instance, int instanceIndex);
-  /**
-   * Takes two terms t1 and t2. If they can possibly be unified
-   * using combinatory unification, returns true. Otherwise rteurns false
-   */
-  bool filter(TermList t1,int index1, TermList t2, int index2);
+  bool unify(TermList t1,int index1, TermList t2, int index2, bool &fo);
+  bool unify(TermList t1,int index1, TermList t2, int index2);
 
   bool unifyArgs(Term* t1,int index1, Term* t2, int index2);
   bool matchArgs(Term* base,int baseIndex, Term* instance, int instanceIndex);
@@ -114,6 +110,11 @@ public:
   size_t size() const {return _bank.size(); }
 #endif
 
+/*
+  void setFirstOrder() { _firstOrder = true; }
+  void unsetFirstOrder() { _firstOrder = false; }
+  bool firstOrder() { return _firstOrder; }
+*/
 
   /** Specifies instance of a variable (i.e. (variable, variable bank) pair) */
   struct VarSpec
@@ -235,18 +236,31 @@ private:
   void bindVar(const VarSpec& var, const VarSpec& to);
   VarSpec root(VarSpec v) const;
   bool match(TermSpec base, TermSpec instance);
-  bool unify(TermSpec t1, TermSpec t2);
-  bool filter(TermSpec t1, TermSpec t2);
+  bool unify(TermSpec t1, TermSpec t2, bool& fo);
   bool handleDifferentTops(TermSpec t1, TermSpec t2, Stack<TTPair>& toDo, TermList* ct);
   void makeEqual(VarSpec v1, VarSpec v2, TermSpec target);
   void unifyUnbound(VarSpec v, TermSpec ts);
   bool occurs(VarSpec vs, TermSpec ts);
-  
+
   /**
    * Returns true if the termspec t1 is wrapping a placeholder term
    */
   bool isPlaceHolderTerm(TermSpec ts);
+  /*
+   * This function ought to be temporary. For the moment, it required
+   * because to bind a variable to a term t1, t1 cannot have #s in it, otherwise
+   * these will leak. 
+   *
+   * In the future, must fix, so that it is OK for #s below or at variables to 
+   * leak
+   */
+  bool containsPlaceHolderSubterm(TermSpec ts);
   
+  /**
+   * true if the substitution represented by this object is a first-order substitution
+   */
+  //bool _firstOrder;
+
   VarSpec getAuxVar(VarSpec target)
   {
     CALL("RobSubstitution::getAuxVar");

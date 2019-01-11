@@ -134,7 +134,7 @@ struct URResolution::Item
   void resolveLiteral(unsigned idx, SLQueryResult& unif, Clause* premise, bool useQuerySubstitution)
   {
     CALL("URResolution::Item::resolveLiteral");
-
+     
     _lits[idx] = 0;
     _premises[idx] = premise;
     _color = static_cast<Color>(_color | premise->color());
@@ -151,6 +151,7 @@ struct URResolution::Item
       if(!lit) {
         continue;
       }
+
       lit = unif.substitution->apply(lit, !useQuerySubstitution);
       if(!lit->ground()) {
 	nonGroundCnt++;

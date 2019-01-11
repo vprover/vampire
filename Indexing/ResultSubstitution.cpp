@@ -94,6 +94,8 @@ public:
   TermList applyToResult(TermList t, int sort) 
   { return _subst->apply(t,_resultBank, sort); }
 
+  bool isCombSubs() { return true; }
+
   CombSubstitution* tryGetCombSubstitution() { return _subst; }
 
 private:

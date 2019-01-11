@@ -565,6 +565,9 @@ class Signature
 
   static bool symbolNeedsQuoting(vstring name, bool interpreted, unsigned arity);
 
+  bool higherOrderSig(){ return _isHigherOrderSig; }
+  void setToHigherOrder(){ _isHigherOrderSig = true; }
+
 private:
   Stack<TermList> _dividesNvalues;
 
@@ -622,6 +625,9 @@ private:
   unsigned _rationals;
   /** the number of real constants */
   unsigned _reals;
+
+  /** true if this signature is for a higher-order problem **/
+  bool _isHigherOrderSig;
 
   /**
    * Map from sorts to the associated term algebra, if applicable for the sort

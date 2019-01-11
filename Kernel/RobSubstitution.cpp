@@ -63,23 +63,22 @@ const int RobSubstitution::SPECIAL_INDEX=-2;
 const int RobSubstitution::UNBOUND_INDEX=-1;
 
 /**
- * Unify @b t1 and @b t2, and return true iff it was successful.
+ * If @b t1 and @b t2 can possibly be unified by Robinson's unif
+ * or possibly unified by combinatory unif, returns true
  */
-bool RobSubstitution::unify(TermList t1,int index1, TermList t2, int index2)
+bool RobSubstitution::unify(TermList t1,int index1, TermList t2, int index2, bool& fo)
 {
-  CALL("RobSubstitution::unify/4");
-  return unify(TermSpec(t1,index1), TermSpec(t2,index2));
+  CALL("RobSubstitution::unify");
+  return unify(TermSpec(t1,index1), TermSpec(t2,index2), fo);
 }
 
-/**
- * If @b t1 and @b t2 can possibly be unified using combinatory unficition,
- * return true. Otherwise return false.
- */
-bool RobSubstitution::filter(TermList t1,int index1, TermList t2, int index2)
+bool RobSubstitution::unify(TermList t1,int index1, TermList t2, int index2)
 {
-  CALL("RobSubstitution::filter");
-  return filter(TermSpec(t1,index1), TermSpec(t2,index2));
+  CALL("RobSubstitution::unify");
+  bool dummy = true;
+  return unify(TermSpec(t1,index1), TermSpec(t2,index2), dummy);
 }
+
 
 /**
  * Unify arguments of @b t1 and @b t2, and return true iff it was successful.
@@ -93,7 +92,8 @@ bool RobSubstitution::unifyArgs(Term* t1,int index1, Term* t2, int index2)
 
   TermList t1TL(t1);
   TermList t2TL(t2);
-  return unify(TermSpec(t1TL,index1), TermSpec(t2TL,index2));
+  bool dummy = true;  
+  return unify(TermSpec(t1TL,index1), TermSpec(t2TL,index2), dummy);
 }
 
 bool RobSubstitution::match(TermList base,int baseIndex,
@@ -339,126 +339,10 @@ bool RobSubstitution::occurs(VarSpec vs, TermSpec ts)
   }
 }
 
-bool RobSubstitution::unify(TermSpec t1, TermSpec t2)
+//should be able to merge filtering with unifying
+bool RobSubstitution::unify(TermSpec t1, TermSpec t2, bool& fo)
 {
   CALL("RobSubstitution::unify/2");
-
-  if(t1.sameTermContent(t2)) {
-    return true;
-  }
-
-  bool mismatch=false;
-  BacktrackData localBD;
-  bdRecord(localBD);
-
-  static Stack<TTPair> toDo(64);
-  static Stack<TermList*> subterms(64);
-  ASS(toDo.isEmpty() && subterms.isEmpty());
-
-  typedef DHSet<TTPair,TTPairHash> EncStore;
-  EncStore encountered;
-  encountered.reset();
-
-  for(;;) {
-    TermSpec dt1=derefBound(t1);
-    TermSpec dt2=derefBound(t2);
-
-    if(dt1.sameTermContent(dt2)) {
-    } else if(dt1.isVar()) {
-      VarSpec v1=getVarSpec(dt1);
-      if(occurs(v1, dt2)) {
-	      mismatch=true;
-        break;
-      }
-      bind(v1,dt2);
-    } else if(dt2.isVar()) {
-      VarSpec v2=getVarSpec(dt2);
-      if(occurs(v2, dt1)) {
-        mismatch=true;
-        break;
-      }
-      bind(v2,dt1);
-    } else {
-      TermList* ss=&dt1.term;
-      TermList* tt=&dt2.term;
-
-      for (;;) {
-        TermSpec tsss(*ss,dt1.index);
-        TermSpec tstt(*tt,dt2.index);
-
-        if (!tsss.sameTermContent(tstt) && TermList::sameTopFunctor(*ss,*tt)) {
-          ASS(ss->isTerm() && tt->isTerm());
-
-          Term* s = ss->term();
-          Term* t = tt->term();
-          ASS(s->arity() > 0);
-          ASS(s->functor() == t->functor());
-
-          ss = s->args();
-          tt = t->args();
-          if (! ss->next()->isEmpty()) {
-            subterms.push(ss->next());
-            subterms.push(tt->next());
-          }
-        } else {
-          if (! TermList::sameTopFunctor(*ss,*tt)) {
-            if(ss->isVar()||tt->isVar()) {
-              TTPair itm(tsss,tstt);
-              if((itm.first.isVar() && isUnbound(getVarSpec(itm.first))) ||
-                (itm.second.isVar() && isUnbound(getVarSpec(itm.second))) ) {
-                toDo.push(itm);
-              } else if(!encountered.find(itm)) {
-                toDo.push(itm);
-                encountered.insert(itm);
-              }
-            } else {
-              mismatch=true;
-              break;
-            }
-          }
-
-          if (subterms.isEmpty()) {
-            break;
-          }
-          tt = subterms.pop();
-          ss = subterms.pop();
-          if (! ss->next()->isEmpty()) {
-            subterms.push(ss->next());
-            subterms.push(tt->next());
-          }
-        }
-      }
-    }
-
-    if(toDo.isEmpty()) {
-      break;
-    }
-    t1=toDo.top().first;
-    t2=toDo.pop().second;
-  }
-
-  if(mismatch) {
-    subterms.reset();
-    toDo.reset();
-  }
-
-  bdDone();
-
-  if(mismatch) {
-    localBD.backtrack();
-  } else {
-    if(bdIsRecording()) {
-      bdCommit(localBD);
-    }
-    localBD.drop();
-  }
-
-  return !mismatch;
-}
-
-bool RobSubstitution::filter(TermSpec t1, TermSpec t2)
-{
-  CALL("RobSubstitution::filter/2");
 
   if(t1.sameTermContent(t2)) {
     return true;
@@ -483,12 +367,17 @@ bool RobSubstitution::filter(TermSpec t1, TermSpec t2)
     //cout << "unifying termspec " + dt1.toString() + " with termspec " + dt2.toString() << endl;
 
     //This does not work for EqResolution
-    if(dt1.sameTermContent(dt2) || isPlaceHolderTerm(dt1) || isPlaceHolderTerm(dt2)){
+    if (isPlaceHolderTerm(dt1)  || isPlaceHolderTerm(dt2)) {
+      fo = false;
+    }else if(dt1.sameTermContent(dt2)){
     } else if(dt1.isVar()) {
       VarSpec v1=getVarSpec(dt1);
       if(occurs(v1, dt2)) {
         mismatch=true;
         break;
+      }
+      if(containsPlaceHolderSubterm(dt2)){
+        fo = false;
       }
       bind(v1,dt2);
     } else if(dt2.isVar()) {
@@ -497,8 +386,13 @@ bool RobSubstitution::filter(TermSpec t1, TermSpec t2)
         mismatch=true;
         break;
       }
+      //not very graceful, harming performance of first-order version with checking
+      //but ought to only be temporary
+      if(containsPlaceHolderSubterm(dt1)){
+        fo = false;
+      }
       bind(v2,dt1);
-    }else{
+    } else{
       TermList* ss=&dt1.term;
       TermList* tt=&dt2.term;
 
@@ -507,6 +401,8 @@ bool RobSubstitution::filter(TermSpec t1, TermSpec t2)
         TermSpec tstt(*tt,dt2.index);
 
         bool bypassTests = (isPlaceHolderTerm(tsss) || isPlaceHolderTerm(tstt));
+
+        if(bypassTests){ fo = false; }
 
         if (!tsss.sameTermContent(tstt) && TermList::sameTopFunctor(*ss,*tt) && !bypassTests) {
           ASS(ss->isTerm() && tt->isTerm());
@@ -592,6 +488,27 @@ bool RobSubstitution::isPlaceHolderTerm(TermSpec ts){
   ASS(tl.isTerm());
   Signature::Symbol* sym = env.signature->getFunction(tl.term()->functor());
   return sym->isPlaceHolder() ? true : false; 
+}
+
+bool RobSubstitution::containsPlaceHolderSubterm(TermSpec ts){
+  CALL("RobSubstitution::containsPlaceHolderSubterm");
+
+  if(ts.isVar()){
+    return false;
+  }
+  TermList tl = ts.term;
+  ASS(tl.isTerm());
+  SubtermIterator stit(tl.term());
+  while(stit.hasNext()) {
+    tl = stit.next();
+    if(tl.isTerm()){
+      Signature::Symbol* sym = env.signature->getFunction(tl.term()->functor());
+      if(sym->isPlaceHolder()){
+        return true;
+      }
+    }
+  }
+  return false;
 }
 
 /**
