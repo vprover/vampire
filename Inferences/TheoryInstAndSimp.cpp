@@ -336,8 +336,10 @@ void TheoryInstAndSimp::selectTheoryLiterals(Clause* cl, Stack<Literal*>& theory
   cout << "selectTheoryLiterals in " << cl->toString() << endl;
 #endif
 
+#if VDEBUG
   static Shell::Options::TheoryInstSimp selection = env.options->theoryInstAndSimp();
   ASS(selection!=Shell::Options::TheoryInstSimp::OFF);
+#endif
 
   //  Stack<Literal*> pure_lits;
   Stack<Literal*> trivial_lits;
@@ -617,6 +619,17 @@ Term* getFreshConstant(unsigned index, unsigned srt)
 VirtualIterator<Solution> TheoryInstAndSimp::getSolutions(Stack<Literal*>& theoryLiterals, bool guarded){
   CALL("TheoryInstAndSimp::getSolutions");
 
+ Solution sol(false);
+ if(getSingleZ3Solution(theoryLiterals,sol,guarded)){
+   return pvi(getSingletonIterator(sol));
+ }
+ return VirtualIterator<Solution>::getEmpty();
+
+}
+
+bool TheoryInstAndSimp::getSingleZ3Solution(Stack<Literal*>& theoryLiterals, Solution& sol, bool guarded){
+  CALL("TheoryInstAndSimp::getSingleZ3Solution");
+
   BYPASSING_ALLOCATOR;
 
   // Currently we just get the single solution from Z3
@@ -680,7 +693,7 @@ VirtualIterator<Solution> TheoryInstAndSimp::getSolutions(Stack<Literal*>& theor
       solver.addClause(sc,guarded);
     }
     catch(UninterpretedForZ3Exception){
-      return VirtualIterator<Solution>::getEmpty();
+      return false;
     }
   }
 
@@ -691,10 +704,11 @@ VirtualIterator<Solution> TheoryInstAndSimp::getSolutions(Stack<Literal*>& theor
 #if DPRINT
     cout << "z3 says unsat" << endl;
 #endif
-    return pvi(getSingletonIterator(Solution(false)));
+    sol.status = false;
+    return true; 
   }
   else if(status == SATSolver::SATISFIABLE){
-    Solution sol = Solution(true);
+    sol.status = true;
     Stack<unsigned>::Iterator vit(vars);
     while(vit.hasNext()){
       unsigned v = vit.next();
@@ -715,7 +729,7 @@ VirtualIterator<Solution> TheoryInstAndSimp::getSolutions(Stack<Literal*>& theor
 #if DPRINT
     cout << "solution with " << sol.subst.toString() << endl;
 #endif
-    return pvi(getSingletonIterator(sol));
+    return true; 
   }
 
   fail:
@@ -724,8 +738,15 @@ VirtualIterator<Solution> TheoryInstAndSimp::getSolutions(Stack<Literal*>& theor
 #endif
 
   // SMT solving was incomplete
-  return VirtualIterator<Solution>::getEmpty();
+  return false; 
 
+}
+
+bool TheoryInstAndSimp::getSingleGaussianEliminationSolution(Stack<Literal*>& theoryLiterals,Solution& sol){
+  CALL("TheoryInstAndSimp::getSingleGaussianEliminationSolution");
+
+
+  return false;
 }
 
 

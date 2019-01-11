@@ -39,7 +39,7 @@ using namespace Saturation;
 
 struct Solution{
   Solution(bool s) : status(s) {}
-  const bool status;
+  bool status;
   Substitution subst;
 };
 
@@ -63,6 +63,8 @@ public:
   VirtualIterator<Solution> getSolutions(Stack<Literal*>& theoryLiterals,bool guarded=true);
 
 private:
+  bool getSingleZ3Solution(Stack<Literal*>& theoryLiterals,Solution& sol,bool guarded);
+  bool getSingleGaussianEliminationSolution(Stack<Literal*>& theoryLiterals,Solution& sol);
 
   void selectTheoryLiterals(Clause* cl, Stack<Literal*>& theoryLits);
 
