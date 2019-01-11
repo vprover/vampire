@@ -79,8 +79,6 @@ public:
     T_COMMA,
     /** ':' */
     T_COLON,
-    /** ';' */
-    T_SEMICOLON,
     /** '~' */
     T_NOT,
     /** '&' */
@@ -251,14 +249,19 @@ public:
     MID_EQ,
     /** end of $let expression */
     END_LET,
-    /** start of function or predicate binding inside $let */
-    BINDING,
-    /** start of tuple binding inside $let */
-    TUPLE_BINDING,
-    /** end of function or predicate binding inside $let */
-    END_BINDING,
-    /** end of tuple binding inside $let */
-    END_TUPLE_BINDING,
+    /** a type signature in a let expression */
+    LET_TYPE,
+    /** end of let type signature */
+    END_LET_TYPES,
+    /** start of a binding inside $let */
+    DEFINITION,
+    MID_DEFINITION,
+    /** end of a definition inside $let */
+    END_DEFINITION,
+    /** start of a definition of a function or predicate symbol */
+    SYMBOL_DEFINITION,
+    /** start of tuple definition inside $let */
+    TUPLE_DEFINITION,
     /** end of a theory function */
     END_THEORY_FUNCTION
   };
@@ -577,25 +580,31 @@ private:
   Set<vstring> _overflow;
   /** current color, if the input contains colors */
   Color _currentColor;
-  /** a function name and arity */
-  typedef pair<vstring, unsigned> LetFunctionName;
-  /** a symbol number with a predicate/function flag */
-  typedef pair<unsigned, bool> LetFunctionReference;
-  /** a definition of a function symbol, defined in $let */
-  typedef pair<LetFunctionName, LetFunctionReference> LetFunction;
-  /** a scope of function definitions */
-  typedef Stack<LetFunction> LetFunctionsScope;
-  /** a stack of scopes */
-  Stack<LetFunctionsScope> _letScopes;
-  /** finds if the symbol has been defined in an enclosing $let */
-  bool findLetSymbol(bool isPredicate, vstring name, unsigned arity, unsigned& symbol);
-  /** the scope of the currently parsed $let-term */
-  LetFunctionsScope _currentLetScope;
 
-  typedef pair<unsigned, bool> LetBinding;
-  typedef Stack<LetBinding> LetBindingScope;
-  Stack<LetBindingScope> _letBindings;
-  LetBindingScope _currentBindingScope;
+  /** a function name and arity */
+  typedef pair<vstring, unsigned> LetSymbolName;
+
+  /** a symbol number with a predicate/function flag */
+  typedef pair<unsigned, bool> LetSymbolReference;
+  #define SYMBOL(ref) (ref.first)
+  #define IS_PREDICATE(ref) (ref.second)
+
+  /** a definition of a function symbol, defined in $let */
+  typedef pair<LetSymbolName, LetSymbolReference> LetSymbol;
+
+  /** a scope of function definitions */
+  typedef Stack<LetSymbol> LetSymbols;
+
+  /** a stack of scopes */
+  Stack<LetSymbols> _letSymbols;
+  Stack<LetSymbols> _letTypedSymbols;
+
+  /** finds if the symbol has been defined in an enclosing $let */
+  bool findLetSymbol(LetSymbolName symbolName, LetSymbolReference& symbolReference);
+  bool findLetSymbol(LetSymbolName symbolName, LetSymbols scope, LetSymbolReference& symbolReference);
+
+  typedef Stack<LetSymbolReference> LetDefinitions;
+  Stack<LetDefinitions> _letDefinitions;
 
   /** model definition formula */
   bool _modelDefinition;
@@ -710,7 +719,8 @@ private:
   void simpleType();
   void args();
   void varList();
-  void tupleBinding();
+  void symbolDefinition();
+  void tupleDefinition();
   void term();
   void termInfix();
   void endTerm();
@@ -732,9 +742,11 @@ private:
   void include();
   void type();
   void endIte();
-  void binding();
-  void endBinding();
-  void endTupleBinding();
+  void letType();
+  void endLetTypes();
+  void definition();
+  void midDefinition();
+  void endDefinition();
   void endLet();
   void endTheoryFunction();
   void endTuple();
@@ -757,6 +769,8 @@ private:
   static bool higherPrecedence(int c1,int c2);
 
   bool findInterpretedPredicate(vstring name, unsigned arity);
+
+  OperatorType* constructOperatorType(Type* t);
 
 public:
   // make the tptp routines for dealing with overflown constants available to other parsers
