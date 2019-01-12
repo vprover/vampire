@@ -65,6 +65,14 @@ void TermSubstitutionTree::handleTerm(TermList t, Literal* lit, Clause* cls, boo
 {
   CALL("TermSubstitutionTree::handleTerm");
   
+  if(cls->number() == 27){
+   if(tag){
+    if(insert){ cout << "inserting" << endl; } else { cout << "removing" << endl; }
+    cout << "inserting " + cls->toString() + " into tree " << endl;
+    cout << "the maximal term is " + t.toString() << endl;
+   }
+  }
+
   LeafData ld(cls, lit, t);
   if(t.isOrdinaryVar()) {
     if(insert) {
@@ -121,6 +129,21 @@ TermQueryResultIterator TermSubstitutionTree::getUnifications(TermList t,
 {
   CALL("TermSubstitutionTree::getUnifications");
 
+  if(tag){
+    cout << "trying to find unifiers for " + t.toString() + " in: "<< endl;
+    cout << this->toString() << endl;
+
+    auto it = DHMap<unsigned, LDSkipList*> ::Iterator(_placeHolders);
+    while(it.hasNext()){
+      LDSkipList* lds = it.next();
+      auto it2 = LDSkipList::RefIterator(*lds);
+      while(it2.hasNext()){
+        LeafData ld = it2.next();
+        cout << "The clause is: " + ld.clause->toString() << endl;
+      }    
+    }
+  }
+
   if(t.isOrdinaryVar()) {
     return getAllUnifyingIterator(t,retrieveSubstitutions,false);
   } else {
@@ -141,6 +164,7 @@ TermQueryResultIterator TermSubstitutionTree::getUnifications(TermList t,
         return it1;
       } else {
         unsigned sort = SortHelper::getResultSort(t.term());
+        cout << "The term is " + t.term()->toString() + " it has sort " + env.sorts->sortName(sort) << endl;
         if(_placeHolders.find(sort)){
           LDSkipList* lds = _placeHolders.get(sort);
           auto it2 = ldIteratorToTQRIterator(LDSkipList::RefIterator(*lds), t, false,false);

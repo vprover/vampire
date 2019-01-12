@@ -51,7 +51,7 @@ public:
 
   bool generalizationExists(TermList t);
 
-
+  //remove extra argument once finish debugging
   TermQueryResultIterator getUnifications(TermList t,
 	  bool retrieveSubstitutions);
 

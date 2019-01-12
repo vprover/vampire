@@ -188,7 +188,7 @@ Index* IndexManager::create(IndexType t)
   case SUPERPOSITION_SUBTERM_SUBST_TREE:
     tis=new TermSubstitutionTree(useConstraints, combUnif);
 #if VDEBUG
-    //tis->markTagged();
+    tis->markTagged();
 #endif
     res=new SuperpositionSubtermIndex(tis, _alg->getOrdering());
     isGenerating = true;
