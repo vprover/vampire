@@ -268,6 +268,13 @@ ClauseIterator Superposition::generateClauses(Clause* premise)
   CALL("Superposition::generateClauses");
   Limits* limits=_salg->getLimits();
 
+
+  bool now = false;
+  if(premise->number() == 34){
+    cout << "SUPERPOSITION with " << premise->toString() << endl;
+    now = true;
+  }
+
   //cout << "SUPERPOSITION with " << premise->toString() << endl;
 
   //TODO probably shouldn't go here!
@@ -294,6 +301,20 @@ ClauseIterator Superposition::generateClauses(Clause* premise)
   auto itb1 = premise->getSelectedLiteralIterator();
   auto itb2 = getMapAndFlattenIterator(itb1,EqHelper::SuperpositionLHSIteratorFn(_salg->getOrdering(), _salg->getOptions()));
   auto itb3 = getMapAndFlattenIterator(itb2,RewritableResultsFn(_subtermIndex,withConstraints));
+
+  if(now){
+    pair<pair<Literal*, TermList>, TermQueryResult> arg;
+    while(itb3.hasNext()){
+      cout << "\n next item:" << endl;
+      arg = itb3.next();
+      cout << "rewriting literal is " + arg.first.first->toString() << endl;
+      cout << "rewriting term is " + arg.first.second.toString() << endl;
+      cout << "rewritten clause is " + arg.second.clause->toString() << endl;
+      cout << "rewritten literal is " + arg.second.literal->toString() << endl;
+      cout << "rewritten term is " + arg.second.term.toString() << endl;
+    } 
+    ASSERTION_VIOLATION;     
+  }
 
   //Perform backward superposition
   auto itb4 = getMappingIterator(cunif ? pvi(getMapAndFlattenIterator (itb3, ApplicableCombRewritesFn())) 
@@ -583,6 +604,8 @@ Clause* Superposition::performSuperposition(
 
   //cout << "Check ordering on " << tgtTermS.toString() << " and " << rwTermS.toString() << endl;
 
+
+/*
   //check that we're not rewriting smaller subterm with larger
   if(Ordering::isGorGEorE(ordering.compare(tgtTermS,rwTermS))) {
     return 0;
@@ -603,6 +626,7 @@ Clause* Superposition::performSuperposition(
       }
     }
   }
+*/ //commented out for test purposes
 
   Literal* tgtLitS = EqHelper::replace(rwLitS,rwTermS,tgtTermS);
 
@@ -654,7 +678,7 @@ Clause* Superposition::performSuperposition(
     inf->setExtra(extra);
   }
   
-  bool afterCheck = getOptions().literalMaximalityAftercheck() && _salg->getLiteralSelector().isBGComplete();
+  //bool afterCheck = getOptions().literalMaximalityAftercheck() && _salg->getLiteralSelector().isBGComplete();
 
   Clause* res = new(newLength) Clause(newLength, inpType, inf);
 
@@ -679,13 +703,14 @@ Clause* Superposition::performSuperposition(
         }
       }
 
+     /*
       if (afterCheck) {
         TimeCounter tc(TC_LITERAL_ORDER_AFTERCHECK);
         if (i < rwClause->numSelected() && ordering.compare(currAfter,rwLitS) == Ordering::GREATER) {
           env.statistics->inferencesBlockedForOrderingAftercheck++;
           goto construction_fail;
         }
-      }
+      } */
 
       (*res)[next++] = currAfter;
     }
@@ -693,10 +718,10 @@ Clause* Superposition::performSuperposition(
 
   {
     Literal* eqLitS = 0;
-    if (afterCheck && eqClause->numSelected() > 1) {
+  /*  if (afterCheck && eqClause->numSelected() > 1) {
       TimeCounter tc(TC_LITERAL_ORDER_AFTERCHECK);
       eqLitS = Literal::createEquality(true,eqLHSS,tgtTermS,sort);
-    }
+    } */
 
     for(unsigned i=0;i<eqLength;i++) {
       Literal* curr=(*eqClause)[i];
@@ -714,7 +739,7 @@ Clause* Superposition::performSuperposition(
             goto construction_fail;
           }
         }
-
+         /*   
         if (eqLitS && i < eqClause->numSelected()) {
           TimeCounter tc(TC_LITERAL_ORDER_AFTERCHECK);
 
@@ -724,7 +749,7 @@ Clause* Superposition::performSuperposition(
             env.statistics->inferencesBlockedForOrderingAftercheck++;
             goto construction_fail;
           }
-        }
+        } */
 
         (*res)[next++] = currAfter;
       }
