@@ -588,6 +588,8 @@ unsigned Theory::getArity(Interpretation i)
   case REAL_TRUNCATE:
   case REAL_ROUND:
 
+  case ARRAY_CONST:
+
     return 1;
 
   case EQUAL:
@@ -646,6 +648,7 @@ unsigned Theory::getArity(Interpretation i)
     return 2;
           
   case ARRAY_STORE:
+  case ARRAY_MERGE:
 
     return 3;
           
@@ -726,6 +729,8 @@ bool Theory::isFunction(Interpretation i)
           
   case ARRAY_SELECT:
   case ARRAY_STORE:
+  case ARRAY_CONST:
+  case ARRAY_MERGE:
 
     return true;
 
@@ -817,6 +822,8 @@ bool Theory::hasSingleSort(Interpretation i)
   case ARRAY_SELECT:
   case ARRAY_BOOL_SELECT:
   case ARRAY_STORE:
+  case ARRAY_CONST:
+  case ARRAY_MERGE:
 
     return false;
   default:
@@ -837,6 +844,8 @@ bool Theory::isPolymorphic(Interpretation i)
   case ARRAY_SELECT:
   case ARRAY_BOOL_SELECT:
   case ARRAY_STORE:
+  case ARRAY_CONST:
+  case ARRAY_MERGE:
 
     return true;
   default:
@@ -1306,6 +1315,10 @@ vstring Theory::getInterpretationName(Interpretation interp) {
       return "$select";
     case ARRAY_STORE:
       return "$store";
+    case ARRAY_CONST:
+      return "$const_array";
+    case ARRAY_MERGE:
+      return "$merge_arrays";
     default:
       ASSERTION_VIOLATION_REP(interp);
   }
@@ -1328,6 +1341,12 @@ OperatorType* Theory::getArrayOperatorType(unsigned arraySort, Interpretation i)
 
     case Interpretation::ARRAY_STORE:
       return OperatorType::getFunctionType({ arraySort, indexSort, innerSort }, arraySort);
+
+    case Interpretation::ARRAY_CONST:
+      return OperatorType::getFunctionType({ innerSort }, arraySort );
+
+    case Interpretation::ARRAY_MERGE:
+      return OperatorType::getFunctionType({ arraySort, arraySort, indexSort}, arraySort );
 
     default:
       ASSERTION_VIOLATION;
