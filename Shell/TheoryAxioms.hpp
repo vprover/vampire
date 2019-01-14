@@ -94,6 +94,7 @@ private:
   void addBooleanArrayWriteAxioms(unsigned arraySort);
   void addArrayWriteAxioms(unsigned arraySort);
   void addConstantArrayAxiom(unsigned arraySort);
+  void addMergeArrayAxiom(unsigned arraySort);
 
   void addTupleAxioms(unsigned tupleSort);
   void addFloorAxioms(Interpretation floor, Interpretation less, Interpretation unaryMinus,

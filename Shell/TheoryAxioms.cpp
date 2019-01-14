@@ -977,7 +977,7 @@ void TheoryAxioms::addConstantArrayAxiom(unsigned arraySort) {
   unsigned fun_const = env.signature->getInterpretingSymbol(Theory::ARRAY_CONST,Theory::getArrayOperatorType(arraySort,Theory::ARRAY_CONST));
   
   Sorts::ArraySort* si = env.sorts->getArraySort(arraySort);
-  unsigned indexSort = si->getIndexSort();
+  //  unsigned indexSort = si->getIndexSort();
   unsigned innerSort = si->getInnerSort();
 
   TermList x(0,false);
@@ -991,7 +991,46 @@ void TheoryAxioms::addConstantArrayAxiom(unsigned arraySort) {
   addAndOutputTheoryUnit(new FormulaUnit(ax, new Inference(Inference::THEORY), Unit::AXIOM), CHEAP); //TODO:decide if const arrays are cheap
 } //addConstantArrayAxiom
 
-//TODO: add axioms: ~(J < I) | merge(X,Y,I) = X ; J < I | merge(X,Y,I) = Y (or better a version -- J vanishes after resolving the two clauses)
+// adds axioms: ~(J < I) | select(merge(X,Y,I),J) = select(X,J)
+//                J < I  | select(merge(X,Y,I),J) = select(Y,J)
+// including select (instead of direct reasoning on the array) keeps J present if the two clauses are resolved against each other
+// alternatively: try select(merge(X,Y,I),J) = ite(J<I, select(X,J), select(Y,J))
+void TheoryAxioms::addMergeArrayAxiom(unsigned arraySort) {
+  CALL("TheoryAxioms::addMergeArrayAxiom");
+  unsigned pred_select = env.signature->getInterpretingSymbol(Theory::ARRAY_SELECT,Theory::getArrayOperatorType(arraySort,Theory::ARRAY_SELECT));
+  unsigned fun_merge = env.signature->getInterpretingSymbol(Theory::ARRAY_MERGE,Theory::getArrayOperatorType(arraySort,Theory::ARRAY_MERGE));
+  
+  Sorts::ArraySort* si = env.sorts->getArraySort(arraySort);
+  unsigned indexSort = si->getIndexSort();
+  //assert index sort is integer -- we need < but it doesn't make sense for rational or real arrays
+  ASS_EQ( indexSort, Sorts::SRT_INTEGER);
+  
+  unsigned innerSort = si->getInnerSort();
+  unsigned less = env.signature->getInterpretingSymbol(Theory::INT_LESS);
+  
+  TermList i(0,false);
+  TermList j(1,false);
+  TermList x(2,false);
+  TermList y(3,false);
+  TermList argxyi[] = {x, y, i};
+  TermList merge_xyi(Term::create(fun_merge, 3, argxyi));
+  TermList argMj[] = {merge_xyi, j};
+  TermList selectMj(Term::create(pred_select, 2, argMj));
+
+  TermList argXj[] = {x, j};
+  TermList selectXj(Term::create(pred_select, 2, argXj ));
+  Literal* sel1 = Literal::createEquality(true, selectMj, selectXj, innerSort);
+  Literal* guard1 = Literal::create2(less, false, x, j);
+  addTheoryNonUnitClause(guard1, sel1, EXPENSIVE);
+
+  TermList argYj[] = {y, j};
+  TermList selectYj(Term::create(pred_select, 2, argYj));
+  Literal* sel2 = Literal::createEquality(true, selectMj, selectYj, innerSort);
+  Literal* guard2 = Literal::create2(less, true, y, j);
+  addTheoryNonUnitClause(guard2, sel2, EXPENSIVE);
+
+} //addMergeArrayAxiom
+
 
 //Axioms for integer division that hven't been implemented yet
 //
