@@ -537,10 +537,12 @@ void Clause::computeWeight() const
   }
 
   // If _weight is zero (empty clause) then no need to do this
+  /*
   if(_weight){
     unsigned priority = getPriority();
     _weight *= priority;
   }
+  */
 
 } // Clause::computeWeight
 
