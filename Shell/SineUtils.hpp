@@ -97,7 +97,6 @@ private:
   unsigned _genThreshold;
   float _tolerance;
   unsigned _depthLimit;
-
   bool _justForSineLevels;
 
   /** Stored the D-relation */

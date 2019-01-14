@@ -291,6 +291,10 @@ SineSelector::SineSelector(bool onIncluded, float tolerance, unsigned depthLimit
 {
   CALL("SineSelector::SineSelector/4");
 
+  if (_justForSineLevels) {
+    env.clausePriorities = new DHMap<const Unit*,unsigned>();
+  }
+
   init();
 }
 

@@ -198,7 +198,7 @@ unsigned Unit::getPriority() const
  */
 unsigned Unit::getSineLevel() const
 {
-  CALL("Unit::getInitialPriority");
+  CALL("Unit::getSineLevel");
 
   unsigned level = UINT_MAX;
   if(env.clauseSineLevels->find(this,level)){
@@ -216,7 +216,6 @@ unsigned Unit::getSineLevel() const
   env.clauseSineLevels->insert(this,level);
   return level;
 }
-
 
 void Unit::incRefCnt()
 {
