@@ -270,24 +270,30 @@ SineSelector::SineSelector(const Options& opt)
 : _onIncluded(opt.sineSelection()==Options::SineSelection::INCLUDED),
   _genThreshold(opt.sineGeneralityThreshold()),
   _tolerance(opt.sineTolerance()),
-  _depthLimit(opt.sineDepth())
+  _depthLimit(opt.sineDepth()),
+  _justForPriorities(false)
 {
   CALL("SineSelector::SineSelector/0");
 
-  if(opt.sineSelection()==Options::SineSelection::PRIORITY){
+  if(opt.sineSelection()==Options::SineSelection::PRIORITY) {
     env.clausePriorities = new DHMap<const Unit*,unsigned>();
   }
 
   init();
 }
 
-SineSelector::SineSelector(bool onIncluded, float tolerance, unsigned depthLimit, unsigned genThreshold)
+SineSelector::SineSelector(bool onIncluded, float tolerance, unsigned depthLimit, unsigned genThreshold, bool justForPriorities)
 : _onIncluded(onIncluded),
   _genThreshold(genThreshold),
   _tolerance(tolerance),
-  _depthLimit(depthLimit)
+  _depthLimit(depthLimit),
+  _justForPriorities(justForPriorities)
 {
   CALL("SineSelector::SineSelector/4");
+
+  if (_justForPriorities) {
+    env.clausePriorities = new DHMap<const Unit*,unsigned>();
+  }
 
   init();
 }
@@ -476,6 +482,18 @@ bool SineSelector::perform(UnitList*& units)
       UnitList::destroy(_def[sym]);
       _def[sym]=0;
     }
+  }
+
+  if (_justForPriorities) {
+    UnitList::Iterator uit(units);
+    while (uit.hasNext()) {
+      Unit* u=uit.next();
+      if(env.clausePriorities && !env.clausePriorities->find(u)) {
+        env.clausePriorities->insert(u,UINT_MAX);
+      }
+    }
+
+    return false;
   }
 
   env.statistics->sineIterations=depth;

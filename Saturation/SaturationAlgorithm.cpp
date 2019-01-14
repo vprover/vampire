@@ -322,6 +322,10 @@ void SaturationAlgorithm::onPassiveAdded(Clause* c)
     env.endOutput();
   }
   
+  if (_opt.showForKarel()) {
+    cout << "pass: " << c->number() << endl;
+  }
+
   //when a clause is added to the passive container,
   //we know it is not redundant
   onNonRedundantClause(c);
@@ -586,7 +590,8 @@ void SaturationAlgorithm::addInputClause(Clause* cl)
   bool sosForTheory = _opt.sos() == Options::Sos::THEORY && _opt.sosTheoryLimit() == 0;
 
   if (_opt.showForKarel()) {
-    cout << "init: " << cl->number() << " isGoal: " << cl->isGoal() << " isTheory: " << isTheory << endl;
+    cout << "init: " << cl->number() << " isGoal: " << cl->isGoal() << " isTheory: " << isTheory
+         << " SInE: " << cl->getInitialPriority() << endl;
   }
 
   if (sosForAxioms || (isTheory && sosForTheory)){
@@ -1237,6 +1242,10 @@ void SaturationAlgorithm::doOneAlgorithmStep()
     env.out() << "Timing: " << env.timer->elapsedMilliseconds() << endl;
     env.out() << "[SA] selected: " << cl->toString() << std::endl;
     env.endOutput();
+  }
+
+  if (_opt.showForKarel()) {
+    cout << "sel: " << cl->number() << endl;
   }
 
   if (!handleClauseBeforeActivation(cl)) {

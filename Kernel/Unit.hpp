@@ -82,6 +82,8 @@ public:
   unsigned varCnt();
   unsigned getPriority() const;
 
+  unsigned getInitialPriority() const;
+
   vstring inferenceAsString() const;
 
   /** True if a clause unit */

@@ -192,6 +192,31 @@ unsigned Unit::getPriority() const
     return priority;
 }
 
+/**
+ * Unlike the above function, which was designed to assign value to all clauses using a kind of average,
+ * here we only aspire to give priority to input clauses, which should inherit it, each from its formula parent.
+ */
+unsigned Unit::getInitialPriority() const
+{
+  CALL("Unit::getInitialPriority");
+
+  unsigned priority = UINT_MAX;
+  if(env.clausePriorities->find(this,priority)){
+    return priority;
+  }
+
+  Inference::Iterator iit = _inference->iterator();
+  while(_inference->hasNext(iit)) {
+    Unit* premUnit = _inference->next(iit);
+    unsigned premPri = premUnit->getInitialPriority();
+    if (premPri < priority) {
+      priority = premPri;
+    }
+  }
+  env.clausePriorities->insert(this,priority);
+  return priority;
+}
+
 
 void Unit::incRefCnt()
 {
