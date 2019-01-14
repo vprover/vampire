@@ -969,6 +969,30 @@ void TheoryAxioms::addBooleanArrayWriteAxioms(unsigned arraySort)
   addAndOutputTheoryUnit(new FormulaUnit(ax2, new Inference(Inference::THEORY), Unit::AXIOM),CHEAP);
 } //
 
+/* adds the axiom select(constarr(X),Y)=X
+ */
+void TheoryAxioms::addConstantArrayAxiom(unsigned arraySort) {
+  CALL("TheoryAxioms::addConstantArrayAxiom");
+  unsigned pred_select = env.signature->getInterpretingSymbol(Theory::ARRAY_SELECT,Theory::getArrayOperatorType(arraySort,Theory::ARRAY_SELECT));
+  unsigned fun_const = env.signature->getInterpretingSymbol(Theory::ARRAY_CONST,Theory::getArrayOperatorType(arraySort,Theory::ARRAY_CONST));
+  
+  Sorts::ArraySort* si = env.sorts->getArraySort(arraySort);
+  unsigned indexSort = si->getIndexSort();
+  unsigned innerSort = si->getInnerSort();
+
+  TermList x(0,false);
+  TermList y(1,false);
+  TermList argx[] = {x};
+  TermList const_x(Term::create(fun_const, 1, argx));
+  TermList argCxy[] = {const_x, y};
+  TermList selectCxy(Term::create(pred_select, 2, argCxy));
+  Formula* ax = new AtomicFormula(Literal::createEquality(true, selectCxy, x, innerSort));
+
+  addAndOutputTheoryUnit(new FormulaUnit(ax, new Inference(Inference::THEORY), Unit::AXIOM), CHEAP); //TODO:decide if const arrays are cheap
+} //addConstantArrayAxiom
+
+//TODO: add axioms: ~(J < I) | merge(X,Y,I) = X ; J < I | merge(X,Y,I) = Y (or better a version -- J vanishes after resolving the two clauses)
+
 //Axioms for integer division that hven't been implemented yet
 //
 //axiom( (ige(X0,zero) & igt(X1,zero)) --> ( ilt(X0-X1, idiv(X0,X1)*X1) & ile(idiv(X0,X1)*X1, X0) ) );

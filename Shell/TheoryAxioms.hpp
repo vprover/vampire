@@ -93,6 +93,7 @@ private:
   void addArrayExtensionalityAxioms(unsigned arraySort, unsigned skolem);
   void addBooleanArrayWriteAxioms(unsigned arraySort);
   void addArrayWriteAxioms(unsigned arraySort);
+  void addConstantArrayAxiom(unsigned arraySort);
 
   void addTupleAxioms(unsigned tupleSort);
   void addFloorAxioms(Interpretation floor, Interpretation less, Interpretation unaryMinus,
