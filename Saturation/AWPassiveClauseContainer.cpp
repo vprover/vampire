@@ -60,7 +60,6 @@ AWPassiveClauseContainer::AWPassiveClauseContainer(const Options& opt)
   ASS_GE(_ageRatio, 0);
   ASS_GE(_weightRatio, 0);
   ASS(_ageRatio > 0 || _weightRatio > 0);
-
 }
 
 AWPassiveClauseContainer::~AWPassiveClauseContainer()
@@ -261,6 +260,27 @@ Clause* AWPassiveClauseContainer::popSelected()
 {
   CALL("AWPassiveClauseContainer::popSelected");
   ASS( ! isEmpty());
+
+	static unsigned count = 0;
+	count++;
+
+	auto shape = _opt.ageWeightRatioShape();
+	unsigned frequency = _opt.ageWeightRatioShapeFrequency();
+	if(shape != Options::AgeWeightRatioShape::CONSTANT) {
+
+		if(shape == Options::AgeWeightRatioShape::DECAY && count % frequency == 0) {
+			// decide if we need to modify age or weight
+			int *toModify = _ageRatio < _weightRatio ? &_weightRatio : &_ageRatio;
+
+			// decay it a bit...
+			int next = *toModify / 2;
+			// but make sure it's non-zero if it was to start with
+			if(next == 0 && *toModify != 0) {
+				next = 1;
+			}
+			*toModify = next;
+		}
+	}
 
   _size--;
 

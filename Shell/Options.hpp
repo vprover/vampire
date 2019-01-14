@@ -741,6 +741,11 @@ public:
     EXISTS_SYM = 4,
     POSITION = 5
   };
+
+  enum class AgeWeightRatioShape {
+		CONSTANT,
+		DECAY,
+	};
     
     //==========================================================
     // The Internals
@@ -1962,6 +1967,8 @@ public:
   void setAgeRatio(int v){ _ageWeightRatio.actualValue = v; }
   int weightRatio() const { return _ageWeightRatio.otherValue; }
   void setWeightRatio(int v){ _ageWeightRatio.otherValue = v; }
+	AgeWeightRatioShape ageWeightRatioShape() const { return _ageWeightRatioShape.actualValue; }
+	int ageWeightRatioShapeFrequency() const { return _ageWeightRatioShapeFrequency.actualValue; }
   bool literalMaximalityAftercheck() const { return _literalMaximalityAftercheck.actualValue; }
   bool superpositionFromVariables() const { return _superpositionFromVariables.actualValue; }
   EqualityProxy equalityProxy() const { return _equalityProxy.actualValue; }
@@ -2210,6 +2217,8 @@ private:
   BoolOptionValue _encode;
 
   RatioOptionValue _ageWeightRatio;
+	ChoiceOptionValue<AgeWeightRatioShape> _ageWeightRatioShape;
+	UnsignedOptionValue _ageWeightRatioShapeFrequency;
   BoolOptionValue _literalMaximalityAftercheck;
   BoolOptionValue _arityCheck;
   

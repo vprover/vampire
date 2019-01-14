@@ -838,6 +838,16 @@ void Options::Options::init()
     _ageWeightRatio.reliesOn(_saturationAlgorithm.is(notEqual(SaturationAlgorithm::INST_GEN))->Or<int>(_instGenWithResolution.is(equal(true))));
     _ageWeightRatio.setRandomChoices({"8:1","5:1","4:1","3:1","2:1","3:2","5:4","1","2:3","2","3","4","5","6","7","8","10","12","14","16","20","24","28","32","40","50","64","128","1024"});
 
+    _ageWeightRatioShape = ChoiceOptionValue<AgeWeightRatioShape>("age_weight_ratio_shape","awrs",AgeWeightRatioShape::CONSTANT,{"constant","decay"});
+    _ageWeightRatioShape.description = "How to change the age/weight ratio during proof search.";
+    _lookup.insert(&_ageWeightRatioShape);
+    _ageWeightRatioShape.tag(OptionTag::SATURATION);
+
+		_ageWeightRatioShapeFrequency = UnsignedOptionValue("age_weight_ratio_shape_frequency","awrsf",100);
+		_ageWeightRatioShapeFrequency.description = "How frequently the age/weight ratio shape is to change: i.e. if set to 'decay' at a frequency of 100, the age/weight ratio will change every 100 age/weight choices.";
+		_lookup.insert(&_ageWeightRatioShapeFrequency);
+    _ageWeightRatioShapeFrequency.tag(OptionTag::SATURATION);
+
 	    _literalMaximalityAftercheck = BoolOptionValue("literal_maximality_aftercheck","lma",false);
 	    _lookup.insert(&_literalMaximalityAftercheck);
 	    _literalMaximalityAftercheck.tag(OptionTag::SATURATION);
