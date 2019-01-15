@@ -429,6 +429,7 @@ void Options::Options::init()
     _lookup.insert(&_equalityProxy);
     _equalityProxy.tag(OptionTag::PREPROCESSING);
     _equalityProxy.addProblemConstraint(hasEquality());
+    _equalityProxy.addProblemConstraint(notHigherOrder());
     _equalityProxy.setRandomChoices(isRandOn(),{"R","RS","RST","RSTC","off","off","off","off","off"}); // wasn't tested, make off more likely
     
 
@@ -1020,7 +1021,9 @@ void Options::Options::init()
       _combinatoryUnification.description=
       "Syntactic unification is replaced by  \n"
       "a restricted version of combinatory unifcation, \n"
-      "i.e., unification modulo the combinator axioms";    
+      "i.e., unification modulo the combinator axioms";
+      _combinatoryUnification.addHardConstraint(
+        If(equal(true)).then(_unificationWithAbstraction.is(equal(UnificationWithAbstraction::OFF))));    
       _lookup.insert(&_combinatoryUnification);
       _combinatoryUnification.tag(OptionTag::SATURATION); //This is not inference, change!
 

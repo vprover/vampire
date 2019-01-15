@@ -660,17 +660,24 @@ bool SubstitutionTree::LeafIterator::hasNext()
 {
   CALL("SubstitutionTree::Leaf::hasNext");
   //if(tag){cout << "leafIterator::hasNext" << endl;}
+  unsigned resSort = 0;
+
   for(;;) {
     while(!_nodeIterators.isEmpty() && !_nodeIterators.top().hasNext()) {
       _nodeIterators.pop();
     }
     if(_nodeIterators.isEmpty()) {
       do {
-	if(_nextRootPtr==_afterLastRootPtr) {
-	  return false;
-	}
-	_curr=*(_nextRootPtr++);
-      } while(_curr==0);
+        if(_nextRootPtr==_afterLastRootPtr) {
+          return false;
+        }
+        _curr=*(_nextRootPtr++);
+        if(_useSort && (_curr != 0)){
+          Signature::Symbol* sym = env.signature->getFunction(_functor);
+          resSort = sym->fnType()->result();
+        }
+        _functor++;
+      } while((_curr==0) || (_useSort && (resSort != _sort)));
     } else {
       _curr=*_nodeIterators.top().next();
     }

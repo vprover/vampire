@@ -691,9 +691,9 @@ public:
   : public IteratorCore<Leaf*>
   {
   public:
-    LeafIterator(SubstitutionTree* st)
+    LeafIterator(SubstitutionTree* st, bool useSort = false, unsigned sort = 0)
     : _nextRootPtr(st->_nodes.begin()), _afterLastRootPtr(st->_nodes.end()),
-    _nodeIterators(8) {}
+      _useSort(useSort), _sort(sort), _functor(0), _nodeIterators(8) {}
     bool hasNext();
     Leaf* next()
     {
@@ -704,6 +704,9 @@ public:
     Node** _nextRootPtr;
     Node** _afterLastRootPtr;
     Node* _curr;
+    bool _useSort;
+    unsigned _sort;
+    unsigned _functor;
     Stack<NodeIterator> _nodeIterators;
   };
 
@@ -794,6 +797,7 @@ public:
     Stack<unsigned> _specVarNumbers;
     Stack<NodeAlgorithm> _nodeTypes;
   };
+
 
   class UnificationsIterator
   : public IteratorCore<QueryResult>

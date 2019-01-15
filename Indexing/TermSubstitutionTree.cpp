@@ -64,14 +64,6 @@ void TermSubstitutionTree::remove(TermList t, Literal* lit, Clause* cls)
 void TermSubstitutionTree::handleTerm(TermList t, Literal* lit, Clause* cls, bool insert)
 {
   CALL("TermSubstitutionTree::handleTerm");
-  
-  if(cls->number() == 27){
-   if(tag){
-    if(insert){ cout << "inserting" << endl; } else { cout << "removing" << endl; }
-    cout << "inserting " + cls->toString() + " into tree " << endl;
-    cout << "the maximal term is " + t.toString() << endl;
-   }
-  }
 
   LeafData ld(cls, lit, t);
   if(t.isOrdinaryVar()) {
@@ -129,22 +121,8 @@ TermQueryResultIterator TermSubstitutionTree::getUnifications(TermList t,
 {
   CALL("TermSubstitutionTree::getUnifications");
 
-  if(tag){
-    cout << "trying to find unifiers for " + t.toString() + " in: "<< endl;
-    cout << this->toString() << endl;
-
-    auto it = DHMap<unsigned, LDSkipList*> ::Iterator(_placeHolders);
-    while(it.hasNext()){
-      LDSkipList* lds = it.next();
-      auto it2 = LDSkipList::RefIterator(*lds);
-      while(it2.hasNext()){
-        LeafData ld = it2.next();
-        cout << "The clause is: " + ld.clause->toString() << endl;
-      }    
-    }
-  }
-
   if(t.isOrdinaryVar()) {
+    // this requires modification -AYB
     return getAllUnifyingIterator(t,retrieveSubstitutions,false);
   } else {
     ASS(t.isTerm());
@@ -164,7 +142,6 @@ TermQueryResultIterator TermSubstitutionTree::getUnifications(TermList t,
         return it1;
       } else {
         unsigned sort = SortHelper::getResultSort(t.term());
-        cout << "The term is " + t.term()->toString() + " it has sort " + env.sorts->sortName(sort) << endl;
         if(_placeHolders.find(sort)){
           LDSkipList* lds = _placeHolders.get(sort);
           auto it2 = ldIteratorToTQRIterator(LDSkipList::RefIterator(*lds), t, false,false);
@@ -289,6 +266,16 @@ struct TermSubstitutionTree::TermQueryResultFn
   }
 };
 
+
+struct TermSubstitutionTree::LeafToLDIteratorFn
+{
+  DECL_RETURN_TYPE(LDIterator);
+  OWN_RETURN_TYPE operator() (Leaf* l) {
+    CALL("TermSubstitutionTree::LeafToLDIteratorFn()");
+    return l->allChildren();
+  }
+};
+
 template<class Iterator>
 TermQueryResultIterator TermSubstitutionTree::getResultIterator(Term* trm,
 	  bool retrieveSubstitutions,bool withConstraints)
@@ -298,6 +285,14 @@ TermQueryResultIterator TermSubstitutionTree::getResultIterator(Term* trm,
   //cout << "getResultIterator " << trm->toString() << endl;
 
   TermQueryResultIterator result = TermQueryResultIterator::getEmpty();
+
+  //if trm is placeholder, we want to return everthing in the tree of appropriate sort 
+  if(isPlaceHolder(trm)){
+    unsigned sort = SortHelper::getResultSort(trm);
+    auto it1 = getFlattenedIterator(getMappingIterator(vi( new LeafIterator(this, true, sort) ), LeafToLDIteratorFn()));
+    result = ldIteratorToTQRIterator(pvi(it1), TermList(trm), false,false);
+    return result;
+  }
   
   Node* root = _nodes[getRootNodeIndex(trm)];
 
@@ -358,15 +353,6 @@ private:
   bool _withConstraints;
   RobSubstitutionSP _subst;
   UnificationConstraintStackSP _constraints;
-};
-
-struct TermSubstitutionTree::LeafToLDIteratorFn
-{
-  DECL_RETURN_TYPE(LDIterator);
-  OWN_RETURN_TYPE operator() (Leaf* l) {
-    CALL("TermSubstitutionTree::LeafToLDIteratorFn()");
-    return l->allChildren();
-  }
 };
 
 struct TermSubstitutionTree::UnifyingContext

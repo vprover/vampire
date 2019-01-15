@@ -1683,6 +1683,13 @@ private:
         }
         vstring msg(){ return " only useful with non-unit clauses"; }
     };
+    struct NotHigherOrder : OptionProblemConstraint{
+        bool check(Property*p){
+          CALL("Options::HasHigherOrder::check");
+          return (!p->higherOrder()); 
+        }
+        vstring msg(){ return "Not compatible with higher-order reasoning"; }
+    };
     struct HasPredicates : OptionProblemConstraint{
         bool check(Property*p){
           CALL("Options::HasPredicates::check");
@@ -1722,6 +1729,10 @@ private:
     static OptionProblemConstraint* atomsLessThan(int a){
       return new AtomConstraint(a,false);
     }
+    static OptionProblemConstraint* notHigherOrder(){
+      return new NotHigherOrder;
+    }
+
 
 
     //Cheating - we refer to env.options to ask about option values

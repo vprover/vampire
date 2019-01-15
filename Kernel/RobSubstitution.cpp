@@ -348,6 +348,8 @@ bool RobSubstitution::unify(TermSpec t1, TermSpec t2, bool& fo)
     return true;
   }
 
+  //cout << "unifying termspec " + t1.toString() + " with termspec " + t2.toString() << endl;
+
   bool mismatch=false;
   BacktrackData localBD;
   bdRecord(localBD);
@@ -364,12 +366,16 @@ bool RobSubstitution::unify(TermSpec t1, TermSpec t2, bool& fo)
     TermSpec dt1=derefBound(t1);
     TermSpec dt2=derefBound(t2);
 
-    //cout << "unifying termspec " + dt1.toString() + " with termspec " + dt2.toString() << endl;
+    //cout << "INSIDE unifying termspec " + dt1.toString() + " with termspec " + dt2.toString() << endl;
 
     //This does not work for EqResolution
     if (isPlaceHolderTerm(dt1)  || isPlaceHolderTerm(dt2)) {
       fo = false;
     }else if(dt1.sameTermContent(dt2)){
+     //as termspecs have same contents, dont need to check both
+     if(containsPlaceHolderSubterm(dt2)){
+      fo =false;
+     }
     } else if(dt1.isVar()) {
       VarSpec v1=getVarSpec(dt1);
       if(occurs(v1, dt2)) {
@@ -403,6 +409,11 @@ bool RobSubstitution::unify(TermSpec t1, TermSpec t2, bool& fo)
         bool bypassTests = (isPlaceHolderTerm(tsss) || isPlaceHolderTerm(tstt));
 
         if(bypassTests){ fo = false; }
+
+        if(tsss.sameTermContent(tstt) && containsPlaceHolderSubterm(tstt)){
+          //as termspecs have same contents, dont need to check both
+          fo =false;
+        }
 
         if (!tsss.sameTermContent(tstt) && TermList::sameTopFunctor(*ss,*tt) && !bypassTests) {
           ASS(ss->isTerm() && tt->isTerm());

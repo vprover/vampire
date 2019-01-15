@@ -76,7 +76,7 @@ private:
   static bool checkSuperpositionFromVariable(Clause* eqClause, Literal* eqLit, TermList eqLHS);
 
   static size_t getSubtermOccurrenceCount(Term* trm, TermList subterm);
-
+  
   struct ForwardResultFn;
   struct RewriteableSubtermsFn;
   struct ApplicableRewritesFn;
