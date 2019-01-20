@@ -427,10 +427,6 @@ vstring Term::headToString() const
         for (unsigned i = 0; i < IntList::length(variables); i++) {
           unsigned var = (unsigned) IntList::nth(variables, i);
           variablesList += Term::variableToString(var);
-          unsigned sort = type->arg((unsigned)i);
-          if (sort != Sorts::SRT_DEFAULT) {
-            variablesList += " : " + env.sorts->sortName(sort);
-          }
           if (i < IntList::length(variables) - 1) {
             variablesList += ", ";
           }
@@ -438,7 +434,7 @@ vstring Term::headToString() const
         if (IntList::length(variables)) {
           variablesList = "(" + variablesList + ")";
         }
-        return "$let(" + functor + variablesList + " := " + binding.toString() + ",";
+        return "$let(" + functor + ": " + type->toString() + ", " + functor + variablesList + " := " + binding.toString() + ", ";
       }
       case Term::SF_ITE: {
         ASS_EQ(arity(),2);
@@ -467,24 +463,27 @@ vstring Term::headToString() const
         OperatorType* fnType = env.signature->getFunction(tupleFunctor)->fnType();
 
         vstring symbolsList = "";
+        vstring typesList = "";
         for (unsigned i = 0; i < IntList::length(symbols); i++) {
           Signature::Symbol* symbol = (fnType->arg(i) == Sorts::SRT_BOOL)
             ? env.signature->getPredicate((unsigned)IntList::nth(symbols, i))
             : env.signature->getFunction((unsigned)IntList::nth(symbols, i));
           symbolsList += symbol->name();
+          typesList += symbol->name() + ": " + env.sorts->sortName(fnType->arg(i));
           if (i != IntList::length(symbols) - 1) {
             symbolsList += ", ";
+            typesList += ", ";
           }
         }
 
-        return "$let([" + symbolsList + "] := " + binding.toString() + ", ";
+        return "$let([" + typesList + "], [" + symbolsList + "] := " + binding.toString() + ", ";
       }
       default:
         ASSERTION_VIOLATION;
     }
   } else {
     unsigned proj;
-    if (Theory::tuples()->findProjection(functor(), false, proj)) {
+    if (Theory::tuples()->findProjection(functor(), isLiteral(), proj)) {
       return "$proj(" + Int::toString(proj) + ", ";
     }
     return (isLiteral() ? static_cast<const Literal *>(this)->predicateName() : functionName()) + (arity() ? "(" : "");

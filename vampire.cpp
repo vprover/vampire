@@ -444,6 +444,9 @@ void preprocessMode(bool theory)
   // preprocess without clausification
   Shell::Preprocess prepro(*env.options);
   prepro.turnClausifierOff();
+  if(env.options->mode() == Options::Mode::PREPROCESS2){
+    prepro.keepSimplifyStep();
+  }
   prepro.preprocess(*prb);
 
   env.beginOutput();
@@ -982,6 +985,7 @@ int main(int argc, char* argv[])
       break;
 
     case Options::Mode::PREPROCESS:
+    case Options::Mode::PREPROCESS2:
       preprocessMode(false);
       break;
 
