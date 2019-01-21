@@ -43,6 +43,7 @@
 
 #include "Sorts.hpp"
 #include "Theory.hpp"
+#include "Lib/Environment.hpp"
 
 
 namespace Kernel {
@@ -193,6 +194,14 @@ class Signature
     /** Return true if symbol is a real constant */
     inline bool realConstant() const
     { return interpreted() && arity()==0 && fnType()->result()==Sorts::SRT_REAL; }
+    
+    /* Return true of symbol is a bitvector constant*/
+    inline bool bitVectorConstant() const
+    { return interpreted() && arity()==0 && env.sorts->isOfStructuredSort(fnType()->result(), Sorts::StructuredSort::BITVECTOR);}
+
+    /** Return value of a bitvector constant */
+    inline BitVectorConstantType bitVectorValue() const
+    { ASS(bitVectorConstant()); return static_cast<const BitVectorSymbol*>(this)->_theBv; }
 
     /** return true if an interpreted number, note subtle but significant difference from numericConstant **/
     inline bool interpretedNumber() const
@@ -233,7 +242,7 @@ class Signature
   public:
 
     InterpretedSymbol(const vstring& nm, Interpretation interp)
-    : Symbol(nm, Theory::getArity(interp), true), _interp(interp)
+    : Symbol(nm, theory->getArity(interp), true), _interp(interp)
     {
       CALL("InterpretedSymbol");
     }
@@ -244,7 +253,7 @@ class Signature
     /** Return the interpreted function that corresponds to this symbol */
     inline Interpretation getInterpretation() const { ASS_REP(interpreted(), _name); return _interp; }
   };
-
+  
   class IntegerSymbol
   : public Symbol
   {
@@ -264,7 +273,7 @@ class Signature
     CLASS_NAME(Signature::IntegerSymbol);
     USE_ALLOCATOR(IntegerSymbol);
   };
-
+ 
   class RationalSymbol
   : public Symbol
   {
@@ -305,6 +314,30 @@ class Signature
     USE_ALLOCATOR(RealSymbol);
   };
 
+  
+class BitVectorSymbol
+  : public Symbol
+  {
+      friend class Signature;
+      friend class Symbol;
+  protected:
+      BitVectorConstantType _theBv;
+      
+  public:
+      BitVectorSymbol(const BitVectorConstantType& val)
+      : Symbol(val.toString(), 0, true), _theBv(val)
+      {
+        CALL("BitVectorSymbol");
+        
+        unsigned outSort = env.sorts->addBitVectorSort(val.size());
+        
+        setType(OperatorType::getConstantsType(outSort));
+        
+      }
+      CLASS_NAME(Signature::BitVectorSymbol);
+      USE_ALLOCATOR(BitVectorSymbol);
+    };
+  
   //////////////////////////////////////
   // Uninterpreted symbol declarations
   //
@@ -350,6 +383,7 @@ class Signature
   unsigned addNamePredicate(unsigned arity);
 
   // Interpreted symbol declarations
+  unsigned addBitVectorConstant(const BitVectorConstantType& value);
   unsigned addIntegerConstant(const vstring& number,bool defaultSort);
   unsigned addRationalConstant(const vstring& numerator, const vstring& denominator,bool defaultSort);
   unsigned addRealConstant(const vstring& number,bool defaultSort);
@@ -363,7 +397,7 @@ class Signature
   {
     CALL("Signature::addInterpretedFunction(Interpretation,const vstring&)");
     ASS(!Theory::isPolymorphic(itp));
-    return addInterpretedFunction(itp,Theory::getNonpolymorphicOperatorType(itp),name);
+    return addInterpretedFunction(itp,theory->getNonpolymorphicOperatorType(itp),name);
   }
 
   unsigned addInterpretedPredicate(Interpretation itp, OperatorType* type, const vstring& name);
@@ -371,7 +405,7 @@ class Signature
   {
     CALL("Signature::addInterpretedPredicate(Interpretation,const vstring&)");
     ASS(!Theory::isPolymorphic(itp));
-    return addInterpretedPredicate(itp,Theory::getNonpolymorphicOperatorType(itp),name);
+    return addInterpretedPredicate(itp,theory->getNonpolymorphicOperatorType(itp),name);
   }
 
   unsigned getInterpretingSymbol(Interpretation interp, OperatorType* type);
@@ -379,7 +413,7 @@ class Signature
   {
     CALL("Signature::getInterpretingSymbol(Interpretation)");
     ASS(!Theory::isPolymorphic(interp));
-    return getInterpretingSymbol(interp,Theory::getNonpolymorphicOperatorType(interp));
+    return getInterpretingSymbol(interp,theory->getNonpolymorphicOperatorType(interp));
   }
 
   /** Return true iff there is a symbol interpreted by Interpretation @b interp */
@@ -391,7 +425,7 @@ class Signature
   {
     CALL("Signature::haveInterpretingSymbol(Interpretation)");
     ASS(!Theory::isPolymorphic(interp));
-    return haveInterpretingSymbol(interp,Theory::getNonpolymorphicOperatorType(interp));
+    return haveInterpretingSymbol(interp,theory->getNonpolymorphicOperatorType(interp));
   }
 
   /** return the name of a function with a given number */
@@ -487,6 +521,8 @@ class Signature
   unsigned rationals() const {return _rationals;}
   /** the number of real constants */
   unsigned reals() const {return _reals;}
+  /** the number of bitvector constants */
+  unsigned bitvectors() const {return _bitvectors;}
 
   static const unsigned STRING_DISTINCT_GROUP;
 
@@ -517,8 +553,9 @@ class Signature
   Stack<TermList>& getDividesNvalues(){ return _dividesNvalues; }
 
   static bool symbolNeedsQuoting(vstring name, bool interpreted, unsigned arity);
-
+  VirtualIterator<std::pair<Theory::MonomorphisedInterpretation,unsigned>> getSSIItems(); //TODO: use _polymorphicInterpretations in Property instead??
 private:
+    
   Stack<TermList> _dividesNvalues;
 
   bool _foolConstantsDefined;
@@ -566,7 +603,7 @@ private:
    * or a predicate.
    */
   DHMap<Theory::MonomorphisedInterpretation, unsigned> _iSymbols;
-
+  
   /** the number of string constants */
   unsigned _strings;
   /** the number of integer constants */
@@ -575,6 +612,8 @@ private:
   unsigned _rationals;
   /** the number of real constants */
   unsigned _reals;
+  /** the number of bitvector constants*/
+  unsigned _bitvectors;
 
   /**
    * Map from sorts to the associated term algebra, if applicable for the sort

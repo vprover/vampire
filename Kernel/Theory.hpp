@@ -35,6 +35,8 @@
 
 #include "Sorts.hpp"
 #include "Term.hpp"
+#include "BitVectorOperations.hpp"
+
 
 namespace Kernel {
 
@@ -43,6 +45,7 @@ namespace Kernel {
  * e.g. because of overflow of a native type.
  */
 class ArithmeticException : public ThrowableBase {};
+
 
 class IntegerConstantType
 {
@@ -137,6 +140,68 @@ inline
 std::ostream& operator<< (ostream& out, const IntegerConstantType& val) {
   return out << val.toInner();
 }
+
+class BitVectorConstantType{
+       
+  
+    public: 
+        typedef DArray<bool> BinArray;
+        BitVectorConstantType(BinArray n): binArray(n){}
+        BitVectorConstantType(){};
+       
+    vstring toString() const;
+
+    unsigned size() const {return binArray.size();}
+
+    // this function will actually not get called
+    static unsigned getSort() {
+        ASSERTION_VIOLATION;
+    }
+
+    void setBinArray(DArray<bool> setTo)
+    {
+        binArray.initFromArray(setTo.size(),setTo);
+    }
+    
+    void prepareBinArray(unsigned size)
+    {
+        DArray<bool> t(size);
+        setBinArray(t);
+    }
+    
+    const DArray<bool>& getBinArray() const
+    {
+        return binArray;
+    }
+    
+    bool getValueAt(unsigned index) const
+    {
+        return binArray[index];
+    }
+    
+    void setValueAt(unsigned index, bool value)
+    {
+        binArray[index] = value;
+    }
+    
+    BitVectorConstantType& operator=(const BitVectorConstantType& o)
+    {
+       setBinArray(o.getBinArray());
+       return static_cast<BitVectorConstantType&>(*this);
+    }
+    bool operator==(const BitVectorConstantType& num) const;
+    bool operator!=(const BitVectorConstantType& num) const;
+   
+     
+private: 
+    
+    /**
+     * TODO: Andrei suggested we look into Z3 and use whatever representation they have.
+     * This way we don't need to think of efficient implementations of BV operations (for evaluation) on our side
+     * and also the communication with Z3 about bitvectors will be (should be) simpler.
+     */
+    BinArray binArray;
+};
 
 /**
  * A class for representing rational numbers
@@ -378,12 +443,48 @@ public:
     ARRAY_SELECT,
     ARRAY_BOOL_SELECT,
     ARRAY_STORE,
+    
+    // bitvector functions
+    BVADD,
+    BVAND,
+    BVASHR,
+    BVCOMP,
+    BVLSHR,
+    BVMUL,
+    BVNAND,
+    BVNEG,
+    BVNOR,
+    BVNOT,
+    BVOR,
+    BVSDIV,
+    BVSMOD,
+    BVSGE,
+    BVSGT,
+    BVSHL,
+    BVSREM,
+    BVSLE,
+    BVSLT,
+    BVSUB,
+    BVUDIV,
+    BVULE,
+    BVUGT,
+    BVUGE,
+    BVULT,
+    BVUREM,
+    BVXNOR,
+    BVXOR,
+    CONCAT,
 
     INVALID_INTERPRETATION // LEAVE THIS AS THE LAST ELEMENT OF THE ENUM
   };
 
   enum IndexedInterpretation {
-    FOR_NOW_EMPTY
+    BV_ROTATE_LEFT,
+    BV_ROTATE_RIGHT,
+    BV_SIGN_EXTEND,
+    BV_ZERO_EXTEND,
+    EXTRACT,
+    REPEAT
   };
 
   typedef std::pair<IndexedInterpretation, unsigned> ConcreteIndexedInterpretation;
@@ -406,6 +507,7 @@ public:
 
 private:
   DHMap<ConcreteIndexedInterpretation,Interpretation> _indexedInterpretations;
+  DHMap<Interpretation,ConcreteIndexedInterpretation> _indexedInterpretationsInv;
 
 public:
 
@@ -423,21 +525,32 @@ public:
     if (!_indexedInterpretations.find(cii, res)) {
       res = static_cast<Interpretation>(numberOfFixedInterpretations() + _indexedInterpretations.size());
       _indexedInterpretations.insert(cii, res);
+      _indexedInterpretationsInv.insert(res, cii);
     }
     return res;
   }
+
+  ConcreteIndexedInterpretation intepretationToIndexedInterpretation(Interpretation i) {
+    CALL("intepretationToIndexedInterpretation");
+
+    ASS_GE(i,INVALID_INTERPRETATION);
+    return _indexedInterpretationsInv.get(i);
+  }
+
 
   static bool isPlus(Interpretation i){
     return i == INT_PLUS || i == RAT_PLUS || i == REAL_PLUS;
   }
 
-  static vstring getInterpretationName(Interpretation i);
-  static unsigned getArity(Interpretation i);
-  static bool isFunction(Interpretation i);
+  vstring getInterpretationName(Interpretation i);
+  unsigned getArity(Interpretation i);
+  bool isFunction(Interpretation i);
   static bool isInequality(Interpretation i);
-  static OperatorType* getNonpolymorphicOperatorType(Interpretation i);
+  OperatorType* getNonpolymorphicOperatorType(Interpretation i);
 
   static OperatorType* getArrayOperatorType(unsigned arraySort, Interpretation i);
+  static OperatorType* getBitvectorOperatorType(unsigned bvSort, Interpretation i, unsigned auxSort);
+  static OperatorType* getBitvectorIndexedOperatorType(unsigned mainSort, unsigned auxSort, IndexedInterpretation i);
 
   static bool hasSingleSort(Interpretation i);
   static unsigned getOperationSort(Interpretation i);
@@ -502,6 +615,18 @@ private:
 
 public:
 
+  bool tryInterpretConstant(TermList trm, BitVectorConstantType& res)
+  {
+      CALL("Theory::tryInterpretConstant(TermList,BitVectorConstantType)");
+
+      if (!trm.isTerm()) {
+        return false;
+      }
+      return tryInterpretConstant(trm.term(),res);
+  }
+
+  bool tryInterpretConstant(const Term* t, BitVectorConstantType& res);
+
   /**
    * Try to interpret the term list as an integer constant. If it is an
    * integer constant, return true and save the constant in @c res, otherwise
@@ -544,10 +669,11 @@ public:
     return tryInterpretConstant(trm.term(),res);
   }
   bool tryInterpretConstant(const Term* t, RealConstantType& res);
-
+    
   Term* representConstant(const IntegerConstantType& num);
   Term* representConstant(const RationalConstantType& num);
   Term* representConstant(const RealConstantType& num);
+  Term* representConstant(const BitVectorConstantType& num);
 
   Term* representIntegerConstant(vstring str);
   Term* representRealConstant(vstring str);

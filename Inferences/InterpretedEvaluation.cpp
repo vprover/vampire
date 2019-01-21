@@ -67,14 +67,14 @@ bool InterpretedEvaluation::simplifyLiteral(Literal* lit,
 	bool& constant, Literal*& res, bool& constantTrue,Stack<Literal*>& sideConditions)
 {
   CALL("InterpretedEvaluation::evaluateLiteral");
-
+  
   if(lit->arity()==0 || !lit->hasInterpretedConstants()) {
     //we have no interpreted predicates of zero arity
     return false;
   }
 
   bool okay = _simpl->evaluate(lit, constant, res, constantTrue,sideConditions);
-
+  
   //if(okay && lit!=res){
   //  cout << "evaluate " << lit->toString() << " to " << res->toString() << endl;
   //}
@@ -87,7 +87,7 @@ Clause* InterpretedEvaluation::simplify(Clause* cl)
   CALL("InterpretedEvaluation::perform");
 
   TimeCounter tc(TC_INTERPRETED_EVALUATION);
-
+  
   // do not evaluate theory axioms
   if(cl->inference()->rule()==Inference::THEORY) return cl;
 

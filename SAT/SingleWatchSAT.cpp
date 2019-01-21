@@ -373,7 +373,7 @@ void SingleWatchSAT::satisfy(int timeLimit)
       return;
     }
   }
-
+  
   termination=SATISFIABLE;
 }
 

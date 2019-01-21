@@ -108,10 +108,11 @@ private:
   enum BuiltInSorts
   {
     BS_ARRAY,
+    BS_BITVECTOR,
     BS_BOOL,
     BS_INT,
     BS_REAL,
-
+    
     BS_INVALID
   };
   static const char * s_builtInSortNameStrings[];
@@ -189,6 +190,14 @@ private:
     FS_GREATER,
     FS_GREATER_EQ,
     FS_AND,
+    FS_BVSGE,
+    FS_BVSGT,
+    FS_BVSLE,
+    FS_BVSLT,
+    FS_BVUGE,
+    FS_BVUGT,
+    FS_BVULE,
+    FS_BVULT,
     FS_DISTINCT,
     FS_EXISTS,
     FS_FALSE,
@@ -219,18 +228,137 @@ private:
     TS_MINUS,
     TS_DIVIDE,
     TS_ABS,
+    TS_BVADD,
+    TS_BVAND,
+    TS_BVASHR,
+    TS_BVCOMP,
+    TS_BVLSHR,
+    TS_BVMUL,
+    TS_BVNAND,
+    TS_BVNEG,
+    TS_BVNOR, 
+    TS_BVNOT,
+    TS_BVOR,
+    TS_BVSDIV, 
+    TS_BVSHL,
+    TS_BVSMOD,
+    TS_BVSREM,
+    TS_BVSUB,
+    TS_BVUDIV,
+    TS_BVUREM,
+    TS_BVXNOR,
+    TS_BVXOR,
+    TS_CONCAT,
     TS_DIV,
+    TS_EXTRACT,
     TS_ITE,
     TS_LET,
     TS_MOD,
+    TS_REPEAT,
+    TS_BV_ROTATE_LEFT,
+    TS_BV_ROTATE_RIGHT,
     TS_SELECT,
+    TS_BV_SIGN_EXTEND,
     TS_STORE,
     TS_TO_INT,
     TS_TO_REAL,
-
+    TS_BV_ZERO_EXTEND,
+    
     TS_USER_FUNCTION
   };
   static const char * s_termSymbolNameStrings[];
+  
+  Theory::Interpretation getBitVectorInterpretationFromTS(TermSymbol ts)
+  {
+    CALL("SMTLIB2::getBitVectorIndexedInterpretationFromTS");
+    switch(ts){
+      case TS_BVADD:
+        return Theory::BVADD;
+      case TS_BVAND:
+        return Theory::BVAND;
+      case TS_BVASHR:
+        return Theory::BVASHR;
+      case TS_BVCOMP:
+        return Theory::BVCOMP;
+      case TS_BVLSHR:
+        return Theory::BVLSHR;
+      case TS_BVMUL:
+        return Theory::BVMUL;
+      case TS_BVNAND:
+        return Theory::BVNAND;
+      case TS_BVNEG:
+        return Theory::BVNEG;
+      case TS_BVNOR:
+        return Theory::BVNOR;
+      case TS_BVNOT:
+        return Theory::BVNOT;
+      case TS_BVOR:
+        return Theory::BVOR;
+      case TS_BVSDIV:
+        return Theory::BVSDIV;
+      case TS_BVSMOD:
+        return Theory::BVSMOD;
+      case TS_BVSHL:
+        return Theory::BVSHL;
+      case TS_BVSREM:
+        return Theory::BVSREM;
+      case TS_BVSUB:
+        return Theory::BVSUB;
+      case TS_BVUDIV:
+        return Theory::BVUDIV;
+      case TS_BVUREM:
+        return Theory::BVUREM;
+      case TS_BVXNOR:
+        return Theory::BVXNOR;
+      case TS_BVXOR:
+        return Theory::BVXOR;
+      default:
+      ASSERTION_VIOLATION;
+    }
+  }
+
+  Theory::IndexedInterpretation getBitVectorIndexedInterpretationFromTS(TermSymbol ts) {
+    CALL("SMTLIB2::getBitVectorIndexedInterpretationFromTS");
+
+    switch(ts){
+      case TS_BV_ZERO_EXTEND:
+        return Theory::BV_ZERO_EXTEND;
+      case TS_BV_SIGN_EXTEND:
+        return Theory::BV_SIGN_EXTEND;
+      case TS_BV_ROTATE_LEFT:
+        return Theory::BV_ROTATE_LEFT;
+      case TS_BV_ROTATE_RIGHT:
+        return Theory::BV_ROTATE_RIGHT;
+      case TS_REPEAT:
+        return Theory::REPEAT;
+      default:
+      ASSERTION_VIOLATION;
+    }
+  }
+  
+  Theory::Interpretation getBitVectorInterpretationFromFS(FormulaSymbol fs) {
+    switch(fs) {
+      case FS_BVSLT:
+        return Theory::BVSLT;
+      case FS_BVULE:
+        return Theory::BVULE;
+      case FS_BVUGT:
+        return Theory::BVUGT;
+      case FS_BVUGE:
+        return Theory::BVUGE;
+      case FS_BVSLE:
+        return Theory::BVSLE;
+      case FS_BVSGT:
+        return Theory::BVSGT;
+      case FS_BVSGE:
+        return Theory::BVSGE;
+      case FS_BVULT:
+        return Theory::BVULT;
+
+      default:
+        ASSERTION_VIOLATION;
+    }
+  }
 
   /**
    * Lookup to see if vstring is a built-in TermSymbol.
@@ -319,7 +447,7 @@ private:
   Interpretation getUnaryMinusInterpretation(unsigned argSort);
   /** Return Theory::Interpretation for overloaded arithmetic operators based on its argSort (either Int or Real) */
   Interpretation getTermSymbolInterpretation(TermSymbol ts, unsigned firstArgSort);
-  
+
 
   // global parsing data structures -- BEGIN
 
@@ -375,11 +503,15 @@ private:
   void parseQuantBegin(LExpr* exp);
 
   void parseAnnotatedTerm(LExpr* exp);
-
+  void parseUnderScoredExpression(LExpr* exp);
   /** Scope's are filled by forall, exists, and let */
   bool parseAsScopeLookup(const vstring& id);
   /** Currently either numeral or decimal */
   bool parseAsSpecConstant(const vstring& id);
+  /** to parse bv231 and the like*/
+  bool parseAsBitVectorDescriptor(const vstring& id);
+  /* to parse constants such as #b0101 or #xA891f */
+  bool parseAsBitVectorConstant(const vstring& id);
   /** Declared or defined functions (and predicates) - which includes 0-arity ones */
   bool parseAsUserDefinedSymbol(const vstring& id, LExpr* exp);
   /** Whatever is built-in and looks like a formula from vampire perspective (see FormulaSymbol)

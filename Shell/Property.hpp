@@ -160,8 +160,10 @@ public:
   static const uint64_t PR_HAS_DT_CONSTRUCTORS = 1099511627776ul; // 2^40
   /* has co-algrebaic data type constructors */
   static const uint64_t PR_HAS_CDT_CONSTRUCTORS = 2199023255552ul; // 2^41
-
- public:
+  /* has bitvectors */
+  static const uint64_t PR_HAS_BITVECTORS = 4398046511104ul; // 2^42
+ 
+public:
   CLASS_NAME(Property);
   USE_ALLOCATOR(Property);
 
@@ -176,7 +178,7 @@ public:
 
   vstring toString() const;
   vstring toSpider(const vstring& problemName) const;
-
+  
   /** Total number of clauses in the problem. */
   int clauses() const { return _goalClauses + _axiomClauses; }
   /** Total number of formulas in the problem */
@@ -219,6 +221,11 @@ public:
   bool hasInterpretedOperation(Interpretation i) const {
     if(i >= _interpretationPresence.size()){ return false; }
     return _interpretationPresence[i]; 
+  }
+  
+  VirtualIterator<Kernel::Theory::MonomorphisedInterpretation> getPolymorphicInterpretations()
+  {
+      return _polymorphicInterpretations.iterator();
   }
   bool hasInterpretedOperation(Interpretation i, OperatorType* type) const {
     return _polymorphicInterpretations.find(std::make_pair(i,type));

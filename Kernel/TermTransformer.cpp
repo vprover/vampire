@@ -71,7 +71,7 @@ Term* TermTransformer::transform(Term* term)
 	args.push(TermList(orig));
 	continue;
       }
-
+    
       if (orig->isSpecial()) {
         args.push(TermList(orig));
       } else {
@@ -146,6 +146,7 @@ Term* TermTransformer::transform(Term* term)
 Literal* TermTransformer::transform(Literal* lit)
 {
   CALL("TermTransformer::transform(Literal* lit)");
+  
   Term* t = transform(static_cast<Term*>(lit));
   ASS(t->isLiteral());
   return static_cast<Literal*>(t);
@@ -155,7 +156,7 @@ Term* TermTransformer::transformSpecial(Term* term)
 {
   CALL("TermTransformer::transformSpecial(Term* term)");
   ASS(term->isSpecial());
-
+  
   Term::SpecialTermData* sd = term->getSpecialData();
   switch (sd->getType()) {
     case Term::SF_ITE: {
@@ -223,7 +224,7 @@ Term* TermTransformer::transformSpecial(Term* term)
 TermList TermTransformer::transform(TermList ts)
 {
   CALL("TermTransformer::transform(TermList ts)");
-
+   
   if (ts.isVar()) {
     return transformSubterm(ts);
   } else {

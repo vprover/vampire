@@ -43,6 +43,7 @@
 
 #include "Options.hpp"
 #include "Statistics.hpp"
+#include "Kernel/Signature.hpp"
 
 
 using namespace std;
@@ -168,7 +169,7 @@ void Statistics::print(ostream& out)
 
   bool separable=false;
 #define HEADING(text,num) if (num) { addCommentSignForSZS(out); out << ">>> " << (text) << endl;}
-#define COND_OUT(text, num) if (num) { addCommentSignForSZS(out); out << (text) << ": " << (num) << endl; separable = true; }
+#define COND_OUT(text, num) if (num) { addCommentSignForSZS(out); out << (text) << ": " << (num) << std::endl; separable = true; }
 #define SEPARATOR if (separable) { addCommentSignForSZS(out); out << endl; separable = false; }
 
   addCommentSignForSZS(out);
@@ -376,6 +377,52 @@ void Statistics::print(ostream& out)
   COND_OUT("Pure propositional variables eliminated by SAT solver", satPureVarsEliminated);
   SEPARATOR;
 
+  HEADING("BitVectorOperations",1);
+  VirtualIterator<std::pair<Theory::MonomorphisedInterpretation,unsigned>> it = env.signature->getSSIItems();
+  
+  Interpretation itp;
+  OperatorType* opt;
+  while (it.hasNext()){
+      std::pair<Theory::MonomorphisedInterpretation,unsigned> entry = it.next();
+      itp = entry.first.first;
+      opt = entry.first.second;
+      unsigned u_symb = entry.second;
+     
+      if (itp==Theory::EQUAL || (itp>=Theory::ARRAY_SELECT && itp<=Theory::ARRAY_STORE)) 
+          continue;
+      vstring name = theory->getInterpretationName(itp); 
+      //cout<<endl<<"talking about function "<<endl<<entry.first.second->toString()<<" int is "<<entry.first.first<<endl;
+      
+      unsigned arg1Size = env.sorts->getBitVectorSort(opt->arg(0))->getSize();
+      Signature::Symbol* funcOrPred;
+      if (opt->isFunctionType())
+          funcOrPred = env.signature->getFunction(u_symb);
+      else
+          funcOrPred = env.signature->getPredicate(u_symb);
+           
+      if (itp == Theory::BVNEG || itp == Theory::BVNOT)
+      {
+           name = name+"{" +Int::toString(arg1Size)+"}";
+      } 
+
+      else if (itp == Theory::CONCAT) 
+      {
+           unsigned argSize2 = env.sorts->getBitVectorSort(opt->arg(1))->getSize();
+           unsigned rSize = env.sorts->getBitVectorSort(opt->result() )->getSize();
+           name = name+ "{" +Int::toString(arg1Size) + ", " +Int::toString(argSize2)+"} -> "+Int::toString(rSize);
+      }
+      else if (itp<Theory::numberOfFixedInterpretations())
+      {
+           name = name+ "{" +Int::toString(arg1Size) + ", " +Int::toString(arg1Size)+ "}";
+      }
+      else // this should be the sign extend family
+      {
+           name = name+ "{" +Int::toString(arg1Size)+ "}";
+      }
+      COND_OUT(name,funcOrPred->usageCnt());
+    }
+    
+    SEPARATOR;
   }
 
   COND_OUT("Memory used [KB]", Allocator::getUsedMemory()/1024);

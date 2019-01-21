@@ -49,6 +49,7 @@ private:
   void skipWhiteSpacesAndComments();
   void readName(Token&);
   void readQuotedString(Token&, char opening, char closing);
+  void readQuotedString2(Token&);
 }; // class LispLexer
 
 }

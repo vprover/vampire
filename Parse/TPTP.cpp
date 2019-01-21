@@ -1547,9 +1547,9 @@ void TPTP::endTheoryFunction() {
 
   OperatorType* type = Theory::getArrayOperatorType(arraySort,itp);
   unsigned symbol = env.signature->getInterpretingSymbol(itp, type);
-  unsigned arity = Theory::getArity(itp);
+  unsigned arity = theory->getArity(itp);
 
-  if (Theory::isFunction(itp)) {
+  if (theory->isFunction(itp)) {
     Term* term = Term::create(symbol, arity, args);
     _termLists.push(TermList(term));
   } else {
@@ -4028,6 +4028,18 @@ unsigned TPTP::sortOf(TermList t)
     }
   }
 } // sortOf
+
+
+unsigned TPTP::addBitVectorConstant(const BitVectorConstantType bvct)
+{
+    CALL("TPTP::addBitVectorConstant");
+    try{
+        return env.signature->addBitVectorConstant(bvct);
+    }catch(Kernel::ArithmeticException&){
+        USER_ERROR("We should never get here");
+    }
+    return 0;
+}
 
 /**
  * Add an integer constant by reading it from the vstring name.

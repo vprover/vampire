@@ -28,6 +28,8 @@
 
 #include "Signature.hpp"
 
+#include "BitVectorOperations.hpp"
+
 using namespace std;
 using namespace Kernel;
 using namespace Shell;
@@ -88,6 +90,9 @@ void Signature::Symbol::destroyFnSymbol()
   }
   else if (realConstant()) {
     delete static_cast<RealSymbol*>(this);
+  }
+  else if (bitVectorConstant()){
+      delete static_cast<BitVectorSymbol*>(this);
   }
   else if (interpreted()) {
     delete static_cast<InterpretedSymbol*>(this);
@@ -240,6 +245,7 @@ Signature::~Signature ()
   for (int i = _funs.length()-1;i >= 0;i--) {
     _funs[i]->destroyFnSymbol();
   }
+  
   for (int i = _preds.length()-1;i >= 0;i--) {
     _preds[i]->destroyPredSymbol();
   }
@@ -270,16 +276,34 @@ unsigned Signature::addIntegerConstant(const vstring& number,bool defaultSort)
 
   result = _funs.length();
   Symbol* sym = new Symbol(name,0,false,false,true);
-  /*
-  sym->addToDistinctGroup(INTEGER_DISTINCT_GROUP,result);
-  if(defaultSort){ 
-     sym->addToDistinctGroup(STRING_DISTINCT_GROUP,result); // numbers are disctinct from strings
-  }
-  */
   _funs.push(sym);
   _funNames.insert(symbolKey,result);
   return result;
 } // Signature::addIntegerConstant
+
+unsigned Signature::addBitVectorConstant(const BitVectorConstantType& value)
+{
+  CALL("Signature::addBitVectorConstant");
+
+  vstring key;
+  const DArray<bool>& t = value.getBinArray();
+  vstring forKey = BitVectorOperations::boolArraytoString(t);
+
+  key = Int::toString(value.size()) + "_" + forKey + "_bv";
+  unsigned result;
+  if (_funNames.find(key, result)){
+      return result;
+  }
+
+  _bitvectors++;
+  result = _funs.length();
+  Symbol* sym = new BitVectorSymbol(value);
+
+  _funs.push(sym);
+  _funNames.insert(key, result);
+
+  return result;
+}
 
 /**
  * Add an integer constant to the signature.
@@ -288,7 +312,7 @@ unsigned Signature::addIntegerConstant(const vstring& number,bool defaultSort)
 unsigned Signature::addIntegerConstant(const IntegerConstantType& value)
 {
   CALL("Signature::addIntegerConstant");
-
+ 
   vstring key = value.toString() + "_n";
   unsigned result;
   if (_funNames.find(key, result)) {
@@ -409,7 +433,7 @@ unsigned Signature::addRealConstant(const RealConstantType& value)
 unsigned Signature::addInterpretedFunction(Interpretation interpretation, OperatorType* type, const vstring& name)
 {
   CALL("Signature::addInterpretedFunction(Interpretation,OperatorType*,const vstring&)");
-  ASS(Theory::isFunction(interpretation));
+  ASS(theory->isFunction(interpretation));
 
   Theory::MonomorphisedInterpretation mi = std::make_pair(interpretation,type);
 
@@ -442,7 +466,7 @@ unsigned Signature::addInterpretedFunction(Interpretation interpretation, Operat
 unsigned Signature::addInterpretedPredicate(Interpretation interpretation, OperatorType* type, const vstring& name)
 {
   CALL("Signature::addInterpretedPredicate(Interpretation,OperatorType*,const vstring&)");
-  ASS(!Theory::isFunction(interpretation));
+  ASS(!theory->isFunction(interpretation));
 
   // cout << "addInterpretedPredicate " << (type ? type->toString() : "nullptr") << " " << name << endl;
 
@@ -476,6 +500,12 @@ unsigned Signature::addInterpretedPredicate(Interpretation interpretation, Opera
 } // Signature::addInterpretedPredicate
 
 
+// this function may be needed for bitvector axioms
+VirtualIterator<std::pair<Theory::MonomorphisedInterpretation,unsigned>> Signature::getSSIItems()
+{
+    return _iSymbols.items();
+}
+
 /**
  * Return number of symbol that is interpreted by Interpretation @b interp.
  *
@@ -489,13 +519,13 @@ unsigned Signature::getInterpretingSymbol(Interpretation interp, OperatorType* t
 
   unsigned res;
   if (_iSymbols.find(mi, res)) {
-    return res;
+	  return res;
   }
 
   vstring name = theory->getInterpretationName(interp);
-  unsigned arity = Theory::getArity(interp);
+  unsigned arity = theory->getArity(interp);
   
-  if (Theory::isFunction(interp)) {
+  if (theory->isFunction(interp)) {
     if (functionExists(name, arity)) {
       int i=0;
       while(functionExists(name+Int::toString(i), arity)) {

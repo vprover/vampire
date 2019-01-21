@@ -607,7 +607,7 @@ void SaturationAlgorithm::addInputSOSClause(Clause* cl)
   onNewClause(cl);
 
 simpl_start:
-
+  
   Clause* simplCl=_immediateSimplifier->simplify(cl);
   if (simplCl != cl) {
     if (!simplCl) {

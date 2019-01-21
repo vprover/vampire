@@ -244,7 +244,23 @@ Term* Z3Interfacing::evaluateInModel(Term* trm)
   // For now just deal with the case where it is an integer 
   if(assignment.is_numeral()){
     bool is_int = assignment.is_int();
-    ASS(is_int || assignment.is_real()); 
+    ASS(is_int || assignment.is_real() || assignment.is_bv()); 
+    if (assignment.is_bv())
+    {
+        ASS(env.sorts->isOfStructuredSort(srt,Sorts::StructuredSort::BITVECTOR));
+        std::string val;
+    
+        if (assignment.is_numeral(val))
+        {
+            unsigned size = assignment.get_sort().bv_size();
+            vstring vVal(val.c_str());
+            Term* t = theory->representConstant(BitVectorConstantType(BitVectorOperations::getBVCTFromVString(vVal, size)));
+            return t;
+        }
+        else{
+            return 0;
+        }
+    }
     if(is_int){
       ASS(srt == Sorts::SRT_INTEGER);
       int value;
@@ -324,8 +340,13 @@ z3::sort Z3Interfacing::getz3sort(unsigned s)
     z3::sort value_sort = getz3sort(env.sorts->getArraySort(s)->getInnerSort());
  
     return _context.array_sort(index_sort,value_sort);
-  } 
-
+  }
+  
+  //Deal with bitvectors
+  if(env.sorts->isOfStructuredSort(s,Sorts::StructuredSort::BITVECTOR)) {
+    unsigned size = env.sorts->getBitVectorSort(s)->getSize();  
+    return _context.bv_sort(size);
+  }
   // Use new interface for uninterpreted sorts, I think this is not less efficient
   return _context.uninterpreted_sort(Lib::Int::toString(s).c_str());
 /*
@@ -391,6 +412,13 @@ z3::expr Z3Interfacing::getz3expr(Term* trm,bool isLit,bool&nameExpression,bool 
         RationalConstantType value = symb->rationalValue();
         return _context.real_val(value.numerator().toInner(),value.denominator().toInner());
       }
+      if (symb->bitVectorConstant()){
+          BitVectorConstantType value = symb->bitVectorValue();
+          // cout << "val to z3: " << value.getBinArray() << endl;
+          auto ret = _context.bv_val(value.size(), value.getBinArray().array());
+          // cout << "val in z3: " << ret << endl;
+          return ret;
+      }
       if(!isLit && env.signature->isFoolConstantSymbol(true,trm->functor())){
         return _context.bool_val(true);
       }
@@ -447,230 +475,353 @@ z3::expr Z3Interfacing::getz3expr(Term* trm,bool isLit,bool&nameExpression,bool 
       bool skip=false; 
       unsigned argsToPop=theory->getArity(interp);
 
-      if(Theory::isPolymorphic(interp)){
-        nameExpression = true;
-        switch(interp){
-          case Theory::ARRAY_SELECT:
-          case Theory::ARRAY_BOOL_SELECT:
-            // select(array,index)
-            ret = select(args[0],args[1]);
-            break;
+      if (interp >= Theory::numberOfFixedInterpretations()) {
+        Theory::ConcreteIndexedInterpretation cii = theory->intepretationToIndexedInterpretation(interp);
 
-          case Theory::ARRAY_STORE:
-            // store(array,index,value)
-            ret = store(args[0],args[1],args[2]);
-            break;
+        Theory::IndexedInterpretation ii = cii.first;
+        unsigned index = cii.second;
 
+        switch(ii) {
+           case Theory::BV_ZERO_EXTEND:
+             ret = zext(args[0],index);
+             break;
+           case Theory::BV_SIGN_EXTEND:
+             ret = sext(args[0],index);
+             break;
+          case Theory::BV_ROTATE_LEFT:
+             ret = args[0].rotate_left(index);
+             break;
+          case Theory::BV_ROTATE_RIGHT:
+             ret = args[0].rotate_right(index);
+             break;
+          case Theory::REPEAT:
+             ret = args[0].repeat(index);
+             break;
+          case Theory::EXTRACT: {
+            OperatorType* t = env.signature->getFunction(trm->functor())->fnType();
+            unsigned resSize = env.sorts->getBitVectorSort(t->result())->getSize();
+
+            ret = args[0].extract(index,index-resSize+1);
+
+            break;
+          }
           default:
             skip=true;//skip it and treat the function as uninterpretted
             break;
         }
-
-      }else{
-
-      switch(interp){
-        // Numerical operations
-        case Theory::INT_DIVIDES:
-          if(withGuard){addIntNonZero(args[0]);}
-          //cout << "SET name=true" << endl;
+      } else {
+        if(Theory::isPolymorphic(interp)){
           nameExpression = true;
-          ret = z3::mod(args[1], args[0]) == _context.int_val(0);
-          break;
+          switch(interp){
+            case Theory::ARRAY_SELECT:
+            case Theory::ARRAY_BOOL_SELECT:
+              // select(array,index)
+              ret = select(args[0],args[1]);
+              break;
 
-        case Theory::INT_UNARY_MINUS:
-        case Theory::RAT_UNARY_MINUS:
-        case Theory::REAL_UNARY_MINUS:
-          ret = -args[0];
-          break;
+            case Theory::ARRAY_STORE:
+              // store(array,index,value)
+              ret = store(args[0],args[1],args[2]);
+              break;
 
-        case Theory::INT_PLUS:
-        case Theory::RAT_PLUS:
-        case Theory::REAL_PLUS:
-          ret = args[0] + args[1];
-          break;
-
-        // Don't really need as it's preprocessed away
-        case Theory::INT_MINUS:
-        case Theory::RAT_MINUS:
-        case Theory::REAL_MINUS:
-          ret = args[0] - args[1];
-          break;
-
-        case Theory::INT_MULTIPLY:
-        case Theory::RAT_MULTIPLY:
-        case Theory::REAL_MULTIPLY:
-          ret = args[0] * args[1];
-          break;
-
-        case Theory::RAT_QUOTIENT:
-        case Theory::REAL_QUOTIENT:
-          if(withGuard){addRealNonZero(args[1]);}
-          ret= args[0] / args[1];
-          break;
-
-        case Theory::INT_QUOTIENT_E: 
-          if(withGuard){addIntNonZero(args[1]);}
-          ret= args[0] / args[1];
-          break;
-
-        // The z3 header must be wrong
-        //case Theory::RAT_QUOTIENT_E: 
-        //case Theory::REAL_QUOTIENT_E: 
-           //TODO
-
-        case Theory::RAT_TO_INT:
-        case Theory::REAL_TO_INT:
-        case Theory::INT_FLOOR:
-        case Theory::RAT_FLOOR:
-        case Theory::REAL_FLOOR:
-          ret = to_real(to_int(args[0])); 
-          break;
-
-        case Theory::INT_TO_REAL:
-        case Theory::RAT_TO_REAL:
-        case Theory::INT_TO_RAT: //I think this works also
-          ret = to_real(args[0]);
-          break;
-
-        case Theory::INT_CEILING:
-        case Theory::RAT_CEILING:
-        case Theory::REAL_CEILING:
-          ret = ceiling(args[0]);
-          break;
-
-        case Theory::INT_TRUNCATE:
-        case Theory::RAT_TRUNCATE:
-        case Theory::REAL_TRUNCATE:
-          ret = truncate(args[0]); 
-          break;
-
-        case Theory::INT_ROUND:
-        case Theory::RAT_ROUND:
-        case Theory::REAL_ROUND:
-          {
-            z3::expr t = args[0];
-            z3::expr i = to_int(t);
-            z3::expr i2 = i + _context.real_val(1,2);
-            ret = ite(t > i2, i+1, ite(t==i2, ite(is_even(i),i,i+1),i));
-            break;
+            ////////////////////////////////////////////////////////////////////////////////////////
+            ////////////////////////////////////////////////////////////////////////////////////////
+            case Theory::BVUREM:
+              ret = urem(args[0],args[1]);
+              break;
+            case Theory::BVUDIV:
+              ret = udiv(args[0],args[1]);
+              break;
+            case Theory::BVSDIV:
+              ret = args[0]/args[1];
+              break;
+            case Theory::BVADD:
+              ret = args[0]+args[1];
+              break;
+            case Theory::CONCAT:
+              ret = concat(args[0],args[1]);
+              break;
+            case Theory::BVNOT:
+              ret = ~args[0];
+              break;
+            case Theory::BVAND:
+              ret = args[0]&args[1];
+              break;
+            case Theory::BVNAND:
+              ret = nand(args[0],args[1]);
+              break;
+            case Theory::BVOR:
+              ret = args[0]|args[1];
+              break;
+            case Theory::BVNEG:
+              ret = -args[0];
+              break;
+            case Theory::BVMUL:
+              ret = args[0]*args[1];
+              break;
+            case Theory::BVSHL:
+              ret = shl(args[0],args[1]);
+              break;
+            case Theory::BVLSHR:
+              ret = lshr(args[0],args[1]);
+              break;
+            case Theory::BVNOR:
+              ret = nor(args[0],args[1]);
+              break;
+            case Theory::BVXOR:
+              ret = (args[0]^args[1]);
+              break;
+            case Theory::BVXNOR:
+              ret = xnor(args[0],args[1]);
+              break;
+            case Theory::BVSUB:
+              ret = args[0]-args[1];
+              break;
+            case Theory::BVSREM:
+              ret = srem(args[0],args[1]);
+              break;
+            case Theory::BVASHR:
+              ret = ashr(args[0],args[1]);
+              break;
+            case Theory::BVULT:
+              ret = ult(args[0],args[1]);
+              break;
+            case Theory::BVULE:
+              ret = ule(args[0],args[1]);
+              break;
+            case Theory::BVUGT:
+              ret = ugt(args[0],args[1]);
+              break;
+            case Theory::BVUGE:
+              ret = uge(args[0],args[1]);
+              break;
+            case Theory::BVSLT:
+              ret = args[0]<args[1];
+              break;
+            case Theory::BVSLE:
+              ret = args[0]<=args[1];
+              break;
+            case Theory::BVSGT:
+              ret = args[0]>args[1];
+              break;
+            case Theory::BVSGE:
+              ret = args[0]>=args[1];
+              break;
+            case Theory::BVSMOD:
+                ret = smod(args[0],args[1]);
+            case Theory::BVCOMP:
+              ret = ite(args[0]==args[1],_context.bv_val(1,1),_context.bv_val(0,1));
+            default:
+              skip=true;//skip it and treat the function as uninterpretted
+              break;
           }
 
-        case Theory::INT_ABS:
-          {
-            z3::expr t = args[0];
-            ret = ite(t > 0, t, -t);
-            break;
+          }else{
+
+          switch(interp){
+            // Numerical operations
+            case Theory::INT_DIVIDES:
+              if(withGuard){addIntNonZero(args[0]);}
+              //cout << "SET name=true" << endl;
+              nameExpression = true;
+              ret = z3::mod(args[1], args[0]) == _context.int_val(0);
+              break;
+
+            case Theory::INT_UNARY_MINUS:
+            case Theory::RAT_UNARY_MINUS:
+            case Theory::REAL_UNARY_MINUS:
+              ret = -args[0];
+              break;
+
+            case Theory::INT_PLUS:
+            case Theory::RAT_PLUS:
+            case Theory::REAL_PLUS:
+              ret = args[0] + args[1];
+              break;
+
+            // Don't really need as it's preprocessed away
+            case Theory::INT_MINUS:
+            case Theory::RAT_MINUS:
+            case Theory::REAL_MINUS:
+              ret = args[0] - args[1];
+              break;
+
+            case Theory::INT_MULTIPLY:
+            case Theory::RAT_MULTIPLY:
+            case Theory::REAL_MULTIPLY:
+              ret = args[0] * args[1];
+              break;
+
+            case Theory::RAT_QUOTIENT:
+            case Theory::REAL_QUOTIENT:
+              if(withGuard){addRealNonZero(args[1]);}
+              ret= args[0] / args[1];
+              break;
+
+            case Theory::INT_QUOTIENT_E:
+              if(withGuard){addIntNonZero(args[1]);}
+              ret= args[0] / args[1];
+              break;
+
+            // The z3 header must be wrong
+            //case Theory::RAT_QUOTIENT_E:
+            //case Theory::REAL_QUOTIENT_E:
+               //TODO
+
+            case Theory::RAT_TO_INT:
+            case Theory::REAL_TO_INT:
+            case Theory::INT_FLOOR:
+            case Theory::RAT_FLOOR:
+            case Theory::REAL_FLOOR:
+              ret = to_real(to_int(args[0]));
+              break;
+
+            case Theory::INT_TO_REAL:
+            case Theory::RAT_TO_REAL:
+            case Theory::INT_TO_RAT: //I think this works also
+              ret = to_real(args[0]);
+              break;
+
+            case Theory::INT_CEILING:
+            case Theory::RAT_CEILING:
+            case Theory::REAL_CEILING:
+              ret = ceiling(args[0]);
+              break;
+
+            case Theory::INT_TRUNCATE:
+            case Theory::RAT_TRUNCATE:
+            case Theory::REAL_TRUNCATE:
+              ret = truncate(args[0]);
+              break;
+
+            case Theory::INT_ROUND:
+            case Theory::RAT_ROUND:
+            case Theory::REAL_ROUND:
+              {
+                z3::expr t = args[0];
+                z3::expr i = to_int(t);
+                z3::expr i2 = i + _context.real_val(1,2);
+                ret = ite(t > i2, i+1, ite(t==i2, ite(is_even(i),i,i+1),i));
+                break;
+              }
+
+            case Theory::INT_ABS:
+              {
+                z3::expr t = args[0];
+                ret = ite(t > 0, t, -t);
+                break;
+              }
+
+             case Theory::INT_QUOTIENT_T:
+             case Theory::INT_REMAINDER_T:
+               if(withGuard){addIntNonZero(args[1]);}
+               // leave as uninterpreted
+               addTruncatedOperations(args,Theory::INT_QUOTIENT_T,Theory::INT_REMAINDER_T,range_sort);
+               skip=true;
+               break;
+             case Theory::RAT_QUOTIENT_T:
+               if(withGuard){addRealNonZero(args[1]);}
+               ret = truncate(args[0]/args[1]);
+               addTruncatedOperations(args,Theory::RAT_QUOTIENT_T,Theory::RAT_REMAINDER_T,range_sort);
+               break;
+             case Theory::RAT_REMAINDER_T:
+               if(withGuard){addRealNonZero(args[1]);}
+               skip=true;
+               addTruncatedOperations(args,Theory::RAT_QUOTIENT_T,Theory::RAT_REMAINDER_T,range_sort);
+               break;
+             case Theory::REAL_QUOTIENT_T:
+               if(withGuard){addRealNonZero(args[1]);}
+               ret = truncate(args[0]/args[1]);
+               addTruncatedOperations(args,Theory::REAL_QUOTIENT_T,Theory::REAL_REMAINDER_T,range_sort);
+               break;
+             case Theory::REAL_REMAINDER_T:
+               if(withGuard){addRealNonZero(args[1]);}
+               skip=true;
+               addTruncatedOperations(args,Theory::REAL_QUOTIENT_T,Theory::REAL_REMAINDER_T,range_sort);
+               break;
+
+             case Theory::INT_QUOTIENT_F:
+             case Theory::INT_REMAINDER_F:
+               if(withGuard){addIntNonZero(args[1]);}
+               // leave as uninterpreted
+               addFloorOperations(args,Theory::INT_QUOTIENT_F,Theory::INT_REMAINDER_F,range_sort);
+               skip=true;
+               break;
+             case Theory::RAT_QUOTIENT_F:
+               if(withGuard){addRealNonZero(args[1]);}
+               ret = to_real(to_int(args[0] / args[1]));
+               addFloorOperations(args,Theory::RAT_QUOTIENT_F,Theory::RAT_REMAINDER_F,range_sort);
+               break;
+             case Theory::RAT_REMAINDER_F:
+               if(withGuard){addRealNonZero(args[1]);}
+               skip=true;
+               addFloorOperations(args,Theory::RAT_QUOTIENT_F,Theory::RAT_REMAINDER_F,range_sort);
+               break;
+             case Theory::REAL_QUOTIENT_F:
+               if(withGuard){addRealNonZero(args[1]);}
+               ret = to_real(to_int(args[0] / args[1]));
+               addFloorOperations(args,Theory::REAL_QUOTIENT_F,Theory::REAL_REMAINDER_F,range_sort);
+               break;
+             case Theory::REAL_REMAINDER_F:
+               if(withGuard){addRealNonZero(args[1]);}
+               skip=true;
+               addFloorOperations(args,Theory::REAL_QUOTIENT_F,Theory::REAL_REMAINDER_F,range_sort);
+               break;
+
+             case Theory::RAT_REMAINDER_E:
+             case Theory::REAL_REMAINDER_E:
+               if(withGuard){addRealNonZero(args[1]);}
+               nameExpression = true;
+               ret = z3::mod(args[0], args[1]);
+               break;
+
+             case Theory::INT_REMAINDER_E:
+               if(withGuard){addIntNonZero(args[1]);}
+               nameExpression = true;
+               ret = z3::mod(args[0], args[1]);
+               break;
+
+           // Numerical comparisons
+           // is_rat and to_rat not supported
+
+           case Theory::INT_IS_INT:
+           case Theory::RAT_IS_INT:
+           case Theory::REAL_IS_INT:
+             ret = z3::is_int(args[0]);
+             break;
+
+           case Theory::INT_LESS:
+           case Theory::RAT_LESS:
+           case Theory::REAL_LESS:
+              ret = args[0] < args[1];
+              break;
+
+           case Theory::INT_GREATER:
+           case Theory::RAT_GREATER:
+           case Theory::REAL_GREATER:
+              ret= args[0] > args[1];
+              break;
+
+           case Theory::INT_LESS_EQUAL:
+           case Theory::RAT_LESS_EQUAL:
+           case Theory::REAL_LESS_EQUAL:
+              ret= args[0] <= args[1];
+              break;
+
+           case Theory::INT_GREATER_EQUAL:
+           case Theory::RAT_GREATER_EQUAL:
+           case Theory::REAL_GREATER_EQUAL:
+              ret= args[0] >= args[1];
+              break;
+
+            default:
+              if(withGuard){
+                throw UninterpretedForZ3Exception();
+              }
+              skip=true;//skip it and treat the function as uninterpretted
+              break;
           }
-
-         case Theory::INT_QUOTIENT_T:
-         case Theory::INT_REMAINDER_T:
-           if(withGuard){addIntNonZero(args[1]);}
-           // leave as uninterpreted
-           addTruncatedOperations(args,Theory::INT_QUOTIENT_T,Theory::INT_REMAINDER_T,range_sort);
-           skip=true;
-           break;
-         case Theory::RAT_QUOTIENT_T:
-           if(withGuard){addRealNonZero(args[1]);}
-           ret = truncate(args[0]/args[1]);
-           addTruncatedOperations(args,Theory::RAT_QUOTIENT_T,Theory::RAT_REMAINDER_T,range_sort);
-           break;
-         case Theory::RAT_REMAINDER_T:
-           if(withGuard){addRealNonZero(args[1]);}
-           skip=true;
-           addTruncatedOperations(args,Theory::RAT_QUOTIENT_T,Theory::RAT_REMAINDER_T,range_sort);
-           break;
-         case Theory::REAL_QUOTIENT_T:
-           if(withGuard){addRealNonZero(args[1]);}
-           ret = truncate(args[0]/args[1]);
-           addTruncatedOperations(args,Theory::REAL_QUOTIENT_T,Theory::REAL_REMAINDER_T,range_sort);
-           break;
-         case Theory::REAL_REMAINDER_T:
-           if(withGuard){addRealNonZero(args[1]);}
-           skip=true;
-           addTruncatedOperations(args,Theory::REAL_QUOTIENT_T,Theory::REAL_REMAINDER_T,range_sort);
-           break;
-
-         case Theory::INT_QUOTIENT_F:
-         case Theory::INT_REMAINDER_F:
-           if(withGuard){addIntNonZero(args[1]);}
-           // leave as uninterpreted
-           addFloorOperations(args,Theory::INT_QUOTIENT_F,Theory::INT_REMAINDER_F,range_sort);
-           skip=true;
-           break;
-         case Theory::RAT_QUOTIENT_F:
-           if(withGuard){addRealNonZero(args[1]);}
-           ret = to_real(to_int(args[0] / args[1]));
-           addFloorOperations(args,Theory::RAT_QUOTIENT_F,Theory::RAT_REMAINDER_F,range_sort);
-           break;
-         case Theory::RAT_REMAINDER_F:
-           if(withGuard){addRealNonZero(args[1]);}
-           skip=true;
-           addFloorOperations(args,Theory::RAT_QUOTIENT_F,Theory::RAT_REMAINDER_F,range_sort);
-           break;
-         case Theory::REAL_QUOTIENT_F:
-           if(withGuard){addRealNonZero(args[1]);}
-           ret = to_real(to_int(args[0] / args[1]));
-           addFloorOperations(args,Theory::REAL_QUOTIENT_F,Theory::REAL_REMAINDER_F,range_sort);
-           break;
-         case Theory::REAL_REMAINDER_F:
-           if(withGuard){addRealNonZero(args[1]);}
-           skip=true;
-           addFloorOperations(args,Theory::REAL_QUOTIENT_F,Theory::REAL_REMAINDER_F,range_sort);
-           break;
-
-         case Theory::RAT_REMAINDER_E:
-         case Theory::REAL_REMAINDER_E:
-           if(withGuard){addRealNonZero(args[1]);}
-           nameExpression = true; 
-           ret = z3::mod(args[0], args[1]);
-           break;
-
-         case Theory::INT_REMAINDER_E:
-           if(withGuard){addIntNonZero(args[1]);}
-           nameExpression = true;
-           ret = z3::mod(args[0], args[1]);
-           break;
-
-       // Numerical comparisons
-       // is_rat and to_rat not supported
-
-       case Theory::INT_IS_INT:
-       case Theory::RAT_IS_INT:
-       case Theory::REAL_IS_INT:
-         ret = z3::is_int(args[0]);
-         break;
-
-       case Theory::INT_LESS:
-       case Theory::RAT_LESS:
-       case Theory::REAL_LESS:
-          ret = args[0] < args[1];
-          break;
-
-       case Theory::INT_GREATER:
-       case Theory::RAT_GREATER:
-       case Theory::REAL_GREATER:
-          ret= args[0] > args[1];
-          break;
-          
-       case Theory::INT_LESS_EQUAL:
-       case Theory::RAT_LESS_EQUAL:
-       case Theory::REAL_LESS_EQUAL:
-          ret= args[0] <= args[1];
-          break;
-
-       case Theory::INT_GREATER_EQUAL:
-       case Theory::RAT_GREATER_EQUAL:
-       case Theory::REAL_GREATER_EQUAL:
-          ret= args[0] >= args[1];
-          break;
-
-        default: 
-          if(withGuard){
-            throw UninterpretedForZ3Exception();
-          }
-          skip=true;//skip it and treat the function as uninterpretted
-          break;
-      }
+        }
       }
 
       if(!skip){

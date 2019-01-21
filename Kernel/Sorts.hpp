@@ -63,6 +63,8 @@ public:
     ARRAY,
     /** The structured sort for tuples */
     TUPLE,
+    /** The structured sort for bitvectors */
+    BITVECTOR,
     /** not a real structured sort, it's here to denote the length of the StructuredSort enum */
     LAST_STRUCTURED_SORT
   };
@@ -132,6 +134,29 @@ public:
     unsigned _indexSort;
     unsigned _innerSort;
   };
+  
+  class BitVectorSort : public StructuredSortInfo
+  {
+  public:
+    CLASS_NAME(BitVectorSort);
+    USE_ALLOCATOR(BitVectorSort);
+
+    BitVectorSort(vstring name, unsigned size, unsigned id) : 
+      StructuredSortInfo(name,StructuredSort::BITVECTOR, id),
+      _size(size)
+    { 
+#if VDEBUG
+      //cout << "Creating BitVectorSort " << name << " with id " << id << endl; 
+#endif
+    }
+
+   unsigned getSize(){ return _size; }
+    
+  private: 
+    unsigned _size;
+  };
+  
+  
 
   class TupleSort : public StructuredSortInfo
   {
@@ -158,9 +183,16 @@ public:
   unsigned addSort(const vstring& name, bool interpreted);
 
   unsigned addArraySort(unsigned indexSort, unsigned innerSort);
+  unsigned addBitVectorSort(unsigned size);
+  
   ArraySort* getArraySort(unsigned sort){
     ASS(isOfStructuredSort(sort,StructuredSort::ARRAY));
     return static_cast<ArraySort*>(_sorts[sort]);
+  }
+  
+  BitVectorSort* getBitVectorSort(unsigned sort){
+      ASS(isOfStructuredSort(sort,StructuredSort::BITVECTOR));
+      return static_cast<BitVectorSort*>(_sorts[sort]);
   }
 
   unsigned addTupleSort(unsigned arity, unsigned sorts[]);

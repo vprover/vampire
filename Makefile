@@ -85,7 +85,7 @@ INCLUDES= -I.
 Z3FLAG= -DVZ3=0
 Z3LIB=
 ifeq (,$(shell echo $(MAKECMDGOALS) | sed 's/.*z3.*//g')) 
-INCLUDES= -I. -Linclude -Iz3/api -Iz3/api/c++ 
+INCLUDES= -I. -Linclude -Iz3/api 
 ifeq (,$(shell echo $(MAKECMDGOALS) | sed 's/.*static.*//g'))
 Z3LIB= -lz3 -lgomp -pthread -lrt -ldl
 else
@@ -221,6 +221,7 @@ VK_OBJ= Kernel/Clause.o\
         Kernel/Renaming.o\
         Kernel/RobSubstitution.o\
         Kernel/Signature.o\
+	Kernel/BitVectorOperations.o\
         Kernel/SortHelper.o\
         Kernel/Sorts.o\
         Kernel/SubformulaIterator.o\

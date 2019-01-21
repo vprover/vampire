@@ -46,7 +46,6 @@ using namespace Lib;
 ///////////////////////
 // IntegerConstantType
 //
-
 IntegerConstantType::IntegerConstantType(const vstring& str)
 {
   CALL("IntegerConstantType::IntegerConstantType(vstring)");
@@ -217,6 +216,40 @@ vstring IntegerConstantType::toString() const
   CALL("IntegerConstantType::toString");
 
   return Int::toString(_val);
+}
+
+vstring BitVectorConstantType::toString() const
+{
+    CALL("BitVectorConstantType::toString");
+    return "$bv" + BitVectorOperations::boolArraytoString(binArray);
+}
+bool BitVectorConstantType::operator==(const BitVectorConstantType& num) const
+{
+  CALL("BitVectorConstantType::operator==");
+  
+  DArray<bool> other = num.getBinArray();
+  for (unsigned i = 0 ; i < other.size() ; ++i)
+  {
+      if (binArray[i]!=other[i]){
+          return false;
+      }
+  }
+  return true;
+}
+
+bool BitVectorConstantType::operator!=(const BitVectorConstantType& num) const
+{
+  CALL("BitVectorConstantType::operator!=");
+  
+  DArray<bool> other = num.getBinArray();
+  for (unsigned i = 0 ; i < other.size() ; ++i)
+  {
+      if (binArray[i]!=other[i]){
+          return true;
+      }
+  }
+  return false;
+  
 }
 
 ///////////////////////
@@ -544,113 +577,167 @@ Theory::Theory()
 unsigned Theory::getArity(Interpretation i)
 {
   CALL("Signature::InterpretedSymbol::getArity");
-  ASS_L(i,INVALID_INTERPRETATION);
 
-  switch(i) {
-  case INT_IS_INT:
-  case INT_IS_RAT:
-  case INT_IS_REAL:
-  case RAT_IS_INT:
-  case RAT_IS_RAT:
-  case RAT_IS_REAL:
-  case REAL_IS_INT:
-  case REAL_IS_RAT:
-  case REAL_IS_REAL:
+  if (i < numberOfFixedInterpretations()) {
+    switch(i) {
+    case INT_IS_INT:
+    case INT_IS_RAT:
+    case INT_IS_REAL:
+    case RAT_IS_INT:
+    case RAT_IS_RAT:
+    case RAT_IS_REAL:
+    case REAL_IS_INT:
+    case REAL_IS_RAT:
+    case REAL_IS_REAL:
 
-  case INT_TO_INT:
-  case INT_TO_RAT:
-  case INT_TO_REAL:
-  case RAT_TO_INT:
-  case RAT_TO_RAT:
-  case RAT_TO_REAL:
-  case REAL_TO_INT:
-  case REAL_TO_RAT:
-  case REAL_TO_REAL:
+    case INT_TO_INT:
+    case INT_TO_RAT:
+    case INT_TO_REAL:
+    case RAT_TO_INT:
+    case RAT_TO_RAT:
+    case RAT_TO_REAL:
+    case REAL_TO_INT:
+    case REAL_TO_RAT:
+    case REAL_TO_REAL:
 
-  case INT_SUCCESSOR:
-  case INT_UNARY_MINUS:
-  case RAT_UNARY_MINUS:
-  case REAL_UNARY_MINUS:
+    case INT_SUCCESSOR:
+    case INT_UNARY_MINUS:
+    case RAT_UNARY_MINUS:
+    case REAL_UNARY_MINUS:
 
-  case INT_FLOOR:
-  case INT_CEILING:
-  case INT_TRUNCATE:
-  case INT_ROUND:
-  case INT_ABS:
+    case INT_FLOOR:
+    case INT_CEILING:
+    case INT_TRUNCATE:
+    case INT_ROUND:
+    case INT_ABS:
 
-  case RAT_FLOOR:
-  case RAT_CEILING:
-  case RAT_TRUNCATE:
-  case RAT_ROUND:
+    case RAT_FLOOR:
+    case RAT_CEILING:
+    case RAT_TRUNCATE:
+    case RAT_ROUND:
 
-  case REAL_FLOOR:
-  case REAL_CEILING:
-  case REAL_TRUNCATE:
-  case REAL_ROUND:
+    case REAL_FLOOR:
+    case REAL_CEILING:
+    case REAL_TRUNCATE:
+    case REAL_ROUND:
 
-    return 1;
+      return 1;
 
-  case EQUAL:
+    case EQUAL:
 
-  case INT_GREATER:
-  case INT_GREATER_EQUAL:
-  case INT_LESS:
-  case INT_LESS_EQUAL:
-  case INT_DIVIDES:
+    case INT_GREATER:
+    case INT_GREATER_EQUAL:
+    case INT_LESS:
+    case INT_LESS_EQUAL:
+    case INT_DIVIDES:
 
-  case RAT_GREATER:
-  case RAT_GREATER_EQUAL:
-  case RAT_LESS:
-  case RAT_LESS_EQUAL:
+    case RAT_GREATER:
+    case RAT_GREATER_EQUAL:
+    case RAT_LESS:
+    case RAT_LESS_EQUAL:
 
-  case REAL_GREATER:
-  case REAL_GREATER_EQUAL:
-  case REAL_LESS:
-  case REAL_LESS_EQUAL:
+    case REAL_GREATER:
+    case REAL_GREATER_EQUAL:
+    case REAL_LESS:
+    case REAL_LESS_EQUAL:
 
-  case INT_PLUS:
-  case INT_MINUS:
-  case INT_MULTIPLY:
-  case INT_QUOTIENT_E:
-  case INT_QUOTIENT_T:
-  case INT_QUOTIENT_F:
-  case INT_REMAINDER_E:
-  case INT_REMAINDER_T:
-  case INT_REMAINDER_F:
+    case INT_PLUS:
+    case INT_MINUS:
+    case INT_MULTIPLY:
+    case INT_QUOTIENT_E:
+    case INT_QUOTIENT_T:
+    case INT_QUOTIENT_F:
+    case INT_REMAINDER_E:
+    case INT_REMAINDER_T:
+    case INT_REMAINDER_F:
 
-  case RAT_PLUS:
-  case RAT_MINUS:
-  case RAT_MULTIPLY:
-  case RAT_QUOTIENT:
-  case RAT_QUOTIENT_E:
-  case RAT_QUOTIENT_T:
-  case RAT_QUOTIENT_F:
-  case RAT_REMAINDER_E:
-  case RAT_REMAINDER_T:
-  case RAT_REMAINDER_F:
+    case RAT_PLUS:
+    case RAT_MINUS:
+    case RAT_MULTIPLY:
+    case RAT_QUOTIENT:
+    case RAT_QUOTIENT_E:
+    case RAT_QUOTIENT_T:
+    case RAT_QUOTIENT_F:
+    case RAT_REMAINDER_E:
+    case RAT_REMAINDER_T:
+    case RAT_REMAINDER_F:
 
-  case REAL_PLUS:
-  case REAL_MINUS:
-  case REAL_MULTIPLY:
-  case REAL_QUOTIENT:
-  case REAL_QUOTIENT_E:
-  case REAL_QUOTIENT_T:
-  case REAL_QUOTIENT_F:
-  case REAL_REMAINDER_E:
-  case REAL_REMAINDER_T:
-  case REAL_REMAINDER_F:
+    case REAL_PLUS:
+    case REAL_MINUS:
+    case REAL_MULTIPLY:
+    case REAL_QUOTIENT:
+    case REAL_QUOTIENT_E:
+    case REAL_QUOTIENT_T:
+    case REAL_QUOTIENT_F:
+    case REAL_REMAINDER_E:
+    case REAL_REMAINDER_T:
+    case REAL_REMAINDER_F:
 
-  case ARRAY_SELECT:
-  case ARRAY_BOOL_SELECT:
+        return 2;
 
-    return 2;
-          
-  case ARRAY_STORE:
+    case ARRAY_SELECT:
+    case ARRAY_BOOL_SELECT:
 
-    return 3;
-          
-  default:
-    ASSERTION_VIOLATION_REP(i);
+      return 2;
+
+    case ARRAY_STORE:
+
+      return 3;
+
+    case BVNEG:
+    case BVNOT:
+
+      return 1;
+
+    case BVSLT:
+    case BVAND:
+    case BVLSHR:
+    case BVADD:
+    case BVNAND:
+    case BVOR:
+    case BVXOR:
+    case BVNOR:
+    case BVXNOR:
+    case BVASHR:
+    case BVCOMP:
+    case BVSUB:
+    case BVSDIV:
+    case BVSREM:
+    case BVSMOD:
+    case BVULE:
+    case BVUGT:
+    case BVUGE:
+    case BVSLE:
+    case BVSGT:
+    case BVSGE:
+    case BVULT:
+    case BVSHL:
+    case BVMUL:
+    case BVUDIV:
+    case BVUREM:
+    case CONCAT:
+
+      return 2;
+
+    default:
+      ASSERTION_VIOLATION_REP(i);
+    }
+  } else {
+    ConcreteIndexedInterpretation cii = intepretationToIndexedInterpretation(i);
+
+    IndexedInterpretation ii = cii.first;
+
+    switch (ii) {
+      case EXTRACT:
+      case REPEAT:
+      case BV_ZERO_EXTEND:
+      case BV_SIGN_EXTEND:
+      case BV_ROTATE_RIGHT:
+      case BV_ROTATE_LEFT:
+        return 1;
+      default:
+        ASSERTION_VIOLATION_REP(ii);
+    }
   }
 }
 
@@ -661,7 +748,25 @@ unsigned Theory::getArity(Interpretation i)
 bool Theory::isFunction(Interpretation i)
 {
   CALL("Signature::InterpretedSymbol::isFunction");
-  ASS_L(i,INVALID_INTERPRETATION);
+
+  if (i >= numberOfFixedInterpretations()) {
+    ConcreteIndexedInterpretation cii = intepretationToIndexedInterpretation(i);
+    IndexedInterpretation ii = cii.first;
+    
+    switch (ii) {
+      case EXTRACT:
+      case REPEAT:
+      case BV_ZERO_EXTEND:
+      case BV_SIGN_EXTEND:
+      case BV_ROTATE_RIGHT:
+      case BV_ROTATE_LEFT:
+        return true;
+      default:
+        ASSERTION_VIOLATION_REP(ii);
+    }
+
+    return false;
+  }
 
   switch(i) {
   case INT_TO_INT:
@@ -726,6 +831,28 @@ bool Theory::isFunction(Interpretation i)
           
   case ARRAY_SELECT:
   case ARRAY_STORE:
+
+  case BVAND:
+  case BVLSHR:
+  case BVADD:
+  case BVNAND:
+  case BVOR:
+  case BVXOR:
+  case BVNEG:
+  case BVNOR:
+  case BVNOT:
+  case BVXNOR:
+  case BVASHR:
+  case BVCOMP:
+  case BVSUB:
+  case BVSDIV:
+  case BVSREM:
+  case BVSMOD:
+  case BVSHL:
+  case BVMUL:
+  case BVUDIV:
+  case BVUREM:
+  case CONCAT:
 
     return true;
 
@@ -758,6 +885,15 @@ bool Theory::isFunction(Interpretation i)
   case REAL_IS_REAL:
 
   case ARRAY_BOOL_SELECT:
+
+  case BVSLT:
+  case BVULE:
+  case BVUGT:
+  case BVUGE:
+  case BVSLE:
+  case BVSGT:
+  case BVSGE:
+  case BVULT:
 
     return false;
 
@@ -837,6 +973,36 @@ bool Theory::isPolymorphic(Interpretation i)
   case ARRAY_SELECT:
   case ARRAY_BOOL_SELECT:
   case ARRAY_STORE:
+
+  case BVAND:
+  case BVLSHR:
+  case BVADD:
+  case BVNAND:
+  case BVOR:
+  case BVXOR:
+  case BVNOT:
+  case BVNOR:
+  case BVNEG:
+  case BVXNOR:
+  case BVASHR:
+  case BVCOMP:
+  case BVSUB:
+  case BVSDIV:
+  case BVSREM:
+  case BVSMOD:
+  case BVSHL:
+  case BVMUL:
+  case BVUDIV:
+  case BVUREM:
+  case BVSLT:
+  case BVULE:
+  case BVUGT:
+  case BVUGE:
+  case BVSLE:
+  case BVSGT:
+  case BVSGE:
+  case BVULT:
+  case CONCAT:
 
     return true;
   default:
@@ -1048,7 +1214,7 @@ bool Theory::isPartialFunction(Interpretation i)
  * array extensionality axiom (of particular sort).
  *
  * select(X,sk(X,Y)) != select(Y,sk(X,Y)) | X = Y
- * 
+ *
  * If the symbol does not exist yet, it is added to the signature. We use 0 to
  * represent that the symbol not yet exists, assuming that at call time of this
  * method, at least the array function are already in the signature.
@@ -1069,7 +1235,7 @@ unsigned Theory::getArrayExtSkolemFunction(unsigned sort) {
 
   _arraySkolemFunctions.insert(sort,skolemFunction);
 
-  return skolemFunction; 
+  return skolemFunction;
 }
 
 unsigned Theory::Tuples::getFunctor(unsigned arity, unsigned* sorts) {
@@ -1192,122 +1358,209 @@ OperatorType* Theory::getConversionOperationType(Interpretation i)
   default:
     ASSERTION_VIOLATION;
   }
+
   return OperatorType::getFunctionType({from}, to);
 }
 
 vstring Theory::getInterpretationName(Interpretation interp) {
   CALL("Theory::getInterpretationName");
 
-  switch (interp) {
-    case INT_SUCCESSOR:
-      //this one is not according the TPTP arithmetic (it doesn't have successor)
-      return "$successor";
-    case INT_DIVIDES:
-      return "$divides";
-    case INT_UNARY_MINUS:
-    case RAT_UNARY_MINUS:
-    case REAL_UNARY_MINUS:
-      return "$uminus";
-    case INT_PLUS:
-    case RAT_PLUS:
-    case REAL_PLUS:
-      return "$sum";
-    case INT_MINUS:
-    case RAT_MINUS:
-    case REAL_MINUS:
-      return "$difference";
-    case INT_MULTIPLY:
-    case RAT_MULTIPLY:
-    case REAL_MULTIPLY:
-      return "$product";
-    case INT_GREATER:
-    case RAT_GREATER:
-    case REAL_GREATER:
-      return "$greater";
-    case INT_GREATER_EQUAL:
-    case RAT_GREATER_EQUAL:
-    case REAL_GREATER_EQUAL:
-      return "$greatereq";
-    case INT_LESS:
-    case RAT_LESS:
-    case REAL_LESS:
-      return "$less";
-    case INT_LESS_EQUAL:
-    case RAT_LESS_EQUAL:
-    case REAL_LESS_EQUAL:
-      return "$lesseq";
-    case INT_IS_INT:
-    case RAT_IS_INT:
-    case REAL_IS_INT:
-      return "$is_int";
-    case INT_IS_RAT:
-    case RAT_IS_RAT:
-    case REAL_IS_RAT:
-      return "$is_rat";
-    case INT_IS_REAL:
-    case RAT_IS_REAL:
-    case REAL_IS_REAL:
-      return "$is_real";
-    case INT_TO_INT:
-    case RAT_TO_INT:
-    case REAL_TO_INT:
-      return "$to_int";
-    case INT_TO_RAT:
-    case RAT_TO_RAT:
-    case REAL_TO_RAT:
-      return "$to_rat";
-    case INT_TO_REAL:
-    case RAT_TO_REAL:
-    case REAL_TO_REAL:
-      return "$to_real";
-    case INT_ABS:
-      return "$abs";
-    case INT_QUOTIENT_E:
-    case RAT_QUOTIENT_E:
-    case REAL_QUOTIENT_E:
-      return "$quotient_e";
-    case INT_QUOTIENT_T:
-    case RAT_QUOTIENT_T:
-    case REAL_QUOTIENT_T:
-      return "$quotient_t";
-    case INT_QUOTIENT_F:
-    case RAT_QUOTIENT_F:
-    case REAL_QUOTIENT_F:
-      return "$quotient_f";
-    case INT_REMAINDER_T:
-    case RAT_REMAINDER_T:
-    case REAL_REMAINDER_T:
-      return "$remainder_t";
-    case INT_REMAINDER_F:
-    case RAT_REMAINDER_F:
-    case REAL_REMAINDER_F:
-      return "$remainder_f";
-    case INT_REMAINDER_E:
-    case RAT_REMAINDER_E:
-    case REAL_REMAINDER_E:
-      return "$remainder_e";
-    case RAT_QUOTIENT:
-    case REAL_QUOTIENT:
-      return "$quotient";
-    case INT_TRUNCATE:
-    case RAT_TRUNCATE:
-    case REAL_TRUNCATE:
-      return "truncate";
-    case INT_FLOOR:
-    case RAT_FLOOR:
-    case REAL_FLOOR:
-      return "floor";
-    case INT_CEILING:
-    case RAT_CEILING:
-    case REAL_CEILING:
-      return "ceiling";
-    case ARRAY_SELECT:
-    case ARRAY_BOOL_SELECT:
-      return "$select";
-    case ARRAY_STORE:
-      return "$store";
-    default:
-      ASSERTION_VIOLATION_REP(interp);
+  if (interp < numberOfFixedInterpretations()) {
+    switch (interp) {
+      case INT_SUCCESSOR:
+        //this one is not according the TPTP arithmetic (it doesn't have successor)
+        return "$successor";
+      case INT_DIVIDES:
+        return "$divides";
+      case INT_UNARY_MINUS:
+      case RAT_UNARY_MINUS:
+      case REAL_UNARY_MINUS:
+        return "$uminus";
+      case INT_PLUS:
+      case RAT_PLUS:
+      case REAL_PLUS:
+        return "$sum";
+      case INT_MINUS:
+      case RAT_MINUS:
+      case REAL_MINUS:
+        return "$difference";
+      case INT_MULTIPLY:
+      case RAT_MULTIPLY:
+      case REAL_MULTIPLY:
+        return "$product";
+      case INT_GREATER:
+      case RAT_GREATER:
+      case REAL_GREATER:
+        return "$greater";
+      case INT_GREATER_EQUAL:
+      case RAT_GREATER_EQUAL:
+      case REAL_GREATER_EQUAL:
+        return "$greatereq";
+      case INT_LESS:
+      case RAT_LESS:
+      case REAL_LESS:
+        return "$less";
+      case INT_LESS_EQUAL:
+      case RAT_LESS_EQUAL:
+      case REAL_LESS_EQUAL:
+        return "$lesseq";
+      case INT_IS_INT:
+      case RAT_IS_INT:
+      case REAL_IS_INT:
+        return "$is_int";
+      case INT_IS_RAT:
+      case RAT_IS_RAT:
+      case REAL_IS_RAT:
+        return "$is_rat";
+      case INT_IS_REAL:
+      case RAT_IS_REAL:
+      case REAL_IS_REAL:
+        return "$is_real";
+      case INT_TO_INT:
+      case RAT_TO_INT:
+      case REAL_TO_INT:
+        return "$to_int";
+      case INT_TO_RAT:
+      case RAT_TO_RAT:
+      case REAL_TO_RAT:
+        return "$to_rat";
+      case INT_TO_REAL:
+      case RAT_TO_REAL:
+      case REAL_TO_REAL:
+        return "$to_real";
+      case INT_ABS:
+        return "$abs";
+      case INT_QUOTIENT_E:
+      case RAT_QUOTIENT_E:
+      case REAL_QUOTIENT_E:
+        return "$quotient_e";
+      case INT_QUOTIENT_T:
+      case RAT_QUOTIENT_T:
+      case REAL_QUOTIENT_T:
+        return "$quotient_t";
+      case INT_QUOTIENT_F:
+      case RAT_QUOTIENT_F:
+      case REAL_QUOTIENT_F:
+        return "$quotient_f";
+      case INT_REMAINDER_T:
+      case RAT_REMAINDER_T:
+      case REAL_REMAINDER_T:
+        return "$remainder_t";
+      case INT_REMAINDER_F:
+      case RAT_REMAINDER_F:
+      case REAL_REMAINDER_F:
+        return "$remainder_f";
+      case INT_REMAINDER_E:
+      case RAT_REMAINDER_E:
+      case REAL_REMAINDER_E:
+        return "$remainder_e";
+      case RAT_QUOTIENT:
+      case REAL_QUOTIENT:
+        return "$quotient";
+      case INT_TRUNCATE:
+      case RAT_TRUNCATE:
+      case REAL_TRUNCATE:
+        return "truncate";
+      case INT_FLOOR:
+      case RAT_FLOOR:
+      case REAL_FLOOR:
+        return "floor";
+      case INT_CEILING:
+      case RAT_CEILING:
+      case REAL_CEILING:
+        return "ceiling";
+      case ARRAY_SELECT:
+      case ARRAY_BOOL_SELECT:
+        return "$select";
+      case ARRAY_STORE:
+        return "$store";
+      case BVSLT:
+        return "$bvslt";
+      case BVAND:
+        return "$bvand";
+      case BVLSHR:
+        return "$bvlshr";
+      case BVNEG:
+        return "$bvneg";
+
+      case BVADD:
+        return "$bvadd";
+      case BVNOT:
+        return "$bvnot";
+      case BVOR:
+        return "$bvor";
+      case BVMUL:
+        return "$bvmul";
+      case BVUDIV:
+        return "$bvudiv";
+      case BVUREM:
+        return "$bvurem";
+      case BVSHL:
+        return "$bvshl";
+      case BVULT:
+        return "$bvult";
+      case BVNAND:
+        return "$bvnand";
+      case BVNOR:
+        return "$bvnor";
+      case BVXOR:
+        return "$bvxor";
+      case BVXNOR:
+        return "$bvxnor";
+      case BVCOMP:
+        return "$bvcomp";
+      case BVSUB:
+        return "$bvsub";
+      case BVSDIV:
+        return "$bvsdiv";
+      case BVSREM:
+        return "$bvsrem";
+      case BVSMOD:
+        return "$bvsmod";
+      case BVASHR:
+        return "$bvashr";
+      case BVULE:
+        return "$bvule";
+      case BVUGT:
+        return "$bvugt";
+      case BVUGE:
+        return "$bvuge";
+      case BVSLE:
+        return "$bvsle";
+      case BVSGT:
+        return "$bvsgt";
+      case BVSGE:
+        return "$bvsge";
+      case CONCAT:
+        return "$concat";
+
+      default:
+        ASSERTION_VIOLATION_REP(interp);
+    }
+  } else { // must be an indexed interpretation
+    ConcreteIndexedInterpretation cii = intepretationToIndexedInterpretation(interp);
+
+    IndexedInterpretation ii = cii.first;
+    unsigned index = cii.second;
+
+    switch (ii) {
+      case EXTRACT:
+        // for extract we store the 'from'-index, the 'to'-index can be obtained from the bitsize of the result
+        return "$extract_" + Int::toString(index);
+      case REPEAT:
+        return "$repeat_" + Int::toString(index);
+
+      case BV_ZERO_EXTEND:
+        return "$bv_zero_extend_" + Int::toString(index);
+      case BV_SIGN_EXTEND:
+        return "$bv_sign_extend_" + Int::toString(index);
+      case BV_ROTATE_LEFT:
+        return "$bv_rotate_left_" + Int::toString(index);
+      case BV_ROTATE_RIGHT:
+        return "$bv_rotate_right_" + Int::toString(index);
+      default:
+        ASSERTION_VIOLATION_REP(ii);
+    }
   }
 }
 
@@ -1331,6 +1584,89 @@ OperatorType* Theory::getArrayOperatorType(unsigned arraySort, Interpretation i)
 
     default:
       ASSERTION_VIOLATION;
+      return nullptr;
+  }
+}
+
+/**
+ * auxSort is ``the other sort'' that is needed to specify the type concat
+ * If this looks ugly it's because we are trying to put in the same function
+ * things that do not naturally belong together. But we've been doing it above
+ * with all the other interpretations too. TODO: redesign the whole thing?
+ */
+OperatorType* Theory::getBitvectorOperatorType(unsigned bvSort, Interpretation i, unsigned auxSort) {
+  CALL("Theory::getBitvectorOperatorType");
+
+  switch (i){
+    case BVSLT:
+    case BVULT:
+    case BVULE:
+    case BVUGT:
+    case BVUGE:
+    case BVSLE:
+    case BVSGT:
+    case BVSGE:
+      return OperatorType::getPredicateType({bvSort,bvSort});
+    case BVAND:
+    case BVLSHR:
+    case BVADD:
+    case BVOR:
+    case BVMUL:
+    case BVUDIV:
+    case BVUREM:
+    case BVSHL:
+    case BVNAND:
+    case BVNOR:
+    case BVXOR:
+    case BVXNOR:
+    case BVSUB:
+    case BVSDIV:
+    case BVSREM:
+    case BVSMOD:
+    case BVASHR:
+      return OperatorType::getFunctionType({bvSort, bvSort}, bvSort);
+    case BVNEG:
+    case BVNOT:
+      return OperatorType::getFunctionType({bvSort}, bvSort);
+    case CONCAT:
+    {
+      unsigned size1 = env.sorts->getBitVectorSort(bvSort)->getSize();
+      unsigned size2 = env.sorts->getBitVectorSort(auxSort)->getSize();
+
+      return OperatorType::getFunctionType({bvSort, auxSort}, env.sorts->addBitVectorSort(size1+size2));
+    }
+    case BVCOMP:
+    {
+        return OperatorType::getFunctionType({bvSort, bvSort}, env.sorts->addBitVectorSort(1));
+    }
+    default:
+      ASSERTION_VIOLATION;
+  }
+}
+
+OperatorType* Theory::getBitvectorIndexedOperatorType(unsigned mainSort, unsigned auxSort, IndexedInterpretation i)
+{
+  CALL("getBitvectorIndexedOperatorType");
+
+  switch(i) {
+    case BV_ROTATE_LEFT:
+    case BV_ROTATE_RIGHT:
+    {
+        return OperatorType::getFunctionType({mainSort}, mainSort);
+    }
+    case BV_ZERO_EXTEND:
+    case BV_SIGN_EXTEND:
+    case REPEAT:
+    {
+        return OperatorType::getFunctionType({mainSort}, auxSort);
+    }
+    case EXTRACT:
+    {
+        return OperatorType::getFunctionType({mainSort}, auxSort);
+    }
+    default:
+      ASSERTION_VIOLATION;
+      return nullptr;
   }
 }
 
@@ -1468,6 +1804,10 @@ bool Theory::isInterpretedPredicate(Literal* lit)
 
   if(lit->isEquality()){
     unsigned srt = SortHelper::getEqualityArgumentSort(lit);
+
+    if (env.sorts->isOfStructuredSort(srt,Sorts::StructuredSort::BITVECTOR)) {
+      return true;
+    }
     return (srt == Sorts::SRT_INTEGER || srt == Sorts::SRT_RATIONAL || srt == Sorts::SRT_REAL);
   }
 
@@ -1625,6 +1965,23 @@ Interpretation Theory::interpretPredicate(Literal* lit)
   return interpretPredicate(lit->functor());
 }
 
+bool Theory::tryInterpretConstant(const Term* t, BitVectorConstantType& res)
+{
+    CALL("Theory::tryInterpretConstant(Term*,BitVectorConstantType)");
+
+    if (t->arity() != 0 || t->isSpecial()) {
+      return false;
+    }
+    unsigned func = t->functor();
+    Signature::Symbol* sym = env.signature->getFunction(func);
+    if (!sym->bitVectorConstant()) {  
+      return false;
+    }
+    
+    res.setBinArray(sym->bitVectorValue().getBinArray());
+    return true;
+}
+
 /**
  * Try to interpret the term as an integer constant. If it is an
  * integer constant, return true and save the constant in @c res, otherwise
@@ -1669,7 +2026,7 @@ bool Theory::tryInterpretConstant(const Term* t, RationalConstantType& res)
   }
   res = sym->rationalValue();
   return true;
-} // Theory::tryInterpretConstant 
+} // Theory::tryInterpretConstant
 
 /**
  * Try to interpret the term as a real constant. If it is an
@@ -1693,6 +2050,14 @@ bool Theory::tryInterpretConstant(const Term* t, RealConstantType& res)
   res = sym->realValue();
   return true;
 } // // Theory::tryInterpretConstant
+
+Term* Theory::representConstant(const BitVectorConstantType& num)
+{
+  CALL("Theory::representConstant(const IntegerConstantType&)");
+
+  unsigned func = env.signature->addBitVectorConstant(num);
+  return Term::create(func, 0, 0);
+}
 
 Term* Theory::representConstant(const IntegerConstantType& num)
 {
@@ -1751,7 +2116,7 @@ Term* Theory::representRealConstant(vstring str)
 
 /**
  * Register that a predicate pred with a given polarity has the given
- * template. See tryGetInterpretedLaTeXName for explanation of templates 
+ * template. See tryGetInterpretedLaTeXName for explanation of templates
  */
 void Theory::registerLaTeXPredName(unsigned pred, bool polarity, vstring temp)
 {
@@ -1759,12 +2124,12 @@ void Theory::registerLaTeXPredName(unsigned pred, bool polarity, vstring temp)
   if(polarity){
     _predLaTeXnamesPos.insert(pred,temp);
   }else{
-    _predLaTeXnamesNeg.insert(pred,temp); 
+    _predLaTeXnamesNeg.insert(pred,temp);
   }
 }
 /**
  * Register that a function has the given template
- * See tryGetInterpretedLaTeXName for explanation of templates 
+ * See tryGetInterpretedLaTeXName for explanation of templates
  */
 void Theory::registerLaTeXFuncName(unsigned func, vstring temp)
 {
@@ -1788,7 +2153,7 @@ void Theory::registerLaTeXFuncName(unsigned func, vstring temp)
  * interpreted functions will use these defaults.
  *
  * A template is a string with "ai" representing parameter i. These will be
- * replaced by the actual parameters elsewhere. For example, the template for 
+ * replaced by the actual parameters elsewhere. For example, the template for
  * not greater or equal to is "a0 \not \geq a1"
  */
 vstring Theory::tryGetInterpretedLaTeXName(unsigned func, bool pred,bool polarity)
@@ -1803,14 +2168,14 @@ vstring Theory::tryGetInterpretedLaTeXName(unsigned func, bool pred,bool polarit
   if(pred){
     if(polarity){
       if(_predLaTeXnamesPos.find(func)){ return _predLaTeXnamesPos.get(func); }
-      else if(_predLaTeXnamesNeg.find(func)){ 
+      else if(_predLaTeXnamesNeg.find(func)){
         // If a negative record is found but no positive we negate it
         return "\neg ("+_predLaTeXnamesNeg.get(func)+")";
       }
     }
-    else{ 
+    else{
       if(_predLaTeXnamesNeg.find(func)){ return _predLaTeXnamesNeg.get(func); }
-      else if(_predLaTeXnamesPos.find(func)){ 
+      else if(_predLaTeXnamesPos.find(func)){
         // If a positive record is found but no negative we negate it
         return "\neg ("+_predLaTeXnamesPos.get(func)+")";
       }
@@ -1835,7 +2200,7 @@ vstring Theory::tryGetInterpretedLaTeXName(unsigned func, bool pred,bool polarit
   switch(i){
   case EQUAL:return "a0 "+pol+"= a1";
 
-  case INT_SUCCESSOR: return "a0++"; 
+  case INT_SUCCESSOR: return "a0++";
   case INT_UNARY_MINUS:
   case RAT_UNARY_MINUS:
   case REAL_UNARY_MINUS: return "-a0";
@@ -1851,7 +2216,7 @@ vstring Theory::tryGetInterpretedLaTeXName(unsigned func, bool pred,bool polarit
   case RAT_LESS: return "a0 "+pol+"< a1";
   case RAT_LESS_EQUAL: return "a0 "+pol+"\\leq a1";
 
-  case REAL_GREATER: return "a0 "+pol+"> a1"; 
+  case REAL_GREATER: return "a0 "+pol+"> a1";
   case REAL_GREATER_EQUAL: return "a0 "+pol+"\\geq a1";
   case REAL_LESS: return "a0 "+pol+"< a1";
   case REAL_LESS_EQUAL: return "a0 "+pol+"\\leq a1";
@@ -1871,29 +2236,10 @@ vstring Theory::tryGetInterpretedLaTeXName(unsigned func, bool pred,bool polarit
   case REAL_QUOTIENT: return "a0 / a1";
 
   default: return "";
-  } 
+  }
 
   return "";
 
 }
 
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

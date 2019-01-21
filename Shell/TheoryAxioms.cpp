@@ -40,6 +40,8 @@
 #include "SymCounter.hpp"
 #include "TheoryAxioms.hpp"
 #include "Options.hpp"
+#include "Lib/DHMap.hpp"
+#include "Kernel/Sorts.hpp"
 
 using namespace Lib;
 using namespace Kernel;
@@ -155,6 +157,30 @@ void TheoryAxioms::addCommutativity(Interpretation op)
 } // addCommutativity
 
 /**
+ * Add the axiom f(X,Y)=f(Y,X).
+ * Intended for bitvectors.
+ * @since 17/02/2018, Vienna
+ * @author David Damestani
+ */
+void TheoryAxioms::addBitVectorCommutativity(Interpretation op, unsigned size)
+{
+    CALL("TheoryAxioms::addBitVectorCommutativity");
+    ASS(theory->isFunction(op));
+    ASS(theory->isPolymorphic(op));
+    ASS_EQ(theory->getArity(op),2);
+    unsigned srt = env.sorts->addBitVectorSort(size);
+    unsigned argSorts[2] = {srt,srt};
+    
+    unsigned f = env.signature->getInterpretingSymbol(op,OperatorType::getFunctionType(2,argSorts,srt));
+    TermList x(0,false);
+    TermList y(1,false);
+    TermList fxy(Term::create2(f,x,y));
+    TermList fyx(Term::create2(f,y,x));
+    Literal* eq = Literal::createEquality(true,fxy,fyx,srt);
+    addTheoryUnitClause(eq, CHEAP);
+}
+
+/**
  * Add axiom f(X,f(Y,Z))=f(f(X,Y),Z).
  * @since 11/11/2013, Manchester: modified
  * @author Andrei Voronkov
@@ -268,6 +294,8 @@ void TheoryAxioms::addCommutativeGroupAxioms(Interpretation op, Interpretation i
  */
 void TheoryAxioms::addRightInverse(Interpretation op, Interpretation inverse)
 {
+  CALL("TheoryAxioms::addRightInverse");
+
   TermList x(0,false);
   TermList y(0,false);
   unsigned f = env.signature->getInterpretingSymbol(op);
@@ -293,6 +321,19 @@ void TheoryAxioms::addNonReflexivity(Interpretation op)
   ASS_EQ(theory->getArity(op),2);
 
   unsigned opPred = env.signature->getInterpretingSymbol(op);
+  TermList x(0,false);
+  Literal* l11 = Literal::create2(opPred, false, x, x);
+  addTheoryUnitClause(l11, CHEAP);
+} // addNonReflexivity
+
+void TheoryAxioms::addPolyMorphicNonReflexivity(Interpretation op, OperatorType* type)
+{
+  CALL("TheoryAxioms::addPolyMorphicNonReflexivity");
+
+  ASS(!theory->isFunction(op));
+  ASS_EQ(theory->getArity(op),2);
+
+  unsigned opPred = env.signature->getInterpretingSymbol(op, type);
   TermList x(0,false);
   Literal* l11 = Literal::create2(opPred, false, x, x);
   addTheoryUnitClause(l11, CHEAP);
@@ -430,6 +471,1675 @@ void TheoryAxioms::addAdditionAndOrderingAxioms(Interpretation plus, Interpretat
   Literal* mmxEqx = Literal::createEquality(true,mmx,x,varSort);
   addTheoryUnitClause(mmxEqx, EXPENSIVE);
 
+}
+
+// f(X,Y) = g(Y,X)
+//(bvugt s t) abbreviates (bvult t s)
+// (bvugt s t) XOR (bvult s t) XOR (= s t)
+void TheoryAxioms::addBVReverseAndMoreAxiom(Interpretation op, Interpretation g_i, unsigned size)
+{
+  CALL("TheoryAxioms::addBVReverseAndMoreAxiom");
+
+    unsigned srt = env.sorts->addBitVectorSort(size);
+    
+    unsigned f = env.signature->getInterpretingSymbol(op,OperatorType::getPredicateType({srt,srt}));
+    unsigned g = env.signature->getInterpretingSymbol(g_i,OperatorType::getPredicateType({srt,srt}));
+    
+    
+    TermList s(0,false);
+    TermList t(1,false);
+    
+    Formula* bvugt_s_t = new AtomicFormula(Literal::create2(f,true,s,t));
+    Formula* bvult_t_s = new AtomicFormula(Literal::create2(g,true,t,s));
+    Formula* imp1 = new BinaryFormula(IMP,bvugt_s_t,bvult_t_s);
+    Formula* imp2 = new BinaryFormula(IMP,bvult_t_s,bvugt_s_t);
+    FormulaList* argLst = nullptr;
+    FormulaList::push(imp1,argLst);
+    FormulaList::push(imp2,argLst);
+    Formula* conjunct = new JunctionFormula(AND,argLst);
+
+    
+    addAndOutputTheoryUnit(new FormulaUnit(conjunct, new Inference(Inference::THEORY), Unit::AXIOM), EXPENSIVE);
+    
+    // (bvugt s t) XOR (bvult s t) XOR (= s t)
+    Formula* bvult_s_t = new AtomicFormula(Literal::create2(g,true,s,t));
+    Formula* eq_s_t = new AtomicFormula(Literal::createEquality(true, s, t, srt));
+    
+    Formula*  _xor1 = new BinaryFormula(XOR, bvult_s_t, bvugt_s_t);
+    Formula*  _xor2 = new BinaryFormula(XOR, _xor1, eq_s_t);
+   // addAndOutputTheoryUnit(new FormulaUnit(_xor2, new Inference(Inference::THEORY), Unit::AXIOM), EXPENSIVE);
+    
+} 
+
+
+/* Add that
+ *
+ * p(concat(s x) concat(ts tx) -> p(s,ts)
+ *
+ * e.g: bvuge(concat(s x) concat(ts tx)) -> bvuge(s ts)
+ *
+ *	where srt0 is the sort for s and ts
+ *	and srt1 is the sort for x and tx
+ *
+ *
+ * */
+
+void TheoryAxioms::addPredicateOnConcatArgsImpliesPredicateConcatFirstArg(unsigned srt0, unsigned srt1, unsigned resultSrt, Interpretation predicate)
+{
+	CALL("TheoryAxioms::addPredicateOnConcatArgsImpliesPredicateConcatFirstArg");
+
+	TermList x(0,false);
+	TermList s(1,false);
+	TermList tx(2,false);
+	TermList ts(3,false);
+
+	unsigned bvuge_concat = env.signature->getInterpretingSymbol(predicate,OperatorType::getPredicateType({resultSrt,resultSrt}));
+	unsigned bvuge_s_ts = env.signature->getInterpretingSymbol(predicate,OperatorType::getPredicateType({srt0,srt0}));
+
+	unsigned argSorts[2] = {srt0,srt1};
+	unsigned concat = env.signature->getInterpretingSymbol(Interpretation::CONCAT,OperatorType::getFunctionType(2,argSorts,resultSrt));
+
+	//LHS
+	// p(concat(s x) concat(ts tx)
+	//concat(s x)
+
+	TermList concat_s_x(Term::create2(concat,s,x));
+	//concat(ts tx)
+
+	TermList concat_ts_tx(Term::create2(concat,ts,tx));
+
+	Formula* p_concats = new AtomicFormula(Literal::create2(bvuge_concat,true,concat_s_x,concat_ts_tx));
+
+	//RHS
+	//bvuge(s ts)
+
+	Formula* p_s_ts = new AtomicFormula(Literal::create2(bvuge_s_ts,true,s,ts));
+
+	Formula* implication0 = new BinaryFormula(IMP, p_concats, p_s_ts);
+
+	addAndOutputTheoryUnit(new FormulaUnit(implication0, new Inference(Inference::THEORY), Unit::AXIOM),CHEAP);
+
+
+}
+
+
+
+// called when encountered:
+// concat x s
+// concat(srt0 srt1) -> resultSrt
+// (bvuge s ts) AND (bvsge x tx) -> bvsge (concat(x s) concat(tx ts))
+void TheoryAxioms::addConcatAxiom1(unsigned srt0, unsigned srt1, unsigned resultSrt)
+{
+	CALL("TheoryAxioms::addConcatAxiom1");
+	// where x and tx are of the same sort and s and ts are of the same sort
+	// (bvuge s ts) AND (bvsge x tx) -> bvsge (concat(x s) concat(tx ts))
+
+	TermList x(0,false);
+    TermList s(1,false);
+    TermList tx(2,false);
+    TermList ts(3,false);
+
+    // LHS
+
+    unsigned bvuge = env.signature->getInterpretingSymbol(Interpretation::BVUGE,OperatorType::getPredicateType({srt1,srt1}));
+    // (bvuge s ts)
+    Formula* bvuge_s_ts = new AtomicFormula(Literal::create2(bvuge,true,s,ts));
+
+    unsigned bvsge1 = env.signature->getInterpretingSymbol(Interpretation::BVSGE,OperatorType::getPredicateType({srt0,srt0}));
+    // (bvsge x tx)
+    Formula* bvsge_x_tx = new AtomicFormula(Literal::create2(bvsge1,true,x,tx));
+
+    // (bvuge s ts) AND (bvsge x tx)
+    FormulaList* argLst = nullptr;
+    FormulaList::push(bvuge_s_ts,argLst);
+    FormulaList::push(bvsge_x_tx,argLst);
+    Formula* conjunct = new JunctionFormula(AND,argLst);
+    // LHS END
+
+    // RHS
+    // bvsge (concat(x s) concat(tx ts))
+    unsigned argSorts[2] = {srt0,srt1};
+    unsigned concat = env.signature->getInterpretingSymbol(Interpretation::CONCAT,OperatorType::getFunctionType(2,argSorts,resultSrt));
+
+    //concat(x s)
+    TermList concat_x_s(Term::create2(concat,x,s));
+
+    //concat(tx ts)
+    TermList concat_tx_ts(Term::create2(concat,tx,ts));
+
+    //bvsge (concat(x s) concat(tx ts))
+    unsigned bvsge2 = env.signature->getInterpretingSymbol(Interpretation::BVSGE,OperatorType::getPredicateType({resultSrt,resultSrt}));
+    Formula* bvsge_con_con = new AtomicFormula(Literal::create2(bvsge2,true,concat_x_s,concat_tx_ts));
+    //RHS END
+
+    Formula* ax = new BinaryFormula(IMP, conjunct, bvsge_con_con);
+
+    addAndOutputTheoryUnit(new FormulaUnit(ax, new Inference(Inference::THEORY), Unit::AXIOM),CHEAP);
+}
+
+// called when encountered:
+// concat x s
+// concat(srt0 srt1) -> resultSrt
+// (bvult s ts) AND (bvsgt x tx) -> bvsge (concat(x s) concat(tx ts))
+void TheoryAxioms::addConcatAxiom2(unsigned srt0, unsigned srt1, unsigned resultSrt)
+{
+	CALL("TheoryAxioms::addConcatAxiom2");
+	// where x and tx are of the same sort and s and ts are of the same sort
+	// (bvult s ts) AND (bvsgt x tx) -> bvsge (concat(x s) concat(tx ts))
+
+	TermList x(0,false);
+    TermList s(1,false);
+    TermList tx(2,false);
+    TermList ts(3,false);
+
+    // LHS
+    unsigned bvult = env.signature->getInterpretingSymbol(Interpretation::BVULT,OperatorType::getPredicateType({srt1,srt1}));
+    // (bvult s ts)
+    Formula* bvult_s_ts = new AtomicFormula(Literal::create2(bvult,true,s,ts));
+
+    unsigned bvsgt = env.signature->getInterpretingSymbol(Interpretation::BVSGT,OperatorType::getPredicateType({srt0,srt0}));
+    // (bvsgt x tx)
+    Formula* bvsgt_x_tx = new AtomicFormula(Literal::create2(bvsgt,true,x,tx));
+
+    // (bvult s ts) AND (bvsgt x tx)
+    FormulaList* argLst = nullptr;
+    FormulaList::push(bvult_s_ts,argLst);
+    FormulaList::push(bvsgt_x_tx,argLst);
+    Formula* conjunct = new JunctionFormula(AND,argLst);
+    // LHS END
+
+    // RHS
+    // bvsge (concat(x s) concat(tx ts))
+    unsigned argSorts[2] = {srt0,srt1};
+    unsigned concat = env.signature->getInterpretingSymbol(Interpretation::CONCAT,OperatorType::getFunctionType(2,argSorts,resultSrt));
+
+    //concat(x s)
+    TermList concat_x_s(Term::create2(concat,x,s));
+
+    //concat(tx ts)
+    TermList concat_tx_ts(Term::create2(concat,tx,ts));
+
+    //bvsge (concat(x s) concat(tx ts))
+    unsigned bvsge2 = env.signature->getInterpretingSymbol(Interpretation::BVSGE,OperatorType::getPredicateType({resultSrt,resultSrt}));
+    Formula* bvsge_con_con = new AtomicFormula(Literal::create2(bvsge2,true,concat_x_s,concat_tx_ts));
+    //RHS END
+
+    Formula* ax = new BinaryFormula(IMP, conjunct, bvsge_con_con);
+
+    addAndOutputTheoryUnit(new FormulaUnit(ax, new Inference(Inference::THEORY), Unit::AXIOM),CHEAP);
+}
+
+
+// e.g. (bvsge x s) -> (bvsgt x s OR x = s)
+void TheoryAxioms::isPredicateWithEqualRemovedOrEqualAxiom(Interpretation completePredicate, Interpretation predicateWithEqualRemoved, unsigned size)
+{
+	CALL("TheoryAxioms::isPredicateWithEqualRemovedOrEqualAxiom");
+
+	TermList x(0,false);
+	TermList s(1,false);
+
+	unsigned srt = env.sorts->addBitVectorSort(size);
+
+	//LHS
+	unsigned bvsge = env.signature->getInterpretingSymbol(completePredicate,OperatorType::getPredicateType({srt,srt}));
+	//(bvsge x s)
+
+	Formula* bvsge_x_s = new AtomicFormula(Literal::create2(bvsge, true,x,s));
+
+	//RHS
+	unsigned bvsgt = env.signature->getInterpretingSymbol(predicateWithEqualRemoved,OperatorType::getPredicateType({srt,srt}));
+	Formula* bvsgt_x_s = new AtomicFormula(Literal::create2(bvsgt, true,x,s));
+	//x = s
+	Formula* xEm = new AtomicFormula(Literal::createEquality(true,x,s,srt));
+
+	// rhs disjunction
+	//(bvsgt x s OR x = s)
+	FormulaList* argLst = nullptr;
+	FormulaList::push(bvsgt_x_s,argLst);
+	FormulaList::push(xEm,argLst);
+	Formula* disjunct = new JunctionFormula(OR,argLst);
+
+	// whole
+	Formula* implication = new BinaryFormula(IMP, bvsge_x_s,disjunct);
+	addAndOutputTheoryUnit(new FormulaUnit(implication, new Inference(Inference::THEORY), Unit::AXIOM),CHEAP);
+
+}
+
+
+// add that x = y -> p(x y)
+void TheoryAxioms::addEqualsImpliesBinaryPredicate(Interpretation itp, unsigned srt)
+{
+	CALL("addEqualsImpliesBinaryPredicate(Interpretation itp, unsigned srt)");
+	TermList x(0,false);
+	TermList y(1,false);
+
+	unsigned arg[2] = {srt,srt};
+	unsigned pred = env.signature->getInterpretingSymbol(itp,OperatorType::getPredicateType({srt,srt}));
+
+	Formula* xEy = new AtomicFormula(Literal::createEquality(true,x,y,srt));
+	Formula* xPy = new AtomicFormula(Literal::create2(pred,true,x,y));
+	Formula* implication = new BinaryFormula(IMP,xEy,xPy);
+
+	addAndOutputTheoryUnit(new FormulaUnit(implication, new Inference(Inference::THEORY), Unit::AXIOM),CHEAP);
+}
+
+// add that x + y = z -> (y = z - x AND x = z - y)
+void TheoryAxioms::addSomeAdditionAxiom(unsigned srt) // assert srt exists possibly
+{
+	CALL("TheoryAxioms::addSomeAdditionAxiom");
+
+	TermList x(0,false);
+	TermList y(1,false);
+	TermList z(2,false);
+
+	unsigned arg[2] = {srt,srt};
+	unsigned bvadd = env.signature->getInterpretingSymbol(Interpretation::BVADD,OperatorType::getFunctionType(2,arg,srt));
+	unsigned bvsub = env.signature->getInterpretingSymbol(Interpretation::BVSUB,OperatorType::getFunctionType(2,arg,srt));
+
+
+	// lhs
+	// x + y = z
+	TermList xPy(Term::create2(bvadd,x,y));
+	Formula* lhs = new AtomicFormula(Literal::createEquality(true,xPy,z,srt));
+
+	// rhs
+	// y = z - x AND x = z - y
+
+	// y = z - x
+	TermList zMx(Term::create2(bvsub,z,x));
+	Formula* yEzMx = new AtomicFormula(Literal::createEquality(true,y,zMx,srt));
+
+	//x = z - y
+	TermList zMy(Term::create2(bvsub,z,y));
+	Formula* xEzMy = new AtomicFormula(Literal::createEquality(true,x,zMy,srt));
+
+	FormulaList* argLst = nullptr;
+	FormulaList::push(yEzMx,argLst);
+	FormulaList::push(xEzMy,argLst);
+	Formula* conjunct = new JunctionFormula(AND,argLst);
+
+	Formula* implication = new BinaryFormula(IMP, lhs,conjunct);
+
+	addAndOutputTheoryUnit(new FormulaUnit(implication, new Inference(Inference::THEORY), Unit::AXIOM),CHEAP);
+
+}
+
+
+// add that
+// !(!x) = x
+void TheoryAxioms::addUnaryFunctionAppliedTwiceEqualsArgument(Interpretation f, unsigned srt)
+{
+	CALL("TheoryAxioms::addUnaryFunctionAppliedTwiceEqualsArgument");
+
+	TermList x(0,false);
+	unsigned arg[2] = {srt};
+
+	unsigned bvneg = env.signature->getInterpretingSymbol(f,OperatorType::getFunctionType(1,arg,srt));
+
+	//!x
+	TermList nx(Term::create1(bvneg,x));
+	//!(!x)
+	TermList nnx(Term::create1(bvneg,nx));
+
+	Formula* whole = new AtomicFormula(Literal::createEquality(true,nnx,x,srt));
+	addAndOutputTheoryUnit(new FormulaUnit(whole, new Inference(Inference::THEORY), Unit::AXIOM),CHEAP);
+
+
+}
+
+
+
+/*
+ * Add that
+ *
+ *( p(x tx) && p(s ts) ) -> ( p (concat(x s ) concat (tx ts) ) )
+ *( where srt0 is the sort for x and tx
+ *  and srt1 is the sort for s and ts
+ */
+void TheoryAxioms::addConcatArgsPredicateImpliesWholePredicate(Interpretation predicate, unsigned srt0, unsigned srt1, unsigned resultSort)
+{
+	CALL("TheoryAxioms::addConcatArgsPredicateImpliesWholePredicate");
+
+	TermList x(0,false);
+	TermList tx(1,false);
+	TermList s(2,false);
+	TermList ts(3,false);
+
+	unsigned arg[2] = {srt0,srt1};
+	unsigned concat = env.signature->getInterpretingSymbol(Interpretation::CONCAT,OperatorType::getFunctionType(2,arg,resultSort));
+	unsigned predX_TX = env.signature->getInterpretingSymbol(predicate,OperatorType::getPredicateType({srt0,srt0}));
+	unsigned predS_TS = env.signature->getInterpretingSymbol(predicate,OperatorType::getPredicateType({srt1,srt1}));
+    unsigned predConcat = env.signature->getInterpretingSymbol(predicate,OperatorType::getPredicateType({resultSort,resultSort}));
+	// lhs
+	//p(x tx)
+	Formula* xPtx = new AtomicFormula(Literal::create2(predX_TX,true,x,tx));
+	//p(s ts)
+	Formula* sPts = new AtomicFormula(Literal::create2(predS_TS,true,s,ts));
+
+	FormulaList* argLst = nullptr;
+	FormulaList::push(xPtx,argLst);
+	FormulaList::push(sPts,argLst);
+	Formula* lhs = new JunctionFormula(AND,argLst);
+
+
+	//rhs ( p (concat(x s ) concat (tx ts) ) )
+	// concat(x s )
+	TermList xCs(Term::create2(concat,x,s));
+	//concat (tx ts)
+	TermList txCts(Term::create2(concat,tx,ts));
+	Formula* rhs = new AtomicFormula(Literal::create2(predConcat,true,xCs,txCts));
+
+	Formula* implication0 = new BinaryFormula(IMP, lhs,rhs);
+
+
+	addAndOutputTheoryUnit(new FormulaUnit(implication0, new Inference(Inference::THEORY), Unit::AXIOM),CHEAP);
+
+
+
+}
+
+/*
+ * Add that
+ *
+ *( p(x tx) && s = ts ) -> ( p (concat(x s ) concat (tx ts) ) )
+ *( where srt0 is the sort for x and tx
+ *  and srt1 is the sort for s and ts
+ */
+void TheoryAxioms::addConcatArgsPredicateImpliesWholePredicateVariation(Interpretation predicate, unsigned srt0, unsigned srt1, unsigned resultSort)
+{
+	CALL("TheoryAxioms::addConcatArgsPredicateImpliesWholePredicate");
+
+	TermList x(0,false);
+	TermList tx(1,false);
+	TermList s(2,false);
+	TermList ts(3,false);
+
+	unsigned arg[2] = {srt0,srt1};
+	unsigned concat = env.signature->getInterpretingSymbol(Interpretation::CONCAT,OperatorType::getFunctionType(2,arg,resultSort));
+	unsigned predX_TX = env.signature->getInterpretingSymbol(predicate,OperatorType::getPredicateType({srt0,srt0}));
+	//unsigned predS_TS = env.signature->getInterpretingSymbol(predicate,OperatorType::getPredicateType({srt1,srt1}));
+    unsigned predConcat = env.signature->getInterpretingSymbol(predicate,OperatorType::getPredicateType({resultSort,resultSort}));
+	// lhs
+	//p(x tx)
+	Formula* xPtx = new AtomicFormula(Literal::create2(predX_TX,true,x,tx));
+	// s = ts
+	Formula* sEts = new AtomicFormula(Literal::createEquality(true,s,ts,srt1));
+
+	FormulaList* argLst = nullptr;
+	FormulaList::push(xPtx,argLst);
+	FormulaList::push(sEts,argLst);
+	Formula* lhs = new JunctionFormula(AND,argLst);
+
+
+	//rhs ( p (concat(x s ) concat (tx ts) ) )
+	// concat(x s )
+	TermList xCs(Term::create2(concat,x,s));
+	//concat (tx ts)
+	TermList txCts(Term::create2(concat,tx,ts));
+	Formula* rhs = new AtomicFormula(Literal::create2(predConcat,true,xCs,txCts));
+
+	Formula* implication0 = new BinaryFormula(IMP, lhs,rhs);
+
+
+	addAndOutputTheoryUnit(new FormulaUnit(implication0, new Inference(Inference::THEORY), Unit::AXIOM),CHEAP);
+
+
+
+}
+
+/*	Add that
+ *	(concat ( x s ) = concat (tx ts)) -> (x = tx && s = ts)
+ *
+ *  where srt0 is the sort for x and tx
+ *  and srt1 is the sort for s and ts
+ * */
+
+void TheoryAxioms::addConcatResultsEqualImpliesArgumentsEqual(unsigned srt0, unsigned srt1, unsigned resultSort)
+{
+	CALL("TheoryAxioms::addConcatResultsEqualImpliesArgumentsEqual");
+
+	TermList x(0,false);
+	TermList tx(1,false);
+	TermList s(2,false);
+	TermList ts(3,false);
+
+	unsigned arg[2] = {srt0,srt1};
+	unsigned concat = env.signature->getInterpretingSymbol(Interpretation::CONCAT,OperatorType::getFunctionType(2,arg,resultSort));
+
+	//rhs
+	// s!=ts
+	Formula* sEts = new AtomicFormula(Literal::createEquality(true,s,ts,srt0));
+	// x!=tx
+	Formula* xEtx = new AtomicFormula(Literal::createEquality(true,x,tx,srt1));
+	// (s!=ts || x!=tx )
+	FormulaList* argLst = nullptr;
+	FormulaList::push(sEts,argLst);
+	FormulaList::push(xEtx,argLst);
+	Formula* rhs = new JunctionFormula(AND,argLst);
+
+	// lhs
+	//concat (s x)
+	TermList xCs(Term::create2(concat,s,x));
+	//concat (ts tx)
+	TermList txCts(Term::create2(concat,ts,tx));
+	//concat (s x) != concat (ts tx)
+	Formula* lhs = new AtomicFormula(Literal::createEquality(true,xCs,txCts,resultSort));
+
+	// we need lhs implies rhs (implication 0 ), and rhs implies lhs (implication 1)
+	Formula* implication0 = new BinaryFormula(IMP, lhs,rhs);
+
+
+	addAndOutputTheoryUnit(new FormulaUnit(implication0, new Inference(Inference::THEORY), Unit::AXIOM),CHEAP);
+
+}
+/*
+ *  Add that
+ *
+ *  (s!=ts || x!=tx ) <-> ( concat (s x) != concat (ts tx) )
+ *
+ *  where srt0 is the sort for s and ts
+ *  	  srt1 is the sort for x and tx
+ *
+ * */
+
+void TheoryAxioms::addConcatArgumentsNotEqualEquivalentToConcatResultsNotEqual(unsigned srt0, unsigned srt1, unsigned resultSort)
+{
+	CALL("TheoryAxioms::addConcatArgumentsNotEqualEquivalentToConcatResultsNotEqual");
+
+	TermList x(0,false);
+	TermList tx(1,false);
+	TermList s(2,false);
+	TermList ts(3,false);
+
+	unsigned arg[2] = {srt0,srt1};
+	unsigned concat = env.signature->getInterpretingSymbol(Interpretation::CONCAT,OperatorType::getFunctionType(2,arg,resultSort));
+
+	//lhs
+	// s!=ts
+	Formula* sNEts = new AtomicFormula(Literal::createEquality(false,s,ts,srt0));
+	// x!=tx
+	Formula* xNEtx = new AtomicFormula(Literal::createEquality(false,x,tx,srt1));
+	// (s!=ts || x!=tx )
+	FormulaList* argLst = nullptr;
+	FormulaList::push(sNEts,argLst);
+	FormulaList::push(xNEtx,argLst);
+	Formula* lhs = new JunctionFormula(OR,argLst);
+
+	// rhs
+	//concat (s x)
+	TermList xCs(Term::create2(concat,s,x));
+	//concat (ts tx)
+	TermList txCts(Term::create2(concat,ts,tx));
+	//concat (s x) != concat (ts tx)
+	Formula* rhs = new AtomicFormula(Literal::createEquality(false,xCs,txCts,resultSort));
+
+	// we need lhs implies rhs (implication 0 ), and rhs implies lhs (implication 1)
+	Formula* implication0 = new BinaryFormula(IMP, lhs,rhs);
+	Formula* implication1 = new BinaryFormula(IMP, rhs,lhs);
+
+	argLst = nullptr;
+	FormulaList::push(implication0,argLst);
+	FormulaList::push(implication1,argLst);
+	Formula* whole = new JunctionFormula(AND,argLst);
+
+	addAndOutputTheoryUnit(new FormulaUnit(whole, new Inference(Inference::THEORY), Unit::AXIOM),CHEAP);
+
+}
+
+
+// add that for all x
+// bvnot x != x
+void TheoryAxioms::addBVNOTQuantAxiom(unsigned srt)
+{
+	CALL("TheoryAxioms::addBVADDQuantAxiom");
+
+	TermList x(0,false);
+
+	unsigned arg[2] = {srt};
+	unsigned bvnot = env.signature->getInterpretingSymbol(Interpretation::BVNOT,OperatorType::getFunctionType(1,arg,srt));
+
+	// !x
+	TermList notX(Term::create1(bvnot,x));
+	// !x != x
+	Formula* notXNEX = new AtomicFormula(Literal::createEquality(false,notX,x,srt));
+
+	Formula::VarList* vars = Formula::VarList::cons(x.var(), Formula::VarList::empty());
+	Formula::SortList* sorts = Formula::SortList::cons(srt, Formula::SortList::empty());
+
+	Formula* quantAx = new QuantifiedFormula(Connective::FORALL, vars, sorts, notXNEX);
+
+	addAndOutputTheoryUnit(new FormulaUnit(quantAx, new Inference(Inference::THEORY), Unit::AXIOM),CHEAP);
+
+
+}
+
+
+
+// signedMax >= x
+void TheoryAxioms::addEveryThingSmallerOrEqualToSignedMax(Interpretation p, TermList constant, unsigned srt)
+{
+	CALL("TheoryAxioms::addEveryThingSmallerOrEqualThanSignedMax");
+
+	TermList x(0,false);
+	unsigned pred = env.signature->getInterpretingSymbol(p,OperatorType::getPredicateType({srt,srt}));
+
+	Formula* whole= new AtomicFormula(Literal::create2(pred, true,constant,x));
+	addAndOutputTheoryUnit(new FormulaUnit(whole, new Inference(Inference::THEORY), Unit::AXIOM),CHEAP);
+
+}
+
+// x P constant
+void TheoryAxioms::addEveryThingSmallerOrEqualToSignedMaxVariation(Interpretation p, TermList constant, unsigned srt)
+{
+	CALL("TheoryAxioms::addEveryThingSmallerOrEqualThanSignedMax");
+
+	TermList x(0,false);
+	unsigned pred = env.signature->getInterpretingSymbol(p,OperatorType::getPredicateType({srt,srt}));
+
+	Formula* whole= new AtomicFormula(Literal::create2(pred, true,x,constant));
+	addAndOutputTheoryUnit(new FormulaUnit(whole, new Inference(Inference::THEORY), Unit::AXIOM),CHEAP);
+
+}
+
+
+// x!=SignedMAX -> bvsge(x+1 x)
+void TheoryAxioms::addSignedMaxAxiom(Interpretation p, unsigned srt)
+{
+	CALL("TheoryAxioms::addMaxAxiom(Interpretation p, unsigned srt)");
+
+	TermList x(0,false);
+	unsigned size = env.sorts->getBitVectorSort(srt)->getSize();
+	TermList max(theory->representConstant(BitVectorOperations::getSignedMaxBVCT(size)));
+	TermList one(theory->representConstant(BitVectorOperations::getOneBVCT(size)));
+
+	//x!=MAX
+	Formula* xnEm = new AtomicFormula(Literal::createEquality(false,x,max,srt));
+
+    unsigned bvsge = env.signature->getInterpretingSymbol(p,OperatorType::getPredicateType({srt,srt}));
+
+    unsigned bvadd = env.signature->getInterpretingSymbol(Theory::BVADD,OperatorType::getFunctionType({srt,srt},srt));
+    // x+1
+    TermList xp1(Term::create2(bvadd,x,one));
+
+    // x+1 > x
+    Formula* xp1Bx = new AtomicFormula(Literal::create2(bvsge, true,xp1,x));
+
+    Formula* implication = new BinaryFormula(IMP, xnEm,xp1Bx);
+
+    //cout<<endl<<"bvmax axiom: "<<endl<<implication->toString()<<endl;
+
+    addAndOutputTheoryUnit(new FormulaUnit(implication, new Inference(Inference::THEORY), Unit::AXIOM),CHEAP);
+}
+
+/*
+ * Add that
+ * !(pred(X,c))
+ *
+ * e.g: !(bvslt(X,signedMin))
+ */
+void TheoryAxioms::addBitVectorOrderingAxiom(unsigned srt, Interpretation p, TermList constant)
+{
+
+	CALL("TheoryAxioms::addBitVectorOrderingAxiom");
+
+	TermList x(0,false);
+
+	unsigned pred = env.signature->getInterpretingSymbol(p,OperatorType::getPredicateType({srt,srt}));
+
+	Formula* xPc = new AtomicFormula(Literal::create2(pred, true,x,constant));
+	Formula* n_xPc = new NegatedFormula(xPc);
+
+    addAndOutputTheoryUnit(new FormulaUnit(n_xPc, new Inference(Inference::THEORY), Unit::AXIOM),CHEAP);
+
+
+}
+
+/* Add that
+ * p(s,t) -> !q(s,t)
+ */
+
+void TheoryAxioms::addPredicateImpliesNotOtherPredicate(unsigned srt, Interpretation p, Interpretation otherp)
+{
+	CALL("addPredicateImpliesNotOtherPredicate");
+
+	TermList s(0,false);
+	TermList t(1,false);
+
+	unsigned pred = env.signature->getInterpretingSymbol(p,OperatorType::getPredicateType({srt,srt}));
+	unsigned otherPred = env.signature->getInterpretingSymbol(otherp,OperatorType::getPredicateType({srt,srt}));
+
+	//p(s,t)
+	Formula* pst = new AtomicFormula(Literal::create2(pred, true,s,t));
+
+	//q(s,t)
+	Formula* qst = new AtomicFormula(Literal::create2(otherPred, true,s,t));
+	//!(q(s,t))
+	Formula* nqst = new NegatedFormula(qst);
+
+	Formula* implication = new BinaryFormula(IMP, pst,nqst);
+	addAndOutputTheoryUnit(new FormulaUnit(implication, new Inference(Inference::THEORY), Unit::AXIOM),CHEAP);
+}
+
+/* Add that
+ * !p(s,t) -> q(s,t)
+ */
+
+void TheoryAxioms::addPredicateImpliesNotOtherPredicateReverse(unsigned srt, Interpretation p, Interpretation otherp)
+{
+	CALL("addPredicateImpliesNotOtherPredicate");
+
+	TermList s(0,false);
+	TermList t(1,false);
+
+	unsigned pred = env.signature->getInterpretingSymbol(p,OperatorType::getPredicateType({srt,srt}));
+	unsigned otherPred = env.signature->getInterpretingSymbol(otherp,OperatorType::getPredicateType({srt,srt}));
+
+	//p(s,t)
+	Formula* pst = new AtomicFormula(Literal::create2(pred, true,s,t));
+	//!(q(s,t))
+	Formula* npst = new NegatedFormula(pst);
+
+	//q(s,t)
+	Formula* qst = new AtomicFormula(Literal::create2(otherPred, true,s,t));
+
+
+	Formula* implication = new BinaryFormula(IMP, npst,qst);
+	addAndOutputTheoryUnit(new FormulaUnit(implication, new Inference(Inference::THEORY), Unit::AXIOM),CHEAP);
+}
+
+
+/* Add that
+ * p(f(x,y),x) & p(f(x,y),y)
+ *
+ * e.g. bvule(bvand(x,y),x) & bvule(bvand(x,y),y)
+ * */
+void TheoryAxioms::predicateTrueForArgumentsOfAFunction(unsigned srt, Interpretation func, Interpretation pred)
+{
+	CALL("TheoryAxioms::predicateTrueForArgumentsOfAFunction");
+
+	TermList x(0,false);
+	TermList y(1,false);
+
+	unsigned f = env.signature->getInterpretingSymbol(func,OperatorType::getFunctionType({srt,srt},srt));
+	unsigned p = env.signature->getInterpretingSymbol(pred,OperatorType::getPredicateType({srt,srt}));
+
+	// f(x,y)
+	TermList fxy(Term::create2(f, x, y));
+	//p(f(x,y),x)
+	Formula* pfxyx = new AtomicFormula(Literal::create2(p, true,fxy,x));
+
+	//p(f(x,y),y)
+	Formula* pfxyy = new AtomicFormula(Literal::create2(p, true,fxy,y));
+
+	FormulaList* argLst = nullptr;
+	FormulaList::push(pfxyx,argLst);
+	FormulaList::push(pfxyy,argLst);
+
+	//p(f(x,y),x) & p(f(x,y),y)
+	Formula*  conjunct = new JunctionFormula(AND, argLst);
+
+	addAndOutputTheoryUnit(new FormulaUnit(conjunct, new Inference(Inference::THEORY), Unit::AXIOM),CHEAP);
+
+
+}
+
+
+/* Add that x!=c -> p(c,x)
+ * for example
+ * x!= signedMax -> bvsgt(signedMax x)
+ * */
+
+void TheoryAxioms::addXNEqualToConstantImpliesAxiom(unsigned srt, Interpretation predicate, TermList constant)
+{
+	CALL("TheoryAxioms::addXNEqualToConstantImpliesAxiom");
+
+	TermList x(0,false);
+	unsigned size = env.sorts->getBitVectorSort(srt)->getSize();
+
+	//x!=MAX
+	Formula* xnEm = new AtomicFormula(Literal::createEquality(false,x,constant,srt));
+
+	unsigned p = env.signature->getInterpretingSymbol(predicate,OperatorType::getPredicateType({srt,srt}));
+
+	//p(c,x)
+	Formula* pcx = new AtomicFormula(Literal::create2(p, true,constant,x));
+
+	Formula* implication = new BinaryFormula(IMP, xnEm,pcx);
+	addAndOutputTheoryUnit(new FormulaUnit(implication, new Inference(Inference::THEORY), Unit::AXIOM),CHEAP);
+}
+
+
+/* Add that
+ * p1(s,t) -> !p2(f(x,s), t)
+ *
+ * for example
+ * bvugt(s t) -> !(bvult(bvor (x s) t))
+ * */
+
+void TheoryAxioms::addTempOrAxiom(unsigned srt, Interpretation pred1, Interpretation pred2, Interpretation func)
+{
+	CALL("TheoryAxioms::addTempOrAxiom");
+
+	TermList s(0,false);
+	TermList t(1,false);
+	TermList x(2,false);
+
+	unsigned p1 = env.signature->getInterpretingSymbol(pred1,OperatorType::getPredicateType({srt,srt}));
+	unsigned p2 = env.signature->getInterpretingSymbol(pred2,OperatorType::getPredicateType({srt,srt}));
+	unsigned f = env.signature->getInterpretingSymbol(func,OperatorType::getFunctionType({srt,srt},srt));
+
+	//lhs
+	// p1(s,t)
+	Formula* p1st = new AtomicFormula(Literal::create2(p1, true,s,t));
+
+	//rhs !p2(f(x,s), t)
+	// f(x,s)
+	TermList fxs(Term::create2(f,x,s));
+	// !p2(f(x,s), t)
+	Formula* rhs = new AtomicFormula(Literal::create2(p2, false,fxs,t));
+
+	Formula* implication = new BinaryFormula(IMP, p1st,rhs);
+
+	addAndOutputTheoryUnit(new FormulaUnit(implication, new Inference(Inference::THEORY), Unit::AXIOM),CHEAP);
+}
+
+/* Add that
+ *  p(f(s, x), t) -> p(s,t) // changed s and x in f
+ *
+ *  for example
+ *  bvult (bvor(s x) t) -> bvult(s t)
+ *
+ * */
+
+void TheoryAxioms::addTempOrAxiom2(unsigned srt, Interpretation pred,  Interpretation func)
+{
+	CALL("TheoryAxioms::addTempOrAxiom2");
+
+	TermList x(0,false);
+	TermList s(1,false);
+	TermList t(2,false);
+
+	unsigned p = env.signature->getInterpretingSymbol(pred,OperatorType::getPredicateType({srt,srt}));
+	unsigned f = env.signature->getInterpretingSymbol(func,OperatorType::getFunctionType({srt,srt},srt));
+
+	// lhs
+	// p(f(x, s), t)
+	TermList fxs(Term::create2(f,s,x));
+	Formula* pfxst = new AtomicFormula(Literal::create2(p, true,fxs,t));
+
+	// rhs p(s t)
+	Formula* pst = new AtomicFormula(Literal::create2(p, true,s,t));
+
+	Formula* implication = new BinaryFormula(IMP, pfxst,pst);
+
+	addAndOutputTheoryUnit(new FormulaUnit(implication, new Inference(Inference::THEORY), Unit::AXIOM),CHEAP);
+
+}
+
+/* Add that p1(c1,x) -> p2(x, f(x,c2))
+ *
+ * for example
+ * bvsgt (0 s) -> bvslt(s bvand(s & signedMax))
+ *
+ * */
+void TheoryAxioms::addBVANDSignedPredicatesAxiom(unsigned srt, Interpretation pred1, Interpretation pred2, Interpretation func,
+		  TermList constant1, TermList constant2)
+{
+	CALL("TheoryAxioms::addBVANDSignedPredicatesAxiom");
+
+	TermList x(0,false);
+	unsigned p1 = env.signature->getInterpretingSymbol(pred1,OperatorType::getPredicateType({srt,srt}));
+	unsigned p2 = env.signature->getInterpretingSymbol(pred2,OperatorType::getPredicateType({srt,srt}));
+	unsigned f = env.signature->getInterpretingSymbol(func,OperatorType::getFunctionType({srt,srt},srt));
+
+	//lhs
+	//p1(c1,x)
+	Formula* p1c1x = new AtomicFormula(Literal::create2(p1, true,constant1,x));
+
+	//rhs
+	//p2(x, f(x,c2))
+	TermList fxc2(Term::create2(f,x,constant2));
+	Formula* rhs = new AtomicFormula(Literal::create2(p2, true,x,fxc2));
+
+	Formula* implication = new BinaryFormula(IMP, p1c1x,rhs);
+	addAndOutputTheoryUnit(new FormulaUnit(implication, new Inference(Inference::THEORY), Unit::AXIOM),CHEAP);
+
+
+}
+
+/* Add that
+ * p(s t) -> p(f(s c) t)
+ *
+ * */
+
+void TheoryAxioms::addOtherBVANDSignedPredicatesAxiom(unsigned srt, Interpretation pred, Interpretation func,
+  		  TermList constant)
+{
+	CALL("TheoryAxioms::addOtherBVANDSignedPredicatesAxiom");
+
+	TermList s(0,false);
+	TermList t(1,false);
+
+	unsigned p = env.signature->getInterpretingSymbol(pred,OperatorType::getPredicateType({srt,srt}));
+	unsigned f = env.signature->getInterpretingSymbol(func,OperatorType::getFunctionType({srt,srt},srt));
+
+	//lhs
+	// p(s t)
+	Formula* pst = new AtomicFormula(Literal::create2(p, true,s,t));
+
+	//rhs
+	//p(f(s c) t)
+	TermList fsc(Term::create2(f,s,constant));
+	Formula* rhs = new AtomicFormula(Literal::create2(p, true,fsc,t));
+
+	Formula* implication = new BinaryFormula(IMP, pst,rhs);
+
+	addAndOutputTheoryUnit(new FormulaUnit(implication, new Inference(Inference::THEORY), Unit::AXIOM),CHEAP);
+}
+
+/* Add that
+ * f(x s) = t -> f(t s) = t
+ *
+ * for example
+ * x & s = t -> t & s = t
+ *
+ * */
+void TheoryAxioms::addSpecialEqualAndAxiom(unsigned srt, Interpretation func)
+{
+	CALL("TheoryAxioms::addSpecialEqualAndAxiom");
+
+	TermList x(0,false);
+	TermList s(1,false);
+	TermList t(2,false);
+
+	unsigned f = env.signature->getInterpretingSymbol(func,OperatorType::getFunctionType({srt,srt},srt));
+
+	//lhs
+	//f(x s) = t
+	TermList fxs(Term::create2(f,x,s));
+	Formula* lhs = new AtomicFormula(Literal::createEquality(true,fxs,t,srt));
+
+	//rhs
+	//f(t s) = t
+	TermList fts(Term::create2(f,t,s));
+	Formula* rhs = new AtomicFormula(Literal::createEquality(true,fts,t,srt));
+
+	Formula* implication = new BinaryFormula(IMP, lhs,rhs);
+	addAndOutputTheoryUnit(new FormulaUnit(implication, new Inference(Inference::THEORY), Unit::AXIOM),CHEAP);
+
+}
+
+/* Add that
+ * p(x t) -> t!=c
+ *
+ * for example
+ * bvult(x t) -> t!=0
+ *
+ * */
+
+void TheoryAxioms::addPredicateTrueImpliesSecondArgNEqualToConstant(unsigned srt, Interpretation pred, TermList constant)
+{
+	CALL("TheoryAxioms::addPredicateTrueImpliesSecondArgNEqualToConstant");
+
+	TermList x(0,false);
+	TermList t(1,false);
+
+	unsigned p = env.signature->getInterpretingSymbol(pred,OperatorType::getPredicateType({srt,srt}));
+	Formula* lhs = new AtomicFormula(Literal::create2(p,true,x,t));
+
+	Formula* rhs = new AtomicFormula(Literal::createEquality(false,t,constant,srt));
+
+	Formula* implication = new BinaryFormula(IMP, lhs,rhs);
+	addAndOutputTheoryUnit(new FormulaUnit(implication, new Inference(Inference::THEORY), Unit::AXIOM),CHEAP);
+
+
+}
+
+/* Add that
+ * f(x s) = t -> f( g(t s) s) = t
+ *
+ * for example (logical shift)
+ *
+ * x << s = t -> (t >> s) << s = t
+ * */
+
+void TheoryAxioms::addShiftingAxiom(unsigned srt, Interpretation func1, Interpretation func2)
+{
+	CALL("TheoryAxioms::addShiftingAxiom");
+
+	TermList x(0,false);
+	TermList s(1,false);
+	TermList t(2,false);
+
+	unsigned f = env.signature->getInterpretingSymbol(func1,OperatorType::getFunctionType({srt,srt},srt));
+	unsigned g = env.signature->getInterpretingSymbol(func2,OperatorType::getFunctionType({srt,srt},srt));
+
+	//lhs
+	//f(x s) = t
+	TermList fxs(Term::create2(f,x,s));
+	Formula* lhs = new AtomicFormula(Literal::createEquality(true,fxs,t,srt));
+
+	//rhs
+	//f( g(t s) s) = t
+	TermList gts(Term::create2(g,t,s));
+	TermList fgtss(Term::create2(f,gts,s));
+	Formula* rhs = new AtomicFormula(Literal::createEquality(true,fgtss,t,srt));
+
+	Formula* implication = new BinaryFormula(IMP, lhs,rhs);
+	addAndOutputTheoryUnit(new FormulaUnit(implication, new Inference(Inference::THEORY), Unit::AXIOM),CHEAP);
+
+}
+
+
+/* Add that
+ * p( f(X S) T) -> p( f(S c) T)
+ *
+ * for example (signed)
+ *
+ * (x || s > t) -> (s || max > t)
+ *
+ * */
+
+void TheoryAxioms::addORSignedOperatorWithConstantAxiom(unsigned srt, Interpretation pred, Interpretation func,TermList constant)
+{
+	CALL("TheoryAxioms::addORSignedOperatorWithConstantAxiom");
+
+	TermList x(0,false);
+	TermList s(1,false);
+	TermList t(2,false);
+
+	unsigned p = env.signature->getInterpretingSymbol(pred,OperatorType::getPredicateType({srt,srt}));
+	unsigned f = env.signature->getInterpretingSymbol(func,OperatorType::getFunctionType({srt,srt},srt));
+
+	//lhs
+	//p( f(X S) T)
+	TermList xs(Term::create2(f,x,s));
+	Formula* lhs = new AtomicFormula(Literal::create2(p,true,xs,t));
+
+	//rhs
+	//p( f(S c) T)
+	TermList fsc(Term::create2(f,s,constant));
+	Formula* rhs = new AtomicFormula(Literal::create2(p,true,fsc,t));
+
+	Formula* implication = new BinaryFormula(IMP,lhs,rhs);
+	addAndOutputTheoryUnit(new FormulaUnit(implication, new Inference(Inference::THEORY), Unit::AXIOM),CHEAP);
+
+}
+
+
+
+/* Add that
+ * x!=0 -> (0/x) = 0
+ * */
+void TheoryAxioms::addDivisionZeroAxiom(unsigned srt)
+{
+	CALL("TheoryAxioms::addDivisionZeroAxiom");
+	unsigned size = env.sorts->getBitVectorSort(srt)->getSize();
+	TermList x(0,false);
+	TermList zero(theory->representConstant(BitVectorOperations::getZeroBVCT(size)));
+
+	unsigned bvudiv = env.signature->getInterpretingSymbol(Theory::BVUDIV,OperatorType::getFunctionType({srt,srt},srt));
+
+	// lhs
+	Formula* lhs = new AtomicFormula(Literal::createEquality(false,x,zero,srt));
+
+	// rhs
+	TermList zDx(Term::create2(bvudiv,zero,x));
+	Formula* rhs = new AtomicFormula(Literal::createEquality(true,zDx,zero,srt));
+
+	Formula* implication = new BinaryFormula(IMP,lhs,rhs);
+	addAndOutputTheoryUnit(new FormulaUnit(implication, new Inference(Inference::THEORY), Unit::AXIOM),CHEAP);
+
+
+}
+
+/* Add that
+ *  x != 0 -> x/1 = x
+ * */
+void TheoryAxioms::addDivisionOneAxiom(unsigned srt)
+{
+	CALL("TheoryAxioms::addDivisionOneAxiom");
+	unsigned size = env.sorts->getBitVectorSort(srt)->getSize();
+	TermList x(0,false);
+	TermList one(theory->representConstant(BitVectorOperations::getOneBVCT(size)));
+	TermList zero(theory->representConstant(BitVectorOperations::getZeroBVCT(size)));
+
+	unsigned bvudiv = env.signature->getInterpretingSymbol(Theory::BVUDIV,OperatorType::getFunctionType({srt,srt},srt));
+
+	// lhs
+	Formula* lhs = new AtomicFormula(Literal::createEquality(false,x,zero,srt));
+
+	// rhs
+	TermList xDo(Term::create2(bvudiv,x,one));
+	Formula* rhs = new AtomicFormula(Literal::createEquality(true,xDo,x,srt));
+
+	Formula* implication = new BinaryFormula(IMP,lhs,rhs);
+	addAndOutputTheoryUnit(new FormulaUnit(implication, new Inference(Inference::THEORY), Unit::AXIOM),CHEAP);
+}
+
+/* bvugt(b a) -> a/b = 0
+ *
+ * */
+
+void TheoryAxioms::addAnotherDivisionAxiom(unsigned srt)
+{
+	CALL("TheoryAxioms::addAnotherAxiom");
+	unsigned size = env.sorts->getBitVectorSort(srt)->getSize();
+
+	TermList a(0,false);
+	TermList b(1,false);
+	TermList zero(theory->representConstant(BitVectorOperations::getZeroBVCT(size)));
+
+	unsigned bvugt = env.signature->getInterpretingSymbol(Theory::BVUGT,OperatorType::getPredicateType({srt,srt}));
+	unsigned bvudiv = env.signature->getInterpretingSymbol(Theory::BVUDIV,OperatorType::getFunctionType({srt,srt},srt));
+
+	//lhs
+	Formula* lhs = new AtomicFormula(Literal::create2(bvugt,true,b,a));
+
+	//rhs
+	TermList aDb(Term::create2(bvudiv,a,b));
+	Formula* rhs = new AtomicFormula(Literal::createEquality(true,aDb,zero,srt));
+
+	Formula* implication = new BinaryFormula(IMP,lhs,rhs);
+	addAndOutputTheoryUnit(new FormulaUnit(implication, new Inference(Inference::THEORY), Unit::AXIOM),CHEAP);
+
+}
+
+/* Add that
+ * x!=0 -> x/x=1
+ *
+ * */
+
+void TheoryAxioms::addDivisionSameArgAxiom(unsigned srt)
+{
+	CALL("TheoryAxioms::addDivisionSameArgAxiom");
+	unsigned size = env.sorts->getBitVectorSort(srt)->getSize();
+
+	TermList x(0,false);
+	TermList zero(theory->representConstant(BitVectorOperations::getZeroBVCT(size)));
+	TermList one(theory->representConstant(BitVectorOperations::getOneBVCT(size)));
+
+	unsigned bvudiv = env.signature->getInterpretingSymbol(Theory::BVUDIV,OperatorType::getFunctionType({srt,srt},srt));
+
+	// lhs
+	Formula* lhs = new AtomicFormula(Literal::createEquality(false,x,zero,srt));
+
+	// rhs
+	TermList xDx(Term::create2(bvudiv,x,x));
+	Formula* rhs = new AtomicFormula(Literal::createEquality(true,xDx,one,srt));
+
+	Formula* implication = new BinaryFormula(IMP,lhs,rhs);
+	addAndOutputTheoryUnit(new FormulaUnit(implication, new Inference(Inference::THEORY), Unit::AXIOM),CHEAP);
+
+}
+
+/* Add that
+ *
+ * (t>s) -> (s/t = 0)
+ *
+ * */
+void TheoryAxioms::addDivAxiomGT(unsigned srt)
+{
+	CALL("TheoryAxioms::addConfidentAxiomWow");
+
+	unsigned bvudiv = env.signature->getInterpretingSymbol(Theory::BVUDIV,OperatorType::getFunctionType({srt,srt},srt));
+	unsigned bvugt = env.signature->getInterpretingSymbol(Theory::BVUGT,OperatorType::getPredicateType({srt,srt}));
+	unsigned size = env.sorts->getBitVectorSort(srt)->getSize();
+
+	TermList t(0,false);
+	TermList s(1,false);
+	TermList zero(theory->representConstant(BitVectorOperations::getZeroBVCT(size)));
+
+	//lhs
+	Formula* lhs = new AtomicFormula(Literal::create2(bvugt,true,t,s));
+
+	//rhs
+	TermList sDivt(Term::create2(bvudiv,s,t));
+	Formula* rhs = new AtomicFormula(Literal::createEquality(true,sDivt,zero,srt));
+
+	Formula* implication = new BinaryFormula(IMP,lhs,rhs);
+
+	addAndOutputTheoryUnit(new FormulaUnit(implication, new Inference(Inference::THEORY), Unit::AXIOM),CHEAP);
+}
+
+/* Add that
+ * t=s & t!=0 -> s/t = 1
+ * */
+void TheoryAxioms::addDivONEAxiom(unsigned srt)
+{
+	CALL("TheoryAxioms::addDivONEAxiom(unsigned srt)");
+
+	unsigned bvudiv = env.signature->getInterpretingSymbol(Theory::BVUDIV,OperatorType::getFunctionType({srt,srt},srt));
+	unsigned size = env.sorts->getBitVectorSort(srt)->getSize();
+
+	TermList t(0,false);
+	TermList s(1,false);
+	TermList zero(theory->representConstant(BitVectorOperations::getZeroBVCT(size)));
+	TermList one(theory->representConstant(BitVectorOperations::getOneBVCT(size)));
+
+	//lhs
+	Formula* tEs = new AtomicFormula(Literal::createEquality(true,s,t,srt));
+	Formula* tNEz = new AtomicFormula(Literal::createEquality(false,t,zero,srt));
+	FormulaList* argLst = nullptr;
+	FormulaList::push(tEs,argLst);
+	FormulaList::push(tNEz,argLst);
+	Formula* lhs = new JunctionFormula(AND,argLst);
+
+	//rhs
+	TermList sDivT(Term::create2(bvudiv,s,t));
+	Formula* rhs = new AtomicFormula(Literal::createEquality(true,sDivT,one,srt));
+
+	Formula* implication = new BinaryFormula(IMP,lhs,rhs);
+	addAndOutputTheoryUnit(new FormulaUnit(implication, new Inference(Inference::THEORY), Unit::AXIOM),CHEAP);
+
+
+}
+/* Add that (unsigned)
+ * (s>t) -> (s/t > 0)
+ *
+ * */
+void TheoryAxioms::addDivAxiomGT2(unsigned srt)
+{
+	CALL("addDivAxiomGT2(unsigned srt)");
+
+	unsigned bvudiv = env.signature->getInterpretingSymbol(Theory::BVUDIV,OperatorType::getFunctionType({srt,srt},srt));
+	unsigned bvugt = env.signature->getInterpretingSymbol(Theory::BVUGT,OperatorType::getPredicateType({srt,srt}));
+	unsigned size = env.sorts->getBitVectorSort(srt)->getSize();
+
+	TermList s(0,false);
+	TermList t(1,false);
+
+	TermList zero(theory->representConstant(BitVectorOperations::getZeroBVCT(size)));
+
+	//lhs
+	Formula* lhs = new AtomicFormula(Literal::create2(bvugt,true,s,t));
+
+	//rhs
+	TermList sDt(Term::create2(bvudiv,s,t));
+	Formula* rhs = new AtomicFormula(Literal::create2(bvugt,true,sDt,zero));
+
+	Formula* implication = new BinaryFormula(IMP,lhs,rhs);
+	addAndOutputTheoryUnit(new FormulaUnit(implication, new Inference(Inference::THEORY), Unit::AXIOM),CHEAP);
+
+
+}
+
+/* Add that
+ * s>t XOR t>s XOR t = s
+ *
+ * */
+
+void TheoryAxioms::addGTOrdering(unsigned srt)
+{
+	CALL("TheoryAxioms::addGTOrdering(unsigned srt)");
+	unsigned bvugt = env.signature->getInterpretingSymbol(Theory::BVUGT,OperatorType::getPredicateType({srt,srt}));
+	TermList s(0,false);
+	TermList t(1,false);
+
+	// (bvugt s t) XOR (bvult s t) XOR (= s t)
+	Formula* p1 = new AtomicFormula(Literal::create2(bvugt,true,s,t));
+	Formula* p2 = new AtomicFormula(Literal::create2(bvugt,true,t,s));
+	Formula* p3 = new AtomicFormula(Literal::createEquality(true, s, t, srt));
+
+	Formula*  _xor1 = new BinaryFormula(XOR, p1, p2);
+	Formula*  _xor2 = new BinaryFormula(XOR, _xor1, p3);
+
+	addAndOutputTheoryUnit(new FormulaUnit(_xor2, new Inference(Inference::THEORY), Unit::AXIOM),CHEAP);
+}
+
+
+/* Add that
+ * s/x = t -> (s/(s/t)) = t
+ * */
+void TheoryAxioms::addTempAxiom(unsigned srt)
+{
+	CALL("TheoryAxioms::addDivGE(unsigned srt)");
+
+	unsigned bvuge = env.signature->getInterpretingSymbol(Theory::BVUGE,OperatorType::getPredicateType({srt,srt}));
+	unsigned bvudiv = env.signature->getInterpretingSymbol(Theory::BVUDIV,OperatorType::getFunctionType({srt,srt},srt));
+	unsigned bvmul = env.signature->getInterpretingSymbol(Theory::BVMUL,OperatorType::getFunctionType({srt,srt},srt));
+	unsigned size = env.sorts->getBitVectorSort(srt)->getSize();
+	TermList s(0,false);
+	TermList x(1,false);
+	TermList t(2,false);
+
+	//lhs
+
+	TermList sDx(Term::create2(bvudiv,s,x));
+	Formula* lhs = new AtomicFormula(Literal::createEquality(true,sDx,t,srt));
+
+	//rhs
+	TermList sDt(Term::create2(bvudiv,s,t));
+	TermList sDsDt(Term::create2(bvudiv,s,sDt));
+	Formula* rhs = new AtomicFormula(Literal::createEquality(true,sDsDt,t,srt));
+
+	Formula* implication = new BinaryFormula(IMP,lhs,rhs);
+	addAndOutputTheoryUnit(new FormulaUnit(implication, new Inference(Inference::THEORY), Unit::AXIOM),CHEAP);
+}
+
+// x!=MAX -> bvugt(x+1 x)
+void TheoryAxioms::addMaxAxiom(Interpretation p, unsigned srt)
+{
+	CALL("TheoryAxioms::addMaxAxiom(Interpretation p, unsigned srt)");
+
+	TermList x(0,false);
+	unsigned size = env.sorts->getBitVectorSort(srt)->getSize();
+	TermList max(theory->representConstant(BitVectorOperations::getAllOnesBVCT(size)));
+	TermList one(theory->representConstant(BitVectorOperations::getOneBVCT(size)));
+
+	//x!=MAX
+	Formula* xnEm = new AtomicFormula(Literal::createEquality(false,x,max,srt));
+
+    unsigned bvugt = env.signature->getInterpretingSymbol(p,OperatorType::getPredicateType({srt,srt}));
+
+    unsigned bvadd = env.signature->getInterpretingSymbol(Theory::BVADD,OperatorType::getFunctionType({srt,srt},srt));
+    // x+1
+    TermList xp1(Term::create2(bvadd,x,one));
+
+    // x+1 > x
+    Formula* xp1Bx = new AtomicFormula(Literal::create2(bvugt, true,xp1,x));
+
+    Formula* implication = new BinaryFormula(IMP, xnEm,xp1Bx);
+
+    //cout<<endl<<"bvmax axiom: "<<endl<<implication->toString()<<endl;
+
+    addAndOutputTheoryUnit(new FormulaUnit(implication, new Inference(Inference::THEORY), Unit::AXIOM),CHEAP);
+}
+
+// (bvslt s 0) -> (bvsge (bvand s max) 0)
+void TheoryAxioms::addFlipOverAxiom(unsigned srt)
+{
+	CALL("TheoryAxioms::addFlipOverAxiom(unsigned srt)");
+
+	TermList s(0,false);
+	unsigned size = env.sorts->getBitVectorSort(srt)->getSize();
+	TermList max(theory->representConstant(BitVectorOperations::getSignedMaxBVCT(size)));
+	TermList zero(theory->representConstant(BitVectorOperations::getZeroBVCT(size)));
+
+	//LHS
+	// (bvslt s 0)
+	unsigned bvslt = env.signature->getInterpretingSymbol(Theory::BVSLT,OperatorType::getPredicateType({srt,srt}));
+	Formula* bvslt_s_0 = new AtomicFormula(Literal::create2(bvslt, true,s,zero));
+
+	//RHS
+	//(bvand s max)
+	unsigned bvand = env.signature->getInterpretingSymbol(Theory::BVAND,OperatorType::getFunctionType({srt,srt},srt));
+	TermList bvand_s_max(Term::create2(bvand,s,max));
+
+	//(bvsgt (bvand s max) 0)
+	unsigned bvsgt = env.signature->getInterpretingSymbol(Theory::BVSGE,OperatorType::getPredicateType({srt,srt}));
+	Formula* bvsgt_etc = new AtomicFormula(Literal::create2(bvsgt, true,bvand_s_max,zero));
+
+	Formula* implication = new BinaryFormula(IMP, bvslt_s_0,bvsgt_etc);
+	addAndOutputTheoryUnit(new FormulaUnit(implication, new Inference(Inference::THEORY), Unit::AXIOM),CHEAP);
+
+}
+
+//bvnot x != x
+void TheoryAxioms::addBVNotAxiom(unsigned srt)
+{
+	CALL("TheoryAxioms::addBVNotAxiom(unsigned srt)");
+
+	TermList x(0,false);
+	unsigned size = env.sorts->getBitVectorSort(srt)->getSize();
+
+	unsigned bvnot = env.signature->getInterpretingSymbol(Theory::BVNOT,OperatorType::getFunctionType({srt},srt));
+	TermList bvnot_x(Term::create1(bvnot,x));
+
+	Formula* formula = new AtomicFormula(Literal::createEquality(false, bvnot_x, x, srt));
+	addAndOutputTheoryUnit(new FormulaUnit(formula, new Inference(Inference::THEORY), Unit::AXIOM),CHEAP);
+}
+
+//??
+void TheoryAxioms::addBVUleAxiom1(Interpretation bvule, Interpretation bvult, unsigned size)
+{
+    
+    CALL("TheoryAxioms::addBVUleAxiom1");
+    unsigned srt = env.sorts->addBitVectorSort(size);
+    
+    // (bvule s t) abbreviates (or (bvult s t) (= s t))
+    unsigned ule = env.signature->getInterpretingSymbol(bvule,OperatorType::getPredicateType({srt,srt}));
+    unsigned ult = env.signature->getInterpretingSymbol(bvult,OperatorType::getPredicateType({srt,srt}));
+    
+    TermList s(0,false);
+    TermList t(1,false);
+    Formula* formula;
+   
+    
+    //lhs
+    //(bvule s t)
+    Formula* bvule_s_t = new AtomicFormula(Literal::create2(ule,true,s,t));
+    Formula* n_bvule_s_t = new NegatedFormula(bvule_s_t);
+    
+    //rhs
+    // (= s t)
+    formula = new AtomicFormula(Literal::createEquality(true, s, t, srt));
+    //(bvult s t) 
+    Formula* bvult_s_t = new AtomicFormula(Literal::create2(ult,true,s,t));
+    FormulaList* argLst = nullptr;
+    FormulaList::push(formula,argLst);
+    FormulaList::push(bvult_s_t,argLst);
+    
+    //(or (bvult s t) (= s t))
+    Formula*  _or = new JunctionFormula(OR, argLst);
+    
+    FormulaList* argLst2 = nullptr;
+    FormulaList::push( n_bvule_s_t,argLst2);
+    FormulaList::push( _or,argLst2);
+    Formula* res = new JunctionFormula(OR,argLst2);
+    
+    addAndOutputTheoryUnit(new FormulaUnit(res, new Inference(Inference::THEORY), Unit::AXIOM), EXPENSIVE);
+    
+}
+
+
+// f(X,Y) = u(b(X,Y))
+void TheoryAxioms::addPolyMorphicBinaryFunctionEquivalentToUnaryFunctionAppliedToBinaryFunction(Interpretation f_i, Interpretation unary_i, Interpretation binary_i, unsigned size)
+{
+  CALL("TheoryAxioms::addPolyMorphicBinaryFunctionEquivalentToUnaryFunctionAppliedToBinaryFunction");
+
+    unsigned srt = env.sorts->addBitVectorSort(size);
+    unsigned argSorts[2] = {srt,srt};
+    
+    unsigned f = env.signature->getInterpretingSymbol(f_i,OperatorType::getFunctionType(2, argSorts,srt));
+    unsigned unary = env.signature->getInterpretingSymbol(unary_i,OperatorType::getFunctionType(1, argSorts,srt));
+    unsigned binary = env.signature->getInterpretingSymbol(binary_i,OperatorType::getFunctionType(2, argSorts,srt));
+    
+    TermList s(0,false);
+    TermList t(1,false);
+    
+    //(bvnand s t) 
+    TermList bvnand_s_t(Term::create2(f,s,t));
+    
+    //(bvand s t)
+    TermList bvand_s_t(Term::create2(binary,s,t));
+    //(bvnot (bvand s t))
+    TermList bvnot_bvand_s_t(Term::create1(unary,bvand_s_t));
+    
+    Literal* eq1 = Literal::createEquality(true,bvnand_s_t,bvnot_bvand_s_t,srt);
+    addTheoryUnitClause(eq1, EXPENSIVE);
+}
+
+
+
+
+// f(X,c) = X
+// e.g. bvadd a 0 = a
+void TheoryAxioms::addBitVectorRightIdentity(Interpretation f_i, TermList neutralElement, unsigned size)
+{
+    CALL("TheoryAxioms::addBitVectorRightIdentity");
+    ASS(theory->isFunction(f_i));
+    ASS_EQ(theory->getArity(f_i),2);
+    unsigned srt = env.sorts->addBitVectorSort(size);
+    unsigned  arg[2] = {srt,srt};
+    
+    unsigned f = env.signature->getInterpretingSymbol(f_i,OperatorType::getFunctionType(2, arg,srt));
+    // f(X,c) = X
+    TermList x(0,false);
+    TermList x_f_Neutral(Term::create2(f, x, neutralElement));
+    Literal* r = Literal::createEquality(true, x_f_Neutral, x, srt);
+    addTheoryUnitClause(r, CHEAP);
+}
+
+
+// f(X,Y) = b(X,u(Y))
+//(bvsub x y) abbreviates (bvadd x (bvneg y))
+void TheoryAxioms::addPolyMorphicBinaryFunctionEquivalentToBinaryFunctionAppliedToUnaryFunction(Interpretation op, Interpretation binary, Interpretation unary, unsigned size)
+{
+  CALL("TheoryAxioms::addPolyMorphicBinaryFunctionEquivalentToBinaryFunctionAppliedToUnaryFunction");
+
+    unsigned srt = env.sorts->addBitVectorSort(size);
+    unsigned int argSorts[2] = {srt,srt};
+    
+    unsigned f = env.signature->getInterpretingSymbol(op,OperatorType::getFunctionType(2,argSorts,srt));
+    unsigned b = env.signature->getInterpretingSymbol(binary,OperatorType::getFunctionType(2,argSorts,srt));
+    unsigned u = env.signature->getInterpretingSymbol(unary,OperatorType::getFunctionType(1,argSorts,srt));
+    
+    TermList x(0,false);
+    TermList y(1,false);
+    
+    //lhs
+    // f(X,Y)
+    //(bvsub X Y) 
+    TermList f_x_y(Term::create2(f,x,y));
+    
+    //rhs
+    // u(Y)
+    //(bvneg Y)
+    TermList u_y(Term::create1(u,y));
+    // b(X,u(Y))
+    // (bvadd s (bvneg t))
+    TermList b_x_u_y(Term::create2(b,x,u_y));
+    
+    Literal* eq1 = Literal::createEquality(true,f_x_y,b_x_u_y,srt);
+    addTheoryUnitClause(eq1,EXPENSIVE);
+}
+  
+/*
+ * Add that
+ * p ( f(x y) x )
+ * */
+
+void TheoryAxioms::addBVUREMwithPredicateAxiom(Interpretation f, Interpretation p, unsigned srt)
+{
+	CALL("TheoryAxioms::addBVUREMwithPredicateAxiom");
+
+	TermList x(0,false);
+	TermList y(1,false);
+
+	unsigned argSorts[2] = {srt,srt};
+	unsigned fun = env.signature->getInterpretingSymbol(f,OperatorType::getFunctionType(2,argSorts,srt));
+	unsigned pred = env.signature->getInterpretingSymbol(p,OperatorType::getPredicateType({srt,srt}));
+
+	// f (x y )
+	TermList fxy(Term::create2(fun,x,y));
+	Literal* pfxy_x = Literal::create2(pred,true,fxy,x);
+	addTheoryUnitClause(pfxy_x, CHEAP);
+
+}
+
+
+/* Add that
+ * f(x x) = c
+ * */
+void TheoryAxioms::addFunctionWithSameArgumentEqualsConstant(Interpretation f, TermList constant, unsigned srt)
+{
+	CALL("TheoryAxioms::addFunctionWithSameArgumentEqualsConstant");
+
+	TermList x(0,false);
+	unsigned argSorts[2] = {srt,srt};
+	unsigned fun = env.signature->getInterpretingSymbol(f,OperatorType::getFunctionType(2,argSorts,srt));
+
+	TermList fxx(Term::create2(fun,x,x));
+
+	Literal* eq1 = Literal::createEquality(true,fxx,constant,srt);
+	addTheoryUnitClause(eq1, CHEAP);
+
+}
+
+/* Add that
+ * p ( f (X  c) X)
+ *
+ * */
+void TheoryAxioms::addFunctionAppliedToConstantPredicateFirstArg(Interpretation f, Interpretation p, TermList constant,unsigned srt)
+{
+	CALL("TheoryAxioms::addFunctionAppliedToConstantPredicateFirstArg");
+
+	TermList x(0,false);
+
+
+	unsigned argSorts[2] = {srt,srt};
+	unsigned fun = env.signature->getInterpretingSymbol(f,OperatorType::getFunctionType(2,argSorts,srt));
+	unsigned pred = env.signature->getInterpretingSymbol(p,OperatorType::getPredicateType({srt,srt}));
+
+	// f (X c )
+	TermList fxy(Term::create2(fun,x,constant));
+	Literal* pfxy_x = Literal::create2(pred,true,fxy,x);
+	addTheoryUnitClause(pfxy_x, CHEAP);
+
+}
+
+
+/* Add that
+ * p(f(c X) c)
+ *
+ * */
+void TheoryAxioms::addFunctionAppliedToConstantPredicateFirstArgVariation(Interpretation f, Interpretation p, TermList constant,unsigned srt)
+{
+	CALL("TheoryAxioms::addFunctionAppliedToConstantPredicateFirstArg");
+
+	TermList x(0,false);
+
+
+	unsigned argSorts[2] = {srt,srt};
+	unsigned fun = env.signature->getInterpretingSymbol(f,OperatorType::getFunctionType(2,argSorts,srt));
+	unsigned pred = env.signature->getInterpretingSymbol(p,OperatorType::getPredicateType({srt,srt}));
+
+	// f (c X )
+	TermList fcx(Term::create2(fun,constant,x));
+	Literal* pfxy_x = Literal::create2(pred,true,fcx,constant);
+	addTheoryUnitClause(pfxy_x, CHEAP);
+
+}
+
+/* Add that
+ * f(x x) = x
+ *
+ * */
+
+void TheoryAxioms::addFunctionWithSameArgumentEqualArgument(Interpretation f, unsigned srt)
+{
+	CALL("TheoryAxioms::addFunctionWithSameArgumentEqualArgument");
+	TermList x(0,false);
+	unsigned argSorts[2] = {srt,srt};
+	unsigned fun = env.signature->getInterpretingSymbol(f,OperatorType::getFunctionType(2,argSorts,srt));
+
+	TermList fxx(Term::create2(fun,x,x));
+
+	Literal* eq1 = Literal::createEquality(true,fxx,x,srt);
+	addTheoryUnitClause(eq1, CHEAP);
+}
+
+// f(X,c) = d
+// e.g (bvudiv x zero) = allones 
+void TheoryAxioms::addPolyMorphicSpecialConstantAxiom(Interpretation op, TermList arg, TermList out,unsigned size)
+{
+	CALL("TheoryAxioms::addPolyMorphicSpecialConstantAxiom");
+
+    unsigned srt = env.sorts->addBitVectorSort(size);
+    unsigned argSorts[2] = {srt,srt};
+    
+    unsigned f = env.signature->getInterpretingSymbol(op,OperatorType::getFunctionType(2,argSorts,srt));
+    
+    TermList x(0,false);
+    
+    // f(X,c) = d
+    //(bvudiv x zero) = allones 
+    TermList f_x_arg(Term::create2(f,x,arg));
+    
+    Literal* eq1 = Literal::createEquality(true,f_x_arg,out,srt);
+    addTheoryUnitClause(eq1, CHEAP);
+    
+}
+
+// f(c,X) = d
+// e.g (bvashr zero X) = zero
+void TheoryAxioms::addPolyMorphicSpecialConstantAxiomVariation(Interpretation op, TermList arg, TermList out,unsigned size)
+{
+	CALL("TheoryAxioms::addPolyMorphicSpecialConstantAxiom");
+
+    unsigned srt = env.sorts->addBitVectorSort(size);
+    unsigned argSorts[2] = {srt,srt};
+
+    unsigned f = env.signature->getInterpretingSymbol(op,OperatorType::getFunctionType(2,argSorts,srt));
+
+    TermList x(0,false);
+
+    // f(c,X) = d
+    TermList f_x_arg(Term::create2(f,arg,x));
+
+    Literal* eq1 = Literal::createEquality(true,f_x_arg,out,srt);
+    addTheoryUnitClause(eq1, CHEAP);
+
+}
+void TheoryAxioms::addBVXNORAxiom1(Interpretation bvxnor , Interpretation bvor , Interpretation bvand, Interpretation bvnot, unsigned size)
+{
+  CALL("TheoryAxioms::addBVXNORAxiom1");
+
+    unsigned srt = env.sorts->addBitVectorSort(size);
+    unsigned argSorts[2] = {srt,srt};
+    
+    //(bvxnor s t) abbreviates (bvor (bvand s t) (bvand (bvnot s) (bvnot t)))
+    unsigned _xnor = env.signature->getInterpretingSymbol(bvxnor,OperatorType::getFunctionType(2,argSorts,srt));
+    unsigned _or = env.signature->getInterpretingSymbol(bvor,OperatorType::getFunctionType(2,argSorts,srt));
+    unsigned _not = env.signature->getInterpretingSymbol(bvnot,OperatorType::getFunctionType(1,argSorts,srt));
+    unsigned _and = env.signature->getInterpretingSymbol(bvand,OperatorType::getFunctionType(2,argSorts,srt));
+    
+    
+    TermList s(0,false);
+    TermList t(1,false);
+    
+    //lhs
+    //(bvxnor s t) 
+    TermList bvxnor_s_t(Term::create2(_xnor,s,t));
+    
+    // rhs
+    //(bvnot t)
+    TermList bvnot_t(Term::create1(_not,t));
+    //(bvnot s)
+    TermList bvnot_s(Term::create1(_not,s));
+    //(bvand (bvnot s) (bvnot t))
+    TermList bvand_bvnot_s_bvnot_t(Term::create2(_and,bvnot_t,bvnot_s));
+    
+    //(bvand s t)
+    TermList bvand_s_t(Term::create2(_and,s,t));
+    
+    //rhs 
+    //(bvor (bvand s t) (bvand (bvnot s) (bvnot t))
+    TermList rhs(Term::create2(_or,bvand_s_t,bvand_bvnot_s_bvnot_t));
+    
+    Literal* eq1 = Literal::createEquality(true,bvxnor_s_t,rhs,srt);
+    addTheoryUnitClause(eq1, EXPENSIVE);
+    
+}
+
+void TheoryAxioms::addBVXORAxiom1(Interpretation bvxor, Interpretation bvor , Interpretation bvand, Interpretation bvnot, unsigned size)
+{
+  CALL("TheoryAxioms::addBVXORAxiom1");
+
+    unsigned srt = env.sorts->addBitVectorSort(size);
+    unsigned argSorts[2] = {srt,srt};
+    
+    //(bvxor s t) abbreviates (bvor (bvand s (bvnot t)) (bvand (bvnot s) t))
+    unsigned _xor = env.signature->getInterpretingSymbol(bvxor,OperatorType::getFunctionType(2,argSorts,srt));
+    unsigned _or = env.signature->getInterpretingSymbol(bvor,OperatorType::getFunctionType(2,argSorts,srt));
+    unsigned _not = env.signature->getInterpretingSymbol(bvnot,OperatorType::getFunctionType(1,argSorts,srt));
+    unsigned _and = env.signature->getInterpretingSymbol(bvand,OperatorType::getFunctionType(2,argSorts,srt));
+    
+
+    TermList s(0,false);
+    TermList t(1,false);
+    
+    //(bvxor s t)
+    TermList bvxor_s_t(Term::create2(_xor,s,t));
+    
+    
+    // (bvnot s)
+    TermList bvnot_s(Term::create1(_not,s));
+    // (bvand (bvnot s) t))
+    TermList bvand_bvnot_s_t(Term::create2(_and,bvnot_s, t));
+    
+    // (bvnot t)
+    TermList bvnot_t(Term::create1(_not,t));
+    // (bvand s (bvnot t)
+    TermList bvand_s_bvnot_t(Term::create2(_and,s, bvnot_t));
+    //(bvor (bvand s (bvnot t)) (bvand (bvnot s) t))
+    TermList rhs(Term::create2(_or,bvand_bvnot_s_t, bvand_s_bvnot_t));
+    
+    
+    Literal* eq1 = Literal::createEquality(true,bvxor_s_t,rhs,srt);
+    addTheoryUnitClause(eq1, EXPENSIVE);
+    
 }
 
 /**
@@ -1180,10 +2890,380 @@ void TheoryAxioms::apply()
 
     modified = true;
   }
+  
 
+  VirtualIterator<Theory::MonomorphisedInterpretation> it = env.property->getPolymorphicInterpretations();
+  unsigned size;
+  while(it.hasNext()){
+	  Theory::MonomorphisedInterpretation entry = it.next();
+
+	  Interpretation itp = entry.first;
+	  /* ------------------------------------------
+	         * Start function conditions
+	  * ------------------------------------------
+	  * */
+      if (itp>=Theory::ARRAY_SELECT && itp<=Theory::ARRAY_STORE)
+    	  	  continue;
+
+      if (entry.second->isFunctionType())
+    	  	  size = env.sorts->getBitVectorSort(entry.second->result())->getSize();
+      else
+    	  	  size = env.sorts->getBitVectorSort(entry.second->arg(0))->getSize();
+
+      if (itp == Theory::BVNAND){
+    	  	  addPolyMorphicBinaryFunctionEquivalentToUnaryFunctionAppliedToBinaryFunction(Theory::BVNAND,Theory::BVNOT,Theory::BVAND,size);
+      }
+      else if(itp == Theory::BVNOR){
+    	  	addPolyMorphicBinaryFunctionEquivalentToUnaryFunctionAppliedToBinaryFunction(Theory::BVNOR,Theory::BVNOT,Theory::BVOR,size);
+      }
+      else if(itp == Theory::BVXOR){
+    	  	  addBVXORAxiom1(Theory::BVXOR, Theory::BVOR , Theory::BVAND, Theory::BVNOT, size);
+      }
+      else if(itp == Theory::BVXNOR){
+    	    addBVXNORAxiom1(Theory::BVXNOR, Theory::BVOR , Theory::BVAND, Theory::BVNOT, size);
+      }
+
+      else if (itp == Theory::BVADD){
+    	    TermList zero(theory->representConstant(BitVectorOperations::getZeroBVCT(size)));
+    	    unsigned srt0 = entry.second->arg(0);
+
+    	    addBitVectorCommutativity(Theory::BVADD,size);
+    	    addPolyMorphicBinaryFunctionEquivalentToBinaryFunctionAppliedToUnaryFunction(Theory::BVSUB, Theory::BVADD, Theory::BVNEG,size);
+    	    addSomeAdditionAxiom(srt0);
+    	    //addBinaryFunctionEqualityAxiom(itp,srt0,true); //-- REMOVED THIS WITH NO CHANGE
+
+      }
+      else if (itp == Theory::BVMUL){
+
+    	  TermList one(theory->representConstant(BitVectorOperations::getOneBVCT(size)));
+    	  TermList zero(theory->representConstant(BitVectorOperations::getZeroBVCT(size)));
+    	  unsigned srt0 = entry.second->arg(0);
+
+    	  // add that (bvmul (X 1)) = X
+    	  addBitVectorRightIdentity(Theory::BVMUL,one,size);
+    	  // add that (bvmul X 0) = 0
+    	  addPolyMorphicSpecialConstantAxiom(Interpretation::BVMUL, zero, zero, size);
+    	  addBitVectorCommutativity(Theory::BVMUL,size);
+
+
+       }
+      else if (itp == Theory::BVSUB){
+
+    	  unsigned srt0 = entry.second->arg(0);
+
+    	  addPolyMorphicBinaryFunctionEquivalentToBinaryFunctionAppliedToUnaryFunction(Theory::BVSUB, Theory::BVADD, Theory::BVNEG,size);
+
+      }
+      else if (itp== Theory::BVUDIV){
+
+    	  TermList zero(theory->representConstant(BitVectorOperations::getZeroBVCT(size)));
+          TermList allOnes(theory->representConstant(BitVectorOperations::getAllOnesBVCT(size)));
+          TermList one(theory->representConstant(BitVectorOperations::getOneBVCT(size)));
+          unsigned srt0 = entry.second->arg(0);
+
+          // add that bvudiv ( x zero) = allOnes
+          addPolyMorphicSpecialConstantAxiom(Theory::BVUDIV, zero, allOnes,size);
+          // add that for all y and z there exists an x such that
+          // (bvudiv y x) != z
+          //addBinaryFunctionEqualityAxiom(itp, srt0, false); //-- remove this one
+
+          addDivisionZeroAxiom(srt0);
+          addDivisionOneAxiom(srt0);
+          addAnotherDivisionAxiom(srt0);
+
+          // x!=MAX -> bvugt(x+1 x)
+          addMaxAxiom(Theory::BVUGT, srt0);
+
+          // (t>s) -> (s/t = 0)
+          addDivAxiomGT(srt0);
+          //(s>t) -> (s/t > 0)
+          addDivAxiomGT2(srt0);
+
+          //t=s & t!=0 -> s/t = 1
+          addDivONEAxiom(srt0);
+          // (x / s = t) -> (t >> s) << s = t
+          // addShiftingAxiom(srt0, Theory::BVUDIV, Theory::BVMUL);
+          //addDivGE(srt0);
+          //s/x = t -> (s/(s/t)) = t
+          addTempAxiom(srt0);
+
+
+      }
+      else if (itp== Theory::BVUREM){// bvurem returns its first operand if the second operand is 0
+
+    	  unsigned srt0 = entry.second->arg(0);
+    	  TermList zero(theory->representConstant(BitVectorOperations::getZeroBVCT(size)));
+    	  TermList one(theory->representConstant(BitVectorOperations::getOneBVCT(size)));
+
+    	  // add that ( bvurem x 0 ) = x
+    	  addBitVectorRightIdentity(Theory::BVUREM,zero,size);
+          // (bvurem x one) = zero
+          addPolyMorphicSpecialConstantAxiom(itp, one, zero,  size);
+          // add that bvule (x%y x)
+          addBVUREMwithPredicateAxiom(itp, Theory::BVULE, srt0);
+          // add that (bvurem x x) = zero
+          addFunctionWithSameArgumentEqualsConstant(itp, zero, srt0);
+
+         // addTempOrAxiom2(srt0, Theory::BVSGT, itp);
+
+      }
+      else if (itp == Theory::CONCAT){
+
+    	  OperatorType* oType = entry.second;
+    	  unsigned srt0 = entry.second->arg(0);
+    	  unsigned srt1 = entry.second->arg(1);
+    	  unsigned resultSrt = entry.second->result();
+
+    	  addConcatArgumentsNotEqualEquivalentToConcatResultsNotEqual(srt0,srt1,resultSrt);
+    	  //addConcatResultsEqualImpliesArgumentsEqual(srt0,srt1,resultSrt);
+    	  //addConcatArgsPredicateImpliesWholePredicate(Theory::BVULE,srt0,srt1,resultSrt);
+
+    	  addPredicateOnConcatArgsImpliesPredicateConcatFirstArg(srt0,srt1,resultSrt, Theory::BVUGE);
+    	  addConcatArgsPredicateImpliesWholePredicate(Theory::BVUGE, srt0, srt1, resultSrt);
+
+    	  addPredicateOnConcatArgsImpliesPredicateConcatFirstArg(srt0,srt1,resultSrt, Theory::BVULE); // this one works
+    	  addConcatArgsPredicateImpliesWholePredicate(Theory::BVULE, srt0, srt1, resultSrt); // this one seems to be the problem
+
+    	  addPredicateOnConcatArgsImpliesPredicateConcatFirstArg(srt0,srt1,resultSrt, Theory::BVSLE); // this one works
+    	  // addConcatArgsPredicateImpliesWholePredicate(Theory::BVSLE, srt0, srt1, resultSrt); // this one seems to be the problem not valid for bsle
+    	  addConcatArgsPredicateImpliesWholePredicateVariation(Theory::BVSLE, srt0, srt1, resultSrt);
+
+      }
+      else if (itp == Theory::BVNOT){
+
+          unsigned srt0 = entry.second->arg(0);
+
+         // addBVNOTQuantAxiom(srt0);
+          addUnaryFunctionAppliedTwiceEqualsArgument(itp,srt0);
+         // aNegationAndNotAxiom(srt0, itp);
+
+      }
+      else if (itp == Theory::BVNEG){
+
+         unsigned srt0 = entry.second->arg(0);
+         // add that ~(~x) = x
+         addUnaryFunctionAppliedTwiceEqualsArgument(itp,srt0);
+         //aNegationAndNotAxiom(srt0, itp);
+         //aNegationAndNotAxiom(srt0, itp);
+
+      }
+      else if (itp == Theory::BVASHR){
+
+    	  unsigned srt0 = entry.second->arg(0);
+    	  TermList zero(theory->representConstant(BitVectorOperations::getZeroBVCT(size)));
+    	  TermList allOnes(theory->representConstant(BitVectorOperations::getAllOnesBVCT(size)));
+
+    	  // add that (bvashr 0 x) = 0
+    	  addPolyMorphicSpecialConstantAxiomVariation(Interpretation::BVASHR, zero, zero, size);
+    	  // add that (bvashr x 0) = x
+    	  addBitVectorRightIdentity(itp, zero, size);
+    	  // add that bvashr (allones x) = allones
+    	  addPolyMorphicSpecialConstantAxiomVariation(itp, allOnes, allOnes, size);
+
+      }
+      else if (itp == Theory::BVSHL){
+
+    	  unsigned srt0 = entry.second->arg(0);
+          TermList zero(theory->representConstant(BitVectorOperations::getZeroBVCT(size)));
+          TermList allOnes(theory->representConstant(BitVectorOperations::getAllOnesBVCT(size)));
+
+          // add that (bvshl 0 x) = 0
+          addPolyMorphicSpecialConstantAxiomVariation(Interpretation::BVSHL, zero, zero, size);
+          // add that (bvshl x 0) = x
+          addBitVectorRightIdentity(itp, zero, size);
+          // add that bvshl x allones = 0
+          addPolyMorphicSpecialConstantAxiom(Interpretation::BVSHL, allOnes, zero, size);
+
+          // add that ( bvule ( bvshl (allones  X) allones ) )
+          addFunctionAppliedToConstantPredicateFirstArgVariation(itp, Theory::BVULE, allOnes,srt0);
+
+          addShiftingAxiom(srt0, Theory::BVSHL, Theory::BVLSHR);
+      }
+      else if (itp == Theory::BVLSHR){
+
+    	  unsigned srt0 = entry.second->arg(0);
+          TermList zero(theory->representConstant(BitVectorOperations::getZeroBVCT(size)));
+          TermList allOnes(theory->representConstant(BitVectorOperations::getAllOnesBVCT(size)));
+
+          // add that (bvlshr 0 x) = 0
+          addPolyMorphicSpecialConstantAxiomVariation(Theory::BVLSHR, zero, zero, size);
+          // add that (bvlshr x allones) = 0
+          addPolyMorphicSpecialConstantAxiom(Theory::BVLSHR, allOnes, zero, size);
+          addBitVectorRightIdentity(itp,zero,size);
+
+          addShiftingAxiom(srt0, Theory::BVLSHR, Theory::BVSHL);
+
+      }
+      else if (itp == Theory::BVOR){
+
+    	  unsigned srt0 = entry.second->arg(0);
+    	  TermList zero(theory->representConstant(BitVectorOperations::getZeroBVCT(size)));
+    	  TermList allOnes(theory->representConstant(BitVectorOperations::getAllOnesBVCT(size)));
+
+    	  addBitVectorRightIdentity(Theory::BVOR,zero,size);
+    	  addBitVectorCommutativity(Theory::BVOR,size);
+
+    	  // add that X || allOnes = allOnes
+    	  addPolyMorphicSpecialConstantAxiom(itp, allOnes,allOnes, size);
+    	  // add that X || X = X
+    	  addFunctionWithSameArgumentEqualArgument(itp, srt0);
+
+    	  // add that bvuge ( (X || allones) X )
+    	 // addFunctionAppliedToConstantPredicateFirstArg(itp, Theory::BVUGE, allOnes, srt0);
+    	  //addFunctionWithIdenticalArgumentsEqualsArgument(srt0, itp); DUPLICATE
+    	  addSpecialEqualAndAxiom(srt0, itp);
+
+	  }
+      else if (itp == Theory::BVAND){
+
+    	  unsigned srt0 = entry.second->arg(0);
+    	  TermList zero(theory->representConstant(BitVectorOperations::getZeroBVCT(size)));
+
+    	  TermList allOnes(theory->representConstant(BitVectorOperations::getAllOnesBVCT(size)));
+    	  // add that bvand(X,zero) = zero
+    	  addPolyMorphicSpecialConstantAxiom(itp, zero,zero, size);
+    	  // add that bvand(X,Max) = X
+    	  addBitVectorRightIdentity(itp,allOnes,size);
+    	  addBitVectorCommutativity(Theory::BVAND,size);
+    	  addFunctionWithSameArgumentEqualArgument(itp, srt0);
+
+    	  addSpecialEqualAndAxiom(srt0, itp);
+
+    	  //addTempAndAxiom1(srt0, itp);
+
+      }
+      /* ------------------------------------------
+       * End function conditions
+       * ------------------------------------------
+       * */
+
+      /* ------------------------------------------
+       * Start predicates conditions
+       * ------------------------------------------
+       * */
+      else if (itp == Theory::BVSLE){
+
+          unsigned srt0 = entry.second->arg(0);
+          addEqualsImpliesBinaryPredicate( itp, srt0);
+
+      }
+
+      else if (itp == Theory::BVSGE){
+
+    	  unsigned srt0 = entry.second->arg(0);
+    	  addEqualsImpliesBinaryPredicate(itp, srt0);
+
+      }
+
+      else if (itp == Theory::BVUGE){
+
+    	  unsigned srt0 = entry.second->arg(0);
+    	  TermList zero(theory->representConstant(BitVectorOperations::getZeroBVCT(size)));
+          TermList allOnes(theory->representConstant(BitVectorOperations::getAllOnesBVCT(size)));
+
+          // add that (bvuge x zero)
+          addEveryThingSmallerOrEqualToSignedMaxVariation(itp,zero,srt0);
+
+          // (x = y) -> (bvuge x y)
+          addEqualsImpliesBinaryPredicate(itp, srt0);
+
+          // add that (bvuge allones x)
+          addEveryThingSmallerOrEqualToSignedMax(itp, allOnes, srt0);
+
+
+          addPredicateImpliesNotOtherPredicate(srt0,Theory::BVUGE,Theory::BVULT);
+        //  addEveryThingSmallerOrEqualToSignedMax(Theory::BVUGE, allOnes, srt0);
+          predicateTrueForArgumentsOfAFunction(srt0, Theory::BVAND, Theory::BVULE); // -- One can remove the AND because of commutativity
+          isPredicateWithEqualRemovedOrEqualAxiom(Theory::BVUGE,Theory::BVUGT,size);
+
+          addTempOrAxiom2(srt0, itp,  Interpretation::BVLSHR);
+
+          addTempOrAxiom2(srt0, itp, Interpretation::BVAND);
+
+
+      }
+      else if (itp == Theory::BVULE){
+
+    	  unsigned srt0 = entry.second->arg(0);
+          TermList zero(theory->representConstant(BitVectorOperations::getZeroBVCT(size)));
+          TermList allOnes(theory->representConstant(BitVectorOperations::getAllOnesBVCT(size)));
+
+          // (x = y) -> (bvule x y)
+          addEqualsImpliesBinaryPredicate(itp, srt0);
+          // (bvule x allones)
+          addEveryThingSmallerOrEqualToSignedMaxVariation(Theory::BVULE, allOnes, srt0);
+          // (bvule zero x)
+          addEveryThingSmallerOrEqualToSignedMax(Theory::BVULE, zero, srt0);
+
+      }
+      else if(itp == Theory::BVUGT){
+
+    	  unsigned srt0 = entry.second->arg(0);
+    	  TermList allOnes(theory->representConstant(BitVectorOperations::getAllOnesBVCT(size)));
+
+          //addMaxAxiom(Theory::BVUGT,srt0);
+    	  // addBVReverseAndMoreAxiom(Theory::BVUGT, Theory::BVULT,size);
+    	  addBVReverseAndMoreAxiom(Interpretation::BVUGT, Interpretation::BVULT,size);
+    	  addTempOrAxiom2(srt0, itp,  Interpretation::BVLSHR);
+
+    	  addXNEqualToConstantImpliesAxiom(srt0, Theory::BVUGT, allOnes);
+
+      }
+      else if (itp == Theory::BVSLT){
+
+          // addFlipOverAxiom(srt0);
+   /* 	  unsigned srt0 = entry.second->arg(0);
+    	  TermList signedMin(theory->representConstant(BitVectorOperations::getSignedMinBVCT(size)));
+    	  addBitVectorOrderingAxiom(srt0, itp,signedMin);
+    	  addBVReverseAndMoreAxiom(Theory::BVSLT, Theory::BVSGT, size);
+    	  addXNEqualToConstantImpliesAxiom(srt0,itp,signedMin);*/
+      }
+      else if(itp == Theory::BVSGT || itp == Theory::BVULT) {
+    	  unsigned srt0 = entry.second->arg(0);
+    	  TermList signedMax(theory->representConstant(BitVectorOperations::getSignedMaxBVCT(size)));
+    	  TermList zero(theory->representConstant(BitVectorOperations::getZeroBVCT(size)));
+
+    	  addXNEqualToConstantImpliesAxiom(srt0,Theory::BVULT,zero);
+
+    	  addPredicateTrueImpliesSecondArgNEqualToConstant(srt0, Theory::BVULT, zero);
+
+
+    	  addORSignedOperatorWithConstantAxiom(srt0, Theory::BVSGT, Theory::BVOR,signedMax);
+
+    	 // addBVReverseAndMoreAxiom(Theory::BVSLT, Theory::BVSGT, size);
+    	  addPredicateImpliesNotOtherPredicateReverse(srt0,Theory::BVULT,Theory::BVUGE);
+    	  addPredicateImpliesNotOtherPredicate(srt0,Theory::BVUGE,Theory::BVULT);
+
+    	  addPredicateImpliesNotOtherPredicate(srt0,Theory::BVULT,Theory::BVUGE);
+    	  addEqualsImpliesBinaryPredicate(Theory::BVULE, srt0);
+
+    	  addBitVectorOrderingAxiom(srt0, Theory::BVSGT, signedMax);
+    	  addXNEqualToConstantImpliesAxiom(srt0, Theory::BVSGT, signedMax);
+
+    	  addTempOrAxiom(srt0, Theory::BVUGT, Theory::BVULT, Theory::BVOR);
+    	  addBVReverseAndMoreAxiom(Theory::BVSGT, Theory::BVSLT, size);
+    	  addBVReverseAndMoreAxiom(Theory::BVSLT, Theory::BVSGT, size);
+
+    	  addTempOrAxiom2(srt0, Theory::BVULT,  Theory::BVOR);
+    	  addTempOrAxiom2(srt0, Theory::BVUGT,  Theory::BVAND);
+
+    	  addBVANDSignedPredicatesAxiom(srt0, Theory::BVSGT, Theory::BVSLT, Theory::BVAND,
+    	  		  zero, signedMax);
+    	  addOtherBVANDSignedPredicatesAxiom(srt0, Theory::BVSGT, Theory::BVAND,signedMax);
+
+      }
+      /* ------------------------------------------
+       * End predicates conditions
+       * ------------------------------------------
+       * */
+
+      modified = true;
+  }
+  
   if(modified) {
     _prb.reportEqualityAdded(false);
   }
+
 } // TheoryAxioms::apply
 
 void TheoryAxioms::applyFOOL() {

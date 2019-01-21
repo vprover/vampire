@@ -487,6 +487,9 @@ void Property::scanSort(unsigned sort)
     if(env.sorts->isOfStructuredSort(sort,Sorts::StructuredSort::ARRAY)){
       addProp(PR_HAS_ARRAYS);
     }
+    if(env.sorts->isOfStructuredSort(sort,Sorts::StructuredSort::BITVECTOR)){
+      addProp(PR_HAS_BITVECTORS);
+    }
     if (env.signature->isTermAlgebraSort(sort)) {
       TermAlgebra* ta = env.signature->getTermAlgebraOfSort(sort);
       if (!ta->finiteDomain()) {
@@ -635,7 +638,6 @@ void Property::scan(TermList ts,bool unit,bool goal)
 void Property::scanForInterpreted(Term* t)
 {
   CALL("Property::scanInterpretation");
-
   Interpretation itp;
   if (t->isLiteral()) {
     Literal* lit = static_cast<Literal*>(t);
@@ -648,7 +650,8 @@ void Property::scanForInterpreted(Term* t)
     itp = theory->interpretPredicate(lit);
   }
   else {
-    if (!theory->isInterpretedFunction(t)) { return; }
+    if (!theory->isInterpretedFunction(t)) { 
+        return; }
     itp = theory->interpretFunction(t);
   }
   _hasInterpreted = true;
@@ -665,11 +668,10 @@ void Property::scanForInterpreted(Term* t)
   if (Theory::isPolymorphic(itp)) {
     OperatorType* type = t->isLiteral() ?
         env.signature->getPredicate(t->functor())->predType() : env.signature->getFunction(t->functor())->fnType();
-
+   
     _polymorphicInterpretations.insert(std::make_pair(itp,type));
     return;
   }
-
   unsigned sort = Theory::getOperationSort(itp);
   if(Theory::isInequality(itp)){
     switch(sort){

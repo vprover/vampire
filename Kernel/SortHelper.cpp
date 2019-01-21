@@ -773,15 +773,18 @@ bool SortHelper::areImmediateSortsValid(Term* t)
 
   OperatorType& type = getType(t);
   unsigned arity = t->arity();
+  
   for (unsigned i=0; i<arity; i++) {
     TermList arg = *t->nthArgument(i);
     if (!arg.isTerm()) { continue; }
     Term* ta = arg.term();
     unsigned argSort = getResultSort(ta);
     if (type.arg(i) != argSort) {
+        //cout<<"\n\n detailed error \n\n"<< "type.arg(i) :"<< type.arg(i) << " and the argSort is "<<argSort;
       //cout << "error with expected " << type.arg(i) << " and actual " << argSort << " when functor is " << t->functor() << " and arg is " << arg << endl;
-      return false;
+        return false;
     }
+    
   }
   return true;
 }

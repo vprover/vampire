@@ -245,7 +245,7 @@ Formula* TermTransformingFormulaTransformer::applyLiteral(Formula* f)
 Formula* TermTransformerTransformTransformedFormulaTransformer::applyLiteral(Formula* f)
 {
   CALL("TermTransformingFormulaTransformer::applyLiteral");
-
+  
   Literal* lit = f->literal();
   Literal* res = _termTransformer.transform(lit);
   if(lit==res) { return f; }

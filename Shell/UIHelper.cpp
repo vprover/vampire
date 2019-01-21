@@ -210,7 +210,7 @@ Problem* UIHelper::getInputProblem(const Options& opts)
   SMTLIBLogic smtLibLogic = SMT_UNDEFINED;
 
   vstring inputFile = opts.inputFile();
-
+  
   istream* input;
   if (inputFile=="") {
     input=&cin;
@@ -516,6 +516,7 @@ void UIHelper::outputSatisfiableResult(ostream& out)
   CALL("UIHelper::outputSatisfiableResult");
 
   //out << "Satisfiable!\n";
+
   if (szsOutputMode() && !satisfiableStatusWasAlreadyOutput) {
     out << "% SZS status " << ( UIHelper::haveConjecture() ? "CounterSatisfiable" : "Satisfiable" )
 	  <<" for " << env.options->problemName() << endl;

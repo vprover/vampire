@@ -53,7 +53,7 @@ private:
 public:
   CLASS_NAME(DArray<C>);
   USE_ALLOCATOR(DArray<C>);
-
+  
   class Iterator;
 
   DECL_ELEMENT_TYPE(C);
