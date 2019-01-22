@@ -1,0 +1,5 @@
+tff(a,type, p : ($i > $o )).
+tff(a,type, q : ($int > $o )).
+tff(a,axiom, ![X:$i] : p(X)).
+tff(a,axiom, ![X:$int] : q(X)).
+tff(a,conjecture, (![X:$i]:p(X)) & (![X:$int]:q(X)) ).
