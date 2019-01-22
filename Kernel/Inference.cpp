@@ -31,14 +31,13 @@
 using namespace Kernel;
 
 Inference::Inference(Rule r)
-  : _rule(r), _extra(""),_maxDepth(0)
+  : _substStr(""), _rule(r), _extra(""),_maxDepth(0)
 {
 //  switch(r) {
 //  //TODO: move env.statistics object updates here.
 //  default: ;
 //  }
 }
-
 
 /**
  * Destroy an inference with no premises.

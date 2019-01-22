@@ -28,6 +28,10 @@
 
 #include <cstdlib>
 
+#include "Forwards.hpp"
+
+#include "Indexing/ResultSubstitution.hpp"
+
 #include "Kernel/Unit.hpp"
 #include "Lib/Allocator.hpp"
 #include "Lib/VString.hpp"
@@ -435,12 +439,18 @@ public:
 
   /** Set extra string */
   void setExtra(vstring e){ _extra=e; }
+  /** Sets the subtitution used */
+  void setSubstStr(vstring str){ _substStr=str; }
   /** Return the extra string */
   vstring extra() { return _extra; }
+  /** If substitution is present, return it in string format */
+  vstring substStr() { return _substStr; }
 
   unsigned maxDepth(){ return _maxDepth; }
 
 protected:
+  /** String representation of substitution used in inference */
+  vstring _substStr;
   /** The rule used */
   Rule _rule;
   /** Extra information */

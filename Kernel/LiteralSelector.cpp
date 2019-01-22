@@ -132,6 +132,13 @@ LiteralSelector* LiteralSelector::getSelector(const Ordering& ordering, const Op
 
   int absNum = abs(selectorNumber);
 
+  // Hack to circumvent the fact that look-ahead literal selection strategies
+  // Are not worthwhile when using expensive urification such as combinatory unif
+  if(env.options->combinatoryUnification() && ((absNum == 11) || (absNum == 11))){
+    absNum = absNum - 1;
+  }
+
+
   LiteralSelector* res;
   switch(absNum) {
   case 0: res = new TotalLiteralSelector(ordering, options); break;

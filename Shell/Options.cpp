@@ -1023,7 +1023,10 @@ void Options::Options::init()
       "a restricted version of combinatory unifcation, \n"
       "i.e., unification modulo the combinator axioms";
       _combinatoryUnification.addHardConstraint(
-        If(equal(true)).then(_unificationWithAbstraction.is(equal(UnificationWithAbstraction::OFF))));    
+        If(equal(true)).then(_unificationWithAbstraction.is(equal(UnificationWithAbstraction::OFF))));
+      //combinatory unification is too expensive to be used in conjunction with look-ahead selection 
+      //_combinatoryUnification.addConstraint(If(equal(true)).then(_selection.is(notEqual(11, 10))));
+      //_combinatoryUnification.addConstraint(If(equal(true)).then(_selection.is(notEqual(1011, 1010))));  
       _lookup.insert(&_combinatoryUnification);
       _combinatoryUnification.tag(OptionTag::SATURATION); //This is not inference, change!
 

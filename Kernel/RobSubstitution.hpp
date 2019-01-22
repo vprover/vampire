@@ -52,14 +52,15 @@ public:
   CLASS_NAME(RobSubstitution);
   USE_ALLOCATOR(RobSubstitution);
   
-  RobSubstitution() : _nextUnboundAvailable(0),_nextAuxAvailable(0) {}
+  RobSubstitution() : _nextUnboundAvailable(0),_nextAuxAvailable(0),
+                      _doPlaceHolderChecks(false), _unified(true) {}
 
   SubstIterator matches(Literal* base, int baseIndex,
 	  Literal* instance, int instanceIndex, bool complementary);
   SubstIterator unifiers(Literal* l1, int l1Index, Literal* l2, int l2Index, bool complementary);
 
   bool match(TermList base,int baseIndex, TermList instance, int instanceIndex);
-  bool unify(TermList t1,int index1, TermList t2, int index2, bool &fo);
+  bool unify(TermList t1,int index1, TermList t2, int index2, unsigned& unifType);
   bool unify(TermList t1,int index1, TermList t2, int index2);
 
   bool unifyArgs(Term* t1,int index1, Term* t2, int index2);
@@ -79,6 +80,7 @@ public:
     _bank.reset();
     _nextAuxAvailable=0;
     _nextUnboundAvailable=0;
+    _unified = true;
   }
   /**
    * Bind special variable to a specified term
@@ -110,11 +112,17 @@ public:
   size_t size() const {return _bank.size(); }
 #endif
 
-/*
-  void setFirstOrder() { _firstOrder = true; }
-  void unsetFirstOrder() { _firstOrder = false; }
-  bool firstOrder() { return _firstOrder; }
-*/
+  void doPlaceHolderChecks(){
+    _doPlaceHolderChecks = true;
+  }
+
+  void mark(bool success){
+    _unified = success;
+  }
+
+  bool getMark(){
+    return _unified;
+  }
 
   /** Specifies instance of a variable (i.e. (variable, variable bank) pair) */
   struct VarSpec
@@ -170,7 +178,7 @@ public:
      * false. Only term content is taken into account, i.e. when two
      * literals are pointer do by ts.term, their polarity is ignored.
      */
-    bool sameTermContent(const TermSpec& ts)
+    bool sameTermContent(const TermSpec& ts, bool doPHCheck = false)
     {
       bool termSameContent=term.sameContent(&ts.term);
       if(!termSameContent && term.isTerm() && term.term()->isLiteral() &&
@@ -182,6 +190,11 @@ public:
         }
       }
       if(!termSameContent) {
+        return false;
+      }
+      //using C's short circuit eval to ensure that containsPlac' is only
+      //called when necesseary
+      if(doPHCheck && containsPlaceHolderSubterm(ts)){
         return false;
       }
       return index==ts.index || term.isSpecialVar() ||
@@ -236,7 +249,7 @@ private:
   void bindVar(const VarSpec& var, const VarSpec& to);
   VarSpec root(VarSpec v) const;
   bool match(TermSpec base, TermSpec instance);
-  bool unify(TermSpec t1, TermSpec t2, bool& fo);
+  bool unify(TermSpec t1, TermSpec t2, unsigned& ut);
   bool handleDifferentTops(TermSpec t1, TermSpec t2, Stack<TTPair>& toDo, TermList* ct);
   void makeEqual(VarSpec v1, VarSpec v2, TermSpec target);
   void unifyUnbound(VarSpec v, TermSpec ts);
@@ -245,7 +258,7 @@ private:
   /**
    * Returns true if the termspec t1 is wrapping a placeholder term
    */
-  bool isPlaceHolderTerm(TermSpec ts);
+  static bool isPlaceHolderTerm(const TermSpec& ts);
   /*
    * This function ought to be temporary. For the moment, it required
    * because to bind a variable to a term t1, t1 cannot have #s in it, otherwise
@@ -254,7 +267,7 @@ private:
    * In the future, must fix, so that it is OK for #s below or at variables to 
    * leak
    */
-  bool containsPlaceHolderSubterm(TermSpec ts);
+  static bool containsPlaceHolderSubterm(const TermSpec& ts);
   
   /**
    * true if the substitution represented by this object is a first-order substitution
@@ -297,6 +310,9 @@ private:
 
   mutable unsigned _nextUnboundAvailable;
   unsigned _nextAuxAvailable;
+  bool _doPlaceHolderChecks;
+  bool _unified;
+
 
   class BindingBacktrackObject
   : public BacktrackObject

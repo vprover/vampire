@@ -51,9 +51,11 @@ public:
 
   bool generalizationExists(TermList t);
 
-  //remove extra argument once finish debugging
   TermQueryResultIterator getUnifications(TermList t,
 	  bool retrieveSubstitutions);
+
+  TermQueryResultIterator getUnificationsUsingSorts(TermList t, unsigned sort,
+    bool retrieveSubstitutions);
 
   TermQueryResultIterator getUnificationsWithConstraints(TermList t,
           bool retrieveSubstitutions);
@@ -75,7 +77,7 @@ private:
 
   template<class Iterator>
   TermQueryResultIterator getResultIterator(Term* term,
-	  bool retrieveSubstitutions,bool withConstraints);
+	  bool retrieveSubstitutions,bool withConstraints, Term* phFreeQuery = 0);
 
   struct LDToTermQueryResultFn;
   struct LDToTermQueryResultWithSubstFn;
@@ -88,7 +90,7 @@ private:
           bool withConstraints);
 
   TermQueryResultIterator getAllUnifyingIterator(TermList trm,
-	  bool retrieveSubstitutions,bool withConstraints);
+	  bool retrieveSubstitutions,bool withConstraints, bool usingSorts = false, unsigned sort = 0);
 
   inline
   unsigned getRootNodeIndex(Term* t)

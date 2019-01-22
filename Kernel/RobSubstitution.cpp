@@ -43,6 +43,7 @@
 
 #include "RobSubstitution.hpp"
 
+
 #if VDEBUG
 #include "Lib/Int.hpp"
 #include "Debug/Tracer.hpp"
@@ -62,20 +63,24 @@ const int RobSubstitution::AUX_INDEX=-3;
 const int RobSubstitution::SPECIAL_INDEX=-2;
 const int RobSubstitution::UNBOUND_INDEX=-1;
 
+const unsigned FIRST_ORDER=0;
+const unsigned HIGHER_ORDER_UNDER_VAR=1;
+const unsigned HIGHER_ORDER=2;
+
 /**
  * If @b t1 and @b t2 can possibly be unified by Robinson's unif
  * or possibly unified by combinatory unif, returns true
  */
-bool RobSubstitution::unify(TermList t1,int index1, TermList t2, int index2, bool& fo)
+bool RobSubstitution::unify(TermList t1,int index1, TermList t2, int index2, unsigned& ut)
 {
   CALL("RobSubstitution::unify");
-  return unify(TermSpec(t1,index1), TermSpec(t2,index2), fo);
+  return unify(TermSpec(t1,index1), TermSpec(t2,index2), ut);
 }
 
 bool RobSubstitution::unify(TermList t1,int index1, TermList t2, int index2)
 {
   CALL("RobSubstitution::unify");
-  bool dummy = true;
+  unsigned dummy = 0;
   return unify(TermSpec(t1,index1), TermSpec(t2,index2), dummy);
 }
 
@@ -92,7 +97,7 @@ bool RobSubstitution::unifyArgs(Term* t1,int index1, Term* t2, int index2)
 
   TermList t1TL(t1);
   TermList t2TL(t2);
-  bool dummy = true;  
+  unsigned dummy = 0;  
   return unify(TermSpec(t1TL,index1), TermSpec(t2TL,index2), dummy);
 }
 
@@ -339,8 +344,7 @@ bool RobSubstitution::occurs(VarSpec vs, TermSpec ts)
   }
 }
 
-//should be able to merge filtering with unifying
-bool RobSubstitution::unify(TermSpec t1, TermSpec t2, bool& fo)
+bool RobSubstitution::unify(TermSpec t1, TermSpec t2, unsigned& ut)
 {
   CALL("RobSubstitution::unify/2");
 
@@ -369,21 +373,18 @@ bool RobSubstitution::unify(TermSpec t1, TermSpec t2, bool& fo)
     //cout << "INSIDE unifying termspec " + dt1.toString() + " with termspec " + dt2.toString() << endl;
 
     //This does not work for EqResolution
-    if (isPlaceHolderTerm(dt1)  || isPlaceHolderTerm(dt2)) {
-      fo = false;
-    }else if(dt1.sameTermContent(dt2)){
-     //as termspecs have same contents, dont need to check both
-     if(containsPlaceHolderSubterm(dt2)){
-      fo =false;
-     }
+    if ((isPlaceHolderTerm(dt1) && !dt2.isVar())
+      ||(isPlaceHolderTerm(dt2) && !dt1.isVar())) {
+      ut = HIGHER_ORDER;
+    } else if(dt1.sameTermContent(dt2, _doPlaceHolderChecks)){
     } else if(dt1.isVar()) {
       VarSpec v1=getVarSpec(dt1);
       if(occurs(v1, dt2)) {
         mismatch=true;
         break;
       }
-      if(containsPlaceHolderSubterm(dt2)){
-        fo = false;
+      if(_doPlaceHolderChecks && containsPlaceHolderSubterm(dt2)){
+        ut = std::max(ut, HIGHER_ORDER_UNDER_VAR);
       }
       bind(v1,dt2);
     } else if(dt2.isVar()) {
@@ -392,10 +393,8 @@ bool RobSubstitution::unify(TermSpec t1, TermSpec t2, bool& fo)
         mismatch=true;
         break;
       }
-      //not very graceful, harming performance of first-order version with checking
-      //but ought to only be temporary
-      if(containsPlaceHolderSubterm(dt1)){
-        fo = false;
+      if(_doPlaceHolderChecks && containsPlaceHolderSubterm(dt1)){
+        ut = std::max(ut, HIGHER_ORDER_UNDER_VAR);
       }
       bind(v2,dt1);
     } else{
@@ -406,16 +405,13 @@ bool RobSubstitution::unify(TermSpec t1, TermSpec t2, bool& fo)
         TermSpec tsss(*ss,dt1.index);
         TermSpec tstt(*tt,dt2.index);
 
-        bool bypassTests = (isPlaceHolderTerm(tsss) || isPlaceHolderTerm(tstt));
+        bool bypassTests = ((isPlaceHolderTerm(tsss) && !tstt.isVar())
+                         || (isPlaceHolderTerm(tstt) && !tsss.isVar()));
 
-        if(bypassTests){ fo = false; }
+        if(bypassTests){ ut = HIGHER_ORDER; }
 
-        if(tsss.sameTermContent(tstt) && containsPlaceHolderSubterm(tstt)){
-          //as termspecs have same contents, dont need to check both
-          fo =false;
-        }
-
-        if (!tsss.sameTermContent(tstt) && TermList::sameTopFunctor(*ss,*tt) && !bypassTests) {
+        if (!tsss.sameTermContent(tstt, _doPlaceHolderChecks) && 
+             TermList::sameTopFunctor(*ss,*tt) && !bypassTests) {
           ASS(ss->isTerm() && tt->isTerm());
 
           Term* s = ss->term();
@@ -489,10 +485,10 @@ bool RobSubstitution::unify(TermSpec t1, TermSpec t2, bool& fo)
 /**
  * Returns true if the termspec t1 is wrapping a placeholder term
  */
-bool RobSubstitution::isPlaceHolderTerm(TermSpec ts){
+bool RobSubstitution::isPlaceHolderTerm(const TermSpec& ts){
   CALL("RobSubstitution::isPlaceHolderTerm");
   
-  if(ts.isVar()){
+  if(ts.term.isVar()){
     return false;
   }
   TermList tl = ts.term;
@@ -501,12 +497,17 @@ bool RobSubstitution::isPlaceHolderTerm(TermSpec ts){
   return sym->isPlaceHolder() ? true : false; 
 }
 
-bool RobSubstitution::containsPlaceHolderSubterm(TermSpec ts){
+bool RobSubstitution::containsPlaceHolderSubterm(const TermSpec& ts){
   CALL("RobSubstitution::containsPlaceHolderSubterm");
 
-  if(ts.isVar()){
+  if(ts.term.isVar()){
     return false;
   }
+  //required because SubtermIterator only checks proper subterms
+  if(isPlaceHolderTerm(ts)){
+    return true;
+  }
+
   TermList tl = ts.term;
   ASS(tl.isTerm());
   SubtermIterator stit(tl.term());

@@ -773,27 +773,27 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
       break;
 	  }
 	  case Term::SF_APP: {
-		TermList lhs = term->getSpecialData()->getAppLhs();
-        TermList rhs = *term->nthArgument(0);
-         
-        if(!lhs.isVar()){ //What about if it is HOL constant?
-             lhs = process(lhs.term());
-        }
-        if(!rhs.isVar()){
-             rhs = process(rhs.term());
-        }
-         
-        unsigned lhsSort = SortHelper::getResultSort(lhs, _varSorts);
-        unsigned rhsSort = SortHelper::getResultSort(rhs, _varSorts);
-        unsigned appSort = term->getSpecialData()->getSort();
-        unsigned app = LambdaElimination::introduceAppSymbol(lhsSort, rhsSort, appSort);
-         
-        LambdaElimination::buildFuncApp(app, lhs, rhs, termResult);
+      TermList lhs = term->getSpecialData()->getAppLhs();
+      TermList rhs = *term->nthArgument(0);
+       
+      if(!lhs.isVar()){ //What about if it is HOL constant?
+           lhs = process(lhs.term());
+      }
+      if(!rhs.isVar()){
+           rhs = process(rhs.term());
+      }
+       
+      unsigned lhsSort = SortHelper::getResultSort(lhs, _varSorts);
+      unsigned rhsSort = SortHelper::getResultSort(rhs, _varSorts);
+      unsigned appSort = term->getSpecialData()->getSort();
+      unsigned app = LambdaElimination::introduceAppSymbol(lhsSort, rhsSort, appSort);
+       
+      LambdaElimination::buildFuncApp(app, lhs, rhs, termResult);
 		 
-		if (context == FORMULA_CONTEXT) {
-		   formulaResult = toEquality(termResult);         	
-        }
-        break;
+		  if (context == FORMULA_CONTEXT) {
+		    formulaResult = toEquality(termResult);         	
+      }
+      break;
 		 
 	  }
 #if VDEBUG

@@ -40,6 +40,8 @@ public:
 
   TermQueryResultIterator getUnifications(TermList t,
 	  bool retrieveSubstitutions = true);
+  TermQueryResultIterator getUnificationsUsingSorts(TermList t, unsigned sort,
+    bool retrieveSubstitutions = true);
   TermQueryResultIterator getUnificationsWithConstraints(TermList t,
           bool retrieveSubstitutions = true);
   TermQueryResultIterator getGeneralizations(TermList t,

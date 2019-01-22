@@ -381,6 +381,11 @@ protected:
       out << ", " << extra;
     }
     out << "]" << endl;
+    vstring subst = cs->inference()->substStr();
+    if(subst != ""){
+      out << "\nSubstitution: \n" << subst << "\n";
+    }
+    
   }
 
   void handleStep(Unit* cs)

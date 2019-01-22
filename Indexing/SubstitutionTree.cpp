@@ -61,8 +61,8 @@ using namespace Indexing;
  * Initialise the substitution tree.
  * @since 16/08/2008 flight Sydney-San Francisco
  */
-SubstitutionTree::SubstitutionTree(int nodes,bool useC)
-  : tag(false), _nextVar(0), _nodes(nodes), _useC(useC)
+SubstitutionTree::SubstitutionTree(int nodes,bool useC,bool usePHs)
+  : tag(false), _nextVar(0), _nodes(nodes), _useC(useC), _usePHs(usePHs)
 {
   CALL("SubstitutionTree::SubstitutionTree");
 
@@ -549,6 +549,7 @@ vstring SubstitutionTree::nodeToString(Node* topNode)
   vstring res;
   Stack<int> indentStack(10);
   Stack<Node*> stack(10);
+  Stack<int> childVars(10);
 
   stack.push(topNode);
   indentStack.push(1);
@@ -556,32 +557,37 @@ vstring SubstitutionTree::nodeToString(Node* topNode)
   while(stack.isNonEmpty()) {
     Node* node=stack.pop();
     int indent=indentStack.pop();
+    int childVar;
+    if(!childVars.isEmpty()){
+      childVar=childVars.pop();
+    }
 
     if(!node) {
-	continue;
+      continue;
     }
     if(!node->term.isEmpty()) {
+      res+=getIndentStr(indent-1) + " S" + Int::toString(childVar)+":\n";
       res+=getIndentStr(indent)+node->term.toString()+"  "+
 	  Int::toHexString(reinterpret_cast<size_t>(node))+"\n";
     }
 
     if(node->isLeaf()) {
-	Leaf* lnode = static_cast<Leaf*>(node);
-	LDIterator ldi(lnode->allChildren());
+      Leaf* lnode = static_cast<Leaf*>(node);
+      LDIterator ldi(lnode->allChildren());
 
-	while(ldi.hasNext()) {
-	  LeafData ld=ldi.next();
-	  res+=getIndentStr(indent) + "Lit: " + ld.literal->toString() + "\n";
-	  res+=ld.clause->toString()+"\n";
-	}
+      while(ldi.hasNext()) {
+        LeafData ld=ldi.next();
+        res+=getIndentStr(indent) + "Lit: " + ld.literal->toString() + "\n";
+        res+=ld.clause->toString()+"\n";
+      }
     } else {
-	IntermediateNode* inode = static_cast<IntermediateNode*>(node);
-	res+=getIndentStr(indent) + " S" + Int::toString(inode->childVar)+":\n";
-	NodeIterator noi(inode->allChildren());
-	while(noi.hasNext()) {
-	  stack.push(*noi.next());
-	  indentStack.push(indent+1);
-	}
+      IntermediateNode* inode = static_cast<IntermediateNode*>(node);
+      NodeIterator noi(inode->allChildren());
+      while(noi.hasNext()) {
+        stack.push(*noi.next());
+        indentStack.push(indent+1);
+        childVars.push(inode->childVar);
+      }
     }
   }
   return res;
@@ -690,12 +696,13 @@ bool SubstitutionTree::LeafIterator::hasNext()
 }
 
 SubstitutionTree::UnificationsIterator::UnificationsIterator(SubstitutionTree* parent,
-	Node* root, Term* query, bool retrieveSubstitution, bool reversed, bool withoutTop, bool useC)
+	Node* root, Term* query, bool retrieveSubstitution, bool reversed, bool withoutTop, bool useC,Term* phFreeQuery)
 : tag(parent->tag), 
 svStack(32), literalRetrieval(query->isLiteral()),
   retrieveSubstitution(retrieveSubstitution), inLeaf(false),
 ldIterator(LDIterator::getEmpty()), nodeIterators(8), bdStack(8),
-clientBDRecording(false), tree(parent), useConstraints(useC)
+clientBDRecording(false), placeHolderFreeQueryTerm(TermList(phFreeQuery)), tree(parent),
+useConstraints(useC), usePlaceholders(parent->_usePHs)
 {
   CALL("SubstitutionTree::UnificationsIterator::UnificationsIterator");
 
@@ -713,6 +720,10 @@ clientBDRecording(false), tree(parent), useConstraints(useC)
     return;
   }
 
+  if(usePlaceholders){
+    subst.doPlaceHolderChecks();
+  }
+
   queryNormalizer.normalizeVariables(query);
   Term* queryNorm=queryNormalizer.apply(query);
 
@@ -727,7 +738,10 @@ clientBDRecording(false), tree(parent), useConstraints(useC)
   }
 #if VDEBUG
   if(tag){
-    cout << "Starting iterator with "  << endl; cout << subst.toString() << endl;
+    //cout << "Starting iterator with "  << endl; cout << subst.toString() << endl;
+    //cout << "The functor is " << phFreeQuery->functor() << endl;
+    //cout << "the tree is: " << endl;
+    //cout << parent->toString() << endl; 
   }
 #endif
 
@@ -796,6 +810,8 @@ SubstitutionTree::QueryResult SubstitutionTree::UnificationsIterator::next()
 {
   CALL("SubstitutionTree::UnificationsIterator::next");
 
+  //if a call to next() always happens after a call to 
+  //hasNext(), the while loop below should never be triggered.
   while(!ldIterator.hasNext() && findNextLeaf()) {}
   ASS(ldIterator.hasNext());
 
@@ -803,36 +819,38 @@ SubstitutionTree::QueryResult SubstitutionTree::UnificationsIterator::next()
 
   LeafData& ld=ldIterator.next();
 
-  bool retSub;
+  bool retSub, newSub;
 
-  if(env.options->combinatoryUnification()){
-    retSub = retrieveSubstitution && fo(nodeEntrances); 
+  if(usePlaceholders){
+    unsigned ut = fo(nodeEntrances);
+    retSub = retrieveSubstitution && (ut == FIRST_ORDER);
+    newSub = retrieveSubstitution && (ut == HIGHER_ORDER_UNDER_VAR); 
   } else {
     retSub = retrieveSubstitution;
+    newSub = false;
   }
 
-  if(retSub) {
+  if(newSub){
+    second_subst.reset();
+    bool unify = second_subst.unify(placeHolderFreeQueryTerm, QUERY_BANK, ld.term, RESULT_BANK);
+
+    second_subst.mark(unify);
+
+    return QueryResult(make_pair(&ld, ResultSubstitution::fromSubstitution(
+        &second_subst, QUERY_BANK, RESULT_BANK)), UnificationConstraintStackSP()); 
+  }else if(retSub) {
     Renaming normalizer;
     if(literalRetrieval) {
       normalizer.normalizeVariables(ld.literal);
     } else {
       normalizer.normalizeVariables(ld.term);
     }
-/*
-    Stack<UnificationConstraint> normalizedConstraints;
-    Stack<UnificationConstraint>::Iterator conit(constraints);
-    while(conit.hasNext()){
-      auto constraint = conit.next();
-      TermList normNode = subst.apply(constraint.second,NORM_RESULT_BANK);
-      normalizedConstraints.push(make_pair(constraint.first,normNode));
-    }
-*/
+
     //cout << "normalizer: " << endl; cout << normalizer.toString() << endl;
     //cout << "SUB:" << endl; cout << subst.toString() << endl;
 
-    ASS(clientBacktrackData.isEmpty());
+    clientBDRecording = true;
     subst.bdRecord(clientBacktrackData);
-    clientBDRecording=true;
 
     subst.denormalize(normalizer,NORM_RESULT_BANK,RESULT_BANK);
     subst.denormalize(queryNormalizer,NORM_QUERY_BANK,QUERY_BANK);
@@ -840,6 +858,7 @@ SubstitutionTree::QueryResult SubstitutionTree::UnificationsIterator::next()
     return QueryResult(make_pair(&ld, ResultSubstitution::fromSubstitution(
 	    &subst, QUERY_BANK, RESULT_BANK)),
             UnificationConstraintStackSP(new Stack<UnificationConstraint>(constraints))); 
+
   } else {
     return QueryResult(make_pair(&ld, ResultSubstitutionSP()),UnificationConstraintStackSP());
   }
@@ -910,7 +929,7 @@ bool SubstitutionTree::UnificationsIterator::enter(Node* n, BacktrackData& bd)
   } 
 #endif
 
-  bool foAssoc=true;
+  unsigned ut=FIRST_ORDER;
   bool success=true;
   bool recording=false;
   if(!n->term.isEmpty()) {
@@ -920,11 +939,11 @@ bool SubstitutionTree::UnificationsIterator::enter(Node* n, BacktrackData& bd)
 
     recording=true;
     subst.bdRecord(bd);
-    success=associate(qt,n->term,bd,foAssoc);
+    success=associate(qt,n->term,bd,ut);
   }
   if(success) {
     if(n->isLeaf()) {
-      nodeEntrances.backtrackablePush(foAssoc, bd);
+      nodeEntrances.backtrackablePush(ut, bd);
       ldIterator=static_cast<Leaf*>(n)->allChildren();
       inLeaf=true;
     } else {
@@ -937,8 +956,8 @@ bool SubstitutionTree::UnificationsIterator::enter(Node* n, BacktrackData& bd)
         nodeIterators.backtrackablePush(enit,bd);
       }
       else{
-        //if not using combUnif foAssoc will always be true
-        nodeEntrances.backtrackablePush(foAssoc, bd);
+        //if not using combUnif ut will always be FIRST_ORDER
+        nodeEntrances.backtrackablePush(ut, bd);
         nodeIterators.backtrackablePush(nit, bd);
       }
     }
@@ -949,11 +968,11 @@ bool SubstitutionTree::UnificationsIterator::enter(Node* n, BacktrackData& bd)
   return success;
 }
 
-bool SubstitutionTree::UnificationsIterator::associate(TermList query, TermList node, BacktrackData& bd, bool& foAssoc)
+bool SubstitutionTree::UnificationsIterator::associate(TermList query, TermList node, BacktrackData& bd, unsigned& ut)
 {
   CALL("SubstitutionTree::UnificationsIterator::associate");
 
-  bool result = subst.unify(query,NORM_QUERY_BANK,node,NORM_RESULT_BANK,foAssoc);
+  bool result = subst.unify(query,NORM_QUERY_BANK,node,NORM_RESULT_BANK,ut);
 
 #if VDEBUG
   if(tag && result){
@@ -1016,6 +1035,7 @@ bool SubstitutionTree::UnificationsIterator::associate(TermList query, TermList 
   return result;
 }
 
+
 SubstitutionTree::NodeIterator
   SubstitutionTree::UnificationsIterator::getNodeIterator(IntermediateNode* n)
 {
@@ -1028,7 +1048,7 @@ SubstitutionTree::NodeIterator
   } else {
     Node** match=n->childByTop(qt, false);
     
-    if(env.options->combinatoryUnification()){
+    if(usePlaceholders){
       Node** placeholder=n->placeHolderChild();
       auto it2 = n->variableChildren();
       if(match && placeholder){

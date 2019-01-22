@@ -38,6 +38,8 @@ public:
 
   virtual TermQueryResultIterator getUnifications(TermList t,
 	  bool retrieveSubstitutions = true) { NOT_IMPLEMENTED; }
+  virtual TermQueryResultIterator getUnificationsUsingSorts(TermList t, unsigned sort,
+    bool retrieveSubstitutions = true) { NOT_IMPLEMENTED; }
   virtual TermQueryResultIterator getUnificationsWithConstraints(TermList t,
           bool retrieveSubstitutions = true) { NOT_IMPLEMENTED; }
   virtual TermQueryResultIterator getGeneralizations(TermList t,

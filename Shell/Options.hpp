@@ -1459,9 +1459,11 @@ private:
         CLASS_NAME(NotEqual);
         USE_ALLOCATOR(NotEqual);
         NotEqual(T bv) : _badvalue(bv) {}
+        
         bool check(OptionValue<T>* value){
             return value->actualValue != _badvalue;
         }
+
         vstring msg(OptionValue<T>* value){ return value->longName+"("+value->getStringOfActual()+") is not equal to " + value->getStringOfValue(_badvalue); }
         T _badvalue;
     };
@@ -1469,7 +1471,7 @@ private:
     static OptionValueConstraint<T>* notEqual(T bv){
         return new NotEqual<T>(bv);
     }
-    
+
     // Constraint that the value should be less than a given value
     // optionally we can allow it be equal to that value also
     template<typename T>
@@ -1539,18 +1541,20 @@ private:
         
         IfThenConstraint(OptionValueConstraint<T>* ic, OptionValueConstraint<T>* c) :
         if_con(ic), then_con(c) {}
-        
+
         bool check(OptionValue<T>* value){
             ASS(then_con);
             return !if_con->check(value) || then_con->check(value);
         }
-        
+
         vstring msg(OptionValue<T>* value){
             return "if "+if_con->msg(value)+" then "+ then_con->msg(value);
         }
         
         OptionValueConstraint<T>* if_con;
         OptionValueConstraint<T>* then_con;
+        bool _forceFirst;
+        bool _forceSecond;
     };
     
     template<typename T>

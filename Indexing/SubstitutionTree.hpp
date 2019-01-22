@@ -85,7 +85,7 @@ public:
   CLASS_NAME(SubstitutionTree);
   USE_ALLOCATOR(SubstitutionTree);
 
-  SubstitutionTree(int nodes,bool useC=false);
+  SubstitutionTree(int nodes,bool useC=false, bool usePHs=false);
   ~SubstitutionTree();
 
   // Tags are used as a debug tool to turn debugging on for a particular instance
@@ -681,6 +681,7 @@ public:
   ZIArray<Node*> _nodes;
   /** enable searching with constraints for this tree */
   bool _useC;
+  bool _usePHs;
 
   static inline bool isPlaceHolder(Term* term){
     Signature::Symbol* sym = env.signature->getFunction(term->functor());
@@ -723,7 +724,7 @@ public:
   {
   public:
     FastGeneralizationsIterator(SubstitutionTree* parent, Node* root, Term* query,
-            bool retrieveSubstitution, bool reversed,bool withoutTop,bool useC);
+            bool retrieveSubstitution, bool reversed,bool withoutTop,bool useC,Term* phFreeQuery);
 
     ~FastGeneralizationsIterator();
 
@@ -769,7 +770,7 @@ public:
   {
   public:
     FastInstancesIterator(SubstitutionTree* parent, Node* root, Term* query,
-	    bool retrieveSubstitution, bool reversed, bool withoutTop, bool useC);
+	    bool retrieveSubstitution, bool reversed, bool withoutTop, bool useC,Term* phFreeQuery);
     ~FastInstancesIterator();
 
     bool hasNext();
@@ -803,15 +804,21 @@ public:
   : public IteratorCore<QueryResult>
   {
   public:
-    UnificationsIterator(SubstitutionTree* parent, Node* root, Term* query, bool retrieveSubstitution, bool reversed,bool withoutTop, bool useC);
+    UnificationsIterator(SubstitutionTree* parent, Node* root, Term* query, bool retrieveSubstitution, 
+                         bool reversed,bool withoutTop, bool useC,Term* phFreeQuery);
     ~UnificationsIterator();
 
     bool hasNext();
     QueryResult next();
     bool tag;
   protected:
-    virtual bool associate(TermList query, TermList node, BacktrackData& bd, bool& foAssoc);
+
+    virtual bool associate(TermList query, TermList node, BacktrackData& bd, unsigned& ut);
     virtual NodeIterator getNodeIterator(IntermediateNode* n);
+
+    static const unsigned FIRST_ORDER=0;
+    static const unsigned HIGHER_ORDER_UNDER_VAR=1;
+    static const unsigned HIGHER_ORDER=2;
 
     void createInitialBindings(Term* t);
     /**
@@ -822,10 +829,10 @@ public:
     bool findNextLeaf();
     bool enter(Node* n, BacktrackData& bd);
 
-    bool fo(const Stack<bool>& entrances){
-      bool res = true;
+    unsigned fo(const Stack<unsigned>& entrances){
+      unsigned res = FIRST_ORDER;
       for(unsigned i = 0; i < entrances.size(); i++){
-        res = res && entrances[i]; //minor efficiency gain to be made here by returning as soon as res becomes false
+        res = std::max(entrances[i], res); //minor efficiency gain to be made here by returning as soon as res becomes false
       }
       return res;
     }
@@ -836,6 +843,7 @@ public:
     static const int NORM_RESULT_BANK=3;
 
     SUBST_CLASS subst;
+    SUBST_CLASS second_subst;
     VarStack svStack;
 
   private:
@@ -843,14 +851,16 @@ public:
     bool retrieveSubstitution;
     bool inLeaf;
     LDIterator ldIterator;
-    Stack<bool> nodeEntrances;
+    Stack<unsigned> nodeEntrances;
     Stack<NodeIterator> nodeIterators;
     Stack<BacktrackData> bdStack;
     bool clientBDRecording;
     BacktrackData clientBacktrackData;
     Renaming queryNormalizer;
+    TermList placeHolderFreeQueryTerm;
     SubstitutionTree* tree;
     bool useConstraints;
+    bool usePlaceholders;
     Stack<UnificationConstraint> constraints;
   };
 
