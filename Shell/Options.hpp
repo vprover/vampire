@@ -1970,6 +1970,7 @@ public:
   int weightRatio() const { return _ageWeightRatio.otherValue; }
   void setWeightRatio(int v){ _ageWeightRatio.otherValue = v; }
   AgeWeightBlending ageWeightBlending() const { return _ageWeightBlending.actualValue; }
+  vstring ageMerlin() const { return _ageMerlin.actualValue; }
   bool literalMaximalityAftercheck() const { return _literalMaximalityAftercheck.actualValue; }
   bool superpositionFromVariables() const { return _superpositionFromVariables.actualValue; }
   EqualityProxy equalityProxy() const { return _equalityProxy.actualValue; }
@@ -2219,6 +2220,8 @@ private:
 
   RatioOptionValue _ageWeightRatio;
   ChoiceOptionValue<AgeWeightBlending> _ageWeightBlending;
+  StringOptionValue _ageMerlin;
+
   BoolOptionValue _literalMaximalityAftercheck;
   BoolOptionValue _arityCheck;
   

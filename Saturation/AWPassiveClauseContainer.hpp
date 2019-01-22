@@ -26,6 +26,7 @@
 #define __AWPassiveClauseContainer__
 
 #include "Lib/Comparison.hpp"
+#include "Lib/DArray.hpp"
 #include "Kernel/Clause.hpp"
 #include "Kernel/ClauseQueue.hpp"
 #include "ClauseContainer.hpp"
@@ -94,14 +95,22 @@ class AgeQueue
 : public ClauseQueue
 {
 public:
-  AgeQueue(const Options& opt) : _opt(opt) {}
-protected:
+  AgeQueue(const Options& opt) : _opt(opt) {
+    setAgeMerlinFromString(opt.ageMerlin());
+  }
 
+  void setAgeMerlinFromString(const vstring& s);
+
+  bool belowMerlin(Clause*);
+
+protected:
   virtual bool lessThan(Clause*,Clause*);
 
   friend class AWPassiveClauseContainer;
 
 private:
+  DArray<unsigned> _merlin;
+
   const Options& _opt;
 };
 
@@ -148,13 +157,13 @@ public:
 
   virtual unsigned size() const { return _size; }
 
+  void setAgeMerlinFromString(const vstring& s);
 
   static Comparison compareWeight(Clause* cl1, Clause* cl2, const Options& opt);
 protected:
   void onLimitsUpdated(LimitsChangeType change);
 
 private:
-
   /** The age queue, empty if _ageRatio=0 */
   AgeQueue _ageQueue;
   /** The weight queue, empty if _weightRatio=0 */

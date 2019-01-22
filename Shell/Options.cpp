@@ -852,6 +852,10 @@ void Options::Options::init()
     _lookup.insert(&_ageWeightBlending);
     _ageWeightBlending.setExperimental();
 
+    _ageMerlin = StringOptionValue("age_merlin","am","");
+    _lookup.insert(&_ageMerlin);
+    _ageMerlin.tag(OptionTag::SATURATION);
+
 	    _literalMaximalityAftercheck = BoolOptionValue("literal_maximality_aftercheck","lma",false);
 	    _lookup.insert(&_literalMaximalityAftercheck);
 	    _literalMaximalityAftercheck.tag(OptionTag::SATURATION);
