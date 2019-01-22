@@ -664,8 +664,9 @@ Clause* Superposition::performSuperposition(
 
     //cout << extra << endl;
     //NOT_IMPLEMENTED;
-
+#if VDEBUG
     inf->setSubstStr(subst->tryGetRobSubstitution()->toString(true));
+#endif    
     inf->setExtra(extra);
   }
   
@@ -931,7 +932,9 @@ Clause* Superposition::performParamodulation(
     //cout << extra << endl;
     //NOT_IMPLEMENTED;
 
+#if VDEBUG
     inf->setSubstStr(subst->tryGetCombSubstitution()->toString());
+#endif    
     inf->setExtra(extra);
   }
 
