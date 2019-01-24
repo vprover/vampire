@@ -23,6 +23,8 @@
 
 #if VZ3
 
+#define DPRINT 1
+
 #include "Forwards.hpp"
 
 #include "SATSolver.hpp"
@@ -95,7 +97,7 @@ void Z3Interfacing::addClause(SATClause* cl,bool withGuard)
     z3::expr e = getRepresentation(l,withGuard);
     z3clause = z3clause || e;
   }
-  
+
   if(_showZ3){
     env.beginOutput();
     env.out() << "[Z3] add (clause): " << z3clause << std::endl;
@@ -118,20 +120,24 @@ SATSolver::Status Z3Interfacing::solve(unsigned conflictCountLimit)
 
   z3::check_result result = _assumptions.empty() ? _solver.check() : _solver.check(_assumptions);
 
-  //cout << "solve result: " << result << endl;
+#if DPRINT
+  cout << "solve result: " << result << endl;
+#endif
 
   switch(result){
     case z3::check_result::unsat:
-      _status = UNSATISFIABLE; 
+      _status = UNSATISFIABLE;
       break;
     case z3::check_result::sat:
       _status = SATISFIABLE;
       _model = _solver.get_model();
-      //cout << "model : " << endl;
-      //for(unsigned i=0; i < _model.size(); i++){
-      //  z3::func_decl v = _model[i];
-      //  cout << v.name() << " = " << _model.get_const_interp(v) << endl;
-      //}
+#if DPRINT
+      cout << "model : " << endl;
+      for(unsigned i=0; i < _model.size(); i++){
+        z3::func_decl v = _model[i];
+        cout << v.name() << " = " << _model.get_const_interp(v) << endl;
+      }
+#endif
       break;
     case z3::check_result::unknown:
       _status = UNKNOWN;
@@ -234,15 +240,15 @@ Term* Z3Interfacing::evaluateInModel(Term* trm)
 
   unsigned srt = SortHelper::getResultSort(trm);
   bool name; //TODO what do we do about naming?
-  z3::expr rep = getz3expr(trm,false,name,false); 
+  z3::expr rep = getz3expr(trm,false,name,false);
   z3::expr assignment = _model.eval(rep,true); // true means "model_completion"
 
   // now translate assignment back into a term!
 
-  // For now just deal with the case where it is an integer 
+  // For now just deal with the case where it is an integer
   if(assignment.is_numeral()){
     bool is_int = assignment.is_int();
-    ASS(is_int || assignment.is_real()); 
+    ASS(is_int || assignment.is_real());
     if(is_int){
       ASS(srt == Sorts::SRT_INTEGER);
       int value;
@@ -258,11 +264,10 @@ Term* Z3Interfacing::evaluateInModel(Term* trm)
       int n;
       int d;
       z3::expr numerator = assignment.numerator();
-      z3::expr denominator = assignment.denominator(); 
+      z3::expr denominator = assignment.denominator();
       if(!numerator.is_numeral_i(n) || !denominator.is_numeral_i(d)){
           return 0;
       }
-       
        if(srt == Sorts::SRT_RATIONAL){
          Term* t = theory->representConstant(RationalConstantType(n,d));
          return t;
@@ -274,9 +279,19 @@ Term* Z3Interfacing::evaluateInModel(Term* trm)
        }
     }
   } else {
-    // TODO" assignment such as "(root-obj (+ (^ x 2) (- 128)) 1)" is an algebraic number, but not a numeral
-    // would be interesting to allow such Sorts::SRT_REAL things to live in vampire
-    // of course, they are not in general Sorts::SRT_RATIONAL
+    if (assignment.is_array()) {
+#if DPRINT
+    cerr << "evaluationg array assignment for " << rep << endl;
+    // TODO: implement
+#endif
+    } else {
+      // TODO" assignment such as "(root-obj (+ (^ x 2) (- 128)) 1)" is an algebraic number, but not a numeral
+      // would be interesting to allow such Sorts::SRT_REAL things to live in vampire
+      // of course, they are not in general Sorts::SRT_RATIONAL
+#if DPRINT
+    cerr << "no model evaluation for " << rep << endl;
+#endif
+    }
   }
 
   return 0;
@@ -285,9 +300,9 @@ Term* Z3Interfacing::evaluateInModel(Term* trm)
 bool Z3Interfacing::isZeroImplied(unsigned var)
 {
   CALL("Z3Interfacing::isZeroImplied");
-  
+
   // Safe. TODO consider getting zero-implied
-  return false; 
+  return false;
 }
 
 void Z3Interfacing::collectZeroImplied(SATLiteralStack& acc)
@@ -300,7 +315,7 @@ SATClause* Z3Interfacing::getZeroImpliedCertificate(unsigned)
 {
   CALL("Z3Interfacing::getZeroImpliedCertificate");
   NOT_IMPLEMENTED;
-  
+
   return 0;
 }
 
@@ -312,17 +327,15 @@ z3::sort Z3Interfacing::getz3sort(unsigned s)
   // Deal with known sorts differently
   if(s==Sorts::SRT_BOOL) return _context.bool_sort();
   if(s==Sorts::SRT_INTEGER) return _context.int_sort();
-  if(s==Sorts::SRT_REAL) return _context.real_sort(); 
+  if(s==Sorts::SRT_REAL) return _context.real_sort();
   if(s==Sorts::SRT_RATIONAL) return _context.real_sort(); // Drop notion of rationality 
 
   // Deal with arrays
   if(env.sorts->isOfStructuredSort(s,Sorts::StructuredSort::ARRAY)){
-    
     z3::sort index_sort = getz3sort(env.sorts->getArraySort(s)->getIndexSort());
     z3::sort value_sort = getz3sort(env.sorts->getArraySort(s)->getInnerSort());
- 
     return _context.array_sort(index_sort,value_sort);
-  } 
+  }
 
   // Use new interface for uninterpreted sorts, I think this is not less efficient
   return _context.uninterpreted_sort(Lib::Int::toString(s).c_str());
@@ -335,7 +348,7 @@ z3::sort Z3Interfacing::getz3sort(unsigned s)
   Z3_symbol sname = Z3_mk_string_symbol(_context.get(),Lib::Int::toString(s).c_str());
   Z3_sort sort = Z3_mk_uninterpreted_sort(_context.get(),sname);
   _sorts.insert(s,sort);
-  return z3::sort(_context,sort); 
+  return z3::sort(_context,sort);
 */
 }
 
@@ -352,9 +365,11 @@ z3::expr Z3Interfacing::getz3expr(Term* trm,bool isLit,bool&nameExpression,bool 
   ASS(trm);
   ASS(trm->ground());
 
-  //cout << "getz3expr of " << trm->toString() << endl;
+#if DPRINT
+  cout << "getz3expr of " << trm->toString() << endl;
+#endif
 
-    Signature::Symbol* symb; 
+    Signature::Symbol* symb;
     unsigned range_sort;
     OperatorType* type;
     bool is_equality = false;
@@ -432,17 +447,17 @@ z3::expr Z3Interfacing::getz3expr(Term* trm,bool isLit,bool&nameExpression,bool 
 
    //Check for equality
     if(is_equality){
-      ret = args[0] == args[1]; 
+      ret = args[0] == args[1];
       args.pop_back();args.pop_back();
       return ret;
     }
 
-    // Currently do not deal with all intepreted operations, should extend 
+    // Currently do not deal with all intepreted operations, should extend
     // - constants dealt with above
     // - unary funs/preds like is_rat interpretation unclear
     if(symb->interpreted()){
       Interpretation interp = static_cast<Signature::InterpretedSymbol*>(symb)->getInterpretation();
-      bool skip=false; 
+      bool skip=false;
       unsigned argsToPop=theory->getArity(interp);
 
       if(Theory::isPolymorphic(interp)){
@@ -707,7 +722,7 @@ z3::expr Z3Interfacing::getRepresentation(SATLiteral slit,bool withGuard)
       // TODO everything is being named!!
       bool nameExpression = true;
       z3::expr e = getz3expr(lit,true,nameExpression,withGuard);
-      //cout << "got rep " << e << endl;
+      cout << "got rep " << e << endl;
 
       if(nameExpression && _namedExpressions.insert(slit.var())) {
         z3::expr bname = getNameExpr(slit.var()); 

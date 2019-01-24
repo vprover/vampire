@@ -81,7 +81,19 @@ bool TheoryInstAndSimp::isSupportedSort(const unsigned sort) {
   case Kernel::Sorts::SRT_RATIONAL:
   case Kernel::Sorts::SRT_REAL:
     return true;
+  default:
+    if(env.sorts->isOfStructuredSort(sort,Sorts::StructuredSort::ARRAY)){
+      unsigned idx = env.sorts->getArraySort(sort)->getIndexSort();
+      unsigned inner = env.sorts->getArraySort(sort)->getInnerSort();
+      //at the moment, boolean arrays are excluded
+      bool r = isSupportedSort(idx) && isSupportedSort(inner);
+#if DPRINT
+      std::cerr << "considering array sort? " << r << std::endl;
+#endif
+      return r;
+    }
   }
+
   return false;
 }
 
