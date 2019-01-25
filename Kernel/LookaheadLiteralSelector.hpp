@@ -28,6 +28,8 @@
 
 #include "LiteralSelector.hpp"
 
+#include "Inferences/Superposition.hpp"
+
 namespace Kernel {
 
 class LookaheadLiteralSelector

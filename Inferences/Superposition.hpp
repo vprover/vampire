@@ -48,6 +48,59 @@ public:
 
   ClauseIterator generateClauses(Clause* premise);
 
+  struct CombResultIterator
+  { 
+     const int QUERY_BANK = 0;
+     const int RESULT_BANK = 1;
+     typedef pair<pair<Literal*, TermList>, TermQueryResult> QueryResType;
+     
+     CombResultIterator(QueryResType arg): _conflictingSorts(false), _arg(arg)
+     {  
+       //cout << "starting iterator from SUPERPOSITION" << endl;
+       TermList t1 = arg.first.second;
+       TermList t2 = arg.second.term;
+       unsigned t1s = SortHelper::getTermSort(t1, arg.first.first);
+       unsigned t2s = SortHelper::getTermSort(t2, arg.second.literal);
+
+  /*
+       cout << "Searching for unifiers:" << endl;
+       cout << "Lit1 " + arg.first.first->toString() << endl;
+       cout << "T1 " + t1.toString() << endl;
+       cout << "Clause2 " + arg.second.clause->toString() << endl;
+       cout << "Lit2 " + arg.second.literal->toString() << endl;
+       cout << "T2 " + t2.toString() + "\n" << endl;
+  */
+
+       if(t1s != t2s){
+         _conflictingSorts = true;
+       } else {
+         _csIt = vi(new CombSubstIterator(t1, t1s, QUERY_BANK, t2, t2s, RESULT_BANK)); 
+       }
+     }
+
+     DECL_ELEMENT_TYPE(QueryResType);
+     
+     bool hasNext(){
+       CALL("Superposition::CombResultIterator::hasNext");
+       if(_conflictingSorts){
+        return false;
+       }
+       return _csIt.hasNext();
+     }
+     
+     OWN_ELEMENT_TYPE next(){
+       CALL("Superposition::CombResultIterator::next");
+       CombSubstitution* cs = _csIt.next();
+       ResultSubstitutionSP s = ResultSubstitution::fromSubstitution(cs, QUERY_BANK, RESULT_BANK);
+       _arg.second.substitution = s;
+       return _arg;
+     }
+     
+  private:
+     bool _conflictingSorts;
+     QueryResType _arg;  
+     VirtualIterator<CombSubstitution*> _csIt;
+  };
 
 private:
   Clause* performSuperposition(
@@ -85,7 +138,6 @@ private:
   struct RewritableResultsFn;
   struct BackwardResultFn;
 
-  struct CombResultIterator;
   struct ApplicableCombRewritesFn;
   
   SuperpositionSubtermIndex* _subtermIndex;

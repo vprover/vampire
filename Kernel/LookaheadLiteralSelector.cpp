@@ -37,6 +37,9 @@
 #include "Matcher.hpp"
 #include "Ordering.hpp"
 #include "RobSubstitution.hpp"
+#include "SortHelper.hpp"
+
+#include "Inferences/Superposition.hpp"
 
 #include "LookaheadLiteralSelector.hpp"
 
@@ -70,10 +73,10 @@ struct LookaheadLiteralSelector::GenIteratorIterator
     if(!salg) {
       static bool errAnnounced = false;
       if(!errAnnounced) {
-	errAnnounced = true;
-	env.beginOutput();
-	env.out()<<"Using LookaheadLiteralSelector without having an SaturationAlgorithm object\n";
-	env.endOutput();
+        errAnnounced = true;
+        env.beginOutput();
+        env.out()<<"Using LookaheadLiteralSelector without having an SaturationAlgorithm object\n";
+        env.endOutput();
       }
       //we are too early, there's no saturation algorithm and therefore no generating inferences
       prepared=false;
@@ -98,9 +101,15 @@ struct LookaheadLiteralSelector::GenIteratorIterator
       TermIndex* bsi=static_cast<TermIndex*>(imgr->get(SUPERPOSITION_SUBTERM_SUBST_TREE));
       ASS(bsi);
 
-      nextIt=pvi( getMapAndFlattenIterator(
-	       EqHelper::getLHSIterator(lit, _parent._ord),
-	       TermUnificationRetriever(bsi)) );
+      if(env.options->combinatoryUnification()){
+        nextIt=pvi( getMapAndFlattenIterator(
+          EqHelper::getRewritableSubtermIterator(lit, _parent._ord),
+          CombTermUnificationRetriever(bsi,lit)) );
+      } else {
+        nextIt=pvi( getMapAndFlattenIterator(
+	        EqHelper::getLHSIterator(lit, _parent._ord),
+	        TermUnificationRetriever(bsi)) );
+      }
       break;
     }
     case 2:  //forward superposition
@@ -109,24 +118,30 @@ struct LookaheadLiteralSelector::GenIteratorIterator
       TermIndex* fsi=static_cast<TermIndex*>(imgr->get(SUPERPOSITION_LHS_SUBST_TREE));
       ASS(fsi);
 
-      nextIt=pvi( getMapAndFlattenIterator(
-	       EqHelper::getRewritableSubtermIterator(lit, _parent._ord),
-	       TermUnificationRetriever(fsi)) );
+      if(env.options->combinatoryUnification()){
+        nextIt=pvi( getMapAndFlattenIterator(
+          EqHelper::getRewritableSubtermIterator(lit, _parent._ord),
+          CombTermUnificationRetriever(fsi,lit)) );
+      } else {
+        nextIt=pvi( getMapAndFlattenIterator(
+	        EqHelper::getRewritableSubtermIterator(lit, _parent._ord),
+	        TermUnificationRetriever(fsi)) );
+      }
       break;
     }
     case 3:  //equality resolution
     {
       bool haveEqRes=false;
       if(lit->isNegative() && lit->isEquality()) {
-	RobSubstitution rs;
-	if(rs.unify(*lit->nthArgument(0), 0, *lit->nthArgument(1), 0)) {
-	  haveEqRes=true;
-	  nextIt=pvi( getStaticCastIterator<void>(getSingletonIterator(0)) );
-	}
+        RobSubstitution rs;
+        if(rs.unify(*lit->nthArgument(0), 0, *lit->nthArgument(1), 0)) {
+          haveEqRes=true;
+          nextIt=pvi( getStaticCastIterator<void>(getSingletonIterator(0)) );
+        }
       }
       if(!haveEqRes) {
-	stage++;
-	goto start;
+        stage++;
+        goto start;
       }
       break;
     }
@@ -165,6 +180,98 @@ private:
     }
   private:
     TermIndex* _index;
+  };
+
+  struct CombTermUnificationRetriever
+  {
+    CombTermUnificationRetriever(TermIndex* index, Literal* lit) : _index(index), _lit(lit) {}
+    DECL_RETURN_TYPE(VirtualIterator<void>);
+    OWN_RETURN_TYPE operator()(TermList trm)
+    {
+      //would be nice to somehow add a penalty for combinaotry unifications, as these could well 
+      //result in extra inferences. At the moment, they are treated as a single inference
+      unsigned sort = SortHelper::getTermSort(trm, _lit);
+      auto it = getFilteredIterator(_index->getUnificationsUsingSorts(trm, sort, true), ActualInf() );
+      if(env.options->combSelectVal() == Options::CombinatoryLookaheadSelectionVal::ONE){
+        return pvi( getStaticCastIterator<void>(it));
+      } else {
+        return pvi( getStaticCastIterator<void>(getMapAndFlattenIterator(it, CombUnifRetriever(_lit, trm))));
+      } 
+    }
+  private:
+    TermIndex* _index;
+    Literal* _lit;
+  };
+
+  struct CombUnifRetriever
+  {
+    CombUnifRetriever(Literal* lit, TermList tm) : _lit(lit), _term(tm) {}
+    
+    typedef pair<Literal*, TermList> Left;
+    typedef pair<Left, TermQueryResult> QueryResType;
+
+    DECL_RETURN_TYPE(VirtualIterator<TermQueryResult>);
+    OWN_RETURN_TYPE operator() (TermQueryResult arg){
+      ResultSubstitutionSP rs = arg.substitution;
+      //subsitution is a smartPtr to a ResultSubstituion object. 
+      if(!rs.isEmpty()){
+        return pvi(getSingletonIterator(arg));
+      } else {
+        if(env.options->combSelectVal() == Options::CombinatoryLookaheadSelectionVal::ACTUAL){
+          QueryResType arg2 = QueryResType(Left(_lit, _term), arg);
+          return pvi(getMappingIterator(Superposition::CombResultIterator(arg2), GetSecond() ) );
+        } else {
+          return pvi(MultiplicativeIt(arg, (unsigned)env.options->combSelectVal()));
+        }
+      }
+    } 
+  private:
+    Literal* _lit;
+    TermList _term;
+  };
+
+  struct GetSecond{
+    typedef pair<pair<Literal*, TermList>, TermQueryResult> QueryResType;
+    DECL_RETURN_TYPE(TermQueryResult);
+    OWN_RETURN_TYPE operator()(QueryResType s){ return s.second; }
+  };
+
+  struct MultiplicativeIt
+  { 
+     MultiplicativeIt(TermQueryResult arg, unsigned multiplier): 
+     _arg(arg), _multiplier(multiplier), _returned(0){}
+
+     DECL_ELEMENT_TYPE(TermQueryResult);
+     
+     bool hasNext(){
+       return _returned < _multiplier;
+     }
+     
+     OWN_ELEMENT_TYPE next(){
+       CALL("Superposition::CombResultIterator::next");
+       _returned++;
+       return _arg;
+     }
+     
+  private:
+    TermQueryResult _arg;  
+    unsigned _multiplier;
+    unsigned _returned;
+  };
+
+
+  struct ActualInf
+  {
+      ActualInf() {};
+      DECL_RETURN_TYPE(bool);
+      OWN_RETURN_TYPE operator()(TermQueryResult tqr){
+        if(tqr.substitution.isEmpty()){
+          return true;   
+        } else if(tqr.substitution->tryGetRobSubstitution()->getMark()){
+          return true;
+        }
+        return false;
+      }
   };
 
   int stage;
@@ -208,10 +315,10 @@ Literal* LookaheadLiteralSelector::pickTheBest(Literal** lits, unsigned cnt)
   do {
     for(unsigned i=0;i<cnt;i++) {
       if(runifs[i].hasNext()) {
-	runifs[i].next();
+        runifs[i].next();
       }
       else {
-	candidates.push(lits[i]);
+        candidates.push(lits[i]);
       }
     }
   } while(candidates.isEmpty());
@@ -228,7 +335,7 @@ Literal* LookaheadLiteralSelector::pickTheBest(Literal** lits, unsigned cnt)
     while(candidates.isNonEmpty()) {
       Literal* lit=candidates.pop();
       if(comp.compare(res, lit)==LESS) {
-	res=lit;
+        res=lit;
       }
     }
   }
@@ -251,9 +358,9 @@ void LookaheadLiteralSelector::removeVariants(LiteralStack& lits)
   for(size_t i=0;i<cnt-1;i++) {
     for(size_t j=i+1;j<cnt;j++) {
       if(MatchingUtils::isVariant(lits[i], lits[j], false)) {
-	cnt--;
-	swap(lits[j], lits[cnt]);
-	lits.pop();
+        cnt--;
+        swap(lits[j], lits[cnt]);
+        lits.pop();
       }
     }
   }

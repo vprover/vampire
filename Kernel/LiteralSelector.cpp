@@ -134,9 +134,9 @@ LiteralSelector* LiteralSelector::getSelector(const Ordering& ordering, const Op
 
   // Hack to circumvent the fact that look-ahead literal selection strategies
   // Are not worthwhile when using expensive urification such as combinatory unif
-  if(env.options->combinatoryUnification() && ((absNum == 11) || (absNum == 11))){
+  /*if(env.options->combinatoryUnification() && ((absNum == 1011) || (absNum == 11))){
     absNum = absNum - 1;
-  }
+  }*/
 
 
   LiteralSelector* res;

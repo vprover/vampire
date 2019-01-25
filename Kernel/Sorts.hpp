@@ -171,27 +171,27 @@ public:
        : StructuredSortInfo(name,StructuredSort::HIGHER_ORD_CONST, id),  
          _instantiableSort(false), _domainSort(domainSort), _rangeSort(rangeSort){
 
-           unsigned orderDom, orderRange;
-           if(env.sorts->isStructuredSort(domainSort)){
-             orderDom = env.sorts->getFuncSort(domainSort)->order();
-           } else {
-             orderDom = 0;
-           }
-           
-           if(env.sorts->isStructuredSort(rangeSort)){
-             orderRange = env.sorts->getFuncSort(rangeSort)->order();
-           } else {
-             orderRange = 0;
-           }
-           
-           _arity = orderRange + 1;
-           if(orderRange > orderDom){
-             _order = orderRange;
-           } else {
-             _order = orderDom + 1;
-           }
-            
-         }
+       unsigned orderDom, orderRange;
+       if(env.sorts->isStructuredSort(domainSort)){
+         orderDom = env.sorts->getFuncSort(domainSort)->order();
+       } else {
+         orderDom = 0;
+       }
+       
+       if(env.sorts->isStructuredSort(rangeSort)){
+         orderRange = env.sorts->getFuncSort(rangeSort)->order();
+       } else {
+         orderRange = 0;
+       }
+       
+       _arity = orderRange + 1;
+       if(orderRange > orderDom){
+         _order = orderRange;
+       } else {
+         _order = orderDom + 1;
+       }
+        
+     }
          
      unsigned getDomainSort(){ return _domainSort; }    
      unsigned getRangeSort(){ return _rangeSort; }

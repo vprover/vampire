@@ -146,61 +146,6 @@ private:
   bool _withC;
 };
 
-struct Superposition::CombResultIterator
-{ 
-   const int QUERY_BANK = 0;
-   const int RESULT_BANK = 1;
-   typedef pair<pair<Literal*, TermList>, TermQueryResult> QueryResType;
-   
-   CombResultIterator(QueryResType arg): _conflictingSorts(false), _arg(arg)
-   {  
-     //cout << "starting iterator from SUPERPOSITION" << endl;
-     TermList t1 = arg.first.second;
-     TermList t2 = arg.second.term;
-     unsigned t1s = SortHelper::getTermSort(t1, arg.first.first);
-     unsigned t2s = SortHelper::getTermSort(t2, arg.second.literal);
-
-/*
-     cout << "Searching for unifiers:" << endl;
-     cout << "Lit1 " + arg.first.first->toString() << endl;
-     cout << "T1 " + t1.toString() << endl;
-     cout << "Clause2 " + arg.second.clause->toString() << endl;
-     cout << "Lit2 " + arg.second.literal->toString() << endl;
-     cout << "T2 " + t2.toString() + "\n" << endl;
-*/
-
-     if(t1s != t2s){
-       _conflictingSorts = true;
-     } else {
-       _csIt = vi(new CombSubstIterator(t1, t1s, QUERY_BANK, t2, t2s, RESULT_BANK)); 
-     }
-   }
-
-   DECL_ELEMENT_TYPE(QueryResType);
-   
-   bool hasNext(){
-     CALL("Superposition::CombResultIterator::hasNext");
-     if(_conflictingSorts){
-      return false;
-     }
-     return _csIt.hasNext();
-   }
-   
-   OWN_ELEMENT_TYPE next(){
-     CALL("Superposition::CombResultIterator::next");
-     CombSubstitution* cs = _csIt.next();
-     ResultSubstitutionSP s = ResultSubstitution::fromSubstitution(cs, QUERY_BANK, RESULT_BANK);
-     _arg.second.substitution = s;
-     return _arg;
-   }
-   
-private:
-   bool _conflictingSorts;
-   QueryResType _arg;  
-   VirtualIterator<CombSubstitution*> _csIt;
-};
-
-
 struct Superposition::ApplicableCombRewritesFn
 {
   typedef pair<pair<Literal*, TermList>, TermQueryResult> QueryResType;
@@ -590,30 +535,32 @@ Clause* Superposition::performSuperposition(
   TermList rwTermS = subst->apply(rwTerm, !eqIsResult);
 
 #if VDEBUG
-  if(!hasConstraints && !env.options->combinatoryUnification()){
+  if(!hasConstraints){
     ASS_EQ(rwTermS,eqLHSS);
   }
 #endif
 
   //cout << "Check ordering on " << tgtTermS.toString() << " and " << rwTermS.toString() << endl;
 
-  //check that we're not rewriting smaller subterm with larger
-  if(Ordering::isGorGEorE(ordering.compare(tgtTermS,rwTermS))) {
-    return 0;
-  }
+  if(!env.options->combinatoryUnification()){
+    //check that we're not rewriting smaller subterm with larger
+    if(Ordering::isGorGEorE(ordering.compare(tgtTermS,rwTermS))) {
+      return 0;
+    }
 
-  if(rwLitS->isEquality()) {
-    //check that we're not rewriting only the smaller side of an equality
-    TermList arg0=*rwLitS->nthArgument(0);
-    TermList arg1=*rwLitS->nthArgument(1);
+    if(rwLitS->isEquality()) {
+      //check that we're not rewriting only the smaller side of an equality
+      TermList arg0=*rwLitS->nthArgument(0);
+      TermList arg1=*rwLitS->nthArgument(1);
 
-    if(!arg0.containsSubterm(rwTermS)) {
-      if(Ordering::isGorGEorE(ordering.getEqualityArgumentOrder(rwLitS))) {
-        return 0;
-      }
-    } else if(!arg1.containsSubterm(rwTermS)) {
-      if(Ordering::isGorGEorE(Ordering::reverse(ordering.getEqualityArgumentOrder(rwLitS)))) {
-        return 0;
+      if(!arg0.containsSubterm(rwTermS)) {
+        if(Ordering::isGorGEorE(ordering.getEqualityArgumentOrder(rwLitS))) {
+          return 0;
+        }
+      } else if(!arg1.containsSubterm(rwTermS)) {
+        if(Ordering::isGorGEorE(Ordering::reverse(ordering.getEqualityArgumentOrder(rwLitS)))) {
+          return 0;
+        }
       }
     }
   }
@@ -696,7 +643,7 @@ Clause* Superposition::performSuperposition(
       }
 
      
-      if (afterCheck) {
+      if (afterCheck && !env.options->combinatoryUnification()) {
         TimeCounter tc(TC_LITERAL_ORDER_AFTERCHECK);
         if (i < rwClause->numSelected() && ordering.compare(currAfter,rwLitS) == Ordering::GREATER) {
           env.statistics->inferencesBlockedForOrderingAftercheck++;
@@ -710,7 +657,7 @@ Clause* Superposition::performSuperposition(
 
   {
     Literal* eqLitS = 0;
-    if (afterCheck && eqClause->numSelected() > 1) {
+    if (afterCheck && !env.options->combinatoryUnification() && eqClause->numSelected() > 1) {
       TimeCounter tc(TC_LITERAL_ORDER_AFTERCHECK);
       eqLitS = Literal::createEquality(true,eqLHSS,tgtTermS,sort);
     }
@@ -732,7 +679,7 @@ Clause* Superposition::performSuperposition(
           }
         }
          
-        if (eqLitS && i < eqClause->numSelected()) {
+        if (!env.options->combinatoryUnification() && eqLitS && i < eqClause->numSelected()) {
           TimeCounter tc(TC_LITERAL_ORDER_AFTERCHECK);
 
           Ordering::Result o = ordering.compare(currAfter,eqLitS);

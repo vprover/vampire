@@ -1060,6 +1060,17 @@ void Options::Options::init()
       _lookup.insert(&_alwaysUseProxies);
       _alwaysUseProxies.tag(OptionTag::OTHER);
 
+
+      _combSelectVal = ChoiceOptionValue<CombinatoryLookaheadSelectionVal>
+                       ("comb_select_val", "csl", CombinatoryLookaheadSelectionVal::ONE,
+                        {"1","2","3","4","5","actual"}); 
+      _combSelectVal.description=
+      "When using look ahead selection along with combinatory unification, this option controls how superposition\n"
+      "inferences are counted where the superposed term and the eqLHS can be unified using comb unification. If value\n"
+      "is set to actual, then combinatory unification is carried out to find out the actual number of inferences possible"; 
+      _lookup.insert(&_combSelectVal);
+      _combSelectVal.tag(OptionTag::OTHER);                
+     
       _combinatorElimination = ChoiceOptionValue<CombElimination>("combinator_elimination","combelim",
                                                                    CombElimination::AXIOMS,
                                                                    {"axioms","inference_rules","both"});
@@ -1089,7 +1100,7 @@ void Options::Options::init()
                                                           {"off","order","sort"});
       _combinatorAdditionBy.description=
       "When adding combinators heuristically, combinators.\n"
-      "Whose sort has order greater than some in-built value\n"  
+      "whose sort has order greater than some in-built value\n"  
       "can be disgarded. Likewise if the combinator sort contains"
       "more than a pre-specified number of basic sorts.\n";       
       _lookup.insert(&_combinatorAdditionBy);

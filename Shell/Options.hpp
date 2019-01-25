@@ -369,6 +369,23 @@ public:
   };
   
   /**
+    * When using lookahead selection in conjunction 
+    * with combinatory unifiers, either combinatory 
+    * unification can be carried out as part of the 
+    * selection process, or a penalty can be attached 
+    * to each pair of terms that could possibly be unified
+    * using comb unif. 
+    */
+  enum class CombinatoryLookaheadSelectionVal : unsigned int {
+     ONE = 0,
+     TWO = 1,
+     THREE = 2,
+     FOUR = 3,
+     FIVE = 4,
+     ACTUAL = 5
+  };
+
+  /**
    *
    *
    */
@@ -1976,6 +1993,7 @@ public:
   bool alwaysUseProxies () const { return _alwaysUseProxies.actualValue; } 
   bool combinatoryUnification () const { return _combinatoryUnification.actualValue; }
   CombElimination combinatorElimination () const { return _combinatorElimination.actualValue; }
+  CombinatoryLookaheadSelectionVal combSelectVal () { return _combSelectVal.actualValue; }
   bool FOOLParamodulation() const { return _FOOLParamodulation.actualValue; }
   bool termAlgebraInferences() const { return _termAlgebraInferences.actualValue; }
   TACyclicityCheck termAlgebraCyclicityCheck() const { return _termAlgebraCyclicityCheck.actualValue; }
@@ -2262,6 +2280,7 @@ private:
   BoolOptionValue _alwaysUseProxies;
   BoolOptionValue _combinatoryUnification;
   ChoiceOptionValue<CombElimination> _combinatorElimination;
+  ChoiceOptionValue<CombinatoryLookaheadSelectionVal> _combSelectVal;
   BoolOptionValue _termAlgebraInferences;
   ChoiceOptionValue<TACyclicityCheck> _termAlgebraCyclicityCheck;
 
