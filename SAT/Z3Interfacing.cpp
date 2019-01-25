@@ -23,7 +23,7 @@
 
 #if VZ3
 
-#define DPRINT 1
+#define DPRINT 0
 
 #include "Forwards.hpp"
 
@@ -47,11 +47,11 @@
 namespace SAT
 {
 
-using namespace Shell;  
-using namespace Lib;  
+using namespace Shell;
+using namespace Lib;
 
 //using namespace z3;
-  
+
 Z3Interfacing::Z3Interfacing(const Shell::Options& opts,SAT2FO& s2f, bool unsatCoresForAssumptions):
   _varCnt(0), sat2fo(s2f),_status(SATISFIABLE), _solver(_context),
   _model((_solver.check(),_solver.get_model())), _assumptions(_context), _unsatCoreForAssumptions(unsatCoresForAssumptions),
@@ -67,7 +67,7 @@ Z3Interfacing::Z3Interfacing(const Shell::Options& opts,SAT2FO& s2f, bool unsatC
     //p.set(":smtlib2-compliant",true);
     _solver.set(p);
 }
-  
+
 unsigned Z3Interfacing::newVar()
 {
   CALL("Z3Interfacing::newVar");
@@ -232,6 +232,50 @@ SATSolver::VarAssignment Z3Interfacing::getAssignment(unsigned var)
   return NOT_KNOWN;
 }
 
+enum RecursionMode {
+  RM_SCHED_ARGS,
+  RM_CREATE_TERM
+};
+
+
+Term* Z3Interfacing::representNumeral(z3::expr &assignment, unsigned srt) {
+  bool is_int = assignment.is_int();
+  ASS(is_int || assignment.is_real());
+  if(is_int){
+    ASS(srt == Sorts::SRT_INTEGER);
+    int value;
+    if (assignment.is_numeral_i(value)) {
+      Term* t = theory->representConstant(IntegerConstantType(value));
+      // cout << "evaluteInModel: " << trm->toString() <<" has value " << value << endl;
+      return t;
+    } else {
+      return 0;
+    }
+  }
+  else{
+    int n;
+    int d;
+    z3::expr numerator = assignment.numerator();
+    z3::expr denominator = assignment.denominator();
+    if(!numerator.is_numeral_i(n) || !denominator.is_numeral_i(d)){
+      return 0;
+    }
+    if(srt == Sorts::SRT_RATIONAL){
+      Term* t = theory->representConstant(RationalConstantType(n,d));
+      return t;
+    }
+    else{
+      ASS(srt == Sorts::SRT_REAL);
+      Term* t = theory->representConstant(RealConstantType(RationalConstantType(n,d)));
+      return t;
+    }
+  }
+  ASSERTION_VIOLATION;
+};
+
+//Term* Z3Interfacing::representArray(z3::expr* expr) {
+//};
+
 Term* Z3Interfacing::evaluateInModel(Term* trm)
 {
   CALL("Z3Interfacing::evaluateInModel");
@@ -245,43 +289,66 @@ Term* Z3Interfacing::evaluateInModel(Term* trm)
 
   // now translate assignment back into a term!
 
+  /* Recursive algorithm:
+     Term* convert(z3::exp exp) {
+       if (exp.is_const()) {
+          //return constant tranlastion
+       } else if (exp.is_app()) {
+         Stack<Term*> cargs;
+         for (int i=exp.arg_count(); i >= 0; i--) {
+           cargs.push(convert(exp));
+         }
+         head = expr.fun_decl();
+         //return term: head(cargs)
+       }
+     }
+   */
+
+  Stack<Term*> subterms;
+  Stack<z3::expr*> z3subterms;
+  Stack<RecursionMode> modes;
+
+  z3subterms.push(& assignment);
+  modes.push(RM_SCHED_ARGS);
+  while(z3subterms.isNonEmpty()) {
+    z3::expr* el = z3subterms.pop();
+    RecursionMode mode = modes.pop();
+    switch (mode) {
+    case RM_SCHED_ARGS:
+      z3subterms.push(el);
+      modes.push(RM_CREATE_TERM);
+      if (el->is_app()) {
+        for (unsigned i=el->num_args(); i>0; i--) {
+          z3::expr arg = el->arg(i-1);
+          z3subterms.push(&arg);
+          modes.push(RM_SCHED_ARGS);
+        }
+      }
+      break;
+    case RM_CREATE_TERM:
+      //TODO: create term
+      break;
+    default:
+      ASSERTION_VIOLATION;
+    }
+  }
+
   // For now just deal with the case where it is an integer
   if(assignment.is_numeral()){
-    bool is_int = assignment.is_int();
-    ASS(is_int || assignment.is_real());
-    if(is_int){
-      ASS(srt == Sorts::SRT_INTEGER);
-      int value;
-      if (assignment.is_numeral_i(value)) {
-        Term* t = theory->representConstant(IntegerConstantType(value));
-        // cout << "evaluteInModel: " << trm->toString() <<" has value " << value << endl;
-        return t;
-      } else {
-        return 0;
-      }
-    }
-    else{
-      int n;
-      int d;
-      z3::expr numerator = assignment.numerator();
-      z3::expr denominator = assignment.denominator();
-      if(!numerator.is_numeral_i(n) || !denominator.is_numeral_i(d)){
-          return 0;
-      }
-       if(srt == Sorts::SRT_RATIONAL){
-         Term* t = theory->representConstant(RationalConstantType(n,d));
-         return t;
-       }
-       else{
-         ASS(srt == Sorts::SRT_REAL);
-         Term* t = theory->representConstant(RealConstantType(RationalConstantType(n,d)));
-         return t;
-       }
-    }
+    representNumeral(assignment, srt);
   } else {
     if (assignment.is_array()) {
 #if DPRINT
-    cerr << "evaluationg array assignment for " << rep << endl;
+      cerr << "evaluating array assignment for " << rep << " = " << assignment << endl;
+      cerr << assignment.is_const() << " : " << assignment.is_app()
+           << " : " << assignment.num_args()
+           << " : " << assignment.decl()
+           << " : " << assignment.decl().is_const() << endl;
+      for (unsigned int i=0; i < assignment.num_args(); i++) {
+        cerr << assignment.arg(i);
+      }
+      cerr << endl;
+      z3::func_decl f = assignment.decl();
     // TODO: implement
 #endif
     } else {
