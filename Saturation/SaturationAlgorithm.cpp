@@ -594,6 +594,15 @@ void SaturationAlgorithm::addInputClause(Clause* cl)
          << " SInE: " << cl->getInitialPriority() << endl;
   }
 
+  if (_opt.sineToAge()) {
+    unsigned prio = cl->getInitialPriority();
+    if (prio == UINT_MAX) {
+      prio = env.maxClausePriority;
+    }
+
+   cl->setAge(prio);
+  }
+
   if (sosForAxioms || (isTheory && sosForTheory)){
     addInputSOSClause(cl);
   } else {

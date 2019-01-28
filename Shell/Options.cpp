@@ -640,6 +640,10 @@ void Options::Options::init()
     _lookup.insert(&_showForKarel);
     _showForKarel.tag(OptionTag::DEVELOPMENT);
 
+    _sineToAge = BoolOptionValue("sine_to_age","s2a",false);
+    _lookup.insert(&_sineToAge);
+    _sineToAge.tag(OptionTag::DEVELOPMENT);
+
     _showSplitting = BoolOptionValue("show_splitting","",false);
     _showSplitting.description="Show updates within AVATAR";
     _lookup.insert(&_showSplitting);
