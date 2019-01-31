@@ -1878,6 +1878,7 @@ public:
   bool showEmpty() const { return _showEmpty.actualValue; }
   bool showForKarel() const { return _showForKarel.actualValue; }
   bool sineToAge() const { return _sineToAge.actualValue; }
+  unsigned killClause() const { return _killClause.actualValue; }
   bool showSplitting() const { return showAll() || _showSplitting.actualValue; }
   bool showNewPropositional() const { return showAll() || _showNewPropositional.actualValue; }
   bool showPassive() const { return showAll() || _showPassive.actualValue; }
@@ -1983,6 +1984,7 @@ public:
   unsigned extensionalityMaxLength() const { return _extensionalityMaxLength.actualValue; }
   bool extensionalityAllowPosEq() const { return _extensionalityAllowPosEq.actualValue; }
   float nongoalWeightCoefficient() const { return _nonGoalWeightCoefficient.actualValue; }
+  bool nongoalWeightTiebreak() const { return _nonGoalWeightTiebreak.actualValue; }
   bool restrictNWCtoGC() const { return _restrictNWCtoGC.actualValue; }
   Sos sos() const { return _sos.actualValue; }
   unsigned sosTheoryLimit() const { return _sosTheoryLimit.actualValue; }
@@ -2400,6 +2402,7 @@ private:
   BoolOptionValue _showEmpty;
   BoolOptionValue _showForKarel;
   BoolOptionValue _sineToAge;
+  IntOptionValue _killClause;
   BoolOptionValue _showSplitting;
   BoolOptionValue _showNewPropositional;
   BoolOptionValue _showNonconstantSkolemFunctionTrace;
@@ -2481,6 +2484,8 @@ private:
 
   NonGoalWeightOptionValue _nonGoalWeightCoefficient;
   BoolOptionValue _restrictNWCtoGC;
+
+  BoolOptionValue _nonGoalWeightTiebreak;
 
   SelectionOptionValue _selection;
   SelectionOptionValue _instGenSelection;

@@ -644,6 +644,10 @@ void Options::Options::init()
     _lookup.insert(&_sineToAge);
     _sineToAge.tag(OptionTag::DEVELOPMENT);
 
+    _killClause = IntOptionValue("kill_clause","kc",0);
+    _lookup.insert(&_killClause);
+    _killClause.tag(OptionTag::DEVELOPMENT);
+
     _showSplitting = BoolOptionValue("show_splitting","",false);
     _showSplitting.description="Show updates within AVATAR";
     _lookup.insert(&_showSplitting);
@@ -1666,6 +1670,11 @@ void Options::Options::init()
     _lookup.insert(&_nonGoalWeightCoefficient);
     _nonGoalWeightCoefficient.tag(OptionTag::SATURATION);
     _nonGoalWeightCoefficient.setRandomChoices({"1","1.1","1.2","1.3","1.5","1.7","2","2.5","3","4","5","10"});
+
+    _nonGoalWeightTiebreak = BoolOptionValue("nongoal_weight_tiebreak","nwt",false);
+    _lookup.insert(&_nonGoalWeightTiebreak);
+    _nonGoalWeightTiebreak.setExperimental();
+    _nonGoalWeightTiebreak.tag(OptionTag::SATURATION);
 
     _restrictNWCtoGC = BoolOptionValue("restrict_nwc_to_goal_constants","rnwc",false);
     _restrictNWCtoGC.description = "restrict nongoal_weight_coefficient to those containing goal constants";

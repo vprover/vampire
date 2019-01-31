@@ -228,6 +228,18 @@ bool WeightQueue::lessThan(Clause* c1,Clause* c2)
     return weightCmp==LESS;
   }
 
+  static bool nwt = _opt.nongoalWeightTiebreak();
+  if (nwt) {
+    bool c1g = c1->isGoal();
+    bool c2g = c2->isGoal();
+    if (c1g && !c2g) {
+      return true;
+    }
+    if (!c1g && c2g) {
+      return false;
+    }
+  }
+
   if (c1->age() < c2->age()) {
     return true;
   }

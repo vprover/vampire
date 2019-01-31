@@ -907,6 +907,11 @@ bool SaturationAlgorithm::forwardSimplify(Clause* cl)
 {
   CALL("SaturationAlgorithm::forwardSimplify");
 
+  if (_opt.killClause() && cl->number() == _opt.killClause()) {
+    cout << "killed clause: " << cl->toString() << endl;
+    return false;
+  }
+
   if (!getLimits()->fulfillsLimits(cl)) {
     if (env.options->showReductions()) {
       env.beginOutput();
