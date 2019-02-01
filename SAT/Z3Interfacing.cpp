@@ -232,19 +232,15 @@ SATSolver::VarAssignment Z3Interfacing::getAssignment(unsigned var)
   return NOT_KNOWN;
 }
 
-enum RecursionMode {
-  RM_SCHED_ARGS,
-  RM_CREATE_TERM
-};
 
 
-Term* Z3Interfacing::representNumeral(z3::expr &assignment, unsigned srt) {
-  bool is_int = assignment.is_int();
-  ASS(is_int || assignment.is_real());
+Term* Z3Interfacing::representNumeral(z3::expr *assignment, unsigned srt) {
+  bool is_int = assignment->is_int();
+  ASS(is_int || assignment->is_real());
   if(is_int){
     ASS(srt == Sorts::SRT_INTEGER);
     int value;
-    if (assignment.is_numeral_i(value)) {
+    if (assignment->is_numeral_i(value)) {
       Term* t = theory->representConstant(IntegerConstantType(value));
       // cout << "evaluteInModel: " << trm->toString() <<" has value " << value << endl;
       return t;
@@ -255,8 +251,8 @@ Term* Z3Interfacing::representNumeral(z3::expr &assignment, unsigned srt) {
   else{
     int n;
     int d;
-    z3::expr numerator = assignment.numerator();
-    z3::expr denominator = assignment.denominator();
+    z3::expr numerator = assignment->numerator();
+    z3::expr denominator = assignment->denominator();
     if(!numerator.is_numeral_i(n) || !denominator.is_numeral_i(d)){
       return 0;
     }
@@ -275,6 +271,33 @@ Term* Z3Interfacing::representNumeral(z3::expr &assignment, unsigned srt) {
 
 //Term* Z3Interfacing::representArray(z3::expr* expr) {
 //};
+
+unsigned Z3Interfacing::representSort(z3::sort *z3sort) {
+  switch (z3sort->sort_kind()) {
+  case Z3_INT_SORT:
+    return Sorts::SRT_INTEGER;
+  case Z3_REAL_SORT:
+    return Sorts::SRT_REAL;
+  case Z3_ARRAY_SORT:
+    {
+    z3::sort z3_domain_srt = z3sort->array_domain();
+    z3::sort z3_range_srt = z3sort->array_range();
+    unsigned domain_srt = representSort(&z3_domain_srt);
+    unsigned range_srt = representSort(&z3_range_srt);
+    unsigned arr_srt = env.sorts->addArraySort(domain_srt, range_srt);
+    return arr_srt;
+    }
+  default:
+    //TODO: add uninterpreted functions, datatypes
+    ASSERTION_VIOLATION;
+    return 1;
+  }
+}
+
+enum RecursionMode {
+  RM_SCHED_ARGS,
+  RM_CREATE_TERM
+};
 
 Term* Z3Interfacing::evaluateInModel(Term* trm)
 {
@@ -304,9 +327,9 @@ Term* Z3Interfacing::evaluateInModel(Term* trm)
      }
    */
 
-  Stack<Term*> subterms;
-  Stack<z3::expr*> z3subterms;
-  Stack<RecursionMode> modes;
+  Stack<Term*> subterms;       //stores the list of terms to convert
+  Stack<z3::expr*> z3subterms; //stores the already converted terms
+  Stack<RecursionMode> modes;  //tells if the subterms have already been scheduled
 
   z3subterms.push(& assignment);
   modes.push(RM_SCHED_ARGS);
@@ -327,6 +350,11 @@ Term* Z3Interfacing::evaluateInModel(Term* trm)
       break;
     case RM_CREATE_TERM:
       //TODO: create term
+      if (el->is_numeral()) {
+        z3::sort z3sort = el->get_sort();
+        unsigned sort = representSort(& z3sort);
+        subterms.push( representNumeral(el, sort) );
+      }
       break;
     default:
       ASSERTION_VIOLATION;
@@ -335,7 +363,7 @@ Term* Z3Interfacing::evaluateInModel(Term* trm)
 
   // For now just deal with the case where it is an integer
   if(assignment.is_numeral()){
-    representNumeral(assignment, srt);
+    return representNumeral(& assignment, srt);
   } else {
     if (assignment.is_array()) {
 #if DPRINT
