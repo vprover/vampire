@@ -278,11 +278,12 @@ void HOSortHelper::HOTerm::headify(HOTerm_ptr tm){
  
   head = tm->head;
   headsort = tm->headsort;
-  //srt = tm->srt;
   headInd = tm->headInd;
   for(int i = tm->args.size() - 1; i >=0; i--){
     args.push_front(tm->args[i]);
   }  
+  //unnecessary except when dealing with full Dougherty's
+  srt = sortOfLengthNPref(argnum());
 }
 
 
@@ -495,7 +496,7 @@ TermList HOSortHelper::getCombTerm(SS::HOLConstant cons, unsigned sort){
 unsigned HOSortHelper::arity(unsigned sort){
   CALL("HOSortHelper::arity"); 
   
-  if(env.sorts->isOfStructuredSort(sort, Sorts::StructuredSort::HIGHER_ORD_CONST))
+  if(isFuncSort(sort))
   {
     return env.sorts->getFuncSort(sort)->arity();
   }
@@ -505,7 +506,7 @@ unsigned HOSortHelper::arity(unsigned sort){
 unsigned HOSortHelper::outputSort(unsigned sort){
   CALL("HOSortHelper::outputSort"); 
   
-  while(env.sorts->isOfStructuredSort(sort, Sorts::StructuredSort::HIGHER_ORD_CONST))
+  while(isFuncSort(sort))
   {
     sort = range(sort);
   }
@@ -516,7 +517,7 @@ unsigned HOSortHelper::outputSort(unsigned sort){
 unsigned HOSortHelper::range(unsigned sort){
   CALL("HOSortHelper::range"); 
   
-  ASS(env.sorts->isOfStructuredSort(sort, Sorts::StructuredSort::HIGHER_ORD_CONST));
+  ASS(isFuncSort(sort));
   
   unsigned range = env.sorts->getFuncSort(sort)->getRangeSort();
   return range;  
@@ -526,7 +527,7 @@ unsigned HOSortHelper::range(unsigned sort){
 unsigned HOSortHelper::domain(unsigned sort){
   CALL("HOSortHelper::domain");  
 
-  ASS(env.sorts->isOfStructuredSort(sort, Sorts::StructuredSort::HIGHER_ORD_CONST));
+  ASS(isFuncSort(sort));
   
   unsigned dom = env.sorts->getFuncSort(sort)->getDomainSort();
   return dom;
@@ -544,6 +545,35 @@ unsigned HOSortHelper::getHigherOrderSort(const Stack<unsigned>& argsSorts, unsi
   return res;
 
 }
+
+
+bool HOSortHelper::occurs(unsigned s1, unsigned s2)
+{
+  CALL("HOSortHelper::occurs");  
+
+  ASS(isSortVar(s1));
+
+  if(isGround(s2)){
+    return false;
+  }
+
+  Stack<unsigned> sorts;
+  sorts.push(s2);
+  while(!sorts.isEmpty()){
+    unsigned sort = sorts.pop();
+    if(s1 == sort){
+      return true;
+    }
+    if(isFuncSort(sort)){
+      unsigned rang = range(sort);
+      unsigned dom = domain(sort);
+      if(!isGround(rang)){ sorts.push(rang); }
+      if(!isGround(dom)){ sorts.push(dom); }
+    }
+  }
+  return false;
+}
+
 
 Term* HOSortHelper::createAppifiedTerm(TermList head, unsigned headsort,
                                        const Stack<unsigned>& argSorts,

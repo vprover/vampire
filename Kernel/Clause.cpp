@@ -356,6 +356,17 @@ bool Clause::isHorn()
 }
 
 /**
+ * Return true iff clause is negative unit 
+ */
+bool Clause::isNegativeUnit()
+{
+  CALL("Clause::isNegativeUnit");
+
+  return (_length == 1 && _literals[0]->isEquality() && 
+          _literals[0]->isNegative() );
+}
+
+/**
  * Return iterator over clause variables
  */
 VirtualIterator<unsigned> Clause::getVariableIterator()

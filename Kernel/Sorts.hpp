@@ -87,6 +87,7 @@ public:
 
     virtual bool isStructuredSort() { return false; }
     virtual bool isOfStructuredSort(StructuredSort sort) { return false; }
+    virtual bool isSortVariable() { return false; }
 
   protected:
     vstring _name;
@@ -167,30 +168,26 @@ public:
      CLASS_NAME(FunctionSort);    
      USE_ALLOCATOR(FunctionSort);    
      
-     FunctionSort(vstring name, unsigned domainSort, unsigned rangeSort,unsigned id) 
+     FunctionSort(vstring name, unsigned dom, unsigned range,unsigned id) 
        : StructuredSortInfo(name,StructuredSort::HIGHER_ORD_CONST, id),  
-         _instantiableSort(false), _domainSort(domainSort), _rangeSort(rangeSort){
+         _instantiableSort(false), _domainSort(dom), _rangeSort(range){
 
        unsigned orderDom, orderRange;
-       if(env.sorts->isStructuredSort(domainSort)){
-         orderDom = env.sorts->getFuncSort(domainSort)->order();
-       } else {
-         orderDom = 0;
-       }
-       
-       if(env.sorts->isStructuredSort(rangeSort)){
-         orderRange = env.sorts->getFuncSort(rangeSort)->order();
-       } else {
-         orderRange = 0;
-       }
-       
+       orderDom = env.sorts->isStructuredSort(dom) ? 
+                  env.sorts->getFuncSort(dom)->order() : 0;
+       orderRange = env.sorts->isStructuredSort(range) ? 
+                    env.sorts->getFuncSort(range)->order() : 0;
+
        _arity = orderRange + 1;
-       if(orderRange > orderDom){
-         _order = orderRange;
-       } else {
-         _order = orderDom + 1;
-       }
-        
+       _order = (orderRange > orderDom) ? orderRange : orderDom + 1;
+
+       _ground = true;
+       _ground = _ground && (env.sorts->isStructuredSort(dom) ? 
+                             env.sorts->getFuncSort(dom)->ground() : 
+                            !env.sorts->isSortVariable(dom));
+       _ground = _ground && (env.sorts->isStructuredSort(range) ? 
+                             env.sorts->getFuncSort(range)->ground() :
+                            !env.sorts->isSortVariable(range));
      }
          
      unsigned getDomainSort(){ return _domainSort; }    
@@ -199,8 +196,10 @@ public:
      unsigned arity() { return _arity; }
      void makeInstantiable() { _instantiableSort = true; }
      bool instantiable() { return _instantiableSort; }
-  
+     bool ground() { return _ground; }
+
   private:
+     bool _ground;
      bool _instantiableSort;  
      unsigned _arity;
      unsigned _order;
@@ -208,6 +207,20 @@ public:
      unsigned _rangeSort;  
   };
   
+
+  class SortVariable : public SortInfo {
+  public:
+    CLASS_NAME(SortVariable);    
+    USE_ALLOCATOR(SortVariable);    
+     
+     SortVariable(vstring name, unsigned id) 
+       : SortInfo(name, id) {}
+
+    bool isSortVariable() override { return true; }
+
+  };
+
+
   unsigned addSort(const vstring& name, bool& added, bool interpreted);
   unsigned addSort(const vstring& name, bool interpreted);
 
@@ -229,6 +242,8 @@ public:
     return static_cast<FunctionSort*>(_sorts[sort]);
   }
  
+  unsigned addFreshSortVar();
+
   bool haveSort(const vstring& name);
   bool findSort(const vstring& name, unsigned& idx);
 
@@ -238,6 +253,12 @@ public:
   Stack<unsigned> getSortsWithReturnSort(vstring returnSort);
   bool suffix (SortInfo* s, vstring const &ending);
   
+  bool isSortVariable(unsigned sort){
+    return _sorts[sort]->isSortVariable();
+  }
+
+  bool isGround(unsigned sort);
+
   bool isStructuredSort(unsigned sort) {
     if(sort > _sorts.size()) return false;
     SortInfo* si = _sorts[sort];
@@ -268,6 +289,7 @@ private:
   Stack<SortInfo*> _sorts;
   /** true if there is a sort different from built-ins */
   bool _hasSort;
+  unsigned _nextFreshSortVar;
 };
 
 /**

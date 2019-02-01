@@ -123,7 +123,8 @@ void Options::Options::init()
                                         "smtcomp",
                                         "spider",
                                         "tclausify",
-                                        "vampire"});
+                                        "vampire",
+                                        "training"});
     _mode.description=
     "Select the mode of operation. Choices are:\n"
     "  -vampire: the standard mode of operation for first-order theorem proving\n"
@@ -133,6 +134,8 @@ void Options::Options::init()
     "  -output,profile: output information about the problem\n"
     "  -sat_solver: accepts problems in DIMACS and uses the internal sat solver\n   directly\n"
     "Some modes are not currently maintained:\n"
+    "  -training: runs a portfolio and if a proof is found performs local search on the successful\n"
+    "strategy in an attempt to find a quicker proof"
     "  -bpa: perform bound propagation\n"
     "  -consequence_elimination: perform consequence elimination\n"
     "  -random_strategy: attempts to randomize the option values\n";
@@ -1024,12 +1027,15 @@ void Options::Options::init()
       "i.e., unification modulo the combinator axioms";
       _combinatoryUnification.addHardConstraint(
         If(equal(true)).then(_unificationWithAbstraction.is(equal(UnificationWithAbstraction::OFF))));
-      //combinatory unification is too expensive to be used in conjunction with look-ahead selection 
-      //_combinatoryUnification.addConstraint(If(equal(true)).then(_selection.is(notEqual(11, 10))));
-      //_combinatoryUnification.addConstraint(If(equal(true)).then(_selection.is(notEqual(1011, 1010))));  
       _lookup.insert(&_combinatoryUnification);
       _combinatoryUnification.tag(OptionTag::SATURATION); //This is not inference, change!
 
+      _useFullDougherty = BoolOptionValue("full_dougherty","fulld",false);
+      _useFullDougherty.description=
+      "In certain situations replace unification (either restricted combinatory or Robinsons)\n"
+      "with full Dougherty's algorithm.";
+      _lookup.insert(&_useFullDougherty);
+      _useFullDougherty.tag(OptionTag::SATURATION);
 
       _functionExtensionality = BoolOptionValue("add_func_ext_ax","afea",false);
       _functionExtensionality.description=

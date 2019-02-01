@@ -235,6 +235,7 @@ public:
   bool isGround();
   bool isPropositional();
   bool isHorn();
+  bool isNegativeUnit();
 
   VirtualIterator<unsigned> getVariableIterator();
 

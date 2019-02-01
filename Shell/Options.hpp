@@ -435,7 +435,8 @@ public:
     SMTCOMP,
     SPIDER,
     TCLAUSIFY,
-    VAMPIRE
+    VAMPIRE,
+    TRAINING
 };
 
   enum class Schedule : unsigned int {
@@ -1992,6 +1993,7 @@ public:
   bool equalityToEquivalence () const { return _equalityToEquivalence.actualValue; } 
   bool alwaysUseProxies () const { return _alwaysUseProxies.actualValue; } 
   bool combinatoryUnification () const { return _combinatoryUnification.actualValue; }
+  bool fullDougherty () const { return _useFullDougherty.actualValue; }
   CombElimination combinatorElimination () const { return _combinatorElimination.actualValue; }
   CombinatoryLookaheadSelectionVal combSelectVal () { return _combSelectVal.actualValue; }
   bool FOOLParamodulation() const { return _FOOLParamodulation.actualValue; }
@@ -2279,6 +2281,7 @@ private:
   BoolOptionValue _equalityToEquivalence;
   BoolOptionValue _alwaysUseProxies;
   BoolOptionValue _combinatoryUnification;
+  BoolOptionValue _useFullDougherty;
   ChoiceOptionValue<CombElimination> _combinatorElimination;
   ChoiceOptionValue<CombinatoryLookaheadSelectionVal> _combSelectVal;
   BoolOptionValue _termAlgebraInferences;

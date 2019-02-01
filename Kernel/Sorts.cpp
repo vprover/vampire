@@ -57,7 +57,8 @@ Sorts::Sorts()
   aux = addSort("$real",true);
   ASS_EQ(aux, SRT_REAL);
     
- _hasSort = false;
+  _hasSort = false;
+  _nextFreshSortVar = 0;
 } // Sorts::Sorts
 
 /**
@@ -119,6 +120,17 @@ unsigned Sorts::addSort(const vstring& name, bool& added, bool interpreted)
   return result;
 } // Sorts::addSort
 
+unsigned Sorts::addFreshSortVar()
+{
+  CALL("Sorts::addFreshSortVar");
+
+  vstring name = "srt_var" + Int::toString(_nextFreshSortVar++);
+  ASS(!_sortNames.find(name));
+
+  unsigned result = _sorts.length();
+  _sorts.push(new SortVariable(name, result));
+  return result;
+}
 
 /**
  *
@@ -230,6 +242,15 @@ Stack<unsigned> Sorts::getUsedAndInstantiableSorts()
   return sorts;
 }
 
+bool Sorts::isGround(unsigned sort){
+  CALL("Sorts::isGround");
+
+  if(isSortVariable(sort) || 
+    (isOfStructuredSort(sort, StructuredSort::HIGHER_ORD_CONST) && !getFuncSort(sort)->ground())){
+    return false;
+  }
+  return true;
+}
 
 bool Sorts::suffix (SortInfo* s, vstring const &ending) {
     

@@ -197,6 +197,29 @@ private:
   unsigned _cLen;
 };
 
+Clause* EqualityResolution::applyFullDougherty(Clause* prem)
+{
+  CALL("EqualityResolution::applyFullDougherty");
+  ASS(prem->isNegativeUnit());
+
+  Literal* lit = (*prem)[0];
+
+  TermList t1 = *lit->nthArgument(0);
+  TermList t2 = *lit->nthArgument(1);
+  unsigned sort = SortHelper::getEqualityArgumentSort(lit);
+  CombSubstIterator* csIt = new CombSubstIterator(t1,sort,0,t2,sort,0,true); 
+
+  if(csIt->unifiable()){
+    Inference* inf = new Inference1(Inference::EQUALITY_RESOLUTION, prem);
+    Clause* res = new(0) Clause(0, prem->inputType(), inf);
+    res->setAge(prem->age()+1);
+    env.statistics->equalityResolution++;
+    return res; 
+  }
+
+  return 0;
+}
+
 ClauseIterator EqualityResolution::generateClauses(Clause* premise)
 {
   CALL("EqualityResolution::generateClauses");
@@ -205,6 +228,10 @@ ClauseIterator EqualityResolution::generateClauses(Clause* premise)
     return ClauseIterator::getEmpty();
   }
   ASS(premise->numSelected()>0);
+  
+  if(premise->isNegativeUnit() && env.options->fullDougherty()){
+    return pvi(getFilteredIterator(getSingletonIterator(applyFullDougherty(premise)), NonzeroFn()));
+  }
 
   auto it1 = premise->getSelectedLiteralIterator();
 

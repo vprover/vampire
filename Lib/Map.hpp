@@ -341,7 +341,7 @@ protected:
   } // deleteAll
 
   /** Return the number of elements */
-  inline int numberOfElements()
+  inline int numberOfElements() const
   {
     return _noOfEntries;
   }

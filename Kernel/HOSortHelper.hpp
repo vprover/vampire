@@ -48,6 +48,7 @@ private:
 public:
   
   typedef Signature::Symbol SS;
+  typedef Kernel::CombSubstitution KCS;
 
   struct HOTerm{
 
@@ -200,6 +201,7 @@ public:
     }
     //make const HOTerm
     void headify(HOTerm_ptr tm);
+
     /** Returns true if this HOTerm is 
      *  syntactically equal to the first argument
      *  if @b vars is false, then non-ground terms 
@@ -246,6 +248,15 @@ public:
   static unsigned arity(unsigned sort);
   /** returns the atomic output sort */
   static unsigned outputSort(unsigned sort);
+  /** returns true if @b s1 occurs in @b s2 */
+  static bool occurs(unsigned s1, unsigned s2);
+  /** returns true if sort is a sort variable */
+  static bool isSortVar(unsigned sort) {
+    return env.sorts->isSortVariable(sort);
+  }
+  static unsigned freshSortVar(){
+    return env.sorts->addFreshSortVar();
+  }
   /** Takes two termlists and returns the result of applying the 
    *  first to the second. Sort conditions must be met
    */
@@ -258,6 +269,13 @@ public:
   static unsigned addFuncSort(unsigned dom, unsigned range){
     return env.sorts->addFunctionSort(dom, range);
   }
+  static bool isFuncSort(unsigned sort){
+    return env.sorts->isOfStructuredSort(sort, Sorts::StructuredSort::HIGHER_ORD_CONST);
+  }
+  static bool isGround(unsigned sort){
+    return env.sorts->isGround(sort);
+  }
+
   /** returns the higher-order sort with @b argSorts as its domain sorts and
       @b range as its range */
   static unsigned getHigherOrderSort(const Stack<unsigned>& argsSorts, unsigned range);
