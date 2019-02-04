@@ -845,7 +845,7 @@ void TheoryAxioms::addBooleanArrayExtensionalityAxioms(unsigned arraySort, unsig
 void TheoryAxioms::addArrayWriteAxioms(unsigned arraySort)
 {
   CALL("TheoryAxioms::addArrayWriteAxioms");
-        
+
   unsigned func_select = env.signature->getInterpretingSymbol(Theory::ARRAY_SELECT,Theory::getArrayOperatorType(arraySort,Theory::ARRAY_SELECT));
   unsigned func_store = env.signature->getInterpretingSymbol(Theory::ARRAY_STORE,Theory::getArrayOperatorType(arraySort,Theory::ARRAY_STORE));
 
@@ -858,7 +858,7 @@ void TheoryAxioms::addArrayWriteAxioms(unsigned arraySort)
   TermList v(2,false);
   TermList a(3,false);
   TermList args[] = {a, i, v};
-        
+
   //axiom (!A: arraySort, !I:domainSort, !V:rangeSort: (select(store(A,I,V), I) = V
   TermList wAIV(Term::create(func_store, 3, args)); //store(A,I,V)
   TermList sWI(Term::create2(func_select, wAIV,i)); //select(wAIV,I)
@@ -868,7 +868,7 @@ void TheoryAxioms::addArrayWriteAxioms(unsigned arraySort)
   //axiom (!A: arraySort, !I,J:domainSort, !V:rangeSort: (I!=J)->(select(store(A,I,V), J) = select(A,J)
   TermList sWJ(Term::create2(func_select, wAIV,j)); //select(wAIV,J)
   TermList sAJ(Term::create2(func_select, a, j)); //select(A,J)
-        
+
   Literal* indexEq = Literal::createEquality(true, i, j, domainSort);//!(!(I=J)) === I=J
   Literal* writeEq = Literal::createEquality(true, sWJ, sAJ, rangeSort);//(select(store(A,I,V), J) = select(A,J)
   addTheoryClauseFromLits({indexEq,writeEq}, InferenceRule::THA_ARRAY_WRITE2, CHEAP);

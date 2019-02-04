@@ -23,7 +23,7 @@
 
 #if VZ3
 
-#define DPRINT 0
+#define DPRINT 1
 
 #include "Forwards.hpp"
 
@@ -272,18 +272,18 @@ Term* Z3Interfacing::representNumeral(z3::expr *assignment, unsigned srt) {
 //Term* Z3Interfacing::representArray(z3::expr* expr) {
 //};
 
-unsigned Z3Interfacing::representSort(z3::sort *z3sort) {
-  switch (z3sort->sort_kind()) {
+unsigned Z3Interfacing::representSort(const z3::sort &z3sort) {
+  switch (z3sort.sort_kind()) {
   case Z3_INT_SORT:
     return Sorts::SRT_INTEGER;
   case Z3_REAL_SORT:
     return Sorts::SRT_REAL;
   case Z3_ARRAY_SORT:
     {
-    z3::sort z3_domain_srt = z3sort->array_domain();
-    z3::sort z3_range_srt = z3sort->array_range();
-    unsigned domain_srt = representSort(&z3_domain_srt);
-    unsigned range_srt = representSort(&z3_range_srt);
+    const z3::sort z3_domain_srt = z3sort.array_domain();
+    const z3::sort z3_range_srt = z3sort.array_range();
+    unsigned domain_srt = representSort(z3_domain_srt);
+    unsigned range_srt = representSort(z3_range_srt);
     unsigned arr_srt = env.sorts->addArraySort(domain_srt, range_srt);
     return arr_srt;
     }
@@ -333,11 +333,21 @@ Term* Z3Interfacing::evaluateInModel(Term* trm)
 
   z3subterms.push(& assignment);
   modes.push(RM_SCHED_ARGS);
+
+  unsigned sort;          //sort of current term
+  unsigned function;      //functor
+  TermList *args = NULL;  //for storing the argument array
+  TermList arg;   //for storing the current arg when converting multiple values
+  Term *term = NULL;      //intermediate term
+
   while(z3subterms.isNonEmpty()) {
     z3::expr* el = z3subterms.pop();
     RecursionMode mode = modes.pop();
     switch (mode) {
     case RM_SCHED_ARGS:
+#if DPRINT
+      std::cerr << "Scheduling subterms of " << *el << std::endl;
+#endif
       z3subterms.push(el);
       modes.push(RM_CREATE_TERM);
       if (el->is_app()) {
@@ -349,11 +359,77 @@ Term* Z3Interfacing::evaluateInModel(Term* trm)
       }
       break;
     case RM_CREATE_TERM:
-      //TODO: create term
+      sort = representSort(el->get_sort());
+
       if (el->is_numeral()) {
-        z3::sort z3sort = el->get_sort();
-        unsigned sort = representSort(& z3sort);
+#if DPRINT
+      std::cerr << "Creating term for numeral " << *el << std::endl;
+#endif
         subterms.push( representNumeral(el, sort) );
+      } else if (el->is_array() && el->is_app()) {
+#if DPRINT
+        std::cerr << "Creating term for array function " << el->decl() << std::endl;
+#endif
+        /* we need C arrays for Term::create
+        TermList args;
+        for (unsigned i=0; i < el->num_args(); i++) {
+          args.push(subterms.pop());
+        }
+        */
+        switch (el->decl().decl_kind()) {
+        case Z3_OP_STORE:
+#if DPRINT
+          std::cerr << "Store " << std::endl;
+#endif
+          function = env.signature->getInterpretingSymbol(Interpretation::ARRAY_STORE,
+                                                          Theory::getArrayOperatorType(sort, Interpretation::ARRAY_STORE));
+          args = new TermList[3];
+          args[0] = TermList(subterms.pop());
+          args[1] = TermList(subterms.pop());
+          args[2] = TermList(subterms.pop());
+          term = Term::create(function, 3, args);
+          subterms.push(term);
+          break;
+        case Z3_OP_SELECT:
+#if DPRINT
+          std::cerr << "select " << std::endl;
+#endif
+          break;
+        case Z3_OP_CONST_ARRAY:
+#if DPRINT
+          std::cerr << "const array " << std::endl;
+#endif
+          function = env.signature->getInterpretingSymbol(Interpretation::ARRAY_CONST,
+                                                          Theory::getArrayOperatorType(sort, Interpretation::ARRAY_CONST));
+          args = new TermList[1];
+          arg = TermList(subterms.pop());
+          term = Term::create1(function, arg );
+          subterms.push(term);
+          break;
+        case Z3_OP_ARRAY_MAP:
+#if DPRINT
+          std::cerr << "array map " << std::endl;
+#endif
+          break;
+        case Z3_OP_ARRAY_DEFAULT:
+#if DPRINT
+          std::cerr << "array default " << std::endl;
+#endif
+          break;
+        case Z3_OP_AS_ARRAY:
+#if DPRINT
+          std::cerr << "as array " << std::endl;
+#endif
+          break;
+        case Z3_OP_ARRAY_EXT:
+#if DPRINT
+          std::cerr << "Array ext " << std::endl;
+#endif
+          break;
+        default:
+          ASSERTION_VIOLATION;
+          break;
+        }
       }
       break;
     default:
@@ -361,6 +437,11 @@ Term* Z3Interfacing::evaluateInModel(Term* trm)
     }
   }
 
+  ASS_EQ(subterms.size(), 1);
+  term = subterms.pop();
+  return term;
+
+  /*
   // For now just deal with the case where it is an integer
   if(assignment.is_numeral()){
     return representNumeral(& assignment, srt);
@@ -390,6 +471,7 @@ Term* Z3Interfacing::evaluateInModel(Term* trm)
   }
 
   return 0;
+  */
 }
 
 bool Z3Interfacing::isZeroImplied(unsigned var)

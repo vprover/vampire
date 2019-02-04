@@ -205,7 +205,7 @@ private:
   }
 
   Term* representNumeral(z3::expr *expr, unsigned sort);
-  unsigned representSort(z3::sort *sort);
+  unsigned representSort(const z3::sort &sort);
   //  Term* representArray(z3::expr* expr);
 
 };
