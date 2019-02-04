@@ -995,7 +995,7 @@ Term* Term::create2(unsigned fn, TermList arg1, TermList arg2)
 
 /**
  * Create singleton FOOL constants
- */ 
+ */
 Term* Term::foolTrue(){
     static Term* _foolTrue = 0;
     if(!_foolTrue){ _foolTrue = createConstant(env.signature->getFoolConstantSymbol(true));}

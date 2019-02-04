@@ -318,8 +318,8 @@ public:
   static Term* create2(unsigned fn, TermList arg1, TermList arg2);
 
   //** fool constants
-  static Term* foolTrue(); 
-  static Term* foolFalse(); 
+  static Term* foolTrue();
+  static Term* foolFalse();
 
   IntList* freeVariables() const;
 
