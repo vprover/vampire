@@ -23,7 +23,7 @@
 
 #if VZ3
 
-#define DPRINT 1
+#define DPRINT 0
 
 #include "Forwards.hpp"
 
@@ -346,14 +346,17 @@ Term* Z3Interfacing::evaluateInModel(Term* trm)
     switch (mode) {
     case RM_SCHED_ARGS:
 #if DPRINT
-      std::cerr << "Scheduling subterms of " << *el << std::endl;
+      std::cerr << "Scheduling " << *el << std::endl;
 #endif
       z3subterms.push(el);
       modes.push(RM_CREATE_TERM);
       if (el->is_app()) {
         for (unsigned i=el->num_args(); i>0; i--) {
-          z3::expr arg = el->arg(i-1);
-          z3subterms.push(&arg);
+          z3::expr *z3arg = new z3::expr(el->arg(i-1));
+#if DPRINT
+          std::cerr << "Scheduling subterm " << *z3arg << std::endl;
+#endif
+          z3subterms.push(z3arg);
           modes.push(RM_SCHED_ARGS);
         }
       }
@@ -370,12 +373,6 @@ Term* Z3Interfacing::evaluateInModel(Term* trm)
 #if DPRINT
         std::cerr << "Creating term for array function " << el->decl() << std::endl;
 #endif
-        /* we need C arrays for Term::create
-        TermList args;
-        for (unsigned i=0; i < el->num_args(); i++) {
-          args.push(subterms.pop());
-        }
-        */
         switch (el->decl().decl_kind()) {
         case Z3_OP_STORE:
 #if DPRINT
@@ -384,9 +381,9 @@ Term* Z3Interfacing::evaluateInModel(Term* trm)
           function = env.signature->getInterpretingSymbol(Interpretation::ARRAY_STORE,
                                                           Theory::getArrayOperatorType(sort, Interpretation::ARRAY_STORE));
           args = new TermList[3];
-          args[0] = TermList(subterms.pop());
-          args[1] = TermList(subterms.pop());
           args[2] = TermList(subterms.pop());
+          args[1] = TermList(subterms.pop());
+          args[0] = TermList(subterms.pop());
           term = Term::create(function, 3, args);
           subterms.push(term);
           break;
@@ -394,6 +391,13 @@ Term* Z3Interfacing::evaluateInModel(Term* trm)
 #if DPRINT
           std::cerr << "select " << std::endl;
 #endif
+          function = env.signature->getInterpretingSymbol(Interpretation::ARRAY_SELECT,
+                                                          Theory::getArrayOperatorType(sort, Interpretation::ARRAY_SELECT));
+          args = new TermList[2];
+          args[1] = TermList(subterms.pop());
+          args[0] = TermList(subterms.pop());
+          term = Term::create(function, 2, args);
+          subterms.push(term);
           break;
         case Z3_OP_CONST_ARRAY:
 #if DPRINT
