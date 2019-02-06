@@ -156,7 +156,7 @@ bool PortfolioMode::performStrategy(Shell::Property* property)
     return false;
   }
 
-  return runSchedule(main,terminationTime);
+  return runSchedule(main,terminationTime, property);
 }
 
 void PortfolioMode::getSchedules(Property& prop, Schedule& quick, Schedule& fallback)
@@ -317,7 +317,7 @@ void PortfolioSliceExecutor::runSlice
  * Run a schedule.
  * Return true if a proof was found, otherwise return false.
  */
-bool PortfolioMode::runSchedule(Schedule& schedule, int terminationTime)
+bool PortfolioMode::runSchedule(Schedule& schedule, int terminationTime, Shell::Property* prop)
 {
   CALL("PortfolioMode::runSchedule");
 
@@ -327,7 +327,7 @@ bool PortfolioMode::runSchedule(Schedule& schedule, int terminationTime)
   PortfolioSliceExecutor executor(this);
   ScheduleExecutor sched(&policy, &executor);
 
-  return sched.run(schedule, terminationTime);
+  return sched.run(schedule, terminationTime, prop);
 }
 
 /**
@@ -449,6 +449,7 @@ void PortfolioMode::runSlice(Options& strategyOpt)
 
   System::ignoreSIGHUP(); // don't interrupt now, we need to finish printing the proof !
 
+  bool training = (env.options->mode() == Options::Mode::TRAINING);
   bool outputResult = false;
   if (!resultValue) {
     _syncSemaphore.dec(SEM_LOCK); // will block for all accept the first to enter
@@ -461,7 +462,7 @@ void PortfolioMode::runSlice(Options& strategyOpt)
     _syncSemaphore.inc(SEM_LOCK); // would be also released after the processes' death, but we are polite and do it already here
   }
 
-  if((outputAllowed() && resultValue) || outputResult) { // we can report on every failure, but only once on success
+  if((outputAllowed() && resultValue) || outputResult || training) { // we can report on every failure, but only once on success
     env.beginOutput();
     UIHelper::outputResult(env.out());
     env.endOutput();

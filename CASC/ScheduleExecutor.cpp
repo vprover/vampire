@@ -2,11 +2,11 @@
 
 #include "Lib/Array.hpp"
 #include "Lib/Environment.hpp"
-#include "Lib/List.hpp"
-#include "Lib/PriorityQueue.hpp"
 #include "Lib/System.hpp"
 #include "Lib/Sys/Multiprocessing.hpp"
 #include "Lib/Timer.hpp"
+#include "Lib/Environment.hpp"
+
 #include "Shell/Options.hpp"
 
 using namespace CASC;
@@ -20,36 +20,11 @@ ScheduleExecutor::ScheduleExecutor(ProcessPriorityPolicy *policy, SliceExecutor 
 {
   CALL("ScheduleExecutor::ScheduleExecutor");
   _numWorkers = getNumWorkers();
+  _status = (env.options->mode() == Shell::Options::Mode::TRAINING) ? FINDING_PROOF : NOT_TRAINING;
+  _currentBest = ProcessInfo("", 1000000000); //arbitrary large value. Need to check that this is large enough
 }
 
-class Item
-{
-public:
-  Item() : _started(true), _process(-1), _code("") {}
-  Item(vstring code)
-    : _started(false), _process(-1), _code(code) {}
-  Item(pid_t process)
-    : _started(true), _process(process), _code("") {}
-
-  bool started() const {return _started;}
-  vstring code() const
-  {
-    ASS(!started());
-    return _code;
-  }
-  pid_t process() const
-  {
-    ASS(started());
-    return _process;
-  }
-
-private:
-  bool _started;
-  pid_t _process;
-  vstring _code;
-};
-
-bool ScheduleExecutor::run(const Schedule &schedule, int terminationTime)
+bool ScheduleExecutor::run(const Schedule &schedule, int terminationTime, Shell::Property* prop)
 {
   CALL("ScheduleExecutor::run");
 
@@ -64,7 +39,6 @@ bool ScheduleExecutor::run(const Schedule &schedule, int terminationTime)
     queue.insert(priority, code);
   }
 
-  typedef List<pid_t> Pool;
   Pool *pool = Pool::empty();
 
   bool success = false;
@@ -79,7 +53,11 @@ bool ScheduleExecutor::run(const Schedule &schedule, int terminationTime)
       pid_t process;
       if(!item.started())
       {
+        //cout << "starting item with code " + item.code() << endl;
         process = spawn(item.code(), terminationTime);
+        if(_status){
+          _processTimes.insert(process, ProcessInfo(item.code(), env.timer->elapsedMilliseconds()));
+        }
       }
       else
       {
@@ -102,8 +80,28 @@ bool ScheduleExecutor::run(const Schedule &schedule, int terminationTime)
       pool = Pool::remove(process, pool);
       if(!code)
       {
-        success = true;
-        goto exit;
+        if(_status){
+          ProcessInfo inf = _processTimes.get(process);
+          int runningTime = env.timer->elapsedMilliseconds() - inf.second;
+          if(runningTime < _currentBest.second){
+            //cout << "Current best was " + _currentBest.first + " with time " << _currentBest.second << endl;
+            //cout << "Because (" << process << ") found a proof the curren best is " + inf.first + " with time " << runningTime << endl; 
+            _currentBest = ProcessInfo(inf.first, runningTime);
+            if(_status == FINDING_PROOF){
+              _origSucStrat = _currentBest;
+            }
+            killAllInPool(&pool);
+            emptyQueueAndAddMutatedProcs(&queue, prop);
+            _status = LOCAL_SEARCH;
+          }
+        } else {
+          success = true;
+          goto exit;
+        }
+      } else if(code != 1){
+        cout << "ERROR " << code << endl;
+        cout << "The process id is " << process << endl;
+        cout << "The process code is " + _processTimes.get(process).first << endl;
       }
     }
     // child stopped, re-insert it in the queue
@@ -117,19 +115,60 @@ bool ScheduleExecutor::run(const Schedule &schedule, int terminationTime)
     // pool empty and queue exhausted - we failed
     if(!pool && queue.isEmpty())
     {
+      if(_status == LOCAL_SEARCH){
+        emptyQueueAndAddMutatedProcs(&queue, prop);
+        continue;
+      }
       goto exit;
     }
   }
 
 exit:
+  if(_status /*&& (env.remainingTime() <= 0)*/){
+    env.beginOutput();
+    bool out = (_currentBest.first != _origSucStrat.first);
+    if(out){
+      env.out() << "The first successful strategy found for the problem is " + _origSucStrat.first + 
+                 " which found a proof in time " << _origSucStrat.second << endl;
+    }
+    env.out() << "The best strategy found for the problem is " + _currentBest.first + 
+                 " which found a proof in time " << _currentBest.second << endl;
+    if(out){
+      env.out() << "Training saved " << (_origSucStrat.second - _currentBest.second) << " milliseconds" << endl;             
+    }
+    env.endOutput();
+  } 
   // kill all running processes first
-  Pool::DestructiveIterator killIt(pool);
-  while(killIt.hasNext())
+  killAllInPool(&pool);
+  return success;
+}
+
+void ScheduleExecutor::killAllInPool(Pool** p)
+{
+  CALL("ScheduleExecutor::killAllInPool");  
+
+  //Pool::DestructiveIterator killIt(*p);
+  while(!Pool::isEmpty(*p))
   {
-    pid_t process = killIt.next();
+    pid_t process = Pool::pop(*p);
     Multiprocessing::instance()->killNoCheck(process, SIGKILL);
   }
-  return success;
+  ASS(*p == 0);
+}
+
+void ScheduleExecutor::emptyQueueAndAddMutatedProcs(PriorityQueue<Item>* queue, Shell::Property* prop)
+{
+  CALL("ScheduleExecutor::emptyQueueAndAddMutatedProcs");  
+
+  while(!queue->isEmpty()){
+    queue->pop();
+  }
+
+  for(unsigned i = 0; i < getNumWorkers(); i++){
+    vstring code = env.options->mutate(_currentBest.first, prop);
+    float priority = _policy->staticPriority(code);
+    queue->insert(priority, code);         
+  }
 }
 
 unsigned ScheduleExecutor::getNumWorkers()

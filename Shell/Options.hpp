@@ -139,6 +139,12 @@ public:
     void readFromEncodedOptions (vstring testId);
     void readOptionsString (vstring testId,bool assign=true);
     vstring generateEncodedOptions() const;
+    /** takes a encoded option string and 
+      * returns another option string that represents
+      * a mutation of the input. Mutations are random and controlled
+      * by [WHAT?]    
+      */
+    static vstring mutate(vstring optStr, Property* prop);
 
     // deal with completeness
     bool complete(const Problem&) const;
@@ -147,7 +153,7 @@ public:
 
     // deal with constraints
     void setForcedOptionValues(); // not currently used effectively
-    bool checkGlobalOptionConstraints(bool fail_early=false);
+    bool checkGlobalOptionConstraints(bool fail_early=false, bool check = false);
     bool checkProblemOptionConstraints(Property*, bool fail_early=false); 
 
     // Randomize strategy (will only work if randomStrategy=on)
@@ -162,6 +168,11 @@ public:
     // the preprocessing stage. This means that in vampire.cpp we call this twice
     void randomizeStrategy(Property* prop);
     
+
+    // will set the value of all options in this option file to their default values
+    // used in training mode
+    void setAllOptsToDefault (); 
+
     /**
      * Return the problem name
      *
@@ -822,7 +833,7 @@ private:
         
         AbstractOptionValue(){}
         AbstractOptionValue(vstring l,vstring s) :
-        longName(l), shortName(s), experimental(false), is_set(false),_should_copy(true), _tag(OptionTag::LAST_TAG), supress_problemconstraints(false) {}
+        longName(l), shortName(s), experimental(false), is_set(false), mutationProb(0), _should_copy(true), _tag(OptionTag::LAST_TAG), supress_problemconstraints(false) {}
         
         // Never copy an OptionValue... the Constraint system would break
     private:
@@ -839,18 +850,23 @@ private:
         }
         
         // Set to a random value
-        virtual bool randomize(Property* P) = 0;
+        virtual bool randomize(Property* P, bool training_mode = false) = 0;
 
         // Experimental options are not included in help
         void setExperimental(){experimental=true;}
-        
+        void setMutationProb(double p){
+          ASS(p >= 0 && p <= 1);
+          mutationProb = p;
+        }
+
         // Meta-data
         vstring longName;
         vstring shortName;
         vstring description;
         bool experimental;
         bool is_set;
-        
+        double mutationProb;
+
         // Checking constraits
         virtual bool checkConstraints() = 0;
         virtual bool checkProblemConstraints(Property* prop) = 0;
@@ -869,6 +885,8 @@ private:
         virtual vstring getStringOfActual() const = 0;
         // Check if default value
         virtual bool isDefault() const = 0;
+        virtual void setToDefault() = 0;
+
         
         // For use in showOptions and explainOption
         //virtual void output(vstringstream& out) const {
@@ -977,6 +995,7 @@ private:
         T actualValue;
         
         virtual bool isDefault() const { return defaultValue==actualValue;}
+        virtual void setToDefault() { actualValue = defaultValue; }
 
         // Getting the string versions of values, useful for output
         virtual vstring getStringOfValue(T value) const{ ASSERTION_VIOLATION;}
@@ -1030,7 +1049,7 @@ private:
         }
        
         // This is where actual randomisation happens
-        bool randomize(Property* p);
+        bool randomize(Property* p, bool train_mode = false);
  
     private:
         //TODO add destructor to delete constraints, currently a memory leak

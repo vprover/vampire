@@ -85,7 +85,7 @@ private:
   bool searchForProof();
   bool performStrategy(Shell::Property* property);
   void getSchedules(Property& prop, Schedule& quick, Schedule& fallback);
-  bool runSchedule(Schedule& schedule, int terminationTime);
+  bool runSchedule(Schedule& schedule, int terminationTime, Shell::Property* prop);
   bool waitForChildAndCheckIfProofFound();
   void runSlice(vstring slice, unsigned timeLimitInDeciseconds) NO_RETURN;
   void runSlice(Options& strategyOpt) NO_RETURN;

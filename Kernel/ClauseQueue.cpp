@@ -93,11 +93,11 @@ void ClauseQueue::insert(Clause* c)
     Node* next = left->nodes[lh];
     if (next == 0 || lessThan(c,next->clause)) {
       if (lh <= h) {
-	left->nodes[lh] = newNode;
-	newNode->nodes[lh] = next;
+        left->nodes[lh] = newNode;
+        newNode->nodes[lh] = next;
       }
       if (lh == 0) {
-	return;
+        return;
       }
       lh--;
       continue;
@@ -114,6 +114,8 @@ bool ClauseQueue::remove(Clause* c)
 {
   CALL("ClauseQueue::remove");
 
+  this->output(cout);
+
   unsigned h = _height;
   Node* left = _left;
 
@@ -123,21 +125,21 @@ bool ClauseQueue::remove(Clause* c)
       unsigned height = h;
       // found, first change the links going to next
       for (;;) {
-	left->nodes[h] = next->nodes[h];
-	if (h == 0) {
-	  break;
-	}
-	h--;
-	while (left->nodes[h] != next) {
-	  left = left->nodes[h];
-	}
+        left->nodes[h] = next->nodes[h];
+        if (h == 0) {
+          break;
+        }
+        h--;
+        while (left->nodes[h] != next) {
+          left = left->nodes[h];
+        }
       }
       // deallocate the node
       DEALLOC_KNOWN(next,
 		    sizeof(Node)+height*sizeof(Node*),
 		    "ClauseQueue::Node");
       while (_height > 0 && ! _left->nodes[_height]) {
-	_height--;
+        _height--;
       }
       return true;
     }
@@ -148,7 +150,7 @@ bool ClauseQueue::remove(Clause* c)
 #if VDEBUG
        ClauseQueue::Iterator it(*this);
        while(it.hasNext()){
-         ASS(it.next()!=c);
+         ASS_REP(it.next()!=c, c->toString());
        }
 #endif
 

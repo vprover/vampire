@@ -122,7 +122,7 @@ void Options::Options::init()
                                         "sat_solver",
                                         "smtcomp",
                                         "spider",
-                                        "tclausify",
+                                        "/tclausify",
                                         "vampire",
                                         "training"});
     _mode.description=
@@ -182,12 +182,13 @@ void Options::Options::init()
         Or(_mode.is(equal(Mode::PORTFOLIO)))));
 
     _multicore = UnsignedOptionValue("cores","",1);
-    _multicore.description = "When running in portfolio mode mode specify the number of cores, set to 0 to use maximum";
+    _multicore.description = "When running in portfolio mode specify the number of cores, set to 0 to use maximum";
     _lookup.insert(&_multicore);
     _multicore.reliesOnHard(_mode.is(equal(Mode::CASC)->
         Or(_mode.is(equal(Mode::CASC_SAT)))->
         Or(_mode.is(equal(Mode::SMTCOMP)))->
-        Or(_mode.is(equal(Mode::PORTFOLIO)))));
+        Or(_mode.is(equal(Mode::PORTFOLIO)))->
+        Or(_mode.is(equal(Mode::TRAINING)))));
 
     _ltbLearning = ChoiceOptionValue<LTBLearning>("ltb_learning","ltbl",LTBLearning::OFF,{"on","off","biased"});
     _ltbLearning.description = "Perform learning in LTB mode";
@@ -434,7 +435,7 @@ void Options::Options::init()
     _equalityProxy.addProblemConstraint(hasEquality());
     _equalityProxy.addProblemConstraint(notHigherOrder());
     _equalityProxy.setRandomChoices(isRandOn(),{"R","RS","RST","RSTC","off","off","off","off","off"}); // wasn't tested, make off more likely
-    
+    _equalityProxy.setMutationProb(0.2);
 
     _equalityResolutionWithDeletion = ChoiceOptionValue<RuleActivity>( "equality_resolution_with_deletion","erd",
                                                                       RuleActivity::INPUT_ONLY,{"input_only","off","on"});
@@ -445,7 +446,7 @@ void Options::Options::init()
     //TODO does this depend on anything?
     //TODO is there a problemConstraint?
     _equalityResolutionWithDeletion.setRandomChoices({"input_only","off"});
-
+    _equalityResolutionWithDeletion.setMutationProb(0.2);
 
     _arityCheck = BoolOptionValue("arity_check","",false);
     _arityCheck.description="Enforce the condition that the same symbol name cannot be used with multiple arities."
@@ -461,6 +462,7 @@ void Options::Options::init()
     _functionDefinitionElimination.tag(OptionTag::PREPROCESSING);
     _functionDefinitionElimination.addProblemConstraint(hasEquality());
     _functionDefinitionElimination.setRandomChoices({"all","none"});
+    _functionDefinitionElimination.setMutationProb(0.2);
 
     _generalSplitting = ChoiceOptionValue<RuleActivity>("general_splitting","gsp",RuleActivity::OFF,{"input_only","off","on"});
     _generalSplitting.description=
@@ -472,6 +474,7 @@ void Options::Options::init()
     _generalSplitting.addConstraint(notEqual(RuleActivity::ON));
     _generalSplitting.addProblemConstraint(hasNonUnits());
     _generalSplitting.setRandomChoices({"off","input_only"});
+    _generalSplitting.setMutationProb(0.2);
 
     _unusedPredicateDefinitionRemoval = BoolOptionValue("unused_predicate_definition_removal","updr",true);
     _unusedPredicateDefinitionRemoval.description="Attempt to remove predicate definitions. A predicate definition is a formula of the form ![X1,..,Xn] : (p(X1,..,XN) <=> F) where p is not equality and does not occur in F and X1,..,XN are the free variables of F. If p has only positive (negative) occurences then <=> in the definition can be replaced by => (<=). If p does not occur in the rest of the problem the definition can be removed.";
@@ -486,6 +489,7 @@ void Options::Options::init()
     _blockedClauseElimination.tag(OptionTag::PREPROCESSING);
     _blockedClauseElimination.addProblemConstraint(notWithCat(Property::UEQ));
     _blockedClauseElimination.setRandomChoices({"on","off"});
+    _blockedClauseElimination.setMutationProb(0.2);
 
     _theoryAxioms = ChoiceOptionValue<TheoryAxiomLevel>("theory_axioms","tha",TheoryAxiomLevel::ON,{"on","off","some"});
     _theoryAxioms.description="Include theory axioms for detected interpreted symbols";
@@ -506,6 +510,7 @@ void Options::Options::init()
     // Captures that if the value is not default then sineSelection must be on
     _sineDepth.reliesOn(_sineSelection.is(notEqual(SineSelection::OFF)));
     _sineDepth.setRandomChoices({"0","1","2","3","4","5","7","10"});
+    _sineDepth.setMutationProb(0.2);
 
     _sineGeneralityThreshold = UnsignedOptionValue("sine_generality_threshold","sgt",0);
     _sineGeneralityThreshold.description=
@@ -525,6 +530,7 @@ void Options::Options::init()
     _sineSelection.setRandomChoices(atomsMoreThan(10000),{"axioms","off","off","off"});
     _sineSelection.setRandomChoices(atomsMoreThan(3000),{"axioms","off","off","off","off","off"});
     _sineSelection.setRandomChoices(atomsMoreThan(1000),{"axioms","off","off","off","off","off","off","off"});
+    _sineSelection.setMutationProb(0.2);
 
     _sineTolerance = FloatOptionValue("sine_tolerance","st",1.0);
     _sineTolerance.description="SInE tolerance parameter (sometimes referred to as 'benevolence')";
@@ -534,6 +540,7 @@ void Options::Options::init()
     // Captures that if the value is not 1.0 then sineSelection must be on
     _sineTolerance.reliesOn(_sineSelection.is(notEqual(SineSelection::OFF)));
     _sineTolerance.setRandomChoices({"1.0","1.2","1.5","2.0","3.0","5.0"});
+    _sineTolerance.setMutationProb(0.2);
 
     _naming = IntOptionValue("naming","nm",8);
     _naming.description="Introduce names for subformulas. Given a subformula F(x1,..,xk) of formula G a new predicate symbol is introduced as a name for F(x1,..,xk) by adding the axiom n(x1,..,xk) <=> F(x1,..,xk) and replacing F(x1,..,xk) with n(x1,..,xk) in G. The value indicates how many times a subformula must be used before it is named.";
@@ -714,7 +721,8 @@ void Options::Options::init()
     // Note order of adding constraints matters (we assume previous gaurds are false)
     _saturationAlgorithm.setRandomChoices(isRandSat(),{"discount","otter","inst_gen","fmb"});
     _saturationAlgorithm.setRandomChoices(Or(hasCat(Property::UEQ),atomsLessThan(4000)),{"lrs","discount","otter","inst_gen"});
-    _saturationAlgorithm.setRandomChoices({"discount","inst_gen","lrs","otter"});
+    _saturationAlgorithm.setRandomChoices({"discount","lrs","otter"}); //not sure whether higher-order reasoning works with inst-gen
+    _saturationAlgorithm.setMutationProb(0.2);
 
 #if VZ3
     _smtForGround = BoolOptionValue("smt_for_ground","smtfg",true);
@@ -810,6 +818,7 @@ void Options::Options::init()
     _selection.reliesOn(_saturationAlgorithm.is(notEqual(SaturationAlgorithm::INST_GEN))->Or<int>(_instGenWithResolution.is(equal(true))));
     _selection.setRandomChoices(And(isRandSat(),saNotInstGen()),{"0","1","2","3","4","10","11","-1","-2","-3","-4","-10","-11"});
     _selection.setRandomChoices({"0","1","2","3","4","10","11","1002","1003","1004","1010","1011","-1","-2","-3","-4","-10","-11","-1002","-1003","-1004","-1010"});
+    _selection.setMutationProb(0.2);
 
     _lookaheadDelay = IntOptionValue("lookahaed_delay","lsd",0);
     _lookaheadDelay.description = "Delay the use of lookahead selection by this many selections"
@@ -818,7 +827,8 @@ void Options::Options::init()
     _lookaheadDelay.tag(OptionTag::SATURATION);
     _lookup.insert(&_lookaheadDelay);
     _lookaheadDelay.reliesOn(_selection.isLookAheadSelection());
-    
+    _lookaheadDelay.setMutationProb(0.3);
+
     _ageWeightRatio = RatioOptionValue("age_weight_ratio","awr",1,1,':');
     _ageWeightRatio.description=
     "Ratio in which clauses are being selected for activation i.e. a:w means that for every a clauses selected based on age "
@@ -827,6 +837,7 @@ void Options::Options::init()
     _ageWeightRatio.tag(OptionTag::SATURATION);
     _ageWeightRatio.reliesOn(_saturationAlgorithm.is(notEqual(SaturationAlgorithm::INST_GEN))->Or<int>(_instGenWithResolution.is(equal(true))));
     _ageWeightRatio.setRandomChoices({"8:1","5:1","4:1","3:1","2:1","3:2","5:4","1","2:3","2","3","4","5","6","7","8","10","12","14","16","20","24","28","32","40","50","64","128","1024"});
+    _ageWeightRatio.setMutationProb(0.2);
 
       _literalMaximalityAftercheck = BoolOptionValue("literal_maximality_aftercheck","lma",false);
       _lookup.insert(&_literalMaximalityAftercheck);
@@ -893,6 +904,7 @@ void Options::Options::init()
       _backwardDemodulation.addProblemConstraint(hasEquality());
       _backwardDemodulation.reliesOn(_saturationAlgorithm.is(notEqual(SaturationAlgorithm::INST_GEN))->Or<Demodulation>(_instGenWithResolution.is(equal(true))));
       _backwardDemodulation.setRandomChoices({"all","off"});
+      _backwardDemodulation.setMutationProb(0.2);
 
       _backwardSubsumption = ChoiceOptionValue<Subsumption>("backward_subsumption","bs",
                   Subsumption::OFF,{"off","on","unit_only"});
@@ -902,6 +914,7 @@ void Options::Options::init()
       _backwardSubsumption.tag(OptionTag::INFERENCES);
       _backwardSubsumption.reliesOn(_saturationAlgorithm.is(notEqual(SaturationAlgorithm::INST_GEN))->Or<Subsumption>(_instGenWithResolution.is(equal(true))));
       _backwardSubsumption.setRandomChoices({"on","off"});
+      _backwardSubsumption.setMutationProb(0.2);
 
       _backwardSubsumptionResolution = ChoiceOptionValue<Subsumption>("backward_subsumption_resolution","bsr",
                       Subsumption::OFF,{"off","on","unit_only"});
@@ -911,6 +924,7 @@ void Options::Options::init()
       _backwardSubsumptionResolution.tag(OptionTag::INFERENCES);
       _backwardSubsumptionResolution.reliesOn(_saturationAlgorithm.is(notEqual(SaturationAlgorithm::INST_GEN))->Or<Subsumption>(_instGenWithResolution.is(equal(true))));
       _backwardSubsumptionResolution.setRandomChoices({"on","off"});
+      _backwardSubsumptionResolution.setMutationProb(0.2);
 
       _binaryResolution = BoolOptionValue("binary_resolution","br",true);
       _binaryResolution.description=
@@ -926,7 +940,7 @@ void Options::Options::init()
         If(equal(false)).then(_unitResultingResolution.is(notEqual(URResolution::OFF))));
       _binaryResolution.setRandomChoices(And(isRandSat(),saNotInstGen(),Or(hasEquality(),isBfnt(),hasCat(Property::HNE))),{"on"});
       _binaryResolution.setRandomChoices({"on","off"});
-
+      _binaryResolution.setMutationProb(0.2);
 
       _condensation = ChoiceOptionValue<Condensation>("condensation","cond",Condensation::OFF,{"fast","off","on"});
       _condensation.description=
@@ -935,6 +949,7 @@ void Options::Options::init()
       _condensation.tag(OptionTag::INFERENCES);
       _condensation.reliesOn(_saturationAlgorithm.is(notEqual(SaturationAlgorithm::INST_GEN))->Or<Condensation>(_instGenWithResolution.is(equal(true))));
       _condensation.setRandomChoices({"on","off","fast"});
+      _condensation.setMutationProb(0.2);
 
       _demodulationRedundancyCheck = BoolOptionValue("demodulation_redundancy_check","drc",true);
       _demodulationRedundancyCheck.description=
@@ -949,7 +964,7 @@ void Options::Options::init()
       _demodulationRedundancyCheck.reliesOn(_saturationAlgorithm.is(notEqual(SaturationAlgorithm::INST_GEN))->Or<bool>(_instGenWithResolution.is(equal(true))));
       _demodulationRedundancyCheck.addProblemConstraint(hasEquality());
       _demodulationRedundancyCheck.setRandomChoices({"on","off"});
-
+      _demodulationRedundancyCheck.setMutationProb(0.2);
       
       _extensionalityAllowPosEq = BoolOptionValue( "extensionality_allow_pos_eq","",false);
       _extensionalityAllowPosEq.description="If extensionality resolution equals filter, this dictates"
@@ -958,7 +973,8 @@ void Options::Options::init()
       _extensionalityAllowPosEq.tag(OptionTag::INFERENCES);
       _extensionalityAllowPosEq.reliesOn(_extensionalityResolution.is(equal(ExtensionalityResolution::FILTER)));
       _extensionalityAllowPosEq.setRandomChoices({"on","off","off"}); // Prefer off
-      
+      _extensionalityAllowPosEq.setMutationProb(0.2);
+
       _extensionalityMaxLength = UnsignedOptionValue("extensionality_max_length","",0);
       _extensionalityMaxLength.description="Sets the maximum length (number of literals) an extensionality"
         " clause can have when doing recognition for extensionality resolution. If zero there is no maximum.";
@@ -969,7 +985,8 @@ void Options::Options::init()
       _extensionalityMaxLength.reliesOn(_extensionalityResolution.is(notEqual(ExtensionalityResolution::OFF)));
       //TODO does this depend on anything?
       _extensionalityMaxLength.setRandomChoices({"0","0","0","2","3"}); // TODO what are good values?
-      
+      _extensionalityMaxLength.setMutationProb(0.2);
+
       _extensionalityResolution = ChoiceOptionValue<ExtensionalityResolution>("extensionality_resolution","er",
                         ExtensionalityResolution::OFF,{"filter","known","tagged","off"});
       _extensionalityResolution.description=
@@ -986,21 +1003,24 @@ void Options::Options::init()
       // Captures that if ExtensionalityResolution is not off then inequality splitting must be 0
       _extensionalityResolution.reliesOn(_inequalitySplitting.is(equal(0)));
       _extensionalityResolution.setRandomChoices({"filter","known","off","off"});
+      _extensionalityResolution.setMutationProb(0.2);
 
       _HOLConstantShortCircuitEval = BoolOptionValue("hol_short_circuit_eval","holscev",false);
       _HOLConstantShortCircuitEval.description=
       "Turns on a set of inference rules used to eliminate "
-      "HOL constants from clauses. An example rule is: \n"
+      "logical proxies from clauses. An example rule is: \n"
         "C[app(app(vAND, false),t1)]\n"
         "---------------------------\n"
         "         C[false]            ";   
       _lookup.insert(&_HOLConstantShortCircuitEval);
       _HOLConstantShortCircuitEval.tag(OptionTag::INFERENCES);
-      
+      _HOLConstantShortCircuitEval.setRandomChoices({"on","on","on","off"});
+      _HOLConstantShortCircuitEval.setMutationProb(0.5);
+
       _HOLConstantElimination = BoolOptionValue("hol_constant_elimination","holcelim",false);
       _HOLConstantElimination.description=
       "Turns on a set of inference rules used to eliminate "
-      "HOL constants from clauses. An example rule is: \n"
+      "logical proxies from clauses. An example rule is: \n"
         "app(vNOT, t1) = $true \\/ C\n"
         "--------------------------,\n"
         "    t1 = $false \\/ C\n"
@@ -1008,6 +1028,8 @@ void Options::Options::init()
         "treatment of HOL constants.";    
       _lookup.insert(&_HOLConstantElimination);
       _HOLConstantElimination.tag(OptionTag::INFERENCES);
+      _HOLConstantElimination.setRandomChoices({"on","off"});
+      _HOLConstantElimination.setMutationProb(0.5);
 
       _extendedNarrowing = BoolOptionValue("extended_narrowing","e_n",false);
       _extendedNarrowing.description=
@@ -1019,7 +1041,9 @@ void Options::Options::init()
         " t1 = $true \\/ t2 = $true \\/ C\n";    
       _lookup.insert(&_extendedNarrowing);
       _extendedNarrowing.tag(OptionTag::INFERENCES);
-      
+      _extendedNarrowing.setRandomChoices({"on","off"});
+      _extendedNarrowing.setMutationProb(0.5);
+
       _combinatoryUnification = BoolOptionValue("combinatory_unif","cunif",false);
       _combinatoryUnification.description=
       "Syntactic unification is replaced by  \n"
@@ -1029,6 +1053,8 @@ void Options::Options::init()
         If(equal(true)).then(_unificationWithAbstraction.is(equal(UnificationWithAbstraction::OFF))));
       _lookup.insert(&_combinatoryUnification);
       _combinatoryUnification.tag(OptionTag::SATURATION); //This is not inference, change!
+      _combinatoryUnification.setRandomChoices({"on","off"});      
+      _combinatoryUnification.setMutationProb(0.6);
 
       _useFullDougherty = BoolOptionValue("full_dougherty","fulld",false);
       _useFullDougherty.description=
@@ -1036,6 +1062,8 @@ void Options::Options::init()
       "with full Dougherty's algorithm.";
       _lookup.insert(&_useFullDougherty);
       _useFullDougherty.tag(OptionTag::SATURATION);
+      _useFullDougherty.setRandomChoices({"on","off","off"});      
+      _useFullDougherty.setMutationProb(0.5);
 
       _functionExtensionality = BoolOptionValue("add_func_ext_ax","afea",false);
       _functionExtensionality.description=
@@ -1043,6 +1071,8 @@ void Options::Options::init()
        "For example: ![F: a -> b, G: a -> b](![X: a] : F X = G X ) => F = G ";    
       _lookup.insert(&_functionExtensionality);
       _functionExtensionality.tag(OptionTag::OTHER); 
+      _functionExtensionality.setRandomChoices({"on","on","off"});      
+      _functionExtensionality.setMutationProb(0.5);
 
       _booleanExtensionality = BoolOptionValue("add_bool_ext_ax","abea",false);
       _booleanExtensionality.description=
@@ -1050,6 +1080,8 @@ void Options::Options::init()
        "![X: o, Y:o] : (X <=> Y) => X = Y";    
       _lookup.insert(&_booleanExtensionality);
       _booleanExtensionality.tag(OptionTag::OTHER);
+      _booleanExtensionality.setRandomChoices({"off","off", "off","on"});      
+      _booleanExtensionality.setMutationProb(0.5);
 
       _equalityToEquivalence = BoolOptionValue("equality_to_equiv","e2e",true);
       _equalityToEquivalence.description=
@@ -1057,15 +1089,17 @@ void Options::Options::init()
       "t1 : $o = t2 : $o is changed to t1 <=> t2";    
       _lookup.insert(&_equalityToEquivalence);
       _equalityToEquivalence.tag(OptionTag::OTHER);
+      _equalityToEquivalence.setRandomChoices({"off","on"});      
+      _equalityToEquivalence.setMutationProb(0.5);
       
-
       _alwaysUseProxies = BoolOptionValue("always_use_proxies","aup",false);
       _alwaysUseProxies.description=
       "When preprocessing formulas in term positions, translate using proxy functions \n"
       "If option is false, other translations are used by default";    
       _lookup.insert(&_alwaysUseProxies);
       _alwaysUseProxies.tag(OptionTag::OTHER);
-
+      _alwaysUseProxies.setRandomChoices({"off","on"});      
+      _alwaysUseProxies.setMutationProb(0.5);
 
       _combSelectVal = ChoiceOptionValue<CombinatoryLookaheadSelectionVal>
                        ("comb_select_val", "csl", CombinatoryLookaheadSelectionVal::ONE,
@@ -1075,7 +1109,9 @@ void Options::Options::init()
       "inferences are counted where the superposed term and the eqLHS can be unified using comb unification. If value\n"
       "is set to actual, then combinatory unification is carried out to find out the actual number of inferences possible"; 
       _lookup.insert(&_combSelectVal);
-      _combSelectVal.tag(OptionTag::OTHER);                
+      _combSelectVal.tag(OptionTag::OTHER);      
+      _combSelectVal.setRandomChoices({"1", "1", "2" , "3", "actual"});      
+      _combSelectVal.setMutationProb(0.5);                
      
       _combinatorElimination = ChoiceOptionValue<CombElimination>("combinator_elimination","combelim",
                                                                    CombElimination::AXIOMS,
@@ -1088,7 +1124,9 @@ void Options::Options::init()
           "    C[app(app(t1,t3),t2)]      \n";    
       _lookup.insert(&_combinatorElimination);
       _combinatorElimination.tag(OptionTag::INFERENCES);
-    
+      _combinatorElimination.setRandomChoices({"axioms", "inference_rules", "both"});      
+      _combinatorElimination.setMutationProb(0.5); 
+
       _addCombinators = ChoiceOptionValue<AddCombinators>("add_combinators","addc",
                                                           AddCombinators::OFF,
                                                           {"off","function_of_input","user"});
@@ -1099,7 +1137,8 @@ void Options::Options::init()
       _lookup.insert(&_addCombinators);
       _addCombinators.tag(OptionTag::INFERENCES);
       //_addCombinators.reliesOn(_splitting.is(equal(true)));
-    
+      _addCombinators.setRandomChoices({"off", "off", "function_of_input", "user"});      
+      _addCombinators.setMutationProb(0.5);     
        
       _combinatorAdditionBy = ChoiceOptionValue<CombinatorAdditionBy>("control_addition","cadd",
                                                           CombinatorAdditionBy::ALL,
@@ -1112,7 +1151,8 @@ void Options::Options::init()
       _lookup.insert(&_combinatorAdditionBy);
       _combinatorAdditionBy.tag(OptionTag::INFERENCES);
       _combinatorAdditionBy.reliesOn(_addCombinators.is(notEqual(AddCombinators::OFF)));
-     
+      _combinatorAdditionBy.setRandomChoices({"off", "order", "sort"});      
+      _combinatorAdditionBy.setMutationProb(0.5);       
      
       _numOfCombinatorsToAdd = UnsignedOptionValue("num_of_combs_to_add","nocto",0);
       _numOfCombinatorsToAdd.description=
@@ -1120,7 +1160,8 @@ void Options::Options::init()
       _lookup.insert(&_numOfCombinatorsToAdd);
       _numOfCombinatorsToAdd.tag(OptionTag::INFERENCES);
       _numOfCombinatorsToAdd.reliesOn(_addCombinators.is(equal(AddCombinators::BY_USER)));
-    
+      _numOfCombinatorsToAdd.setRandomChoices({"10","15","25","50","100"}); // TODO what are good values?
+      _numOfCombinatorsToAdd.setMutationProb(0.5);       
     
       _FOOLParamodulation = BoolOptionValue("fool_paramodulation","foolp",false);
       _FOOLParamodulation.description=
@@ -1174,6 +1215,7 @@ void Options::Options::init()
       _lookup.insert(&_forwardDemodulation);
       _forwardDemodulation.tag(OptionTag::INFERENCES);
       _forwardDemodulation.setRandomChoices({"all","all","all","off","preordered"});
+      _forwardDemodulation.setMutationProb(0.2);       
     
     _forwardLiteralRewriting = BoolOptionValue("forward_literal_rewriting","flr",false);
     _forwardLiteralRewriting.description="Perform forward literal rewriting.";
@@ -1182,19 +1224,25 @@ void Options::Options::init()
     _forwardLiteralRewriting.addProblemConstraint(hasNonUnits());
     _forwardLiteralRewriting.reliesOn(_saturationAlgorithm.is(notEqual(SaturationAlgorithm::INST_GEN))->Or<bool>(_instGenWithResolution.is(equal(true))));
     _forwardLiteralRewriting.setRandomChoices({"on","off"});
+    _forwardLiteralRewriting.setMutationProb(0.2);       
 
     _forwardSubsumption = BoolOptionValue("forward_subsumption","fs",true);
     _forwardSubsumption.description="Perform forward subsumption deletion.";
     _lookup.insert(&_forwardSubsumption);
     _forwardSubsumption.tag(OptionTag::INFERENCES);
     _forwardSubsumption.setRandomChoices({"on","on","on","on","on","on","on","on","on","off"}); // turn this off rarely
+    //_forwardSubsumption.setMutationProb(0.2);       
+    //seems to mutate to "off" an unexpected large number of times 
+    //this causes problems with _forwardSubsumptionResolution
 
     _forwardSubsumptionResolution = BoolOptionValue("forward_subsumption_resolution","fsr",true);
     _forwardSubsumptionResolution.description="Perform forward subsumption resolution.";
     _lookup.insert(&_forwardSubsumptionResolution);
     _forwardSubsumptionResolution.tag(OptionTag::INFERENCES);
-    _forwardSubsumptionResolution    .reliesOn(_saturationAlgorithm.is(notEqual(SaturationAlgorithm::INST_GEN))->Or<bool>(_instGenWithResolution.is(equal(true))));
+    _forwardSubsumptionResolution.reliesOn(_saturationAlgorithm.is(notEqual(SaturationAlgorithm::INST_GEN))->Or<bool>(_instGenWithResolution.is(equal(true))));
+    _forwardSubsumptionResolution.reliesOnHard(_forwardSubsumption.is(notEqual(false)));
     _forwardSubsumptionResolution.setRandomChoices({"on","off"});
+    _forwardSubsumptionResolution.setMutationProb(0.2);       
 
     _hyperSuperposition = BoolOptionValue("hyper_superposition","",false);
     _hyperSuperposition.description=
@@ -1229,7 +1277,7 @@ void Options::Options::init()
     _unitResultingResolution.setRandomChoices(And(isRandSat(),saNotInstGen(),Or(hasEquality(),isBfnt(),hasCat(Property::HNE))),{"on","off"});
     _unitResultingResolution.setRandomChoices(isRandSat(),{});
     _unitResultingResolution.setRandomChoices({"on","on","off"});
-
+    _unitResultingResolution.setMutationProb(0.2);       
 
     _superpositionFromVariables = BoolOptionValue("superposition_from_variables","sfv",true);
     _superpositionFromVariables.description="Perform superposition from variables.";
@@ -1238,8 +1286,11 @@ void Options::Options::init()
     _superpositionFromVariables.addProblemConstraint(hasEquality());
     _superpositionFromVariables.reliesOn(_saturationAlgorithm.is(notEqual(SaturationAlgorithm::INST_GEN))->Or<bool>(_instGenWithResolution.is(equal(true))));
     _superpositionFromVariables.setRandomChoices({"on","off"});
+    _superpositionFromVariables.setMutationProb(0.2);       
 
 //*********************** InstGen  ***********************
+
+//IS InstGen COMPATIBLE WITH HO REASONING?
 
     _globalSubsumption = BoolOptionValue("global_subsumption","gs",false);
     _globalSubsumption.description="Perform global subsumption. Use a set of groundings of generated clauses G to replace C \\/ L by C if the grounding of C is implied by G. A SAT solver is used for ground reasoning.";
@@ -1368,6 +1419,7 @@ void Options::Options::init()
     _splitting.tag(OptionTag::AVATAR);
     //_splitting.addProblemConstraint(hasNonUnits());
     _splitting.setRandomChoices({"on","off"}); //TODO change balance?
+    _splitting.setMutationProb(0.2);
 
     _splitAtActivation = BoolOptionValue("split_at_activation","sac",false);
     _splitAtActivation.description="Split a clause when it is activated, default is to split when it is processed";
@@ -1375,6 +1427,7 @@ void Options::Options::init()
     _splitAtActivation.reliesOn(_splitting.is(equal(true)));
     _splitAtActivation.tag(OptionTag::AVATAR);
     _splitAtActivation.setRandomChoices({"on","off"});
+    _splitAtActivation.setMutationProb(0.2);
 
     _splittingAddComplementary = ChoiceOptionValue<SplittingAddComplementary>("avatar_add_complementary","aac",
                                                                                 SplittingAddComplementary::GROUND,{"ground","none"});
@@ -1384,7 +1437,7 @@ void Options::Options::init()
     _splittingAddComplementary.setExperimental();
     _splittingAddComplementary.reliesOn(_splitting.is(equal(true)));
     _splittingAddComplementary.setRandomChoices({"ground","none"});
-
+    _splittingAddComplementary.setMutationProb(0.2);
 
     _splittingCongruenceClosure = ChoiceOptionValue<SplittingCongruenceClosure>("avatar_congruence_closure","acc",
                                                                                 SplittingCongruenceClosure::OFF,{"model","off","on"});
@@ -1398,8 +1451,10 @@ void Options::Options::init()
     _splittingCongruenceClosure.addProblemConstraint(hasEquality());
     _splittingCongruenceClosure.setRandomChoices({"model","off","on"});
     _splittingCongruenceClosure.addHardConstraint(If(equal(SplittingCongruenceClosure::MODEL)).
-                                                  then(_splittingMinimizeModel.is(notEqual(SplittingMinimizeModel::SCO))));
+                                                  then(_splittingMinimizeModel.is(notEqual(SplittingMinimizeModel::SCO))));    
+    _splittingCongruenceClosure.setMutationProb(0.2);
     
+
     _ccUnsatCores = ChoiceOptionValue<CCUnsatCores>("cc_unsat_cores","ccuc",CCUnsatCores::ALL,
                                                      {"first", "small_ones", "all"});
     _ccUnsatCores.description="";
@@ -1408,6 +1463,7 @@ void Options::Options::init()
     _ccUnsatCores.reliesOn(_splittingCongruenceClosure.is(notEqual(SplittingCongruenceClosure::OFF)));
     _ccUnsatCores.setRandomChoices({"first", "small_ones", "all"});
     _ccUnsatCores.setExperimental();
+    _ccUnsatCores.setMutationProb(0.2);
 
     _splittingLiteralPolarityAdvice = ChoiceOptionValue<SplittingLiteralPolarityAdvice>(
                                                 "avatar_literal_polarity_advice","alpa",
@@ -1418,6 +1474,7 @@ void Options::Options::init()
     _splittingLiteralPolarityAdvice.tag(OptionTag::AVATAR);
     _splittingLiteralPolarityAdvice.reliesOn(_splitting.is(equal(true)));
     _splittingLiteralPolarityAdvice.setExperimental();
+    _splittingLiteralPolarityAdvice.setMutationProb(0.2);
 
     _splittingMinimizeModel = ChoiceOptionValue<SplittingMinimizeModel>("avatar_minimize_model","amm",
                                                                         SplittingMinimizeModel::ALL,{"off","sco","all"});
@@ -1430,6 +1487,7 @@ void Options::Options::init()
     //_splittingMinimizeModel.setExperimental();
     _splittingMinimizeModel.reliesOn(_splitting.is(equal(true)));
     _splittingMinimizeModel.setRandomChoices({"off","sco","all"});
+    _splittingMinimizeModel.setMutationProb(0.2);
 
     _splittingEagerRemoval = BoolOptionValue("avatar_eager_removal","aer",true);
     _splittingEagerRemoval.description="If a component was in the model and then becomes 'don't care' eagerly remove that component from the first-order solver. Note: only has any impact when smm is used.";
@@ -1441,6 +1499,7 @@ void Options::Options::init()
     // if minimize is sco then we could have a conflict clause added infinitely often
     _splittingEagerRemoval.reliesOn(_splittingMinimizeModel.is(equal(SplittingMinimizeModel::ALL)));
     _splittingEagerRemoval.setRandomChoices({"on","off"});
+    _splittingEagerRemoval.setMutationProb(0.2);
 
     _splittingFastRestart = BoolOptionValue("avatar_fast_restart","afr",false);
     _splittingFastRestart.description="";
@@ -1449,6 +1508,7 @@ void Options::Options::init()
     _splittingFastRestart.setExperimental();
     _splittingFastRestart.reliesOn(_splitting.is(equal(true)));
     _splittingFastRestart.setRandomChoices({"on","off"});
+    _splittingFastRestart.setMutationProb(0.2);
 
     _splittingBufferedSolver = BoolOptionValue("avatar_buffered_solver","abs",false);
     _splittingBufferedSolver.description="Added buffering funcitonality to the SAT solver used in AVATAR.";
@@ -1457,6 +1517,7 @@ void Options::Options::init()
     _splittingBufferedSolver.setExperimental();
     _splittingBufferedSolver.reliesOn(_splitting.is(equal(true)));
     _splittingBufferedSolver.setRandomChoices({"on","off"});
+    _splittingBufferedSolver.setMutationProb(0.2);
 
     _splittingDeleteDeactivated = ChoiceOptionValue<SplittingDeleteDeactivated>("avatar_delete_deactivated","add",
                                                                         SplittingDeleteDeactivated::ON,{"on","large","off"});
@@ -1467,7 +1528,7 @@ void Options::Options::init()
     _splittingDeleteDeactivated.setExperimental();
     _splittingDeleteDeactivated.reliesOn(_splitting.is(equal(true)));
     _splittingDeleteDeactivated.setRandomChoices({"on","large","off"});
-
+    _splittingDeleteDeactivated.setMutationProb(0.2);
 
     _splittingFlushPeriod = UnsignedOptionValue("avatar_flush_period","afp",0);
     _splittingFlushPeriod.description=
@@ -1477,6 +1538,7 @@ void Options::Options::init()
     _splittingFlushPeriod.setExperimental();
     _splittingFlushPeriod.reliesOn(_splitting.is(equal(true)));
     _splittingFlushPeriod.setRandomChoices({"0","1000","4000","10000","40000","100000"});
+    _splittingFlushPeriod.setMutationProb(0.2);
 
     _splittingFlushQuotient = FloatOptionValue("avatar_flush_quotient","afq",1.5);
     _splittingFlushQuotient.description=
@@ -1487,6 +1549,7 @@ void Options::Options::init()
     _splittingFlushQuotient.addConstraint(greaterThanEq(1.0f));
     _splittingFlushQuotient.reliesOn(_splitting.is(equal(true)));
     _splittingFlushQuotient.setRandomChoices({"1.0","1.1","1.2","1.4","2.0"});
+    _splittingFlushQuotient.setMutationProb(0.2);
 
     _splittingNonsplittableComponents = ChoiceOptionValue<SplittingNonsplittableComponents>("avatar_nonsplittable_components","anc",
                                                                                               SplittingNonsplittableComponents::KNOWN,
@@ -1501,7 +1564,7 @@ void Options::Options::init()
     //_splittingNonsplittableComponents.setExperimental();
     _splittingNonsplittableComponents.reliesOn(_splitting.is(equal(true)));
     _splittingNonsplittableComponents.setRandomChoices({"all","all_dependent","known","none"});
-
+    _splittingNonsplittableComponents.setMutationProb(0.2);
 
     _nonliteralsInClauseWeight = BoolOptionValue("nonliterals_in_clause_weight","nicw",false);
     _nonliteralsInClauseWeight.description=
@@ -1512,6 +1575,7 @@ void Options::Options::init()
     _nonliteralsInClauseWeight.reliesOn(_splitting.is(notEqual(false)));
     _nonliteralsInClauseWeight.addProblemConstraint(hasNonUnits());
     _nonliteralsInClauseWeight.setRandomChoices({"on","off"});
+    _nonliteralsInClauseWeight.setMutationProb(0.2);
 
 //*********************** SAT solver (used in various places)  ***********************
 
@@ -1602,6 +1666,7 @@ void Options::Options::init()
 #else
             {"minisat","vampire"});
 #endif
+    _satSolver.setMutationProb(0.2);
 
 #if VZ3
     _satFallbackForSMT = BoolOptionValue("sat_fallback_for_smt","sffsmt",false);
@@ -1671,7 +1736,7 @@ void Options::Options::init()
     _literalComparisonMode.addProblemConstraint(hasPredicates());
     // TODO: if sat then should not use reverse
     _literalComparisonMode.setRandomChoices({"predicate","reverse","standard"});
-
+    _literalComparisonMode.setMutationProb(0.2);
 
     _maxActive = LongOptionValue("max_active","",0);
     _maxActive.description="";
@@ -1703,6 +1768,8 @@ void Options::Options::init()
              "coefficient that will multiply the weight of theory axioms automatically added by Vampire"; 
     _lookup.insert(&_theoryWeightCoefficient);
     _theoryWeightCoefficient.tag(OptionTag::SATURATION);
+    _theoryWeightCoefficient.setRandomChoices({"1","1.1","1.2","1.3","1.5","1.7","2","2.5","3","4","5","10"});
+    _theoryWeightCoefficient.setMutationProb(0.2);
  
 
     _nonGoalWeightCoefficient = NonGoalWeightOptionValue("nongoal_weight_coefficient","nwc",1.0);
@@ -1711,7 +1778,7 @@ void Options::Options::init()
     _lookup.insert(&_nonGoalWeightCoefficient);
     _nonGoalWeightCoefficient.tag(OptionTag::SATURATION);
     _nonGoalWeightCoefficient.setRandomChoices({"1","1.1","1.2","1.3","1.5","1.7","2","2.5","3","4","5","10"});
-
+    _nonGoalWeightCoefficient.setMutationProb(0.2);
 
     _normalize = BoolOptionValue("normalize","norm",false);
     _normalize.description="Normalize the problem so that the ordering of clauses etc does not effect proof search.";
@@ -1748,6 +1815,7 @@ void Options::Options::init()
     _lookup.insert(&_symbolPrecedence);
     _symbolPrecedence.tag(OptionTag::SATURATION);
     _symbolPrecedence.setRandomChoices({"arity","occurence","reverse_arity","frequency"});
+    _symbolPrecedence.setMutationProb(0.2);
 
     _functionPrecedence = StringOptionValue("function_precendence","fp","");
     _functionPrecedence.description = "A name of a file with an explicit user specified precedence on function symbols.";
@@ -2265,14 +2333,17 @@ void Options::output (ostream& str) const
 // } // Options::toXML
 
 template<typename T>
-bool Options::OptionValue<T>::randomize(Property* prop){
+bool Options::OptionValue<T>::randomize(Property* prop, bool training_mode){
   CALL("Options::OptionValue::randomize()");
 
+  //when in training mode property should always be available
+  ASS(!training_mode || prop);
+
   DArray<vstring>* choices = 0;
-  if(env.options->randomStrategy()==RandomStrategy::NOCHECK) prop=0;
+  if(!training_mode && env.options->randomStrategy()==RandomStrategy::NOCHECK) prop=0;
 
   // Only randomize if we have a property and need it or don't have one and don't need it!
-  if( env.options->randomStrategy()!=RandomStrategy::NOCHECK && 
+  if(!training_mode && env.options->randomStrategy()!=RandomStrategy::NOCHECK && 
       ((prop && !hasProblemConstraints()) || (!prop && hasProblemConstraints()))
     ){
     return false;
@@ -2311,8 +2382,10 @@ bool Options::OptionValue<T>::checkConstraints(){
          }
 
          if(con->isHard()){ 
-           if(env.options->randomStrategy()!=RandomStrategy::OFF)
+           if((env.options->randomStrategy()!=RandomStrategy::OFF) || 
+              (env.options->mode()==Mode::TRAINING)) {
               return false; // Skip warning for Hard
+           }
            USER_ERROR("\nBroken Constraint: "+con->msg(this)); 
          }
          switch(env.options->getBadOptionChoice()){
@@ -2815,8 +2888,9 @@ void Options::readFromEncodedOptions (vstring testId)
     _saturationAlgorithm.actualValue = SaturationAlgorithm::FINITE_MODEL_BUILDING;
   }
   else {
-  error: USER_ERROR("bad test id " + _testId.actualValue);
+    error: USER_ERROR("bad test id " + _testId.actualValue);
   }
+  _saturationAlgorithm.is_set = true;
 
   // after last '_' we have time limit
   size_t index = testId.find_last_of('_');
@@ -2867,6 +2941,95 @@ void Options::setForcedOptionValues()
   if(_forcedOptions.actualValue.empty()) return;
   readOptionsString(_forcedOptions.actualValue);
 }
+
+
+vstring Options::mutate(vstring optStr, Property* prop)
+{
+  CALL("Options::mutate");
+
+  ASS(prop);
+
+  static Set<vstring> triedStrategies;
+  //memory leak here! opts will never be deleted
+  static Options* opts = new Options;
+
+  //the first call to this function will be made
+  //with a successful strategy not alredy in triedStrategies.
+  if(!triedStrategies.contains(optStr)){
+    triedStrategies.insert(optStr);
+  }
+
+  vstring res;
+  unsigned count = 0;
+  //opts matches optStr  
+  opts->setAllOptsToDefault();
+  opts->readFromEncodedOptions(optStr);
+
+  do{
+    //int saved_seed = Random::seed();
+    //Random::setSeed(time(NULL)); // TODO is this the best choice of seed?
+
+    // We define some options that should be set before the rest
+    // Note this is a stack!
+    Stack<AbstractOptionValue*> do_first;
+    do_first.push(&opts->_saturationAlgorithm);
+    do_first.push(&opts->_bfnt);
+
+    auto options = getConcatenatedIterator(Stack<AbstractOptionValue*>::Iterator(do_first),opts->_lookup.values());
+
+    // whilst doing this don't report any bad options
+    BadOption saved_bad_option = env.options->_badOption.actualValue;
+    env.options->_badOption.actualValue=BadOption::OFF;
+
+    while(options.hasNext()){
+      AbstractOptionValue* option = options.next();
+
+      //make it more likely that those options actually set by
+      //a successful strategy are mutated then those that are at default
+      double divFact = option->is_set ? 1.0 : 2.0;
+
+      double randDoub = Random::getDouble(0.0,1.0);
+      if(randDoub > (option->mutationProb/divFact)){
+        //cout << "randDoub " << randDoub << " mutationProb " << option->mutationProb/divFact << endl;
+        continue;
+      }
+   
+      //cout << "attempting to randomise " + option->longName + " with current val " + option->getStringOfActual() << endl;
+
+      // try 5 random values before giving up
+      vstring def = option->getStringOfActual();
+      bool set = option->is_set;
+
+      bool valid = false;
+      unsigned i=5;
+      while(!valid && i-- > 0){
+        option->randomize(prop, true);
+        if(!option->checkProblemConstraints(prop)){ break;}
+        bool check = false;
+        valid = opts->checkGlobalOptionConstraints(true, check);
+      }
+      if(!valid){
+        //cout << "failed" << endl;
+        option->set(def);
+        option->is_set = set;
+      }
+
+      //cout << "After attempt " + option->longName + " with current val " + option->getStringOfActual() << endl;
+    }
+
+    // Reset saved things
+    env.options->_badOption.actualValue = saved_bad_option;
+    //Random::setSeed(saved_seed);
+
+    //bfnt?
+
+    res = opts->generateEncodedOptions();
+  }while(triedStrategies.contains(res) && count++ < 7);
+  
+  triedStrategies.insert(res);
+  return res;
+}
+
 
 /**
  * Return testId vstring that represents current values of the options
@@ -3049,7 +3212,7 @@ bool Options::completeForNNE() const
  *
  * The function is called after all options are parsed.
  */
-bool Options::checkGlobalOptionConstraints(bool fail_early)
+bool Options::checkGlobalOptionConstraints(bool fail_early, bool check)
 {
   CALL("Options::checkGlobalOptionsConstraints");
 
@@ -3067,7 +3230,8 @@ bool Options::checkGlobalOptionConstraints(bool fail_early)
   // Check recorded option constraints
   VirtualIterator<AbstractOptionValue*> options = _lookup.values();
   while(options.hasNext()){ 
-    result = options.next()->checkConstraints() && result; 
+    AbstractOptionValue* op = options.next();
+    result = op->checkConstraints() && result; 
     if(fail_early && !result) return result;
   }
 
@@ -3085,9 +3249,27 @@ bool Options::checkProblemOptionConstraints(Property* prop,bool fail_early)
 
   VirtualIterator<AbstractOptionValue*> options = _lookup.values();
   while(options.hasNext()){
-    result = options.next()->checkProblemConstraints(prop) && result; 
+    AbstractOptionValue* op = options.next();
+    result = op->checkProblemConstraints(prop) && result; 
+   /* if(!result){
+      cout << "failing because of " + op->longName + " with value " + op->getStringOfActual() << endl;
+    }*/
     if(fail_early && !result) return result;
   }
 
   return result;
+}
+
+void Options::setAllOptsToDefault () 
+{
+  CALL("Options::setAllOptsToDefault");
+
+  VirtualIterator<AbstractOptionValue*> options = _lookup.values();
+  while(options.hasNext()){
+    AbstractOptionValue* aov = options.next();
+    if(!aov->isDefault()){
+      aov->setToDefault();
+    }
+    aov->is_set = false;
+  }
 }

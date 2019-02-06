@@ -921,6 +921,10 @@ int main(int argc, char* argv[])
       }
       break;
 
+    case Options::Mode::TRAINING:
+      env.options->setProof(Options::Proof::OFF); 
+      //training mode we always want to make use of maximum cores
+      env.options->setMulticore(0);     
     case Options::Mode::PORTFOLIO:
       env.options->setIgnoreMissing(Options::IgnoreMissing::WARN);
 

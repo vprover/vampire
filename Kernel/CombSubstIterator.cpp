@@ -1081,7 +1081,6 @@ bool CombSubstIterator::hasNextUnifier(){
       bdStack.pop().backtrack();
     }
     if(transformStacks.top().isEmpty()) {
-      cout << "returning false" << endl;
       return false;
     }
 
