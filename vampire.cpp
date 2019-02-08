@@ -810,11 +810,11 @@ void groundingMode()
     DIMACS::outputGroundedProblem(insts, nameCtx, env.out());
     env.endOutput();
 
-  } catch (MemoryLimitExceededException) {
+  } catch (MemoryLimitExceededException&) {
     env.beginOutput();
     env.out() << "Memory limit exceeded\n";
     env.endOutput();
-  } catch (TimeLimitExceededException) {
+  } catch (TimeLimitExceededException&) {
     env.beginOutput();
     env.out() << "Time limit exceeded\n";
     env.endOutput();

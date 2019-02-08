@@ -962,7 +962,7 @@ Allocator::Descriptor* Allocator::Descriptor::find (const void* addr)
     Descriptor* oldMap = map;
     try {
       map = new Descriptor [capacity];
-    } catch(bad_alloc) {
+    } catch(bad_alloc&) {
       env.beginOutput();
       reportSpiderStatus('m');
       env.out() << "Memory limit exceeded!\n";
