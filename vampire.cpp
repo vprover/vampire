@@ -25,6 +25,8 @@
 #include <fstream>
 #include <csignal>
 
+#include <torch/torch.h>
+
 #if VZ3
 #include "z3++.h"
 #endif
@@ -833,6 +835,11 @@ int main(int argc, char* argv[])
 {
   CALL ("main");
 
+  cout << "A" << endl;
+
+  std::cout << torch::rand({2, 3}) << std::endl;
+
+  cout << "B" << endl;
 
   System::registerArgv0(argv[0]);
   System::setSignalHandlers();
