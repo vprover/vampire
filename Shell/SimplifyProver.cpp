@@ -27,6 +27,7 @@
 #include "Lib/DArray.hpp"
 #include "Lib/Environment.hpp"
 #include "Lib/Int.hpp"
+#include "Lib/List.hpp"
 
 #include "Kernel/Formula.hpp"
 #include "Kernel/Term.hpp"
@@ -43,6 +44,8 @@
 using namespace Lib;
 using namespace Kernel;
 using namespace Shell;
+
+typedef Lib::List<int> IntList;
 
 // #define CALL(x) (cout << x << '\n')
 

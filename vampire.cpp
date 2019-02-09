@@ -835,12 +835,6 @@ int main(int argc, char* argv[])
 {
   CALL ("main");
 
-  cout << "A" << endl;
-
-  std::cout << torch::rand({2, 3}) << std::endl;
-
-  cout << "B" << endl;
-
   System::registerArgv0(argv[0]);
   System::setSignalHandlers();
   // create random seed for the random number generation

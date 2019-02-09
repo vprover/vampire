@@ -151,7 +151,7 @@ bool TermList::isSafe() const
  *
  * @since 15/05/2015 Gothenburg
  */
-IntList* TermList::freeVariables() const
+List<int>* TermList::freeVariables() const
 {
   CALL("TermList::freeVariables");
 
@@ -422,16 +422,20 @@ vstring Term::headToString() const
         OperatorType* type = isPredicate ? env.signature->getPredicate(sd->getFunctor())->predType()
                                          : env.signature->getFunction(sd->getFunctor())->fnType();
 
-        const IntList* variables = sd->getVariables();
+        const List<int>* variables = sd->getVariables();
         vstring variablesList = "";
-        for (unsigned i = 0; i < IntList::length(variables); i++) {
-          unsigned var = (unsigned) IntList::nth(variables, i);
+        for (unsigned i = 0; i < List<int>::length(variables); i++) {
+          unsigned var = (unsigned) List<int>::nth(variables, i);
           variablesList += Term::variableToString(var);
-          if (i < IntList::length(variables) - 1) {
+          unsigned sort = type->arg((unsigned)i);
+          if (sort != Sorts::SRT_DEFAULT) {
+            variablesList += " : " + env.sorts->sortName(sort);
+          }
+          if (i < List<int>::length(variables) - 1) {
             variablesList += ", ";
           }
         }
-        if (IntList::length(variables)) {
+        if (List<int>::length(variables)) {
           variablesList = "(" + variablesList + ")";
         }
         return "$let(" + functor + ": " + type->toString() + ", " + functor + variablesList + " := " + binding.toString() + ", ";
@@ -456,7 +460,7 @@ vstring Term::headToString() const
       }
       case Term::SF_LET_TUPLE: {
         ASS_EQ(arity(), 1);
-        IntList* symbols = sd->getTupleSymbols();
+        List<int>* symbols = sd->getTupleSymbols();
         unsigned tupleFunctor = sd->getFunctor();
         TermList binding = sd->getBinding();
 
@@ -464,13 +468,13 @@ vstring Term::headToString() const
 
         vstring symbolsList = "";
         vstring typesList = "";
-        for (unsigned i = 0; i < IntList::length(symbols); i++) {
+        for (unsigned i = 0; i < List<int>::length(symbols); i++) {
           Signature::Symbol* symbol = (fnType->arg(i) == Sorts::SRT_BOOL)
-            ? env.signature->getPredicate((unsigned)IntList::nth(symbols, i))
-            : env.signature->getFunction((unsigned)IntList::nth(symbols, i));
+            ? env.signature->getPredicate((unsigned)List<int>::nth(symbols, i))
+            : env.signature->getFunction((unsigned)List<int>::nth(symbols, i));
           symbolsList += symbol->name();
           typesList += symbol->name() + ": " + env.sorts->sortName(fnType->arg(i));
-          if (i != IntList::length(symbols) - 1) {
+          if (i != List<int>::length(symbols) - 1) {
             symbolsList += ", ";
             typesList += ", ";
           }
@@ -848,22 +852,22 @@ Term* Term::createITE(Formula * condition, TermList thenBranch, TermList elseBra
  * Create (let lhs <- rhs in t) expression and return
  * the resulting term
  */
-Term* Term::createLet(unsigned functor, IntList* variables, TermList binding, TermList body, unsigned bodySort)
+Term* Term::createLet(unsigned functor, List<int>* variables, TermList binding, TermList body, unsigned bodySort)
 {
   CALL("Term::createLet");
 
 #if VDEBUG
   Set<int> distinctVars;
-  IntList::Iterator vit(variables);
+  List<int>::Iterator vit(variables);
   while (vit.hasNext()) {
     distinctVars.insert(vit.next());
   }
-  ASS_EQ(distinctVars.size(), IntList::length(variables));
+  ASS_EQ(distinctVars.size(), List<int>::length(variables));
 
   bool isPredicate = binding.isTerm() && binding.term()->isBoolean();
   const unsigned int arity = isPredicate ? env.signature->predicateArity(functor)
                                          : env.signature->functionArity(functor);
-  ASS_EQ(arity, IntList::length(variables));
+  ASS_EQ(arity, List<int>::length(variables));
 #endif
 
   Term* s = new(1,sizeof(SpecialTermData)) Term;
@@ -882,17 +886,17 @@ Term* Term::createLet(unsigned functor, IntList* variables, TermList binding, Te
  * Create (let [a, b, c] <- rhs in t) expression and return
  * the resulting term
  */
-Term* Term::createTupleLet(unsigned tupleFunctor, IntList* symbols, TermList binding, TermList body, unsigned bodySort)
+Term* Term::createTupleLet(unsigned tupleFunctor, List<int>* symbols, TermList binding, TermList body, unsigned bodySort)
 {
   CALL("Term::createTupleLet");
 
 #if VDEBUG
   Signature::Symbol* tupleSymbol = env.signature->getFunction(tupleFunctor);
-  ASS_EQ(tupleSymbol->arity(), IntList::length(symbols));
+  ASS_EQ(tupleSymbol->arity(), List<int>::length(symbols));
   ASS_REP(env.sorts->isOfStructuredSort(tupleSymbol->fnType()->result(), Sorts::StructuredSort::TUPLE), tupleFunctor);
 
   Set<pair<int,bool> > distinctSymbols;
-  IntList::Iterator sit(symbols);
+  List<int>::Iterator sit(symbols);
   unsigned arg = 0;
   while (sit.hasNext()) {
     unsigned symbol = (unsigned)sit.next();
@@ -1015,7 +1019,7 @@ Term* Term::foolFalse(){
  *
  * @since 07/05/2015 Gothenburg
  */
-IntList* Term::freeVariables() const
+List<int>* Term::freeVariables() const
 {
   CALL("Term::freeVariables");
 

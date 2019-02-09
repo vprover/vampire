@@ -202,7 +202,7 @@ void NewCNF::process(Literal* literal, Occurrences &occurrences) {
         List<LPair>::push(elsePair, processedLiterals);
       }
     } else {
-      IntList::Iterator branchesFreeVars(IntList::append(thenBranch.freeVariables(),
+      List<int>::Iterator branchesFreeVars(List<int>::append(thenBranch.freeVariables(),
                                                          elseBranch.freeVariables()));
       VarSet* fv = (VarSet*) freeVars(condition)->getUnion(VarSet::getFromIterator(branchesFreeVars));
 
@@ -590,14 +590,14 @@ TermList NewCNF::eliminateLet(Term::SpecialTermData *sd, TermList contents)
     // binding of the form $let([x, y, z] := [a, b, c], ...) is processed
     // as $let(x := a, $let(y := b, $let(z := c, ...)))
     unsigned tupleFunctor = sd->getFunctor();
-    IntList* symbols = sd->getTupleSymbols();
+    List<int>* symbols = sd->getTupleSymbols();
     unsigned bodySort = sd->getSort();
 
     OperatorType* tupleType = env.signature->getFunction(tupleFunctor)->fnType();
 
     Term* bindingTuple = binding.term()->getSpecialData()->getTupleTerm();
-    unsigned arity = IntList::length(symbols);
-    IntList::Iterator sit(symbols);
+    unsigned arity = List<int>::length(symbols);
+    List<int>::Iterator sit(symbols);
     Term::Iterator bit(bindingTuple);
 
     TermList processedContents = contents;
@@ -629,13 +629,13 @@ TermList NewCNF::eliminateLet(Term::SpecialTermData *sd, TermList contents)
     binding = processedBinding;
   } else {
     unsigned tupleFunctor = sd->getFunctor();
-    IntList* symbols = sd->getTupleSymbols();
+    List<int>* symbols = sd->getTupleSymbols();
     unsigned bodySort = sd->getSort();
 
     OperatorType* tupleType = env.signature->getFunction(tupleFunctor)->fnType();
     unsigned tupleSort = tupleType->result();
 
-    ASS_EQ(tupleType->arity(), IntList::length(symbols));
+    ASS_EQ(tupleType->arity(), List<int>::length(symbols));
 
     unsigned tuple = env.signature->addFreshFunction(0, "tuple");
     env.signature->getFunction(tuple)->setType(OperatorType::getConstantsType(tupleSort));
@@ -645,7 +645,7 @@ TermList NewCNF::eliminateLet(Term::SpecialTermData *sd, TermList contents)
     TermList detupledContents = contents;
 
     for (unsigned proj = 0; proj < tupleType->arity(); proj++) {
-      unsigned symbol = (unsigned) IntList::nth(symbols, proj);
+      unsigned symbol = (unsigned) List<int>::nth(symbols, proj);
       bool isPredicate = tupleType->arg(proj) == Sorts::SRT_BOOL;
 
       unsigned projFunctor = Theory::tuples()->getProjectionFunctor(proj, tupleSort);
@@ -770,7 +770,7 @@ TermList NewCNF::nameLetBinding(unsigned symbol, Formula::VarList* bindingVariab
 
     ensureHavingVarSorts();
 
-    IntList::Iterator vit(bindingFreeVars);
+    List<int>::Iterator vit(bindingFreeVars);
     while (vit.hasNext()) {
       unsigned var = (unsigned) vit.next();
       sorts.push(_varSorts.get(var, Sorts::SRT_DEFAULT));

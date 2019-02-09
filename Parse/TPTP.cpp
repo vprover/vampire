@@ -2106,8 +2106,8 @@ void TPTP::tupleDefinition()
   definitions.push(LetSymbolReference(tupleFunctor, false));
   _letDefinitions.push(definitions);
 
-  IntList* constants = IntList::empty();
-  IntList::pushFromIterator(Stack<unsigned>::Iterator(symbols), constants);
+  List<int>* constants = List<int>::empty();
+  List<int>::pushFromIterator(Stack<unsigned>::Iterator(symbols), constants);
   _varLists.push(constants);
 
   _states.push(END_DEFINITION);

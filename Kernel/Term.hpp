@@ -154,7 +154,7 @@ public:
 
   bool isSafe() const;
 
-  IntList* freeVariables() const;
+  List<int>* freeVariables() const;
 
 #if VDEBUG
   void assertValid() const;
@@ -242,7 +242,7 @@ public:
       } _iteData;
       struct {
         unsigned functor;
-        IntList* variables;
+        List<int>* variables;
 	//The size_t stands for TermList expression which cannot be here
 	//since C++ doesnot allow objects with constructor inside a union
         size_t binding;
@@ -256,7 +256,7 @@ public:
       } _tupleData;
       struct {
         unsigned functor;
-        IntList* symbols;
+        List<int>* symbols;
         size_t binding;
         unsigned sort;
       } _letTupleData;
@@ -274,8 +274,8 @@ public:
       ASS_REP(getType() == SF_LET || getType() == SF_LET_TUPLE, getType());
       return getType() == SF_LET ? _letData.functor : _letTupleData.functor;
     }
-    IntList* getVariables() const { ASS_EQ(getType(), SF_LET); return _letData.variables; }
-    IntList* getTupleSymbols() const { return _letTupleData.symbols; }
+    List<int>* getVariables() const { ASS_EQ(getType(), SF_LET); return _letData.variables; }
+    List<int>* getTupleSymbols() const { return _letTupleData.symbols; }
     TermList getBinding() const {
       ASS_REP(getType() == SF_LET || getType() == SF_LET_TUPLE, getType());
       return TermList(getType() == SF_LET ? _letData.binding : _letTupleData.binding);
@@ -309,8 +309,8 @@ public:
   /** Create a new constant and insert in into the sharing structure */
   static Term* createConstant(unsigned symbolNumber) { return create(symbolNumber,0,0); }
   static Term* createITE(Formula * condition, TermList thenBranch, TermList elseBranch, unsigned branchSort);
-  static Term* createLet(unsigned functor, IntList* variables, TermList binding, TermList body, unsigned bodySort);
-  static Term* createTupleLet(unsigned functor, IntList* symbols, TermList binding, TermList body, unsigned bodySort);
+  static Term* createLet(unsigned functor, List<int>* variables, TermList binding, TermList body, unsigned bodySort);
+  static Term* createTupleLet(unsigned functor, List<int>* symbols, TermList binding, TermList body, unsigned bodySort);
   static Term* createFormula(Formula* formula);
   static Term* createTuple(unsigned arity, unsigned* sorts, TermList* elements);
   static Term* createTuple(Term* tupleTerm);
@@ -321,7 +321,7 @@ public:
   static Term* foolTrue(); 
   static Term* foolFalse(); 
 
-  IntList* freeVariables() const;
+  List<int>* freeVariables() const;
 
   /** Return number of bytes before the start of the term that belong to it */
   size_t getPreDataSize() { return isSpecial() ? sizeof(SpecialTermData) : 0; }
