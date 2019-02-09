@@ -131,6 +131,8 @@ SaturationAlgorithm::SaturationAlgorithm(Problem& prb, const Options& opt)
   ASS_EQ(s_instance, 0);  //there can be only one saturation algorithm at a time
 
   if (opt.evalForKarel()) { // load the models
+    TimeCounter t(TC_DEEP_STUFF);
+
     model_init = torch::jit::load("model/traced_init.pt");
     model_unary = torch::jit::load("model/traced_unary.pt");
     model_binary = torch::jit::load("model/traced_binary.pt");
@@ -341,6 +343,8 @@ void SaturationAlgorithm::onPassiveAdded(Clause* c)
   }
 
   if (_opt.evalForKarel()) {
+    TimeCounter t(TC_DEEP_STUFF);
+
     torch::jit::IValue vec = clause_vecs.get(c);
 
     std::vector<torch::jit::IValue> inputs;
@@ -450,6 +454,8 @@ void SaturationAlgorithm::onNewClause(Clause* cl)
   }
 
   if (_opt.evalForKarel()) {
+    TimeCounter t(TC_DEEP_STUFF);
+
     if (!clause_vecs.find(cl)) { // not an inital clause, we need to compute val for it
       Inference* inf = cl->inference();
 
@@ -689,6 +695,8 @@ void SaturationAlgorithm::addInputClause(Clause* cl)
   }
 
   if (_opt.evalForKarel()) {
+    TimeCounter t(TC_DEEP_STUFF);
+
     // [istheory, isgoal, sine, issine_inf]
     float theory = isTheory ? 1.0 : 0.0;
     float goal = cl->isGoal() ? 1.0 : 0.0;
