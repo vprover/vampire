@@ -89,7 +89,7 @@ void Assertion::checkType(const char* file,int line,const void* ptr, const char*
     return;
   }
 
-  Allocator::Descriptor* desc = Allocator::Descriptor::find(ptr);
+  VAllocator::Descriptor* desc = VAllocator::Descriptor::find(ptr);
 
   if(!desc) {
     reportSpiderFail();

@@ -17,7 +17,7 @@
  * licence, which we will make an effort to provide. 
  */
 /**
- * @file Allocator.cpp
+ * @file VAllocator.cpp
  * Defines allocation procedures for all preprocessor classes.
  *
  * @since 02/12/2003, Manchester, replaces the file Memory.hpp
@@ -94,23 +94,23 @@ unsigned watchAddressLastValue = 0;
 using namespace Lib;
 using namespace Shell;
 
-int Allocator::_initialised = 0;
-int Allocator::_total = 0;
-size_t Allocator::_memoryLimit;
-size_t Allocator::_tolerated;
-Allocator* Allocator::current;
-Allocator::Page* Allocator::_pages[MAX_PAGES];
-size_t Allocator::_usedMemory = 0;
-Allocator* Allocator::_all[MAX_ALLOCATORS];
+int VAllocator::_initialised = 0;
+int VAllocator::_total = 0;
+size_t VAllocator::_memoryLimit;
+size_t VAllocator::_tolerated;
+VAllocator* VAllocator::current;
+VAllocator::Page* VAllocator::_pages[MAX_PAGES];
+size_t VAllocator::_usedMemory = 0;
+VAllocator* VAllocator::_all[MAX_ALLOCATORS];
 
 #if VDEBUG
-unsigned Allocator::Descriptor::globalTimestamp;
-size_t Allocator::Descriptor::noOfEntries;
-size_t Allocator::Descriptor::maxEntries;
-size_t Allocator::Descriptor::capacity;
-Allocator::Descriptor* Allocator::Descriptor::map;
-Allocator::Descriptor* Allocator::Descriptor::afterLast;
-unsigned Allocator::_tolerantZone = 1; // starts > 0; we are not checking by default, until we say so with START_CHECKING_FOR_BYPASSES
+unsigned VAllocator::Descriptor::globalTimestamp;
+size_t VAllocator::Descriptor::noOfEntries;
+size_t VAllocator::Descriptor::maxEntries;
+size_t VAllocator::Descriptor::capacity;
+VAllocator::Descriptor* VAllocator::Descriptor::map;
+VAllocator::Descriptor* VAllocator::Descriptor::afterLast;
+unsigned VAllocator::_tolerantZone = 1; // starts > 0; we are not checking by default, until we say so with START_CHECKING_FOR_BYPASSES
 #endif
 
 #if VDEBUG && USE_PRECISE_CLASS_NAMES && defined(__GNUC__)
@@ -134,11 +134,11 @@ string Lib::___prettyFunToClassName(std::string str)
 
 #endif
 
-void* Allocator::operator new(size_t s) {
+void* VAllocator::operator new(size_t s) {
   return malloc(s);
 }
 
-void Allocator::operator delete(void* obj) {
+void VAllocator::operator delete(void* obj) {
   free(obj);
 }
 
@@ -146,9 +146,9 @@ void Allocator::operator delete(void* obj) {
  * Create a new allocator.
  * @since 10/01/2008 Manchester
  */
-Allocator::Allocator()
+VAllocator::VAllocator()
 {
-  CALLC("Allocator::Allocator",MAKE_CALLS);
+  CALLC("VAllocator::VAllocator",MAKE_CALLS);
 
 #if ! USE_SYSTEM_ALLOCATION
   for (int i = REQUIRES_PAGE/4-1;i >= 0;i--) {
@@ -158,29 +158,29 @@ Allocator::Allocator()
   _nextAvailableReserve = 0;
   _myPages = 0;
 #endif
-} // Allocator::Allocator
+} // VAllocator::VAllocator
 
 /**
  * Returns all pages to the global manager.
  * 
  * @since 18/03/2008 Torrevieja
  */
-Lib::Allocator::~Allocator ()
+Lib::VAllocator::~VAllocator ()
 {
-  CALLC("Allocator::~Allocator",MAKE_CALLS);
+  CALLC("VAllocator::~VAllocator",MAKE_CALLS);
 
   while (_myPages) {
     deallocatePages(_myPages);
   }
-} // Allocator::~allocator
+} // VAllocator::~allocator
 
 /**
  * Initialise all static structures and create a default allocator.
  * @since 10/01/2008 Manchester
  */
-void Allocator::initialise()
+void VAllocator::initialise()
 {
-  CALLC("Allocator::initialise",MAKE_CALLS)
+  CALLC("VAllocator::initialise",MAKE_CALLS)
 
 #if VDEBUG
   Descriptor::map = 0;
@@ -197,16 +197,16 @@ void Allocator::initialise()
     _pages[i] = 0;
   }
 #endif
-} // Allocator::initialise
+} // VAllocator::initialise
 
 #if VDEBUG
 /**
  * Write information about a memory address to cout.
  * @since 30/03/2008 flight Murcia-Manchester
  */
-void Allocator::addressStatus(const void* address)
+void VAllocator::addressStatus(const void* address)
 {
-  CALLC("Allocator::addressStatus",MAKE_CALLS);
+  CALLC("VAllocator::addressStatus",MAKE_CALLS);
 
   Descriptor* pg = 0; // page descriptor
   cout << "Status of address " << address << '\n';
@@ -239,9 +239,9 @@ void Allocator::addressStatus(const void* address)
     cout << "Does not belong to an allocated page\n";
   }
   cout << "End of status\n";
-} // Allocator::addressStatus
+} // VAllocator::addressStatus
 
-void Allocator::reportUsageByClasses()
+void VAllocator::reportUsageByClasses()
 {
   Lib::DHMap<const char*, size_t> summary;
   Lib::DHMap<const char*, size_t> cntSummary;
@@ -276,12 +276,12 @@ void Allocator::reportUsageByClasses()
 #endif
 
 /**
- * Cleanup: do whatever needed after the last use of class Allocator.
+ * Cleanup: do whatever needed after the last use of class VAllocator.
  * @since 10/01/2008 Manchester
  */
-void Allocator::cleanup()
+void VAllocator::cleanup()
 {
-  CALLC("Allocator::cleanup",MAKE_CALLS);
+  CALLC("VAllocator::cleanup",MAKE_CALLS);
   BYPASSING_ALLOCATOR;
 
   // delete all allocators
@@ -333,7 +333,7 @@ void Allocator::cleanup()
 #if VDEBUG
   delete[] Descriptor::map;
 #endif  
-} // Allocator::initialise
+} // VAllocator::initialise
 
 
 /**
@@ -344,12 +344,12 @@ void Allocator::cleanup()
  * @since 10/01/2008 Manchester
  */
 #if VDEBUG
-void Allocator::deallocateKnown(void* obj,size_t size,const char* className)
+void VAllocator::deallocateKnown(void* obj,size_t size,const char* className)
 #else
-void Allocator::deallocateKnown(void* obj,size_t size)
+void VAllocator::deallocateKnown(void* obj,size_t size)
 #endif
 {
-  CALLC("Allocator::deallocateKnown",MAKE_CALLS);
+  CALLC("VAllocator::deallocateKnown",MAKE_CALLS);
   ASS(obj);
 
 #if VDEBUG
@@ -409,7 +409,7 @@ void Allocator::deallocateKnown(void* obj,size_t size)
   }
 #endif
 #endif
-} // Allocator::deallocateKnown
+} // VAllocator::deallocateKnown
 
 /**
  * Deallocate an object whose size is unknown. It works similar to
@@ -418,12 +418,12 @@ void Allocator::deallocateKnown(void* obj,size_t size)
  * @since 13/01/2008 Manchester
  */
 #if VDEBUG
-void Allocator::deallocateUnknown(void* obj,const char* className)
+void VAllocator::deallocateUnknown(void* obj,const char* className)
 #else
-void Allocator::deallocateUnknown(void* obj)
+void VAllocator::deallocateUnknown(void* obj)
 #endif
 {
-  CALLC("Allocator::deallocateUnknown",MAKE_CALLS);
+  CALLC("VAllocator::deallocateUnknown",MAKE_CALLS);
 
 #if VDEBUG
   Descriptor* desc = Descriptor::find(obj);
@@ -481,7 +481,7 @@ void Allocator::deallocateUnknown(void* obj)
 	 << "Watch! end\n";
   }
 #endif
-} // Allocator::deallocateUnknown
+} // VAllocator::deallocateUnknown
 
 /**
  * Reallocate an object whose size is unknown.
@@ -494,12 +494,12 @@ void Allocator::deallocateUnknown(void* obj)
  * The corresponding "free" function is deallocateUnknown.
  */
 #if VDEBUG
-void* Allocator::reallocateUnknown(void* obj, size_t newsize, const char* className)
+void* VAllocator::reallocateUnknown(void* obj, size_t newsize, const char* className)
 #else
-void* Allocator::reallocateUnknown(void* obj, size_t newsize)
+void* VAllocator::reallocateUnknown(void* obj, size_t newsize)
 #endif
 {
-  CALLC("Allocator::reallocateUnknown",MAKE_CALLS);
+  CALLC("VAllocator::reallocateUnknown",MAKE_CALLS);
 
   // cout << "reallocateUnknown " << obj << " newsize " << newsize << endl;
 
@@ -530,21 +530,21 @@ void* Allocator::reallocateUnknown(void* obj, size_t newsize)
 #endif
 
   return newobj;
-} // Allocator::reallocateUnknown
+} // VAllocator::reallocateUnknown
 
 /**
  * Create a new allocator.
  * @since 10/01/2008 Manchester
  */
-Allocator* Allocator::newAllocator()
+VAllocator* VAllocator::newAllocator()
 {
-  CALLC("Allocator::newAllocator",MAKE_CALLS);
+  CALLC("VAllocator::newAllocator",MAKE_CALLS);
   BYPASSING_ALLOCATOR;
   
 #if VDEBUG && USE_SYSTEM_ALLOCATION
   ASSERTION_VIOLATION;
 #else
-  Allocator* result = new Allocator();
+  VAllocator* result = new VAllocator();
 
   if (_total >= MAX_ALLOCATORS) {
     throw Exception("The maximal number of allocators exceeded.");
@@ -552,15 +552,15 @@ Allocator* Allocator::newAllocator()
   _all[_total++] = result;
   return result;
 #endif
-} // Allocator::newAllocator
+} // VAllocator::newAllocator
 
 /**
  * Allocate a (multi)page able to store a structure of size @b size
  * @since 12/01/2008 Manchester
  */
-Allocator::Page* Allocator::allocatePages(size_t size)
+VAllocator::Page* VAllocator::allocatePages(size_t size)
 {
-  CALLC("Allocator::allocatePages",MAKE_CALLS);
+  CALLC("VAllocator::allocatePages",MAKE_CALLS);
   ASS(size >= 0);
 
 #if VDEBUG && USE_SYSTEM_ALLOCATION
@@ -607,7 +607,7 @@ Allocator::Page* Allocator::allocatePages(size_t size)
       reportSpiderStatus('m');
       env.out() << "Memory limit exceeded!\n";
 # if VDEBUG
-	Allocator::reportUsageByClasses();
+	VAllocator::reportUsageByClasses();
 # endif
       if(env.statistics) {
 	env.statistics->print(env.out());
@@ -645,7 +645,7 @@ Allocator::Page* Allocator::allocatePages(size_t size)
   ASS(! desc->allocated);
 
   desc->address = result;
-  desc->cls = "Allocator::Page";
+  desc->cls = "VAllocator::Page";
   desc->timestamp = ++Descriptor::globalTimestamp;
   desc->size = realSize;
   desc->allocated = 1;
@@ -686,21 +686,21 @@ Allocator::Page* Allocator::allocatePages(size_t size)
 
   return result;
 #endif // USE_SYSTEM_ALLOCATION
-} // Allocator::allocatePages
+} // VAllocator::allocatePages
 
 /**
  * Deallocate a (multi)page, that is, add it to the free list of
  * pages.
  * @since 11/01/2008 Manchester
  */
-void Allocator::deallocatePages(Page* page)
+void VAllocator::deallocatePages(Page* page)
 {
   ASS(page);
 
 #if VDEBUG && USE_SYSTEM_ALLOCATION
   ASSERTION_VIOLATION;
 #else
-  CALLC("Allocator::deallocatePages",MAKE_CALLS);
+  CALLC("VAllocator::deallocatePages",MAKE_CALLS);
 
 #if VDEBUG
   Descriptor* desc = Descriptor::find(page);
@@ -709,7 +709,7 @@ void Allocator::deallocatePages(Page* page)
   cout << *desc << ": DP\n" << flush;
 #endif
   ASS(desc->address == page);
-  ASS_STR_EQ(desc->cls,"Allocator::Page");
+  ASS_STR_EQ(desc->cls,"VAllocator::Page");
   ASS(desc->size == page->size);
   ASS(desc->allocated);
   ASS(! desc->known);
@@ -756,7 +756,7 @@ void Allocator::deallocatePages(Page* page)
 #endif
 
 #endif // ! USE_SYSTEM_ALLOCATION
-} // Allocator::deallocatePages(Page*)
+} // VAllocator::deallocatePages(Page*)
 
 
 /**
@@ -764,12 +764,12 @@ void Allocator::deallocatePages(Page* page)
  * @since 12/01/2008 Manchester
  */
 #if VDEBUG
-void* Allocator::allocateKnown(size_t size,const char* className)
+void* VAllocator::allocateKnown(size_t size,const char* className)
 #else
-void* Allocator::allocateKnown(size_t size)
+void* VAllocator::allocateKnown(size_t size)
 #endif
 {
-  CALLC("Allocator::allocateKnown",MAKE_CALLS);
+  CALLC("VAllocator::allocateKnown",MAKE_CALLS);
   ASS(size > 0);
 
   char* result = allocatePiece(size);
@@ -811,7 +811,7 @@ void* Allocator::allocateKnown(size_t size)
   }
 #endif
   return result;
-} // Allocator::allocateKnown
+} // VAllocator::allocateKnown
 
 
 /**
@@ -820,9 +820,9 @@ void* Allocator::allocateKnown(size_t size)
  * allocated on a separate page.
  * @since 15/01/2008 Manchester
  */
-char* Allocator::allocatePiece(size_t size)
+char* VAllocator::allocatePiece(size_t size)
 {
-  CALLC("Allocator::allocatePiece",MAKE_CALLS);
+  CALLC("VAllocator::allocatePiece",MAKE_CALLS);
 
   char* result;
 #if USE_SYSTEM_ALLOCATION
@@ -874,7 +874,7 @@ char* Allocator::allocatePiece(size_t size)
   }
 #endif // USE_SYSTEM_ALLOCATION
   return result;
-} // Allocator::allocatePiece
+} // VAllocator::allocatePiece
 
 
 /**
@@ -885,12 +885,12 @@ char* Allocator::allocatePiece(size_t size)
  * @since 13/01/2008 Manchester
  */
 #if VDEBUG
-void* Allocator::allocateUnknown(size_t size,const char* className)
+void* VAllocator::allocateUnknown(size_t size,const char* className)
 #else
-void* Allocator::allocateUnknown(size_t size)
+void* VAllocator::allocateUnknown(size_t size)
 #endif
 {
-  CALLC("Allocator::allocateUnknown",MAKE_CALLS);
+  CALLC("VAllocator::allocateUnknown",MAKE_CALLS);
   ASS(size>0);
 
   size += sizeof(Known);
@@ -937,7 +937,7 @@ void* Allocator::allocateUnknown(size_t size)
   }
 #endif
   return result;
-} // Allocator::allocateUnknown
+} // VAllocator::allocateUnknown
 
 
 #if VDEBUG
@@ -945,9 +945,9 @@ void* Allocator::allocateUnknown(size_t size)
  * Find a descriptor in the map, and if it is not there, add it.
  * @since 14/12/2005 Bellevue
  */
-Allocator::Descriptor* Allocator::Descriptor::find (const void* addr)
+VAllocator::Descriptor* VAllocator::Descriptor::find (const void* addr)
 {    
-  CALLC("Allocator::Descriptor::find",MAKE_CALLS);
+  CALLC("VAllocator::Descriptor::find",MAKE_CALLS);
   BYPASSING_ALLOCATOR;
 
   if (noOfEntries >= maxEntries) { // too many entries
@@ -956,7 +956,7 @@ Allocator::Descriptor* Allocator::Descriptor::find (const void* addr)
     capacity = capacity ? 2*capacity : 2000000;
 
 #if TRACE_ALLOCATIONS
-    cout << "Allocator map expansion to capacity " << capacity << "\n" << flush;
+    cout << "VAllocator map expansion to capacity " << capacity << "\n" << flush;
 #endif
 
     Descriptor* oldMap = map;
@@ -1004,15 +1004,15 @@ Allocator::Descriptor* Allocator::Descriptor::find (const void* addr)
   noOfEntries++;
 
   return desc;
-} // Allocator::Descriptor::find
+} // VAllocator::Descriptor::find
 
 /**
  * Output the string description of the descriptor to an ostream.
  * @author Martin Suda
  * @since 12/08/2014 Manchester
  */
-ostream& Lib::operator<<(ostream& out, const Allocator::Descriptor& d) {
-  CALLC("operator<<(ostream,Allocator::Descriptor)",MAKE_CALLS);
+ostream& Lib::operator<<(ostream& out, const VAllocator::Descriptor& d) {
+  CALLC("operator<<(ostream,VAllocator::Descriptor)",MAKE_CALLS);
   
   out << (size_t)(&d)
       << " [address:" << d.address
@@ -1026,11 +1026,11 @@ ostream& Lib::operator<<(ostream& out, const Allocator::Descriptor& d) {
   return out;
 }
 
-void* Allocator::Descriptor::operator new[](size_t s) {
+void* VAllocator::Descriptor::operator new[](size_t s) {
   return malloc(s);
 }
 
-void Allocator::Descriptor::operator delete[](void* obj) {
+void VAllocator::Descriptor::operator delete[](void* obj) {
   free(obj);
 }
 
@@ -1038,7 +1038,7 @@ void Allocator::Descriptor::operator delete[](void* obj) {
  * Initialise a descriptor.
  * @since 17/12/2005 Vancouver
  */
-Allocator::Descriptor::Descriptor ()
+VAllocator::Descriptor::Descriptor ()
   : address(0),
     cls("???"),
     timestamp(0),
@@ -1047,16 +1047,16 @@ Allocator::Descriptor::Descriptor ()
     known(0),
     page(0)
 {
-//   CALL("Allocator::Descriptor::Descriptor");
-} // Allocator::Descriptor::Descriptor
+//   CALL("VAllocator::Descriptor::Descriptor");
+} // VAllocator::Descriptor::Descriptor
 
 /**
  * The FNV-hashing.
  * @since 31/03/2006 Bellevue
  */
-unsigned Allocator::Descriptor::hash (const void* addr)
+unsigned VAllocator::Descriptor::hash (const void* addr)
 {
-  CALLC("Allocator::Descriptor::hash",MAKE_CALLS);
+  CALLC("VAllocator::Descriptor::hash",MAKE_CALLS);
 
   char* val = reinterpret_cast<char*>(&addr);
   unsigned hash = 2166136261u;
@@ -1064,7 +1064,7 @@ unsigned Allocator::Descriptor::hash (const void* addr)
     hash = (hash ^ val[i]) * 16777619u;
   }
   return hash;
-} // Allocator::Descriptor::hash(const char* str)
+} // VAllocator::Descriptor::hash(const char* str)
 
 #endif
 
@@ -1073,10 +1073,10 @@ unsigned Allocator::Descriptor::hash (const void* addr)
  * and terminate in cases when they are used "unwillingly".
  * Where "unwillingly" means people didn't mark the code explicitly with BYPASSING_ALLOCATOR
  * and yet they attempt to call global new (and not the class specific versions 
- * built on top of Allocator).
+ * built on top of VAllocator).
  * 
  * Update: In release, we newly use global new/delete as well,
- * but just silently redirect the allocations to our Allocator.
+ * but just silently redirect the allocations to our VAllocator.
  *
  * This is a link about some requirements on new/delete: 
  * http://stackoverflow.com/questions/7194127/how-should-i-write-iso-c-standard-conformant-custom-new-and-delete-operators/
@@ -1084,10 +1084,10 @@ unsigned Allocator::Descriptor::hash (const void* addr)
  **/ 
  /**
 void* operator new(size_t sz) {    
-  ASS_REP(Allocator::_tolerantZone > 0,"Attempted to use global new operator, thus bypassing Allocator!");
-  // Please read: https://github.com/easychair/vampire/wiki/Attempted-to-use-global-new-operator,-thus-bypassing-Allocator!
+  ASS_REP(VAllocator::_tolerantZone > 0,"Attempted to use global new operator, thus bypassing VAllocator!");
+  // Please read: https://github.com/easychair/vampire/wiki/Attempted-to-use-global-new-operator,-thus-bypassing-VAllocator!
   
-  static Allocator::Initialiser i; // to initialize Allocator even for other libraries
+  static VAllocator::Initialiser i; // to initialize VAllocator even for other libraries
   
   if (sz == 0)
     sz = 1;
@@ -1101,10 +1101,10 @@ void* operator new(size_t sz) {
 }
 
 void* operator new[](size_t sz) {  
-  ASS_REP(Allocator::_tolerantZone > 0,"Attempted to use global new[] operator, thus bypassing Allocator!");
-  // Please read: https://github.com/easychair/vampire/wiki/Attempted-to-use-global-new-operator,-thus-bypassing-Allocator!
+  ASS_REP(VAllocator::_tolerantZone > 0,"Attempted to use global new[] operator, thus bypassing VAllocator!");
+  // Please read: https://github.com/easychair/vampire/wiki/Attempted-to-use-global-new-operator,-thus-bypassing-VAllocator!
 
-  static Allocator::Initialiser i; // to initialize Allocator even for other libraries
+  static VAllocator::Initialiser i; // to initialize VAllocator even for other libraries
 
   if (sz == 0)
     sz = 1;
@@ -1118,10 +1118,10 @@ void* operator new[](size_t sz) {
 }
 
 void operator delete(void* obj) throw() {  
-  ASS_REP(Allocator::_tolerantZone > 0,"Custom operator new matched by global delete!");
-  // Please read: https://github.com/easychair/vampire/wiki/Attempted-to-use-global-new-operator,-thus-bypassing-Allocator!
+  ASS_REP(VAllocator::_tolerantZone > 0,"Custom operator new matched by global delete!");
+  // Please read: https://github.com/easychair/vampire/wiki/Attempted-to-use-global-new-operator,-thus-bypassing-VAllocator!
 
-  static Allocator::Initialiser i; // to initialize Allocator even for other libraries
+  static VAllocator::Initialiser i; // to initialize VAllocator even for other libraries
 
   if (obj != nullptr) {
     DEALLOC_UNKNOWN(obj,"global new");
@@ -1129,10 +1129,10 @@ void operator delete(void* obj) throw() {
 }
 
 void operator delete[](void* obj) throw() {  
-  ASS_REP(Allocator::_tolerantZone > 0,"Custom operator new[] matched by global delete[]!");
-  // Please read: https://github.com/easychair/vampire/wiki/Attempted-to-use-global-new-operator,-thus-bypassing-Allocator!
+  ASS_REP(VAllocator::_tolerantZone > 0,"Custom operator new[] matched by global delete[]!");
+  // Please read: https://github.com/easychair/vampire/wiki/Attempted-to-use-global-new-operator,-thus-bypassing-VAllocator!
 
-  static Allocator::Initialiser i; // to initialize Allocator even for other libraries
+  static VAllocator::Initialiser i; // to initialize VAllocator even for other libraries
 
   if (obj != nullptr) {
     DEALLOC_UNKNOWN(obj,"global new[]");
@@ -1163,9 +1163,9 @@ void testAllocator()
 {
   CALLC("testAllocator",MAKE_CALLS);
 //   Random::setSeed(1);
-  cout << "Testing the Allocator class...\n";
+  cout << "Testing the VAllocator class...\n";
 
-  Allocator* a = Allocator::current;
+  VAllocator* a = VAllocator::current;
 
   int tries = 1000000000;  // number of tries
   int pieces = 1000;  // max number of allocated pieces
