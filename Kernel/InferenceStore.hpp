@@ -52,8 +52,6 @@ public:
   
   static InferenceStore* instance();
 
-  typedef List<int> IntList;
-
   struct FullInference
   {
     FullInference(unsigned premCnt) : csId(0), premCnt(premCnt) { }
