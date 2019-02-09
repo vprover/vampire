@@ -394,6 +394,8 @@ void TimeCounter::outputSingleStat(TimeCounterUnit tcu, ostream& out)
     break;
   case TC_SHUFFLING:
     out << "shuffling things";
+  case TC_DEEP_STUFF:
+    out << "neural model evaluation";
     break;
   default:
     ASSERTION_VIOLATION;
