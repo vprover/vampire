@@ -93,6 +93,8 @@
 #include "LRS.hpp"
 #include "Otter.hpp"
 
+#include <math.h>
+
 using namespace Lib;
 using namespace Kernel;
 using namespace Shell;
@@ -315,6 +317,10 @@ void SaturationAlgorithm::onPassiveAdded(Clause* c)
     env.endOutput();
   }
   
+  if (_opt.showForKarel()) {
+    cout << "pass: " << c->number() << endl;
+  }
+
   //when a clause is added to the passive container,
   //we know it is not redundant
   onNonRedundantClause(c);
@@ -375,6 +381,22 @@ void SaturationAlgorithm::onNewClause(Clause* cl)
 
   if (_splitter) {
     _splitter->onNewClause(cl);
+  }
+
+  if (_opt.showForKarel()) {
+    Inference* inf = cl->inference();
+    cout << "inf: " << cl->number();
+
+    inf->minimizePremises(); // this is here only formally, we don't look into avatar stuff (yet)
+    Inference::Iterator iit = inf->iterator();
+    while(inf->hasNext(iit)) {
+       Unit* premUnit = inf->next(iit);
+       cout << " par: " << premUnit->number();
+    }
+    Inference::Rule rule = inf->rule();
+    cout <<" rule: " << rule << " name: " << Inference::ruleName(rule) << endl;
+
+    cout << "new: " << cl->number() << " age: " << cl->age() << " weight: " << cl->weight() << " len: " << cl->length() << endl;
   }
 
   if (env.options->showNew()) {
@@ -557,7 +579,13 @@ void SaturationAlgorithm::addInputClause(Clause* cl)
   bool sosForAxioms = _opt.sos() == Options::Sos::ON || _opt.sos() == Options::Sos::ALL; 
   sosForAxioms = sosForAxioms && cl->inputType()==Clause::AXIOM;
 
+  bool isTheory = cl->inference()->isTheoryAxiom();
   bool sosForTheory = _opt.sos() == Options::Sos::THEORY && _opt.sosTheoryLimit() == 0;
+
+  if (_opt.showForKarel()) {
+    cout << "init: " << cl->number() << " isGoal: " << cl->isGoal() << " isTheory: " << isTheory
+         << " SInE: " << cl->getSineLevel() << endl;
+  }
 
   if (_opt.sineToAge()) {
     unsigned level = cl->getSineLevel();
