@@ -223,7 +223,7 @@ private:
   /** all formulas collected during parsing */
   Stack<Formula*> _formulas;
   /** current binding to variables */
-  Map<vstring,IntList*> _variables;
+  Map<vstring,Lib::List<int>*> _variables;
   /** Instructions to be executed during parsing */
   Stack<Command> _commands;
   /** Already parsed expressions and arguments to instructions */

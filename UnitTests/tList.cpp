@@ -29,12 +29,12 @@ using namespace Lib;
 
 TEST_FUN(list1)
 {
-  IntList* lst = 0;
+  List<int>* lst = 0;
 
-  IntList::push(0, lst);
-  IntList::push(1, lst);
+  List<int>::push(0, lst);
+  List<int>::push(1, lst);
 
-  IntList::DelIterator dit(lst);
+  List<int>::DelIterator dit(lst);
   ALWAYS(dit.hasNext());
   ALWAYS(dit.next()==1);
   dit.del();

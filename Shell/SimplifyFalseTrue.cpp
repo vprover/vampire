@@ -429,7 +429,7 @@ TermList SimplifyFalseTrue::simplify(TermList ts)
       }
       case Term::SF_LET: {
         unsigned functor = sd->getFunctor();
-        IntList* variables = sd->getVariables();
+        List<int>* variables = sd->getVariables();
         TermList binding = simplify(sd->getBinding());
         TermList body = simplify(*term->nthArgument(0));
         if ((binding == sd->getBinding()) && (body == *term->nthArgument(0))) {
@@ -440,7 +440,7 @@ TermList SimplifyFalseTrue::simplify(TermList ts)
       }
       case Term::SF_LET_TUPLE: {
         unsigned functor = sd->getFunctor();
-        IntList* symbols = sd->getTupleSymbols();
+        List<int>* symbols = sd->getTupleSymbols();
         TermList binding = simplify(sd->getBinding());
         TermList body = simplify(*term->nthArgument(0));
         if ((binding == sd->getBinding()) && (body == *term->nthArgument(0))) {

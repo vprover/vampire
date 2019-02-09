@@ -90,7 +90,7 @@ struct FunctionDefinition::Def
 
   int examinedArg;
 
-  IntList* dependentFns;
+  List<int>* dependentFns;
 
   /**
    * If @b mark==SAFE or @b mark==UNFOLDED, contains @b bool array such that

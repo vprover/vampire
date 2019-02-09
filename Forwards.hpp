@@ -76,7 +76,7 @@ template<typename C> class Vector;
 
 class ArraySet;
 
-typedef List<int> IntList;
+// typedef List<int> IntList; // clash with libtorch
 typedef List<VoidFunc> VoidFuncList;
 
 typedef Stack<vstring> StringStack;
