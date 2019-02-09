@@ -238,10 +238,10 @@ void Preprocess::preprocess(Problem& prb)
     DistinctGroupExpansion().apply(prb);
   }
 
-  if (_options.sineToAge() || (_options.sineToPredLevels() != Options::PredicateSineLevels::OFF)) {
+  if (_options.showForKarel() || _options.evalForKarel() || _options.sineToAge() || (_options.sineToPredLevels() != Options::PredicateSineLevels::OFF)) {
     env.statistics->phase=Statistics::SINE_SELECTION;
 
-    if (_options.sineToAge()) {
+    if (_options.showForKarel() || _options.evalForKarel() || _options.sineToAge()) {
       env.clauseSineLevels = new DHMap<const Unit*,unsigned>();
     }
 

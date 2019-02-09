@@ -91,6 +91,8 @@
 #include "LRS.hpp"
 #include "Otter.hpp"
 
+#include <math.h>
+
 using namespace Lib;
 using namespace Kernel;
 using namespace Shell;
@@ -129,10 +131,12 @@ SaturationAlgorithm::SaturationAlgorithm(Problem& prb, const Options& opt)
   ASS_EQ(s_instance, 0);  //there can be only one saturation algorithm at a time
 
   if (opt.evalForKarel()) { // load the models
-    model_init = torch::jit::load("model/traced_init.pt").get();
-    model_unary = torch::jit::load("model/traced_unary.pt").get();
-    model_binary = torch::jit::load("model/traced_binary.pt").get();
-    model_final = torch::jit::load("model/traced_final.pt").get();
+    model_init = torch::jit::load("model/traced_init.pt");
+    model_unary = torch::jit::load("model/traced_unary.pt");
+    model_binary = torch::jit::load("model/traced_binary.pt");
+    model_final = torch::jit::load("model/traced_final.pt");
+
+    // cout << "Models loaded" << endl;
   }
 
   _activationLimit = opt.activationLimit();
@@ -332,6 +336,22 @@ void SaturationAlgorithm::onPassiveAdded(Clause* c)
     env.endOutput();
   }
   
+  if (_opt.showForKarel()) {
+    cout << "pass: " << c->number() << endl;
+  }
+
+  if (_opt.evalForKarel()) {
+    torch::jit::IValue vec = clause_vecs.get(c);
+
+    std::vector<torch::jit::IValue> inputs;
+    inputs.push_back(vec);
+
+    auto output = model_final.forward(inputs).toTensor().data_ptr<float>();
+
+    bool yes = (output[0] < output[1]);
+    // cout << yes << endl;
+  }
+
   //when a clause is added to the passive container,
   //we know it is not redundant
   onNonRedundantClause(c);
@@ -383,6 +403,25 @@ void SaturationAlgorithm::onUnprocessedSelected(Clause* c)
   
 }
 
+static at::Tensor clause_vec(Clause* cl)
+{
+  CALL("clause_vec");
+
+  // [age, weight, length]
+
+  float age = log(cl->age()+1) / 8.0;
+  float weight = log(cl->weight()+1) / 16.0;
+  float length = log(cl->length()+1) / 8.0;
+
+  auto res = torch::zeros({3});
+
+  res[0] = age;
+  res[1] = weight;
+  res[2] = length;
+
+  return res;
+}
+
 /**
  * A function that is called whenever a possibly new clause appears.
  */
@@ -392,6 +431,73 @@ void SaturationAlgorithm::onNewClause(Clause* cl)
 
   if (_splitter) {
     _splitter->onNewClause(cl);
+  }
+
+  if (_opt.showForKarel()) {
+    Inference* inf = cl->inference();
+    cout << "inf: " << cl->number();
+
+    inf->minimizePremises(); // this is here only formally, we don't look into avatar stuff (yet)
+    Inference::Iterator iit = inf->iterator();
+    while(inf->hasNext(iit)) {
+       Unit* premUnit = inf->next(iit);
+       cout << " par: " << premUnit->number();
+    }
+    Inference::Rule rule = inf->rule();
+    cout <<" rule: " << rule << " name: " << Inference::ruleName(rule) << endl;
+
+    cout << "new: " << cl->number() << " age: " << cl->age() << " weight: " << cl->weight() << " len: " << cl->length() << endl;
+  }
+
+  if (_opt.evalForKarel()) {
+    if (!clause_vecs.find(cl)) { // not an inital clause, we need to compute val for it
+      Inference* inf = cl->inference();
+
+      torch::jit::IValue par1;
+      torch::jit::IValue par2;
+
+      inf->minimizePremises(); // this is here only formally, we don't look into avatar stuff (yet)
+      Inference::Iterator iit = inf->iterator();
+      unsigned par_cnt = 0;
+      while(inf->hasNext(iit)) {
+         Unit* premUnit = inf->next(iit);
+
+         if (par_cnt == 0) {
+           par1 = clause_vecs.get(premUnit->asClause());
+           par_cnt++;
+
+         } else if (par_cnt == 1) {
+           par2 = clause_vecs.get(premUnit->asClause());
+           par_cnt++;
+
+         } else {
+           cout << "Panic!!!" << endl;
+         }
+      }
+      if (par_cnt == 1) {
+        auto cl_vec = clause_vec(cl);
+        auto init_input = torch::cat({par1.toTensor(),cl_vec},0);
+
+        std::vector<torch::jit::IValue> inputs;
+        inputs.push_back(init_input);
+
+        auto output = model_unary.forward(inputs);
+
+        clause_vecs.insert(cl,output);
+      } else if (par_cnt == 2) {
+        auto cl_vec = clause_vec(cl);
+        auto init_input = torch::cat({par1.toTensor(),par2.toTensor(),cl_vec},0);
+
+        std::vector<torch::jit::IValue> inputs;
+        inputs.push_back(init_input);
+
+        auto output = model_binary.forward(inputs);
+
+        clause_vecs.insert(cl,output);
+      } else {
+        cout << "Panic!!!" << endl;
+      }
+    }
   }
 
   if (env.options->showNew()) {
@@ -574,7 +680,46 @@ void SaturationAlgorithm::addInputClause(Clause* cl)
   bool sosForAxioms = _opt.sos() == Options::Sos::ON || _opt.sos() == Options::Sos::ALL; 
   sosForAxioms = sosForAxioms && cl->inputType()==Clause::AXIOM;
 
+  bool isTheory = cl->isTheoryAxiom();
   bool sosForTheory = _opt.sos() == Options::Sos::THEORY && _opt.sosTheoryLimit() == 0;
+
+  if (_opt.showForKarel()) {
+    cout << "init: " << cl->number() << " isGoal: " << cl->isGoal() << " isTheory: " << isTheory
+         << " SInE: " << cl->getSineLevel() << endl;
+  }
+
+  if (_opt.evalForKarel()) {
+    // [istheory, isgoal, sine, issine_inf]
+    float theory = isTheory ? 1.0 : 0.0;
+    float goal = cl->isGoal() ? 1.0 : 0.0;
+    unsigned prio = cl->getSineLevel();
+    float sine = ((prio > 20) ? 20 : prio) / 20.0;
+    float sineInf = (prio == UINT_MAX) ? 1.0 : 0.0;
+
+    auto init_vec = torch::zeros({4});
+
+    init_vec[0] = theory;
+    init_vec[1] = goal;
+    init_vec[2] = sine;
+    init_vec[3] = sineInf;
+
+    //cout <<  init_vec << endl;
+
+    auto cl_vec = clause_vec(cl);
+
+    //cout << cl_vec << endl;
+
+    auto init_input = torch::cat({init_vec,cl_vec},0);
+
+    //cout << init_input << endl;
+
+    std::vector<torch::jit::IValue> inputs;
+    inputs.push_back(init_input);
+
+    auto output = model_init.forward(inputs);
+
+    clause_vecs.insert(cl,output);
+  }
 
   if (_opt.sineToAge()) {
     unsigned level = cl->getSineLevel();

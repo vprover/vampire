@@ -182,10 +182,12 @@ private:
 
   static SaturationAlgorithm* s_instance;
 protected:
-  ScopedPtr<torch::jit::script::Module> model_init;
-  ScopedPtr<torch::jit::script::Module> model_unary;
-  ScopedPtr<torch::jit::script::Module> model_binary;
-  ScopedPtr<torch::jit::script::Module> model_final;
+  torch::jit::script::Module model_init;
+  torch::jit::script::Module model_unary;
+  torch::jit::script::Module model_binary;
+  torch::jit::script::Module model_final;
+
+  DHMap<Clause*,torch::jit::IValue> clause_vecs;
 
   bool _completeOptionSettings;
   int _startTime;
