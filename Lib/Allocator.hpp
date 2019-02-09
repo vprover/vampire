@@ -18,7 +18,7 @@
  */
 /**
  * @file Allocator.hpp
- * Defines the class Allocator plus the global allocator for Vampire.
+ * Defines the class VAllocator plus the global allocator for Vampire.
  *
  * @since 13/12/2005 Redmond, made from the Shell Allocator.
  * @since 10/01/2008 Manchester, reimplemented
@@ -69,37 +69,37 @@
 
 namespace Lib {
 
-class Allocator {
+class VAllocator {
 public:
-  // Allocator is the only class which we don't allocate using Allocator ;)
+  // VAllocator is the only class which we don't allocate using VAllocator ;)
   void* operator new (size_t s);
   void operator delete (void* obj);
 
-  Allocator();
-  ~Allocator();
+  VAllocator();
+  ~VAllocator();
   
   /** Return the amount of used memory */
   static size_t getUsedMemory()
   {
-    CALLC("Allocator::getUsedMemory",MAKE_CALLS);
+    CALLC("VAllocator::getUsedMemory",MAKE_CALLS);
     return _usedMemory;
   }
   /** Return the global memory limit (in bytes) */
   static size_t getMemoryLimit()
   {
-    CALLC("Allocator::getMemoryLimit",MAKE_CALLS);
+    CALLC("VAllocator::getMemoryLimit",MAKE_CALLS);
     return _memoryLimit;
   }
   /** Set the global memory limit (in bytes) */
   static void setMemoryLimit(size_t size)
   {
-    CALLC("Allocator::setMemoryLimit",MAKE_CALLS);
+    CALLC("VAllocator::setMemoryLimit",MAKE_CALLS);
     _memoryLimit = size;
     _tolerated = size + (size/10);
   }
   /** The current allocator
    * - through which allocations by the here defined macros are channelled */
-  static Allocator* current;
+  static VAllocator* current;
 
 #if VDEBUG
   void* allocateKnown(size_t size,const char* className) ALLOC_SIZE_ATTR;
@@ -122,34 +122,34 @@ public:
     /** Initialise the static allocator's methods */
     Initialiser()
     {
-      CALLC("Allocator::Initialiser::Initialiser",MAKE_CALLS);
+      CALLC("VAllocator::Initialiser::Initialiser",MAKE_CALLS);
 
-      if (Allocator::_initialised++ == 0) {
-	Allocator::initialise();
+      if (VAllocator::_initialised++ == 0) {
+	VAllocator::initialise();
       }
     } // Initialiser::Initialiser
 
     ~Initialiser()
     {
-      CALLC("Allocator::Initialiser::~Initialiser",MAKE_CALLS);
-      if (--Allocator::_initialised == 0) {
-	Allocator::cleanup();
+      CALLC("VAllocator::Initialiser::~Initialiser",MAKE_CALLS);
+      if (--VAllocator::_initialised == 0) {
+	VAllocator::cleanup();
       }
     }
-  }; // class Allocator::Initialiser
+  }; // class VAllocator::Initialiser
 
-  static Allocator* newAllocator();
+  static VAllocator* newAllocator();
 
 private:
   char* allocatePiece(size_t size);
   static void initialise();
   static void cleanup();
   /** Array of Allocators. It is assumed that a small number of Allocators is
-   *  available at any given time and Allocator deletions are rare since
+   *  available at any given time and VAllocator deletions are rare since
    *  a deletion involves a linear lookup in the array and the
    *  size of the array is small (currently, no during runtime deletion supported).
    */
-  static Allocator* _all[MAX_ALLOCATORS];
+  static VAllocator* _all[MAX_ALLOCATORS];
   /** Total number of allocators currently available */
   static int _total;
   /** > 0 if the global page manager has been initialised */
@@ -160,7 +160,7 @@ private:
    * this piece. Since the size is known in advance, no bookkeeping of
    * the size is required.
    *
-   * Note: the code of Allocator uses sizeof(Known) as a canonical
+   * Note: the code of VAllocator uses sizeof(Known) as a canonical
    * way of describing the size of a general pointer on the current
    * architecture.
    * 
@@ -220,7 +220,7 @@ public:
   /** Descriptor stores information about allocated pieces of memory */
   struct Descriptor
   {
-    // Allocator (and its Descriptor) are the only classes which we don't allocate using Allocator
+    // VAllocator (and its Descriptor) are the only classes which we don't allocate using VAllocator
     void* operator new[] (size_t s);
     void operator delete[] (void* obj);
 
@@ -318,8 +318,8 @@ private:
   
 #if VDEBUG  
   /*
-   * A tool for marking pieces of code which are allowed to bypass Allocator.
-   * See also Allocator::AllowBypassing and the BYPASSING_ALLOCATOR macro.
+   * A tool for marking pieces of code which are allowed to bypass VAllocator.
+   * See also VAllocator::AllowBypassing and the BYPASSING_ALLOCATOR macro.
    */
   static unsigned _tolerantZone;  
   friend void* ::operator new(size_t);
@@ -327,12 +327,12 @@ private:
   friend void ::operator delete(void*) noexcept;
   friend void ::operator delete[](void*) noexcept;
 #endif
-}; // class Allocator
+}; // class VAllocator
 
 /** An initialiser to be included in every compilation unit to ensure
  *  that the memory has been initialised properly.
  */
-static Allocator::Initialiser _____;
+static VAllocator::Initialiser _____;
 
 /**
  * Initialise an array of objects of type @b T that has length @b length
@@ -386,23 +386,23 @@ void array_delete(T* array, size_t length)
 
 #if VDEBUG
 
-std::ostream& operator<<(std::ostream& out, const Allocator::Descriptor& d);
+std::ostream& operator<<(std::ostream& out, const VAllocator::Descriptor& d);
 
 #define USE_ALLOCATOR_UNK                                            \
   void* operator new (size_t sz)                                       \
-  { return Lib::Allocator::current->allocateUnknown(sz,className()); } \
+  { return Lib::VAllocator::current->allocateUnknown(sz,className()); } \
   void operator delete (void* obj)                                  \
-  { if (obj) Lib::Allocator::current->deallocateUnknown(obj,className()); }
+  { if (obj) Lib::VAllocator::current->deallocateUnknown(obj,className()); }
 #define USE_ALLOCATOR(C)                                            \
   void* operator new (size_t sz)                                       \
-  { ASS_EQ(sz,sizeof(C)); return Lib::Allocator::current->allocateKnown(sizeof(C),className()); } \
+  { ASS_EQ(sz,sizeof(C)); return Lib::VAllocator::current->allocateKnown(sizeof(C),className()); } \
   void operator delete (void* obj)                                  \
-  { if (obj) Lib::Allocator::current->deallocateKnown(obj,sizeof(C),className()); }
+  { if (obj) Lib::VAllocator::current->deallocateKnown(obj,sizeof(C),className()); }
 #define USE_ALLOCATOR_ARRAY \
   void* operator new[] (size_t sz)                                       \
-  { return Lib::Allocator::current->allocateUnknown(sz,className()); } \
+  { return Lib::VAllocator::current->allocateUnknown(sz,className()); } \
   void operator delete[] (void* obj)                                  \
-  { if (obj) Lib::Allocator::current->deallocateUnknown(obj,className()); }
+  { if (obj) Lib::VAllocator::current->deallocateUnknown(obj,className()); }
 
 
 #if USE_PRECISE_CLASS_NAMES
@@ -423,53 +423,53 @@ std::ostream& operator<<(std::ostream& out, const Allocator::Descriptor& d);
 #endif
 
 #define ALLOC_KNOWN(size,className)				\
-  (Lib::Allocator::current->allocateKnown(size,className))
+  (Lib::VAllocator::current->allocateKnown(size,className))
 #define ALLOC_UNKNOWN(size,className)				\
-  (Lib::Allocator::current->allocateUnknown(size,className))
+  (Lib::VAllocator::current->allocateUnknown(size,className))
 #define DEALLOC_KNOWN(obj,size,className)		        \
-  (Lib::Allocator::current->deallocateKnown(obj,size,className))
+  (Lib::VAllocator::current->deallocateKnown(obj,size,className))
 #define REALLOC_UNKNOWN(obj,newsize,className)                    \
-    (Lib::Allocator::current->reallocateUnknown(obj,newsize,className))
+    (Lib::VAllocator::current->reallocateUnknown(obj,newsize,className))
 #define DEALLOC_UNKNOWN(obj,className)		                \
-  (Lib::Allocator::current->deallocateUnknown(obj,className))
+  (Lib::VAllocator::current->deallocateUnknown(obj,className))
          
-#define BYPASSING_ALLOCATOR_(SEED) Allocator::AllowBypassing _tmpBypass_##SEED;
+#define BYPASSING_ALLOCATOR_(SEED) VAllocator::AllowBypassing _tmpBypass_##SEED;
 #define BYPASSING_ALLOCATOR BYPASSING_ALLOCATOR_(__LINE__)
 
-#define START_CHECKING_FOR_BYPASSES(SEED) Allocator::EnableBypassChecking _tmpBypass_##SEED;
+#define START_CHECKING_FOR_BYPASSES(SEED) VAllocator::EnableBypassChecking _tmpBypass_##SEED;
 #define START_CHECKING_FOR_ALLOCATOR_BYPASSES START_CHECKING_FOR_BYPASSES(__LINE__)
 
-#define STOP_CHECKING_FOR_BYPASSES(SEED) Allocator::DisableBypassChecking _tmpBypass_##SEED;
+#define STOP_CHECKING_FOR_BYPASSES(SEED) VAllocator::DisableBypassChecking _tmpBypass_##SEED;
 #define STOP_CHECKING_FOR_ALLOCATOR_BYPASSES STOP_CHECKING_FOR_BYPASSES(__LINE__)
 
 #else
 
 #define CLASS_NAME(name)
 #define ALLOC_KNOWN(size,className)				\
-  (Lib::Allocator::current->allocateKnown(size))
+  (Lib::VAllocator::current->allocateKnown(size))
 #define DEALLOC_KNOWN(obj,size,className)		        \
-  (Lib::Allocator::current->deallocateKnown(obj,size))
+  (Lib::VAllocator::current->deallocateKnown(obj,size))
 #define USE_ALLOCATOR_UNK                                            \
   inline void* operator new (size_t sz)                                       \
-  { return Lib::Allocator::current->allocateUnknown(sz); } \
+  { return Lib::VAllocator::current->allocateUnknown(sz); } \
   inline void operator delete (void* obj)                                  \
-  { if (obj) Lib::Allocator::current->deallocateUnknown(obj); }
+  { if (obj) Lib::VAllocator::current->deallocateUnknown(obj); }
 #define USE_ALLOCATOR(C)                                        \
   inline void* operator new (size_t)                                   \
-    { return Lib::Allocator::current->allocateKnown(sizeof(C)); }\
+    { return Lib::VAllocator::current->allocateKnown(sizeof(C)); }\
   inline void operator delete (void* obj)                               \
-   { if (obj) Lib::Allocator::current->deallocateKnown(obj,sizeof(C)); }
+   { if (obj) Lib::VAllocator::current->deallocateKnown(obj,sizeof(C)); }
 #define USE_ALLOCATOR_ARRAY                                            \
   inline void* operator new[] (size_t sz)                                       \
-  { return Lib::Allocator::current->allocateUnknown(sz); } \
+  { return Lib::VAllocator::current->allocateUnknown(sz); } \
   inline void operator delete[] (void* obj)                                  \
-  { if (obj) Lib::Allocator::current->deallocateUnknown(obj); }          
+  { if (obj) Lib::VAllocator::current->deallocateUnknown(obj); }
 #define ALLOC_UNKNOWN(size,className)				\
-  (Lib::Allocator::current->allocateUnknown(size))
+  (Lib::VAllocator::current->allocateUnknown(size))
 #define REALLOC_UNKNOWN(obj,newsize,className)                    \
-    (Lib::Allocator::current->reallocateUnknown(obj,newsize))
+    (Lib::VAllocator::current->reallocateUnknown(obj,newsize))
 #define DEALLOC_UNKNOWN(obj,className)		         \
-  (Lib::Allocator::current->deallocateUnknown(obj))
+  (Lib::VAllocator::current->deallocateUnknown(obj))
 
 #define START_CHECKING_FOR_ALLOCATOR_BYPASSES
 #define STOP_CHECKING_FOR_ALLOCATOR_BYPASSES

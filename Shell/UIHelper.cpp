@@ -445,7 +445,7 @@ void UIHelper::outputResult(ostream& out)
       return;
     }
 #if VDEBUG
-    Allocator::reportUsageByClasses();
+    VAllocator::reportUsageByClasses();
 #endif
     addCommentSignForSZS(out);
     out << "Memory limit exceeded!\n";

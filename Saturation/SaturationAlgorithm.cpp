@@ -129,10 +129,10 @@ SaturationAlgorithm::SaturationAlgorithm(Problem& prb, const Options& opt)
   ASS_EQ(s_instance, 0);  //there can be only one saturation algorithm at a time
 
   if (opt.evalForKarel()) { // load the models
-    model_init = torch::jit::load("model/traced_init.pt");
-    model_unary = torch::jit::load("model/traced_unary.pt");
-    model_binary = torch::jit::load("model/traced_binary.pt");
-    model_final = torch::jit::load("model/traced_final.pt");
+    model_init = torch::jit::load("model/traced_init.pt").get();
+    model_unary = torch::jit::load("model/traced_unary.pt").get();
+    model_binary = torch::jit::load("model/traced_binary.pt").get();
+    model_final = torch::jit::load("model/traced_final.pt").get();
   }
 
   _activationLimit = opt.activationLimit();
