@@ -793,7 +793,7 @@ int main(int argc, char* argv[])
     //having read option reinitialize the counter
     TimeCounter::reinitialize();
 
-    Allocator::setMemoryLimit(env.options->memoryLimit() * 1048576ul);
+    VAllocator::setMemoryLimit(env.options->memoryLimit() * 1048576ul);
     Lib::Random::setSeed(env.options->randomSeed());
 
     switch (env.options->mode())
