@@ -25,6 +25,8 @@
 #ifndef __SaturationAlgorithm__
 #define __SaturationAlgorithm__
 
+#include <torch/script.h>
+
 #include "Forwards.hpp"
 
 #include "Lib/DHMap.hpp"
@@ -180,6 +182,10 @@ private:
 
   static SaturationAlgorithm* s_instance;
 protected:
+  ScopedPtr<torch::jit::script::Module> model_init;
+  ScopedPtr<torch::jit::script::Module> model_unary;
+  ScopedPtr<torch::jit::script::Module> model_binary;
+  ScopedPtr<torch::jit::script::Module> model_final;
 
   bool _completeOptionSettings;
   int _startTime;

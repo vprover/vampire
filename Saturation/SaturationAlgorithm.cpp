@@ -128,6 +128,13 @@ SaturationAlgorithm::SaturationAlgorithm(Problem& prb, const Options& opt)
   CALL("SaturationAlgorithm::SaturationAlgorithm");
   ASS_EQ(s_instance, 0);  //there can be only one saturation algorithm at a time
 
+  if (opt.evalForKarel()) { // load the models
+    model_init = torch::jit::load("model/traced_init.pt");
+    model_unary = torch::jit::load("model/traced_unary.pt");
+    model_binary = torch::jit::load("model/traced_binary.pt");
+    model_final = torch::jit::load("model/traced_final.pt");
+  }
+
   _activationLimit = opt.activationLimit();
 
   _ordering = OrderingSP(Ordering::create(prb, opt));
