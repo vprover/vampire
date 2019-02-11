@@ -13,6 +13,7 @@
 //////////////////////////////////////////////////////
 // Detect compiler
 
+/*
 #ifndef __APPLE__
 # define __APPLE__ 0
 #endif
@@ -20,6 +21,7 @@
 #ifndef __CYGWIN__
 # define __CYGWIN__ 0
 #endif
+*/
 
 //////////////////////////////////////////////////////
 // Detect architecture
