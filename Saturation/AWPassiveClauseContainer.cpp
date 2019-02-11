@@ -200,20 +200,6 @@ bool AgeQueue::lessThan(Clause* c1,Clause* c2)
 {
   CALL("AgeQueue::lessThan");
 
-<<<<<<< HEAD
-=======
-  /*
-  bool c1BelowMerlin = belowMerlin(c1);
-  bool c2BelowMerlin = belowMerlin(c2);
-
-  if (c1BelowMerlin && !c2BelowMerlin) {
-    return true;
-  }
-
-  if (c2BelowMerlin && !c1BelowMerlin) {
-    return false;
-  }
-  */
 
   if (c1->modelSaidYes && !c2->modelSaidYes) {
     return true;
@@ -223,7 +209,6 @@ bool AgeQueue::lessThan(Clause* c1,Clause* c2)
     return false;
   }
 
->>>>>>> 01a8f528... modelSaidYes preorder
   if (c1->age() < c2->age()) {
     return true;
   }

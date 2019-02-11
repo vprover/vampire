@@ -134,7 +134,8 @@ SaturationAlgorithm::SaturationAlgorithm(Problem& prb, const Options& opt)
   if (opt.evalForKarel()) { // load the models
     TimeCounter t(TC_DEEP_STUFF);
 
-    torch::set_num_threads(1);
+    // torch::set_num_threads(1);
+    // TODO: https://discuss.pytorch.org/t/use-single-thread-on-intel-cpu/34233
 
     model_init = torch::jit::load("model/traced_init.pt");
     model_unary = torch::jit::load("model/traced_unary.pt");
@@ -1187,6 +1188,36 @@ void SaturationAlgorithm::addToPassive(Clause* cl)
 
   cl->setStore(Clause::PASSIVE);
   env.statistics->passiveClauses++;
+
+  if (_opt.showForKarel()) {
+    cout << "pass: " << cl->number() << endl;
+  }
+
+  if (_opt.evalForKarel()) {
+    TimeCounter t(TC_DEEP_STUFF);
+
+    torch::jit::IValue vec = clause_vecs.get(cl);
+
+    std::vector<torch::jit::IValue> inputs;
+    inputs.push_back(vec);
+
+    auto output = model_final.forward(inputs).toTensor();
+    auto o_data = output.data_ptr<float>();
+
+    bool yes = (o_data[0] < o_data[1]);
+    // cout << "yes?:" << yes << " " << o_data[0] << " " << o_data[1] << endl;
+
+#if DEBUG_MODEL
+    cout << "final: " << cl->number() << endl;
+    cout << output << endl;
+#endif
+
+    cl->modelSaidYes = yes;
+
+    if (_opt.showForKarel()) {
+      cout << "eval: " << cl->number() << " " << o_data[0] <<  " " << o_data[1] << endl;
+    }
+  }
 
   _passive->add(cl);
 }
