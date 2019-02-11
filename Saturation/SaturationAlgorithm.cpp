@@ -134,6 +134,8 @@ SaturationAlgorithm::SaturationAlgorithm(Problem& prb, const Options& opt)
   if (opt.evalForKarel()) { // load the models
     TimeCounter t(TC_DEEP_STUFF);
 
+    torch::set_num_threads(1);
+
     model_init = torch::jit::load("model/traced_init.pt");
     model_unary = torch::jit::load("model/traced_unary.pt");
     model_binary = torch::jit::load("model/traced_binary.pt");
