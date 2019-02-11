@@ -100,6 +100,7 @@ endif
 Z3FLAG= -DVZ3=1
 endif
 
+OS = $(shell uname)
 ifeq ($(OS),Darwin)
 TORCHLINK= -Wl,-search_paths_first -Wl,-headerpad_max_install_names
 TORCHLIB= -Wl,-rpath,/Users/mbassms6/libtorch/lib /Users/mbassms6/libtorch/lib/libtorch.dylib /Users/mbassms6/libtorch/lib/libcaffe2.dylib /Users/mbassms6/libtorch/lib/libc10.dylib
@@ -127,7 +128,6 @@ XFLAGS = $(REL_FLAGS) $(GCOV_FLAGS) $(Z3FLAG)
 MINISAT_FLAGS = $(MINISAT_REL_FLAGS)
 endif
 
-OS = $(shell uname)
 ifeq ($(OS),Darwin)
 STATIC = -static-libgcc -static-libstdc++ 
 else
