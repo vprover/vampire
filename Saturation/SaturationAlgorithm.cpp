@@ -353,7 +353,11 @@ void SaturationAlgorithm::onPassiveAdded(Clause* c)
     auto output = model_final.forward(inputs).toTensor().data_ptr<float>();
 
     bool yes = (output[0] < output[1]);
-    // cout << yes << endl;
+    // cout << "yes?:" << yes << " " << output[0] << " " << output[1] << endl;
+
+    if (_opt.showForKarel()) {
+      cout << "eval: " << c->number() << " " << output[0] <<  " " << output[1] << endl;
+    }
   }
 
   //when a clause is added to the passive container,
