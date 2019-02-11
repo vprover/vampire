@@ -357,12 +357,14 @@ void SaturationAlgorithm::onPassiveAdded(Clause* c)
     auto o_data = output.data_ptr<float>();
 
     bool yes = (o_data[0] < o_data[1]);
-    // cout << "yes?:" << yes << " " << output[0] << " " << output[1] << endl;
+    // cout << "yes?:" << yes << " " << o_data[0] << " " << o_data[1] << endl;
 
 #if DEBUG_MODEL
     cout << "final: " << c->number() << endl;
     cout << output << endl;
 #endif
+
+    c->modelSaidYes = yes;
 
     if (_opt.showForKarel()) {
       cout << "eval: " << c->number() << " " << o_data[0] <<  " " << o_data[1] << endl;
