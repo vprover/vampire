@@ -64,6 +64,8 @@ private:
   /** Should never be used, just that compiler requires it */
   void operator delete(void* ptr) { ASSERTION_VIOLATION; }
 public:
+  bool modelSaidYes;
+
   typedef ArrayishObjectIterator<Clause> Iterator;
 
   DECL_ELEMENT_TYPE(Literal*);

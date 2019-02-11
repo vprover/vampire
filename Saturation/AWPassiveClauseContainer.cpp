@@ -119,6 +119,14 @@ bool WeightQueue::lessThan(Clause* c1,Clause* c2)
 {
   CALL("WeightQueue::lessThan");
 
+  if (c1->modelSaidYes && !c2->modelSaidYes) {
+    return true;
+  }
+
+  if (c2->modelSaidYes && !c1->modelSaidYes) {
+    return false;
+  }
+
   Comparison weightCmp=AWPassiveClauseContainer::compareWeight(c1, c2, _opt);
   if (weightCmp!=EQUAL) {
     return weightCmp==LESS;
@@ -153,6 +161,14 @@ bool WeightQueue::lessThan(Clause* c1,Clause* c2)
 bool AgeQueue::lessThan(Clause* c1,Clause* c2)
 {
   CALL("AgeQueue::lessThan");
+
+  if (c1->modelSaidYes && !c2->modelSaidYes) {
+    return true;
+  }
+
+  if (c2->modelSaidYes && !c1->modelSaidYes) {
+    return false;
+  }
 
   if (c1->age() < c2->age()) {
     return true;
