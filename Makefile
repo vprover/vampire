@@ -81,7 +81,12 @@ XFLAGS = -Wfatal-errors -g -DVDEBUG=1 -DCHECK_LEAKS=0 -DUSE_SYSTEM_ALLOCATION=1 
 #XFLAGS = -O6 -DVDEBUG=0 -DUSE_SYSTEM_ALLOCATION=1 -DEFENCE=1 -g -lefence #Electric Fence
 #XFLAGS = -O6 -DVDEBUG=0 -DUSE_SYSTEM_ALLOCATION=1 -g
 
+ifeq ($(OS),Darwin)
 INCLUDES= -I. -Ilibtorch/include -Ilibtorch/include/torch/csrc/api/include
+else
+INCLUDES= -I. -Ilibtorch/include -Ilibtorch/include/torch/csrc/api/include -D_GLIBCXX_USE_CXX11_ABI=0
+endif
+
 Z3FLAG= -DVZ3=0
 Z3LIB=
 ifeq (,$(shell echo $(MAKECMDGOALS) | sed 's/.*z3.*//g')) 
@@ -95,9 +100,13 @@ endif
 Z3FLAG= -DVZ3=1
 endif
 
+ifeq ($(OS),Darwin)
 TORCHLINK= -Wl,-search_paths_first -Wl,-headerpad_max_install_names
-
 TORCHLIB= -Wl,-rpath,/Users/mbassms6/libtorch/lib /Users/mbassms6/libtorch/lib/libtorch.dylib /Users/mbassms6/libtorch/lib/libcaffe2.dylib /Users/mbassms6/libtorch/lib/libc10.dylib
+else
+TORCHLINK=
+TORCHLIB= -rdynamic ./libtorch/lib/libtorch.so -Wl,--no-as-needed,./libtorch/lib/libcaffe2.so -Wl,--as-needed,./libtorch/lib/libc10.so -lpthread -Wl,-rpath,./libtorch/lib
+endif
 
 ifneq (,$(filter vtest%,$(MAKECMDGOALS)))
 XFLAGS = $(DBG_FLAGS) $(Z3FLAG)
