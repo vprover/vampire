@@ -72,6 +72,7 @@ Options::Options ()
 
 {
     CALL("Options::Options");
+    dummy = 0;
     init();
 }
 
@@ -435,7 +436,7 @@ void Options::Options::init()
     _equalityProxy.addProblemConstraint(hasEquality());
     _equalityProxy.addProblemConstraint(notHigherOrder());
     _equalityProxy.setRandomChoices(isRandOn(),{"R","RS","RST","RSTC","off","off","off","off","off"}); // wasn't tested, make off more likely
-    _equalityProxy.setMutationProb(0.2);
+    //_equalityProxy.setMutationProb(0.2);
 
     _equalityResolutionWithDeletion = ChoiceOptionValue<RuleActivity>( "equality_resolution_with_deletion","erd",
                                                                       RuleActivity::INPUT_ONLY,{"input_only","off","on"});
@@ -489,7 +490,7 @@ void Options::Options::init()
     _blockedClauseElimination.tag(OptionTag::PREPROCESSING);
     _blockedClauseElimination.addProblemConstraint(notWithCat(Property::UEQ));
     _blockedClauseElimination.setRandomChoices({"on","off"});
-    _blockedClauseElimination.setMutationProb(0.2);
+   // _blockedClauseElimination.setMutationProb(0.2);
 
     _theoryAxioms = ChoiceOptionValue<TheoryAxiomLevel>("theory_axioms","tha",TheoryAxiomLevel::ON,{"on","off","some"});
     _theoryAxioms.description="Include theory axioms for detected interpreted symbols";
@@ -1031,7 +1032,7 @@ void Options::Options::init()
       _HOLConstantElimination.setRandomChoices({"on","off"});
       _HOLConstantElimination.setMutationProb(0.5);
 
-      _extendedNarrowing = BoolOptionValue("extended_narrowing","e_n",false);
+      _extendedNarrowing = BoolOptionValue("extended_narrowing","en",false);
       _extendedNarrowing.description=
       "Equivalent to primitive substitution. "
       "Attempts to match a literal with a variable head with the left-hand side of \n"
@@ -1049,6 +1050,7 @@ void Options::Options::init()
       "Syntactic unification is replaced by  \n"
       "a restricted version of combinatory unifcation, \n"
       "i.e., unification modulo the combinator axioms";
+      _combinatoryUnification.reliesOn(_combinatorElimination.is(notEqual(CombElimination::AXIOMS)));
       _combinatoryUnification.addHardConstraint(
         If(equal(true)).then(_unificationWithAbstraction.is(equal(UnificationWithAbstraction::OFF))));
       _lookup.insert(&_combinatoryUnification);
@@ -1549,7 +1551,7 @@ void Options::Options::init()
     _splittingFlushQuotient.addConstraint(greaterThanEq(1.0f));
     _splittingFlushQuotient.reliesOn(_splitting.is(equal(true)));
     _splittingFlushQuotient.setRandomChoices({"1.0","1.1","1.2","1.4","2.0"});
-    _splittingFlushQuotient.setMutationProb(0.2);
+    //_splittingFlushQuotient.setMutationProb(0.2);
 
     _splittingNonsplittableComponents = ChoiceOptionValue<SplittingNonsplittableComponents>("avatar_nonsplittable_components","anc",
                                                                                               SplittingNonsplittableComponents::KNOWN,
@@ -1769,7 +1771,7 @@ void Options::Options::init()
     _lookup.insert(&_theoryWeightCoefficient);
     _theoryWeightCoefficient.tag(OptionTag::SATURATION);
     _theoryWeightCoefficient.setRandomChoices({"1","1.1","1.2","1.3","1.5","1.7","2","2.5","3","4","5","10"});
-    _theoryWeightCoefficient.setMutationProb(0.2);
+    //_theoryWeightCoefficient.setMutationProb(0.2);
  
 
     _nonGoalWeightCoefficient = NonGoalWeightOptionValue("nongoal_weight_coefficient","nwc",1.0);
@@ -2335,9 +2337,6 @@ void Options::output (ostream& str) const
 template<typename T>
 bool Options::OptionValue<T>::randomize(Property* prop, bool training_mode){
   CALL("Options::OptionValue::randomize()");
-
-  //when in training mode property should always be available
-  ASS(!training_mode || prop);
 
   DArray<vstring>* choices = 0;
   if(!training_mode && env.options->randomStrategy()==RandomStrategy::NOCHECK) prop=0;
@@ -2943,91 +2942,40 @@ void Options::setForcedOptionValues()
 }
 
 
-vstring Options::mutate(vstring optStr, Property* prop)
+void Options::mutate()
 {
   CALL("Options::mutate");
+  
+  
+  // We define some options that should be set before the rest
+  // Note this is a stack!
+  Stack<AbstractOptionValue*> do_first;
+  do_first.push(&_saturationAlgorithm);
 
-  ASS(prop);
+  auto options = getConcatenatedIterator(Stack<AbstractOptionValue*>::Iterator(do_first),_lookup.values());
 
-  static Set<vstring> triedStrategies;
-  //memory leak here! opts will never be deleted
-  static Options* opts = new Options;
+  //auto options = _lookup.values();
 
-  //the first call to this function will be made
-  //with a successful strategy not alredy in triedStrategies.
-  if(!triedStrategies.contains(optStr)){
-    triedStrategies.insert(optStr);
-  }
+  while(options.hasNext()){
+    AbstractOptionValue* option = options.next();
 
-  vstring res;
-  unsigned count = 0;
-  //opts matches optStr  
-  opts->setAllOptsToDefault();
-  opts->readFromEncodedOptions(optStr);
+    //make it more likely that those options actually set by
+    //a successful strategy are mutated then those that are at default
+    double divFact = (option->is_set) ? 1.0 : 2.0;
 
-  do{
-    //int saved_seed = Random::seed();
-    //Random::setSeed(time(NULL)); // TODO is this the best choice of seed?
-
-    // We define some options that should be set before the rest
-    // Note this is a stack!
-    Stack<AbstractOptionValue*> do_first;
-    do_first.push(&opts->_saturationAlgorithm);
-    do_first.push(&opts->_bfnt);
-
-    auto options = getConcatenatedIterator(Stack<AbstractOptionValue*>::Iterator(do_first),opts->_lookup.values());
-
-    // whilst doing this don't report any bad options
-    BadOption saved_bad_option = env.options->_badOption.actualValue;
-    env.options->_badOption.actualValue=BadOption::OFF;
-
-    while(options.hasNext()){
-      AbstractOptionValue* option = options.next();
-
-      //make it more likely that those options actually set by
-      //a successful strategy are mutated then those that are at default
-      double divFact = option->is_set ? 1.0 : 2.0;
-
-      double randDoub = Random::getDouble(0.0,1.0);
-      if(randDoub > (option->mutationProb/divFact)){
-        //cout << "randDoub " << randDoub << " mutationProb " << option->mutationProb/divFact << endl;
-        continue;
-      }
-   
-      //cout << "attempting to randomise " + option->longName + " with current val " + option->getStringOfActual() << endl;
-
-      // try 5 random values before giving up
-      vstring def = option->getStringOfActual();
-      bool set = option->is_set;
-
-      bool valid = false;
-      unsigned i=5;
-      while(!valid && i-- > 0){
-        option->randomize(prop, true);
-        if(!option->checkProblemConstraints(prop)){ break;}
-        bool check = false;
-        valid = opts->checkGlobalOptionConstraints(true, check);
-      }
-      if(!valid){
-        //cout << "failed" << endl;
-        option->set(def);
-        option->is_set = set;
-      }
-
-      //cout << "After attempt " + option->longName + " with current val " + option->getStringOfActual() << endl;
+    double randDoub = Random::getDouble(0.0,1.0);
+    if(randDoub > (option->mutationProb/divFact)){
+      //cout << "randDoub " << randDoub << " mutationProb " << option->mutationProb/divFact << endl;
+      continue;
     }
 
-    // Reset saved things
-    env.options->_badOption.actualValue = saved_bad_option;
-    //Random::setSeed(saved_seed);
+    option->randomize(0, true);
+    //need to implement some form of "forcing" here
 
-    //bfnt?
-
-    res = opts->generateEncodedOptions();
-  }while(triedStrategies.contains(res) && count++ < 7);
-  
-  triedStrategies.insert(res);
-  return res;
+    //cout << "After attempt " + option->longName + " with current val " + option->getStringOfActual() << endl;
+  }
+  //dummy++;
+  //_timeLimitInDeciseconds.actualValue = _timeLimitInDeciseconds.actualValue + dummy;
 }
 
 
@@ -3212,9 +3160,11 @@ bool Options::completeForNNE() const
  *
  * The function is called after all options are parsed.
  */
-bool Options::checkGlobalOptionConstraints(bool fail_early, bool check)
+bool Options::checkGlobalOptionConstraints(bool fail_early)
 {
   CALL("Options::checkGlobalOptionsConstraints");
+
+  //cout << "The value of combinatory elimination is " + _combinatorElimination.getStringOfActual() << endl;
 
   //Check forbidden options
   readOptionsString(_forbiddenOptions.actualValue,false);

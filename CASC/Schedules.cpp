@@ -8453,6 +8453,12 @@ void Schedules::getCasc2017Schedule(const Property& property, Schedule& quick, S
   unsigned long prop = property.props();
   unsigned atoms = property.atoms();
 
+  //TO DO fix this. When working with HOL, all problems have equality "= true"
+  //however cat is only set to FEQ after preprocessing
+  if(cat == Property::FNE && property.higherOrder()){
+    cat = Property::FEQ;
+  }
+
   // for theory problems, we make the schedule before the main choice
   if (prop & (524288ul | 1048576ul | 2097152ul)) { // contains integers, rationals and reals
     if (prop & 67108864ul) { // uses linear integer functions
@@ -10484,6 +10490,7 @@ void Schedules::getSmtcomp2017Schedule(const Property& property, Schedule& quick
   fallback.push("lrs+10_24_av=off:bs=unit_only:fsr=off:irw=on:lma=on:nm=64:newcnf=on:nwc=1:sd=7:ss=axioms:st=1.2:sp=occurrence:tha=off:thf=on:uhcvi=on_600");
   fallback.push("lrs+1003_4:1_av=off:bd=preordered:cond=on:fde=unused:gs=on:ile=on:irw=on:nm=64:nwc=1.2:sp=reverse_arity:tha=off:urr=on:updr=off:uhcvi=on_900");
 } // getSmtcomp2017Schedule
+
 
 // ---------- ---------- ---------- ---------- ---------- ---------- ---------- ---------- ----------
 // ---------- ---------- ---------- ---------- ---------- ---------- ---------- ---------- ----------

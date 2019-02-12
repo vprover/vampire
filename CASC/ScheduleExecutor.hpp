@@ -7,6 +7,7 @@
 #include "Lib/List.hpp"
 #include "Lib/PriorityQueue.hpp"
 #include "Lib/VString.hpp"
+#include "Lib/Set.hpp"
 
 #include "Shell/Property.hpp"
 
@@ -63,7 +64,8 @@ public:
   ScheduleExecutor(ProcessPriorityPolicy *policy, SliceExecutor *executor);
   bool run(const Schedule &schedule, int terminationTime, Shell::Property* prop);
   void killAllInPool(Pool**);
-  void emptyQueueAndAddMutatedProcs(PriorityQueue<Item>*, Shell::Property* prop);
+  void emptyQueue(PriorityQueue<Item>*);
+  void addMutatedProcs(PriorityQueue<Item>*, Shell::Property* prop);
 
   enum Status {
     NOT_TRAINING = 0,
@@ -75,6 +77,7 @@ private:
 
   pid_t spawn(Lib::vstring code, int terminationTime);
   unsigned getNumWorkers();
+  vstring mutate(vstring optStr, Shell::Property* prop);
 
   ProcessPriorityPolicy *_policy;
   SliceExecutor *_executor;
@@ -83,6 +86,9 @@ private:
   ProcessInfo _currentBest;
   ProcessInfo _origSucStrat;
   Map<pid_t, pair<vstring, int>> _processTimes;
+  Set<vstring> triedStrategies;
+  //memory leak here! opts will never be deleted
+  Shell::Options* opts;
 };
 }
 

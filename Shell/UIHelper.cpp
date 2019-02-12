@@ -95,7 +95,8 @@ bool outputAllowed(bool debug)
 
   // spider and smtcomp output modes are generally silent
   return !Lib::env.options || (Lib::env.options->outputMode()!=Shell::Options::Output::SPIDER
-                               && Lib::env.options->outputMode()!=Shell::Options::Output::SMTCOMP );
+                               && Lib::env.options->outputMode()!=Shell::Options::Output::SMTCOMP 
+                               && Lib::env.options->mode()!=Shell::Options::Mode::TRAINING  );
 }
 
 void reportSpiderFail()
@@ -331,6 +332,32 @@ static void printInterpolationProofTask(ostream& out, Formula* intp, Color avoid
   out << TPTPPrinter::toString(intpUnit) << "\n";
 }
 */
+
+
+void UIHelper::outputTrainingResult(ostream& out, pair<vstring, int> orig, pair<vstring, int> best)
+{
+  CALL("UIHelper::outputTrainingResult");
+
+  if(best.first == ""){
+    out << "\n ---------- Output From Training Mode --------- \n\n";  
+    out << "Training failed to find a proof\n";
+    out << "\n ------- End Of Output From Training Mode ----- \n\n";      
+    return;
+  }
+
+  bool diff = (orig.first != best.first);
+  out << "\n ---------- Output From Training Mode --------- \n\n";  
+  if(diff){
+    out << "First successful strategy:\n " << orig.first << 
+           "\nTime: " << orig.second << "\n\n";
+  }
+  out << "Best strategy:\n" << best.first << 
+         "\nTime: " << best.second << "\n\n";
+  if(diff){
+    out << "Training saved " << (orig.second - best.second) << " milliseconds";             
+  }
+  out << "\n ------- End Of Output From Training Mode ----- \n\n";
+}
 
 /**
  * Output result based on the content of

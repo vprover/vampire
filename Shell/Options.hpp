@@ -139,12 +139,8 @@ public:
     void readFromEncodedOptions (vstring testId);
     void readOptionsString (vstring testId,bool assign=true);
     vstring generateEncodedOptions() const;
-    /** takes a encoded option string and 
-      * returns another option string that represents
-      * a mutation of the input. Mutations are random and controlled
-      * by [WHAT?]    
-      */
-    static vstring mutate(vstring optStr, Property* prop);
+    /**  mutates the options with some random probability */
+    void mutate();
 
     // deal with completeness
     bool complete(const Problem&) const;
@@ -153,7 +149,7 @@ public:
 
     // deal with constraints
     void setForcedOptionValues(); // not currently used effectively
-    bool checkGlobalOptionConstraints(bool fail_early=false, bool check = false);
+    bool checkGlobalOptionConstraints(bool fail_early=false);
     bool checkProblemOptionConstraints(Property*, bool fail_early=false); 
 
     // Randomize strategy (will only work if randomStrategy=on)
@@ -190,6 +186,8 @@ public:
     CLASS_NAME(Options);
     USE_ALLOCATOR(Options);
     
+    unsigned dummy;
+
     // standard ways of creating options
     void set(const vstring& name, const vstring& value); // implicitly the long version used here
     void set(const char* name, const char* value, bool longOpt);
@@ -2103,6 +2101,7 @@ public:
 
   void setMemoryLimit(size_t newVal) { _memoryLimit.actualValue = newVal; }
   
+  void setShowPreprocessing(bool newVal) { _showPreprocessing.actualValue = newVal; }
   void setTimeLimitInSeconds(int newVal) { _timeLimitInDeciseconds.actualValue = 10*newVal; }
   void setTimeLimitInDeciseconds(int newVal) { _timeLimitInDeciseconds.actualValue = newVal; }
   int getWhileNumber(){return _whileNumber.actualValue;}

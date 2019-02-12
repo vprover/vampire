@@ -44,6 +44,7 @@ class UIHelper {
 public:
   static Problem* getInputProblem(const Options& opts);
   static void outputResult(ostream& out);
+  static void outputTrainingResult(ostream& out, pair<vstring, int> orig, pair<vstring, int> best);
 
   /**
    * Return true if there was a conjecture formula among the parsed units

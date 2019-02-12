@@ -732,7 +732,7 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
           // 2) In at least one place in combinatory unification code, the assumption
           //    that all literals are equalities is made.
           // Long term, better to deal with (1) and (2) and clean up code like that below 
-          if(env.options->combinatoryUnification()){ 
+          if(env.options->combinatoryUnification() || env.options->fullDougherty()){ 
             unsigned freshSymbolSort = HOSortHelper::getHigherOrderSort(freeVarsSorts, Sorts::SRT_BOOL);
             Stack<unsigned> dummy;
             unsigned freshSymbol = introduceFreshSymbol(context, BOOL_PREFIX, dummy, freshSymbolSort);

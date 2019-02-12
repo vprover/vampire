@@ -243,7 +243,7 @@ bool GeneralSplitting::apply(Clause*& cl, UnitList*& resultStack)
 
 
   unsigned namingPred;
-  if(env.options->combinatoryUnification()){  
+  if(env.options->combinatoryUnification() || env.options->fullDougherty()){  
     namingPred = env.signature->addNameFunction(0);
   } else {
     namingPred = env.signature->addNamePredicate(minDeg); 
@@ -264,7 +264,7 @@ bool GeneralSplitting::apply(Clause*& cl, UnitList*& resultStack)
   ASS_EQ(args.size(), minDeg);
   Literal* pnLit;
   Term* term;
-  if(env.options->combinatoryUnification()){  
+  if(env.options->combinatoryUnification() || env.options->fullDougherty()){  
     unsigned headSort = HOSortHelper::getHigherOrderSort(argSorts, Sorts::SRT_BOOL);
     env.signature->getFunction(namingPred)->setType(OperatorType::getConstantsType(headSort)); 
     TermList head = TermList(Term::createConstant(namingPred));
@@ -275,7 +275,7 @@ bool GeneralSplitting::apply(Clause*& cl, UnitList*& resultStack)
   }
   mdvLits.push(pnLit);
   Literal* nnLit;
-  if(env.options->combinatoryUnification()){  
+  if(env.options->combinatoryUnification() || env.options->fullDougherty()){  
     nnLit = Literal::createEquality(true, TermList(term), TermList(Term::foolFalse()), Sorts::SRT_BOOL); 
   } else {
     nnLit = Literal::create(namingPred, minDeg, false, false, args.begin());

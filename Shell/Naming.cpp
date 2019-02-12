@@ -1139,7 +1139,7 @@ Literal* Naming::getDefinitionLiteral(Formula* f, Formula::VarList* freeVars) {
   unsigned length = Formula::VarList::length(freeVars);
   unsigned pred;
   Signature::Symbol* sym;
-  if(env.options->combinatoryUnification()){
+  if(env.options->combinatoryUnification() || env.options->fullDougherty()){
     pred  = env.signature->addNameFunction(0);
     sym = env.signature->getFunction(pred);
   } else {
@@ -1173,7 +1173,7 @@ Literal* Naming::getDefinitionLiteral(Formula* f, Formula::VarList* freeVars) {
     args.push(TermList(uvar, false));
   }
 
-  if(env.options->combinatoryUnification()){
+  if(env.options->combinatoryUnification() || env.options->fullDougherty()){
     unsigned headSort = HOSortHelper::getHigherOrderSort(domainSorts, Sorts::SRT_BOOL);
     sym->setType(OperatorType::getConstantsType(headSort)); 
     TermList head = TermList(Term::createConstant(pred));

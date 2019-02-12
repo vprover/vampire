@@ -342,6 +342,7 @@ unsigned PortfolioMode::getSliceTime(vstring sliceCode,vstring& chopped)
   vstring sliceTimeStr = sliceCode.substr(pos+1);
   chopped.assign(sliceCode.substr(0,pos));
   unsigned sliceTime;
+
   ALWAYS(Int::stringToUnsignedInt(sliceTimeStr,sliceTime));
   ASS_G(sliceTime,0); //strategies with zero time don't make sense
 
@@ -427,6 +428,8 @@ void PortfolioMode::runSlice(Options& strategyOpt)
   opt.checkGlobalOptionConstraints();
   *env.options = opt; //just temporarily until we get rid of dependencies on env.options in solving
 
+  bool training = (env.options->mode() == Options::Mode::TRAINING);
+
   if (outputAllowed()) {
     env.beginOutput();
     addCommentSignForSZS(env.out()) << opt.testId() << " on " << opt.problemName() << endl;
@@ -449,7 +452,6 @@ void PortfolioMode::runSlice(Options& strategyOpt)
 
   System::ignoreSIGHUP(); // don't interrupt now, we need to finish printing the proof !
 
-  bool training = (env.options->mode() == Options::Mode::TRAINING);
   bool outputResult = false;
   if (!resultValue) {
     _syncSemaphore.dec(SEM_LOCK); // will block for all accept the first to enter
@@ -462,7 +464,7 @@ void PortfolioMode::runSlice(Options& strategyOpt)
     _syncSemaphore.inc(SEM_LOCK); // would be also released after the processes' death, but we are polite and do it already here
   }
 
-  if((outputAllowed() && resultValue) || outputResult || training) { // we can report on every failure, but only once on success
+  if((outputAllowed() && resultValue) || (outputResult && !training)) { // we can report on every failure, but only once on success
     env.beginOutput();
     UIHelper::outputResult(env.out());
     env.endOutput();
