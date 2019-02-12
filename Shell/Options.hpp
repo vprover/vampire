@@ -743,9 +743,10 @@ public:
   };
 
   enum class AgeWeightRatioShape {
-		CONSTANT,
-		DECAY,
-	};
+    CONSTANT,
+    DECAY,
+    CONVERGE
+  };
     
     //==========================================================
     // The Internals

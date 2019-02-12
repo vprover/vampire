@@ -55,8 +55,14 @@ AWPassiveClauseContainer::AWPassiveClauseContainer(const Options& opt)
 {
   CALL("AWPassiveClauseContainer::AWPassiveClauseContainer");
 
-  _ageRatio = _opt.ageRatio();
-  _weightRatio = _opt.weightRatio();
+  if(_opt.ageWeightRatioShape() == Options::AgeWeightRatioShape::CONVERGE) {
+    _ageRatio = 1;
+    _weightRatio = 1;
+  }
+  else {
+    _ageRatio = _opt.ageRatio();
+    _weightRatio = _opt.weightRatio();
+  }
   ASS_GE(_ageRatio, 0);
   ASS_GE(_weightRatio, 0);
   ASS(_ageRatio > 0 || _weightRatio > 0);
@@ -261,27 +267,32 @@ Clause* AWPassiveClauseContainer::popSelected()
   CALL("AWPassiveClauseContainer::popSelected");
   ASS( ! isEmpty());
 
-	static unsigned count = 0;
-	count++;
+  auto shape = _opt.ageWeightRatioShape();
+  unsigned frequency = _opt.ageWeightRatioShapeFrequency();
+  static unsigned count = 0;
+  count++;
 
-	auto shape = _opt.ageWeightRatioShape();
-	unsigned frequency = _opt.ageWeightRatioShapeFrequency();
-	if(shape != Options::AgeWeightRatioShape::CONSTANT) {
+  bool is_converging = shape == Options::AgeWeightRatioShape::CONVERGE;
+  int targetAgeRatio = is_converging ? _opt.ageRatio() : 1;
+  int targetWeightRatio = is_converging ? _opt.weightRatio() : 1;
 
-		if(shape == Options::AgeWeightRatioShape::DECAY && count % frequency == 0) {
-			// decide if we need to modify age or weight
-			int *toModify = _ageRatio < _weightRatio ? &_weightRatio : &_ageRatio;
+  if(count % frequency == 0) {
+    switch(shape) {
+    case Options::AgeWeightRatioShape::CONSTANT:
+      break;
+    case Options::AgeWeightRatioShape::DECAY:
+    case Options::AgeWeightRatioShape::CONVERGE:
+      int ageDifference = targetAgeRatio - _ageRatio;
+      int weightDifference = targetWeightRatio - _weightRatio;
+      int bonus = is_converging ? 1 : -1;
+      int ageUpdate = (ageDifference + bonus) / 2;
+      int weightUpdate = (weightDifference + bonus) / 2;
 
-			// decay it a bit...
-			int next = *toModify / 2;
-			// but make sure it's non-zero if it was to start with
-			if(next == 0 && *toModify != 0) {
-				next = 1;
-			}
-			*toModify = next;
-		}
-	}
-
+      _ageRatio += ageUpdate;
+      _weightRatio += weightUpdate;
+   }
+  }
+  std::cerr << _ageRatio << "\t" << _weightRatio << std::endl;
   _size--;
 
   bool byWeight;
