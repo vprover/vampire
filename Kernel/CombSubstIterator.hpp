@@ -64,27 +64,22 @@ class CombSubstitution
     typedef HOSortHelper HSH;
     typedef RobSubstitution::VarSpec VarSpec;
     typedef SmartPtr<HSH::HOTerm> HOTerm_ptr;
-    typedef pair<unsigned,unsigned> sortPair;
-
+  
     CombSubstitution(TermList t1, int index1, TermList t2, int index2,
-                     unsigned sort, bool mode):
-    _nextFreshVar(0), _xxNarrowSteps(0), _xNarrowSteps(0), _nextUnboundAvailable(0)
+                     unsigned sort):
+    _solved(false),_nextFreshVar(0), _nextUnboundAvailable(0)
     {
-      _mode = mode ? FULL : RESTRICTED;
       //if t1 or t2 are vars, need to provide sorts...
       HOTerm_ptr ht1 = HOSortHelper::deappify(t1, index1, sort);
       HOTerm_ptr ht2 = HOSortHelper::deappify(t2, index2, sort);
       UnificationPair up = UnificationPair(ht1, ht2);
       _unificationPairs.push(up);
-      _solved = ((_mode == FULL) && (up.isFlexFlex()));
     }
 
     ~CombSubstitution(){}
     
     static const int UNBOUND_INDEX = -2;
     static const int AUX_INDEX = -3;
-
-    static const unsigned MAX_DEPTH_BOUND = 2;
 
     TermList apply(TermList t, int index, int sort = -1) const;
     Literal* apply(Literal* lit, int index) const;
@@ -103,9 +98,6 @@ class CombSubstitution
        CX_NARROW,
        S_NARROW,
        SX_NARROW,
-       BXX_NARROW,
-       CXX_NARROW,
-       SXX_NARROW,
        I_REDUCE,
        K_REDUCE,
        B_REDUCE,
@@ -135,84 +127,6 @@ class CombSubstitution
        BOTH = 3
     };
 
-    enum Mode {
-      FULL,
-      RESTRICTED
-    };
-
-    struct TypeSub
-    {
-      CLASS_NAME(TypeSub);
-      USE_ALLOCATOR(TypeSub);    
-
-      TypeSub(){} 
-      TypeSub(TypeSub* ts){
-        Map<unsigned, unsigned>::Iterator it(ts->substitution);
-        while(it.hasNext()){
-          unsigned var, bound;
-          it.next(var,bound);
-          substitution.insert(var, bound);
-        }        
-      }      
-      ~TypeSub(){
-      }//check that destructor is called appropriately
-
-      /** returns true if var not already bound
-          or already bound to sort. Otherwise returns false */
-      bool bind(unsigned var, unsigned sort){
-        ASS(env.sorts->isSortVariable(var));
-        if(substitution.find(var)){
-          if(substitution.get(var) != sort ){
-            return false;
-          }
-          return true;
-        }
-        return substitution.insert(var, sort);
-      }
-      
-      bool isEmpty() const {
-        return !substitution.numberOfElements();
-      }
-   
-    #if VDEBUG
-      vstring toString() const{
-        CALL("TypeSub::toString"); 
-        
-        vstring res;
-
-        Map<unsigned, unsigned>::Iterator it(substitution);
-        while(it.hasNext()){
-          unsigned var, bound;
-          it.next(var,bound);
-          res += env.sorts->sortName(var) + " -> " + env.sorts->sortName(bound) + "\n";
-        }
-        return res;
-      }
-    #endif
-
-      // if the variable is in the substitution 
-      // return sort it is bound to.
-      unsigned apply(unsigned var) const{
-        if(substitution.find(var)){
-          return substitution.get(var);
-        }
-        return var;
-      }
-
-      Map<unsigned, unsigned> substitution;
-    };
-
-    struct Transform
-    {
-      Transform(AlgorithmStep as, ApplyTo at): algStep(as), appTo(at), sub(0) {}
-      Transform(AlgorithmStep as, ApplyTo at, TypeSub* ts) : 
-        algStep(as), appTo(at), sub(ts) {}
-
-      AlgorithmStep algStep;
-      ApplyTo appTo;
-      TypeSub* sub;
-    };
-
   #if VDEBUG
     //need to add boolean option to allow "collapsing of substitution"
     vstring toString();
@@ -220,8 +134,9 @@ class CombSubstitution
           
   private:
 
-    typedef Signature::Symbol SS;
+    typedef pair<AlgorithmStep, ApplyTo>  Transform;
     typedef Stack<Transform> TransformStack;
+    typedef Signature::Symbol SS;
 
     struct UnificationPair
     {
@@ -264,11 +179,7 @@ class CombSubstitution
         }        
       }
 
-      bool isFlexFlex() const {
-        return (getPairType() < 2);
-      }
-
-      PairType getPairType() const {      
+      PairType getPairType() {      
         if(terml->varHead()){
           if(termr->varHead()){
             if(terml->sameVarHead(termr, true)){
@@ -329,20 +240,14 @@ class CombSubstitution
          return "B_NARROW";
        case BX_NARROW:
          return "BX_NARROW";
-       case BXX_NARROW:
-         return "BXX_NARROW";
        case C_NARROW:
          return "C_NARROW";
        case CX_NARROW:
          return "CX_NARROW";
-       case CXX_NARROW:
-         return "CXX_NARROW";
        case S_NARROW:
          return "S_NARROW";
        case SX_NARROW:
          return "SX_NARROW";
-       case SXX_NARROW:
-         return "SXX_NARROW";
        case I_REDUCE:
          return "I_REDUCE";
        case K_REDUCE:
@@ -377,31 +282,22 @@ class CombSubstitution
     void populateSide(HOTerm_ptr, ApplyTo, TransformStack&,AlgorithmStep,AlgorithmStep);
     /** returns the particular narrow step relevant to the arg */
     AlgorithmStep reduceStep(const HOTerm_ptr) const;
-    /** Carry out transformation represented by @t on top pair
+    /** Carry out transformation represented bt t on top pair
         If further options set to true, unification system prior 
         to carrying out transform will be saved to backtrack to.
         Otherwise not */    
     bool transform(Transform t, bool furtherOptions);
 
-    void transform(HOTerm_ptr, AlgorithmStep);
+    void transform(HOTerm_ptr, HOTerm_ptr, AlgorithmStep);
     void iReduce(HOTerm_ptr)const;
     void kReduce(HOTerm_ptr)const;
     void bcsReduce(HOTerm_ptr, AlgorithmStep)const;
 
-    /** if sort1 and sort2 are unifiable return true and store 
-      * substitution in @b ts
-      */
-    bool isUnifiable(unsigned, unsigned, TypeSub*);
-    bool succeed(const Stack<UnificationPair>&);
     bool canPerformStep(AlgorithmStep, AlgorithmStep, AlgorithmStep);
     bool occursOrNotPure(const VarSpec&, HOTerm_ptr);
     void eliminate(const VarSpec&, HOTerm_ptr);
     void eliminate(const VarSpec&, HOTerm_ptr, HOTerm_ptr);
-    void applyTypSub(const TypeSub* ts);
-    void applyTypSub(HOTerm_ptr ht, const TypeSub* ts);
-    unsigned applyTypSub(unsigned sort, const TypeSub* ts);
     void addToSolved(const VarSpec&, HOTerm_ptr);
-
     void pushNewPair(HOTerm_ptr ht1, HOTerm_ptr ht2){
       UnificationPair newup = UnificationPair(ht1, ht2);
       _unificationPairs.push(newup); 
@@ -442,17 +338,13 @@ class CombSubstitution
     //if subsitution represents solved system _solved set to true
     bool _solved;
     unsigned _nextFreshVar;
-    unsigned _xxNarrowSteps;
-    unsigned _xNarrowSteps;
     mutable unsigned _nextUnboundAvailable;
     Stack<UnificationPair> _unificationPairs;
     
     typedef DHMap<VarSpec,HOTerm_ptr,VarSpec::Hash1, VarSpec::Hash2> SolvedType;
     mutable SolvedType _solvedPairs;
     mutable SolvedType _unboundVariables;
-    /** running full Dougherty's algorithm or restricted version */
-    Mode _mode; 
- 
+  
     class BindingBacktrackObject
     : public BacktrackObject
     {
@@ -478,8 +370,7 @@ class CombSubstitution
     {
     public:
       StackBacktrackObject(CombSubstitution* subst, Stack<UnificationPair> st)
-      :_subst(subst), _freshVarNum(subst->_nextFreshVar), _xxnSteps(subst->_xxNarrowSteps),
-       _xnSteps(subst->_xNarrowSteps)
+      :_subst(subst), _freshVarNum(_subst->_nextFreshVar)
       {
         for(unsigned i = 0; i < st.size(); i++){
          HOTerm_ptr htpl = HOTerm_ptr(new HSH::HOTerm(*(st[i].terml)));
@@ -497,8 +388,6 @@ class CombSubstitution
         // Should only be resetting elements that have changed.
         _subst->_unificationPairs = _st;
         _subst->_nextFreshVar = _freshVarNum;
-        _subst->_xxNarrowSteps = _xxnSteps;
-        _subst->_xNarrowSteps = _xnSteps;
       }
   
     #if VDEBUG
@@ -517,8 +406,6 @@ class CombSubstitution
       CombSubstitution* _subst;
       Stack<UnificationPair> _st;
       unsigned _freshVarNum;
-      unsigned _xxnSteps;
-      unsigned _xnSteps;
     };
 
     friend class CombSubstIterator;
@@ -530,25 +417,20 @@ class CombSubstIterator
 public:
   CLASS_NAME(CombSubstIterator);
   USE_ALLOCATOR(CombSubstIterator);
-
+  
   CombSubstIterator(TermList t1, unsigned s1, int index1,
-                   TermList t2, unsigned s2, int index2, bool full = false)
+                   TermList t2, unsigned s2, int index2)
   {  
-    _unifSystem = new CombSubstitution(t1, index1, t2, index2, s1, full);
-    if((_mode == CombSubstitution::RESTRICTED) || (!_unifSystem->_solved)){
-      transformStacks.push(_unifSystem->availableTransforms());
-    }
+    _unifSystem = new CombSubstitution(t1, index1, t2, index2, s1);
+    transformStacks.push(_unifSystem->availableTransforms());
     //cout << "STARTING ITERATOR WITH\n" + _unifSystem->_unificationPairs.top().toString() << endl;
     //cout << transformStacksToString() << endl;
     _calledNext = false;
-    _mode = full ? CombSubstitution::FULL : CombSubstitution::RESTRICTED;
   }
 
   ~CombSubstIterator(){
     delete _unifSystem;
   }
-
-  bool unifiable();
 
   bool hasNext(){
     if(!_calledNext){
@@ -593,14 +475,14 @@ public:
       res += "[";
       for(int j = transformStacks[i].size()-1; j >=0; j--){
         vstring side;
-        if(transformStacks[i][j].appTo == CombSubstitution::FIRST){
+        if(transformStacks[i][j].second == CombSubstitution::FIRST){
           side = ", LEFT), ";
-        }else if(transformStacks[i][j].appTo == CombSubstitution::SECOND){
+        }else if(transformStacks[i][j].second == CombSubstitution::SECOND){
           side = ", RIGHT), ";
         }else{
           side = ", ";
         }
-        res += "(" + _unifSystem->algorithmStepToString(transformStacks[i][j].algStep) + side;
+        res += "(" + _unifSystem->algorithmStepToString(transformStacks[i][j].first) + side;
       }
       res += "]\n";
     }
@@ -612,9 +494,8 @@ private:
 
   typedef CombSubstitution::AlgorithmStep AlgorithmStep;
   typedef CombSubstitution::ApplyTo ApplyTo;
-  typedef CombSubstitution::Transform Transform;
+  typedef pair<AlgorithmStep,ApplyTo> Transform;
   typedef Stack<Transform> TransformStack;
-  typedef CombSubstitution::Mode Mode;
 
   /** Copy constructor is private and without a body, because we don't want any. */
   CombSubstIterator(const CombSubstIterator& obj);
@@ -626,7 +507,6 @@ private:
   Stack<TransformStack> transformStacks;
   Stack<BacktrackData> bdStack;
   bool _calledNext;
-  Mode _mode;
 
   bool hasNextUnifier();
   /** apply transformation t to the top unification pair in current system

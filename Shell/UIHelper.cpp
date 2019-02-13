@@ -96,7 +96,7 @@ bool outputAllowed(bool debug)
   // spider and smtcomp output modes are generally silent
   return !Lib::env.options || (Lib::env.options->outputMode()!=Shell::Options::Output::SPIDER
                                && Lib::env.options->outputMode()!=Shell::Options::Output::SMTCOMP 
-                               && Lib::env.options->mode()!=Shell::Options::Mode::TRAINING  );
+                               && Lib::env.options->mode()!=Shell::Options::Mode::TRAINING );
 }
 
 void reportSpiderFail()

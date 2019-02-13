@@ -1065,7 +1065,8 @@ void Options::Options::init()
       _lookup.insert(&_useFullDougherty);
       _useFullDougherty.tag(OptionTag::SATURATION);
       _useFullDougherty.setRandomChoices({"on","off","off"});      
-      _useFullDougherty.setMutationProb(0.5);
+      //currently option does nothing
+      //_useFullDougherty.setMutationProb(0.5);
 
       _functionExtensionality = BoolOptionValue("add_func_ext_ax","afea",false);
       _functionExtensionality.description=

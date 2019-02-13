@@ -45,7 +45,6 @@ public:
   ClauseIterator generateClauses(Clause* premise);
   static Clause* tryResolveEquality(Clause* cl, Literal* toResolve);
 private:
-  Clause* applyFullDougherty(Clause* prem);
   struct ResultFn;
   struct CombResultIterator;
   struct CombResultFn;

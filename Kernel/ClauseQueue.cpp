@@ -113,9 +113,7 @@ void ClauseQueue::insert(Clause* c)
 bool ClauseQueue::remove(Clause* c)
 {
   CALL("ClauseQueue::remove");
-
-  this->output(cout);
-
+  
   unsigned h = _height;
   Node* left = _left;
 
