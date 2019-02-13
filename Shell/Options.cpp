@@ -931,6 +931,12 @@ void Options::Options::init()
 	    _literalMaximalityAftercheck.tag(OptionTag::SATURATION);
 	    _literalMaximalityAftercheck.setExperimental();
 
+    _modelSaidYes = BoolOptionValue("model_said_yes","msy",false);
+    _lookup.insert(&_modelSaidYes);
+    _modelSaidYes.reliesOn(_evalForKarel.is(equal(true)));
+    _modelSaidYes.tag(OptionTag::SATURATION);
+    _modelSaidYes.setExperimental();
+
       _lrsFirstTimeCheck = IntOptionValue("lrs_first_time_check","",5);
       _lrsFirstTimeCheck.description=
       "Percentage of time limit at which the LRS algorithm will for the first time estimate the number of reachable clauses.";

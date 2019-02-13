@@ -1995,6 +1995,7 @@ public:
   void setWeightRatio(int v){ _ageWeightRatio.otherValue = v; }
 	AgeWeightRatioShape ageWeightRatioShape() const { return _ageWeightRatioShape.actualValue; }
 	int ageWeightRatioShapeFrequency() const { return _ageWeightRatioShapeFrequency.actualValue; }
+  bool modelSaidYes() const { return _modelSaidYes.actualValue; }
   bool literalMaximalityAftercheck() const { return _literalMaximalityAftercheck.actualValue; }
   bool superpositionFromVariables() const { return _superpositionFromVariables.actualValue; }
   EqualityProxy equalityProxy() const { return _equalityProxy.actualValue; }
@@ -2252,6 +2253,7 @@ private:
   StringOptionValue _theorySplitQueueRatios;
   StringOptionValue _theorySplitQueueCutoffs;
   IntOptionValue _theorySplitQueueExpectedRatioDenom;
+  BoolOptionValue _modelSaidYes;
   BoolOptionValue _literalMaximalityAftercheck;
   BoolOptionValue _arityCheck;
   
