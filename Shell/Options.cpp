@@ -895,6 +895,12 @@ void Options::Options::init()
     _lookup.insert(&_ageWeightRatioShapeFrequency);
     _ageWeightRatioShapeFrequency.tag(OptionTag::SATURATION);
 
+    _modelSaidYes = BoolOptionValue("model_said_yes","msy",false);
+    _lookup.insert(&_modelSaidYes);
+    _modelSaidYes.reliesOn(_evalForKarel.is(equal(true)));
+    _modelSaidYes.tag(OptionTag::SATURATION);
+    _modelSaidYes.setExperimental();
+
       _literalMaximalityAftercheck = BoolOptionValue("literal_maximality_aftercheck","lma",false);
       _lookup.insert(&_literalMaximalityAftercheck);
       _literalMaximalityAftercheck.tag(OptionTag::SATURATION);

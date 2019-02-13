@@ -1985,6 +1985,8 @@ public:
   void setWeightRatio(int v){ _ageWeightRatio.otherValue = v; }
 	AgeWeightRatioShape ageWeightRatioShape() const { return _ageWeightRatioShape.actualValue; }
 	int ageWeightRatioShapeFrequency() const { return _ageWeightRatioShapeFrequency.actualValue; }
+  // AgeWeightBlending ageWeightBlending() const { return _ageWeightBlending.actualValue; }
+  bool modelSaidYes() const { return _modelSaidYes.actualValue; }
   bool literalMaximalityAftercheck() const { return _literalMaximalityAftercheck.actualValue; }
   bool superpositionFromVariables() const { return _superpositionFromVariables.actualValue; }
   EqualityProxy equalityProxy() const { return _equalityProxy.actualValue; }
@@ -2240,6 +2242,8 @@ private:
   RatioOptionValue _ageWeightRatio;
 	ChoiceOptionValue<AgeWeightRatioShape> _ageWeightRatioShape;
 	UnsignedOptionValue _ageWeightRatioShapeFrequency;
+  // ChoiceOptionValue<AgeWeightBlending> _ageWeightBlending;
+  BoolOptionValue _modelSaidYes;
   BoolOptionValue _literalMaximalityAftercheck;
   BoolOptionValue _arityCheck;
   

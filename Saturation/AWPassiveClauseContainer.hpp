@@ -40,7 +40,7 @@ class AgeQueue
 : public ClauseQueue
 {
 public:
-  AgeQueue(const Options& opt) : _opt(opt) {}
+  AgeQueue(const Options& opt) : _opt(opt), _modelSaidYes(opt.modelSaidYes()) {}
 protected:
 
   virtual bool lessThan(Clause*,Clause*);
@@ -49,19 +49,23 @@ protected:
 
 private:
   const Options& _opt;
+
+  bool _modelSaidYes;
 };
 
 class WeightQueue
   : public ClauseQueue
 {
 public:
-  WeightQueue(const Options& opt) : _opt(opt) {}
+  WeightQueue(const Options& opt) : _opt(opt), _modelSaidYes(opt.modelSaidYes()) {}
 protected:
   virtual bool lessThan(Clause*,Clause*);
 
   friend class AWPassiveClauseContainer;
 private:
   const Options& _opt;
+
+  bool _modelSaidYes;
 };
 
 /**
