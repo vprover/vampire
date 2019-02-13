@@ -94,19 +94,33 @@ Comparison AWPassiveClauseContainer::compareWeight(Clause* cl1, Clause* cl2, con
 {
   CALL("AWPassiveClauseContainer::compareWeight");
 
+  static int nwcNumer = opt.nonGoalWeightCoeffitientNumerator();
+  static int nwcDenom = opt.nonGoalWeightCoeffitientDenominator();
+
+  /* Ignore the old effective weight computation and
+   * just use the effectiveWeight float stored with the clause for
+   * the comparison here.
+  */
+  if (nwcNumer != nwcDenom) {
+    if (cl1->effectiveWeight < cl2->effectiveWeight) {
+      return Comparison::LESS;
+    } else if (cl1->effectiveWeight > cl2->effectiveWeight) {
+      return Comparison::GREATER;
+    } else {
+      return Comparison::EQUAL;
+    }
+  }
+
   // TODO consider using Clause::getEffectiveWeight
   // since 22/1/15 weight now includes splitWeight
   unsigned cl1Weight=cl1->weight();
   unsigned cl2Weight=cl2->weight();
+  static bool restrictNWC = opt.restrictNWCtoGC();
 
   if (opt.increasedNumeralWeight()) {
     cl1Weight=cl1Weight*2+cl1->getNumeralWeight();
     cl2Weight=cl2Weight*2+cl2->getNumeralWeight();
   }
-
-  static int nwcNumer = opt.nonGoalWeightCoeffitientNumerator();
-  static int nwcDenom = opt.nonGoalWeightCoeffitientDenominator();
-  static bool restrictNWC = opt.restrictNWCtoGC();
 
   bool cl1_goal = cl1->isGoal();
   bool cl2_goal = cl2->isGoal();

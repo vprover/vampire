@@ -65,6 +65,7 @@ private:
   void operator delete(void* ptr) { ASSERTION_VIOLATION; }
 public:
   bool modelSaidYes;
+  float effectiveWeight;
 
   typedef ArrayishObjectIterator<Clause> Iterator;
 

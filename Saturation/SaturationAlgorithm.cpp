@@ -1214,6 +1214,24 @@ void SaturationAlgorithm::addToPassive(Clause* cl)
 
     cl->modelSaidYes = yes;
 
+    static int nwcNumer = _opt.nonGoalWeightCoeffitientNumerator();
+    static int nwcDenom = _opt.nonGoalWeightCoeffitientDenominator();
+    static float ratio_extra = ((float)nwcNumer) / ((float) nwcDenom) - 1.0;
+
+    // non-trivial nwc means we want to scale the clauses weight according to the coefficient and models prediction and store it for future comparison
+    if (nwcNumer != nwcDenom) {
+      unsigned w = cl->weight();
+      // cout << "eval: " << cl->number() << " weight: " << w << endl;
+      float p_yes = 1.0 /(1.0 + exp(o_data[0]-o_data[1]));
+      float p_no = 1.0 /(1.0 + exp(o_data[1]-o_data[0]));
+
+      // cout << "p_yes: " << p_yes << " no: " << p_no << " ratio: " << ratio_extra << endl;
+
+      float effectiveWeight = (1.0 + p_no * ratio_extra) * w;
+      // cout << "effectiveWeight " << effectiveWeight << endl;
+      cl->effectiveWeight = effectiveWeight;
+    }
+
     if (_opt.showForKarel()) {
       cout << "eval: " << cl->number() << " " << o_data[0] <<  " " << o_data[1] << endl;
     }
