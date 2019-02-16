@@ -852,16 +852,15 @@ Term* Term::createConstant(const vstring& name)
 }
 
 
-/** Create a new fresh constant and insert tn into the sharing
+/** Create a new fresh constant and insert it into the sharing
  *  structure.
  */
-Term* Term::createFreshConstant(const vstring& suffix, unsigned sort, bool dummyArg)
+Term* Term::createFreshConstant(const vstring& suffix, bool dummyArg)
 {
   CALL("Term::createConstant");
 
   unsigned symbolNumber = env.signature->addFreshFunction(0, suffix.c_str());
   Signature::Symbol* sym = env.signature->getFunction(symbolNumber);
-  sym->setType(OperatorType::getConstantsType(sort));
   if(dummyArg){
     sym->markAsDummyArg();
   }

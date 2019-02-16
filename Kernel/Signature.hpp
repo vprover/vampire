@@ -558,6 +558,8 @@ class Signature
   VirtualIterator<Shell::TermAlgebra*> termAlgebrasIterator() const { return _termAlgebras.range(); }
   Shell::TermAlgebraConstructor* getTermAlgebraConstructor(unsigned functor);
 
+  TermList getDummy(unsigned index);
+
   void recordDividesNvalue(TermList n){
     _dividesNvalues.push(n);
   }
@@ -570,6 +572,7 @@ class Signature
 
 private:
   Stack<TermList> _dividesNvalues;
+  Stack<TermList> _dummyArgs;
 
   bool _foolConstantsDefined;
   unsigned _foolTrue;

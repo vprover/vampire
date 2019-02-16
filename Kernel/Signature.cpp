@@ -810,6 +810,19 @@ unsigned Signature::addSkolemPredicate(unsigned arity, const char* suffix)
   return f;
 } // addSkolemPredicate
 
+TermList Signature::getDummy(unsigned index){
+  CALL("Signature::getNextDummy");
+
+  ASS(index < (_dummyArgs.size() + 1));
+  
+  if(index < _dummyArgs.size()){
+    return _dummyArgs[index];
+  }
+  TermList dummy = TermList(Term::createFreshConstant("dum", true));
+  _dummyArgs.push(dummy);
+  return dummy;
+}
+
 /**
  * Return the key "name_arity" used for hashing. This key is obtained by
  * concatenating the name, underscore character and the arity. The key is

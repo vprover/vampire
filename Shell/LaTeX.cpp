@@ -137,29 +137,29 @@ vstring LaTeX::refutationToString(Unit* ref)
 
   while(outKernel.isNonEmpty()) {
     Unit* cs=outKernel.pop();
-      Clause* cl= cs->asClause();
-      Inference* inf = cl->inference();
+    Clause* cl= cs->asClause();
+    Inference* inf = cl->inference();
+   
+    res+=toStringAsInference(cl);
+    Inference::Iterator it = inf->iterator();
+    while (inf->hasNext(it)) {
+      Unit* prem=inf->next(it);
+      if(prem->isClause() ) {
+        //this branch is for clauses that were inserted as input into the SaturationAlgorithm object
+        //Giles. Removed bdds from this, but not sure if this is redundant anyway given the previous comment.
+        Unit* premCS= prem;
 
-      res+=toStringAsInference(cl);
-      Inference::Iterator it = inf->iterator();
-      while (inf->hasNext(it)) {
-	Unit* prem=inf->next(it);
-	if(prem->isClause() ) {
-	  //this branch is for clauses that were inserted as input into the SaturationAlgorithm object
-          //Giles. Removed bdds from this, but not sure if this is redundant anyway given the previous comment.
-	  Unit* premCS= prem;
-
-	  if(!handledKernel.contains(premCS)) {
-	    handledKernel.insert(premCS);
-	    outKernel.push(premCS);
-	  }
-	} else {
-	  if(!handledShell.contains(prem)) {
-	    handledShell.insert(prem);
-	    outShell.push(prem);
-	  }
-	}
+        if(!handledKernel.contains(premCS)) {
+          handledKernel.insert(premCS);
+          outKernel.push(premCS);
+        }
+      } else {
+        if(!handledShell.contains(prem)) {
+          handledShell.insert(prem);
+          outShell.push(prem);
+        }
       }
+    }
   }
 
   while(outShell.isNonEmpty()) {
@@ -167,18 +167,18 @@ vstring LaTeX::refutationToString(Unit* ref)
     Inference* inf = unit->inference();
 
     res+=toStringAsInference(unit);
+
     Inference::Iterator it = inf->iterator();
     while (inf->hasNext(it)) {
       Unit* prem=inf->next(it);
       if(!handledShell.contains(prem)) {
-	handledShell.insert(prem);
-	outShell.push(prem);
+        handledShell.insert(prem);
+        outShell.push(prem);
       }
     }
   }
 
   return res + "\\end{VampireProof}\n" + footer(); 
-
 }
 
 
@@ -456,6 +456,80 @@ vstring LaTeX::symbolToString (unsigned num, bool pred) const
   return vstring("\\mathit{") + newName + '}';
 }
 
+vstring LaTeX::specialToString(Term* special) const
+{
+  CALL("LaTeX::specialToString");
+
+  ASS(special->isSpecial());
+
+  Term::SpecialTermData* sd = special->getSpecialData();
+  switch (sd->getType()) {
+    case Term::SF_APP: {
+      TermList lhs = sd->getAppLhs();
+      TermList rhs = *special->nthArgument(0);
+      
+      vstring left = "";
+      vstring right = "";
+
+      if(lhs.isVar()){
+        left = varToString(lhs.var());
+      } else if(!lhs.term()->isSpecial()){
+        left = symbolToString(lhs.term()->functor(), false); 
+      }
+
+      if(rhs.isVar()){
+        right = varToString(rhs.var());
+      } else if(!rhs.term()->isSpecial()){
+        right = symbolToString(rhs.term()->functor(), false); 
+      }
+
+      if(left != "" && right != ""){
+        return left + " " + right;
+      }
+
+      if(left != ""){
+        return left + " \\; (" + specialToString(rhs.term()) + ")";
+      }
+
+      if(right != ""){
+        return specialToString(lhs.term()) + " \\; " + right;
+      }
+       
+      return specialToString(lhs.term()) + " \\;(" + specialToString(rhs.term()) + ")";
+    }
+    
+    case Term::SF_LAMBDA: {
+      vstring varList = "(";
+      vstring body = "";
+
+      TermList lambdaExp = sd->getLambdaExp();
+      Formula::VarList::Iterator vs(sd->getLambdaVars());
+      while (vs.hasNext()) {
+        varList += "\\lambda " + varToString(vs.next()) + vstring(" ");
+      }
+      varList += ")";
+
+      if(lambdaExp.isVar()){
+        body = varToString(lambdaExp.var());
+      } else if(!lambdaExp.term()->isSpecial()){
+        body = symbolToString(lambdaExp.term()->functor(), false); 
+      }
+      if(body != ""){
+        return varList + body;
+      }     
+      return varList + specialToString(lambdaExp.term());     
+    }
+    
+    case Term::SF_FORMULA: {
+      Formula* f = sd->getFormula();
+      return toString(f);
+    }
+
+    default:
+      ASSERTION_VIOLATION;
+  }
+      
+}
 
 /**
  * Convert term list to LaTeX.
@@ -472,6 +546,11 @@ vstring LaTeX::toString (TermList* terms,bool single) const
 
   if (terms->isEmpty()) {
     return "";
+  }
+
+  if(terms->isTerm() && terms->term()->isSpecial()){
+    ASS(single);
+    return specialToString(terms->term());
   }
 
   vstring result = single ? "" : " (";
@@ -632,13 +711,13 @@ vstring LaTeX::toStringAsInference(Unit* unit)
   if(hasParents) {
     it = inf->iterator();
     while (inf->hasNext(it)) {
-	Unit* prem=inf->next(it);
+      Unit* prem=inf->next(it);
       res += "\\begin{VampirePremise}%\n~~";
       res += toString(prem);
       res += "\n\\end{VampirePremise}\n";
-	if(inf->hasNext(it)) {
-	  res += "\\VPremiseSeparator\n";
-	}
+      if(inf->hasNext(it)) {
+        res += "\\VPremiseSeparator\n";
+      }
     }
     res += "\\VConclusionSeparator\n";
   }

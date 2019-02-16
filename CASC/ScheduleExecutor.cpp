@@ -41,19 +41,6 @@ bool ScheduleExecutor::run(const Schedule &schedule, int terminationTime, Shell:
   while(count++, it.hasNext())
   {
     vstring code = it.next();
-    if(_status){
-      //hack, because haven't had time to update schedule
-      size_t index = code.find('_');
-      vstring c1 = code.substr(0, index+1);
-      vstring c2 = code.substr(index+1);
-      c1 = c1 + c2.substr(0, c2.find('_') + 1);
-      c2 = c2.substr(c2.find('_') + 1);
-      if(c2.find('_') != std::string::npos){
-        code = c1 + "cunif=on:en=on:foolp=on:holcelim=on:holscev=on:combelim=inference_rules:afea=on:" + c2;
-      } else {
-        code = c1 + "cunif=on:en=on:foolp=on:holcelim=on:holscev=on:combelim=inference_rules:afea=on_" + c2;
-      }
-    }
     float priority = _policy->staticPriority(code);
     queue.insert(priority, code);
   }
@@ -269,7 +256,6 @@ vstring ScheduleExecutor::mutate(vstring optStr, Property* prop)
   }
 
   vstring res = "";
-  unsigned count = 0;
 
   // whilst doing this don't report any bad options
   Options::BadOption saved_bad_option = env.options->getBadOptionChoice();
@@ -286,7 +272,7 @@ vstring ScheduleExecutor::mutate(vstring optStr, Property* prop)
 
     res = opts->generateEncodedOptions();
 
-    if(!triedStrategies.contains(res) && count++ < 20){ break; }
+    if(!triedStrategies.contains(res)){ break; }
   }
 
   env.options->setBadOptionChoice(saved_bad_option);

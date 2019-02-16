@@ -67,7 +67,7 @@ class CombSubstitution
   
     CombSubstitution(TermList t1, int index1, TermList t2, int index2,
                      unsigned sort):
-    _solved(false),_nextFreshVar(0), _nextUnboundAvailable(0)
+    _solved(false),_nextFreshVar(0), _nextDummy(0), _nextUnboundAvailable(0)
     {
       //if t1 or t2 are vars, need to provide sorts...
       HOTerm_ptr ht1 = HOSortHelper::deappify(t1, index1, sort);
@@ -338,6 +338,7 @@ class CombSubstitution
     //if subsitution represents solved system _solved set to true
     bool _solved;
     unsigned _nextFreshVar;
+    unsigned _nextDummy;
     mutable unsigned _nextUnboundAvailable;
     Stack<UnificationPair> _unificationPairs;
     
@@ -370,7 +371,7 @@ class CombSubstitution
     {
     public:
       StackBacktrackObject(CombSubstitution* subst, Stack<UnificationPair> st)
-      :_subst(subst), _freshVarNum(_subst->_nextFreshVar)
+      :_subst(subst), _freshVarNum(_subst->_nextFreshVar), _dum(_subst->_nextDummy)
       {
         for(unsigned i = 0; i < st.size(); i++){
          HOTerm_ptr htpl = HOTerm_ptr(new HSH::HOTerm(*(st[i].terml)));
@@ -388,6 +389,7 @@ class CombSubstitution
         // Should only be resetting elements that have changed.
         _subst->_unificationPairs = _st;
         _subst->_nextFreshVar = _freshVarNum;
+        _subst->_nextDummy = _dum;
       }
   
     #if VDEBUG
@@ -406,6 +408,7 @@ class CombSubstitution
       CombSubstitution* _subst;
       Stack<UnificationPair> _st;
       unsigned _freshVarNum;
+      unsigned _dum;
     };
 
     friend class CombSubstIterator;
@@ -501,7 +504,6 @@ private:
   CombSubstIterator(const CombSubstIterator& obj);
   /** operator= is private and without a body, because we don't want any. */
   CombSubstIterator& operator=(const CombSubstIterator& obj);
-
 
   CombSubstitution* _unifSystem;
   Stack<TransformStack> transformStacks;

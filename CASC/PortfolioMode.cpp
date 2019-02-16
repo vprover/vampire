@@ -187,6 +187,9 @@ void PortfolioMode::getSchedules(Property& prop, Schedule& quick, Schedule& fall
   case Options::Schedule::CASC_SAT_2017:
     Schedules::getCascSat2017Schedule(prop,quick,fallback);
     break;
+  case Options::Schedule::THF_2019:
+    Schedules::getHigherOrderSchedule(prop,quick,fallback);
+    break;
   case Options::Schedule::SMTCOMP_2016:
     Schedules::getSmtcomp2016Schedule(prop,quick,fallback);
     break;

@@ -450,8 +450,8 @@ void UIHelper::outputResult(ostream& out)
 
     if (env.options->latexOutput() != "off") {
       BYPASSING_ALLOCATOR; // for ofstream 
+ 
       ofstream latexOut(env.options->latexOutput().c_str());
-
       LaTeX formatter;
       latexOut << formatter.refutationToString(env.statistics->refutation);
     }
@@ -645,10 +645,10 @@ void UIHelper::outputSymbolTypeDeclarationIfNeeded(ostream& out, bool function, 
     else {
       out << "(";
       for (unsigned i=0; i<arity; i++) {
-	if (i>0) {
-	  out << " * ";
-	}
-	out << env.sorts->sortName(type->arg(i));
+        if (i>0) {
+          out << " * ";
+        }
+        out << env.sorts->sortName(type->arg(i));
       }
       out << ")";
     }

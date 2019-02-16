@@ -307,9 +307,9 @@ bool CombSubstitution::transform(Transform t, bool furtherOptions){
     
     if(t.first == ADD_ARG){
       unsigned freshArgSort = HSH::domain(terml->sort());
-      TermList newArg = TermList(Term::createFreshConstant("f",freshArgSort, true));
-      HOTerm_ptr fcl = HSH::createHOTerm(newArg);
-      HOTerm_ptr fcr = HSH::createHOTerm(newArg);
+      TermList newArg = env.signature->getDummy(_nextDummy++);
+      HOTerm_ptr fcl = HSH::createHOTerm(newArg, freshArgSort);
+      HOTerm_ptr fcr = HSH::createHOTerm(newArg, freshArgSort);
       terml->addArg(fcl);
       termr->addArg(fcr);
       up->lsRight = UNDEFINED;
@@ -817,8 +817,8 @@ vstring CombSubstitution::toString()
 
 //need to comment this code AYB
 bool CombSubstIterator::hasNextUnifier(){
-  CALL("CombSubstIterator::hasNextUnifier");
-  
+  CALL("CombSubstIterator::hasNextUnifier");  
+
   //if already solved try and find another substitution
   if(_unifSystem->_solved) {
     bdStack.pop().backtrack();

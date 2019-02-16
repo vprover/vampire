@@ -79,6 +79,7 @@ private:
   vstring toString(Clause*);
   vstring toString(Formula*) const;
   vstring toString(Formula*, Connective c) const;
+  vstring specialToString(Term* special) const;
 
   vstring getClauseLatexId(Unit* cs);
 

@@ -292,11 +292,14 @@ TermQueryResultIterator TermSubstitutionTree::getResultIterator(Term* trm,
 
   ASS(!isPlaceHolder(trm))
 
-  //cout << "getResultIterator " << trm->toString() << endl;
-
   TermQueryResultIterator result = TermQueryResultIterator::getEmpty();
 
-  Node* root = _nodes[getRootNodeIndex(trm)];
+  Node* root = 0;
+  unsigned rootIndex = getRootNodeIndex(trm);
+  if(rootIndex < _nodes.size()){
+    //avoid triggering a call to expandToFit here
+    root = _nodes[rootIndex];
+  }
 
   if(root){
     if(root->isLeaf()) {
