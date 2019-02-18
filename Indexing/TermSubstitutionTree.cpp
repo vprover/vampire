@@ -221,7 +221,11 @@ TermQueryResultIterator TermSubstitutionTree::getResultIterator(Term* trm,
 
   TermQueryResultIterator result = TermQueryResultIterator::getEmpty();
   
-  Node* root = _nodes[getRootNodeIndex(trm)];
+  unsigned index = getRootNodeIndex(trm);
+  Node* root = 0;
+  if(index < _nodes.size()){
+    root = _nodes[index];
+  }
 
   if(root){
     if(root->isLeaf()) {
