@@ -23,7 +23,7 @@
 
 #if VZ3
 
-#define DPRINT 0
+#define DPRINT 1
 
 #include "Forwards.hpp"
 
@@ -434,6 +434,10 @@ Term* Z3Interfacing::evaluateInModel(Term* trm)
           ASSERTION_VIOLATION;
           break;
         }
+      } else if (el->is_lambda()) {
+#if DPRINT
+          std::cerr << "lambda " << std::endl;
+#endif
       }
       break;
     default:
