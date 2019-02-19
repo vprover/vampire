@@ -85,6 +85,7 @@ XFLAGS = -Wfatal-errors -g -DVDEBUG=1 -DCHECK_LEAKS=0 -DUSE_SYSTEM_ALLOCATION=1 
 #XFLAGS = -O6 -DVDEBUG=0 -DUSE_SYSTEM_ALLOCATION=1 -DEFENCE=1 -g -lefence #Electric Fence
 #XFLAGS = -O6 -DVDEBUG=0 -DUSE_SYSTEM_ALLOCATION=1 -g
 
+OS = $(shell uname)
 ifeq ($(OS),Darwin)
 INCLUDES= -I. -Ilibtorch/include -Ilibtorch/include/torch/csrc/api/include
 else
@@ -104,7 +105,6 @@ endif
 Z3FLAG= -DVZ3=1
 endif
 
-OS = $(shell uname)
 ifeq ($(OS),Darwin)
 TORCHLINK= -Wl,-search_paths_first -Wl,-headerpad_max_install_names
 TORCHLIB= -Wl,-rpath,/Users/mbassms6/libtorch/lib /Users/mbassms6/libtorch/lib/libtorch.dylib /Users/mbassms6/libtorch/lib/libcaffe2.dylib /Users/mbassms6/libtorch/lib/libc10.dylib
