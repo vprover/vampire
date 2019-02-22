@@ -289,6 +289,7 @@ unsigned Z3Interfacing::representSort(const z3::sort &z3sort) {
     }
   default:
     //TODO: add uninterpreted functions, datatypes
+    cerr << "unhandled z3 sort:" << z3sort << endl;
     ASSERTION_VIOLATION;
     return 1;
   }
@@ -296,8 +297,45 @@ unsigned Z3Interfacing::representSort(const z3::sort &z3sort) {
 
 enum RecursionMode {
   RM_SCHED_ARGS,
-  RM_CREATE_TERM
+  RM_CREATE_TERM,
+  //  RM_CREATE_STORE,
+  //  RM_CREATE_MERGE
 };
+
+enum ITEPattern {
+  ITE_EQ,
+  ITE_LT,
+  ITE_UNKNOWN,
+  NOT_ITE
+};
+
+ITEPattern matchIteEquals(z3::expr &t) {
+  if (!t.is_ite())
+    return NOT_ITE;
+  z3::expr cond = t.arg(0);
+  if (! (cond.is_app() || 2 != cond.num_args() ) )
+    return ITE_UNKNOWN;
+
+  z3::expr v = cond.arg(0);
+  if (!v.is_var())
+    return ITE_UNKNOWN;
+
+  //  Z3_ast vast = v.Z3_ast();
+  unsigned idx = Z3_get_index_value(v.ctx(), v );
+  //  cerr << "de bruijn index: " << idx << endl;
+  if (0 != idx)
+    return ITE_UNKNOWN;
+  
+  switch (cond.decl().decl_kind()) {
+  case Z3_OP_EQ:
+    return ITE_EQ;
+  case Z3_OP_LT:
+    return ITE_LT;
+  default:
+    cerr << "unkown operator: " << cond.decl().decl_kind() << endl;
+    return ITE_UNKNOWN;
+  }
+}
 
 Term* Z3Interfacing::evaluateInModel(Term* trm)
 {
@@ -305,7 +343,7 @@ Term* Z3Interfacing::evaluateInModel(Term* trm)
 
   ASS(!trm->isLiteral());
 
-  unsigned srt = SortHelper::getResultSort(trm);
+  //  unsigned srt = SortHelper::getResultSort(trm);
   bool name; //TODO what do we do about naming?
   z3::expr rep = getz3expr(trm,false,name,false);
   z3::expr assignment = _model.eval(rep,true); // true means "model_completion"
@@ -330,6 +368,8 @@ Term* Z3Interfacing::evaluateInModel(Term* trm)
   Stack<Term*> subterms;       //stores the list of terms to convert
   Stack<z3::expr*> z3subterms; //stores the already converted terms
   Stack<RecursionMode> modes;  //tells if the subterms have already been scheduled
+  //  List<z3::expr*>* z3lambdacontext = new List<z3::expr*>(); //stores the scope of lambda vars -- current invariant: size <= 1 (no nested functions to represent stores)
+  Stack<z3::expr*> z3lambdacontext; //stores the scope of lambda vars -- current invariant: size <= 1 (no nested functions to represent stores)
 
   z3subterms.push(& assignment);
   modes.push(RM_SCHED_ARGS);
@@ -343,6 +383,7 @@ Term* Z3Interfacing::evaluateInModel(Term* trm)
   while(z3subterms.isNonEmpty()) {
     z3::expr* el = z3subterms.pop();
     RecursionMode mode = modes.pop();
+    ITEPattern pat;
     switch (mode) {
     case RM_SCHED_ARGS:
 #if DPRINT
@@ -350,7 +391,10 @@ Term* Z3Interfacing::evaluateInModel(Term* trm)
 #endif
       z3subterms.push(el);
       modes.push(RM_CREATE_TERM);
-      if (el->is_app()) {
+
+      pat = matchIteEquals(*el);
+      
+      if (NOT_ITE==pat && el->is_app() ) {
         for (unsigned i=el->num_args(); i>0; i--) {
           z3::expr *z3arg = new z3::expr(el->arg(i-1));
 #if DPRINT
@@ -359,6 +403,36 @@ Term* Z3Interfacing::evaluateInModel(Term* trm)
           z3subterms.push(z3arg);
           modes.push(RM_SCHED_ARGS);
         }
+      } else if ((ITE_EQ == pat) || (ITE_LT == pat)) {
+        z3::expr *z3arg = new z3::expr(el->arg(2));
+#if DPRINT
+          std::cerr << "Scheduling subterm " << *z3arg << std::endl;
+#endif
+        z3subterms.push(z3arg);
+        z3arg = new z3::expr(el->arg(1));
+#if DPRINT
+          std::cerr << "Scheduling subterm " << *z3arg << std::endl;
+#endif
+        z3subterms.push(z3arg);
+        z3arg = new z3::expr(el->arg(0).arg(1)); // schedule t in if x = t then ... 
+#if DPRINT
+          std::cerr << "Scheduling subterm " << *z3arg << std::endl;
+#endif
+        z3subterms.push(z3arg);
+        modes.push(RM_SCHED_ARGS);
+        modes.push(RM_SCHED_ARGS);
+        modes.push(RM_SCHED_ARGS);
+      } else if (ITE_UNKNOWN == pat) {
+        cerr << "unkown ite pattern in array construction of: " << *el << endl;
+        return NULL;
+      } else if (el->is_lambda()) {
+        z3::expr *z3body= new z3::expr(el->body());
+#if DPRINT
+          std::cerr << "Scheduling lambda body " << *z3body << std::endl;
+#endif
+          z3subterms.push(z3body);
+          z3lambdacontext.push(el);
+          modes.push(RM_SCHED_ARGS);
       }
       break;
     case RM_CREATE_TERM:
@@ -372,6 +446,7 @@ Term* Z3Interfacing::evaluateInModel(Term* trm)
       } else if (el->is_array() && el->is_app()) {
 #if DPRINT
         std::cerr << "Creating term for array function " << el->decl() << std::endl;
+        std::cerr << "Pattern is " << matchIteEquals(*el) << std::endl;
 #endif
         switch (el->decl().decl_kind()) {
         case Z3_OP_STORE:
@@ -419,67 +494,61 @@ Term* Z3Interfacing::evaluateInModel(Term* trm)
 #if DPRINT
           std::cerr << "array default " << std::endl;
 #endif
-          break;
+          return NULL;
         case Z3_OP_AS_ARRAY:
 #if DPRINT
           std::cerr << "as array " << std::endl;
 #endif
-          break;
+          return NULL;
         case Z3_OP_ARRAY_EXT:
 #if DPRINT
           std::cerr << "Array ext " << std::endl;
 #endif
-          break;
+          return NULL;
         default:
           ASSERTION_VIOLATION;
+          return NULL;
+        }
+      } else if (el->is_array() && el->is_lambda()) {
+#if DPRINT
+        std::cerr << "array by lambda " << std::endl; //don't forget: we use de bruijn indices, there's no variable name
+        std::cerr << el->body() << std::endl;
+        z3::expr body = el->body();
+        ITEPattern pat = matchIteEquals(body);
+        switch (pat) {
+        case NOT_ITE:
+          cerr << "no ite!" << endl;
+          break;
+        case ITE_EQ:
+          cerr << "ite x = t" << endl;
+          break;
+        case ITE_LT:
+          cerr << "ite x < t" << endl;
+          break;
+        case ITE_UNKNOWN:
+          cerr << "unkown ite!" << endl;
           break;
         }
-      } else if (el->is_lambda()) {
-#if DPRINT
-          std::cerr << "lambda " << std::endl;
+        //        z3lambdacontext.
 #endif
+      } else if (ITE_EQ == matchIteEquals(*el)) {
+        cerr << "ite -> store" << endl;
+      } else if (ITE_EQ == matchIteEquals(*el)) {
+        cerr << "ite -> store" << endl;
+      } else {
+        cerr << "don't know how to create term for " << *el << endl;
+        return NULL;
       }
       break;
     default:
       ASSERTION_VIOLATION;
+      return NULL;
     }
   }
-
+  //delete z3lambdacontext??
   ASS_EQ(subterms.size(), 1);
   term = subterms.pop();
   return term;
-
-  /*
-  // For now just deal with the case where it is an integer
-  if(assignment.is_numeral()){
-    return representNumeral(& assignment, srt);
-  } else {
-    if (assignment.is_array()) {
-#if DPRINT
-      cerr << "evaluating array assignment for " << rep << " = " << assignment << endl;
-      cerr << assignment.is_const() << " : " << assignment.is_app()
-           << " : " << assignment.num_args()
-           << " : " << assignment.decl()
-           << " : " << assignment.decl().is_const() << endl;
-      for (unsigned int i=0; i < assignment.num_args(); i++) {
-        cerr << assignment.arg(i);
-      }
-      cerr << endl;
-      z3::func_decl f = assignment.decl();
-    // TODO: implement
-#endif
-    } else {
-      // TODO" assignment such as "(root-obj (+ (^ x 2) (- 128)) 1)" is an algebraic number, but not a numeral
-      // would be interesting to allow such Sorts::SRT_REAL things to live in vampire
-      // of course, they are not in general Sorts::SRT_RATIONAL
-#if DPRINT
-    cerr << "no model evaluation for " << rep << endl;
-#endif
-    }
-  }
-
-  return 0;
-  */
 }
 
 bool Z3Interfacing::isZeroImplied(unsigned var)
