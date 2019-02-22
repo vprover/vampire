@@ -316,6 +316,7 @@ public:
   static Term* createTuple(Term* tupleTerm);
   static Term* create1(unsigned fn, TermList arg);
   static Term* create2(unsigned fn, TermList arg1, TermList arg2);
+  static Term* create3(unsigned fn, TermList arg1, TermList arg2, TermList arg3);
 
   //** fool constants
   static Term* foolTrue();

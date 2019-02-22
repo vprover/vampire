@@ -370,6 +370,7 @@ Term* Z3Interfacing::evaluateInModel(Term* trm)
   Stack<RecursionMode> modes;  //tells if the subterms have already been scheduled
   //  List<z3::expr*>* z3lambdacontext = new List<z3::expr*>(); //stores the scope of lambda vars -- current invariant: size <= 1 (no nested functions to represent stores)
   Stack<z3::expr*> z3lambdacontext; //stores the scope of lambda vars -- current invariant: size <= 1 (no nested functions to represent stores)
+  Stack<unsigned> current_arr_sort; //stores sort of the current array
 
   z3subterms.push(& assignment);
   modes.push(RM_SCHED_ARGS);
@@ -423,7 +424,9 @@ Term* Z3Interfacing::evaluateInModel(Term* trm)
         modes.push(RM_SCHED_ARGS);
         modes.push(RM_SCHED_ARGS);
       } else if (ITE_UNKNOWN == pat) {
+#if DPRINT
         cerr << "unkown ite pattern in array construction of: " << *el << endl;
+#endif
         return NULL;
       } else if (el->is_lambda()) {
         z3::expr *z3body= new z3::expr(el->body());
@@ -432,6 +435,7 @@ Term* Z3Interfacing::evaluateInModel(Term* trm)
 #endif
           z3subterms.push(z3body);
           z3lambdacontext.push(el);
+          current_arr_sort.push(representSort(el->get_sort()));
           modes.push(RM_SCHED_ARGS);
       }
       break;
@@ -489,7 +493,7 @@ Term* Z3Interfacing::evaluateInModel(Term* trm)
 #if DPRINT
           std::cerr << "array map " << std::endl;
 #endif
-          break;
+          return NULL;
         case Z3_OP_ARRAY_DEFAULT:
 #if DPRINT
           std::cerr << "array default " << std::endl;
@@ -533,8 +537,22 @@ Term* Z3Interfacing::evaluateInModel(Term* trm)
 #endif
       } else if (ITE_EQ == matchIteEquals(*el)) {
         cerr << "ite -> store" << endl;
-      } else if (ITE_EQ == matchIteEquals(*el)) {
-        cerr << "ite -> store" << endl;
+        unsigned arraySort = current_arr_sort.top();
+        unsigned f_store = env.signature->getInterpretingSymbol(Theory::ARRAY_STORE,Theory::getArrayOperatorType(arraySort,Theory::ARRAY_STORE));
+        
+        args = new TermList[3];
+        args[2] = TermList(subterms.pop());
+        args[1] = TermList(subterms.pop());
+        if (el->arg(2).is_ite()) {
+          args[0] = TermList(subterms.pop());
+        } else {
+          unsigned f_const = env.signature->getInterpretingSymbol(Theory::ARRAY_CONST,Theory::getArrayOperatorType(arraySort,Theory::ARRAY_CONST));
+          args[0] = TermList(Term::create1(f_const, TermList(subterms.pop())));
+        }
+        Term* t = Term::create(f_store, 3, args);
+        subterms.push(t);
+      } else if (ITE_LT == matchIteEquals(*el)) {
+        cerr << "ite -> merge" << endl;
       } else {
         cerr << "don't know how to create term for " << *el << endl;
         return NULL;
