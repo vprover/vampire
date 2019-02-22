@@ -1275,7 +1275,6 @@ Literal* Literal::create2(unsigned predicate, bool polarity, TermList arg1, Term
   return Literal::create(predicate, 2, polarity, false, args);
 }
 
-
 /** create a new term and copy from t the relevant part of t's content */
 Term::Term(const Term& t) throw()
   : _functor(t._functor),
