@@ -272,26 +272,33 @@ Term* Z3Interfacing::representNumeral(z3::expr *assignment, unsigned srt) {
 //Term* Z3Interfacing::representArray(z3::expr* expr) {
 //};
 
-unsigned Z3Interfacing::representSort(const z3::sort &z3sort) {
+bool Z3Interfacing::representSort(const z3::sort &z3sort, unsigned& vsort) {
   switch (z3sort.sort_kind()) {
   case Z3_INT_SORT:
-    return Sorts::SRT_INTEGER;
+    vsort = Sorts::SRT_INTEGER;
+    return true;
   case Z3_REAL_SORT:
-    return Sorts::SRT_REAL;
+    vsort = Sorts::SRT_REAL;
+    return true;
   case Z3_ARRAY_SORT:
     {
     const z3::sort z3_domain_srt = z3sort.array_domain();
     const z3::sort z3_range_srt = z3sort.array_range();
-    unsigned domain_srt = representSort(z3_domain_srt);
-    unsigned range_srt = representSort(z3_range_srt);
-    unsigned arr_srt = env.sorts->addArraySort(domain_srt, range_srt);
-    return arr_srt;
+    unsigned domain_srt;
+    if ( !representSort(z3_domain_srt, domain_srt))
+      return false;
+    unsigned range_srt;
+    if ( !representSort(z3_range_srt, range_srt))
+      return false;
+    vsort = env.sorts->addArraySort(domain_srt, range_srt);
+    return true;
     }
   default:
     //TODO: add uninterpreted functions, datatypes
+#if DPRINT
     cerr << "unhandled z3 sort:" << z3sort << endl;
-    ASSERTION_VIOLATION;
-    return 1;
+#endif
+    return false;
   }
 }
 
@@ -447,12 +454,16 @@ Term* Z3Interfacing::representArray(z3::expr& assignment)
 #endif
           z3subterms.push(z3body);
           z3lambdacontext.push(el);
-          current_arr_sort.push(representSort(el->get_sort()));
+          unsigned srt;
+          if (! representSort(el->get_sort(), srt))
+            return NULL;
+          current_arr_sort.push(srt);
           modes.push(RM_SCHED_ARGS);
       }
       break;
     case RM_CREATE_TERM:
-      sort = representSort(el->get_sort());
+      if (! representSort(el->get_sort(), sort))
+        return NULL;
 
       if (el->is_numeral()) {
 #if DPRINT
