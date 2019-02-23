@@ -42,9 +42,10 @@ bool outputAllowed(bool debug=false);
 
 class UIHelper {
 public:
+  typedef pair<vstring, int> StratInf;
   static Problem* getInputProblem(const Options& opts);
   static void outputResult(ostream& out);
-  static void outputTrainingResult(ostream& out, pair<vstring, int> orig, pair<vstring, int> best);
+  static void outputTrainingResult(ostream& out, Stack<StratInf>, StratInf);
 
   /**
    * Return true if there was a conjecture formula among the parsed units

@@ -1276,10 +1276,10 @@ void LambdaElimination::buildFuncApp(unsigned symbol, TermList arg1, TermList ar
     
     unsigned appFun = introduceAppSymbol( connSort, Sorts::SRT_BOOL, appedOnce);
     buildFuncApp(appFun, constant, var1, functionApplied);
-    
+
     appFun = introduceAppSymbol(appedOnce, Sorts::SRT_BOOL, HSH::range(appedOnce));
     buildFuncApp(appFun, functionApplied, var2, functionApplied);
-    
+
     if(conn == AND || conn == OR){
       FormulaList* args = new FormulaList(toEquality(var1));
       args = FormulaList::cons(toEquality(var2), args);

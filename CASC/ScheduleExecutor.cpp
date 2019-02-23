@@ -113,26 +113,21 @@ bool ScheduleExecutor::run(const Schedule &schedule, int terminationTime, Shell:
         if(_status){
           ProcessInfo inf = _processTimes.get(process);
           int runningTime = env.timer->elapsedMilliseconds() - inf.second;
+          inf = ProcessInfo(inf.first, runningTime);
           if(runningTime < _currentBest.second){
-            _currentBest = ProcessInfo(inf.first, runningTime);
-            if(_status == FINDING_PROOF){
-              _origSucStrat = _currentBest;
-            }
+            _currentBest = inf;
             //far from ideal, because this will kill non-training strategies as well...
             killAllInPool(&pool);
             emptyQueue(&trainingQueue);
             addMutatedProcs(&trainingQueue, prop);
             _status = LOCAL_SEARCH;
           }
+          _successfulStrats.push(inf);
         } else {
           success = true;
           goto exit;
         }
-      } /*else if(code != 1){ //to be removed later
-        cout << "ERROR " << code << endl;
-        cout << "The process id is " << process << endl;
-        cout << "The process code is " + _processTimes.get(process).first << endl;
-      }*/
+      }
     }
     // child stopped, re-insert it in the queue
     else if(stopped)
@@ -157,7 +152,7 @@ exit:
   if(_status){
     if(_currentBest.first != ""){ success = true; }
     env.beginOutput();
-    UIHelper::outputTrainingResult(env.out(), _origSucStrat, _currentBest);
+    UIHelper::outputTrainingResult(env.out(), _successfulStrats, _currentBest);
     env.endOutput();
   } 
   // kill all running processes first

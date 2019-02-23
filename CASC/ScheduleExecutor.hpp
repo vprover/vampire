@@ -84,9 +84,9 @@ private:
   unsigned _numWorkers;
   Status _status;
   ProcessInfo _currentBest;
-  ProcessInfo _origSucStrat;
   Map<pid_t, pair<vstring, int>> _processTimes;
   Set<vstring> triedStrategies;
+  Stack<ProcessInfo> _successfulStrats;
   //memory leak here! opts will never be deleted
   Shell::Options* opts;
 };

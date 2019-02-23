@@ -3144,23 +3144,6 @@ TermList TPTP::createFunctionApplication(vstring name, unsigned arity, unsigned 
   }
   Term* t = new(arity) Term;
   t->makeSymbol(fun,arity);
-  if(env.signature->getFunction(fun)->getConst() != SS::NULL_CONSTANT 
-    && added && !env.options->HOLConstantElimination()){
-    ASS(arity == 0);
-    SS::HOLConstant cnst = env.signature->getFunction(fun)->getConst();
-    TermList constant = TermList(t);
-    unsigned sort = sortOf(constant);  
-    FormulaUnit* unit;
-    if(cnst == SS::NOT){
-      unit = LambdaElimination::addNotConnAxiom(constant, sort);
-    } else if (cnst == SS::PI || cnst == SS::SIGMA){
-      unit = LambdaElimination::addQuantifierAxiom(constant, sort, convert(cnst), HSH::domain(sort));
-    } else {
-      unit = LambdaElimination::addBinaryConnAxiom(constant, sort, convert(cnst), HSH::range(sort));
-    }
-    unit->setHOLADescendant(true);
-    _units.push(unit);
-  }
   OperatorType* type = env.signature->getFunction(fun)->fnType();
   bool safe = true;
   for (int i = arity-1;i >= 0;i--) {
@@ -3178,6 +3161,24 @@ TermList TPTP::createFunctionApplication(vstring name, unsigned arity, unsigned 
     t = env.sharing->insert(t);
   }
   TermList ts(t);
+
+  if(env.signature->getFunction(fun)->getConst() != SS::NULL_CONSTANT 
+    && added && !env.options->HOLConstantElimination()){
+    ASS(arity == 0);
+    SS::HOLConstant cnst = env.signature->getFunction(fun)->getConst();
+    unsigned sort = sortOf(ts);  
+    FormulaUnit* unit;
+    if(cnst == SS::NOT){
+      unit = LambdaElimination::addNotConnAxiom(ts, sort);
+    } else if (cnst == SS::PI || cnst == SS::SIGMA){
+      unit = LambdaElimination::addQuantifierAxiom(ts, sort, convert(cnst), HSH::domain(sort));
+    } else {
+      unit = LambdaElimination::addBinaryConnAxiom(ts, sort, convert(cnst), HSH::range(sort));
+    }
+    unit->setHOLADescendant(true);
+    _units.push(unit);
+  }
+
   return ts;
 }
 

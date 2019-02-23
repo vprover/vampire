@@ -334,28 +334,28 @@ static void printInterpolationProofTask(ostream& out, Formula* intp, Color avoid
 */
 
 
-void UIHelper::outputTrainingResult(ostream& out, pair<vstring, int> orig, pair<vstring, int> best)
+void UIHelper::outputTrainingResult(ostream& out, Stack<StratInf> succStrats, StratInf best)
 {
   CALL("UIHelper::outputTrainingResult");
 
-  if(best.first == ""){
-    out << "\n ---------- Output From Training Mode --------- \n\n";  
-    out << "Training failed to find a proof\n";
-    out << "\n ------- End Of Output From Training Mode ----- \n\n";      
-    return;
+  out << "\n ---------- Output From Training Mode --------- \n\n";  
+
+  if(succStrats.isEmpty()){
+    out << "Training failed to find a proof\n";  
+  } else if (succStrats.size() > 200) {
+    out << "Can be solved by lots of strategies!\n";
+  } else {
+    StratInf inf;
+    while(!succStrats.isEmpty()){
+      inf = succStrats.pop();
+      if(inf.first == best.first){
+        out << best.first << ", " << best.second << ", BEST\n";        
+      }else {
+        out << inf.first << ", " << inf.second << "\n";                
+      }
+    }
   }
 
-  bool diff = (orig.first != best.first);
-  out << "\n ---------- Output From Training Mode --------- \n\n";  
-  if(diff){
-    out << "First successful strategy:\n " << orig.first << 
-           "\nTime: " << orig.second << "\n\n";
-  }
-  out << "Best strategy:\n" << best.first << 
-         "\nTime: " << best.second << "\n\n";
-  if(diff){
-    out << "Training saved " << (orig.second - best.second) << " milliseconds";             
-  }
   out << "\n ------- End Of Output From Training Mode ----- \n\n";
 }
 

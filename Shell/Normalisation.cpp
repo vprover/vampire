@@ -137,9 +137,6 @@ bool Normalisation::lessThan (Unit* u1, Unit* u2)
 {
   CALL("Normalisation::lessThan (const Unit*...)");
 
-  cout << " unit 1 is " + u1->toString() << endl;
-  cout << " unit 2 is " + u2->toString() << endl;
-
   // the below code should be uncommented, it gives the best behavior
   // on the average
   switch (compare((int)u1->inputType(),(int)u2->inputType())) {
