@@ -23,7 +23,7 @@
 
 #if VZ3
 
-#define DPRINT 1
+#define DPRINT 0
 
 #include "Forwards.hpp"
 
@@ -337,8 +337,7 @@ ITEPattern matchIteEquals(z3::expr &t) {
   }
 }
 
-Term* Z3Interfacing::evaluateInModel(Term* trm)
-{
+Term* Z3Interfacing::evaluateInModel(Term* trm) {
   CALL("Z3Interfacing::evaluateInModel");
 
   ASS(!trm->isLiteral());
@@ -347,7 +346,19 @@ Term* Z3Interfacing::evaluateInModel(Term* trm)
   bool name; //TODO what do we do about naming?
   z3::expr rep = getz3expr(trm,false,name,false);
   z3::expr assignment = _model.eval(rep,true); // true means "model_completion"
+  if (env.options->arrayInst() == Options::ArrayInst::OFF) {
+    if (assignment.is_numeral()) {
+      unsigned srt = SortHelper::getResultSort(trm);
+      return representNumeral(&assignment, srt);
+    }
+    return NULL;
+  } else {
+    return representArray(assignment);
+  }
+}
 
+Term* Z3Interfacing::representArray(z3::expr& assignment)
+{
   // now translate assignment back into a term!
 
   /* Recursive algorithm:
@@ -537,7 +548,7 @@ Term* Z3Interfacing::evaluateInModel(Term* trm)
         //        z3lambdacontext.
 #endif
       } else if (ITE_EQ == matchIteEquals(*el)) {
-        cerr << "ite -> store" << endl;
+        //        cerr << "ite -> store" << endl;
         unsigned arraySort = current_arr_sort.top();
         unsigned f_store = env.signature->getInterpretingSymbol(Theory::ARRAY_STORE,Theory::getArrayOperatorType(arraySort,Theory::ARRAY_STORE));
         
@@ -554,9 +565,14 @@ Term* Z3Interfacing::evaluateInModel(Term* trm)
         Term* t = Term::create(f_store, 3, args);
         subterms.push(t);
       } else if (ITE_LT == matchIteEquals(*el)) {
-        cerr << "ite -> merge" << endl;
+        if (env.options->arrayInst() == Options::ArrayInst::MERGE_CONST)
+          return NULL;
+        //cerr << "ite -> merge" << endl;
+        return NULL; // TODO: create merge array
       } else {
+#if DPRINT
         cerr << "don't know how to create term for " << *el << endl;
+#endif
         return NULL;
       }
       break;

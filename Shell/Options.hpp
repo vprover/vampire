@@ -223,6 +223,11 @@ public:
     FULL,    // perform full abstraction
     NEW
   };
+  enum class ArrayInst : unsigned int {
+    OFF,
+    CONST,      // translation lambda x.if x = i then v else e to $store(as_arr(e),i,v)
+    MERGE_CONST // also translate lambda x.if x < i then a else b to $merge(i,as_arr(a), as_arr(b))
+  };
   enum class UnificationWithAbstraction : unsigned int {
     OFF,
     INTERP_ONLY,
@@ -1920,6 +1925,7 @@ public:
   bool satFallbackForSMT() const { return _satFallbackForSMT.actualValue; }
   bool smtForGround() const { return _smtForGround.actualValue; }
   TheoryInstSimp theoryInstAndSimp() const { return _theoryInstAndSimp.actualValue; }
+  ArrayInst arrayInst() const { return _arrayInst.actualValue; }
 #endif
   UnificationWithAbstraction unificationWithAbstraction() const { return _unificationWithAbstraction.actualValue; }
   bool useACeval() const { return _useACeval.actualValue;}
@@ -2477,6 +2483,7 @@ private:
   BoolOptionValue _satFallbackForSMT;
   BoolOptionValue _smtForGround;
   ChoiceOptionValue<TheoryInstSimp> _theoryInstAndSimp;
+  ChoiceOptionValue<ArrayInst> _arrayInst;
 #endif
   ChoiceOptionValue<UnificationWithAbstraction> _unificationWithAbstraction; 
   BoolOptionValue _fixUWA;

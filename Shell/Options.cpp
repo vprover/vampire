@@ -1040,6 +1040,14 @@ void Options::Options::init()
            _theoryInstAndSimp.tag(OptionTag::INFERENCES);
            _lookup.insert(&_theoryInstAndSimp);
            _theoryInstAndSimp.setExperimental();
+
+           _arrayInst = ChoiceOptionValue<ArrayInst>("array_instantiation","thia",
+                                                ArrayInst::OFF,{"off","lambda","lambda_merge"});
+           _arrayInst.description = "Enable theory instantiation. lambda translates array models defined by lambda x.if x = i then v else a to $store. lambda_merge also translates array models defined by lambda x.if x = i then a else b to $merge."; 
+           _arrayInst.tag(OptionTag::INFERENCES);
+           _lookup.insert(&_arrayInst);
+           _arrayInst.setExperimental();
+
 #endif
            _unificationWithAbstraction = ChoiceOptionValue<UnificationWithAbstraction>("unification_with_abstraction","uwa",
                                              UnificationWithAbstraction::OFF,
