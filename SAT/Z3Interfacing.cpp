@@ -405,6 +405,7 @@ Term* Z3Interfacing::evaluateInModel(Term* trm)
           modes.push(RM_SCHED_ARGS);
         }
       } else if ((ITE_EQ == pat) || (ITE_LT == pat)) {
+        // schedule 
         z3::expr *z3arg = new z3::expr(el->arg(2));
 #if DPRINT
           std::cerr << "Scheduling subterm " << *z3arg << std::endl;
@@ -541,14 +542,15 @@ Term* Z3Interfacing::evaluateInModel(Term* trm)
         unsigned f_store = env.signature->getInterpretingSymbol(Theory::ARRAY_STORE,Theory::getArrayOperatorType(arraySort,Theory::ARRAY_STORE));
         
         args = new TermList[3];
-        args[2] = TermList(subterms.pop());
-        args[1] = TermList(subterms.pop());
+        // order on stack is: else branch, if branch, index -- we have to update the then branch on index with the if value
         if (el->arg(2).is_ite()) {
           args[0] = TermList(subterms.pop());
         } else {
           unsigned f_const = env.signature->getInterpretingSymbol(Theory::ARRAY_CONST,Theory::getArrayOperatorType(arraySort,Theory::ARRAY_CONST));
           args[0] = TermList(Term::create1(f_const, TermList(subterms.pop())));
         }
+        args[2] = TermList(subterms.pop());
+        args[1] = TermList(subterms.pop());
         Term* t = Term::create(f_store, 3, args);
         subterms.push(t);
       } else if (ITE_LT == matchIteEquals(*el)) {
@@ -566,6 +568,9 @@ Term* Z3Interfacing::evaluateInModel(Term* trm)
   //delete z3lambdacontext??
   ASS_EQ(subterms.size(), 1);
   term = subterms.pop();
+#if DPRINT
+  cerr << "translated to: " << term->toString() << endl;
+#endif
   return term;
 }
 
