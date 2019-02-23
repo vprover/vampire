@@ -128,7 +128,9 @@ Ordering* Ordering::create(Problem& prb, const Options& opt)
   switch (env.options->termOrdering()) {
   case Options::TermOrdering::KBO:
     // KBOForEPR does not support colors; TODO fix this!
-    if(prb.getProperty()->maxFunArity()==0 && !env.colorUsed) {
+    // Theory instantiation for arrays introduces non-constant terms, need to turn it off there
+    if(prb.getProperty()->maxFunArity()==0 && !env.colorUsed
+       && env.options->arrayInst() == Options::ArrayInst::OFF) {
       return new KBOForEPR(prb, opt);
     }
     return new KBO(prb, opt);
