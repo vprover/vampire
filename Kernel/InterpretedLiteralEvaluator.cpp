@@ -111,6 +111,7 @@ public:
     Stack<TermList*>::Iterator it(done);
     Stack<TermList*> keep;
     Term* acc = _identity;
+    int acc_cnt = 0;
     while(it.hasNext()){ 
       TermList* t = it.next();
       T thing;
@@ -120,10 +121,12 @@ public:
         ALWAYS(_eval->tryEvaluateFunc(evalThis,tmp));
         ASS(tmp.isTerm());
         acc = tmp.term();
+        acc_cnt++;
       }
       else{ keep.push(t); }
     } 
-    if(keep.length() == done.length()){ return false; }
+    if(keep.length() == done.length() || 
+       (keep.length() == done.length()-1 && acc_cnt==1)){ return false; }
  
     // Now build a new term from kept and acc (if not identity)
     // We keep acc if it is identify if there's no other terms
