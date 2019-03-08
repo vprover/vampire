@@ -221,8 +221,47 @@ void profileMode()
   TheoryFinder(prb->units(), property).search();
 
   env.beginOutput();
-  env.out() << property->categoryString() << ' ' << property->props() << ' '
-	  << property->atoms() << "\n";
+  env.out()
+    << property->category() << ' '
+    << property->props() << ' '
+	  << property->atoms() << ' '
+
+	  << property->_goalClauses << ' '
+	  << property->_axiomClauses << ' '
+
+	  << property->_positiveEqualityAtoms << ' '
+	  << property->_equalityAtoms << ' '
+	  // << property->_atoms << ' '
+
+	  << property->_goalFormulas << ' '
+	  << property->_axiomFormulas << ' '
+	  << property->_subformulas << ' '
+
+    << property->_terms << ' '
+    << property->_unitGoals << ' '
+    << property->_unitAxioms << ' '
+
+    << property->_hornGoals << ' '
+    << property->_hornAxioms << ' '
+    << property->_equationalClauses << ' '
+    << property->_pureEquationalClauses << ' '
+    << property->_groundUnitAxioms << ' '
+    << property->_positiveAxioms << ' '
+
+    << property->_groundPositiveAxioms << ' '
+    << property->_groundGoals << ' '
+    << property->_maxFunArity << ' '
+    << property->_maxPredArity << ' '
+
+    << property->_totalNumberOfVariables << ' '
+    << property->_maxVariablesInClause << ' '
+
+    << property->_hasInterpreted << ' '
+    << property->_hasInterpretedEquality << ' '
+    << property->_hasNonDefaultSorts << ' '
+    << property->_sortsUsed << ' '
+
+	  << "\n";
   env.endOutput();
 
   //we have succeeded with the profile mode, so we'll terminate with zero return value

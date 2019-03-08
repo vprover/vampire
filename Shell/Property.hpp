@@ -273,6 +273,7 @@ public:
 
   void scanSort(TermList sort);
 
+public:
   // structure
   int _goalClauses;
   int _axiomClauses;
@@ -299,12 +300,16 @@ public:
   int _maxPredArity;
   unsigned _maxTypeConArity;
 
+private:
   /** Number of variables in this clause, used during counting */
   int _variablesInThisClause;
   /** Total number of variables in all clauses */
+public:
   int _totalNumberOfVariables;
   /** Maximal number of variables in a clause */
   int _maxVariablesInClause;
+
+private:
   /** Symbols in this formula, used during counting 
       Functions are positive, predicates stored in the negative part
   **/
@@ -316,11 +321,13 @@ public:
   /** CASC category of the problem, computed by read() */
   Category _category;
 
+public:
   /** Problem contains an interpreted symbol including equality */
   bool _hasInterpreted;
   /** Problem contains non-default sorts */
   bool _hasNonDefaultSorts;
   unsigned _sortsUsed;
+private:
   Array<bool> _usesSort;
 
   /** Makes sense for all interpretations, but for polymorphic ones we also keep
