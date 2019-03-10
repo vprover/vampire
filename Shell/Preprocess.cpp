@@ -252,8 +252,8 @@ void Preprocess::preprocess(Problem& prb)
     AnswerLiteralManager::getInstance()->addAnswerLiterals(prb);
   }
 
-  // stop here if clausification is not required and still simplify not set
-  if (!_clausify && !_stillSimplify) {
+  // stop here if clausification is not required
+  if (!_clausify) {
     return;
   }
 
@@ -262,11 +262,6 @@ void Preprocess::preprocess(Problem& prb)
       env.out() << "preprocess1 (rectify, simplify false true, flatten)" << std::endl;
 
     preprocess1(prb);
-  }
-
-  // stop here if clausification is not required
-  if (!_clausify) {
-    return;
   }
 
   // Remove unused predicates

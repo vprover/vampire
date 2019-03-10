@@ -49,7 +49,6 @@ protected:
   class Evaluator;
   class EqualityEvaluator;
   class ConversionEvaluator;
-  template<class T> class ACFunEvaluator;
   template<class T> class TypedEvaluator;
   class IntEvaluator;
   class RatEvaluator;

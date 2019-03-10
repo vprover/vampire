@@ -240,7 +240,7 @@ TermList TermTransformer::transform(TermList ts)
 Formula* TermTransformer::transform(Formula* f)
 {
   CALL("TermTransformer::transform(Formula* f)");
-  TermTransformingFormulaTransformer ttft(*this);
+  static TermTransformingFormulaTransformer ttft(*this);
   return ttft.transform(f);
 }
 
