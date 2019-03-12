@@ -37,10 +37,10 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 # z3 stuff
 ################################################################
 # TODO: one could also add automatic installation of z3 and minisat (cf. github-seahorn solution)
-#find_package(Z3 REQUIRED)
-#include_directories(${Z3_INCLUDE_DIR})
-#add_library(Z3 SHARED IMPORTED)
-#set_property(TARGET Z3 PROPERTY IMPORTED_LOCATION ${Z3_LIBRARY})
+find_package(Z3 REQUIRED)
+include_directories(${Z3_INCLUDE_DIR})
+add_library(Z3 SHARED IMPORTED)
+set_property(TARGET Z3 PROPERTY IMPORTED_LOCATION ${Z3_LIBRARY})
 
 
 
