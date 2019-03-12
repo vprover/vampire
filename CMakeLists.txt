@@ -1,4 +1,4 @@
-cmake_minimum_required (VERSION 3.13.2)
+cmake_minimum_required (VERSION 3.12.1)
 
 project(Vampire)
 
@@ -724,7 +724,7 @@ set(VAMPIRE_SOURCES
     ${VAMPIRE_CASC_SOURCES}
     # Test/CheckedSatSolver.cpp
     # Test/CheckedSatSolver.hpp
-    global.cpp
+    Global.cpp
     vampire.cpp
     "${CMAKE_CURRENT_BINARY_DIR}/version.cpp"
     )
