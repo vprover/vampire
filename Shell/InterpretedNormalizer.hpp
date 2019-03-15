@@ -52,6 +52,7 @@ private:
   class RoundingFunctionTranslator;
 
   class IneqTranslator;
+  class PolymorphicIneqTranslator;
   class NLiteralTransformer;
   class NFormulaTransformer;
   class NFormulaUnitTransformer;
