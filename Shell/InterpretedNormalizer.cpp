@@ -168,6 +168,49 @@ private:
   unsigned _uMinusFun;
 };
 
+
+class InterpretedNormalizer::PolymorphicIneqTranslator
+{
+public:
+  CLASS_NAME(InterpretedNormalizer::PolymorphicIneqTranslator);
+  USE_ALLOCATOR(InterpretedNormalizer::PolymorphicIneqTranslator);
+
+  PolymorphicIneqTranslator(){}
+
+  PolymorphicIneqTranslator(OperatorType* optFrom, Interpretation itpFrom, OperatorType* optTo, Interpretation itpTo, bool swapArguments, bool reversePolarity)
+   : _swapArguments(swapArguments), _reversePolarity(reversePolarity)
+  {
+    CALL("InterpretedNormalizer::PolymorphicIneqTranslator::PolymorphicIneqTranslator");
+    _srcPred = env.signature->getInterpretingSymbol(itpFrom,optFrom);
+    _tgtPred = env.signature->getInterpretingSymbol(itpTo,optTo);
+    ASS_EQ(env.signature->predicateArity(_srcPred), 2);
+    ASS_EQ(env.signature->predicateArity(_tgtPred), 2);
+
+  }
+
+  /** Predicate that is being rewritten by this object */
+  unsigned srcPred() const { return _srcPred; }
+
+  Literal* apply(Literal* lit)
+  {
+    CALL("InterpretedNormalizer::PolymorphicIneqTranslator::apply");
+    ASS_EQ(lit->functor(), _srcPred);
+
+    TermList args[2] = { *lit->nthArgument(0), *lit->nthArgument(1) };
+    if(_swapArguments) { swap(args[0], args[1]); }
+    bool polarity = lit->isPositive() ^ _reversePolarity;
+
+    return Literal::create(_tgtPred, 2, polarity, false, args);
+  }
+
+private:
+  unsigned _srcPred;
+  unsigned _tgtPred;
+  bool _swapArguments;
+  bool _reversePolarity;
+};
+
+
 /**
  * Class whose instances are to be used for translating one type of inequality to enother
  */
@@ -225,6 +268,9 @@ public:
   {
     CALL("InterpretedNormalizer::NLiteralTransformer::NLiteralTransformer");
 
+    // bitvector inequality translators
+    addPolyMorphicIneqTransformers();
+
     // from, to, swap, reverse_pol 
     addIneqTransformer(Theory::INT_LESS_EQUAL, 	  Theory::INT_LESS, true, true);
     addIneqTransformer(Theory::INT_GREATER, 	  Theory::INT_LESS, true, false);
@@ -276,6 +322,12 @@ public:
     if(transl) {
       litRes = transl->apply(litRes);
     }
+
+    PolymorphicIneqTranslator* itransl = getPolymorhicIneqTranslator(pred);
+    if(itransl) {
+          litRes = itransl->apply(litRes);
+    }
+
   }
 protected:
   using TermTransformer::transform;
@@ -374,6 +426,54 @@ private:
     _ineqTransls[pred] = transl;
   }
 
+  void addPolymorphicIneqTransformer(OperatorType* optFrom, Interpretation itpFrom, OperatorType* optTo, Interpretation itpTo,unsigned toSymbol, bool swapArguments, bool reversePolarity)
+  {
+    CALL("InterpretedNormalizer::NLiteralTransformer::addPolymorphicIneqTransformer");
+
+    PolymorphicIneqTranslator* transl = new PolymorphicIneqTranslator(optFrom, itpFrom, optTo, itpTo,swapArguments, reversePolarity);
+    unsigned pred = transl->srcPred();
+    ASS(!_polyIneqTransl.find(pred))
+    _polyIneqTransl.insert(pred,*transl);
+  }
+
+  void addPolyMorphicIneqTransformers()
+  {
+     CALL("InterpretedNormalizer::NLiteralTransformer::addPolymorPhicIneqTransformers");
+     VirtualIterator<std::pair<Theory::MonomorphisedInterpretation,unsigned>> it = env.signature->getSSIItems();
+     Interpretation itp;
+     OperatorType* opt;
+
+      while (it.hasNext()){
+    	  std::pair<Theory::MonomorphisedInterpretation,unsigned> entry = it.next();
+          itp = entry.first.first;
+          opt = entry.first.second;
+          unsigned u_symb = entry.second;
+
+          if (itp==Theory::EQUAL || (itp>=Theory::ARRAY_SELECT && itp<=Theory::ARRAY_STORE))
+                continue;
+
+            Theory::MonomorphisedInterpretation monoint = entry.first; // pair of interpretation, and operatortype
+
+            if (itp == Theory::BVULE)
+            {
+            	addPolymorphicIneqTransformer(opt,Theory::BVULE,opt,Theory::BVUGE,u_symb,true,false);
+            }
+            else if (itp == Theory::BVULT)
+            {
+            	addPolymorphicIneqTransformer(opt,Theory::BVULT,opt,Theory::BVUGT,u_symb,true,false);
+            }
+            else if (itp == Theory::BVSLE)
+            {
+            	addPolymorphicIneqTransformer(opt,Theory::BVSLE,opt,Theory::BVSGE,u_symb,true,false);
+            }
+            else if (itp == Theory::BVSLT)
+            {
+            	addPolymorphicIneqTransformer(opt,Theory::BVSLT,opt,Theory::BVSGT,u_symb,true,false);
+            }
+
+          }
+   }
+
   /**
    * Return object that translates occurrences of function @c func, or zero
    * if there isn't any.
@@ -396,10 +496,19 @@ private:
     return _ineqTransls[ineq].ptr();
   }
 
+  PolymorphicIneqTranslator* getPolymorhicIneqTranslator(unsigned ineq)
+  {
+     CALL("InterpretedNormalizer::NLiteralTransformer::getPolymorhicIneqTranslator");
+     if(!_polyIneqTransl.find(ineq)) { return 0; }
+     return _polyIneqTransl.findPtr(ineq);
+  }
+
   /** inequality translators at positions of their predicate numbers */
   DArray<ScopedPtr<IneqTranslator> > _ineqTransls;
   /** inequality translators at positions of their predicate numbers */ 
   DArray<ScopedPtr<FunctionTranslator> > _fnTransfs;
+  /* inequality translator for bitvectors*/
+  DHMap<unsigned, PolymorphicIneqTranslator> _polyIneqTransl;
 };
 
 /**
