@@ -2967,7 +2967,7 @@ void TheoryAxioms::apply()
           // add that (bvuge x zero)
           addSimplePolyMorphicPredicateWithConstantAxiom(srt0, itp, zero, false, true,false);
           // add that (bvuge allones x)
-          addSimplePolyMorphicPredicateWithConstantAxiom(srt0, itp, zero, true, true,false);
+          addSimplePolyMorphicPredicateWithConstantAxiom(srt0, itp, allOnes, true, true,false);
 
           // !bvuge(x y) OR !bvugt(y x)
           addPolyMorphicClauseAxiom(srt0, Theory::BVUGE , false, false, Theory::BVUGT, true, false);
@@ -3022,7 +3022,7 @@ void TheoryAxioms::apply()
 
          //P(x,c)
          // !(zero > x)
-          addPolyMorphicLiteralWithConstantAxiom(srt0, Theory::BVUGT, allOnes, true, false);
+          addPolyMorphicLiteralWithConstantAxiom(srt0, Theory::BVUGT, zero, true, false);
 
          //rewrite this
          //bvult(bvor(s, x), t) -> bvult(s,t)
@@ -3050,11 +3050,11 @@ void TheoryAxioms::apply()
 
           //P(x,c)
           // !(x > smax)
-          addPolyMorphicLiteralWithConstantAxiom(srt0, Theory::BVUGT, signedMax, false, false);
+          addPolyMorphicLiteralWithConstantAxiom(srt0, Theory::BVSGT, signedMax, false, false);
 
           //P(x,c)
            // !(smin > x)
-          addPolyMorphicLiteralWithConstantAxiom(srt0, Theory::BVUGT, signedMin, true, false);
+          addPolyMorphicLiteralWithConstantAxiom(srt0, Theory::BVSGT, signedMin, true, false);
 
           // bvsgt (0 s) -> bvslt(s bvand(s & signedMax)) // TODO CNF REWRITE, check occurence
           // addBVANDSignedPredicatesAxiom(srt0, Theory::BVSGT, Theory::BVSLT, Theory::BVAND,zero, signedMax); //
