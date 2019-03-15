@@ -59,17 +59,17 @@ private:
   Problem& _prb;
 
   void addCommutativity(Interpretation op);
-  void addBitVectorCommutativity(Interpretation op, unsigned size);
+
   void addAssociativity(Interpretation op);
   void addRightIdentity(Interpretation op, TermList idElement);
-  void addBitVectorRightIdentity(Interpretation i, TermList idElement, unsigned size);
+
   void addLeftIdentity(Interpretation op, TermList idElement);
   void addCommutativeGroupAxioms(Interpretation op, Interpretation inverse, TermList idElement);
 
   void addRightInverse(Interpretation op, Interpretation inverse);
 
   void addNonReflexivity(Interpretation op);
-  void addPolyMorphicNonReflexivity(Interpretation op, OperatorType* type);
+
   void addTransitivity(Interpretation op);
   void addOrderingTotality(Interpretation less);
   void addTotalOrderAxioms(Interpretation less);
@@ -82,6 +82,13 @@ private:
 						  TermList zeroElement, TermList oneElement,
                                                   Interpretation less, Interpretation multiply);
 
+
+  // Bitvector axioms
+  //------------------------------------------------------------------------------------------------------------------------------------------
+  void addBitVectorCommutativity(Interpretation op, unsigned size);
+  void addBitVectorRightIdentity(Interpretation i, TermList idElement, unsigned size);
+  void addPolyMorphicNonReflexivity(Interpretation op, OperatorType* type);
+
   void addPolyMorphicSpecialConstantAxiom(Interpretation op, TermList arg, TermList out, unsigned size);
   void addPolyMorphicSpecialConstantAxiomVariation(Interpretation op, TermList arg, TermList out, unsigned size);
   void addPolyMorphicBinaryFunctionEquivalentToUnaryFunctionAppliedToBinaryFunction(Interpretation f, Interpretation unary, Interpretation binary, unsigned size);
@@ -89,60 +96,38 @@ private:
   
   void addBVXORAxiom1(Interpretation bvxorInterpretation, Interpretation bvorInterpretation , Interpretation bvandInterpretation, Interpretation bvnotInterpretation, unsigned size);
   void addBVXNORAxiom1(Interpretation xnor, Interpretation bvor , Interpretation bvand, Interpretation bvnot, unsigned size);
-  void addBVUleAxiom1(Interpretation bvule, Interpretation bvult,unsigned size);
   void addBVReverseAndMoreAxiom(Interpretation bvugt, Interpretation bvult,unsigned size);
-
-
   void addEqualsImpliesBinaryPredicate(Interpretation itp, unsigned srt);
-  void addConcatArgumentsNotEqualEquivalentToConcatResultsNotEqual(unsigned srt0, unsigned srt1, unsigned resultSort);
-  void addConcatResultsEqualImpliesArgumentsEqual(unsigned srt0, unsigned srt1, unsigned resultSort);
 
-// ************
   void addBVUREMwithPredicateAxiom(Interpretation f, Interpretation p, unsigned srt);
   void addFunctionWithSameArgumentEqualsConstant(Interpretation f, TermList constant, unsigned srt);
   void addFunctionWithSameArgumentEqualArgument(Interpretation f, unsigned srt);
-  void addFunctionAppliedToConstantPredicateFirstArg(Interpretation f, Interpretation p, TermList constant, unsigned srt);
   void addFunctionAppliedToConstantPredicateFirstArgVariation(Interpretation f, Interpretation p, TermList constant, unsigned srt);
 
-
-  void addConcatArgsPredicateImpliesWholePredicateVariation(Interpretation predicate, unsigned srt0, unsigned srt1, unsigned resultSort);
-  void addConcatArgsPredicateImpliesWholePredicate(Interpretation predicate, unsigned srt0, unsigned srt1, unsigned resultSort);
-  void addEveryThingSmallerOrEqualToSignedMax(Interpretation p, TermList constant, unsigned srt);
-  void addEveryThingSmallerOrEqualToSignedMaxVariation(Interpretation p, TermList constant, unsigned srt);
-
   void addSomeAdditionAxiom(unsigned srt);
+  void addAnotherAdditionAxiom(unsigned srt);
   void addUnaryFunctionAppliedTwiceEqualsArgument(Interpretation f, unsigned srt);
 
-  void addBVNOTQuantAxiom(unsigned srt);
-
-// ***********
-
-// ------------
-  void addConcatAxiom1(unsigned srt0, unsigned srt1, unsigned resultSrt);
-  void addConcatAxiom2(unsigned srt0, unsigned srt1, unsigned resultSrt);
   void isPredicateWithEqualRemovedOrEqualAxiom(Interpretation completePredicate, Interpretation predicateWithEqualRemoved, unsigned sort);
-  void addSignedMaxAxiom(Interpretation p, unsigned srt);
   void addMaxAxiom(Interpretation p, unsigned srt);
   void addFlipOverAxiom(unsigned srt);
-  void addBVNotAxiom(unsigned srt);
 
-// ------------
-
-
-  // NEWSET
-  void addBitVectorOrderingAxiom(unsigned srt0, Interpretation pred, TermList constant);
-  void addPredicateImpliesNotOtherPredicate(unsigned srt0, Interpretation p, Interpretation other);
-  void addPredicateImpliesNotOtherPredicateReverse(unsigned srt0, Interpretation p, Interpretation other);
- // void addFunctionWithIdenticalArgumentsEqualsArgument(unsigned srt, Interpretation func); //D
   void predicateTrueForArgumentsOfAFunction(unsigned srt, Interpretation func, Interpretation pred);
-  //
-
 
   void addPredicateOnConcatArgsImpliesPredicateConcatFirstArg(unsigned srt0, unsigned srt1, unsigned resultSrt, Interpretation predicate);
+  void addConcatArgsPredicateImpliesWholePredicateVariation(Interpretation predicate, unsigned srt0, unsigned srt1, unsigned resultSort);
+  void addConcatArgsPredicateImpliesWholePredicate(Interpretation predicate, unsigned srt0, unsigned srt1, unsigned resultSort);
+  void addConcatArgumentsNotEqualEquivalentToConcatResultsNotEqual(unsigned srt0, unsigned srt1, unsigned resultSort);
+  void addConcatResultsEqualImpliesArgumentsEqual(unsigned srt0, unsigned srt1, unsigned resultSort);
+  void addConcatAxiom1(unsigned srt0, unsigned srt1, unsigned resultSrt);
+  void addConcatAxiom2(unsigned srt0, unsigned srt1, unsigned resultSrt);
 
+  void addSimplePolyMorphicPredicateWithConstantAxiom(unsigned srt, Interpretation pred, TermList constant, bool swapArguments, bool reversePolarity, bool comm);
+  void addPolyMorphicClauseAxiom(unsigned srt, Interpretation pred1, bool swapArguments, bool polarity,Interpretation pred2, bool swapArguments2, bool polarity2);
+  void addPolyMorphicLiteralWithConstantAxiom(unsigned srt, Interpretation pred1, TermList constant, bool swapArguments, bool polarity);
 
   void addXNEqualToConstantImpliesAxiom(unsigned srt, Interpretation predicate, TermList constant);
-
+  void addXNEqualToConstantImpliesAxiomVariation(unsigned srt, Interpretation predicate, TermList constant);
   void addTempOrAxiom(unsigned srt, Interpretation pred1, Interpretation pred2, Interpretation func);
   void addTempOrAxiom2(unsigned srt, Interpretation pred1, Interpretation func);
 
@@ -160,25 +145,15 @@ private:
 
   void addORSignedOperatorWithConstantAxiom(unsigned srt0, Interpretation pred, Interpretation func,TermList constant);
 
-  void addNotOrSpecialConstantAxiom(unsigned srt, Interpretation unaryFunc, Interpretation binaryFunc, TermList constant);
-
-
   void addDivisionZeroAxiom(unsigned srt);
   void addDivisionOneAxiom(unsigned srt);
   void addAnotherDivisionAxiom(unsigned srt);
-
   void addDivisionSameArgAxiom(unsigned srt);
-
   void addDivAxiomGT(unsigned srt);
-
   void addDivONEAxiom(unsigned srt);
-
   void addDivAxiomGT2(unsigned srt);
-
-  void addGTOrdering(unsigned srt);
-
   void addTempAxiom(unsigned srt);
-
+//------------------------------------------------------------------------------------------------------------------------------------------
   void addExtraIntegerOrderingAxiom(Interpretation plus, TermList oneElement, Interpretation less);
 
   void addQuotientAxioms(Interpretation quotient, Interpretation multiply, TermList zeroElement, TermList oneElement,
