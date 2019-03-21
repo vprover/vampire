@@ -1,5 +1,5 @@
 #ifndef __ScheduleExecutor__
-#define __ScheduleExector__
+#define __ScheduleExecutor__
 
 #include <unistd.h>
 #include "Schedules.hpp"

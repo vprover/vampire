@@ -962,7 +962,7 @@ Allocator::Descriptor* Allocator::Descriptor::find (const void* addr)
     Descriptor* oldMap = map;
     try {
       map = new Descriptor [capacity];
-    } catch(bad_alloc) {
+    } catch(bad_alloc&) {
       env.beginOutput();
       reportSpiderStatus('m');
       env.out() << "Memory limit exceeded!\n";
@@ -1087,6 +1087,8 @@ void* operator new(size_t sz) {
   ASS_REP(Allocator::_tolerantZone > 0,"Attempted to use global new operator, thus bypassing Allocator!");
   // Please read: https://github.com/easychair/vampire/wiki/Attempted-to-use-global-new-operator,-thus-bypassing-Allocator!
   
+  static Allocator::Initialiser i; // to initialize Allocator even for other libraries
+  
   if (sz == 0)
     sz = 1;
   
@@ -1101,6 +1103,8 @@ void* operator new(size_t sz) {
 void* operator new[](size_t sz) {  
   ASS_REP(Allocator::_tolerantZone > 0,"Attempted to use global new[] operator, thus bypassing Allocator!");
   // Please read: https://github.com/easychair/vampire/wiki/Attempted-to-use-global-new-operator,-thus-bypassing-Allocator!
+
+  static Allocator::Initialiser i; // to initialize Allocator even for other libraries
 
   if (sz == 0)
     sz = 1;
@@ -1117,14 +1121,22 @@ void operator delete(void* obj) throw() {
   ASS_REP(Allocator::_tolerantZone > 0,"Custom operator new matched by global delete!");
   // Please read: https://github.com/easychair/vampire/wiki/Attempted-to-use-global-new-operator,-thus-bypassing-Allocator!
 
-  DEALLOC_UNKNOWN(obj,"global new");
+  static Allocator::Initialiser i; // to initialize Allocator even for other libraries
+
+  if (obj != nullptr) {
+    DEALLOC_UNKNOWN(obj,"global new");
+  }
 }
 
 void operator delete[](void* obj) throw() {  
   ASS_REP(Allocator::_tolerantZone > 0,"Custom operator new[] matched by global delete[]!");
   // Please read: https://github.com/easychair/vampire/wiki/Attempted-to-use-global-new-operator,-thus-bypassing-Allocator!
 
-  DEALLOC_UNKNOWN(obj,"global new[]");
+  static Allocator::Initialiser i; // to initialize Allocator even for other libraries
+
+  if (obj != nullptr) {
+    DEALLOC_UNKNOWN(obj,"global new[]");
+  }
 }
 
 #if VTEST

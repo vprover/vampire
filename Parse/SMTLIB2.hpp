@@ -558,6 +558,20 @@ private:
   void readAssert(LExpr* body);
 
   /**
+   * Unofficial command
+   *
+   * Behaves like conjecture declaration in TPTP
+   */
+  void readAssertNot(LExpr* body);
+
+  /**
+   * Unofficial command
+   *
+   * Behaves like conjecture declaration in TPTP
+   */
+  void colorSymbol(const vstring& name, Color color);
+
+  /**
    * Units collected during parsing.
    */
   UnitList* _formulas;

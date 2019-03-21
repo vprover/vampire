@@ -413,6 +413,7 @@ public:
     OUTPUT,
     PORTFOLIO,
     PREPROCESS,
+    PREPROCESS2,
     PROFILE,
     RANDOM_STRATEGY,
     SAT,

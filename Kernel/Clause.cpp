@@ -114,10 +114,6 @@ Clause::Clause(unsigned length,InputType it,Inference* inf)
     _theoryDescendant=td;
     _inductionDepth=id;
   }
-
-//#if VDEBUG
-_freeze_count=0;
-//#endif
 }
 
 /**

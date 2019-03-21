@@ -1453,8 +1453,6 @@ void Splitter::onClauseReduction(Clause* cl, ClauseIterator premises, Clause* re
 
   // TODO: keep statistics in release ?
 //#if VDEBUG
-  cl->incFreezeCount();
-  // RSTAT_MCTR_INC("frozen clauses",cl->getFreezeCount());
   RSTAT_CTR_INC("total_frozen");
 //#endif
 
