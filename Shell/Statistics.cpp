@@ -388,7 +388,7 @@ void Statistics::print(ostream& out)
       opt = entry.first.second;
       unsigned u_symb = entry.second;
      
-      if (itp==Theory::EQUAL || (itp>=Theory::ARRAY_SELECT && itp<=Theory::ARRAY_STORE))
+      if (itp<Theory::BVADD)
           continue;
       vstring name = theory->getInterpretationName(itp); 
       //cout<<endl<<"talking about function "<<endl<<entry.first.second->toString()<<" int is "<<entry.first.first<<endl;
@@ -419,7 +419,7 @@ void Statistics::print(ostream& out)
       {
            name = name+ "{" +Int::toString(arg1Size)+ "}";
       }
-      COND_OUT(name,funcOrPred->usageCnt());
+      COND_OUT(name,1);
     }
     
     SEPARATOR;
