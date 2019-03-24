@@ -105,12 +105,11 @@ private:
   void addFunctionAppliedToConstantPredicateFirstArgVariation(Interpretation f, Interpretation p, TermList constant, unsigned srt);
 
   void addSomeAdditionAxiom(unsigned srt);
-  void addAnotherAdditionAxiom(unsigned srt);
+  void addAdditionByOneAxioms(unsigned srt);
   void addUnaryFunctionAppliedTwiceEqualsArgument(Interpretation f, unsigned srt);
 
   void isPredicateWithEqualRemovedOrEqualAxiom(Interpretation completePredicate, Interpretation predicateWithEqualRemoved, unsigned sort);
   void addMaxAxiom(Interpretation p, unsigned srt);
-  void addFlipOverAxiom(unsigned srt);
 
   void predicateTrueForArgumentsOfAFunction(unsigned srt, Interpretation func, Interpretation pred);
 
@@ -118,29 +117,21 @@ private:
   void addConcatArgsPredicateImpliesWholePredicateVariation(Interpretation predicate, unsigned srt0, unsigned srt1, unsigned resultSort);
   void addConcatArgsPredicateImpliesWholePredicate(Interpretation predicate, unsigned srt0, unsigned srt1, unsigned resultSort);
   void addConcatArgumentsNotEqualEquivalentToConcatResultsNotEqual(unsigned srt0, unsigned srt1, unsigned resultSort);
-  void addConcatResultsEqualImpliesArgumentsEqual(unsigned srt0, unsigned srt1, unsigned resultSort);
   void addConcatAxiom1(unsigned srt0, unsigned srt1, unsigned resultSrt);
   void addConcatAxiom2(unsigned srt0, unsigned srt1, unsigned resultSrt);
 
-  void addSimplePolyMorphicPredicateWithConstantAxiom(unsigned srt, Interpretation pred, TermList constant, bool swapArguments, bool reversePolarity, bool comm);
   void addPolyMorphicClauseAxiom(unsigned srt, Interpretation pred1, bool swapArguments, bool polarity,Interpretation pred2, bool swapArguments2, bool polarity2);
   void addPolyMorphicLiteralWithConstantAxiom(unsigned srt, Interpretation pred1, TermList constant, bool swapArguments, bool polarity);
 
-  void addXNEqualToConstantImpliesAxiom(unsigned srt, Interpretation predicate, TermList constant);
-  void addXNEqualToConstantImpliesAxiomVariation(unsigned srt, Interpretation predicate, TermList constant);
-  void addTempOrAxiom(unsigned srt, Interpretation pred1, Interpretation pred2, Interpretation func);
+  void addXNEqualToConstantImpliesAxiom(unsigned srt, Interpretation predicate, TermList constant, bool swapArgs);
   void addTempOrAxiom2(unsigned srt, Interpretation pred1, Interpretation func);
+  void addSimplePolyMorphicPredicateWithConstantAxiom(unsigned srt, Interpretation pred, TermList constant, bool swapArguments, bool reversePolarity, bool comm);
 
-  void addBVANDSignedPredicatesAxiom(unsigned srt, Interpretation pred1, Interpretation pred2, Interpretation func,
-		  TermList constant1, TermList constant2);
 
   void addOtherBVANDSignedPredicatesAxiom(unsigned srt, Interpretation pred, Interpretation func,
   		  TermList constant);
 
   void addSpecialEqualAndAxiom(unsigned srt, Interpretation func);
-
-  void addPredicateTrueImpliesSecondArgNEqualToConstant(unsigned srt, Interpretation pred, TermList constant);
-
   void addShiftingAxiom(unsigned srt, Interpretation func1, Interpretation func2);
 
   void addORSignedOperatorWithConstantAxiom(unsigned srt0, Interpretation pred, Interpretation func,TermList constant);
