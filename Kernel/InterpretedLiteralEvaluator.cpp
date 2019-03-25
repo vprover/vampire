@@ -1376,6 +1376,34 @@ InterpretedLiteralEvaluator::InterpretedLiteralEvaluator()
                 new RealEvaluator(),
                 theory->representConstant(RealConstantType(RationalConstantType(1)))));
 
+   VirtualIterator<Theory::MonomorphisedInterpretation> it = env.property->getPolymorphicInterpretations();
+   unsigned size;
+
+   while(it.hasNext()){
+ 	  Theory::MonomorphisedInterpretation entry = it.next();
+ 	  Interpretation itp = entry.first;
+ 	   if (itp<Theory::BVADD)
+     	  	  continue;
+
+       if (entry.second->isFunctionType())
+     	  	  size = env.sorts->getBitVectorSort(entry.second->result())->getSize();
+
+       if (itp == Theory::BVADD){
+    	   BitVectorConstantType zero = BitVectorOperations::getZeroBVCT(size);
+    	   _evals.push(new ACFunEvaluator<BitVectorConstantType>(
+    	   env.signature->getInterpretingSymbol(Theory::BVADD, entry.second),new BitVectorEvaluator(),
+    	                   theory->representConstant(zero)));
+
+       }
+       else if (itp == Theory::BVMUL){
+    	   BitVectorConstantType one = BitVectorOperations::getOneBVCT(size);
+    	   _evals.push(new ACFunEvaluator<BitVectorConstantType>(
+    	   env.signature->getInterpretingSymbol(Theory::BVMUL, entry.second),new BitVectorEvaluator(),
+    	                   theory->representConstant(one)));
+
+       }
+   }
+
   _funEvaluators.ensure(0);
   _predEvaluators.ensure(0);
 
