@@ -388,7 +388,7 @@ void Statistics::print(ostream& out)
       opt = entry.first.second;
       unsigned u_symb = entry.second;
      
-      if (itp<Theory::BVADD)
+      if (!(itp>=Theory::BVADD && itp<=Theory::CONCAT))
           continue;
       vstring name = theory->getInterpretationName(itp); 
       //cout<<endl<<"talking about function "<<endl<<entry.first.second->toString()<<" int is "<<entry.first.first<<endl;

@@ -2467,7 +2467,7 @@ void TheoryAxioms::apply()
 	         * Start function conditions
 	  * ------------------------------------------
 	  * */
-      if (itp < Theory::BVADD)
+      if (!(itp >= Theory::BVADD && itp <= Theory::CONCAT))
     	  	  continue;
 
       if (entry.second->isFunctionType())
