@@ -33,15 +33,6 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
 
-################################################################
-# z3 stuff
-################################################################
-# TODO: one could also add automatic installation of z3 and minisat (cf. github-seahorn solution)
-find_package(Z3 REQUIRED)
-include_directories(${Z3_INCLUDE_DIR})
-add_library(Z3 SHARED IMPORTED)
-set_property(TARGET Z3 PROPERTY IMPORTED_LOCATION ${Z3_LIBRARY})
-
 
 
 ################################################################
@@ -112,7 +103,7 @@ set(VAMPIRE_LIB_SOURCES
     Lib/Environment.cpp
     Lib/Event.cpp
     Lib/Exception.cpp
-    #Lib/Graph.cpp
+#    Lib/Graph.cpp
     Lib/Hash.cpp
     Lib/Int.cpp
     Lib/IntNameTable.cpp
@@ -120,7 +111,7 @@ set(VAMPIRE_LIB_SOURCES
     Lib/MemoryLeak.cpp
     Lib/MultiCounter.cpp
     Lib/NameArray.cpp
-    #Lib/OptionsReader.cpp
+#    Lib/OptionsReader.cpp
     Lib/Random.cpp
     Lib/StringUtils.cpp
     Lib/System.cpp
@@ -150,7 +141,7 @@ set(VAMPIRE_LIB_SOURCES
     Lib/Exception.hpp
     Lib/fdstream.hpp
     Lib/FreshnessGuard.hpp
-    #Lib/Graph.hpp
+#    Lib/Graph.hpp
     Lib/Hash.hpp
     Lib/ImplicationSetClosure.hpp
     Lib/InPlaceStack.hpp
@@ -170,7 +161,7 @@ set(VAMPIRE_LIB_SOURCES
     Lib/MultiCounter.hpp
     Lib/NameArray.hpp
     Lib/Numbering.hpp
-    #Lib/OptionsReader.hpp
+#    Lib/OptionsReader.hpp
     Lib/PairUtils.hpp
     Lib/Portability.hpp
     Lib/Random.hpp
@@ -231,7 +222,7 @@ set(VAMPIRE_KERNEL_SOURCES
     Kernel/LiteralSelector.cpp
     Kernel/LookaheadLiteralSelector.cpp
     Kernel/MainLoop.cpp
-    #Kernel/MatchTag.cpp
+#    Kernel/MatchTag.cpp
     Kernel/Matcher.cpp
     Kernel/MaximalLiteralSelector.cpp
     Kernel/MLMatcher.cpp
@@ -251,11 +242,11 @@ set(VAMPIRE_KERNEL_SOURCES
     Kernel/TermIterators.cpp
     Kernel/TermTransformer.cpp
     Kernel/Theory.cpp
-    #Kernel/Assignment.cpp
-    #Kernel/Constraint.cpp
-    #Kernel/Number.cpp
-    #Kernel/Rational.cpp
-    #Kernel/V2CIndex.cpp
+#    Kernel/Assignment.cpp
+#    Kernel/Constraint.cpp
+#    Kernel/Number.cpp
+#    Kernel/Rational.cpp
+#    Kernel/V2CIndex.cpp
     Kernel/Signature.cpp
     Kernel/Unit.cpp
     Kernel/BestLiteralSelector.hpp
@@ -281,7 +272,7 @@ set(VAMPIRE_KERNEL_SOURCES
     Kernel/LiteralSelector.hpp
     Kernel/LookaheadLiteralSelector.hpp
     Kernel/MainLoop.hpp
-    #Kernel/MatchTag.hpp
+#    Kernel/MatchTag.hpp
     Kernel/Matcher.hpp
     Kernel/MaximalLiteralSelector.hpp
     Kernel/MLMatcher.hpp
@@ -302,11 +293,11 @@ set(VAMPIRE_KERNEL_SOURCES
     Kernel/TermIterators.hpp
     Kernel/TermTransformer.hpp
     Kernel/Theory.hpp
-    #Kernel/Assignment.hpp
-    #Kernel/Constraint.hpp
-    #Kernel/Number.hpp
-    #Kernel/Rational.hpp
-    #Kernel/V2CIndex.hpp
+#    Kernel/Assignment.hpp
+#    Kernel/Constraint.hpp
+#    Kernel/Number.hpp
+#    Kernel/Rational.hpp
+#    Kernel/V2CIndex.hpp
     Kernel/Signature.hpp
     Kernel/Unit.hpp
     Kernel/LPO.cpp
@@ -320,7 +311,7 @@ set(VAMPIRE_INDEXING_SOURCES
     Indexing/ClauseVariantIndex.cpp
     Indexing/CodeTree.cpp
     Indexing/CodeTreeInterfaces.cpp
-    #Indexing/FormulaIndex.cpp
+#    Indexing/FormulaIndex.cpp
     Indexing/GroundingIndex.cpp
     Indexing/Index.cpp
     Indexing/IndexManager.cpp
@@ -341,7 +332,7 @@ set(VAMPIRE_INDEXING_SOURCES
     Indexing/ClauseVariantIndex.hpp
     Indexing/CodeTree.hpp
     Indexing/CodeTreeInterfaces.hpp
-    #Indexing/FormulaIndex.hpp
+    Indexing/FormulaIndex.hpp
     Indexing/GroundingIndex.hpp
     Indexing/Index.hpp
     Indexing/IndexManager.hpp
@@ -364,7 +355,7 @@ set(VAMPIRE_INFERENCE_SOURCES
     Inferences/BackwardSubsumptionResolution.cpp
     Inferences/BinaryResolution.cpp
     Inferences/Condensation.cpp
-    #Inferences/CTFwSubsAndRes.cpp
+#    Inferences/CTFwSubsAndRes.cpp
     Inferences/DistinctEqualitySimplifier.cpp
     Inferences/EqualityFactoring.cpp
     Inferences/EqualityResolution.cpp
@@ -392,7 +383,7 @@ set(VAMPIRE_INFERENCE_SOURCES
     Inferences/BackwardSubsumptionResolution.hpp
     Inferences/BinaryResolution.hpp
     Inferences/Condensation.hpp
-    #Inferences/CTFwSubsAndRes.hpp
+#    Inferences/CTFwSubsAndRes.hpp
     Inferences/DistinctEqualitySimplifier.hpp
     Inferences/EqualityFactoring.hpp
     Inferences/EqualityResolution.hpp
@@ -415,10 +406,10 @@ set(VAMPIRE_INFERENCE_SOURCES
     Inferences/TautologyDeletionISE.hpp
     Inferences/TermAlgebraReasoning.hpp
     Inferences/URResolution.hpp
-    # Inferences/TheoryInstAndSimp.hpp
-    # Inferences/TheoryInstAndSimp.cpp  # ???
-    # Inferences/TheoryRuleAttempt.hpp
-    # Inferences/TheoryRuleAttempt.cpp
+    Inferences/TheoryInstAndSimp.hpp
+    Inferences/TheoryInstAndSimp.cpp  # this is theory instantiation
+#    Inferences/TheoryRuleAttempt.hpp
+#    Inferences/TheoryRuleAttempt.cpp
     )
 source_group(inference_source_files FILES ${VAMPIRE_INFERENCE_SOURCES})
 
@@ -733,9 +724,32 @@ set(VAMPIRE_SOURCES
 #message(STATUS "a test message")
 
 add_executable(vampire ${VAMPIRE_SOURCES})
-#target_link_libraries(vampire Z3)
-#target_compile_definitions(vampire PRIVATE VZ3=1 CHECK_LEAKS=0)
-target_compile_definitions(vampire PRIVATE VZ3=0 CHECK_LEAKS=0)
+target_compile_definitions(vampire PRIVATE  CHECK_LEAKS=0)
+
+################################################################
+# z3 stuff
+################################################################
+# TODO: one could also add automatic installation of z3 and minisat (cf. github-seahorn solution)
+find_package(Z3)
+if (NOT Z3_FOUND)
+  message(WARNING "No Z3 found -- Compiling without SMT support.")
+  target_compile_definitions(vampire PRIVATE VZ3=0)
+else ()
+  include_directories(${Z3_INCLUDE_DIR})
+  add_library(Z3 SHARED IMPORTED)
+  set_property(TARGET Z3 PROPERTY IMPORTED_LOCATION ${Z3_LIBRARY})
+  target_compile_definitions(vampire PRIVATE VZ3=1)
+#  set(GCC_Z3_LINK_FLAGS    "-lz3")
+#  set(GCC_Z3_STATIC_LINK_FLAGS    "-lgomp -pthread -lrt -ldl")
+endif()
+
+
+#set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} ${GCC_Z3_ENABLED} ${GCC_Z3_COMPILE_FLAGS}")
+#set(CMAKE_EXE_LINKER_FLAGS  "${CMAKE_EXE_LINKER_FLAGS} ${GCC_Z3_LINK_FLAGS}  ${GCC_Z3_STATIC_LINK_FLAGS}")
+
+
+target_link_libraries(vampire Z3)
+#target_compile_options(vampire Z3)
 
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -D VDEBUG=1") 
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -D VDEBUG=0") 
