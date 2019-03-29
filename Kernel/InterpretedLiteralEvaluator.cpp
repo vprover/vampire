@@ -117,7 +117,7 @@ public:
       T thing;
       if(t->isTerm() && theory->tryInterpretConstant(t->term(),thing)){
         TermList tmp;
-	Term* evalThis = Term::create2(_fun,TermList(acc),*t);
+	      Term* evalThis = Term::create2(_fun,TermList(acc),*t);
         ALWAYS(_eval->tryEvaluateFunc(evalThis,tmp));
         ASS(tmp.isTerm());
         acc = tmp.term();
@@ -128,12 +128,13 @@ public:
     if(keep.length() == done.length() || 
        (keep.length() == done.length()-1 && acc_cnt==1)){ return false; }
  
+    // a bit of a hack, we might need a pointer to this below, to have uniform treatment of all the TermLists
+    TermList accT(acc);
+ 
     // Now build a new term from kept and acc (if not identity)
-    // We keep acc if it is identify if there's no other terms
-    if(_identity!=acc || keep.length()==0){
-      TermList accT(acc);
-      // Safe because we just use this pointer locally
-      keep.push(&accT);
+    // We keep acc if it is identity and if there's no other terms
+    if(_identity!=acc || keep.length()==0) {
+      keep.push(&accT); // Safe because we just use this pointer locally
     }
     ASS(keep.length()>0);
     Stack<TermList*>::BottomFirstIterator kit(keep);
