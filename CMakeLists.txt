@@ -6,6 +6,13 @@ project(Vampire)
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+#static
+if (NOT BUILD_SHARED_LIBS) 
+  SET(CMAKE_FIND_LIBRARY_SUFFIXES ".a")
+  # SET(BUILD_SHARED_LIBS OFF)
+  SET(CMAKE_EXE_LINKER_FLAGS "-static")
+endif()
+
 # support sourcetrail
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
@@ -730,26 +737,21 @@ target_compile_definitions(vampire PRIVATE  CHECK_LEAKS=0)
 # z3 stuff
 ################################################################
 # TODO: one could also add automatic installation of z3 and minisat (cf. github-seahorn solution)
-find_package(Z3)
+find_package(Z3 CONFIG NO_DEFAULT_PATH)
 if (NOT Z3_FOUND)
   message(WARNING "No Z3 found -- Compiling without SMT support.")
   target_compile_definitions(vampire PRIVATE VZ3=0)
 else ()
-  include_directories(${Z3_INCLUDE_DIR})
+  message(STATUS "Found Z3 ${Z3_VERSION_STRING}")
+  message(STATUS "Z3_DIR: ${Z3_DIR}")
+  target_include_directories(vampire PRIVATE ${Z3_CXX_INCLUDE_DIRS})
+  target_link_libraries(vampire PRIVATE ${Z3_LIBRARIES})
   add_library(Z3 SHARED IMPORTED)
   set_property(TARGET Z3 PROPERTY IMPORTED_LOCATION ${Z3_LIBRARY})
   target_compile_definitions(vampire PRIVATE VZ3=1)
-#  set(GCC_Z3_LINK_FLAGS    "-lz3")
-#  set(GCC_Z3_STATIC_LINK_FLAGS    "-lgomp -pthread -lrt -ldl")
 endif()
 
 
-#set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} ${GCC_Z3_ENABLED} ${GCC_Z3_COMPILE_FLAGS}")
-#set(CMAKE_EXE_LINKER_FLAGS  "${CMAKE_EXE_LINKER_FLAGS} ${GCC_Z3_LINK_FLAGS}  ${GCC_Z3_STATIC_LINK_FLAGS}")
-
-
-target_link_libraries(vampire Z3)
-#target_compile_options(vampire Z3)
 
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -D VDEBUG=1") 
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -D VDEBUG=0") 
