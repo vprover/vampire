@@ -168,7 +168,46 @@ private:
   unsigned _uMinusFun;
 };
 
+/**
+ * Class for transforming (bitvector) terms (t-u) into (t+(-u))
+ */
+class InterpretedNormalizer::BitvectorSubtractionTranslator
+{
+public:
+  CLASS_NAME(InterpretedNormalizer::BitvectorSubtractionTranslator);
+  USE_ALLOCATOR(InterpretedNormalizer::BitvectorSubtractionTranslator);
 
+  BitvectorSubtractionTranslator(){}
+  // operatortype for bvsub and bvadd are the same
+  BitvectorSubtractionTranslator(OperatorType* obvadd, OperatorType* obvneg)
+  {
+    CALL("InterpretedNormalizer::BitvectorSubtractionTranslator::BitvectorSubtractionTranslator");
+
+    _bvsubFun = env.signature->getInterpretingSymbol(Theory::BVSUB,obvadd);
+    _bvaddFun = env.signature->getInterpretingSymbol(Theory::BVADD,obvadd);
+    _bvnegFun = env.signature->getInterpretingSymbol(Theory::BVNEG,obvneg);
+  }
+
+  virtual TermList translate(Term* trm)
+  {
+    CALL("InterpretedNormalizer::BitvectorSubtractionTranslator::translate");
+    ASS_EQ(trm->functor(), _bvsubFun);
+
+    TermList arg1 = *trm->nthArgument(0);
+    TermList arg2 = *trm->nthArgument(1);
+    TermList negArg2(Term::create1(_bvnegFun, arg2));
+    TermList res(Term::create2(_bvaddFun, arg1, negArg2));
+    return res;
+  }
+
+  /** Function that is being rewritten by this object */
+  unsigned srcFunc() const { return _bvsubFun; }
+private:
+
+  unsigned _bvsubFun;
+  unsigned _bvaddFun;
+  unsigned _bvnegFun;
+};
 class InterpretedNormalizer::PolymorphicIneqTranslator
 {
 public:
@@ -269,7 +308,7 @@ public:
     CALL("InterpretedNormalizer::NLiteralTransformer::NLiteralTransformer");
 
     // bitvector inequality translators
-    addPolyMorphicIneqTransformers();
+    addPolyMorphicTransformers();
 
     // from, to, swap, reverse_pol 
     addIneqTransformer(Theory::INT_LESS_EQUAL, 	  Theory::INT_LESS, true, true);
@@ -435,10 +474,19 @@ private:
     ASS(!_polyIneqTransl.find(pred))
     _polyIneqTransl.insert(pred,*transl);
   }
-
-  void addPolyMorphicIneqTransformers()
+  void addBitvectorSubtractionTransformer(OperatorType* bvadd,  OperatorType* bvneg)
   {
-     CALL("InterpretedNormalizer::NLiteralTransformer::addPolymorPhicIneqTransformers");
+    CALL("InterpretedNormalizer::NLiteralTransformer::addBitvectorSubtractionTransformer");
+
+    BitvectorSubtractionTranslator* transl = new BitvectorSubtractionTranslator(bvadd,bvneg);
+    unsigned func = transl->srcFunc();
+    ASS(!_bvfunTranslators.find(func))
+    _bvfunTranslators.insert(func,*transl);
+  }
+
+  void addPolyMorphicTransformers()
+  {
+     CALL("InterpretedNormalizer::NLiteralTransformer::addPolymorphicTransformers");
      VirtualIterator<std::pair<Theory::MonomorphisedInterpretation,unsigned>> it = env.signature->getSSIItems();
      Interpretation itp;
      OperatorType* opt;
@@ -448,9 +496,6 @@ private:
           itp = entry.first.first;
           opt = entry.first.second;
           unsigned u_symb = entry.second;
-
-          if (itp==Theory::EQUAL || (itp>=Theory::ARRAY_SELECT && itp<=Theory::ARRAY_STORE))
-                continue;
 
             Theory::MonomorphisedInterpretation monoint = entry.first; // pair of interpretation, and operatortype
 
@@ -469,6 +514,14 @@ private:
             else if (itp == Theory::BVSLT)
             {
             	addPolymorphicIneqTransformer(opt,Theory::BVSLT,opt,Theory::BVSGT,u_symb,true,false);
+            }
+            else if (itp == Theory::BVSUB)
+            {
+               unsigned srt = opt->arg(0);
+               unsigned arg[1] = {srt};
+               //unsigned bvnegFun = env.signature->getInterpretingSymbol(Theory::BVNEG,OperatorType::getFunctionType(1,{srt},srt));
+               OperatorType* bvnegOpt = OperatorType::getFunctionType(1,arg,srt);
+               addBitvectorSubtractionTransformer(opt,bvnegOpt);
             }
 
           }
@@ -509,6 +562,8 @@ private:
   DArray<ScopedPtr<FunctionTranslator> > _fnTransfs;
   /* inequality translator for bitvectors*/
   DHMap<unsigned, PolymorphicIneqTranslator> _polyIneqTransl;
+  /* inequality translators for bitvectors*/
+  DHMap<unsigned, BitvectorSubtractionTranslator> _bvfunTranslators;
 };
 
 /**

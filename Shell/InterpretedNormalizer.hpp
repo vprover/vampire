@@ -48,6 +48,7 @@ private:
   class FunctionTranslator;
   class SuccessorTranslator;
   class BinaryMinusTranslator;
+  class BitvectorSubtractionTranslator;
 
   class RoundingFunctionTranslator;
 
