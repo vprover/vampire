@@ -48,7 +48,7 @@ struct MainLoopResult
   typedef Statistics::TerminationReason TerminationReason;
 
   MainLoopResult(TerminationReason reason)
-  : terminationReason(reason), saturatedSet(0) {}
+  : terminationReason(reason), refutation(0), saturatedSet(0) {}
   MainLoopResult(TerminationReason reason, Clause* ref)
   : terminationReason(reason), refutation(ref), saturatedSet(0) {}
 
