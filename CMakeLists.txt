@@ -7,17 +7,23 @@ set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 #static
-if (NOT BUILD_SHARED_LIBS) 
+if (NOT BUILD_SHARED_LIBS)
   SET(CMAKE_FIND_LIBRARY_SUFFIXES ".a")
   # SET(BUILD_SHARED_LIBS OFF)
   SET(CMAKE_EXE_LINKER_FLAGS "-static")
 endif()
 
+#debug flags
+
+set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -DVDEBUG=1 -DUNIX_USE_SIGALRM=1 -DGNUMP=0 ")
+set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -DVDEBUG=0")
+
+
 # support sourcetrail
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 add_compile_options(
-    "-Wno-exceptions"  # there's just too many warnings if this is enabled
+#    "-Wno-exceptions"  # there's just too many warnings if this is enabled # this option doesn't seem to exist in all compilers
     # "-ftrapv"
     # "-pedantic"
     # "-Wall"
@@ -753,8 +759,6 @@ endif()
 
 
 
-set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -D VDEBUG=1") 
-set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -D VDEBUG=0") 
 
 
 #################################################################
