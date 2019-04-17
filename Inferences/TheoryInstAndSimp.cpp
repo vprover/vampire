@@ -23,7 +23,7 @@
 
 #if VZ3
 
-#define DPRINT 0
+#define DPRINT 1
 
 #include "Debug/RuntimeStatistics.hpp"
 
@@ -626,6 +626,60 @@ Term* getFreshConstant(unsigned index, unsigned srt)
   return (*sortedConstants)[index];
 }
 
+
+//TODO: put into interface
+VirtualIterator<Solution>  minimizeSolution(Stack<Literal*>& theoryLiterals, bool guarded,
+                                            Solution sol,  Substitution subst
+                                            //DHMap<unsigned,unsigned > srtMap
+                                            ) {
+  static SAT2FO naming;
+  static Z3Interfacing solver(*env.options,naming);
+  solver.reset(); // the solver will reset naming
+
+  Stack<Literal*>::Iterator it(theoryLiterals);
+  Stack<unsigned> vars;
+  unsigned used = 0;
+
+  static SATLiteralStack satLits;
+  satLits.reset();
+
+  while(it.hasNext()){
+    // get the complementary of the literal
+    Literal* lit = it.next();
+    // apply substitution
+#if DPRINT
+    cout << "skolem " << lit->toString();
+#endif
+
+    lit = SubstHelper::apply(lit,subst);
+
+#if DPRINT
+    cout << " to get " << lit->toString() << endl;
+#endif
+
+    // register the lit in naming in such a way that the solver will pick it up!
+    SATLiteral slit = naming.toSAT(lit);
+
+    // now add the SAT representation
+    satLits.push(slit);
+  }
+
+  SATClause* sc = SATClause::fromStack(satLits);
+  // guarded is normally true, apart from when we are checking a theory tautology
+  try{
+    solver.addClause(sc,guarded);
+  }
+  catch(UninterpretedForZ3Exception){
+    return VirtualIterator<Solution>::getEmpty();
+  }
+  
+
+  // now we can call the solver
+  SATSolver::Status status = solver.solve(UINT_MAX);
+  return pvi(getSingletonIterator(sol));
+}
+
+
 VirtualIterator<Solution> TheoryInstAndSimp::getSolutions(Stack<Literal*>& theoryLiterals, bool guarded){
   CALL("TheoryInstAndSimp::getSolutions");
 
@@ -727,6 +781,15 @@ VirtualIterator<Solution> TheoryInstAndSimp::getSolutions(Stack<Literal*>& theor
 #if DPRINT
     cout << "solution with " << sol.subst.toString() << endl;
 #endif
+    // try to minimaize the solution
+    if (true) { //TODO: add flag in options
+      //      static SAT2FO min_naming;
+      //      static Z3Interfacing minimizing_solver(*env.options,min_naming);
+      //      minimizing_solver.reset(); // the solver will reset naming
+      VirtualIterator<Solution> minsol = minimizeSolution(theoryLiterals, guarded, sol, subst);
+      return minsol;
+    }
+    
     return pvi(getSingletonIterator(sol));
   }
 
@@ -739,6 +802,7 @@ VirtualIterator<Solution> TheoryInstAndSimp::getSolutions(Stack<Literal*>& theor
   return VirtualIterator<Solution>::getEmpty();
 
 }
+
 
 
 struct InstanceFn
