@@ -23,7 +23,7 @@
 
 #if VZ3
 
-#define DPRINT 0
+#define DPRINT 1
 
 #include "Forwards.hpp"
 
@@ -670,7 +670,7 @@ z3::expr Z3Interfacing::getz3expr(Term* trm,bool isLit,bool&nameExpression,bool 
   ASS(trm->ground());
 
 #if DPRINT
-  cout << "getz3expr of " << trm->toString() << endl;
+  //  cout << "getz3expr of " << trm->toString() << endl;
 #endif
 
     Signature::Symbol* symb;
@@ -1026,7 +1026,7 @@ z3::expr Z3Interfacing::getRepresentation(SATLiteral slit,bool withGuard)
       // TODO everything is being named!!
       bool nameExpression = true;
       z3::expr e = getz3expr(lit,true,nameExpression,withGuard);
-      cout << "got rep " << e << endl;
+      //cout << "got rep " << e << endl;
 
       if(nameExpression && _namedExpressions.insert(slit.var())) {
         z3::expr bname = getNameExpr(slit.var()); 
