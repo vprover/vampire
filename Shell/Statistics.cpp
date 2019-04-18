@@ -128,6 +128,7 @@ Statistics::Statistics()
     inferencesBlockedForOrderingAftercheck(0),
     smtReturnedUnknown(false),
     inferencesSkippedDueToColors(0),
+    combinatoryUnifiersProduced(0),
     finalPassiveClauses(0),
     finalActiveClauses(0),
     finalExtensionalityClauses(0),

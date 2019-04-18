@@ -154,6 +154,7 @@ void Options::Options::init()
          "casc_sat_2016",
          "casc_sat_2017",
          "thf_2019",
+         "thf_second_2019",
          "ltb_2014",
          "ltb_2014_mzr",
          "ltb_default_2017",
