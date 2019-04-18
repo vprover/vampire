@@ -222,6 +222,8 @@ public:
 
   unsigned inferencesSkippedDueToColors;
 
+  unsigned combinatoryUnifiersProduced;
+
   /** passive clauses at the end of the saturation algorithm run */
   unsigned finalPassiveClauses;
   /** active clauses at the end of the saturation algorithm run */

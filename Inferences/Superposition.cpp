@@ -476,11 +476,11 @@ Clause* Superposition::performSuperposition(
   ASS(eqClause->store()==Clause::ACTIVE);
 
   //if((rwClause->number() == 108409)|| (eqClause->number() == 108409)){
-    /*cout << "\nperformSuperposition with " << rwClause->toString() << " and " << eqClause->toString() << endl;
+   /* cout << "\nperformSuperposition with " << rwClause->toString() << " and " << eqClause->toString() << endl;
     cout << "rwTerm " << rwTerm.toString() << endl;
     cout << "eqLHSS " << eqLHS.toString()  << endl;
     cout << "equality is result? " << eqIsResult << endl;
-    cout << "substitution " << subst->tryGetRobSubstitution()->toString(true) << endl;*/
+    cout << "substitution " << subst->tryGetRobSubstitution()->toString(true) << endl; */
   //}
   // the first checks the reference and the second checks the stack
 /*
@@ -755,7 +755,8 @@ Clause* Superposition::performSuperposition(
     //NOT_IMPLEMENTED;
   }
 */
-   // cout << "The Sup result is : " + res->toString() << endl;
+
+  //cout << "The Sup result is : " + res->toString() << endl;
   
   return res;
 }
@@ -776,7 +777,7 @@ Clause* Superposition::performParamodulation(
   ASS(eqClause->store()==Clause::ACTIVE);
 
   /*if((rwClause->number() == 771) && (eqClause->number() == 594)){
-    cout << "performParamodulatio with " << rwClause->toString() << " and " << eqClause->toString() << endl;
+    cout << "Performing superpostion with " << rwClause->toString() << " and " << eqClause->toString() << endl;
     cout << "rwTerm " << rwTerm.toString() << endl;
     cout << "eqLHSS " << eqLHS.toString() << endl;
     cout << "substitution " + subst->tryGetCombSubstitution()->toString();

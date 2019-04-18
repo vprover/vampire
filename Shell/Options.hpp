@@ -459,6 +459,7 @@ public:
     CASC_SAT_2016,
     CASC_SAT_2017,
     THF_2019,
+    THF_SECOND_2019,
     LTB_2014,
     LTB_2014_MZR,
     LTB_DEFAULT_2017,

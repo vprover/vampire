@@ -31,6 +31,8 @@
 
 #include "CombSubstIterator.hpp"
 
+#include "Shell/Statistics.hpp"
+
 #if VDEBUG
 #include "Lib/Int.hpp"
 #include "Debug/Tracer.hpp"
@@ -819,6 +821,8 @@ vstring CombSubstitution::toString()
 bool CombSubstIterator::hasNextUnifier(){
   CALL("CombSubstIterator::hasNextUnifier");  
 
+  TimeCounter tc(TC_COMBINATORY_UNIF);
+
   //if already solved try and find another substitution
   if(_unifSystem->_solved) {
     bdStack.pop().backtrack();
@@ -850,6 +854,7 @@ bool CombSubstIterator::hasNextUnifier(){
       bdStack.push(bd);
     }
   } while(!_unifSystem->_solved);
+  env.statistics->combinatoryUnifiersProduced++;
   //cout << "The successful substitution is:\n " + _unifSystem->toString() << endl; 
   return true;
 }

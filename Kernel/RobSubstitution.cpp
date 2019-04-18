@@ -488,7 +488,7 @@ bool RobSubstitution::unify(TermSpec t1, TermSpec t2, unsigned& ut)
 bool RobSubstitution::isPlaceHolderTerm(const TermSpec& ts){
   CALL("RobSubstitution::isPlaceHolderTerm");
   
-  if(ts.term.isVar()){
+  if(ts.term.isVar() || ts.term.term()->isLiteral()){
     return false;
   }
   TermList tl = ts.term;

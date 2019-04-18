@@ -29,6 +29,7 @@
 #include "Lib/Timer.hpp"
 
 #include "Shell/Options.hpp"
+#include "Shell/Statistics.hpp"
 #include "Shell/UIHelper.hpp"
 
 #include "TimeCounter.hpp"
@@ -175,10 +176,19 @@ void TimeCounter::printReport(ostream& out)
 
   addCommentSignForSZS(out);
   out << "Time measurement results:" << endl;
+  int totalTime = 0;
   for (int i=0; i<__TC_ELEMENT_COUNT; i++) {
+    TimeCounterUnit tcu = static_cast<TimeCounterUnit>(i);
+    if(s_measureInitTimes[tcu]!=-1 || s_measuredTimes[tcu]){
+      totalTime += (s_measuredTimes[tcu]-s_measuredTimesChildren[tcu]);
+    }
     outputSingleStat(static_cast<TimeCounterUnit>(i), out);
   }
-  out<<endl;
+  if (s_measureInitTimes[TC_COMBINATORY_UNIF]!=-1 || s_measuredTimes[TC_COMBINATORY_UNIF]) {
+    int ownTime = s_measuredTimes[TC_COMBINATORY_UNIF]-s_measuredTimesChildren[TC_COMBINATORY_UNIF];
+    out << "Percentage of time spent on combinatory unification " << (static_cast<float>(ownTime)/totalTime * 100) << "%" <<endl;
+    out << "Number of combinatory unifier produced " << env.statistics->combinatoryUnifiersProduced << endl;
+  }
 }
 
 void TimeCounter::outputSingleStat(TimeCounterUnit tcu, ostream& out)
@@ -299,6 +309,9 @@ void TimeCounter::outputSingleStat(TimeCounterUnit tcu, ostream& out)
     break;
   case TC_OTHER:
     out<<"other";
+    break;
+  case TC_COMBINATORY_UNIF:
+    out<<"combinatory unification";
     break;
   case TC_PARSING:
     out<<"parsing";
