@@ -417,34 +417,49 @@ vstring Clause::toString() const
 {
   CALL("Clause::toString()");
 
+  // print id and literals of clause
   vstring result = Int::toString(_number) + ". " + literalsOnlyToString();
 
+  // print avatar components clause depends on
   if (splits() && !splits()->isEmpty()) {
-    result += vstring(" {") + splits()->toString() + "}";
+    result += vstring(" <- (") + splits()->toString() + ")";
   }
 
-  if (env.colorUsed) {
-    result += " C" + Int::toString(color()) + " ";
+  // print inference and ids of parent clauses
+  result += " " + inferenceAsString();
+
+  if(env.options->proofExtra()!=Options::ProofExtra::OFF){
+    // print statistics: each entry should have the form key:value
+    result += vstring(" {");
+      
+    result += vstring("a:") + Int::toString(_age);
+    result += vstring(",w:") + Int::toString(weight());
+    
+    float ew = const_cast<Clause*>(this)->getEffectiveWeight(const_cast<Shell::Options&>(*(env.options)));
+    unsigned effective = static_cast<int>(ceil(ew));
+    if(effective!=weight()){
+      result += vstring(",effW:") + Int::toString(effective);
+    }
+
+    if (numSelected()>0) {
+      result += vstring(",nSel:") + Int::toString(numSelected());
+    }
+
+    if (env.colorUsed) {
+      result += vstring(",col:") + Int::toString(color());
+    }
+
+    if(isGoal()){
+      result += vstring(",goal:1");
+    }
+    if(isTheoryDescendant()){
+      result += vstring(",tD:1");
+    }
+
+    result += vstring(",inD:") + Int::toString(inductionDepth());
+    result += vstring("}");
   }
 
-  result += vstring(" (") + Int::toString(_age) + ':' + Int::toString(weight());
-  float ew = const_cast<Clause*>(this)->getEffectiveWeight(const_cast<Shell::Options&>(*(env.options)));
-  unsigned effective = static_cast<int>(ceil(ew));
-  if(effective!=weight()){
-    result += "["+Int::toString(effective)+"]";
-  }
-  if (numSelected()>0) {
-    result += ':' + Int::toString(numSelected());
-  }
-  if(isGoal()){ result += ":G"; }
-  result += ") ";
-  if(isTheoryDescendant()){
-    result += "T ";
-  }
-  //if(inductionDepth()>0){
-    result += "I("+Int::toString(inductionDepth())+") ";
-  //}
-  result +=  inferenceAsString();
   return result;
 }
 

@@ -324,68 +324,46 @@ protected:
     UnitIterator parents=_is->getParents(cs, rule);
 
     if(rule == Inference::INDUCTION){
-      //cout << "ping" << endl;
       env.statistics->inductionInProof++;
     }
 
-    out << _is->getUnitIdStr(cs) << ". ";
     if (cs->isClause()) {
       Clause* cl=cs->asClause();
-
-      if (env.colorUsed) {
-        out << " C" << cl->color() << " ";
-      }
-
-      out << cl->literalsOnlyToString() << " ";
-      if (cl->splits() && !cl->splits()->isEmpty()) {
-        out << "<- {" << cl->splits()->toString() << "} ";
-      }
-      if(proofExtra){
-        out << "("<<cl->age()<<':'<<cl->weight();
-        if (cl->numSelected()>0) {
-          out<< ':'<< cl->numSelected();
-        }
-        out<<") ";
-      }
-      if(cl->isTheoryDescendant()){
-        out << "(TD) ";
-      }
-      if(cl->inductionDepth()>0){
-        out << "(I " << cl->inductionDepth() << ") ";
-      }
+      out << cl->toString() << vstring("\n");
     }
     else {
+      out << _is->getUnitIdStr(cs) << ". ";
       FormulaUnit* fu=static_cast<FormulaUnit*>(cs);
       if (env.colorUsed && fu->inheritedColor() != COLOR_INVALID) {
         out << " IC" << fu->inheritedColor() << " ";
       }
       out << fu->formula()->toString() << ' ';
-    }
 
-    out <<"["<<Inference::ruleName(rule);
+      out <<"["<<Inference::ruleName(rule);
 
-    if (outputAxiomNames && rule==Inference::INPUT) {
-      ASS(!parents.hasNext()); //input clauses don't have parents
-      vstring name;
-      if (Parse::TPTP::findAxiomName(cs, name)) {
-	out << " " << name;
+      if (outputAxiomNames && rule==Inference::INPUT) {
+        ASS(!parents.hasNext()); //input clauses don't have parents
+        vstring name;
+        if (Parse::TPTP::findAxiomName(cs, name)) {
+          out << " " << name;
+        }
       }
-    }
 
-    bool first=true;
-    while(parents.hasNext()) {
-      Unit* prem=parents.next();
-      out << (first ? ' ' : ',');
-      out << _is->getUnitIdStr(prem);
-      first=false;
-    }
+      bool first=true;
+      while(parents.hasNext()) {
+        Unit* prem=parents.next();
+        out << (first ? ' ' : ',');
+        out << _is->getUnitIdStr(prem);
+        first=false;
+      }
 
-    // print Extra
-    vstring extra = cs->inference()->extra(); 
-    if(extra != ""){
-      out << ", " << extra;
+      // print Extra
+      vstring extra = cs->inference()->extra(); 
+      if(extra != ""){
+        out << ", " << extra;
+      }
+      out << "]" << endl;
     }
-    out << "]" << endl;
   }
 
   void handleStep(Unit* cs)
