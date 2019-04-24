@@ -140,15 +140,15 @@ SaturationAlgorithm::SaturationAlgorithm(Problem& prb, const Options& opt)
   _completeOptionSettings = opt.complete(prb);
 
   _unprocessed = new UnprocessedClauseContainer();
-  if (opt.useManualClauseSelection())
-  {
+
+  if (opt.useManualClauseSelection()){
     _passive = new ManCSPassiveClauseContainer(opt);
+  } else {
+    _passive = (opt.twoTierQueuing()) ?
+        static_cast<PassiveClauseContainer*>(new PredicateSplitPassiveClauseContainer(opt)) :
+        static_cast<PassiveClauseContainer*>(new AWPassiveClauseContainer(opt));
   }
-  else
-  {
-    _passive = new AWPassiveClauseContainer(opt);
-  }
-    
+
   _active = new ActiveClauseContainer(opt);
 
   _active->attach(this);
