@@ -162,7 +162,9 @@ SaturationAlgorithm::SaturationAlgorithm(Problem& prb, const Options& opt)
   }
   else
   {
-    _passive = new AWPassiveClauseContainer(opt);
+    _passive = (opt.twoTierQueuing()) ?
+        static_cast<PassiveClauseContainer*>(new PredicateSplitPassiveClauseContainer(opt)) :
+        static_cast<PassiveClauseContainer*>(new AWPassiveClauseContainer(opt));
   }
     
   _active = new ActiveClauseContainer(opt);

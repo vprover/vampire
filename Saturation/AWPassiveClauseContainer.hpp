@@ -36,6 +36,7 @@ namespace Saturation {
 
 using namespace Kernel;
 
+
 class AgeQueue
 : public ClauseQueue
 {
@@ -119,6 +120,42 @@ private:
 
   const Options& _opt;
 }; // class AWPassiveClauseContainer
+
+class PredicateSplitPassiveClauseContainer
+: public PassiveClauseContainer
+{
+public:
+  CLASS_NAME(PredicateSplitPassiveClauseContainer);
+  USE_ALLOCATOR(PredicateSplitPassiveClauseContainer);
+
+  PredicateSplitPassiveClauseContainer(const Options& opt);
+  virtual ~PredicateSplitPassiveClauseContainer() {}
+
+  void add(Clause* cl);
+  void remove(Clause* cl);
+  Clause* popSelected();
+
+  /** True if there are no passive clauses */
+  bool isEmpty() const
+  { return _yesPCC.isEmpty() && _noPCC.isEmpty(); }
+
+  ClauseIterator iterator();
+
+  void updateLimits(long long estReachableCnt) { /* TODO: the LRS stuff */}
+
+  virtual unsigned size() const { return _yesPCC.size() + _noPCC.size(); }
+
+protected:
+  void onLimitsUpdated(LimitsChangeType change) { /* TODO: the LRS stuff */}
+
+private:
+  AWPassiveClauseContainer _yesPCC, _noPCC;
+
+  int _yesRatio;
+  int _noRatio;
+  int _balance;
+}; // class PredicateSplitPassiveClauseContainer
+
 
 /**
  * Light-weight version of the AWPassiveClauseContainer that
