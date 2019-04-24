@@ -49,6 +49,73 @@ namespace Saturation
 using namespace Lib;
 using namespace Kernel;
 
+PredicateSplitPassiveClauseContainer::PredicateSplitPassiveClauseContainer(const Options& opt) :
+    _yesPCC(opt), _noPCC(opt), _balance(0)
+{
+  CALL("PredicateSplitPassiveClauseContainer::PredicateSplitPassiveClauseContainer");
+
+  _yesRatio = opt.yesRatio();
+  _noRatio = opt.noRatio();
+}
+
+void PredicateSplitPassiveClauseContainer::add(Clause* cl)
+{
+  CALL("PredicateSplitPassiveClauseContainer::add");
+
+  // for the time being, let the_predicate be goalness
+  if (cl->isGoal()) {
+    _yesPCC.add(cl);
+  } else {
+    _noPCC.add(cl);
+  }
+  addedEvent.fire(cl);
+}
+
+void PredicateSplitPassiveClauseContainer::remove(Clause* cl)
+{
+  CALL("PredicateSplitPassiveClauseContainer::remove");
+
+  // for the time being, let the_predicate be goalness
+  if (cl->isGoal()) {
+    _yesPCC.remove(cl);
+  } else {
+    _noPCC.remove(cl);
+  }
+  removedEvent.fire(cl);
+}
+
+Clause* PredicateSplitPassiveClauseContainer::popSelected()
+{
+  CALL("PredicateSplitPassiveClauseContainer::popSelected");
+
+  bool goYes;
+  if (_balance > 0 || (_balance == 0 && _yesRatio>=_noRatio)) {
+    goYes = true;
+    _balance -= _noRatio;
+  } else {
+    goYes = false;
+    _balance += _yesRatio;
+  }
+
+  Clause* cl;
+  if ((goYes && (_yesPCC.size() > 0)) || (_noPCC.size() == 0)) {
+    cl = _yesPCC.popSelected();
+    // cout << "Y " << cl->age() << " " << cl->weight() << endl;
+  } else {
+    ASS(_noPCC.size());
+    cl = _noPCC.popSelected();
+    // cout << "N " << cl->age() << " " << cl->weight() << endl;
+  }
+  selectedEvent.fire(cl);
+  return cl;
+}
+
+ClauseIterator PredicateSplitPassiveClauseContainer::iterator()
+{
+  CALL("PredicateSplitPassiveClauseContainer::iterator");
+
+  return pvi( getConcatenatedIterator(_yesPCC.iterator(),_noPCC.iterator()));
+}
 
 AWPassiveClauseContainer::AWPassiveClauseContainer(const Options& opt)
 :  _ageQueue(opt), _weightQueue(opt), _balance(0), _size(0), _opt(opt)

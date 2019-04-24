@@ -886,6 +886,11 @@ void Options::Options::init()
     _ageWeightRatioShapeFrequency.description = "How frequently the age/weight ratio shape is to change: i.e. if set to 'decay' at a frequency of 100, the age/weight ratio will change every 100 age/weight choices.";
     _lookup.insert(&_ageWeightRatioShapeFrequency);
     _ageWeightRatioShapeFrequency.tag(OptionTag::SATURATION);
+    _twoTierQueuing = BoolOptionValue("two_tier_queueing","ttq",false);
+    _lookup.insert(&_twoTierQueuing);
+    // _yesNoRatio only makes sense when _twoTierQueuing is on
+    _yesNoRatio = RatioOptionValue("yes_no_ratio","ynr",1,1,':');
+    _lookup.insert(&_yesNoRatio);
 
       _literalMaximalityAftercheck = BoolOptionValue("literal_maximality_aftercheck","lma",false);
       _lookup.insert(&_literalMaximalityAftercheck);
