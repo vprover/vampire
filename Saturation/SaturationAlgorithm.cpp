@@ -172,9 +172,12 @@ SaturationAlgorithm::SaturationAlgorithm(Problem& prb, const Options& opt)
 
       _passive = new TheoryMultiSplitPassiveClauseContainer(true, opt, "", std::move(queues));
     } else {
-      _passive = new AWPassiveClauseContainer(true, opt, "");
+      _passive = (opt.twoTierQueuing()) ?
+              static_cast<PassiveClauseContainer*>(new MartinsPredicateSplitPassiveClauseContainer(true,opt,"")) :
+              static_cast<PassiveClauseContainer*>(new AWPassiveClauseContainer(true, opt, ""));
     }
   }
+
   _active = new ActiveClauseContainer(opt);
 
   _active->attach(this);

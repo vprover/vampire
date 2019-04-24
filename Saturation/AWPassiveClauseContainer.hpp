@@ -39,6 +39,7 @@ namespace Saturation {
 
 using namespace Kernel;
 
+
 class AgeQueue
 : public ClauseQueue
 {
@@ -82,18 +83,18 @@ public:
 
   AWPassiveClauseContainer(bool isOutermost, const Shell::Options& opt, vstring name);
   virtual ~AWPassiveClauseContainer();
-  void add(Clause* cl);
+  void add(Clause* cl) override;
 
-  void remove(Clause* cl);
+  void remove(Clause* cl) override;
 
   bool byWeight(int balance);
 
-  Clause* popSelected();
+  Clause* popSelected() override;
   /** True if there are no passive clauses */
-  bool isEmpty() const
+  bool isEmpty() const override
   { return _ageQueue.isEmpty() && _weightQueue.isEmpty(); }
 
-  virtual unsigned sizeEstimate() const { return _size; }
+  unsigned sizeEstimate() const override { return _size; }
 
   static Comparison compareWeight(Clause* cl1, Clause* cl2, const Shell::Options& opt);
 
@@ -116,16 +117,16 @@ private:
    * LRS specific methods and fields for computation of Limits
    */
 public:
-  virtual void simulationInit();
-  virtual bool simulationHasNext();
-  virtual void simulationPopSelected();
+  void simulationInit() override;
+  bool simulationHasNext() override;
+  void simulationPopSelected() override;
 
   // returns whether at least one of the limits was tightened
-  virtual bool setLimitsToMax();
+  bool setLimitsToMax() override;
   // returns whether at least one of the limits was tightened
-  virtual bool setLimitsFromSimulation();
+  bool setLimitsFromSimulation() override;
 
-  virtual void onLimitsUpdated();
+  void onLimitsUpdated() override;
 private:
   bool setLimits(unsigned newAgeSelectionMaxAge, unsigned newAgeSelectionMaxWeight, unsigned newWeightSelectionMaxWeight, unsigned newWeightSelectionMaxAge);
 
@@ -144,21 +145,65 @@ private:
    * LRS specific methods and fields for usage of limits
    */
 public:
-  virtual bool ageLimited() const;
-  virtual bool weightLimited() const;
+  bool ageLimited() const override;
+  bool weightLimited() const override;
 
-  virtual bool fulfilsAgeLimit(Clause* c) const;
+  bool fulfilsAgeLimit(Clause* c) const override;
   // note: w here denotes the weight as returned by weight().
   // this method internally takes care of computing the corresponding weightForClauseSelection.
-  virtual bool fulfilsAgeLimit(unsigned age, unsigned w, unsigned numeralWeight, bool derivedFromGoal, Inference* inference) const;
-  virtual bool fulfilsWeightLimit(Clause* cl) const;
+  bool fulfilsAgeLimit(unsigned age, unsigned w, unsigned numeralWeight, bool derivedFromGoal, Inference* inference) const override;
+  bool fulfilsWeightLimit(Clause* cl) const override;
   // note: w here denotes the weight as returned by weight().
   // this method internally takes care of computing the corresponding weightForClauseSelection.
-  virtual bool fulfilsWeightLimit(unsigned w, unsigned numeralWeight, bool derivedFromGoal, unsigned age, Inference* inference) const;
+  bool fulfilsWeightLimit(unsigned w, unsigned numeralWeight, bool derivedFromGoal, unsigned age, Inference* inference) const override;
 
-  virtual bool childrenPotentiallyFulfilLimits(Clause* cl, unsigned upperBoundNumSelLits) const;
+  bool childrenPotentiallyFulfilLimits(Clause* cl, unsigned upperBoundNumSelLits) const override;
   
 }; // class AWPassiveClauseContainer
+
+class MartinsPredicateSplitPassiveClauseContainer
+: public PassiveClauseContainer
+{
+public:
+  CLASS_NAME(MartinsPredicateSplitPassiveClauseContainer);
+  USE_ALLOCATOR(MartinsPredicateSplitPassiveClauseContainer);
+
+  MartinsPredicateSplitPassiveClauseContainer(bool isOutermost, const Shell::Options& opt, vstring name);
+  virtual ~MartinsPredicateSplitPassiveClauseContainer() {}
+
+  void add(Clause* cl) override;
+  void remove(Clause* cl) override;
+  Clause* popSelected() override;
+
+  /** True if there are no passive clauses */
+  bool isEmpty() const override
+  { return _yesPCC.isEmpty() && _noPCC.isEmpty(); }
+
+  unsigned sizeEstimate() const override { return _yesPCC.sizeEstimate() + _noPCC.sizeEstimate(); }
+
+  // Just ignore LRS stuff
+  void simulationInit() override { }
+  bool simulationHasNext() override { return false; }
+  void simulationPopSelected() override {}
+  void onLimitsUpdated() override {}
+  bool setLimitsToMax() override { return false; }
+  bool setLimitsFromSimulation() override { return false; }
+  bool ageLimited() const override { return false; }
+  bool weightLimited() const override { return false; }
+  bool fulfilsAgeLimit(Clause* c) const override { return false; }
+  bool fulfilsAgeLimit(unsigned age, unsigned w, unsigned numeralWeight, bool derivedFromGoal, Inference* inference) const override { return false; }
+  bool fulfilsWeightLimit(Clause* cl) const override { return false; }
+  bool fulfilsWeightLimit(unsigned w, unsigned numeralWeight, bool derivedFromGoal, unsigned age, Inference* inference) const override { return false; }
+  bool childrenPotentiallyFulfilLimits(Clause* cl, unsigned upperBoundNumSelLits) const override { return false; }
+
+private:
+  AWPassiveClauseContainer _yesPCC, _noPCC;
+
+  int _yesRatio;
+  int _noRatio;
+  int _balance;
+}; // class MartinsPredicateSplitPassiveClauseContainer
+
 
 /**
  * Light-weight version of the AWPassiveClauseContainer that

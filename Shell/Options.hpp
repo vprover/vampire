@@ -1993,6 +1993,9 @@ public:
   Lib::vvector<int> theorySplitQueueRatios() const;
   Lib::vvector<float> theorySplitQueueCutoffs() const;
   int theorySplitQueueExpectedRatioDenom() const { return _theorySplitQueueExpectedRatioDenom.actualValue; }
+  int yesRatio() const { return _yesNoRatio.actualValue; }
+  int noRatio() const { return _yesNoRatio.otherValue; }
+  bool twoTierQueuing() const { return _twoTierQueuing.actualValue; }
   void setWeightRatio(int v){ _ageWeightRatio.otherValue = v; }
 	AgeWeightRatioShape ageWeightRatioShape() const { return _ageWeightRatioShape.actualValue; }
 	int ageWeightRatioShapeFrequency() const { return _ageWeightRatioShapeFrequency.actualValue; }
@@ -2255,6 +2258,8 @@ private:
   StringOptionValue _theorySplitQueueCutoffs;
   IntOptionValue _theorySplitQueueExpectedRatioDenom;
   BoolOptionValue _modelSaidYes;
+  RatioOptionValue _yesNoRatio;
+  BoolOptionValue _twoTierQueuing;
   BoolOptionValue _literalMaximalityAftercheck;
   BoolOptionValue _arityCheck;
   

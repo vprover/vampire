@@ -49,6 +49,7 @@ namespace Saturation
 using namespace Lib;
 using namespace Kernel;
 
+
 AWPassiveClauseContainer::AWPassiveClauseContainer(bool isOutermost, const Shell::Options& opt, vstring name) :
   PassiveClauseContainer(isOutermost, opt, name),
   _ageQueue(opt),
@@ -78,6 +79,81 @@ AWPassiveClauseContainer::AWPassiveClauseContainer(bool isOutermost, const Shell
   ASS_GE(_ageRatio, 0);
   ASS_GE(_weightRatio, 0);
   ASS(_ageRatio > 0 || _weightRatio > 0);
+}
+
+MartinsPredicateSplitPassiveClauseContainer::MartinsPredicateSplitPassiveClauseContainer(bool isOutermost, const Shell::Options& opt, vstring name) :
+    PassiveClauseContainer(isOutermost, opt, name),
+    _yesPCC(false,opt,"yes-queue"), _noPCC(false,opt,"no-queue"), _balance(0)
+{
+  CALL("MartinsPredicateSplitPassiveClauseContainer::MartinsPredicateSplitPassiveClauseContainer");
+
+  _yesRatio = opt.yesRatio();
+  _noRatio = opt.noRatio();
+}
+
+void MartinsPredicateSplitPassiveClauseContainer::add(Clause* cl)
+{
+  CALL("MartinsPredicateSplitPassiveClauseContainer::add");
+
+  // for the time being, let the_predicate be goalness
+  if (cl->isGoal()) {
+    _yesPCC.add(cl);
+  } else {
+    _noPCC.add(cl);
+  }
+  addedEvent.fire(cl);
+}
+
+void MartinsPredicateSplitPassiveClauseContainer::remove(Clause* cl)
+{
+  CALL("MartinsPredicateSplitPassiveClauseContainer::remove");
+
+  // for the time being, let the_predicate be goalness
+  if (cl->isGoal()) {
+    _yesPCC.remove(cl);
+  } else {
+    _noPCC.remove(cl);
+  }
+  removedEvent.fire(cl);
+}
+
+Clause* MartinsPredicateSplitPassiveClauseContainer::popSelected()
+{
+  CALL("MartinsPredicateSplitPassiveClauseContainer::popSelected");
+
+  bool goYes;
+  if (_balance > 0 || (_balance == 0 && _yesRatio>=_noRatio)) {
+    goYes = true;
+    _balance -= _noRatio;
+  } else {
+    goYes = false;
+    _balance += _yesRatio;
+  }
+
+  Clause* cl;
+  if ((goYes && (_yesPCC.sizeEstimate() > 0)) || (_noPCC.sizeEstimate() == 0)) {
+    cl = _yesPCC.popSelected();
+    // cout << "Y " << cl->age() << " " << cl->weight() << endl;
+  } else {
+    ASS(_noPCC.sizeEstimate());
+    cl = _noPCC.popSelected();
+    // cout << "N " << cl->age() << " " << cl->weight() << endl;
+  }
+
+  /*
+  Clause* cl;
+  if ((goYes && (_yesPCC.sizeEstimate() > 0)) || (_noPCC.sizeEstimate() == 0)) {
+    cl = _yesPCC.popSelected();
+    // cout << "Y " << cl->age() << " " << cl->weight() << endl;
+  } else {
+    ASS(_noPCC.sizeEstimate());
+    cl = _noPCC.popSelected();
+    // cout << "N " << cl->age() << " " << cl->weight() << endl;
+  }
+  */
+
+  selectedEvent.fire(cl);
+  return cl;
 }
 
 AWPassiveClauseContainer::~AWPassiveClauseContainer()
