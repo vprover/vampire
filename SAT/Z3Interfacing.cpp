@@ -539,11 +539,11 @@ Term* Z3Interfacing::representArray(z3::expr& assignment)
           return NULL;
         }
       } else if (el->is_array() && el->is_lambda()) {
+        z3::expr body = el->body();
+        ITEPattern pat = matchIteEquals(body);
 #if DPRINT
         std::cerr << "array by lambda " << std::endl; //don't forget: we use de bruijn indices, there's no variable name
         std::cerr << el->body() << std::endl;
-        z3::expr body = el->body();
-        ITEPattern pat = matchIteEquals(body);
         switch (pat) {
         case NOT_ITE:
           cerr << "no ite!" << endl;
@@ -560,8 +560,22 @@ Term* Z3Interfacing::representArray(z3::expr& assignment)
         }
         //        z3lambdacontext.
 #endif
-        current_arr_sort.push(el->get_sort());
-        //TODO: lift value to const array if child is not an ite (e.g. λx.1)
+        switch (pat) {
+        case NOT_ITE:
+          //wrap argument into array
+          {
+            unsigned arraySort = current_arr_sort.top();
+            unsigned f_const = env.signature->getInterpretingSymbol(Theory::ARRAY_CONST,Theory::getArrayOperatorType(arraySort,Theory::ARRAY_CONST));
+            subterms.push(Term::create1(f_const, TermList(subterms.pop())));
+          }
+          break;
+        case ITE_EQ:
+        case ITE_LT:
+          // nothing to do
+          break;
+        case ITE_UNKNOWN:
+          return NULL;
+        }
         
       } else if (ITE_EQ == matchIteEquals(*el)) {
         //        cerr << "ite -> store" << endl;
