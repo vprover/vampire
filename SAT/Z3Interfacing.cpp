@@ -404,6 +404,7 @@ Term* Z3Interfacing::representArray(z3::expr& assignment)
     RecursionMode mode = modes.pop();
     ITEPattern pat;
     switch (mode) {
+      // --------------- scheduling phase ------------------
     case RM_SCHED_ARGS:
 #if DPRINT
       std::cerr << "Scheduling " << *el << std::endl;
@@ -461,6 +462,7 @@ Term* Z3Interfacing::representArray(z3::expr& assignment)
           modes.push(RM_SCHED_ARGS);
       }
       break;
+      // --------------- term creation phase ------------------
     case RM_CREATE_TERM:
       if (! representSort(el->get_sort(), sort))
         return NULL;
@@ -558,6 +560,9 @@ Term* Z3Interfacing::representArray(z3::expr& assignment)
         }
         //        z3lambdacontext.
 #endif
+        current_arr_sort.push(el->get_sort());
+        //TODO: lift value to const array if child is not an ite (e.g. λx.1)
+        
       } else if (ITE_EQ == matchIteEquals(*el)) {
         //        cerr << "ite -> store" << endl;
         unsigned arraySort = current_arr_sort.top();
