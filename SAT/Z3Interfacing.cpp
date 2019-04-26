@@ -23,7 +23,7 @@
 
 #if VZ3
 
-#define DPRINT 1
+#define DPRINT 0
 
 #include "Forwards.hpp"
 
@@ -599,7 +599,16 @@ Term* Z3Interfacing::representArray(z3::expr& assignment)
         if (env.options->arrayInst() == Options::ArrayInst::MERGE_CONST)
           return NULL;
         //cerr << "ite -> merge" << endl;
-        return NULL; // TODO: create merge array
+        unsigned arraySort = current_arr_sort.top();
+        unsigned f_store = env.signature->getInterpretingSymbol(Theory::ARRAY_MERGE,Theory::getArrayOperatorType(arraySort,Theory::ARRAY_MERGE));
+        
+        args = new TermList[3];
+        // order on stack is: else branch, if branch, index
+        args[0] = TermList(subterms.pop());
+        args[2] = TermList(subterms.pop());
+        args[1] = TermList(subterms.pop());
+        Term* t = Term::create(f_store, 3, args);
+        subterms.push(t);
       } else {
 #if DPRINT
         cerr << "don't know how to create term for " << *el << endl;
