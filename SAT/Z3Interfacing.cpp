@@ -454,6 +454,7 @@ Term* Z3Interfacing::representArray(z3::expr& assignment)
           std::cerr << "Scheduling lambda body " << *z3body << std::endl;
 #endif
           z3subterms.push(z3body);
+          if (z3lambdacontext.isNonEmpty() ) return NULL; //prevent nested arrays, to avoid a bug
           z3lambdacontext.push(el);
           unsigned srt;
           if (! representSort(el->get_sort(), srt))
