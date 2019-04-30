@@ -2493,7 +2493,7 @@ void TheoryAxioms::apply()
     	    unsigned srt0 = entry.second->arg(0);
 
     	    addBitVectorCommutativity(Theory::BVADD,size);
-    	    addPolyMorphicBinaryFunctionEquivalentToBinaryFunctionAppliedToUnaryFunction(Theory::BVSUB, Theory::BVADD, Theory::BVNEG,size);
+    	    //addPolyMorphicBinaryFunctionEquivalentToBinaryFunctionAppliedToUnaryFunction(Theory::BVSUB, Theory::BVADD, Theory::BVNEG,size);
     	    addSomeAdditionAxiom(srt0);
     	    addAdditionByOneAxioms(srt0);
       }
@@ -2515,7 +2515,7 @@ void TheoryAxioms::apply()
 
     	  unsigned srt0 = entry.second->arg(0);
 
-    	  addPolyMorphicBinaryFunctionEquivalentToBinaryFunctionAppliedToUnaryFunction(Theory::BVSUB, Theory::BVADD, Theory::BVNEG,size);
+    	  //addPolyMorphicBinaryFunctionEquivalentToBinaryFunctionAppliedToUnaryFunction(Theory::BVSUB, Theory::BVADD, Theory::BVNEG,size);
 
       }
       else if (itp== Theory::BVUDIV){
