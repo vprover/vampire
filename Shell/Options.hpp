@@ -372,8 +372,9 @@ public:
     * dealt with by inference rules or both
     */
   enum class CombElimination : unsigned int {
-    AXIOMS = 0,
+    OFF = 0,
     INFERENCE_RULES = 1,
+    AXIOMS = 2,
     BOTH = 3    
   };
   

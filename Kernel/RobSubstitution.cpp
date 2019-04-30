@@ -64,8 +64,7 @@ const int RobSubstitution::SPECIAL_INDEX=-2;
 const int RobSubstitution::UNBOUND_INDEX=-1;
 
 const unsigned FIRST_ORDER=0;
-const unsigned HIGHER_ORDER_UNDER_VAR=1;
-const unsigned HIGHER_ORDER=2;
+const unsigned HIGHER_ORDER=1;
 
 /**
  * If @b t1 and @b t2 can possibly be unified by Robinson's unif
@@ -384,7 +383,7 @@ bool RobSubstitution::unify(TermSpec t1, TermSpec t2, unsigned& ut)
         break;
       }
       if(_doPlaceHolderChecks && containsPlaceHolderSubterm(dt2)){
-        ut = std::max(ut, HIGHER_ORDER_UNDER_VAR);
+        ut = HIGHER_ORDER;
       }
       bind(v1,dt2);
     } else if(dt2.isVar()) {
@@ -394,7 +393,7 @@ bool RobSubstitution::unify(TermSpec t1, TermSpec t2, unsigned& ut)
         break;
       }
       if(_doPlaceHolderChecks && containsPlaceHolderSubterm(dt1)){
-        ut = std::max(ut, HIGHER_ORDER_UNDER_VAR);
+        ut = HIGHER_ORDER;
       }
       bind(v2,dt1);
     } else{

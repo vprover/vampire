@@ -156,11 +156,7 @@ struct Superposition::ApplicableCombRewritesFn
     ResultSubstitutionSP rs = arg.second.substitution;
     //subsitution is a smartPtr to a ResultSubstituion object. 
     if(!rs.isEmpty()){
-      if(rs->tryGetRobSubstitution()->getMark()){
-        return pvi(getSingletonIterator(arg));
-      } else {
-        return VirtualIterator<QueryResType>::getEmpty();
-      }
+      return pvi(getSingletonIterator(arg));
     } else {
       return pvi(CombResultIterator(arg));
     }

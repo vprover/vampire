@@ -817,8 +817,7 @@ public:
     virtual NodeIterator getNodeIterator(IntermediateNode* n);
 
     static const unsigned FIRST_ORDER=0;
-    static const unsigned HIGHER_ORDER_UNDER_VAR=1;
-    static const unsigned HIGHER_ORDER=2;
+    static const unsigned HIGHER_ORDER=1;
 
     void createInitialBindings(Term* t);
     /**
@@ -843,7 +842,7 @@ public:
     static const int NORM_RESULT_BANK=3;
 
     SUBST_CLASS subst;
-    SUBST_CLASS second_subst;
+   // SUBST_CLASS second_subst;
     VarStack svStack;
 
   private:

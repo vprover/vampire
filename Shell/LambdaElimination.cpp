@@ -776,7 +776,7 @@ void LambdaElimination::process(Stack<int> _vars, Stack<unsigned> _sorts, Stack<
        if(_processing.var() == (unsigned)lambdaVar){ //an expression of the form \x.x
             unsigned iSort = env.sorts->addFunctionSort(lambdaVarSort, lambdaVarSort);
             TermList ts = addHolConstant("iCOMB", iSort, added, Signature::Symbol::I_COMB);
-            if(added && env.options->combinatorElimination() != Options::CombElimination::INFERENCE_RULES){
+            if(added && env.options->combinatorElimination() > Options::CombElimination::INFERENCE_RULES){
               addCombinatorAxiom(ts, iSort, lambdaVarSort, Signature::Symbol::I_COMB);
             }
             addToProcessed(ts, _argNums);
@@ -883,7 +883,7 @@ TermList LambdaElimination::addKComb(unsigned appliedToArg, TermList arg)
                 
     bool added;
     ts = addHolConstant("kCOMB",appliedToZeroArgs, added, Signature::Symbol::K_COMB);
-    if(added && env.options->combinatorElimination() != Options::CombElimination::INFERENCE_RULES){
+    if(added && env.options->combinatorElimination() > Options::CombElimination::INFERENCE_RULES){
        addCombinatorAxiom(ts, appliedToZeroArgs, argSort, Signature::Symbol::K_COMB, HSH::domain(appliedToArg));
     }   
     TermList applied;
@@ -918,7 +918,7 @@ TermList LambdaElimination::addComb(unsigned appliedToArgs, TermList arg1, TermL
        default:
           ASSERTION_VIOLATION;
     }
-    if(added && env.options->combinatorElimination() != Options::CombElimination::INFERENCE_RULES){
+    if(added && env.options->combinatorElimination() > Options::CombElimination::INFERENCE_RULES){
         addCombinatorAxiom(ts, appliedToZeroArgs, arg1sort, comb, arg2sort, arg3sort);
     }
     

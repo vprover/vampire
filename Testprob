@@ -1,3 +1,9 @@
-tff(a,type, i : ($rat * $rat) > $rat).
-tff(a,axiom, ![X:$rat, Y:$rat]:i(X, Y) =  X).
-tff(a,conjecture, ![X:$rat, Y:$rat] : (X = i(X,Y))).
+tff(a,type, isSon : ($i * $i) > $o).
+tff(a,type, isGrandson : ($i * $i) > $o).
+tff(a,type, ahmed : $i).
+tff(a,type, ali : $i).
+tff(a,type, zayd : $i).
+tff(ax1, axiom, ![X:$i, Y:$i, Z:$i]: (isSon(X, Y) & isSon(Y, Z)  =>  isGrandson(X,Z))).
+tff(ax2, axiom, isSon(ahmed, ali)).
+tff(ax2, axiom, isSon(ali, zayd)).
+tff(conj, conjecture, isGrandson(ahmed,zayd)).

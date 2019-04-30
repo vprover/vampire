@@ -819,18 +819,16 @@ SubstitutionTree::QueryResult SubstitutionTree::UnificationsIterator::next()
 
   LeafData& ld=ldIterator.next();
 
-  bool retSub, newSub;
+  bool retSub;
 
   if(usePlaceholders){
     unsigned ut = fo(nodeEntrances);
     retSub = retrieveSubstitution && (ut == FIRST_ORDER);
-    newSub = retrieveSubstitution && (ut == HIGHER_ORDER_UNDER_VAR); 
   } else {
     retSub = retrieveSubstitution;
-    newSub = false;
   }
 
-  if(newSub){
+  /*if(newSub){
     second_subst.reset();
     bool unify = second_subst.unify(placeHolderFreeQueryTerm, QUERY_BANK, ld.term, RESULT_BANK);
 
@@ -838,7 +836,8 @@ SubstitutionTree::QueryResult SubstitutionTree::UnificationsIterator::next()
 
     return QueryResult(make_pair(&ld, ResultSubstitution::fromSubstitution(
         &second_subst, QUERY_BANK, RESULT_BANK)), UnificationConstraintStackSP()); 
-  }else if(retSub) {
+  }else */ 
+  if(retSub) {
     Renaming normalizer;
     if(literalRetrieval) {
       normalizer.normalizeVariables(ld.literal);

@@ -1,13 +1,12 @@
-%thf(a,type, a : $i).
 %thf(a,type, iCOM : $i > $i).
 %thf(a,type, kCOM : ($i > $i) > $i > $i > $i).
-thf(a, type, a : $i).
-thf(a, type, b : $i).
-thf(a, type, c : $i).
-thf(a, type, f : $i > $i).
-thf(a, type, g : $i > $i).
-thf(a, type, h : $i > $i).
+%thf(a, type, a : $i).
+%thf(a, type, b : $i).
+%thf(a, type, c : $i).
+%thf(a, type, f : $i > $i).
+%thf(a, type, g : $i > $i).
+%thf(a, type, h : $i > $i).
 %thf(a, axiom, (![X:$i > $i, Y:$i] : ((kCOM @ X @ Y) = X))).
-thf(a, axiom, ![X: $i] : ((f @ X) = a ) ).
-thf(a, axiom, ![Y: $i > $i] : ((f @ ( Y @ b)) = c ) ).
-thf(a, conjecture, a = c).
+%thf(a, axiom, ![X: $i] : ((f @ X) = a ) ).
+thf(a, conjecture, ?[Y: $i] : (Y =  ((^[X] : X) @ Y ))).
+%thf(a, conjecture, a = c).

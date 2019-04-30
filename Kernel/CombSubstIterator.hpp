@@ -180,8 +180,8 @@ class CombSubstitution
       }
 
       PairType getPairType() {      
-        if(terml->varHead()){
-          if(termr->varHead()){
+        if(terml->isAppliedVar()){
+          if(termr->isAppliedVar()){
             if(terml->sameVarHead(termr, true)){
               return FLEX_FLEX_SAME_HEAD;
             } else {
@@ -190,9 +190,12 @@ class CombSubstitution
           } else {
             return FLEX_RIGID_LEFT;
           }
-        } else if(termr->varHead()){
+        } else if(termr->isAppliedVar()){
           return FLEX_RIGID_RIGHT;
         }
+        //<X,X> is not really a rigid-rigid term
+        //however we treat it as such because there are no transforms out of a 
+        //variable
         return RIGID_RIGID;
       }
      

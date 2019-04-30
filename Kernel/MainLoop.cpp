@@ -145,7 +145,8 @@ ImmediateSimplificationEngine* MainLoop::createISE(Problem& prb, const Options& 
     res->addFront(new ProxyElimination::ORIMPANDRemovalISE2());
   }
   
-  if(opt.combinatorElimination() != Options::CombElimination::AXIOMS){
+  if(opt.combinatorElimination() != Options::CombElimination::AXIOMS &&
+     opt.combinatorElimination() != Options::CombElimination::OFF){
 	  res->addFront(new ProxyElimination::CombinatorEliminationISE());
   }
   // Only add if there are distinct groups 

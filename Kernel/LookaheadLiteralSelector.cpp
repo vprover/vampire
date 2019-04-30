@@ -266,8 +266,6 @@ private:
       DECL_RETURN_TYPE(bool);
       OWN_RETURN_TYPE operator()(TermQueryResult tqr){
         if(tqr.substitution.isEmpty()){
-          return true;   
-        } else if(tqr.substitution->tryGetRobSubstitution()->getMark()){
           return true;
         }
         return false;

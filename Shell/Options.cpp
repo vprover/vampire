@@ -1120,7 +1120,7 @@ void Options::Options::init()
      
       _combinatorElimination = ChoiceOptionValue<CombElimination>("combinator_elimination","combelim",
                                                                    CombElimination::AXIOMS,
-                                                                   {"axioms","inference_rules","both"});
+                                                                   {"off","inference_rules", "axioms","both"});
       _combinatorElimination.description=
       "Turns on a set of inference rules used to eliminate "
       "SKI combinator from clauses. An example rule is: \n"

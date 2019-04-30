@@ -53,7 +53,7 @@ public:
   USE_ALLOCATOR(RobSubstitution);
   
   RobSubstitution() : _nextUnboundAvailable(0),_nextAuxAvailable(0),
-                      _doPlaceHolderChecks(false), _unified(true) {}
+                      _doPlaceHolderChecks(false){}
 
   SubstIterator matches(Literal* base, int baseIndex,
 	  Literal* instance, int instanceIndex, bool complementary);
@@ -80,7 +80,7 @@ public:
     _bank.reset();
     _nextAuxAvailable=0;
     _nextUnboundAvailable=0;
-    _unified = true;
+    //_unified = true;
   }
   /**
    * Bind special variable to a specified term
@@ -116,13 +116,13 @@ public:
     _doPlaceHolderChecks = true;
   }
 
-  void mark(bool success){
+  /*void mark(bool success){
     _unified = success;
-  }
+  }*/
 
-  bool getMark(){
+  /*bool getMark(){
     return _unified;
-  }
+  }*/
 
   /** Specifies instance of a variable (i.e. (variable, variable bank) pair) */
   struct VarSpec
@@ -311,7 +311,7 @@ private:
   mutable unsigned _nextUnboundAvailable;
   unsigned _nextAuxAvailable;
   bool _doPlaceHolderChecks;
-  bool _unified;
+  //bool _unified;
 
 
   class BindingBacktrackObject

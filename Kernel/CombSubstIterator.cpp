@@ -93,17 +93,23 @@ void CombSubstitution::populateTransformations(UnificationPair& up)
   }
 
   if(hoterml->isVar()){
-    Transform trs = make_pair(ELIMINATE,FIRST);
-    up.transformsLeft.push(trs);
-    return;        
+    VarSpec vs = VarSpec(hoterml->head.var(), hoterml->headInd);
+    if(!occursOrNotPure(vs, hotermr)){
+      Transform trs = make_pair(ELIMINATE,FIRST);
+      up.transformsLeft.push(trs);
+      return;        
+    }
   }
   
   // if unification is between two variables arbitrarily choose to eliminate
   // left of pair
   if(hotermr->isVar() && !hoterml->isVar()){
-    Transform trs = make_pair(ELIMINATE,SECOND);
-    up.transformsRight.push(trs);
-    return;        
+    VarSpec vs = VarSpec(hotermr->head.var(), hotermr->headInd);
+    if(!occursOrNotPure(vs, hoterml)){
+      Transform trs = make_pair(ELIMINATE,SECOND);
+      up.transformsRight.push(trs);
+      return;
+    }        
   }  
 
   if(hoterml->sameFirstOrderHead(hotermr)){
@@ -115,18 +121,12 @@ void CombSubstitution::populateTransformations(UnificationPair& up)
     return;      
   }
   
-  if(hoterml->underAppliedCombTerm() || hotermr->underAppliedCombTerm()){
-    Transform trs = make_pair(ADD_ARG,BOTH);
-    up.transformsBoth.push(trs);
-    return; 
-  }
-
-  if(hoterml->combHead() && !hoterml->underAppliedCombTerm()){
+  if(hoterml->combHead() /*&& !hoterml->underAppliedCombTerm()*/){
     AlgorithmStep as = reduceStep(hoterml);
     Transform trs = make_pair(as,FIRST);
     up.transformsLeft.push(trs);
     return;  
-  } else if(hotermr->combHead() && !hotermr->underAppliedCombTerm()){
+  } else if(hotermr->combHead() /*&& !hotermr->underAppliedCombTerm()*/){
     AlgorithmStep as = reduceStep(hotermr);
     Transform trs = make_pair(as,SECOND);
     up.transformsRight.push(trs);
@@ -176,6 +176,7 @@ void CombSubstitution::populateSide(const HOTerm_ptr hoterm, ApplyTo at, Transfo
   CALL("CombSubstitution::populateSide");
 
   //cout << "Populating for term " + hoterm->toStringWithTopLevelSorts() << endl;
+  //cout << "other is " + other->toStringWithTopLevelSorts() << endl;
 
   ASS(hoterm->varHead());
   //KX_NARROW admissable as long as var has a single argument
@@ -305,20 +306,7 @@ bool CombSubstitution::transform(Transform t, bool furtherOptions){
   }
   
   if(t.second == BOTH && t.first != ID){
-    ASS((t.first == ADD_ARG) || (t.first == DECOMP));
-    
-    if(t.first == ADD_ARG){
-      unsigned freshArgSort = HSH::domain(terml->sort());
-      TermList newArg = env.signature->getDummy(_nextDummy++);
-      HOTerm_ptr fcl = HSH::createHOTerm(newArg, freshArgSort);
-      HOTerm_ptr fcr = HSH::createHOTerm(newArg, freshArgSort);
-      terml->addArg(fcl);
-      termr->addArg(fcr);
-      up->lsRight = UNDEFINED;
-      up->lsLeft = UNDEFINED;
-      up->slsRight = UNDEFINED;
-      up->slsLeft = UNDEFINED;
-    }
+    ASS(/*(t.first == ADD_ARG) ||*/ (t.first == DECOMP));
 
     if(t.first == DECOMP){
       ASS(terml->sameFirstOrderHead(termr));
@@ -342,13 +330,9 @@ bool CombSubstitution::transform(Transform t, bool furtherOptions){
     vs = t.second == FIRST ? VarSpec(terml->head.var(), terml->headInd) 
                            : VarSpec(termr->head.var(), termr->headInd);
     HOTerm_ptr ht = t.second == FIRST ? termr : terml; 
-    if(occursOrNotPure(vs, ht)){
-      succeeded =  false;
-    } else {
-      eliminate(vs, ht);
-      addToSolved(vs, ht);
-      _unificationPairs.pop();
-    }
+    eliminate(vs, ht);
+    addToSolved(vs, ht);
+    _unificationPairs.pop();
   }
 
   //split here so we can check early for failure
@@ -384,7 +368,7 @@ bool CombSubstitution::transform(Transform t, bool furtherOptions){
     }
   }
 
-  if(t.first != SPLIT && t.first != ELIMINATE && t.first != DECOMP && t.first != ADD_ARG){
+  if(t.first != SPLIT && t.first != ELIMINATE && t.first != DECOMP /*&& t.first != ADD_ARG*/){
     if(t.second == FIRST){
       transform(terml, termr, t.first);
       up->slsLeft = up->lsLeft;
@@ -417,6 +401,17 @@ void CombSubstitution::transform(HOTerm_ptr term, HOTerm_ptr other, AlgorithmSte
   CALL("CombSubstitution::transform2");
 
   //cout << "carrying out transformation with " + term->toString(false, true) << endl;
+
+  if(as >= I_REDUCE && as <= S_REDUCE){
+    while(term->underAppliedCombTerm()){
+      unsigned freshArgSort = HSH::domain(term->sort());
+      TermList newArg = env.signature->getDummy(_nextDummy++);
+      HOTerm_ptr fcl = HSH::createHOTerm(newArg, freshArgSort);
+      HOTerm_ptr fcr = HSH::createHOTerm(newArg, freshArgSort);
+      term->addArg(fcl);
+      other->addArg(fcr);
+    }
+  }
 
   if(as == I_REDUCE){
     ASS(term->headComb() == SS::I_COMB);
