@@ -271,6 +271,7 @@ private:
 
   void readDeclareDatatypes(LExprList* sorts, LExprList* datatypes, bool codatatype = false);
 
+  void readDeclareNat(const vstring& nat, const vstring& zero, const vstring& succ, const vstring& pred, const vstring& less);
   TermAlgebraConstructor* buildTermAlgebraConstructor(vstring constrName, unsigned taSort,
                                                       Stack<vstring> destructorNames, Stack<unsigned> argSorts);
 
