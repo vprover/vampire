@@ -476,7 +476,7 @@ void TheoryAxioms::addAdditionAndOrderingAxioms(Interpretation plus, Interpretat
 /* Add that
  *
  * p(concat(s x) concat(ts tx) -> p(s,ts)
- *
+ * !(p(concat(s x) concat(ts tx)) OR p(s,ts)
  * e.g: bvuge(concat(s x) concat(ts tx)) -> bvuge(s ts)
  *
  *	where srt0 is the sort for s and ts
@@ -509,16 +509,14 @@ void TheoryAxioms::addPredicateOnConcatArgsImpliesPredicateConcatFirstArg(unsign
 
 	TermList concat_ts_tx(Term::create2(concat,ts,tx));
 
-	Formula* p_concats = new AtomicFormula(Literal::create2(bvuge_concat,true,concat_s_x,concat_ts_tx));
+	Literal* p_concats = Literal::create2(bvuge_concat,false,concat_s_x,concat_ts_tx);
 
 	//RHS
 	//bvuge(s ts)
 
-	Formula* p_s_ts = new AtomicFormula(Literal::create2(bvuge_s_ts,true,s,ts));
+	Literal* p_s_ts = Literal::create2(bvuge_s_ts,true,s,ts);
 
-	Formula* implication0 = new BinaryFormula(IMP, p_concats, p_s_ts);
-
-	addAndOutputTheoryUnit(new FormulaUnit(implication0, new Inference(Inference::THEORY), Unit::AXIOM),CHEAP);
+	addTheoryNonUnitClause(p_concats, p_s_ts,CHEAP);
 
 
 }
