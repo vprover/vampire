@@ -514,6 +514,10 @@ class Signature
   VirtualIterator<Shell::TermAlgebra*> termAlgebrasIterator() const { return _termAlgebras.range(); }
   Shell::TermAlgebraConstructor* getTermAlgebraConstructor(unsigned functor);
 
+  /** Returns nullptr if nat is not used */
+  Shell::NatTermAlgebra* getNat() { return _natTermAlgebra; }
+  void setNat(Shell::NatTermAlgebra* nta) { ASS(!_natTermAlgebra); _natTermAlgebra = nta; }
+
   void recordDividesNvalue(TermList n){
     _dividesNvalues.push(n);
   }
@@ -584,6 +588,8 @@ private:
    * Map from sorts to the associated term algebra, if applicable for the sort
    */ 
   DHMap<unsigned, Shell::TermAlgebra*> _termAlgebras;
+
+  Shell::NatTermAlgebra* _natTermAlgebra = nullptr;
 
   void defineOptionTermAlgebra(unsigned optionSort);
   void defineEitherTermAlgebra(unsigned eitherSort);

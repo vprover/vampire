@@ -147,4 +147,25 @@ unsigned TermAlgebra::getSubtermPredicate() {
   return s;
 }
 
+NatTermAlgebra::NatTermAlgebra(TermAlgebra* ta, unsigned lessPredicate)
+  : _ta(ta), _lessPredicate(lessPredicate)
+{
+  if (ta->nConstructors() != 2) {
+    throw BadNatTermAlgebra("nat must have two constructors");
+  }
+  if (ta->allowsCyclicTerms()) {
+    throw BadNatTermAlgebra("nat must not allow cyclic terms (use datatype instead of codatatype)");
+  }
+
+  _zero = ta->constructor(0);
+  _succ = ta->constructor(1);
+  if (_zero->arity() != 0) {
+    std::swap(_zero, _succ);
+  }
+  if (_zero->arity() != 0 || _succ->arity() != 1) {
+    throw BadNatTermAlgebra("nat constructors must have arity 0 and 1");
+  }
+}
+
+
 }
