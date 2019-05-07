@@ -781,8 +781,8 @@ VirtualIterator<Solution> TheoryInstAndSimp::getSolutions(Stack<Literal*>& theor
 #if DPRINT
     cout << "solution with " << sol.subst.toString() << endl;
 #endif
-    // try to minimaize the solution
-    if (true) { //TODO: add flag in options
+    // try to minimize the solution
+    if (false) { //TODO: add flag in options
       //      static SAT2FO min_naming;
       //      static Z3Interfacing minimizing_solver(*env.options,min_naming);
       //      minimizing_solver.reset(); // the solver will reset naming
