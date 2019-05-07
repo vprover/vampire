@@ -200,7 +200,7 @@ void Preprocess::preprocess(Problem& prb)
   }
 
   // If there are interpreted operations
-  if (prb.hasInterpretedOperations() || env.signature->hasTermAlgebras()){
+  if (prb.hasInterpretedOperations() || env.signature->hasTermAlgebras() || env.options->forceArrayAxioms() ){
     // Normalizer is needed, because the TheoryAxioms code assumes Normalized problem
     InterpretedNormalizer().apply(prb);
     // Add theory axioms if needed

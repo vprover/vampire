@@ -1042,8 +1042,8 @@ void Options::Options::init()
            _theoryInstAndSimp.setExperimental();
 
            _arrayInst = ChoiceOptionValue<ArrayInst>("array_instantiation","thia",
-                                                ArrayInst::OFF,{"off","lambda","lambda_merge"});
-           _arrayInst.description = "Enable theory instantiation. lambda translates array models defined by lambda x.if x = i then v else a to $store. lambda_merge also translates array models defined by lambda x.if x = i then a else b to $merge."; 
+                                                     ArrayInst::OFF,{"off", "only_store", "lambda","lambda_merge"});
+           _arrayInst.description = "Enable theory instantiation. only_store does not translate lambda terms, only theory terms. lambda extends only_store with array models defined by lambda x.if x = i then v else a to $store. lambda_merge also translates array models defined by lambda x.if x < i then a else b to $merge.";
            _arrayInst.tag(OptionTag::INFERENCES);
            _lookup.insert(&_arrayInst);
            _arrayInst.setExperimental();
@@ -1062,6 +1062,19 @@ void Options::Options::init()
            _useACeval.tag(OptionTag::INFERENCES);
            _lookup.insert(&_useACeval);
            _useACeval.setExperimental();
+           _extendedArrayAxioms = ChoiceOptionValue<ExtendedArrayAxioms>("extended_array_axioms","exarr",
+                                     ExtendedArrayAxioms::OFF,{"off", "const", "all", "dynamic"});
+           _extendedArrayAxioms.description = "Add (conservative) axioms to theory of arrays: const for const arrays, all for const arrays and merges. dynamic only adds axioms when the language is extended during theory instantiation.";
+           _extendedArrayAxioms.tag(OptionTag::INFERENCES);
+           _lookup.insert(&_extendedArrayAxioms);
+           _extendedArrayAxioms.setExperimental();
+
+            _forceArrayAxioms = BoolOptionValue("force_array_axioms","farr",false);
+            _forceArrayAxioms.description = "Add array axioms even when the constructors are not part of the input problem.";
+            _forceArrayAxioms.setExperimental();
+            _forceArrayAxioms.tag(OptionTag::INFERENCES);
+            _forceArrayAxioms.setExperimental();
+            _lookup.insert(&_forceArrayAxioms);
 
             _induction = ChoiceOptionValue<Induction>("induction","ind",Induction::NONE,
                                 {"none","struct","math","both"});

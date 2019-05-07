@@ -778,6 +778,8 @@ vstring Kernel::ruleName(InferenceRule rule)
   case InferenceRule::THA_TRUNC3:
   case InferenceRule::THA_TRUNC4:
   case InferenceRule::THA_ARRAY_EXTENSIONALITY:
+  case InferenceRule::THA_ARRAY_CONST:
+  case InferenceRule::THA_ARRAY_MERGE:
   case InferenceRule::THA_BOOLEAN_ARRAY_EXTENSIONALITY:
   case InferenceRule::THA_BOOLEAN_ARRAY_WRITE1:
   case InferenceRule::THA_BOOLEAN_ARRAY_WRITE2:

@@ -398,6 +398,8 @@ enum class InferenceRule : unsigned char {
   THA_TRUNC3,
   THA_TRUNC4,
   THA_ARRAY_EXTENSIONALITY,
+  THA_ARRAY_CONST,
+  THA_ARRAY_MERGE,
   THA_BOOLEAN_ARRAY_EXTENSIONALITY, // currently applied to a formula, so won't propagate to clause->isTheoryAxiom()
   THA_BOOLEAN_ARRAY_WRITE1, // currently applied to a formula, so won't propagate to clause->isTheoryAxiom()
   THA_BOOLEAN_ARRAY_WRITE2, // currently applied to a formula, so won't propagate to clause->isTheoryAxiom()
