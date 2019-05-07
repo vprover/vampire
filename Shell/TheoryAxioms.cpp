@@ -12,9 +12,9 @@
  *
  * In summary, you are allowed to use Vampire for non-commercial
  * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
+ * or use in competitions.
  * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
+ * licence, which we will make an effort to provide.
  */
 /**
  * @file TheoryAxioms.cpp
@@ -64,8 +64,8 @@ void TheoryAxioms::addAndOutputTheoryUnit(Unit* unit, unsigned level)
   if (env.options->showTheoryAxioms()) {
     cout << "% Theory " << (unit->isClause() ? "clause" : "formula" ) << ": " << unit->toString() << "\n";
   }
-  if(unit->isClause()){ 
-    static_cast<Clause*>(unit)->setTheoryDescendant(true); 
+  if(unit->isClause()){
+    static_cast<Clause*>(unit)->setTheoryDescendant(true);
   } else {
     _prb.reportFormulasAdded();
   }
@@ -471,7 +471,7 @@ void TheoryAxioms::addAdditionOrderingAndMultiplicationAxioms(Interpretation plu
   TermList xTy(Term::create2(mulFun,x,y));
   TermList xTz(Term::create2(mulFun,x,z));
   TermList xTyPxTz(Term::create2(plusFun,xTy,xTz));
-  
+
   Literal* distrib = Literal::createEquality(true, xTyPz, xTyPxTz,srt);
   addTheoryUnitClause(distrib, EXPENSIVE);
 
@@ -481,12 +481,12 @@ void TheoryAxioms::addAdditionOrderingAndMultiplicationAxioms(Interpretation plu
   TermList w(3,false);
   Literal* xEz = Literal::createEquality(true,x,zeroElement,srt);
   TermList xTw(Term::create2(mulFun,x,w));
-  Literal* xTznEy = Literal::createEquality(false,xTz,y,srt); 
-  Literal* xTwnEy = Literal::createEquality(false,xTw,y,srt); 
+  Literal* xTznEy = Literal::createEquality(false,xTz,y,srt);
+  Literal* xTwnEy = Literal::createEquality(false,xTw,y,srt);
   Literal* zEw = Literal::createEquality(true,z,w,srt);
 
   addTheoryNonUnitClause(xEz,xTznEy,xTwnEy,zEw,EXPENSIVE);
-  
+
 }
 
 /**
@@ -558,7 +558,7 @@ void TheoryAxioms::addIntegerDividesAxioms(Interpretation divides, Interpretatio
 
 #if VDEBUG
   // ASSERT n>0
-  ASS(theory->isInterpretedConstant(n)); 
+  ASS(theory->isInterpretedConstant(n));
   IntegerConstantType nc;
   ALWAYS(theory->tryInterpretConstant(n,nc));
   ASS(nc.toInner()>0);
@@ -575,7 +575,7 @@ void TheoryAxioms::addIntegerDividesAxioms(Interpretation divides, Interpretatio
   TermList y(1,false);
   TermList z(2,false);
 
-// divides(n,Y) | multiply(Z,n) != Y 
+// divides(n,Y) | multiply(Z,n) != Y
   Literal* divsXY = Literal::create2(divsPred,true,n,y);
   TermList mZX(Term::create2(mulFun,z,n));
   Literal* mZXneY = Literal::createEquality(false,mZX,y,srt);
@@ -583,7 +583,7 @@ void TheoryAxioms::addIntegerDividesAxioms(Interpretation divides, Interpretatio
 
 // ~divides(n,Y) | multiply(skolem(n,Y),n)=Y
   Literal* ndivsXY = Literal::create2(divsPred,false,n,y);
-  
+
   // create a skolem function with signature srt*srt>srt
   unsigned skolem = env.signature->addSkolemFunction(2);
   Signature::Symbol* sym = env.signature->getFunction(skolem);
@@ -596,7 +596,7 @@ void TheoryAxioms::addIntegerDividesAxioms(Interpretation divides, Interpretatio
 
 }
 
-void TheoryAxioms::addIntegerAbsAxioms(Interpretation abs, Interpretation less, 
+void TheoryAxioms::addIntegerAbsAxioms(Interpretation abs, Interpretation less,
                                        Interpretation unaryMinus, TermList zeroElement)
 {
   CALL("TheoryAxioms::addIntegerAbsAxioms");
@@ -614,8 +614,8 @@ void TheoryAxioms::addIntegerAbsAxioms(Interpretation abs, Interpretation less,
   TermList mx(Term::create1(umFun,x));
   TermList absmX(Term::create1(absFun,mx));
 
-  // If x is positive then abs(x)=x 
-  // If x is negative then abs(x)=-x 
+  // If x is positive then abs(x)=x
+  // If x is negative then abs(x)=-x
 
   Literal* xNeg = Literal::create2(lessPred,false,zeroElement,x); // not 0<x
   Literal* xPos = Literal::create2(lessPred,false,x,zeroElement); // not x<0
@@ -630,7 +630,7 @@ void TheoryAxioms::addIntegerAbsAxioms(Interpretation abs, Interpretation less,
 
 
 /**
- * Add axioms for quotient i.e. rat or real division 
+ * Add axioms for quotient i.e. rat or real division
  */
 void TheoryAxioms::addQuotientAxioms(Interpretation quotient, Interpretation multiply,
     TermList zeroElement, TermList oneElement, Interpretation less)
@@ -647,7 +647,7 @@ void TheoryAxioms::addQuotientAxioms(Interpretation quotient, Interpretation mul
   unsigned mulFun = env.signature->getInterpretingSymbol(multiply);
   unsigned divFun = env.signature->getInterpretingSymbol(quotient);
 
-  Literal* guardx = Literal::createEquality(true,x,zeroElement,srt); 
+  Literal* guardx = Literal::createEquality(true,x,zeroElement,srt);
 
   // x=0 | quotient(x,x)=1, easily derivable!
   //TermList qXX(Term::create2(quotient,x,x));
@@ -674,7 +674,7 @@ void TheoryAxioms::addQuotientAxioms(Interpretation quotient, Interpretation mul
 }
 
 /**
- * Add axiom valid only for integer ordering: Y>X ->  Y => X+1 
+ * Add axiom valid only for integer ordering: Y>X ->  Y => X+1
  *
  * ~(x<y) | ~(y,x+1)
  */
@@ -692,7 +692,7 @@ void TheoryAxioms::addExtraIntegerOrderingAxiom(Interpretation plus, TermList on
   Literal* nyLxPOne = Literal::create2(lessPred, false, y,xPOne);
   addTheoryNonUnitClause(nxLy, nyLxPOne,EXPENSIVE);
 }
-    
+
 /**
  * Add axioms defining floor function
  * @author Giles
@@ -714,7 +714,7 @@ void TheoryAxioms::addFloorAxioms(Interpretation floor, Interpretation less, Int
   Literal* a1 = Literal::create2(lessPred, false, x, floorX);
   addTheoryUnitClause(a1,EXPENSIVE);
 
-  //axiom( X-1 < floor(X) ) 
+  //axiom( X-1 < floor(X) )
   TermList m1(Term::create1(umFun,oneElement));
   TermList xm1(Term::create2(plusFun, x, m1));
   Literal* a2 = Literal::create2(lessPred,true, xm1, floorX);
@@ -724,8 +724,8 @@ void TheoryAxioms::addFloorAxioms(Interpretation floor, Interpretation less, Int
 /**
  * Add axioms defining ceiling function
  * @author Giles
- */ 
-void TheoryAxioms::addCeilingAxioms(Interpretation ceiling, Interpretation less, 
+ */
+void TheoryAxioms::addCeilingAxioms(Interpretation ceiling, Interpretation less,
      Interpretation plus, TermList oneElement)
 {
   CALL("TheoryAxioms::addCeilingAxioms");
@@ -736,12 +736,12 @@ void TheoryAxioms::addCeilingAxioms(Interpretation ceiling, Interpretation less,
   TermList x(0,false);
   TermList ceilingX(Term::create1(ceilingFun,x));
 
-  //axiom( ceiling(X) >= X ) 
+  //axiom( ceiling(X) >= X )
   // is ~( ceiling(X) < X )
   Literal* a1 = Literal::create2(lessPred, false, ceilingX, x);
   addTheoryUnitClause(a1,EXPENSIVE);
 
-  //axiom( ceiling(X) < X+1 ) 
+  //axiom( ceiling(X) < X+1 )
   TermList xp1(Term::create2(plusFun, x, oneElement));
   Literal* a2 = Literal::create2(lessPred,true, ceilingX, xp1);
   addTheoryUnitClause(a2, EXPENSIVE);
@@ -750,11 +750,11 @@ void TheoryAxioms::addCeilingAxioms(Interpretation ceiling, Interpretation less,
 /**
  * Add axioms defining round function
  * @author Giles
- */ 
+ */
 void TheoryAxioms::addRoundAxioms(Interpretation round, Interpretation floor, Interpretation ceiling)
 {
   CALL("TheoryAxioms::addRoundAxioms");
-  
+
   //TODO... not that interesting as $round not in TPTP or translations
   // Suggested axioms:
   // round(x) = floor(x) | round(x) = ceiling(x)
@@ -771,15 +771,15 @@ void TheoryAxioms::addRoundAxioms(Interpretation round, Interpretation floor, In
  * truncate is 'towards zero'
  *
  * >> x positive
- * x<0 | ~( x < tr(x) )		// x-1 < tr(x) <= x 
- * x<0 | x-1 < tr(x) 
+ * x<0 | ~( x < tr(x) )		// x-1 < tr(x) <= x
+ * x<0 | x-1 < tr(x)
  *
  * >> x negative
- * ~(x<0) | ~( tr(x) < x )	// x <= tr(x) < x+1 
+ * ~(x<0) | ~( tr(x) < x )	// x <= tr(x) < x+1
  * ~(x<0) | tr(x) < x+1
  *
  * @author Giles
- */ 
+ */
 void TheoryAxioms::addTruncateAxioms(Interpretation truncate, Interpretation less, Interpretation unaryMinus,
                       Interpretation plus, TermList zeroElement, TermList oneElement)
 {
@@ -818,7 +818,7 @@ void TheoryAxioms::addTruncateAxioms(Interpretation truncate, Interpretation les
 } //addTruncateAxioms
 
 /**
- * Adds the extensionality axiom of arrays (of type array1 or array2): 
+ * Adds the extensionality axiom of arrays (of type array1 or array2):
  * select(X,sk(X,Y)) != select(Y,sk(X,Y)) | X = Y
  *
  * @author Laura Kovacs
@@ -839,15 +839,15 @@ void TheoryAxioms::addArrayExtensionalityAxioms(unsigned arraySort, unsigned sko
 
   TermList x(0,false);
   TermList y(1,false);
-  
+
   TermList sk(Term::create2(skolemFn, x, y)); //sk(x,y)
   TermList sel_x_sk(Term::create2(sel,x,sk)); //select(x,sk(x,y))
   TermList sel_y_sk(Term::create2(sel,y,sk)); //select(y,sk(x,y))
   Literal* eq = Literal::createEquality(true,x,y,arraySort); //x = y
   Literal* ineq = Literal::createEquality(false,sel_x_sk,sel_y_sk,rangeSort); //select(x,sk(x,y) != select(y,z)
-  
+
   addTheoryNonUnitClause(eq, ineq,CHEAP);
-} // addArrayExtensionalityAxiom    
+} // addArrayExtensionalityAxiom
 
 /**
  * Adds the extensionality axiom of boolean arrays:
@@ -882,7 +882,7 @@ void TheoryAxioms::addBooleanArrayExtensionalityAxioms(unsigned arraySort, unsig
 } // addBooleanArrayExtensionalityAxiom
 
 /**
-* Adds the write/select axiom of arrays (of type array1 or array2), 
+* Adds the write/select axiom of arrays (of type array1 or array2),
  * @author Laura Kovacs
  * @since 31/08/2012, Vienna
 */
@@ -975,7 +975,7 @@ void TheoryAxioms::addConstantArrayAxiom(unsigned arraySort) {
   CALL("TheoryAxioms::addConstantArrayAxiom");
   unsigned pred_select = env.signature->getInterpretingSymbol(Theory::ARRAY_SELECT,Theory::getArrayOperatorType(arraySort,Theory::ARRAY_SELECT));
   unsigned fun_const = env.signature->getInterpretingSymbol(Theory::ARRAY_CONST,Theory::getArrayOperatorType(arraySort,Theory::ARRAY_CONST));
-  
+
   Sorts::ArraySort* si = env.sorts->getArraySort(arraySort);
   //  unsigned indexSort = si->getIndexSort();
   unsigned innerSort = si->getInnerSort();
@@ -999,15 +999,15 @@ void TheoryAxioms::addMergeArrayAxiom(unsigned arraySort) {
   CALL("TheoryAxioms::addMergeArrayAxiom");
   unsigned pred_select = env.signature->getInterpretingSymbol(Theory::ARRAY_SELECT,Theory::getArrayOperatorType(arraySort,Theory::ARRAY_SELECT));
   unsigned fun_merge = env.signature->getInterpretingSymbol(Theory::ARRAY_MERGE,Theory::getArrayOperatorType(arraySort,Theory::ARRAY_MERGE));
-  
+
   Sorts::ArraySort* si = env.sorts->getArraySort(arraySort);
   unsigned indexSort = si->getIndexSort();
   //assert index sort is integer -- we need < but it doesn't make sense for rational or real arrays
   ASS_EQ( indexSort, Sorts::SRT_INTEGER);
-  
+
   unsigned innerSort = si->getInnerSort();
   unsigned less = env.signature->getInterpretingSymbol(Theory::INT_LESS);
-  
+
   TermList i(0,false);
   TermList j(1,false);
   TermList x(2,false);
@@ -1081,24 +1081,24 @@ void TheoryAxioms::apply()
     TermList one(theory->representConstant(IntegerConstantType(1)));
     if(haveIntMultiply || haveIntDivision || haveIntDivides) {
       addAdditionOrderingAndMultiplicationAxioms(Theory::INT_PLUS, Theory::INT_UNARY_MINUS, zero, one,
-						 Theory::INT_LESS, Theory::INT_MULTIPLY);
+                                                 Theory::INT_LESS, Theory::INT_MULTIPLY);
       if(haveIntDivision){
         addIntegerDivisionWithModuloAxioms(Theory::INT_PLUS, Theory::INT_UNARY_MINUS, Theory::INT_LESS,
                                  Theory::INT_MULTIPLY, Theory::INT_QUOTIENT_E, Theory::INT_DIVIDES,
                                  Theory::INT_REMAINDER_E, Theory::INT_ABS, zero,one);
       }
-      else if(haveIntDivides){ 
-        Stack<TermList>& ns = env.signature->getDividesNvalues(); 
+      else if(haveIntDivides){
+        Stack<TermList>& ns = env.signature->getDividesNvalues();
         Stack<TermList>::Iterator nsit(ns);
         while(nsit.hasNext()){
           TermList n = nsit.next();
-          addIntegerDividesAxioms(Theory::INT_DIVIDES,Theory::INT_MULTIPLY,zero,n); 
+          addIntegerDividesAxioms(Theory::INT_DIVIDES,Theory::INT_MULTIPLY,zero,n);
         }
       }
     }
     else {
       addAdditionAndOrderingAxioms(Theory::INT_PLUS, Theory::INT_UNARY_MINUS, zero, one,
-				   Theory::INT_LESS);
+                                   Theory::INT_LESS);
     }
     addExtraIntegerOrderingAxiom(Theory::INT_PLUS, one, Theory::INT_LESS);
     modified = true;
@@ -1125,7 +1125,7 @@ void TheoryAxioms::apply()
     TermList one(theory->representConstant(RationalConstantType(1, 1)));
     if(haveRatMultiply || haveRatRound || haveRatQuotient) {
       addAdditionOrderingAndMultiplicationAxioms(Theory::RAT_PLUS, Theory::RAT_UNARY_MINUS, zero, one,
-						 Theory::RAT_LESS, Theory::RAT_MULTIPLY);
+                                                 Theory::RAT_LESS, Theory::RAT_MULTIPLY);
 
       if(haveRatQuotient){
         addQuotientAxioms(Theory::RAT_QUOTIENT,Theory::RAT_MULTIPLY,zero,one,Theory::RAT_LESS);
@@ -1133,7 +1133,7 @@ void TheoryAxioms::apply()
     }
     else {
       addAdditionAndOrderingAxioms(Theory::RAT_PLUS, Theory::RAT_UNARY_MINUS, zero, one,
-				   Theory::RAT_LESS);
+                                   Theory::RAT_LESS);
     }
     if(haveRatFloor || haveRatRound){
       addFloorAxioms(Theory::RAT_FLOOR,Theory::RAT_LESS,Theory::RAT_UNARY_MINUS,Theory::RAT_PLUS,one);
@@ -1172,7 +1172,7 @@ void TheoryAxioms::apply()
     TermList one(theory->representConstant(RealConstantType(RationalConstantType(1, 1))));
     if(haveRealMultiply || haveRealQuotient) {
       addAdditionOrderingAndMultiplicationAxioms(Theory::REAL_PLUS, Theory::REAL_UNARY_MINUS, zero, one,
-						 Theory::REAL_LESS, Theory::REAL_MULTIPLY);
+                                                 Theory::REAL_LESS, Theory::REAL_MULTIPLY);
 
       if(haveRealQuotient){
         addQuotientAxioms(Theory::REAL_QUOTIENT,Theory::REAL_MULTIPLY,zero,one,Theory::REAL_LESS);
@@ -1180,7 +1180,7 @@ void TheoryAxioms::apply()
     }
     else {
       addAdditionAndOrderingAxioms(Theory::REAL_PLUS, Theory::REAL_UNARY_MINUS, zero, one,
-				   Theory::REAL_LESS);
+                                   Theory::REAL_LESS);
     }
     if(haveRealFloor || haveRealRound){
       addFloorAxioms(Theory::REAL_FLOOR,Theory::REAL_LESS,Theory::REAL_UNARY_MINUS,Theory::REAL_PLUS,one);
@@ -1204,11 +1204,16 @@ void TheoryAxioms::apply()
     unsigned arraySort = arraySorts.next();
 
     bool isBool = (env.sorts->getArraySort(arraySort)->getInnerSort() == Sorts::SRT_BOOL);
-    
+
     // Check if they are used
     Interpretation arraySelect = isBool ? Theory::ARRAY_BOOL_SELECT : Theory::ARRAY_SELECT;
     bool haveSelect = prop->hasInterpretedOperation(arraySelect,Theory::getArrayOperatorType(arraySort,arraySelect));
     bool haveStore = prop->hasInterpretedOperation(Theory::ARRAY_STORE,Theory::getArrayOperatorType(arraySort,Theory::ARRAY_STORE));
+
+    if (env.options->forceArrayAxioms()) {
+      haveSelect = true;
+      haveStore = true;
+    }
 
     if (haveSelect || haveStore) {
       unsigned sk = theory->getArrayExtSkolemFunction(arraySort);
@@ -1224,6 +1229,18 @@ void TheoryAxioms::apply()
           addArrayWriteAxioms(arraySort);
         }
       }
+
+      if (! isBool) { //can't handle boolean index sort yet
+        Options::ExtendedArrayAxioms haveMoreAxs = env.options-> useExtendedArrayAxioms();
+        if ( haveMoreAxs == Options::ExtendedArrayAxioms::CONST ||
+             haveMoreAxs == Options::ExtendedArrayAxioms::ALL) {
+          addConstantArrayAxiom(arraySort);
+        }
+        if (haveMoreAxs == Options::ExtendedArrayAxioms::ALL) {
+          addMergeArrayAxiom(arraySort);
+        }
+      }
+
       modified = true;
     }
   }
