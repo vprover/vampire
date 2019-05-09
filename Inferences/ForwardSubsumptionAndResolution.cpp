@@ -298,6 +298,9 @@ bool ForwardSubsumptionAndResolution::perform(Clause* cl, Clause*& replacement, 
 	//we've already checked this clause
 	continue;
       }
+      if (_fwIndex->isSecondBest(res.clause, res.literal)) {
+        continue;
+      }
       unsigned mlen=mcl->length();
       ASS_G(mlen,1);
 
@@ -375,6 +378,9 @@ bool ForwardSubsumptionAndResolution::perform(Clause* cl, Clause*& replacement, 
 	  //we have already examined this clause
 	  continue;
 	}
+        if (_fwIndex->isSecondBest(res.clause, res.literal)) {
+          continue;
+        }
 
 	ClauseMatches* cms=new ClauseMatches(mcl);
 	res.clause->setAux(cms);

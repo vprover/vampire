@@ -151,7 +151,13 @@ Index* IndexManager::create(IndexType t)
   TermIndexingStructure* tis;
 
   bool isGenerating;
-  static bool useConstraints = env.options->unificationWithAbstraction()!=Options::UnificationWithAbstraction::OFF;
+  static bool const useConstraints = env.options->unificationWithAbstraction()!=Options::UnificationWithAbstraction::OFF;
+  static bool const fwSubsAdjustForFSD =
+    env.options->forwardSubsumptionDemodulationAdjustFSIndexForFSD() == Options::AdjustFSIndexForFSD::ALWAYS
+    || (env.options->forwardSubsumptionDemodulationAdjustFSIndexForFSD() == Options::AdjustFSIndexForFSD::WHEN_USED_BY_FSD
+        && env.options->forwardSubsumptionDemodulationUseSeparateIndex() == false
+        && env.options->forwardSubsumptionDemodulation());
+
   switch(t) {
   case GENERATING_SUBST_TREE:
     is=new LiteralSubstitutionTree(useConstraints);
@@ -224,7 +230,13 @@ Index* IndexManager::create(IndexType t)
   case FW_SUBSUMPTION_SUBST_TREE:
     is=new LiteralSubstitutionTree();
 //    is=new CodeTreeLIS();
-    res=new FwSubsSimplifyingLiteralIndex(is);
+    res=new FwSubsSimplifyingLiteralIndex(is, fwSubsAdjustForFSD);
+    isGenerating = false;
+    break;
+
+  case FSD_SUBST_TREE:
+    is = new LiteralSubstitutionTree();
+    res = new FSDSimplifyingLiteralIndex(is);
     isGenerating = false;
     break;
 
