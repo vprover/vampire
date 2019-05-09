@@ -41,15 +41,6 @@ public:
   {
     return canBeMatched(base->literals(), base->length(), instance, alts, resolvedLit, resolvedLit==0);
   }
-
-
-  static bool canBeMatched(Clause* base, DArray<LiteralList*>& matches);
-
-
-private:
-  template<class T, class U>
-  static void orderLiterals(T& base, U& alts,
-	  DArray<Literal*>& baseOrd, DArray<LiteralList*>& altsOrd);
 };
 
 
