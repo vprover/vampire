@@ -196,6 +196,8 @@ public:
     FORWARD_DEMODULATION,
     /** backward demodulation inference */
     BACKWARD_DEMODULATION,
+    /** forward subsumption demodulation inference */
+    FORWARD_SUBSUMPTION_DEMODULATION,
     /** forward literal rewriting inference */
     FORWARD_LITERAL_REWRITING,
     /** inner rewriting */

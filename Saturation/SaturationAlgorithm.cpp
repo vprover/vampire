@@ -60,6 +60,7 @@
 #include "Inferences/ForwardDemodulation.hpp"
 #include "Inferences/ForwardLiteralRewriting.hpp"
 #include "Inferences/ForwardSubsumptionAndResolution.hpp"
+#include "Inferences/ForwardSubsumptionDemodulation.hpp"
 #include "Inferences/GlobalSubsumption.hpp"
 #include "Inferences/HyperSuperposition.hpp"
 #include "Inferences/InnerRewriting.hpp"
@@ -1402,6 +1403,12 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
   }
   if (opt.forwardLiteralRewriting()) {
     res->addForwardSimplifierToFront(new ForwardLiteralRewriting());
+  }
+  if (prb.hasEquality() && opt.forwardSubsumptionDemodulation()) {
+    // NOTE:
+    // fsd must be performed after forward subsumption,
+    // because every forward subsumption will lead to a (useless) match in fsd.
+    res->addForwardSimplifierToFront(new ForwardSubsumptionDemodulation());
   }
   if (prb.hasEquality()) {
     switch(opt.forwardDemodulation()) {
