@@ -283,6 +283,10 @@ bool ForwardSubsumptionDemodulation::perform(Clause* cl, Clause*& replacement, C
             break;
           }
 
+          // TODO: instead of a set of matched literals,
+          // it might be better to have a vector of unmatched literals and iterate over that.
+          // (also for toplevel redundancy check)
+          // (can we extract these directly in the MLMatcher from the unmatched alts? => no, could have been excluded by the miniIndex already)
           static v_unordered_set<Literal*> matchedAlts(16);
           matchedAlts.clear();
           matcher.getMatchedAlts(matchedAlts);
@@ -383,6 +387,9 @@ bool ForwardSubsumptionDemodulation::perform(Clause* cl, Clause*& replacement, C
                   continue;
                 }
 
+                // When dlit is an equality and lhsS is a top-level term in dlit,
+                // we need an additional check to make sure that mcl < cl
+                // (to ensure redundancy of cl after the inference is performed).
                 bool performToplevelCheck = _performRedundancyCheck && dlit->isEquality() && (lhsS == *dlit->nthArgument(0) || lhsS == *dlit->nthArgument(1));
                 if (performToplevelCheck) {
                   //   lhsS=rhsS
@@ -391,24 +398,32 @@ bool ForwardSubsumptionDemodulation::perform(Clause* cl, Clause*& replacement, C
                   //    l = r \/ C     l = t \/ D
                   //   ---------------------------
                   //        r = t \/ D
+                  //
                   TermList other = EqHelper::getOtherEqualitySide(dlit, lhsS);   // t
                   Ordering::Result tord = ordering.compare(rhsS, other);
-                  if (tord != Ordering::LESS && tord != Ordering::LESS_EQ) {  // TODO: why is LESS_EQ ok?   tord == LESS_EQ  ==>  r ≤ t  ==>  l=r ≤ l=t  ==>  ??? (Don't we need strictly less here?)
+                  if (tord != Ordering::LESS && tord != Ordering::LESS_EQ) {
                     Literal* eqLitS = binder.applyTo(eqLit);
-                    // TODO: check this again with the writeup of FSD
                     bool isMax = true;
                     for (unsigned li2 = 0; li2 < cl->length(); li2++) {
                       if (dli == li2) {
-                        continue;
+                        continue;  // skip dlit (already checked with tord above)
                       }
                       Literal* lit2 = (*cl)[li2];
-                      if (ordering.compare(eqLitS, (*cl)[li2]) == Ordering::LESS) {
+                      if (matchedAlts.find(lit2) != matchedAlts.end()) {
+                        continue;  // skip matched literals
+                      }
+                      if (ordering.compare(eqLitS, lit2) == Ordering::LESS) {
                         isMax = false;
                         break;
                       }
                     }
                     if (isMax) {
-                      // std::cerr << "toplevel check prevented something" << std::endl;
+                      // std::cerr << "\ntoplevel check prevented something:" << std::endl;
+                      // std::cerr << "mcl:    " << mcl->toNiceString() << std::endl;
+                      // std::cerr << "eqLit:  " << eqLit->toString() << std::endl;
+                      // std::cerr << "cl:     " <<  cl->toNiceString() << std::endl;
+                      // std::cerr << "dlit:   " << dlit->toString() << std::endl;
+
                       // We have the following case which doesn't preserve completeness:
                       //    l = r \/ C     l = t \/ D
                       //   ---------------------------
@@ -445,21 +460,8 @@ bool ForwardSubsumptionDemodulation::perform(Clause* cl, Clause*& replacement, C
 
                 if (EqHelper::isEqTautology(newLit)) {
                   env.statistics->forwardSubsumptionDemodulationsToEqTaut++;
-
-                  // TODO: discuss this;
-                  // we might find another useful match after encountering an equality tautology,
-                  // so maybe we should continue here.
-                  // (After the other optimizations, this is no issue anymore for our oxford-fsd example.
-                  //  "FSD after FS" eliminated most of the equality tautologies.;
-                  //  the "dlit == eqLit" check eliminated the rest.)
-                  // NOTE:
-                  // Actually, when we get an equality tautology, it means the given clause can be deleted.
-                  // So it's actually good if we end up in this case.
-
                   premises = pvi(getSingletonIterator(mcl));
                   replacement = nullptr;
-                  // Clause reduction was successful (=> return true),
-                  // but we don't set the replacement (because the result is a tautology and should be discarded)
                   return true;
                 }
 
@@ -517,14 +519,19 @@ bool ForwardSubsumptionDemodulation::perform(Clause* cl, Clause*& replacement, C
 
                 premises = pvi(getSingletonIterator(mcl));
                 replacement = newCl;
-                // std::cerr << "\t FwSubsDem replacement: " << replacement->toNiceString() << std::endl;
-                // std::cerr << "\t          for input cl: " << cl->toNiceString() << std::endl;
-                // std::cerr << "\t               via mcl: " << mcl->toNiceString() << std::endl;
+                // std::cerr << "\t FSD replacement: " << replacement->toNiceString() << std::endl;
+                // std::cerr << "\t    for input cl: " << cl->toNiceString() << std::endl;
+                // std::cerr << "\t         via mcl: " << mcl->toNiceString() << std::endl;
                 return true;
               } // while (nvi.hasNext())
             } // for dli
           } // while (lhsIt.hasNext())
         } // for (numMatches)
+
+        // TODO: limiting here saves time but loses applications
+        // (40% less time and 75% less applications; so probably not a good trade-off)
+        // break;
+
       } // for eqi
     } // while (rit.hasNext)
   } // for (li)
