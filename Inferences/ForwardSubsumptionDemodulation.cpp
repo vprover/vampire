@@ -372,153 +372,155 @@ bool ForwardSubsumptionDemodulation::perform(Clause* cl, Clause*& replacement, C
                 }
 
                 binder.reset();  // reset binder to state after subsumption check
-                if (MatchingUtils::matchTerms(lhs, lhsS, binder)) {
-                  TermList rhsS = binder.applyTo(rhs);
-                  ASS_EQ(lhsS, binder.applyTo(lhs));
+                if (!MatchingUtils::matchTerms(lhs, lhsS, binder)) {
+                  continue;
+                }
 
-                  if (!postMLMatchOrdered && ordering.compare(lhsS, rhsS) != Ordering::GREATER) {
-                    continue;
-                  }
+                TermList rhsS = binder.applyTo(rhs);
+                ASS_EQ(lhsS, binder.applyTo(lhs));
 
-                  bool performToplevelCheck = _performRedundancyCheck && dlit->isEquality() && (lhsS == *dlit->nthArgument(0) || lhsS == *dlit->nthArgument(1));
-                  if (performToplevelCheck) {
-                    //   lhsS=rhsS
-                    //    eqLitS          dlit
-                    //    vvvvv          vvvvv
-                    //    l = r \/ C     l = t \/ D
-                    //   ---------------------------
-                    //        r = t \/ D
-                    TermList other = EqHelper::getOtherEqualitySide(dlit, lhsS);   // t
-                    Ordering::Result tord = ordering.compare(rhsS, other);
-                    if (tord != Ordering::LESS && tord != Ordering::LESS_EQ) {  // TODO: why is LESS_EQ ok?   tord == LESS_EQ  ==>  r ≤ t  ==>  l=r ≤ l=t  ==>  ??? (Don't we need strictly less here?)
-                      Literal* eqLitS = binder.applyTo(eqLit);
-                      // TODO: check this again with the writeup of FSD
-                      bool isMax = true;
-                      for (unsigned li2 = 0; li2 < cl->length(); li2++) {
-                        if (dli == li2) {
-                          continue;
-                        }
-                        Literal* lit2 = (*cl)[li2];
-                        if (ordering.compare(eqLitS, (*cl)[li2]) == Ordering::LESS) {
-                          isMax = false;
-                          break;
-                        }
-                      }
-                      if (isMax) {
-                        // std::cerr << "toplevel check prevented something" << std::endl;
-                        // We have the following case which doesn't preserve completeness:
-                        //    l = r \/ C     l = t \/ D
-                        //   ---------------------------
-                        //        r = t \/ D
-                        // where r > t and l = r > D.
-                        //
-                        // Reason:
-                        // the right premise should become redundant after application of FSD (since it is a simplification rule).
-                        // It is redundant, if it is a logical consequence of smaller clauses in the search space.
-                        // * It is easy to see that the right premise is a logical consequence of the conclusion and the left premise.
-                        // * Also, the right premise is larger than the conclusion, because l > r.
-                        // * However, we also need that the left premise is smaller than the right premise.
-                        //   Three cases for dlit (the literal in the right premise to be demodulated):
-                        //   1. L[l] in the right premise is not an equality literal. Then L[l] > l = r because equalities are smallest in the ordering.
-                        //   2. s[l] = t with s[l] ≠ l. Then s[l] > l (subterm property of simplification orderings).
-                        //                              Thus s[l] = t > l = r.  (multiset extension of ordering: { s[l], t } > { s[l] } > { l, r }, because s[l] > l > r)
-                        //   3. l = t in the right premise.
-                        //   3a. If r ≤ t, then l = r ≤ l = t.
-                        //   3b. Otherwise we have to perform the toplevel check. isMax iff l = r > D.
-                        //
-                        //   Now we have a literal L in the right premise such that L > l = r.
-                        //   We know that Cσ is a sub-multiset of D, thus C ≤ Cσ ≤ D.
-                        //
-                        //   What if
-                        //   l = r \/ L \/ P  ;  l = t \/ L \/ P \/ Q   and r > t ???
+                if (!postMLMatchOrdered && ordering.compare(lhsS, rhsS) != Ordering::GREATER) {
+                  continue;
+                }
+
+                bool performToplevelCheck = _performRedundancyCheck && dlit->isEquality() && (lhsS == *dlit->nthArgument(0) || lhsS == *dlit->nthArgument(1));
+                if (performToplevelCheck) {
+                  //   lhsS=rhsS
+                  //    eqLitS          dlit
+                  //    vvvvv          vvvvv
+                  //    l = r \/ C     l = t \/ D
+                  //   ---------------------------
+                  //        r = t \/ D
+                  TermList other = EqHelper::getOtherEqualitySide(dlit, lhsS);   // t
+                  Ordering::Result tord = ordering.compare(rhsS, other);
+                  if (tord != Ordering::LESS && tord != Ordering::LESS_EQ) {  // TODO: why is LESS_EQ ok?   tord == LESS_EQ  ==>  r ≤ t  ==>  l=r ≤ l=t  ==>  ??? (Don't we need strictly less here?)
+                    Literal* eqLitS = binder.applyTo(eqLit);
+                    // TODO: check this again with the writeup of FSD
+                    bool isMax = true;
+                    for (unsigned li2 = 0; li2 < cl->length(); li2++) {
+                      if (dli == li2) {
                         continue;
                       }
+                      Literal* lit2 = (*cl)[li2];
+                      if (ordering.compare(eqLitS, (*cl)[li2]) == Ordering::LESS) {
+                        isMax = false;
+                        break;
+                      }
                     }
-                  }  // if (performToplevelCheck)
-
-                  Literal* newLit = EqHelper::replace(dlit, lhsS, rhsS);
-                  ASS_EQ(ordering.compare(lhsS, rhsS), Ordering::GREATER);
-                  ASS_EQ(ordering.compare(dlit, newLit), Ordering::GREATER);
-
-                  if (EqHelper::isEqTautology(newLit)) {
-                    env.statistics->forwardSubsumptionDemodulationsToEqTaut++;
-
-                    // TODO: discuss this;
-                    // we might find another useful match after encountering an equality tautology,
-                    // so maybe we should continue here.
-                    // (After the other optimizations, this is no issue anymore for our oxford-fsd example.
-                    //  "FSD after FS" eliminated most of the equality tautologies.;
-                    //  the "dlit == eqLit" check eliminated the rest.)
-                    // NOTE:
-                    // Actually, when we get an equality tautology, it means the given clause can be deleted.
-                    // So it's actually good if we end up in this case.
-
-                    premises = pvi(getSingletonIterator(mcl));
-                    replacement = nullptr;
-                    // Clause reduction was successful (=> return true),
-                    // but we don't set the replacement (because the result is a tautology and should be discarded)
-                    return true;
-                  }
-
-                  Inference* inference = new Inference2(Inference::FORWARD_SUBSUMPTION_DEMODULATION, cl, mcl);
-                  Unit::InputType inputType = std::max(cl->inputType(), mcl->inputType());
-
-                  Clause* newCl = new(cl->length()) Clause(cl->length(), inputType, inference);
-
-                  for (unsigned i = 0; i < cl->length(); ++i) {
-                    if (i == dli) {
-                      (*newCl)[i] = newLit;
-                    } else {
-                      (*newCl)[i] = (*cl)[i];
+                    if (isMax) {
+                      // std::cerr << "toplevel check prevented something" << std::endl;
+                      // We have the following case which doesn't preserve completeness:
+                      //    l = r \/ C     l = t \/ D
+                      //   ---------------------------
+                      //        r = t \/ D
+                      // where r > t and l = r > D.
+                      //
+                      // Reason:
+                      // the right premise should become redundant after application of FSD (since it is a simplification rule).
+                      // It is redundant, if it is a logical consequence of smaller clauses in the search space.
+                      // * It is easy to see that the right premise is a logical consequence of the conclusion and the left premise.
+                      // * Also, the right premise is larger than the conclusion, because l > r.
+                      // * However, we also need that the left premise is smaller than the right premise.
+                      //   Three cases for dlit (the literal in the right premise to be demodulated):
+                      //   1. L[l] in the right premise is not an equality literal. Then L[l] > l = r because equalities are smallest in the ordering.
+                      //   2. s[l] = t with s[l] ≠ l. Then s[l] > l (subterm property of simplification orderings).
+                      //                              Thus s[l] = t > l = r.  (multiset extension of ordering: { s[l], t } > { s[l] } > { l, r }, because s[l] > l > r)
+                      //   3. l = t in the right premise.
+                      //   3a. If r ≤ t, then l = r ≤ l = t.
+                      //   3b. Otherwise we have to perform the toplevel check. isMax iff l = r > D.
+                      //
+                      //   Now we have a literal L in the right premise such that L > l = r.
+                      //   We know that Cσ is a sub-multiset of D, thus C ≤ Cσ ≤ D.
+                      //
+                      //   What if
+                      //   l = r \/ L \/ P  ;  l = t \/ L \/ P \/ Q   and r > t ???
+                      continue;
                     }
                   }
+                }  // if (performToplevelCheck)
 
-                  newCl->setAge(cl->age());
-                  env.statistics->forwardSubsumptionDemodulations++;
+                Literal* newLit = EqHelper::replace(dlit, lhsS, rhsS);
+                ASS_EQ(ordering.compare(lhsS, rhsS), Ordering::GREATER);
+                ASS_EQ(ordering.compare(dlit, newLit), Ordering::GREATER);
 
-#if CHECK_FOR_MULTIPLE_RESULTS
-                  v_set<Literal*> newClSet;
-                  for (unsigned i = 0; i < newCl->length(); ++i) {
-                    newClSet.insert((*newCl)[i]);
-                  }
-                  auto ins_res = fsd_results.insert(newClSet);
-                  bool result_is_new = ins_res.second;
-                  fsd_result_count += 1;
-                  if (fsd_result_count == 1) {
-                    ASS(!fsd_first_mcl);
-                    ASS(!fsd_first_result);
-                    fsd_first_mcl = mcl;
-                    fsd_first_result = newCl;
-                  }
-                  if (fsd_result_count >= 2 && result_is_new) {
-                    if (fsd_result_count == 2) {
-                      std::cerr << "\n\n";
-                      std::cerr << "fsd_count = 1" << std::endl;
-                      std::cerr << "   mcl = " << fsd_first_mcl->toNiceString() << std::endl;
-                      std::cerr << "   cl  = " << cl->toNiceString() << std::endl;
-                      std::cerr << "   res = " << fsd_first_result->toNiceString() << std::endl;
-                    }
-                    std::cerr << "fsd_count = " << fsd_result_count << std::endl;
-                    std::cerr << "   mcl = " << mcl->toNiceString() << std::endl;
-                    std::cerr << "   cl  = " << cl->toNiceString() << std::endl;
-                    std::cerr << "   res = " << newCl->toNiceString() << std::endl;
-                  }
-#endif
+                if (EqHelper::isEqTautology(newLit)) {
+                  env.statistics->forwardSubsumptionDemodulationsToEqTaut++;
 
-                  // TODO:
-                  // If we continue here, we find a lot more inferences (but takes a long time; factor 2);
-                  // continue;
-
-                  // Return early to measure the impact of computation without affecting the search space
-                  // return false;
+                  // TODO: discuss this;
+                  // we might find another useful match after encountering an equality tautology,
+                  // so maybe we should continue here.
+                  // (After the other optimizations, this is no issue anymore for our oxford-fsd example.
+                  //  "FSD after FS" eliminated most of the equality tautologies.;
+                  //  the "dlit == eqLit" check eliminated the rest.)
+                  // NOTE:
+                  // Actually, when we get an equality tautology, it means the given clause can be deleted.
+                  // So it's actually good if we end up in this case.
 
                   premises = pvi(getSingletonIterator(mcl));
-                  replacement = newCl;
-                  // std::cerr << "\t FwSubsDem replacement: " << replacement->toNiceString() << std::endl;
-                  // std::cerr << "\t          for input cl: " << cl->toNiceString() << std::endl;
-                  // std::cerr << "\t               via mcl: " << mcl->toNiceString() << std::endl;
+                  replacement = nullptr;
+                  // Clause reduction was successful (=> return true),
+                  // but we don't set the replacement (because the result is a tautology and should be discarded)
                   return true;
-                } // if (lhs matches lhsS)
+                }
+
+                Inference* inference = new Inference2(Inference::FORWARD_SUBSUMPTION_DEMODULATION, cl, mcl);
+                Unit::InputType inputType = std::max(cl->inputType(), mcl->inputType());
+
+                Clause* newCl = new(cl->length()) Clause(cl->length(), inputType, inference);
+
+                for (unsigned i = 0; i < cl->length(); ++i) {
+                  if (i == dli) {
+                    (*newCl)[i] = newLit;
+                  } else {
+                    (*newCl)[i] = (*cl)[i];
+                  }
+                }
+
+                newCl->setAge(cl->age());
+                env.statistics->forwardSubsumptionDemodulations++;
+
+#if CHECK_FOR_MULTIPLE_RESULTS
+                v_set<Literal*> newClSet;
+                for (unsigned i = 0; i < newCl->length(); ++i) {
+                  newClSet.insert((*newCl)[i]);
+                }
+                auto ins_res = fsd_results.insert(newClSet);
+                bool result_is_new = ins_res.second;
+                fsd_result_count += 1;
+                if (fsd_result_count == 1) {
+                  ASS(!fsd_first_mcl);
+                  ASS(!fsd_first_result);
+                  fsd_first_mcl = mcl;
+                  fsd_first_result = newCl;
+                }
+                if (fsd_result_count >= 2 && result_is_new) {
+                  if (fsd_result_count == 2) {
+                    std::cerr << "\n\n";
+                    std::cerr << "fsd_count = 1" << std::endl;
+                    std::cerr << "   mcl = " << fsd_first_mcl->toNiceString() << std::endl;
+                    std::cerr << "   cl  = " << cl->toNiceString() << std::endl;
+                    std::cerr << "   res = " << fsd_first_result->toNiceString() << std::endl;
+                  }
+                  std::cerr << "fsd_count = " << fsd_result_count << std::endl;
+                  std::cerr << "   mcl = " << mcl->toNiceString() << std::endl;
+                  std::cerr << "   cl  = " << cl->toNiceString() << std::endl;
+                  std::cerr << "   res = " << newCl->toNiceString() << std::endl;
+                }
+#endif
+
+                // TODO:
+                // If we continue here, we find a lot more inferences (but takes a long time; factor 2);
+                // continue;
+
+                // Return early to measure the impact of computation without affecting the search space
+                // return false;
+
+                premises = pvi(getSingletonIterator(mcl));
+                replacement = newCl;
+                // std::cerr << "\t FwSubsDem replacement: " << replacement->toNiceString() << std::endl;
+                // std::cerr << "\t          for input cl: " << cl->toNiceString() << std::endl;
+                // std::cerr << "\t               via mcl: " << mcl->toNiceString() << std::endl;
+                return true;
               } // while (nvi.hasNext())
             } // for dli
           } // while (lhsIt.hasNext())
