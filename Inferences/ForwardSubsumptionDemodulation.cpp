@@ -156,32 +156,19 @@ bool ForwardSubsumptionDemodulation::perform(Clause* cl, Clause*& replacement, C
 {
   CALL("ForwardSubsumptionDemodulation::perform");
 
-  //     mcl                cl
-  // vvvvvvvvvv      vvvvvvvvvvvvvvvv
-  // eqLit         matched      /-- only look for a term to demodulate in this part!
-  // vvvvv           vv    vvvvvvvvvv
+  //                        cl
+  //                 vvvvvvvvvvvvvvvv
+  //     mcl       matched      /-- only look for a term to demodulate in this part!
+  // vvvvvvvvvv      vv    vvvvvvvvvv
+  // eqLit                  dlit
+  // vvvvv                 vvvvv
+  //
   // l = r \/ C      CΘ \/ L[lΘ] \/ D
   // --------------------------------
   //       CΘ \/ L[rΘ] \/ D
   //
-  // whenever lΘ > rΘ.
-  // also   l = r \/ C   <   CΘ \/ L[lΘ] \/ D    (to preserve completeness (redundancy))
-  //
-  //
-  // if l > r then lΘ > rΘ
-  //
-  // Pseudocode:
-  //
-  // Input: cl
-  //
-  // for each literal sqlit in cl:
-  //    for each clause mcl such that sqlit \in mclσ for some substitution σ:
-  //        for each equality literal eqLit in mcl:
-  //            for each substitution Θ such that (mcl \ {eqLit})Θ \subset cl:
-  //                for each lhs in DemodulationLHS(eqLit):
-  //                    for each term t in (cl \ mclΘ):
-  //                        if there is τ s.t. lhsΘτ == t
-  //                        then replace t in cl by rhsΘτ and return the modified clause.     // NOTE: all occurrences of t in the first literal of (cl\...) where t is found are replaced.
+  // whenever lΘ > rΘ
+  // and   l = r \/ C   <   CΘ \/ L[lΘ] \/ D    (s.t. the right premise is redundant after the inference)
 
   TimeCounter tc(TC_FORWARD_SUBSUMPTION_DEMODULATION);
 
@@ -209,14 +196,13 @@ bool ForwardSubsumptionDemodulation::perform(Clause* cl, Clause*& replacement, C
       SLQueryResult res = rit.next();
       Clause* mcl = res.clause;
 
-      ASS_NEQ(cl, mcl);  // this can't happen because cl isn't in the index yet, right?
-      ASS_GE(mcl->length(), 2);  // property of the index we use
+      ASS_NEQ(cl, mcl);  // this can't happen because cl isn't in the index yet
 
       if (mcl->hasAux()) {
         // we've already checked this clause
         continue;
       }
-      mcl->setAux(nullptr);  // we only need existence and don't care about the actual value
+      mcl->setAux(nullptr);
 
       if (!ColorHelper::compatible(cl->color(), mcl->color())) {
         continue;
@@ -224,8 +210,6 @@ bool ForwardSubsumptionDemodulation::perform(Clause* cl, Clause*& replacement, C
 
       // No multiset match possible if base is longer than instance
       if (mcl->length() > cl->length()) {
-        // static int mpc = 0;
-        // std::cerr << "prevented impossible matching " << ++mpc << std::endl;
         continue;
       }
 
@@ -298,7 +282,6 @@ bool ForwardSubsumptionDemodulation::perform(Clause* cl, Clause*& replacement, C
           if (!matcher.nextMatch()) {
             break;
           }
-          // std::cerr << "Subsumption (modulo eqLit) discovered! Now try to demodulate some term of cl in the unmatched literals." << std::endl;
 
           static v_unordered_set<Literal*> matchedAlts(16);
           matchedAlts.clear();
@@ -326,6 +309,7 @@ bool ForwardSubsumptionDemodulation::perform(Clause* cl, Clause*& replacement, C
             postMLMatchOrdered = (argOrder == Ordering::LESS) || (argOrder == Ordering::GREATER);
           }
 
+          // TODO: inline getDemodulationLHSIterator (it uses options for FwDem that don't apply here; and does checks that aren't necessary here)
           auto lhsIt = EqHelper::getDemodulationLHSIterator(eqLit, true, ordering, getOptions());
           while (lhsIt.hasNext()) {
             TermList lhs = lhsIt.next();
@@ -346,7 +330,11 @@ bool ForwardSubsumptionDemodulation::perform(Clause* cl, Clause*& replacement, C
 
             for (unsigned dli = 0; dli < cl->length(); ++dli) {
               Literal* dlit = (*cl)[dli];  // literal to be demodulated
-              // std::cerr << "Try to demodulate dlit = cl[" << dli << "]: " << dlit->toString() << std::endl;
+
+              // Only demodulate in literals that are not matched by the subsumption check
+              if (matchedAlts.find(dlit) != matchedAlts.end()) {
+                continue;
+              }
 
               // TODO: discuss
               if (dlit == eqLit) {
@@ -354,11 +342,16 @@ bool ForwardSubsumptionDemodulation::perform(Clause* cl, Clause*& replacement, C
                 // static int eqcnt = 0;
                 // ++eqcnt;
                 // std::cerr << "eqcnt = " << eqcnt << std::endl;
-                continue;
-              }
+                // continue;
 
-              if (matchedAlts.find(dlit) != matchedAlts.end()) {
-                continue;
+                // Actually:
+                // Whenever it is possible to derive an equality tautology,
+                // we should do it because it allows us to delete a clause
+                // TODO: redundancy should be fine here. in the worst case the clauses are equal, but then we can delete this one anyways.
+                env.statistics->forwardSubsumptionDemodulationsToEqTaut++;
+                premises = pvi(getSingletonIterator(mcl));
+                replacement = nullptr;
+                return true;
               }
 
               NonVariableIterator nvi(dlit);
