@@ -214,6 +214,7 @@ VK_OBJ= Kernel/Clause.o\
         Kernel/SpassLiteralSelector.o\
         Kernel/ELiteralSelector.o\
         Kernel/MLMatcher.o\
+        Kernel/MLMatcher2.o\
         Kernel/MLVariant.o\
         Kernel/Ordering.o\
         Kernel/Ordering_Equality.o\
