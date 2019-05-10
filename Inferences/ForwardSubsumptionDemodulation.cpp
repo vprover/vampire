@@ -287,6 +287,9 @@ bool ForwardSubsumptionDemodulation::perform(Clause* cl, Clause*& replacement, C
           // it might be better to have a vector of unmatched literals and iterate over that.
           // (also for toplevel redundancy check)
           // (can we extract these directly in the MLMatcher from the unmatched alts? => no, could have been excluded by the miniIndex already)
+          // => could start with a vector filled with "false"; in MLMatcher we save the index in the instance clause;
+          //    for these indices just set the vector to true.
+          //    Should be cheaper to create than the set, and also cheaper for lookup!
           static v_unordered_set<Literal*> matchedAlts(16);
           matchedAlts.clear();
           matcher.getMatchedAlts(matchedAlts);
@@ -339,25 +342,6 @@ bool ForwardSubsumptionDemodulation::perform(Clause* cl, Clause*& replacement, C
               if (matchedAlts.find(dlit) != matchedAlts.end()) {
                 continue;
               }
-
-              // TODO: discuss
-              // TODO: this is wrong though, because we have to take the variable bindings into account
-              // if (dlit == eqLit) {
-              //   // Only possible match would lead to an equality tautology => skip this literal
-              //   // static int eqcnt = 0;
-              //   // ++eqcnt;
-              //   // std::cerr << "eqcnt = " << eqcnt << std::endl;
-              //   // continue;
-              //
-              //   // Actually:
-              //   // Whenever it is possible to derive an equality tautology,
-              //   // we should do it because it allows us to delete a clause
-              //   // TODO: redundancy should be fine here. in the worst case the clauses are equal, but then we can delete this one anyways.
-              //   env.statistics->forwardSubsumptionDemodulationsToEqTaut++;
-              //   premises = pvi(getSingletonIterator(mcl));
-              //   replacement = nullptr;
-              //   return true;
-              // }
 
               NonVariableIterator nvi(dlit);
               while (nvi.hasNext()) {
