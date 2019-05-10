@@ -325,11 +325,39 @@ bool ForwardSubsumptionDemodulation::perform(Clause* cl, Clause*& replacement, C
             postMLMatchOrdered = (eqArgOrder == Ordering::LESS) || (eqArgOrder == Ordering::GREATER);
           }
 
-          // TODO: inline getDemodulationLHSIterator (it uses options for FwDem that don't apply here; and does checks that aren't necessary here)
-          //       Re-use eqArgOrder so we do not have to call the ordering again!
-          auto lhsIt = EqHelper::getDemodulationLHSIterator(eqLit, true, ordering, getOptions());
-          while (lhsIt.hasNext()) {
-            TermList lhs = lhsIt.next();
+          static v_vector<TermList> lhsVector;
+          lhsVector.clear();
+          {
+            TermList t0 = *eqLit->nthArgument(0);
+            TermList t1 = *eqLit->nthArgument(1);
+            switch (eqArgOrder) {
+              case Ordering::INCOMPARABLE:
+                ASS(!_preorderedOnly);  // would've skipped earlier already
+                if (t0.containsAllVariablesOf(t1)) {
+                  lhsVector.push_back(t0);
+                }
+                if (t1.containsAllVariablesOf(t0)) {
+                  lhsVector.push_back(t1);
+                }
+                break;
+              case Ordering::GREATER:
+              case Ordering::GREATER_EQ:
+                ASS(t0.containsAllVariablesOf(t1));
+                lhsVector.push_back(t0);
+                break;
+              case Ordering::LESS:
+              case Ordering::LESS_EQ:
+                ASS(t1.containsAllVariablesOf(t0));
+                lhsVector.push_back(t1);
+                break;
+              case Ordering::EQUAL:
+                //there should be no equality literals of equal terms
+              default:
+                ASSERTION_VIOLATION;
+            }
+          }
+
+          for (TermList lhs : lhsVector) {
             TermList rhs = EqHelper::getOtherEqualitySide(eqLit, lhs);
 
 #if VDEBUG
@@ -530,7 +558,7 @@ isRedundant:
                 return true;
               } // while (nvi.hasNext())
             } // for dli
-          } // while (lhsIt.hasNext())
+          } // for lhs
         } // for (numMatches)
       } // for eqi
     } // while (rit.hasNext)
