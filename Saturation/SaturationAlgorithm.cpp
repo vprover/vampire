@@ -592,6 +592,12 @@ void SaturationAlgorithm::addInputClause(Clause* cl)
   if (_opt.showForKarel()) {
     cout << "init: " << cl->number() << " isGoal: " << cl->isGoal() << " isTheory: " << isTheory
          << " SInE: " << cl->getInitialPriority() << endl;
+
+    if (isTheory) {
+      Formula* f = Formula::fromClause(cl);
+      cout << "tax: " << cl->number() << " " << TPTPPrinter::toString(f) << endl;
+      f->destroy();
+    }
   }
 
   if (_opt.sineToAge()) {
