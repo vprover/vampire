@@ -37,9 +37,10 @@ void ForwardSubsumptionDemodulation::attach(SaturationAlgorithm* salg)
   auto index_type = getOptions().forwardSubsumptionDemodulationUseSeparateIndex() ? FSD_SUBST_TREE : FW_SUBSUMPTION_SUBST_TREE;
   _index.request(salg->getIndexManager(), index_type);
 
-  _preorderedOnly = false;  // TODO: might add an option for this like in forward demodulation
-  _performRedundancyCheck = getOptions().demodulationRedundancyCheck();
+  _preorderedOnly = false;
+  _allowIncompleteness = false;
 }
+
 
 void ForwardSubsumptionDemodulation::detach()
 {
@@ -50,9 +51,17 @@ void ForwardSubsumptionDemodulation::detach()
 
 
 /**
- * A binder that consists of two maps, a base and an overlay.
+ * A binder that consists of two maps: a base and an overlay.
  * Lookup first checks the base map, then the overlay map.
  * New bindings are added to the overlay map.
+ *
+ * In FSD, the base bindings are extracted from the MLMatcher and correspond to the subsumption part,
+ * while the overlay bindings are from the demodulation part (i.e., from
+ * matching the lhs of the demodulation equality to the candidate term that
+ * might be simplified).
+ *
+ * This class implements the Binder interface as described in Kernel/Matcher.hpp,
+ * and the Applicator interface as described in Kernel/SubstHelper.hpp.
  */
 class OverlayBinder
 {
@@ -101,6 +110,7 @@ class OverlayBinder
 
     /// Direct access to base bindings.
     /// The returned map may only be modified if the overlay map is empty!
+    /// (this function is unfortunately necessary to be able to extract the base bindings from the MLMatcher without dynamic memory allocation)
     BindingsMap& base()
     {
       ASS(m_overlay.empty());
@@ -111,13 +121,6 @@ class OverlayBinder
     void reset() {
       m_overlay.clear();
     }
-
-    // /// Resets to the given base bindings
-    // void resetToBase(BindingsMap&& newBase)
-    // {
-    //   m_base = std::move(newBase);
-    //   m_overlay.clear();
-    // }
 
     // Makes objects of this class work as applicator for substitution
     // (as defined in Kernel/SubstHelper.hpp)
@@ -167,14 +170,17 @@ bool ForwardSubsumptionDemodulation::perform(Clause* cl, Clause*& replacement, C
   // --------------------------------
   //       CΘ \/ L[rΘ] \/ D
   //
-  // whenever lΘ > rΘ
-  // and   l = r \/ C   <   CΘ \/ L[lΘ] \/ D    (s.t. the right premise is redundant after the inference)
+  // where
+  // 1. lΘ > rΘ, and
+  // 2. l = r \/ C  <  CΘ \/ L[lΘ] \/ D   (to ensure the right premise is redundant after the inference)
+  //
+  // For condition 2, we check that l = r < M for some M in L \/ D.
 
   TimeCounter tc(TC_FORWARD_SUBSUMPTION_DEMODULATION);
 
   Ordering& ordering = _salg->getOrdering();
 
-  // Discards all previous aux values (so after this, hasAux() returns false for any clause).
+  // Discard all previous aux values (so after this, hasAux() returns false for any clause).
   Clause::requestAux();
   ON_SCOPE_EXIT( Clause::releaseAux(); );
 
@@ -191,49 +197,55 @@ bool ForwardSubsumptionDemodulation::perform(Clause* cl, Clause*& replacement, C
     v_set<v_set<Literal*>> fsd_results;
 #endif
 
+    /**
+     * Step 1: find candidate clauses for subsumption
+     */
     SLQueryResultIterator rit = _index->getGeneralizations(subsQueryLit, false, false);
     while (rit.hasNext()) {
       SLQueryResult res = rit.next();
-      Clause* mcl = res.clause;
+      Clause* mcl = res.clause;  // left premise of FSD
 
       ASS_NEQ(cl, mcl);  // this can't happen because cl isn't in the index yet
 
+      // (this check exists only to improve performance and does not affect correctness)
       if (mcl->hasAux()) {
         // we've already checked this clause
         continue;
       }
       mcl->setAux(nullptr);
 
-      if (!ColorHelper::compatible(cl->color(), mcl->color())) {
-        continue;
-      }
-
       // No multiset match possible if base is longer than instance
+      // (this check exists only to improve performance and does not affect correctness)
       if (mcl->length() > cl->length()) {
         continue;
       }
 
-      // Find a positive equality in mcl to use for demodulation
+      if (!ColorHelper::compatible(cl->color(), mcl->color())) {
+        continue;
+      }
+
+      /**
+       * Step 2: choose a positive equality in mcl to use for demodulation
+       */
       for (unsigned eqi = 0; eqi < mcl->length(); ++eqi) {
         Literal* eqLit = (*mcl)[eqi];  // Equality literal for demodulation
-        if (!eqLit->isEquality()) {
+        if (!eqLit->isEquality() || !eqLit->isPositive()) {
           continue;
         }
-        if (eqLit->isNegative()) {
-          continue;
-        }
-        ASS(eqLit->isEquality());
-        ASS(eqLit->isPositive());
 
         unsigned const eqSort = SortHelper::getEqualityArgumentSort(eqLit);
 
-        Ordering::Result argOrder = ordering.getEqualityArgumentOrder(eqLit);
-        bool preordered = (argOrder == Ordering::LESS) || (argOrder == Ordering::GREATER);
+        Ordering::Result eqArgOrder = ordering.getEqualityArgumentOrder(eqLit);
+        bool preordered = (eqArgOrder == Ordering::LESS) || (eqArgOrder == Ordering::GREATER);
         if (_preorderedOnly && !preordered) {
           continue;
         }
 
-        // Now we have to check if (mcl without eqLit) can be instantiated to some subset of cl
+        /**
+         * Step 3: check if mcl (without eqLit) can be instantiated to some subset of cl
+         */
+        // TODO: Merge ML-matching and choosing eqLit into one algorithm (see MLMatcher2)
+        //       (call that FSD version 2; maybe add an option to choose which we use)
         static v_vector<Literal*> baseLits;
         static v_vector<LiteralList*> alts;
         baseLits.clear();
@@ -298,33 +310,38 @@ bool ForwardSubsumptionDemodulation::perform(Clause* cl, Clause*& replacement, C
           binder.clear();
           matcher.getBindings(binder.base());
 
-          // Now we try to demodulate some term in an unmatched literal with eqLit.
-          // IMPORTANT: only look at literals that are not being matched to mcl (the rule is unsound otherwise)!
-          //
-          //     mcl                cl
-          // vvvvvvvvvv      vvvvvvvvvvvvvvvv
-          // eqLit         matched      /-- only look for a term to demodulate in this part!
-          // vvvvv           vv    vvvvvvvvvv
-          // l = r \/ C      CΘ \/ L[lΘ] \/ D
-          // --------------------------------
-          //       CΘ \/ L[rΘ] \/ D
+          /**
+           * Step 4: now we try to demodulate some term in an unmatched literal with eqLit.
+           *
+           * IMPORTANT: only look at literals that are not being matched to mcl (the rule is unsound otherwise)!
+           *
+           *       mcl                cl
+           *   vvvvvvvvvv      vvvvvvvvvvvvvvvv
+           *   eqLit         matched      /-- only look for a term to demodulate in this part!
+           *   vvvvv           vv    vvvvvvvvvv
+           *   l = r \/ C      CΘ \/ L[lΘ] \/ D
+           *   --------------------------------
+           *         CΘ \/ L[rΘ] \/ D
+           *
+           */
 
           bool postMLMatchOrdered = preordered;
           if (!preordered) {
-            Literal* eqLitS = binder.applyTo(eqLit);
-            auto argOrder = ordering.getEqualityArgumentOrder(eqLitS);
-            postMLMatchOrdered = (argOrder == Ordering::LESS) || (argOrder == Ordering::GREATER);
+            Literal* eqLitS0 = binder.applyTo(eqLit);  // 'S0' because this is not the final substitution...
+            eqArgOrder = ordering.getEqualityArgumentOrder(eqLitS0);
+            postMLMatchOrdered = (eqArgOrder == Ordering::LESS) || (eqArgOrder == Ordering::GREATER);
           }
 
           // TODO: inline getDemodulationLHSIterator (it uses options for FwDem that don't apply here; and does checks that aren't necessary here)
+          //       Re-use eqArgOrder so we do not have to call the ordering again!
           auto lhsIt = EqHelper::getDemodulationLHSIterator(eqLit, true, ordering, getOptions());
           while (lhsIt.hasNext()) {
             TermList lhs = lhsIt.next();
             TermList rhs = EqHelper::getOtherEqualitySide(eqLit, lhs);
 
 #if VDEBUG
-            if (preordered) {
-              if (argOrder == Ordering::LESS) {
+            if (postMLMatchOrdered) {
+              if (eqArgOrder == Ordering::LESS) {
                 ASS_EQ(rhs, *eqLit->nthArgument(0));
               } else {
                 ASS_EQ(rhs, *eqLit->nthArgument(1));
@@ -372,73 +389,93 @@ bool ForwardSubsumptionDemodulation::perform(Clause* cl, Clause*& replacement, C
                   continue;
                 }
 
-                // When dlit is an equality and lhsS is a top-level term in dlit,
-                // we need an additional check to make sure that mcl < cl
-                // (to ensure redundancy of cl after the inference is performed).
-                bool performToplevelCheck = _performRedundancyCheck && dlit->isEquality() && (lhsS == *dlit->nthArgument(0) || lhsS == *dlit->nthArgument(1));
-                if (performToplevelCheck) {
-                  //   lhsS=rhsS
-                  //    eqLitS          dlit
-                  //    vvvvv          vvvvv
-                  //    l = r \/ C     l = t \/ D
-                  //   ---------------------------
-                  //        r = t \/ D
+                // Redundancy Check
+                //
+                // FSD is a simplification rule, so we want the simplified
+                // premise (the right premise, cl) to be redundant after the
+                // inference.
+                //
+                // Three conditions need to be satisfied:
+                // 1. The premises (cl, mcl) must logically entail the conclusion,
+                // 2. cl must be larger than the conclusion, and
+                // 3. cl must be larger than the left premise mcl
+                //    (to be completely precise, after applying the substitution Θ to mcl, i.e. mclΘ < cl).
+                //
+                // Conditions 1 and 2 are quite obvious (for 2, recall that lhsS > rhsS).
+                // Condition 3 will be checked now.
+                //
+                // For perfomance reasons, we do not perform an exact check of mclΘ < cl.
+                // Using the notation from above, we already know that C <= CΘ for the subsumption part.
+                // If we can show that lΘ=rΘ < L[lΘ] \/ D, we can conclude that lΘ=rΘ \/ CΘ < L[lΘ] \/ C \/ D.
+                //                     ^^^^^   ^^^^^                            ^^^^^^^^^^^   ^^^^^^^^^^^^^^^
+                // (variable names:    eqLitS   dlit                                mclΘ             cl      )
+                //
+                // It is enough to find one literal M in L[lΘ] \/ D such that lΘ=rΘ < M.
+                //
+                // As an optimization, we first try to choose L as M because there are
+                // easy-to-check criteria whether lΘ=rΘ < L[lΘ] holds. This is true if
+                // one of the following holds:
+                // 1. L is not an equality (as non-equality literals are always larger than equalities).
+                // 2. L is s[lΘ] = t with s[lΘ] ≠ lΘ.
+                //    Then s[lΘ] > lΘ (due to the subterm property of simplification orderings),
+                //    and thus s[lΘ]=t > lΘ=rΘ.  (multiset extension of ordering: { s[lΘ], t } > { s[lΘ] } > { lΘ, rΘ }, because s[lΘ] > lΘ > rΘ)
+                // 3. L is lΘ = t, but t is larger that rΘ.    (TODO: in the code actually: rΘ LESS or LESS_EQ than t)
+                // If all these checks fail, we try to find a literal M in D such that lΘ=rΘ < M.
+                if (!_allowIncompleteness) {
+                  if (!dlit->isEquality()) {
+                    // non-equality literals are always larger than equality literals ==>  eqLitS < dlit
+                    goto isRedundant;
+                  }
+                  if (lhsS != *dlit->nthArgument(0) && lhsS != *dlit->nthArgument(1)) {
+                    // lhsS appears as argument to some function, e.g. f(lhsS) = t
+                    // from subterm property of simplification ordering we know that lhsS < f(lhsS) and thus eqLitS < dlit
+                    goto isRedundant;
+                  }
+                  // Now we are in the following situation:
                   //
-                  TermList other = EqHelper::getOtherEqualitySide(dlit, lhsS);   // t
-                  Ordering::Result tord = ordering.compare(rhsS, other);
-                  if (tord != Ordering::LESS && tord != Ordering::LESS_EQ) {
-                    Literal* eqLitS = binder.applyTo(eqLit);
-                    bool isMax = true;
-                    for (unsigned li2 = 0; li2 < cl->length(); li2++) {
-                      if (dli == li2) {
-                        continue;  // skip dlit (already checked with tord above)
-                      }
-                      Literal* lit2 = (*cl)[li2];
-                      if (matchedAlts.find(lit2) != matchedAlts.end()) {
-                        continue;  // skip matched literals
-                      }
-                      if (ordering.compare(eqLitS, lit2) == Ordering::LESS) {
-                        isMax = false;
-                        break;
-                      }
+                  //      eqLitS               dlit
+                  //    vvvvvvvvvvv          vvvvvvvv
+                  //    lhsS = rhsS \/ C     lhsS = t \/ CΘ \/ D
+                  //   ------------------------------------------
+                  //              rhsS = t \/ CΘ \/ D
+                  TermList t = EqHelper::getOtherEqualitySide(dlit, lhsS);
+                  ASS_NEQ(t, rhsS);  // otherwise, eqLitS == dlit; and forward subsumption should have deleted the right premise already
+                  Ordering::Result r_cmp_t = ordering.compare(rhsS, t);
+                  if (r_cmp_t == Ordering::LESS || r_cmp_t == Ordering::LESS_EQ) {
+                    ASS(r_cmp_t == Ordering::LESS);  // TODO really not sure why we need to allow LESS_EQ in the condition
+                    // rhsS < t implies eqLitS < dlit
+                    goto isRedundant;
+                  }
+                  // We could not show redundancy with dlit alone,
+                  // so now we have to look at the other literals of cl
+                  Literal* eqLitS = binder.applyTo(eqLit);  // TODO maybe it's faster to call Literal::create2(lhsS, rhsS)? we have the terms already... (add an assert just to be sure it's really the same)
+                  for (unsigned li2 = 0; li2 < cl->length(); li2++) {
+                    if (dli == li2) {
+                      continue;  // skip dlit (already checked with r_cmp_t above)
                     }
-                    if (isMax) {
-                      // std::cerr << "\ntoplevel check prevented something:" << std::endl;
-                      // std::cerr << "mcl:    " << mcl->toNiceString() << std::endl;
-                      // std::cerr << "eqLit:  " << eqLit->toString() << std::endl;
-                      // std::cerr << "cl:     " <<  cl->toNiceString() << std::endl;
-                      // std::cerr << "dlit:   " << dlit->toString() << std::endl;
-
-                      // We have the following case which doesn't preserve completeness:
-                      //    l = r \/ C     l = t \/ D
-                      //   ---------------------------
-                      //        r = t \/ D
-                      // where r > t and l = r > D.
-                      //
-                      // Reason:
-                      // the right premise should become redundant after application of FSD (since it is a simplification rule).
-                      // It is redundant, if it is a logical consequence of smaller clauses in the search space.
-                      // * It is easy to see that the right premise is a logical consequence of the conclusion and the left premise.
-                      // * Also, the right premise is larger than the conclusion, because l > r.
-                      // * However, we also need that the left premise is smaller than the right premise.
-                      //   Three cases for dlit (the literal in the right premise to be demodulated):
-                      //   1. L[l] in the right premise is not an equality literal. Then L[l] > l = r because equalities are smallest in the ordering.
-                      //   2. s[l] = t with s[l] ≠ l. Then s[l] > l (subterm property of simplification orderings).
-                      //                              Thus s[l] = t > l = r.  (multiset extension of ordering: { s[l], t } > { s[l] } > { l, r }, because s[l] > l > r)
-                      //   3. l = t in the right premise.
-                      //   3a. If r ≤ t, then l = r ≤ l = t.
-                      //   3b. Otherwise we have to perform the toplevel check. isMax iff l = r > D.
-                      //
-                      //   Now we have a literal L in the right premise such that L > l = r.
-                      //   We know that Cσ is a sub-multiset of D, thus C ≤ Cσ ≤ D.
-                      //
-                      //   What if
-                      //   l = r \/ L \/ P  ;  l = t \/ L \/ P \/ Q   and r > t ???
-                      continue;
+                    Literal* lit2 = (*cl)[li2];
+                    if (matchedAlts.find(lit2) != matchedAlts.end()) {
+                      continue;  // skip matched literals
+                    }
+                    if (ordering.compare(eqLitS, lit2) == Ordering::LESS) {  // TODO why do we only allow LESS here, while for dlit (above) we also allow LESS_EQ???
+                      // we found that eqLitS < lit2; and thus mcl < cl => after inference, cl is redundant
+                      goto isRedundant;
                     }
                   }
-                }  // if (performToplevelCheck)
+                  // cl might not be redundant after the inference, possibly leading to incompleteness => skip
+                  /*
+                  std::cerr << "\ntoplevel check prevented something:" << std::endl;
+                  std::cerr << "mcl:    " << mcl->toNiceString() << std::endl;
+                  std::cerr << "eqLit:  " << eqLit->toString() << std::endl;
+                  std::cerr << "cl:     " <<  cl->toNiceString() << std::endl;
+                  std::cerr << "dlit:   " << dlit->toString() << std::endl;  // */
+                  continue;
+                }
+isRedundant:
 
+                /**
+                 * Step 5: found application of FSD; now create the conclusion
+                 */
                 Literal* newLit = EqHelper::replace(dlit, lhsS, rhsS);
                 ASS_EQ(ordering.compare(lhsS, rhsS), Ordering::GREATER);
                 ASS_EQ(ordering.compare(dlit, newLit), Ordering::GREATER);
@@ -495,13 +532,6 @@ bool ForwardSubsumptionDemodulation::perform(Clause* cl, Clause*& replacement, C
                 }
 #endif
 
-                // TODO:
-                // If we continue here, we find a lot more inferences (but takes a long time; factor 2);
-                // continue;
-
-                // Return early to measure the impact of computation without affecting the search space
-                // return false;
-
                 premises = pvi(getSingletonIterator(mcl));
                 replacement = newCl;
                 // std::cerr << "\t FSD replacement: " << replacement->toNiceString() << std::endl;
@@ -512,11 +542,6 @@ bool ForwardSubsumptionDemodulation::perform(Clause* cl, Clause*& replacement, C
             } // for dli
           } // while (lhsIt.hasNext())
         } // for (numMatches)
-
-        // TODO: limiting here saves time but loses applications
-        // (40% less time and 75% less applications; so probably not a good trade-off)
-        // break;
-
       } // for eqi
     } // while (rit.hasNext)
   } // for (li)
