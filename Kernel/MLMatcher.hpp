@@ -100,6 +100,15 @@ class MLMatcher
     void getMatchedAlts(v_unordered_set<Literal*>& outAlts) const;
 
     /**
+     * After the function returns:
+     * outMatchedBitmap[i] == true iff instance[i] is matched by some literal of base
+     *                            (iff instance[i] is member of the set returned by getMatchedAlts())
+     *
+     * (the given vector will be cleared before operating on it)
+     */
+    void getMatchedAltsBitmap(v_vector<bool>& outMatchedBitmap) const;
+
+    /**
      * Returns the variable bindings due to the current match.
      * May only be called in a matched state (i.e., after nextMatch() has returned true).
      */

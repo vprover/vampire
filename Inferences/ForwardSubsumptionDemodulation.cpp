@@ -295,16 +295,9 @@ bool ForwardSubsumptionDemodulation::perform(Clause* cl, Clause*& replacement, C
             break;
           }
 
-          // TODO: instead of a set of matched literals,
-          // it might be better to have a vector of unmatched literals and iterate over that.
-          // (also for toplevel redundancy check)
-          // (can we extract these directly in the MLMatcher from the unmatched alts? => no, could have been excluded by the miniIndex already)
-          // => could start with a vector filled with "false"; in MLMatcher we save the index in the instance clause;
-          //    for these indices just set the vector to true.
-          //    Should be cheaper to create than the set, and also cheaper for lookup!
-          static v_unordered_set<Literal*> matchedAlts(16);
-          matchedAlts.clear();
-          matcher.getMatchedAlts(matchedAlts);
+          // isMatched[i] is true iff (*cl)[i] is matched my some literal in mcl (without eqLit)
+          static v_vector<bool> isMatched;
+          matcher.getMatchedAltsBitmap(isMatched);
 
           static OverlayBinder binder;
           binder.clear();
@@ -356,7 +349,7 @@ bool ForwardSubsumptionDemodulation::perform(Clause* cl, Clause*& replacement, C
               Literal* dlit = (*cl)[dli];  // literal to be demodulated
 
               // Only demodulate in literals that are not matched by the subsumption check
-              if (matchedAlts.find(dlit) != matchedAlts.end()) {
+              if (isMatched[dli]) {
                 continue;
               }
 
@@ -450,25 +443,22 @@ bool ForwardSubsumptionDemodulation::perform(Clause* cl, Clause*& replacement, C
                   // so now we have to look at the other literals of cl
                   Literal* eqLitS = binder.applyTo(eqLit);  // TODO maybe it's faster to call Literal::create2(lhsS, rhsS)? we have the terms already... (add an assert just to be sure it's really the same)
                   for (unsigned li2 = 0; li2 < cl->length(); li2++) {
-                    if (dli == li2) {
-                      continue;  // skip dlit (already checked with r_cmp_t above)
-                    }
-                    Literal* lit2 = (*cl)[li2];
-                    if (matchedAlts.find(lit2) != matchedAlts.end()) {
-                      continue;  // skip matched literals
-                    }
-                    if (ordering.compare(eqLitS, lit2) == Ordering::LESS) {  // TODO why do we only allow LESS here, while for dlit (above) we also allow LESS_EQ???
-                      // we found that eqLitS < lit2; and thus mcl < cl => after inference, cl is redundant
-                      goto isRedundant;
+                    // skip dlit (already checked with r_cmp_t above) and matched literals (i.e., CΘ)
+                    if (dli != li2 && !isMatched[li2]) {
+                      Literal* lit2 = (*cl)[li2];
+                      if (ordering.compare(eqLitS, lit2) == Ordering::LESS) {  // TODO why do we only allow LESS here, while for dlit (above) we also allow LESS_EQ???
+                        // we found that eqLitS < lit2; and thus mcl < cl => after inference, cl is redundant
+                        goto isRedundant;
+                      }
                     }
                   }
-                  // cl might not be redundant after the inference, possibly leading to incompleteness => skip
                   /*
-                  std::cerr << "\ntoplevel check prevented something:" << std::endl;
+                  std::cerr << "\nRedundancy check prevented something:" << std::endl;
                   std::cerr << "mcl:    " << mcl->toNiceString() << std::endl;
                   std::cerr << "eqLit:  " << eqLit->toString() << std::endl;
                   std::cerr << "cl:     " <<  cl->toNiceString() << std::endl;
                   std::cerr << "dlit:   " << dlit->toString() << std::endl;  // */
+                  // cl might not be redundant after the inference, possibly leading to incompleteness => skip
                   continue;
                 }
 isRedundant:
