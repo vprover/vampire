@@ -341,22 +341,23 @@ bool ForwardSubsumptionDemodulation::perform(Clause* cl, Clause*& replacement, C
               }
 
               // TODO: discuss
-              if (dlit == eqLit) {
-                // Only possible match would lead to an equality tautology => skip this literal
-                // static int eqcnt = 0;
-                // ++eqcnt;
-                // std::cerr << "eqcnt = " << eqcnt << std::endl;
-                // continue;
-
-                // Actually:
-                // Whenever it is possible to derive an equality tautology,
-                // we should do it because it allows us to delete a clause
-                // TODO: redundancy should be fine here. in the worst case the clauses are equal, but then we can delete this one anyways.
-                env.statistics->forwardSubsumptionDemodulationsToEqTaut++;
-                premises = pvi(getSingletonIterator(mcl));
-                replacement = nullptr;
-                return true;
-              }
+              // TODO: this is wrong though, because we have to take the variable bindings into account
+              // if (dlit == eqLit) {
+              //   // Only possible match would lead to an equality tautology => skip this literal
+              //   // static int eqcnt = 0;
+              //   // ++eqcnt;
+              //   // std::cerr << "eqcnt = " << eqcnt << std::endl;
+              //   // continue;
+              //
+              //   // Actually:
+              //   // Whenever it is possible to derive an equality tautology,
+              //   // we should do it because it allows us to delete a clause
+              //   // TODO: redundancy should be fine here. in the worst case the clauses are equal, but then we can delete this one anyways.
+              //   env.statistics->forwardSubsumptionDemodulationsToEqTaut++;
+              //   premises = pvi(getSingletonIterator(mcl));
+              //   replacement = nullptr;
+              //   return true;
+              // }
 
               NonVariableIterator nvi(dlit);
               while (nvi.hasNext()) {
