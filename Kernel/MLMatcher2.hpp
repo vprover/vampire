@@ -92,18 +92,21 @@ class MLMatcher2
     bool nextMatch();
 
     /**
-     * Returns the alts which are currently matched by some base literal.
+     * Returns a bitmap that indicates which alts are currently matched by some base literal.
      * May only be called in a matched state (i.e., after nextMatch() has returned true).
      * May only be called if the matcher was initialized with resolvedLit == nullptr.
+     *
+     * After the function returns:
+     * outMatchedBitmap[i] == true iff instance[i] is matched by some literal of base
+     *
+     * The given vector will be cleared before operating on it.
      */
-    v_unordered_set<Literal*> getMatchedAlts() const;
-    void getMatchedAlts(v_unordered_set<Literal*>& outAlts) const;
+    void getMatchedAltsBitmap(v_vector<bool>& outMatchedBitmap) const;
 
     /**
      * Returns the variable bindings due to the current match.
      * May only be called in a matched state (i.e., after nextMatch() has returned true).
      */
-    v_unordered_map<unsigned, TermList> getBindings() const;
     void getBindings(v_unordered_map<unsigned, TermList>& outBindings) const;
 
     // Disallow copy because the internal implementation still uses pointers to the underlying storage and it seems hard to untangle that.
@@ -119,10 +122,10 @@ class MLMatcher2
     std::unique_ptr<Impl> m_impl;
 
   public:
-    /// Helper function for compatibility to previous code. It works with a shared static instance of MLMatcher2::Impl.
+    /// Helper function for compatibility to previous code. It uses a shared static instance of MLMatcher2::Impl.
     static bool canBeMatched(Literal* baseLits[], unsigned baseLen, Clause* instance, LiteralList* alts[], Literal* resolvedLit, bool multiset);
 
-    /// Helper function for compatibility to previous code. It works with a shared static instance of MLMatcher2::Impl.
+    /// Helper function for compatibility to previous code. It uses a shared static instance of MLMatcher2::Impl.
     static bool canBeMatched(Clause* base,                          Clause* instance, LiteralList* alts[], Literal* resolvedLit)
     {
       return canBeMatched(base->literals(), base->length(), instance, alts, resolvedLit, resolvedLit == nullptr);
