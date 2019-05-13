@@ -742,6 +742,12 @@ public:
     POSITION = 5
   };
 
+  enum class FSD : unsigned int {
+    OFF = 0,
+    V1 = 1,
+    V2 = 2
+  };
+
   enum class AdjustFSIndexForFSD : unsigned int {
     WHEN_USED_BY_FSD = 0,
     ALWAYS = 1,
@@ -1926,7 +1932,7 @@ public:
   LiteralComparisonMode literalComparisonMode() const { return _literalComparisonMode.actualValue; }
   bool forwardSubsumptionResolution() const { return _forwardSubsumptionResolution.actualValue; }
   //void setForwardSubsumptionResolution(bool newVal) { _forwardSubsumptionResolution = newVal; }
-  bool forwardSubsumptionDemodulation() const { return _forwardSubsumptionDemodulation.actualValue; }
+  FSD forwardSubsumptionDemodulation() const { return _forwardSubsumptionDemodulation.actualValue; }
   unsigned forwardSubsumptionDemodulationMaxMatches() const { return _forwardSubsumptionDemodulationMaxMatches.actualValue; }
   AdjustFSIndexForFSD forwardSubsumptionDemodulationAdjustFSIndexForFSD() const { return _forwardSubsumptionDemodulationAdjustFSIndexForFSD.actualValue; }
   bool forwardSubsumptionDemodulationUseSeparateIndex() const { return _forwardSubsumptionDemodulationUseSeparateIndex.actualValue; }
@@ -2278,7 +2284,7 @@ private:
   BoolOptionValue _forwardLiteralRewriting;
   BoolOptionValue _forwardSubsumption;
   BoolOptionValue _forwardSubsumptionResolution;
-  BoolOptionValue _forwardSubsumptionDemodulation;
+  ChoiceOptionValue<FSD> _forwardSubsumptionDemodulation;
   UnsignedOptionValue _forwardSubsumptionDemodulationMaxMatches;
   ChoiceOptionValue<AdjustFSIndexForFSD> _forwardSubsumptionDemodulationAdjustFSIndexForFSD;
   BoolOptionValue _forwardSubsumptionDemodulationUseSeparateIndex;

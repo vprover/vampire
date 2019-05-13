@@ -156,7 +156,7 @@ Index* IndexManager::create(IndexType t)
     env.options->forwardSubsumptionDemodulationAdjustFSIndexForFSD() == Options::AdjustFSIndexForFSD::ALWAYS
     || (env.options->forwardSubsumptionDemodulationAdjustFSIndexForFSD() == Options::AdjustFSIndexForFSD::WHEN_USED_BY_FSD
         && env.options->forwardSubsumptionDemodulationUseSeparateIndex() == false
-        && env.options->forwardSubsumptionDemodulation());
+        && env.options->forwardSubsumptionDemodulation() != Options::FSD::OFF);
 
   switch(t) {
   case GENERATING_SUBST_TREE:
