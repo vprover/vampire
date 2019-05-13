@@ -276,7 +276,7 @@ bool ForwardSubsumptionDemodulation::perform(Clause* cl, Clause*& replacement, C
         // Ensure cleanup of LiteralLists
         ON_SCOPE_EXIT({
           for (LiteralList* ll : alts) {
-              LiteralList::destroy(ll);
+            LiteralList::destroy(ll);
           }
         });
 
