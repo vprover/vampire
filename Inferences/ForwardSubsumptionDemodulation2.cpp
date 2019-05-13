@@ -7,7 +7,7 @@
 #include "Kernel/ColorHelper.hpp"
 #include "Kernel/EqHelper.hpp"
 #include "Kernel/Inference.hpp"
-#include "Kernel/MLMatcher.hpp"
+#include "Kernel/MLMatcher2.hpp"
 #include "Kernel/Matcher.hpp"
 #include "Kernel/Ordering.hpp"
 #include "Kernel/Signature.hpp"
@@ -224,28 +224,9 @@ bool ForwardSubsumptionDemodulation2::perform(Clause* cl, Clause*& replacement, 
         continue;
       }
 
-      /**
-       * Step 2: choose a positive equality in mcl to use for demodulation
-       */
-      for (unsigned eqi = 0; eqi < mcl->length(); ++eqi) {
-        Literal* eqLit = (*mcl)[eqi];  // Equality literal for demodulation
-        if (!eqLit->isEquality() || !eqLit->isPositive()) {
-          continue;
-        }
-
-        unsigned const eqSort = SortHelper::getEqualityArgumentSort(eqLit);
-
-        Ordering::Result eqArgOrder = ordering.getEqualityArgumentOrder(eqLit);
-        bool preordered = (eqArgOrder == Ordering::LESS) || (eqArgOrder == Ordering::GREATER);
-        if (_preorderedOnly && !preordered) {
-          continue;
-        }
-
         /**
-         * Step 3: check if mcl (without eqLit) can be instantiated to some subset of cl
+         * Step 2: choose a positive equality in mcl to use for demodulation and try to instantiate the rest to some subset of cl
          */
-        // TODO: Merge ML-matching and choosing eqLit into one algorithm (see MLMatcher2)
-        //       (call that FSD version 2; maybe add an option to choose which we use)
         static v_vector<Literal*> baseLits;
         static v_vector<LiteralList*> alts;
         baseLits.clear();
@@ -255,22 +236,20 @@ bool ForwardSubsumptionDemodulation2::perform(Clause* cl, Clause*& replacement, 
         ASS_EQ(baseLits.size(), 0);
         ASS_EQ(alts.size(), 0);
         for (unsigned mi = 0; mi < mcl->length(); ++mi) {
-          if (mi != eqi) {
-            Literal* base = (*mcl)[mi];
-            baseLits.push_back(base);
+          Literal* base = (*mcl)[mi];
+          baseLits.push_back(base);
 
-            LiteralList* l = nullptr;
+          LiteralList* l = nullptr;
 
-            // TODO: order alternatives, either smaller to larger or larger to smaller, or unordered
-            // to do this, can we simply order the literals inside the miniIndex? (in each equivalence class w.r.t. literal header)
-            LiteralMiniIndex::InstanceIterator instIt(miniIndex, base, false);
-            while (instIt.hasNext()) {
-              Literal* matched = instIt.next();
-              LiteralList::push(matched, l);
-            }
-
-            alts.push_back(l);
+          // TODO: order alternatives, either smaller to larger or larger to smaller, or unordered
+          // to do this, can we simply order the literals inside the miniIndex? (in each equivalence class w.r.t. literal header)
+          LiteralMiniIndex::InstanceIterator instIt(miniIndex, base, false);
+          while (instIt.hasNext()) {
+            Literal* matched = instIt.next();
+            LiteralList::push(matched, l);
           }
+
+          alts.push_back(l);
         }
         ASS_GE(baseLits.size(), 1);
         ASS_EQ(baseLits.size(), alts.size());
@@ -282,8 +261,8 @@ bool ForwardSubsumptionDemodulation2::perform(Clause* cl, Clause*& replacement, 
           }
         });
 
-        static MLMatcher matcher;
-        matcher.init(baseLits.data(), baseLits.size(), cl, alts.data(), true);
+        static MLMatcher2 matcher;
+        matcher.init(baseLits.data(), baseLits.size(), cl, alts.data());
 
         static unsigned const maxMatches =
           getOptions().forwardSubsumptionDemodulationMaxMatches() == 0
@@ -295,6 +274,25 @@ bool ForwardSubsumptionDemodulation2::perform(Clause* cl, Clause*& replacement, 
             break;
           }
 
+          Literal* eqLit = matcher.getEqualityForDemodulation();
+          if (!eqLit) {
+            std::cerr << "found subsumption!" << std::endl;
+            ASSERTION_VIOLATION;  // this case should have been handled by forward subsumption
+            // TODO:
+            // remove assertion and just perform the deletion here.
+            // this case might occur if FSD is enabled but regular forward subsumption is not.
+          }
+          ASS(eqLit->isEquality());
+          ASS(eqLit->isPositive());
+
+          unsigned const eqSort = SortHelper::getEqualityArgumentSort(eqLit);
+
+          Ordering::Result eqArgOrder = ordering.getEqualityArgumentOrder(eqLit);
+          bool preordered = (eqArgOrder == Ordering::LESS) || (eqArgOrder == Ordering::GREATER);
+          if (_preorderedOnly && !preordered) {
+            continue;
+          }
+
           // isMatched[i] is true iff (*cl)[i] is matched my some literal in mcl (without eqLit)
           static v_vector<bool> isMatched;
           matcher.getMatchedAltsBitmap(isMatched);
@@ -304,7 +302,7 @@ bool ForwardSubsumptionDemodulation2::perform(Clause* cl, Clause*& replacement, 
           matcher.getBindings(binder.base());
 
           /**
-           * Step 4: now we try to demodulate some term in an unmatched literal with eqLit.
+           * Step 3: now we try to demodulate some term in an unmatched literal with eqLit.
            *
            * IMPORTANT: only look at literals that are not being matched to mcl (the rule is unsound otherwise)!
            *
@@ -492,7 +490,7 @@ bool ForwardSubsumptionDemodulation2::perform(Clause* cl, Clause*& replacement, 
 isRedundant:
 
                 /**
-                 * Step 5: found application of FSD; now create the conclusion
+                 * Step 4: found application of FSD; now create the conclusion
                  */
                 Literal* newLit = EqHelper::replace(dlit, lhsS, rhsS);
                 ASS_EQ(ordering.compare(lhsS, rhsS), Ordering::GREATER);
@@ -560,7 +558,6 @@ isRedundant:
             } // for dli
           } // for lhs
         } // for (numMatches)
-      } // for eqi
     } // while (rit.hasNext)
   } // for (li)
 

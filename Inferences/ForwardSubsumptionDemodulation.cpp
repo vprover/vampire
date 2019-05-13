@@ -244,8 +244,6 @@ bool ForwardSubsumptionDemodulation::perform(Clause* cl, Clause*& replacement, C
         /**
          * Step 3: check if mcl (without eqLit) can be instantiated to some subset of cl
          */
-        // TODO: Merge ML-matching and choosing eqLit into one algorithm (see MLMatcher2)
-        //       (call that FSD version 2; maybe add an option to choose which we use)
         static v_vector<Literal*> baseLits;
         static v_vector<LiteralList*> alts;
         baseLits.clear();
