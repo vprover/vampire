@@ -389,12 +389,8 @@ class MLMatcher::Impl final
     void init(Literal** baseLits, unsigned baseLen, Clause* instance, LiteralList** alts, Literal* resolvedLit, bool multiset);
     bool nextMatch();
 
-    v_unordered_set<Literal*> getMatchedAlts() const;
-    void getMatchedAlts(v_unordered_set<Literal*>& outAlts) const;
-
     void getMatchedAltsBitmap(v_vector<bool>& outMatchedBitmap) const;
 
-    v_unordered_map<unsigned, TermList> getBindings() const;
     void getBindings(v_unordered_map<unsigned, TermList>& outBindings) const;
 
     // Disallow copy and move because the internal implementation still uses pointers to the underlying storage and it seems hard to untangle that.
@@ -667,37 +663,6 @@ bool MLMatcher::Impl::nextMatch()
 }
 
 
-v_unordered_set<Literal*> MLMatcher::Impl::getMatchedAlts() const
-{
-  MatchingData const* const md = &s_matchingData;
-
-  v_unordered_set<Literal*> matchedAlts;
-  matchedAlts.reserve(md->len);
-  getMatchedAlts(matchedAlts);
-  return matchedAlts;
-}
-
-
-void MLMatcher::Impl::getMatchedAlts(v_unordered_set<Literal*>& outAlts) const
-{
-  MatchingData const* const md = &s_matchingData;
-
-  // We cannot extract the matched alts if resolvedLit is set
-  // because in that case getAltRecordIndex will always return 0 or 1.
-  // See createLiteralBindings(), where this value is set up.
-  ASS(!md->resolvedLit);
-
-  ASS(outAlts.empty());
-
-  for (unsigned bi = 0; bi < md->len; ++bi) {
-    unsigned alti = md->nextAlts[bi] - 1;
-    unsigned i = md->getAltRecordIndex(bi, alti);
-    Literal* matchedAlt = (*md->instance)[i];
-    outAlts.insert(matchedAlt);
-  }
-}
-
-
 void MLMatcher::Impl::getMatchedAltsBitmap(v_vector<bool>& outMatchedBitmap) const
 {
   MatchingData const* const md = &s_matchingData;
@@ -716,14 +681,6 @@ void MLMatcher::Impl::getMatchedAltsBitmap(v_vector<bool>& outMatchedBitmap) con
     outMatchedBitmap[i] = true;
   }
   // outMatchedBitmap[i] == true iff instance[i] is matched by some literal of base
-}
-
-
-v_unordered_map<unsigned, TermList> MLMatcher::Impl::getBindings() const
-{
-  v_unordered_map<unsigned, TermList> bindings;
-  getBindings(bindings);
-  return bindings;
 }
 
 
@@ -775,28 +732,10 @@ bool MLMatcher::nextMatch()
   return m_impl->nextMatch();
 }
 
-v_unordered_set<Literal*> MLMatcher::getMatchedAlts() const
-{
-  ASS(m_impl);
-  return m_impl->getMatchedAlts();
-}
-
-void MLMatcher::getMatchedAlts(v_unordered_set<Literal*>& outAlts) const
-{
-  ASS(m_impl);
-  m_impl->getMatchedAlts(outAlts);
-}
-
 void MLMatcher::getMatchedAltsBitmap(v_vector<bool>& outMatchedBitmap) const
 {
   ASS(m_impl);
   m_impl->getMatchedAltsBitmap(outMatchedBitmap);
-}
-
-v_unordered_map<unsigned, TermList> MLMatcher::getBindings() const
-{
-  ASS(m_impl);
-  return m_impl->getBindings();
 }
 
 void MLMatcher::getBindings(v_unordered_map<unsigned, TermList>& outBindings) const
