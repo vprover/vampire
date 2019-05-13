@@ -58,7 +58,7 @@ typedef DHMap<unsigned,unsigned, IdentityHash> UUMap;
 struct ArrayStoringBinder
 {
   ArrayStoringBinder(TermList* arr, UUMap& v2pos)
-  : _arr(arr), _v2pos(v2pos) {}
+    : _arr(arr), _v2pos(v2pos) {}
 
   bool bind(unsigned var, TermList term)
   {
@@ -108,30 +108,30 @@ bool createLiteralBindings(Literal* baseLit, LiteralList* alts, Clause* instCl, 
     if(alit->isEquality()) {
       //we must try both possibilities
       if(MatchingUtils::matchArgs(baseLit,alit)) {
-	ArrayStoringBinder binder(altBindingData, variablePositions);
-	MatchingUtils::matchArgs(baseLit,alit,binder);
-	*altBindingPtrs=altBindingData;
-	altBindingPtrs++;
-	altBindingData+=numVars;
+        ArrayStoringBinder binder(altBindingData, variablePositions);
+        MatchingUtils::matchArgs(baseLit,alit,binder);
+        *altBindingPtrs=altBindingData;
+        altBindingPtrs++;
+        altBindingData+=numVars;
         // add index of the literal in instance clause at the end of the binding sequence
         new(altBindingData++) TermList((size_t)instCl->getLiteralPosition(alit));
       }
       if(MatchingUtils::matchReversedArgs(baseLit, alit)) {
-	ArrayStoringBinder binder(altBindingData, variablePositions);
-	MatchingUtils::matchTerms(*baseLit->nthArgument(0),*alit->nthArgument(1),binder);
-	MatchingUtils::matchTerms(*baseLit->nthArgument(1),*alit->nthArgument(0),binder);
+        ArrayStoringBinder binder(altBindingData, variablePositions);
+        MatchingUtils::matchTerms(*baseLit->nthArgument(0),*alit->nthArgument(1),binder);
+        MatchingUtils::matchTerms(*baseLit->nthArgument(1),*alit->nthArgument(0),binder);
 
-	*altBindingPtrs=altBindingData;
-	altBindingPtrs++;
-	altBindingData+=numVars;
+        *altBindingPtrs=altBindingData;
+        altBindingPtrs++;
+        altBindingData+=numVars;
         // add index of the literal in instance clause at the end of the binding sequence
         new(altBindingData++) TermList((size_t)instCl->getLiteralPosition(alit));
       }
 
     } else {
       if(numVars) {
-	ArrayStoringBinder binder(altBindingData, variablePositions);
-	ALWAYS(MatchingUtils::matchArgs(baseLit,alit,binder));
+        ArrayStoringBinder binder(altBindingData, variablePositions);
+        ALWAYS(MatchingUtils::matchArgs(baseLit,alit,binder));
       }
 
       *altBindingPtrs=altBindingData;
@@ -199,7 +199,7 @@ struct MatchingData {
 
     while(iinfo->first!=-1) {
       if(i1Bindings[iinfo->first]!=i2Bindings[iinfo->second]) {
-	return false;
+        return false;
       }
       iinfo++;
     }
@@ -213,22 +213,22 @@ struct MatchingData {
     TermList* curBindings=altBindings[bIndex][altIndex];
     for(unsigned i=bIndex+1; i<len; i++) {
       if(!isInitialized(i)) {
-	break;
+        break;
       }
       pair<int,int>* iinfo=getIntersectInfo(bIndex, i);
       unsigned remAlts=remaining->get(i,bIndex);
 
       if(iinfo->first!=-1) {
-	for(unsigned ai=0;ai<remAlts;ai++) {
-	  if(!compatible(bIndex,curBindings,i,ai,iinfo)) {
-	    remAlts--;
-	    std::swap(altBindings[i][ai], altBindings[i][remAlts]);
-	    ai--;
-	  }
-	}
+        for(unsigned ai=0;ai<remAlts;ai++) {
+          if(!compatible(bIndex,curBindings,i,ai,iinfo)) {
+            remAlts--;
+            std::swap(altBindings[i][ai], altBindings[i][remAlts]);
+            ai--;
+          }
+        }
       }
       if(remAlts==0) {
-	return false;
+        return false;
       }
       remaining->set(i,bIndex+1,remAlts);
     }
@@ -262,9 +262,9 @@ struct MatchingData {
       while(b2vn!=b2vnStop && *b1vn>*b2vn) { b2vn++; b2VarIndex++; }
       if(b2vn==b2vnStop) { break; }
       if(*b1vn==*b2vn) {
-	intersectionStorage->first=b1VarIndex;
-	intersectionStorage->second=b2VarIndex;
-	intersectionStorage++;
+        intersectionStorage->first=b1VarIndex;
+        intersectionStorage->second=b2VarIndex;
+        intersectionStorage++;
 
         b1vn++; b1VarIndex++;
         b2vn++; b2VarIndex++;
@@ -294,13 +294,13 @@ struct MatchingData {
 
       unsigned altCnt=altBindingPtrStorage-altBindings[bIndex];
       if(altCnt==0) {
-	return NO_ALTERNATIVE;
+        return NO_ALTERNATIVE;
       }
       remaining->set(bIndex, 0, altCnt);
 
       unsigned remAlts=0;
       for(unsigned pbi=0;pbi<bIndex;pbi++) { //pbi ~ previous base index
-	pair<int,int>* iinfo=getIntersectInfo(pbi, bIndex);
+        pair<int,int>* iinfo=getIntersectInfo(pbi, bIndex);
         remAlts=remaining->get(bIndex, pbi);
 
         if(iinfo->first!=-1) {
@@ -450,7 +450,7 @@ void MLMatcher2::Impl::initMatchingData(Literal** baseLits0, unsigned baseLen, C
     while(ait.hasNext()) {
       currAltCnt++;
       if(ait.next()->commutative()) {
-	currAltCnt++;
+        currAltCnt++;
       }
     }
     altCnt += currAltCnt;
@@ -460,22 +460,22 @@ void MLMatcher2::Impl::initMatchingData(Literal** baseLits0, unsigned baseLen, C
     ASS_LE(singleAlts, i);
     if(currAltCnt==0) {
       if(zeroAlts!=i) {
-	if(singleAlts!=zeroAlts) {
+        if(singleAlts!=zeroAlts) {
           swapLits(singleAlts, zeroAlts);
-	}
+        }
         swapLits(i, zeroAlts);
-	if(mostDistVarsLit==singleAlts) {
-	  mostDistVarsLit=i;
-	}
+        if(mostDistVarsLit==singleAlts) {
+          mostDistVarsLit=i;
+        }
       }
       zeroAlts++;
       singleAlts++;
     } else if (currAltCnt==1) {
       if(singleAlts!=i) {
         swapLits(i, singleAlts);
-	if(mostDistVarsLit==singleAlts) {
-	  mostDistVarsLit=i;
-	}
+        if(mostDistVarsLit==singleAlts) {
+          mostDistVarsLit=i;
+        }
       }
       singleAlts++;
     } else if(i>0 && mostDistVarsCnt<distVars) {
