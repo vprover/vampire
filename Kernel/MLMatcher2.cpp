@@ -156,6 +156,7 @@ struct MatchingData {
   TermList*** altBindings;
   TriangularArray<unsigned>* remaining;
   unsigned* nextAlts;
+  unsigned eqLitForDemodulation;  // bases[eqLitForDemodulation] is the literal selected for demodulation; 0xFFFFFFFF if none has been selected
 
   TriangularArray<pair<int,int>* >* intersections;
 
@@ -294,7 +295,21 @@ struct MatchingData {
 
       unsigned altCnt=altBindingPtrStorage-altBindings[bIndex];
       if(altCnt==0) {
-        return NO_ALTERNATIVE;
+        // No matching alternative at all
+        if (bases[bIndex]->isEquality()) {
+          // but for equalities, we may be able to select it for demodulation
+          for(unsigned i = 0; i <= bIndex; i++) {
+            remaining->set(bIndex, i, 0);  // TODO check if necessary (and correct...); we need at least remaining->set(bIndex,bIndex,0);
+          }
+          if (eqLitForDemodulation < bIndex) {
+            // if a previous equality has already been selected (eqForDemodulation < bIndex), we can't select the current one.
+            return MUST_BACKTRACK;
+          } else {
+            return OK;
+          }
+        } else {
+          return NO_ALTERNATIVE;
+        }
       }
       remaining->set(bIndex, 0, altCnt);
 
@@ -347,6 +362,8 @@ class MLMatcher2::Impl final
 
     void init(Literal** baseLits, unsigned baseLen, Clause* instance, LiteralList** alts);
     bool nextMatch();
+
+    Literal* getEqualityForDemodulation() const;
 
     void getMatchedAltsBitmap(v_vector<bool>& outMatchedBitmap) const;
 
@@ -453,8 +470,15 @@ void MLMatcher2::Impl::initMatchingData(Literal** baseLits0, unsigned baseLen, C
         currAltCnt++;
       }
     }
+
+    // unsigned currAltStorageCnt = currAltCnt;
+    // if (s_baseLits[i]->isEquality()) {
+    //   // equality literals from base can be selected for demodulation
+    //   currAltStorageCnt += 1;
+    // }
+
     altCnt += currAltCnt;
-    altBindingsCnt += (distVars+1)*(currAltCnt+2);
+    altBindingsCnt += (distVars+1)*currAltCnt;
 
     ASS_LE(zeroAlts, singleAlts);
     ASS_LE(singleAlts, i);
@@ -500,10 +524,10 @@ void MLMatcher2::Impl::initMatchingData(Literal** baseLits0, unsigned baseLen, C
   s_matchingData.nextAlts=s_nextAlts.array();
   s_matchingData.intersections=&s_intersections;
 
-
   s_matchingData.bases=s_baseLits.array();
   s_matchingData.alts=s_altsArr.array();
   s_matchingData.instance=instance;
+  s_matchingData.eqLitForDemodulation = 0xFFFFFFFF;
 
   s_matchingData.boundVarNumStorage=s_boundVarNumData.array();
   s_matchingData.altBindingPtrStorage=s_altBindingPtrs.array();
@@ -570,24 +594,39 @@ bool MLMatcher2::Impl::nextMatch()
 
     if (md->nextAlts[s_currBLit] < maxAlt) {
       // Got a suitable alternative in nextAlt
-      unsigned matchRecordIndex=md->getAltRecordIndex(s_currBLit, md->nextAlts[s_currBLit]);
+      // bases[s_currBLit] is matched to alternative instance[matchRecordIndex]
+
+      // Unassign existing match records for this level
       for (unsigned i = 0; i < s_matchRecord.size(); i++) {
         if (s_matchRecord[i] == s_currBLit) {
-          s_matchRecord[i]=0xFFFFFFFF;
+          s_matchRecord[i] = 0xFFFFFFFF;
         }
       }
-      if (s_matchRecord[matchRecordIndex]>s_currBLit) {
-        s_matchRecord[matchRecordIndex]=s_currBLit;
-      }
+      // Set new match record (match record content is the base index for each instance index)
+      unsigned matchRecordIndex = md->getAltRecordIndex(s_currBLit, md->nextAlts[s_currBLit]);
+      ASS_G(s_matchRecord[matchRecordIndex], s_currBLit);  // new match record cannot be set already
+      s_matchRecord[matchRecordIndex] = s_currBLit;
+
       md->nextAlts[s_currBLit]++;
-      s_currBLit++;
-      if(s_currBLit == md->len) { break; }
-      md->nextAlts[s_currBLit]=0;
+      s_currBLit++;  // go to next level
+      if (s_currBLit == md->len) { break; }  // full match
+      md->nextAlts[s_currBLit] = 0;
+      if (md->eqLitForDemodulation == s_currBLit) { md->eqLitForDemodulation = 0xFFFFFFFF; }
     } else {
-      // No alt left for currBLit, backtrack
+      // No alt left for currBLit
       ASS_GE(md->nextAlts[s_currBLit], maxAlt);
-      if(s_currBLit==0) { return false; }
-      s_currBLit--;
+
+      if (md->bases[s_currBLit]->isEquality() && md->eqLitForDemodulation > s_currBLit) {
+        // Select current base literal as equality for demodulation
+        md->eqLitForDemodulation = s_currBLit;
+        s_currBLit++;  // go to next level
+        if (s_currBLit == md->len) { break; }  // full match
+        md->nextAlts[s_currBLit] = 0;
+      } else {
+        // Backtrack
+        if (s_currBLit == 0) { return false; }
+        s_currBLit--;
+      }
     }
 
     s_counter++;
@@ -604,6 +643,17 @@ bool MLMatcher2::Impl::nextMatch()
   return true;
 }
 
+Literal* MLMatcher2::Impl::getEqualityForDemodulation() const
+{
+  MatchingData const* const md = &s_matchingData;
+
+  if (md->eqLitForDemodulation > md->len) {
+    ASS_EQ(md->eqLitForDemodulation, 0xFFFFFFFF);
+    return nullptr;
+  } else {
+    return md->bases[md->eqLitForDemodulation];
+  }
+}
 
 void MLMatcher2::Impl::getMatchedAltsBitmap(v_vector<bool>& outMatchedBitmap) const
 {
@@ -664,6 +714,12 @@ bool MLMatcher2::nextMatch()
 {
   ASS(m_impl);
   return m_impl->nextMatch();
+}
+
+Literal* MLMatcher2::getEqualityForDemodulation() const
+{
+  ASS(m_impl);
+  return m_impl->getEqualityForDemodulation();
 }
 
 void MLMatcher2::getMatchedAltsBitmap(v_vector<bool>& outMatchedBitmap) const

@@ -71,9 +71,15 @@ class MLMatcher2
     bool nextMatch();
 
     /**
+     * Returns the equality literal from base that was selected for demodulation.
+     * May only be called in a matched state (i.e., after nextMatch() has returned true).
+     * May return nullptr in case of subsumption (i.e., complete multiset match).
+     */
+    Literal* getEqualityForDemodulation() const;
+
+    /**
      * Returns a bitmap that indicates which alts are currently matched by some base literal.
      * May only be called in a matched state (i.e., after nextMatch() has returned true).
-     * May only be called if the matcher was initialized with resolvedLit == nullptr.
      *
      * After the function returns:
      * outMatchedBitmap[i] == true iff instance[i] is matched by some literal of base

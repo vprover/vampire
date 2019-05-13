@@ -544,7 +544,6 @@ void MLMatcher::Impl::initMatchingData(Literal** baseLits0, unsigned baseLen, Cl
   s_matchingData.nextAlts=s_nextAlts.array();
   s_matchingData.intersections=&s_intersections;
 
-
   s_matchingData.bases=s_baseLits.array();
   s_matchingData.alts=s_altsArr.array();
   s_matchingData.instance=instance;
@@ -629,6 +628,7 @@ bool MLMatcher::Impl::nextMatch()
           s_matchRecord[i]=0xFFFFFFFF;
         }
       }
+      ASS(!s_multiset || s_matchRecord[matchRecordIndex]>s_currBLit);  // when multiset matching, the match record cannot be set already
       if (s_matchRecord[matchRecordIndex]>s_currBLit) {
         s_matchRecord[matchRecordIndex]=s_currBLit;
       }
