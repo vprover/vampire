@@ -288,16 +288,16 @@ struct MatchingData {
     CALL("MatchingData::ensureInit");
 
     if(!isInitialized(bIndex)) {
-      boundVarNums[bIndex]=boundVarNumStorage;
-      altBindings[bIndex]=altBindingPtrStorage;
+      boundVarNums[bIndex] = boundVarNumStorage;
+      altBindings[bIndex] = altBindingPtrStorage;
       ALWAYS(createLiteralBindings(bases[bIndex], alts[bIndex], instance, boundVarNumStorage, altBindingPtrStorage, altBindingStorage));
-      varCnts[bIndex]=boundVarNumStorage-boundVarNums[bIndex];
+      varCnts[bIndex] = boundVarNumStorage - boundVarNums[bIndex];
 
       unsigned altCnt=altBindingPtrStorage-altBindings[bIndex];
       if(altCnt==0) {
-        // No matching alternative at all
-        if (bases[bIndex]->isEquality()) {
-          // but for equalities, we may be able to select it for demodulation
+        // There is no matching alternative at all
+        if (bases[bIndex]->isEquality() && bases[bIndex]->isPositive()) {
+          // but for positive equalities, we may be able to select it for demodulation
           for(unsigned i = 0; i <= bIndex; i++) {
             remaining->set(bIndex, i, 0);  // TODO check if necessary (and correct...); we need at least remaining->set(bIndex,bIndex,0);
           }
@@ -318,7 +318,13 @@ struct MatchingData {
         pair<int,int>* iinfo=getIntersectInfo(pbi, bIndex);
         remAlts=remaining->get(bIndex, pbi);
 
-        if(iinfo->first!=-1) {
+        // TODO: convince myself that this changed condition (adding pbi != eqLitForDemodulation) is correct.
+        // Problem: what does this part even do?
+        // It somehow initializes the number of remaining alternatives.
+        // We only do this for each bIndex once (since boundVarNums isn't set anywhere but in this function);
+        // but it depends on the current matching state of the previous base literals??? (nextAlts[pbi])
+        // How is that even correct...
+        if (pbi != eqLitForDemodulation && iinfo->first != -1) {
           TermList* pbBindings=altBindings[pbi][nextAlts[pbi]-1];
           for(unsigned ai=0;ai<remAlts;ai++) {
             if(!compatible(pbi, pbBindings, bIndex, ai, iinfo)) {
@@ -471,12 +477,6 @@ void MLMatcher2::Impl::initMatchingData(Literal** baseLits0, unsigned baseLen, C
       }
     }
 
-    // unsigned currAltStorageCnt = currAltCnt;
-    // if (s_baseLits[i]->isEquality()) {
-    //   // equality literals from base can be selected for demodulation
-    //   currAltStorageCnt += 1;
-    // }
-
     altCnt += currAltCnt;
     altBindingsCnt += (distVars+1)*currAltCnt;
 
@@ -616,7 +616,7 @@ bool MLMatcher2::Impl::nextMatch()
       // No alt left for currBLit
       ASS_GE(md->nextAlts[s_currBLit], maxAlt);
 
-      if (md->bases[s_currBLit]->isEquality() && md->eqLitForDemodulation > s_currBLit) {
+      if (md->bases[s_currBLit]->isEquality() && md->bases[s_currBLit]->isPositive() && md->eqLitForDemodulation > s_currBLit) {
         // Select current base literal as equality for demodulation
         md->eqLitForDemodulation = s_currBLit;
         s_currBLit++;  // go to next level
@@ -663,9 +663,11 @@ void MLMatcher2::Impl::getMatchedAltsBitmap(v_vector<bool>& outMatchedBitmap) co
   outMatchedBitmap.resize(md->instance->length(), false);
 
   for (unsigned bi = 0; bi < md->len; ++bi) {
-    unsigned alti = md->nextAlts[bi] - 1;
-    unsigned i = md->getAltRecordIndex(bi, alti);
-    outMatchedBitmap[i] = true;
+    if (bi != md->eqLitForDemodulation) {
+      unsigned alti = md->nextAlts[bi] - 1;
+      unsigned i = md->getAltRecordIndex(bi, alti);
+      outMatchedBitmap[i] = true;
+    }
   }
   // outMatchedBitmap[i] == true iff instance[i] is matched by some literal of base
 }
@@ -678,18 +680,20 @@ void MLMatcher2::Impl::getBindings(v_unordered_map<unsigned, TermList>& outBindi
   ASS(outBindings.empty());
 
   for (unsigned bi = 0; bi < md->len; ++bi) {
-    Literal* b = md->bases[bi];
-    unsigned alti = md->nextAlts[bi] - 1;
-    for (unsigned vi = 0; vi < md->varCnts[bi]; ++vi) {
-      // md->altBindings[bi][alti] contains bindings for the variables in b, ordered by the variable index.
-      // md->boundVarNums[bi] contains the corresponding variable indices.
-      unsigned var = md->boundVarNums[bi][vi];
-      TermList trm = md->altBindings[bi][alti][vi];
-      auto res = outBindings.insert({var, trm});
-      auto it = res.first;
-      bool inserted = res.second;
-      if (!inserted) {
-        ASS_EQ(it->second, trm);
+    if (bi != md->eqLitForDemodulation) {
+      Literal* b = md->bases[bi];
+      unsigned alti = md->nextAlts[bi] - 1;
+      for (unsigned vi = 0; vi < md->varCnts[bi]; ++vi) {
+        // md->altBindings[bi][alti] contains bindings for the variables in b, ordered by the variable index.
+        // md->boundVarNums[bi] contains the corresponding variable indices.
+        unsigned var = md->boundVarNums[bi][vi];
+        TermList trm = md->altBindings[bi][alti][vi];
+        auto res = outBindings.insert({var, trm});
+        auto it = res.first;
+        bool inserted = res.second;
+        if (!inserted) {
+          ASS_EQ(it->second, trm);
+        }
       }
     }
   }
