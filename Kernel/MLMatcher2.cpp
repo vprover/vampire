@@ -73,8 +73,7 @@ private:
   UUMap& _v2pos;
 };
 
-bool createLiteralBindings(Literal* baseLit, LiteralList* alts, Clause* instCl, Literal* resolvedLit,
-    unsigned*& boundVarData, TermList**& altBindingPtrs, TermList*& altBindingData)
+bool createLiteralBindings(Literal* baseLit, LiteralList* alts, Clause* instCl, unsigned*& boundVarData, TermList**& altBindingPtrs, TermList*& altBindingData)
 {
   CALL("createLiteralBindings");
 
@@ -106,9 +105,6 @@ bool createLiteralBindings(Literal* baseLit, LiteralList* alts, Clause* instCl, 
   while(ait.hasNext()) {
     //handle multiple matches in equality!
     Literal* alit=ait.next();
-    if(alit==resolvedLit) {
-      continue;
-    }
     if(alit->isEquality()) {
       //we must try both possibilities
       if(MatchingUtils::matchArgs(baseLit,alit)) {
@@ -117,12 +113,8 @@ bool createLiteralBindings(Literal* baseLit, LiteralList* alts, Clause* instCl, 
 	*altBindingPtrs=altBindingData;
 	altBindingPtrs++;
 	altBindingData+=numVars;
-	if(resolvedLit) {
-	  new(altBindingData++) TermList((size_t)0);
-	} else {
-          // add index of the literal in instance clause at the end of the binding sequence
-	  new(altBindingData++) TermList((size_t)instCl->getLiteralPosition(alit));
-	}
+        // add index of the literal in instance clause at the end of the binding sequence
+        new(altBindingData++) TermList((size_t)instCl->getLiteralPosition(alit));
       }
       if(MatchingUtils::matchReversedArgs(baseLit, alit)) {
 	ArrayStoringBinder binder(altBindingData, variablePositions);
@@ -132,12 +124,8 @@ bool createLiteralBindings(Literal* baseLit, LiteralList* alts, Clause* instCl, 
 	*altBindingPtrs=altBindingData;
 	altBindingPtrs++;
 	altBindingData+=numVars;
-	if(resolvedLit) {
-	  new(altBindingData++) TermList((size_t)0);
-	} else {
-          // add index of the literal in instance clause at the end of the binding sequence
-	  new(altBindingData++) TermList((size_t)instCl->getLiteralPosition(alit));
-	}
+        // add index of the literal in instance clause at the end of the binding sequence
+        new(altBindingData++) TermList((size_t)instCl->getLiteralPosition(alit));
       }
 
     } else {
@@ -149,36 +137,9 @@ bool createLiteralBindings(Literal* baseLit, LiteralList* alts, Clause* instCl, 
       *altBindingPtrs=altBindingData;
       altBindingPtrs++;
       altBindingData+=numVars;
-      if(resolvedLit) {
-        new(altBindingData++) TermList((size_t)0);
-      } else {
-        // add index of the literal in instance clause at the end of the binding sequence
-        new(altBindingData++) TermList((size_t)instCl->getLiteralPosition(alit));
-      }
+      // add index of the literal in instance clause at the end of the binding sequence
+      new(altBindingData++) TermList((size_t)instCl->getLiteralPosition(alit));
     }
-  }
-  if(resolvedLit && resolvedLit->complementaryHeader()==baseLit->header()) {
-    if(!baseLit->arity() || MatchingUtils::matchArgs(baseLit,resolvedLit)) {
-      if(numVars) {
-	ArrayStoringBinder binder(altBindingData, variablePositions);
-	MatchingUtils::matchArgs(baseLit,resolvedLit,binder);
-      }
-      *altBindingPtrs=altBindingData;
-      altBindingPtrs++;
-      altBindingData+=numVars;
-      new(altBindingData++) TermList((size_t)1);
-    }
-    if(baseLit->isEquality() && MatchingUtils::matchReversedArgs(baseLit, resolvedLit)) {
-      ArrayStoringBinder binder(altBindingData, variablePositions);
-      MatchingUtils::matchTerms(*baseLit->nthArgument(0),*resolvedLit->nthArgument(1),binder);
-      MatchingUtils::matchTerms(*baseLit->nthArgument(1),*resolvedLit->nthArgument(0),binder);
-
-      *altBindingPtrs=altBindingData;
-      altBindingPtrs++;
-      altBindingData+=numVars;
-      new(altBindingData++) TermList((size_t)1);
-    }
-
   }
   return true;
 }
@@ -201,7 +162,6 @@ struct MatchingData {
   Literal** bases;
   LiteralList** alts;
   Clause* instance;
-  Literal* resolvedLit;
 
   unsigned* boundVarNumStorage;
   TermList** altBindingPtrStorage;
@@ -329,8 +289,7 @@ struct MatchingData {
     if(!isInitialized(bIndex)) {
       boundVarNums[bIndex]=boundVarNumStorage;
       altBindings[bIndex]=altBindingPtrStorage;
-      ALWAYS(createLiteralBindings(bases[bIndex], alts[bIndex], instance, resolvedLit,
-	  boundVarNumStorage, altBindingPtrStorage, altBindingStorage));
+      ALWAYS(createLiteralBindings(bases[bIndex], alts[bIndex], instance, boundVarNumStorage, altBindingPtrStorage, altBindingStorage));
       varCnts[bIndex]=boundVarNumStorage-boundVarNums[bIndex];
 
       unsigned altCnt=altBindingPtrStorage-altBindings[bIndex];
@@ -386,7 +345,7 @@ class MLMatcher2::Impl final
     Impl();
     ~Impl() = default;
 
-    void init(Literal** baseLits, unsigned baseLen, Clause* instance, LiteralList** alts, Literal* resolvedLit, bool multiset);
+    void init(Literal** baseLits, unsigned baseLen, Clause* instance, LiteralList** alts);
     bool nextMatch();
 
     void getMatchedAltsBitmap(v_vector<bool>& outMatchedBitmap) const;
@@ -400,7 +359,7 @@ class MLMatcher2::Impl final
     Impl& operator=(Impl&&) = delete;
 
   private:
-    void initMatchingData(Literal** baseLits0, unsigned baseLen, Clause* instance, LiteralList** alts, Literal* resolvedLit);
+    void initMatchingData(Literal** baseLits0, unsigned baseLen, Clause* instance, LiteralList** alts);
 
   private:
     // Backing storage for the pointers in s_matchingData, used and set up in initMatchingData
@@ -423,7 +382,6 @@ class MLMatcher2::Impl final
     DArray<unsigned> s_matchRecord;
     unsigned s_currBLit;
     int s_counter;
-    bool s_multiset;
 };
 
 
@@ -444,7 +402,7 @@ MLMatcher2::Impl::Impl()
 { }
 
 
-void MLMatcher2::Impl::initMatchingData(Literal** baseLits0, unsigned baseLen, Clause* instance, LiteralList** alts, Literal* resolvedLit)
+void MLMatcher2::Impl::initMatchingData(Literal** baseLits0, unsigned baseLen, Clause* instance, LiteralList** alts)
 {
   CALL("MLMatcher2::Impl::initMatchingData");
 
@@ -461,10 +419,8 @@ void MLMatcher2::Impl::initMatchingData(Literal** baseLits0, unsigned baseLen, C
   s_intersections.zeroAll();
 
   //number of base literals that have zero alternatives
-  //(not counting the resolved literal)
   unsigned zeroAlts=0;
   //number of base literals that have at most one alternative
-  //(not counting the resolved literal)
   unsigned singleAlts=0;
   size_t baseLitVars=0;
   size_t altCnt=0;
@@ -497,8 +453,8 @@ void MLMatcher2::Impl::initMatchingData(Literal** baseLits0, unsigned baseLen, C
 	currAltCnt++;
       }
     }
-    altCnt+=currAltCnt+2; //the +2 is for the resolved literal (it can be commutative)
-    altBindingsCnt+=(distVars+1)*(currAltCnt+2);
+    altCnt += currAltCnt;
+    altBindingsCnt += (distVars+1)*(currAltCnt+2);
 
     ASS_LE(zeroAlts, singleAlts);
     ASS_LE(singleAlts, i);
@@ -514,7 +470,7 @@ void MLMatcher2::Impl::initMatchingData(Literal** baseLits0, unsigned baseLen, C
       }
       zeroAlts++;
       singleAlts++;
-    } else if(currAltCnt==1 && !(resolvedLit && resolvedLit->couldBeInstanceOf(s_baseLits[i], true)) ) {
+    } else if (currAltCnt==1) {
       if(singleAlts!=i) {
         swapLits(i, singleAlts);
 	if(mostDistVarsLit==singleAlts) {
@@ -548,7 +504,6 @@ void MLMatcher2::Impl::initMatchingData(Literal** baseLits0, unsigned baseLen, C
   s_matchingData.bases=s_baseLits.array();
   s_matchingData.alts=s_altsArr.array();
   s_matchingData.instance=instance;
-  s_matchingData.resolvedLit=resolvedLit;
 
   s_matchingData.boundVarNumStorage=s_boundVarNumData.array();
   s_matchingData.altBindingPtrStorage=s_altBindingPtrs.array();
@@ -557,19 +512,13 @@ void MLMatcher2::Impl::initMatchingData(Literal** baseLits0, unsigned baseLen, C
 }
 
 
-void MLMatcher2::Impl::init(Literal** baseLits, unsigned baseLen, Clause* instance, LiteralList** alts, Literal* resolvedLit, bool multiset)
+void MLMatcher2::Impl::init(Literal** baseLits, unsigned baseLen, Clause* instance, LiteralList** alts)
 {
   CALL("MLMatcher2::Impl::init");
 
-  if (resolvedLit) {
-    // NOTE(JR): I think using resolvedLit together with multiset does not work since there's only two match records in that case.
-    // However, I was not able to find a concrete error, so maybe I've missed something.
-    ASS(!multiset);
-  }
+  initMatchingData(baseLits, baseLen, instance, alts);
 
-  initMatchingData(baseLits, baseLen, instance, alts, resolvedLit);
-
-  unsigned matchRecordLen = resolvedLit ? 2 : instance->length();
+  unsigned const matchRecordLen = instance->length();
   s_matchRecord.init(matchRecordLen, 0xFFFFFFFF);
   // What is the matchRecord?
   //   Index is retrieved by getAltRecordIndex:  md->getAltRecordIndex(currBLit, md->nextAlts[currBLit])
@@ -581,13 +530,11 @@ void MLMatcher2::Impl::init(Literal** baseLits, unsigned baseLen, Clause* instan
   // Hypothesis:
   //   The match record tracks for each literal of the instance which base literal is matched to it.
   //   This means it is only necessary for multiset matching (because each instance literal can only be used once for matching).
-  //   (Except when resolvedLit is set... then there's only two match records??)
   ASS_EQ(s_matchRecord.size(), matchRecordLen);
 
   s_matchingData.nextAlts[0] = 0;
   s_currBLit = 0;
   s_counter = 0;
-  s_multiset = multiset;
 }
 
 
@@ -611,9 +558,9 @@ bool MLMatcher2::Impl::nextMatch()
     unsigned maxAlt = md->getRemainingInCurrent(s_currBLit);
     while (md->nextAlts[s_currBLit] < maxAlt &&
            (
-             // Reject the current alternative (nextAlts[currBLit]) if
-             // 1. We are multiset matching and the alt is already matched to a base literal, or
-             ( s_multiset && s_matchRecord[md->getAltRecordIndex(s_currBLit, md->nextAlts[s_currBLit])] < s_currBLit )
+             // Reject the current alternative (i.e., nextAlts[currBLit]) if
+             // 1. The alt is already matched to a base literal (recall that we are doing multiset matching), or
+             s_matchRecord[md->getAltRecordIndex(s_currBLit, md->nextAlts[s_currBLit])] < s_currBLit 
              // 2. The current variable bindings are not compatible with the alternative
              || !md->bindAlt(s_currBLit, md->nextAlts[s_currBLit])
            )
@@ -653,11 +600,6 @@ bool MLMatcher2::Impl::nextMatch()
 
   } // while (true)
 
-  if(md->resolvedLit && s_matchRecord[1] >= md->len) {
-    s_currBLit--;
-    return nextMatch();
-  }
-
   s_currBLit--;  // prepare for next round
   return true;
 }
@@ -666,11 +608,6 @@ bool MLMatcher2::Impl::nextMatch()
 void MLMatcher2::Impl::getMatchedAltsBitmap(v_vector<bool>& outMatchedBitmap) const
 {
   MatchingData const* const md = &s_matchingData;
-
-  // We cannot extract the matched alts if resolvedLit is set
-  // because in that case getAltRecordIndex will always return 0 or 1.
-  // See createLiteralBindings(), where this value is set up.
-  ASS(!md->resolvedLit);
 
   outMatchedBitmap.clear();
   outMatchedBitmap.resize(md->instance->length(), false);
@@ -687,9 +624,6 @@ void MLMatcher2::Impl::getMatchedAltsBitmap(v_vector<bool>& outMatchedBitmap) co
 void MLMatcher2::Impl::getBindings(v_unordered_map<unsigned, TermList>& outBindings) const
 {
   MatchingData const* const md = &s_matchingData;
-
-  // Untested if using this together with resolvedLit works correctly, but it should (please remove this assertion if you can confirm this).
-  ASS(!md->resolvedLit);
 
   ASS(outBindings.empty());
 
@@ -716,12 +650,12 @@ MLMatcher2::MLMatcher2()
   : m_impl{nullptr}
 { }
 
-void MLMatcher2::init(Literal** baseLits, unsigned baseLen, Clause* instance, LiteralList** alts, Literal* resolvedLit, bool multiset)
+void MLMatcher2::init(Literal** baseLits, unsigned baseLen, Clause* instance, LiteralList** alts)
 {
   if (!m_impl) {
     m_impl = make_unique<MLMatcher2::Impl>();
   }
-  m_impl->init(baseLits, baseLen, instance, alts, resolvedLit, multiset);
+  m_impl->init(baseLits, baseLen, instance, alts);
 }
 
 MLMatcher2::~MLMatcher2() = default;
@@ -743,14 +677,6 @@ void MLMatcher2::getBindings(v_unordered_map<unsigned, TermList>& outBindings) c
   ASS(m_impl);
   m_impl->getBindings(outBindings);
 }
-
-bool MLMatcher2::canBeMatched(Literal** baseLits, unsigned baseLen, Clause* instance, LiteralList** alts, Literal* resolvedLit, bool multiset)
-{
-  static MLMatcher2::Impl matcher;
-  matcher.init(baseLits, baseLen, instance, alts, resolvedLit, multiset);
-  return matcher.nextMatch();
-}
-
 
 
 }  // namespace Kernel

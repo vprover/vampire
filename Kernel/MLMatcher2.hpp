@@ -35,52 +35,31 @@ using namespace Lib;
 
 class MLMatcher2
 {
-  private:
-    /**
-     * Initializes the matcher to the given match problem.  TODO: describe the match problem and what the parameters mean.
-     * The matcher will be in a valid (but unmatched) state.
-     *
-     * Preconditions:
-     * - baseLits must have length baseLen
-     * - alts must have length baseLen (for 0 <= bi < baseLen, the literal baseLits[bi] will be matched against the alternatives in the list alts[bi])
-     * - All literals in 'alts' must appear in 'instance'.
-     * - If resolvedLit is not null, multiset must be false. (Hypothesis; not 100% sure if the matching algorithm breaks in that case)
-     */
-    void init(Literal* baseLits[],
-              unsigned baseLen,
-              Clause* instance,
-              LiteralList* alts[],
-              Literal* resolvedLit,
-              bool multiset);
-
   public:
     /**
      * Constructs an MLMatcher2 and puts it in an invalid state.
      */
     MLMatcher2();
 
-    void init(Literal* baseLits[], unsigned baseLen, Clause* instance, LiteralList* alts[], bool multiset = false)
-    {
-      init(baseLits, baseLen, instance, alts, nullptr, multiset);
-    }
-
-    void init(Clause* base, Clause* instance, LiteralList* alts[], bool multiset = false)
-    {
-      init(base->literals(), base->length(), instance, alts, multiset);
-    }
-
-    void init(Literal* baseLits[], unsigned baseLen, Clause* instance, LiteralList* alts[], Literal* resolvedLit)
-    {
-      // NOTE: we need multiset matching for subsumption, but for subsumption resolution it is not necessary
-      init(baseLits, baseLen, instance, alts, resolvedLit, resolvedLit == nullptr);
-    }
-
-    void init(Clause* base, Clause* instance, LiteralList* alts[], Literal* resolvedLit)
-    {
-      init(base->literals(), base->length(), instance, alts, resolvedLit);
-    }
-
     ~MLMatcher2();
+
+    /**
+     * Initializes the matcher to the given match problem.
+     * The matcher will be in a valid (but unmatched) state.
+     *
+     * MLMatcher2 solves the FSD-Match-Problem:
+     * - One equality of the baseLits is selected for demodulation
+     * - All other literals are (multiset-)matched to the given alts from the instance.
+     *
+     * Preconditions:
+     * - baseLits must have length baseLen
+     * - alts must have length baseLen (for 0 <= bi < baseLen, the literal baseLits[bi] will be matched against the alternatives in the list alts[bi])
+     * - All literals in 'alts' must appear in 'instance'.
+     */
+    void init(Literal* baseLits[],
+              unsigned baseLen,
+              Clause* instance,
+              LiteralList* alts[]);
 
     /**
      * Finds the next match.
@@ -120,16 +99,6 @@ class MLMatcher2
   private:
     class Impl;
     std::unique_ptr<Impl> m_impl;
-
-  public:
-    /// Helper function for compatibility to previous code. It uses a shared static instance of MLMatcher2::Impl.
-    static bool canBeMatched(Literal* baseLits[], unsigned baseLen, Clause* instance, LiteralList* alts[], Literal* resolvedLit, bool multiset);
-
-    /// Helper function for compatibility to previous code. It uses a shared static instance of MLMatcher2::Impl.
-    static bool canBeMatched(Clause* base,                          Clause* instance, LiteralList* alts[], Literal* resolvedLit)
-    {
-      return canBeMatched(base->literals(), base->length(), instance, alts, resolvedLit, resolvedLit == nullptr);
-    }
 };
 
 
