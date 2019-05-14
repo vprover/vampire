@@ -517,7 +517,8 @@ bool ForwardSubsumptionDemodulation2::perform(Clause* cl, Clause*& replacement, 
                 }
                 // We could not show redundancy with dlit alone,
                 // so now we have to look at the other literals of cl
-                Literal* eqLitS = binder.applyTo(eqLit);  // TODO maybe it's faster to call Literal::create2(lhsS, rhsS)? we have the terms already... (add an assert just to be sure it's really the same)
+                Literal* eqLitS = Literal::createEquality(true, lhsS, rhsS, eqSort);
+                ASS_EQ(eqLitS, binder.applyTo(eqLit));
                 for (unsigned li2 = 0; li2 < cl->length(); li2++) {
                   // skip dlit (already checked with r_cmp_t above) and matched literals (i.e., CΘ)
                   if (dli != li2 && !isMatched[li2]) {
