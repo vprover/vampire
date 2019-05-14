@@ -359,6 +359,15 @@ bool ForwardSubsumptionDemodulation2::perform(Clause* cl, Clause*& replacement, 
           postMLMatchOrdered = (eqArgOrder == Ordering::LESS) || (eqArgOrder == Ordering::GREATER);
         }
 
+        // Select candidate lhs of eqLit for demodulation.
+        // Must be larger than the rhs after substitution.
+        //
+        // Three possible outcomes:
+        // 1. No LHS (if INCOMPARABLE and different variables)
+        // 2. One LHS
+        // 3. Two LHSs (INCOMPARABLE and same variables)
+        //
+        // TODO: ad "containsAllVariablesOf": shouldn't we check multiset-inclusion instead of set-inclusion?
         static v_vector<TermList> lhsVector;
         lhsVector.clear();
         {
@@ -385,12 +394,17 @@ bool ForwardSubsumptionDemodulation2::perform(Clause* cl, Clause*& replacement, 
               lhsVector.push_back(t1);
               break;
             case Ordering::EQUAL:
-              //there should be no equality literals of equal terms
+              // there should be no equality literals of equal terms
             default:
               ASSERTION_VIOLATION;
           }
         }
 
+        // TODO:
+        // maybe it's better to move this loop inside.
+        // (might also benefit from being unrolled? because lhsVector is of size at most 2)
+        // Benefit of moving it inside: we build the set 'attempted' only once.
+        // Also, the redundancy check does not depend on lhs, only on lhsS (but it does depend on rhs/rhsS, so this doesn't help anything).
         for (TermList lhs : lhsVector) {
           TermList rhs = EqHelper::getOtherEqualitySide(eqLit, lhs);
 
