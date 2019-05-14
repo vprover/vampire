@@ -235,24 +235,49 @@ bool ForwardSubsumptionDemodulation2::perform(Clause* cl, Clause*& replacement, 
       alts.reserve(mcl->length() - 1);
       ASS_EQ(baseLits.size(), 0);
       ASS_EQ(alts.size(), 0);
+      unsigned baseLitsWithoutAlternatives = 0;
       for (unsigned mi = 0; mi < mcl->length(); ++mi) {
-        Literal* base = (*mcl)[mi];
-        baseLits.push_back(base);
-
-        LiteralList* l = nullptr;
+        Literal* baseLit = (*mcl)[mi];
+        baseLits.push_back(baseLit);
 
         // TODO: order alternatives, either smaller to larger or larger to smaller, or unordered
         // to do this, can we simply order the literals inside the miniIndex? (in each equivalence class w.r.t. literal header)
-        LiteralMiniIndex::InstanceIterator instIt(miniIndex, base, false);
+        LiteralMiniIndex::InstanceIterator instIt(miniIndex, baseLit, false);
+
+        if (!instIt.hasNext()) {
+          // baseLit does not have any suitable alternative at all!
+          //
+          // If there are base literals without any suitable alternatives:
+          // 1. If there is only one literal without alternative and it is a positive equality,
+          //    then it might still be possible to get an FSD inference by choosing this literal
+          //    as equality for demodulation.
+          // 2. If there is a literal without alternative but it is not a positive equality,
+          //    then it is impossible to get an FSD inference.
+          // 3. If there are two literals without alternatives, then it is impossible as well.
+          //
+          // (This check exists purely for performance reasons.
+          // MLMatcher would exclude cases 2 and 3 as well, but with additional overhead.)
+          baseLitsWithoutAlternatives += 1;
+          if (baseLitsWithoutAlternatives == 1) {
+            if (!baseLit->isEquality() || !baseLit->isPositive()) {
+              // We are in case 2 => skip
+              baseLitsWithoutAlternatives += 1;  // a hack so we don't need another variable to check whether to skip below (in other words, merge case 2 into case 3 for purpose of the "if" below)
+              break;
+            }
+          } else {
+            // We are in case 3 => skip
+            ASS_G(baseLitsWithoutAlternatives, 1);
+            break;
+          }
+        }
+
+        LiteralList* l = nullptr;
         while (instIt.hasNext()) {
           Literal* matched = instIt.next();
           LiteralList::push(matched, l);
         }
-
         alts.push_back(l);
       }
-      ASS_GE(baseLits.size(), 1);
-      ASS_EQ(baseLits.size(), alts.size());
 
       // Ensure cleanup of LiteralLists
       ON_SCOPE_EXIT({
@@ -260,6 +285,16 @@ bool ForwardSubsumptionDemodulation2::perform(Clause* cl, Clause*& replacement, 
           LiteralList::destroy(ll);
         }
       });
+
+      // Skip due to missing alternatives? (see comment above, "baseLit does not have any suitable alternative")
+      if (baseLitsWithoutAlternatives > 1) {
+        // static unsigned cnt = 0;
+        // std::cerr << "skipped due to baseLitsWithoutAlternatives: " << ++cnt << std::endl;
+        continue;
+      }
+
+      ASS_GE(baseLits.size(), 1);
+      ASS_EQ(baseLits.size(), alts.size());
 
       static MLMatcher2 matcher;
       matcher.init(baseLits.data(), baseLits.size(), cl, alts.data());
