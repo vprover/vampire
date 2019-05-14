@@ -276,11 +276,12 @@ bool ForwardSubsumptionDemodulation2::perform(Clause* cl, Clause*& replacement, 
 
         Literal* eqLit = matcher.getEqualityForDemodulation();
         if (!eqLit) {
-          std::cerr << "found subsumption!" << std::endl;
-          ASSERTION_VIOLATION;  // this case should have been handled by forward subsumption
-          // TODO:
-          // remove assertion and just perform the deletion here.
-          // this case might occur if FSD is enabled but regular forward subsumption is not.
+          // eqLit == nullptr means that the whole of mcl can be instantiated to some subset of cl,
+          // i.e., cl is subsumed by mcl.
+          ASS(!getOptions().forwardSubsumption());  // if FS is enabled, it should have found this inference already before
+          premises = pvi(getSingletonIterator(mcl));
+          env.statistics->forwardSubsumed++;
+          return true;
         }
         ASS(eqLit->isEquality());
         ASS(eqLit->isPositive());
