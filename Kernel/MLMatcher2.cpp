@@ -579,6 +579,23 @@ bool MLMatcher2::Impl::nextMatch()
       }
     }
 
+    // TODO for FSD:
+    // if this is the last positive equality and none have been selected for demodulation yet,
+    // then select this one and skip all other choices.
+    // supporting this, also in initMatchingData move equalities to the top (within the now existing groups?)
+    // (if we want to merge subsumption into FSD, we probably should not do this)
+    //
+    // Idea:
+    // class MatchProblem
+    // which stores base, alts etc. (one instance of the matching problem)
+    // - also has flag: checkSubsumption
+    //   if checkSubsumption is off, then force one equality to be selected in all branches (as in comment above)
+    // - (we might not need the flag though... when would we set this to false? if there is an equality without alts, i.e. subsumption is impossible a priori.
+    //    but even in this case, we will order this literal first and thus select the equality anyways; there is no other choice for this literal.)
+    // - why a class to store MatchProblem?
+    //   It can play a role analogous to the ClauseMatches in ForwardSubsumptionAndResolution.
+    //   The idea there is to keep the MatchProblem to re-use it after subsumption to check subsumption resolution as well.
+
     unsigned maxAlt = md->getRemainingInCurrent(s_currBLit);
     while (md->nextAlts[s_currBLit] < maxAlt &&
            (
@@ -631,6 +648,7 @@ bool MLMatcher2::Impl::nextMatch()
 
     s_counter++;
     if(s_counter==50000) {
+      // std::cerr << "counter reached 50k" << std::endl;
       s_counter=0;
       if(env.timeLimitReached()) {
         throw TimeLimitExceededException();
