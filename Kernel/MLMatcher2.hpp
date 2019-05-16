@@ -61,6 +61,11 @@ class MLMatcher2
               Clause* instance,
               LiteralList* alts[]);
 
+    void init(Clause* base, Clause* instance, LiteralList* alts[])
+    {
+      init(base->literals(), base->length(), instance, alts);
+    }
+
     /**
      * Finds the next match.
      * May only be called if the matcher is in a valid state.

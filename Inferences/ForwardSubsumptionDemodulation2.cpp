@@ -227,18 +227,13 @@ bool ForwardSubsumptionDemodulation2::perform(Clause* cl, Clause*& replacement, 
       /**
        * Step 2: choose a positive equality in mcl to use for demodulation and try to instantiate the rest to some subset of cl
        */
-      static v_vector<Literal*> baseLits;
       static v_vector<LiteralList*> alts;
-      baseLits.clear();
       alts.clear();
-      baseLits.reserve(mcl->length() - 1);
-      alts.reserve(mcl->length() - 1);
-      ASS_EQ(baseLits.size(), 0);
+      alts.reserve(mcl->length());
       ASS_EQ(alts.size(), 0);
       unsigned baseLitsWithoutAlternatives = 0;
       for (unsigned mi = 0; mi < mcl->length(); ++mi) {
         Literal* baseLit = (*mcl)[mi];
-        baseLits.push_back(baseLit);
 
         // TODO: order alternatives, either smaller to larger or larger to smaller, or unordered
         // to do this, can we simply order the literals inside the miniIndex? (in each equivalence class w.r.t. literal header)
@@ -293,11 +288,10 @@ bool ForwardSubsumptionDemodulation2::perform(Clause* cl, Clause*& replacement, 
         continue;
       }
 
-      ASS_GE(baseLits.size(), 1);
-      ASS_EQ(baseLits.size(), alts.size());
+      ASS_EQ(mcl->length(), alts.size());
 
       static MLMatcher2 matcher;
-      matcher.init(baseLits.data(), baseLits.size(), cl, alts.data());
+      matcher.init(mcl, cl, alts.data());
 
       static unsigned const maxMatches =
         getOptions().forwardSubsumptionDemodulationMaxMatches() == 0
