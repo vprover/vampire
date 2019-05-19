@@ -628,6 +628,11 @@ Term* getFreshConstant(unsigned index, unsigned srt)
 
 
 //TODO: put into interface
+/* Take a theory (sub)clause, their skolemization grounding and a solution that makes the clause unsat.
+   Return a new solution that is at least as general as the input solution.
+
+   
+ */
 VirtualIterator<Solution>  minimizeSolution(Stack<Literal*>& theoryLiterals, bool guarded,
                                             Solution sol,  Substitution subst
                                             //DHMap<unsigned,unsigned > srtMap
@@ -643,6 +648,7 @@ VirtualIterator<Solution>  minimizeSolution(Stack<Literal*>& theoryLiterals, boo
   static SATLiteralStack satLits;
   satLits.reset();
 
+  //create the literal with variables replaced by skolem constants
   while(it.hasNext()){
     // get the complementary of the literal
     Literal* lit = it.next();
@@ -672,10 +678,15 @@ VirtualIterator<Solution>  minimizeSolution(Stack<Literal*>& theoryLiterals, boo
   catch(UninterpretedForZ3Exception){
     return VirtualIterator<Solution>::getEmpty();
   }
-  
+
+  // TODO: abstract all terms in solution, extend subst with skolem terms for new variables
+  // TODO: add sk = term assertions for each element in the subst, label each assertion for consideration in unsat core
 
   // now we can call the solver
   SATSolver::Status status = solver.solve(UINT_MAX);
+  // TODO: check result is unsat and extract unsat core
+  // TODO: only keep variables in subst that appear in unsat core
+  
   return pvi(getSingletonIterator(sol));
 }
 
