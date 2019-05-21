@@ -391,24 +391,6 @@ bool ForwardSubsumptionDemodulation2::perform(Clause* cl, Clause*& replacement, 
           }
         }
 
-        // TODO:
-        // maybe it's better to move this loop inside.
-        // (might also benefit from being unrolled? because lhsVector is of size at most 2)
-        // Benefit of moving it inside: we build the set 'attempted' only once.
-        // Also, the redundancy check does not depend on lhs, only on lhsS (but it does depend on rhs/rhsS, so this doesn't help anything).
-        for (TermList lhs : lhsVector) {
-          TermList rhs = EqHelper::getOtherEqualitySide(eqLit, lhs);
-
-#if VDEBUG
-          if (postMLMatchOrdered) {
-            if (eqArgOrder == Ordering::LESS) {
-              ASS_EQ(rhs, *eqLit->nthArgument(0));
-            } else {
-              ASS_EQ(rhs, *eqLit->nthArgument(1));
-            }
-          }
-#endif
-
           static DHSet<TermList> attempted;  // Terms we already attempted to demodulate
           attempted.reset();
 
@@ -436,6 +418,20 @@ bool ForwardSubsumptionDemodulation2::perform(Clause* cl, Clause*& replacement, 
               if (SortHelper::getTermSort(lhsS, dlit) != eqSort) {
                 continue;
               }
+
+        ASS_LE(lhsVector.size(), 2);  // TODO maybe unroll loop?
+        for (TermList lhs : lhsVector) {
+          TermList rhs = EqHelper::getOtherEqualitySide(eqLit, lhs);
+
+#if VDEBUG
+          if (postMLMatchOrdered) {
+            if (eqArgOrder == Ordering::LESS) {
+              ASS_EQ(rhs, *eqLit->nthArgument(0));
+            } else {
+              ASS_EQ(rhs, *eqLit->nthArgument(1));
+            }
+          }
+#endif
 
               binder.reset();  // reset binder to state after subsumption check
               if (!MatchingUtils::matchTerms(lhs, lhsS, binder)) {
@@ -520,12 +516,6 @@ bool ForwardSubsumptionDemodulation2::perform(Clause* cl, Clause*& replacement, 
                     }
                   }
                 }
-                /*
-                std::cerr << "\nRedundancy check prevented something:" << std::endl;
-                std::cerr << "mcl:    " << mcl->toNiceString() << std::endl;
-                std::cerr << "eqLit:  " << eqLit->toString() << std::endl;
-                std::cerr << "cl:     " <<  cl->toNiceString() << std::endl;
-                std::cerr << "dlit:   " << dlit->toString() << std::endl;  // */
                 // cl might not be redundant after the inference, possibly leading to incompleteness => skip
                 continue;
               }
@@ -563,13 +553,10 @@ isRedundant:
 
               premises = pvi(getSingletonIterator(mcl));
               replacement = newCl;
-              // std::cerr << "\t FSD replacement: " << replacement->toNiceString() << std::endl;
-              // std::cerr << "\t    for input cl: " << cl->toNiceString() << std::endl;
-              // std::cerr << "\t         via mcl: " << mcl->toNiceString() << std::endl;
               return true;
+        } // for lhs
             } // while (nvi.hasNext())
           } // for dli
-        } // for lhs
       } // for (numMatches)
     } // while (rit.hasNext)
   } // for (li)
