@@ -50,6 +50,9 @@ void ForwardSubsumptionDemodulation2::detach()
 }
 
 
+namespace {
+
+
 /**
  * A binder that consists of two maps: a base and an overlay.
  * Lookup first checks the base map, then the overlay map.
@@ -150,10 +153,11 @@ class OverlayBinder
   private:
     BindingsMap m_base;
     BindingsMap m_overlay;
-};
+};  // class OverlayBinder
 
 
-#define CHECK_FOR_MULTIPLE_RESULTS 0
+}  // namespace
+
 
 bool ForwardSubsumptionDemodulation2::perform(Clause* cl, Clause*& replacement, ClauseIterator& premises)
 {
@@ -182,20 +186,15 @@ bool ForwardSubsumptionDemodulation2::perform(Clause* cl, Clause*& replacement, 
 
   // Discard all previous aux values (so after this, hasAux() returns false for any clause).
   Clause::requestAux();
-  ON_SCOPE_EXIT( Clause::releaseAux(); );
+  ON_SCOPE_EXIT({ Clause::releaseAux(); });
 
   // Initialize miniIndex with literals in the clause cl
+  // TODO(idea for later): maybe it helps to order alternatives, either smaller to larger or larger to smaller, or unordered
+  // to do this, we can simply order the literals inside the miniIndex (i.e., in each equivalence class w.r.t. literal header)
   LiteralMiniIndex miniIndex(cl);
 
   for (unsigned sqli = 0; sqli < cl->length(); ++sqli) {
     Literal* subsQueryLit = (*cl)[sqli];  // this literal is only used to query the subsumption index
-
-#if CHECK_FOR_MULTIPLE_RESULTS
-    int fsd_result_count = 0;
-    Clause* fsd_first_mcl = nullptr;
-    Clause* fsd_first_result = nullptr;
-    v_set<v_set<Literal*>> fsd_results;
-#endif
 
     /**
      * Step 1: find candidate clauses for subsumption
@@ -235,8 +234,6 @@ bool ForwardSubsumptionDemodulation2::perform(Clause* cl, Clause*& replacement, 
       for (unsigned mi = 0; mi < mcl->length(); ++mi) {
         Literal* baseLit = (*mcl)[mi];
 
-        // TODO: order alternatives, either smaller to larger or larger to smaller, or unordered
-        // to do this, can we simply order the literals inside the miniIndex? (in each equivalence class w.r.t. literal header)
         LiteralMiniIndex::InstanceIterator instIt(miniIndex, baseLit, false);
 
         if (!instIt.hasNext()) {
@@ -563,35 +560,6 @@ isRedundant:
 
               newCl->setAge(cl->age());
               env.statistics->forwardSubsumptionDemodulations++;
-
-#if CHECK_FOR_MULTIPLE_RESULTS
-              v_set<Literal*> newClSet;
-              for (unsigned i = 0; i < newCl->length(); ++i) {
-                newClSet.insert((*newCl)[i]);
-              }
-              auto ins_res = fsd_results.insert(newClSet);
-              bool result_is_new = ins_res.second;
-              fsd_result_count += 1;
-              if (fsd_result_count == 1) {
-                ASS(!fsd_first_mcl);
-                ASS(!fsd_first_result);
-                fsd_first_mcl = mcl;
-                fsd_first_result = newCl;
-              }
-              if (fsd_result_count >= 2 && result_is_new) {
-                if (fsd_result_count == 2) {
-                  std::cerr << "\n\n";
-                  std::cerr << "fsd_count = 1" << std::endl;
-                  std::cerr << "   mcl = " << fsd_first_mcl->toNiceString() << std::endl;
-                  std::cerr << "   cl  = " << cl->toNiceString() << std::endl;
-                  std::cerr << "   res = " << fsd_first_result->toNiceString() << std::endl;
-                }
-                std::cerr << "fsd_count = " << fsd_result_count << std::endl;
-                std::cerr << "   mcl = " << mcl->toNiceString() << std::endl;
-                std::cerr << "   cl  = " << cl->toNiceString() << std::endl;
-                std::cerr << "   res = " << newCl->toNiceString() << std::endl;
-              }
-#endif
 
               premises = pvi(getSingletonIterator(mcl));
               replacement = newCl;

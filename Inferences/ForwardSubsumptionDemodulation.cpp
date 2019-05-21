@@ -50,6 +50,9 @@ void ForwardSubsumptionDemodulation::detach()
 }
 
 
+namespace {
+
+
 /**
  * A binder that consists of two maps: a base and an overlay.
  * Lookup first checks the base map, then the overlay map.
@@ -150,7 +153,10 @@ class OverlayBinder
   private:
     BindingsMap m_base;
     BindingsMap m_overlay;
-};
+};  // class OverlayBinder
+
+
+}  // namespace
 
 
 #define CHECK_FOR_MULTIPLE_RESULTS 0
@@ -259,8 +265,6 @@ bool ForwardSubsumptionDemodulation::perform(Clause* cl, Clause*& replacement, C
 
             LiteralList* l = nullptr;
 
-            // TODO: order alternatives, either smaller to larger or larger to smaller, or unordered
-            // to do this, can we simply order the literals inside the miniIndex? (in each equivalence class w.r.t. literal header)
             LiteralMiniIndex::InstanceIterator instIt(miniIndex, base, false);
             while (instIt.hasNext()) {
               Literal* matched = instIt.next();

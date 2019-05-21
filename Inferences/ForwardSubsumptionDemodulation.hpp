@@ -28,6 +28,10 @@ using namespace Saturation;
  * - Why do we need this?
  * - How does it help us? Maybe with a small example (a version that works with demodulation; then we introduce conditions s.t. we need FSD)
  * - Relation to conditional rewriting.
+ *
+ * NOTE:
+ * FSD v1 now serves as reference implementation,
+ * while FSD v2 (and later) are faster.
  */
 class ForwardSubsumptionDemodulation
   : public ForwardSimplificationEngine
