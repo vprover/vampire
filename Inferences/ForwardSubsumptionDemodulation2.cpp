@@ -391,46 +391,46 @@ bool ForwardSubsumptionDemodulation2::perform(Clause* cl, Clause*& replacement, 
           }
         }
 
-          static DHSet<TermList> attempted;  // Terms we already attempted to demodulate
-          attempted.reset();
+        static DHSet<TermList> attempted;  // Terms we already attempted to demodulate
+        attempted.reset();
 
-          for (unsigned dli = 0; dli < cl->length(); ++dli) {
-            Literal* dlit = (*cl)[dli];  // literal to be demodulated
+        for (unsigned dli = 0; dli < cl->length(); ++dli) {
+          Literal* dlit = (*cl)[dli];  // literal to be demodulated
 
-            // Only demodulate in literals that are not matched by the subsumption check
-            if (isMatched[dli]) {
+          // Only demodulate in literals that are not matched by the subsumption check
+          if (isMatched[dli]) {
+            continue;
+          }
+
+          NonVariableIterator nvi(dlit);
+          while (nvi.hasNext()) {
+            TermList lhsS = nvi.next();  // named 'lhsS' because it will be matched against 'lhs'
+
+            if (!attempted.insert(lhsS)) {
+              // We have already tried to demodulate the term lhsS and did not
+              // succeed (otherwise we would have returned from the function).
+              // If we have tried the term lhsS, we must have tried to
+              // demodulate also its subterms, so we can skip them too.
+              nvi.right();
               continue;
             }
 
-            NonVariableIterator nvi(dlit);
-            while (nvi.hasNext()) {
-              TermList lhsS = nvi.next();  // named 'lhsS' because it will be matched against 'lhs'
+            if (SortHelper::getTermSort(lhsS, dlit) != eqSort) {
+              continue;
+            }
 
-              if (!attempted.insert(lhsS)) {
-                // We have already tried to demodulate the term lhsS and did not
-                // succeed (otherwise we would have returned from the function).
-                // If we have tried the term lhsS, we must have tried to
-                // demodulate also its subterms, so we can skip them too.
-                nvi.right();
-                continue;
-              }
-
-              if (SortHelper::getTermSort(lhsS, dlit) != eqSort) {
-                continue;
-              }
-
-        ASS_LE(lhsVector.size(), 2);  // TODO maybe unroll loop?
-        for (TermList lhs : lhsVector) {
-          TermList rhs = EqHelper::getOtherEqualitySide(eqLit, lhs);
+            ASS_LE(lhsVector.size(), 2);  // TODO maybe unroll loop?
+            for (TermList lhs : lhsVector) {
+              TermList rhs = EqHelper::getOtherEqualitySide(eqLit, lhs);
 
 #if VDEBUG
-          if (postMLMatchOrdered) {
-            if (eqArgOrder == Ordering::LESS) {
-              ASS_EQ(rhs, *eqLit->nthArgument(0));
-            } else {
-              ASS_EQ(rhs, *eqLit->nthArgument(1));
-            }
-          }
+              if (postMLMatchOrdered) {
+                if (eqArgOrder == Ordering::LESS) {
+                  ASS_EQ(rhs, *eqLit->nthArgument(0));
+                } else {
+                  ASS_EQ(rhs, *eqLit->nthArgument(1));
+                }
+              }
 #endif
 
               binder.reset();  // reset binder to state after subsumption check
@@ -554,9 +554,9 @@ isRedundant:
               premises = pvi(getSingletonIterator(mcl));
               replacement = newCl;
               return true;
-        } // for lhs
-            } // while (nvi.hasNext())
-          } // for dli
+            } // for lhs
+          } // while (nvi.hasNext())
+        } // for dli
       } // for (numMatches)
     } // while (rit.hasNext)
   } // for (li)
