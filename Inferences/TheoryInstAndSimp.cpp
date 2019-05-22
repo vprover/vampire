@@ -634,9 +634,11 @@ Term* getFreshConstant(unsigned index, unsigned srt)
    
  */
 VirtualIterator<Solution>  minimizeSolution(Stack<Literal*>& theoryLiterals, bool guarded,
-                                            Solution sol,  Substitution subst
+                                            Solution sol,  Substitution subst,
+                                            Stack<Literal*>& triangleSubst
                                             //DHMap<unsigned,unsigned > srtMap
                                             ) {
+  cerr << "minimizing!" << endl;
   static SAT2FO naming;
   static Z3Interfacing solver(*env.options,naming);
   solver.reset(); // the solver will reset naming
@@ -679,7 +681,13 @@ VirtualIterator<Solution>  minimizeSolution(Stack<Literal*>& theoryLiterals, boo
     return VirtualIterator<Solution>::getEmpty();
   }
 
+ 
   // TODO: abstract all terms in solution, extend subst with skolem terms for new variables
+  static TheoryFlattening flattening(true, false,false);
+  Stack<Literal*> flattened;
+  flattening.apply(triangleSubst, flattened,0);
+  cerr << flattened.size() << endl;
+  
   // TODO: add sk = term assertions for each element in the subst, label each assertion for consideration in unsat core
 
   // now we can call the solver
@@ -773,6 +781,7 @@ VirtualIterator<Solution> TheoryInstAndSimp::getSolutions(Stack<Literal*>& theor
   else if(status == SATSolver::SATISFIABLE){
     Solution sol = Solution(true);
     Stack<unsigned>::Iterator vit(vars);
+    Stack<Literal*> substTriangleForm;
     while(vit.hasNext()){
       unsigned v = vit.next();
       Term* t = subst.apply(v).term();
@@ -781,6 +790,11 @@ VirtualIterator<Solution> TheoryInstAndSimp::getSolutions(Stack<Literal*>& theor
       t = solver.evaluateInModel(t);
       // If we could evaluate the term in the model then bind it
       if(t){
+        TermList tl_v(v,false);
+        TermList tl_t(t);
+        Literal* eq = Literal::createEquality(false, tl_v, tl_t, SortHelper::getResultSort(t));
+        cerr << "assigning: " << eq->toString() << endl;
+        substTriangleForm.push(eq);
         //cout << "evaluate to " << t->toString() << endl;
         sol.subst.bind(v,t);
       } else {
@@ -789,15 +803,17 @@ VirtualIterator<Solution> TheoryInstAndSimp::getSolutions(Stack<Literal*>& theor
         goto fail;
       }
     }
+
+
 #if DPRINT
     cout << "solution with " << sol.subst.toString() << endl;
 #endif
     // try to minimize the solution
-    if (false) { //TODO: add flag in options
+    if (true) { //TODO: add flag in options
       //      static SAT2FO min_naming;
       //      static Z3Interfacing minimizing_solver(*env.options,min_naming);
       //      minimizing_solver.reset(); // the solver will reset naming
-      VirtualIterator<Solution> minsol = minimizeSolution(theoryLiterals, guarded, sol, subst);
+      VirtualIterator<Solution> minsol = minimizeSolution(theoryLiterals, guarded, sol, subst, substTriangleForm);
       return minsol;
     }
     
@@ -954,7 +970,7 @@ ClauseIterator TheoryInstAndSimp::generateClauses(Clause* premise,bool& premiseR
   Clause* flattened = premise;
   if(thi != Options::TheoryInstSimp::NEW){
     // we will use flattening which is non-recursive and sharing
-    static TheoryFlattening flattener((thi==Options::TheoryInstSimp::FULL),true);
+    static TheoryFlattening flattener((thi==Options::TheoryInstSimp::FULL),true,true);
 
     flattened = flattener.apply(premise,selectedLiterals);
 
