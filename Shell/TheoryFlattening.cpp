@@ -44,7 +44,7 @@ namespace Shell
 using namespace Lib;
 using namespace Kernel;
 
-TheoryFlattening::TheoryFlattening(bool rec, bool share) : _recursive(rec), _sharing(share) {
+TheoryFlattening::TheoryFlattening(bool rec, bool share, bool grouping) : _recursive(rec), _sharing(share), _grouping(grouping) {
     //if(rec && share){
     //  USER_ERROR("Theory flattening which is recursive with sharing has not been tested");
     //}
@@ -113,15 +113,16 @@ bool TheoryFlattening::apply(ClauseList*& clauses)
   return modified;
 }
 
+
 /**
  *
  * @author Giles
  */
-Clause* TheoryFlattening::apply(Clause*& cl,Stack<Literal*>& target)
+  Clause* TheoryFlattening::apply(Clause*& cl,Stack<Literal*>& target)
 {
   CALL("TheoryFlattening::apply");
 
-  // Find the max variable. This will be used to introduce new variables.
+  // Find the max variable. This will be used to introduce new variables. minVar is a lower bound to avoid overlaps wih other (sub-)ckauses
   unsigned maxVar = 0;
   VirtualIterator<unsigned> varIt = cl->getVariableIterator();
   while (varIt.hasNext()) {
@@ -133,7 +134,6 @@ Clause* TheoryFlattening::apply(Clause*& cl,Stack<Literal*>& target)
 
   // The resultant lits
   Stack<Literal*> result;
-  bool updated = false;
 
   // literals to be processed, start with those in clause
   Stack<Literal*> lits;
@@ -144,7 +144,22 @@ Clause* TheoryFlattening::apply(Clause*& cl,Stack<Literal*>& target)
     }
     else{ result.push(lit); }
   }
-  
+
+  if(!apply(lits,result,maxVar)){ return cl;}
+
+  Clause* rep = Clause::fromStack(result,cl->inputType(),
+                            new Inference1(Inference::THEORY_FLATTENING,cl)); 
+
+  //cout << cl->toString() << " replaced by " << rep->toString() << endl;
+
+  return rep;
+}
+
+/* Flatten literals in lits and put the flattened literals into result. Variables created during flattening will be larger than maxVar */
+bool TheoryFlattening::apply(Stack<Literal*>& lits,Stack<Literal*>& result,unsigned maxVar)
+{
+  CALL("TheoryFlattening::apply");
+  bool updated = false;
   DHMap<Term*,unsigned> abstracted;
 
   // process lits
@@ -175,16 +190,10 @@ Clause* TheoryFlattening::apply(Clause*& cl,Stack<Literal*>& target)
       }
     } 
   }
-  if(!updated){ return cl;}
-
-  Clause* rep = Clause::fromStack(result,cl->inputType(),
-                            new Inference1(Inference::THEORY_FLATTENING,cl)); 
-
-  //cout << cl->toString() << " replaced by " << rep->toString() << endl;
-
-  return rep;
+  return updated;
 }
 
+  
 /**
  *
  * @author Giles

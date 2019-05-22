@@ -39,8 +39,18 @@ using namespace Kernel;
 class TheoryFlattening
 {
 public:
-  TheoryFlattening() : _recursive(true), _sharing(false) {}
-  TheoryFlattening(bool rec, bool share); 
+  TheoryFlattening() : _recursive(true), _sharing(false), _grouping(true) {}
+
+  /** Initializes the flattener with the following options:
+       rec: if false, only the children of top level functions are flatten.
+            if true, also subterms are flattened.
+       share: if true, shared subterms will be assigned the same variable
+       grouping: if true, new variables are introduced when the function is a
+                 theory (nontheory) clause and the argument is a nontheory
+                 (theory) node.
+                 if false, arguments are always flattened
+   */
+  TheoryFlattening(bool rec, bool share, bool grouping);
   void apply(Problem& prb);
   bool apply(UnitList*& units);
   bool apply(ClauseList*& units);
@@ -49,6 +59,7 @@ public:
     static Stack<Literal*> dummy;
     return apply(cl,dummy);
   }
+  bool apply(Stack<Literal*>& lits,Stack<Literal*>& result, unsigned maxVar);
 private:
   Literal* replaceTopTerms(Literal* lit, Stack<Literal*>& newLits,unsigned& maxVar,
                            DHMap<Term*,unsigned>& abstracted);
@@ -58,6 +69,7 @@ private:
 
   bool _recursive;
   bool _sharing;
+  bool _grouping;
 };
 
 };
