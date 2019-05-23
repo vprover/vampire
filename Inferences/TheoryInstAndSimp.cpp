@@ -683,10 +683,14 @@ VirtualIterator<Solution>  minimizeSolution(Stack<Literal*>& theoryLiterals, boo
 
  
   // TODO: abstract all terms in solution, extend subst with skolem terms for new variables
-  static TheoryFlattening flattening(true, false,false);
+  static TheoryFlattening flattener(true, false,false);
   Stack<Literal*> flattened;
-  flattening.apply(triangleSubst, flattened,0);
-  cerr << flattened.size() << endl;
+  flattener.apply(triangleSubst, flattened,0);
+  //  cerr << flattened.size() << endl;
+  Stack<Literal*>::Iterator stit(flattened);
+  //while(stit.hasNext()) {
+  //      cerr << "subterm: " << stit.next()->toString() << endl;
+  //}
   
   // TODO: add sk = term assertions for each element in the subst, label each assertion for consideration in unsat core
 
