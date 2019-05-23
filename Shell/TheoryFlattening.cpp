@@ -235,10 +235,11 @@ bool TheoryFlattening::apply(Stack<Literal*>& lits,Stack<Literal*>& result,unsig
 
     // if interpreted status is different factor out
     // but never factor out interpreted constants e.g. numbers
+    // if grouping is false, always factor out
     if(
-        !equalityWithNumber &&
-        (interpreted != env.signature->getFunction(t->functor())->interpreted()) && 
-        !theory->isInterpretedConstant(t) 
+       ( !equalityWithNumber &&
+         (interpreted != env.signature->getFunction(t->functor())->interpreted()) && 
+         !theory->isInterpretedConstant(t) )
       ){
       //cout << "Factoring out " << t->toString() << endl;
 
@@ -308,7 +309,7 @@ bool TheoryFlattening::apply(Stack<Literal*>& lits,Stack<Literal*>& result,unsig
     }
 
     // if interpreted status is different factor out
-    if(interpreted != interpretedStatus){ 
+    if( (interpreted != interpretedStatus) || !_grouping){ 
       //cout << "Factoring out " << t->toString() << endl;
       
       unsigned newVar;
