@@ -23,7 +23,7 @@
 
 #if VZ3
 
-#define DPRINT 0
+#define DPRINT 1
 
 #include "Debug/RuntimeStatistics.hpp"
 
@@ -687,10 +687,25 @@ VirtualIterator<Solution>  minimizeSolution(Stack<Literal*>& theoryLiterals, boo
   Stack<Literal*> flattened;
   flattener.apply(triangleSubst, flattened,0);
   //  cerr << flattened.size() << endl;
+  Substitution nsubst;
   Stack<Literal*>::Iterator stit(flattened);
-  //while(stit.hasNext()) {
-  //      cerr << "subterm: " << stit.next()->toString() << endl;
-  //}
+  while(stit.hasNext()) {
+    Literal* lit = stit.next();
+    cerr << "subterm: " << lit->toString() << endl;
+    ASS(lit->isEquality());
+    unsigned sort = SortHelper::getResultSort(lit->nthArgument(0)->term());
+    unsigned v = lit->nthArgument(1)->var();
+    Term* fc = getFreshConstant(used++,sort);
+#if DPRINT
+    cout << "bind " << v << " to " << fc->toString() << endl;
+#endif
+    //    nsubst.bind(v,fc);
+  }
+
+  Stack<Literal*>::Iterator stit2(flattened);
+  while(stit2.hasNext()) {
+    cerr << stit2.next()->apply(nsubst)->toString() << endl;
+  }
   
   // TODO: add sk = term assertions for each element in the subst, label each assertion for consideration in unsat core
 
