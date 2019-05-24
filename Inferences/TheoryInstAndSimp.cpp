@@ -635,10 +635,10 @@ Term* getFreshConstant(unsigned index, unsigned srt)
  */
 VirtualIterator<Solution>  minimizeSolution(Stack<Literal*>& theoryLiterals, bool guarded,
                                             Solution sol,  //Substitution subst,
-                                            Stack<Literal*>& triangleSubst
+                                            Stack<Literal*>& triangleSubst,
+                                            unsigned maxVar
                                             //DHMap<unsigned,unsigned > srtMap
                                             ) {
-  cerr << "minimizing!" << endl;
   static SAT2FO naming;
   static Z3Interfacing solver(*env.options,naming);
   solver.reset(); // the solver will reset naming
@@ -650,7 +650,8 @@ VirtualIterator<Solution>  minimizeSolution(Stack<Literal*>& theoryLiterals, boo
   // TODO: abstract all terms in solution, extend subst with skolem terms for new variables
   static TheoryFlattening flattener(true, false,false);
   Stack<Literal*> flattened;
-  flattener.apply(triangleSubst, flattened,0);
+  flattener.apply(triangleSubst, flattened,maxVar);
+  Stack<Literal*> groundedFlattened;
   //  cerr << flattened.size() << endl;
   Substitution subst;
   Stack<Literal*>::Iterator stit(flattened);
@@ -664,12 +665,15 @@ VirtualIterator<Solution>  minimizeSolution(Stack<Literal*>& theoryLiterals, boo
 #if DPRINT
     cout << "bind " << v << " to " << fc->toString() << endl;
 #endif
-    //    subst.bind(v,fc);
+    subst.bind(v,fc);
   }
 
   Stack<Literal*>::Iterator stit2(flattened);
   while(stit2.hasNext()) {
-    cerr << stit2.next()->apply(subst)->toString() << endl;
+    Literal* lit = Literal::complementaryLiteral(stit2.next())->apply(subst);
+    groundedFlattened.push(lit);
+    cerr << "adding model value: " << lit->toString() << endl;
+    solver.addAssumption(naming.toSAT(lit));
   }
 
   //prepare theory clause and add it to the solver
@@ -701,6 +705,7 @@ VirtualIterator<Solution>  minimizeSolution(Stack<Literal*>& theoryLiterals, boo
   SATClause* sc = SATClause::fromStack(satLits);
   // guarded is normally true, apart from when we are checking a theory tautology
   try{
+    cerr << "adding clause"  << endl;
     solver.addClause(sc,guarded); //add unsatCore true
   }
   catch(UninterpretedForZ3Exception){
@@ -713,6 +718,18 @@ VirtualIterator<Solution>  minimizeSolution(Stack<Literal*>& theoryLiterals, boo
 
   // now we can call the solver
   SATSolver::Status status = solver.solve(UINT_MAX);
+  switch(status) {
+  case SATSolver::Status::UNSATISFIABLE:
+    cerr << "SMT solver reports unsat when minimizing model!" << endl;
+    break;
+  case SATSolver::Status::UNKNOWN:
+    cerr << "SMT solver reports unknown when minimizing model!" << endl;
+    return pvi(getSingletonIterator(sol));
+  case SATSolver::Status::SATISFIABLE:
+    cerr << "Input problem for instantiation minimization is always unsat, but solver reports sat!" << endl;
+    ASS(false);
+    return pvi(getSingletonIterator(sol));
+  }
   // TODO: check result is unsat and extract unsat core
   // TODO: only keep variables in subst that appear in unsat core
   
@@ -720,7 +737,7 @@ VirtualIterator<Solution>  minimizeSolution(Stack<Literal*>& theoryLiterals, boo
 }
 
 
-VirtualIterator<Solution> TheoryInstAndSimp::getSolutions(Stack<Literal*>& theoryLiterals, bool guarded){
+VirtualIterator<Solution> TheoryInstAndSimp::getSolutions(Stack<Literal*>& theoryLiterals, unsigned maxVar, bool guarded){
   CALL("TheoryInstAndSimp::getSolutions");
 
   BYPASSING_ALLOCATOR;
@@ -831,10 +848,7 @@ VirtualIterator<Solution> TheoryInstAndSimp::getSolutions(Stack<Literal*>& theor
 #endif
     // try to minimize the solution
     if (true) { //TODO: add flag in options
-      //      static SAT2FO min_naming;
-      //      static Z3Interfacing minimizing_solver(*env.options,min_naming);
-      //      minimizing_solver.reset(); // the solver will reset naming
-      VirtualIterator<Solution> minsol = minimizeSolution(theoryLiterals, guarded, sol, substTriangleForm);
+      VirtualIterator<Solution> minsol = minimizeSolution(theoryLiterals, guarded, sol, substTriangleForm,maxVar);
       return minsol;
     }
     
@@ -887,7 +901,7 @@ partial_check_end:
 
       // now we run SMT solver again without guarding
       if(containsPartial){
-        auto solutions = _parent->getSolutions(_theoryLits,false);
+        auto solutions = _parent->getSolutions(_theoryLits,_premise->maxVar(),false);
         // we have an unsat solution without guards
         if(solutions.hasNext() && !solutions.next().status){
           containsPartial=false;
@@ -1028,7 +1042,7 @@ ClauseIterator TheoryInstAndSimp::generateClauses(Clause* premise,bool& premiseR
     TimeCounter t(TC_THEORY_INST_SIMP);
 
     //auto it1 = getSolutions(theoryLiterals);
-    auto it1 = getSolutions(selectedLiterals);
+    auto it1 = getSolutions(selectedLiterals, premise->maxVar(), true);
 
     auto it2 = getMappingIterator(it1,
                InstanceFn(premise,flattened,selectedLiterals,_splitter,_salg,this,premiseRedundant));

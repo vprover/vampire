@@ -806,7 +806,19 @@ z3::expr Z3Interfacing::getz3expr(Term* trm,bool isLit,bool&nameExpression,bool 
             // store(array,index,value)
             ret = store(args[0],args[1],args[2]);
             break;
-
+          case Theory::ARRAY_CONST: {
+              // cerr << "creating z3 const arr for " << trm->toString() << endl;
+              //TODO: make pull request for z3 c++ api to include const array constructor
+              unsigned argsort = SortHelper::getResultSort(trm);
+              Kernel::Sorts::ArraySort* arraySort = env.sorts->getArraySort(argsort);
+              unsigned indexSort = arraySort->getIndexSort();
+              Z3_sort sort = getz3sort(indexSort);  //TODO: get domain sort
+              Z3_ast c = args[0];
+              Z3_ast r = Z3_mk_const_array(args[0].ctx(), sort, c);
+              args[0].check_error();
+              ret = z3::expr(args[0].ctx(), r);
+            }
+            break;
           default:
             skip=true;//skip it and treat the function as uninterpretted
             break;

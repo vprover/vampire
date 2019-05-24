@@ -60,7 +60,7 @@ public:
     return generateClauses(premise,r);
   }
 
-  VirtualIterator<Solution> getSolutions(Stack<Literal*>& theoryLiterals,bool guarded=true);
+  VirtualIterator<Solution> getSolutions(Stack<Literal*>& theoryLiterals, unsigned maxVar, bool guarded=true);
 
 private:
 
