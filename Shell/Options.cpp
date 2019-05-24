@@ -1159,11 +1159,19 @@ void Options::Options::init()
     _forwardSubsumptionDemodulationAdjustFSIndexForFSD.setExperimental();
 
     _forwardSubsumptionDemodulationUseSeparateIndex = BoolOptionValue("forward_subsumption_demodulation_use_separate_index", "fsd_sep_ix", true);
-    _forwardSubsumptionDemodulationUseSeparateIndex.description = "Whether to use a separate index for forward sumsumption demodulation.";
+    _forwardSubsumptionDemodulationUseSeparateIndex.description = "Whether to use a separate index for forward subsumption demodulation.";
     _lookup.insert(&_forwardSubsumptionDemodulationUseSeparateIndex);
     _forwardSubsumptionDemodulationUseSeparateIndex.tag(OptionTag::INFERENCES);
-    _forwardSubsumptionDemodulationUseSeparateIndex.setRandomChoices({"on","off"});
     _forwardSubsumptionDemodulationUseSeparateIndex.setExperimental();
+
+    _forwardSubsumptionDemodulationIncludeSubsumption = BoolOptionValue("forward_subsumption_demodulation_include_subsumption", "fsd_fs", false);
+    _forwardSubsumptionDemodulationIncludeSubsumption.description = "Whether forward subsumption demodulation also does regular forward subsumption.";
+    _lookup.insert(&_forwardSubsumptionDemodulationIncludeSubsumption);
+    _forwardSubsumptionDemodulationIncludeSubsumption.tag(OptionTag::INFERENCES);
+    _forwardSubsumptionDemodulationIncludeSubsumption.reliesOn(_forwardSubsumptionDemodulation.is(equal(FSD::V2)));
+    _forwardSubsumptionDemodulationIncludeSubsumption.reliesOn(_forwardSubsumptionDemodulationUseSeparateIndex.is(notEqual(true)));
+    _forwardSubsumptionDemodulationIncludeSubsumption.reliesOn(_forwardSubsumption.is(notEqual(true)));
+    _forwardSubsumptionDemodulationIncludeSubsumption.setExperimental();
 
     _hyperSuperposition = BoolOptionValue("hyper_superposition","",false);
     _hyperSuperposition.description=

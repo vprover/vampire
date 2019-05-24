@@ -39,6 +39,11 @@ void ForwardSubsumptionDemodulation2::attach(SaturationAlgorithm* salg)
 
   _preorderedOnly = false;
   _allowIncompleteness = false;
+  _doSubsumption = getOptions().forwardSubsumptionDemodulationIncludeSubsumption();
+
+  if (_doSubsumption) {
+    _unitIndex.request(salg->getIndexManager(), SIMPLIFYING_UNIT_CLAUSE_SUBST_TREE);
+  }
 }
 
 
@@ -187,6 +192,30 @@ bool ForwardSubsumptionDemodulation2::perform(Clause* cl, Clause*& replacement, 
   // Discard all previous aux values (so after this, hasAux() returns false for any clause).
   Clause::requestAux();
   ON_SCOPE_EXIT({ Clause::releaseAux(); });
+
+  // Subsumption by unit clauses
+  if (_doSubsumption) {
+    for (unsigned sqli = 0; sqli < cl->length(); ++sqli) {
+      SLQueryResultIterator rit = _unitIndex->getGeneralizations((*cl)[sqli], false, false);
+      while (rit.hasNext()) {
+        Clause* premise = rit.next().clause;
+
+        if (premise->hasAux()) {
+          continue;  // we've already checked this premise
+        }
+        premise->setAux(nullptr);
+
+        if (!ColorHelper::compatible(cl->color(), premise->color())) {
+          continue;
+        }
+
+        ASS(!getOptions().forwardSubsumption());  // if FS is enabled, it should have found this inference already before
+        premises = pvi(getSingletonIterator(premise));
+        env.statistics->forwardSubsumed++;
+        return true;
+      }
+    }
+  }
 
   // Initialize miniIndex with literals in the clause cl
   // TODO(idea for later): maybe it helps to order alternatives, either smaller to larger or larger to smaller, or unordered

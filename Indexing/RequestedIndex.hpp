@@ -65,9 +65,23 @@ class RequestedIndex final
       }
     }
 
-    Index& operator*() const { return *_index; }
-    Index* operator->() const { return _index; }
-    Index* get() const { return _index; }
+    Index& operator*() const
+    {
+      ASS(_index);
+      return *_index;
+    }
+
+    Index* operator->() const
+    {
+      ASS(_index);
+      return _index;
+    }
+
+    Index* get() const
+    {
+      ASS(_index);
+      return _index;
+    }
 
   private:
     Index* _index = nullptr;
