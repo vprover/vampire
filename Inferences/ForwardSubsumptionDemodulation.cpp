@@ -462,7 +462,14 @@ bool ForwardSubsumptionDemodulation::perform(Clause* cl, Clause*& replacement, C
                   //   ------------------------------------------
                   //              rhsS = t \/ CΘ \/ D
                   TermList t = EqHelper::getOtherEqualitySide(dlit, lhsS);
-                  ASS_NEQ(t, rhsS);  // otherwise, eqLitS == dlit; and forward subsumption should have deleted the right premise already
+                  if (t == rhsS) {
+                    // in this case, eqLitS == dlit; and forward subsumption should have deleted the right premise already
+                    ASS(binder.applyTo(eqLit) == dlit);  // eqLitS == dlit
+                    ASS(!getOptions().forwardSubsumption());
+                    premises = pvi(getSingletonIterator(mcl));
+                    env.statistics->forwardSubsumed++;
+                    return true;
+                  }
                   Ordering::Result r_cmp_t = ordering.compare(rhsS, t);
                   if (r_cmp_t == Ordering::LESS || r_cmp_t == Ordering::LESS_EQ) {
                     ASS(r_cmp_t == Ordering::LESS);  // TODO really not sure why we need to allow LESS_EQ in the condition
