@@ -640,7 +640,7 @@ VirtualIterator<Solution>  minimizeSolution(Stack<Literal*>& theoryLiterals, boo
                                             //DHMap<unsigned,unsigned > srtMap
                                             ) {
   static SAT2FO naming;
-  static Z3Interfacing solver(*env.options,naming);
+  static Z3Interfacing solver(*env.options,naming,true);
   solver.reset(); // the solver will reset naming
 
   Stack<Literal*>::Iterator it(theoryLiterals);
@@ -669,11 +669,13 @@ VirtualIterator<Solution>  minimizeSolution(Stack<Literal*>& theoryLiterals, boo
   }
 
   Stack<Literal*>::Iterator stit2(flattened);
+  SATLiteralStack triangle_sateqs;
   while(stit2.hasNext()) {
     Literal* lit = Literal::complementaryLiteral(stit2.next())->apply(subst);
     groundedFlattened.push(lit);
     cerr << "adding model value: " << lit->toString() << endl;
-    solver.addAssumption(naming.toSAT(lit));
+    //solver.addAssumption(naming.toSAT(lit));
+    triangle_sateqs.push(naming.toSAT(lit));
   }
 
   //prepare theory clause and add it to the solver
@@ -706,7 +708,7 @@ VirtualIterator<Solution>  minimizeSolution(Stack<Literal*>& theoryLiterals, boo
   // guarded is normally true, apart from when we are checking a theory tautology
   try{
     cerr << "adding clause"  << endl;
-    solver.addClause(sc,guarded); //add unsatCore true
+    solver.addClause(sc,guarded);
   }
   catch(UninterpretedForZ3Exception){
     return VirtualIterator<Solution>::getEmpty();
@@ -717,10 +719,16 @@ VirtualIterator<Solution>  minimizeSolution(Stack<Literal*>& theoryLiterals, boo
   // TODO: add sk = term assertions for each element in the subst, label each assertion for consideration in unsat core
 
   // now we can call the solver
-  SATSolver::Status status = solver.solve(UINT_MAX);
+  SATSolver::Status status = solver.solveUnderAssumptions(triangle_sateqs, UINT_MAX, false);
   switch(status) {
-  case SATSolver::Status::UNSATISFIABLE:
-    cerr << "SMT solver reports unsat when minimizing model!" << endl;
+  case SATSolver::Status::UNSATISFIABLE: {
+      cerr << "SMT solver reports unsat when minimizing model!" << endl;
+      SATLiteralStack unsat_core = solver.failedAssumptions();
+      cerr << "unsat core size:" << unsat_core.size() << endl;
+      for (SATLiteralStack::Iterator it(unsat_core); it.hasNext(); ) {
+        cerr << "unsat core clause:" << it.next().toString() << endl;
+      }
+    }
     break;
   case SATSolver::Status::UNKNOWN:
     cerr << "SMT solver reports unknown when minimizing model!" << endl;
