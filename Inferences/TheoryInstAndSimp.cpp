@@ -634,7 +634,7 @@ Term* getFreshConstant(unsigned index, unsigned srt)
    
  */
 VirtualIterator<Solution>  minimizeSolution(Stack<Literal*>& theoryLiterals, bool guarded,
-                                            Solution sol,  Substitution subst,
+                                            Solution sol,  //Substitution subst,
                                             Stack<Literal*>& triangleSubst
                                             //DHMap<unsigned,unsigned > srtMap
                                             ) {
@@ -647,6 +647,32 @@ VirtualIterator<Solution>  minimizeSolution(Stack<Literal*>& theoryLiterals, boo
   Stack<unsigned> vars;
   unsigned used = 0;
 
+  // TODO: abstract all terms in solution, extend subst with skolem terms for new variables
+  static TheoryFlattening flattener(true, false,false);
+  Stack<Literal*> flattened;
+  flattener.apply(triangleSubst, flattened,0);
+  //  cerr << flattened.size() << endl;
+  Substitution subst;
+  Stack<Literal*>::Iterator stit(flattened);
+  while(stit.hasNext()) {
+    Literal* lit = stit.next();
+    cerr << "subterm: " << lit->toString() << endl;
+    ASS(lit->isEquality());
+    unsigned sort = SortHelper::getResultSort(lit->nthArgument(0)->term());
+    unsigned v = lit->nthArgument(1)->var();
+    Term* fc = getFreshConstant(used++,sort);
+#if DPRINT
+    cout << "bind " << v << " to " << fc->toString() << endl;
+#endif
+    //    subst.bind(v,fc);
+  }
+
+  Stack<Literal*>::Iterator stit2(flattened);
+  while(stit2.hasNext()) {
+    cerr << stit2.next()->apply(subst)->toString() << endl;
+  }
+
+  //prepare theory clause and add it to the solver
   static SATLiteralStack satLits;
   satLits.reset();
 
@@ -675,37 +701,13 @@ VirtualIterator<Solution>  minimizeSolution(Stack<Literal*>& theoryLiterals, boo
   SATClause* sc = SATClause::fromStack(satLits);
   // guarded is normally true, apart from when we are checking a theory tautology
   try{
-    solver.addClause(sc,guarded);
+    solver.addClause(sc,guarded); //add unsatCore true
   }
   catch(UninterpretedForZ3Exception){
     return VirtualIterator<Solution>::getEmpty();
   }
-
- 
-  // TODO: abstract all terms in solution, extend subst with skolem terms for new variables
-  static TheoryFlattening flattener(true, false,false);
-  Stack<Literal*> flattened;
-  flattener.apply(triangleSubst, flattened,0);
-  //  cerr << flattened.size() << endl;
-  Substitution nsubst;
-  Stack<Literal*>::Iterator stit(flattened);
-  while(stit.hasNext()) {
-    Literal* lit = stit.next();
-    cerr << "subterm: " << lit->toString() << endl;
-    ASS(lit->isEquality());
-    unsigned sort = SortHelper::getResultSort(lit->nthArgument(0)->term());
-    unsigned v = lit->nthArgument(1)->var();
-    Term* fc = getFreshConstant(used++,sort);
-#if DPRINT
-    cout << "bind " << v << " to " << fc->toString() << endl;
-#endif
-    //    nsubst.bind(v,fc);
-  }
-
-  Stack<Literal*>::Iterator stit2(flattened);
-  while(stit2.hasNext()) {
-    cerr << stit2.next()->apply(nsubst)->toString() << endl;
-  }
+  
+  //addAssumption on solver for the unsat core labels
   
   // TODO: add sk = term assertions for each element in the subst, label each assertion for consideration in unsat core
 
@@ -832,7 +834,7 @@ VirtualIterator<Solution> TheoryInstAndSimp::getSolutions(Stack<Literal*>& theor
       //      static SAT2FO min_naming;
       //      static Z3Interfacing minimizing_solver(*env.options,min_naming);
       //      minimizing_solver.reset(); // the solver will reset naming
-      VirtualIterator<Solution> minsol = minimizeSolution(theoryLiterals, guarded, sol, subst, substTriangleForm);
+      VirtualIterator<Solution> minsol = minimizeSolution(theoryLiterals, guarded, sol, substTriangleForm);
       return minsol;
     }
     
