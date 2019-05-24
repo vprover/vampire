@@ -174,6 +174,7 @@ SATSolver::Status Z3Interfacing::solveUnderAssumptions(const SATLiteralStack& as
     z3::expr z_assump = getRepresentation(v_assump,withGuard);
 
     vstring p = ps+Int::toString(n++);
+    cerr << "add " << z_assump << " as " << p << endl;
     _solver.add(z_assump,p.c_str());
     lookup.insert(p,v_assump);
   }
