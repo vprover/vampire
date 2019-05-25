@@ -367,11 +367,20 @@ struct MatchingData {
     return getIntersectInfo(b1, b2)->first != -1;
   }
 
+  /**
+   * Get remaining number of alternatives for current decision level bi.
+   */
   unsigned getRemainingInCurrent(unsigned bi) const
   {
     return remaining->get(bi,bi);
   }
 
+  /**
+   * Returns the index of alternative alti in instance.
+   *
+   * It's possible to get the literal it represents with
+   *    (*instance)[getAltRecordIndex(bi,alti)]
+   */
   unsigned getAltRecordIndex(unsigned bi, unsigned alti) const
   {
     return static_cast<unsigned>(altBindings[bi][alti][varCnts[bi]].content());
@@ -449,10 +458,21 @@ struct MatchingData {
     return true;
   }
 
+  /**
+   * True iff variable bindings and remaining alternative counts for base literal bIndex have been initialized.
+   */
   bool isInitialized(unsigned bIndex) const {
     return boundVarNums[bIndex];
   }
 
+  /**
+   * Ensures that variable bindings and remaining alternative counts for base literal bIndex have been initialized.
+   *
+   * @return
+   * - OK: continue normally
+   * - MUST_BACKTRACK: no solution on this branch
+   * - NO_ALTERNATIVE: no solution at all
+   */
   InitResult ensureInit(unsigned bIndex)
   {
     CALL("MatchingData::ensureInit");
@@ -473,10 +493,6 @@ struct MatchingData {
           }
           if (eqLitForDemodulation < bIndex) {
             // If a previous equality has already been selected (eqForDemodulation < bIndex), we can't select the current one and need to backtrack.
-            // TODO: by ordering of base literals in init(), this can only happen if there was another positive equality with zero matching alternatives.
-            //       So we could also return NO_ALTERNATIVE and exit immediately...
-            //       (however that doesn't help us in performance because we exclude that case in FSD before even calling MLMatcher::init)
-            //       NOTE: the ordering might be wrong anyways. if we pass alternatives that are removed by createLiteralBindings... (shouldn't happen in FSD but who knows)
             return MUST_BACKTRACK;
           } else {
             return OK;
