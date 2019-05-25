@@ -44,6 +44,84 @@ void ForwardSubsumptionDemodulation2::attach(SaturationAlgorithm* salg)
   if (_doSubsumption) {
     _unitIndex.request(salg->getIndexManager(), SIMPLIFYING_UNIT_CLAUSE_SUBST_TREE);
   }
+
+
+
+  // // Small test case for MLMatcher2
+  // unsigned p = env.signature->addPredicate("p", 1);
+  // unsigned q = env.signature->addPredicate("q", 1);
+  // unsigned r = env.signature->addPredicate("r", 2);
+  // unsigned s = env.signature->addPredicate("s", 1);
+  // unsigned fn_c = env.signature->addFunction("c", 0);
+  // unsigned fn_d = env.signature->addFunction("d", 0);
+  // unsigned fn_e = env.signature->addFunction("e", 0);
+  // unsigned fn_f = env.signature->addFunction("f", 0);
+
+  // TermList x = TermList(0, false);
+  // TermList y = TermList(1, false);
+  // TermList c = TermList(Term::create(fn_c, 0, nullptr));
+  // TermList d = TermList(Term::create(fn_d, 0, nullptr));
+  // TermList e = TermList(Term::create(fn_e, 0, nullptr));
+  // TermList f = TermList(Term::create(fn_f, 0, nullptr));
+
+  // Literal* rxy = Literal::create2(r, true, x, y);
+  // Literal* rdd = Literal::create2(r, true, d, d);
+  // Literal* rcd = Literal::create2(r, true, c, d);
+  // Literal* rcc = Literal::create2(r, true, c, c);
+
+  // Literal* px = Literal::create1(p, true, x);
+  // Literal* pc = Literal::create1(p, true, c);
+  // Literal* pd = Literal::create1(p, true, d);
+
+  // Literal* qx = Literal::create1(q, true, x);
+  // Literal* qd = Literal::create1(q, true, d);
+  // Literal* qe = Literal::create1(q, true, e);
+  // Literal* qf = Literal::create1(q, true, f);
+
+  // Literal* sy = Literal::create1(s, true, y);
+  // Literal* sd = Literal::create1(s, true, d);
+  // Literal* sc = Literal::create1(s, true, c);
+
+  // LiteralList* alts0 = LiteralList::empty();
+  // LiteralList::push(rdd, alts0);
+  // LiteralList::push(rcd, alts0);
+  // LiteralList::push(rcc, alts0);
+
+  // LiteralList* alts1 = LiteralList::empty();
+  // LiteralList::push(pd, alts1);
+  // LiteralList::push(pc, alts1);
+
+  // LiteralList* alts2 = LiteralList::empty();
+  // LiteralList::push(qe, alts2);
+  // LiteralList::push(qd, alts2);
+  // LiteralList::push(qf, alts2);
+
+  // LiteralList* alts3 = LiteralList::empty();
+  // LiteralList::push(sd, alts3);
+  // LiteralList::push(sc, alts3);
+
+  // Literal* bases[] = {rxy, px, qx, sy};
+  // LiteralList* alts[] = {alts0, alts1, alts2, alts3};
+
+  // LiteralStack lits;
+  // lits.push(rdd);
+  // lits.push(rcd);
+  // lits.push(rcc);
+  // lits.push(pc);
+  // lits.push(pd);
+  // lits.push(qe);
+  // lits.push(qd);
+  // lits.push(qf);
+  // lits.push(sd);
+  // lits.push(sc);
+  // Clause* cl = Clause::fromStack(lits, Unit::AXIOM, new Inference(Inference::THEORY));
+
+  // MLMatcher2 matcher;
+  // matcher.init(bases, 4, cl, alts);
+
+  // bool res = matcher.nextMatch();
+  // std::cerr << "match? " << res << std::endl;
+  // std::exit(27);
 }
 
 
