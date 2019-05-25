@@ -349,21 +349,15 @@ struct MatchingData {
   {
     CALL("MatchingData::bindAlt");
 
-    // std::cerr << "bindAlt:   bIndex = " << bIndex << "\t" << bases[bIndex]->toString() << std::endl;
-    // std::cerr << "         altIndex = " << altIndex << "\t" << (*instance)[getAltRecordIndex(bIndex, altIndex)]->toString() << std::endl;
-
     TermList* curBindings=altBindings[bIndex][altIndex];
     for(unsigned i=bIndex+1; i<len; i++) {
-      // std::cerr << "\t i = " << i << "\t" << bases[i]->toString() << std::endl;
       if(!isInitialized(i)) {
-        // std::cerr << "\t (not initialized)" << std::endl;
         // data not yet initialized for remaining base literals -> nothing to check (why?)
         for (unsigned j = i; j < len; ++j) { ASS(!isInitialized(j)); }
         break;
       }
       pair<int,int>* iinfo=getIntersectInfo(bIndex, i);
       unsigned remAlts=remaining->get(i,bIndex);
-      // std::cerr << "\t remaining[" << i << ", " << bIndex << "] == " << remAlts << std::endl;
 
       if(iinfo->first!=-1) {  // checks whether we have any common variables at all
         // There are some variables in common
@@ -378,13 +372,10 @@ struct MatchingData {
         }
       }
       if(remAlts==0) {
-        // std::cerr << "\t bindAlts -> false" << std::endl;
         return false;
       }
       remaining->set(i,bIndex+1,remAlts);
-      // std::cerr << "\t remaining[" << i << ", " << (bIndex+1) << "] := " << remAlts << std::endl;
     }
-    // std::cerr << "\t bindAlts -> true" << std::endl;
     return true;
   }
 
@@ -453,7 +444,6 @@ struct MatchingData {
     CALL("MatchingData::ensureInit");
 
     if(!isInitialized(bIndex)) {
-      // std::cerr << "initialize: bIndex = " << bIndex << "\t" << bases[bIndex]->toString() << std::endl;
       boundVarNums[bIndex] = boundVarNumStorage;
       altBindings[bIndex] = altBindingPtrStorage;
       ALWAYS(createLiteralBindings(bases[bIndex], alts[bIndex], instance, boundVarNumStorage, altBindingPtrStorage, altBindingStorage));
@@ -478,13 +468,11 @@ struct MatchingData {
         }
       }
       remaining->set(bIndex, 0, altCnt);
-      // std::cerr << "\t remaining[" << bIndex << ", 0] := " << altCnt << std::endl;
 
       unsigned remAlts=0;
       for(unsigned pbi=0;pbi<bIndex;pbi++) { //pbi ~ previous base index
         pair<int,int>* iinfo=getIntersectInfo(pbi, bIndex);
         remAlts=remaining->get(bIndex, pbi);
-        // std::cerr << "\t remaining[" << bIndex << ", " << pbi << "] == " << remAlts << std::endl;
 
         // TODO: convince myself that this changed condition (adding pbi != eqLitForDemodulation) is correct.
         // Problem: what does this part even do?
@@ -504,7 +492,6 @@ struct MatchingData {
           }
         }
         remaining->set(bIndex,pbi+1,remAlts);
-        // std::cerr << "\t remaining[" << bIndex << ", " << (pbi+1) << "] := " << remAlts << std::endl;
       }
       if(bIndex>0 && remAlts==0) {
         return MUST_BACKTRACK;
