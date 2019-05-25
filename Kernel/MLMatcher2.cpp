@@ -70,9 +70,25 @@ struct ArrayStoringBinder
   { ASSERTION_VIOLATION; }
 private:
   TermList* _arr;
-  UUMap& _v2pos;
+  UUMap& _v2pos;  // Maps variable to array position
 };
 
+
+/**
+ * Compute and store variable bindings that instantiate baseLit to alt, for each alternative alt in the list alts.
+ * The result of this function is independent of the current matching state.
+ *
+ * @param baseLit The base literal.
+ * @param alts The list of alternatives that baseLit can be matched to.
+ * @param instCl The instance clause. All alternatives must be part of this clause.
+ * @param boundVarData The variables occurring in baseLit will be added to this array in ascending order. Needs to point to a large enough array.
+ * @param altBindingPtrs For each match of baseLit to an alt, will add one pointer to altBindingPtrs. Indicates the first element of altBindingData that is associated with this alt.
+ * @param altBindingData Will contain the actual variable bindings. For each variable in baseLit in ascending order, the array will contain the term bound to that variable.
+ *                       Furthermore, in an additional last position it will contain the index of the alternative in instCl.
+ *
+ * Why do we pass these weird references to pointers?
+ * => It allows us to create a single linear array at the beginning of matcher initialization, and thus avoids many small dynamic allocations.
+ */
 bool createLiteralBindings(Literal* baseLit, LiteralList* alts, Clause* instCl, unsigned*& boundVarData, TermList**& altBindingPtrs, TermList*& altBindingData)
 {
   CALL("createLiteralBindings");
@@ -88,6 +104,8 @@ bool createLiteralBindings(Literal* baseLit, LiteralList* alts, Clause* instCl, 
     varNums.insert(var);
   }
 
+  // Add (unique) variables in baseLit to boundVarData in ascending order.
+  // At the same time, fill the map variablePositions which maps each variable to its position in this sorted sequence.
   unsigned nextPos=0;
   while(!varNums.isEmpty()) {
     unsigned var=varNums.pop();
@@ -103,7 +121,6 @@ bool createLiteralBindings(Literal* baseLit, LiteralList* alts, Clause* instCl, 
 
   LiteralList::Iterator ait(alts);
   while(ait.hasNext()) {
-    //handle multiple matches in equality!
     Literal* alit=ait.next();
     if(alit->isEquality()) {
       //we must try both possibilities
@@ -127,7 +144,6 @@ bool createLiteralBindings(Literal* baseLit, LiteralList* alts, Clause* instCl, 
         // add index of the literal in instance clause at the end of the binding sequence
         new(altBindingData++) TermList((size_t)instCl->getLiteralPosition(alit));
       }
-
     } else {
       if(numVars) {
         ArrayStoringBinder binder(altBindingData, variablePositions);
@@ -145,25 +161,135 @@ bool createLiteralBindings(Literal* baseLit, LiteralList* alts, Clause* instCl, 
 }
 
 struct MatchingData {
+  /**
+   * The number of base literals.
+   */
   unsigned len;
+
+  /**
+   * The number of variables for each base literal.
+   *
+   * varCnts[bi] is the number of variables in bases[bi].
+   * 0 <= bi < len.
+   */
   unsigned* varCnts;
+
+  /**
+   * For each base literal, an unsigned[] containing its variables in ascending order
+   * (corresponding to the binding order in altBindings).
+   *
+   * boundVarNums[bi][i] is the i-th variable in bases[bi],
+   * for 0 <= bi < len, 0 <= i < varCnts[bi].
+   */
   unsigned** boundVarNums;
+
   /**
    * TermList[] corresponding to an alternative contains binding
    * for each variable of the base literal, and then one element
    * identifying the alternative literal itself.
+   *
+   * altBindings[bi][ai][i] is the term bound to the i-th variable of base literal bases[bi] when matched to its ai-th alternative,
+   * for 0 <= bi < len, 0 <= ai < ???, 0 <= i < varCnts[bi].
+   *
+   * altBindings[bi][ai][varCnts[bi]].content() is the index of the ai-th alternative in instance,
+   * for 0 <= bi < len, 0 <= ai < ???.
    */
   TermList*** altBindings;
-  TriangularArray<unsigned>* remaining;
-  unsigned* nextAlts;
-  unsigned eqLitForDemodulation;  // bases[eqLitForDemodulation] is the literal selected for demodulation; 0xFFFFFFFF if none has been selected
 
+  /**
+   * The number of remaining alternatives for a base literal.
+   *
+   * In particular:
+   * - remaining[b,0] is the number of possible alternatives for base literals bases[b].
+   * - remaining[b,k] is the number of remaining alternatives for base literals bases[b] after binding bases[j] for 0 <= j < k to their currently selected alternatives.
+   *                    (remaining means here that it is compatible to all variable bindings arising from the bindings for bases[j], 0 <= j < k)
+   *
+   * Below is an attempt to understand how it is computed (and why it is computed correctly).
+   *
+   * A triangular array, uninitialized at the start:
+   *    ?
+   *    ? ?
+   *    ? ? ?
+   *    ? ? ? ?
+   *    ? ? ? ? ?
+   *    ? ? ? ? ? ?
+   *
+   * Legend:
+   *    ? uninitialized
+   *    . initialized to some value
+   *
+   * ensureInit(bIndex)
+   *    initializes the line bIndex
+   *    (writes X from left to right)
+   *    .
+   *    . .
+   *    X X X         <- line bIndex
+   *    ? ? ? ?
+   *    ? ? ? ? ?
+   *    ? ? ? ? ? ?
+   *
+   * bindAlt(bIndex, altIndex)
+   *    updates the column bIndex+1 (for all already initialized lines)
+   *    (reads X and writes to the Y on its right; from top to bottom)
+   *    .
+   *    . .
+   *    . . .
+   *    . . X Y
+   *    . . X Y .
+   *    ? ? ? ? ? ?
+   *        ^
+   *      bIndex
+   *
+   * The backtracking algorithm at decision level bi (i.e., currently selecting an alternative for bases[bi])
+   * uses remaining[bi,bi] as the number of alternatives that have to be checked at the current step.
+   *
+   * From above we see that the leftmost column is only written by ensureInit and always contains the total number of alternatives.
+   * bindAlt prepares the next column for the next (and later) decision level.
+   * ensureInit needs to refer to the current match data because the lines are only initialized on demand.
+   * So if we only need e.g. two base literals to conclude that no match is possible, we never initialize lines 3+. This also saves update work in bindAlt for the early iterations.
+   */
+  TriangularArray<unsigned>* remaining;
+
+  /**
+   * nextAlts[bi] is the index of the next alternative to be selected at decision level bi,
+   * for 0 <= bi < len.
+   */
+  unsigned* nextAlts;
+
+  /**
+   * eqLitForDemodulation is the index of the base literal selected for demodulation, or 0xFFFFFFFF if none has been selected.
+   *
+   * When eqLitForDemodulation is different from 0xFFFFFFFF, then bases[eqLitForDemodulation] is always a positive equality.
+   */
+  unsigned eqLitForDemodulation;
+
+  /**
+   * Stores the variables that are common to any two base literals.
+   * See function 'getIntersectInfo'.
+   */
   TriangularArray<pair<int,int>* >* intersections;
 
+  /**
+   * Base literals that are instantiated and matched to alternatives.
+   *
+   * bases[bi] is the bi-th base literal, with 0 <= bi < len.
+   */
   Literal** bases;
+
+  /**
+   * bases[bi] can be matched to the alternatives in the list alts[bi], for 0 <= bi < len.
+   * Each alternative must be part of the clause 'instance'.
+   */
   LiteralList** alts;
+
+  /**
+   * The instance clause.
+   * All literals in 'alts' must appear in this clause.
+   */
   Clause* instance;
 
+  // These are helper variables that just exist to allow us to use one large linear buffer
+  // as underlying storage for all the other small arrays defined above.
   unsigned* boundVarNumStorage;
   TermList** altBindingPtrStorage;
   TermList* altBindingStorage;
@@ -192,12 +318,15 @@ struct MatchingData {
    * @b altBindings[b2Index][i2AltIndex] .
    */
   bool compatible(unsigned b1Index, TermList* i1Bindings,
-                  unsigned b2Index, unsigned i2AltIndex, pair<int,int>* iinfo) const
+                  unsigned b2Index, unsigned i2AltIndex, pair<int,int>* iinfo)  // const
   {
     CALL("MatchingData::compatible");
+    ASS_EQ(iinfo, getIntersectInfo(b1Index, b2Index));  // why is 'iinfo' passed at all? probably to save one call to getIntersectInfo. TODO: I don't think this makes much of a difference, so just the remove parameter 'iinfo'.
 
     TermList* i2Bindings=altBindings[b2Index][i2AltIndex];
 
+    // Iterate over variables common to bases[b1Index] and bases[b2Index].
+    // (iinfo stores which variables are in common and should be getIntersectInfo(b1Index, b2Index)).
     while(iinfo->first!=-1) {
       if(i1Bindings[iinfo->first]!=i2Bindings[iinfo->second]) {
         return false;
@@ -207,21 +336,41 @@ struct MatchingData {
     return true;
   }
 
+  /**
+   * Bind base literal bases[bIndex] to alternative at altBindings[bIndex][altIndex].
+   *
+   * This function excludes alternatives for later base literals (i.e., bases[i] with i > bIndex)
+   * that are not compatible with the current variable bindings.
+   * Returns true iff all later base literals have at least one possible alternative left.
+   *
+   * (actually: not "all" later base literals, only all that have been initialized so far)
+   */
   bool bindAlt(unsigned bIndex, unsigned altIndex)
   {
     CALL("MatchingData::bindAlt");
 
+    // std::cerr << "bindAlt:   bIndex = " << bIndex << "\t" << bases[bIndex]->toString() << std::endl;
+    // std::cerr << "         altIndex = " << altIndex << "\t" << (*instance)[getAltRecordIndex(bIndex, altIndex)]->toString() << std::endl;
+
     TermList* curBindings=altBindings[bIndex][altIndex];
     for(unsigned i=bIndex+1; i<len; i++) {
+      // std::cerr << "\t i = " << i << "\t" << bases[i]->toString() << std::endl;
       if(!isInitialized(i)) {
+        // std::cerr << "\t (not initialized)" << std::endl;
+        // data not yet initialized for remaining base literals -> nothing to check (why?)
+        for (unsigned j = i; j < len; ++j) { ASS(!isInitialized(j)); }
         break;
       }
       pair<int,int>* iinfo=getIntersectInfo(bIndex, i);
       unsigned remAlts=remaining->get(i,bIndex);
+      // std::cerr << "\t remaining[" << i << ", " << bIndex << "] == " << remAlts << std::endl;
 
-      if(iinfo->first!=-1) {
+      if(iinfo->first!=-1) {  // checks whether we have any common variables at all
+        // There are some variables in common
         for(unsigned ai=0;ai<remAlts;ai++) {
           if(!compatible(bIndex,curBindings,i,ai,iinfo)) {
+            // If bindings are not compatible with alternative ai, move it to the back and decrease remaining number of alts by one,
+            // effectively excluding it from being chosen in later steps.
             remAlts--;
             std::swap(altBindings[i][ai], altBindings[i][remAlts]);
             ai--;
@@ -229,16 +378,32 @@ struct MatchingData {
         }
       }
       if(remAlts==0) {
+        // std::cerr << "\t bindAlts -> false" << std::endl;
         return false;
       }
       remaining->set(i,bIndex+1,remAlts);
+      // std::cerr << "\t remaining[" << i << ", " << (bIndex+1) << "] := " << remAlts << std::endl;
     }
+    // std::cerr << "\t bindAlts -> true" << std::endl;
     return true;
   }
 
+  /**
+   * Compute the "intersect info" of base literals bases[b1] and bases[b2], i.e.,
+   * the variables that the literals have in common.
+   * In particular, the result is an array of pair<int,int>.
+   * Each element represents a variable that is common in bases[b1] and bases[b2];
+   * the first and second components of the pair give the index i of the variable
+   * in the array altBindings[bi][ai][i] for bi=b1 and bi=b2, respectively.
+   * The returned array is terminated by a sentinel value that contains -1 in the first component.
+   *
+   * Requires b1 < b2.
+   */
   pair<int,int>* getIntersectInfo(unsigned b1, unsigned b2)
   {
     CALL("MatchingData::getIntersectInfo");
+    ASS(isInitialized(b1));
+    ASS(isInitialized(b2));
 
     ASS_L(b1, b2);
     pair<int,int>* res=intersections->get(b2,b1);
@@ -288,6 +453,7 @@ struct MatchingData {
     CALL("MatchingData::ensureInit");
 
     if(!isInitialized(bIndex)) {
+      // std::cerr << "initialize: bIndex = " << bIndex << "\t" << bases[bIndex]->toString() << std::endl;
       boundVarNums[bIndex] = boundVarNumStorage;
       altBindings[bIndex] = altBindingPtrStorage;
       ALWAYS(createLiteralBindings(bases[bIndex], alts[bIndex], instance, boundVarNumStorage, altBindingPtrStorage, altBindingStorage));
@@ -312,11 +478,13 @@ struct MatchingData {
         }
       }
       remaining->set(bIndex, 0, altCnt);
+      // std::cerr << "\t remaining[" << bIndex << ", 0] := " << altCnt << std::endl;
 
       unsigned remAlts=0;
       for(unsigned pbi=0;pbi<bIndex;pbi++) { //pbi ~ previous base index
         pair<int,int>* iinfo=getIntersectInfo(pbi, bIndex);
         remAlts=remaining->get(bIndex, pbi);
+        // std::cerr << "\t remaining[" << bIndex << ", " << pbi << "] == " << remAlts << std::endl;
 
         // TODO: convince myself that this changed condition (adding pbi != eqLitForDemodulation) is correct.
         // Problem: what does this part even do?
@@ -324,6 +492,7 @@ struct MatchingData {
         // We only do this for each bIndex once (since boundVarNums isn't set anywhere but in this function);
         // but it depends on the current matching state of the previous base literals??? (nextAlts[pbi])
         // How is that even correct...
+        // TODO check again the interaction with bindAlt; I think we need to copy the column without change when selecting a baseLit for demodulation!
         if (pbi != eqLitForDemodulation && iinfo->first != -1) {
           TermList* pbBindings=altBindings[pbi][nextAlts[pbi]-1];
           for(unsigned ai=0;ai<remAlts;ai++) {
@@ -335,6 +504,7 @@ struct MatchingData {
           }
         }
         remaining->set(bIndex,pbi+1,remAlts);
+        // std::cerr << "\t remaining[" << bIndex << ", " << (pbi+1) << "] := " << remAlts << std::endl;
       }
       if(bIndex>0 && remAlts==0) {
         return MUST_BACKTRACK;
@@ -567,6 +737,7 @@ bool MLMatcher2::Impl::nextMatch()
   CALL("MLMatcher2::Impl::nextMatch");
   MatchingData* const md = &s_matchingData;
 
+  // TODO clarify
   while (true) {
     MatchingData::InitResult ires = md->ensureInit(s_currBLit);
     if (ires != MatchingData::OK) {
