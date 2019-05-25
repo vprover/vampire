@@ -318,15 +318,15 @@ struct MatchingData {
    * @b altBindings[b2Index][i2AltIndex] .
    */
   bool compatible(unsigned b1Index, TermList* i1Bindings,
-                  unsigned b2Index, unsigned i2AltIndex, pair<int,int>* iinfo)  // const
+                  unsigned b2Index, unsigned i2AltIndex)
   {
     CALL("MatchingData::compatible");
-    ASS_EQ(iinfo, getIntersectInfo(b1Index, b2Index));  // why is 'iinfo' passed at all? probably to save one call to getIntersectInfo. TODO: I don't think this makes much of a difference, so just the remove parameter 'iinfo'.
 
     TermList* i2Bindings=altBindings[b2Index][i2AltIndex];
 
     // Iterate over variables common to bases[b1Index] and bases[b2Index].
     // (iinfo stores which variables are in common and should be getIntersectInfo(b1Index, b2Index)).
+    pair<int,int>* iinfo = getIntersectInfo(b1Index, b2Index);
     while(iinfo->first!=-1) {
       if(i1Bindings[iinfo->first]!=i2Bindings[iinfo->second]) {
         return false;
@@ -356,13 +356,12 @@ struct MatchingData {
         for (unsigned j = i; j < len; ++j) { ASS(!isInitialized(j)); }
         break;
       }
-      pair<int,int>* iinfo=getIntersectInfo(bIndex, i);
       unsigned remAlts=remaining->get(i,bIndex);
 
-      if(iinfo->first!=-1) {  // checks whether we have any common variables at all
+      if (basesHaveVariablesInCommon(bIndex, i)) {
         // There are some variables in common
         for(unsigned ai=0;ai<remAlts;ai++) {
-          if(!compatible(bIndex,curBindings,i,ai,iinfo)) {
+          if(!compatible(bIndex,curBindings,i,ai)) {
             // If bindings are not compatible with alternative ai, move it to the back and decrease remaining number of alts by one,
             // effectively excluding it from being chosen in later steps.
             remAlts--;
@@ -435,6 +434,16 @@ struct MatchingData {
     return res;
   }
 
+  /**
+   * True iff bases[b1] and bases[b2] have at least one variable in common.
+   *
+   * Requires b1 < b2.
+   */
+  bool basesHaveVariablesInCommon(unsigned b1, unsigned b2)
+  {
+    return getIntersectInfo(b1, b2)->first != -1;
+  }
+
   bool isInitialized(unsigned bIndex) const {
     return boundVarNums[bIndex];
   }
@@ -471,20 +480,14 @@ struct MatchingData {
 
       unsigned remAlts=0;
       for(unsigned pbi=0;pbi<bIndex;pbi++) { //pbi ~ previous base index
-        pair<int,int>* iinfo=getIntersectInfo(pbi, bIndex);
         remAlts=remaining->get(bIndex, pbi);
 
-        // TODO: convince myself that this changed condition (adding pbi != eqLitForDemodulation) is correct.
-        // Problem: what does this part even do?
-        // It somehow initializes the number of remaining alternatives.
-        // We only do this for each bIndex once (since boundVarNums isn't set anywhere but in this function);
-        // but it depends on the current matching state of the previous base literals??? (nextAlts[pbi])
-        // How is that even correct...
+        // TODO: convince myself that this changed condition (adding pbi != eqLitForDemodulation) is correct. YES, because bindings for the eqLit are not relevant to current substitution.
         // TODO check again the interaction with bindAlt; I think we need to copy the column without change when selecting a baseLit for demodulation!
-        if (pbi != eqLitForDemodulation && iinfo->first != -1) {
+        if (pbi != eqLitForDemodulation && basesHaveVariablesInCommon(pbi, bIndex)) {
           TermList* pbBindings=altBindings[pbi][nextAlts[pbi]-1];
           for(unsigned ai=0;ai<remAlts;ai++) {
-            if(!compatible(pbi, pbBindings, bIndex, ai, iinfo)) {
+            if(!compatible(pbi, pbBindings, bIndex, ai)) {
               remAlts--;
               std::swap(altBindings[bIndex][ai], altBindings[bIndex][remAlts]);
               ai--;
@@ -543,6 +546,7 @@ class MLMatcher2::Impl final
 
   private:
     // Backing storage for the pointers in s_matchingData, used and set up in initMatchingData
+    // (the split between this class and s_matchingData is purely historical; the transition from the previous implementation with global variables was easier like this)
     DArray<Literal*> s_baseLits;
     DArray<LiteralList*> s_altsArr;
     DArray<unsigned> s_varCnts;
