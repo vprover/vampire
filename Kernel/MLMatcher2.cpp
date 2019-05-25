@@ -301,6 +301,72 @@ struct MatchingData {
     NO_ALTERNATIVE
   };
 
+  /**
+   * Compute the "intersect info" of base literals bases[b1] and bases[b2], i.e.,
+   * the variables that the literals have in common.
+   * In particular, the result is an array of pair<int,int>.
+   * Each element represents a variable that is common in bases[b1] and bases[b2];
+   * the first and second components of the pair give the index i of the variable
+   * in the array altBindings[bi][ai][i] for bi=b1 and bi=b2, respectively.
+   * The returned array is terminated by a sentinel value that contains -1 in the first component.
+   *
+   * Requires b1 < b2.
+   */
+  pair<int,int>* getIntersectInfo(unsigned b1, unsigned b2)
+  {
+    CALL("MatchingData::getIntersectInfo");
+    ASS(isInitialized(b1));
+    ASS(isInitialized(b2));
+
+    ASS_L(b1, b2);
+    pair<int,int>* res=intersections->get(b2,b1);
+    if( res ) {
+      return res;
+    }
+    intersections->set(b2,b1, intersectionStorage);
+    res=intersectionStorage;
+
+    unsigned b1vcnt=varCnts[b1];
+    unsigned b2vcnt=varCnts[b2];
+    unsigned* b1vn=boundVarNums[b1];
+    unsigned* b1vnStop=boundVarNums[b1]+b1vcnt;
+    unsigned* b2vn=boundVarNums[b2];
+    unsigned* b2vnStop=boundVarNums[b2]+b2vcnt;
+
+    int b1VarIndex=0;
+    int b2VarIndex=0;
+    while(true) {
+      while(b1vn!=b1vnStop && *b1vn<*b2vn) { b1vn++; b1VarIndex++; }
+      if(b1vn==b1vnStop) { break; }
+      while(b2vn!=b2vnStop && *b1vn>*b2vn) { b2vn++; b2VarIndex++; }
+      if(b2vn==b2vnStop) { break; }
+      if(*b1vn==*b2vn) {
+        intersectionStorage->first=b1VarIndex;
+        intersectionStorage->second=b2VarIndex;
+        intersectionStorage++;
+
+        b1vn++; b1VarIndex++;
+        b2vn++; b2VarIndex++;
+        if(b1vn==b1vnStop || b2vn==b2vnStop) { break; }
+      }
+    }
+
+    intersectionStorage->first=-1;
+    intersectionStorage++;
+
+    return res;
+  }
+
+  /**
+   * True iff bases[b1] and bases[b2] have at least one variable in common.
+   *
+   * Requires b1 < b2.
+   */
+  bool basesHaveVariablesInCommon(unsigned b1, unsigned b2)
+  {
+    return getIntersectInfo(b1, b2)->first != -1;
+  }
+
   unsigned getRemainingInCurrent(unsigned bi) const
   {
     return remaining->get(bi,bi);
@@ -381,72 +447,6 @@ struct MatchingData {
       remaining->set(i,bIndex+1,remAlts);
     }
     return true;
-  }
-
-  /**
-   * Compute the "intersect info" of base literals bases[b1] and bases[b2], i.e.,
-   * the variables that the literals have in common.
-   * In particular, the result is an array of pair<int,int>.
-   * Each element represents a variable that is common in bases[b1] and bases[b2];
-   * the first and second components of the pair give the index i of the variable
-   * in the array altBindings[bi][ai][i] for bi=b1 and bi=b2, respectively.
-   * The returned array is terminated by a sentinel value that contains -1 in the first component.
-   *
-   * Requires b1 < b2.
-   */
-  pair<int,int>* getIntersectInfo(unsigned b1, unsigned b2)
-  {
-    CALL("MatchingData::getIntersectInfo");
-    ASS(isInitialized(b1));
-    ASS(isInitialized(b2));
-
-    ASS_L(b1, b2);
-    pair<int,int>* res=intersections->get(b2,b1);
-    if( res ) {
-      return res;
-    }
-    intersections->set(b2,b1, intersectionStorage);
-    res=intersectionStorage;
-
-    unsigned b1vcnt=varCnts[b1];
-    unsigned b2vcnt=varCnts[b2];
-    unsigned* b1vn=boundVarNums[b1];
-    unsigned* b1vnStop=boundVarNums[b1]+b1vcnt;
-    unsigned* b2vn=boundVarNums[b2];
-    unsigned* b2vnStop=boundVarNums[b2]+b2vcnt;
-
-    int b1VarIndex=0;
-    int b2VarIndex=0;
-    while(true) {
-      while(b1vn!=b1vnStop && *b1vn<*b2vn) { b1vn++; b1VarIndex++; }
-      if(b1vn==b1vnStop) { break; }
-      while(b2vn!=b2vnStop && *b1vn>*b2vn) { b2vn++; b2VarIndex++; }
-      if(b2vn==b2vnStop) { break; }
-      if(*b1vn==*b2vn) {
-        intersectionStorage->first=b1VarIndex;
-        intersectionStorage->second=b2VarIndex;
-        intersectionStorage++;
-
-        b1vn++; b1VarIndex++;
-        b2vn++; b2VarIndex++;
-        if(b1vn==b1vnStop || b2vn==b2vnStop) { break; }
-      }
-    }
-
-    intersectionStorage->first=-1;
-    intersectionStorage++;
-
-    return res;
-  }
-
-  /**
-   * True iff bases[b1] and bases[b2] have at least one variable in common.
-   *
-   * Requires b1 < b2.
-   */
-  bool basesHaveVariablesInCommon(unsigned b1, unsigned b2)
-  {
-    return getIntersectInfo(b1, b2)->first != -1;
   }
 
   bool isInitialized(unsigned bIndex) const {
