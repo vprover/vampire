@@ -358,8 +358,11 @@ struct MatchingData {
       }
       unsigned remAlts=remaining->get(i,bIndex);
 
+      ASS_NEQ(i, eqLitForDemodulation);
+
+      // Do we have some variables in common?
+      // If yes, exclude alternatives for bases[i] that conflict with the current variable bindings.
       if (basesHaveVariablesInCommon(bIndex, i)) {
-        // There are some variables in common
         for(unsigned ai=0;ai<remAlts;ai++) {
           if(!compatible(bIndex,curBindings,i,ai)) {
             // If bindings are not compatible with alternative ai, move it to the back and decrease remaining number of alts by one,
@@ -370,6 +373,8 @@ struct MatchingData {
           }
         }
       }
+      // No compatible alternatives left for bases[i]?
+      // Return false to skip alternative altIndex for bases[bIndex], because it would lead to a conflict+backtracking later anyways.
       if(remAlts==0) {
         return false;
       }
@@ -464,10 +469,14 @@ struct MatchingData {
         if (bases[bIndex]->isEquality() && bases[bIndex]->isPositive()) {
           // but for positive equalities, we may be able to select it for demodulation
           for(unsigned i = 0; i <= bIndex; i++) {
-            remaining->set(bIndex, i, 0);  // TODO check if necessary (and correct...); we need at least remaining->set(bIndex,bIndex,0);
+            remaining->set(bIndex, i, 0);
           }
           if (eqLitForDemodulation < bIndex) {
-            // if a previous equality has already been selected (eqForDemodulation < bIndex), we can't select the current one.
+            // If a previous equality has already been selected (eqForDemodulation < bIndex), we can't select the current one and need to backtrack.
+            // TODO: by ordering of base literals in init(), this can only happen if there was another positive equality with zero matching alternatives.
+            //       So we could also return NO_ALTERNATIVE and exit immediately...
+            //       (however that doesn't help us in performance because we exclude that case in FSD before even calling MLMatcher::init)
+            //       NOTE: the ordering might be wrong anyways. if we pass alternatives that are removed by createLiteralBindings... (shouldn't happen in FSD but who knows)
             return MUST_BACKTRACK;
           } else {
             return OK;
