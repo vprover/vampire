@@ -23,7 +23,7 @@
 
 #if VZ3
 
-#define DPRINT 1
+#define DPRINT 0
 
 #include "Debug/RuntimeStatistics.hpp"
 
@@ -647,7 +647,9 @@ VirtualIterator<Solution>  minimizeSolution(Stack<Literal*>& theoryLiterals, boo
   Stack<unsigned> vars;
   unsigned used = 0;
 
-  // TODO: abstract all terms in solution, extend subst with skolem terms for new variables
+  // abstract all terms in solution, create a stack of sat literals to
+  // use for solving under assumptions. only the assumptions directly passed
+  // to solveUnderAssumptions are added to the unsat core
   static TheoryFlattening flattener(true, false,false);
   Stack<Literal*> flattened;
   flattener.apply(triangleSubst, flattened,maxVar);
@@ -657,7 +659,9 @@ VirtualIterator<Solution>  minimizeSolution(Stack<Literal*>& theoryLiterals, boo
   Stack<Literal*>::Iterator stit(flattened);
   while(stit.hasNext()) {
     Literal* lit = stit.next();
+#if DPRINT
     cerr << "subterm: " << lit->toString() << endl;
+#endif
     ASS(lit->isEquality());
     unsigned sort = SortHelper::getResultSort(lit->nthArgument(0)->term());
     unsigned v = lit->nthArgument(1)->var();
@@ -673,8 +677,9 @@ VirtualIterator<Solution>  minimizeSolution(Stack<Literal*>& theoryLiterals, boo
   while(stit2.hasNext()) {
     Literal* lit = Literal::complementaryLiteral(stit2.next())->apply(subst);
     groundedFlattened.push(lit);
+#if DPRINT
     cerr << "adding model value: " << lit->toString() << endl;
-    //solver.addAssumption(naming.toSAT(lit));
+#endif
     triangle_sateqs.push(naming.toSAT(lit));
   }
 
@@ -707,41 +712,98 @@ VirtualIterator<Solution>  minimizeSolution(Stack<Literal*>& theoryLiterals, boo
   SATClause* sc = SATClause::fromStack(satLits);
   // guarded is normally true, apart from when we are checking a theory tautology
   try{
-    cerr << "adding clause"  << endl;
     solver.addClause(sc,guarded);
   }
   catch(UninterpretedForZ3Exception){
     return VirtualIterator<Solution>::getEmpty();
   }
   
-  //addAssumption on solver for the unsat core labels
-  
   // TODO: add sk = term assertions for each element in the subst, label each assertion for consideration in unsat core
 
   // now we can call the solver
   SATSolver::Status status = solver.solveUnderAssumptions(triangle_sateqs, UINT_MAX, false);
+  // check result is unsat and extract unsat core
   switch(status) {
   case SATSolver::Status::UNSATISFIABLE: {
-      cerr << "SMT solver reports unsat when minimizing model!" << endl;
-      SATLiteralStack unsat_core = solver.failedAssumptions();
-      cerr << "unsat core size:" << unsat_core.size() << endl;
-      for (SATLiteralStack::Iterator it(unsat_core); it.hasNext(); ) {
-        cerr << "unsat core clause:" << it.next().toString() << endl;
+#if DPRINT
+    cerr << "SMT solver reports unsat when minimizing model!" << endl;
+#endif
+    SATLiteralStack unsat_core = solver.failedAssumptions();
+#if DPRINT
+    cerr << "unsat core size:" << unsat_core.size() << endl;
+    for (SATLiteralStack::Iterator it(unsat_core); it.hasNext(); ) {
+      cerr << "unsat core clause:" << it.next().toString() << endl;
+    }
+#endif
+    //TODO: make implementation more efficient, intermediate substitutions are created
+    // only keep variables in subst that appear in unsat core
+    //  flattened terms are ordered by variable occurrence in subterms. we need to start with the last one
+    Stack<Literal*>::BottomFirstIterator subterms(flattened);
+    // the order in triangle_sateqs is the reverse of flattened, so we need to start with the first one here
+    SATLiteralStack::Iterator substlits(triangle_sateqs);
+    // keep a list of variables introduced by flattening. they must be removed from the solution
+    Stack<unsigned> bindings_from_flattening;
+    //the substitution that we will return in the solution
+    Solution minsol(true);
+#if DPRINT
+    cerr << "filtering subst by unsat core:" << endl;
+#endif
+    while( substlits.hasNext() ) {
+        ASS( subterms.hasNext() );
+        SATLiteral sl = substlits.next();
+        Literal* lit = subterms.next();
+        if (unsat_core.find(sl)) {
+#if DPRINT
+          cerr << "taking subst lit: " << lit->toString() << endl;
+#endif
+          TermList t(lit->nthArgument(0)->term()->apply(minsol.subst));
+          unsigned v = lit->nthArgument(1)->var();
+          Substitution addsub;
+          addsub.bind(v,t);
+#if DPRINT
+          //  cerr << "composing with " << TermList(v,false) << " -> " << t.toString() << endl;
+          //  cerr << "composing with " << addsub.toString() << endl;
+#endif
+          minsol.subst.compose(addsub);
+
+          if (v>maxVar) {
+            bindings_from_flattening.push(v);
+          }
+        } else {
+#if DPRINT
+          cerr << "skipping subst lit: " << lit->toString() << endl;
+#endif
+        }
       }
+
+      // removed flattening variables from minsol.sub
+      for (Stack<unsigned>::Iterator it(bindings_from_flattening);
+           it.hasNext();
+           ) {
+        unsigned v = it.next();
+#if DPRINT
+        cerr << "unbinding:" << v << endl;
+#endif
+        minsol.subst.unbind(v);
+      }
+
+#if DPRINT
+      cerr << "minimized subst: " << minsol.subst.toString() << endl;
+#endif      
+      return pvi(getSingletonIterator(minsol));
     }
     break;
   case SATSolver::Status::UNKNOWN:
     cerr << "SMT solver reports unknown when minimizing model!" << endl;
-    return pvi(getSingletonIterator(sol));
+    break;
   case SATSolver::Status::SATISFIABLE:
     cerr << "Input problem for instantiation minimization is always unsat, but solver reports sat!" << endl;
     ASS(false);
-    return pvi(getSingletonIterator(sol));
+    break;
   }
-  // TODO: check result is unsat and extract unsat core
-  // TODO: only keep variables in subst that appear in unsat core
-  
+  // return input solution when we couldnt construct a smaller one
   return pvi(getSingletonIterator(sol));
+
 }
 
 
@@ -839,7 +901,9 @@ VirtualIterator<Solution> TheoryInstAndSimp::getSolutions(Stack<Literal*>& theor
         TermList tl_v(v,false);
         TermList tl_t(t);
         Literal* eq = Literal::createEquality(false, tl_v, tl_t, SortHelper::getResultSort(t));
+#if DPRINT
         cerr << "assigning: " << eq->toString() << endl;
+#endif
         substTriangleForm.push(eq);
         //cout << "evaluate to " << t->toString() << endl;
         sol.subst.bind(v,t);

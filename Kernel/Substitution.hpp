@@ -63,6 +63,16 @@ public:
   void unbind(int var);
   void reset();
   bool isEmpty() const { return _map.isEmpty(); }
+
+  /** Compose substitution 'this' with substitution 'other' such such that
+   *  { sub.compose(other); term->apply(sub) } equals term->apply(sub)->apply(with).
+   *
+   *  Computationally, each mapping v -> term in 'this' is replaced with the mapping
+   *  v -> term->apply(other). Every mapping v -> term in 'other' where v is
+   *  unbound in 'this' is added to it.
+   */
+  void compose(Substitution& other);
+  
 #if VDEBUG
   vstring toString() const;
 #endif

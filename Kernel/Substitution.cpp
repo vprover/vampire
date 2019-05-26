@@ -28,6 +28,7 @@
 #endif
 
 #include "Substitution.hpp"
+#include "Kernel/SubstHelper.hpp"
 
 namespace Kernel
 {
@@ -112,7 +113,33 @@ bool Substitution::findBinding(int var, TermList& res) const
   return _map.find(var, res);
 } // Substitution::bound
 
+void Substitution::compose(Substitution& other) {
+  Substitution nsub;
+  unsigned v;
+  TermList t, temp;
+  // apply other to every bound term
+  for (DHMap<unsigned,TermList>::Iterator it(this->_map);
+       it.hasNext();  ) {
+    it.next(v,t);
+    temp = SubstHelper::apply(t, other);
+    //cerr << "substitution composition: rebind " << v << " to " << temp.toString() << endl;
+    nsub.bind(v, temp);
+  }
+  // add all mappings not in domain of this substitution
+  for (DHMap<unsigned,TermList>::Iterator it(other._map);
+       it.hasNext();  ) {
+    it.next(v,t);
+    if (! this->_map.find(v,temp)) {
+      //cerr << "substitution composition: bind new " << v << " to " << t.toString() << endl;
+      nsub.bind(v, t);
+    }
+  }
+  this->_map.reset();
+  this->_map.loadFromMap(nsub._map);
+} // Substitution::compose
 
+
+  
 #if VDEBUG
  vstring Substitution::toString() const
  {
