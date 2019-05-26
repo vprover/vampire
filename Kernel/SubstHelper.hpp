@@ -589,6 +589,7 @@ FormulaList* SubstHelper::applyImpl(FormulaList* fs, Applicator& applicator, boo
   return res;
 } // SubstHelper::applyImpl
 
+
 };
 
 #endif /* __SubstHelper__ */
