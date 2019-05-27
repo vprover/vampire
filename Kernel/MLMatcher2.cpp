@@ -89,7 +89,7 @@ private:
  * Why do we pass these weird references to pointers?
  * => It allows us to create a single linear array at the beginning of matcher initialization, and thus avoids many small dynamic allocations.
  */
-bool createLiteralBindings(Literal* baseLit, LiteralList* alts, Clause* instCl, unsigned*& boundVarData, TermList**& altBindingPtrs, TermList*& altBindingData)
+void createLiteralBindings(Literal* baseLit, LiteralList* alts, Clause* instCl, unsigned*& boundVarData, TermList**& altBindingPtrs, TermList*& altBindingData)
 {
   CALL("createLiteralBindings");
 
@@ -157,7 +157,6 @@ bool createLiteralBindings(Literal* baseLit, LiteralList* alts, Clause* instCl, 
       new(altBindingData++) TermList((size_t)instCl->getLiteralPosition(alit));
     }
   }
-  return true;
 }
 
 struct MatchingData {
@@ -204,6 +203,8 @@ struct MatchingData {
    * - remaining[b,k] is the number of remaining alternatives for base literals bases[b] after binding bases[j] for 0 <= j < k to their currently selected alternatives.
    *                    (remaining means here that it is compatible to all variable bindings arising from the bindings for bases[j], 0 <= j < k)
    *
+   * It follows that remaining[b,b] is the number of alternatives we have to consider for bases[b] at decision level b in the backtracking search.
+   *
    * Below is an attempt to understand how it is computed (and why it is computed correctly).
    *
    * A triangular array, uninitialized at the start:
@@ -217,6 +218,7 @@ struct MatchingData {
    * Legend:
    *    ? uninitialized
    *    . initialized to some value
+   *    (The examples use values len=6, bIndex=3.)
    *
    * ensureInit(bIndex)
    *    initializes the line bIndex
@@ -423,12 +425,13 @@ struct MatchingData {
   bool bindAlt(unsigned bIndex, unsigned altIndex)
   {
     CALL("MatchingData::bindAlt");
+    ASS_NEQ(bIndex, eqLitForDemodulation);
 
     TermList* curBindings=altBindings[bIndex][altIndex];
     for(unsigned i=bIndex+1; i<len; i++) {
       if(!isInitialized(i)) {
-        // data not yet initialized for remaining base literals -> nothing to check (why?)
-        for (unsigned j = i; j < len; ++j) { ASS(!isInitialized(j)); }
+        // Data not yet initialized for remaining base literals
+        // => nothing to do (further lines of 'remaining' will be initialized in 'ensureInit')
         break;
       }
       unsigned remAlts=remaining->get(i,bIndex);
@@ -449,7 +452,7 @@ struct MatchingData {
         }
       }
       // No compatible alternatives left for bases[i]?
-      // Return false to skip alternative altIndex for bases[bIndex], because it would lead to a conflict+backtracking later anyways.
+      // If so, return false to skip alternative altIndex for bases[bIndex], because it would lead to a conflict+backtracking later anyways.
       if(remAlts==0) {
         return false;
       }
@@ -459,9 +462,37 @@ struct MatchingData {
   }
 
   /**
+   * Ignore bases[bIndex] in the current substitution.
+   *
+   * This is the counterpart to bindAlt when selecting bases[bIndex] as equality for demodulation.
+   */
+  void skipBinding(unsigned bIndex)
+  {
+    CALL("MatchingData::skipBinding");
+    ASS_EQ(bIndex, eqLitForDemodulation);  // currently this only makes sense for the demodulation equality
+
+    for (unsigned i = bIndex + 1; i < len; ++i) {
+      if (!isInitialized(i)) {
+        // Nothing to do for uninitialized lines of 'remaining'
+        break;
+      }
+
+      // Copy number of remaining alts.
+      // Because bases[bIndex] does not take part in the substitution, we cannot exclude any alts for the next step,
+      // but we still need to initialize the values.
+      unsigned remAlts = remaining->get(i, bIndex);
+      ASS_EQ(remAlts, remaining->get(i, bIndex+1));  // This assertion doesn't fire in my test cases, indicating that this function is actually unnecessary. TODO: figure out why. If it is indeed unnecessary, then we might still want to keep it (but it just checks the assertion in debug mode and does nothing in release mode).
+      remaining->set(i, bIndex + 1, remAlts);
+
+      ASS_G(remAlts, 0);  // otherwise, the branch should have been cut off in an earlier step
+    }
+  }
+
+  /**
    * True iff variable bindings and remaining alternative counts for base literal bIndex have been initialized.
    */
-  bool isInitialized(unsigned bIndex) const {
+  bool isInitialized(unsigned bIndex) const
+  {
     return boundVarNums[bIndex];
   }
 
@@ -478,11 +509,14 @@ struct MatchingData {
     CALL("MatchingData::ensureInit");
 
     if(!isInitialized(bIndex)) {
+      // Initialize variable bindings
       boundVarNums[bIndex] = boundVarNumStorage;
       altBindings[bIndex] = altBindingPtrStorage;
-      ALWAYS(createLiteralBindings(bases[bIndex], alts[bIndex], instance, boundVarNumStorage, altBindingPtrStorage, altBindingStorage));
+      createLiteralBindings(bases[bIndex], alts[bIndex], instance, boundVarNumStorage, altBindingPtrStorage, altBindingStorage);
       varCnts[bIndex] = boundVarNumStorage - boundVarNums[bIndex];
 
+      // How many slots of the altBindings array have been used?
+      // This tells us how many alts have passed the first test in createLiteralBindings
       unsigned altCnt=altBindingPtrStorage-altBindings[bIndex];
       if(altCnt==0) {
         // There is no matching alternative at all
@@ -501,14 +535,16 @@ struct MatchingData {
           return NO_ALTERNATIVE;
         }
       }
+      // Store the number of alts for bases[bIndex]
       remaining->set(bIndex, 0, altCnt);
 
+      // Compute the number of remaining alts for the current branch of the backtracking search
       unsigned remAlts=0;
       for(unsigned pbi=0;pbi<bIndex;pbi++) { //pbi ~ previous base index
         remAlts=remaining->get(bIndex, pbi);
-
-        // TODO: convince myself that this changed condition (adding pbi != eqLitForDemodulation) is correct. YES, because bindings for the eqLit are not relevant to current substitution.
-        // TODO check again the interaction with bindAlt; I think we need to copy the column without change when selecting a baseLit for demodulation!
+        // If pbi == eqLitForDemodulation, then bases[pbi] is not relevant to the current substitution (also, nextAlts[pbi] is invalid so the code doesn't make sense anyways).
+        // If bases[pbi] and bases[bIndex] have no variables in common, then compatible will never return false and we can skip the checks.
+        // In both cases we cannot include any alts at this step so we just store the unmodified remAlts in the next column of 'remaining'.
         if (pbi != eqLitForDemodulation && basesHaveVariablesInCommon(pbi, bIndex)) {
           TermList* pbBindings=altBindings[pbi][nextAlts[pbi]-1];
           for(unsigned ai=0;ai<remAlts;ai++) {
@@ -520,15 +556,16 @@ struct MatchingData {
           }
         }
         remaining->set(bIndex,pbi+1,remAlts);
-      }
+      }  // for (pbi)
+
       if(bIndex>0 && remAlts==0) {
         return MUST_BACKTRACK;
       }
-    }
+    } // if (!isInitialized)
     return OK;
-  }
+  }  // ensureInit
 
-};
+};  // struct MatchingData
 
 }  // namespace
 
@@ -823,6 +860,7 @@ bool MLMatcher2::Impl::nextMatch()
       if (md->bases[s_currBLit]->isEquality() && md->bases[s_currBLit]->isPositive() && md->eqLitForDemodulation > s_currBLit) {
         // Select current base literal as equality for demodulation
         md->eqLitForDemodulation = s_currBLit;
+        md->skipBinding(s_currBLit);  // current literal does not take part in the substitution
         s_currBLit++;  // go to next level
         if (s_currBLit == md->len) { break; }  // full match
         md->nextAlts[s_currBLit] = 0;

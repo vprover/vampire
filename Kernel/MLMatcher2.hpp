@@ -48,8 +48,9 @@ class MLMatcher2
      * The matcher will be in a valid (but unmatched) state.
      *
      * MLMatcher2 solves the FSD-Match-Problem:
-     * - One equality of the baseLits is selected for demodulation
-     * - All other literals are (multiset-)matched to the given alts from the instance.
+     * - One positive equality of the baseLits is selected for demodulation, and
+     * - All other literals are (multiset-)matched to the given alts from the instance
+     *   (may involve a uniform substitution from base to alts/instance).
      *
      * Preconditions:
      * - baseLits must have length baseLen
