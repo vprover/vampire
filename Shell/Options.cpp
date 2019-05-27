@@ -1140,6 +1140,7 @@ void Options::Options::init()
     _forwardSubsumptionDemodulation.description = "Perform forward subsumption demodulation.";
     _lookup.insert(&_forwardSubsumptionDemodulation);
     _forwardSubsumptionDemodulation.tag(OptionTag::INFERENCES);
+    _forwardSubsumptionDemodulation.addProblemConstraint(hasEquality());
     _forwardSubsumptionDemodulation.setRandomChoices({"off","v1","v2"});
     _forwardSubsumptionDemodulation.setExperimental();
 
