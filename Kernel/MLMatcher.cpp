@@ -610,10 +610,10 @@ bool MLMatcher::Impl::nextMatch()
     unsigned maxAlt = md->getRemainingInCurrent(s_currBLit);
     while (md->nextAlts[s_currBLit] < maxAlt &&
            (
-             // Reject the current alternative (nextAlts[currBLit]) if
+             // Reject the current alternative (i.e., nextAlts[currBLit]) if
              // 1. We are multiset matching and the alt is already matched to a base literal, or
              ( s_multiset && s_matchRecord[md->getAltRecordIndex(s_currBLit, md->nextAlts[s_currBLit])] < s_currBLit )
-             // 2. The current variable bindings are not compatible with the alternative
+             // 2. The induced variable bindings would already lead to a conflict for some later base literal
              || !md->bindAlt(s_currBLit, md->nextAlts[s_currBLit])
            )
           ) {

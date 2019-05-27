@@ -15,11 +15,6 @@
  * For other uses of Vampire please contact developers for a different
  * licence, which we will make an effort to provide.
  */
-/**
- * @file MLMatcher2.hpp
- * Defines class MLMatcher2 with methods
- * supporting multiliteral matching.
- */
 
 #ifndef __MLMatcher2__
 #define __MLMatcher2__
@@ -33,7 +28,7 @@ namespace Kernel {
 using namespace Lib;
 
 
-class MLMatcher2
+class MLMatcher2 final
 {
   public:
     /**
