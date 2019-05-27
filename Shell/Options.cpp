@@ -1048,6 +1048,11 @@ void Options::Options::init()
            _lookup.insert(&_arrayInst);
            _arrayInst.setExperimental();
 
+           _generalizeTheoryInstance = BoolOptionValue("generalize_theory_instance","gti",false);
+           _generalizeTheoryInstance.description = "";
+           _generalizeTheoryInstance.tag(OptionTag::INFERENCES);
+           _lookup.insert(&_generalizeTheoryInstance);
+           _generalizeTheoryInstance.setExperimental();
 #endif
            _unificationWithAbstraction = ChoiceOptionValue<UnificationWithAbstraction>("unification_with_abstraction","uwa",
                                              UnificationWithAbstraction::OFF,

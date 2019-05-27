@@ -919,7 +919,7 @@ VirtualIterator<Solution> TheoryInstAndSimp::getSolutions(Stack<Literal*>& theor
     cout << "solution with " << sol.subst.toString() << endl;
 #endif
     // try to minimize the solution
-    if (true) { //TODO: add flag in options
+    if (env.options->generalizeTheoryInstance()) {
       VirtualIterator<Solution> minsol = minimizeSolution(theoryLiterals, guarded, sol, substTriangleForm,maxVar);
       return minsol;
     }
