@@ -122,7 +122,7 @@ public:
 protected:
   void handleClause(Clause* c, bool adding) override;
 private:
-  /// When 'adjustForFSD' is true: if the "best" literal is an equality, also insert the clause with the "second best" literal.
+  /// When 'adjustForFSD' is true: if the "best" literal is a positive equality, also insert the clause with the "second best" literal.
   bool adjustForFSD;
   /// Maps clause number to second best literal (if the clause was actually inserted with this literal).
   v_unordered_map<unsigned, Literal*> secondBestMap;

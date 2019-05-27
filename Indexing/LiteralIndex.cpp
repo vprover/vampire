@@ -203,7 +203,7 @@ void FwSubsSimplifyingLiteralIndex::handleClause(Clause* c, bool adding)
     Literal* best = res.first.lit();
     Literal* secondBest = res.second.lit();
     handleLiteral(best, c, adding);
-    if (best->isEquality()) {
+    if (best->isEquality() && best->isPositive()) {
       handleLiteral(secondBest, c, adding);
       if (adding) {
         auto res = secondBestMap.insert({c->number(), secondBest});
@@ -227,27 +227,28 @@ void FSDSimplifyingLiteralIndex::handleClause(Clause* c, bool adding)
 
   TimeCounter tc(TC_FORWARD_SUBSUMPTION_DEMODULATION_INDEX_MAINTENANCE);
 
-  bool hasEquality = false;
+  bool hasPosEquality = false;
   for (unsigned i = 0; i < c->length(); ++i) {
-    if ((*c)[i]->isEquality()) {
-      hasEquality = true;
+    Literal *lit = (*c)[i];
+    if (lit->isEquality() && lit->isPositive()) {
+      hasPosEquality = true;
       break;
     }
   }
-  if (!hasEquality) {
-    // We only need clauses with at least one equality for FSD
+  if (!hasPosEquality) {
+    // We only need clauses with at least one positive equality for FSD
     return;
   }
 
   auto res = SubsRatedLiteral::find_best2_in(c);
   Literal* best = res.first.lit();
   Literal* secondBest = res.second.lit();
-  if (!best->isEquality()) {
+  if (!best->isEquality() || !best->isPositive()) {
     handleLiteral(best, c, adding);
-  } else if (!secondBest->isEquality()) {
+  } else if (!secondBest->isEquality() || !secondBest->isPositive()) {
     handleLiteral(secondBest, c, adding);
   } else {
-    // both are equalities, so we need to add both
+    // both are positive equalities, so we need to add both
     handleLiteral(best, c, adding);
     handleLiteral(secondBest, c, adding);
   }

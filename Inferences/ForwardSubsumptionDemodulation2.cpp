@@ -356,6 +356,13 @@ bool ForwardSubsumptionDemodulation2::perform(Clause* cl, Clause*& replacement, 
           //
           // (This check exists purely for performance reasons.
           // MLMatcher would exclude cases 2 and 3 as well, but with additional overhead.)
+          //
+          // Note that we do not have to check whether mcl contains a positive equality at all.
+          // There are two useful configurations to consider:
+          // a. We do not want to do forward subsumption here and are using the FSD index.
+          //    The FSD index only contains clauses that have a positive equality, and mcl is chosen from this index.
+          // b. We do forward subsumption as part of FSD and are using the (adjusted) FS index.
+          //    In this case we do not want to exclude an mcl without positive equality anyways.
           baseLitsWithoutAlternatives += 1;
           if (baseLitsWithoutAlternatives == 1) {
             if (!baseLit->isEquality() || !baseLit->isPositive()) {
