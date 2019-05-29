@@ -916,7 +916,7 @@ int main(int argc, char* argv[])
       break;
 
     case Options::Mode::SMTCOMP:
-      env.options->setIgnoreMissing(Options::IgnoreMissing::WARN);
+      env.options->setIgnoreMissing(Options::IgnoreMissing::OFF);
       env.options->setInputSyntax(Options::InputSyntax::SMTLIB2);
       env.options->setOutputMode(Options::Output::SMTCOMP);
       env.options->setSchedule(Options::Schedule::SMTCOMP);

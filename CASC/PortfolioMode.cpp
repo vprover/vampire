@@ -183,11 +183,16 @@ void PortfolioMode::getExtraSchedules(Property& prop, Schedule& extra)
     main.loadFromIterator(fit);
 
     Stack<vstring> extra_opts;
+    extra_opts.push("sp=frequency");
+    extra_opts.push("tha=some");
+    extra_opts.push("sos=theory:sstl=5");
     extra_opts.push("gtg=exists_all");
     extra_opts.push("uwa=fixed:uwaf=on");
-    if(prop.getSMTLIBLogic() == SMT_UFDT || prop.getSMTLIBLogic() == SMT_AUFDTLIA || prop.getSMTLIBLogic() == SMT_UFDTLIA){
-      extra_opts.push("ind=all");
-      extra_opts.push("ind=all:sik=all");
+    if(prop.getSMTLIBLogic() == SMT_UFDT || prop.getSMTLIBLogic() == SMT_AUFDTLIA || 
+       prop.getSMTLIBLogic() == SMT_UFDTNIA || prop.getSMTLIBLogic() == SMT_UFDTLIA){
+      extra_opts.push("gtg=exists_all:ind=all");
+      extra_opts.push("gtg=exists_all:ind=all:sik=all");
+      extra_opts.push("gtg=exists_all:ind=all:sik=all:indmd=1");
     }
 
     Schedule::Iterator it(main);
