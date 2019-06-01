@@ -296,6 +296,7 @@ const char * SMTLIB2::s_smtlibLogicNameStrings[] = {
     "AUFDTLIA",
     "AUFLIA",
     "AUFLIRA",
+    "AUFNIA",
     "AUFNIRA",
     "BV",
     "LIA",
@@ -329,6 +330,7 @@ const char * SMTLIB2::s_smtlibLogicNameStrings[] = {
     "UFBV",
     "UFDT",
     "UFDTLIA",
+    "UFDTNIA",
     "UFIDL",
     "UFLIA",
     "UFLRA",
@@ -361,6 +363,7 @@ void SMTLIB2::readLogic(const vstring& logicStr)
   case SMT_ALIA:
   case SMT_AUFDTLIA:
   case SMT_AUFLIA:
+  case SMT_AUFNIA:
   case SMT_AUFLIRA:
   case SMT_AUFNIRA:
   case SMT_LIA:
@@ -382,6 +385,7 @@ void SMTLIB2::readLogic(const vstring& logicStr)
   case SMT_UF:
   case SMT_UFDT:
   case SMT_UFDTLIA:
+  case SMT_UFDTNIA:
   case SMT_UFIDL:
   case SMT_UFLIA:
   case SMT_UFNIA:
