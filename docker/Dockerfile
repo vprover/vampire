@@ -22,6 +22,4 @@ RUN cd /opt/ && \
         cmake -DBUILD_SHARED_LIBS=0 -DCMAKE_INSTALL_PREFIX=/opt/vampire -DZ3_DIR=/opt/z3/lib64/cmake/z3 -G "Unix Makefiles" .. && \
         make -j8
 
-RUN cp bin/vampire /artifacts
-
-
+RUN cp -r /opt/vampire/build/bin /artifacts/
