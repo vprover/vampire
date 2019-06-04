@@ -1002,11 +1002,24 @@ void TheoryAxioms::addMergeArrayAxiom(unsigned arraySort) {
 
   Sorts::ArraySort* si = env.sorts->getArraySort(arraySort);
   unsigned indexSort = si->getIndexSort();
-  //assert index sort is integer -- we need < but it doesn't make sense for rational or real arrays
-  ASS_EQ( indexSort, Sorts::SRT_INTEGER);
-
   unsigned innerSort = si->getInnerSort();
-  unsigned less = env.signature->getInterpretingSymbol(Theory::INT_LESS);
+  unsigned less = -1; //initialize with something invalid
+
+  //assert index sort is ordered -- we need < but it doesn't make sense for rational or real arrays
+  switch (indexSort) {
+  case Sorts::SRT_INTEGER:
+    less = env.signature->getInterpretingSymbol(Theory::INT_LESS);
+    break;
+  case Sorts::SRT_RATIONAL:
+    less = env.signature->getInterpretingSymbol(Theory::RAT_LESS);
+    break;
+  case Sorts::SRT_REAL:
+    less = env.signature->getInterpretingSymbol(Theory::REAL_LESS);
+    break;
+  default:
+    //no known ordering predicate
+    return;
+  }
 
   TermList i(0,false);
   TermList j(1,false);
@@ -1014,19 +1027,19 @@ void TheoryAxioms::addMergeArrayAxiom(unsigned arraySort) {
   TermList y(3,false);
   TermList argxyi[] = {x, y, i};
   TermList merge_xyi(Term::create(fun_merge, 3, argxyi));
-  TermList argMj[] = {merge_xyi, j};
+  TermList argMj[] = {merge_xyi,j};
   TermList selectMj(Term::create(pred_select, 2, argMj));
 
-  TermList argXj[] = {x, j};
+  TermList argXj[] = {x,j};
   TermList selectXj(Term::create(pred_select, 2, argXj ));
   Literal* sel1 = Literal::createEquality(true, selectMj, selectXj, innerSort);
-  Literal* guard1 = Literal::create2(less, false, x, j);
+  Literal* guard1 = Literal::create2(less, false, i, j);
   addTheoryNonUnitClause(guard1, sel1, EXPENSIVE);
 
-  TermList argYj[] = {y, j};
+  TermList argYj[] = {y,j};
   TermList selectYj(Term::create(pred_select, 2, argYj));
   Literal* sel2 = Literal::createEquality(true, selectMj, selectYj, innerSort);
-  Literal* guard2 = Literal::create2(less, true, y, j);
+  Literal* guard2 = Literal::create2(less, true, i, j);
   addTheoryNonUnitClause(guard2, sel2, EXPENSIVE);
 
 } //addMergeArrayAxiom
