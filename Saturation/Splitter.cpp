@@ -598,6 +598,8 @@ void SplittingBranchSelector::addSatClauseToSolver(SATClause* cl, bool branchRef
 
   RSTAT_CTR_INC("ssat_sat_clauses");
 
+  cout << cl->toDIMACSString() << endl;
+
   if (branchRefutation && _minSCO) {
     _solver->addClauseIgnoredInPartialModel(cl);
   } else {
@@ -619,6 +621,7 @@ void SplittingBranchSelector::recomputeModel(SplitLevelStack& addedComps, SplitL
     if (randomize) {
       _solver->randomizeForNextAssignment(maxSatVar);
     }
+    cout << "c solve" << endl;
     stat = _solver->solve();
   }
   if (stat == SATSolver::SATISFIABLE) {
