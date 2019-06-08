@@ -119,7 +119,7 @@ public:
         TermList tmp;
         Term* evalThis = Term::create2(_fun,TermList(acc),*t);
         bool error = _eval->tryEvaluateFunc(evalThis,tmp);
-        ASS(!error); //we want to be informed of evaluation failures in debug mode
+        //ASS(!error); //we want to be informed of evaluation failures in debug mode
         if (error) {
           return false;
         }
