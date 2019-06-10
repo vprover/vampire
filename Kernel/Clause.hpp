@@ -343,6 +343,12 @@ public:
   unsigned varCnt();
   unsigned maxVar(); // useful to create fresh variables w.r.t. the clause
 
+  bool heedingHint() const { return _heedingHint; }
+  void heedHint() {
+    ASS_NEQ(_store,PASSIVE); // because _heedingHint influence passive container order
+    _heedingHint = true;
+  }
+
 protected:
   /** number of literals */
   unsigned _length : 20;
@@ -389,7 +395,7 @@ protected:
   static bool _auxInUse;
 #endif
 
-//#endif
+  bool _heedingHint;
 
   /** Array of literals of this unit */
   Literal* _literals[1];

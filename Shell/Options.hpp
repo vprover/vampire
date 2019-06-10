@@ -1978,6 +1978,7 @@ public:
 	AgeWeightRatioShape ageWeightRatioShape() const { return _ageWeightRatioShape.actualValue; }
 	int ageWeightRatioShapeFrequency() const { return _ageWeightRatioShapeFrequency.actualValue; }
   bool literalMaximalityAftercheck() const { return _literalMaximalityAftercheck.actualValue; }
+  bool avatarHints() const { return _avatarHints.actualValue; }
   bool superpositionFromVariables() const { return _superpositionFromVariables.actualValue; }
   EqualityProxy equalityProxy() const { return _equalityProxy.actualValue; }
   RuleActivity equalityResolutionWithDeletion() const { return _equalityResolutionWithDeletion.actualValue; }
@@ -2234,6 +2235,7 @@ private:
 	UnsignedOptionValue _ageWeightRatioShapeFrequency;
   BoolOptionValue _literalMaximalityAftercheck;
   BoolOptionValue _arityCheck;
+  BoolOptionValue _avatarHints;
   
   BoolOptionValue _backjumpTargetIsDecisionPoint;
   ChoiceOptionValue<BadOption> _badOption;

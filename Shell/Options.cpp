@@ -879,6 +879,11 @@ void Options::Options::init()
     _lookup.insert(&_ageWeightRatioShapeFrequency);
     _ageWeightRatioShapeFrequency.tag(OptionTag::SATURATION);
 
+    _avatarHints = BoolOptionValue("avatar_hints","ah",false);
+    _lookup.insert(&_avatarHints);
+    _avatarHints.tag(OptionTag::SATURATION);
+    _avatarHints.setExperimental();
+
       _literalMaximalityAftercheck = BoolOptionValue("literal_maximality_aftercheck","lma",false);
       _lookup.insert(&_literalMaximalityAftercheck);
       _literalMaximalityAftercheck.tag(OptionTag::SATURATION);
