@@ -231,6 +231,9 @@ void TimeCounter::outputSingleStat(TimeCounterUnit tcu, ostream& out)
   case TC_FORWARD_SUBSUMPTION_RESOLUTION:
     out<<"forward subsumption resolution";
     break;
+  case TC_FORWARD_SUBSUMPTION_HINT_CHECK:
+    out<<"subsumption hint checking";
+    break;
   case TC_FORWARD_LITERAL_REWRITING:
     out<<"forward literal rewriting";
     break;

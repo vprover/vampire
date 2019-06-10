@@ -129,7 +129,7 @@ void BackwardSubsumptionResolution::perform(Clause* cl,
 	continue;
       }
 
-      Clause* resCl=ForwardSubsumptionAndResolution::generateSubsumptionResolutionClause(qr.clause, qr.literal, cl);
+      Clause* resCl=ForwardSubsumptionAndResolutionImplementation::generateSubsumptionResolutionClause(qr.clause, qr.literal, cl);
 
       List<BwSimplificationRecord>::push(BwSimplificationRecord(qr.clause,resCl), simplRes);
       env.statistics->backwardSubsumptionResolution++;
@@ -271,7 +271,7 @@ void BackwardSubsumptionResolution::perform(Clause* cl,
     RSTAT_CTR_INC("bsr1 3 final check");
     if(MLMatcher::canBeMatched(cl,icl,matchedLits.array(),qr.literal)) {
       RSTAT_CTR_INC("bsr1 4 performed");
-      Clause* resCl=ForwardSubsumptionAndResolution::generateSubsumptionResolutionClause(qr.clause, qr.literal, cl);
+      Clause* resCl=ForwardSubsumptionAndResolutionImplementation::generateSubsumptionResolutionClause(qr.clause, qr.literal, cl);
       List<BwSimplificationRecord>::push(BwSimplificationRecord(qr.clause,resCl), simplRes);
       env.statistics->backwardSubsumptionResolution++;      
     }
@@ -417,7 +417,7 @@ void BackwardSubsumptionResolution::perform(Clause* cl,
     RSTAT_CTR_INC("bsr2 4 final check");
     if(MLMatcher::canBeMatched(cl,icl,matchedLits.array(),resolvedLit)) {
       RSTAT_CTR_INC("bsr2 5 performed");
-      Clause* resCl=ForwardSubsumptionAndResolution::generateSubsumptionResolutionClause(qr.clause, resolvedLit, cl);
+      Clause* resCl=ForwardSubsumptionAndResolutionImplementation::generateSubsumptionResolutionClause(qr.clause, resolvedLit, cl);
       List<BwSimplificationRecord>::push(BwSimplificationRecord(qr.clause,resCl), simplRes);
       env.statistics->backwardSubsumptionResolution++;
     }

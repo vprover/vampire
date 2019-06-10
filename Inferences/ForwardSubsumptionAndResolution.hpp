@@ -35,6 +35,30 @@ using namespace Kernel;
 using namespace Indexing;
 using namespace Saturation;
 
+class ForwardSubsumptionAndResolutionImplementation {
+public:
+  ForwardSubsumptionAndResolutionImplementation(bool subsumptionResolution=true) :
+    _unitIndex(0), _fwIndex(0), _subsumptionResolution(subsumptionResolution) {}
+
+  void setIndices(UnitClauseLiteralIndex* unitIdx, FwSubsSimplifyingLiteralIndex* fwIdx) {
+    _unitIndex = unitIdx;
+    _fwIndex = fwIdx;
+  }
+
+  void resetIndices() {
+    _unitIndex = 0;
+    _fwIndex = 0;
+  }
+
+  static Clause* generateSubsumptionResolutionClause(Clause* cl, Literal* lit, Clause* baseClause);
+  bool genericPerform(Clause* cl, Clause*& replacement, Clause*& thePremise, TimeCounterUnit subTimeCounter, TimeCounterUnit subResTimeCounter);
+private:
+  /** Simplification unit index */
+  UnitClauseLiteralIndex* _unitIndex;
+  FwSubsSimplifyingLiteralIndex* _fwIndex;
+  bool _subsumptionResolution;
+};
+
 class ForwardSubsumptionAndResolution
 : public ForwardSimplificationEngine
 {
@@ -43,21 +67,14 @@ public:
   USE_ALLOCATOR(ForwardSubsumptionAndResolution);
 
   ForwardSubsumptionAndResolution(bool subsumptionResolution=true)
-  : _subsumptionResolution(subsumptionResolution) {}
+  : _impl(subsumptionResolution) {}
 
   void attach(SaturationAlgorithm* salg) override;
   void detach() override;
   bool perform(Clause* cl, Clause*& replacement, ClauseIterator& premises) override;
-
-  static Clause* generateSubsumptionResolutionClause(Clause* cl, Literal* lit, Clause* baseClause);
 private:
-  /** Simplification unit index */
-  UnitClauseLiteralIndex* _unitIndex;
-  FwSubsSimplifyingLiteralIndex* _fwIndex;
-
-  bool _subsumptionResolution;
+  ForwardSubsumptionAndResolutionImplementation _impl;
 };
-
 
 };
 
