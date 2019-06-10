@@ -209,8 +209,8 @@ bool TermList::equals(TermList t1, TermList t2)
       Term* s=ss->term();
       Term* t=tt->term();
       if (s->functor()!=t->functor()) {
-	stack.reset();
-	return false;
+        stack.reset();
+        return false;
       }
       stack.push(s->args());
       stack.push(t->args());

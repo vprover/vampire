@@ -34,6 +34,7 @@
 #include "Lib/Allocator.hpp"
 #include "Lib/Stack.hpp"
 #include "Lib/Map.hpp"
+#include "Lib/List.hpp"
 #include "Lib/DHMap.hpp"
 #include "Lib/VString.hpp"
 #include "Lib/Environment.hpp"
@@ -56,6 +57,7 @@ using namespace Lib;
 class Signature
 {
  public:
+  typedef List<int> VarList;
   /** Function or predicate symbol */
   class Symbol {
   protected:
@@ -186,13 +188,13 @@ class Signature
       
     /** Return true if symbol is an integer constant */
     inline bool integerConstant() const
-    { return interpreted() && arity()==0 && fnType()->result()==Sorts::SRT_INTEGER; }
+    { return interpreted() && arity()==0 && fnType()->result()==Term::INTEGER; }
     /** Return true if symbol is a rational constant */
     inline bool rationalConstant() const
-    { return interpreted() && arity()==0 && fnType()->result()==Sorts::SRT_RATIONAL; }
+    { return interpreted() && arity()==0 && fnType()->result()==Term::RATIONAL; }
     /** Return true if symbol is a real constant */
     inline bool realConstant() const
-    { return interpreted() && arity()==0 && fnType()->result()==Sorts::SRT_REAL; }
+    { return interpreted() && arity()==0 && fnType()->result()==Term::REAL; }
 
     /** return true if an interpreted number, note subtle but significant difference from numericConstant **/
     inline bool interpretedNumber() const
@@ -259,7 +261,7 @@ class Signature
     {
       CALL("IntegerSymbol");
 
-      setType(OperatorType::getConstantsType(Sorts::SRT_INTEGER));
+      setType(OperatorType::getConstantsType(TermList(Term::INTEGER), VarList::empty()));
     }
     CLASS_NAME(Signature::IntegerSymbol);
     USE_ALLOCATOR(IntegerSymbol);
@@ -279,7 +281,7 @@ class Signature
     {
       CALL("RationalSymbol");
 
-      setType(OperatorType::getConstantsType(Sorts::SRT_RATIONAL));
+      setType(OperatorType::getConstantsType(TermList(Term::RATIONAL), VarList::empty()));
     }
     CLASS_NAME(Signature::RationalSymbol);
     USE_ALLOCATOR(RationalSymbol);
@@ -299,7 +301,7 @@ class Signature
     {
       CALL("RealSymbol");
 
-      setType(OperatorType::getConstantsType(Sorts::SRT_REAL));
+      setType(OperatorType::getConstantsType(TermList(Term::REAL), VarList::empty()));
     }
     CLASS_NAME(Signature::RealSymbol);
     USE_ALLOCATOR(RealSymbol);
@@ -493,9 +495,9 @@ class Signature
   unsigned getFoolConstantSymbol(bool isTrue){ 
     if(!_foolConstantsDefined){
       _foolFalse = addFunction("$$false",0); 
-      getFunction(_foolFalse)->setType(OperatorType::getConstantsType(Sorts::SRT_BOOL));
+      getFunction(_foolFalse)->setType(OperatorType::getConstantsType(TermList(Term::BOOLN), VarList::empty()));
       _foolTrue = addFunction("$$true",0);
-      getFunction(_foolTrue)->setType(OperatorType::getConstantsType(Sorts::SRT_BOOL));
+      getFunction(_foolTrue)->setType(OperatorType::getConstantsType(TermList(Term::BOOLN), VarList::empty()));
       _foolConstantsDefined=true;
     }
     return isTrue ? _foolTrue : _foolFalse;
@@ -503,6 +505,51 @@ class Signature
   bool isFoolConstantSymbol(bool isTrue, unsigned number){
     if(!_foolConstantsDefined) return false;
     return isTrue ? number==_foolTrue : number==_foolFalse;
+  }
+
+  unsigned getDefaultSortSym(){
+    bool added = false;
+    unsigned individualSort = addFunction("$i",0, added);
+    if(added){
+      getFunction(individualSort)->setType(OperatorType::getConstantsType(TermList(Term::SUPER), VarList::empty()))
+    }
+    return individualSort;
+  }
+
+  unsigned getBoolSortSym(){
+    bool added = false;
+    unsigned boolSort = addFunction("$o",0, added);
+    if(added){
+      getFunction(boolSort)->setType(OperatorType::getConstantsType(TermList(Term::SUPER), VarList::empty()))
+    }
+    return boolSort;
+  }
+
+  unsigned getRealSortSym(){
+    bool added = false;
+    unsigned realSort = addFunction("$real",0, added);
+    if(added){
+      getFunction(realSort)->setType(OperatorType::getConstantsType(TermList(Term::SUPER), VarList::empty()))
+    }
+    return realSort;
+  }
+
+  unsigned getIntSortSym(){
+    bool added = false;
+    unsigned intSort = addFunction("$real",0, added);
+    if(added){
+      getFunction(intSort)->setType(OperatorType::getConstantsType(TermList(Term::SUPER), VarList::empty()))
+    }
+    return intSort;
+  }  
+
+  unsigned getRatSortSym(){
+    bool added = false;
+    unsigned ratSort = addFunction("$rat",0, added);
+    if(added){
+      getFunction(ratSort)->setType(OperatorType::getConstantsType(TermList(Term::SUPER), VarList::empty()))
+    }
+    return ratSort;    
   }
 
   bool isTermAlgebraSort(unsigned sort) { return _termAlgebras.find(sort); }

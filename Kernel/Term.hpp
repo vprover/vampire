@@ -231,6 +231,13 @@ public:
   static const unsigned SF_LET_TUPLE = 0xFFFFFFFB;
   static const unsigned SPECIAL_FUNCTOR_LOWER_BOUND = 0xFFFFFFFB;
 
+  static Term* SUPER = 0;
+  static Term* BOOLN = 0;
+  static Term* DEFAULT = 0;
+  static Term* INTEGER = 0;
+  static Term* RATIONAL = 0;
+  static Term* REAL = 0;
+
   class SpecialTermData
   {
     friend class Term;

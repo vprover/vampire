@@ -53,7 +53,7 @@ OperatorType& SortHelper::getType(Term* t)
  * Return the sort of a non-variable term t. This function cannot be applied
  * to a special term, such as if-then-else.
  */
-unsigned SortHelper::getResultSort(const Term* t)
+TermList SortHelper::getResultSort(const Term* t)
 {
   CALL("SortHelper::getResultSort(Term*)");
   ASS(!t->isSpecial());
@@ -68,7 +68,7 @@ unsigned SortHelper::getResultSort(const Term* t)
  *
  * This function can be applied also to special terms such as if-then-else.
  */
-bool SortHelper::tryGetResultSort(const Term* t, unsigned& result)
+bool SortHelper::tryGetResultSort(const Term* t, TermList& result)
 {
   CALL("tryGetResultSort(Term*,unsigned&)");
   ASS(!t->isLiteral());
@@ -77,7 +77,7 @@ bool SortHelper::tryGetResultSort(const Term* t, unsigned& result)
   return getResultSortOrMasterVariable(t, result, masterVar);
 }
 
-bool SortHelper::tryGetResultSort(const TermList t, unsigned& result)
+bool SortHelper::tryGetResultSort(const TermList t, TermList& result)
 {
   CALL("tryGetResultSort(TermList,unsigned&)");
   if (t.isVar()) {
@@ -107,7 +107,7 @@ unsigned SortHelper::getResultSort(TermList t, DHMap<unsigned,unsigned>& varSort
  * @c resultVar and return false. Otherwise assign the sort of the term
  * into @c resultSort and return true.
  */
-bool SortHelper::getResultSortOrMasterVariable(const Term* t, unsigned& resultSort, TermList& resultVar)
+bool SortHelper::getResultSortOrMasterVariable(const Term* t, TermList& resultSort, TermList& resultVar)
 {
   CALL("SortHelper::getResultSortOrMasterVariable");
 
@@ -150,7 +150,7 @@ bool SortHelper::getResultSortOrMasterVariable(const TermList t, unsigned& resul
 /**
  * Return sort of the argument @c argIndex of the term or literal @c t
  */
-unsigned SortHelper::getArgSort(Term* t, unsigned argIndex)
+TermList SortHelper::getArgSort(Term* t, unsigned argIndex)
 {
   CALL("SortHelper::getArgSort(Term*,unsigned)");
   ASS_L(argIndex, t->arity());
@@ -162,7 +162,7 @@ unsigned SortHelper::getArgSort(Term* t, unsigned argIndex)
   return getType(t).arg(argIndex);
 } // getArgSort
 
-unsigned SortHelper::getEqualityArgumentSort(const Literal* lit)
+TermList SortHelper::getEqualityArgumentSort(const Literal* lit)
 {
   CALL("SortHelper::getEqualityArgumentSort");
   ASS(lit->isEquality());

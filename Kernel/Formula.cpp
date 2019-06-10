@@ -359,7 +359,7 @@ vstring Formula::toString(const Formula* formula)
             res += ",";
           }
           res += Term::variableToString(var);
-          unsigned t;
+          Term* t;
           if (hasSorts) {
             ASS(ss.hasNext());
             t = ss.next();

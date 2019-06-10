@@ -65,6 +65,13 @@ Signature::Symbol::Symbol(const vstring& nm,unsigned arity, bool interpreted, bo
   CALL("Signature::Symbol::Symbol");
   ASS(!stringConstant || arity==0);
 
+  Term::SUPER = Term::createConstant("$tType");
+  Term::BOOLN = Term::createConstant(env.signature->getBoolSortSym());
+  Term::DEFAULT = Term::createConstant(env.signature->getDefaultSortSym());
+  Term::INTEGER = Term::createConstant(env.signature->getIntSortSym());
+  Term::RATIONAL = Term::createConstant(env.signature->getRatSortSym());
+  Term::REAL = Term::createConstant(env.signature->getRealSortSym());
+
   if (!stringConstant && !numericConstant && !overflownConstant && symbolNeedsQuoting(_name, interpreted,arity)) {
     _name="'"+_name+"'";
   }
@@ -178,8 +185,9 @@ OperatorType* Signature::Symbol::fnType() const
 {
   CALL("Signature::Symbol::fnType");
 
+  TermList def = TermList(Term::DEFAULT);
   if (!_type) {
-    _type = OperatorType::getFunctionType(arity(), (unsigned*)0, Sorts::SRT_DEFAULT);
+    _type = OperatorType::getFunctionTypeUniformRange(arity(), def, def, VarList::empty());
   }
   return _type;
 }
@@ -193,9 +201,10 @@ OperatorType* Signature::Symbol::fnType() const
 OperatorType* Signature::Symbol::predType() const
 {
   CALL("Signature::Symbol::predType");
-
+  
+  TermList def = TermList(Term::DEFAULT);
   if (!_type) {
-    _type = OperatorType::getPredicateType(arity(), (unsigned*)0);
+    _type = OperatorType::getPredicateTypeUniformRange(arity(), def, VarList::empty());
   }
   return _type;
 }

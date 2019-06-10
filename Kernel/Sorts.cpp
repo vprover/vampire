@@ -229,7 +229,7 @@ const vstring& Sorts::sortName(unsigned idx) const
  * otherwise, by sorts from the array @c sorts
  * @author Andrei Voronkov
  */
-OperatorType::OperatorKey* OperatorType::setupKey(unsigned arity, const unsigned* sorts)
+OperatorType::OperatorKey* OperatorType::setupKey(unsigned arity, const TermList* sorts)
 {
   CALL("OperatorType::setupKey(unsigned,const unsigned*)");
 
@@ -238,7 +238,7 @@ OperatorType::OperatorKey* OperatorType::setupKey(unsigned arity, const unsigned
   if (!sorts) {
     // initialise all argument types to the default type
     for (unsigned i = 0; i < arity; i++) {
-      (*key)[i] = Sorts::SRT_DEFAULT;
+      (*key)[i] = TermList(Term::DEFAULT);
     }
   } else {
     // initialise all the argument types to those taken from sorts
@@ -252,7 +252,7 @@ OperatorType::OperatorKey* OperatorType::setupKey(unsigned arity, const unsigned
 /**
  * Pre-initialise an OperatorKey from an initializer list of sorts.
  */
-OperatorType::OperatorKey* OperatorType::setupKey(std::initializer_list<unsigned> sorts)
+OperatorType::OperatorKey* OperatorType::setupKey(std::initializer_list<TermList> sorts)
 {
   CALL("OperatorType::setupKey(std::initializer_list<unsigned>)");
 
@@ -268,21 +268,19 @@ OperatorType::OperatorKey* OperatorType::setupKey(std::initializer_list<unsigned
 }
 
 /**
- * Pre-initialise an OperatorKey from unsing a uniform range.
+ * Pre-initialise an OperatorKey using a uniform range.
  */
-OperatorType::OperatorKey* OperatorType::setupKeyUniformRange(unsigned arity, unsigned argsSort)
+OperatorType::OperatorKey* OperatorType::setupKeyUniformRange(unsigned arity, TermList argsSort)
 {
   CALL("OperatorType::setupKeyUniformRange");
 
-  OperatorKey* key = OperatorKey::allocate(arity+1);
-
-  static Stack<unsigned> argSorts;
+  static Stack<TermList> argSorts;
   argSorts.reset();
   for (unsigned i=0; i<arity; i++) {
     argSorts.push(argsSort);
   }
 
-  return key;
+  return setupKey(arity, argSorts.begin());
 }
 
 OperatorType::OperatorTypes& OperatorType::operatorTypes() {
@@ -340,7 +338,7 @@ vstring OperatorType::argsToString() const
   unsigned ar = arity();
   ASS(ar);
   for (unsigned i = 0; i < ar; i++) {
-    res += env.sorts->sortName(arg(i));
+    res += arg(i).toString();
     if (i != ar-1) {
       res += " * ";
     }
@@ -357,7 +355,7 @@ vstring OperatorType::toString() const
   CALL("OperatorType::toString");
 
   return (arity() ? argsToString() + " > " : "") +
-      (isPredicateType() ? "$o" : env.sorts->sortName(result()));
+      (isPredicateType() ? "$o" : result().toString());
 }
 
 /**
@@ -365,18 +363,18 @@ vstring OperatorType::toString() const
  * and so is the result sort if we are talking about a function type.
  * @author Andrei Voronkov
  */
-bool OperatorType::isSingleSortType(unsigned srt) const
+bool OperatorType::isSingleSortType(TermList srt) const
 {
   CALL("OperatorType::isAllDefault");
 
   unsigned len = arity();
   for (unsigned i = 0; i <len; i++) {
-    if (arg(i) != srt) {
+    if (arg(i) != srt) { //term comparison with != should be OK on the basis that both are shared terms
       return false;
     }
   }
 
-  if (isFunctionType() && result() != srt) {
+  if (isFunctionType() && result() != srt) { 
     return false;
   }
 
