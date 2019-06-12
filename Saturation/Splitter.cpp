@@ -671,7 +671,7 @@ void SplittingBranchSelector::recomputeModel(SplitLevelStack& addedComps, SplitL
 vstring Splitter::splPrefix = "";
 
 Splitter::Splitter()
-: _deleteDeactivated(Options::SplittingDeleteDeactivated::ON), _branchSelector(*this),
+: _hintsForAvatarFakeSimplifier(0), _deleteDeactivated(Options::SplittingDeleteDeactivated::ON), _branchSelector(*this),
   _clausesAdded(false), _haveBranchRefutation(false)
 {
   CALL("Splitter::Splitter");

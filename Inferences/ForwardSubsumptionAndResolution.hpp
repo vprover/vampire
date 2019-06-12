@@ -29,6 +29,8 @@
 #include "Forwards.hpp"
 #include "InferenceEngine.hpp"
 
+#include "Lib/TimeCounter.hpp"
+
 namespace Inferences {
 
 using namespace Kernel;

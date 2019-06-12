@@ -38,6 +38,8 @@
 
 #include "Indexing/ClauseVariantIndex.hpp"
 
+#include "Inferences/HintsForAvatarFakeSimplifier.hpp"
+
 #include "SAT/SAT2FO.hpp"
 #include "SAT/SATLiteral.hpp"
 #include "SAT/SATSolver.hpp"
@@ -218,6 +220,11 @@ public:
 
   UnitList* explicateAssertionsForSaturatedClauseSet(UnitList* clauses);
   static bool getComponents(Clause* cl, Stack<LiteralStack>& acc);
+
+  void setHintsFakeSimplifier(Inferences::HintsForAvatarFakeSimplifier* h) {
+    _hintsForAvatarFakeSimplifier = h;
+  }
+
 private:
   friend class SplittingBranchSelector;
   
@@ -246,6 +253,8 @@ private:
   void assignClauseSplitSet(Clause* cl, SplitSet* splits);
 
   bool allSplitLevelsActive(SplitSet* s);
+
+  Inferences::HintsForAvatarFakeSimplifier* _hintsForAvatarFakeSimplifier;
 
   //settings
   bool _showSplitting;

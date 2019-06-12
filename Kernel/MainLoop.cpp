@@ -115,11 +115,18 @@ bool MainLoop::isRefutation(Clause* cl)
 /**
  * Create local clause simplifier for problem @c prb according to options @c opt
  */
-ImmediateSimplificationEngine* MainLoop::createISE(Problem& prb, const Options& opt)
+ImmediateSimplificationEngine* MainLoop::createISE(Problem& prb, const Options& opt, ImmediateSimplificationEngine* myFirstWish)
 {
   CALL("MainLoop::createImmediateSE");
 
   CompositeISE* res=new CompositeISE();
+
+  /**
+   * A hacky way of starting (= effectively ending) the composite ISE chain with an engine passed as an argument.
+   */
+  if (myFirstWish) {
+    res->addFront(myFirstWish);
+  }
 
   if(prb.hasEquality() && opt.equationalTautologyRemoval()) {
     res->addFront(new EquationalTautologyRemoval());

@@ -291,6 +291,7 @@ VINF_OBJ=Inferences/BackwardDemodulation.o\
          Inferences/TermAlgebraReasoning.o\
          Inferences/TheoryInstAndSimp.o\
          Inferences/Induction.o\
+         Inferences/HintsForAvatarFakeSimplifier.o\
          Inferences/URResolution.o
 #         Inferences/CTFwSubsAndRes.o\
 
