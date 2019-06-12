@@ -23,7 +23,7 @@
 
 #if VZ3
 
-#define DPRINT 0
+#define DPRINT 1
 
 #include "Debug/RuntimeStatistics.hpp"
 
@@ -87,9 +87,6 @@ bool TheoryInstAndSimp::isSupportedSort(const unsigned sort) {
       unsigned inner = env.sorts->getArraySort(sort)->getInnerSort();
       //at the moment, boolean arrays are excluded
       bool r = isSupportedSort(idx) && isSupportedSort(inner);
-#if DPRINT
-      std::cerr << "considering array sort? " << r << std::endl;
-#endif
       return r;
     }
   }
@@ -660,14 +657,14 @@ VirtualIterator<Solution>  minimizeSolution(Stack<Literal*>& theoryLiterals, boo
   while(stit.hasNext()) {
     Literal* lit = stit.next();
 #if DPRINT
-    cerr << "subterm: " << lit->toString() << endl;
+    cerr << "subterm: " << lit->toString() << " of sort : " << env.sorts->sortName(SortHelper::getEqualityArgumentSort(lit));
 #endif
     ASS(lit->isEquality());
     unsigned sort = SortHelper::getResultSort(lit->nthArgument(0)->term());
     unsigned v = lit->nthArgument(1)->var();
     Term* fc = getFreshConstant(used++,sort);
 #if DPRINT
-    cout << "bind " << v << " to " << fc->toString() << endl;
+    cout << "     binding " << v << " to " << fc->toString() << endl;
 #endif
     subst.bind(v,fc);
   }
@@ -917,6 +914,13 @@ VirtualIterator<Solution> TheoryInstAndSimp::getSolutions(Stack<Literal*>& theor
 
 #if DPRINT
     cout << "solution with " << sol.subst.toString() << endl;
+    cout << "for literals: ";
+    bool start = true;
+    for (Stack<Literal*>::Iterator tlit(theoryLiterals); tlit.hasNext(); ) {
+      if (start) { start = false; } else { cout << " | "; }
+      cout << tlit.next()->toString();
+    }
+    cout << endl;
 #endif
     // try to minimize the solution
     if (env.options->generalizeTheoryInstance()) {

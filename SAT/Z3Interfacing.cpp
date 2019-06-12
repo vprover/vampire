@@ -23,7 +23,7 @@
 
 #if VZ3
 
-#define DPRINT 0
+#define DPRINT 1
 
 #include "Forwards.hpp"
 
@@ -149,7 +149,7 @@ SATSolver::Status Z3Interfacing::solve(unsigned conflictCountLimit)
   return _status;
 }
 
-SATSolver::Status Z3Interfacing::solveUnderAssumptions(const SATLiteralStack& assumps, unsigned conflictCountLimit, bool onlyProperSubusets,bool withGuard)
+  SATSolver::Status Z3Interfacing::solveUnderAssumptions(const SATLiteralStack& assumps, unsigned conflictCountLimit, bool onlyProperSubusets,bool withGuard)
 {
   CALL("Z3Interfacing::solveUnderAssumptions");
 
@@ -198,6 +198,13 @@ SATSolver::Status Z3Interfacing::solveUnderAssumptions(const SATLiteralStack& as
     return UNSATISFIABLE;
   } else if (result == z3::check_result::sat) {
     _model = _solver.get_model();
+#if DPRINT
+    cout << "model : " << endl;
+    for(unsigned i=0; i < _model.size(); i++){
+      z3::func_decl v = _model[i];
+      cout << v.name() << " = " << _model.get_const_interp(v) << endl;
+    }
+#endif
     return SATISFIABLE;
   } else {
     return UNKNOWN;
@@ -352,7 +359,8 @@ Term* Z3Interfacing::evaluateInModel(Term* trm) {
 
   //  unsigned srt = SortHelper::getResultSort(trm);
   bool name; //TODO what do we do about naming?
-  z3::expr rep = getz3expr(trm,false,name,false);
+  Stack<unsigned> requiredMergeAxiomSorts;
+  z3::expr rep = getz3expr(trm,false,name,requiredMergeAxiomSorts,false);
   z3::expr assignment = _model.eval(rep,true); // true means "model_completion"
   if (env.options->arrayInst() == Options::ArrayInst::OFF) {
     if (assignment.is_numeral()) {
@@ -692,7 +700,7 @@ z3::sort Z3Interfacing::getz3sort(unsigned s)
  * - Translates the ground structure
  * - Some interpreted functions/predicates are handled
  */
-z3::expr Z3Interfacing::getz3expr(Term* trm,bool isLit,bool&nameExpression,bool withGuard)
+z3::expr Z3Interfacing::getz3expr(Term* trm,bool isLit,bool&nameExpression, Stack<unsigned>& sortsForMergeAxioms, bool withGuard)
 {
   CALL("Z3Interfacing::getz3expr");
   BYPASSING_ALLOCATOR;
@@ -773,7 +781,7 @@ z3::expr Z3Interfacing::getz3expr(Term* trm,bool isLit,bool&nameExpression,bool 
     for(unsigned i=0;i<trm->arity();i++){
       TermList* arg = trm->nthArgument(i);
       ASS(!arg->isVar());// Term should be ground
-      args.push_back(getz3expr(arg->term(),false,nameExpression,withGuard));
+      args.push_back(getz3expr(arg->term(),false,nameExpression,sortsForMergeAxioms,withGuard));
     }
 
     // dummy return
@@ -820,8 +828,26 @@ z3::expr Z3Interfacing::getz3expr(Term* trm,bool isLit,bool&nameExpression,bool 
               ret = z3::expr(args[0].ctx(), r);
             }
             break;
+          case Theory::ARRAY_MERGE: {
+            // merge does not have a direct representation in z3. it is unclear
+            // if the term (as-array (lambda (i Ind) (ite (i < j) a b))) is
+            // acceptable for z3 as input because smtlib defines as-array only
+            // for model values, not for input terms
+            //
+            // in the meantime, we represent merge of sort S as uninterpreted
+            // function mergeS (to avoid ambiguities in the presence of merges
+            // for different sorts). the z3 term is only a faithful
+            // representation of the vampire term for models that fulfill the
+            // axioms of mergeS.
+            cerr << "don't know how to handle merge" << endl; //TODO: add merge interpretation
+            unsigned mergeArraySort = SortHelper::getResultSort(trm);
+            if (! sortsForMergeAxioms.find(mergeArraySort)) {
+              sortsForMergeAxioms.push(mergeArraySort);
+            }
+            break;
+          }
           default:
-            skip=true;//skip it and treat the function as uninterpretted
+            skip=true;//skip it and treat the function as uninterpreted
             break;
         }
 
@@ -1067,7 +1093,8 @@ z3::expr Z3Interfacing::getRepresentation(SATLiteral slit,bool withGuard)
     try{
       // TODO everything is being named!!
       bool nameExpression = true;
-      z3::expr e = getz3expr(lit,true,nameExpression,withGuard);
+      Stack<unsigned> requiredMergeAxiomSorts;
+      z3::expr e = getz3expr(lit,true,nameExpression,requiredMergeAxiomSorts,withGuard);
       //cout << "got rep " << e << endl;
 
       if(nameExpression && _namedExpressions.insert(slit.var())) {
@@ -1291,6 +1318,20 @@ void Z3Interfacing::addFloorOperations(z3::expr_vector args, Interpretation qi, 
 
 }
 
+
+void Z3Interfacing::addArrayMergeAxiom(unsigned vsort) {
+  z3::sort z3sort = getz3sort(vsort);
+  vstringstream ss;
+  ss << "$merge" << vsort;
+  const z3::sort z3_domain_srt = z3sort.array_domain();
+  z3::sort_vector merge_domain(_context);
+  merge_domain.push_back(z3sort);
+  merge_domain.push_back(z3sort);
+  merge_domain.push_back(z3_domain_srt);
+  z3::func_decl merge = z3::function(ss.str().c_str(), merge_domain, z3sort); //TODO: check if z3 makes a copy of the name
+  
+  
+}
 
 } // namespace SAT
 

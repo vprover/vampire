@@ -933,9 +933,13 @@ void TheoryAxioms::addConstantArrayAxiom(unsigned arraySort) {
   unsigned fun_const = env.signature->getInterpretingSymbol(Theory::ARRAY_CONST,Theory::getArrayOperatorType(arraySort,Theory::ARRAY_CONST));
 
   Sorts::ArraySort* si = env.sorts->getArraySort(arraySort);
+  // cerr << "creating const array axiom for array sort " << si->name() << endl;
   //  unsigned indexSort = si->getIndexSort();
   unsigned innerSort = si->getInnerSort();
 
+  //  cerr << "adding constant array for inner sort: " << innerSort << endl;
+  //  cerr << "adding constant array for index sort: " << indexSort << endl;
+  
   TermList x(0,false);
   TermList y(1,false);
   TermList argx[] = {x};

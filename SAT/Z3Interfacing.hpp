@@ -131,7 +131,7 @@ public:
    */
   SATClauseList* getRefutationPremiseList() override{ return 0; } 
 
-  SATClause* getRefutation() override;  
+  SATClause* getRefutation() override;
 
   void reset(){
     sat2fo.reset();
@@ -176,8 +176,9 @@ private:
 
 public:
   // not sure why this one is public
-  z3::expr getz3expr(Term* trm,bool islit,bool&nameExpression, bool withGuard=false);
+  z3::expr getz3expr(Term* trm,bool islit,bool&nameExpression,  Stack<unsigned>& sortsForMergeAxioms, bool withGuard=false);
   Term* evaluateInModel(Term* trm);
+
 private:
   z3::expr getRepresentation(SATLiteral lit,bool withGuard);
 
@@ -194,6 +195,8 @@ private:
 
   DHSet<unsigned> _namedExpressions;
 
+  DHMap<unsigned,z3::expr*> _mergeAssumptions; //when translating array merge, we need to add an axiom for each array sort merge operation
+  
   z3::expr getNameExpr(unsigned var){
     vstring name = "v"+Lib::Int::toString(var);
     return  _context.bool_const(name.c_str());
@@ -207,6 +210,8 @@ private:
   Term* representNumeral(z3::expr *expr, unsigned sort);
   bool representSort(const z3::sort &sort, unsigned& vsort);
   Term* representArray(z3::expr& assigment);
+
+  void addArrayMergeAxiom(unsigned vsort);
 
 };
 
