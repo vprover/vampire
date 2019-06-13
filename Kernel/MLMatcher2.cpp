@@ -286,6 +286,20 @@ struct MatchingData final {
    */
   Clause* instance;
 
+  /**
+   * The match record tracks for each literal of the instance clause which base literal is matched to it.
+   * This is necessary for multiset matching to prevent one instance literal being matched by two different base literals.
+   * The sentinel value 0xFFFFFFFF means that the corresponding instance literal is still unmatched.
+   * Note that because backtracking keeps data structures intact (only reducing currBLit),
+   * a value matchRecord[i] means 'unmatched' iff it is greater than or equal to currBLit, not only if it is equal to 0xFFFFFFFF.
+   */
+  DArray<unsigned> matchRecord;
+
+  /**
+   * Current base literal (we are searching a match for bases[currBLit])
+   */
+  unsigned currBLit;
+
   // These are helper variables that just exist to allow us to use one large linear buffer
   // as underlying storage for all the other small arrays defined above.
   unsigned* boundVarNumStorage;
@@ -298,6 +312,10 @@ struct MatchingData final {
     MUST_BACKTRACK,
     NO_ALTERNATIVE
   };
+
+  MatchingData()
+    : matchRecord(32)
+  { }
 
   /**
    * Compute the "intersect info" of base literals bases[b1] and bases[b2], i.e.,
@@ -620,9 +638,6 @@ class MLMatcher2::Impl final
 
     MatchingData s_matchingData;
 
-    // For backtracking support
-    DArray<unsigned> s_matchRecord;
-    unsigned s_currBLit;
     int s_counter;
 };
 
@@ -640,7 +655,6 @@ MLMatcher2::Impl::Impl()
   , s_altBindingPtrs(128)
   , s_altBindingsData(256)
   , s_intersectionData(128)
-  , s_matchRecord(32)
 { }
 
 
@@ -752,6 +766,10 @@ void MLMatcher2::Impl::initMatchingData(Literal** baseLits0, unsigned baseLen, C
   s_matchingData.altBindingPtrStorage=s_altBindingPtrs.array();
   s_matchingData.altBindingStorage=s_altBindingsData.array();
   s_matchingData.intersectionStorage=s_intersectionData.array();
+
+  s_matchingData.matchRecord.init(instance->length(), 0xFFFFFFFF);
+  s_matchingData.nextAlts[0] = 0;
+  s_matchingData.currBLit = 0;
 }
 
 
@@ -761,12 +779,6 @@ void MLMatcher2::Impl::init(Literal** baseLits, unsigned baseLen, Clause* instan
 
   initMatchingData(baseLits, baseLen, instance, alts);
 
-  unsigned const matchRecordLen = instance->length();
-  s_matchRecord.init(matchRecordLen, 0xFFFFFFFF);
-  ASS_EQ(s_matchRecord.size(), matchRecordLen);
-
-  s_matchingData.nextAlts[0] = 0;
-  s_currBLit = 0;
   s_counter = 0;
 }
 
@@ -782,20 +794,20 @@ bool MLMatcher2::Impl::nextMatch()
   // This function implements a backtracking search algorithm.
   // Each base literal corresponds to one level of the search tree.
   //
-  // s_currBLit is the index of the current base literal, i.e., the level of the search tree (or "decision level" in SAT terminology).
+  // currBLit is the index of the current base literal, i.e., the level of the search tree (or "decision level" in SAT terminology).
   //
   // The following variables determine our current location in the search tree:
-  // - s_currBLit: the level of the search tree
+  // - currBLit: the level of the search tree
   // - nextAlts[b] - 1: the alternative selected at level b (-1 because nextAlts contains the next alt to be selected), if b != eqLitForDemodulation
   // - eqLitForDemodulation: if not 0xFFFFFFFF, the base literal at level eqLitForDemodulation is unmatched and was chosen for demodulation
   //
-  // Furthermore we keep track of s_matchRecord.
+  // Furthermore we keep track of matchRecord.
   // The match record tracks for each literal of the instance which base literal is matched to it,
   // which is necessary for multiset matching to prevent one instance literal being matched by two different base literals.
   // The sentinel value 0xFFFFFFFF means that the corresponding instance literal is still unmatched.
   //
   // Backtracking works by simply reducing the current decision level and keeping all other data structures intact.
-  // In particular, this means a value s_matchRecord[i] means 'unmatched' if it is greater than s_currBLit, not only if it is equal to 0xFFFFFFFF.
+  // In particular, this means a value matchRecord[i] means 'unmatched' if it is greater than currBLit, not only if it is equal to 0xFFFFFFFF.
   // The same holds for eqLitForDemodulation.
 
   while (true) {
@@ -804,10 +816,10 @@ bool MLMatcher2::Impl::nextMatch()
     // - variable bindings from base to each alternative
     // - number of remaining alts in the current branch
     // These are computed lazily, i.e., only if the current depth is actually reached in the search (making early conflicts cheaper).
-    MatchingData::InitResult const ires = md->ensureInit(s_currBLit);
+    MatchingData::InitResult const ires = md->ensureInit(md->currBLit);
     if (ires != MatchingData::OK) {
       if (ires == MatchingData::MUST_BACKTRACK) {
-        s_currBLit--;  // backtrack
+        md->currBLit--;  // backtrack
         continue;
       } else {
         ASS_EQ(ires, MatchingData::NO_ALTERNATIVE);
@@ -833,84 +845,84 @@ bool MLMatcher2::Impl::nextMatch()
     //   The idea there is to keep the MatchProblem to re-use it after subsumption to check subsumption resolution as well.
 
     // Get the number of alternatives that are compatible to the previous choices
-    unsigned const maxAlt = md->getRemainingInCurrent(s_currBLit);
+    unsigned const maxAlt = md->getRemainingInCurrent(md->currBLit);
 
     // Find a suitable alternative for the current base literal
-    while (md->nextAlts[s_currBLit] < maxAlt &&
+    while (md->nextAlts[md->currBLit] < maxAlt &&
            (
              // Reject the current alternative (i.e., nextAlts[currBLit]) if
              // 1. The alt is already matched to a previous base literal (recall that we are doing multiset matching), or
-             s_matchRecord[md->getAltRecordIndex(s_currBLit, md->nextAlts[s_currBLit])] < s_currBLit
+             md->matchRecord[md->getAltRecordIndex(md->currBLit, md->nextAlts[md->currBLit])] < md->currBLit
              // 2. The induced variable bindings would already lead to a conflict for some later base literal
-             || !md->bindAlt(s_currBLit, md->nextAlts[s_currBLit])
+             || !md->bindAlt(md->currBLit, md->nextAlts[md->currBLit])
            )
           ) {
-      md->nextAlts[s_currBLit]++;
+      md->nextAlts[md->currBLit]++;
     }
 
-    if (md->nextAlts[s_currBLit] < maxAlt) {
-      // md->nextAlts[s_currBLit] is a suitable match for s_currBLit
+    if (md->nextAlts[md->currBLit] < maxAlt) {
+      // md->nextAlts[md->currBLit] is a suitable match for md->currBLit
       //
       // If we got to this point, then we know:
       // 1. It is compatible to all previous choices,
       // 2. it has not been matched to another base literal,
       // 3. it does not immediately lead to a conflict for a later base literal.
       //
-      // The alternative with index md->nextAlts[s_currBLit] corresponds to the literal instance[matchRecordIndex].
-      // So in terms of literals, bases[s_currBLit] is matched to instance[matchRecordIndex].
+      // The alternative with index md->nextAlts[md->currBLit] corresponds to the literal instance[matchRecordIndex].
+      // So in terms of literals, bases[md->currBLit] is matched to instance[matchRecordIndex].
 
       // Unassign existing match records for this level (this should actually be at most one)
-      for (unsigned i = 0; i < s_matchRecord.size(); i++) {
-        if (s_matchRecord[i] == s_currBLit) {
-          s_matchRecord[i] = 0xFFFFFFFF;
+      for (unsigned i = 0; i < md->matchRecord.size(); i++) {
+        if (md->matchRecord[i] == md->currBLit) {
+          md->matchRecord[i] = 0xFFFFFFFF;
         }
       }
       // Set new match record (match record content is the base index for each instance index)
-      unsigned const matchRecordIndex = md->getAltRecordIndex(s_currBLit, md->nextAlts[s_currBLit]);
-      ASS_G(s_matchRecord[matchRecordIndex], s_currBLit);  // new match record cannot be set already (this is point 2 in the comment above about what we know here)
-      s_matchRecord[matchRecordIndex] = s_currBLit;
+      unsigned const matchRecordIndex = md->getAltRecordIndex(md->currBLit, md->nextAlts[md->currBLit]);
+      ASS_G(md->matchRecord[matchRecordIndex], md->currBLit);  // new match record cannot be set already (this is point 2 in the comment above about what we know here)
+      md->matchRecord[matchRecordIndex] = md->currBLit;
 
       // Prepare for next level: when come back, we need to select the next alt (otherwise we get an infinite loop)
-      md->nextAlts[s_currBLit]++;
+      md->nextAlts[md->currBLit]++;
       // Go to next level
-      s_currBLit++;
-      if (s_currBLit == md->len) {
+      md->currBLit++;
+      if (md->currBLit == md->len) {
         // All base literals have been matched => we found a complete match and are done!
         break;
       } else {
         // Otherwise, we need to initialize the new level
-        ASS_L(s_currBLit, md->len);
-        md->nextAlts[s_currBLit] = 0;
-        if (md->eqLitForDemodulation == s_currBLit) { md->eqLitForDemodulation = 0xFFFFFFFF; }
+        ASS_L(md->currBLit, md->len);
+        md->nextAlts[md->currBLit] = 0;
+        if (md->eqLitForDemodulation == md->currBLit) { md->eqLitForDemodulation = 0xFFFFFFFF; }
       }
     }
-    else if (md->eqLitForDemodulation > s_currBLit
-             && md->bases[s_currBLit]->isEquality()
-             && md->bases[s_currBLit]->isPositive()) {
+    else if (md->eqLitForDemodulation > md->currBLit
+             && md->bases[md->currBLit]->isEquality()
+             && md->bases[md->currBLit]->isPositive()) {
       // Unassign existing match records for this level (this should actually be at most one)
-      for (unsigned i = 0; i < s_matchRecord.size(); i++) {
-        if (s_matchRecord[i] == s_currBLit) {
-          s_matchRecord[i] = 0xFFFFFFFF;
+      for (unsigned i = 0; i < md->matchRecord.size(); i++) {
+        if (md->matchRecord[i] == md->currBLit) {
+          md->matchRecord[i] = 0xFFFFFFFF;
         }
       }
       // Select current base literal as equality for demodulation
-      md->eqLitForDemodulation = s_currBLit;
-      md->skipBinding(s_currBLit);  // current literal does not take part in the substitution
+      md->eqLitForDemodulation = md->currBLit;
+      md->skipBinding(md->currBLit);  // current literal does not take part in the substitution
       // Go to next level
-      s_currBLit++;
-      if (s_currBLit == md->len) {
+      md->currBLit++;
+      if (md->currBLit == md->len) {
         // All base literals have been matched => we found a complete match and are done!
         break;
       } else {
         // Otherwise, we need to initialize the new level
-        ASS_L(s_currBLit, md->len);
-        md->nextAlts[s_currBLit] = 0;
+        ASS_L(md->currBLit, md->len);
+        md->nextAlts[md->currBLit] = 0;
       }
     }
     else {
       // Backtrack
-      if (s_currBLit == 0) { return false; }  // Conflict at decision level 0 => no more matches possible!
-      s_currBLit--;  // Go to previous level
+      if (md->currBLit == 0) { return false; }  // Conflict at decision level 0 => no more matches possible!
+      md->currBLit--;  // Go to previous level
     }
 
     // Ensure vampire exits timely in pathological cases instead of appearing to be stuck
@@ -925,9 +937,9 @@ bool MLMatcher2::Impl::nextMatch()
   } // while (true)
 
   // We found a complete match
-  ASS_EQ(s_currBLit, md->len);
+  ASS_EQ(md->currBLit, md->len);
   // Backtrack in preparation of next call to this function
-  s_currBLit--;
+  md->currBLit--;
   return true;
 }  // nextMatch
 
