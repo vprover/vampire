@@ -1632,6 +1632,62 @@ bool Splitter::handleEmptyClause(Clause* cl)
   addSatClauseToSolver(confl,true);
 
   env.statistics->satSplitRefutations++;
+
+  if (_hintsForAvatarFakeSimplifier) {
+    // use the FO part of the clauses from the proof as hints for subsequent search
+
+    //cout << "Collecting hints!" << endl;
+
+    static Stack<Unit*> todo;
+    static DHSet<Unit*> seen;
+    todo.reset();
+    seen.reset();
+
+    todo.push(cl);
+    while (todo.isNonEmpty()) {
+      Unit* cur = todo.pop();
+
+      if (!seen.insert(cur)) {
+        continue;
+      }
+
+      //cout << "See: " << cur->toString() << endl;
+
+      Inference* inf = cur->inference();
+
+      //cout << "via: " << inf->name() << endl;
+
+      ASS(cur->isClause());
+      Clause* curCl = cur->asClause();
+
+      if (curCl->isEmpty()) {
+        //cout << "dont mark the empty" << endl;
+      } else if (curCl->heedingHint()) {
+        //cout << "already a hint heeding clause" << endl;
+      } else {
+        //cout << "added to index" << endl;
+        _hintsForAvatarFakeSimplifier->addHintClause(curCl);
+      }
+
+      if (inf->rule() == Inference::CLAUSIFY) {
+        //cout << " not beyond clausification" << endl;
+        continue;
+      }
+
+      if (inf->rule() == Inference::AVATAR_COMPONENT) {
+        //cout << " not beyond components" << endl;
+        continue;
+      }
+
+      Inference::Iterator it = inf->iterator();
+
+      while (inf->hasNext(it)) {
+        Unit* u = inf->next(it);
+        todo.push(u);
+      }
+    }
+  }
+
   return true;
 }
 

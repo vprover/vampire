@@ -56,6 +56,8 @@ Clause* HintsForAvatarFakeSimplifier::simplify(Clause* cl)
 {
   CALL("HintsForAvatarFakeSimplifier::simplify");
 
+  // cout << "HintsForAvatarFakeSimplifier::simplify" << endl;
+
   Clause* rDummy;
   Clause* pDummy;
   // never consider redundant, just mark as "hint-heeding"
