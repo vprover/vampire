@@ -444,7 +444,7 @@ struct MatchingData final {
     ASS_EQ(bIndex, currBLit);
     ASS_NEQ(bIndex, eqLitForDemodulation);
 
-    bool haveEqLit = (eqLitForDemodulation < currBLit);
+    bool haveEqLit = haveSelectedEqLitForDemodulation();
     TermList* curBindings=altBindings[bIndex][altIndex];
     for(unsigned i=bIndex+1; i<len; i++) {
       if(!isInitialized(i)) {
@@ -474,13 +474,17 @@ struct MatchingData final {
       }
       // No compatible alternatives left for bases[i]?
       // If so, return false to skip alternative altIndex for bases[bIndex], because it would lead to a conflict+backtracking later anyways.
-      // TODO: but not if it can be selected as demodulation equality! => so ideally we should have a mechanism to select later equalities already here?
-      // if (bases[i]->isPositiveEquality() && eqLitForDemodulation > currBLit) { ... can select bases[i] as equality }
-      // however if we find two entries with 0 then we should backtrack.
+      // The only exception is if we can select bases[i] as equality for demodulation
+      // (but note that at most one such equality may be selected => skip if we have two such entries or already selected another equality).
       if (remAlts == 0) {
         if (bases[i]->isEquality() && bases[i]->isPositive() && !haveEqLit) {
           // Can select this base literal as equality for demodulation, which is effectively another alternative not counted by remaining.
           haveEqLit = true;
+          // Ideally we would select the equality already at this point for demodulation, but this is currently not supported by the search algorithm.
+          // What do we waste in the current version?
+          // We might try to select earlier positive equalities (between bIndex and i) for demodulation,
+          // but this will never be successful because selectForDemodulation discovers that a later literal would have 0 alts.
+          // (so we would not save much here)
         } else {
           // Not a positive equality or we already have another one.
           return false;
@@ -493,14 +497,18 @@ struct MatchingData final {
   }
 
   /**
-   * Ignore bases[bIndex] in the current substitution.
+   * Select base literal as equality for demodulation.
+   * This ignores bases[bIndex] in the current substitution.
    *
    * This is the counterpart to bindAlt when selecting bases[bIndex] as equality for demodulation.
    */
-  void skipBinding(unsigned bIndex)
+  bool selectForDemodulation(unsigned bIndex)
   {
-    CALL("MatchingData::skipBinding");
-    ASS_EQ(bIndex, eqLitForDemodulation);  // currently this only makes sense for the demodulation equality
+    CALL("MatchingData::selectForDemodulation");
+    ASS_EQ(bIndex, currBLit);
+    ASS(bases[bIndex]->isEquality());
+    ASS(bases[bIndex]->isPositive());
+    ASS(!haveSelectedEqLitForDemodulation());
 
     for (unsigned i = bIndex + 1; i < len; ++i) {
       if (!isInitialized(i)) {
@@ -514,8 +522,15 @@ struct MatchingData final {
       unsigned remAlts = remaining->get(i, bIndex);
       remaining->set(i, bIndex + 1, remAlts);
 
-      ASS_G(remAlts, 0);  // otherwise, the branch should have been cut off in an earlier step
+      // Cannot select for demodulation because a later base literal already has zero alts left
+      // (the current branch was only left alive by bindAlt/ensureInit because bases[i] could be selected for demodulation)
+      if (remAlts == 0) {
+        return false;
+      }
     }
+
+    eqLitForDemodulation = bIndex;
+    return true;
   }
 
   /**
@@ -538,12 +553,13 @@ struct MatchingData final {
   {
     CALL("MatchingData::ensureInit");
     ASS_EQ(bIndex, currBLit);
-    ASS_NEQ(bIndex, eqLitForDemodulation);
 
     if(!isInitialized(bIndex)) {
 #if MLMATCHER2_DEBUG_OUTPUT
       std::cerr << "       ensureInit(" << bIndex << ")" << std::endl;
 #endif
+      ASS_NEQ(bIndex, eqLitForDemodulation);
+
       // Initialize variable bindings
       boundVarNums[bIndex] = boundVarNumStorage;
       altBindings[bIndex] = altBindingPtrStorage;
@@ -554,14 +570,15 @@ struct MatchingData final {
       // This tells us how many alts have passed the first test in createLiteralBindings
       unsigned altCnt=altBindingPtrStorage-altBindings[bIndex];
       if(altCnt==0) {
-        // There is no matching alternative at all
+        // There is no matching alternative,
+        // but for positive equalities, we may be able to select it for demodulation
         if (bases[bIndex]->isEquality() && bases[bIndex]->isPositive()) {
-          // but for positive equalities, we may be able to select it for demodulation
           for(unsigned i = 0; i <= bIndex; i++) {
             remaining->set(bIndex, i, 0);
           }
-          if (eqLitForDemodulation < bIndex) {
-            // If a previous equality has already been selected (eqForDemodulation < bIndex), we can't select the current one and need to backtrack.
+          if (haveSelectedEqLitForDemodulation()) {
+            ASS_G(bIndex, 0);
+            // If a previous equality has already been selected, we can't select the current one and need to backtrack.
             return MUST_BACKTRACK;
           } else {
             return OK;
@@ -574,12 +591,9 @@ struct MatchingData final {
       remaining->set(bIndex, 0, altCnt);
 
       // Compute the number of remaining alts for the current branch of the backtracking search
-      unsigned remAlts=0;
+      unsigned remAlts = altCnt;
       for(unsigned pbi=0;pbi<bIndex;pbi++) { //pbi ~ previous base index
-        if (pbi != 0) {
-          ASS_EQ(remAlts, remaining->get(bIndex, pbi));
-        }
-        remAlts=remaining->get(bIndex, pbi);
+        ASS_EQ(remAlts, remaining->get(bIndex, pbi));
         // If pbi == eqLitForDemodulation, then bases[pbi] is not relevant to the current substitution (also, nextAlts[pbi] is invalid so the code doesn't make sense anyways).
         // If bases[pbi] and bases[bIndex] have no variables in common, then compatible will never return false and we can skip the checks.
         // In both cases we cannot include any alts at this step so we just store the unmodified remAlts in the next column of 'remaining'.
@@ -607,20 +621,14 @@ struct MatchingData final {
       }
 #endif
 
-      // if (remAlts == 0) {
-      //   ASS_G(bIndex, 0);
-      // }
-
-      if (bIndex > 0 && remAlts == 0) {
-        if (bases[bIndex]->isEquality() && bases[bIndex]->isPositive() && eqLitForDemodulation > currBLit) {
+      if (remAlts == 0) {
+        ASS_G(bIndex, 0);  // if we had remAlts==0 for bIndex==0, then we would have returned already above with NO_ALTERNATIVE or OK
+        if (bases[bIndex]->isEquality() && bases[bIndex]->isPositive() && !haveSelectedEqLitForDemodulation()) {
           // can select for demodulation
           return OK;
         } else {
-          // TODO: not necessarily backtrack! what if we want to select this literal as equality for demodulation?
-          // TODO: need to backtrack multiple times
-
           // Backtrack
-          // Might have to backtrack multiple levels, // e.g. if 'remaining' looks like this:
+          // Might have to backtrack multiple levels, e.g. if 'remaining' looks like this:
           //  2
           //  6 2
           //  6 6 2
@@ -634,8 +642,6 @@ struct MatchingData final {
           while (remaining->get(bIndex, currBLit) == 0) {
             ALWAYS(backtrack());
           }
-
-          // return MUST_BACKTRACK;
           return OK;
         }
       }
@@ -659,6 +665,13 @@ struct MatchingData final {
    */
   bool backtrack()
   {
+#if MLMATCHER2_DEBUG_OUTPUT
+    if (currBLit == 0) {
+      std::cerr << "Conflict at level 0." << std::endl;
+    } else {
+      std::cerr << "Backtrack (" << currBLit << " -> " << (currBLit-1) << ")" << std::endl;
+    }
+#endif
     if (currBLit == 0) {
       return false;
     }
@@ -666,6 +679,13 @@ struct MatchingData final {
     return true;
   }
 
+  /**
+   * Returns true iff a positive equality has already been selected for demodulation.
+   */
+  bool haveSelectedEqLitForDemodulation()
+  {
+    return eqLitForDemodulation <= currBLit;
+  }
 
 };  // struct MatchingData
 
@@ -865,6 +885,17 @@ void MLMatcher2::Impl::init(Literal** baseLits, unsigned baseLen, Clause* instan
 {
   CALL("MLMatcher2::Impl::init");
 
+#if MLMATCHER2_DEBUG_OUTPUT
+    std::cerr << "\n\n\nMLMatcher2::init:" << std::endl;
+    for (unsigned i = 0; i < baseLen; ++i) {
+      std::cerr <<   "\tbases[" << i << "]: " << baseLits[i]->toString() << std::endl;
+      LiteralList::Iterator ait(alts[i]);
+      while(ait.hasNext()) {
+        std::cerr << "\t     alt: " << ait.next()->toString() << std::endl;
+      }
+    }
+    std::cerr << "\tinstance: " << instance->toString() << std::endl;
+#endif
   initMatchingData(baseLits, baseLen, instance, alts);
 
   s_counter = 0;
@@ -993,9 +1024,11 @@ bool MLMatcher2::Impl::nextMatch()
         if (md->eqLitForDemodulation == md->currBLit) { md->eqLitForDemodulation = 0xFFFFFFFF; }
       }
     }
-    else if (md->eqLitForDemodulation > md->currBLit
+    else if (!md->haveSelectedEqLitForDemodulation()
              && md->bases[md->currBLit]->isEquality()
-             && md->bases[md->currBLit]->isPositive()) {
+             && md->bases[md->currBLit]->isPositive()
+             && md->selectForDemodulation(md->currBLit)) {
+      // Selected current base literal as equality for demodulation
 #if MLMATCHER2_DEBUG_OUTPUT
       std::cerr << "       selected as equality for demodulation" << std::endl;
 #endif
@@ -1005,9 +1038,6 @@ bool MLMatcher2::Impl::nextMatch()
           md->matchRecord[i] = 0xFFFFFFFF;
         }
       }
-      // Select current base literal as equality for demodulation
-      md->eqLitForDemodulation = md->currBLit;
-      md->skipBinding(md->currBLit);  // current literal does not take part in the substitution
       // Go to next level
       md->currBLit++;
       if (md->currBLit == md->len) {
