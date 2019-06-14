@@ -176,7 +176,7 @@ private:
 
 public:
   // not sure why this one is public
-  z3::expr getz3expr(Term* trm,bool islit,bool&nameExpression,  Stack<unsigned>& sortsForMergeAxioms, bool withGuard=false);
+  z3::expr getz3expr(Term* trm,bool islit,bool&nameExpression, bool withGuard=false);
   Term* evaluateInModel(Term* trm);
 
 private:
@@ -195,7 +195,9 @@ private:
 
   DHSet<unsigned> _namedExpressions;
 
-  DHMap<unsigned,z3::expr*> _mergeAssumptions; //when translating array merge, we need to add an axiom for each array sort merge operation
+  Stack<z3::expr> _mergeAssumptions; //when translating array merge, we need to add an axiom for each array sort merge operation
+  DHSet<unsigned> _mergeAssumptionSorts;           //collects the sorts of axioms in _mergeAssumptions
+  DHMap<vstring,unsigned> _mergeAssumptionsLookup; //reverse translation
   
   z3::expr getNameExpr(unsigned var){
     vstring name = "v"+Lib::Int::toString(var);
@@ -211,7 +213,7 @@ private:
   bool representSort(const z3::sort &sort, unsigned& vsort);
   Term* representArray(z3::expr& assigment);
 
-  void addArrayMergeAxiom(unsigned vsort);
+  z3::func_decl addArrayMergeAxiom(unsigned vsort);
 
 };
 

@@ -359,8 +359,7 @@ Term* Z3Interfacing::evaluateInModel(Term* trm) {
 
   //  unsigned srt = SortHelper::getResultSort(trm);
   bool name; //TODO what do we do about naming?
-  Stack<unsigned> requiredMergeAxiomSorts;
-  z3::expr rep = getz3expr(trm,false,name,requiredMergeAxiomSorts,false);
+  z3::expr rep = getz3expr(trm,false,name,false);
   z3::expr assignment = _model.eval(rep,true); // true means "model_completion"
   if (env.options->arrayInst() == Options::ArrayInst::OFF) {
     if (assignment.is_numeral()) {
@@ -700,7 +699,7 @@ z3::sort Z3Interfacing::getz3sort(unsigned s)
  * - Translates the ground structure
  * - Some interpreted functions/predicates are handled
  */
-z3::expr Z3Interfacing::getz3expr(Term* trm,bool isLit,bool&nameExpression, Stack<unsigned>& sortsForMergeAxioms, bool withGuard)
+z3::expr Z3Interfacing::getz3expr(Term* trm,bool isLit,bool&nameExpression, bool withGuard)
 {
   CALL("Z3Interfacing::getz3expr");
   BYPASSING_ALLOCATOR;
@@ -781,7 +780,7 @@ z3::expr Z3Interfacing::getz3expr(Term* trm,bool isLit,bool&nameExpression, Stac
     for(unsigned i=0;i<trm->arity();i++){
       TermList* arg = trm->nthArgument(i);
       ASS(!arg->isVar());// Term should be ground
-      args.push_back(getz3expr(arg->term(),false,nameExpression,sortsForMergeAxioms,withGuard));
+      args.push_back(getz3expr(arg->term(),false,nameExpression,withGuard));
     }
 
     // dummy return
@@ -841,9 +840,12 @@ z3::expr Z3Interfacing::getz3expr(Term* trm,bool isLit,bool&nameExpression, Stac
             // axioms of mergeS.
             cerr << "don't know how to handle merge" << endl; //TODO: add merge interpretation
             unsigned mergeArraySort = SortHelper::getResultSort(trm);
-            if (! sortsForMergeAxioms.find(mergeArraySort)) {
-              sortsForMergeAxioms.push(mergeArraySort);
-            }
+            z3::func_decl merge = addArrayMergeAxiom(mergeArraySort);
+            z3::expr_vector margs(_context);
+            margs.push_back(args[0]);
+            margs.push_back(args[1]);
+            margs.push_back(args[2]);
+            ret = merge(margs);
             break;
           }
           default:
@@ -1094,7 +1096,7 @@ z3::expr Z3Interfacing::getRepresentation(SATLiteral slit,bool withGuard)
       // TODO everything is being named!!
       bool nameExpression = true;
       Stack<unsigned> requiredMergeAxiomSorts;
-      z3::expr e = getz3expr(lit,true,nameExpression,requiredMergeAxiomSorts,withGuard);
+      z3::expr e = getz3expr(lit,true,nameExpression,withGuard);
       //cout << "got rep " << e << endl;
 
       if(nameExpression && _namedExpressions.insert(slit.var())) {
@@ -1319,18 +1321,57 @@ void Z3Interfacing::addFloorOperations(z3::expr_vector args, Interpretation qi, 
 }
 
 
-void Z3Interfacing::addArrayMergeAxiom(unsigned vsort) {
+z3::func_decl Z3Interfacing::addArrayMergeAxiom(unsigned vsort) {
+  //prepare name
   z3::sort z3sort = getz3sort(vsort);
   vstringstream ss;
-  ss << "$merge" << vsort;
+  ss << "$vampire_internal_merge___" << vsort; //TODO: find a better way to ensure the inroduced name is unique
+
+  //prepare sorts and merge symbol
   const z3::sort z3_domain_srt = z3sort.array_domain();
   z3::sort_vector merge_domain(_context);
   merge_domain.push_back(z3sort);
   merge_domain.push_back(z3sort);
   merge_domain.push_back(z3_domain_srt);
-  z3::func_decl merge = z3::function(ss.str().c_str(), merge_domain, z3sort); //TODO: check if z3 makes a copy of the name
-  
-  
+  z3::func_decl fmerge = z3::function(ss.str().c_str(), merge_domain, z3sort); //TODO: check if z3 makes a copy of the name
+
+  //skip if we already added the axiom
+  if (_mergeAssumptionSorts.find(vsort)) {
+    return fmerge;
+  }
+  _mergeAssumptionSorts.insert(vsort);
+
+
+  //prepare axiom formula
+  z3::expr i = _context.constant("i", z3_domain_srt);
+  z3::expr j = _context.constant("j", z3_domain_srt);
+  z3::expr a = _context.constant("a", z3sort);
+  z3::expr b = _context.constant("b", z3sort);
+  z3::expr_vector merge_args(_context);
+  merge_args.push_back(a);
+  merge_args.push_back(b);
+  merge_args.push_back(j);
+  z3::expr merge = fmerge(merge_args);
+  z3::expr select_merge = z3::select(merge, i);
+
+  z3::expr select_ai = z3::select(a,i);
+  z3::expr select_bi = z3::select(b,i);
+  z3::expr axiom = select_merge == z3::ite(i <= j,select_ai,select_bi);
+
+  z3::expr_vector forall_args(_context);
+  forall_args.push_back(a);
+  forall_args.push_back(b);
+  forall_args.push_back(i);
+  forall_args.push_back(j);
+  z3::expr closed_axiom = z3::forall(forall_args, axiom);
+
+  // add to axioms
+  _mergeAssumptions.push(closed_axiom); //TODO: decide if we need them seperately, shouldn't be too expensive though
+#if DPRINT
+  cerr << "[Z3] adding axiom: " << closed_axiom << endl;
+#endif
+  _solver.add(closed_axiom);
+  return fmerge;
 }
 
 } // namespace SAT

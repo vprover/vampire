@@ -954,7 +954,7 @@ void TheoryAxioms::addConstantArrayAxiom(unsigned arraySort) {
 // adds axioms: ~(J < I) | select(merge(X,Y,I),J) = select(X,J)
 //                J < I  | select(merge(X,Y,I),J) = select(Y,J)
 // including select (instead of direct reasoning on the array) keeps J present if the two clauses are resolved against each other
-// alternatively: try select(merge(X,Y,I),J) = ite(J<I, select(X,J), select(Y,J))
+// alternatively: try select(merge(X,Y,I),J) = ite(J<=I, select(X,J), select(Y,J))
 void TheoryAxioms::addMergeArrayAxiom(unsigned arraySort) {
   CALL("TheoryAxioms::addMergeArrayAxiom");
   unsigned pred_select = env.signature->getInterpretingSymbol(Theory::ARRAY_SELECT,Theory::getArrayOperatorType(arraySort,Theory::ARRAY_SELECT));
