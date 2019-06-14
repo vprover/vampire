@@ -122,6 +122,142 @@ void ForwardSubsumptionDemodulation2::attach(SaturationAlgorithm* salg)
   // bool res = matcher.nextMatch();
   // std::cerr << "match? " << res << std::endl;
   // std::exit(27);
+
+
+  //// Small test case for MLMatcher2 (b)
+  ////
+  //// bases[0] = ~end_point(X3,X0)
+  //// bases[1] = X1 = X3
+  //// bases[2] = X1 = X2
+  //// bases[3] = X2 = X3
+  //// bases[4] = ~end_point(X2,X0)
+  //// bases[5] = ~end_point(X1,X0)
+  //// instance = sK5(X1) = X0 | X0 = X2 | sK5(X1) = X2 | ~end_point(X2,X1) | ~end_point(X0,X1) | closed(X1)
+  ////
+  //// Leads to:
+  //// Condition remAlts > 0 in file ../Kernel/MLMatcher2.cpp, line 508 was violated, as:
+  //// remAlts == 0
+  //// 0 == 0
+  //unsigned p = env.signature->addPredicate("p", 2);
+  //unsigned q = env.signature->addPredicate("q", 1);
+  //unsigned f = env.signature->addFunction("f", 1);
+
+  //TermList x0 = TermList(0, false);
+  //TermList x1 = TermList(1, false);
+  //TermList x2 = TermList(2, false);
+  //TermList x3 = TermList(3, false);
+  //TermList fx1 = TermList(Term::create1(f, x1));
+
+  //Literal* b0 = Literal::create2(p, false, x3, x0);
+  //Literal* b1 = Literal::createEquality(true, x1, x3, 0);
+  //Literal* b2 = Literal::createEquality(true, x1, x2, 0);
+  //Literal* b3 = Literal::createEquality(true, x2, x3, 0);
+  //Literal* b4 = Literal::create2(p, false, x2, x0);
+  //Literal* b5 = Literal::create2(p, false, x1, x0);
+
+  //Literal* i0 = Literal::createEquality(true, fx1, x0, 0);
+  //Literal* i1 = Literal::createEquality(true, x0, x2, 0);
+  //Literal* i2 = Literal::createEquality(true, fx1, x2, 0);
+  //Literal* i3 = Literal::create2(p, false, x2, x1);
+  //Literal* i4 = Literal::create2(p, false, x0, x1);
+  //Literal* i5 = Literal::create1(q, false, x1);
+
+  //LiteralList* alts0 = LiteralList::empty();
+  //LiteralList::push(i3, alts0);
+  //LiteralList::push(i4, alts0);
+
+  //LiteralList* alts1 = LiteralList::empty();
+  //LiteralList::push(i0, alts1);
+  //LiteralList::push(i1, alts1);
+  //LiteralList::push(i2, alts1);
+
+  //LiteralList* alts2 = alts1;
+  //LiteralList* alts3 = alts1;
+
+  //LiteralList* alts4 = alts0;
+  //LiteralList* alts5 = alts0;
+
+  //Literal* bases[] = {b0, b1, b2, b3, b4, b5};
+  //LiteralList* alts[] = {alts0, alts1, alts2, alts3, alts4, alts5};
+
+  //LiteralStack lits;
+  //lits.push(i0);
+  //lits.push(i1);
+  //lits.push(i2);
+  //lits.push(i3);
+  //lits.push(i4);
+  //lits.push(i5);
+  //Clause* cl = Clause::fromStack(lits, Unit::AXIOM, new Inference(Inference::THEORY));
+
+  //MLMatcher2 matcher;
+  //matcher.init(bases, 6, cl, alts);
+  //// MLMatcher matcher;
+  //// // matcher.init(bases, 6, cl, alts, true);
+  //// // matcher.init(bases, 6, cl, alts, false);
+
+  //bool res = matcher.nextMatch();
+  //std::cerr << "match? " << res << std::endl;
+  //std::exit(27);
+
+
+  // // Small test case for MLMatcher2 (c)
+  // // Should find a match but doesn't due to too aggressive pruning.
+  // unsigned p = env.signature->addPredicate("p", 2);
+  // unsigned q = env.signature->addPredicate("q", 1);
+  // unsigned f = env.signature->addFunction("f", 1);
+
+  // TermList x0 = TermList(0, false);
+  // TermList x1 = TermList(1, false);
+  // TermList x2 = TermList(2, false);
+  // TermList x3 = TermList(3, false);
+  // TermList fx0 = TermList(Term::create1(f, x0));
+  // TermList fx1 = TermList(Term::create1(f, x1));
+  // TermList c = TermList(Term::createConstant("c"));
+  // TermList d = TermList(Term::createConstant("d"));
+  // TermList fc = TermList(Term::create1(f, c));
+  // TermList fd = TermList(Term::create1(f, d));
+
+  // Literal* b0 = Literal::create2(p, true, x0, fx0);
+  // Literal* b1 = Literal::create2(p, true, x1, fx1);
+  // Literal* b2 = Literal::createEquality(true, x0, x1, 0);
+
+  // Literal* i0 = Literal::create2(p, true, c, fc);
+  // Literal* i1 = Literal::create2(p, true, d, fd);
+  // Literal* i2 = Literal::createEquality(true, c, fd, 0);
+
+  // // LiteralList* alts0 = LiteralList::empty();
+  // // LiteralList::push(i0, alts0);
+  // // LiteralList::push(i1, alts0);
+  // // LiteralList* alts1 = alts0;
+
+  // LiteralList* alts0 = LiteralList::empty();
+  // LiteralList::push(i0, alts0);
+  // // LiteralList::push(i0, alts0);
+  // LiteralList* alts1 = LiteralList::empty();
+  // LiteralList::push(i1, alts1);
+  // // LiteralList::push(i1, alts1);
+
+  // LiteralList* alts2 = LiteralList::empty();
+  // LiteralList::push(i2, alts2);
+  // LiteralList::push(i2, alts2);
+
+  // // Literal* bases[] = {b2, b1, b0};
+  // // LiteralList* alts[] = {alts2, alts1, alts0};
+  // Literal* bases[] = {b0, b1, b2};
+  // LiteralList* alts[] = {alts0, alts1, alts2};
+
+  // LiteralStack lits;
+  // lits.push(i0);
+  // lits.push(i1);
+  // lits.push(i2);
+  // Clause* cl = Clause::fromStack(lits, Unit::AXIOM, new Inference(Inference::THEORY));
+
+  // MLMatcher2 matcher;
+  // matcher.init(bases, 3, cl, alts);
+
+  // bool res = matcher.nextMatch();
+  // std::cerr << "match? " << res << std::endl;
+  // std::exit(27);
 }
 
 

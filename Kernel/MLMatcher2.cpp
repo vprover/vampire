@@ -444,6 +444,7 @@ struct MatchingData final {
     ASS_EQ(bIndex, currBLit);
     ASS_NEQ(bIndex, eqLitForDemodulation);
 
+    bool haveEqLit = (eqLitForDemodulation < currBLit);
     TermList* curBindings=altBindings[bIndex][altIndex];
     for(unsigned i=bIndex+1; i<len; i++) {
       if(!isInitialized(i)) {
@@ -477,7 +478,13 @@ struct MatchingData final {
       // if (bases[i]->isPositiveEquality() && eqLitForDemodulation > currBLit) { ... can select bases[i] as equality }
       // however if we find two entries with 0 then we should backtrack.
       if (remAlts == 0) {
-        return false;
+        if (bases[i]->isEquality() && bases[i]->isPositive() && !haveEqLit) {
+          // Can select this base literal as equality for demodulation, which is effectively another alternative not counted by remaining.
+          haveEqLit = true;
+        } else {
+          // Not a positive equality or we already have another one.
+          return false;
+        }
       }
       remaining->set(i,bIndex+1,remAlts);
     }
@@ -530,8 +537,13 @@ struct MatchingData final {
   InitResult ensureInit(unsigned bIndex)
   {
     CALL("MatchingData::ensureInit");
+    ASS_EQ(bIndex, currBLit);
+    ASS_NEQ(bIndex, eqLitForDemodulation);
 
     if(!isInitialized(bIndex)) {
+#if MLMATCHER2_DEBUG_OUTPUT
+      std::cerr << "       ensureInit(" << bIndex << ")" << std::endl;
+#endif
       // Initialize variable bindings
       boundVarNums[bIndex] = boundVarNumStorage;
       altBindings[bIndex] = altBindingPtrStorage;
@@ -584,33 +596,76 @@ struct MatchingData final {
         remaining->set(bIndex,pbi+1,remAlts);
       }  // for (pbi)
 
-      if(bIndex>0 && remAlts==0) {
-        // TODO: not necessarily backtrack! what if we want to select this literal as equality for demodulation?
-        // TODO: need to backtrack multiple times
-
-        // Backtrack
-        // Might have to backtrack multiple levels, // e.g. if 'remaining' looks like this:
-        //  2
-        //  6 2
-        //  6 6 2
-        //  6 2 2 1
-        //  2 2 2 1 1
-        //  2 2 0 0 0 0   <- this is the new line initialized by this function
-        //    ^     ^
-        //    |     normal one-level backtracking would end up here
-        //    should go here
-        ASS_EQ(currBLit, bIndex);
-        while (remaining->get(bIndex, currBLit) == 0) {
-          --currBLit;
+#if MLMATCHER2_DEBUG_OUTPUT
+      std::cerr << "       remaining:" << std::endl;
+      for (unsigned i = 0; i <= bIndex; ++i) {
+        std::cerr << "      ";
+        for (unsigned j = 0; j <= i; ++j) {
+          std::cerr << " " << remaining->get(i, j);
         }
+        std::cerr << std::endl;
+      }
+#endif
 
-        // return MUST_BACKTRACK;
-        return OK;
+      // if (remAlts == 0) {
+      //   ASS_G(bIndex, 0);
+      // }
+
+      if (bIndex > 0 && remAlts == 0) {
+        if (bases[bIndex]->isEquality() && bases[bIndex]->isPositive() && eqLitForDemodulation > currBLit) {
+          // can select for demodulation
+          return OK;
+        } else {
+          // TODO: not necessarily backtrack! what if we want to select this literal as equality for demodulation?
+          // TODO: need to backtrack multiple times
+
+          // Backtrack
+          // Might have to backtrack multiple levels, // e.g. if 'remaining' looks like this:
+          //  2
+          //  6 2
+          //  6 6 2
+          //  6 2 2 1
+          //  2 2 2 1 1
+          //  2 2 0 0 0 0   <- this is the new line initialized by this function
+          //    ^     ^
+          //    |     normal one-level backtracking would end up here
+          //    should go here
+          ASS_EQ(currBLit, bIndex);
+          while (remaining->get(bIndex, currBLit) == 0) {
+            ALWAYS(backtrack());
+          }
+
+          // return MUST_BACKTRACK;
+          return OK;
+        }
       }
     }  // if (!isInitialized)
 
     return OK;
   }  // ensureInit
+
+
+  // TODO add functions like
+  // void enterNextLevel()   or  nextBaseLit() ?
+  // bool backtrack()
+  // bool selectAsEqualityForDemodulation()
+  // to keep the low-level manipulation contained inside this class,
+  // and only have "higher-level" functions in the loop below.
+
+  /**
+   * Undo the latest step.
+   *
+   * Returns false if no backtracking is possible anymore.
+   */
+  bool backtrack()
+  {
+    if (currBLit == 0) {
+      return false;
+    }
+    currBLit--;  // Go to previous level
+    return true;
+  }
+
 
 };  // struct MatchingData
 
@@ -856,7 +911,7 @@ bool MLMatcher2::Impl::nextMatch()
     MatchingData::InitResult const ires = md->ensureInit(md->currBLit);
     if (ires != MatchingData::OK) {
       if (ires == MatchingData::MUST_BACKTRACK) {
-        md->currBLit--;  // backtrack
+        ALWAYS(md->backtrack());
         continue;
       } else {
         ASS_EQ(ires, MatchingData::NO_ALTERNATIVE);
@@ -919,6 +974,11 @@ bool MLMatcher2::Impl::nextMatch()
       ASS_G(md->matchRecord[matchRecordIndex], md->currBLit);  // new match record cannot be set already (this is point 2 in the comment above about what we know here)
       md->matchRecord[matchRecordIndex] = md->currBLit;
 
+#if MLMATCHER2_DEBUG_OUTPUT
+      std::cerr << "       matched to:             " << (*md->instance)[matchRecordIndex]->toString() << std::endl;
+      std::cerr << "       (alt " << md->nextAlts[md->currBLit] << " of " << maxAlt << ")" << std::endl;
+#endif
+
       // Prepare for next level: when come back, we need to select the next alt (otherwise we get an infinite loop)
       md->nextAlts[md->currBLit]++;
       // Go to next level
@@ -936,6 +996,9 @@ bool MLMatcher2::Impl::nextMatch()
     else if (md->eqLitForDemodulation > md->currBLit
              && md->bases[md->currBLit]->isEquality()
              && md->bases[md->currBLit]->isPositive()) {
+#if MLMATCHER2_DEBUG_OUTPUT
+      std::cerr << "       selected as equality for demodulation" << std::endl;
+#endif
       // Unassign existing match records for this level (this should actually be at most one)
       for (unsigned i = 0; i < md->matchRecord.size(); i++) {
         if (md->matchRecord[i] == md->currBLit) {
@@ -958,8 +1021,10 @@ bool MLMatcher2::Impl::nextMatch()
     }
     else {
       // Backtrack
-      if (md->currBLit == 0) { return false; }  // Conflict at decision level 0 => no more matches possible!
-      md->currBLit--;  // Go to previous level
+      if (!md->backtrack()) {
+        // Conflict at decision level 0 => no more matches possible!
+        return false;
+      }
     }
 
     // Ensure vampire exits timely in pathological cases instead of appearing to be stuck
@@ -976,7 +1041,7 @@ bool MLMatcher2::Impl::nextMatch()
   // We found a complete match
   ASS_EQ(md->currBLit, md->len);
   // Backtrack in preparation of next call to this function
-  md->currBLit--;
+  ALWAYS(md->backtrack());
   return true;
 }  // nextMatch
 
