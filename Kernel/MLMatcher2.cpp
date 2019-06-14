@@ -37,6 +37,8 @@
 #include "Test/Output.hpp"
 #endif
 
+#define MLMATCHER2_DEBUG_OUTPUT false
+
 
 namespace {
 
@@ -439,6 +441,7 @@ struct MatchingData final {
   bool bindAlt(unsigned bIndex, unsigned altIndex)
   {
     CALL("MatchingData::bindAlt");
+    ASS_EQ(bIndex, currBLit);
     ASS_NEQ(bIndex, eqLitForDemodulation);
 
     TermList* curBindings=altBindings[bIndex][altIndex];
@@ -448,9 +451,12 @@ struct MatchingData final {
         // => nothing to do (further lines of 'remaining' will be initialized in 'ensureInit')
         break;
       }
-      unsigned remAlts=remaining->get(i,bIndex);
 
-      ASS_NEQ(i, eqLitForDemodulation);
+      // NOTE: i is greater than currBLit at this point, i.e., bases[i] is still unmatched.
+      // So we do not have to check eqLitForDemodulation here either.
+      ASS_G(i, currBLit);
+
+      unsigned remAlts=remaining->get(i,bIndex);
 
       // Do we have some variables in common?
       // If yes, exclude alternatives for bases[i] that conflict with the current variable bindings.
@@ -467,11 +473,15 @@ struct MatchingData final {
       }
       // No compatible alternatives left for bases[i]?
       // If so, return false to skip alternative altIndex for bases[bIndex], because it would lead to a conflict+backtracking later anyways.
-      if(remAlts==0) {
+      // TODO: but not if it can be selected as demodulation equality! => so ideally we should have a mechanism to select later equalities already here?
+      // if (bases[i]->isPositiveEquality() && eqLitForDemodulation > currBLit) { ... can select bases[i] as equality }
+      // however if we find two entries with 0 then we should backtrack.
+      if (remAlts == 0) {
         return false;
       }
       remaining->set(i,bIndex+1,remAlts);
     }
+
     return true;
   }
 
@@ -495,7 +505,6 @@ struct MatchingData final {
       // Because bases[bIndex] does not take part in the substitution, we cannot exclude any alts for the next step,
       // but we still need to initialize the values.
       unsigned remAlts = remaining->get(i, bIndex);
-      ASS_EQ(remAlts, remaining->get(i, bIndex+1));  // This assertion doesn't fire in my test cases, indicating that this function is actually unnecessary. TODO: figure out why. If it is indeed unnecessary, then we might still want to keep it (but it just checks the assertion in debug mode and does nothing in release mode).
       remaining->set(i, bIndex + 1, remAlts);
 
       ASS_G(remAlts, 0);  // otherwise, the branch should have been cut off in an earlier step
@@ -555,6 +564,9 @@ struct MatchingData final {
       // Compute the number of remaining alts for the current branch of the backtracking search
       unsigned remAlts=0;
       for(unsigned pbi=0;pbi<bIndex;pbi++) { //pbi ~ previous base index
+        if (pbi != 0) {
+          ASS_EQ(remAlts, remaining->get(bIndex, pbi));
+        }
         remAlts=remaining->get(bIndex, pbi);
         // If pbi == eqLitForDemodulation, then bases[pbi] is not relevant to the current substitution (also, nextAlts[pbi] is invalid so the code doesn't make sense anyways).
         // If bases[pbi] and bases[bIndex] have no variables in common, then compatible will never return false and we can skip the checks.
@@ -573,9 +585,30 @@ struct MatchingData final {
       }  // for (pbi)
 
       if(bIndex>0 && remAlts==0) {
-        return MUST_BACKTRACK;
+        // TODO: not necessarily backtrack! what if we want to select this literal as equality for demodulation?
+        // TODO: need to backtrack multiple times
+
+        // Backtrack
+        // Might have to backtrack multiple levels, // e.g. if 'remaining' looks like this:
+        //  2
+        //  6 2
+        //  6 6 2
+        //  6 2 2 1
+        //  2 2 2 1 1
+        //  2 2 0 0 0 0   <- this is the new line initialized by this function
+        //    ^     ^
+        //    |     normal one-level backtracking would end up here
+        //    should go here
+        ASS_EQ(currBLit, bIndex);
+        while (remaining->get(bIndex, currBLit) == 0) {
+          --currBLit;
+        }
+
+        // return MUST_BACKTRACK;
+        return OK;
       }
-    } // if (!isInitialized)
+    }  // if (!isInitialized)
+
     return OK;
   }  // ensureInit
 
@@ -811,6 +844,10 @@ bool MLMatcher2::Impl::nextMatch()
   // The same holds for eqLitForDemodulation.
 
   while (true) {
+#if MLMATCHER2_DEBUG_OUTPUT
+    std::cerr << "Begin: currBLit = " << md->currBLit << ", which is: " << md->bases[md->currBLit]->toString() << std::endl;
+#endif
+
     // Ensure data structures for current base literal.
     // This includes:
     // - variable bindings from base to each alternative
