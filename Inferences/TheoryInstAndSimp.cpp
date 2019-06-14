@@ -637,7 +637,7 @@ VirtualIterator<Solution>  minimizeSolution(Stack<Literal*>& theoryLiterals, boo
                                             //DHMap<unsigned,unsigned > srtMap
                                             ) {
   static SAT2FO naming;
-  static Z3Interfacing solver(*env.options,naming,true);
+  static  Z3Interfacing solver(*env.options,naming,true);
   solver.reset(); // the solver will reset naming
 
   Stack<Literal*>::Iterator it(theoryLiterals);
@@ -792,6 +792,9 @@ VirtualIterator<Solution>  minimizeSolution(Stack<Literal*>& theoryLiterals, boo
     break;
   case SATSolver::Status::UNKNOWN:
     cerr << "SMT solver reports unknown when minimizing model!" << endl;
+#if VDEBUG
+    cerr << "Sticking with" << sol.subst.toString() << endl;
+#endif
     break;
   case SATSolver::Status::SATISFIABLE:
     cerr << "Input problem for instantiation minimization is always unsat, but solver reports sat!" << endl;

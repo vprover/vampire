@@ -136,6 +136,9 @@ public:
   void reset(){
     sat2fo.reset();
     _solver.reset();
+    _mergeAssumptions.reset();
+    _mergeAssumptionSorts.reset();
+    _mergeAssumptionsLookup.reset();
     _status = UNKNOWN; // I set it to unknown as I do not reset
   }
 private:

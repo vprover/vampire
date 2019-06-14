@@ -132,6 +132,7 @@ SATSolver::Status Z3Interfacing::solve(unsigned conflictCountLimit)
       _status = SATISFIABLE;
       _model = _solver.get_model();
 #if DPRINT
+      cout << "assertions: " << _solver.assertions() << endl;
       cout << "model : " << endl;
       for(unsigned i=0; i < _model.size(); i++){
         z3::func_decl v = _model[i];
@@ -406,6 +407,7 @@ Term* Z3Interfacing::representArray(z3::expr& assignment)
   TermList *args = NULL;  //for storing the argument array
   TermList arg;   //for storing the current arg when converting multiple values
   Term *term = NULL;      //intermediate term
+  unsigned msort;          //if term is $merge, its return sort
 
   while(z3subterms.isNonEmpty()) {
     z3::expr* el = z3subterms.pop();
@@ -486,6 +488,11 @@ Term* Z3Interfacing::representArray(z3::expr& assignment)
         std::cerr << "Creating term for array function " << el->decl() << std::endl;
         std::cerr << "Pattern is " << matchIteEquals(*el) << std::endl;
 #endif
+        vstring fname(el->decl().name().str().c_str());
+        if (_mergeAssumptionsLookup.find(fname, msort)) {
+          cerr << "reconstructing merge op!" << endl;
+        }
+        
         switch (el->decl().decl_kind()) {
         case Z3_OP_STORE:
 #if DPRINT
@@ -838,7 +845,6 @@ z3::expr Z3Interfacing::getz3expr(Term* trm,bool isLit,bool&nameExpression, bool
             // for different sorts). the z3 term is only a faithful
             // representation of the vampire term for models that fulfill the
             // axioms of mergeS.
-            cerr << "don't know how to handle merge" << endl; //TODO: add merge interpretation
             unsigned mergeArraySort = SortHelper::getResultSort(trm);
             z3::func_decl merge = addArrayMergeAxiom(mergeArraySort);
             z3::expr_vector margs(_context);
@@ -1337,6 +1343,7 @@ z3::func_decl Z3Interfacing::addArrayMergeAxiom(unsigned vsort) {
 
   //skip if we already added the axiom
   if (_mergeAssumptionSorts.find(vsort)) {
+    cerr << "already added merge axiom!" << endl;
     return fmerge;
   }
   _mergeAssumptionSorts.insert(vsort);
@@ -1368,7 +1375,8 @@ z3::func_decl Z3Interfacing::addArrayMergeAxiom(unsigned vsort) {
   // add to axioms
   _mergeAssumptions.push(closed_axiom); //TODO: decide if we need them seperately, shouldn't be too expensive though
 #if DPRINT
-  cerr << "[Z3] adding axiom: " << closed_axiom << endl;
+  cerr << "[Z3] adding merge axiom: " << closed_axiom << endl;
+  cerr << "merge.is_app()=" << merge.is_app() << " merge.is_array()=" << merge.is_array() << endl;
 #endif
   _solver.add(closed_axiom);
   return fmerge;
