@@ -694,7 +694,6 @@ void MLMatcher::Impl::getBindings(v_unordered_map<unsigned, TermList>& outBindin
   ASS(outBindings.empty());
 
   for (unsigned bi = 0; bi < md->len; ++bi) {
-    Literal* b = md->bases[bi];
     unsigned alti = md->nextAlts[bi] - 1;
     for (unsigned vi = 0; vi < md->varCnts[bi]; ++vi) {
       // md->altBindings[bi][alti] contains bindings for the variables in b, ordered by the variable index.
