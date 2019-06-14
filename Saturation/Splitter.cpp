@@ -938,14 +938,6 @@ bool Splitter::handleNonSplittable(Clause* cl)
 
     compCl->invalidateMyReductionRecords();
     _sa->addNewClause(compCl);
-    if ((_deleteDeactivated != Options::SplittingDeleteDeactivated::ON) &&
-            !nameRec.children.find(compCl)) {
-      // corner case within a corner case:
-      // the compCl was already shown unconditionally redundant,
-      // but now we must must put it back (TODO: do we really?)
-      // so we must also keep track of it
-      nameRec.children.push(compCl);
-    }
   }
 
   SplitSet* sset = cl->splits();
@@ -1439,8 +1431,10 @@ void Splitter::onClauseReduction(Clause* cl, ClauseIterator premises, Clause* re
   if(diff->isEmpty()) {
     // unconditionally reduced
     if (_deleteDeactivated != Options::SplittingDeleteDeactivated::ON) {
-      if (!cl->isComponent() || _deleteDeactivated == Options::SplittingDeleteDeactivated::OFF) {
-        // if it is a component we must keep it, unless we plan to reintroduce all
+      if (!cl->isComponent()) {
+        // a component always needs to stay in children (whenever _deleteDeactivated != Options::SplittingDeleteDeactivated::ON),
+        // since it might be needed later as a proxy for the very clause which is (unconditionally) reducing it here!
+        // (see also the special case in handleNonsplittable)
 
         // let others know not to keep the clause in children
         cl->setNumActiveSplits(NOT_WORTH_REINTRODUCING);

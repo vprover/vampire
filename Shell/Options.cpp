@@ -1718,6 +1718,7 @@ void Options::Options::init()
     _termOrdering.description="The term ordering used by Vampire to orient equations and order literals";
     _termOrdering.tag(OptionTag::SATURATION);
     _lookup.insert(&_termOrdering);
+
     _symbolPrecedence = ChoiceOptionValue<SymbolPrecedence>("symbol_precedence","sp",SymbolPrecedence::ARITY,
                                                             {"arity","occurrence","reverse_arity","scramble",
                                                              "frequency","reverse_frequency",

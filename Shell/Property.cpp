@@ -485,6 +485,13 @@ void Property::scanSort(unsigned sort)
 
   if(sort >= Sorts::FIRST_USER_SORT){
     if(env.sorts->isOfStructuredSort(sort,Sorts::StructuredSort::ARRAY)){
+      // an array sort is infinite, if the index or value sort is infinite
+      // we rely on the recursive calls setting appropriate flags
+      unsigned idx = env.sorts->getArraySort(sort)->getIndexSort();
+      scanSort(idx);
+      unsigned inner = env.sorts->getArraySort(sort)->getInnerSort();
+      scanSort(inner);
+
       addProp(PR_HAS_ARRAYS);
     }
     if (env.signature->isTermAlgebraSort(sort)) {

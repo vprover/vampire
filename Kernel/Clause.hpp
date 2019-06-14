@@ -161,11 +161,6 @@ public:
     notifyLiteralReorder();
   }
 
-  /** Return whether this clause is in the active index **/
-  bool in_active() const {return _in_active;}
-  /** Set _in_active to false if true and vice versa **/
-  void toggle_in_active() {_in_active=!_in_active;}
-
   /** Return the weight */
   unsigned weight() const
   {
@@ -376,8 +371,6 @@ protected:
   mutable unsigned _weight;
   /** storage class */
   Store _store;
-  /** in active index **/
-  bool _in_active;
   /** number of references to this clause */
   unsigned _refCnt;
   /** for splitting: timestamp marking when has the clause been reduced or restored by splitting */
