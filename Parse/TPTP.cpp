@@ -342,7 +342,7 @@ vstring TPTP::toString(Tag tag)
     return "~&";
   case T_SEQUENT:
     return "-->";
-  case T_THF_QUANT_ALL:
+  case T_TYPE_QUANT:
     return "!>";
   case T_THF_QUANT_SOME:
     return "?*";
@@ -584,7 +584,7 @@ bool TPTP::readToken(Token& tok)
       return true;
     }
     if (getChar(1) == '>') {
-      tok.tag = T_THF_QUANT_ALL;
+      tok.tag = T_TYPE_QUANT;
       resetChars();
       return true;
     }
@@ -987,7 +987,7 @@ void TPTP::readString(Token& tok)
     if (c == '\\') { // escape
       c = getChar(++n);
       if (!c) {
-	PARSE_ERROR("non-terminated string",_gpos);
+        PARSE_ERROR("non-terminated string",_gpos);
       }
       continue;
     }
@@ -1015,7 +1015,7 @@ void TPTP::readAtom(Token& tok)
     if (c == '\\') { // escape
       c = getChar(++n);
       if (!c) {
-	PARSE_ERROR("non-terminated quoted atom",_gpos);
+        PARSE_ERROR("non-terminated quoted atom",_gpos);
       }
       continue;
     }
@@ -1087,8 +1087,8 @@ TPTP::Tag TPTP::readNumber(Token& tok)
       }
       c = getChar(pos);
       if (c == 'e' || c == 'E') {
-	c = getChar(pos+1);
-	pos = decimal((c == '+' || c == '-') ? pos+2 : pos+1);
+        c = getChar(pos+1);
+        pos = decimal((c == '+' || c == '-') ? pos+2 : pos+1);
       }
       tok.content.assign(_chars.content(),pos);
       shiftChars(pos);
@@ -1358,9 +1358,12 @@ void TPTP::tff()
   vstring tp = name();
   if (tp == "type") {
     // Read a TPTP type declaration. These declarations are ambiguous: they can
-    // either be new type declarations, as in tff(1,type,(t: $ttype)) or sort
-    // declarations: tff(2,type,(c:t)). What exactly they represent will be known
-    // when $ttype is expected.
+    // either be type constructor declarations such as:
+    // list : $ttype -> $ttype
+    // for which we are only interested in the arity, or function symbol
+    // declarations such as:
+    // f : !>[X : $ttype] : (list(X) * X) -> int
+    // for which we are interested in turning the type to a term
     consumeToken(T_COMMA);
     // TPTP syntax allows for an arbitrary number of parentheses around a type
     // declaration
@@ -1368,7 +1371,7 @@ void TPTP::tff()
     for (;;) {
       tok = getTok(0);
       if (tok.tag != T_LPAR) {
-	break;
+        break;
       }
       lpars++;
       resetToks();
@@ -1376,16 +1379,25 @@ void TPTP::tff()
     vstring nm = name();
     consumeToken(T_COLON);
     tok = getTok(0);
+    if(tok.tag == T_LPAR){
+      addTagState(T_RPAR);
+      resetToks();
+      tok = getTok(0);
+    }
     if (tok.tag == T_TTYPE) {
       // now we know that this is a new type declaration
       bool added;
-      env.sorts->addSort(nm,added,false);
+      unsigned arity = getArity();
+      env.signature->addFunction(nm,arity,added);
       if (!added) {
-	PARSE_ERROR("Sort name must be unique",tok);
+        PARSE_ERROR("Type constructor name must be unique",tok);
       }
       resetToks();
+      _states.pop();
+      consumeToken(T_ARROW);
+      consumeToken(T_TTYPE);
       while (lpars--) {
-	consumeToken(T_RPAR);
+        consumeToken(T_RPAR);
       }
       consumeToken(T_RPAR);
       consumeToken(T_DOT);
@@ -1443,6 +1455,28 @@ void TPTP::tff()
   _states.push(END_FOF);
   _states.push(FORMULA);
 } // tff()
+
+/**
+ * Returns the arity of a type constructor
+ * @since 07/06/2019 Manchester
+ */
+unsigned TPTP::getArity()
+{
+  CALL("TPTP::name");
+  unsigned arity = 0;
+  Token& tok = getTok(0);
+  while (tok.tag != T_RPAR) {
+    if(tok.tag == T_TTYPE){
+      arity++;
+    }else if(tok.tag == T_STAR){
+    }else{
+      PARSE_ERROR("unexpected token in type constructor definition",tok);
+    }
+    resetToks();
+    tok = getTok(0);
+  }
+  return arity;
+} // name
 
 /**
  * Process the end of the $ite expression
@@ -2284,16 +2318,16 @@ void TPTP::endArgs()
  * Bind a variable to a sort
  * @since 22/04/2011 Manchester
  */
-void TPTP::bindVariable(int var,unsigned sortNumber)
+void TPTP::bindVariable(int var,Term* sort)
 {
   CALL("TPTP::bindVariable");
 
   SortList* definitions;
   if (_variableSorts.find(var,definitions)) {
-    _variableSorts.replace(var,new SortList(sortNumber,definitions));
+    _variableSorts.replace(var,new SortList(sort,definitions));
   }
   else {
-    _variableSorts.insert(var,new SortList(sortNumber));
+    _variableSorts.insert(var,new SortList(sort));
   }
 } // bindVariable
 
@@ -2323,36 +2357,36 @@ void TPTP::varList()
     switch (tok.tag) {
     case T_COLON: // v: type
       if (sortDeclared) {
-	PARSE_ERROR("two declarations of variable sort",tok);
+        PARSE_ERROR("two declarations of variable sort",tok);
       }
       resetToks();
-      bindVariable(var,readSort());
+      bindVariable(var,readTerm());
       sortDeclared = true;
       goto afterVar;
 
     case T_COMMA:
       if (!sortDeclared) {
-	bindVariable(var,Sorts::SRT_DEFAULT);
+        bindVariable(var,Term::DEFAULT);
       }
       resetToks();
       break;
 
     default:
       {
-	if (!sortDeclared) {
-	  bindVariable(var,Sorts::SRT_DEFAULT);
-	}
-	Formula::VarList* vs = Formula::VarList::empty();
+        if (!sortDeclared) {
+          bindVariable(var,Term::DEFAULT);
+        }
+        Formula::VarList* vs = Formula::VarList::empty();
         Formula::SortList* ss = Formula::SortList::empty();
-	while (!vars.isEmpty()) {
+        while (!vars.isEmpty()) {
           int v = vars.pop();
-	  vs = new Formula::VarList(v,vs);
+          vs = new Formula::VarList(v,vs);
           ss = new Formula::SortList(sortOf(TermList(v,false)),ss);
-	}
-	_varLists.push(vs);
+        }
+        _varLists.push(vs);
         _sortLists.push(ss);
-	_bindLists.push(vs);
-	return;
+        _bindLists.push(vs);
+        return;
       }
     }
   }
@@ -2591,7 +2625,7 @@ void TPTP::midEquality()
 Literal* TPTP::createEquality(bool polarity,TermList& lhs,TermList& rhs)
 {
   TermList masterVar;
-  unsigned sortNumber;
+  Term* sort;
   if (!SortHelper::getResultSortOrMasterVariable(lhs, sortNumber, masterVar)) {
     // Master variable is a variable whose sort determines the sort of a term.
     // If term is a variable, the master variable is the variable itself. The
@@ -2599,13 +2633,14 @@ Literal* TPTP::createEquality(bool polarity,TermList& lhs,TermList& rhs)
     // arguments.
     SortList* vs;
     if (_variableSorts.find(masterVar.var(),vs) && vs) {
-      sortNumber = vs->head();
+      sort = vs->head();
     }
     else { // this may happen when free variables appear in the formula (or clause)
-      sortNumber = Sorts::SRT_DEFAULT;
+      sort = Term::DEFAULT;
     }
   }
-
+   
+  //TODO update ltieral structure. Won't compile at the moment
   return Literal::createEquality(polarity,lhs,rhs,sortNumber);
 } // TPTP::createEquality
 
@@ -3232,8 +3267,8 @@ OperatorType* TPTP::constructOperatorType(Type* t)
 {
   CALL("TPTP::constructOperatorType");
 
-  unsigned resultSort;
-  Stack<unsigned> argumentSorts;
+  TermList resultSort;
+  Stack<TermList> argumentSorts;
 
   switch (t->tag()) {
     case TT_PRODUCT:
@@ -3241,7 +3276,7 @@ OperatorType* TPTP::constructOperatorType(Type* t)
 
     case TT_ATOMIC: {
       // atomic types: 0-ary predicates (propositions) and constants (0-ary functions, eg. int constant, array1 constants)
-      resultSort = static_cast<AtomicType*>(t)->sortNumber();
+      resultSort = static_cast<AtomicType*>(t)->sort();
       break;
     }
 
@@ -3253,7 +3288,7 @@ OperatorType* TPTP::constructOperatorType(Type* t)
         USER_ERROR("complex return types are not supported");
       }
 
-      resultSort = static_cast<AtomicType *>(rhs)->sortNumber();
+      resultSort = static_cast<AtomicType*>(rhs)->sort();
       Stack<Type*> types;
       types.push(at->argumentType());
       while (!types.isEmpty()) {
@@ -3263,8 +3298,8 @@ OperatorType* TPTP::constructOperatorType(Type* t)
             USER_ERROR("higher-order types are not supported");
 
           case TT_ATOMIC: {
-            unsigned sortNumber = static_cast<AtomicType*>(tp)->sortNumber();
-            argumentSorts.push(sortNumber);
+            TermList sort = static_cast<AtomicType*>(tp)->sort();
+            argumentSorts.push(sort);
             break;
           }
 
@@ -3284,18 +3319,27 @@ OperatorType* TPTP::constructOperatorType(Type* t)
       break;
     }
 
+    case TT_QUANTIFIED: {
+      QuantifiedType* qt = static_cast<QuantifiedType*>(t)
+      VarList* quantifiedVars = _varLists.pop();
+      OperatorType* ot = constructOperatorType(qt->qtype());
+      ot->addQuantifiedVars(quantifiedVars);
+      return ot;
+      //TODO check that all free variables in ot are from quantifiedVars
+    }
+
 #if VDEBUG
     default:
       ASSERTION_VIOLATION;
 #endif
   }
 
-  bool isPredicate = resultSort == Sorts::SRT_BOOL;
+  bool isPredicate = resultSort == TermList(Term::BOOLN);
   unsigned arity = (unsigned)argumentSorts.size();
   if (isPredicate) {
-    return OperatorType::getPredicateType(arity, argumentSorts.begin());
+    return OperatorType::getPredicateType(arity, argumentSorts.begin(), VarList::empty());
   } else {
-    return OperatorType::getFunctionType(arity, argumentSorts.begin(), resultSort);
+    return OperatorType::getFunctionType(arity, argumentSorts.begin(), resultSort, VarList::empty());
   }
 } // constructOperatorType
 
@@ -3561,7 +3605,19 @@ void TPTP::simpleType()
     _states.push(TYPE);
     return;
   }
-  _types.push(new AtomicType(readSort()));
+
+  if(tok.tag == T_TYPE_QUANT) {
+    resetToks();
+    _typeTags.push(TT_QUANTIFIED);
+    consumeToken(T_LBRA);
+    _states.push(UNBIND_VARIABLES);
+    _states.push(TYPE);
+    addTagState(T_COLON);
+    addTagState(T_RBRA);
+    _states.push(VAR_LIST);
+    return;
+  }
+  _types.push(new AtomicType(readTerm()));
 } // simpleType
 
 /**
@@ -3570,7 +3626,7 @@ void TPTP::simpleType()
  * declared and newSortExpected is false.
  * @since 14/07/2011 Manchester
  */
-unsigned TPTP::readSort()
+TermList TPTP::readTerm()
 {
   CALL("TPTP::readSort");
 
@@ -3579,30 +3635,44 @@ unsigned TPTP::readSort()
   switch (tok.tag) {
   case T_NAME:
     {
-      bool added;
-      unsigned sortNumber = env.sorts->addSort(tok.content,added,false);
-      if (added) {
-      	PARSE_ERROR("undeclared sort",tok);
+      unsigned arity = 0;
+      vstring fname = tok.content;
+      int c = getChar(0);
+      if(c == "("){
+        consumeToken(T_LPAR);
       }
-      return sortNumber;
+      for(;;){
+        arity++;
+        _termLists.push(readTerm());
+        tok = getTok(0);
+        if(tok.tag == T_COMMA){
+          consumeToken(T_COMMA);
+        } else{
+          break;
+        }
+      }
+      return createFunctionApplication(fname, arity);
     }
 
   case T_DEFAULT_TYPE:
-    return Sorts::SRT_DEFAULT;
+    return Term::DEFAULT;
 
   case T_BOOL_TYPE:
-    return Sorts::SRT_BOOL;
+    return Term::BOOLN;
 
   case T_INTEGER_TYPE:
-    return Sorts::SRT_INTEGER;
+    return Term::INTEGER;
 
   case T_RATIONAL_TYPE:
-    return Sorts::SRT_RATIONAL;
+    return Term::RATIONAL;
 
   case T_REAL_TYPE:
-    return Sorts::SRT_REAL;
+    return STerm::REAL;
 
-  case T_LBRA:
+  case T_TTYPE:
+    return sorts::SRT_SUPER;
+
+ /* case T_LBRA:
   {
     Stack<unsigned> sorts;
     for (;;) {
@@ -3638,7 +3708,7 @@ unsigned TPTP::readSort()
     }
     consumeToken(T_RPAR);
     return sort;
-  }
+  }*/
   default:
     PARSE_ERROR("sort expected",tok);
   }
@@ -4004,7 +4074,7 @@ unsigned TPTP::addOverloadedPredicate(vstring name,int arity,int symbolArity,boo
  * @since 03/05/2013 train Manchester-London bug fix
  * @author Andrei Voronkov
  */
-unsigned TPTP::sortOf(TermList t)
+TermList TPTP::sortOf(TermList t)
 {
   CALL("TPTP::sortOf");
 
@@ -4012,16 +4082,17 @@ unsigned TPTP::sortOf(TermList t)
     if (t.isVar()) {
       SortList* sorts;
       if (_variableSorts.find(t.var(),sorts) && SortList::isNonEmpty(sorts)) {
-	return sorts->head();
+        return sorts->head();
       }
       // there might be variables whose sort is undeclared,
       // in this case they have the default sort
-      bindVariable(t.var(),Sorts::SRT_DEFAULT);
-      return Sorts::SRT_DEFAULT;
+      TermList def = TermList(Term::DEFAULT);
+      bindVariable(t.var(), def);
+      return def;
     }
-    unsigned sort;
+    TermList sort;
     TermList mvar;
-    if (SortHelper::getResultSortOrMasterVariable(t.term(), sort, mvar)) {
+    if (SortHelper::getResultSortOrMasterVariable(t.term(), sort, mvar)) { //TODO update
       return sort;
     } else {
       t = mvar;

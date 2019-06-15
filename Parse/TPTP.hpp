@@ -136,7 +136,7 @@ public:
     /** sequent */
     T_SEQUENT,
     /** !> */
-    T_THF_QUANT_ALL,
+    T_TYPE_QUANT,
     /** ?* */
     T_THF_QUANT_SOME,
     /** some THF quantifier */
@@ -324,7 +324,8 @@ private:
   enum TypeTag {
     TT_ATOMIC,
     TT_PRODUCT,
-    TT_ARROW
+    TT_ARROW,
+    TT_QUANTIFIED
   };
 
   /**
@@ -351,14 +352,14 @@ private:
   public:
     CLASS_NAME(AtomicType);
     USE_ALLOCATOR(AtomicType);
-    explicit AtomicType(unsigned sortNumber)
-      : Type(TT_ATOMIC), _sortNumber(sortNumber)
+    explicit AtomicType(TermList sort)
+      : Type(TT_ATOMIC), _sort(sort)
     {}
     /** return the sort number */
-    unsigned sortNumber() const {return _sortNumber;}
+    unsigned sort() const {return _sort;}
   private:
     /** the sort identified by its number in the signature */
-    unsigned _sortNumber;
+    TermList _sort;
   }; // AtomicType
 
   /** Arrow type */
@@ -404,6 +405,28 @@ private:
     Type* _lhs;
     /** the return type */
     Type* _rhs;
+  }; // ProductType
+
+  /**
+   */
+  class QuantifiedType
+    : public Type
+  {
+  public:
+    CLASS_NAME(QuantifiedType);
+    USE_ALLOCATOR(QuantifiedType);
+    ProductType(Type* t, VarList* vars)
+      : Type(TT_QUANTIFIED), _type(t), _vars(vars)
+    {}
+    /** the bound type variables */
+    VarList* vars() const {return _vars;}
+    /** the right hand side type */
+    Type* qtype() const {return _type;}
+  private:
+    /** the quantiefied typed */
+    Type* _type;
+    /** bound type variables */
+    VarList* _vars;
   }; // ProductType
 
   /**
@@ -571,7 +594,7 @@ private:
   Stack<Type*> _types;
   /** various type tags saved during parsing */
   Stack<TypeTag> _typeTags;
-  typedef List<unsigned> SortList;
+  typedef List<TermList> SortList;
   /**  */
   Stack<TheoryFunction> _theoryFunctions;
   /** bindings of variables to sorts */
@@ -713,6 +736,7 @@ private:
   void vampire();
   void consumeToken(Tag);
   vstring name();
+  unsigned getArity();
   void formula();
   void funApp();
   void simpleFormula();
@@ -752,7 +776,7 @@ private:
   void endTuple();
   void addTagState(Tag);
 
-  unsigned readSort();
+  TermList readTerm();
   void bindVariable(int var,unsigned sortNumber);
   void unbindVariables();
   void skipToRPAR();
