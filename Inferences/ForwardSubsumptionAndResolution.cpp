@@ -250,9 +250,10 @@ bool ForwardSubsumptionAndResolution::perform(Clause* cl, Clause*& replacement, 
 {
   CALL("ForwardSubsumptionAndResolution::perform");
 
-  Clause* thePremise;
-  replacement = 0;
+  Clause* thePremise = 0;
+  ASS_EQ(replacement,0);
   if (_impl.genericPerform(cl,replacement,thePremise, TC_FORWARD_SUBSUMPTION, TC_FORWARD_SUBSUMPTION_RESOLUTION)) {
+    ASS_NEQ(thePremise,0);
     premises = pvi( getSingletonIterator(thePremise));
     if (replacement) {
       env.statistics->forwardSubsumptionResolution++;
