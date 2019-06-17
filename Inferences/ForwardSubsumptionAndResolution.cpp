@@ -423,6 +423,8 @@ bool ForwardSubsumptionAndResolutionImplementation::genericPerform(Clause* cl,
       }
     }
   }
+
+  return false;
 }
 
 }
