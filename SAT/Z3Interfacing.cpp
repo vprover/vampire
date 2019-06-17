@@ -23,7 +23,7 @@
 
 #if VZ3
 
-#define DPRINT 1
+#define DPRINT 0
 
 #include "Forwards.hpp"
 
@@ -490,7 +490,21 @@ Term* Z3Interfacing::representArray(z3::expr& assignment)
 #endif
         vstring fname(el->decl().name().str().c_str());
         if (_mergeAssumptionsLookup.find(fname, msort)) {
+#if DPRINT
           cerr << "reconstructing merge op!" << endl;
+#endif
+          unsigned arraySort = current_arr_sort.top();
+          ASS_EQ(arraySort,msort);
+          unsigned f_store = env.signature->getInterpretingSymbol(Theory::ARRAY_MERGE,Theory::getArrayOperatorType(arraySort,Theory::ARRAY_MERGE));
+        
+          args = new TermList[3];
+          // order on stack is: else branch, if branch, index
+          args[0] = TermList(subterms.pop());
+          args[2] = TermList(subterms.pop());
+          args[1] = TermList(subterms.pop());
+          Term* t = Term::create(f_store, 3, args);
+          subterms.push(t);
+          continue; // invariant: nothing else happens past the push for the other cases
         }
         
         switch (el->decl().decl_kind()) {
@@ -1343,11 +1357,12 @@ z3::func_decl Z3Interfacing::addArrayMergeAxiom(unsigned vsort) {
 
   //skip if we already added the axiom
   if (_mergeAssumptionSorts.find(vsort)) {
-    cerr << "already added merge axiom!" << endl;
     return fmerge;
   }
+  // update book-keeping
   _mergeAssumptionSorts.insert(vsort);
-
+  vstring vname(ss.str().c_str());
+  _mergeAssumptionsLookup.insert(vname, vsort);
 
   //prepare axiom formula
   z3::expr i = _context.constant("i", z3_domain_srt);
