@@ -41,17 +41,17 @@ using namespace Kernel;
  * Return the type of a term or a literal @c t
  * @author Ahmed Bhayat
  */
-void SortHelper::getTypeSub(Term* t, Substitution& subst)
+void SortHelper::getTypeSub(const Term* t, Substitution& subst)
 {
   CALL("SortHelper::getTypeSub(Term*)");
   
   TermList* typeArg;
-  Signature::Symbol* sym = env.signature->getFunction(t->functor())
+  Signature::Symbol* sym = env.signature->getFunction(t->functor());
   OperatorType* ot       = sym->fnType();
   List<unsigned>* vars   = ot->quantifiedVars();
-  unsigned typeArgsArity = ot->typeArgsArity;
+  unsigned typeArgsArity = ot->typeArgsArity();
   
-  typeArg = t->args();
+  typeArg = const_cast<TermList*>(t->args());
   for(unsigned i = 0; i < typeArgsArity; i++){
     unsigned var = vars->head();
     vars = vars->tail();
@@ -175,7 +175,7 @@ TermList SortHelper::getArgSort(Term* t, unsigned argIndex)
   }
 
   Substitution subst;
-  OperatorType* ot = env.signature->getFunction(t->functor())>fnType();
+  OperatorType* ot = env.signature->getFunction(t->functor())->fnType();
 
   if(argIndex < ot->typeArgsArity()){
     return TermList(Term::SUPER);
@@ -461,8 +461,8 @@ void SortHelper::collectVariableSortsIter(CollectTask task, DHMap<unsigned,TermL
             case BOOL_TERM: {
               TermList ts = sf->getBooleanTerm();
               if (ts.isVar()) {
-                if (!map.insert(ts.var(), TermList(Term::BOOL))) {
-                  ASS_EQ(TermList(Term::BOOL), map.get(ts.var()));
+                if (!map.insert(ts.var(), TermList(Term::BOOLN))) {
+                  ASS_EQ(TermList(Term::BOOLN), map.get(ts.var()));
                 }
               } /*else {
                 ASS(ts.isTerm() && ts.term()->isSpecial());
@@ -626,8 +626,8 @@ void SortHelper::collectVariableSorts(TermList ts, TermList contextSort, DHMap<u
   while (tit.hasNext()) {
     collectVariableSorts(*tit.next(), contextSort, map);
   }
-  */
-} // SortHelper::collectVariableSortsSpecialTerm
+  
+} */// SortHelper::collectVariableSortsSpecialTerm
 
 /**
  * Insert variable sorts from @c f into @c map. If a variable
@@ -753,12 +753,12 @@ bool SortHelper::areImmediateSortsValid(Term* t)
 
   if (t->isLiteral() && static_cast<Literal*>(t)->isEquality()) {
     Literal* lit = static_cast<Literal*>(t);
-    unsigned eqSrt = getEqualityArgumentSort(lit);
+    TermList eqSrt = getEqualityArgumentSort(lit);
     for (unsigned i=0; i<2; i++) {
       TermList arg = *t->nthArgument(i);
       if (!arg.isTerm()) { continue; }
       Term* ta = arg.term();
-      unsigned argSort = getResultSort(ta);
+      TermList argSort = getResultSort(ta);
       if (eqSrt != argSort) {
         return false;
       }
@@ -766,14 +766,14 @@ bool SortHelper::areImmediateSortsValid(Term* t)
     return true;
   }
 
-  OperatorType& type = env.signature->getFunction(t->functor())->fnType();
+  OperatorType* type = env.signature->getFunction(t->functor())->fnType();
   unsigned arity = t->arity();
-  for (unsigned i=type->typeArgsArity; i<arity; i++) {
+  for (unsigned i=type->typeArgsArity(); i<arity; i++) {
     TermList arg = *t->nthArgument(i);
     if (!arg.isTerm()) { continue; }
     Term* ta = arg.term();
     TermList argSort = getResultSort(ta);
-    if (type.arg(i) != argSort) {
+    if (type->arg(i) != argSort) { //TODO problem here?
       //cout << "error with expected " << type.arg(i) << " and actual " << argSort << " when functor is " << t->functor() << " and arg is " << arg << endl;
       return false;
     }

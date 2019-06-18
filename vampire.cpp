@@ -93,7 +93,7 @@
 #include "SAT/TWLSolver.hpp"
 #include "SAT/Preprocess.hpp"
 
-#include "FMB/ModelCheck.hpp"
+//#include "FMB/ModelCheck.hpp"
 
 #if GNUMP
 #include "Solving/Solver.hpp"
@@ -228,10 +228,10 @@ void profileMode()
   ScopedPtr<Problem> prb(UIHelper::getInputProblem(*env.options));
 
   Property* property = prb->getProperty();
-  TheoryFinder tf(prb->units(), property);
+  //TheoryFinder tf(prb->units(), property);
   // this doesn't do anything
   Shell::Preprocess prepro(*env.options);
-  tf.search();
+  //tf.search();
 
   env.beginOutput();
   env.out() << property->categoryString() << ' ' << property->props() << ' '
@@ -482,7 +482,7 @@ void preprocessMode(bool theory)
  * @author Giles
  * @since 6/10/2015
  */
-void modelCheckMode()
+/*void modelCheckMode()
 {
   CALL("modelCheckMode");
 
@@ -491,7 +491,7 @@ void modelCheckMode()
 
   FMB::ModelCheck::doCheck(prb);
 
-} // modelCheckMode
+} */// modelCheckMode
 
 
 /**
@@ -744,9 +744,9 @@ void axiomSelectionMode()
 
   ScopedPtr<Problem> prb(UIHelper::getInputProblem(*env.options));
 
-  if (prb->hasFOOL()) {
+  /*if (prb->hasFOOL()) {
     FOOLElimination().apply(*prb);
-  }
+  }*/
 
   // reorder units
   if (env.options->normalize()) {
@@ -964,9 +964,9 @@ int main(int argc, char* argv[])
       vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
       break;
     }
-    case Options::Mode::MODEL_CHECK:
+   /* case Options::Mode::MODEL_CHECK:
       modelCheckMode();
-      break;
+      break; */
 
     case Options::Mode::CLAUSIFY:
       clausifyMode(false);

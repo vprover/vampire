@@ -482,10 +482,10 @@ SATSolver::Status SplittingBranchSelector::processDPConflicts()
     static LiteralStack model;
     model.reset();
 
-    _dpModel->reset();
-    _dpModel->addLiterals(pvi( LiteralStack::ConstIterator(gndAssignment) ),true /*only equalities now*/);
+    /*_dpModel->reset();
+    _dpModel->addLiterals(pvi( LiteralStack::ConstIterator(gndAssignment) ),true /*only equalities now*//*);
     ALWAYS(_dpModel->getStatus(false) == DecisionProcedure::SATISFIABLE);
-    _dpModel->getModel(model);
+    _dpModel->getModel(model);*/
 
     // RSTAT_MCTR_INC("ssat_dp_model_size",model.size());
 

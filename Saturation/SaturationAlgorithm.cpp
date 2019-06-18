@@ -116,7 +116,7 @@ SaturationAlgorithm::SaturationAlgorithm(Problem& prb, const Options& opt)
     _limits(opt),
     _clauseActivationInProgress(false),
     _fwSimplifiers(0), _bwSimplifiers(0), _splitter(0),
-    _consFinder(0), _labelFinder(0), _symEl(0), _answerLiteralManager(0),
+    _consFinder(0), _labelFinder(0), _symEl(0),/* _answerLiteralManager(0),*/
     _instantiation(0),
 #if VZ3
     _theoryInstSimp(0),
@@ -224,9 +224,9 @@ void SaturationAlgorithm::tryUpdateFinalClauseCount()
   }
   env.statistics->finalActiveClauses = inst->_active->size();
   env.statistics->finalPassiveClauses = inst->_passive->size();
-  if (inst->_extensionality != 0) {
+  /*if (inst->_extensionality != 0) {
     env.statistics->finalExtensionalityClauses = inst->_extensionality->size();
-  }
+  }*/ //TODO fix extensionality resolution
 }
 
 /**
@@ -388,9 +388,9 @@ void SaturationAlgorithm::onNewClause(Clause* cl)
     onNewUsefulPropositionalClause(cl);
   }
 
-  if (_answerLiteralManager) {
+ /* if (_answerLiteralManager) {
     _answerLiteralManager->onNewClause(cl);
-  }
+  }*/
 }
 
 void SaturationAlgorithm::onNewUsefulPropositionalClause(Clause* c)
@@ -1461,8 +1461,8 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
   if (opt.showSymbolElimination()) {
     res->_symEl=new SymElOutput();
   }
-  if (opt.questionAnswering()==Options::QuestionAnsweringMode::ANSWER_LITERAL) {
+  /*if (opt.questionAnswering()==Options::QuestionAnsweringMode::ANSWER_LITERAL) {
     res->_answerLiteralManager = AnswerLiteralManager::getInstance();
-  }
+  }*/
   return res;
 } // SaturationAlgorithm::createFromOptions

@@ -51,7 +51,7 @@
 #include "LispLexer.hpp"
 #include "LispParser.hpp"
 #include "Options.hpp"
-#include "SimplifyProver.hpp"
+//#include "SimplifyProver.hpp"
 #include "Statistics.hpp"
 #include "TPTPPrinter.hpp"
 #include "UIHelper.hpp"
@@ -226,14 +226,14 @@ Problem* UIHelper::getInputProblem(const Options& opts)
 
   UnitList* units;
   switch (opts.inputSyntax()) {
-  case Options::InputSyntax::SIMPLIFY:
+  /*case Options::InputSyntax::SIMPLIFY:
   {
     Shell::LispLexer lexer(*input);
     Shell::LispParser parser(lexer);
     LispParser::Expression* expr = parser.parse();
     SimplifyProver simplify;
     units = simplify.units(expr);
-  }
+  }*/
   break;
   case Options::InputSyntax::TPTP:
     {
@@ -589,7 +589,7 @@ void UIHelper::outputSymbolTypeDeclarationIfNeeded(ostream& out, bool function, 
   }
 
   unsigned dummy;
-  if (Theory::tuples()->findProjection(symNumber, !function, dummy)) {
+  /*if (Theory::tuples()->findProjection(symNumber, !function, dummy)) {
     return;
   }
 
@@ -598,7 +598,7 @@ void UIHelper::outputSymbolTypeDeclarationIfNeeded(ostream& out, bool function, 
     if (env.sorts->isOfStructuredSort(sort, Sorts::StructuredSort::TUPLE)) {
       return;
     }
-  }
+  }*/
 
   OperatorType* type = function ? sym->fnType() : sym->predType();
 
@@ -612,22 +612,22 @@ void UIHelper::outputSymbolTypeDeclarationIfNeeded(ostream& out, bool function, 
   unsigned arity = sym->arity();
   if (arity>0) {
     if (arity==1) {
-      out << env.sorts->sortName(type->arg(0));
+      out << (type->arg(0)).toString();
     }
     else {
       out << "(";
       for (unsigned i=0; i<arity; i++) {
-	if (i>0) {
-	  out << " * ";
-	}
-	out << env.sorts->sortName(type->arg(i));
+        if (i>0) {
+          out << " * ";
+        }
+        out << (type->arg(i)).toString();
       }
       out << ")";
     }
     out << " > ";
   }
   if (function) {
-    out << env.sorts->sortName(sym->fnType()->result());
+    out << (sym->fnType()->result()).toString();
   }
   else {
     out << "$o";

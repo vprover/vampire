@@ -54,7 +54,7 @@
 #include "MainLoop.hpp"
 
 using namespace Kernel;
-using namespace InstGen;
+//using namespace InstGen;
 using namespace Saturation;
 using namespace FMB;
 

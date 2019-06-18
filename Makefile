@@ -202,7 +202,6 @@ VK_OBJ= Kernel/Clause.o\
         Kernel/Grounder.o\
         Kernel/Inference.o\
         Kernel/InferenceStore.o\
-#        Kernel/InterpretedLiteralEvaluator.o\
         Kernel/KBO.o\
         Kernel/KBOForEPR.o\
         Kernel/LiteralSelector.o\
@@ -228,9 +227,10 @@ VK_OBJ= Kernel/Clause.o\
         Kernel/Term.o\
         Kernel/TermIterators.o\
         Kernel/TermTransformer.o\
-#        Kernel/Theory.o\
          Kernel/Signature.o\
          Kernel/Unit.o
+#        Kernel/InterpretedLiteralEvaluator.o\
+#        Kernel/Theory.o\
 #        Kernel/MatchTag.o\
 #        Kernel/Assignment.o\     
 #        Kernel/Constraint.o\
@@ -240,8 +240,6 @@ VK_OBJ= Kernel/Clause.o\
     
 
 VI_OBJ = Indexing/ClauseVariantIndex.o\
-#   Indexing/AcyclicityIndex.o\
-#   Indexing/ClauseCodeTree.o\
          Indexing/CodeTree.o\
          Indexing/CodeTreeInterfaces.o\
          Indexing/GroundingIndex.o\
@@ -259,6 +257,8 @@ VI_OBJ = Indexing/ClauseVariantIndex.o\
          Indexing/TermIndex.o\
          Indexing/TermSharing.o\
          Indexing/TermSubstitutionTree.o
+#         Indexing/AcyclicityIndex.o\
+#         Indexing/ClauseCodeTree.o\
 #         Indexing/FormulaIndex.o\         
 
 #VIG_OBJ = InstGen/IGAlgorithm.o\
@@ -271,7 +271,6 @@ VINF_OBJ=Inferences/BackwardDemodulation.o\
          Inferences/DistinctEqualitySimplifier.o\
          Inferences/EqualityFactoring.o\
          Inferences/EqualityResolution.o\
-#         Inferences/ExtensionalityResolution.o\
          Inferences/Factoring.o\
          Inferences/FastCondensation.o\
          Inferences/FOOLParamodulation.o\
@@ -284,14 +283,15 @@ VINF_OBJ=Inferences/BackwardDemodulation.o\
          Inferences/EquationalTautologyRemoval.o\
          Inferences/InferenceEngine.o\
 	 Inferences/Instantiation.o\
-#         Inferences/InterpretedEvaluation.o\
          Inferences/SLQueryBackwardSubsumption.o\
          Inferences/Superposition.o\
          Inferences/TautologyDeletionISE.o\
+         Inferences/URResolution.o
+#         Inferences/ExtensionalityResolution.o\
+#         Inferences/InterpretedEvaluation.o\
 #         Inferences/TermAlgebraReasoning.o\
 #         Inferences/TheoryInstAndSimp.o\
 #         Inferences/Induction.o\
-         Inferences/URResolution.o
 #         Inferences/CTFwSubsAndRes.o\
 
 VSAT_OBJ=SAT/ClauseDisposer.o\
@@ -318,7 +318,6 @@ VST_OBJ= Saturation/AWPassiveClauseContainer.o\
          Saturation/ClauseContainer.o\
          Saturation/ConsequenceFinder.o\
          Saturation/Discount.o\
-#         Saturation/ExtensionalityClauseContainer.o\
 	 Saturation/LabelFinder.o\
          Saturation/Limits.o\
          Saturation/LRS.o\
@@ -327,17 +326,13 @@ VST_OBJ= Saturation/AWPassiveClauseContainer.o\
          Saturation/SaturationAlgorithm.o\
          Saturation/Splitter.o\
          Saturation/SymElOutput.o
+#         Saturation/ExtensionalityClauseContainer.o\
 
 VS_OBJ = Shell/CommandLine.o\
-#         Shell/AnswerExtractor.o\
-#         Shell/BFNT.o\
-#         Shell/BFNTMainLoop.o\
          Shell/CNF.o\
-#         Shell/NewCNF.o\
          Shell/DistinctProcessor.o\
          Shell/DistinctGroupExpansion.o\
          Shell/EqResWithDeletion.o\
-#         Shell/EqualityProxy.o\
          Shell/Flattening.o\
          Shell/FunctionDefinition.o\
          Shell/GeneralSplitting.o\
@@ -348,7 +343,6 @@ VS_OBJ = Shell/CommandLine.o\
          Shell/InterpolantMinimizerNew.o\
          Shell/Interpolants.o\
          Shell/InterpolantsNew.o\
-         Shell/InterpretedNormalizer.o\
          Shell/LaTeX.o\
          Shell/LispLexer.o\
          Shell/LispParser.o\
@@ -362,20 +356,13 @@ VS_OBJ = Shell/CommandLine.o\
          Shell/Rectify.o\
          Shell/Skolem.o\
          Shell/SimplifyFalseTrue.o\
-         Shell/SimplifyProver.o\
          Shell/SineUtils.o\
          Shell/SMTFormula.o\
-#         Shell/FOOLElimination.o\
          Shell/Statistics.o\
          Shell/SubexpressionIterator.o\
          Shell/SymbolDefinitionInlining.o\
          Shell/SymbolOccurrenceReplacement.o\
          Shell/SymCounter.o\
-#         Shell/TermAlgebra.o\
-#         Shell/TheoryAxioms.o\
-#         Shell/TheoryFinder.o\
-#         Shell/TheoryFlattening.o\
-#         Shell/BlockedClauseElimination.o\
          Shell/Token.o\
          Shell/TPTPPrinter.o\
          Shell/UIHelper.o\
@@ -383,6 +370,19 @@ VS_OBJ = Shell/CommandLine.o\
          Shell/Lexer.o\
          Shell/Preprocess.o\
          version.o
+#         Shell/InterpretedNormalizer.o\
+#         Shell/SimplifyProver.o\
+#         Shell/AnswerExtractor.o\
+#         Shell/BFNT.o\
+#         Shell/BFNTMainLoop.o\
+#         Shell/NewCNF.o\
+#         Shell/EqualityProxy.o\
+#         Shell/FOOLElimination.o\
+#         Shell/TermAlgebra.o\
+#         Shell/TheoryAxioms.o\
+#         Shell/TheoryFinder.o\
+#         Shell/TheoryFlattening.o\
+#         Shell/BlockedClauseElimination.o\
 #         Shell/PARSER_TKV.o\
 #         Shell/SMTLEX.o\
 #         Shell/SMTPAR.o\
@@ -458,7 +458,6 @@ LIB_DEP = Indexing/TermSharing.o\
 	  Kernel/Formula.o\
 	  Kernel/FormulaUnit.o\
 	  Kernel/FormulaVarIterator.o\
-#	  Kernel/InterpretedLiteralEvaluator.o\
 	  Kernel/Inference.o\
 	  Kernel/InferenceStore.o\
 	  Kernel/Problem.o\
@@ -470,7 +469,6 @@ LIB_DEP = Indexing/TermSharing.o\
 	  Kernel/Term.o\
 	  Kernel/TermIterators.o\
 	  Kernel/TermTransformer.o\
-#	  Kernel/Theory.o\
 	  Kernel/Unit.o\
 	  Parse/TPTP.o\
 	  Saturation/ClauseContainer.o\
@@ -480,7 +478,9 @@ LIB_DEP = Indexing/TermSharing.o\
 	  Shell/Statistics.o\
 	  Shell/GlobalOptions.o\
 	  version.o
-	  # ClausifierDependencyFix.o\
+#     Kernel/InterpretedLiteralEvaluator.o\
+#     Kernel/Theory.o\
+#     ClausifierDependencyFix.o\
 
 OTHER_CL_DEP = Indexing/FormulaIndex.o\
 	       Indexing/LiteralSubstitutionTree.o\

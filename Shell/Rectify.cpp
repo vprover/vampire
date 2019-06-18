@@ -161,7 +161,7 @@ Term* Rectify::rectifySpecialTerm(Term* t)
 {
   CALL("Rectify::rectifySpecialTerm");
 
-  Term::SpecialTermData* sd = t->getSpecialData();
+  /*Term::SpecialTermData* sd = t->getSpecialData();
   switch(t->functor()) {
   case Term::SF_ITE:
   {
@@ -179,13 +179,13 @@ Term* Rectify::rectifySpecialTerm(Term* t)
     ASS_EQ(t->arity(),1);
 
     bindVars(sd->getVariables());
-    TermList binding = rectify(sd->getBinding());
+    TermList binding = rectify(sd->getBinding());*/
     /**
      * We don't need to remove unused variables from the body of a functions,
      * otherwise the rectified list of variables might not fix the arity of the
      * let functor. So, temporarily disable _removeUnusedVars;
      */
-    bool removeUnusedVars = _removeUnusedVars;
+ /*   bool removeUnusedVars = _removeUnusedVars;
     _removeUnusedVars = false;
     VarList* variables = rectifyBoundVars(sd->getVariables());
     _removeUnusedVars = removeUnusedVars; // restore the status quo
@@ -233,7 +233,7 @@ Term* Rectify::rectifySpecialTerm(Term* t)
   default:
     ASSERTION_VIOLATION;
   }
-  ASSERTION_VIOLATION;
+  ASSERTION_VIOLATION;*/
 }
 
 /**

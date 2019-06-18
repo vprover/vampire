@@ -40,6 +40,7 @@
 #include "Saturation/SaturationAlgorithm.hpp"
 
 #include "Shell/Statistics.hpp"
+#include "Shell/Options.hpp"
 
 #include "Factoring.hpp"
 

@@ -283,7 +283,7 @@ Term* SubstHelper::applyImpl(Term* trm, Applicator& applicator, bool noSharing)
 
   using namespace SubstHelper_Aux;
 
-  if(trm->isSpecial()) {
+  /*if(trm->isSpecial()) {
     Term::SpecialTermData* sd = trm->getSpecialData();
     switch(trm->functor()) {
     case Term::SF_ITE:
@@ -317,7 +317,7 @@ Term* SubstHelper::applyImpl(Term* trm, Applicator& applicator, bool noSharing)
       return Term::createTuple(applyImpl<ProcessSpecVars>(sd->getTupleTerm(), applicator, noSharing));
     }
     ASSERTION_VIOLATION;
-  }
+  }*/
 
   Stack<TermList*>* toDo;
   Stack<Term*>* terms;

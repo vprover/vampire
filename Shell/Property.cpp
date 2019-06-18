@@ -90,7 +90,7 @@ Property::Property()
     _allQuantifiersEssentiallyExistential(true),
     _smtlibLogic(SMTLIBLogic::SMT_UNDEFINED)
 {
-  _interpretationPresence.init(Theory::instance()->numberOfFixedInterpretations(), false);
+  //_interpretationPresence.init(Theory::instance()->numberOfFixedInterpretations(), false);
   env.property = this;
   _symbolsInFormula = new DHSet<int>();
 } // Property::Property
@@ -509,7 +509,7 @@ void Property::scanSort(TermList sort)
       }
     }
     return;
-  } */
+  } 
 
   switch(sort) {
   case TermList(Term::INTEGER):
@@ -525,7 +525,7 @@ void Property::scanSort(TermList sort)
     addProp(PR_HAS_BOOLEAN_VARIABLES);
     _hasFOOL = true;
     break;
-  }
+  }*/
 }
 
 /**
@@ -643,7 +643,7 @@ void Property::scanForInterpreted(Term* t)
 {
   CALL("Property::scanInterpretation");
 
-  Interpretation itp;
+  /*Interpretation itp;
   if (t->isLiteral()) {
     Literal* lit = static_cast<Literal*>(t);
     if (!theory->isInterpretedPredicate(lit)) { return; }
@@ -707,7 +707,7 @@ void Property::scanForInterpreted(Term* t)
       case Sorts::SRT_REAL : addProp(PR_REAL_NONLINEAR);
         break;
     }
-  }
+  }*/
 }
 
 /**

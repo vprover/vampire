@@ -53,8 +53,8 @@ class Skolem
 public:
   typedef List<unsigned> VarList; // not to be confused with Formula::VarList which is a list of ints
   static FormulaUnit* skolemise(FormulaUnit*);
-  static unsigned addSkolemFunction(unsigned arity, TermList* domainSorts, unsigned rangeSort, unsigned var, VarList* vl);
-  static unsigned addSkolemFunction(unsigned arity, TermList* domainSorts, unsigned rangeSort, VarList* vl, const char* suffix=0);
+  static unsigned addSkolemFunction(unsigned arity, TermList* domainSorts, TermList rangeSort, unsigned var, VarList* vl);
+  static unsigned addSkolemFunction(unsigned arity, TermList* domainSorts, TermList rangeSort, VarList* vl, const char* suffix=0);
   static unsigned addSkolemPredicate(unsigned arity, TermList* domainSorts, unsigned var, VarList* vl);
   static unsigned addSkolemPredicate(unsigned arity, TermList* domainSorts, VarList* vl, const char* suffix=0);
 private:

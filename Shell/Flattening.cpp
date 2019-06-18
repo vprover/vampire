@@ -124,7 +124,7 @@ Formula* Flattening::flatten (Formula* f)
 
           bool lhsBoolean = lhs.isTerm() && lhs.term()->isBoolean();
           bool rhsBoolean = rhs.isTerm() && rhs.term()->isBoolean();
-          bool varEquality = lit->isTwoVarEquality() && lit->twoVarEqSort() == Sorts::SRT_BOOL;
+          bool varEquality = lit->isTwoVarEquality() && lit->twoVarEqSort() == TermList(Term::BOOLN);
 
           if (lhsBoolean || rhsBoolean || varEquality) {
             Formula* lhsFormula = BoolTermFormula::create(lhs);
@@ -264,7 +264,7 @@ TermList Flattening::flatten (TermList ts)
     return ts;
   }
 
-  if (term->isSpecial()) {
+ /* if (term->isSpecial()) {
     Term::SpecialTermData* sd = term->getSpecialData();
     switch (sd->getType()) {
       case Term::SF_FORMULA: {
@@ -338,7 +338,7 @@ TermList Flattening::flatten (TermList ts)
       default:
         ASSERTION_VIOLATION;
     }
-  }
+  }*/
 
   bool flattened = false;
   Stack<TermList> args;

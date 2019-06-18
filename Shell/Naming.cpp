@@ -1172,7 +1172,7 @@ Literal* Naming::getDefinitionLiteral(Formula* f, Formula::VarList* freeVars) {
   ASS(termArgs.size() == argSorts.size());
 
   VarList* vl;
-  while(!typeArgs.empty()){
+  while(!typeArgs.isEmpty()){
     VarList::push(typeArgs.top().var(), vl);
     args.push(typeArgs.pop());
   }
@@ -1180,7 +1180,7 @@ Literal* Naming::getDefinitionLiteral(Formula* f, Formula::VarList* freeVars) {
     args.push(termArgs[i]);
   }
 
-  predSym->setType(OperatorType::getPredicateType(length, argSorts.begin()), vl);
+  predSym->setType(OperatorType::getPredicateType(length, argSorts.begin(), vl));
 
   return Literal::create(pred, length, true, false, args.begin());
 }

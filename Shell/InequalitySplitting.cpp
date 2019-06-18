@@ -160,7 +160,7 @@ Literal* InequalitySplitting::splitLiteral(Literal* lit, Unit::InputType inpType
   ASS(isSplittable(lit));
 
   TermList srt = SortHelper::getEqualityArgumentSort(lit);
-  VList* vars = srt.freeVariables();
+  VList* vars = srt.freeVars();
   unsigned predNum=env.signature->addNamePredicate(VList::length(vars) + 1);
   OperatorType* type = OperatorType::getPredicateType({srt}, vars);
 
@@ -222,7 +222,7 @@ Literal* InequalitySplitting::makeNameLiteral(unsigned predNum, TermList arg, bo
   Stack<TermList> args;
   while(!VList::isEmpty(vars)){
     unsigned var = vars->head();
-    vars = vars->tail;
+    vars = vars->tail();
     args.push(TermList(var, false));
   }
   args.push(arg);

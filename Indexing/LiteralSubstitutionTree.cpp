@@ -275,7 +275,7 @@ struct LiteralSubstitutionTree::EqualitySortFilter
 
     TermList resSort = SortHelper::getEqualityArgumentSort(res.literal);
     RobSubstitution subst;
-    return subst.unif(resSort, 0, _queryEqSort, 1); //TODO equality on termlists
+    return subst.unify(resSort, 0, _queryEqSort, 1); //TODO equality on termlists
   }
 private:
   TermList _queryEqSort;

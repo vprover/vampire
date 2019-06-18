@@ -485,11 +485,11 @@ vstring Term::headToString() const
         vstring symbolsList = "";
         vstring typesList = "";
         for (unsigned i = 0; i < IntList::length(symbols); i++) {
-          Signature::Symbol* symbol = (fnType->arg(i) == Sorts::SRT_BOOL)
+          Signature::Symbol* symbol = (fnType->arg(i) == TermList(Term::BOOLN))
             ? env.signature->getPredicate((unsigned)IntList::nth(symbols, i))
             : env.signature->getFunction((unsigned)IntList::nth(symbols, i));
           symbolsList += symbol->name();
-          typesList += symbol->name() + ": " + env.sorts->sortName(fnType->arg(i));
+          typesList += symbol->name() + ": " + fnType->arg(i).toString();
           if (i != IntList::length(symbols) - 1) {
             symbolsList += ", ";
             typesList += ", ";
@@ -902,7 +902,7 @@ Term* Term::createLet(unsigned functor, IntList* variables, TermList binding, Te
  * Create (let [a, b, c] <- rhs in t) expression and return
  * the resulting term
  */
-Term* Term::createTupleLet(unsigned tupleFunctor, IntList* symbols, TermList binding, TermList body, unsigned bodySort)
+/*Term* Term::createTupleLet(unsigned tupleFunctor, IntList* symbols, TermList binding, TermList body, unsigned bodySort)
 {
   CALL("Term::createTupleLet");
 
@@ -936,7 +936,7 @@ Term* Term::createTupleLet(unsigned tupleFunctor, IntList* symbols, TermList bin
   s->getSpecialData()->_letTupleData.sort = bodySort;
   s->getSpecialData()->_letTupleData.binding = binding.content();
   return s;
-}
+} */
 
 /**
  * Create a formula expression and return

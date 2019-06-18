@@ -112,7 +112,7 @@ public:
 
   Limits* getLimits() { return &_limits; }
   IndexManager* getIndexManager() { return _imgr.ptr(); }
-  AnswerLiteralManager* getAnswerLiteralManager() { return _answerLiteralManager; }
+  //AnswerLiteralManager* getAnswerLiteralManager() { return _answerLiteralManager; }
   Ordering& getOrdering() const { return *_ordering; }
   LiteralSelector& getLiteralSelector() const { return *_selector; }
 
@@ -211,7 +211,7 @@ protected:
   ConsequenceFinder* _consFinder;
   LabelFinder* _labelFinder;
   SymElOutput* _symEl;
-  AnswerLiteralManager* _answerLiteralManager;
+  //AnswerLiteralManager* _answerLiteralManager;
   Instantiation* _instantiation;
 #if VZ3
   //TheoryInstAndSimp* _theoryInstSimp;

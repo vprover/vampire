@@ -265,7 +265,7 @@ TermList NNF::ennf(TermList ts, bool polarity)
     return ts;
   }
 
-  if (term->isSpecial()) {
+  /*if (term->isSpecial()) {
     Term::SpecialTermData* sd = term->getSpecialData();
     switch (sd->getType()) {
       case Term::SF_FORMULA: {
@@ -352,7 +352,7 @@ TermList NNF::ennf(TermList ts, bool polarity)
       default:
         ASSERTION_VIOLATION;
     }
-  }
+  }*/
 
   bool changed = false;
   Stack<TermList> args;

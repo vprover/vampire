@@ -4324,11 +4324,11 @@ void TPTP::vampire()
       if(pol=="true"){polarity=true;}else if(pol=="false"){polarity=false;}
       else{ PARSE_ERROR("polarity expected (true/false)",getTok(0)); }
       unsigned f = env.signature->addPredicate(symb,arity);
-      theory->registerLaTeXPredName(f,polarity,temp);
+     // theory->registerLaTeXPredName(f,polarity,temp);
     }
     else{
       unsigned f = env.signature->addFunction(symb,arity);
-      theory->registerLaTeXFuncName(f,temp);
+     // theory->registerLaTeXFuncName(f,temp);
     }
   }
   else if (nm == "symbol") {

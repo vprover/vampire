@@ -127,8 +127,8 @@ bool PortfolioMode::searchForProof()
     Normalisation norm;
     norm.normalise(*_prb);
 
-    TheoryFinder tf(_prb->units(),property);
-    tf.search();
+    //TheoryFinder tf(_prb->units(),property);
+    //tf.search();
   }
 
   // now all the cpu usage will be in children, we'll just be waiting for them

@@ -154,7 +154,7 @@ Literal* TermTransformer::transform(Literal* lit)
 Term* TermTransformer::transformSpecial(Term* term)
 {
   CALL("TermTransformer::transformSpecial(Term* term)");
-  ASS(term->isSpecial());
+/*  ASS(term->isSpecial());
 
   Term::SpecialTermData* sd = term->getSpecialData();
   switch (sd->getType()) {
@@ -216,7 +216,7 @@ Term* TermTransformer::transformSpecial(Term* term)
     }
 
   }
-  ASSERTION_VIOLATION_REP(term->toString());
+  ASSERTION_VIOLATION_REP(term->toString()); */
   return nullptr;
 }
 

@@ -336,7 +336,7 @@ vstring LaTeX::toString (Literal* l) const
 
   //Check if this symbol has an interpreted LaTeX name
   // this should be true for all known interpreted symbols and any recorded symbols
-  vstring template_str = theory->tryGetInterpretedLaTeXName(l->functor(),true,l->isNegative());
+  vstring template_str = "";// theory->tryGetInterpretedLaTeXName(l->functor(),true,l->isNegative());
 
   if(template_str.empty()){
     vstring res;
@@ -502,7 +502,7 @@ vstring LaTeX::toString (TermList* terms,bool single) const
 
      //Check if this symbol has an interpreted LaTeX name
      // this should be true for all known interpreted symbols and any recorded symbols
-      vstring template_str = theory->tryGetInterpretedLaTeXName(trm->functor(),false);
+      vstring template_str = "";// theory->tryGetInterpretedLaTeXName(trm->functor(),false);
    
       if(template_str.empty()){
         result += symbolToString(trm->functor(), false) + toString(trm->args());

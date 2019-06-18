@@ -202,7 +202,7 @@ Term* Instantiation::tryGetDifferentValue(Term* t)
 
   TermList sort = SortHelper::getResultSort(t);
 
-  try {
+ /* try {
     switch(sort){
       case TermList(Term::INTEGER):
         {
@@ -236,7 +236,7 @@ Term* Instantiation::tryGetDifferentValue(Term* t)
     }
   } catch (ArithmeticException&) {
     // return 0 as well
-  }
+  }*/ //TODO fix this
 
   return 0;
 }

@@ -38,7 +38,7 @@ using namespace Kernel;
  * @author Andrei Voronkov
  */
  
-const TermList OpertorType::PREDICATE_FLAG = TermList(Term::BOOLN);
+const TermList OperatorType::PREDICATE_FLAG = TermList(Term::BOOLN);
  
 Sorts::Sorts()
 {
@@ -368,7 +368,7 @@ vstring OperatorType::toString() const
       if(i != 0){ res += " ,"; }
       res+= "X" + Int::toString(VarList::nth(_vars, i)) + ": $ttype"; 
     }
-    res += " ]:"
+    res += " ]:";
   }
 
   return (arity() ? argsToString() + " > " : "") +

@@ -107,7 +107,7 @@ TermList FormulaTransformer::apply(TermList ts) {
 
   Term* term = ts.term();
 
-  if (term->isSpecial()) {
+  /*if (term->isSpecial()) {
     Term::SpecialTermData *sd = ts.term()->getSpecialData();
     switch (sd->getType()) {
       case Term::SF_ITE:
@@ -139,7 +139,7 @@ TermList FormulaTransformer::apply(TermList ts) {
       default:
         ASSERTION_VIOLATION_REP(ts.toString());
     }
-  }
+  }*/
 
   if (term->shared()) {
     return ts;

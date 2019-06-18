@@ -252,7 +252,7 @@ bool GeneralSplitting::apply(Clause*& cl, UnitList*& resultStack)
 
 
   VarList* vl;
-  while(!typeArgs.empty()){
+  while(!typeArgs.isEmpty()){
     VarList::push(typeArgs.top().var(), vl);
     args.push(typeArgs.pop());    
   }

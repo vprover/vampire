@@ -121,7 +121,7 @@ FormulaUnit* Skolem::skolemiseImpl (FormulaUnit* unit)
 }
 
 unsigned Skolem::addSkolemFunction(unsigned arity, TermList* domainSorts,
-    unsigned rangeSort, unsigned var, VarList* vl)
+    TermList rangeSort, unsigned var, VarList* vl)
 {
   CALL("Skolem::addSkolemFunction(unsigned,unsigned*,unsigned,unsigned)");
 
@@ -135,7 +135,7 @@ unsigned Skolem::addSkolemFunction(unsigned arity, TermList* domainSorts,
 }
 
 unsigned Skolem::addSkolemFunction(unsigned arity, TermList* domainSorts,
-    unsigned rangeSort, VarList* vl, const char* suffix)
+    TermList rangeSort, VarList* vl, const char* suffix)
 {
   CALL("Skolem::addSkolemFunction(unsigned,unsigned*,unsigned,const char*)");
   ASS(arity==0 || domainSorts!=0);
@@ -423,7 +423,7 @@ Formula* Skolem::skolemise (Formula* f)
       ASS(termArgs.size() == argSorts.size());
 
       VarList* vl;
-      while(!typeArgs.empty()){
+      while(!typeArgs.isEmpty()){
         VarList::push(typeArgs.top().var(), vl);
         args.push(typeArgs.pop());
       }
@@ -436,7 +436,7 @@ Formula* Skolem::skolemise (Formula* f)
         int v = vs.next();
         TermList rangeSort=_varSorts.get(v, TermList(Term::DEFAULT));
 
-        unsigned fun = addSkolemFunction(arity, argSorts.begin(), rangeSort, vl, v);
+        unsigned fun = addSkolemFunction(arity, argSorts.begin(), rangeSort, v, vl);
         _introducedSkolemFuns.push(fun);
 
         env.statistics->skolemFunctions++;

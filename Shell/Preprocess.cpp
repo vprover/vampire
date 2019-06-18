@@ -34,7 +34,7 @@
 #include "GoalGuessing.hpp"
 //#include "AnswerExtractor.hpp"
 #include "CNF.hpp"
-#include "NewCNF.hpp"
+//#include "NewCNF.hpp"
 #include "DistinctGroupExpansion.hpp"
 #include "EqResWithDeletion.hpp"
 //#include "EqualityProxy.hpp"
@@ -42,7 +42,7 @@
 #include "FunctionDefinition.hpp"
 #include "GeneralSplitting.hpp"
 #include "InequalitySplitting.hpp"
-#include "InterpretedNormalizer.hpp"
+//#include "InterpretedNormalizer.hpp"
 #include "Naming.hpp"
 #include "Normalisation.hpp"
 #include "NNF.hpp"
@@ -244,13 +244,13 @@ void Preprocess::preprocess(Problem& prb)
     SineSelector(_options).perform(prb);
   }
 
-  if (_options.questionAnswering()==Options::QuestionAnsweringMode::ANSWER_LITERAL) {
+ /* if (_options.questionAnswering()==Options::QuestionAnsweringMode::ANSWER_LITERAL) {
     env.statistics->phase=Statistics::UNKNOWN_PHASE;
     if (env.options->showPreprocessing())
       env.out() << "answer literal addition" << std::endl;
 
     AnswerLiteralManager::getInstance()->addAnswerLiterals(prb);
-  }
+  } */
 
   // stop here if clausification is not required and still simplify not set
   if (!_clausify && !_stillSimplify) {
@@ -563,7 +563,7 @@ void Preprocess::newCnf(Problem& prb)
 {
   CALL("Preprocess::newCnf");
 
-  env.statistics->phase=Statistics::NEW_CNF;
+  /*env.statistics->phase=Statistics::NEW_CNF;
 
   // TODO: this is an ugly copy-paste of "Preprocess::clausify"
 
@@ -611,7 +611,7 @@ void Preprocess::newCnf(Problem& prb)
   if (modified) {
     prb.invalidateProperty();
   }
-  prb.reportFormulasEliminated();
+  prb.reportFormulasEliminated();*/
 } 
 
 /**

@@ -135,7 +135,7 @@ public:
     ILStruct* previous;
 
     unsigned isVarEqLit:1;
-    unsigned varEqLitSort:31;
+    TermList varEqLitSort;
 
     unsigned varCnt;
     unsigned* globalVarNumbers;

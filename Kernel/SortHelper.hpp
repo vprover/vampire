@@ -78,7 +78,7 @@ public:
   static bool areSortsValid(Clause* cl);
   static bool areImmediateSortsValid(Term* t);
 
-  static void getTypeSub(Term* t, Substitution& subst);
+  static void getTypeSub(const Term* t, Substitution& subst);
 
   static bool areSortsValid(Term* t, DHMap<unsigned,TermList>& varSorts);
 private:

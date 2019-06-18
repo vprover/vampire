@@ -207,7 +207,7 @@ void TPTPPrinter::outputSymbolTypeDefinitions(unsigned symNumber, bool function)
   if(type->isAllDefault()) {
     return;
   }
-  if(function && theory->isInterpretedConstant(symNumber)) { return; }
+  //if(function && theory->isInterpretedConstant(symNumber)) { return; }
 
   if(sym->interpreted()) {
     Interpretation interp = static_cast<Signature::InterpretedSymbol*>(sym)->getInterpretation();
@@ -440,16 +440,16 @@ vstring TPTPPrinter::toString(const Formula* formula)
           }
           result += 'X';
           result += Int::toString(var);
-          unsigned t;
+          TermList t;
           if (hasSorts) {
             ASS(ss.hasNext());
             t = ss.next();
-            if (t != Sorts::SRT_DEFAULT) {
-              result += " : " + env.sorts->sortName(t);
+            if (t != TermList(Term::DEFAULT)) {
+              result += " : " + t.toString();
             }
           } else if (SortHelper::tryGetVariableSort(var, const_cast<Formula*>(f),
-              t) && t != Sorts::SRT_DEFAULT) {
-            result += " : " + env.sorts->sortName(t);
+              t) && t != TermList(Term::DEFAULT)) {
+            result += " : " + t.toString();
           }
           needsComma = true;
         }

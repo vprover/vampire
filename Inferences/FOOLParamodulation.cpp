@@ -104,8 +104,8 @@ ClauseIterator FOOLParamodulation::generateClauses(Clause* premise) {
         continue;
       }
 
-      unsigned resultType = env.signature->getFunction(functor)->fnType()->result();
-      if (resultType == Sorts::SRT_BOOL) {
+      TermList resultType = env.signature->getFunction(functor)->fnType()->result();
+      if (resultType == TermList(Term::BOOLN)) {
         booleanTerm = subterm;
         goto substitution;
       }
@@ -132,7 +132,7 @@ ClauseIterator FOOLParamodulation::generateClauses(Clause* premise) {
   }
 
   // Add s = false to the clause
-  (*conclusion)[conclusion->length() - 1] = Literal::createEquality(true, booleanTerm, fols, Sorts::SRT_BOOL);
+  (*conclusion)[conclusion->length() - 1] = Literal::createEquality(true, booleanTerm, fols, TermList(Term::BOOLN));
 
   return pvi(getSingletonIterator(conclusion));
 }
