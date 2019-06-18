@@ -428,6 +428,10 @@ vstring Clause::toString() const
   // print inference and ids of parent clauses
   result += " " + inferenceAsString();
 
+  if (heedingHint()) {
+    result = " H " + result;
+  }
+
   if(env.options->proofExtra()!=Options::ProofExtra::OFF){
     // print statistics: each entry should have the form key:value
     result += vstring(" {");
