@@ -34,9 +34,9 @@
 namespace Inferences
 {
 
-HintsForAvatarFakeSimplifier::HintsForAvatarFakeSimplifier() : _impl(false)
+HintsForAvatarFwdFakeSimplifier::HintsForAvatarFwdFakeSimplifier() : _impl(false)
 {
-  CALL("HintsForAvatarFakeSimplifier::HintsForAvatarFakeSimplifier");
+  CALL("HintsForAvatarFwdFakeSimplifier::HintsForAvatarFwdFakeSimplifier");
 
   // create indices for _impl and connect them with container!
 
@@ -52,7 +52,7 @@ HintsForAvatarFakeSimplifier::HintsForAvatarFakeSimplifier() : _impl(false)
   _impl.setIndices(unitIdx,fwIdx);
 }
 
-Clause* HintsForAvatarFakeSimplifier::simplify(Clause* cl)
+Clause* HintsForAvatarFwdFakeSimplifier::simplify(Clause* cl)
 {
   CALL("HintsForAvatarFakeSimplifier::simplify");
 

@@ -36,19 +36,27 @@ class HintsForAvatarFakeSimplifier
 : public ImmediateSimplificationEngine
 {
 public:
+  virtual void addHintClause(Clause* cl) = 0;
+protected:
+  Saturation::PlainClauseContainer _hintClauseContainer;
+};
+
+class HintsForAvatarFwdFakeSimplifier
+: public HintsForAvatarFakeSimplifier
+{
+public:
   CLASS_NAME(HintsForAvatarFakeSimplifier);
   USE_ALLOCATOR(HintsForAvatarFakeSimplifier);
 
-  HintsForAvatarFakeSimplifier();
+  HintsForAvatarFwdFakeSimplifier();
 
-  void addHintClause(Clause* cl) {
+  void addHintClause(Clause* cl) override {
     _hintClauseContainer.add(cl);
   }
 
   Clause* simplify(Clause* cl) override;
 private:
   ForwardSubsumptionAndResolutionImplementation _impl;
-  Saturation::PlainClauseContainer _hintClauseContainer;
 };
 
 }
