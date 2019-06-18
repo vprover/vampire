@@ -365,7 +365,7 @@ VS_OBJ = Shell/CommandLine.o\
          Shell/SimplifyProver.o\
          Shell/SineUtils.o\
          Shell/SMTFormula.o\
-         #Shell/FOOLElimination.o\
+#         Shell/FOOLElimination.o\
          Shell/Statistics.o\
          Shell/SubexpressionIterator.o\
          Shell/SymbolDefinitionInlining.o\
