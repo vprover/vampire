@@ -201,6 +201,9 @@ void TimeCounter::outputSingleStat(TimeCounterUnit tcu, ostream& out)
   case TC_BACKWARD_SUBSUMPTION_RESOLUTION:
     out<<"backward subsumption resolution";
     break;
+  case TC_BACKWARD_SUBSUMPTION_HINT_CHECK:
+    out<<"backward subsumption hint check";
+    break;
   case TC_BDD:
     out<<"BDD operations";
     break;

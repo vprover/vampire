@@ -1359,7 +1359,7 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
     hintsForAvatarFakeSimplifier = new HintsForAvatarFwdFakeSimplifier();
   } else if (opt.avatarHints() == Options::AvatarHintsKind::BWD) {
     // TODO: have new HintsForAvatarFakeSimplifier
-    hintsForAvatarFakeSimplifier = new HintsForAvatarFwdFakeSimplifier();
+    hintsForAvatarFakeSimplifier = new HintsForAvatarBwdFakeSimplifier();
   }
 
   if(opt.splitting()){

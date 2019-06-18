@@ -45,8 +45,8 @@ class HintsForAvatarFwdFakeSimplifier
 : public HintsForAvatarFakeSimplifier
 {
 public:
-  CLASS_NAME(HintsForAvatarFakeSimplifier);
-  USE_ALLOCATOR(HintsForAvatarFakeSimplifier);
+  CLASS_NAME(HintsForAvatarFwdFakeSimplifier);
+  USE_ALLOCATOR(HintsForAvatarFwdFakeSimplifier);
 
   HintsForAvatarFwdFakeSimplifier();
 
@@ -58,6 +58,26 @@ public:
 private:
   ForwardSubsumptionAndResolutionImplementation _impl;
 };
+
+class HintsForAvatarBwdFakeSimplifier
+: public HintsForAvatarFakeSimplifier
+{
+public:
+  CLASS_NAME(HintsForAvatarBwdFakeSimplifier);
+  USE_ALLOCATOR(HintsForAvatarBwdFakeSimplifier);
+
+  HintsForAvatarBwdFakeSimplifier();
+
+  void addHintClause(Clause* cl) override {
+    _hintClauseContainer.add(cl);
+  }
+
+  Clause* simplify(Clause* cl) override;
+private:
+  SimplifyingLiteralIndex* _index;
+};
+
+
 
 }
 
