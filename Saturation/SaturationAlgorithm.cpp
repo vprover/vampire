@@ -67,7 +67,7 @@
 #include "Inferences/SLQueryBackwardSubsumption.hpp"
 #include "Inferences/Superposition.hpp"
 #include "Inferences/URResolution.hpp"
-#include "Inferences/Instantiation.hpp"
+//#include "Inferences/Instantiation.hpp"
 //#include "Inferences/TheoryInstAndSimp.hpp"
 //#include "Inferences/Induction.hpp"
 
@@ -116,8 +116,8 @@ SaturationAlgorithm::SaturationAlgorithm(Problem& prb, const Options& opt)
     _limits(opt),
     _clauseActivationInProgress(false),
     _fwSimplifiers(0), _bwSimplifiers(0), _splitter(0),
-    _consFinder(0), _labelFinder(0), _symEl(0),/* _answerLiteralManager(0),*/
-    _instantiation(0),
+    _consFinder(0), _labelFinder(0), _symEl(0),/* _answerLiteralManager(0),
+    _instantiation(0),*/
 #if VZ3
     _theoryInstSimp(0),
 #endif
@@ -567,9 +567,9 @@ void SaturationAlgorithm::addInputClause(Clause* cl)
     addNewClause(cl);
   }
 
-  if(_instantiation){
+  /*if(_instantiation){
     _instantiation->registerClause(cl);
-  }
+  }*/
 
   env.statistics->initialClauses++;
 }
@@ -1340,13 +1340,13 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
   //TODO here induction is last, is that right?
   /*if(opt.induction()!=Options::Induction::NONE){
     gie->addFront(new Induction());
-  }*/
+  }
 
   if(opt.instantiation()!=Options::Instantiation::OFF){
     res->_instantiation = new Instantiation();
     //res->_instantiation->init();
     gie->addFront(res->_instantiation);
-  }
+  }*/
 
   if (prb.hasEquality()) {
     gie->addFront(new EqualityFactoring());

@@ -502,10 +502,10 @@ vstring Term::headToString() const
         ASSERTION_VIOLATION;
     }
   } else {
-    unsigned proj;
+    /*unsigned proj;
     if (Theory::tuples()->findProjection(functor(), isLiteral(), proj)) {
       return "$proj(" + Int::toString(proj) + ", ";
-    }
+    }*/
     return (isLiteral() ? static_cast<const Literal *>(this)->predicateName() : functionName()) + (arity() ? "(" : "");
   }
 }
@@ -620,10 +620,10 @@ vstring Literal::toString() const
 
   Stack<const TermList*> stack(64);
   vstring s = polarity() ? "" : "~";
-  unsigned proj;
+  /*unsigned proj;
   if (Theory::tuples()->findProjection(functor(), true, proj)) {
     return s + "$proj(" + Int::toString(proj) + ", " + args()->asArgsToString();
-  }
+  }*/
   s += predicateName();
 
   //cerr << "predicate: "<< predicateName()<<endl;
@@ -952,7 +952,7 @@ Term* Term::createFormula(Formula* formula)
   return s;
 }
 
-Term* Term::createTuple(unsigned arity, unsigned* sorts, TermList* elements) {
+/*Term* Term::createTuple(unsigned arity, unsigned* sorts, TermList* elements) {
   CALL("Term::createTuple");
   unsigned tupleFunctor = Theory::tuples()->getFunctor(arity, sorts);
   Term* tupleTerm = Term::create(tupleFunctor, arity, elements);
@@ -965,7 +965,7 @@ Term* Term::createTuple(Term* tupleTerm) {
   s->makeSymbol(SF_TUPLE, 0);
   s->getSpecialData()->_tupleData.term = tupleTerm;
   return s;
-}
+}*/
 
 /** Create a new complex term, copy from @b t its function symbol and arity.
  *  Initialize its arguments by a dummy special variable.

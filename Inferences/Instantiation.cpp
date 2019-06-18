@@ -123,9 +123,9 @@ void Instantiation::registerClause(Clause* cl)
     while(it.hasNext()){
       TermList t = it.next();
       if(t.isTerm() && t.term()->ground()){
-        TermList sort;
+        unsigned sort;
         if(SortHelper::tryGetResultSort(t,sort)){
-          if(sort==TermList(Term::DEFAULT)) continue;
+          if(sort==Sorts::SRT_DEFAULT) continue;
           Set<Term*>* cans_check=0;
           Stack<Term*>* cans=0;
           if(sorted_candidates.isEmpty() || !sorted_candidates.find(sort,cans)){
@@ -200,48 +200,48 @@ Term* Instantiation::tryGetDifferentValue(Term* t)
 {
   CALL("Instantiation::tryGetDifferentValue");
 
-  TermList sort = SortHelper::getResultSort(t);
+  unsigned sort = SortHelper::getResultSort(t);
 
- /* try {
-    switch(sort){
-      case TermList(Term::INTEGER):
-        {
-          IntegerConstantType constant;
-          if(theory->tryInterpretConstant(t,constant)){
-            return theory->representConstant(constant+1);
-          }
-          break;
+  try {
+        switch(sort){
+          case Sorts::SRT_INTEGER:
+            {
+              IntegerConstantType constant;
+              if(theory->tryInterpretConstant(t,constant)){
+                return theory->representConstant(constant+1);
+              }
+              break;
+            }
+          case Sorts::SRT_RATIONAL:
+            {
+              RationalConstantType constant;
+              RationalConstantType one(1,1);
+              if(theory->tryInterpretConstant(t,constant)){
+                return theory->representConstant(constant+one);
+              }
+              break;
+            }
+          case Sorts::SRT_REAL:
+            {
+              RealConstantType constant;
+              RealConstantType one(RationalConstantType(1,1));
+              if(theory->tryInterpretConstant(t,constant)){
+                return theory->representConstant(constant+one);
+              }
+              break;
+            }
+          default:
+            break;
+            // not a numeric sort
         }
-      case TermList(Term::RATIONAL):
-        {
-          RationalConstantType constant;
-          RationalConstantType one(1,1);
-          if(theory->tryInterpretConstant(t,constant)){
-            return theory->representConstant(constant+one);
-          }
-          break;
-        }
-      case TermList(Term::REAL):
-        {
-          RealConstantType constant;
-          RealConstantType one(RationalConstantType(1,1));
-          if(theory->tryInterpretConstant(t,constant)){
-            return theory->representConstant(constant+one);
-          }
-          break;
-        }
-      default:
-        break;
-        // not a numeric sort
-    }
   } catch (ArithmeticException&) {
     // return 0 as well
-  }*/ //TODO fix this
+  }
 
   return 0;
 }
 
-VirtualIterator<Term*> Instantiation::getCandidateTerms(Clause* cl, unsigned var, TermList sort)
+VirtualIterator<Term*> Instantiation::getCandidateTerms(Clause* cl, unsigned var,unsigned sort)
 {
   CALL("Instantiation::getCandidateTerms");
 
@@ -258,12 +258,12 @@ public:
   AllSubstitutionsIterator(Clause* cl,Instantiation* ins)
   {
     CALL("Instantiation::AllSubstitutionsIterator");
-    DHMap<unsigned,TermList> sortedVars;
+    DHMap<unsigned,unsigned> sortedVars;
     SortHelper::collectVariableSorts(cl,sortedVars);
-    VirtualIterator<std::pair<unsigned,TermList>> it = sortedVars.items();
+    VirtualIterator<std::pair<unsigned,unsigned>> it = sortedVars.items();
 
     while(it.hasNext()){
-       std::pair<unsigned,TermList> item = it.next();
+       std::pair<unsigned,unsigned> item = it.next();
        DArray<Term*>* array = new DArray<Term*>();
        array->initFromIterator(ins->getCandidateTerms(cl,item.first,item.second));
        candidates.insert(item.first,array);

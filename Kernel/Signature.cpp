@@ -80,7 +80,7 @@ void Signature::Symbol::destroyFnSymbol()
 {
   CALL("Signature::Symbol::destroyFnSymbol");
 
-  if (integerConstant()) {
+ /* if (integerConstant()) {
     delete static_cast<IntegerSymbol*>(this);
   }
   else if (rationalConstant()) {
@@ -92,9 +92,9 @@ void Signature::Symbol::destroyFnSymbol()
   else if (interpreted()) {
     delete static_cast<InterpretedSymbol*>(this);
   }
-  else {
+  else {*/
     delete this;
-  }
+  //}
 }
 
 /**
@@ -104,12 +104,12 @@ void Signature::Symbol::destroyPredSymbol()
 {
   CALL("Signature::Symbol::destroyPredSymbol");
 
-  if (interpreted()) {
+  /*if (interpreted()) {
     delete static_cast<InterpretedSymbol*>(this);
   }
-  else {
+  else {*/
     delete this;
-  }
+  //}
 }
 
 /**
@@ -224,9 +224,9 @@ Signature::Signature ():
   CALL("Signature::Signature");
 
   // initialize equality
-  addInterpretedPredicate(Theory::EQUAL, OperatorType::getPredicateType(2), "=");
+  /*addInterpretedPredicate(Theory::EQUAL, OperatorType::getPredicateType(2), "=");
   ASS_EQ(predicateName(0), "="); //equality must have number 0
-  getPredicate(0)->markSkip();
+  getPredicate(0)->markSkip();*/ //TODO is this safe? Doesn't look like it!
 
   unsigned aux;
   aux = createDistinctGroup();
@@ -253,7 +253,7 @@ Signature::~Signature ()
  * @since 03/05/2013 train Manchester-London
  * @author Andrei Voronkov
  */
-unsigned Signature::addIntegerConstant(const vstring& number,bool defaultSort)
+/*unsigned Signature::addIntegerConstant(const vstring& number,bool defaultSort)
 {
   CALL("Signature::addIntegerConstant(vstring)");
 
@@ -277,17 +277,17 @@ unsigned Signature::addIntegerConstant(const vstring& number,bool defaultSort)
   if(defaultSort){ 
      sym->addToDistinctGroup(STRING_DISTINCT_GROUP,result); // numbers are disctinct from strings
   }
-  */
+  *//*
   _funs.push(sym);
   _funNames.insert(symbolKey,result);
   return result;
-} // Signature::addIntegerConstant
+}*/ // Signature::addIntegerConstant
 
 /**
  * Add an integer constant to the signature.
  * @todo something smarter, so that we don't need to convert all values to string
  */
-unsigned Signature::addIntegerConstant(const IntegerConstantType& value)
+/*unsigned Signature::addIntegerConstant(const IntegerConstantType& value)
 {
   CALL("Signature::addIntegerConstant");
 
@@ -304,8 +304,8 @@ unsigned Signature::addIntegerConstant(const IntegerConstantType& value)
   /*
   sym->addToDistinctGroup(INTEGER_DISTINCT_GROUP,result);
   */
-  return result;
-} // addIntegerConstant
+  /*return result;
+} */// addIntegerConstant
 
 /**
  * Add a rational constant to the signature. If defaultSort is true, treat it as
@@ -313,7 +313,7 @@ unsigned Signature::addIntegerConstant(const IntegerConstantType& value)
  * @since 03/05/2013 London
  * @author Andrei Voronkov
  */
-unsigned Signature::addRationalConstant(const vstring& numerator, const vstring& denominator,bool defaultSort)
+/*unsigned Signature::addRationalConstant(const vstring& numerator, const vstring& denominator,bool defaultSort)
 {
   CALL("Signature::addRationalConstant(vstring,vstring)");
 
@@ -336,12 +336,12 @@ unsigned Signature::addRationalConstant(const vstring& numerator, const vstring&
   }
   sym->addToDistinctGroup(RATIONAL_DISTINCT_GROUP,result);
   */
-  _funs.push(sym);
+  /*_funs.push(sym);
   _funNames.insert(key,result);
   return result;
-} // addRatonalConstant
+}*/ // addRatonalConstant
 
-unsigned Signature::addRationalConstant(const RationalConstantType& value)
+/*unsigned Signature::addRationalConstant(const RationalConstantType& value)
 {
   CALL("Signature::addRationalConstant");
 
@@ -355,7 +355,7 @@ unsigned Signature::addRationalConstant(const RationalConstantType& value)
   _funs.push(new RationalSymbol(value));
   _funNames.insert(key, result);
   return result;
-} // Signature::addRationalConstant
+} */// Signature::addRationalConstant
 
 /**
  * Add a real constant to the signature. If defaultSort is true, treat it as
@@ -363,7 +363,7 @@ unsigned Signature::addRationalConstant(const RationalConstantType& value)
  * @since 03/05/2013 London
  * @author Andrei Voronkov
  */
-unsigned Signature::addRealConstant(const vstring& number,bool defaultSort)
+/*unsigned Signature::addRealConstant(const vstring& number,bool defaultSort)
 {
   CALL("Signature::addRealConstant(vstring)");
 
@@ -384,12 +384,12 @@ unsigned Signature::addRealConstant(const vstring& number,bool defaultSort)
   }
   sym->addToDistinctGroup(REAL_DISTINCT_GROUP,result);
   */
-  _funs.push(sym);
+  /*_funs.push(sym);
   _funNames.insert(key,result);
   return result;
-} // addRealConstant
+} */// addRealConstant
 
-unsigned Signature::addRealConstant(const RealConstantType& value)
+/*unsigned Signature::addRealConstant(const RealConstantType& value)
 {
   CALL("Signature::addRealConstant");
 
@@ -403,11 +403,11 @@ unsigned Signature::addRealConstant(const RealConstantType& value)
   _funs.push(new RealSymbol(value));
   _funNames.insert(key, result);
   return result;
-}
+}*/
 
 /**
  * Add interpreted function
- */
+ *//*
 unsigned Signature::addInterpretedFunction(Interpretation interpretation, OperatorType* type, const vstring& name)
 {
   CALL("Signature::addInterpretedFunction(Interpretation,OperatorType*,const vstring&)");
@@ -436,11 +436,11 @@ unsigned Signature::addInterpretedFunction(Interpretation interpretation, Operat
   ASS(fnType->isFunctionType());
   sym->setType(fnType);
   return fnNum;
-} // Signature::addInterpretedFunction
+}*/ // Signature::addInterpretedFunction
 
 /**
  * Add interpreted predicate
- */
+ *//*
 unsigned Signature::addInterpretedPredicate(Interpretation interpretation, OperatorType* type, const vstring& name)
 {
   CALL("Signature::addInterpretedPredicate(Interpretation,OperatorType*,const vstring&)");
@@ -475,7 +475,7 @@ unsigned Signature::addInterpretedPredicate(Interpretation interpretation, Opera
     sym->setType(predType);
   }
   return predNum;
-} // Signature::addInterpretedPredicate
+} */// Signature::addInterpretedPredicate
 
 
 /**
@@ -483,7 +483,7 @@ unsigned Signature::addInterpretedPredicate(Interpretation interpretation, Opera
  *
  * If no such symbol exists, it is created.
  */
-unsigned Signature::getInterpretingSymbol(Interpretation interp, OperatorType* type)
+/*unsigned Signature::getInterpretingSymbol(Interpretation interp, OperatorType* type)
 {
   CALL("Signature::getInterpretingSymbol(Interpretation,OperatorType*)");
   
@@ -520,7 +520,7 @@ unsigned Signature::getInterpretingSymbol(Interpretation interp, OperatorType* t
 
   //we have now registered a new function, so it should be present in the map
   return _iSymbols.get(mi);
-}
+}*/
 
 const vstring& Signature::functionName(int number)
 {
@@ -776,7 +776,7 @@ unsigned Signature::addSkolemFunction (unsigned arity, const char* suffix)
   getFunction(f)->markSkolem();
 
   // Register it as a LaTeX function
-  theory->registerLaTeXFuncName(f,"\\sigma_{"+Int::toString(_skolemFunctionCount)+"}(a0)");
+ // theory->registerLaTeXFuncName(f,"\\sigma_{"+Int::toString(_skolemFunctionCount)+"}(a0)");
   _skolemFunctionCount++;
 
   return f;
@@ -795,7 +795,7 @@ unsigned Signature::addSkolemPredicate(unsigned arity, const char* suffix)
   getPredicate(f)->markSkolem();
 
   // Register it as a LaTeX function
-  theory->registerLaTeXFuncName(f,"\\sigma_{"+Int::toString(_skolemFunctionCount)+"}(a0)");
+ // theory->registerLaTeXFuncName(f,"\\sigma_{"+Int::toString(_skolemFunctionCount)+"}(a0)");
   _skolemFunctionCount++;
 
   return f;

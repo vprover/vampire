@@ -231,7 +231,7 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQ
       TermList sort = SortHelper::getResultSort(rT.term()); 
       Literal* constraint = Literal::createEquality(false,qT,rT,sort);
 
-      static Options::UnificationWithAbstraction uwa = opts.unificationWithAbstraction();
+      /*static Options::UnificationWithAbstraction uwa = opts.unificationWithAbstraction();
       if(uwa==Options::UnificationWithAbstraction::GROUND &&
          !constraint->ground() &&
          (!theory->isInterpretedFunction(qT) && !theory->isInterpretedConstant(qT)) && 
@@ -240,7 +240,7 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQ
         // the unification was between two uninterpreted things that were not ground 
         res->destroy();
         return 0;
-      } 
+      } */
 
       (*res)[next] = constraint; 
       next++;    

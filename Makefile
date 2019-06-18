@@ -239,7 +239,8 @@ VK_OBJ= Kernel/Clause.o\
 #         Kernel/V2CIndex.o\
     
 
-VI_OBJ = Indexing/ClauseVariantIndex.o\
+VI_OBJ = Indexing/ClauseCodeTree.o\
+         Indexing/ClauseVariantIndex.o\
          Indexing/CodeTree.o\
          Indexing/CodeTreeInterfaces.o\
          Indexing/GroundingIndex.o\
@@ -258,7 +259,6 @@ VI_OBJ = Indexing/ClauseVariantIndex.o\
          Indexing/TermSharing.o\
          Indexing/TermSubstitutionTree.o
 #         Indexing/AcyclicityIndex.o\
-#         Indexing/ClauseCodeTree.o\
 #         Indexing/FormulaIndex.o\         
 
 #VIG_OBJ = InstGen/IGAlgorithm.o\
@@ -280,13 +280,13 @@ VINF_OBJ=Inferences/BackwardDemodulation.o\
          Inferences/GlobalSubsumption.o\
          Inferences/HyperSuperposition.o\
          Inferences/InnerRewriting.o\
-         Inferences/EquationalTautologyRemoval.o\
          Inferences/InferenceEngine.o\
-	 Inferences/Instantiation.o\
          Inferences/SLQueryBackwardSubsumption.o\
          Inferences/Superposition.o\
          Inferences/TautologyDeletionISE.o\
          Inferences/URResolution.o
+#         Inferences/EquationalTautologyRemoval.o\
+#	 Inferences/Instantiation.o\
 #         Inferences/ExtensionalityResolution.o\
 #         Inferences/InterpretedEvaluation.o\
 #         Inferences/TermAlgebraReasoning.o\

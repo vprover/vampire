@@ -201,14 +201,14 @@ class Signature
     { return integerConstant() || rationalConstant() || realConstant(); }
 
     /** Return value of an integer constant */
-    inline IntegerConstantType integerValue() const
-    { ASS(integerConstant()); return static_cast<const IntegerSymbol*>(this)->_intValue; }
+    //inline IntegerConstantType integerValue() const
+    //{ ASS(integerConstant()); return static_cast<const IntegerSymbol*>(this)->_intValue; }
     /** Return value of a rational constant */
-    inline RationalConstantType rationalValue() const
-    { ASS(rationalConstant()); return static_cast<const RationalSymbol*>(this)->_ratValue; }
+    //inline RationalConstantType rationalValue() const
+    //{ ASS(rationalConstant()); return static_cast<const RationalSymbol*>(this)->_ratValue; }
     /** Return value of a real constant */
-    inline RealConstantType realValue() const
-    { ASS(realConstant()); return static_cast<const RealSymbol*>(this)->_realValue; }
+    //inline RealConstantType realValue() const
+    //{ ASS(realConstant()); return static_cast<const RealSymbol*>(this)->_realValue; }
 
     const List<unsigned>* distinctGroups() const { return _distinctGroups; }
     /** This takes the symbol number of this symbol as the symbol doesn't know it
@@ -224,7 +224,7 @@ class Signature
     USE_ALLOCATOR(Symbol);
   }; // class Symbol
 
-  class InterpretedSymbol
+ /* class InterpretedSymbol
   : public Symbol
   {
     friend class Signature;
@@ -244,7 +244,7 @@ class Signature
     USE_ALLOCATOR(InterpretedSymbol);
 
     /** Return the interpreted function that corresponds to this symbol */
-    inline Interpretation getInterpretation() const { ASS_REP(interpreted(), _name); return _interp; }
+   /* inline Interpretation getInterpretation() const { ASS_REP(interpreted(), _name); return _interp; }
   };
 
   class IntegerSymbol
@@ -305,7 +305,7 @@ class Signature
     }
     CLASS_NAME(Signature::RealSymbol);
     USE_ALLOCATOR(RealSymbol);
-  };
+  }; */
 
   //////////////////////////////////////
   // Uninterpreted symbol declarations
@@ -352,14 +352,14 @@ class Signature
   unsigned addNamePredicate(unsigned arity);
 
   // Interpreted symbol declarations
-  unsigned addIntegerConstant(const vstring& number,bool defaultSort);
-  unsigned addRationalConstant(const vstring& numerator, const vstring& denominator,bool defaultSort);
-  unsigned addRealConstant(const vstring& number,bool defaultSort);
+ // unsigned addIntegerConstant(const vstring& number,bool defaultSort);
+ // unsigned addRationalConstant(const vstring& numerator, const vstring& denominator,bool defaultSort);
+ // unsigned addRealConstant(const vstring& number,bool defaultSort);
 
-  unsigned addIntegerConstant(const IntegerConstantType& number);
-  unsigned addRationalConstant(const RationalConstantType& number);
-  unsigned addRealConstant(const RealConstantType& number);
-
+ // unsigned addIntegerConstant(const IntegerConstantType& number);
+ // unsigned addRationalConstant(const RationalConstantType& number);
+ // unsigned addRealConstant(const RealConstantType& number);
+ /*
   unsigned addInterpretedFunction(Interpretation itp, OperatorType* type, const vstring& name);
   unsigned addInterpretedFunction(Interpretation itp, const vstring& name)
   {
@@ -382,7 +382,7 @@ class Signature
     CALL("Signature::getInterpretingSymbol(Interpretation)");
     ASS(!Theory::isPolymorphic(interp));
     return getInterpretingSymbol(interp,Theory::getNonpolymorphicOperatorType(interp));
-  }
+  }*/
 
   /** Return true iff there is a symbol interpreted by Interpretation @b interp */
   bool haveInterpretingSymbol(Interpretation interp, OperatorType* type) const {

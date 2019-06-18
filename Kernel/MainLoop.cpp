@@ -33,7 +33,7 @@
 //#include "Inferences/InterpretedEvaluation.hpp"
 //#include "Inferences/TermAlgebraReasoning.hpp"
 #include "Inferences/TautologyDeletionISE.hpp"
-#include "Inferences/EquationalTautologyRemoval.hpp"
+//#include "Inferences/EquationalTautologyRemoval.hpp"
 
 //#include "InstGen/IGAlgorithm.hpp"
 
@@ -121,9 +121,9 @@ ImmediateSimplificationEngine* MainLoop::createISE(Problem& prb, const Options& 
 
   CompositeISE* res=new CompositeISE();
 
-  if(prb.hasEquality() && opt.equationalTautologyRemoval()) {
+  /*if(prb.hasEquality() && opt.equationalTautologyRemoval()) {
     res->addFront(new EquationalTautologyRemoval());
-  }
+  }*/
 
   switch(opt.condensation()) {
   case Options::Condensation::ON:

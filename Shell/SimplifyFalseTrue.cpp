@@ -350,7 +350,7 @@ TermList SimplifyFalseTrue::simplify(TermList ts)
     return ts;
   }
 
-  if (term->isSpecial()) {
+  /*if (term->isSpecial()) {
     Term::SpecialTermData* sd = term->getSpecialData();
     switch (sd->getType()) {
       case Term::SF_FORMULA: {
@@ -399,7 +399,7 @@ TermList SimplifyFalseTrue::simplify(TermList ts)
           if C then A else 1  to ~C | A
           if C then A else 0  to  C & A
          */
-        for (BRANCH branch : { THEN, ELSE }) {
+    /*    for (BRANCH branch : { THEN, ELSE }) {
           bool isTerm = branches[branch].isTerm();
           isTrue[branch]  = isTerm && env.signature->isFoolConstantSymbol(true,  branches[branch].term()->functor());
           isFalse[branch] = isTerm && env.signature->isFoolConstantSymbol(false, branches[branch].term()->functor());
@@ -466,7 +466,7 @@ TermList SimplifyFalseTrue::simplify(TermList ts)
       default:
         ASSERTION_VIOLATION_REP(term->toString());
     }
-  }
+  }*/
 
   bool simplified = false;
   Stack<TermList> arguments;

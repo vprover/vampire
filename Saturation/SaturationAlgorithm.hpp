@@ -39,7 +39,7 @@
 #include "Indexing/IndexManager.hpp"
 
 #include "Inferences/InferenceEngine.hpp"
-#include "Inferences/Instantiation.hpp"
+//#include "Inferences/Instantiation.hpp"
 //#include "Inferences/TheoryInstAndSimp.hpp"
 
 //#include "Saturation/ExtensionalityClauseContainer.hpp"
@@ -212,7 +212,7 @@ protected:
   LabelFinder* _labelFinder;
   SymElOutput* _symEl;
   //AnswerLiteralManager* _answerLiteralManager;
-  Instantiation* _instantiation;
+  //Instantiation* _instantiation;
 #if VZ3
   //TheoryInstAndSimp* _theoryInstSimp;
 #endif

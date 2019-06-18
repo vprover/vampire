@@ -209,7 +209,7 @@ void TPTPPrinter::outputSymbolTypeDefinitions(unsigned symNumber, bool function)
   }
   //if(function && theory->isInterpretedConstant(symNumber)) { return; }
 
-  if(sym->interpreted()) {
+  /*if(sym->interpreted()) {
     Interpretation interp = static_cast<Signature::InterpretedSymbol*>(sym)->getInterpretation();
     switch(interp) {
     case Theory::INT_SUCCESSOR:
@@ -220,7 +220,7 @@ void TPTPPrinter::outputSymbolTypeDefinitions(unsigned symNumber, bool function)
     default:
       return;
     }
-  }
+  }*/
 
   tgt() << "tff(" << (function ? "func" : "pred") << "_def_" << symNumber << ",type, "
       << sym->name() << ": ";

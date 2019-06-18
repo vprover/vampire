@@ -943,7 +943,7 @@ bool SubstitutionTree::UnificationsIterator::associate(TermList query, TermList 
 #endif
 
   // if unification with abstraction enabled and no syntactic unifier exists
-  if(useConstraints && !result){
+  /* if(useConstraints && !result){
     TermList queryTranslated = subst.apply(query,NORM_QUERY_BANK);
     TermList nodeTranslated = subst.apply(node,NORM_RESULT_BANK);
 
@@ -995,7 +995,7 @@ bool SubstitutionTree::UnificationsIterator::associate(TermList query, TermList 
         return true;
       }
     }
-  }
+  }*/
   return result;
 }
 
