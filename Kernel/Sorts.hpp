@@ -33,6 +33,8 @@
 #include "Lib/Allocator.hpp"
 #include "Lib/VString.hpp"
 
+#include "Term.hpp"
+
 namespace Kernel {
 
 class Sorts {
@@ -225,7 +227,7 @@ public:
   CLASS_NAME(OperatorType);
   USE_ALLOCATOR(OperatorType);
 
-  typedef List<int> VarList;
+  typedef List<unsigned> VarList;
 
 private:
   typedef Vector<TermList> OperatorKey; // Vector of argument sorts together with "0" appended for predicates and resultSort appended for functions
@@ -233,7 +235,7 @@ private:
   VarList* _vars; /** quantified variables of type */
  
   // constructors kept private
-  OperatorType(OperatorKey* key) : _key(key) {}
+  OperatorType(OperatorKey* key, VarList* vars) : _key(key), _vars(vars) {}
 
   /**
    * Convenience functions for creating a key
@@ -245,9 +247,9 @@ private:
   typedef Map<OperatorKey*,OperatorType*,PointerDereferencingHash> OperatorTypes;
   static OperatorTypes& operatorTypes(); // just a wrapper around a static OperatorTypes object, to ensure a correct initialization order
 
-  static OperatorType* getTypeFromKey(OperatorKey* key);
+  static OperatorType* getTypeFromKey(OperatorKey* key, VarList* vars);
 
-  static const unsigned PREDICATE_FLAG = 0;
+  static const TermList PREDICATE_FLAG;
 
 public:
   ~OperatorType() { _key->deallocate(); }
@@ -255,54 +257,49 @@ public:
   static OperatorType* getPredicateType(unsigned arity, const TermList* sorts=0, VarList* vars=0) {
     CALL("OperatorType::getPredicateType(unsigned,const unsigned*)");
 
-    _vars = !vars ? VarList::empty() : vars;
     OperatorKey* key = setupKey(arity,sorts);
     (*key)[arity] = PREDICATE_FLAG;
-    return getTypeFromKey(key);
+    return getTypeFromKey(key, vars);
   }
 
-  static OperatorType* getPredicateType(std::initializer_list<TermList> sorts) {
+  static OperatorType* getPredicateType(std::initializer_list<TermList> sorts, VarList* vars) {
     CALL("OperatorType::getPredicateType(std::initializer_list<unsigned>)");
 
     OperatorKey* key = setupKey(sorts);
     (*key)[sorts.size()] = PREDICATE_FLAG;
-    return getTypeFromKey(key);
+    return getTypeFromKey(key, vars);
   }
 
   static OperatorType* getPredicateTypeUniformRange(unsigned arity, TermList argsSort, VarList* vars) {
     CALL("OperatorType::getPredicateTypeUniformRange");
 
-    _vars = vars;
     OperatorKey* key = setupKeyUniformRange(arity,argsSort);
     (*key)[arity] = PREDICATE_FLAG;
-    return getTypeFromKey(key);
+    return getTypeFromKey(key, vars);
   }
 
   static OperatorType* getFunctionType(unsigned arity, const TermList* sorts, TermList resultSort, VarList* vars) {
     CALL("OperatorType::getFunctionType");
 
-    _vars = vars;
     OperatorKey* key = setupKey(arity,sorts);
     (*key)[arity] = resultSort;
-    return getTypeFromKey(key);
+    return getTypeFromKey(key, vars);
   }
 
   static OperatorType* getFunctionType(std::initializer_list<TermList> sorts, TermList resultSort, VarList* vars) {
     CALL("OperatorType::getFunctionType(std::initializer_list<unsigned>)");
  
-    _vars = vars;
     OperatorKey* key = setupKey(sorts);
     (*key)[sorts.size()] = resultSort;
-    return getTypeFromKey(key);
+    return getTypeFromKey(key, vars);
   }
 
   static OperatorType* getFunctionTypeUniformRange(unsigned arity, TermList argsSort, TermList resultSort, VarList* vars) {
     CALL("OperatorType::getFunctionTypeUniformRange");
 
-    _vars = vars;
     OperatorKey* key = setupKeyUniformRange(arity,argsSort);
     (*key)[arity] = resultSort;
-    return getTypeFromKey(key);
+    return getTypeFromKey(key, vars);
   }
 
   /**
@@ -313,7 +310,8 @@ public:
     return getFunctionType(0,nullptr,resultSort, vars); 
   }
 
-  unsigned arity() const { return _key->length()-1; }
+  unsigned typeArgsArity() const { return VarList::length(_vars); }
+  unsigned arity() const { return _key->length()-1 + typeArgsArity(); }
 
   TermList arg(unsigned idx) const
   {
@@ -330,7 +328,9 @@ public:
   }
   
   void addQuantifiedVars(VarList* vars){_vars = vars;}
+  VarList* quantifiedVars(){ return _vars; }
   vstring toString() const;
+  
 
   bool isSingleSortType(TermList sort) const;
   bool isAllDefault() const { return isSingleSortType(TermList(Term::DEFAULT)); }

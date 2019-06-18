@@ -1145,11 +1145,15 @@ Literal* Naming::getDefinitionLiteral(Formula* f, Formula::VarList* freeVars) {
     }
   }
 
-  static Stack<unsigned> domainSorts;
-  static Stack<TermList> predArgs;
-  static DHMap<unsigned, unsigned> varSorts;
-  domainSorts.reset();
-  predArgs.reset();
+  static Stack<TermList> argSorts;
+  static Stack<TermList> typeArgs;
+  static Stack<TermList> termArgs;
+  static Stack<TermList> args;
+  static DHMap<unsigned, TermList> varSorts;
+  argSorts.reset();
+  typeArgs.reset();
+  termArgs.reset();
+  args.reset();
   varSorts.reset();
 
   SortHelper::collectVariableSorts(f, varSorts);
@@ -1157,13 +1161,28 @@ Literal* Naming::getDefinitionLiteral(Formula* f, Formula::VarList* freeVars) {
   Formula::VarList::Iterator vit(freeVars);
   while (vit.hasNext()) {
     unsigned uvar = vit.next();
-    domainSorts.push(varSorts.get(uvar, Sorts::SRT_DEFAULT));
-    predArgs.push(TermList(uvar, false));
+    TermList sort = varSorts.get(uvar, TermList(Term::DEFAULT));
+    if(sort == TermList(Term::SUPER)){
+      typeArgs.push(TermList(uvar, false));//TODO check that this works      
+    } else {
+      termArgs.push(TermList(uvar, false));
+      argSorts.push(sort);
+    }
+  }
+  ASS(termArgs.size() == argSorts.size());
+
+  VarList* vl;
+  while(!typeArgs.empty()){
+    VarList::push(typeArgs.top().var(), vl);
+    args.push(typeArgs.pop());
+  }
+  for(unsigned i = 0; i < termArgs.size(); i++){
+    args.push(termArgs[i]);
   }
 
-  predSym->setType(OperatorType::getPredicateType(length, domainSorts.begin()));
+  predSym->setType(OperatorType::getPredicateType(length, argSorts.begin()), vl);
 
-  return Literal::create(pred, length, true, false, predArgs.begin());
+  return Literal::create(pred, length, true, false, args.begin());
 }
 
 /**

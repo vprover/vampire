@@ -38,6 +38,7 @@
 #include "Kernel/Renaming.hpp"
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/Term.hpp"
+#include "Kernel/RobSubstitution.hpp"
 
 #include "Indexing/Index.hpp"
 #include "Indexing/TermIndex.hpp"
@@ -130,8 +131,9 @@ struct BackwardDemodulation::ResultFn
       return BwSimplificationRecord(0);
     }
 
-    unsigned qrSort = SortHelper::getTermSort(qr.term, qr.literal);
-    if(qrSort!=_eqSort) {
+    TermList qrSort = SortHelper::getTermSort(qr.term, qr.literal);
+    RobSubstitution subst;
+    if(!subst.unify(qrSort, 0, _eqSort, 1)){
       return BwSimplificationRecord(0);
     }
 
@@ -169,29 +171,29 @@ struct BackwardDemodulation::ResultFn
       TermList other=EqHelper::getOtherEqualitySide(qr.literal, qr.term);
       Ordering::Result tord=_ordering.compare(rhsS, other);
       if(tord!=Ordering::LESS && tord!=Ordering::LESS_EQ) {
-	unsigned eqSort = SortHelper::getEqualityArgumentSort(qr.literal);
-	Literal* eqLitS=Literal::createEquality(true, lhsS, rhsS, eqSort);
-	bool isMax=true;
-	Clause::Iterator cit(*qr.clause);
-	while(cit.hasNext()) {
-	  Literal* lit2=cit.next();
-	  if(qr.literal==lit2) {
-	    continue;
-	  }
-	  if(_ordering.compare(eqLitS, lit2)==Ordering::LESS) {
-	    isMax=false;
-	    break;
-	  }
-	}
-	if(isMax) {
-//	  RSTAT_CTR_INC("bw subsumptions prevented by tlCheck");
-	  //The demodulation is this case which doesn't preserve completeness:
-	  //s = t     s = t1 \/ C
-	  //---------------------
-	  //     t = t1 \/ C
-	  //where t > t1 and s = t > C
-	  return BwSimplificationRecord(0);
-	}
+        TermList eqSort = SortHelper::getEqualityArgumentSort(qr.literal);
+        Literal* eqLitS=Literal::createEquality(true, lhsS, rhsS, eqSort);
+        bool isMax=true;
+        Clause::Iterator cit(*qr.clause);
+        while(cit.hasNext()) {
+          Literal* lit2=cit.next();
+          if(qr.literal==lit2) {
+            continue;
+          }
+          if(_ordering.compare(eqLitS, lit2)==Ordering::LESS) {
+            isMax=false;
+            break;
+          }
+        }
+        if(isMax) {
+        //	  RSTAT_CTR_INC("bw subsumptions prevented by tlCheck");
+          //The demodulation is this case which doesn't preserve completeness:
+          //s = t     s = t1 \/ C
+          //---------------------
+          //     t = t1 \/ C
+          //where t > t1 and s = t > C
+          return BwSimplificationRecord(0);
+        }
       }
 
     }
@@ -229,7 +231,7 @@ struct BackwardDemodulation::ResultFn
     return BwSimplificationRecord(qr.clause,res);
   }
 private:
-  unsigned _eqSort;
+  TermList _eqSort;
   Literal* _eqLit;
   Clause* _cl;
   SmartPtr<ClauseSet> _removed;

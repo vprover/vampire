@@ -40,9 +40,9 @@
 
 #include "Inferences/InferenceEngine.hpp"
 #include "Inferences/Instantiation.hpp"
-#include "Inferences/TheoryInstAndSimp.hpp"
+//#include "Inferences/TheoryInstAndSimp.hpp"
 
-#include "Saturation/ExtensionalityClauseContainer.hpp"
+//#include "Saturation/ExtensionalityClauseContainer.hpp"
 
 #include "Limits.hpp"
 
@@ -79,7 +79,7 @@ public:
   void setGeneratingInferenceEngine(GeneratingInferenceEngine* generator);
   void setImmediateSimplificationEngine(ImmediateSimplificationEngine* immediateSimplifier);
 #if VZ3
-  void setTheoryInstAndSimp(TheoryInstAndSimp* t);
+  //void setTheoryInstAndSimp(TheoryInstAndSimp* t);
 #endif
 
   void setLabelFinder(LabelFinder* finder){ _labelFinder = finder; }
@@ -101,9 +101,9 @@ public:
 
   virtual ClauseContainer* getSimplifyingClauseContainer() = 0;
   virtual ClauseContainer* getGeneratingClauseContainer() { return _active; }
-  ExtensionalityClauseContainer* getExtensionalityClauseContainer() {
+  /*ExtensionalityClauseContainer* getExtensionalityClauseContainer() {
     return _extensionality;
-  }
+  }*/
 
   ClauseIterator activeClauses();
   ClauseIterator passiveClauses();
@@ -192,7 +192,7 @@ protected:
   UnprocessedClauseContainer* _unprocessed;
   PassiveClauseContainer* _passive;
   ActiveClauseContainer* _active;
-  ExtensionalityClauseContainer* _extensionality;
+  //ExtensionalityClauseContainer* _extensionality;
 
   ScopedPtr<GeneratingInferenceEngine> _generator;
   ScopedPtr<ImmediateSimplificationEngine> _immediateSimplifier;
@@ -214,7 +214,7 @@ protected:
   AnswerLiteralManager* _answerLiteralManager;
   Instantiation* _instantiation;
 #if VZ3
-  TheoryInstAndSimp* _theoryInstSimp;
+  //TheoryInstAndSimp* _theoryInstSimp;
 #endif
 
 

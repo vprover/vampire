@@ -157,7 +157,7 @@ MINISAT_OBJ = Minisat/core/Solver.o\
   SAT/MinisatInterfacingNewSimp.o
 
 API_OBJ = Api/FormulaBuilder.o\
-	  Api/Helper.o\
+#	  Api/Helper.o\
 	  Api/ResourceLimits.o\
 	  Api/Tracing.o
 #	  Api/Problem.o\	  
@@ -202,7 +202,7 @@ VK_OBJ= Kernel/Clause.o\
         Kernel/Grounder.o\
         Kernel/Inference.o\
         Kernel/InferenceStore.o\
-        Kernel/InterpretedLiteralEvaluator.o\
+#        Kernel/InterpretedLiteralEvaluator.o\
         Kernel/KBO.o\
         Kernel/KBOForEPR.o\
         Kernel/LiteralSelector.o\
@@ -228,7 +228,7 @@ VK_OBJ= Kernel/Clause.o\
         Kernel/Term.o\
         Kernel/TermIterators.o\
         Kernel/TermTransformer.o\
-        Kernel/Theory.o\
+#        Kernel/Theory.o\
          Kernel/Signature.o\
          Kernel/Unit.o
 #        Kernel/MatchTag.o\
@@ -239,9 +239,9 @@ VK_OBJ= Kernel/Clause.o\
 #         Kernel/V2CIndex.o\
     
 
-VI_OBJ = Indexing/AcyclicityIndex.o\
-	 Indexing/ClauseCodeTree.o\
-         Indexing/ClauseVariantIndex.o\
+VI_OBJ = Indexing/ClauseVariantIndex.o\
+#   Indexing/AcyclicityIndex.o\
+#   Indexing/ClauseCodeTree.o\
          Indexing/CodeTree.o\
          Indexing/CodeTreeInterfaces.o\
          Indexing/GroundingIndex.o\
@@ -261,8 +261,8 @@ VI_OBJ = Indexing/AcyclicityIndex.o\
          Indexing/TermSubstitutionTree.o
 #         Indexing/FormulaIndex.o\         
 
-VIG_OBJ = InstGen/IGAlgorithm.o\
-          InstGen/ModelPrinter.o
+#VIG_OBJ = InstGen/IGAlgorithm.o\
+#          InstGen/ModelPrinter.o
 
 VINF_OBJ=Inferences/BackwardDemodulation.o\
          Inferences/BackwardSubsumptionResolution.o\
@@ -271,7 +271,7 @@ VINF_OBJ=Inferences/BackwardDemodulation.o\
          Inferences/DistinctEqualitySimplifier.o\
          Inferences/EqualityFactoring.o\
          Inferences/EqualityResolution.o\
-         Inferences/ExtensionalityResolution.o\
+#         Inferences/ExtensionalityResolution.o\
          Inferences/Factoring.o\
          Inferences/FastCondensation.o\
          Inferences/FOOLParamodulation.o\
@@ -284,13 +284,13 @@ VINF_OBJ=Inferences/BackwardDemodulation.o\
          Inferences/EquationalTautologyRemoval.o\
          Inferences/InferenceEngine.o\
 	 Inferences/Instantiation.o\
-         Inferences/InterpretedEvaluation.o\
+#         Inferences/InterpretedEvaluation.o\
          Inferences/SLQueryBackwardSubsumption.o\
          Inferences/Superposition.o\
          Inferences/TautologyDeletionISE.o\
-         Inferences/TermAlgebraReasoning.o\
-         Inferences/TheoryInstAndSimp.o\
-         Inferences/Induction.o\
+#         Inferences/TermAlgebraReasoning.o\
+#         Inferences/TheoryInstAndSimp.o\
+#         Inferences/Induction.o\
          Inferences/URResolution.o
 #         Inferences/CTFwSubsAndRes.o\
 
@@ -318,7 +318,7 @@ VST_OBJ= Saturation/AWPassiveClauseContainer.o\
          Saturation/ClauseContainer.o\
          Saturation/ConsequenceFinder.o\
          Saturation/Discount.o\
-         Saturation/ExtensionalityClauseContainer.o\
+#         Saturation/ExtensionalityClauseContainer.o\
 	 Saturation/LabelFinder.o\
          Saturation/Limits.o\
          Saturation/LRS.o\
@@ -328,16 +328,16 @@ VST_OBJ= Saturation/AWPassiveClauseContainer.o\
          Saturation/Splitter.o\
          Saturation/SymElOutput.o
 
-VS_OBJ = Shell/AnswerExtractor.o\
-         Shell/BFNT.o\
-         Shell/BFNTMainLoop.o\
-         Shell/CommandLine.o\
+VS_OBJ = Shell/CommandLine.o\
+#         Shell/AnswerExtractor.o\
+#         Shell/BFNT.o\
+#         Shell/BFNTMainLoop.o\
          Shell/CNF.o\
-         Shell/NewCNF.o\
+#         Shell/NewCNF.o\
          Shell/DistinctProcessor.o\
          Shell/DistinctGroupExpansion.o\
          Shell/EqResWithDeletion.o\
-         Shell/EqualityProxy.o\
+#         Shell/EqualityProxy.o\
          Shell/Flattening.o\
          Shell/FunctionDefinition.o\
          Shell/GeneralSplitting.o\
@@ -365,17 +365,17 @@ VS_OBJ = Shell/AnswerExtractor.o\
          Shell/SimplifyProver.o\
          Shell/SineUtils.o\
          Shell/SMTFormula.o\
-         Shell/FOOLElimination.o\
+         #Shell/FOOLElimination.o\
          Shell/Statistics.o\
          Shell/SubexpressionIterator.o\
          Shell/SymbolDefinitionInlining.o\
          Shell/SymbolOccurrenceReplacement.o\
          Shell/SymCounter.o\
-         Shell/TermAlgebra.o\
-         Shell/TheoryAxioms.o\
-         Shell/TheoryFinder.o\
-         Shell/TheoryFlattening.o\
-         Shell/BlockedClauseElimination.o\
+#         Shell/TermAlgebra.o\
+#         Shell/TheoryAxioms.o\
+#         Shell/TheoryFinder.o\
+#         Shell/TheoryFlattening.o\
+#         Shell/BlockedClauseElimination.o\
          Shell/Token.o\
          Shell/TPTPPrinter.o\
          Shell/UIHelper.o\
@@ -401,11 +401,12 @@ VS_OBJ = Shell/AnswerExtractor.o\
 #         Shell/HalfBoundingRemover.o\
 #         Shell/SubsumptionRemover.o\
 
-PARSE_OBJ = Parse/SMTLIB2.o\
-            Parse/TPTP.o
+PARSE_OBJ = Parse/TPTP.o
+#            Parse/SMTLIB2.o\
+            
 
-DP_OBJ = DP/ShortConflictMetaDP.o\
-         DP/SimpleCongruenceClosure.o
+DP_OBJ = DP/ShortConflictMetaDP.o
+#         DP/SimpleCongruenceClosure.o
 
 LTB_OBJ = Shell/LTB/Builder.o\
           Shell/LTB/Selector.o\
@@ -417,13 +418,13 @@ CASC_OBJ = CASC/PortfolioMode.o\
            CASC/CLTBMode.o\
            CASC/CLTBModeLearning.o
 
-VFMB_OBJ = FMB/ClauseFlattening.o\
-           FMB/SortInference.o\
-	   FMB/Monotonicity.o\
-	   FMB/FunctionRelationshipInference.o\
-	   FMB/FiniteModel.o\
-	   FMB/FiniteModelMultiSorted.o\
-           FMB/FiniteModelBuilder.o
+#VFMB_OBJ = FMB/ClauseFlattening.o\
+#           FMB/SortInference.o\
+#	   FMB/Monotonicity.o\
+#	   FMB/FunctionRelationshipInference.o\
+#	   FMB/FiniteModel.o\
+#	   FMB/FiniteModelMultiSorted.o\
+#           FMB/FiniteModelBuilder.o
 
 # testing procedures
 VT_OBJ = Test/CheckedSatSolver.o\
@@ -436,19 +437,19 @@ VT_OBJ = Test/CheckedSatSolver.o\
 
 VUT_OBJ = $(patsubst %.cpp,%.o,$(wildcard UnitTests/*.cpp))
 
-VUTIL_OBJ = VUtils/AnnotationColoring.o\
-            VUtils/CPAInterpolator.o\
-            VUtils/DPTester.o\
-            VUtils/EPRRestoringScanner.o\
-            VUtils/FOEquivalenceDiscovery.o\
-            VUtils/LocalityRestoring.o\
-            VUtils/PreprocessingEvaluator.o\
-            VUtils/ProblemColoring.o\
-            VUtils/RangeColoring.o\
-            VUtils/SATReplayer.o\
-            VUtils/SimpleSMT.o\
-            VUtils/SMTLIBConcat.o\
-            VUtils/Z3InterpolantExtractor.o
+#VUTIL_OBJ = VUtils/AnnotationColoring.o\
+#            VUtils/CPAInterpolator.o\
+#            VUtils/DPTester.o\
+#            VUtils/EPRRestoringScanner.o\
+#            VUtils/FOEquivalenceDiscovery.o\
+#            VUtils/LocalityRestoring.o\
+#            VUtils/PreprocessingEvaluator.o\
+#            VUtils/ProblemColoring.o\
+#            VUtils/RangeColoring.o\
+#            VUtils/SATReplayer.o\
+#            VUtils/SimpleSMT.o\
+#            VUtils/SMTLIBConcat.o\
+#            VUtils/Z3InterpolantExtractor.o
 
 LIB_DEP = Indexing/TermSharing.o\
 	  Inferences/DistinctEqualitySimplifier.o\
@@ -457,7 +458,7 @@ LIB_DEP = Indexing/TermSharing.o\
 	  Kernel/Formula.o\
 	  Kernel/FormulaUnit.o\
 	  Kernel/FormulaVarIterator.o\
-	  Kernel/InterpretedLiteralEvaluator.o\
+#	  Kernel/InterpretedLiteralEvaluator.o\
 	  Kernel/Inference.o\
 	  Kernel/InferenceStore.o\
 	  Kernel/Problem.o\
@@ -469,7 +470,7 @@ LIB_DEP = Indexing/TermSharing.o\
 	  Kernel/Term.o\
 	  Kernel/TermIterators.o\
 	  Kernel/TermTransformer.o\
-	  Kernel/Theory.o\
+#	  Kernel/Theory.o\
 	  Kernel/Unit.o\
 	  Parse/TPTP.o\
 	  Saturation/ClauseContainer.o\

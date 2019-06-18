@@ -54,7 +54,7 @@
 #include "Inferences/CTFwSubsAndRes.hpp"
 #include "Inferences/EqualityFactoring.hpp"
 #include "Inferences/EqualityResolution.hpp"
-#include "Inferences/ExtensionalityResolution.hpp"
+//#include "Inferences/ExtensionalityResolution.hpp"
 #include "Inferences/FOOLParamodulation.hpp"
 #include "Inferences/Factoring.hpp"
 #include "Inferences/ForwardDemodulation.hpp"
@@ -68,12 +68,12 @@
 #include "Inferences/Superposition.hpp"
 #include "Inferences/URResolution.hpp"
 #include "Inferences/Instantiation.hpp"
-#include "Inferences/TheoryInstAndSimp.hpp"
-#include "Inferences/Induction.hpp"
+//#include "Inferences/TheoryInstAndSimp.hpp"
+//#include "Inferences/Induction.hpp"
 
-#include "Saturation/ExtensionalityClauseContainer.hpp"
+//#include "Saturation/ExtensionalityClauseContainer.hpp"
 
-#include "Shell/AnswerExtractor.hpp"
+//#include "Shell/AnswerExtractor.hpp"
 #include "Shell/Options.hpp"
 #include "Shell/Statistics.hpp"
 #include "Shell/UIHelper.hpp"
@@ -154,12 +154,12 @@ SaturationAlgorithm::SaturationAlgorithm(Problem& prb, const Options& opt)
   _unprocessed->removedEvent.subscribe(this, &SaturationAlgorithm::onUnprocessedRemoved);
   _unprocessed->selectedEvent.subscribe(this, &SaturationAlgorithm::onUnprocessedSelected);
 
-  if (opt.extensionalityResolution() != Options::ExtensionalityResolution::OFF) {
+  /*if (opt.extensionalityResolution() != Options::ExtensionalityResolution::OFF) {
     _extensionality = new ExtensionalityClauseContainer(opt);
-    //_active->addedEvent.subscribe(_extensionality, &ExtensionalityClauseContainer::addIfExtensionality);
+    _active->addedEvent.subscribe(_extensionality, &ExtensionalityClauseContainer::addIfExtensionality);
   } else {
     _extensionality = 0;
-  }
+  }*/
   
   if (opt.maxWeight()) {
     _limits.setLimits(0,opt.maxWeight(),true);
@@ -1227,12 +1227,12 @@ MainLoopResult SaturationAlgorithm::runImpl()
 }
 
 #if VZ3
-void SaturationAlgorithm::setTheoryInstAndSimp(TheoryInstAndSimp* t)
+/*void SaturationAlgorithm::setTheoryInstAndSimp(TheoryInstAndSimp* t)
 {
   ASS(t);
   _theoryInstSimp=t;
   _theoryInstSimp->attach(this);
-}
+}*/
 #endif
 
 /**
@@ -1338,9 +1338,9 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
   CompositeGIE* gie=new CompositeGIE();
 
   //TODO here induction is last, is that right?
-  if(opt.induction()!=Options::Induction::NONE){
+  /*if(opt.induction()!=Options::Induction::NONE){
     gie->addFront(new Induction());
-  }
+  }*/
 
   if(opt.instantiation()!=Options::Instantiation::OFF){
     res->_instantiation = new Instantiation();
@@ -1353,9 +1353,9 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
     gie->addFront(new EqualityResolution());
     gie->addFront(new Superposition());
   }
-  else if(opt.unificationWithAbstraction()!=Options::UnificationWithAbstraction::OFF){
+  /*else if(opt.unificationWithAbstraction()!=Options::UnificationWithAbstraction::OFF){
     gie->addFront(new EqualityResolution()); 
-  }
+  }*/
   gie->addFront(new Factoring());
   if (opt.binaryResolution()) {
     gie->addFront(new BinaryResolution());
@@ -1363,13 +1363,13 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
   if (opt.unitResultingResolution() != Options::URResolution::OFF) {
     gie->addFront(new URResolution());
   }
-  if (opt.extensionalityResolution() != Options::ExtensionalityResolution::OFF) {
+  /*if (opt.extensionalityResolution() != Options::ExtensionalityResolution::OFF) {
     gie->addFront(new ExtensionalityResolution());
-  }
+  }*/
   if (opt.FOOLParamodulation()) {
     gie->addFront(new FOOLParamodulation());
   }
-  if(prb.hasEquality() && env.signature->hasTermAlgebras()) {
+  /*if(prb.hasEquality() && env.signature->hasTermAlgebras()) {
     if (opt.termAlgebraCyclicityCheck() == Options::TACyclicityCheck::RULE) {
       gie->addFront(new AcyclicityGIE());
     } else if (opt.termAlgebraCyclicityCheck() == Options::TACyclicityCheck::RULELIGHT) {
@@ -1378,12 +1378,12 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
     if (opt.termAlgebraInferences()) {
       gie->addFront(new InjectivityGIE());
     }
-  }
+  }*/
 #if VZ3
-  if (opt.theoryInstAndSimp() != Shell::Options::TheoryInstSimp::OFF){
+  /*if (opt.theoryInstAndSimp() != Shell::Options::TheoryInstSimp::OFF){
     res->setTheoryInstAndSimp(new TheoryInstAndSimp());
     //gie->addFront(new TheoryInstAndSimp());
-  }
+  }*/
 #endif
 
   res->setGeneratingInferenceEngine(gie);

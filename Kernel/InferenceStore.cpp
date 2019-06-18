@@ -169,7 +169,7 @@ UnitIterator InferenceStore::getParents(Unit* us)
  * It is caller's responsibility to ensure that variables in @b vars are unique.
  */
 template<typename VarContainer>
-vstring getQuantifiedStr(const VarContainer& vars, vstring inner, DHMap<unsigned,unsigned>& t_map, bool innerParentheses=true){
+vstring getQuantifiedStr(const VarContainer& vars, vstring inner, DHMap<unsigned,TermList>& t_map, bool innerParentheses=true){
   CALL("getQuantifiedStr(VarContainer, vstring, map)");
 
   VirtualIterator<unsigned> vit=pvi( getContentIterator(vars) );
@@ -181,10 +181,10 @@ vstring getQuantifiedStr(const VarContainer& vars, vstring inner, DHMap<unsigned
       varStr+=",";
     }
     vstring ty="";
-    unsigned t;
-    if(t_map.find(var,t) && t!=Sorts::SRT_DEFAULT){
+    TermList t;
+    if(t_map.find(var,t) && t!=TermList(Term::DEFAULT)){
       //TODO should assert that we are in tff mode here
-      ty=":" + env.sorts->sortName(t);
+      ty=":" + t.toString();
     }
     varStr+=vstring("X")+Int::toString(var)+ty;
     first=false;
@@ -212,7 +212,7 @@ template<typename VarContainer>
 vstring getQuantifiedStr(const VarContainer& vars, vstring inner, bool innerParentheses=true)
 {
   CALL("getQuantifiedStr(VarContainer, vstring)");
-  static DHMap<unsigned,unsigned> d;
+  static DHMap<unsigned,TermList> d;
   return getQuantifiedStr(vars,inner,d,innerParentheses);
 }
 
@@ -225,7 +225,7 @@ vstring getQuantifiedStr(Unit* u, List<unsigned>* nonQuantified=0)
 
   Set<unsigned> vars;
   vstring res;
-  DHMap<unsigned,unsigned> t_map;
+  DHMap<unsigned,TermList> t_map;
   SortHelper::collectVariableSorts(u,t_map);
   if (u->isClause()) {
     Clause* cl=static_cast<Clause*>(u);
@@ -233,11 +233,11 @@ vstring getQuantifiedStr(Unit* u, List<unsigned>* nonQuantified=0)
     for(unsigned i=0;i<clen;i++) {
       TermVarIterator vit( (*cl)[i] );
       while(vit.hasNext()) {
-	unsigned var=vit.next();
-	if (List<unsigned>::member(var, nonQuantified)) {
-	  continue;
-	}
-	vars.insert(var);
+        unsigned var=vit.next();
+        if (List<unsigned>::member(var, nonQuantified)) {
+          continue;
+        }
+        vars.insert(var);
       }
     }
     res=cl->literalsOnlyToString();

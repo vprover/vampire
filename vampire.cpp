@@ -61,7 +61,7 @@
 #include "Inferences/InferenceEngine.hpp"
 #include "Inferences/TautologyDeletionISE.hpp"
 
-#include "InstGen/IGAlgorithm.hpp"
+//#include "InstGen/IGAlgorithm.hpp"
 
 #include "SAT/DIMACS.hpp"
 
@@ -70,7 +70,7 @@
 #include "CASC/CLTBModeLearning.hpp"
 #include "Shell/CParser.hpp"
 #include "Shell/CommandLine.hpp"
-#include "Shell/EqualityProxy.hpp"
+//#include "Shell/EqualityProxy.hpp"
 #include "Shell/Grounding.hpp"
 #include "Shell/Normalisation.hpp"
 #include "Shell/Options.hpp"
@@ -113,7 +113,7 @@ using namespace Shell;
 using namespace SAT;
 using namespace Saturation;
 using namespace Inferences;
-using namespace InstGen;
+//using namespace InstGen;
 
 /**
  * Return value is non-zero unless we were successful.

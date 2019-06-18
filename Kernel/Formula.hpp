@@ -49,7 +49,7 @@ class Formula
 {
 public:
   typedef List<int> VarList;
-  typedef List<Term*> SortList;
+  typedef List<TermList> SortList;
   /**
    * Constructor of constant formulas (true/false)
    * @since 02/07/2007 Manchester

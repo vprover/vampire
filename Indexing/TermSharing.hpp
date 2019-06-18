@@ -49,7 +49,7 @@ public:
   Term* insertRecurrently(Term*);
 
   Literal* insert(Literal*);
-  Literal* insertVariableEquality(Literal* lit,unsigned sort);
+  Literal* insertVariableEquality(Literal* lit,TermList sort);
 
   Literal* tryGetOpposite(Literal* l);
 

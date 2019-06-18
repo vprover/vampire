@@ -29,6 +29,7 @@
 #include "Lib/DHMap.hpp"
 
 #include "Kernel/Term.hpp"
+#include "Kernel/Substitution.hpp"
 
 namespace Kernel {
 
@@ -71,13 +72,13 @@ public:
   static void collectVariableSorts(Unit* u, DHMap<unsigned,TermList>& map);
   static void collectVariableSorts(Term* t, DHMap<unsigned,TermList>& map);
   static void collectVariableSorts(TermList ts, TermList contextSort, DHMap<unsigned,TermList>& map);
-  static void collectVariableSortsSpecialTerm(Term* t, TermList contextSort, DHMap<unsigned,TermList>& map);
+  // static void collectVariableSortsSpecialTerm(Term* t, TermList contextSort, DHMap<unsigned,TermList>& map);
   static void collectVariableSorts(Formula* f, DHMap<unsigned,TermList>& map);
 
   static bool areSortsValid(Clause* cl);
   static bool areImmediateSortsValid(Term* t);
 
-  static OperatorType& getType(Term* t);
+  static void getTypeSub(Term* t, Substitution& subst);
 
   static bool areSortsValid(Term* t, DHMap<unsigned,TermList>& varSorts);
 private:

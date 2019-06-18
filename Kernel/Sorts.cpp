@@ -27,6 +27,7 @@
 #include "Kernel/Theory.hpp"
 #include "Shell/Options.hpp"
 
+#include "Term.hpp"
 #include "Signature.hpp"
 
 using namespace Kernel;
@@ -36,6 +37,9 @@ using namespace Kernel;
  * @since 04/05/2013 Manchester, updated with the new built-in sorts
  * @author Andrei Voronkov
  */
+ 
+const TermList OpertorType::PREDICATE_FLAG = TermList(Term::BOOLN);
+ 
 Sorts::Sorts()
 {
   CALL("Sorts::Sorts");
@@ -296,7 +300,7 @@ OperatorType::OperatorTypes& OperatorType::operatorTypes() {
  *
  * Release key if not needed.
  */
-OperatorType* OperatorType::getTypeFromKey(OperatorType::OperatorKey* key)
+OperatorType* OperatorType::getTypeFromKey(OperatorType::OperatorKey* key, VarList* vars)
 {
   CALL("OperatorType::getTypeFromKey");
 
@@ -307,16 +311,19 @@ OperatorType* OperatorType::getTypeFromKey(OperatorType::OperatorKey* key)
   }
   */
 
-  OperatorType* resultType;
-  if (operatorTypes().find(key,resultType)) {
+  if(!vars){
+    vars = VarList::empty();
+  }
+
+  OperatorType* resultType = new OperatorType(key, vars);;
+/*  if (operatorTypes().find(key,resultType)) {
     key->deallocate();
 
     // cout << " Found " << resultType << endl;
 
     return resultType;
-  }
+  } */
 
-  resultType = new OperatorType(key);
   operatorTypes().insert(key,resultType);
 
   // cout << " Created new " << resultType << endl;
@@ -353,6 +360,16 @@ vstring OperatorType::argsToString() const
 vstring OperatorType::toString() const
 {
   CALL("OperatorType::toString");
+ 
+  vstring res;
+  if(typeArgsArity()){
+    res = "!>[";
+    for(unsigned i = 0; i < typeArgsArity(); i++){
+      if(i != 0){ res += " ,"; }
+      res+= "X" + Int::toString(VarList::nth(_vars, i)) + ": $ttype"; 
+    }
+    res += " ]:"
+  }
 
   return (arity() ? argsToString() + " > " : "") +
       (isPredicateType() ? "$o" : result().toString());

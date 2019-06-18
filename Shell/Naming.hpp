@@ -28,6 +28,7 @@
 
 #include "Kernel/Formula.hpp"
 #include "Kernel/Unit.hpp"
+#include "Lib/List.hpp"
 
 using namespace Kernel;
 
@@ -40,6 +41,7 @@ namespace Shell {
 class Naming
 {
 public:
+  typedef List<unsigned> VarList;
   Naming (int threshold, bool preserveEpr);
   FormulaUnit* apply(FormulaUnit* unit,UnitList*& defs);
 private:

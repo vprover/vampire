@@ -341,16 +341,16 @@ Term* SubstHelper::applyImpl(Term* trm, Applicator& applicator, bool noSharing)
     TermList* tt=toDo->pop();
     if(tt->isEmpty()) {
       if(terms->isEmpty()) {
-	//we're done, args stack contains modified arguments
-	//of the topleve term/literal.
-	ASS(toDo->isEmpty());
-	break;
+        //we're done, args stack contains modified arguments
+        //of the topleve term/literal.
+        ASS(toDo->isEmpty());
+        break;
       }
       Term* orig=terms->pop();
       if(!modified->pop()) {
-	args->truncate(args->length() - orig->arity());
-	args->push(TermList(orig));
-	continue;
+        args->truncate(args->length() - orig->arity());
+        args->push(TermList(orig));
+        continue;
       }
       //here we assume, that stack is an array with
       //second topmost element as &top()-1, third at
@@ -361,10 +361,10 @@ Term* SubstHelper::applyImpl(Term* trm, Applicator& applicator, bool noSharing)
 
       Term* newTrm;
       if(shouldShare) {
-	newTrm=Term::create(orig,argLst);
+        newTrm=Term::create(orig,argLst);
       }
       else {
-	newTrm=Term::createNonShared(orig,argLst);
+        newTrm=Term::createNonShared(orig,argLst);
       }
       args->truncate(args->length() - orig->arity());
       args->push(TermList(newTrm));
@@ -379,7 +379,7 @@ Term* SubstHelper::applyImpl(Term* trm, Applicator& applicator, bool noSharing)
       TermList tDest=applicator.apply(tl.var());
       args->push(tDest);
       if(tDest!=tl) {
-	modified->setTop(true);
+        modified->setTop(true);
       }
       continue;
     }
@@ -387,7 +387,7 @@ Term* SubstHelper::applyImpl(Term* trm, Applicator& applicator, bool noSharing)
       TermList tDest=SpecVarHandler<ProcessSpecVars>::apply(applicator,tl.var());
       args->push(tDest);
       if(tDest!=tl) {
-	modified->setTop(true);
+        modified->setTop(true);
       }
       continue;
     }
@@ -429,9 +429,9 @@ Term* SubstHelper::applyImpl(Term* trm, Applicator& applicator, bool noSharing)
     else {
       bool shouldShare=!noSharing && canBeShared(argLst, trm->arity());
       if(shouldShare) {
-	result=Term::create(trm,argLst);
+        result=Term::create(trm,argLst);
       } else {
-	result=Term::createNonShared(trm,argLst);
+        result=Term::createNonShared(trm,argLst);
       }
     }
   }

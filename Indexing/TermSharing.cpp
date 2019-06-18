@@ -230,7 +230,7 @@ Literal* TermSharing::insert(Literal* t)
  * Insert a new literal in the index and return the result.
  * @since 28/12/2007 Manchester
  */
-Literal* TermSharing::insertVariableEquality(Literal* t,unsigned sort)
+Literal* TermSharing::insertVariableEquality(Literal* t, TermList sort)
 {
   CALL("TermSharing::insertVariableEquality");
   ASS(t->isLiteral());

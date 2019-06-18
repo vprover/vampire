@@ -116,6 +116,7 @@ void SplittingBranchSelector::init()
   }
   _minSCO = _parent.getOptions().splittingMinimizeModel() == Options::SplittingMinimizeModel::SCO;
 
+  /*
   if(_parent.getOptions().splittingCongruenceClosure() != Options::SplittingCongruenceClosure::OFF) {
     _dp = new DP::SimpleCongruenceClosure(&_parent.getOrdering());
     if (_parent.getOptions().ccUnsatCores() == Options::CCUnsatCores::SMALL_ONES) {
@@ -127,7 +128,7 @@ void SplittingBranchSelector::init()
     if (_ccModel) {
       _dpModel = new DP::SimpleCongruenceClosure(&_parent.getOrdering());
     }
-  }
+  }*/
 }
 
 void SplittingBranchSelector::updateVarCnt()

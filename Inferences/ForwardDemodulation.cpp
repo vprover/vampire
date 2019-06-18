@@ -100,125 +100,125 @@ bool ForwardDemodulation::perform(Clause* cl, Clause*& replacement, ClauseIterat
     while(nvi.hasNext()) {
       TermList trm=nvi.next();
       if(!attempted.insert(trm)) {
-	//We have already tried to demodulate the term @b trm and did not
-	//succeed (otherwise we would have returned from the function).
-	//If we have tried the term @b trm, we must have tried to
-	//demodulate also its subterms, so we can skip them too.
-	nvi.right();
-	continue;
+        //We have already tried to demodulate the term @b trm and did not
+        //succeed (otherwise we would have returned from the function).
+        //If we have tried the term @b trm, we must have tried to
+        //demodulate also its subterms, so we can skip them too.
+        nvi.right();
+        continue;
       }
 
-      unsigned querySort = SortHelper::getTermSort(trm, lit);
+      TermList querySort = SortHelper::getTermSort(trm, lit);
 
       bool toplevelCheck=getOptions().demodulationRedundancyCheck() && lit->isEquality() &&
 	  (trm==*lit->nthArgument(0) || trm==*lit->nthArgument(1));
 
       TermQueryResultIterator git=_index->getGeneralizations(trm, true);
       while(git.hasNext()) {
-	TermQueryResult qr=git.next();
-	ASS_EQ(qr.clause->length(),1);
+        TermQueryResult qr=git.next();
+        ASS_EQ(qr.clause->length(),1);
 
-	if(!ColorHelper::compatible(cl->color(), qr.clause->color())) {
-	  continue;
-	}
+        if(!ColorHelper::compatible(cl->color(), qr.clause->color())) {
+          continue;
+        }
 
-	unsigned eqSort = SortHelper::getEqualityArgumentSort(qr.literal);
+        TermList eqSort = SortHelper::getEqualityArgumentSort(qr.literal);
 
-	if(querySort!=eqSort) {
-	  continue;
-	}
+        if(querySort!=eqSort) {//TODO fix this, unification, generalisation or what?
+          continue;
+        }
 
-	TermList rhs=EqHelper::getOtherEqualitySide(qr.literal,qr.term);
-	TermList rhsS;
-	if(!qr.substitution->isIdentityOnQueryWhenResultBound()) {
-	  //When we apply substitution to the rhs, we get a term, that is
-	  //a variant of the term we'd like to get, as new variables are
-	  //produced in the substitution application.
-	  TermList lhsSBadVars=qr.substitution->applyToResult(qr.term);
-	  TermList rhsSBadVars=qr.substitution->applyToResult(rhs);
-	  Renaming rNorm, qNorm, qDenorm;
-	  rNorm.normalizeVariables(lhsSBadVars);
-	  qNorm.normalizeVariables(trm);
-	  qDenorm.makeInverse(qNorm);
-	  ASS_EQ(trm,qDenorm.apply(rNorm.apply(lhsSBadVars)));
-	  rhsS=qDenorm.apply(rNorm.apply(rhsSBadVars));
-	} else {
-	  rhsS=qr.substitution->applyToBoundResult(rhs);
-	}
+        TermList rhs=EqHelper::getOtherEqualitySide(qr.literal,qr.term);
+        TermList rhsS;
+        if(!qr.substitution->isIdentityOnQueryWhenResultBound()) {
+          //When we apply substitution to the rhs, we get a term, that is
+          //a variant of the term we'd like to get, as new variables are
+          //produced in the substitution application.
+          TermList lhsSBadVars=qr.substitution->applyToResult(qr.term);
+          TermList rhsSBadVars=qr.substitution->applyToResult(rhs);
+          Renaming rNorm, qNorm, qDenorm;
+          rNorm.normalizeVariables(lhsSBadVars);
+          qNorm.normalizeVariables(trm);
+          qDenorm.makeInverse(qNorm);
+          ASS_EQ(trm,qDenorm.apply(rNorm.apply(lhsSBadVars)));
+          rhsS=qDenorm.apply(rNorm.apply(rhsSBadVars));
+        } else {
+          rhsS=qr.substitution->applyToBoundResult(rhs);
+        }
 
-	Ordering::Result argOrder = ordering.getEqualityArgumentOrder(qr.literal);
-	bool preordered = argOrder==Ordering::LESS || argOrder==Ordering::GREATER;
-#if VDEBUG
-	if(preordered) {
-	  if(argOrder==Ordering::LESS) {
-	    ASS_EQ(rhs, *qr.literal->nthArgument(0));
-	  }
-	  else {
-	    ASS_EQ(rhs, *qr.literal->nthArgument(1));
-	  }
-	}
-#endif
-	if(!preordered && (_preorderedOnly || ordering.compare(trm,rhsS)!=Ordering::GREATER) ) {
-	  continue;
-	}
+        Ordering::Result argOrder = ordering.getEqualityArgumentOrder(qr.literal);
+        bool preordered = argOrder==Ordering::LESS || argOrder==Ordering::GREATER;
+        #if VDEBUG
+        if(preordered) {
+          if(argOrder==Ordering::LESS) {
+            ASS_EQ(rhs, *qr.literal->nthArgument(0));
+          }
+          else {
+            ASS_EQ(rhs, *qr.literal->nthArgument(1));
+          }
+        }
+        #endif
+        if(!preordered && (_preorderedOnly || ordering.compare(trm,rhsS)!=Ordering::GREATER) ) {
+          continue;
+        }
 
-	if(toplevelCheck) {
-	  TermList other=EqHelper::getOtherEqualitySide(lit, trm);
-	  Ordering::Result tord=ordering.compare(rhsS, other);
-	  if(tord!=Ordering::LESS && tord!=Ordering::LESS_EQ) {
-	    Literal* eqLitS=qr.substitution->applyToBoundResult(qr.literal);
-	    bool isMax=true;
-	    for(unsigned li2=0;li2<cLen;li2++) {
-	      if(li==li2) {
-		continue;
-	      }
-	      if(ordering.compare(eqLitS, (*cl)[li2])==Ordering::LESS) {
-		isMax=false;
-		break;
-	      }
-	    }
-	    if(isMax) {
-	      //RSTAT_CTR_INC("tlCheck prevented");
-	      //The demodulation is this case which doesn't preserve completeness:
-	      //s = t     s = t1 \/ C
-	      //---------------------
-	      //     t = t1 \/ C
-	      //where t > t1 and s = t > C
-	      continue;
-	    }
-	  }
-	}
+        if(toplevelCheck) {
+          TermList other=EqHelper::getOtherEqualitySide(lit, trm);
+          Ordering::Result tord=ordering.compare(rhsS, other);
+          if(tord!=Ordering::LESS && tord!=Ordering::LESS_EQ) {
+            Literal* eqLitS=qr.substitution->applyToBoundResult(qr.literal);
+            bool isMax=true;
+            for(unsigned li2=0;li2<cLen;li2++) {
+              if(li==li2) {
+          continue;
+              }
+              if(ordering.compare(eqLitS, (*cl)[li2])==Ordering::LESS) {
+          isMax=false;
+          break;
+              }
+            }
+            if(isMax) {
+              //RSTAT_CTR_INC("tlCheck prevented");
+              //The demodulation is this case which doesn't preserve completeness:
+              //s = t     s = t1 \/ C
+              //---------------------
+              //     t = t1 \/ C
+              //where t > t1 and s = t > C
+              continue;
+            }
+          }
+        }
 
-	Literal* resLit = EqHelper::replace(lit,trm,rhsS);
-	if(EqHelper::isEqTautology(resLit)) {
-	  env.statistics->forwardDemodulationsToEqTaut++;
-	  premises = pvi( getSingletonIterator(qr.clause));
-	  return true;
-	}
+        Literal* resLit = EqHelper::replace(lit,trm,rhsS);
+        if(EqHelper::isEqTautology(resLit)) {
+          env.statistics->forwardDemodulationsToEqTaut++;
+          premises = pvi( getSingletonIterator(qr.clause));
+          return true;
+        }
 
-	Inference* inf = new Inference2(Inference::FORWARD_DEMODULATION, cl, qr.clause);
-	Unit::InputType inpType = (Unit::InputType)
-		Int::max(cl->inputType(), qr.clause->inputType());
+        Inference* inf = new Inference2(Inference::FORWARD_DEMODULATION, cl, qr.clause);
+        Unit::InputType inpType = (Unit::InputType)
+          Int::max(cl->inputType(), qr.clause->inputType());
 
-	Clause* res = new(cLen) Clause(cLen, inpType, inf);
+        Clause* res = new(cLen) Clause(cLen, inpType, inf);
 
-	(*res)[0]=resLit;
+        (*res)[0]=resLit;
 
-	unsigned next=1;
-	for(unsigned i=0;i<cLen;i++) {
-	  Literal* curr=(*cl)[i];
-	  if(curr!=lit) {
-	    (*res)[next++] = curr;
-	  }
-	}
-	ASS_EQ(next,cLen);
+        unsigned next=1;
+        for(unsigned i=0;i<cLen;i++) {
+          Literal* curr=(*cl)[i];
+          if(curr!=lit) {
+            (*res)[next++] = curr;
+          }
+        }
+        ASS_EQ(next,cLen);
 
-	res->setAge(cl->age());
-	env.statistics->forwardDemodulations++;
+        res->setAge(cl->age());
+        env.statistics->forwardDemodulations++;
 
-	premises = pvi( getSingletonIterator(qr.clause));
-	replacement = res;
-	return true;
+        premises = pvi( getSingletonIterator(qr.clause));
+        replacement = res;
+        return true;
 
       }
     }

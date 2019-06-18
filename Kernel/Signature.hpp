@@ -39,7 +39,7 @@
 #include "Lib/VString.hpp"
 #include "Lib/Environment.hpp"
 
-#include "Shell/TermAlgebra.hpp"
+//#include "Shell/TermAlgebra.hpp"
 #include "Shell/Options.hpp"
 
 #include "Sorts.hpp"
@@ -57,7 +57,7 @@ using namespace Lib;
 class Signature
 {
  public:
-  typedef List<int> VarList;
+  typedef List<unsigned> VarList;
   /** Function or predicate symbol */
   class Symbol {
   protected:
@@ -132,7 +132,7 @@ class Signature
     /** mark constant as overflown */
     void markOverflownConstant() { _overflownConstant=1; }
     /** mark symbol as a term algebra constructor */
-    void markTermAlgebraCons() { _termAlgebraCons=1; }
+    //void markTermAlgebraCons() { _termAlgebraCons=1; }
 
     /** return true iff symbol is marked as skip for the purpose of symbol elimination */
     bool skip() const { return _skip; }
@@ -188,13 +188,13 @@ class Signature
       
     /** Return true if symbol is an integer constant */
     inline bool integerConstant() const
-    { return interpreted() && arity()==0 && fnType()->result()==Term::INTEGER; }
+    { return interpreted() && arity()==0 && fnType()->result()==TermList(Term::INTEGER); }
     /** Return true if symbol is a rational constant */
     inline bool rationalConstant() const
-    { return interpreted() && arity()==0 && fnType()->result()==Term::RATIONAL; }
+    { return interpreted() && arity()==0 && fnType()->result()==TermList(Term::RATIONAL); }
     /** Return true if symbol is a real constant */
     inline bool realConstant() const
-    { return interpreted() && arity()==0 && fnType()->result()==Term::REAL; }
+    { return interpreted() && arity()==0 && fnType()->result()==TermList(Term::REAL); }
 
     /** return true if an interpreted number, note subtle but significant difference from numericConstant **/
     inline bool interpretedNumber() const
@@ -477,7 +477,7 @@ class Signature
   void noDistinctGroupsLeft(){ _distinctGroupsAddedTo=false; }
   Stack<Stack<unsigned>*> getDistinctGroupMembers(){ return _distinctGroupMembers; }
 
-  bool hasTermAlgebras() { return !_termAlgebras.isEmpty(); }
+  //bool hasTermAlgebras() { return !_termAlgebras.isEmpty(); }
       
   static vstring key(const vstring& name,int arity);
 
@@ -511,7 +511,7 @@ class Signature
     bool added = false;
     unsigned individualSort = addFunction("$i",0, added);
     if(added){
-      getFunction(individualSort)->setType(OperatorType::getConstantsType(TermList(Term::SUPER), VarList::empty()))
+      getFunction(individualSort)->setType(OperatorType::getConstantsType(TermList(Term::SUPER), VarList::empty()));
     }
     return individualSort;
   }
@@ -520,7 +520,7 @@ class Signature
     bool added = false;
     unsigned boolSort = addFunction("$o",0, added);
     if(added){
-      getFunction(boolSort)->setType(OperatorType::getConstantsType(TermList(Term::SUPER), VarList::empty()))
+      getFunction(boolSort)->setType(OperatorType::getConstantsType(TermList(Term::SUPER), VarList::empty()));
     }
     return boolSort;
   }
@@ -529,7 +529,7 @@ class Signature
     bool added = false;
     unsigned realSort = addFunction("$real",0, added);
     if(added){
-      getFunction(realSort)->setType(OperatorType::getConstantsType(TermList(Term::SUPER), VarList::empty()))
+      getFunction(realSort)->setType(OperatorType::getConstantsType(TermList(Term::SUPER), VarList::empty()));
     }
     return realSort;
   }
@@ -538,7 +538,7 @@ class Signature
     bool added = false;
     unsigned intSort = addFunction("$real",0, added);
     if(added){
-      getFunction(intSort)->setType(OperatorType::getConstantsType(TermList(Term::SUPER), VarList::empty()))
+      getFunction(intSort)->setType(OperatorType::getConstantsType(TermList(Term::SUPER), VarList::empty()));
     }
     return intSort;
   }  
@@ -547,16 +547,16 @@ class Signature
     bool added = false;
     unsigned ratSort = addFunction("$rat",0, added);
     if(added){
-      getFunction(ratSort)->setType(OperatorType::getConstantsType(TermList(Term::SUPER), VarList::empty()))
+      getFunction(ratSort)->setType(OperatorType::getConstantsType(TermList(Term::SUPER), VarList::empty()));
     }
     return ratSort;    
   }
 
-  bool isTermAlgebraSort(unsigned sort) { return _termAlgebras.find(sort); }
-  Shell::TermAlgebra *getTermAlgebraOfSort(unsigned sort) { return _termAlgebras.get(sort); }
-  void addTermAlgebra(Shell::TermAlgebra *ta) { _termAlgebras.insert(ta->sort(), ta); }
-  VirtualIterator<Shell::TermAlgebra*> termAlgebrasIterator() const { return _termAlgebras.range(); }
-  Shell::TermAlgebraConstructor* getTermAlgebraConstructor(unsigned functor);
+  //bool isTermAlgebraSort(unsigned sort) { return _termAlgebras.find(sort); }
+  //Shell::TermAlgebra *getTermAlgebraOfSort(unsigned sort) { return _termAlgebras.get(sort); }
+  //void addTermAlgebra(Shell::TermAlgebra *ta) { _termAlgebras.insert(ta->sort(), ta); }
+  //VirtualIterator<Shell::TermAlgebra*> termAlgebrasIterator() const { return _termAlgebras.range(); }
+  //Shell::TermAlgebraConstructor* getTermAlgebraConstructor(unsigned functor);
 
   void recordDividesNvalue(TermList n){
     _dividesNvalues.push(n);
@@ -626,10 +626,10 @@ private:
   /**
    * Map from sorts to the associated term algebra, if applicable for the sort
    */ 
-  DHMap<unsigned, Shell::TermAlgebra*> _termAlgebras;
+  //DHMap<unsigned, Shell::TermAlgebra*> _termAlgebras;
 
-  void defineOptionTermAlgebra(unsigned optionSort);
-  void defineEitherTermAlgebra(unsigned eitherSort);
+  //void defineOptionTermAlgebra(unsigned optionSort);
+  //void defineEitherTermAlgebra(unsigned eitherSort);
 }; // class Signature
 
 }

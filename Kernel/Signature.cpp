@@ -53,7 +53,7 @@ Signature::Symbol::Symbol(const vstring& nm,unsigned arity, bool interpreted, bo
     _numericConstant(numericConstant ? 1: 0),
     _answerPredicate(0),
     _overflownConstant(overflownConstant ? 1 : 0),
-    _termAlgebraCons(0),
+    //_termAlgebraCons(0),
     _type(0),
     _distinctGroups(0),
     _usageCount(0),
@@ -64,13 +64,6 @@ Signature::Symbol::Symbol(const vstring& nm,unsigned arity, bool interpreted, bo
 {
   CALL("Signature::Symbol::Symbol");
   ASS(!stringConstant || arity==0);
-
-  Term::SUPER = Term::createConstant("$tType");
-  Term::BOOLN = Term::createConstant(env.signature->getBoolSortSym());
-  Term::DEFAULT = Term::createConstant(env.signature->getDefaultSortSym());
-  Term::INTEGER = Term::createConstant(env.signature->getIntSortSym());
-  Term::RATIONAL = Term::createConstant(env.signature->getRatSortSym());
-  Term::REAL = Term::createConstant(env.signature->getRealSortSym());
 
   if (!stringConstant && !numericConstant && !overflownConstant && symbolNeedsQuoting(_name, interpreted,arity)) {
     _name="'"+_name+"'";
@@ -225,8 +218,8 @@ Signature::Signature ():
     _strings(0),
     _integers(0),
     _rationals(0),
-    _reals(0),
-    _termAlgebras()
+    _reals(0)/*,
+    _termAlgebras()*/
 {
   CALL("Signature::Signature");
 
@@ -957,6 +950,7 @@ bool Signature::symbolNeedsQuoting(vstring name, bool interpreted, unsigned arit
   return true;
 } // Signature::symbolNeedsQuoting
 
+/*
 TermAlgebraConstructor* Signature::getTermAlgebraConstructor(unsigned functor)
 {
   CALL("Signature::getTermAlgebraConstructor");
@@ -973,7 +967,7 @@ TermAlgebraConstructor* Signature::getTermAlgebraConstructor(unsigned functor)
   }
 
   return nullptr;
-}
+}*/
 
 /**
  * Return true if the name containing che character must be quoted

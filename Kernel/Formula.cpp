@@ -359,15 +359,15 @@ vstring Formula::toString(const Formula* formula)
             res += ",";
           }
           res += Term::variableToString(var);
-          Term* t;
+          TermList t;
           if (hasSorts) {
             ASS(ss.hasNext());
             t = ss.next();
-            if (t != Sorts::SRT_DEFAULT) {
-              res += " : " + env.sorts->sortName(t);
+            if (t != TermList(Term::DEFAULT)) {
+              res += " : " + t.toString();
             }
-          } else if (SortHelper::tryGetVariableSort(var, const_cast<Formula*>(f),t) && t != Sorts::SRT_DEFAULT) {
-            res += " : " + env.sorts->sortName(t);
+          } else if (SortHelper::tryGetVariableSort(var, const_cast<Formula*>(f),t) && t != TermList(Term::DEFAULT)) {
+            res += " : " + t.toString();
           }
           first = false;
         }

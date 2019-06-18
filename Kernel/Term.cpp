@@ -63,6 +63,13 @@ const unsigned Term::SF_LET;
 const unsigned Term::SF_FORMULA;
 const unsigned Term::SPECIAL_FUNCTOR_LOWER_BOUND;
 
+Term* Term::SUPER = Term::createConstant("$tType");
+Term* Term::BOOLN = Term::createConstant(env.signature->getBoolSortSym());
+Term* Term::DEFAULT = Term::createConstant(env.signature->getDefaultSortSym());
+Term* Term::INTEGER = Term::createConstant(env.signature->getIntSortSym());
+Term* Term::RATIONAL = Term::createConstant(env.signature->getRatSortSym());
+Term* Term::REAL = Term::createConstant(env.signature->getRealSortSym());
+
 /**
  * Allocate enough bytes to fit a term of a given arity.
  * @since 01/05/2006 Bellevue
@@ -163,6 +170,19 @@ IntList* TermList::freeVariables() const
   }
   return result;
 } // TermList::freeVariables
+
+VList* TermList::freeVars() const
+{
+  CALL("TermList::freeVars");
+  
+  FormulaVarIterator fvi(this);
+  VList* result = VList::empty();
+  VList::FIFO stack(result);
+  while (fvi.hasNext()) {
+    stack.push((unsigned)fvi.next());
+  }
+  return result; 
+}
 
 /**
  * Return true if @b ss and @b tt have the same top symbols, that is,
@@ -591,7 +611,7 @@ vstring Literal::toString() const
     }
 
     vstring res = s + lhs->next()->toString();
-    if (SortHelper::getEqualityArgumentSort(this) == Sorts::SRT_BOOL) {
+    if (SortHelper::getEqualityArgumentSort(this) == TermList(Term::BOOLN)){
       res = "("+res+")";
     }
 
@@ -1106,7 +1126,7 @@ bool Literal::headersMatch(Literal* l1, Literal* l2, bool complementary)
     return false;
   }
   if (l1->isEquality()) {
-    if (SortHelper::getEqualityArgumentSort(l1)!=SortHelper::getEqualityArgumentSort(l2)) {
+    if (SortHelper::getEqualityArgumentSort(l1)!=SortHelper::getEqualityArgumentSort(l2)) {//TODO does this require modification?
       return false;
     }
   }
@@ -1212,11 +1232,11 @@ Literal* Literal::create(Literal* l,TermList* args)
  *
  * The equality may be between two variables.
  */
-Literal* Literal::createEquality (bool polarity, TermList arg1, TermList arg2, unsigned sort)
+Literal* Literal::createEquality (bool polarity, TermList arg1, TermList arg2, TermList sort)
 {
    CALL("Literal::createEquality/4");
 
-   unsigned srt1, srt2;
+   TermList srt1, srt2;
 
    if (!SortHelper::tryGetResultSort(arg1, srt1)) {
      if (!SortHelper::tryGetResultSort(arg2, srt2)) {
@@ -1246,7 +1266,7 @@ Literal* Literal::createEquality (bool polarity, TermList arg1, TermList arg2, u
 /**
  * Create a literal that is equality between two variables.
  */
-Literal* Literal::createVariableEquality (bool polarity, TermList arg1, TermList arg2, unsigned variableSort)
+Literal* Literal::createVariableEquality (bool polarity, TermList arg1, TermList arg2, TermList variableSort)
 {
   CALL("Literal::createVariableEquality");
   ASS(arg1.isVar());

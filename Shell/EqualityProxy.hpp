@@ -76,10 +76,10 @@ private:
   bool getArgumentEqualityLiterals(unsigned cnt, LiteralStack& lits, Stack<TermList>& vars1,
       Stack<TermList>& vars2, OperatorType* symbolType, bool skipSortsWithoutEquality);
   Literal* apply(Literal* lit);
-  Literal* makeProxyLiteral(bool polarity, TermList arg0, TermList arg1, unsigned sort);
+  Literal* makeProxyLiteral(bool polarity, TermList arg0, TermList arg1, TermList sort);
 
   bool haveProxyPredicate(unsigned sort) const;
-  unsigned getProxyPredicate(unsigned sort);
+  unsigned getProxyPredicate(TermList sort);
   Clause* createEqProxyAxiom(const LiteralStack& literalIt);
 
   /** the equality proxy option value, passed in the constructor */

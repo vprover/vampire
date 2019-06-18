@@ -46,7 +46,7 @@
 // #include "MatchTag.hpp" // MS: disconnecting MatchTag, January 2017
 #define USE_MATCH_TAG 0
 
-#include "Sorts.hpp"
+//#include "Sorts.hpp"
 
 #define TERM_DIST_VAR_UNKNOWN 0x7FFFFF
 
@@ -155,6 +155,7 @@ public:
   bool isSafe() const;
 
   IntList* freeVariables() const;
+  VList* freeVars() const;
 
 #if VDEBUG
   void assertValid() const;
@@ -231,12 +232,12 @@ public:
   static const unsigned SF_LET_TUPLE = 0xFFFFFFFB;
   static const unsigned SPECIAL_FUNCTOR_LOWER_BOUND = 0xFFFFFFFB;
 
-  static Term* SUPER = 0;
-  static Term* BOOLN = 0;
-  static Term* DEFAULT = 0;
-  static Term* INTEGER = 0;
-  static Term* RATIONAL = 0;
-  static Term* REAL = 0;
+  static Term* SUPER;
+  static Term* BOOLN;
+  static Term* DEFAULT;
+  static Term* INTEGER;
+  static Term* RATIONAL;
+  static Term* REAL;
 
   class SpecialTermData
   {
@@ -630,7 +631,7 @@ protected:
     unsigned _vars;
     /** If _isTwoVarEquality is true, this value is valid and contains
      * the sort of the top-level variables */
-    unsigned _sort;
+    TermList _sort;
   };
 
 #if USE_MATCH_TAG && !ARCH_X64
@@ -753,7 +754,7 @@ public:
 	  bool commutative, TermList* args);
   static Literal* create(Literal* l,bool polarity);
   static Literal* create(Literal* l,TermList* args);
-  static Literal* createEquality(bool polarity, TermList arg1, TermList arg2, unsigned sort);
+  static Literal* createEquality(bool polarity, TermList arg1, TermList arg2, TermList sort);
   static Literal* create1(unsigned predicate, bool polarity, TermList arg);
   static Literal* create2(unsigned predicate, bool polarity, TermList arg1, TermList arg2);
 
@@ -807,7 +808,7 @@ public:
   /** Return sort of the variables in an equality between two variables.
    * This value is set during insertion into the term sharing structure
    */
-  unsigned twoVarEqSort() const
+  TermList twoVarEqSort() const
   {
     CALL("Literal::twoVarEqSort");
     ASS(isTwoVarEquality());
@@ -816,7 +817,7 @@ public:
   }
 
   /** Assign sort of the variables in an equality between two variables. */
-  void setTwoVarEqSort(unsigned sort)
+  void setTwoVarEqSort(TermList sort)
   {
     CALL("Literal::setTwoVarEqSort");
     ASS(isTwoVarEquality());
@@ -868,7 +869,7 @@ public:
   const vstring& predicateName() const;
 
 private:
-  static Literal* createVariableEquality(bool polarity, TermList arg1, TermList arg2, unsigned variableSort);
+  static Literal* createVariableEquality(bool polarity, TermList arg1, TermList arg2, TermList variableSort);
 
 }; // class Literal
 

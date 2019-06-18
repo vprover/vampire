@@ -32,12 +32,12 @@
 #include "Kernel/Problem.hpp"
 
 #include "GoalGuessing.hpp"
-#include "AnswerExtractor.hpp"
+//#include "AnswerExtractor.hpp"
 #include "CNF.hpp"
 #include "NewCNF.hpp"
 #include "DistinctGroupExpansion.hpp"
 #include "EqResWithDeletion.hpp"
-#include "EqualityProxy.hpp"
+//#include "EqualityProxy.hpp"
 #include "Flattening.hpp"
 #include "FunctionDefinition.hpp"
 #include "GeneralSplitting.hpp"
@@ -56,9 +56,9 @@
 #include "SineUtils.hpp"
 #include "Statistics.hpp"
 #include "FOOLElimination.hpp"
-#include "TheoryAxioms.hpp"
-#include "TheoryFlattening.hpp"
-#include "BlockedClauseElimination.hpp"
+//#include "TheoryAxioms.hpp"
+//#include "TheoryFlattening.hpp"
+//#include "BlockedClauseElimination.hpp"
 #include "TrivialPredicateRemover.hpp"
 
 #include "UIHelper.hpp"
@@ -93,7 +93,7 @@ using namespace Shell;
  * Bound propagation preprocessing steps. Takes as argumet @c constraints the list of constraints
  *
  */
-void Preprocess::preprocess(ConstraintRCList*& constraints)
+/*void Preprocess::preprocess(ConstraintRCList*& constraints)
 {
   CALL("Preprocess::preprocess(ConstraintRCList *& )");
 
@@ -121,11 +121,11 @@ void Preprocess::preprocess(ConstraintRCList*& constraints)
     anyChange |= subsRemover.apply(constraints);
   }
   while(anyChange);
-} // Preprocess::preprocess ()
+} */ // Preprocess::preprocess ()
 
 /**
  * Replace equalities by two non-strict inequalities.
- */
+ */ /*
 void Preprocess::unfoldEqualities(ConstraintRCList*& constraints)
 {
   CALL("Preprocess::unfoldEqualities");
@@ -145,7 +145,7 @@ void Preprocess::unfoldEqualities(ConstraintRCList*& constraints)
     cit.replace(gc);
     cit.insert(lc);
   }
-}
+} */
 #endif //GNUMP
 
 /**
@@ -188,7 +188,7 @@ void Preprocess::preprocess(Problem& prb)
   }
 
   // If there are interpreted operations
-  if (prb.hasInterpretedOperations() || env.signature->hasTermAlgebras()){
+  /*if (prb.hasInterpretedOperations() || env.signature->hasTermAlgebras()){
     // Normalizer is needed, because the TheoryAxioms code assumes Normalized problem
     InterpretedNormalizer().apply(prb);
     // Add theory axioms if needed
@@ -211,12 +211,12 @@ void Preprocess::preprocess(Problem& prb)
       TheoryAxioms(prb).applyFOOL();
       FOOLElimination().apply(prb);
     }
-  }
+  } //TODO switch FOOL back on
 
   if (prb.hasInterpretedOperations() || env.signature->hasTermAlgebras()){
     // Some axioms needed to be normalized, so we call InterpretedNormalizer twice
     InterpretedNormalizer().apply(prb);
-  }
+  }*/
 
 
   // Expansion of distinct groups happens before other preprocessing
@@ -291,12 +291,12 @@ void Preprocess::preprocess(Problem& prb)
     preprocess2(prb);
   }
 
-  if (prb.mayHaveFormulas() && _options.newCNF()) {
+  /*if (prb.mayHaveFormulas() && _options.newCNF()) {
     if (env.options->showPreprocessing())
       env.out() << "newCnf" << std::endl;
 
     newCnf(prb);
-  } else {
+  } else { */
     if (prb.mayHaveFormulas() && _options.naming()) {
       if (env.options->showPreprocessing())
         env.out() << "naming" << std::endl;
@@ -317,7 +317,7 @@ void Preprocess::preprocess(Problem& prb)
 
       clausify(prb);
     }
-  }
+  //}
 
   if (prb.mayHaveFunctionDefinitions()) {
     env.statistics->phase=Statistics::FUNCTION_DEFINITION_ELIMINATION;
@@ -390,7 +390,7 @@ void Preprocess::preprocess(Problem& prb)
      gs.apply(prb);
    }
 
-   if (_options.equalityProxy()!=Options::EqualityProxy::OFF && prb.mayHaveEquality()) {
+   /*if (_options.equalityProxy()!=Options::EqualityProxy::OFF && prb.mayHaveEquality()) {
      env.statistics->phase=Statistics::EQUALITY_PROXY;
      if (env.options->showPreprocessing())
        env.out() << "equality proxy" << std::endl;
@@ -414,7 +414,7 @@ void Preprocess::preprocess(Problem& prb)
 
      BlockedClauseElimination bce;
      bce.apply(prb);
-   }
+   }*/
 
    if (env.options->showPreprocessing()) {
      UnitList::Iterator uit(prb.units());
@@ -612,7 +612,7 @@ void Preprocess::newCnf(Problem& prb)
     prb.invalidateProperty();
   }
   prb.reportFormulasEliminated();
-}
+} 
 
 /**
  * Preprocess the unit using options from opt. Preprocessing may

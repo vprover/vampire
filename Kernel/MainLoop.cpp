@@ -30,12 +30,12 @@
 #include "Inferences/DistinctEqualitySimplifier.hpp"
 #include "Inferences/FastCondensation.hpp"
 #include "Inferences/InferenceEngine.hpp"
-#include "Inferences/InterpretedEvaluation.hpp"
-#include "Inferences/TermAlgebraReasoning.hpp"
+//#include "Inferences/InterpretedEvaluation.hpp"
+//#include "Inferences/TermAlgebraReasoning.hpp"
 #include "Inferences/TautologyDeletionISE.hpp"
 #include "Inferences/EquationalTautologyRemoval.hpp"
 
-#include "InstGen/IGAlgorithm.hpp"
+//#include "InstGen/IGAlgorithm.hpp"
 
 #include "Saturation/SaturationAlgorithm.hpp"
 
@@ -43,7 +43,7 @@
 
 #include "SAT/Z3MainLoop.hpp"
 
-#include "Shell/BFNTMainLoop.hpp"
+//#include "Shell/BFNTMainLoop.hpp"
 #include "Shell/Options.hpp"
 #include "Shell/UIHelper.hpp"
 
@@ -140,7 +140,7 @@ ImmediateSimplificationEngine* MainLoop::createISE(Problem& prb, const Options& 
   if(prb.hasEquality() && env.signature->hasDistinctGroups()) {
     res->addFront(new DistinctEqualitySimplifier());
   }
-  if(prb.hasEquality() && env.signature->hasTermAlgebras()) {
+  /*if(prb.hasEquality() && env.signature->hasTermAlgebras()) {
     if (opt.termAlgebraInferences()) {
       res->addFront(new DistinctnessISE());
       res->addFront(new InjectivityISE());
@@ -149,7 +149,7 @@ ImmediateSimplificationEngine* MainLoop::createISE(Problem& prb, const Options& 
   }
   if(prb.hasInterpretedOperations() || prb.hasInterpretedEquality()) {
     res->addFront(new InterpretedEvaluation());
-  }
+  }*/
   if(prb.hasEquality()) {
     res->addFront(new TrivialInequalitiesRemovalISE());
   }
@@ -163,9 +163,9 @@ MainLoop* MainLoop::createFromOptions(Problem& prb, const Options& opt)
 {
   CALL("MainLoop::createFromOptions");
 
-  if(opt.bfnt()) {
+  /*if(opt.bfnt()) {
     return new BFNTMainLoop(prb, opt);
-  }
+  }*/
 
 #if VZ3
   bool isComplete = false; // artificially prevent smtForGround from running
@@ -179,12 +179,12 @@ MainLoop* MainLoop::createFromOptions(Problem& prb, const Options& opt)
   MainLoop* res;
 
   switch (opt.saturationAlgorithm()) {
-  case Options::SaturationAlgorithm::INST_GEN:
+  /*case Options::SaturationAlgorithm::INST_GEN:
     res = new IGAlgorithm(prb, opt);
     break;
   case Options::SaturationAlgorithm::FINITE_MODEL_BUILDING:
     res = new FiniteModelBuilder(prb,opt);
-    break;
+    break;*/
 #if VZ3
   case Options::SaturationAlgorithm::Z3:
     if(!isComplete || !prb.getProperty()->allNonTheoryClausesGround()){

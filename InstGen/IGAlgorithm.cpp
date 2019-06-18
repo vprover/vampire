@@ -49,7 +49,7 @@
 
 #include "Saturation/SaturationAlgorithm.hpp"
 
-#include "Shell/EqualityProxy.hpp"
+//#include "Shell/EqualityProxy.hpp"
 #include "Shell/Property.hpp"
 #include "Shell/Statistics.hpp"
 #include "Shell/UIHelper.hpp"
@@ -75,8 +75,8 @@ IGAlgorithm::IGAlgorithm(Problem& prb,const Options& opt)
     _instGenResolutionRatio(opt.instGenResolutionRatioInstGen(),
 	opt.instGenResolutionRatioResolution(), 50),
     _passive(opt),
-    _tautologyDeletion(false),
-    _equalityProxy(0)
+    _tautologyDeletion(false)/*,
+    _equalityProxy(0)*/
 {
   CALL("IGAlgorithm::IGAlgorithm");
 
@@ -139,9 +139,9 @@ IGAlgorithm::~IGAlgorithm()
   delete _selected;
   delete _variantIdx;
   delete _satSolver;
-  if (_equalityProxy) {
+  /*if (_equalityProxy) {
     delete _equalityProxy;
-  }
+  }*/
 }
 
 ClauseIterator IGAlgorithm::getActive()
@@ -194,10 +194,10 @@ void IGAlgorithm::init()
   }
 
   ASSERT_VALID(_prb);
-  if(_prb.hasEquality()) {
+ /* if(_prb.hasEquality()) {
     _equalityProxy = new EqualityProxy(Options::EqualityProxy::RSTC);
     _equalityProxy->apply(_prb);
-  }
+  } */
 
   ClauseIterator cit = _prb.clauseIterator();
 
@@ -617,9 +617,9 @@ void IGAlgorithm::onResolutionClauseDerived(Clause* cl)
     return;
   }
 
-  if (_equalityProxy) { // we had equality in the problem
+  /*if (_equalityProxy) { // we had equality in the problem
     cl = _equalityProxy->apply(cl);
-  }
+  }*/
 
   SATClause* sc = _gnd->ground(cl,_use_niceness);
   sc = Preprocess::removeDuplicateLiterals(sc); //this is required by the SAT solver

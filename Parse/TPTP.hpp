@@ -277,6 +277,8 @@ public:
     vstring toString() const;
   };
 
+  typedef List<TermList> SortList;
+
   /**
    * Implements lexer and parser exceptions.
    */
@@ -356,7 +358,7 @@ private:
       : Type(TT_ATOMIC), _sort(sort)
     {}
     /** return the sort number */
-    unsigned sort() const {return _sort;}
+    TermList sort() const {return _sort;}
   private:
     /** the sort identified by its number in the signature */
     TermList _sort;
@@ -415,18 +417,18 @@ private:
   public:
     CLASS_NAME(QuantifiedType);
     USE_ALLOCATOR(QuantifiedType);
-    ProductType(Type* t, VarList* vars)
+    QuantifiedType(Type* t, Formula::VarList* vars)
       : Type(TT_QUANTIFIED), _type(t), _vars(vars)
     {}
     /** the bound type variables */
-    VarList* vars() const {return _vars;}
+    Formula::VarList* vars() const {return _vars;}
     /** the right hand side type */
     Type* qtype() const {return _type;}
   private:
     /** the quantiefied typed */
     Type* _type;
     /** bound type variables */
-    VarList* _vars;
+     Formula::VarList* _vars;
   }; // ProductType
 
   /**
@@ -577,7 +579,7 @@ private:
   /** variable lists for building formulas */
   Stack<Formula::VarList*> _varLists;
   /** sort lists for building formulas */
-  Stack<Formula::SortList*> _sortLists;
+  Stack<SortList*> _sortLists;
   /** variable lists for binding variables */
   Stack<Formula::VarList*> _bindLists;
   /** various tokens to consume */
@@ -594,7 +596,6 @@ private:
   Stack<Type*> _types;
   /** various type tags saved during parsing */
   Stack<TypeTag> _typeTags;
-  typedef List<TermList> SortList;
   /**  */
   Stack<TheoryFunction> _theoryFunctions;
   /** bindings of variables to sorts */
@@ -743,8 +744,8 @@ private:
   void simpleType();
   void args();
   void varList();
-  void symbolDefinition();
-  void tupleDefinition();
+  //void symbolDefinition();
+  //void tupleDefinition();
   void term();
   void termInfix();
   void endTerm();
@@ -758,7 +759,7 @@ private:
   void endFormula();
   void formulaInsideTerm();
   void endFormulaInsideTerm();
-  void endTermAsFormula();
+  //void endTermAsFormula();
   void endType();
   void tag();
   void endFof();
@@ -767,32 +768,34 @@ private:
   void type();
   void endIte();
   void letType();
-  void endLetTypes();
+  //void endLetTypes();
   void definition();
   void midDefinition();
-  void endDefinition();
-  void endLet();
-  void endTheoryFunction();
-  void endTuple();
+  //void endDefinition();
+  //void endLet();
+  //void endTheoryFunction();
+  //void endTuple();
   void addTagState(Tag);
 
   TermList readTerm();
-  void bindVariable(int var,unsigned sortNumber);
+  void bindVariable(int var,TermList sort);
   void unbindVariables();
   void skipToRPAR();
   void skipToRBRA();
   unsigned addFunction(vstring name,int arity,bool& added,TermList& someArgument);
   int addPredicate(vstring name,int arity,bool& added,TermList& someArgument);
-  unsigned addOverloadedFunction(vstring name,int arity,int symbolArity,bool& added,TermList& arg,
+  /*unsigned addOverloadedFunction(vstring name,int arity,int symbolArity,bool& added,TermList& arg,
 				 Theory::Interpretation integer,Theory::Interpretation rational,
 				 Theory::Interpretation real);
   unsigned addOverloadedPredicate(vstring name,int arity,int symbolArity,bool& added,TermList& arg,
 				  Theory::Interpretation integer,Theory::Interpretation rational,
-				  Theory::Interpretation real);
-  unsigned sortOf(TermList term);
+				  Theory::Interpretation real);*/
+  TermList sortOf(TermList term);
   static bool higherPrecedence(int c1,int c2);
 
   bool findInterpretedPredicate(vstring name, unsigned arity);
+
+  VList* convert(Formula::VarList* vars);
 
   OperatorType* constructOperatorType(Type* t);
 

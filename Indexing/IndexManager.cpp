@@ -27,7 +27,7 @@
 
 #include "Saturation/SaturationAlgorithm.hpp"
 
-#include "AcyclicityIndex.hpp"
+//#include "AcyclicityIndex.hpp"
 #include "ArithmeticIndex.hpp"
 #include "CodeTreeInterfaces.hpp"
 #include "GroundingIndex.hpp"
@@ -198,11 +198,11 @@ Index* IndexManager::create(IndexType t)
     isGenerating = true;
     break;
 
-  case ACYCLICITY_INDEX:
+  /* case ACYCLICITY_INDEX:
     tis = new TermSubstitutionTree();
     res = new AcyclicityIndex(tis);
     isGenerating = true;
-    break;
+    break; */
 
   case DEMODULATION_SUBTERM_SUBST_TREE:
     tis=new TermSubstitutionTree();

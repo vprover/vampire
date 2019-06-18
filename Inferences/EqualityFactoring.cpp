@@ -106,8 +106,11 @@ struct EqualityFactoring::ResultFn
     ASS(sLit->isEquality());
     ASS(fLit->isEquality());
 
-    unsigned srt = SortHelper::getEqualityArgumentSort(sLit);
-    if (srt!=SortHelper::getEqualityArgumentSort(fLit)) {
+    TermList srt = SortHelper::getEqualityArgumentSort(sLit);
+    
+    static RobSubstitution subst;
+    subst.reset();
+    if (!subst.unify(srt, 0, SortHelper::getEqualityArgumentSort(fLit), 0)) {
       return 0;
     }
 
@@ -117,7 +120,6 @@ struct EqualityFactoring::ResultFn
     TermList fRHS=EqHelper::getOtherEqualitySide(fLit, fLHS);
     ASS_NEQ(sLit, fLit);
 
-    static RobSubstitution subst;
     subst.reset();
     if(!subst.unify(sLHS,0,fLHS,0)) {
       return 0;

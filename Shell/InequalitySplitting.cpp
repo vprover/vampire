@@ -159,9 +159,10 @@ Literal* InequalitySplitting::splitLiteral(Literal* lit, Unit::InputType inpType
   CALL("InequalitySplitting::splitLiteral");
   ASS(isSplittable(lit));
 
-  unsigned predNum=env.signature->addNamePredicate(1);
-  unsigned srt = SortHelper::getEqualityArgumentSort(lit);
-  OperatorType* type = OperatorType::getPredicateType({srt});
+  TermList srt = SortHelper::getEqualityArgumentSort(lit);
+  VList* vars = srt.freeVariables();
+  unsigned predNum=env.signature->addNamePredicate(VList::length(vars) + 1);
+  OperatorType* type = OperatorType::getPredicateType({srt}, vars);
 
   Signature::Symbol* predSym = env.signature->getPredicate(predNum);
   predSym->setType(type);
@@ -187,7 +188,7 @@ Literal* InequalitySplitting::splitLiteral(Literal* lit, Unit::InputType inpType
 
   Inference* inf = new Inference(Inference::INEQUALITY_SPLITTING_NAME_INTRODUCTION);
   Clause* defCl=new(1) Clause(1, inpType, inf);
-  (*defCl)[0]=makeNameLiteral(predNum, t, false);
+  (*defCl)[0]=makeNameLiteral(predNum, t, false, vars);
   _predDefs.push(defCl);
 
   InferenceStore::instance()->recordIntroducedSymbol(defCl,false,predNum);
@@ -196,7 +197,7 @@ Literal* InequalitySplitting::splitLiteral(Literal* lit, Unit::InputType inpType
 
   env.statistics->splitInequalities++;
 
-  return makeNameLiteral(predNum, s, true);
+  return makeNameLiteral(predNum, s, true, vars);
 
 }
 
@@ -214,11 +215,19 @@ bool InequalitySplitting::isSplittableEqualitySide(TermList t)
   return t.isTerm() && t.term()->ground() && t.term()->weight()>=_splittingTreshold;
 }
 
-Literal* InequalitySplitting::makeNameLiteral(unsigned predNum, TermList arg, bool polarity)
+Literal* InequalitySplitting::makeNameLiteral(unsigned predNum, TermList arg, bool polarity, VList* vars)
 {
   CALL("InequalitySplitting::makeNameLiteral");
-
-  return Literal::create(predNum, 1, polarity, false, &arg);
+ 
+  Stack<TermList> args;
+  while(!VList::isEmpty(vars)){
+    unsigned var = vars->head();
+    vars = vars->tail;
+    args.push(TermList(var, false));
+  }
+  args.push(arg);
+  
+  return Literal::create(predNum, args.size(), polarity, false, args.begin());
 }
 
 

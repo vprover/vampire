@@ -26,6 +26,7 @@
 #define __GeneralSplitting__
 
 #include "Forwards.hpp"
+#include "Lib/List.hpp"
 
 namespace Shell {
 
@@ -37,6 +38,7 @@ using namespace Kernel;
 class GeneralSplitting
 {
 public:
+  typedef List<unsigned> VarList;
   void apply(Problem& prb);
   bool apply(UnitList*& units);
   bool apply(ClauseList*& units);

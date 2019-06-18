@@ -76,6 +76,7 @@ template<typename C> class Vector;
 
 class ArraySet;
 
+typedef List<unsigned> VList;
 typedef List<int> IntList;
 typedef List<VoidFunc> VoidFuncList;
 
@@ -394,11 +395,12 @@ class Selector;
 }
 }
 
+/*
 namespace InstGen
 {
 class IGAlgorithm;
 class ModelPrinter;
-}
+}*/
 
 namespace DP
 {

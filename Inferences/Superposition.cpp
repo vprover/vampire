@@ -447,9 +447,9 @@ Clause* Superposition::performSuperposition(
 
   // the first checks the reference and the second checks the stack
   bool hasConstraints = !constraints.isEmpty() && !constraints->isEmpty();
-  unsigned sort = SortHelper::getEqualityArgumentSort(eqLit);
+  TermList sort = SortHelper::getEqualityArgumentSort(eqLit);
 
-  if(SortHelper::getTermSort(rwTerm, rwLit)!=sort) {
+  if(SortHelper::getTermSort(rwTerm, rwLit)!=sort) { //TODO fix this unification or what?
     //cannot perform superposition because sorts don't match
     return 0;
   }
@@ -642,7 +642,7 @@ Clause* Superposition::performSuperposition(
       }
     }
   }
-  if(hasConstraints){
+  /*if(hasConstraints){
     for(unsigned i=0;i<constraints->size();i++){
       pair<TermList,TermList> con = (*constraints)[i];
 
@@ -666,7 +666,7 @@ Clause* Superposition::performSuperposition(
       (*res)[next] = constraint;
       next++;   
     }
-  }
+  }*/
 
   if(weightLimit!=-1 && weight>weightLimit) {
     RSTAT_CTR_INC("superpositions skipped for weight limit after the clause was built");

@@ -273,11 +273,12 @@ struct LiteralSubstitutionTree::EqualitySortFilter
     CALL("LiteralSubstitutionTree::EqualitySortFilter::operator()");
     ASS(res.literal->isEquality());
 
-    unsigned resSort = SortHelper::getEqualityArgumentSort(res.literal);
-    return resSort==_queryEqSort;
+    TermList resSort = SortHelper::getEqualityArgumentSort(res.literal);
+    RobSubstitution subst;
+    return subst.unif(resSort, 0, _queryEqSort, 1); //TODO equality on termlists
   }
 private:
-  unsigned _queryEqSort;
+  TermList _queryEqSort;
 };
 
 template<class Iterator>

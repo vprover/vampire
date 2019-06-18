@@ -156,18 +156,18 @@ bool GeneralSplitting::apply(Clause*& cl, UnitList*& resultStack)
 
       Set<unsigned>::Iterator sit2=sit;
       while(sit2.hasNext()) {
-	unsigned v2=sit2.next();
-	ASS_NEQ(v1,v2);
-	bool inserted;
-	if(v1>v2) {
-	  inserted= connections.insert(make_pair(v2,v1))==1;
-	} else {
-	  inserted= connections.insert(make_pair(v1,v2))==1;
-	}
-	if(inserted) {
-	  degrees.insert(v1);
-	  degrees.insert(v2);
-	}
+        unsigned v2=sit2.next();
+        ASS_NEQ(v1,v2);
+        bool inserted;
+        if(v1>v2) {
+          inserted= connections.insert(make_pair(v2,v1))==1;
+        } else {
+          inserted= connections.insert(make_pair(v1,v2))==1;
+        }
+        if(inserted) {
+          degrees.insert(v1);
+          degrees.insert(v2);
+        }
       }
     }
   }
@@ -215,11 +215,15 @@ bool GeneralSplitting::apply(Clause*& cl, UnitList*& resultStack)
   }
 
   static Stack<TermList> args;
+  static Stack<TermList> termArgs;
+  static Stack<TermList> typeArgs;
+  static Stack<TermList> argSorts;
   args.reset();
-  static Stack<unsigned> argSorts;
+  termArgs.reset();
+  typeArgs.reset();
   argSorts.reset();
 
-  DHMap<unsigned,unsigned> varSorts;
+  DHMap<unsigned,TermList> varSorts;
   SortHelper::collectVariableSorts(cl, varSorts);
 
   DHMultiset<unsigned>::SetIterator nivit(degrees); //iterating just over non-isolated vars
@@ -235,14 +239,29 @@ bool GeneralSplitting::apply(Clause*& cl, UnitList*& resultStack)
       found=connections.find(make_pair(var, minDegVar));
     }
     if(found) {
-      args.push(TermList(var, false));
-      argSorts.push(varSorts.get(var));
+      TermList argSort = varSorts.get(var);
+      if(argSort == TermList(Term::SUPER)){
+        typeArgs.push(TermList(var, false));//TODO check that this works
+      } else {
+        termArgs.push(TermList(var, false));
+        argSorts.push(argSort);
+      }
     }
   }
+  ASS(termArgs.size() == argSorts.size());
 
+
+  VarList* vl;
+  while(!typeArgs.empty()){
+    VarList::push(typeArgs.top().var(), vl);
+    args.push(typeArgs.pop());    
+  }
+  for(unsigned i = 0; i < termArgs.size(); i++){
+    args.push(termArgs[i]);
+  }
 
   unsigned namingPred=env.signature->addNamePredicate(minDeg);
-  OperatorType* npredType = OperatorType::getPredicateType(minDeg, argSorts.begin());
+  OperatorType* npredType = OperatorType::getPredicateType(minDeg, argSorts.begin(), vl);
   env.signature->getPredicate(namingPred)->setType(npredType);
 
   if(mdvColor!=COLOR_TRANSPARENT && otherColor!=COLOR_TRANSPARENT) {

@@ -468,22 +468,22 @@ void Property::scan(Formula* f, int polarity)
  * @since 04/05/2013 Manchester, array sorts removed
  * @author Andrei Voronkov
  */
-void Property::scanSort(unsigned sort)
+void Property::scanSort(TermList sort)
 {
   CALL("Property::scanSort");
 
-  if(!_usesSort.get(sort)){
+ /* if(!_usesSort.get(sort)){
     _sortsUsed++;
     _usesSort[sort]=true;
-  }
+  } */
 
-  if (sort==Sorts::SRT_DEFAULT) {
+  if (sort==TermList(Term::DEFAULT)) {
     return;
   }
   _hasNonDefaultSorts = true;
   env.statistics->hasTypes=true;
 
-  if(sort >= Sorts::FIRST_USER_SORT){
+  /*if(sort >= Sorts::FIRST_USER_SORT){
     if(env.sorts->isOfStructuredSort(sort,Sorts::StructuredSort::ARRAY)){
       // an array sort is infinite, if the index or value sort is infinite
       // we rely on the recursive calls setting appropriate flags
@@ -509,19 +509,19 @@ void Property::scanSort(unsigned sort)
       }
     }
     return;
-  }
+  } */
 
   switch(sort) {
-  case Sorts::SRT_INTEGER:
+  case TermList(Term::INTEGER):
     addProp(PR_HAS_INTEGERS);
     break;
-  case Sorts::SRT_RATIONAL:
+  case TermList(Term::RATIONAL):
     addProp(PR_HAS_RATS);
     break;
-  case Sorts::SRT_REAL:
+  case TermList(Term::REAL):
     addProp(PR_HAS_REALS);
     break;
-  case Sorts::SRT_BOOL:
+  case TermList(Term::BOOLN):
     addProp(PR_HAS_BOOLEAN_VARIABLES);
     _hasFOOL = true;
     break;

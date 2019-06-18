@@ -228,7 +228,7 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQ
       TermList qT = qr.substitution->applyToQuery(con.first);
       TermList rT = qr.substitution->applyToResult(con.second);
 
-      unsigned sort = SortHelper::getResultSort(rT.term()); 
+      TermList sort = SortHelper::getResultSort(rT.term()); 
       Literal* constraint = Literal::createEquality(false,qT,rT,sort);
 
       static Options::UnificationWithAbstraction uwa = opts.unificationWithAbstraction();

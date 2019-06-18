@@ -230,11 +230,11 @@ public:
   /** Problem contains non-default sorts */
   bool hasNonDefaultSorts() const { return _hasNonDefaultSorts; }
   bool hasFOOL() const { return _hasFOOL; }
-  bool usesSort(unsigned sort) const { 
+  /*bool usesSort(unsigned sort) const { 
     CALL("Property::usesSort");
     if(_usesSort.size() <= sort) return false;
     return _usesSort[sort]; 
-  }
+  }*/ //TODO only utilised by FMB which I am switching off
   bool usesSingleSort() const { return _sortsUsed==1; }
   unsigned sortsUsed() const { return _sortsUsed; }
   bool onlyFiniteDomainDatatypes() const { return _onlyFiniteDomainDatatypes; }
@@ -267,7 +267,7 @@ public:
   void scan(Formula*, int polarity);
   void scan(TermList ts,bool unit,bool goal);
 
-  void scanSort(unsigned sort);
+  void scanSort(TermList sort);
 
   char axiomTypes() const;
   char goalTypes() const;

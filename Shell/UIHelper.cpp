@@ -39,10 +39,10 @@
 #include "Kernel/Problem.hpp"
 #include "Kernel/FormulaUnit.hpp"
 
-#include "Parse/SMTLIB2.hpp"
+//#include "Parse/SMTLIB2.hpp"
 #include "Parse/TPTP.hpp"
 
-#include "AnswerExtractor.hpp"
+//#include "AnswerExtractor.hpp"
 #include "InterpolantMinimizer.hpp"
 #include "InterpolantMinimizerNew.hpp"
 #include "Interpolants.hpp"
@@ -263,7 +263,7 @@ Problem* UIHelper::getInputProblem(const Options& opts)
       env.out() << "Vampire no longer supports the old smtlib format, trying with smtlib2 instead." << endl;
       env.endOutput();
     }
-  case Options::InputSyntax::SMTLIB2:
+  /*case Options::InputSyntax::SMTLIB2:
   {
 	  Parse::SMTLIB2 parser(opts);
 	  parser.parse(*input);
@@ -274,7 +274,7 @@ Problem* UIHelper::getInputProblem(const Options& opts)
 	  s_haveConjecture=false;
 
 	  break;
-  }
+  }*/
 /*
   case Options::InputSyntax::MPS:
   case Options::InputSyntax::NETLIB:
@@ -357,10 +357,10 @@ void UIHelper::outputResult(ostream& out)
       out << "% SZS status " << ( UIHelper::haveConjecture() ? "Theorem" : "Unsatisfiable" )
 	  << " for " << env.options->problemName() << endl;
     }
-    if (env.options->questionAnswering()!=Options::QuestionAnsweringMode::OFF) {
+    /*if (env.options->questionAnswering()!=Options::QuestionAnsweringMode::OFF) {
       ASS(env.statistics->refutation->isClause());
       AnswerExtractor::tryOutputAnswer(static_cast<Clause*>(env.statistics->refutation));
-    }
+    }*/
     if (env.options->proof() != Options::Proof::OFF) {
       if (szsOutputMode()) {
         out << "% SZS output start Proof for " << env.options->problemName() << endl;
@@ -684,7 +684,7 @@ ConstraintRCList* UIHelper::getInputConstraints(const Options& opts)
 
   ConstraintRCList* res;
 
-  switch(env.options->inputSyntax()) {
+  /*switch(env.options->inputSyntax()) {
   case Options::InputSyntax::TPTP:
     USER_ERROR("Format not supported for BPA");
     break;
@@ -731,7 +731,7 @@ ConstraintRCList* UIHelper::getInputConstraints(const Options& opts)
     parser1.parse(*input);
     std::cout << parser1.getLispFormula()->toString() << std::endl;
      */
-  }
+/*   } 
 #endif
   case Options::InputSyntax::SMTLIB:
   {
@@ -778,7 +778,7 @@ ConstraintRCList* UIHelper::getInputConstraints(const Options& opts)
     NOT_IMPLEMENTED;
   default:
     ASSERTION_VIOLATION;
-  }
+  }*/
 
   env.statistics->inputConstraints = res->length();
   env.statistics->inputVariables = env.signature->vars();

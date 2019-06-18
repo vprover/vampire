@@ -139,7 +139,7 @@ bool HyperSuperposition::tryMakeTopUnifiableByRewriter(TermList t1, TermList t2,
 
   ASS(ut1.isTerm() || ut2.isTerm());
 
-  unsigned srt;
+  TermList srt;
   if(ut1.isTerm()) {
     srt = SortHelper::getResultSort(ut1.term());
   }

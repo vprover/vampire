@@ -97,7 +97,7 @@ vstring TPTPPrinter::getBodyStr(Unit* u)
 
   vostringstream res;
 
-  typedef DHMap<unsigned,unsigned> SortMap;
+  typedef DHMap<unsigned,TermList> SortMap;
   static SortMap varSorts;
   varSorts.reset();
   SortHelper::collectVariableSorts(u, varSorts);
@@ -108,16 +108,17 @@ vstring TPTPPrinter::getBodyStr(Unit* u)
     if(quantified) {
       res << "![";
       while(vit.hasNext()) {
-	unsigned var, varSort;
-	vit.next(var, varSort);
+        unsigned var;
+        TermList varSort;
+        vit.next(var, varSort);
 
-	res << 'X' << var;
-	if(varSort!=Sorts::SRT_DEFAULT) {
-	  res << " : " << env.sorts->sortName(varSort);
-	}
-	if(vit.hasNext()) {
-	  res << ',';
-	}
+        res << 'X' << var;
+        if(varSort!= TermList(Term::DEFAULT)) {
+          res << " : " << varSort.toString();
+        }
+        if(vit.hasNext()) {
+          res << ',';
+        }
       }
       res << "]: (";
     }
@@ -131,7 +132,7 @@ vstring TPTPPrinter::getBodyStr(Unit* u)
       Literal* lit = cit.next();
       res << lit->toString();
       if(cit.hasNext()) {
-	res << " | ";
+        res << " | ";
       }
     }
 
@@ -142,8 +143,8 @@ vstring TPTPPrinter::getBodyStr(Unit* u)
     if(!cl->noSplits()) {
       SplitSet::Iterator sit(*cl->splits());
       while(sit.hasNext()) {
-	SplitLevel split = sit.next();
-	res << " | " << "$splitLevel" << split;
+        SplitLevel split = sit.next();
+        res << " | " << "$splitLevel" << split;
       }
     }
   }
@@ -224,23 +225,7 @@ void TPTPPrinter::outputSymbolTypeDefinitions(unsigned symNumber, bool function)
   tgt() << "tff(" << (function ? "func" : "pred") << "_def_" << symNumber << ",type, "
       << sym->name() << ": ";
 
-  unsigned arity = sym->arity();
-  if(arity>0) {
-    tgt() << "(";
-    for(unsigned i=0; i<arity; i++) {
-      if(i>0) {
-	tgt() << " * ";
-      }
-      tgt() << env.sorts->sortName(type->arg(i));
-    }
-    tgt() << ") > ";
-  }
-  if(function) {
-    tgt() << env.sorts->sortName(sym->fnType()->result());
-  }
-  else {
-    tgt() << "$o";
-  }
+  tgt() <<  type->toString();
   tgt() << " )." << endl;
 }
 
@@ -250,14 +235,14 @@ void TPTPPrinter::outputSymbolTypeDefinitions(unsigned symNumber, bool function)
  * @since 08/10/2012, Vienna
  * @author Ioan Dragan
  */
-void TPTPPrinter::ensureNecesarySorts()
+/*void TPTPPrinter::ensureNecesarySorts()
 {
   CALL("TPTPPrinter::ensureNecesarySorts");
   if (_headersPrinted) {
     return;
   }
   unsigned i;
-  List<unsigned> *_usedSorts(0);
+  List<TermList> *_usedSorts(0);
   OperatorType* type;
   Signature::Symbol* sym;
   unsigned sorts = env.sorts->count();
@@ -268,7 +253,7 @@ void TPTPPrinter::ensureNecesarySorts()
     unsigned arity = sym->arity();
     if (arity > 0) {
       for (unsigned i = 0; i < arity; i++) {
-	if(! List<unsigned>::member(type->arg(i), _usedSorts))
+        if(! List<unsigned>::member(type->arg(i), _usedSorts))
           List<unsigned>::push(type->arg(i), _usedSorts);
       }
     }
@@ -280,7 +265,7 @@ void TPTPPrinter::ensureNecesarySorts()
     unsigned arity = sym->arity();
     if (arity > 0) {
       for (unsigned i = 0; i < arity; i++) {
-	if(! List<unsigned>::member(type->arg(i), _usedSorts))
+        if(! List<unsigned>::member(type->arg(i), _usedSorts))
           List<unsigned>::push(type->arg(i), _usedSorts);
       }
     }
@@ -292,7 +277,7 @@ void TPTPPrinter::ensureNecesarySorts()
             	      << ": $tType" << " )." << endl;
 
   }
-}
+} */ //TODO fix this function. At th emoment, not sure how important it is
 
 /**
  * Makes sure that only the needed headers in the @param u are printed out on the output
@@ -305,7 +290,7 @@ void TPTPPrinter::ensureHeadersPrinted(Unit* u)
     return;
   }
 
-  ensureNecesarySorts();
+  //ensureNecesarySorts();
 
   unsigned funs = env.signature->functions();
   for(unsigned i=0; i<funs; i++) {

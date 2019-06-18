@@ -28,6 +28,7 @@
 #include "Forwards.hpp"
 
 #include "InferenceEngine.hpp"
+#include "Shell/Options.hpp"
 
 namespace Inferences {
 

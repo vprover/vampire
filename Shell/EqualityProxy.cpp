@@ -326,7 +326,7 @@ Literal* EqualityProxy::apply(Literal* lit)
     return lit;
   }
 
-  unsigned sort = SortHelper::getEqualityArgumentSort(lit);
+  TermList sort = SortHelper::getEqualityArgumentSort(lit);
   return makeProxyLiteral(lit->polarity(), *lit->nthArgument(0), *lit->nthArgument(1), sort);
 } // EqualityProxy::apply(Literal*)
 
@@ -349,7 +349,7 @@ bool EqualityProxy::haveProxyPredicate(unsigned sort) const
  * @author Andrei Voronkov
  * @since 16/05/2014 Manchester
  */
-unsigned EqualityProxy::getProxyPredicate(unsigned sort)
+unsigned EqualityProxy::getProxyPredicate(TermList sort)
 {
   CALL("EqualityProxy::getProxyPredicate");
   ASS_L(sort, env.sorts->count());
@@ -417,7 +417,7 @@ Clause* EqualityProxy::createEqProxyAxiom(const LiteralStack& literalStack)
  * @author Andrei Voronkov
  * @since 16/05/2014 Manchester
  */
-Literal* EqualityProxy::makeProxyLiteral(bool polarity, TermList arg0, TermList arg1, unsigned sort)
+Literal* EqualityProxy::makeProxyLiteral(bool polarity, TermList arg0, TermList arg1, TermList sort)
 {
   CALL("EqualityProxy::createProxyLiteral/4");
 
