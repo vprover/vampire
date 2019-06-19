@@ -37,9 +37,7 @@ using namespace Kernel;
  * @since 04/05/2013 Manchester, updated with the new built-in sorts
  * @author Andrei Voronkov
  */
- 
-const TermList OperatorType::PREDICATE_FLAG = TermList(Term::BOOLN);
- 
+  
 Sorts::Sorts()
 {
   CALL("Sorts::Sorts");
@@ -242,7 +240,7 @@ OperatorType::OperatorKey* OperatorType::setupKey(unsigned arity, const TermList
   if (!sorts) {
     // initialise all argument types to the default type
     for (unsigned i = 0; i < arity; i++) {
-      (*key)[i] = TermList(Term::DEFAULT);
+      (*key)[i] = Term::defaultSort();
     }
   } else {
     // initialise all the argument types to those taken from sorts

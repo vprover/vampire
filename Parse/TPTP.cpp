@@ -1388,14 +1388,17 @@ void TPTP::tff()
       // now we know that this is a new type declaration
       bool added;
       unsigned arity = getArity();
+      //cout << "Adding function " + nm + " of arity " << arity << " and lpars " << lpars << endl;
       env.signature->addFunction(nm,arity,added);
       if (!added) {
         PARSE_ERROR("Type constructor name must be unique",tok);
       }
-      resetToks();
+      //resetToks();
       _states.pop();
-      consumeToken(T_ARROW);
-      consumeToken(T_TTYPE);
+      if(arity){
+        consumeToken(T_ARROW);
+        consumeToken(T_TTYPE);
+      }
       while (lpars--) {
         consumeToken(T_RPAR);
       }
@@ -1464,6 +1467,7 @@ unsigned TPTP::getArity()
 {
   CALL("TPTP::name");
   unsigned arity = 0;
+  resetToks();
   Token& tok = getTok(0);
   while (tok.tag != T_RPAR) {
     if(tok.tag == T_TTYPE){
@@ -2366,7 +2370,7 @@ void TPTP::varList()
 
     case T_COMMA:
       if (!sortDeclared) {
-        bindVariable(var,TermList(Term::DEFAULT));
+        bindVariable(var,Term::defaultSort());
       }
       resetToks();
       break;
@@ -2374,7 +2378,7 @@ void TPTP::varList()
     default:
       {
         if (!sortDeclared) {
-          bindVariable(var,TermList(Term::DEFAULT));
+          bindVariable(var,Term::defaultSort());
         }
         Formula::VarList* vs = Formula::VarList::empty();
         SortList* ss = SortList::empty();
@@ -2636,7 +2640,7 @@ Literal* TPTP::createEquality(bool polarity,TermList& lhs,TermList& rhs)
       sort = vs->head();
     }
     else { // this may happen when free variables appear in the formula (or clause)
-      sort = TermList(Term::DEFAULT);
+      sort = Term::defaultSort();
     }
   }
    
@@ -3337,7 +3341,7 @@ OperatorType* TPTP::constructOperatorType(Type* t)
 #endif
   }
 
-  bool isPredicate = resultSort == TermList(Term::BOOLN);
+  bool isPredicate = resultSort == Term::boolSort();
   unsigned arity = (unsigned)argumentSorts.size();
   if (isPredicate) {
     return OperatorType::getPredicateType(arity, argumentSorts.begin(), VList::empty());
@@ -3658,22 +3662,22 @@ TermList TPTP::readTerm()
     }
 
   case T_DEFAULT_TYPE:
-    return TermList(Term::DEFAULT);
+    return Term::defaultSort();
 
   case T_BOOL_TYPE:
-    return TermList(Term::BOOLN);
+    return Term::boolSort();
 
   case T_INTEGER_TYPE:
-    return TermList(Term::INTEGER);
+    return Term::intSort();
 
   case T_RATIONAL_TYPE:
-    return TermList(Term::RATIONAL);
+    return Term::rationalSort();
 
   case T_REAL_TYPE:
-    return TermList(Term::REAL);
+    return Term::realSort();
 
   case T_TTYPE:
-    return TermList(Term::SUPER);
+    return Term::superSort();
 
  /* case T_LBRA:
   {
@@ -4089,7 +4093,7 @@ TermList TPTP::sortOf(TermList t)
       }
       // there might be variables whose sort is undeclared,
       // in this case they have the default sort
-      TermList def = TermList(Term::DEFAULT);
+      TermList def = Term::defaultSort();
       bindVariable(t.var(), def);
       return def;
     }
@@ -4588,7 +4592,7 @@ void TPTP::printStacks() {
     cout << " {" << vsitKey << " ->";
     SortList::Iterator slit(vsitVal);
     if   (!slit.hasNext()) cout << " <empty>";
-    while (slit.hasNext()) cout << " " << env.sorts->sortName(slit.next());
+    while (slit.hasNext()) cout << " " << (slit.next()).toString();
     cout << "}";
   }
   cout << endl;
@@ -4600,7 +4604,7 @@ void TPTP::printStacks() {
     SortList* sl = slsit.next();
     SortList::Iterator slit(sl);
     if   (!slit.hasNext()) cout << "<empty>";
-    while (slit.hasNext()) cout << env.sorts->sortName(slit.next()) << " ";
+    while (slit.hasNext()) cout << (slit.next()).toString() << " ";
     cout << ";";
   }
   cout << endl;

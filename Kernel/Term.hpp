@@ -232,13 +232,6 @@ public:
   static const unsigned SF_LET_TUPLE = 0xFFFFFFFB;
   static const unsigned SPECIAL_FUNCTOR_LOWER_BOUND = 0xFFFFFFFB;
 
-  static Term* SUPER;
-  static Term* BOOLN;
-  static Term* DEFAULT;
-  static Term* INTEGER;
-  static Term* RATIONAL;
-  static Term* REAL;
-
   class SpecialTermData
   {
     friend class Term;
@@ -328,6 +321,13 @@ public:
   //** fool constants
   static Term* foolTrue(); 
   static Term* foolFalse(); 
+
+  static TermList defaultSort();
+  static TermList superSort();
+  static TermList boolSort();
+  static TermList intSort();
+  static TermList realSort();
+  static TermList rationalSort(); 
 
   IntList* freeVariables() const;
 

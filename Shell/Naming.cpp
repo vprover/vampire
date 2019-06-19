@@ -1161,8 +1161,8 @@ Literal* Naming::getDefinitionLiteral(Formula* f, Formula::VarList* freeVars) {
   Formula::VarList::Iterator vit(freeVars);
   while (vit.hasNext()) {
     unsigned uvar = vit.next();
-    TermList sort = varSorts.get(uvar, TermList(Term::DEFAULT));
-    if(sort == TermList(Term::SUPER)){
+    TermList sort = varSorts.get(uvar, Term::defaultSort());
+    if(sort == Term::superSort()){
       typeArgs.push(TermList(uvar, false));//TODO check that this works      
     } else {
       termArgs.push(TermList(uvar, false));

@@ -178,7 +178,7 @@ TermList SortHelper::getArgSort(Term* t, unsigned argIndex)
   OperatorType* ot = env.signature->getFunction(t->functor())->fnType();
 
   if(argIndex < ot->typeArgsArity()){
-    return TermList(Term::SUPER);
+    return Term::superSort();
   }
   
   getTypeSub(t, subst);
@@ -273,7 +273,7 @@ bool SortHelper::tryGetVariableSort(unsigned var, Formula* f, TermList& res)
     if(sf->connective() == BOOL_TERM){
       TermList stt = sf->getBooleanTerm();
       if(stt.isVar() && stt.var()==var){
-        res = TermList(Term::BOOLN);
+        res = Term::boolSort();
         return true;
       }
       if(stt.isTerm()){
@@ -461,8 +461,8 @@ void SortHelper::collectVariableSortsIter(CollectTask task, DHMap<unsigned,TermL
             case BOOL_TERM: {
               TermList ts = sf->getBooleanTerm();
               if (ts.isVar()) {
-                if (!map.insert(ts.var(), TermList(Term::BOOLN))) {
-                  ASS_EQ(TermList(Term::BOOLN), map.get(ts.var()));
+                if (!map.insert(ts.var(), Term::boolSort())) {
+                  ASS_EQ(Term::boolSort(), map.get(ts.var()));
                 }
               } /*else {
                 ASS(ts.isTerm() && ts.term()->isSpecial());

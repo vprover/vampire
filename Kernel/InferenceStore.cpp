@@ -182,7 +182,7 @@ vstring getQuantifiedStr(const VarContainer& vars, vstring inner, DHMap<unsigned
     }
     vstring ty="";
     TermList t;
-    if(t_map.find(var,t) && t!=TermList(Term::DEFAULT)){
+    if(t_map.find(var,t) && t!=Term::defaultSort()){
       //TODO should assert that we are in tff mode here
       ty=":" + t.toString();
     }

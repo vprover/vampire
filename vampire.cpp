@@ -831,7 +831,6 @@ int main(int argc, char* argv[])
 {
   CALL ("main");
 
-
   System::registerArgv0(argv[0]);
   System::setSignalHandlers();
   // create random seed for the random number generation

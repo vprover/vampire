@@ -113,7 +113,7 @@ vstring TPTPPrinter::getBodyStr(Unit* u)
         vit.next(var, varSort);
 
         res << 'X' << var;
-        if(varSort!= TermList(Term::DEFAULT)) {
+        if(varSort!= Term::defaultSort()) {
           res << " : " << varSort.toString();
         }
         if(vit.hasNext()) {
@@ -444,11 +444,11 @@ vstring TPTPPrinter::toString(const Formula* formula)
           if (hasSorts) {
             ASS(ss.hasNext());
             t = ss.next();
-            if (t != TermList(Term::DEFAULT)) {
+            if (t != Term::defaultSort()) {
               result += " : " + t.toString();
             }
           } else if (SortHelper::tryGetVariableSort(var, const_cast<Formula*>(f),
-              t) && t != TermList(Term::DEFAULT)) {
+              t) && t != Term::defaultSort()) {
             result += " : " + t.toString();
           }
           needsComma = true;

@@ -178,7 +178,7 @@ OperatorType* Signature::Symbol::fnType() const
 {
   CALL("Signature::Symbol::fnType");
 
-  TermList def = TermList(Term::DEFAULT);
+  TermList def = Term::defaultSort();
   if (!_type) {
     _type = OperatorType::getFunctionTypeUniformRange(arity(), def, def, VarList::empty());
   }
@@ -195,7 +195,7 @@ OperatorType* Signature::Symbol::predType() const
 {
   CALL("Signature::Symbol::predType");
   
-  TermList def = TermList(Term::DEFAULT);
+  TermList def = Term::defaultSort();
   if (!_type) {
     _type = OperatorType::getPredicateTypeUniformRange(arity(), def, VarList::empty());
   }

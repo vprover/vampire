@@ -240,7 +240,7 @@ bool GeneralSplitting::apply(Clause*& cl, UnitList*& resultStack)
     }
     if(found) {
       TermList argSort = varSorts.get(var);
-      if(argSort == TermList(Term::SUPER)){
+      if(argSort == Term::superSort()){
         typeArgs.push(TermList(var, false));//TODO check that this works
       } else {
         termArgs.push(TermList(var, false));

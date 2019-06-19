@@ -63,12 +63,12 @@ const unsigned Term::SF_LET;
 const unsigned Term::SF_FORMULA;
 const unsigned Term::SPECIAL_FUNCTOR_LOWER_BOUND;
 
-Term* Term::SUPER = Term::createConstant("$tType");
+/*Term* Term::SUPER = Term::createConstant("$tType");
 Term* Term::BOOLN = Term::createConstant(env.signature->getBoolSortSym());
 Term* Term::DEFAULT = Term::createConstant(env.signature->getDefaultSortSym());
 Term* Term::INTEGER = Term::createConstant(env.signature->getIntSortSym());
 Term* Term::RATIONAL = Term::createConstant(env.signature->getRatSortSym());
-Term* Term::REAL = Term::createConstant(env.signature->getRealSortSym());
+Term* Term::REAL = Term::createConstant(env.signature->getRealSortSym());*/
 
 /**
  * Allocate enough bytes to fit a term of a given arity.
@@ -485,7 +485,7 @@ vstring Term::headToString() const
         vstring symbolsList = "";
         vstring typesList = "";
         for (unsigned i = 0; i < IntList::length(symbols); i++) {
-          Signature::Symbol* symbol = (fnType->arg(i) == TermList(Term::BOOLN))
+          Signature::Symbol* symbol = (fnType->arg(i) == Term::boolSort())
             ? env.signature->getPredicate((unsigned)IntList::nth(symbols, i))
             : env.signature->getFunction((unsigned)IntList::nth(symbols, i));
           symbolsList += symbol->name();
@@ -611,7 +611,7 @@ vstring Literal::toString() const
     }
 
     vstring res = s + lhs->next()->toString();
-    if (SortHelper::getEqualityArgumentSort(this) == TermList(Term::BOOLN)){
+    if (SortHelper::getEqualityArgumentSort(this) == Term::boolSort()){
       res = "("+res+")";
     }
 
@@ -1026,6 +1026,43 @@ Term* Term::foolFalse(){
     if(!_foolFalse){ _foolFalse = createConstant(env.signature->getFoolConstantSymbol(false));}
     return _foolFalse;
   }
+
+
+TermList Term::superSort(){
+  static Term* _super = 0;
+  if(!_super){ _super = createConstant("$tType"); }
+  return TermList(_super);
+}
+
+TermList Term::defaultSort(){
+  static Term* _default = 0;
+  if(!_default){ _default = createConstant(env.signature->getDefaultSortSym()); }
+  return TermList(_default); 
+}
+  
+TermList Term::boolSort(){
+  static Term* _bool = 0;
+  if(!_bool){ _bool = createConstant(env.signature->getBoolSortSym()); }
+  return TermList(_bool); 
+}
+
+TermList Term::intSort(){
+  static Term* _int = 0;
+  if(!_int){ _int = createConstant(env.signature->getIntSortSym()); }
+  return TermList(_int); 
+}
+ 
+TermList Term::realSort(){
+  static Term* _real = 0;
+  if(!_real){ _real = createConstant(env.signature->getRealSortSym()); }
+  return TermList(_real); 
+}
+
+TermList Term::rationalSort(){
+  static Term* _rat = 0;
+  if(!_rat){ _rat = createConstant(env.signature->getRatSortSym()); }
+  return TermList(_rat); 
+}
 
 /**
  * Return the list of all free variables of the term.

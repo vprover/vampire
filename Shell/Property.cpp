@@ -477,7 +477,7 @@ void Property::scanSort(TermList sort)
     _usesSort[sort]=true;
   } */
 
-  if (sort==TermList(Term::DEFAULT)) {
+  if (sort==Term::defaultSort()) {
     return;
   }
   _hasNonDefaultSorts = true;
@@ -512,16 +512,16 @@ void Property::scanSort(TermList sort)
   } 
 
   switch(sort) {
-  case TermList(Term::INTEGER):
+  case Term::intSort():
     addProp(PR_HAS_INTEGERS);
     break;
-  case TermList(Term::RATIONAL):
+  case Term::rationalSort():
     addProp(PR_HAS_RATS);
     break;
-  case TermList(Term::REAL):
+  case Term::realSort():
     addProp(PR_HAS_REALS);
     break;
-  case TermList(Term::BOOLN):
+  case Term::boolSort():
     addProp(PR_HAS_BOOLEAN_VARIABLES);
     _hasFOOL = true;
     break;

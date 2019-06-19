@@ -124,7 +124,7 @@ Formula* Flattening::flatten (Formula* f)
 
           bool lhsBoolean = lhs.isTerm() && lhs.term()->isBoolean();
           bool rhsBoolean = rhs.isTerm() && rhs.term()->isBoolean();
-          bool varEquality = lit->isTwoVarEquality() && lit->twoVarEqSort() == TermList(Term::BOOLN);
+          bool varEquality = lit->isTwoVarEquality() && lit->twoVarEqSort() == Term::boolSort();
 
           if (lhsBoolean || rhsBoolean || varEquality) {
             Formula* lhsFormula = BoolTermFormula::create(lhs);

@@ -249,7 +249,7 @@ private:
 
   static OperatorType* getTypeFromKey(OperatorKey* key, VarList* vars);
 
-  static const TermList PREDICATE_FLAG;
+  //static const TermList PREDICATE_FLAG;
 
 public:
   ~OperatorType() { _key->deallocate(); }
@@ -258,7 +258,7 @@ public:
     CALL("OperatorType::getPredicateType(unsigned,const unsigned*)");
 
     OperatorKey* key = setupKey(arity,sorts);
-    (*key)[arity] = PREDICATE_FLAG;
+    (*key)[arity] = Term::boolSort();
     return getTypeFromKey(key, vars);
   }
 
@@ -266,7 +266,7 @@ public:
     CALL("OperatorType::getPredicateType(std::initializer_list<unsigned>)");
 
     OperatorKey* key = setupKey(sorts);
-    (*key)[sorts.size()] = PREDICATE_FLAG;
+    (*key)[sorts.size()] = Term::boolSort();
     return getTypeFromKey(key, vars);
   }
 
@@ -274,7 +274,7 @@ public:
     CALL("OperatorType::getPredicateTypeUniformRange");
 
     OperatorKey* key = setupKeyUniformRange(arity,argsSort);
-    (*key)[arity] = PREDICATE_FLAG;
+    (*key)[arity] = Term::boolSort();
     return getTypeFromKey(key, vars);
   }
 
@@ -319,8 +319,8 @@ public:
     return (*_key)[idx];
   }
 
-  bool isPredicateType() const { return (*_key)[arity()] == PREDICATE_FLAG; };
-  bool isFunctionType() const { return (*_key)[arity()] != PREDICATE_FLAG; };
+  bool isPredicateType() const { return (*_key)[arity()] == Term::boolSort(); };
+  bool isFunctionType() const { return (*_key)[arity()] != Term::boolSort(); };
   TermList result() const {
     CALL("OperatorType::result");
     ASS(isFunctionType());
@@ -333,7 +333,7 @@ public:
   
 
   bool isSingleSortType(TermList sort) const;
-  bool isAllDefault() const { return isSingleSortType(TermList(Term::DEFAULT)); }
+  bool isAllDefault() const { return isSingleSortType(Term::defaultSort()); }
 
 private:
   vstring argsToString() const;

@@ -274,7 +274,7 @@ TermList PolarityAwareFormulaTransformer::getVarSort(unsigned var) const
 {
   CALL("PolarityAwareFormulaTransformer::getVarSort");
 
-  return _varSorts->get(var, TermList(Term::DEFAULT));
+  return _varSorts->get(var, Term::defaultSort());
 }
 
 Formula* PolarityAwareFormulaTransformer::transformWithPolarity(Formula* f, int polarity)

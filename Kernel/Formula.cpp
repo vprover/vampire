@@ -363,10 +363,10 @@ vstring Formula::toString(const Formula* formula)
           if (hasSorts) {
             ASS(ss.hasNext());
             t = ss.next();
-            if (t != TermList(Term::DEFAULT)) {
+            if (t != Term::defaultSort()) {
               res += " : " + t.toString();
             }
-          } else if (SortHelper::tryGetVariableSort(var, const_cast<Formula*>(f),t) && t != TermList(Term::DEFAULT)) {
+          } else if (SortHelper::tryGetVariableSort(var, const_cast<Formula*>(f),t) && t != Term::defaultSort()) {
             res += " : " + t.toString();
           }
           first = false;

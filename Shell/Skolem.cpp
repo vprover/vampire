@@ -410,8 +410,8 @@ Formula* Skolem::skolemise (Formula* f)
       VarSet::Iterator vuIt(*dep);
       while(vuIt.hasNext()) {
         unsigned uvar = vuIt.next();
-        TermList sort = _varSorts.get(uvar, TermList(Term::DEFAULT));
-        if(sort == TermList(Term::SUPER)){
+        TermList sort = _varSorts.get(uvar, Term::defaultSort());
+        if(sort == Term::superSort()){
           typeArgs.push(TermList(uvar, false));//TODO check that this works
         } else {
           argSorts.push(sort);
@@ -434,7 +434,7 @@ Formula* Skolem::skolemise (Formula* f)
       Formula::VarList::Iterator vs(f->vars());
       while (vs.hasNext()) {
         int v = vs.next();
-        TermList rangeSort=_varSorts.get(v, TermList(Term::DEFAULT));
+        TermList rangeSort=_varSorts.get(v, Term::defaultSort());
 
         unsigned fun = addSkolemFunction(arity, argSorts.begin(), rangeSort, v, vl);
         _introducedSkolemFuns.push(fun);

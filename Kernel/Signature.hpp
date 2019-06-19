@@ -188,13 +188,13 @@ class Signature
       
     /** Return true if symbol is an integer constant */
     inline bool integerConstant() const
-    { return interpreted() && arity()==0 && fnType()->result()==TermList(Term::INTEGER); }
+    { return interpreted() && arity()==0 && fnType()->result()==Term::intSort(); }
     /** Return true if symbol is a rational constant */
     inline bool rationalConstant() const
-    { return interpreted() && arity()==0 && fnType()->result()==TermList(Term::RATIONAL); }
+    { return interpreted() && arity()==0 && fnType()->result()==Term::rationalSort(); }
     /** Return true if symbol is a real constant */
     inline bool realConstant() const
-    { return interpreted() && arity()==0 && fnType()->result()==TermList(Term::REAL); }
+    { return interpreted() && arity()==0 && fnType()->result()==Term::realSort(); }
 
     /** return true if an interpreted number, note subtle but significant difference from numericConstant **/
     inline bool interpretedNumber() const
@@ -261,7 +261,7 @@ class Signature
     {
       CALL("IntegerSymbol");
 
-      setType(OperatorType::getConstantsType(TermList(Term::INTEGER), VarList::empty()));
+      setType(OperatorType::getConstantsType(Term::intSort(), VarList::empty()));
     }
     CLASS_NAME(Signature::IntegerSymbol);
     USE_ALLOCATOR(IntegerSymbol);
@@ -281,7 +281,7 @@ class Signature
     {
       CALL("RationalSymbol");
 
-      setType(OperatorType::getConstantsType(TermList(Term::RATIONAL), VarList::empty()));
+      setType(OperatorType::getConstantsType(Term::rationalSort(), VarList::empty()));
     }
     CLASS_NAME(Signature::RationalSymbol);
     USE_ALLOCATOR(RationalSymbol);
@@ -301,7 +301,7 @@ class Signature
     {
       CALL("RealSymbol");
 
-      setType(OperatorType::getConstantsType(TermList(Term::REAL), VarList::empty()));
+      setType(OperatorType::getConstantsType(Term::realSort(), VarList::empty()));
     }
     CLASS_NAME(Signature::RealSymbol);
     USE_ALLOCATOR(RealSymbol);
@@ -495,9 +495,9 @@ class Signature
   unsigned getFoolConstantSymbol(bool isTrue){ 
     if(!_foolConstantsDefined){
       _foolFalse = addFunction("$$false",0); 
-      getFunction(_foolFalse)->setType(OperatorType::getConstantsType(TermList(Term::BOOLN), VarList::empty()));
+      getFunction(_foolFalse)->setType(OperatorType::getConstantsType(Term::boolSort(), VarList::empty()));
       _foolTrue = addFunction("$$true",0);
-      getFunction(_foolTrue)->setType(OperatorType::getConstantsType(TermList(Term::BOOLN), VarList::empty()));
+      getFunction(_foolTrue)->setType(OperatorType::getConstantsType(Term::boolSort(), VarList::empty()));
       _foolConstantsDefined=true;
     }
     return isTrue ? _foolTrue : _foolFalse;
@@ -511,7 +511,7 @@ class Signature
     bool added = false;
     unsigned individualSort = addFunction("$i",0, added);
     if(added){
-      getFunction(individualSort)->setType(OperatorType::getConstantsType(TermList(Term::SUPER), VarList::empty()));
+      getFunction(individualSort)->setType(OperatorType::getConstantsType(Term::superSort(), VarList::empty()));
     }
     return individualSort;
   }
@@ -520,7 +520,7 @@ class Signature
     bool added = false;
     unsigned boolSort = addFunction("$o",0, added);
     if(added){
-      getFunction(boolSort)->setType(OperatorType::getConstantsType(TermList(Term::SUPER), VarList::empty()));
+      getFunction(boolSort)->setType(OperatorType::getConstantsType(Term::superSort(), VarList::empty()));
     }
     return boolSort;
   }
@@ -529,7 +529,7 @@ class Signature
     bool added = false;
     unsigned realSort = addFunction("$real",0, added);
     if(added){
-      getFunction(realSort)->setType(OperatorType::getConstantsType(TermList(Term::SUPER), VarList::empty()));
+      getFunction(realSort)->setType(OperatorType::getConstantsType(Term::superSort(), VarList::empty()));
     }
     return realSort;
   }
@@ -538,7 +538,7 @@ class Signature
     bool added = false;
     unsigned intSort = addFunction("$real",0, added);
     if(added){
-      getFunction(intSort)->setType(OperatorType::getConstantsType(TermList(Term::SUPER), VarList::empty()));
+      getFunction(intSort)->setType(OperatorType::getConstantsType(Term::superSort(), VarList::empty()));
     }
     return intSort;
   }  
@@ -547,7 +547,7 @@ class Signature
     bool added = false;
     unsigned ratSort = addFunction("$rat",0, added);
     if(added){
-      getFunction(ratSort)->setType(OperatorType::getConstantsType(TermList(Term::SUPER), VarList::empty()));
+      getFunction(ratSort)->setType(OperatorType::getConstantsType(Term::superSort(), VarList::empty()));
     }
     return ratSort;    
   }
