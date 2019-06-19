@@ -319,8 +319,8 @@ public:
     return (*_key)[idx];
   }
 
-  bool isPredicateType() const { return (*_key)[arity()] == Term::boolSort(); };
-  bool isFunctionType() const { return (*_key)[arity()] != Term::boolSort(); };
+  bool isPredicateType() const { return (*_key)[arity() - typeArgsArity()] == Term::boolSort(); };
+  bool isFunctionType() const { return (*_key)[arity() - typeArgsArity()] != Term::boolSort(); };
   TermList result() const {
     CALL("OperatorType::result");
     ASS(isFunctionType());

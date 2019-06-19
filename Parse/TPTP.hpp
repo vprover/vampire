@@ -425,7 +425,7 @@ private:
     /** the right hand side type */
     Type* qtype() const {return _type;}
   private:
-    /** the quantiefied typed */
+    /** the quantiefied type */
     Type* _type;
     /** bound type variables */
      Formula::VarList* _vars;

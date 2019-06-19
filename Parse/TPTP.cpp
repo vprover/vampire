@@ -1388,14 +1388,18 @@ void TPTP::tff()
       // now we know that this is a new type declaration
       bool added;
       unsigned arity = getArity();
-      //cout << "Adding function " + nm + " of arity " << arity << " and lpars " << lpars << endl;
-      env.signature->addFunction(nm,arity,added);
+      cout << "Adding function " + nm + " of arity " << arity << " and lpars " << lpars << endl;
+      unsigned fun = env.signature->addFunction(nm,arity,added);
+
       if (!added) {
         PARSE_ERROR("Type constructor name must be unique",tok);
+      } else {
+        OperatorType* t = OperatorType::getFunctionTypeUniformRange(arity, Term::superSort(), Term::superSort(), VList::empty());
+        env.signature->getFunction(fun)->setType(t);
       }
-      //resetToks();
-      _states.pop();
       if(arity){
+        resetToks();
+        _states.pop();
         consumeToken(T_ARROW);
         consumeToken(T_TTYPE);
       }
@@ -1479,6 +1483,7 @@ unsigned TPTP::getArity()
     resetToks();
     tok = getTok(0);
   }
+  if(arity != 0){ arity++; }
   return arity;
 } // name
 
@@ -2735,6 +2740,7 @@ TermList TPTP::createFunctionApplication(vstring name, unsigned arity)
   CALL("TPTP::createFunctionApplication");
   ASS_GE(_termLists.size(), arity);
 
+  cout << "creating termlist for " << name + " of arity " << arity << endl;
   unsigned fun;
   LetSymbolReference ref;
   if (findLetSymbol(LetSymbolName(name, arity), ref) && !IS_PREDICATE(ref)) {
@@ -3000,7 +3006,8 @@ void TPTP::endType()
     tt = _typeTags.pop();
     break;
   case TT_QUANTIFIED:
-    t = new QuantifiedType(t, _varLists.pop());
+    Formula::VarList* vl = _varLists.pop();
+    t = new QuantifiedType(t, vl);
     tt = _typeTags.pop();
     break;    
   }
@@ -3246,6 +3253,7 @@ void TPTP::endTff()
 
   unsigned arity = ot->arity();
   bool isPredicate = ot->isPredicateType();
+  
 
   bool added;
   Signature::Symbol* symbol;
@@ -3638,6 +3646,7 @@ TermList TPTP::readTerm()
   CALL("TPTP::readTerm");
 
   Token tok = getTok(0);
+  //cout << "The contents of the token are " + tok.content << endl;
   resetToks();
   switch (tok.tag) {
   case T_NAME:
@@ -3646,19 +3655,28 @@ TermList TPTP::readTerm()
       vstring fname = tok.content;
       int c = getChar(0);
       if(c == '('){
-        consumeToken(T_LPAR);
-      }
-      for(;;){
-        arity++;
-        _termLists.push(readTerm());
-        tok = getTok(0);
-        if(tok.tag == T_COMMA){
-          consumeToken(T_COMMA);
-        } else{
-          break;
+        consumeToken(T_LPAR);    
+        for(;;){
+          arity++;
+          _termLists.push(readTerm());
+          tok = getTok(0);
+          if(tok.tag == T_COMMA){
+            consumeToken(T_COMMA);
+          }else if(tok.tag == T_RPAR){
+            consumeToken(T_RPAR);
+            break;
+          } else{
+            ASSERTION_VIOLATION;
+          }
         }
       }
       return createFunctionApplication(fname, arity);
+    }
+  case T_VAR:
+    {
+      vstring vname = tok.content;
+      unsigned var = (unsigned)_vars.insert(vname);
+      return  TermList(var, false);
     }
 
   case T_DEFAULT_TYPE:
@@ -4249,9 +4267,9 @@ VList* TPTP::convert(Formula::VarList* vars)
   CALL("Parser::convert");
   
   Stack<unsigned> varStack;
-  VList* vl;
+  VList* vl = VList::empty();
   
-  while(vars){
+  while(!Formula::VarList::isEmpty(vars)){
     varStack.push((unsigned) vars->head());
     vars = vars->tail();
   }
