@@ -1389,7 +1389,6 @@ void TPTP::tff()
       // now we know that this is a new type declaration
       bool added;
       unsigned arity = getArity();
-      cout << "Adding function " + nm + " of arity " << arity << " and lpars " << lpars << endl;
       unsigned fun = env.signature->addFunction(nm,arity,added);
 
       if (!added) {
@@ -2741,7 +2740,6 @@ TermList TPTP::createFunctionApplication(vstring name, unsigned arity)
   CALL("TPTP::createFunctionApplication");
   ASS_GE(_termLists.size(), arity);
 
-  cout << "creating termlist for " << name + " of arity " << arity << endl;
   unsigned fun;
   LetSymbolReference ref;
   if (findLetSymbol(LetSymbolName(name, arity), ref) && !IS_PREDICATE(ref)) {

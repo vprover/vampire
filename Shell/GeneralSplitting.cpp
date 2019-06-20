@@ -216,11 +216,9 @@ bool GeneralSplitting::apply(Clause*& cl, UnitList*& resultStack)
 
   static Stack<TermList> args;
   static Stack<TermList> termArgs;
-  static Stack<TermList> typeArgs;
   static Stack<TermList> argSorts;
   args.reset();
   termArgs.reset();
-  typeArgs.reset();
   argSorts.reset();
 
   DHMap<unsigned,TermList> varSorts;
@@ -241,7 +239,7 @@ bool GeneralSplitting::apply(Clause*& cl, UnitList*& resultStack)
     if(found) {
       TermList argSort = varSorts.get(var);
       if(argSort == Term::superSort()){
-        typeArgs.push(TermList(var, false));//TODO check that this works
+        args.push(TermList(var, false));//TODO check that this works
       } else {
         termArgs.push(TermList(var, false));
         argSorts.push(argSort);
@@ -251,17 +249,16 @@ bool GeneralSplitting::apply(Clause*& cl, UnitList*& resultStack)
   ASS(termArgs.size() == argSorts.size());
 
 
-  VarList* vl;
-  while(!typeArgs.isEmpty()){
-    VarList::push(typeArgs.top().var(), vl);
-    args.push(typeArgs.pop());    
+  VList* vl = VList::empty();
+  for(int i = args.size() -1; i >= 0 ; i--){
+    VList::push(args[i].var(), vl);
   }
   for(unsigned i = 0; i < termArgs.size(); i++){
     args.push(termArgs[i]);
   }
 
   unsigned namingPred=env.signature->addNamePredicate(minDeg);
-  OperatorType* npredType = OperatorType::getPredicateType(minDeg, argSorts.begin(), vl);
+  OperatorType* npredType = OperatorType::getPredicateType(minDeg - VList::length(vl), argSorts.begin(), vl);
   env.signature->getPredicate(namingPred)->setType(npredType);
 
   if(mdvColor!=COLOR_TRANSPARENT && otherColor!=COLOR_TRANSPARENT) {

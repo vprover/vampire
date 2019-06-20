@@ -210,10 +210,10 @@ TermIterator EqHelper::getRewritableSubtermIterator(Literal* lit, const Ordering
       return TermIterator::getEmpty();
     }
     return getUniquePersistentIterator(getConcatenatedIterator(getSingletonIterator(sel),
-							       vi(new NonVariableIterator(sel.term()))));
+							       vi(new NonVariableNonTypeIterator(sel.term()))));
   }
 
-  NonVariableIterator nvi(lit);
+  NonVariableNonTypeIterator nvi(lit);
   return getUniquePersistentIteratorFromPtr(&nvi);
 }
 

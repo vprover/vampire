@@ -45,6 +45,7 @@
 #include "Substitution.hpp"
 #include "SubstHelper.hpp"
 #include "TermIterators.hpp"
+#include "RobSubstitution.hpp"
 
 #include "Term.hpp"
 #include "FormulaVarIterator.hpp"
@@ -1274,6 +1275,8 @@ Literal* Literal::createEquality (bool polarity, TermList arg1, TermList arg2, T
    CALL("Literal::createEquality/4");
 
    TermList srt1, srt2;
+   static RobSubstitution subst;
+   subst.reset(); 
 
    if (!SortHelper::tryGetResultSort(arg1, srt1)) {
      if (!SortHelper::tryGetResultSort(arg2, srt2)) {
@@ -1281,13 +1284,14 @@ Literal* Literal::createEquality (bool polarity, TermList arg1, TermList arg2, T
        ASS_REP(arg2.isVar(), arg2.toString());
        return createVariableEquality(polarity, arg1, arg2, sort);
      }
-     ASS_EQ(srt2, sort);
+     ASS(subst.match(sort, 0, srt2, 1));
    }
    else {
-     ASS_EQ(srt1, sort);
+     ASS(subst.match(sort, 0, srt1, 1));
 #if VDEBUG
      if (SortHelper::tryGetResultSort(arg2, srt2)) {
-       ASS_EQ(srt2, sort);
+       subst.reset();
+       ASS(subst.match(sort, 0, srt2, 1));
      }
 #endif
    }

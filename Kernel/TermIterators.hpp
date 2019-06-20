@@ -299,6 +299,45 @@ private:
   int _added;
 }; // NonVariableIterator
 
+
+/**
+ * Iterator that yields non-variable subterms that are not type arguments
+ * of specified @b term in DFS left to right order.
+ */
+class NonVariableNonTypeIterator
+  : public IteratorCore<TermList>
+{
+public:
+  NonVariableNonTypeIterator(const NonVariableNonTypeIterator&);
+  /**
+   * Create an iterator. If @c includeSelf is false, then only proper subterms
+   * of @c term will be included.
+   * @since 04/05/2013 Manchester, argument includeSelf added
+   * @author Andrei Voronkov
+   */
+  NonVariableNonTypeIterator(Term* term,bool includeSelf=false)
+  : _stack(8),
+    _added(0)
+  {
+    CALL("NonVariableNonTypeIterator::NonVariableNonTypeIterator");
+    _stack.push(term);
+    if (!includeSelf) {
+      next();
+    }
+  }
+  // NonVariableIterator(TermList ts);
+
+  /** true if there exists at least one subterm */
+  bool hasNext() { return !_stack.isEmpty(); }
+  TermList next();
+  void right();
+private:
+  /** available non-variable subterms */
+  Stack<Term*> _stack;
+  /** the number of non-variable subterms added at the last iteration, used by right() */
+  int _added;
+}; // NonVariableIterator
+
 /**
  * Iterator that iterator over disagreement set of two terms
  * or literals in DFS left to right order.

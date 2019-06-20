@@ -38,7 +38,6 @@ using namespace Kernel;
 class GeneralSplitting
 {
 public:
-  typedef List<unsigned> VarList;
   void apply(Problem& prb);
   bool apply(UnitList*& units);
   bool apply(ClauseList*& units);

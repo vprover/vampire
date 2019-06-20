@@ -61,6 +61,8 @@ FormulaUnit* Skolem::skolemise (FormulaUnit* unit)
   CALL("Skolem::skolemise(Unit*)");
   ASS(! unit->isClause());
 
+  cout << "skolemising " + unit->toString() << endl;
+
   unit = Rectify::rectify(unit);
   Formula* f = unit->formula();
   switch (f->connective()) {
@@ -137,12 +139,14 @@ unsigned Skolem::addSkolemFunction(unsigned arity, TermList* domainSorts,
 unsigned Skolem::addSkolemFunction(unsigned arity, TermList* domainSorts,
     TermList rangeSort, VarList* vl, const char* suffix)
 {
-  CALL("Skolem::addSkolemFunction(unsigned,unsigned*,unsigned,const char*)");
+  CALL("Skolem::addSkolemFunction(unsigned,TermList*,TermList,const char*)");
   ASS(arity==0 || domainSorts!=0);
 
   unsigned fun = env.signature->addSkolemFunction(arity, suffix);
   Signature::Symbol* fnSym = env.signature->getFunction(fun);
-  fnSym->setType(OperatorType::getFunctionType(arity, domainSorts, rangeSort, vl));
+  OperatorType* ot = OperatorType::getFunctionType(arity - VarList::length(vl), domainSorts, rangeSort, vl);
+  //cout << "the type is " + ot->toString() << endl;
+  fnSym->setType(ot);
   return fun;
 }
 
@@ -368,17 +372,16 @@ Formula* Skolem::skolemise (Formula* f)
 
   case EXISTS: 
     {
+      cout << "skolemising " + f->toString() << endl;
       // create the skolems for the existentials here
       // and bind them in _subst
       unsigned arity = 0;
       ensureHavingVarSorts();
       static Stack<TermList> argSorts;
-      static Stack<TermList> typeArgs;
       static Stack<TermList> termArgs;
       static Stack<TermList> args;
       argSorts.reset();
       termArgs.reset();
-      typeArgs.reset();
       args.reset();
 
       // for proof recording purposes, see below
@@ -412,7 +415,7 @@ Formula* Skolem::skolemise (Formula* f)
         unsigned uvar = vuIt.next();
         TermList sort = _varSorts.get(uvar, Term::defaultSort());
         if(sort == Term::superSort()){
-          typeArgs.push(TermList(uvar, false));//TODO check that this works
+          args.push(TermList(uvar, false));//TODO check that this works
         } else {
           argSorts.push(sort);
           termArgs.push(TermList(uvar, false));
@@ -422,11 +425,11 @@ Formula* Skolem::skolemise (Formula* f)
       }
       ASS(termArgs.size() == argSorts.size());
 
-      VarList* vl;
-      while(!typeArgs.isEmpty()){
-        VarList::push(typeArgs.top().var(), vl);
-        args.push(typeArgs.pop());
+      VarList* vl = VarList::empty();
+      for(int i = args.size() -1; i >= 0 ; i--){
+        VarList::push(args[i].var(), vl);
       }
+
       for(unsigned i = 0; i < termArgs.size(); i++){
         args.push(termArgs[i]);
       }
@@ -435,6 +438,7 @@ Formula* Skolem::skolemise (Formula* f)
       while (vs.hasNext()) {
         int v = vs.next();
         TermList rangeSort=_varSorts.get(v, Term::defaultSort());
+        rangeSort = SubstHelper::apply(rangeSort, localSubst);
 
         unsigned fun = addSkolemFunction(arity, argSorts.begin(), rangeSort, v, vl);
         _introducedSkolemFuns.push(fun);

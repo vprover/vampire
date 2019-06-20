@@ -1146,12 +1146,10 @@ Literal* Naming::getDefinitionLiteral(Formula* f, Formula::VarList* freeVars) {
   }
 
   static Stack<TermList> argSorts;
-  static Stack<TermList> typeArgs;
   static Stack<TermList> termArgs;
   static Stack<TermList> args;
   static DHMap<unsigned, TermList> varSorts;
   argSorts.reset();
-  typeArgs.reset();
   termArgs.reset();
   args.reset();
   varSorts.reset();
@@ -1163,7 +1161,7 @@ Literal* Naming::getDefinitionLiteral(Formula* f, Formula::VarList* freeVars) {
     unsigned uvar = vit.next();
     TermList sort = varSorts.get(uvar, Term::defaultSort());
     if(sort == Term::superSort()){
-      typeArgs.push(TermList(uvar, false));//TODO check that this works      
+      args.push(TermList(uvar, false));     
     } else {
       termArgs.push(TermList(uvar, false));
       argSorts.push(sort);
@@ -1171,16 +1169,16 @@ Literal* Naming::getDefinitionLiteral(Formula* f, Formula::VarList* freeVars) {
   }
   ASS(termArgs.size() == argSorts.size());
 
-  VarList* vl;
-  while(!typeArgs.isEmpty()){
-    VarList::push(typeArgs.top().var(), vl);
-    args.push(typeArgs.pop());
+  VList* vl = VList::empty();
+  for(int i = args.size() -1; i >= 0 ; i--){
+    VList::push(args[i].var(), vl);
   }
+
   for(unsigned i = 0; i < termArgs.size(); i++){
     args.push(termArgs[i]);
   }
 
-  predSym->setType(OperatorType::getPredicateType(length, argSorts.begin(), vl));
+  predSym->setType(OperatorType::getPredicateType(length - VList::length(vl), argSorts.begin(), vl));
 
   return Literal::create(pred, length, true, false, args.begin());
 }

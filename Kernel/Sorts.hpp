@@ -330,7 +330,7 @@ public:
     return (*_key)[arity() - typeArgsArity()];
   }
   
-  void addQuantifiedVars(VarList* vars){_vars = vars;}
+  void addQuantifiedVars(VarList* vars){ _vars = vars; }
   VarList* quantifiedVars(){ return _vars; }
   vstring toString() const;
   

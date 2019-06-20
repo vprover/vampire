@@ -449,7 +449,10 @@ Clause* Superposition::performSuperposition(
   bool hasConstraints = !constraints.isEmpty() && !constraints->isEmpty();
   TermList sort = SortHelper::getEqualityArgumentSort(eqLit);
 
-  if(SortHelper::getTermSort(rwTerm, rwLit)!=sort) { //TODO fix this unification or what?
+  static RobSubstitution sub;
+  sub.reset();
+
+  if(!sub.unify(SortHelper::getTermSort(rwTerm, rwLit), 0, sort, 1)) { //TODO fix this unification or what?
     //cannot perform superposition because sorts don't match
     return 0;
   }

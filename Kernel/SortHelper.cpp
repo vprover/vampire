@@ -45,16 +45,20 @@ void SortHelper::getTypeSub(const Term* t, Substitution& subst)
 {
   CALL("SortHelper::getTypeSub(Term*)");
   
+  //cout << "attempting to get type Substitution for term " + t->toString() << endl;
+
   TermList* typeArg;
   Signature::Symbol* sym = env.signature->getFunction(t->functor());
   OperatorType* ot       = sym->fnType();
+  //cout << "the type is " + ot->toString() << endl;
   List<unsigned>* vars   = ot->quantifiedVars();
   unsigned typeArgsArity = ot->typeArgsArity();
-  
+
   typeArg = const_cast<TermList*>(t->args());
   for(unsigned i = 0; i < typeArgsArity; i++){
     unsigned var = vars->head();
     vars = vars->tail();
+    //cout << "binding X" << var << " to " << typeArg->toString() << endl; 
     subst.bind(var, *typeArg);
     typeArg = typeArg->next();
   }  
@@ -777,7 +781,7 @@ bool SortHelper::areImmediateSortsValid(Term* t)
     TermList argSort = getResultSort(ta);
     TermList instantiatedTypeSort = SubstHelper::apply(type->arg(i), subst);
     if (instantiatedTypeSort != argSort) { //TODO problem here?
-      //cout << "error with expected " << instantiatedTypeSort.toString() << " and actual " << argSort.toString() << " when functor is " << t->functor() << " and arg is " << arg << endl;
+      cout << "error with expected " << instantiatedTypeSort.toString() << " and actual " << argSort.toString() << " when functor is " << t->functor() << " and arg is " << arg << endl;
       return false;
     }
   }

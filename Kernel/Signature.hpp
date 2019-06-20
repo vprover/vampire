@@ -65,6 +65,8 @@ class Signature
     vstring _name;
     /** arity */
     unsigned _arity;
+    /** arity of type arguments */
+    unsigned _typeArgsArity;
     /** the object is of type InterpretedSymbol */
     unsigned _interpreted : 1;
     /** symbol that doesn't come from input problem, but was introduced by Vampire */
@@ -143,6 +145,8 @@ class Signature
     Color color() const { return static_cast<Color>(_color); }
     /** Return the arity of the symbol */
     inline unsigned arity() const { return _arity; }
+    /** Return the type argument arity of the symbol. Only accurate once type has been set. */
+    inline unsigned typeArgsArity() const { ASS(_type); return _typeArgsArity; }
     /** Return the name of the symbol */
     inline const vstring& name() const { return _name; }
     /** Return true iff the object is of type InterpretedSymbol */

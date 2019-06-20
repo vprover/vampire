@@ -322,7 +322,7 @@ OperatorType* OperatorType::getTypeFromKey(OperatorType::OperatorKey* key, VarLi
     return resultType;
   } */
 
-  operatorTypes().insert(key,resultType);
+  operatorTypes().insert(key,resultType);//TODO get rid of this as well?
 
   // cout << " Created new " << resultType << endl;
 
@@ -342,7 +342,7 @@ vstring OperatorType::argsToString() const
   vstring res = "(";
   unsigned ar = arity();
   ASS(ar);
-  for (unsigned i = 0; i < ar; i++) {
+  for (unsigned i = typeArgsArity(); i < ar; i++) {
     res += arg(i).toString();
     if (i != ar-1) {
       res += " * ";
@@ -363,13 +363,13 @@ vstring OperatorType::toString() const
   if(typeArgsArity()){
     res = "!>[";
     for(unsigned i = 0; i < typeArgsArity(); i++){
-      if(i != 0){ res += " ,"; }
+      if(i != 0){ res += ", "; }
       res+= "X" + Int::toString(VarList::nth(_vars, i)) + ": $ttype"; 
     }
-    res += " ]:";
+    res += "]:";
   }
 
-  return (arity() ? argsToString() + " > " : "") +
+  return res + (arity() ? argsToString() + " > " : "") +
       (isPredicateType() ? "$o" : result().toString());
 }
 

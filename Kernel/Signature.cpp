@@ -39,9 +39,10 @@ const unsigned Signature::STRING_DISTINCT_GROUP = 0;
  * @since 03/05/2013 train London-Manchester, argument numericConstant added
  * @author Andrei Voronkov
  */
-Signature::Symbol::Symbol(const vstring& nm,unsigned arity, bool interpreted, bool stringConstant,bool numericConstant, bool overflownConstant)
+Signature::Symbol::Symbol(const vstring& nm, unsigned arity, bool interpreted, bool stringConstant,bool numericConstant, bool overflownConstant)
   : _name(nm),
     _arity(arity),
+    _typeArgsArity(0),
     _interpreted(interpreted ? 1 : 0),
     _introduced(0),
     _protected(0),
@@ -153,6 +154,7 @@ void Signature::Symbol::setType(OperatorType* type)
   CALL("Signature::Symbol::setType");
   ASS(!_type);
 
+  _typeArgsArity = type->typeArgsArity(); 
   _type = type;
 }
 
@@ -227,6 +229,12 @@ Signature::Signature ():
   /*addInterpretedPredicate(Theory::EQUAL, OperatorType::getPredicateType(2), "=");
   ASS_EQ(predicateName(0), "="); //equality must have number 0
   getPredicate(0)->markSkip();*/ //TODO is this safe? Doesn't look like it!
+
+  bool added;
+  addPredicate("=", 2, added);
+  ASS(added);
+  ASS_EQ(predicateName(0), "=");
+  getPredicate(0)->markSkip();
 
   unsigned aux;
   aux = createDistinctGroup();

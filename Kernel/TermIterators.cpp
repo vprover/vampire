@@ -25,7 +25,7 @@
 #include "Debug/Tracer.hpp"
 
 #include "Term.hpp"
-
+#include "Signature.hpp"
 #include "TermIterators.hpp"
 
 namespace Kernel
@@ -163,6 +163,46 @@ TermList NonVariableIterator::next()
 void NonVariableIterator::right()
 {
   CALL("NonVariableIterator::right");
+
+  while (_added > 0) {
+    _added--;
+    _stack.pop();
+  }
+} // NonVariableIterator::right
+
+/**
+ * Return the next non-variable subterm that is not a type argument.
+ * @since 20/06/2019 Manchester
+ * @author Ahmed Bhayat
+ */
+TermList NonVariableNonTypeIterator::next()
+{
+  CALL("NonVariableNonTypeIterator::next");
+
+  Term* t = _stack.pop();
+  TermList* ts;
+  _added = 0;
+  Signature::Symbol* sym = env.signature->getFunction(t->functor());
+  unsigned taArity = sym->typeArgsArity();
+  unsigned arity = sym->arity();
+  for(unsigned i = taArity; i < arity; i++){
+    ts = t->nthArgument(i);
+    if (ts->isTerm()) {
+      _stack.push(const_cast<Term*>(ts->term()));
+      _added++;
+    }
+  }
+  return TermList(t);
+}
+
+/**
+ * Skip all subterms of the terms returned by the last call to next()
+ * @since 04/05/2013 Manchester
+ * @author Andrei Voronkov
+ */
+void NonVariableNonTypeIterator::right()
+{
+  CALL("NonVariableNonTypeIterator::right");
 
   while (_added > 0) {
     _added--;

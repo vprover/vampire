@@ -79,10 +79,10 @@ void SuperpositionSubtermIndex::handleClause(Clause* c, bool adding)
     TermIterator rsti=EqHelper::getRewritableSubtermIterator(lit,_ord);
     while (rsti.hasNext()) {
       if (adding) {
-	_is->insert(rsti.next(), lit, c);
+        _is->insert(rsti.next(), lit, c);
       }
       else {
-	_is->remove(rsti.next(), lit, c);
+        _is->remove(rsti.next(), lit, c);
       }
     }
   }
@@ -122,21 +122,21 @@ void DemodulationSubtermIndex::handleClause(Clause* c, bool adding)
   for (unsigned i=0; i<cLen; i++) {
     inserted.reset();
     Literal* lit=(*c)[i];
-    NonVariableIterator nvi(lit);
+    NonVariableNonTypeIterator nvi(lit);
     while (nvi.hasNext()) {
       TermList t=nvi.next();
-      if (!inserted.insert(t)) {
-	//It is enough to insert a term only once per clause.
-	//Also, once we know term was inserted, we know that all its
-	//subterms were inserted as well, so we can skip them.
-	nvi.right();
-	continue;
+      if (!inserted.insert(t)) {//TODO existing error? Terms are inserted once per a literal
+        //It is enough to insert a term only once per clause.
+        //Also, once we know term was inserted, we know that all its
+        //subterms were inserted as well, so we can skip them.
+        nvi.right();
+        continue;
       }
       if (adding) {
-	_is->insert(t, lit, c);
+        _is->insert(t, lit, c);
       }
       else {
-	_is->remove(t, lit, c);
+        _is->remove(t, lit, c);
       }
     }
   }
