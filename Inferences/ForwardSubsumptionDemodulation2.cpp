@@ -615,8 +615,8 @@ bool ForwardSubsumptionDemodulation2::perform(Clause* cl, Clause*& replacement, 
 
         unsigned const eqSort = SortHelper::getEqualityArgumentSort(eqLit);
 
-        Ordering::Result eqArgOrder = ordering.getEqualityArgumentOrder(eqLit);
-        bool preordered = (eqArgOrder == Ordering::LESS) || (eqArgOrder == Ordering::GREATER);
+        Ordering::Result const eqArgOrder = ordering.getEqualityArgumentOrder(eqLit);
+        bool const preordered = (eqArgOrder == Ordering::LESS) || (eqArgOrder == Ordering::GREATER);
         if (_preorderedOnly && !preordered) {
           continue;
         }
@@ -644,31 +644,6 @@ bool ForwardSubsumptionDemodulation2::perform(Clause* cl, Clause*& replacement, 
          *
          */
 
-        TermList t0ForOrderingCheck = *eqLit->nthArgument(0);
-        TermList t1ForOrderingCheck = *eqLit->nthArgument(1);
-
-        bool postMLMatchOrdered = preordered;
-        if (!preordered) {
-          // NOTE:
-          // We cannot use ordering.getEqualityArgumentOrder(binder.applyTo(eqLit)),
-          // because the order of arguments might switch going from eqLit to binder.applyTo(eqLit).
-          // For example, the problem TOP020+1.p from the TPTP triggered this situation.
-          t0ForOrderingCheck = binder.applyTo(t0ForOrderingCheck);
-          t1ForOrderingCheck = binder.applyTo(t1ForOrderingCheck);
-          eqArgOrder = ordering.compare(t0ForOrderingCheck, t1ForOrderingCheck);
-          postMLMatchOrdered = (eqArgOrder == Ordering::LESS) || (eqArgOrder == Ordering::GREATER);
-        }
-
-        if (eqArgOrder == Ordering::EQUAL) {
-          // NOTE: this can happen due to the choice of variable bindings
-          //       (for example: it happens in problem HWV052-1.001.001.p from the TPTP)
-          //
-          // In this case, the equality has the form t = t and cannot be used for demodulation.
-          //
-          // TODO: maybe we can exclude this already in MLMatcher2?
-          break;
-        }
-
         // Select candidate lhs of eqLit for demodulation.
         // Must be larger than the rhs after substitution.
         //
@@ -686,25 +661,25 @@ bool ForwardSubsumptionDemodulation2::perform(Clause* cl, Clause*& replacement, 
           switch (eqArgOrder) {
             case Ordering::INCOMPARABLE:
               ASS(!_preorderedOnly);  // would've skipped earlier already
-              if (t0ForOrderingCheck.containsAllVariablesOf(t1ForOrderingCheck)) {
+              if (t0.containsAllVariablesOf(t1)) {
                 lhsVector.push_back(t0);
               }
-              if (t1ForOrderingCheck.containsAllVariablesOf(t0ForOrderingCheck)) {
+              if (t1.containsAllVariablesOf(t0)) {
                 lhsVector.push_back(t1);
               }
               break;
             case Ordering::GREATER:
             case Ordering::GREATER_EQ:
-              ASS(t0ForOrderingCheck.containsAllVariablesOf(t1ForOrderingCheck));
+              ASS(t0.containsAllVariablesOf(t1));
               lhsVector.push_back(t0);
               break;
             case Ordering::LESS:
             case Ordering::LESS_EQ:
-              ASS(t1ForOrderingCheck.containsAllVariablesOf(t0ForOrderingCheck));
+              ASS(t1.containsAllVariablesOf(t0));
               lhsVector.push_back(t1);
               break;
             case Ordering::EQUAL:
-              // this case is handled above, so it cannot happen here anymore
+              // there should be no equality literals with equal terms
               ASSERTION_VIOLATION;
             default:
               ASSERTION_VIOLATION;
@@ -744,7 +719,7 @@ bool ForwardSubsumptionDemodulation2::perform(Clause* cl, Clause*& replacement, 
               TermList rhs = EqHelper::getOtherEqualitySide(eqLit, lhs);
 
 #if VDEBUG
-              if (postMLMatchOrdered) {
+              if (preordered) {
                 if (eqArgOrder == Ordering::LESS) {
                   ASS_EQ(rhs, *eqLit->nthArgument(0));
                 } else {
@@ -761,7 +736,7 @@ bool ForwardSubsumptionDemodulation2::perform(Clause* cl, Clause*& replacement, 
               TermList rhsS = binder.applyTo(rhs);
               ASS_EQ(lhsS, binder.applyTo(lhs));
 
-              if (!postMLMatchOrdered && ordering.compare(lhsS, rhsS) != Ordering::GREATER) {
+              if (!preordered && ordering.compare(lhsS, rhsS) != Ordering::GREATER) {
                 continue;
               }
 
