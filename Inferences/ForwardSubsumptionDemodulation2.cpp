@@ -602,6 +602,9 @@ bool ForwardSubsumptionDemodulation2::perform(Clause* cl, Clause*& replacement, 
         if (!eqLit) {
           // eqLit == nullptr means that the whole of mcl can be instantiated to some subset of cl,
           // i.e., cl is subsumed by mcl.
+          //
+          // Note that we should always apply Forward Subsumption if possible,
+          // because it is a deletion rule; and Forward Subsumption should be performed before FSD.
           ASS(!getOptions().forwardSubsumption());  // if FS is enabled, it should have found this inference already before
           premises = pvi(getSingletonIterator(mcl));
           env.statistics->forwardSubsumed++;
@@ -641,11 +644,29 @@ bool ForwardSubsumptionDemodulation2::perform(Clause* cl, Clause*& replacement, 
          *
          */
 
+        TermList t0ForOrderingCheck = *eqLit->nthArgument(0);
+        TermList t1ForOrderingCheck = *eqLit->nthArgument(1);
+
         bool postMLMatchOrdered = preordered;
         if (!preordered) {
-          Literal* eqLitS0 = binder.applyTo(eqLit);  // 'S0' because this is not the final substitution...
-          eqArgOrder = ordering.getEqualityArgumentOrder(eqLitS0);
+          // NOTE:
+          // We cannot use ordering.getEqualityArgumentOrder(binder.applyTo(eqLit)),
+          // because the order of arguments might switch going from eqLit to binder.applyTo(eqLit).
+          // For example, the problem TOP020+1.p from the TPTP triggered this situation.
+          t0ForOrderingCheck = binder.applyTo(t0ForOrderingCheck);
+          t1ForOrderingCheck = binder.applyTo(t1ForOrderingCheck);
+          eqArgOrder = ordering.compare(t0ForOrderingCheck, t1ForOrderingCheck);
           postMLMatchOrdered = (eqArgOrder == Ordering::LESS) || (eqArgOrder == Ordering::GREATER);
+        }
+
+        if (eqArgOrder == Ordering::EQUAL) {
+          // NOTE: this can happen due to the choice of variable bindings
+          //       (for example: it happens in problem HWV052-1.001.001.p from the TPTP)
+          //
+          // In this case, the equality has the form t = t and cannot be used for demodulation.
+          //
+          // TODO: maybe we can exclude this already in MLMatcher2?
+          break;
         }
 
         // Select candidate lhs of eqLit for demodulation.
@@ -660,33 +681,31 @@ bool ForwardSubsumptionDemodulation2::perform(Clause* cl, Clause*& replacement, 
         static v_vector<TermList> lhsVector;
         lhsVector.clear();
         {
-          // TODO: ordering may come from eqLitS0 => adapt containsAllVariablesOf checks to args of eqLitS0!
-          // however lhs_vector still needs to contain the args of eqLit
-          // (unless we adapt the code below, if that works? OTOH we don't even create eqLitS0 in all cases. probably better to keep this local)
           TermList t0 = *eqLit->nthArgument(0);
           TermList t1 = *eqLit->nthArgument(1);
           switch (eqArgOrder) {
             case Ordering::INCOMPARABLE:
               ASS(!_preorderedOnly);  // would've skipped earlier already
-              if (t0.containsAllVariablesOf(t1)) {
+              if (t0ForOrderingCheck.containsAllVariablesOf(t1ForOrderingCheck)) {
                 lhsVector.push_back(t0);
               }
-              if (t1.containsAllVariablesOf(t0)) {
+              if (t1ForOrderingCheck.containsAllVariablesOf(t0ForOrderingCheck)) {
                 lhsVector.push_back(t1);
               }
               break;
             case Ordering::GREATER:
             case Ordering::GREATER_EQ:
-              ASS(t0.containsAllVariablesOf(t1));
+              ASS(t0ForOrderingCheck.containsAllVariablesOf(t1ForOrderingCheck));
               lhsVector.push_back(t0);
               break;
             case Ordering::LESS:
             case Ordering::LESS_EQ:
-              ASS(t1.containsAllVariablesOf(t0));
+              ASS(t1ForOrderingCheck.containsAllVariablesOf(t0ForOrderingCheck));
               lhsVector.push_back(t1);
               break;
             case Ordering::EQUAL:
-              // there should be no equality literals of equal terms
+              // this case is handled above, so it cannot happen here anymore
+              ASSERTION_VIOLATION;
             default:
               ASSERTION_VIOLATION;
           }
@@ -720,7 +739,7 @@ bool ForwardSubsumptionDemodulation2::perform(Clause* cl, Clause*& replacement, 
               continue;
             }
 
-            ASS_LE(lhsVector.size(), 2);  // TODO maybe unroll loop?
+            ASS_LE(lhsVector.size(), 2);
             for (TermList lhs : lhsVector) {
               TermList rhs = EqHelper::getOtherEqualitySide(eqLit, lhs);
 
