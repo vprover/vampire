@@ -37,6 +37,7 @@
 #include "Kernel/FormulaUnit.hpp"
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/Theory.hpp"
+#include "Kernel/RobSubstitution.hpp"
 
 #include "Shell/Options.hpp"
 #include "Shell/Statistics.hpp"
@@ -2761,9 +2762,18 @@ TermList TPTP::createFunctionApplication(vstring name, unsigned arity)
     TermList sort = type->arg(i);
     TermList ss = _termLists.pop();
     TermList ssSort = sortOf(ss);
-    if (sort != ssSort) {//TODO fix problem with sort instantiation
-      USER_ERROR("The sort " + ssSort.toString() + " of function argument " + ss.toString() + " "
-                 "does not match the expected sort " + sort.toString());
+    if(i < type->typeArgsArity()){
+      if(ssSort != Term::superSort()){
+        USER_ERROR("The sort " + ssSort.toString() + " of type argument " + ss.toString() + " "
+                   "is not $ttype as madated by TFF1");
+      }
+    } else {
+      static RobSubstitution subst;
+      subst.reset();
+      if(!subst.match(sort, 0, ssSort, 1)){
+        USER_ERROR("The sort " + ssSort.toString() + " of term argument " + ss.toString() + " "
+                   "is not an instance of sort " + sort.toString());
+      }
     }
     *(t->nthArgument(i)) = ss;
     safe = safe && ss.isSafe();

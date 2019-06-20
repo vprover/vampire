@@ -824,6 +824,8 @@ void PredicateDefinition::count (Formula* f,int polarity,int add, Unit* unit)
       int pred = l->functor();
       _preds[pred].add(l->isPositive() ? polarity : -polarity, add, this);
       if(add==1) {
+        cout << "the pred is " << pred << endl;
+        cout << "containingUnits size " << _preds[pred].containingUnits.size() << endl;
         _preds[pred].containingUnits.insert(unit);
       }
       Term::Iterator args(l);

@@ -768,13 +768,16 @@ bool SortHelper::areImmediateSortsValid(Term* t)
 
   OperatorType* type = env.signature->getFunction(t->functor())->fnType();
   unsigned arity = t->arity();
-  for (unsigned i=type->typeArgsArity(); i<arity; i++) {
+  Substitution subst;
+  getTypeSub(t, subst);
+  for (unsigned i=0; i<arity; i++) {
     TermList arg = *t->nthArgument(i);
     if (!arg.isTerm()) { continue; }
     Term* ta = arg.term();
     TermList argSort = getResultSort(ta);
-    if (type->arg(i) != argSort) { //TODO problem here?
-      //cout << "error with expected " << type.arg(i) << " and actual " << argSort << " when functor is " << t->functor() << " and arg is " << arg << endl;
+    TermList instantiatedTypeSort = SubstHelper::apply(type->arg(i), subst);
+    if (instantiatedTypeSort != argSort) { //TODO problem here?
+      //cout << "error with expected " << instantiatedTypeSort.toString() << " and actual " << argSort.toString() << " when functor is " << t->functor() << " and arg is " << arg << endl;
       return false;
     }
   }

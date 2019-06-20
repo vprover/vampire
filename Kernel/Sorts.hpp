@@ -316,7 +316,10 @@ public:
   TermList arg(unsigned idx) const
   {
     CALL("OperatorType::arg");
-    return (*_key)[idx];
+    if(idx < typeArgsArity()){
+      return Term::superSort();
+    } 
+    return (*_key)[idx - typeArgsArity()];
   }
 
   bool isPredicateType() const { return (*_key)[arity() - typeArgsArity()] == Term::boolSort(); };
@@ -324,7 +327,7 @@ public:
   TermList result() const {
     CALL("OperatorType::result");
     ASS(isFunctionType());
-    return (*_key)[arity()];
+    return (*_key)[arity() - typeArgsArity()];
   }
   
   void addQuantifiedVars(VarList* vars){_vars = vars;}
