@@ -392,7 +392,35 @@ class OverlayBinder
   private:
     BindingsMap m_base;
     BindingsMap m_overlay;
+
+    friend std::ostream& operator<<(std::ostream& o, OverlayBinder const& binder);
 };  // class OverlayBinder
+
+std::ostream& operator<<(std::ostream& o, OverlayBinder const& binder)
+{
+  o << "OverlayBinder { ";
+  bool first = true;
+  for (auto binding : binder.m_base) {
+    if (!first) {
+      o << ", ";
+    } else {
+      first = false;
+    }
+    o << TermList(binding.first, false).toString() << " -> " << binding.second.toString();
+  }
+  o << " / ";
+  first = true;
+  for (auto binding : binder.m_overlay) {
+    if (!first) {
+      o << ", ";
+    } else {
+      first = false;
+    }
+    o << TermList(binding.first, false).toString() << " -> " << binding.second.toString();
+  }
+  o << " }";
+  return o;
+}
 
 
 }  // namespace
