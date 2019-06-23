@@ -30,6 +30,7 @@
 
 #include "Kernel/Term.hpp"
 #include "Kernel/Substitution.hpp"
+#include "Kernel/Sorts.hpp"
 
 namespace Kernel {
 
@@ -77,6 +78,8 @@ public:
 
   static bool areSortsValid(Clause* cl);
   static bool areImmediateSortsValid(Term* t);
+
+  static OperatorType* getType(Term* t);
 
   static void getTypeSub(const Term* t, Substitution& subst);
 

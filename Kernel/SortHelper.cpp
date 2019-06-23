@@ -37,6 +37,21 @@
 
 using namespace Kernel;
 
+
+/**
+ * Return the type of a term or a literal @c t
+ * @author Andrei Voronkov
+ */
+OperatorType* SortHelper::getType(Term* t)
+{
+  CALL("SortHelper::getType(Term*)");
+
+  if (t->isLiteral()) {
+    return env.signature->getPredicate(t->functor())->predType();
+  }
+  return env.signature->getFunction(t->functor())->fnType();
+} // getType
+
 /**
  * Return the type of a term or a literal @c t
  * @author Ahmed Bhayat
@@ -48,8 +63,7 @@ void SortHelper::getTypeSub(const Term* t, Substitution& subst)
   //cout << "attempting to get type Substitution for term " + t->toString() << endl;
 
   TermList* typeArg;
-  Signature::Symbol* sym = env.signature->getFunction(t->functor());
-  OperatorType* ot       = sym->fnType();
+  OperatorType* ot       = getType(const_cast<Term*>(t)); //sym->fnType();
   //cout << "the type is " + ot->toString() << endl;
   List<unsigned>* vars   = ot->quantifiedVars();
   unsigned typeArgsArity = ot->typeArgsArity();
@@ -179,7 +193,7 @@ TermList SortHelper::getArgSort(Term* t, unsigned argIndex)
   }
 
   Substitution subst;
-  OperatorType* ot = env.signature->getFunction(t->functor())->fnType();
+  OperatorType* ot = getType(t);
 
   if(argIndex < ot->typeArgsArity()){
     return Term::superSort();
@@ -770,7 +784,7 @@ bool SortHelper::areImmediateSortsValid(Term* t)
     return true;
   }
 
-  OperatorType* type = env.signature->getFunction(t->functor())->fnType();
+  OperatorType* type = getType(t);
   unsigned arity = t->arity();
   Substitution subst;
   getTypeSub(t, subst);
@@ -781,7 +795,11 @@ bool SortHelper::areImmediateSortsValid(Term* t)
     TermList argSort = getResultSort(ta);
     TermList instantiatedTypeSort = SubstHelper::apply(type->arg(i), subst);
     if (instantiatedTypeSort != argSort) { //TODO problem here?
-      cout << "error with expected " << instantiatedTypeSort.toString() << " and actual " << argSort.toString() << " when functor is " << t->functor() << " and arg is " << arg << endl;
+      //cout << "the term is " + t->toString() << endl;
+      //cout << "the type of function " + env.signature->getFunction(t->functor())->name() + " is: " + type->toString() << endl;
+      //cout << "function name : "+ env.signature->getFunction(t->functor())->name() << endl;
+      //cout << "function name 2 :" + t->functionName() << endl;
+      //cout << "error with expected " << instantiatedTypeSort.toString() << " and actual " << argSort.toString() << " when functor is " << t->functor() << " and arg is " << arg << endl;
       return false;
     }
   }

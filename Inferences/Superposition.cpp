@@ -39,6 +39,7 @@
 #include "Kernel/TermIterators.hpp"
 #include "Kernel/Unit.hpp"
 #include "Kernel/LiteralSelector.hpp"
+#include "Kernel/RobSubstitution.hpp"
 
 #include "Indexing/Index.hpp"
 #include "Indexing/IndexManager.hpp"

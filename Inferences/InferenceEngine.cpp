@@ -216,17 +216,17 @@ Clause* DuplicateLiteralRemovalISE::simplify(Clause* c)
   else if(length==3) {
     if((*c)[0]!=(*c)[1]) {
       if((*c)[0]!=(*c)[2]) {
-	if((*c)[1]!=(*c)[2]) {
-	  return c;
-	}
+        if((*c)[1]!=(*c)[2]) {
+          return c;
+        }
       }
       skipped.push((*c)[2]);
     }
     else { //(*c)[0]==(*c)[1]
       skipped.push((*c)[0]);
       if((*c)[0]==(*c)[2]) {
-	//all are equal
-	skipped.push((*c)[0]);
+        //all are equal
+        skipped.push((*c)[0]);
       }
     }
   }
@@ -239,7 +239,7 @@ Clause* DuplicateLiteralRemovalISE::simplify(Clause* c)
     while(cit.hasNext()) {
       Literal* lit = cit.next();
       if(!seen.insert(lit)) {
-	skipped.push(lit);
+        skipped.push(lit);
       }
     }
     if(skipped.isEmpty()) {

@@ -615,6 +615,9 @@ vstring Literal::toString() const
     if (SortHelper::getEqualityArgumentSort(this) == Term::boolSort()){
       res = "("+res+")";
     }
+    if(isTwoVarEquality()){
+      res += "___ sort: " + twoVarEqSort().toString();
+    }
 
     return res;
   }

@@ -181,10 +181,24 @@ TermList NonVariableNonTypeIterator::next()
 
   Term* t = _stack.pop();
   TermList* ts;
-  _added = 0;
-  Signature::Symbol* sym = env.signature->getFunction(t->functor());
-  unsigned taArity = sym->typeArgsArity();
-  unsigned arity = sym->arity();
+  _added = 0;  
+  Signature::Symbol* sym;
+  if (t->isLiteral()) {
+    sym = env.signature->getPredicate(t->functor());
+  } else{
+    sym = env.signature->getFunction(t->functor());
+  }
+  unsigned taArity; 
+  unsigned arity;
+  
+  if(t->isLiteral() && static_cast<Literal*>(t)->isEquality()){
+    taArity = 0;
+    arity = 2;
+  } else {
+    taArity = sym->typeArgsArity();
+    arity = sym->arity();
+  }
+  
   for(unsigned i = taArity; i < arity; i++){
     ts = t->nthArgument(i);
     if (ts->isTerm()) {

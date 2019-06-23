@@ -61,8 +61,6 @@ FormulaUnit* Skolem::skolemise (FormulaUnit* unit)
   CALL("Skolem::skolemise(Unit*)");
   ASS(! unit->isClause());
 
-  cout << "skolemising " + unit->toString() << endl;
-
   unit = Rectify::rectify(unit);
   Formula* f = unit->formula();
   switch (f->connective()) {
@@ -372,7 +370,6 @@ Formula* Skolem::skolemise (Formula* f)
 
   case EXISTS: 
     {
-      cout << "skolemising " + f->toString() << endl;
       // create the skolems for the existentials here
       // and bind them in _subst
       unsigned arity = 0;
