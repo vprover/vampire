@@ -265,7 +265,7 @@ TermList NNF::ennf(TermList ts, bool polarity)
     return ts;
   }
 
-  /*if (term->isSpecial()) {
+  if (term->isSpecial()) {
     Term::SpecialTermData* sd = term->getSpecialData();
     switch (sd->getType()) {
       case Term::SF_FORMULA: {
@@ -287,7 +287,7 @@ TermList NNF::ennf(TermList ts, bool polarity)
         break;
       }
 
-      case Term::SF_ITE: {
+      /*case Term::SF_ITE: {
         TermList thenBranch = *term->nthArgument(0);
         TermList elseBranch = *term->nthArgument(1);
         Formula* condition  = sd->getCondition();
@@ -347,12 +347,12 @@ TermList NNF::ennf(TermList ts, bool polarity)
           return TermList(Term::createTuple(ennfTupleTerm.term()));
         }
         break;
-      }
+      }*/
 
       default:
         ASSERTION_VIOLATION;
     }
-  }*/
+  }
 
   bool changed = false;
   Stack<TermList> args;

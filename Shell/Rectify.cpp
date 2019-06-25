@@ -161,9 +161,9 @@ Term* Rectify::rectifySpecialTerm(Term* t)
 {
   CALL("Rectify::rectifySpecialTerm");
 
-  /*Term::SpecialTermData* sd = t->getSpecialData();
+  Term::SpecialTermData* sd = t->getSpecialData();
   switch(t->functor()) {
-  case Term::SF_ITE:
+  /*case Term::SF_ITE:
   {
     ASS_EQ(t->arity(),2);
     Formula* c = rectify(sd->getCondition());
@@ -211,7 +211,7 @@ Term* Rectify::rectifySpecialTerm(Term* t)
       return t;
     }
     return Term::createTupleLet(sd->getFunctor(), sd->getTupleSymbols(), binding, contents, sd->getSort());
-  }
+  } */
   case Term::SF_FORMULA:
   {
     ASS_EQ(t->arity(),0);
@@ -221,7 +221,7 @@ Term* Rectify::rectifySpecialTerm(Term* t)
     }
     return Term::createFormula(orig);
   }
-  case Term::SF_TUPLE:
+  /*case Term::SF_TUPLE:
   {
     ASS_EQ(t->arity(),0);
     Term* rectifiedTupleTerm = rectify(sd->getTupleTerm());
@@ -229,11 +229,11 @@ Term* Rectify::rectifySpecialTerm(Term* t)
       return t;
     }
     return Term::createTuple(rectifiedTupleTerm);
-  }
+  }*/
   default:
     ASSERTION_VIOLATION;
   }
-  ASSERTION_VIOLATION;*/
+  ASSERTION_VIOLATION;
 }
 
 /**
@@ -297,6 +297,7 @@ Literal* Rectify::rectify (Literal* l)
       if(l->isEquality() && m->nthArgument(0)->isVar() && m->nthArgument(1)->isVar()) {
         ASS(l->shared());
         TermList srt = SortHelper::getEqualityArgumentSort(l);
+        srt = rectify(srt);
         return env.sharing->insertVariableEquality(m, srt);
       }
       else {

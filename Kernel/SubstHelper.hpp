@@ -283,10 +283,10 @@ Term* SubstHelper::applyImpl(Term* trm, Applicator& applicator, bool noSharing)
 
   using namespace SubstHelper_Aux;
 
-  /*if(trm->isSpecial()) {
+  if(trm->isSpecial()) {
     Term::SpecialTermData* sd = trm->getSpecialData();
     switch(trm->functor()) {
-    case Term::SF_ITE:
+    /*case Term::SF_ITE:
       return Term::createITE(
 	  applyImpl<ProcessSpecVars>(sd->getCondition(), applicator, noSharing),
 	  applyImpl<ProcessSpecVars>(*trm->nthArgument(0), applicator, noSharing),
@@ -300,12 +300,12 @@ Term* SubstHelper::applyImpl(Term* trm, Applicator& applicator, bool noSharing)
 	  applyImpl<ProcessSpecVars>(sd->getBinding(), applicator, noSharing),
 	  applyImpl<ProcessSpecVars>(*trm->nthArgument(0), applicator, noSharing),
 	  sd->getSort()
-	  );
+	  );*/
     case Term::SF_FORMULA:
       return Term::createFormula(
       applyImpl<ProcessSpecVars>(sd->getFormula(), applicator, noSharing)
       );
-    case Term::SF_LET_TUPLE:
+    /*case Term::SF_LET_TUPLE:
       return Term::createTupleLet(
         sd->getFunctor(),
         sd->getTupleSymbols(),
@@ -315,9 +315,11 @@ Term* SubstHelper::applyImpl(Term* trm, Applicator& applicator, bool noSharing)
         );
     case Term::SF_TUPLE:
       return Term::createTuple(applyImpl<ProcessSpecVars>(sd->getTupleTerm(), applicator, noSharing));
+    }*/
+    default:
+      ASSERTION_VIOLATION;
     }
-    ASSERTION_VIOLATION;
-  }*/
+  }
 
   Stack<TermList*>* toDo;
   Stack<Term*>* terms;

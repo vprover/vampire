@@ -358,6 +358,7 @@ VS_OBJ = Shell/CommandLine.o\
          Shell/SimplifyFalseTrue.o\
          Shell/SineUtils.o\
          Shell/SMTFormula.o\
+         Shell/FOOLElimination.o\
          Shell/Statistics.o\
          Shell/SubexpressionIterator.o\
          Shell/SymbolDefinitionInlining.o\
@@ -377,7 +378,6 @@ VS_OBJ = Shell/CommandLine.o\
 #         Shell/BFNTMainLoop.o\
 #         Shell/NewCNF.o\
 #         Shell/EqualityProxy.o\
-#         Shell/FOOLElimination.o\
 #         Shell/TermAlgebra.o\
 #         Shell/TheoryAxioms.o\
 #         Shell/TheoryFinder.o\

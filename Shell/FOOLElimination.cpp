@@ -264,7 +264,7 @@ Formula* FOOLElimination::process(Formula* formula) {
 
         bool polarity = formula->connective() == IFF;
 
-        Literal* equality = Literal::createEquality(polarity, process(lhsTerm), process(rhsTerm), Sorts::SRT_BOOL);
+        Literal* equality = Literal::createEquality(polarity, process(lhsTerm), process(rhsTerm), Term::boolSort());
         Formula* processedFormula = new AtomicFormula(equality);
 
         if (env.options->showPreprocessing()) {
@@ -365,9 +365,9 @@ void FOOLElimination::process(TermList ts, Context context, TermList& termResult
 #if VDEBUG
   // A term can only be processed in a formula context if it has boolean sort
   // The opposite does not hold - a boolean term can stand in a term context
-  unsigned sort = SortHelper::getResultSort(ts, _varSorts);
+  TermList sort = SortHelper::getResultSort(ts, _varSorts);
   if (context == FORMULA_CONTEXT) {
-    ASS_REP(sort == Sorts::SRT_BOOL, ts.toString());
+    ASS_REP(sort == Term::boolSort(), ts.toString());
   }
 #endif
 
@@ -432,8 +432,35 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
 
   // collect free variables of the term and their sorts
   Formula::VarList* freeVars = term->freeVariables();
-  Stack<unsigned> freeVarsSorts = collectSorts(freeVars);
+  static Stack<TermList> argSorts;
+  static Stack<TermList> termArgs;
+  static Stack<TermList> args;
+  argSorts.reset();
+  termArgs.reset();
+  args.reset();
 
+  Formula::VarList::Iterator fvi(freeVars);
+  while (fvi.hasNext()) {
+    unsigned var = (unsigned)fvi.next();
+    ASS_REP(_varSorts.find(var), var);    
+    TermList sort = _varSorts.get(var, Term::defaultSort());
+    if(sort == Term::superSort()){
+      args.push(TermList(var, false));
+    } else {
+      argSorts.push(sort);
+      termArgs.push(TermList(var, false));
+    }   
+  }
+  ASS(termArgs.size() == argSorts.size());
+
+  VList* vl = VList::empty();
+  for(int i = args.size() -1; i >= 0 ; i--){
+    VList::push(args[i].var(), vl);
+  }
+  for(unsigned i = 0; i < termArgs.size(); i++){
+    args.push(termArgs[i]);
+  }
+  
   /**
    * Note that we collected free variables before processing subterms. That
    * assumes that process() preserves free variables. This assumption relies
@@ -483,7 +510,7 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
     Term::SpecialTermData* sd = term->getSpecialData();
 
     switch (term->functor()) {
-      case Term::SF_ITE: {
+      //case Term::SF_ITE: {
         /**
          * Having a term of the form $ite(f, s, t) and the list X1, ..., Xn of
          * its free variables (it is the union of free variables of f, s and t)
@@ -495,7 +522,7 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
          *     * ![X1, ..., Xn]: (~f => g(X1, ..., Xn) = t)
          *  3) Replace the term with g(X1, ..., Xn)
          */
-
+        /*
         Formula* condition = process(sd->getCondition());
 
         TermList thenBranch;
@@ -560,7 +587,7 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
         break;
       }
 
-      case Term::SF_LET: {
+      case Term::SF_LET: {*/
         /**
          * Having a term of the form $let(f(Y1, ..., Yk) := s, t), where f is a
          * function or predicate symbol and the list X1, ..., Xn of free variables
@@ -578,7 +605,7 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
          *  4) Replace the term with t'
          */
 
-        TermList binding = sd->getBinding(); // deliberately unprocessed here
+       // TermList binding = sd->getBinding(); // deliberately unprocessed here
 
         /**
          * $let-expressions are used for binding both function and predicate symbols.
@@ -587,7 +614,7 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
          * check that it is a predicate binding and the body of the function stands in
          * the formula context
          */
-        Context bindingContext = binding.isTerm() && binding.term()->isBoolean() ? FORMULA_CONTEXT : TERM_CONTEXT;
+      /*  Context bindingContext = binding.isTerm() && binding.term()->isBoolean() ? FORMULA_CONTEXT : TERM_CONTEXT;
 
         // collect variables Y1, ..., Yk
         Formula::VarList* argumentVars = sd->getVariables();
@@ -608,7 +635,7 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
 
         // take the defined function symbol and its result sort
         unsigned symbol = sd->getFunctor();
-        unsigned bindingSort = SortHelper::getResultSort(binding, _varSorts);
+        unsigned bindingSort = SortHelper::getResultSort(binding, _varSorts); */
 
         /**
          * Here we can take a simple shortcut. If the there are no free variables,
@@ -616,13 +643,13 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
          * So, in this case, instead of creating a new symbol, we will just
          * reuse f and leave the t term as it is.
          */
-        bool renameSymbol = Formula::VarList::isNonEmpty(bodyFreeVars);
+       // bool renameSymbol = Formula::VarList::isNonEmpty(bodyFreeVars);
         
         /**
          * If the symbol is not marked as introduced then this means it was used
          * in the input after introduction, therefore it should be renamed here
          */
-        if(bindingContext == TERM_CONTEXT && !env.signature->getFunction(symbol)->introduced()) renameSymbol = true;
+       /* if(bindingContext == TERM_CONTEXT && !env.signature->getFunction(symbol)->introduced()) renameSymbol = true;
         if(bindingContext == FORMULA_CONTEXT && !env.signature->getPredicate(symbol)->introduced()) renameSymbol = true;
 
         // create a fresh function or predicate symbol g
@@ -643,7 +670,7 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
                                                                  freshFunctionApplication, processedBody, bindingSort);
 
         // build ![X1, ..., Xn, Y1, ..., Yk]: g(X1, ..., Xn, Y1, ..., Yk) == s
-        if (Formula::VarList::length(vars) > 0) {
+        if (Formula::VarList::length(vars) > 0) {*/
         /*
           Formula::SortList* sortList = Formula::SortList::empty();
           Formula::VarList* vp = vars;
@@ -654,7 +681,7 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
             cout << vp << endl;
           }
         */ 
-          freshSymbolDefinition = new QuantifiedFormula(FORALL, vars, 0, freshSymbolDefinition);
+       /*   freshSymbolDefinition = new QuantifiedFormula(FORALL, vars, 0, freshSymbolDefinition);
         }
 
         // add the introduced definition
@@ -684,7 +711,7 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
         process(contents, context, termResult, formulaResult);
 
         break;
-      }
+      }*/
 
       case Term::SF_FORMULA: {
         if (context == FORMULA_CONTEXT) {
@@ -716,8 +743,8 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
         Formula *formula = process(sd->getFormula());
 
         // create a fresh symbol g and build g(X1, ..., Xn)
-        unsigned freshSymbol = introduceFreshSymbol(context, BOOL_PREFIX, freeVarsSorts, Sorts::SRT_BOOL);
-        TermList freshSymbolApplication = buildFunctionApplication(freshSymbol, freeVars);
+        unsigned freshSymbol = introduceFreshSymbol(context, BOOL_PREFIX, argSorts, Term::boolSort(), vl);
+        TermList freshSymbolApplication = TermList(Term::create(freshSymbol, args.size(), args.begin()));
 
         // build f <=> g(X1, ..., Xn) = true
         Formula* freshSymbolDefinition = new BinaryFormula(IFF, formula, toEquality(freshSymbolApplication));
@@ -865,7 +892,7 @@ Formula* FOOLElimination::buildPredicateApplication(unsigned predicate, Formula:
  * Builds an equivalence or an equality between provided pairs of expressions.
  * The context argument guides which pair is takes and which of the two eq's is built.
  */
-Formula* FOOLElimination::buildEq(Context context, Formula* lhsFormula, Formula* rhsFormula,
+/*Formula* FOOLElimination::buildEq(Context context, Formula* lhsFormula, Formula* rhsFormula,
                                                    TermList lhsTerm, TermList rhsTerm, unsigned termSort) {
   CALL("FOOLElimination::buildEq");
 
@@ -876,24 +903,8 @@ Formula* FOOLElimination::buildEq(Context context, Formula* lhsFormula, Formula*
     // build equality
     return new AtomicFormula(Literal::createEquality(true, lhsTerm, rhsTerm, termSort));
   }
-}
+}*/
 
-/**
- * Creates a stack of sorts for the given variables, using the sorting context
- * of the current formula.
- */
-Stack<unsigned> FOOLElimination::collectSorts(Formula::VarList* vars) {
-  CALL("FOOLElimination::collectSorts");
-
-  Stack<unsigned> sorts;
-  Formula::VarList::Iterator fvi(vars);
-  while (fvi.hasNext()) {
-    unsigned var = (unsigned)fvi.next();
-    ASS_REP(_varSorts.find(var), var);
-    sorts.push(_varSorts.get(var));
-  }
-  return sorts;
-}
 
 /**
  * Extends the list of definitions with a given unit, making sure that it
@@ -915,28 +926,28 @@ void FOOLElimination::addDefinition(FormulaUnit* def) {
 
 Formula* FOOLElimination::toEquality(TermList booleanTerm) {
   TermList truth(Term::foolTrue());
-  Literal* equality = Literal::createEquality(true, booleanTerm, truth, Sorts::SRT_BOOL);
+  Literal* equality = Literal::createEquality(true, booleanTerm, truth, Term::boolSort());
   return new AtomicFormula(equality);
 }
 
 unsigned FOOLElimination::introduceFreshSymbol(Context context, const char* prefix,
-                                               Stack<unsigned> sorts, unsigned resultSort) {
+                                               Stack<TermList> sorts, TermList resultSort, VList* vl) {
   CALL("FOOLElimination::introduceFreshSymbol");
 
   unsigned arity = (unsigned)sorts.size();
   OperatorType* type;
   if (context == FORMULA_CONTEXT) {
-    type = OperatorType::getPredicateType(arity, sorts.begin());
+    type = OperatorType::getPredicateType(arity, sorts.begin(), vl);
   } else {
-    type = OperatorType::getFunctionType(arity, sorts.begin(), resultSort);
+    type = OperatorType::getFunctionType(arity, sorts.begin(), resultSort, vl);
   }
 
   unsigned symbol;
   if (context == FORMULA_CONTEXT) {
-    symbol = env.signature->addFreshPredicate(arity, prefix);
+    symbol = env.signature->addFreshPredicate(arity + VList::length(vl), prefix);
     env.signature->getPredicate(symbol)->setType(type);
   } else {
-    symbol = env.signature->addFreshFunction(arity, prefix);
+    symbol = env.signature->addFreshFunction(arity + VList::length(vl), prefix);
     env.signature->getFunction(symbol)->setType(type);
   }
 

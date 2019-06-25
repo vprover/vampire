@@ -264,7 +264,7 @@ TermList Flattening::flatten (TermList ts)
     return ts;
   }
 
- /* if (term->isSpecial()) {
+ if (term->isSpecial()) {
     Term::SpecialTermData* sd = term->getSpecialData();
     switch (sd->getType()) {
       case Term::SF_FORMULA: {
@@ -277,7 +277,7 @@ TermList Flattening::flatten (TermList ts)
         }
       }
 
-      case Term::SF_ITE: {
+      /*case Term::SF_ITE: {
         TermList thenBranch = *term->nthArgument(0);
         TermList elseBranch = *term->nthArgument(1);
         Formula* condition  = sd->getCondition();
@@ -333,12 +333,12 @@ TermList Flattening::flatten (TermList ts)
           ASS_REP(flattenedTupleTerm.isTerm(), flattenedTupleTerm.toString())
           return TermList(Term::createTuple(flattenedTupleTerm.term()));
         }
-      }
+      }*/
 
       default:
         ASSERTION_VIOLATION;
     }
-  }*/
+  }
 
   bool flattened = false;
   Stack<TermList> args;

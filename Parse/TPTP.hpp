@@ -759,7 +759,7 @@ private:
   void endFormula();
   void formulaInsideTerm();
   void endFormulaInsideTerm();
-  //void endTermAsFormula();
+  void endTermAsFormula();
   void endType();
   void tag();
   void endFof();

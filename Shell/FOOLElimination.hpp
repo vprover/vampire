@@ -60,7 +60,7 @@ private:
   void addDefinition(FormulaUnit* unit);
 
   /** Lexical scope of the current unit */
-  DHMap<unsigned,unsigned> _varSorts;
+  DHMap<unsigned,TermList> _varSorts;
 
   /** Process a given part of the unit */
   FormulaList* process(FormulaList* fs);
@@ -93,12 +93,8 @@ private:
 
   // Depending on the context, build an equivalence or an equality
   // between pairs of arguments
-  static Formula* buildEq(Context context, Formula* lhsFormula, Formula* rhsFormula,
-                                           TermList lhsTerm, TermList rhsTerm, unsigned termSort);
-
-  // Creates a stack of sorts for the given variables, using the sorting
-  // context of the current formula
-  Stack<unsigned> collectSorts(Formula::VarList* vars);
+  // static Formula* buildEq(Context context, Formula* lhsFormula, Formula* rhsFormula,
+  //                                         TermList lhsTerm, TermList rhsTerm, unsigned termSort);
 
   // Converts a boolean term t to a formula 't = true'
   static Formula* toEquality(TermList booleanTerm);
@@ -106,7 +102,7 @@ private:
   // Introduces a fresh predicate or function (depending on the context) symbol
   // with given arguments and result sort
   static unsigned introduceFreshSymbol(Context context, const char* prefix,
-                                       Stack<unsigned> sorts, unsigned resultSort);
+                                       Stack<TermList> sorts, TermList resultSort, VList* vl);
 
   // In order to add some meaning to a fresh symbol we prefix it with a given string
   // Three different prefixes for three kinds of fresh symbols

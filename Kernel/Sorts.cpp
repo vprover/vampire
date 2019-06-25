@@ -369,7 +369,7 @@ vstring OperatorType::toString() const
     res += "]:";
   }
 
-  return res + (arity() ? argsToString() + " > " : "") +
+  return res + (arity() - typeArgsArity() ? argsToString() + " > " : "") +
       (isPredicateType() ? "$o" : result().toString());
 }
 

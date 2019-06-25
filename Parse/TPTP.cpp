@@ -189,9 +189,9 @@ void TPTP::parse()
     case END_FORMULA_INSIDE_TERM:
       endFormulaInsideTerm();
       break;
-   /* case END_TERM_AS_FORMULA:
+    case END_TERM_AS_FORMULA:
       endTermAsFormula();
-      break;*/
+      break;
     case INCLUDE:
       include();
       break;
@@ -2678,7 +2678,7 @@ Formula* TPTP::createPredicateApplication(vstring name, unsigned arity)
   if (pred == -1) { // equality
     TermList rhs = _termLists.pop();
     TermList lhs = _termLists.pop();
-    return new AtomicFormula(createEquality(true,lhs,rhs));
+    return new AtomicFormula(createEquality(true,lhs,rhs));//TODO equality sort?
   }
   if (pred == -2){ // distinct
     // TODO check that we are top-level
@@ -2714,11 +2714,18 @@ Formula* TPTP::createPredicateApplication(vstring name, unsigned arity)
     TermList sort = type->arg(i);
     TermList ts = _termLists.pop();
     TermList tsSort = sortOf(ts);
-    if (sort != tsSort) { //TODO problem here with sort instantiation
-      USER_ERROR("Argument " + Lib::Int::toString(i) +
-                 " of predicate " + env.signature->predicateName(pred) +
-                 " expected something of sort "+sort.toString()+
-                 " but got something of sort "+tsSort.toString());
+    if(i < type->typeArgsArity()){
+      if(tsSort != Term::superSort()){
+        USER_ERROR("The sort " + tsSort.toString() + " of type argument " + ts.toString() + " "
+                   "is not $ttype as madated by TFF1");
+      }
+    } else {
+      static RobSubstitution subst;
+      subst.reset();
+      if(!subst.match(sort, 0, tsSort, 1)){
+        USER_ERROR("The sort " + tsSort.toString() + " of term argument " + ts.toString() + " "
+                   "is not an instance of sort " + sort.toString());
+      }
     }
     safe = safe && ts.isSafe();
     *(lit->nthArgument(i)) = ts;
@@ -2977,20 +2984,20 @@ void TPTP::endFormulaInsideTerm()
  * @author Evgeny Kotelnikov
  * @since 27/03/2015 Manchester
  */
-/*void TPTP::endTermAsFormula()
+void TPTP::endTermAsFormula()
 {
   CALL("TPTP::endTermAsFormula");
   TermList t = _termLists.pop();
-  if (sortOf(t) != Sorts::SRT_BOOL) {
-    vstring sortName = env.sorts->sortName(sortOf(t));
-    USER_ERROR("Non-boolean term " + t.toString() + " of sort " + sortName + " is used in a formula context");
+  TermList tSort = sortOf(t);
+  if (tSort != Term::boolSort()) {
+    USER_ERROR("Non-boolean term " + t.toString() + " of sort " + tSort.toString() + " is used in a formula context");
   }
   if (t.isTerm() && t.term()->isFormula()) {
     _formulas.push(t.term()->getSpecialData()->getFormula());
   } else {
     _formulas.push(new BoolTermFormula(t));
   }
-} */// endTermAsFormula
+} // endTermAsFormula
 
 /**
  * Build a type from previousy built types
@@ -3280,7 +3287,7 @@ void TPTP::endTff()
                    : env.signature->addFunction(name, arity, added);
     if (!added) {
       USER_ERROR("Function symbol type is declared after its use: " + name);
-    }
+    }   
     symbol = env.signature->getFunction(fun);
     symbol->setType(ot);
   }

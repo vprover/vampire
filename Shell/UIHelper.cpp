@@ -608,8 +608,9 @@ void UIHelper::outputSymbolTypeDeclarationIfNeeded(ostream& out, bool function, 
 
   out << "tff(" << (function ? "func" : "pred") << "_def_" << symNumber << ", type, "
       << sym->name() << ": ";
+  out << type->toString();
 
-  unsigned arity = sym->arity();
+  /*unsigned arity = sym->arity();
   if (arity>0) {
     if (arity==1) {
       out << (type->arg(0)).toString();
@@ -631,7 +632,7 @@ void UIHelper::outputSymbolTypeDeclarationIfNeeded(ostream& out, bool function, 
   }
   else {
     out << "$o";
-  }
+  }*/
   out << ")." << endl;
 }
 

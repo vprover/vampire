@@ -350,7 +350,7 @@ TermList SimplifyFalseTrue::simplify(TermList ts)
     return ts;
   }
 
-  /*if (term->isSpecial()) {
+  if (term->isSpecial()) {
     Term::SpecialTermData* sd = term->getSpecialData();
     switch (sd->getType()) {
       case Term::SF_FORMULA: {
@@ -370,7 +370,7 @@ TermList SimplifyFalseTrue::simplify(TermList ts)
           }
         }
       }
-      case Term::SF_ITE: {
+      /*case Term::SF_ITE: {
         Formula* condition  = simplify(sd->getCondition());
 
         #define BRANCH unsigned
@@ -462,11 +462,11 @@ TermList SimplifyFalseTrue::simplify(TermList ts)
         }
         ASS_REP(simplifiedTupleTerm.isTerm(), simplifiedTupleTerm.toString());
         return TermList(Term::createTuple(simplifiedTupleTerm.term()));
-      }
+      }*/
       default:
         ASSERTION_VIOLATION_REP(term->toString());
     }
-  }*/
+  }
 
   bool simplified = false;
   Stack<TermList> arguments;

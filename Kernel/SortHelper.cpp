@@ -144,24 +144,24 @@ bool SortHelper::getResultSortOrMasterVariable(const Term* t, TermList& resultSo
 {
   CALL("SortHelper::getResultSortOrMasterVariable");
 
-  /*switch(t->functor()) {
-    case Term::SF_LET:
+  switch(t->functor()) {
+    /*case Term::SF_LET:
     case Term::SF_LET_TUPLE:
     case Term::SF_ITE:
       resultSort = t->getSpecialData()->getSort();
-      return true;
+      return true;*/
     case Term::SF_FORMULA:
-      resultSort = Sorts::SRT_BOOL;
+      resultSort = Term::boolSort();
       return true;
-    case Term::SF_TUPLE: {
+    /*case Term::SF_TUPLE: {
       resultSort = getResultSort(t->getSpecialData()->getTupleTerm());
       return true;
-    }
-    default:*/
+    }*/
+    default:
       ASS(!t->isSpecial());
       resultSort = getResultSort(t);
       return true;
-  /*}*/ //TODO reintroduce specials. For now removing all FOOL work
+  } //TODO reintroduce specials. For now removing all FOOL work
 } // SortHelper::getResultSortOrMasterVariable
 
 /**
@@ -363,7 +363,7 @@ void SortHelper::collectVariableSortsIter(CollectTask task, DHMap<unsigned,TermL
 
       } break;
 
-     /* case COLLECT_SPECIALTERM: {
+      case COLLECT_SPECIALTERM: {
         Term* term = task.t;
 
         ASS(term->isSpecial());
@@ -371,7 +371,7 @@ void SortHelper::collectVariableSortsIter(CollectTask task, DHMap<unsigned,TermL
         Term::SpecialTermData* sd = term->getSpecialData();
 
         switch (term->functor()) {
-          case Term::SF_ITE: {
+          /*case Term::SF_ITE: {
             CollectTask newTask;
 
             newTask.fncTag = COLLECT_TERMLIST;
@@ -438,7 +438,7 @@ void SortHelper::collectVariableSortsIter(CollectTask task, DHMap<unsigned,TermL
             todo.push(newTask);
 
             break;
-          }
+          }*/
 
           case Term::SF_FORMULA: {
             CollectTask newTask;
@@ -447,19 +447,19 @@ void SortHelper::collectVariableSortsIter(CollectTask task, DHMap<unsigned,TermL
             todo.push(newTask);
           } break;
 
-          case Term::SF_TUPLE: {
+          /*case Term::SF_TUPLE: {
             CollectTask newTask;
             newTask.fncTag = COLLECT_TERM;
             newTask.t = sd->getTupleTerm();
             todo.push(newTask);
-          } break;
+          } break;*/
 
       #if VDEBUG
           default:
             ASSERTION_VIOLATION;
       #endif
         }
-      } break; */
+      } break;
 
       case COLLECT_FORMULA: {
         Formula* f = task.f;

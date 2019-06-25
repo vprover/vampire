@@ -62,7 +62,9 @@ FormulaUnit* Skolem::skolemise (FormulaUnit* unit)
   ASS(! unit->isClause());
 
   unit = Rectify::rectify(unit);
-  Formula* f = unit->formula();
+  //cout << "skolemising " + unit->toString() << endl; 
+
+ Formula* f = unit->formula();
   switch (f->connective()) {
   case FALSE:
   case TRUE:

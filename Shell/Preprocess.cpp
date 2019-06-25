@@ -199,7 +199,7 @@ void Preprocess::preprocess(Problem& prb)
 
       TheoryAxioms(prb).apply();
     }
-  }
+  }*/
 
   if (prb.hasFOOL()) {
     // This is the point to extend the signature with $$true and $$false
@@ -208,11 +208,12 @@ void Preprocess::preprocess(Problem& prb)
     if (!_options.newCNF()) {
       if (env.options->showPreprocessing())
         env.out() << "FOOL elimination" << std::endl;
-      TheoryAxioms(prb).applyFOOL();
+      //TheoryAxioms(prb).applyFOOL(); //TODO uncomment this once theories are reintroduced
       FOOLElimination().apply(prb);
     }
-  } //TODO switch FOOL back on
+  }
 
+  /*
   if (prb.hasInterpretedOperations() || env.signature->hasTermAlgebras()){
     // Some axioms needed to be normalized, so we call InterpretedNormalizer twice
     InterpretedNormalizer().apply(prb);
