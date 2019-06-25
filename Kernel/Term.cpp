@@ -1294,7 +1294,7 @@ Literal* Literal::createEquality (bool polarity, TermList arg1, TermList arg2, T
 #if VDEBUG
      if (SortHelper::tryGetResultSort(arg2, srt2)) {
        subst.reset();
-       ASS(subst.match(sort, 0, srt2, 1));
+       ASS_REP2(subst.match(sort, 0, srt2, 1), sort.toString(), arg2.toString() + " :  " + srt2.toString());
      }
 #endif
    }

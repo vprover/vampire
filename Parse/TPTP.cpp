@@ -1379,37 +1379,6 @@ void TPTP::tff()
     }
     vstring nm = name();
     consumeToken(T_COLON);
-    tok = getTok(0);
-    if(tok.tag == T_LPAR){
-      addTagState(T_RPAR);
-      resetToks();
-      tok = getTok(0);
-    }
-    if (tok.tag == T_TTYPE) {
-      // now we know that this is a new type declaration
-      bool added;
-      unsigned arity = getArity();
-      unsigned fun = env.signature->addFunction(nm,arity,added);
-
-      if (!added) {
-        PARSE_ERROR("Type constructor name must be unique",tok);
-      } else {
-        OperatorType* t = OperatorType::getFunctionTypeUniformRange(arity, Term::superSort(), Term::superSort(), VList::empty());
-        env.signature->getFunction(fun)->setType(t);
-      }
-      if(arity){
-        resetToks();
-        _states.pop();
-        consumeToken(T_ARROW);
-        consumeToken(T_TTYPE);
-      }
-      while (lpars--) {
-        consumeToken(T_RPAR);
-      }
-      consumeToken(T_RPAR);
-      consumeToken(T_DOT);
-      return;
-    }
     // the matching number of rpars will be read
     _ints.push(lpars);
     // remember type name
@@ -1463,29 +1432,6 @@ void TPTP::tff()
   _states.push(FORMULA);
 } // tff()
 
-/**
- * Returns the arity of a type constructor
- * @since 07/06/2019 Manchester
- */
-unsigned TPTP::getArity()
-{
-  CALL("TPTP::name");
-  unsigned arity = 0;
-  resetToks();
-  Token& tok = getTok(0);
-  while (tok.tag != T_RPAR) {
-    if(tok.tag == T_TTYPE){
-      arity++;
-    }else if(tok.tag == T_STAR){
-    }else{
-      PARSE_ERROR("unexpected token in type constructor definition",tok);
-    }
-    resetToks();
-    tok = getTok(0);
-  }
-  if(arity != 0){ arity++; }
-  return arity;
-} // name
 
 /**
  * Process the end of the $ite expression

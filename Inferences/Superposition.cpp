@@ -448,14 +448,15 @@ Clause* Superposition::performSuperposition(
 
   // the first checks the reference and the second checks the stack
   bool hasConstraints = !constraints.isEmpty() && !constraints->isEmpty();
-  TermList sort = SortHelper::getEqualityArgumentSort(eqLit);
+  TermList eqLHSsort = SortHelper::getEqualityArgumentSort(eqLit); 
 
-  static RobSubstitution sub;
-  sub.reset();
-
-  if(!sub.unify(SortHelper::getTermSort(rwTerm, rwLit), 0, sort, 1)) { //TODO fix this unification or what?
-    //cannot perform superposition because sorts don't match
-    return 0;
+  if(rwTerm.isVar() || eqLHS.isVar()) { //TODO fix this unification or what?
+    TermList rwTermSort = SortHelper::getTermSort(rwTerm, rwLit);
+    RobSubstitution* sub = subst->tryGetRobSubstitution();
+    if(!sub->unify(eqLHSsort, eqIsResult, rwTermSort, !eqIsResult)){
+      //cannot perform superposition because sorts don't match
+      return 0;
+    }
   }
 
   if(eqLHS.isVar()) {
@@ -611,7 +612,7 @@ Clause* Superposition::performSuperposition(
     Literal* eqLitS = 0;
     if (afterCheck && eqClause->numSelected() > 1) {
       TimeCounter tc(TC_LITERAL_ORDER_AFTERCHECK);
-      eqLitS = Literal::createEquality(true,eqLHSS,tgtTermS,sort);
+      eqLitS = Literal::createEquality(true,eqLHSS,tgtTermS,eqLHSsort);
     }
 
     for(unsigned i=0;i<eqLength;i++) {

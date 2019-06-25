@@ -737,7 +737,6 @@ private:
   void vampire();
   void consumeToken(Tag);
   vstring name();
-  unsigned getArity();
   void formula();
   void funApp();
   void simpleFormula();

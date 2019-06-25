@@ -131,9 +131,14 @@ struct BackwardDemodulation::ResultFn
       return BwSimplificationRecord(0);
     }
 
+    cout << "The equality clause is " + _cl->toString() << endl;
+    cout << "The rewrite clause is " + qr.clause->toString() << endl;
+    cout << "the rewrite literal is " + qr.literal->toString() << endl;
+    cout << "the rewrite term is " + qr.term.toString() << endl;
+
     TermList qrSort = SortHelper::getTermSort(qr.term, qr.literal);
-    RobSubstitution subst;
-    if(!subst.unify(qrSort, 0, _eqSort, 1)){
+    RobSubstitution* sub = qr.substitution->tryGetRobSubstitution();
+    if(!sub->match(qrSort, 0, _eqSort, 1)){
       return BwSimplificationRecord(0);
     }
 
