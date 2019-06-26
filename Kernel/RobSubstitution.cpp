@@ -610,15 +610,15 @@ TermList RobSubstitution::apply(TermList trm, int index) const
 
       VarSpec ref=termRefVars.pop();
       if(ref!=nilVS) {
-	ALWAYS(known.insert(ref,constructed));
+        ALWAYS(known.insert(ref,constructed));
       }
       continue;
     } else {
       //if tt==&trm, we're dealing with the top
       //term, for which the next() is undefined
       if(tt!=&trm) {
-	toDo.push(tt->next());
-	toDoIndex.push(index);
+        toDo.push(tt->next());
+        toDoIndex.push(index);
       }
     }
 
@@ -630,15 +630,15 @@ TermList RobSubstitution::apply(TermList trm, int index) const
 
       TermList found;
       if(known.find(vs, found)) {
-	args.push(found);
-	continue;
+        args.push(found);
+        continue;
       }
 
       ts=deref(vs);
       if(ts.term.isVar()) {
-	ASS(ts.index==UNBOUND_INDEX);
-	args.push(ts.term);
-	continue;
+        ASS(ts.index==UNBOUND_INDEX);
+        args.push(ts.term);
+        continue;
       }
     } else {
       vs=nilVS;
