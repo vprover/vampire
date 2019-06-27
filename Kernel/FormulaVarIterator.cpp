@@ -99,10 +99,16 @@ bool FormulaVarIterator::hasNext()
       case FVI_FORMULA: {
         const Formula* f = _formulas.pop();
         switch (f->connective()) {
-          case LITERAL:
+          case LITERAL: { 
+            Literal* lit = const_cast<Literal*>(f->literal());
+            if(lit->isTwoVarEquality()){
+              _instructions.push(FVI_TERM_LIST);
+              _termLists.push(lit->twoVarEqSort());              
+            }
             _instructions.push(FVI_TERM);
-            _terms.push(f->literal());
+            _terms.push(lit);
             break;
+          }
 
           case AND:
           case OR: {

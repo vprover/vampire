@@ -189,8 +189,8 @@ TermIterator EqHelper::getRewritableSubtermIterator(Literal* lit, const Ordering
     switch(ord.getEqualityArgumentOrder(lit)) {
     case Ordering::INCOMPARABLE:
       {
-	NonVariableIterator nvi(lit);
-	return getUniquePersistentIteratorFromPtr(&nvi);
+        NonVariableNonTypeIterator nvi(lit);
+        return getUniquePersistentIteratorFromPtr(&nvi);
       }
     case Ordering::EQUAL:
     case Ordering::GREATER:

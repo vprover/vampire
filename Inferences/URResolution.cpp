@@ -33,6 +33,8 @@
 #include "Kernel/Renaming.hpp"
 #include "Kernel/Unit.hpp"
 #include "Kernel/Inference.hpp"
+#include "Kernel/RobSubstitution.hpp"
+#include "Kernel/SortHelper.hpp"
 
 #include "Indexing/Index.hpp"
 #include "Indexing/LiteralIndex.hpp"
@@ -114,7 +116,7 @@ struct URResolution::Item
     for(unsigned i=0; i<clen; i++) {
       _lits[i] = (*cl)[i];
       if(!_lits[i]->ground()) {
-	nonGroundCnt++;
+        nonGroundCnt++;
       }
     }
     _atMostOneNonGround = nonGroundCnt<=1;
@@ -153,7 +155,7 @@ struct URResolution::Item
       }
       lit = unif.substitution->apply(lit, !useQuerySubstitution);
       if(!lit->ground()) {
-	nonGroundCnt++;
+        nonGroundCnt++;
       }
     }
     _atMostOneNonGround = nonGroundCnt<=1;
@@ -170,15 +172,15 @@ struct URResolution::Item
     unsigned clen = _lits.size();
     for(unsigned i=0; i<clen; i++) {
       if(_lits[i]!=0) {
-	ASS_EQ(single,0);
-	ASS_EQ(_premises[i],0);
-	single = _lits[i];
+        ASS_EQ(single,0);
+        ASS_EQ(_premises[i],0);
+        single = _lits[i];
       }
       else {
-	Clause* premise = _premises[i];
-	ASS(premise);
-	premisesAge = max(premisesAge, premise->age());
-	UnitList::push(premise, premLst);
+        Clause* premise = _premises[i];
+        ASS(premise);
+        premisesAge = max(premisesAge, premise->age());
+        UnitList::push(premise, premLst);
       }
     }
     Unit::InputType inpType = Unit::getInputType(premLst);
@@ -227,8 +229,8 @@ struct URResolution::Item
       ASS(_lits[i]);
       int val = getGoodness(_lits[i]);
       if(val>bestVal) {
-	bestVal = val;
-	bestIdx = i;
+        bestVal = val;
+        bestIdx = i;
       }
     }
     if(idx!=bestIdx) {
@@ -283,9 +285,20 @@ void URResolution::processLiteral(ItemList*& itms, unsigned idx)
       iit.insert(itm2);
     }
 
+    TermList litSort; bool eqLit = false;
+    if(lit->isEquality()){
+      litSort = SortHelper::getEqualityArgumentSort(lit);
+      eqLit = true;
+    }
+
     SLQueryResultIterator unifs = _unitIndex->getUnifications(lit, true, true);
     while(unifs.hasNext()) {
       SLQueryResult unif = unifs.next();
+
+      RobSubstitution* subst = unif.substitution->tryGetRobSubstitution();
+      if(eqLit && !subst->unify(litSort, 0, SortHelper::getEqualityArgumentSort(unif.literal), 1)){
+        continue;
+      } 
 
       if( !ColorHelper::compatible(itm->_color, unif.clause->color()) ) {
         continue;
@@ -296,9 +309,9 @@ void URResolution::processLiteral(ItemList*& itms, unsigned idx)
       iit.insert(itm2);
 
       if(itm->_atMostOneNonGround) {
-	//if there is only one non-ground literal left, there is no need to retrieve
-	//all unifications
-	break;
+        //if there is only one non-ground literal left, there is no need to retrieve
+        //all unifications
+        break;
       }
     }
 
@@ -348,10 +361,20 @@ void URResolution::doBackwardInferences(Clause* cl, ClauseList*& acc)
   ASS_EQ(cl->size(), 1);
 
   Literal* lit = (*cl)[0];
+  TermList litSort; bool eqLit = false;
+  if(lit->isEquality()){
+    litSort = SortHelper::getEqualityArgumentSort(lit);
+    eqLit = true;
+  }
   SLQueryResultIterator unifs = _nonUnitIndex->getUnifications(lit, true, true);
   while(unifs.hasNext()) {
     SLQueryResult unif = unifs.next();
     Clause* ucl = unif.clause;
+
+    RobSubstitution* subst = unif.substitution->tryGetRobSubstitution();
+    if(eqLit && !subst->unify(litSort, 0, SortHelper::getEqualityArgumentSort(unif.literal), 1)){
+      continue;
+    } 
 
     if( !ColorHelper::compatible(cl->color(), ucl->color()) ) {
       continue;

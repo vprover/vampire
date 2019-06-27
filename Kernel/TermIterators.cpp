@@ -198,7 +198,7 @@ TermList NonVariableNonTypeIterator::next()
     taArity = sym->typeArgsArity();
     arity = sym->arity();
   }
-  
+
   for(unsigned i = taArity; i < arity; i++){
     ts = t->nthArgument(i);
     if (ts->isTerm()) {

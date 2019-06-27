@@ -40,6 +40,7 @@
 #include "Kernel/Term.hpp"
 #include "Kernel/TermIterators.hpp"
 #include "Kernel/ColorHelper.hpp"
+#include "Kernel/RobSubstitution.hpp"
 
 #include "Indexing/Index.hpp"
 #include "Indexing/IndexManager.hpp"
@@ -123,8 +124,9 @@ bool ForwardDemodulation::perform(Clause* cl, Clause*& replacement, ClauseIterat
         }
 
         TermList eqSort = SortHelper::getEqualityArgumentSort(qr.literal);
-
-        if(querySort!=eqSort) {//TODO fix this, unification, generalisation or what?
+        static RobSubstitution sub;
+        sub.reset();
+        if(!sub.match(eqSort, 0, querySort, 1)) {
           continue;
         }
 

@@ -260,8 +260,8 @@ SLQueryResultIterator LiteralSubstitutionTree::getAll()
       LDToSLQueryResultFn()) ) ;
 }
 
-
-struct LiteralSubstitutionTree::EqualitySortFilter
+//Eqality check moved into the various inference.
+/*struct LiteralSubstitutionTree::EqualitySortFilter
 {
   DECL_RETURN_TYPE(bool);
 
@@ -274,12 +274,13 @@ struct LiteralSubstitutionTree::EqualitySortFilter
     ASS(res.literal->isEquality());
 
     TermList resSort = SortHelper::getEqualityArgumentSort(res.literal);
-    RobSubstitution subst;
-    return subst.unify(resSort, 0, _queryEqSort, 1); //TODO equality on termlists
+    RobSubstitution* subst = res.substitution->tryGetRobSubstitution();
+    ASS(subst);
+    return subst->unify(_queryEqSort, 0, resSort, 1); //TODO equality on termlists
   }
 private:
   TermList _queryEqSort;
-};
+};*/
 
 template<class Iterator>
 SLQueryResultIterator LiteralSubstitutionTree::getResultIterator(Literal* lit,
@@ -315,10 +316,10 @@ SLQueryResultIterator LiteralSubstitutionTree::getResultIterator(Literal* lit,
   	    new Iterator(this, root, lit, retrieveSubstitutions, true, false, useConstraints) );
     ASS(lit->isEquality());
     return pvi(
-	getFilteredIterator(
+//	getFilteredIterator(
 	    getMappingIterator(
-		getConcatenatedIterator(qrit1,qrit2), SLQueryResultFunctor()),
-	    EqualitySortFilter(lit))
+		getConcatenatedIterator(qrit1,qrit2), SLQueryResultFunctor())//,
+	  //  EqualitySortFilter(lit))
 	);
   } else {
     VirtualIterator<QueryResult> qrit=VirtualIterator<QueryResult>(

@@ -469,9 +469,17 @@ void SortHelper::collectVariableSortsIter(CollectTask task, DHMap<unsigned,TermL
           Formula* sf = sfit.next();
           switch (sf->connective()) {
             case LITERAL: {
+              Literal* lit = sf->literal();
+              if(lit->isTwoVarEquality()){
+                CollectTask newTask;
+                newTask.fncTag = COLLECT_TERMLIST;
+                newTask.ts = lit->twoVarEqSort();
+                newTask.contextSort = Term::superSort();
+                todo.push(newTask);
+              }
               CollectTask newTask;
               newTask.fncTag = COLLECT_TERM;
-              newTask.t = sf->literal();
+              newTask.t = lit;
 
               todo.push(newTask);
             } break;
@@ -796,7 +804,7 @@ bool SortHelper::areImmediateSortsValid(Term* t)
     TermList instantiatedTypeSort = SubstHelper::apply(type->arg(i), subst);
     if (instantiatedTypeSort != argSort) { //TODO problem here?
       cout << "the term is " + t->toString() << endl;
-      //cout << "the type of function " + env.signature->getFunction(t->functor())->name() + " is: " + type->toString() << endl;
+      cout << "the type of function " + env.signature->getFunction(t->functor())->name() + " is: " + type->toString() << endl;
       //cout << "function name : "+ env.signature->getFunction(t->functor())->name() << endl;
       //cout << "function name 2 :" + t->functionName() << endl;
       cout << "error with expected " << instantiatedTypeSort.toString() << " and actual " << argSort.toString() << " when functor is " << t->functor() << " and arg is " << arg << endl;

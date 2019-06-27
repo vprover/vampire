@@ -291,14 +291,22 @@ Literal* Rectify::rectify (Literal* l)
 //    return rectifyShared(l);
   }
 
+  bool sortChanged = false;
+  TermList rectifiedSrt;
+  if(l->isTwoVarEquality()){
+    TermList srt = SortHelper::getEqualityArgumentSort(l);
+    rectifiedSrt = rectify(srt);
+    if(srt != rectifiedSrt){ //TODO dangerous. Assume types are shared terms!
+      sortChanged = true;
+    }
+  }
+
   Literal* m = new(l->arity()) Literal(*l);
-  if (rectify(l->args(),m->args())) {
+  if (rectify(l->args(),m->args()) || sortChanged) {
     if(TermList::allShared(m->args())) {
       if(l->isEquality() && m->nthArgument(0)->isVar() && m->nthArgument(1)->isVar()) {
         ASS(l->shared());
-        TermList srt = SortHelper::getEqualityArgumentSort(l);
-        srt = rectify(srt);
-        return env.sharing->insertVariableEquality(m, srt);
+        return env.sharing->insertVariableEquality(m, rectifiedSrt);
       }
       else {
         return env.sharing->insert(m);

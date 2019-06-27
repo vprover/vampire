@@ -120,7 +120,6 @@ struct EqualityFactoring::ResultFn
     TermList fRHS=EqHelper::getOtherEqualitySide(fLit, fLHS);
     ASS_NEQ(sLit, fLit);
 
-    subst.reset();
     if(!subst.unify(sLHS,0,fLHS,0)) {
       return 0;
     }

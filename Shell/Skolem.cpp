@@ -140,7 +140,7 @@ unsigned Skolem::addSkolemFunction(unsigned arity, TermList* domainSorts,
     TermList rangeSort, VarList* vl, const char* suffix)
 {
   CALL("Skolem::addSkolemFunction(unsigned,TermList*,TermList,const char*)");
-  ASS(arity==0 || domainSorts!=0);
+  //ASS(arity==0 || domainSorts!=0);
 
   unsigned fun = env.signature->addSkolemFunction(arity, suffix);
   Signature::Symbol* fnSym = env.signature->getFunction(fun);

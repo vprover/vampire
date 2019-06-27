@@ -73,7 +73,7 @@ private:
   struct PropositionalLDToSLQueryResultWithSubstFn;
   struct LeafToLDIteratorFn;
 
-  struct EqualitySortFilter;
+  //struct EqualitySortFilter;
 
   template<class Iterator>
   SLQueryResultIterator getResultIterator(Literal* lit,
