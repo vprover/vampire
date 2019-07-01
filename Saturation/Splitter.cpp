@@ -1633,6 +1633,13 @@ bool Splitter::handleEmptyClause(Clause* cl)
 
   env.statistics->satSplitRefutations++;
 
+  if (_showSplitting) {
+    env.beginOutput();
+    env.out() << "[AVATAR] handle empty: "<< confl->toString() << std::endl;
+    env.out() << cl->splits()->toString() << endl;
+    env.endOutput();
+  }
+
   if (_hintsForAvatarFakeSimplifier) {
     // use the FO part of the clauses from the proof as hints for subsequent search
 
@@ -1666,6 +1673,9 @@ bool Splitter::handleEmptyClause(Clause* cl)
         //cout << "already a hint heeding clause" << endl;
       } else {
         //cout << "added to index" << endl;
+
+        // cout << "addHintClause: " << curCl->toString() << endl;
+
         _hintsForAvatarFakeSimplifier->addHintClause(curCl);
       }
 
