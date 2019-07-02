@@ -366,10 +366,13 @@ void URResolution::doBackwardInferences(Clause* cl, ClauseList*& acc)
     litSort = SortHelper::getEqualityArgumentSort(lit);
     eqLit = true;
   }
+
   SLQueryResultIterator unifs = _nonUnitIndex->getUnifications(lit, true, true);
   while(unifs.hasNext()) {
     SLQueryResult unif = unifs.next();
     Clause* ucl = unif.clause;
+
+
 
     RobSubstitution* subst = unif.substitution->tryGetRobSubstitution();
     if(eqLit && !subst->unify(litSort, 0, SortHelper::getEqualityArgumentSort(unif.literal), 1)){

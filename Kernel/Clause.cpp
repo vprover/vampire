@@ -582,16 +582,16 @@ unsigned Clause::getNumeralWeight()
       if (t->arity() != 0) {
 	continue;
       }
-      IntegerConstantType intVal;
-      /*if (theory->tryInterpretConstant(t,intVal)) {
+      /*IntegerConstantType intVal;
+      if (theory->tryInterpretConstant(t,intVal)) {
         int w = BitUtils::log2(abs(intVal.toInner()))-1;
         if (w > 0) {
           res += w;
         }
         continue;
-      }*/
+      }
       RationalConstantType ratVal;
-      RealConstantType realVal;
+      RealConstantType realVal;*/
       bool haveRat = false;
       /*if (theory->tryInterpretConstant(t,ratVal)) {
         haveRat = true;
@@ -603,12 +603,12 @@ unsigned Clause::getNumeralWeight()
       if (!haveRat) {
         continue;
       }
-      int wN = BitUtils::log2(abs(ratVal.numerator().toInner()))-1;
+      /*int wN = BitUtils::log2(abs(ratVal.numerator().toInner()))-1;
       int wD = BitUtils::log2(abs(ratVal.denominator().toInner()))-1;
       int v = wN + wD;
       if (v > 0) {
         res += v;
-      }
+      }*/
     }
   }
   return res;

@@ -35,6 +35,7 @@
 #include "Kernel/Inference.hpp"
 #include "Kernel/LiteralSelector.hpp"
 #include "Kernel/SortHelper.hpp"
+#include "Kernel/RobSubstitution.hpp"
 
 #include "Indexing/Index.hpp"
 #include "Indexing/LiteralIndex.hpp"
@@ -130,11 +131,6 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQ
 {
   CALL("BinaryResolution::generateClause");
   ASS(qr.clause->store()==Clause::ACTIVE);//Added to check that generation only uses active clauses
-
-  /*cout << "Query clause " + queryCl->toString() << endl;
-  cout << "Query literal " + queryLit->toString() <<endl;
-  cout << "Result Clause " + qr.clause->toString() << endl;
-  cout << "Result literal " + qr.literal->toString() << endl;*/
 
   if(!ColorHelper::compatible(queryCl->color(),qr.clause->color()) ) {
     env.statistics->inferencesSkippedDueToColors++;

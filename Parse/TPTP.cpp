@@ -36,7 +36,7 @@
 #include "Kernel/Clause.hpp"
 #include "Kernel/FormulaUnit.hpp"
 #include "Kernel/SortHelper.hpp"
-#include "Kernel/Theory.hpp"
+//#include "Kernel/Theory.hpp"
 #include "Kernel/RobSubstitution.hpp"
 
 #include "Shell/Options.hpp"

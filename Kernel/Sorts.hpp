@@ -42,25 +42,6 @@ public:
   CLASS_NAME(Sorts);
   USE_ALLOCATOR(Sorts);
 
-  /** Various pre-defined sort */
-  // Note that this is not closed, these will be treated as unsigned ints within the code
-  enum DefaultSorts {
-    /** The default sort of all individuals, always in the non-sorted case */
-    SRT_DEFAULT = 0,
-    /** Boolean sort */
-    SRT_BOOL = 1,
-    /** sort of integers */
-    SRT_INTEGER = 2,
-    /** sort of rationals */
-    SRT_RATIONAL = 3,
-    /** sort of reals */
-    SRT_REAL = 4,
-    /** sort of types */
-    SRT_SUPER = 5,
-    /** this is not a sort, it is just used to denote the first index of a user-define sort */
-    FIRST_USER_SORT = 6
-  };
-
   /** Various structured sorts */
   enum class StructuredSort {
     /** The structured sort for arrays **/
@@ -193,8 +174,6 @@ public:
     if(sort > _sorts.size()) return false;
     return _sorts[sort]->isOfStructuredSort(structured);
   }
-
-  const vstring& sortName(unsigned idx) const;
 
   /**
    * Return the number of sorts

@@ -28,7 +28,7 @@
 #include "Saturation/SaturationAlgorithm.hpp"
 
 //#include "AcyclicityIndex.hpp"
-#include "ArithmeticIndex.hpp"
+//#include "ArithmeticIndex.hpp"
 #include "CodeTreeInterfaces.hpp"
 #include "GroundingIndex.hpp"
 #include "LiteralIndex.hpp"

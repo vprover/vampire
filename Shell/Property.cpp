@@ -567,7 +567,7 @@ void Property::scan(Literal* lit, int polarity, unsigned cLen, bool goal)
     }
   }
 
-  scanForInterpreted(lit);
+ // scanForInterpreted(lit);
 
   if (!hasProp(PR_HAS_INEQUALITY_RESOLVABLE_WITH_DELETION) && lit->isEquality() && lit->shared()
      && ((lit->isNegative() && polarity == 1) || (!lit->isNegative() && polarity == -1) || polarity == 0)
@@ -619,7 +619,7 @@ void Property::scan(TermList ts,bool unit,bool goal)
         break;
     }
   } else {
-    scanForInterpreted(t);
+    //scanForInterpreted(t);
 
     _symbolsInFormula->insert(t->functor());
     Signature::Symbol* func = env.signature->getFunction(t->functor());
@@ -639,11 +639,11 @@ void Property::scan(TermList ts,bool unit,bool goal)
   }
 }
 
-void Property::scanForInterpreted(Term* t)
+/*void Property::scanForInterpreted(Term* t)
 {
   CALL("Property::scanInterpretation");
 
-  /*Interpretation itp;
+  Interpretation itp;
   if (t->isLiteral()) {
     Literal* lit = static_cast<Literal*>(t);
     if (!theory->isInterpretedPredicate(lit)) { return; }
@@ -707,8 +707,8 @@ void Property::scanForInterpreted(Term* t)
       case Sorts::SRT_REAL : addProp(PR_REAL_NONLINEAR);
         break;
     }
-  }*/
-}
+  }
+}*/
 
 /**
  * Return the string representation of the CASC category.

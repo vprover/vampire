@@ -43,7 +43,7 @@
 #include "Shell/Options.hpp"
 
 #include "Sorts.hpp"
-#include "Theory.hpp"
+//#include "Theory.hpp"
 
 
 namespace Kernel {
@@ -389,7 +389,7 @@ class Signature
   }*/
 
   /** Return true iff there is a symbol interpreted by Interpretation @b interp */
-  bool haveInterpretingSymbol(Interpretation interp, OperatorType* type) const {
+  /*bool haveInterpretingSymbol(Interpretation interp, OperatorType* type) const {
     CALL("Signature::haveInterpretingSymbol(Interpretation, OperatorType*)");
     return _iSymbols.find(std::make_pair(interp,type));
   }
@@ -398,7 +398,7 @@ class Signature
     CALL("Signature::haveInterpretingSymbol(Interpretation)");
     ASS(!Theory::isPolymorphic(interp));
     return haveInterpretingSymbol(interp,Theory::getNonpolymorphicOperatorType(interp));
-  }
+  }*/
 
   /** return the name of a function with a given number */
   const vstring& functionName(int number);
@@ -616,7 +616,7 @@ private:
    * the MonomorphisedInterpretation value already determines whether we deal with a function
    * or a predicate.
    */
-  DHMap<Theory::MonomorphisedInterpretation, unsigned> _iSymbols;
+  //DHMap<Theory::MonomorphisedInterpretation, unsigned> _iSymbols;
 
   /** the number of string constants */
   unsigned _strings;

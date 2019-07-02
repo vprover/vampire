@@ -588,8 +588,8 @@ void UIHelper::outputSymbolTypeDeclarationIfNeeded(ostream& out, bool function, 
     return;
   }
 
-  unsigned dummy;
-  /*if (Theory::tuples()->findProjection(symNumber, !function, dummy)) {
+  /*unsigned dummy;
+  if (Theory::tuples()->findProjection(symNumber, !function, dummy)) {
     return;
   }
 
@@ -644,7 +644,7 @@ void UIHelper::outputSymbolTypeDeclarationIfNeeded(ostream& out, bool function, 
  */
 void UIHelper::outputSortDeclarations(ostream& out)
 {
-  CALL("UIHelper::outputSortDeclarations");
+ /* CALL("UIHelper::outputSortDeclarations");
 
   unsigned sorts = (*env.sorts).count();
   for (unsigned sort = Sorts::SRT_BOOL; sort < sorts; ++sort) {
@@ -655,7 +655,7 @@ void UIHelper::outputSortDeclarations(ostream& out)
       continue;
     }
     out << "tff(type_def_" << sort << ", type, " << env.sorts->sortName(sort) << ": $tType)." << endl;
-  }
+  }*/
 } // UIHelper::outputSortDeclarations
 
 #if GNUMP

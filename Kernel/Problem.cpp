@@ -304,7 +304,7 @@ void Problem::readDetailsFromProperty() const
 
   _hasFormulas = _property->hasFormulas();
   _hasEquality = _property->equalityAtoms()!=0;
-  _hasInterpretedOperations = _property->hasInterpretedOperations();
+  //_hasInterpretedOperations = _property->hasInterpretedOperations();
   _hasFOOL = _property->hasFOOL();
   _hasInterpretedEquality = _property->hasInterpretedEquality();
 
@@ -387,13 +387,13 @@ bool Problem::hasEquality() const
   return _hasEquality.value();
 }
 
-bool Problem::hasInterpretedOperations() const
+/*bool Problem::hasInterpretedOperations() const
 {
   CALL("Problem::hasInterpretedOperations");
 
   if(!_hasInterpretedOperations.known()) { refreshProperty(); }
   return _hasInterpretedOperations.value();
-}
+}*/
 
 bool Problem::hasInterpretedEquality() const
 {

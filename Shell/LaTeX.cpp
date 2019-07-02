@@ -49,7 +49,7 @@
 #include "Kernel/Signature.hpp"
 #include "Kernel/Term.hpp"
 #include "Kernel/Unit.hpp"
-#include "Kernel/Theory.hpp"
+//#include "Kernel/Theory.hpp"
 
 // #define KIF_EXPERIMENTS 0
 

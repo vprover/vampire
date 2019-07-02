@@ -107,7 +107,7 @@ struct EqualityFactoring::ResultFn
     ASS(fLit->isEquality());
 
     TermList srt = SortHelper::getEqualityArgumentSort(sLit);
-    
+
     static RobSubstitution subst;
     subst.reset();
     if (!subst.unify(srt, 0, SortHelper::getEqualityArgumentSort(fLit), 0)) {
@@ -133,11 +133,12 @@ struct EqualityFactoring::ResultFn
     if(Ordering::isGorGEorE(_ordering.compare(fRHSS,sLHSS))) {
       return 0;
     }
+    TermList srtS=subst.apply(srt,0);
 
     Inference* inf = new Inference1(Inference::EQUALITY_FACTORING, _cl);
     Clause* res = new(_cLen) Clause(_cLen, _cl->inputType(), inf);
 
-    (*res)[0]=Literal::createEquality(false, sRHSS, fRHSS, srt);
+    (*res)[0]=Literal::createEquality(false, sRHSS, fRHSS, srtS);
 
     Literal* sLitAfter = 0;
     if (_afterCheck && _cl->numSelected() > 1) {

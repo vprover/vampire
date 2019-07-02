@@ -333,6 +333,7 @@ VS_OBJ = Shell/CommandLine.o\
          Shell/DistinctProcessor.o\
          Shell/DistinctGroupExpansion.o\
          Shell/EqResWithDeletion.o\
+         Shell/EqualityProxy.o\
          Shell/Flattening.o\
          Shell/FunctionDefinition.o\
          Shell/GeneralSplitting.o\
@@ -377,7 +378,6 @@ VS_OBJ = Shell/CommandLine.o\
 #         Shell/BFNT.o\
 #         Shell/BFNTMainLoop.o\
 #         Shell/NewCNF.o\
-#         Shell/EqualityProxy.o\
 #         Shell/TermAlgebra.o\
 #         Shell/TheoryAxioms.o\
 #         Shell/TheoryFinder.o\

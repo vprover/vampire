@@ -24,7 +24,7 @@
 #include "Sorts.hpp"
 
 #include "Lib/Environment.hpp"
-#include "Kernel/Theory.hpp"
+//#include "Kernel/Theory.hpp"
 #include "Shell/Options.hpp"
 
 #include "Term.hpp"
@@ -41,23 +41,6 @@ using namespace Kernel;
 Sorts::Sorts()
 {
   CALL("Sorts::Sorts");
-
-  unsigned aux;
-
-  aux = addSort("$i",true);
-  ASS_EQ(aux, SRT_DEFAULT);
-
-  aux = addSort("$o",true);
-  ASS_EQ(aux, SRT_BOOL);
-
-  aux = addSort("$int",true);
-  ASS_EQ(aux, SRT_INTEGER);
-
-  aux = addSort("$rat",true);
-  ASS_EQ(aux, SRT_RATIONAL);
-
-  aux = addSort("$real",true);
-  ASS_EQ(aux, SRT_REAL);
     
  _hasSort = false;
 } // Sorts::Sorts
@@ -128,7 +111,7 @@ unsigned Sorts::addSort(const vstring& name, bool& added, bool interpreted)
  */
 unsigned Sorts::addArraySort(const unsigned indexSort, const unsigned innerSort)
 {
-  CALL("Sorts::addArraySort");
+  /*CALL("Sorts::addArraySort");
 
   vstring name = "$array(";
   name+=env.sorts->sortName(indexSort);
@@ -147,7 +130,7 @@ unsigned Sorts::addArraySort(const unsigned indexSort, const unsigned innerSort)
   _sorts.push(sort);
   _sortNames.insert(name,result);
 
-  return result;
+  return result;*/
 }
 
 struct SortInfoToInt{
@@ -169,7 +152,7 @@ VirtualIterator<unsigned> Sorts::getStructuredSorts(const StructuredSort ss)
 
 unsigned Sorts::addTupleSort(unsigned arity, unsigned sorts[])
 {
-  CALL("Sorts::addTupleSort");
+  /*CALL("Sorts::addTupleSort");
 
   vstring name = "[";
   for (unsigned i = 0; i < arity; i++) {
@@ -190,7 +173,7 @@ unsigned Sorts::addTupleSort(unsigned arity, unsigned sorts[])
   _sorts.push(new TupleSort(name,result,arity,sorts));
   _sortNames.insert(name, result);
 
-  return result;
+  return result;*/
 }
 
 /**
@@ -214,15 +197,6 @@ bool Sorts::findSort(const vstring& name, unsigned& idx)
   return _sortNames.find(name, idx);
 } // Sorts::findSort
 
-const vstring& Sorts::sortName(unsigned idx) const
-{
-  CALL("Sorts::sortName");
-  if (env.options->showFOOL() && idx == SRT_BOOL) {
-    static vstring name("$bool");
-    return name;
-  }
-  return _sorts[idx]->name();
-} // Sorts::sortName
 
 /**
  * Pre-initialise an OperatorKey.

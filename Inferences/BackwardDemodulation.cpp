@@ -214,7 +214,7 @@ struct BackwardDemodulation::ResultFn
 
     Inference* inf = new Inference2(Inference::BACKWARD_DEMODULATION, _cl, qr.clause);
     Unit::InputType inpType = (Unit::InputType)
-	Int::max(_cl->inputType(), qr.clause->inputType());
+    Int::max(_cl->inputType(), qr.clause->inputType());
 
     unsigned cLen=qr.clause->length();
     Clause* res = new(cLen) Clause(cLen, inpType, inf);
@@ -225,7 +225,7 @@ struct BackwardDemodulation::ResultFn
     for(unsigned i=0;i<cLen;i++) {
       Literal* curr=(*qr.clause)[i];
       if(curr!=qr.literal) {
-	(*res)[next++] = curr;
+        (*res)[next++] = curr;
       }
     }
     ASS_EQ(next,cLen);

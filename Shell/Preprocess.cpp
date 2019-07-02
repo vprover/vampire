@@ -37,7 +37,7 @@
 //#include "NewCNF.hpp"
 #include "DistinctGroupExpansion.hpp"
 #include "EqResWithDeletion.hpp"
-//#include "EqualityProxy.hpp"
+#include "EqualityProxy.hpp"
 #include "Flattening.hpp"
 #include "FunctionDefinition.hpp"
 #include "GeneralSplitting.hpp"
@@ -177,9 +177,9 @@ void Preprocess::preprocess(Problem& prb)
   //enough
   prb.getProperty();
 
-  if (prb.hasInterpretedOperations()) {
+  /*if (prb.hasInterpretedOperations()) {
     env.interpretedOperationsUsed = true;
-  }
+  }*/
 
   if(_options.guessTheGoal() != Options::GoalGuess::OFF){
     prb.invalidateProperty();
@@ -391,7 +391,7 @@ void Preprocess::preprocess(Problem& prb)
      gs.apply(prb);
    }
 
-   /*if (_options.equalityProxy()!=Options::EqualityProxy::OFF && prb.mayHaveEquality()) {
+   if (_options.equalityProxy()!=Options::EqualityProxy::OFF && prb.mayHaveEquality()) {
      env.statistics->phase=Statistics::EQUALITY_PROXY;
      if (env.options->showPreprocessing())
        env.out() << "equality proxy" << std::endl;
@@ -400,6 +400,7 @@ void Preprocess::preprocess(Problem& prb)
      proxy.apply(prb);
    }
 
+   /*
    if(_options.theoryFlattening()){
      if(env.options->showPreprocessing())
        env.out() << "theory flattening" << std::endl;
