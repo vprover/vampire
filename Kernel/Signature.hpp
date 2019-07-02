@@ -511,7 +511,7 @@ class Signature
     return isTrue ? number==_foolTrue : number==_foolFalse;
   }
 
-  unsigned getDefaultSortSym(){
+  unsigned getDefaultSort(){
     bool added = false;
     unsigned individualSort = addFunction("$i",0, added);
     if(added){
@@ -520,7 +520,7 @@ class Signature
     return individualSort;
   }
 
-  unsigned getBoolSortSym(){
+  unsigned getBoolSort(){
     bool added = false;
     unsigned boolSort = addFunction("$o",0, added);
     if(added){
@@ -529,7 +529,7 @@ class Signature
     return boolSort;
   }
 
-  unsigned getRealSortSym(){
+  unsigned getRealSort(){
     bool added = false;
     unsigned realSort = addFunction("$real",0, added);
     if(added){
@@ -538,7 +538,7 @@ class Signature
     return realSort;
   }
 
-  unsigned getIntSortSym(){
+  unsigned getIntSort(){
     bool added = false;
     unsigned intSort = addFunction("$real",0, added);
     if(added){
@@ -547,13 +547,24 @@ class Signature
     return intSort;
   }  
 
-  unsigned getRatSortSym(){
+  unsigned getRatSort(){
     bool added = false;
     unsigned ratSort = addFunction("$rat",0, added);
     if(added){
       getFunction(ratSort)->setType(OperatorType::getConstantsType(Term::superSort(), VarList::empty()));
     }
     return ratSort;    
+  }
+
+  unsigned getArrowConstructor(){
+    bool added = false;
+    unsigned arrow = addFunction("->",2, added);
+    if(added){
+      TermList ss = Term::superSort();
+      Symbol* arr = getFunction(arrow);
+      arr->setType(OperatorType::getFunctionType({ss, ss}, ss, VarList::empty()));
+    }
+    return arrow;    
   }
 
   //bool isTermAlgebraSort(unsigned sort) { return _termAlgebras.find(sort); }

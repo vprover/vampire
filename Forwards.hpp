@@ -169,6 +169,7 @@ typedef Stack<ConstraintRCPtr> ConstraintRCStack;
 class TermList;
 typedef VirtualIterator<TermList> TermIterator;
 typedef Stack<TermList> TermStack;
+typedef List<TermList> SList;
 class Term;
 class Literal;
 typedef List<Literal*> LiteralList;

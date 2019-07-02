@@ -230,7 +230,8 @@ public:
   static const unsigned SF_FORMULA = 0xFFFFFFFD;
   static const unsigned SF_TUPLE = 0xFFFFFFFC;
   static const unsigned SF_LET_TUPLE = 0xFFFFFFFB;
-  static const unsigned SPECIAL_FUNCTOR_LOWER_BOUND = 0xFFFFFFFB;
+  static const unsigned SF_LAMBDA = 0xFFFFFFFA;
+  static const unsigned SPECIAL_FUNCTOR_LOWER_BOUND = 0xFFFFFFFA;
 
   class SpecialTermData
   {
@@ -261,6 +262,13 @@ public:
         size_t binding;
         unsigned sort;
       } _letTupleData;
+      struct {
+        TermList lambdaExp; //review this in light of Evgeny's comment above. Can TermList be used here?
+        IntList* _vars;
+        SList* _sorts;  
+        TermList sort; 
+        TermList expSort;//TODO is this needed?
+      } _lambdaData;
     };
     /** Return pointer to the term to which this object is attached */
     const Term* getTerm() const { return reinterpret_cast<const Term*>(this+1); }
@@ -275,20 +283,25 @@ public:
       ASS_REP(getType() == SF_LET || getType() == SF_LET_TUPLE, getType());
       return getType() == SF_LET ? _letData.functor : _letTupleData.functor;
     }
+    IntList* getLambdaVars() const { ASS_EQ(getType(), SF_LAMBDA); return _lambdaData._vars; }
+    SList* getVarSorts() const { ASS_EQ(getType(), SF_LAMBDA); return _lambdaData._sorts; }
+    TermList getLambdaExp() const { ASS_EQ(getType(), SF_LAMBDA); return _lambdaData.lambdaExp; }
     IntList* getVariables() const { ASS_EQ(getType(), SF_LET); return _letData.variables; }
     IntList* getTupleSymbols() const { return _letTupleData.symbols; }
     TermList getBinding() const {
       ASS_REP(getType() == SF_LET || getType() == SF_LET_TUPLE, getType());
       return TermList(getType() == SF_LET ? _letData.binding : _letTupleData.binding);
     }
-    unsigned getSort() const {
+    TermList getSort() const {
       switch (getType()) {
-        case SF_ITE:
+        /*case SF_ITE:
           return _iteData.sort;
         case SF_LET:
           return _letData.sort;
         case SF_LET_TUPLE:
-          return _letTupleData.sort;
+          return _letTupleData.sort;*/
+        case SF_LAMBDA:
+          return _lambdaData.sort;
         default:
           ASSERTION_VIOLATION_REP(getType());
       }
@@ -311,6 +324,7 @@ public:
   static Term* createConstant(unsigned symbolNumber) { return create(symbolNumber,0,0); }
   static Term* createITE(Formula * condition, TermList thenBranch, TermList elseBranch, unsigned branchSort);
   static Term* createLet(unsigned functor, IntList* variables, TermList binding, TermList body, unsigned bodySort);
+  static Term* createLambda(TermList lambdaExp, IntList* vars, SList* sorts, TermList expSort);
   //static Term* createTupleLet(unsigned functor, IntList* symbols, TermList binding, TermList body, unsigned bodySort);
   static Term* createFormula(Formula* formula);
   //static Term* createTuple(unsigned arity, unsigned* sorts, TermList* elements);
@@ -322,6 +336,7 @@ public:
   static Term* foolTrue(); 
   static Term* foolFalse(); 
 
+  static TermList arrowSort(TermList s1, TermList s2);
   static TermList defaultSort();
   static TermList superSort();
   static TermList boolSort();

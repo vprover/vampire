@@ -37,156 +37,17 @@
 
 namespace Kernel {
 
-class Sorts {
+class Sorts { //TODO remove class altogeher and rename file
 public:
   CLASS_NAME(Sorts);
   USE_ALLOCATOR(Sorts);
 
-  /** Various structured sorts */
-  enum class StructuredSort {
-    /** The structured sort for arrays **/
-    ARRAY,
-    /** The structured sort for tuples */
-    TUPLE,
-    /** not a real structured sort, it's here to denote the length of the StructuredSort enum */
-    LAST_STRUCTURED_SORT
-  };
-
   Sorts();
   ~Sorts();
 
-  class SortInfo
-  {
-  public:
-    CLASS_NAME(SortInfo);
-    USE_ALLOCATOR(SortInfo);
-  
-    SortInfo(const vstring& name,const unsigned id, bool interpreted = false);
-    virtual ~SortInfo() {}
-    
-    const vstring& name() const { return _name; }
-    const unsigned id() const { return _id; }
-
-    virtual bool isOfStructuredSort(StructuredSort sort) { return false; }
-
-  protected:
-    vstring _name;
-    unsigned _id;
-  };
-
-  /**
-   *
-   * @author Giles
-   */
-  class StructuredSortInfo : public SortInfo
-  {
-  public:
-    CLASS_NAME(StructuredSortInfo);
-    USE_ALLOCATOR(StructuredSortInfo);
-
-    StructuredSortInfo(vstring name, StructuredSort sort,unsigned id): 
-      SortInfo(name,id), _sort(sort) { (void)_sort; /*to suppress warning about unused*/ }
-
-    bool isOfStructuredSort(StructuredSort sort) override {
-      return sort==_sort;
-    }
-
-  private:
-    StructuredSort _sort;
-  };
-
-  /**
-   *
-   * @author Giles
-   */
-  class ArraySort : public StructuredSortInfo
-  {
-  public:
-    CLASS_NAME(ArraySort);
-    USE_ALLOCATOR(ArraySort);
-
-    ArraySort(vstring name, unsigned indexSort, unsigned innerSort,unsigned id) : 
-      StructuredSortInfo(name,StructuredSort::ARRAY, id), 
-      _indexSort(indexSort), _innerSort(innerSort) {}
-
-    unsigned getIndexSort(){ return _indexSort; }
-    unsigned getInnerSort(){ return _innerSort; }
-
-  private:
-    // the SortInfo can be found using Sorts
-    unsigned _indexSort;
-    unsigned _innerSort;
-  };
-
-  class TupleSort : public StructuredSortInfo
-  {
-  public:
-    CLASS_NAME(TupleSort);
-    USE_ALLOCATOR(TupleSort);
-
-    TupleSort(vstring name, unsigned id, unsigned arity, unsigned sorts[])
-      : StructuredSortInfo(name, StructuredSort::TUPLE, id), _sorts(arity) {
-      for (unsigned i = 0; i < arity; i++) {
-        _sorts[i] = sorts[i];
-      }
-    }
-
-    unsigned arity() const { return (unsigned)_sorts.size(); }
-    unsigned* sorts() { return _sorts.array(); }
-    unsigned argument(unsigned index) const { ASS_G(arity(), index); return _sorts[index]; }
-
-  private:
-    DArray<unsigned> _sorts;
-  };
-
-  unsigned addSort(const vstring& name, bool& added, bool interpreted);
-  unsigned addSort(const vstring& name, bool interpreted);
-
-  unsigned addArraySort(unsigned indexSort, unsigned innerSort);
-  ArraySort* getArraySort(unsigned sort){
-    ASS(isOfStructuredSort(sort,StructuredSort::ARRAY));
-    return static_cast<ArraySort*>(_sorts[sort]);
-  }
-
-  unsigned addTupleSort(unsigned arity, unsigned sorts[]);
-  TupleSort* getTupleSort(unsigned sort) {
-    ASS(isOfStructuredSort(sort,StructuredSort::TUPLE));
-    return static_cast<TupleSort*>(_sorts[sort]);
-  }
-
-  bool haveSort(const vstring& name);
-  bool findSort(const vstring& name, unsigned& idx);
-
-  VirtualIterator<unsigned> getStructuredSorts(const StructuredSort ss);
-
-  bool isStructuredSort(unsigned sort) {
-    if(sort > _sorts.size()) return false;
-    SortInfo* si = _sorts[sort];
-    for (unsigned ss = 0; ss < (unsigned)StructuredSort::LAST_STRUCTURED_SORT; ss++) {
-      if (si->isOfStructuredSort(static_cast<StructuredSort>(ss))) {
-        return true;
-      }
-    }
-    return false;
-  }
-
-  bool isOfStructuredSort(unsigned sort, StructuredSort structured){
-    if(sort > _sorts.size()) return false;
-    return _sorts[sort]->isOfStructuredSort(structured);
-  }
-
-  /**
-   * Return the number of sorts
-   */
-  unsigned count() const { return _sorts.length(); }
-  /** true if there is a sort different from built-ins */
-  bool hasSort() const {return _hasSort;}
 
 private:
-  SymbolMap _sortNames;
-  Stack<SortInfo*> _sorts;
-  /** true if there is a sort different from built-ins */
-  bool _hasSort;
+
 };
 
 /**

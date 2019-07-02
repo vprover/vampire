@@ -42,7 +42,7 @@ Sorts::Sorts()
 {
   CALL("Sorts::Sorts");
     
- _hasSort = false;
+ //_hasSort = false;
 } // Sorts::Sorts
 
 /**
@@ -53,149 +53,10 @@ Sorts::~Sorts()
 {
   CALL("Sorts::~Sorts");
 
-  while(_sorts.isNonEmpty()) {
+  /*while(_sorts.isNonEmpty()) {
     delete _sorts.pop();
-  }
+  }*/
 } // Sorts::~Sorts
-
-/**
- * Add a new or existing sort and return its number.
- * @author Andrei Voronkov
- */
-unsigned Sorts::addSort(const vstring& name, bool interpreted)
-{
-  CALL("Sorts::addSort/2");
-  bool dummy;
-  return addSort(name, dummy, interpreted);
-} // Sorts::addSort
-
-Sorts::SortInfo::SortInfo(const vstring& name,const unsigned id, bool interpreted)
-{
-  CALL("Sorts::SortInfo::SortInfo");
-
-  if (Signature::symbolNeedsQuoting(name,interpreted,0)) { // arity does not make sense for sorts, but the code still should
-    _name = "'" + name + "'";
-  } else {
-    _name = name;
-  }
-
-  _id = id;
-}
-
-/**
- * Add a new or exising sort named @c name. Set @c added to true iff
- * the sort turned out to be new.
- * @author Andrei Voronkov
- */
-unsigned Sorts::addSort(const vstring& name, bool& added, bool interpreted)
-{
-  CALL("Sorts::addSort/3");
-
-  unsigned result;
-  if (_sortNames.find(name,result)) {
-    added = false;
-    return result;
-  }
-  _hasSort = true;
-  result = _sorts.length();
-  _sorts.push(new SortInfo(name, result,interpreted));
-  _sortNames.insert(name, result);
-  added = true;
-  return result;
-} // Sorts::addSort
-
-
-/**
- *
- * @author Giles
- */
-unsigned Sorts::addArraySort(const unsigned indexSort, const unsigned innerSort)
-{
-  /*CALL("Sorts::addArraySort");
-
-  vstring name = "$array(";
-  name+=env.sorts->sortName(indexSort);
-  name+=",";
-  name+=env.sorts->sortName(innerSort);
-  name+=")";
-  unsigned result;
-  if(_sortNames.find(name,result)){
-    return result;
-  }
-
-  _hasSort = true;
-  result = _sorts.length(); 
-
-  ArraySort* sort = new ArraySort(name,indexSort,innerSort,result);
-  _sorts.push(sort);
-  _sortNames.insert(name,result);
-
-  return result;*/
-}
-
-struct SortInfoToInt{
-  DECL_RETURN_TYPE(unsigned);
-  unsigned operator()(Sorts::SortInfo* s){ return s->id(); }
-};
-
-/**
- * @authors Giles, Evgeny
- */
-VirtualIterator<unsigned> Sorts::getStructuredSorts(const StructuredSort ss)
-{
-  CALL("Sorts::getStructuredSorts");
-  Stack<SortInfo*>::Iterator all(_sorts);
-  VirtualIterator<SortInfo*> structuredSorts = pvi(getFilteredIterator(all,
-               [ss](SortInfo* s){ return s->isOfStructuredSort(ss);}));
-  return pvi(getMappingIterator(structuredSorts,SortInfoToInt()));
-}
-
-unsigned Sorts::addTupleSort(unsigned arity, unsigned sorts[])
-{
-  /*CALL("Sorts::addTupleSort");
-
-  vstring name = "[";
-  for (unsigned i = 0; i < arity; i++) {
-    name += env.sorts->sortName(sorts[i]);
-    if (i != arity - 1) {
-      name += ",";
-    }
-  }
-  name += "]";
-  unsigned result;
-  if(_sortNames.find(name, result)) {
-    return result;
-  }
-
-  _hasSort = true;
-  result = _sorts.length();
-
-  _sorts.push(new TupleSort(name,result,arity,sorts));
-  _sortNames.insert(name, result);
-
-  return result;*/
-}
-
-/**
- * True if this collection contains the sort @c name.
- * @author Andrei Voronkov
- */
-bool Sorts::haveSort(const vstring& name)
-{
-  CALL("Sorts::haveSort");
-  return _sortNames.find(name);
-} // haveSort
-
-/**
- * Find a sort with the name @c name. If the sort is found, return true and set @c idx
- * to the sort number. Otherwise, return false.
- * @author Andrei Voronkov
- */
-bool Sorts::findSort(const vstring& name, unsigned& idx)
-{
-  CALL("Sorts::findSort");
-  return _sortNames.find(name, idx);
-} // Sorts::findSort
 
 
 /**
