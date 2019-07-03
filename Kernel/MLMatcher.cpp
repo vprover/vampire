@@ -437,7 +437,7 @@ MatchingData* getMatchingData(Literal** baseLits0, unsigned baseLen, Clause* ins
     while(ait.hasNext()) {
       currAltCnt++;
       if(ait.next()->commutative()) {
-	currAltCnt++;
+        currAltCnt++;
       }
     }
     altCnt+=currAltCnt+2; //the +2 is for the resolved literal (it can be commutative)
@@ -445,25 +445,27 @@ MatchingData* getMatchingData(Literal** baseLits0, unsigned baseLen, Clause* ins
 
     if(currAltCnt==0) {
       if(zeroAlts!=i) {
-	if(singleAlts!=zeroAlts) {
-	  std::swap(s_baseLits[singleAlts],s_baseLits[zeroAlts]);
-	  std::swap(s_altsArr[singleAlts],s_altsArr[zeroAlts]);
-	}
-	std::swap(s_baseLits[i],s_baseLits[zeroAlts]);
-	std::swap(s_altsArr[i],s_altsArr[zeroAlts]);
-	if(mostDistVarsLit==singleAlts) {
-	  mostDistVarsLit=i;
-	}
+        if(singleAlts!=zeroAlts) {
+          std::swap(s_baseLits[singleAlts],s_baseLits[zeroAlts]);
+          std::swap(s_altsArr[singleAlts],s_altsArr[zeroAlts]);
+        }
+        std::swap(s_baseLits[i],s_baseLits[zeroAlts]);
+        std::swap(s_altsArr[i],s_altsArr[zeroAlts]);
+        if(mostDistVarsLit==singleAlts) {
+          mostDistVarsLit=i;
+        }
       }
       zeroAlts++;
       singleAlts++;
     } else if(currAltCnt==1 && !(resolvedLit && resolvedLit->couldBeInstanceOf(s_baseLits[i], true)) ) {
+      //TODO th above requires updating to polymorphism
+      //for now, a minor source of incompleteness
       if(singleAlts!=i) {
-	std::swap(s_baseLits[i],s_baseLits[singleAlts]);
-	std::swap(s_altsArr[i],s_altsArr[singleAlts]);
-	if(mostDistVarsLit==singleAlts) {
-	  mostDistVarsLit=i;
-	}
+        std::swap(s_baseLits[i],s_baseLits[singleAlts]);
+        std::swap(s_altsArr[i],s_altsArr[singleAlts]);
+        if(mostDistVarsLit==singleAlts) {
+          mostDistVarsLit=i;
+        }
       }
       singleAlts++;
     } else if(i>0 && mostDistVarsCnt<distVars) {

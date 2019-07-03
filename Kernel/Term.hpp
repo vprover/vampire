@@ -861,6 +861,7 @@ public:
     }
     return couldArgsBeInstanceOf(lit);
   }
+
   bool couldArgsBeInstanceOf(Literal* lit)
   {
 #if USE_MATCH_TAG

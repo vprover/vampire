@@ -97,6 +97,19 @@ bool MatchingUtils::isVariant(Literal* l1, Literal* l2, bool complementary)
 {
   CALL("MatchingUtils::isVariant");
 
+  if(l1->isTwoVarEquality() && l2->isTwoVarEquality()){
+    TermList s1 = l1->twoVarEqSort();
+    TermList s2 = l2->twoVarEqSort();
+    if(s1.isVar() && s2.isVar()){}
+    else if(s1.isTerm() && s2.isTerm()){
+      if(s1.term()->functor() != s2.term()->functor() || 
+        !haveVariantArgs(s1.term(), s2.term())){
+        return false;
+      }
+    }else{
+      return false;
+    }
+  }
   if(!Literal::headersMatch(l1,l2,complementary)) {
     return false;
   }
@@ -216,7 +229,7 @@ bool MatchingUtils::matchTerms(TermList base, TermList instance)
     Term* bt=base.term();
     Term* it=instance.term();
     if(bt->functor()!=it->functor()) {
-	return false;
+      return false;
     }
     if(bt->shared() && it->shared()) {
       if(bt->ground()) {
@@ -240,6 +253,8 @@ void OCMatchIterator::init(Literal* base, Literal* inst, bool complementary)
 {
   CALL("FastMatchIterator::init");
 
+  //TODO we don't seem to use this iterator anywhere, so 
+  //have not updated to polymorphism
   if(!Literal::headersMatch(base, inst, complementary)) {
     _finished=true;
     return;
@@ -517,7 +532,7 @@ struct Matcher::MatchContext
     matcher->bdRecord(_bdata);
     bool res=matcher->matchArgs(_base, _instance);
     if(!res) {
-	matcher->bdDone();
+      matcher->bdDone();
       ASS(_bdata.isEmpty());
     }
     return res;
@@ -540,6 +555,11 @@ MatchIterator Matcher::matches(Literal* base, Literal* instance,
 
   if(!Literal::headersMatch(base, instance, complementary)) {
     return MatchIterator::getEmpty();
+  }
+  if(base->isTwoVarEquality()){
+    TermList s1 = SortHelper::getEqualityArgumentSort(base);
+    TermList s2 = SortHelper::getEqualityArgumentSort(instance);
+    if(!MatchingUtils::matchTerms(s1, s2)){ return MatchIterator::getEmpty(); }
   }
   if(base->arity()==0) {
     return pvi( getSingletonIterator(this) );

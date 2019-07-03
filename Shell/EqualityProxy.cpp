@@ -397,8 +397,6 @@ Literal* EqualityProxy::makeProxyLiteral(bool polarity, TermList arg0, TermList 
 {
   CALL("EqualityProxy::makeProxyLiteral");
 
-  cout << "making proxy literal with " + arg0.toString() + " and " + arg1.toString() << endl;
-
   unsigned pred = getProxyPredicate();
   TermList args[] = {sort, arg0, arg1};
   return Literal::create(pred, 3, polarity, false, args);

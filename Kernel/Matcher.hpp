@@ -35,6 +35,7 @@
 
 #include "Term.hpp"
 #include "TermIterators.hpp"
+#include "SortHelper.hpp"
 
 namespace Kernel {
 
@@ -80,6 +81,12 @@ public:
       return false;
     }
 
+    if(base->isTwoVarEquality()){
+      TermList s1 = SortHelper::getEqualityArgumentSort(base);
+      TermList s2 = SortHelper::getEqualityArgumentSort(instance);
+      if(!matchTerms(s1, s2, binder)){ return false; }
+    }
+
     if(base->arity()==0) {
       return true;
     }
@@ -89,11 +96,11 @@ public:
     if(base->commutative()) {
       ASS(base->arity()==2);
       if(matchArgs(base, instance, binder)) {
-	return true;
+        return true;
       }
       binder.reset();
       return matchTerms(*base->nthArgument(0), *instance->nthArgument(1), binder) &&
-	matchTerms(*base->nthArgument(1), *instance->nthArgument(0), binder);
+             matchTerms(*base->nthArgument(1), *instance->nthArgument(0), binder);
     } else {
       return matchArgs(base, instance, binder);
     }

@@ -152,7 +152,7 @@ void Signature::Symbol::addToDistinctGroup(unsigned group,unsigned this_number)
 void Signature::Symbol::setType(OperatorType* type)
 {
   CALL("Signature::Symbol::setType");
-  ASS(!_type);
+  ASS_REP(!_type, _type->toString());
 
   _typeArgsArity = type->typeArgsArity(); 
   _type = type;
@@ -620,7 +620,10 @@ unsigned Signature::addFunction (const vstring& name,
     }
     _arityCheck.insert(name,2*arity+1);
   }
-
+  
+  /*if(name == "$tType"){
+    ASSERTION_VIOLATION;
+  }*/
   result = _funs.length();
   _funs.push(new Symbol(name, arity, false, false, false, overflowConstant));
   _funNames.insert(symbolKey, result);

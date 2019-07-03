@@ -512,6 +512,8 @@ class Signature
   }
 
   unsigned getDefaultSort(){
+    CALL("Signature::getDefaultSort");
+
     bool added = false;
     unsigned individualSort = addFunction("$i",0, added);
     if(added){
@@ -521,6 +523,8 @@ class Signature
   }
 
   unsigned getBoolSort(){
+    CALL("Signature::getBoolSort");
+
     bool added = false;
     unsigned boolSort = addFunction("$o",0, added);
     if(added){

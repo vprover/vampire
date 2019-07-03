@@ -1072,18 +1072,24 @@ Term* Term::foolFalse(){
 
 
 TermList Term::superSort(){
+  CALL("Term::superSort");
+
   static Term* _super = 0;
   if(!_super){ _super = createConstant("$tType"); }
   return TermList(_super);
 }
 
 TermList Term::defaultSort(){
+  CALL("Term::defaultSort");
+
   static Term* _default = 0;
   if(!_default){ _default = createConstant(env.signature->getDefaultSort()); }
   return TermList(_default); 
 }
   
 TermList Term::boolSort(){
+  CALL("Term::boolSort");
+
   static Term* _bool = 0;
   if(!_bool){ _bool = createConstant(env.signature->getBoolSort()); }
   return TermList(_bool); 
@@ -1212,11 +1218,7 @@ bool Literal::headersMatch(Literal* l1, Literal* l2, bool complementary)
   if (l1->_functor!=l2->_functor || (complementary?1:0)!=(l1->polarity()!=l2->polarity())) {
     return false;
   }
-  if (l1->isEquality()) {
-    if (SortHelper::getEqualityArgumentSort(l1)!=SortHelper::getEqualityArgumentSort(l2)) {//TODO does this require modification?
-      return false;
-    }
-  }
+
   return true;
 }
 

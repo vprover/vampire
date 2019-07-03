@@ -776,6 +776,14 @@ size_t RobSubstitution::getApplicationResultWeight(Literal* lit, int index) cons
 SubstIterator RobSubstitution::matches(Literal* base, int baseIndex,
 	Literal* instance, int instanceIndex, bool complementary)
 {
+  if(base->isTwoVarEquality()){
+    TermList sb = SortHelper::getEqualityArgumentSort(base);
+    TermList si = SortHelper::getEqualityArgumentSort(instance);
+    if(!match(sb, baseIndex, si, instanceIndex)){
+      return SubstIterator::getEmpty();
+    }
+  }
+
   return getAssocIterator<MatchingFn>(this, base, baseIndex,
 	  instance, instanceIndex, complementary);
 }
@@ -789,6 +797,14 @@ SubstIterator RobSubstitution::matches(Literal* base, int baseIndex,
 SubstIterator RobSubstitution::unifiers(Literal* l1, int l1Index,
 	Literal* l2, int l2Index, bool complementary)
 {
+  if(l1->isEquality() && l2->isEquality()){
+    TermList s1 = SortHelper::getEqualityArgumentSort(l1);
+    TermList s2 = SortHelper::getEqualityArgumentSort(l2);
+    if(!unify(s1, l1Index, s2, l2Index)){
+      return SubstIterator::getEmpty();
+    }
+  }
+
   return getAssocIterator<UnificationFn>(this, l1, l1Index,
 	  l2, l2Index, complementary);
 }
