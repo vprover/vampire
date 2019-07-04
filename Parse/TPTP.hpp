@@ -38,7 +38,7 @@
 #include "Kernel/Unit.hpp"
 //#include "Kernel/Theory.hpp"
 
-//#define DEBUG_SHOW_STATE
+#define DEBUG_SHOW_STATE
 
 using namespace std;
 using namespace Lib;
@@ -225,6 +225,16 @@ public:
     INCLUDE,
     /** after the equality */
     END_EQ,
+    /** Read a HOL formula */
+    HOL_FORMULA,
+    /** build a HOL formula from a connective and one or more formulas */
+    END_HOL_FORMULA,
+    /** Read a higher-order constant or variable */
+    HOL_TERM,
+    /** Read after a HOL term */
+    END_HOL_TERM,
+    /** create an application term after reading an app */
+    END_APP,
     /** tff declaration */
     TFF,
     /** THF declaration */
@@ -264,6 +274,13 @@ public:
     TUPLE_DEFINITION,
     /** end of a theory function */
     END_THEORY_FUNCTION
+  };
+
+  enum LastPushed {
+    /**last item pushed was a formula */
+    FORM,
+    /**last item pushed was a term */
+    TM,
   };
 
   /** token */
@@ -568,6 +585,8 @@ private:
   /** true if the last read unit is fof() or cnf() due to a subtle difference
    * between fof() and tff() in treating numeric constants */ 
   bool _isFof;
+  /** */
+  bool _isThf;
   /** various strings saved during parsing */
   Stack<vstring> _strings;
   /** various connectives saved during parsing */ // they must be int, since non-existing value -1 can be used
@@ -622,6 +641,9 @@ private:
   /** a stack of scopes */
   Stack<LetSymbols> _letSymbols;
   Stack<LetSymbols> _letTypedSymbols;
+
+  /** Record wether a formula or term has been pushed more recently */
+  LastPushed _lastPushed;
 
   /** finds if the symbol has been defined in an enclosing $let */
   bool findLetSymbol(LetSymbolName symbolName, LetSymbolReference& symbolReference);
@@ -768,6 +790,11 @@ private:
   void endIte();
   void letType();
   //void endLetTypes();
+  void endApp();
+  void holFormula();
+  void endHolFormula();
+  void holTerm();
+  void endHolTerm();
   void definition();
   void midDefinition();
   //void endDefinition();
@@ -776,6 +803,8 @@ private:
   //void endTuple();
   void addTagState(Tag);
 
+  void foldl(TermStack*);
+  TermList readArrowTerm();
   TermList readTerm();
   void bindVariable(int var,TermList sort);
   void unbindVariables();

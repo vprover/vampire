@@ -339,7 +339,7 @@ unsigned EqualityProxy::getProxyPredicate()
   VList* vl = VList::empty();
   VList::push(0, vl);
   
-  TermList sort = TermList(0, false);
+  TermList sort = TermList(0,false);
   TermList var1 = TermList(1,false);
   TermList var2 = TermList(2,false);
 

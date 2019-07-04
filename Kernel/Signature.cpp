@@ -61,7 +61,8 @@ Signature::Symbol::Symbol(const vstring& nm, unsigned arity, bool interpreted, b
     _inGoal(0),
     _inUnit(0),
     _inductionSkolem(0),
-    _skolem(0)
+    _skolem(0),
+    _arrow(0)
 {
   CALL("Signature::Symbol::Symbol");
   ASS(!stringConstant || arity==0);
@@ -657,6 +658,26 @@ unsigned Signature::addStringConstant(const vstring& name)
   return result;
 } // addStringConstant
 
+
+unsigned Signature::getApp()
+{
+  CALL("Signature::getApp");
+
+  bool added = false;
+  unsigned app = addFunction("vAPP", 4, added);
+  if(added){
+    VList* vl = VList::empty();
+    VList::push(1, vl);
+    VList::push(0, vl);
+    TermList tv1 = TermList(0, false);
+    TermList tv2 = TermList(1, false);
+    TermList arrowType = Term::arrowSort(tv1, tv2);
+    OperatorType* ot = OperatorType::getFunctionType({arrowType, tv1}, tv2, vl);
+    getFunction(app)->setType(ot);
+  }
+  return app;
+}
+
 /**
  * If a predicate with this name and arity exists, return its number.
  * Otherwise, add a new one and return its number.
@@ -928,7 +949,7 @@ bool Signature::symbolNeedsQuoting(vstring name, bool interpreted, unsigned arit
   CALL("Signature::symbolNeedsQuoting");
   ASS_G(name.length(),0);
 
-  if (name=="=" || (interpreted && arity==0)) {
+  if (name=="=" || (interpreted && arity==0) || (name=="->")) {
     return false;
   }
 

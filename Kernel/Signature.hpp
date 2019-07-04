@@ -108,6 +108,8 @@ class Signature
     unsigned _inductionSkolem : 1;
     /** if skolem function in general **/
     unsigned _skolem : 1;
+    /** if arrow constructor */
+    unsigned _arrow : 1;
 
   public:
     /** standard constructor */
@@ -186,6 +188,9 @@ class Signature
 
     inline void markSkolem(){ _skolem = 1;}
     inline bool skolem(){ return _skolem; }
+
+    inline void markArrow(){ _arrow = 1; }
+    inline bool arrow(){ return _arrow; }
 
     inline void markInductionSkolem(){ _inductionSkolem=1; _skolem=1;}
     inline bool inductionSkolem(){ return _inductionSkolem;}
@@ -354,6 +359,7 @@ class Signature
   unsigned addFreshPredicate(unsigned arity, const char* prefix, const char* suffix = 0);
   unsigned addSkolemPredicate(unsigned arity,const char* suffix = 0);
   unsigned addNamePredicate(unsigned arity);
+  unsigned getApp();
 
   // Interpreted symbol declarations
  // unsigned addIntegerConstant(const vstring& number,bool defaultSort);
@@ -567,6 +573,7 @@ class Signature
       TermList ss = Term::superSort();
       Symbol* arr = getFunction(arrow);
       arr->setType(OperatorType::getFunctionType({ss, ss}, ss, VarList::empty()));
+      arr->markArrow();
     }
     return arrow;    
   }

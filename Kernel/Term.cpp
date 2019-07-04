@@ -62,6 +62,7 @@ using namespace Kernel;
 const unsigned Term::SF_ITE;
 const unsigned Term::SF_LET;
 const unsigned Term::SF_FORMULA;
+const unsigned Term::SF_LAMBDA;
 const unsigned Term::SPECIAL_FUNCTOR_LOWER_BOUND;
 
 /*Term* Term::SUPER = Term::createConstant("$tType");
@@ -434,7 +435,7 @@ vstring Term::headToString() const
         vstring formula = sd->getFormula()->toString();
         return env.options->showFOOL() ? "$term{" + formula + "}" : formula;
       }
-      case Term::SF_LET: {
+      /*case Term::SF_LET: {
         ASS_EQ(arity(), 1);
         TermList binding = sd->getBinding();
         bool isPredicate = binding.isTerm() && binding.term()->isBoolean();
@@ -498,6 +499,27 @@ vstring Term::headToString() const
         }
 
         return "$let([" + typesList + "], [" + symbolsList + "] := " + binding.toString() + ", ";
+      }*/
+      case Term:: SF_LAMBDA: {
+        IntList* vars = sd->getLambdaVars(); //Need to add these functions to class!
+        SList* sorts = sd->getVarSorts();
+        TermList lambdaExp = sd->getLambdaExp();
+     
+        vstring varList = "[";
+         
+        IntList::Iterator vs(vars);
+        SList::Iterator ss(sorts);
+        TermList sort;
+        bool first = true;
+        while(vs.hasNext()) {
+          if (!first){
+            varList += ", ";
+          }else{ first = false; }
+          varList += Term::variableToString(vs.next()) + " : ";
+          varList += ss.next().toString(); 
+        }
+        varList += "]";        
+        return "^" + varList + " : " + lambdaExp.toString();
       }
       default:
         ASSERTION_VIOLATION;
@@ -586,12 +608,11 @@ vstring Term::toString() const
   CALL("Term::toString");
 
   if(!isSpecial() && !isLiteral()){
-     vstring name = functionName();
-     if(name == "->"){
+     if(env.signature->getFunction(_functor)->arrow()){
        ASS(arity() == 2);
        TermList arg1 = *(nthArgument(0));
        TermList arg2 = *(nthArgument(1));
-       return arg1.toString() + " " + name + " " + arg2.toString();
+       return arg1.toString() + " " + functionName() + " " + arg2.toString();
      }
   }
 
@@ -987,10 +1008,10 @@ Term* Term::createLambda(TermList lambdaExp, IntList* vars, SList* sorts, TermLi
   while(sit.hasNext()){
    revSorts.push(sit.next());
   }
-  /*while(!revSorts.isEmpty()){
-   unsigned varSort = revSorts.pop();
-     lambdaTmSort = env.sorts->addFunctionSort(varSort, lambdaTmSort);
-  }*/
+  while(!revSorts.isEmpty()){
+    TermList varSort = revSorts.pop();
+    lambdaTmSort = Term::arrowSort(varSort, lambdaTmSort);
+  }
   s->getSpecialData()->_lambdaData.sort = lambdaTmSort;
   return s;
 } 

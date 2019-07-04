@@ -153,6 +153,10 @@ bool SortHelper::getResultSortOrMasterVariable(const Term* t, TermList& resultSo
     case Term::SF_FORMULA:
       resultSort = Term::boolSort();
       return true;
+    case Term::SF_LAMBDA: {
+      resultSort = t->getSpecialData()->getSort();
+      return true;
+    }
     /*case Term::SF_TUPLE: {
       resultSort = getResultSort(t->getSpecialData()->getTupleTerm());
       return true;

@@ -129,8 +129,9 @@ void TPTP::parse()
       _isFof = true;
       fof(true);
       break;
-    case TFF:
     case THF:
+      _isThf = true;
+    case TFF:
       _isFof = false;
       tff();
       break;
@@ -182,6 +183,21 @@ void TPTP::parse()
       break;
     case END_FORMULA:
       endFormula();
+      break;
+    case END_APP:
+      endApp();
+      break;
+    case HOL_FORMULA:
+      holFormula();
+      break;
+    case END_HOL_FORMULA:
+      endHolFormula();
+      break;
+    case HOL_TERM:
+      holTerm();
+      break;
+    case END_HOL_TERM:
+      endHolTerm();
       break;
     case FORMULA_INSIDE_TERM:
       formulaInsideTerm();
@@ -1358,13 +1374,7 @@ void TPTP::tff()
   int start = tok.start;
   vstring tp = name();
   if (tp == "type") {
-    // Read a TPTP type declaration. These declarations are ambiguous: they can
-    // either be type constructor declarations such as:
-    // list : $ttype -> $ttype
-    // for which we are only interested in the arity, or function symbol
-    // declarations such as:
-    // f : !>[X : $ttype] : (list(X) * X) -> int
-    // for which we are interested in turning the type to a term
+    // Read a TPTP type declaration.
     consumeToken(T_COMMA);
     // TPTP syntax allows for an arbitrary number of parentheses around a type
     // declaration
@@ -1432,6 +1442,453 @@ void TPTP::tff()
   _states.push(FORMULA);
 } // tff()
 
+
+/**
+  * Reads a HOL term of type $o
+  * @since 08/11/2017
+  * @author Ahmed Bhayat
+  */
+
+void TPTP::holFormula()
+{
+  CALL("TPTP::holFunction");
+  Token tok = getTok(0);
+  
+  switch (tok.tag) {
+  case T_NOT:
+    resetToks();
+    _connectives.push(NOT);
+    _states.push(HOL_FORMULA);
+    return;
+
+  case T_SIGMA:
+    resetToks();
+    _connectives.push(SIGMA);
+    _states.push(HOL_FORMULA);
+    return;
+  
+  case T_PI:
+    resetToks();
+    _connectives.push(PI);
+    _states.push(HOL_FORMULA);
+    return;
+
+  case T_FORALL:
+  case T_EXISTS:
+   // _states.push(UNBIND_VARIABLES);
+  case T_LAMBDA:
+    resetToks();
+    consumeToken(T_LBRA);
+    _connectives.push(tok.tag == T_FORALL ? FORALL : (tok.tag == T_LAMBDA ? LAMBDA : EXISTS));
+    _states.push(HOL_FORMULA);
+    addTagState(T_COLON);
+    addTagState(T_RBRA);
+    _states.push(VAR_LIST);
+    return;
+
+  case T_LPAR:
+    resetToks();
+    addTagState(T_RPAR);
+    _connectives.push(-1);
+    _states.push(END_HOL_FORMULA);
+    _states.push(HOL_FORMULA);
+    return;
+    
+  //higher order syntax wierdly allows (~) @ (...)
+  case T_RPAR: {
+    ASS(_connectives.top() == NOT);
+    _connectives.pop();
+    _strings.push("vNOT");
+    _ints.push(0);
+    _states.push(END_HOL_TERM);
+    return;
+  }
+
+  case T_STRING:
+  case T_INT:
+  case T_RAT:
+  case T_REAL://TODO update for HOL - AYB
+    _states.push(END_EQ);
+    _states.push(TERM);
+    _states.push(MID_EQ);
+    _states.push(TERM);
+    return;
+  case T_TRUE:
+    resetToks();
+    _formulas.push(new Formula(true));
+    _lastPushed = FORM;
+    return;
+  case T_FALSE:
+    resetToks();
+    _formulas.push(new Formula(false));
+    _lastPushed = FORM;
+    return;
+  case T_AND:
+  case T_OR:
+  case T_IMPLY:
+  case T_IFF:
+  case T_NAME:
+  case T_VAR:
+  case T_ITE:
+  case T_THEORY_FUNCTION:
+  case T_LET:
+  case T_LBRA:
+    _states.push(END_HOL_TERM);
+    _states.push(HOL_TERM);
+    return;
+  case T_APP:
+    //higher-order syntax allows for ~ @ fomrula  
+    if(_connectives.top() == NOT ||
+       _connectives.top() == PI  ||
+       _connectives.top() == SIGMA){
+      resetToks();
+      _states.push(HOL_FORMULA);
+      return;
+    }
+  //AYB ADDED, TO BE MODIFIED
+  default:
+    PARSE_ERROR("formula or term expected",tok);
+  }
+}
+
+/**
+  * Reads a term of a higher order logic. Either a higher-order constant or a variable
+  * @since 08/11/2017
+  * @author Ahmed Bhayat
+  */
+
+void TPTP::holTerm()
+{
+  CALL("TPTP::holTerm");
+  Token tok = getTok(0);
+  resetToks();
+  _strings.push(tok.content);
+
+  auto convert = [] (Tag t) { 
+    switch(t){
+      case T_AND:
+        return "vAND";
+      case T_OR:
+        return "vOR";
+      case T_IMPLY:
+        return "vIMP";
+      case T_IFF:
+        return "vIFF";
+      case T_XOR:
+        return "vXOR";
+      default:
+        ASSERTION_VIOLATION;
+    }
+  };
+
+  switch (tok.tag) {//TODO update this for HOL -AYB
+    case T_AND:
+    case T_OR:
+    case T_IMPLY:  
+    case T_IFF:
+    case T_XOR:
+       _strings.top() = convert(tok.tag);
+    case T_NAME:
+      _ints.push(0); // arity
+      return;
+
+    case T_VAR:
+      _ints.push(-1); // dummy arity to indicate a variable
+      return;
+
+    default:
+      PARSE_ERROR("unexpected token", tok);
+  }
+}
+
+/**
+  * Adds a variable or a HOL constant to the stack of terms
+  * @since 08/11/2017
+  * @author Ahmed Bhayat
+  */
+void TPTP::endHolTerm()
+{
+  CALL("TPTP::endHolTerm");
+  
+  vstring name = _strings.pop();
+
+  if(name.at(0) == '$'){
+    USER_ERROR("vampire higher-order is currently not compatible with theory reasoning");
+  }
+
+  int arity = _ints.pop();
+
+  if (arity == -1) {
+    // it was a variable
+    unsigned var = (unsigned)_vars.insert(name);
+    _termLists.push(TermList(var, false));
+    _lastPushed = TM;
+    return;
+  }
+
+  _termLists.push(createFunctionApplication(name, arity));
+  _lastPushed = TM;  
+}
+
+/**
+  * Process the end of a HOL function.
+  * If the main connective is any that operates on formulas (!, ?, &, |, -2...) and
+  * The top term on the termlist is not of type $o and error is raised. Otherwise, 
+  * @since 05/11/2017 Manchester
+  * @author Ahmed Bhayat
+  */
+
+void TPTP::endHolFormula()
+{
+  CALL("TPTP::endHolFormula");
+
+  int con = _connectives.pop();
+
+  if (con == -2){
+    if(_termLists.size() == 1){
+      endTermAsFormula();
+    }
+    return;
+  }  
+  
+  if ((con != APP) && (con != LAMBDA) && (con != -1) && 
+      (con != PI)  && (con != SIGMA)  && (_lastPushed == TM)){
+    //At the moment, APP and LAMBDA are the only connectives that can take terms of type
+    //Other than $o as arguments.
+    endTermAsFormula();
+  }
+
+
+  Formula* f;
+  TermList fun;
+  bool conReverse;
+  switch (con) {
+  case IMP:
+  case AND:
+  case OR:
+    conReverse = _bools.pop();
+    break;
+  case IFF:
+  case XOR:
+  case APP:
+  case -2:
+  case -1:
+    break;
+  case NOT:
+    f = _formulas.pop();
+    _formulas.push(new NegatedFormula(f));
+    _lastPushed = FORM;
+    _states.push(END_HOL_FORMULA);
+    return;
+  case PI:
+  case SIGMA: {
+    vstring name = con == PI ? "vPI" : "vSIGMA";
+    TermList t = _termLists.pop();
+    _termLists.push(createFunctionApplication(name, 0));
+    _termLists.push(t);
+    _states.push(END_HOL_FORMULA);
+    _states.push(END_APP);
+    return;
+  }
+
+  case FORALL:
+  case EXISTS:
+    f = _formulas.pop();
+    _formulas.push(new QuantifiedFormula((Connective)con,_varLists.pop(),_sortLists.pop(),f));
+    _lastPushed = FORM;
+    _states.push(END_HOL_FORMULA);
+    _states.push(UNBIND_VARIABLES);
+    return;
+  case LAMBDA:{
+     if(_lastPushed == FORM){
+       endFormulaInsideTerm();
+     }
+     fun = _termLists.pop();
+     TermList ts(Term::createLambda(fun, _varLists.pop(), _sortLists.pop(), sortOf(fun)));
+     _termLists.push(ts);
+     _lastPushed = TM;
+     _states.push(END_HOL_FORMULA);
+     _states.push(UNBIND_VARIABLES);
+     return; 
+    }
+  case LITERAL:
+  default:
+    throw ::Exception((vstring)"tell me how to handle connective " + Int::toString(con));
+  }
+
+  Token& tok = getTok(0);
+  Tag tag = tok.tag;
+  Connective c;
+  bool cReverse = false;
+switch (tag) {
+  case T_AND:
+    c = AND;
+    break;
+  case T_NOT_AND:
+    cReverse = true;
+    c = AND;
+    break;
+  case T_NOT_OR:
+    cReverse = true;
+    c = OR;
+    break;
+  case T_OR:
+    c = OR;
+    break;
+  case T_XOR:
+    c = XOR;
+    break;
+  case T_IFF:
+    c = IFF;
+    break;
+  case T_IMPLY:
+    c = IMP;
+    break;
+  case T_REVERSE_IMP:
+    cReverse = true;
+    c = IMP;
+    break;
+  case T_APP:
+    c = APP;
+    break;
+  case T_EQUAL:
+  case T_NEQ: {
+    // not connectives, but we allow formulas to be arguments to = and !=
+    _states.push(END_EQ);
+    _connectives.push(-1);
+    _states.push(END_HOL_FORMULA);
+    _states.push(HOL_FORMULA);
+    _states.push(MID_EQ);
+    if(_lastPushed == FORM){
+       endFormulaInsideTerm();
+       //equality is evaluated between two terms
+    }
+    return;
+  }
+  default:
+    // the formula does not end at a binary connective, build the formula and terminate
+    switch (con) {
+    case IMP:
+      f = _formulas.pop();
+      if (conReverse) {
+        f = new BinaryFormula((Connective)con,f,_formulas.pop());
+      }
+      else {
+        f = new BinaryFormula((Connective)con,_formulas.pop(),f);
+      }
+      _formulas.push(f);
+        _lastPushed = FORM;
+      _states.push(END_HOL_FORMULA);
+      return;
+    
+    case APP:
+      _states.push(END_HOL_FORMULA);
+      _states.push(END_APP);
+      return;
+    case IFF:
+    case XOR:
+      f = _formulas.pop();
+      f = new BinaryFormula((Connective)con,_formulas.pop(),f);
+      _formulas.push(f);
+        _lastPushed = FORM;
+      _states.push(END_HOL_FORMULA);
+      return;
+
+    case AND:
+    case OR:
+      f = _formulas.pop();
+      f = makeJunction((Connective)con,_formulas.pop(),f);
+      if (conReverse) {
+        f = new NegatedFormula(f);
+      }
+      _formulas.push(f);
+        _lastPushed = FORM;
+      _states.push(END_HOL_FORMULA);
+      return;
+
+    case -1:
+      return;
+#if VDEBUG
+    default:
+      ASSERTION_VIOLATION;
+#endif
+    }
+  }
+
+  if ((c != APP) && (con == -1) && (_lastPushed == TM)){
+    endTermAsFormula();
+  }
+
+  
+  // con and c are binary connectives
+  if (higherPrecedence(con,c)) {
+    if (con == APP){
+      _states.push(END_HOL_FORMULA);
+      _states.push(END_APP);
+      return;  
+    }
+    f = _formulas.pop(); 
+    Formula* g = _formulas.pop();
+    if (con == AND || con == OR) {
+      f = makeJunction((Connective)con,g,f);
+      if (conReverse) {
+        f = new NegatedFormula(f);
+      }
+    }
+    else if (con == IMP && conReverse) {
+      f = new BinaryFormula((Connective)con,f,g); 
+    }else {
+      f = new BinaryFormula((Connective)con,g,f);
+    }
+    _formulas.push(f);
+    _lastPushed = FORM;
+    _states.push(END_HOL_FORMULA);
+    return;
+  }
+
+  // c is a binary connective
+  _connectives.push(con);
+  if (con == IMP || con == AND || con == OR) {
+    _bools.push(conReverse);
+  }
+  _connectives.push(c);
+  if (c == IMP || c == AND || c == OR) {
+    _bools.push(cReverse);
+  }
+  resetToks();
+  _states.push(END_HOL_FORMULA);
+  _states.push(HOL_FORMULA);
+}
+
+
+/**
+  * Process the end of an @ term
+  * @since 05/11/2017 Manchester
+  * @author Ahmed Bhayat
+  */
+void TPTP::endApp()
+{
+  CALL("TPTP::endApp");
+
+  if(_lastPushed == FORM){
+     endFormulaInsideTerm();     
+  }
+  TermStack args;
+  TermList rhs = _termLists.pop();
+  TermList lhs = _termLists.pop();
+  TermList lhsSort = sortOf(lhs);
+  ASS(lhsSort.isTerm() && lhsSort.term()->arity() == 2);
+  TermList s1 = *(lhsSort.term()->nthArgument(0));
+  TermList s2 = *(lhsSort.term()->nthArgument(1));
+  args.push(s1);
+  args.push(s2);
+  args.push(lhs);
+  args.push(rhs);
+  unsigned app = env.signature->getApp();
+  
+  _termLists.push(TermList(Term::create(app, 4, args.begin())));
+  _lastPushed = TM;
+}
 
 /**
  * Process the end of the $ite expression
@@ -1663,9 +2120,17 @@ void TPTP::formula()
 {
   CALL("TPTP::formula");
 
-  _connectives.push(-1);
-  _states.push(END_FORMULA);
-  _states.push(SIMPLE_FORMULA);
+  if(_isThf){
+    _connectives.push(-2); //special connective for HOL funcs
+    _connectives.push(-1);
+    _states.push(END_HOL_FORMULA);
+    _states.push(END_HOL_FORMULA);
+    _states.push(HOL_FORMULA);
+  }else{
+    _connectives.push(-1);
+    _states.push(END_FORMULA);
+    _states.push(SIMPLE_FORMULA);
+  }
 } // formula
 
 /**
@@ -2315,7 +2780,8 @@ void TPTP::varList()
         PARSE_ERROR("two declarations of variable sort",tok);
       }
       resetToks();
-      bindVariable(var,readTerm());
+
+      bindVariable(var,(_isThf ? readArrowTerm() : readTerm()));
       sortDeclared = true;
       goto afterVar;
 
@@ -2544,7 +3010,8 @@ void TPTP::endEquality()
   }
 
   Literal* l = createEquality(_bools.pop(),lhs,rhs);
-   _formulas.push(new AtomicFormula(l));
+  _formulas.push(new AtomicFormula(l));
+  _lastPushed = FORM;
 } // endEquality
 
 /**
@@ -2689,7 +3156,7 @@ Formula* TPTP::createPredicateApplication(vstring name, unsigned arity)
  * @since 13/04/2015 Gothenburg, major changes to support FOOL
  */
 TermList TPTP::createFunctionApplication(vstring name, unsigned arity)
-{
+{ //TODO update to deal with wierd /\ @ ... syntax
   CALL("TPTP::createFunctionApplication");
   ASS_GE(_termLists.size(), arity);
 
@@ -3236,6 +3703,7 @@ void TPTP::endTff()
     }   
     symbol = env.signature->getFunction(fun);
     symbol->setType(ot);
+    cout << "added: " + symbol->name() + " of type " + ot->toString() << endl;
   }
 } // endTff
 
@@ -3575,12 +4043,12 @@ void TPTP::simpleType()
   CALL("TPTP::simpleType");
 
   Token& tok = getTok(0);
-  if (tok.tag == T_LPAR) {
+  /*if (tok.tag == T_LPAR) {
     resetToks();
     addTagState(T_RPAR);
     _states.push(TYPE);
     return;
-  }
+  }*/
 
   if(tok.tag == T_TYPE_QUANT) {
     resetToks();
@@ -3593,8 +4061,73 @@ void TPTP::simpleType()
     _states.push(VAR_LIST);
     return;
   }
-  _types.push(new AtomicType(readTerm()));
+  if(_isThf){
+    _types.push(new AtomicType(readArrowTerm()));
+  } else {
+    _types.push(new AtomicType(readTerm()));
+  }
 } // simpleType
+
+
+/**
+ * Read a HOL sort and return its number 
+ * @since 10/11/2017 Leicester
+ * @author Ahmed Bhayat
+ */
+ 
+TermList TPTP::readArrowTerm()
+{
+  CALL("TPTP::readArrowTerm");
+
+  int inBrackets = 0;
+  TermStack terms;
+  Token tok = getTok(0);
+  TermList sort;
+  TermList dummy = TermList(0, true);
+  while((tok.tag != T_COMMA) & (tok.tag != T_RBRA)){
+    switch(tok.tag){
+      case T_LPAR: //This will need changing when we read tuple types - AYB
+        terms.push(dummy);
+        inBrackets += 1;
+        break;
+      case T_ARROW:
+        break;
+      case T_RPAR:
+        inBrackets -= 1;
+        if(inBrackets < 0){_gpos = 0; goto afterWhile;}
+          foldl(&terms);
+          break;
+      default:{
+        sort = readTerm();
+        terms.push(sort);               
+      }
+    }
+    resetToks();
+    tok = getTok(0);
+  }
+afterWhile:
+   if(terms.size() != 1){
+       foldl(&terms);
+   }
+   ASS(terms.size() == 1);
+   return terms.pop();   
+}
+ 
+void TPTP::foldl(TermStack* terms)
+{
+   CALL("TPTP::foldl");
+   
+   TermList item1 = terms->pop();
+   TermList item2 = terms->pop();
+   while(!(terms->isEmpty()) & (!item2.isSpecialVar())){
+       item1 = Term::arrowSort(item2, item1);
+       item2 = terms->pop();
+   }
+   if (!item2.isSpecialVar()){
+       item1 = Term::arrowSort(item2, item1);;
+   }
+   terms->push(item1);
+}   
 
 /**
  * Read a sort and return its number. If a sort is not built-in, then raise an
@@ -4453,6 +4986,16 @@ const char* TPTP::toString(State s)
     return "TYPE";
   case END_TFF:
     return "END_TFF";
+  case END_APP:
+    return "END_APP";
+  case HOL_FORMULA:
+    return "HOL_FORMULA";
+  case END_HOL_FORMULA:
+    return "END_HOL_FORMULA";
+  case HOL_TERM:
+    return "HOL_TERM";
+  case END_HOL_TERM:
+    return "END_HOL_TERM";
   case END_TYPE:
     return "END_TYPE";
   case SIMPLE_TYPE:
