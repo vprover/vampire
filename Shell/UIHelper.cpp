@@ -600,6 +600,10 @@ void UIHelper::outputSymbolTypeDeclarationIfNeeded(ostream& out, bool function, 
     }
   }*/
 
+  if(sym->name() == "'$tType'"){
+    return;
+  }
+
   OperatorType* type = function ? sym->fnType() : sym->predType();
 
   if (type->isAllDefault()) {
