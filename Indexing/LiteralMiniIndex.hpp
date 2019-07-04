@@ -123,23 +123,24 @@ public:
     {
       CALL("LiteralMiniIndex::InstanceIterator::hasNext");
 
-      if(_ready) { return true; }
-      while(_curr->_header==_hdr) {
-	bool prediction=_curr->_lit->couldArgsBeInstanceOf(_query);
-#if VDEBUG
-	if(MatchingUtils::match(_query, _curr->_lit, _compl)) {
-	  ASS(prediction);
-#else
-	if(prediction && MatchingUtils::match(_query, _curr->_lit, _compl)) {
-#endif
-	  _ready=true;
-	  return true;
-	}
+    if(_ready) { return true; }
+    while(_curr->_header==_hdr) {
+      bool prediction=_curr->_lit->couldArgsBeInstanceOf(_query);
+      #if VDEBUG
+      if(MatchingUtils::match(_query, _curr->_lit, _compl)) {
+          ASS(prediction);
+      #else
+        if(prediction && MatchingUtils::match(_query, _curr->_lit, _compl)) {
+      #endif
+          _ready=true;
+          return true;
+        }
 
-	_curr++;
+        _curr++;
       }
       return false;
     }
+    
     Literal* next()
     {
       return BaseIterator::next();

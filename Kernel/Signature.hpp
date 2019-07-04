@@ -544,7 +544,7 @@ class Signature
 
   unsigned getIntSort(){
     bool added = false;
-    unsigned intSort = addFunction("$real",0, added);
+    unsigned intSort = addFunction("$int",0, added);
     if(added){
       getFunction(intSort)->setType(OperatorType::getConstantsType(Term::superSort(), VarList::empty()));
     }

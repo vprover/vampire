@@ -179,6 +179,7 @@ void Signature::Symbol::forceType(OperatorType* type)
 OperatorType* Signature::Symbol::fnType() const
 {
   CALL("Signature::Symbol::fnType");
+  ASS(name() != "'$tType'");
 
   TermList def = Term::defaultSort();
   if (!_type) {

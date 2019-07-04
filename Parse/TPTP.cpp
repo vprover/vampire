@@ -2277,7 +2277,6 @@ void TPTP::bindVariable(int var,TermList sort)
 {
   CALL("TPTP::bindVariable");
 
-  cout << "here with var X" << var << endl;
   SortList* definitions;
   if (_variableSorts.find(var,definitions)) {
     _variableSorts.replace(var,new SortList(sort,definitions));
@@ -2305,7 +2304,6 @@ void TPTP::varList()
       PARSE_ERROR("variable expected",tok);
     }
     int var = _vars.insert(tok.content);
-    cout << "the variable is X" << var << endl;
     vars.push(var);
     resetToks();
     bool sortDeclared = false;
@@ -2322,12 +2320,9 @@ void TPTP::varList()
       goto afterVar;
 
     case T_COMMA:
-      cout << "here" << endl;
       if (!sortDeclared) {
-        cout << "hi" << endl;
         bindVariable(var,Term::defaultSort());
       }
-      //cout << "hey" << endl;
       resetToks();
       break;
 

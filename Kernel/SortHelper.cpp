@@ -791,7 +791,9 @@ bool SortHelper::areImmediateSortsValid(Term* t)
     }
     return true;
   }
-
+    
+  if(isSuper(t)){ return true; }
+  
   OperatorType* type = getType(t);
   unsigned arity = t->arity();
   Substitution subst;
@@ -874,3 +876,10 @@ bool SortHelper::areSortsValid(Term* t0, DHMap<unsigned,TermList>& varSorts)
   }
   return true;
 } // areSortsValid 
+
+bool SortHelper::isSuper(Term* t){
+  CALL("isSuper");
+  
+  return (!t->isLiteral() && (env.signature->getFunction(t->functor())->name() == "'$tType'"));
+ 
+}
