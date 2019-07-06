@@ -1760,8 +1760,8 @@ switch (tag) {
     _states.push(HOL_FORMULA);
     _states.push(MID_EQ);
     if(_lastPushed == FORM){
-       endFormulaInsideTerm();
-       //equality is evaluated between two terms
+      endFormulaInsideTerm();
+      //equality is evaluated between two terms
     }
     return;
   }
@@ -2997,6 +2997,10 @@ void TPTP::endEquality()
 
   _insideEqualityArgument--;
 
+  if((_isThf) & (_lastPushed == FORM)){
+    endFormulaInsideTerm();
+  }
+
   TermList rhs = _termLists.pop();
   TermList lhs = _termLists.pop();
 
@@ -3390,6 +3394,7 @@ void TPTP::endFormulaInsideTerm()
   Formula* f = _formulas.pop();
   TermList ts(Term::createFormula(f));
   _termLists.push(ts);
+  _lastPushed = TM;
 } // endFormulaInsideTerm
 
 /**
@@ -3407,8 +3412,10 @@ void TPTP::endTermAsFormula()
   }
   if (t.isTerm() && t.term()->isFormula()) {
     _formulas.push(t.term()->getSpecialData()->getFormula());
+    _lastPushed = FORM;
   } else {
     _formulas.push(new BoolTermFormula(t));
+    _lastPushed = FORM;
   }
 } // endTermAsFormula
 
@@ -3680,8 +3687,7 @@ void TPTP::endTff()
   vstring name = _strings.pop();
 
   unsigned arity = ot->arity();
-  bool isPredicate = ot->isPredicateType();
-  
+  bool isPredicate = ot->isPredicateType() && !_isThf;
 
   bool added;
   Signature::Symbol* symbol;
@@ -3703,7 +3709,7 @@ void TPTP::endTff()
     }   
     symbol = env.signature->getFunction(fun);
     symbol->setType(ot);
-    cout << "added: " + symbol->name() + " of type " + ot->toString() << endl;
+    //cout << "added: " + symbol->name() + " of type " + ot->toString() << endl;
   }
 } // endTff
 
@@ -3780,7 +3786,7 @@ OperatorType* TPTP::constructOperatorType(Type* t)
 
   bool isPredicate = resultSort == Term::boolSort();
   unsigned arity = (unsigned)argumentSorts.size();
-  if (isPredicate) {
+  if (isPredicate && !_isThf) { //in THF, we treat predicates and boolean terms the same
     return OperatorType::getPredicateType(arity, argumentSorts.begin(), VList::empty());
   } else {
     return OperatorType::getFunctionType(arity, argumentSorts.begin(), resultSort, VList::empty());
@@ -4140,7 +4146,9 @@ TermList TPTP::readTerm()
   CALL("TPTP::readTerm");
 
   Token tok = getTok(0);
-  //cout << "The contents of the token are " + tok.content << endl;
+  if(_strings.top() == "setextAx"){
+    cout << "The contents of the token are " + tok.content << endl;
+  }  
   resetToks();
   switch (tok.tag) {
   case T_NAME:
@@ -4239,6 +4247,7 @@ TermList TPTP::readTerm()
  */
 bool TPTP::higherPrecedence(int c1,int c2)
 {
+  if (c1 == APP) return true;
   if (c1 == c2) return false;
   if (c1 == -1) return false;
   if (c2 == IFF) return true;
@@ -5038,6 +5047,7 @@ const char* TPTP::toString(State s)
 
 #ifdef DEBUG_SHOW_STATE
 void TPTP::printStacks() {
+
   Stack<State>::Iterator stit(_states);
   cout << "States:";
   if   (!stit.hasNext()) cout << " <empty>";

@@ -46,6 +46,8 @@
 #include "Term.hpp"
 #include "TermIterators.hpp"
 
+#include <cmath>
+
 #include "Clause.hpp"
 
 #undef RSTAT_COLLECTION
@@ -436,7 +438,7 @@ vstring Clause::toString() const
     result += vstring(",w:") + Int::toString(weight());
     
     float ew = const_cast<Clause*>(this)->getEffectiveWeight(const_cast<Shell::Options&>(*(env.options)));
-    unsigned effective = static_cast<int>(ceil(ew));
+    unsigned effective = static_cast<int>(std::ceil(ew));
     if(effective!=weight()){
       result += vstring(",effW:") + Int::toString(effective);
     }
