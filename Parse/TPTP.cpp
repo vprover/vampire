@@ -4151,10 +4151,7 @@ TermList TPTP::readTerm()
 {
   CALL("TPTP::readTerm");
 
-  Token tok = getTok(0);
-  if(_strings.top() == "setextAx"){
-    cout << "The contents of the token are " + tok.content << endl;
-  }  
+  Token tok = getTok(0); 
   resetToks();
   switch (tok.tag) {
   case T_NAME:
