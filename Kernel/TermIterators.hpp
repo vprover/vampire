@@ -48,6 +48,11 @@ public:
 
   VariableIterator(const Term* term) : _stack(8), _used(false)
   {
+    if(term->isLiteral() && static_cast<const Literal*>(term)->isTwoVarEquality()){
+      _aux[0].makeEmpty();
+      _aux[1]=static_cast<const Literal*>(term)->twoVarEqSort();
+      _stack.push(&_aux[1]);      
+    }
     if(!term->shared() || !term->ground()) {
       _stack.push(term->args());
     }
@@ -72,6 +77,11 @@ public:
   {
     _stack.reset();
     _used = false;
+    if(term->isLiteral() && static_cast<const Literal*>(term)->isTwoVarEquality()){
+      _aux[0].makeEmpty();
+      _aux[1]=static_cast<const Literal*>(term)->twoVarEqSort();
+      _stack.push(&_aux[1]);      
+    }
     if(!term->shared() || !term->ground()) {
       _stack.push(term->args());
     }

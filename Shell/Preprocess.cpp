@@ -205,12 +205,12 @@ void Preprocess::preprocess(Problem& prb)
     // This is the point to extend the signature with $$true and $$false
     // If we don't have fool then these constants get in the way (a lot)
 
-    if (!_options.newCNF()) {
+    //if (!_options.newCNF()) {
       if (env.options->showPreprocessing())
         env.out() << "FOOL elimination" << std::endl;
       //TheoryAxioms(prb).applyFOOL(); //TODO uncomment this once theories are reintroduced
       FOOLElimination().apply(prb);
-    }
+    //}
   }
 
   /*
@@ -474,10 +474,10 @@ void Preprocess::preprocess1 (Problem& prb)
     fu = Rectify::rectify(fu);
     FormulaUnit* rectFu = fu;
     // Simplify the formula if it contains true or false
-    if (!_options.newCNF()) {
+    //if (!_options.newCNF()) {
       // NewCNF effectively implements this simplification already
       fu = SimplifyFalseTrue::simplify(fu);
-    }
+    //}
     if (fu!=rectFu) {
       formulasSimplified = true;
     }

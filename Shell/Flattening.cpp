@@ -116,7 +116,7 @@ Formula* Flattening::flatten (Formula* f)
     {
       Literal* lit = f->literal();
 
-      if (env.options->newCNF()) {
+      /*if (env.options->newCNF()) {//TODO update this
         // Convert equality between boolean FOOL terms to equivalence
         if (lit->isEquality()) {
           TermList lhs = *lit->nthArgument(0);
@@ -132,7 +132,7 @@ Formula* Flattening::flatten (Formula* f)
             return flatten(new BinaryFormula(lit->polarity() ? IFF : XOR, lhsFormula, rhsFormula));
           }
         }
-      }
+      }*/
 
       Literal* flattenedLit = flatten(lit);
       if (lit == flattenedLit) {

@@ -2837,6 +2837,7 @@ void TPTP::term()
     case T_INT:
     case T_REAL:
     case T_RAT: {
+      PARSE_ERROR("Sorry, polymorphic vampire doesn't support thoeries yet", tok);
       resetToks();
       unsigned number;
       switch (tok.tag) {
@@ -3996,6 +3997,7 @@ void TPTP::simpleFormula()
   case T_INT:
   case T_RAT:
   case T_REAL:
+    PARSE_ERROR("Sorry, polymorphic Vampire does not yet support theories", tok);
     _states.push(END_EQ);
     _states.push(TERM);
     _states.push(MID_EQ);
@@ -4049,12 +4051,6 @@ void TPTP::simpleType()
   CALL("TPTP::simpleType");
 
   Token& tok = getTok(0);
-  /*if (tok.tag == T_LPAR) {
-    resetToks();
-    addTagState(T_RPAR);
-    _states.push(TYPE);
-    return;
-  }*/
 
   if(tok.tag == T_TYPE_QUANT) {
     resetToks();
@@ -4067,11 +4063,21 @@ void TPTP::simpleType()
     _states.push(VAR_LIST);
     return;
   }
+
   if(_isThf){
     _types.push(new AtomicType(readArrowTerm()));
-  } else {
-    _types.push(new AtomicType(readTerm()));
+    return;
+  } 
+
+  if (tok.tag == T_LPAR) {
+    resetToks();
+    addTagState(T_RPAR);
+    _states.push(TYPE);
+    return;
   }
+
+  _types.push(new AtomicType(readTerm()));
+  
 } // simpleType
 
 

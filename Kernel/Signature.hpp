@@ -110,10 +110,12 @@ class Signature
     unsigned _skolem : 1;
     /** if arrow constructor */
     unsigned _arrow : 1;
+    /** if super sort */
+    unsigned _superSort : 1;
 
   public:
     /** standard constructor */
-    Symbol(const vstring& nm,unsigned arity, bool interpreted=false, bool stringConstant=false,bool numericConstant=false,bool overflownConstant=false);
+    Symbol(const vstring& nm,unsigned arity, bool interpreted=false, bool stringConstant=false,bool numericConstant=false,bool overflownConstant=false, bool super = false);
     void destroyFnSymbol();
     void destroyPredSymbol();
 
@@ -191,6 +193,8 @@ class Signature
 
     inline void markArrow(){ _arrow = 1; }
     inline bool arrow(){ return _arrow; }
+
+    inline const bool super() const { return _superSort; }
 
     inline void markInductionSkolem(){ _inductionSkolem=1; _skolem=1;}
     inline bool inductionSkolem(){ return _inductionSkolem;}

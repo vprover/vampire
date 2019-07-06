@@ -39,7 +39,8 @@ const unsigned Signature::STRING_DISTINCT_GROUP = 0;
  * @since 03/05/2013 train London-Manchester, argument numericConstant added
  * @author Andrei Voronkov
  */
-Signature::Symbol::Symbol(const vstring& nm, unsigned arity, bool interpreted, bool stringConstant,bool numericConstant, bool overflownConstant)
+Signature::Symbol::Symbol(const vstring& nm, unsigned arity, bool interpreted, bool stringConstant,bool numericConstant,
+                          bool overflownConstant, bool super)
   : _name(nm),
     _arity(arity),
     _typeArgsArity(0),
@@ -62,7 +63,8 @@ Signature::Symbol::Symbol(const vstring& nm, unsigned arity, bool interpreted, b
     _inUnit(0),
     _inductionSkolem(0),
     _skolem(0),
-    _arrow(0)
+    _arrow(0),
+    _superSort(super)
 {
   CALL("Signature::Symbol::Symbol");
   ASS(!stringConstant || arity==0);
@@ -180,7 +182,7 @@ void Signature::Symbol::forceType(OperatorType* type)
 OperatorType* Signature::Symbol::fnType() const
 {
   CALL("Signature::Symbol::fnType");
-  ASS(name() != "'$tType'");
+  ASS(!super());
 
   TermList def = Term::defaultSort();
   if (!_type) {
@@ -627,7 +629,8 @@ unsigned Signature::addFunction (const vstring& name,
     ASSERTION_VIOLATION;
   }*/
   result = _funs.length();
-  _funs.push(new Symbol(name, arity, false, false, false, overflowConstant));
+  bool super = (name == "$tType");
+  _funs.push(new Symbol(name, arity, false, false, false, overflowConstant, super));
   _funNames.insert(symbolKey, result);
   added = true;
   return result;
