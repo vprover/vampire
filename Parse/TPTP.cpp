@@ -53,7 +53,7 @@ using namespace Shell;
 using namespace Parse;
 
 #define DEBUG_SHOW_TOKENS 0
-#define DEBUG_SHOW_UNITS 0
+#define DEBUG_SHOW_UNITS 1
 #define DEBUG_SOURCE 0
 
 DHMap<unsigned, vstring> TPTP::_axiomNames;
@@ -1389,6 +1389,30 @@ void TPTP::tff()
     }
     vstring nm = name();
     consumeToken(T_COLON);
+    if(_isThf){
+      tok = getTok(0);
+      if (tok.tag == T_TTYPE) {
+        resetToks();
+        unsigned arity = getConstructorArity();
+        bool added;
+        unsigned fun = arity == 0
+            ? addUninterpretedConstant(nm, _overflow, added)
+            : env.signature->addFunction(nm, arity, added);
+        if (!added) {
+          PARSE_ERROR("Type constructor name must be unique",tok);
+        }
+        Signature::Symbol* symbol = env.signature->getFunction(fun);
+        symbol->setType(OperatorType::getFunctionTypeUniformRange(arity, Term::superSort(), Term::superSort(), VList::empty()));         
+        _typeConstructorArities.insert(nm, arity);
+        //cout << "added type constuctor " + nm + " of type " + symbol->fnType()->toString() << endl;
+        while (lpars--) {
+          consumeToken(T_RPAR);
+        }
+        consumeToken(T_RPAR);
+        consumeToken(T_DOT);
+        return;
+      }
+    }
     // the matching number of rpars will be read
     _ints.push(lpars);
     // remember type name
@@ -1442,6 +1466,19 @@ void TPTP::tff()
   _states.push(FORMULA);
 } // tff()
 
+unsigned TPTP::getConstructorArity()
+{
+  CALL("TPTP::getConstructorArity");
+
+  unsigned arity = 0;
+  Token tok = getTok(0);
+  while(tok.tag == T_ARROW || tok.tag == T_TTYPE){
+    arity += (tok.tag == T_TTYPE);
+    resetToks();
+    tok = getTok(0);
+  }
+  return arity;
+}
 
 /**
   * Reads a HOL term of type $o
@@ -1533,7 +1570,7 @@ void TPTP::holFormula()
   case T_THEORY_FUNCTION:
   case T_LET:
   case T_LBRA:
-    _states.push(END_HOL_TERM);
+    //_states.push(END_HOL_TERM);
     _states.push(HOL_TERM);
     return;
   case T_APP:
@@ -1562,7 +1599,14 @@ void TPTP::holTerm()
   CALL("TPTP::holTerm");
   Token tok = getTok(0);
   resetToks();
-  _strings.push(tok.content);
+
+  vstring name = tok.content;
+
+  if(name.at(0) == '$'){
+    USER_ERROR("vampire higher-order is currently not compatible with theory reasoning");
+  }
+
+  unsigned arity = _typeArities.find(name) ? _typeArities.get(name) : 0;
 
   auto convert = [] (Tag t) { 
     switch(t){
@@ -1581,24 +1625,32 @@ void TPTP::holTerm()
     }
   };
 
-  switch (tok.tag) {//TODO update this for HOL -AYB
+  switch (tok.tag) {
     case T_AND:
     case T_OR:
     case T_IMPLY:  
     case T_IFF:
-    case T_XOR:
-       _strings.top() = convert(tok.tag);
-    case T_NAME:
-      _ints.push(0); // arity
-      return;
-
-    case T_VAR:
-      _ints.push(-1); // dummy arity to indicate a variable
-      return;
-
+    case T_XOR:{
+      ASS(arity == 0);
+      name = convert(tok.tag);
+      _termLists.push(createFunctionApplication(name, arity)); //TODO fix this
+      break;
+    }    
+    case T_NAME:{
+      readTypeArgs(arity);
+      _termLists.push(createFunctionApplication(name, arity)); // arity
+      break;
+    }
+    case T_VAR:{
+      unsigned var = (unsigned)_vars.insert(name);
+      _termLists.push(TermList(var, false)); // dummy arity to indicate a variable
+      break;
+    }
     default:
       PARSE_ERROR("unexpected token", tok);
   }
+  _lastPushed = TM;
+
 }
 
 /**
@@ -1877,7 +1929,7 @@ void TPTP::endApp()
   TermList rhs = _termLists.pop();
   TermList lhs = _termLists.pop();
   TermList lhsSort = sortOf(lhs);
-  ASS(lhsSort.isTerm() && lhsSort.term()->arity() == 2);
+  ASS_REP2(lhsSort.isTerm() && lhsSort.term()->arity() == 2, lhs.toString(), lhsSort.toString());
   TermList s1 = *(lhsSort.term()->nthArgument(0));
   TermList s2 = *(lhsSort.term()->nthArgument(1));
   args.push(s1);
@@ -2780,8 +2832,8 @@ void TPTP::varList()
         PARSE_ERROR("two declarations of variable sort",tok);
       }
       resetToks();
-
-      bindVariable(var,(_isThf ? readArrowTerm() : readTerm()));
+      bool dummy;
+      bindVariable(var,(_isThf ? readArrowTerm() : readTerm(dummy)));
       sortDeclared = true;
       goto afterVar;
 
@@ -3684,7 +3736,6 @@ void TPTP::endTff()
   ASS(_types.isEmpty());
 
   OperatorType* ot = constructOperatorType(t);
-
   vstring name = _strings.pop();
 
   unsigned arity = ot->arity();
@@ -3710,7 +3761,12 @@ void TPTP::endTff()
     }   
     symbol = env.signature->getFunction(fun);
     symbol->setType(ot);
-    //cout << "added: " + symbol->name() + " of type " + ot->toString() << endl;
+    if(_isThf){
+      if(!_typeArities.insert(name, ot->typeArgsArity())){
+        USER_ERROR("Symbol " + name + " used with different type arities");
+      }
+    }
+    //cout << "added: " + symbol->name() + " of type " + ot->toString() + " and functor " << fun << endl;
   }
 } // endTff
 
@@ -3793,6 +3849,22 @@ OperatorType* TPTP::constructOperatorType(Type* t)
     return OperatorType::getFunctionType(arity, argumentSorts.begin(), resultSort, VList::empty());
   }
 } // constructOperatorType
+
+/*unsigned TPTP::isConstructorType(OperatorType* ot)
+{
+  CALL("TPTP::isConstructorType");
+
+  unsigned arity = 0;
+  if(ot->typeArgsArity()){ return arity; }
+
+  TermList result = ot->result();
+  while(result.isTerm() && env.signature->getFunction(result.term()->functor())->arrow())
+  {
+    arity++;
+    result = *(result.term()->nthArgument(1));
+  }
+  return (result == Term::superSort() ? arity : 0);
+}*/
 
 /**
  *
@@ -4075,8 +4147,8 @@ void TPTP::simpleType()
     _states.push(TYPE);
     return;
   }
-
-  _types.push(new AtomicType(readTerm()));
+  bool dummy;
+  _types.push(new AtomicType(readTerm(dummy)));
   
 } // simpleType
 
@@ -4096,7 +4168,7 @@ TermList TPTP::readArrowTerm()
   Token tok = getTok(0);
   TermList sort;
   TermList dummy = TermList(0, true);
-  while((tok.tag != T_COMMA) & (tok.tag != T_RBRA)){
+  while((tok.tag != T_COMMA) && (tok.tag != T_RBRA) && (tok.tag != T_APP)){
     switch(tok.tag){
       case T_LPAR: //This will need changing when we read tuple types - AYB
         terms.push(dummy);
@@ -4110,8 +4182,13 @@ TermList TPTP::readArrowTerm()
           foldl(&terms);
           break;
       default:{
-        sort = readTerm();
-        terms.push(sort);               
+        bool reset = true;
+        sort = readTerm(reset);
+        terms.push(sort);
+        if(!reset){
+          tok = getTok(0);
+          continue; 
+        }               
       }
     }
     resetToks();
@@ -4141,15 +4218,34 @@ void TPTP::foldl(TermStack* terms)
    terms->push(item1);
 }   
 
+void TPTP::readTypeArgs(unsigned arity)
+{
+  CALL("TPTP::readApplicativeTypeTerm");
+
+  for(unsigned i = 0; i < arity; i++){
+    consumeToken(T_APP);
+    Token tok = getTok(0);
+    if(tok.tag == T_LPAR){
+      resetToks();
+      _termLists.push(readArrowTerm());
+      consumeToken(T_RPAR);
+    } else {
+      _termLists.push(readArrowTerm());            
+    }
+  }
+}
+
 /**
  * Read a sort and return its number. If a sort is not built-in, then raise an
  * exception if it has been declared and newSortExpected, or it has not been
  * declared and newSortExpected is false.
  * @since 14/07/2011 Manchester
  */
-TermList TPTP::readTerm()
+TermList TPTP::readTerm(bool& reset)
 {
   CALL("TPTP::readTerm");
+
+  reset = true;
 
   Token tok = getTok(0); 
   resetToks();
@@ -4158,23 +4254,30 @@ TermList TPTP::readTerm()
     {
       unsigned arity = 0;
       vstring fname = tok.content;
-      int c = getChar(0);
-      if(c == '('){
-        consumeToken(T_LPAR);    
-        for(;;){
-          arity++;
-          _termLists.push(readTerm());
-          tok = getTok(0);
-          if(tok.tag == T_COMMA){
-            consumeToken(T_COMMA);
-          }else if(tok.tag == T_RPAR){
-            consumeToken(T_RPAR);
-            break;
-          } else{
-            ASSERTION_VIOLATION;
+      if(_isThf){
+        arity = _typeConstructorArities.find(fname) ? _typeConstructorArities.get(fname) : 0;
+        reset = !arity;
+        readTypeArgs(arity);
+      } else {
+        int c = getChar(0);
+        if(c == '('){
+          consumeToken(T_LPAR);    
+          for(;;){
+            arity++;
+            bool dummy;
+            _termLists.push(readTerm(dummy));
+            tok = getTok(0);
+            if(tok.tag == T_COMMA){
+              consumeToken(T_COMMA);
+            }else if(tok.tag == T_RPAR){
+              consumeToken(T_RPAR);
+              break;
+            } else{
+              ASSERTION_VIOLATION;
+            }
           }
         }
-      }
+      } 
       return createFunctionApplication(fname, arity);
     }
   case T_VAR:

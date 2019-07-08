@@ -805,7 +805,10 @@ private:
 
   void foldl(TermStack*);
   TermList readArrowTerm();
-  TermList readTerm();
+  TermList readTerm(bool& reset);
+  void readTypeArgs(unsigned arity);
+  unsigned getConstructorArity();
+  //unsigned isConstructorType(OperatorType* ot);
   void bindVariable(int var,TermList sort);
   void unbindVariables();
   void skipToRPAR();
@@ -868,6 +871,9 @@ private:
   /** This field stores names of input units if the
    * output_axiom_names option is enabled */
   static DHMap<unsigned, vstring> _axiomNames;
+  /** Stores the type arities of function symbols */
+  DHMap<vstring, unsigned> _typeArities;
+  DHMap<vstring, unsigned> _typeConstructorArities;
 
   bool _filterReserved;
   bool _seenConjecture;

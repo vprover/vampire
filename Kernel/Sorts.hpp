@@ -166,7 +166,7 @@ public:
   bool isFunctionType() const { return (*_key)[arity() - typeArgsArity()] != Term::boolSort(); };
   TermList result() const {
     CALL("OperatorType::result");
-    ASS(isFunctionType());
+    //ASS(isFunctionType()); //TODO how best to deal with this?
     return (*_key)[arity() - typeArgsArity()];
   }
   

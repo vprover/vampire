@@ -171,17 +171,17 @@ bool FormulaVarIterator::hasNext()
         if (t->isSpecial()) {
           const Term::SpecialTermData* sd = t->getSpecialData();
           switch (t->functor()) {
-            case Term::SF_ITE:
+            /*case Term::SF_ITE:
               _instructions.push(FVI_FORMULA);
               _formulas.push(sd->getCondition());
-              break;
+              break; */
 
             case Term::SF_FORMULA:
               _instructions.push(FVI_FORMULA);
               _formulas.push(sd->getFormula());
               break;
 
-            case Term::SF_LET: {
+            /*case Term::SF_LET: {
               _instructions.push(FVI_UNBIND);
 
               _instructions.push(FVI_TERM_LIST);
@@ -207,8 +207,15 @@ bool FormulaVarIterator::hasNext()
                 _termLists.push(tts.next());
               }
               break;
-            }
-
+            }*/
+      
+            case Term::SF_LAMBDA:
+              _instructions.push(FVI_UNBIND);
+              _instructions.push(FVI_TERM_LIST);
+              _termLists.push(sd->getLambdaExp());
+              _instructions.push(FVI_BIND);
+              _vars.push(sd->getLambdaVars());
+               break;
 #if VDEBUG
             default:
               ASSERTION_VIOLATION;

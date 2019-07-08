@@ -570,6 +570,11 @@ vstring TermList::asArgsToString() const
       continue;
     }
     const Term* t = ts->term();
+  
+    if(!t->isSpecial() && env.signature->getFunction(t->functor())->arrow()){
+      res += t->toString();
+      continue;
+    }
 
     res += t->headToString();
 
@@ -585,7 +590,7 @@ vstring TermList::asArgsToString() const
  * Write as a vstring the head of the term list.
  * @since 27/02/2008 Manchester
  */
-vstring TermList::toString() const
+vstring TermList::toString(bool topLevel) const
 {
   CALL("TermList::toString");
 
@@ -595,7 +600,7 @@ vstring TermList::toString() const
   if (isVar()) {
     return Term::variableToString(*this);
   }
-  return term()->toString();
+  return term()->toString(topLevel);
 } // TermList::toString
 
 
@@ -603,16 +608,20 @@ vstring TermList::toString() const
  * Return the result of conversion of a term into a vstring.
  * @since 16/05/2007 Manchester
  */
-vstring Term::toString() const
+vstring Term::toString(bool topLevel) const
 {
   CALL("Term::toString");
 
   if(!isSpecial() && !isLiteral()){
      if(env.signature->getFunction(_functor)->arrow()){
        ASS(arity() == 2);
+       vstring res;
        TermList arg1 = *(nthArgument(0));
        TermList arg2 = *(nthArgument(1));
-       return arg1.toString() + " " + functionName() + " " + arg2.toString();
+       res += topLevel ? "" : "("; 
+       res += arg1.toString(false) + " " + functionName() + " " + arg2.toString();
+       res += topLevel ? "" : ")";
+       return res;
      }
   }
 

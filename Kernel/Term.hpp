@@ -130,7 +130,7 @@ public:
   { return _content == t->_content ; }
   /** return the content, useful for e.g., term argument comparison */
   inline size_t content() const { return _content; }
-  vstring toString() const;
+  vstring toString(bool topLevel = true) const;
   /** make the term into an ordinary variable with a given number */
   inline void makeVar(unsigned vnumber)
   { _content = vnumber * 4 + ORD_VAR; }
@@ -353,7 +353,7 @@ public:
   const unsigned functor() const { return _functor; }
 
   static XMLElement variableToXML(unsigned var);
-  vstring toString() const;
+  vstring toString(bool topLevel = true) const;
   static vstring variableToString(unsigned var);
   static vstring variableToString(TermList var);
   /** return the arguments */
