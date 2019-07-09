@@ -1214,7 +1214,10 @@ bool Term::isBoolean() const {
   while (true) {
     if (env.signature->isFoolConstantSymbol(true, term->functor()) ||
         env.signature->isFoolConstantSymbol(false, term->functor())) return true;
-    if (!term->isSpecial()) return false; //TODO is this correct? check where the isBoolean function is called
+    if (!term->isSpecial()){
+      return !term->isLiteral() && 
+      env.signature->getFunction(_functor)->fnType()->result() == Term::boolSort();
+    }
     switch (term->getSpecialData()->getType()) {
       case SF_FORMULA:
         return true;

@@ -121,6 +121,7 @@ public:
   bool hasInterpretedEquality() const;
   /** Problem contains let terms or formulas, or term if-then-else */
   bool hasFOOL() const;
+  bool hasLambdas() const;
 
   bool mayHaveEquality() const { return _mayHaveEquality; }
   bool mayHaveFormulas() const { return _mayHaveFormulas; }
@@ -139,6 +140,12 @@ public:
   {
     invalidateProperty();
     _hasFOOL = false;
+  }
+
+  void reportLambdasEliminated()
+  {
+    invalidateProperty();
+    _hasLambdas = false;
   }
 
   void reportFOOLAdded()
@@ -224,6 +231,7 @@ private:
   mutable MaybeBool _hasEquality;
   mutable MaybeBool _hasInterpretedOperations;
   mutable MaybeBool _hasFOOL;
+  mutable MaybeBool _hasLambdas;
   mutable MaybeBool _hasInterpretedEquality;
 
   SMTLIBLogic _smtlibLogic;

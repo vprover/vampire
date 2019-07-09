@@ -83,6 +83,7 @@ Property::Property()
     _hasNonDefaultSorts(false),
     _sortsUsed(0),
     _hasFOOL(false),
+    _hasLambdas(false),
     _onlyFiniteDomainDatatypes(true),
     _knownInfiniteDomain(false),
     _allClausesGround(true),
@@ -509,9 +510,13 @@ void Property::scanSort(TermList sort)
       }
     }
     return;
-  } 
+  } */
+  
+  if(sort == Term::boolSort()){
+    _hasFOOL = true;
+  }
 
-  switch(sort) {
+  /*switch(sort) {
   case Term::intSort():
     addProp(PR_HAS_INTEGERS);
     break;
@@ -604,15 +609,21 @@ void Property::scan(TermList ts,bool unit,bool goal)
   Term* t = ts.term();
 
   if (t->isSpecial()) {
-    _hasFOOL = true;
+    //_hasFOOL = true;
     switch(t->functor()) {
-      case Term::SF_ITE:
+      /*case Term::SF_ITE:
         addProp(PR_HAS_ITE);
         break;
 
       case Term::SF_LET:
       case Term::SF_LET_TUPLE:
         addProp(PR_HAS_LET_IN);
+        break;*/
+      case Term::SF_FORMULA:
+        _hasFOOL = true;
+        break;
+      case Term::SF_LAMBDA:
+        _hasLambdas = true;
         break;
 
       default:

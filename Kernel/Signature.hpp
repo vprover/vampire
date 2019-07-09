@@ -582,6 +582,57 @@ class Signature
     return arrow;    
   }
 
+
+  unsigned getEqualityProxy(){
+    bool added = false;
+    unsigned eqProxy = addFunction("vEQ",1, added);
+    if(added){
+      VarList* vl = VarList(0);
+      TermList tv = TermList(0, false);
+      TermList result = Term::arrowSort(tv, Term::boolSort());
+      result = Term::arrowSort(tv, result);
+      getFunction(eqProxy)->setType(OperatorType::getConstantsType(result, vl));
+    }
+    return eqProxy;  
+  }
+
+  unsigned getBinaryProxy(vstring name){
+    bool added = false;
+    unsigned proxy = addFunction(name,0, added);
+    if(added){
+      TermList bs = Term::boolSort();
+      TermList result = Term::arrowSort(bs, bs);
+      result = Term::arrowSort(bs, result);
+      getFunction(proxy)->setType(OperatorType::getConstantsType(result, VarList::empty()));
+    }
+    return proxy;  
+  }
+
+  unsigned getNotProxy(){
+    bool added = false;
+    unsigned notProxy = addFunction("vNOT",0, added);
+    if(added){
+      TermList bs = Term::boolSort();
+      TermList result = Term::arrowSort(bs, bs);
+      getFunction(notProxy)->setType(OperatorType::getConstantsType(result, VarList::empty()));
+    }
+    return notProxy;  
+  } //TODO merge with above?
+
+
+  unsigned getPiSigmaProxy(vstring name){
+    bool added = false;
+    unsigned proxy = addFunction(name,1, added);
+    if(added){
+      VarList* vl = VarList(0);
+      TermList tv = TermList(0, false);
+      TermList result = Term::arrowSort(tv, Term::boolSort());
+      result = Term::arrowSort(result, Term::boolSort());
+      getFunction(proxy)->setType(OperatorType::getConstantsType(result, vl));
+    }
+    return proxy;  
+  } //TODO merge with above?  
+
   //bool isTermAlgebraSort(unsigned sort) { return _termAlgebras.find(sort); }
   //Shell::TermAlgebra *getTermAlgebraOfSort(unsigned sort) { return _termAlgebras.get(sort); }
   //void addTermAlgebra(Shell::TermAlgebra *ta) { _termAlgebras.insert(ta->sort(), ta); }

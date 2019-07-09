@@ -162,6 +162,8 @@ public:
     return (*_key)[idx - typeArgsArity()];
   }
 
+  //TODO functions below do not hold for higher-order
+  //In higher-order we have boolean functions
   bool isPredicateType() const { return (*_key)[arity() - typeArgsArity()] == Term::boolSort(); };
   bool isFunctionType() const { return (*_key)[arity() - typeArgsArity()] != Term::boolSort(); };
   TermList result() const {

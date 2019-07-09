@@ -230,6 +230,7 @@ public:
   /** Problem contains non-default sorts */
   bool hasNonDefaultSorts() const { return _hasNonDefaultSorts; }
   bool hasFOOL() const { return _hasFOOL; }
+  bool hasLambdas() const { return _hasLambdas;}
   /*bool usesSort(unsigned sort) const { 
     CALL("Property::usesSort");
     if(_usesSort.size() <= sort) return false;
@@ -338,6 +339,7 @@ public:
   //DHSet<Theory::MonomorphisedInterpretation> _polymorphicInterpretations;
 
   bool _hasFOOL;
+  bool _hasLambdas;
 
   bool _onlyFiniteDomainDatatypes;
   bool _knownInfiniteDomain;

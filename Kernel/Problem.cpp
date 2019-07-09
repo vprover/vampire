@@ -306,6 +306,7 @@ void Problem::readDetailsFromProperty() const
   _hasEquality = _property->equalityAtoms()!=0;
   //_hasInterpretedOperations = _property->hasInterpretedOperations();
   _hasFOOL = _property->hasFOOL();
+  _hasLambdas = _property->hasLambdas();
   _hasInterpretedEquality = _property->hasInterpretedEquality();
 
   _mayHaveFormulas = _hasFormulas.value();
@@ -328,6 +329,7 @@ void Problem::invalidateEverything()
   _hasInterpretedOperations = MaybeBool::UNKNOWN;
   _hasFOOL = MaybeBool::UNKNOWN;
   _hasInterpretedEquality = MaybeBool::UNKNOWN;
+  _hasLambdas = MaybeBool::UNKNOWN;
 
   _mayHaveFormulas = true;
   _mayHaveEquality = true;
@@ -349,6 +351,7 @@ void Problem::invalidateByRemoval()
   _hasEquality.mightBecameFalse();
   _hasInterpretedOperations.mightBecameFalse();
   _hasFOOL.mightBecameFalse();
+  _hasLambdas.mightBecameFalse();
   _hasInterpretedEquality.mightBecameFalse();
 }
 
@@ -411,7 +414,13 @@ bool Problem::hasFOOL() const
   return _hasFOOL.value();
 }
 
+bool Problem::hasLambdas() const
+{
+  CALL("Problem::hasFOOL");
 
+  if(!_hasLambdas.known()) { refreshProperty(); }
+  return _hasLambdas.value();
+}
 ///////////////////////
 // utility functions
 //

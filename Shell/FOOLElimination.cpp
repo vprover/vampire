@@ -762,6 +762,14 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
         termResult = freshSymbolApplication;
         break;
       }
+      case Term::SF_LAMBDA: {
+        /** lambda terms are translated to FOL using SKIBC combinators which are extensively described in 
+           the literature. 
+        */
+        LambdaElimination le = LambdaElimination(_varSorts);
+        termResult = le.elimLambda(term);
+        break;
+      }
 
 #if VDEBUG
       default:
