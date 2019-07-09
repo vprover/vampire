@@ -636,6 +636,13 @@ VirtualIterator<Solution>  minimizeSolution(Stack<Literal*>& theoryLiterals, boo
                                             unsigned maxVar
                                             //DHMap<unsigned,unsigned > srtMap
                                             ) {
+  CALL("TheoryInstAndSimp::minimizeSolution");
+
+  BYPASSING_ALLOCATOR;
+
+#if DPRINT
+  cerr << "minimizing maxVar=" << maxVar << endl;
+#endif
   static SAT2FO naming;
   static  Z3Interfacing solver(*env.options,naming,true);
   solver.reset(); // the solver will reset naming
@@ -653,6 +660,12 @@ VirtualIterator<Solution>  minimizeSolution(Stack<Literal*>& theoryLiterals, boo
   Stack<Literal*> groundedFlattened;
   //  cerr << flattened.size() << endl;
   Substitution subst;
+#if DPRINT
+  Stack<Literal*>::Iterator debug_it(flattened);
+  while(debug_it.hasNext()) {
+    cerr << debug_it.next()->toString() << endl;
+  }
+#endif
   Stack<Literal*>::Iterator stit(flattened);
   while(stit.hasNext()) {
     Literal* lit = stit.next();
@@ -927,7 +940,7 @@ VirtualIterator<Solution> TheoryInstAndSimp::getSolutions(Stack<Literal*>& theor
 #endif
     // try to minimize the solution
     if (env.options->generalizeTheoryInstance()) {
-      VirtualIterator<Solution> minsol = minimizeSolution(theoryLiterals, guarded, sol, substTriangleForm,maxVar);
+      VirtualIterator<Solution> minsol = minimizeSolution(theoryLiterals, guarded, sol, substTriangleForm, maxVar);
       return minsol;
     }
     
@@ -1121,7 +1134,7 @@ ClauseIterator TheoryInstAndSimp::generateClauses(Clause* premise,bool& premiseR
     TimeCounter t(TC_THEORY_INST_SIMP);
 
     //auto it1 = getSolutions(theoryLiterals);
-    auto it1 = getSolutions(selectedLiterals, premise->maxVar(), true);
+    auto it1 = getSolutions(selectedLiterals, flattened->maxVar(), true);
 
     auto it2 = getMappingIterator(it1,
                InstanceFn(premise,flattened,selectedLiterals,_splitter,_salg,this,premiseRedundant));
