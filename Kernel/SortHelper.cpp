@@ -453,6 +453,13 @@ void SortHelper::collectVariableSortsIter(CollectTask task, DHMap<unsigned,TermL
             newTask.f = sd->getFormula();
             todo.push(newTask);
           } break;
+          case Term::SF_LAMBDA: {
+            CollectTask newTask;
+            newTask.fncTag = COLLECT_TERMLIST;
+            newTask.contextSort = sd->getLambdaExpSort();
+            newTask.ts = sd->getLambdaExp();
+            todo.push(newTask);              
+          } break;
 
           /*case Term::SF_TUPLE: {
             CollectTask newTask;

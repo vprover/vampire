@@ -221,6 +221,25 @@ Term* Rectify::rectifySpecialTerm(Term* t)
     }
     return Term::createFormula(orig);
   }
+  case Term::SF_LAMBDA:
+  {
+    ASS_EQ(t->arity(),0);
+    bindVars(sd->getLambdaVars());
+    TermList lambdaTerm = rectify(sd->getLambdaExp());
+    /**
+     * We don't want to remove unused variables from the variable list,
+     * ^[X].exp is not equivalent to exp.
+     */
+    bool removeUnusedVars = _removeUnusedVars;
+    _removeUnusedVars = false;
+    VarList* vs = rectifyBoundVars(sd->getLambdaVars());
+    _removeUnusedVars = removeUnusedVars; // restore the status quo
+    unbindVars(sd->getLambdaVars());
+    if (vs == sd->getLambdaVars() && lambdaTerm == sd->getLambdaExp()) {
+      return t;
+    }
+    return Term::createLambda(lambdaTerm, vs, sd->getVarSorts(), sd->getLambdaExpSort());   
+  }
   /*case Term::SF_TUPLE:
   {
     ASS_EQ(t->arity(),0);

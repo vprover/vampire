@@ -1214,13 +1214,14 @@ bool Term::isBoolean() const {
   while (true) {
     if (env.signature->isFoolConstantSymbol(true, term->functor()) ||
         env.signature->isFoolConstantSymbol(false, term->functor())) return true;
-    if (!term->isSpecial()) return false;
+    if (!term->isSpecial()) return false; //TODO is this correct? check where the isBoolean function is called
     switch (term->getSpecialData()->getType()) {
       case SF_FORMULA:
         return true;
       case SF_TUPLE:
+      case SF_LAMBDA:
         return false;
-      case SF_ITE:
+      /*case SF_ITE:
       case SF_LET:
       case SF_LET_TUPLE: {
         const TermList *ts = term->nthArgument(0);
@@ -1230,7 +1231,7 @@ bool Term::isBoolean() const {
           term = ts->term();
           break;
         }
-      }
+      }*/
       default:
         ASSERTION_VIOLATION_REP(term->toString());
     }

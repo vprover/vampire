@@ -292,6 +292,7 @@ public:
       ASS_REP(getType() == SF_LET || getType() == SF_LET_TUPLE, getType());
       return TermList(getType() == SF_LET ? _letData.binding : _letTupleData.binding);
     }
+    TermList getLambdaExpSort() const { ASS_EQ(getType(), SF_LAMBDA); return _lambdaData.expSort; }
     TermList getSort() const {
       switch (getType()) {
         /*case SF_ITE:

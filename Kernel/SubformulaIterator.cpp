@@ -171,7 +171,7 @@ bool SubformulaIterator::hasNext ()
         }
 
         switch (term->functor()) {
-          case Term::SF_ITE: {
+          /*case Term::SF_ITE: {
             _current = term->getSpecialData()->getCondition();
             _currentPolarity = polarity;
             delete _reserve;
@@ -199,7 +199,7 @@ bool SubformulaIterator::hasNext ()
               _reserve = new Element(binding.term(), polarity, rest);
             }
             break;
-          }
+          }*/
           case Term::SF_FORMULA: {
             _current = term->getSpecialData()->getFormula();
             _currentPolarity = polarity;
@@ -207,13 +207,24 @@ bool SubformulaIterator::hasNext ()
             _reserve = rest;
             return true;
           }
-          case Term::SF_TUPLE: {
+          case Term::SF_LAMBDA: {
+            delete _reserve;
+            TermList lambdaExp = term->getSpecialData()->getLambdaExp();
+            if (!lambdaExp.isTerm()) {
+              _reserve = rest;
+            } else {
+              // TODO: should be 1 instead of polarity?
+              _reserve = new Element(lambdaExp.term(), polarity, rest);
+            }
+            break;
+          }
+          /*case Term::SF_TUPLE: {
             delete _reserve;
             Term* tupleTerm = term->getSpecialData()->getTupleTerm();
             // TODO: should be 1 instead of polarity?
             _reserve = new Element(tupleTerm, polarity, rest);
             break;
-          }
+          }*/
 #if VDEBUG
           default:
             ASSERTION_VIOLATION;

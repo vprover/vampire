@@ -53,7 +53,7 @@ using namespace Shell;
 using namespace Parse;
 
 #define DEBUG_SHOW_TOKENS 0
-#define DEBUG_SHOW_UNITS 1
+#define DEBUG_SHOW_UNITS 0
 #define DEBUG_SOURCE 0
 
 DHMap<unsigned, vstring> TPTP::_axiomNames;
