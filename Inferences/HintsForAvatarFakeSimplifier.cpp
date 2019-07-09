@@ -67,6 +67,7 @@ Clause* HintsForAvatarFwdFakeSimplifier::simplify(Clause* cl)
   // never consider redundant, just mark as "hint-heeding"
   if (_impl.genericPerform(cl,rDummy,pDummy,TC_FORWARD_SUBSUMPTION_HINT_CHECK,TC_FORWARD_SUBSUMPTION_HINT_CHECK)) {
     cl->heedHint();
+    env.statistics->hintsMatched++;
   }
   // always return cl; it's never actually simplified
   return cl;
@@ -94,6 +95,7 @@ Clause* HintsForAvatarBwdFakeSimplifier::simplify(Clause* cl)
 
   if(clen==0) {
     cl->heedHint(); // empty clauses are hint matching even if there are no hints
+    env.statistics->hintsMatched++;
     return cl;
   }
 
@@ -102,6 +104,7 @@ Clause* HintsForAvatarBwdFakeSimplifier::simplify(Clause* cl)
 
     if (rit.hasNext()) {
       cl->heedHint();
+      env.statistics->hintsMatched++;
     }
 
     return cl;
@@ -232,6 +235,7 @@ Clause* HintsForAvatarBwdFakeSimplifier::simplify(Clause* cl)
     if (MLMatcher::canBeMatched(cl, icl, matchedLits.array(), 0)) {
       // mark successful hint match
       cl->heedHint();
+      env.statistics->hintsMatched++;
       RSTAT_CTR_INC("H - bs1 4 performed");
     }
 

@@ -231,6 +231,9 @@ public:
   /** Number of literals in clauses learned by the SAT solver */
   unsigned learntSatLiterals;
 
+  unsigned hintsInserted;
+  unsigned hintsMatched;
+
   unsigned satSplits;
   unsigned satSplitRefutations;
 

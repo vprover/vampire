@@ -1674,7 +1674,14 @@ bool Splitter::handleEmptyClause(Clause* cl)
       } else {
         //cout << "added to index" << endl;
 
-        // cout << "addHintClause: " << curCl->toString() << endl;
+        /*
+        if (_showSplitting) {
+          env.beginOutput();
+          env.out() << "[AVATAR] addHintClause: " << curCl->toString() << endl;
+          env.endOutput();
+        }
+        */
+        env.statistics->hintsInserted++;
 
         _hintsForAvatarFakeSimplifier->addHintClause(curCl);
       }

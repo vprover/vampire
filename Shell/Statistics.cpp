@@ -355,6 +355,9 @@ void Statistics::print(ostream& out)
   //COND_OUT("Sat splits", satSplits); // same as split clauses
   COND_OUT("Sat splitting refutations", satSplitRefutations);
   COND_OUT("SMT fallbacks",smtFallbacks);
+  COND_OUT("Hints inserted",hintsInserted);
+  COND_OUT("Hints matched",hintsMatched);
+
   SEPARATOR;
 
   HEADING("Instance Generation",instGenGeneratedClauses+instGenRedundantClauses+
