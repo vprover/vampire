@@ -36,9 +36,10 @@ public:
   //void addFunctionExtensionalityAxioms(UnitList*& units);
   //void addBooleanExtensionalityAxiom(UnitList*& units);
   
-  
-  static unsigned introduceAppSymbol(unsigned sort1, unsigned sort2, unsigned resultSort); 
-  static void buildFuncApp(unsigned function, TermList args1, TermList arg2, TermList& functionApplication);
+  static TermList createAppTerm(TermList sort, TermList arg1, TermList arg2);
+  static TermList createAppTerm(TermList s1, TermList s2, TermList arg1, TermList arg2);
+
+
   static FormulaUnit* addQuantifierAxiom(TermList constant, unsigned constSort, Connective conn, unsigned qvarSort);
   static FormulaUnit* addNotConnAxiom(TermList constant, unsigned notsort);
   static FormulaUnit* addBinaryConnAxiom(TermList constant, unsigned connSort, Connective conn, unsigned appedOnce);
@@ -49,12 +50,7 @@ public:
   
 private:
  
-  typedef Stack<unsigned> SortStack; 
   typedef HOSortHelper HSH;
-  bool tryAddCombinatorFromSort(unsigned sort, Deque<unsigned>& sortQ);
-  bool isSCompatible(unsigned combinedSort, unsigned sort1, unsigned sort2, unsigned sort3, unsigned &combSort);
-  bool isBCompatible(unsigned combinedSort, unsigned sort1, unsigned sort2, SortStack &combSort);
-  bool isCCompatible(unsigned combinedSort, unsigned sort1, unsigned sort2, unsigned sort3, unsigned &combSort);
 
   //keeps track of number of combinators added
   unsigned _combinatorsAdded;
@@ -84,7 +80,7 @@ private:
   TermList addKComb(unsigned appliedToArg, TermList arg);
   TermList addComb(unsigned appliedToArgs, TermList arg1, TermList arg2, Signature::Symbol::HOLConstant comb);
   
-  void process(Stack<int> _vars, Stack<unsigned> _sorts, Stack<TermList> _toBeProcessed);
+  void process(Stack<int> &vars, TermStack &sorts, TermStack &toBeProcessed);
   
   /** Lexical scope of the current unit */
   DHMap<unsigned,unsigned> _varSorts;

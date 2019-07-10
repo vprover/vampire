@@ -64,6 +64,7 @@ Signature::Symbol::Symbol(const vstring& nm, unsigned arity, bool interpreted, b
     _inductionSkolem(0),
     _skolem(0),
     _arrow(0),
+    _app(0),
     _superSort(super)
 {
   CALL("Signature::Symbol::Symbol");
@@ -676,7 +677,9 @@ unsigned Signature::getApp()
     TermList tv2 = TermList(1, false);
     TermList arrowType = Term::arrowSort(tv1, tv2);
     OperatorType* ot = OperatorType::getFunctionType({arrowType, tv1}, tv2, vl);
-    getFunction(app)->setType(ot);
+    Symbol* sym = getFunction(app);
+    sym->setType(ot);
+    sym->markApp();
   }
   return app;
 }

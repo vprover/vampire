@@ -1074,6 +1074,8 @@ bool Splitter::doSplitting(Clause* cl)
 {
   CALL("Splitter::doSplitting");
 
+  cout << "attempting to split " + cl->toString() << endl;
+
   //!! this check is important or we might end up looping !!
   if(cl->isComponent()) {
     return false;
@@ -1171,7 +1173,7 @@ bool Splitter::tryGetExistingComponentName(unsigned size, Literal* const * lits,
     return false;
   }
   compCl = existingComponents.next();
-  ASS(!existingComponents.hasNext());
+  ASS_REP2(!existingComponents.hasNext(), compCl->toString(), existingComponents.next()->toString());
   comp = _compNames.get(compCl);
   return true;
 }

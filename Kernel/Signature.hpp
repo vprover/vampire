@@ -110,6 +110,8 @@ class Signature
     unsigned _skolem : 1;
     /** if arrow constructor */
     unsigned _arrow : 1;
+    /** if app function symbol */
+    unsigned _app : 1;
     /** if super sort */
     unsigned _superSort : 1;
 
@@ -193,6 +195,9 @@ class Signature
 
     inline void markArrow(){ _arrow = 1; }
     inline bool arrow(){ return _arrow; }
+
+    inline void markApp(){ _app = 1; }
+    inline bool app(){ return _app; }
 
     inline const bool super() const { return _superSort; }
 
@@ -587,7 +592,7 @@ class Signature
     bool added = false;
     unsigned eqProxy = addFunction("vEQ",1, added);
     if(added){
-      VarList* vl = VarList(0);
+      VarList* vl = new VarList(0);
       TermList tv = TermList(0, false);
       TermList result = Term::arrowSort(tv, Term::boolSort());
       result = Term::arrowSort(tv, result);
@@ -624,7 +629,7 @@ class Signature
     bool added = false;
     unsigned proxy = addFunction(name,1, added);
     if(added){
-      VarList* vl = VarList(0);
+      VarList* vl = new VarList(0);
       TermList tv = TermList(0, false);
       TermList result = Term::arrowSort(tv, Term::boolSort());
       result = Term::arrowSort(result, Term::boolSort());
