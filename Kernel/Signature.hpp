@@ -141,7 +141,7 @@ class Signature
     /** if super sort */
     unsigned _superSort : 1;
     /** proxy type */
-    Proxy _proxy;
+    Proxy _prox;
     /** combinator type */
     Combinator _comb;
 
@@ -229,11 +229,11 @@ class Signature
     inline void markApp(){ _app = 1; }
     inline bool app(){ return _app; }
 
-    inline void setProxy(Proxy prox){ _proxy = prox; }
+    inline void setProxy(Proxy prox){ _prox = prox; }
     inline Proxy proxy(){ return _prox; }
 
     inline void setComb(Combinator comb){ _comb = comb; }
-    inline Proxy combinator(){ return _comb; }
+    inline Combinator combinator(){ return _comb; }
 
     inline const bool super() const { return _superSort; }
 
@@ -630,8 +630,7 @@ class Signature
     if(added){
       VarList* vl = new VarList(0);
       TermList tv = TermList(0, false);
-      TermList result = Term::arrowSort(tv, Term::boolSort());
-      result = Term::arrowSort(tv, result);
+      TermList result = Term::arrowSort(tv, tv, Term::boolSort());
       getFunction(eqProxy)->setType(OperatorType::getConstantsType(result, vl));
     }
     return eqProxy;  
@@ -642,8 +641,7 @@ class Signature
     unsigned proxy = addFunction(name,0, added);
     if(added){
       TermList bs = Term::boolSort();
-      TermList result = Term::arrowSort(bs, bs);
-      result = Term::arrowSort(bs, result);
+      TermList result = Term::arrowSort(bs, bs, bs);
       getFunction(proxy)->setType(OperatorType::getConstantsType(result, VarList::empty()));
     }
     return proxy;  
@@ -674,25 +672,26 @@ class Signature
     return proxy;  
   } //TODO merge with above?  
 
-  unsigned getCombinator(vstring name){
+  unsigned getCombinator(Combinator c){
     bool added = false;
     unsigned comb;
     
-    auto convert = [] (vstring name) { 
-      if(name == "sCOMB"){
-        return S_COMB;
-      } else if (name == "cCOMB") {
-        return C_COMB;
-      } else if (name == "bCOMB") {
-        return B_COMB;
-      } else if (name == "kCOMB") {
-        return K_COMB;
-      } else {
-        return I_COMB;
+    auto convert = [] (Combinator cb) { 
+      switch(cb){
+        case S_COMB:
+          return "sCOMB";
+        case C_COMB:
+          return "cCOMB";
+        case B_COMB:
+          return "bCOMB";
+        case K_COMB:
+          return "kCOMB";
+        default:
+          return "iCOMB";
       }
     };
     
-    Combinator c = convert(name);
+    vstring name = convert(c);
     if(c == S_COMB || c == B_COMB || c == C_COMB){
       comb = addFunction(name,3, added);
     } else if ( c == K_COMB) {
@@ -712,25 +711,26 @@ class Signature
     TermList t2 = Term::arrowSort(x0, x1);
     TermList t3 = Term::arrowSort(x0, x2);
 
-    TermList sort;
-  
-    if(added && c == S_COMB){
-      TermList sort = Term::arrowSort(t1, t2, t3);
-    }else if(added && c == C_COMB){
-      TermList sort = Term::arrowSort(t1, x1, t3);
-    }else if(added && c == B_COMB){
-      TermList sort = Term::arrowSort(t0, t2, t3);
-    }else if(added && c == K_COMB){
-      vl = vl->tail();
-      TermList sort = Term::arrowSort(x1, x2 , x1);
-    }else if(added && c == I_COMB){
-      vl = vl->tail()->tail();
-      TermList sort = Term::arrowSort(x2, x2);
-    }    
+    if(added){
+      TermList sort; 
+      if(c == S_COMB){
+        sort = Term::arrowSort(t1, t2, t3);
+      }else if(c == C_COMB){
+        sort = Term::arrowSort(t1, x1, t3);
+      }else if(c == B_COMB){
+        sort = Term::arrowSort(t0, t2, t3);
+      }else if(c == K_COMB){
+        vl = vl->tail();
+        sort = Term::arrowSort(x1, x2 , x1);
+      }else if(c == I_COMB){
+        vl = vl->tail()->tail();
+        sort = Term::arrowSort(x2, x2);
+      }    
 
-    Symbol* sym = getFunction(comb);
-    sym->setType(OperatorType::getConstantsType(s_sort, vl));
-    sym->setComb(c);
+      Symbol* sym = getFunction(comb);
+      sym->setType(OperatorType::getConstantsType(sort, vl));
+      sym->setComb(c);
+    } 
     return comb;
   }
 

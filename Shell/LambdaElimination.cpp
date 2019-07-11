@@ -87,12 +87,11 @@ TermList LambdaElimination::processBeyondLambda(Formula* formula)
       
       unsigned eqProxy = env.signature->getEqualityProxy();
       constant = TermList(Term::create1(eqProxy, equalsSort));             
-      appTerm = createAppTerm(SortHelper::getResultSort(constant.term()), constant, lhs);
-      appTerm = createAppTerm(SortHelper::getResultSort(appTerm.term()), appTerm, rhs);
+      appTerm = createAppTerm3(sortOf(constant), constant, lhs, rhs);
       
       if(!lit->polarity()){
         constant = TermList(Term::createConstant(env.signature->getNotProxy()));
-        appTerm = createAppTerm(SortHelper::getResultSort(constant.term()), constant, appTerm);
+        appTerm = createAppTerm(sortOf(constant), constant, appTerm);
       }
       return appTerm;
     }
@@ -105,17 +104,16 @@ TermList LambdaElimination::processBeyondLambda(Formula* formula)
       vstring name = (conn == IFF ? "vIFF" : (conn == IMP ? "vIMP" : "vXOR"));
       constant = TermList(Term::createConstant(env.signature->getBinaryProxy(name)));
 
-      TermList form = processBeyondLambda(lhs);      
-      appTerm = createAppTerm(SortHelper::getResultSort(constant.term()), constant, form);
-      form = processBeyondLambda(rhs);
-      appTerm = createAppTerm(SortHelper::getResultSort(appTerm.term()), appTerm, form);
-      return appTerm;
+      TermList form1 = processBeyondLambda(lhs);
+      TermList form2 = processBeyondLambda(rhs);
+ 
+      return createAppTerm3(sortOf(constant), constant, form1, form2);;
     }
     case AND:
     case OR:{
       FormulaList::Iterator argsIt(formula->args());
       
-      vstring name = (conn == AND ? "vAND" : "vIFF");
+      vstring name = (conn == AND ? "vAND" : "vOR");
       constant = TermList(Term::createConstant(env.signature->getBinaryProxy(name)));
       
       TermList form;
@@ -125,12 +123,11 @@ TermList LambdaElimination::processBeyondLambda(Formula* formula)
         Formula* arg = argsIt.next();
         form = processBeyondLambda(arg);
         if(count == 1){
-          appTerm = createAppTerm(SortHelper::getResultSort(constant.term()), constant, form);
+          appTerm = createAppTerm(sortOf(constant), constant, form);
         }else if(count == 2){
-          appTerm = createAppTerm(SortHelper::getResultSort(appTerm.term()), appTerm, form);
+          appTerm = createAppTerm(sortOf(appTerm), appTerm, form);
         }else{
-          appTerm = createAppTerm(SortHelper::getResultSort(constant.term()), constant, appTerm);
-          appTerm = createAppTerm(SortHelper::getResultSort(appTerm.term()), appTerm, form);
+          appTerm = createAppTerm3(sortOf(constant), constant, appTerm, form);
         }
         count++;
       }
@@ -139,19 +136,18 @@ TermList LambdaElimination::processBeyondLambda(Formula* formula)
     case NOT: {
       constant = TermList(Term::createConstant(env.signature->getNotProxy()));
       TermList form = processBeyondLambda(formula->uarg());
-      appTerm = createAppTerm(SortHelper::getResultSort(constant.term()), constant, form);
-      return appTerm;                                                    
+      return  createAppTerm(sortOf(constant), constant, form);                                                    
     }
     case FORALL:
     case EXISTS: {
       Formula::VarList* vars = formula->vars();
       Formula::VarList::Iterator vit(vars);
-      SList* sort = SList::empty();
-      VList* var = VList::empty();
+      SList* sort = new SList(TermList(0, true)); //dummy data
+      IntList* var = new IntList(0);
 
       TermList form = processBeyondLambda(formula->qarg());
-      vstring name = conn === FORALL ? "vPI" : "vSIGMA";
-      unsigned proxy = getPiSigmaProxy(name);
+      vstring name = (conn == FORALL ? "vPI" : "vSIGMA");
+      unsigned proxy = env.signature->getPiSigmaProxy(name);
 
       TermList s;
       while(vit.hasNext()){
@@ -160,12 +156,12 @@ TermList LambdaElimination::processBeyondLambda(Formula* formula)
         var->setHead(v);
         sort->setHead(s);
         form = elimLambda(Term::createLambda(form, var, sort, Term::boolSort())); 
-        constant = Term::create1(proxy, s);
-        form = createAppTerm(SortHelper::getResultSort(constant.term()), constant, form);
+        constant = TermList(Term::create1(proxy, s));
+        form = createAppTerm(sortOf(constant), constant, form);
       }
       return form;
     }
-    case BOOL_TERM
+    case BOOL_TERM:
       return processBeyondLambda(formula->getBooleanTerm());
     case TRUE:
       return TermList(Term::foolTrue());
@@ -221,14 +217,23 @@ TermList LambdaElimination::processBeyondLambda(TermList term)
   return processBeyondLambda(term.term());
 }
 
-TermList LambdaElimination::createAppTerm(TermList sort, TermList arg1, TermList arg2, TermList arg3)
+
+TermList LambdaElimination::createAppTerm(TermList sort, TermList arg1, TermList arg2, TermList arg3, TermList arg4)
 {
-  CALL("LambdaElimination::createAppTerm/2");
+  CALL("LambdaElimination::createAppTerm/3");
+
+  TermList t1 = createAppTerm3(sort, arg1, arg2, arg3);
+  return createAppTerm(SortHelper::getResultSort(t1.term()), t1, arg4);
+}
+
+TermList LambdaElimination::createAppTerm3(TermList sort, TermList arg1, TermList arg2, TermList arg3)
+{
+  CALL("LambdaElimination::createAppTerm3");
   
   TermList s1 = getNthArg(sort, 1);
   TermList s2 = *sort.term()->nthArgument(1);
   TermList s3 = getNthArg(s2, 1);
-  TermList s4 = getNthArg(s2, 2);
+  TermList s4 = *s2.term()->nthArgument(1);
   return createAppTerm(s3, s4, createAppTerm(s1, s2, arg1, arg2), arg3);
 }
 
@@ -237,7 +242,7 @@ TermList LambdaElimination::createAppTerm(TermList sort, TermList arg1, TermList
   CALL("LambdaElimination::createAppTerm/2");
   
   TermList s1 = getNthArg(sort, 1);
-  TermList s2 = getNthArg(sort, 2);
+  TermList s2 = *sort.term()->nthArgument(1);
   return createAppTerm(s1, s2, arg1, arg2);
 }
 
@@ -257,77 +262,64 @@ TermList LambdaElimination::createAppTerm(TermList s1, TermList s2, TermList arg
   
 TermList LambdaElimination::elimLambda(Term* lambdaTerm)
 {
-    CALL("LambdaElimination::elimLambda");
-    
-    Stack<int> vars;
-    TermStack sorts;
-    TermStack toBeProcessed;
+  CALL("LambdaElimination::elimLambda");
   
-    ASS(lambdaTerm->isSpecial());
-    Term::SpecialTermData* sd = lambdaTerm->getSpecialData();
-    ASS_EQ(sd->getType(), Term::SF_LAMBDA);
-    
-    TermList lambdaExp;
-    SList* sorts = sd->getVarSorts();
-    IntList* vars = sd->getLambdaVars();
-    
-    IntList::Iterator vlit(vars);
-    Term::SortList::Iterator slit(sorts);
-    
+  Stack<int> vars;
+  TermStack sorts;
+  TermStack toBeProcessed;
 
-    while(vlit.hasNext()){
-      _vars.push(vlit.next());
-      _sorts.push(slit.next());
-    }
+  ASS(lambdaTerm->isSpecial());
+  Term::SpecialTermData* sd = lambdaTerm->getSpecialData();
+  ASS_EQ(sd->getType(), Term::SF_LAMBDA);
+  
+  TermList lambdaExp;
+  SList* srts = sd->getVarSorts();
+  IntList* vrs = sd->getLambdaVars();
+  
+  IntList::Iterator vlit(vrs);
+  SList::Iterator slit(srts);
 
-    lambdaExp = sd->getLambdaExp();
-    toBeProcessed.push(lambdaExp);
-  
-    process(vars, sorts, toBeProcessed);    
-  
-    return _processed.pop();
-    
+  while(vlit.hasNext()){
+    vars.push(vlit.next());
+    sorts.push(slit.next());
+  }
+
+  lambdaExp = sd->getLambdaExp();
+  toBeProcessed.push(lambdaExp);
+
+  process(vars, sorts, toBeProcessed);    
+
+  return _processed.pop();   
 }
 
 
-void LambdaElimination::process(Stack<int> vars, TermStack& sorts, TermStack &toBeProcessed){
+void LambdaElimination::process(Stack<int>& vars, TermStack& sorts, TermStack &toBeProcessed){
    
   CALL("LambdaElimination::process");   
-    
+  
+  TermList processing;
   int lambdaVar;
   TermList lambdaVarSort;
   Stack<unsigned> argNums;
    
   while(!vars.isEmpty()){
-    lambdaVar = _vars.pop();
-    lambdaVarSort = _sorts.pop();
+    lambdaVar = vars.pop();
+    lambdaVarSort = sorts.pop();
     
     while (!toBeProcessed.isEmpty()){  
    
-      _processing = toBeProcessed.pop(); 
-       
-      if (_processing.isTerm()){ 
+      processing = toBeProcessed.pop(); 
+      
+      if (processing.isTerm()){ 
         
-        Term* lExpTerm = _processing.term();
+        Term* lExpTerm = processing.term();
         IntList* freeVars = lExpTerm->freeVariables();
         
         if(IntList::member(lambdaVar, freeVars)){
           if(lExpTerm->isSpecial()){ 
-            switch(lExpTerm->functor()){
-              case Term::SF_FORMULA: {
-                toBeProcessed.push(processBeyondLambda(lExpTerm));
-                break;
-              }
-              case Term::SF_LAMBDA: {
-                toBeProcessed.push(elimLambda(lExpTerm));
-                break;
-              }
-              default:
-                ASSERTION_VIOLATION;
-                //Not deailing with ITEs, Lets and Tuples at the moment.
-            }                    
+            toBeProcessed.push(processBeyondLambda(lExpTerm));   
           }
-          else //not special. Of the sort app(X,Y).
+          else //not special. Of form app(s1, s2, t1, t2).
           {
             TermList arg1 = *lExpTerm->nthArgument(2);
             TermList arg2 = *lExpTerm->nthArgument(3);
@@ -336,23 +328,22 @@ void LambdaElimination::process(Stack<int> vars, TermStack& sorts, TermStack &to
         }
         else //In the case \x.exp where x is not free in exp.
         {
-          TermList arg1 = processBeyondLambda(_processing);
+          TermList arg1 = processBeyondLambda(processing);
           addToProcessed(createKTerm(sortOf(arg1), lambdaVarSort, arg1), argNums);                  
         }
-      }else{//lambda expression is a variable. If it is the lambda var, then this will be translated to I
-        bool added;       
-        if(_processing.var() == (unsigned)lambdaVar){ //an expression of the form \x.x
+      }else{//lambda expression is a variable. If it is the lambda var, then this will be translated to I     
+        if(processing.var() == (unsigned)lambdaVar){ //an expression of the form \x.x
           TermList ts = TermList(Term::create1(env.signature->getCombinator(Signature::I_COMB), lambdaVarSort));
           addToProcessed(ts, argNums);
         }else{ //an expression of the form \x.y 
-          addToProcessed(createKTerm(sortOf(_processing), lambdaVarSort, _processing), argNums);
+          addToProcessed(createKTerm(sortOf(processing), lambdaVarSort, processing), argNums);
         }       
        //freeVars = List<unsigned>(sd->getLambdaExp().var());
       }
     }//of while
    
     if(!vars.isEmpty()){
-      _toBeProcessed.push(_processed.pop());     
+      toBeProcessed.push(_processed.pop());     
     }
 
   }//outer while      
@@ -376,7 +367,7 @@ void LambdaElimination::addToProcessed(TermList ts, Stack<unsigned> &_argNums){
       return;
     }else{
       while(true){
-        Signature::Symbol::HOLConstant comb = _combinators.pop();
+        Signature::Combinator comb = _combinators.pop();
 
         TermList arg1 = _processed.pop();   
         TermList arg2 = _processed.pop();
@@ -438,7 +429,7 @@ TermList LambdaElimination::createKTerm(TermList s1, TermList s2, TermList arg1)
   
   unsigned kcomb = env.signature->getCombinator(Signature::K_COMB);
   TermList res = TermList(Term::create2(kcomb, s1, s2));
-  res = createAppTerm(SortHelper::getResultSort(res.term()), res, arg1);             
+  res = createAppTerm(sortOf(res), res, arg1);             
   return res;
 }   
     
@@ -447,26 +438,26 @@ TermList LambdaElimination::createSCorBTerm(TermList arg1, TermList arg2, Signat
     CALL("LambdaElimination::createSCorBTerm");
     
     TermList s1, s2, s3;
-    unsigned comb = env.signature->getCombinator(comb);
+    unsigned cb = env.signature->getCombinator(comb);
     TermList arg1sort = sortOf(arg1);
     TermList arg2sort = sortOf(arg2);
     
     if(comb == Signature::S_COMB || comb == Signature::C_COMB){
-      s1 = getNthArg(arg1Sort, 1);
-      s2 = getNthArg(arg1Sort, 2);
-      s3 = getNthArg(arg1Sort, 3);
+      s1 = getNthArg(arg1sort, 1);
+      s2 = getNthArg(arg1sort, 2);
+      s3 = getResultApplieadToNArgs(arg1sort, 2);
     } else {
-      s1 = getNthArg(arg2Sort, 1);
-      s2 = getNthArg(arg1Sort, 1);
-      s3 = getNthArg(arg1Sort, 2);
+      s1 = getNthArg(arg2sort, 1);
+      s2 = getNthArg(arg1sort, 1);
+      s3 = getResultApplieadToNArgs(arg1sort, 1);
     }
     
-    TermList args[] = {s1, s2, s3}
-    TermList c = TermList(Term::create(comb, 3, args));
-    return createAppTerm(sortOf(c), c, arg1, arg2); 
+    TermList args[] = {s1, s2, s3};
+    TermList c = TermList(Term::create(cb, 3, args));
+    return createAppTerm3(sortOf(c), c, arg1, arg2); 
 }
 
-unsigned LambdaElimination::sortOf(TermList t)
+TermList LambdaElimination::sortOf(TermList t)
 {
   CALL("LambdaElimination::sortOf");
   
@@ -474,131 +465,111 @@ unsigned LambdaElimination::sortOf(TermList t)
   
 } 
 
- void LambdaElimination::addCombinatorAxiom(TermList combinator, unsigned combinatorSort, unsigned argSort,
-                                            Signature::Symbol::HOLConstant comb, int arg1Sort, int arg2Sort)
- {
-     CALL("LambdaElimination::addCombinatorAxiom"); 
-   
-     Formula* combAxiom;
-       
-     TermList functionApplied;
-     TermList var1 = TermList(0, false);
-     
-     List<int>* varList = new List<int>(var1.var());
-     List<unsigned>* sortList = new List<unsigned>(argSort);
-     
-     unsigned appFun = introduceAppSymbol( combinatorSort, argSort, HSH::range(combinatorSort));
-     buildFuncApp(appFun, combinator, var1, functionApplied);
-   
-     switch(comb){
-        case Signature::Symbol::I_COMB: {    
-            combAxiom = createEquality(functionApplied, var1, argSort);
-            combAxiom = new QuantifiedFormula(FORALL, varList, sortList, combAxiom);
-            break;
-        }
-        case Signature::Symbol::K_COMB: {
-            TermList functionApplied2;
-            TermList var2 = TermList(1, false); 
-            
-            appFun = introduceAppSymbol( HSH::range(combinatorSort), arg1Sort, HSH::range(HSH::range(combinatorSort)));
-            buildFuncApp(appFun, functionApplied, var2, functionApplied2);
-            
-            varList = varList->addLast(varList, var2.var());
-            sortList = sortList->addLast(sortList, arg1Sort);
-                    
-            combAxiom = createEquality(functionApplied2, var1, argSort);
-            combAxiom = new QuantifiedFormula(FORALL, varList, sortList, combAxiom); 
-            break; 
-        }
-        case Signature::Symbol::B_COMB:
-        case Signature::Symbol::C_COMB:
-        case Signature::Symbol::S_COMB: {
+/** indexed from 1 */
+TermList LambdaElimination::getResultApplieadToNArgs(TermList arrowSort, unsigned argNum)
+{
+  CALL("LambdaElimination::getResultApplieadToNArgs");
+  
+  while(argNum > 0){
+    ASS(arrowSort.isTerm() && env.signature->getFunction(arrowSort.term()->functor())->arrow());
+    arrowSort = *arrowSort.term()->nthArgument(1);
+    argNum--;
+  }
+  return arrowSort;
+}
 
-            TermList functionApplied2;
-            TermList var2 = TermList(1, false); 
-            
-            appFun = introduceAppSymbol( HSH::range(combinatorSort), arg1Sort, HSH::range(HSH::range(combinatorSort)));
-            buildFuncApp(appFun, functionApplied, var2, functionApplied2);
-            
-            varList = varList->addLast(varList, var2.var());
-            sortList = sortList->addLast(sortList, arg1Sort);
-            
-            TermList functionApplied3;
-            TermList var3 = TermList(2, false);
-            
-            appFun = introduceAppSymbol( HSH::range(HSH::range(combinatorSort)), arg2Sort, HSH::range(HSH::range(HSH::range(combinatorSort))));
-            buildFuncApp(appFun, functionApplied2, var3, functionApplied3);
-        
-            varList = varList->addLast(varList, var3.var());
-            sortList = sortList->addLast(sortList, arg2Sort);
-            
-            TermList functionApplied4, functionApplied5, functionApplied6;
-            
-            if(comb == Signature::Symbol::S_COMB){ 
-                appFun = introduceAppSymbol( argSort, arg2Sort, HSH::range(argSort));
-                buildFuncApp(appFun, var1, var3, functionApplied4);
-       
-                appFun = introduceAppSymbol( arg1Sort, arg2Sort, HSH::range(arg1Sort));
-                buildFuncApp(appFun, var2, var3, functionApplied5);
-   
-                appFun = introduceAppSymbol( HSH::range(argSort), HSH::range(arg1Sort), HSH::range(HSH::range(argSort)));
-                buildFuncApp(appFun, functionApplied4, functionApplied5, functionApplied6);       
-            }
-            
-            if(comb == Signature::Symbol::B_COMB){
-                appFun = introduceAppSymbol( arg1Sort, arg2Sort, HSH::range(arg1Sort));
-                buildFuncApp(appFun, var2, var3, functionApplied5);
-             
-                appFun = introduceAppSymbol( argSort, HSH::range(arg1Sort), HSH::range(argSort));
-                buildFuncApp(appFun, var1, functionApplied5, functionApplied6);     
-            }
-            
-            if(comb == Signature::Symbol::C_COMB){
-                appFun = introduceAppSymbol( argSort, arg2Sort, HSH::range(argSort));
-                buildFuncApp(appFun, var1, var3, functionApplied5);
-                
-                appFun = introduceAppSymbol( HSH::range(argSort), arg1Sort, HSH::range(HSH::range(argSort)));
-                buildFuncApp(appFun, functionApplied5, var2, functionApplied6); 
-            }
 
-            combAxiom = createEquality(functionApplied3, functionApplied6, sortOf(functionApplied3));
-            combAxiom = new QuantifiedFormula(FORALL, varList,sortList, combAxiom); 
-            break;
-        }
-        default:
-          ASSERTION_VIOLATION;
-          break;
-        
-     }
+/** indexed from 1 */
+TermList LambdaElimination::getNthArg(TermList arrowSort, unsigned argNum)
+{
+  CALL("LambdaElimination::getNthArg");
+  ASS(argNum > 0);
+
+  TermList res;
+  while(argNum >=1){
+    ASS(arrowSort.isTerm() && env.signature->getFunction(arrowSort.term()->functor())->arrow());
+    res = *arrowSort.term()->nthArgument(0);
+    arrowSort = *arrowSort.term()->nthArgument(1);
+    argNum--;
+  }
+  return res;
+}
+
+void LambdaElimination::addCombinatorAxioms(Problem& prb)
+{
+  CALL("LambdaElimination::addCombinatorAxioms"); 
+ 
+  auto srtOf = [] (TermList t) { 
+     ASS(t.isTerm());
+     return SortHelper::getResultSort(t.term());
+  };
+
+  TermList s1 = TermList(0, false);  
+  TermList s2 = TermList(1, false);
+  TermList s3 = TermList(2, false);
+  TermList x = TermList(3, false);
+  TermList y = TermList(4, false);
+  TermList z = TermList(5, false);
+  TermList args[] = {s1, s2, s3};
+
+  Inference* inf = new Inference(Inference::COMBINATOR_AXIOM);;
+  
+  unsigned s_comb = env.signature->getCombinator(Signature::S_COMB);
+  TermList constant = TermList(Term::create(s_comb, 3, args));
+  TermList lhs = createAppTerm(srtOf(constant), constant, x, y, z); //TODO fix
+  TermList rhs = createAppTerm3(Term::arrowSort(s1, s2, s3), x, z, createAppTerm(Term::arrowSort(s1, s2), y, z));
+  
+  Clause* sAxiom = new(1) Clause(1, Unit::AXIOM, inf);
+  (*sAxiom)[0] = Literal::createEquality(true, lhs, rhs, s3);
+  UnitList::push(sAxiom, prb.units());
+
+  unsigned c_comb = env.signature->getCombinator(Signature::C_COMB);
+  constant = TermList(Term::create(c_comb, 3, args));
+  lhs = createAppTerm(srtOf(constant), constant, x, y, z); //TODO fix
+  rhs = createAppTerm3(Term::arrowSort(s1, s2, s3), x, z, y);
+
+  Clause* cAxiom = new(1) Clause(1, Unit::AXIOM, inf);
+  (*cAxiom)[0] = Literal::createEquality(true, lhs, rhs, s3);
+  UnitList::push(cAxiom, prb.units());
      
-     Inference* lambdaInference;
-     
-     switch(comb){
-         case Signature::Symbol::I_COMB:
-            lambdaInference = new Inference(Inference::LAMBDA_ELIMINATION_I_COMB);
-            break;
-         case Signature::Symbol::K_COMB:
-            lambdaInference = new Inference(Inference::LAMBDA_ELIMINATION_K_COMB);
-            break;
-         case Signature::Symbol::B_COMB:
-            lambdaInference = new Inference(Inference::LAMBDA_ELIMINATION_B_COMB);
-            break;
-         case Signature::Symbol::C_COMB:
-            lambdaInference = new Inference(Inference::LAMBDA_ELIMINATION_C_COMB);
-            break;
-         case Signature::Symbol::S_COMB:
-            lambdaInference = new Inference(Inference::LAMBDA_ELIMINATION_S_COMB);
-            break;
-         default:
-           ASSERTION_VIOLATION;
-     }
-     
-     
-     addAxiom(new FormulaUnit(combAxiom, lambdaInference, Unit::AXIOM));
-     
+  unsigned b_comb = env.signature->getCombinator(Signature::B_COMB);
+  constant = TermList(Term::create(b_comb, 3, args));
+  lhs = createAppTerm(srtOf(constant), constant, x, y, z); //TODO fix
+  rhs = createAppTerm(Term::arrowSort(s2, s3), x, createAppTerm(Term::arrowSort(s1, s2), y, z));
+
+  Clause* bAxiom = new(1) Clause(1, Unit::AXIOM, inf);
+  (*bAxiom)[0] = Literal::createEquality(true, lhs, rhs, s3);
+  UnitList::push(bAxiom, prb.units());
+
+  unsigned k_comb = env.signature->getCombinator(Signature::K_COMB);
+  constant = TermList(Term::create2(k_comb, s1, s2));
+  lhs = createAppTerm3(srtOf(constant), constant, x, y);
+  
+  Clause* kAxiom = new(1) Clause(1, Unit::AXIOM, inf);
+  (*kAxiom)[0] = Literal::createEquality(true, lhs, x, s1);
+  UnitList::push(kAxiom, prb.units());
+
+  unsigned i_comb = env.signature->getCombinator(Signature::I_COMB);
+  constant = TermList(Term::create1(i_comb, s1));
+  lhs = createAppTerm(srtOf(constant), constant, x);
+  
+  Clause* iAxiom = new(1) Clause(1, Unit::AXIOM, inf);
+  (*iAxiom)[0] = Literal::createEquality(true, lhs, x, s1);
+  UnitList::push(iAxiom, prb.units());
+
+  if (env.options->showPreprocessing()) {
+    env.out() << "Added combinator axioms: " << std::endl;
+    env.out() << sAxiom->toString() << std::endl;
+    env.out() << cAxiom->toString() << std::endl;
+    env.out() << bAxiom->toString() << std::endl;
+    env.out() << kAxiom->toString() << std::endl;  
+    env.out() << iAxiom->toString() << std::endl;        
+  }
  }
 
- FormulaUnit* LambdaElimination::addQuantifierAxiom(TermList constant, unsigned constSort, Connective conn, unsigned argSort)
+
+
+ /*FormulaUnit* LambdaElimination::addQuantifierAxiom(TermList constant, unsigned constSort, Connective conn, unsigned argSort)
  {
     CALL("LambdaElimination::addQuantifierAxiom");   
      
@@ -751,9 +722,10 @@ unsigned LambdaElimination::sortOf(TermList t)
    return new AtomicFormula(equality);
      
  }
- 
+
+
 Formula* LambdaElimination::toEquality(TermList booleanTerm) {
   TermList truth(Term::foolTrue());
   Literal* equality = Literal::createEquality(true, booleanTerm, truth, Sorts::SRT_BOOL);
   return new AtomicFormula(equality);
-}
+}*/

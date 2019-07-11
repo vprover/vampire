@@ -39,6 +39,7 @@
 
 #include "Shell/Options.hpp"
 #include "Shell/SymbolOccurrenceReplacement.hpp"
+#include "Shell/LambdaElimination.hpp"
 
 #include "Rectify.hpp"
 
@@ -149,6 +150,8 @@ FormulaUnit* FOOLElimination::apply(FormulaUnit* unit) {
   }
 
   FormulaUnit* rectifiedUnit = Rectify::rectify(unit);
+
+  cout << "the unit is " + rectifiedUnit->toString() << endl;
 
   Formula* formula = rectifiedUnit->formula();
 

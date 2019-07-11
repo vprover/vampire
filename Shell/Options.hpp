@@ -2102,6 +2102,8 @@ public:
   bool newCNF() const { return _newCNF.actualValue; }
   int getIteInliningThreshold() const { return _iteInliningThreshold.actualValue; }
   bool getIteInlineLet() const { return _inlineLet.actualValue; }
+  bool addCombAxioms() const { return _addCombAxioms.actualValue; }
+
 private:
     
     /**
@@ -2474,6 +2476,7 @@ private:
   BoolOptionValue _newCNF;
   IntOptionValue _iteInliningThreshold;
   BoolOptionValue _inlineLet;
+  BoolOptionValue _addCombAxioms;
 
 
 }; // class Options

@@ -332,7 +332,7 @@ void SortHelper::collectVariableSortsIter(CollectTask task, DHMap<unsigned,TermL
     switch(task.fncTag) {
       case COLLECT_TERM: {
         Term* term = task.t;
-
+    
         unsigned position = 0;
         for (TermList* ts = term->args(); ts->isNonEmpty(); ts = ts->next()) {
           CollectTask newTask;
@@ -504,16 +504,20 @@ void SortHelper::collectVariableSortsIter(CollectTask task, DHMap<unsigned,TermL
                 if (!map.insert(ts.var(), Term::boolSort())) {
                   ASS_EQ(Term::boolSort(), map.get(ts.var()));
                 }
-              } /*else {
-                ASS(ts.isTerm() && ts.term()->isSpecial());
+              } else {
+                ASS(ts.isTerm());
 
                 CollectTask newTask;
-                newTask.fncTag = COLLECT_SPECIALTERM;
+                if(ts.term()->isSpecial()){
+                  newTask.fncTag = COLLECT_SPECIALTERM;
+                } else {
+                  newTask.fncTag = COLLECT_TERM;                  
+                }
                 newTask.t = ts.term();
-                newTask.contextSort = Sorts::SRT_BOOL;
+                newTask.contextSort = Term::boolSort();
 
                 todo.push(newTask);
-              }*/
+              }
               break;
             }
 

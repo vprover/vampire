@@ -613,16 +613,25 @@ vstring Term::toString(bool topLevel) const
   CALL("Term::toString");
 
   if(!isSpecial() && !isLiteral()){
-     if(env.signature->getFunction(_functor)->arrow()){
-       ASS(arity() == 2);
-       vstring res;
-       TermList arg1 = *(nthArgument(0));
-       TermList arg2 = *(nthArgument(1));
-       res += topLevel ? "" : "("; 
-       res += arg1.toString(false) + " " + functionName() + " " + arg2.toString();
-       res += topLevel ? "" : ")";
-       return res;
-     }
+    if(env.signature->getFunction(_functor)->arrow()){
+      ASS(arity() == 2);
+      vstring res;
+      TermList arg1 = *(nthArgument(0));
+      TermList arg2 = *(nthArgument(1));
+      res += topLevel ? "" : "("; 
+      res += arg1.toString(false) + " " + functionName() + " " + arg2.toString();
+      res += topLevel ? "" : ")";
+      return res;
+    }else if(env.signature->getFunction(_functor)->app()){
+      ASS(arity() == 4);
+      vstring res;
+      TermList arg1 = *(nthArgument(2));
+      TermList arg2 = *(nthArgument(3));
+      res += topLevel ? "" : "("; 
+      res += arg1.toString() + " @ " + arg2.toString(false);
+      res += topLevel ? "" : ")";
+      return res;
+    }
   }
 
   vstring s = headToString();

@@ -570,6 +570,11 @@ void Options::Options::init()
     _lookup.insert(&_inlineLet);
     _inlineLet.tag(OptionTag::PREPROCESSING);
 
+    _addCombAxioms = BoolOptionValue("add_comb_axioms","aca",false);
+    _addCombAxioms.description="Add combinator axioms";
+    _lookup.insert(&_addCombAxioms);
+    _addCombAxioms.tag(OptionTag::PREPROCESSING);
+
 
 //*********************** Output  ***********************
 

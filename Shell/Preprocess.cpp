@@ -56,6 +56,7 @@
 #include "SineUtils.hpp"
 #include "Statistics.hpp"
 #include "FOOLElimination.hpp"
+#include "LambdaElimination.hpp"
 //#include "TheoryAxioms.hpp"
 //#include "TheoryFlattening.hpp"
 //#include "BlockedClauseElimination.hpp"
@@ -201,6 +202,10 @@ void Preprocess::preprocess(Problem& prb)
     }
   }*/
 
+ if (env.options->addCombAxioms()){ //TODO only add if option on and ...
+   LambdaElimination::addCombinatorAxioms(prb);
+ }
+
   if (prb.hasFOOL()) {
     // This is the point to extend the signature with $$true and $$false
     // If we don't have fool then these constants get in the way (a lot)
@@ -208,6 +213,7 @@ void Preprocess::preprocess(Problem& prb)
     //if (!_options.newCNF()) {
       if (env.options->showPreprocessing())
         env.out() << "FOOL elimination" << std::endl;
+  
       //TheoryAxioms(prb).applyFOOL(); //TODO uncomment this once theories are reintroduced
       FOOLElimination().apply(prb);
     //}

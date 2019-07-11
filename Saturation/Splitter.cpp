@@ -1074,8 +1074,6 @@ bool Splitter::doSplitting(Clause* cl)
 {
   CALL("Splitter::doSplitting");
 
-  cout << "attempting to split " + cl->toString() << endl;
-
   //!! this check is important or we might end up looping !!
   if(cl->isComponent()) {
     return false;

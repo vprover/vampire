@@ -314,7 +314,9 @@ public:
     /* Induction hypothesis*/
     INDUCTION,
     /* Inductive strengthening*/
-    INDUCTIVE_STRENGTH
+    INDUCTIVE_STRENGTH,
+    /* Combinator axiom */
+    COMBINATOR_AXIOM
   }; // class Inference::Rule
 
   explicit Inference(Rule r);
