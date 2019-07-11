@@ -77,8 +77,8 @@ private:
 
   void dealWithApp(TermList lhs, TermList rhs, unsigned sort, int lambdaVar, Stack<TermList> &_toBeProcessed, Stack<unsigned> &_argNums);
   
-  TermList addKComb(unsigned appliedToArg, TermList arg);
-  TermList addComb(unsigned appliedToArgs, TermList arg1, TermList arg2, Signature::Symbol::HOLConstant comb);
+  TermList createKTerm(TermList s1, TermList s2, TermList arg1);
+  TermList createSCorBTerm(TermList arg1, TermList arg2, Signature::Combinator comb);
   
   void process(Stack<int> &vars, TermStack &sorts, TermStack &toBeProcessed);
   

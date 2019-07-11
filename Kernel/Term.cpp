@@ -1144,9 +1144,15 @@ TermList Term::rationalSort(){
 }
 
 TermList Term::arrowSort(TermList s1, TermList s2){
-   CALL("Term::arrowSort");
+   CALL("Term::arrowSort/1");
    unsigned arrow = env.signature->getArrowConstructor();
    return TermList(create2(arrow, s1, s2));
+}
+
+TermList Term::arrowSort(TermList s1, TermList s2, TermList s3){
+   CALL("Term::arrowSort/2");
+   
+   return arrowSort(s1, arrowSort(s2, s3));
 }
 
 

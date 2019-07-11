@@ -59,7 +59,33 @@ class Signature
  public:
   typedef List<unsigned> VarList;
   /** Function or predicate symbol */
+  
+  enum Combinator {
+    S_COMB,
+    B_COMB,
+    C_COMB,
+    I_COMB,
+    K_COMB,
+    NOT_COMB
+  };
+  
+  enum Proxy {
+    AND,
+    OR,
+    IMP,
+    FORALL,
+    EXISTS,
+    IFF,
+    XOR,
+    NOT,
+    PI,
+    SIGMA,
+    EQUALS,
+    NOT_PROXY
+  };  
+  
   class Symbol {
+  
   protected:
     /** print name */
     vstring _name;
@@ -114,6 +140,10 @@ class Signature
     unsigned _app : 1;
     /** if super sort */
     unsigned _superSort : 1;
+    /** proxy type */
+    Proxy _proxy;
+    /** combinator type */
+    Combinator _comb;
 
   public:
     /** standard constructor */
@@ -198,6 +228,12 @@ class Signature
 
     inline void markApp(){ _app = 1; }
     inline bool app(){ return _app; }
+
+    inline void setProxy(Proxy prox){ _proxy = prox; }
+    inline Proxy proxy(){ return _prox; }
+
+    inline void setComb(Combinator comb){ _comb = comb; }
+    inline Proxy combinator(){ return _comb; }
 
     inline const bool super() const { return _superSort; }
 
@@ -637,6 +673,67 @@ class Signature
     }
     return proxy;  
   } //TODO merge with above?  
+
+  unsigned getCombinator(vstring name){
+    bool added = false;
+    unsigned comb;
+    
+    auto convert = [] (vstring name) { 
+      if(name == "sCOMB"){
+        return S_COMB;
+      } else if (name == "cCOMB") {
+        return C_COMB;
+      } else if (name == "bCOMB") {
+        return B_COMB;
+      } else if (name == "kCOMB") {
+        return K_COMB;
+      } else {
+        return I_COMB;
+      }
+    };
+    
+    Combinator c = convert(name);
+    if(c == S_COMB || c == B_COMB || c == C_COMB){
+      comb = addFunction(name,3, added);
+    } else if ( c == K_COMB) {
+      comb = addFunction(name,2, added);      
+    } else {
+      comb = addFunction(name,1, added);
+    }
+    
+    VarList* vl = new VarList(2);
+    VarList::push(1, vl);
+    VarList::push(0, vl);
+    TermList x0 = TermList(0, false);
+    TermList x1 = TermList(1, false);
+    TermList x2 = TermList(2, false);
+    TermList t0 = Term::arrowSort(x1, x2);
+    TermList t1 = Term::arrowSort(x0, t0);
+    TermList t2 = Term::arrowSort(x0, x1);
+    TermList t3 = Term::arrowSort(x0, x2);
+
+    TermList sort;
+  
+    if(added && c == S_COMB){
+      TermList sort = Term::arrowSort(t1, t2, t3);
+    }else if(added && c == C_COMB){
+      TermList sort = Term::arrowSort(t1, x1, t3);
+    }else if(added && c == B_COMB){
+      TermList sort = Term::arrowSort(t0, t2, t3);
+    }else if(added && c == K_COMB){
+      vl = vl->tail();
+      TermList sort = Term::arrowSort(x1, x2 , x1);
+    }else if(added && c == I_COMB){
+      vl = vl->tail()->tail();
+      TermList sort = Term::arrowSort(x2, x2);
+    }    
+
+    Symbol* sym = getFunction(comb);
+    sym->setType(OperatorType::getConstantsType(s_sort, vl));
+    sym->setComb(c);
+    return comb;
+  }
+
 
   //bool isTermAlgebraSort(unsigned sort) { return _termAlgebras.find(sort); }
   //Shell::TermAlgebra *getTermAlgebraOfSort(unsigned sort) { return _termAlgebras.get(sort); }

@@ -65,7 +65,9 @@ Signature::Symbol::Symbol(const vstring& nm, unsigned arity, bool interpreted, b
     _skolem(0),
     _arrow(0),
     _app(0),
-    _superSort(super)
+    _superSort(super),
+    _proxy(NOT_PROXY),
+    _comb(NOT_COMB)
 {
   CALL("Signature::Symbol::Symbol");
   ASS(!stringConstant || arity==0);
