@@ -20,7 +20,8 @@
 #include "Kernel/Signature.hpp"
 #include "Kernel/SortHelper.hpp"
 
-#include "Shell/Options.hpp"
+#include "Skolem.hpp"
+#include "Options.hpp"
 //#include "Shell/SymbolOccurrenceReplacement.hpp"
 
 
@@ -512,7 +513,7 @@ void LambdaElimination::addCombinatorAxioms(Problem& prb)
   TermList z = TermList(5, false);
   TermList args[] = {s1, s2, s3};
 
-  Inference* inf = new Inference(Inference::COMBINATOR_AXIOM);;
+  Inference* inf = new Inference(Inference::COMBINATOR_AXIOM);
   
   unsigned s_comb = env.signature->getCombinator(Signature::S_COMB);
   TermList constant = TermList(Term::create(s_comb, 3, args));
@@ -567,165 +568,161 @@ void LambdaElimination::addCombinatorAxioms(Problem& prb)
   }
  }
 
+void LambdaElimination::addProxyAxioms(Problem& prb)
+{
+  CALL("LambdaElimination::addProxyAxioms");   
 
+  auto srtOf = [] (TermList t) { 
+    ASS(t.isTerm());
+    return SortHelper::getResultSort(t.term());
+  };
 
- /*FormulaUnit* LambdaElimination::addQuantifierAxiom(TermList constant, unsigned constSort, Connective conn, unsigned argSort)
- {
-    CALL("LambdaElimination::addQuantifierAxiom");   
-     
-    Formula* qAxiom;
-    TermList functionApplied;
-    TermList functionApplied2;
-    Formula::VarList* vars = Formula::VarList::empty();
-    Formula::SortList* sorts = Formula::SortList::empty();
+  TermList s1 = TermList(0, false);  
+  TermList x = TermList(1, false);
+  TermList y = TermList(2, false);
+
+  Inference* inf = new Inference(Inference::EQUALITY_PROXY_AXIOM);
+  unsigned eqProxy = env.signature->getEqualityProxy();
+  TermList constant = TermList(Term::create1(eqProxy, s1));
+
+  Clause* eqAxiom1 = new(2) Clause(2, Unit::AXIOM, inf);
+  (*eqAxiom1)[0] = toEquality(createAppTerm(srtOf(constant), constant, x, y), true);
+  (*eqAxiom1)[1] = Literal::createEquality(false,x,y,s1); 
+  UnitList::push(eqAxiom1, prb.units());
+
+  Clause* eqAxiom2 = new(2) Clause(2, Unit::AXIOM, inf);
+  (*eqAxiom2)[0] = toEquality(createAppTerm(srtOf(constant), constant, x, y), false);
+  (*eqAxiom2)[1] = Literal::createEquality(true,x,y,s1); 
+  UnitList::push(eqAxiom2, prb.units());
+
+  inf = new Inference(Inference::NOT_PROXY_AXIOM);
+  unsigned notProxy = env.signature->getNotProxy();
+  constant = TermList(Term::createConstant(notProxy));
+
+  Clause* notAxiom1 = new(2) Clause(2, Unit::AXIOM, inf);
+  (*notAxiom1)[0] = toEquality(createAppTerm(srtOf(constant), constant, x), true);
+  (*notAxiom1)[1] = toEquality(x, false);
+  UnitList::push(notAxiom1, prb.units());
+
+  Clause* notAxiom2 = new(2) Clause(2, Unit::AXIOM, inf);
+  (*notAxiom2)[0] = toEquality(createAppTerm(srtOf(constant), constant, x), false);
+  (*notAxiom2)[1] = toEquality(x, true);
+  UnitList::push(notAxiom2, prb.units());  
+
+  inf = new Inference(Inference::PI_PROXY_AXIOM);
+  unsigned piProxy = env.signature->getPiSigmaProxy("vPI");
+  constant = TermList(Term::create1(piProxy, s1));
+
+  Clause* piAxiom1 = new(2) Clause(2, Unit::AXIOM, inf);
+  (*piAxiom1)[0] = toEquality(createAppTerm(srtOf(constant), constant, x), true);
+  (*piAxiom1)[1] = toEquality(createAppTerm(s1, Term::boolSort(), x, y), false);
+  UnitList::push(piAxiom1, prb.units());
+
+  Clause* piAxiom2 = new(2) Clause(2, Unit::AXIOM, inf);
+  (*piAxiom2)[0] = toEquality(createAppTerm(srtOf(constant), constant, x), false);
+  (*piAxiom2)[1] = toEquality(createAppTerm(s1, Term::boolSort(), x, y), true);
+  UnitList::push(piAxiom2, prb.units());  
+
+  inf = new Inference(Inference::SIGMA_PROXY_AXIOM);
+  unsigned sigmaProxy = env.signature->getPiSigmaProxy("vSIGMA");
+  constant = TermList(Term::create1(sigmaProxy, s1));
+  unsigned skolem = Skolem::addSkolemFunction(1,0,srtOf(constant), new VList(0));
+  TermList sk = TermList(Term::create1(skolem, s1));
+
+  Clause* sigmaAxiom1 = new(2) Clause(2, Unit::AXIOM, inf);
+  (*sigmaAxiom1)[0] = toEquality(createAppTerm(srtOf(constant), constant, x), true); 
+  (*sigmaAxiom1)[1] = toEquality(createAppTerm(s1, Term::boolSort(), x, createAppTerm(srtOf(sk), sk, x)), false);
+  UnitList::push(sigmaAxiom1, prb.units());
+
+  Clause* sigmaAxiom2 = new(2) Clause(2, Unit::AXIOM, inf);
+  (*sigmaAxiom2)[0] = toEquality(createAppTerm(srtOf(constant), constant, x), false);
+  (*sigmaAxiom2)[1] = toEquality(createAppTerm(s1, Term::boolSort(), x, createAppTerm(srtOf(sk), sk, x)), true);
+  UnitList::push(sigmaAxiom2, prb.units()); 
+
+  inf = new Inference(Inference::IMPLIES_PROXY_AXIOM);
+  unsigned impProxy = env.signature->getBinaryProxy("vIMP");
+  constant = TermList(Term::createConstant(impProxy));
+
+  Clause* impAxiom1 = new(2) Clause(2, Unit::AXIOM, inf);
+  (*impAxiom1)[0] = toEquality(createAppTerm(srtOf(constant), constant, x, y), true);
+  (*impAxiom1)[1] = toEquality(x, true);
+  UnitList::push(impAxiom1, prb.units());
+
+  Clause* impAxiom2 = new(2) Clause(2, Unit::AXIOM, inf);
+  (*impAxiom2)[0] = toEquality(createAppTerm(srtOf(constant), constant, x, y), true);
+  (*impAxiom2)[1] = toEquality(y, false);
+  UnitList::push(impAxiom2, prb.units());
+
+  Clause* impAxiom3 = new(3) Clause(3, Unit::AXIOM, inf);
+  (*impAxiom3)[0] = toEquality(createAppTerm(srtOf(constant), constant, x, y), false);  
+  (*impAxiom3)[1] = toEquality(x, false);
+  (*impAxiom3)[2] = toEquality(y, true);
+  UnitList::push(impAxiom3, prb.units());
+
+  inf = new Inference(Inference::AND_PROXY_AXIOM);
+  unsigned andProxy = env.signature->getBinaryProxy("vAND");
+  constant = TermList(Term::createConstant(andProxy));
+
+  Clause* andAxiom1 = new(2) Clause(2, Unit::AXIOM, inf);
+  (*andAxiom1)[0] = toEquality(createAppTerm(srtOf(constant), constant, x, y), false);
+  (*andAxiom1)[1] = toEquality(x, true);
+  UnitList::push(impAxiom1, prb.units());
+
+  Clause* andAxiom2 = new(2) Clause(2, Unit::AXIOM, inf);
+  (*andAxiom2)[0] = toEquality(createAppTerm(srtOf(constant), constant, x, y), false);
+  (*andAxiom2)[1] = toEquality(y, true);
+  UnitList::push(andAxiom2, prb.units());
+
+  Clause* andAxiom3 = new(3) Clause(3, Unit::AXIOM, inf);
+  (*andAxiom3)[0] = toEquality(createAppTerm(srtOf(constant), constant, x, y), true);  
+  (*andAxiom3)[1] = toEquality(x, false);
+  (*andAxiom3)[2] = toEquality(y, false);
+  UnitList::push(andAxiom3, prb.units());
+
+  inf = new Inference(Inference::OR_PROXY_AXIOM);
+  unsigned orProxy = env.signature->getBinaryProxy("vOR");
+  constant = TermList(Term::createConstant(orProxy));
+
+  Clause* orAxiom1 = new(2) Clause(2, Unit::AXIOM, inf);
+  (*orAxiom1)[0] = toEquality(createAppTerm(srtOf(constant), constant, x, y), true);
+  (*orAxiom1)[1] = toEquality(x, false);
+  UnitList::push(orAxiom1, prb.units());
+
+  Clause* orAxiom2 = new(2) Clause(2, Unit::AXIOM, inf);
+  (*orAxiom2)[0] = toEquality(createAppTerm(srtOf(constant), constant, x, y), true);
+  (*orAxiom2)[1] = toEquality(y, false);
+  UnitList::push(orAxiom2, prb.units());
+
+  Clause* orAxiom3 = new(3) Clause(3, Unit::AXIOM, inf);
+  (*orAxiom3)[0] = toEquality(createAppTerm(srtOf(constant), constant, x, y), false);  
+  (*orAxiom3)[1] = toEquality(x, true);
+  (*orAxiom3)[2] = toEquality(y, true);
+  UnitList::push(orAxiom3, prb.units()); 
   
-    TermList var1 = TermList(0, false);
-    List<int>* varList = new List<int>(var1.var());
-    List<unsigned>* sortList = new List<unsigned>(argSort);
-    
-    unsigned appFun = introduceAppSymbol(constSort, argSort, Sorts::SRT_BOOL);
-    buildFuncApp(appFun, constant, var1, functionApplied);
+  //TODO and, or, iff and xor
 
-    TermList var;
-    unsigned varNum = 1;
-    unsigned currSort;
-    functionApplied2 = var1;
+  if (env.options->showPreprocessing()) {
+    env.out() << "Added proxy axioms: " << std::endl;
+    env.out() << eqAxiom1->toString() << std::endl;
+    env.out() << eqAxiom2->toString() << std::endl;
+    env.out() << notAxiom1->toString() << std::endl;
+    env.out() << notAxiom2->toString() << std::endl;  
+    env.out() << piAxiom1->toString() << std::endl;
+    env.out() << piAxiom2->toString() << std::endl;            
+    env.out() << impAxiom1->toString() << std::endl;  
+    env.out() << impAxiom2->toString() << std::endl;
+    env.out() << impAxiom3->toString() << std::endl;  
+    env.out() << andAxiom1->toString() << std::endl;  
+    env.out() << andAxiom2->toString() << std::endl;
+    env.out() << andAxiom3->toString() << std::endl;   
+    env.out() << orAxiom1->toString() << std::endl;  
+    env.out() << orAxiom2->toString() << std::endl;
+    env.out() << orAxiom3->toString() << std::endl;      
+  }
     
-    do{   
-      currSort = HSH::domain(argSort);
-      sorts = sorts->addLast(sorts, currSort);
-
-      var = TermList(varNum, false);
-      vars = vars->addLast(vars, var.var());
-      varNum += 1;
-
-      unsigned appFun = introduceAppSymbol(argSort, currSort, HSH::range(argSort));
-      buildFuncApp(appFun, functionApplied2, var, functionApplied2);
-      argSort = HSH::range(argSort);
-    }while(!(argSort == Sorts::SRT_BOOL));
-
-    qAxiom = toEquality(functionApplied);
-    qAxiom = new BinaryFormula(IFF, qAxiom, new QuantifiedFormula(conn, vars, sorts, toEquality(functionApplied2)));
-    qAxiom = new QuantifiedFormula(FORALL, varList, sortList, qAxiom); 
-    
-  
-    Inference* qInference;
-    qInference = new Inference(Inference::LAMBDA_ELIMINATION_QUANTIFIER);
-    
-    return new FormulaUnit(qAxiom, qInference, Unit::AXIOM);     
- }
+}
  
- FormulaUnit* LambdaElimination::addNotConnAxiom(TermList constant, unsigned notsort)
- {
-    CALL("LambdaElimination::addNotConnAxiom"); 
-     
-    Formula* notAxiom;
-    
-    TermList functionApplied;   
-    
-    TermList var1 = TermList(0, false);
-    List<int>* varList = new List<int>(var1.var());
-    List<unsigned>* sortList = new List<unsigned>(Sorts::SRT_BOOL);
-     
-    unsigned appFun = introduceAppSymbol(notsort, Sorts::SRT_BOOL, Sorts::SRT_BOOL);
-    buildFuncApp(appFun, constant, var1, functionApplied);
-     
-    Formula* negatedVar = new NegatedFormula(toEquality(var1));
-    notAxiom = toEquality(functionApplied);
-    notAxiom = new BinaryFormula(IFF, notAxiom, negatedVar);
-    notAxiom = new QuantifiedFormula(FORALL, varList,sortList, notAxiom); 
-    
-    Inference* notInference;
-    notInference = new Inference(Inference::LAMBDA_ELIMINATION_NOT);
-    
-    return new FormulaUnit(notAxiom, notInference, Unit::AXIOM);  
- }
- 
- FormulaUnit* LambdaElimination::addEqualityAxiom(TermList equals, unsigned argsSort, unsigned equalsSort)
- {
-    CALL("LambdaElimination::addEqualityAxiom"); 
-    
-    Formula* equalityAxiom;
-    Formula* equalityBetweenVars;
-    
-    TermList functionApplied;
-    
-    TermList var1 = TermList(0, false);
-    TermList var2 = TermList(1, false);
-     
-    List<int>* varList = new List<int>(var1.var());
-    List<unsigned>* sortList = new List<unsigned>(argsSort);
-    varList = varList->addLast(varList, var2.var());
-    sortList = sortList->addLast(sortList, argsSort);
-    
-    unsigned appFun = introduceAppSymbol( equalsSort, argsSort, HSH::range(equalsSort));
-    buildFuncApp(appFun, equals, var1, functionApplied);
-    
-    appFun = introduceAppSymbol( HSH::range(equalsSort), argsSort, HSH::range(HSH::range(equalsSort)));
-    buildFuncApp(appFun, functionApplied, var2, functionApplied);
-    
-    equalityBetweenVars = createEquality(var1, var2, argsSort);
-    
-    equalityAxiom = toEquality(functionApplied);
-    equalityAxiom = new BinaryFormula(IFF, equalityAxiom, equalityBetweenVars);
-    equalityAxiom = new QuantifiedFormula(FORALL, varList,sortList, equalityAxiom); 
-    
-    Inference* eqInference;
-    eqInference = new Inference(Inference::LAMBDA_ELIMINATION_EQUALITY);
-    
-    return new FormulaUnit(equalityAxiom, eqInference, Unit::AXIOM);  
- }
- 
- FormulaUnit* LambdaElimination::addBinaryConnAxiom(TermList constant, unsigned connSort, Connective conn, unsigned appedOnce)
- {
-    CALL("LambdaElimination::addBinaryConnAxiom"); 
-    
-    Formula* binaryConnAxiom;
-    Formula* varFormula;
-    
-    TermList functionApplied;
-    
-    TermList var1 = TermList(0, false);
-    TermList var2 = TermList(1, false);
-     
-    List<int>* varList = new List<int>(var1.var());
-    List<unsigned>* sortList = new List<unsigned>(Sorts::SRT_BOOL);
-    varList = varList->addLast(varList, var2.var());
-    sortList = sortList->addLast(sortList, Sorts::SRT_BOOL);
-    
-    unsigned appFun = introduceAppSymbol( connSort, Sorts::SRT_BOOL, appedOnce);
-    buildFuncApp(appFun, constant, var1, functionApplied);
-
-    appFun = introduceAppSymbol(appedOnce, Sorts::SRT_BOOL, HSH::range(appedOnce));
-    buildFuncApp(appFun, functionApplied, var2, functionApplied);
-
-    if(conn == AND || conn == OR){
-      FormulaList* args = new FormulaList(toEquality(var1));
-      args = FormulaList::cons(toEquality(var2), args);
-      varFormula = new JunctionFormula(conn, args);
-    }else{
-      varFormula = new BinaryFormula(conn, toEquality(var1), toEquality(var2));
-    }
-    
-    binaryConnAxiom = toEquality(functionApplied);
-    binaryConnAxiom = new BinaryFormula(IFF, binaryConnAxiom, varFormula);
-    binaryConnAxiom = new QuantifiedFormula(FORALL, varList, sortList, binaryConnAxiom); 
-    
-    Inference* binConInf;
-    binConInf = new Inference(Inference::LAMBDA_ELIMINATION_BIN_CON);
-    
-    return new FormulaUnit(binaryConnAxiom, binConInf, Unit::AXIOM); 
- }
- 
- Formula* LambdaElimination::createEquality(TermList t1, TermList t2, unsigned sort) {
-   Literal* equality = Literal::createEquality(true, t1, t2, sort);
-   return new AtomicFormula(equality);
-     
- }
-
-
-Formula* LambdaElimination::toEquality(TermList booleanTerm) {
+Literal* LambdaElimination::toEquality(TermList booleanTerm, bool polarity) {
   TermList truth(Term::foolTrue());
-  Literal* equality = Literal::createEquality(true, booleanTerm, truth, Sorts::SRT_BOOL);
-  return new AtomicFormula(equality);
-}*/
+  return Literal::createEquality(polarity, booleanTerm, truth, Term::boolSort());
+}

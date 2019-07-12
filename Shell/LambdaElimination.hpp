@@ -29,12 +29,7 @@ public:
   TermList processBeyondLambda(Term*);
   TermList processBeyondLambda(Formula*);
   TermList processBeyondLambda(TermList);
-
-
-  /** Iterates through sorts in problem and heuristically adds
-    * a set of relevant combinators to the problem along with their defining
-    * equations.
-    */    
+  
   //void addFunctionExtensionalityAxioms(UnitList*& units);
   //void addBooleanExtensionalityAxiom(UnitList*& units);
   
@@ -45,14 +40,8 @@ public:
   static TermList getNthArg(TermList arrowSort, unsigned argNum);
   static TermList getResultApplieadToNArgs(TermList arrowSort, unsigned argNum);
   static void addCombinatorAxioms(Problem& prb);
-
-  /*static FormulaUnit* addQuantifierAxiom(TermList constant, unsigned constSort, Connective conn, unsigned qvarSort);
-  static FormulaUnit* addNotConnAxiom(TermList constant, unsigned notsort);
-  static FormulaUnit* addBinaryConnAxiom(TermList constant, unsigned connSort, Connective conn, unsigned appedOnce);
-  static FormulaUnit* addEqualityAxiom(TermList equals, unsigned argsSort, unsigned eqaulsSorts);
-  static Formula* createEquality(TermList t1, TermList t2, unsigned sort);
-  static Formula* toEquality(TermList booleanTerm);
-  static TermList addHolConstant(vstring name, unsigned sort, bool& added, Signature::Symbol::HOLConstant constant);*/
+  static void addProxyAxioms(Problem& prb);
+  static Literal* toEquality(TermList booleanTerm, bool polarity);
   
 private:
   

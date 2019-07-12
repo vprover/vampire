@@ -316,7 +316,21 @@ public:
     /* Inductive strengthening*/
     INDUCTIVE_STRENGTH,
     /* Combinator axiom */
-    COMBINATOR_AXIOM
+    COMBINATOR_AXIOM,
+    /* Equality proxy axiom */
+    EQUALITY_PROXY_AXIOM,
+    /* Not proxy axiom */    
+    NOT_PROXY_AXIOM,
+    /* And proxy axiom */
+    AND_PROXY_AXIOM,
+    /* OR proxy axiom */    
+    OR_PROXY_AXIOM,
+    /* Implies proxy axiom */
+    IMPLIES_PROXY_AXIOM,
+    /* Forall proxy axiom */    
+    PI_PROXY_AXIOM,
+    /* Exists proxy axiom */
+    SIGMA_PROXY_AXIOM
   }; // class Inference::Rule
 
   explicit Inference(Rule r);

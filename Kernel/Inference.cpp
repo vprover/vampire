@@ -475,6 +475,20 @@ vstring Inference::ruleName(Rule rule)
     return "inductive strengthening";
   case COMBINATOR_AXIOM:
     return "combinator axiom";
+  case EQUALITY_PROXY_AXIOM:
+    return "equality proxy axiom";
+  case NOT_PROXY_AXIOM:
+    return "lofical not proxy axiom";
+  case AND_PROXY_AXIOM:
+    return "logical and proxy axiom";
+  case OR_PROXY_AXIOM:
+    return "logical or proxy axiom";
+  case IMPLIES_PROXY_AXIOM:
+    return "implies proxy axiom";
+  case PI_PROXY_AXIOM:
+    return "pi proxy axiom";
+  case SIGMA_PROXY_AXIOM:
+    return "sigma proxy axiom";
   default:
     ASSERTION_VIOLATION;
     return "!UNKNOWN INFERENCE RULE!";
