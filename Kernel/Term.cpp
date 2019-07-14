@@ -502,7 +502,7 @@ vstring Term::headToString() const
       }*/
       case Term:: SF_LAMBDA: {
         IntList* vars = sd->getLambdaVars(); //Need to add these functions to class!
-        SList* sorts = sd->getVarSorts();
+        SList* sorts = sd->getLambdaVarSorts();
         TermList lambdaExp = sd->getLambdaExp();
      
         vstring varList = "[";
@@ -529,7 +529,7 @@ vstring Term::headToString() const
     if (Theory::tuples()->findProjection(functor(), isLiteral(), proj)) {
       return "$proj(" + Int::toString(proj) + ", ";
     }*/
-    return (isLiteral() ? static_cast<const Literal *>(this)->predicateName() : functionName()) + (arity() ? "(" : "");
+    return (isLiteral() ? static_cast<const Literal *>(this)->predicateName() : functionName());
   }
 }
 
@@ -612,6 +612,8 @@ vstring Term::toString(bool topLevel) const
 {
   CALL("Term::toString");
 
+  bool printArgs = true;
+
   if(!isSpecial() && !isLiteral()){
     if(env.signature->getFunction(_functor)->arrow()){
       ASS(arity() == 2);
@@ -632,12 +634,13 @@ vstring Term::toString(bool topLevel) const
       res += topLevel ? "" : ")";
       return res;
     }
+    printArgs = env.signature->getFunction(_functor)->combinator() == Signature::NOT_COMB;
   }
 
   vstring s = headToString();
 
-  if (_arity) {
-    s += args()->asArgsToString(); // will also print the ')'
+  if (_arity && printArgs) {
+    s += "(" + args()->asArgsToString(); // will also print the ')'
   }
   return s;
 } // Term::toString

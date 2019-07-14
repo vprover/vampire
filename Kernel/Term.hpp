@@ -284,7 +284,7 @@ public:
       return getType() == SF_LET ? _letData.functor : _letTupleData.functor;
     }
     IntList* getLambdaVars() const { ASS_EQ(getType(), SF_LAMBDA); return _lambdaData._vars; }
-    SList* getVarSorts() const { ASS_EQ(getType(), SF_LAMBDA); return _lambdaData._sorts; }
+    SList* getLambdaVarSorts() const { ASS_EQ(getType(), SF_LAMBDA); return _lambdaData._sorts; }
     TermList getLambdaExp() const { ASS_EQ(getType(), SF_LAMBDA); return _lambdaData.lambdaExp; }
     IntList* getVariables() const { ASS_EQ(getType(), SF_LET); return _letData.variables; }
     IntList* getTupleSymbols() const { return _letTupleData.symbols; }

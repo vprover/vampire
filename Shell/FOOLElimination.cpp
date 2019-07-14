@@ -151,8 +151,6 @@ FormulaUnit* FOOLElimination::apply(FormulaUnit* unit) {
 
   FormulaUnit* rectifiedUnit = Rectify::rectify(unit);
 
-  cout << "the unit is " + rectifiedUnit->toString() << endl;
-
   Formula* formula = rectifiedUnit->formula();
 
   _unit = rectifiedUnit;
@@ -388,9 +386,10 @@ void FOOLElimination::process(TermList ts, Context context, TermList& termResult
   if (context == FORMULA_CONTEXT) {
     return;
   }
-
+  //cout << "the termlist is " + ts.toString() << endl;
   // preprocessing of the term does not affect the sort
-  ASS_EQ(sort, SortHelper::getResultSort(termResult, _varSorts));
+  //ASS_EQ(sort, SortHelper::getResultSort(termResult, _varSorts));
+  //TODO assert that it is a variant
 }
 
 /**

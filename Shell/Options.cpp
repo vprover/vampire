@@ -575,6 +575,11 @@ void Options::Options::init()
     _lookup.insert(&_addCombAxioms);
     _addCombAxioms.tag(OptionTag::PREPROCESSING);
 
+    _addProxyAxioms = BoolOptionValue("add_proxy_axioms","apa",false);
+    _addProxyAxioms.description="Add logical proxy axioms";
+    _lookup.insert(&_addProxyAxioms);
+    _addProxyAxioms.tag(OptionTag::PREPROCESSING);
+
 
 //*********************** Output  ***********************
 

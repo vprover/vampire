@@ -233,12 +233,24 @@ Term* Rectify::rectifySpecialTerm(Term* t)
     bool removeUnusedVars = _removeUnusedVars;
     _removeUnusedVars = false;
     VarList* vs = rectifyBoundVars(sd->getLambdaVars());
+    SList* sorts = sd->getLambdaVarSorts();
+    bool sortsModified = false;
+    SList* rectifiedSorts = SList::empty();
+    SList::Iterator slit(sorts);
+    while(slit.hasNext()){
+      TermList sort = slit.next();
+      TermList rectifiedSort = rectify(sort);    
+      if(sort != rectifiedSort){
+        sortsModified = true;
+      }
+      rectifiedSorts = SList::addLast(rectifiedSorts, rectifiedSort);
+    }
     _removeUnusedVars = removeUnusedVars; // restore the status quo
     unbindVars(sd->getLambdaVars());
-    if (vs == sd->getLambdaVars() && lambdaTerm == sd->getLambdaExp()) {
+    if (vs == sd->getLambdaVars() && lambdaTerm == sd->getLambdaExp() && !sortsModified) {
       return t;
     }
-    return Term::createLambda(lambdaTerm, vs, sd->getVarSorts(), sd->getLambdaExpSort());   
+    return Term::createLambda(lambdaTerm, vs, rectifiedSorts, sd->getLambdaExpSort());   
   }
   /*case Term::SF_TUPLE:
   {
@@ -285,6 +297,24 @@ Term* Rectify::rectify (Term* t)
   s->destroy();
   return t;
 } // Rectify::rectify (Term*)
+
+SList* Rectify::rectifySortList(SList* from, bool& modified)
+{
+  CALL("rectifySortList");
+
+  modified = false;
+  SList* to = SList::empty();
+  SList::Iterator slit(from);
+  while(slit.hasNext()){
+    TermList sort = slit.next();
+    TermList rectifiedSort = rectify(sort);    
+    if(sort != rectifiedSort){
+      modified = true;
+    }
+    SList::addLast(to, rectifiedSort);
+  }
+  return to;
+}
 
 Literal* Rectify::rectifyShared(Literal* lit)
 {

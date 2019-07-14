@@ -2103,6 +2103,8 @@ public:
   int getIteInliningThreshold() const { return _iteInliningThreshold.actualValue; }
   bool getIteInlineLet() const { return _inlineLet.actualValue; }
   bool addCombAxioms() const { return _addCombAxioms.actualValue; }
+  bool addProxyAxioms() const { return _addProxyAxioms.actualValue; }
+
 
 private:
     
@@ -2477,7 +2479,7 @@ private:
   IntOptionValue _iteInliningThreshold;
   BoolOptionValue _inlineLet;
   BoolOptionValue _addCombAxioms;
-
+  BoolOptionValue _addProxyAxioms;
 
 }; // class Options
 

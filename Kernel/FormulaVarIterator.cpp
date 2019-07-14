@@ -209,13 +209,20 @@ bool FormulaVarIterator::hasNext()
               break;
             }*/
       
-            case Term::SF_LAMBDA:
+            case Term::SF_LAMBDA:{
               _instructions.push(FVI_UNBIND);
+              SList* sorts = sd->getLambdaVarSorts();
+              while(sorts){
+                _instructions.push(FVI_TERM_LIST);
+                _termLists.push(sorts->head());
+                sorts = sorts->tail();
+              }
               _instructions.push(FVI_TERM_LIST);
               _termLists.push(sd->getLambdaExp());
               _instructions.push(FVI_BIND);
               _vars.push(sd->getLambdaVars());
-               break;
+              break;
+            }
 #if VDEBUG
             default:
               ASSERTION_VIOLATION;

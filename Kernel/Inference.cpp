@@ -478,7 +478,7 @@ vstring Inference::ruleName(Rule rule)
   case EQUALITY_PROXY_AXIOM:
     return "equality proxy axiom";
   case NOT_PROXY_AXIOM:
-    return "lofical not proxy axiom";
+    return "logical not proxy axiom";
   case AND_PROXY_AXIOM:
     return "logical and proxy axiom";
   case OR_PROXY_AXIOM:

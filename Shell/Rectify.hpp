@@ -102,6 +102,7 @@ private:
   Term* rectifySpecialTerm(Term* t);
   Literal* rectify(Literal*);
   Literal* rectifyShared(Literal* lit);
+  SList* rectifySortList(SList* from, bool& modified);
   bool rectify(TermList* from,TermList* to);
 
   friend class Kernel::SubstHelper;

@@ -202,9 +202,13 @@ void Preprocess::preprocess(Problem& prb)
     }
   }*/
 
- if (env.options->addCombAxioms()){ //TODO only add if option on and ...
-   LambdaElimination::addCombinatorAxioms(prb);
- }
+  if (env.options->addCombAxioms()){ //TODO only add if option on and ...
+    LambdaElimination::addCombinatorAxioms(prb);
+  }
+
+  if (env.options->addProxyAxioms()){ //TODO only add if option on and ...
+    LambdaElimination::addProxyAxioms(prb);
+  }
 
   if (prb.hasFOOL()) {
     // This is the point to extend the signature with $$true and $$false
