@@ -18,6 +18,7 @@
 #include "Lib/STL.hpp"
 #include "Lib/STLAllocator.hpp"
 #include "Saturation/SaturationAlgorithm.hpp"
+#include "Shell/TPTPPrinter.hpp"
 #include <array>
 #include <unordered_map>
 #include <unordered_set>
@@ -27,6 +28,10 @@ using namespace Kernel;
 using namespace Lib;
 using namespace Inferences;
 using namespace Saturation;
+
+
+// Set to true to output FSD inferences on stdout
+#define FSD_LOG_INFERENCES false
 
 
 void ForwardSubsumptionDemodulation2::attach(SaturationAlgorithm* salg)
@@ -820,7 +825,7 @@ bool ForwardSubsumptionDemodulation2::perform(Clause* cl, Clause*& replacement, 
                 }
                 // cl might not be redundant after the inference, possibly leading to incompleteness => skip
                 continue;
-              }
+              }  // if (!_allowIncompleteness)
 isRedundant:
 
               /**
@@ -855,6 +860,22 @@ isRedundant:
 
               premises = pvi(getSingletonIterator(mcl));
               replacement = newCl;
+
+#if FSD_LOG_INFERENCES
+              env.beginOutput();
+              env.out() << "\% Begin Inference \"FSDv2-" << newCl->number() << "\"\n";
+              env.out() << "\% eqLit: " << eqLit->toString() << "\n";
+              env.out() << "\% eqLitS: " << binder.applyTo(eqLit)->toString() << "\n";
+              env.out() << "\% dlit: " << binder.applyTo(dlit)->toString() << "\n";
+              TPTPPrinter tptp;
+              // NOTE: do not output the splitLevels here, because those will be set for newCl only later
+              tptp.printWithRole("side_premise_mcl", "hypothesis", mcl,   false);
+              tptp.printWithRole("main_premise_cl ", "hypothesis", cl,    false);
+              tptp.printWithRole("conclusion      ", "conjecture", newCl, false);
+              env.out() << "\% End Inference \"FSDv2-" << newCl->number() << "\"" << std::endl;
+              env.endOutput();
+#endif
+
               return true;
             } // for lhs
           } // while (nvi.hasNext())
