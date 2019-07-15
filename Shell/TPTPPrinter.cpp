@@ -208,6 +208,8 @@ void TPTPPrinter::outputSymbolTypeDefinitions(unsigned symNumber, bool function)
   }
   if(function && theory->isInterpretedConstant(symNumber)) { return; }
 
+  if (function && sym->overflownConstant()) { return; }
+
   if(sym->interpreted()) {
     Interpretation interp = static_cast<Signature::InterpretedSymbol*>(sym)->getInterpretation();
     switch(interp) {
