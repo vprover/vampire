@@ -208,6 +208,8 @@ void TPTPPrinter::outputSymbolTypeDefinitions(unsigned symNumber, bool function)
   }
   if(function && theory->isInterpretedConstant(symNumber)) { return; }
 
+  if (function && sym->overflownConstant()) { return; }
+
   if(sym->interpreted()) {
     Interpretation interp = static_cast<Signature::InterpretedSymbol*>(sym)->getInterpretation();
     switch(interp) {
@@ -225,7 +227,10 @@ void TPTPPrinter::outputSymbolTypeDefinitions(unsigned symNumber, bool function)
       << sym->name() << ": ";
 
   unsigned arity = sym->arity();
-  if(arity>0) {
+  if (arity == 1) {
+    tgt() << env.sorts->sortName(type->arg(0)) << " > ";
+  }
+  else if (arity > 1) {
     tgt() << "(";
     for(unsigned i=0; i<arity; i++) {
       if(i>0) {
@@ -235,12 +240,14 @@ void TPTPPrinter::outputSymbolTypeDefinitions(unsigned symNumber, bool function)
     }
     tgt() << ") > ";
   }
+
   if(function) {
     tgt() << env.sorts->sortName(sym->fnType()->result());
   }
   else {
     tgt() << "$o";
   }
+
   tgt() << " )." << endl;
 }
 
@@ -266,11 +273,10 @@ void TPTPPrinter::ensureNecesarySorts()
     sym = env.signature->getFunction(i);
     type = sym->fnType();
     unsigned arity = sym->arity();
-    if (arity > 0) {
-      for (unsigned i = 0; i < arity; i++) {
-	if(! List<unsigned>::member(type->arg(i), _usedSorts))
-          List<unsigned>::push(type->arg(i), _usedSorts);
-      }
+    // NOTE: for function types, the last entry (i.e., type->arg(arity)) contains the type of the result
+    for (unsigned i = 0; i <= arity; i++) {
+      if(! List<unsigned>::member(type->arg(i), _usedSorts))
+        List<unsigned>::push(type->arg(i), _usedSorts);
     }
   }
   //check the sorts of the predicates and collect information about used sorts
