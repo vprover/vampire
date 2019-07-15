@@ -266,11 +266,10 @@ void TPTPPrinter::ensureNecesarySorts()
     sym = env.signature->getFunction(i);
     type = sym->fnType();
     unsigned arity = sym->arity();
-    if (arity > 0) {
-      for (unsigned i = 0; i < arity; i++) {
-	if(! List<unsigned>::member(type->arg(i), _usedSorts))
-          List<unsigned>::push(type->arg(i), _usedSorts);
-      }
+    // NOTE: for function types, the last entry (i.e., type->arg(arity)) contains the type of the result
+    for (unsigned i = 0; i <= arity; i++) {
+      if(! List<unsigned>::member(type->arg(i), _usedSorts))
+        List<unsigned>::push(type->arg(i), _usedSorts);
     }
   }
   //check the sorts of the predicates and collect information about used sorts
