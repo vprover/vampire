@@ -225,7 +225,10 @@ void TPTPPrinter::outputSymbolTypeDefinitions(unsigned symNumber, bool function)
       << sym->name() << ": ";
 
   unsigned arity = sym->arity();
-  if(arity>0) {
+  if (arity == 1) {
+    tgt() << env.sorts->sortName(type->arg(0)) << " > ";
+  }
+  else if (arity > 1) {
     tgt() << "(";
     for(unsigned i=0; i<arity; i++) {
       if(i>0) {
@@ -235,12 +238,14 @@ void TPTPPrinter::outputSymbolTypeDefinitions(unsigned symNumber, bool function)
     }
     tgt() << ") > ";
   }
+
   if(function) {
     tgt() << env.sorts->sortName(sym->fnType()->result());
   }
   else {
     tgt() << "$o";
   }
+
   tgt() << " )." << endl;
 }
 
