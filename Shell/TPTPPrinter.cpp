@@ -59,7 +59,7 @@ void TPTPPrinter::print(Unit* u)
 {
   CALL("TPTPPrinter::print");
 
-  vstring body = getBodyStr(u);
+  vstring body = getBodyStr(u, true);
 
   beginOutput();
   ensureHeadersPrinted(u);
@@ -75,14 +75,18 @@ void TPTPPrinter::print(Unit* u)
 void TPTPPrinter::printAsClaim(vstring name, Unit* u)
 {
   CALL("TPTPPrinter::printAsClaim");
-  vstring body = getBodyStr(u);
+  printWithRole(name, "claim", u);
+}
+
+void TPTPPrinter::printWithRole(vstring name, vstring role, Unit* u, bool includeSplitLevels)
+{
+  CALL("TPTPPrinter::printWithRole");
+
+  vstring body = getBodyStr(u, includeSplitLevels);
 
   beginOutput();
-
   ensureHeadersPrinted(u);
-
-  tgt() << "tff(" << name << ", claim, " << body << ")." << endl;
-
+  tgt() << "tff(" << name << ", " << role << ", " << body << ")." << endl;
   endOutput();
 }
 
@@ -91,7 +95,7 @@ void TPTPPrinter::printAsClaim(vstring name, Unit* u)
  * @param u
  * @return the body vstring
  */
-vstring TPTPPrinter::getBodyStr(Unit* u)
+vstring TPTPPrinter::getBodyStr(Unit* u, bool includeSplitLevels)
 {
   CALL("TPTPPrinter::getBodyStr");
 
@@ -139,11 +143,11 @@ vstring TPTPPrinter::getBodyStr(Unit* u)
       res << ')';
     }
 
-    if(!cl->noSplits()) {
+    if(includeSplitLevels && !cl->noSplits()) {
       SplitSet::Iterator sit(*cl->splits());
       while(sit.hasNext()) {
-	SplitLevel split = sit.next();
-	res << " | " << "$splitLevel" << split;
+        SplitLevel split = sit.next();
+        res << " | " << "$splitLevel" << split;
       }
     }
   }
