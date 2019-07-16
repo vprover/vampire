@@ -231,6 +231,8 @@ public:
   bool hasNonDefaultSorts() const { return _hasNonDefaultSorts; }
   bool hasFOOL() const { return _hasFOOL; }
   bool hasLambdas() const { return _hasLambdas;}
+  bool hasApp() const { return _hasApp; }
+  bool hasAppliedVar() const { return _hasAppliedVar; }
   /*bool usesSort(unsigned sort) const { 
     CALL("Property::usesSort");
     if(_usesSort.size() <= sort) return false;
@@ -340,6 +342,8 @@ public:
 
   bool _hasFOOL;
   bool _hasLambdas;
+  bool _hasApp;
+  bool _hasAppliedVar;
 
   bool _onlyFiniteDomainDatatypes;
   bool _knownInfiniteDomain;

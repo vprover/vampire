@@ -232,9 +232,9 @@ TermList LambdaElimination::createAppTerm3(TermList sort, TermList arg1, TermLis
   CALL("LambdaElimination::createAppTerm3");
   
   TermList s1 = getNthArg(sort, 1);
-  TermList s2 = *sort.term()->nthArgument(1);
+  TermList s2 = getResultApplieadToNArgs(sort, 1);
   TermList s3 = getNthArg(s2, 1);
-  TermList s4 = *s2.term()->nthArgument(1);
+  TermList s4 = getResultApplieadToNArgs(s2, 1);
   return createAppTerm(s3, s4, createAppTerm(s1, s2, arg1, arg2), arg3);
 }
 
@@ -243,7 +243,7 @@ TermList LambdaElimination::createAppTerm(TermList sort, TermList arg1, TermList
   CALL("LambdaElimination::createAppTerm/2");
   
   TermList s1 = getNthArg(sort, 1);
-  TermList s2 = *sort.term()->nthArgument(1);
+  TermList s2 = getResultApplieadToNArgs(sort, 1);
   return createAppTerm(s1, s2, arg1, arg2);
 }
 
@@ -260,7 +260,27 @@ TermList LambdaElimination::createAppTerm(TermList s1, TermList s2, TermList arg
   unsigned app = env.signature->getApp();
   return TermList(Term::create(app, 4, args.begin()));
 }
-  
+
+TermList LambdaElimination::createAppTerm(TermList sort, TermList head, TermStack terms)
+{
+  CALL("LambdaElimination::createAppTerm/4");
+  ASS(terms.size() > 0);
+  ASS(head.isVar() || SortHelper::getResultSort(head.term()) == sort);
+
+  TermList res = head;
+  TermList s1, s2;
+
+  while(!terms.isEmpty()){
+    s1 = getNthArg(sort, 1);
+    s2 = getResultApplieadToNArgs(sort, 1);
+    res = createAppTerm(s1, s2, res, terms.pop());
+    sort = s2;
+  }
+  return res; 
+
+}
+
+
 TermList LambdaElimination::elimLambda(Term* lambdaTerm)
 {
   CALL("LambdaElimination::elimLambda");

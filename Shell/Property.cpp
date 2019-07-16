@@ -84,6 +84,8 @@ Property::Property()
     _sortsUsed(0),
     _hasFOOL(false),
     _hasLambdas(false),
+    _hasApp(false),
+    _hasAppliedVar(false),
     _onlyFiniteDomainDatatypes(true),
     _knownInfiniteDomain(false),
     _allClausesGround(true),
@@ -637,6 +639,14 @@ void Property::scan(TermList ts,bool unit,bool goal)
     func->incUsageCnt();
     if(unit){ func->markInUnit();}
     if(goal){ func->markInGoal();}
+
+    if(func->app()){
+      _hasApp = true;
+      TermList firstArg = *t->nthArgument(0);
+      if(firstArg.isVar()){
+        _hasAppliedVar = true;
+      }
+    }
 
     int arity = t->arity();
     OperatorType* type = func->fnType();

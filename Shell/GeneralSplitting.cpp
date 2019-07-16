@@ -38,6 +38,8 @@
 #include "Kernel/TermIterators.hpp"
 #include "Kernel/Unit.hpp"
 
+#include "LambdaElimination.hpp"
+
 namespace Shell
 {
 
@@ -47,7 +49,7 @@ using namespace Kernel;
 void GeneralSplitting::apply(Problem& prb)
 {
   CALL("GeneralSplitting::apply(Problem&)");
-
+  _appify = prb.hasApp();
   if(apply(prb.units())) {
     prb.invalidateProperty();
   }
@@ -253,29 +255,45 @@ bool GeneralSplitting::apply(Clause*& cl, UnitList*& resultStack)
   for(int i = args.size() -1; i >= 0 ; i--){
     VList::push(args[i].var(), vl);
   }
-  for(unsigned i = 0; i < termArgs.size(); i++){
+  for(unsigned i = 0; i < termArgs.size() && !_appify; i++){
     args.push(termArgs[i]);
   }
 
-  unsigned namingPred=env.signature->addNamePredicate(minDeg);
-  OperatorType* npredType = OperatorType::getPredicateType(minDeg - VList::length(vl), argSorts.begin(), vl);
-  env.signature->getPredicate(namingPred)->setType(npredType);
+  unsigned namingFun = _appify ? env.signature->addNameFunction(args.size()) :
+                                 env.signature->addNamePredicate(minDeg); 
+  TermList sort;
+  if(_appify){
+    sort = Term::arrowSort(argSorts, Term::boolSort());
+    OperatorType* ot = OperatorType::getConstantsType(sort, vl);
+    env.signature->getFunction(namingFun)->setType(ot);  
+  }else{
+    OperatorType* ot = 
+    OperatorType::getPredicateType(minDeg - VList::length(vl), argSorts.begin(), vl);
+    env.signature->getPredicate(namingFun)->setType(ot);
+  }
 
-  if(mdvColor!=COLOR_TRANSPARENT && otherColor!=COLOR_TRANSPARENT) {
+  /*if(mdvColor!=COLOR_TRANSPARENT && otherColor!=COLOR_TRANSPARENT) {
     ASS_EQ(mdvColor, otherColor);
     env.signature->getPredicate(namingPred)->addColor(mdvColor);
   }
   if(env.colorUsed && cl->skip()) {
     env.signature->getPredicate(namingPred)->markSkip();
+  }*/
+
+  Literal* pnLit;
+  Literal* nnLit;
+  if(_appify){
+    TermList head = TermList(Term::create(namingFun, args.size(), args.begin()));
+    TermList t = LambdaElimination::createAppTerm(sort, head, termArgs);
+    pnLit=Literal::createEquality(true, t, TermList(Term::foolTrue()), Term::boolSort()); 
+    nnLit=Literal::createEquality(true, t, TermList(Term::foolFalse()), Term::boolSort());
+  } else {
+    ASS_EQ(args.size(), minDeg);
+    pnLit=Literal::create(namingFun, minDeg, true, false, args.begin());
+    nnLit=Literal::create(namingFun, minDeg, false, false, args.begin());  
   }
-
-
-
-  ASS_EQ(args.size(), minDeg);
-  Literal* pnLit=Literal::create(namingPred, minDeg, true, false, args.begin());
-  mdvLits.push(pnLit);
-  Literal* nnLit=Literal::create(namingPred, minDeg, false, false, args.begin());
   otherLits.push(nnLit);
+  mdvLits.push(pnLit);
 
   Clause* mdvCl=Clause::fromStack(mdvLits, cl->inputType(), new Inference(Inference::GENERAL_SPLITTING_COMPONENT));
   mdvCl->setAge(cl->age());

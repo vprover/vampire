@@ -225,7 +225,11 @@ Term* Rectify::rectifySpecialTerm(Term* t)
   {
     ASS_EQ(t->arity(),0);
     bindVars(sd->getLambdaVars());
+    bool modified = false;
     TermList lambdaTerm = rectify(sd->getLambdaExp());
+    TermList lambdaTermS = rectify(sd->getLambdaExpSort());
+    if(lambdaTerm != sd->getLambdaExp() || lambdaTermS != sd->getLambdaExpSort())
+    { modified = true; }
     /**
      * We don't want to remove unused variables from the variable list,
      * ^[X].exp is not equivalent to exp.
@@ -234,23 +238,22 @@ Term* Rectify::rectifySpecialTerm(Term* t)
     _removeUnusedVars = false;
     VarList* vs = rectifyBoundVars(sd->getLambdaVars());
     SList* sorts = sd->getLambdaVarSorts();
-    bool sortsModified = false;
     SList* rectifiedSorts = SList::empty();
     SList::Iterator slit(sorts);
     while(slit.hasNext()){
       TermList sort = slit.next();
       TermList rectifiedSort = rectify(sort);    
       if(sort != rectifiedSort){
-        sortsModified = true;
+        modified = true;
       }
       rectifiedSorts = SList::addLast(rectifiedSorts, rectifiedSort);
     }
     _removeUnusedVars = removeUnusedVars; // restore the status quo
     unbindVars(sd->getLambdaVars());
-    if (vs == sd->getLambdaVars() && lambdaTerm == sd->getLambdaExp() && !sortsModified) {
+    if (vs == sd->getLambdaVars() && !modified) {
       return t;
     }
-    return Term::createLambda(lambdaTerm, vs, rectifiedSorts, sd->getLambdaExpSort());   
+    return Term::createLambda(lambdaTerm, vs, rectifiedSorts, lambdaTermS);   
   }
   /*case Term::SF_TUPLE:
   {

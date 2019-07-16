@@ -404,6 +404,7 @@ class Signature
   unsigned addFreshPredicate(unsigned arity, const char* prefix, const char* suffix = 0);
   unsigned addSkolemPredicate(unsigned arity,const char* suffix = 0);
   unsigned addNamePredicate(unsigned arity);
+  unsigned addNameFunction(unsigned arity);
   unsigned getApp();
 
   // Interpreted symbol declarations
@@ -631,18 +632,30 @@ class Signature
       VarList* vl = new VarList(0);
       TermList tv = TermList(0, false);
       TermList result = Term::arrowSort(tv, tv, Term::boolSort());
-      getFunction(eqProxy)->setType(OperatorType::getConstantsType(result, vl));
+      Symbol * sym = getFunction(eqProxy);
+      sym->setType(OperatorType::getConstantsType(result, vl));
+      sym->setProxy(EQUALS);
     }
     return eqProxy;  
   }
 
   unsigned getBinaryProxy(vstring name){
     bool added = false;
+
+    auto convert = [] (vstring name) { 
+      if(name == "vAND"){ return AND; }
+      if(name == "vOR"){ return OR; }
+      if(name == "vIFF"){ return IFF; }
+      if(name == "XOR"){ return XOR; }
+    };
+
     unsigned proxy = addFunction(name,0, added);
     if(added){
       TermList bs = Term::boolSort();
       TermList result = Term::arrowSort(bs, bs, bs);
-      getFunction(proxy)->setType(OperatorType::getConstantsType(result, VarList::empty()));
+      Symbol * sym = getFunction(proxy);
+      sym->setType(OperatorType::getConstantsType(result, VarList::empty()));
+      sym->setProxy(convert(name));
     }
     return proxy;  
   }
@@ -653,7 +666,9 @@ class Signature
     if(added){
       TermList bs = Term::boolSort();
       TermList result = Term::arrowSort(bs, bs);
-      getFunction(notProxy)->setType(OperatorType::getConstantsType(result, VarList::empty()));
+      Symbol * sym = getFunction(notProxy);
+      sym->setType(OperatorType::getConstantsType(result, VarList::empty()));
+      sym->setProxy(NOT);
     }
     return notProxy;  
   } //TODO merge with above?
@@ -667,7 +682,9 @@ class Signature
       TermList tv = TermList(0, false);
       TermList result = Term::arrowSort(tv, Term::boolSort());
       result = Term::arrowSort(result, Term::boolSort());
-      getFunction(proxy)->setType(OperatorType::getConstantsType(result, vl));
+      Symbol * sym = getFunction(proxy);
+      sym->setType(OperatorType::getConstantsType(result, vl));
+      sym->setProxy(name == "vPI" ? PI : SIGMA);
     }
     return proxy;  
   } //TODO merge with above?  

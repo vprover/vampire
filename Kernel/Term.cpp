@@ -529,7 +529,8 @@ vstring Term::headToString() const
     if (Theory::tuples()->findProjection(functor(), isLiteral(), proj)) {
       return "$proj(" + Int::toString(proj) + ", ";
     }*/
-    return (isLiteral() ? static_cast<const Literal *>(this)->predicateName() : functionName());
+    bool print = (env.signature->getFunction(_functor)->combinator() == Signature::NOT_COMB && arity()) ;
+    return (isLiteral() ? static_cast<const Literal *>(this)->predicateName() : functionName() + (print ? "(" : ""));
   }
 }
 
@@ -640,7 +641,7 @@ vstring Term::toString(bool topLevel) const
   vstring s = headToString();
 
   if (_arity && printArgs) {
-    s += "(" + args()->asArgsToString(); // will also print the ')'
+    s += args()->asArgsToString(); // will also print the ')'
   }
   return s;
 } // Term::toString
@@ -1167,6 +1168,17 @@ TermList Term::arrowSort(TermList s1, TermList s2, TermList s3){
    return arrowSort(s1, arrowSort(s2, s3));
 }
 
+TermList Term::arrowSort(TermStack& domSorts, TermList range)
+{
+  CALL("Term::arrowSort/3");
+  
+  TermList res = range;
+
+  for(unsigned i = 0; i < domSorts.size(); i++){
+    res = arrowSort(domSorts[i], res);
+  }
+  return res;
+}
 
 /**
  * Return the list of all free variables of the term.

@@ -40,6 +40,7 @@
 
 #include "Shell/Statistics.hpp"
 #include "Shell/Options.hpp"
+#include "Shell/LambdaElimination.hpp"
 
 #include "Indexing/TermSharing.hpp"
 
@@ -57,8 +58,9 @@ using namespace Shell;
  * @param preserveEpr If true, names will not be introduced if it would
  *   lead to introduction of non-constant Skolem functions.
  */
-Naming::Naming(int threshold, bool preserveEpr) :
-    _threshold(threshold + 1), _preserveEpr(preserveEpr), _varsInScope(false) {
+Naming::Naming(int threshold, bool preserveEpr, bool appify) :
+    _threshold(threshold + 1), _preserveEpr(preserveEpr), 
+    _appify(appify), _varsInScope(false) {
   ASS(threshold < 32768);
 } // Naming::Naming
 
@@ -1132,10 +1134,7 @@ Literal* Naming::getDefinitionLiteral(Formula* f, Formula::VarList* freeVars) {
   CALL("Naming::getDefinitionLiteral");
 
   unsigned length = Formula::VarList::length(freeVars);
-  unsigned pred = env.signature->addNamePredicate(length);
-  Signature::Symbol* predSym = env.signature->getPredicate(pred);
-
-  if (env.colorUsed) {
+  /*if (env.colorUsed) { //TODO what are colors all about?
     Color fc = f->getColor();
     if (fc != COLOR_TRANSPARENT) {
       predSym->addColor(fc);
@@ -1143,7 +1142,7 @@ Literal* Naming::getDefinitionLiteral(Formula* f, Formula::VarList* freeVars) {
     if (f->getSkip()) {
       predSym->markSkip();
     }
-  }
+  }*/
 
   static Stack<TermList> argSorts;
   static Stack<TermList> termArgs;
@@ -1170,17 +1169,28 @@ Literal* Naming::getDefinitionLiteral(Formula* f, Formula::VarList* freeVars) {
   ASS(termArgs.size() == argSorts.size());
 
   VList* vl = VList::empty();
-  for(int i = args.size() -1; i >= 0 ; i--){
+  for(int i = args.size() -1; i >= 0; i--){
     VList::push(args[i].var(), vl);
   }
 
-  for(unsigned i = 0; i < termArgs.size(); i++){
+  for(unsigned i = 0; i < termArgs.size() && !_appify; i++){
     args.push(termArgs[i]);
   }
 
-  predSym->setType(OperatorType::getPredicateType(length - VList::length(vl), argSorts.begin(), vl));
-
-  return Literal::create(pred, length, true, false, args.begin());
+  if(!_appify){
+    unsigned pred = env.signature->addNamePredicate(length);
+    Signature::Symbol* predSym = env.signature->getPredicate(pred);
+    predSym->setType(OperatorType::getPredicateType(length - VList::length(vl), argSorts.begin(), vl));
+    return Literal::create(pred, length, true, false, args.begin());
+  } else {
+    unsigned fun = env.signature->addNameFunction(args.size());
+    TermList sort = Term::arrowSort(argSorts, Term::boolSort());
+    Signature::Symbol* sym = env.signature->getFunction(fun);
+    sym->setType(OperatorType::getConstantsType(sort, vl)); 
+    TermList head = TermList(Term::create(fun, args.size(), args.begin()));
+    TermList t = LambdaElimination::createAppTerm(sort, head, termArgs);
+    return  Literal::createEquality(true, TermList(t), TermList(Term::foolTrue()), Term::boolSort());  
+  }
 }
 
 /**

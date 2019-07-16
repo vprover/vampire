@@ -35,7 +35,7 @@
 #include "Lib/SharedSet.hpp"
 
 #include "Shell/Statistics.hpp"
-
+#include "LambdaElimination.hpp"
 #include "Indexing/TermSharing.hpp"
 
 #include "Options.hpp"
@@ -56,7 +56,7 @@ using namespace Shell;
  * @since 31/01/2004 Manchester. Rectify inference has been added
  * (otherwise proof-checking had been very difficult).
  */
-FormulaUnit* Skolem::skolemise (FormulaUnit* unit)
+FormulaUnit* Skolem::skolemise (FormulaUnit* unit, bool appify)
 {
   CALL("Skolem::skolemise(Unit*)");
   ASS(! unit->isClause());
@@ -74,15 +74,16 @@ FormulaUnit* Skolem::skolemise (FormulaUnit* unit)
   }
 
   static Skolem skol;
-  return skol.skolemiseImpl(unit);
+  return skol.skolemiseImpl(unit, appify);
 } // Skolem::skolemise
 
-FormulaUnit* Skolem::skolemiseImpl (FormulaUnit* unit)
+FormulaUnit* Skolem::skolemiseImpl (FormulaUnit* unit, bool appify)
 {
   CALL("Skolem::skolemiseImpl(FormulaUnit*)");
 
   ASS(_introducedSkolemFuns.isEmpty());
-
+  
+  _appify = appify;
   _beingSkolemised=unit;
 
   _skolimizingDefinitions = UnitList::empty();
@@ -429,7 +430,7 @@ Formula* Skolem::skolemise (Formula* f)
         VarList::push(args[i].var(), vl);
       }
 
-      for(unsigned i = 0; i < termArgs.size(); i++){
+      for(unsigned i = 0; i < termArgs.size() && !_appify; i++){
         args.push(termArgs[i]);
       }
       
@@ -439,12 +440,22 @@ Formula* Skolem::skolemise (Formula* f)
         TermList rangeSort=_varSorts.get(v, Term::defaultSort());
         rangeSort = SubstHelper::apply(rangeSort, localSubst);
 
-        unsigned fun = addSkolemFunction(arity, argSorts.begin(), rangeSort, v, vl);
-        _introducedSkolemFuns.push(fun);
+        Term* skolemTerm;
+
+        if(!_appify){
+          unsigned fun = addSkolemFunction(arity, argSorts.begin(), rangeSort, v, vl);
+          _introducedSkolemFuns.push(fun);
+          skolemTerm = Term::create(fun, arity, args.begin());
+        } else {
+          TermList skSymSort = Term::arrowSort(argSorts, rangeSort);
+          unsigned fun = addSkolemFunction(VarList::length(vl), 0, skSymSort, v, vl);
+          _introducedSkolemFuns.push(fun);
+          TermList head = TermList(Term::create(fun, args.size(), args.begin()));
+          skolemTerm = LambdaElimination::createAppTerm(skSymSort, head, termArgs).term();
+        }
 
         env.statistics->skolemFunctions++;
 
-        Term* skolemTerm = Term::create(fun, arity, args.begin());
         _subst.bind(v,skolemTerm);
         localSubst.bind(v,skolemTerm);
 

@@ -202,7 +202,7 @@ void Preprocess::preprocess(Problem& prb)
     }
   }*/
 
-  if (env.options->addCombAxioms()){ //TODO only add if option on and ...
+  if ((prb.hasLambdas() || prb.hasAppliedVar()) && env.options->addCombAxioms()){
     LambdaElimination::addCombinatorAxioms(prb);
   }
 
@@ -550,7 +550,7 @@ void Preprocess::naming(Problem& prb)
 
   env.statistics->phase=Statistics::NAMING;
   UnitList::DelIterator us(prb.units());
-  Naming naming(_options.naming(),false); // For now just force eprPreservingNaming to be false, should update Naming
+  Naming naming(_options.naming(),false, prb.hasApp()); // For now just force eprPreservingNaming to be false, should update Naming
   while (us.hasNext()) {
     Unit* u = us.next();
     if (u->isClause()) {
@@ -637,7 +637,7 @@ void Preprocess::newCnf(Problem& prb)
  * </ol>
  * @since 14/07/2005 flight Tel-Aviv-Barcelona
  */
-Unit* Preprocess::preprocess3 (Unit* u)
+Unit* Preprocess::preprocess3 (Unit* u, bool appify)
 {
   CALL("Preprocess::preprocess3(Unit*)");
 
@@ -655,7 +655,7 @@ Unit* Preprocess::preprocess3 (Unit* u)
 //       Miniscope::miniscope(fu);
 //     }
 //   return unit;
-  fu = Skolem::skolemise(fu);
+  fu = Skolem::skolemise(fu, appify);
   return fu;
 }
 
@@ -680,7 +680,7 @@ void Preprocess::preprocess3 (Problem& prb)
   UnitList::DelIterator us(prb.units());
   while (us.hasNext()) {
     Unit* u = us.next();
-    Unit* v = preprocess3(u);
+    Unit* v = preprocess3(u, prb.hasApp());
     if (u!=v) {
       us.replace(v);
       modified = true;

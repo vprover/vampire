@@ -448,9 +448,15 @@ Comparison Normalisation::compare(Term* t1, Term* t2)
     return LESS;
   }
 
-  if (!t1->shared() && !t2->shared()) {
-    cout << "t1 is " + t1->toString() << endl;\
-    cout << "t2 is " + t2->toString() << endl;
+  if (!t1->isSpecial() && t2->isSpecial()) {
+    return GREATER;
+  }
+
+  if (t1->isSpecial() && !t2->isSpecial()) {
+    return LESS;
+  }
+
+  if (t1->isSpecial() && t2->isSpecial()) {
     comp = compare ((int)t1->getSpecialData()->getType(),
                     (int)t2->getSpecialData()->getType());
     if (comp != EQUAL) {
@@ -519,12 +525,12 @@ Comparison Normalisation::compare(Term* t1, Term* t2)
       default:
         ASSERTION_VIOLATION;
     }
-  } else {
+  }/* else {
     comp = compare((int)t1->weight(),(int)t2->weight());
     if (comp != EQUAL) {
       return comp;
     }
-  }
+  }*/
 
   int f1 = t1->functor();
   int f2 = t2->functor();

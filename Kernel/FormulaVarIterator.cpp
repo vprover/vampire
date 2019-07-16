@@ -218,6 +218,8 @@ bool FormulaVarIterator::hasNext()
                 sorts = sorts->tail();
               }
               _instructions.push(FVI_TERM_LIST);
+              _termLists.push(sd->getLambdaExpSort());
+              _instructions.push(FVI_TERM_LIST);
               _termLists.push(sd->getLambdaExp());
               _instructions.push(FVI_BIND);
               _vars.push(sd->getLambdaVars());

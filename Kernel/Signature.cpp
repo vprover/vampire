@@ -742,6 +742,12 @@ unsigned Signature::addNamePredicate(unsigned arity)
   return addFreshPredicate(arity,"sP");
 } // addNamePredicate
 
+
+unsigned Signature::addNameFunction(unsigned arity)
+{
+  CALL("Signature::addNameFunction");
+  return addFreshFunction(arity,"sP");
+} // addNamePredicate
 /**
  * Add fresh function of a given arity and with a given prefix. If suffix is non-zero,
  * the function name will be prefixI, where I is an integer, otherwise it will be

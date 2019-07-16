@@ -337,6 +337,7 @@ public:
   static Term* foolTrue(); 
   static Term* foolFalse(); 
 
+  static TermList arrowSort(TermStack& domSorts, TermList range);
   static TermList arrowSort(TermList s1, TermList s2);
   static TermList arrowSort(TermList s1, TermList s2, TermList s3);
   static TermList defaultSort();

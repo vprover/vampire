@@ -122,6 +122,8 @@ public:
   /** Problem contains let terms or formulas, or term if-then-else */
   bool hasFOOL() const;
   bool hasLambdas() const;
+  bool hasApp() const;
+  bool hasAppliedVar() const;
 
   bool mayHaveEquality() const { return _mayHaveEquality; }
   bool mayHaveFormulas() const { return _mayHaveFormulas; }
@@ -232,6 +234,8 @@ private:
   mutable MaybeBool _hasInterpretedOperations;
   mutable MaybeBool _hasFOOL;
   mutable MaybeBool _hasLambdas;
+  mutable MaybeBool _hasApp;
+  mutable MaybeBool _hasAppliedVar;  
   mutable MaybeBool _hasInterpretedEquality;
 
   SMTLIBLogic _smtlibLogic;

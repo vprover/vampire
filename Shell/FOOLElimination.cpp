@@ -57,7 +57,7 @@ const char* FOOLElimination::BOOL_PREFIX = "bG";
 // The default input type of introduced definitions
 const Unit::InputType FOOLElimination::DEFINITION_INPUT_TYPE = Unit::AXIOM;
 
-FOOLElimination::FOOLElimination() : _defs(0) {}
+FOOLElimination::FOOLElimination() : _defs(0), _higherOrder(0) {}
 
 bool FOOLElimination::needsElimination(FormulaUnit* unit) {
   CALL("FOOLElimination::needsElimination");
@@ -107,6 +107,7 @@ bool FOOLElimination::needsElimination(FormulaUnit* unit) {
 void FOOLElimination::apply(Problem& prb)  {
   CALL("FOOLElimination::apply(Problem*)");
 
+  _higherOrder = prb.hasApp() || prb.hasLambdas();
   apply(prb.units());
   prb.reportFOOLEliminated();
   prb.invalidateProperty();
@@ -205,7 +206,8 @@ Formula* FOOLElimination::process(Formula* formula) {
        * between FOOL boolean terms.
        */
 
-      if (literal->isEquality()) {
+      if (literal->isEquality() && !_higherOrder) { 
+        //when in higher-order, we never convert equality to equivalence
         ASS_EQ(literal->arity(), 2); // can there be equality between several terms?
         TermList lhs = *literal->nthArgument(0);
         TermList rhs = *literal->nthArgument(1);
@@ -741,27 +743,31 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
          *     where true is FOOL constant
          *  3) Replace the term with g(X1, ..., Xn)
          */
+        if(!_higherOrder){
+          Formula *formula = process(sd->getFormula());
 
-        Formula *formula = process(sd->getFormula());
+          // create a fresh symbol g and build g(X1, ..., Xn)
+          unsigned freshSymbol = introduceFreshSymbol(context, BOOL_PREFIX, argSorts, Term::boolSort(), vl);
+          TermList freshSymbolApplication = TermList(Term::create(freshSymbol, args.size(), args.begin()));
 
-        // create a fresh symbol g and build g(X1, ..., Xn)
-        unsigned freshSymbol = introduceFreshSymbol(context, BOOL_PREFIX, argSorts, Term::boolSort(), vl);
-        TermList freshSymbolApplication = TermList(Term::create(freshSymbol, args.size(), args.begin()));
+          // build f <=> g(X1, ..., Xn) = true
+          Formula* freshSymbolDefinition = new BinaryFormula(IFF, formula, toEquality(freshSymbolApplication));
 
-        // build f <=> g(X1, ..., Xn) = true
-        Formula* freshSymbolDefinition = new BinaryFormula(IFF, formula, toEquality(freshSymbolApplication));
+          // build ![X1, ..., Xn]: (f <=> g(X1, ..., Xn) = true)
+          if (Formula::VarList::length(freeVars) > 0) {
+            // TODO do we know the sorts of freeVars?
+            freshSymbolDefinition = new QuantifiedFormula(FORALL, freeVars,0, freshSymbolDefinition);
+          }
 
-        // build ![X1, ..., Xn]: (f <=> g(X1, ..., Xn) = true)
-        if (Formula::VarList::length(freeVars) > 0) {
-          // TODO do we know the sorts of freeVars?
-          freshSymbolDefinition = new QuantifiedFormula(FORALL, freeVars,0, freshSymbolDefinition);
+          // add the introduced definition
+          Inference* inference = new Inference1(Inference::FOOL_ELIMINATION, _unit);
+          addDefinition(new FormulaUnit(freshSymbolDefinition, inference, DEFINITION_INPUT_TYPE));
+
+          termResult = freshSymbolApplication;
+        } else {
+          LambdaElimination le = LambdaElimination(_varSorts);
+          termResult = le.processBeyondLambda(term);
         }
-
-        // add the introduced definition
-        Inference* inference = new Inference1(Inference::FOOL_ELIMINATION, _unit);
-        addDefinition(new FormulaUnit(freshSymbolDefinition, inference, DEFINITION_INPUT_TYPE));
-
-        termResult = freshSymbolApplication;
         break;
       }
       case Term::SF_LAMBDA: {
