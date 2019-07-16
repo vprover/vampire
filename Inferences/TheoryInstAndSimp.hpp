@@ -60,7 +60,11 @@ public:
     return generateClauses(premise,r);
   }
 
-  VirtualIterator<Solution> getSolutions(Stack<Literal*>& theoryLiterals, unsigned maxVar, bool guarded=true);
+  /** Find a set of instantiations that make theoryLiterals unsatisfiable. maxVar is the highest variable
+      occuring in the clause that contains theoryLiterals. If guarded is set, add constraints that exclude
+      division by zero. If minimize is set, try to remove unneccesary components of the substitution.
+   */
+  VirtualIterator<Solution> getSolutions(Stack<Literal*>& theoryLiterals, unsigned maxVar, bool minimize, bool guarded);
 
 private:
 
@@ -71,6 +75,15 @@ private:
   void applyFilters(Stack<Literal*>& theoryLits, bool forZ3);
   void filterDivisionByZero(Stack<Literal*>& theoryLits, Stack<Literal*>& filteredLits);
   void filterDivisionByZeroDeep(Stack<Literal*>& theoryLits, Stack<Literal*>& filteredLits);
+
+  /* Take a theory (sub)clause, the skolemization grounding and a solution that makes the clause unsat.
+     Return a new solution that is at least as general as the input solution which still makes theoryLiterals unsat.
+  */
+  VirtualIterator<Solution>  minimizeSolution(Stack<Literal*>& theoryLiterals, bool guarded,
+                                              Solution sol,
+                                              Stack<Literal*>& triangleSubst,
+                                              unsigned maxVar
+                                              );
   
   /** Fills trivialLits with all clauses trivial in cl
    */

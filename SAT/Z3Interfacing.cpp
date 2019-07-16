@@ -305,7 +305,7 @@ bool Z3Interfacing::representSort(const z3::sort &z3sort, unsigned& vsort) {
   default:
     //TODO: add uninterpreted functions, datatypes
 #if DPRINT
-    cerr << "unhandled z3 sort:" << z3sort << endl;
+    cout << "unhandled z3 sort:" << z3sort << endl;
 #endif
     return false;
   }

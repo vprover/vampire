@@ -624,24 +624,20 @@ Term* getFreshConstant(unsigned index, unsigned srt)
 }
 
 
-//TODO: put into interface
 /* Take a theory (sub)clause, their skolemization grounding and a solution that makes the clause unsat.
    Return a new solution that is at least as general as the input solution.
-
-   
  */
-VirtualIterator<Solution>  minimizeSolution(Stack<Literal*>& theoryLiterals, bool guarded,
-                                            Solution sol,  //Substitution subst,
-                                            Stack<Literal*>& triangleSubst,
-                                            unsigned maxVar
-                                            //DHMap<unsigned,unsigned > srtMap
-                                            ) {
+VirtualIterator<Solution> TheoryInstAndSimp::minimizeSolution(Stack<Literal*>& theoryLiterals, bool guarded,
+                                                              Solution sol,
+                                                              Stack<Literal*>& triangleSubst,
+                                                              unsigned maxVar
+                                                              ) {
   CALL("TheoryInstAndSimp::minimizeSolution");
 
   BYPASSING_ALLOCATOR;
 
 #if DPRINT
-  cerr << "minimizing maxVar=" << maxVar << endl;
+  cout << "minimizing maxVar=" << maxVar << " guarded? " << guarded << endl;
 #endif
   static SAT2FO naming;
   static  Z3Interfacing solver(*env.options,naming,true);
@@ -658,19 +654,19 @@ VirtualIterator<Solution>  minimizeSolution(Stack<Literal*>& theoryLiterals, boo
   Stack<Literal*> flattened;
   flattener.apply(triangleSubst, flattened,maxVar);
   Stack<Literal*> groundedFlattened;
-  //  cerr << flattened.size() << endl;
+  //  cout << flattened.size() << endl;
   Substitution subst;
 #if DPRINT
   Stack<Literal*>::Iterator debug_it(flattened);
   while(debug_it.hasNext()) {
-    cerr << debug_it.next()->toString() << endl;
+    cout << debug_it.next()->toString() << endl;
   }
 #endif
   Stack<Literal*>::Iterator stit(flattened);
   while(stit.hasNext()) {
     Literal* lit = stit.next();
 #if DPRINT
-    cerr << "subterm: " << lit->toString() << " of sort : " << env.sorts->sortName(SortHelper::getEqualityArgumentSort(lit));
+    cout << "subterm: " << lit->toString() << " of sort : " << env.sorts->sortName(SortHelper::getEqualityArgumentSort(lit));
 #endif
     ASS(lit->isEquality());
     unsigned sort = SortHelper::getResultSort(lit->nthArgument(0)->term());
@@ -688,7 +684,7 @@ VirtualIterator<Solution>  minimizeSolution(Stack<Literal*>& theoryLiterals, boo
     Literal* lit = Literal::complementaryLiteral(stit2.next())->apply(subst);
     groundedFlattened.push(lit);
 #if DPRINT
-    cerr << "adding model value: " << lit->toString() << endl;
+    cout << "adding model value: " << lit->toString() << endl;
 #endif
     triangle_sateqs.push(naming.toSAT(lit));
   }
@@ -731,18 +727,18 @@ VirtualIterator<Solution>  minimizeSolution(Stack<Literal*>& theoryLiterals, boo
   // TODO: add sk = term assertions for each element in the subst, label each assertion for consideration in unsat core
 
   // now we can call the solver
-  SATSolver::Status status = solver.solveUnderAssumptions(triangle_sateqs, UINT_MAX, false);
+  SATSolver::Status status = solver.solveUnderAssumptions(triangle_sateqs, UINT_MAX, guarded);
   // check result is unsat and extract unsat core
   switch(status) {
   case SATSolver::Status::UNSATISFIABLE: {
 #if DPRINT
-    cerr << "SMT solver reports unsat when minimizing model!" << endl;
+    cout << "SMT solver reports unsat when minimizing model!" << endl;
 #endif
     SATLiteralStack unsat_core = solver.failedAssumptions();
 #if DPRINT
-    cerr << "unsat core size:" << unsat_core.size() << endl;
+    cout << "unsat core size:" << unsat_core.size() << endl;
     for (SATLiteralStack::Iterator it(unsat_core); it.hasNext(); ) {
-      cerr << "unsat core clause:" << it.next().toString() << endl;
+      cout << "unsat core clause:" << it.next().toString() << endl;
     }
 #endif
     //TODO: make implementation more efficient, intermediate substitutions are created
@@ -756,7 +752,7 @@ VirtualIterator<Solution>  minimizeSolution(Stack<Literal*>& theoryLiterals, boo
     //the substitution that we will return in the solution
     Solution minsol(true);
 #if DPRINT
-    cerr << "filtering subst by unsat core:" << endl;
+    cout << "filtering subst by unsat core:" << endl;
 #endif
     while( substlits.hasNext() ) {
         ASS( subterms.hasNext() );
@@ -764,15 +760,15 @@ VirtualIterator<Solution>  minimizeSolution(Stack<Literal*>& theoryLiterals, boo
         Literal* lit = subterms.next();
         if (unsat_core.find(sl)) {
 #if DPRINT
-          cerr << "taking subst lit: " << lit->toString() << endl;
+          cout << "taking subst lit: " << lit->toString() << endl;
 #endif
           TermList t(lit->nthArgument(0)->term()->apply(minsol.subst));
           unsigned v = lit->nthArgument(1)->var();
           Substitution addsub;
           addsub.bind(v,t);
 #if DPRINT
-          //  cerr << "composing with " << TermList(v,false) << " -> " << t.toString() << endl;
-          //  cerr << "composing with " << addsub.toString() << endl;
+          //  cout << "composing with " << TermList(v,false) << " -> " << t.toString() << endl;
+          //  cout << "composing with " << addsub.toString() << endl;
 #endif
           minsol.subst.compose(addsub);
 
@@ -781,7 +777,7 @@ VirtualIterator<Solution>  minimizeSolution(Stack<Literal*>& theoryLiterals, boo
           }
         } else {
 #if DPRINT
-          cerr << "skipping subst lit: " << lit->toString() << endl;
+          cout << "skipping subst lit: " << lit->toString() << endl;
 #endif
         }
       }
@@ -792,25 +788,26 @@ VirtualIterator<Solution>  minimizeSolution(Stack<Literal*>& theoryLiterals, boo
            ) {
         unsigned v = it.next();
 #if DPRINT
-        cerr << "unbinding:" << v << endl;
+        cout << "unbinding:" << v << endl;
 #endif
         minsol.subst.unbind(v);
       }
 
 #if DPRINT
-      cerr << "minimized subst: " << minsol.subst.toString() << endl;
+      cout << "minimized subst: " << minsol.subst.toString() << endl;
 #endif      
       return pvi(getSingletonIterator(minsol));
     }
     break;
   case SATSolver::Status::UNKNOWN:
-    cerr << "SMT solver reports unknown when minimizing model!" << endl;
+    cout << "SMT solver reports unknown when minimizing model!" << endl;
 #if VDEBUG
-    cerr << "Sticking with" << sol.subst.toString() << endl;
+    cout << "Sticking with" << sol.subst.toString() << endl;
 #endif
     break;
   case SATSolver::Status::SATISFIABLE:
-    cerr << "Input problem for instantiation minimization is always unsat, but solver reports sat!" << endl;
+    cout << "Input problem for instantiation minimization is always unsat, but solver reports sat!" << endl;
+    cout << "Original problem is " << sol.status << endl;
     ASS(false);
     break;
   }
@@ -820,7 +817,7 @@ VirtualIterator<Solution>  minimizeSolution(Stack<Literal*>& theoryLiterals, boo
 }
 
 
-VirtualIterator<Solution> TheoryInstAndSimp::getSolutions(Stack<Literal*>& theoryLiterals, unsigned maxVar, bool guarded){
+VirtualIterator<Solution> TheoryInstAndSimp::getSolutions(Stack<Literal*>& theoryLiterals, unsigned maxVar, bool minimize, bool guarded){
   CALL("TheoryInstAndSimp::getSolutions");
 
   BYPASSING_ALLOCATOR;
@@ -915,7 +912,7 @@ VirtualIterator<Solution> TheoryInstAndSimp::getSolutions(Stack<Literal*>& theor
         TermList tl_t(t);
         Literal* eq = Literal::createEquality(false, tl_v, tl_t, SortHelper::getResultSort(t));
 #if DPRINT
-        cerr << "assigning: " << eq->toString() << endl;
+        cout << "assigning: " << eq->toString() << endl;
 #endif
         substTriangleForm.push(eq);
         //cout << "evaluate to " << t->toString() << endl;
@@ -939,7 +936,7 @@ VirtualIterator<Solution> TheoryInstAndSimp::getSolutions(Stack<Literal*>& theor
     cout << endl;
 #endif
     // try to minimize the solution
-    if (env.options->generalizeTheoryInstance()) {
+    if (minimize) {
       VirtualIterator<Solution> minsol = minimizeSolution(theoryLiterals, guarded, sol, substTriangleForm, maxVar);
       return minsol;
     }
@@ -993,7 +990,7 @@ partial_check_end:
 
       // now we run SMT solver again without guarding
       if(containsPartial){
-        auto solutions = _parent->getSolutions(_theoryLits,_premise->maxVar(),false);
+        auto solutions = _parent->getSolutions(_theoryLits,_premise->maxVar(),false,false);
         // we have an unsat solution without guards
         if(solutions.hasNext() && !solutions.next().status){
           containsPartial=false;
@@ -1134,8 +1131,9 @@ ClauseIterator TheoryInstAndSimp::generateClauses(Clause* premise,bool& premiseR
     TimeCounter t(TC_THEORY_INST_SIMP);
 
     //auto it1 = getSolutions(theoryLiterals);
-    auto it1 = getSolutions(selectedLiterals, flattened->maxVar(), true);
-
+    auto it1 = getSolutions(selectedLiterals, flattened->maxVar(), env.options->generalizeTheoryInstance(), true);
+  
+    
     auto it2 = getMappingIterator(it1,
                InstanceFn(premise,flattened,selectedLiterals,_splitter,_salg,this,premiseRedundant));
 
