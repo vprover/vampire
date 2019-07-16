@@ -241,8 +241,8 @@ bool ForwardSubsumptionDemodulation::perform(Clause* cl, Clause*& replacement, C
 
         unsigned const eqSort = SortHelper::getEqualityArgumentSort(eqLit);
 
-        Ordering::Result eqArgOrder = ordering.getEqualityArgumentOrder(eqLit);
-        bool preordered = (eqArgOrder == Ordering::LESS) || (eqArgOrder == Ordering::GREATER);
+        Ordering::Result const eqArgOrder = ordering.getEqualityArgumentOrder(eqLit);
+        bool const preordered = (eqArgOrder == Ordering::LESS) || (eqArgOrder == Ordering::GREATER);
         if (_preorderedOnly && !preordered) {
           continue;
         }
@@ -320,13 +320,6 @@ bool ForwardSubsumptionDemodulation::perform(Clause* cl, Clause*& replacement, C
            *
            */
 
-          bool postMLMatchOrdered = preordered;
-          if (!preordered) {
-            Literal* eqLitS0 = binder.applyTo(eqLit);  // 'S0' because this is not the final substitution...
-            eqArgOrder = ordering.getEqualityArgumentOrder(eqLitS0);
-            postMLMatchOrdered = (eqArgOrder == Ordering::LESS) || (eqArgOrder == Ordering::GREATER);
-          }
-
           static v_vector<TermList> lhsVector;
           lhsVector.clear();
           {
@@ -353,7 +346,8 @@ bool ForwardSubsumptionDemodulation::perform(Clause* cl, Clause*& replacement, C
                 lhsVector.push_back(t1);
                 break;
               case Ordering::EQUAL:
-                //there should be no equality literals of equal terms
+                // there should be no equality literals with equal terms
+                ASSERTION_VIOLATION;
               default:
                 ASSERTION_VIOLATION;
             }
@@ -363,7 +357,7 @@ bool ForwardSubsumptionDemodulation::perform(Clause* cl, Clause*& replacement, C
             TermList rhs = EqHelper::getOtherEqualitySide(eqLit, lhs);
 
 #if VDEBUG
-            if (postMLMatchOrdered) {
+            if (preordered) {
               if (eqArgOrder == Ordering::LESS) {
                 ASS_EQ(rhs, *eqLit->nthArgument(0));
               } else {
@@ -408,7 +402,7 @@ bool ForwardSubsumptionDemodulation::perform(Clause* cl, Clause*& replacement, C
                 TermList rhsS = binder.applyTo(rhs);
                 ASS_EQ(lhsS, binder.applyTo(lhs));
 
-                if (!postMLMatchOrdered && ordering.compare(lhsS, rhsS) != Ordering::GREATER) {
+                if (!preordered && ordering.compare(lhsS, rhsS) != Ordering::GREATER) {
                   continue;
                 }
 
