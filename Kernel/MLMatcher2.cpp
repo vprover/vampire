@@ -38,6 +38,7 @@
 #endif
 
 #define MLMATCHER2_DEBUG_OUTPUT false
+#define MLMATCHER2_ADDITIONAL_ASSERTIONS true
 
 
 namespace {
@@ -199,7 +200,10 @@ struct MatchingData final {
    * In particular:
    * - remaining[b,0] is the number of possible alternatives for base literals bases[b].
    * - remaining[b,k] is the number of remaining alternatives for base literals bases[b] after binding bases[j] for 0 <= j < k to their currently selected alternatives.
-   *                    (remaining means here that it is compatible to all variable bindings arising from the bindings for bases[j], 0 <= j < k)
+   *
+   * Here, 'remaining' means that the alternative satisfies the following conditions:
+   * 1. it has not been matched to any of bases[j] for 0 <= j < k, and
+   * 2. it is compatible to all variable bindings induces by the alternatives matched to bases[j], for 0 <= j < k.
    *
    * It follows that remaining[b,b] is the number of alternatives we have to consider for bases[b] at decision level b in the backtracking search.
    *
@@ -433,7 +437,8 @@ struct MatchingData final {
    * Bind base literal bases[bIndex] to alternative at altBindings[bIndex][altIndex].
    *
    * This function excludes alternatives for later base literals (i.e., bases[i] with i > bIndex)
-   * that are not compatible with the current variable bindings.
+   * that are not compatible with the current variable bindings,
+   * or that are already matched at earlier levels.
    * Returns true iff all later base literals have at least one possible alternative left.
    *
    * (actually: not "all" later base literals, only all that have been initialized so far)
@@ -445,9 +450,11 @@ struct MatchingData final {
     ASS_NEQ(bIndex, eqLitForDemodulation);
 
     bool haveEqLit = haveSelectedEqLitForDemodulation();
-    TermList* curBindings=altBindings[bIndex][altIndex];
-    for(unsigned i=bIndex+1; i<len; i++) {
-      if(!isInitialized(i)) {
+    unsigned int const altRecordIndex = getAltRecordIndex(bIndex, altIndex);
+    TermList* const curBindings = altBindings[bIndex][altIndex];
+
+    for (unsigned i = bIndex+1; i < len; i++) {
+      if (!isInitialized(i)) {
         // Data not yet initialized for remaining base literals
         // => nothing to do (further lines of 'remaining' will be initialized in 'ensureInit')
         break;
@@ -456,20 +463,32 @@ struct MatchingData final {
       // NOTE: i is greater than currBLit at this point, i.e., bases[i] is still unmatched.
       // So we do not have to check eqLitForDemodulation here either.
       ASS_G(i, currBLit);
+      ASS(!haveSelectedEqLitForDemodulation() || i != eqLitForDemodulation);  // if we have selected an equality for demodulation, it certainly is not bases[i]
 
-      unsigned remAlts=remaining->get(i,bIndex);
+      unsigned remAlts = remaining->get(i, bIndex);
 
-      // Do we have some variables in common?
-      // If yes, exclude alternatives for bases[i] that conflict with the current variable bindings.
-      if (basesHaveVariablesInCommon(bIndex, i)) {
-        for(unsigned ai=0;ai<remAlts;ai++) {
-          if(!compatible(bIndex,curBindings,i,ai)) {
-            // If bindings are not compatible with alternative ai, move it to the back and decrease remaining number of alts by one,
-            // effectively excluding it from being chosen in later steps.
-            remAlts--;
-            std::swap(altBindings[i][ai], altBindings[i][remAlts]);
-            ai--;
-          }
+      // Perform some deterministic propagation:
+      // exclude alternatives for bases[i] that are already matched or conflict with the current variable bindings.
+      //
+      // Note that this propagation is necessary for correctness and not just performance,
+      // because the achieved postconditions (i.e., not yet matched and no conflicting bindings)
+      // will not be checked again later.
+      for (unsigned ai = 0; ai < remAlts; ai++) {
+        // NOTE: we cannot compare 'ai' and 'altIndex' directly because they are in different dimensions.
+        //       We need to compare the match record index to check if it refers to the same instance literal.
+        unsigned int aiRecordIndex = getAltRecordIndex(i, ai);
+        ASS(!(matchRecord[aiRecordIndex] < currBLit));  // this is already ensured by the calls to bindAlt for earlier base literals
+        if (altRecordIndex == aiRecordIndex
+            || !compatible(bIndex, curBindings, i, ai)) {
+          // We need to skip alternative ai if
+          // - it is already matched by another base literal (recall that we are doing multiset matching), or
+          // - its induced variable bindings are incompatible with the current bindings.
+          //
+          // To exclude it from being chosen in later steps, we simply move it
+          // to the back of the list and decrease remaining number of alts by one.
+          remAlts--;
+          std::swap(altBindings[i][ai], altBindings[i][remAlts]);
+          ai--;
         }
       }
       // No compatible alternatives left for bases[i]?
@@ -490,11 +509,11 @@ struct MatchingData final {
           return false;
         }
       }
-      remaining->set(i,bIndex+1,remAlts);
-    }
+      remaining->set(i, bIndex+1, remAlts);
+    }  // for (i)
 
     return true;
-  }
+  }  // bindAlt
 
   /**
    * Select base literal as equality for demodulation.
@@ -573,7 +592,7 @@ struct MatchingData final {
         // There is no matching alternative,
         // but for positive equalities, we may be able to select it for demodulation
         if (bases[bIndex]->isEquality() && bases[bIndex]->isPositive()) {
-          for(unsigned i = 0; i <= bIndex; i++) {
+          for (unsigned i = 0; i <= bIndex; i++) {
             remaining->set(bIndex, i, 0);
           }
           if (haveSelectedEqLitForDemodulation()) {
@@ -592,22 +611,25 @@ struct MatchingData final {
 
       // Compute the number of remaining alts for the current branch of the backtracking search
       unsigned remAlts = altCnt;
-      for(unsigned pbi=0;pbi<bIndex;pbi++) { //pbi ~ previous base index
+      for (unsigned pbi = 0; pbi < bIndex; pbi++) {  // pbi ~ previous base index
         ASS_EQ(remAlts, remaining->get(bIndex, pbi));
         // If pbi == eqLitForDemodulation, then bases[pbi] is not relevant to the current substitution (also, nextAlts[pbi] is invalid so the code doesn't make sense anyways).
-        // If bases[pbi] and bases[bIndex] have no variables in common, then compatible will never return false and we can skip the checks.
-        // In both cases we cannot include any alts at this step so we just store the unmodified remAlts in the next column of 'remaining'.
-        if (pbi != eqLitForDemodulation && basesHaveVariablesInCommon(pbi, bIndex)) {
-          TermList* pbBindings=altBindings[pbi][nextAlts[pbi]-1];
-          for(unsigned ai=0;ai<remAlts;ai++) {
-            if(!compatible(pbi, pbBindings, bIndex, ai)) {
+        // In this case we cannot exclude any alts at this step so we just store the unmodified remAlts in the next column of 'remaining'.
+        if (pbi != eqLitForDemodulation) {
+          TermList* pbBindings = altBindings[pbi][nextAlts[pbi] - 1];
+          for (unsigned ai = 0; ai < remAlts; ai++) {
+            if (matchRecord[getAltRecordIndex(bIndex, ai)] == pbi
+                || !compatible(pbi, pbBindings, bIndex, ai)) {
+              // We need to skip alternative ai if
+              // - it is already matched by bases[pbi], or
+              // - its induced variable bindings are incompatible with the bindings induced by the current match of bases[pbi].
               remAlts--;
               std::swap(altBindings[bIndex][ai], altBindings[bIndex][remAlts]);
               ai--;
             }
           }
         }
-        remaining->set(bIndex,pbi+1,remAlts);
+        remaining->set(bIndex, pbi+1, remAlts);
       }  // for (pbi)
 
 #if MLMATCHER2_DEBUG_OUTPUT
@@ -653,7 +675,6 @@ struct MatchingData final {
 
   // TODO add functions like
   // void enterNextLevel()   or  nextBaseLit() ?
-  // bool backtrack()
   // bool selectAsEqualityForDemodulation()
   // to keep the low-level manipulation contained inside this class,
   // and only have "higher-level" functions in the loop below.
@@ -970,16 +991,34 @@ bool MLMatcher2::Impl::nextMatch()
     // Get the number of alternatives that are compatible to the previous choices
     unsigned const maxAlt = md->getRemainingInCurrent(md->currBLit);
 
-    // Find a suitable alternative for the current base literal
-    while (md->nextAlts[md->currBLit] < maxAlt &&
-           (
-             // Reject the current alternative (i.e., nextAlts[currBLit]) if
-             // 1. The alt is already matched to a previous base literal (recall that we are doing multiset matching), or
-             md->matchRecord[md->getAltRecordIndex(md->currBLit, md->nextAlts[md->currBLit])] < md->currBLit
-             // 2. The induced variable bindings would already lead to a conflict for some later base literal
-             || !md->bindAlt(md->currBLit, md->nextAlts[md->currBLit])
-           )
-          ) {
+#if VDEBUG && MLMATCHER2_ADDITIONAL_ASSERTIONS
+    // Ensure none of the remaining alts have been matched previously
+    // (just to make sure I didn't break anything by moving this check to propagation)
+    for (unsigned ai = 0; ai < maxAlt; ++ai) {
+      ASS( !( md->matchRecord[md->getAltRecordIndex(md->currBLit, ai)] < md->currBLit ) );
+    }
+    // Furthermore, check that all other alts should really be excluded
+    // (to make sure propagation doesn't "propagate" too much)
+    for (unsigned ai = maxAlt; ai < md->remaining->get(md->currBLit, 0); ++ai) {
+      bool alreadyMatched = md->matchRecord[md->getAltRecordIndex(md->currBLit, ai)] < md->currBLit;
+      bool bindingsCompatible = true;
+      for (unsigned pbi = 0; pbi < md->currBLit; ++pbi) {
+        if (md->eqLitForDemodulation == pbi) {
+          ASS(md->haveSelectedEqLitForDemodulation());
+        } else {
+          bindingsCompatible = bindingsCompatible && md->compatible(pbi, md->altBindings[pbi][md->nextAlts[pbi] - 1], md->currBLit, ai);
+        }
+      }
+      ASS(alreadyMatched || !bindingsCompatible);
+    }
+#endif
+
+    // Find a suitable alternative for the current base literal.
+    // An alternative is rejected if deterministic propagation already detects
+    // that the choice would lead to a conflict for some later base literal
+    // (see bindAlt for details).
+    while (md->nextAlts[md->currBLit] < maxAlt
+           && !md->bindAlt(md->currBLit, md->nextAlts[md->currBLit])) {
       md->nextAlts[md->currBLit]++;
     }
 
@@ -994,7 +1033,20 @@ bool MLMatcher2::Impl::nextMatch()
       // The alternative with index md->nextAlts[md->currBLit] corresponds to the literal instance[matchRecordIndex].
       // So in terms of literals, bases[md->currBLit] is matched to instance[matchRecordIndex].
 
+#if VDEBUG && MLMATCHER2_ADDITIONAL_ASSERTIONS
+      {
+        int cnt = 0;
+        for (unsigned i = 0; i < md->matchRecord.size(); i++) {
+          if (md->matchRecord[i] == md->currBLit) {
+            ++cnt;
+          }
+        }
+        ASS(cnt <= 1);
+      }
+#endif
+
       // Unassign existing match records for this level (this should actually be at most one)
+      // TODO: we should probably move the matchRecord bookkeeping into bindAlt
       for (unsigned i = 0; i < md->matchRecord.size(); i++) {
         if (md->matchRecord[i] == md->currBLit) {
           md->matchRecord[i] = 0xFFFFFFFF;
