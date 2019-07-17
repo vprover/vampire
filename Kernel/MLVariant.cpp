@@ -120,11 +120,13 @@ bool createLiteralBindings(Literal* baseLit, LiteralList* alts, Clause* instCl,
     Literal* alit=ait.next();
     if(alit->commutative()) {
       //we must try both possibilities
-      cout << "checking literals " + baseLit->toString() + " and " + alit->toString() << endl;
       if(MatchingUtils::haveVariantArgs(baseLit,alit)) {
-        cout << "here1" << endl;
         ArrayStoringBinder binder(altBindingData, variablePositions);
         MatchingUtils::matchArgs(baseLit,alit,binder);
+        if(baseLit->isTwoVarEquality()){
+          ASS(alit->isTwoVarEquality());
+          MatchingUtils::matchTerms(baseLit->twoVarEqSort(),alit->twoVarEqSort(),binder);
+        }
         *altBindingPtrs=altBindingData;
         altBindingPtrs++;
         altBindingData+=numVars;
@@ -134,7 +136,6 @@ bool createLiteralBindings(Literal* baseLit, LiteralList* alts, Clause* instCl,
         *(altBindingData++)=instCl->getLiteralPosition(alit);
       }
       if(MatchingUtils::haveReversedVariantArgs(baseLit, alit)) {
-        cout << "here2" << endl;
         ArrayStoringBinder binder(altBindingData, variablePositions);
         MatchingUtils::matchTerms(*baseLit->nthArgument(0),*alit->nthArgument(1),binder);
         MatchingUtils::matchTerms(*baseLit->nthArgument(1),*alit->nthArgument(0),binder);
@@ -237,7 +238,9 @@ struct MatchingData {
       }
       if(b2vn==b2vnStop) { break; }
       if(*b1vn==*b2vn) {
-        if(*i1Bindings!=*i2Bindings) { return false; }
+        if(*i1Bindings!=*i2Bindings) { 
+          return false; 
+        }
         if(inverse.findOrInsert(*i1Bindings, *b1vn)!=*b1vn) { return false; }
         b1vn++; i1Bindings++;
         b2vn++; i2Bindings++;
@@ -278,15 +281,15 @@ struct MatchingData {
     return true;
   }
 
-  bool isInitialized(unsigned bIndex) {
+  bool isInitialized(unsigned bIndex, bool print = false) {
     return boundVarNums[bIndex];
   }
 
   InitResult ensureInit(unsigned bIndex)
   {
     CALL("MatchingData::ensureInit");
-
-    if(!isInitialized(bIndex)) {
+    
+    if(!isInitialized(bIndex, true)) {
       boundVarNums[bIndex]=boundVarNumStorage;
       altBindings[bIndex]=altBindingPtrStorage;
       ALWAYS(createLiteralBindings(bases[bIndex], alts[bIndex], instance,
@@ -442,12 +445,12 @@ bool MLVariant::isVariant(Literal* const * cl1Lits, Clause* cl2, LiteralList** a
         continue;
       } else {
         ASS_EQ(ires,MatchingData::NO_ALTERNATIVE);
-        cout << "FALSE 1" << endl;
         return false;
       }
     }
 
     unsigned maxAlt=md->getRemainingInCurrent(currBLit);
+    //cout << "maxAlt " << maxAlt << endl;
     while(md->nextAlts[currBLit]<maxAlt &&
 	    ( matchRecord[md->getAltRecordIndex(currBLit, md->nextAlts[currBLit])]<currBLit ||
 	    !md->bindAlt(currBLit,md->nextAlts[currBLit]) ) ) {
@@ -468,7 +471,7 @@ bool MLVariant::isVariant(Literal* const * cl1Lits, Clause* cl2, LiteralList** a
       if(currBLit==matchedLen) { break; }
       md->nextAlts[currBLit]=0;
     } else {
-      if(currBLit==0) { cout << "FALSE 2" << endl; return false; }
+      if(currBLit==0) { return false; }
       currBLit--;
     }
 

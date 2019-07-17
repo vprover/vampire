@@ -41,6 +41,7 @@
 #include "Matcher.hpp"
 #include "Term.hpp"
 #include "TermIterators.hpp"
+#include "SortHelper.hpp"
 
 #include "MLMatcher.hpp"
 
@@ -127,34 +128,40 @@ bool createLiteralBindings(Literal* baseLit, LiteralList* alts, Clause* instCl, 
     if(alit->isEquality()) {
       //we must try both possibilities
       if(MatchingUtils::matchArgs(baseLit,alit)) {
-	ArrayStoringBinder binder(altBindingData, variablePositions);
-	MatchingUtils::matchArgs(baseLit,alit,binder);
-	*altBindingPtrs=altBindingData;
-	altBindingPtrs++;
-	altBindingData+=numVars;
-	if(resolvedLit) {
-	  new(altBindingData++) TermList((size_t)0);
-	} else {
-	  //add pointer to the literal at
-	  //the end of the binding sequance
-	  new(altBindingData++) TermList((size_t)instCl->getLiteralPosition(alit));
-	}
+        ArrayStoringBinder binder(altBindingData, variablePositions);
+        MatchingUtils::matchArgs(baseLit,alit,binder);
+        if(baseLit->isTwoVarEquality()){
+          MatchingUtils::matchTerms(baseLit->twoVarEqSort(),SortHelper::getEqualityArgumentSort(alit),binder);
+        }
+        *altBindingPtrs=altBindingData;
+        altBindingPtrs++;
+        altBindingData+=numVars;
+        if(resolvedLit) {
+          new(altBindingData++) TermList((size_t)0);
+        } else {
+          //add pointer to the literal at
+          //the end of the binding sequance
+          new(altBindingData++) TermList((size_t)instCl->getLiteralPosition(alit));
+        }
       }
       if(MatchingUtils::matchReversedArgs(baseLit, alit)) {
-	ArrayStoringBinder binder(altBindingData, variablePositions);
-	MatchingUtils::matchTerms(*baseLit->nthArgument(0),*alit->nthArgument(1),binder);
-	MatchingUtils::matchTerms(*baseLit->nthArgument(1),*alit->nthArgument(0),binder);
+        ArrayStoringBinder binder(altBindingData, variablePositions);
+        MatchingUtils::matchTerms(*baseLit->nthArgument(0),*alit->nthArgument(1),binder);
+        MatchingUtils::matchTerms(*baseLit->nthArgument(1),*alit->nthArgument(0),binder);
+        if(baseLit->isTwoVarEquality()){
+          MatchingUtils::matchTerms(baseLit->twoVarEqSort(),SortHelper::getEqualityArgumentSort(alit),binder);
+        }
 
-	*altBindingPtrs=altBindingData;
-	altBindingPtrs++;
-	altBindingData+=numVars;
-	if(resolvedLit) {
-	  new(altBindingData++) TermList((size_t)0);
-	} else {
-	  //add pointer to the literal at
-	  //the end of the binding sequance
-	  new(altBindingData++) TermList((size_t)instCl->getLiteralPosition(alit));
-	}
+        *altBindingPtrs=altBindingData;
+        altBindingPtrs++;
+        altBindingData+=numVars;
+        if(resolvedLit) {
+          new(altBindingData++) TermList((size_t)0);
+        } else {
+          //add pointer to the literal at
+          //the end of the binding sequance
+          new(altBindingData++) TermList((size_t)instCl->getLiteralPosition(alit));
+        }
       }
 
     } else {

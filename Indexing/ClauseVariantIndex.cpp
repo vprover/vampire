@@ -186,8 +186,6 @@ void SubstitutionTreeClauseVariantIndex::insert(Clause* cl)
 
   unsigned clen=cl->length();
 
-  cout << "inserting clause " + cl->toString() + " of length " << clen << endl;
-
   if(cl->length()==0) {
     ClauseList::push(cl, _emptyClauses);
     return;

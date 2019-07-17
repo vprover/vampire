@@ -203,8 +203,12 @@ bool MatchingUtils::matchReversedArgs(Literal* base, Literal* instance)
   static MapBinder binder;
   binder.reset();
 
+  bool bTwoVarEq = base->isTwoVarEquality();
+
   return matchTerms(*base->nthArgument(0), *instance->nthArgument(1), binder) &&
-    matchTerms(*base->nthArgument(1), *instance->nthArgument(0), binder);
+    matchTerms(*base->nthArgument(1), *instance->nthArgument(0), binder) &&
+    (!bTwoVarEq || matchTerms(base->twoVarEqSort(), SortHelper::getEqualityArgumentSort(instance))
+   );
 }
 
 bool MatchingUtils::matchArgs(Term* base, Term* instance)

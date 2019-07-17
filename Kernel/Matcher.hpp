@@ -308,6 +308,13 @@ bool MatchingUtils::matchArgs(Term* base, Term* instance, Binder& binder)
       return false;
     }
   }
+  if(base->isLiteral() && static_cast<Literal*>(base)->isTwoVarEquality()){
+    Literal* l1 = static_cast<Literal*>(base);
+    Literal* l2 = static_cast<Literal*>(instance);
+    if(!matchTerms(l1->twoVarEqSort(), SortHelper::getEqualityArgumentSort(l2), binder)){
+      return false;
+    }
+  }
   ASS_G(base->arity(),0);
 
   TermList* bt=base->args();

@@ -453,7 +453,7 @@ public:
   {
     ASS(shared());
     if(_isTwoVarEquality) {
-      return 2;
+      return _sort.isVar() ? 3 : 2 + _sort.term()->vars(); 
     }
     return _vars;
   } // vars()
