@@ -136,20 +136,20 @@ bool MatchingUtils::haveReversedVariantArgs(Term* l1, Term* l2)
   rightToLeft.reset();
 
   VirtualIterator<pair<TermList, TermList> > dsit=pvi( getConcatenatedIterator(
-	    vi( new DisagreementSetIterator(*l1->nthArgument(0),*l2->nthArgument(1)) ),
-	    vi( new DisagreementSetIterator(*l1->nthArgument(1),*l2->nthArgument(0)) )) );
+      vi( new DisagreementSetIterator(*l1->nthArgument(0),*l2->nthArgument(1)) ),
+      vi( new DisagreementSetIterator(*l1->nthArgument(1),*l2->nthArgument(0)) )) );
   while(dsit.hasNext()) {
     pair<TermList,TermList> dp=dsit.next(); //disagreement pair
     if(!dp.first.isVar() || !dp.second.isVar()) {
-	return false;
+  return false;
     }
     unsigned left=dp.first.var();
     unsigned right=dp.second.var();
     if(right!=leftToRight.findOrInsert(left,right)) {
-	return false;
+  return false;
     }
     if(left!=rightToLeft.findOrInsert(right,left)) {
-	return false;
+  return false;
     }
   }
   if(leftToRight.size()!=rightToLeft.size()) {
@@ -176,15 +176,15 @@ bool MatchingUtils::haveVariantArgs(Term* l1, Term* l2)
   while(dsit.hasNext()) {
     pair<TermList,TermList> dp=dsit.next(); //disagreement pair
     if(!dp.first.isVar() || !dp.second.isVar()) {
-	return false;
+  return false;
     }
     unsigned left=dp.first.var();
     unsigned right=dp.second.var();
     if(right!=leftToRight.findOrInsert(left,right)) {
-	return false;
+  return false;
     }
     if(left!=rightToLeft.findOrInsert(right,left)) {
-	return false;
+  return false;
     }
   }
   if(leftToRight.size()!=rightToLeft.size()) {
@@ -223,7 +223,7 @@ bool MatchingUtils::matchTerms(TermList base, TermList instance)
 
   if(base.isTerm()) {
     if(!instance.isTerm()) {
-	return false;
+  return false;
     }
 
     Term* bt=base.term();
@@ -346,10 +346,10 @@ bool OCMatchIterator::occursCheck()
     while(toDo.isNonEmpty()) {
       int task=toDo.pop();
       if(task==-1) {
-	unsigned var=toDo.pop();
-	ASS_EQ(statuses.get(var), TRAVERSING);
-	statuses.set(var, CHECKED);
-	continue;
+  unsigned var=toDo.pop();
+  ASS_EQ(statuses.get(var), TRAVERSING);
+  statuses.set(var, CHECKED);
+  continue;
       }
 
       unsigned var=task;
@@ -363,31 +363,31 @@ bool OCMatchIterator::occursCheck()
 
       TermList tgt;
       if(!_bindings.find(var, tgt)) {
-	continue;
+  continue;
       }
 //      if(tgt.isVar()) {
-//	int tvar=tgt.var();
-//	if(var<tvar) {
+//  int tvar=tgt.var();
+//  if(var<tvar) {
 //
-//	}
-//	NOT_IMPLEMENTED;
+//  }
+//  NOT_IMPLEMENTED;
 //      }
 //      VariableIterator vit(tgt.term());
       VariableIterator vit(tgt);
       while(vit.hasNext()) {
-	unsigned chvar=vit.next().var(); //child variable number
+  unsigned chvar=vit.next().var(); //child variable number
 
-	OCStatus* pChStatus;
-	if(!statuses.getValuePtr(chvar, pChStatus)) {
-	  if(*pChStatus==TRAVERSING) {
-	    return false;
-	  }
-	  ASS_REP(*pChStatus==CHECKED||*pChStatus==ENQUEUED, *pChStatus);
-	  continue;
-	}
-	*pChStatus=ENQUEUED;
+  OCStatus* pChStatus;
+  if(!statuses.getValuePtr(chvar, pChStatus)) {
+    if(*pChStatus==TRAVERSING) {
+      return false;
+    }
+    ASS_REP(*pChStatus==CHECKED||*pChStatus==ENQUEUED, *pChStatus);
+    continue;
+  }
+  *pChStatus=ENQUEUED;
 
-	toDo.push(chvar);
+  toDo.push(chvar);
       }
 
     }
@@ -440,7 +440,7 @@ public:
   ~CommutativeMatchIterator()
   {
     if(_state!=FINISHED && _state!=FIRST) {
-	backtrack();
+  backtrack();
     }
     ASS(_bdata.isEmpty());
   }
@@ -457,31 +457,31 @@ public:
     _used=false;
 
     if(_state!=FIRST) {
-	backtrack();
+  backtrack();
     }
     _matcher->bdRecord(_bdata);
 
     switch(_state) {
     case NEXT_STRAIGHT:
-	if(_matcher->matchArgs(_base,_instance)) {
-	  _state=NEXT_REVERSED;
-	  break;
-	}
-	//no break here intentionally
+  if(_matcher->matchArgs(_base,_instance)) {
+    _state=NEXT_REVERSED;
+    break;
+  }
+  //no break here intentionally
     case NEXT_REVERSED:
-	if(_matcher->matchReversedArgs(_base,_instance)) {
-	  _state=NEXT_CLEANUP;
-	  break;
-	}
+  if(_matcher->matchReversedArgs(_base,_instance)) {
+    _state=NEXT_CLEANUP;
+    break;
+  }
     //no break here intentionally
     case NEXT_CLEANUP:
       //undo the previous match
-	backtrack();
+  backtrack();
 
-	_state=FINISHED;
-	break;
+  _state=FINISHED;
+  break;
     default:
-	ASSERTION_VIOLATION;
+  ASSERTION_VIOLATION;
     }
 
     ASS(_state!=FINISHED || _bdata.isEmpty());
@@ -549,7 +549,7 @@ private:
 };
 
 MatchIterator Matcher::matches(Literal* base, Literal* instance,
-	  bool complementary)
+    bool complementary)
 {
   CALL("Matcher::matches");
 
@@ -566,7 +566,7 @@ MatchIterator Matcher::matches(Literal* base, Literal* instance,
   }
   if( !base->commutative() ) {
     return pvi( getContextualIterator(getSingletonIterator(this),
-	      MatchContext(base, instance)) );
+        MatchContext(base, instance)) );
   }
   return vi( new CommutativeMatchIterator(this, base, instance) );
 
