@@ -775,16 +775,18 @@ bool ForwardSubsumptionDemodulation2::perform(Clause* cl, Clause*& replacement, 
               // 2. L is s[lΘ] = t with s[lΘ] ≠ lΘ.
               //    Then s[lΘ] > lΘ (due to the subterm property of simplification orderings),
               //    and thus s[lΘ]=t > lΘ=rΘ.  (multiset extension of ordering: { s[lΘ], t } > { s[lΘ] } > { lΘ, rΘ }, because s[lΘ] > lΘ > rΘ)
-              // 3. L is lΘ = t, but t is larger that rΘ.    (TODO: in the code actually: rΘ LESS or LESS_EQ than t)
+              // 3. L is lΘ = t, but t is larger that rΘ.
               // If all these checks fail, we try to find a literal M in D such that lΘ=rΘ < M.
               if (!_allowIncompleteness) {
                 if (!dlit->isEquality()) {
                   // non-equality literals are always larger than equality literals ==>  eqLitS < dlit
+                  ASS_EQ(ordering.compare(binder.applyTo(eqLit), dlit), Ordering::LESS);
                   goto isRedundant;
                 }
                 if (lhsS != *dlit->nthArgument(0) && lhsS != *dlit->nthArgument(1)) {
                   // lhsS appears as argument to some function, e.g. f(lhsS) = t
                   // from subterm property of simplification ordering we know that lhsS < f(lhsS) and thus eqLitS < dlit
+                  ASS_EQ(ordering.compare(binder.applyTo(eqLit), dlit), Ordering::LESS);
                   goto isRedundant;
                 }
                 // Now we are in the following situation:
@@ -797,16 +799,17 @@ bool ForwardSubsumptionDemodulation2::perform(Clause* cl, Clause*& replacement, 
                 TermList t = EqHelper::getOtherEqualitySide(dlit, lhsS);
                 if (t == rhsS) {
                   // in this case, eqLitS == dlit; and forward subsumption should have deleted the right premise already
-                  ASS(binder.applyTo(eqLit) == dlit);  // eqLitS == dlit
+                  ASS_EQ(binder.applyTo(eqLit), dlit);  // eqLitS == dlit
                   ASS(!getOptions().forwardSubsumption());  // Note that _doSubsumption can still be true here because MLMatcher2 might find an FSD-match before the FS-match
                   premises = pvi(getSingletonIterator(mcl));
                   env.statistics->forwardSubsumed++;
                   return true;
                 }
                 Ordering::Result r_cmp_t = ordering.compare(rhsS, t);
-                if (r_cmp_t == Ordering::LESS || r_cmp_t == Ordering::LESS_EQ) {
-                  ASS(r_cmp_t == Ordering::LESS);  // TODO really not sure why we need to allow LESS_EQ in the condition
+                ASS_NEQ(r_cmp_t, Ordering::LESS_EQ);  // NOTE: LESS_EQ doesn't seem to occur in the code currently. It is unclear why the ordering is not simplified to LESS, EQUAL and GREATER.
+                if (r_cmp_t == Ordering::LESS) {
                   // rhsS < t implies eqLitS < dlit
+                  ASS_EQ(ordering.compare(binder.applyTo(eqLit), dlit), Ordering::LESS);
                   goto isRedundant;
                 }
                 // We could not show redundancy with dlit alone,
@@ -817,13 +820,13 @@ bool ForwardSubsumptionDemodulation2::perform(Clause* cl, Clause*& replacement, 
                   // skip dlit (already checked with r_cmp_t above) and matched literals (i.e., CΘ)
                   if (dli != li2 && !isMatched[li2]) {
                     Literal* lit2 = (*cl)[li2];
-                    if (ordering.compare(eqLitS, lit2) == Ordering::LESS) {  // TODO why do we only allow LESS here, while for dlit (above) we also allow LESS_EQ???
+                    if (ordering.compare(eqLitS, lit2) == Ordering::LESS) {
                       // we found that eqLitS < lit2; and thus mcl < cl => after inference, cl is redundant
                       goto isRedundant;
                     }
                   }
                 }
-                // cl might not be redundant after the inference, possibly leading to incompleteness => skip
+                // cl is not be redundant after the inference, possibly leading to incompleteness => skip
                 continue;
               }  // if (!_allowIncompleteness)
 isRedundant:
