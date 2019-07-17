@@ -38,7 +38,7 @@
 #include "Kernel/Unit.hpp"
 //#include "Kernel/Theory.hpp"
 
-//#define DEBUG_SHOW_STATE
+//define DEBUG_SHOW_STATE
 
 using namespace std;
 using namespace Lib;
@@ -231,8 +231,6 @@ public:
     END_HOL_FORMULA,
     /** Read a higher-order constant or variable */
     HOL_TERM,
-    /** Read after a HOL term */
-    END_HOL_TERM,
     /** create an application term after reading an app */
     END_APP,
     /** tff declaration */
@@ -794,7 +792,6 @@ private:
   void holFormula();
   void endHolFormula();
   void holTerm();
-  void endHolTerm();
   void definition();
   void midDefinition();
   //void endDefinition();
@@ -823,6 +820,7 @@ private:
 				  Theory::Interpretation real);*/
   TermList sortOf(TermList term);
   static bool higherPrecedence(int c1,int c2);
+  vstring convert(Tag t);
 
   bool findInterpretedPredicate(vstring name, unsigned arity);
 

@@ -1171,6 +1171,10 @@ bool Splitter::tryGetExistingComponentName(unsigned size, Literal* const * lits,
     return false;
   }
   compCl = existingComponents.next();
+  /*cout << "literal is: " << endl;
+  for(int i = 0; i < size; i++){
+    cout << lits[i]->toString() +  (i < size-1 ? " | " : "");
+  }*/
   ASS_REP2(!existingComponents.hasNext(), compCl->toString(), existingComponents.next()->toString());
   comp = _compNames.get(compCl);
   return true;
@@ -1217,6 +1221,11 @@ Clause* Splitter::buildAndInsertComponentClause(SplitLevel name, unsigned size, 
   //cout << "Name " << getLiteralFromName(name).toString() << " for " << compCl->toString() << endl; 
 
   compCl->setAge(orig ? orig->age() : AGE_NOT_FILLED);
+
+  if(compCl->number() == 1237 || compCl->number() == 3565)
+  {
+    cout << "inserting " + compCl->toString() << endl;
+  }
 
   _db[name] = new SplitRecord(compCl);
   compCl->setSplits(SplitSet::getSingleton(name));

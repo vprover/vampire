@@ -196,9 +196,6 @@ void TPTP::parse()
     case HOL_TERM:
       holTerm();
       break;
-    case END_HOL_TERM:
-      endHolTerm();
-      break;
     case FORMULA_INSIDE_TERM:
       formulaInsideTerm();
       break;
@@ -606,7 +603,7 @@ bool TPTP::readToken(Token& tok)
       return true;
     }
     if (getChar(1) == '!') {
-      tok.tag = T_SIGMA;
+      tok.tag = T_PI;
       resetChars();
       return true;
     }
@@ -615,7 +612,7 @@ bool TPTP::readToken(Token& tok)
     return true;
   case '?':
     if (getChar(1) == '?') {
-      tok.tag = T_PI;
+      tok.tag = T_SIGMA;
       resetChars();
       return true;
     }
@@ -1533,11 +1530,22 @@ void TPTP::holFormula()
     
   //higher order syntax wierdly allows (~) @ (...)
   case T_RPAR: {
-    ASS(_connectives.top() == NOT);
-    _connectives.pop();
-    _strings.push("vNOT");
-    _ints.push(0);
-    _states.push(END_HOL_TERM);
+    ASS(_connectives.top() == NOT || _connectives.top() == PI ||
+        _connectives.top() == SIGMA);
+    int con = _connectives.pop();
+    if(con == NOT){
+      _termLists.push(createFunctionApplication("vNOT", 0));
+    } else {
+      _states.pop();//pop END_HOL_FORMULA
+      _states.pop();//pop TAG_STATE
+      _connectives.pop();   
+      vstring name = con == PI ? "vPI" : "vSIGMA";
+      resetToks();
+      consumeToken(T_APP);
+      _termLists.push(readArrowTerm());
+      _termLists.push(createFunctionApplication(name, 1));
+      //_states.push(END_HOL_FORMULA);
+    }
     return;
   }
 
@@ -1608,23 +1616,6 @@ void TPTP::holTerm()
 
   unsigned arity = _typeArities.find(name) ? _typeArities.get(name) : 0;
 
-  auto convert = [] (Tag t) { 
-    switch(t){
-      case T_AND:
-        return "vAND";
-      case T_OR:
-        return "vOR";
-      case T_IMPLY:
-        return "vIMP";
-      case T_IFF:
-        return "vIFF";
-      case T_XOR:
-        return "vXOR";
-      default:
-        ASSERTION_VIOLATION;
-    }
-  };
-
   switch (tok.tag) {
     case T_AND:
     case T_OR:
@@ -1652,35 +1643,33 @@ void TPTP::holTerm()
   _lastPushed = TM;
 
 }
-
-/**
-  * Adds a variable or a HOL constant to the stack of terms
-  * @since 08/11/2017
-  * @author Ahmed Bhayat
-  */
-void TPTP::endHolTerm()
-{
-  CALL("TPTP::endHolTerm");
   
-  vstring name = _strings.pop();
+vstring TPTP::convert(Tag t)
+{
+  CALL("TPTP::convert(Tag t)");
 
-  if(name.at(0) == '$'){
-    USER_ERROR("vampire higher-order is currently not compatible with theory reasoning");
+  switch(t){
+    case T_AND:
+      return "vAND";
+    case T_OR:
+      return "vOR";
+    case T_IMPLY:
+      return "vIMP";
+    case T_IFF:
+      return "vIFF";
+    case T_XOR:
+      return "vXOR";
+    case T_NOT:
+      return "vNOT";
+    case T_PI:
+      return "vPI";
+    case T_SIGMA:
+      return "vSIGMA";
+    default:
+      ASSERTION_VIOLATION;
   }
-
-  int arity = _ints.pop();
-
-  if (arity == -1) {
-    // it was a variable
-    unsigned var = (unsigned)_vars.insert(name);
-    _termLists.push(TermList(var, false));
-    _lastPushed = TM;
-    return;
-  }
-
-  _termLists.push(createFunctionApplication(name, arity));
-  _lastPushed = TM;  
 }
+
 
 /**
   * Process the end of a HOL function.
@@ -1734,13 +1723,7 @@ void TPTP::endHolFormula()
     return;
   case PI:
   case SIGMA: {
-    vstring name = con == PI ? "vPI" : "vSIGMA";
-    TermList t = _termLists.pop();
-    _termLists.push(createFunctionApplication(name, 0));
-    _termLists.push(t);
-    _states.push(END_HOL_FORMULA);
-    _states.push(END_APP);
-    return;
+    ASSERTION_VIOLATION;
   }
 
   case FORALL:
@@ -3246,6 +3229,7 @@ TermList TPTP::createFunctionApplication(vstring name, unsigned arity)
       static RobSubstitution subst;
       subst.reset();
       if(!subst.match(sort, 0, ssSort, 1)){
+       //cout << "the type of " + name + " is " + type->toString() << endl; 
         USER_ERROR("The sort " + ssSort.toString() + " of term argument " + ss.toString() + " "
                    "is not an instance of sort " + sort.toString());
       }
@@ -4571,7 +4555,9 @@ unsigned TPTP::addFunction(vstring name,int arity,bool& added,TermList& arg)
 				 Theory::RAT_TO_REAL,
 				 Theory::REAL_TO_REAL);
   } */
-
+  if (name == "vPI"  || name == "vSIGMA"){
+    return env.signature->getPiSigmaProxy(name); 
+  }
   if (arity > 0) {
     return env.signature->addFunction(name,arity,added);
   }
@@ -4848,6 +4834,12 @@ unsigned TPTP::addUninterpretedConstant(const vstring& name, Set<vstring>& overf
   if (overflow.contains(name)) {
     USER_ERROR((vstring)"Cannot use name '" + name + "' as an atom name since it collides with an integer number");
   }
+  if(name == "vAND" || name == "vOR" || name == "vIMP" ||
+     name == "vIFF" || name == "vXOR"){
+    return env.signature->getBinaryProxy(name);
+  } else if (name == "vNOT"){
+    return env.signature->getNotProxy();
+  }
   return env.signature->addFunction(name,0,added);
 } // TPTP::addUninterpretedConstant
 
@@ -5109,8 +5101,6 @@ const char* TPTP::toString(State s)
     return "END_HOL_FORMULA";
   case HOL_TERM:
     return "HOL_TERM";
-  case END_HOL_TERM:
-    return "END_HOL_TERM";
   case END_TYPE:
     return "END_TYPE";
   case SIMPLE_TYPE:
