@@ -151,6 +151,7 @@ public:
   unsigned weight() const;
   bool containsSubterm(TermList v);
   bool containsAllVariablesOf(TermList t);
+  bool containsAllVariableOccurrencesOf(TermList t);
 
   bool isSafe() const;
 
