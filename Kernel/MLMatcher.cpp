@@ -130,9 +130,6 @@ bool createLiteralBindings(Literal* baseLit, LiteralList* alts, Clause* instCl, 
       if(MatchingUtils::matchArgs(baseLit,alit)) {
         ArrayStoringBinder binder(altBindingData, variablePositions);
         MatchingUtils::matchArgs(baseLit,alit,binder);
-        if(baseLit->isTwoVarEquality()){
-          MatchingUtils::matchTerms(baseLit->twoVarEqSort(),SortHelper::getEqualityArgumentSort(alit),binder);
-        }
         *altBindingPtrs=altBindingData;
         altBindingPtrs++;
         altBindingData+=numVars;
@@ -150,8 +147,8 @@ bool createLiteralBindings(Literal* baseLit, LiteralList* alts, Clause* instCl, 
         MatchingUtils::matchTerms(*baseLit->nthArgument(1),*alit->nthArgument(0),binder);
         if(baseLit->isTwoVarEquality()){
           MatchingUtils::matchTerms(baseLit->twoVarEqSort(),SortHelper::getEqualityArgumentSort(alit),binder);
-        }
-
+        }//matchArgs automatically matches the sorts of literals if one is a twoVarEq literal
+         //This is the reason for the difference between the two cases.
         *altBindingPtrs=altBindingData;
         altBindingPtrs++;
         altBindingData+=numVars;
@@ -166,8 +163,8 @@ bool createLiteralBindings(Literal* baseLit, LiteralList* alts, Clause* instCl, 
 
     } else {
       if(numVars) {
-	ArrayStoringBinder binder(altBindingData, variablePositions);
-	ALWAYS(MatchingUtils::matchArgs(baseLit,alit,binder));
+        ArrayStoringBinder binder(altBindingData, variablePositions);
+        ALWAYS(MatchingUtils::matchArgs(baseLit,alit,binder));
       }
 
       *altBindingPtrs=altBindingData;
@@ -185,8 +182,8 @@ bool createLiteralBindings(Literal* baseLit, LiteralList* alts, Clause* instCl, 
   if(resolvedLit && resolvedLit->complementaryHeader()==baseLit->header()) {
     if(!baseLit->arity() || MatchingUtils::matchArgs(baseLit,resolvedLit)) {
       if(numVars) {
-	ArrayStoringBinder binder(altBindingData, variablePositions);
-	MatchingUtils::matchArgs(baseLit,resolvedLit,binder);
+        ArrayStoringBinder binder(altBindingData, variablePositions);
+        MatchingUtils::matchArgs(baseLit,resolvedLit,binder);
       }
       *altBindingPtrs=altBindingData;
       altBindingPtrs++;
@@ -197,7 +194,10 @@ bool createLiteralBindings(Literal* baseLit, LiteralList* alts, Clause* instCl, 
       ArrayStoringBinder binder(altBindingData, variablePositions);
       MatchingUtils::matchTerms(*baseLit->nthArgument(0),*resolvedLit->nthArgument(1),binder);
       MatchingUtils::matchTerms(*baseLit->nthArgument(1),*resolvedLit->nthArgument(0),binder);
-
+      if(baseLit->isTwoVarEquality()){
+        MatchingUtils::matchTerms(baseLit->twoVarEqSort(),SortHelper::getEqualityArgumentSort(resolvedLit),binder);
+      }
+      
       *altBindingPtrs=altBindingData;
       altBindingPtrs++;
       altBindingData+=numVars;

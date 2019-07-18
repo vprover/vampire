@@ -31,7 +31,7 @@
 #include "Lib/VirtualIterator.hpp"
 
 #include "Term.hpp"
-#include "SortHelper.hpP"
+#include "SortHelper.hpp"
 
 namespace Kernel {
 
@@ -420,8 +420,8 @@ public:
       TermList s1 = SortHelper::getEqualityArgumentSort(static_cast<Literal*>(t1));
       TermList s2 = SortHelper::getEqualityArgumentSort(static_cast<Literal*>(t2));
       if(!TermList::sameTop(s1,s2) || (s1.isVar() && disjunctVariables)) {
-        _arg1=t1;
-        _arg2=t2;
+        _arg1=s1;
+        _arg2=s2;
       } else if(s1.isTerm() && s1.term()->arity()>0) {
         _stack.push(s1.term()->args());
         _stack.push(s2.term()->args());

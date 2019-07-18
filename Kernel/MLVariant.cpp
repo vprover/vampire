@@ -123,10 +123,6 @@ bool createLiteralBindings(Literal* baseLit, LiteralList* alts, Clause* instCl,
       if(MatchingUtils::haveVariantArgs(baseLit,alit)) {
         ArrayStoringBinder binder(altBindingData, variablePositions);
         MatchingUtils::matchArgs(baseLit,alit,binder);
-        if(baseLit->isTwoVarEquality()){
-          ASS(alit->isTwoVarEquality());
-          MatchingUtils::matchTerms(baseLit->twoVarEqSort(),alit->twoVarEqSort(),binder);
-        }
         *altBindingPtrs=altBindingData;
         altBindingPtrs++;
         altBindingData+=numVars;
@@ -142,8 +138,8 @@ bool createLiteralBindings(Literal* baseLit, LiteralList* alts, Clause* instCl,
         if(baseLit->isTwoVarEquality()){
           ASS(alit->isTwoVarEquality());
           MatchingUtils::matchTerms(baseLit->twoVarEqSort(),alit->twoVarEqSort(),binder);
-        }
-
+        } //matchArgs automatically matches the sorts of literals if one is a twoVarEq literal
+          //This is the reason for the difference between the two cases.
         *altBindingPtrs=altBindingData;
         altBindingPtrs++;
         altBindingData+=numVars;

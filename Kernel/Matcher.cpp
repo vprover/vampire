@@ -141,7 +141,8 @@ bool MatchingUtils::haveReversedVariantArgs(Term* l1, Term* l2)
   {
     if(l2->isLiteral() && static_cast<Literal*>(l2)->isTwoVarEquality()){
        s1 = SortHelper::getEqualityArgumentSort(static_cast<Literal*>(l1));
-       s2 = SortHelper::getEqualityArgumentSort(static_cast<Literal*>(l2));       
+       s2 = SortHelper::getEqualityArgumentSort(static_cast<Literal*>(l2));  
+       sortUsed = true;     
     } else {
       return false;
     }      
@@ -151,13 +152,9 @@ bool MatchingUtils::haveReversedVariantArgs(Term* l1, Term* l2)
       vi( new DisagreementSetIterator(*l1->nthArgument(0),*l2->nthArgument(1)) ),
       vi( new DisagreementSetIterator(*l1->nthArgument(1),*l2->nthArgument(0)) ));
 
-  VirtualIterator<pair<TermList, TermList> > dsit;
-  
-  if(!sortUsed){
-    dsit=pvi(it1);
-  } else {
-    dsit = pvi(getConcatenatedIterator(vi(new DisagreementSetIterator(s1,s2)), it1));
-  }     
+  VirtualIterator<pair<TermList, TermList> > dsit =
+  sortUsed ? pvi(getConcatenatedIterator(vi(new DisagreementSetIterator(s1,s2)), it1)) :
+             pvi(it1);
     
   while(dsit.hasNext()) {
     pair<TermList,TermList> dp=dsit.next(); //disagreement pair
