@@ -1,5 +1,6 @@
 #include "ForwardSubsumptionDemodulation.hpp"
 
+#include "Debug/RuntimeStatistics.hpp"
 #include "Indexing/Index.hpp"
 #include "Indexing/IndexManager.hpp"
 #include "Indexing/LiteralIndex.hpp"
@@ -99,6 +100,12 @@ class OverlayBinder
       }
     }
 
+    bool isBound(Var var)
+    {
+      return m_base.find(var) != m_base.end()
+        || m_overlay.find(var) != m_overlay.end();
+    }
+
     void specVar(Var var, TermList term)
     {
       ASSERTION_VIOLATION;
@@ -136,8 +143,9 @@ class OverlayBinder
         if (o_it != m_overlay.end()) {
           return o_it->second;
         } else {
-          // If var is not bound, return the variable itself (as TermList)
-          return TermList(var, false);
+          // We should never access unbound variables
+          // (NOTE: we should not return the variable itself here, as this creates a risk of mixing variables coming from different clauses)
+          ASSERTION_VIOLATION;
         }
       }
     }
@@ -328,12 +336,11 @@ bool ForwardSubsumptionDemodulation::perform(Clause* cl, Clause*& replacement, C
             switch (eqArgOrder) {
               case Ordering::INCOMPARABLE:
                 ASS(!_preorderedOnly);  // would've skipped earlier already
-                if (t0.containsAllVariablesOf(t1)) {
-                  lhsVector.push_back(t0);
-                }
-                if (t1.containsAllVariablesOf(t0)) {
-                  lhsVector.push_back(t1);
-                }
+                // NOTE: We cannot exclude an LHS here by checking t0.containsAllVariablesOf(t1) etc., because
+                // this property might change after substitution (note that unlike demodulation, the substitution here
+                // does not only come from the equality, but also from the subsumption part).
+                lhsVector.push_back(t0);
+                lhsVector.push_back(t1);
                 break;
               case Ordering::GREATER:
               case Ordering::GREATER_EQ:
@@ -397,6 +404,35 @@ bool ForwardSubsumptionDemodulation::perform(Clause* cl, Clause*& replacement, C
                 binder.reset();  // reset binder to state after subsumption check
                 if (!MatchingUtils::matchTerms(lhs, lhsS, binder)) {
                   continue;
+                }
+
+                // NOTE: If at this point there is a variable in mcl that is not
+                // yet bound in binder, then this variable occurs only in rhs.
+                // The reason is that all other literals have been matched by the
+                // MLMatcher, and lhs has been matched to lhsS just now.
+                //
+                // In order to keep the variables of the two premises separate,
+                // we must map any of these yet-unbound variables to some other
+                // variables that do not occur in the main premise cl.
+                //
+                // Furthermore, if there is a variable that occurs only in rhsS,
+                // then lhsS and rhsS will always be INCOMPARABLE in the term
+                // ordering, so we cannot apply FSD in this case.
+                {
+                  bool hasUnboundVar = false;
+                  VariableIterator rhsVarIt(rhs);
+                  while (rhsVarIt.hasNext()) {
+                    TermList rhsVar = rhsVarIt.next();
+                    if (!binder.isBound(rhsVar.var())) {
+                      hasUnboundVar = true;
+                      break;
+                    }
+                  }
+                  if (hasUnboundVar) {
+                    // lhsS and rhsS are INCOMPARABLE because there is a variable that only occurs in rhsS
+                    RSTAT_CTR_INC("FSDv1, match rejected due to unbound variables in rhs");
+                    continue;
+                  }
                 }
 
                 TermList rhsS = binder.applyTo(rhs);
@@ -488,6 +524,7 @@ bool ForwardSubsumptionDemodulation::perform(Clause* cl, Clause*& replacement, C
                     }
                   }
                   // cl is not be redundant after the inference, possibly leading to incompleteness => skip
+                  RSTAT_CTR_INC("FSDv1, not redundant");
                   continue;
                 }  // if (!_allowIncompleteness)
 isRedundant:
