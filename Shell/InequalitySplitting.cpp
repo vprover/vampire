@@ -39,6 +39,7 @@
 #include "Statistics.hpp"
 
 #include "InequalitySplitting.hpp"
+#include "LambdaElimination.hpp"
 
 #define TRACE_INEQUALITY_SPLITTING 0
 
@@ -50,7 +51,7 @@ using namespace Kernel;
 
 
 InequalitySplitting::InequalitySplitting(const Options& opt)
-: _splittingTreshold(opt.inequalitySplitting())
+: _splittingTreshold(opt.inequalitySplitting()), _appify(false)
 {
   ASS_G(_splittingTreshold,0);
 }
@@ -59,6 +60,7 @@ void InequalitySplitting::perform(Problem& prb)
 {
   CALL("InequalitySplitting::perform");
 
+  _appify = prb.hasApp();
   if(perform(prb.units())) {
     prb.invalidateByRemoval();
   }
@@ -161,10 +163,18 @@ Literal* InequalitySplitting::splitLiteral(Literal* lit, Unit::InputType inpType
 
   TermList srt = SortHelper::getEqualityArgumentSort(lit);
   VList* vars = srt.freeVars();
-  unsigned predNum=env.signature->addNamePredicate(VList::length(vars) + 1);
-  OperatorType* type = OperatorType::getPredicateType({srt}, vars);
+  unsigned fun;
+  OperatorType* type;
+  if(!_appify){
+    fun=env.signature->addNamePredicate(VList::length(vars) + 1);
+    type = OperatorType::getPredicateType({srt}, vars);
+  } else {
+    srt = Term::arrowSort(srt, Term::boolSort());
+    fun=env.signature->addNameFunction(VList::length(vars));
+    type = OperatorType::getConstantsType(srt, vars);
+  }
 
-  Signature::Symbol* predSym = env.signature->getPredicate(predNum);
+  Signature::Symbol* predSym = env.signature->getPredicate(fun);
   predSym->setType(type);
 
   TermList s;
@@ -188,16 +198,16 @@ Literal* InequalitySplitting::splitLiteral(Literal* lit, Unit::InputType inpType
 
   Inference* inf = new Inference(Inference::INEQUALITY_SPLITTING_NAME_INTRODUCTION);
   Clause* defCl=new(1) Clause(1, inpType, inf);
-  (*defCl)[0]=makeNameLiteral(predNum, t, false, vars);
+  (*defCl)[0]=makeNameLiteral(fun, t, false, vars);
   _predDefs.push(defCl);
 
-  InferenceStore::instance()->recordIntroducedSymbol(defCl,false,predNum);
+  InferenceStore::instance()->recordIntroducedSymbol(defCl,false,fun);
 
   premise=defCl;
 
   env.statistics->splitInequalities++;
 
-  return makeNameLiteral(predNum, s, true, vars);
+  return makeNameLiteral(fun, s, true, vars);
 
 }
 
@@ -219,15 +229,27 @@ Literal* InequalitySplitting::makeNameLiteral(unsigned predNum, TermList arg, bo
 {
   CALL("InequalitySplitting::makeNameLiteral");
  
-  Stack<TermList> args;
+  TermStack args;
   while(!VList::isEmpty(vars)){
     unsigned var = vars->head();
     vars = vars->tail();
     args.push(TermList(var, false));
   }
-  args.push(arg);
-  
-  return Literal::create(predNum, args.size(), polarity, false, args.begin());
+  if(!_appify){
+    args.push(arg);
+  }
+  Literal* lit;
+  if(!_appify){
+    lit = Literal::create(predNum, args.size(), polarity, false, args.begin());
+  } else {
+    TermList boolT = polarity ? TermList(Term::foolTrue()) : TermList(Term::foolFalse());
+    TermList head = TermList(Term::create(predNum, args.size(), args.begin()));
+    TermList headS = SortHelper::getResultSort(head.term());
+    TermList t = LambdaElimination::createAppTerm(headS, head, arg);
+    lit=Literal::createEquality(true, t, boolT, Term::boolSort());
+  }
+
+  return lit;
 }
 
 

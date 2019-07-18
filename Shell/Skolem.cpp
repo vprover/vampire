@@ -85,9 +85,8 @@ FormulaUnit* Skolem::skolemiseImpl (FormulaUnit* unit, bool appify)
   
   _appify = appify;
   _beingSkolemised=unit;
-
   _skolimizingDefinitions = UnitList::empty();
-
+  cout << "skolemising unit " + _beingSkolemised->toString() << endl;
   _varOccs.reset();
   _varSorts.reset();
   _subst.reset();
@@ -99,7 +98,7 @@ FormulaUnit* Skolem::skolemiseImpl (FormulaUnit* unit, bool appify)
   ASS_EQ(_varOccs.size(),0);
 
   Formula* g = skolemise(f);
-
+  
   _beingSkolemised = 0;
 
   if (f == g) { // not changed
@@ -341,6 +340,7 @@ Formula* Skolem::skolemise (Formula* f)
 {
   CALL("Skolem::skolemise (Formula*)");
 
+  cout << "the formula is " + f->toString() << endl;
   switch (f->connective()) {
   case LITERAL: 
     {
@@ -373,6 +373,7 @@ Formula* Skolem::skolemise (Formula* f)
 
   case EXISTS: 
     {
+      //cout << "skolemising " + f->toString() << endl;
       // create the skolems for the existentials here
       // and bind them in _subst
       unsigned arity = 0;
@@ -438,7 +439,7 @@ Formula* Skolem::skolemise (Formula* f)
       while (vs.hasNext()) {
         int v = vs.next();
         TermList rangeSort=_varSorts.get(v, Term::defaultSort());
-        rangeSort = SubstHelper::apply(rangeSort, localSubst);
+        rangeSort = SubstHelper::apply(rangeSort, _subst);
 
         Term* skolemTerm;
 

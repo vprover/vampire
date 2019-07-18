@@ -202,7 +202,8 @@ void Preprocess::preprocess(Problem& prb)
     }
   }*/
 
-  if ((prb.hasLambdas() || prb.hasAppliedVar()) && env.options->addCombAxioms()){
+  //TODO, update the coniditon below to take into account Sigma and Pi
+  if (/*(prb.hasLambdas() || prb.hasAppliedVar()) &&)*/ env.options->addCombAxioms()){
     LambdaElimination::addCombinatorAxioms(prb);
   }
 

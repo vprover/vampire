@@ -54,6 +54,7 @@ private:
 
   Stack<Clause*> _predDefs;
   unsigned _splittingTreshold;
+  bool _appify;
 };
 
 };

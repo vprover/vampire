@@ -629,7 +629,7 @@ simpl_start:
     goto fin;
   }
 
-  ASS(!cl->numSelected());
+  ASS_REP2(!cl->numSelected(), cl->toString(), Int::toString(cl->numSelected()));
   {
     LiteralSelector& sosSelector = getSosLiteralSelector();
     sosSelector.select(cl);

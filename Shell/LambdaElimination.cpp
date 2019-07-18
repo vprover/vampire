@@ -264,7 +264,6 @@ TermList LambdaElimination::createAppTerm(TermList s1, TermList s2, TermList arg
 TermList LambdaElimination::createAppTerm(TermList sort, TermList head, TermStack terms)
 {
   CALL("LambdaElimination::createAppTerm/4");
-  ASS(terms.size() > 0);
   ASS(head.isVar() || SortHelper::getResultSort(head.term()) == sort);
 
   TermList res = head;
@@ -687,7 +686,7 @@ void LambdaElimination::addProxyAxioms(Problem& prb)
   Clause* andAxiom1 = new(2) Clause(2, Unit::AXIOM, inf);
   (*andAxiom1)[0] = toEquality(createAppTerm3(srtOf(constant), constant, x, y), false);
   (*andAxiom1)[1] = toEquality(x, true);
-  UnitList::push(impAxiom1, prb.units());
+  UnitList::push(andAxiom1, prb.units());
 
   Clause* andAxiom2 = new(2) Clause(2, Unit::AXIOM, inf);
   (*andAxiom2)[0] = toEquality(createAppTerm3(srtOf(constant), constant, x, y), false);
