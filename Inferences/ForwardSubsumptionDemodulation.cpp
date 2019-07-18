@@ -190,16 +190,16 @@ bool ForwardSubsumptionDemodulation::perform(Clause* cl, Clause*& replacement, C
   //
   // For condition 2, we check that l = r < M for some M in L \/ D.
 
-  TimeCounter tc(TC_FORWARD_SUBSUMPTION_DEMODULATION);
+  TimeCounter const tc(TC_FORWARD_SUBSUMPTION_DEMODULATION);
 
-  Ordering& ordering = _salg->getOrdering();
+  Ordering const& ordering = _salg->getOrdering();
 
   // Discard all previous aux values (so after this, hasAux() returns false for any clause).
   Clause::requestAux();
   ON_SCOPE_EXIT( Clause::releaseAux(); );
 
   // Initialize miniIndex with literals in the clause cl
-  LiteralMiniIndex miniIndex(cl);
+  LiteralMiniIndex const miniIndex(cl);
 
   for (unsigned sqli = 0; sqli < cl->length(); ++sqli) {
     Literal* subsQueryLit = (*cl)[sqli];  // this literal is only used to query the subsumption index
@@ -524,7 +524,7 @@ bool ForwardSubsumptionDemodulation::perform(Clause* cl, Clause*& replacement, C
                     }
                   }
                   // cl is not be redundant after the inference, possibly leading to incompleteness => skip
-                  RSTAT_CTR_INC("FSDv1, not redundant");
+                  RSTAT_CTR_INC("FSDv1, main premise not redundant");
                   continue;
                 }  // if (!_allowIncompleteness)
 isRedundant:

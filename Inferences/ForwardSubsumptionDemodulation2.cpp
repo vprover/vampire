@@ -453,9 +453,9 @@ bool ForwardSubsumptionDemodulation2::perform(Clause* cl, Clause*& replacement, 
   //
   // For condition 2, we check that l = r < M for some M in L \/ D.
 
-  TimeCounter tc(TC_FORWARD_SUBSUMPTION_DEMODULATION);
+  TimeCounter const tc(TC_FORWARD_SUBSUMPTION_DEMODULATION);
 
-  Ordering& ordering = _salg->getOrdering();
+  Ordering const& ordering = _salg->getOrdering();
 
   // Discard all previous aux values (so after this, hasAux() returns false for any clause).
   Clause::requestAux();
@@ -488,7 +488,7 @@ bool ForwardSubsumptionDemodulation2::perform(Clause* cl, Clause*& replacement, 
   // Initialize miniIndex with literals in the clause cl
   // TODO(idea for later): maybe it helps to order alternatives, either smaller to larger or larger to smaller, or unordered
   // to do this, we can simply order the literals inside the miniIndex (i.e., in each equivalence class w.r.t. literal header)
-  LiteralMiniIndex miniIndex(cl);
+  LiteralMiniIndex const miniIndex(cl);
 
   for (unsigned sqli = 0; sqli < cl->length(); ++sqli) {
     Literal* subsQueryLit = (*cl)[sqli];  // this literal is only used to query the subsumption index
@@ -692,7 +692,7 @@ bool ForwardSubsumptionDemodulation2::perform(Clause* cl, Clause*& replacement, 
         }
 
         if (lhsVector.size() == 0) {
-          RSTAT_CTR_INC("FSDv2, skipped due to no LHS term candidates");
+          RSTAT_CTR_INC("FSDv2, skipped match due to no LHS term candidates");
           continue;
         }
 
@@ -832,6 +832,7 @@ bool ForwardSubsumptionDemodulation2::perform(Clause* cl, Clause*& replacement, 
                   }
                 }
                 // cl is not be redundant after the inference, possibly leading to incompleteness => skip
+                RSTAT_CTR_INC("FSDv2, main premise not redundant");
                 continue;
               }  // if (!_allowIncompleteness)
 isRedundant:
@@ -874,7 +875,7 @@ isRedundant:
               env.out() << "\% Begin Inference \"FSDv2-" << newCl->number() << "\"\n";
               env.out() << "\% eqLit: " << eqLit->toString() << "\n";
               env.out() << "\% eqLitS: " << binder.applyTo(eqLit)->toString() << "\n";
-              env.out() << "\% dlit: " << binder.applyTo(dlit)->toString() << "\n";
+              env.out() << "\% dlit: " << dlit->toString() << "\n";
               TPTPPrinter tptp;
               // NOTE: do not output the splitLevels here, because those will be set for newCl only later
               tptp.printWithRole("side_premise_mcl", "hypothesis", mcl,   false);
