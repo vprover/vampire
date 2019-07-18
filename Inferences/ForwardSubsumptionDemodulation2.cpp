@@ -487,37 +487,6 @@ std::ostream& operator<<(std::ostream& o, OverlayBinder const& binder)
 }
 
 
-/*
-bool termContainsAllVariableOccurrencesOf(TermList t1, TermList t2)
-{
-  CALL("termContainsAllVariableOccurrencesOf");
-  static v_unordered_map<unsigned int, int> varBalance(16);
-  varBalance.clear();
-
-  static VariableIterator vit;
-
-  // collect t1's vars
-  vit.reset(t1);
-  while (vit.hasNext()) {
-    int& bal = varBalance[vit.next().content()];
-    bal += 1;
-  }
-
-  // check that collected vars do not occur more often in t2
-  vit.reset(t2);
-  while (vit.hasNext()) {
-    int& bal = varBalance[vit.next().content()];
-    bal -= 1;
-    if (bal < 0) {
-      return false;
-    }
-  }
-
-  return true;
-}
-*/
-
-
 }  // namespace
 
 
