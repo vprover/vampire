@@ -344,11 +344,13 @@ bool ForwardSubsumptionDemodulation::perform(Clause* cl, Clause*& replacement, C
                 break;
               case Ordering::GREATER:
               case Ordering::GREATER_EQ:
+                ASS(t0.containsAllVariableOccurrencesOf(t1));
                 ASS(t0.containsAllVariablesOf(t1));
                 lhsVector.push_back(t0);
                 break;
               case Ordering::LESS:
               case Ordering::LESS_EQ:
+                ASS(t1.containsAllVariableOccurrencesOf(t0));
                 ASS(t1.containsAllVariablesOf(t0));
                 lhsVector.push_back(t1);
                 break;

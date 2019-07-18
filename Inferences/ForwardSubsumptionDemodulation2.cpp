@@ -344,6 +344,12 @@ class OverlayBinder
       }
     }
 
+    bool isBound(Var var)
+    {
+      return m_base.find(var) != m_base.end()
+        || m_overlay.find(var) != m_overlay.end();
+    }
+
     void specVar(Var var, TermList term)
     {
       ASSERTION_VIOLATION;
@@ -366,34 +372,86 @@ class OverlayBinder
     }
 
     /// Resets to base bindings
-    void reset() {
+    void reset()
+    {
       m_overlay.clear();
     }
 
-    // Makes objects of this class work as applicator for substitution
-    // (as defined in Kernel/SubstHelper.hpp)
-    TermList apply(Var var) const {
+    bool tryGetBinding(Var var, TermList& result) const
+    {
       auto b_it = m_base.find(var);
       if (b_it != m_base.end()) {
-        return b_it->second;
+        // var has base binding
+        result = b_it->second;
+        return true;
       } else {
         auto o_it = m_overlay.find(var);
         if (o_it != m_overlay.end()) {
-          return o_it->second;
+          // var has overlay binding
+          result = o_it->second;
+          return true;
         } else {
-          // If var is not bound, return the variable itself (as TermList)
-          return TermList(var, false);
+          // var is unbound
+          return false;
         }
       }
     }
 
-    TermList applyTo(TermList t, bool noSharing = false) const {
+    /// Makes objects of this class work as applicator for substitution
+    /// (as defined in Kernel/SubstHelper.hpp)
+    TermList apply(Var var) const
+    {
+      TermList result;
+      if (tryGetBinding(var, result)) {
+        return result;
+      } else {
+        // We should never access unbound variables
+        // (NOTE: we should not return the variable itself here, as this creates a risk of mixing variables coming from different clauses)
+        ASSERTION_VIOLATION;
+      }
+    }
+
+    TermList applyTo(TermList t, bool noSharing = false) const
+    {
       return SubstHelper::apply(t, *this, noSharing);
     }
 
-    Literal* applyTo(Literal* l) const {
+    Literal* applyTo(Literal* l) const
+    {
       return SubstHelper::apply(l, *this);
     }
+
+    /// Like applyTo, but all unbound variables are shifted by unboundVarOffset
+    TermList applyWithUnboundVariableOffsetTo(TermList t, Var unboundVarOffset, bool noSharing = false) const
+    {
+      WithUnboundVariableOffsetApplicator applicator(*this, unboundVarOffset);
+      return SubstHelper::apply(t, applicator, noSharing);
+    }
+
+  private:
+    class WithUnboundVariableOffsetApplicator
+    {
+      public:
+        WithUnboundVariableOffsetApplicator(OverlayBinder const& binder, Var unboundVarOffset)
+          : binder(binder), unboundVarOffset(unboundVarOffset)
+        { }
+
+        /// Does the same as OverlayBinder::apply, except for the case where the variable is not bound
+        TermList apply(Var var) const
+        {
+          TermList result;
+          if (binder.tryGetBinding(var, result)) {
+            return result;
+          } else {
+            // No bindings? return the variable shifted by offset
+            return TermList(var + unboundVarOffset, false);
+          }
+        }
+
+      private:
+        OverlayBinder const& binder;
+        Var unboundVarOffset;
+    };
 
   private:
     BindingsMap m_base;
@@ -427,6 +485,37 @@ std::ostream& operator<<(std::ostream& o, OverlayBinder const& binder)
   o << " }";
   return o;
 }
+
+
+/*
+bool termContainsAllVariableOccurrencesOf(TermList t1, TermList t2)
+{
+  CALL("termContainsAllVariableOccurrencesOf");
+  static v_unordered_map<unsigned int, int> varBalance(16);
+  varBalance.clear();
+
+  static VariableIterator vit;
+
+  // collect t1's vars
+  vit.reset(t1);
+  while (vit.hasNext()) {
+    int& bal = varBalance[vit.next().content()];
+    bal += 1;
+  }
+
+  // check that collected vars do not occur more often in t2
+  vit.reset(t2);
+  while (vit.hasNext()) {
+    int& bal = varBalance[vit.next().content()];
+    bal -= 1;
+    if (bal < 0) {
+      return false;
+    }
+  }
+
+  return true;
+}
+*/
 
 
 }  // namespace
@@ -489,6 +578,8 @@ bool ForwardSubsumptionDemodulation2::perform(Clause* cl, Clause*& replacement, 
   // TODO(idea for later): maybe it helps to order alternatives, either smaller to larger or larger to smaller, or unordered
   // to do this, we can simply order the literals inside the miniIndex (i.e., in each equivalence class w.r.t. literal header)
   LiteralMiniIndex const miniIndex(cl);
+
+  unsigned int const cl_maxVar = cl->maxVar();
 
   for (unsigned sqli = 0; sqli < cl->length(); ++sqli) {
     Literal* subsQueryLit = (*cl)[sqli];  // this literal is only used to query the subsumption index
@@ -649,6 +740,14 @@ bool ForwardSubsumptionDemodulation2::perform(Clause* cl, Clause*& replacement, 
          *
          */
 
+        // TODO
+        // now that we have the 'unbound variable offset' we could also do away with the OverlayBinder
+        // and use two separate MapBinders instead.
+        // is probably slightly faster.
+        // Also, the new variables generated with 'unbound variable offset' are only temporary and will disappear in the final result.
+        // so there is no blowup of variable indices.
+        // TODO: First commit all the other stuff (as it is now, later try the change with two MapBinders; maybe on Friday?)
+
         // Select candidate lhs of eqLit for demodulation.
         // Must be larger than the rhs after substitution.
         //
@@ -656,36 +755,90 @@ bool ForwardSubsumptionDemodulation2::perform(Clause* cl, Clause*& replacement, 
         // 1. No LHS (if INCOMPARABLE and different variables)
         // 2. One LHS
         // 3. Two LHSs (INCOMPARABLE and same variables)
-        //
-        // TODO: ad "containsAllVariablesOf": shouldn't we check multiset-inclusion instead of set-inclusion?
         static v_vector<TermList> lhsVector;
         lhsVector.clear();
         {
           TermList t0 = *eqLit->nthArgument(0);
           TermList t1 = *eqLit->nthArgument(1);
-          switch (eqArgOrder) {
+          // Before comparing the variable occurrences in the terms (to select
+          // a suitable demodulation LHS), we have to apply the partial
+          // substitution arising from the MLMatch.  This is because variables
+          // that are disjoint before the partial substitution might be the
+          // same after applying the substitution; due to the instantiation of
+          // other literals in the subsumption part.
+          //
+          // However, we must be careful to separate the variables coming from
+          // mcl (the domain of the substitution) and the variables coming from
+          // cl (in the range of the substitution).
+          // In particular, any variables in mcl that are still unbound in the
+          // partial substitution must be mapped to some other variables that
+          // do not occur in cl.
+          //
+          // Note that in the final substitution all variables in mcl must be
+          // bound: if any variables of mcl are still unbound in the final
+          // substitution, they must occur only in rhs (because lhs is matched
+          // against lhsS, inducing bindings for all of its variables; and all
+          // other literals were already matched in the partial substitution).
+          // But if a variable occurs only in rhs after the final substitution,
+          // then the ordering result for lhs/rhs is INCOMPARABLE and we cannot
+          // perform the inference.  We filter these cases already here by
+          // checking 'containsAllVariableOccurrencesOf'.
+          //
+          // We ensure that unbound variables are disjoint from variables in cl
+          // by shifting them by 'cl->maxVar()+1'.
+          // TODO if we use two MapBinders instead of the OverlayBinder later,
+          //      note that those variables are temporary (due to previous paragraph).
+          //      so we do not have to fear that variable numbers blow up.
+          // TODO use some other suffix than 'S', because until now I have used this only for terms/literals under the final substitution.
+          TermList t0S = binder.applyWithUnboundVariableOffsetTo(t0, cl_maxVar+1, false);
+          TermList t1S = binder.applyWithUnboundVariableOffsetTo(t1, cl_maxVar+1, false);
+          Ordering::Result eqArgOrderS = ordering.compare(t0S, t1S);
+          if (eqArgOrder == Ordering::INCOMPARABLE && eqArgOrderS != Ordering::INCOMPARABLE) {
+            RSTAT_CTR_INC("FSDv2, ordered after partial substitution");
+          }
+          switch (eqArgOrderS) {
             case Ordering::INCOMPARABLE:
               ASS(!_preorderedOnly);  // would've skipped earlier already
-              if (t0.containsAllVariablesOf(t1)) {
+
+              // If t0S does not contain all variable occurrences of t1S, then
+              // t0Θ cannot be larger than t1Θ, where Θ is the final substitution.
+              if (t0S.containsAllVariableOccurrencesOf(t1S)) {
+                ASS(t0S.containsAllVariablesOf(t1S));
                 lhsVector.push_back(t0);
+              } else {
+#if VDEBUG
+                if (t0S.containsAllVariablesOf(t1S)) {
+                  RSTAT_CTR_INC("FSDv2, skipped LHS due to multiset-contains-check of variables");
+                }
+#endif
               }
-              if (t1.containsAllVariablesOf(t0)) {
+              if (t1S.containsAllVariableOccurrencesOf(t0S)) {
+                ASS(t1S.containsAllVariablesOf(t0S));
                 lhsVector.push_back(t1);
+              } else {
+#if VDEBUG
+                if (t1S.containsAllVariablesOf(t0S)) {
+                  RSTAT_CTR_INC("FSDv2, skipped LHS due to multiset-contains-check of variables");
+                }
+#endif
               }
               break;
             case Ordering::GREATER:
             case Ordering::GREATER_EQ:
-              ASS(t0.containsAllVariablesOf(t1));
+              ASS(t0S.containsAllVariableOccurrencesOf(t1S));
+              ASS(t0S.containsAllVariablesOf(t1S));
               lhsVector.push_back(t0);
               break;
             case Ordering::LESS:
             case Ordering::LESS_EQ:
-              ASS(t1.containsAllVariablesOf(t0));
+              ASS(t1S.containsAllVariableOccurrencesOf(t0S));
+              ASS(t1S.containsAllVariablesOf(t0S));
               lhsVector.push_back(t1);
               break;
             case Ordering::EQUAL:
-              // there should be no equality literals with equal terms
-              ASSERTION_VIOLATION;
+              // This case may happen due to the partial substitution from the MLMatcher
+              RSTAT_CTR_INC("FSDv2, terms equal after partial substitution");
+              break;
             default:
               ASSERTION_VIOLATION;
           }
@@ -742,6 +895,25 @@ bool ForwardSubsumptionDemodulation2::perform(Clause* cl, Clause*& replacement, 
               if (!MatchingUtils::matchTerms(lhs, lhsS, binder)) {
                 continue;
               }
+
+#if VDEBUG
+              {
+                // There can be no unbound variables at this point;
+                // otherwise we would have excluded the LHS already
+                // in the ordering pre-check above
+                auto mclVarIt = mcl->getVariableIterator();  // includes vars in rhs
+                while (mclVarIt.hasNext()) {
+                  unsigned int var = mclVarIt.next();
+                  ASS(binder.isBound(var));
+                }
+                // VariableIterator rhsVarIt(rhs);
+                // while (rhsVarIt.hasNext()) {
+                //   TermList rhsVar = rhsVarIt.next();
+                //   ASS(binder.isBound(rhsVar.var()));
+                // }
+                // this assertion is not really necessary... if it fails, it would fail in binder.applyTo below anyways... TODO: remove this block later
+              }
+#endif
 
               TermList rhsS = binder.applyTo(rhs);
               ASS_EQ(lhsS, binder.applyTo(lhs));
