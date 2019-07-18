@@ -1,5 +1,6 @@
 #include "ForwardSubsumptionDemodulation2.hpp"
 
+#include "Debug/RuntimeStatistics.hpp"
 #include "Indexing/Index.hpp"
 #include "Indexing/IndexManager.hpp"
 #include "Indexing/LiteralIndex.hpp"
@@ -583,8 +584,7 @@ bool ForwardSubsumptionDemodulation2::perform(Clause* cl, Clause*& replacement, 
 
       // Skip due to missing alternatives? (see comment above, "baseLit does not have any suitable alternative")
       if (baseLitsWithoutAlternatives > 1) {
-        // static unsigned cnt = 0;
-        // std::cerr << "skipped due to baseLitsWithoutAlternatives: " << ++cnt << std::endl;
+        RSTAT_CTR_INC("FSDv2, skipped side premise due to baseLitsWithoutAlternatives");
         continue;
       }
 
@@ -879,13 +879,30 @@ isRedundant:
               env.endOutput();
 #endif
 
+              switch (numMatches) {
+                case 0:
+                  break;
+                case 1:
+                  RSTAT_CTR_INC("FSDv2, success with MLMatch 2");
+                  break;
+                case 2:
+                  RSTAT_CTR_INC("FSDv2, success with MLMatch 3");
+                  break;
+                case 3:
+                  RSTAT_CTR_INC("FSDv2, success with MLMatch 4");
+                  break;
+                default:
+                  RSTAT_CTR_INC("FSDv2, success with MLMatch 5+");
+                  break;
+              }
+
               return true;
-            } // for lhs
-          } // while (nvi.hasNext())
-        } // for dli
-      } // for (numMatches)
-    } // while (rit.hasNext)
-  } // for (li)
+            }  // for (lhs)
+          }  // while (nvi.hasNext())
+        }  // for (dli)
+      }  // for (numMatches)
+    }  // while (rit.hasNext)
+  }  // for (li)
 
   return false;
 }
