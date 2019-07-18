@@ -691,6 +691,11 @@ bool ForwardSubsumptionDemodulation2::perform(Clause* cl, Clause*& replacement, 
           }
         }
 
+        if (lhsVector.size() == 0) {
+          RSTAT_CTR_INC("FSDv2, skipped due to no LHS term candidates");
+          continue;
+        }
+
         static DHSet<TermList> attempted;  // Terms we already attempted to demodulate
         attempted.reset();
 
