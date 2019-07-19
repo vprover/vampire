@@ -76,6 +76,8 @@ Clause::Clause(unsigned length,InputType it,Inference* inf)
     _extensionalityTag(false),
     _component(false),
     _theoryDescendant(false),
+    _combAxiomsDescendant(false), 
+    _proxyAxiomsDescendant(false),
     _inductionDepth(0),
     _numSelected(0),
     _age(0),
@@ -116,6 +118,31 @@ Clause::Clause(unsigned length,InputType it,Inference* inf)
     _theoryDescendant=td;
     _inductionDepth=id;
   }
+  
+  if(env.options->addCombAxioms()){
+    Inference::Iterator it = inf->iterator();
+    bool b = inf->hasNext(it);
+    while(inf->hasNext(it) && hd){
+      Unit* parent = inf->next(it);
+      b &= parent->isCombAxiomsDescendant();
+      if(!b){break;}
+    }
+    if(b){ env.statistics->holDescendants++;}
+    setCombAxiomsDescendant(b);
+  }
+
+  if(env.options->addProxyAxioms()){
+    Inference::Iterator it = inf->iterator();
+    bool b = inf->hasNext(it);
+    while(inf->hasNext(it) && hd){
+      Unit* parent = inf->next(it);
+      b &= parent->isProxyAxiomsDescendant();
+      if(!b){break;}
+    }
+    if(b){ env.statistics->holDescendants++;}
+    setProxyAxiomsDescendant(b);
+  }
+
 }
 
 /**

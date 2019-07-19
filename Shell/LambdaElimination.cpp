@@ -541,6 +541,7 @@ void LambdaElimination::addCombinatorAxioms(Problem& prb)
   
   Clause* sAxiom = new(1) Clause(1, Unit::AXIOM, inf);
   (*sAxiom)[0] = Literal::createEquality(true, lhs, rhs, s3);
+  sAxiom->setCombAxiomsDescendant(true);
   UnitList::push(sAxiom, prb.units());
 
   unsigned c_comb = env.signature->getCombinator(Signature::C_COMB);
@@ -550,6 +551,7 @@ void LambdaElimination::addCombinatorAxioms(Problem& prb)
 
   Clause* cAxiom = new(1) Clause(1, Unit::AXIOM, inf);
   (*cAxiom)[0] = Literal::createEquality(true, lhs, rhs, s3);
+  cAxiom->setCombAxiomsDescendant(true);
   UnitList::push(cAxiom, prb.units());
      
   unsigned b_comb = env.signature->getCombinator(Signature::B_COMB);
@@ -559,6 +561,7 @@ void LambdaElimination::addCombinatorAxioms(Problem& prb)
 
   Clause* bAxiom = new(1) Clause(1, Unit::AXIOM, inf);
   (*bAxiom)[0] = Literal::createEquality(true, lhs, rhs, s3);
+  bAxiom->setCombAxiomsDescendant(true);
   UnitList::push(bAxiom, prb.units());
 
   unsigned k_comb = env.signature->getCombinator(Signature::K_COMB);
@@ -567,6 +570,7 @@ void LambdaElimination::addCombinatorAxioms(Problem& prb)
   
   Clause* kAxiom = new(1) Clause(1, Unit::AXIOM, inf);
   (*kAxiom)[0] = Literal::createEquality(true, lhs, x, s1);
+  bAxiom->setCombAxiomsDescendant(true);
   UnitList::push(kAxiom, prb.units());
 
   unsigned i_comb = env.signature->getCombinator(Signature::I_COMB);
@@ -575,6 +579,7 @@ void LambdaElimination::addCombinatorAxioms(Problem& prb)
   
   Clause* iAxiom = new(1) Clause(1, Unit::AXIOM, inf);
   (*iAxiom)[0] = Literal::createEquality(true, lhs, x, s1);
+  iAxiom->setCombAxiomsDescendant(true);  
   UnitList::push(iAxiom, prb.units());
 
   if (env.options->showPreprocessing()) {
@@ -607,11 +612,13 @@ void LambdaElimination::addProxyAxioms(Problem& prb)
   Clause* eqAxiom1 = new(2) Clause(2, Unit::AXIOM, inf);
   (*eqAxiom1)[0] = toEquality(createAppTerm3(srtOf(constant), constant, x, y), true);
   (*eqAxiom1)[1] = Literal::createEquality(false,x,y,s1); 
+  eqAxiom1->setProxyAxiomsDescendant(true);  
   UnitList::push(eqAxiom1, prb.units());
 
   Clause* eqAxiom2 = new(2) Clause(2, Unit::AXIOM, inf);
   (*eqAxiom2)[0] = toEquality(createAppTerm3(srtOf(constant), constant, x, y), false);
   (*eqAxiom2)[1] = Literal::createEquality(true,x,y,s1); 
+  eqAxiom2->setProxyAxiomsDescendant(true);   
   UnitList::push(eqAxiom2, prb.units());
 
   inf = new Inference(Inference::NOT_PROXY_AXIOM);
@@ -621,11 +628,13 @@ void LambdaElimination::addProxyAxioms(Problem& prb)
   Clause* notAxiom1 = new(2) Clause(2, Unit::AXIOM, inf);
   (*notAxiom1)[0] = toEquality(createAppTerm(srtOf(constant), constant, x), true);
   (*notAxiom1)[1] = toEquality(x, true);
+  notAxiom1->setProxyAxiomsDescendant(true);    
   UnitList::push(notAxiom1, prb.units());
 
   Clause* notAxiom2 = new(2) Clause(2, Unit::AXIOM, inf);
   (*notAxiom2)[0] = toEquality(createAppTerm(srtOf(constant), constant, x), false);
   (*notAxiom2)[1] = toEquality(x, false);
+  notAxiom2->setProxyAxiomsDescendant(true);    
   UnitList::push(notAxiom2, prb.units());  
 
   inf = new Inference(Inference::PI_PROXY_AXIOM);
@@ -635,11 +644,13 @@ void LambdaElimination::addProxyAxioms(Problem& prb)
   Clause* piAxiom1 = new(2) Clause(2, Unit::AXIOM, inf);
   (*piAxiom1)[0] = toEquality(createAppTerm(srtOf(constant), constant, x), true);
   (*piAxiom1)[1] = toEquality(createAppTerm(s1, Term::boolSort(), x, y), false);
+  piAxiom1->setProxyAxiomsDescendant(true);    
   UnitList::push(piAxiom1, prb.units());
 
   Clause* piAxiom2 = new(2) Clause(2, Unit::AXIOM, inf);
   (*piAxiom2)[0] = toEquality(createAppTerm(srtOf(constant), constant, x), false);
   (*piAxiom2)[1] = toEquality(createAppTerm(s1, Term::boolSort(), x, y), true);
+  piAxiom2->setProxyAxiomsDescendant(true);      
   UnitList::push(piAxiom2, prb.units());  
 
   inf = new Inference(Inference::SIGMA_PROXY_AXIOM);
@@ -652,11 +663,13 @@ void LambdaElimination::addProxyAxioms(Problem& prb)
   Clause* sigmaAxiom1 = new(2) Clause(2, Unit::AXIOM, inf);
   (*sigmaAxiom1)[0] = toEquality(createAppTerm(srtOf(constant), constant, x), true); 
   (*sigmaAxiom1)[1] = toEquality(createAppTerm(s1, Term::boolSort(), x, createAppTerm(srtOf(sk), sk, x)), false);
+  sigmaAxiom1->setProxyAxiomsDescendant(true);      
   UnitList::push(sigmaAxiom1, prb.units());
 
   Clause* sigmaAxiom2 = new(2) Clause(2, Unit::AXIOM, inf);
   (*sigmaAxiom2)[0] = toEquality(createAppTerm(srtOf(constant), constant, x), false);
   (*sigmaAxiom2)[1] = toEquality(createAppTerm(s1, Term::boolSort(), x, createAppTerm(srtOf(sk), sk, x)), true);
+  sigmaAxiom2->setProxyAxiomsDescendant(true);    
   UnitList::push(sigmaAxiom2, prb.units()); 
 
   inf = new Inference(Inference::IMPLIES_PROXY_AXIOM);
@@ -666,17 +679,20 @@ void LambdaElimination::addProxyAxioms(Problem& prb)
   Clause* impAxiom1 = new(2) Clause(2, Unit::AXIOM, inf);
   (*impAxiom1)[0] = toEquality(createAppTerm3(srtOf(constant), constant, x, y), true);
   (*impAxiom1)[1] = toEquality(x, true);
+  impAxiom1->setProxyAxiomsDescendant(true);    
   UnitList::push(impAxiom1, prb.units());
 
   Clause* impAxiom2 = new(2) Clause(2, Unit::AXIOM, inf);
   (*impAxiom2)[0] = toEquality(createAppTerm3(srtOf(constant), constant, x, y), true);
   (*impAxiom2)[1] = toEquality(y, false);
+  impAxiom2->setProxyAxiomsDescendant(true);      
   UnitList::push(impAxiom2, prb.units());
 
   Clause* impAxiom3 = new(3) Clause(3, Unit::AXIOM, inf);
   (*impAxiom3)[0] = toEquality(createAppTerm3(srtOf(constant), constant, x, y), false);  
   (*impAxiom3)[1] = toEquality(x, false);
   (*impAxiom3)[2] = toEquality(y, true);
+  impAxiom3->setProxyAxiomsDescendant(true);
   UnitList::push(impAxiom3, prb.units());
 
   inf = new Inference(Inference::AND_PROXY_AXIOM);
@@ -686,17 +702,20 @@ void LambdaElimination::addProxyAxioms(Problem& prb)
   Clause* andAxiom1 = new(2) Clause(2, Unit::AXIOM, inf);
   (*andAxiom1)[0] = toEquality(createAppTerm3(srtOf(constant), constant, x, y), false);
   (*andAxiom1)[1] = toEquality(x, true);
+  andAxiom1->setProxyAxiomsDescendant(true);
   UnitList::push(andAxiom1, prb.units());
 
   Clause* andAxiom2 = new(2) Clause(2, Unit::AXIOM, inf);
   (*andAxiom2)[0] = toEquality(createAppTerm3(srtOf(constant), constant, x, y), false);
   (*andAxiom2)[1] = toEquality(y, true);
+  andAxiom2->setProxyAxiomsDescendant(true);
   UnitList::push(andAxiom2, prb.units());
 
   Clause* andAxiom3 = new(3) Clause(3, Unit::AXIOM, inf);
   (*andAxiom3)[0] = toEquality(createAppTerm3(srtOf(constant), constant, x, y), true);  
   (*andAxiom3)[1] = toEquality(x, false);
   (*andAxiom3)[2] = toEquality(y, false);
+  andAxiom3->setProxyAxiomsDescendant(true);  
   UnitList::push(andAxiom3, prb.units());
 
   inf = new Inference(Inference::OR_PROXY_AXIOM);
@@ -706,17 +725,20 @@ void LambdaElimination::addProxyAxioms(Problem& prb)
   Clause* orAxiom1 = new(2) Clause(2, Unit::AXIOM, inf);
   (*orAxiom1)[0] = toEquality(createAppTerm3(srtOf(constant), constant, x, y), true);
   (*orAxiom1)[1] = toEquality(x, false);
+  orAxiom1->setProxyAxiomsDescendant(true);
   UnitList::push(orAxiom1, prb.units());
 
   Clause* orAxiom2 = new(2) Clause(2, Unit::AXIOM, inf);
   (*orAxiom2)[0] = toEquality(createAppTerm3(srtOf(constant), constant, x, y), true);
   (*orAxiom2)[1] = toEquality(y, false);
+  orAxiom2->setProxyAxiomsDescendant(true);
   UnitList::push(orAxiom2, prb.units());
 
   Clause* orAxiom3 = new(3) Clause(3, Unit::AXIOM, inf);
   (*orAxiom3)[0] = toEquality(createAppTerm3(srtOf(constant), constant, x, y), false);  
   (*orAxiom3)[1] = toEquality(x, true);
   (*orAxiom3)[2] = toEquality(y, true);
+  orAxiom3->setProxyAxiomsDescendant(true);
   UnitList::push(orAxiom3, prb.units()); 
   
   inf = new Inference(Inference::FOOL_AXIOM);

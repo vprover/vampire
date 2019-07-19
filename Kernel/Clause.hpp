@@ -199,6 +199,12 @@ public:
   bool isTheoryDescendant() const { return _theoryDescendant; }
   void setTheoryDescendant(bool t) { _theoryDescendant=t; }
 
+  bool isCombAxiomsDescendant() const { return _combAxiomsDescendant; }
+  void setCombAxiomsDescendant(bool t) { _combAxiomsDescendant=t; }
+
+  bool isProxyAxiomsDescendant() const { return _proxyAxiomsDescendant; }
+  void setroxyAxiomsDescendant(bool t) { _proxyAxiomsDescendant=t; }
+
   unsigned inductionDepth() const { return _inductionDepth; }
   void setInductionDepth(unsigned d){
     ASS(d < 33);
@@ -365,6 +371,10 @@ protected:
   unsigned _component : 1;
   /** Clause is a theory descendant **/
   unsigned _theoryDescendant : 1;
+  /** Clause is a combinator axiom descendent */
+  unsigned _combAxiomsDescendant : 1;
+  /** */
+  unsigned _proxyAxiomsDescendant : 1;
   /** Induction depth **/
   unsigned _inductionDepth : 5;
 
