@@ -627,18 +627,28 @@ Term* getFreshConstant(unsigned index, unsigned srt)
 /* Take a theory (sub)clause, their skolemization grounding and a solution that makes the clause unsat.
    Return a new solution that is at least as general as the input solution.
  */
-VirtualIterator<Solution> TheoryInstAndSimp::minimizeSolution(Stack<Literal*>& theoryLiterals, bool guarded,
+VirtualIterator<Solution> TheoryInstAndSimp::generalizeSolution(Stack<Literal*>& theoryLiterals, bool guarded,
                                                               Solution sol,
                                                               Stack<Literal*>& triangleSubst,
                                                               unsigned maxVar
                                                               ) {
-  CALL("TheoryInstAndSimp::minimizeSolution");
+  CALL("TheoryInstAndSimp::generalizeSolution");
 
   BYPASSING_ALLOCATOR;
 
 #if DPRINT
-  cout << "minimizing maxVar=" << maxVar << " guarded? " << guarded << endl;
+  cout << "generalizing, maxVar=" << maxVar << " guarded? " << guarded << " sol status " << sol.status << endl;
 #endif
+
+  if (! guarded) {
+    /* unguarded problems should not be generalized: consider instantiating 0.0 / X = 0.0 which 
+       leads to the SMT problem 0.0 / sk ≠ 0.0 with instance sk = 0.0. But z3 reports sat for both
+       sk = 0.0 ∧ 0.0 / sk ≠ 0.0 and sk = 0.0 ∧ 0.0 / sk = 0.0 due to the semantics of division.
+     */
+    return VirtualIterator<Solution>::getEmpty();
+  }
+
+  
   static SAT2FO naming;
   static  Z3Interfacing solver(*env.options,naming,true);
   solver.reset(); // the solver will reset naming
@@ -817,7 +827,7 @@ VirtualIterator<Solution> TheoryInstAndSimp::minimizeSolution(Stack<Literal*>& t
 }
 
 
-VirtualIterator<Solution> TheoryInstAndSimp::getSolutions(Stack<Literal*>& theoryLiterals, unsigned maxVar, bool minimize, bool guarded){
+VirtualIterator<Solution> TheoryInstAndSimp::getSolutions(Stack<Literal*>& theoryLiterals, unsigned maxVar, bool guarded){
   CALL("TheoryInstAndSimp::getSolutions");
 
   BYPASSING_ALLOCATOR;
@@ -935,10 +945,11 @@ VirtualIterator<Solution> TheoryInstAndSimp::getSolutions(Stack<Literal*>& theor
     }
     cout << endl;
 #endif
-    // try to minimize the solution
-    if (minimize) {
-      VirtualIterator<Solution> minsol = minimizeSolution(theoryLiterals, guarded, sol, substTriangleForm, maxVar);
-      return minsol;
+    // try to generalize the solution, but when guards are present. otherwise,
+    // the semantics of division makes problems (see comment withing generalizeSolution)
+    if (env.options->generalizeTheoryInstance() && guarded) {
+      VirtualIterator<Solution> gensol = generalizeSolution(theoryLiterals, guarded, sol, substTriangleForm, maxVar);
+      return gensol;
     }
     
     return pvi(getSingletonIterator(sol));
@@ -990,7 +1001,7 @@ partial_check_end:
 
       // now we run SMT solver again without guarding
       if(containsPartial){
-        auto solutions = _parent->getSolutions(_theoryLits,_premise->maxVar(),false,false);
+        auto solutions = _parent->getSolutions(_theoryLits,_premise->maxVar(),false);
         // we have an unsat solution without guards
         if(solutions.hasNext() && !solutions.next().status){
           containsPartial=false;
@@ -1131,7 +1142,7 @@ ClauseIterator TheoryInstAndSimp::generateClauses(Clause* premise,bool& premiseR
     TimeCounter t(TC_THEORY_INST_SIMP);
 
     //auto it1 = getSolutions(theoryLiterals);
-    auto it1 = getSolutions(selectedLiterals, flattened->maxVar(), env.options->generalizeTheoryInstance(), true);
+    auto it1 = getSolutions(selectedLiterals, flattened->maxVar(), true);
   
     
     auto it2 = getMappingIterator(it1,
