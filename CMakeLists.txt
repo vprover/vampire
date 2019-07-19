@@ -1,5 +1,6 @@
 cmake_minimum_required (VERSION 3.12.1)
 
+
 project(Vampire)
 
 # require the compiler to use C++11
@@ -18,7 +19,6 @@ endif()
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -DVDEBUG=1 -DUNIX_USE_SIGALRM=1 -DGNUMP=0 ")
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -DVDEBUG=0")
 
-
 # support sourcetrail
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
@@ -35,6 +35,14 @@ add_compile_options(
     # "$<$<CONFIG:DEBUG>:-O0>"
     # "$<$<CONFIG:RELEASE>:-O3>"
 )
+
+# adjust warnings -- compiler dependent
+# -- see also https://cmake.org/pipermail/cmake/2016-May/063452.html
+if(CMAKE_COMPILER_IS_GNUCXX)
+  add_compile_options("-Wno-terminate")
+endif()
+
+
 
 # add directoy, where we store all custom files for finding libraries which are not build using cmake (i.e. currently z3 only), to the search path of cmake
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/")
