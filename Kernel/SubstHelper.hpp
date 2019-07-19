@@ -304,7 +304,7 @@ Term* SubstHelper::applyImpl(Term* trm, Applicator& applicator, bool noSharing)
     case Term::SF_FORMULA:
       return Term::createFormula(
       applyImpl<ProcessSpecVars>(sd->getFormula(), applicator, noSharing)
-      );
+      ); //TODO add SF_LAMBDA?
     /*case Term::SF_LET_TUPLE:
       return Term::createTupleLet(
         sd->getFunctor(),

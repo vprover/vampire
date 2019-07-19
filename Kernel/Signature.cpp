@@ -242,6 +242,7 @@ Signature::Signature ():
   ASS(added);
   ASS_EQ(predicateName(0), "=");
   getPredicate(0)->markSkip();
+  getPredicate(0)->markProtected();
 
   unsigned aux;
   aux = createDistinctGroup();

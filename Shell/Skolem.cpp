@@ -86,7 +86,6 @@ FormulaUnit* Skolem::skolemiseImpl (FormulaUnit* unit, bool appify)
   _appify = appify;
   _beingSkolemised=unit;
   _skolimizingDefinitions = UnitList::empty();
-  cout << "skolemising unit " + _beingSkolemised->toString() << endl;
   _varOccs.reset();
   _varSorts.reset();
   _subst.reset();
@@ -340,7 +339,6 @@ Formula* Skolem::skolemise (Formula* f)
 {
   CALL("Skolem::skolemise (Formula*)");
 
-  cout << "the formula is " + f->toString() << endl;
   switch (f->connective()) {
   case LITERAL: 
     {
@@ -483,14 +481,14 @@ Formula* Skolem::skolemise (Formula* f)
       }
 
       {
-        Formula* def = new BinaryFormula(IMP, f, SubstHelper::apply(f->qarg(), localSubst));
+        /*Formula* def = new BinaryFormula(IMP, f, SubstHelper::apply(f->qarg(), localSubst));
 
         if (arity > 0) {
           def = new QuantifiedFormula(FORALL,var_args,nullptr,def);
         }
 
         Unit* defUnit = new FormulaUnit(def, new Inference(Inference::CHOICE_AXIOM), Unit::AXIOM);
-        UnitList::push(defUnit,_skolimizingDefinitions);
+        UnitList::push(defUnit,_skolimizingDefinitions);*/
       }
 
       // drop the existential one:

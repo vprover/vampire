@@ -94,7 +94,7 @@ TermList SortHelper::getResultSort(const Term* t)
   getTypeSub(t, subst);
   Signature::Symbol* sym = env.signature->getFunction(t->functor());
   TermList result = sym->fnType()->result();
-  //cout << "the type is " + sym->fnType()->toString() << endl;
+ // cout << "the type is " + sym->fnType()->toString() << endl;
   ASS(!subst.isEmpty() || (result.isTerm() && result.term()->ground()));  
   return SubstHelper::apply(result, subst);
 }

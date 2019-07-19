@@ -600,13 +600,13 @@ void UIHelper::outputSymbolTypeDeclarationIfNeeded(ostream& out, bool function, 
     }
   }*/
 
-  if(sym->name() == "'$tType'"){
+  if(sym->name() == "'$tType'" || sym->name() == "'$o'" || sym->name() == "'$i'" ){
     return;
   }
 
   OperatorType* type = function ? sym->fnType() : sym->predType();
 
-  if (type->isAllDefault()) {
+  if (type->isAllDefault()) {//TODO required
     return;
   }
 

@@ -134,6 +134,7 @@ struct PredicateDefinition::PredData
       enqueuedForReplacement=true;
       if (env.options->showPreprocessing()) {
         env.beginOutput();
+        ASSERTION_VIOLATION;
         env.out() << "[PP] " << stateToString() << " to be replaced by " 
                 << ((nocc==0) ? "$false" : "$true") << std::endl;
         env.endOutput();
@@ -822,6 +823,7 @@ void PredicateDefinition::count (Formula* f,int polarity,int add, Unit* unit)
     {
       Literal* l=f->literal();
       int pred = l->functor();
+      //cout << "the literal is " + l->toString() << " and it is pos " << l->isPositive() << endl; 
       _preds[pred].add(l->isPositive() ? polarity : -polarity, add, this);
       if(add==1) {
         _preds[pred].containingUnits.insert(unit);
