@@ -189,6 +189,9 @@ public:
   unsigned taNegativeInjectivitySimplifications;
   unsigned taAcyclicityGeneratedDisequalities;
 
+  unsigned combDescendants;
+  unsigned proxyDescendants;
+
   // Saturation
   /** all clauses ever occurring in the unprocessed queue */
   unsigned generatedClauses;

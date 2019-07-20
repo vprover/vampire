@@ -113,6 +113,8 @@ Statistics::Statistics()
     taInjectivitySimplifications(0),
     taNegativeInjectivitySimplifications(0),
     taAcyclicityGeneratedDisequalities(0),
+    combDescendants(0),
+    proxyDescendants(0), 
     generatedClauses(0),
     passiveClauses(0),
     activeClauses(0),
@@ -336,6 +338,10 @@ void Statistics::print(ostream& out)
   COND_OUT("Injectivity simplifications",taInjectivitySimplifications);
   COND_OUT("Negative injectivity simplifications",taNegativeInjectivitySimplifications);
   COND_OUT("Disequalities generated from acyclicity",taAcyclicityGeneratedDisequalities);
+
+  HEADING("Higher-Order axiom descendants", combDescendants + proxyDescendants);
+  COND_OUT("Combinator axiom descendants", combDescendants);
+  COND_OUT("Proxy axiom descendants", proxyDescendants);
 
   HEADING("AVATAR",splitClauses+splitComponents+uniqueComponents+satSplits+
         satSplitRefutations);

@@ -203,7 +203,7 @@ public:
   void setCombAxiomsDescendant(bool t) { _combAxiomsDescendant=t; }
 
   bool isProxyAxiomsDescendant() const { return _proxyAxiomsDescendant; }
-  void setroxyAxiomsDescendant(bool t) { _proxyAxiomsDescendant=t; }
+  void setProxyAxiomsDescendant(bool t) { _proxyAxiomsDescendant=t; }
 
   unsigned inductionDepth() const { return _inductionDepth; }
   void setInductionDepth(unsigned d){

@@ -40,6 +40,7 @@
 #include "SAT/SATClause.hpp"
 
 #include "Shell/Options.hpp"
+#include "Shell/Statistics.hpp"
 
 #include "Inference.hpp"
 #include "Signature.hpp"
@@ -122,24 +123,22 @@ Clause::Clause(unsigned length,InputType it,Inference* inf)
   if(env.options->addCombAxioms()){
     Inference::Iterator it = inf->iterator();
     bool b = inf->hasNext(it);
-    while(inf->hasNext(it) && hd){
+    while(inf->hasNext(it) && b){
       Unit* parent = inf->next(it);
-      b &= parent->isCombAxiomsDescendant();
-      if(!b){break;}
+      b &= static_cast<Clause*>(parent)->isCombAxiomsDescendant();
     }
-    if(b){ env.statistics->holDescendants++;}
+    if(b){ env.statistics->combDescendants++;}
     setCombAxiomsDescendant(b);
   }
 
   if(env.options->addProxyAxioms()){
     Inference::Iterator it = inf->iterator();
     bool b = inf->hasNext(it);
-    while(inf->hasNext(it) && hd){
+    while(inf->hasNext(it) && b){
       Unit* parent = inf->next(it);
-      b &= parent->isProxyAxiomsDescendant();
-      if(!b){break;}
+      b &= static_cast<Clause*>(parent)->isProxyAxiomsDescendant();
     }
-    if(b){ env.statistics->holDescendants++;}
+    if(b){ env.statistics->proxyDescendants++;}
     setProxyAxiomsDescendant(b);
   }
 
