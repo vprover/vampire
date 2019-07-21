@@ -107,7 +107,7 @@ bool FOOLElimination::needsElimination(FormulaUnit* unit) {
 void FOOLElimination::apply(Problem& prb)  {
   CALL("FOOLElimination::apply(Problem*)");
 
-  _higherOrder = prb.hasApp() || prb.hasLambdas();
+  _higherOrder = prb.hasApp();
   apply(prb.units());
   prb.reportFOOLEliminated();
   prb.invalidateProperty();

@@ -1188,6 +1188,13 @@ void Options::Options::init()
     _superpositionFromVariables.addProblemConstraint(hasEquality());
     _superpositionFromVariables.reliesOn(_saturationAlgorithm.is(notEqual(SaturationAlgorithm::INST_GEN))->Or<bool>(_instGenWithResolution.is(equal(true))));
     _superpositionFromVariables.setRandomChoices({"on","off"});
+    
+    _combinatorySuperposition = BoolOptionValue("combinatory_sup","csup",false);
+    _combinatorySuperposition.description="Switches on a speciic ordering and that orients combinator axioms left-right."
+                               "also turns on a number of special inference rules";
+    _lookup.insert(&_combinatorySuperposition);
+    _combinatorySuperposition.reliesOn(_addCombAxioms.is(equal(false))); //no point having two together
+    _combinatorySuperposition.tag(OptionTag::INFERENCES);
 
 //*********************** InstGen  ***********************
 
@@ -2955,6 +2962,16 @@ bool Options::complete(const Problem& prb) const
   
   bool unitEquality = prop.category() == Property::UEQ;
   bool hasEquality = (prop.equalityAtoms() != 0);
+
+  if((prop.hasCombs() || prop.hasAppliedVar()) && 
+    (!_addCombAxioms.actualValue || _combinatorySuperposition.actualValue)) {
+    return false;
+  }
+
+  //TODO update once we have another method of dealing with bools
+  if((prop.hasLogicalProxy() || prop.hasBoolVar())  && !_addProxyAxioms.actualValue){
+    return false;
+  }
 
   if (!unitEquality) {
     if (_selection.actualValue <= -100 || _selection.actualValue >= 100) return false;

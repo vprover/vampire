@@ -85,6 +85,8 @@ struct FunctionDefinition::Def
   bool linear;
   /** strict means that all lhs variables occur in rhs */
   bool strict;
+
+  bool twoConstDef;
   /** first defined function that is used in @b rhs, or -1 if there isn't such */
   int containedFn;
 
@@ -106,6 +108,7 @@ struct FunctionDefinition::Def
       mark(UNTOUCHED),
       linear(lin),
       strict(str),
+      twoConstDef(0),
       containedFn(-1),
       dependentFns(0),
       argOccurs(0)
@@ -179,18 +182,18 @@ bool FunctionDefinition::removeUnusedDefinitions(UnitList*& units, Problem* prb)
     if(d) {
       d->defCl=cl;
       if(!def[d->fun]) {
-	defStack.push(d);
-	def[d->fun]=d;
-	scanIterator.del();
+        defStack.push(d);
+        def[d->fun]=d;
+        scanIterator.del();
       } else {
-	delete d;
+        delete d;
       }
     }
     for(unsigned i=0;i<clen;i++) {
       NonVariableIterator nvit((*cl)[i]);
       while(nvit.hasNext()) {
-	unsigned fn=nvit.next().term()->functor();
-	occCounter[fn]++;
+        unsigned fn=nvit.next().term()->functor();
+        occCounter[fn]++;
       }
     }
   }
@@ -266,11 +269,23 @@ bool FunctionDefinition::removeAllDefinitions(UnitList*& units)
     Def* d=isFunctionDefinition(cl);
     if(d) {
       d->defCl=cl;
+      bool inserted = false;
       if(_defs.insert(d->fun, d)) {
-//	cout<<"Found: "<<(*(*d->defCl)[0])<<endl;
-	scanIterator.del();
-      } else {
-	delete d;
+        //	cout<<"Found: "<<(*(*d->defCl)[0])<<endl;
+        inserted = true;
+        scanIterator.del();
+      } else if(d->twoConstDef){
+         Term* temp = d->lhs;
+         d->lhs = d->rhs;
+         d->rhs = temp;
+         d->fun = d->lhs->functor();
+         if(_defs.insert(d->fun, d)) {
+           inserted = true;
+           scanIterator.del();
+         }    
+      } 
+      if(!inserted){
+        delete d;
       }
     }
   }
@@ -851,9 +866,13 @@ FunctionDefinition::defines (Term* lhs, Term* rhs)
     return 0;
   }
   if (lhs->arity() == 0) {
-    if (rhs->arity() != 0) { // c = f(...)
+    if(env.signature->isFoolConstantSymbol(true , f) ||
+       env.signature->isFoolConstantSymbol(false, f)){
       return 0;
     }
+    /*if (rhs->arity() != 0) { // c = f(...)
+      return 0;
+    }*/
     if (rhs->functor() == f) {
       return 0;
     }
@@ -903,6 +922,11 @@ FunctionDefinition::defines (Term* lhs, Term* rhs)
   }
 
   Def* res=new Def(lhs,rhs,linear,!vars);
+
+  if(!lhs->arity() && !rhs->arity()){
+    res->twoConstDef = true;
+  }
+  
   return res;
 } // FunctionDefinition::defines
 

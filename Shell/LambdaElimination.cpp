@@ -515,6 +515,17 @@ TermList LambdaElimination::getNthArg(TermList arrowSort, unsigned argNum)
   return res;
 }
 
+TermList LambdaElimination::getResultSort(TermList sort)
+{
+  CALL("LambdaElimination::getResultSort");
+
+  while(sort.isTerm() && env.signature->getFunction(sort.term()->functor())->arrow()){
+    sort = *sort.term()->nthArgument(1);
+  }
+  return sort;
+}
+
+
 void LambdaElimination::addCombinatorAxioms(Problem& prb)
 {
   CALL("LambdaElimination::addCombinatorAxioms"); 

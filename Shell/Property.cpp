@@ -43,6 +43,7 @@
 #include "FunctionDefinition.hpp"
 #include "Property.hpp"
 #include "SubexpressionIterator.hpp"
+#include "LambdaElimination.hpp"
 
 using namespace Lib;
 using namespace Kernel;
@@ -83,9 +84,11 @@ Property::Property()
     _hasNonDefaultSorts(false),
     _sortsUsed(0),
     _hasFOOL(false),
-    _hasLambdas(false),
+    _hasCombs(false),
     _hasApp(false),
     _hasAppliedVar(false),
+    _hasBoolVar(false),
+    _hasLogicalProxy(false),
     _onlyFiniteDomainDatatypes(true),
     _knownInfiniteDomain(false),
     _allClausesGround(true),
@@ -624,9 +627,6 @@ void Property::scan(TermList ts,bool unit,bool goal)
       case Term::SF_FORMULA:
         _hasFOOL = true;
         break;
-      case Term::SF_LAMBDA:
-        _hasLambdas = true;
-        break;
 
       default:
         break;
@@ -645,7 +645,17 @@ void Property::scan(TermList ts,bool unit,bool goal)
       TermList firstArg = *t->nthArgument(0);
       if(firstArg.isVar()){
         _hasAppliedVar = true;
+        TermList varSort = func->fnType()->arg(3);
+        if(LambdaElimination::getResultSort(varSort) == Term::boolSort()){
+          _hasBoolVar = true;
+        }
       }
+    }
+
+    if(func->combinator() != Signature::NOT_COMB){
+      _hasCombs = true;
+    } else if(func->proxy() != Signature::NOT_PROXY){
+      _hasLogicalProxy = true;
     }
 
     int arity = t->arity();

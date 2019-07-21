@@ -2104,7 +2104,7 @@ public:
   bool getIteInlineLet() const { return _inlineLet.actualValue; }
   bool addCombAxioms() const { return _addCombAxioms.actualValue; }
   bool addProxyAxioms() const { return _addProxyAxioms.actualValue; }
-
+  bool combinatorySup() const { return _combinatorySuperposition.actualValue; }
 
 private:
     
@@ -2480,6 +2480,7 @@ private:
   BoolOptionValue _inlineLet;
   BoolOptionValue _addCombAxioms;
   BoolOptionValue _addProxyAxioms;
+  BoolOptionValue _combinatorySuperposition;
 
 }; // class Options
 

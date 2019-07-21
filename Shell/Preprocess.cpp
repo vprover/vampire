@@ -163,6 +163,15 @@ void Preprocess::preprocess(Problem& prb)
 {
   CALL("Preprocess::preprocess");
 
+  // reorder units
+  if (_options.normalize()) {
+    env.statistics->phase=Statistics::NORMALIZATION;
+    if (env.options->showPreprocessing())
+      env.out() << "normalization" << std::endl;
+
+    Normalisation().normalise(prb);
+  }
+
   if (env.options->showPreprocessing()) {
     env.beginOutput();
     env.out() << "preprocessing started" << std::endl;
@@ -202,15 +211,6 @@ void Preprocess::preprocess(Problem& prb)
     }
   }*/
 
-  //TODO, update the coniditon below to take into account Sigma and Pi
-  if (/*(prb.hasLambdas() || prb.hasAppliedVar()) &&)*/ env.options->addCombAxioms()){
-    LambdaElimination::addCombinatorAxioms(prb);
-  }
-
-  if (env.options->addProxyAxioms()){ //TODO only add if option on and ...
-    LambdaElimination::addProxyAxioms(prb);
-  }
-
   if (prb.hasFOOL()) {
     // This is the point to extend the signature with $$true and $$false
     // If we don't have fool then these constants get in the way (a lot)
@@ -223,6 +223,17 @@ void Preprocess::preprocess(Problem& prb)
       FOOLElimination().apply(prb);
     //}
   }
+
+  prb.getProperty();
+
+  if ((prb.hasCombs() || prb.hasAppliedVar()) && env.options->addCombAxioms()){
+    LambdaElimination::addCombinatorAxioms(prb);
+  }
+
+  if ((prb.hasLogicalProxy() || prb.hasBoolVar()) && env.options->addProxyAxioms()){
+    LambdaElimination::addProxyAxioms(prb);
+  }
+
 
   /*
   if (prb.hasInterpretedOperations() || env.signature->hasTermAlgebras()){
@@ -237,15 +248,6 @@ void Preprocess::preprocess(Problem& prb)
     if(env.options->showPreprocessing())
       env.out() << "distinct group expansion" << std::endl;
     DistinctGroupExpansion().apply(prb);
-  }
-
-  // reorder units
-  if (_options.normalize()) {
-    env.statistics->phase=Statistics::NORMALIZATION;
-    if (env.options->showPreprocessing())
-      env.out() << "normalization" << std::endl;
-
-    Normalisation().normalise(prb);
   }
 
   if (_options.sineSelection()!=Options::SineSelection::OFF) {

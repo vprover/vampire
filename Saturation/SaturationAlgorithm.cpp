@@ -1366,7 +1366,7 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
   /*if (opt.extensionalityResolution() != Options::ExtensionalityResolution::OFF) {
     gie->addFront(new ExtensionalityResolution());
   }*/
-  if (opt.FOOLParamodulation()) {
+  if (opt.FOOLParamodulation() || (prb.hasApp() && prb.hasFOOL())) {
     gie->addFront(new FOOLParamodulation());
   }
   /*if(prb.hasEquality() && env.signature->hasTermAlgebras()) {

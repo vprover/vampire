@@ -125,7 +125,11 @@ Clause::Clause(unsigned length,InputType it,Inference* inf)
     bool b = inf->hasNext(it);
     while(inf->hasNext(it) && b){
       Unit* parent = inf->next(it);
-      b &= static_cast<Clause*>(parent)->isCombAxiomsDescendant();
+      if(parent->isClause()){
+        b &= static_cast<Clause*>(parent)->isCombAxiomsDescendant();
+      } else {
+      	b = false;
+      }
     }
     if(b){ env.statistics->combDescendants++;}
     setCombAxiomsDescendant(b);
@@ -136,9 +140,13 @@ Clause::Clause(unsigned length,InputType it,Inference* inf)
     bool b = inf->hasNext(it);
     while(inf->hasNext(it) && b){
       Unit* parent = inf->next(it);
-      b &= static_cast<Clause*>(parent)->isProxyAxiomsDescendant();
+      if(parent->isClause()){
+        b &= static_cast<Clause*>(parent)->isProxyAxiomsDescendant();
+      } else {
+      	b = false;
+      }
     }
-    if(b){ env.statistics->proxyDescendants++;}
+    if(b){ env.statistics->proxyDescendants++; }
     setProxyAxiomsDescendant(b);
   }
 

@@ -40,6 +40,7 @@ public:
   static TermList createAppTerm(TermList sort, TermList head, TermStack terms); 
   static TermList getNthArg(TermList arrowSort, unsigned argNum);
   static TermList getResultApplieadToNArgs(TermList arrowSort, unsigned argNum);
+  static TermList getResultSort(TermList sort);
   static void addCombinatorAxioms(Problem& prb);
   static void addProxyAxioms(Problem& prb);
   static Literal* toEquality(TermList booleanTerm, bool polarity);

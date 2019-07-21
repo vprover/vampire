@@ -230,9 +230,11 @@ public:
   /** Problem contains non-default sorts */
   bool hasNonDefaultSorts() const { return _hasNonDefaultSorts; }
   bool hasFOOL() const { return _hasFOOL; }
-  bool hasLambdas() const { return _hasLambdas;}
+  bool hasCombs() const { return _hasCombs;}
   bool hasApp() const { return _hasApp; }
   bool hasAppliedVar() const { return _hasAppliedVar; }
+  bool hasBoolVar() const { return _hasBoolVar; }
+  bool hasLogicalProxy() const { return _hasLogicalProxy; }
   /*bool usesSort(unsigned sort) const { 
     CALL("Property::usesSort");
     if(_usesSort.size() <= sort) return false;
@@ -341,9 +343,11 @@ public:
   //DHSet<Theory::MonomorphisedInterpretation> _polymorphicInterpretations;
 
   bool _hasFOOL;
-  bool _hasLambdas;
+  bool _hasCombs;
   bool _hasApp;
   bool _hasAppliedVar;
+  bool _hasBoolVar;
+  bool _hasLogicalProxy;
 
   bool _onlyFiniteDomainDatatypes;
   bool _knownInfiniteDomain;

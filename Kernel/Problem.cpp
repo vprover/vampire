@@ -306,10 +306,12 @@ void Problem::readDetailsFromProperty() const
   _hasEquality = _property->equalityAtoms()!=0;
   //_hasInterpretedOperations = _property->hasInterpretedOperations();
   _hasFOOL = _property->hasFOOL();
-  _hasLambdas = _property->hasLambdas();
+  _hasCombs = _property->hasCombs();
   _hasApp = _property->hasApp();
   _hasAppliedVar = _property->hasAppliedVar();
   _hasInterpretedEquality = _property->hasInterpretedEquality();
+  _hasLogicalProxy = _property->hasLogicalProxy();
+  _hasBoolVar = _property->hasBoolVar();
 
   _mayHaveFormulas = _hasFormulas.value();
   _mayHaveEquality = _hasEquality.value();
@@ -331,7 +333,7 @@ void Problem::invalidateEverything()
   _hasInterpretedOperations = MaybeBool::UNKNOWN;
   _hasFOOL = MaybeBool::UNKNOWN;
   _hasInterpretedEquality = MaybeBool::UNKNOWN;
-  _hasLambdas = MaybeBool::UNKNOWN;
+  _hasCombs = MaybeBool::UNKNOWN;
   _hasApp = MaybeBool::UNKNOWN;
   _hasAppliedVar = MaybeBool::UNKNOWN;
 
@@ -355,8 +357,10 @@ void Problem::invalidateByRemoval()
   _hasEquality.mightBecameFalse();
   _hasInterpretedOperations.mightBecameFalse();
   _hasFOOL.mightBecameFalse();
-  _hasLambdas.mightBecameFalse();
+  _hasCombs.mightBecameFalse();
   _hasAppliedVar.mightBecameFalse();
+  _hasLogicalProxy.mightBecameFalse();
+  _hasBoolVar.mightBecameFalse();
   _hasInterpretedEquality.mightBecameFalse();
 }
 
@@ -419,12 +423,12 @@ bool Problem::hasFOOL() const
   return _hasFOOL.value();
 }
 
-bool Problem::hasLambdas() const
+bool Problem::hasCombs() const
 {
-  CALL("Problem::hasLambdas");
+  CALL("Problem::hasCombs");
 
-  if(!_hasLambdas.known()) { refreshProperty(); }
-  return _hasLambdas.value();
+  if(!_hasCombs.known()) { refreshProperty(); }
+  return _hasCombs.value();
 }
 
 
@@ -443,6 +447,24 @@ bool Problem::hasAppliedVar() const
   if(!_hasAppliedVar.known()) { refreshProperty(); }
   return _hasAppliedVar.value();
 }
+
+bool Problem::hasBoolVar() const
+{
+  CALL("Problem::hasBoolVar");
+
+  if(!_hasBoolVar.known()) { refreshProperty(); }
+  return _hasBoolVar.value();
+}
+
+
+bool Problem::hasLogicalProxy() const
+{
+  CALL("Problem::hasLogicalProxy");
+
+  if(!_hasLogicalProxy.known()) { refreshProperty(); }
+  return _hasLogicalProxy.value();
+}
+
 ///////////////////////
 // utility functions
 //

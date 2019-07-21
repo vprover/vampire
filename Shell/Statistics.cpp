@@ -342,6 +342,7 @@ void Statistics::print(ostream& out)
   HEADING("Higher-Order axiom descendants", combDescendants + proxyDescendants);
   COND_OUT("Combinator axiom descendants", combDescendants);
   COND_OUT("Proxy axiom descendants", proxyDescendants);
+  SEPARATOR;
 
   HEADING("AVATAR",splitClauses+splitComponents+uniqueComponents+satSplits+
         satSplitRefutations);
