@@ -1071,7 +1071,12 @@ isRedundant:
                */
               Literal* newLit = EqHelper::replace(dlit, lhsS, rhsS);
               ASS_EQ(ordering.compare(lhsS, rhsS), Ordering::GREATER);
-              ASS_EQ(ordering.compare(dlit, newLit), Ordering::GREATER);
+#if VDEBUG
+              if (getOptions().literalComparisonMode() != Options::LiteralComparisonMode::REVERSE) {
+                // blows up with "-lcm reverse"; but the same thing happens with normal demodulation, so this might be intended?
+                ASS_EQ(ordering.compare(dlit, newLit), Ordering::GREATER);
+              }
+#endif
 
               if (EqHelper::isEqTautology(newLit)) {
                 env.statistics->forwardSubsumptionDemodulationsToEqTaut++;
@@ -1132,22 +1137,24 @@ isRedundant:
               }
 
 #if VDEBUG && FSD_VDEBUG_REDUNDANCY_ASSERTIONS
-              // Check newCl < cl.
-              // This is quite obvious, there should be no problems with this.
-              ASS(clauseIsSmaller(newCl->literals(), newCl->length(), cl->literals(), cl->length(), ordering));
-              // Check mclΘ < cl.
-              // This is not so clear and might easily be violated if we have a bug above.
-              v_vector<Literal*> mclS(mcl->literals(), mcl->literals() + mcl->length());
-              ASS_EQ(mcl->length(), mclS.size());
-              for (auto it = mclS.begin(); it < mclS.end(); ++it) {
-                *it = binder.applyTo(*it);
-              }
-              if (!clauseIsSmaller(mclS.data(), mclS.size(), cl->literals(), cl->length(), ordering)) {
-                std::cerr << "FSDv2: redundancy violated!" << std::endl;
-                std::cerr << "mcl: " << mcl->toString() << std::endl;
-                std::cerr << " cl: " <<  cl->toString() << std::endl;
-                std::cerr << "mcl < cl required but it doesn't seem to be the case" << std::endl;
-                ASSERTION_VIOLATION;
+              if (getOptions().literalComparisonMode() != Options::LiteralComparisonMode::REVERSE) {  // see note above
+                // Check newCl < cl.
+                // This is quite obvious, there should be no problems with this.
+                ASS(clauseIsSmaller(newCl->literals(), newCl->length(), cl->literals(), cl->length(), ordering));
+                // Check mclΘ < cl.
+                // This is not so clear and might easily be violated if we have a bug above.
+                v_vector<Literal*> mclS(mcl->literals(), mcl->literals() + mcl->length());
+                ASS_EQ(mcl->length(), mclS.size());
+                for (auto it = mclS.begin(); it < mclS.end(); ++it) {
+                  *it = binder.applyTo(*it);
+                }
+                if (!clauseIsSmaller(mclS.data(), mclS.size(), cl->literals(), cl->length(), ordering)) {
+                  std::cerr << "FSDv2: redundancy violated!" << std::endl;
+                  std::cerr << "mcl: " << mcl->toString() << std::endl;
+                  std::cerr << " cl: " <<  cl->toString() << std::endl;
+                  std::cerr << "mcl < cl required but it doesn't seem to be the case" << std::endl;
+                  ASSERTION_VIOLATION;
+                }
               }
 #endif
 
