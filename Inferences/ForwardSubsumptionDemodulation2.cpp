@@ -34,6 +34,9 @@ using namespace Saturation;
 // Set to true to output FSD inferences on stdout
 #define FSD_LOG_INFERENCES false
 
+// Set to true to check redundancy of simplified clause in debug mode
+#define FSD_VDEBUG_REDUNDANCY_ASSERTIONS true
+
 
 void ForwardSubsumptionDemodulation2::attach(SaturationAlgorithm* salg)
 {
@@ -485,6 +488,91 @@ std::ostream& operator<<(std::ostream& o, OverlayBinder const& binder)
   o << " }";
   return o;
 }
+
+
+#if VDEBUG
+/// Returns true iff clause with literal lits1 is smaller than clause with literals lits2 in the given ordering.
+/// (naive implementation; to be used only in debug mode.)
+bool clauseIsSmaller(Literal* const lits1[], unsigned n1, Literal* const lits2[], unsigned n2, Ordering const& ordering)
+{
+  v_vector<Literal*> c1(lits1, lits1+n1);
+  v_vector<Literal*> c2(lits2, lits2+n2);
+
+  v_vector<Literal*> v1;
+  v_vector<Literal*> v2;
+
+  // sort by pointer value
+  std::sort(c1.begin(), c1.end());
+  std::sort(c2.begin(), c2.end());
+
+  // Skip occurrences of equal literals
+  unsigned i1 = 0;
+  unsigned i2 = 0;
+  while (i1 < n1 && i2 < n2) {
+    if (c1[i1] == c2[i2]) {
+      // skip this occurrence
+      ++i1;
+      ++i2;
+    }
+    else if (c1[i1] < c2[i2]) {
+      v1.push_back(c1[i1]);
+      ++i1;
+    }
+    else if (c1[i1] > c2[i2]) {
+      v2.push_back(c2[i2]);
+      ++i2;
+    }
+    else {
+      ASSERTION_VIOLATION;
+    }
+  }
+  while (i1 < n1) {
+    ASS_GE(i2, n2);
+    v1.push_back(c1[i1]);
+    ++i1;
+  }
+  while (i2 < n2) {
+    ASS_GE(i1, n1);
+    v2.push_back(c2[i2]);
+    ++i2;
+  }
+
+  // For each remaining literal from c1,
+  // we have to find a greater one in the remaining ones from c2.
+  for (Literal* l1 : v1) {
+    bool isCovered = false;
+    for (Literal* l2 : v2) {
+      switch (ordering.compare(l1, l2)) {
+        case Ordering::LESS:
+          // yay
+          isCovered = true;
+          break;
+        case Ordering::INCOMPARABLE:
+        case Ordering::GREATER:
+          // doesn't work
+          break;
+        case Ordering::EQUAL:
+          // should not happen due to first part where we remove equal literals
+          ASSERTION_VIOLATION;
+        case Ordering::LESS_EQ:
+        case Ordering::GREATER_EQ:
+          // those don't appear
+          ASSERTION_VIOLATION;
+        default:
+          ASSERTION_VIOLATION;
+      }
+      if (isCovered) {
+        break;
+      }
+    }
+    if (!isCovered) {
+      return false;
+    }
+  }
+
+  return true;
+}
+#endif  // VDEBUG
 
 
 }  // namespace
@@ -1042,6 +1130,26 @@ isRedundant:
                   RSTAT_CTR_INC("FSDv2, success with MLMatch 5+");
                   break;
               }
+
+#if VDEBUG && FSD_VDEBUG_REDUNDANCY_ASSERTIONS
+              // Check newCl < cl.
+              // This is quite obvious, there should be no problems with this.
+              ASS(clauseIsSmaller(newCl->literals(), newCl->length(), cl->literals(), cl->length(), ordering));
+              // Check mclΘ < cl.
+              // This is not so clear and might easily be violated if we have a bug above.
+              v_vector<Literal*> mclS(mcl->literals(), mcl->literals() + mcl->length());
+              ASS_EQ(mcl->length(), mclS.size());
+              for (auto it = mclS.begin(); it < mclS.end(); ++it) {
+                *it = binder.applyTo(*it);
+              }
+              if (!clauseIsSmaller(mclS.data(), mclS.size(), cl->literals(), cl->length(), ordering)) {
+                std::cerr << "FSDv2: redundancy violated!" << std::endl;
+                std::cerr << "mcl: " << mcl->toString() << std::endl;
+                std::cerr << " cl: " <<  cl->toString() << std::endl;
+                std::cerr << "mcl < cl required but it doesn't seem to be the case" << std::endl;
+                ASSERTION_VIOLATION;
+              }
+#endif
 
               return true;
             }  // for (lhs)
