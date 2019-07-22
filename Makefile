@@ -345,6 +345,7 @@ VS_OBJ = Shell/CommandLine.o\
          Shell/Interpolants.o\
          Shell/InterpolantsNew.o\
          Shell/LambdaElimination.o\
+         Shell/ApplicativeHelper.o\
          Shell/LaTeX.o\
          Shell/LispLexer.o\
          Shell/LispParser.o\

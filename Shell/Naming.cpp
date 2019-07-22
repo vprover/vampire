@@ -40,7 +40,7 @@
 
 #include "Shell/Statistics.hpp"
 #include "Shell/Options.hpp"
-#include "Shell/LambdaElimination.hpp"
+#include "Shell/ApplicativeHelper.hpp"
 
 #include "Indexing/TermSharing.hpp"
 
@@ -1188,7 +1188,7 @@ Literal* Naming::getDefinitionLiteral(Formula* f, Formula::VarList* freeVars) {
     Signature::Symbol* sym = env.signature->getFunction(fun);
     sym->setType(OperatorType::getConstantsType(sort, vl)); 
     TermList head = TermList(Term::create(fun, args.size(), args.begin()));
-    TermList t = LambdaElimination::createAppTerm(sort, head, termArgs);
+    TermList t = ApplicativeHelper::createAppTerm(sort, head, termArgs);
     return  Literal::createEquality(true, TermList(t), TermList(Term::foolTrue()), Term::boolSort());  
   }
 }

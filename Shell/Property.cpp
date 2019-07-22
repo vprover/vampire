@@ -43,7 +43,7 @@
 #include "FunctionDefinition.hpp"
 #include "Property.hpp"
 #include "SubexpressionIterator.hpp"
-#include "LambdaElimination.hpp"
+#include "ApplicativeHelper.hpp"
 
 using namespace Lib;
 using namespace Kernel;
@@ -646,7 +646,7 @@ void Property::scan(TermList ts,bool unit,bool goal)
       if(firstArg.isVar()){
         _hasAppliedVar = true;
         TermList varSort = func->fnType()->arg(3);
-        if(LambdaElimination::getResultSort(varSort) == Term::boolSort()){
+        if(ApplicativeHelper::getResultSort(varSort) == Term::boolSort()){
           _hasBoolVar = true;
         }
       }

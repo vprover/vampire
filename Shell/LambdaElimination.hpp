@@ -22,7 +22,6 @@ using namespace Shell;
 class LambdaElimination {
 public:
 
-
   LambdaElimination() {};
   LambdaElimination(DHMap<unsigned,TermList> varSorts) : _varSorts(varSorts){};
   TermList elimLambda(Term* lambdaTerm);
@@ -33,14 +32,6 @@ public:
   //void addFunctionExtensionalityAxioms(UnitList*& units);
   //void addBooleanExtensionalityAxiom(UnitList*& units);
   
-  static TermList createAppTerm(TermList sort, TermList arg1, TermList arg2);
-  static TermList createAppTerm(TermList s1, TermList s2, TermList arg1, TermList arg2);
-  static TermList createAppTerm3(TermList sort, TermList arg1, TermList arg2, TermList arg3);
-  static TermList createAppTerm(TermList sort, TermList arg1, TermList arg2, TermList arg3, TermList arg4); 
-  static TermList createAppTerm(TermList sort, TermList head, TermStack terms); 
-  static TermList getNthArg(TermList arrowSort, unsigned argNum);
-  static TermList getResultApplieadToNArgs(TermList arrowSort, unsigned argNum);
-  static TermList getResultSort(TermList sort);
   static void addCombinatorAxioms(Problem& prb);
   static void addProxyAxioms(Problem& prb);
   static Literal* toEquality(TermList booleanTerm, bool polarity);

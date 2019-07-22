@@ -20,6 +20,7 @@
 #include "Kernel/Signature.hpp"
 #include "Kernel/SortHelper.hpp"
 
+#include "ApplicativeHelper.hpp"
 #include "Skolem.hpp"
 #include "Options.hpp"
 //#include "Shell/SymbolOccurrenceReplacement.hpp"
@@ -30,6 +31,9 @@
 using namespace Lib;
 using namespace Kernel;
 using namespace Shell;
+
+typedef ApplicativeHelper AH;
+
 
 /*void LambdaElimination::addFunctionExtensionalityAxioms(UnitList*& units){
   CALL("LambdaElimination::addFunctionExtensionalityAxioms");
@@ -88,11 +92,11 @@ TermList LambdaElimination::processBeyondLambda(Formula* formula)
       
       unsigned eqProxy = env.signature->getEqualityProxy();
       constant = TermList(Term::create1(eqProxy, equalsSort));             
-      appTerm = createAppTerm3(sortOf(constant), constant, lhs, rhs);
+      appTerm = AH::createAppTerm3(sortOf(constant), constant, lhs, rhs);
       
       if(!lit->polarity()){
         constant = TermList(Term::createConstant(env.signature->getNotProxy()));
-        appTerm = createAppTerm(sortOf(constant), constant, appTerm);
+        appTerm = AH::createAppTerm(sortOf(constant), constant, appTerm);
       }
       return appTerm;
     }
@@ -108,7 +112,7 @@ TermList LambdaElimination::processBeyondLambda(Formula* formula)
       TermList form1 = processBeyondLambda(lhs);
       TermList form2 = processBeyondLambda(rhs);
  
-      return createAppTerm3(sortOf(constant), constant, form1, form2);;
+      return AH::createAppTerm3(sortOf(constant), constant, form1, form2);;
     }
     case AND:
     case OR:{
@@ -124,11 +128,11 @@ TermList LambdaElimination::processBeyondLambda(Formula* formula)
         Formula* arg = argsIt.next();
         form = processBeyondLambda(arg);
         if(count == 1){
-          appTerm = createAppTerm(sortOf(constant), constant, form);
+          appTerm = AH::createAppTerm(sortOf(constant), constant, form);
         }else if(count == 2){
-          appTerm = createAppTerm(sortOf(appTerm), appTerm, form);
+          appTerm = AH::createAppTerm(sortOf(appTerm), appTerm, form);
         }else{
-          appTerm = createAppTerm3(sortOf(constant), constant, appTerm, form);
+          appTerm = AH::createAppTerm3(sortOf(constant), constant, appTerm, form);
         }
         count++;
       }
@@ -137,7 +141,7 @@ TermList LambdaElimination::processBeyondLambda(Formula* formula)
     case NOT: {
       constant = TermList(Term::createConstant(env.signature->getNotProxy()));
       TermList form = processBeyondLambda(formula->uarg());
-      return  createAppTerm(sortOf(constant), constant, form);                                                    
+      return  AH::createAppTerm(sortOf(constant), constant, form);                                                    
     }
     case FORALL:
     case EXISTS: {
@@ -158,7 +162,7 @@ TermList LambdaElimination::processBeyondLambda(Formula* formula)
         sort->setHead(s);
         form = elimLambda(Term::createLambda(form, var, sort, Term::boolSort())); 
         constant = TermList(Term::create1(proxy, s));
-        form = createAppTerm(sortOf(constant), constant, form);
+        form = AH::createAppTerm(sortOf(constant), constant, form);
       }
       return form;
     }
@@ -202,7 +206,7 @@ TermList LambdaElimination::processBeyondLambda(Term* term)
     TermList arg2 = *(term->nthArgument(3));
     arg1 = processBeyondLambda(arg1);
     arg2 = processBeyondLambda(arg2);
-    return createAppTerm(s1, s2, arg1, arg2);
+    return AH::createAppTerm(s1, s2, arg1, arg2);
   } 
    
   return TermList(term); 
@@ -216,67 +220,6 @@ TermList LambdaElimination::processBeyondLambda(TermList term)
     return term;
   }
   return processBeyondLambda(term.term());
-}
-
-
-TermList LambdaElimination::createAppTerm(TermList sort, TermList arg1, TermList arg2, TermList arg3, TermList arg4)
-{
-  CALL("LambdaElimination::createAppTerm/3");
-
-  TermList t1 = createAppTerm3(sort, arg1, arg2, arg3);
-  return createAppTerm(SortHelper::getResultSort(t1.term()), t1, arg4);
-}
-
-TermList LambdaElimination::createAppTerm3(TermList sort, TermList arg1, TermList arg2, TermList arg3)
-{
-  CALL("LambdaElimination::createAppTerm3");
-  
-  TermList s1 = getNthArg(sort, 1);
-  TermList s2 = getResultApplieadToNArgs(sort, 1);
-  TermList s3 = getNthArg(s2, 1);
-  TermList s4 = getResultApplieadToNArgs(s2, 1);
-  return createAppTerm(s3, s4, createAppTerm(s1, s2, arg1, arg2), arg3);
-}
-
-TermList LambdaElimination::createAppTerm(TermList sort, TermList arg1, TermList arg2)
-{
-  CALL("LambdaElimination::createAppTerm/2");
-  
-  TermList s1 = getNthArg(sort, 1);
-  TermList s2 = getResultApplieadToNArgs(sort, 1);
-  return createAppTerm(s1, s2, arg1, arg2);
-}
-
-TermList LambdaElimination::createAppTerm(TermList s1, TermList s2, TermList arg1, TermList arg2)
-{
-  CALL("LambdaElimination::createAppTerm/1");
- 
-  static TermStack args;
-  args.reset();
-  args.push(s1);
-  args.push(s2);
-  args.push(arg1);
-  args.push(arg2);
-  unsigned app = env.signature->getApp();
-  return TermList(Term::create(app, 4, args.begin()));
-}
-
-TermList LambdaElimination::createAppTerm(TermList sort, TermList head, TermStack terms)
-{
-  CALL("LambdaElimination::createAppTerm/4");
-  ASS(head.isVar() || SortHelper::getResultSort(head.term()) == sort);
-
-  TermList res = head;
-  TermList s1, s2;
-
-  while(!terms.isEmpty()){
-    s1 = getNthArg(sort, 1);
-    s2 = getResultApplieadToNArgs(sort, 1);
-    res = createAppTerm(s1, s2, res, terms.pop());
-    sort = s2;
-  }
-  return res; 
-
 }
 
 
@@ -449,7 +392,7 @@ TermList LambdaElimination::createKTerm(TermList s1, TermList s2, TermList arg1)
   
   unsigned kcomb = env.signature->getCombinator(Signature::K_COMB);
   TermList res = TermList(Term::create2(kcomb, s1, s2));
-  res = createAppTerm(sortOf(res), res, arg1);             
+  res = AH::createAppTerm(sortOf(res), res, arg1);             
   return res;
 }   
     
@@ -463,18 +406,18 @@ TermList LambdaElimination::createSCorBTerm(TermList arg1, TermList arg2, Signat
     TermList arg2sort = sortOf(arg2);
     
     if(comb == Signature::S_COMB || comb == Signature::C_COMB){
-      s1 = getNthArg(arg1sort, 1);
-      s2 = getNthArg(arg1sort, 2);
-      s3 = getResultApplieadToNArgs(arg1sort, 2);
+      s1 = AH::getNthArg(arg1sort, 1);
+      s2 = AH::getNthArg(arg1sort, 2);
+      s3 = AH::getResultApplieadToNArgs(arg1sort, 2);
     } else {
-      s1 = getNthArg(arg2sort, 1);
-      s2 = getNthArg(arg1sort, 1);
-      s3 = getResultApplieadToNArgs(arg1sort, 1);
+      s1 = AH::getNthArg(arg2sort, 1);
+      s2 = AH::getNthArg(arg1sort, 1);
+      s3 = AH::getResultApplieadToNArgs(arg1sort, 1);
     }
     
     TermList args[] = {s1, s2, s3};
     TermList c = TermList(Term::create(cb, 3, args));
-    return createAppTerm3(sortOf(c), c, arg1, arg2); 
+    return AH::createAppTerm3(sortOf(c), c, arg1, arg2); 
 }
 
 TermList LambdaElimination::sortOf(TermList t)
@@ -483,48 +426,7 @@ TermList LambdaElimination::sortOf(TermList t)
   
   return SortHelper::getResultSort(t, _varSorts);
   
-} 
-
-/** indexed from 1 */
-TermList LambdaElimination::getResultApplieadToNArgs(TermList arrowSort, unsigned argNum)
-{
-  CALL("LambdaElimination::getResultApplieadToNArgs");
-  
-  while(argNum > 0){
-    ASS(arrowSort.isTerm() && env.signature->getFunction(arrowSort.term()->functor())->arrow());
-    arrowSort = *arrowSort.term()->nthArgument(1);
-    argNum--;
-  }
-  return arrowSort;
 }
-
-
-/** indexed from 1 */
-TermList LambdaElimination::getNthArg(TermList arrowSort, unsigned argNum)
-{
-  CALL("LambdaElimination::getNthArg");
-  ASS(argNum > 0);
-
-  TermList res;
-  while(argNum >=1){
-    ASS(arrowSort.isTerm() && env.signature->getFunction(arrowSort.term()->functor())->arrow());
-    res = *arrowSort.term()->nthArgument(0);
-    arrowSort = *arrowSort.term()->nthArgument(1);
-    argNum--;
-  }
-  return res;
-}
-
-TermList LambdaElimination::getResultSort(TermList sort)
-{
-  CALL("LambdaElimination::getResultSort");
-
-  while(sort.isTerm() && env.signature->getFunction(sort.term()->functor())->arrow()){
-    sort = *sort.term()->nthArgument(1);
-  }
-  return sort;
-}
-
 
 void LambdaElimination::addCombinatorAxioms(Problem& prb)
 {
@@ -547,8 +449,8 @@ void LambdaElimination::addCombinatorAxioms(Problem& prb)
   
   unsigned s_comb = env.signature->getCombinator(Signature::S_COMB);
   TermList constant = TermList(Term::create(s_comb, 3, args));
-  TermList lhs = createAppTerm(srtOf(constant), constant, x, y, z); //TODO fix
-  TermList rhs = createAppTerm3(Term::arrowSort(s1, s2, s3), x, z, createAppTerm(Term::arrowSort(s1, s2), y, z));
+  TermList lhs = AH::createAppTerm(srtOf(constant), constant, x, y, z); //TODO fix
+  TermList rhs = AH::createAppTerm3(Term::arrowSort(s1, s2, s3), x, z, AH::createAppTerm(Term::arrowSort(s1, s2), y, z));
   
   Clause* sAxiom = new(1) Clause(1, Unit::AXIOM, inf);
   (*sAxiom)[0] = Literal::createEquality(true, lhs, rhs, s3);
@@ -557,8 +459,8 @@ void LambdaElimination::addCombinatorAxioms(Problem& prb)
 
   unsigned c_comb = env.signature->getCombinator(Signature::C_COMB);
   constant = TermList(Term::create(c_comb, 3, args));
-  lhs = createAppTerm(srtOf(constant), constant, x, y, z); //TODO fix
-  rhs = createAppTerm3(Term::arrowSort(s1, s2, s3), x, z, y);
+  lhs = AH::createAppTerm(srtOf(constant), constant, x, y, z); //TODO fix
+  rhs = AH::createAppTerm3(Term::arrowSort(s1, s2, s3), x, z, y);
 
   Clause* cAxiom = new(1) Clause(1, Unit::AXIOM, inf);
   (*cAxiom)[0] = Literal::createEquality(true, lhs, rhs, s3);
@@ -567,8 +469,8 @@ void LambdaElimination::addCombinatorAxioms(Problem& prb)
      
   unsigned b_comb = env.signature->getCombinator(Signature::B_COMB);
   constant = TermList(Term::create(b_comb, 3, args));
-  lhs = createAppTerm(srtOf(constant), constant, x, y, z); //TODO fix
-  rhs = createAppTerm(Term::arrowSort(s2, s3), x, createAppTerm(Term::arrowSort(s1, s2), y, z));
+  lhs = AH::createAppTerm(srtOf(constant), constant, x, y, z); //TODO fix
+  rhs = AH::createAppTerm(Term::arrowSort(s2, s3), x, AH::createAppTerm(Term::arrowSort(s1, s2), y, z));
 
   Clause* bAxiom = new(1) Clause(1, Unit::AXIOM, inf);
   (*bAxiom)[0] = Literal::createEquality(true, lhs, rhs, s3);
@@ -577,7 +479,7 @@ void LambdaElimination::addCombinatorAxioms(Problem& prb)
 
   unsigned k_comb = env.signature->getCombinator(Signature::K_COMB);
   constant = TermList(Term::create2(k_comb, s1, s2));
-  lhs = createAppTerm3(srtOf(constant), constant, x, y);
+  lhs = AH::createAppTerm3(srtOf(constant), constant, x, y);
   
   Clause* kAxiom = new(1) Clause(1, Unit::AXIOM, inf);
   (*kAxiom)[0] = Literal::createEquality(true, lhs, x, s1);
@@ -586,7 +488,7 @@ void LambdaElimination::addCombinatorAxioms(Problem& prb)
 
   unsigned i_comb = env.signature->getCombinator(Signature::I_COMB);
   constant = TermList(Term::create1(i_comb, s1));
-  lhs = createAppTerm(srtOf(constant), constant, x);
+  lhs = AH::createAppTerm(srtOf(constant), constant, x);
   
   Clause* iAxiom = new(1) Clause(1, Unit::AXIOM, inf);
   (*iAxiom)[0] = Literal::createEquality(true, lhs, x, s1);
@@ -621,13 +523,13 @@ void LambdaElimination::addProxyAxioms(Problem& prb)
   TermList constant = TermList(Term::create1(eqProxy, s1));
 
   Clause* eqAxiom1 = new(2) Clause(2, Unit::AXIOM, inf);
-  (*eqAxiom1)[0] = toEquality(createAppTerm3(srtOf(constant), constant, x, y), true);
+  (*eqAxiom1)[0] = toEquality(AH::createAppTerm3(srtOf(constant), constant, x, y), true);
   (*eqAxiom1)[1] = Literal::createEquality(false,x,y,s1); 
   eqAxiom1->setProxyAxiomsDescendant(true);  
   UnitList::push(eqAxiom1, prb.units());
 
   Clause* eqAxiom2 = new(2) Clause(2, Unit::AXIOM, inf);
-  (*eqAxiom2)[0] = toEquality(createAppTerm3(srtOf(constant), constant, x, y), false);
+  (*eqAxiom2)[0] = toEquality(AH::createAppTerm3(srtOf(constant), constant, x, y), false);
   (*eqAxiom2)[1] = Literal::createEquality(true,x,y,s1); 
   eqAxiom2->setProxyAxiomsDescendant(true);   
   UnitList::push(eqAxiom2, prb.units());
@@ -637,13 +539,13 @@ void LambdaElimination::addProxyAxioms(Problem& prb)
   constant = TermList(Term::createConstant(notProxy));
 
   Clause* notAxiom1 = new(2) Clause(2, Unit::AXIOM, inf);
-  (*notAxiom1)[0] = toEquality(createAppTerm(srtOf(constant), constant, x), true);
+  (*notAxiom1)[0] = toEquality(AH::createAppTerm(srtOf(constant), constant, x), true);
   (*notAxiom1)[1] = toEquality(x, true);
   notAxiom1->setProxyAxiomsDescendant(true);    
   UnitList::push(notAxiom1, prb.units());
 
   Clause* notAxiom2 = new(2) Clause(2, Unit::AXIOM, inf);
-  (*notAxiom2)[0] = toEquality(createAppTerm(srtOf(constant), constant, x), false);
+  (*notAxiom2)[0] = toEquality(AH::createAppTerm(srtOf(constant), constant, x), false);
   (*notAxiom2)[1] = toEquality(x, false);
   notAxiom2->setProxyAxiomsDescendant(true);    
   UnitList::push(notAxiom2, prb.units());  
@@ -653,14 +555,14 @@ void LambdaElimination::addProxyAxioms(Problem& prb)
   constant = TermList(Term::create1(piProxy, s1));
 
   Clause* piAxiom1 = new(2) Clause(2, Unit::AXIOM, inf);
-  (*piAxiom1)[0] = toEquality(createAppTerm(srtOf(constant), constant, x), true);
-  (*piAxiom1)[1] = toEquality(createAppTerm(s1, Term::boolSort(), x, y), false);
+  (*piAxiom1)[0] = toEquality(AH::createAppTerm(srtOf(constant), constant, x), true);
+  (*piAxiom1)[1] = toEquality(AH::createAppTerm(s1, Term::boolSort(), x, y), false);
   piAxiom1->setProxyAxiomsDescendant(true);    
   UnitList::push(piAxiom1, prb.units());
 
   Clause* piAxiom2 = new(2) Clause(2, Unit::AXIOM, inf);
-  (*piAxiom2)[0] = toEquality(createAppTerm(srtOf(constant), constant, x), false);
-  (*piAxiom2)[1] = toEquality(createAppTerm(s1, Term::boolSort(), x, y), true);
+  (*piAxiom2)[0] = toEquality(AH::createAppTerm(srtOf(constant), constant, x), false);
+  (*piAxiom2)[1] = toEquality(AH::createAppTerm(s1, Term::boolSort(), x, y), true);
   piAxiom2->setProxyAxiomsDescendant(true);      
   UnitList::push(piAxiom2, prb.units());  
 
@@ -672,14 +574,14 @@ void LambdaElimination::addProxyAxioms(Problem& prb)
   TermList sk = TermList(Term::create1(skolem, s1));
 
   Clause* sigmaAxiom1 = new(2) Clause(2, Unit::AXIOM, inf);
-  (*sigmaAxiom1)[0] = toEquality(createAppTerm(srtOf(constant), constant, x), true); 
-  (*sigmaAxiom1)[1] = toEquality(createAppTerm(s1, Term::boolSort(), x, createAppTerm(srtOf(sk), sk, x)), false);
+  (*sigmaAxiom1)[0] = toEquality(AH::createAppTerm(srtOf(constant), constant, x), true); 
+  (*sigmaAxiom1)[1] = toEquality(AH::createAppTerm(s1, Term::boolSort(), x, AH::createAppTerm(srtOf(sk), sk, x)), false);
   sigmaAxiom1->setProxyAxiomsDescendant(true);      
   UnitList::push(sigmaAxiom1, prb.units());
 
   Clause* sigmaAxiom2 = new(2) Clause(2, Unit::AXIOM, inf);
-  (*sigmaAxiom2)[0] = toEquality(createAppTerm(srtOf(constant), constant, x), false);
-  (*sigmaAxiom2)[1] = toEquality(createAppTerm(s1, Term::boolSort(), x, createAppTerm(srtOf(sk), sk, x)), true);
+  (*sigmaAxiom2)[0] = toEquality(AH::createAppTerm(srtOf(constant), constant, x), false);
+  (*sigmaAxiom2)[1] = toEquality(AH::createAppTerm(s1, Term::boolSort(), x, AH::createAppTerm(srtOf(sk), sk, x)), true);
   sigmaAxiom2->setProxyAxiomsDescendant(true);    
   UnitList::push(sigmaAxiom2, prb.units()); 
 
@@ -688,19 +590,19 @@ void LambdaElimination::addProxyAxioms(Problem& prb)
   constant = TermList(Term::createConstant(impProxy));
 
   Clause* impAxiom1 = new(2) Clause(2, Unit::AXIOM, inf);
-  (*impAxiom1)[0] = toEquality(createAppTerm3(srtOf(constant), constant, x, y), true);
+  (*impAxiom1)[0] = toEquality(AH::createAppTerm3(srtOf(constant), constant, x, y), true);
   (*impAxiom1)[1] = toEquality(x, true);
   impAxiom1->setProxyAxiomsDescendant(true);    
   UnitList::push(impAxiom1, prb.units());
 
   Clause* impAxiom2 = new(2) Clause(2, Unit::AXIOM, inf);
-  (*impAxiom2)[0] = toEquality(createAppTerm3(srtOf(constant), constant, x, y), true);
+  (*impAxiom2)[0] = toEquality(AH::createAppTerm3(srtOf(constant), constant, x, y), true);
   (*impAxiom2)[1] = toEquality(y, false);
   impAxiom2->setProxyAxiomsDescendant(true);      
   UnitList::push(impAxiom2, prb.units());
 
   Clause* impAxiom3 = new(3) Clause(3, Unit::AXIOM, inf);
-  (*impAxiom3)[0] = toEquality(createAppTerm3(srtOf(constant), constant, x, y), false);  
+  (*impAxiom3)[0] = toEquality(AH::createAppTerm3(srtOf(constant), constant, x, y), false);  
   (*impAxiom3)[1] = toEquality(x, false);
   (*impAxiom3)[2] = toEquality(y, true);
   impAxiom3->setProxyAxiomsDescendant(true);
@@ -711,19 +613,19 @@ void LambdaElimination::addProxyAxioms(Problem& prb)
   constant = TermList(Term::createConstant(andProxy));
 
   Clause* andAxiom1 = new(2) Clause(2, Unit::AXIOM, inf);
-  (*andAxiom1)[0] = toEquality(createAppTerm3(srtOf(constant), constant, x, y), false);
+  (*andAxiom1)[0] = toEquality(AH::createAppTerm3(srtOf(constant), constant, x, y), false);
   (*andAxiom1)[1] = toEquality(x, true);
   andAxiom1->setProxyAxiomsDescendant(true);
   UnitList::push(andAxiom1, prb.units());
 
   Clause* andAxiom2 = new(2) Clause(2, Unit::AXIOM, inf);
-  (*andAxiom2)[0] = toEquality(createAppTerm3(srtOf(constant), constant, x, y), false);
+  (*andAxiom2)[0] = toEquality(AH::createAppTerm3(srtOf(constant), constant, x, y), false);
   (*andAxiom2)[1] = toEquality(y, true);
   andAxiom2->setProxyAxiomsDescendant(true);
   UnitList::push(andAxiom2, prb.units());
 
   Clause* andAxiom3 = new(3) Clause(3, Unit::AXIOM, inf);
-  (*andAxiom3)[0] = toEquality(createAppTerm3(srtOf(constant), constant, x, y), true);  
+  (*andAxiom3)[0] = toEquality(AH::createAppTerm3(srtOf(constant), constant, x, y), true);  
   (*andAxiom3)[1] = toEquality(x, false);
   (*andAxiom3)[2] = toEquality(y, false);
   andAxiom3->setProxyAxiomsDescendant(true);  
@@ -734,19 +636,19 @@ void LambdaElimination::addProxyAxioms(Problem& prb)
   constant = TermList(Term::createConstant(orProxy));
 
   Clause* orAxiom1 = new(2) Clause(2, Unit::AXIOM, inf);
-  (*orAxiom1)[0] = toEquality(createAppTerm3(srtOf(constant), constant, x, y), true);
+  (*orAxiom1)[0] = toEquality(AH::createAppTerm3(srtOf(constant), constant, x, y), true);
   (*orAxiom1)[1] = toEquality(x, false);
   orAxiom1->setProxyAxiomsDescendant(true);
   UnitList::push(orAxiom1, prb.units());
 
   Clause* orAxiom2 = new(2) Clause(2, Unit::AXIOM, inf);
-  (*orAxiom2)[0] = toEquality(createAppTerm3(srtOf(constant), constant, x, y), true);
+  (*orAxiom2)[0] = toEquality(AH::createAppTerm3(srtOf(constant), constant, x, y), true);
   (*orAxiom2)[1] = toEquality(y, false);
   orAxiom2->setProxyAxiomsDescendant(true);
   UnitList::push(orAxiom2, prb.units());
 
   Clause* orAxiom3 = new(3) Clause(3, Unit::AXIOM, inf);
-  (*orAxiom3)[0] = toEquality(createAppTerm3(srtOf(constant), constant, x, y), false);  
+  (*orAxiom3)[0] = toEquality(AH::createAppTerm3(srtOf(constant), constant, x, y), false);  
   (*orAxiom3)[1] = toEquality(x, true);
   (*orAxiom3)[2] = toEquality(y, true);
   orAxiom3->setProxyAxiomsDescendant(true);

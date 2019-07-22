@@ -38,7 +38,7 @@
 #include "Kernel/TermIterators.hpp"
 #include "Kernel/Unit.hpp"
 
-#include "LambdaElimination.hpp"
+#include "ApplicativeHelper.hpp"
 
 namespace Shell
 {
@@ -284,7 +284,7 @@ bool GeneralSplitting::apply(Clause*& cl, UnitList*& resultStack)
   Literal* nnLit;
   if(_appify){
     TermList head = TermList(Term::create(namingFun, args.size(), args.begin()));
-    TermList t = LambdaElimination::createAppTerm(sort, head, termArgs);
+    TermList t = ApplicativeHelper::createAppTerm(sort, head, termArgs);
     pnLit=Literal::createEquality(true, t, TermList(Term::foolTrue()), Term::boolSort()); 
     nnLit=Literal::createEquality(true, t, TermList(Term::foolFalse()), Term::boolSort());
   } else {

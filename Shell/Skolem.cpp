@@ -35,7 +35,7 @@
 #include "Lib/SharedSet.hpp"
 
 #include "Shell/Statistics.hpp"
-#include "LambdaElimination.hpp"
+#include "ApplicativeHelper.hpp"
 #include "Indexing/TermSharing.hpp"
 
 #include "Options.hpp"
@@ -450,7 +450,7 @@ Formula* Skolem::skolemise (Formula* f)
           unsigned fun = addSkolemFunction(VarList::length(vl), 0, skSymSort, v, vl);
           _introducedSkolemFuns.push(fun);
           TermList head = TermList(Term::create(fun, args.size(), args.begin()));
-          skolemTerm = LambdaElimination::createAppTerm(skSymSort, head, termArgs).term();
+          skolemTerm = ApplicativeHelper::createAppTerm(skSymSort, head, termArgs).term();
         }
 
         env.statistics->skolemFunctions++;

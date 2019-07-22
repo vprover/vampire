@@ -39,7 +39,7 @@
 #include "Statistics.hpp"
 
 #include "InequalitySplitting.hpp"
-#include "LambdaElimination.hpp"
+#include "ApplicativeHelper.hpp"
 
 #define TRACE_INEQUALITY_SPLITTING 0
 
@@ -245,7 +245,7 @@ Literal* InequalitySplitting::makeNameLiteral(unsigned predNum, TermList arg, bo
     TermList boolT = polarity ? TermList(Term::foolTrue()) : TermList(Term::foolFalse());
     TermList head = TermList(Term::create(predNum, args.size(), args.begin()));
     TermList headS = SortHelper::getResultSort(head.term());
-    TermList t = LambdaElimination::createAppTerm(headS, head, arg);
+    TermList t = ApplicativeHelper::createAppTerm(headS, head, arg);
     lit=Literal::createEquality(true, t, boolT, Term::boolSort());
   }
 
