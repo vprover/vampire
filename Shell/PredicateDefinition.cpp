@@ -901,7 +901,7 @@ void PredicateDefinition::count (TermList ts,int add, Unit* unit)
         count(sd->getFormula(), 0, add, unit);
         break;
 
-      case Term::SF_ITE:
+     /* case Term::SF_ITE:
         count(sd->getCondition(), 0, add, unit);
         break;
 
@@ -912,7 +912,7 @@ void PredicateDefinition::count (TermList ts,int add, Unit* unit)
 
       case Term::SF_TUPLE:
         count(TermList(sd->getTupleTerm()), add, unit);
-        break;
+        break; */
 
       default:
         ASSERTION_VIOLATION;

@@ -37,13 +37,13 @@
 #include "Kernel/Signature.hpp"
 #include "Kernel/Inference.hpp"
 #include "Kernel/TermIterators.hpp"
+#include "Kernel/ApplicativeHelper.hpp"
 
 #include "Options.hpp"
 #include "Statistics.hpp"
 #include "FunctionDefinition.hpp"
 #include "Property.hpp"
 #include "SubexpressionIterator.hpp"
-#include "ApplicativeHelper.hpp"
 
 using namespace Lib;
 using namespace Kernel;

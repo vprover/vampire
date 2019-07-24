@@ -31,6 +31,7 @@
 #include "Lib/DArray.hpp"
 
 #include "Ordering.hpp"
+#include "Signature.hpp"
 
 namespace Kernel {
 
@@ -40,7 +41,7 @@ using namespace Lib;
  * Class for instances of the Knuth-Bendix orderings
  * @since 30/04/2008 flight Brussels-Tel Aviv
  */
-class KBO
+class SKIKBO
 : public PrecedenceOrdering
 {
 public:
@@ -52,6 +53,8 @@ public:
 
   using PrecedenceOrdering::compare;
   Result compare(TermList tl1, TermList tl2) const override;
+  static unsigned maximumReductionLength(TermList term);
+
 protected:
   Result comparePredicates(Literal* l1, Literal* l2) const override;
 
@@ -67,7 +70,8 @@ protected:
   bool allConstantsHeavierThanVariables() const { return false; }
   bool existsZeroWeightUnaryFunction() const { return false; }
 
-  static unsigned maximumReductionLength(TermList term) const;
+  static Signature::Combinator getComb(TermList& head);
+  static TermList reduce(TermStack& args, TermList& head);
 
   /**
    * State used for comparing terms and literals

@@ -19,8 +19,9 @@
 #include "Kernel/Formula.hpp"
 #include "Kernel/Signature.hpp"
 #include "Kernel/SortHelper.hpp"
+#include "Kernel/ApplicativeHelper.hpp"
+#include "Kernel/SKIKBO.hpp"
 
-#include "ApplicativeHelper.hpp"
 #include "Skolem.hpp"
 #include "Options.hpp"
 //#include "Shell/SymbolOccurrenceReplacement.hpp"

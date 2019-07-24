@@ -32,8 +32,10 @@
 #include "Shell/Options.hpp"
 
 #include "Term.hpp"
-#include "KBO.hpp"
+#include "SKIKBO.hpp"
 #include "Signature.hpp"
+#include "SortHelper.hpp"
+#include "ApplicativeHelper.hpp"
 
 #define COLORED_WEIGHT_BOOST 0x10000
 
@@ -47,11 +49,11 @@ using namespace Shell;
  * Class to represent the current state of the KBO comparison.
  * @since 30/04/2008 flight Brussels-Tel Aviv
  */
-class KBO::State
+class SKIKBO::State
 {
 public:
   /** Initialise the state */
-  State(KBO* kbo)
+  State(SKIKBO* kbo)
     : _kbo(*kbo)
   {}
 
@@ -64,7 +66,7 @@ public:
     _varDiffs.reset();
   }
 
-  CLASS_NAME(KBO::State);
+  CLASS_NAME(SKIKBO::State);
   USE_ALLOCATOR(State);
 
   void traverse(Term* t1, Term* t2);
@@ -92,7 +94,7 @@ private:
   /** First comparison result */
   Result _lexResult;
   /** The ordering used */
-  KBO& _kbo;
+  SKIKBO& _kbo;
   /** The variable counters */
 }; // class KBO::State
 
@@ -103,7 +105,7 @@ private:
  * traverse(Term*,int) for both terms/literals in case their
  * top functors are different.)
  */
-Ordering::Result KBO::State::result(Term* t1, Term* t2)
+Ordering::Result SKIKBO::State::result(Term* t1, Term* t2)
 {
   Result res;
   if(_weightDiff) {
@@ -136,7 +138,7 @@ Ordering::Result KBO::State::result(Term* t1, Term* t2)
   return res;
 }
 
-Ordering::Result KBO::State::innerResult(TermList tl1, TermList tl2)
+Ordering::Result SKIKBO::State::innerResult(TermList tl1, TermList tl2)
 {
   CALL("KBO::State::innerResult");
 
@@ -165,7 +167,7 @@ Ordering::Result KBO::State::innerResult(TermList tl1, TermList tl2)
   return applyVariableCondition(res);
 }
 
-void KBO::State::recordVariable(unsigned var, int coef)
+void SKIKBO::State::recordVariable(unsigned var, int coef)
 {
   CALL("KBO::State::recordVariable");
   ASS(coef==1 || coef==-1);
@@ -188,7 +190,7 @@ void KBO::State::recordVariable(unsigned var, int coef)
   }
 }
 
-void KBO::State::traverse(TermList tl,int coef)
+void SKIKBO::State::traverse(TermList tl,int coef)
 {
   CALL("KBO::State::traverse(TermList...)");
 
@@ -231,7 +233,7 @@ void KBO::State::traverse(TermList tl,int coef)
   }
 }
 
-void KBO::State::traverse(Term* t1, Term* t2)
+void SKIKBO::State::traverse(Term* t1, Term* t2)
 {
   CALL("KBO::State::traverse");
   ASS(t1->functor()==t2->functor());
@@ -295,7 +297,7 @@ void KBO::State::traverse(Term* t1, Term* t2)
 /**
  * Create a KBO object.
  */
-KBO::KBO(Problem& prb, const Options& opt)
+SKIKBO::SKIKBO(Problem& prb, const Options& opt)
  : PrecedenceOrdering(prb, opt)
 {
   CALL("KBO::KBO");
@@ -306,7 +308,7 @@ KBO::KBO(Problem& prb, const Options& opt)
   _state=new State(this);
 }
 
-KBO::~KBO()
+SKIKBO::~SKIKBO()
 {
   CALL("KBO::~KBO");
 
@@ -318,7 +320,7 @@ KBO::~KBO()
  * of the comparison.
  * @since 07/05/2008 flight Manchester-Brussels
  */
-Ordering::Result KBO::comparePredicates(Literal* l1, Literal* l2) const
+Ordering::Result SKIKBO::comparePredicates(Literal* l1, Literal* l2) const
 {
   CALL("KBO::comparePredicates");
   ASS(l1->shared());
@@ -360,7 +362,7 @@ Ordering::Result KBO::comparePredicates(Literal* l1, Literal* l2) const
   return res;
 } // KBO::comparePredicates()
 
-Ordering::Result KBO::compare(TermList tl1, TermList tl2) const
+Ordering::Result SKIKBO::compare(TermList tl1, TermList tl2) const
 {
   CALL("KBO::compare(TermList)");
 
@@ -409,7 +411,7 @@ Ordering::Result KBO::compare(TermList tl1, TermList tl2) const
   return res;
 }
 
-int KBO::functionSymbolWeight(unsigned fun) const
+int SKIKBO::functionSymbolWeight(unsigned fun) const
 {
   int weight = _defaultSymbolWeight;
 
@@ -420,19 +422,21 @@ int KBO::functionSymbolWeight(unsigned fun) const
   return weight;
 }
 
-unsigned SKIKBO::maximumReductionLength(TermList term) const
+Signature::Combinator SKIKBO::getComb (TermList& head) {
+  return env.signature->getFunction(head.term()->functor())->combinator();
+};
+
+unsigned SKIKBO::maximumReductionLength(TermList term)
 {
   CALL("SKIKBO::maximumReductionLength");  
+   
+  typedef ApplicativeHelper AH;
+  typedef SortHelper SH;  
     
-  auto isComb = [] (TermList head) {
+  auto isComb = [] (TermList& head) {
     return env.signature->getFunction(head.term()->functor())->combinator() != Signature::NOT_COMB;
   };
   
-  auto getComb = [] (TermList head) {
-    return env.signature->getFunction(head.term()->functor())->combinator();
-  };
-
-
   static TermStack toEvaluate;
   static TermStack args;
   TermList head;
@@ -442,27 +446,65 @@ unsigned SKIKBO::maximumReductionLength(TermList term) const
   while(!toEvaluate.isEmpty()){
     args.reset(); 
     TermList evaluating = toEvaluate.pop();
-    ApplicativeHelper::getHeadAndArgs(evaluating, head, args);
+    AH::getHeadAndArgs(evaluating, head, args);
     if(head.isVar() || !isComb(head)){
       while(!args.isEmpty()){
         toEvaluate.push(args.pop());
       }
     } else {
       Signature::Combinator c = getComb(head);
+      TermList newHeadSort = AH::getNthArg(SH::getResultSort(head.term()), 1);
       if(c == Signature::I_COMB){
-        toEvaluate.push(args[0]);
+        toEvaluate.push(AH::createAppTerm(newHeadSort, args.pop(), args));//working on the assumption that the pop happens first...
         length++;
       } else if(c == Signature::K_COMB){
-        toEvaluate.push(args[0]);
-        toEvaluate.push(args[1]);
+        TermList newHead = args.pop();
+        toEvaluate.push(args.pop()); 
+        toEvaluate.push(AH::createAppTerm(newHeadSort, newHead, args));
         length++;
       } else {
         length++;
-        toEvaluate.push(reduce(args, c));
+        toEvaluate.push(reduce(args, head));
       }
     }
   }
   return length;
+}
+
+TermList SKIKBO::reduce(TermStack& args, TermList& head)
+{
+  CALL("SKIKBO::reduce");
+  
+  ASS(head.isTerm());
+  
+  TermList headSort = SortHelper::getResultSort(head.term());
+  
+  TermList newHeadSort = ApplicativeHelper::getNthArg(headSort, 1);
+  TermList newHead = args.pop();
+
+  TermList sort2 = ApplicativeHelper::getNthArg(headSort, 2);
+  
+  switch(getComb(head)){
+    case Signature::C_COMB: {
+      TermList temp = args[args.size() -1];
+      args[args.size() - 1] = args[args.size() -  2];
+      args[args.size() - 2] = temp;
+      break;
+    }
+    case Signature::B_COMB: {
+      args.push(ApplicativeHelper::createAppTerm(sort2, args.pop(), args.pop()));
+      break;      
+    }
+    case Signature::S_COMB: {
+      TermList y = args.pop();
+      TermList z = args.pop();
+      args.push(ApplicativeHelper::createAppTerm(sort2, y, z));
+      args.push(z);
+    }
+    default:
+      ASSERTION_VIOLATION; 
+  }
+  return ApplicativeHelper::createAppTerm(newHeadSort, newHead, args);;  
 }
 
 

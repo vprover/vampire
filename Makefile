@@ -203,6 +203,7 @@ VK_OBJ= Kernel/Clause.o\
         Kernel/Inference.o\
         Kernel/InferenceStore.o\
         Kernel/KBO.o\
+        Kernel/SKIKBO.o\
         Kernel/KBOForEPR.o\
         Kernel/LiteralSelector.o\
         Kernel/LookaheadLiteralSelector.o\
@@ -221,6 +222,7 @@ VK_OBJ= Kernel/Clause.o\
         Kernel/RobSubstitution.o\
         Kernel/Signature.o\
         Kernel/SortHelper.o\
+        Kernel/ApplicativeHelper.o\
         Kernel/Sorts.o\
         Kernel/SubformulaIterator.o\
         Kernel/Substitution.o\
@@ -345,7 +347,6 @@ VS_OBJ = Shell/CommandLine.o\
          Shell/Interpolants.o\
          Shell/InterpolantsNew.o\
          Shell/LambdaElimination.o\
-         Shell/ApplicativeHelper.o\
          Shell/LaTeX.o\
          Shell/LispLexer.o\
          Shell/LispParser.o\
@@ -464,6 +465,7 @@ LIB_DEP = Indexing/TermSharing.o\
 	  Kernel/InferenceStore.o\
 	  Kernel/Problem.o\
 	  Kernel/SortHelper.o\
+    Kernel/ApplicativeHelper.o\
 	  Kernel/Sorts.o\
 	  Kernel/Signature.o\
 	  Kernel/SubformulaIterator.o\
@@ -499,6 +501,7 @@ OTHER_CL_DEP = Indexing/FormulaIndex.o\
 	       Kernel/InferenceStore.o\
 	       Kernel/Matcher.o\
 	       Kernel/KBO.o\
+         Kernel/SKIKBO.o\
 	       Kernel/KBOForEPR.o\
 	       Kernel/Ordering.o\
 	       Kernel/Ordering_Equality.o\

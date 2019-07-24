@@ -32,6 +32,7 @@
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/Term.hpp"
 #include "Kernel/Unit.hpp"
+#include "Kernel/ApplicativeHelper.hpp"
 
 #include "Indexing/TermSharing.hpp"
 
@@ -39,7 +40,6 @@
 #include "Statistics.hpp"
 
 #include "InequalitySplitting.hpp"
-#include "ApplicativeHelper.hpp"
 
 #define TRACE_INEQUALITY_SPLITTING 0
 

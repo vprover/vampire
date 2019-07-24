@@ -28,7 +28,7 @@ public:
   static TermList createAppTerm(TermList s1, TermList s2, TermList arg1, TermList arg2);
   static TermList createAppTerm3(TermList sort, TermList arg1, TermList arg2, TermList arg3);
   static TermList createAppTerm(TermList sort, TermList arg1, TermList arg2, TermList arg3, TermList arg4); 
-  static TermList createAppTerm(TermList sort, TermList head, TermStack terms); 
+  static TermList createAppTerm(TermList sort, TermList head, TermStack& terms); 
   static TermList getNthArg(TermList arrowSort, unsigned argNum);
   static TermList getResultApplieadToNArgs(TermList arrowSort, unsigned argNum);
   static TermList getResultSort(TermList sort);

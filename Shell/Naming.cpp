@@ -37,10 +37,10 @@
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/SubformulaIterator.hpp"
 #include "Kernel/Term.hpp"
+#include "Kernel/ApplicativeHelper.hpp"
 
 #include "Shell/Statistics.hpp"
 #include "Shell/Options.hpp"
-#include "Shell/ApplicativeHelper.hpp"
 
 #include "Indexing/TermSharing.hpp"
 

@@ -51,7 +51,7 @@ TermList ApplicativeHelper::createAppTerm(TermList s1, TermList s2, TermList arg
   return TermList(Term::create(app, 4, args.begin()));
 }
 
-TermList ApplicativeHelper::createAppTerm(TermList sort, TermList head, TermStack terms)
+TermList ApplicativeHelper::createAppTerm(TermList sort, TermList head, TermStack& terms)
 {
   CALL("ApplicativeHelper::createAppTerm/4");
   ASS(head.isVar() || SortHelper::getResultSort(head.term()) == sort);
@@ -59,10 +59,10 @@ TermList ApplicativeHelper::createAppTerm(TermList sort, TermList head, TermStac
   TermList res = head;
   TermList s1, s2;
 
-  while(!terms.isEmpty()){
+  for(int i = terms.size() - 1; i >= 0; i--){
     s1 = getNthArg(sort, 1);
     s2 = getResultApplieadToNArgs(sort, 1);
-    res = createAppTerm(s1, s2, res, terms.pop());
+    res = createAppTerm(s1, s2, res, terms[i]);
     sort = s2;
   }
   return res; 
@@ -119,8 +119,8 @@ void ApplicativeHelper::getHeadAndArgs(TermList term, TermList& head, TermStack&
   }
 
   while(env.signature->getFunction(term.term()->functor())->app()){
-    term = *term.term()->nthArgument(0);
-    args.push(*term.term()->nthArgument(1)); 
+    args.push(*term.term()->nthArgument(3)); 
+    term = *term.term()->nthArgument(2);
     if(!term.isTerm()){ break; } 
   }
   head = term;

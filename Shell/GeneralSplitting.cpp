@@ -38,7 +38,7 @@
 #include "Kernel/TermIterators.hpp"
 #include "Kernel/Unit.hpp"
 
-#include "ApplicativeHelper.hpp"
+#include "Kernel/ApplicativeHelper.hpp"
 
 namespace Shell
 {

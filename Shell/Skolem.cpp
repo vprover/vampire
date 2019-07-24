@@ -32,10 +32,10 @@
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/SubformulaIterator.hpp"
 #include "Kernel/TermIterators.hpp"
+#include "Kernel/ApplicativeHelper.hpp"
 #include "Lib/SharedSet.hpp"
 
 #include "Shell/Statistics.hpp"
-#include "ApplicativeHelper.hpp"
 #include "Indexing/TermSharing.hpp"
 
 #include "Options.hpp"
