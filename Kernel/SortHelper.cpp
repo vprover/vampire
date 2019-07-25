@@ -88,7 +88,7 @@ TermList SortHelper::getResultSort(const Term* t)
   ASS(!t->isSpecial());
   ASS(!t->isLiteral());
 
- // cout << "the term is " + t->toString() + " with functor " << t->functor() << endl;
+  //cout << "the term is " + t->toString() + " with functor " << t->functor() << endl;
 
   Substitution subst;
   getTypeSub(t, subst);
@@ -767,6 +767,22 @@ bool SortHelper::tryGetVariableSort(TermList var, Term* t0, TermList& result)
       }
       continue;
     }*/
+    if (t->isLambda()) {
+      TermList sort = t->getSpecialData()->getLambdaExpSort();
+      TermList lambdaTerm = t->getSpecialData()->getLambdaExp();
+
+      if(lambdaTerm.isTerm()){
+        if(tryGetVariableSort(var, lambdaTerm.term(),result)){
+          return true;
+        }
+      } else {
+        if(lambdaTerm == var){
+          result = sort;
+          return true;
+        }
+      }
+      continue;
+    }
     if (t->shared() && t->ground()) {
       sit.right();
       continue;

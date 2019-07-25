@@ -74,6 +74,7 @@ public:
   }
 
 private:
+  int sumRedLengths(TermStack& args);
   bool argNormGt(TermList t1, TermList t2);
 
   /** The set storing all terms */

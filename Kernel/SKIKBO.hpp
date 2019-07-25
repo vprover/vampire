@@ -70,7 +70,6 @@ protected:
   bool allConstantsHeavierThanVariables() const { return false; }
   bool existsZeroWeightUnaryFunction() const { return false; }
 
-  static Signature::Combinator getComb(TermList& head);
   static TermList reduce(TermStack& args, TermList& head);
 
   /**

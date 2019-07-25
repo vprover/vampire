@@ -32,8 +32,15 @@ public:
   static TermList getNthArg(TermList arrowSort, unsigned argNum);
   static TermList getResultApplieadToNArgs(TermList arrowSort, unsigned argNum);
   static TermList getResultSort(TermList sort);
-  static void getHeadAndArgs(TermList term, TermList& head, TermStack& args);
-  
+  static void getHeadAndArgs(TermList term, TermList& head, TermStack& args); 
+  static void getHeadAndArgs(Term* term, TermList& head, TermStack& args);  
+  static bool isComb(TermList t);
+  static Signature::Combinator getComb(TermList t);
+  static TermList getHead(TermList t);
+
+  static void getHeadAndArgs(TermList term, TermList& head, TermList* empty, Stack<TermList*> args);
+
+
 private:
   
 };

@@ -31,10 +31,13 @@
 #include "Kernel/Sorts.hpp"
 #include "Kernel/Term.hpp"
 #include "Kernel/TermIterators.hpp"
+#include "Kernel/ApplicativeHelper.hpp"
 #include "TermSharing.hpp"
 
 using namespace Kernel;
 using namespace Indexing;
+
+typedef ApplicativeHelper AH;
 
 /**
  * Initialise the term sharing structure.
@@ -103,26 +106,63 @@ Term* TermSharing::insert(Term* t)
     bool hasInterpretedConstants=t->arity()==0 &&
 	env.signature->getFunction(t->functor())->interpreted();
     Color color = COLOR_TRANSPARENT;
+    if(env.options->combinatorySup()){
+      int maxRedLength = -1;
+      TermList head;
+      TermStack args;
+      AH::getHeadAndArgs(t, head, args);
+      if(!AH::isComb(head)){
+        maxRedLength = sumRedLengths(args);
+      } else {
+        switch(AH::getComb(head)){
+          case Signature::B_COMB:
+            if(!AH::isComb(AH::getHead(args[args.size()-1]))  &&
+               !AH::isComb(AH::getHead(args[args.size()-2]))){
+              maxRedLength = sumRedLengths(args);
+              maxRedLength = maxRedLength == -1 ? -1 : maxRedLength + 1;
+            }
+          case Signature::S_COMB:
+            if(!AH::isComb(AH::getHead(args[args.size()-1]))  &&
+               !AH::isComb(AH::getHead(args[args.size()-2]))){
+              maxRedLength = sumRedLengths(args);
+              maxRedLength = maxRedLength == -1 ? -1 : maxRedLength + 1;
+              if(maxRedLength != -1 && args[args.size() - 3].isTerm()){
+                maxRedLength += args[args.size() - 3].term()->maxRedLength();
+              }
+            }
+          case Signature::C_COMB:
+          case Signature::I_COMB:
+          case Signature::K_COMB:
+            if(!AH::isComb(AH::getHead(args[args.size()-1]))){
+              maxRedLength = sumRedLengths(args);
+              maxRedLength = maxRedLength == -1 ? -1 : maxRedLength + 1;
+            }
+          default:
+            ASSERTION_VIOLATION;
+        }
+      }
+      t->setMaxRedLen(maxRedLength);
+    }
     for (TermList* tt = t->args(); ! tt->isEmpty(); tt = tt->next()) {
       if (tt->isVar()) {
-          ASS(tt->isOrdinaryVar());
-          vars++;
-          weight += 1;
+        ASS(tt->isOrdinaryVar());
+        vars++;
+        weight += 1;
       }
       else 
       {
-          ASS_REP(tt->term()->shared(), tt->term()->toString());
-          
-          Term* r = tt->term();
-    
-          vars += r->vars();
-          weight += r->weight();
-          if (env.colorUsed) {
-              color = static_cast<Color>(color | r->color());
-          }
-          if(!hasInterpretedConstants && r->hasInterpretedConstants()) {
-              hasInterpretedConstants=true; 
-          }
+        ASS_REP(tt->term()->shared(), tt->term()->toString());
+        
+        Term* r = tt->term();
+  
+        vars += r->vars();
+        weight += r->weight();
+        if (env.colorUsed) {
+            color = static_cast<Color>(color | r->color());
+        }
+        if(!hasInterpretedConstants && r->hasInterpretedConstants()) {
+            hasInterpretedConstants=true; 
+        }
       }
     }
     t->markShared();
@@ -318,6 +358,23 @@ Literal* TermSharing::tryGetOpposite(Literal* l)
     return res;
   }
   return 0;
+}
+
+
+int TermSharing::sumRedLengths(TermStack& args)
+{
+  CALL("TermSharing::sumRedLengths");
+
+  int redLength = 0;
+
+  for(unsigned i = 0; i < args.size(); i++){
+    if(args[i].isTerm() && args[i].term()->maxRedLength() != -1){
+      redLength += args[i].term()->maxRedLength();
+    } else if(args[i].isTerm()) {
+      return -1;
+    }
+  }
+
 }
 
 /**

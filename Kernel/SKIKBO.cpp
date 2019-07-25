@@ -219,7 +219,7 @@ void SKIKBO::State::traverse(TermList tl,int coef)
     if(ts->isTerm()) {
       _weightDiff+=_kbo.functionSymbolWeight(ts->term()->functor())*coef;
       if(ts->term()->arity()) {
-	stack.push(ts->term()->args());
+        stack.push(ts->term()->args());
       }
     } else {
       ASS_METHOD(*ts,isOrdinaryVar());
@@ -256,11 +256,11 @@ void SKIKBO::State::traverse(Term* t1, Term* t2)
       depth--;
       ASS_NEQ(_lexResult,EQUAL);
       if(_lexResult!=EQUAL && depth<lexValidDepth) {
-	lexValidDepth=depth;
-	if(_weightDiff!=0) {
-	  _lexResult=_weightDiff>0 ? GREATER : LESS;
-	}
-	_lexResult=applyVariableCondition(_lexResult);
+        lexValidDepth=depth;
+        if(_weightDiff!=0) {
+          _lexResult=_weightDiff>0 ? GREATER : LESS;
+        }
+        _lexResult=applyVariableCondition(_lexResult);
       }
       continue;
     }
@@ -282,11 +282,11 @@ void SKIKBO::State::traverse(Term* t1, Term* t2)
       traverse(*ss,1);
       traverse(*tt,-1);
       if(_lexResult==EQUAL) {
-	_lexResult=innerResult(*ss, *tt);
-	lexValidDepth=depth;
-	ASS(_lexResult!=EQUAL);
-	ASS(_lexResult!=GREATER_EQ);
-	ASS(_lexResult!=LESS_EQ);
+        _lexResult=innerResult(*ss, *tt);
+        lexValidDepth=depth;
+        ASS(_lexResult!=EQUAL);
+        ASS(_lexResult!=GREATER_EQ);
+        ASS(_lexResult!=LESS_EQ);
       }
     }
   }
@@ -300,7 +300,7 @@ void SKIKBO::State::traverse(Term* t1, Term* t2)
 SKIKBO::SKIKBO(Problem& prb, const Options& opt)
  : PrecedenceOrdering(prb, opt)
 {
-  CALL("KBO::KBO");
+  CALL("SKIKBO::SKIKBO");
 
   _variableWeight = 1;
   _defaultSymbolWeight = 1;
@@ -310,7 +310,7 @@ SKIKBO::SKIKBO(Problem& prb, const Options& opt)
 
 SKIKBO::~SKIKBO()
 {
-  CALL("KBO::~KBO");
+  CALL("SKIKBO::~SKIKBO");
 
   delete _state;
 }
@@ -389,6 +389,12 @@ Ordering::Result SKIKBO::compare(TermList tl1, TermList tl2) const
 
   Term* t1=tl1.term();
   Term* t2=tl2.term();
+ 
+  if(t1->maxRedLength() > t2->maxRedLength()){
+    return GREATER;
+  } else if (t2->maxRedLength() > t1->maxRedLength()){
+    return LESS;
+  }
 
   ASS(_state);
   State* state=_state;
@@ -422,9 +428,6 @@ int SKIKBO::functionSymbolWeight(unsigned fun) const
   return weight;
 }
 
-Signature::Combinator SKIKBO::getComb (TermList& head) {
-  return env.signature->getFunction(head.term()->functor())->combinator();
-};
 
 unsigned SKIKBO::maximumReductionLength(TermList term)
 {
@@ -432,10 +435,6 @@ unsigned SKIKBO::maximumReductionLength(TermList term)
    
   typedef ApplicativeHelper AH;
   typedef SortHelper SH;  
-    
-  auto isComb = [] (TermList& head) {
-    return env.signature->getFunction(head.term()->functor())->combinator() != Signature::NOT_COMB;
-  };
   
   static TermStack toEvaluate;
   static TermStack args;
@@ -447,12 +446,12 @@ unsigned SKIKBO::maximumReductionLength(TermList term)
     args.reset(); 
     TermList evaluating = toEvaluate.pop();
     AH::getHeadAndArgs(evaluating, head, args);
-    if(head.isVar() || !isComb(head)){
+    if(head.isVar() || !AH::isComb(head)){
       while(!args.isEmpty()){
         toEvaluate.push(args.pop());
       }
     } else {
-      Signature::Combinator c = getComb(head);
+      Signature::Combinator c = AH::getComb(head);
       TermList newHeadSort = AH::getNthArg(SH::getResultSort(head.term()), 1);
       if(c == Signature::I_COMB){
         toEvaluate.push(AH::createAppTerm(newHeadSort, args.pop(), args));//working on the assumption that the pop happens first...
@@ -484,7 +483,7 @@ TermList SKIKBO::reduce(TermStack& args, TermList& head)
 
   TermList sort2 = ApplicativeHelper::getNthArg(headSort, 2);
   
-  switch(getComb(head)){
+  switch(ApplicativeHelper::getComb(head)){
     case Signature::C_COMB: {
       TermList temp = args[args.size() -1];
       args[args.size() - 1] = args[args.size() -  2];

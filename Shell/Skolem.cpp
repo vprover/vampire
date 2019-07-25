@@ -144,7 +144,6 @@ unsigned Skolem::addSkolemFunction(unsigned arity, TermList* domainSorts,
   unsigned fun = env.signature->addSkolemFunction(arity, suffix);
   Signature::Symbol* fnSym = env.signature->getFunction(fun);
   OperatorType* ot = OperatorType::getFunctionType(arity - VarList::length(vl), domainSorts, rangeSort, vl);
-  //cout << "the type is " + ot->toString() << endl;
   fnSym->setType(ot);
   return fun;
 }
@@ -416,6 +415,9 @@ Formula* Skolem::skolemise (Formula* f)
         if(sort == Term::superSort()){
           args.push(TermList(uvar, false));//TODO check that this works
         } else {
+          if(sort.isVar() || !sort.term()->shared() || !sort.term()->ground()){
+            sort = SubstHelper::apply(sort, _subst);
+          }
           argSorts.push(sort);
           termArgs.push(TermList(uvar, false));
         }
@@ -437,8 +439,10 @@ Formula* Skolem::skolemise (Formula* f)
       while (vs.hasNext()) {
         int v = vs.next();
         TermList rangeSort=_varSorts.get(v, Term::defaultSort());
-        rangeSort = SubstHelper::apply(rangeSort, _subst);
-
+        if(rangeSort.isVar() || !rangeSort.term()->shared() || 
+           !rangeSort.term()->ground()){
+          rangeSort = SubstHelper::apply(rangeSort, _subst);
+        }
         Term* skolemTerm;
 
         if(!_appify){

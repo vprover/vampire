@@ -551,6 +551,8 @@ Term* FunctionDefinition::applyDefinitions(Literal* lit, Stack<Def*>* usedDefs)
 {
   CALL("FunctionDefinition::applyDefinitions");
 
+  //cout << "applying definitions to " + lit->toString() << endl;
+
   if (env.options->showPreprocessing()) {
     env.beginOutput();
     env.out() << "[PP] applying function definitions to literal "<<(*lit) << std::endl;
@@ -591,17 +593,17 @@ Term* FunctionDefinition::applyDefinitions(Literal* lit, Stack<Def*>* usedDefs)
     }
     if(tt->isEmpty()) {
       if(terms.isEmpty()) {
-	//we're done, args stack contains modified arguments
-	//of the argument term.
-	ASS(toDo.isEmpty());
-	break;
+        //we're done, args stack contains modified arguments
+        //of the argument term.
+        ASS(toDo.isEmpty());
+        break;
       }
       defIndexes.pop();
       Term* orig=terms.pop();
       if(!modified.pop()) {
-	args.truncate(args.length() - orig->arity());
-	args.push(TermList(orig));
-	continue;
+        args.truncate(args.length() - orig->arity());
+        args.push(TermList(orig));
+        continue;
       }
       //here we assume, that stack is an array with
       //second topmost element at &top()-1, third at
@@ -876,7 +878,7 @@ FunctionDefinition::defines (Term* lhs, Term* rhs)
     if (rhs->functor() == f) {
       return 0;
     }
-    return new Def(lhs,rhs,true,true);
+    /* return new Def(lhs,rhs,true,true); */
   }
 
   int vars = 0; // counter of variables occurring in the lhs

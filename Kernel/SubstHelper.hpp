@@ -89,7 +89,15 @@ public:
   static Literal* apply(Literal* lit, Applicator& applicator)
   {
     CALL("SubstHelper::apply(Literal*...)");
-    return static_cast<Literal*>(apply(static_cast<Term*>(lit),applicator));
+    TermList sort;
+    if(lit->isTwoVarEquality()){
+      sort = lit->twoVarEqSort();
+    }
+    Literal* subbedLit = static_cast<Literal*>(apply(static_cast<Term*>(lit),applicator));
+    if(subbedLit->isTwoVarEquality()){ //either nothing's changed or variant
+      subbedLit->setTwoVarEqSort(apply(sort, applicator));
+    }
+    return subbedLit;
   }
 
   /**

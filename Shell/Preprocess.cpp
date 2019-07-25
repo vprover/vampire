@@ -166,9 +166,10 @@ void Preprocess::preprocess(Problem& prb)
   // reorder units
   if (_options.normalize()) {
     env.statistics->phase=Statistics::NORMALIZATION;
-    if (env.options->showPreprocessing())
+    if (env.options->showPreprocessing()){
+      env.beginOutput();
       env.out() << "normalization" << std::endl;
-
+    }
     Normalisation().normalise(prb);
   }
 

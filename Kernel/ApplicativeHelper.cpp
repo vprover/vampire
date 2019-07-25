@@ -114,8 +114,8 @@ void ApplicativeHelper::getHeadAndArgs(TermList term, TermList& head, TermStack&
   CALL("ApplicativeHelper::getHeadAndArgs");
 
   if(!term.isTerm()){
-  	head = term;
-  	return;
+    head = term;
+    return;
   }
 
   while(env.signature->getFunction(term.term()->functor())->app()){
@@ -125,4 +125,72 @@ void ApplicativeHelper::getHeadAndArgs(TermList term, TermList& head, TermStack&
   }
   head = term;
 
+}
+
+
+void ApplicativeHelper::getHeadAndArgs(Term* term, TermList& head, TermStack& args)
+{
+  CALL("ApplicativeHelper::getHeadAndArgs/2");
+
+  head = TermList(term);
+
+  while(env.signature->getFunction(term->functor())->app()){
+    args.push(*term->nthArgument(3)); 
+    head = *term->nthArgument(2);
+    if(head.isTerm()){ 
+      term = head.term();
+    } else {
+      break;
+    }
+  }
+
+}
+
+
+void ApplicativeHelper::getHeadAndArgs(TermList term, TermList& head, TermList* empty, Stack<TermList*> args)
+{
+  CALL("ApplicativeHelper::getHeadAndArgs/3");
+
+ /* if(!term.isTerm()){
+    head = term;
+    return;
+  }
+
+  while(env.signature->getFunction(term.term()->functor())->app()){
+    args.push(*term.term()->nthArgument(3)); 
+    term = *term.term()->nthArgument(2);
+    if(!term.isTerm()){ break; } 
+  }
+  head = term;*/
+
+}
+
+
+TermList ApplicativeHelper::getHead(TermList t)
+{
+  CALL ("getHead");
+  
+  if(!t.isTerm()){
+    return t; 
+  }
+
+  while(env.signature->getFunction(t.term()->functor())->app()){
+    t = *t.term()->nthArgument(2);
+    if(!t.isTerm()){ break; } 
+  }
+  return t;
+}
+
+bool ApplicativeHelper::isComb(TermList head)
+{
+  CALL("ApplicativeHelper::isComb");
+  ASS(head.isTerm());
+  return env.signature->getFunction(head.term()->functor())->combinator() != Signature::NOT_COMB;
+}
+
+
+Signature::Combinator ApplicativeHelper::getComb (TermList head) 
+{
+  CALL("ApplicativeHelper::getComb");
+  return env.signature->getFunction(head.term()->functor())->combinator();
 }

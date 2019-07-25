@@ -423,6 +423,12 @@ public:
     return _weight;
   }
 
+  int maxRedLength() const
+  {
+    ASS(shared());
+    return _maxRedLen;    
+  }
+
   /** Mark term as shared */
   void markShared()
   {
@@ -435,6 +441,13 @@ public:
   {
     _weight = w;
   } // setWeight
+
+
+  void setMaxRedLen(int rl)
+  {
+    _maxRedLen = rl;
+  } // setWeight
+
 
   /** Set the number of variables */
   void setVars(unsigned v)
@@ -569,6 +582,7 @@ public:
   bool isTupleLet() const { return functor() == SF_LET_TUPLE; }
   bool isTuple() const { return functor() == SF_TUPLE; }
   bool isFormula() const { return functor() == SF_FORMULA; }
+  bool isLambda() const { return functor() == SF_LAMBDA; }
   bool isBoolean() const;
   /** Return pointer to structure containing extra data for special terms such as
    * if-then-else or let...in */
@@ -643,6 +657,8 @@ protected:
   unsigned _isTwoVarEquality : 1;
   /** Weight of the symbol */
   unsigned _weight;
+  /** length of maximum reduction length */
+  int _maxRedLen;
   union {
     /** If _isTwoVarEquality is false, this value is valid and contains
      * number of occurrences of variables */
