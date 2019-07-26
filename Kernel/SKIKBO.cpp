@@ -390,6 +390,9 @@ Ordering::Result SKIKBO::compare(TermList tl1, TermList tl2) const
   Term* t1=tl1.term();
   Term* t2=tl2.term();
  
+  if(t1->maxRedLength() == -1){ t1->setMaxRedLen(maximumReductionLength(t1)); }
+  if(t2->maxRedLength() == -1){ t2->setMaxRedLen(maximumReductionLength(t2)); }
+ 
   if(t1->maxRedLength() > t2->maxRedLength()){
     return GREATER;
   } else if (t2->maxRedLength() > t1->maxRedLength()){
