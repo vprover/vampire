@@ -23,6 +23,7 @@
  * @since 30/04/2008 flight Brussels-Tel Aviv
  */
 
+#include <Kernel/TermIterators.hpp>
 #include "Debug/Tracer.hpp"
 
 
@@ -64,17 +65,18 @@ public:
     _negNum=0;
     _lexResult=EQUAL;
     _varDiffs.reset();
+    _varTermDiffs.reset();
   }
 
   CLASS_NAME(SKIKBO::State);
   USE_ALLOCATOR(State);
 
-  void traverse(Term* t1, Term* t2);
-  void traverse(TermList tl,int coefficient);
-  Result result(Term* t1, Term* t2);
+  void traverse(ApplicativeArgsIt& aai1, ApplicativeArgsIt& aai2);
+  void traverse(ApplicativeArgsIt& aai, int coefficient);
+  Result result(ApplicativeArgsIt& aai1, ApplicativeArgsIt& aai2);
 private:
-  void recordVariable(unsigned var, int coef);
-  Result innerResult(TermList t1, TermList t2);
+  void recordVariable(TermList var, int coef);
+  Result innerResult(ApplicativeArgsIt& aai1, ApplicativeArgsIt& aai2);
   Result applyVariableCondition(Result res)
   {
     if(_posNum>0 && (res==LESS || res==LESS_EQ || res==EQUAL)) {
@@ -87,6 +89,7 @@ private:
 
   int _weightDiff;
   DHMap<unsigned, int, IdentityHash> _varDiffs;
+  DHMap<Term*, int> _varTermDiffs;
   /** Number of variables, that occur more times in the first literal */
   int _posNum;
   /** Number of variables, that occur more times in the second literal */
@@ -105,27 +108,19 @@ private:
  * traverse(Term*,int) for both terms/literals in case their
  * top functors are different.)
  */
-Ordering::Result SKIKBO::State::result(Term* t1, Term* t2)
+Ordering::Result SKIKBO::State::result(ApplicativeArgsIt& aai1, ApplicativeArgsIt& aai2)
 {
   Result res;
   if(_weightDiff) {
     res=_weightDiff>0 ? GREATER : LESS;
-  } else if(t1->functor()!=t2->functor()) {
-    if(t1->isLiteral()) {
-      int prec1, prec2;
-      prec1=_kbo.predicatePrecedence(t1->functor());
-      prec2=_kbo.predicatePrecedence(t2->functor());
-      ASS_NEQ(prec1,prec2);//precedence ordering must be total
-      res=(prec1>prec2)?GREATER:LESS;
-    } else {
-      res=_kbo.compareFunctionPrecedences(t1->functor(), t2->functor());
-      ASS_REP(res==GREATER || res==LESS, res); //precedence ordering must be total
-    }
+  } else if(aai1.head()!=aai2.head()) {
+    res=_kbo.compareFunctionPrecedences(aai1.head().term()->functor(), aai2.head().term()->functor());
+    ASS_REP(res==GREATER || res==LESS, res); //precedence ordering must be total
   } else {
     res=_lexResult;
   }
   res=applyVariableCondition(res);
-  ASS( !t1->ground() || !t2->ground() || res!=INCOMPARABLE);
+  //ASS( !t1->ground() || !t2->ground() || res!=INCOMPARABLE);
 
   //the result should never be EQUAL:
   //- either t1 and t2 are truely equal. But then if they're equal, it
@@ -138,12 +133,11 @@ Ordering::Result SKIKBO::State::result(Term* t1, Term* t2)
   return res;
 }
 
-Ordering::Result SKIKBO::State::innerResult(TermList tl1, TermList tl2)
+Ordering::Result SKIKBO::State::innerResult(ApplicativeArgsIt& aai1, ApplicativeArgsIt& aai2)
 {
   CALL("KBO::State::innerResult");
 
-  ASS_NEQ(tl1, tl2);
-  ASS(!TermList::sameTopFunctor(tl1,tl2));
+  ASS(aai1.head() != aai2.head());
 
   if(_posNum>0 && _negNum>0) {
     return INCOMPARABLE;
@@ -153,27 +147,31 @@ Ordering::Result SKIKBO::State::innerResult(TermList tl1, TermList tl2)
   if(_weightDiff) {
     res=_weightDiff>0 ? GREATER : LESS;
   } else {
-    if(tl1.isVar()) {
+    if(aai1.isVar()) {
       ASS_EQ(_negNum,0);
       res=LESS;
-    } else if(tl2.isVar()) {
+    } else if(aai2.isVar()) {
       ASS_EQ(_posNum,0);
       res=GREATER;
     } else {
-      res=_kbo.compareFunctionPrecedences(tl1.term()->functor(), tl2.term()->functor());
+      res=_kbo.compareFunctionPrecedences(aai1.head().term()->functor(), aai2.head().term()->functor());
       ASS_REP(res==GREATER || res==LESS, res);//precedence ordering must be total
     }
   }
   return applyVariableCondition(res);
 }
 
-void SKIKBO::State::recordVariable(unsigned var, int coef)
+void SKIKBO::State::recordVariable(TermList var, int coef)
 {
   CALL("KBO::State::recordVariable");
   ASS(coef==1 || coef==-1);
 
   int* pnum;
-  _varDiffs.getValuePtr(var,pnum,0);
+  if(var.isVar()){
+    _varDiffs.getValuePtr(var.var(),pnum,0);
+  } else {
+    _varTermDiffs.getValuePtr(var.term(),pnum,0);
+  }
   (*pnum)+=coef;
   if(coef==1) {
     if(*pnum==0) {
@@ -190,70 +188,58 @@ void SKIKBO::State::recordVariable(unsigned var, int coef)
   }
 }
 
-void SKIKBO::State::traverse(TermList tl,int coef)
+void SKIKBO::State::traverse(ApplicativeArgsIt& aai,int coef)
 {
   CALL("KBO::State::traverse(TermList...)");
 
-  if(tl.isOrdinaryVar()) {
-    _weightDiff+=_kbo._variableWeight*coef;
-    recordVariable(tl.var(), coef);
-    return;
-  }
-  ASS(tl.isTerm());
+  //we know that the head is not a variable
+  _weightDiff+=_kbo.functionSymbolWeight(aai.head().term()->functor())*coef;
 
-  Term* t=tl.term();
-  ASSERT_VALID(*t);
-
-  _weightDiff+=_kbo.functionSymbolWeight(t->functor())*coef;
-
-  if(!t->arity()) {
+  if(!aai.hasNext()) {
     return;
   }
 
-  TermList* ts=t->args();
-  static Stack<TermList*> stack(4);
+  static Stack<ApplicativeArgsIt*> stack(4);
+  stack.push(&aai);
   for(;;) {
-    if(!ts->next()->isEmpty()) {
-      stack.push(ts->next());
-    }
-    if(ts->isTerm()) {
-      _weightDiff+=_kbo.functionSymbolWeight(ts->term()->functor())*coef;
-      if(ts->term()->arity()) {
-        stack.push(ts->term()->args());
-      }
-    } else {
-      ASS_METHOD(*ts,isOrdinaryVar());
+    TermList ts = stack.top()->next();
+    ApplicativeArgsIt aai1(ts);
+    if(aai1.isVar()){
       _weightDiff+=_kbo._variableWeight*coef;
-      recordVariable(ts->var(), coef);
+      recordVariable(ts, coef);      
+    } else {
+      _weightDiff+=_kbo.functionSymbolWeight(aai1.head().term()->functor())*coef;
+      if(aai1.hasNext()) {
+        stack.push(&aai1);
+      }
     }
-    if(stack.isEmpty()) {
-      break;
+    while(!stack.top()->hasNext()){
+      stack.pop();
+      if(stack.isEmpty()) {
+        break;
+      }
     }
-    ts=stack.pop();
   }
 }
 
-void SKIKBO::State::traverse(Term* t1, Term* t2)
+void SKIKBO::State::traverse(ApplicativeArgsIt& aat1, ApplicativeArgsIt& aat2)
 {
   CALL("KBO::State::traverse");
-  ASS(t1->functor()==t2->functor());
-  ASS(t1->arity());
+  ASS(aat1.head()==aat2.head());
+  ASS(aat1.hasNext());
   ASS_EQ(_lexResult, EQUAL);
 
   unsigned depth=1;
   unsigned lexValidDepth=0;
 
-  static Stack<TermList*> stack(32);
-  stack.push(t1->args());
-  stack.push(t2->args());
-  TermList* ss; //t1 subterms
-  TermList* tt; //t2 subterms
+  static Stack<ApplicativeArgsIt*> stack(32);
+  stack.push(&aat1);
+  stack.push(&aat2);
+  TermList ss; //t1 subterms
+  TermList tt; //t2 subterms
   while(!stack.isEmpty()) {
-    tt=stack.pop();
-    ss=stack.pop();
-    if(ss->isEmpty()) {
-      ASS(tt->isEmpty());
-      depth--;
+    if(!stack.top()->hasNext() || !stack.scnd()->hasNext()){
+      ASS((stack.top()->hasNext() && !stack.scnd()->hasNext()) || depth == 1);
       ASS_NEQ(_lexResult,EQUAL);
       if(_lexResult!=EQUAL && depth<lexValidDepth) {
         lexValidDepth=depth;
@@ -263,26 +249,39 @@ void SKIKBO::State::traverse(Term* t1, Term* t2)
         _lexResult=applyVariableCondition(_lexResult);
       }
       continue;
+      stack.pop();
+      stack.pop();
     }
+    ss = stack.top()->next();
+    tt = stack.scnd()->next();
 
-    stack.push(ss->next());
-    stack.push(tt->next());
-    if(ss->sameContent(tt)) {
+    if(ss.sameContent(&tt)) {
       //if content is the same, neighter weightDiff nor varDiffs would change
       continue;
     }
-    if(TermList::sameTopFunctor(*ss,*tt)) {
-      ASS(ss->isTerm());
-      ASS(tt->isTerm());
-      ASS(ss->term()->arity());
-      stack.push(ss->term()->args());
-      stack.push(tt->term()->args());
+    ApplicativeArgsIt aai1(ss);
+    ApplicativeArgsIt aai2(tt);
+    if(!(aai1.isVar() || aai2.isVar()) && aai1.head() == aai2.head()) {
+      ASS(aai1.hasNext());
+      ASS(aai2.hasNext());
+      stack.push(&aai1);
+      stack.push(&aai2);
       depth++;
     } else {
-      traverse(*ss,1);
-      traverse(*tt,-1);
+      if(aai1.isVar()){
+        _weightDiff+=_kbo._variableWeight*1; //all variables 1, even applied variables with args
+        recordVariable(ss, 1);
+      } else {
+        traverse(aai1,1);
+      }
+      if(aai2.isVar()){
+        _weightDiff+=_kbo._variableWeight*-1; //all variables 1, even applied variables with args
+        recordVariable(tt, -1);
+      } else {
+        traverse(aai2,-1);
+      }
       if(_lexResult==EQUAL) {
-        _lexResult=innerResult(*ss, *tt);
+        _lexResult=innerResult(aai1, aai2);
         lexValidDepth=depth;
         ASS(_lexResult!=EQUAL);
         ASS(_lexResult!=GREATER_EQ);
@@ -315,52 +314,6 @@ SKIKBO::~SKIKBO()
   delete _state;
 }
 
-/**
- * Compare arguments of literals l1 and l2 and return the result
- * of the comparison.
- * @since 07/05/2008 flight Manchester-Brussels
- */
-Ordering::Result SKIKBO::comparePredicates(Literal* l1, Literal* l2) const
-{
-  CALL("KBO::comparePredicates");
-  ASS(l1->shared());
-  ASS(l2->shared());
-  ASS(!l1->isEquality());
-  ASS(!l2->isEquality());
-
-  unsigned p1 = l1->functor();
-  unsigned p2 = l2->functor();
-
-  Result res;
-  ASS(_state);
-  State* state=_state;
-#if VDEBUG
-  //this is to make sure _state isn't used while we're using it
-  _state=0;
-#endif
-  state->init();
-  if(p1!=p2) {
-    TermList* ts;
-    ts=l1->args();
-    while(!ts->isEmpty()) {
-      state->traverse(*ts,1);
-      ts=ts->next();
-    }
-    ts=l2->args();
-    while(!ts->isEmpty()) {
-      state->traverse(*ts,-1);
-      ts=ts->next();
-    }
-  } else {
-    state->traverse(l1,l2);
-  }
-
-  res=state->result(l1,l2);
-#if VDEBUG
-  _state=state;
-#endif
-  return res;
-} // KBO::comparePredicates()
 
 Ordering::Result SKIKBO::compare(TermList tl1, TermList tl2) const
 {
@@ -369,14 +322,18 @@ Ordering::Result SKIKBO::compare(TermList tl1, TermList tl2) const
   if(tl1==tl2) {
     return EQUAL;
   }
-  if(tl1.isOrdinaryVar()) {
+
+  ApplicativeArgsIt aat1(tl1);
+  ApplicativeArgsIt aat2(tl2);
+
+  if(aat1.isVar()) {
     if(existsZeroWeightUnaryFunction()) {
       NOT_IMPLEMENTED;
     } else {
       return tl2.containsSubterm(tl1) ? LESS : INCOMPARABLE;
     }
   }
-  if(tl2.isOrdinaryVar()) {
+  if(aat2.isVar()) {
     if(existsZeroWeightUnaryFunction()) {
       NOT_IMPLEMENTED;
     } else {
@@ -407,13 +364,13 @@ Ordering::Result SKIKBO::compare(TermList tl1, TermList tl2) const
 #endif
 
   state->init();
-  if(t1->functor()==t2->functor()) {
-    state->traverse(t1,t2);
+  if(aat1.head()==aat2.head()) {
+    state->traverse(aat1,aat2);
   } else {
-    state->traverse(tl1,1);
-    state->traverse(tl2,-1);
+    state->traverse(aat1,1);
+    state->traverse(aat2,-1);
   }
-  Result res=state->result(t1,t2);
+  Result res=state->result(aat1,aat2);
 #if VDEBUG
   _state=state;
 #endif
@@ -432,41 +389,56 @@ int SKIKBO::functionSymbolWeight(unsigned fun) const
 }
 
 
-unsigned SKIKBO::maximumReductionLength(TermList term)
+unsigned SKIKBO::maximumReductionLength(Term* term)
 {
   CALL("SKIKBO::maximumReductionLength");  
    
   typedef ApplicativeHelper AH;
   typedef SortHelper SH;  
   
-  static TermStack toEvaluate;
+  static Stack<Term*> toEvaluate;
   static TermStack args;
   TermList head;
   unsigned length = 0;
 
+  auto addToEvaluate = [&toEvaluate] (TermList t) { 
+    if(!t.isVar()){
+      toEvaluate.push(t.term());
+    }
+  }; 
+
+  auto isUnderApplied = [] (Signature::Combinator c, unsigned argNum) { 
+    return (c == Signature::I_COMB && argNum < 1) ||
+           (c == Signature::K_COMB && argNum < 2) ||
+           (c == Signature::B_COMB && argNum < 3) ||
+           (c == Signature::C_COMB && argNum < 3) ||
+           (c == Signature::S_COMB && argNum < 3);
+  }; 
+
   toEvaluate.push(term);
   while(!toEvaluate.isEmpty()){
     args.reset(); 
-    TermList evaluating = toEvaluate.pop();
+    Term* evaluating = toEvaluate.pop();
     AH::getHeadAndArgs(evaluating, head, args);
-    if(head.isVar() || !AH::isComb(head)){
+    if(head.isVar() || !AH::isComb(head) || 
+      isUnderApplied(AH::getComb(head), args.size())){
       while(!args.isEmpty()){
-        toEvaluate.push(args.pop());
+        addToEvaluate(args.pop());
       }
     } else {
       Signature::Combinator c = AH::getComb(head);
       TermList newHeadSort = AH::getNthArg(SH::getResultSort(head.term()), 1);
       if(c == Signature::I_COMB){
-        toEvaluate.push(AH::createAppTerm(newHeadSort, args.pop(), args));//working on the assumption that the pop happens first...
+        addToEvaluate(AH::createAppTerm(newHeadSort, args.pop(), args));//working on the assumption that the pop happens first...
         length++;
       } else if(c == Signature::K_COMB){
         TermList newHead = args.pop();
-        toEvaluate.push(args.pop()); 
-        toEvaluate.push(AH::createAppTerm(newHeadSort, newHead, args));
+        addToEvaluate(args.pop()); 
+        addToEvaluate(AH::createAppTerm(newHeadSort, newHead, args));
         length++;
       } else {
         length++;
-        toEvaluate.push(reduce(args, head));
+        addToEvaluate(reduce(args, head));
       }
     }
   }

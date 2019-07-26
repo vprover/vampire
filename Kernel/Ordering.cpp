@@ -337,7 +337,7 @@ Comparison PrecedenceOrdering::compareFunctors(unsigned fun1, unsigned fun2) con
 
 /**
  * Compare precedences of two function symbols
- */
+ */ //TODO update for HOL>?
 Ordering::Result PrecedenceOrdering::compareFunctionPrecedences(unsigned fun1, unsigned fun2) const
 {
   CALL("PrecedenceOrdering::compareFunctionPrecedences");

@@ -146,26 +146,6 @@ void ApplicativeHelper::getHeadAndArgs(Term* term, TermList& head, TermStack& ar
 
 }
 
-
-void ApplicativeHelper::getHeadAndArgs(TermList term, TermList& head, TermList* empty, Stack<TermList*> args)
-{
-  CALL("ApplicativeHelper::getHeadAndArgs/3");
-
- /* if(!term.isTerm()){
-    head = term;
-    return;
-  }
-
-  while(env.signature->getFunction(term.term()->functor())->app()){
-    args.push(*term.term()->nthArgument(3)); 
-    term = *term.term()->nthArgument(2);
-    if(!term.isTerm()){ break; } 
-  }
-  head = term;*/
-
-}
-
-
 TermList ApplicativeHelper::getHead(TermList t)
 {
   CALL ("getHead");

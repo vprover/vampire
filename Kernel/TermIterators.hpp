@@ -32,6 +32,7 @@
 
 #include "Term.hpp"
 #include "SortHelper.hpp"
+#include "ApplicativeHelper.hpp"
 
 namespace Kernel {
 
@@ -204,6 +205,58 @@ protected:
   Stack<const TermList*>* _stack;
   bool _used;
 };
+
+/**
+ * Iterator that yields the arguments of @b
+ * applicative term in left-right order. Rather non-
+ * standardly, the iterator also has a function head() 
+ * that can be called at any time to return the head 
+ * of @b applicative term
+ */
+class ApplicativeArgsIt
+  : public IteratorCore<TermList>
+{
+public:
+  ApplicativeArgsIt(const TermList term)
+  {
+    ApplicativeHelper::getHeadAndArgs(term, _head, _stack);
+    _argNum = _stack.size();
+  }
+
+  ApplicativeArgsIt(Term* term)
+  {
+    ApplicativeHelper::getHeadAndArgs(term, _head, _stack);
+  }
+
+  bool hasNext(){
+    return !_stack.isEmpty();
+  }
+  /** Return next arg of _head
+   * @warning hasNext() must have been called before */
+  TermList next()
+  {
+    ASS(!_stack.isEmpty());
+    return _stack.pop();
+  }
+
+  TermList head(){
+    return _head ;
+  }
+
+  unsigned argNum(){
+    return _argNum;
+  }
+
+  bool isVar(){
+    return _head.isVar();
+  }
+
+protected:
+  TermStack _stack;
+  TermList _head;
+  unsigned _argNum;
+};
+
 
 /**
  * Iterator that yields proper subterms of commutative

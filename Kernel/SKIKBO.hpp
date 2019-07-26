@@ -53,10 +53,10 @@ public:
 
   using PrecedenceOrdering::compare;
   Result compare(TermList tl1, TermList tl2) const override;
-  static unsigned maximumReductionLength(TermList term);
+  static unsigned maximumReductionLength(Term* t);
 
 protected:
-  Result comparePredicates(Literal* l1, Literal* l2) const override;
+  //Result comparePredicates(Literal* l1, Literal* l2) const override;
 
   class State;
   /** Weight of variables */

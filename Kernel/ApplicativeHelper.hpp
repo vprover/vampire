@@ -7,6 +7,7 @@
 #define __ApplicativeHelper__
 
 #include "Forwards.hpp"
+#include "Signature.hpp"
 
 using namespace Kernel;
 using namespace Shell;
@@ -37,8 +38,6 @@ public:
   static bool isComb(TermList t);
   static Signature::Combinator getComb(TermList t);
   static TermList getHead(TermList t);
-
-  static void getHeadAndArgs(TermList term, TermList& head, TermList* empty, Stack<TermList*> args);
 
 
 private:
