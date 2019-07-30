@@ -201,7 +201,26 @@ private:
   Stack<z3::expr> _mergeAssumptions; //when translating array merge, we need to add an axiom for each array sort merge operation
   DHSet<unsigned> _mergeAssumptionSorts;           //collects the sorts of axioms in _mergeAssumptions
   DHMap<vstring,unsigned> _mergeAssumptionsLookup; //reverse translation
+
+  /** Wrapper for external classes that do not have a default constructor. Allows
+      the creation of DHSets and DHMaps of z3 sorts.
+   */
+  template <typename T>
+  class z3typeWrapper {
+  private:
+    T* _sort;
+  public:
+    z3typeWrapper() : _sort(NULL) {};
+    z3typeWrapper(T *sort) : _sort(sort) {};
+    T* get() { return _sort; }
+  };
+
+  typedef z3typeWrapper<z3::sort> z3sortWrapper;
+
   
+  DHMap<unsigned,z3sortWrapper> _datatypeLookup; //maps vampire term algebras to z3 datatypes
+  
+
   z3::expr getNameExpr(unsigned var){
     vstring name = "v"+Lib::Int::toString(var);
     return  _context.bool_const(name.c_str());

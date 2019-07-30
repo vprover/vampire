@@ -699,6 +699,18 @@ z3::sort Z3Interfacing::getz3sort(unsigned s)
     return _context.array_sort(index_sort,value_sort);
   }
 
+  if (env.signature->isTermAlgebraSort(s) &&
+      !env.signature->getTermAlgebraOfSort(s)->allowsCyclicTerms()) {
+    z3sortWrapper wrapsort;
+    if (_datatypeLookup.find(s, wrapsort)) {
+      return *(wrapsort.get());
+    } else {
+      //TODO: finish, make pull request for Z3 C++ API
+      //Z3_sort csrt = Z3_mk_datatype()
+      return _context.uninterpreted_sort(Lib::Int::toString(s).c_str());
+    }
+  }
+
   // Use new interface for uninterpreted sorts, I think this is not less efficient
   return _context.uninterpreted_sort(Lib::Int::toString(s).c_str());
 /*
