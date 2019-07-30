@@ -3474,25 +3474,6 @@ extern "C" {
      */
     Z3_ast Z3_API Z3_mk_seq_contains(Z3_context c, Z3_ast container, Z3_ast containee);
 
-
-    /**
-       \brief Check if \c s1 is lexicographically strictly less than \c s2.
-
-       \pre \c s1 and \c s2 are strings
-
-       def_API('Z3_mk_str_lt' ,AST ,(_in(CONTEXT), _in(AST), _in(AST)))
-     */
-    Z3_ast Z3_API Z3_mk_str_lt(Z3_context c, Z3_ast prefix, Z3_ast s);
-
-    /**
-       \brief Check if \c s1 is equal or lexicographically strictly less than \c s2.
-
-       \pre \c s1 and \c s2 are strings
-
-       def_API('Z3_mk_str_le' ,AST ,(_in(CONTEXT), _in(AST), _in(AST)))
-     */
-    Z3_ast Z3_API Z3_mk_str_le(Z3_context c, Z3_ast prefix, Z3_ast s);
-
     /**
        \brief Extract subsequence starting at \c offset of \c length.
 
@@ -6213,14 +6194,6 @@ extern "C" {
 
     /**
        \brief Ad-hoc method for importing model conversion from solver.
-
-       This method is used for scenarios where \c src has been used to solve a set
-       of formulas and was interrupted. The \c dst solver may be a strengthening of \c src
-       obtained from cubing (assigning a subset of literals or adding constraints over the 
-       assertions available in \c src). If \c dst ends up being satisfiable, the model for \c dst
-       may not correspond to a model of the original formula due to inprocessing in \c src.
-       This method is used to take the side-effect of inprocessing into account when returning
-       a model for \c dst.
        
        def_API('Z3_solver_import_model_converter', VOID, (_in(CONTEXT), _in(SOLVER), _in(SOLVER)))
      */
