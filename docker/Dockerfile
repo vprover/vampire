@@ -23,3 +23,4 @@ RUN cd /opt/ && \
         make -j8
 
 RUN cp -r /opt/vampire/build/bin /artifacts/
+RUN /opt/vampire/build/bin/vampire --help
