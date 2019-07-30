@@ -292,7 +292,7 @@ Clause* AWPassiveClauseContainer::popSelected()
       _weightRatio += weightUpdate;
    }
   }
-  std::cerr << _ageRatio << "\t" << _weightRatio << std::endl;
+  //std::cerr << _ageRatio << "\t" << _weightRatio << std::endl;
   _size--;
 
   bool byWeight;
