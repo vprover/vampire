@@ -29,6 +29,7 @@
 
 #include "Lib/Environment.hpp"
 #include "Lib/Comparison.hpp"
+#include "Lib/DHMultiset.hpp"
 
 #include "Shell/Options.hpp"
 
@@ -37,8 +38,6 @@
 #include "Signature.hpp"
 #include "SortHelper.hpp"
 #include "ApplicativeHelper.hpp"
-
-#define COLORED_WEIGHT_BOOST 0x10000
 
 namespace Kernel {
 
@@ -319,10 +318,24 @@ VarCondRes SKIKBO::compareVariables(TermList tl1, TermList tl2)
 {
   CALL("SKIKBO::compareVariables");
 
-  //TODO could be not a term
-  UnstableSubTermIt usti(tl1.term());
-  
+  DHMultiset<unsigned> tl1Vars;
+  DHMultiset<Term*> tl1UnstableTerms;
+  DHMultiset<unsigned> tl2Vars;
+  DHMultiset<Term*> tl2UnstableTerms;
 
+  if(tl1.isVar()){
+    tl1Vars.insert(tl1.var());
+  } else {
+    //TODO could be not a term
+    UnstableSubTermIt usti(tl1.term());
+    while(usti.hasNext()){
+      tl1UnstableTerms.insert(usti.next());
+    }
+    StableVarIt svi(tl1.term(), tl1UnstableTerms);
+    while(svi.hasNext()){
+      tl1Vars.insert(svi.next());
+    }
+  }
 }
 
 Ordering::Result SKIKBO::compare(TermList tl1, TermList tl2) const
@@ -401,10 +414,6 @@ Ordering::Result SKIKBO::compare(TermList tl1, TermList tl2) const
 int SKIKBO::functionSymbolWeight(unsigned fun) const
 {
   int weight = _defaultSymbolWeight;
-
-  if(env.signature->functionColored(fun)) {
-    weight *= COLORED_WEIGHT_BOOST;
-  }
 
   return weight;
 }
