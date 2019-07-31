@@ -257,6 +257,105 @@ protected:
   unsigned _argNum;
 };
 
+class UnstableSubTermIt
+  : public IteratorCore<Term*>
+{
+public:
+  UnstableSubTermIt(Term* term)
+  {
+    _next = 0;
+    if(ApplicativeHelper::isApp(term) && !term->ground()){
+      _stack.push(term);
+    }
+  }
+
+  bool hasNext();
+
+  Term* next()
+  {
+    ASS(_next);
+    Term* res = _next;
+    _next = 0;
+    return res;
+  }
+
+private:
+  bool unstable(Term* t);
+  bool isSafe(TermStack& args);
+  Stack<Term*> _stack;
+  Term* _next;
+};
+
+/*class UnappliedTermVarIterator
+  : public IteratorCore<TermList>
+{
+public:
+  UnappliedTermVarIterator(const TermList term)
+  {
+    if(term.isVar()){
+      _next = term;
+    } else {
+      UnappliedTermVarIterator(term.term()); 
+    }
+  }
+
+  UnappliedTermVarIterator(const Term* term)
+  {
+    _next.makeEmpty();
+    _stack.push(term);
+  }
+
+  bool hasNext();
+
+  TermList next()
+  {
+    ASS(!_next.isEmpty());
+    TermList res = _next;
+    _next.makeEmpty();
+    return res;
+  }
+
+private:
+  Stack<const Term*> _stack;
+  TermList _next;
+};
+
+
+class AppliedVarIterator
+  : public IteratorCore<TermList>
+{
+public:
+  AppliedVarIterator(TermList term, bool under = true) : 
+  _stack(8), _under(under)
+  {
+    _next.makeEmpty();    
+    if(term.isTerm()){
+      _stack.push(term.term());
+    }
+  }
+
+  AppliedVarIterator(Term* term, bool under = true) :
+  _stack(8), _under(under)
+  {
+    _next.makeEmpty();
+    _stack.push(term);
+  }
+
+  bool hasNext();
+  
+  TermList next()
+  {
+    ASS(!_next.isEmpty());
+    TermList res = _next;
+    _next.makeEmpty();
+    return res;
+  }
+
+private:
+  Stack<Term*> _stack;
+  bool _under;
+  TermList _next;
+};*/
 
 /**
  * Iterator that yields proper subterms of commutative

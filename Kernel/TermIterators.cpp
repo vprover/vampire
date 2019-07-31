@@ -27,9 +27,13 @@
 #include "Term.hpp"
 #include "Signature.hpp"
 #include "TermIterators.hpp"
+#include "ApplicativeHelper.hpp"
+#include "Lib/Deque.hpp"
 
 namespace Kernel
 {
+
+typedef ApplicativeHelper AH;
 
 /**
  * True if there exists next variable
@@ -112,6 +116,133 @@ void SubtermIterator::right()
   //we did here the same as in the hasNext function, we only didn't call
   //the pushNext function on arguments of t
 }
+
+
+bool UnstableSubTermIt::hasNext()
+{
+  CALL("UnstableSubTermIt::hasNext");
+
+  static TermStack args;
+  args.reset();
+  TermList head;
+  
+  if(_next){ return true; }
+  while(!_stack.isEmpty()){
+    Term* t = _stack.pop();
+    ASS(AH::isApp(t));
+    AH::getHeadAndArgs(t, head, args);
+    ASS(args.size());
+    if(head.isVar() && !isSafe(args)){
+      _next = t;
+    } else if(AH::isComb(head) && !AH::isUnderApplied(head, args.size()) && unstable(t)){
+      _next = t;
+    } else {
+      while(!args.isEmpty()){
+        TermList tl = args.pop();
+        if(!tl.isVar() && AH::isApp(tl.term()) && !tl.term()->ground()){
+          _stack.push(tl.term());
+        }
+      }
+    }
+    if(_next) { return true; }
+  }
+  return false;  
+}
+
+bool UnstableSubTermIt::isSafe(TermStack& args)
+{
+  CALL("UnstableSubTermIt::isSafe");
+
+  for(unsigned i = 0; i < args.size(); i++){
+    TermList head = AH::getHead(args[i]);
+    if(head.isVar() || AH::isComb(head)){
+      return false;
+    }
+  }
+  return true;
+}
+
+bool UnstableSubTermIt::unstable(Term* t)
+{
+  CALL("UnstableSubTermIt::unstable");
+  
+  TermStack args;
+  TermList head;
+  
+  AH::getHeadAndArgs(t, head, args);
+  while(!args.isEmpty()){
+    TermList t = args.pop();
+    if(t.isVar()){
+      return true;
+    }
+    head = AH::getHead(t);
+    if(AH::isComb(head)){
+      TermStack args2;
+      AH::getHeadAndArgs(t, head, args2);
+      while(!args2.isEmpty()){
+        args.push(args2.pop());
+      }
+    }
+  }
+  return false;
+}
+
+
+///////////////////////////////////////////
+
+/*bool UnappliedTermVarIterator::hasNext()
+{
+  CALL("UnappliedTermVarIterator::hasNext");
+
+  if(!_next.isEmpty()){ return true; }
+  while(!_stack.isEmpty()){
+    const Term* t = _stack.pop();
+    ASS(AH::isApp(t));
+    const TermList* tl = t->nthArgument(2);
+    if(AH::isApp(tl) && !tl->term()->ground()){
+      _stack.push(tl->term());
+    }
+    tl = t->nthArgument(3);
+    if(tl->isVar()){
+      _next = *tl;
+      return true;
+    }
+    if(AH::isApp(tl) && !tl->term()->ground()){
+      _stack.push(tl->term());
+    }
+  }
+  return false;
+}
+
+///////////////////////////////////////////
+
+bool AppliedVarIterator::hasNext()
+{
+  CALL("AppliedVarIterator::hasNext");
+
+  static Deque<TermList> args;
+  TermList head;
+
+  if(!_next.isEmpty()){ return true; }
+  while(!_stack.isEmpty()){
+    Term* t = _stack.pop();
+    ASS(AH::isApp(t));
+    args.reset();
+    AH::getHeadAndArgs(t, head, args);
+    ASS(args.size());
+    if(head.isVar()){
+      _next = TermList(t);
+    }
+    while((_next.isEmpty() || _under) && !args.isEmpty()){
+      TermList tl = args.pop_back();
+      if(!tl.isVar() && AH::isApp(tl.term()) && !tl.term()->ground()){
+        _stack.push(tl.term());
+      }
+    }
+    if(!_next.isEmpty()){ return true; }
+  }
+  return false;
+}*/
 
 ///////////////////////////////////////////
 
@@ -396,7 +527,7 @@ TermVarIterator::TermVarIterator (const Term* t)
   : _stack(64)
 {
   CALL("TermVarIterator::TermVarIterator");
-
+  //TODO update for two var lits?
   _stack.push(t->args());
 } // TermVarIterator::TermVarIterator
 

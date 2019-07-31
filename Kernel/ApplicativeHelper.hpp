@@ -8,6 +8,7 @@
 
 #include "Forwards.hpp"
 #include "Signature.hpp"
+#include "Lib/Deque.hpp"
 
 using namespace Kernel;
 using namespace Shell;
@@ -35,10 +36,13 @@ public:
   static TermList getResultSort(TermList sort);
   static void getHeadAndArgs(TermList term, TermList& head, TermStack& args); 
   static void getHeadAndArgs(Term* term, TermList& head, TermStack& args);  
+  static void getHeadAndArgs(const Term* term, TermList& head, Deque<TermList>& args); 
   static bool isComb(TermList t);
   static Signature::Combinator getComb(TermList t);
   static TermList getHead(TermList t);
-
+  static bool isApp(const Term* t);
+  static bool isApp(const TermList* tl);
+  static bool isUnderApplied(TermList head, unsigned argNum);
 
 private:
   

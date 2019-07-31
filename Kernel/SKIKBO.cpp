@@ -315,6 +315,16 @@ SKIKBO::~SKIKBO()
 }
 
 
+VarCondRes SKIKBO::compareVariables(TermList tl1, TermList tl2)
+{
+  CALL("SKIKBO::compareVariables");
+
+  //TODO could be not a term
+  UnstableSubTermIt usti(tl1.term());
+  
+
+}
+
 Ordering::Result SKIKBO::compare(TermList tl1, TermList tl2) const
 {
   CALL("KBO::compare(TermList)");
@@ -322,6 +332,17 @@ Ordering::Result SKIKBO::compare(TermList tl1, TermList tl2) const
   if(tl1==tl2) {
     return EQUAL;
   }
+
+  varCond = compareVariables(tl1, tl2);
+  if(varCond != INCOMPARABLE){
+    if(varCond == LEFT){
+      
+    } else if (varCond == RIGHT) {
+
+    }
+
+  }
+  return INCOMPARABLE;
 
   ApplicativeArgsIt aat1(tl1);
   ApplicativeArgsIt aat2(tl2);
@@ -407,21 +428,12 @@ unsigned SKIKBO::maximumReductionLength(Term* term)
     }
   }; 
 
-  auto isUnderApplied = [] (Signature::Combinator c, unsigned argNum) { 
-    return (c == Signature::I_COMB && argNum < 1) ||
-           (c == Signature::K_COMB && argNum < 2) ||
-           (c == Signature::B_COMB && argNum < 3) ||
-           (c == Signature::C_COMB && argNum < 3) ||
-           (c == Signature::S_COMB && argNum < 3);
-  }; 
-
   toEvaluate.push(term);
   while(!toEvaluate.isEmpty()){
     args.reset(); 
     Term* evaluating = toEvaluate.pop();
     AH::getHeadAndArgs(evaluating, head, args);
-    if(head.isVar() || !AH::isComb(head) || 
-      isUnderApplied(AH::getComb(head), args.size())){
+    if(head.isVar() || !AH::isComb(head) || AH::isUnderApplied(head, args.size())){
       while(!args.isEmpty()){
         addToEvaluate(args.pop());
       }

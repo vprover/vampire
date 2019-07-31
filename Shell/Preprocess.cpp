@@ -87,6 +87,8 @@
 #include "EqualityVariableRemover.hpp"
 #include "HalfBoundingRemover.hpp"
 #include "SubsumptionRemover.hpp"
+#include "Kernel/TermIterators.hpp"
+
 
 using namespace Shell;
 #if GNUMP

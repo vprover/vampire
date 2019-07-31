@@ -231,7 +231,7 @@ vstring getQuantifiedStr(Unit* u, List<unsigned>* nonQuantified=0)
     Clause* cl=static_cast<Clause*>(u);
     unsigned clen=cl->length();
     for(unsigned i=0;i<clen;i++) {
-      TermVarIterator vit( (*cl)[i] );
+      TermVarIterator vit( (*cl)[i] ); //TODO update iterator for two var lits?
       while(vit.hasNext()) {
         unsigned var=vit.next();
         if (List<unsigned>::member(var, nonQuantified)) {

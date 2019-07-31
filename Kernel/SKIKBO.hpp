@@ -58,7 +58,16 @@ public:
 protected:
   //Result comparePredicates(Literal* l1, Literal* l2) const override;
 
+  enum VarCondRes {
+    INCOMPARABLE,
+    LEFT,
+    RIGHT,
+    BOTH
+  };
+
   class State;
+
+  VarCondRes compareVariables(TermList tl1, TermList tl2);
   /** Weight of variables */
   int _variableWeight;
   /** Weight of function symbols not occurring in the

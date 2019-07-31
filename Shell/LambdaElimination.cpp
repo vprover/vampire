@@ -452,7 +452,7 @@ void LambdaElimination::addCombinatorAxioms(Problem& prb)
   TermList constant = TermList(Term::create(s_comb, 3, args));
   TermList lhs = AH::createAppTerm(srtOf(constant), constant, x, y, z); //TODO fix
   TermList rhs = AH::createAppTerm3(Term::arrowSort(s1, s2, s3), x, z, AH::createAppTerm(Term::arrowSort(s1, s2), y, z));
-  
+
   Clause* sAxiom = new(1) Clause(1, Unit::AXIOM, inf);
   (*sAxiom)[0] = Literal::createEquality(true, lhs, rhs, s3);
   sAxiom->setCombAxiomsDescendant(true);

@@ -118,7 +118,7 @@ void ApplicativeHelper::getHeadAndArgs(TermList term, TermList& head, TermStack&
     return;
   }
 
-  while(env.signature->getFunction(term.term()->functor())->app()){
+  while(isApp(term.term())){
     args.push(*term.term()->nthArgument(3)); 
     term = *term.term()->nthArgument(2);
     if(!term.isTerm()){ break; } 
@@ -134,17 +134,32 @@ void ApplicativeHelper::getHeadAndArgs(Term* term, TermList& head, TermStack& ar
 
   head = TermList(term);
 
-  while(env.signature->getFunction(term->functor())->app()){
+  while(isApp(term)){
     args.push(*term->nthArgument(3)); 
     head = *term->nthArgument(2);
     if(head.isTerm()){ 
       term = head.term();
-    } else {
-      break;
-    }
+    } else { break; }
   }
 
 }
+
+void ApplicativeHelper::getHeadAndArgs(const Term* term, TermList& head, Deque<TermList>& args)
+{
+  CALL("ApplicativeHelper::getHeadAndArgs/3");
+
+  ASS(isApp(term));
+
+  while(isApp(term)){
+    args.push_front(*term->nthArgument(3)); 
+    head = *term->nthArgument(2);
+    if(head.isTerm()){ 
+      term = head.term();
+    } else {  break; }
+  }  
+}
+
+
 
 TermList ApplicativeHelper::getHead(TermList t)
 {
@@ -164,7 +179,7 @@ TermList ApplicativeHelper::getHead(TermList t)
 bool ApplicativeHelper::isComb(TermList head)
 {
   CALL("ApplicativeHelper::isComb");
-  ASS(head.isTerm());
+  if(head.isVar()){ return false; }
   return env.signature->getFunction(head.term()->functor())->combinator() != Signature::NOT_COMB;
 }
 
@@ -173,4 +188,30 @@ Signature::Combinator ApplicativeHelper::getComb (TermList head)
 {
   CALL("ApplicativeHelper::getComb");
   return env.signature->getFunction(head.term()->functor())->combinator();
+}
+
+bool ApplicativeHelper::isApp(const Term* t)
+{
+  CALL("ApplicativeHelper::isApp(Term*)");
+  return env.signature->getFunction(t->functor())->app(); 
+}
+
+
+bool ApplicativeHelper::isApp(const TermList* tl)
+{
+  CALL("ApplicativeHelper::isApp(TermList*)");
+  if(tl->isTerm()){ return isApp(tl->term()); }
+  return false;
+}
+
+bool ApplicativeHelper::isUnderApplied(TermList head, unsigned argNum){
+  CALL("ApplicativeHelper::isPartiallyAppliedComb");
+
+  ASS(isComb(head));
+  Signature::Combinator c = getComb(head);
+  return ((c == Signature::I_COMB && argNum < 1) ||
+          (c == Signature::K_COMB && argNum < 2) ||
+          (c == Signature::B_COMB && argNum < 3) ||
+          (c == Signature::C_COMB && argNum < 3) ||
+          (c == Signature::S_COMB && argNum < 3));
 }
