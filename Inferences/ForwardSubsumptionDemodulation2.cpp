@@ -746,7 +746,8 @@ bool ForwardSubsumptionDemodulation2::perform(Clause* cl, Clause*& replacement, 
         ? std::numeric_limits<decltype(maxMatches)>::max()
         : getOptions().forwardSubsumptionDemodulationMaxMatches();
 
-      for (unsigned numMatches = 0; numMatches < maxMatches; ++numMatches) {
+      unsigned numMatches = 0;
+      for (; numMatches < maxMatches; ++numMatches) {
         if (!matcher.nextMatch()) {
           break;
         }
@@ -1163,6 +1164,11 @@ isRedundant:
           }  // while (nvi.hasNext())
         }  // for (dli)
       }  // for (numMatches)
+
+      if (numMatches > 0) {
+        RSTAT_CTR_INC("FSDv2, MLMatch but no FSD inference");
+      }
+
     }  // while (rit.hasNext)
   }  // for (li)
 
