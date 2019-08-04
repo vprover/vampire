@@ -29,6 +29,7 @@
 #include "Lib/Recycler.hpp"
 #include "Lib/Stack.hpp"
 #include "Lib/VirtualIterator.hpp"
+#include "lib/DHMultiset.hpp"
 
 #include "Term.hpp"
 #include "SortHelper.hpp"
@@ -285,6 +286,35 @@ private:
   Stack<Term*> _stack;
   Term* _next;
 };
+
+class StableVarIt
+  : public IteratorCore<TermList>
+{
+public:
+  StableVarIt(Term* t, const DHMultiset<Term*>* unstableTerms) :
+  _unstableTerms(unstableTerms)
+  {
+    _next.makeEmpty();
+    if(!t->ground() && !_unstableTerms.find(t)){
+      _stack.push(TermList(t));
+    }  
+  }
+  
+  bool hasNext();
+
+  Term* next()
+  {
+    ASS(!_next.isEmpty());
+    TermList res = _next;
+    _next.makeEmpty();
+    return res;
+  }
+
+private:
+  DHMultiset<Term*>* _unstableTerms;
+  TermStack _stack
+  TermList _next;
+}
 
 /*class UnappliedTermVarIterator
   : public IteratorCore<TermList>

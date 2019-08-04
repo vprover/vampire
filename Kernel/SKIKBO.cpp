@@ -320,6 +320,7 @@ VarCondRes SKIKBO::compareVariables(TermList tl1, TermList tl2)
 
   DHMultiset<unsigned> tl1Vars;
   DHMultiset<Term*> tl1UnstableTerms;
+  DHMap<Term*, ArgsReductionData*> tl1RedData;
   DHMultiset<unsigned> tl2Vars;
   DHMultiset<Term*> tl2UnstableTerms;
 
@@ -333,9 +334,15 @@ VarCondRes SKIKBO::compareVariables(TermList tl1, TermList tl2)
     }
     StableVarIt svi(tl1.term(), tl1UnstableTerms);
     while(svi.hasNext()){
-      tl1Vars.insert(svi.next());
+      TermList tl = svi.next();
+      if(tl.isVar()){
+        tl1Vars.insert(tl.var());
+      } else {
+        
+      }
     }
   }
+
 }
 
 Ordering::Result SKIKBO::compare(TermList tl1, TermList tl2) const
@@ -347,7 +354,7 @@ Ordering::Result SKIKBO::compare(TermList tl1, TermList tl2) const
   }
 
   varCond = compareVariables(tl1, tl2);
-  if(varCond != INCOMPARABLE){
+  if(varCond != INCOMP){
     if(varCond == LEFT){
       
     } else if (varCond == RIGHT) {

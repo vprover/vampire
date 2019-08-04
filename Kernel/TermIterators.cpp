@@ -187,6 +187,39 @@ bool UnstableSubTermIt::unstable(Term* t)
   return false;
 }
 
+///////////////////////////////////////////
+
+bool StableVarIt::hasNext()
+{
+  CALL("StableVarIt::hasNext");
+
+  static TermStack args;
+  args.reset();
+  TermList head;
+  
+  if(!_next.isEmpty()){ return true; }
+  while(!_stack.isEmpty()){
+    TermList t = _stack.pop();
+    if(t.isVar()){
+      _next = t;
+    } else {
+      AH::getHeadAndArgs(t, head, args);
+      if(head.isVar()){
+        _next = t;
+      }
+      while(!args.isEmpty()){
+        TermList tl = args.pop();
+        if(tl.isVar() || (!tl.term()->ground() && !_unstableTerms.find(tl.term()))){
+          _stack.push(tl);
+        }
+      }
+    }
+    if(!_next.isEmpty()) { return true; }
+  }
+  return false;  
+
+}
+
 
 ///////////////////////////////////////////
 

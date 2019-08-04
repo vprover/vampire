@@ -59,7 +59,7 @@ protected:
   //Result comparePredicates(Literal* l1, Literal* l2) const override;
 
   enum VarCondRes {
-    INCOMPARABLE,
+    INCOMP,
     LEFT,
     RIGHT,
     BOTH
