@@ -561,6 +561,15 @@ void SaturationAlgorithm::addInputClause(Clause* cl)
   bool isTheory = cl->inference()->rule()==Inference::THEORY;
   bool sosForTheory = _opt.sos() == Options::Sos::THEORY && _opt.sosTheoryLimit() == 0;
 
+  if (_opt.sineToAge()) {
+    unsigned prio = cl->getSineLevel();
+    if (prio == UINT_MAX) {
+      prio = env.maxClausePriority;
+    }
+
+   cl->setAge(prio);
+  }
+
   if (sosForAxioms || (isTheory && sosForTheory)){
     addInputSOSClause(cl);
   } else {

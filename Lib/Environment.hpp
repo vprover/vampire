@@ -67,6 +67,8 @@ public:
   DHMap<const Kernel::Unit*,unsigned>* clausePriorities;
   unsigned maxClausePriority;
 
+  DHMap<const Kernel::Unit*,unsigned>* clauseSineLevels;
+
   bool haveOutput();
   void beginOutput();
   void endOutput();

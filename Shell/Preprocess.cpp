@@ -236,6 +236,13 @@ void Preprocess::preprocess(Problem& prb)
     Normalisation().normalise(prb);
   }
 
+  if (_options.sineToAge()) {
+    env.statistics->phase=Statistics::SINE_SELECTION;
+
+    // just to initialize ``env.clauseSineLevels''
+    SineSelector(false,1.0,0,0,true).perform(prb);
+  }
+
   if (_options.sineSelection()!=Options::SineSelection::OFF) {
     env.statistics->phase=Statistics::SINE_SELECTION;
     if (env.options->showPreprocessing())
