@@ -495,20 +495,20 @@ std::ostream& operator<<(std::ostream& o, OverlayBinder const& binder)
 /// (naive implementation; to be used only in debug mode.)
 bool clauseIsSmaller(Literal* const lits1[], unsigned n1, Literal* const lits2[], unsigned n2, Ordering const& ordering)
 {
+  // Copy given literals so we can sort them
   v_vector<Literal*> c1(lits1, lits1+n1);
   v_vector<Literal*> c2(lits2, lits2+n2);
 
+  // These will contain literals from c1/c2 with equal occurrences removed
   v_vector<Literal*> v1;
   v_vector<Literal*> v2;
 
-  // TODO:
-  // pointer comparison with "<" is unspecified.
-  // but std::less<> yields a total order even on pointers! so use that.
-  // See https://stackoverflow.com/a/9086675
-
-  // sort by pointer value
-  std::sort(c1.begin(), c1.end());
-  std::sort(c2.begin(), c2.end());
+  // Sort input by pointer value
+  // NOTE: we use std::less<> because the C++ standard guarantees it is a total order on pointer types.
+  //       (the built-in operator< is not required to be a total order for pointer types.)
+  std::less<Literal*> const lit_ptr_less;
+  std::sort(c1.begin(), c1.end(), lit_ptr_less);
+  std::sort(c2.begin(), c2.end(), lit_ptr_less);
 
   // Skip occurrences of equal literals
   unsigned i1 = 0;
@@ -519,11 +519,11 @@ bool clauseIsSmaller(Literal* const lits1[], unsigned n1, Literal* const lits2[]
       ++i1;
       ++i2;
     }
-    else if (c1[i1] < c2[i2]) {
+    else if (lit_ptr_less(c1[i1], c2[i2])) {
       v1.push_back(c1[i1]);
       ++i1;
     }
-    else if (c1[i1] > c2[i2]) {
+    else if (lit_ptr_less(c2[i2], c1[i1])) {
       v2.push_back(c2[i2]);
       ++i2;
     }
