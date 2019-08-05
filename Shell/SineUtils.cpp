@@ -321,6 +321,7 @@ void SineSelector::updateDefRelation(Unit* u)
     }
     if(env.clauseSineLevels){
       env.clauseSineLevels->insert(u,1);
+      // cout << "set level for a non-symboler " << u->toString() << " as " << "(1)" << endl;
     }
     _unitsWithoutSymbols.push(u);
     return;
@@ -435,12 +436,15 @@ bool SineSelector::perform(UnitList*& units)
       }
       if(env.clauseSineLevels && !env.clauseSineLevels->find(u)) {
         env.clauseSineLevels->insert(u,1);
+        // cout << "set level for " << u->toString() << " as " << "(1)" << endl;
       }
     }
   }
 
   unsigned depth=0;
   newlySelected.push_back(0);
+
+  // cout << "env.maxClausePriority starts as" << env.maxClausePriority << endl;
 
   //select required axiom formulas
   while (newlySelected.isNonEmpty()) {
@@ -455,6 +459,7 @@ bool SineSelector::perform(UnitList*& units)
       }
       ASS(!_depthLimit || depth<_depthLimit);
       env.maxClausePriority++;
+      // cout << "Time to inc" << endl;
 
       if (newlySelected.isNonEmpty()) {
 	//we must push another mark if we're not done yet
@@ -482,7 +487,8 @@ bool SineSelector::perform(UnitList*& units)
           //cout << "set priority for " << du->toString() << " as " << env.maxClausePriority << endl;
         }
         if(env.clauseSineLevels && !env.clauseSineLevels->find(du)){
-          env.clauseSineLevels->insert(du,env.maxClausePriority);
+          env.clauseSineLevels->insert(du,env.maxClausePriority+1);
+          // cout << "set level for " << du->toString() << " in iteration as " << env.maxClausePriority+1 << endl;
         }
       }
       //all defining units for the symbol sym were selected,
