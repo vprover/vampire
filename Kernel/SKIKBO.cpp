@@ -320,14 +320,14 @@ VarCondRes SKIKBO::compareVariables(TermList tl1, TermList tl2)
 
   DHMultiset<unsigned> tl1Vars;
   DHMultiset<Term*> tl1UnstableTerms;
-  DHMap<Term*, ArgsReductionData*> tl1RedData;
+  DHMap<unsigned, DArray<ArgsReductionData*>*> tl1RedData;
   DHMultiset<unsigned> tl2Vars;
   DHMultiset<Term*> tl2UnstableTerms;
+  DHMap<unsigned, DArray<ArgsReductionData*>*> tl2RedData;
 
   if(tl1.isVar()){
     tl1Vars.insert(tl1.var());
   } else {
-    //TODO could be not a term
     UnstableSubTermIt usti(tl1.term());
     while(usti.hasNext()){
       tl1UnstableTerms.insert(usti.next());
