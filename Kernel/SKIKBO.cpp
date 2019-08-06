@@ -318,30 +318,175 @@ VarCondRes SKIKBO::compareVariables(TermList tl1, TermList tl2)
 {
   CALL("SKIKBO::compareVariables");
 
-  DHMultiset<unsigned> tl1Vars;
-  DHMultiset<Term*> tl1UnstableTerms;
-  DHMap<unsigned, DArray<ArgsReductionData*>*> tl1RedData;
-  DHMultiset<unsigned> tl2Vars;
-  DHMultiset<Term*> tl2UnstableTerms;
-  DHMap<unsigned, DArray<ArgsReductionData*>*> tl2RedData;
+  VarCondRes vcr = BOTH;
 
-  if(tl1.isVar()){
-    tl1Vars.insert(tl1.var());
-  } else {
+  DHMultiset<Term*> tl1UnstableTerms;
+  DHMap<unsigned, DArray<DArray<unsigned>> tl1RedData;
+  DHMultiset<Term*> tl2UnstableTerms;
+  DHMap<unsigned, DArray<DArray<unsigned>>> tl2RedData;
+
+  if(!tl1.isVar()){
     UnstableSubTermIt usti(tl1.term());
     while(usti.hasNext()){
       tl1UnstableTerms.insert(usti.next());
     }
-    StableVarIt svi(tl1.term(), tl1UnstableTerms);
-    while(svi.hasNext()){
-      TermList tl = svi.next();
-      if(tl.isVar()){
-        tl1Vars.insert(tl.var());
-      } else {
-        
-      }
+  }
+
+  if(!tl2.isVar()){
+    UnstableSubTermIt usti(tl2.term());
+    while(usti.hasNext()){
+      tl2UnstableTerms.insert(usti.next());
     }
   }
+
+  if(tl1UnstableTerms.size() > tl2UnstableTerms.size()){
+    vcr = LEFT;
+  } else if (tl2UnstableTerms.size() > tl1UnstableTerms.size()){
+    vcr = RIGHT;
+  }
+
+  DHMultiset<Term*>::SetIterator tl1utit(tl1UnstableTerms);
+  while(tl1utit.hasNext()){
+    unsigned tl1Mult = 0;
+    Term* t = tl1utit.next(tl1Mult);
+    unsigned tl2Mult = tl2UnstableTerms.multiplicity(t);
+    if(tl1Mult > tl2Mult && vcr != RIGHT){
+      vcr = LEFT;
+    } else if(tl2Mult > tl1Mult && vcr != LEFT){
+      vcr = RIGHT;
+    } else if (tl1Mult != tl2Mult){
+      return INCOMP;
+    }
+  }
+
+  DHMultiset<Term*>::SetIterator tl2utit(tl2UnstableTerms);
+  while(tl2utit.hasNext()){
+    unsigned tl2Mult = 0;
+    Term* t = tl2utit.next(tl2Mult);
+    unsigned tl1Mult = tl1UnstableTerms.multiplicity(t);
+    if(tl1Mult > tl2Mult && vcr != RIGHT){
+      vcr = LEFT;
+    } else if(tl2Mult > tl1Mult && vcr != LEFT){
+      vcr = RIGHT;
+    } else if (tl1Mult != tl2Mult){
+      return INCOMP;
+    }
+  }
+
+  DHMultiset<unsigned> tl1vars;
+  StableVarIt svi(tl1, tl1UnstableTerms);
+  while(svi.hasNext()){
+    TermList tl = svi.next();
+    TermList head = ApplicativeHelper::getHead(tl);
+    ASS(head.isVar());
+    tl1vars.insert(head.var());
+  }
+
+  DHMultiset<unsigned> tl2vars;
+  StableVarIt svi2(tl2, tl2UnstableTerms);
+  while(svi.hasNext()){
+    TermList tl = svi.next();
+    TermList head = ApplicativeHelper::getHead(tl);
+    ASS(head.isVar());
+    tl2vars.insert(head.var());
+  }
+
+  if(tl1vars.size() > tl2vars.size() && vcr != RIGHT){
+    vcr = LEFT;
+  } else if (tl2vars.size() > tl1vars.size()  && vcr != LEFT){
+    vcr = RIGHT;
+  } else if(tl1vars.size() != tl2vars.size()){
+    return INCOMP;
+  }
+
+  DHMultiset<unsigned>::SetIterator tl1vit(tl1vars);
+  while(tl1vit.hasNext()){
+    unsigned tl1Mult = 0;
+    unsigned var = tl1vit.next(tl1Mult);
+    unsigned tl2Mult = tl2vars.multiplicity(var);
+    if(tl1Mult > tl2Mult && vcr != RIGHT){
+      vcr = LEFT;
+    } else if(tl2Mult > tl1Mult && vcr != LEFT){
+      vcr = RIGHT;
+    } else if (tl1Mult != tl2Mult){
+      return INCOMP;
+    }
+  }
+
+  DHMultiset<unsigned>::SetIterator tl2vit(tl2vars);
+  while(tl2vit.hasNext()){
+    unsigned tl2Mult = 0;
+    unsigned var = tl2vit.next(tl2Mult);
+    unsigned tl1Mult = tl1UnstableTerms.multiplicity(var);
+    if(tl1Mult > tl2Mult && vcr != RIGHT){
+      vcr = LEFT;
+    } else if(tl2Mult > tl1Mult && vcr != LEFT){
+      vcr = RIGHT;
+    } else if (tl1Mult != tl2Mult){
+      return INCOMP;
+    }
+  }
+
+  DHMap<unsigned, unsigned> varCounts;
+  static TermStack args;
+  StableVarIt svi3(tl1, tl1UnstableTerms);
+  while(svi2.hasNext()){
+    args.reset(); //TODO required?
+    TermList tl = svi3.next();
+    TermList head;
+    ApplicativeHelper::getHeadAndArgs(tl, head, args);
+    ASS(head.isVar());
+    unsigned var = head.var();
+    DArray<DArray<unsigned>>* vData = tl1RedData.findPtr(var);
+    if(vData){
+      unsigned count = varCounts.get(var);
+      varCounts.set(var, count++);
+      (*vData)[count].ensure(args.size());
+      for(unsigned i = 0; i < args.size(); i++){
+        (*vData)[count][i] = getMaxRedLength(args.pop());
+      }
+    } else {
+      DArray<DArray<unsigned>> arr;
+      arr.ensure(tl1vars.multiplicity(var));
+      varCounts.set(var, 1);
+      arr[0].ensure(args.zise()); 
+      for(unsigned i = 0; i < args.size(); i++){
+        arr[0][i] = getMaxRedLength(args.pop());
+      }     
+      tl1RedData.set(var, arr);
+    }
+  }
+
+  varCounts.reset();
+  StableVarIt svi4(tl2, tl2UnstableTerms);
+  while(svi4.hasNext()){
+    args.reset(); //TODO required?
+    TermList tl = svi4.next();
+    TermList head;
+    ApplicativeHelper::getHeadAndArgs(tl, head, args);
+    ASS(head.isVar());
+    unsigned var = head.var();
+    DArray<DArray<unsigned>>* vData = tl2RedData.findPtr(var);
+    if(vData){
+      unsigned count = varCounts.get(var);
+      varCounts.set(var, count++);
+      (*vData)[count].ensure(args.size());
+      for(unsigned i = 0; i < args.size(); i++){
+        (*vData)[count][i] = getMaxRedLength(args.pop());
+      }
+    } else {
+      DArray<DArray<unsigned>> arr;
+      arr.ensure(tl1vars.multiplicity(var));
+      varCounts.set(var, 1);
+      arr[0].ensure(args.zise()); 
+      for(unsigned i = 0; i < args.size(); i++){
+        arr[0][i] = getMaxRedLength(args.pop());
+      }     
+      tl2RedData.set(var, arr);
+    }
+  }
+  
+  return compareVariables2(tl1RedData, tl2RedData);
 
 }
 
