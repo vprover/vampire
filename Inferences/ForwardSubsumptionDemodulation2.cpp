@@ -491,8 +491,11 @@ std::ostream& operator<<(std::ostream& o, OverlayBinder const& binder)
 
 
 #if VDEBUG
-/// Returns true iff clause with literal lits1 is smaller than clause with literals lits2 in the given ordering.
-/// (naive implementation; to be used only in debug mode.)
+/// Returns true iff clause with literal lits1 is smaller than clause with literals lits2
+/// in the multiset extension of the given ordering.
+///
+/// This implementation is justified by Lemma 2.5.6 on page 24 of [BN98].
+/// [BN98] Franz Baader and Tobias Nipkow. Term Rewriting and All That. Cambridge University Press, 1998.
 bool clauseIsSmaller(Literal* const lits1[], unsigned n1, Literal* const lits2[], unsigned n2, Ordering const& ordering)
 {
   // Copy given literals so we can sort them
@@ -540,6 +543,12 @@ bool clauseIsSmaller(Literal* const lits1[], unsigned n1, Literal* const lits2[]
     ASS_GE(i1, n1);
     v2.push_back(c2[i2]);
     ++i2;
+  }
+
+  if (v1.empty() && v2.empty()) {
+    // Both clauses are the same
+    ASS(c1 == c2);
+    return false;
   }
 
   // For each remaining literal from c1,
