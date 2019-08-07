@@ -488,7 +488,7 @@ public:
       CALL("DHMultiset::SetIterator::next/1");
       ASS_NEQ(_next, _afterLast);
 
-      multiplicity=_next->multiplicity;
+      multiplicity=_next->_info.multiplicity;
       return (_next++)->_val;
     }
 

@@ -183,7 +183,6 @@ bool ApplicativeHelper::isComb(TermList head)
   return env.signature->getFunction(head.term()->functor())->combinator() != Signature::NOT_COMB;
 }
 
-
 Signature::Combinator ApplicativeHelper::getComb (TermList head) 
 {
   CALL("ApplicativeHelper::getComb");

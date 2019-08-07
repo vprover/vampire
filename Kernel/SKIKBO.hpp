@@ -29,6 +29,8 @@
 #include "Forwards.hpp"
 
 #include "Lib/DArray.hpp"
+#include "Lib/DHMap.hpp"
+
 
 #include "Ordering.hpp"
 #include "Signature.hpp"
@@ -56,6 +58,8 @@ public:
   static unsigned maximumReductionLength(Term* t);
 
 protected:
+  typedef DHMap<unsigned, DArray<DArray<unsigned>*>*> VarOccMap;
+
   //Result comparePredicates(Literal* l1, Literal* l2) const override;
 
   enum VarCondRes {
@@ -67,7 +71,15 @@ protected:
 
   class State;
 
-  VarCondRes compareVariables(TermList tl1, TermList tl2);
+  VarCondRes compareVariables(VarOccMap&, VarOccMap&, VarCondRes) const;
+  VarCondRes compareVariables(TermList tl1, TermList tl2) const;
+  bool canBeMatched(DArray<unsigned>*, DArray<unsigned>*) const;
+  
+  bool bpm (unsigned n, DArray<DArray<bool>>& bpGraph, int u,  
+         DArray<bool>& seen , DArray<int>& matchR) const;
+  bool totalBMP(unsigned m, unsigned n, DArray<DArray<bool>>& bpGraph) const;
+  unsigned getMaxRedLength(TermList t) const;
+
   /** Weight of variables */
   int _variableWeight;
   /** Weight of function symbols not occurring in the

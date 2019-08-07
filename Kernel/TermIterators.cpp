@@ -209,7 +209,7 @@ bool StableVarIt::hasNext()
       }
       while(!args.isEmpty()){
         TermList tl = args.pop();
-        if(tl.isVar() || (!tl.term()->ground() && !_unstableTerms.find(tl.term()))){
+        if(tl.isVar() || (!tl.term()->ground() && !_unstableTerms->find(tl.term()))){
           _stack.push(tl);
         }
       }

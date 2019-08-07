@@ -29,7 +29,7 @@
 #include "Lib/Recycler.hpp"
 #include "Lib/Stack.hpp"
 #include "Lib/VirtualIterator.hpp"
-#include "lib/DHMultiset.hpp"
+#include "Lib/DHMultiset.hpp"
 
 #include "Term.hpp"
 #include "SortHelper.hpp"
@@ -291,18 +291,22 @@ class StableVarIt
   : public IteratorCore<TermList>
 {
 public:
-  StableVarIt(Term* t, const DHMultiset<Term*>* unstableTerms) :
+  StableVarIt(TermList t, const DHMultiset<Term*>* unstableTerms) :
   _unstableTerms(unstableTerms)
   {
+    if(t.isVar()){
+      _next = t;
+      return;
+    }
     _next.makeEmpty();
-    if(!t->ground() && !_unstableTerms.find(t)){
-      _stack.push(TermList(t));
+    if(!t.term()->ground() && !_unstableTerms->find(t.term())){
+      _stack.push(t);
     }  
   }
   
   bool hasNext();
 
-  Term* next()
+  TermList next()
   {
     ASS(!_next.isEmpty());
     TermList res = _next;
@@ -311,10 +315,10 @@ public:
   }
 
 private:
-  DHMultiset<Term*>* _unstableTerms;
-  TermStack _stack
+  const DHMultiset<Term*>* _unstableTerms;
+  TermStack _stack;
   TermList _next;
-}
+};
 
 /*class UnappliedTermVarIterator
   : public IteratorCore<TermList>
