@@ -69,10 +69,15 @@ protected:
     BOTH
   };
 
-  class State;
+  Result comparePredicates(Literal* l1, Literal* l2) const override
+  {
+    return Ordering::INCOMPARABLE;
+  }
 
   VarCondRes compareVariables(VarOccMap&, VarOccMap&, VarCondRes) const;
   VarCondRes compareVariables(TermList tl1, TermList tl2) const;
+  void freeMem(VarOccMap&, VarOccMap&) const;
+
   bool canBeMatched(DArray<unsigned>*, DArray<unsigned>*) const;
   
   bool bpm (unsigned n, DArray<DArray<bool>>& bpGraph, int u,  
@@ -92,11 +97,6 @@ protected:
   bool existsZeroWeightUnaryFunction() const { return false; }
 
   static TermList reduce(TermStack& args, TermList& head);
-
-  /**
-   * State used for comparing terms and literals
-   */
-  mutable State* _state;
 };
 
 }

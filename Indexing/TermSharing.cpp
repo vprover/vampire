@@ -111,7 +111,7 @@ Term* TermSharing::insert(Term* t)
       TermList head;
       TermStack args;
       AH::getHeadAndArgs(t, head, args);
-      if(!AH::isComb(head)){
+      if(!AH::isComb(head) || AH::isUnderApplied(head, args.size())){
         maxRedLength = sumRedLengths(args);
       } else {
         switch(AH::getComb(head)){
@@ -121,6 +121,7 @@ Term* TermSharing::insert(Term* t)
               maxRedLength = sumRedLengths(args);
               maxRedLength = maxRedLength == -1 ? -1 : maxRedLength + 1;
             }
+            break;
           case Signature::S_COMB:
             if(!AH::isComb(AH::getHead(args[args.size()-1]))  &&
                !AH::isComb(AH::getHead(args[args.size()-2]))){
@@ -130,6 +131,7 @@ Term* TermSharing::insert(Term* t)
                 maxRedLength += args[args.size() - 3].term()->maxRedLength();
               }
             }
+            break;
           case Signature::C_COMB:
           case Signature::I_COMB:
           case Signature::K_COMB:
@@ -137,6 +139,7 @@ Term* TermSharing::insert(Term* t)
               maxRedLength = sumRedLengths(args);
               maxRedLength = maxRedLength == -1 ? -1 : maxRedLength + 1;
             }
+            break;
           default:
             ASSERTION_VIOLATION;
         }
