@@ -257,8 +257,11 @@ void PortfolioMode::getSchedules(Property& prop, Schedule& quick, Schedule& fall
     Schedules::getCasc2017Schedule(prop,quick,fallback);
     break;
   case Options::Schedule::CASC_2018:
-  case Options::Schedule::CASC:
     Schedules::getCasc2018Schedule(prop,quick,fallback);
+    break;
+  case Options::Schedule::CASC_2019:
+  case Options::Schedule::CASC:
+    Schedules::getCasc2019Schedule(prop,quick,fallback);
     break;
   case Options::Schedule::CASC_SAT_2014:
     Schedules::getCascSat2014Schedule(prop,quick,fallback);
@@ -270,8 +273,11 @@ void PortfolioMode::getSchedules(Property& prop, Schedule& quick, Schedule& fall
     Schedules::getCascSat2017Schedule(prop,quick,fallback);
     break;
   case Options::Schedule::CASC_SAT_2018:
-  case Options::Schedule::CASC_SAT:
     Schedules::getCascSat2018Schedule(prop,quick,fallback);
+    break;
+  case Options::Schedule::CASC_SAT_2019:
+  case Options::Schedule::CASC_SAT:
+    Schedules::getCascSat2019Schedule(prop,quick,fallback);
     break;
   case Options::Schedule::SMTCOMP_2016:
     Schedules::getSmtcomp2016Schedule(prop,quick,fallback);
