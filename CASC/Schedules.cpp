@@ -11090,6 +11090,15 @@ void Schedules::getCasc2018Schedule(const Property& property, Schedule& quick, S
 
 } // getCasc2018Schedule
 
+/**
+ * Get schedules for a problem of given property.
+ * The schedules are to be executed from the bottom of the stack, i.e. in the order in which they are mentioned in the file.
+ */
+void Schedules::getCasc2019Schedule(const Property& property, Schedule& quick, Schedule& fallback)
+{
+
+} // getCasc2019Schedule
+
 // ---------- ---------- ---------- ---------- ---------- ---------- ---------- ---------- ----------
 // ---------- ---------- ---------- ---------- ---------- ---------- ---------- ---------- ----------
 // ---------- ---------- ---------- ---------- ---------- ---------- ---------- ---------- ----------
@@ -11296,6 +11305,11 @@ void Schedules::getCascSat2018Schedule(const Property& property, Schedule& quick
   fallback.push("dis+4_2_add=large:afr=on:afp=4000:afq=1.2:anc=none:bd=preordered:bce=on:fsr=off:fde=unused:lma=on:nwc=1:sos=all:sac=on:sp=reverse_arity:updr=off_2100");
   fallback.push("lrs+1_8:1_add=off:anc=none:bd=preordered:br=off:bce=on:fsr=off:fde=none:nwc=1:nicw=on:sos=theory:sp=reverse_arity:urr=on_900");
 } // getCascSat2018Schedule
+
+
+void Schedules::getCascSat2019Schedule(const Property& property, Schedule& quick, Schedule& fallback)
+
+} // getCascSat2019Schedule
 
 // ---------- ---------- ---------- ---------- ---------- ---------- ---------- ---------- ----------
 // ---------- ---------- ---------- ---------- ---------- ---------- ---------- ---------- ----------
