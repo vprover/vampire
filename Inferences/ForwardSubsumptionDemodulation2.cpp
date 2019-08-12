@@ -1125,6 +1125,7 @@ isRedundant:
               env.out() << "\% eqLit: " << eqLit->toString() << "\n";
               env.out() << "\% eqLitS: " << binder.applyTo(eqLit)->toString() << "\n";
               env.out() << "\% dlit: " << dlit->toString() << "\n";
+              env.out() << "\% numMatches: " << numMatches << "\n";
               TPTPPrinter tptp;
               // NOTE: do not output the splitLevels here, because those will be set for newCl only later
               tptp.printWithRole("side_premise_mcl", "hypothesis", mcl,   false);
@@ -1142,6 +1143,7 @@ isRedundant:
 
               switch (numMatches) {
                 case 0:
+                  RSTAT_CTR_INC("FSDv2, success with MLMatch 1");
                   break;
                 case 1:
                   RSTAT_CTR_INC("FSDv2, success with MLMatch 2");
@@ -1156,6 +1158,7 @@ isRedundant:
                   RSTAT_CTR_INC("FSDv2, success with MLMatch 5+");
                   break;
               }
+              RSTAT_MCTR_INC("FSDv2, successes by MLMatch", numMatches + 1);  // +1 so it fits with the previous output
 
 #if VDEBUG && FSD_VDEBUG_REDUNDANCY_ASSERTIONS
               if (getOptions().literalComparisonMode() != Options::LiteralComparisonMode::REVERSE) {  // see note above
