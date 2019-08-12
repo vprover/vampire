@@ -220,14 +220,15 @@ class ApplicativeArgsIt
 public:
   ApplicativeArgsIt(const TermList term)
   {
-    ApplicativeHelper::getHeadAndArgs(term, _head, _stack);
+    ApplicativeHelper::getHeadAndAllArgs(term, _head, _stack);
     _argNum = _stack.size();
   }
 
-  ApplicativeArgsIt(Term* term)
+  /*ApplicativeArgsIt(Term* term)
   {
     ApplicativeHelper::getHeadAndArgs(term, _head, _stack);
-  }
+    _argNum = _stack.size();
+  }*/
 
   bool hasNext(){
     return !_stack.isEmpty();
@@ -249,7 +250,7 @@ public:
   }
 
   bool isVar(){
-    return _head.isVar();
+    return _head.isVar() && !_argNum;
   }
 
 protected:

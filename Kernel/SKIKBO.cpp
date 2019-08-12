@@ -47,6 +47,255 @@ using namespace Shell;
 typedef ApplicativeHelper AH;
 
 /**
+ * Class to represent the current state of the KBO comparison.
+ * @since 30/04/2008 flight Brussels-Tel Aviv
+ */
+class SKIKBO::State
+{
+public:
+  /** Initialise the state */
+  State(SKIKBO* kbo)
+    : _kbo(*kbo)
+  {}
+
+  void init()
+  {
+    _weightDiff=0;
+    _posNum=0;
+    _negNum=0;
+    _lexResult=EQUAL;
+    _varDiffs.reset();
+  }
+
+  CLASS_NAME(SKIKBO::State);
+  USE_ALLOCATOR(State);
+
+  void traverse(ApplicativeArgsIt& aai1, ApplicativeArgsIt& aai2);
+  void traverse(ApplicativeArgsIt& aai, int coefficient);
+  Result result(ApplicativeArgsIt& aai1, ApplicativeArgsIt& aai2);
+private:
+  void recordVariable(unsigned var, int coef);
+  Result innerResult(ApplicativeArgsIt& aai1, ApplicativeArgsIt& aai2);
+  Result applyVariableCondition(Result res)
+  {
+    if(_posNum>0 && (res==LESS || res==LESS_EQ || res==EQUAL)) {
+      res=INCOMPARABLE;
+    } else if(_negNum>0 && (res==GREATER || res==GREATER_EQ || res==EQUAL)) {
+      res=INCOMPARABLE;
+    }
+    return res;
+  }
+
+  int _weightDiff;
+  DHMap<unsigned, int, IdentityHash> _varDiffs;
+  /** Number of variables, that occur more times in the first literal */
+  int _posNum;
+  /** Number of variables, that occur more times in the second literal */
+  int _negNum;
+  /** First comparison result */
+  Result _lexResult;
+  /** The ordering used */
+  SKIKBO& _kbo;
+  /** The variable counters */
+}; // class KBO::State
+
+/**
+ * Return result of comparison between @b l1 and @b l2 under
+ * an assumption, that @b traverse method have been called
+ * for both literals. (Either traverse(Term*,Term*) or
+ * traverse(Term*,int) for both terms/literals in case their
+ * top functors are different.)
+ */
+Ordering::Result SKIKBO::State::result(ApplicativeArgsIt& aai1, ApplicativeArgsIt& aai2)
+{
+  Result res;
+  if(_weightDiff) {
+    res=_weightDiff>0 ? GREATER : LESS;
+  } else if(aai1.head()!=aai2.head()) {
+    TermList h1 = aai1.head();
+    TermList h2 = aai2.head();
+    if((h1.isVar() || h2.isVar())){ //TODO extend to mghds
+      return INCOMPARABLE;
+    } else {
+      res=_kbo.compareFunctionPrecedences(h1.term()->functor(), h2.term()->functor());
+      ASS_REP(res==GREATER || res==LESS, res); //precedence ordering must be total
+    }
+  } else {
+    res=_lexResult;
+  }
+  res=applyVariableCondition(res);
+  //ASS( !t1->ground() || !t2->ground() || res!=INCOMPARABLE);
+
+  //the result should never be EQUAL:
+  //- either t1 and t2 are truely equal. But then if they're equal, it
+  //would have been discovered by the t1==t2 check in
+  //KBO::compare methods.
+  //- or literals t1 and t2 are equal but for their polarity. But such
+  //literals should never occur in a clause that would exist long enough
+  //to get to ordering --- it should be deleted by tautology deletion.
+  ASS_NEQ(res, EQUAL);
+  return res;
+}
+
+Ordering::Result SKIKBO::State::innerResult(ApplicativeArgsIt& aai1, ApplicativeArgsIt& aai2)
+{
+  CALL("KBO::State::innerResult");
+
+  ASS(aai1.head() != aai2.head());
+
+  if(_posNum>0 && _negNum>0) {
+    return INCOMPARABLE;
+  }
+
+  Result res;
+  if(_weightDiff) {
+    res=_weightDiff>0 ? GREATER : LESS;
+  } else {
+    if(aai1.isVar()) {
+      ASS_EQ(_negNum,0);
+      res=LESS;
+    } else if(aai2.isVar()) {
+      ASS_EQ(_posNum,0);
+      res=GREATER;
+    } else {
+      TermList h1 = aai1.head();
+      TermList h2 = aai2.head();
+      if((h1.isVar() || h2.isVar()) && h1 != h2){//TODO extend to mghds
+        return INCOMPARABLE;
+      } 
+      res=_kbo.compareFunctionPrecedences(h1.term()->functor(), h2.term()->functor());
+      ASS_REP(res==GREATER || res==LESS, res);//precedence ordering must be total
+    }
+  }
+  return applyVariableCondition(res);
+}
+
+void SKIKBO::State::recordVariable(unsigned var, int coef)
+{
+  CALL("KBO::State::recordVariable");
+  ASS(coef==1 || coef==-1);
+
+  int* pnum;
+  _varDiffs.getValuePtr(var,pnum,0);
+  (*pnum)+=coef;
+  if(coef==1) {
+    if(*pnum==0) {
+      _negNum--;
+    } else if(*pnum==1) {
+      _posNum++;
+    }
+  } else {
+    if(*pnum==0) {
+      _posNum--;
+    } else if(*pnum==-1) {
+      _negNum++;
+    }
+  }
+}
+
+void SKIKBO::State::traverse(ApplicativeArgsIt& aai,int coef)
+{
+  CALL("KBO::State::traverse(TermList...)");
+
+  if(aai.head().isTerm()){
+    _weightDiff+=_kbo.functionSymbolWeight(aai.head().term()->functor())*coef;
+  } else {
+    _weightDiff+=_kbo._variableWeight*coef;
+    recordVariable(aai.head().var(), coef);
+  }
+
+  if(!aai.hasNext()) {
+    return;
+  }
+  static Stack<ApplicativeArgsIt*> stack(4);
+  stack.reset();
+  cout << "pushing " + aai.head().toString() << endl;
+  stack.push(&aai);
+  while(!stack.isEmpty()) {
+   // cout << "ONE" << endl;
+    TermList ts = stack.top()->next();
+   cout << "ts " + ts.toString() << endl;
+    ApplicativeArgsIt aai1(ts);
+    if(aai1.head().isVar()){
+      _weightDiff+=_kbo._variableWeight*coef;
+      recordVariable(aai1.head().var(), coef);
+    } else {
+      _weightDiff+=_kbo.functionSymbolWeight(aai1.head().term()->functor())*coef;
+    }
+    if(aai1.hasNext()) {
+      cout << "pushing " + ts.toString() << endl;
+      stack.push(&aai1);
+    }
+    while(!stack.isEmpty() && !stack.top()->hasNext()){
+      cout << "popping" << endl;
+      stack.pop();
+    }
+  }
+}
+
+void SKIKBO::State::traverse(ApplicativeArgsIt& aat1, ApplicativeArgsIt& aat2)
+{
+  CALL("KBO::State::traverse");
+  ASS(aat1.head()==aat2.head());
+  ASS(aat1.hasNext());
+  ASS_EQ(_lexResult, EQUAL);
+
+  unsigned depth=1;
+  unsigned lexValidDepth=0;
+
+  static Stack<ApplicativeArgsIt*> stack(32);
+  stack.push(&aat2);
+  stack.push(&aat1);
+  TermList ss; //t1 subterms
+  TermList tt; //t2 subterms
+  while(!stack.isEmpty()) {
+    if(!stack.top()->hasNext() || !stack.scnd()->hasNext()){
+      ASS_NEQ(_lexResult,EQUAL);
+      if(stack.top()->hasNext()){ _lexResult = LESS; } //using length lexicorgraphic ordering f t1 t2 > f t3 always
+      if(stack.scnd()->hasNext()){ _lexResult = GREATER; }      
+      depth--;
+      if(_lexResult!=EQUAL && depth<lexValidDepth) {
+        lexValidDepth=depth;
+        if(_weightDiff!=0) {
+          _lexResult=_weightDiff>0 ? GREATER : LESS;
+        }
+        _lexResult=applyVariableCondition(_lexResult);
+      }
+      stack.pop();
+      stack.pop();
+      continue;
+    }
+    ss = stack.top()->next();
+    tt = stack.scnd()->next();
+
+    if(ss.sameContent(&tt)) {
+      //if content is the same, neighter weightDiff nor varDiffs would change
+      continue;
+    }
+    ApplicativeArgsIt aai1(ss);
+    ApplicativeArgsIt aai2(tt);
+    if(aai1.head() == aai2.head() && !aai1.head().isVar()) {
+      ASS(aai1.hasNext());
+      ASS(aai2.hasNext());
+      stack.push(&aai2);
+      stack.push(&aai1);
+      depth++;
+    } else {
+      traverse(aai1,1);
+      traverse(aai2,-1);
+      if(_lexResult==EQUAL) {
+        _lexResult=innerResult(aai1, aai2);
+        lexValidDepth=depth;
+        ASS(_lexResult!=EQUAL);
+        ASS(_lexResult!=GREATER_EQ);
+        ASS(_lexResult!=LESS_EQ);
+      }
+    }
+  }
+  ASS_EQ(depth,0);
+}
+
+/**
  * Create a KBO object.
  */
 SKIKBO::SKIKBO(Problem& prb, const Options& opt)
@@ -56,11 +305,13 @@ SKIKBO::SKIKBO(Problem& prb, const Options& opt)
 
   _variableWeight = 1;
   _defaultSymbolWeight = 1;
+  _state=new State(this);
 }
 
 SKIKBO::~SKIKBO()
 {
   CALL("SKIKBO::~SKIKBO");
+  delete _state;
 }
 
 
@@ -412,66 +663,39 @@ Ordering::Result SKIKBO::compare(TermList tl1, TermList tl2) const
   if(tl1RedLen != tl2RedLen){
     return INCOMPARABLE;
   }
-  
-  unsigned tl1Weight = tl1.isVar() ? 1 : tl1.term()->weight(); //TODO wrong weight
-  unsigned tl2Weight = tl2.isVar() ? 1 : tl2.term()->weight();
-  if((varCond == LEFT  || varCond == BOTH) && tl1Weight > tl2Weight){
-    return GREATER;
-  } 
-  if((varCond == RIGHT  || varCond == BOTH) && tl2Weight > tl1Weight){
-    return LESS;
+
+  ApplicativeArgsIt aat1(tl1);
+  ApplicativeArgsIt aat2(tl2);
+
+  if(aat1.isVar()) { //TODO unary function weight 1
+    return LESS;  //because compare variable didnt return incomp this is safe
   }
-  if(tl2Weight != tl1Weight){
-    return INCOMPARABLE;
-  }  
-
-  static TermStack args1;
-  static TermStack args2;
-  args1.reset();
-  args2.reset();
-  TermList head1;
-  TermList head2;
-
-  AH::getHeadAndArgs(tl1, head1, args1);
-  AH::getHeadAndArgs(tl2, head2, args2);
-  if(head1.isTerm() && head2.isTerm()){ //TODO is this OK?
-    Ordering::Result res = compareFunctionPrecedences(head1.term()->functor(), head2.term()->functor());
-    if((varCond == LEFT  || varCond == BOTH) && res == GREATER){
-      return GREATER;
-    } 
-    if((varCond == RIGHT  || varCond == BOTH) && res == LESS){
-      return LESS;
-    }
-    if(head1.term()->functor() != head2.term()->functor()){
-      return INCOMPARABLE;
-    } 
+  if(aat2.isVar()) {
+    return GREATER; //because compare variable didnt return incomp this is safe
   }
 
-  if((varCond == LEFT  || varCond == BOTH) && args1.size() > args2.size()){
-    return GREATER;
-  } 
-  if((varCond == RIGHT  || varCond == BOTH) && args1.size() < args2.size()){
-    return LESS;
+  ASS(_state);
+  State* state=_state;
+#if VDEBUG
+  //this is to make sure _state isn't used while we're using it
+  _state=0;
+#endif
+
+  state->init();
+  if(aat1.head()==aat2.head()) {
+    state->traverse(aat1,aat2);
+  } else {
+    state->traverse(aat1,1);
+    state->traverse(aat2,-1);
   }
-  if(args1.size() != args2.size()){
-    return INCOMPARABLE;
-  } 
-
-  //TODO unary functions of weight 0 not dealt with
-  for(unsigned i = args1.size() -1; i >= 0; i--){
-    Ordering::Result res = compare(args1[i], args2[i]); //TODO recursive call should be to hzkbo
-    if((varCond == LEFT  || varCond == BOTH) && res == GREATER){
-      return GREATER;
-    } 
-    if((varCond == RIGHT  || varCond == BOTH) && res == LESS){
-      return LESS;
-    }
-    if(res != EQUAL){
-      return INCOMPARABLE;
-    } 
-  }
-
-
+  Result res=state->result(aat1,aat2);
+  if(res == LESS){ cout << tl1.toString() + " < " + tl2.toString(); }
+  if(res == GREATER){ cout << tl1.toString() + " > " + tl2.toString(); }
+  if(res == INCOMPARABLE){ cout << tl1.toString() + " <> " + tl2.toString(); }
+#if VDEBUG
+  _state=state;
+#endif
+  return res;
 }
 
 int SKIKBO::functionSymbolWeight(unsigned fun) const

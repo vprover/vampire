@@ -109,6 +109,30 @@ TermList ApplicativeHelper::getResultSort(TermList sort)
   return sort;
 }
 
+void ApplicativeHelper::getHeadAndAllArgs(TermList term, TermList& head, TermStack& args)
+{
+  CALL("ApplicativeHelper::getHeadAndAllArgs");
+
+  if(!term.isTerm()){
+    head = term;
+    return;
+  }
+
+  while(isApp(term.term())){
+    args.push(*term.term()->nthArgument(3)); 
+    term = *term.term()->nthArgument(2);
+    if(!term.isTerm()){ break; } 
+  }
+  head = term;  
+  if(term.isTerm()){
+    unsigned arity = term.term()->arity();
+    for(int i = arity-1; i >= 0; i--){
+      args.push(*term.term()->nthArgument(i));
+    }
+  }
+} 
+
+
 void ApplicativeHelper::getHeadAndArgs(TermList term, TermList& head, TermStack& args)
 {
   CALL("ApplicativeHelper::getHeadAndArgs");
@@ -195,12 +219,17 @@ bool ApplicativeHelper::isApp(const Term* t)
   return env.signature->getFunction(t->functor())->app(); 
 }
 
-
 bool ApplicativeHelper::isApp(const TermList* tl)
 {
   CALL("ApplicativeHelper::isApp(TermList*)");
   if(tl->isTerm()){ return isApp(tl->term()); }
   return false;
+}
+
+bool ApplicativeHelper::isArrowType(const Term* t)
+{
+  CALL("ApplicativeHelper::isApp(Term*)");
+  return env.signature->getFunction(t->functor())->arrow(); 
 }
 
 bool ApplicativeHelper::isUnderApplied(TermList head, unsigned argNum){

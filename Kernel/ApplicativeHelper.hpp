@@ -34,6 +34,7 @@ public:
   static TermList getNthArg(TermList arrowSort, unsigned argNum);
   static TermList getResultApplieadToNArgs(TermList arrowSort, unsigned argNum);
   static TermList getResultSort(TermList sort);
+  static void getHeadAndAllArgs(TermList term, TermList& head, TermStack& args); 
   static void getHeadAndArgs(TermList term, TermList& head, TermStack& args); 
   static void getHeadAndArgs(Term* term, TermList& head, TermStack& args);  
   static void getHeadAndArgs(const Term* term, TermList& head, Deque<TermList>& args); 
@@ -41,6 +42,7 @@ public:
   static Signature::Combinator getComb(TermList t);
   static TermList getHead(TermList t);
   static bool isApp(const Term* t);
+  static bool isArrowType(const Term* t);
   static bool isApp(const TermList* tl);
   static bool isUnderApplied(TermList head, unsigned argNum);
 

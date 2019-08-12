@@ -445,7 +445,7 @@ void Preprocess::preprocess(Problem& prb)
         Literal* lit = (*c)[0];
         SKIKBO* skikbo = new SKIKBO(prb, *env.options);
         Ordering::Result res = skikbo->compare(*lit->nthArgument(0), *lit->nthArgument(1));
-        cout << "the result is " << res << endl;
+        //cout << "the result is " << res << endl;
       }
       env.out() << "[PP] final: " << u->toString() << std::endl;
      }
