@@ -88,6 +88,9 @@ public:
   virtual bool canEvaluateFunc(unsigned func) { return func == _fun; }
 
   virtual bool tryEvaluateFunc(Term* trm, TermList& res) {
+#if IDEBUG
+     cout << "ACFunEvaluator::tryEvaluateFunc " << trm->toString() << endl;
+#endif
     ASS_EQ(trm->functor(),_fun);
     ASS_EQ(trm->arity(),2);
 
@@ -118,10 +121,10 @@ public:
       if(t->isTerm() && theory->tryInterpretConstant(t->term(),thing)){
         TermList tmp;
         Term* evalThis = Term::create2(_fun,TermList(acc),*t);
-        bool error = _eval->tryEvaluateFunc(evalThis,tmp);
-        //ASS(!error); //we want to be informed of evaluation failures in debug mode
-        if (error) {
-          return false;
+        bool evaluated = _eval->tryEvaluateFunc(evalThis,tmp);
+        // if it is not evaluated then there was no change, so copy the term 
+        if (!evaluated) {
+          tmp = TermList(evalThis);
         }
         ASS(tmp.isTerm());
         acc = tmp.term();
