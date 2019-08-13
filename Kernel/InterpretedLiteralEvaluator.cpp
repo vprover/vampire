@@ -1335,7 +1335,7 @@ bool InterpretedLiteralEvaluator::evaluate(Literal* lit, bool& isConstant, Liter
   ASS(tit.hasNext()); tit.next(); // pop off literal symbol
   while(tit.hasNext()){
     unsigned f = tit.next();
-    if(!theory->isInterpretedFunction(f)){
+    if(!env.signature->getFunction(f)->interpreted()){
       isConstant=false;
       return (lit!=resLit);
     } 
