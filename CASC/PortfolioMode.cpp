@@ -223,14 +223,29 @@ void PortfolioMode::getExtraSchedules(Property& prop, Schedule& extra)
     getSchedules(prop,main,fallback);    
     Schedule::BottomFirstIterator fit(fallback);
     main.loadFromIterator(fit);
+
+    Stack<vstring> extra_opts;
+    extra_opts.push("");
+    // contains integers, rationals and reals
+    if(prop.props() & (524288ul | 1048576ul | 2097152ul)){
+      extra_opts.push("tha=some");
+      extra_opts.push("sos=theory:sstl=5");
+      extra_opts.push("uwa=fixed:uwaf=on");
+    }
+
     Schedule::Iterator it(main);
     while(it.hasNext()){
       vstring s = it.next();
       vstring ts = s.substr(s.find_last_of("_")+1,vstring::npos);
       int t;
       if(Lib::Int::stringToInt(ts,t)){
-        s = s.substr(0,s.find_last_of("_")) + "_" + Lib::Int::toString(t*3); 
-        extra.push(s);
+        vstring prefix = s.substr(0,s.find_last_of("_"));
+        Stack<vstring>::Iterator addit(extra_opts);
+        while(addit.hasNext()){
+          s = prefix + ":" + addit.next() + "_" + Lib::Int::toString(t*3);
+          extra.push(s);
+        }
+
       }
       else{ASSERTION_VIOLATION;}
     }
