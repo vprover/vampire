@@ -180,10 +180,6 @@ TermIterator EqHelper::getRewritableSubtermIterator(Literal* lit, const Ordering
 {
   CALL("EqHelper::getRewritableSubtermIterator");
 
-//  if (lit->isEquality()) {
-//    if (lit->isNegative()) {
-//      return TermIterator::getEmpty();
-//    }
   if (lit->isEquality() && lit->isPositive()) {
     TermList sel;
     switch(ord.getEqualityArgumentOrder(lit)) {
@@ -216,6 +212,44 @@ TermIterator EqHelper::getRewritableSubtermIterator(Literal* lit, const Ordering
   NonVariableNonTypeIterator nvi(lit);
   return getUniquePersistentIteratorFromPtr(&nvi);
 }
+
+TermIterator EqHelper::getRewritableFOSubtermIterator(Literal* lit, const Ordering& ord)
+{
+  CALL("EqHelper::getRewritableFOSubtermIterator");
+
+  if (lit->isEquality() && lit->isPositive()) {
+    TermList sel;
+    switch(ord.getEqualityArgumentOrder(lit)) {
+    case Ordering::INCOMPARABLE:
+      {
+        FirstOrderSubtermIt fosti(lit);
+        return getUniquePersistentIteratorFromPtr(&fosti);
+      }
+    case Ordering::EQUAL:
+    case Ordering::GREATER:
+    case Ordering::GREATER_EQ:
+      sel=*lit->nthArgument(0);
+      break;
+    case Ordering::LESS:
+    case Ordering::LESS_EQ:
+      sel=*lit->nthArgument(1);
+      break;
+#if VDEBUG
+    default:
+      ASSERTION_VIOLATION;
+#endif
+    }
+    if (!sel.isTerm()) {
+      return TermIterator::getEmpty();
+    }
+    return getUniquePersistentIterator(getConcatenatedIterator(getSingletonIterator(sel),
+                     vi(new FirstOrderSubtermIt(sel.term()))));
+  }
+
+  FirstOrderSubtermIt fosti(lit);
+  return getUniquePersistentIteratorFromPtr(&fosti);
+}
+
 
 /**
  * Return iterator on sides of the equality @b lit that can be used as an LHS

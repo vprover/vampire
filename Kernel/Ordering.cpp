@@ -41,6 +41,7 @@
 
 #include "LPO.hpp"
 #include "KBO.hpp"
+#include "SKIKBO.hpp"
 #include "KBOForEPR.hpp"
 #include "Problem.hpp"
 #include "Signature.hpp"
@@ -124,6 +125,10 @@ Ordering* Ordering::tryGetGlobalOrdering()
 Ordering* Ordering::create(Problem& prb, const Options& opt)
 {
   CALL("Ordering::create");
+
+  if(env.options->combinatorySup()){
+    return new SKIKBO(prb, opt);
+  }
 
   switch (env.options->termOrdering()) {
   case Options::TermOrdering::KBO:

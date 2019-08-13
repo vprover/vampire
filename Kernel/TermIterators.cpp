@@ -223,62 +223,6 @@ bool StableVarIt::hasNext()
 
 ///////////////////////////////////////////
 
-/*bool UnappliedTermVarIterator::hasNext()
-{
-  CALL("UnappliedTermVarIterator::hasNext");
-
-  if(!_next.isEmpty()){ return true; }
-  while(!_stack.isEmpty()){
-    const Term* t = _stack.pop();
-    ASS(AH::isApp(t));
-    const TermList* tl = t->nthArgument(2);
-    if(AH::isApp(tl) && !tl->term()->ground()){
-      _stack.push(tl->term());
-    }
-    tl = t->nthArgument(3);
-    if(tl->isVar()){
-      _next = *tl;
-      return true;
-    }
-    if(AH::isApp(tl) && !tl->term()->ground()){
-      _stack.push(tl->term());
-    }
-  }
-  return false;
-}
-
-///////////////////////////////////////////
-
-bool AppliedVarIterator::hasNext()
-{
-  CALL("AppliedVarIterator::hasNext");
-
-  static Deque<TermList> args;
-  TermList head;
-
-  if(!_next.isEmpty()){ return true; }
-  while(!_stack.isEmpty()){
-    Term* t = _stack.pop();
-    ASS(AH::isApp(t));
-    args.reset();
-    AH::getHeadAndArgs(t, head, args);
-    ASS(args.size());
-    if(head.isVar()){
-      _next = TermList(t);
-    }
-    while((_next.isEmpty() || _under) && !args.isEmpty()){
-      TermList tl = args.pop_back();
-      if(!tl.isVar() && AH::isApp(tl.term()) && !tl.term()->ground()){
-        _stack.push(tl.term());
-      }
-    }
-    if(!_next.isEmpty()){ return true; }
-  }
-  return false;
-}*/
-
-///////////////////////////////////////////
-
 /**
  * True if there exists next subterm
  */
@@ -296,6 +240,27 @@ bool PolishSubtermIterator::hasNext()
   const TermList* t=_stack.pop();
   pushNext(t->next());
   return !_stack.isEmpty();
+}
+
+//////////////////////////////////
+
+TermList FirstOrderSubtermIt::next()
+{
+  CALL("FirstOrderSubtermIt::next");
+
+  static TermStack args;
+  TermList head;
+  args.reset();
+  Term* t = _stack.pop();
+  AH::getHeadAndArgs(t, head, args);
+  if(!AH::isComb(head) || AH::isUnderApplied(head, args.size())){
+    for(unsigned i = 0; i < args.size(); i++){
+      if(!args[i].isVar()){
+        _stack.push(args[i].term());
+      }
+    }
+  }
+  return TermList(t);
 }
 
 /**

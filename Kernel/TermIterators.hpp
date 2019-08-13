@@ -321,76 +321,27 @@ private:
   TermList _next;
 };
 
-/*class UnappliedTermVarIterator
-  : public IteratorCore<TermList>
+
+class FirstOrderSubtermIt
+: public IteratorCore<TermList>
 {
 public:
-  UnappliedTermVarIterator(const TermList term)
+  FirstOrderSubtermIt(Term* term, bool includeSelf=false) 
+  : _stack(8)
   {
-    if(term.isVar()){
-      _next = term;
-    } else {
-      UnappliedTermVarIterator(term.term()); 
+    CALL("FirstOrderSubtermIt::FirstOrderSubtermIt");
+    _stack.push(term);
+    if (!includeSelf) {
+      next();
     }
   }
 
-  UnappliedTermVarIterator(const Term* term)
-  {
-    _next.makeEmpty();
-    _stack.push(term);
-  }
-
-  bool hasNext();
-
-  TermList next()
-  {
-    ASS(!_next.isEmpty());
-    TermList res = _next;
-    _next.makeEmpty();
-    return res;
-  }
-
-private:
-  Stack<const Term*> _stack;
-  TermList _next;
-};
-
-
-class AppliedVarIterator
-  : public IteratorCore<TermList>
-{
-public:
-  AppliedVarIterator(TermList term, bool under = true) : 
-  _stack(8), _under(under)
-  {
-    _next.makeEmpty();    
-    if(term.isTerm()){
-      _stack.push(term.term());
-    }
-  }
-
-  AppliedVarIterator(Term* term, bool under = true) :
-  _stack(8), _under(under)
-  {
-    _next.makeEmpty();
-    _stack.push(term);
-  }
-
-  bool hasNext();
-  
-  TermList next()
-  {
-    ASS(!_next.isEmpty());
-    TermList res = _next;
-    _next.makeEmpty();
-    return res;
-  }
+  bool hasNext(){ return !_stack.isEmpty(); }
+  TermList next();
 
 private:
   Stack<Term*> _stack;
-  bool _under;
-  TermList _next;
-};*/
+};
 
 /**
  * Iterator that yields proper subterms of commutative
