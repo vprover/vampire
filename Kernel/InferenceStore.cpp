@@ -509,6 +509,8 @@ struct InferenceStore::TPTPProofPrinter
   TPTPProofPrinter(ostream& out, InferenceStore* is)
   : ProofPrinter(out, is) {
     splitPrefix = Saturation::Splitter::splPrefix; 
+    // Don't delay printing in TPTP proof mode
+    delayPrinting = false;
   }
 
   void print()
