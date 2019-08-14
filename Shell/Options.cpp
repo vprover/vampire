@@ -912,7 +912,9 @@ void Options::Options::init()
 
            _useACeval = BoolOptionValue("use_ac_eval","uace",true);
            _useACeval.description="";
-           _lookup.inert(&_useACeval);
+           _useACeval.tag(OptionTag::INFERENCES);
+           _lookup.insert(&_useACeval);
+           _useACeval.setExperimental();
 
             _induction = ChoiceOptionValue<Induction>("induction","ind",Induction::NONE,
                                 {"none","struct","math","both"});
