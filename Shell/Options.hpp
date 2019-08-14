@@ -1914,6 +1914,8 @@ public:
 #endif
   UnificationWithAbstraction unificationWithAbstraction() const { return _unificationWithAbstraction.actualValue; }
   bool fixUWA() const { return _fixUWA.actualValue; }
+  bool useACeval() const { return _useACeval.actualValue;}
+
   bool unusedPredicateDefinitionRemoval() const { return _unusedPredicateDefinitionRemoval.actualValue; }
   bool blockedClauseElimination() const { return _blockedClauseElimination.actualValue; }
   void setUnusedPredicateDefinitionRemoval(bool newVal) { _unusedPredicateDefinitionRemoval.actualValue = newVal; }
@@ -2425,6 +2427,7 @@ private:
 #endif
   ChoiceOptionValue<UnificationWithAbstraction> _unificationWithAbstraction; 
   BoolOptionValue _fixUWA;
+  BoolOptionValue _useACeval;
   TimeLimitOptionValue _simulatedTimeLimit;
   UnsignedOptionValue _sineDepth;
   UnsignedOptionValue _sineGeneralityThreshold;

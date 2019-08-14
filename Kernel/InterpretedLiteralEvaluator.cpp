@@ -933,6 +933,8 @@ InterpretedLiteralEvaluator::InterpretedLiteralEvaluator()
   _evals.push(new ConversionEvaluator());
   _evals.push(new EqualityEvaluator());
 
+  if(env.options->useACeval()){
+
   // Special AC evaluators are added to be tried first for Plus and Multiply
   _evals.push(new ACFunEvaluator<IntegerConstantType>(
 		env.signature->getInterpretingSymbol(Theory::INT_PLUS),
@@ -960,6 +962,8 @@ InterpretedLiteralEvaluator::InterpretedLiteralEvaluator()
                 env.signature->getInterpretingSymbol(Theory::REAL_MULTIPLY),
                 new RealEvaluator(),
                 theory->representConstant(RealConstantType(RationalConstantType(1)))));
+
+  }
 
   _funEvaluators.ensure(0);
   _predEvaluators.ensure(0);

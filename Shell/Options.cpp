@@ -910,6 +910,10 @@ void Options::Options::init()
            _lookup.insert(&_fixUWA);
            _fixUWA.setExperimental();
 
+           _useACeval = BoolOptionValue("use_ac_eval","uace",true);
+           _useACeval.description="";
+           _lookup.inert(&_useACeval);
+
             _induction = ChoiceOptionValue<Induction>("induction","ind",Induction::NONE,
                                 {"none","struct","math","both"});
             _induction.description = "Apply structural and/or mathematical induction on datatypes and integers";
