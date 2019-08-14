@@ -124,11 +124,16 @@ public:
         bool evaluated = _eval->tryEvaluateFunc(evalThis,tmp);
         // if it is not evaluated then there was no change, so copy the term 
         if (!evaluated) {
-          tmp = TermList(evalThis);
+#if IDEBUG
+          cout << "evaluated is false with " << evalThis->toString() << endl;
+#endif
+          return false;
         }
-        ASS(tmp.isTerm());
-        acc = tmp.term();
-        acc_cnt++;
+        else{
+          ASS(tmp.isTerm());
+          acc = tmp.term();
+          acc_cnt++;
+        }
       }
       else{ keep.push(t); }
     } 
