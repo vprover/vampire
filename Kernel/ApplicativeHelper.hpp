@@ -45,6 +45,8 @@ public:
   static bool isArrowType(const Term* t);
   static bool isApp(const TermList* tl);
   static bool isUnderApplied(TermList head, unsigned argNum);
+  static bool isExactApplied(TermList head, unsigned argNum);
+  static bool isOverApplied(TermList head, unsigned argNum);
 
 private:
   

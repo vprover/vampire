@@ -137,6 +137,9 @@ public:
   unsigned induction;
   unsigned maxInductionDepth;
   unsigned inductionInProof;
+  /** number of argument congruences */
+  unsigned argumentCongruence;
+  unsigned narrow;
 
   // Simplifying inferences
   /** number of duplicate literals deleted */

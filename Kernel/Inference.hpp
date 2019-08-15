@@ -330,7 +330,11 @@ public:
     /* Forall proxy axiom */    
     PI_PROXY_AXIOM,
     /* Exists proxy axiom */
-    SIGMA_PROXY_AXIOM
+    SIGMA_PROXY_AXIOM,
+    /* argument congruence: t = t' => tx = t'x*/
+    ARG_CONG,
+    /* narrow with combinator axiom */
+    NARROW
   }; // class Inference::Rule
 
   explicit Inference(Rule r);

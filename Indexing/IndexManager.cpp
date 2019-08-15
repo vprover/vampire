@@ -198,6 +198,11 @@ Index* IndexManager::create(IndexType t)
     isGenerating = true;
     break;
 
+  case NARROWING_INDEX:
+    tis=new TermSubstitutionTree();
+    res=new NarrowingIndex(tis); 
+    isGenerating = true;
+    break; 
   /* case ACYCLICITY_INDEX:
     tis = new TermSubstitutionTree();
     res = new AcyclicityIndex(tis);

@@ -243,3 +243,30 @@ bool ApplicativeHelper::isUnderApplied(TermList head, unsigned argNum){
           (c == Signature::C_COMB && argNum < 3) ||
           (c == Signature::S_COMB && argNum < 3));
 }
+
+bool ApplicativeHelper::isExactApplied(TermList head, unsigned argNum){
+  CALL("ApplicativeHelper::isExactApplied");
+
+  ASS(isComb(head));
+  Signature::Combinator c = getComb(head);
+  return ((c == Signature::I_COMB && argNum == 1) ||
+          (c == Signature::K_COMB && argNum == 2) ||
+          (c == Signature::B_COMB && argNum == 3) ||
+          (c == Signature::C_COMB && argNum == 3) ||
+          (c == Signature::S_COMB && argNum == 3));
+
+}
+
+
+bool ApplicativeHelper::isOverApplied(TermList head, unsigned argNum){
+  CALL("ApplicativeHelper::isOverApplied");
+
+  ASS(isComb(head));
+  Signature::Combinator c = getComb(head);
+  return ((c == Signature::I_COMB && argNum > 1) ||
+          (c == Signature::K_COMB && argNum > 2) ||
+          (c == Signature::B_COMB && argNum > 3) ||
+          (c == Signature::C_COMB && argNum > 3) ||
+          (c == Signature::S_COMB && argNum > 3));
+
+}

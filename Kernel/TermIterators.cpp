@@ -263,6 +263,40 @@ TermList FirstOrderSubtermIt::next()
   return TermList(t);
 }
 
+bool NarrowableSubtermIt::hasNext()
+{
+  CALL("NarrowableSubtermIt::hasNext");
+
+  if(!_used){ return true; }
+
+  static TermStack args;
+  TermList head;
+  args.reset();
+  while(!_stack.isEmpty()){
+    Term* t = _stack.pop();
+    AH::getHeadAndArgs(t, head, args);
+    if((AH::isComb(head) && AH::isExactApplied(head, args.size())) ||
+       (head.isVar() && args.size() <= 3)){
+       _next = TermList(t);
+       _used = false;
+      if(AH::isApp(t) && (!AH::isComb(head) || _used)){
+        TermList* trm = t->nthArgument(2);
+        if(trm->isTerm() && AH::isApp(trm->term())){
+          _stack.push(trm->term());
+        }
+        if(!AH::isComb(head) || AH::isUnderApplied(head, args.size())){
+          trm = t->nthArgument(3);
+          if(trm->isTerm() && AH::isApp(trm->term())){
+            _stack.push(trm->term());
+          } 
+        }
+      }
+    }
+    if(!_used){ return true; }
+  }
+  return false;
+}
+
 /**
  * Return the next non-variable subterm.
  * @since 04/05/2013 Manchester

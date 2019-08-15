@@ -85,6 +85,24 @@ private:
 };
 
 /**
+ * Index used for narrowing with combinator axioms
+ */
+class NarrowingIndex
+: public TermIndex
+{
+public:
+  CLASS_NAME(NarrowingIndex);  
+  USE_ALLOCATOR(NarrowingIndex);
+  
+  NarrowingIndex(TermIndexingStructure* is) : TermIndex(is)
+  {
+    populateIndex();    
+  }
+protected:
+  void populateIndex();
+};
+
+/**
  * Term index for backward demodulation
  */
 class DemodulationSubtermIndex

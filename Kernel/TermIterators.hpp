@@ -343,6 +343,32 @@ private:
   Stack<Term*> _stack;
 };
 
+
+class NarrowableSubtermIt
+: public IteratorCore<TermList>
+{
+public:
+  NarrowableSubtermIt(Term* term) 
+  : _used(true), _stack(8)
+  {
+    CALL("NarrowableSubtermIt::NarrowableSubtermIt");
+    _stack.push(term);
+
+  }
+
+  bool hasNext();
+  TermList next(){
+    ASS(!_used);
+    _used = true;
+    return _next;
+  }
+
+private:
+  bool _used;
+  TermList _next;
+  Stack<Term*> _stack;
+};
+
 /**
  * Iterator that yields proper subterms of commutative
  * literal @b lit in DFS left to right order with the

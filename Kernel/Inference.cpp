@@ -489,6 +489,10 @@ vstring Inference::ruleName(Rule rule)
     return "pi proxy axiom";
   case SIGMA_PROXY_AXIOM:
     return "sigma proxy axiom";
+  case ARG_CONG:
+    return "argument congruence";
+  case NARROW:
+    return "narrow";
   default:
     ASSERTION_VIOLATION;
     return "!UNKNOWN INFERENCE RULE!";

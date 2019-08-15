@@ -28,6 +28,8 @@
 #include "Kernel/Ordering.hpp"
 #include "Kernel/Term.hpp"
 #include "Kernel/TermIterators.hpp"
+#include "Kernel/ApplicativeHelper.hpp"
+#include "Kernel/SortHelper.hpp"
 
 #include "TermIndexingStructure.hpp"
 #include "TermIndex.hpp"
@@ -108,6 +110,60 @@ void SuperpositionLHSIndex::handleClause(Clause* c, bool adding)
       }
     }
   }
+}
+
+void NarrowingIndex::populateIndex()
+{
+  CALL("NarrowingIndex::populateIndex");
+ 
+  typedef ApplicativeHelper AH;
+
+  auto srtOf = [] (TermList t) { 
+     ASS(t.isTerm());
+     return SortHelper::getResultSort(t.term());
+  };
+
+  TermList s1 = TermList(0, false);  
+  TermList s2 = TermList(1, false);
+  TermList s3 = TermList(2, false);
+  TermList x = TermList(3, false);
+  TermList y = TermList(4, false);
+  TermList z = TermList(5, false);
+  TermList args[] = {s1, s2, s3};
+  
+  unsigned s_comb = env.signature->getCombinator(Signature::S_COMB);
+  TermList constant = TermList(Term::create(s_comb, 3, args));
+  TermList lhsS = AH::createAppTerm(srtOf(constant), constant, x, y, z);
+  TermList rhsS = AH::createAppTerm3(Term::arrowSort(s1, s2, s3), x, z, AH::createAppTerm(Term::arrowSort(s1, s2), y, z));
+  Literal* sLit = Literal::createEquality(true, lhsS, rhsS, s3);
+
+  unsigned c_comb = env.signature->getCombinator(Signature::C_COMB);
+  constant = TermList(Term::create(c_comb, 3, args));
+  TermList lhsC = AH::createAppTerm(srtOf(constant), constant, x, y, z); 
+  TermList rhsC = AH::createAppTerm3(Term::arrowSort(s1, s2, s3), x, z, y);
+  Literal* cLit = Literal::createEquality(true, lhsC, rhsC, s3);
+     
+  unsigned b_comb = env.signature->getCombinator(Signature::B_COMB);
+  constant = TermList(Term::create(b_comb, 3, args));
+  TermList lhsB = AH::createAppTerm(srtOf(constant), constant, x, y, z); 
+  TermList rhsB = AH::createAppTerm(Term::arrowSort(s2, s3), x, AH::createAppTerm(Term::arrowSort(s1, s2), y, z));
+  Literal* bLit = Literal::createEquality(true, lhsB, rhsB, s3);
+
+  unsigned k_comb = env.signature->getCombinator(Signature::K_COMB);
+  constant = TermList(Term::create2(k_comb, s1, s2));
+  TermList lhsK = AH::createAppTerm3(srtOf(constant), constant, x, y);
+  Literal* kLit = Literal::createEquality(true, lhsK, x, s1);
+
+  unsigned i_comb = env.signature->getCombinator(Signature::I_COMB);
+  constant = TermList(Term::create1(i_comb, s1));
+  TermList lhsI = AH::createAppTerm(srtOf(constant), constant, x);  
+  Literal* iLit = Literal::createEquality(true, lhsI, x, s1);
+ 
+  _is->insert(lhsS, sLit, 0);
+  _is->insert(lhsC, cLit, 0);
+  _is->insert(lhsB, bLit, 0);
+  _is->insert(lhsK, kLit, 0);
+  _is->insert(lhsI, iLit, 0);  
 }
 
 void DemodulationSubtermIndex::handleClause(Clause* c, bool adding)

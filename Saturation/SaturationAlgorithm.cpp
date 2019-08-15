@@ -66,6 +66,8 @@
 #include "Inferences/TermAlgebraReasoning.hpp"
 #include "Inferences/SLQueryBackwardSubsumption.hpp"
 #include "Inferences/Superposition.hpp"
+#include "Inferences/ArgCong.hpp"
+#include "Inferences/Narrow.hpp"
 #include "Inferences/URResolution.hpp"
 //#include "Inferences/Instantiation.hpp"
 //#include "Inferences/TheoryInstAndSimp.hpp"
@@ -1352,6 +1354,11 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
     gie->addFront(new EqualityFactoring());
     gie->addFront(new EqualityResolution());
     gie->addFront(new Superposition());
+  }
+
+  if(opt.combinatorySup()){
+    gie->addFront(new ArgCong());
+    gie->addFront(new Narrow());
   }
   /*else if(opt.unificationWithAbstraction()!=Options::UnificationWithAbstraction::OFF){
     gie->addFront(new EqualityResolution()); 
