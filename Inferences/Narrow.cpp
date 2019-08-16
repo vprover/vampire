@@ -104,7 +104,8 @@ struct Narrow::RewriteableSubtermsFn
   {
     CALL("Narrow::RewriteableSubtermsFn()");
 
-    return pvi( pushPairIntoRightIterator(lit, EqHelper::getRewritableSubtermIterator(lit, _ord, 2)) );
+    return pvi( pushPairIntoRightIterator(lit, 
+                EqHelper::getNarrowableSubtermIterator(lit, _ord)) );
   }
 
 private:

@@ -173,32 +173,48 @@ Term* EqHelper::replace(Term* trm0, TermList tSrc, TermList tDest)
   return Term::create(trm0,argLst);
 }
 
+
+TermIterator EqHelper::getSubtermIterator(Literal* lit, const Ordering& ord)
+{
+  CALL("EqHelper::getSubtermIterator");
+  return getRewritableSubtermIterator<NonVariableNonTypeIterator>(lit, ord);
+}
+
+TermIterator EqHelper::getFoSubtermIterator(Literal* lit, const Ordering& ord)
+{
+  CALL("EqHelper::getFoSubtermIterator");
+  return getRewritableSubtermIterator<FirstOrderSubtermIt>(lit, ord);
+}
+
+TermIterator EqHelper::getNarrowableSubtermIterator(Literal* lit, const Ordering& ord)
+{
+  CALL("EqHelper::getNarrowableSubtermIterator");
+  return getRewritableSubtermIterator<NarrowableSubtermIt>(lit, ord);
+} 
+
+TermIterator EqHelper::getRewritableVarsIterator(Literal* lit, const Ordering& ord)
+{
+  CALL("EqHelper::getNarrowableSubtermIterator");
+  return getRewritableSubtermIterator<RewritableVarsIt>(lit, ord);
+} 
+
+
 /**
  * Return iterator on subterms of a literal, that can be rewritten by
  * superposition.
  */
-TermIterator EqHelper::getRewritableSubtermIterator(Literal* lit, const Ordering& ord, int subTermTy)
+template<class SubtermIterator>
+TermIterator EqHelper::getRewritableSubtermIterator(Literal* lit, const Ordering& ord)
 {
   CALL("EqHelper::getRewritableSubtermIterator");
 
-  ASS(subTermTy == 0 || subTermTy == 1 || subTermTy == 2);
-
-  if (lit->isEquality() /*&& lit->isPositive()*/) {//TODO why do we have this cond in master?
+  if (lit->isEquality() /*&&  lit->isPositive() */) {//TODO why do we have this cond in master?
     TermList sel;
     switch(ord.getEqualityArgumentOrder(lit)) {
-    case Ordering::INCOMPARABLE:
-      { 
-        if(subTermTy == 0){
-          NonVariableNonTypeIterator nvi(lit);
-          return getUniquePersistentIteratorFromPtr(&nvi);
-        } else if(subTermTy == 1){
-          FirstOrderSubtermIt fosti(lit);
-          return getUniquePersistentIteratorFromPtr(&fosti);
-        } else {
-          NarrowableSubtermIt nsi(lit);
-          return getUniquePersistentIteratorFromPtr(&nsi);
-        }
-      }
+    case Ordering::INCOMPARABLE: {
+      SubtermIterator si(lit);
+      return getUniquePersistentIteratorFromPtr(&si);
+    }
     case Ordering::EQUAL:
     case Ordering::GREATER:
     case Ordering::GREATER_EQ:
@@ -216,20 +232,13 @@ TermIterator EqHelper::getRewritableSubtermIterator(Literal* lit, const Ordering
     if (!sel.isTerm()) {
       return TermIterator::getEmpty();
     }
-    if(subTermTy == 0){
-      return getUniquePersistentIterator(getConcatenatedIterator(getSingletonIterator(sel),
-							       vi(new NonVariableNonTypeIterator(sel.term()))));
-    } else if(subTermTy == 1){
-      return getUniquePersistentIterator(getConcatenatedIterator(getSingletonIterator(sel),
-                     vi(new FirstOrderSubtermIt(sel.term()))));      
-    } else {
-      return getUniquePersistentIterator(getConcatenatedIterator(getSingletonIterator(sel),
-                     vi(new NarrowableSubtermIt(sel.term()))));         
-    }
+    return getUniquePersistentIterator(getConcatenatedIterator(getSingletonIterator(sel),
+						vi(new SubtermIterator(sel.term()))));
+
   }
 
-  NonVariableNonTypeIterator nvi(lit);
-  return getUniquePersistentIteratorFromPtr(&nvi);
+  SubtermIterator si(lit);
+  return getUniquePersistentIteratorFromPtr(&si);
 
 }
 

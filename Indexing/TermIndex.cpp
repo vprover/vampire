@@ -22,6 +22,7 @@
  */
 
 #include "Lib/DHSet.hpp"
+#include "Lib/DHMap.hpp"
 
 #include "Kernel/Clause.hpp"
 #include "Kernel/EqHelper.hpp"
@@ -78,7 +79,12 @@ void SuperpositionSubtermIndex::handleClause(Clause* c, bool adding)
   unsigned selCnt=c->numSelected();
   for (unsigned i=0; i<selCnt; i++) {
     Literal* lit=(*c)[i];
-    TermIterator rsti=EqHelper::getRewritableSubtermIterator(lit,_ord);
+    TermIterator rsti;
+    if(!env.options->combinatorySup()){
+      rsti = EqHelper::getSubtermIterator(lit,_ord);
+    } else {
+      rsti = EqHelper::getFoSubtermIterator(lit,_ord);
+    }
     while (rsti.hasNext()) {
       if (adding) {
         _is->insert(rsti.next(), lit, c);
@@ -117,16 +123,40 @@ void SubVarSupSubtermIndex::handleClause(Clause* c, bool adding)
 {
   CALL("SubVarSupSubtermIndex::handleClause");
 
+  DHMap<unsigned, LiteralList*> varMap;
+
   unsigned selCnt=c->numSelected();
   for (unsigned i=0; i<selCnt; i++) {
     Literal* lit=(*c)[i];
-    TermIterator rsti=EqHelper::getRewritableSubtermIterator(lit,_ord);
-    while (rsti.hasNext()) {
-      if (adding) {
-        _is->insert(rsti.next(), lit, c);
+    TermIterator rvi=EqHelper::getRewritableVarsIterator(lit,_ord);
+    LiteralList* ll;
+    while(rvi.hasNext()){
+      TermList var = rvi.next();
+      if(varMap.find(var.var(), ll)){
+        LiteralList::push(lit, ll);
+      } else {
+        ll = new LiteralList(lit);
+        varMap.insert(var.var(), ll);
       }
-      else {
-        _is->remove(rsti.next(), lit, c);
+    }
+  }
+
+  for(unsigned i=0; i<c->length() && !varMap.isEmpty(); i++){
+    UnstableVarIt uvi((*c)[i]);
+    while (uvi.hasNext()) {
+      TermList var = uvi.next();
+      LiteralList* ll;
+      if(varMap.find(var.var())){ //TODO not quite what is required. The same variable could be rewritable and unstable
+        varMap.pop(var.var(), ll);
+        while(ll){
+          Literal* lit = ll->head();
+          ll = ll->tail();
+          if (adding) {
+            _is->insert(var, lit, c);
+          } else {
+            _is->remove(var, lit, c);
+          }
+        }
       }
     }
   }

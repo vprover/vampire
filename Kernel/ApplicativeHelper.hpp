@@ -47,6 +47,7 @@ public:
   static bool isUnderApplied(TermList head, unsigned argNum);
   static bool isExactApplied(TermList head, unsigned argNum);
   static bool isOverApplied(TermList head, unsigned argNum);
+  static bool isSafe(TermStack& args);
 
 private:
   

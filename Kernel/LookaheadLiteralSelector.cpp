@@ -110,7 +110,7 @@ struct LookaheadLiteralSelector::GenIteratorIterator
       ASS(fsi);
 
       nextIt=pvi( getMapAndFlattenIterator(
-	       EqHelper::getRewritableSubtermIterator(lit, _parent._ord),
+	       EqHelper::getSubtermIterator(lit, _parent._ord), //TODO update for combinatory sup
 	       TermUnificationRetriever(fsi)) );
       break;
     }

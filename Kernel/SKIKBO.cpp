@@ -321,14 +321,14 @@ SKIKBO::VarCondRes SKIKBO::compareVariables(TermList tl1, TermList tl2) const
   VarOccMap tl2RedData;
 
   if(!tl1.isVar()){
-    UnstableSubTermIt usti(tl1.term());
+    UnstableSubtermIt usti(tl1.term());
     while(usti.hasNext()){
       tl1UnstableTerms.insert(usti.next());
     }
   }
 
   if(!tl2.isVar()){
-    UnstableSubTermIt usti(tl2.term());
+    UnstableSubtermIt usti(tl2.term());
     while(usti.hasNext()){
       tl2UnstableTerms.insert(usti.next());
     }

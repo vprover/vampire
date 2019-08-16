@@ -259,11 +259,11 @@ protected:
   unsigned _argNum;
 };
 
-class UnstableSubTermIt
+class UnstableSubtermIt
   : public IteratorCore<Term*>
 {
 public:
-  UnstableSubTermIt(Term* term)
+  UnstableSubtermIt(Term* term)
   {
     _next = 0;
     if(ApplicativeHelper::isApp(term) && !term->ground()){
@@ -283,7 +283,6 @@ public:
 
 private:
   bool unstable(Term* t);
-  bool isSafe(TermStack& args);
   Stack<Term*> _stack;
   Term* _next;
 };
@@ -321,6 +320,57 @@ private:
   TermList _next;
 };
 
+
+class RewritableVarsIt
+  : public IteratorCore<TermList>
+{
+public:
+  RewritableVarsIt(Term* t) : _stack(8)
+  {
+    CALL("RewritableVarsIt");
+    _next.makeEmpty();
+    _stack.push(TermList(t));
+  }
+
+  bool hasNext();
+  TermList next(){
+    ASS(!_next.isEmpty());
+    ASS(_next.isVar());
+    TermList res = _next;
+    _next.makeEmpty();
+    return res;
+  }
+private:
+  TermList _next;
+  Stack<TermList> _stack;
+};
+
+class UnstableVarIt
+  : public IteratorCore<TermList>
+{
+public:
+  UnstableVarIt(Term* t) : _stable(8), _stack(8)
+  {
+    CALL("UnstableVarIt");
+    _next.makeEmpty();
+    _stable.push(true);
+    _stack.push(TermList(t)); 
+  }
+  
+  bool hasNext();
+  TermList next()
+  {
+    ASS(!_next.isEmpty());
+    TermList res = _next;
+    _next.makeEmpty();
+    return res;
+  }
+
+private:
+  TermList _next;
+  Stack<bool> _stable;
+  Stack<TermList> _stack;
+};
 
 class FirstOrderSubtermIt
 : public IteratorCore<TermList>

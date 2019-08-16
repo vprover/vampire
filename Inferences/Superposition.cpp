@@ -114,7 +114,9 @@ struct Superposition::RewriteableSubtermsFn
   OWN_RETURN_TYPE operator()(Literal* lit)
   {
     CALL("Superposition::RewriteableSubtermsFn()");
-    return pvi( pushPairIntoRightIterator(lit, EqHelper::getRewritableSubtermIterator(lit, _ord, env.options->combinatorySup())) );
+    TermIterator it = env.options->combinatorySup() ? EqHelper::getFoSubtermIterator(lit, _ord) :
+                                                      EqHelper::getSubtermIterator(lit, _ord);
+    return pvi( pushPairIntoRightIterator(lit, it) );
   }
 
 private:

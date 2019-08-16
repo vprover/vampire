@@ -270,3 +270,17 @@ bool ApplicativeHelper::isOverApplied(TermList head, unsigned argNum){
           (c == Signature::S_COMB && argNum > 3));
 
 }
+
+
+bool ApplicativeHelper::isSafe(TermStack& args)
+{
+  CALL("ApplicativeHelper::isSafe");
+
+  for(unsigned i = 0; i < args.size(); i++){
+    TermList head = getHead(args[i]);
+    if(head.isVar() || isComb(head)){
+      return false;
+    }
+  }
+  return true;
+}

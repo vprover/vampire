@@ -118,9 +118,9 @@ void SubtermIterator::right()
 }
 
 
-bool UnstableSubTermIt::hasNext()
+bool UnstableSubtermIt::hasNext()
 {
-  CALL("UnstableSubTermIt::hasNext");
+  CALL("UnstableSubtermIt::hasNext");
 
   static TermStack args;
   args.reset();
@@ -132,7 +132,7 @@ bool UnstableSubTermIt::hasNext()
     ASS(AH::isApp(t));
     AH::getHeadAndArgs(t, head, args);
     ASS(args.size());
-    if(head.isVar() && !isSafe(args)){
+    if(head.isVar() && !AH::isSafe(args)){
       _next = t;
     } else if(AH::isComb(head) && !AH::isUnderApplied(head, args.size()) && unstable(t)){
       _next = t;
@@ -149,36 +149,23 @@ bool UnstableSubTermIt::hasNext()
   return false;  
 }
 
-bool UnstableSubTermIt::isSafe(TermStack& args)
+bool UnstableSubtermIt::unstable(Term* t)
 {
-  CALL("UnstableSubTermIt::isSafe");
-
-  for(unsigned i = 0; i < args.size(); i++){
-    TermList head = AH::getHead(args[i]);
-    if(head.isVar() || AH::isComb(head)){
-      return false;
-    }
-  }
-  return true;
-}
-
-bool UnstableSubTermIt::unstable(Term* t)
-{
-  CALL("UnstableSubTermIt::unstable");
+  CALL("UnstableSubtermIt::unstable");
   
   TermStack args;
   TermList head;
   
   AH::getHeadAndArgs(t, head, args);
   while(!args.isEmpty()){
-    TermList t = args.pop();
-    if(t.isVar()){
+    TermList tm = args.pop();
+    if(tm.isVar()){
       return true;
     }
-    head = AH::getHead(t);
+    head = AH::getHead(tm);
     if(AH::isComb(head)){
       TermStack args2;
-      AH::getHeadAndArgs(t, head, args2);
+      AH::getHeadAndArgs(tm, head, args2);
       while(!args2.isEmpty()){
         args.push(args2.pop());
       }
@@ -277,24 +264,84 @@ bool NarrowableSubtermIt::hasNext()
     AH::getHeadAndArgs(t, head, args);
     if((AH::isComb(head) && AH::isExactApplied(head, args.size())) ||
        (head.isVar() && args.size() <= 3)){
-       _next = TermList(t);
-       _used = false;
-      if(AH::isApp(t) && (!AH::isComb(head) || _used)){
-        TermList* trm = t->nthArgument(2);
+      _next = TermList(t);
+      _used = false;
+    }
+    if(AH::isApp(t) && (!AH::isComb(head) || _used)){
+      TermList* trm = t->nthArgument(2);
+      if(trm->isTerm() && AH::isApp(trm->term())){
+        _stack.push(trm->term());
+      }
+      if(!AH::isComb(head) || AH::isUnderApplied(head, args.size())){
+        trm = t->nthArgument(3);
         if(trm->isTerm() && AH::isApp(trm->term())){
           _stack.push(trm->term());
-        }
-        if(!AH::isComb(head) || AH::isUnderApplied(head, args.size())){
-          trm = t->nthArgument(3);
-          if(trm->isTerm() && AH::isApp(trm->term())){
-            _stack.push(trm->term());
-          } 
-        }
+        } 
       }
     }
     if(!_used){ return true; }
   }
   return false;
+}
+
+bool RewritableVarsIt::hasNext()
+{
+  CALL("RewritableVarsIt::hasNext");
+
+  if(!_next.isEmpty()){ return true; }
+
+  static TermStack args;
+  TermList head;
+  args.reset();
+  while(!_stack.isEmpty()){
+    TermList t = _stack.pop();
+    AH::getHeadAndArgs(t, head, args);
+    if(head.isVar() && args.size() <= 1){
+      _next = head;
+    }
+    if(!AH::isComb(head) || AH::isUnderApplied(head, args.size())){
+      for(unsigned i = 0; i < args.size(); i++){
+        _stack.push(args[i]);
+      }
+    }
+    if(!_next.isEmpty()){ return true; }
+  }
+  return false;
+
+}
+
+//TODO relook at stability and instability
+bool UnstableVarIt::hasNext()
+{
+  CALL("UnstableVarIt::hasNext");
+
+  if(!_next.isEmpty()){ return true; }
+
+  static TermStack args;
+  TermList head;
+  args.reset();
+  while(!_stack.isEmpty()){
+    ASS(_stack.size() == _stable.size());
+    TermList t = _stack.pop();
+    bool stable = _stable.pop();
+    AH::getHeadAndArgs(t, head, args);
+    if(head.isVar()){
+      if(!stable){
+        _next = head;
+      } else if (!AH::isSafe(args)){
+        _next = head;
+      }
+    } 
+    bool argsStable = !head.isVar() && (!AH::isComb(head) || 
+         (AH::isUnderApplied(head, args.size()) && stable));
+    for(unsigned i = 0; i < args.size(); i++){
+      _stack.push(args[i]);
+      _stable.push(argsStable);
+    }
+    if(!_next.isEmpty()){ return true; }
+  }
+  return false;
+
 }
 
 /**
