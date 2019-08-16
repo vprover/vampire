@@ -493,6 +493,8 @@ vstring Inference::ruleName(Rule rule)
     return "argument congruence";
   case NARROW:
     return "narrow";
+  case SUB_VAR_SUP:
+    return "sub-var superposition";
   default:
     ASSERTION_VIOLATION;
     return "!UNKNOWN INFERENCE RULE!";

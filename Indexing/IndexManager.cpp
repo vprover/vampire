@@ -197,7 +197,23 @@ Index* IndexManager::create(IndexType t)
     res=new SuperpositionLHSIndex(tis, _alg->getOrdering(), _alg->getOptions());
     isGenerating = true;
     break;
-
+    
+  case SUB_VAR_SUP_SUBTERM_SUBST_TREE:
+    //using a substitution tree to store variable.
+    //TODO update
+    tis=new TermSubstitutionTree();
+#if VDEBUG
+    //tis->markTagged();
+#endif
+    res=new SubVarSupSubtermIndex(tis, _alg->getOrdering());
+    isGenerating = true;
+    break;
+  case SUB_VAR_SUP_LHS_SUBST_TREE:
+    tis=new TermSubstitutionTree();
+    res=new SubVarSupLHSIndex(tis, _alg->getOrdering(), _alg->getOptions());
+    isGenerating = true;
+    break;
+    
   case NARROWING_INDEX:
     tis=new TermSubstitutionTree();
     res=new NarrowingIndex(tis); 

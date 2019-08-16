@@ -112,6 +112,47 @@ void SuperpositionLHSIndex::handleClause(Clause* c, bool adding)
   }
 }
 
+
+void SubVarSupSubtermIndex::handleClause(Clause* c, bool adding)
+{
+  CALL("SubVarSupSubtermIndex::handleClause");
+
+  unsigned selCnt=c->numSelected();
+  for (unsigned i=0; i<selCnt; i++) {
+    Literal* lit=(*c)[i];
+    TermIterator rsti=EqHelper::getRewritableSubtermIterator(lit,_ord);
+    while (rsti.hasNext()) {
+      if (adding) {
+        _is->insert(rsti.next(), lit, c);
+      }
+      else {
+        _is->remove(rsti.next(), lit, c);
+      }
+    }
+  }
+}
+
+void SubVarSupLHSIndex::handleClause(Clause* c, bool adding)
+{
+  CALL("SubVarSupLHSIndex::handleClause");
+
+  unsigned selCnt=c->numSelected();
+  for (unsigned i=0; i<selCnt; i++) {
+    Literal* lit=(*c)[i];
+    TermIterator lhsi=EqHelper::getSubVarSupLHSIterator(lit, _ord);
+    while (lhsi.hasNext()) {
+      TermList lhs=lhsi.next();
+      if (adding) {
+        _is->insert(lhs, lit, c);
+      }
+      else {
+        _is->remove(lhs, lit, c);
+      }
+    }
+  }
+}
+
+
 void NarrowingIndex::populateIndex()
 {
   CALL("NarrowingIndex::populateIndex");

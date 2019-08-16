@@ -28,6 +28,7 @@
 #include "Ordering.hpp"
 #include "SortHelper.hpp"
 #include "TermIterators.hpp"
+#include "ApplicativeHelper.hpp"
 
 #include "EqHelper.hpp"
 
@@ -299,6 +300,60 @@ TermIterator EqHelper::getSuperpositionLHSIterator(Literal* lit, const Ordering&
   else {
     return pvi( getFilteredIterator(getLHSIterator(lit, ord), IsNonVariable()) );
   }
+}
+
+
+TermIterator EqHelper::getSubVarSupLHSIterator(Literal* lit, const Ordering& ord)
+{
+  CALL("EqHelper::getSubVarSupLHSIterator"); 
+  
+  if (lit->isEquality()) {
+    if (lit->isNegative()) {
+      return TermIterator::getEmpty();
+    }
+
+    TermList t0=*lit->nthArgument(0);
+    TermList t1=*lit->nthArgument(1);
+    TermList t0Head = ApplicativeHelper::getHead(t0);
+    TermList t1Head = ApplicativeHelper::getHead(t1);
+    bool t0hisVarOrComb = ApplicativeHelper::isComb(t0Head) || t0Head.isVar();
+    bool t1hisVarOrComb = ApplicativeHelper::isComb(t1Head) || t1Head.isVar();
+
+    switch(ord.getEqualityArgumentOrder(lit))
+    {
+    case Ordering::INCOMPARABLE:
+      if(t0hisVarOrComb && t1hisVarOrComb){ 
+        return pvi( getConcatenatedIterator(getSingletonIterator(t0),
+	        getSingletonIterator(t1)) );
+      } else if( t0hisVarOrComb ){
+        return pvi( getSingletonIterator(t1) );      
+      } else if( t1hisVarOrComb ) {
+        return pvi( getSingletonIterator(t0) );
+      }
+      break;
+    case Ordering::GREATER:
+    case Ordering::GREATER_EQ:
+      if(t1hisVarOrComb){
+        return pvi( getSingletonIterator(t0) );
+      }
+      break;
+    case Ordering::LESS:
+    case Ordering::LESS_EQ:
+      if(t0hisVarOrComb){
+        return pvi( getSingletonIterator(t1) );
+      }
+      break;
+#if VDEBUG
+    case Ordering::EQUAL:
+      //there should be no equality literals of equal terms
+    default:
+      ASSERTION_VIOLATION;
+#endif
+    }
+    return TermIterator::getEmpty();
+  } else {
+    return TermIterator::getEmpty();
+  }  
 }
 
 /**

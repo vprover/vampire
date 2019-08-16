@@ -84,6 +84,38 @@ private:
   const Options& _opt;
 };
 
+
+class SubVarSupSubtermIndex
+: public TermIndex
+{
+public:
+  CLASS_NAME(SubVarSupSubtermIndex);
+  USE_ALLOCATOR(SubVarSupSubtermIndex);
+
+  SubVarSupSubtermIndex(TermIndexingStructure* is, Ordering& ord)
+  : TermIndex(is), _ord(ord) {};
+protected:
+  void handleClause(Clause* c, bool adding);
+private:
+  Ordering& _ord;
+};
+
+class SubVarSupLHSIndex
+: public TermIndex
+{
+public:
+  CLASS_NAME(SubVarSupLHSIndex);
+  USE_ALLOCATOR(SubVarSupLHSIndex);
+
+  SubVarSupLHSIndex(TermIndexingStructure* is, Ordering& ord, const Options& opt)
+  : TermIndex(is), _ord(ord), _opt(opt) {};
+protected:
+  void handleClause(Clause* c, bool adding);
+private:
+  Ordering& _ord;
+  const Options& _opt;
+};
+
 /**
  * Index used for narrowing with combinator axioms
  */

@@ -334,7 +334,9 @@ public:
     /* argument congruence: t = t' => tx = t'x*/
     ARG_CONG,
     /* narrow with combinator axiom */
-    NARROW
+    NARROW,
+    /* superposition beneath variable */
+    SUB_VAR_SUP
   }; // class Inference::Rule
 
   explicit Inference(Rule r);

@@ -46,6 +46,7 @@ public:
   static TermIterator getRewritableSubtermIterator(Literal* lit, const Ordering& ord, int subTermTy = 0);
   static TermIterator getLHSIterator(Literal* lit, const Ordering& ord);
   static TermIterator getSuperpositionLHSIterator(Literal* lit, const Ordering& ord, const Options& opt);
+  static TermIterator getSubVarSupLHSIterator(Literal* lit, const Ordering& ord);
   static TermIterator getDemodulationLHSIterator(Literal* lit, bool forward, const Ordering& ord, const Options& opt);
   static TermIterator getEqualityArgumentIterator(Literal* lit);
 
