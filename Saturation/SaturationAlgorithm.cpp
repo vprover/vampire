@@ -68,6 +68,7 @@
 #include "Inferences/Superposition.hpp"
 #include "Inferences/ArgCong.hpp"
 #include "Inferences/Narrow.hpp"
+#include "Inferences/SubVarSup.hpp"
 #include "Inferences/URResolution.hpp"
 //#include "Inferences/Instantiation.hpp"
 //#include "Inferences/TheoryInstAndSimp.hpp"
@@ -1359,6 +1360,7 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
   if(opt.combinatorySup()){
     gie->addFront(new ArgCong());
     gie->addFront(new Narrow());
+    gie->addFront(new SubVarSup());
   }
   /*else if(opt.unificationWithAbstraction()!=Options::UnificationWithAbstraction::OFF){
     gie->addFront(new EqualityResolution()); 

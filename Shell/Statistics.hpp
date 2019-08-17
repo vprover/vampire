@@ -140,6 +140,10 @@ public:
   /** number of argument congruences */
   unsigned argumentCongruence;
   unsigned narrow;
+  unsigned forwardSubVarSup;
+  unsigned backwardSubVarSup;
+  unsigned selfSubVarSup;
+
 
   // Simplifying inferences
   /** number of duplicate literals deleted */

@@ -324,11 +324,18 @@ private:
 class RewritableVarsIt
   : public IteratorCore<TermList>
 {
-public:
-  RewritableVarsIt(Term* t) : _stack(8)
+public: //includeSelf for compatibility
+  RewritableVarsIt(Term* t, bool includeSelf = false) : _stack(8)
   {
     CALL("RewritableVarsIt");
     _next.makeEmpty();
+    if(t->isLiteral()){
+      TermList t0 = *t->nthArgument(0);
+      TermList t1 = *t->nthArgument(1);
+      if(!t0.isVar()){ _stack.push(t0); }
+      if(!t1.isVar()){ _stack.push(t1); }      
+      return;      
+    }     
     _stack.push(TermList(t));
   }
 
@@ -348,7 +355,7 @@ private:
 class UnstableVarIt
   : public IteratorCore<TermList>
 {
-public:
+public: 
   UnstableVarIt(Term* t) : _stable(8), _stack(8)
   {
     CALL("UnstableVarIt");
@@ -380,6 +387,13 @@ public:
   : _stack(8)
   {
     CALL("FirstOrderSubtermIt::FirstOrderSubtermIt");
+    if(term->isLiteral()){
+      TermList t0 = *term->nthArgument(0);
+      TermList t1 = *term->nthArgument(1);
+      if(!t0.isVar()){ _stack.push(t0.term()); }
+      if(!t1.isVar()){ _stack.push(t1.term()); }      
+      return;      
+    } 
     _stack.push(term);
     if (!includeSelf) {
       next();
@@ -398,12 +412,19 @@ class NarrowableSubtermIt
 : public IteratorCore<TermList>
 {
 public:
-  NarrowableSubtermIt(Term* term) 
+  NarrowableSubtermIt(Term* term, bool includeSelf=false) 
   : _used(true), _stack(8)
   {
     CALL("NarrowableSubtermIt::NarrowableSubtermIt");
+    if(term->isLiteral()){
+      TermList t0 = *term->nthArgument(0);
+      TermList t1 = *term->nthArgument(1);
+      if(!t0.isVar()){ _stack.push(t0.term()); }
+      if(!t1.isVar()){ _stack.push(t1.term()); }      
+      return;      
+    } 
     _stack.push(term);
-
+    //TODO
   }
 
   bool hasNext();

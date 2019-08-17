@@ -81,7 +81,7 @@ struct ArgCong::ResultFn
 
     TermList eqSort = SortHelper::getEqualityArgumentSort(lit);
     bool sortIsVar = eqSort.isVar();
-    if(!sortIsVar || !ApplicativeHelper::isArrowType(eqSort.term())){
+    if(!sortIsVar && !ApplicativeHelper::isArrowType(eqSort.term())){
       return 0;
     }
    
@@ -148,6 +148,7 @@ ClauseIterator ArgCong::generateClauses(Clause* premise)
 {
   CALL("ArgCong::generateClauses");
 
+  //cout << "argcong with " + premise->toString() << endl;
   if(premise->isEmpty()) {
     return ClauseIterator::getEmpty();
   }
@@ -163,6 +164,7 @@ ClauseIterator ArgCong::generateClauses(Clause* premise)
 
   auto it4 = getFilteredIterator(it3,NonzeroFn());
 
+  //cout << "out of arg cong" << endl;
   return pvi( it4 );
 }
 

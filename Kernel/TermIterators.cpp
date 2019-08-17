@@ -258,9 +258,9 @@ bool NarrowableSubtermIt::hasNext()
 
   static TermStack args;
   TermList head;
-  args.reset();
   while(!_stack.isEmpty()){
     Term* t = _stack.pop();
+    args.reset();
     AH::getHeadAndArgs(t, head, args);
     if((AH::isComb(head) && AH::isExactApplied(head, args.size())) ||
        (head.isVar() && args.size() <= 3)){
@@ -300,8 +300,8 @@ bool RewritableVarsIt::hasNext()
       _next = head;
     }
     if(!AH::isComb(head) || AH::isUnderApplied(head, args.size())){
-      for(unsigned i = 0; i < args.size(); i++){
-        _stack.push(args[i]);
+      while(!args.isEmpty()){
+        _stack.push(args.pop());
       }
     }
     if(!_next.isEmpty()){ return true; }

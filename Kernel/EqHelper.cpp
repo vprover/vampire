@@ -232,9 +232,7 @@ TermIterator EqHelper::getRewritableSubtermIterator(Literal* lit, const Ordering
     if (!sel.isTerm()) {
       return TermIterator::getEmpty();
     }
-    return getUniquePersistentIterator(getConcatenatedIterator(getSingletonIterator(sel),
-						vi(new SubtermIterator(sel.term()))));
-
+    return getUniquePersistentIterator(vi(new SubtermIterator(sel.term(), true)));
   }
 
   SubtermIterator si(lit);

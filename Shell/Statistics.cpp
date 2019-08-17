@@ -305,7 +305,8 @@ void Statistics::print(ostream& out)
       forwardSuperposition+backwardSuperposition+selfSuperposition+
       cForwardSuperposition+cBackwardSuperposition+cSelfSuperposition+
       equalityFactoring+equalityResolution+forwardExtensionalityResolution+
-      backwardExtensionalityResolution+argumentCongruence+narrow+
+      backwardExtensionalityResolution+argumentCongruence+
+      narrow+forwardSubVarSup+backwardSubVarSup+selfSubVarSup+
       theoryInstSimp+theoryInstSimpCandidates+theoryInstSimpTautologies+theoryInstSimpLostSolution+induction);
   COND_OUT("Binary resolution", resolution);
   COND_OUT("Unit resulting resolution", urResolution);
@@ -330,6 +331,9 @@ void Statistics::print(ostream& out)
   COND_OUT("InductionStepsInProof",inductionInProof);
   COND_OUT("Argument Congruence", argumentCongruence);
   COND_OUT("Narrow", narrow);
+  COND_OUT("Forward sub-variable superposition", forwardSubVarSup);  
+  COND_OUT("Backward sub-variable superposition", backwardSubVarSup);  
+  COND_OUT("Self sub-variable superposition", selfSubVarSup);  
   SEPARATOR;
 
   HEADING("Term algebra simplifications",taDistinctnessSimplifications+

@@ -83,6 +83,20 @@ public:
     const Options& _opt;
   };
 
+  struct SubVarSupLHSIteratorFn
+  {
+    SubVarSupLHSIteratorFn(const Ordering& ord) : _ord(ord) {}
+
+    DECL_RETURN_TYPE(VirtualIterator<pair<Literal*, TermList> >);
+    OWN_RETURN_TYPE operator()(Literal* lit)
+    {
+      return pvi( pushPairIntoRightIterator(lit, getSubVarSupLHSIterator(lit, _ord)) );
+    }
+  private:
+    const Ordering& _ord;
+  };
+
+
   struct EqualityArgumentIteratorFn
   {
     DECL_RETURN_TYPE(VirtualIterator<pair<Literal*, TermList> >);
