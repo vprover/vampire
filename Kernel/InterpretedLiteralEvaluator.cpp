@@ -117,6 +117,9 @@ public:
     int acc_cnt = 0;
     while(it.hasNext()){ 
       TermList* t = it.next();
+#if IDEBUG
+	cout << "considering " << t->toString() << endl;
+#endif
       T thing;
       if(t->isTerm() && theory->tryInterpretConstant(t->term(),thing)){
         TermList tmp;
@@ -130,6 +133,9 @@ public:
           return false;
         }
         else{
+#if IDEBUG
+	cout << "evaluated to " << tmp.term()->toString() << endl;
+#endif
           ASS(tmp.isTerm());
           acc = tmp.term();
           acc_cnt++;
@@ -138,7 +144,12 @@ public:
       else{ keep.push(t); }
     } 
     if(keep.length() == done.length() || 
-       (keep.length() == done.length()-1 && acc_cnt==1)){ return false; }
+       (keep.length() == done.length()-1 && acc_cnt==1)){ 
+#if IDEBUG
+	cout << "nothing was reduced" << endl;
+#endif
+      return false; 
+    }
  
     // a bit of a hack, we might need a pointer to this below, to have uniform treatment of all the TermLists
     TermList accT(acc);
@@ -1172,14 +1183,14 @@ endOfUnwrapping:
 
   // don't swap equality
   if(lit->functor()==0){
-   resLit = TermTransformer::transform(Literal::createEquality(lit->polarity(),t2,t1,srt));
+   resLit = TermTransformerTransformTransformed::transform(Literal::createEquality(lit->polarity(),t2,t1,srt));
   }
   else{
     // important, need to preserve the ordering of t1 and t2 in the original!
     if(swap){
-      resLit = TermTransformer::transform(Literal::create2(lit->functor(),lit->polarity(),t2,t1));
+      resLit = TermTransformerTransformTransformed::transform(Literal::create2(lit->functor(),lit->polarity(),t2,t1));
     }else{
-      resLit = TermTransformer::transform(Literal::create2(lit->functor(),lit->polarity(),t1,t2));
+      resLit = TermTransformerTransformTransformed::transform(Literal::create2(lit->functor(),lit->polarity(),t1,t2));
     }
   }
   return true;
@@ -1317,7 +1328,7 @@ bool InterpretedLiteralEvaluator::evaluate(Literal* lit, bool& isConstant, Liter
 #endif
 
   // This tries to transform each subterm using tryEvaluateFunc (see transform Subterm below)
-  resLit = TermTransformer::transform(lit);
+  resLit = TermTransformerTransformTransformed::transform(lit);
 
 #if IDEBUG
   cout << "transformed " << resLit->toString() << endl;
@@ -1381,7 +1392,7 @@ bool InterpretedLiteralEvaluator::evaluate(Literal* lit, bool& isConstant, Liter
 
 /**
  * This attempts to evaluate each subterm.
- * See Kernel/TermTransformer for how it is used.
+ * See Kernel/TermTransformerTransformTransformed for how it is used.
  * Terms are evaluated bottom-up
  */
 TermList InterpretedLiteralEvaluator::transformSubterm(TermList trm)
