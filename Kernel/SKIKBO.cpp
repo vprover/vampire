@@ -255,8 +255,8 @@ void SKIKBO::State::traverse(ApplicativeArgsIt* aat1, ApplicativeArgsIt* aat2)
         }
         _lexResult=applyVariableCondition(_lexResult);
       }
-      stack.pop();
-      stack.pop();
+      delete stack.pop();
+      delete stack.pop();
       continue;
     }
     ss = stack.top()->next();
@@ -481,7 +481,7 @@ SKIKBO::VarCondRes SKIKBO::compareVariables(TermList tl1, TermList tl2) const
   }
 
   vcr =  compareVariables(tl1RedData, tl2RedData, vcr);
-  //freeMem(tl1RedData, tl2RedData);
+  freeMem(tl1RedData, tl2RedData);
   return vcr;
 }
 
@@ -553,7 +553,7 @@ void SKIKBO::freeMem(VarOccMap& vomtl1 , VarOccMap& vomtl2) const
 {
   CALL("SKIKBO::freeMem");
 
-  VarOccMap::Iterator it1(vomtl2);
+  VarOccMap::Iterator it1(vomtl1);
   while(it1.hasNext()){
     DArray<DArray<unsigned>*>* arr = it1.next();
     delete arr;
@@ -705,7 +705,7 @@ unsigned SKIKBO::maximumReductionLength(Term* term)
   CALL("SKIKBO::maximumReductionLength");  
    
   typedef SortHelper SH;  
-  
+    
   static Stack<Term*> toEvaluate;
   static TermStack args;
   TermList head;
@@ -759,20 +759,19 @@ TermList SKIKBO::reduce(TermStack& args, TermList& head)
 
   TermList sort2 = ApplicativeHelper::getNthArg(headSort, 2);
   
+  TermList y = args.pop();
+  TermList z = args.pop();
   switch(ApplicativeHelper::getComb(head)){
     case Signature::C_COMB: {
-      TermList temp = args[args.size() -1];
-      args[args.size() - 1] = args[args.size() -  2];
-      args[args.size() - 2] = temp;
+      args.push(y);
+      args.push(z);
       break;
     }
     case Signature::B_COMB: {
-      args.push(ApplicativeHelper::createAppTerm(sort2, args.pop(), args.pop()));
+      args.push(ApplicativeHelper::createAppTerm(sort2, y, z));
       break;      
     }
     case Signature::S_COMB: {
-      TermList y = args.pop();
-      TermList z = args.pop();
       args.push(ApplicativeHelper::createAppTerm(sort2, y, z));
       args.push(z);
       break;

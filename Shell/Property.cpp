@@ -642,7 +642,7 @@ void Property::scan(TermList ts,bool unit,bool goal)
 
     if(func->app()){
       _hasApp = true;
-      TermList firstArg = *t->nthArgument(0);
+      TermList firstArg = *t->nthArgument(2);
       if(firstArg.isVar()){
         _hasAppliedVar = true;
         TermList varSort = func->fnType()->arg(3);
