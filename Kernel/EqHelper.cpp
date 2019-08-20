@@ -180,7 +180,7 @@ TermIterator EqHelper::getRewritableSubtermIterator(Literal* lit, const Ordering
 {
   CALL("EqHelper::getRewritableSubtermIterator");
 
-  if (lit->isEquality() && lit->isPositive()) {
+  if (lit->isEquality()) {
     TermList sel;
     switch(ord.getEqualityArgumentOrder(lit)) {
     case Ordering::INCOMPARABLE:
