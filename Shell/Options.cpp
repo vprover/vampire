@@ -920,7 +920,7 @@ void Options::Options::init()
                                 {"none","struct","math","both"});
             _induction.description = "Apply structural and/or mathematical induction on datatypes and integers";
             _induction.tag(OptionTag::INFERENCES);
-            //_lookup.insert(&_induction);
+            _lookup.insert(&_induction);
             //_induction.setRandomChoices
             _induction.setExperimental();
 
@@ -929,7 +929,7 @@ void Options::Options::init()
             _structInduction.description="";
             _structInduction.tag(OptionTag::INFERENCES);
             _structInduction.reliesOn(_induction.is(equal(Induction::STRUCTURAL))->Or<StructuralInductionKind>(_induction.is(equal(Induction::BOTH))));
-            //_lookup.insert(&_structInduction);
+            _lookup.insert(&_structInduction);
             _structInduction.setExperimental();
 
             _mathInduction = ChoiceOptionValue<MathInductionKind>("math_induction_kind","mik",
@@ -946,7 +946,7 @@ void Options::Options::init()
                                          " extends this with skolem constants introduced by induction. Consider using" 
                                          " guess_the_goal for problems in SMTLIB as they do not come with a conjecture";
             _inductionChoice.tag(OptionTag::INFERENCES);
-            //_lookup.insert(&_inductionChoice);
+            _lookup.insert(&_inductionChoice);
             _inductionChoice.setExperimental();
             _inductionChoice.reliesOn(_induction.is(notEqual(Induction::NONE)));
             //_inductionChoice.addHardConstraint(If(equal(InductionChoice::GOAL)->Or(equal(InductionChoice::GOAL_PLUS))).then(
@@ -959,21 +959,21 @@ void Options::Options::init()
             _maxInductionDepth.tag(OptionTag::INFERENCES);
             _maxInductionDepth.reliesOn(_induction.is(notEqual(Induction::NONE)));
             _maxInductionDepth.addHardConstraint(lessThan(33u));
-            //_lookup.insert(&_maxInductionDepth);
+            _lookup.insert(&_maxInductionDepth);
 
             _inductionNegOnly = BoolOptionValue("induction_neg_only","indn",true);
             _inductionNegOnly.description = "Only apply induction to negative literals";
             _inductionNegOnly.setExperimental();
             _inductionNegOnly.tag(OptionTag::INFERENCES);
             _inductionNegOnly.reliesOn(_induction.is(notEqual(Induction::NONE)));
-            //_lookup.insert(&_inductionNegOnly);
+            _lookup.insert(&_inductionNegOnly);
 
             _inductionUnitOnly = BoolOptionValue("induction_unit_only","indu",true);
             _inductionUnitOnly.description = "Only apply induction to unit clauses";
             _inductionUnitOnly.setExperimental();
             _inductionUnitOnly.tag(OptionTag::INFERENCES);
             _inductionUnitOnly.reliesOn(_induction.is(notEqual(Induction::NONE)));
-            //_lookup.insert(&_inductionUnitOnly);
+            _lookup.insert(&_inductionUnitOnly);
 
 	    _instantiation = ChoiceOptionValue<Instantiation>("instantiation","inst",Instantiation::OFF,{"off","on"});
 	    _instantiation.description = "Heuristically instantiate variables";
