@@ -85,7 +85,7 @@ void SubVarSup::detach()
   _salg->getIndexManager()->release(SUB_VAR_SUP_LHS_SUBST_TREE);
   GeneratingInferenceEngine::detach();
 }
-
+  
 
 
 struct SubVarSup::RewritableResultsFn
