@@ -222,10 +222,16 @@ class InterpretedLiteralEvaluator::EqualityEvaluator
                   checkEquality<RealConstantType>(lit,res);
 
      // Also check if the two terms are already equivalent, although that should be captured elsewhere
-     okay = okay || lit->nthArgument(0)->term() == lit->nthArgument(1)->term();
-      //cout << "HERE with " << lit->nthArgument(0)->term() << " and " << lit->nthArgument(1)->term() << endl;
-      //cout << "HERE with " << lit->nthArgument(0)->term()->toString() << " and " << lit->nthArgument(1)->term()->toString() << endl;
-
+     // This allows us to return true even if we couldn't interpret lit due to arithmetic exception
+     if(lit->nthArgument(0)->term() == lit->nthArgument(1)->term()){
+       okay = true;
+       res = true;
+     } 
+#if IDEBUG
+      cout << "HERE with " << lit->nthArgument(0)->term() << " and " << lit->nthArgument(1)->term() << endl;
+      cout << "HERE with " << lit->nthArgument(0)->term()->toString() << " and " << lit->nthArgument(1)->term()->toString() << endl;
+      cout << "okay is " << okay << endl;
+#endif
       if(!okay) return false;
 
       if(lit->isNegative()){ res = !res; }
@@ -1347,7 +1353,6 @@ bool InterpretedLiteralEvaluator::evaluate(Literal* lit, bool& isConstant, Liter
 #endif
 
   // If resLit contains variables the predicate cannot be interpreted
-  // If resLit contains uninter
   VariableIterator vit(lit);
   if(vit.hasNext()){
     isConstant=false;
