@@ -643,6 +643,21 @@ void Options::Options::init()
     _lookup.insert(&_sineToAge);
     _sineToAge.tag(OptionTag::DEVELOPMENT);
 
+    // Like generality threshold for SiNE, except used by the sine2age trick
+    _sineToAgeGeneralityThreshold = UnsignedOptionValue("sine_to_age_generality_threshold","s2agt",0);
+    _lookup.insert(&_sineToAgeGeneralityThreshold);
+    _sineToAgeGeneralityThreshold.tag(OptionTag::DEVELOPMENT);
+    _sineToAgeGeneralityThreshold.reliesOn(_sineToAge.is(equal(true)));
+
+    // Like generality threshold for SiNE, except used by the sine2age trick
+    _sineToAgeTolerance = FloatOptionValue("sine_to_age_tolerance","s2at",1.0);
+    _lookup.insert(&_sineToAgeTolerance);
+    _sineToAgeTolerance.tag(OptionTag::DEVELOPMENT);
+    _sineToAgeTolerance.addConstraint(equal(0.0f)->Or(greaterThanEq(1.0f) ));
+    // Captures that if the value is not 1.0 then sineSelection must be on
+    _sineToAgeTolerance.reliesOn(_sineToAge.is(equal(true)));
+    _sineToAgeTolerance.setRandomChoices({"1.0","1.2","1.5","2.0","3.0","5.0"});
+
     _showSplitting = BoolOptionValue("show_splitting","",false);
     _showSplitting.description="Show updates within AVATAR";
     _lookup.insert(&_showSplitting);

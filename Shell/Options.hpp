@@ -2025,9 +2025,11 @@ public:
   bool nonliteralsInClauseWeight() const { return _nonliteralsInClauseWeight.actualValue; }
   unsigned sineDepth() const { return _sineDepth.actualValue; }
   unsigned sineGeneralityThreshold() const { return _sineGeneralityThreshold.actualValue; }
+  unsigned sineToAgeGeneralityThreshold() const { return _sineToAgeGeneralityThreshold.actualValue; }
   SineSelection sineSelection() const { return _sineSelection.actualValue; }
   void setSineSelection(SineSelection val) { _sineSelection.actualValue=val; }
   float sineTolerance() const { return _sineTolerance.actualValue; }
+  float sineToAgeTolerance() const { return _sineToAgeTolerance.actualValue; }
   bool smtlibConsiderIntsReal() const { return _smtlibConsiderIntsReal.actualValue; }
   //void setSmtlibConsiderIntsReal( bool newVal ) { _smtlibConsiderIntsReal = newVal; }
   bool smtlibFletAsDefinition() const { return _smtlibFletAsDefinition.actualValue; }
@@ -2431,8 +2433,10 @@ private:
   TimeLimitOptionValue _simulatedTimeLimit;
   UnsignedOptionValue _sineDepth;
   UnsignedOptionValue _sineGeneralityThreshold;
+  UnsignedOptionValue _sineToAgeGeneralityThreshold;
   ChoiceOptionValue<SineSelection> _sineSelection;
   FloatOptionValue _sineTolerance;
+  FloatOptionValue _sineToAgeTolerance;
   BoolOptionValue _smtlibConsiderIntsReal;
   BoolOptionValue _smtlibFletAsDefinition;
   ChoiceOptionValue<Sos> _sos;

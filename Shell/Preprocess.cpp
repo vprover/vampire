@@ -240,7 +240,8 @@ void Preprocess::preprocess(Problem& prb)
     env.statistics->phase=Statistics::SINE_SELECTION;
 
     // just to initialize ``env.clauseSineLevels''
-    SineSelector(false,1.0,0,0,true).perform(prb);
+    SineSelector(false,_options.sineToAgeTolerance(),0,
+        _options.sineToAgeGeneralityThreshold(),true).perform(prb);
   }
 
   if (_options.sineSelection()!=Options::SineSelection::OFF) {
