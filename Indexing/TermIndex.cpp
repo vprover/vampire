@@ -117,10 +117,10 @@ void DemodulationSubtermIndex::handleClause(Clause* c, bool adding)
   TimeCounter tc(TC_BACKWARD_DEMODULATION_INDEX_MAINTENANCE);
 
   static DHSet<TermList> inserted;
+  inserted.reset();
 
   unsigned cLen=c->length();
   for (unsigned i=0; i<cLen; i++) {
-    inserted.reset();
     Literal* lit=(*c)[i];
     NonVariableIterator nvi(lit);
     while (nvi.hasNext()) {
