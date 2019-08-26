@@ -236,6 +236,11 @@ pid_t Multiprocessing::poll_children(bool &stopped, bool &exited, bool &signalle
 
   int status;
   pid_t pid = waitpid(-1 /*wait for any child*/, &status, WUNTRACED);
+
+  if (pid == -1) {
+    SYSTEM_FAIL("Call to waitpid() function failed.", errno);
+  }
+
   stopped = WIFSTOPPED(status);
   exited = WIFEXITED(status);
   signalled = WIFSIGNALED(status);
