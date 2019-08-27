@@ -117,18 +117,20 @@ bool PortfolioMode::searchForProof()
   TimeCounter::reinitialize();
 
   _prb = UIHelper::getInputProblem(*env.options);
-  Shell::Property* property = _prb->getProperty();
 
+  /* CAREFUL: Make sure that the order
+   * 1) getProperty, 2) normalise, 3) TheoryFinder::search
+   * is the same as in profileMode (vampire.cpp)
+   * also, cf. the beginning of Preprocessing::preprocess*/
+  Shell::Property* property = _prb->getProperty();
   {
     TimeCounter tc(TC_PREPROCESSING);
 
     //we normalize now so that we don't have to do it in every child Vampire
     ScopedLet<Statistics::ExecutionPhase> phaseLet(env.statistics->phase,Statistics::NORMALIZATION);
-    Normalisation norm;
-    norm.normalise(*_prb);
+    Normalisation().normalise(*_prb);
 
-    TheoryFinder tf(_prb->units(),property);
-    tf.search();
+    TheoryFinder(_prb->units(),property).search();
   }
 
   // now all the cpu usage will be in children, we'll just be waiting for them
