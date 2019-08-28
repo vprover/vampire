@@ -8,6 +8,7 @@
 #include "Lib/Sys/Multiprocessing.hpp"
 #include "Lib/Timer.hpp"
 #include "Shell/Options.hpp"
+#include "Shell/UIHelper.hpp"
 
 using namespace CASC;
 using namespace Lib;
@@ -90,11 +91,18 @@ bool ScheduleExecutor::run(const Schedule &schedule, int terminationTime)
       poolSize++;
     }
 
-    bool stopped, exited;
+    bool stopped, exited, signalled;
     int code;
     // sleep until process changes state
     pid_t process = Multiprocessing::instance()
-      ->poll_children(stopped, exited, code);
+      ->poll_children(stopped, exited, signalled, code);
+
+    /*
+    cout << "Child " << process
+        << " stop " << stopped
+        << " exit " << exited
+        << " sig " << signalled << " code " << code << endl;
+        */
 
     // child died, remove it from the pool and check if succeeded
     if(exited)
@@ -112,6 +120,13 @@ bool ScheduleExecutor::run(const Schedule &schedule, int terminationTime)
       pool = Pool::remove(process, pool);
       float priority = _policy->dynamicPriority(process);
       queue.insert(priority, Item(process));
+    } else if (signalled) {
+      // killed by an external agency (could be e.g. a slurm cluster killing for too much memory allocated)
+      env.beginOutput();
+      Shell::addCommentSignForSZS(env.out());
+      env.out()<<"Child killed by signal " << code << endl;
+      env.endOutput();
+      pool = Pool::remove(process, pool);
     }
 
     // pool empty and queue exhausted - we failed
