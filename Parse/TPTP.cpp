@@ -3543,6 +3543,7 @@ void TPTP::unbindVariables()
     SortList* sorts;
     ALWAYS(_variableSorts.find(var,sorts));
     _variableSorts.replace(var,sorts->tail());
+    delete sorts; // this deletes just the "popped" cell
   }
 } // unbindVariables
 
