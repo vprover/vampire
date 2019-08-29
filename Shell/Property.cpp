@@ -125,6 +125,8 @@ Property* Property::scan(UnitList* units)
 Property::~Property()
 {
   CALL("Property::~Property");
+
+  delete _symbolsInFormula;
   if (this == env.property) {
     env.property = 0;
   }
