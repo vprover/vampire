@@ -69,7 +69,7 @@ bool DistinctGroupExpansion::apply(UnitList*& units)
 
   bool added=false;
 
-  Stack<Stack<unsigned>*> group_members = env.signature->getDistinctGroupMembers();
+  Stack<Signature::DistinctGroupMembers>& group_members = env.signature->distinctGroupMembers();
 
   // If this is updated then make sure you update the check in
   // Kernel::Signature::Symol::addToDistinctGroup as well
@@ -80,7 +80,7 @@ bool DistinctGroupExpansion::apply(UnitList*& units)
   bool someLeft = false;
 
   for(unsigned i=0;i<group_members.size();i++){
-    Stack<unsigned>* members = group_members[i];
+    Signature::DistinctGroupMembers members = group_members[i];
     if(members->size() > 0) {
       if( members->size()>1 && (members->size() <= EXPAND_UP_TO_SIZE || expandEverything)) {
         added=true;
