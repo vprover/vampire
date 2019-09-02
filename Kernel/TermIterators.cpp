@@ -296,7 +296,7 @@ bool RewritableVarsIt::hasNext()
   while(!_stack.isEmpty()){
     TermList t = _stack.pop();
     AH::getHeadAndArgs(t, head, args);
-    if(head.isVar() && args.size() <= 1){
+    if(head.isVar() && args.size() <= 1 && _unstableVars->find(head.var())){
       _next = head;
     }
     if(!AH::isComb(head) || AH::isUnderApplied(head, args.size())){

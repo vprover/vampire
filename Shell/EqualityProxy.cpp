@@ -382,9 +382,6 @@ Clause* EqualityProxy::createEqProxyAxiom(const LiteralStack& literalStack)
 {
   CALL("EqualityProxy::createEqProxyAxiom(const LiteralStack&,unsigned)");
 
-  DHSet<unsigned> sorts;
-
-  LiteralStack::ConstIterator it(literalStack);
   ASS(_defUnit);
   Inference* inf = new Inference1(Inference::EQUALITY_PROXY_AXIOM2, _defUnit);
   Clause* res = Clause::fromStack(literalStack, Unit::AXIOM, inf);

@@ -141,7 +141,7 @@ Ordering::Result SKIKBO::State::innerResult(ApplicativeArgsIt* aai1, Applicative
 {
   CALL("KBO::State::innerResult");
 
-  ASS(aai1->head() != aai2->head());
+  ASS(aai1->head() != aai2->head() || aai1->head().isVar());
 
   if(_posNum>0 && _negNum>0) {
     return INCOMPARABLE;
@@ -349,7 +349,6 @@ SKIKBO::VarCondRes SKIKBO::compareVariables(TermList tl1, TermList tl2) const
       vcr = LEFT;
     } else if(tl2Mult > tl1Mult && vcr != LEFT){
       vcr = RIGHT;
-      break;
     } else if (tl1Mult != tl2Mult){
       return INCOMP;
     }
@@ -362,7 +361,6 @@ SKIKBO::VarCondRes SKIKBO::compareVariables(TermList tl1, TermList tl2) const
     unsigned tl1Mult = tl1UnstableTerms.multiplicity(t);
     if(tl1Mult > tl2Mult && vcr != RIGHT){
       vcr = LEFT;
-      break;
     } else if(tl2Mult > tl1Mult && vcr != LEFT){
       vcr = RIGHT;
     } else if (tl1Mult != tl2Mult){
@@ -406,7 +404,6 @@ SKIKBO::VarCondRes SKIKBO::compareVariables(TermList tl1, TermList tl2) const
       vcr = LEFT;
     } else if(tl2Mult > tl1Mult && vcr != LEFT){
       vcr = RIGHT;
-      break;
     } else if (tl1Mult != tl2Mult){
       return INCOMP;
     }
@@ -417,9 +414,9 @@ SKIKBO::VarCondRes SKIKBO::compareVariables(TermList tl1, TermList tl2) const
     unsigned tl2Mult = 0;
     unsigned var = tl2vit.next(tl2Mult);
     unsigned tl1Mult = tl1vars.multiplicity(var);
+    //cout << "its multip on right is " << tl1Mult << endl;
     if(tl1Mult > tl2Mult && vcr != RIGHT){
       vcr = LEFT;
-      break;
     } else if(tl2Mult > tl1Mult && vcr != LEFT){
       vcr = RIGHT;
     } else if (tl1Mult != tl2Mult){
@@ -494,7 +491,7 @@ SKIKBO::VarCondRes SKIKBO::compareVariables(VarOccMap& vomtl1 , VarOccMap& vomtl
     while(it1.hasNext()){
       unsigned var;
       DArray<DArray<unsigned>*>* arrtl2 = it1.nextRef(var);
-      ASS(vomtl1.find(var));
+      ASS_REP(vomtl1.find(var), "X" + Int::toString(var));
       DArray<DArray<unsigned>*>* arrtl1 = vomtl1.get(var); //returned by ref
       
       unsigned m = arrtl2->size();
@@ -638,6 +635,9 @@ Ordering::Result SKIKBO::compare(TermList tl1, TermList tl2) const
 {
   CALL("SKIKBO::compare(TermList)");
 
+//  cout << "comparing " + tl1.toString() << endl;
+//  cout << "with " + tl2.toString() << endl;
+
   if(tl1==tl2) {
     return EQUAL;
   }
@@ -727,20 +727,11 @@ unsigned SKIKBO::maximumReductionLength(Term* term)
         addToEvaluate(args.pop());
       }
     } else {
-      Signature::Combinator c = AH::getComb(head);
-      TermList newHeadSort = AH::getNthArg(SH::getResultSort(head.term()), 1);
-      if(c == Signature::I_COMB){
-        addToEvaluate(AH::createAppTerm(newHeadSort, args.pop(), args));//working on the assumption that the pop happens first...
-        length++;
-      } else if(c == Signature::K_COMB){
-        TermList newHead = args.pop();
-        addToEvaluate(args.pop()); 
-        addToEvaluate(AH::createAppTerm(newHeadSort, newHead, args));
-        length++;
-      } else {
-        length++;
-        addToEvaluate(reduce(args, head));
-      }
+      if(AH::getComb(head) == Signature::K_COMB){
+        addToEvaluate(args[args.size()-2]); 
+      }      
+      addToEvaluate(reduce(args, head));
+      length++;
     }
   }
   return length;
@@ -751,17 +742,27 @@ TermList SKIKBO::reduce(TermStack& args, TermList& head)
   CALL("SKIKBO::reduce");
   
   ASS(head.isTerm());
+  Signature::Combinator c = AH::getComb(head);
+  ASS(c != Signature::NOT_COMB);
   
   TermList headSort = SortHelper::getResultSort(head.term());
   
   TermList newHeadSort = ApplicativeHelper::getNthArg(headSort, 1);
-  TermList newHead = args.pop();
 
-  TermList sort2 = ApplicativeHelper::getNthArg(headSort, 2);
-  
-  TermList y = args.pop();
-  TermList z = args.pop();
-  switch(ApplicativeHelper::getComb(head)){
+  TermList newHead = args.pop();
+  TermList y, z, sort2;
+
+  if(c != Signature::I_COMB){
+    sort2 = ApplicativeHelper::getNthArg(headSort, 2);
+    y = args.pop();
+    if(c != Signature::K_COMB){
+      z = args.pop();
+    }
+  }
+  switch(c){
+    case Signature::I_COMB:
+    case Signature::K_COMB:
+      break;
     case Signature::C_COMB: {
       args.push(y);
       args.push(z);
@@ -779,7 +780,7 @@ TermList SKIKBO::reduce(TermStack& args, TermList& head)
     default:
       ASSERTION_VIOLATION; 
   }
-  return ApplicativeHelper::createAppTerm(newHeadSort, newHead, args);;  
+  return ApplicativeHelper::createAppTerm(newHeadSort, newHead, args);
 }
 
 

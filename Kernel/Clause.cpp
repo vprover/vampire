@@ -684,14 +684,27 @@ float Clause::getEffectiveWeight(const Options& opt)
   }
 }
 
+void Clause::collectUnstableVars(DHSet<unsigned>& acc)
+{
+  CALL("Clause::collectVars");
+  collectVars2<UnstableVarIt>(acc);
+}
+
 void Clause::collectVars(DHSet<unsigned>& acc)
 {
   CALL("Clause::collectVars");
+  collectVars2<VariableIterator>(acc);
+}
+
+template<class VarIt>
+void Clause::collectVars2(DHSet<unsigned>& acc)
+{
+  CALL("Clause::collectVars2");
 
   Iterator it(*this);
   while (it.hasNext()) {
     Literal* lit = it.next();
-    VariableIterator vit(lit);
+    VarIt vit(lit);
     while (vit.hasNext()) {
       TermList var = vit.next();
       ASS(var.isOrdinaryVar());

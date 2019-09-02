@@ -58,7 +58,7 @@ TermList ApplicativeHelper::createAppTerm(TermList sort, TermList head, TermStac
 
   TermList res = head;
   TermList s1, s2;
-
+  
   for(int i = terms.size() - 1; i >= 0; i--){
     s1 = getNthArg(sort, 1);
     s2 = getResultApplieadToNArgs(sort, 1);
@@ -68,6 +68,25 @@ TermList ApplicativeHelper::createAppTerm(TermList sort, TermList head, TermStac
   return res; 
 
 }
+
+TermList ApplicativeHelper::createAppTerm(TermList sort, TermList head, TermList* args, unsigned arity)
+{
+  CALL("ApplicativeHelper::createAppTerm/5");
+  ASS_REP(head.isVar() || SortHelper::getResultSort(head.term()) == sort, sort.toString() );
+
+  TermList res = head;
+  TermList s1, s2;
+
+  for(int i = 0; i < arity; i++){
+    s1 = getNthArg(sort, 1);
+    s2 = getResultApplieadToNArgs(sort, 1);
+    res = createAppTerm(s1, s2, res, args[i]);
+    sort = s2;
+  }
+  return res; 
+
+}  
+
 
 /** indexed from 1 */
 TermList ApplicativeHelper::getResultApplieadToNArgs(TermList arrowSort, unsigned argNum)
@@ -131,6 +150,29 @@ void ApplicativeHelper::getHeadAndAllArgs(TermList term, TermList& head, TermSta
     }
   }
 } 
+
+void ApplicativeHelper::getHeadSortAndArgs(TermList term, TermList& head, 
+                                           TermList& headSort, TermStack& args)
+{
+  CALL("ApplicativeHelper::getHeadSortAndArgs");
+
+  if(!term.isTerm()){
+    head = term;
+    return;
+  }
+
+  while(isApp(term.term())){
+    Term* t = term.term();   
+    args.push(*t->nthArgument(3)); 
+    term = *t->nthArgument(2);
+    if(!term.isTerm() || !isApp(term.term())){
+      headSort = Term::arrowSort(*t->nthArgument(0), *t->nthArgument(1));
+      break;   
+    } 
+  }
+  head = term;
+  
+}
 
 
 void ApplicativeHelper::getHeadAndArgs(TermList term, TermList& head, TermStack& args)

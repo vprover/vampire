@@ -336,7 +336,9 @@ public:
     /* narrow with combinator axiom */
     NARROW,
     /* superposition beneath variable */
-    SUB_VAR_SUP
+    SUB_VAR_SUP,
+    /* eager demodulation with combinator axioms */
+    COMBINATOR_DEMOD
   }; // class Inference::Rule
 
   explicit Inference(Rule r);

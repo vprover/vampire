@@ -717,9 +717,7 @@ Clause* SaturationAlgorithm::doImmediateSimplification(Clause* cl0)
 void SaturationAlgorithm::addNewClause(Clause* cl)
 {
   CALL("SaturationAlgorithm::addNewClause");
-
-  //cout << "new clause: " << cl->toString() << endl;
-
+  
   //we increase the reference counter here so that the clause wouldn't
   //get destroyed during handling in the onNewClause handler
   //(there the control flow goes out of the SaturationAlgorithm class,
@@ -727,7 +725,6 @@ void SaturationAlgorithm::addNewClause(Clause* cl)
   cl->incRefCnt();
   onNewClause(cl);
   _newClauses.push(cl);
-  
   //we can decrease the counter here -- it won't get deleted because
   //the _newClauses RC stack already took over the clause
   cl->decRefCnt();

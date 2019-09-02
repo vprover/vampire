@@ -56,6 +56,7 @@ public:
   using PrecedenceOrdering::compare;
   Result compare(TermList tl1, TermList tl2) const override;
   static unsigned maximumReductionLength(Term* t);
+  static TermList reduce(TermStack& args, TermList& head);
 
 protected:
   typedef DHMap<unsigned, DArray<DArray<unsigned>*>*> VarOccMap;
@@ -98,8 +99,6 @@ protected:
   bool allConstantsHeavierThanVariables() const { return false; }
   bool existsZeroWeightUnaryFunction() const { return false; }
   mutable State* _state;
-
-  static TermList reduce(TermStack& args, TermList& head);
 };
 
 }

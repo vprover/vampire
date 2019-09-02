@@ -31,6 +31,7 @@ public:
   static TermList createAppTerm3(TermList sort, TermList arg1, TermList arg2, TermList arg3);
   static TermList createAppTerm(TermList sort, TermList arg1, TermList arg2, TermList arg3, TermList arg4); 
   static TermList createAppTerm(TermList sort, TermList head, TermStack& terms); 
+  static TermList createAppTerm(TermList sort, TermList head, TermList* args, unsigned arity); 
   static TermList getNthArg(TermList arrowSort, unsigned argNum);
   static TermList getResultApplieadToNArgs(TermList arrowSort, unsigned argNum);
   static TermList getResultSort(TermList sort);
@@ -38,6 +39,7 @@ public:
   static void getHeadAndArgs(TermList term, TermList& head, TermStack& args); 
   static void getHeadAndArgs(Term* term, TermList& head, TermStack& args);  
   static void getHeadAndArgs(const Term* term, TermList& head, Deque<TermList>& args); 
+  static void getHeadSortAndArgs(TermList term, TermList& head, TermList& headSort, TermStack& args); 
   static bool isComb(TermList t);
   static Signature::Combinator getComb(TermList t);
   static TermList getHead(TermList t);

@@ -710,6 +710,6 @@ Clause* Superposition::performSuperposition(
     //NOT_IMPLEMENTED;
   }
 */
-
+  //cout << "result " + res->toString() << endl;
   return res;
 }

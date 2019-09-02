@@ -63,6 +63,9 @@ private:
   ~Clause() { ASSERTION_VIOLATION; }
   /** Should never be used, just that compiler requires it */
   void operator delete(void* ptr) { ASSERTION_VIOLATION; }
+  
+  template<class VarIt>
+  void collectVars2(DHSet<unsigned>& acc);
 public:
   typedef ArrayishObjectIterator<Clause> Iterator;
 
@@ -351,6 +354,9 @@ public:
   float getEffectiveWeight(const Shell::Options& opt);
 
   void collectVars(DHSet<unsigned>& acc);
+  void collectUnstableVars(DHSet<unsigned>& acc);
+
+  
   unsigned varCnt();
   unsigned maxVar(); // useful to create fresh variables w.r.t. the clause
 

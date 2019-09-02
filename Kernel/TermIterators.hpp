@@ -153,6 +153,56 @@ struct OrdVarNumberExtractorFn
   }
 };
 
+
+/**
+ * Iterator that yields variables along with types of specified
+ * @b term in DFS left to right order.
+ */
+class VariableIterator2
+: public IteratorCore<pair<TermList,TermList>>
+{
+public:
+  DECL_ELEMENT_TYPE(TermList);
+  VariableIterator() : _stack(8), _used(false) {}
+
+  VariableIterator(const Term* term) : _stack(8), _types(8), _used(false)
+  {
+    if(term->isLiteral() && static_cast<const Literal*>(term)->isTwoVarEquality()){
+      _aux[0].makeEmpty();
+      _aux[1]=static_cast<const Literal*>(term)->twoVarEqSort();
+      _stack.push(&_aux[1]);      
+    }
+    if(!term->shared() || !term->ground()) {
+      OperatorType* type;
+      if(term->isLiteral()){
+        TermList eqSort = SortHelper::getEqualityArgumentSort(static_cast<const Literal*>(term));
+        type = OperatorType::getFunctionType({eqSort, eqSort}, Term::boolSort(), 0);
+      } else {
+        type = env.signature->getFunction(t->functor())->fnType();
+      }
+      _types.push(type);
+      _args.push(0);
+      _stack.push(term->args());
+    }
+  }
+
+  bool hasNext();
+  /** Return the next variable
+   * @warning hasNext() must have been called before */
+  pair<TermList, TermList> next()
+  {
+    ASS(!_used);
+    _used=true;
+    return make_pair(*_stack.top(), _types.top()->arg(_argNums.top()));
+  }
+private:
+  Stack<const TermList*> _stack;
+  Stack<OperatorType*> _types;
+  Stack<unsigned> _argNums;
+  bool _used;
+  TermList _aux[2];
+};
+
 /**
  * Iterator that yields proper subterms
  * of @b term in DFS left to right order.
@@ -218,17 +268,15 @@ class ApplicativeArgsIt
   : public IteratorCore<TermList>
 {
 public:
-  ApplicativeArgsIt(const TermList term)
+  ApplicativeArgsIt(const TermList term, bool returnTypeArgs = true)
   {
-    ApplicativeHelper::getHeadAndAllArgs(term, _head, _stack);
+    if(returnTypeArgs){
+      ApplicativeHelper::getHeadAndAllArgs(term, _head, _stack);
+    } else {
+      ApplicativeHelper::getHeadSortAndArgs(term, _head, _headSort, _stack);      
+    }
     _argNum = _stack.size();
   }
-
-  /*ApplicativeArgsIt(Term* term)
-  {
-    ApplicativeHelper::getHeadAndArgs(term, _head, _stack);
-    _argNum = _stack.size();
-  }*/
 
   bool hasNext(){
     return !_stack.isEmpty();
@@ -245,6 +293,10 @@ public:
     return _head ;
   }
 
+  TermList headSort(){
+    return _headSort;
+  }
+
   unsigned argNum(){
     return _argNum;
   }
@@ -256,6 +308,7 @@ public:
 protected:
   TermStack _stack;
   TermList _head;
+  TermList _headSort;
   unsigned _argNum;
 };
 
@@ -325,9 +378,12 @@ class RewritableVarsIt
   : public IteratorCore<TermList>
 {
 public: //includeSelf for compatibility
-  RewritableVarsIt(Term* t, bool includeSelf = false) : _stack(8)
+  //TODO using iterator requires care!
+  RewritableVarsIt(DHSet<unsigned>* unstableVars, Term* t, bool includeSelf = false) : _stack(8)
   {
     CALL("RewritableVarsIt");
+
+    _unstableVars = unstableVars;
     _next.makeEmpty();
     if(t->isLiteral()){
       TermList t0 = *t->nthArgument(0);
@@ -350,6 +406,7 @@ public: //includeSelf for compatibility
 private:
   TermList _next;
   Stack<TermList> _stack;
+  DHSet<unsigned>* _unstableVars;
 };
 
 class UnstableVarIt

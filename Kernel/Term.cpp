@@ -1401,8 +1401,8 @@ Literal* Literal::createEquality (bool polarity, TermList arg1, TermList arg2, T
      }
      ASS(subst.match(sort, 0, srt2, 1));
    }
-   else {
-     ASS(subst.match(sort, 0, srt1, 1));
+   else {    
+    ASS_REP2(subst.match(sort, 0, srt1, 1), sort.toString(), srt1.toString());
 #if VDEBUG
      if (SortHelper::tryGetResultSort(arg2, srt2)) {
        subst.reset();

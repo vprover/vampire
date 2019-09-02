@@ -135,8 +135,7 @@ ClauseIterator Narrow::generateClauses(Clause* premise)
   CALL("Narrow::generateClauses");
   Limits* limits=_salg->getLimits();
 
-  cout << "Narrow with " << premise->toString() << endl;
-
+  //cout << "Narrow with " << premise->toString() << endl;
 
   auto it1 = premise->getSelectedLiteralIterator();
 
@@ -146,9 +145,11 @@ ClauseIterator Narrow::generateClauses(Clause* premise)
   //Perform  Narrow
   auto it4 = getMappingIterator(it3,ResultFn(premise, *this));
 
-  cout << "out narrow" << endl;
+  auto it5 = getFilteredIterator(it4,NonzeroFn());
 
-  return pvi( it4 );
+  //cout << "out narrow" << endl;
+
+  return pvi( it5 );
 }
 
 
@@ -165,8 +166,8 @@ Clause* Narrow::performNarrow(
   // we want the rwClause and eqClause to be active
   ASS(nClause->store()==Clause::ACTIVE);
 
-  cout << "performNarrow with " << nClause->toString() << "\n and " << nLiteral->toString() << "\n and " << nTerm.toString() << endl;
-  cout << "combAxLhs " << combAxLhs.toString() << endl;
+  //cout << "performNarrow with " << nClause->toString() << "\n and " << nLiteral->toString() << "\n and " << nTerm.toString() << endl;
+  //cout << "combAxLhs " << combAxLhs.toString() << endl;
 
   unsigned cLen = nClause->length();
   TermList combAxRhs = EqHelper::getOtherEqualitySide(combAx, combAxLhs);
@@ -237,11 +238,11 @@ Clause* Narrow::performNarrow(
 
   res->setAge(nClause->age() + 1);
   env.statistics->narrow++;
-  cout << "returning " + res->toString() << endl;
+  //cout << "returning " + res->toString() << endl;
   return res;
 
 construction_fail:
-  cout << "failed" << endl;
+  //cout << "failed" << endl;
   res->destroy();
   return 0;
 }

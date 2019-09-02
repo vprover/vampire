@@ -192,10 +192,37 @@ TermIterator EqHelper::getNarrowableSubtermIterator(Literal* lit, const Ordering
   return getRewritableSubtermIterator<NarrowableSubtermIt>(lit, ord);
 } 
 
-TermIterator EqHelper::getRewritableVarsIterator(Literal* lit, const Ordering& ord)
+TermIterator EqHelper::getRewritableVarsIterator(DHSet<unsigned>* unstableVars, Literal* lit, const Ordering& ord)
 {
   CALL("EqHelper::getNarrowableSubtermIterator");
-  return getRewritableSubtermIterator<RewritableVarsIt>(lit, ord);
+
+  ASS(lit->isEquality());
+  
+  
+  TermList sel;
+  switch(ord.getEqualityArgumentOrder(lit)) {
+  case Ordering::INCOMPARABLE: {
+    RewritableVarsIt si(unstableVars, lit);
+    return getUniquePersistentIteratorFromPtr(&si);
+  }
+  case Ordering::EQUAL:
+  case Ordering::GREATER:
+  case Ordering::GREATER_EQ:
+    sel=*lit->nthArgument(0);
+    break;
+  case Ordering::LESS:
+  case Ordering::LESS_EQ:
+    sel=*lit->nthArgument(1);
+    break;
+#if VDEBUG
+  default:
+    ASSERTION_VIOLATION;
+#endif
+  }
+  if (!sel.isTerm()) {
+    return TermIterator::getEmpty();
+  }
+  return getUniquePersistentIterator(vi(new RewritableVarsIt(unstableVars, sel.term(), true)));
 } 
 
 

@@ -28,6 +28,7 @@
 #include "Lib/Metaiterators.hpp"
 #include "Lib/PairUtils.hpp"
 #include "Lib/VirtualIterator.hpp"
+#include "Lib/DHSet.hpp"
 
 #include "Kernel/Clause.hpp"
 #include "Kernel/ColorHelper.hpp"
@@ -104,17 +105,21 @@ private:
 
 struct SubVarSup::RewriteableSubtermsFn
 {
-  RewriteableSubtermsFn(Ordering& ord) : _ord(ord) {}
+  RewriteableSubtermsFn(Ordering& ord, Clause* prem) : _ord(ord) { 
+    prem->collectUnstableVars(_unstableVars);
+  }
 
   DECL_RETURN_TYPE(VirtualIterator<pair<Literal*, TermList> >);
   OWN_RETURN_TYPE operator()(Literal* lit)
   {
     CALL("SubVarSup::RewriteableSubtermsFn()");
-    TermIterator it =  EqHelper::getRewritableVarsIterator(lit, _ord);
+    
+    TermIterator it =  EqHelper::getRewritableVarsIterator(&_unstableVars, lit, _ord);
     return pvi( pushPairIntoRightIterator(lit, it) );
   }
 
 private:
+  DHSet<unsigned> _unstableVars;
   Ordering& _ord;
 };
 
@@ -187,7 +192,7 @@ ClauseIterator SubVarSup::generateClauses(Clause* premise)
   // A subterm is rewritable (see EqHelper) if
   //  a) The literal is a positive equality t1=t2 and the subterm is max(t1,t2) wrt ordering
   //  b) The subterm is not a variable
-  auto itf2 = getMapAndFlattenIterator(itf1,RewriteableSubtermsFn(_salg->getOrdering()));
+  auto itf2 = getMapAndFlattenIterator(itf1,RewriteableSubtermsFn(_salg->getOrdering(), premise));
 
   // Get clauses with a literal whose complement unifies with the rewritable subterm,
   // returns a pair with the original pair and the unification result (includes substitution)
@@ -256,6 +261,7 @@ Clause* SubVarSup::performSubVarSup(
 
   Literal* rwLitS = subst.apply(rwLit, 0);
   TermList rwTermS = subst.apply(rwTerm, 0);
+  newEqLHS = subst.apply(newEqLHS, 1);
 
 #if VDEBUG
    ASS_EQ(rwTermS,newEqLHS);
@@ -351,6 +357,7 @@ Clause* SubVarSup::performSubVarSup(
     env.statistics->backwardSubVarSup++;
   }
 
+  //cout << "SUBVARSUP " + res->toString() << endl;
   return res;
 
 construction_fail:

@@ -33,6 +33,7 @@
 //#include "Inferences/InterpretedEvaluation.hpp"
 //#include "Inferences/TermAlgebraReasoning.hpp"
 #include "Inferences/TautologyDeletionISE.hpp"
+#include "Inferences/CombinatorDemodISE.hpp"
 //#include "Inferences/EquationalTautologyRemoval.hpp"
 
 //#include "InstGen/IGAlgorithm.hpp"
@@ -134,6 +135,10 @@ ImmediateSimplificationEngine* MainLoop::createISE(Problem& prb, const Options& 
     break;
   case Options::Condensation::OFF:
     break;
+  }
+
+  if(env.options->combinatorySup()){
+    res->addFront(new CombinatorDemodISE());
   }
 
   // Only add if there are distinct groups 

@@ -30,6 +30,7 @@
 #include "Lib/VirtualIterator.hpp"
 #include "Lib/Metaiterators.hpp"
 #include "Lib/PairUtils.hpp"
+#include "Lib/DHSet.hpp"
 
 #include "Term.hpp"
 
@@ -46,7 +47,7 @@ public:
   static TermIterator getSubtermIterator(Literal* lit, const Ordering& ord);
   static TermIterator getFoSubtermIterator(Literal* lit, const Ordering& ord);
   static TermIterator getNarrowableSubtermIterator(Literal* lit, const Ordering& ord);  
-  static TermIterator getRewritableVarsIterator(Literal* lit, const Ordering& ord);
+  static TermIterator getRewritableVarsIterator(DHSet<unsigned>* unstableVars, Literal* lit, const Ordering& ord);
   static TermIterator getLHSIterator(Literal* lit, const Ordering& ord);
   static TermIterator getSuperpositionLHSIterator(Literal* lit, const Ordering& ord, const Options& opt);
   static TermIterator getSubVarSupLHSIterator(Literal* lit, const Ordering& ord);

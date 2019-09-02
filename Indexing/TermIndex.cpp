@@ -123,40 +123,20 @@ void SubVarSupSubtermIndex::handleClause(Clause* c, bool adding)
 {
   CALL("SubVarSupSubtermIndex::handleClause");
 
-  DHMap<unsigned, LiteralList*> varMap;
 
+  DHSet<unsigned> unstableVars;
+  c->collectUnstableVars(unstableVars);
+  
   unsigned selCnt=c->numSelected();
   for (unsigned i=0; i<selCnt; i++) {
     Literal* lit=(*c)[i];
-    TermIterator rvi=EqHelper::getRewritableVarsIterator(lit,_ord);
-    LiteralList* ll;
+    TermIterator rvi=EqHelper::getRewritableVarsIterator(&unstableVars, lit,_ord);
     while(rvi.hasNext()){
       TermList var = rvi.next();
-      if(varMap.find(var.var(), ll)){
-        LiteralList::push(lit, ll);
+      if (adding) {
+        _is->insert(var, lit, c);
       } else {
-        ll = new LiteralList(lit);
-        varMap.insert(var.var(), ll);
-      }
-    }
-  }
-
-  for(unsigned i=0; i<c->length() && !varMap.isEmpty(); i++){
-    UnstableVarIt uvi((*c)[i]);
-    while (uvi.hasNext()) {
-      TermList var = uvi.next();
-      LiteralList* ll;
-      if(varMap.find(var.var())){ //TODO not quite what is required. The same variable could be rewritable and unstable
-        varMap.pop(var.var(), ll);
-        while(ll){
-          Literal* lit = ll->head();
-          ll = ll->tail();
-          if (adding) {
-            _is->insert(var, lit, c);
-          } else {
-            _is->remove(var, lit, c);
-          }
-        }
+        _is->remove(var, lit, c);
       }
     }
   }
@@ -261,7 +241,7 @@ void DemodulationSubtermIndex::handleClause(Clause* c, bool adding)
         //It is enough to insert a term only once per clause.
         //Also, once we know term was inserted, we know that all its
         //subterms were inserted as well, so we can skip them.
-        //nvi.right();
+        //nvi.right(); TODO fix
         continue;
       }
       if (adding) {
