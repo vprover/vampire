@@ -459,7 +459,7 @@ void InductionClauseIterator::performStructInductionTwo(Clause* premise, Literal
       unsigned and_terms = 0;
       while(tit.hasNext()){
         TermList djy = tit.next();
-        TermReplacement(term,djy);
+        TermReplacement cr(term,djy);
         Literal* nLdjy = cr.transform(clit);
         Formula* f = new AtomicFormula(nLdjy); 
         And = new FormulaList(f,And);
