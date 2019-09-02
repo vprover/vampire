@@ -62,7 +62,14 @@ void TheoryAxioms::addAndOutputTheoryUnit(Unit* unit, unsigned level)
 
 
   if (env.options->showTheoryAxioms()) {
-    cout << "% Theory " << (unit->isClause() ? "clause" : "formula" ) << ": " << unit->toString() << "\n";
+    Unit* qunit = unit;
+    Formula* f = 0;
+    if(unit->isClause()){
+      f = Formula::fromClause(static_cast<Clause*>(unit));
+      qunit = new FormulaUnit(f,unit->inference(),unit->inputType());
+    }
+    cout << "% Theory " << (unit->isClause() ? "clause" : "formula" ) << ": " << qunit->toString() << "\n";
+    if(f){ f->destroy(); } 
   }
   if(unit->isClause()){ 
     static_cast<Clause*>(unit)->setTheoryDescendant(true); 
