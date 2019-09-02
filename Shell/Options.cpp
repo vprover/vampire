@@ -1184,6 +1184,12 @@ void Options::Options::init()
     _lookup.insert(&_hyperSuperposition);
     _hyperSuperposition.tag(OptionTag::INFERENCES);
 
+    _simultaneousSuperposition = BoolOptionValue("simultaneous_superposition","sims",false);
+    _simultaneousSuperposition.description="Rewrite the whole RHS clause during superposition, not just the target literal.";
+    _lookup.insert(&_simultaneousSuperposition);
+    _simultaneousSuperposition.tag(OptionTag::INFERENCES);
+    _simultaneousSuperposition.setExperimental();
+
     _innerRewriting = BoolOptionValue("inner_rewriting","irw",false);
     _innerRewriting.description="C[t_1] | t1 != t2 ==> C[t_2] | t1 != t2 when t1>t2";
     _lookup.insert(&_innerRewriting);

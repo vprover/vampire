@@ -1938,6 +1938,7 @@ public:
   void setBfnt(bool newVal) { _bfnt.actualValue = newVal; }
   URResolution unitResultingResolution() const { return _unitResultingResolution.actualValue; }
   bool hyperSuperposition() const { return _hyperSuperposition.actualValue; }
+  bool simulatenousSuperposition() const { return _simultaneousSuperposition.actualValue; }
   bool innerRewriting() const { return _innerRewriting.actualValue; }
   bool equationalTautologyRemoval() const { return _equationalTautologyRemoval.actualValue; }
   bool arityCheck() const { return _arityCheck.actualValue; }
@@ -2299,6 +2300,7 @@ private:
 
   BoolOptionValue _hyperSuperposition;
 
+  BoolOptionValue _simultaneousSuperposition;
   BoolOptionValue _innerRewriting;
   BoolOptionValue _equationalTautologyRemoval;
 

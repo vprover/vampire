@@ -517,6 +517,8 @@ Clause* Superposition::performSuperposition(
 
   Literal* tgtLitS = EqHelper::replace(rwLitS,rwTermS,tgtTermS);
 
+  static bool doSimS = getOptions().simulatenousSuperposition();
+
   //check we don't create an equational tautology (this happens during self-superposition)
   if(EqHelper::isEqTautology(tgtLitS)) {
     return 0;
@@ -565,7 +567,7 @@ Clause* Superposition::performSuperposition(
     inf->setExtra(extra);
   }
 
-  bool afterCheck = getOptions().literalMaximalityAftercheck() && _salg->getLiteralSelector().isBGComplete();
+  static bool afterCheck = getOptions().literalMaximalityAftercheck() && _salg->getLiteralSelector().isBGComplete();
 
   Clause* res = new(newLength) Clause(newLength, inpType, inf);
 
@@ -576,6 +578,10 @@ Clause* Superposition::performSuperposition(
     Literal* curr=(*rwClause)[i];
     if(curr!=rwLit) {
       Literal* currAfter = subst->apply(curr, !eqIsResult);
+
+      if (doSimS) {
+        currAfter = EqHelper::replace(currAfter,rwTermS,tgtTermS);
+      }
 
       if(EqHelper::isEqTautology(currAfter)) {
         goto construction_fail;
