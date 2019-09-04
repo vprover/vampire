@@ -56,7 +56,7 @@ private:
   Comparison compare(Literal*, Literal*);
   bool lessThan(Formula*, Formula*);
   bool lessThan(Clause*, Clause*);
-  Comparison compare(TermList* ss, TermList* ts);
+  Comparison compare(TermList ss, TermList ts);
 
   /**
    * Return the result of comparison of two integers i1 and i2
