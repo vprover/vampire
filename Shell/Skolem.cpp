@@ -203,7 +203,7 @@ void Skolem::preskolemise (Formula* f)
         ALWAYS(_varOccs.find(v.var(),varOccInfo));
 
         if (BoolList::isNonEmpty(varOccInfo.occurs_below)) { // below a quantifier ...
-          *varOccInfo.occurs_below->headPtr() = true;         // ... occurs in this literal
+          varOccInfo.occurs_below->headRef() = true;         // ... occurs in this literal
         }
       }
       return;
@@ -275,7 +275,7 @@ void Skolem::preskolemise (Formula* f)
           continue;
         }
         if (BoolList::isNonEmpty(varOccInfo.occurs_below)) { // pass the fact that it did occur above
-          *varOccInfo.occurs_below->headPtr() = true;
+          varOccInfo.occurs_below->headRef() = true;
         }
 
         if (varOccInfo.existential) {
