@@ -342,6 +342,14 @@ bool TermSharing::argNormGt(TermList t1, TermList t2)
   }
   Term* trm1=t1.term();
   Term* trm2=t2.term();
+
+  // if both shared, we can just use ids (can they ever be non-shared here?)
+  ASS_REP(trm1->shared(), trm1->toString());
+  ASS_REP(trm2->shared(), trm2->toString());
+
+  return (trm1->getId() > trm2->getId());
+
+  /*
   if(trm1->functor()!=trm2->functor()) {
     return trm1->functor()>trm2->functor();
   }
@@ -387,6 +395,7 @@ bool TermSharing::argNormGt(TermList t1, TermList t2)
   }
   ASSERTION_VIOLATION;
   return false;
+  */
 }
 
 
