@@ -126,6 +126,7 @@ Term* TermSharing::insert(Term* t)
       }
     }
     t->markShared();
+    t->setId(_totalTerms);
     t->setVars(vars);
     t->setWeight(weight);
     if (env.colorUsed) {
@@ -205,6 +206,7 @@ Literal* TermSharing::insert(Literal* t)
       }
     }
     t->markShared();
+    t->setId(_totalLiterals);
     t->setVars(vars);
     t->setWeight(weight);
     if (env.colorUsed) {
@@ -256,6 +258,7 @@ Literal* TermSharing::insertVariableEquality(Literal* t,unsigned sort)
   Literal* s = _literals.insert(t);
   if (s == t) {
     t->markShared();
+    t->setId(_totalLiterals);
     t->setWeight(3);
     if (env.colorUsed) {
       t->setColor(COLOR_TRANSPARENT);

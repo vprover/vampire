@@ -410,6 +410,19 @@ public:
     _weight = w;
   } // setWeight
 
+  /** Set term id */
+  void setId(unsigned id)
+  {
+    _id = id;
+  } // setWeight
+
+  /** Set (shared) term's id */
+  unsigned getId() const
+  {
+    ASS(shared());
+    return _id;
+  }
+
   /** Set the number of variables */
   void setVars(unsigned v)
   {
@@ -605,6 +618,8 @@ protected:
 
 #endif
 
+  /** For shared terms, this is a unique id used for deterministic comparison */
+  unsigned _id;
   /** The number of this symbol in a signature */
   unsigned _functor;
   /** Arity of the symbol */
