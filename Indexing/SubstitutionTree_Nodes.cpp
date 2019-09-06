@@ -65,12 +65,14 @@ public:
   inline
   void insert(LeafData ld)
   {
+    CALL("SubstitutionTree::UListLeaf::insert");
     LDList::push(ld, _children);
     _size++;
   }
   inline
   void remove(LeafData ld)
   {
+    CALL("SubstitutionTree::UListLeaf::remove");
     _children = LDList::remove(ld, _children);
     _size--;
   }
@@ -106,8 +108,14 @@ public:
   {
     return pvi( LDSkipList::RefIterator(_children) );
   }
-  void insert(LeafData ld) { _children.insert(ld); }
-  void remove(LeafData ld) { _children.remove(ld); }
+  void insert(LeafData ld) {
+    CALL("SubstitutionTree::SListLeaf::insert");
+    _children.insert(ld);
+  }
+  void remove(LeafData ld) {
+    CALL("SubstitutionTree::SListLeaf::remove");
+    _children.remove(ld);
+  }
 
   CLASS_NAME(SubstitutionTree::SListLeaf);
   USE_ALLOCATOR(SListLeaf);
