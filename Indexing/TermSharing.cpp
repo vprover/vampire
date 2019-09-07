@@ -348,54 +348,6 @@ bool TermSharing::argNormGt(TermList t1, TermList t2)
   ASS_REP(trm2->shared(), trm2->toString());
 
   return (trm1->getId() > trm2->getId());
-
-  /*
-  if(trm1->functor()!=trm2->functor()) {
-    return trm1->functor()>trm2->functor();
-  }
-  if(trm1->weight()!=trm2->weight()) {
-    return trm1->weight()>trm2->weight();
-  }
-  if(trm1->vars()!=trm2->vars()) {
-    return trm1->vars()>trm2->vars();
-  }
-//  //we did all we could to compare the two terms deterministicaly
-//  //(and efficiently), but they're too alike, so that we have to
-//  //compare their addresses to distinguish between them.
-//  return t1.content()>t2.content();
-
-  //To avoid non-determinism, now we'll compare the terms lexicographicaly.
-  static DisagreementSetIterator dsit;
-  dsit.reset(trm1, trm2, false);
-
-  if(!dsit.hasNext()) {
-    ASS_EQ(trm1,trm2);
-    return false;
-  }
-
-  pair<TermList, TermList> diff=dsit.next();
-  TermList st1=diff.first;
-  TermList st2=diff.second;
-  if(st1.isTerm()) {
-    if(st2.isTerm()) {
-      unsigned f1=st1.term()->functor();
-      unsigned f2=st2.term()->functor();
-      ASS_NEQ(f1,f2);
-      return f1>f2;
-    } else {
-      return true;
-    }
-  } else {
-    if(st2.isTerm()) {
-      return false;
-    } else {
-      ASS_NEQ(st1.var(),st2.var());
-      return st1.var()>st2.var();
-    }
-  }
-  ASSERTION_VIOLATION;
-  return false;
-  */
 }
 
 
