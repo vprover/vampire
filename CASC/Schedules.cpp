@@ -7275,6 +7275,8 @@ void Schedules::getSmtcomp2016Schedule(const Property& property, Schedule& quick
 
   case SMT_ALL:
   case SMT_AUFDTLIA:
+  case SMT_UFDTNIA:
+  case SMT_AUFNIA:
   case SMT_UFDT:
   case SMT_UFDTLIA:
   case SMT_BV:
@@ -13212,6 +13214,8 @@ void Schedules::getSmtcomp2017Schedule(const Property& property, Schedule& quick
   case SMT_UFBV:
     throw UserErrorException("Sorry, we don't deal with bit-vectors!");
   case SMT_UNDEFINED:
+  case SMT_AUFNIA:
+  case SMT_UFDTNIA:
     throw UserErrorException("This version cannot be used with this logic!");
   }
 
