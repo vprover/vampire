@@ -46,8 +46,7 @@ public:
   ClauseIterator generateClauses(Clause* premise);
 private:
   struct ResultFn;
-  struct IsPositiveEqualityFn;
-
+  struct IsNegativeEqualityFn;
 };
 
 

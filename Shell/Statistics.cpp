@@ -305,7 +305,7 @@ void Statistics::print(ostream& out)
       forwardSuperposition+backwardSuperposition+selfSuperposition+
       cForwardSuperposition+cBackwardSuperposition+cSelfSuperposition+
       equalityFactoring+equalityResolution+forwardExtensionalityResolution+
-      backwardExtensionalityResolution+argumentCongruence+
+      backwardExtensionalityResolution+argumentCongruence+negativeExtensionality+
       narrow+forwardSubVarSup+backwardSubVarSup+selfSubVarSup+
       theoryInstSimp+theoryInstSimpCandidates+theoryInstSimpTautologies+theoryInstSimpLostSolution+induction);
   COND_OUT("Binary resolution", resolution);
@@ -330,6 +330,7 @@ void Statistics::print(ostream& out)
   COND_OUT("MaxInductionDepth",maxInductionDepth);
   COND_OUT("InductionStepsInProof",inductionInProof);
   COND_OUT("Argument Congruence", argumentCongruence);
+  COND_OUT("Negative Extensionality", negativeExtensionality);
   COND_OUT("Narrow", narrow);
   COND_OUT("Forward sub-variable superposition", forwardSubVarSup);  
   COND_OUT("Backward sub-variable superposition", backwardSubVarSup);  

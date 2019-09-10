@@ -338,7 +338,9 @@ public:
     /* superposition beneath variable */
     SUB_VAR_SUP,
     /* eager demodulation with combinator axioms */
-    COMBINATOR_DEMOD
+    COMBINATOR_DEMOD,
+    /* negative extnsionality */
+    NEGATIVE_EXT
   }; // class Inference::Rule
 
   explicit Inference(Rule r);

@@ -67,6 +67,7 @@
 #include "Inferences/SLQueryBackwardSubsumption.hpp"
 #include "Inferences/Superposition.hpp"
 #include "Inferences/ArgCong.hpp"
+#include "Inferences/NegativeExt.hpp"
 #include "Inferences/Narrow.hpp"
 #include "Inferences/SubVarSup.hpp"
 #include "Inferences/URResolution.hpp"
@@ -1356,6 +1357,7 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
 
   if(opt.combinatorySup()){
     gie->addFront(new ArgCong());
+    gie->addFront(new NegativeExt());//TODO add option
     gie->addFront(new Narrow());
     gie->addFront(new SubVarSup());
   }

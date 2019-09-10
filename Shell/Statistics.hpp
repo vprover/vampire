@@ -143,7 +143,7 @@ public:
   unsigned forwardSubVarSup;
   unsigned backwardSubVarSup;
   unsigned selfSubVarSup;
-
+  unsigned negativeExtensionality;
 
   // Simplifying inferences
   /** number of duplicate literals deleted */

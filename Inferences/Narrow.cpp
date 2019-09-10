@@ -133,7 +133,6 @@ private:
 ClauseIterator Narrow::generateClauses(Clause* premise)
 {
   CALL("Narrow::generateClauses");
-  Limits* limits=_salg->getLimits();
 
   //cout << "Narrow with " << premise->toString() << endl;
 

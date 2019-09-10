@@ -162,26 +162,14 @@ class VariableIterator2
 : public IteratorCore<pair<TermList,TermList>>
 {
 public:
-  DECL_ELEMENT_TYPE(TermList);
-  VariableIterator() : _stack(8), _used(false) {}
 
-  VariableIterator(const Term* term) : _stack(8), _types(8), _used(false)
+  VariableIterator2(const Term* term) : _stack(8), _terms(8), _used(false)
   {
-    if(term->isLiteral() && static_cast<const Literal*>(term)->isTwoVarEquality()){
-      _aux[0].makeEmpty();
-      _aux[1]=static_cast<const Literal*>(term)->twoVarEqSort();
-      _stack.push(&_aux[1]);      
-    }
+    ASS(!term->isLiteral());
     if(!term->shared() || !term->ground()) {
-      OperatorType* type;
-      if(term->isLiteral()){
-        TermList eqSort = SortHelper::getEqualityArgumentSort(static_cast<const Literal*>(term));
-        type = OperatorType::getFunctionType({eqSort, eqSort}, Term::boolSort(), 0);
-      } else {
-        type = env.signature->getFunction(t->functor())->fnType();
-      }
-      _types.push(type);
-      _args.push(0);
+      cout << "starting iterator with " + term->toString() << endl;
+      _terms.push(term);
+      _argNums.push(0);
       _stack.push(term->args());
     }
   }
@@ -193,14 +181,13 @@ public:
   {
     ASS(!_used);
     _used=true;
-    return make_pair(*_stack.top(), _types.top()->arg(_argNums.top()));
+    return make_pair(*_stack.top(),  SortHelper::getArgSort(const_cast<Term*>(_terms.top()), _argNums.top()));
   }
 private:
   Stack<const TermList*> _stack;
-  Stack<OperatorType*> _types;
+  Stack<const Term*> _terms;
   Stack<unsigned> _argNums;
   bool _used;
-  TermList _aux[2];
 };
 
 /**

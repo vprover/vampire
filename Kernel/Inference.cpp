@@ -497,6 +497,8 @@ vstring Inference::ruleName(Rule rule)
     return "sub-var superposition";
   case COMBINATOR_DEMOD:
     return "combinator demodulation";
+  case NEGATIVE_EXT:
+    return "negative extensionality";
   default:
     ASSERTION_VIOLATION;
     return "!UNKNOWN INFERENCE RULE!";

@@ -71,6 +71,46 @@ bool VariableIterator::hasNext()
   return false;
 }
 
+///////////////////////////////////////////
+
+bool VariableIterator2::hasNext()
+{
+  CALL("VariableIterator2::hasNext");
+  if(_stack.isEmpty()) {
+    return false;
+  }
+  if(!_used && _stack.top()->isVar()) {
+    return true;
+  }
+  while(!_stack.isEmpty()) {
+    const TermList* t=_stack.pop();
+    if(_used && t->isVar()) {
+      _used=false;
+      _argNums.top()++;
+      t=t->next();
+    }
+    if(t->isEmpty()) {
+      _terms.pop();
+      _argNums.pop();
+	    continue;
+    }
+    if(t->isVar()) {
+      ASS(!_used);
+      _stack.push(t);
+      return true;
+    }
+    _argNums.top()++;
+    _stack.push(t->next());
+    ASS(t->isTerm());
+    const Term* trm=t->term();
+    if(!trm->shared() || !trm->ground()) {
+      _argNums.push(0);
+      _terms.push(trm);
+      _stack.push(trm->args());
+    }
+  }
+  return false;
+}
 
 ///////////////////////////////////////////
 
