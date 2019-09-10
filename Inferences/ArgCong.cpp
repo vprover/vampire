@@ -74,6 +74,9 @@ struct ArgCong::ResultFn
   {
     CALL("ArgCong::ResultFn::operator()");
 
+    //cout << "ArgCong with clause " + _cl->toString() << endl;
+    //cout << "the literal is " + lit->toString() << endl;
+
     ASS(lit->isEquality());
     ASS(lit->isPositive());
 
@@ -88,8 +91,8 @@ struct ArgCong::ResultFn
     TermList alpha1, alpha2;
     if(sortIsVar){
       subst.reset();
-      TermList alpha1 = TermList(_freshVar+1, false);
-      TermList alpha2 = TermList(_freshVar+2, false);
+      alpha1 = TermList(_freshVar+1, false);
+      alpha2 = TermList(_freshVar+2, false);
       subst.unify(eqSort, 0, Term::arrowSort(alpha1, alpha2), 0);
     } else {
       alpha1 = *eqSort.term()->nthArgument(0);

@@ -99,6 +99,18 @@ protected:
   bool allConstantsHeavierThanVariables() const { return false; }
   bool existsZeroWeightUnaryFunction() const { return false; }
   mutable State* _state;
+
+#if VDEBUG
+  static vstring vCondResToString(VarCondRes v)
+  {
+    if(v == INCOMP){ return "incomparable"; }
+    if(v == LEFT){ return "left"; }
+    if(v == RIGHT){ return "right"; }
+    if(v == BOTH){ return "both"; }
+  }
+#endif
+
+
 };
 
 }

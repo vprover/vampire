@@ -224,10 +224,10 @@ void DemodulationSubtermIndex::handleClause(Clause* c, bool adding)
   TimeCounter tc(TC_BACKWARD_DEMODULATION_INDEX_MAINTENANCE);
 
   static DHSet<TermList> inserted;
-  inserted.reset();
 
   unsigned cLen=c->length();
   for (unsigned i=0; i<cLen; i++) {
+    inserted.reset();
     Literal* lit=(*c)[i];
     TermIterator it;
     if(!env.options->combinatorySup()){

@@ -117,6 +117,8 @@ Ordering::Result SKIKBO::State::result(ApplicativeArgsIt* aai1, ApplicativeArgsI
     if((h1.isVar() || h2.isVar())){ //TODO extend to mghds
       return INCOMPARABLE;
     } else {
+      cout << "h1 is " + h1.toString() << endl;
+      cout << "h2 is " + h2.toString() << endl;
       res=_kbo.compareFunctionPrecedences(h1.term()->functor(), h2.term()->functor());
       ASS_REP(res==GREATER || res==LESS, res); //precedence ordering must be total
     }
@@ -635,15 +637,15 @@ Ordering::Result SKIKBO::compare(TermList tl1, TermList tl2) const
 {
   CALL("SKIKBO::compare(TermList)");
 
-//  cout << "comparing " + tl1.toString() << endl;
-//  cout << "with " + tl2.toString() << endl;
+  //cout << "comparing " + tl1.toString() << endl;
+  //cout << "with " + tl2.toString() << endl;
 
   if(tl1==tl2) {
     return EQUAL;
   }
 
   VarCondRes varCond = compareVariables(tl1, tl2);
-
+  
   if(varCond == INCOMP){ return INCOMPARABLE; }
   
   unsigned tl1RedLen = getMaxRedLength(tl1);
@@ -661,11 +663,16 @@ Ordering::Result SKIKBO::compare(TermList tl1, TermList tl2) const
   ApplicativeArgsIt* aat1 = new ApplicativeArgsIt(tl1);
   ApplicativeArgsIt* aat2 = new ApplicativeArgsIt(tl2);
 
-  if(aat1->isVar()) { //TODO unary function weight 1
-    return LESS;  //because compare variable didnt return incomp this is safe
+  if(aat1->isVar() && (varCond == RIGHT || varCond == BOTH)){ //TODO unary function weight 1
+    return LESS; 
+  } else if(aat1->isVar() ) {
+    return INCOMPARABLE;
   }
-  if(aat2->isVar()) {
-    return GREATER; //because compare variable didnt return incomp this is safe
+
+  if(aat2->isVar() && (varCond == LEFT || varCond == BOTH)) {
+    return GREATER;
+  } else if(aat2->isVar() ) {
+    return INCOMPARABLE;
   }
 
   ASS(_state);
@@ -701,11 +708,9 @@ int SKIKBO::functionSymbolWeight(unsigned fun) const
 
 
 unsigned SKIKBO::maximumReductionLength(Term* term)
-{
-  CALL("SKIKBO::maximumReductionLength");  
-   
-  typedef SortHelper SH;  
-    
+
+{  CALL("SKIKBO::maximumReductionLength");  
+       
   static Stack<Term*> toEvaluate;
   static TermStack args;
   TermList head;
