@@ -70,6 +70,10 @@ void timeLimitReached()
 {
   using namespace Shell;
 
+  // CAREFUL, we might be in a signal handler and potentially at the same time inside Allocator which is not re-entrant
+  // so any code below that allocates might corrupt the allocator state.
+  // Therefore, the printing below should avoid allocations!
+
   env.beginOutput();
   reportSpiderStatus('t');
   if (outputAllowed()) {
