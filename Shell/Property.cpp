@@ -37,7 +37,6 @@
 #include "Kernel/Signature.hpp"
 #include "Kernel/Inference.hpp"
 #include "Kernel/TermIterators.hpp"
-#include "Kernel/ApplicativeHelper.hpp"
 
 #include "Options.hpp"
 #include "Statistics.hpp"
@@ -645,8 +644,7 @@ void Property::scan(TermList ts,bool unit,bool goal)
       TermList firstArg = *t->nthArgument(2);
       if(firstArg.isVar()){
         _hasAppliedVar = true;
-        TermList varSort = func->fnType()->arg(3);
-        if(ApplicativeHelper::getResultSort(varSort) == Term::boolSort()){
+        if(SortHelper::getResultSort(t) == Term::boolSort()){
           _hasBoolVar = true;
         }
       }

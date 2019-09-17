@@ -292,6 +292,17 @@ public:
     return _head.isVar() && !_argNum;
   }
 
+  bool varHead(){
+    return _head.isVar();
+  }
+
+  unsigned headNum(){
+    if(_head.isVar()){
+      return _head.var();
+    }
+    return _head.term()->functor();
+  }
+
 protected:
   TermStack _stack;
   TermList _head;

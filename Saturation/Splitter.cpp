@@ -1222,11 +1222,6 @@ Clause* Splitter::buildAndInsertComponentClause(SplitLevel name, unsigned size, 
 
   compCl->setAge(orig ? orig->age() : AGE_NOT_FILLED);
 
-  if(compCl->number() == 1237 || compCl->number() == 3565)
-  {
-    cout << "inserting " + compCl->toString() << endl;
-  }
-
   _db[name] = new SplitRecord(compCl);
   compCl->setSplits(SplitSet::getSingleton(name));
   compCl->setComponent(true);

@@ -111,15 +111,11 @@ Ordering::Result SKIKBO::State::result(ApplicativeArgsIt* aai1, ApplicativeArgsI
   Result res;
   if(_weightDiff) {
     res=_weightDiff>0 ? GREATER : LESS;
-  } else if(aai1->head()!=aai2->head()) {
-    TermList h1 = aai1->head();
-    TermList h2 = aai2->head();
-    if((h1.isVar() || h2.isVar())){ //TODO extend to mghds
+  } else if(!_kbo.sameCategoryHeads(aai1, aai2) || aai1->headNum()!=aai2->headNum()) {
+    if(aai1->varHead() || aai2->varHead()){ //TODO extend to mghds
       return INCOMPARABLE;
     } else {
-      cout << "h1 is " + h1.toString() << endl;
-      cout << "h2 is " + h2.toString() << endl;
-      res=_kbo.compareFunctionPrecedences(h1.term()->functor(), h2.term()->functor());
+      res=_kbo.compareFunctionPrecedences(aai1->headNum(), aai2->headNum());
       ASS_REP(res==GREATER || res==LESS, res); //precedence ordering must be total
     }
   } else {
@@ -143,7 +139,7 @@ Ordering::Result SKIKBO::State::innerResult(ApplicativeArgsIt* aai1, Applicative
 {
   CALL("KBO::State::innerResult");
 
-  ASS(aai1->head() != aai2->head() || aai1->head().isVar());
+  ASS(!_kbo.sameCategoryHeads(aai1, aai2) || aai1->headNum() != aai2->headNum());
 
   if(_posNum>0 && _negNum>0) {
     return INCOMPARABLE;
@@ -160,12 +156,10 @@ Ordering::Result SKIKBO::State::innerResult(ApplicativeArgsIt* aai1, Applicative
       ASS_EQ(_posNum,0);
       res=GREATER;
     } else {
-      TermList h1 = aai1->head();
-      TermList h2 = aai2->head();
-      if((h1.isVar() || h2.isVar()) && h1 != h2){//TODO extend to mghds
+      if(aai1->varHead() || aai2->varHead()){//TODO extend to mghds
         return INCOMPARABLE;
       } 
-      res=_kbo.compareFunctionPrecedences(h1.term()->functor(), h2.term()->functor());
+      res=_kbo.compareFunctionPrecedences(aai1->headNum(), aai2->headNum());
       ASS_REP(res==GREATER || res==LESS, res);//precedence ordering must be total
     }
   }
@@ -199,11 +193,11 @@ void SKIKBO::State::traverse(ApplicativeArgsIt* aai,int coef)
 {
   CALL("KBO::State::traverse(TermList...)");
 
-  if(aai->head().isTerm()){
-    _weightDiff+=_kbo.functionSymbolWeight(aai->head().term()->functor())*coef;
+  if(!aai->varHead()){
+    _weightDiff+=_kbo.functionSymbolWeight(aai->headNum())*coef;
   } else {
     _weightDiff+=_kbo._variableWeight*coef;
-    recordVariable(aai->head().var(), coef);
+    recordVariable(aai->headNum(), coef);
   }
 
   if(!aai->hasNext()) {
@@ -214,17 +208,18 @@ void SKIKBO::State::traverse(ApplicativeArgsIt* aai,int coef)
   while(!stack.isEmpty()) {
     TermList ts = stack.top()->next();
     ApplicativeArgsIt* aai1 = new ApplicativeArgsIt(ts);
-    if(aai1->head().isVar()){
+    if(aai1->varHead()){
       _weightDiff+=_kbo._variableWeight*coef;
-      recordVariable(aai1->head().var(), coef);
+      recordVariable(aai1->headNum(), coef);
     } else {
-      _weightDiff+=_kbo.functionSymbolWeight(aai1->head().term()->functor())*coef;
+      _weightDiff+=_kbo.functionSymbolWeight(aai1->headNum())*coef;
     }
     if(aai1->hasNext()) {
       stack.push(aai1);
     }
     while(!stack.isEmpty() && !stack.top()->hasNext()){
-      stack.pop(); //TODO memory leak
+      if(!stack.size() == 1){ delete stack.pop(); }
+      else{ stack.pop(); }
     }
   }
 }
@@ -232,7 +227,7 @@ void SKIKBO::State::traverse(ApplicativeArgsIt* aai,int coef)
 void SKIKBO::State::traverse(ApplicativeArgsIt* aat1, ApplicativeArgsIt* aat2)
 {
   CALL("KBO::State::traverse");
-  ASS(aat1->head()==aat2->head());
+  ASS(aat1->headNum()==aat2->headNum());
   ASS(aat1->hasNext());
   ASS_EQ(_lexResult, EQUAL);
 
@@ -270,7 +265,7 @@ void SKIKBO::State::traverse(ApplicativeArgsIt* aat1, ApplicativeArgsIt* aat2)
     }
     ApplicativeArgsIt* aai1 = new ApplicativeArgsIt(ss);
     ApplicativeArgsIt* aai2 = new ApplicativeArgsIt(tt); //TODO memory leaks
-    if(aai1->head() == aai2->head() && !aai1->head().isVar()) {
+    if(_kbo.sameCategoryHeads(aai1, aai2) && aai1->headNum() == aai2->headNum()) {
       ASS(aai1->hasNext());
       ASS(aai2->hasNext());
       stack.push(aai2);
@@ -286,6 +281,8 @@ void SKIKBO::State::traverse(ApplicativeArgsIt* aat1, ApplicativeArgsIt* aat2)
         ASS(_lexResult!=GREATER_EQ);
         ASS(_lexResult!=LESS_EQ);
       }
+      delete aai1;
+      delete aai2;
     }
   }
   ASS_EQ(depth,0);
@@ -644,8 +641,16 @@ Ordering::Result SKIKBO::compare(TermList tl1, TermList tl2) const
     return EQUAL;
   }
 
+  if(tl1.containsSubterm(tl2)){
+    return GREATER;
+  }
+
+  if(tl2.containsSubterm(tl1)){
+    return LESS;
+  }
+
   VarCondRes varCond = compareVariables(tl1, tl2);
-  
+
   if(varCond == INCOMP){ return INCOMPARABLE; }
   
   unsigned tl1RedLen = getMaxRedLength(tl1);
@@ -683,7 +688,7 @@ Ordering::Result SKIKBO::compare(TermList tl1, TermList tl2) const
 #endif
 
   state->init();
-  if(aat1->head()==aat2->head()) {
+  if(sameCategoryHeads(aat1, aat2) && aat1->headNum()==aat2->headNum()) {
     state->traverse(aat1,aat2);
   } else {
     state->traverse(aat1,1);

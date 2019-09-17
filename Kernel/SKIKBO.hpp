@@ -34,6 +34,7 @@
 
 #include "Ordering.hpp"
 #include "Signature.hpp"
+#include "TermIterators.hpp"
 
 namespace Kernel {
 
@@ -98,6 +99,10 @@ protected:
 
   bool allConstantsHeavierThanVariables() const { return false; }
   bool existsZeroWeightUnaryFunction() const { return false; }
+  bool sameCategoryHeads(ApplicativeArgsIt* a1, ApplicativeArgsIt* a2) const
+  {
+    return a1->varHead() == a2->varHead();
+  }
   mutable State* _state;
 
 #if VDEBUG
