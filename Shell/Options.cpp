@@ -1681,6 +1681,11 @@ void Options::Options::init()
     //_lookup.insert(&_maxPassive);
     _maxPassive.tag(OptionTag::OTHER);
 
+    _maxAge = IntOptionValue("max_age","",0);
+    _maxAge.description="Age limit for clauses (0 means no age limit)";
+    _lookup.insert(&_maxAge);
+    _maxAge.tag(OptionTag::SATURATION);
+
     _maxWeight = IntOptionValue("max_weight","",0);
     _maxWeight.description="Weight limit for clauses (0 means no weight limit)";
     _lookup.insert(&_maxWeight);

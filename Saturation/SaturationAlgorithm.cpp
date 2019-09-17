@@ -161,8 +161,8 @@ SaturationAlgorithm::SaturationAlgorithm(Problem& prb, const Options& opt)
     _extensionality = 0;
   }
   
-  if (opt.maxWeight()) {
-    _limits.setLimits(0,opt.maxWeight(),true);
+  if (opt.maxAge() || opt.maxWeight()) {
+    _limits.setLimits(opt.maxAge(),opt.maxWeight(),true);
   }
 
   s_instance=this;

@@ -1970,6 +1970,7 @@ public:
   long maxAnswers() const { return _maxAnswers.actualValue; }
   //void setMaxAnswers(int newVal) { _maxAnswers = newVal; }
   long maxPassive() const { return _maxPassive.actualValue; }
+  int maxAge() const { return _maxAge.actualValue; }
   int maxWeight() const { return _maxWeight.actualValue; }
   int ageRatio() const { return _ageWeightRatio.actualValue; }
   void setAgeRatio(int v){ _ageWeightRatio.actualValue = v; }
@@ -2352,6 +2353,7 @@ private:
   IntOptionValue _maxAnswers;
   IntOptionValue _maxInferenceDepth;
   LongOptionValue _maxPassive;
+  IntOptionValue _maxAge;
   IntOptionValue _maxWeight;
   UnsignedOptionValue _maximalPropagatedEqualityLength;
   UnsignedOptionValue _memoryLimit; // should be size_t, making an assumption
