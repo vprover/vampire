@@ -261,6 +261,7 @@ Comparison Normalisation::compare (Formula* fm1, Formula* fm2)
       if (comp != EQUAL) {
         return comp;
       }
+      break;
     }
 
     case FORALL:
@@ -464,7 +465,7 @@ Comparison Normalisation::compare(Term* t1, Term* t2)
         if (comp != EQUAL) {
           return comp;
         }
-        break;
+        break; // compare arguments "then" and "else" as usual below
 
       case Term::SF_LET: {
         comp = compare((int) Formula::VarList::length(t1->getSpecialData()->getVariables()),
@@ -478,6 +479,7 @@ Comparison Normalisation::compare(Term* t1, Term* t2)
         if (comp != EQUAL) {
           return comp;
         }
+        break; // compare body of the let as usual below (although 1) what about sorts, 2) what about doing the modulo the bound name?)
       }
 
       case Term::SF_LET_TUPLE: {
@@ -492,6 +494,7 @@ Comparison Normalisation::compare(Term* t1, Term* t2)
         if (comp != EQUAL) {
           return comp;
         }
+        break; // compare body of the tuple below
       }
 
       case Term::SF_TUPLE: {
@@ -499,6 +502,7 @@ Comparison Normalisation::compare(Term* t1, Term* t2)
         if (comp != EQUAL) {
           return comp;
         }
+        break; // compare body of the tuple below
       }
 
       default:
