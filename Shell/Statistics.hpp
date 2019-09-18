@@ -204,6 +204,7 @@ public:
   unsigned inferencesBlockedForOrderingAftercheck;
 
   bool smtReturnedUnknown;
+  bool smtDidNotEvaluate;
 
   unsigned inferencesSkippedDueToColors;
 

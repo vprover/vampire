@@ -120,6 +120,7 @@ Statistics::Statistics()
     discardedNonRedundantClauses(0),
     inferencesBlockedForOrderingAftercheck(0),
     smtReturnedUnknown(false),
+    smtDidNotEvaluate(false),
     inferencesSkippedDueToColors(0),
     finalPassiveClauses(0),
     finalActiveClauses(0),

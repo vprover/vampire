@@ -636,6 +636,17 @@ void SplittingBranchSelector::recomputeModel(SplitLevelStack& addedComps, SplitL
   unsigned _usedcnt=0; // for the statistics below
   for(unsigned i=1; i<=maxSatVar; i++) {
     SATSolver::VarAssignment asgn = getSolverAssimentConsideringCCModel(i);
+
+    /**
+     * This may happen with the current version of z3 when evaluating expressions like (0 == 1/0).
+     * A bug report / feature request has been sent to the z3 people, but this will make us stay sound in release mode.
+     * (While violating an assertion in debug - see getAssignment in Z3Interfacing).
+     */
+    if (asgn == SATSolver::NOT_KNOWN) {
+      env.statistics->smtDidNotEvaluate=true;
+      throw MainLoop::MainLoopFinishedException(Statistics::REFUTATION_NOT_FOUND);
+    }
+
     updateSelection(i, asgn, addedComps, removedComps);
     
     if (asgn != SATSolver::DONT_CARE) {
