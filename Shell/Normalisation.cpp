@@ -440,15 +440,15 @@ Comparison Normalisation::compare(Term* t1, Term* t2)
 
   Comparison comp;
 
-  if (!t1->shared() && t2->shared()) {
+  if (!t1->isSpecial() && t2->isSpecial()) {
     return GREATER;
   }
 
-  if (t1->shared() && !t2->shared()) {
+  if (t1->isSpecial() && !t2->isSpecial()) {
     return LESS;
   }
 
-  if (!t1->shared() && !t2->shared()) {
+  if (t1->isSpecial() && t2->isSpecial()) {
     comp = compare ((int)t1->getSpecialData()->getType(),
                     (int)t2->getSpecialData()->getType());
     if (comp != EQUAL) {
@@ -508,8 +508,23 @@ Comparison Normalisation::compare(Term* t1, Term* t2)
       default:
         ASSERTION_VIOLATION;
     }
-  } else {
+  }
+
+  if (!t1->shared() && t2->shared()) {
+    return GREATER;
+  }
+
+  if (t1->shared() && !t2->shared()) {
+    return LESS;
+  }
+
+  if (t1->shared() && t2->shared()) {
     comp = compare((int)t1->weight(),(int)t2->weight());
+    if (comp != EQUAL) {
+      return comp;
+    }
+
+    comp = compare((int)t1->vars(),(int)t2->vars());
     if (comp != EQUAL) {
       return comp;
     }
@@ -522,12 +537,8 @@ Comparison Normalisation::compare(Term* t1, Term* t2)
     if (comp != EQUAL) {
       return comp;
     }
-    comp = compare((int)t1->vars(),(int)t2->vars());
-    if (comp != EQUAL) {
-      return comp;
-    }
     comp = compare(_counter.getFun(f1).occ(),
-		   _counter.getFun(f2).occ());
+       _counter.getFun(f2).occ());
     if (comp != EQUAL) {
       return comp;
     }
