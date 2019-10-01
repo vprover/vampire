@@ -174,7 +174,7 @@ bool UnstableSubtermIt::hasNext()
     ASS(args.size());
     if(head.isVar() && !AH::isSafe(args)){
       _next = t;
-    } else if(AH::isComb(head) && !AH::isUnderApplied(head, args.size()) && unstable(t)){
+    } else if(AH::isComb(head) && !AH::isUnderApplied(head, args.size()) && !t->ground()){
       _next = t;
     } else {
       while(!args.isEmpty()){
@@ -189,7 +189,7 @@ bool UnstableSubtermIt::hasNext()
   return false;  
 }
 
-bool UnstableSubtermIt::unstable(Term* t)
+/*bool UnstableSubtermIt::unstable(Term* t)
 {
   CALL("UnstableSubtermIt::unstable");
   
@@ -212,7 +212,7 @@ bool UnstableSubtermIt::unstable(Term* t)
     }
   }
   return false;
-}
+}*/
 
 ///////////////////////////////////////////
 

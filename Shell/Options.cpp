@@ -2964,7 +2964,7 @@ bool Options::complete(const Problem& prb) const
   bool hasEquality = (prop.equalityAtoms() != 0);
 
   if((prop.hasCombs() || prop.hasAppliedVar()) && 
-    (!_addCombAxioms.actualValue || _combinatorySuperposition.actualValue)) {
+    !_addCombAxioms.actualValue && !_combinatorySuperposition.actualValue) {
     return false;
   }
 

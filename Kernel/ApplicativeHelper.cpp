@@ -319,8 +319,12 @@ bool ApplicativeHelper::isSafe(TermStack& args)
   CALL("ApplicativeHelper::isSafe");
 
   for(unsigned i = 0; i < args.size(); i++){
-    TermList head = getHead(args[i]);
-    if(head.isVar() || isComb(head)){
+    TermList ithArg = args[i];
+    if(ithArg.isVar() || !ithArg.term()->ground()){
+      return false;
+    }
+    TermList head = getHead(ithArg);
+    if(isComb(head)){
       return false;
     }
   }

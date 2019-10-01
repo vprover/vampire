@@ -30,7 +30,7 @@
 
 #include "Lib/DArray.hpp"
 #include "Lib/DHMap.hpp"
-
+#include "Lib/SmartPtr.hpp"
 
 #include "Ordering.hpp"
 #include "Signature.hpp"
@@ -53,6 +53,8 @@ public:
 
   SKIKBO(Problem& prb, const Options& opt);
   virtual ~SKIKBO();
+
+  typedef SmartPtr<ApplicativeArgsIt> ArgsIt_ptr;
 
   using PrecedenceOrdering::compare;
   Result compare(TermList tl1, TermList tl2) const override;
@@ -99,7 +101,7 @@ protected:
 
   bool allConstantsHeavierThanVariables() const { return false; }
   bool existsZeroWeightUnaryFunction() const { return false; }
-  bool sameCategoryHeads(ApplicativeArgsIt* a1, ApplicativeArgsIt* a2) const
+  bool sameCategoryHeads(ArgsIt_ptr a1, ArgsIt_ptr a2) const
   {
     return a1->varHead() == a2->varHead();
   }

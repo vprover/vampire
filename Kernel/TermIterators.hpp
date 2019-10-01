@@ -333,7 +333,6 @@ public:
   }
 
 private:
-  bool unstable(Term* t);
   Stack<Term*> _stack;
   Term* _next;
 };

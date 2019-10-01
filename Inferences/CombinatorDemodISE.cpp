@@ -24,6 +24,8 @@
 #include "Lib/Random.hpp"
 #include "Lib/Environment.hpp"
 #include "Lib/DArray.hpp"
+#include "Lib/SmartPtr.hpp"
+
 #include "Kernel/Term.hpp"
 #include "Kernel/Clause.hpp"
 #include "Kernel/ApplicativeHelper.hpp"
@@ -89,7 +91,7 @@ Clause* CombinatorDemodISE::simplify(Clause* c)
   Clause* newC = Clause::fromStack(litStack, c->inputType(), inference);
   //cout << "into CombinatorDemodISE " + c->toString() << endl;
   //cout << "out of CombinatorDemodISE " + newC->toString() << endl;
-  if(!newC){ cout << "RETURNING NULL CLAUSE" << endl; }
+  //if(!newC){ cout << "RETURNING NULL CLAUSE" << endl; }
   return newC;
 }
 
@@ -97,12 +99,14 @@ TermList CombinatorDemodISE::reduce(TermList t)
 {
   CALL("CombinatorDemodISE::reduce");
   
+  typedef SmartPtr<ApplicativeArgsIt> ArgsIt_ptr;
+
   ASS(!t.isVar());
     
   static Stack<Term*> terms(8);
   static Stack<HigherOrderTermInfo> infos(8);
   static Stack<bool> modified(8);
-  static Stack<ApplicativeArgsIt*> argIts(8);
+  static Stack<ArgsIt_ptr> argIts(8);
   static TermStack args;
 
   ASS(argIts.isEmpty());
@@ -113,13 +117,13 @@ TermList CombinatorDemodISE::reduce(TermList t)
 
   headNormalForm(t);
   modified.push(false);
-  argIts.push(new ApplicativeArgsIt(t, false));
-  ApplicativeArgsIt* argsIt = argIts.top();
+  argIts.push(ArgsIt_ptr(new ApplicativeArgsIt(t, false)));
+  ArgsIt_ptr argsIt = argIts.top();
   infos.push(HigherOrderTermInfo(argsIt->head(), argsIt->headSort(), argsIt->argNum()));
 
   for (;;) {
     if (!argIts.top()->hasNext()) {
-      delete argIts.pop();
+      argIts.pop();
       if (terms.isEmpty()) {
         //we're done, args stack contains modified arguments
         //of the literal.
@@ -158,7 +162,7 @@ TermList CombinatorDemodISE::reduce(TermList t)
     Term* t=tl.term();
     terms.push(t);
     modified.push(false);
-    argIts.push(new ApplicativeArgsIt(tl, false));
+    argIts.push(ArgsIt_ptr(new ApplicativeArgsIt(tl, false)));
     argsIt = argIts.top();
     infos.push(HigherOrderTermInfo(argsIt->head(), argsIt->headSort(), argsIt->argNum()));
   }
