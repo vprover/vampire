@@ -159,6 +159,26 @@ Statistics::Statistics()
 {
 } // Statistics::Statistics
 
+void Statistics::explainRefutationNotFound(ostream& out)
+{
+  // should be a one-liner for each case!
+  if (discardedNonRedundantClauses) {
+    out << "Refutation not found, non-redundant clauses discarded";
+  }
+  else if (inferencesSkippedDueToColors) {
+    out << "Refutation not found, inferences skipped due to colors\n";
+  }
+  else if(smtReturnedUnknown){
+    out << "Refutation not found, SMT solver inside AVATAR returned Unknown";
+  }
+  else if (smtDidNotEvaluate) {
+    out << "Refutation not found, SMT solver inside AVATAR failed to evaluate a literal\n";
+  }
+  else {
+    out << "Refutation not found, incomplete strategy";
+  }
+}
+
 void Statistics::print(ostream& out)
 {
   if (env.options->statistics()==Options::Statistics::NONE) {
@@ -193,18 +213,7 @@ void Statistics::print(ostream& out)
     out << "Activation limit";
     break;
   case Statistics::REFUTATION_NOT_FOUND:
-    if (env.statistics->discardedNonRedundantClauses) {
-      out << "Refutation not found, non-redundant clauses discarded";
-    }
-    else if (env.statistics->inferencesSkippedDueToColors) {
-      out << "Refutation not found, inferences skipped due to colors\n";
-    }
-    else if(env.statistics->smtReturnedUnknown){
-      out << "Refutation not found, SMT solver inside AVATAR returned Unknown";
-    }
-    else {
-      out << "Refutation not found, incomplete strategy";
-    }
+    explainRefutationNotFound(out);
     break;
   case Statistics::SATISFIABLE:
     out << "Satisfiable";

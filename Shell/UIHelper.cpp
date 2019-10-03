@@ -463,20 +463,7 @@ void UIHelper::outputResult(ostream& out)
       return;
     }
     addCommentSignForSZS(out);
-    if (env.statistics->discardedNonRedundantClauses) {
-      out << "Refutation not found, non-redundant clauses discarded\n";
-    }
-    else if(env.statistics->inferencesSkippedDueToColors) {
-      out << "Refutation not found, inferences skipped due to colors\n";
-    }
-    else if(env.statistics->smtReturnedUnknown) {
-      out << "Refutation not found, SMT solver inside AVATAR returned Unknown\n";
-    } else if (env.statistics->smtDidNotEvaluate) {
-      out << "Refutation not found, SMT solver inside AVATAR failed to evaluate a literal\n";
-    }
-    else {
-      out << "Refutation not found, incomplete strategy\n";
-    }
+    env.statistics->explainRefutationNotFound(out);
     break;
   case Statistics::SATISFIABLE:
     if(env.options->outputMode() == Options::Output::SMTCOMP){
