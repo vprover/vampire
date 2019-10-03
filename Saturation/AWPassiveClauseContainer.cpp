@@ -50,7 +50,7 @@ using namespace Lib;
 using namespace Kernel;
 
 PredicateSplitPassiveClauseContainer::PredicateSplitPassiveClauseContainer(const Options& opt) :
-    _yesPCC(opt), _noPCC(opt), _balance(0)
+    _yesPCC(opt), _noPCC(opt), _balance(0), _opt(opt)
 {
   CALL("PredicateSplitPassiveClauseContainer::PredicateSplitPassiveClauseContainer");
 
@@ -62,8 +62,7 @@ void PredicateSplitPassiveClauseContainer::add(Clause* cl)
 {
   CALL("PredicateSplitPassiveClauseContainer::add");
 
-  // for the time being, let the_predicate be goalness
-  if (cl->isGoal()) {
+  if (cl->modelSaidYes) {
     _yesPCC.add(cl);
   } else {
     _noPCC.add(cl);
@@ -75,8 +74,7 @@ void PredicateSplitPassiveClauseContainer::remove(Clause* cl)
 {
   CALL("PredicateSplitPassiveClauseContainer::remove");
 
-  // for the time being, let the_predicate be goalness
-  if (cl->isGoal()) {
+  if (cl->modelSaidYes) {
     _yesPCC.remove(cl);
   } else {
     _noPCC.remove(cl);
@@ -100,11 +98,30 @@ Clause* PredicateSplitPassiveClauseContainer::popSelected()
   Clause* cl;
   if ((goYes && (_yesPCC.size() > 0)) || (_noPCC.size() == 0)) {
     cl = _yesPCC.popSelected();
-    // cout << "Y " << cl->age() << " " << cl->weight() << endl;
+    //cout << "Y " << cl->age() << " " << cl->weight() << endl;
   } else {
     ASS(_noPCC.size());
-    cl = _noPCC.popSelected();
-    // cout << "N " << cl->age() << " " << cl->weight() << endl;
+    if (_yesPCC.size() == 0) {
+      cl = _noPCC.popSelected();
+      //cout << "N " << cl->age() << " " << cl->weight() << endl;
+    } else {
+      // both non-empty and nominally, we should go for "no"
+      Clause* noCl = _noPCC.peekSelected();
+      Clause* yesCl = _yesPCC.peekSelected();
+      bool abortNo;
+      if(_noPCC.byWeight()) {
+        abortNo = WeightQueue::theActualLessThen(yesCl,noCl,_opt);
+      } else {
+        abortNo = AgeQueue::theActualLessThen(yesCl,noCl,_opt);
+      }
+      if (abortNo) {
+        cl = _yesPCC.popSelected();
+        //cout << "N->Y " << cl->age() << " " << cl->weight() << endl;
+      } else {
+        cl = _noPCC.popSelected();
+        //cout << "Y " << cl->age() << " " << cl->weight() << endl;
+      }
+    }
   }
   selectedEvent.fire(cl);
   return cl;
@@ -236,11 +253,12 @@ Comparison AWPassiveClauseContainer::compareWeight(Clause* cl1, Clause* cl2, con
  * </ol>
  * @since 30/12/2007 Manchester
  */
-bool WeightQueue::lessThan(Clause* c1,Clause* c2)
+bool WeightQueue::theActualLessThen(Clause* c1,Clause* c2,const Options& opt)
 {
-  CALL("WeightQueue::lessThan");
+  CALL("WeightQueue::theActualLessThen");
 
-  if (_modelSaidYes) {
+  static bool modelSaidYes = opt.modelSaidYes();
+  if (modelSaidYes) {
     if (c1->modelSaidYes && !c2->modelSaidYes) {
       return true;
     }
@@ -250,7 +268,7 @@ bool WeightQueue::lessThan(Clause* c1,Clause* c2)
     }
   }
 
-  Comparison weightCmp=AWPassiveClauseContainer::compareWeight(c1, c2, _opt);
+  Comparison weightCmp=AWPassiveClauseContainer::compareWeight(c1, c2, opt);
   if (weightCmp!=EQUAL) {
     return weightCmp==LESS;
   }
@@ -280,11 +298,12 @@ bool WeightQueue::lessThan(Clause* c1,Clause* c2)
  * </ol>
  * @since 30/12/2007 Manchester
  */
-bool AgeQueue::lessThan(Clause* c1,Clause* c2)
+bool AgeQueue::theActualLessThen(Clause* c1,Clause* c2,const Options& opt)
 {
-  CALL("AgeQueue::lessThan");
+  CALL("AgeQueue::theActualLessThan");
 
-  if (_modelSaidYes) {
+  static bool modelSaidYes = opt.modelSaidYes();
+  if (modelSaidYes) {
     if (c1->modelSaidYes && !c2->modelSaidYes) {
       return true;
     }
@@ -301,7 +320,7 @@ bool AgeQueue::lessThan(Clause* c1,Clause* c2)
     return false;
   }
 
-  Comparison weightCmp=AWPassiveClauseContainer::compareWeight(c1, c2, _opt);
+  Comparison weightCmp=AWPassiveClauseContainer::compareWeight(c1, c2, opt);
   if (weightCmp!=EQUAL) {
     return weightCmp==LESS;
   }
@@ -359,6 +378,38 @@ void AWPassiveClauseContainer::remove(Clause* cl)
   ASS(cl->store()!=Clause::PASSIVE);
 }
 
+bool AWPassiveClauseContainer::byWeight()
+{
+  CALL("AWPassiveClauseContainer::byWeight");
+
+  if (! _ageRatio) {
+    return true;
+  }
+  else if (! _weightRatio) {
+    return false;
+  }
+  else if (_balance > 0) {
+    return true;
+  }
+  else if (_balance < 0) {
+    return false;
+  }
+  else {
+    return (_ageRatio <= _weightRatio);
+  }
+}
+
+Clause* AWPassiveClauseContainer::peekSelected()
+{
+  CALL("AWPassiveClauseContainer::peekSelected");
+  ASS( ! isEmpty());
+
+  if (byWeight()) {
+    return _weightQueue.top();
+  } else {
+    return _ageQueue.top();
+  }
+}
 
 /**
  * Return the next selected clause and remove it from the queue.
@@ -369,52 +420,9 @@ Clause* AWPassiveClauseContainer::popSelected()
   CALL("AWPassiveClauseContainer::popSelected");
   ASS( ! isEmpty());
 
-  auto shape = _opt.ageWeightRatioShape();
-  unsigned frequency = _opt.ageWeightRatioShapeFrequency();
-  static unsigned count = 0;
-  count++;
-
-  bool is_converging = shape == Options::AgeWeightRatioShape::CONVERGE;
-  int targetAgeRatio = is_converging ? _opt.ageRatio() : 1;
-  int targetWeightRatio = is_converging ? _opt.weightRatio() : 1;
-
-  if(count % frequency == 0) {
-    switch(shape) {
-    case Options::AgeWeightRatioShape::CONSTANT:
-      break;
-    case Options::AgeWeightRatioShape::DECAY:
-    case Options::AgeWeightRatioShape::CONVERGE:
-      int ageDifference = targetAgeRatio - _ageRatio;
-      int weightDifference = targetWeightRatio - _weightRatio;
-      int bonus = is_converging ? 1 : -1;
-      int ageUpdate = (ageDifference + bonus) / 2;
-      int weightUpdate = (weightDifference + bonus) / 2;
-
-      _ageRatio += ageUpdate;
-      _weightRatio += weightUpdate;
-   }
-  }
-  //std::cerr << _ageRatio << "\t" << _weightRatio << std::endl;
   _size--;
 
-  bool byWeight;
-  if (! _ageRatio) {
-    byWeight = true;
-  }
-  else if (! _weightRatio) {
-    byWeight = false;
-  }
-  else if (_balance > 0) {
-    byWeight = true;
-  }
-  else if (_balance < 0) {
-    byWeight = false;
-  }
-  else {
-    byWeight = (_ageRatio <= _weightRatio);
-  }
-
-  if (byWeight) {
+  if (byWeight()) {
     _balance -= _ageRatio;
     Clause* cl = _weightQueue.pop();
     _ageQueue.remove(cl);

@@ -53,6 +53,11 @@ public:
   bool remove(Clause*);
   void removeAll();
   Clause* pop();
+  Clause* top() {
+    ASS(_height >= 0);
+    ASS(_left->nodes[0] != 0);
+    return _left->nodes[0]->clause;
+  }
   /** True if the queue is empty */
   bool isEmpty() const
   { return _left->nodes[0] == 0; }

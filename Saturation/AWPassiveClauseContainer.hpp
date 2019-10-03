@@ -41,32 +41,33 @@ class AgeQueue
 : public ClauseQueue
 {
 public:
-  AgeQueue(const Options& opt) : _opt(opt), _modelSaidYes(opt.modelSaidYes()) {}
+  AgeQueue(const Options& opt) : _opt(opt) {}
+  static bool theActualLessThen(Clause*,Clause*,const Options& opt);
 protected:
-
-  virtual bool lessThan(Clause*,Clause*);
+  bool lessThan(Clause* cl1 ,Clause* cl2) override {
+    return theActualLessThen(cl1,cl2,_opt);
+  }
 
   friend class AWPassiveClauseContainer;
 
 private:
   const Options& _opt;
-
-  bool _modelSaidYes;
 };
 
 class WeightQueue
   : public ClauseQueue
 {
 public:
-  WeightQueue(const Options& opt) : _opt(opt), _modelSaidYes(opt.modelSaidYes()) {}
+  WeightQueue(const Options& opt) : _opt(opt) {}
+  static bool theActualLessThen(Clause*,Clause*,const Options& opt);
 protected:
-  virtual bool lessThan(Clause*,Clause*);
+  bool lessThan(Clause* cl1,Clause* cl2) override {
+    return theActualLessThen(cl1,cl2,_opt);
+  }
 
   friend class AWPassiveClauseContainer;
 private:
   const Options& _opt;
-
-  bool _modelSaidYes;
 };
 
 /**
@@ -86,6 +87,8 @@ public:
 
   void remove(Clause* cl);
 
+  bool byWeight();
+  Clause* peekSelected();
   Clause* popSelected();
   /** True if there are no passive clauses */
   bool isEmpty() const
@@ -101,7 +104,6 @@ public:
   static Comparison compareWeight(Clause* cl1, Clause* cl2, const Options& opt);
 protected:
   void onLimitsUpdated(LimitsChangeType change);
-
 private:
 
   /** The age queue, empty if _ageRatio=0 */
@@ -154,6 +156,7 @@ private:
   int _yesRatio;
   int _noRatio;
   int _balance;
+  const Options& _opt;
 }; // class PredicateSplitPassiveClauseContainer
 
 
