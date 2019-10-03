@@ -44,13 +44,14 @@ class AgeQueue
 : public ClauseQueue
 {
 public:
-  AgeQueue(const Options& opt) : _opt(opt), _modelSaidYes(opt.modelSaidYes()) {}
+  AgeQueue(const Options& opt) : _opt(opt) {}
+  static bool theActualLessThen(Clause*,Clause*,const Options& opt);
 protected:
-
-  virtual bool lessThan(Clause*,Clause*);
+  bool lessThan(Clause* cl1 ,Clause* cl2) override {
+    return theActualLessThen(cl1,cl2,_opt);
+  }
 
   friend class AWPassiveClauseContainer;
-
 private:
   const Shell::Options& _opt;
   bool _modelSaidYes;
@@ -60,9 +61,12 @@ class WeightQueue
   : public ClauseQueue
 {
 public:
-  WeightQueue(const Options& opt) : _opt(opt), _modelSaidYes(opt.modelSaidYes()) {}
+  WeightQueue(const Options& opt) : _opt(opt) {}
+  static bool theActualLessThen(Clause*,Clause*,const Options& opt);
 protected:
-  virtual bool lessThan(Clause*,Clause*);
+  bool lessThan(Clause* cl1,Clause* cl2) override {
+    return theActualLessThen(cl1,cl2,_opt);
+  }
 
   friend class AWPassiveClauseContainer;
 private:
@@ -90,14 +94,16 @@ public:
   bool byWeight(int balance);
 
   Clause* popSelected() override;
+  Clause* peekSelected();
+
   /** True if there are no passive clauses */
   bool isEmpty() const override
   { return _ageQueue.isEmpty() && _weightQueue.isEmpty(); }
 
   unsigned sizeEstimate() const override { return _size; }
 
-  static Comparison compareWeight(Clause* cl1, Clause* cl2, const Shell::Options& opt);
 
+  static Comparison compareWeight(Clause* cl1, Clause* cl2, const Shell::Options& opt);
 private:
   /** The age queue, empty if _ageRatio=0 */
   AgeQueue _ageQueue;
@@ -203,7 +209,6 @@ private:
   int _noRatio;
   int _balance;
 }; // class MartinsPredicateSplitPassiveClauseContainer
-
 
 /**
  * Light-weight version of the AWPassiveClauseContainer that

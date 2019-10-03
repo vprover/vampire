@@ -405,7 +405,7 @@ void SaturationAlgorithm::evaluate(Clause* cl, std::vector<torch::jit::IValue>& 
 #endif
 
   cl->modelSaidYes = (eval <= 5.0);
-  // cl->modelSaidYes = Random::getBit();
+  //cl->modelSaidYes = Random::getBit();
 }
 
 void SaturationAlgorithm::talkToKarel(Clause* cl, bool eval)
