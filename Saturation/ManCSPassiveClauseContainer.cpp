@@ -52,26 +52,30 @@ void ManCSPassiveClauseContainer::remove(Clause* cl)
 
 Clause* ManCSPassiveClauseContainer::popSelected()
 {
-  	ASS(!clauses.empty());
+	ASS(!clauses.empty());
 
-	// print existing clauses
-	std::cout << "Pick a clause from: ";
-	for (const auto& cl : clauses)
+	std::vector<Clause*>::iterator selectedClauseIt;
+	while(true)
 	{
-		std::cout << cl->number() << ",";
+		// ask user to pick a clause id
+		std::cout << "Pick a clause:\n";
+		std::string id;
+		std::cin >> id;
+		unsigned selectedId = std::stoi(id);
+
+		// search clause with that id
+		selectedClauseIt = std::find_if(clauses.begin(), clauses.end(), 
+			[&](Clause* c) -> bool { return c->number() == selectedId; });
+		if(selectedClauseIt != clauses.end())
+		{
+			break;
+		}
+		else 
+		{
+			std::cout << "User error: No clause in Passive has id " << id << "!\n";
+		}
 	}
-	std::cout << std::endl;
-
-	// let user pick a clause id
-	std::string id;
-	std::cin >> id;
-	unsigned selectedId = std::stoi(id);
-
-	// find clause with that id
-	auto selectedClauseIt = std::find_if(clauses.begin(), clauses.end(), 
-		[&](Clause* c) -> bool { return c->number() == selectedId; });	
-	ASS(selectedClauseIt != clauses.end());
-
+	
 	auto selectedClause	= *selectedClauseIt;
 	clauses.erase(selectedClauseIt);
 	selectedEvent.fire(selectedClause);
