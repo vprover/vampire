@@ -2119,6 +2119,9 @@ public:
   bool newCNF() const { return _newCNF.actualValue; }
   int getIteInliningThreshold() const { return _iteInliningThreshold.actualValue; }
   bool getIteInlineLet() const { return _inlineLet.actualValue; }
+
+  bool useManualClauseSelection() const { return _manualClauseSelection.actualValue; }
+
 private:
     
     /**
@@ -2499,6 +2502,8 @@ private:
   BoolOptionValue _newCNF;
   IntOptionValue _iteInliningThreshold;
   BoolOptionValue _inlineLet;
+
+  BoolOptionValue _manualClauseSelection;
 
 
 }; // class Options

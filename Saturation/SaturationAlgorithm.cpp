@@ -85,6 +85,7 @@
 #include "Splitter.hpp"
 #include "SymElOutput.hpp"
 #include "SaturationAlgorithm.hpp"
+#include "ManCSPassiveClauseContainer.hpp"
 #include "AWPassiveClauseContainer.hpp"
 #include "Discount.hpp"
 #include "LRS.hpp"
@@ -139,7 +140,15 @@ SaturationAlgorithm::SaturationAlgorithm(Problem& prb, const Options& opt)
   _completeOptionSettings = opt.complete(prb);
 
   _unprocessed = new UnprocessedClauseContainer();
-  _passive = new AWPassiveClauseContainer(opt);
+  if (opt.useManualClauseSelection())
+  {
+    _passive = new ManCSPassiveClauseContainer(opt);
+  }
+  else
+  {
+    _passive = new AWPassiveClauseContainer(opt);
+  }
+    
   _active = new ActiveClauseContainer(opt);
 
   _active->attach(this);

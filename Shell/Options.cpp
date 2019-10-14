@@ -721,6 +721,11 @@ void Options::Options::init()
     _lookup.insert(&_showFMBsortInfo);
     _showFMBsortInfo.tag(OptionTag::OUTPUT);
 
+    _manualClauseSelection = BoolOptionValue("manual_cs","",false);
+    _manualClauseSelection.description="Run Vampire interactively by manually picking the clauses to be selected";
+    _lookup.insert(&_manualClauseSelection);
+    _manualClauseSelection.tag(OptionTag::DEVELOPMENT);
+    
 //************************************************************************
 //*********************** VAMPIRE (includes CASC)  ***********************
 //************************************************************************
