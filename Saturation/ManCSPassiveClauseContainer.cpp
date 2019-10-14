@@ -35,73 +35,73 @@ using namespace Kernel;
 class VectorIteratorWrapper : public IteratorCore<Clause*>
 {
 public:
-	CLASS_NAME(VectorIteratorWrapper);
-	USE_ALLOCATOR(VectorIteratorWrapper);
+  CLASS_NAME(VectorIteratorWrapper);
+  USE_ALLOCATOR(VectorIteratorWrapper);
   
-	explicit VectorIteratorWrapper(const std::vector<Clause*>& v) : curr(v.begin()), end(v.end()) {}
-	bool hasNext() { return curr != end; };
-	Clause* next() { auto cl = *curr; curr = std::next(curr); return cl;};
+  explicit VectorIteratorWrapper(const std::vector<Clause*>& v) : curr(v.begin()), end(v.end()) {}
+  bool hasNext() { return curr != end; };
+  Clause* next() { auto cl = *curr; curr = std::next(curr); return cl;};
 
 private:
-	std::vector<Clause*>::const_iterator curr;
-	const std::vector<Clause*>::const_iterator end;
+  std::vector<Clause*>::const_iterator curr;
+  const std::vector<Clause*>::const_iterator end;
 };
 
 
 ClauseIterator ManCSPassiveClauseContainer::iterator()
 {
-	return vi( new VectorIteratorWrapper(clauses));
+  return vi( new VectorIteratorWrapper(clauses));
 }
 
 void ManCSPassiveClauseContainer::add(Clause* cl)
 {
-	clauses.push_back(cl);
-	addedEvent.fire(cl);
+  clauses.push_back(cl);
+  addedEvent.fire(cl);
 }
 
 void ManCSPassiveClauseContainer::remove(Clause* cl)
 {
-	ASS(cl->store()==Clause::PASSIVE);
-	
-	auto it = std::find(clauses.begin(),clauses.end(),cl);
-	ASS(it != clauses.end();)
-	clauses.erase(it);
+  ASS(cl->store()==Clause::PASSIVE);
 
-	removedEvent.fire(cl);
-	ASS(cl->store()!=Clause::PASSIVE);
+  auto it = std::find(clauses.begin(),clauses.end(),cl);
+  ASS(it != clauses.end();)
+  clauses.erase(it);
+
+  removedEvent.fire(cl);
+  ASS(cl->store()!=Clause::PASSIVE);
 }
 
 Clause* ManCSPassiveClauseContainer::popSelected()
 {
-	ASS(!clauses.empty());
+  ASS(!clauses.empty());
 
-	std::vector<Clause*>::iterator selectedClauseIt;
-	while(true)
-	{
-		// ask user to pick a clause id
-		std::cout << "Pick a clause:\n";
-		std::string id;
-		std::cin >> id;
-		unsigned selectedId = std::stoi(id);
+  std::vector<Clause*>::iterator selectedClauseIt;
+  while(true)
+  {
+    // ask user to pick a clause id
+    std::cout << "Pick a clause:\n";
+    std::string id;
+    std::cin >> id;
+    unsigned selectedId = std::stoi(id);
 
-		// search clause with that id
-		selectedClauseIt = std::find_if(clauses.begin(), clauses.end(), 
-			[&](Clause* c) -> bool { return c->number() == selectedId; });
-		if(selectedClauseIt != clauses.end())
-		{
-			break;
-		}
-		else 
-		{
-			std::cout << "User error: No clause in Passive has id " << id << "!\n";
-		}
-	}
-	
-	auto selectedClause	= *selectedClauseIt;
-	clauses.erase(selectedClauseIt);
-	selectedEvent.fire(selectedClause);
-	
-	return selectedClause;
+    // search clause with that id
+    selectedClauseIt = std::find_if(clauses.begin(), clauses.end(), 
+      [&](Clause* c) -> bool { return c->number() == selectedId; });
+    if(selectedClauseIt != clauses.end())
+    {
+      break;
+    }
+    else
+    {
+      std::cout << "User error: No clause in Passive has id " << id << "!\n";
+    }
+  }
+
+  auto selectedClause	= *selectedClauseIt;
+  clauses.erase(selectedClauseIt);
+  selectedEvent.fire(selectedClause);
+
+  return selectedClause;
 }
 
 unsigned ManCSPassiveClauseContainer::size() const { return clauses.size(); }
