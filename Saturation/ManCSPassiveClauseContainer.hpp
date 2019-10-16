@@ -42,7 +42,7 @@ public:
   CLASS_NAME(ManCSPassiveClauseContainer);
   USE_ALLOCATOR(ManCSPassiveClauseContainer);
 
-  ManCSPassiveClauseContainer(const Options& opt) : opt(opt), clauses() {}
+  ManCSPassiveClauseContainer(const Options& opt) : opt(opt) {}
   virtual ~ManCSPassiveClauseContainer(){}
   
   virtual unsigned size() const;

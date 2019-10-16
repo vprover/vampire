@@ -21,6 +21,7 @@
  * Defines the class ManCSPassiveClauseContainer
  */
 #include <iostream>
+#include <algorithm>
 #include "ManCSPassiveClauseContainer.hpp"
 #include "Lib/VirtualIterator.hpp"
 
@@ -64,7 +65,7 @@ void ManCSPassiveClauseContainer::remove(Clause* cl)
   ASS(cl->store()==Clause::PASSIVE);
 
   auto it = std::find(clauses.begin(),clauses.end(),cl);
-  ASS(it != clauses.end();)
+  ASS(it != clauses.end());
   clauses.erase(it);
 
   removedEvent.fire(cl);
