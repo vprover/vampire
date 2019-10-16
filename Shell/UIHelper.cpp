@@ -355,7 +355,7 @@ void UIHelper::outputResult(ostream& out)
     addCommentSignForSZS(out);
     out << "Refutation found. Thanks to " << env.options->thanks() << "!\n";
     if (szsOutputMode()) {
-      out << "% SZS status " << (UIHelper::haveConjectureInProof() ? ( UIHelper::haveConjecture() ? "Theorem" : "Unsatisfiable" ) : "ContradictoryAxioms")
+      out << "% SZS status " << (UIHelper::haveConjecture() ? ( UIHelper::haveConjectureInProof() ? "Theorem" : "ContradictoryAxioms" ) : "Unsatisfiable")
 	  << " for " << env.options->problemName() << endl;
     }
     if (env.options->questionAnswering()!=Options::QuestionAnsweringMode::OFF) {
