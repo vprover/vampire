@@ -844,6 +844,9 @@ void SaturationAlgorithm::handleEmptyClause(Clause* cl)
       // this is a poor way of handling this in release mode but it prevents unsound proofs
       throw MainLoop::MainLoopFinishedException(Statistics::REFUTATION_NOT_FOUND);
     }
+    if(cl->inputType() == Unit::AXIOM){
+      UIHelper::setConjectureInProof(false);
+    }
 
     throw RefutationFoundException(cl);
   }

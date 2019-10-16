@@ -133,6 +133,7 @@ ostream& addCommentSignForSZS(ostream& out)
 }
 
 bool UIHelper::s_haveConjecture=false;
+bool UIHelper::s_proofHasConjecture=true;
 
 void UIHelper::outputAllPremises(ostream& out, UnitList* units, vstring prefix)
 {
@@ -354,7 +355,7 @@ void UIHelper::outputResult(ostream& out)
     addCommentSignForSZS(out);
     out << "Refutation found. Thanks to " << env.options->thanks() << "!\n";
     if (szsOutputMode()) {
-      out << "% SZS status " << ( UIHelper::haveConjecture() ? "Theorem" : "Unsatisfiable" )
+      out << "% SZS status " << (UIHelper::haveConjectureInProof() ? ( UIHelper::haveConjecture() ? "Theorem" : "Unsatisfiable" ) : "ContradictoryAxioms")
 	  << " for " << env.options->problemName() << endl;
     }
     if (env.options->questionAnswering()!=Options::QuestionAnsweringMode::OFF) {
