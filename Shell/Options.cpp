@@ -879,7 +879,7 @@ void Options::Options::init()
     _lookup.insert(&_ageWeightRatioShapeFrequency);
     _ageWeightRatioShapeFrequency.tag(OptionTag::SATURATION);
 
-    _avatarHints = ChoiceOptionValue<AvatarHintsKind>("avatar_hints","ah",AvatarHintsKind::OFF,{"bwd","fwd","off"});
+    _avatarHints = ChoiceOptionValue<AvatarHintsKind>("avatar_hints","ah",AvatarHintsKind::OFF,{"bwd","bwd_track","off"});
     _lookup.insert(&_avatarHints);
     _avatarHints.tag(OptionTag::SATURATION);
     _avatarHints.setExperimental();

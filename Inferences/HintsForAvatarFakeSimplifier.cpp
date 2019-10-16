@@ -29,6 +29,7 @@
 #include "Kernel/Clause.hpp"
 #include "Kernel/MLMatcher.hpp"
 #include "Kernel/Matcher.hpp"
+#include "Kernel/Inference.hpp"
 
 #include "Debug/RuntimeStatistics.hpp"
 
@@ -38,7 +39,34 @@
 namespace Inferences
 {
 
-HintsForAvatarFwdFakeSimplifier::HintsForAvatarFwdFakeSimplifier() : _impl(false)
+Clause* HintsForAvatarFakeSimplifier::hintMatched(Clause *cl, Clause* byWhom)
+{
+  CALL("HintsForAvatarFakeSimplifier::hintMatched");
+
+  cl->heedHint();
+  env.statistics->hintsMatched++;
+
+  if (_recordDependency) {
+    // we do a bit of surgery here - create a copy to newly become cl's parent (stealing it's inference)
+    // and make cl relate to this copy via a new "hint matched" inference
+    // this way we return cl as if no reduction happened, yet keep track of the `dependency` on the matchee
+    Clause* copy = Clause::fromIterator(Clause::Iterator(*cl), cl->inputType(), cl->inference());
+    copy->setAge(cl->age());
+    copy->setSplits(cl->splits());
+    copy->heedHint();
+
+    Inference* inf = new Kernel::Inference2(Inference::HINT_MATCHED, copy, byWhom);
+    cl->setInference(inf);
+
+    // std::swap(copy->number(),cl->number());
+
+    // return cl (below) as if nothing happened
+  }
+
+  return cl;
+}
+
+HintsForAvatarFwdFakeSimplifier::HintsForAvatarFwdFakeSimplifier(bool recoredDependency) : HintsForAvatarFakeSimplifier(recoredDependency), _impl(false)
 {
   CALL("HintsForAvatarFwdFakeSimplifier::HintsForAvatarFwdFakeSimplifier");
 
@@ -62,18 +90,21 @@ Clause* HintsForAvatarFwdFakeSimplifier::simplify(Clause* cl)
 
   // cout << "HintsForAvatarFakeSimplifier::simplify" << endl;
 
-  Clause* rDummy;
-  Clause* pDummy;
-  // never consider redundant, just mark as "hint-heeding"
-  if (_impl.genericPerform(cl,rDummy,pDummy,TC_FORWARD_SUBSUMPTION_HINT_CHECK,TC_FORWARD_SUBSUMPTION_HINT_CHECK)) {
-    cl->heedHint();
-    env.statistics->hintsMatched++;
+  if (cl->heedingHint()) {
+    return cl;
   }
-  // always return cl; it's never actually simplified
+
+  Clause* replacementDummy;
+  Clause* premiseDummy;
+  // never consider redundant, just mark as "hint-heeding"
+  if (_impl.genericPerform(cl,replacementDummy,premiseDummy,TC_FORWARD_SUBSUMPTION_HINT_CHECK,TC_FORWARD_SUBSUMPTION_HINT_CHECK)) {
+    return hintMatched(cl,premiseDummy);
+  }
+
   return cl;
 }
 
-HintsForAvatarBwdFakeSimplifier::HintsForAvatarBwdFakeSimplifier()
+HintsForAvatarBwdFakeSimplifier::HintsForAvatarBwdFakeSimplifier(bool recordDependency) : HintsForAvatarFakeSimplifier(recordDependency)
 {
   CALL("HintsForAvatarBwdFakeSimplifier::HintsForAvatarBwdFakeSimplifier");
 
@@ -85,6 +116,10 @@ Clause* HintsForAvatarBwdFakeSimplifier::simplify(Clause* cl)
 {
   CALL("HintsForAvatarBwdFakeSimplifier::simplify");
 
+  if (cl->heedingHint()) {
+    return cl;
+  }
+
   // the following is copied and adapted from SLQueryBackwardSubsumption
   // (sharing the code seemed to awkward, as we are not interested in a list (or an iterator)
   // of the subsumed clauses, but just the existence of some
@@ -94,17 +129,18 @@ Clause* HintsForAvatarBwdFakeSimplifier::simplify(Clause* cl)
   unsigned clen=cl->length();
 
   if(clen==0) {
-    cl->heedHint(); // empty clauses are hint matching even if there are no hints
+    // empty clauses are hint matching even if there are no hints
+    cl->heedHint();
     env.statistics->hintsMatched++;
-    return cl;
+    return cl; // we don't have a real other premise to call hintMatched and this case is weird anyway
   }
 
   if(clen==1) {
     SLQueryResultIterator rit=_index->getInstances( (*cl)[0], false, false);
 
     if (rit.hasNext()) {
-      cl->heedHint();
-      env.statistics->hintsMatched++;
+      SLQueryResult qr = rit.next();
+      return hintMatched(cl,qr.clause);
     }
 
     return cl;
@@ -234,8 +270,7 @@ Clause* HintsForAvatarBwdFakeSimplifier::simplify(Clause* cl)
     RSTAT_CTR_INC("H - bs1 3 final check");
     if (MLMatcher::canBeMatched(cl, icl, matchedLits.array(), 0)) {
       // mark successful hint match
-      cl->heedHint();
-      env.statistics->hintsMatched++;
+      return hintMatched(cl,icl);
       RSTAT_CTR_INC("H - bs1 4 performed");
     }
 

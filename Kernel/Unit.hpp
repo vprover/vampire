@@ -103,6 +103,7 @@ public:
   { return _inputType > ASSUMPTION; }  
 
   /** Return the number of this unit */
+  unsigned& number() { return _number; }
   unsigned number() const { return _number; }
 
   /** Return the inference of this unit */

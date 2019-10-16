@@ -371,6 +371,8 @@ vstring Inference::ruleName(Rule rule)
     return "condensation";
   case EVALUATION:
     return "evaluation";
+  case HINT_MATCHED:
+    return "hint matched";
   case INTERPRETED_SIMPLIFICATION:
     return "interpreted simplification";
   case UNUSED_PREDICATE_DEFINITION_REMOVAL:

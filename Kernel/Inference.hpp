@@ -205,6 +205,7 @@ public:
     /** evaluation inference */
     EVALUATION,
     /** evaluation inference */
+    HINT_MATCHED,
     INTERPRETED_SIMPLIFICATION,
     /** unused predicate definition removal */
     UNUSED_PREDICATE_DEFINITION_REMOVAL,

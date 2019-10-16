@@ -36,9 +36,13 @@ class HintsForAvatarFakeSimplifier
 : public ImmediateSimplificationEngine
 {
 public:
+  HintsForAvatarFakeSimplifier(bool recordDependency) : _recordDependency(recordDependency) {};
   virtual void addHintClause(Clause* cl) = 0;
 protected:
+  Clause* hintMatched(Clause* cl, Clause* byWhom);
+
   Saturation::PlainClauseContainer _hintClauseContainer;
+  bool _recordDependency;
 };
 
 class HintsForAvatarFwdFakeSimplifier
@@ -48,7 +52,7 @@ public:
   CLASS_NAME(HintsForAvatarFwdFakeSimplifier);
   USE_ALLOCATOR(HintsForAvatarFwdFakeSimplifier);
 
-  HintsForAvatarFwdFakeSimplifier();
+  HintsForAvatarFwdFakeSimplifier(bool recoredDependency);
 
   void addHintClause(Clause* cl) override {
     _hintClauseContainer.add(cl);
@@ -66,7 +70,7 @@ public:
   CLASS_NAME(HintsForAvatarBwdFakeSimplifier);
   USE_ALLOCATOR(HintsForAvatarBwdFakeSimplifier);
 
-  HintsForAvatarBwdFakeSimplifier();
+  HintsForAvatarBwdFakeSimplifier(bool recordDependency);
 
   void addHintClause(Clause* cl) override {
     _hintClauseContainer.add(cl);

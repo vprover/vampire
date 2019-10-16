@@ -252,7 +252,7 @@ public:
 
   enum class AvatarHintsKind : unsigned int {
     BWD,
-    FWD,
+    BWD_TRACK,
     OFF
   };
  
