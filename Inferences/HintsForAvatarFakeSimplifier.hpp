@@ -38,6 +38,8 @@ class HintsForAvatarFakeSimplifier
 public:
   HintsForAvatarFakeSimplifier(bool recordDependency) : _recordDependency(recordDependency) {};
   virtual void addHintClause(Clause* cl) = 0;
+
+  virtual unsigned size() const = 0;
 protected:
   Clause* hintMatched(Clause* cl, Clause* byWhom);
 
@@ -74,10 +76,14 @@ public:
 
   void addHintClause(Clause* cl) override {
     _hintClauseContainer.add(cl);
+    // cout << "HintsForAvatarBwdFakeSimplifier added clause " << cl->toString() << endl;
   }
+
+  unsigned size() const override { return _size; }
 
   Clause* simplify(Clause* cl) override;
 private:
+  unsigned _size;
   SimplifyingLiteralIndex* _index;
 };
 

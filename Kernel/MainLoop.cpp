@@ -125,7 +125,8 @@ ImmediateSimplificationEngine* MainLoop::createISE(Problem& prb, const Options& 
    * A hacky way of starting (= effectively ending) the composite ISE chain with an engine passed as an argument.
    */
   if (myFirstWish) {
-    res->addFront(myFirstWish);
+    ImmediateSimplificationEngine* wrap = new NonOwningWrapperISE(myFirstWish); // make sure CompositeISE does not delete myFirstWish
+    res->addFront(wrap);
   }
 
   if(prb.hasEquality() && opt.equationalTautologyRemoval()) {

@@ -345,6 +345,7 @@ public:
 
   bool heedingHint() const { return _heedingHint; }
   void heedHint() {
+    ASS_REP((_store!=PASSIVE),toString());
     ASS_NEQ(_store,PASSIVE); // because _heedingHint influence passive container order
     _heedingHint = true;
   }

@@ -71,7 +71,9 @@ public:
     /** Used in parsing and preprocessing for extensionality clause tagging, should not appear in proof search */
     EXTENSIONALITY_AXIOM = 5,
     /** Used to seperate model definitions in model_check mode, should not appear in proof search */
-    MODEL_DEFINITION = 6
+    MODEL_DEFINITION = 6,
+    /** Hint is a lemma on which we want to split, and try proving the conj with its help first and without (or assuming its negation) later*/
+    HINT = 7
   };
 
   static InputType getInputType(UnitList* units);

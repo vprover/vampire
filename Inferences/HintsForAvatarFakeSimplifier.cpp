@@ -104,7 +104,7 @@ Clause* HintsForAvatarFwdFakeSimplifier::simplify(Clause* cl)
   return cl;
 }
 
-HintsForAvatarBwdFakeSimplifier::HintsForAvatarBwdFakeSimplifier(bool recordDependency) : HintsForAvatarFakeSimplifier(recordDependency)
+HintsForAvatarBwdFakeSimplifier::HintsForAvatarBwdFakeSimplifier(bool recordDependency) : HintsForAvatarFakeSimplifier(recordDependency), _size(0)
 {
   CALL("HintsForAvatarBwdFakeSimplifier::HintsForAvatarBwdFakeSimplifier");
 

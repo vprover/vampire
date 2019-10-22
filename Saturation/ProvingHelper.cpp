@@ -1,4 +1,3 @@
-
 /*
  * File ProvingHelper.cpp.
  *
@@ -36,8 +35,7 @@
 
 #include "ProvingHelper.hpp"
 
-namespace Saturation
-{
+namespace Saturation {
 
 using namespace Lib;
 using namespace Kernel;
@@ -55,27 +53,23 @@ using namespace Shell;
  * The function does not necessarily return (e.g. in the case of timeout,
  * the process is aborted)
  */
-  void ProvingHelper::runVampireSaturation(Problem& prb, const Options& opt)
-{
+void ProvingHelper::runVampireSaturation(Problem& prb, Options& opt) {
   CALL("ProvingHelper::runVampireSaturation");
 
   try {
     runVampireSaturationImpl(prb, opt);
-  }
-  catch(MemoryLimitExceededException&) {
-    env.statistics->terminationReason=Statistics::MEMORY_LIMIT;
-    env.statistics->refutation=0;
-    size_t limit=Allocator::getMemoryLimit();
+  } catch (MemoryLimitExceededException&) {
+    env.statistics->terminationReason = Statistics::MEMORY_LIMIT;
+    env.statistics->refutation = 0;
+    size_t limit = Allocator::getMemoryLimit();
     //add extra 1 MB to allow proper termination
-    Allocator::setMemoryLimit(limit+1000000);
-  }
-  catch(TimeLimitExceededException&) {
-    env.statistics->terminationReason=Statistics::TIME_LIMIT;
-    env.statistics->refutation=0;
-  }
-  catch(ActivationLimitExceededException&) {
-    env.statistics->terminationReason=Statistics::ACTIVATION_LIMIT;
-    env.statistics->refutation=0;
+    Allocator::setMemoryLimit(limit + 1000000);
+  } catch (TimeLimitExceededException&) {
+    env.statistics->terminationReason = Statistics::TIME_LIMIT;
+    env.statistics->refutation = 0;
+  } catch (ActivationLimitExceededException&) {
+    env.statistics->terminationReason = Statistics::ACTIVATION_LIMIT;
+    env.statistics->refutation = 0;
   }
 }
 
@@ -92,12 +86,10 @@ using namespace Shell;
  * The function does not necessarily return (e.g. in the case of timeout,
  * the process is aborted)
  */
-void ProvingHelper::runVampire(Problem& prb, const Options& opt)
-{
+void ProvingHelper::runVampire(Problem& prb, Options& opt) {
   CALL("ProvingHelper::runVampire");
 
-  try
-  {
+  try {
     ClauseIterator clauses;
     {
       TimeCounter tc2(TC_PREPROCESSING);
@@ -106,21 +98,18 @@ void ProvingHelper::runVampire(Problem& prb, const Options& opt)
       prepro.preprocess(prb);
     }
     runVampireSaturationImpl(prb, opt);
-  }
-  catch(MemoryLimitExceededException&) {
-    env.statistics->terminationReason=Statistics::MEMORY_LIMIT;
-    env.statistics->refutation=0;
-    size_t limit=Allocator::getMemoryLimit();
+  } catch (MemoryLimitExceededException&) {
+    env.statistics->terminationReason = Statistics::MEMORY_LIMIT;
+    env.statistics->refutation = 0;
+    size_t limit = Allocator::getMemoryLimit();
     //add extra 1 MB to allow proper termination
-    Allocator::setMemoryLimit(limit+1000000);
-  }
-  catch(TimeLimitExceededException&) {
-    env.statistics->terminationReason=Statistics::TIME_LIMIT;
-    env.statistics->refutation=0;
-  }
-  catch(ActivationLimitExceededException&) {
-    env.statistics->terminationReason=Statistics::ACTIVATION_LIMIT;
-    env.statistics->refutation=0;
+    Allocator::setMemoryLimit(limit + 1000000);
+  } catch (TimeLimitExceededException&) {
+    env.statistics->terminationReason = Statistics::TIME_LIMIT;
+    env.statistics->refutation = 0;
+  } catch (ActivationLimitExceededException&) {
+    env.statistics->terminationReason = Statistics::ACTIVATION_LIMIT;
+    env.statistics->refutation = 0;
   }
 }
 
@@ -128,8 +117,7 @@ void ProvingHelper::runVampire(Problem& prb, const Options& opt)
  * Private version of the @b runVampireSaturation function
  * that is not protected for resource-limit exceptions
  */
-  void ProvingHelper::runVampireSaturationImpl(Problem& prb, const Options& opt)
-{
+void ProvingHelper::runVampireSaturationImpl(Problem& prb, Options& opt) {
   CALL("ProvingHelper::runVampireSaturationImpl");
 
   Unit::onPreprocessingEnd();
@@ -140,14 +128,22 @@ void ProvingHelper::runVampire(Problem& prb, const Options& opt)
     env.endOutput();
   }
 
-  env.statistics->phase=Statistics::SATURATION;
-  ScopedPtr<MainLoop> salg(MainLoop::createFromOptions(prb, opt));
+  env.statistics->phase = Statistics::SATURATION;
 
-  MainLoopResult sres(salg->run());
-  env.statistics->phase=Statistics::FINALIZATION;
+  MainLoopResult result;
+  do {
+    int al = opt.activationLimit();
+    cout << "Try solving for " << al << " activations" << endl;
+    ScopedPtr<MainLoop> salg(MainLoop::createFromOptions(prb, opt));
+    result = salg->run();
+    al = 1.1 * al;
+    opt.activationLimit() = al;
+  } while (result.terminationReason
+      == Statistics::TerminationReason::ACTIVATION_LIMIT);
+
+  env.statistics->phase = Statistics::FINALIZATION;
   Timer::setTimeLimitEnforcement(false);
-  sres.updateStatistics();
+  result.updateStatistics();
 }
-
 
 }

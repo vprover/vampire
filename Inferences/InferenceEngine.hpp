@@ -234,6 +234,28 @@ private:
   ISList* _inners;
 };
 
+class NonOwningWrapperISE
+: public ImmediateSimplificationEngine
+{
+public:
+  CLASS_NAME(NonOwningWrapperISE);
+  USE_ALLOCATOR(NonOwningWrapperISE);
+
+  NonOwningWrapperISE(ImmediateSimplificationEngine* inner): _inner(inner) {}
+  virtual ~NonOwningWrapperISE() { /* Primarily, just don't delete inner, that's the whole and only point */ }
+  Clause* simplify(Clause* cl) { return _inner->simplify(cl); }
+  void attach(SaturationAlgorithm* salg) {
+    _inner->attach(salg);
+  }
+  void detach() {
+    _inner->detach();
+  }
+private:
+  ImmediateSimplificationEngine* _inner;
+};
+
+
+
 //class CompositeFSE
 //: public ForwardSimplificationEngine
 //{

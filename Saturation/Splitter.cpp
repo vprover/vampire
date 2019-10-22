@@ -1684,6 +1684,9 @@ bool Splitter::handleEmptyClause(Clause* cl)
         env.statistics->hintsInserted++;
 
         _hintsForAvatarFakeSimplifier->addHintClause(curCl);
+
+        // since matching is reflexive, we can as well mark this clause already
+        curCl->heedHint();
       }
 
       if (inf->rule() == Inference::CLAUSIFY) {

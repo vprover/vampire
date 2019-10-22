@@ -1354,10 +1354,17 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
     res->_imgr = SmartPtr<IndexManager>(new IndexManager(res));
   }
 
-  HintsForAvatarFakeSimplifier* hintsForAvatarFakeSimplifier = 0;
+  static HintsForAvatarFakeSimplifier* hintsForAvatarFakeSimplifier = 0;
   if (opt.avatarHints() != Options::AvatarHintsKind::OFF) {
     // TODO: have new HintsForAvatarFakeSimplifier
-    hintsForAvatarFakeSimplifier = new HintsForAvatarBwdFakeSimplifier(opt.avatarHints() == Options::AvatarHintsKind::BWD_TRACK);
+    if (hintsForAvatarFakeSimplifier == 0) {
+      hintsForAvatarFakeSimplifier = new HintsForAvatarBwdFakeSimplifier(opt.avatarHints() == Options::AvatarHintsKind::BWD_TRACK);
+      // cout << "created a brand new hintsForAvatarFakeSimplifier " << hintsForAvatarFakeSimplifier << endl;
+      // cout << "of size " << hintsForAvatarFakeSimplifier->size() << endl;
+    } else {
+      // cout << "keeping an existing hintsForAvatarFakeSimplifier " << hintsForAvatarFakeSimplifier << endl;
+      // cout << "of size " << hintsForAvatarFakeSimplifier->size() << endl;
+    }
   }
 
   if(opt.splitting()){
