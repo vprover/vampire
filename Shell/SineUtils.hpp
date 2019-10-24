@@ -80,6 +80,13 @@ public:
 
   bool perform(UnitList*& units); // returns true iff removed something
   void perform(Problem& prb);
+
+  ~SineSelector() {
+    DArray<UnitList*>::Iterator it(_def);
+    while (it.hasNext()) {
+      UnitList::destroy(it.next());
+    }
+  }
 private:
   void init();
 
