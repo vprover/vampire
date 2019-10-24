@@ -44,7 +44,7 @@ public:
 
   SymIdIterator extractSymIds(Unit* u);
 
-  void decodeSymId(SymId s, bool& pred, unsigned& functor);
+  static void decodeSymId(SymId s, bool& pred, unsigned& functor);
   bool validSymId(SymId s);
 private:
   void addSymIds(Term* term,Stack<SymId>& ids);

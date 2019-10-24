@@ -250,6 +250,11 @@ public:
     ALL
   };
 
+  enum class PredicateSineLevels : unsigned int {
+    NO,   // no means 1) the reverse of "on", 2) "don't do it", it sucks!
+    OFF,
+    ON
+  };
 
  
   enum class InductionChoice : unsigned int {
@@ -1880,6 +1885,7 @@ public:
   bool showDefinitions() const { return showAll() || _showDefinitions.actualValue; }
   bool showNew() const { return showAll() || _showNew.actualValue; }
   bool sineToAge() const { return _sineToAge.actualValue; }
+  PredicateSineLevels sineToPredLevels() const { return _sineToPredLevels.actualValue; }
   bool showSplitting() const { return showAll() || _showSplitting.actualValue; }
   bool showNewPropositional() const { return showAll() || _showNewPropositional.actualValue; }
   bool showPassive() const { return showAll() || _showPassive.actualValue; }
@@ -2409,6 +2415,7 @@ private:
   ChoiceOptionValue<InterpolantMode> _showInterpolant;
   BoolOptionValue _showNew;
   BoolOptionValue _sineToAge;
+  ChoiceOptionValue<PredicateSineLevels> _sineToPredLevels;
   BoolOptionValue _showSplitting;
   BoolOptionValue _showNewPropositional;
   BoolOptionValue _showNonconstantSkolemFunctionTrace;

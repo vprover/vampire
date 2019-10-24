@@ -643,6 +643,12 @@ void Options::Options::init()
     _lookup.insert(&_sineToAge);
     _sineToAge.tag(OptionTag::DEVELOPMENT);
 
+    _sineToPredLevels = ChoiceOptionValue<PredicateSineLevels>("sine_to_pred_levels","s2pl",PredicateSineLevels::OFF,{"no","off","on"});
+    _lookup.insert(&_sineToPredLevels);
+    _sineToPredLevels.tag(OptionTag::DEVELOPMENT);
+    _sineToPredLevels.addHardConstraint(If(notEqual(PredicateSineLevels::OFF)).then(_literalComparisonMode.is(notEqual(LiteralComparisonMode::PREDICATE))));
+    _sineToPredLevels.addHardConstraint(If(notEqual(PredicateSineLevels::OFF)).then(_literalComparisonMode.is(notEqual(LiteralComparisonMode::REVERSE))));
+
     // Like generality threshold for SiNE, except used by the sine2age trick
     _sineToAgeGeneralityThreshold = UnsignedOptionValue("sine_to_age_generality_threshold","s2agt",0);
     _lookup.insert(&_sineToAgeGeneralityThreshold);
