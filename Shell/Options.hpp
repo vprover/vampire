@@ -251,7 +251,7 @@ public:
   };
 
   enum class PredicateSineLevels : unsigned int {
-    NO,   // no means 1) the reverse of "on", 2) "don't do it", it sucks!
+    NO,   // no means 1) the reverse of "on", 2) use with caution, it is predicted to be the worse value
     OFF,
     ON
   };

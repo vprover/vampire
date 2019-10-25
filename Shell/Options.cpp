@@ -644,6 +644,8 @@ void Options::Options::init()
     _sineToAge.tag(OptionTag::DEVELOPMENT);
 
     _sineToPredLevels = ChoiceOptionValue<PredicateSineLevels>("sine_to_pred_levels","s2pl",PredicateSineLevels::OFF,{"no","off","on"});
+    _sineToPredLevels.description = "Assign levels to predicate symbols as they are used to trigger axioms during SInE computation. "
+        "Then used then as predicateLevels determining the ordering. on means conjecture symbols are larger, no means the opposite. (equality keeps its standard lowest level).";
     _lookup.insert(&_sineToPredLevels);
     _sineToPredLevels.tag(OptionTag::DEVELOPMENT);
     _sineToPredLevels.addHardConstraint(If(notEqual(PredicateSineLevels::OFF)).then(_literalComparisonMode.is(notEqual(LiteralComparisonMode::PREDICATE))));
@@ -653,7 +655,7 @@ void Options::Options::init()
     _sineToAgeGeneralityThreshold = UnsignedOptionValue("sine_to_age_generality_threshold","s2agt",0);
     _lookup.insert(&_sineToAgeGeneralityThreshold);
     _sineToAgeGeneralityThreshold.tag(OptionTag::DEVELOPMENT);
-    _sineToAgeGeneralityThreshold.reliesOn(_sineToAge.is(equal(true)));
+    _sineToAgeGeneralityThreshold.reliesOn(_sineToAge.is(equal(true)->Or(_sineToPredLevels.is(notEqual(PredicateSineLevels::OFF)))));
 
     // Like generality threshold for SiNE, except used by the sine2age trick
     _sineToAgeTolerance = FloatOptionValue("sine_to_age_tolerance","s2at",1.0);
@@ -661,7 +663,7 @@ void Options::Options::init()
     _sineToAgeTolerance.tag(OptionTag::DEVELOPMENT);
     _sineToAgeTolerance.addConstraint(equal(0.0f)->Or(greaterThanEq(1.0f) ));
     // Captures that if the value is not 1.0 then sineSelection must be on
-    _sineToAgeTolerance.reliesOn(_sineToAge.is(equal(true)));
+    _sineToAgeTolerance.reliesOn(_sineToAge.is(equal(true)->Or(_sineToPredLevels.is(notEqual(PredicateSineLevels::OFF)))));
     _sineToAgeTolerance.setRandomChoices({"1.0","1.2","1.5","2.0","3.0","5.0"});
 
     _showSplitting = BoolOptionValue("show_splitting","",false);
