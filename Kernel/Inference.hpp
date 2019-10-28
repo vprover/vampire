@@ -317,6 +317,8 @@ public:
     INDUCTIVE_STRENGTH,
     /* Combinator axiom */
     COMBINATOR_AXIOM,
+
+    FUNC_EXT_AXIOM,
     /* Equality proxy axiom */
     EQUALITY_PROXY_AXIOM,
     /* Not proxy axiom */    

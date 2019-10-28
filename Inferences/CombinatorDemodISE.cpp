@@ -65,6 +65,8 @@ Clause* CombinatorDemodISE::simplify(Clause* c)
   LiteralStack litStack;
   bool modified = false;
 
+ // cout << "into CombinatorDemodISE " + c->toString() << endl;
+
   for(unsigned i = 0; i < c->length(); i++){
     Literal* lit = (*c)[i];
     ASS(lit->isEquality());
@@ -89,7 +91,6 @@ Clause* CombinatorDemodISE::simplify(Clause* c)
 
   Inference* inference = new Inference1(Inference::COMBINATOR_DEMOD, c);
   Clause* newC = Clause::fromStack(litStack, c->inputType(), inference);
-  //cout << "into CombinatorDemodISE " + c->toString() << endl;
   //cout << "out of CombinatorDemodISE " + newC->toString() << endl;
   //if(!newC){ cout << "RETURNING NULL CLAUSE" << endl; }
   return newC;

@@ -229,6 +229,10 @@ void Preprocess::preprocess(Problem& prb)
     //}
   }
 
+  if(env.options->functionExtensionality()){
+    LambdaElimination::addFunctionExtensionalityAxiom(prb);
+  }
+
   prb.getProperty();
 
   if ((prb.hasCombs() || prb.hasAppliedVar()) && env.options->addCombAxioms()){

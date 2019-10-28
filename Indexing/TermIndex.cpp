@@ -229,19 +229,23 @@ void DemodulationSubtermIndex::handleClause(Clause* c, bool adding)
   for (unsigned i=0; i<cLen; i++) {
     inserted.reset();
     Literal* lit=(*c)[i];
-    TermIterator it;
+    IteratorCore<TermList>* it;
     if(!env.options->combinatorySup()){
-      it = vi(new NonVariableNonTypeIterator(lit));
+      it = new NonVariableNonTypeIterator(lit);
     } else {
-      it = vi(new FirstOrderSubtermIt(lit));
+      it = new FirstOrderSubtermIt(lit);
     }
-    while (it.hasNext()) {
-      TermList t=it.next();
+    while (it->hasNext()) {
+      TermList t=it->next();
       if (!inserted.insert(t)) {//TODO existing error? Terms are inserted once per a literal
         //It is enough to insert a term only once per clause.
         //Also, once we know term was inserted, we know that all its
         //subterms were inserted as well, so we can skip them.
-        //nvi.right(); TODO fix
+        if(!env.options->combinatorySup()){
+          static_cast<FirstOrderSubtermIt*>(it)->right();
+        } else {
+          static_cast<NonVariableNonTypeIterator*>(it)->right();
+        }
         continue;
       }
       if (adding) {

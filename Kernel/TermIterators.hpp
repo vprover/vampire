@@ -167,7 +167,6 @@ public:
   {
     ASS(!term->isLiteral());
     if(!term->shared() || !term->ground()) {
-      cout << "starting iterator with " + term->toString() << endl;
       _terms.push(term);
       _argNums.push(0);
       _stack.push(term->args());
@@ -438,7 +437,7 @@ class FirstOrderSubtermIt
 {
 public:
   FirstOrderSubtermIt(Term* term, bool includeSelf=false) 
-  : _stack(8)
+  : _stack(8), _added(0)
   {
     CALL("FirstOrderSubtermIt::FirstOrderSubtermIt");
     if(term->isLiteral()){
@@ -456,9 +455,11 @@ public:
 
   bool hasNext(){ return !_stack.isEmpty(); }
   TermList next();
+  void right();
 
 private:
   Stack<Term*> _stack;
+  int _added;
 };
 
 

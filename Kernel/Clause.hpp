@@ -208,6 +208,10 @@ public:
   bool isProxyAxiomsDescendant() const { return _proxyAxiomsDescendant; }
   void setProxyAxiomsDescendant(bool t) { _proxyAxiomsDescendant=t; }
 
+  bool isHolAxiomsDescendant() const { return _holAxiomsDescendant; }
+  void setHolAxiomsDescendant(bool t) { _holAxiomsDescendant=t; }
+
+
   unsigned inductionDepth() const { return _inductionDepth; }
   void setInductionDepth(unsigned d){
     ASS(d < 33);
@@ -381,6 +385,8 @@ protected:
   unsigned _combAxiomsDescendant : 1;
   /** */
   unsigned _proxyAxiomsDescendant : 1;
+  /** clause is descended only from proxy or combinator axioms */
+  unsigned _holAxiomsDescendant : 1;
   /** Induction depth **/
   unsigned _inductionDepth : 5;
 

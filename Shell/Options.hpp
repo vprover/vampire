@@ -2105,6 +2105,7 @@ public:
   bool addCombAxioms() const { return _addCombAxioms.actualValue; }
   bool addProxyAxioms() const { return _addProxyAxioms.actualValue; }
   bool combinatorySup() const { return _combinatorySuperposition.actualValue; }
+  bool functionExtensionality() const { return _functionExtensionalityAx.actualValue; }
 
 private:
     
@@ -2481,6 +2482,7 @@ private:
   BoolOptionValue _addCombAxioms;
   BoolOptionValue _addProxyAxioms;
   BoolOptionValue _combinatorySuperposition;
+  BoolOptionValue _functionExtensionalityAx;
 
 }; // class Options
 

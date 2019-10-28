@@ -133,8 +133,6 @@ bool GeneralSplitting::apply(Clause*& cl, UnitList*& resultStack)
     return false;
   }
 
-  cout << "applying general splitting to " + cl->toString() << endl;
-
   Set<unsigned> vars;
   //only edges from lower to higher variable are included
   DHMultiset<pair<unsigned, unsigned> > connections;

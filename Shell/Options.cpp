@@ -443,6 +443,7 @@ void Options::Options::init()
     _lookup.insert(&_equalityProxy);
     _equalityProxy.tag(OptionTag::PREPROCESSING);
     _equalityProxy.addProblemConstraint(hasEquality());
+    _equalityProxy.addHardConstraint(If(notEqual(EqualityProxy::OFF)).then(_combinatorySuperposition.is(notEqual(true))));
     _equalityProxy.setRandomChoices(isRandOn(),{"R","RS","RST","RSTC","off","off","off","off","off"}); // wasn't tested, make off more likely
     
 
@@ -1195,6 +1196,11 @@ void Options::Options::init()
     _lookup.insert(&_combinatorySuperposition);
     _combinatorySuperposition.reliesOn(_addCombAxioms.is(equal(false))); //no point having two together
     _combinatorySuperposition.tag(OptionTag::INFERENCES);
+
+    _functionExtensionalityAx = BoolOptionValue("func_ext_ax","fea",false);
+    _functionExtensionalityAx.description="Adds functional extensionality axiom to problem";
+    _lookup.insert(&_functionExtensionalityAx);
+    _functionExtensionalityAx.tag(OptionTag::INFERENCES);
 
 //*********************** InstGen  ***********************
 

@@ -274,6 +274,13 @@ bool ApplicativeHelper::isArrowType(const Term* t)
   return env.signature->getFunction(t->functor())->arrow(); 
 }
 
+bool ApplicativeHelper::isType(const Term* t)
+{
+  CALL("ApplicativeHelper::isType(Term*)");
+  return env.signature->getFunction(t->functor())->super() ||
+         SortHelper::getResultSort(t) == Term::superSort();
+}
+
 bool ApplicativeHelper::isUnderApplied(TermList head, unsigned argNum){
   CALL("ApplicativeHelper::isPartiallyAppliedComb");
 
@@ -314,17 +321,18 @@ bool ApplicativeHelper::isOverApplied(TermList head, unsigned argNum){
 }
 
 
+
 bool ApplicativeHelper::isSafe(TermStack& args)
 {
   CALL("ApplicativeHelper::isSafe");
 
   for(unsigned i = 0; i < args.size(); i++){
     TermList ithArg = args[i];
-    if(ithArg.isVar() || !ithArg.term()->ground()){
+    /*if(ithArg.isVar() || !ithArg.term()->ground()){
       return false;
-    }
+    }*/
     TermList head = getHead(ithArg);
-    if(isComb(head)){
+    if(isComb(head) || head.isVar()){
       return false;
     }
   }

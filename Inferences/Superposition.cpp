@@ -295,7 +295,7 @@ bool Superposition::checkSuperpositionFromVariable(Clause* eqClause, Literal* eq
   CALL("Superposition::checkSuperpositionFromVariable");
   ASS(eqLHS.isVar());
   //if we should do rewriting, LHS cannot appear inside RHS
-  ASS_REP(!EqHelper::getOtherEqualitySide(eqLit, eqLHS).containsSubterm(eqLHS), eqClause->toString());
+  //ASS_REP(!EqHelper::getOtherEqualitySide(eqLit, eqLHS).containsSubterm(eqLHS), eqLit->toString());
 
   unsigned clen = eqClause->length();
   for(unsigned i=0; i<clen; i++) {

@@ -504,7 +504,42 @@ void LambdaElimination::addCombinatorAxioms(Problem& prb)
     env.out() << kAxiom->toString() << std::endl;  
     env.out() << iAxiom->toString() << std::endl;        
   }
- }
+}
+
+
+void LambdaElimination::addFunctionExtensionalityAxiom(Problem& prb)
+{
+  CALL("LambdaElimination::addFunctionExtensionalityAxiom"); 
+ 
+  auto srtOf = [] (TermList t) { 
+     ASS(t.isTerm());
+     return SortHelper::getResultSort(t.term());
+  };
+
+  TermList alpha = TermList(0, false);
+  TermList beta = TermList(1, false);
+  TermList x = TermList(2, false);
+  TermList y = TermList(3, false);
+  unsigned diff = env.signature->getDiff();
+
+  TermList diffT = TermList(Term::create2(diff, alpha, beta));
+  TermList diffTApplied = AH::createAppTerm3(srtOf(diffT), diffT, x, y);
+  TermList lhs = AH::createAppTerm(alpha, beta, x, diffTApplied);
+  TermList rhs = AH::createAppTerm(alpha, beta, y, diffTApplied);
+
+  Inference* inf = new Inference(Inference::FUNC_EXT_AXIOM);
+
+  Clause* funcExtAx = new(2) Clause(2, Unit::AXIOM, inf);
+  (*funcExtAx)[0] = Literal::createEquality(false, lhs, rhs, beta);
+  (*funcExtAx)[1] = Literal::createEquality(true, x, y, Term::arrowSort(alpha, beta));
+  UnitList::push(funcExtAx, prb.units());
+
+
+  if (env.options->showPreprocessing()) {
+    env.out() << "Added functional extensionality axiom: " << std::endl;
+    env.out() << funcExtAx->toString() << std::endl;       
+  }
+}
 
 void LambdaElimination::addProxyAxioms(Problem& prb)
 {
@@ -518,6 +553,11 @@ void LambdaElimination::addProxyAxioms(Problem& prb)
   TermList s1 = TermList(0, false);  
   TermList x = TermList(1, false);
   TermList y = TermList(2, false);
+  TermList choiceSort = Term::arrowSort(Term::arrowSort(s1, Term::boolSort()), s1);
+  unsigned skolem1 = Skolem::addSkolemFunction(1,0, choiceSort, new VList(0));
+  unsigned skolem2 = Skolem::addSkolemFunction(1,0, choiceSort, new VList(0));
+  TermList sk1 = TermList(Term::create1(skolem1, s1));
+  TermList sk2 = TermList(Term::create1(skolem2, s1));
 
   Inference* inf = new Inference(Inference::EQUALITY_PROXY_AXIOM);
   unsigned eqProxy = env.signature->getEqualityProxy();
@@ -557,7 +597,7 @@ void LambdaElimination::addProxyAxioms(Problem& prb)
 
   Clause* piAxiom1 = new(2) Clause(2, Unit::AXIOM, inf);
   (*piAxiom1)[0] = toEquality(AH::createAppTerm(srtOf(constant), constant, x), true);
-  (*piAxiom1)[1] = toEquality(AH::createAppTerm(s1, Term::boolSort(), x, y), false);
+  (*piAxiom1)[1] = toEquality(AH::createAppTerm(s1, Term::boolSort(), x, AH::createAppTerm(srtOf(sk1), sk1, x)), false);
   piAxiom1->setProxyAxiomsDescendant(true);    
   UnitList::push(piAxiom1, prb.units());
 
@@ -570,19 +610,16 @@ void LambdaElimination::addProxyAxioms(Problem& prb)
   inf = new Inference(Inference::SIGMA_PROXY_AXIOM);
   unsigned sigmaProxy = env.signature->getPiSigmaProxy("vSIGMA");
   constant = TermList(Term::create1(sigmaProxy, s1));
-  TermList choiceSort = Term::arrowSort(Term::arrowSort(s1, Term::boolSort()), s1);
-  unsigned skolem = Skolem::addSkolemFunction(1,0, choiceSort, new VList(0));
-  TermList sk = TermList(Term::create1(skolem, s1));
 
   Clause* sigmaAxiom1 = new(2) Clause(2, Unit::AXIOM, inf);
   (*sigmaAxiom1)[0] = toEquality(AH::createAppTerm(srtOf(constant), constant, x), true); 
-  (*sigmaAxiom1)[1] = toEquality(AH::createAppTerm(s1, Term::boolSort(), x, AH::createAppTerm(srtOf(sk), sk, x)), false);
+  (*sigmaAxiom1)[1] = toEquality(AH::createAppTerm(s1, Term::boolSort(), x, y), false);
   sigmaAxiom1->setProxyAxiomsDescendant(true);      
   UnitList::push(sigmaAxiom1, prb.units());
 
   Clause* sigmaAxiom2 = new(2) Clause(2, Unit::AXIOM, inf);
   (*sigmaAxiom2)[0] = toEquality(AH::createAppTerm(srtOf(constant), constant, x), false);
-  (*sigmaAxiom2)[1] = toEquality(AH::createAppTerm(s1, Term::boolSort(), x, AH::createAppTerm(srtOf(sk), sk, x)), true);
+  (*sigmaAxiom2)[1] = toEquality(AH::createAppTerm(s1, Term::boolSort(), x, AH::createAppTerm(srtOf(sk2), sk2, x)), true);
   sigmaAxiom2->setProxyAxiomsDescendant(true);    
   UnitList::push(sigmaAxiom2, prb.units()); 
 
@@ -658,7 +695,8 @@ void LambdaElimination::addProxyAxioms(Problem& prb)
   inf = new Inference(Inference::FOOL_AXIOM);
 
   Clause* tneqfClause = new(1) Clause(1, Unit::AXIOM, inf);
-  (*tneqfClause)[0] = toEquality(TermList(Term::foolTrue()), false);
+  (*tneqfClause)[0] =  Literal::createEquality(false, TermList(Term::foolTrue()), 
+                                                      TermList(Term::foolFalse()), Term::boolSort());
   UnitList::push(tneqfClause, prb.units()); 
 
   //TODO iff and xor

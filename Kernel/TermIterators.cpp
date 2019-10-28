@@ -172,7 +172,7 @@ bool UnstableSubtermIt::hasNext()
     ASS(AH::isApp(t));
     AH::getHeadAndArgs(t, head, args);
     ASS(args.size());
-    if(head.isVar() && !AH::isSafe(args)){
+    if(head.isVar() && args.size()){
       _next = t;
     } else if(AH::isComb(head) && !AH::isUnderApplied(head, args.size()) && !t->ground()){
       _next = t;
@@ -276,6 +276,7 @@ TermList FirstOrderSubtermIt::next()
   CALL("FirstOrderSubtermIt::next");
 
   static TermStack args;
+  _added = 0;
   TermList head;
   args.reset();
   Term* t = _stack.pop();
@@ -283,12 +284,24 @@ TermList FirstOrderSubtermIt::next()
   if(!AH::isComb(head) || AH::isUnderApplied(head, args.size())){
     for(unsigned i = 0; i < args.size(); i++){
       if(!args[i].isVar()){
+        _added++;
         _stack.push(args[i].term());
       }
     }
   }
   return TermList(t);
 }
+
+void FirstOrderSubtermIt::right()
+{
+  CALL("FirstOrderSubtermIt::right");
+
+  while (_added > 0) {
+    _added--;
+    _stack.pop();
+  }
+} // FirstOrderSubtermIt::right
+
 
 bool NarrowableSubtermIt::hasNext()
 {

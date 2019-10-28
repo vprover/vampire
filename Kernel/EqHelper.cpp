@@ -235,7 +235,7 @@ TermIterator EqHelper::getRewritableSubtermIterator(Literal* lit, const Ordering
 {
   CALL("EqHelper::getRewritableSubtermIterator");
 
-  if (lit->isEquality() /*&&  lit->isPositive() */) {//TODO why do we have this cond in master?
+  if (lit->isEquality() /*&&  lit->isPositive() */) {
     TermList sel;
     switch(ord.getEqualityArgumentOrder(lit)) {
     case Ordering::INCOMPARABLE: {

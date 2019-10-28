@@ -406,6 +406,7 @@ class Signature
   unsigned addNamePredicate(unsigned arity);
   unsigned addNameFunction(unsigned arity);
   unsigned getApp();
+  unsigned getDiff();
 
   // Interpreted symbol declarations
  // unsigned addIntegerConstant(const vstring& number,bool defaultSort);

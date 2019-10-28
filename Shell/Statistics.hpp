@@ -198,6 +198,7 @@ public:
 
   unsigned combDescendants;
   unsigned proxyDescendants;
+  unsigned holAxiomDescendants;
 
   // Saturation
   /** all clauses ever occurring in the unprocessed queue */

@@ -97,20 +97,24 @@ bool ForwardDemodulation::perform(Clause* cl, Clause*& replacement, ClauseIterat
   unsigned cLen=cl->length();
   for(unsigned li=0;li<cLen;li++) {
     Literal* lit=(*cl)[li];
-    TermIterator it;
+    IteratorCore<TermList>* it;
     if(!env.options->combinatorySup()){
-      it = vi(new NonVariableNonTypeIterator(lit));
+      it = new NonVariableNonTypeIterator(lit);
     } else {
-      it = vi(new FirstOrderSubtermIt(lit));
-    }//TODO check for all places where non-variable iterator has been used
-    while(it.hasNext()) {
-      TermList trm=it.next();
+      it = new FirstOrderSubtermIt(lit);
+    }
+    while(it->hasNext()) {
+      TermList trm=it->next();
       if(!attempted.insert(trm)) {
         //We have already tried to demodulate the term @b trm and did not
         //succeed (otherwise we would have returned from the function).
         //If we have tried the term @b trm, we must have tried to
         //demodulate also its subterms, so we can skip them too.
-        //it.right(); //TODO fix TermIterator aka VirtualIterator<TermList> has no right()
+        if(env.options->combinatorySup()){
+          static_cast<FirstOrderSubtermIt*>(it)->right();
+        } else {
+          static_cast<NonVariableNonTypeIterator*>(it)->right(); 
+        }
         continue;
       }
 

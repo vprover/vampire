@@ -475,6 +475,8 @@ vstring Inference::ruleName(Rule rule)
     return "inductive strengthening";
   case COMBINATOR_AXIOM:
     return "combinator axiom";
+  case FUNC_EXT_AXIOM:
+    return "functional extensionality axiom";
   case EQUALITY_PROXY_AXIOM:
     return "equality proxy axiom";
   case NOT_PROXY_AXIOM:

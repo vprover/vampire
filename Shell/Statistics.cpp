@@ -115,6 +115,7 @@ Statistics::Statistics()
     taAcyclicityGeneratedDisequalities(0),
     combDescendants(0),
     proxyDescendants(0), 
+    holAxiomDescendants(0),
     generatedClauses(0),
     passiveClauses(0),
     activeClauses(0),
@@ -349,6 +350,7 @@ void Statistics::print(ostream& out)
   HEADING("Higher-Order axiom descendants", combDescendants + proxyDescendants);
   COND_OUT("Combinator axiom descendants", combDescendants);
   COND_OUT("Proxy axiom descendants", proxyDescendants);
+  COND_OUT("Descendants of combinator and proxy axioms", holAxiomDescendants);
   SEPARATOR;
 
   HEADING("AVATAR",splitClauses+splitComponents+uniqueComponents+satSplits+

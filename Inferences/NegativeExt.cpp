@@ -105,7 +105,6 @@ struct NegativeExt::ResultFn
       }
     } else {
       VariableIterator2 vit(rhs.term());
-      if(_cl->number() == 85){ cout << "the rhs is " + rhs.toString() << endl; }
       while(vit.hasNext()){
         pair<TermList, TermList> varTypePair = vit.next();
         if(!varSorts.find(varTypePair.first.var())){
@@ -137,7 +136,7 @@ struct NegativeExt::ResultFn
     while(mapIt.hasNext()) {
       mapIt.next(var, varSort);
       if(varSort == Term::superSort()){
-        args.push(TermList(var, false));//TODO check that this works
+        args.push(TermList(var, false));
       } else {
         argSorts.push(varSort);
         termArgs.push(TermList(var, false));

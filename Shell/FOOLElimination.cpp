@@ -206,7 +206,7 @@ Formula* FOOLElimination::process(Formula* formula) {
        * between FOOL boolean terms.
        */
 
-      if (literal->isEquality() && !_higherOrder) { 
+      if (literal->isEquality() /*&& !_higherOrder*/) { 
         //when in higher-order, we never convert equality to equivalence
         ASS_EQ(literal->arity(), 2); // can there be equality between several terms?
         TermList lhs = *literal->nthArgument(0);

@@ -33,7 +33,8 @@
 #include "Kernel/Clause.hpp"
 #include "Kernel/Unit.hpp"
 #include "Kernel/Inference.hpp"
-#include "Kernel/RobSubstitution.hpp"
+#include "Kernel/SubstHelper.hpp"
+#include "Kernel/Substitution.hpp"
 #include "Kernel/EqHelper.hpp"
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/ApplicativeHelper.hpp"
@@ -74,13 +75,10 @@ struct ArgCong::ResultFn
   {
     CALL("ArgCong::ResultFn::operator()");
 
-    //cout << "ArgCong with clause " + _cl->toString() << endl;
-    //cout << "the literal is " + lit->toString() << endl;
-
     ASS(lit->isEquality());
     ASS(lit->isPositive());
 
-    static RobSubstitution subst;
+    static Substitution subst;
 
     TermList eqSort = SortHelper::getEqualityArgumentSort(lit);
     bool sortIsVar = eqSort.isVar();
@@ -93,7 +91,7 @@ struct ArgCong::ResultFn
       subst.reset();
       alpha1 = TermList(_freshVar+1, false);
       alpha2 = TermList(_freshVar+2, false);
-      subst.unify(eqSort, 0, Term::arrowSort(alpha1, alpha2), 0);
+      subst.bind(eqSort.var(), Term::arrowSort(alpha1, alpha2));
     } else {
       alpha1 = *eqSort.term()->nthArgument(0);
       alpha2 = *eqSort.term()->nthArgument(1);
@@ -102,6 +100,10 @@ struct ArgCong::ResultFn
     TermList freshVar = TermList(_freshVar, false);
     TermList lhs = *lit->nthArgument(0);
     TermList rhs = *lit->nthArgument(1);
+    if(sortIsVar){
+      lhs = SubstHelper::apply(lhs, subst);
+      rhs = SubstHelper::apply(rhs, subst);
+    }
     TermList newLhs = ApplicativeHelper::createAppTerm(alpha1, alpha2, lhs, freshVar);
     TermList newRhs = ApplicativeHelper::createAppTerm(alpha1, alpha2, rhs, freshVar);
 
@@ -115,15 +117,15 @@ struct ArgCong::ResultFn
       if(curr!=lit) {
         Literal* currAfter;
 
-        if (sortIsVar && _afterCheck && _cl->numSelected() > 1) {
-          currAfter = subst.apply(curr, 0);
-          TimeCounter tc(TC_LITERAL_ORDER_AFTERCHECK);
+        if (sortIsVar /*&& _afterCheck && _cl->numSelected() > 1*/) {
+          currAfter = SubstHelper::apply(curr, subst);
+          /*TimeCounter tc(TC_LITERAL_ORDER_AFTERCHECK);
 
           if (i < _cl->numSelected() && _ord->compare(currAfter,newLit) == Ordering::GREATER) {
             env.statistics->inferencesBlockedForOrderingAftercheck++;
             res->destroy();
             return 0;
-          }
+          }*/ //TODO reintroduce check
         } else {
           currAfter = curr;
         }

@@ -79,6 +79,7 @@ Clause::Clause(unsigned length,InputType it,Inference* inf)
     _theoryDescendant(false),
     _combAxiomsDescendant(false), 
     _proxyAxiomsDescendant(false),
+    _holAxiomsDescendant(false),
     _inductionDepth(0),
     _numSelected(0),
     _age(0),
@@ -120,34 +121,35 @@ Clause::Clause(unsigned length,InputType it,Inference* inf)
     _inductionDepth=id;
   }
   
-  if(env.options->addCombAxioms()){
+  if(env.options->addCombAxioms() || env.options->addProxyAxioms()){
     Inference::Iterator it = inf->iterator();
-    bool b = inf->hasNext(it);
-    while(inf->hasNext(it) && b){
+    bool pDes = inf->hasNext(it);
+    bool cDes = inf->hasNext(it);
+    bool hDes = inf->hasNext(it);
+    while(inf->hasNext(it) && (cDes || pDes || hDes)){
       Unit* parent = inf->next(it);
       if(parent->isClause()){
-        b &= static_cast<Clause*>(parent)->isCombAxiomsDescendant();
+        cDes &= static_cast<Clause*>(parent)->isCombAxiomsDescendant();
+        pDes &= static_cast<Clause*>(parent)->isProxyAxiomsDescendant();
+        hDes &= cDes || pDes || static_cast<Clause*>(parent)->isHolAxiomsDescendant();
       } else {
-      	b = false;
+        cDes = false;
+        pDes = false;
+        hDes = false;
       }
     }
-    if(b){ env.statistics->combDescendants++;}
-    setCombAxiomsDescendant(b);
-  }
-
-  if(env.options->addProxyAxioms()){
-    Inference::Iterator it = inf->iterator();
-    bool b = inf->hasNext(it);
-    while(inf->hasNext(it) && b){
-      Unit* parent = inf->next(it);
-      if(parent->isClause()){
-        b &= static_cast<Clause*>(parent)->isProxyAxiomsDescendant();
-      } else {
-      	b = false;
-      }
+    if(cDes){ 
+      env.statistics->combDescendants++;
+      setCombAxiomsDescendant(true);
     }
-    if(b){ env.statistics->proxyDescendants++; }
-    setProxyAxiomsDescendant(b);
+    if(pDes){
+      env.statistics->proxyDescendants++;	
+      setProxyAxiomsDescendant(true);    
+    }
+    if(hDes){
+      env.statistics->holAxiomDescendants++;	
+      setHolAxiomsDescendant(true); 
+    }
   }
 
 }

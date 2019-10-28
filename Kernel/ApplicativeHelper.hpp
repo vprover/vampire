@@ -44,6 +44,7 @@ public:
   static Signature::Combinator getComb(TermList t);
   static TermList getHead(TermList t);
   static bool isApp(const Term* t);
+  static bool isType(const Term* t);
   static bool isArrowType(const Term* t);
   static bool isApp(const TermList* tl);
   static bool isUnderApplied(TermList head, unsigned argNum);

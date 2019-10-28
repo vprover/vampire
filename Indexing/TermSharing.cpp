@@ -106,8 +106,7 @@ Term* TermSharing::insert(Term* t)
     bool hasInterpretedConstants=t->arity()==0 &&
 	env.signature->getFunction(t->functor())->interpreted();
     Color color = COLOR_TRANSPARENT;
-    //TODO we want to rule all types, not just arrow types...
-    if(env.options->combinatorySup() && !AH::isArrowType(t)){ 
+    if(env.options->combinatorySup() && !AH::isType(t)){ 
       int maxRedLength = -1;
       TermList head;
       TermStack args;

@@ -687,6 +687,25 @@ unsigned Signature::getApp()
   return app;
 }
 
+unsigned Signature::getDiff(){
+  CALL("Signature::getDiff");
+
+  bool added = false;
+  unsigned diff = addFunction("diff",2, added);      
+  if(added){
+    VList* vl = VList::empty();
+    VList::push(1, vl);
+    VList::push(0, vl);
+    TermList alpha = TermList(0, false);
+    TermList beta = TermList(1, false);
+    TermList alphaBeta = Term::arrowSort(alpha, beta);
+    TermList result = Term::arrowSort(alphaBeta, alphaBeta, alpha);
+    Symbol * sym = getFunction(diff);
+    sym->setType(OperatorType::getConstantsType(result, vl));
+  }
+  return diff;
+}
+
 /**
  * If a predicate with this name and arity exists, return its number.
  * Otherwise, add a new one and return its number.

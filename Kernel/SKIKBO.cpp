@@ -227,7 +227,7 @@ void SKIKBO::State::traverse(ArgsIt_ptr aat1, ArgsIt_ptr aat2)
 {
   CALL("KBO::State::traverse");
   ASS(aat1->headNum()==aat2->headNum());
-  ASS(aat1->hasNext());
+  ASS(aat1->hasNext() || aat2->hasNext());
   ASS_EQ(_lexResult, EQUAL);
 
   unsigned depth=1;
@@ -239,10 +239,8 @@ void SKIKBO::State::traverse(ArgsIt_ptr aat1, ArgsIt_ptr aat2)
   TermList ss; //t1 subterms
   TermList tt; //t2 subterms
   while(!stack.isEmpty()) {
-    if(!stack.top()->hasNext() || !stack.scnd()->hasNext()){
-      ASS_NEQ(_lexResult,EQUAL);
-      if(stack.top()->hasNext()){ _lexResult = LESS; } //using length lexicorgraphic ordering f t1 t2 > f t3 always
-      if(stack.scnd()->hasNext()){ _lexResult = GREATER; }      
+    if(!stack.top()->hasNext() && !stack.scnd()->hasNext()){
+      ASS_NEQ(_lexResult,EQUAL);     
       depth--;
       if(_lexResult!=EQUAL && depth<lexValidDepth) {
         lexValidDepth=depth;
@@ -255,18 +253,36 @@ void SKIKBO::State::traverse(ArgsIt_ptr aat1, ArgsIt_ptr aat2)
       stack.pop();
       continue;
     }
-    ss = stack.top()->next();
-    tt = stack.scnd()->next();
+    bool topHasNext = stack.top()->hasNext();
+    bool scdHasNext = stack.scnd()->hasNext();
+    bool bthHaveNext = topHasNext && scdHasNext;
 
-    if(ss.sameContent(&tt)) {
-      //if content is the same, neighter weightDiff nor varDiffs would change
+    if(topHasNext){ ss = stack.top()->next(); }
+    if(scdHasNext){ tt = stack.scnd()->next(); }
+
+    if(bthHaveNext && ss.sameContent(&tt)) {
       continue;
     }
-    ArgsIt_ptr aai1 = ArgsIt_ptr(new ApplicativeArgsIt(ss));
-    ArgsIt_ptr aai2 = ArgsIt_ptr(new ApplicativeArgsIt(tt)); //TODO memory leaks
+
+    ArgsIt_ptr aai1;
+    if(bthHaveNext || topHasNext){ aai1 = ArgsIt_ptr(new ApplicativeArgsIt(ss)); }
+    ArgsIt_ptr aai2;
+    if(bthHaveNext || scdHasNext){ aai2 = ArgsIt_ptr(new ApplicativeArgsIt(tt)); }
+
+    if(!bthHaveNext && topHasNext){
+      _lexResult = GREATER; //using length-lexicographic ordering
+      traverse(aai1,1);
+      continue;
+    }
+
+    if(!bthHaveNext && scdHasNext){
+      _lexResult = LESS;  //using length-lexicographic ordering 
+      traverse(aai2,-1);
+      continue;
+    }
+
     if(_kbo.sameCategoryHeads(aai1, aai2) && aai1->headNum() == aai2->headNum()) {
-      ASS(aai1->hasNext());
-      ASS(aai2->hasNext());
+      ASS(aai1->hasNext() || aai2->hasNext());
       stack.push(aai2);
       stack.push(aai1);
       depth++;
@@ -312,9 +328,9 @@ SKIKBO::VarCondRes SKIKBO::compareVariables(TermList tl1, TermList tl2) const
   VarCondRes vcr = BOTH;
 
   DHMultiset<Term*> tl1UnstableTerms;
-  VarOccMap tl1RedData;
+  //VarOccMap tl1RedData;
   DHMultiset<Term*> tl2UnstableTerms;
-  VarOccMap tl2RedData;
+  //VarOccMap tl2RedData;
 
   if(!tl1.isVar()){
     UnstableSubtermIt usti(tl1.term());
@@ -420,7 +436,7 @@ SKIKBO::VarCondRes SKIKBO::compareVariables(TermList tl1, TermList tl2) const
     }
   }
 
-  DHMap<unsigned, unsigned> varCounts;
+  /*DHMap<unsigned, unsigned> varCounts;
   static TermStack args;
   StableVarIt svi3(tl1, &tl1UnstableTerms);
   while(svi3.hasNext()){
@@ -474,11 +490,11 @@ SKIKBO::VarCondRes SKIKBO::compareVariables(TermList tl1, TermList tl2) const
   }
 
   vcr =  compareVariables(tl1RedData, tl2RedData, vcr);
-  freeMem(tl1RedData, tl2RedData);
+  freeMem(tl1RedData, tl2RedData);*/
   return vcr;
 }
 
-SKIKBO::VarCondRes SKIKBO::compareVariables(VarOccMap& vomtl1 , VarOccMap& vomtl2, VarCondRes currStat) const
+/*SKIKBO::VarCondRes SKIKBO::compareVariables(VarOccMap& vomtl1 , VarOccMap& vomtl2, VarCondRes currStat) const
 {
   CALL("SKIKBO::compareVariables/2");
 
@@ -610,7 +626,7 @@ bool SKIKBO::totalBMP(unsigned m, unsigned n, DArray<DArray<bool>>& bpGraph) con
     if (!bpm(n, bpGraph, u, seen, matchR)){return false;} 
   } 
   return true; 
-}
+}*/
 
 unsigned SKIKBO::getMaxRedLength(TermList t) const
 {
@@ -638,11 +654,13 @@ Ordering::Result SKIKBO::compare(TermList tl1, TermList tl2) const
     return EQUAL;
   }
 
-  if(tl1.containsSubterm(tl2)){
+  bool bothGround = tl1.isTerm() && tl1.term()->ground() && tl2.isTerm() && tl2.term()->ground();
+
+  if(bothGround && tl1.containsSubterm(tl2)){
     return GREATER;
   }
 
-  if(tl2.containsSubterm(tl1)){
+  if(bothGround && tl2.containsSubterm(tl1)){
     return LESS;
   }
 
