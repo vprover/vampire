@@ -1,0 +1,11 @@
+thf(red,type,(
+    red: $i > $o)).
+
+thf(red,type,(
+    ball: $i > $o)).
+
+thf(p, type, (p : ($i > $o) > $o)).
+
+thf(pel10,axiom, ( (p @ (^[X] :((ball @ X) & (red @ X))))) = $true).
+
+thf(pel11, conjecture, ( (p @ (^[X]:((red @ X) & (ball @ X))))) = $true).
