@@ -69,12 +69,9 @@ using namespace Kernel;
 // SplittingBranchSelector
 //
 
-void SplittingBranchSelector::init()
+SplittingBranchSelector::SplittingBranchSelector(Splitter& parent) : _ccModel(false), _parent(parent)
 {
-  CALL("SplittingBranchSelector::init");
-
-  _eagerRemoval = _parent.getOptions().splittingEagerRemoval();
-  _literalPolarityAdvice = _parent.getOptions().splittingLiteralPolarityAdvice();
+  CALL("SplittingBranchSelector::SplittingBranchSelector");
 
   switch(_parent.getOptions().satSolver()){
     case Options::SatSolver::VAMPIRE:  
@@ -128,6 +125,18 @@ void SplittingBranchSelector::init()
       _dpModel = new DP::SimpleCongruenceClosure(&_parent.getOrdering());
     }
   }
+}
+
+void SplittingBranchSelector::init()
+{
+  CALL("SplittingBranchSelector::init");
+
+  // first make sure we properly reset the state:
+  _selected.reset();
+  _trueInCCModel.reset();
+
+  _eagerRemoval = _parent.getOptions().splittingEagerRemoval();
+  _literalPolarityAdvice = _parent.getOptions().splittingLiteralPolarityAdvice();
 }
 
 void SplittingBranchSelector::updateVarCnt()
@@ -670,14 +679,19 @@ void SplittingBranchSelector::recomputeModel(SplitLevelStack& addedComps, SplitL
 
 vstring Splitter::splPrefix = "";
 
-Splitter::Splitter()
-: _deleteDeactivated(Options::SplittingDeleteDeactivated::ON), _branchSelector(*this),
-  _clausesAdded(false), _haveBranchRefutation(false)
+Splitter::Splitter(const Options& o)
+: _options(&o), _deleteDeactivated(Options::SplittingDeleteDeactivated::ON), _branchSelector(*this)
 {
   CALL("Splitter::Splitter");
   if(env.options->proof()==Options::Proof::TPTP){
     unsigned spl = env.signature->addFreshFunction(0,"spl");
     splPrefix = env.signature->functionName(spl)+"_";
+  }
+
+  if (_options->useHashingVariantIndex()) {
+    _componentIdx = new HashingClauseVariantIndex();
+  } else {
+    _componentIdx = new SubstitutionTreeClauseVariantIndex();
   }
 }
 
@@ -693,14 +707,6 @@ Splitter::~Splitter()
   }
 }
 
-const Options& Splitter::getOptions() const
-{
-  CALL("Splitter::getOptions");
-  ASS(_sa);
-
-  return _sa->getOptions();
-}
-
 Ordering& Splitter::getOrdering() const
 {
   CALL("Splitter::getOrdering");
@@ -714,32 +720,75 @@ void Splitter::init(SaturationAlgorithm* sa)
 {
   CALL("Splitter::init");
 
+  // moved from the constructor, to reset these when a new sa gets connected
+  _clausesAdded = false;
+  _haveBranchRefutation = false;
+
   _sa = sa;
+  _options = &sa->getOptions();
 
-  const Options& opts = getOptions();
-  _branchSelector.init();
+  _showSplitting = _options->showSplitting();
 
-  _showSplitting = opts.showSplitting();
+  _complBehavior = _options->splittingAddComplementary();
+  _nonsplComps = _options->splittingNonsplittableComponents();
 
-  _complBehavior = opts.splittingAddComplementary();
-  _nonsplComps = opts.splittingNonsplittableComponents();
-
-  _flushPeriod = opts.splittingFlushPeriod();
-  _flushQuotient = opts.splittingFlushQuotient();
+  _flushPeriod = _options->splittingFlushPeriod();
+  _flushQuotient = _options->splittingFlushQuotient();
   _flushThreshold = sa->getGeneratedClauseCount() + _flushPeriod;
-  _congruenceClosure = opts.splittingCongruenceClosure();
+  _congruenceClosure = _options->splittingCongruenceClosure();
 #if VZ3
-  hasSMTSolver = (opts.satSolver() == Options::SatSolver::Z3);
+  hasSMTSolver = (_options->satSolver() == Options::SatSolver::Z3);
 #endif
 
-  _fastRestart = opts.splittingFastRestart();
-  _deleteDeactivated = opts.splittingDeleteDeactivated();
+  _fastRestart = _options->splittingFastRestart();
+  _deleteDeactivated = _options->splittingDeleteDeactivated();
 
-  if (opts.useHashingVariantIndex()) {
-    _componentIdx = new HashingClauseVariantIndex();
-  } else {
-    _componentIdx = new SubstitutionTreeClauseVariantIndex();
+  // make sure we properly reset the state:
+  _branchSelector.init();
+
+  _fastClauses.reset();
+
+  for (unsigned i = 0; i < _db.size(); i++) {
+    SplitRecord* sr = _db[i];
+    if (!sr || !sr->active) {
+      continue;
+    }
+
+    //cout << "resetting " << i << endl;
+
+    while (sr->children.isNonEmpty()) {
+      Clause* cl = sr->children.popWithoutDec();
+      cl->setNumActiveSplits(0);
+      cl->invalidateMyReductionRecords();
+      cl->setStore(Clause::NONE);
+      cl->decRefCnt();
+    }
+
+    //cout << "children" << endl;
+
+    if (_deleteDeactivated != Options::SplittingDeleteDeactivated::ON) {
+      // in this mode, compCl is assumed to be a child since the beginning of times
+      sr->children.push(sr->component);
+      // (with _deleteDeactivated on, compCl is always inserted anew on activation)
+
+      //cout << "component is back" << endl;
+    }
+
+    while(sr->reduced.isNonEmpty()) {
+      ReductionRecord rrec=sr->reduced.pop();
+      Clause* rcl=rrec.clause;
+      rcl->setNumActiveSplits(0);
+      rcl->invalidateMyReductionRecords();
+      rcl->setStore(Clause::NONE);
+      rcl->decRefCnt(); //inc when pushed on the 'sr->reduced' stack in Splitter::SplitRecord::addReduced
+    }
+
+    //cout << "reduced cleaned" << endl;
+
+    sr->active = false;
   }
+
+
 }
 
 SplitLevel Splitter::getNameFromLiteral(SATLiteral lit) const

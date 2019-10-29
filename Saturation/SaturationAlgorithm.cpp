@@ -106,6 +106,8 @@ using namespace Saturation;
 
 SaturationAlgorithm* SaturationAlgorithm::s_instance = 0;
 
+Splitter* SaturationAlgorithm::_splitter = 0;
+
 /**
  * Create a SaturationAlgorithm object
  *
@@ -116,7 +118,7 @@ SaturationAlgorithm::SaturationAlgorithm(Problem& prb, const Options& opt)
   : MainLoop(prb, opt),
     _limits(opt),
     _clauseActivationInProgress(false),
-    _fwSimplifiers(0), _bwSimplifiers(0), _splitter(0),
+    _fwSimplifiers(0), _bwSimplifiers(0),
     _consFinder(0), _labelFinder(0), _symEl(0), _answerLiteralManager(0),
     _instantiation(0),
 #if VZ3
@@ -187,9 +189,6 @@ SaturationAlgorithm::~SaturationAlgorithm()
 
   s_instance=0;
 
-  if (_splitter) {
-    delete _splitter;
-  }
   if (_consFinder) {
     delete _consFinder;
   }
@@ -1355,8 +1354,15 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
     res->_imgr = SmartPtr<IndexManager>(new IndexManager(res));
   }
 
-  if(opt.splitting()){
-    res->_splitter = new Splitter();
+  if(opt.splitting()) {
+    if (!_splitter) {
+      _splitter = new Splitter(opt);
+    }
+  } else {
+    if (_splitter) {
+      delete _splitter;
+      _splitter = nullptr;
+    }
   }
 
   // create generating inference engine

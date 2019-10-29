@@ -69,7 +69,6 @@ public:
   SaturationAlgorithm(Problem& prb, const Options& opt);
   virtual ~SaturationAlgorithm();
 
-
   //the following two functions allow to run the saturation algorithm step by step.
   void initAlgorithmRun();
   void doOneAlgorithmStep();
@@ -206,7 +205,7 @@ protected:
   OrderingSP _ordering;
   ScopedPtr<LiteralSelector> _selector;
 
-  Splitter* _splitter;
+  static Splitter* _splitter;
 
   ConsequenceFinder* _consFinder;
   LabelFinder* _labelFinder;

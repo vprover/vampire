@@ -65,7 +65,7 @@ class Splitter;
  */
 class SplittingBranchSelector {
 public:
-  SplittingBranchSelector(Splitter& parent) : _ccModel(false), _parent(parent)  {}
+  SplittingBranchSelector(Splitter& parent);
   ~SplittingBranchSelector(){
 #if VZ3
 {
@@ -75,7 +75,6 @@ _solver=0;
 #endif
   }
 
-  /** To be called from Splitter::init() */
   void init();
 
   void updateVarCnt();
@@ -181,14 +180,17 @@ private:
     USE_ALLOCATOR(SplitRecord);
   };
   
+  const Options* _options;
 public:
   CLASS_NAME(Splitter);
   USE_ALLOCATOR(Splitter);
 
-  Splitter();
+  Splitter(const Options&);
   ~Splitter();
 
-  const Options& getOptions() const;
+  const Options& getOptions() const {
+    return *_options;
+  }
   Ordering& getOrdering() const;
   
   void init(SaturationAlgorithm* sa);
@@ -263,12 +265,14 @@ private:
   //utility objects
   SplittingBranchSelector _branchSelector;
   ScopedPtr<ClauseVariantIndex> _componentIdx;
+
   /**
    * Registers all the sat variables and keeps track
    * of associated ground literals for those variables
    * which have one.
    */  
   SAT2FO _sat2fo;  
+
   /**
    * Information about a split level. Can be null if a split level does
    * not contain any components (e.g. for negations of non-ground
@@ -278,8 +282,8 @@ private:
    * the _db record of this level is non-null.
    */
   Stack<SplitRecord*> _db;
-  DHMap<Clause*,SplitLevel> _compNames;
 
+  DHMap<Clause*,SplitLevel> _compNames;
   DHMap<SplitLevel,Unit*> _defs;
   
   //state variable used for flushing:  

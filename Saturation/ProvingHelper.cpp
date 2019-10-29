@@ -155,7 +155,8 @@ void ProvingHelper::runVampire(Problem& prb, const Options& opt)
     if (secondStrat) {
       salg = nullptr; // clean the smart pointer -> destroy the old salg
 
-      env.options = secondStrat;
+      env.options = secondStrat; // because many places in vampire use the global one anyway...
+
       env.timer->reset();
       env.timer->start();
       salg = MainLoop::createFromOptions(prb, *secondStrat);
