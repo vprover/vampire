@@ -559,6 +559,8 @@ void SaturationAlgorithm::addInputClause(Clause* cl)
   ASS_LE(cl->inputType(),Clause::CLAIM); // larger input types should not appear in proof search
 
   cl->markInput();
+  // cout << "addInputClause: " << cl->toString() << " with store " << cl->store() << endl;
+  cl->setStore(Clause::NONE);
 
   if (_symEl) {
     _symEl->onInputClause(cl);

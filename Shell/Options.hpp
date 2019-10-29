@@ -1300,15 +1300,17 @@ DecodeOptionValue(vstring l,vstring s,Options* p):
 OptionValue(l,s,""), parent(p){ AbstractOptionValue::_should_copy=false;}
 
 bool setValue(const vstring& value){
+    if (!parent) { // this will leak if the user asks for a _secondStrategy twice, but that's OK for now
+      parent = new Options();
+    }
     parent->readFromEncodedOptions(value);
     return true;
 }
 virtual vstring getStringOfValue(vstring value) const{ return value; }
 
-private:
 Options* parent;
-
 };
+
 /**
 * Need to read the time limit. By default it assumes seconds (and stores deciseconds) but you can give
 * a multiplier i.e. d,s,m,h,D for deciseconds,seconds,minutes,hours,Days
@@ -1993,6 +1995,8 @@ public:
   unsigned sosTheoryLimit() const { return _sosTheoryLimit.actualValue; }
   //void setSos(Sos newVal) { _sos = newVal; }
 
+  Options* secondStrategy() const { return _secondStrategy.parent; }
+
   bool ignoreConjectureInPreprocessing() const {return _ignoreConjectureInPreprocessing.actualValue;}
 
   FunctionDefinitionElimination functionDefinitionElimination() const { return _functionDefinitionElimination.actualValue; }
@@ -2227,6 +2231,7 @@ private:
 
   ChoiceOptionValue<RandomStrategy> _randomStrategy;
   DecodeOptionValue _decode;
+  DecodeOptionValue _secondStrategy;
   BoolOptionValue _encode;
 
   RatioOptionValue _ageWeightRatio;

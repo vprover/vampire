@@ -143,7 +143,26 @@ void ProvingHelper::runVampire(Problem& prb, const Options& opt)
   env.statistics->phase=Statistics::SATURATION;
   ScopedPtr<MainLoop> salg(MainLoop::createFromOptions(prb, opt));
 
+  Timer::setTimeLimitEnforcement(false); // we catch time limit, but only in the main loop, not the brutal interrupt and System::terminate
   MainLoopResult sres(salg->run());
+  if (sres.terminationReason >= Statistics::TerminationReason::REFUTATION_NOT_FOUND) {
+
+    env.beginOutput();
+    UIHelper::outputResult(env.out());
+    env.endOutput();
+
+    Options* secondStrat = opt.secondStrategy();
+    if (secondStrat) {
+      salg = nullptr; // clean the smart pointer -> destroy the old salg
+
+      env.options = secondStrat;
+      env.timer->reset();
+      env.timer->start();
+      salg = MainLoop::createFromOptions(prb, *secondStrat);
+      sres = MainLoopResult(salg->run());
+    }
+  }
+
   env.statistics->phase=Statistics::FINALIZATION;
   Timer::setTimeLimitEnforcement(false);
   sres.updateStatistics();

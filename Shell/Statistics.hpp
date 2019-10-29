@@ -342,25 +342,25 @@ public:
   /** termination reason */
   enum TerminationReason {
     /** refutation found */
-    REFUTATION,
+    REFUTATION = 0,
     /** SAT SATISFIABLE */
-    SAT_SATISFIABLE, 
+    SAT_SATISFIABLE = 1,
     /** satisfiability detected (saturated set built) */
-    SATISFIABLE,
+    SATISFIABLE = 2,
     /** sat solver Unsatisfiable */
-    SAT_UNSATISFIABLE,
+    SAT_UNSATISFIABLE = 3,
     /** saturation terminated but an incomplete strategy was used */
-    REFUTATION_NOT_FOUND,
+    REFUTATION_NOT_FOUND = 4,
     /** inappropriate strategy **/
-    INAPPROPRIATE, 
+    INAPPROPRIATE = 5,
     /** unknown termination reason */
-    UNKNOWN,
+    UNKNOWN = 6,
     /** time limit reached */
-    TIME_LIMIT,
+    TIME_LIMIT = 7,
     /** memory limit reached */
-    MEMORY_LIMIT,
+    MEMORY_LIMIT = 8,
     /** activation limit reached */
-    ACTIVATION_LIMIT
+    ACTIVATION_LIMIT = 9
   };
   /** termination reason */
   TerminationReason terminationReason;

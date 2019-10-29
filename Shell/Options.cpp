@@ -208,6 +208,10 @@ void Options::Options::init()
     _lookup.insert(&_decode);
     _decode.tag(OptionTag::DEVELOPMENT);
 
+    _secondStrategy = DecodeOptionValue("second_strat","",nullptr);
+    _lookup.insert(&_secondStrategy);
+    _secondStrategy.tag(OptionTag::DEVELOPMENT);
+
     _encode = BoolOptionValue("encode","",false);
     _encode.description="Output an encoding of the strategy to be used with the decode option";
     _lookup.insert(&_encode);
