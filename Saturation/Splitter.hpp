@@ -162,7 +162,7 @@ private:
   struct SplitRecord
   {
     SplitRecord(Clause* comp)
-     : component(comp), active(false)
+     : component(comp), active(false), used(false)
     {
       component->incRefCnt();
     }
@@ -175,6 +175,8 @@ private:
     RCClauseStack children;
     Stack<ReductionRecord> reduced;
     bool active;
+
+    bool used;
 
     CLASS_NAME(Splitter::SplitRecord);
     USE_ALLOCATOR(SplitRecord);
@@ -209,7 +211,7 @@ public:
   bool isUsedName(SplitLevel name) const {
     CALL("Splitter::isUsedName");
     ASS_L(name,_db.size());
-    return (_db[name] != 0);
+    return (_db[name] != 0 && _db[name]->used);
   }
   Clause* getComponentClause(SplitLevel name) const;
 

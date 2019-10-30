@@ -750,9 +750,11 @@ void Splitter::init(SaturationAlgorithm* sa)
 
   for (unsigned i = 0; i < _db.size(); i++) {
     SplitRecord* sr = _db[i];
-    if (!sr || !sr->active) {
+    if (!sr) {
       continue;
     }
+
+    sr->used = false;
 
     //cout << "resetting " << i << endl;
 
@@ -984,6 +986,9 @@ bool Splitter::handleNonSplittable(Clause* cl)
   // and instead we will record information about it in the SAT solver
 
   SplitRecord& nameRec = *_db[compName];
+
+  nameRec.used = true;
+
   ASS_EQ(nameRec.component,compCl);
   ASS_REP2(compCl->store()==Clause::NONE || compCl->store()==Clause::ACTIVE ||
       compCl->store()==Clause::PASSIVE || compCl->store()==Clause::UNPROCESSED, *compCl, compCl->store());
@@ -1135,6 +1140,9 @@ bool Splitter::doSplitting(Clause* cl)
 
   //!! this check is important or we might end up looping !!
   if(cl->isComponent()) {
+
+    _db[_compNames.get(cl)]->used = true;
+
     return false;
   }
 
@@ -1164,6 +1172,9 @@ bool Splitter::doSplitting(Clause* cl)
     const LiteralStack& comp = comps[i];
     Clause* compCl;
     SplitLevel compName = tryGetComponentNameOrAddNew(comp, cl, compCl);
+
+    _db[compName]->used = true;  // CAREFUL: this is not perfect and might masks out "add complementary"
+
     SATLiteral nameLit = getLiteralFromName(compName);
     satClauseLits.push(nameLit);
 
