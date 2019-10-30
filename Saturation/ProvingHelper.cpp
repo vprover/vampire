@@ -146,19 +146,21 @@ void ProvingHelper::runVampire(Problem& prb, const Options& opt)
   Timer::setTimeLimitEnforcement(false); // we catch time limit, but only in the main loop, not the brutal interrupt and System::terminate
   MainLoopResult sres(salg->run());
   if (sres.terminationReason >= Statistics::TerminationReason::REFUTATION_NOT_FOUND) {
-
-    env.beginOutput();
-    UIHelper::outputResult(env.out());
-    env.endOutput();
-
     Options* secondStrat = opt.secondStrategy();
     if (secondStrat) {
+      // print what the first one did
+      env.beginOutput();
+      UIHelper::outputResult(env.out());
+      env.endOutput();
+
       salg = nullptr; // clean the smart pointer -> destroy the old salg
 
       env.options = secondStrat; // because many places in vampire use the global one anyway...
 
+      // start ticking from scratch
       env.timer->reset();
       env.timer->start();
+
       salg = MainLoop::createFromOptions(prb, *secondStrat);
       sres = MainLoopResult(salg->run());
     }
