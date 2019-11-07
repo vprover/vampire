@@ -1125,7 +1125,7 @@ isRedundant:
               env.out() << "\% eqLit: " << eqLit->toString() << "\n";
               env.out() << "\% eqLitS: " << binder.applyTo(eqLit)->toString() << "\n";
               env.out() << "\% dlit: " << dlit->toString() << "\n";
-              env.out() << "\% numMatches: " << numMatches << "\n";
+              env.out() << "\% numMatches+1: success at match #" << (numMatches+1) << "\n";
               TPTPPrinter tptp;
               // NOTE: do not output the splitLevels here, because those will be set for newCl only later
               tptp.printWithRole("side_premise_mcl", "hypothesis", mcl,   false);
