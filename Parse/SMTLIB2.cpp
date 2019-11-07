@@ -133,7 +133,10 @@ void SMTLIB2::readBenchmark(LExprList* bench)
 
     if (ibRdr.tryAcceptAtom("declare-sort")) {
       vstring name = ibRdr.readAtom();
-      vstring arity = ibRdr.readAtom();
+      vstring arity;
+      if (!ibRdr.tryReadAtom(arity)) {
+        USER_ERROR("Unspecified arity while declaring sort: "+name);
+      }
 
       readDeclareSort(name,arity);
 
@@ -2076,6 +2079,7 @@ void SMTLIB2::parseRankedFunctionApplication(LExpr* exp)
       if (f.second) {
         TermAlgebraConstructor* c = env.signature->getTermAlgebraConstructor(f.first);
         if (c) /* else the symbol is not a TA constructor */ {
+
           unsigned sort = env.signature->getFunction(f.first)->fnType()->result();
           if (!c->hasDiscriminator()) {
             // add discriminator predicate

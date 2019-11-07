@@ -136,6 +136,11 @@ public:
     return _head;
   } // List::head
 
+  inline C& headRef ()
+  {
+    return _head;
+  } // List::head
+
   inline C* headPtr ()
   {
     return &(this->_head);

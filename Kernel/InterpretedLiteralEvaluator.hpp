@@ -35,7 +35,7 @@
 namespace Kernel {
 
 class InterpretedLiteralEvaluator
-  :  private TermTransformer
+  :  private TermTransformerTransformTransformed 
 {
 public:
   CLASS_NAME(InterpretedLiteralEvaluator);

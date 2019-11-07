@@ -329,7 +329,8 @@ VST_OBJ= Saturation/AWPassiveClauseContainer.o\
          Saturation/ProvingHelper.o\
          Saturation/SaturationAlgorithm.o\
          Saturation/Splitter.o\
-         Saturation/SymElOutput.o
+         Saturation/SymElOutput.o\
+         Saturation/ManCSPassiveClauseContainer.o\
 
 VS_OBJ = Shell/AnswerExtractor.o\
          Shell/BFNT.o\
@@ -545,7 +546,7 @@ all:#default make disabled
 ################################################################
 # automated generation of Vampire revision information
 
-VERSION_NUMBER = 4.3.0
+VERSION_NUMBER = 4.4.0
 
 # We extract the revision number from svn every time the svn meta-data are modified
 # (that's why there is the dependency on .svn/entries) 

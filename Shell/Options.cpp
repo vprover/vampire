@@ -149,11 +149,13 @@ void Options::Options::init()
          "casc_2016",
          "casc_2017",
          "casc_2018",
+         "casc_2019",
          "casc_sat",
          "casc_sat_2014",
          "casc_sat_2016",
          "casc_sat_2017",
          "casc_sat_2018",
+         "casc_sat_2019",
          "ltb_2014",
          "ltb_2014_mzr",
          "ltb_default_2017",
@@ -292,6 +294,11 @@ void Options::Options::init()
     "Specifies whether proof will be output. 'proofcheck' will output proof as a sequence of TPTP problems to allow for proof-checking.";
     _lookup.insert(&_proof);
     _proof.tag(OptionTag::OUTPUT);
+
+    _minimizeSatProofs = BoolOptionValue("minimize_sat_proofs","",true);
+    _minimizeSatProofs.description="Perform unsat core minimization when a sat solver finds a clause set UNSAT\n"
+        "(such as with AVATAR proofs or with global subsumption).";
+    _lookup.insert(&_minimizeSatProofs);
 
     _proofExtra = ChoiceOptionValue<ProofExtra>("proof_extra","",ProofExtra::OFF,{"off","free","full"});
     _proofExtra.description="Add extra detail to proofs. "
@@ -632,6 +639,25 @@ void Options::Options::init()
     _lookup.insert(&_showNew);
     _showNew.tag(OptionTag::DEVELOPMENT);
 
+    _sineToAge = BoolOptionValue("sine_to_age","s2a",false);
+    _lookup.insert(&_sineToAge);
+    _sineToAge.tag(OptionTag::DEVELOPMENT);
+
+    // Like generality threshold for SiNE, except used by the sine2age trick
+    _sineToAgeGeneralityThreshold = UnsignedOptionValue("sine_to_age_generality_threshold","s2agt",0);
+    _lookup.insert(&_sineToAgeGeneralityThreshold);
+    _sineToAgeGeneralityThreshold.tag(OptionTag::DEVELOPMENT);
+    _sineToAgeGeneralityThreshold.reliesOn(_sineToAge.is(equal(true)));
+
+    // Like generality threshold for SiNE, except used by the sine2age trick
+    _sineToAgeTolerance = FloatOptionValue("sine_to_age_tolerance","s2at",1.0);
+    _lookup.insert(&_sineToAgeTolerance);
+    _sineToAgeTolerance.tag(OptionTag::DEVELOPMENT);
+    _sineToAgeTolerance.addConstraint(equal(0.0f)->Or(greaterThanEq(1.0f) ));
+    // Captures that if the value is not 1.0 then sineSelection must be on
+    _sineToAgeTolerance.reliesOn(_sineToAge.is(equal(true)));
+    _sineToAgeTolerance.setRandomChoices({"1.0","1.2","1.5","2.0","3.0","5.0"});
+
     _showSplitting = BoolOptionValue("show_splitting","",false);
     _showSplitting.description="Show updates within AVATAR";
     _lookup.insert(&_showSplitting);
@@ -695,6 +721,11 @@ void Options::Options::init()
     _lookup.insert(&_showFMBsortInfo);
     _showFMBsortInfo.tag(OptionTag::OUTPUT);
 
+    _manualClauseSelection = BoolOptionValue("manual_cs","",false);
+    _manualClauseSelection.description="Run Vampire interactively by manually picking the clauses to be selected";
+    _lookup.insert(&_manualClauseSelection);
+    _manualClauseSelection.tag(OptionTag::DEVELOPMENT);
+    
 //************************************************************************
 //*********************** VAMPIRE (includes CASC)  ***********************
 //************************************************************************
@@ -838,33 +869,43 @@ void Options::Options::init()
     _ageWeightRatio.reliesOn(_saturationAlgorithm.is(notEqual(SaturationAlgorithm::INST_GEN))->Or<int>(_instGenWithResolution.is(equal(true))));
     _ageWeightRatio.setRandomChoices({"8:1","5:1","4:1","3:1","2:1","3:2","5:4","1","2:3","2","3","4","5","6","7","8","10","12","14","16","20","24","28","32","40","50","64","128","1024"});
 
-	    _literalMaximalityAftercheck = BoolOptionValue("literal_maximality_aftercheck","lma",false);
-	    _lookup.insert(&_literalMaximalityAftercheck);
-	    _literalMaximalityAftercheck.tag(OptionTag::SATURATION);
-	    _literalMaximalityAftercheck.setExperimental();
+    _ageWeightRatioShape = ChoiceOptionValue<AgeWeightRatioShape>("age_weight_ratio_shape","awrs",AgeWeightRatioShape::CONSTANT,{"constant","decay", "converge"});
+    _ageWeightRatioShape.description = "How to change the age/weight ratio during proof search.";
+    _lookup.insert(&_ageWeightRatioShape);
+    _ageWeightRatioShape.tag(OptionTag::SATURATION);
 
-	    _lrsFirstTimeCheck = IntOptionValue("lrs_first_time_check","",5);
-	    _lrsFirstTimeCheck.description=
-	    "Percentage of time limit at which the LRS algorithm will for the first time estimate the number of reachable clauses.";
-	    _lookup.insert(&_lrsFirstTimeCheck);
-	    _lrsFirstTimeCheck.tag(OptionTag::LRS);
-	    _lrsFirstTimeCheck.addConstraint(greaterThanEq(0));
-	    _lrsFirstTimeCheck.addConstraint(lessThan(100));
+    _ageWeightRatioShapeFrequency = UnsignedOptionValue("age_weight_ratio_shape_frequency","awrsf",100);
+    _ageWeightRatioShapeFrequency.description = "How frequently the age/weight ratio shape is to change: i.e. if set to 'decay' at a frequency of 100, the age/weight ratio will change every 100 age/weight choices.";
+    _lookup.insert(&_ageWeightRatioShapeFrequency);
+    _ageWeightRatioShapeFrequency.tag(OptionTag::SATURATION);
 
-	    _lrsWeightLimitOnly = BoolOptionValue("lrs_weight_limit_only","lwlo",false);
-	    _lrsWeightLimitOnly.description=
-	    "If off, the lrs sets both age and weight limit according to clause reachability, otherwise it sets the age limit to 0 and only the weight limit reflects reachable clauses";
-	    _lookup.insert(&_lrsWeightLimitOnly);
-	    _lrsWeightLimitOnly.tag(OptionTag::LRS);
+      _literalMaximalityAftercheck = BoolOptionValue("literal_maximality_aftercheck","lma",false);
+      _lookup.insert(&_literalMaximalityAftercheck);
+      _literalMaximalityAftercheck.tag(OptionTag::SATURATION);
+      _literalMaximalityAftercheck.setExperimental();
 
-	    _simulatedTimeLimit = TimeLimitOptionValue("simulated_time_limit","stl",0);
-	    _simulatedTimeLimit.description=
-	    "Time limit in seconds for the purpose of reachability estimations of the LRS saturation algorithm (if 0, the actual time limit is used)";
-	    _lookup.insert(&_simulatedTimeLimit);
-	    _simulatedTimeLimit.tag(OptionTag::LRS);
+      _lrsFirstTimeCheck = IntOptionValue("lrs_first_time_check","",5);
+      _lrsFirstTimeCheck.description=
+      "Percentage of time limit at which the LRS algorithm will for the first time estimate the number of reachable clauses.";
+      _lookup.insert(&_lrsFirstTimeCheck);
+      _lrsFirstTimeCheck.tag(OptionTag::LRS);
+      _lrsFirstTimeCheck.addConstraint(greaterThanEq(0));
+      _lrsFirstTimeCheck.addConstraint(lessThan(100));
+
+      _lrsWeightLimitOnly = BoolOptionValue("lrs_weight_limit_only","lwlo",false);
+      _lrsWeightLimitOnly.description=
+      "If off, the lrs sets both age and weight limit according to clause reachability, otherwise it sets the age limit to 0 and only the weight limit reflects reachable clauses";
+      _lookup.insert(&_lrsWeightLimitOnly);
+      _lrsWeightLimitOnly.tag(OptionTag::LRS);
+
+      _simulatedTimeLimit = TimeLimitOptionValue("simulated_time_limit","stl",0);
+      _simulatedTimeLimit.description=
+      "Time limit in seconds for the purpose of reachability estimations of the LRS saturation algorithm (if 0, the actual time limit is used)";
+      _lookup.insert(&_simulatedTimeLimit);
+      _simulatedTimeLimit.tag(OptionTag::LRS);
 
 
-	//*********************** Inferences  ***********************
+  //*********************** Inferences  ***********************
 
 #if VZ3
 
@@ -889,11 +930,17 @@ void Options::Options::init()
            _lookup.insert(&_fixUWA);
            _fixUWA.setExperimental();
 
+           _useACeval = BoolOptionValue("use_ac_eval","uace",true);
+           _useACeval.description="";
+           _useACeval.tag(OptionTag::INFERENCES);
+           _lookup.insert(&_useACeval);
+           _useACeval.setExperimental();
+
             _induction = ChoiceOptionValue<Induction>("induction","ind",Induction::NONE,
                                 {"none","struct","math","both"});
             _induction.description = "Apply structural and/or mathematical induction on datatypes and integers";
             _induction.tag(OptionTag::INFERENCES);
-            //_lookup.insert(&_induction);
+            _lookup.insert(&_induction);
             //_induction.setRandomChoices
             _induction.setExperimental();
 
@@ -902,7 +949,7 @@ void Options::Options::init()
             _structInduction.description="";
             _structInduction.tag(OptionTag::INFERENCES);
             _structInduction.reliesOn(_induction.is(equal(Induction::STRUCTURAL))->Or<StructuralInductionKind>(_induction.is(equal(Induction::BOTH))));
-            //_lookup.insert(&_structInduction);
+            _lookup.insert(&_structInduction);
             _structInduction.setExperimental();
 
             _mathInduction = ChoiceOptionValue<MathInductionKind>("math_induction_kind","mik",
@@ -919,7 +966,7 @@ void Options::Options::init()
                                          " extends this with skolem constants introduced by induction. Consider using" 
                                          " guess_the_goal for problems in SMTLIB as they do not come with a conjecture";
             _inductionChoice.tag(OptionTag::INFERENCES);
-            //_lookup.insert(&_inductionChoice);
+            _lookup.insert(&_inductionChoice);
             _inductionChoice.setExperimental();
             _inductionChoice.reliesOn(_induction.is(notEqual(Induction::NONE)));
             //_inductionChoice.addHardConstraint(If(equal(InductionChoice::GOAL)->Or(equal(InductionChoice::GOAL_PLUS))).then(
@@ -932,21 +979,21 @@ void Options::Options::init()
             _maxInductionDepth.tag(OptionTag::INFERENCES);
             _maxInductionDepth.reliesOn(_induction.is(notEqual(Induction::NONE)));
             _maxInductionDepth.addHardConstraint(lessThan(33u));
-            //_lookup.insert(&_maxInductionDepth);
+            _lookup.insert(&_maxInductionDepth);
 
             _inductionNegOnly = BoolOptionValue("induction_neg_only","indn",true);
             _inductionNegOnly.description = "Only apply induction to negative literals";
             _inductionNegOnly.setExperimental();
             _inductionNegOnly.tag(OptionTag::INFERENCES);
             _inductionNegOnly.reliesOn(_induction.is(notEqual(Induction::NONE)));
-            //_lookup.insert(&_inductionNegOnly);
+            _lookup.insert(&_inductionNegOnly);
 
             _inductionUnitOnly = BoolOptionValue("induction_unit_only","indu",true);
             _inductionUnitOnly.description = "Only apply induction to unit clauses";
             _inductionUnitOnly.setExperimental();
             _inductionUnitOnly.tag(OptionTag::INFERENCES);
             _inductionUnitOnly.reliesOn(_induction.is(notEqual(Induction::NONE)));
-            //_lookup.insert(&_inductionUnitOnly);
+            _lookup.insert(&_inductionUnitOnly);
 
 	    _instantiation = ChoiceOptionValue<Instantiation>("instantiation","inst",Instantiation::OFF,{"off","on"});
 	    _instantiation.description = "Heuristically instantiate variables";
@@ -1179,6 +1226,12 @@ void Options::Options::init()
     "Generating inference that attempts to do several rewritings at once if it will eliminate literals of the original clause (now we aim just for elimination by equality resolution)";
     _lookup.insert(&_hyperSuperposition);
     _hyperSuperposition.tag(OptionTag::INFERENCES);
+
+    _simultaneousSuperposition = BoolOptionValue("simultaneous_superposition","sims",false);
+    _simultaneousSuperposition.description="Rewrite the whole RHS clause during superposition, not just the target literal.";
+    _lookup.insert(&_simultaneousSuperposition);
+    _simultaneousSuperposition.tag(OptionTag::INFERENCES);
+    _simultaneousSuperposition.setExperimental();
 
     _innerRewriting = BoolOptionValue("inner_rewriting","irw",false);
     _innerRewriting.description="C[t_1] | t1 != t2 ==> C[t_2] | t1 != t2 when t1>t2";

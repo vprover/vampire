@@ -75,7 +75,8 @@ class SineSelector
 {
 public:
   SineSelector(const Options& opt);
-  SineSelector(bool onIncluded, float tolerance, unsigned depthLimit, unsigned genThreshold=0);
+  SineSelector(bool onIncluded, float tolerance, unsigned depthLimit,
+      unsigned genThreshold=0, bool justForSineLevels=false);
 
   bool perform(UnitList*& units); // returns true iff removed something
   void perform(Problem& prb);
@@ -89,6 +90,8 @@ private:
   unsigned _genThreshold;
   float _tolerance;
   unsigned _depthLimit;
+
+  bool _justForSineLevels;
 
   /** Stored the D-relation */
   DArray<UnitList*> _def;

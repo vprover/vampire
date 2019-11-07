@@ -102,6 +102,7 @@ private:
       lst = new BindingList(b,lst);
       _stored.push(lst);
     }
+    void pushAndRememberWhileApplying(Binding b, BindingList* &lst);
     ~BindingStore() {
       Stack<BindingList*>::Iterator it(_stored);
       while(it.hasNext()) {
@@ -206,7 +207,7 @@ private:
       BindingList::Iterator fbit(foolBindings);
       while(fbit.hasNext()) {
         Binding b = fbit.next();
-        res += " | X"+Int::toString(b.first)+" --> "+b.second->toString();
+        res += " | X"+Int::toString(b.first)+" ---> "+b.second->toString();
       }
 
       return res;
@@ -543,10 +544,12 @@ private:
   }
 
   void introduceExtendedGenClause(Occurrence occ, GenLit replacement) {
+    // CHECK: leaking below?
     introduceExtendedGenClause(occ, new List<GenLit>(replacement));
   }
 
   void introduceExtendedGenClause(Occurrence occ, GenLit replacement, GenLit extension) {
+    // CHECK: leaking below?
     introduceExtendedGenClause(occ, new List<GenLit>(replacement, new List<GenLit>(extension)));
   }
 
@@ -642,7 +645,7 @@ private:
   void process(BinaryFormula* g, Occurrences &occurrences);
   void process(QuantifiedFormula* g, Occurrences &occurrences);
 
-  void process(TermList ts, Occurrences &occurrences);
+  void processBoolterm(TermList ts, Occurrences &occurrences);
   void process(Literal* l, Occurrences &occurrences);
   void processConstant(bool constant, Occurrences &occurrences);
   void processBoolVar(SIGN sign, unsigned var, Occurrences &occurrences);

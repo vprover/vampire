@@ -88,6 +88,9 @@ public:
   virtual bool canEvaluateFunc(unsigned func) { return func == _fun; }
 
   virtual bool tryEvaluateFunc(Term* trm, TermList& res) {
+#if IDEBUG
+     cout << "ACFunEvaluator::tryEvaluateFunc " << trm->toString() << endl;
+#endif
     ASS_EQ(trm->functor(),_fun);
     ASS_EQ(trm->arity(),2);
 
@@ -114,23 +117,39 @@ public:
     int acc_cnt = 0;
     while(it.hasNext()){ 
       TermList* t = it.next();
+#if IDEBUG
+	cout << "considering " << t->toString() << endl;
+#endif
       T thing;
       if(t->isTerm() && theory->tryInterpretConstant(t->term(),thing)){
         TermList tmp;
         Term* evalThis = Term::create2(_fun,TermList(acc),*t);
-        bool error = _eval->tryEvaluateFunc(evalThis,tmp);
-        //ASS(!error); //we want to be informed of evaluation failures in debug mode
-        if (error) {
+        bool evaluated = _eval->tryEvaluateFunc(evalThis,tmp);
+        // if it is not evaluated then there was no change, so copy the term 
+        if (!evaluated) {
+#if IDEBUG
+          cout << "evaluated is false with " << evalThis->toString() << endl;
+#endif
           return false;
         }
-        ASS(tmp.isTerm());
-        acc = tmp.term();
-        acc_cnt++;
+        else{
+#if IDEBUG
+	cout << "evaluated to " << tmp.term()->toString() << endl;
+#endif
+          ASS(tmp.isTerm());
+          acc = tmp.term();
+          acc_cnt++;
+        }
       }
       else{ keep.push(t); }
     } 
     if(keep.length() == done.length() || 
-       (keep.length() == done.length()-1 && acc_cnt==1)){ return false; }
+       (keep.length() == done.length()-1 && acc_cnt==1)){ 
+#if IDEBUG
+	cout << "nothing was reduced" << endl;
+#endif
+      return false; 
+    }
  
     // a bit of a hack, we might need a pointer to this below, to have uniform treatment of all the TermLists
     TermList accT(acc);
@@ -203,10 +222,16 @@ class InterpretedLiteralEvaluator::EqualityEvaluator
                   checkEquality<RealConstantType>(lit,res);
 
      // Also check if the two terms are already equivalent, although that should be captured elsewhere
-     okay = okay || lit->nthArgument(0)->term() == lit->nthArgument(1)->term();
-      //cout << "HERE with " << lit->nthArgument(0)->term() << " and " << lit->nthArgument(1)->term() << endl;
-      //cout << "HERE with " << lit->nthArgument(0)->term()->toString() << " and " << lit->nthArgument(1)->term()->toString() << endl;
-
+     // This allows us to return true even if we couldn't interpret lit due to arithmetic exception
+     if(lit->nthArgument(0)->term() == lit->nthArgument(1)->term()){
+       okay = true;
+       res = true;
+     } 
+#if IDEBUG
+      cout << "HERE with " << lit->nthArgument(0)->term() << " and " << lit->nthArgument(1)->term() << endl;
+      cout << "HERE with " << lit->nthArgument(0)->term()->toString() << " and " << lit->nthArgument(1)->term()->toString() << endl;
+      cout << "okay is " << okay << endl;
+#endif
       if(!okay) return false;
 
       if(lit->isNegative()){ res = !res; }
@@ -930,6 +955,8 @@ InterpretedLiteralEvaluator::InterpretedLiteralEvaluator()
   _evals.push(new ConversionEvaluator());
   _evals.push(new EqualityEvaluator());
 
+  if(env.options->useACeval()){
+
   // Special AC evaluators are added to be tried first for Plus and Multiply
   _evals.push(new ACFunEvaluator<IntegerConstantType>(
 		env.signature->getInterpretingSymbol(Theory::INT_PLUS),
@@ -957,6 +984,8 @@ InterpretedLiteralEvaluator::InterpretedLiteralEvaluator()
                 env.signature->getInterpretingSymbol(Theory::REAL_MULTIPLY),
                 new RealEvaluator(),
                 theory->representConstant(RealConstantType(RationalConstantType(1)))));
+
+  }
 
   _funEvaluators.ensure(0);
   _predEvaluators.ensure(0);
@@ -1160,14 +1189,14 @@ endOfUnwrapping:
 
   // don't swap equality
   if(lit->functor()==0){
-   resLit = TermTransformer::transform(Literal::createEquality(lit->polarity(),t2,t1,srt));
+   resLit = TermTransformerTransformTransformed::transform(Literal::createEquality(lit->polarity(),t2,t1,srt));
   }
   else{
     // important, need to preserve the ordering of t1 and t2 in the original!
     if(swap){
-      resLit = TermTransformer::transform(Literal::create2(lit->functor(),lit->polarity(),t2,t1));
+      resLit = TermTransformerTransformTransformed::transform(Literal::create2(lit->functor(),lit->polarity(),t2,t1));
     }else{
-      resLit = TermTransformer::transform(Literal::create2(lit->functor(),lit->polarity(),t1,t2));
+      resLit = TermTransformerTransformTransformed::transform(Literal::create2(lit->functor(),lit->polarity(),t1,t2));
     }
   }
   return true;
@@ -1305,7 +1334,7 @@ bool InterpretedLiteralEvaluator::evaluate(Literal* lit, bool& isConstant, Liter
 #endif
 
   // This tries to transform each subterm using tryEvaluateFunc (see transform Subterm below)
-  resLit = TermTransformer::transform(lit);
+  resLit = TermTransformerTransformTransformed::transform(lit);
 
 #if IDEBUG
   cout << "transformed " << resLit->toString() << endl;
@@ -1324,7 +1353,6 @@ bool InterpretedLiteralEvaluator::evaluate(Literal* lit, bool& isConstant, Liter
 #endif
 
   // If resLit contains variables the predicate cannot be interpreted
-  // If resLit contains uninter
   VariableIterator vit(lit);
   if(vit.hasNext()){
     isConstant=false;
@@ -1335,7 +1363,7 @@ bool InterpretedLiteralEvaluator::evaluate(Literal* lit, bool& isConstant, Liter
   ASS(tit.hasNext()); tit.next(); // pop off literal symbol
   while(tit.hasNext()){
     unsigned f = tit.next();
-    if(!theory->isInterpretedFunction(f)){
+    if(!env.signature->getFunction(f)->interpreted()){
       isConstant=false;
       return (lit!=resLit);
     } 
@@ -1369,7 +1397,7 @@ bool InterpretedLiteralEvaluator::evaluate(Literal* lit, bool& isConstant, Liter
 
 /**
  * This attempts to evaluate each subterm.
- * See Kernel/TermTransformer for how it is used.
+ * See Kernel/TermTransformerTransformTransformed for how it is used.
  * Terms are evaluated bottom-up
  */
 TermList InterpretedLiteralEvaluator::transformSubterm(TermList trm)
