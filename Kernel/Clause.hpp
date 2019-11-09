@@ -343,6 +343,8 @@ public:
   unsigned varCnt();
   unsigned maxVar(); // useful to create fresh variables w.r.t. the clause
 
+  bool isAriNice() const;
+
 protected:
   /** number of literals */
   unsigned _length : 20;
@@ -390,6 +392,10 @@ protected:
 #endif
 
 //#endif
+
+  // counting the leaves (in the tree rather than dag sense)
+  // which are theory axioms and the total across all leaves
+  float th_ancestors, all_ancestors;
 
   /** Array of literals of this unit */
   Literal* _literals[1];

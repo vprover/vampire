@@ -1984,6 +1984,7 @@ public:
   int yesRatio() const { return _yesNoRatio.actualValue; }
   int noRatio() const { return _yesNoRatio.otherValue; }
   bool twoTierQueuing() const { return _twoTierQueuing.actualValue; }
+  float ariUglyThreshold() const { return _ariUglyThreshold.actualValue; }
   void setWeightRatio(int v){ _ageWeightRatio.otherValue = v; }
 	AgeWeightRatioShape ageWeightRatioShape() const { return _ageWeightRatioShape.actualValue; }
 	int ageWeightRatioShapeFrequency() const { return _ageWeightRatioShapeFrequency.actualValue; }
@@ -2244,6 +2245,7 @@ private:
 	UnsignedOptionValue _ageWeightRatioShapeFrequency;
   RatioOptionValue _yesNoRatio;
   BoolOptionValue _twoTierQueuing;
+  FloatOptionValue _ariUglyThreshold;
   BoolOptionValue _literalMaximalityAftercheck;
   BoolOptionValue _arityCheck;
   

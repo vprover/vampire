@@ -898,6 +898,9 @@ void Options::Options::init()
     _yesNoRatio = RatioOptionValue("yes_no_ratio","ynr",1,1,':');
     _lookup.insert(&_yesNoRatio);
 
+    _ariUglyThreshold = FloatOptionValue("ari_ugly_threshold","aut",0.76);
+    _lookup.insert(&_ariUglyThreshold);
+
 	    _literalMaximalityAftercheck = BoolOptionValue("literal_maximality_aftercheck","lma",false);
 	    _lookup.insert(&_literalMaximalityAftercheck);
 	    _literalMaximalityAftercheck.tag(OptionTag::SATURATION);

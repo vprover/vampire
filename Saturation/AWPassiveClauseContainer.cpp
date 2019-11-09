@@ -63,7 +63,7 @@ void PredicateSplitPassiveClauseContainer::add(Clause* cl)
   CALL("PredicateSplitPassiveClauseContainer::add");
 
   // for the time being, let the_predicate be goalness
-  if (cl->isGoal()) {
+  if (cl->isAriNice()) {
     _yesPCC.add(cl);
   } else {
     _noPCC.add(cl);
@@ -76,7 +76,7 @@ void PredicateSplitPassiveClauseContainer::remove(Clause* cl)
   CALL("PredicateSplitPassiveClauseContainer::remove");
 
   // for the time being, let the_predicate be goalness
-  if (cl->isGoal()) {
+  if (cl->isAriNice()) {
     _yesPCC.remove(cl);
   } else {
     _noPCC.remove(cl);

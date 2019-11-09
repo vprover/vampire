@@ -87,6 +87,31 @@ Clause::Clause(unsigned length,InputType it,Inference* inf)
     _numActiveSplits(0),
     _auxTimestamp(0)
 {
+  if (inf->rule()==Inference::THEORY) {
+    th_ancestors = 1.0;
+    all_ancestors = 1.0;
+  } else {
+    Inference::Iterator it = inf->iterator();
+    if (!inf->hasNext(it)) { // parent-less clause, maybe an input clause ...
+      th_ancestors = 0.0;
+      all_ancestors = 1.0;
+    } else {
+      th_ancestors = 0.0;
+      all_ancestors = 0.0; // there is going to be an at least one, eventually
+      while(inf->hasNext(it)){
+        Unit* parent = inf->next(it);
+        if(parent->isClause()){
+          th_ancestors += static_cast<Clause*>(parent)->th_ancestors;
+          all_ancestors += static_cast<Clause*>(parent)->all_ancestors;
+        } else { // a parent is not a clause -> clausification final step
+          // TODO: this assumes all theory axioms arrive as clauses!
+          th_ancestors = 0.0;
+          all_ancestors = 1.0;
+          break;
+        }
+      }
+    }
+  }
 
   if(it == Unit::EXTENSIONALITY_AXIOM){
     //cout << "Setting extensionality" << endl;
@@ -458,10 +483,15 @@ vstring Clause::toString() const
     result += vstring(",inD:") + Int::toString(inductionDepth());
     result += vstring("}");
   }
+  result += " AU("+Int::toString(th_ancestors/all_ancestors)+") ";
   result +=  inferenceAsString();
   return result;
 }
 
+bool Clause::isAriNice() const
+{
+   return (th_ancestors / all_ancestors < env.options->ariUglyThreshold());
+}
 
 /**
  * Convert the clause into sequence of strings, each containing
