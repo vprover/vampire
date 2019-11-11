@@ -762,15 +762,29 @@ SplitLevel Splitter::getNameFromLiteralUnsafe(SATLiteral lit) const
 
   return (lit.var()-1)*2 + (lit.polarity() ? 0 : 1);
 }
-SATLiteral Splitter::getLiteralFromName(SplitLevel compName) const
+SATLiteral Splitter::getLiteralFromName(SplitLevel compName)
 {
   CALL("Splitter::getLiteralFromName");
-  ASS_L(compName, _db.size());
 
   unsigned var = compName/2 + 1;
   bool polarity = (compName&1)==0;
   return SATLiteral(var, polarity);
 }
+vstring Splitter::getFormulaStringFromName(SplitLevel compName, bool negated)
+{
+  CALL("Splitter::getFormulaStringFromName");
+
+  SATLiteral lit = getLiteralFromName(compName);
+  if (negated) {
+    lit = lit.opposite();
+  }
+  if (lit.isPositive()) {
+    return splPrefix+Lib::Int::toString(lit.var());
+  } else {
+    return "~"+splPrefix+Lib::Int::toString(lit.var());
+  }
+}
+
 Unit* Splitter::getDefinitionFromName(SplitLevel compName) const
 {
   CALL("Splitter::getDefinitionFromName");
@@ -972,19 +986,14 @@ bool Splitter::handleNonSplittable(Clause* cl)
     FormulaList* resLst=0;
     // do compName first
     UnitList::push(getDefinitionFromName(compName),ps);
-    vstring compNameNm = splPrefix+Lib::Int::toString(compName);
-    if((compName&1)!=0){ compNameNm="~"+compNameNm; }
-    FormulaList::push(new NamedFormula(compNameNm),resLst);
+    FormulaList::push(new NamedFormula(getFormulaStringFromName(compName)),resLst);
  
     // now do splits
     SplitSet::Iterator sit(*cl->splits());
     while(sit.hasNext()) {
       SplitLevel nm = sit.next();
       UnitList::push(getDefinitionFromName(nm),ps);
-      vstring lnm = splPrefix+Lib::Int::toString(nm);
-      // In the splits we reverse polarity
-      if((nm&1)==0){ lnm="~"+lnm; }
-      FormulaList::push(new NamedFormula(lnm),resLst);
+      FormulaList::push(new NamedFormula(getFormulaStringFromName(nm,true /*negated*/)),resLst);
     }
 
     UnitList::push(cl,ps); // making sure this clause is the last one pushed (for the sake of colorFromAssumedFOConversion)
@@ -1006,6 +1015,26 @@ bool Splitter::handleNonSplittable(Clause* cl)
   }
 
   return true;
+}
+
+/**
+ * Since the component names in a clauses Splitset should be interpreted as propositional variables,
+ * Splitter know how to do their proper printing.
+ */
+vstring Splitter::splitsToString(SplitSet* splits)
+{
+  CALL("Splitter::splitsToString");
+
+  vostringstream res;
+
+  typename SplitSet::Iterator it(*splits);
+  while(it.hasNext()) {
+    res << getLiteralFromName(it.next());
+    if(it.hasNext()) {
+      res<<", ";
+    }
+  }
+  return res.str();
 }
 
 /**
@@ -1119,9 +1148,7 @@ bool Splitter::doSplitting(Clause* cl)
     satClauseLits.push(nameLit);
 
     UnitList::push(getDefinitionFromName(compName),ps);
-    vstring compNameNm = splPrefix+Lib::Int::toString(compName);
-    if((compName&1)!=0){ compNameNm="~"+compNameNm; }
-    FormulaList::push(new NamedFormula(compNameNm),resLst);
+    FormulaList::push(new NamedFormula(getFormulaStringFromName(compName)),resLst);
   }
 
   SATClause* splitClause = SATClause::fromStack(satClauseLits);
@@ -1137,10 +1164,7 @@ bool Splitter::doSplitting(Clause* cl)
   while(sit.hasNext()) {
     SplitLevel nm = sit.next();
     UnitList::push(getDefinitionFromName(nm),ps);
-    vstring lnm = splPrefix+Lib::Int::toString(nm);
-    // in the splits we reverse polarity
-    if((nm&1)==0){ lnm="~"+lnm; }
-    FormulaList::push(new NamedFormula(lnm),resLst);
+    FormulaList::push(new NamedFormula(getFormulaStringFromName(nm,true /*negated*/)),resLst);
   }
 
   UnitList::push(cl,ps); // making sure this clause is the last one pushed (for the sake of colorFromAssumedFOConversion)
@@ -1208,13 +1232,15 @@ Clause* Splitter::buildAndInsertComponentClause(SplitLevel name, unsigned size, 
 
   Unit::InputType inpType = orig ? orig->inputType() : Unit::AXIOM;
 
+  vstring formula_name = getFormulaStringFromName(name);
+
   Clause* temp = Clause::fromIterator(getArrayishObjectIterator(lits, size), inpType,new Inference(Inference::AVATAR_DEFINITION));
   Formula* def_f = new BinaryFormula(IFF,
-               new NamedFormula(splPrefix+Lib::Int::toString(name)),
+               new NamedFormula(formula_name),
                Formula::fromClause(temp));
 
   FormulaUnit* def_u = new FormulaUnit(def_f,new Inference(Inference::AVATAR_DEFINITION),inpType);
-  InferenceStore::instance()->recordIntroducedSplitName(def_u,splPrefix+Lib::Int::toString(name));
+  InferenceStore::instance()->recordIntroducedSplitName(def_u,formula_name);
   //cout << "Add def for " << def_u->toString() << endl;
   ALWAYS(_defs.insert(name,def_u));
 
@@ -1613,10 +1639,7 @@ bool Splitter::handleEmptyClause(Clause* cl)
   SplitSet::Iterator sit(*cl->splits());
   while(sit.hasNext()) {
     SplitLevel nm = sit.next();
-    vstring lnm = splPrefix+Lib::Int::toString(nm);
-    // in the splits we reverse polarity
-    if((nm&1)==0){ lnm="~"+lnm; }
-    FormulaList::push(new NamedFormula(lnm),resLst);
+    FormulaList::push(new NamedFormula(getFormulaStringFromName(nm,true /*negated*/)),resLst);
   }
 
   UnitList* ps = UnitList::empty();
