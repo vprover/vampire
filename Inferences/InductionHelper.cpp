@@ -121,7 +121,7 @@ TermQueryResultIterator InductionHelper::getTQRsForInductionTerm(TermList induct
 
 void InductionHelper::callSplitterOnNewClause(Clause* c) {
   CALL("InductionHelper::callSplitterOnNewClause");
-  static bool splitting = env.options->splitting();
+  static bool splitting = (env.options->splitting() != Options::AvatarWhatToSplit::OFF);
   if (splitting) _splitter->onNewClause(c);
 }
 

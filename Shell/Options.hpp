@@ -461,6 +461,12 @@ public:
      Z3 = 5,
    };
 
+  enum class AvatarWhatToSplit : unsigned int {
+    CLAIMS_ONLY = 0,
+    OFF = 1,
+    ON = 2
+  };
+
   /** Possible values for activity of some inference rules */
   enum class RuleActivity : unsigned int {
     INPUT_ONLY = 0,
@@ -2160,8 +2166,8 @@ public:
   Condensation condensation() const { return _condensation.actualValue; }
   RuleActivity generalSplitting() const { return _generalSplitting.actualValue; }
   bool timeStatistics() const { return _timeStatistics.actualValue; }
-  bool splitting() const { return _splitting.actualValue; }
-  void setSplitting(bool value){ _splitting.actualValue=value; }
+  AvatarWhatToSplit splitting() const { return _splitting.actualValue; }
+  void setSplitting(bool value){ _splitting.actualValue=(value ? AvatarWhatToSplit::ON : AvatarWhatToSplit::OFF); }
   bool nonliteralsInClauseWeight() const { return _nonliteralsInClauseWeight.actualValue; }
   unsigned sineDepth() const { return _sineDepth.actualValue; }
   unsigned sineGeneralityThreshold() const { return _sineGeneralityThreshold.actualValue; }
@@ -2580,7 +2586,7 @@ private:
   FloatOptionValue _sineToAgeTolerance;
   ChoiceOptionValue<Sos> _sos;
   UnsignedOptionValue _sosTheoryLimit;
-  BoolOptionValue _splitting;
+  ChoiceOptionValue<AvatarWhatToSplit> _splitting;
   BoolOptionValue _splitAtActivation;
   ChoiceOptionValue<SplittingAddComplementary> _splittingAddComplementary;
   ChoiceOptionValue<SplittingCongruenceClosure> _splittingCongruenceClosure;
