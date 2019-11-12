@@ -90,6 +90,8 @@ public:
   virtual unsigned newVar() override;
   
   virtual void suggestPolarity(unsigned var, unsigned pol) override {
+    // cout << "Minisat suggestPolarity for " << var << " with pol " << pol << " (Minisat var "<< vampireVar2Minisat(var) << ")" << endl;
+
     // 0 -> true which means negated, e.g. false in the model
     bool mpol = pol ? false : true; 
     _solver.suggestPolarity(vampireVar2Minisat(var),mpol);

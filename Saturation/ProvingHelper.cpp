@@ -133,7 +133,7 @@ void ProvingHelper::runVampireSaturationImpl(Problem& prb, Options& opt) {
   MainLoopResult result;
   do {
     int al = opt.activationLimit();
-    cout << "Try solving for " << al << " activations" << endl;
+    // cout << "Try solving for " << al << " activations" << endl;
     ScopedPtr<MainLoop> salg(MainLoop::createFromOptions(prb, opt));
     result = salg->run();
     al = 1.1 * al;

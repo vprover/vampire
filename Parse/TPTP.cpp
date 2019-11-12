@@ -1306,9 +1306,6 @@ void TPTP::fof(bool fo)
   else if (tp == "hypothesis" || tp == "theorem" || tp == "lemma") {
     _lastInputType = Unit::ASSUMPTION;
   }
-  else if (tp == "hint") {
-    _lastInputType = Unit::HINT;
-  }
   else if (tp == "assumption" || tp == "unknown") {
     // assumptions are not used, so we assign them a non-existing input type and then
     // not include them in the input
