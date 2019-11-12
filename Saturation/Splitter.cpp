@@ -1076,6 +1076,18 @@ bool Splitter::getComponents(Clause* cl, Stack<LiteralStack>& acc)
   return true;
 }
 
+static bool isClaimClause(Clause* cl)
+{
+  CALL("Splitter.cpp:isClaimClause");
+
+  for (unsigned i = 0; i < cl->length(); i++) {
+    if (env.signature->getPredicate((*cl)[i]->functor())->label()) {
+      return true;
+    }
+  }
+  return false;
+}
+
 
 /**
  * Attempt to split clause @b cl, and return true if successful
@@ -1092,6 +1104,10 @@ bool Splitter::doSplitting(Clause* cl)
   if (_fastRestart && _haveBranchRefutation) {
     _fastClauses.push(cl);
     return true; // the clause is ours now
+  }
+
+  if ((getOptions().splitting() == Options::AvatarWhatToSplit::CLAIMS_ONLY) && !isClaimClause(cl)) {
+    return false;
   }
 
   static Stack<LiteralStack> comps;

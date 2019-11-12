@@ -1367,7 +1367,7 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
     }
   }
 
-  if(opt.splitting()){
+  if(opt.splitting() != Options::AvatarWhatToSplit::OFF){
     res->_splitter = new Splitter();
     res->_splitter->setHintsFakeSimplifier(hintsForAvatarFakeSimplifier);
   }

@@ -140,7 +140,7 @@ void Options::Options::init()
     "  -consequence_elimination: perform consequence elimination\n"
     "  -random_strategy: attempts to randomize the option values\n";
     _lookup.insert(&_mode);
-    _mode.addHardConstraint(If(equal(Mode::CONSEQUENCE_ELIMINATION)).then(_splitting.is(notEqual(true))));
+    _mode.addHardConstraint(If(equal(Mode::CONSEQUENCE_ELIMINATION)).then(_splitting.is(equal(AvatarWhatToSplit::OFF))));
 
     _schedule = ChoiceOptionValue<Schedule>("schedule","sched",Schedule::CASC,
         {"casc",
@@ -751,7 +751,7 @@ void Options::Options::init()
     _lookup.insert(&_saturationAlgorithm);
     _saturationAlgorithm.tag(OptionTag::SATURATION);
     // Captures that if the saturation algorithm is InstGen then splitting must be off
-    _saturationAlgorithm.addHardConstraint(If(equal(SaturationAlgorithm::INST_GEN)).then(_splitting.is(notEqual(true))));
+    _saturationAlgorithm.addHardConstraint(If(equal(SaturationAlgorithm::INST_GEN)).then(_splitting.is(equal(AvatarWhatToSplit::OFF))));
     // Note order of adding constraints matters (we assume previous gaurds are false)
     _saturationAlgorithm.setRandomChoices(isRandSat(),{"discount","otter","inst_gen","fmb"});
     _saturationAlgorithm.setRandomChoices(Or(hasCat(Property::UEQ),atomsLessThan(4000)),{"lrs","discount","otter","inst_gen"});
@@ -1270,7 +1270,7 @@ void Options::Options::init()
     _lookup.insert(&_globalSubsumptionAvatarAssumptions);
     _globalSubsumptionAvatarAssumptions.tag(OptionTag::INFERENCES);
     _globalSubsumptionAvatarAssumptions.reliesOn(_globalSubsumption.is(equal(true)));
-    _globalSubsumptionAvatarAssumptions.reliesOn(_splitting.is(equal(true)));
+    _globalSubsumptionAvatarAssumptions.reliesOn(_splitting.is(notEqual(AvatarWhatToSplit::OFF)));
     _globalSubsumptionAvatarAssumptions.setRandomChoices({"off","from_current","full_model"});
     _globalSubsumptionAvatarAssumptions.setExperimental();
 
@@ -1360,7 +1360,7 @@ void Options::Options::init()
 
 //*********************** AVATAR  ***********************
 
-    _splitting = BoolOptionValue("avatar","av",true);
+    _splitting = ChoiceOptionValue<AvatarWhatToSplit>("avatar","av",AvatarWhatToSplit::ON,{"claims_only","off","on"});
     _splitting.description="Use AVATAR splitting.";
     _lookup.insert(&_splitting);
     _splitting.tag(OptionTag::AVATAR);
@@ -1370,7 +1370,7 @@ void Options::Options::init()
     _splitAtActivation = BoolOptionValue("split_at_activation","sac",false);
     _splitAtActivation.description="Split a clause when it is activated, default is to split when it is processed";
     _lookup.insert(&_splitAtActivation);
-    _splitAtActivation.reliesOn(_splitting.is(equal(true)));
+    _splitAtActivation.reliesOn(_splitting.is(notEqual(AvatarWhatToSplit::OFF)));
     _splitAtActivation.tag(OptionTag::AVATAR);
     _splitAtActivation.setRandomChoices({"on","off"});
 
@@ -1380,7 +1380,7 @@ void Options::Options::init()
     _lookup.insert(&_splittingAddComplementary);
     _splittingAddComplementary.tag(OptionTag::AVATAR);
     _splittingAddComplementary.setExperimental();
-    _splittingAddComplementary.reliesOn(_splitting.is(equal(true)));
+    _splittingAddComplementary.reliesOn(_splitting.is(notEqual(AvatarWhatToSplit::OFF)));
     _splittingAddComplementary.setRandomChoices({"ground","none"});
 
 
@@ -1389,7 +1389,7 @@ void Options::Options::init()
     _splittingCongruenceClosure.description="Use a congruence closure decision procedure on top of the AVATAR SAT solver. This ensures that models produced by AVATAR satisfy the theory of uninterprted functions.";
     _lookup.insert(&_splittingCongruenceClosure);
     _splittingCongruenceClosure.tag(OptionTag::AVATAR);
-    _splittingCongruenceClosure.reliesOn(_splitting.is(equal(true)));
+    _splittingCongruenceClosure.reliesOn(_splitting.is(notEqual(AvatarWhatToSplit::OFF)));
 #if VZ3
     _splittingCongruenceClosure.reliesOn(_satSolver.is(notEqual(SatSolver::Z3)));
 #endif
@@ -1414,7 +1414,7 @@ void Options::Options::init()
     _splittingLiteralPolarityAdvice.description="Override SAT-solver's default polarity/phase setting for variables abstracting clause components.";
     _lookup.insert(&_splittingLiteralPolarityAdvice);
     _splittingLiteralPolarityAdvice.tag(OptionTag::AVATAR);
-    _splittingLiteralPolarityAdvice.reliesOn(_splitting.is(equal(true)));
+    _splittingLiteralPolarityAdvice.reliesOn(_splitting.is(notEqual(AvatarWhatToSplit::OFF)));
     _splittingLiteralPolarityAdvice.setExperimental();
 
     _splittingMinimizeModel = ChoiceOptionValue<SplittingMinimizeModel>("avatar_minimize_model","amm",
@@ -1426,7 +1426,7 @@ void Options::Options::init()
     _lookup.insert(&_splittingMinimizeModel);
     _splittingMinimizeModel.tag(OptionTag::AVATAR);
     //_splittingMinimizeModel.setExperimental();
-    _splittingMinimizeModel.reliesOn(_splitting.is(equal(true)));
+    _splittingMinimizeModel.reliesOn(_splitting.is(notEqual(AvatarWhatToSplit::OFF)));
     _splittingMinimizeModel.setRandomChoices({"off","sco","all"});
 
     _splittingEagerRemoval = BoolOptionValue("avatar_eager_removal","aer",true);
@@ -1434,7 +1434,7 @@ void Options::Options::init()
     _lookup.insert(&_splittingEagerRemoval);
     _splittingEagerRemoval.tag(OptionTag::AVATAR);
     //_splittingEagerRemoval.setExperimental();
-    _splittingEagerRemoval.reliesOn(_splitting.is(equal(true)));
+    _splittingEagerRemoval.reliesOn(_splitting.is(notEqual(AvatarWhatToSplit::OFF)));
     // if minimize is off then makes no difference
     // if minimize is sco then we could have a conflict clause added infinitely often
     _splittingEagerRemoval.reliesOn(_splittingMinimizeModel.is(equal(SplittingMinimizeModel::ALL)));
@@ -1445,7 +1445,7 @@ void Options::Options::init()
     _lookup.insert(&_splittingFastRestart);
     _splittingFastRestart.tag(OptionTag::AVATAR);
     _splittingFastRestart.setExperimental();
-    _splittingFastRestart.reliesOn(_splitting.is(equal(true)));
+    _splittingFastRestart.reliesOn(_splitting.is(notEqual(AvatarWhatToSplit::OFF)));
     _splittingFastRestart.setRandomChoices({"on","off"});
 
     _splittingBufferedSolver = BoolOptionValue("avatar_buffered_solver","abs",false);
@@ -1453,7 +1453,7 @@ void Options::Options::init()
     _lookup.insert(&_splittingBufferedSolver);
     _splittingBufferedSolver.tag(OptionTag::AVATAR);
     _splittingBufferedSolver.setExperimental();
-    _splittingBufferedSolver.reliesOn(_splitting.is(equal(true)));
+    _splittingBufferedSolver.reliesOn(_splitting.is(notEqual(AvatarWhatToSplit::OFF)));
     _splittingBufferedSolver.setRandomChoices({"on","off"});
 
     _splittingDeleteDeactivated = ChoiceOptionValue<SplittingDeleteDeactivated>("avatar_delete_deactivated","add",
@@ -1463,7 +1463,7 @@ void Options::Options::init()
     _lookup.insert(&_splittingDeleteDeactivated);
     _splittingDeleteDeactivated.tag(OptionTag::AVATAR);
     _splittingDeleteDeactivated.setExperimental();
-    _splittingDeleteDeactivated.reliesOn(_splitting.is(equal(true)));
+    _splittingDeleteDeactivated.reliesOn(_splitting.is(notEqual(AvatarWhatToSplit::OFF)));
     _splittingDeleteDeactivated.setRandomChoices({"on","large","off"});
 
 
@@ -1473,7 +1473,7 @@ void Options::Options::init()
     _lookup.insert(&_splittingFlushPeriod);
     _splittingFlushPeriod.tag(OptionTag::AVATAR);
     _splittingFlushPeriod.setExperimental();
-    _splittingFlushPeriod.reliesOn(_splitting.is(equal(true)));
+    _splittingFlushPeriod.reliesOn(_splitting.is(notEqual(AvatarWhatToSplit::OFF)));
     _splittingFlushPeriod.setRandomChoices({"0","1000","4000","10000","40000","100000"});
 
     _splittingFlushQuotient = FloatOptionValue("avatar_flush_quotient","afq",1.5);
@@ -1483,7 +1483,7 @@ void Options::Options::init()
     _splittingFlushQuotient.tag(OptionTag::AVATAR);
     _splittingFlushQuotient.setExperimental();
     _splittingFlushQuotient.addConstraint(greaterThanEq(1.0f));
-    _splittingFlushQuotient.reliesOn(_splitting.is(equal(true)));
+    _splittingFlushQuotient.reliesOn(_splitting.is(notEqual(AvatarWhatToSplit::OFF)));
     _splittingFlushQuotient.setRandomChoices({"1.0","1.1","1.2","1.4","2.0"});
 
     _splittingNonsplittableComponents = ChoiceOptionValue<SplittingNonsplittableComponents>("avatar_nonsplittable_components","anc",
@@ -1497,7 +1497,7 @@ void Options::Options::init()
     _lookup.insert(&_splittingNonsplittableComponents);
     _splittingNonsplittableComponents.tag(OptionTag::AVATAR);
     //_splittingNonsplittableComponents.setExperimental();
-    _splittingNonsplittableComponents.reliesOn(_splitting.is(equal(true)));
+    _splittingNonsplittableComponents.reliesOn(_splitting.is(notEqual(AvatarWhatToSplit::OFF)));
     _splittingNonsplittableComponents.setRandomChoices({"all","all_dependent","known","none"});
 
 
@@ -1507,7 +1507,7 @@ void Options::Options::init()
     _lookup.insert(&_nonliteralsInClauseWeight);
     _nonliteralsInClauseWeight.tag(OptionTag::AVATAR);
     _nonliteralsInClauseWeight.reliesOn(_saturationAlgorithm.is(notEqual(SaturationAlgorithm::INST_GEN)));
-    _nonliteralsInClauseWeight.reliesOn(_splitting.is(notEqual(false)));
+    _nonliteralsInClauseWeight.reliesOn(_splitting.is(equal(AvatarWhatToSplit::OFF)));
     _nonliteralsInClauseWeight.addProblemConstraint(hasNonUnits());
     _nonliteralsInClauseWeight.setRandomChoices({"on","off"});
 
@@ -1719,7 +1719,7 @@ void Options::Options::init()
     _questionAnswering = ChoiceOptionValue<QuestionAnsweringMode>("question_answering","qa",QuestionAnsweringMode::OFF,
                                                                   {"answer_literal","from_proof","off"});
     _questionAnswering.description="Determines whether (and how) we attempt to answer questions";
-    _questionAnswering.addHardConstraint(If(notEqual(QuestionAnsweringMode::OFF)).then(_splitting.is(notEqual(true))));
+    _questionAnswering.addHardConstraint(If(notEqual(QuestionAnsweringMode::OFF)).then(_splitting.is(equal(AvatarWhatToSplit::OFF))));
     _lookup.insert(&_questionAnswering);
     _questionAnswering.tag(OptionTag::OTHER);
 
