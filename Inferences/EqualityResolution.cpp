@@ -26,6 +26,7 @@
 #include "Lib/VirtualIterator.hpp"
 #include "Lib/Metaiterators.hpp"
 #include "Lib/PairUtils.hpp"
+#include "Lib/Set.hpp"
 
 #include "Lib/Environment.hpp"
 #include "Shell/Statistics.hpp"
@@ -37,7 +38,10 @@
 #include "Kernel/EqHelper.hpp"
 #include "Kernel/Ordering.hpp"
 #include "Kernel/LiteralSelector.hpp"
+#include "Kernel/SortHelper.hpp"
+#include "Kernel/ApplicativeHelper.hpp"
 #include "Saturation/SaturationAlgorithm.hpp"
+
 
 #include "EqualityResolution.hpp"
 
@@ -73,12 +77,36 @@ struct EqualityResolution::ResultFn
     ASS(lit->isEquality());
     ASS(lit->isNegative());
 
+    FuncSubtermMap funcSubtermMap;
+
+    TermList arg0 = *lit->nthArgument(0);
+    TermList arg1 = *lit->nthArgument(1);
+
+    if(env.options->combinatorySup()){
+      TermList sort = SortHelper::getEqualityArgumentSort(lit);
+      if(!arg0.isVar() && !arg1.isVar() && 
+         !sort.isVar() && !ApplicativeHelper::isArrowType(sort.term())){
+        arg0 = ApplicativeHelper::replaceFunctionalSubterms(arg0.term(), &funcSubtermMap);
+        arg1 = ApplicativeHelper::replaceFunctionalSubterms(arg1.term(), &funcSubtermMap);
+      }
+    }
+
     static RobSubstitution subst;
     subst.reset();
-    if(!subst.unify(*lit->nthArgument(0),0,*lit->nthArgument(1),0)) {
+    subst.setMap(&funcSubtermMap);
+    if(!subst.unify(arg0,0,arg1,0)) {
       return 0;
     }
-    unsigned newLen=_cLen-1;
+
+    typedef pair<Term*, Term*> ConPair;
+    unsigned cLength = subst.constraintsSize();
+    const Set<ConPair>& constraints = subst.constraints();
+
+    //cout << "equalityResolution with " + _cl->toString() << endl;
+    //cout << "The literal is " + lit->toString() << endl;
+    //cout << "cLength " << cLength << endl;
+
+    unsigned newLen=_cLen-1+cLength;
 
     Inference* inf = new Inference1(Inference::EQUALITY_RESOLUTION, _cl);
     Clause* res = new(newLen) Clause(newLen, _cl->inputType(), inf);
@@ -107,6 +135,21 @@ struct EqualityResolution::ResultFn
         }
 
         (*res)[next++] = currAfter;
+      }
+    }
+    if(cLength){
+      Set<ConPair>::Iterator it(constraints);
+      ConPair con;
+      while(it.hasNext()){
+        con = it.next();
+        TermList qT = subst.apply(TermList(con.first), 0);
+        TermList rT = subst.apply(TermList(con.second), 0);
+
+        TermList sort = SortHelper::getResultSort(rT.term());
+        Literal* constraint = Literal::createEquality(false,qT,rT,sort);
+
+        (*res)[next] = constraint;
+        next++;        
       }
     }
     ASS_EQ(next,newLen);

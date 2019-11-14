@@ -42,21 +42,6 @@ using namespace Inferences;
 
 typedef ApplicativeHelper AH; 
 
-struct CombinatorDemodISE::HigherOrderTermInfo
-{
-public:
-  HigherOrderTermInfo(TermList h, TermList hs, unsigned an){
-    head = h;
-    headSort = hs;
-    argNum = an;
-  }
-
-  TermList head;
-  TermList headSort;
-  unsigned argNum;
-};
-
-
 Clause* CombinatorDemodISE::simplify(Clause* c)
 {
   CALL("CombinatorDemodISE::simplify");
@@ -91,7 +76,10 @@ Clause* CombinatorDemodISE::simplify(Clause* c)
 
   Inference* inference = new Inference1(Inference::COMBINATOR_DEMOD, c);
   Clause* newC = Clause::fromStack(litStack, c->inputType(), inference);
-  //cout << "out of CombinatorDemodISE " + newC->toString() << endl;
+  newC->setAge(c->age());
+  //if(c->number() == 9){
+   // cout << "out of CombinatorDemodISE " + newC->toString() << endl;
+ // }
   //if(!newC){ cout << "RETURNING NULL CLAUSE" << endl; }
   return newC;
 }
@@ -105,7 +93,7 @@ TermList CombinatorDemodISE::reduce(TermList t)
   ASS(!t.isVar());
     
   static Stack<Term*> terms(8);
-  static Stack<HigherOrderTermInfo> infos(8);
+  static Stack<AH::HigherOrderTermInfo> infos(8);
   static Stack<bool> modified(8);
   static Stack<ArgsIt_ptr> argIts(8);
   static TermStack args;
@@ -120,7 +108,7 @@ TermList CombinatorDemodISE::reduce(TermList t)
   modified.push(false);
   argIts.push(ArgsIt_ptr(new ApplicativeArgsIt(t, false)));
   ArgsIt_ptr argsIt = argIts.top();
-  infos.push(HigherOrderTermInfo(argsIt->head(), argsIt->headSort(), argsIt->argNum()));
+  infos.push(AH::HigherOrderTermInfo(argsIt->head(), argsIt->headSort(), argsIt->argNum()));
 
   for (;;) {
     if (!argIts.top()->hasNext()) {
@@ -132,7 +120,7 @@ TermList CombinatorDemodISE::reduce(TermList t)
         break;
       }
       Term* orig = terms.pop();
-      HigherOrderTermInfo hoti=infos.pop();
+      AH::HigherOrderTermInfo hoti=infos.pop();
       if (!modified.pop()) {
         args.truncate(args.length() - hoti.argNum);
         args.push(TermList(orig));
@@ -165,13 +153,13 @@ TermList CombinatorDemodISE::reduce(TermList t)
     modified.push(false);
     argIts.push(ArgsIt_ptr(new ApplicativeArgsIt(tl, false)));
     argsIt = argIts.top();
-    infos.push(HigherOrderTermInfo(argsIt->head(), argsIt->headSort(), argsIt->argNum()));
+    infos.push(AH::HigherOrderTermInfo(argsIt->head(), argsIt->headSort(), argsIt->argNum()));
   }
   ASS(argIts.isEmpty());
   ASS(terms.isEmpty());
   ASS_EQ(modified.length(),1);
   ASS_EQ(infos.length(),1);
-  HigherOrderTermInfo hoti=infos.pop();
+  AH::HigherOrderTermInfo hoti=infos.pop();
   ASS_EQ(args.length(),hoti.argNum);
 
   if (!modified.pop()) {

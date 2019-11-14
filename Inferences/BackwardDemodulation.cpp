@@ -232,7 +232,6 @@ struct BackwardDemodulation::ResultFn
 
     res->setAge(qr.clause->age());
     env.statistics->backwardDemodulations++;
-
     _removed->insert(qr.clause);
     return BwSimplificationRecord(qr.clause,res);
   }

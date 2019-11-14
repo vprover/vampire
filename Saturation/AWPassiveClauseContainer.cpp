@@ -280,18 +280,38 @@ Clause* AWPassiveClauseContainer::popSelected()
   else {
     byWeight = (_ageRatio <= _weightRatio);
   }
+  
+  /*ClauseQueue::Iterator it(_ageQueue);
+
+  cout << "age queue: " << endl;
+  while(it.hasNext()){
+    Clause* c = it.next();
+    cout << c->number() << ". ";
+  }
+  cout << "\n";
+
+  ClauseQueue::Iterator it2(_weightQueue);
+
+  cout << "weight queue: " << endl;
+  while(it2.hasNext()){
+    Clause* c = it2.next();
+    cout << c->number() << ". ";
+  }
+  cout << "\n";*/
 
   if (byWeight) {
     _balance -= _ageRatio;
     Clause* cl = _weightQueue.pop();
     _ageQueue.remove(cl);
     selectedEvent.fire(cl);
+    //cout << "popping " << cl->number() << endl;
     return cl;
   }
   _balance += _weightRatio;
   Clause* cl = _ageQueue.pop();
   _weightQueue.remove(cl);
   selectedEvent.fire(cl);
+  //cout << "popping " << cl->number() << endl;
   return cl;
 } // AWPassiveClauseContainer::popSelected
 

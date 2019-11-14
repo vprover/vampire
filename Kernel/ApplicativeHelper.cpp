@@ -1,7 +1,9 @@
 
 #include "Kernel/Signature.hpp"
 #include "Kernel/SortHelper.hpp"
+#include "Kernel/TermIterators.hpp"
 
+#include "Lib/SmartPtr.hpp"
 
 #include "ApplicativeHelper.hpp"
 
@@ -37,7 +39,7 @@ TermList ApplicativeHelper::createAppTerm(TermList sort, TermList arg1, TermList
   return createAppTerm(s1, s2, arg1, arg2);
 }
 
-TermList ApplicativeHelper::createAppTerm(TermList s1, TermList s2, TermList arg1, TermList arg2)
+TermList ApplicativeHelper::createAppTerm(TermList s1, TermList s2, TermList arg1, TermList arg2, bool shared)
 {
   CALL("ApplicativeHelper::createAppTerm/1");
  
@@ -48,7 +50,10 @@ TermList ApplicativeHelper::createAppTerm(TermList s1, TermList s2, TermList arg
   args.push(arg1);
   args.push(arg2);
   unsigned app = env.signature->getApp();
-  return TermList(Term::create(app, 4, args.begin()));
+  if(shared){
+    return TermList(Term::create(app, 4, args.begin()));
+  }
+  return TermList(Term::createNonShared(app, 4, args.begin()));    
 }
 
 TermList ApplicativeHelper::createAppTerm(TermList sort, TermList head, TermStack& terms)
@@ -69,7 +74,7 @@ TermList ApplicativeHelper::createAppTerm(TermList sort, TermList head, TermStac
 
 }
 
-TermList ApplicativeHelper::createAppTerm(TermList sort, TermList head, TermList* args, unsigned arity)
+TermList ApplicativeHelper::createAppTerm(TermList sort, TermList head, TermList* args, unsigned arity, bool shared)
 {
   CALL("ApplicativeHelper::createAppTerm/5");
   ASS_REP(head.isVar() || SortHelper::getResultSort(head.term()) == sort, sort.toString() );
@@ -80,11 +85,10 @@ TermList ApplicativeHelper::createAppTerm(TermList sort, TermList head, TermList
   for(int i = 0; i < arity; i++){
     s1 = getNthArg(sort, 1);
     s2 = getResultApplieadToNArgs(sort, 1);
-    res = createAppTerm(s1, s2, res, args[i]);
+    res = createAppTerm(s1, s2, res, args[i], shared);
     sort = s2;
   }
   return res; 
-
 }  
 
 
@@ -337,4 +341,93 @@ bool ApplicativeHelper::isSafe(TermStack& args)
     }
   }
   return true;
+}
+
+TermList ApplicativeHelper::replaceFunctionalSubterms(Term* term, FuncSubtermMap* fsm)
+{
+  CALL("TermSubstitutionTree::replaceFunctionalSubterms");
+  
+  typedef SmartPtr<ApplicativeArgsIt> ArgsIt_ptr;
+  typedef ApplicativeHelper AH;
+    
+  static Stack<Term*> terms(8);
+  static Stack<AH::HigherOrderTermInfo> infos(8);
+  static Stack<bool> modified(8);
+  static Stack<ArgsIt_ptr> argIts(8);
+  static TermStack args;
+
+  ASS(argIts.isEmpty());
+  ASS(terms.isEmpty());
+  ASS(infos.isEmpty());
+  modified.reset();
+  args.reset();
+
+  modified.push(false);
+  argIts.push(ArgsIt_ptr(new ApplicativeArgsIt(TermList(term), false)));
+  ArgsIt_ptr argsIt = argIts.top();
+  infos.push(AH::HigherOrderTermInfo(argsIt->head(), argsIt->headSort(), argsIt->argNum()));
+
+  for (;;) {
+    if (!argIts.top()->hasNext()) {
+      argIts.pop();
+      if (terms.isEmpty()) {
+        //we're done, args stack contains modified arguments
+        //of the literal.
+        ASS(argIts.isEmpty());
+        break;
+      }
+      Term* orig = terms.pop();
+      AH::HigherOrderTermInfo hoti=infos.pop();
+      if (!modified.pop()) {
+        args.truncate(args.length() - hoti.argNum);
+        args.push(TermList(orig));
+        continue;
+      }
+      //here we assume, that stack is an array with
+      //second topmost element as &top()-1, third at
+      //&top()-2, etc...
+      TermList* argLst=&args.top() - (hoti.argNum - 1);
+      args.truncate(args.length() - hoti.argNum);
+
+      TermList trm = AH::createAppTerm(hoti.headSort, hoti.head, argLst, hoti.argNum, false);
+      args.push(trm);
+      modified.setTop(true);
+      continue;
+    }
+
+    TermList tl= argIts.top()->next();
+    if(tl.isTerm()){
+      TermList sort = SortHelper::getResultSort(tl.term());
+      if(sort.isVar() || ApplicativeHelper::isArrowType(sort.term())){
+        tl = getVSpecVar(tl.term(), fsm);
+        modified.setTop(true);
+      }      
+    } 
+
+    if (tl.isVar()) {
+      args.push(tl);
+      continue;
+    }
+    ASS(tl.isTerm());
+    Term* t=tl.term();
+    terms.push(t);
+    modified.push(false);
+    argIts.push(ArgsIt_ptr(new ApplicativeArgsIt(tl, false)));
+    argsIt = argIts.top();
+    infos.push(AH::HigherOrderTermInfo(argsIt->head(), argsIt->headSort(), argsIt->argNum()));
+  }
+  ASS(argIts.isEmpty());
+  ASS(terms.isEmpty());
+  ASS_EQ(modified.length(),1);
+  ASS_EQ(infos.length(),1);
+  AH::HigherOrderTermInfo hoti=infos.pop();
+  ASS_EQ(args.length(),hoti.argNum);
+
+  if (!modified.pop()) {
+    return TermList(term);
+  }
+
+  TermList* argLst=&args.top() - (hoti.argNum-1);
+  ASS(!term->isLiteral());
+  return AH::createAppTerm(hoti.headSort, hoti.head, argLst, hoti.argNum, false);
 }

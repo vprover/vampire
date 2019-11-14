@@ -85,12 +85,15 @@ struct TermQueryResult
   : term(t), literal(l), clause(c) {}
   TermQueryResult(TermList t, Literal* l, Clause* c, ResultSubstitutionSP s,UnificationConstraintStackSP con)
   : term(t), literal(l), clause(c), substitution(s), constraints(con) {}
+  TermQueryResult(TermList t, Literal* l, Clause* c, ResultSubstitutionSP s,UnificationConstraintStackSP con, bool b)
+  : term(t), literal(l), clause(c), substitution(s), constraints(con), isTypeSub(b) {}
 
   TermList term;
   Literal* literal;
   Clause* clause;
   ResultSubstitutionSP substitution;
   UnificationConstraintStackSP constraints;
+  bool isTypeSub = false; //true if the substitution only unifies the types of the terms
 };
 
 struct ClauseSResQueryResult

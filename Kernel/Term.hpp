@@ -69,12 +69,14 @@ enum TermTag {
   SPEC_VAR = 3u,
 };
 
+
 /**
  * Class containing either a pointer to a compound term or
  * a variable number or a functor.
  */
 class TermList {
 public:
+  static const unsigned SPEC_UPPER_BOUND = 10000000;
   /** dummy constructor, does nothing */
   TermList() {}
   /** creates a term list and initialises its content with data */
@@ -113,7 +115,9 @@ public:
   /** the term contains an ordinary variable as its head */
   inline bool isOrdinaryVar() const { return tag() == ORD_VAR; }
   /** the term contains a special variable as its head */
-  inline bool isSpecialVar() const { return tag() == SPEC_VAR; }
+  inline bool isSpecialVar() const { return tag() == SPEC_VAR && var() < SPEC_UPPER_BOUND; }
+
+  inline bool isVSpecialVar() const { return tag() == SPEC_VAR && var() > SPEC_UPPER_BOUND; }
   /** return the variable number */
   inline unsigned var() const
   { ASS(isVar()); return _content / 4; }
@@ -316,6 +320,7 @@ public:
   explicit Term(const Term& t) throw();
   static Term* create(unsigned function, unsigned arity, TermList* args);
   static Term* create(Term* t,TermList* args);
+  static Term* createNonShared(unsigned function, unsigned arity, TermList* arg);
   static Term* createNonShared(Term* t,TermList* args);
   static Term* createNonShared(Term* t);
   static Term* cloneNonShared(Term* t);

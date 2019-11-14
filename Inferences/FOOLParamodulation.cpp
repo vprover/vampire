@@ -35,6 +35,7 @@
 #include "Kernel/TermIterators.hpp"
 #include "Kernel/Signature.hpp"
 #include "Kernel/Sorts.hpp"
+#include "Kernel/SortHelper.hpp"
 
 #include "FOOLParamodulation.hpp"
 
@@ -104,7 +105,7 @@ ClauseIterator FOOLParamodulation::generateClauses(Clause* premise) {
         continue;
       }
 
-      TermList resultType = env.signature->getFunction(functor)->fnType()->result();
+      TermList resultType =  SortHelper::getResultSort(subterm.term());
       if (resultType == Term::boolSort()) {
         booleanTerm = subterm;
         goto substitution;

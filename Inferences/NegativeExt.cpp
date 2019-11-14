@@ -178,9 +178,11 @@ struct NegativeExt::ResultFn
 
     res->setAge(_cl->age()+1);
     env.statistics->negativeExtensionality++;
-
-    //cout << "the original clause " + _cl->toString() << endl;
-    //cout << "the new clause " + res->toString() << endl;
+ 
+    //if(_cl->number() == 63){
+      //cout << "the original clause " + _cl->toString() << endl;
+      //cout << "the new clause " + res->toString() << endl;
+    //}
     return res;
   }
 private:

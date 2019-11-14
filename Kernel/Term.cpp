@@ -636,7 +636,7 @@ vstring Term::toString(bool topLevel) const
       return res;
     }
     printArgs = env.signature->getFunction(_functor)->combinator() == Signature::NOT_COMB;
-  }
+  } 
 
   vstring s = headToString();
 
@@ -873,6 +873,7 @@ Term* Term::create(unsigned function, unsigned arity, TermList* args)
   return s;
 }
 
+
 /** Create a new constant and insert in into the sharing
  *  structure.
  */
@@ -901,6 +902,31 @@ Term* Term::createNonShared(Term* t,TermList* args)
   }
   return s;
 } // Term::createNonShared(const Term* t,Term* args)
+
+
+
+/** Create a new complex term, and insert it into the sharing
+ *  structure if all arguments are shared.
+ */
+Term* Term::createNonShared(unsigned function, unsigned arity, TermList* args)
+{
+  CALL("Term::createNonShared/3");
+  ASS_EQ(env.signature->functionArity(function), arity);
+
+  Term* s = new(arity) Term;
+  s->makeSymbol(function,arity);
+
+  TermList* ss = s->args();
+
+  TermList* curArg = args;
+  TermList* argStopper = args+arity;
+  while (curArg!=argStopper) {
+    *ss = *curArg;
+    --ss;
+    ++curArg;
+  }
+  return s;
+}
 
 /**
  * Create a (condition ? thenBranch : elseBranch) expression

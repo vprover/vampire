@@ -41,6 +41,7 @@
 #include "Lib/Backtrackable.hpp"
 #include "Lib/ArrayMap.hpp"
 #include "Lib/Array.hpp"
+#include "Lib/BiMap.hpp"
 
 #include "Kernel/RobSubstitution.hpp"
 #include "Kernel/Renaming.hpp"
@@ -84,7 +85,7 @@ public:
   CLASS_NAME(SubstitutionTree);
   USE_ALLOCATOR(SubstitutionTree);
 
-  SubstitutionTree(int nodes,bool useC=false);
+  SubstitutionTree(int nodes,bool useC=false, bool rfSubs=false);
   ~SubstitutionTree();
 
   // Tags are used as a debug tool to turn debugging on for a particular instance
@@ -661,6 +662,9 @@ public:
   ZIArray<Node*> _nodes;
   /** enable searching with constraints for this tree */
   bool _useC;
+  /** functional subterms of a term are replaced by extra sepcial
+      variables before being inserted into the tree */
+  bool _rfSubs;
 
   class LeafIterator
   : public IteratorCore<Leaf*>
@@ -695,7 +699,8 @@ public:
   {
   public:
     FastGeneralizationsIterator(SubstitutionTree* parent, Node* root, Term* query,
-            bool retrieveSubstitution, bool reversed,bool withoutTop,bool useC);
+            bool retrieveSubstitution, bool reversed,bool withoutTop,bool useC, 
+            FuncSubtermMap* fstm = 0);
 
     ~FastGeneralizationsIterator();
 
@@ -741,7 +746,8 @@ public:
   {
   public:
     FastInstancesIterator(SubstitutionTree* parent, Node* root, Term* query,
-	    bool retrieveSubstitution, bool reversed, bool withoutTop, bool useC);
+	    bool retrieveSubstitution, bool reversed, bool withoutTop, bool useC, 
+      FuncSubtermMap* fstm = 0);
     ~FastInstancesIterator();
 
     bool hasNext();
@@ -774,7 +780,9 @@ public:
   : public IteratorCore<QueryResult>
   {
   public:
-    UnificationsIterator(SubstitutionTree* parent, Node* root, Term* query, bool retrieveSubstitution, bool reversed,bool withoutTop, bool useC);
+    UnificationsIterator(SubstitutionTree* parent, Node* root, Term* query, 
+      bool retrieveSubstitution, bool reversed, bool withoutTop, bool useC, 
+      FuncSubtermMap* funcSubtermMap = 0);
     ~UnificationsIterator();
 
     bool hasNext();
@@ -814,6 +822,7 @@ public:
     Renaming queryNormalizer;
     SubstitutionTree* tree;
     bool useConstraints;
+    bool print;
     Stack<UnificationConstraint> constraints;
   };
 

@@ -31,6 +31,7 @@
 #include "Kernel/Renaming.hpp"
 #include "Kernel/SubstHelper.hpp"
 #include "Kernel/Term.hpp"
+#include "Kernel/ApplicativeHelper.hpp"
 
 #include "Lib/BinaryHeap.hpp"
 #include "Lib/Metaiterators.hpp"
@@ -60,8 +61,8 @@ using namespace Indexing;
  * Initialise the substitution tree.
  * @since 16/08/2008 flight Sydney-San Francisco
  */
-SubstitutionTree::SubstitutionTree(int nodes,bool useC)
-  : tag(false), _nextVar(0), _nodes(nodes), _useC(useC)
+SubstitutionTree::SubstitutionTree(int nodes,bool useC, bool rfSubs)
+  : tag(false), _nextVar(0), _nodes(nodes), _useC(useC), _rfSubs(rfSubs)
 {
   CALL("SubstitutionTree::SubstitutionTree");
 
@@ -303,43 +304,43 @@ start:
       ASS(s->functor() == t->functor());
 
       if (s->shared()) {
-	// create a shallow copy of s
-	s = Term::cloneNonShared(s);
-	ss->setTerm(s);
+        // create a shallow copy of s
+        s = Term::cloneNonShared(s);
+        ss->setTerm(s);
       }
 
       ss = s->args();
       tt = t->args();
       if (ss->next()->isEmpty()) {
-	continue;
+        continue;
       }
       subterms.push(ss->next());
       subterms.push(tt->next());
     } else {
       if (! TermList::sameTop(*ss,*tt)) {
-	unsigned x;
-	if(!ss->isSpecialVar()) {
-	  x = _nextVar++;
-#if REORDERING
-	  unresolvedSplits.insert(UnresolvedSplitRecord(x,*ss));
-	  ss->makeSpecialVar(x);
-#else
-	  Node::split(pnode,ss,x);
-#endif
-	} else {
-	  x=ss->var();
-	}
-	svBindings.set(x,*tt);
+        unsigned x;
+        if(!ss->isSpecialVar()) {
+          x = _nextVar++;
+        #if REORDERING
+          unresolvedSplits.insert(UnresolvedSplitRecord(x,*ss));
+          ss->makeSpecialVar(x);
+        #else
+          Node::split(pnode,ss,x);
+        #endif
+        } else {
+          x=ss->var();
+        }
+        svBindings.set(x,*tt);
       }
 
       if (subterms.isEmpty()) {
-	break;
+        break;
       }
       tt = subterms.pop();
       ss = subterms.pop();
       if (! ss->next()->isEmpty()) {
-	subterms.push(ss->next());
-	subterms.push(tt->next());
+        subterms.push(ss->next());
+        subterms.push(tt->next());
       }
     }
   }
@@ -681,7 +682,8 @@ bool SubstitutionTree::LeafIterator::hasNext()
 }
 
 SubstitutionTree::UnificationsIterator::UnificationsIterator(SubstitutionTree* parent,
-	Node* root, Term* query, bool retrieveSubstitution, bool reversed, bool withoutTop, bool useC)
+	Node* root, Term* query, bool retrieveSubstitution, bool reversed, 
+  bool withoutTop, bool useC, FuncSubtermMap* funcSubtermMap)
 : tag(parent->tag), 
 svStack(32), literalRetrieval(query->isLiteral()),
   retrieveSubstitution(retrieveSubstitution), inLeaf(false),
@@ -701,8 +703,28 @@ clientBDRecording(false), tree(parent), useConstraints(useC)
     return;
   }
 
+  /*print = false;
+  if(query->toString() == "X7 @ S10000001"){
+    cout << "started" << endl;
+    print = true;
+    cout << parent->toString() << endl;
+  }*/
+
+  if(funcSubtermMap){
+    subst.setMap(funcSubtermMap);
+  }
+
   queryNormalizer.normalizeVariables(query);
   Term* queryNorm=queryNormalizer.apply(query);
+
+  if(funcSubtermMap){
+    //cout << "queryNorm is " + query->toString() << endl;
+    TermList t = ApplicativeHelper::replaceFunctionalSubterms(queryNorm, funcSubtermMap);
+    ASS(!t.isVar());
+    queryNorm = t.term();
+    //cout << "queryNorm is " + query->toString() << endl;
+    //cout << "the tree is " + tree->toString() << endl;
+  }
 
   if(withoutTop){
     subst.bindSpecialVar(0,TermList(queryNorm),NORM_QUERY_BANK);
@@ -798,6 +820,10 @@ SubstitutionTree::QueryResult SubstitutionTree::UnificationsIterator::next()
     } else {
       normalizer.normalizeVariables(ld.term);
     }
+    /*if(print){
+      cout << "the literal is " + ld.literal->toString() << endl;
+      cout << "the term is " + ld.term.toString() << endl;
+    }/
 /*
     Stack<UnificationConstraint> normalizedConstraints;
     Stack<UnificationConstraint>::Iterator conit(constraints);
@@ -999,6 +1025,8 @@ bool SubstitutionTree::UnificationsIterator::associate(TermList query, TermList 
   return result;
 }
 
+//TODO I think this works for VSpcialVars as well. Since .isVar() will return true 
+//for them
 SubstitutionTree::NodeIterator
   SubstitutionTree::UnificationsIterator::getNodeIterator(IntermediateNode* n)
 {
@@ -1022,58 +1050,5 @@ SubstitutionTree::NodeIterator
   }
 }
 
-/*
-bool SubstitutionTree::GeneralizationsIterator::associate(TermList query, TermList node)
-{
-  CALL("SubstitutionTree::GeneralizationsIterator::associate");
-  return subst.match(node, NORM_RESULT_BANK, query, NORM_QUERY_BANK);
-}
 
-SubstitutionTree::NodeIterator
-  SubstitutionTree::GeneralizationsIterator::getNodeIterator(IntermediateNode* n)
-{
-  CALL("SubstitutionTree::GeneralizationsIterator::getNodeIterator");
-
-  unsigned specVar=n->childVar;
-  TermList qt=subst.getSpecialVarTop(specVar);
-  if(qt.isVar()) {
-    return n->variableChildren();
-  } else {
-    Node** match=n->childByTop(qt, false);
-    if(match) {
-      return pvi( getConcatenatedIterator(getSingletonIterator(match),
-	      n->variableChildren()) );
-    } else {
-      return n->variableChildren();
-    }
-  }
-}
-*/
-
-/*
-bool SubstitutionTree::InstancesIterator::associate(TermList query, TermList node)
-{
-  CALL("SubstitutionTree::InstancesIterator::associate");
-  return subst.match(query, NORM_QUERY_BANK, node, NORM_RESULT_BANK);
-}
-
-SubstitutionTree::NodeIterator
-  SubstitutionTree::InstancesIterator::getNodeIterator(IntermediateNode* n)
-{
-  CALL("SubstitutionTree::GeneralizationsIterator::getNodeIterator");
-
-  unsigned specVar=n->childVar;
-  TermList qt=subst.getSpecialVarTop(specVar);
-  if(qt.isVar()) {
-    return n->allChildren();
-  } else {
-    Node** match=n->childByTop(qt, false);
-    if(match) {
-      return pvi( getSingletonIterator(match) );
-    } else {
-      return NodeIterator::getEmpty();
-    }
-  }
-}
-*/
 

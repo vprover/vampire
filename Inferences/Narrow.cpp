@@ -165,8 +165,11 @@ Clause* Narrow::performNarrow(
   // we want the rwClause and eqClause to be active
   ASS(nClause->store()==Clause::ACTIVE);
 
-  //cout << "performNarrow with " << nClause->toString() << "\n and " << nLiteral->toString() << "\n and " << nTerm.toString() << endl;
-  //cout << "combAxLhs " << combAxLhs.toString() << endl;
+  //if(nClause->number() == 115){
+    //cout << "performNarrow with " << nClause->toString() /*<< "\n and " << nLiteral->toString() << "\n and " << nTerm.toString()*/ << endl;
+    //cout << "the term being narrowed " << nTerm.toString() << endl;
+    //cout << "combAxLhs " << combAxLhs.toString() << endl;
+  //}
 
   unsigned cLen = nClause->length();
   TermList combAxRhs = EqHelper::getOtherEqualitySide(combAx, combAxLhs);
@@ -237,7 +240,9 @@ Clause* Narrow::performNarrow(
 
   res->setAge(nClause->age() + 1);
   env.statistics->narrow++;
-  //cout << "returning " + res->toString() << endl;
+ // if(nClause->number() == 115){
+   // cout << "returning " + res->toString() << endl;
+ // }
   return res;
 
 construction_fail:

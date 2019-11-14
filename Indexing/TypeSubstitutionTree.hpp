@@ -1,6 +1,6 @@
 
 /*
- * File TermSubstitutionTree.hpp.
+ * File TypeSubstitutionTree.hpp.
  *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
@@ -17,13 +17,13 @@
  * licence, which we will make an effort to provide. 
  */
 /**
- * @file TermSubstitutionTree.hpp
- * Defines class TermSubstitutionTree.
+ * @file TypeSubstitutionTree.hpp
+ * Defines class TypeSubstitutionTree.
  */
 
 
-#ifndef __TermSubstitutionTree__
-#define __TermSubstitutionTree__
+#ifndef __TypeSubstitutionTree__
+#define __TypeSubstitutionTree__
 
 
 #include "Kernel/Renaming.hpp"
@@ -32,54 +32,40 @@
 
 #include "Index.hpp"
 #include "TermIndexingStructure.hpp"
-#include "TypeSubstitutionTree.hpp"
 #include "SubstitutionTree.hpp"
 
 namespace Indexing {
 
-class TermSubstitutionTree
+class TypeSubstitutionTree
 : public TermIndexingStructure, SubstitutionTree
 {
 public:
-  CLASS_NAME(TermSubstitutionTree);
-  USE_ALLOCATOR(TermSubstitutionTree);
+  CLASS_NAME(TypeSubstitutionTree);
+  USE_ALLOCATOR(TypeSubstitutionTree);
 
-  TermSubstitutionTree(bool useC=false, bool replaceFunctionalSubterms = false);
+  TypeSubstitutionTree();
 
-  void insert(TermList t, Literal* lit, Clause* cls);
-  void remove(TermList t, Literal* lit, Clause* cls);
+  void insert(TermList sort, LeafData ld);
+  void remove(TermList sort, LeafData ld);
+  void handleTerm(TermList t, LeafData ld, bool insert);
+  void insert(TermList t, Literal* lit, Clause* cls){ NOT_IMPLEMENTED; }
+  void remove(TermList t, Literal* lit, Clause* cls){ NOT_IMPLEMENTED; }
 
-  bool generalizationExists(TermList t);
 
-
-  TermQueryResultIterator getUnifications(TermList t,
-	  bool retrieveSubstitutions);
-
-  TermQueryResultIterator getUnificationsWithConstraints(TermList t,
-    bool retrieveSubstitutions);
-
-  TermQueryResultIterator getUnificationsUsingSorts(TermList t, TermList sort,
-    bool retrieveSubstitutions);
-
-  TermQueryResultIterator getGeneralizations(TermList t,
-	  bool retrieveSubstitutions);
-
-  TermQueryResultIterator getInstances(TermList t,
+  TermQueryResultIterator getUnifications(TermList sort,
 	  bool retrieveSubstitutions);
 
 #if VDEBUG
   virtual void markTagged(){ SubstitutionTree::markTagged();}
 #endif
+  
 
 private:
-
-  void handleTerm(TermList t, Literal* lit, Clause* cls, bool insert);
-
   struct TermQueryResultFn;
 
   template<class Iterator>
   TermQueryResultIterator getResultIterator(Term* term,
-	  bool retrieveSubstitutions,bool withConstraints);
+	  bool retrieveSubstitutions);
 
   struct LDToTermQueryResultFn;
   struct LDToTermQueryResultWithSubstFn;
@@ -88,11 +74,10 @@ private:
 
   template<class LDIt>
   TermQueryResultIterator ldIteratorToTQRIterator(LDIt ldIt,
-	  TermList queryTerm, bool retrieveSubstitutions,
-          bool withConstraints);
+	  TermList queryTerm, bool retrieveSubstitutions);
 
   TermQueryResultIterator getAllUnifyingIterator(TermList trm,
-	  bool retrieveSubstitutions,bool withConstraints);
+	  bool retrieveSubstitution);
 
   inline
   unsigned getRootNodeIndex(Term* t)
@@ -102,15 +87,8 @@ private:
 
   typedef SkipList<LeafData,LDComparator> LDSkipList;
   LDSkipList _vars;
-
-  bool _replaceFuncSubterms;
-
-  FuncSubtermMap _functionalSubtermMap;
-
-  TypeSubstitutionTree* _funcSubtermsByType;
-
 };
 
 };
 
-#endif /* __TermSubstitutionTree__ */
+#endif /* __TypeSubstitutionTree__ */

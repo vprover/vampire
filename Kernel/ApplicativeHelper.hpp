@@ -9,6 +9,7 @@
 #include "Forwards.hpp"
 #include "Signature.hpp"
 #include "Lib/Deque.hpp"
+#include "Lib/BiMap.hpp"
 
 using namespace Kernel;
 using namespace Shell;
@@ -23,15 +24,28 @@ using namespace Shell;
 class ApplicativeHelper {
 public:
 
+  struct HigherOrderTermInfo
+  {
+  public:
+    HigherOrderTermInfo(TermList h, TermList hs, unsigned an){
+      head = h;
+      headSort = hs;
+      argNum = an;
+    }
+
+    TermList head;
+    TermList headSort;
+    unsigned argNum;
+  };
 
   ApplicativeHelper() {};
 
   static TermList createAppTerm(TermList sort, TermList arg1, TermList arg2);
-  static TermList createAppTerm(TermList s1, TermList s2, TermList arg1, TermList arg2);
+  static TermList createAppTerm(TermList s1, TermList s2, TermList arg1, TermList arg2, bool shared = true);
   static TermList createAppTerm3(TermList sort, TermList arg1, TermList arg2, TermList arg3);
   static TermList createAppTerm(TermList sort, TermList arg1, TermList arg2, TermList arg3, TermList arg4); 
   static TermList createAppTerm(TermList sort, TermList head, TermStack& terms); 
-  static TermList createAppTerm(TermList sort, TermList head, TermList* args, unsigned arity); 
+  static TermList createAppTerm(TermList sort, TermList head, TermList* args, unsigned arity, bool shared = true); 
   static TermList getNthArg(TermList arrowSort, unsigned argNum);
   static TermList getResultApplieadToNArgs(TermList arrowSort, unsigned argNum);
   static TermList getResultSort(TermList sort);
@@ -51,8 +65,22 @@ public:
   static bool isExactApplied(TermList head, unsigned argNum);
   static bool isOverApplied(TermList head, unsigned argNum);
   static bool isSafe(TermStack& args);
+  static TermList replaceFunctionalSubterms(Term* term, FuncSubtermMap* fsm);
 
 private:
+
+  static TermList getVSpecVar(Term* funcTerm, FuncSubtermMap* fsm)
+  {
+    if(fsm->find2(funcTerm)){
+      unsigned vNum = fsm->get2(funcTerm);
+      ASS(vNum > TermList::SPEC_UPPER_BOUND);
+      return TermList(vNum, true);
+    } else {
+      unsigned vNum = TermList::SPEC_UPPER_BOUND + fsm->size() + 1;
+      fsm->insert(vNum, funcTerm);
+      return TermList(vNum, true);
+    }
+  }
   
 };
 

@@ -27,9 +27,12 @@
 #include "Lib/SmartPtr.hpp"
 #include "Lib/TimeCounter.hpp"
 
+#include "Kernel/TermIterators.hpp"
 #include "Kernel/Matcher.hpp"
 #include "Kernel/Signature.hpp"
 #include "Kernel/Term.hpp"
+#include "Kernel/SortHelper.hpp"
+#include "Kernel/ApplicativeHelper.hpp"
 
 #include "Shell/Options.hpp"
 
@@ -41,9 +44,12 @@ namespace Indexing
 using namespace Lib;
 using namespace Kernel;
 
-TermSubstitutionTree::TermSubstitutionTree(bool useC)
-: SubstitutionTree(env.signature->functions(),useC)
+TermSubstitutionTree::TermSubstitutionTree(bool useC, bool rfSubs)
+: SubstitutionTree(env.signature->functions(),useC, rfSubs), _replaceFuncSubterms(rfSubs)
 {
+  if(rfSubs){
+    _funcSubtermsByType = new TypeSubstitutionTree();
+  }
 }
 
 void TermSubstitutionTree::insert(TermList t, Literal* lit, Clause* cls)
@@ -65,7 +71,24 @@ void TermSubstitutionTree::handleTerm(TermList t, Literal* lit, Clause* cls, boo
 {
   CALL("TermSubstitutionTree::handleTerm");
 
+  //ASSERTION_VIOLATION;
+
   LeafData ld(cls, lit, t);
+
+  //cout << "t is " + t.toString() << endl;
+
+  if(_replaceFuncSubterms && t.isTerm()){ 
+    TermList sort = SortHelper::getResultSort(t.term());
+    bool sortVar = sort.isVar();
+    bool sortArr = !sortVar && ApplicativeHelper::isArrowType(sort.term());
+    if(sortVar || sortArr){
+      _funcSubtermsByType->handleTerm(sort, ld, insert);
+      if(sortArr){ return; }
+    } 
+  }
+
+  //cout << "t is " + t.toString() << endl;
+
   if(t.isOrdinaryVar()) {
     if(insert) {
       _vars.insert(ld);
@@ -78,6 +101,13 @@ void TermSubstitutionTree::handleTerm(TermList t, Literal* lit, Clause* cls, boo
     Term* term=t.term();
 
     Term* normTerm=Renaming::normalize(term);
+
+    if(_replaceFuncSubterms){
+      //cout << "normTerm is " + normTerm->toString() << endl;
+      t = ApplicativeHelper::replaceFunctionalSubterms(normTerm, &_functionalSubtermMap);   
+      //cout << "t is " + t.toString() << endl; 
+      normTerm = t.term();
+    }
 
     BindingMap svBindings;
     getBindings(normTerm, svBindings);
@@ -92,7 +122,7 @@ void TermSubstitutionTree::handleTerm(TermList t, Literal* lit, Clause* cls, boo
   }
 }
 
-
+//TODO use sorts and delete non-shared
 TermQueryResultIterator TermSubstitutionTree::getUnifications(TermList t,
 	  bool retrieveSubstitutions)
 {
@@ -111,6 +141,40 @@ TermQueryResultIterator TermSubstitutionTree::getUnifications(TermList t,
           // false here means without constraints
 	  getResultIterator<UnificationsIterator>(t.term(), retrieveSubstitutions,false)) );
     }
+  }
+}
+
+TermQueryResultIterator TermSubstitutionTree::getUnificationsUsingSorts(TermList t, TermList sort,
+    bool retrieveSubstitutions)
+{
+  CALL("TermSubstitutionTree::getUnifications");
+
+  ASS(_replaceFuncSubterms);
+
+  //cout << "trying to find partners for " + t.toString() << endl;
+
+  bool sortVar = sort.isVar();
+  bool sortArrow = !sortVar && ApplicativeHelper::isArrowType(sort.term());
+  bool sortAtomic = !sortVar && !sortArrow;
+
+  if(t.isOrdinaryVar()) {
+    auto it1 = sortVar || sortArrow ? _funcSubtermsByType->getUnifications(sort, retrieveSubstitutions):
+               TermQueryResultIterator::getEmpty();
+    auto it2 = sortVar || sortAtomic ? getAllUnifyingIterator(t,retrieveSubstitutions,false):
+               TermQueryResultIterator::getEmpty();
+    return pvi(getConcatenatedIterator(it1, it2));
+    //TODO vars?
+  } else {
+    ASS(t.isTerm());
+    //TODO Is it OK to use t below?
+    auto it1 = _vars.isEmpty() ? TermQueryResultIterator::getEmpty() :
+               ldIteratorToTQRIterator(LDSkipList::RefIterator(_vars), t, retrieveSubstitutions,false);
+
+    auto it2 = sortVar || sortArrow ? _funcSubtermsByType->getUnifications(sort, retrieveSubstitutions) :
+               TermQueryResultIterator::getEmpty();
+    auto it3 = sortVar || sortAtomic ? getResultIterator<UnificationsIterator>(t.term(), retrieveSubstitutions,false):
+               TermQueryResultIterator::getEmpty();
+    return pvi(getConcatenatedIterator(getConcatenatedIterator(it1, it2), it3));
   }
 }
 
@@ -229,7 +293,8 @@ TermQueryResultIterator TermSubstitutionTree::getResultIterator(Term* trm,
       result = ldIteratorToTQRIterator(ldit,TermList(trm),retrieveSubstitutions,false);
     }
     else{
-      VirtualIterator<QueryResult> qrit=vi( new Iterator(this, root, trm, retrieveSubstitutions,false,false, withConstraints) );
+      VirtualIterator<QueryResult> qrit=vi( new Iterator(this, root, trm, retrieveSubstitutions,false,false, 
+                                                         withConstraints, &_functionalSubtermMap) );
       result = pvi( getMappingIterator(qrit, TermQueryResultFn()) );
     }
   }
@@ -304,47 +369,6 @@ struct TermSubstitutionTree::UnifyingContext
     ASS(subst);
     bool unified = subst->unify(_queryTerm, QRS_QUERY_BANK, qr.term, QRS_RESULT_BANK);
     //unsigned srt;
-/*
-    if(_withConstraints && !unified && 
-       SortHelper::tryGetResultSort(_queryTerm,srt) && srt < Sorts::FIRST_USER_SORT && srt!=Sorts::SRT_DEFAULT){
-      UnificationConstraintStackSP constraints = qr.constraints;
-      ASS(!constraints.isEmpty());
-      //current usage tells us that if we are querying withConstraints then
-      //we assume the unification will fail
-
-      static Options::UnificationWithAbstraction opt = env.options->unificationWithAbstraction();
-      bool queryInterp = (theory->isInterpretedFunction(_queryTerm) || theory->isInterpretedConstant(_queryTerm));
-      bool termInterp = (theory->isInterpretedFunction(qr.term) || theory->isInterpretedConstant(qr.term));
-      bool bothNumbers = (theory->isInterpretedConstant(_queryTerm) && theory->isInterpretedConstant(qr.term));
-
-      // I don't expect okay to be false at this point as if one is a variable the above unify would succeed 
-      bool okay = _queryTerm.isTerm() && qr.term.isTerm();
-      ASS(okay);
-      switch(opt){
-        case Options::UnificationWithAbstraction::INTERP_ONLY:
-          okay &= (queryInterp && termInterp && !bothNumbers);
-          break;
-        case Options::UnificationWithAbstraction::ONE_INTERP:
-          okay &= !bothNumbers && (queryInterp || termInterp);
-          break;
-        case Options::UnificationWithAbstraction::CONSTANT:
-          okay &= !bothNumbers && (queryInterp || termInterp);
-          okay &= (queryInterp || env.signature->functionArity(_queryTerm.term()->functor()));
-          okay &= (termInterp || env.signature->functionArity(qr.term.term()->functor()));
-          break;
-      }
-      if(okay){
-        // cout << "UNIFY " <<  _queryTerm.toString()+", "+qr.term.toString() << endl;
-        unsigned x = 0;
-        TermList trmVar = TermList(x,true); 
-        subst->bindSpecialVar(x,qr.term,QRS_RESULT_BANK);
-        pair<TermList,TermList> constraint = make_pair(_queryTerm,trmVar);
-        //cout << "push constraint" << endl;
-        constraints->push(constraint);
-        unified=true;
-      }
-    }
-*/
     ASS(unified || _withConstraints);
     return unified;
   }

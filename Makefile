@@ -259,7 +259,8 @@ VI_OBJ = Indexing/ClauseCodeTree.o\
          Indexing/TermCodeTree.o\
          Indexing/TermIndex.o\
          Indexing/TermSharing.o\
-         Indexing/TermSubstitutionTree.o
+         Indexing/TermSubstitutionTree.o\
+         Indexing/TypeSubstitutionTree.o
 #         Indexing/AcyclicityIndex.o\
 #         Indexing/FormulaIndex.o\         
 

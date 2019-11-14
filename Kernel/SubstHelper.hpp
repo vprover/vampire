@@ -208,7 +208,7 @@ private:
 
     for(unsigned i=0;i<len;i++) {
       TermList trm=terms[i];
-      if(trm.isSpecialVar()||(trm.isTerm()&&!trm.term()->shared())) {
+      if(trm.isVSpecialVar()||trm.isSpecialVar()||(trm.isTerm()&&!trm.term()->shared())) {
 	return false;
       }
     }
@@ -404,12 +404,12 @@ Term* SubstHelper::applyImpl(Term* trm, Applicator& applicator, bool noSharing)
       }
       continue;
     }
-    ASS(tl.isTerm());
-    Term* t=tl.term();
-    if(t->shared() && t->ground()) {
+    ASS(tl.isVSpecialVar() || tl.isTerm());
+    if(tl.isVar() || (tl.term()->shared() && tl.term()->ground())) {
       args->push(tl);
       continue;
     }
+    Term* t = tl.term();
     if(t->isSpecial()) {
       //we handle specal terms at the top level of this function
       args->push(TermList(applyImpl<ProcessSpecVars>(t, applicator, noSharing)));

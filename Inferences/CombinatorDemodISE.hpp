@@ -40,7 +40,6 @@ public:
   CombinatorDemodISE(){}
   Clause* simplify(Clause* cl);
 private:
-   struct HigherOrderTermInfo;
    TermList reduce(TermList t);
    bool headNormalForm(TermList& t);
 };

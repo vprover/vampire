@@ -348,6 +348,7 @@ void SaturationAlgorithm::onPassiveRemoved(Clause* c)
  */
 void SaturationAlgorithm::onPassiveSelected(Clause* c)
 {
+
 }
 
 /**
@@ -355,7 +356,6 @@ void SaturationAlgorithm::onPassiveSelected(Clause* c)
  */
 void SaturationAlgorithm::onUnprocessedAdded(Clause* c)
 {
-  
 }
 
 /**

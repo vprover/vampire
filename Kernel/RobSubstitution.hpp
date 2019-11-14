@@ -30,6 +30,8 @@
 #include "Forwards.hpp"
 #include "Lib/DHMap.hpp"
 #include "Lib/Backtrackable.hpp"
+#include "Lib/Set.hpp"
+#include "Lib/BiMap.hpp"
 #include "Term.hpp"
 
 #if VDEBUG
@@ -75,9 +77,15 @@ public:
   }
   void reset()
   {
+    _funcSubtermMap = 0;
+    _constraints.reset();
     _bank.reset();
     _nextAuxAvailable=0;
     _nextUnboundAvailable=0;
+  }
+
+  void setMap(FuncSubtermMap* fmap){
+    _funcSubtermMap = fmap;
   }
   /**
    * Bind special variable to a specified term
@@ -108,6 +116,11 @@ public:
    */
   size_t size() const {return _bank.size(); }
 #endif
+
+  typedef Set<pair<Term*, Term*>> UnifConstraints;
+
+  unsigned constraintsSize()  const { return _constraints.size(); }
+  const UnifConstraints& constraints() const { return _constraints; }
 
 
   /** Specifies instance of a variable (i.e. (variable, variable bank) pair) */
@@ -153,9 +166,9 @@ public:
     explicit TermSpec(const VarSpec& vs) : index(vs.index)
     {
       if(index==SPECIAL_INDEX) {
-	term.makeSpecialVar(vs.var);
+        term.makeSpecialVar(vs.var);
       } else {
-	term.makeVar(vs.var);
+        term.makeVar(vs.var);
       }
     }
     /**
@@ -168,20 +181,25 @@ public:
     {
       bool termSameContent=term.sameContent(&ts.term);
       if(!termSameContent && term.isTerm() && term.term()->isLiteral() &&
-	ts.term.isTerm() && ts.term.term()->isLiteral()) {
-	const Literal* l1=static_cast<const Literal*>(term.term());
-	const Literal* l2=static_cast<const Literal*>(ts.term.term());
-	if(l1->functor()==l2->functor() && l1->arity()==0) {
-	  return true;
-	}
+        ts.term.isTerm() && ts.term.term()->isLiteral()) {
+        const Literal* l1=static_cast<const Literal*>(term.term());
+        const Literal* l2=static_cast<const Literal*>(ts.term.term());
+        if(l1->functor()==l2->functor() && l1->arity()==0) {
+          return true;
+        }
       }
       if(!termSameContent) {
-	return false;
+        return false;
       }
       return index==ts.index || term.isSpecialVar() ||
       	(term.isTerm() && (
 	  (term.term()->shared() && term.term()->ground()) ||
-	  term.term()->arity()==0 ));
+	   term.term()->arity()==0 ));
+    }
+
+    bool isVSpecialVar()
+    {
+      return term.isVSpecialVar();
     }
 
     bool isVar()
@@ -226,6 +244,7 @@ private:
   TermSpec deref(VarSpec v) const;
   TermSpec derefBound(TermSpec v) const;
 
+  void addToConstraints(const VarSpec& v1, const VarSpec& v2);
   void bind(const VarSpec& v, const TermSpec& b);
   void bindVar(const VarSpec& var, const VarSpec& to);
   VarSpec root(VarSpec v) const;
@@ -266,7 +285,9 @@ private:
 
   typedef DHMap<VarSpec,TermSpec,VarSpec::Hash1, VarSpec::Hash2> BankType;
 
+  FuncSubtermMap* _funcSubtermMap;
   mutable BankType _bank;
+  mutable UnifConstraints _constraints;
 
   DHMap<int, int> _denormIndexes;
 
@@ -304,6 +325,26 @@ private:
     RobSubstitution* _subst;
     VarSpec _var;
     TermSpec _term;
+  };
+
+  class ConstraintBacktrackObject
+  : public BacktrackObject
+  {
+  public: 
+    ConstraintBacktrackObject(RobSubstitution* subst, pair<Term*, Term*> con)
+    : _subst(subst), _con(con)
+    {}
+    
+    void backtrack()
+    {
+      ALWAYS(_subst->_constraints.remove(_con));
+    }
+
+    CLASS_NAME(RobSubstitution::ConstraintBacktrackObject);
+    USE_ALLOCATOR(ConstraintBacktrackObject);
+  private:
+    RobSubstitution* _subst;
+    pair<Term*, Term*> _con;
   };
 
   template<class Fn>

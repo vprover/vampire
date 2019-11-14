@@ -28,6 +28,7 @@
 #include "Lib/Metaiterators.hpp"
 #include "Lib/PairUtils.hpp"
 #include "Lib/VirtualIterator.hpp"
+#include "Lib/Set.hpp"
 
 #include "Kernel/Clause.hpp"
 #include "Kernel/ColorHelper.hpp"
@@ -97,6 +98,10 @@ struct Superposition::RewritableResultsFn
     if(_withC){
       return pvi( pushPairIntoRightIterator(arg, _index->getUnificationsWithConstraints(arg.second, true)) );
     }
+    else if(env.options->combinatorySup()){
+      TermList sort = SortHelper::getTermSort(arg.second, arg.first);
+      return pvi( pushPairIntoRightIterator(arg, _index->getUnificationsUsingSorts(arg.second, sort, true)) );
+    }
     else{
       return pvi( pushPairIntoRightIterator(arg, _index->getUnifications(arg.second, true)) );
     }
@@ -132,6 +137,10 @@ struct Superposition::ApplicableRewritesFn
     CALL("Superposition::ApplicableRewritesFn()");
     if(_withC){
       return pvi( pushPairIntoRightIterator(arg, _index->getUnificationsWithConstraints(arg.second, true)) );
+    }  
+    else if(env.options->combinatorySup()){
+      TermList sort = SortHelper::getTermSort(arg.second, arg.first);
+      return pvi( pushPairIntoRightIterator(arg, _index->getUnificationsUsingSorts(arg.second, sort, true)) );
     }
     else{
       return pvi( pushPairIntoRightIterator(arg, _index->getUnifications(arg.second, true)) );
@@ -153,7 +162,7 @@ struct Superposition::ForwardResultFn
 
     TermQueryResult& qr = arg.second;
     return _parent.performSuperposition(_cl, arg.first.first, arg.first.second,
-	    qr.clause, qr.literal, qr.term, qr.substitution, true, _limits, qr.constraints);
+	    qr.clause, qr.literal, qr.term, qr.substitution, true, _limits, qr.constraints, qr.isTypeSub);
   }
 private:
   Clause* _cl;
@@ -176,7 +185,7 @@ struct Superposition::BackwardResultFn
 
     TermQueryResult& qr = arg.second;
     return _parent.performSuperposition(qr.clause, qr.literal, qr.term,
-	    _cl, arg.first.first, arg.first.second, qr.substitution, false, _limits, qr.constraints);
+	    _cl, arg.first.first, arg.first.second, qr.substitution, false, _limits, qr.constraints, qr.isTypeSub);
   }
 private:
   Clause* _cl;
@@ -428,16 +437,18 @@ Clause* Superposition::performSuperposition(
     Clause* rwClause, Literal* rwLit, TermList rwTerm,
     Clause* eqClause, Literal* eqLit, TermList eqLHS,
     ResultSubstitutionSP subst, bool eqIsResult, Limits* limits,
-    UnificationConstraintStackSP constraints)
+    UnificationConstraintStackSP constraints, bool isTypeSub)
 {
   CALL("Superposition::performSuperposition");
   // we want the rwClause and eqClause to be active
   ASS(rwClause->store()==Clause::ACTIVE);
   ASS(eqClause->store()==Clause::ACTIVE);
 
+  //if(eqClause->number() == 24){
   //cout << "performSuperposition with " << rwClause->toString() << " and " << eqClause->toString() << endl;
   //cout << "rwTerm " << rwTerm.toString() << " eqLHSS " << eqLHS.toString() << endl;
-
+  //cout << "subst " << endl << subst->tryGetRobSubstitution()->toString() << endl;
+  
   // the first checks the reference and the second checks the stack
 /*
   if(!constraints.isEmpty() && !constraints->isEmpty()){ 
@@ -445,16 +456,21 @@ Clause* Superposition::performSuperposition(
     Stack<UnificationConstraint>::Iterator uit(*constraints);
     while(uit.hasNext()){ auto c = uit.next(); cout << c.first.toString() << "," << c.second.toString() << endl; }
   }
-  cout << "subst " << endl << subst->toString() << endl;
 */
 
   // the first checks the reference and the second checks the stack
+  typedef pair<Term*, Term*> ConPair;
+  RobSubstitution* sub = subst->tryGetRobSubstitution();
+  unsigned cLength = sub->constraintsSize();
+  const Set<ConPair>& constraints2 = sub->constraints();
+  ASS(!cLength || !isTypeSub);
+
+
   bool hasConstraints = !constraints.isEmpty() && !constraints->isEmpty();
   TermList eqLHSsort = SortHelper::getEqualityArgumentSort(eqLit); 
 
   if(rwTerm.isVar() || eqLHS.isVar()) { //TODO fix this unification or what?
     TermList rwTermSort = SortHelper::getTermSort(rwTerm, rwLit);
-    RobSubstitution* sub = subst->tryGetRobSubstitution();
     if(!sub->unify(eqLHSsort, eqIsResult, rwTermSort, !eqIsResult)){
       //cannot perform superposition because sorts don't match
       return 0;
@@ -474,6 +490,7 @@ Clause* Superposition::performSuperposition(
   unsigned rwLength = rwClause->length();
   unsigned eqLength = eqClause->length();
   unsigned conLength = hasConstraints ? constraints->size() : 0;
+           conLength += cLength;
 
   int newAge=Int::max(rwClause->age(),eqClause->age())+1;
 
@@ -495,7 +512,7 @@ Clause* Superposition::performSuperposition(
   TermList rwTermS = subst->apply(rwTerm, !eqIsResult);
 
 #if VDEBUG
-  if(!hasConstraints){
+  if(!hasConstraints && !cLength && !isTypeSub){
     ASS_EQ(rwTermS,eqLHSS);
   }
 #endif
@@ -530,7 +547,7 @@ Clause* Superposition::performSuperposition(
     return 0;
   }
 
-  unsigned newLength = rwLength+eqLength-1+conLength;
+  unsigned newLength = rwLength+eqLength-1+conLength + isTypeSub;
 
   Inference* inf = new Inference2(hasConstraints ? Inference::  CONSTRAINED_SUPERPOSITION : Inference::SUPERPOSITION, 
                           rwClause, eqClause);
@@ -649,6 +666,31 @@ Clause* Superposition::performSuperposition(
       }
     }
   }
+
+  if(cLength){
+    Set<ConPair>::Iterator it(constraints2);
+    ConPair con;
+    while(it.hasNext()){
+      con = it.next();
+      //TODO WARNING VERY HACKY! Want to apply to normalised banks
+      TermList qT = subst->tryGetRobSubstitution()->apply(TermList(con.first), 2);
+      TermList rT = subst->tryGetRobSubstitution()->apply(TermList(con.second), 3);
+
+      TermList sort = SortHelper::getResultSort(rT.term());
+      Literal* constraint = Literal::createEquality(false,qT,rT,sort);
+
+      (*res)[next] = constraint;
+      next++;        
+    }
+  }
+
+  //TODO work relating to variables
+  if(isTypeSub){
+    TermList sort = SortHelper::getResultSort(eqLHSS.term());
+    Literal* constraint = Literal::createEquality(false,eqLHSS,rwTermS,sort);
+    (*res)[next] = constraint;
+  }
+
   /*if(hasConstraints){
     for(unsigned i=0;i<constraints->size();i++){
       pair<TermList,TermList> con = (*constraints)[i];
