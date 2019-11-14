@@ -99,9 +99,11 @@ void SplittingBranchSelector::init()
       ASSERTION_VIOLATION_REP(_parent.getOptions().satSolver());
   }
 
+  /* TODO: turn BufferedSolver into a SATSolverWithAssumptions
   if (_parent.getOptions().splittingBufferedSolver()) {
     _solver = new BufferedSolver(_solver.release());
   }
+  */
 
   switch(_parent.getOptions().splittingMinimizeModel()){
     case Options::SplittingMinimizeModel::OFF:
@@ -163,6 +165,13 @@ void SplittingBranchSelector::considerPolarityAdvice(SATLiteral lit)
       // do nothing
     break;
   }
+}
+
+void SplittingBranchSelector::weaklyAssumeInNextModels(SATLiteral lit)
+{
+  CALL("SplittingBranchSelector::weaklyAssumeInNextModels");
+
+  _weakAssumptions.push(lit);
 }
 
 static Color colorFromPossiblyDeepFOConversion(SATClause* scl,Unit*& u)
@@ -619,7 +628,32 @@ void SplittingBranchSelector::recomputeModel(SplitLevelStack& addedComps, SplitL
     if (randomize) {
       _solver->randomizeForNextAssignment(maxSatVar);
     }
-    stat = _solver->solve();
+    // cout << "about to call solver (_weakAssumptions.size == " << _weakAssumptions.size() << endl;
+    while (true) {
+      stat = _solver->solveUnderAssumptions(_weakAssumptions);
+      if (stat != SATSolver::UNSATISFIABLE) {
+        break;
+      }
+      const SATLiteralStack& failedAssumps = _solver->failedAssumptions();
+      if (failedAssumps.size() == 0) {
+        // this is the actual empty clause
+        break;
+      }
+      // cout << "unsat under assumptions (failedAssumps.size() == " << failedAssumps.size() << endl;
+      for (unsigned i = 0; i < failedAssumps.size(); i++) {
+        unsigned ourVar = failedAssumps[i].var();
+
+        // I know this is quadratic, but whatever...
+        SATLiteralStack::DelIterator it(_weakAssumptions);
+        while (it.hasNext()) {
+          if (it.next().var() == ourVar) {
+            // cout << "deleted" << endl;
+            it.del();
+            break;
+          }
+        }
+      }
+    }
   }
   if (stat == SATSolver::SATISFIABLE) {
     stat = processDPConflicts();
@@ -1324,6 +1358,12 @@ SplitLevel Splitter::addGroundComponent(Literal* lit, Clause* orig, Clause*& com
   _branchSelector.updateVarCnt();
   _branchSelector.considerPolarityAdvice(satLit);
 
+  if (env.signature->getPredicate(lit->functor())->label()) {
+    // cout << "Noticing label " << lit->toString() << endl;
+    // if this is a CLAIM label, always first try using the claim to prove things before proving the claim
+    _branchSelector.weaklyAssumeInNextModels(satLit.positive());
+  }
+
   return compName;
 }
 
@@ -1740,6 +1780,8 @@ void Splitter::addComponents(const SplitLevelStack& toAdd)
     ASS(!sr->active);
     sr->active = true;
     
+    // cout << "adding compoment " << sr->component->toString() << endl;
+
     if (_deleteDeactivated == Options::SplittingDeleteDeactivated::ON) {
       ASS(sr->children.isEmpty());
       //we need to put the component clause among children, 
@@ -1786,6 +1828,8 @@ void Splitter::removeComponents(const SplitLevelStack& toRemove)
     SplitRecord* sr=_db[bl];
     ASS(sr);
     
+    // cout << "removing compoment " << sr->component->toString() << endl;
+
     RCClauseStack::DelIterator chit(sr->children);
     while (chit.hasNext()) {
       Clause* ccl=chit.next();

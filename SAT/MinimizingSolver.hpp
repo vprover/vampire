@@ -43,12 +43,12 @@ namespace SAT {
 
 using namespace Lib;
 
-class MinimizingSolver : public SATSolver {
+class MinimizingSolver : public SATSolverWithAssumptions {
 public:
   CLASS_NAME(MinimizingSolver);
   USE_ALLOCATOR(MinimizingSolver);
 
-  MinimizingSolver(SATSolver* inner);
+  MinimizingSolver(SATSolverWithAssumptions* inner);
 
   virtual SATClause* getRefutation() override { return _inner->getRefutation(); }
   virtual SATClauseList* getRefutationPremiseList() override {
@@ -68,6 +68,23 @@ public:
   virtual SATClause* getZeroImpliedCertificate(unsigned var) override { return _inner->getZeroImpliedCertificate(var); }
 
   virtual void ensureVarCount(unsigned newVarCnt) override;
+
+  void addAssumption(SATLiteral lit) override {
+    _inner->addAssumption(lit);
+  }
+  void retractAllAssumptions() override {
+    _inner->retractAllAssumptions();
+  }
+  bool hasAssumptions() const override {
+    return _inner->hasAssumptions();
+  }
+  Status solveUnderAssumptions(const SATLiteralStack& assumps, unsigned conflictCountLimit, bool b) override {
+    return _inner->solveUnderAssumptions(assumps,conflictCountLimit,b);
+  }
+  // because SATSolverWithAssumptions is not just an interface, now MinimizingSolver actually has it's own _failedAssumptionBuffer, but we wan't to use _inner's
+  const SATLiteralStack& failedAssumptions() override {
+    return _inner->failedAssumptions();
+  }
 
   virtual unsigned newVar() override {
     CALL("MinimizingSolver::newVar");
@@ -105,7 +122,7 @@ private:
   void updateAssignment();
 
   unsigned _varCnt;
-  SATSolverSCP _inner;
+  ScopedPtr<SATSolverWithAssumptions> _inner;
 
   /**
    * If true, _asgn assignment corresponds to the assignment in

@@ -83,11 +83,14 @@ _solver=0;
   void updateVarCnt();
   void considerPolarityAdvice(SATLiteral lit);
 
+  /** First try a model which makes this literal (and all other submitted this way) true.
+   * If solving fails, conflict clause is used to retract all assumptions mentioned in it. */
+  void weaklyAssumeInNextModels(SATLiteral lit);
+
   void addSatClauseToSolver(SATClause* cl, bool refutation);
   void recomputeModel(SplitLevelStack& addedComps, SplitLevelStack& removedComps, bool randomize = false);
 
   void flush(SplitLevelStack& addedComps, SplitLevelStack& removedComps);
-
 private:
   SATSolver::Status processDPConflicts();
   SATSolver::VarAssignment getSolverAssimentConsideringCCModel(unsigned var);
@@ -107,7 +110,9 @@ private:
 
   Splitter& _parent;
 
-  SATSolverSCP _solver;
+  SATLiteralStack _weakAssumptions;
+
+  ScopedPtr<SATSolverWithAssumptions> _solver;
   ScopedPtr<DecisionProcedure> _dp;
   // use a separate copy of the decision procedure for ccModel computations and fill it up only with equalities
   ScopedPtr<SimpleCongruenceClosure> _dpModel;

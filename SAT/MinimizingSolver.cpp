@@ -28,7 +28,7 @@
 namespace SAT
 {
 
-MinimizingSolver::MinimizingSolver(SATSolver* inner)
+MinimizingSolver::MinimizingSolver(SATSolverWithAssumptions* inner)
  : _varCnt(0), _inner(inner), _assignmentValid(false), _heap(CntComparator(_unsClCnt))
 {
   CALL("MinimizingSolver::MinimizingSolver");
