@@ -699,6 +699,7 @@ unsigned Clause::maxVar()
  */
 unsigned Clause::getLiteralPosition(Literal* lit)
 {
+  CALL("Clause::getLiteralPosition");
   switch(length()) {
   case 1:
     ASS_EQ(lit,(*this)[0]);

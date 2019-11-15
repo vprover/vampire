@@ -1742,7 +1742,10 @@ bool Splitter::handleEmptyClause(Clause* cl)
         _hintsForAvatarFakeSimplifier->addHintClause(curCl);
 
         // since matching is reflexive, we can as well mark this clause already
-        curCl->heedHint();
+        // unless it's in passive, which could change ordering invariants there (=evil)
+        if (curCl->store() != Clause::Store::PASSIVE) {
+          curCl->heedHint();
+        }
       }
 
       if (inf->rule() == Inference::CLAUSIFY) {
@@ -1753,6 +1756,14 @@ bool Splitter::handleEmptyClause(Clause* cl)
       if (inf->rule() == Inference::AVATAR_COMPONENT) {
         //cout << " not beyond components" << endl;
         continue;
+      }
+
+      if (inf->rule() == Inference::REMOVE_DUPLICATE_LITERALS) { // skip the clause with literal repeats, the backward subsumption technology does not like them
+        Inference::Iterator it = inf->iterator();
+        ASS(inf->hasNext(it));
+        Unit* u = inf->next(it);
+        ASS(!inf->hasNext(it));
+        inf = u->inference();
       }
 
       Inference::Iterator it = inf->iterator();

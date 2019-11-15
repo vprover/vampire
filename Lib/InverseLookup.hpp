@@ -46,6 +46,7 @@ public:
   template<typename Arr>
   InverseLookup(Arr arr, size_t size)
   {
+    CALL("InverseLookup::InverseLookup");
     for(size_t i=0;i<size;i++) {
       ALWAYS(_data.insert(arr[i],i));
     }
@@ -54,6 +55,7 @@ public:
   template<typename Arr>
   void update(Arr arr)
   {
+    CALL("InverseLookup::update");
     size_t size=_data.size();
     for(size_t i=0;i<size;i++) {
       NEVER(_data.set(arr[i],i));
@@ -62,6 +64,7 @@ public:
 
   size_t get(T* val)
   {
+    CALL("InverseLookup::get");
     return _data.get(val);
   }
 
