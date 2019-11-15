@@ -1670,44 +1670,79 @@ bool SMTLIB2::parseAsBuiltinFormulaSymbol(const vstring& id, LExpr* exp)
     case FS_GREATER_EQ:
     {
       // read the first two arguments
-      TermList first;
       if (_results.isEmpty() || _results.top().isSeparator()) {
         complainAboutArgShortageOrWrongSorts(BUILT_IN_SYMBOL,exp);
       }
-      unsigned sort = _results.pop().asTerm(first);
-      TermList second;
-      if (_results.isEmpty() || _results.top().isSeparator() ||
-          _results.pop().asTerm(second) != sort) { // has the same sort as first
-
+      auto firstParseResult = _results.pop();
+      if (_results.isEmpty() || _results.top().isSeparator()) {
+        complainAboutArgShortageOrWrongSorts(BUILT_IN_SYMBOL,exp);
+      }
+      auto secondParseResult = _results.pop();
+      if (firstParseResult.sort != secondParseResult.sort)
+      {
         complainAboutArgShortageOrWrongSorts(BUILT_IN_SYMBOL,exp);
       }
 
       Formula* lastConjunct;
       unsigned pred = 0;
       if (fs == FS_EQ) {
-        lastConjunct = new AtomicFormula(Literal::createEquality(true, first, second, sort));
+        if (firstParseResult.formula && secondParseResult.formula) {
+          Formula* first;
+          Formula* second;
+          firstParseResult.asFormula(first);
+          secondParseResult.asFormula(second);
+          lastConjunct = new BinaryFormula(IFF, first, second);
+        } else {
+          TermList first;
+          TermList second;
+          firstParseResult.asTerm(first);
+          secondParseResult.asTerm(second);
+          lastConjunct = new AtomicFormula(Literal::createEquality(true, first, second, firstParseResult.sort));
+        }
       } else {
-        Interpretation intp = getFormulaSymbolInterpretation(fs,sort);
+        Interpretation intp = getFormulaSymbolInterpretation(fs,firstParseResult.sort);
         pred = env.signature->getInterpretingSymbol(intp);
+        TermList first;
+        TermList second;
+        firstParseResult.asTerm(first);
+        secondParseResult.asTerm(second);
         lastConjunct = new AtomicFormula(Literal::create2(pred,true,first,second));
       }
 
       FormulaList* argLst = nullptr;
       // for every other argument ... pipelining
       while (_results.isEmpty() || !_results.top().isSeparator()) {
-        TermList next;
-        if (_results.pop().asTerm(next) != sort) {
+        auto nextParseResult = _results.pop();
+        if (nextParseResult.sort != firstParseResult.sort) {
           complainAboutArgShortageOrWrongSorts(BUILT_IN_SYMBOL,exp);
         }
         // store the old conjunct
         FormulaList::push(lastConjunct,argLst);
         // shift the arguments
-        first = second;
-        second = next;
+        firstParseResult = secondParseResult;
+        secondParseResult = nextParseResult;
         // create next conjunct
         if (fs == FS_EQ) {
-          lastConjunct = new AtomicFormula(Literal::createEquality(true, first, second, sort));
+          if (firstParseResult.formula && secondParseResult.formula) {
+            Formula* first;
+            Formula* second;
+            firstParseResult.asFormula(first);
+            secondParseResult.asFormula(second);
+            lastConjunct = new BinaryFormula(IFF, first, second);
+          } else {
+            TermList first;
+            TermList second;
+            firstParseResult.asTerm(first);
+            secondParseResult.asTerm(second);
+            lastConjunct = new AtomicFormula(Literal::createEquality(true, first, second, firstParseResult.sort));
+          }
         } else {
+          Interpretation intp = getFormulaSymbolInterpretation(fs,firstParseResult.sort);
+          pred = env.signature->getInterpretingSymbol(intp);
+          TermList first;
+          TermList second;
+          firstParseResult.asTerm(first);
+          secondParseResult.asTerm(second);
           lastConjunct = new AtomicFormula(Literal::create2(pred,true,first,second));
         }
       }
