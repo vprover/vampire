@@ -50,7 +50,8 @@ class MLMatcher2 final
      * Preconditions:
      * - baseLits must have length baseLen
      * - alts must have length baseLen (for 0 <= bi < baseLen, the literal baseLits[bi] will be matched against the alternatives in the list alts[bi])
-     * - All literals in 'alts' must appear in 'instance'.
+     * - All literals in 'alts' must appear in 'instance'
+     * - 'instance' must not have duplicate literals (during normal operation this is ensured by Inferences::DuplicateLiteralRemovalISE)
      */
     void init(Literal* baseLits[],
               unsigned baseLen,
