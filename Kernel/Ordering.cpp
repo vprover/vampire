@@ -784,6 +784,21 @@ PrecedenceOrdering::PrecedenceOrdering(Problem& prb, const Options& opt)
   //equality is on the lowest level
   _predicateLevels[0]=0;
 
+  if (env.predicateSineLevels) {
+    // predicateSineLevels start from zero
+    unsigned bound = env.maxClausePriority; // this is at least as large as the maximal value of a predicateSineLevel
+    bool reverse = (opt.sineToPredLevels() == Options::PredicateSineLevels::ON); // the ON, i.e. reasonable, version wants low sine levels mapping to high predicateLevels
+
+    for(unsigned i=1;i<_predicates;i++) { // starting from 1, keeping _predicateLevels[0]=0;
+      unsigned level;
+      if (!env.predicateSineLevels->find(i,level)) {
+        level = bound;
+      }
+      _predicateLevels[i] = reverse ? (bound - level + 1) : level;
+      // cout << "setting predicate level of " << env.signature->predicateName(i) << " to " << _predicateLevels[i] << endl;
+    }
+  }
+
   _reverseLCM = opt.literalComparisonMode()==Shell::Options::LiteralComparisonMode::REVERSE;
 
   for(unsigned i=1;i<_predicates;i++) {

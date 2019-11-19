@@ -44,7 +44,7 @@ public:
 
   SymIdIterator extractSymIds(Unit* u);
 
-  void decodeSymId(SymId s, bool& pred, unsigned& functor);
+  static void decodeSymId(SymId s, bool& pred, unsigned& functor);
   bool validSymId(SymId s);
 private:
   void addSymIds(Term* term,Stack<SymId>& ids);
@@ -80,6 +80,13 @@ public:
 
   bool perform(UnitList*& units); // returns true iff removed something
   void perform(Problem& prb);
+
+  ~SineSelector() {
+    DArray<UnitList*>::Iterator it(_def);
+    while (it.hasNext()) {
+      UnitList::destroy(it.next());
+    }
+  }
 private:
   void init();
 
