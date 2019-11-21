@@ -1214,7 +1214,8 @@ void Options::Options::init()
 
     _forwardSubsumptionDemodulationIncludeSubsumptionAndResolution = BoolOptionValue("forward_subsumption_demodulation_include_subsumption_and_resolution", "fsd_fs", false);
     _forwardSubsumptionDemodulationIncludeSubsumptionAndResolution.description =
-        "Whether regular forward subsumption and subsumption resolution is done by (and replaced by) forward subsumption demodulation.";
+        "Whether regular forward subsumption and subsumption resolution is done by (and replaced by) forward subsumption demodulation. "
+        "Note that the existing options -fs and -fsr still control whether FS and FSR are enabled, respectively.";
     _lookup.insert(&_forwardSubsumptionDemodulationIncludeSubsumptionAndResolution);
     _forwardSubsumptionDemodulationIncludeSubsumptionAndResolution.tag(OptionTag::INFERENCES);
     _forwardSubsumptionDemodulationIncludeSubsumptionAndResolution.reliesOn(_forwardSubsumptionDemodulation.is(equal(FSD::V2)->Or(equal(FSD::V3))));
