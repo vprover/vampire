@@ -73,7 +73,7 @@ private:
   UUMap& _v2pos;
 };
 
-bool createLiteralBindings(Literal* baseLit, LiteralList* alts, Clause* instCl, Literal* resolvedLit,
+bool createLiteralBindings(Literal* baseLit, LiteralList const* alts, Clause* instCl, Literal* resolvedLit,
     unsigned*& boundVarData, TermList**& altBindingPtrs, TermList*& altBindingData)
 {
   CALL("createLiteralBindings");
@@ -199,7 +199,7 @@ struct MatchingData {
   TriangularArray<pair<int,int>* >* intersections;
 
   Literal** bases;
-  LiteralList** alts;
+  LiteralList const* const* alts;
   Clause* instance;
   Literal* resolvedLit;
 
@@ -386,7 +386,7 @@ class MLMatcher::Impl final
     Impl();
     ~Impl() = default;
 
-    void init(Literal** baseLits, unsigned baseLen, Clause* instance, LiteralList** alts, Literal* resolvedLit, bool multiset);
+    void init(Literal** baseLits, unsigned baseLen, Clause* instance, LiteralList const* const* alts, Literal* resolvedLit, bool multiset);
     bool nextMatch();
 
     void getMatchedAltsBitmap(v_vector<bool>& outMatchedBitmap) const;
@@ -400,12 +400,12 @@ class MLMatcher::Impl final
     Impl& operator=(Impl&&) = delete;
 
   private:
-    void initMatchingData(Literal** baseLits0, unsigned baseLen, Clause* instance, LiteralList** alts, Literal* resolvedLit);
+    void initMatchingData(Literal** baseLits0, unsigned baseLen, Clause* instance, LiteralList const* const* alts, Literal* resolvedLit);
 
   private:
     // Backing storage for the pointers in s_matchingData, used and set up in initMatchingData
     DArray<Literal*> s_baseLits;
-    DArray<LiteralList*> s_altsArr;
+    DArray<LiteralList const*> s_altsArr;
     DArray<unsigned> s_varCnts;
     DArray<unsigned*> s_boundVarNums;
     DArray<TermList**> s_altPtrs;
@@ -444,7 +444,7 @@ MLMatcher::Impl::Impl()
 { }
 
 
-void MLMatcher::Impl::initMatchingData(Literal** baseLits0, unsigned baseLen, Clause* instance, LiteralList** alts, Literal* resolvedLit)
+void MLMatcher::Impl::initMatchingData(Literal** baseLits0, unsigned baseLen, Clause* instance, LiteralList const* const* alts, Literal* resolvedLit)
 {
   CALL("MLMatcher::Impl::initMatchingData");
 
@@ -556,7 +556,7 @@ void MLMatcher::Impl::initMatchingData(Literal** baseLits0, unsigned baseLen, Cl
 }
 
 
-void MLMatcher::Impl::init(Literal** baseLits, unsigned baseLen, Clause* instance, LiteralList** alts, Literal* resolvedLit, bool multiset)
+void MLMatcher::Impl::init(Literal** baseLits, unsigned baseLen, Clause* instance, LiteralList const* const* alts, Literal* resolvedLit, bool multiset)
 {
   CALL("MLMatcher::Impl::init");
 
@@ -715,7 +715,7 @@ MLMatcher::MLMatcher()
   : m_impl{nullptr}
 { }
 
-void MLMatcher::init(Literal** baseLits, unsigned baseLen, Clause* instance, LiteralList** alts, Literal* resolvedLit, bool multiset)
+void MLMatcher::init(Literal** baseLits, unsigned baseLen, Clause* instance, LiteralList const* const* alts, Literal* resolvedLit, bool multiset)
 {
   if (!m_impl) {
     m_impl = make_unique<MLMatcher::Impl>();
@@ -743,7 +743,7 @@ void MLMatcher::getBindings(v_unordered_map<unsigned, TermList>& outBindings) co
   m_impl->getBindings(outBindings);
 }
 
-bool MLMatcher::canBeMatched(Literal** baseLits, unsigned baseLen, Clause* instance, LiteralList** alts, Literal* resolvedLit, bool multiset)
+bool MLMatcher::canBeMatched(Literal** baseLits, unsigned baseLen, Clause* instance, LiteralList const* const* alts, Literal* resolvedLit, bool multiset)
 {
   static MLMatcher::Impl matcher;
   matcher.init(baseLits, baseLen, instance, alts, resolvedLit, multiset);

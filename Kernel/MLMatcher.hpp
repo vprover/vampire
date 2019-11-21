@@ -49,7 +49,7 @@ class MLMatcher
     void init(Literal* baseLits[],
               unsigned baseLen,
               Clause* instance,
-              LiteralList* alts[],
+              LiteralList const* const alts[],
               Literal* resolvedLit,
               bool multiset);
 
@@ -59,23 +59,23 @@ class MLMatcher
      */
     MLMatcher();
 
-    void init(Literal* baseLits[], unsigned baseLen, Clause* instance, LiteralList* alts[], bool multiset = false)
+    void init(Literal* baseLits[], unsigned baseLen, Clause* instance, LiteralList const* const alts[], bool multiset = false)
     {
       init(baseLits, baseLen, instance, alts, nullptr, multiset);
     }
 
-    void init(Clause* base, Clause* instance, LiteralList* alts[], bool multiset = false)
+    void init(Clause* base, Clause* instance, LiteralList const* const alts[], bool multiset = false)
     {
       init(base->literals(), base->length(), instance, alts, multiset);
     }
 
-    void init(Literal* baseLits[], unsigned baseLen, Clause* instance, LiteralList* alts[], Literal* resolvedLit)
+    void init(Literal* baseLits[], unsigned baseLen, Clause* instance, LiteralList const* const alts[], Literal* resolvedLit)
     {
       // NOTE: we need multiset matching for subsumption, but for subsumption resolution it is not necessary
       init(baseLits, baseLen, instance, alts, resolvedLit, resolvedLit == nullptr);
     }
 
-    void init(Clause* base, Clause* instance, LiteralList* alts[], Literal* resolvedLit)
+    void init(Clause* base, Clause* instance, LiteralList const* const alts[], Literal* resolvedLit)
     {
       init(base->literals(), base->length(), instance, alts, resolvedLit);
     }
@@ -123,10 +123,10 @@ class MLMatcher
 
   public:
     /// Helper function for compatibility to previous code. It uses a shared static instance of MLMatcher::Impl.
-    static bool canBeMatched(Literal* baseLits[], unsigned baseLen, Clause* instance, LiteralList* alts[], Literal* resolvedLit, bool multiset);
+    static bool canBeMatched(Literal* baseLits[], unsigned baseLen, Clause* instance, LiteralList const* const alts[], Literal* resolvedLit, bool multiset);
 
     /// Helper function for compatibility to previous code. It uses a shared static instance of MLMatcher::Impl.
-    static bool canBeMatched(Clause* base,                          Clause* instance, LiteralList* alts[], Literal* resolvedLit)
+    static bool canBeMatched(Clause* base,                          Clause* instance, LiteralList const* const alts[], Literal* resolvedLit)
     {
       return canBeMatched(base->literals(), base->length(), instance, alts, resolvedLit, resolvedLit == nullptr);
     }
