@@ -383,13 +383,13 @@ class ClauseMatches
 
     unsigned baseLitsWithoutAlts() const { return m_baseLitsWithoutAlts; }
 
-    bool isSubsumptionPossible()
+    bool isSubsumptionPossible() const
     {
       // For subsumption, every base literal must have at least one alternative
       return m_baseLitsWithoutAlts == 0;
     }
 
-    bool isSubsumptionDemodulationPossible()
+    bool isSubsumptionDemodulationPossible() const
     {
       ASS_GE(m_baseLitsWithoutAlts, m_basePosEqsWithoutAlts);
       // Demodulation needs at least one positive equality
@@ -681,74 +681,18 @@ bool ForwardSubsumptionDemodulation3::perform(Clause* cl, Clause*& replacement, 
       altsStorage.emplace_back(mcl, cl_miniIndex);
       ClauseMatches const& cm = altsStorage.back();
       ASS_EQ(cm.base(), mcl);  // make sure we got the right one (since C++17, emplace_back returns the new element)
-      /*
-      static v_vector<LiteralList*> alts;
-      alts.clear();
-      alts.reserve(mcl->length());
-      ASS_EQ(alts.size(), 0);
-      unsigned baseLitsWithoutAlternatives = 0;
-      for (unsigned mi = 0; mi < mcl->length(); ++mi) {
-        Literal* baseLit = (*mcl)[mi];
 
-        LiteralMiniIndex::InstanceIterator instIt(miniIndex, baseLit, false);
-
-        if (!instIt.hasNext()) {
-          // baseLit does not have any suitable alternative at all!
-          //
-          // If there are base literals without any suitable alternatives:
-          // 1. If there is only one literal without alternative and it is a positive equality,
-          //    then it might still be possible to get an FSD inference by choosing this literal
-          //    as equality for demodulation.
-          // 2. If there is a literal without alternative but it is not a positive equality,
-          //    then it is impossible to get an FSD inference.
-          // 3. If there are two literals without alternatives, then it is impossible as well.
-          //
-          // (This check exists purely for performance reasons.
-          // MLMatcher would exclude cases 2 and 3 as well, but with additional overhead.)
-          //
-          // Note that we do not have to check whether mcl contains a positive equality at all.
-          // There are two useful configurations to consider:
-          // a. We do not want to do forward subsumption here and are using the FSD index.
-          //    The FSD index only contains clauses that have a positive equality, and mcl is chosen from this index.
-          // b. We do forward subsumption as part of FSD and are using the (adjusted) FS index.
-          //    In this case we do not want to exclude an mcl without positive equality anyways.
-          baseLitsWithoutAlternatives += 1;
-          if (baseLitsWithoutAlternatives == 1) {
-            if (!baseLit->isEquality() || !baseLit->isPositive()) {
-              // We are in case 2 => skip
-              baseLitsWithoutAlternatives += 1;  // a hack so we don't need another variable to check whether to skip below (in other words, merge case 2 into case 3 for purpose of the "if" below)
-              break;
-            }
-          } else {
-            // We are in case 3 => skip
-            ASS_G(baseLitsWithoutAlternatives, 1);
-            break;
-          }
-        }
-
-        LiteralList* l = nullptr;
-        while (instIt.hasNext()) {
-          Literal* matched = instIt.next();
-          LiteralList::push(matched, l);
-        }
-        alts.push_back(l);
-      }
-
-      // Ensure cleanup of LiteralLists
-      ON_SCOPE_EXIT({
-        for (LiteralList* ll : alts) {
-          LiteralList::destroy(ll);
-        }
-      });
-
-      // Skip due to missing alternatives? (see comment above, "baseLit does not have any suitable alternative")
-      if (baseLitsWithoutAlternatives > 1) {
-        RSTAT_CTR_INC("FSDv3, skipped side premise due to baseLitsWithoutAlternatives");
+      if (!_doSubsumption && !cm.isSubsumptionDemodulationPossible()) {
+        // we don't do subsumption and no FSD is possible => skip (purely for performance reasons)
+        RSTAT_CTR_INC("FSDv3, skipped side premise because no FSD possible");
         continue;
       }
 
-      ASS_EQ(mcl->length(), alts.size());
-      */
+      if (_doSubsumption && !cm.isSubsumptionPossible() && !cm.isSubsumptionDemodulationPossible()) {
+        // we do subsumption but neither FS nor FSD is possible => skip (purely for performance reasons)
+        RSTAT_CTR_INC("FSDv3, skipped side premise because neither FS nor FSD possible");
+        continue;
+      }
 
       static MLMatcher2 matcher;
       matcher.init(mcl, cl, cm.alts());
