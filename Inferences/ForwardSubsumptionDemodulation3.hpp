@@ -36,6 +36,11 @@ class ForwardSubsumptionDemodulation3
     CLASS_NAME(ForwardSubsumptionDemodulation3);
     USE_ALLOCATOR(ForwardSubsumptionDemodulation3);
 
+    ForwardSubsumptionDemodulation3(bool doSubsumption, bool doSubsumptionResolution)
+      : _doSubsumption(doSubsumption)
+      , _doSubsumptionResolution(doSubsumptionResolution)
+    { }
+
     void attach(SaturationAlgorithm* salg) override;
     void detach() override;
     bool perform(Clause* cl, Clause*& replacement, ClauseIterator& premises) override;
@@ -48,8 +53,7 @@ class ForwardSubsumptionDemodulation3
     bool _allowIncompleteness;
 
     bool _doSubsumption;
-
-    bool _doSubsumptionResolution;  // TODO: add option fsd_fsr
+    bool _doSubsumptionResolution;
 };
 
 

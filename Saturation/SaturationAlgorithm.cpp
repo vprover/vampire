@@ -62,6 +62,7 @@
 #include "Inferences/ForwardSubsumptionAndResolution.hpp"
 #include "Inferences/ForwardSubsumptionDemodulation.hpp"
 #include "Inferences/ForwardSubsumptionDemodulation2.hpp"
+#include "Inferences/ForwardSubsumptionDemodulation3.hpp"
 #include "Inferences/GlobalSubsumption.hpp"
 #include "Inferences/HyperSuperposition.hpp"
 #include "Inferences/InnerRewriting.hpp"
@@ -1439,6 +1440,13 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
       case Options::FSD::V2:
         res->addForwardSimplifierToFront(new ForwardSubsumptionDemodulation2());
         break;
+      case Options::FSD::V3:
+        res->addForwardSimplifierToFront(
+          new ForwardSubsumptionDemodulation3(
+            opt.forwardSubsumption() && opt.forwardSubsumptionDemodulationIncludeSubsumption(),
+            opt.forwardSubsumptionResolution() && opt.forwardSubsumptionDemodulationIncludeSubsumptionResolution()
+            ));
+        break;
       case Options::FSD::OFF:
         break;
 #if VDEBUG
@@ -1461,7 +1469,7 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
 #endif
     }
   }
-  if (opt.forwardSubsumption()) {
+  if (opt.forwardSubsumption() && !opt.forwardSubsumptionDemodulationIncludeSubsumption()) {
     if (opt.forwardSubsumptionResolution()) {
       //res->addForwardSimplifierToFront(new CTFwSubsAndRes(true));
       res->addForwardSimplifierToFront(new ForwardSubsumptionAndResolution(true));

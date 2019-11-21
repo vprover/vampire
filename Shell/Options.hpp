@@ -747,7 +747,8 @@ public:
   enum class FSD : unsigned int {
     OFF = 0,
     V1 = 1,
-    V2 = 2
+    V2 = 2,
+    V3 = 3
   };
 
   enum class AdjustFSIndexForFSD : unsigned int {
@@ -1949,6 +1950,7 @@ public:
   AdjustFSIndexForFSD forwardSubsumptionDemodulationAdjustFSIndexForFSD() const { return _forwardSubsumptionDemodulationAdjustFSIndexForFSD.actualValue; }
   bool forwardSubsumptionDemodulationUseSeparateIndex() const { return _forwardSubsumptionDemodulationUseSeparateIndex.actualValue; }
   bool forwardSubsumptionDemodulationIncludeSubsumption() const { return _forwardSubsumptionDemodulationIncludeSubsumption.actualValue; }
+  bool forwardSubsumptionDemodulationIncludeSubsumptionResolution() const { return _forwardSubsumptionDemodulationIncludeSubsumptionResolution.actualValue; }
   Demodulation forwardDemodulation() const { return _forwardDemodulation.actualValue; }
   bool binaryResolution() const { return _binaryResolution.actualValue; }
   bool bfnt() const { return _bfnt.actualValue; }
@@ -2312,6 +2314,7 @@ private:
   ChoiceOptionValue<AdjustFSIndexForFSD> _forwardSubsumptionDemodulationAdjustFSIndexForFSD;
   BoolOptionValue _forwardSubsumptionDemodulationUseSeparateIndex;
   BoolOptionValue _forwardSubsumptionDemodulationIncludeSubsumption;
+  BoolOptionValue _forwardSubsumptionDemodulationIncludeSubsumptionResolution;
   ChoiceOptionValue<FunctionDefinitionElimination> _functionDefinitionElimination;
   IntOptionValue _functionNumber;
   
