@@ -1159,23 +1159,6 @@ isRedundant:
               env.endOutput();
 #endif
 
-              switch (numMatches) {
-                case 0:
-                  RSTAT_CTR_INC("FSDv2, success with MLMatch 1");
-                  break;
-                case 1:
-                  RSTAT_CTR_INC("FSDv2, success with MLMatch 2");
-                  break;
-                case 2:
-                  RSTAT_CTR_INC("FSDv2, success with MLMatch 3");
-                  break;
-                case 3:
-                  RSTAT_CTR_INC("FSDv2, success with MLMatch 4");
-                  break;
-                default:
-                  RSTAT_CTR_INC("FSDv2, success with MLMatch 5+");
-                  break;
-              }
               RSTAT_MCTR_INC("FSDv2, successes by MLMatch", numMatches + 1);  // +1 so it fits with the previous output
 
 #if VDEBUG && FSD_VDEBUG_REDUNDANCY_ASSERTIONS

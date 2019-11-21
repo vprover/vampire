@@ -511,7 +511,7 @@ bool ForwardSubsumptionDemodulation3::perform(Clause* cl, Clause*& replacement, 
 
       // Skip due to missing alternatives? (see comment above, "baseLit does not have any suitable alternative")
       if (baseLitsWithoutAlternatives > 1) {
-        RSTAT_CTR_INC("FSDv2, skipped side premise due to baseLitsWithoutAlternatives");
+        RSTAT_CTR_INC("FSDv3, skipped side premise due to baseLitsWithoutAlternatives");
         continue;
       }
 
@@ -640,7 +640,7 @@ bool ForwardSubsumptionDemodulation3::perform(Clause* cl, Clause*& replacement, 
           TermList t1S = binder.applyWithUnboundVariableOffsetTo(t1, cl_maxVar+1, false);
           Ordering::Result eqArgOrderS = ordering.compare(t0S, t1S);
           if (eqArgOrder == Ordering::INCOMPARABLE && eqArgOrderS != Ordering::INCOMPARABLE) {
-            RSTAT_CTR_INC("FSDv2, ordered after partial substitution");
+            RSTAT_CTR_INC("FSDv3, ordered after partial substitution");
           }
 #else
           // No additional ordering check.
@@ -663,7 +663,7 @@ bool ForwardSubsumptionDemodulation3::perform(Clause* cl, Clause*& replacement, 
               } else {
 #if VDEBUG
                 if (t0S.containsAllVariablesOf(t1S)) {
-                  RSTAT_CTR_INC("FSDv2, skipped LHS due to multiset-contains-check of variables");
+                  RSTAT_CTR_INC("FSDv3, skipped LHS due to multiset-contains-check of variables");
                 }
 #endif
               }
@@ -673,7 +673,7 @@ bool ForwardSubsumptionDemodulation3::perform(Clause* cl, Clause*& replacement, 
               } else {
 #if VDEBUG
                 if (t1S.containsAllVariablesOf(t0S)) {
-                  RSTAT_CTR_INC("FSDv2, skipped LHS due to multiset-contains-check of variables");
+                  RSTAT_CTR_INC("FSDv3, skipped LHS due to multiset-contains-check of variables");
                 }
 #endif
               }
@@ -692,7 +692,7 @@ bool ForwardSubsumptionDemodulation3::perform(Clause* cl, Clause*& replacement, 
               break;
             case Ordering::EQUAL:
               // This case may happen due to the partial substitution from the MLMatcher
-              RSTAT_CTR_INC("FSDv2, terms equal after partial substitution");
+              RSTAT_CTR_INC("FSDv3, terms equal after partial substitution");
               break;
             default:
               ASSERTION_VIOLATION;
@@ -700,7 +700,7 @@ bool ForwardSubsumptionDemodulation3::perform(Clause* cl, Clause*& replacement, 
         }
 
         if (lhsVector.size() == 0) {
-          RSTAT_CTR_INC("FSDv2, skipped match due to no LHS term candidates");
+          RSTAT_CTR_INC("FSDv3, skipped match due to no LHS term candidates");
           continue;
         }
 
@@ -859,7 +859,7 @@ bool ForwardSubsumptionDemodulation3::perform(Clause* cl, Clause*& replacement, 
                   }
                 }
                 // cl is not be redundant after the inference, possibly leading to incompleteness => skip
-                RSTAT_CTR_INC("FSDv2, main premise not redundant");
+                RSTAT_CTR_INC("FSDv3, main premise not redundant");
                 continue;
               }  // if (!_allowIncompleteness)
 isRedundant:
@@ -904,7 +904,7 @@ isRedundant:
 
 #if FSD_LOG_INFERENCES
               env.beginOutput();
-              env.out() << "\% Begin Inference \"FSDv2-" << newCl->number() << "\"\n";
+              env.out() << "\% Begin Inference \"FSDv3-" << newCl->number() << "\"\n";
               env.out() << "\% eqLit: " << eqLit->toString() << "\n";
               env.out() << "\% eqLitS: " << binder.applyTo(eqLit)->toString() << "\n";
               env.out() << "\% dlit: " << dlit->toString() << "\n";
@@ -920,28 +920,11 @@ isRedundant:
               //       Problem: how to detect that situation??
               //       probably if the input only contains FOF and no TFF
               // TODO: Also don't output type defs for $$false and $$true, see problem SYO091^5.p
-              env.out() << "\% End Inference \"FSDv2-" << newCl->number() << "\"" << std::endl;
+              env.out() << "\% End Inference \"FSDv3-" << newCl->number() << "\"" << std::endl;
               env.endOutput();
 #endif
 
-              switch (numMatches) {
-                case 0:
-                  RSTAT_CTR_INC("FSDv2, success with MLMatch 1");
-                  break;
-                case 1:
-                  RSTAT_CTR_INC("FSDv2, success with MLMatch 2");
-                  break;
-                case 2:
-                  RSTAT_CTR_INC("FSDv2, success with MLMatch 3");
-                  break;
-                case 3:
-                  RSTAT_CTR_INC("FSDv2, success with MLMatch 4");
-                  break;
-                default:
-                  RSTAT_CTR_INC("FSDv2, success with MLMatch 5+");
-                  break;
-              }
-              RSTAT_MCTR_INC("FSDv2, successes by MLMatch", numMatches + 1);  // +1 so it fits with the previous output
+              RSTAT_MCTR_INC("FSDv3, successes by MLMatch", numMatches + 1);  // +1 so it fits with the previous output
 
 #if VDEBUG && FSD_VDEBUG_REDUNDANCY_ASSERTIONS
               if (getOptions().literalComparisonMode() != Options::LiteralComparisonMode::REVERSE) {  // see note above
@@ -956,7 +939,7 @@ isRedundant:
                   *it = binder.applyTo(*it);
                 }
                 if (!clauseIsSmaller(mclS.data(), mclS.size(), cl->literals(), cl->length(), ordering)) {
-                  std::cerr << "FSDv2: redundancy violated!" << std::endl;
+                  std::cerr << "FSDv3: redundancy violated!" << std::endl;
                   std::cerr << "mcl: " << mcl->toString() << std::endl;
                   std::cerr << " cl: " <<  cl->toString() << std::endl;
                   std::cerr << "mcl < cl required but it doesn't seem to be the case" << std::endl;
@@ -972,7 +955,7 @@ isRedundant:
       }  // for (numMatches)
 
       if (numMatches > 0) {
-        RSTAT_CTR_INC("FSDv2, MLMatch but no FSD inference");
+        RSTAT_CTR_INC("FSDv3, MLMatch but no FSD inference");
       }
 
     }  // while (rit.hasNext)
