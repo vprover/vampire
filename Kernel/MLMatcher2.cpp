@@ -88,7 +88,7 @@ private:
  * Why do we pass these weird references to pointers?
  * => It allows us to create a single linear array at the beginning of matcher initialization, and thus avoids many small dynamic allocations.
  */
-void createLiteralBindings(Literal* baseLit, LiteralList* alts, Clause* instCl, unsigned*& boundVarData, TermList**& altBindingPtrs, TermList*& altBindingData)
+void createLiteralBindings(Literal* baseLit, LiteralList const* const alts, Clause* instCl, unsigned*& boundVarData, TermList**& altBindingPtrs, TermList*& altBindingData)
 {
   CALL("createLiteralBindings");
 
@@ -284,7 +284,7 @@ struct MatchingData final {
    * bases[bi] can be matched to the alternatives in the list alts[bi], for 0 <= bi < len.
    * Each alternative must be part of the clause 'instance'.
    */
-  LiteralList** alts;
+  LiteralList const* const* alts;
 
   /**
    * The instance clause.
@@ -731,7 +731,7 @@ class MLMatcher2::Impl final
     Impl();
     ~Impl() = default;
 
-    void init(Literal** baseLits, unsigned baseLen, Clause* instance, LiteralList** alts);
+    void init(Literal** baseLits, unsigned baseLen, Clause* instance, LiteralList const* const* alts);
     bool nextMatch();
 
     Literal* getEqualityForDemodulation() const;
@@ -747,13 +747,13 @@ class MLMatcher2::Impl final
     Impl& operator=(Impl&&) = delete;
 
   private:
-    void initMatchingData(Literal** baseLits0, unsigned baseLen, Clause* instance, LiteralList** alts);
+    void initMatchingData(Literal** baseLits0, unsigned baseLen, Clause* instance, LiteralList const* const* alts);
 
   private:
     // Backing storage for the pointers in s_matchingData, used and set up in initMatchingData
     // (the split between this class and MatchingData is purely historical; the transition from the previous implementation with global variables was easier like this)
     DArray<Literal*> s_baseLits;
-    DArray<LiteralList*> s_altsArr;
+    DArray<LiteralList const*> s_altsArr;
     DArray<unsigned> s_varCnts;
     DArray<unsigned*> s_boundVarNums;
     DArray<TermList**> s_altPtrs;
@@ -787,7 +787,7 @@ MLMatcher2::Impl::Impl()
 { }
 
 
-void MLMatcher2::Impl::initMatchingData(Literal** baseLits0, unsigned baseLen, Clause* instance, LiteralList** alts)
+void MLMatcher2::Impl::initMatchingData(Literal** baseLits0, unsigned baseLen, Clause* instance, LiteralList const* const* alts)
 {
   CALL("MLMatcher2::Impl::initMatchingData");
 
@@ -902,7 +902,7 @@ void MLMatcher2::Impl::initMatchingData(Literal** baseLits0, unsigned baseLen, C
 }
 
 
-void MLMatcher2::Impl::init(Literal** baseLits, unsigned baseLen, Clause* instance, LiteralList** alts)
+void MLMatcher2::Impl::init(Literal** baseLits, unsigned baseLen, Clause* instance, LiteralList const* const* alts)
 {
   CALL("MLMatcher2::Impl::init");
 
@@ -1189,7 +1189,7 @@ MLMatcher2::MLMatcher2()
   : m_impl{nullptr}
 { }
 
-void MLMatcher2::init(Literal** baseLits, unsigned baseLen, Clause* instance, LiteralList** alts)
+void MLMatcher2::init(Literal** baseLits, unsigned baseLen, Clause* instance, LiteralList const* const* alts)
 {
   if (!m_impl) {
     m_impl = make_unique<MLMatcher2::Impl>();

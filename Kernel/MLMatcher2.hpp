@@ -56,9 +56,9 @@ class MLMatcher2 final
     void init(Literal* baseLits[],
               unsigned baseLen,
               Clause* instance,
-              LiteralList* alts[]);
+              LiteralList const* const alts[]);
 
-    void init(Clause* base, Clause* instance, LiteralList* alts[])
+    void init(Clause* base, Clause* instance, LiteralList const* const alts[])
     {
       init(base->literals(), base->length(), instance, alts);
     }
