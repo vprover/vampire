@@ -1212,27 +1212,17 @@ void Options::Options::init()
     _forwardSubsumptionDemodulationUseSeparateIndex.tag(OptionTag::INFERENCES);
     _forwardSubsumptionDemodulationUseSeparateIndex.setExperimental();
 
-    _forwardSubsumptionDemodulationIncludeSubsumption = BoolOptionValue("forward_subsumption_demodulation_include_subsumption", "fsd_fs", false);
-    _forwardSubsumptionDemodulationIncludeSubsumption.description =
-        "Whether regular forward subsumption is done by (and replaced by) forward subsumption demodulation.";
-    _lookup.insert(&_forwardSubsumptionDemodulationIncludeSubsumption);
-    _forwardSubsumptionDemodulationIncludeSubsumption.tag(OptionTag::INFERENCES);
-    _forwardSubsumptionDemodulationIncludeSubsumption.reliesOn(_forwardSubsumptionDemodulation.is(equal(FSD::V2)->Or(equal(FSD::V3))));
-    _forwardSubsumptionDemodulationIncludeSubsumption.reliesOn(_forwardSubsumptionDemodulationUseSeparateIndex.is(notEqual(true)));
+    _forwardSubsumptionDemodulationIncludeSubsumptionAndResolution = BoolOptionValue("forward_subsumption_demodulation_include_subsumption_and_resolution", "fsd_fs", false);
+    _forwardSubsumptionDemodulationIncludeSubsumptionAndResolution.description =
+        "Whether regular forward subsumption and subsumption resolution is done by (and replaced by) forward subsumption demodulation.";
+    _lookup.insert(&_forwardSubsumptionDemodulationIncludeSubsumptionAndResolution);
+    _forwardSubsumptionDemodulationIncludeSubsumptionAndResolution.tag(OptionTag::INFERENCES);
+    _forwardSubsumptionDemodulationIncludeSubsumptionAndResolution.reliesOn(_forwardSubsumptionDemodulation.is(equal(FSD::V2)->Or(equal(FSD::V3))));
+    _forwardSubsumptionDemodulationIncludeSubsumptionAndResolution.reliesOn(_forwardSubsumptionDemodulationUseSeparateIndex.is(notEqual(true)));
     // When using V2, FSR must be off.
-    _forwardSubsumptionDemodulationIncludeSubsumption.reliesOn(_forwardSubsumptionDemodulation.is(notEqual(FSD::V2))
-                                                               ->Or<bool>(_forwardSubsumptionResolution.is(equal(false))));
-    _forwardSubsumptionDemodulationIncludeSubsumption.setExperimental();
-
-    _forwardSubsumptionDemodulationIncludeSubsumptionResolution = BoolOptionValue("forward_subsumption_demodulation_include_subsumption_resolution", "fsd_fsr", false);
-    _forwardSubsumptionDemodulationIncludeSubsumptionResolution.description =
-        "Whether forward subsumption resolution is done by (and replaced by) forward subsumption demodulation.";
-    _lookup.insert(&_forwardSubsumptionDemodulationIncludeSubsumptionResolution);
-    _forwardSubsumptionDemodulationIncludeSubsumptionResolution.tag(OptionTag::INFERENCES);
-    _forwardSubsumptionDemodulationIncludeSubsumptionResolution.reliesOn(_forwardSubsumptionDemodulation.is(equal(FSD::V3)));
-    _forwardSubsumptionDemodulationIncludeSubsumptionResolution.reliesOn(_forwardSubsumptionDemodulationIncludeSubsumption.is(equal(true)));
-    _forwardSubsumptionDemodulationIncludeSubsumptionResolution.reliesOn(_forwardSubsumptionDemodulationUseSeparateIndex.is(notEqual(true)));
-    _forwardSubsumptionDemodulationIncludeSubsumptionResolution.setExperimental();
+    _forwardSubsumptionDemodulationIncludeSubsumptionAndResolution.reliesOn(_forwardSubsumptionDemodulation.is(notEqual(FSD::V2))
+                                                                            ->Or<bool>(_forwardSubsumptionResolution.is(equal(false))));
+    _forwardSubsumptionDemodulationIncludeSubsumptionAndResolution.setExperimental();
 
     _hyperSuperposition = BoolOptionValue("hyper_superposition","",false);
     _hyperSuperposition.description=

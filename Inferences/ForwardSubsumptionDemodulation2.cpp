@@ -48,7 +48,6 @@ void ForwardSubsumptionDemodulation2::attach(SaturationAlgorithm* salg)
 
   _preorderedOnly = false;
   _allowIncompleteness = false;
-  _doSubsumption = getOptions().forwardSubsumptionDemodulationIncludeSubsumption();
 
   if (_doSubsumption) {
     _unitIndex.request(salg->getIndexManager(), SIMPLIFYING_UNIT_CLAUSE_SUBST_TREE);
@@ -637,7 +636,6 @@ bool ForwardSubsumptionDemodulation2::perform(Clause* cl, Clause*& replacement, 
           continue;
         }
 
-        ASS(!getOptions().forwardSubsumption());  // if FS is enabled, it should have found this inference already before
         premises = pvi(getSingletonIterator(premise));
         env.statistics->forwardSubsumed++;
         return true;
@@ -773,7 +771,6 @@ bool ForwardSubsumptionDemodulation2::perform(Clause* cl, Clause*& replacement, 
           //
           // Note that we should always apply Forward Subsumption if possible,
           // because it is a deletion rule; and Forward Subsumption should be performed before FSD.
-          ASS(!getOptions().forwardSubsumption());  // if FS is enabled, it should have found this inference already before
           premises = pvi(getSingletonIterator(mcl));
           env.statistics->forwardSubsumed++;
           return true;

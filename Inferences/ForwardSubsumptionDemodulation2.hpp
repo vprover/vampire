@@ -36,6 +36,10 @@ class ForwardSubsumptionDemodulation2
     CLASS_NAME(ForwardSubsumptionDemodulation2);
     USE_ALLOCATOR(ForwardSubsumptionDemodulation2);
 
+    ForwardSubsumptionDemodulation2(bool doSubsumption)
+      : _doSubsumption(doSubsumption)
+    { }
+
     void attach(SaturationAlgorithm* salg) override;
     void detach() override;
     bool perform(Clause* cl, Clause*& replacement, ClauseIterator& premises) override;

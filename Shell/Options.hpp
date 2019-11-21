@@ -1949,8 +1949,7 @@ public:
   unsigned forwardSubsumptionDemodulationMaxMatches() const { return _forwardSubsumptionDemodulationMaxMatches.actualValue; }
   AdjustFSIndexForFSD forwardSubsumptionDemodulationAdjustFSIndexForFSD() const { return _forwardSubsumptionDemodulationAdjustFSIndexForFSD.actualValue; }
   bool forwardSubsumptionDemodulationUseSeparateIndex() const { return _forwardSubsumptionDemodulationUseSeparateIndex.actualValue; }
-  bool forwardSubsumptionDemodulationIncludeSubsumption() const { return _forwardSubsumptionDemodulationIncludeSubsumption.actualValue; }
-  bool forwardSubsumptionDemodulationIncludeSubsumptionResolution() const { return _forwardSubsumptionDemodulationIncludeSubsumptionResolution.actualValue; }
+  bool forwardSubsumptionDemodulationIncludeSubsumptionAndResolution() const { return _forwardSubsumptionDemodulationIncludeSubsumptionAndResolution.actualValue; }
   Demodulation forwardDemodulation() const { return _forwardDemodulation.actualValue; }
   bool binaryResolution() const { return _binaryResolution.actualValue; }
   bool bfnt() const { return _bfnt.actualValue; }
@@ -2313,8 +2312,7 @@ private:
   UnsignedOptionValue _forwardSubsumptionDemodulationMaxMatches;
   ChoiceOptionValue<AdjustFSIndexForFSD> _forwardSubsumptionDemodulationAdjustFSIndexForFSD;
   BoolOptionValue _forwardSubsumptionDemodulationUseSeparateIndex;
-  BoolOptionValue _forwardSubsumptionDemodulationIncludeSubsumption;
-  BoolOptionValue _forwardSubsumptionDemodulationIncludeSubsumptionResolution;
+  BoolOptionValue _forwardSubsumptionDemodulationIncludeSubsumptionAndResolution;
   ChoiceOptionValue<FunctionDefinitionElimination> _functionDefinitionElimination;
   IntOptionValue _functionNumber;
   

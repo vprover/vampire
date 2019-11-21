@@ -1438,13 +1438,16 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
         res->addForwardSimplifierToFront(new ForwardSubsumptionDemodulation());
         break;
       case Options::FSD::V2:
-        res->addForwardSimplifierToFront(new ForwardSubsumptionDemodulation2());
+        res->addForwardSimplifierToFront(
+          new ForwardSubsumptionDemodulation2(
+            opt.forwardSubsumption() && opt.forwardSubsumptionDemodulationIncludeSubsumptionAndResolution()
+            ));
         break;
       case Options::FSD::V3:
         res->addForwardSimplifierToFront(
           new ForwardSubsumptionDemodulation3(
-            opt.forwardSubsumption() && opt.forwardSubsumptionDemodulationIncludeSubsumption(),
-            opt.forwardSubsumptionResolution() && opt.forwardSubsumptionDemodulationIncludeSubsumptionResolution()
+            opt.forwardSubsumption() && opt.forwardSubsumptionDemodulationIncludeSubsumptionAndResolution(),
+            opt.forwardSubsumptionResolution() && opt.forwardSubsumptionDemodulationIncludeSubsumptionAndResolution()
             ));
         break;
       case Options::FSD::OFF:
@@ -1469,18 +1472,20 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
 #endif
     }
   }
-  if (opt.forwardSubsumption() && !opt.forwardSubsumptionDemodulationIncludeSubsumption()) {
-    if (opt.forwardSubsumptionResolution()) {
-      //res->addForwardSimplifierToFront(new CTFwSubsAndRes(true));
-      res->addForwardSimplifierToFront(new ForwardSubsumptionAndResolution(true));
+  if (!opt.forwardSubsumptionDemodulationIncludeSubsumptionAndResolution()) {
+    if (opt.forwardSubsumption()) {
+      if (opt.forwardSubsumptionResolution()) {
+        //res->addForwardSimplifierToFront(new CTFwSubsAndRes(true));
+        res->addForwardSimplifierToFront(new ForwardSubsumptionAndResolution(true));
+      }
+      else {
+        //res->addForwardSimplifierToFront(new CTFwSubsAndRes(false));
+        res->addForwardSimplifierToFront(new ForwardSubsumptionAndResolution(false));
+      }
     }
-    else {
-      //res->addForwardSimplifierToFront(new CTFwSubsAndRes(false));
-      res->addForwardSimplifierToFront(new ForwardSubsumptionAndResolution(false));
+    else if (opt.forwardSubsumptionResolution()) {
+      USER_ERROR("Forward subsumption resolution requires forward subsumption to be enabled.");
     }
-  }
-  else if (opt.forwardSubsumptionResolution()) {
-    USER_ERROR("Forward subsumption resolution requires forward subsumption to be enabled.");
   }
 
   // create backward simplification engine
