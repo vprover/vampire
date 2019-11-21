@@ -8,6 +8,7 @@
 #include "Kernel/ColorHelper.hpp"
 #include "Kernel/EqHelper.hpp"
 #include "Kernel/Inference.hpp"
+#include "Kernel/MLMatcher.hpp"
 #include "Kernel/MLMatcher2.hpp"
 #include "Kernel/Matcher.hpp"
 #include "Kernel/Ordering.hpp"
@@ -51,6 +52,10 @@ void ForwardSubsumptionDemodulation3::attach(SaturationAlgorithm* salg)
 
   if (_doSubsumption) {
     _unitIndex.request(salg->getIndexManager(), SIMPLIFYING_UNIT_CLAUSE_SUBST_TREE);
+  }
+
+  if (_doSubsumptionResolution && !_doSubsumption) {
+    USER_ERROR("FSDv3: forward subsumption resolution requires forward subsumption to be enabled.");
   }
 }
 
@@ -354,6 +359,220 @@ bool clauseIsSmaller(Literal* const lits1[], unsigned n1, Literal* const lits2[]
 #endif  // VDEBUG
 
 
+/**
+ * Stores an instance of the multi-literal matching problem.
+ * Allows us to re-use the alts from subsumption for subsumption resolution.
+ */
+class ClauseMatches
+{
+  public:
+    ClauseMatches(Clause* base, LiteralMiniIndex const& ixAlts);
+
+    ~ClauseMatches();
+
+    // Disallow copy
+    ClauseMatches(ClauseMatches const&) = delete;
+    ClauseMatches& operator=(ClauseMatches const&) = delete;
+
+    // Default move is fine
+    ClauseMatches(ClauseMatches&&) = default;
+    ClauseMatches& operator=(ClauseMatches&&) = default;
+
+    Clause* base() const { return m_base; }
+    LiteralList const* const* alts() const { return m_alts.data(); }
+
+    unsigned baseLitsWithoutAlts() const { return m_baseLitsWithoutAlts; }
+
+    bool isSubsumptionPossible()
+    {
+      // For subsumption, every base literal must have at least one alternative
+      return m_baseLitsWithoutAlts == 0;
+    }
+
+    bool isSubsumptionDemodulationPossible()
+    {
+      ASS_GE(m_baseLitsWithoutAlts, m_basePosEqsWithoutAlts);
+      // Demodulation needs at least one positive equality
+      if (m_basePosEqs == 0) {
+        return false;
+      }
+      // If there are base literals without any suitable alternatives:
+      // 1. If there is only one literal without alternative and it is a positive equality,
+      //    then it might still be possible to get an FSD inference by choosing this literal
+      //    as equality for demodulation.
+      // 2. If there is a literal without alternative but it is not a positive equality,
+      //    then it is impossible to get an FSD inference.
+      // 3. If there are two literals without alternatives, then it is impossible as well.
+      return m_baseLitsWithoutAlts == 0  // every base literal has alternatives
+        || (m_baseLitsWithoutAlts == 1 && m_basePosEqsWithoutAlts == 1);  // case 1 in comment above
+    }
+
+  private:
+    Clause* m_base;
+    v_vector<LiteralList*> m_alts;
+    unsigned m_basePosEqs;
+    unsigned m_baseLitsWithoutAlts;
+    unsigned m_basePosEqsWithoutAlts;
+};  // class ClauseMatches
+
+ClauseMatches::ClauseMatches(Clause* base, LiteralMiniIndex const& ixAlts)
+  : m_base(base)
+  , m_alts(base->length(), LiteralList::empty())
+  , m_basePosEqs(0)
+  , m_baseLitsWithoutAlts(0)
+  , m_basePosEqsWithoutAlts(0)
+{
+  for (unsigned i = 0; i < m_base->length(); ++i) {
+    Literal* baseLit = (*m_base)[i];
+    bool isPosEq = baseLit->isEquality() || baseLit->isPositive();
+
+    if (isPosEq) {
+      m_basePosEqs += 1;
+    }
+
+    LiteralMiniIndex::InstanceIterator instIt(ixAlts, baseLit, false);
+
+    if (!instIt.hasNext()) {
+      // baseLit does not have any suitable alternative at all!
+      m_baseLitsWithoutAlts += 1;
+      if (isPosEq) {
+        m_basePosEqsWithoutAlts += 1;
+      }
+    }
+
+    ASS(LiteralList::isEmpty(m_alts[i]));
+    while (instIt.hasNext()) {
+      Literal* matched = instIt.next();
+      LiteralList::push(matched, m_alts[i]);
+    }
+  }
+}
+
+ClauseMatches::~ClauseMatches()
+{
+  for (LiteralList* ll : m_alts) {
+    LiteralList::destroy(ll);
+  }
+}
+
+/** Iterates over base literals that do not have any possible alts. */
+class ZeroMatchLiteralIterator
+{
+  public:
+    ZeroMatchLiteralIterator(ClauseMatches const& cm)
+      : m_base_lits(cm.base()->literals())
+      , m_alts(cm.alts())
+      , m_remaining(cm.base()->length())
+    {
+      if (!cm.baseLitsWithoutAlts()) {
+        m_remaining = 0;
+      }
+    }
+
+    bool hasNext()
+    {
+      while (m_remaining > 0 && LiteralList::isNonEmpty(*m_alts)) {
+        m_base_lits++;
+        m_alts++;
+        m_remaining--;
+      }
+      return m_remaining;
+    }
+
+    Literal* next()
+    {
+      m_remaining--;
+      m_alts++;
+      return *(m_base_lits++);
+    }
+
+  private:
+    Literal* const* m_base_lits;
+    LiteralList const* const* m_alts;
+    unsigned m_remaining;
+};
+
+bool checkForSubsumptionResolution(Clause* cl, ClauseMatches const& cm, Literal* resLit)
+{
+  Clause* mcl = cm.base();
+
+  if (cm.baseLitsWithoutAlts() > 0) {
+    // Got base literals without alts?
+    // Then subsumption resolution is possible,
+    // but only if we can resolve ALL of them away
+    // (i.e., complementary-match with resLit)
+    //
+    // NOTE: if there is more than one base literal without alts,
+    // subsumption resolution might still be possible
+    // (if we can unify them and resolve them all away)
+    for (unsigned i = 0; i < mcl->length(); ++i) {
+      if (LiteralList::isEmpty(cm.alts()[i])) {
+        if (!MatchingUtils::match((*mcl)[i], resLit, /* complementary = */ true)) {
+          return false;
+        }
+      }
+    }
+
+  } else {
+    // No base literal without alts?
+    // Subsumption resolution is possible if at least one base lit can be resolved with resLit
+
+    bool anyResolvable = false;
+    for (unsigned i = 0; i < mcl->length(); ++i) {
+      if (MatchingUtils::match((*mcl)[i], resLit, /* complementary = */ true)) {
+        anyResolvable = true;
+        break;
+      }
+    }
+    if (!anyResolvable) {
+      return false;
+    }
+  }
+
+  // NOTE: we use MLMatcher here because we want *subset* inclusion (as opposed to submultiset)
+  return MLMatcher::canBeMatched(mcl, cl, cm.alts(), resLit);
+}
+
+
+Clause* generateSubsumptionResolutionClause(Clause* cl, Literal* resLit, Clause* mcl)
+{
+  CALL("generateSubsumptionResolutionClause");
+
+  Inference* inference = new Inference2(Inference::SUBSUMPTION_RESOLUTION, cl, mcl);
+  Unit::InputType inputType = std::max(cl->inputType(), mcl->inputType());
+
+  unsigned newLen = cl->length() - 1;
+  Clause* newCl = new(newLen) Clause(newLen, inputType, inference);
+
+  // int next = 0;
+  // bool found = false;
+  unsigned j = 0;
+  for (unsigned i = 0; i < cl->length(); ++i) {
+    Literal* curLit = (*cl)[i];
+
+    if (curLit != resLit) {
+      (*newCl)[j] = curLit;
+      j += 1;
+    }
+    // // As we will apply subsumption resolution after duplicate literal
+    // // deletion, the same literal should never occur twice.
+    // ASS(curr!=lit || !found);
+    // if(curr!=lit || found) {
+    //   (*res)[next++] = curr;
+    // } else {
+    //   found=true;
+    // }
+  }
+  // We should have skipped exactly one literal, namely resLit.
+  // (it should never appear twice because we apply duplicate literal removal before subsumption resolution)
+  ASS_EQ(j, newLen);
+
+  newCl->setAge(cl->age());
+
+  return newCl;
+}
+
+
 }  // namespace
 
 
@@ -402,20 +621,29 @@ bool ForwardSubsumptionDemodulation3::perform(Clause* cl, Clause*& replacement, 
           continue;
         }
 
-        ASS(!getOptions().forwardSubsumption());  // if FS is enabled, it should have found this inference already before
         premises = pvi(getSingletonIterator(premise));
         env.statistics->forwardSubsumed++;
         return true;
       }
     }
-  }
+  }  // if (_doSubsumption)
 
   // Initialize miniIndex with literals in the clause cl
   // TODO(idea for later): maybe it helps to order alternatives, either smaller to larger or larger to smaller, or unordered
   // to do this, we can simply order the literals inside the miniIndex (i.e., in each equivalence class w.r.t. literal header)
-  LiteralMiniIndex const miniIndex(cl);
+  LiteralMiniIndex const cl_miniIndex(cl);
 
   unsigned int const cl_maxVar = cl->maxVar();
+
+
+  static v_vector<ClauseMatches> altsStorage;
+  ON_SCOPE_EXIT({ altsStorage.clear(); });
+  ASS(altsStorage.empty());
+
+
+  //////////////////////////////////////////////
+  // Subsumption and Subsumption Demodulation //
+  //////////////////////////////////////////////
 
   for (unsigned sqli = 0; sqli < cl->length(); ++sqli) {
     Literal* subsQueryLit = (*cl)[sqli];  // this literal is only used to query the subsumption index
@@ -450,6 +678,10 @@ bool ForwardSubsumptionDemodulation3::perform(Clause* cl, Clause*& replacement, 
       /**
        * Step 2: choose a positive equality in mcl to use for demodulation and try to instantiate the rest to some subset of cl
        */
+      altsStorage.emplace_back(mcl, cl_miniIndex);
+      ClauseMatches const& cm = altsStorage.back();
+      ASS_EQ(cm.base(), mcl);  // make sure we got the right one (since C++17, emplace_back returns the new element)
+      /*
       static v_vector<LiteralList*> alts;
       alts.clear();
       alts.reserve(mcl->length());
@@ -516,9 +748,10 @@ bool ForwardSubsumptionDemodulation3::perform(Clause* cl, Clause*& replacement, 
       }
 
       ASS_EQ(mcl->length(), alts.size());
+      */
 
       static MLMatcher2 matcher;
-      matcher.init(mcl, cl, alts.data());
+      matcher.init(mcl, cl, cm.alts());
 
       static unsigned const maxMatches =
         getOptions().forwardSubsumptionDemodulationMaxMatches() == 0
@@ -538,7 +771,6 @@ bool ForwardSubsumptionDemodulation3::perform(Clause* cl, Clause*& replacement, 
           //
           // Note that we should always apply Forward Subsumption if possible,
           // because it is a deletion rule; and Forward Subsumption should be performed before FSD.
-          ASS(!getOptions().forwardSubsumption());  // if FS is enabled, it should have found this inference already before
           premises = pvi(getSingletonIterator(mcl));
           env.statistics->forwardSubsumed++;
           return true;
@@ -960,6 +1192,84 @@ isRedundant:
 
     }  // while (rit.hasNext)
   }  // for (li)
+
+
+  ////////////////////////////
+  // Subsumption Resolution //
+  ////////////////////////////
+
+  if (_doSubsumptionResolution) {
+    // Subsumption resolution with unit clauses
+    for (unsigned li = 0; li < cl->length(); ++li) {
+      Literal* resLit = (*cl)[li];  // resolved literal
+      SLQueryResultIterator rit = _unitIndex->getGeneralizations(resLit, /* complementary = */ true, /* retrieveSubst = */ false);
+      while (rit.hasNext()) {
+        Clause* mcl = rit.next().clause;
+        if (ColorHelper::compatible(cl->color(), mcl->color())) {
+          Clause* resCl = generateSubsumptionResolutionClause(cl, resLit, mcl);
+          env.statistics->forwardSubsumptionResolution++;
+          premises = pvi(getSingletonIterator(mcl));
+          replacement = resCl;
+          return true;
+        }
+      }
+    }
+
+    // Subsumption resolution with clauses we've already prepared (during subsumption(demodulation) check)
+    for (ClauseMatches const& cm : altsStorage) {
+      Clause* mcl = cm.base();
+      for (unsigned li = 0; li < cl->length(); ++li) {
+        Literal* resLit = (*cl)[li];  // resolved literal
+        if (ColorHelper::compatible(cl->color(), mcl->color()) && checkForSubsumptionResolution(cl, cm, resLit)) {
+          Clause* resCl = generateSubsumptionResolutionClause(cl, resLit, mcl);
+          env.statistics->forwardSubsumptionResolution++;
+          premises = pvi(getSingletonIterator(mcl));
+          replacement = resCl;
+          return true;
+        }
+      }
+    }
+
+    // Subsumption resolution with remaining clauses.
+    // New candidates must contain a generalization of the resolved literal
+    // (because all others would have been tested already for subsumption above)
+    for (unsigned li = 0; li < cl->length(); ++li) {
+      Literal* resLit = (*cl)[li];  // resolved literal
+      SLQueryResultIterator rit = _index->getGeneralizations(resLit, /* complementary = */ true, /* retrieveSubstitutions = */ false);
+      while (rit.hasNext()) {
+        SLQueryResult res = rit.next();
+        Clause* mcl = res.clause;
+
+        if (mcl->hasAux()) {
+          // we have already examined this clause
+          continue;
+        }
+        mcl->setAux(nullptr);
+
+        ASS(dynamic_cast<FwSubsSimplifyingLiteralIndex*>(_index.get()) != nullptr);
+        if (static_cast<FwSubsSimplifyingLiteralIndex*>(_index.get())->isSecondBest(res.clause, res.literal)) {  // FIXME
+          continue;
+        }
+
+        altsStorage.emplace_back(mcl, cl_miniIndex);
+        ClauseMatches const& cm = altsStorage.back();
+        ASS_EQ(cm.base(), mcl);  // make sure we got the right one (since C++17, emplace_back returns the new element)
+
+        if (ColorHelper::compatible(cl->color(), mcl->color()) && checkForSubsumptionResolution(cl, cm, resLit)) {
+          Clause* resCl = generateSubsumptionResolutionClause(cl, resLit, mcl);
+          env.statistics->forwardSubsumptionResolution++;
+          premises = pvi(getSingletonIterator(mcl));
+          replacement = resCl;
+          return true;
+        }
+      }
+    }
+  } // if (_doSubsumptionResolution)
+
+
+  ////////////////////
+  // Not applicable //
+  ////////////////////
 
   return false;
 }
