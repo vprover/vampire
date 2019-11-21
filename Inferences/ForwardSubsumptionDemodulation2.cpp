@@ -818,7 +818,6 @@ bool ForwardSubsumptionDemodulation2::perform(Clause* cl, Clause*& replacement, 
         // is probably slightly faster.
         // Also, the new variables generated with 'unbound variable offset' are only temporary and will disappear in the final result.
         // so there is no blowup of variable indices.
-        // TODO: First commit all the other stuff (as it is now, later try the change with two MapBinders; maybe on Friday?)
 
         // Select candidate lhs of eqLit for demodulation.
         // Must be larger than the rhs after substitution.
@@ -832,6 +831,7 @@ bool ForwardSubsumptionDemodulation2::perform(Clause* cl, Clause*& replacement, 
         {
           TermList t0 = *eqLit->nthArgument(0);
           TermList t1 = *eqLit->nthArgument(1);
+
           // Before comparing the variable occurrences in the terms (to select
           // a suitable demodulation LHS), we have to apply the partial
           // substitution arising from the MLMatch.  This is because variables
@@ -858,16 +858,34 @@ bool ForwardSubsumptionDemodulation2::perform(Clause* cl, Clause*& replacement, 
           //
           // We ensure that unbound variables are disjoint from variables in cl
           // by shifting them by 'cl->maxVar()+1'.
-          // TODO if we use two MapBinders instead of the OverlayBinder later,
-          //      note that those variables are temporary (due to previous paragraph).
-          //      so we do not have to fear that variable numbers blow up.
-          // TODO use some other suffix than 'S', because until now I have used this only for terms/literals under the final substitution.
+
+#if 0
+          // Additional ordering check after the partial substitution.
+          // Problem: might fill up term sharing structure due to the temporary terms.
+          // Currently there is no way to compare terms under a substitution without materializing them,
+          // and non-shared terms cannot be compared (triggers assertions in KBO at least).
+          // TODO: to fix this, it would be nice to have a function such as
+          //    Ordering::compare(TermList t1, std::function<TermList(unsigned)> theta1,
+          //                      TermList t2, std::function<TermList(unsigned)> theta2)
+          // which compares terms under the given substitution.
+          // (if we're fine with moving the ordering implementation into headers,
+          //  we can do this without code duplication and no performance penalty for the currently supported common case.)
+
           TermList t0S = binder.applyWithUnboundVariableOffsetTo(t0, cl_maxVar+1, false);
           TermList t1S = binder.applyWithUnboundVariableOffsetTo(t1, cl_maxVar+1, false);
           Ordering::Result eqArgOrderS = ordering.compare(t0S, t1S);
           if (eqArgOrder == Ordering::INCOMPARABLE && eqArgOrderS != Ordering::INCOMPARABLE) {
             RSTAT_CTR_INC("FSDv2, ordered after partial substitution");
           }
+#else
+          // No additional ordering check.
+          // But note that we still need to substitute here to ensure correctness of the "containsAllVariables" check.
+          // (Since we don't call Ordering::compare here, we do not need to insert the terms into the sharing structure.)
+          // TODO: we could also implement a "containsAllVariables" relative to a substitution.
+          TermList t0S = binder.applyWithUnboundVariableOffsetTo(t0, cl_maxVar+1, true);
+          TermList t1S = binder.applyWithUnboundVariableOffsetTo(t1, cl_maxVar+1, true);
+          Ordering::Result eqArgOrderS = eqArgOrder;
+#endif
           switch (eqArgOrderS) {
             case Ordering::INCOMPARABLE:
               ASS(!_preorderedOnly);  // would've skipped earlier already
