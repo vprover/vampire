@@ -455,43 +455,6 @@ ClauseMatches::~ClauseMatches()
   }
 }
 
-/** Iterates over base literals that do not have any possible alts. */
-class ZeroMatchLiteralIterator
-{
-  public:
-    ZeroMatchLiteralIterator(ClauseMatches const& cm)
-      : m_base_lits(cm.base()->literals())
-      , m_alts(cm.alts())
-      , m_remaining(cm.base()->length())
-    {
-      if (!cm.baseLitsWithoutAlts()) {
-        m_remaining = 0;
-      }
-    }
-
-    bool hasNext()
-    {
-      while (m_remaining > 0 && LiteralList::isNonEmpty(*m_alts)) {
-        m_base_lits++;
-        m_alts++;
-        m_remaining--;
-      }
-      return m_remaining;
-    }
-
-    Literal* next()
-    {
-      m_remaining--;
-      m_alts++;
-      return *(m_base_lits++);
-    }
-
-  private:
-    Literal* const* m_base_lits;
-    LiteralList const* const* m_alts;
-    unsigned m_remaining;
-};
-
 bool checkForSubsumptionResolution(Clause* cl, ClauseMatches const& cm, Literal* resLit)
 {
   Clause* mcl = cm.base();
@@ -544,8 +507,6 @@ Clause* generateSubsumptionResolutionClause(Clause* cl, Literal* resLit, Clause*
   unsigned newLen = cl->length() - 1;
   Clause* newCl = new(newLen) Clause(newLen, inputType, inference);
 
-  // int next = 0;
-  // bool found = false;
   unsigned j = 0;
   for (unsigned i = 0; i < cl->length(); ++i) {
     Literal* curLit = (*cl)[i];
@@ -554,14 +515,6 @@ Clause* generateSubsumptionResolutionClause(Clause* cl, Literal* resLit, Clause*
       (*newCl)[j] = curLit;
       j += 1;
     }
-    // // As we will apply subsumption resolution after duplicate literal
-    // // deletion, the same literal should never occur twice.
-    // ASS(curr!=lit || !found);
-    // if(curr!=lit || found) {
-    //   (*res)[next++] = curr;
-    // } else {
-    //   found=true;
-    // }
   }
   // We should have skipped exactly one literal, namely resLit.
   // (it should never appear twice because we apply duplicate literal removal before subsumption resolution)
