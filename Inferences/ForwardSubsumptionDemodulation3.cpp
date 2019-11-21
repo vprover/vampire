@@ -778,6 +778,14 @@ bool ForwardSubsumptionDemodulation3::perform(Clause* cl, Clause*& replacement, 
           // TODO: we could also implement a "containsAllVariables" relative to a substitution.
           TermList t0S = binder.applyWithUnboundVariableOffsetTo(t0, cl_maxVar+1, true);
           TermList t1S = binder.applyWithUnboundVariableOffsetTo(t1, cl_maxVar+1, true);
+          ON_SCOPE_EXIT({
+            if (t0S.isTerm()) {
+              t0S.term()->destroyNonShared();
+            }
+            if (t1S.isTerm()) {
+              t1S.term()->destroyNonShared();
+            }
+          });
           Ordering::Result eqArgOrderS = eqArgOrder;
 #endif
           switch (eqArgOrderS) {
