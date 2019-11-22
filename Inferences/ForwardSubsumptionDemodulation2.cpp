@@ -988,12 +988,6 @@ bool ForwardSubsumptionDemodulation2::perform(Clause* cl, Clause*& replacement, 
                   unsigned int var = mclVarIt.next();
                   ASS(binder.isBound(var));
                 }
-                // VariableIterator rhsVarIt(rhs);
-                // while (rhsVarIt.hasNext()) {
-                //   TermList rhsVar = rhsVarIt.next();
-                //   ASS(binder.isBound(rhsVar.var()));
-                // }
-                // this assertion is not really necessary... if it fails, it would fail in binder.applyTo below anyways... TODO: remove this block later
               }
 #endif
 

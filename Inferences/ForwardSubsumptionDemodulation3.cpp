@@ -647,6 +647,34 @@ bool ForwardSubsumptionDemodulation3::perform(Clause* cl, Clause*& replacement, 
         continue;
       }
 
+      // TODO
+      // Probably the biggest problem with FSDv3 is that now it's possible
+      // to perform several rewriting steps (using FSD) before finding out that
+      // actually the clause can be subsumed.
+      // Or even perform some rewriting and lose some subsumption by that
+      // (e.g.: P(f(x)) subsumes P(f(c)) \/ Q(d). But if we first try FSD with Q(d) \/ f(c) = c then we get P(c) \/ Q(d) instead of deletion).
+      //
+      // So we always should try all subsumptions first, only then go for rewriting.
+      // The hope is that we can still share some work between these inference rules.
+      //
+      // The fact that the MLMatcher may find an FSD-match before an FS-match is not the only problem.
+      // The issue can also manifest due to the order in which the candidate clauses (mcl) are retrieved from the index.
+      //
+      // So maybe a better idea is as follows:
+      // - To give a negative answer for subsumption, we have to try all branches in the MLMatch search tree.
+      // - So maybe it is not much more expensive to also explore the FSD-MLMatch at this time,
+      //   and if only an FSD-match was found, store this result somewhere for later.
+      // - In this manner, check all subsumptions (with candidates from the original subsumption index).
+      // - If no subsumption was found, try the FSD candidates from before (note that we still have to find the term to rewrite).
+      // - Then try any remaining FSD candidates from the FSD index.
+      // - Then do FSR (wait: actually do FSR before FSD as well. Since it just cuts out a literal.)
+      //
+      // What do we need?
+      // 1) Reorganize this function/loop
+      // 2) Support in MLMatcher2 for prioritizing FS-match over FSD-match (for the subsumption checking)
+      // 3) Support in MLMatcher2 for skipping FS-matches (for the later FSD-only checks)
+      //
+      // Point 1 should be relatively easy, points 2 and 3 are probably almost the "same" feature in MLMatcher 2 and more work
       static MLMatcher2 matcher;
       matcher.init(mcl, cl, cm.alts());
 
@@ -670,6 +698,7 @@ bool ForwardSubsumptionDemodulation3::perform(Clause* cl, Clause*& replacement, 
           // because it is a deletion rule; and Forward Subsumption should be performed before FSD.
           premises = pvi(getSingletonIterator(mcl));
           env.statistics->forwardSubsumed++;
+          replacement = nullptr;
           return true;
         }
         ASS(eqLit->isEquality());
@@ -885,12 +914,6 @@ bool ForwardSubsumptionDemodulation3::perform(Clause* cl, Clause*& replacement, 
                   unsigned int var = mclVarIt.next();
                   ASS(binder.isBound(var));
                 }
-                // VariableIterator rhsVarIt(rhs);
-                // while (rhsVarIt.hasNext()) {
-                //   TermList rhsVar = rhsVarIt.next();
-                //   ASS(binder.isBound(rhsVar.var()));
-                // }
-                // this assertion is not really necessary... if it fails, it would fail in binder.applyTo below anyways... TODO: remove this block later
               }
 #endif
 
