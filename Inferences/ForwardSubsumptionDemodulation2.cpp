@@ -895,27 +895,14 @@ bool ForwardSubsumptionDemodulation2::perform(Clause* cl, Clause*& replacement, 
             case Ordering::INCOMPARABLE:
               ASS(!_preorderedOnly);  // would've skipped earlier already
 
-              // If t0S does not contain all variable occurrences of t1S, then
-              // t0Θ cannot be larger than t1Θ, where Θ is the final substitution.
-              if (t0S.containsAllVariableOccurrencesOf(t1S)) {
-                ASS(t0S.containsAllVariablesOf(t1S));
+              // If t0S does not contain all variables of t1S,
+              // then t0Θ cannot be larger than t1Θ, where Θ is the final substitution.
+              // (note this doesn't hold for occurrences: consider t0 = f(f(x,c)), t1 = f(x,x), θ = { x -> c }, then t0θ > t1θ)
+              if (t0S.containsAllVariablesOf(t1S)) {
                 lhsVector.push_back(t0);
-              } else {
-#if VDEBUG
-                if (t0S.containsAllVariablesOf(t1S)) {
-                  RSTAT_CTR_INC("FSDv2, skipped LHS due to multiset-contains-check of variables");
-                }
-#endif
               }
-              if (t1S.containsAllVariableOccurrencesOf(t0S)) {
-                ASS(t1S.containsAllVariablesOf(t0S));
+              if (t1S.containsAllVariablesOf(t0S)) {
                 lhsVector.push_back(t1);
-              } else {
-#if VDEBUG
-                if (t1S.containsAllVariablesOf(t0S)) {
-                  RSTAT_CTR_INC("FSDv2, skipped LHS due to multiset-contains-check of variables");
-                }
-#endif
               }
               break;
             case Ordering::GREATER:
