@@ -565,9 +565,9 @@ bool ForwardSubsumptionDemodulation2::perform(Clause* cl, Clause*& replacement, 
 
 #if 0
           // Additional ordering check after the partial substitution.
-          // Problem: might fill up term sharing structure due to the temporary terms.
+          // Problem: fills up term sharing structure with temporary terms.
           // Currently there is no way to compare terms under a substitution without materializing them,
-          // and non-shared terms cannot be compared (triggers assertions in KBO at least).
+          // and non-shared terms cannot be compared (triggers assertions in at least KBO).
           // TODO: to fix this, it would be nice to have a function such as
           //    Ordering::compare(TermList t1, std::function<TermList(unsigned)> theta1,
           //                      TermList t2, std::function<TermList(unsigned)> theta2)
@@ -583,45 +583,34 @@ bool ForwardSubsumptionDemodulation2::perform(Clause* cl, Clause*& replacement, 
           }
 #else
           // No additional ordering check.
-          // But note that we still need to substitute here to ensure correctness of the "containsAllVariables" check.
-          // (Since we don't call Ordering::compare here, we do not need to insert the terms into the sharing structure.)
-          // TODO: we could also implement a "containsAllVariables" relative to a substitution.
-          TermList t0S = binder.applyWithUnboundVariableOffsetTo(t0, cl_maxVar+1, true);
-          TermList t1S = binder.applyWithUnboundVariableOffsetTo(t1, cl_maxVar+1, true);
-          ON_SCOPE_EXIT({
-            if (t0S.isTerm()) {
-              t0S.term()->destroyNonShared();
-            }
-            if (t1S.isTerm()) {
-              t1S.term()->destroyNonShared();
-            }
-          });
+          // But note that we still need to compare the variable sets of the substituted terms below.
           Ordering::Result eqArgOrderS = eqArgOrder;
 #endif
+          OverlayBinder::UnboundVariableOffsetApplicator applicator(binder, cl_maxVar+1);
           switch (eqArgOrderS) {
             case Ordering::INCOMPARABLE:
               ASS(!_preorderedOnly);  // would've skipped earlier already
 
               // If t0S does not contain all variables of t1S,
-              // then t0Θ cannot be larger than t1Θ, where Θ is the final substitution.
+              // then t0Θ cannot be larger than t1Θ, where Θ is the final substitution (and S is the partial substitution after MLMatch).
               // (note this doesn't hold for occurrences: consider t0 = f(f(x,c)), t1 = f(x,x), θ = { x -> c }, then t0θ > t1θ)
-              if (t0S.containsAllVariablesOf(t1S)) {
+              if (termContainsAllVariablesOfOtherUnderSubst(t0, t1, applicator)) {
                 lhsVector.push_back(t0);
               }
-              if (t1S.containsAllVariablesOf(t0S)) {
+              if (termContainsAllVariablesOfOtherUnderSubst(t1, t0, applicator)) {
                 lhsVector.push_back(t1);
               }
+
+              RSTAT_MCTR_INC("FSDv2, lhsVector.size() when INCOMPARABLE", lhsVector.size());
               break;
             case Ordering::GREATER:
             case Ordering::GREATER_EQ:
-              ASS(t0S.containsAllVariableOccurrencesOf(t1S));
-              ASS(t0S.containsAllVariablesOf(t1S));
+              ASS(termContainsAllVariablesOfOtherUnderSubst(t0, t1, applicator));
               lhsVector.push_back(t0);
               break;
             case Ordering::LESS:
             case Ordering::LESS_EQ:
-              ASS(t1S.containsAllVariableOccurrencesOf(t0S));
-              ASS(t1S.containsAllVariablesOf(t0S));
+              ASS(termContainsAllVariablesOfOtherUnderSubst(t1, t0, applicator));
               lhsVector.push_back(t1);
               break;
             case Ordering::EQUAL:
