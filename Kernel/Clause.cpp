@@ -36,6 +36,7 @@
 #include "Lib/BitUtils.hpp"
 
 #include "Saturation/ClauseContainer.hpp"
+#include "Saturation/Splitter.hpp"
 
 #include "SAT/SATClause.hpp"
 
@@ -421,7 +422,7 @@ vstring Clause::toString() const
 
   // print avatar components clause depends on
   if (splits() && !splits()->isEmpty()) {
-    result += vstring(" <- (") + splits()->toString() + ")";
+    result += vstring(" <- (") + Splitter::splitsToString(splits()) + ")";
   }
 
   // print inference and ids of parent clauses

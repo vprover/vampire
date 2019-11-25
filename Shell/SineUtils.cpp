@@ -291,10 +291,6 @@ SineSelector::SineSelector(bool onIncluded, float tolerance, unsigned depthLimit
 {
   CALL("SineSelector::SineSelector/4");
 
-  if (_justForSineLevels) {
-    env.clauseSineLevels = new DHMap<const Unit*,unsigned>();
-  }
-
   init();
 }
 
@@ -422,10 +418,10 @@ bool SineSelector::perform(UnitList*& units)
     Unit* u=uit2.next();
     bool performSelection= _onIncluded ? u->included() : ((u->inputType()==Unit::AXIOM)
                             || (env.options->guessTheGoal() != Options::GoalGuess::OFF && u->inputType()==Unit::ASSUMPTION));
-    if (performSelection) {
+    if (performSelection) { // register the unit for later
       updateDefRelation(u);
     }
-    else {
+    else { // goal units are immediately taken
       selected.insert(u);
       selectedStack.push(u);
       newlySelected.push_back(u);
@@ -471,15 +467,26 @@ bool SineSelector::perform(UnitList*& units)
     SymIdIterator sit=_symExtr.extractSymIds(u);
     while (sit.hasNext()) {
       SymId sym=sit.next();
+
+      if (env.predicateSineLevels) {
+        bool pred;
+        unsigned functor;
+        SineSymbolExtractor::decodeSymId(sym,pred,functor);
+        if (pred && !env.predicateSineLevels->find(functor)) {
+          env.predicateSineLevels->insert(functor,env.maxClausePriority);
+          // cout << "set level of predicate " << functor << " i.e. " << env.signature->predicateName(functor) << " to " << env.maxClausePriority << endl;
+        }
+      }
+
       UnitList::Iterator defUnits(_def[sym]);
       while (defUnits.hasNext()) {
-	Unit* du=defUnits.next();
-	if (selected.contains(du)) {
-	  continue;
-	}
-	selected.insert(du);
-	selectedStack.push(du);
-	newlySelected.push_back(du);
+        Unit* du=defUnits.next();
+        if (selected.contains(du)) {
+          continue;
+        }
+        selected.insert(du);
+        selectedStack.push(du);
+        newlySelected.push_back(du);
 
         // If in LTB mode we may already have added du with a priority
         if(env.clausePriorities && !env.clausePriorities->find(du)){

@@ -68,6 +68,7 @@ public:
   unsigned maxClausePriority;
 
   DHMap<const Kernel::Unit*,unsigned>* clauseSineLevels;
+  DHMap<unsigned, unsigned>* predicateSineLevels;
 
   bool haveOutput();
   void beginOutput();

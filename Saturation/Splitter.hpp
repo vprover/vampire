@@ -200,9 +200,12 @@ public:
   void onAllProcessed();
   bool handleEmptyClause(Clause* cl);
 
-  SATLiteral getLiteralFromName(SplitLevel compName) const;
   SplitLevel getNameFromLiteral(SATLiteral lit) const;
   Unit* getDefinitionFromName(SplitLevel compName) const;
+
+  static vstring splitsToString(SplitSet* splits);
+  static SATLiteral getLiteralFromName(SplitLevel compName);
+  static vstring getFormulaStringFromName(SplitLevel compName, bool negated = false);
 
   bool isUsedName(SplitLevel name) const {
     CALL("Splitter::isUsedName");
