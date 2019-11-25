@@ -274,54 +274,6 @@ bool termContainsAllVariablesOfOtherUnderSubst(TermList term, TermList other, Ap
 {
   CALL("termContainsAllVariablesOfOtherUnderSubst");
 
-#if 0
-  static v_unordered_set<unsigned int> vars(16);
-  vars.clear();
-
-  static v_unordered_set<unsigned int> varsSubst(16);
-  varsSubst.clear();
-
-  static VariableIterator vit;
-
-  // std::cerr << "termContainsAllVariablesOfOtherUnderSubst" << std::endl;
-  // std::cerr << " term = " << term.toString() << "  /  other = " << other.toString() << std::endl;
-
-  // collect term's vars
-  vit.reset(term);
-  while (vit.hasNext()) {
-    vars.insert(vit.next().var());
-  }
-
-  // collect vars in term under applicator
-  for (unsigned int v : vars) {
-    TermList t = applicator.apply(v);
-    vit.reset(t);
-    while (vit.hasNext()) {
-      varsSubst.insert(vit.next().var());
-    }
-  }
-
-  // collect other's vars
-  vars.clear();
-  vit.reset(other);
-  while (vit.hasNext()) {
-    vars.insert(vit.next().var());
-  }
-
-  // check that all vars of other under applicator are in term under applicator
-  for (unsigned int v : vars) {
-    TermList t = applicator.apply(v);
-    // std::cout << " v = " << v << ", t = " << t.toString() << std::endl;
-    vit.reset(t);
-    while (vit.hasNext()) {
-      if (varsSubst.find(vit.next().var()) == varsSubst.end()) {
-        return false;
-      }
-    }
-  }
-#else
-  // Version with only one map (but may traverse terms from applicator multiple times)
-
   static v_unordered_set<unsigned int> vars(16);
   vars.clear();
 
@@ -358,7 +310,6 @@ bool termContainsAllVariablesOfOtherUnderSubst(TermList term, TermList other, Ap
       }
     }
   }
-#endif
 
 #if VDEBUG
   {
