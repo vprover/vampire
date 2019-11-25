@@ -156,7 +156,7 @@ bool ForwardSubsumptionDemodulation::perform(Clause* cl, Clause*& replacement, C
             Literal* base = (*mcl)[mi];
             baseLits.push_back(base);
 
-            LiteralList* l = nullptr;
+            LiteralList* l = LiteralList::empty();
 
             LiteralMiniIndex::InstanceIterator instIt(cl_miniIndex, base, false);
             while (instIt.hasNext()) {

@@ -434,7 +434,7 @@ bool ForwardSubsumptionDemodulation2::perform(Clause* cl, Clause*& replacement, 
           }
         }
 
-        LiteralList* l = nullptr;
+        LiteralList* l = LiteralList::empty();
         while (instIt.hasNext()) {
           Literal* matched = instIt.next();
           LiteralList::push(matched, l);
@@ -515,13 +515,6 @@ bool ForwardSubsumptionDemodulation2::perform(Clause* cl, Clause*& replacement, 
          *         CΘ \/ L[rΘ] \/ D
          *
          */
-
-        // TODO
-        // now that we have the 'unbound variable offset' we could also do away with the OverlayBinder
-        // and use two separate MapBinders instead.
-        // is probably slightly faster.
-        // Also, the new variables generated with 'unbound variable offset' are only temporary and will disappear in the final result.
-        // so there is no blowup of variable indices.
 
         // Select candidate lhs of eqLit for demodulation.
         // Must be larger than the rhs after substitution.

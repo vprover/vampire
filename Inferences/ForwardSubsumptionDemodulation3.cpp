@@ -187,13 +187,13 @@ bool ForwardSubsumptionDemodulation3::perform(Clause* cl, Clause*& replacement, 
       }
 
       // TODO
-      // Probably the biggest problem with FSDv3 is that now it's possible
+      // Probably the biggest problem with FSDv3 is that it's now possible
       // to perform several rewriting steps (using FSD) before finding out that
-      // actually the clause can be subsumed.
-      // Or even perform some rewriting and lose some subsumption by that
+      // the clause can actually be subsumed.
+      // Or even perform some rewriting and lose some subsumption because of it
       // (e.g.: P(f(x)) subsumes P(f(c)) \/ Q(d). But if we first try FSD with Q(d) \/ f(c) = c then we get P(c) \/ Q(d) instead of deletion).
       //
-      // So we always should try all subsumptions first, only then go for rewriting.
+      // So we always should try all subsumptions first, and only then go for FSD.
       // The hope is that we can still share some work between these inference rules.
       //
       // The fact that the MLMatcher may find an FSD-match before an FS-match is not the only problem.
@@ -273,13 +273,6 @@ bool ForwardSubsumptionDemodulation3::perform(Clause* cl, Clause*& replacement, 
          *         CΘ \/ L[rΘ] \/ D
          *
          */
-
-        // TODO
-        // now that we have the 'unbound variable offset' we could also do away with the OverlayBinder
-        // and use two separate MapBinders instead.
-        // is probably slightly faster.
-        // Also, the new variables generated with 'unbound variable offset' are only temporary and will disappear in the final result.
-        // so there is no blowup of variable indices.
 
         // Select candidate lhs of eqLit for demodulation.
         // Must be larger than the rhs after substitution.
