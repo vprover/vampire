@@ -588,6 +588,39 @@ bool clauseIsSmaller(Literal* const lits1[], unsigned n1, Literal* const lits2[]
 #endif  // VDEBUG
 
 
+/**
+ * Build clause that results from subsumption resolution with main premise 'cl' and side premise 'mcl'.
+ * The literal 'resLit' is the resolved literal from 'cl'.
+ */
+Clause* generateSubsumptionResolutionClause(Clause* cl, Literal* resLit, Clause* mcl)
+{
+  CALL("generateSubsumptionResolutionClause");
+
+  Inference* inference = new Inference2(Inference::SUBSUMPTION_RESOLUTION, cl, mcl);
+  Unit::InputType inputType = std::max(cl->inputType(), mcl->inputType());
+
+  unsigned newLen = cl->length() - 1;
+  Clause* newCl = new(newLen) Clause(newLen, inputType, inference);
+
+  unsigned j = 0;
+  for (unsigned i = 0; i < cl->length(); ++i) {
+    Literal* curLit = (*cl)[i];
+
+    if (curLit != resLit) {
+      (*newCl)[j] = curLit;
+      j += 1;
+    }
+  }
+  // We should have skipped exactly one literal, namely resLit.
+  // (it should never appear twice because we apply duplicate literal removal before subsumption resolution)
+  ASS_EQ(j, newLen);
+
+  newCl->setAge(cl->age());
+
+  return newCl;
+}
+
+
 }  // namespace
 
 
@@ -1044,19 +1077,33 @@ bool ForwardSubsumptionDemodulation2::perform(Clause* cl, Clause*& replacement, 
                 }
                 // Now we are in the following situation:
                 //
-                //      eqLitS               dlit
-                //    vvvvvvvvvvv          vvvvvvvv
-                //    lhsS = rhsS \/ C     lhsS = t \/ CΘ \/ D
+                //      eqLit              dlit
+                //    vvvvvvvvv          vvvvvvvvv
+                //    lhs = rhs \/ C     lhsS ?= t \/ CΘ \/ D
                 //   ------------------------------------------
-                //              rhsS = t \/ CΘ \/ D
+                //             rhsS ?= t \/ CΘ \/ D
+                //
+                //  where "?=" is either "=" or "≠".
                 TermList t = EqHelper::getOtherEqualitySide(dlit, lhsS);
                 if (t == rhsS) {
-                  // in this case, eqLitS == dlit; and forward subsumption should have deleted the right premise already
-                  ASS_EQ(binder.applyTo(eqLit), dlit);  // eqLitS == dlit
-                  ASS(!getOptions().forwardSubsumption());  // Note that _doSubsumption can still be true here because MLMatcher2 might find an FSD-match before the FS-match
-                  premises = pvi(getSingletonIterator(mcl));
-                  env.statistics->forwardSubsumed++;
-                  return true;
+                  ASS(eqLit->isPositive());
+                  if (dlit->isPositive()) {
+                    // in this case, eqLitS == dlit; and forward subsumption should have deleted the right premise already
+                    // Here, we have subsumption
+                    ASS_EQ(binder.applyTo(eqLit), dlit);  // eqLitS == dlit
+                    premises = pvi(getSingletonIterator(mcl));
+                    env.statistics->forwardSubsumed++;
+                    return true;
+                  } else {
+                    // Here, we have subsumption resolution
+                    ASS_EQ(binder.applyTo(eqLit), Literal::complementaryLiteral(dlit));  // ¬eqLitS == dlit
+                    ASS_EQ(ordering.compare(binder.applyTo(eqLit), dlit), Ordering::GREATER);  // L > ¬L
+                    // TODO: ASS(checkForSubsumptionResolution(cl, cm, dlit));
+                    replacement = generateSubsumptionResolutionClause(cl, dlit, mcl);
+                    premises = pvi(getSingletonIterator(mcl));
+                    env.statistics->forwardSubsumptionResolution++;
+                    return true;
+                  }
                 }
                 Ordering::Result r_cmp_t = ordering.compare(rhsS, t);
                 ASS_NEQ(r_cmp_t, Ordering::LESS_EQ);  // NOTE: LESS_EQ doesn't seem to occur in the code currently. It is unclear why the ordering is not simplified to LESS, EQUAL and GREATER.
