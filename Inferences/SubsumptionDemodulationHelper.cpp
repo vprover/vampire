@@ -3,9 +3,37 @@
 #include "Kernel/Inference.hpp"
 #include "Kernel/MLMatcher.hpp"
 
+namespace Inferences {
+
 using namespace Kernel;
 using namespace Lib;
-using namespace Inferences;
+
+
+std::ostream& operator<<(std::ostream& o, OverlayBinder const& binder)
+{
+  o << "OverlayBinder { ";
+  bool first = true;
+  for (auto binding : binder.m_base) {
+    if (!first) {
+      o << ", ";
+    } else {
+      first = false;
+    }
+    o << TermList(binding.first, false).toString() << " -> " << binding.second.toString();
+  }
+  o << " / ";
+  first = true;
+  for (auto binding : binder.m_overlay) {
+    if (!first) {
+      o << ", ";
+    } else {
+      first = false;
+    }
+    o << TermList(binding.first, false).toString() << " -> " << binding.second.toString();
+  }
+  o << " }";
+  return o;
+}
 
 
 ClauseMatches::ClauseMatches(Clause* base, LiteralMiniIndex const& ixAlts)
@@ -224,3 +252,6 @@ bool SDHelper::clauseIsSmaller(Literal* const lits1[], unsigned n1, Literal* con
   return true;
 }
 #endif  // VDEBUG
+
+
+}  // namespace Inferences
