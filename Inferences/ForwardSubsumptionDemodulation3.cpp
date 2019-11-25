@@ -197,15 +197,15 @@ class OverlayBinder
     /// Like applyTo, but all unbound variables are shifted by unboundVarOffset
     TermList applyWithUnboundVariableOffsetTo(TermList t, Var unboundVarOffset, bool noSharing = false) const
     {
-      WithUnboundVariableOffsetApplicator applicator(*this, unboundVarOffset);
+      UnboundVariableOffsetApplicator applicator(*this, unboundVarOffset);
       return SubstHelper::apply(t, applicator, noSharing);
     }
 
-  private:
-    class WithUnboundVariableOffsetApplicator
+  public:
+    class UnboundVariableOffsetApplicator
     {
       public:
-        WithUnboundVariableOffsetApplicator(OverlayBinder const& binder, Var unboundVarOffset)
+        UnboundVariableOffsetApplicator(OverlayBinder const& binder, Var unboundVarOffset)
           : binder(binder), unboundVarOffset(unboundVarOffset)
         { }
 
@@ -260,6 +260,117 @@ std::ostream& operator<<(std::ostream& o, OverlayBinder const& binder)
 }
 
 
+
+
+/**
+ * Returns true iff termθ contains all variables that otherθ contains (possibly more).
+ *
+ * The substitution θ is given as an applicator, cf. class SubstHelper.
+ * An applicator is an object with a method of the following signature:
+ *    TermList apply(unsigned int var);
+ */
+template <typename Applicator>
+bool termContainsAllVariablesOfOtherUnderSubst(TermList term, TermList other, Applicator const& applicator)
+{
+  CALL("termContainsAllVariablesOfOtherUnderSubst");
+
+#if 0
+  static v_unordered_set<unsigned int> vars(16);
+  vars.clear();
+
+  static v_unordered_set<unsigned int> varsSubst(16);
+  varsSubst.clear();
+
+  static VariableIterator vit;
+
+  // std::cerr << "termContainsAllVariablesOfOtherUnderSubst" << std::endl;
+  // std::cerr << " term = " << term.toString() << "  /  other = " << other.toString() << std::endl;
+
+  // collect term's vars
+  vit.reset(term);
+  while (vit.hasNext()) {
+    vars.insert(vit.next().var());
+  }
+
+  // collect vars in term under applicator
+  for (unsigned int v : vars) {
+    TermList t = applicator.apply(v);
+    vit.reset(t);
+    while (vit.hasNext()) {
+      varsSubst.insert(vit.next().var());
+    }
+  }
+
+  // collect other's vars
+  vars.clear();
+  vit.reset(other);
+  while (vit.hasNext()) {
+    vars.insert(vit.next().var());
+  }
+
+  // check that all vars of other under applicator are in term under applicator
+  for (unsigned int v : vars) {
+    TermList t = applicator.apply(v);
+    // std::cout << " v = " << v << ", t = " << t.toString() << std::endl;
+    vit.reset(t);
+    while (vit.hasNext()) {
+      if (varsSubst.find(vit.next().var()) == varsSubst.end()) {
+        return false;
+      }
+    }
+  }
+#else
+  // Version with only one map (but may traverse terms from applicator multiple times)
+
+  static v_unordered_set<unsigned int> vars(16);
+  vars.clear();
+
+  static VariableIterator vit;
+  static VariableIterator vit2;
+
+  // collect term's vars after substitution
+  vit.reset(term);
+  while (vit.hasNext()) {
+    TermList t = applicator.apply(vit.next().var());
+    vit2.reset(t);
+    while (vit2.hasNext()) {
+      vars.insert(vit2.next().var());
+    }
+  }
+
+  // check that all vars of other after substition have been collected
+  vit.reset(other);
+  while (vit.hasNext()) {
+    TermList t = applicator.apply(vit.next().var());
+    vit2.reset(t);
+    while (vit2.hasNext()) {
+      if (vars.find(vit2.next().var()) == vars.end()) {
+#if VDEBUG
+        {
+          TermList termS = SubstHelper::apply(term, applicator, /* no sharing = */ true);
+          TermList otherS = SubstHelper::apply(other, applicator, /* no sharing = */ true);
+          ASS(!termS.containsAllVariablesOf(otherS));
+          if (termS.isTerm()) { termS.term()->destroyNonShared(); }
+          if (otherS.isTerm()) { otherS.term()->destroyNonShared(); }
+        }
+#endif
+        return false;
+      }
+    }
+  }
+#endif
+
+#if VDEBUG
+  {
+      TermList termS = SubstHelper::apply(term, applicator, /* no sharing = */ true);
+      TermList otherS = SubstHelper::apply(other, applicator, /* no sharing = */ true);
+      ASS(termS.containsAllVariablesOf(otherS));
+      if (termS.isTerm()) { termS.term()->destroyNonShared(); }
+      if (otherS.isTerm()) { otherS.term()->destroyNonShared(); }
+  }
+#endif
+  return true;
+}
 
 
 }  // namespace
@@ -520,9 +631,9 @@ bool ForwardSubsumptionDemodulation3::perform(Clause* cl, Clause*& replacement, 
 
 #if 0
           // Additional ordering check after the partial substitution.
-          // Problem: might fill up term sharing structure due to the temporary terms.
+          // Problem: fills up term sharing structure with temporary terms.
           // Currently there is no way to compare terms under a substitution without materializing them,
-          // and non-shared terms cannot be compared (triggers assertions in KBO at least).
+          // and non-shared terms cannot be compared (triggers assertions in at least KBO).
           // TODO: to fix this, it would be nice to have a function such as
           //    Ordering::compare(TermList t1, std::function<TermList(unsigned)> theta1,
           //                      TermList t2, std::function<TermList(unsigned)> theta2)
@@ -538,45 +649,34 @@ bool ForwardSubsumptionDemodulation3::perform(Clause* cl, Clause*& replacement, 
           }
 #else
           // No additional ordering check.
-          // But note that we still need to substitute here to ensure correctness of the "containsAllVariables" check.
-          // (Since we don't call Ordering::compare here, we do not need to insert the terms into the sharing structure.)
-          // TODO: we could also implement a "containsAllVariables" relative to a substitution.
-          TermList t0S = binder.applyWithUnboundVariableOffsetTo(t0, cl_maxVar+1, true);
-          TermList t1S = binder.applyWithUnboundVariableOffsetTo(t1, cl_maxVar+1, true);
-          ON_SCOPE_EXIT({
-            if (t0S.isTerm()) {
-              t0S.term()->destroyNonShared();
-            }
-            if (t1S.isTerm()) {
-              t1S.term()->destroyNonShared();
-            }
-          });
+          // But note that we still need to compare the variable sets of the substituted terms below.
           Ordering::Result eqArgOrderS = eqArgOrder;
 #endif
+          OverlayBinder::UnboundVariableOffsetApplicator applicator(binder, cl_maxVar+1);
           switch (eqArgOrderS) {
             case Ordering::INCOMPARABLE:
               ASS(!_preorderedOnly);  // would've skipped earlier already
 
               // If t0S does not contain all variables of t1S,
-              // then t0Θ cannot be larger than t1Θ, where Θ is the final substitution.
+              // then t0Θ cannot be larger than t1Θ, where Θ is the final substitution (and S is the partial substitution after MLMatch).
               // (note this doesn't hold for occurrences: consider t0 = f(f(x,c)), t1 = f(x,x), θ = { x -> c }, then t0θ > t1θ)
-              if (t0S.containsAllVariablesOf(t1S)) {
+              if (termContainsAllVariablesOfOtherUnderSubst(t0, t1, applicator)) {
                 lhsVector.push_back(t0);
               }
-              if (t1S.containsAllVariablesOf(t0S)) {
+              if (termContainsAllVariablesOfOtherUnderSubst(t1, t0, applicator)) {
                 lhsVector.push_back(t1);
               }
+
+              RSTAT_MCTR_INC("FSDv3, lhsVector.size() when INCOMPARABLE", lhsVector.size());
               break;
             case Ordering::GREATER:
             case Ordering::GREATER_EQ:
-              ASS(t0S.containsAllVariableOccurrencesOf(t1S));
-              ASS(t0S.containsAllVariablesOf(t1S));
+              ASS(termContainsAllVariablesOfOtherUnderSubst(t0, t1, applicator));
               lhsVector.push_back(t0);
               break;
             case Ordering::LESS:
             case Ordering::LESS_EQ:
-              ASS(t1S.containsAllVariableOccurrencesOf(t0S));
-              ASS(t1S.containsAllVariablesOf(t0S));
+              ASS(termContainsAllVariablesOfOtherUnderSubst(t1, t0, applicator));
               lhsVector.push_back(t1);
               break;
             case Ordering::EQUAL:
