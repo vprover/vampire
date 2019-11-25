@@ -1,4 +1,5 @@
 #include "ForwardSubsumptionDemodulation.hpp"
+#include "SubsumptionDemodulationHelper.hpp"
 
 #include "Debug/RuntimeStatistics.hpp"
 #include "Indexing/Index.hpp"
@@ -164,39 +165,6 @@ class OverlayBinder
 };  // class OverlayBinder
 
 
-/**
- * Build clause that results from subsumption resolution with main premise 'cl' and side premise 'mcl'.
- * The literal 'resLit' is the resolved literal from 'cl'.
- */
-Clause* generateSubsumptionResolutionClause(Clause* cl, Literal* resLit, Clause* mcl)
-{
-  CALL("generateSubsumptionResolutionClause");
-
-  Inference* inference = new Inference2(Inference::SUBSUMPTION_RESOLUTION, cl, mcl);
-  Unit::InputType inputType = std::max(cl->inputType(), mcl->inputType());
-
-  unsigned newLen = cl->length() - 1;
-  Clause* newCl = new(newLen) Clause(newLen, inputType, inference);
-
-  unsigned j = 0;
-  for (unsigned i = 0; i < cl->length(); ++i) {
-    Literal* curLit = (*cl)[i];
-
-    if (curLit != resLit) {
-      (*newCl)[j] = curLit;
-      j += 1;
-    }
-  }
-  // We should have skipped exactly one literal, namely resLit.
-  // (it should never appear twice because we apply duplicate literal removal before subsumption resolution)
-  ASS_EQ(j, newLen);
-
-  newCl->setAge(cl->age());
-
-  return newCl;
-}
-
-
 }  // namespace
 
 
@@ -232,7 +200,7 @@ bool ForwardSubsumptionDemodulation::perform(Clause* cl, Clause*& replacement, C
   ON_SCOPE_EXIT( Clause::releaseAux(); );
 
   // Initialize miniIndex with literals in the clause cl
-  LiteralMiniIndex const miniIndex(cl);
+  LiteralMiniIndex const cl_miniIndex(cl);
 
   for (unsigned sqli = 0; sqli < cl->length(); ++sqli) {
     Literal* subsQueryLit = (*cl)[sqli];  // this literal is only used to query the subsumption index
@@ -306,7 +274,7 @@ bool ForwardSubsumptionDemodulation::perform(Clause* cl, Clause*& replacement, C
 
             LiteralList* l = nullptr;
 
-            LiteralMiniIndex::InstanceIterator instIt(miniIndex, base, false);
+            LiteralMiniIndex::InstanceIterator instIt(cl_miniIndex, base, false);
             while (instIt.hasNext()) {
               Literal* matched = instIt.next();
               LiteralList::push(matched, l);
@@ -545,8 +513,8 @@ bool ForwardSubsumptionDemodulation::perform(Clause* cl, Clause*& replacement, C
                       ASS_EQ(binder.applyTo(eqLit), Literal::complementaryLiteral(dlit));  // ¬eqLitS == dlit
                       ASS_EQ(ordering.compare(binder.applyTo(eqLit), dlit), Ordering::GREATER);  // L > ¬L
                       ASS(!getOptions().forwardSubsumptionResolution());
-                      // TODO: ASS(checkForSubsumptionResolution(cl, cm, dlit));
-                      replacement = generateSubsumptionResolutionClause(cl, dlit, mcl);
+                      ASS(SDHelper::checkForSubsumptionResolution(cl, ClauseMatches{mcl,cl_miniIndex}, dlit));
+                      replacement = SDHelper::generateSubsumptionResolutionClause(cl, dlit, mcl);
                       premises = pvi(getSingletonIterator(mcl));
                       env.statistics->forwardSubsumptionResolution++;
                       return true;
