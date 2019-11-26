@@ -299,6 +299,28 @@ bool Term::containsSubterm(TermList trm)
   }
 }
 
+size_t Term::countSubtermOccurrences(TermList subterm) {
+  CALL("Term::countSubtermOccurrences");
+
+  size_t res = 0;
+
+  unsigned stWeight = subterm.isTerm() ? subterm.term()->weight() : 1;
+  SubtermIterator stit(this);
+  while(stit.hasNext()) {
+    TermList t = stit.next();
+    if(t==subterm) {
+      res++;
+      stit.right();
+    }
+    else if(t.isTerm()) {
+      if(t.term()->weight()<=stWeight) {
+        stit.right();
+      }
+    }
+  }
+  return res;
+}
+
 bool TermList::containsAllVariablesOf(TermList t)
 {
   CALL("Term::containsAllVariablesOf");
