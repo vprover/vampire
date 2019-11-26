@@ -384,11 +384,18 @@ public: //includeSelf for compatibility
     if(t->isLiteral()){
       TermList t0 = *t->nthArgument(0);
       TermList t1 = *t->nthArgument(1);
-      if(!t0.isVar()){ _stack.push(t0); }
-      if(!t1.isVar()){ _stack.push(t1); }      
+      if(!t0.isVar()){ 
+        _stack.push(t0);
+        _sorts.push(SortHelper::getResultSort(t0.term()));
+      }
+      if(!t1.isVar()){ 
+        _stack.push(t1); 
+        _sorts.push(SortHelper::getResultSort(t1.term()));
+      }      
       return;      
     }     
     _stack.push(TermList(t));
+    _sorts.push(SortHelper::getResultSort(t));
   }
 
   bool hasNext();
@@ -402,6 +409,7 @@ public: //includeSelf for compatibility
 private:
   TermList _next;
   Stack<TermList> _stack;
+  Stack<TermList> _sorts;
   DHSet<unsigned>* _unstableVars;
 };
 
@@ -413,6 +421,13 @@ public:
   {
     CALL("UnstableVarIt");
     _next.makeEmpty();
+    if(t->isLiteral()){
+      _stack.push(*t->nthArgument(0));
+      _stack.push(*t->nthArgument(1));
+      _stable.push(true);
+      _stable.push(true);   
+      return;      
+    }
     _stable.push(true);
     _stack.push(TermList(t)); 
   }

@@ -703,12 +703,12 @@ clientBDRecording(false), tree(parent), useConstraints(useC)
     return;
   }
 
-  /*print = false;
-  if(query->toString() == "X7 @ S10000001"){
-    cout << "started" << endl;
-    print = true;
-    cout << parent->toString() << endl;
-  }*/
+  //print = false;
+  //if(query->toString() == "(a -> a -> a) -> a"){
+    //cout << "started" << endl;
+    //print = true;
+    //cout << parent->toString() << endl;
+  //}
 
   if(funcSubtermMap){
     subst.setMap(funcSubtermMap);
@@ -718,12 +718,9 @@ clientBDRecording(false), tree(parent), useConstraints(useC)
   Term* queryNorm=queryNormalizer.apply(query);
 
   if(funcSubtermMap){
-    //cout << "queryNorm is " + query->toString() << endl;
     TermList t = ApplicativeHelper::replaceFunctionalSubterms(queryNorm, funcSubtermMap);
     ASS(!t.isVar());
     queryNorm = t.term();
-    //cout << "queryNorm is " + query->toString() << endl;
-    //cout << "the tree is " + tree->toString() << endl;
   }
 
   if(withoutTop){
@@ -820,10 +817,8 @@ SubstitutionTree::QueryResult SubstitutionTree::UnificationsIterator::next()
     } else {
       normalizer.normalizeVariables(ld.term);
     }
-    /*if(print){
-      cout << "the literal is " + ld.literal->toString() << endl;
-      cout << "the term is " + ld.term.toString() << endl;
-    }/
+    //if(print){
+    //}
 /*
     Stack<UnificationConstraint> normalizedConstraints;
     Stack<UnificationConstraint>::Iterator conit(constraints);
@@ -833,8 +828,10 @@ SubstitutionTree::QueryResult SubstitutionTree::UnificationsIterator::next()
       normalizedConstraints.push(make_pair(constraint.first,normNode));
     }
 */
-    //cout << "normalizer: " << endl; cout << normalizer.toString() << endl;
-    //cout << "SUB:" << endl; cout << subst.toString() << endl;
+    //if(print){
+      //cout << "normalizer: " << endl; cout << normalizer.toString() << endl;
+      //cout << "SUB:" << endl; cout << subst.toString() << endl;
+    //}
 
     ASS(clientBacktrackData.isEmpty());
     subst.bdRecord(clientBacktrackData);

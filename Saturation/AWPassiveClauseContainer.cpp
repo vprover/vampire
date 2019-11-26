@@ -281,9 +281,9 @@ Clause* AWPassiveClauseContainer::popSelected()
     byWeight = (_ageRatio <= _weightRatio);
   }
   
-  /*ClauseQueue::Iterator it(_ageQueue);
+  ClauseQueue::Iterator it(_ageQueue);
 
-  cout << "age queue: " << endl;
+  /*cout << "age queue: " << endl;
   while(it.hasNext()){
     Clause* c = it.next();
     cout << c->number() << ". ";

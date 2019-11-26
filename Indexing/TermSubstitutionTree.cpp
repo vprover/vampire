@@ -147,18 +147,19 @@ TermQueryResultIterator TermSubstitutionTree::getUnifications(TermList t,
 TermQueryResultIterator TermSubstitutionTree::getUnificationsUsingSorts(TermList t, TermList sort,
     bool retrieveSubstitutions)
 {
-  CALL("TermSubstitutionTree::getUnifications");
+  CALL("TermSubstitutionTree::getUnificationsUsingSorts");
 
   ASS(_replaceFuncSubterms);
 
-  //cout << "trying to find partners for " + t.toString() << endl;
+    //cout << "trying to find partners for " + t.toString() << endl;
+    //cout << this->toString() << endl;
 
   bool sortVar = sort.isVar();
   bool sortArrow = !sortVar && ApplicativeHelper::isArrowType(sort.term());
   bool sortAtomic = !sortVar && !sortArrow;
 
   if(t.isOrdinaryVar()) {
-    auto it1 = sortVar || sortArrow ? _funcSubtermsByType->getUnifications(sort, retrieveSubstitutions):
+    auto it1 = sortVar || sortArrow ? _funcSubtermsByType->getUnifications(sort, t, retrieveSubstitutions):
                TermQueryResultIterator::getEmpty();
     auto it2 = sortVar || sortAtomic ? getAllUnifyingIterator(t,retrieveSubstitutions,false):
                TermQueryResultIterator::getEmpty();
@@ -170,10 +171,13 @@ TermQueryResultIterator TermSubstitutionTree::getUnificationsUsingSorts(TermList
     auto it1 = _vars.isEmpty() ? TermQueryResultIterator::getEmpty() :
                ldIteratorToTQRIterator(LDSkipList::RefIterator(_vars), t, retrieveSubstitutions,false);
 
-    auto it2 = sortVar || sortArrow ? _funcSubtermsByType->getUnifications(sort, retrieveSubstitutions) :
+    auto it2 = sortVar || sortArrow ? _funcSubtermsByType->getUnifications(sort, t, retrieveSubstitutions) :
                TermQueryResultIterator::getEmpty();
     auto it3 = sortVar || sortAtomic ? getResultIterator<UnificationsIterator>(t.term(), retrieveSubstitutions,false):
                TermQueryResultIterator::getEmpty();
+    /*if(t.toString() == "hot @ (X9 @ (sK0 @ (kCOMB @ X9)))"){
+      cout << "here" << endl;
+    }*/
     return pvi(getConcatenatedIterator(getConcatenatedIterator(it1, it2), it3));
   }
 }

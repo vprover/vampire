@@ -53,7 +53,10 @@ public:
 
 
   TermQueryResultIterator getUnifications(TermList sort,
-	  bool retrieveSubstitutions);
+	  bool retrieveSubstitutions){ NOT_IMPLEMENTED; }
+
+  TermQueryResultIterator getUnifications(TermList sort, TermList trm, 
+    bool retrieveSubstitutions);
 
 #if VDEBUG
   virtual void markTagged(){ SubstitutionTree::markTagged();}
@@ -71,6 +74,8 @@ private:
   struct LDToTermQueryResultWithSubstFn;
   struct LeafToLDIteratorFn;
   struct UnifyingContext;
+  struct VarUnifFn;
+  struct ToTypeSubFn;
 
   template<class LDIt>
   TermQueryResultIterator ldIteratorToTQRIterator(LDIt ldIt,

@@ -197,8 +197,7 @@ TermIterator EqHelper::getRewritableVarsIterator(DHSet<unsigned>* unstableVars, 
   CALL("EqHelper::getNarrowableSubtermIterator");
 
   ASS(lit->isEquality());
-  
-  
+    
   TermList sel;
   switch(ord.getEqualityArgumentOrder(lit)) {
   case Ordering::INCOMPARABLE: {
@@ -341,7 +340,11 @@ TermIterator EqHelper::getSubVarSupLHSIterator(Literal* lit, const Ordering& ord
 {
   CALL("EqHelper::getSubVarSupLHSIterator"); 
   
-  if (lit->isEquality()) {
+  ASS(lit->isEquality());
+
+  TermList eqSort = SortHelper::getEqualityArgumentSort(lit);
+
+  if (eqSort.isVar() || ApplicativeHelper::isArrowType(eqSort.term())) {
     if (lit->isNegative()) {
       return TermIterator::getEmpty();
     }

@@ -163,7 +163,6 @@ bool UnstableSubtermIt::hasNext()
   CALL("UnstableSubtermIt::hasNext");
 
   static TermStack args;
-  args.reset();
   TermList head;
   
   if(_next){ return true; }
@@ -313,7 +312,6 @@ bool NarrowableSubtermIt::hasNext()
   TermList head;
   while(!_stack.isEmpty()){
     Term* t = _stack.pop();
-    args.reset();
     AH::getHeadAndArgs(t, head, args);
     if((AH::isComb(head) && AH::isExactApplied(head, args.size())) ||
        (head.isVar() && args.size() <= 3)){
@@ -345,22 +343,25 @@ bool RewritableVarsIt::hasNext()
 
   static TermStack args;
   TermList head;
-  args.reset();
+  TermList headSort;
   while(!_stack.isEmpty()){
     TermList t = _stack.pop();
-    AH::getHeadAndArgs(t, head, args);
-    if(head.isVar() && args.size() <= 1 && _unstableVars->find(head.var())){
+    TermList s = _sorts.pop();
+    AH::getHeadSortAndArgs(t, head, headSort, args);
+    if(head.isVar() && args.size() <= 1 && _unstableVars->find(head.var()) 
+       && (s.isVar() || AH::isArrowType(s.term()))){
       _next = head;
     }
     if(!AH::isComb(head) || AH::isUnderApplied(head, args.size())){
+      unsigned count = 1;
       while(!args.isEmpty()){
+        _sorts.push(AH::getNthArg(headSort, count++));
         _stack.push(args.pop());
       }
     }
     if(!_next.isEmpty()){ return true; }
   }
   return false;
-
 }
 
 //TODO relook at stability and instability
@@ -372,18 +373,17 @@ bool UnstableVarIt::hasNext()
 
   static TermStack args;
   TermList head;
-  args.reset();
   while(!_stack.isEmpty()){
     ASS(_stack.size() == _stable.size());
     TermList t = _stack.pop();
     bool stable = _stable.pop();
     AH::getHeadAndArgs(t, head, args);
     if(head.isVar()){
-      if(!stable){
+      if(!stable || args.size()){
         _next = head;
-      } else if (!AH::isSafe(args)){
+      }/* else if (!AH::isSafe(args)){
         _next = head;
-      }
+      } */
     } 
     bool argsStable = !head.isVar() && (!AH::isComb(head) || 
          (AH::isUnderApplied(head, args.size()) && stable));

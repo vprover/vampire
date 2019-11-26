@@ -113,7 +113,6 @@ struct SubVarSup::RewriteableSubtermsFn
   OWN_RETURN_TYPE operator()(Literal* lit)
   {
     CALL("SubVarSup::RewriteableSubtermsFn()");
-    
     TermIterator it =  EqHelper::getRewritableVarsIterator(&_unstableVars, lit, _ord);
     return pvi( pushPairIntoRightIterator(lit, it) );
   }
@@ -240,36 +239,44 @@ Clause* SubVarSup::performSubVarSup(
   static RobSubstitution subst;
   subst.reset();
   
-  unsigned freshVar = Int::max(rwClause->maxVar(), eqClause->maxVar()) + 1;
+  TermList freshVar = TermList(Int::max(rwClause->maxVar(), eqClause->maxVar()) + 1, false);
 
   unsigned rwLength = rwClause->length();
   unsigned eqLength = eqClause->length();
 
   int newAge=Int::max(rwClause->age(),eqClause->age())+1;
 
-  TermList tgtTerm = EqHelper::getOtherEqualitySide(eqLit, eqLHS);
+  Literal* rwLitS = subst.apply(rwLit, 0);
+  TermList rwTermS = subst.apply(rwTerm, 0);
+  Literal* eqLitS = subst.apply(eqLit, 1);
+  TermList eqLHSS = subst.apply(eqLHS, 1);
+  TermList freshVarS = subst.apply(freshVar, 0); 
 
-  TermList varSort = SortHelper::getTermSort(rwTerm, rwLit); 
-  TermList eqSort = SortHelper::getEqualityArgumentSort(eqLit);
+  TermList tgtTerm = EqHelper::getOtherEqualitySide(eqLitS, eqLHSS);
+
+  TermList varSort = SortHelper::getTermSort(rwTermS, rwLitS); 
+  TermList eqSort = SortHelper::getEqualityArgumentSort(eqLitS);
   
-  TermList newEqLHS = ApplicativeHelper::createAppTerm(eqSort, varSort, TermList(freshVar, false), eqLHS);
-  TermList newTgtTm = ApplicativeHelper::createAppTerm(eqSort, varSort, TermList(freshVar, false), tgtTerm);
+  TermList newEqLHS = ApplicativeHelper::createAppTerm(eqSort, varSort, freshVarS, eqLHSS);
+  TermList newTgtTm = ApplicativeHelper::createAppTerm(eqSort, varSort, freshVarS, tgtTerm);
 
-  ALWAYS(subst.unify(rwTerm, 0, newEqLHS, 1));
+  //ALWAYS(subst.unify(varSort, 0, varSort, 1));
+  //ALWAYS(subst.unify(rwTerm, 0, newEqLHS, 1));
 
   Ordering& ordering = _salg->getOrdering();
 
-  Literal* rwLitS = subst.apply(rwLit, 0);
-  TermList rwTermS = subst.apply(rwTerm, 0);
-  newEqLHS = subst.apply(newEqLHS, 1);
+  //Literal* rwLitS = subst.apply(rwLit, 0);
+  //TermList rwTermS = subst.apply(rwTerm, 0);
+  //newEqLHS = subst.apply(newEqLHS, 1);
+  ///newTgtTm = subst.apply(newTgtTm, 1);
 
 #if VDEBUG
-   ASS_EQ(rwTermS,newEqLHS);
+   //ASS_EQ(rwTermS,newEqLHS);
 #endif
 
   //cout << "Check ordering on " << tgtTermS.toString() << " and " << rwTermS.toString() << endl;
 
-  if(rwLitS->isEquality()) {
+  /*if(rwLitS->isEquality()) {
     //check that we're not rewriting only the smaller side of an equality
     TermList arg0=*rwLitS->nthArgument(0);
     TermList arg1=*rwLitS->nthArgument(1);
@@ -283,9 +290,9 @@ Clause* SubVarSup::performSubVarSup(
         return 0;
       }
     }
-  }
+  }*/
 
-  Literal* tgtLitS = EqHelper::replace(rwLit,rwTerm,newTgtTm);
+  Literal* tgtLitS = EqHelper::replace(rwLitS,rwTermS,newTgtTm);
 
   //check we don't create an equational tautology (this happens during self-SubVarSup)
   if(EqHelper::isEqTautology(tgtLitS)) {
@@ -314,6 +321,7 @@ Clause* SubVarSup::performSubVarSup(
     Literal* curr=(*rwClause)[i];
     if(curr!=rwLit) {
       Literal* currAfter = subst.apply(curr, 0);
+      currAfter = EqHelper::replace(currAfter,rwTermS,newEqLHS);
 
       if(EqHelper::isEqTautology(currAfter)) {
         goto construction_fail;

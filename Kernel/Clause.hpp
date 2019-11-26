@@ -38,7 +38,7 @@
 #include "Lib/Stack.hpp"
 
 #include "Unit.hpp"
-
+#include "Signature.hpp"
 
 namespace Kernel {
 
@@ -364,6 +364,8 @@ public:
   unsigned varCnt();
   unsigned maxVar(); // useful to create fresh variables w.r.t. the clause
 
+  typedef FlexTermPosMap DHMap<List<unsigned>*, Dequeu<Signature::Combinator>*>;
+
 protected:
   /** number of literals */
   unsigned _length : 20;
@@ -420,6 +422,7 @@ protected:
 
 //#endif
 
+  FlexTermPosMap* _flexTermPositions[1];
   /** Array of literals of this unit */
   Literal* _literals[1];
 }; // class Clause

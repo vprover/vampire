@@ -181,7 +181,6 @@ bool CombinatorDemodISE::headNormalForm(TermList& t)
   bool modified = false;
   
   for(;;){
-    args.reset();
     AH::getHeadAndArgs(t, head, args);
     if(AH::isComb(head) && !AH::isUnderApplied(head, args.size())){
       modified = true;

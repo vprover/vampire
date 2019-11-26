@@ -342,6 +342,8 @@ void Preprocess::preprocess(Problem& prb)
     }
   //}
 
+  prb.getProperty();
+
   if (prb.mayHaveFunctionDefinitions()) {
     env.statistics->phase=Statistics::FUNCTION_DEFINITION_ELIMINATION;
     if (env.options->showPreprocessing())

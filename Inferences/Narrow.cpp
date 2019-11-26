@@ -146,8 +146,6 @@ ClauseIterator Narrow::generateClauses(Clause* premise)
 
   auto it5 = getFilteredIterator(it4,NonzeroFn());
 
-  //cout << "out narrow" << endl;
-
   return pvi( it5 );
 }
 
@@ -166,9 +164,9 @@ Clause* Narrow::performNarrow(
   ASS(nClause->store()==Clause::ACTIVE);
 
   //if(nClause->number() == 115){
-    //cout << "performNarrow with " << nClause->toString() /*<< "\n and " << nLiteral->toString() << "\n and " << nTerm.toString()*/ << endl;
-    //cout << "the term being narrowed " << nTerm.toString() << endl;
-    //cout << "combAxLhs " << combAxLhs.toString() << endl;
+   // cout << "performNarrow with " << nClause->toString() /*<< "\n and " << nLiteral->toString() << "\n and " << nTerm.toString()*/ << endl;
+   // cout << "the term being narrowed " << nTerm.toString() << endl;
+   // cout << "combAxLhs " << combAxLhs.toString() << endl;
   //}
 
   unsigned cLen = nClause->length();
@@ -241,7 +239,7 @@ Clause* Narrow::performNarrow(
   res->setAge(nClause->age() + 1);
   env.statistics->narrow++;
  // if(nClause->number() == 115){
-   // cout << "returning " + res->toString() << endl;
+   //cout << "returning " + res->toString() << endl;
  // }
   return res;
 

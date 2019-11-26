@@ -710,9 +710,9 @@ Ordering::Result SKIKBO::compare(TermList tl1, TermList tl2) const
     state->traverse(aat2,-1);
   }
   Result res=state->result(aat1,aat2);
-  /*if(res == LESS){ cout << tl1.toString() + " < " + tl2.toString(); }
-  if(res == GREATER){ cout << tl1.toString() + " > " + tl2.toString(); }
-  if(res == INCOMPARABLE){ cout << tl1.toString() + " <> " + tl2.toString(); }*/
+  /*if(res == LESS){ cout << tl1.toString() + " < " + tl2.toString() << endl; }
+  if(res == GREATER){ cout << tl1.toString() + " > " + tl2.toString() << endl; }
+  if(res == INCOMPARABLE){ cout << tl1.toString() + " <> " + tl2.toString() << endl; }*/
 #if VDEBUG
   _state=state;
 #endif

@@ -316,7 +316,10 @@ bool RobSubstitution::occurs(VarSpec vs, TermSpec ts)
 {
   vs=root(vs);
   Stack<TermSpec> toDo(8);
-  if(ts.isVar()) {
+  if(ts.isVSpecialVar()){
+    Term* t = _funcSubtermMap->get1(ts.term.var());
+    ts = TermSpec(TermList(t), ts.index);
+  }else if(ts.isVar()) {
     ts=derefBound(ts);
     if(ts.isVar()) {
       return false;
@@ -330,16 +333,25 @@ bool RobSubstitution::occurs(VarSpec vs, TermSpec ts)
     ASS(ts.term.isTerm());
     VariableIterator vit(ts.term.term());
     while(vit.hasNext()) {
-      VarSpec tvar=root(getVarSpec(vit.next(), ts.index));
+      bool isVSpecialVar = false;
+      TermList var = vit.next();
+      if(var.isVSpecialVar()){ isVSpecialVar = true; }
+      VarSpec tvar=root(getVarSpec(var, ts.index));
       if(tvar==vs) {
-	return true;
+        return true;
       }
       if(!encountered.find(tvar)) {
-	TermSpec dtvar=derefBound(TermSpec(tvar));
-	if(!dtvar.isVar()) {
-	  encountered.insert(tvar);
-	  toDo.push(dtvar);
-	}
+        TermSpec dtvar;
+        if(!isVSpecialVar){
+          dtvar=derefBound(TermSpec(tvar));
+        } else {
+          Term* t = _funcSubtermMap->get1(var.var());
+          dtvar = TermSpec(TermList(t), ts.index);
+        }
+        if(!dtvar.isVar()) {
+          encountered.insert(tvar);
+          toDo.push(dtvar);
+        }
       }
     }
 

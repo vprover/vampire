@@ -236,6 +236,8 @@ ClauseIterator Superposition::generateClauses(Clause* premise)
   // The outer iterator ensures we update the time counter for superposition
   auto it7 = getTimeCountedIterator(it6, TC_SUPERPOSITION);
 
+  //cout << "exited superposition" << endl;
+
   return pvi( it7 );
 }
 
@@ -444,11 +446,13 @@ Clause* Superposition::performSuperposition(
   ASS(rwClause->store()==Clause::ACTIVE);
   ASS(eqClause->store()==Clause::ACTIVE);
 
-  //if(eqClause->number() == 24){
-  //cout << "performSuperposition with " << rwClause->toString() << " and " << eqClause->toString() << endl;
-  //cout << "rwTerm " << rwTerm.toString() << " eqLHSS " << eqLHS.toString() << endl;
-  //cout << "subst " << endl << subst->tryGetRobSubstitution()->toString() << endl;
-  
+  //if(rwClause->number() == 36){
+    //cout << "performSuperposition with " << rwClause->toString() << " and " << eqClause->toString() << endl;
+    //cout << "rwTerm " << rwTerm.toString() << " eqLHS " << eqLHS.toString() << endl;
+    //cout << "subst " << endl << subst->tryGetRobSubstitution()->toString() << endl;
+    //cout << "isTypeSub " << isTypeSub << endl;
+  //}
+
   // the first checks the reference and the second checks the stack
 /*
   if(!constraints.isEmpty() && !constraints->isEmpty()){ 
@@ -469,10 +473,10 @@ Clause* Superposition::performSuperposition(
   bool hasConstraints = !constraints.isEmpty() && !constraints->isEmpty();
   TermList eqLHSsort = SortHelper::getEqualityArgumentSort(eqLit); 
 
-  if(rwTerm.isVar() || eqLHS.isVar()) { //TODO fix this unification or what?
+  if(eqLHS.isVar()) { //TODO fix this unification or what?
     TermList rwTermSort = SortHelper::getTermSort(rwTerm, rwLit);
     if(!sub->unify(eqLHSsort, eqIsResult, rwTermSort, !eqIsResult)){
-      //cannot perform superposition because sorts don't match
+      //cannot perform superposition because sorts don't unify
       return 0;
     }
   }
@@ -684,10 +688,9 @@ Clause* Superposition::performSuperposition(
     }
   }
 
-  //TODO work relating to variables
   if(isTypeSub){
-    TermList sort = SortHelper::getResultSort(eqLHSS.term());
-    Literal* constraint = Literal::createEquality(false,eqLHSS,rwTermS,sort);
+    TermList eqLHSsortS = subst->apply(eqLHSsort, eqIsResult);
+    Literal* constraint = Literal::createEquality(false,eqLHSS,rwTermS,eqLHSsortS);
     (*res)[next] = constraint;
   }
 

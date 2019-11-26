@@ -61,6 +61,64 @@ void TypeSubstitutionTree::remove(TermList sort, LeafData ld)
   handleTerm(sort,ld,false);
 }
 
+#define QRS_QUERY_BANK 0
+#define QRS_RESULT_BANK 1
+
+struct TypeSubstitutionTree::VarUnifFn
+{
+  VarUnifFn(TermList queryTerm, TermList sort)
+  : _queryTerm(queryTerm), _sort(sort) {
+    _subst=RobSubstitutionSP(new RobSubstitution());
+  }
+
+  DECL_RETURN_TYPE(TermQueryResult);
+  OWN_RETURN_TYPE operator() (TermQueryResult tqr) {
+    //TODO unnecessary work here. We had the sort and then lost it
+    TermList tqrSort = SortHelper::getTermSort(tqr.term, tqr.literal);
+    _subst->reset();
+
+    ASS(_sort.isVar() || tqrSort.isVar());
+    ALWAYS(_subst->unify(_sort, QRS_QUERY_BANK, tqrSort, QRS_RESULT_BANK));
+    
+    bool isTypeSub = false;
+    if(_queryTerm.isVar() || tqr.term.isVar()){
+      ALWAYS(_subst->unify(_queryTerm, QRS_QUERY_BANK, tqr.term, QRS_RESULT_BANK));
+    } else {
+      isTypeSub = true;
+    }
+
+    return TermQueryResult(tqr.term, tqr.literal, tqr.clause,
+    ResultSubstitution::fromSubstitution(_subst.ptr(),
+      QRS_QUERY_BANK,QRS_RESULT_BANK), isTypeSub);
+  }
+
+private:
+  RobSubstitutionSP _subst;
+  TermList _queryTerm;
+  TermList _sort;
+};
+
+struct TypeSubstitutionTree::ToTypeSubFn
+{
+
+  ToTypeSubFn(TermList queryTerm)
+  : _queryTerm(queryTerm) {}
+
+  DECL_RETURN_TYPE(TermQueryResult);
+  OWN_RETURN_TYPE operator() (TermQueryResult tqr) {
+    if(!_queryTerm.isVar() && !tqr.term.isVar()){
+      tqr.isTypeSub = true;
+    } else {
+      RobSubstitution* subst = tqr.substitution->tryGetRobSubstitution();
+      ALWAYS(subst->unify(_queryTerm, QRS_QUERY_BANK, tqr.term, QRS_RESULT_BANK));      
+    }
+    return tqr;
+  }
+
+private:
+  TermList _queryTerm;
+};
+
 /**
  * According to value of @b insert, insert or remove term.
  */
@@ -79,12 +137,15 @@ void TypeSubstitutionTree::handleTerm(TermList sort, LeafData ld, bool insert)
     ASS(sort.isTerm());
     Term* term=sort.term();
 
-    Term* normTerm=Renaming::normalize(term);
+    Renaming normalizer;
+    normalizer.normalizeVariables(ld.term);
+
+    Term* normSort=normalizer.apply(term);
 
     BindingMap svBindings;
-    getBindings(normTerm, svBindings);
+    getBindings(normSort, svBindings);
 
-    unsigned rootNodeIndex=getRootNodeIndex(normTerm);
+    unsigned rootNodeIndex=getRootNodeIndex(normSort);
 
     if(insert) {
       SubstitutionTree::insert(&_nodes[rootNodeIndex], svBindings, ld);
@@ -95,21 +156,26 @@ void TypeSubstitutionTree::handleTerm(TermList sort, LeafData ld, bool insert)
 }
 
 //TODO use sorts and delete non-shared
-TermQueryResultIterator TypeSubstitutionTree::getUnifications(TermList sort,
+TermQueryResultIterator TypeSubstitutionTree::getUnifications(TermList sort, TermList trm,
 	  bool retrieveSubstitutions)
 {
   CALL("TypeSubstitutionTree::getUnifications");
+ 
+  //cout << "getting unification partners for " + sort.toString() << endl;
+  //Debug::Tracer::printStack(cout);
+
+
+  auto it1 = !_vars.isEmpty() ? pvi(getMappingIterator(ldIteratorToTQRIterator(LDSkipList::RefIterator(_vars), sort, false), VarUnifFn(trm, sort))) :
+             TermQueryResultIterator::getEmpty();
+
   if(sort.isOrdinaryVar()) { //TODO return vars as well?
-    return getAllUnifyingIterator(sort,retrieveSubstitutions);
+    auto it2 = getMappingIterator(getAllUnifyingIterator(sort,false), VarUnifFn(trm, sort));
+    return pvi(getConcatenatedIterator(it1, it2)); 
   } else {
     ASS(sort.isTerm());
-    if(_vars.isEmpty()) {
-      return getResultIterator<UnificationsIterator>(sort.term(), retrieveSubstitutions);
-    } else {
-      return pvi( getConcatenatedIterator(
-	  ldIteratorToTQRIterator(LDSkipList::RefIterator(_vars), sort, retrieveSubstitutions),
-	  getResultIterator<UnificationsIterator>(sort.term(), retrieveSubstitutions)) );
-    }
+    auto it2 =  getMappingIterator(
+	  getResultIterator<UnificationsIterator>(sort.term(), retrieveSubstitutions), ToTypeSubFn(trm));
+    return pvi(getConcatenatedIterator(it1, it2));     
   }
 }
 
@@ -122,7 +188,7 @@ struct TypeSubstitutionTree::TermQueryResultFn
   DECL_RETURN_TYPE(TermQueryResult);
   OWN_RETURN_TYPE operator() (const QueryResult& qr) {
     return TermQueryResult(qr.first.first->term, qr.first.first->literal,
-	    qr.first.first->clause, qr.first.second,qr.second, true);
+	    qr.first.first->clause, qr.first.second,qr.second);
   }
 };
 
@@ -159,9 +225,6 @@ struct TypeSubstitutionTree::LDToTermQueryResultFn
     return TermQueryResult(ld.term, ld.literal, ld.clause);
   }
 };
-
-#define QRS_QUERY_BANK 0
-#define QRS_RESULT_BANK 1
 
 struct TypeSubstitutionTree::LDToTermQueryResultWithSubstFn
 {
@@ -218,7 +281,7 @@ TermQueryResultIterator TypeSubstitutionTree::ldIteratorToTQRIterator(LDIt ldIt,
 {
   CALL("TypeSubstitutionTree::ldIteratorToTQRIterator");
   // only call withConstraints if we are also getting substitions, the other branch doesn't handle constraints
-  ASS(retrieveSubstitutions); 
+  //ASS(retrieveSubstitutions); 
 
   if(retrieveSubstitutions) {
     return pvi( getContextualIterator(

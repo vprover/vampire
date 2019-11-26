@@ -160,6 +160,8 @@ void ApplicativeHelper::getHeadSortAndArgs(TermList term, TermList& head,
 {
   CALL("ApplicativeHelper::getHeadSortAndArgs");
 
+  if(!args.isEmpty()){ args.reset(); }
+
   if(!term.isTerm()){
     head = term;
     return;
@@ -183,10 +185,12 @@ void ApplicativeHelper::getHeadAndArgs(TermList term, TermList& head, TermStack&
 {
   CALL("ApplicativeHelper::getHeadAndArgs");
 
+  if(!args.isEmpty()){ args.reset(); }
+
   if(!term.isTerm()){
     head = term;
     return;
-  }
+  } 
 
   while(isApp(term.term())){
     args.push(*term.term()->nthArgument(3)); 
@@ -201,6 +205,8 @@ void ApplicativeHelper::getHeadAndArgs(TermList term, TermList& head, TermStack&
 void ApplicativeHelper::getHeadAndArgs(Term* term, TermList& head, TermStack& args)
 {
   CALL("ApplicativeHelper::getHeadAndArgs/2");
+
+  if(!args.isEmpty()){ args.reset(); }
 
   head = TermList(term);
 
@@ -219,6 +225,8 @@ void ApplicativeHelper::getHeadAndArgs(const Term* term, TermList& head, Deque<T
   CALL("ApplicativeHelper::getHeadAndArgs/3");
 
   ASS(isApp(term));
+
+  if(!args.isEmpty()){ args.reset(); }
 
   while(isApp(term)){
     args.push_front(*term->nthArgument(3)); 
