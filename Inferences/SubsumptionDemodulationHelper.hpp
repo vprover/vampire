@@ -9,6 +9,15 @@
 #include "Lib/STL.hpp"
 
 
+
+// Set to true to output FSD inferences on stdout
+#define FSD_LOG_INFERENCES false
+
+// Set to true to check redundancy of simplified clause in debug mode
+#define FSD_VDEBUG_REDUNDANCY_ASSERTIONS true
+
+
+
 namespace Inferences {
 
 using namespace Indexing;
@@ -245,10 +254,59 @@ class SDHelper
     static bool checkForSubsumptionResolution(Clause* cl, ClauseMatches const& cm, Literal* resLit);
     static Clause* generateSubsumptionResolutionClause(Clause* cl, Literal* resLit, Clause* mcl);
 
-#if VDEBUG
+#if VDEBUG  // these function are slow and should only be used in debug mode
+  private:
+    enum class ClauseComparisonResult
+    {
+      Smaller,
+      Equal,
+      GreaterOrIncomparable
+    };
+
+    static ClauseComparisonResult clauseCompare(Literal* const lits1[], unsigned n1, Literal* const lits2[], unsigned n2, Ordering const& ordering);
+
+    /// Compares mclΘ to cl.
+    template <typename Applicator>
+    static ClauseComparisonResult substClauseCompare(Clause* mcl, Applicator const& applicator, Clause* cl, Ordering const& ordering)
+    {
+      v_vector<Literal*> mclS(mcl->literals(), mcl->literals() + mcl->length());
+      ASS_EQ(mcl->length(), mclS.size());
+      for (auto it = mclS.begin(); it != mclS.end(); ++it) {
+        *it = applicator.applyTo(*it);
+      }
+      return SDHelper::clauseCompare(mclS.data(), mclS.size(), cl->literals(), cl->length(), ordering);
+    }
+
+  public:
     /// Returns true iff clause with literal lits1 is smaller than clause with literals lits2
     /// in the multiset extension of the given ordering.
-    static bool clauseIsSmaller(Literal* const lits1[], unsigned n1, Literal* const lits2[], unsigned n2, Ordering const& ordering);
+    static bool clauseIsSmaller(Literal* const lits1[], unsigned n1, Literal* const lits2[], unsigned n2, Ordering const& ordering)
+    {
+      return clauseCompare(lits1, n1, lits2, n2, ordering) == ClauseComparisonResult::Smaller;
+    }
+
+    /// Returns true iff mcl < cl.
+    static bool clauseIsSmaller(Clause* mcl, Clause* cl, Ordering const& ordering)
+    {
+      return SDHelper::clauseIsSmaller(mcl->literals(), mcl->length(), cl->literals(), cl->length(), ordering);
+    }
+
+    /// Returns true iff mclΘ < cl,
+    /// where the substitution Θ is given as applicator (cf. class SubstHelper).
+    template <typename Applicator>
+    static bool substClauseIsSmaller(Clause* mcl, Applicator const& applicator, Clause* cl, Ordering const& ordering)
+    {
+      return SDHelper::substClauseCompare(mcl, applicator, cl, ordering) == ClauseComparisonResult::Smaller;
+    }
+
+    /// Returns true iff mclΘ <= cl,
+    /// where the substitution Θ is given as applicator (cf. class SubstHelper).
+    template <typename Applicator>
+    static bool substClauseIsSmallerOrEqual(Clause* mcl, Applicator const& applicator, Clause* cl, Ordering const& ordering)
+    {
+      auto result = SDHelper::substClauseCompare(mcl, applicator, cl, ordering);
+      return result == ClauseComparisonResult::Smaller || result == ClauseComparisonResult::Equal;
+    }
 #endif
 };
 

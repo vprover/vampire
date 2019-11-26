@@ -161,8 +161,11 @@ Clause* SDHelper::generateSubsumptionResolutionClause(Clause* cl, Literal* resLi
 ///
 /// This implementation is justified by Lemma 2.5.6 on page 24 of [BN98].
 /// [BN98] Franz Baader and Tobias Nipkow. Term Rewriting and All That. Cambridge University Press, 1998.
-bool SDHelper::clauseIsSmaller(Literal* const lits1[], unsigned n1, Literal* const lits2[], unsigned n2, Ordering const& ordering)
+SDHelper::ClauseComparisonResult SDHelper::clauseCompare(Literal* const lits1[], unsigned n1, Literal* const lits2[], unsigned n2, Ordering const& ordering)
 {
+  // "-lcm reverse" messes up the ordering
+  ASS(env.options->literalComparisonMode() != Options::LiteralComparisonMode::REVERSE);
+
   // Copy given literals so we can sort them
   v_vector<Literal*> c1(lits1, lits1+n1);
   v_vector<Literal*> c2(lits2, lits2+n2);
@@ -170,6 +173,10 @@ bool SDHelper::clauseIsSmaller(Literal* const lits1[], unsigned n1, Literal* con
   // These will contain literals from c1/c2 with equal occurrences removed
   v_vector<Literal*> v1;
   v_vector<Literal*> v2;
+
+  // The equality tests below only make sense for shared literals
+  std::for_each(c1.begin(), c1.end(), [](Literal* lit) { ASS(lit->shared()); });
+  std::for_each(c2.begin(), c2.end(), [](Literal* lit) { ASS(lit->shared()); });
 
   // Sort input by pointer value
   // NOTE: we use std::less<> because the C++ standard guarantees it is a total order on pointer types.
@@ -213,7 +220,7 @@ bool SDHelper::clauseIsSmaller(Literal* const lits1[], unsigned n1, Literal* con
   if (v1.empty() && v2.empty()) {
     // Both clauses are the same
     ASS(c1 == c2);
-    return false;
+    return ClauseComparisonResult::Equal;
   }
 
   // For each remaining literal from c1,
@@ -245,11 +252,11 @@ bool SDHelper::clauseIsSmaller(Literal* const lits1[], unsigned n1, Literal* con
       }
     }
     if (!isCovered) {
-      return false;
+      return ClauseComparisonResult::GreaterOrIncomparable;
     }
   }
 
-  return true;
+  return ClauseComparisonResult::Smaller;
 }
 #endif  // VDEBUG
 
