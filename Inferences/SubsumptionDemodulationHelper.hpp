@@ -207,10 +207,6 @@ class SDClauseMatches
     // required to use std::vector::emplace_back
     DECLARE_PLACEMENT_NEW;
 
-  // public:
-  //   // required to use std::vector::emplace_back
-  //   void* operator new(size_t, void* where) { return where; }
-
   public:
     SDClauseMatches(Clause* base, LiteralMiniIndex const& ixAlts);
 
