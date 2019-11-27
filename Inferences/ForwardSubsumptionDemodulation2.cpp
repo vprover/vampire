@@ -757,7 +757,7 @@ bool ForwardSubsumptionDemodulation2::perform(Clause* cl, Clause*& replacement, 
                     // Here, we have subsumption resolution
                     ASS_EQ(binder.applyTo(eqLit), Literal::complementaryLiteral(dlit));  // ¬eqLitS == dlit
                     ASS_EQ(ordering.compare(binder.applyTo(eqLit), dlit), Ordering::GREATER);  // L > ¬L
-                    ASS(SDHelper::checkForSubsumptionResolution(cl, ClauseMatches{mcl,cl_miniIndex}, dlit));
+                    ASS(SDHelper::checkForSubsumptionResolution(cl, SDClauseMatches{mcl,cl_miniIndex}, dlit));
                     replacement = SDHelper::generateSubsumptionResolutionClause(cl, dlit, mcl);
 #if VDEBUG && FSD_VDEBUG_REDUNDANCY_ASSERTIONS
                     // Note that mclθ < cl does not always hold here,

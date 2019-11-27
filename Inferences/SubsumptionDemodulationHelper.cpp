@@ -36,7 +36,7 @@ std::ostream& operator<<(std::ostream& o, OverlayBinder const& binder)
 }
 
 
-ClauseMatches::ClauseMatches(Clause* base, LiteralMiniIndex const& ixAlts)
+SDClauseMatches::SDClauseMatches(Clause* base, LiteralMiniIndex const& ixAlts)
   : m_base(base)
   , m_alts(base->length(), LiteralList::empty())
   , m_basePosEqs(0)
@@ -70,7 +70,7 @@ ClauseMatches::ClauseMatches(Clause* base, LiteralMiniIndex const& ixAlts)
 }
 
 
-ClauseMatches::~ClauseMatches()
+SDClauseMatches::~SDClauseMatches()
 {
   for (LiteralList* ll : m_alts) {
     LiteralList::destroy(ll);
@@ -82,7 +82,7 @@ ClauseMatches::~ClauseMatches()
  * Check whether there is a subsumption resolution inference with main premise 'cl'
  * using resolved literal 'resLit' (from 'cl'), and side premise represented by 'cm'.
  */
-bool SDHelper::checkForSubsumptionResolution(Clause* cl, ClauseMatches const& cm, Literal* resLit)
+bool SDHelper::checkForSubsumptionResolution(Clause* cl, SDClauseMatches const& cm, Literal* resLit)
 {
   Clause* mcl = cm.base();
 

@@ -121,7 +121,7 @@ bool ForwardSubsumptionDemodulation3::perform(Clause* cl, Clause*& replacement, 
   unsigned int const cl_maxVar = cl->maxVar();
 
 
-  static v_vector<ClauseMatches> altsStorage;
+  static v_vector<SDClauseMatches> altsStorage;
   ON_SCOPE_EXIT({ altsStorage.clear(); });
   ASS(altsStorage.empty());
 
@@ -164,7 +164,7 @@ bool ForwardSubsumptionDemodulation3::perform(Clause* cl, Clause*& replacement, 
        * Step 2: choose a positive equality in mcl to use for demodulation and try to instantiate the rest to some subset of cl
        */
       altsStorage.emplace_back(mcl, cl_miniIndex);
-      ClauseMatches const& cm = altsStorage.back();
+      SDClauseMatches const& cm = altsStorage.back();
       ASS_EQ(cm.base(), mcl);  // make sure we got the right one (since C++17, emplace_back returns the new element)
 
       if (!_doSubsumption && !cm.isSubsumptionDemodulationPossible()) {
@@ -677,7 +677,7 @@ isRedundant:
     }
 
     // Subsumption resolution with clauses we've already prepared (during subsumption(demodulation) check)
-    for (ClauseMatches const& cm : altsStorage) {
+    for (SDClauseMatches const& cm : altsStorage) {
       Clause* mcl = cm.base();
       for (unsigned li = 0; li < cl->length(); ++li) {
         Literal* resLit = (*cl)[li];  // resolved literal
@@ -716,7 +716,7 @@ isRedundant:
         }
 
         altsStorage.emplace_back(mcl, cl_miniIndex);
-        ClauseMatches const& cm = altsStorage.back();
+        SDClauseMatches const& cm = altsStorage.back();
         ASS_EQ(cm.base(), mcl);  // make sure we got the right one (since C++17, emplace_back returns the new element)
 
         if (ColorHelper::compatible(cl->color(), mcl->color()) && SDHelper::checkForSubsumptionResolution(cl, cm, resLit)) {

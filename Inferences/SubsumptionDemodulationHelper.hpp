@@ -41,6 +41,9 @@ using namespace Lib;
  */
 class OverlayBinder
 {
+  CLASS_NAME(OverlayBinder);
+  USE_ALLOCATOR(OverlayBinder);
+
   public:
     using Var = unsigned int;
     using BindingsMap = v_unordered_map<Var, TermList>;
@@ -195,20 +198,31 @@ std::ostream& operator<<(std::ostream& o, OverlayBinder const& binder);
  * Stores an instance of the multi-literal matching problem.
  * Allows us to re-use the alts from subsumption for subsumption resolution.
  */
-class ClauseMatches
+class SDClauseMatches
 {
-  public:
-    ClauseMatches(Clause* base, LiteralMiniIndex const& ixAlts);
+  CLASS_NAME(SDClauseMatches);
+  USE_ALLOCATOR(SDClauseMatches);
 
-    ~ClauseMatches();
+  public:
+    // required to use std::vector::emplace_back
+    DECLARE_PLACEMENT_NEW;
+
+  // public:
+  //   // required to use std::vector::emplace_back
+  //   void* operator new(size_t, void* where) { return where; }
+
+  public:
+    SDClauseMatches(Clause* base, LiteralMiniIndex const& ixAlts);
+
+    ~SDClauseMatches();
 
     // Disallow copy
-    ClauseMatches(ClauseMatches const&) = delete;
-    ClauseMatches& operator=(ClauseMatches const&) = delete;
+    SDClauseMatches(SDClauseMatches const&) = delete;
+    SDClauseMatches& operator=(SDClauseMatches const&) = delete;
 
     // Default move is fine
-    ClauseMatches(ClauseMatches&&) = default;
-    ClauseMatches& operator=(ClauseMatches&&) = default;
+    SDClauseMatches(SDClauseMatches&&) = default;
+    SDClauseMatches& operator=(SDClauseMatches&&) = default;
 
     Clause* base() const { return m_base; }
     LiteralList const* const* alts() const { return m_alts.data(); }
@@ -245,13 +259,13 @@ class ClauseMatches
     unsigned m_basePosEqs;
     unsigned m_baseLitsWithoutAlts;
     unsigned m_basePosEqsWithoutAlts;
-};  // class ClauseMatches
+};  // class SDClauseMatches
 
 
 class SDHelper
 {
   public:
-    static bool checkForSubsumptionResolution(Clause* cl, ClauseMatches const& cm, Literal* resLit);
+    static bool checkForSubsumptionResolution(Clause* cl, SDClauseMatches const& cm, Literal* resLit);
     static Clause* generateSubsumptionResolutionClause(Clause* cl, Literal* resLit, Clause* mcl);
 
 #if VDEBUG  // these function are slow and should only be used in debug mode

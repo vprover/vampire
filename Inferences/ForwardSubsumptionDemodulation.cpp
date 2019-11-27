@@ -397,7 +397,7 @@ bool ForwardSubsumptionDemodulation::perform(Clause* cl, Clause*& replacement, C
                       ASS_EQ(binder.applyTo(eqLit), Literal::complementaryLiteral(dlit));  // ¬eqLitS == dlit
                       ASS_EQ(ordering.compare(binder.applyTo(eqLit), dlit), Ordering::GREATER);  // L > ¬L
                       ASS(!getOptions().forwardSubsumptionResolution());
-                      ASS(SDHelper::checkForSubsumptionResolution(cl, ClauseMatches{mcl,cl_miniIndex}, dlit));
+                      ASS(SDHelper::checkForSubsumptionResolution(cl, SDClauseMatches{mcl,cl_miniIndex}, dlit));
                       replacement = SDHelper::generateSubsumptionResolutionClause(cl, dlit, mcl);
                       premises = pvi(getSingletonIterator(mcl));
                       env.statistics->forwardSubsumptionResolution++;
