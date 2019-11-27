@@ -63,9 +63,38 @@ TermList TermReplacement::transformSubterm(TermList trm)
   CALL("TermReplacement::transformSubterm");
 
   if(trm.isTerm() && trm.term()==_o){
-   return _r;
+    return _r;
   }
   return trm;
+}
+
+TermList LiteralSubsetReplacement::transformSubterm(TermList trm)
+{
+  CALL("LiteralSubsetReplacement::transformSubterm");
+
+  if(trm.isTerm() && trm.term() == _o){
+    // Replace either if there are too many occurrences (>10) to try all possibilities,
+    // or if the bit in _iteration corresponding to this match is set to 1.
+    if ((_occurrences > 10) || (1 & (_iteration >> _matchCount++))) {
+      return _r;
+    }
+  }
+  return trm;
+}
+
+Literal* LiteralSubsetReplacement::transformSubset() {
+  CALL("LiteralSubsetReplacement::transformSubset");
+  // Increment _iteration, since it either is 0, or was already used.
+  _iteration++;
+  // TODO: add a flag for the maximum number of selected occurrences.
+  //int setBits = countSetBits(_iteration);
+  //while ((countSetBits(_iteration) > 3) && (_iteration <= _maxIterations)) _iteration++;
+  if (_iteration >= _maxIterations) {
+    return nullptr;
+  }
+  _matchCount = 0;
+  Literal* lit = transform(_lit);
+  return lit;
 }
 
 ClauseIterator Induction::generateClauses(Clause* premise)
