@@ -69,6 +69,7 @@ private:
   // Counts how many occurrences were already encountered in one transformation
   unsigned _matchCount = 0;
   unsigned _occurrences;
+  const unsigned _maxOccurrences = 10;
   Literal* _lit;
   Term* _o;
   TermList _r;
@@ -106,14 +107,15 @@ public:
 private:
   void process(Clause* premise, Literal* lit);
 
-  void performMathInductionOne(Clause* premise, Literal* lit, Term* t); 
-  void performMathInductionTwo(Clause* premise, Literal* lit, Term* t);
+  void performMathInductionOne(Clause* premise, Literal* origLit, Literal* lit, Term* t); 
+  void performMathInductionTwo(Clause* premise, Literal* origLit, Literal* lit, Term* t);
 
-  void performStructInductionOne(Clause* premise, Literal* lit, Term* t);
-  void performStructInductionTwo(Clause* premise, Literal* lit, Term* t);
-  void performStructInductionThree(Clause* premise, Literal* lit, Term* t);
+  void performStructInductionOne(Clause* premise, Literal* origLit, Literal* lit, Term* t);
+  void performStructInductionTwo(Clause* premise, Literal* origLit, Literal* lit, Term* t);
+  void performStructInductionThree(Clause* premise, Literal* origLit, Literal* lit, Term* t);
 
   bool notDone(Literal* lit, Term* t);
+  Term* getPlaceholderForTerm(Term* t);
 
   Stack<Clause*> _clauses;
 };

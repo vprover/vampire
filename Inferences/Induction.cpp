@@ -73,9 +73,9 @@ TermList LiteralSubsetReplacement::transformSubterm(TermList trm)
   CALL("LiteralSubsetReplacement::transformSubterm");
 
   if(trm.isTerm() && trm.term() == _o){
-    // Replace either if there are too many occurrences (>10) to try all possibilities,
+    // Replace either if there are too many occurrences to try all possibilities,
     // or if the bit in _iteration corresponding to this match is set to 1.
-    if ((_occurrences > 10) || (1 & (_iteration >> _matchCount++))) {
+    if ((_occurrences > _maxOccurrences) || (1 & (_iteration >> _matchCount++))) {
       return _r;
     }
   }
@@ -86,15 +86,18 @@ Literal* LiteralSubsetReplacement::transformSubset() {
   CALL("LiteralSubsetReplacement::transformSubset");
   // Increment _iteration, since it either is 0, or was already used.
   _iteration++;
-  // TODO: add a flag for the maximum number of selected occurrences.
-  //int setBits = countSetBits(_iteration);
-  //while ((countSetBits(_iteration) > 3) && (_iteration <= _maxIterations)) _iteration++;
-  if (_iteration >= _maxIterations) {
+  static unsigned maxSubsetSize = env.options->maxInductionTermSubsetSize();
+  while ((_iteration <= _maxIterations) &&
+         ((maxSubsetSize > 0) && (__builtin_popcount(_iteration) > maxSubsetSize))) {
+    _iteration++;
+  }
+  if ((_iteration >= _maxIterations) ||
+      ((_occurrences > _maxOccurrences) && (_iteration > 1))) {
+    // All combinations were already returned.
     return nullptr;
   }
   _matchCount = 0;
-  Literal* lit = transform(_lit);
-  return lit;
+  return transform(_lit);
 }
 
 ClauseIterator Induction::generateClauses(Clause* premise)
@@ -142,6 +145,7 @@ void InductionClauseIterator::process(Clause* premise, Literal* lit)
                          env.options->induction() == Options::Induction::STRUCTURAL;
   static bool mathInd = env.options->induction() == Options::Induction::BOTH ||
                          env.options->induction() == Options::Induction::MATHEMATICAL;
+  static bool useTermSubset = env.options->inductionTermSubset();
 
   if((!negOnly || lit->isNegative() || 
          (theory->isInterpretedPredicate(lit) && theory->isInequality(theory->interpretPredicate(lit)))
@@ -178,6 +182,7 @@ void InductionClauseIterator::process(Clause* premise, Literal* lit)
           }
         }
       }
+
       Set<Term*>::Iterator citer1(int_terms);
       while(citer1.hasNext()){
         Term* t = citer1.next();
@@ -186,12 +191,18 @@ void InductionClauseIterator::process(Clause* premise, Literal* lit)
         static bool two = env.options->mathInduction() == Options::MathInductionKind::TWO ||
                           env.options->mathInduction() == Options::MathInductionKind::ALL;
         if(notDone(lit,t)){
-          if(one){
-            performMathInductionOne(premise,lit,t);
-          }
-          if(two){
-            performMathInductionTwo(premise,lit,t);
-          }
+          Term* inductionTerm = useTermSubset ? getPlaceholderForTerm(t) : t;
+          Kernel::LiteralSubsetReplacement subsetReplacement(lit, t, TermList(inductionTerm));
+          Literal* ilit = useTermSubset ? subsetReplacement.transformSubset() : lit;
+          ASS(ilit != nullptr);
+          do {
+            if(one){
+              performMathInductionOne(premise,lit,ilit,inductionTerm);
+            }
+            if(two){
+              performMathInductionTwo(premise,lit,ilit,inductionTerm);
+            }
+          } while (useTermSubset && (ilit = subsetReplacement.transformSubset()));
         }
       }
       Set<Term*>::Iterator citer2(ta_terms);
@@ -204,18 +215,22 @@ void InductionClauseIterator::process(Clause* premise, Literal* lit)
                           env.options->structInduction() == Options::StructuralInductionKind::ALL; 
         static bool three = env.options->structInduction() == Options::StructuralInductionKind::THREE ||
                           env.options->structInduction() == Options::StructuralInductionKind::ALL;
-
         if(notDone(lit,t)){
-
-          if(one){
-            performStructInductionOne(premise,lit,t);
-          }
-          if(two){
-            performStructInductionTwo(premise,lit,t);
-          }
-          if(three){
-            performStructInductionThree(premise,lit,t);
-          }
+          Term* inductionTerm = useTermSubset ? getPlaceholderForTerm(t) : t;
+          Kernel::LiteralSubsetReplacement subsetReplacement(lit, t, TermList(inductionTerm));
+          Literal* ilit = useTermSubset ? subsetReplacement.transformSubset() : lit;
+          ASS(ilit != nullptr);
+          do {
+            if(one){
+              performStructInductionOne(premise,lit,ilit,inductionTerm);
+            }
+            if(two){
+              performStructInductionTwo(premise,lit,ilit,inductionTerm);
+            }
+            if(three){
+              performStructInductionThree(premise,lit,ilit,inductionTerm);
+            }
+          } while (useTermSubset && (ilit = subsetReplacement.transformSubset()));
         }
       } 
    }
@@ -225,7 +240,7 @@ void InductionClauseIterator::process(Clause* premise, Literal* lit)
       // (L[0] & (![X] : (X>=0 & L[X]) -> L[x+1])) -> (![Y] : Y>=0 -> L[Y])
       // (L[0] & (![X] : (X<=0 & L[X]) -> L[x-1])) -> (![Y] : Y<=0 -> L[Y])
       // for some ~L[a]
-void InductionClauseIterator::performMathInductionOne(Clause* premise, Literal* lit, Term* term) 
+void InductionClauseIterator::performMathInductionOne(Clause* premise, Literal* origLit, Literal* lit, Term* term) 
 {
   CALL("InductionClauseIterator::performMathInductionOne");
 
@@ -304,21 +319,21 @@ void InductionClauseIterator::performMathInductionOne(Clause* premise, Literal* 
         cnf.clausify(NNF::ennf(fu1), hyp_clauses);
         cnf.clausify(NNF::ennf(fu2), hyp_clauses);
 
-        // Now perform resolution between lit and the hyp_clauses on clit, which should be contained in each clause!
+        // Now perform resolution between origLit and the hyp_clauses on Ly, which should be contained in each clause!
         Stack<Clause*>::Iterator cit(hyp_clauses);
         while(cit.hasNext()){
           Clause* c = cit.next();
           //TODO destroy this?
           RobSubstitution* subst = new RobSubstitution();
-          subst->unify(TermList(lit),0,TermList(Ly->literal()),1);
-          SLQueryResult qr(lit,premise,ResultSubstitution::fromSubstitution(subst,1,0));
+          subst->unify(TermList(origLit),0,TermList(Ly->literal()),1);
+          SLQueryResult qr(origLit,premise,ResultSubstitution::fromSubstitution(subst,1,0));
           Clause* r = BinaryResolution::generateClause(c,Ly->literal(),qr,*env.options);
           _clauses.push(r);
         }
         env.statistics->induction++;
  }
 
-void InductionClauseIterator::performMathInductionTwo(Clause* premise, Literal* lit, Term* term) 
+void InductionClauseIterator::performMathInductionTwo(Clause* premise, Literal* origLit, Literal* lit, Term* term) 
 {
   CALL("InductionClauseIterator::performMathInductionTwo");
 
@@ -332,7 +347,7 @@ void InductionClauseIterator::performMathInductionTwo(Clause* premise, Literal* 
  * and then force binary resolution on L for each resultant clause
  */
 
-void InductionClauseIterator::performStructInductionOne(Clause* premise, Literal* lit, Term* term) 
+void InductionClauseIterator::performStructInductionOne(Clause* premise, Literal* origLit, Literal* lit, Term* term)
 {
   CALL("InductionClauseIterator::performStructInductionOne"); 
 
@@ -354,7 +369,7 @@ void InductionClauseIterator::performStructInductionOne(Clause* premise, Literal
     if(!con->recursive()){
       if(arity==0){
         TermReplacement cr(term,TermList(Term::createConstant(con->functor())));
-        f = new AtomicFormula(cr.transform(clit)); 
+        f = new AtomicFormula(cr.transform(clit));
       }
       else{
         Stack<TermList> argTerms;
@@ -416,12 +431,12 @@ void InductionClauseIterator::performStructInductionOne(Clause* premise, Literal
 
   //cout << "Clausify " << fu->toString() << endl;
 
-  // Now perform resolution between lit and the hyp_clauses on clit, which should be contained in each clause!
+  // Now perform resolution between origLit and the hyp_clauses on conclusion, which should be contained in each clause!
   Stack<Clause*>::Iterator cit(hyp_clauses);
   while(cit.hasNext()){
     Clause* c = cit.next();
     static ResultSubstitutionSP identity = ResultSubstitutionSP(new IdentitySubstitution());
-    SLQueryResult qr(lit,premise,identity);
+    SLQueryResult qr(origLit,premise,identity);
     Clause* r = BinaryResolution::generateClause(c,conclusion,qr,*env.options);
     _clauses.push(r);
   }
@@ -433,7 +448,7 @@ void InductionClauseIterator::performStructInductionOne(Clause* premise, Literal
  * We produce the clause ~L[x] \/ ?y : L[y] & !z (z subterm y -> ~L[z])
  * and perform resolution with lit L[c]
  */
-void InductionClauseIterator::performStructInductionTwo(Clause* premise, Literal* lit, Term* term) 
+void InductionClauseIterator::performStructInductionTwo(Clause* premise, Literal* origLit, Literal* lit, Term* term) 
 {
   //cout << "TWO " << premise->toString() << endl;
 
@@ -520,12 +535,12 @@ void InductionClauseIterator::performStructInductionTwo(Clause* premise, Literal
 
   //cout << "Clausify " << fu->toString() << endl;
 
-  // Now perform resolution between lit and the hyp_clauses on clit, which should be contained in each clause!
+  // Now perform resolution between origLit and the hyp_clauses on conclusion, which should be contained in each clause!
   Stack<Clause*>::Iterator cit(hyp_clauses);
   while(cit.hasNext()){
     Clause* c = cit.next();
     static ResultSubstitutionSP identity = ResultSubstitutionSP(new IdentitySubstitution());
-    SLQueryResult qr(lit,premise,identity);
+    SLQueryResult qr(origLit,premise,identity);
     Clause* r = BinaryResolution::generateClause(c,conclusion,qr,*env.options);
     _clauses.push(r);
   }
@@ -543,7 +558,7 @@ void InductionClauseIterator::performStructInductionTwo(Clause* premise, Literal
  * i.e. we add a new special predicat that is true when its argument is smaller than Y
  *
  */
-void InductionClauseIterator::performStructInductionThree(Clause* premise, Literal* lit, Term* term) 
+void InductionClauseIterator::performStructInductionThree(Clause* premise, Literal* origLit, Literal* lit, Term* term) 
 {
   CALL("InductionClauseIterator::performStructInductionThree");
 
@@ -664,12 +679,12 @@ void InductionClauseIterator::performStructInductionThree(Clause* premise, Liter
 
   //cout << "Clausify " << fu->toString() << endl;
 
-  // Now perform resolution between lit and the hyp_clauses on clit, which should be contained in each clause!
+  // Now perform resolution between origLit and the hyp_clauses on conclusion, which should be contained in each clause!
   Stack<Clause*>::Iterator cit(hyp_clauses);
   while(cit.hasNext()){
     Clause* c = cit.next();
     static ResultSubstitutionSP identity = ResultSubstitutionSP(new IdentitySubstitution());
-    SLQueryResult qr(lit,premise,identity);
+    SLQueryResult qr(origLit,premise,identity);
     Clause* r = BinaryResolution::generateClause(c,conclusion,qr,*env.options);
     _clauses.push(r);
   }
@@ -701,6 +716,15 @@ bool InductionClauseIterator::notDone(Literal* lit, Term* term)
   done.insert(rep);
 
   return true;
+}
+
+Term* InductionClauseIterator::getPlaceholderForTerm(Term* t) {
+  CALL("InductionClauseIterator::getPlaceholderForTerm");
+
+  unsigned termType = env.signature->getFunction(t->functor())->fnType()->result();
+  unsigned placeholderConstNumber = env.signature->addFreshFunction(0, "placeholder");
+  env.signature->getFunction(placeholderConstNumber)->setType(OperatorType::getConstantsType(termType));
+  return Term::createConstant(placeholderConstNumber);
 }
 
 }

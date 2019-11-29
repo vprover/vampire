@@ -1003,6 +1003,23 @@ void Options::Options::init()
             _inductionUnitOnly.reliesOn(_induction.is(notEqual(Induction::NONE)));
             _lookup.insert(&_inductionUnitOnly);
 
+            _inductionTermSubset = BoolOptionValue("induction_term_subset","indts",false);
+            _inductionTermSubset.description = "Try using subsets of occurrences of the induction term"
+                                               " instead of all occurrences.";
+            _inductionTermSubset.setExperimental();
+            _inductionTermSubset.tag(OptionTag::INFERENCES);
+            _inductionTermSubset.reliesOn(_induction.is(notEqual(Induction::NONE)));
+            _lookup.insert(&_inductionTermSubset);
+
+            _maxInductionTermSubsetSize = UnsignedOptionValue("induction_term_subset_size","indtss",3);
+            _maxInductionTermSubsetSize.description = "Set maximum number of occurrences of the induction term to"
+                                                      " be used for indution, where 0 means no max.";
+            _maxInductionTermSubsetSize.setExperimental();
+            _maxInductionTermSubsetSize.tag(OptionTag::INFERENCES);
+            _maxInductionTermSubsetSize.reliesOn(_inductionTermSubset.is(equal(true)));
+            _maxInductionTermSubsetSize.addHardConstraint(lessThan(10u));
+            _lookup.insert(&_maxInductionTermSubsetSize);
+
 	    _instantiation = ChoiceOptionValue<Instantiation>("instantiation","inst",Instantiation::OFF,{"off","on"});
 	    _instantiation.description = "Heuristically instantiate variables";
 	    _instantiation.tag(OptionTag::INFERENCES);
