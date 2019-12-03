@@ -28,6 +28,7 @@
 
 #include "Kernel/Theory.hpp"
 #include "Options.hpp"
+#include "Shell/TermAlgebra.hpp"
 
 namespace Shell {
 
@@ -114,6 +115,15 @@ private:
      definition was actually added (i.e. if the constructor is
      recursive) */
   bool addSubtermDefinitions(unsigned subtermPredicate, TermAlgebraConstructor* c);
+
+  // nat axioms
+  void addZeroSmallestElementAxiom(NatTermAlgebra* nat);
+  void addDefineSubEqAxiom(NatTermAlgebra* nat);
+  void addDefineSubEqDualAxiom(NatTermAlgebra* nat);
+  void addMonotonicityAxiom(NatTermAlgebra* nat);
+  void addTransitivityAxioms(NatTermAlgebra* nat);
+  void addTotalityAxiom(NatTermAlgebra* nat);
+  void addDisjointnessAxioms(NatTermAlgebra* nat);
 
   void addTheoryUnitClause(Literal* lit, unsigned level);
   void addTheoryUnitClause(Literal* lit, Inference* inf, unsigned level);
