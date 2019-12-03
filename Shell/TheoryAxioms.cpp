@@ -1137,6 +1137,17 @@ void TheoryAxioms::apply()
     modified = true;
   }
 
+  auto nat = env.signature->getNat();
+  if (nat != nullptr) {
+    addZeroSmallestElementAxiom(nat);
+    addDefineSubEqAxiom(nat);
+    addDefineSubEqDualAxiom(nat);
+    addMonotonicityAxiom(nat);
+    addTransitivityAxioms(nat);
+    addTotalityAxiom(nat);
+    addDisjointnessAxioms(nat);
+  }
+
   if(modified) {
     _prb.reportEqualityAdded(false);
   }
@@ -1375,4 +1386,159 @@ bool TheoryAxioms::addSubtermDefinitions(unsigned subtermPredicate, TermAlgebraC
     added = true;
   }
   return added;
+}
+
+void TheoryAxioms::addZeroSmallestElementAxiom(NatTermAlgebra* nat)
+{
+  TermList x(0, false);
+  auto zero = nat->createZero();
+  auto sx = nat->createSucc(x);
+
+  // forall x. 0 < s(x)
+  auto lit = nat->createLess(true, zero, sx);
+
+  addTheoryClauseFromLits({lit}, Inference::Rule::GENERIC_THEORY_AXIOM, CHEAP);
+}
+
+void TheoryAxioms::addDefineSubEqAxiom(NatTermAlgebra* nat)
+{
+  // forall x,y. x<s(y) <=> (x=y or x<y)
+
+  TermList x(0, false);
+  TermList y(1, false);
+  auto sy = nat->createSucc(y);
+  auto natSort = nat->termAlgebra()->sort();
+
+  // clause 1: x!<s(y) or x=y or x<y
+  auto clause1Lit1 = nat->createLess(false, x, sy);
+  auto clause1Lit2 = Literal::createEquality(true, x, y, natSort);
+  auto clause1Lit3 = nat->createLess(true, x,y);
+
+  addTheoryClauseFromLits({clause1Lit1, clause1Lit2, clause1Lit3}, Inference::Rule::GENERIC_THEORY_AXIOM, EXPENSIVE);
+
+  // clause 2: x!=y or x<s(y)
+  auto clause2Lit1 = Literal::createEquality(false, x, y, natSort);
+  auto clause2Lit2 = nat->createLess(true, x, sy);
+
+  addTheoryClauseFromLits({clause2Lit1, clause2Lit2}, Inference::Rule::GENERIC_THEORY_AXIOM, EXPENSIVE);
+
+  // clause 3: x!<y or x<s(y)
+  auto clause3Lit1 = nat->createLess(false, x, y);
+  auto clause3Lit2 = nat->createLess(true, x, sy);
+
+  addTheoryClauseFromLits({clause3Lit1, clause3Lit2}, Inference::Rule::GENERIC_THEORY_AXIOM, EXPENSIVE);
+}
+
+void TheoryAxioms::addDefineSubEqDualAxiom(NatTermAlgebra* nat)
+{
+  // forall x,y. s(x)!<y <=> (s(x)=y or x!<y)
+
+  TermList x(0, false);
+  TermList y(1, false);
+  auto sx = nat->createSucc(x);
+  auto natSort = nat->termAlgebra()->sort();
+
+  // clause 1: s(x)<y or s(x)=y or x!<y
+  auto clause1Lit1 = nat->createLess(true, sx, y);
+  auto clause1Lit2 = Literal::createEquality(true, sx, y, natSort);
+  auto clause1Lit3 = nat->createLess(false, x, y);
+
+  addTheoryClauseFromLits({clause1Lit1, clause1Lit2, clause1Lit3}, Inference::Rule::GENERIC_THEORY_AXIOM, EXPENSIVE);
+
+  // clause 2: s(x)!=y or s(x)!<y
+  auto clause2Lit1 = Literal::createEquality(false, sx, y, natSort);
+  auto clause2Lit2 = nat->createLess(false, sx, y);
+
+  addTheoryClauseFromLits({clause2Lit1, clause2Lit2}, Inference::Rule::GENERIC_THEORY_AXIOM, EXPENSIVE);
+
+  // clause 3: x<y or s(x)!<y
+  auto clause3Lit1 = nat->createLess(true, x,y);
+  auto clause3Lit2 = nat->createLess(false, sx, y);
+
+  addTheoryClauseFromLits({clause3Lit1, clause3Lit2}, Inference::Rule::GENERIC_THEORY_AXIOM, EXPENSIVE);
+}
+
+void TheoryAxioms::addMonotonicityAxiom(NatTermAlgebra* nat)
+{
+  // forall x,y. x<y <=> s(x)<s(y)
+
+  TermList x(0, false);
+  TermList y(1, false);
+  auto sx = nat->createSucc(x);
+  auto sy = nat->createSucc(y);
+
+  // clause 1: x!<y or s(x)<s(y)
+  auto clause1Lit1 = nat->createLess(false, x, y);
+  auto clause1Lit2 = nat->createLess(true, sx, sy);
+
+  addTheoryClauseFromLits({clause1Lit1, clause1Lit2}, Inference::Rule::GENERIC_THEORY_AXIOM, EXPENSIVE);
+
+  // clause 2: s(x)!<s(y) or x<y
+  auto clause2Lit1 = nat->createLess(false, sx, sy);
+  auto clause2Lit2 = nat->createLess(true, x, y);
+
+  addTheoryClauseFromLits({clause2Lit1, clause2Lit2}, Inference::Rule::GENERIC_THEORY_AXIOM, EXPENSIVE);
+}
+
+void TheoryAxioms::addTransitivityAxioms(NatTermAlgebra* nat)
+{
+  TermList x(0, false);
+  TermList y(1, false);
+  TermList z(2, false);
+  auto sy = nat->createSucc(y);
+  auto sz = nat->createSucc(z);
+
+  auto strict1 = nat->createLess(false, x, y);
+  auto strict2 = nat->createLess(false, y, z);
+  auto strict3 = nat->createLess(true, x, z);
+  auto nonStrict1 = nat->createLess(false, x, sy);
+  auto nonStrict2 = nat->createLess(false, y, sz);
+  auto nonStrict3 = nat->createLess(true, x, sz);
+
+  // variant 1: forall x,y,z. x!<y or y!<z or x<z
+  addTheoryClauseFromLits({strict1, strict2, strict3}, Inference::Rule::GENERIC_THEORY_AXIOM, EXPENSIVE);
+  // variant 2: forall x,y,z. x!<s(y) or y!<z or x<z
+  addTheoryClauseFromLits({nonStrict1, strict2, strict3}, Inference::Rule::GENERIC_THEORY_AXIOM, EXPENSIVE);
+  // variant 3: forall x,y,z. x!<y or y!<s(z) or x<z
+  addTheoryClauseFromLits({strict1, nonStrict2, strict3}, Inference::Rule::GENERIC_THEORY_AXIOM, EXPENSIVE);
+  // variant 4: forall x,y,z. x!<s(y) or y!<s(z) or x<s(z)
+  addTheoryClauseFromLits({nonStrict1, nonStrict2, nonStrict3}, Inference::Rule::GENERIC_THEORY_AXIOM, EXPENSIVE);
+}
+
+void TheoryAxioms::addTotalityAxiom(NatTermAlgebra* nat)
+{
+  TermList x(0, false);
+  TermList y(1, false);
+  auto natSort = nat->termAlgebra()->sort();
+
+  // forall x,y. x<y or x=y or x>y
+  auto lit1 = nat->createLess(true, x, y);
+  auto lit2 = Literal::createEquality(true, x, y, natSort);
+  auto lit3 = nat->createLess(true, y, x);
+
+  addTheoryClauseFromLits({lit1, lit2, lit3}, Inference::Rule::GENERIC_THEORY_AXIOM, EXPENSIVE);
+}
+
+void TheoryAxioms::addDisjointnessAxioms(NatTermAlgebra* nat)
+{
+  TermList x(0, false);
+  TermList y(1, false);
+  auto natSort = nat->termAlgebra()->sort();
+
+  // Clause 1: x!<y or x!=y
+  auto clause1Lit1 = nat->createLess(false, x, y);
+  auto clause1Lit2 = Literal::createEquality(false, x, y, natSort);
+
+  addTheoryClauseFromLits({clause1Lit1, clause1Lit2}, Inference::Rule::GENERIC_THEORY_AXIOM, EXPENSIVE);
+
+  // Clause 2: x!<y or y!<x
+  auto clause2Lit1 = nat->createLess(false, x, y);
+  auto clause2Lit2 = nat->createLess(false, y, x);
+
+  addTheoryClauseFromLits({clause2Lit1, clause2Lit2}, Inference::Rule::GENERIC_THEORY_AXIOM, EXPENSIVE);
+
+  // Clause 3: x!<x (simplified form of x!=y or x!<y)
+  auto clause3Lit1 = nat->createLess(false, x, x);
+
+  addTheoryClauseFromLits({clause3Lit1}, Inference::Rule::GENERIC_THEORY_AXIOM, CHEAP);
 }
