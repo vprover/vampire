@@ -361,10 +361,12 @@ vstring Inference::ruleName(Rule rule)
     return "equality resolution";
   case FORWARD_DEMODULATION:
     return "forward demodulation";
-  case FORWARD_SUBSUMPTION_DEMODULATION:
-    return "forward subsumption demodulation";
   case BACKWARD_DEMODULATION:
     return "backward demodulation";
+  case FORWARD_SUBSUMPTION_DEMODULATION:
+    return "forward subsumption demodulation";
+  case BACKWARD_SUBSUMPTION_DEMODULATION:
+    return "backward subsumption demodulation";
   case FORWARD_LITERAL_REWRITING:
     return "forward literal rewriting";
   case INNER_REWRITING:
