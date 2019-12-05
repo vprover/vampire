@@ -1042,6 +1042,21 @@ void Options::Options::init()
 	    _backwardSubsumptionResolution.reliesOn(_saturationAlgorithm.is(notEqual(SaturationAlgorithm::INST_GEN))->Or<Subsumption>(_instGenWithResolution.is(equal(true))));
 	    _backwardSubsumptionResolution.setRandomChoices({"on","off"});
 
+            _backwardSubsumptionDemodulation = BoolOptionValue("backward_subsumption_demodulation", "bsd", false);
+            _backwardSubsumptionDemodulation.description = "Perform backward subsumption demodulation.";
+            _lookup.insert(&_backwardSubsumptionDemodulation);
+            _backwardSubsumptionDemodulation.tag(OptionTag::INFERENCES);
+            _backwardSubsumptionDemodulation.addProblemConstraint(hasEquality());
+            _backwardSubsumptionDemodulation.setRandomChoices({"on","off"});
+            _backwardSubsumptionDemodulation.setExperimental();
+
+            _backwardSubsumptionDemodulationMaxMatches = UnsignedOptionValue("backward_subsumption_demodulation_max_matches", "bsdmm", 1);
+            _backwardSubsumptionDemodulationMaxMatches.description = "Maximum number of multi-literal matches to consider in backward subsumption demodulation. 0 means to try all matches (until first success).";
+            _lookup.insert(&_backwardSubsumptionDemodulationMaxMatches);
+            _backwardSubsumptionDemodulationMaxMatches.tag(OptionTag::INFERENCES);
+            _backwardSubsumptionDemodulationMaxMatches.setRandomChoices({"0", "1", "3"});
+            _backwardSubsumptionDemodulationMaxMatches.setExperimental();
+
 	    _binaryResolution = BoolOptionValue("binary_resolution","br",true);
 	    _binaryResolution.description=
 		  "Standard binary resolution i.e.\n"

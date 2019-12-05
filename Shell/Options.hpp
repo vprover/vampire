@@ -1973,6 +1973,8 @@ public:
   Subsumption backwardSubsumption() const { return _backwardSubsumption.actualValue; }
   //void setBackwardSubsumption(Subsumption newVal) { _backwardSubsumption = newVal; }
   Subsumption backwardSubsumptionResolution() const { return _backwardSubsumptionResolution.actualValue; }
+  bool backwardSubsumptionDemodulation() const { return _backwardSubsumptionDemodulation.actualValue; }
+  unsigned backwardSubsumptionDemodulationMaxMatches() const { return _backwardSubsumptionDemodulationMaxMatches.actualValue; }
   bool forwardSubsumption() const { return _forwardSubsumption.actualValue; }
   bool forwardLiteralRewriting() const { return _forwardLiteralRewriting.actualValue; }
   int lrsFirstTimeCheck() const { return _lrsFirstTimeCheck.actualValue; }
@@ -2264,6 +2266,8 @@ private:
   ChoiceOptionValue<Demodulation> _backwardDemodulation;
   ChoiceOptionValue<Subsumption> _backwardSubsumption;
   ChoiceOptionValue<Subsumption> _backwardSubsumptionResolution;
+  BoolOptionValue _backwardSubsumptionDemodulation;
+  UnsignedOptionValue _backwardSubsumptionDemodulationMaxMatches;
   BoolOptionValue _bfnt;
   BoolOptionValue _binaryResolution;
   BoolOptionValue _bpCollapsingPropagation;
