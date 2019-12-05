@@ -13,8 +13,15 @@
 // Set to true to output FSD inferences on stdout
 #define FSD_LOG_INFERENCES false
 
-// Set to true to check redundancy of simplified clause in debug mode
+// Set to true to check redundancy of FSD main premise in debug mode
 #define FSD_VDEBUG_REDUNDANCY_ASSERTIONS true
+
+
+// Set to true to output BSD inferences on stdout
+#define BSD_LOG_INFERENCES false
+
+// Set to true to check redundancy of BSD main premise in debug mode
+#define BSD_VDEBUG_REDUNDANCY_ASSERTIONS true
 
 
 

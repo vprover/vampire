@@ -267,6 +267,7 @@ VIG_OBJ = InstGen/IGAlgorithm.o\
 
 VINF_OBJ=Inferences/BackwardDemodulation.o\
          Inferences/BackwardSubsumptionResolution.o\
+         Inferences/BackwardSubsumptionDemodulation.o\
          Inferences/BinaryResolution.o\
          Inferences/Condensation.o\
          Inferences/DistinctEqualitySimplifier.o\

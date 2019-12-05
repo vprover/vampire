@@ -81,7 +81,7 @@ bool ForwardSubsumptionDemodulation::perform(Clause* cl, Clause*& replacement, C
 
   // Discard all previous aux values (so after this, hasAux() returns false for any clause).
   Clause::requestAux();
-  ON_SCOPE_EXIT( Clause::releaseAux(); );
+  ON_SCOPE_EXIT({ Clause::releaseAux(); });
 
   // Initialize miniIndex with literals in the clause cl
   LiteralMiniIndex const cl_miniIndex(cl);

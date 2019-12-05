@@ -50,6 +50,7 @@
 #include "Inferences/InferenceEngine.hpp"
 #include "Inferences/BackwardDemodulation.hpp"
 #include "Inferences/BackwardSubsumptionResolution.hpp"
+#include "Inferences/BackwardSubsumptionDemodulation.hpp"
 #include "Inferences/BinaryResolution.hpp"
 #include "Inferences/CTFwSubsAndRes.hpp"
 #include "Inferences/EqualityFactoring.hpp"
@@ -1502,6 +1503,9 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
       ASSERTION_VIOLATION;
 #endif
     }
+  }
+  if (prb.hasEquality() && opt.backwardSubsumptionDemodulation()) {
+    res->addBackwardSimplifierToFront(new BackwardSubsumptionDemodulation());
   }
   if (opt.backwardSubsumption() != Options::Subsumption::OFF) {
     bool byUnitsOnly=opt.backwardSubsumption()==Options::Subsumption::UNIT_ONLY;
