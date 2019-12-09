@@ -38,7 +38,7 @@
 #include "Lib/Stack.hpp"
 
 #include "Unit.hpp"
-
+#include "Kernel/Inference.hpp"
 
 namespace Kernel {
 

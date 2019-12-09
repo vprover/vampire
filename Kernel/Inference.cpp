@@ -387,6 +387,8 @@ vstring Inference::ruleName(Rule rule)
     return "equality axiom";
   case CHOICE_AXIOM:
     return "choice axiom";
+  case SAT_CONFLICT_CLAUSE:
+    return "sat conflict clause";
   case THEORY:
     return "theory axiom";
   case FOOL_AXIOM:
