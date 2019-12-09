@@ -417,8 +417,7 @@ vstring Clause::toString() const
 {
   CALL("Clause::toString()");
 
-  // print id and literals of clause
-  vstring result = Int::toString(_number) + ". " + literalsOnlyToString();
+  vstring result = Int::toString(_number) + ". " + Int::toString(size()) + " " + literalsOnlyToString();
 
   // print avatar components clause depends on
   if (splits() && !splits()->isEmpty()) {
@@ -459,7 +458,7 @@ vstring Clause::toString() const
     result += vstring(",inD:") + Int::toString(inductionDepth());
     result += vstring("}");
   }
-
+  result +=  inferenceAsString();
   return result;
 }
 
