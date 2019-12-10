@@ -256,10 +256,6 @@ void BackwardSubsumptionDemodulation::perform(Clause* cl, BwSimplificationRecord
     perform2(cl, lmLit2, simplificationsStorage);
   }
 
-  if (simplificationsStorage.size() > 0) {
-    std::cerr << "#bsd: " << simplificationsStorage.size() << std::endl;
-  }
-
   simplifications = getPersistentIterator(getSTLIterator(simplificationsStorage.begin(), simplificationsStorage.end()));
   simplificationsStorage.clear();
 }  // perform
@@ -503,9 +499,11 @@ bool BackwardSubsumptionDemodulation::simplifyCandidate2(Clause* sideCl, Clause*
     // eqLit == nullptr means that the whole side premise can be instantiated to some subset of the candidate,
     // i.e., we have subsumption.
 #if VDEBUG && BSD_VDEBUG_REDUNDANCY_ASSERTIONS
-    OverlayBinder tmpBinder;
-    matcher.getBindings(tmpBinder.base());
-    ASS(SDHelper::substClauseIsSmallerOrEqual(sideCl, tmpBinder, mainCl, ordering));
+    if (getOptions().literalComparisonMode() != Options::LiteralComparisonMode::REVERSE) {
+      OverlayBinder tmpBinder;
+      matcher.getBindings(tmpBinder.base());
+      ASS(SDHelper::substClauseIsSmallerOrEqual(sideCl, tmpBinder, mainCl, ordering));
+    }
 #endif
     ASS(replacement == nullptr);
     env.statistics->backwardSubsumed++;
@@ -676,7 +674,9 @@ bool BackwardSubsumptionDemodulation::simplifyCandidate2(Clause* sideCl, Clause*
               // in this case, eqLitS == dlit; and we have subsumption
               ASS_EQ(binder.applyTo(eqLit), dlit);  // eqLitS == dlit
 #if VDEBUG && BSD_VDEBUG_REDUNDANCY_ASSERTIONS
-              ASS(SDHelper::substClauseIsSmallerOrEqual(sideCl, binder, mainCl, ordering));
+              if (getOptions().literalComparisonMode() != Options::LiteralComparisonMode::REVERSE) {
+                ASS(SDHelper::substClauseIsSmallerOrEqual(sideCl, binder, mainCl, ordering));
+              }
 #endif
               ASS(replacement == nullptr);
               env.statistics->backwardSubsumed++;
@@ -688,10 +688,12 @@ bool BackwardSubsumptionDemodulation::simplifyCandidate2(Clause* sideCl, Clause*
               ASS(SDHelper::checkForSubsumptionResolution(mainCl, SDClauseMatches{sideCl,LiteralMiniIndex{mainCl}}, dlit));
               replacement = SDHelper::generateSubsumptionResolutionClause(mainCl, dlit, sideCl);
 #if VDEBUG && BSD_VDEBUG_REDUNDANCY_ASSERTIONS
-              // Note that mclθ < cl does not always hold here,
-              // but we don't need it to ensure redundancy of cl
-              // because cl is already entailed by replacement alone
-              ASS(SDHelper::clauseIsSmaller(replacement, mainCl, ordering));
+              if (getOptions().literalComparisonMode() != Options::LiteralComparisonMode::REVERSE) {
+                // Note that mclθ < cl does not always hold here,
+                // but we don't need it to ensure redundancy of cl
+                // because cl is already entailed by replacement alone
+                ASS(SDHelper::clauseIsSmaller(replacement, mainCl, ordering));
+              }
 #endif
               env.statistics->backwardSubsumptionResolution++;
               return true;
