@@ -224,13 +224,13 @@ public:
     }
 
     auto isTheoryAxiom =
-      _inference->rule() == Inference::THEORY ||
+      _inference->rule() == Inference::THEORY_AXIOM ||
       _inference->rule() == Inference::FOOL_AXIOM ||
-      _inference->rule() == Inference::TERM_ALGEBRA_ACYCLICITY ||
-      _inference->rule() == Inference::TERM_ALGEBRA_DISCRIMINATION ||
-      _inference->rule() == Inference::TERM_ALGEBRA_DISTINCTNESS ||
-      _inference->rule() == Inference::TERM_ALGEBRA_EXHAUSTIVENESS ||
-      _inference->rule() == Inference::TERM_ALGEBRA_INJECTIVITY ||
+      _inference->rule() == Inference::TERM_ALGEBRA_ACYCLICITY_AXIOM ||
+      _inference->rule() == Inference::TERM_ALGEBRA_DISCRIMINATION_AXIOM ||
+      _inference->rule() == Inference::TERM_ALGEBRA_DISTINCTNESS_AXIOM ||
+      _inference->rule() == Inference::TERM_ALGEBRA_EXHAUSTIVENESS_AXIOM ||
+      _inference->rule() == Inference::TERM_ALGEBRA_INJECTIVITY_AXIOM ||
       isExternalTheoryAxiom();
 
     return isTheoryAxiom;

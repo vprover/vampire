@@ -87,7 +87,7 @@ void TheoryAxioms::addAndOutputTheoryUnit(Unit* unit, unsigned level)
 void TheoryAxioms::addTheoryUnitClause(Literal* lit, unsigned level)
 {
   CALL("TheoryAxioms::addTheoryUnitClause");
-  addTheoryUnitClause(lit, new Inference(Inference::THEORY), level);
+  addTheoryUnitClause(lit, new Inference(Inference::THEORY_AXIOM), level);
 } // addTheoryUnitClause
 
 void TheoryAxioms::addTheoryUnitClause(Literal* lit, Inference* inf, unsigned level)
@@ -105,7 +105,7 @@ void TheoryAxioms::addTheoryNonUnitClause(Literal* lit1, Literal* lit2,unsigned 
   lits.push(lit1);
   ASS(lit2);
   lits.push(lit2);
-  Clause* cl = Clause::fromStack(lits, Unit::AXIOM, new Inference(Inference::THEORY));
+  Clause* cl = Clause::fromStack(lits, Unit::AXIOM, new Inference(Inference::THEORY_AXIOM));
   addAndOutputTheoryUnit(cl, level);
 } // addTheoryNonUnitCLause
 
@@ -120,7 +120,7 @@ void TheoryAxioms::addTheoryNonUnitClause(Literal* lit1, Literal* lit2, Literal*
   if (lit3) {
     lits.push(lit3);
   }
-  Clause* cl = Clause::fromStack(lits, Unit::AXIOM, new Inference(Inference::THEORY));
+  Clause* cl = Clause::fromStack(lits, Unit::AXIOM, new Inference(Inference::THEORY_AXIOM));
   addAndOutputTheoryUnit(cl, level);
 } // addTheoryNonUnitCLause
 
@@ -136,7 +136,7 @@ void TheoryAxioms::addTheoryNonUnitClause(Literal* lit1, Literal* lit2, Literal*
   lits.push(lit3);
   ASS(lit4);
   lits.push(lit4);
-  Clause* cl = Clause::fromStack(lits, Unit::AXIOM, new Inference(Inference::THEORY));
+  Clause* cl = Clause::fromStack(lits, Unit::AXIOM, new Inference(Inference::THEORY_AXIOM));
   addAndOutputTheoryUnit(cl, level);
 } // addTheoryNonUnitCLause
 
@@ -885,7 +885,7 @@ void TheoryAxioms::addBooleanArrayExtensionalityAxioms(unsigned arraySort, unsig
                                          new Formula::SortList(arraySort, new Formula::SortList(arraySort,0)),
                                          new BinaryFormula(IMP, x_neq_y, sx_neq_sy));
 
-  addAndOutputTheoryUnit(new FormulaUnit(axiom, new Inference(Inference::THEORY), Unit::AXIOM),CHEAP);
+  addAndOutputTheoryUnit(new FormulaUnit(axiom, new Inference(Inference::THEORY_AXIOM), Unit::AXIOM),CHEAP);
 } // addBooleanArrayExtensionalityAxiom
 
 /**
@@ -957,7 +957,7 @@ void TheoryAxioms::addBooleanArrayWriteAxioms(unsigned arraySort)
       lit = Literal::complementaryLiteral(lit);
     }
     Formula* ax = new AtomicFormula(lit);
-    addAndOutputTheoryUnit(new FormulaUnit(ax, new Inference(Inference::THEORY), Unit::AXIOM),CHEAP);
+    addAndOutputTheoryUnit(new FormulaUnit(ax, new Inference(Inference::THEORY_AXIOM), Unit::AXIOM),CHEAP);
   }
 
   TermList v(2,false);
@@ -973,7 +973,7 @@ void TheoryAxioms::addBooleanArrayWriteAxioms(unsigned arraySort)
   Formula* indexEq = new AtomicFormula(Literal::createEquality(false, i, j, domainSort));//I!=J
   Formula* writeEq = new BinaryFormula(IFF, sWJ, sAJ);//(select(store(A,I,V), J) <=> select(A,J)
   Formula* ax2 = new BinaryFormula(IMP, indexEq, writeEq);
-  addAndOutputTheoryUnit(new FormulaUnit(ax2, new Inference(Inference::THEORY), Unit::AXIOM),CHEAP);
+  addAndOutputTheoryUnit(new FormulaUnit(ax2, new Inference(Inference::THEORY_AXIOM), Unit::AXIOM),CHEAP);
 } //
 
 //Axioms for integer division that hven't been implemented yet
@@ -1262,7 +1262,7 @@ void TheoryAxioms::addExhaustivenessAxiom(TermAlgebra* ta) {
       axiom = new QuantifiedFormula(Connective::FORALL, vars, sorts, new JunctionFormula(Connective::OR, l));
   }
 
-  Unit* u = new FormulaUnit(axiom, new Inference(Inference::TERM_ALGEBRA_EXHAUSTIVENESS), Unit::AXIOM);
+  Unit* u = new FormulaUnit(axiom, new Inference(Inference::TERM_ALGEBRA_EXHAUSTIVENESS_AXIOM), Unit::AXIOM);
   addAndOutputTheoryUnit(u, CHEAP);
   if (addsFOOL) { _prb.reportFOOLAdded(); }
 }
@@ -1287,7 +1287,7 @@ void TheoryAxioms::addDistinctnessAxiom(TermAlgebra* ta) {
   for (unsigned i = 0; i < ta->nConstructors(); i++) {
     for (unsigned j = i + 1; j < ta->nConstructors(); j++) {
       Literal* ineq = Literal::createEquality(false, terms[i], terms[j], ta->sort());
-      addTheoryUnitClause(ineq, new Inference(Inference::TERM_ALGEBRA_DISTINCTNESS),CHEAP);
+      addTheoryUnitClause(ineq, new Inference(Inference::TERM_ALGEBRA_DISTINCTNESS_AXIOM),CHEAP);
     }
   }
 }
@@ -1314,7 +1314,7 @@ void TheoryAxioms::addInjectivityAxiom(TermAlgebra* ta)
     for (unsigned j = 0; j < c->arity(); j++) {
       Literal* eqr = Literal::createEquality(true, TermList(j * 2, false), TermList(j * 2 + 1, false), c->argSort(j));
 
-      Clause* injectivity = new(2) Clause(2, Unit::AXIOM, new Inference(Inference::TERM_ALGEBRA_INJECTIVITY));
+      Clause* injectivity = new(2) Clause(2, Unit::AXIOM, new Inference(Inference::TERM_ALGEBRA_INJECTIVITY_AXIOM));
       (*injectivity)[0] = eql;
       (*injectivity)[1] = eqr;
       addAndOutputTheoryUnit(injectivity,CHEAP);
@@ -1345,7 +1345,7 @@ void TheoryAxioms::addDiscriminationAxiom(TermAlgebra* ta) {
 
     for (unsigned c = 0; c < cases.size(); c++) {
       Literal* lit = Literal::create1(constructor->discriminator(), c == i, cases[c]);
-      addTheoryUnitClause(lit, new Inference(Inference::TERM_ALGEBRA_DISCRIMINATION),CHEAP);
+      addTheoryUnitClause(lit, new Inference(Inference::TERM_ALGEBRA_DISCRIMINATION_AXIOM),CHEAP);
     }
   }
 }
@@ -1376,7 +1376,7 @@ void TheoryAxioms::addAcyclicityAxiom(TermAlgebra* ta)
   static TermList x(0, false);
 
   Literal* sub = Literal::create2(pred, false, x, x);
-  addTheoryUnitClause(sub, new Inference(Inference::TERM_ALGEBRA_ACYCLICITY),CHEAP);
+  addTheoryUnitClause(sub, new Inference(Inference::TERM_ALGEBRA_ACYCLICITY_AXIOM),CHEAP);
 }
 
 bool TheoryAxioms::addSubtermDefinitions(unsigned subtermPredicate, TermAlgebraConstructor* c)
@@ -1399,10 +1399,10 @@ bool TheoryAxioms::addSubtermDefinitions(unsigned subtermPredicate, TermAlgebraC
 
     // Direct subterms are subterms: Sub(y, c(x1, ... y ..., xn))
     Literal* sub = Literal::create2(subtermPredicate, true, y, right);
-    addTheoryUnitClause(sub, new Inference(Inference::TERM_ALGEBRA_ACYCLICITY),CHEAP);
+    addTheoryUnitClause(sub, new Inference(Inference::TERM_ALGEBRA_ACYCLICITY_AXIOM),CHEAP);
 
     // Transitivity of the subterm relation: Sub(z, y) -> Sub(z, c(x1, ... y , xn))
-    Clause* transitivity = new(2) Clause(2, Unit::AXIOM, new Inference(Inference::TERM_ALGEBRA_ACYCLICITY));
+    Clause* transitivity = new(2) Clause(2, Unit::AXIOM, new Inference(Inference::TERM_ALGEBRA_ACYCLICITY_AXIOM));
     (*transitivity)[0] = Literal::create2(subtermPredicate, false, z, y);
     (*transitivity)[1] = Literal::create2(subtermPredicate, true,  z, right);
     addAndOutputTheoryUnit(transitivity,CHEAP);
