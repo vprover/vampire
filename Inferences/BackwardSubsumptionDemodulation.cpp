@@ -46,6 +46,7 @@
 #include "Saturation/SaturationAlgorithm.hpp"
 
 #include "Shell/Statistics.hpp"
+#include "Shell/TPTPPrinter.hpp"
 
 #include "BackwardSubsumptionDemodulation.hpp"
 #include "SubsumptionDemodulationHelper.hpp"
@@ -165,6 +166,39 @@ class SubsRatedLiteral
 }
 
 
+template <typename Iterator>
+class STLIterator
+{
+  private:
+    Iterator begin;
+    Iterator end;
+
+  public:
+    using value_type = typename Iterator::value_type;
+    DECL_ELEMENT_TYPE(value_type);
+
+    STLIterator(Iterator begin, Iterator end)
+      : begin(begin), end(end)
+    { }
+
+    bool hasNext() {
+      return begin != end;
+    }
+
+    value_type next() {
+      value_type x = *begin;
+      ++begin;
+      return x;
+    }
+};
+
+template <typename Iterator>
+STLIterator<Iterator> getSTLIterator(Iterator begin, Iterator end)
+{
+  return STLIterator<Iterator>(begin, end);
+}
+
+
 void BackwardSubsumptionDemodulation::perform(Clause* cl, BwSimplificationRecordIterator& simplifications)
 {
   // TODO rename cl -> sideCl because it is the side premise
@@ -208,7 +242,8 @@ void BackwardSubsumptionDemodulation::perform(Clause* cl, BwSimplificationRecord
   Literal* lmLit1 = best2.first.lit();
   Literal* lmLit2 = best2.second.lit();
 
-  v_vector<BwSimplificationRecord> simplificationsStorage;
+  static v_vector<BwSimplificationRecord> simplificationsStorage;
+  ASS_EQ(simplificationsStorage.size(), 0);
 
   if (!lmLit1->isEquality() || lmLit1->isPositive()) {
     // lmLit1 is not a positive equality, so we don't need to check the other one
@@ -221,9 +256,12 @@ void BackwardSubsumptionDemodulation::perform(Clause* cl, BwSimplificationRecord
     perform2(cl, lmLit2, simplificationsStorage);
   }
 
-  // TODO: wrap simplificationsStorage in something like a persistent iterator (std::move the vector inside if needed)
-  // simplifications = ;
+  if (simplificationsStorage.size() > 0) {
+    std::cerr << "#bsd: " << simplificationsStorage.size() << std::endl;
+  }
 
+  simplifications = getPersistentIterator(getSTLIterator(simplificationsStorage.begin(), simplificationsStorage.end()));
+  simplificationsStorage.clear();
 }  // perform
 
 
@@ -272,6 +310,8 @@ void BackwardSubsumptionDemodulation::perform2(Clause* sideCl, Literal* candidat
     if (!ColorHelper::compatible(sideCl->color(), candidate->color())) {
       continue;
     }
+
+    RSTAT_CTR_INC("bsd 0 candidates");
 
     // TODO: maybe reinstate (some of?) these checks
     /*
@@ -439,7 +479,7 @@ bool BackwardSubsumptionDemodulation::simplifyCandidate(Clause* sideCl, Clause* 
       Clause* replacement = nullptr;
       if (simplifyCandidate2(sideCl, mainCl, matcher, replacement)) {
         RSTAT_MCTR_INC("BSD, successes by MLMatch", numMatches + 1);  // +1 so it fits with the previous output
-        // TODO add bw simplification record
+        simplifications.emplace_back(mainCl, replacement);
         return true;
       }
     }  // for (numMatches)
@@ -740,7 +780,7 @@ isRedundant:
         env.out() << "\% eqLit: " << eqLit->toString() << "\n";
         env.out() << "\% eqLitS: " << binder.applyTo(eqLit)->toString() << "\n";
         env.out() << "\% dlit: " << dlit->toString() << "\n";
-        env.out() << "\% numMatches+1: success at match #" << (numMatches+1) << "\n";
+        // env.out() << "\% numMatches+1: success at match #" << (numMatches+1) << "\n";
         TPTPPrinter tptp;
         // NOTE: do not output the splitLevels here, because those will be set for newCl only later
         tptp.printWithRole("side_premise", "hypothesis", sideCl, false);
