@@ -255,6 +255,14 @@ public:
     return _inference->rule() == Inference::EXTERNAL_THEORY_AXIOM;
   }
 
+  /*
+   * reurns true if clause is a theory descendant
+   *
+   * Definition: A theory descendant is a clause, which
+   * has a derivation where each leaf is a theory axiom.
+   *
+   * Note that a theory axiom itself is also a theory descendant
+   */
   bool isTheoryDescendant() const { return _theoryDescendant; }
   void setTheoryDescendant(bool t) { _theoryDescendant=t; }
 

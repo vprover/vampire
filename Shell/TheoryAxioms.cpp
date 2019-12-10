@@ -71,9 +71,7 @@ void TheoryAxioms::addAndOutputTheoryUnit(Unit* unit, unsigned level)
     cout << "% Theory " << (unit->isClause() ? "clause" : "formula" ) << ": " << qunit->toString() << "\n";
     if(f){ f->destroy(); } 
   }
-  if(unit->isClause()){ 
-    static_cast<Clause*>(unit)->setTheoryDescendant(true); 
-  } else {
+  if(!unit->isClause()){
     _prb.reportFormulasAdded();
   }
   UnitList::push(unit, _prb.units());
