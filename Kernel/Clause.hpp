@@ -191,6 +191,29 @@ public:
   bool isComponent() const { return _component; }
   void setComponent(bool c) { _component = c; }
 
+  bool isTheoryAxiom() const {
+    return _inference->rule() == Inference::THEORY || isExternalTheoryAxiom();
+  }
+
+  /*
+   * returns true if clause is an external theory axiom
+   *
+   * Definition: A unit is an external theory axiom iff it is added by parsing
+   * an external theory axioms (currently only happens in some LTB mode)
+   *
+   * We are interested in whether a clause is an external theory axiom, because of several reasons:
+   * - External theory axioms should already be simplified as much as possible
+   * - External theory axioms often blow up the search space
+   *
+   * TODO: If an unit u with inference EXTERNAL_THEORY_AXIOM is a formula (and therefore not a clause),
+   *  the results c_i of clausifying u will not be labelled EXTERNAL_THEORY_AXIOM, and therefore this function
+   * will return false for c_i. In particular, adding the same formula as a clause or as formula could cause
+   * different behaviour by Vampire, which is probably a bad thing.
+   */
+  bool isExternalTheoryAxiom() const {
+    return _inference->rule() == Inference::EXTERNAL_THEORY_AXIOM;
+  }
+
   bool isTheoryDescendant() const { return _theoryDescendant; }
   void setTheoryDescendant(bool t) { _theoryDescendant=t; }
 

@@ -128,7 +128,7 @@ unsigned Unit::getPriority() const
 
   // Put these at the end of the priority list
   if(
-    _inference->rule() == Inference::THEORY ||
+    (isClause() && (static_cast<const Clause*>(this))->isTheoryAxiom()) ||
     _inference->rule() == Inference::EQUALITY_PROXY_AXIOM1
   ){
     return env.maxClausePriority;

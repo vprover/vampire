@@ -89,7 +89,7 @@ Clause* InterpretedEvaluation::simplify(Clause* cl)
   TimeCounter tc(TC_INTERPRETED_EVALUATION);
 
   // do not evaluate theory axioms
-  if(cl->inference()->rule()==Inference::THEORY) return cl;
+  if(cl->isTheoryAxiom()) return cl;
 
   static DArray<Literal*> newLits(32);
   unsigned clen=cl->length();

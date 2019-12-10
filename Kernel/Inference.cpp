@@ -389,8 +389,12 @@ vstring Inference::ruleName(Rule rule)
     return "choice axiom";
   case SAT_CONFLICT_CLAUSE:
     return "sat conflict clause";
+  case EXTERNAL_THEORY_AXIOM:
+    return "external theory axiom";
   case THEORY:
     return "theory axiom";
+  case SIMPLIFY_PROVER_DISTINCT_NUMBERS_AXIOM:
+    return "distinct numbers";
   case FOOL_AXIOM:
     return "fool axiom";
   case THEORY_FLATTENING:
