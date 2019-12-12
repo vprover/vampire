@@ -893,20 +893,34 @@ void Options::Options::init()
     _lookup.insert(&_ageWeightRatioShapeFrequency);
     _ageWeightRatioShapeFrequency.tag(OptionTag::SATURATION);
 
-    _useSplitQueues = BoolOptionValue("split_queues","sq",false);
+    _useSplitQueues = BoolOptionValue("split_queue","sq",false);
+    _useSplitQueues.description = "Turn on experiments: clause selection with multiple queues containing different clauses (split by amount of theory reasoning)";
     _lookup.insert(&_useSplitQueues);
+    _useSplitQueues.tag(OptionTag::OTHER);
 
     _splitQueueRatios = StringOptionValue("split_queue_ratios", "sqr", "20,10,10,1");
+    _splitQueueRatios.description = "The ratios for picking clauses from the split-queues using weighted round robin. If a queue is empty, the clause will be picked from the next non-empty queue to the right. Note that this option implicitly also sets the number of queues.";
     _lookup.insert(&_splitQueueRatios);
     _splitQueueRatios.reliesOn(_useSplitQueues.is(equal(true)));
+    _splitQueueRatios.tag(OptionTag::OTHER);
 
     _splitQueueCutoffs = StringOptionValue("split_queue_cutoffs", "sqc", "0.1,0.3,0.65,1.0");
+    _splitQueueCutoffs.description = "The cutoff-values for the split-queues. Any split-queue contains all clauses which are assigned a niceness-value less or equal to the cutoff-value of the queue.";
     _lookup.insert(&_splitQueueCutoffs);
     _splitQueueCutoffs.reliesOn(_useSplitQueues.is(equal(true)));
+    _splitQueueCutoffs.tag(OptionTag::OTHER);
 
     _splitQueueSimplifyingInferences = BoolOptionValue("split_queue_simplifying_inferences","sqs",true);
+    _splitQueueSimplifyingInferences.description = "If on, propagation of running sums for simplifying inferences is treated in a special way: Similar to age-propagation, only the main premise is taken into account for computing the running sums.";
     _lookup.insert(&_splitQueueSimplifyingInferences);
     _splitQueueSimplifyingInferences.reliesOn(_useSplitQueues.is(equal(true)));
+    _splitQueueSimplifyingInferences.tag(OptionTag::OTHER);
+
+    _splitQueueFadeIn = BoolOptionValue("split_queue_fade_in","sqf", true);
+    _splitQueueFadeIn.description = "If on, clauses with very small derivations (with less than 5 theory axioms) get assigned a lower niceness-value. Experimental option, not sure wheher there is a better way to define the niceness for such small derivations.";
+    _lookup.insert(&_splitQueueFadeIn);
+    _splitQueueFadeIn.reliesOn(_useSplitQueues.is(equal(true)));
+    _splitQueueFadeIn.tag(OptionTag::OTHER);
 
 	    _literalMaximalityAftercheck = BoolOptionValue("literal_maximality_aftercheck","lma",false);
 	    _lookup.insert(&_literalMaximalityAftercheck);

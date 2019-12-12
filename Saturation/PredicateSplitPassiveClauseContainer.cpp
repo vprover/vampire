@@ -123,8 +123,24 @@ PredicateSplitPassiveClauseContainer::~PredicateSplitPassiveClauseContainer() {
 unsigned PredicateSplitPassiveClauseContainer::bestQueueHeuristics(Clause* cl) {
   // heuristically compute likeliness that clause occurs in proof
   auto theoryRatio = cl->th_ancestors / cl->all_ancestors;
-  auto niceness = theoryRatio; // TODO: factor in age
+  auto niceness = theoryRatio;
 
+  if (_opt.splitQueueFadeIn())
+  {
+    if (cl->th_ancestors <= 2.0)
+    {
+      niceness = 0.0;
+    }
+    else if (cl->th_ancestors == 3.0 && cl->all_ancestors <= 6.0)
+    {
+      niceness = 0.5;
+    }
+    else if (cl->th_ancestors == 4.0 && cl->all_ancestors <= 5.0)
+    {
+      niceness = 0.8;
+    }
+  }
+  
   // compute best queue clause should be placed in
   ASS(0.0 <= niceness && niceness <= 1.0);
   ASS(_cutoffs.back() == 1.0);
