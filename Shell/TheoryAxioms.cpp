@@ -1216,6 +1216,21 @@ void TheoryAxioms::applyFOOL() {
   addAndOutputTheoryUnit(boolVarClause, CHEAP);
 } // TheoryAxioms::addBooleanDomainAxiom
 
+/*
+ * Note: In contrast to all other internally added theory axioms, the exhaustiveness axiom is
+ * added as Formula and not as a clause. We would like to enforce the invariant that all internally
+ * added theory axioms are added as clauses, in order to allow for an easy check whether a clause is
+ * a theory axiom or not (without going up the preprocessing derivation until we derive at the axiom formula).
+ * We currently already use this easy check, and miss the exhaustiveness axiom.
+ *
+ * Adding the exhaustiveness axiom as clause is difficult,
+ * since there are different ways to clausify the axiom formula, in the case where some destructor 
+ * has boolean sort: The currently implemented clausification-algorithms (default and newcnf) differ
+ * in how they clausify the axiom formula, and newcnf as far as I know generates different clausifications
+ * of the exhaustiveness axiom formula depending on the value of some magic constants.
+ *
+ * TODO: add the exhaustiveness axiom for the standard case where the destructors are not of boolean sort.
+ */
 void TheoryAxioms::addExhaustivenessAxiom(TermAlgebra* ta) {
   CALL("TheoryAxioms::addExhaustivenessAxiom");
 
