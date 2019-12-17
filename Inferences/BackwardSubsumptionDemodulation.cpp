@@ -275,14 +275,23 @@ void BackwardSubsumptionDemodulation::perform2(Clause* sideCl, Literal* candidat
   // --------------------------------
   //       CΘ \/ L[rΘ] \/ D
 
+#if VDEBUG
+  // make sure DuplicateLiteralRemovalISE has been run on this
+  DHSet<Literal*> lits;
+  for (unsigned i = 0; i < sideCl->length(); ++i) {
+    ALWAYS(lits.insert((*sideCl)[i]));
+  }
+#endif
+
   /*
   ClauseList* subsumed=0;
 
   static DHSet<unsigned> basePreds;
   bool basePredsInit=false;
-  bool mustPredInit=false;
-  unsigned mustPred;
   */
+  bool mustPredInit = false;
+  bool mustPredActive = false;
+  unsigned mustPred;
 
   SLQueryResultIterator rit = _index->getInstances(candidateQueryLit, false, false);
   while (rit.hasNext()) {
@@ -310,45 +319,74 @@ void BackwardSubsumptionDemodulation::perform2(Clause* sideCl, Literal* candidat
     RSTAT_CTR_INC("bsd 0 candidates");
 
     // TODO: maybe reinstate (some of?) these checks
-    /*
-    Literal* il=qr.clause;
-    Literal* ilit=qr.literal;
-    unsigned ilen=icl->length();
-
-    RSTAT_CTR_INC("bsd 0 candidates");
+    // Literal* icl=qr.clause;
+    // Literal* ilit=qr.literal;
+    // unsigned ilen=icl->length();
 
     //here we pick one literal header of the base clause and make sure that
     //every instance clause has it
-    if(!mustPredInit) {
+    //
+    // Possibilities to consider:
+    // 1. Choose one that is not a positive equality, the other clause must contain it.
+    // 2. Choose two positive equalities, the other clause must contain at least one of them. (but those are indistinguishable by literal header)
+    // 3. If it's a two-literal clause where the only thing left here is the positive equality, we cannot (and should not) exclude anything with this check.
+    //
+    // Case A: candidateQueryLit is not a positive equality.
+    // - there is at least one positive equality in the remaining literals
+    // - we need to skip one positive equality for the "mustPred" check.
+    // Case B: candidateQueryLit is a positive equality.
+    // - in this case, there is another positive equality in sideCl due to selection of the candidateQueryLit.
+    // - Case B.1: BSD where candidateQueryLit is the rewriting equality:
+    //             => any of the others can be chosen as mustPred
+    //             (this case doesn't really matter since it will be found by the other call to this function; with the other candidateQueryLit.)
+    //   Case B.2: BSD where candidateQueryLit is not the rewriting equality:
+    //             => we must skip one positive equality for the "mustPred" check
+    //
+    // Summary: must skip one positive equality in the remaining literals for the "mustPred" check.
+    if (!mustPredInit) {
+      unsigned numPosEqs = 0;
       //since the base clause has at least two children, this will always
       //contain an existing literal header after the loop
-      mustPred=0;
-      for(unsigned bi=0;bi<clen;bi++) {
-        if(bi==lmIndex) {
+      mustPred = 0;  // header value 0 means positive equality
+      for (unsigned bi = 0; bi < sideCl->length(); ++bi) {
+        Literal* blit = (*sideCl)[bi];
+        if (blit == candidateQueryLit) {
           continue;
         }
-        unsigned pred=(*sideCl)[bi]->header();
-        if(pred>mustPred) {
-          mustPred=pred;
+        // only count in the other literals (see case B.2)
+        if (blit->isPositive() && blit->isEquality()) {
+          ++numPosEqs;
+        }
+        unsigned pred = blit->header();
+        if (pred > mustPred) {
+          mustPred = pred;
         }
       }
+      if (mustPred == 0) {
+        // for positive equality we need to have skipped at least in the remaining literals
+        mustPredActive = (numPosEqs >= 2);
+      } else {
+        mustPredActive = true;
+      }
     }
-    bool haveMustPred=false;
-    for(unsigned ii=0;ii<ilen;ii++) {
-      Literal* l=(*icl)[ii];
-      if(l==ilit) {
+    bool haveMustPred = false;
+    for (unsigned ii = 0; ii < candidate->length(); ++ii) {
+      Literal* lit = (*candidate)[ii];
+      if (lit == qr.literal) {
         continue;
       }
-      unsigned pred=l->header();
-      if(pred==mustPred) {
-        haveMustPred=true;
+      unsigned pred = lit->header();
+      if (pred == mustPred) {
+        haveMustPred = true;
+        break;
       }
     }
-    if(!haveMustPred) {
+    if (!haveMustPred) {
       continue;
     }
     RSTAT_CTR_INC("bsd 1 mustPred survivors");
 
+    /*
     //here we check that for every literal header in the base clause
     //there is a literal with the same header in the instance
     if(!basePredsInit) {
