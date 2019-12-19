@@ -499,6 +499,8 @@ vstring Inference::ruleName(Rule rule)
     return "sub-var superposition";
   case COMBINATOR_DEMOD:
     return "combinator demodulation";
+  case COMBINATOR_NORMALISE:
+    return "combinator normalisation";  
   case NEGATIVE_EXT:
     return "negative extensionality";
   default:

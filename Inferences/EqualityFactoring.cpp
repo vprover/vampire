@@ -36,6 +36,7 @@
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/Unit.hpp"
 #include "Kernel/LiteralSelector.hpp"
+#include "Kernel/ApplicativeHelper.hpp"
 
 #include "Saturation/SaturationAlgorithm.hpp"
 
@@ -106,6 +107,8 @@ struct EqualityFactoring::ResultFn
     ASS(sLit->isEquality());
     ASS(fLit->isEquality());
 
+    FuncSubtermMap funcSubtermMap;
+
     TermList srt = SortHelper::getEqualityArgumentSort(sLit);
 
     static RobSubstitution subst;
@@ -114,15 +117,35 @@ struct EqualityFactoring::ResultFn
       return 0;
     }
 
+    TermList srtS=subst.apply(srt,0);
+
     TermList sLHS=arg.first.second;
     TermList sRHS=EqHelper::getOtherEqualitySide(sLit, sLHS);
     TermList fLHS=arg.second.second;
     TermList fRHS=EqHelper::getOtherEqualitySide(fLit, fLHS);
     ASS_NEQ(sLit, fLit);
 
-    if(!subst.unify(sLHS,0,fLHS,0)) {
-      return 0;
+    if(env.options->combinatorySup()){
+      TermList sLHSreplaced = sLHS;
+      TermList fLHSreplaced = fLHS;
+      if(!sLHS.isVar() && !fLHS.isVar() && 
+         !srtS.isVar() && !ApplicativeHelper::isArrowType(srtS.term())){
+        sLHSreplaced = ApplicativeHelper::replaceFunctionalSubterms(sLHS.term(), &funcSubtermMap);
+        fLHSreplaced = ApplicativeHelper::replaceFunctionalSubterms(fLHS.term(), &funcSubtermMap);
+      }
+      subst.setMap(&funcSubtermMap);
+      if(!subst.unify(sLHSreplaced,0,fLHSreplaced,0)) {
+        return 0;
+      }
+    } else {
+      if(!subst.unify(sLHS,0,fLHS,0)) {
+        return 0;
+      }
     }
+
+    typedef pair<Term*, Term*> ConPair;
+    unsigned cLength = subst.constraintsSize();
+    const Set<ConPair>& constraints = subst.constraints();
 
     TermList sLHSS=subst.apply(sLHS,0);
     TermList sRHSS=subst.apply(sRHS,0);
@@ -133,10 +156,10 @@ struct EqualityFactoring::ResultFn
     if(Ordering::isGorGEorE(_ordering.compare(fRHSS,sLHSS))) {
       return 0;
     }
-    TermList srtS=subst.apply(srt,0);
 
+    unsigned newLen=_cLen+cLength;
     Inference* inf = new Inference1(Inference::EQUALITY_FACTORING, _cl);
-    Clause* res = new(_cLen) Clause(_cLen, _cl->inputType(), inf);
+    Clause* res = new(newLen) Clause(newLen, _cl->inputType(), inf);
 
     (*res)[0]=Literal::createEquality(false, sRHSS, fRHSS, srtS);
 
@@ -164,7 +187,22 @@ struct EqualityFactoring::ResultFn
         (*res)[next++] = currAfter;
       }
     }
-    ASS_EQ(next,_cLen);
+    if(cLength){
+      Set<ConPair>::Iterator it(constraints);
+      ConPair con;
+      while(it.hasNext()){
+        con = it.next();
+        TermList qT = subst.apply(TermList(con.first), 0);
+        TermList rT = subst.apply(TermList(con.second), 0);
+
+        TermList sort = SortHelper::getResultSort(rT.term());
+        Literal* constraint = Literal::createEquality(false,qT,rT,sort);
+
+        (*res)[next] = constraint;
+        next++;        
+      }
+    }
+    ASS_EQ(next,newLen);
 
     res->setAge(_cl->age()+1);
     env.statistics->equalityFactoring++;

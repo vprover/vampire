@@ -36,6 +36,7 @@
 #include "Lib/Metaiterators.hpp"
 #include "Lib/Reflection.hpp"
 #include "Lib/Stack.hpp"
+#include "Lib/Deque.hpp"
 
 #include "Unit.hpp"
 #include "Signature.hpp"
@@ -364,7 +365,7 @@ public:
   unsigned varCnt();
   unsigned maxVar(); // useful to create fresh variables w.r.t. the clause
 
-  typedef FlexTermPosMap DHMap<List<unsigned>*, Dequeu<Signature::Combinator>*>;
+  typedef DHMap<List<unsigned>*, Deque<Signature::Combinator>*> FlexTermPosMap;
 
 protected:
   /** number of literals */

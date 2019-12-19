@@ -341,6 +341,8 @@ public:
     SUB_VAR_SUP,
     /* eager demodulation with combinator axioms */
     COMBINATOR_DEMOD,
+    /* normalising combinators */
+    COMBINATOR_NORMALISE,
     /* negative extnsionality */
     NEGATIVE_EXT
   }; // class Inference::Rule

@@ -163,11 +163,11 @@ Clause* Narrow::performNarrow(
   // we want the rwClause and eqClause to be active
   ASS(nClause->store()==Clause::ACTIVE);
 
-  //if(nClause->number() == 115){
-   // cout << "performNarrow with " << nClause->toString() /*<< "\n and " << nLiteral->toString() << "\n and " << nTerm.toString()*/ << endl;
-   // cout << "the term being narrowed " << nTerm.toString() << endl;
-   // cout << "combAxLhs " << combAxLhs.toString() << endl;
-  //}
+  if(nClause->number() == 276){
+    cout << "performNarrow with " << nClause->toString() /*<< "\n and " << nLiteral->toString() << "\n and " << nTerm.toString()*/ << endl;
+    cout << "the term being narrowed " << nTerm.toString() << endl;
+    cout << "combAxLhs " << combAxLhs.toString() << endl;
+  }
 
   unsigned cLen = nClause->length();
   TermList combAxRhs = EqHelper::getOtherEqualitySide(combAx, combAxLhs);
@@ -175,7 +175,7 @@ Clause* Narrow::performNarrow(
   Ordering& ordering = _salg->getOrdering();
 
   TermList combAxRhsS = subst->apply(combAxRhs, 1);
-  Literal* nLiteralS = subst->apply(nLiteral, 0); //0 is quey bank
+  Literal* nLiteralS = subst->apply(nLiteral, 0); //0 is query bank
   TermList nTermS = subst->apply(nTerm, 0);
 
   //cout << "Check ordering on " << tgtTermS.toString() << " and " << rwTermS.toString() << endl;
@@ -238,9 +238,9 @@ Clause* Narrow::performNarrow(
 
   res->setAge(nClause->age() + 1);
   env.statistics->narrow++;
- // if(nClause->number() == 115){
-   //cout << "returning " + res->toString() << endl;
- // }
+  if(nClause->number() == 276){
+    cout << "returning " + res->toString() << endl;
+  }
   return res;
 
 construction_fail:

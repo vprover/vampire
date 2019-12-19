@@ -399,26 +399,26 @@ TermList LambdaElimination::createKTerm(TermList s1, TermList s2, TermList arg1)
     
 TermList LambdaElimination::createSCorBTerm(TermList arg1, TermList arg2, Signature::Combinator comb)
 {
-    CALL("LambdaElimination::createSCorBTerm");
-    
-    TermList s1, s2, s3;
-    unsigned cb = env.signature->getCombinator(comb);
-    TermList arg1sort = sortOf(arg1);
-    TermList arg2sort = sortOf(arg2);
-    
-    if(comb == Signature::S_COMB || comb == Signature::C_COMB){
-      s1 = AH::getNthArg(arg1sort, 1);
-      s2 = AH::getNthArg(arg1sort, 2);
-      s3 = AH::getResultApplieadToNArgs(arg1sort, 2);
-    } else {
-      s1 = AH::getNthArg(arg2sort, 1);
-      s2 = AH::getNthArg(arg1sort, 1);
-      s3 = AH::getResultApplieadToNArgs(arg1sort, 1);
-    }
-    
-    TermList args[] = {s1, s2, s3};
-    TermList c = TermList(Term::create(cb, 3, args));
-    return AH::createAppTerm3(sortOf(c), c, arg1, arg2); 
+  CALL("LambdaElimination::createSCorBTerm");
+  
+  TermList s1, s2, s3;
+  unsigned cb = env.signature->getCombinator(comb);
+  TermList arg1sort = sortOf(arg1);
+  TermList arg2sort = sortOf(arg2);
+  
+  if(comb == Signature::S_COMB || comb == Signature::C_COMB){
+    s1 = AH::getNthArg(arg1sort, 1);
+    s2 = AH::getNthArg(arg1sort, 2);
+    s3 = AH::getResultApplieadToNArgs(arg1sort, 2);
+  } else {
+    s1 = AH::getNthArg(arg2sort, 1);
+    s2 = AH::getNthArg(arg1sort, 1);
+    s3 = AH::getResultApplieadToNArgs(arg1sort, 1);
+  }
+  
+  TermList args[] = {s1, s2, s3};
+  TermList c = TermList(Term::create(cb, 3, args));
+  return AH::createAppTerm3(sortOf(c), c, arg1, arg2); 
 }
 
 TermList LambdaElimination::sortOf(TermList t)

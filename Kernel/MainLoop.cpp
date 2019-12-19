@@ -34,6 +34,7 @@
 //#include "Inferences/TermAlgebraReasoning.hpp"
 #include "Inferences/TautologyDeletionISE.hpp"
 #include "Inferences/CombinatorDemodISE.hpp"
+#include "Inferences/CombinatorNormalisationISE.hpp"
 //#include "Inferences/EquationalTautologyRemoval.hpp"
 
 //#include "InstGen/IGAlgorithm.hpp"
@@ -139,6 +140,7 @@ ImmediateSimplificationEngine* MainLoop::createISE(Problem& prb, const Options& 
 
   if(env.options->combinatorySup()){
     res->addFront(new CombinatorDemodISE());
+    res->addFront(new CombinatorNormalisationISE());
   }
 
   // Only add if there are distinct groups 
