@@ -555,6 +555,11 @@ vstring TPTPPrinter::toString (const Unit* unit)
 	ASS_EQ(quant, f);
 	main = toString(quant->uarg());
       }
+      else if(quant->connective()==LITERAL && quant->literal()->isNegative()){
+        ASS_EQ(quant,f);
+        Literal* comp = Literal::complementaryLiteral(quant->literal());
+        main = comp->toString();
+      }
       else {
 	Formula* neg=new NegatedFormula(quant);
 	main = toString(neg);
