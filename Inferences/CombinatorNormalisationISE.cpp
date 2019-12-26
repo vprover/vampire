@@ -78,10 +78,10 @@ Clause* CombinatorNormalisationISE::simplify(Clause* c)
   Inference* inference = new Inference1(Inference::COMBINATOR_NORMALISE, c);
   Clause* newC = Clause::fromStack(litStack, c->inputType(), inference);
   newC->setAge(c->age());
-  if(c->number() == 1620){
+  /*if(c->number() == 1620){
     //cout << "into CombinatorNormalisationISE " + c->toString() << endl;
     cout << "out of CombinatorNormalisationISE " + newC->toString() << endl;
-  }
+  }*/
   //if(!newC){ cout << "RETURNING NULL CLAUSE" << endl; }
   return newC;
 }
@@ -201,12 +201,20 @@ bool CombinatorNormalisationISE::replaceWithSmallerCombinator(TermList& t)
         if(args.size() == 1){
           TermList arg1 = args[0];
           AH::getHeadAndArgs(arg1, head1, args1);
+          if(args1.size() == 1 && 
+             AH::isComb(head1) && (AH::getComb(head1) == Signature::C_COMB  || 
+                                   AH::getComb(head1) == Signature::S_COMB) &&
+             AH::isComb(args1[0]) && AH::getComb(args1[0]) == Signature::K_COMB){
+            //S (C K) = I /\ S (S K) = I
+            t =  TermList(Term::create1(env.signature->getCombinator(Signature::I_COMB), AH::getNthArg(sort,1)));
+            return true;
+          }
           if(args1.size() == 2 &&
              AH::isComb(head1) && AH::getComb(head1) == Signature::B_COMB &&
-             AH::isComb(args1[0]) && AH::getComb(args1[0]) == Signature::K_COMB){
+             AH::isComb(args1[1]) && AH::getComb(args1[1]) == Signature::K_COMB){
             TermList s1 = AH::getNthArg(SortHelper::getResultSort(head1.term()), 2);
             TermList s2 = AH::getNthArg(sort, 1);
-            t = createKTerm(s1, s2, args1[1]);
+            t = createKTerm(s1, s2, args1[0]);
             return true;
           }
         }
@@ -280,6 +288,15 @@ bool CombinatorNormalisationISE::replaceWithSmallerCombinator(TermList& t)
       }
       break;
       case Signature::C_COMB : {
+        if(args.size() == 1){
+          TermList arg1 = args[0];
+          AH::getHeadAndArgs(arg1, head1, args1);
+          if(args1.size() == 1 &&
+             AH::isComb(head1) && AH::getComb(head1) == Signature::C_COMB){
+            t = args1[0]; //C (C t) = t
+            return true;
+          }          
+        }
         if(args.size() == 2){
           AH::getHeadAndArgs(args[1], head1, args1);
           bool arg1isKX = args1.size() == 1 && AH::isComb(head1) && AH::getComb(head1) == Signature::K_COMB;

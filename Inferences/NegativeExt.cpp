@@ -179,10 +179,10 @@ struct NegativeExt::ResultFn
     res->setAge(_cl->age()+1);
     env.statistics->negativeExtensionality++;
  
-    if(_cl->number() == 55){
+    /*if(_cl->number() == 55){
       cout << "the original clause " + _cl->toString() << endl;
       cout << "the new clause " + res->toString() << endl;
-    }
+    }*/
     return res;
   }
 private:

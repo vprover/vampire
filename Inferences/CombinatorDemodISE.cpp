@@ -77,9 +77,9 @@ Clause* CombinatorDemodISE::simplify(Clause* c)
   Inference* inference = new Inference1(Inference::COMBINATOR_DEMOD, c);
   Clause* newC = Clause::fromStack(litStack, c->inputType(), inference);
   newC->setAge(c->age());
-  if(c->number() == 1620){
+  /*if(c->number() == 1620){
     cout << "out of CombinatorDemodISE " + newC->toString() << endl;
-  }
+  }*/
   //if(!newC){ cout << "RETURNING NULL CLAUSE" << endl; }
   return newC;
 }
