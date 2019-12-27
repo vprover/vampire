@@ -184,7 +184,7 @@ bool TheoryFinder::matchCode(const void* obj,
 }
 
 /**
- * Match the code agains an object (a Formula,FormulaList,Literal,TermList or Term).
+ * Match the code against an object (a Formula,FormulaList,Literal,TermList or Term).
  *
  * @return true if succeeds
  * @since 24/06/2004 Dresden
@@ -453,7 +453,8 @@ bool TheoryFinder::matchCode(const void* obj,
     goto match;
   }
 
-  case CIFF: {
+  case CIFF:
+  case NBCIFF: {
     ASS(objectPos > 0);
     obj = objects[--objectPos];
     const Formula* f = reinterpret_cast<const Formula*>(obj);
@@ -464,10 +465,12 @@ bool TheoryFinder::matchCode(const void* obj,
       goto backtrack;
     }
 
-    Backtrack& back = backtrack[backtrackPos++];
-    back.cp = cp;
-    back.obj = obj;
-    back.objPos = objectPos;
+    if (code[cp] == CIFF) {
+      Backtrack& back = backtrack[backtrackPos++];
+      back.cp = cp;
+      back.obj = obj;
+      back.objPos = objectPos;
+    }
 
     objects[objectPos++] = f->right();
     objects[objectPos++] = f->left();
@@ -597,6 +600,11 @@ bool TheoryFinder::matchCode(const void* obj,
   Backtrack& back = backtrack[--backtrackPos];
   cp = back.cp;
   obj = back.obj;
+
+  ASS_GE(objectPos,(int)back.objPos); // if we already went below the stored objPos, if the restored code succeeds, we will continue into undefined territory
+  // Actually, this might still be to weak; we should insist the whole objects stack up back.objPos is identical to the one when Backtrack back was created.
+  // Example of the problem: TODO
+
   objectPos = back.objPos;
 
   switch (code[cp]) {
@@ -995,16 +1003,18 @@ bool TheoryFinder::matchExtensionality (const Formula* f)
 
   static const unsigned char code1[] =
     {CIFF,                           // <=>
-      CFORALL,1,0,CIFF,              // (Ax0)<=>
+      CFORALL,1,0,NBCIFF,              // (Ax0)<=>
        POS,NEWPRED,0,2,OLDVAR,0,NEWVAR,1, //  member(x0,x1)
        POS,OLDPRED,0,OLDVAR,0,NEWVAR,2,   //  member(x0,x2)
        POS,EQL,OLDVAR1,1,OLDVAR1,2,END};         // x1=x2
   static const unsigned char code2[] =
     {CIMP,                           // =>
-      CFORALL,1,0,CIFF,              // (Ax0)<=>
+      CFORALL,1,0,NBCIFF,              // (Ax0)<=>
        POS,NEWPRED,0,2,OLDVAR,0,NEWVAR,1, //  member(x0,x1)
        POS,OLDPRED,0,OLDVAR,0,NEWVAR,2,   //  member(x0,x2)
        POS,EQL,OLDVAR1,1,OLDVAR1,2,END};         // x1=x2
+
+  // NBCIFF explained: As the LHS and the RHS of the inner <=> are variants, it does not make sense to backtrack over them; EQL is commutative to check the two versions!
 
   if (matchCode(f,code1,Property::PR_HAS_EXTENSIONALITY) ||
       matchCode(f,code2,Property::PR_HAS_EXTENSIONALITY)) {
