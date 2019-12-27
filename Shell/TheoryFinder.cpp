@@ -603,7 +603,27 @@ bool TheoryFinder::matchCode(const void* obj,
 
   ASS_GE(objectPos,(int)back.objPos); // if we already went below the stored objPos, if the restored code succeeds, we will continue into undefined territory
   // Actually, this might still be to weak; we should insist the whole objects stack up back.objPos is identical to the one when Backtrack back was created.
-  // Example of the problem: TODO
+  // Example of the problem: Matching
+  /* {CIFF,                           // <=>
+   *  CFORALL,1,0,CIFF,              // (Ax0)<=>
+   *  POS,NEWPRED,0,2,OLDVAR,0,NEWVAR,1, //  member(x0,x1)
+   *  POS,OLDPRED,0,OLDVAR,0,NEWVAR,2,   //  member(x0,x2)
+   *  POS,EQL,OLDVAR1,1,OLDVAR1,2,END};         // x1=x2
+   * against
+   * set_equal(X,Y) <=> ! [Z] : ( element(Z,X) <=> element(Z,Y) ).
+   *
+   * After
+   * ! [Z] : ( element(Z,X) <=> element(Z,Y) )
+   * succeeds
+   * set_equal(X,Y)
+   * fails (because set_equal is not "=").
+   *
+   * Backtracking to the other polarity of ( element(Z,X) <=> element(Z,Y) )
+   * is at this point evil, since the objects stack no longer contains
+   * set_equal(X,Y) as a LITARAL formula at objectPos==0
+   *
+   * In this case fixed by using non-backtrackable CIFF for the inner <=>
+   **/
 
   objectPos = back.objPos;
 
