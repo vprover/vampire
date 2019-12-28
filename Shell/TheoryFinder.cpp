@@ -400,10 +400,12 @@ bool TheoryFinder::matchCode(const void* obj,
   }
 
   case CLS: {
-#if TRACE_FINDER
-    cout << "M: CLS\n";
-#endif
+    ASS(objectPos > 0);
+    obj = objects[--objectPos];
     clause = reinterpret_cast<const Clause*>(obj);
+#if TRACE_FINDER
+    cout << "M: CLS: " << clause->toString() << endl;
+#endif
     clength = clause->length();
     cp++;
     goto match;
@@ -441,13 +443,14 @@ bool TheoryFinder::matchCode(const void* obj,
     if (c == clength) { // no candidate found
       goto backtrack;
     }
-    literals[l] = c;
-    objects[objectPos++] = (*clause)[c];
 
     // create a backtrack point
     Backtrack& back = backtrack[backtrackPos++];
     back.cp = cp;
     back.objPos = objectPos;
+
+    literals[l] = c;
+    objects[objectPos++] = (*clause)[c];
 
     cp += 2;
     goto match;
@@ -656,7 +659,7 @@ bool TheoryFinder::matchCode(const void* obj,
   case PLIT:
   case NLIT: {
 #if TRACE_FINDER
-    cout << "M: backtrack LIT\n";
+    cout << "B: LIT\n";
 #endif
     unsigned l = code[cp+1];
     // bit field of choices for this literal
@@ -685,13 +688,14 @@ bool TheoryFinder::matchCode(const void* obj,
     if (c == clength) { // no candidate found
       goto backtrack;
     }
-    literals[l] = c;
-    objects[objectPos++] = (*clause)[c];
 
     // create a backtrack point
     Backtrack& back = backtrack[backtrackPos++];
     back.cp = cp;
     back.objPos = objectPos;
+
+    literals[l] = c;
+    objects[objectPos++] = (*clause)[c];
 
     cp += 2;
     goto match;
@@ -915,7 +919,7 @@ bool TheoryFinder::matchFLD2(const Clause* c)
  */
 bool TheoryFinder::matchSubset (const Clause* c)
 {
-  CALL("TheoryFinder::matchSubset");
+  CALL("TheoryFinder::matchSubset(const Clause* c)");
 
   static const unsigned char code[] =
   {CLS,
@@ -943,7 +947,7 @@ bool TheoryFinder::matchSubset (const Clause* c)
  */
 bool TheoryFinder::matchSubset (const Formula* f)
 {
-  CALL("TheoryFinder::matchSubset");
+  CALL("TheoryFinder::matchSubset(const Formula* f)");
 
   static const unsigned char code[] =
     {CIFF,                          // <=>
