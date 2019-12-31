@@ -81,6 +81,7 @@ Clause::Clause(unsigned length,InputType it,Inference* inf)
     _proxyAxiomsDescendant(false),
     _holAxiomsDescendant(false),
     _inductionDepth(0),
+    _XXNarrows(0),
     _numSelected(0),
     _age(0),
     _weight(0),
@@ -121,6 +122,18 @@ Clause::Clause(unsigned length,InputType it,Inference* inf)
     _inductionDepth=id;
   }
   
+  if(env.options->maxXXNarrows() > 0){
+    unsigned parentMax = 0;
+    Inference::Iterator it = inf->iterator();
+    while(inf->hasNext(it)){
+      Unit* parent = inf->next(it);
+      if(parent->isClause() && static_cast<Clause*>(parent)->XXNarrows() > parentMax){
+        parentMax = static_cast<Clause*>(parent)->XXNarrows();
+      }      
+    }
+    setXXNarrows(parentMax);    
+  }
+
   if(env.options->addCombAxioms() || env.options->addProxyAxioms()){
     Inference::Iterator it = inf->iterator();
     bool pDes = inf->hasNext(it);

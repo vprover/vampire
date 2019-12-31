@@ -224,6 +224,17 @@ public:
       _inductionDepth++; 
     }
   }
+
+  unsigned XXNarrows() const { return _XXNarrows; }
+  void setXXNarrows(unsigned n){ 
+    ASS(n < 8)
+    _XXNarrows = n;
+  }
+  void incXXNarrows(){ 
+    if(_XXNarrows < 8){
+      _XXNarrows++; 
+    }
+  }
   
   bool skip() const;
 
@@ -392,6 +403,8 @@ protected:
   unsigned _holAxiomsDescendant : 1;
   /** Induction depth **/
   unsigned _inductionDepth : 5;
+  /** number of XX' narrows carried out on clause */
+  unsigned _XXNarrows : 3;
 
   /** number of selected literals */
   unsigned _numSelected;

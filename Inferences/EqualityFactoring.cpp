@@ -125,7 +125,7 @@ struct EqualityFactoring::ResultFn
     TermList fRHS=EqHelper::getOtherEqualitySide(fLit, fLHS);
     ASS_NEQ(sLit, fLit);
 
-    if(env.options->combinatorySup()){
+    if(env.options->functionExtensionality() == Options::FunctionExtensionality::ABSTRACTION){
       TermList sLHSreplaced = sLHS;
       TermList fLHSreplaced = fLHS;
       if(!sLHS.isVar() && !fLHS.isVar() && 
@@ -143,7 +143,7 @@ struct EqualityFactoring::ResultFn
       }
     }
 
-    typedef pair<Term*, Term*> ConPair;
+    typedef RobSubstitution::TTPair ConPair;
     unsigned cLength = subst.constraintsSize();
     const Set<ConPair>& constraints = subst.constraints();
 
@@ -192,8 +192,8 @@ struct EqualityFactoring::ResultFn
       ConPair con;
       while(it.hasNext()){
         con = it.next();
-        TermList qT = subst.apply(TermList(con.first), 0);
-        TermList rT = subst.apply(TermList(con.second), 0);
+        TermList qT = subst.apply(TermList(con.first.term), 0);
+        TermList rT = subst.apply(TermList(con.second.term), 0);
 
         TermList sort = SortHelper::getResultSort(rT.term());
         Literal* constraint = Literal::createEquality(false,qT,rT,sort);

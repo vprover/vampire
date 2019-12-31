@@ -218,6 +218,8 @@ void RobSubstitution::bind(const VarSpec& v, const TermSpec& b)
   ASS(!b.term.isTerm() || b.index!=AUX_INDEX || b.term.term()->shared());
   ASS_NEQ(v.index, UNBOUND_INDEX);
 
+  //cout << "binding X" << v.var << "/" << v.index << " to " + b.toString() << endl;
+
   if(bdIsRecording()) {
     bdAdd(new BindingBacktrackObject(this, v));
   }
@@ -233,7 +235,12 @@ void RobSubstitution::addToConstraints(const VarSpec& v1, const VarSpec& v2)
 
   if(t1 == t2 && t1->shared() && t1->ground()){ return; }
 
-  pair<Term*, Term*> p = make_pair(t1, t2);
+  TermSpec t1spec = TermSpec(TermList(t1), v1.index);
+  TermSpec t2spec = TermSpec(TermList(t2), v2.index);
+
+  if(t1spec.sameTermContent(t2spec)){ return; }
+
+  TTPair p = make_pair(t1spec, t2spec);
   //cout << "adding <" + t1->toString() + ", " + t2->toString() + "> to constraints" << endl;
   if(!_constraints.contains(p)){
     _constraints.insert(p);
@@ -348,7 +355,11 @@ bool RobSubstitution::occurs(VarSpec vs, TermSpec ts)
           Term* t = _funcSubtermMap->get1(var.var());
           dtvar = TermSpec(TermList(t), ts.index);
         }
-        if(!dtvar.isVar()) {
+        if(!dtvar.isVar() || dtvar.isVSpecialVar()) {
+          if(dtvar.isVSpecialVar()){
+            Term* t = _funcSubtermMap->get1(dtvar.term.var());
+            dtvar = TermSpec(TermList(t), dtvar.index);            
+          }
           encountered.insert(tvar);
           toDo.push(dtvar);
         }
@@ -366,7 +377,10 @@ bool RobSubstitution::unify(TermSpec t1, TermSpec t2)
 {
   CALL("RobSubstitution::unify/2");
 
-  //cout << "attempting to unify " + t1.toString() + " with " + t2.toString() << endl;
+  /*bool print = false;
+  if(t1.toString() == "S3/2" && t2.toString() == "X1/3"){
+    print = true;
+  }*/
 
   if(t1.sameTermContent(t2)) {
     return true;
@@ -387,9 +401,9 @@ bool RobSubstitution::unify(TermSpec t1, TermSpec t2)
   for(;;) {
     TermSpec dt1=derefBound(t1);
     TermSpec dt2=derefBound(t2);
-
+    
     //cout << "dt1 is " + dt1.toString() << " and it is isVSpecialVar " << dt1.isVSpecialVar() << endl;
-    //cout << "dt2 is " + dt2.toString() << " and it is isVSpecialVar " << dt2.isVSpecialVar() << endl;
+    //cout << "dt2 is " + dt2.toString() << " and it is isVSpecialVar " << dt2.isVSpecialVar() << endl; 
 
     if(dt1.sameTermContent(dt2)) {
     } else if(dt1.isVSpecialVar() && dt2.isVSpecialVar()){
@@ -630,11 +644,7 @@ TermList RobSubstitution::apply(TermList trm, int index) const
 {
   CALL("RobSubstitution::apply(TermList...)");
 
- //cout << "applying to term " + trm.toString() + "/" << index << endl;
- /* bool print = false;
-  if(trm.toString() == "dsetconstr @ X1 @ (kCOMB @ sP0)"){
-    print = true;
-  }*/
+  //cout << "applying to term " + trm.toString() + "/" << index << endl;
 
   static Stack<TermList*> toDo(8);
   static Stack<int> toDoIndex(8);

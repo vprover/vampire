@@ -98,7 +98,7 @@ struct Superposition::RewritableResultsFn
     if(_withC){
       return pvi( pushPairIntoRightIterator(arg, _index->getUnificationsWithConstraints(arg.second, true)) );
     }
-    else if(env.options->combinatorySup()){
+    else if(env.options->functionExtensionality() == Options::FunctionExtensionality::ABSTRACTION){
       TermList sort = SortHelper::getTermSort(arg.second, arg.first);
       return pvi( pushPairIntoRightIterator(arg, _index->getUnificationsUsingSorts(arg.second, sort, true)) );
     }
@@ -138,7 +138,7 @@ struct Superposition::ApplicableRewritesFn
     if(_withC){
       return pvi( pushPairIntoRightIterator(arg, _index->getUnificationsWithConstraints(arg.second, true)) );
     }  
-    else if(env.options->combinatorySup()){
+    else if(env.options->functionExtensionality() == Options::FunctionExtensionality::ABSTRACTION){
       TermList sort = SortHelper::getTermSort(arg.second, arg.first);
       return pvi( pushPairIntoRightIterator(arg, _index->getUnificationsUsingSorts(arg.second, sort, true)) );
     }
@@ -446,7 +446,7 @@ Clause* Superposition::performSuperposition(
   ASS(rwClause->store()==Clause::ACTIVE);
   ASS(eqClause->store()==Clause::ACTIVE);
 
-  //if(rwClause->number() == 36){
+  //if(rwClause->number() == 124 && eqClause->number() == 1842){
     //cout << "performSuperposition with " << rwClause->toString() << " and " << eqClause->toString() << endl;
     //cout << "rwTerm " << rwTerm.toString() << " eqLHS " << eqLHS.toString() << endl;
     //cout << "subst " << endl << subst->tryGetRobSubstitution()->toString() << endl;
@@ -463,7 +463,7 @@ Clause* Superposition::performSuperposition(
 */
 
   // the first checks the reference and the second checks the stack
-  typedef pair<Term*, Term*> ConPair;
+  typedef RobSubstitution::TTPair ConPair;
   RobSubstitution* sub = subst->tryGetRobSubstitution();
   unsigned cLength = sub->constraintsSize();
   const Set<ConPair>& constraints2 = sub->constraints();
@@ -677,8 +677,8 @@ Clause* Superposition::performSuperposition(
     while(it.hasNext()){
       con = it.next();
       //TODO WARNING VERY HACKY! Want to apply to normalised banks
-      TermList qT = subst->tryGetRobSubstitution()->apply(TermList(con.first), 2);
-      TermList rT = subst->tryGetRobSubstitution()->apply(TermList(con.second), 3);
+      TermList qT = subst->tryGetRobSubstitution()->apply(TermList(con.first.term), con.first.index);
+      TermList rT = subst->tryGetRobSubstitution()->apply(TermList(con.second.term), con.second.index);
 
       TermList sort = SortHelper::getResultSort(rT.term());
       Literal* constraint = Literal::createEquality(false,qT,rT,sort);

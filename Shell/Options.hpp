@@ -742,6 +742,12 @@ public:
     POSITION = 5
   };
     
+  enum class FunctionExtensionality : unsigned int {
+    OFF = 0,
+    AXIOM = 1,
+    ABSTRACTION = 2
+  }; 
+
     //==========================================================
     // The Internals
     //==========================================================
@@ -2105,7 +2111,8 @@ public:
   bool addCombAxioms() const { return _addCombAxioms.actualValue; }
   bool addProxyAxioms() const { return _addProxyAxioms.actualValue; }
   bool combinatorySup() const { return _combinatorySuperposition.actualValue; }
-  bool functionExtensionality() const { return _functionExtensionalityAx.actualValue; }
+  int maxXXNarrows() const { return _maximumXXNarrows.actualValue; }
+  FunctionExtensionality functionExtensionality() const { return _functionExtensionality.actualValue; }
 
 private:
     
@@ -2482,7 +2489,8 @@ private:
   BoolOptionValue _addCombAxioms;
   BoolOptionValue _addProxyAxioms;
   BoolOptionValue _combinatorySuperposition;
-  BoolOptionValue _functionExtensionalityAx;
+  IntOptionValue  _maximumXXNarrows;
+  ChoiceOptionValue<FunctionExtensionality> _functionExtensionality;
 
 }; // class Options
 

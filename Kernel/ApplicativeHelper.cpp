@@ -254,14 +254,14 @@ TermList ApplicativeHelper::getHead(TermList t)
   return t;
 }
 
-bool ApplicativeHelper::isComb(TermList head)
+bool ApplicativeHelper::isComb(const TermList head)
 {
   CALL("ApplicativeHelper::isComb");
   if(head.isVar()){ return false; }
   return env.signature->getFunction(head.term()->functor())->combinator() != Signature::NOT_COMB;
 }
 
-Signature::Combinator ApplicativeHelper::getComb (TermList head) 
+Signature::Combinator ApplicativeHelper::getComb (const TermList head) 
 {
   CALL("ApplicativeHelper::getComb");
   return env.signature->getFunction(head.term()->functor())->combinator();

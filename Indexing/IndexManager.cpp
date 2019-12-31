@@ -152,7 +152,7 @@ Index* IndexManager::create(IndexType t)
 
   bool isGenerating;
   static bool useConstraints = env.options->unificationWithAbstraction()!=Options::UnificationWithAbstraction::OFF;
-  static bool combSup = env.options->combinatorySup();
+  static bool extByAbs = env.options->functionExtensionality() == Options::FunctionExtensionality::ABSTRACTION;
   switch(t) {
   case GENERATING_SUBST_TREE:
     is=new LiteralSubstitutionTree(useConstraints);
@@ -186,7 +186,7 @@ Index* IndexManager::create(IndexType t)
     break;
 
   case SUPERPOSITION_SUBTERM_SUBST_TREE:
-    tis=new TermSubstitutionTree(useConstraints, combSup);
+    tis=new TermSubstitutionTree(useConstraints, extByAbs);
 #if VDEBUG
     //tis->markTagged();
 #endif
@@ -194,7 +194,7 @@ Index* IndexManager::create(IndexType t)
     isGenerating = true;
     break;
   case SUPERPOSITION_LHS_SUBST_TREE:
-    tis=new TermSubstitutionTree(useConstraints, combSup);
+    tis=new TermSubstitutionTree(useConstraints, extByAbs);
     res=new SuperpositionLHSIndex(tis, _alg->getOrdering(), _alg->getOptions());
     //tis->markTagged();
     isGenerating = true;

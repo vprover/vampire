@@ -60,6 +60,8 @@ class Signature
   typedef List<unsigned> VarList;
   /** Function or predicate symbol */
   
+  //Order is important
+  //Narrow.cpp relies on it
   enum Combinator {
     S_COMB,
     B_COMB,

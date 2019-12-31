@@ -32,13 +32,14 @@
 #include "Lib/Comparison.hpp"
 #include "Lib/DArray.hpp"
 #include "Lib/List.hpp"
-#include "Lib/Metaiterators.hpp"
 #include "Lib/Set.hpp"
 #include "Lib/Stack.hpp"
 
 #include "Term.hpp"
 #include "Clause.hpp"
 #include "Ordering.hpp"
+#include "ApplicativeHelper.hpp"
+#include "TermIterators.hpp"
 
 #include "LiteralSelector.hpp"
 #include "LiteralComparators.hpp"
@@ -145,24 +146,38 @@ protected:
     CALL("CompleteBestLiteralSelector::doSelection");
     ASS_G(eligible, 1); //trivial cases should be taken care of by the base LiteralSelector
 
+    static bool combSup = env.options->combinatorySup();
+
     static DArray<Literal*> litArr(64);
+    static Set<unsigned> maxTermHeads;
+    maxTermHeads.reset();
     litArr.initFromArray(eligible,*c);
     litArr.sortInversed(_comp);
 
     LiteralList* maximals=0;
     Literal* singleSelected=0; //If equals to 0 in the end, all maximal
+
+    if(combSup){ 
+      fillMaximals(maximals, litArr); 
+      LiteralList::Iterator maxIt(maximals);
+      while(maxIt.hasNext()){
+        Literal* lit = maxIt.next();
+        TermList t0 = *lit->nthArgument(0);
+        TermList t1 = *lit->nthArgument(1);
+        TermList h0 = ApplicativeHelper::getHead(t0);  
+        TermList h1 = ApplicativeHelper::getHead(t1);
+        if(h0.isVar()){ maxTermHeads.insert(h0.var()); }
+        if(h1.isVar()){ maxTermHeads.insert(h1.var()); }
+      }
+    }
     //literals will be selected.
     bool allSelected=false;
 
-    if(isNegativeForSelection(litArr[0])) {
+    if(isNegativeForSelection(litArr[0]) && 
+      (!combSup || canBeSelected(litArr[0], &maxTermHeads))) {
       singleSelected=litArr[0];
     } else {
-      DArray<Literal*>::ReversedIterator rlit(litArr);
-      while(rlit.hasNext()) {
-        Literal* lit=rlit.next();
-        LiteralList::push(lit,maximals);
-      }
-      _ord.removeNonMaximal(maximals);
+      if(!combSup){ fillMaximals(maximals, litArr); }
       unsigned besti=0;
       LiteralList* nextMax=maximals;
       while(true) {
@@ -174,7 +189,8 @@ protected:
         }
         besti++;
         ASS_L(besti,eligible);
-        if(isNegativeForSelection(litArr[besti])) {
+        if(isNegativeForSelection(litArr[besti]) && 
+           (!combSup || canBeSelected(litArr[besti], &maxTermHeads))){
           singleSelected=litArr[besti];
           break;
         }
@@ -237,6 +253,32 @@ protected:
     LiteralList::destroy(maximals);
 
     ensureSomeColoredSelected(c, eligible);
+  }
+
+  void fillMaximals(LiteralList*& maximals, DArray<Literal*> litArr)
+  {
+    CALL("CompleteBestLiteralSelector::fillMaximals");
+    DArray<Literal*>::ReversedIterator rlit(litArr);
+    while(rlit.hasNext()) {
+      Literal* lit=rlit.next();
+      LiteralList::push(lit,maximals);
+    }
+    _ord.removeNonMaximal(maximals);
+  }
+
+  bool canBeSelected(Literal* lit, Set<unsigned>* maxTermHeads)
+  {
+    CALL("CompleteBestLiteralSelector::canBeSelected");
+
+    FirstOrderSubtermIt fsi(lit);
+
+    while(fsi.hasNext()){
+      TermList t = fsi.next();
+      if(t.isVar() && maxTermHeads->contains(t.var())){
+        return false;
+      }
+    }
+    return true;
   }
 
 private:

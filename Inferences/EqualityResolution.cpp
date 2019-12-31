@@ -82,7 +82,7 @@ struct EqualityResolution::ResultFn
     TermList arg0 = *lit->nthArgument(0);
     TermList arg1 = *lit->nthArgument(1);
 
-    if(env.options->combinatorySup()){
+    if(env.options->functionExtensionality() == Options::FunctionExtensionality::ABSTRACTION){
       TermList sort = SortHelper::getEqualityArgumentSort(lit);
       if(!arg0.isVar() && !arg1.isVar() && 
          !sort.isVar() && !ApplicativeHelper::isArrowType(sort.term())){
@@ -98,7 +98,7 @@ struct EqualityResolution::ResultFn
       return 0;
     }
 
-    typedef pair<Term*, Term*> ConPair;
+    typedef RobSubstitution::TTPair ConPair;
     unsigned cLength = subst.constraintsSize();
     const Set<ConPair>& constraints = subst.constraints();
 
@@ -142,8 +142,8 @@ struct EqualityResolution::ResultFn
       ConPair con;
       while(it.hasNext()){
         con = it.next();
-        TermList qT = subst.apply(TermList(con.first), 0);
-        TermList rT = subst.apply(TermList(con.second), 0);
+        TermList qT = subst.apply(TermList(con.first.term), 0);
+        TermList rT = subst.apply(TermList(con.second.term), 0);
 
         TermList sort = SortHelper::getResultSort(rT.term());
         Literal* constraint = Literal::createEquality(false,qT,rT,sort);

@@ -117,11 +117,7 @@ public:
   size_t size() const {return _bank.size(); }
 #endif
 
-  typedef Set<pair<Term*, Term*>> UnifConstraints;
-
   unsigned constraintsSize()  const { return _constraints.size(); }
-  const UnifConstraints& constraints() const { return _constraints; }
-
 
   /** Specifies instance of a variable (i.e. (variable, variable bank) pair) */
   struct VarSpec
@@ -218,6 +214,9 @@ public:
     int index;
   };
   typedef pair<TermSpec,TermSpec> TTPair;
+  typedef Set<TTPair> UnifConstraints;
+
+  const UnifConstraints& constraints() const { return _constraints; }
 
   /** struct containing first hash function of TTPair objects*/
   struct TTPairHash
@@ -331,7 +330,7 @@ private:
   : public BacktrackObject
   {
   public: 
-    ConstraintBacktrackObject(RobSubstitution* subst, pair<Term*, Term*> con)
+    ConstraintBacktrackObject(RobSubstitution* subst, TTPair con)
     : _subst(subst), _con(con)
     {}
     
@@ -344,7 +343,7 @@ private:
     USE_ALLOCATOR(ConstraintBacktrackObject);
   private:
     RobSubstitution* _subst;
-    pair<Term*, Term*> _con;
+    TTPair _con;
   };
 
   template<class Fn>

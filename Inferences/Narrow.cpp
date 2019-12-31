@@ -40,6 +40,8 @@
 #include "Kernel/Unit.hpp"
 #include "Kernel/LiteralSelector.hpp"
 #include "Kernel/RobSubstitution.hpp"
+#include "Kernel/ApplicativeHelper.hpp"
+#include "Kernel/Signature.hpp"
 
 #include "Indexing/Index.hpp"
 #include "Indexing/IndexManager.hpp"
@@ -162,12 +164,29 @@ Clause* Narrow::performNarrow(
   CALL("Narrow::performNarrow");
   // we want the rwClause and eqClause to be active
   ASS(nClause->store()==Clause::ACTIVE);
-
+  ASS(nTerm.isTerm());
   //if(nClause->number() == 276){
     //cout << "performNarrow with " << nClause->toString() /*<< "\n and " << nLiteral->toString() << "\n and " << nTerm.toString()*/ << endl;
     //cout << "the term being narrowed " << nTerm.toString() << endl;
     //cout << "combAxLhs " << combAxLhs.toString() << endl;
   //}
+
+  //0 means unlimited
+  bool incr = false;
+  unsigned lim = env.options->maxXXNarrows();
+  if(lim != 0){
+    TermList headLHS = ApplicativeHelper::getHead(combAxLhs);
+    if(ApplicativeHelper::isComb(headLHS) &&
+       ApplicativeHelper::getComb(headLHS) < Signature::I_COMB &&
+       nTerm.term()->nthArgument(2)->isVar()){
+      if(nClause->XXNarrows() == lim){
+        env.statistics->discardedNonRedundantClauses++;
+        return 0;
+      } else {
+        incr = true;
+      }
+    }
+  }
 
   unsigned cLen = nClause->length();
   TermList combAxRhs = EqHelper::getOtherEqualitySide(combAx, combAxLhs);
@@ -237,6 +256,7 @@ Clause* Narrow::performNarrow(
   }
 
   res->setAge(nClause->age() + 1);
+  if(incr){ res->incXXNarrows(); }
   env.statistics->narrow++;
   /*if(nClause->number() == 276){
     cout << "returning " + res->toString() << endl;

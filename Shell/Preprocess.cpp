@@ -229,7 +229,7 @@ void Preprocess::preprocess(Problem& prb)
     //}
   }
 
-  if(env.options->functionExtensionality()){
+  if(env.options->functionExtensionality() == Options::FunctionExtensionality::AXIOM){
     LambdaElimination::addFunctionExtensionalityAxiom(prb);
   }
 

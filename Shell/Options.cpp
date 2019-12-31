@@ -1197,10 +1197,17 @@ void Options::Options::init()
     _combinatorySuperposition.reliesOn(_addCombAxioms.is(equal(false))); //no point having two together
     _combinatorySuperposition.tag(OptionTag::INFERENCES);
 
-    _functionExtensionalityAx = BoolOptionValue("func_ext_ax","fea",false);
-    _functionExtensionalityAx.description="Adds functional extensionality axiom to problem";
-    _lookup.insert(&_functionExtensionalityAx);
-    _functionExtensionalityAx.tag(OptionTag::INFERENCES);
+    _maximumXXNarrows = IntOptionValue("max_XX_narrows","mXXn", 0);
+    _maximumXXNarrows.description="Maximum number of BXX', CXX' and SXX' narrows that"
+                                  "can be carried out 0 means that there is no limit. ";
+    _lookup.insert(&_maximumXXNarrows);
+    _maximumXXNarrows.tag(OptionTag::INFERENCES);
+
+    _functionExtensionality = ChoiceOptionValue<FunctionExtensionality>("func_ext","fe",FunctionExtensionality::ABSTRACTION,
+                                                                          {"off", "axiom", "abstraction"});
+    _functionExtensionality.description="Deal with extensionality using abstraction, axiom or neither";
+    _lookup.insert(&_functionExtensionality);
+    _functionExtensionality.tag(OptionTag::INFERENCES);
 
 //*********************** InstGen  ***********************
 

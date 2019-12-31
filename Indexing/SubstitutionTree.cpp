@@ -557,7 +557,7 @@ vstring SubstitutionTree::nodeToString(Node* topNode)
     int indent=indentStack.pop();
 
     if(!node) {
-	continue;
+      continue;
     }
     if(!node->term.isEmpty()) {
       res+=getIndentStr(indent)+node->term.toString()+"  "+
@@ -565,22 +565,24 @@ vstring SubstitutionTree::nodeToString(Node* topNode)
     }
 
     if(node->isLeaf()) {
-	Leaf* lnode = static_cast<Leaf*>(node);
-	LDIterator ldi(lnode->allChildren());
+      Leaf* lnode = static_cast<Leaf*>(node);
+      LDIterator ldi(lnode->allChildren());
 
-	while(ldi.hasNext()) {
-	  LeafData ld=ldi.next();
-	  res+=getIndentStr(indent) + "Lit: " + ld.literal->toString() + "\n";
-	  res+=ld.clause->toString()+"\n";
-	}
+      while(ldi.hasNext()) {
+        LeafData ld=ldi.next();
+        res+=getIndentStr(indent) + "Lit: " + ld.literal->toString() + "\n";
+        if(ld.clause){
+          res+=ld.clause->toString()+"\n";
+        }
+      }
     } else {
-	IntermediateNode* inode = static_cast<IntermediateNode*>(node);
-	res+=getIndentStr(indent) + " S" + Int::toString(inode->childVar)+":\n";
-	NodeIterator noi(inode->allChildren());
-	while(noi.hasNext()) {
-	  stack.push(*noi.next());
-	  indentStack.push(indent+1);
-	}
+      IntermediateNode* inode = static_cast<IntermediateNode*>(node);
+      res+=getIndentStr(indent) + " S" + Int::toString(inode->childVar)+":\n";
+      NodeIterator noi(inode->allChildren());
+      while(noi.hasNext()) {
+        stack.push(*noi.next());
+        indentStack.push(indent+1);
+      }
     }
   }
   return res;
@@ -703,12 +705,13 @@ clientBDRecording(false), tree(parent), useConstraints(useC)
     return;
   }
 
+
   //print = false;
-  //if(query->toString() == "(a -> a -> a) -> a"){
-    //cout << "started" << endl;
-    //print = true;
-    //cout << parent->toString() << endl;
-  //}
+  /*if(query->toString() == "X2 @ (sK0(X1) @ (sCOMB @ X2 @ X3)) @ (X3 @ (sK0(X1) @ (sCOMB @ X2 @ X3)))"){
+    cout << "STARTED" <<endl;
+    print = true;
+    cout << parent->toString() << endl;
+  }*/
 
   if(funcSubtermMap){
     subst.setMap(funcSubtermMap);
@@ -958,6 +961,10 @@ bool SubstitutionTree::UnificationsIterator::associate(TermList query, TermList 
 
   // check for syntactic (robinson) unifiability
   bool result = subst.unify(query,NORM_QUERY_BANK,node,NORM_RESULT_BANK);
+ 
+  /*if(print && result){
+    cout << "unify " << query.toString() << " and " << node.toString() << endl;    
+  }*/
 
 #if VDEBUG
   if(tag && result){

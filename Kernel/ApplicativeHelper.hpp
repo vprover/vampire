@@ -54,8 +54,8 @@ public:
   static void getHeadAndArgs(Term* term, TermList& head, TermStack& args);  
   static void getHeadAndArgs(const Term* term, TermList& head, Deque<TermList>& args); 
   static void getHeadSortAndArgs(TermList term, TermList& head, TermList& headSort, TermStack& args); 
-  static bool isComb(TermList t);
-  static Signature::Combinator getComb(TermList t);
+  static bool isComb(const TermList t);
+  static Signature::Combinator getComb(const TermList t);
   static TermList getHead(TermList t);
   static bool isApp(const Term* t);
   static bool isType(const Term* t);

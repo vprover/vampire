@@ -636,7 +636,7 @@ vstring Term::toString(bool topLevel) const
       return res;
     }
     printArgs = env.signature->getFunction(_functor)->combinator() == Signature::NOT_COMB;
-  } 
+  }
 
   vstring s = headToString();
 
