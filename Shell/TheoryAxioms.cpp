@@ -1218,28 +1218,26 @@ void TheoryAxioms::applyFOOL() {
 
 /*
  * Note: In contrast to all other internally added theory axioms, the exhaustiveness axiom is
- * added as Formula and not as a clause. We would like to enforce the invariant that all internally
+ * added in some cases as Formula and not as a clause. We would like to enforce the invariant that all internally
  * added theory axioms are added as clauses, in order to allow for an easy check whether a clause is
  * a theory axiom or not (without going up the preprocessing derivation until we derive at the axiom formula).
- * We currently already use this easy check, and miss the exhaustiveness axiom.
+ * We currently already use this easy check, and miss the exhaustiveness axiom in some cases.
  *
- * Adding the exhaustiveness axiom as clause is difficult,
- * since there are different ways to clausify the axiom formula, in the case where some destructor 
+ * Adding the exhaustiveness axiom as clause is difficult in the case where some destructor 
  * has boolean sort: The currently implemented clausification-algorithms (default and newcnf) differ
  * in how they clausify the axiom formula, and newcnf as far as I know generates different clausifications
  * of the exhaustiveness axiom formula depending on the value of some magic constants.
- *
- * TODO: add the exhaustiveness axiom for the standard case where the destructors are not of boolean sort.
  */
 void TheoryAxioms::addExhaustivenessAxiom(TermAlgebra* ta) {
   CALL("TheoryAxioms::addExhaustivenessAxiom");
 
   TermList x(0, false);
-  Stack<TermList> argTerms;
+
+  // Part 1: compute list of literals and set flag if a FOOL-destructor occurs
+  Stack<Literal*> lits;
   bool addsFOOL = false;
 
-  FormulaList* l = FormulaList::empty();
-
+  Stack<TermList> argTerms;
   for (unsigned i = 0; i < ta->nConstructors(); i++) {
     TermAlgebraConstructor *c = ta->constructor(i);
     argTerms.reset();
@@ -1257,27 +1255,38 @@ void TheoryAxioms::addExhaustivenessAxiom(TermAlgebra* ta) {
     }
 
     TermList rhs(Term::create(c->functor(), argTerms.size(), argTerms.begin()));
-    FormulaList::push(new AtomicFormula(Literal::createEquality(true, x, rhs, ta->sort())), l);
+    lits.push(Literal::createEquality(true, x, rhs, ta->sort()));
+  }
+  ASS(!lits.isEmpty());
+
+  // Part 2: add axiom
+  // - if no FOOL-destructors occur, add the axiom as clause
+  // - otherwise, add the axiom as formula (cf. comments at the beginning of this method)
+  Unit* axiom;
+  if (!addsFOOL) {
+    axiom = Clause::fromStack(lits, Unit::AXIOM, new Inference(Inference::TERM_ALGEBRA_EXHAUSTIVENESS_AXIOM));
+  } else {
+    Formula* disjunction;
+    if(lits.size() == 1) {
+        disjunction = new AtomicFormula(lits[0]);
+    } else {
+      FormulaList* fl = FormulaList::empty();
+      for (unsigned i = 0; i < lits.size(); i++)
+      {
+        FormulaList::push(new AtomicFormula(lits[i]), fl);
+      }
+      disjunction = new JunctionFormula(Connective::OR, fl);
+    }
+    Formula::VarList* vars = Formula::VarList::cons(x.var(), Formula::VarList::empty());
+    Formula::SortList* sorts = Formula::SortList::cons(ta->sort(), Formula::SortList::empty());
+    auto universal = new QuantifiedFormula(Connective::FORALL, vars, sorts, disjunction);
+
+    axiom = new FormulaUnit(universal, new Inference(Inference::TERM_ALGEBRA_EXHAUSTIVENESS_AXIOM), Unit::AXIOM);
+
+    _prb.reportFOOLAdded();
   }
 
-  Formula::VarList* vars = Formula::VarList::cons(x.var(), Formula::VarList::empty());
-  Formula::SortList* sorts = Formula::SortList::cons(ta->sort(), Formula::SortList::empty());
-
-  Formula *axiom;
-  switch (FormulaList::length(l)) {
-    case 0:
-      // the algebra cannot have 0 constructors
-      ASSERTION_VIOLATION;
-    case 1:
-      axiom = new QuantifiedFormula(Connective::FORALL, vars, sorts, l->head());
-      break;
-    default:
-      axiom = new QuantifiedFormula(Connective::FORALL, vars, sorts, new JunctionFormula(Connective::OR, l));
-  }
-
-  Unit* u = new FormulaUnit(axiom, new Inference(Inference::TERM_ALGEBRA_EXHAUSTIVENESS_AXIOM), Unit::AXIOM);
-  addAndOutputTheoryUnit(u, CHEAP);
-  if (addsFOOL) { _prb.reportFOOLAdded(); }
+  addAndOutputTheoryUnit(axiom, CHEAP);
 }
 
 void TheoryAxioms::addDistinctnessAxiom(TermAlgebra* ta) {
