@@ -753,7 +753,7 @@ UnitList* Storage::getClausesByUnitNumbers(VirtualIterator<unsigned> numIt)
 
     ASS(litStack.isNonEmpty());
 
-    Inference* inf=new Inference(Inference::THEORY);
+    Inference* inf=new Inference(Inference::EXTERNAL_THEORY_AXIOM);
     Clause* cl=Clause::fromIterator(LiteralStack::Iterator(litStack), Unit::AXIOM, inf);
     UnitList::push(cl, res);
 
