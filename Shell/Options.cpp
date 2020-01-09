@@ -898,13 +898,13 @@ void Options::Options::init()
     _lookup.insert(&_useSplitQueues);
     _useSplitQueues.tag(OptionTag::OTHER);
 
-    _splitQueueRatios = StringOptionValue("split_queue_ratios", "sqr", "20,10,10,1");
+    _splitQueueRatios = StringOptionValue("split_queue_ratios", "sqr", "80,16,2,2");
     _splitQueueRatios.description = "The ratios for picking clauses from the split-queues using weighted round robin. If a queue is empty, the clause will be picked from the next non-empty queue to the right. Note that this option implicitly also sets the number of queues.";
     _lookup.insert(&_splitQueueRatios);
     _splitQueueRatios.reliesOn(_useSplitQueues.is(equal(true)));
     _splitQueueRatios.tag(OptionTag::OTHER);
 
-    _splitQueueCutoffs = StringOptionValue("split_queue_cutoffs", "sqc", "0.1,0.3,0.65,1.0");
+    _splitQueueCutoffs = StringOptionValue("split_queue_cutoffs", "sqc", "21,35,56");
     _splitQueueCutoffs.description = "The cutoff-values for the split-queues. Any split-queue contains all clauses which are assigned a niceness-value less or equal to the cutoff-value of the queue.";
     _lookup.insert(&_splitQueueCutoffs);
     _splitQueueCutoffs.reliesOn(_useSplitQueues.is(equal(true)));
@@ -915,6 +915,12 @@ void Options::Options::init()
     _lookup.insert(&_splitQueueFadeIn);
     _splitQueueFadeIn.reliesOn(_useSplitQueues.is(equal(true)));
     _splitQueueFadeIn.tag(OptionTag::OTHER);
+
+    _splitQueueExpectedRatioDenom = IntOptionValue("_split_queue_expected_ratio_denom","sqd", 8);
+    _splitQueueExpectedRatioDenom.description = "The denominator n such that we expect the final proof to have a ratio of theory-axioms to all-axioms of 1/n";
+    _lookup.insert(&_splitQueueExpectedRatioDenom);
+    _splitQueueExpectedRatioDenom.reliesOn(_useSplitQueues.is(equal(true)));
+    _splitQueueExpectedRatioDenom.tag(OptionTag::OTHER);
 
 	    _literalMaximalityAftercheck = BoolOptionValue("literal_maximality_aftercheck","lma",false);
 	    _lookup.insert(&_literalMaximalityAftercheck);

@@ -22,6 +22,7 @@
 #include <string>
 #include <algorithm>
 #include <iterator>
+#include <limits>
 
 #include "Shell/Options.hpp"
 #include "Kernel/Clause.hpp"
@@ -61,13 +62,14 @@ PredicateSplitPassiveClauseContainer::PredicateSplitPassiveClauseContainer(bool 
   {
     _cutoffs.push_back(std::stof(currentCutoff));
   }
+  _cutoffs.push_back(std::numeric_limits<float>::max()); // add float-max as last value, in order to capture all clauses
 
   // sanity checks for ratios and cutoffs
   if (inputRatios.size() < 2) {
     USER_ERROR("Wrong usage of option '-sqr'. Needs to have at least two values (e.g. '10,1')");
   }
   if (inputRatios.size() != _cutoffs.size()) {
-    USER_ERROR("The number of input ratios (supplied by option '-sqr') needs to match the number of cutoffs (supplied by option '-sqc')");
+    USER_ERROR("The number of input ratios (supplied by option '-sqr') needs to match (number of input cutoffs - 1) (cutoffs are supplied by option '-sqc')");
   }
   for (unsigned i = 0; i < inputRatios.size(); i++)
   {
@@ -77,17 +79,10 @@ PredicateSplitPassiveClauseContainer::PredicateSplitPassiveClauseContainer(bool 
     if(v <= 0) {
       USER_ERROR("Each ratio (supplied by option '-sqr') needs to be a positive integer");
     }
-    if(! (0.0 <= cutoff && cutoff <= 1.0)) {
-      USER_ERROR("Each cutoff value (supplied by option '-sqc') needs to be a float in the interval [0.0,1.0]");
-    }
     if (i > 0 && cutoff <= _cutoffs[i-1])
     {
       USER_ERROR("The cutoff values (supplied by option '-sqc') must be strictly increasing");
     }
-  }
-  if (_cutoffs.back() != 1.0)
-  {
-      USER_ERROR("The last cutoff value (supplied by option '-sqc') must be 1.0");
   }
 
   // compute lcm, which will be used to compute reverse ratios
@@ -109,32 +104,14 @@ PredicateSplitPassiveClauseContainer::PredicateSplitPassiveClauseContainer(bool 
 PredicateSplitPassiveClauseContainer::~PredicateSplitPassiveClauseContainer() {
   CALL("PredicateSplitPassiveClauseContainer::~PredicateSplitPassiveClauseContainer");
 }
-  // heuristically compute likeliness that clause with inference inf occurs in proof
-unsigned PredicateSplitPassiveClauseContainer::bestQueueHeuristics(Inference* inf) const {
-  float th_ancestors = inf->th_ancestors;
-  float all_ancestors = inf->all_ancestors;
-  auto theoryRatio = th_ancestors / all_ancestors;
-  auto niceness = theoryRatio;
 
-  if (_opt.splitQueueFadeIn())
-  {
-    if (th_ancestors <= 2.0)
-    {
-      niceness = 0.0;
-    }
-    else if (th_ancestors == 3.0 && all_ancestors <= 6.0)
-    {
-      niceness = 0.5;
-    }
-    else if (th_ancestors == 4.0 && all_ancestors <= 5.0)
-    {
-      niceness = 0.8;
-    }
-  }
+unsigned PredicateSplitPassiveClauseContainer::bestQueueHeuristics(Inference* inf) const {
+  // heuristically compute likeliness that clause occurs in proof
+  auto expectedRatioDenominator = _opt.splitQueueExpectedRatioDenom(); // TODO: add option
+  auto niceness = inf->th_ancestors * expectedRatioDenominator - inf->all_ancestors;
   
   // compute best queue clause should be placed in
-  ASS(0.0 <= niceness && niceness <= 1.0);
-  ASS(_cutoffs.back() == 1.0);
+  ASS(_cutoffs.back() == std::numeric_limits<float>::max());
   for (unsigned i = 0; i < _cutoffs.size(); i++)
   {
     if (niceness <= _cutoffs[i])
@@ -142,6 +119,7 @@ unsigned PredicateSplitPassiveClauseContainer::bestQueueHeuristics(Inference* in
       return i;
     }
   }
+  ASS(false); // unreachable
 }
 
 void PredicateSplitPassiveClauseContainer::add(Clause* cl)

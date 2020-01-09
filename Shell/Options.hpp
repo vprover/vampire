@@ -1989,6 +1989,7 @@ public:
   vstring splitQueueRatios() const { return _splitQueueRatios.actualValue; }
   vstring splitQueueCutoffs() const { return _splitQueueCutoffs.actualValue; }
   bool splitQueueFadeIn() const { return _splitQueueFadeIn.actualValue; }
+  int splitQueueExpectedRatioDenom() const { return _splitQueueExpectedRatioDenom.actualValue; }
   void setWeightRatio(int v){ _ageWeightRatio.otherValue = v; }
 	AgeWeightRatioShape ageWeightRatioShape() const { return _ageWeightRatioShape.actualValue; }
 	int ageWeightRatioShapeFrequency() const { return _ageWeightRatioShapeFrequency.actualValue; }
@@ -2249,6 +2250,7 @@ private:
   StringOptionValue _splitQueueRatios;
   StringOptionValue _splitQueueCutoffs;
   BoolOptionValue _splitQueueFadeIn;
+  IntOptionValue _splitQueueExpectedRatioDenom;
   BoolOptionValue _literalMaximalityAftercheck;
   BoolOptionValue _arityCheck;
   
