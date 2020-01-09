@@ -245,10 +245,10 @@ void BackwardSubsumptionDemodulation::perform(Clause* cl, BwSimplificationRecord
   static v_vector<BwSimplificationRecord> simplificationsStorage;
   ASS_EQ(simplificationsStorage.size(), 0);
 
-  if (!lmLit1->isEquality() || lmLit1->isPositive()) {
+  if (!lmLit1->isEquality() || !lmLit1->isPositive()) {
     // lmLit1 is not a positive equality, so we don't need to check the other one
     perform2(cl, lmLit1, simplificationsStorage);
-  } else if (!lmLit2->isEquality() || lmLit2->isPositive()) {
+  } else if (!lmLit2->isEquality() || !lmLit2->isPositive()) {
     perform2(cl, lmLit2, simplificationsStorage);
   } else {
     // both are positive equalities so we need to check both of them
