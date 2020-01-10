@@ -87,9 +87,12 @@ Literal* LiteralSubsetReplacement::transformSubset() {
   // Increment _iteration, since it either is 0, or was already used.
   _iteration++;
   static unsigned maxSubsetSize = env.options->maxInductionTermSubsetSize();
+  int setBits = __builtin_popcount(_iteration);
+  // Skip this iteration if not all bits are set, but more than maxSubset are set.
   while ((_iteration <= _maxIterations) &&
-         ((maxSubsetSize > 0) && (__builtin_popcount(_iteration) > maxSubsetSize))) {
+         ((maxSubsetSize > 0) && (setBits < _occurrences) && (setBits > maxSubsetSize))) {
     _iteration++;
+    setBits = __builtin_popcount(_iteration);
   }
   if ((_iteration >= _maxIterations) ||
       ((_occurrences > _maxOccurrences) && (_iteration > 1))) {
