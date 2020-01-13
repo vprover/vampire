@@ -145,7 +145,8 @@ private:
   // Memory belongs to Splitter
   SAT2FO& sat2fo;
 
-  //DHMap<unsigned,Z3_sort> _sorts;
+  DHMap<unsigned,Z3_sort> _sorts;
+  DHMap<unsigned,Z3_func_decl> _datatypeFunctionLookup;
   z3::sort getz3sort(unsigned s);
 
   // Helper funtions for the translation

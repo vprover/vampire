@@ -323,6 +323,78 @@ z3::sort Z3Interfacing::getz3sort(unsigned s)
  
     return _context.array_sort(index_sort,value_sort);
   } 
+  // Deal with datatypes
+  // TODO - THIS DOES NOT SUPPORT MUTUALLY RECURSIVE DATATYPES... it will get into an infinite loop!!!
+
+  // TODO what about built-in tuples?
+  if(env.signature->isTermAlgebraSort(s)){
+
+    // If sort exists, return it
+    if(_sorts.find(s)){
+      return z3::sort(_context,_sorts.get(s));
+    }
+    
+    TermAlgebra* ta = env.signature->getTermAlgebraOfSort(s);
+
+    Z3_constructor* constructors = reinterpret_cast<Z3_constructor*>(ALLOC_KNOWN(sizeof(Z3_constructor)*ta->nConstructors(),"Z3Interfacing"));
+
+    for(int i=0;i<ta->nConstructors();i++){
+      TermAlgebraConstructor* con = ta->constructor(i);
+
+      Z3_symbol* arg_names = reinterpret_cast<Z3_symbol*>(ALLOC_KNOWN(sizeof(Z3_symbol)*con->arity(),"Z3Interfacing"));
+      Z3_sort* arg_sorts = reinterpret_cast<Z3_sort*>(ALLOC_KNOWN(sizeof(Z3_sort)*con->arity(),"Z3Interfacing")); 
+      unsigned* arg_sort_refs = reinterpret_cast<unsigned*>(ALLOC_KNOWN(sizeof(unsigned)*con->arity(),"Z3Interfacing")); 
+
+      for(int j=0;j<con->arity();j++){
+        arg_names[j] = Z3_mk_string_symbol(_context,("arg"+Int::toString(j)).c_str());
+        unsigned arg_sort = con->argSort(j);
+        if(arg_sort == s){
+          arg_sorts[j] = 0;
+          arg_sort_refs[j] =0; // I think this should always be 0 as we are using mk_datatype, not mk_datatypes 
+        } 
+        else{
+          arg_sorts[j] = getz3sort(arg_sort); 
+          arg_sort_refs[j] = 0;
+        }
+      }
+
+      vstring discriminator = "$$is_"+env.signature->functionName(con->functor());
+      if(con->hasDiscriminator()){ discriminator = con->discriminatorName(); }
+
+      Z3_constructor con_z3 = Z3_mk_constructor(_context,
+          Z3_mk_string_symbol(_context,("con_"+env.signature->functionName(con->functor())).c_str()),
+          Z3_mk_string_symbol(_context,discriminator.c_str()),
+          con->arity(),
+          arg_names,
+          arg_sorts,
+          arg_sort_refs
+      );
+      constructors[i] = con_z3;    
+      // DEALLOC_KNOWN(arg_names,sizeof(Z3_symbol)*con->arity(),"Z3Interfacing");
+      // DEALLOC_KNOWN(arg_sorts,sizeof(Z3_sort)*con->arity(),"Z3Interfacing");
+      // DEALLOC_KNOWN(arg_sort_refs,sizeof(unsigned)*con->arity(),"Z3Interfacing");
+    }
+    Z3_symbol sname = Z3_mk_string_symbol(_context,env.sorts->sortName(s).c_str());
+    Z3_sort dtsort = Z3_mk_datatype(_context, sname,ta->nConstructors(),constructors);
+    _sorts.insert(s,dtsort);
+
+    for(int i=0;i<ta->nConstructors();i++){
+      TermAlgebraConstructor* con = ta->constructor(i);
+      Z3_func_decl conz3, accessz3;
+      Z3_func_decl* destructors = reinterpret_cast<Z3_func_decl*>(ALLOC_KNOWN(sizeof(Z3_func_decl)*con->arity(),"Z3Interfacing"));
+      Z3_query_constructor(_context,constructors[i],con->arity(),&conz3,&accessz3,destructors);
+      _datatypeFunctionLookup.insert(con->functor(),conz3);
+      if(con->hasDiscriminator()){ _datatypeFunctionLookup.insert(con->discriminator(),accessz3);} 
+      for(int j=0;j<con->arity();j++){
+        _datatypeFunctionLookup.insert(con->destructorFunctor(j),destructors[j]);
+      }
+      DEALLOC_KNOWN(destructors,sizeof(Z3_func_decl)*con->arity(),"Z3Interfacing");
+      //Z3_del_constructor(_context,constructors[i]);
+    }
+    DEALLOC_KNOWN(constructors,sizeof(Z3_constructor)*ta->nConstructors(),"Z3Interfacing");
+
+    return z3::sort(_context,dtsort); 
+  }
 
   // Use new interface for uninterpreted sorts, I think this is not less efficient
   return _context.uninterpreted_sort(Lib::Int::toString(s).c_str());
@@ -394,6 +466,13 @@ z3::expr Z3Interfacing::getz3expr(Term* trm,bool isLit,bool&nameExpression,bool 
       }
       if(!isLit && env.signature->isFoolConstantSymbol(false,trm->functor())){
         return _context.bool_val(false);
+      }
+      if(symb->termAlgebraCons()){
+        Z3_func_decl con_dec;
+        ALWAYS(_datatypeFunctionLookup.find(trm->functor(),con_dec));
+        z3::func_decl c = to_func_decl(_context,con_dec);
+        z3::expr e = c();
+        return e;
       }
       if (symb->overflownConstant()) {
         // too large for native representation, but z3 should cope
@@ -685,6 +764,13 @@ z3::expr Z3Interfacing::getz3expr(Term* trm,bool isLit,bool&nameExpression,bool 
     z3::symbol name = _context.str_symbol(symb->name().c_str());
     z3::func_decl f = _context.function(name,domain_sorts,getz3sort(range_sort));
 
+    if(symb->termAlgebraCons()){
+      Z3_func_decl con_dec;
+      ALWAYS(_datatypeFunctionLookup.find(trm->functor(),con_dec));
+      f = to_func_decl(_context,con_dec);
+      //cout << Z3_func_decl_to_string(_context,con_dec) << endl;
+    }
+
     // Finally create expr
     z3::expr e = f(args); 
     //cout << "created " << e << endl;
@@ -696,7 +782,6 @@ z3::expr Z3Interfacing::getRepresentation(SATLiteral slit,bool withGuard)
   CALL("Z3Interfacing::getRepresentation");
   BYPASSING_ALLOCATOR;
 
-  //cout << "slit: " << slit.toString() << endl;
 
   //First, does this represent a ground literal
   Literal* lit = sat2fo.toFO(slit);
@@ -725,7 +810,7 @@ z3::expr Z3Interfacing::getRepresentation(SATLiteral slit,bool withGuard)
       return e;
     }catch(z3::exception& exception){
      reportSpiderFail();
-     //cout << "Z3 exception:\n" << exception.msg() << endl;
+     cout << "Z3 exception:\n" << exception.msg() << endl;
      ASSERTION_VIOLATION_REP("Failed to create Z3 rep for " + lit->toString());
     }
   }
