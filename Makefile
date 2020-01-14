@@ -85,7 +85,7 @@ OS = $(shell uname)
 ifeq ($(OS),Darwin)
 INCLUDES= -I. -Ilibtorch/include -Ilibtorch/include/torch/csrc/api/include
 else
-INCLUDES= -I. -Ilibtorch/include -Ilibtorch/include/torch/csrc/api/include -D_GLIBCXX_USE_CXX11_ABI=0
+INCLUDES= -I. -Ilibtorch/include -Ilibtorch/include/torch/csrc/api/include -D_GLIBCXX_USE_CXX11_ABI=1
 endif
 
 Z3FLAG= -DVZ3=0
@@ -106,7 +106,7 @@ TORCHLINK= -Wl,-search_paths_first -Wl,-headerpad_max_install_names
 TORCHLIB= -Wl,-rpath,/Users/mbassms6/libtorch/lib /Users/mbassms6/libtorch/lib/libtorch.dylib /Users/mbassms6/libtorch/lib/libc10.dylib
 else
 TORCHLINK=
-TORCHLIB= -rdynamic ./libtorch/lib/libtorch.so -Wl,--no-as-needed,./libtorch/lib/libcaffe2.so -Wl,--as-needed,./libtorch/lib/libc10.so -lpthread -Wl,-rpath,./libtorch/lib
+TORCHLIB= -rdynamic ./libtorch/lib/libtorch.so ./libtorch/lib/libc10.so ./libtorch/lib/libc10.so -lpthread -Wl,--no-as-needed,./libtorch/lib/libtorch.so -Wl,--as-needed -Wl,-rpath,./libtorch/lib
 endif
 
 ifneq (,$(filter vtest%,$(MAKECMDGOALS)))
