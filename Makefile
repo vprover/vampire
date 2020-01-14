@@ -103,7 +103,7 @@ endif
 
 ifeq ($(OS),Darwin)
 TORCHLINK= -Wl,-search_paths_first -Wl,-headerpad_max_install_names
-TORCHLIB= -Wl,-rpath,/Users/mbassms6/libtorch/lib /Users/mbassms6/libtorch/lib/libtorch.dylib /Users/mbassms6/libtorch/lib/libcaffe2.dylib /Users/mbassms6/libtorch/lib/libc10.dylib
+TORCHLIB= -Wl,-rpath,/Users/mbassms6/libtorch/lib /Users/mbassms6/libtorch/lib/libtorch.dylib /Users/mbassms6/libtorch/lib/libc10.dylib
 else
 TORCHLINK=
 TORCHLIB= -rdynamic ./libtorch/lib/libtorch.so -Wl,--no-as-needed,./libtorch/lib/libcaffe2.so -Wl,--as-needed,./libtorch/lib/libc10.so -lpthread -Wl,-rpath,./libtorch/lib
