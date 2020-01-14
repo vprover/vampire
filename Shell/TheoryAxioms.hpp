@@ -121,7 +121,6 @@ private:
   // nat axioms
   void addZeroSmallestElementAxiom(NatTermAlgebra* nat);
   void addDefineSubEqAxiom(NatTermAlgebra* nat);
-  void addDefineSubEqDualAxiom(NatTermAlgebra* nat);
   void addMonotonicityAxiom(NatTermAlgebra* nat);
   void addTransitivityAxioms(NatTermAlgebra* nat);
   void addTotalityAxiom(NatTermAlgebra* nat);
