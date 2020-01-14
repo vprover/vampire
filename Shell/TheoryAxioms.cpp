@@ -1190,7 +1190,6 @@ void TheoryAxioms::apply()
   if (nat != nullptr) {
     addZeroSmallestElementAxiom(nat);
     addDefineSubEqAxiom(nat);
-    addDefineSubEqDualAxiom(nat);
     addMonotonicityAxiom(nat);
     addTransitivityAxioms(nat);
     addTotalityAxiom(nat);
@@ -1463,6 +1462,7 @@ void TheoryAxioms::addDefineSubEqAxiom(NatTermAlgebra* nat)
 
   TermList x(0, false);
   TermList y(1, false);
+  auto sx = nat->createSucc(x);
   auto sy = nat->createSucc(y);
   auto natSort = nat->termAlgebra()->sort();
 
@@ -1473,44 +1473,14 @@ void TheoryAxioms::addDefineSubEqAxiom(NatTermAlgebra* nat)
 
   addTheoryNonUnitClause(clause1Lit1, clause1Lit2, clause1Lit3, EXPENSIVE);
 
-  // clause 2: x!=y or x<s(y)
-  auto clause2Lit1 = Literal::createEquality(false, x, y, natSort);
-  auto clause2Lit2 = nat->createLess(true, x, sy);
+  // clause 2: x!=y or x<s(y), simplified to x<s(x)
+  auto clause2Lit1 = nat->createLess(true, x, sx);
 
-  addTheoryNonUnitClause(clause2Lit1, clause2Lit2, EXPENSIVE);
+  addTheoryUnitClause(clause2Lit1, EXPENSIVE);
 
   // clause 3: x!<y or x<s(y)
   auto clause3Lit1 = nat->createLess(false, x, y);
   auto clause3Lit2 = nat->createLess(true, x, sy);
-
-  addTheoryNonUnitClause(clause3Lit1, clause3Lit2, EXPENSIVE);
-}
-
-void TheoryAxioms::addDefineSubEqDualAxiom(NatTermAlgebra* nat)
-{
-  // forall x,y. s(x)!<y <=> (s(x)=y or x!<y)
-
-  TermList x(0, false);
-  TermList y(1, false);
-  auto sx = nat->createSucc(x);
-  auto natSort = nat->termAlgebra()->sort();
-
-  // clause 1: s(x)<y or s(x)=y or x!<y
-  auto clause1Lit1 = nat->createLess(true, sx, y);
-  auto clause1Lit2 = Literal::createEquality(true, sx, y, natSort);
-  auto clause1Lit3 = nat->createLess(false, x, y);
-
-  addTheoryNonUnitClause(clause1Lit1, clause1Lit2, clause1Lit3, EXPENSIVE);
-
-  // clause 2: s(x)!=y or s(x)!<y
-  auto clause2Lit1 = Literal::createEquality(false, sx, y, natSort);
-  auto clause2Lit2 = nat->createLess(false, sx, y);
-
-  addTheoryNonUnitClause(clause2Lit1, clause2Lit2, EXPENSIVE);
-
-  // clause 3: x<y or s(x)!<y
-  auto clause3Lit1 = nat->createLess(true, x,y);
-  auto clause3Lit2 = nat->createLess(false, sx, y);
 
   addTheoryNonUnitClause(clause3Lit1, clause3Lit2, EXPENSIVE);
 }
@@ -1582,20 +1552,22 @@ void TheoryAxioms::addDisjointnessAxioms(NatTermAlgebra* nat)
   TermList y(1, false);
   auto natSort = nat->termAlgebra()->sort();
 
-  // Clause 1: x!<y or x!=y
-  auto clause1Lit1 = nat->createLess(false, x, y);
-  auto clause1Lit2 = Literal::createEquality(false, x, y, natSort);
+  // Clause 1: x!<y or x!=y, simplified to x!<x
+  auto clause1Lit1 = nat->createLess(false, x, x);
 
-  addTheoryNonUnitClause(clause1Lit1, clause1Lit2, EXPENSIVE);
+  addTheoryUnitClause(clause1Lit1, EXPENSIVE);
 
   // Clause 2: x!<y or y!<x
-  auto clause2Lit1 = nat->createLess(false, x, y);
-  auto clause2Lit2 = nat->createLess(false, y, x);
+  // already subsumed by other theory axioms, therefore omitted:
+  //    The standard transitivity axiom is
+  //       x<y and y<z => x<z
+  //    substituting z->x gives
+  //       x<y and y<x => x<x
+  //    resolving with disjointness-clause1 gives
+  //       x<y and y<x => false
+  //    which is equivalent (using modus tollens) to
+  //       x<y => y!<x
 
-  addTheoryNonUnitClause(clause2Lit1, clause2Lit2, EXPENSIVE);
-
-  // Clause 3: x!<x (simplified form of x!=y or x!<y)
-  auto clause3Lit1 = nat->createLess(false, x, x);
-
-  addTheoryUnitClause(clause3Lit1, CHEAP);
+  // Clause 3: x!=y or x!<y, simplified to x!<x.
+  // Already exists as clause 1 of disjointness axiom, therefore omitted.
 }
