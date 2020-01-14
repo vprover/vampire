@@ -346,32 +346,6 @@ void SaturationAlgorithm::onPassiveAdded(Clause* c)
     cout << "pass: " << c->number() << endl;
   }
 
-  if (_opt.evalForKarel()) {
-    TimeCounter t(TC_DEEP_STUFF);
-
-    torch::jit::IValue vec = clause_vecs.get(c);
-
-    std::vector<torch::jit::IValue> inputs;
-    inputs.push_back(vec);
-
-    auto output = model_final.forward(inputs).toTensor();
-    auto o_data = output.data_ptr<float>();
-
-    bool yes = (o_data[0] < o_data[1]);
-    // cout << "yes?:" << yes << " " << o_data[0] << " " << o_data[1] << endl;
-
-#if DEBUG_MODEL
-    cout << "final: " << c->number() << endl;
-    cout << output << endl;
-#endif
-
-    c->modelSaidYes = yes;
-
-    if (_opt.showForKarel()) {
-      cout << "eval: " << c->number() << " " << o_data[0] <<  " " << o_data[1] << endl;
-    }
-  }
-
   //when a clause is added to the passive container,
   //we know it is not redundant
   onNonRedundantClause(c);
