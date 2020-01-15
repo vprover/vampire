@@ -381,9 +381,9 @@ public:
     };
   };
 
-  virtual Iterator iterator();
-  virtual bool hasNext(Iterator& it);
-  virtual Unit* next(Iterator& it);
+  virtual Iterator iterator() const;
+  virtual bool hasNext(Iterator& it) const;
+  virtual Unit* next(Iterator& it) const;
 
   /** Return the inference rule */
   Rule rule() const { return _rule; }
@@ -422,9 +422,9 @@ public:
   }
 
   virtual void destroy();
-  virtual Iterator iterator();
-  virtual bool hasNext(Iterator& it);
-  virtual Unit* next(Iterator& it);
+  virtual Iterator iterator() const;
+  virtual bool hasNext(Iterator& it) const;
+  virtual Unit* next(Iterator& it) const;
 
   CLASS_NAME(Inference1);
   USE_ALLOCATOR(Inference1);
@@ -446,9 +446,9 @@ public:
   virtual ~InferenceMany() { UnitList::destroy(_premises); }
 
   virtual void destroy();
-  virtual Iterator iterator();
-  virtual bool hasNext(Iterator& it);
-  virtual Unit* next(Iterator& it);
+  virtual Iterator iterator() const;
+  virtual bool hasNext(Iterator& it) const;
+  virtual Unit* next(Iterator& it) const;
 
   CLASS_NAME(InferenceMany);
   USE_ALLOCATOR(InferenceMany);
@@ -477,9 +477,9 @@ public:
   }
 
   virtual void destroy();
-  virtual Iterator iterator();
-  virtual bool hasNext(Iterator& it);
-  virtual Unit* next(Iterator& it);
+  virtual Iterator iterator() const;
+  virtual bool hasNext(Iterator& it) const;
+  virtual Unit* next(Iterator& it) const;
 
   CLASS_NAME(Inference2);
   USE_ALLOCATOR(Inference2);

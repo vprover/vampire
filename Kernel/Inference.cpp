@@ -111,7 +111,7 @@ void InferenceMany::destroy()
  * Return an iterator for an inference with many premises.
  * @since 04/01/2008 Torrevieja
  */
-Inference::Iterator InferenceMany::iterator()
+Inference::Iterator InferenceMany::iterator() const
 {
   Iterator it;
   it.pointer = _premises;
@@ -122,7 +122,7 @@ Inference::Iterator InferenceMany::iterator()
  * Return an iterator for an inference with one premise.
  * @since 04/01/2008 Torrevieja
  */
-Inference::Iterator Inference1::iterator()
+Inference::Iterator Inference1::iterator() const
 {
   Iterator it;
   it.integer = 1;
@@ -133,7 +133,7 @@ Inference::Iterator Inference1::iterator()
  * Return an iterator for an inference with two premises.
  * @since 07/01/2008 Torrevieja
  */
-Inference::Iterator Inference2::iterator()
+Inference::Iterator Inference2::iterator() const
 {
   Iterator it;
   it.integer = 0;
@@ -144,7 +144,7 @@ Inference::Iterator Inference2::iterator()
  * Return an iterator for an inference with zero premises.
  * @since 04/01/2008 Torrevieja
  */
-Inference::Iterator Inference::iterator()
+Inference::Iterator Inference::iterator() const
 {
   Iterator it;
 #if VDEBUG
@@ -157,7 +157,7 @@ Inference::Iterator Inference::iterator()
  * True if there exists the next parent.
  * @since 04/01/2008 Torrevieja
  */
-bool InferenceMany::hasNext(Iterator& it)
+bool InferenceMany::hasNext(Iterator& it) const
 {
   return it.pointer;
 }
@@ -166,7 +166,7 @@ bool InferenceMany::hasNext(Iterator& it)
  * True if there exists the next parent.
  * @since 04/01/2008 Torrevieja
  */
-bool Inference1::hasNext(Iterator& it)
+bool Inference1::hasNext(Iterator& it) const
 {
   return it.integer;
 }
@@ -175,7 +175,7 @@ bool Inference1::hasNext(Iterator& it)
  * True if there exists the next parent.
  * @since 07/01/2008 Torrevieja
  */
-bool Inference2::hasNext(Iterator& it)
+bool Inference2::hasNext(Iterator& it) const
 {
   return it.integer < 2;
 }
@@ -184,7 +184,7 @@ bool Inference2::hasNext(Iterator& it)
  * True if there exists the next parent.
  * @since 04/01/2008 Torrevieja
  */
-bool Inference::hasNext(Iterator&)
+bool Inference::hasNext(Iterator&) const
 {
   return false;
 }
@@ -193,7 +193,7 @@ bool Inference::hasNext(Iterator&)
  * Return the next parent.
  * @since 04/01/2008 Torrevieja
  */
-Unit* InferenceMany::next(Iterator& it)
+Unit* InferenceMany::next(Iterator& it) const
 {
   ASS(it.pointer);
   UnitList* lst = reinterpret_cast<UnitList*>(it.pointer);
@@ -205,7 +205,7 @@ Unit* InferenceMany::next(Iterator& it)
  * Return the next parent.
  * @since 04/01/2008 Torrevieja
  */
-Unit* Inference1::next(Iterator& it)
+Unit* Inference1::next(Iterator& it) const
 {
   ASS(it.integer);
   it.integer = 0;
@@ -216,7 +216,7 @@ Unit* Inference1::next(Iterator& it)
  * Return the next parent.
  * @since 07/01/2008 Torrevieja
  */
-Unit* Inference2::next(Iterator& it)
+Unit* Inference2::next(Iterator& it) const
 {
   ASS(it.integer >= 0);
   ASS(it.integer < 2);
@@ -227,7 +227,7 @@ Unit* Inference2::next(Iterator& it)
  * Return the next parent.
  * @since 04/01/2008 Torrevieja
  */
-Unit* Inference::next(Iterator&)
+Unit* Inference::next(Iterator&) const
 {
 #if VDEBUG
   ASSERTION_VIOLATION;
