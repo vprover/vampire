@@ -39,6 +39,23 @@ Inference::Inference(Rule r)
 //  }
 }
 
+/**
+ * Create an inference object with multiple premisses
+ */
+InferenceMany::InferenceMany(Rule rule,UnitList* premises)
+  : Inference(rule),
+    _premises(premises)
+{
+  CALL("InferenceMany::InferenceMany");
+  UnitList* it=_premises;
+  unsigned md = 0;
+  while(it) {
+    it->head()->incRefCnt();
+    md = max(md,it->head()->inference()->maxDepth());
+    it=it->tail();
+  }
+  _maxDepth = md+1;
+}
 
 /**
  * Destroy an inference with no premises.
@@ -74,24 +91,6 @@ void Inference2::destroy()
 }
 
 /**
- * Create an inference object with multiple premisses
- */
-InferenceMany::InferenceMany(Rule rule,UnitList* premises)
-  : Inference(rule),
-    _premises(premises)
-{
-  CALL("InferenceMany::InferenceMany");
-  UnitList* it=_premises;
-  unsigned md = 0;
-  while(it) {
-    it->head()->incRefCnt();
-    md = max(md,it->head()->inference()->maxDepth());
-    it=it->tail();
-  }
-  _maxDepth = md+1;
-}
-
-/**
  * Destroy an inference with many premises.
  * @since 04/01/2008 Torrevieja
  */
@@ -108,13 +107,15 @@ void InferenceMany::destroy()
 }
 
 /**
- * Return an iterator for an inference with many premises.
+ * Return an iterator for an inference with zero premises.
  * @since 04/01/2008 Torrevieja
  */
-Inference::Iterator InferenceMany::iterator() const
+Inference::Iterator Inference::iterator() const
 {
   Iterator it;
-  it.pointer = _premises;
+#if VDEBUG
+  it.integer=0;
+#endif
   return it;
 }
 
@@ -141,15 +142,13 @@ Inference::Iterator Inference2::iterator() const
 }
 
 /**
- * Return an iterator for an inference with zero premises.
+ * Return an iterator for an inference with many premises.
  * @since 04/01/2008 Torrevieja
  */
-Inference::Iterator Inference::iterator() const
+Inference::Iterator InferenceMany::iterator() const
 {
   Iterator it;
-#if VDEBUG
-  it.integer=0;
-#endif
+  it.pointer = _premises;
   return it;
 }
 
@@ -157,9 +156,9 @@ Inference::Iterator Inference::iterator() const
  * True if there exists the next parent.
  * @since 04/01/2008 Torrevieja
  */
-bool InferenceMany::hasNext(Iterator& it) const
+bool Inference::hasNext(Iterator&) const
 {
-  return it.pointer;
+  return false;
 }
 
 /**
@@ -184,22 +183,22 @@ bool Inference2::hasNext(Iterator& it) const
  * True if there exists the next parent.
  * @since 04/01/2008 Torrevieja
  */
-bool Inference::hasNext(Iterator&) const
+bool InferenceMany::hasNext(Iterator& it) const
 {
-  return false;
+  return it.pointer;
 }
 
 /**
  * Return the next parent.
  * @since 04/01/2008 Torrevieja
  */
-Unit* InferenceMany::next(Iterator& it) const
+Unit* Inference::next(Iterator&) const
 {
-  ASS(it.pointer);
-  UnitList* lst = reinterpret_cast<UnitList*>(it.pointer);
-  it.pointer = lst->tail();
-  return lst->head();
-} // InferenceMany::next
+#if VDEBUG
+  ASSERTION_VIOLATION;
+#endif
+  return 0;
+} // Inference::next
 
 /**
  * Return the next parent.
@@ -227,15 +226,13 @@ Unit* Inference2::next(Iterator& it) const
  * Return the next parent.
  * @since 04/01/2008 Torrevieja
  */
-Unit* Inference::next(Iterator&) const
+Unit* InferenceMany::next(Iterator& it) const
 {
-#if VDEBUG
-  ASSERTION_VIOLATION;
-#endif
-  return 0;
-} // Inference::next
-
-
+  ASS(it.pointer);
+  UnitList* lst = reinterpret_cast<UnitList*>(it.pointer);
+  it.pointer = lst->tail();
+  return lst->head();
+} // InferenceMany::next
 
 /**
  * Return the rule name, such as "binary resolution".

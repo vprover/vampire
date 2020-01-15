@@ -499,30 +499,6 @@ protected:
 };
 
 /**
- * Inferences with a list of premises
- * @since 07/07/2007 Manchester
- */
-class InferenceMany
-  : public Inference
-{
-public:
-  InferenceMany(Rule rule,UnitList* premises);
-  virtual ~InferenceMany() { UnitList::destroy(_premises); }
-
-  virtual void destroy();
-  virtual Iterator iterator() const;
-  virtual bool hasNext(Iterator& it) const;
-  virtual Unit* next(Iterator& it) const;
-
-  CLASS_NAME(InferenceMany);
-  USE_ALLOCATOR(InferenceMany);
-
-protected:
-  /** The premises */
-  UnitList* _premises;
-};
-
-/**
  * Inferences with two premises
  * @since 07/01/2008 Torrevieja
  */
@@ -555,6 +531,29 @@ protected:
   Unit* _premise2;
 };
 
+/**
+ * Inferences with a list of premises
+ * @since 07/07/2007 Manchester
+ */
+class InferenceMany
+  : public Inference
+{
+public:
+  InferenceMany(Rule rule,UnitList* premises);
+  virtual ~InferenceMany() { UnitList::destroy(_premises); }
+
+  virtual void destroy();
+  virtual Iterator iterator() const;
+  virtual bool hasNext(Iterator& it) const;
+  virtual Unit* next(Iterator& it) const;
+
+  CLASS_NAME(InferenceMany);
+  USE_ALLOCATOR(InferenceMany);
+
+protected:
+  /** The premises */
+  UnitList* _premises;
+};
 
 }
 #endif
