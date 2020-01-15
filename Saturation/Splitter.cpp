@@ -1247,12 +1247,12 @@ Clause* Splitter::buildAndInsertComponentClause(SplitLevel name, unsigned size, 
     }
 
     vstring formula_name = getFormulaStringFromName(posName);
-    Clause* temp = Clause::fromIterator(getArrayishObjectIterator(possibly_flipped_lits, size), inpType,new Inference(Inference::AVATAR_DEFINITION));
+    Clause* temp = Clause::fromIterator(getArrayishObjectIterator(possibly_flipped_lits, size), inpType,new Inference0(Inference::AVATAR_DEFINITION));
     Formula* def_f = new BinaryFormula(IFF,
                  new NamedFormula(formula_name),
                  Formula::fromClause(temp));
 
-    def_u = new FormulaUnit(def_f,new Inference(Inference::AVATAR_DEFINITION),inpType);
+    def_u = new FormulaUnit(def_f,new Inference0(Inference::AVATAR_DEFINITION),inpType);
     InferenceStore::instance()->recordIntroducedSplitName(def_u,formula_name);
     // cout << "Add def " << def_u->toString() << " for " << name << endl;
     ALWAYS(_defs.insert(posName,def_u));

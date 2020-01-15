@@ -329,7 +329,7 @@ static void printInterpolationProofTask(ostream& out, Formula* intp, Color avoid
     }
   }
 
-  FormulaUnit* intpUnit = new FormulaUnit(negate ? new NegatedFormula(intp) : intp,new Inference(Inference::INPUT),Unit::CONJECTURE);
+  FormulaUnit* intpUnit = new FormulaUnit(negate ? new NegatedFormula(intp) : intp,new Inference0(Inference::INPUT),Unit::CONJECTURE);
   out << TPTPPrinter::toString(intpUnit) << "\n";
 }
 */

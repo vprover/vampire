@@ -289,7 +289,7 @@ Unit* LocalityRestoring::makeNSCPremise(TermList trm)
 
   Literal* lit = Literal::createEquality(true, trm, trm, SortHelper::getResultSort(trm.term()));
   Formula* form = new AtomicFormula(lit);
-  FormulaUnit* res = new FormulaUnit(form, new Inference(Inference::INPUT), Unit::AXIOM);
+  FormulaUnit* res = new FormulaUnit(form, new Inference0(Inference::INPUT), Unit::AXIOM);
   return res;
 }
 

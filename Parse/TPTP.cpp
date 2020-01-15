@@ -3032,7 +3032,7 @@ void TPTP::endFof()
   Unit* unit;
   if (isFof) { // fof() or tff()
     env.statistics->inputFormulas++;
-    unit = new FormulaUnit(f,new Inference(Inference::INPUT),(Unit::InputType)_lastInputType);
+    unit = new FormulaUnit(f,new Inference0(Inference::INPUT),(Unit::InputType)_lastInputType);
     unit->setInheritedColor(_currentColor);
   }
   else { // cnf()
@@ -3078,7 +3078,7 @@ void TPTP::endFof()
 	USER_ERROR((vstring)"input formula not in CNF: " + f->toString());
       }
     }
-    unit = Clause::fromStack(lits,(Unit::InputType)_lastInputType,new Inference(Inference::INPUT));
+    unit = Clause::fromStack(lits,(Unit::InputType)_lastInputType,new Inference0(Inference::INPUT));
     unit->setInheritedColor(_currentColor);
   }
 

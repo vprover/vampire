@@ -1204,7 +1204,7 @@ Formula* Naming::introduceDefinition(Formula* f, bool iff) {
     //TODO do we know the sorts of the free variabls vs?
     def = new QuantifiedFormula(FORALL, vs, 0, def);
   }
-  Inference* inf = new Inference(Inference::PREDICATE_DEFINITION);
+  Inference* inf = new Inference0(Inference::PREDICATE_DEFINITION);
   Unit* definition = new FormulaUnit(def, inf, Unit::AXIOM);
 
   InferenceStore::instance()->recordIntroducedSymbol(definition, false,

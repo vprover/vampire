@@ -274,8 +274,8 @@ void InductionClauseIterator::performMathInductionOne(Clause* premise, Literal* 
         NewCNF cnf(0);
         cnf.setForInduction();
         Stack<Clause*> hyp_clauses;
-        FormulaUnit* fu1 = new FormulaUnit(hyp1,new Inference(Inference::INDUCTION),Unit::AXIOM);
-        FormulaUnit* fu2 = new FormulaUnit(hyp2,new Inference(Inference::INDUCTION),Unit::AXIOM);
+        FormulaUnit* fu1 = new FormulaUnit(hyp1,new Inference0(Inference::INDUCTION),Unit::AXIOM);
+        FormulaUnit* fu2 = new FormulaUnit(hyp2,new Inference0(Inference::INDUCTION),Unit::AXIOM);
         cnf.clausify(NNF::ennf(fu1), hyp_clauses);
         cnf.clausify(NNF::ennf(fu2), hyp_clauses);
 
@@ -386,7 +386,7 @@ void InductionClauseIterator::performStructInductionOne(Clause* premise, Literal
   NewCNF cnf(0);
   cnf.setForInduction();
   Stack<Clause*> hyp_clauses;
-  FormulaUnit* fu = new FormulaUnit(hypothesis,new Inference(Inference::INDUCTION),Unit::AXIOM);
+  FormulaUnit* fu = new FormulaUnit(hypothesis,new Inference0(Inference::INDUCTION),Unit::AXIOM);
   cnf.clausify(NNF::ennf(fu), hyp_clauses);
 
   //cout << "Clausify " << fu->toString() << endl;
@@ -490,7 +490,7 @@ void InductionClauseIterator::performStructInductionTwo(Clause* premise, Literal
   NewCNF cnf(0);
   cnf.setForInduction();
   Stack<Clause*> hyp_clauses;
-  FormulaUnit* fu = new FormulaUnit(hypothesis,new Inference(Inference::INDUCTION),Unit::AXIOM);
+  FormulaUnit* fu = new FormulaUnit(hypothesis,new Inference0(Inference::INDUCTION),Unit::AXIOM);
   cnf.clausify(NNF::ennf(fu), hyp_clauses);
 
   //cout << "Clausify " << fu->toString() << endl;
@@ -634,7 +634,7 @@ void InductionClauseIterator::performStructInductionThree(Clause* premise, Liter
   NewCNF cnf(0);
   cnf.setForInduction();
   Stack<Clause*> hyp_clauses;
-  FormulaUnit* fu = new FormulaUnit(hypothesis,new Inference(Inference::INDUCTION),Unit::AXIOM);
+  FormulaUnit* fu = new FormulaUnit(hypothesis,new Inference0(Inference::INDUCTION),Unit::AXIOM);
   cnf.clausify(NNF::ennf(fu), hyp_clauses);
 
   //cout << "Clausify " << fu->toString() << endl;

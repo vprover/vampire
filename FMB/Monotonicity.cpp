@@ -228,7 +228,7 @@ void Monotonicity::addSortPredicates(bool withMon, ClauseList*& clauses, DArray<
 
       Term* fX = Term::create(f,arity,vars.begin());
       Literal* pfX = Literal::create1(p,true,TermList(fX));
-      Clause* fINs = new(1) Clause(1,Unit::InputType::AXIOM, new Inference(Inference::INPUT));
+      Clause* fINs = new(1) Clause(1,Unit::InputType::AXIOM, new Inference0(Inference::INPUT));
       (*fINs)[0] = pfX;
       ClauseList::push(fINs,newAxioms);
       ASS(SortHelper::areSortsValid(fINs));
@@ -238,7 +238,7 @@ void Monotonicity::addSortPredicates(bool withMon, ClauseList*& clauses, DArray<
     unsigned skolemConstant = env.signature->addSkolemFunction(0);
     env.signature->getFunction(skolemConstant)->setType(OperatorType::getConstantsType(s));
     Literal* psk = Literal::create1(p,true,TermList(Term::createConstant(skolemConstant)));
-    Clause* nonEmpty = new(1) Clause(1,Unit::InputType::AXIOM, new Inference(Inference::INPUT));
+    Clause* nonEmpty = new(1) Clause(1,Unit::InputType::AXIOM, new Inference0(Inference::INPUT));
     (*nonEmpty)[0] = psk;
     ClauseList::push(nonEmpty,newAxioms);
     ASS(SortHelper::areSortsValid(nonEmpty));

@@ -42,7 +42,7 @@ TEST_FUN(interpNorm1)
   TermList two(theory->representConstant(IntegerConstantType(2)));
   TermList twoS(Term::create1(succ, two));
   Literal* lit = Literal::createEquality(true, twoS, twoS, Sorts::SRT_INTEGER);
-  Clause* cl = Clause::fromIterator(getSingletonIterator(lit), Unit::AXIOM, new Inference(Inference::INPUT));
+  Clause* cl = Clause::fromIterator(getSingletonIterator(lit), Unit::AXIOM, new Inference0(Inference::INPUT));
   cout << cl->toString() << endl;
 
   Problem prb(pvi(getSingletonIterator(cl)), false);

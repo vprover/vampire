@@ -74,7 +74,7 @@ Clause* DistinctEqualitySimplifier::simplify(Clause* cl)
     inf = new InferenceMany(Inference::DISTINCT_EQUALITY_REMOVAL, premLst);
   }
   else {
-    inf = new Inference(Inference::DISTINCT_EQUALITY_REMOVAL);
+    inf = new Inference0(Inference::DISTINCT_EQUALITY_REMOVAL);
   }
   Unit::InputType inpType = cl->inputType();
   Clause* res = Clause::fromStack(lits, inpType, inf);

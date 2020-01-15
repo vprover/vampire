@@ -216,7 +216,7 @@ void Interpolants::removeConjectureNodesFromRefutation(Unit* refutation)
       ASS(!pars.hasNext()); // negating a conjecture should have exactly one parent
 
       cur->inference()->destroy();
-      cur->setInference(new Inference(Inference::NEGATED_CONJECTURE)); // negated conjecture without a parent (non-standard, but nobody will see it)
+      cur->setInference(new Inference0(Inference::NEGATED_CONJECTURE)); // negated conjecture without a parent (non-standard, but nobody will see it)
     }
 
     todo.loadFromIterator(InferenceStore::instance()->getParents(cur));
@@ -250,7 +250,7 @@ void Interpolants::fakeNodesFromRightButGrayInputsRefutation(Unit* refutation)
           cur->inheritedColor() != COLOR_INVALID && cur->inheritedColor() != COLOR_TRANSPARENT && // proper inherited color
           cur->getColor() == COLOR_TRANSPARENT) {  // but in fact transparent
 
-          Clause* fakeParent = Clause::fromIterator(LiteralIterator::getEmpty(), cur->inputType(), new Inference(Inference::INPUT));
+          Clause* fakeParent = Clause::fromIterator(LiteralIterator::getEmpty(), cur->inputType(), new Inference0(Inference::INPUT));
           fakeParent->setInheritedColor(cur->inheritedColor());
           fakeParent->updateColor(cur->inheritedColor());
 

@@ -261,7 +261,7 @@ bool GeneralSplitting::apply(Clause*& cl, UnitList*& resultStack)
   Literal* nnLit=Literal::create(namingPred, minDeg, false, false, args.begin());
   otherLits.push(nnLit);
 
-  Clause* mdvCl=Clause::fromStack(mdvLits, cl->inputType(), new Inference(Inference::GENERAL_SPLITTING_COMPONENT));
+  Clause* mdvCl=Clause::fromStack(mdvLits, cl->inputType(), new Inference0(Inference::GENERAL_SPLITTING_COMPONENT));
   mdvCl->setAge(cl->age());
   UnitList::push(mdvCl, resultStack);
 

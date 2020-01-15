@@ -330,7 +330,7 @@ UnitList* BFNT::create(unsigned modelSize)
       if (i == j) continue;
       TermList c2(cs[j]);
       // create c1 != c2
-      Clause* cls = new(1) Clause(1,Unit::AXIOM,new Inference(Inference::BFNT_DISTINCT));
+      Clause* cls = new(1) Clause(1,Unit::AXIOM,new Inference0(Inference::BFNT_DISTINCT));
       (*cls)[0] = Literal::create2(_proxy,false,c1,c2);
 #if BNFT_SHOW_TRANSFORMED
       cout << "EqProxy: " << cls->toString() << "\n";
@@ -371,7 +371,7 @@ UnitList* BFNT::create(unsigned modelSize)
       lits.push(Literal::create(pred,arity,true,false,args.begin()));
     }
     result = new UnitList(Clause::fromStack(lits,Unit::AXIOM,
-					    new Inference(Inference::BFNT_TOTALITY)),
+					    new Inference0(Inference::BFNT_TOTALITY)),
 			  result);
 #if BNFT_TPTP_TRANSFORMED
     cout << TPTP::toString(result->head()) << "\n";

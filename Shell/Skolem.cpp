@@ -454,7 +454,7 @@ Formula* Skolem::skolemise (Formula* f)
           def = new QuantifiedFormula(FORALL,var_args,nullptr,def);
         }
 
-        Unit* defUnit = new FormulaUnit(def, new Inference(Inference::CHOICE_AXIOM), Unit::AXIOM);
+        Unit* defUnit = new FormulaUnit(def, new Inference0(Inference::CHOICE_AXIOM), Unit::AXIOM);
         UnitList::push(defUnit,_skolimizingDefinitions);
       }
 

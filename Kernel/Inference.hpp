@@ -335,7 +335,7 @@ public:
    * Destroy the Inference object and decrease reference
    * counters in refered clauses.
    */
-  virtual void destroy();
+  virtual void destroy() = 0;
   /**
    * Destroy the Inference object without decreasing reference
    * counters in refered units.
@@ -381,9 +381,9 @@ public:
     };
   };
 
-  virtual Iterator iterator() const;
-  virtual bool hasNext(Iterator& it) const;
-  virtual Unit* next(Iterator& it) const;
+  virtual Iterator iterator() const = 0;
+  virtual bool hasNext(Iterator& it) const = 0;
+  virtual Unit* next(Iterator& it) const = 0;
 
   /** Return the inference rule */
   Rule rule() const { return _rule; }
@@ -467,6 +467,24 @@ protected:
   /** The depth */
   unsigned _maxDepth;
 }; // class Inference
+
+/**
+ * Inferences with no premise
+ */
+class Inference0
+  : public Inference
+{
+public:
+  Inference0(Rule rule) : Inference(rule) {}
+
+  virtual void destroy();
+  virtual Iterator iterator() const;
+  virtual bool hasNext(Iterator& it) const;
+  virtual Unit* next(Iterator& it) const;
+
+  CLASS_NAME(Inference0);
+  USE_ALLOCATOR(Inference0);
+};
 
 /**
  * Inferences with a single premise

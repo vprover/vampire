@@ -185,7 +185,7 @@ Literal* InequalitySplitting::splitLiteral(Literal* lit, Unit::InputType inpType
     predSym->markSkip();
   }
 
-  Inference* inf = new Inference(Inference::INEQUALITY_SPLITTING_NAME_INTRODUCTION);
+  Inference* inf = new Inference0(Inference::INEQUALITY_SPLITTING_NAME_INTRODUCTION);
   Clause* defCl=new(1) Clause(1, inpType, inf);
   (*defCl)[0]=makeNameLiteral(predNum, t, false);
   _predDefs.push(defCl);

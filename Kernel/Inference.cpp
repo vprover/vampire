@@ -61,7 +61,7 @@ InferenceMany::InferenceMany(Rule rule,UnitList* premises)
  * Destroy an inference with no premises.
  * @since 04/01/2008 Torrevieja
  */
-void Inference::destroy()
+void Inference0::destroy()
 {
   CALL ("Inference::destroy");
   delete this;
@@ -110,7 +110,7 @@ void InferenceMany::destroy()
  * Return an iterator for an inference with zero premises.
  * @since 04/01/2008 Torrevieja
  */
-Inference::Iterator Inference::iterator() const
+Inference::Iterator Inference0::iterator() const
 {
   Iterator it;
 #if VDEBUG
@@ -156,7 +156,7 @@ Inference::Iterator InferenceMany::iterator() const
  * True if there exists the next parent.
  * @since 04/01/2008 Torrevieja
  */
-bool Inference::hasNext(Iterator&) const
+bool Inference0::hasNext(Iterator&) const
 {
   return false;
 }
@@ -192,7 +192,7 @@ bool InferenceMany::hasNext(Iterator& it) const
  * Return the next parent.
  * @since 04/01/2008 Torrevieja
  */
-Unit* Inference::next(Iterator&) const
+Unit* Inference0::next(Iterator&) const
 {
 #if VDEBUG
   ASSERTION_VIOLATION;

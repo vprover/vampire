@@ -371,7 +371,7 @@ unsigned EqualityProxy::getProxyPredicate(unsigned sort)
   Formula* defForm = new BinaryFormula(IFF, new AtomicFormula(proxyLit), new AtomicFormula(eqLit));
   Formula* quantDefForm = Formula::quantify(defForm);
 
-  Inference* inf = new Inference(Inference::EQUALITY_PROXY_AXIOM1);
+  Inference* inf = new Inference0(Inference::EQUALITY_PROXY_AXIOM1);
   FormulaUnit* defUnit = new FormulaUnit(quantDefForm, inf, Unit::AXIOM);
 
   s_proxyPremises[sort] = defUnit;

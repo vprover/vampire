@@ -735,12 +735,12 @@ void SimplifyProver::parseTrueFalse(bool tf,Context context)
       if (_isaved.pop()) { // goal
 	f = new NegatedFormula(f);
 	addUnit(new FormulaUnit(f,
-				new Inference(Inference::NEGATED_CONJECTURE),
+				new Inference0(Inference::NEGATED_CONJECTURE),
 				Unit::CONJECTURE));
       }
       else { // assumption
 	addUnit(new FormulaUnit(f,
-				new Inference(Inference::INPUT),
+				new Inference0(Inference::INPUT),
 				Unit::ASSUMPTION));
       }
       env.statistics->inputFormulas++;
@@ -1553,7 +1553,7 @@ void SimplifyProver::buildDistinct()
       Formula* ineq = new AtomicFormula(lit);
       if (top) {
 	addUnit(new FormulaUnit(ineq,
-				new Inference(Inference::INPUT),
+				new Inference0(Inference::INPUT),
 				Unit::ASSUMPTION));
       }
       else {
@@ -1591,12 +1591,12 @@ void SimplifyProver::processFormula(Formula* f,Context context)
 	f = new NegatedFormula(new QuantifiedFormula(FORALL,vs,0,f));
       }
       addUnit(new FormulaUnit(f,
-			      new Inference(Inference::NEGATED_CONJECTURE),
+			      new Inference0(Inference::NEGATED_CONJECTURE),
 			      Unit::CONJECTURE));
     }
     else { // assumption
       addUnit(new FormulaUnit(f,
-			      new Inference(Inference::INPUT),
+			      new Inference0(Inference::INPUT),
 			      Unit::ASSUMPTION));
     }
     env.statistics->inputFormulas++;
@@ -1618,12 +1618,12 @@ void SimplifyProver::processFormula(Formula* f,Context context)
 				      new NegatedFormula(f),
 				      new AtomicFormula(Literal::createEquality(true,fx,_zero,_numberSort)));
       addUnit(new FormulaUnit(f1,
-			      new Inference(Inference::BOOLEAN_TERM_ENCODING),
+			      new Inference0(Inference::BOOLEAN_TERM_ENCODING),
 			      Unit::AXIOM));
       f1 = new BinaryFormula(IMP,f,
 			     new AtomicFormula(Literal::createEquality(true,fx,_one,_numberSort)));
       addUnit(new FormulaUnit(f1,
-			      new Inference(Inference::BOOLEAN_TERM_ENCODING),
+			      new Inference0(Inference::BOOLEAN_TERM_ENCODING),
 			      Unit::AXIOM));
       _tsaved.push(fx);
     }
@@ -1653,7 +1653,7 @@ SimplifyProver::SymbolInfo* SimplifyProver::addNumber(const vstring& symb)
   while (ts.hasNext()) {
     TermList num1 = ts.next();
     Formula* ineq = new AtomicFormula(Literal::createEquality(false,num,num1,_numberSort));
-    addUnit(new FormulaUnit(ineq,new Inference(Inference::SIMPLIFY_PROVER_DISTINCT_NUMBERS_AXIOM),Unit::AXIOM));
+    addUnit(new FormulaUnit(ineq,new Inference0(Inference::SIMPLIFY_PROVER_DISTINCT_NUMBERS_AXIOM),Unit::AXIOM));
   }
   _numbers.push(num);
 
@@ -1755,10 +1755,10 @@ void SimplifyProver::buildIfThenElseTerm()
   Formula* f1 = new BinaryFormula(IMP,f,fxs);
   Formula* f2 = new BinaryFormula(IMP,new NegatedFormula(f),fxt);
   addUnit(new FormulaUnit(f1,
-			  new Inference(Inference::FOOL_ITE_ELIMINATION),
+			  new Inference0(Inference::FOOL_ITE_ELIMINATION),
 			  Unit::AXIOM));
   addUnit(new FormulaUnit(f2,
-			  new Inference(Inference::FOOL_ITE_ELIMINATION),
+			  new Inference0(Inference::FOOL_ITE_ELIMINATION),
 			  Unit::AXIOM));
   // and save the term fx as the result
   _tsaved.push(fx);
