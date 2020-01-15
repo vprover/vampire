@@ -94,7 +94,7 @@ Clause::Clause(unsigned length,InputType it,Inference* inf)
   // clause without parents
   if (!inf->hasNext(parentIt))
   {
-    th_ancestors = isTheoryAxiom() ? 1.0 : 0.0;
+    th_ancestors = inf->isTheoryAxiom() ? 1.0 : 0.0;
     all_ancestors = 1.0;
   }
   else
@@ -158,7 +158,7 @@ Clause::Clause(unsigned length,InputType it,Inference* inf)
                       env.options->induction() != Options::Induction::NONE;
   if(check){
     Inference::Iterator it = inf->iterator();
-    bool isTheoryDescendant = isTheoryAxiom();
+    bool isTheoryDescendant = inf->isTheoryAxiom();
     unsigned id = 0; 
     while(inf->hasNext(it)){
       Unit* parent = inf->next(it);

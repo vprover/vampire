@@ -368,7 +368,7 @@ void Property::scan(Clause* clause)
 
   if (_variablesInThisClause > 0) {
     _allClausesGround = false;
-    if(!clause->isTheoryAxiom()){
+    if(!clause->inference()->isTheoryAxiom()){
       _allNonTheoryClausesGround = false;
     }
   }

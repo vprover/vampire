@@ -95,7 +95,7 @@ Clause* InterpretedEvaluation::simplify(Clause* cl)
   // whether we should skip those externally added theory axioms, since it is not clear
   // that they are simplified as much as possible (since they are potentially written by
   // users unfamiliar with theorem proving, in contrast to our internally added axioms).
-  if(cl->isTheoryAxiom()) return cl;
+  if(cl->inference()->isTheoryAxiom()) return cl;
 
   static DArray<Literal*> newLits(32);
   unsigned clen=cl->length();
