@@ -93,54 +93,8 @@ ClauseIterator AWPassiveClauseContainer::iterator()
 Comparison AWPassiveClauseContainer::compareWeight(Clause* cl1, Clause* cl2, const Options& opt)
 {
   CALL("AWPassiveClauseContainer::compareWeight");
-
-  // TODO consider using Clause::getEffectiveWeight
-  // since 22/1/15 weight now includes splitWeight
-  unsigned cl1Weight=cl1->weight();
-  unsigned cl2Weight=cl2->weight();
-
-  if (opt.increasedNumeralWeight()) {
-    cl1Weight=cl1Weight*2+cl1->getNumeralWeight();
-    cl2Weight=cl2Weight*2+cl2->getNumeralWeight();
-  }
-
-  static int nwcNumer = opt.nonGoalWeightCoeffitientNumerator();
-  static int nwcDenom = opt.nonGoalWeightCoeffitientDenominator();
-  static bool restrictNWC = opt.restrictNWCtoGC();
-
-  bool cl1_goal = cl1->isGoal();
-  bool cl2_goal = cl2->isGoal();
-
-  if(cl1_goal && restrictNWC){
-    bool found = false;
-    for(unsigned i=0;i<cl1->length();i++){
-      TermFunIterator it((*cl1)[i]);
-      it.next(); // skip literal symbol
-      while(it.hasNext()){
-        found |= env.signature->getFunction(it.next())->inGoal();
-      }
-    }
-    if(!found){ cl1_goal=false; }
-  }
-  if(cl2_goal && restrictNWC){
-    bool found = false;
-    for(unsigned i=0;i<cl2->length();i++){
-      TermFunIterator it((*cl2)[i]);
-      it.next(); // skip literal symbol
-      while(it.hasNext()){
-        found |= env.signature->getFunction(it.next())->inGoal();
-      }
-    }
-    if(!found){ cl2_goal=false; }
-  }
   
-
-  if (!cl1->isGoal() && cl2->isGoal()) {
-    return Int::compare(cl1Weight*nwcNumer, cl2Weight*nwcDenom);
-  } else if (cl1->isGoal() && !cl2->isGoal()) {
-    return Int::compare(cl1Weight*nwcDenom, cl2Weight*nwcNumer);
-  }
-  return Int::compare(cl1Weight, cl2Weight);
+  return Int::compare(cl1->getEffectiveWeight(opt), cl2->getEffectiveWeight(opt));
 }
 
 /**
