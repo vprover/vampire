@@ -325,8 +325,11 @@ protected:
 
     cs->inference().updateStatistics(); // in particular, update inductionDepth (which could have decreased, since we might have fewer parents after miniminization)
 
-    if(rule == InferenceRule::INDUCTION_AXIOM){
+    if((rule == InferenceRule::INDUCTION_AXIOM) || (rule == InferenceRule::GEN_INDUCTION_AXIOM)){
       env.statistics->inductionInProof++;
+      if (rule == InferenceRule::GEN_INDUCTION_AXIOM) {
+        env.statistics->generalizedInductionInProof++;
+      }
     }
 
     if (cs->isClause()) {

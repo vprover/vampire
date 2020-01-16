@@ -88,6 +88,8 @@ Statistics::Statistics()
     induction(0),
     maxInductionDepth(0),
     inductionInProof(0),
+    generalizedInduction(0),
+    generalizedInductionInProof(0),
     duplicateLiterals(0),
     trivialInequalities(0),
     forwardSubsumptionResolution(0),
@@ -336,6 +338,8 @@ void Statistics::print(ostream& out)
   COND_OUT("Induction",induction);
   COND_OUT("MaxInductionDepth",maxInductionDepth);
   COND_OUT("InductionStepsInProof",inductionInProof);
+  COND_OUT("GeneralizedInduction",generalizedInduction);
+  COND_OUT("GeneralizedInductionInProof",generalizedInductionInProof);
   SEPARATOR;
 
   HEADING("Term algebra simplifications",taDistinctnessSimplifications+
