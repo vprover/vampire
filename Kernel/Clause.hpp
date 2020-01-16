@@ -330,9 +330,19 @@ public:
 
   SplitSet* splits() const { return _splits; }
   bool noSplits() const;
-  void setSplits(SplitSet* splits,bool replace=false) {
+
+  /**
+   * set splits
+   * in order to keep all splitting-related functionality separate from Saturation,
+   * the splits are not set during clause-construction but are added later by the Splitter-class.
+   * we depend on the invariant that splits are set only once, and that splits are set before clause-weights are
+   * computed and cached (which happens at the first call to weight())
+   */
+  void setSplits(SplitSet* splits) {
     CALL("Clause::setSplits");
-    ASS(replace || !_splits);
+    ASS(splits != nullptr);
+    ASS(!_splits);
+    ASS(_weight == 0);
     _splits=splits;
   }
   
