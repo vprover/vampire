@@ -79,6 +79,7 @@ Clause::Clause(unsigned length,InputType it,Inference* inf)
     _numSelected(0),
     _age(0),
     _weight(0),
+    _weightForClauseSelection(0.0f),
     _store(NONE),
     _refCnt(0),
     _reductionTimestamp(0),
@@ -564,7 +565,7 @@ unsigned Clause::splitWeight() const
  * @since 04/05/2013 Manchester, updated to use new NonVariableIterator
  * @author Andrei Voronkov
  */
-unsigned Clause::getNumeralWeight() 
+unsigned Clause::getNumeralWeight()
 {
   CALL("Clause::getNumeralWeight");
 
@@ -614,13 +615,11 @@ unsigned Clause::getNumeralWeight()
 } // getNumeralWeight
 
 /**
- * Return effective weight of the clause (i.e. weight multiplied
- * by the nongoal weight coefficient, if applicable)
- * @since 22/1/15 weight uses splitWeight
+ * compute weight of the clause used by clause selection and cache it
  */
-float Clause::weightForClauseSelection(const Options& opt)
+void Clause::computeWeightForClauseSelection(const Options& opt)
 {
-  CALL("Clause::weightForClauseSelection");
+  CALL("Clause::computeWeightForClauseSelection");
 
   static float nongoalWeightCoef=opt.nongoalWeightCoefficient();
   static bool restrictNWC = opt.restrictNWCtoGC();
@@ -640,10 +639,10 @@ float Clause::weightForClauseSelection(const Options& opt)
 
   unsigned w=weight();
   if (opt.increasedNumeralWeight()) {
-    return (2*w+getNumeralWeight()) * ( !goal ? nongoalWeightCoef : 1.0f);
+    _weightForClauseSelection = (2*w+getNumeralWeight()) * ( !goal ? nongoalWeightCoef : 1.0f);
   }
   else {
-    return w * ( !goal ? nongoalWeightCoef : 1.0f);
+    _weightForClauseSelection = w * ( !goal ? nongoalWeightCoef : 1.0f);
   }
 }
 
