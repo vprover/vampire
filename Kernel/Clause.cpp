@@ -438,7 +438,7 @@ vstring Clause::toString() const
     float weightForClauseSelection = const_cast<Clause*>(this)->weightForClauseSelection(const_cast<Shell::Options&>(*(env.options)));
     unsigned castedWeightForClauseSelection = static_cast<int>(ceil(weightForClauseSelection));
     if(castedWeightForClauseSelection!=weight()){
-      result += vstring(",effW:") + Int::toString(castedWeightForClauseSelection);
+      result += vstring(",wCS:") + Int::toString(castedWeightForClauseSelection);
     }
 
     if (numSelected()>0) {
@@ -621,11 +621,18 @@ void Clause::computeWeightForClauseSelection(const Options& opt)
 {
   CALL("Clause::computeWeightForClauseSelection");
 
-  static float nongoalWeightCoef=opt.nongoalWeightCoefficient();
-  static bool restrictNWC = opt.restrictNWCtoGC();
+  unsigned w = weight();
 
-  bool goal = isGoal();
-  if(goal && restrictNWC){
+  // hack: computation of getNumeralWeight is potentially expensive, so we only compute it if
+  // the option increasedNumeralWeight is set to true.
+  unsigned numeralWeight = 0;
+  if (opt.increasedNumeralWeight())
+  {
+    numeralWeight = getNumeralWeight();
+  }
+
+  bool derivedFromGoal = isGoal();
+  if(derivedFromGoal && opt.restrictNWCtoGC()){
     bool found = false;
     for(unsigned i=0;i<_length;i++){
       TermFunIterator it(_literals[i]);
@@ -634,16 +641,24 @@ void Clause::computeWeightForClauseSelection(const Options& opt)
         found |= env.signature->getFunction(it.next())->inGoal();
       }
     }
-    if(!found){ goal=false; }
-  } 
+    if(!found){ derivedFromGoal=false; }
+  }
 
-  unsigned w=weight();
+  _weightForClauseSelection = Clause::computeWeightForClauseSelection(w, numeralWeight, derivedFromGoal, opt);
+}
+
+/*
+ * note: we currently assume in Clause::computeWeightForClauseSelection(opt) that numeralWeight is only used here if
+ * the option increasedNumeralWeight() is set to true.
+ */
+float Clause::computeWeightForClauseSelection(unsigned w, unsigned numeralWeight, bool derivedFromGoal, const Shell::Options& opt)
+{
+  static float nongoalWeightCoef=opt.nongoalWeightCoefficient();
+
   if (opt.increasedNumeralWeight()) {
-    _weightForClauseSelection = (2*w+getNumeralWeight()) * ( !goal ? nongoalWeightCoef : 1.0f);
+    w = (2 * w + numeralWeight);
   }
-  else {
-    _weightForClauseSelection = w * ( !goal ? nongoalWeightCoef : 1.0f);
-  }
+  return w * ( !derivedFromGoal ? nongoalWeightCoef : 1.0f);
 }
 
 void Clause::collectVars(DHSet<unsigned>& acc)
