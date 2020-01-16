@@ -171,6 +171,11 @@ public:
   }
   void computeWeight() const;
 
+  /**
+   * weight used for clause selection
+   */
+  float weightForClauseSelection(const Shell::Options& opt);
+
   /** Return the color of a clause */
   Color color() const
   {
@@ -419,7 +424,6 @@ public:
 
   unsigned splitWeight() const;
   unsigned getNumeralWeight();
-  float getEffectiveWeight(const Shell::Options& opt);
 
   void collectVars(DHSet<unsigned>& acc);
   unsigned varCnt();

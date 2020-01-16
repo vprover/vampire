@@ -434,10 +434,10 @@ vstring Clause::toString() const
     result += vstring("a:") + Int::toString(_age);
     result += vstring(",w:") + Int::toString(weight());
     
-    float ew = const_cast<Clause*>(this)->getEffectiveWeight(const_cast<Shell::Options&>(*(env.options)));
-    unsigned effective = static_cast<int>(ceil(ew));
-    if(effective!=weight()){
-      result += vstring(",effW:") + Int::toString(effective);
+    float weightForClauseSelection = const_cast<Clause*>(this)->weightForClauseSelection(const_cast<Shell::Options&>(*(env.options)));
+    unsigned castedWeightForClauseSelection = static_cast<int>(ceil(weightForClauseSelection));
+    if(castedWeightForClauseSelection!=weight()){
+      result += vstring(",effW:") + Int::toString(castedWeightForClauseSelection);
     }
 
     if (numSelected()>0) {
@@ -618,9 +618,9 @@ unsigned Clause::getNumeralWeight()
  * by the nongoal weight coefficient, if applicable)
  * @since 22/1/15 weight uses splitWeight
  */
-float Clause::getEffectiveWeight(const Options& opt) 
+float Clause::weightForClauseSelection(const Options& opt)
 {
-  CALL("Clause::getEffectiveWeight");
+  CALL("Clause::weightForClauseSelection");
 
   static float nongoalWeightCoef=opt.nongoalWeightCoefficient();
   static bool restrictNWC = opt.restrictNWCtoGC();

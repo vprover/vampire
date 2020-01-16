@@ -38,7 +38,7 @@ bool Limits::fulfillsLimits(Clause* cl)
   if(!ageLimited() || !weightLimited()) {
     return true;
   }
-  return (cl->age() <= ageLimit()) || (cl->getEffectiveWeight(_opt) <= weightLimit());
+  return (cl->age() <= ageLimit()) || (cl->weightForClauseSelection(_opt) <= weightLimit());
 }
 
 void Limits::setLimits(int newMaxAge, int newMaxWeight,bool initial)

@@ -190,7 +190,7 @@ void ActiveClauseContainer::onLimitsUpdated(LimitsChangeType change)
 
     bool shouldRemove;
     if (cl->age()>ageLimit) {
-      shouldRemove=cl->getEffectiveWeight(_opt)>weightLimit;
+      shouldRemove=cl->weightForClauseSelection(_opt)>weightLimit;
     }
     else {
       unsigned selCnt=cl->numSelected();

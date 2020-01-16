@@ -94,7 +94,7 @@ Comparison AWPassiveClauseContainer::compareWeight(Clause* cl1, Clause* cl2, con
 {
   CALL("AWPassiveClauseContainer::compareWeight");
   
-  return Int::compare(cl1->getEffectiveWeight(opt), cl2->getEffectiveWeight(opt));
+  return Int::compare(cl1->weightForClauseSelection(opt), cl2->weightForClauseSelection(opt));
 }
 
 /**
@@ -350,7 +350,7 @@ void AWPassiveClauseContainer::updateLimits(long long estReachableCnt)
       maxAge=acl->age();
     }
     if (wcl!=0 && wit.hasNext()) {
-      maxWeight=static_cast<int>(ceil(wcl->getEffectiveWeight(_opt)));
+      maxWeight=static_cast<int>(ceil(wcl->weightForClauseSelection(_opt)));
     }
   }
 
@@ -391,7 +391,7 @@ void AWPassiveClauseContainer::onLimitsUpdated(LimitsChangeType change)
     bool shouldStay=true;
 //    if (shouldStay && cl->age()==ageLimit) {
     if (cl->age()>ageLimit) {
-      if (cl->getEffectiveWeight(_opt)>weightLimit) {
+      if (cl->weightForClauseSelection(_opt)>weightLimit) {
         shouldStay=false;
       }
     } else if (cl->age()==ageLimit) {
