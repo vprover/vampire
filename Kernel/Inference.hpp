@@ -459,6 +459,58 @@ public:
     return _rule == Inference::EXTERNAL_THEORY_AXIOM;
   }
 
+    // counting the leaves (in the tree rather than dag sense)
+  // which are theory axioms and the total across all leaves
+  float th_ancestors, all_ancestors;
+
+  void computeRunningSums() {
+    Inference::Iterator parentIt = iterator();
+
+    // inference without parents
+    if (!hasNext(parentIt))
+    {
+      th_ancestors = isTheoryAxiom() ? 1.0 : 0.0;
+      all_ancestors = 1.0;
+    }
+    else
+    {
+      // hack: hardcode simplifying inferences
+      bool isSimplifyingInference =
+        _rule == Inference::TRIVIAL_INEQUALITY_REMOVAL ||
+        _rule == Inference::SUBSUMPTION_RESOLUTION ||
+        _rule == Inference::FORWARD_DEMODULATION ||
+        _rule == Inference::BACKWARD_DEMODULATION ||
+        _rule == Inference::EVALUATION;
+
+      // for simplifying inferences, propagate running sums of main premise
+      if (isSimplifyingInference)
+      {
+        // hack: depend on the following fact:
+        // all simplifying inferences save the main premise as first premise,
+        // except backward demodulation, which (inconsistently) saves the main premise as second premise.
+        Unit* mainPremise = next(parentIt);
+        if (_rule == Inference::BACKWARD_DEMODULATION)
+        {
+          mainPremise = next(parentIt);
+        }
+        th_ancestors = mainPremise->inference()->th_ancestors;
+        all_ancestors = mainPremise->inference()->all_ancestors;
+      }
+      // for non-simplifying inferences, compute running sums as sum over all parents
+      else
+      {
+        th_ancestors = 0.0;
+        all_ancestors = 0.0; // there is going to be at least one, eventually
+        while (hasNext(parentIt))
+        {
+          Unit *parent = next(parentIt);
+          th_ancestors += parent->inference()->th_ancestors;
+          all_ancestors += parent->inference()->all_ancestors;
+        }
+      }
+    }
+  }
+
 protected:
   /** The rule used */
   Rule _rule;
@@ -475,7 +527,10 @@ class Inference0
   : public Inference
 {
 public:
-  Inference0(Rule rule) : Inference(rule) {}
+  Inference0(Rule rule) : Inference(rule)
+  {
+    computeRunningSums();
+  }
 
   virtual void destroy();
   virtual Iterator iterator() const;
@@ -501,6 +556,8 @@ public:
     _premise1->incRefCnt(); 
     _maxDepth = premise->inference()->maxDepth()+1; 
     if(_rule == EVALUATION){ _maxDepth = premise->inference()->maxDepth(); }
+
+    computeRunningSums();
   }
 
   virtual void destroy();
@@ -532,6 +589,8 @@ public:
     _premise1->incRefCnt();
     _premise2->incRefCnt();
     _maxDepth = max(premise1->inference()->maxDepth(),premise2->inference()->maxDepth())+1;
+
+    computeRunningSums();
   }
 
   virtual void destroy();

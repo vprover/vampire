@@ -377,10 +377,6 @@ public:
   unsigned varCnt();
   unsigned maxVar(); // useful to create fresh variables w.r.t. the clause
 
-  // counting the leaves (in the tree rather than dag sense)
-  // which are theory axioms and the total across all leaves
-  float th_ancestors, all_ancestors;
-
 protected:
   /** number of literals */
   unsigned _length : 20;

@@ -1275,13 +1275,13 @@ Clause* Splitter::buildAndInsertComponentClause(SplitLevel name, unsigned size, 
     compCl->setTheoryDescendant(orig->isTheoryDescendant());
     compCl->setInductionDepth(orig->inductionDepth());
     compCl->setAge(orig->age());
-    compCl->th_ancestors = orig->th_ancestors;
-    compCl->all_ancestors = orig->all_ancestors;
+    compCl->inference()->th_ancestors = orig->inference()->th_ancestors;
+    compCl->inference()->all_ancestors = orig->inference()->all_ancestors;
   } else {
     compCl->setAge(AGE_NOT_FILLED);
     // We don't know anything about the derivation of the clause, so we set values which are as neutral as possible.
-    compCl->th_ancestors = 0;
-    compCl->all_ancestors = 1;
+    compCl->inference()->th_ancestors = 0;
+    compCl->inference()->all_ancestors = 1;
   }
 
   _db[name] = new SplitRecord(compCl);

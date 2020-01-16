@@ -910,12 +910,6 @@ void Options::Options::init()
     _splitQueueCutoffs.reliesOn(_useSplitQueues.is(equal(true)));
     _splitQueueCutoffs.tag(OptionTag::OTHER);
 
-    _splitQueueSimplifyingInferences = BoolOptionValue("split_queue_simplifying_inferences","sqs",true);
-    _splitQueueSimplifyingInferences.description = "If on, propagation of running sums for simplifying inferences is treated in a special way: Similar to age-propagation, only the main premise is taken into account for computing the running sums.";
-    _lookup.insert(&_splitQueueSimplifyingInferences);
-    _splitQueueSimplifyingInferences.reliesOn(_useSplitQueues.is(equal(true)));
-    _splitQueueSimplifyingInferences.tag(OptionTag::OTHER);
-
     _splitQueueFadeIn = BoolOptionValue("split_queue_fade_in","sqf", true);
     _splitQueueFadeIn.description = "If on, clauses with very small derivations (with less than 5 theory axioms) get assigned a lower niceness-value. Experimental option, not sure wheher there is a better way to define the niceness for such small derivations.";
     _lookup.insert(&_splitQueueFadeIn);

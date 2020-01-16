@@ -55,6 +55,8 @@ InferenceMany::InferenceMany(Rule rule,UnitList* premises)
     it=it->tail();
   }
   _maxDepth = md+1;
+
+  computeRunningSums();
 }
 
 /**
