@@ -69,7 +69,7 @@ private:
   // Counts how many occurrences were already encountered in one transformation
   unsigned _matchCount = 0;
   unsigned _occurrences;
-  const unsigned _maxOccurrences = 10;
+  const unsigned _maxOccurrences = 20;
   Literal* _lit;
   Term* _o;
   TermList _r;
