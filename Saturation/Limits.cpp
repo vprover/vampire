@@ -33,23 +33,30 @@ namespace Saturation
 
 bool Limits::fulfilsAgeLimit(Clause* cl) const
 {
-  return fulfilsAgeLimit(cl->age());
+  // don't want to reuse fulfilsAgeLimit(unsigned age,..) here, since we don't want to recompute weightForClauseSelection
+  unsigned age = cl->age();
+  float weightForClauseSelection = cl->weightForClauseSelection(_opt);
+  return age <= _ageSelectionMaxAge || (age == _ageSelectionMaxAge && weightForClauseSelection <= _ageSelectionMaxWeight);
 }
 
-bool Limits::fulfilsAgeLimit(unsigned age) const
+bool Limits::fulfilsAgeLimit(unsigned age, unsigned w, unsigned numeralWeight, bool derivedFromGoal) const
 {
-  return age <= _ageSelectionMaxAge;
+  unsigned weightForClauseSelection = Clause::computeWeightForClauseSelection(w, numeralWeight, derivedFromGoal, _opt);
+  return age <= _ageSelectionMaxAge || (age == _ageSelectionMaxAge && weightForClauseSelection <= _ageSelectionMaxWeight);
 }
 
 bool Limits::fulfilsWeightLimit(Clause* cl) const
 {
-  return cl->weightForClauseSelection(_opt) <= _weightSelectionMaxWeight;
+  // don't want to reuse fulfilsWeightLimit(unsigned w,..) here, since we don't want to recompute weightForClauseSelection
+  float weightForClauseSelection = cl->weightForClauseSelection(_opt);
+  unsigned age = cl->age();
+  return weightForClauseSelection <= _weightSelectionMaxWeight || (weightForClauseSelection == _weightSelectionMaxWeight && age <= _weightSelectionMaxAge);
 }
 
-bool Limits::fulfilsWeightLimit(unsigned int w, unsigned int numeralWeight, bool derivedFromGoal) const
+bool Limits::fulfilsWeightLimit(unsigned w, unsigned numeralWeight, bool derivedFromGoal, unsigned age) const
 {
   float weightForClauseSelection = Clause::computeWeightForClauseSelection(w, numeralWeight, derivedFromGoal, _opt);
-  return weightForClauseSelection <= _weightSelectionMaxWeight;
+  return weightForClauseSelection <= _weightSelectionMaxWeight || (weightForClauseSelection == _weightSelectionMaxWeight && age <= _weightSelectionMaxAge);
 }
 
 bool Limits::childrenPotentiallyFulfilLimits(Clause* cl, unsigned upperBoundNumSelLits) const
@@ -57,6 +64,8 @@ bool Limits::childrenPotentiallyFulfilLimits(Clause* cl, unsigned upperBoundNumS
   if (cl->age() == _ageSelectionMaxAge)
   {
     // clauses inferred from the clause as generating inferences will be over age limit...
+    unsigned childAge = cl->age() + 1;
+    
     int maxSelWeight=0;
     for(unsigned i=0;i<upperBoundNumSelLits;i++) {
       maxSelWeight=max((int)(*cl)[i]->weight(),maxSelWeight);
@@ -67,7 +76,7 @@ bool Limits::childrenPotentiallyFulfilLimits(Clause* cl, unsigned upperBoundNumS
     unsigned weightLowerBound = cl->weight() - maxSelWeight; // heuristic: we assume that at most one literal will be removed from the clause.
     unsigned numeralWeight = 0; // heuristic: we don't know the numeral weight of the child, and conservatively assume that it is 0.
     bool derivedFromGoal = true; // heuristic: we have to cover the case where the child has another parent which is a goal-clause. We conservatively assume that the result is a goal-clause.
-    if (!fulfilsWeightLimit(weightLowerBound, numeralWeight, derivedFromGoal)) {
+    if (!fulfilsWeightLimit(weightLowerBound, numeralWeight, derivedFromGoal, childAge)) {
       //and also over weight limit
       return false;
     }
@@ -75,25 +84,30 @@ bool Limits::childrenPotentiallyFulfilLimits(Clause* cl, unsigned upperBoundNumS
   return true;
 }
 
-bool Limits::setLimits(int newMaxAge, int newMaxWeight)
+bool Limits::setLimits(unsigned newAgeSelectionMaxAge, unsigned newAgeSelectionMaxWeight, unsigned newWeightSelectionMaxWeight, unsigned newWeightSelectionMaxAge)
 {
   CALL("Limits::setLimits");
 
   bool atLeastOneTightened = false;
-  if(_ageSelectionMaxAge!=newMaxAge) {
-    if(newMaxAge < _ageSelectionMaxAge) {
+  if(newAgeSelectionMaxAge != _ageSelectionMaxAge || newAgeSelectionMaxWeight != _ageSelectionMaxWeight) {
+    if(newAgeSelectionMaxAge < _ageSelectionMaxAge) {
+      atLeastOneTightened = true;
+    } else if (newAgeSelectionMaxAge == _ageSelectionMaxAge && newAgeSelectionMaxWeight < _ageSelectionMaxWeight) {
       atLeastOneTightened = true;
     }
-    _ageSelectionMaxAge=newMaxAge;
+    _ageSelectionMaxAge=newAgeSelectionMaxAge;
+    _ageSelectionMaxWeight=newAgeSelectionMaxWeight;
   }
-  if(_weightSelectionMaxWeight!=newMaxWeight) {
-    if(newMaxWeight < _weightSelectionMaxWeight) {
+  if(newWeightSelectionMaxWeight != _weightSelectionMaxWeight || newWeightSelectionMaxAge != _weightSelectionMaxAge) {
+    if(newWeightSelectionMaxWeight < _weightSelectionMaxWeight) {
+      atLeastOneTightened = true;
+    } else if (newWeightSelectionMaxWeight == _weightSelectionMaxWeight && newWeightSelectionMaxAge < _weightSelectionMaxAge) {
       atLeastOneTightened = true;
     }
-    _weightSelectionMaxWeight=newMaxWeight;
+    _weightSelectionMaxWeight=newWeightSelectionMaxWeight;
+    _weightSelectionMaxAge=newWeightSelectionMaxAge;
   }
   return atLeastOneTightened;
 }
-
 
 }

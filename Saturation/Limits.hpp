@@ -44,25 +44,30 @@ typedef PlainEvent LimitsChangeEvent;
 class Limits
 {
 public:
-  Limits(const Options& opt) : _ageSelectionMaxAge(UINT_MAX), _weightSelectionMaxWeight(UINT_MAX), _opt(opt) {}
+  Limits(const Options& opt) : _ageSelectionMaxAge(UINT_MAX), _ageSelectionMaxWeight(UINT_MAX), _weightSelectionMaxWeight(UINT_MAX), _weightSelectionMaxAge(UINT_MAX), _opt(opt) {}
 
   LimitsChangeEvent changedEvent;
 
-  bool ageLimited() const { return _ageSelectionMaxAge != UINT_MAX; }
-  bool weightLimited() const { return _weightSelectionMaxWeight != UINT_MAX; }
+  bool ageLimited() const { return _ageSelectionMaxAge != UINT_MAX && _ageSelectionMaxWeight != UINT_MAX; }
+  bool weightLimited() const { return _weightSelectionMaxWeight != UINT_MAX && _weightSelectionMaxAge != UINT_MAX; }
 
   bool fulfilsAgeLimit(Clause* c) const;
-  bool fulfilsAgeLimit(unsigned age) const;
+  // note: w here denotes the weight as returned by weight().
+  // this method internally takes care of computing the corresponding weightForClauseSelection.
+  bool fulfilsAgeLimit(unsigned age, unsigned w, unsigned numeralWeight, bool derivedFromGoal) const;
   bool fulfilsWeightLimit(Clause* cl) const;
   // note: w here denotes the weight as returned by weight().
   // this method internally takes care of computing the corresponding weightForClauseSelection.
-  bool fulfilsWeightLimit(unsigned int w, unsigned int numeralWeight, bool derivedFromGoal) const;
+  bool fulfilsWeightLimit(unsigned int w, unsigned int numeralWeight, bool derivedFromGoal, unsigned age) const;
   bool childrenPotentiallyFulfilLimits(Clause* cl, unsigned upperBoundNumSelLits) const;
-  bool setLimits(int newMaxAge, int newMaxWeight);
+  // returns whether at least one of the limits was tightened
+  bool setLimits(unsigned newAgeSelectionMaxAge, unsigned newAgeSelectionMaxWeight, unsigned newWeightSelectionMaxWeight, unsigned newWeightSelectionMaxAge);
 
 private:
   unsigned _ageSelectionMaxAge;
+  unsigned _ageSelectionMaxWeight;
   unsigned _weightSelectionMaxWeight;
+  unsigned _weightSelectionMaxAge;
   const Options& _opt;
 };
 

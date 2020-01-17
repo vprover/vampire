@@ -287,11 +287,16 @@ void AWPassiveClauseContainer::updateLimits(long long estReachableCnt)
   CALL("AWPassiveClauseContainer::updateLimits");
   ASS_GE(estReachableCnt,0);
 
-  unsigned maxAge, maxWeight;
+  unsigned maxAgeQueueAge;
+  unsigned maxAgeQueueWeight;
+  unsigned maxWeightQueueWeight;
+  unsigned maxWeightQueueAge;
 
   if (estReachableCnt > static_cast<long long>(_size)) {
-    maxAge = UINT_MAX;
-    maxWeight = UINT_MAX;
+    maxAgeQueueAge = UINT_MAX;
+    maxAgeQueueWeight = UINT_MAX;
+    maxWeightQueueWeight = UINT_MAX;
+    maxWeightQueueAge = UINT_MAX;
     goto fin;
   }
 
@@ -344,13 +349,17 @@ void AWPassiveClauseContainer::updateLimits(long long estReachableCnt)
     }
 
     //when _ageRatio==0, the age limit can be set to zero, as age doesn't matter
-    maxAge = (_ageRatio && acl!=0) ? UINT_MAX : 0;
-    maxWeight = (_weightRatio && wcl!=0) ? UINT_MAX : 0;
+    maxAgeQueueAge = (_ageRatio && acl!=0) ? UINT_MAX : 0;
+    maxAgeQueueWeight = (_ageRatio && acl!=0) ? UINT_MAX : 0;
+    maxWeightQueueWeight = (_weightRatio && wcl!=0) ? UINT_MAX : 0;
+    maxWeightQueueAge = (_weightRatio && wcl!=0) ? UINT_MAX : 0;
     if (acl!=0 && ait.hasNext()) {
-      maxAge=acl->age();
+      maxAgeQueueAge = acl->age();
+      maxAgeQueueWeight = static_cast<int>(ceil(acl->weightForClauseSelection(_opt)));
     }
     if (wcl!=0 && wit.hasNext()) {
-      maxWeight=static_cast<int>(ceil(wcl->weightForClauseSelection(_opt)));
+      maxWeightQueueWeight = static_cast<int>(ceil(wcl->weightForClauseSelection(_opt)));
+      maxWeightQueueAge = wcl->age();
     }
   }
 
@@ -359,7 +368,7 @@ fin:
   cout<<env.timer->elapsedDeciseconds()<<"\tLimits to "<<maxAge<<"\t"<<maxWeight<<"\t by est "<<estReachableCnt<<"\n";
 #endif
 
-  bool atLeastOneLimitTightened = getSaturationAlgorithm()->getLimits()->setLimits(maxAge,maxWeight);
+  bool atLeastOneLimitTightened = getSaturationAlgorithm()->getLimits()->setLimits(maxAgeQueueAge, maxAgeQueueWeight,maxWeightQueueWeight, maxWeightQueueAge);
   if (atLeastOneLimitTightened) {
     onLimitsUpdated();
     getSaturationAlgorithm()->getLimits()->changedEvent.fire();
