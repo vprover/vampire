@@ -76,7 +76,7 @@ void RandomAccessClauseContainer::attach(SaturationAlgorithm* salg)
 
   _salg=salg;
   _limitChangeSData=_salg->getLimits()->changedEvent.subscribe(
-      this, &PassiveClauseContainer::onLimitsUpdated);
+      this, &RandomAccessClauseContainer::onLimitsUpdated);
 }
 /**
  * Detach from the SaturationAlgorithm object.
