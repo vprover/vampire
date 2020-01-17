@@ -503,6 +503,8 @@ vstring Inference::ruleName(Rule rule)
     return "combinator normalisation";  
   case NEGATIVE_EXT:
     return "negative extensionality";
+  case INJECTIVITY:
+    return "injectivity";
   default:
     ASSERTION_VIOLATION;
     return "!UNKNOWN INFERENCE RULE!";

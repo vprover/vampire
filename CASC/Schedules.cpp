@@ -9728,6 +9728,16 @@ void Schedules::getCasc2017Schedule(const Property& property, Schedule& quick, S
 
 } // getCasc2017Schedule
 
+//Hack AYB
+void Schedules::getCasc2018PragmaticHOSchedule(const Shell::Property& property, Schedule& quick, Schedule& fallback)
+{
+  quick.push("ott+2_1:1_mXXn=1_170");
+  quick.push("ott+3_2:1_mXXn=1:bs=on_100");
+  quick.push("ott+4_5:3_mXXn=1:bs=on_100");
+  fallback.push("ott+4_5:3_mXXn=2:bs=on_900");
+  getCasc2018Schedule(property, quick, fallback);
+}
+
 /**
  * Get schedules for a problem of given property.
  * The schedules are to be executed from the bottom of the stack, i.e. in the order in which they are mentioned in the file.
@@ -10344,6 +10354,7 @@ void Schedules::getCasc2018Schedule(const Property& property, Schedule& quick, S
       quick.push("lrs+4_2_av=off:gs=on:gsem=on:lma=on:nm=16:nwc=1:sas=z3:stl=30:sos=on:urr=on_159");
       quick.push("ott+1_8:1_av=off:bd=preordered:bsr=on:lma=on:nm=64:newcnf=on:nwc=1.2:uhcvi=on_180");
       quick.push("dis+11_3_add=off:afr=on:afp=40000:afq=2.0:amm=sco:anc=none:cond=on:nm=16:nwc=1:ss=axioms:st=5.0:sos=all:sp=reverse_arity_169");
+      quick.push("lrs-3_4:1_anc=all_dependent:stl=300d:fde=none:sp=reverse_arity:foolp=on:lma=on:urr=on:afp=1000:gs=on:nwc=1.5:updr=off:lcm=reverse:sd=1:amm=sco:afq=1.4:uhcvi=on:ss=axioms_70");//Hack, added AYB
     }
     else if (prop & 131072ul) {
       quick.push("lrs+1011_8_add=large:afp=100000:afq=1.1:er=filter:gsp=input_only:gs=on:gsem=on:lma=on:nm=6:nwc=1:stl=30:sd=2:ss=axioms:st=1.5:sos=on_3");
@@ -10403,6 +10414,7 @@ void Schedules::getCasc2018Schedule(const Property& property, Schedule& quick, S
       quick.push("ott+1_128_add=large:afr=on:amm=sco:anc=none:cond=on:fsr=off:gsp=input_only:gs=on:irw=on:lcm=reverse:lma=on:nm=64:nwc=1.1:nicw=on:sas=z3:sac=on:sp=reverse_arity_44");
       quick.push("dis+11_1024_av=off:bd=off:bs=on:cond=on:gs=on:lma=on:nm=16:nwc=1:sp=occurrence:updr=off_143");
       quick.push("lrs+10_1_av=off:fde=unused:irw=on:lcm=predicate:lma=on:nm=6:nwc=1:stl=30:sd=2:ss=axioms:st=5.0:sos=on:sp=reverse_arity_113");
+      quick.push("lrs-3_4:1_stl=300d:fde=none:sp=reverse_arity:lma=on:urr=on:afp=1000:gs=on:nwc=2:updr=off:lcm=reverse:sd=7:amm=sco:bd=off:afq=1.4:uhcvi=on:ss=axioms_11"); //Hack added AYB
     }
     break;
 

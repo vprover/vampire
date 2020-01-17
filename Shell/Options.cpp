@@ -1197,6 +1197,23 @@ void Options::Options::init()
     _combinatorySuperposition.reliesOn(_addCombAxioms.is(equal(false))); //no point having two together
     _combinatorySuperposition.tag(OptionTag::INFERENCES);
 
+
+    _choiceAxiom = BoolOptionValue("choice_ax","cha",false);
+    _choiceAxiom.description="Adds the cnf form of the Hilbert choice axiom";
+    _lookup.insert(&_choiceAxiom);
+    _choiceAxiom.tag(OptionTag::INFERENCES);
+
+    _injectivity = BoolOptionValue("injectivity","inj",false);
+    _injectivity.description="Attempts to identify injective functions and postulates a left-inverse";
+    _lookup.insert(&_injectivity);
+    _injectivity.tag(OptionTag::INFERENCES);
+
+    _pragmatic = BoolOptionValue("pragmatic","prag",false);
+    _pragmatic.description="Modifes various parameters to help Vampire solve 'hard' higher-order";
+    _pragmatic.reliesOn(_combinatorySuperposition.is(equal(true)));
+    _lookup.insert(&_pragmatic);
+    _pragmatic.tag(OptionTag::SATURATION);
+
     _maximumXXNarrows = IntOptionValue("max_XX_narrows","mXXn", 0);
     _maximumXXNarrows.description="Maximum number of BXX', CXX' and SXX' narrows that"
                                   "can be carried out 0 means that there is no limit. ";

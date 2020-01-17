@@ -35,6 +35,7 @@ public:
   static void addCombinatorAxioms(Problem& prb);
   static void addProxyAxioms(Problem& prb);
   static void addFunctionExtensionalityAxiom(Problem& prb);
+  static void addChoiceAxiom(Problem& prb);
   static Literal* toEquality(TermList booleanTerm, bool polarity);
   
 private:

@@ -167,6 +167,11 @@ void Preprocess::preprocess(Problem& prb)
 {
   CALL("Preprocess::preprocess");
 
+  //Hacky, to be undone when we have a proper schedule
+  if(env.options->pragmatic() && env.options->maxXXNarrows() == 0){
+    env.options->setMaxXX(2);
+  }
+
   // reorder units
   if (_options.normalize()) {
     env.statistics->phase=Statistics::NORMALIZATION;
@@ -231,6 +236,10 @@ void Preprocess::preprocess(Problem& prb)
 
   if(env.options->functionExtensionality() == Options::FunctionExtensionality::AXIOM){
     LambdaElimination::addFunctionExtensionalityAxiom(prb);
+  }
+
+  if(env.options->choiceAxiom()){
+    LambdaElimination::addChoiceAxiom(prb);    
   }
 
   prb.getProperty();

@@ -56,6 +56,7 @@
 #include "Inferences/EqualityResolution.hpp"
 //#include "Inferences/ExtensionalityResolution.hpp"
 #include "Inferences/FOOLParamodulation.hpp"
+#include "Inferences/Injectivity.hpp"
 #include "Inferences/Factoring.hpp"
 #include "Inferences/ForwardDemodulation.hpp"
 #include "Inferences/ForwardLiteralRewriting.hpp"
@@ -1359,7 +1360,9 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
     gie->addFront(new ArgCong());
     gie->addFront(new NegativeExt());//TODO add option
     gie->addFront(new Narrow());
-    gie->addFront(new SubVarSup());
+    if(!opt.pragmatic()){
+      gie->addFront(new SubVarSup());
+    }
   }
   /*else if(opt.unificationWithAbstraction()!=Options::UnificationWithAbstraction::OFF){
     gie->addFront(new EqualityResolution()); 
@@ -1376,6 +1379,10 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
   }*/
   if (opt.FOOLParamodulation() || (prb.hasApp() && prb.hasFOOL())) {
     gie->addFront(new FOOLParamodulation());
+  }
+
+  if (opt.injectivityReasoning()) {
+    gie->addFront(new Injectivity());
   }
   /*if(prb.hasEquality() && env.signature->hasTermAlgebras()) {
     if (opt.termAlgebraCyclicityCheck() == Options::TACyclicityCheck::RULE) {

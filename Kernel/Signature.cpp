@@ -706,6 +706,24 @@ unsigned Signature::getDiff(){
   return diff;
 }
 
+
+unsigned Signature::getChoice(){
+  CALL("Signature::getChoice");
+
+  bool added = false;
+  unsigned choice = addFunction("choice",1, added);      
+  if(added){
+    VarList* vl = new VarList(0);
+    TermList alpha = TermList(0, false);
+    TermList bs = Term::boolSort();
+    TermList alphaBs = Term::arrowSort(alpha, bs);
+    TermList result = Term::arrowSort(alphaBs, alpha);
+    Symbol * sym = getFunction(choice);
+    sym->setType(OperatorType::getConstantsType(result, vl));
+  }
+  return choice;
+}
+
 /**
  * If a predicate with this name and arity exists, return its number.
  * Otherwise, add a new one and return its number.

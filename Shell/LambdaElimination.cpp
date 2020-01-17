@@ -541,6 +541,41 @@ void LambdaElimination::addFunctionExtensionalityAxiom(Problem& prb)
   }
 }
 
+void LambdaElimination::addChoiceAxiom(Problem& prb)
+{
+  CALL("LambdaElimination::addChoiceAxiom"); 
+ 
+  auto srtOf = [] (TermList t) { 
+     ASS(t.isTerm());
+     return SortHelper::getResultSort(t.term());
+  };
+
+  TermList alpha = TermList(0, false);
+  TermList boolS = Term::boolSort();
+  TermList alphaBool = Term::arrowSort(alpha, Term::boolSort());
+  TermList p = TermList(1, false);
+  TermList x = TermList(2, false);
+  unsigned choice = env.signature->getChoice();
+
+  TermList choiceT = TermList(Term::create1(choice, alpha));
+  TermList choiceTApplied = AH::createAppTerm(alphaBool, alpha, choiceT, p);
+  TermList px = AH::createAppTerm(alpha, boolS, p, x);
+  TermList pchoiceT = AH::createAppTerm(alpha, boolS, p, choiceTApplied);
+
+  Inference* inf = new Inference(Inference::CHOICE_AXIOM);
+
+  Clause* choiceAx = new(2) Clause(2, Unit::AXIOM, inf);
+  (*choiceAx)[0] = Literal::createEquality(true, px, TermList(Term::foolFalse()), boolS);
+  (*choiceAx)[1] = Literal::createEquality(true, pchoiceT, TermList(Term::foolTrue()), boolS);
+  UnitList::push(choiceAx, prb.units());
+
+
+  if (env.options->showPreprocessing()) {
+    env.out() << "Added Hilbert choice axiom: " << std::endl;
+    env.out() << choiceAx->toString() << std::endl;       
+  }
+}
+
 void LambdaElimination::addProxyAxioms(Problem& prb)
 {
   CALL("LambdaElimination::addProxyAxioms");   

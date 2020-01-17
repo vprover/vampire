@@ -1858,6 +1858,7 @@ public:
   void setNormalize(bool normalize) { _normalize.actualValue = normalize; }
   GoalGuess guessTheGoal() const { return _guessTheGoal.actualValue; }
   unsigned gtgLimit() const { return _guessTheGoalLimit.actualValue; }
+  void setMaxXX(unsigned max) { _maximumXXNarrows.actualValue = max; }
 
   void setNaming(int n){ _naming.actualValue = n;} //TODO: ensure global constraints
   vstring include() const { return _include.actualValue; }
@@ -2111,6 +2112,9 @@ public:
   bool addCombAxioms() const { return _addCombAxioms.actualValue; }
   bool addProxyAxioms() const { return _addProxyAxioms.actualValue; }
   bool combinatorySup() const { return _combinatorySuperposition.actualValue; }
+  bool choiceAxiom() const { return _choiceAxiom.actualValue; }
+  bool injectivityReasoning() const { return _injectivity.actualValue; }
+  bool pragmatic() const { return _pragmatic.actualValue; }
   int maxXXNarrows() const { return _maximumXXNarrows.actualValue; }
   FunctionExtensionality functionExtensionality() const { return _functionExtensionality.actualValue; }
 
@@ -2489,6 +2493,9 @@ private:
   BoolOptionValue _addCombAxioms;
   BoolOptionValue _addProxyAxioms;
   BoolOptionValue _combinatorySuperposition;
+  BoolOptionValue _choiceAxiom;
+  BoolOptionValue _injectivity;
+  BoolOptionValue _pragmatic;
   IntOptionValue  _maximumXXNarrows;
   ChoiceOptionValue<FunctionExtensionality> _functionExtensionality;
 

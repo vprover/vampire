@@ -132,6 +132,18 @@ TermList ApplicativeHelper::getResultSort(TermList sort)
   return sort;
 }
 
+unsigned ApplicativeHelper::getArity(TermList sort)
+{
+  CALL("ApplicativeHelper::getArity");
+
+  unsigned arity = 0;
+  while(sort.isTerm() && env.signature->getFunction(sort.term()->functor())->arrow()){
+    sort = *sort.term()->nthArgument(1);
+    arity++; 
+  }
+  return arity;
+}
+
 void ApplicativeHelper::getHeadAndAllArgs(TermList term, TermList& head, TermStack& args)
 {
   CALL("ApplicativeHelper::getHeadAndAllArgs");

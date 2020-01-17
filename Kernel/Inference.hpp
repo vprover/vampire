@@ -344,7 +344,9 @@ public:
     /* normalising combinators */
     COMBINATOR_NORMALISE,
     /* negative extnsionality */
-    NEGATIVE_EXT
+    NEGATIVE_EXT,
+
+    INJECTIVITY
   }; // class Inference::Rule
 
   explicit Inference(Rule r);
