@@ -380,32 +380,35 @@ void AWPassiveClauseContainer::onLimitsUpdated(LimitsChangeType change)
   //of clauses, differing only in their order.
   //(unless one of _ageRation or _weightRatio is equal to 0)
 
-  unsigned ageLimit=limits->ageLimit();
-  unsigned weightLimit=limits->weightLimit();
-
   static Stack<Clause*> toRemove(256);
   ClauseQueue::Iterator wit(_weightQueue);
   while (wit.hasNext()) {
     Clause* cl=wit.next();
-//    bool shouldStay=limits->fulfillsLimits(cl);
     bool shouldStay=true;
-//    if (shouldStay && cl->age()==ageLimit) {
-    if (cl->age()>ageLimit) {
-      if (cl->weightForClauseSelection(_opt)>weightLimit) {
+    if (!limits->fulfilsAgeLimit(cl)) {
+      if (!limits->fulfilsWeightLimit(cl)) {
         shouldStay=false;
       }
-    } else if (cl->age()==ageLimit) {
+    } else if (cl->age()==limits->ageLimit()) {
       //clauses inferred from the clause will be over age limit...
+      // TODO: no, that's not necessarily correct:
+      //       1) if the clause is used as
+      //       side-premise in a simplification inference, the resulting
+      //       clause will have the age of the main-premise (which can be
+      //       any value).
       unsigned clen=cl->length();
       int maxSelWeight=0;
       for(unsigned i=0;i<clen;i++) {
         maxSelWeight=max((int)(*cl)[i]->weight(),maxSelWeight);
       }
-      //here we don't use the effective weight, as from a nongoal clause
-      //can be the goal one inferred.
-      // splitWeight is now used in weight() though
-      if (cl->weight()-maxSelWeight>=weightLimit) {
-	//and also over weight limit
+      // TODO: this lower bound is not correct:
+      //       if Avatar is used, then the child-clause could become splittable,
+      //       in which case we don't know any lower bound on the resulting components.
+      unsigned weightLowerBound = cl->weight() - maxSelWeight; // heuristic: we assume that at most one literal will be removed from the clause.
+      unsigned numeralWeight = 0; // heuristic: we don't know the numeral weight of the child, and conservatively assume that it is 0.
+      bool derivedFromGoal = true; // heuristic: we have to cover the case where the child has another parent which is a goal-clause. We conservatively assume that the result is a goal-clause.
+      if (!limits->fulfilsWeightLimit(weightLowerBound, numeralWeight, derivedFromGoal)) {
+	      //and also over weight limit
         shouldStay=false;
       }
     }
