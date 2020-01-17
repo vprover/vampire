@@ -50,7 +50,7 @@ using namespace Lib;
 using namespace Kernel;
 
 AWPassiveClauseContainer::AWPassiveClauseContainer(bool isOutermost, const Options& opt)
-: PassiveClauseContainer(isOutermost), _ageQueue(opt), _weightQueue(opt), _balance(0), _size(0), _opt(opt)
+: PassiveClauseContainer(isOutermost), _limits(opt), _ageQueue(opt), _weightQueue(opt), _balance(0), _size(0), _opt(opt)
 {
   CALL("AWPassiveClauseContainer::AWPassiveClauseContainer");
 
@@ -385,7 +385,7 @@ fin:
   cout<<env.timer->elapsedDeciseconds()<<"\tLimits to "<<maxAge<<"\t"<<maxWeight<<"\t by est "<<estReachableCnt<<"\n";
 #endif
 
-  bool atLeastOneLimitTightened = getSaturationAlgorithm()->getLimits()->setLimits(maxAgeQueueAge, maxAgeQueueWeight,maxWeightQueueWeight, maxWeightQueueAge);
+  bool atLeastOneLimitTightened = _limits.setLimits(maxAgeQueueAge, maxAgeQueueWeight,maxWeightQueueWeight, maxWeightQueueAge);
   if (atLeastOneLimitTightened) {
     onLimitsUpdated();
     getSaturationAlgorithm()->getLimits()->changedEvent.fire();

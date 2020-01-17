@@ -115,7 +115,6 @@ SaturationAlgorithm* SaturationAlgorithm::s_instance = 0;
  */
 SaturationAlgorithm::SaturationAlgorithm(Problem& prb, const Options& opt)
   : MainLoop(prb, opt),
-    _limits(opt),
     _clauseActivationInProgress(false),
     _fwSimplifiers(0), _bwSimplifiers(0), _splitter(0),
     _consFinder(0), _labelFinder(0), _symEl(0), _answerLiteralManager(0),
@@ -143,13 +142,12 @@ SaturationAlgorithm::SaturationAlgorithm(Problem& prb, const Options& opt)
   _unprocessed = new UnprocessedClauseContainer();
 
   if (opt.useManualClauseSelection()){
-    _passive = new ManCSPassiveClauseContainer(true);
+    _passive = new ManCSPassiveClauseContainer(true, opt);
   } else {
     _passive = (opt.useSplitQueues()) ?
         static_cast<PassiveClauseContainer*>(new PredicateSplitPassiveClauseContainer(true, opt)) :
         static_cast<PassiveClauseContainer*>(new AWPassiveClauseContainer(true, opt));
   }
-
   _active = new ActiveClauseContainer(opt);
 
   _active->attach(this);

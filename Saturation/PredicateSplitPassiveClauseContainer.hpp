@@ -47,6 +47,7 @@ public:
 
   ClauseIterator iterator();
 
+  virtual Limits* getLimits() { return &_limits;}
   void updateLimits(long long estReachableCnt) { /* TODO: the LRS stuff */}
 
   virtual unsigned size() const { ASS(!_queues.empty()); return _queues.back()->size(); }
@@ -60,6 +61,8 @@ private:
   Lib::vvector<unsigned> _ratios;
   Lib::vvector<float> _cutoffs;
   Lib::vvector<unsigned> _balances;
+
+  AWPassiveClauseContainerLimits _limits;
 
   unsigned bestQueueHeuristics(Clause* cl);
 

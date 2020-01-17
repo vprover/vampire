@@ -43,7 +43,7 @@ public:
   USE_ALLOCATOR(ManCSPassiveClauseContainer);
 
 
-  ManCSPassiveClauseContainer(bool isOutermost) : PassiveClauseContainer(isOutermost) {}
+  ManCSPassiveClauseContainer(bool isOutermost, const Options& opt) : PassiveClauseContainer(isOutermost), _limits(opt) {}
   virtual ~ManCSPassiveClauseContainer(){}
   
   virtual unsigned size() const;
@@ -55,8 +55,11 @@ public:
 
   Clause* popSelected();
   
+  virtual Limits* getLimits() { return &_limits;}
+
 private:
   std::vector<Clause*> clauses;
+  AWPassiveClauseContainerLimits _limits;
 };
 
 }

@@ -31,7 +31,7 @@
 namespace Saturation
 {
 
-bool Limits::fulfilsAgeLimit(Clause* cl) const
+bool AWPassiveClauseContainerLimits::fulfilsAgeLimit(Clause* cl) const
 {
   // don't want to reuse fulfilsAgeLimit(unsigned age,..) here, since we don't want to recompute weightForClauseSelection
   unsigned age = cl->age();
@@ -39,13 +39,13 @@ bool Limits::fulfilsAgeLimit(Clause* cl) const
   return age <= _ageSelectionMaxAge || (age == _ageSelectionMaxAge && weightForClauseSelection <= _ageSelectionMaxWeight);
 }
 
-bool Limits::fulfilsAgeLimit(unsigned age, unsigned w, unsigned numeralWeight, bool derivedFromGoal) const
+bool AWPassiveClauseContainerLimits::fulfilsAgeLimit(unsigned age, unsigned w, unsigned numeralWeight, bool derivedFromGoal, Inference* inference) const
 {
   unsigned weightForClauseSelection = Clause::computeWeightForClauseSelection(w, numeralWeight, derivedFromGoal, _opt);
   return age <= _ageSelectionMaxAge || (age == _ageSelectionMaxAge && weightForClauseSelection <= _ageSelectionMaxWeight);
 }
 
-bool Limits::fulfilsWeightLimit(Clause* cl) const
+bool AWPassiveClauseContainerLimits::fulfilsWeightLimit(Clause* cl) const
 {
   // don't want to reuse fulfilsWeightLimit(unsigned w,..) here, since we don't want to recompute weightForClauseSelection
   unsigned weightForClauseSelection = cl->weightForClauseSelection(_opt);
@@ -53,13 +53,13 @@ bool Limits::fulfilsWeightLimit(Clause* cl) const
   return weightForClauseSelection <= _weightSelectionMaxWeight || (weightForClauseSelection == _weightSelectionMaxWeight && age <= _weightSelectionMaxAge);
 }
 
-bool Limits::fulfilsWeightLimit(unsigned w, unsigned numeralWeight, bool derivedFromGoal, unsigned age) const
+bool AWPassiveClauseContainerLimits::fulfilsWeightLimit(unsigned w, unsigned numeralWeight, bool derivedFromGoal, unsigned age, Inference* inference) const
 {
   unsigned weightForClauseSelection = Clause::computeWeightForClauseSelection(w, numeralWeight, derivedFromGoal, _opt);
   return weightForClauseSelection <= _weightSelectionMaxWeight || (weightForClauseSelection == _weightSelectionMaxWeight && age <= _weightSelectionMaxAge);
 }
 
-bool Limits::childrenPotentiallyFulfilLimits(Clause* cl, unsigned upperBoundNumSelLits) const
+bool AWPassiveClauseContainerLimits::childrenPotentiallyFulfilLimits(Clause* cl, unsigned upperBoundNumSelLits) const
 {
   if (cl->age() == _ageSelectionMaxAge)
   {
@@ -76,7 +76,7 @@ bool Limits::childrenPotentiallyFulfilLimits(Clause* cl, unsigned upperBoundNumS
     unsigned weightLowerBound = cl->weight() - maxSelWeight; // heuristic: we assume that at most one literal will be removed from the clause.
     unsigned numeralWeight = 0; // heuristic: we don't know the numeral weight of the child, and conservatively assume that it is 0.
     bool derivedFromGoal = true; // heuristic: we have to cover the case where the child has another parent which is a goal-clause. We conservatively assume that the result is a goal-clause.
-    if (!fulfilsWeightLimit(weightLowerBound, numeralWeight, derivedFromGoal, childAge)) {
+    if (!fulfilsWeightLimit(weightLowerBound, numeralWeight, derivedFromGoal, childAge, nullptr)) {
       //and also over weight limit
       return false;
     }
@@ -84,7 +84,7 @@ bool Limits::childrenPotentiallyFulfilLimits(Clause* cl, unsigned upperBoundNumS
   return true;
 }
 
-bool Limits::setLimits(unsigned newAgeSelectionMaxAge, unsigned newAgeSelectionMaxWeight, unsigned newWeightSelectionMaxWeight, unsigned newWeightSelectionMaxAge)
+bool AWPassiveClauseContainerLimits::setLimits(unsigned newAgeSelectionMaxAge, unsigned newAgeSelectionMaxWeight, unsigned newWeightSelectionMaxWeight, unsigned newWeightSelectionMaxAge)
 {
   CALL("Limits::setLimits");
 

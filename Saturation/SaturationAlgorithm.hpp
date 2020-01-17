@@ -110,7 +110,7 @@ public:
   size_t activeClauseCount();
   size_t passiveClauseCount();
 
-  Limits* getLimits() { return &_limits; }
+  Limits* getLimits() { return _passive->getLimits(); }
   IndexManager* getIndexManager() { return _imgr.ptr(); }
   AnswerLiteralManager* getAnswerLiteralManager() { return _answerLiteralManager; }
   Ordering& getOrdering() const { return *_ordering; }
@@ -172,7 +172,6 @@ private:
   void handleEmptyClause(Clause* cl);
   Clause* doImmediateSimplification(Clause* cl);
   MainLoopResult saturateImpl();
-  Limits _limits;
   SmartPtr<IndexManager> _imgr;
 
   class TotalSimplificationPerformer;

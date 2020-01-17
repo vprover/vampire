@@ -92,6 +92,7 @@ public:
 
   ClauseIterator iterator();
 
+  virtual Limits* getLimits() { return &_limits;}
   void updateLimits(long long estReachableCnt);
 
   virtual unsigned size() const { return _size; }
@@ -102,7 +103,7 @@ protected:
   void onLimitsUpdated();
 
 private:
-
+  AWPassiveClauseContainerLimits _limits;
   /** The age queue, empty if _ageRatio=0 */
   AgeQueue _ageQueue;
   /** The weight queue, empty if _weightRatio=0 */
