@@ -52,6 +52,30 @@ bool Limits::fulfilsWeightLimit(unsigned int w, unsigned int numeralWeight, bool
   return !weightLimited() || weightForClauseSelection <= _weightSelectionMaxWeight;
 }
 
+bool Limits::childrenPotentiallyFulfilLimits(Clause* cl) const
+{
+  if (cl->age() == _ageSelectionMaxAge)
+  {
+    // clauses inferred from the clause as generating inferences will be over age limit...
+    unsigned clen=cl->length();
+    int maxSelWeight=0;
+    for(unsigned i=0;i<clen;i++) {
+      maxSelWeight=max((int)(*cl)[i]->weight(),maxSelWeight);
+    }
+    // TODO: this lower bound is not correct:
+    //       if Avatar is used, then the child-clause could become splittable,
+    //       in which case we don't know any lower bound on the resulting components.
+    unsigned weightLowerBound = cl->weight() - maxSelWeight; // heuristic: we assume that at most one literal will be removed from the clause.
+    unsigned numeralWeight = 0; // heuristic: we don't know the numeral weight of the child, and conservatively assume that it is 0.
+    bool derivedFromGoal = true; // heuristic: we have to cover the case where the child has another parent which is a goal-clause. We conservatively assume that the result is a goal-clause.
+    if (!fulfilsWeightLimit(weightLowerBound, numeralWeight, derivedFromGoal)) {
+      //and also over weight limit
+      return false;
+    }
+  }
+  return true;
+}
+
 void Limits::setLimits(int newMaxAge, int newMaxWeight,bool initial)
 {
   CALL("Limits::setLimits");

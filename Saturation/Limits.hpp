@@ -66,7 +66,7 @@ public:
   // note: w here denotes the weight as returned by weight().
   // this method internally takes care of computing the corresponding weightForClauseSelection.
   bool fulfilsWeightLimit(unsigned int w, unsigned int numeralWeight, bool derivedFromGoal) const;
-
+  bool childrenPotentiallyFulfilLimits(Clause* cl) const;
   void setLimits(int newMaxAge, int newMaxWeight,bool initial=false);
 
 private:

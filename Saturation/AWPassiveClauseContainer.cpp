@@ -384,35 +384,9 @@ void AWPassiveClauseContainer::onLimitsUpdated(LimitsChangeType change)
   ClauseQueue::Iterator wit(_weightQueue);
   while (wit.hasNext()) {
     Clause* cl=wit.next();
-    bool shouldStay=true;
-    if (!limits->fulfilsAgeLimit(cl)) {
-      if (!limits->fulfilsWeightLimit(cl)) {
-        shouldStay=false;
-      }
-    } else if (cl->age()==limits->ageLimit()) {
-      //clauses inferred from the clause will be over age limit...
-      // TODO: no, that's not necessarily correct:
-      //       1) if the clause is used as
-      //       side-premise in a simplification inference, the resulting
-      //       clause will have the age of the main-premise (which can be
-      //       any value).
-      unsigned clen=cl->length();
-      int maxSelWeight=0;
-      for(unsigned i=0;i<clen;i++) {
-        maxSelWeight=max((int)(*cl)[i]->weight(),maxSelWeight);
-      }
-      // TODO: this lower bound is not correct:
-      //       if Avatar is used, then the child-clause could become splittable,
-      //       in which case we don't know any lower bound on the resulting components.
-      unsigned weightLowerBound = cl->weight() - maxSelWeight; // heuristic: we assume that at most one literal will be removed from the clause.
-      unsigned numeralWeight = 0; // heuristic: we don't know the numeral weight of the child, and conservatively assume that it is 0.
-      bool derivedFromGoal = true; // heuristic: we have to cover the case where the child has another parent which is a goal-clause. We conservatively assume that the result is a goal-clause.
-      if (!limits->fulfilsWeightLimit(weightLowerBound, numeralWeight, derivedFromGoal)) {
-	      //and also over weight limit
-        shouldStay=false;
-      }
-    }
-    if (!shouldStay) {
+    if (!limits->fulfilsAgeLimit(cl) && !limits->fulfilsWeightLimit(cl)) {
+      toRemove.push(cl);
+    } else if (!limits->childrenPotentiallyFulfilLimits(cl)) {
       toRemove.push(cl);
     }
   }
