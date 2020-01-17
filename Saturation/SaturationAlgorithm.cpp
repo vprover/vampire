@@ -170,10 +170,6 @@ SaturationAlgorithm::SaturationAlgorithm(Problem& prb, const Options& opt)
   } else {
     _extensionality = 0;
   }
-  
-  if (opt.maxWeight()) {
-    _limits.setLimits(0,0,opt.maxWeight(),UINT_MAX);
-  }
 
   s_instance=this;
 }

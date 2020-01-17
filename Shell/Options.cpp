@@ -1723,11 +1723,6 @@ void Options::Options::init()
     //_lookup.insert(&_maxPassive);
     _maxPassive.tag(OptionTag::OTHER);
 
-    _maxWeight = IntOptionValue("max_weight","",0);
-    _maxWeight.description="Weight limit for clauses (0 means no weight limit)";
-    _lookup.insert(&_maxWeight);
-    _maxWeight.tag(OptionTag::SATURATION);
-
     _nonGoalWeightCoefficient = NonGoalWeightOptionValue("nongoal_weight_coefficient","nwc",1.0);
     _nonGoalWeightCoefficient.description=
              "coefficient that will multiply the weight of theory clauses (those marked as 'axiom' in TPTP)";
@@ -3005,10 +3000,6 @@ bool Options::complete(const Problem& prb) const
   //we did some transformation that made us lose completeness
   //(e.g. equality proxy replacing equality for reflexive predicate)
   if (prb.hadIncompleteTransformation()) {
-    return false;
-  }
-
-  if(_maxWeight.actualValue > 0){
     return false;
   }
 
