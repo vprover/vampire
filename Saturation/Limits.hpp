@@ -55,9 +55,7 @@ public:
 
   LimitsChangeEvent changedEvent;
 
-  unsigned ageLimit() const { return _ageSelectionMaxAge; }                       // implicit cast will turn -1 to UINT_MAX, which may be intended
   bool ageLimited() const { return _ageSelectionMaxAge !=-1; }
-
   bool weightLimited() const { return _weightSelectionMaxWeight!=-1; }
 
   bool fulfilsAgeLimit(Clause* c) const;
