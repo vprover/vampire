@@ -873,7 +873,7 @@ bool SaturationAlgorithm::forwardSimplify(Clause* cl)
 {
   CALL("SaturationAlgorithm::forwardSimplify");
 
-  if (!getLimits()->fulfillsLimits(cl)) {
+  if (!getLimits()->fulfilsAgeLimit(cl) && !getLimits()->fulfilsWeightLimit(cl)) {
     RSTAT_CTR_INC("clauses discarded by weight limit in forward simplification");
     env.statistics->discardedNonRedundantClauses++;
     return false;

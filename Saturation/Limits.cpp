@@ -31,14 +31,25 @@
 namespace Saturation
 {
 
-bool Limits::fulfillsLimits(Clause* cl)
+bool Limits::fulfilsAgeLimit(Clause* cl) const
 {
-  CALL("Limits::fulfillsLimits");
+  return fulfilsAgeLimit(cl->age());
+}
 
-  if(!ageLimited() || !weightLimited()) {
-    return true;
-  }
-  return (cl->age() <= ageLimit()) || (cl->weightForClauseSelection(_opt) <= weightLimit());
+bool Limits::fulfilsAgeLimit(unsigned age) const
+{
+  return !ageLimited() || age <= _maxAge;
+}
+
+bool Limits::fulfilsWeightLimit(Clause* cl) const
+{
+  return !weightLimited() || (cl->weightForClauseSelection(_opt) <= _maxWeight);
+}
+
+bool Limits::fulfilsWeightLimit(unsigned int w, unsigned int numeralWeight, bool derivedFromGoal) const
+{
+  float weightForClauseSelection = Clause::computeWeightForClauseSelection(w, numeralWeight, derivedFromGoal, _opt);
+  return !weightLimited() || weightForClauseSelection <= _maxWeight;
 }
 
 void Limits::setLimits(int newMaxAge, int newMaxWeight,bool initial)

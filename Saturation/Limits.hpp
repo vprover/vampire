@@ -55,14 +55,19 @@ public:
 
   LimitsChangeEvent changedEvent;
 
-  unsigned ageLimit() { return _maxAge; }                       // implicit cast will turn -1 to UINT_MAX, which may be intended
-  bool ageLimited() { return _maxAge!=-1; }
+  unsigned ageLimit() const { return _maxAge; }                       // implicit cast will turn -1 to UINT_MAX, which may be intended
+  bool ageLimited() const { return _maxAge!=-1; }
 
-  unsigned weightLimit() { return _maxWeight; }                 // implicit cast will turn -1 to UINT_MAX, which may be intended
-  unsigned nonGoalWeightLimit() { return _maxNonGoalWeight; }   // implicit cast will turn -1 to UINT_MAX, which may be intended
-  bool weightLimited() { return _maxWeight!=-1; }
+  unsigned weightLimit() const { return _maxWeight; }                 // implicit cast will turn -1 to UINT_MAX, which may be intended
+  unsigned nonGoalWeightLimit() const { return _maxNonGoalWeight; }   // implicit cast will turn -1 to UINT_MAX, which may be intended
+  bool weightLimited() const { return _maxWeight!=-1; }
 
-  bool fulfillsLimits(Clause* cl);
+  bool fulfilsAgeLimit(Clause* c) const;
+  bool fulfilsAgeLimit(unsigned age) const;
+  bool fulfilsWeightLimit(Clause* cl) const;
+  // note: w here denotes the weight as returned by weight().
+  // this method internally takes care of computing the corresponding weightForClauseSelection.
+  bool fulfilsWeightLimit(unsigned int w, unsigned int numeralWeight, bool derivedFromGoal) const;
 
   void setLimits(int newMaxAge, int newMaxWeight,bool initial=false);
 
