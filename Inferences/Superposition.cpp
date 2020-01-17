@@ -257,26 +257,6 @@ bool Superposition::checkClauseColorCompatibility(Clause* eqClause, Clause* rwCl
 }
 
 /**
- * Return weight limit for the resulting clause, or -1 if there is no limit.
- */
-int Superposition::getWeightLimit(Clause* eqClause, Clause* rwClause, Limits* limits)
-{
-  CALL("Superposition::getWeightLimit");
-
-  unsigned newAge=Int::max(rwClause->age(),eqClause->age())+1;
-
-  if(!limits->ageLimited() || newAge <= limits->ageLimit() || !limits->weightLimited()) {
-    return -1;
-  }
-  bool isNonGoal=!rwClause->isGoal() && !eqClause->isGoal();
-  if(isNonGoal) {
-    return limits->nonGoalWeightLimit();
-  } else {
-    return limits->weightLimit();
-  }
-}
-
-/**
  * Return false iff superposition from variable @c eqLHS should not be
  * performed.
  *
@@ -326,11 +306,11 @@ bool Superposition::checkSuperpositionFromVariable(Clause* eqClause, Literal* eq
  */
 bool Superposition::earlyWeightLimitCheck(Clause* eqClause, Literal* eqLit,
       Clause* rwClause, Literal* rwLit, TermList rwTerm, TermList eqLHS, TermList eqRHS,
-      ResultSubstitutionSP subst, bool eqIsResult, int weightLimit)
+      ResultSubstitutionSP subst, bool eqIsResult, Limits* limits, unsigned numeralWeight, bool derivedFromGoal)
 {
   CALL("Superposition::earlyWeightLimitCheck");
 
-  int nonInvolvedLiteralWLB=0;//weight lower bound for literals that aren't going to be rewritten
+  unsigned nonInvolvedLiteralWLB=0;//weight lower bound for literals that aren't going to be rewritten
 
   unsigned rwLength = rwClause->length();
   for(unsigned i=0;i<rwLength;i++) {
@@ -346,24 +326,23 @@ bool Superposition::earlyWeightLimitCheck(Clause* eqClause, Literal* eqLit,
       nonInvolvedLiteralWLB+=curr->weight();
     }
   }
-  int remainingLimit = weightLimit-nonInvolvedLiteralWLB;
 
   //we assume that there will be at least one rewrite in the rwLit
 
-  if(remainingLimit < static_cast<int>(eqRHS.weight())) {
+  if(!limits->fulfilsWeightLimit(nonInvolvedLiteralWLB + eqRHS.weight(), numeralWeight, derivedFromGoal)) {
     env.statistics->discardedNonRedundantClauses++;
     RSTAT_CTR_INC("superpositions weight skipped early");
     return false;
   }
 
-  int lhsSWeight = subst->getApplicationWeight(eqLHS, eqIsResult);
-  int rhsSWeight = subst->getApplicationWeight(eqRHS, eqIsResult);
-  int rwrBalance = rhsSWeight-lhsSWeight;
+  unsigned lhsSWeight = subst->getApplicationWeight(eqLHS, eqIsResult);
+  unsigned rhsSWeight = subst->getApplicationWeight(eqRHS, eqIsResult);
+  unsigned rwrBalance = rhsSWeight-lhsSWeight;
 
   if(rwrBalance>=0) {
     //there must be at least one rewriting, possibly more
-    int approxWeight = rwLit->weight()+rwrBalance;
-    if(approxWeight > remainingLimit) {
+    unsigned approxWeight = rwLit->weight()+rwrBalance;
+    if(!limits->fulfilsWeightLimit(nonInvolvedLiteralWLB + approxWeight, numeralWeight, derivedFromGoal)) {
       env.statistics->discardedNonRedundantClauses++;
       RSTAT_CTR_INC("superpositions weight skipped after rewriter weight retrieval");
       return false;
@@ -373,18 +352,18 @@ bool Superposition::earlyWeightLimitCheck(Clause* eqClause, Literal* eqLit,
   size_t rwrCnt = (rwrBalance==0) ? 0 : getSubtermOccurrenceCount(rwLit, rwTerm);
   if(rwrCnt>1) {
     ASS_GE(rwrCnt, 1);
-    int approxWeight = rwLit->weight()+static_cast<int>(rwrBalance*rwrCnt);
-    if(approxWeight > remainingLimit) {
+    unsigned approxWeight = rwLit->weight()+(rwrBalance*rwrCnt);
+    if(!limits->fulfilsWeightLimit(nonInvolvedLiteralWLB + approxWeight, numeralWeight, derivedFromGoal)) {
       env.statistics->discardedNonRedundantClauses++;
       RSTAT_CTR_INC("superpositions weight skipped after rewriter weight retrieval with occurrence counting");
       return false;
     }
   }
 
-  int rwLitSWeight = subst->getApplicationWeight(rwLit, !eqIsResult);
+  unsigned rwLitSWeight = subst->getApplicationWeight(rwLit, !eqIsResult);
 
-  int finalLitWeight = rwLitSWeight+static_cast<int>(rwrBalance*rwrCnt);
-  if(finalLitWeight > remainingLimit) {
+  unsigned finalLitWeight = rwLitSWeight+(rwrBalance*rwrCnt);
+  if(!limits->fulfilsWeightLimit(nonInvolvedLiteralWLB + finalLitWeight, numeralWeight, derivedFromGoal)) {
     env.statistics->discardedNonRedundantClauses++;
     RSTAT_CTR_INC("superpositions weight skipped after rewrited literal weight retrieval");
     return false;
@@ -471,9 +450,15 @@ Clause* Superposition::performSuperposition(
 
   TermList tgtTerm = EqHelper::getOtherEqualitySide(eqLit, eqLHS);
 
-  int weightLimit = getWeightLimit(eqClause, rwClause, limits);
-  if(weightLimit!=-1) {
-    if(!earlyWeightLimitCheck(eqClause, eqLit, rwClause, rwLit, rwTerm, eqLHS, tgtTerm, subst, eqIsResult, weightLimit)) {
+  // LRS-specific optimization:
+  // check whether we can conclude that the resulting clause will be discarded by LRS since it does not fulfil the age/weight limits (in which case we can discard the clause)
+  // we already know the age here so we can immediately conclude whether the clause fulfils the age limit
+  // since we have not built the clause yet we compute lower bounds on the weight of the clause after each step and recheck whether the weight-limit can still be fulfilled.
+  bool needsToFulfilWeightLimit = limits && !limits->fulfilsAgeLimit(newAge) && limits->weightLimited();
+  bool derivedFromGoal= rwClause->isGoal() || eqClause->isGoal();
+  unsigned numeralWeight = 0; // heuristic: we don't want to compute the numeral weight here, and conservatively assume that it is 0.
+  if(needsToFulfilWeightLimit) {
+    if(!earlyWeightLimitCheck(eqClause, eqLit, rwClause, rwLit, rwTerm, eqLHS, tgtTerm, subst, eqIsResult, limits, numeralWeight, derivedFromGoal)) {
       return 0;
     }
   }
@@ -573,7 +558,7 @@ Clause* Superposition::performSuperposition(
 
   (*res)[0] = tgtLitS;
   int next = 1;
-  int weight=tgtLitS->weight();
+  unsigned weight=tgtLitS->weight();
   for(unsigned i=0;i<rwLength;i++) {
     Literal* curr=(*rwClause)[i];
     if(curr!=rwLit) {
@@ -587,9 +572,9 @@ Clause* Superposition::performSuperposition(
         goto construction_fail;
       }
 
-      if(weightLimit!=-1) {
+      if(needsToFulfilWeightLimit) {
         weight+=currAfter->weight();
-        if(weight>weightLimit) {
+        if(!limits->fulfilsWeightLimit(weight, numeralWeight, derivedFromGoal)) {
           RSTAT_CTR_INC("superpositions skipped for weight limit while constructing other literals");
           env.statistics->discardedNonRedundantClauses++;
           goto construction_fail;
@@ -623,9 +608,9 @@ Clause* Superposition::performSuperposition(
         if(EqHelper::isEqTautology(currAfter)) {
           goto construction_fail;
         }
-        if(weightLimit!=-1) {
+        if(needsToFulfilWeightLimit) {
           weight+=currAfter->weight();
-          if(weight>weightLimit) {
+          if(!limits->fulfilsWeightLimit(weight, numeralWeight, derivedFromGoal)) {
             RSTAT_CTR_INC("superpositions skipped for weight limit while constructing other literals");
             env.statistics->discardedNonRedundantClauses++;
             goto construction_fail;
@@ -673,14 +658,13 @@ Clause* Superposition::performSuperposition(
     }
   }
 
-  if(weightLimit!=-1 && weight>weightLimit) {
+  if(needsToFulfilWeightLimit && !limits->fulfilsWeightLimit(weight, numeralWeight, derivedFromGoal)) {
     RSTAT_CTR_INC("superpositions skipped for weight limit after the clause was built");
     env.statistics->discardedNonRedundantClauses++;
     construction_fail:
     res->destroy();
     return 0;
   }
-  ASS(weightLimit==-1 || weight<=weightLimit);
 
   res->setAge(newAge);
 
