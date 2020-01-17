@@ -1050,7 +1050,7 @@ void Options::Options::init()
             _backwardSubsumptionDemodulation.setRandomChoices({"on","off"});
             _backwardSubsumptionDemodulation.setExperimental();
 
-            _backwardSubsumptionDemodulationMaxMatches = UnsignedOptionValue("backward_subsumption_demodulation_max_matches", "bsdmm", 1);
+            _backwardSubsumptionDemodulationMaxMatches = UnsignedOptionValue("backward_subsumption_demodulation_max_matches", "bsdmm", 0);
             _backwardSubsumptionDemodulationMaxMatches.description = "Maximum number of multi-literal matches to consider in backward subsumption demodulation. 0 means to try all matches (until first success).";
             _lookup.insert(&_backwardSubsumptionDemodulationMaxMatches);
             _backwardSubsumptionDemodulationMaxMatches.tag(OptionTag::INFERENCES);
@@ -1214,7 +1214,7 @@ void Options::Options::init()
     _forwardSubsumptionDemodulation.setRandomChoices({"off","v1","v2","v3"});
     _forwardSubsumptionDemodulation.setExperimental();
 
-    _forwardSubsumptionDemodulationMaxMatches = UnsignedOptionValue("forward_subsumption_demodulation_max_matches", "fsdmm", 1);
+    _forwardSubsumptionDemodulationMaxMatches = UnsignedOptionValue("forward_subsumption_demodulation_max_matches", "fsdmm", 0);
     _forwardSubsumptionDemodulationMaxMatches.description = "Maximum number of multi-literal matches to consider in forward subsumption demodulation. 0 means to try all matches (until first success).";
     _lookup.insert(&_forwardSubsumptionDemodulationMaxMatches);
     _forwardSubsumptionDemodulationMaxMatches.tag(OptionTag::INFERENCES);
