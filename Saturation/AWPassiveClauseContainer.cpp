@@ -355,10 +355,10 @@ void AWPassiveClauseContainer::updateLimits(long long estReachableCnt)
     maxWeightQueueAge = (_weightRatio && wcl!=0) ? UINT_MAX : 0;
     if (acl!=0 && ait.hasNext()) {
       maxAgeQueueAge = acl->age();
-      maxAgeQueueWeight = static_cast<int>(ceil(acl->weightForClauseSelection(_opt)));
+      maxAgeQueueWeight = acl->weightForClauseSelection(_opt);
     }
     if (wcl!=0 && wit.hasNext()) {
-      maxWeightQueueWeight = static_cast<int>(ceil(wcl->weightForClauseSelection(_opt)));
+      maxWeightQueueWeight = wcl->weightForClauseSelection(_opt);
       maxWeightQueueAge = wcl->age();
     }
   }

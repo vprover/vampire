@@ -1999,7 +1999,8 @@ public:
   TACyclicityCheck termAlgebraCyclicityCheck() const { return _termAlgebraCyclicityCheck.actualValue; }
   unsigned extensionalityMaxLength() const { return _extensionalityMaxLength.actualValue; }
   bool extensionalityAllowPosEq() const { return _extensionalityAllowPosEq.actualValue; }
-  float nongoalWeightCoefficient() const { return _nonGoalWeightCoefficient.actualValue; }
+  unsigned nongoalWeightCoefficientNumerator() const { return _nonGoalWeightCoefficient.numerator; }
+  unsigned nongoalWeightCoefficientDenominator() const { return _nonGoalWeightCoefficient.denominator; }
   bool restrictNWCtoGC() const { return _restrictNWCtoGC.actualValue; }
   Sos sos() const { return _sos.actualValue; }
   unsigned sosTheoryLimit() const { return _sosTheoryLimit.actualValue; }

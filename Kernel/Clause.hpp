@@ -174,7 +174,7 @@ public:
   /**
    * weight used for clause selection
    */
-  float weightForClauseSelection(const Shell::Options& opt)
+  unsigned weightForClauseSelection(const Shell::Options& opt)
   {
     if(!_weightForClauseSelection) {
       computeWeightForClauseSelection(opt);
@@ -186,7 +186,7 @@ public:
   /*
    * single source of truth for computation of weightForClauseSelection
    */
-  static float computeWeightForClauseSelection(unsigned w, unsigned numeralWeight, bool derivedFromGoal, const Shell::Options& opt);
+  static unsigned computeWeightForClauseSelection(unsigned w, unsigned numeralWeight, bool derivedFromGoal, const Shell::Options& opt);
 
   /** Return the color of a clause */
   Color color() const
@@ -468,7 +468,7 @@ protected:
   /** weight */
   mutable unsigned _weight;
   /** weight for clause selection */
-  float _weightForClauseSelection;
+  unsigned _weightForClauseSelection;
   /** storage class */
   Store _store;
   /** number of references to this clause */

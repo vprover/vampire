@@ -35,7 +35,7 @@ bool Limits::fulfilsAgeLimit(Clause* cl) const
 {
   // don't want to reuse fulfilsAgeLimit(unsigned age,..) here, since we don't want to recompute weightForClauseSelection
   unsigned age = cl->age();
-  float weightForClauseSelection = cl->weightForClauseSelection(_opt);
+  unsigned weightForClauseSelection = cl->weightForClauseSelection(_opt);
   return age <= _ageSelectionMaxAge || (age == _ageSelectionMaxAge && weightForClauseSelection <= _ageSelectionMaxWeight);
 }
 
@@ -48,14 +48,14 @@ bool Limits::fulfilsAgeLimit(unsigned age, unsigned w, unsigned numeralWeight, b
 bool Limits::fulfilsWeightLimit(Clause* cl) const
 {
   // don't want to reuse fulfilsWeightLimit(unsigned w,..) here, since we don't want to recompute weightForClauseSelection
-  float weightForClauseSelection = cl->weightForClauseSelection(_opt);
+  unsigned weightForClauseSelection = cl->weightForClauseSelection(_opt);
   unsigned age = cl->age();
   return weightForClauseSelection <= _weightSelectionMaxWeight || (weightForClauseSelection == _weightSelectionMaxWeight && age <= _weightSelectionMaxAge);
 }
 
 bool Limits::fulfilsWeightLimit(unsigned w, unsigned numeralWeight, bool derivedFromGoal, unsigned age) const
 {
-  float weightForClauseSelection = Clause::computeWeightForClauseSelection(w, numeralWeight, derivedFromGoal, _opt);
+  unsigned weightForClauseSelection = Clause::computeWeightForClauseSelection(w, numeralWeight, derivedFromGoal, _opt);
   return weightForClauseSelection <= _weightSelectionMaxWeight || (weightForClauseSelection == _weightSelectionMaxWeight && age <= _weightSelectionMaxAge);
 }
 

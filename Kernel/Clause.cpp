@@ -79,7 +79,7 @@ Clause::Clause(unsigned length,InputType it,Inference* inf)
     _numSelected(0),
     _age(0),
     _weight(0),
-    _weightForClauseSelection(0.0f),
+    _weightForClauseSelection(0),
     _store(NONE),
     _refCnt(0),
     _reductionTimestamp(0),
@@ -435,10 +435,9 @@ vstring Clause::toString() const
     result += vstring("a:") + Int::toString(_age);
     result += vstring(",w:") + Int::toString(weight());
     
-    float weightForClauseSelection = const_cast<Clause*>(this)->weightForClauseSelection(const_cast<Shell::Options&>(*(env.options)));
-    unsigned castedWeightForClauseSelection = static_cast<int>(ceil(weightForClauseSelection));
-    if(castedWeightForClauseSelection!=weight()){
-      result += vstring(",wCS:") + Int::toString(castedWeightForClauseSelection);
+    unsigned weightForClauseSelection = const_cast<Clause*>(this)->weightForClauseSelection(const_cast<Shell::Options&>(*(env.options)));
+    if(weightForClauseSelection!=weight()){
+      result += vstring(",wCS:") + Int::toString(weightForClauseSelection);
     }
 
     if (numSelected()>0) {
@@ -651,14 +650,15 @@ void Clause::computeWeightForClauseSelection(const Options& opt)
  * note: we currently assume in Clause::computeWeightForClauseSelection(opt) that numeralWeight is only used here if
  * the option increasedNumeralWeight() is set to true.
  */
-float Clause::computeWeightForClauseSelection(unsigned w, unsigned numeralWeight, bool derivedFromGoal, const Shell::Options& opt)
+unsigned Clause::computeWeightForClauseSelection(unsigned w, unsigned numeralWeight, bool derivedFromGoal, const Shell::Options& opt)
 {
-  static float nongoalWeightCoef=opt.nongoalWeightCoefficient();
+  static unsigned nongoalWeightCoeffNum = opt.nongoalWeightCoefficientNumerator();
+  static unsigned nongoalWeightCoefDenom = opt.nongoalWeightCoefficientDenominator();
 
   if (opt.increasedNumeralWeight()) {
     w = (2 * w + numeralWeight);
   }
-  return w * ( !derivedFromGoal ? nongoalWeightCoef : 1.0f);
+  return w * ( !derivedFromGoal ? nongoalWeightCoeffNum : nongoalWeightCoefDenom);
 }
 
 void Clause::collectVars(DHSet<unsigned>& acc)
