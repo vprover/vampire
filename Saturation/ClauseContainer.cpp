@@ -172,7 +172,6 @@ void ActiveClauseContainer::onLimitsUpdated(LimitsChangeType change)
   }
 
   unsigned ageLimit=limits->ageLimit();
-  unsigned weightLimit=limits->weightLimit();
 
   static DHSet<Clause*> checked;
   static Stack<Clause*> toRemove(64);
@@ -189,8 +188,8 @@ void ActiveClauseContainer::onLimitsUpdated(LimitsChangeType change)
     checked.insert(cl);
 
     bool shouldRemove;
-    if (cl->age()>ageLimit) {
-      shouldRemove=cl->weightForClauseSelection(_opt)>weightLimit;
+    if (!limits->fulfilsAgeLimit(cl)) {
+      shouldRemove=!limits->fulfilsWeightLimit(cl);
     }
     else {
       unsigned selCnt=cl->numSelected();
@@ -198,15 +197,10 @@ void ActiveClauseContainer::onLimitsUpdated(LimitsChangeType change)
       for(unsigned i=0;i<selCnt;i++) {
         maxSelWeight=max((*cl)[i]->weight(),maxSelWeight);
       }
-      // This weight() value now includes splitWeights (if the appropriate option is set, 
-      //                                                which it didn't before)
-      // Makes sense as weight() is used like this elsewhere to reflect whether
-      // the clause is used.
-      // Note that the idea behind this branch seems to be that we want to check if
-      //  the clause is still too heavy without the heaviest selected literal.
-      //  Increasing weight() will make this more likely, increasing the liklihood of
-      //  highly dependent clauses being discarded (in LRS)
-      shouldRemove=cl->weight()-(int)maxSelWeight>=weightLimit;
+      unsigned weightLowerBound = cl->weight() - maxSelWeight; // heuristic: we assume that at most one literal will be removed from the clause.
+      unsigned numeralWeight = 0; // heuristic: we don't know the numeral weight of the child, and conservatively assume that it is 0.
+      bool derivedFromGoal = true; // heuristic: we have to cover the case where the child has another parent which is a goal-clause. We conservatively assume that the result is a goal-clause.
+      shouldRemove = !limits->fulfilsWeightLimit(weightLowerBound, numeralWeight, derivedFromGoal);
     }
 
     if (shouldRemove) {
