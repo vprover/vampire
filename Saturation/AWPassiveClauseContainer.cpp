@@ -310,36 +310,36 @@ void AWPassiveClauseContainer::updateLimits(long long estReachableCnt)
     if (_ageRatio==0 || (_opt.lrsWeightLimitOnly() && _weightRatio!=0) ) {
       ASS(wit.hasNext());
       while ( remains && wit.hasNext() ) {
-	wcl=wit.next();
-	remains--;
+        wcl=wit.next();
+        remains--;
       }
     } else if (_weightRatio==0) {
       ASS(ait.hasNext());
       while ( remains && ait.hasNext() ) {
-	acl=ait.next();
-	remains--;
+        acl=ait.next();
+        remains--;
       }
     } else {
       ASS(wit.hasNext()&&ait.hasNext());
 
       int balance=(_ageRatio<=_weightRatio)?1:0;
       while (remains) {
-	ASS_G(remains,0);
-	if ( (balance>0 || !ait.hasNext()) && wit.hasNext()) {
-	  wcl=wit.next();
-	  if (!acl || _ageQueue.lessThan(acl, wcl)) {
-	    balance-=_ageRatio;
-	    remains--;
-	  }
-	} else if (ait.hasNext()){
-	  acl=ait.next();
-	  if (!wcl || _weightQueue.lessThan(wcl, acl)) {
-	    balance+=_weightRatio;
-	    remains--;
-	  }
-	} else {
-	  break;
-	}
+        ASS_G(remains,0);
+        if ( (balance>0 || !ait.hasNext()) && wit.hasNext()) {
+          wcl=wit.next();
+          if (!acl || _ageQueue.lessThan(acl, wcl)) {
+            balance-=_ageRatio;
+            remains--;
+          }
+        } else if (ait.hasNext()){
+          acl=ait.next();
+          if (!wcl || _weightQueue.lessThan(wcl, acl)) {
+            balance+=_weightRatio;
+            remains--;
+          }
+        } else {
+          break;
+        }
       }
     }
 
