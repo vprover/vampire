@@ -38,18 +38,18 @@ bool Limits::fulfilsAgeLimit(Clause* cl) const
 
 bool Limits::fulfilsAgeLimit(unsigned age) const
 {
-  return !ageLimited() || age <= _maxAge;
+  return !ageLimited() || age <= _ageSelectionMaxAge;
 }
 
 bool Limits::fulfilsWeightLimit(Clause* cl) const
 {
-  return !weightLimited() || (cl->weightForClauseSelection(_opt) <= _maxWeight);
+  return !weightLimited() || (cl->weightForClauseSelection(_opt) <= _weightSelectionMaxWeight);
 }
 
 bool Limits::fulfilsWeightLimit(unsigned int w, unsigned int numeralWeight, bool derivedFromGoal) const
 {
   float weightForClauseSelection = Clause::computeWeightForClauseSelection(w, numeralWeight, derivedFromGoal, _opt);
-  return !weightLimited() || weightForClauseSelection <= _maxWeight;
+  return !weightLimited() || weightForClauseSelection <= _weightSelectionMaxWeight;
 }
 
 void Limits::setLimits(int newMaxAge, int newMaxWeight,bool initial)
@@ -59,26 +59,21 @@ void Limits::setLimits(int newMaxAge, int newMaxWeight,bool initial)
   ASS_GE(newMaxWeight,-1);
 
   LimitsChangeType res=NO_LIMITS_CHANGE;
-  if(_maxAge!=newMaxAge) {
-    if(_maxAge==-1||_maxAge>newMaxAge) {
+  if(_ageSelectionMaxAge!=newMaxAge) {
+    if(_ageSelectionMaxAge==-1||_ageSelectionMaxAge>newMaxAge) {
 	res=static_cast<LimitsChangeType>(res|LIMITS_TIGHTENED);
     } else {
 	res=static_cast<LimitsChangeType>(res|LIMITS_LOOSENED);
     }
-    _maxAge=newMaxAge;
+    _ageSelectionMaxAge=newMaxAge;
   }
-  if(_maxWeight!=newMaxWeight) {
-    if(_maxWeight==-1||_maxWeight>newMaxWeight) {
+  if(_weightSelectionMaxWeight!=newMaxWeight) {
+    if(_weightSelectionMaxWeight==-1||_weightSelectionMaxWeight>newMaxWeight) {
 	res=static_cast<LimitsChangeType>(res|LIMITS_TIGHTENED);
     } else {
 	res=static_cast<LimitsChangeType>(res|LIMITS_LOOSENED);
     }
-    _maxWeight=newMaxWeight;
-    if(_maxWeight==-1) {
-	_maxNonGoalWeight=-1;
-    } else {
-	_maxNonGoalWeight=static_cast<int>(_maxWeight/_opt.nongoalWeightCoefficient());
-    }
+    _weightSelectionMaxWeight=newMaxWeight;
   }
   if(res!=NO_LIMITS_CHANGE && !initial) {
     changedEvent.fire(res);

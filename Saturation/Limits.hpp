@@ -51,16 +51,14 @@ typedef SingleParamEvent<LimitsChangeType> LimitsChangeEvent;
 class Limits
 {
 public:
-  Limits(const Options& opt) : _maxAge(-1), _maxWeight(-1), _opt(opt) {}
+  Limits(const Options& opt) : _ageSelectionMaxAge(-1), _weightSelectionMaxWeight(-1), _opt(opt) {}
 
   LimitsChangeEvent changedEvent;
 
-  unsigned ageLimit() const { return _maxAge; }                       // implicit cast will turn -1 to UINT_MAX, which may be intended
-  bool ageLimited() const { return _maxAge!=-1; }
+  unsigned ageLimit() const { return _ageSelectionMaxAge; }                       // implicit cast will turn -1 to UINT_MAX, which may be intended
+  bool ageLimited() const { return _ageSelectionMaxAge !=-1; }
 
-  unsigned weightLimit() const { return _maxWeight; }                 // implicit cast will turn -1 to UINT_MAX, which may be intended
-  unsigned nonGoalWeightLimit() const { return _maxNonGoalWeight; }   // implicit cast will turn -1 to UINT_MAX, which may be intended
-  bool weightLimited() const { return _maxWeight!=-1; }
+  bool weightLimited() const { return _weightSelectionMaxWeight!=-1; }
 
   bool fulfilsAgeLimit(Clause* c) const;
   bool fulfilsAgeLimit(unsigned age) const;
@@ -72,9 +70,8 @@ public:
   void setLimits(int newMaxAge, int newMaxWeight,bool initial=false);
 
 private:
-  int _maxAge;
-  int _maxWeight;
-  int _maxNonGoalWeight;
+  int _ageSelectionMaxAge;
+  int _weightSelectionMaxWeight;
   const Options& _opt;
 };
 
