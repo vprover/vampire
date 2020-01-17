@@ -39,24 +39,17 @@ using namespace Lib;
 using namespace Kernel;
 using namespace Shell;
 
-enum LimitsChangeType {
-  NO_LIMITS_CHANGE=0,
-  LIMITS_TIGHTENED=1,
-  LIMITS_LOOSENED=2,
-  GENERAL_LIMITS_CHANGE=3
-};
-
-typedef SingleParamEvent<LimitsChangeType> LimitsChangeEvent;
+typedef PlainEvent LimitsChangeEvent;
 
 class Limits
 {
 public:
-  Limits(const Options& opt) : _ageSelectionMaxAge(-1), _weightSelectionMaxWeight(-1), _opt(opt) {}
+  Limits(const Options& opt) : _ageSelectionMaxAge(UINT_MAX), _weightSelectionMaxWeight(UINT_MAX), _opt(opt) {}
 
   LimitsChangeEvent changedEvent;
 
-  bool ageLimited() const { return _ageSelectionMaxAge !=-1; }
-  bool weightLimited() const { return _weightSelectionMaxWeight!=-1; }
+  bool ageLimited() const { return _ageSelectionMaxAge != UINT_MAX; }
+  bool weightLimited() const { return _weightSelectionMaxWeight != UINT_MAX; }
 
   bool fulfilsAgeLimit(Clause* c) const;
   bool fulfilsAgeLimit(unsigned age) const;
@@ -65,11 +58,11 @@ public:
   // this method internally takes care of computing the corresponding weightForClauseSelection.
   bool fulfilsWeightLimit(unsigned int w, unsigned int numeralWeight, bool derivedFromGoal) const;
   bool childrenPotentiallyFulfilLimits(Clause* cl, unsigned upperBoundNumSelLits) const;
-  void setLimits(int newMaxAge, int newMaxWeight,bool initial=false);
+  bool setLimits(int newMaxAge, int newMaxWeight);
 
 private:
-  int _ageSelectionMaxAge;
-  int _weightSelectionMaxWeight;
+  unsigned _ageSelectionMaxAge;
+  unsigned _weightSelectionMaxWeight;
   const Options& _opt;
 };
 

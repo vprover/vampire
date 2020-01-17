@@ -171,7 +171,7 @@ SaturationAlgorithm::SaturationAlgorithm(Problem& prb, const Options& opt)
   }
   
   if (opt.maxWeight()) {
-    _limits.setLimits(0,opt.maxWeight(),true);
+    _limits.setLimits(0,opt.maxWeight());
   }
 
   s_instance=this;

@@ -287,11 +287,11 @@ void AWPassiveClauseContainer::updateLimits(long long estReachableCnt)
   CALL("AWPassiveClauseContainer::updateLimits");
   ASS_GE(estReachableCnt,0);
 
-  int maxAge, maxWeight;
+  unsigned maxAge, maxWeight;
 
-  if (estReachableCnt>static_cast<long long>(_size)) {
-    maxAge=-1;
-    maxWeight=-1;
+  if (estReachableCnt > static_cast<long long>(_size)) {
+    maxAge = UINT_MAX;
+    maxWeight = UINT_MAX;
     goto fin;
   }
 
@@ -344,8 +344,8 @@ void AWPassiveClauseContainer::updateLimits(long long estReachableCnt)
     }
 
     //when _ageRatio==0, the age limit can be set to zero, as age doesn't matter
-    maxAge=(_ageRatio && acl!=0)?-1:0;
-    maxWeight=(_weightRatio && wcl!=0)?-1:0;
+    maxAge = (_ageRatio && acl!=0) ? UINT_MAX : 0;
+    maxWeight = (_weightRatio && wcl!=0) ? UINT_MAX : 0;
     if (acl!=0 && ait.hasNext()) {
       maxAge=acl->age();
     }
@@ -359,16 +359,16 @@ fin:
   cout<<env.timer->elapsedDeciseconds()<<"\tLimits to "<<maxAge<<"\t"<<maxWeight<<"\t by est "<<estReachableCnt<<"\n";
 #endif
 
-  getSaturationAlgorithm()->getLimits()->setLimits(maxAge,maxWeight);
+  bool atLeastOneLimitTightened = getSaturationAlgorithm()->getLimits()->setLimits(maxAge,maxWeight);
+  if (atLeastOneLimitTightened) {
+    onLimitsUpdated();
+    getSaturationAlgorithm()->getLimits()->changedEvent.fire();
+  }
 }
 
-void AWPassiveClauseContainer::onLimitsUpdated(LimitsChangeType change)
+void AWPassiveClauseContainer::onLimitsUpdated()
 {
   CALL("AWPassiveClauseContainer::onLimitsUpdated");
-
-  if (change==LIMITS_LOOSENED) {
-    return;
-  }
 
   Limits* limits=getSaturationAlgorithm()->getLimits();
   if ( (!limits->ageLimited() && _ageRatio) || (!limits->weightLimited() && _weightRatio) ) {

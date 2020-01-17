@@ -89,7 +89,7 @@ protected:
   RandomAccessClauseContainer() :_salg(0) {}
   SaturationAlgorithm* getSaturationAlgorithm() { return _salg; }
 
-  virtual void onLimitsUpdated(LimitsChangeType change) {}
+  virtual void onLimitsUpdated() {}
 private:
   SaturationAlgorithm* _salg;
   SubscriptionData _limitChangeSData;
@@ -155,7 +155,7 @@ public:
   unsigned size() const { return _size; }
 
 protected:
-  void onLimitsUpdated(LimitsChangeType change);
+  void onLimitsUpdated();
 private:
   unsigned _size;
   const Options& _opt;

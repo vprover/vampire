@@ -152,13 +152,10 @@ void ActiveClauseContainer::remove(Clause* c)
   removedEvent.fire(c);
 } // Active::ClauseContainer::remove
 
-void ActiveClauseContainer::onLimitsUpdated(LimitsChangeType change)
+void ActiveClauseContainer::onLimitsUpdated()
 {
   CALL("ActiveClauseContainer::onLimitsUpdated");
 
-  if (change==LIMITS_LOOSENED) {
-    return;
-  }
   LiteralIndexingStructure* gis=getSaturationAlgorithm()->getIndexManager()
       ->getGeneratingLiteralIndexingStructure();
   if (!gis) {

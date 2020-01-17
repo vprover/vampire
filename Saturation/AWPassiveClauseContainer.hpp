@@ -95,7 +95,7 @@ public:
 
   static Comparison compareWeight(Clause* cl1, Clause* cl2, const Options& opt);
 protected:
-  void onLimitsUpdated(LimitsChangeType change);
+  void onLimitsUpdated();
 
 private:
 
