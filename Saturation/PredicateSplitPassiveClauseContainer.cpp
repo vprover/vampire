@@ -41,7 +41,7 @@ int computeLCM(int a, int b) {
   return (a*b)/computeGCD(a, b);
 }
 
-PredicateSplitPassiveClauseContainer::PredicateSplitPassiveClauseContainer(bool isOutermost, const Options& opt) : PassiveClauseContainer(isOutermost), _opt(opt), _queues(), _limits(opt)
+PredicateSplitPassiveClauseContainer::PredicateSplitPassiveClauseContainer(bool isOutermost, const Options& opt) : PassiveClauseContainer(isOutermost, opt), _queues(), _limits(opt)
 {
   CALL("PredicateSplitPassiveClauseContainer::PredicateSplitPassiveClauseContainer");
 

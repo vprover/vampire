@@ -50,7 +50,7 @@ using namespace Lib;
 using namespace Kernel;
 
 AWPassiveClauseContainer::AWPassiveClauseContainer(bool isOutermost, const Options& opt)
-: PassiveClauseContainer(isOutermost), _limits(opt), _ageQueue(opt), _weightQueue(opt), _balance(0), _size(0), _opt(opt)
+: PassiveClauseContainer(isOutermost, opt), _limits(opt), _ageQueue(opt), _weightQueue(opt), _balance(0), _size(0)
 {
   CALL("AWPassiveClauseContainer::AWPassiveClauseContainer");
 

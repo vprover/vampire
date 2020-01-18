@@ -131,7 +131,7 @@ public:
   CLASS_NAME(PassiveClauseContainer);
   USE_ALLOCATOR(PassiveClauseContainer);
 
-  PassiveClauseContainer(bool isOutermost) : _isOutermost(isOutermost) {}
+  PassiveClauseContainer(bool isOutermost, const Options& opt) : _isOutermost(isOutermost), _opt(opt) {}
   virtual ~PassiveClauseContainer(){};
 
   virtual bool isEmpty() const = 0;
@@ -145,6 +145,7 @@ public:
 
 protected:
   bool _isOutermost;
+  const Options& _opt;
 };
 
 class ActiveClauseContainer

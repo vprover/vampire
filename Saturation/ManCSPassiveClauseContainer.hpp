@@ -43,7 +43,7 @@ public:
   USE_ALLOCATOR(ManCSPassiveClauseContainer);
 
 
-  ManCSPassiveClauseContainer(bool isOutermost, const Options& opt) : PassiveClauseContainer(isOutermost), _limits(opt) {}
+  ManCSPassiveClauseContainer(bool isOutermost, const Options& opt) : PassiveClauseContainer(isOutermost, opt), _limits(opt) {}
   virtual ~ManCSPassiveClauseContainer(){}
   
   virtual unsigned size() const;

@@ -117,8 +117,6 @@ private:
   int _balance;
 
   unsigned _size;
-
-  const Options& _opt;
 }; // class AWPassiveClauseContainer
 
 /**

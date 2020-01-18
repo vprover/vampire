@@ -56,7 +56,6 @@ protected:
   void onLimitsUpdated() { /* TODO: the LRS stuff */}
 
 private:
-  const Options& _opt;
   Lib::vvector<std::unique_ptr<AWPassiveClauseContainer>> _queues;
   Lib::vvector<unsigned> _ratios;
   Lib::vvector<float> _cutoffs;
