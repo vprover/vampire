@@ -55,7 +55,7 @@ private:
   Lib::vvector<float> _cutoffs;
   Lib::vvector<unsigned> _balances;
 
-  unsigned bestQueueHeuristics(Clause* cl);
+  unsigned bestQueueHeuristics(Inference* inf) const;
 
   /*
    * TODO: LRS specific methods and fields
@@ -65,7 +65,7 @@ private:
   virtual bool ageLimited() const;
   virtual bool weightLimited() const;
 
-  virtual bool fulfilsAgeLimit(Clause* c) const;
+  virtual bool fulfilsAgeLimit(Clause* cl) const;
   // note: w here denotes the weight as returned by weight().
   // this method internally takes care of computing the corresponding weightForClauseSelection.
   virtual bool fulfilsAgeLimit(unsigned age, unsigned w, unsigned numeralWeight, bool derivedFromGoal, Inference* inference) const;

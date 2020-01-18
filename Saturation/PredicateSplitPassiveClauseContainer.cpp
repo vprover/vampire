@@ -119,11 +119,10 @@ PredicateSplitPassiveClauseContainer::~PredicateSplitPassiveClauseContainer() {
     }
   }
 }
-
-unsigned PredicateSplitPassiveClauseContainer::bestQueueHeuristics(Clause* cl) {
-  // heuristically compute likeliness that clause occurs in proof
-  float th_ancestors = cl->inference()->th_ancestors;
-  float all_ancestors = cl->inference()->all_ancestors;
+  // heuristically compute likeliness that clause with inference inf occurs in proof
+unsigned PredicateSplitPassiveClauseContainer::bestQueueHeuristics(Inference* inf) const {
+  float th_ancestors = inf->th_ancestors;
+  float all_ancestors = inf->all_ancestors;
   auto theoryRatio = th_ancestors / all_ancestors;
   auto niceness = theoryRatio;
 
@@ -161,7 +160,7 @@ void PredicateSplitPassiveClauseContainer::add(Clause* cl)
   ASS(cl->store() == Clause::PASSIVE);
 
   // add clause to all queues starting from best queue for clause
-  auto bestQueueIndex = bestQueueHeuristics(cl);
+  auto bestQueueIndex = bestQueueHeuristics(cl->inference());
   for (unsigned i = bestQueueIndex; i < _queues.size(); i++)
   {
     _queues[i]->add(cl);
@@ -183,7 +182,7 @@ void PredicateSplitPassiveClauseContainer::remove(Clause* cl)
     ASS(cl->store()==Clause::PASSIVE);
   }
   // remove clause from all queues starting from best queue for clause
-  auto bestQueueIndex = bestQueueHeuristics(cl);
+  auto bestQueueIndex = bestQueueHeuristics(cl->inference());
   for (unsigned i = bestQueueIndex; i < _queues.size(); i++)
   {
     _queues[i]->remove(cl);
@@ -240,17 +239,84 @@ ClauseIterator PredicateSplitPassiveClauseContainer::iterator()
 void PredicateSplitPassiveClauseContainer::updateLimits(long long estReachableCnt) {}
 void PredicateSplitPassiveClauseContainer::onLimitsUpdated() {}
 
-bool PredicateSplitPassiveClauseContainer::ageLimited() const { return false; }
-bool PredicateSplitPassiveClauseContainer::weightLimited() const { return false; }
+bool PredicateSplitPassiveClauseContainer::ageLimited() const
+{
+  for (const auto& queue : _queues)
+  {
+    if (queue->ageLimited())
+    {
+      return true;
+    }
+  }
+  return false;
+}
 
-bool PredicateSplitPassiveClauseContainer::fulfilsAgeLimit(Clause* c) const { return true; }
+bool PredicateSplitPassiveClauseContainer::weightLimited() const
+{
+  for (const auto& queue : _queues)
+  {
+    if (queue->weightLimited())
+    {
+      return true;
+    }
+  }
+  return false;
+}
+
+// returns true if the cl fulfils at least one age-limit of a queue it is in
+bool PredicateSplitPassiveClauseContainer::fulfilsAgeLimit(Clause* cl) const {
+  for (unsigned i = bestQueueHeuristics(cl->inference()); i < _queues.size(); i++)
+  {
+    auto& queue = _queues[i];
+    if (queue->fulfilsAgeLimit(cl))
+    {
+      return true;
+    }
+    return false;
+  }
+}
+
+// returns true if the cl fulfils at least one age-limit of a queue it is in
 // note: w here denotes the weight as returned by weight().
 // this method internally takes care of computing the corresponding weightForClauseSelection.
-bool PredicateSplitPassiveClauseContainer::fulfilsAgeLimit(unsigned age, unsigned w, unsigned numeralWeight, bool derivedFromGoal, Inference* inference) const { return true; }
-bool PredicateSplitPassiveClauseContainer::fulfilsWeightLimit(Clause* cl) const { return true; }
+bool PredicateSplitPassiveClauseContainer::fulfilsAgeLimit(unsigned age, unsigned w, unsigned numeralWeight, bool derivedFromGoal, Inference* inference) const {
+  for (unsigned i = bestQueueHeuristics(inference); i < _queues.size(); i++)
+  {
+    auto& queue = _queues[i];
+    if (queue->fulfilsAgeLimit(age, w, numeralWeight, derivedFromGoal, inference))
+    {
+      return true;
+    }
+    return false;
+  }
+}
+
+// returns true if the cl fulfils at least one weight-limit of a queue it is in
+bool PredicateSplitPassiveClauseContainer::fulfilsWeightLimit(Clause* cl) const {
+  for (unsigned i = bestQueueHeuristics(cl->inference()); i < _queues.size(); i++)
+  {
+    auto& queue = _queues[i];
+    if (queue->fulfilsWeightLimit(cl))
+    {
+      return true;
+    }
+    return false;
+  }
+}
+// returns true if the cl fulfils at least one weight-limit of a queue it is in
 // note: w here denotes the weight as returned by weight().
 // this method internally takes care of computing the corresponding weightForClauseSelection.
-bool PredicateSplitPassiveClauseContainer::fulfilsWeightLimit(unsigned w, unsigned numeralWeight, bool derivedFromGoal, unsigned age, Inference* inference) const { return true; }
+bool PredicateSplitPassiveClauseContainer::fulfilsWeightLimit(unsigned w, unsigned numeralWeight, bool derivedFromGoal, unsigned age, Inference* inference) const {
+for (unsigned i = bestQueueHeuristics(inference); i < _queues.size(); i++)
+  {
+    auto& queue = _queues[i];
+    if (queue->fulfilsWeightLimit(w, numeralWeight, derivedFromGoal, age, inference))
+    {
+      return true;
+    }
+    return false;
+  }
+}
 
 bool PredicateSplitPassiveClauseContainer::childrenPotentiallyFulfilLimits(Clause* cl, unsigned upperBoundNumSelLits) const { return true; }
 
