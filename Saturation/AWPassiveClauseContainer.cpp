@@ -49,8 +49,8 @@ namespace Saturation
 using namespace Lib;
 using namespace Kernel;
 
-AWPassiveClauseContainer::AWPassiveClauseContainer(bool isOutermost, const Options& opt)
-: PassiveClauseContainer(isOutermost, opt), _limits(opt), _ageQueue(opt), _weightQueue(opt), _balance(0), _size(0)
+AWPassiveClauseContainer::AWPassiveClauseContainer(bool isOutermost, const Shell::Options& opt)
+: PassiveClauseContainer(isOutermost, opt), _ageQueue(opt), _weightQueue(opt), _balance(0), _size(0), _ageSelectionMaxAge(UINT_MAX), _ageSelectionMaxWeight(UINT_MAX), _weightSelectionMaxWeight(UINT_MAX), _weightSelectionMaxAge(UINT_MAX)
 {
   CALL("AWPassiveClauseContainer::AWPassiveClauseContainer");
 
@@ -298,7 +298,6 @@ Clause* AWPassiveClauseContainer::popSelected()
 } // AWPassiveClauseContainer::popSelected
 
 
-
 void AWPassiveClauseContainer::updateLimits(long long estReachableCnt)
 {
   CALL("AWPassiveClauseContainer::updateLimits");
@@ -385,10 +384,10 @@ fin:
   cout<<env.timer->elapsedDeciseconds()<<"\tLimits to "<<maxAge<<"\t"<<maxWeight<<"\t by est "<<estReachableCnt<<"\n";
 #endif
 
-  bool atLeastOneLimitTightened = _limits.setLimits(maxAgeQueueAge, maxAgeQueueWeight,maxWeightQueueWeight, maxWeightQueueAge);
+  bool atLeastOneLimitTightened = setLimits(maxAgeQueueAge, maxAgeQueueWeight,maxWeightQueueWeight, maxWeightQueueAge);
   if (atLeastOneLimitTightened) {
     onLimitsUpdated();
-    getSaturationAlgorithm()->getLimits()->changedEvent.fire();
+    changedEvent.fire();
   }
 }
 
@@ -396,8 +395,7 @@ void AWPassiveClauseContainer::onLimitsUpdated()
 {
   CALL("AWPassiveClauseContainer::onLimitsUpdated");
 
-  Limits* limits=getSaturationAlgorithm()->getLimits();
-  if ( (!limits->ageLimited() && _ageRatio) || (!limits->weightLimited() && _weightRatio) ) {
+  if ( (!ageLimited() && _ageRatio) || (!weightLimited() && _weightRatio) ) {
     return;
   }
 
@@ -410,9 +408,9 @@ void AWPassiveClauseContainer::onLimitsUpdated()
   ClauseQueue::Iterator wit(_weightQueue);
   while (wit.hasNext()) {
     Clause* cl=wit.next();
-    if (!limits->fulfilsAgeLimit(cl) && !limits->fulfilsWeightLimit(cl)) {
+    if (!fulfilsAgeLimit(cl) && !fulfilsWeightLimit(cl)) {
       toRemove.push(cl);
-    } else if (!limits->childrenPotentiallyFulfilLimits(cl, cl->length())) {
+    } else if (!childrenPotentiallyFulfilLimits(cl, cl->length())) {
       toRemove.push(cl);
     }
   }
@@ -429,6 +427,93 @@ void AWPassiveClauseContainer::onLimitsUpdated()
     env.statistics->discardedNonRedundantClauses++;
     remove(removed);
   }
+}
+
+bool AWPassiveClauseContainer::ageLimited() const
+{
+  return _ageSelectionMaxAge != UINT_MAX && _ageSelectionMaxWeight != UINT_MAX;
+}
+
+bool AWPassiveClauseContainer::weightLimited() const
+{
+  return _weightSelectionMaxWeight != UINT_MAX && _weightSelectionMaxAge != UINT_MAX;
+}
+
+bool AWPassiveClauseContainer::fulfilsAgeLimit(Clause* cl) const
+{
+  // don't want to reuse fulfilsAgeLimit(unsigned age,..) here, since we don't want to recompute weightForClauseSelection
+  unsigned age = cl->age();
+  unsigned weightForClauseSelection = cl->weightForClauseSelection(_opt);
+  return age <= _ageSelectionMaxAge || (age == _ageSelectionMaxAge && weightForClauseSelection <= _ageSelectionMaxWeight);
+}
+
+bool AWPassiveClauseContainer::fulfilsAgeLimit(unsigned age, unsigned w, unsigned numeralWeight, bool derivedFromGoal, Inference* inference) const
+{
+  unsigned weightForClauseSelection = Clause::computeWeightForClauseSelection(w, numeralWeight, derivedFromGoal, _opt);
+  return age <= _ageSelectionMaxAge || (age == _ageSelectionMaxAge && weightForClauseSelection <= _ageSelectionMaxWeight);
+}
+
+bool AWPassiveClauseContainer::fulfilsWeightLimit(Clause* cl) const
+{
+  // don't want to reuse fulfilsWeightLimit(unsigned w,..) here, since we don't want to recompute weightForClauseSelection
+  unsigned weightForClauseSelection = cl->weightForClauseSelection(_opt);
+  unsigned age = cl->age();
+  return weightForClauseSelection <= _weightSelectionMaxWeight || (weightForClauseSelection == _weightSelectionMaxWeight && age <= _weightSelectionMaxAge);
+}
+
+bool AWPassiveClauseContainer::fulfilsWeightLimit(unsigned w, unsigned numeralWeight, bool derivedFromGoal, unsigned age, Inference* inference) const
+{
+  unsigned weightForClauseSelection = Clause::computeWeightForClauseSelection(w, numeralWeight, derivedFromGoal, _opt);
+  return weightForClauseSelection <= _weightSelectionMaxWeight || (weightForClauseSelection == _weightSelectionMaxWeight && age <= _weightSelectionMaxAge);
+}
+
+bool AWPassiveClauseContainer::childrenPotentiallyFulfilLimits(Clause* cl, unsigned upperBoundNumSelLits) const
+{
+  if (cl->age() == _ageSelectionMaxAge)
+  {
+    // clauses inferred from the clause as generating inferences will be over age limit...
+    unsigned childAge = cl->age() + 1;
+
+    int maxSelWeight=0;
+    for(unsigned i=0;i<upperBoundNumSelLits;i++) {
+      maxSelWeight=max((int)(*cl)[i]->weight(),maxSelWeight);
+    }
+    // TODO: this lower bound is not correct:
+    //       if Avatar is used, then the child-clause could become splittable,
+    //       in which case we don't know any lower bound on the resulting components.
+    unsigned weightLowerBound = cl->weight() - maxSelWeight; // heuristic: we assume that at most one literal will be removed from the clause.
+    unsigned numeralWeight = 0; // heuristic: we don't know the numeral weight of the child, and conservatively assume that it is 0.
+    bool derivedFromGoal = true; // heuristic: we have to cover the case where the child has another parent which is a goal-clause. We conservatively assume that the result is a goal-clause.
+    if (!fulfilsWeightLimit(weightLowerBound, numeralWeight, derivedFromGoal, childAge, nullptr)) {
+      //and also over weight limit
+      return false;
+    }
+  }
+  return true;
+}
+
+bool AWPassiveClauseContainer::setLimits(unsigned newAgeSelectionMaxAge, unsigned newAgeSelectionMaxWeight, unsigned newWeightSelectionMaxWeight, unsigned newWeightSelectionMaxAge)
+{
+  bool atLeastOneTightened = false;
+  if(newAgeSelectionMaxAge != _ageSelectionMaxAge || newAgeSelectionMaxWeight != _ageSelectionMaxWeight) {
+    if(newAgeSelectionMaxAge < _ageSelectionMaxAge) {
+      atLeastOneTightened = true;
+    } else if (newAgeSelectionMaxAge == _ageSelectionMaxAge && newAgeSelectionMaxWeight < _ageSelectionMaxWeight) {
+      atLeastOneTightened = true;
+    }
+    _ageSelectionMaxAge=newAgeSelectionMaxAge;
+    _ageSelectionMaxWeight=newAgeSelectionMaxWeight;
+  }
+  if(newWeightSelectionMaxWeight != _weightSelectionMaxWeight || newWeightSelectionMaxAge != _weightSelectionMaxAge) {
+    if(newWeightSelectionMaxWeight < _weightSelectionMaxWeight) {
+      atLeastOneTightened = true;
+    } else if (newWeightSelectionMaxWeight == _weightSelectionMaxWeight && newWeightSelectionMaxAge < _weightSelectionMaxAge) {
+      atLeastOneTightened = true;
+    }
+    _weightSelectionMaxWeight=newWeightSelectionMaxWeight;
+    _weightSelectionMaxAge=newWeightSelectionMaxAge;
+  }
+  return atLeastOneTightened;
 }
 
 AWClauseContainer::AWClauseContainer(const Options& opt)

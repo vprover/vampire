@@ -44,8 +44,6 @@
 
 #include "Saturation/ExtensionalityClauseContainer.hpp"
 
-#include "Limits.hpp"
-
 #if VDEBUG
 #include<iostream>
 #endif
@@ -110,7 +108,7 @@ public:
   size_t activeClauseCount();
   size_t passiveClauseCount();
 
-  Limits* getLimits() { return _passive->getLimits(); }
+  PassiveClauseContainer* getPassiveClauseContainer() { return _passive; }
   IndexManager* getIndexManager() { return _imgr.ptr(); }
   AnswerLiteralManager* getAnswerLiteralManager() { return _answerLiteralManager; }
   Ordering& getOrdering() const { return *_ordering; }

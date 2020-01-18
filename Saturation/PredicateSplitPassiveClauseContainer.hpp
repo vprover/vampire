@@ -34,7 +34,7 @@ public:
   CLASS_NAME(PredicateSplitPassiveClauseContainer);
   USE_ALLOCATOR(PredicateSplitPassiveClauseContainer);
 
-  PredicateSplitPassiveClauseContainer(bool isOutermost, const Options& opt);
+  PredicateSplitPassiveClauseContainer(bool isOutermost, const Shell::Options& opt);
   virtual ~PredicateSplitPassiveClauseContainer();
 
   void add(Clause* cl);
@@ -47,13 +47,7 @@ public:
 
   ClauseIterator iterator();
 
-  virtual Limits* getLimits() { return &_limits;}
-  void updateLimits(long long estReachableCnt) { /* TODO: the LRS stuff */}
-
   virtual unsigned size() const { ASS(!_queues.empty()); return _queues.back()->size(); }
-
-protected:
-  void onLimitsUpdated() { /* TODO: the LRS stuff */}
 
 private:
   Lib::vvector<std::unique_ptr<AWPassiveClauseContainer>> _queues;
@@ -61,9 +55,29 @@ private:
   Lib::vvector<float> _cutoffs;
   Lib::vvector<unsigned> _balances;
 
-  AWPassiveClauseContainerLimits _limits;
-
   unsigned bestQueueHeuristics(Clause* cl);
+
+  /*
+   * TODO: LRS specific methods and fields
+   */
+  void updateLimits(long long estReachableCnt);
+
+  virtual bool ageLimited() const;
+  virtual bool weightLimited() const;
+
+  virtual bool fulfilsAgeLimit(Clause* c) const;
+  // note: w here denotes the weight as returned by weight().
+  // this method internally takes care of computing the corresponding weightForClauseSelection.
+  virtual bool fulfilsAgeLimit(unsigned age, unsigned w, unsigned numeralWeight, bool derivedFromGoal, Inference* inference) const;
+  virtual bool fulfilsWeightLimit(Clause* cl) const;
+  // note: w here denotes the weight as returned by weight().
+  // this method internally takes care of computing the corresponding weightForClauseSelection.
+  virtual bool fulfilsWeightLimit(unsigned w, unsigned numeralWeight, bool derivedFromGoal, unsigned age, Inference* inference) const;
+
+  virtual bool childrenPotentiallyFulfilLimits(Clause* cl, unsigned upperBoundNumSelLits) const;
+
+private:
+  void onLimitsUpdated();
 
 }; // class PredicateSplitPassiveClauseContainer
 

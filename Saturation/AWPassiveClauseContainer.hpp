@@ -50,7 +50,7 @@ protected:
   friend class AWPassiveClauseContainer;
 
 private:
-  const Options& _opt;
+  const Shell::Options& _opt;
 };
 
 class WeightQueue
@@ -63,7 +63,7 @@ protected:
 
   friend class AWPassiveClauseContainer;
 private:
-  const Options& _opt;
+  const Shell::Options& _opt;
 };
 
 /**
@@ -77,7 +77,7 @@ public:
   CLASS_NAME(AWPassiveClauseContainer);
   USE_ALLOCATOR(AWPassiveClauseContainer);
 
-  AWPassiveClauseContainer(bool isOutermost, const Options& opt);
+  AWPassiveClauseContainer(bool isOutermost, const Shell::Options& opt);
   virtual ~AWPassiveClauseContainer();
   void add(Clause* cl);
 
@@ -92,18 +92,11 @@ public:
 
   ClauseIterator iterator();
 
-  virtual Limits* getLimits() { return &_limits;}
-  void updateLimits(long long estReachableCnt);
-
   virtual unsigned size() const { return _size; }
 
-
-  static Comparison compareWeight(Clause* cl1, Clause* cl2, const Options& opt);
-protected:
-  void onLimitsUpdated();
+  static Comparison compareWeight(Clause* cl1, Clause* cl2, const Shell::Options& opt);
 
 private:
-  AWPassiveClauseContainerLimits _limits;
   /** The age queue, empty if _ageRatio=0 */
   AgeQueue _ageQueue;
   /** The weight queue, empty if _weightRatio=0 */
@@ -117,6 +110,37 @@ private:
   int _balance;
 
   unsigned _size;
+
+  /*
+   * LRS specific methods and fields
+   */
+public:
+  virtual void updateLimits(long long estReachableCnt);
+
+  virtual bool ageLimited() const;
+  virtual bool weightLimited() const;
+
+  virtual bool fulfilsAgeLimit(Clause* c) const;
+  // note: w here denotes the weight as returned by weight().
+  // this method internally takes care of computing the corresponding weightForClauseSelection.
+  virtual bool fulfilsAgeLimit(unsigned age, unsigned w, unsigned numeralWeight, bool derivedFromGoal, Inference* inference) const;
+  virtual bool fulfilsWeightLimit(Clause* cl) const;
+  // note: w here denotes the weight as returned by weight().
+  // this method internally takes care of computing the corresponding weightForClauseSelection.
+  virtual bool fulfilsWeightLimit(unsigned w, unsigned numeralWeight, bool derivedFromGoal, unsigned age, Inference* inference) const;
+
+  virtual bool childrenPotentiallyFulfilLimits(Clause* cl, unsigned upperBoundNumSelLits) const;
+
+private:
+  void onLimitsUpdated();
+
+    // returns whether at least one of the limits was tightened
+  bool setLimits(unsigned newAgeSelectionMaxAge, unsigned newAgeSelectionMaxWeight, unsigned newWeightSelectionMaxWeight, unsigned newWeightSelectionMaxAge);
+
+  unsigned _ageSelectionMaxAge;
+  unsigned _ageSelectionMaxWeight;
+  unsigned _weightSelectionMaxWeight;
+  unsigned _weightSelectionMaxAge;
 }; // class AWPassiveClauseContainer
 
 /**
@@ -126,7 +150,7 @@ private:
 class AWClauseContainer: public ClauseContainer
 {
 public:
-  AWClauseContainer(const Options& opt);
+  AWClauseContainer(const Shell::Options& opt);
 
   void add(Clause* cl);
   bool remove(Clause* cl);

@@ -41,7 +41,7 @@ int computeLCM(int a, int b) {
   return (a*b)/computeGCD(a, b);
 }
 
-PredicateSplitPassiveClauseContainer::PredicateSplitPassiveClauseContainer(bool isOutermost, const Options& opt) : PassiveClauseContainer(isOutermost, opt), _queues(), _limits(opt)
+PredicateSplitPassiveClauseContainer::PredicateSplitPassiveClauseContainer(bool isOutermost, const Shell::Options& opt) : PassiveClauseContainer(isOutermost, opt), _queues()
 {
   CALL("PredicateSplitPassiveClauseContainer::PredicateSplitPassiveClauseContainer");
 
@@ -235,5 +235,23 @@ ClauseIterator PredicateSplitPassiveClauseContainer::iterator()
   // TODO: why do we need pvi here?
   return pvi(_queues.back()->iterator());
 }
+
+
+void PredicateSplitPassiveClauseContainer::updateLimits(long long estReachableCnt) {}
+void PredicateSplitPassiveClauseContainer::onLimitsUpdated() {}
+
+bool PredicateSplitPassiveClauseContainer::ageLimited() const { return false; }
+bool PredicateSplitPassiveClauseContainer::weightLimited() const { return false; }
+
+bool PredicateSplitPassiveClauseContainer::fulfilsAgeLimit(Clause* c) const { return true; }
+// note: w here denotes the weight as returned by weight().
+// this method internally takes care of computing the corresponding weightForClauseSelection.
+bool PredicateSplitPassiveClauseContainer::fulfilsAgeLimit(unsigned age, unsigned w, unsigned numeralWeight, bool derivedFromGoal, Inference* inference) const { return true; }
+bool PredicateSplitPassiveClauseContainer::fulfilsWeightLimit(Clause* cl) const { return true; }
+// note: w here denotes the weight as returned by weight().
+// this method internally takes care of computing the corresponding weightForClauseSelection.
+bool PredicateSplitPassiveClauseContainer::fulfilsWeightLimit(unsigned w, unsigned numeralWeight, bool derivedFromGoal, unsigned age, Inference* inference) const { return true; }
+
+bool PredicateSplitPassiveClauseContainer::childrenPotentiallyFulfilLimits(Clause* cl, unsigned upperBoundNumSelLits) const { return true; }
 
 };

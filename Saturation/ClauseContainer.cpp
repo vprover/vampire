@@ -75,7 +75,7 @@ void RandomAccessClauseContainer::attach(SaturationAlgorithm* salg)
   ASS(!_salg);
 
   _salg=salg;
-  _limitChangeSData=_salg->getLimits()->changedEvent.subscribe(
+  _limitChangeSData=_salg->getPassiveClauseContainer()->changedEvent.subscribe(
       this, &RandomAccessClauseContainer::onLimitsUpdated);
 }
 /**
@@ -161,8 +161,7 @@ void ActiveClauseContainer::onLimitsUpdated()
   if (!gis) {
     return;
   }
-  Limits* limits=getSaturationAlgorithm()->getLimits();
-
+  auto limits=getSaturationAlgorithm()->getPassiveClauseContainer();
   ASS(limits);
   if (!limits->ageLimited() || !limits->weightLimited()) {
     return;

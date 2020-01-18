@@ -142,7 +142,7 @@ private:
 
 struct Superposition::ForwardResultFn
 {
-  ForwardResultFn(Clause* cl, Limits* limits, Superposition& parent) : _cl(cl), _limits(limits), _parent(parent) {}
+  ForwardResultFn(Clause* cl, PassiveClauseContainer* passiveClauseContainer, Superposition& parent) : _cl(cl), _passiveClauseContainer(passiveClauseContainer), _parent(parent) {}
   DECL_RETURN_TYPE(Clause*);
   OWN_RETURN_TYPE operator()(pair<pair<Literal*, TermList>, TermQueryResult> arg)
   {
@@ -150,18 +150,18 @@ struct Superposition::ForwardResultFn
 
     TermQueryResult& qr = arg.second;
     return _parent.performSuperposition(_cl, arg.first.first, arg.first.second,
-	    qr.clause, qr.literal, qr.term, qr.substitution, true, _limits, qr.constraints);
+	    qr.clause, qr.literal, qr.term, qr.substitution, true, _passiveClauseContainer, qr.constraints);
   }
 private:
   Clause* _cl;
-  Limits* _limits;
+  PassiveClauseContainer* _passiveClauseContainer;
   Superposition& _parent;
 };
 
 
 struct Superposition::BackwardResultFn
 {
-  BackwardResultFn(Clause* cl, Limits* limits, Superposition& parent) : _cl(cl), _limits(limits), _parent(parent) {}
+  BackwardResultFn(Clause* cl, PassiveClauseContainer* passiveClauseContainer, Superposition& parent) : _cl(cl), _passiveClauseContainer(passiveClauseContainer), _parent(parent) {}
   DECL_RETURN_TYPE(Clause*);
   OWN_RETURN_TYPE operator()(pair<pair<Literal*, TermList>, TermQueryResult> arg)
   {
@@ -173,11 +173,11 @@ struct Superposition::BackwardResultFn
 
     TermQueryResult& qr = arg.second;
     return _parent.performSuperposition(qr.clause, qr.literal, qr.term,
-	    _cl, arg.first.first, arg.first.second, qr.substitution, false, _limits, qr.constraints);
+	    _cl, arg.first.first, arg.first.second, qr.substitution, false, _passiveClauseContainer, qr.constraints);
   }
 private:
   Clause* _cl;
-  Limits* _limits;
+  PassiveClauseContainer* _passiveClauseContainer;
   Superposition& _parent;
 };
 
@@ -185,7 +185,7 @@ private:
 ClauseIterator Superposition::generateClauses(Clause* premise)
 {
   CALL("Superposition::generateClauses");
-  Limits* limits=_salg->getLimits();
+  PassiveClauseContainer* passiveClauseContainer = _salg->getPassiveClauseContainer();
 
   //cout << "SUPERPOSITION with " << premise->toString() << endl;
 
@@ -205,14 +205,14 @@ ClauseIterator Superposition::generateClauses(Clause* premise)
   auto itf3 = getMapAndFlattenIterator(itf2,ApplicableRewritesFn(_lhsIndex,withConstraints));
 
   //Perform forward superposition
-  auto itf4 = getMappingIterator(itf3,ForwardResultFn(premise, limits, *this));
+  auto itf4 = getMappingIterator(itf3,ForwardResultFn(premise, passiveClauseContainer, *this));
 
   auto itb1 = premise->getSelectedLiteralIterator();
   auto itb2 = getMapAndFlattenIterator(itb1,EqHelper::SuperpositionLHSIteratorFn(_salg->getOrdering(), _salg->getOptions()));
   auto itb3 = getMapAndFlattenIterator(itb2,RewritableResultsFn(_subtermIndex,withConstraints));
 
   //Perform backward superposition
-  auto itb4 = getMappingIterator(itb3,BackwardResultFn(premise, limits, *this));
+  auto itb4 = getMappingIterator(itb3,BackwardResultFn(premise, passiveClauseContainer, *this));
 
   // Add the results of forward and backward together
   auto it5 = getConcatenatedIterator(itf4,itb4);
@@ -306,7 +306,7 @@ bool Superposition::checkSuperpositionFromVariable(Clause* eqClause, Literal* eq
  */
 bool Superposition::earlyWeightLimitCheck(Clause* eqClause, Literal* eqLit,
       Clause* rwClause, Literal* rwLit, TermList rwTerm, TermList eqLHS, TermList eqRHS,
-      ResultSubstitutionSP subst, bool eqIsResult, Limits* limits, unsigned numeralWeight, bool derivedFromGoal, unsigned newAge, Inference* inf)
+      ResultSubstitutionSP subst, bool eqIsResult, PassiveClauseContainer* passiveClauseContainer, unsigned numeralWeight, bool derivedFromGoal, unsigned newAge, Inference* inf)
 {
   CALL("Superposition::earlyWeightLimitCheck");
 
@@ -329,7 +329,7 @@ bool Superposition::earlyWeightLimitCheck(Clause* eqClause, Literal* eqLit,
 
   //we assume that there will be at least one rewrite in the rwLit
 
-  if(!limits->fulfilsWeightLimit(nonInvolvedLiteralWLB + eqRHS.weight(), numeralWeight, derivedFromGoal, newAge, inf)) {
+  if(!passiveClauseContainer->fulfilsWeightLimit(nonInvolvedLiteralWLB + eqRHS.weight(), numeralWeight, derivedFromGoal, newAge, inf)) {
     env.statistics->discardedNonRedundantClauses++;
     RSTAT_CTR_INC("superpositions weight skipped early");
     return false;
@@ -342,7 +342,7 @@ bool Superposition::earlyWeightLimitCheck(Clause* eqClause, Literal* eqLit,
   if(rwrBalance>=0) {
     //there must be at least one rewriting, possibly more
     unsigned approxWeight = rwLit->weight()+rwrBalance;
-    if(!limits->fulfilsWeightLimit(nonInvolvedLiteralWLB + approxWeight, numeralWeight, derivedFromGoal, newAge, inf)) {
+    if(!passiveClauseContainer->fulfilsWeightLimit(nonInvolvedLiteralWLB + approxWeight, numeralWeight, derivedFromGoal, newAge, inf)) {
       env.statistics->discardedNonRedundantClauses++;
       RSTAT_CTR_INC("superpositions weight skipped after rewriter weight retrieval");
       return false;
@@ -353,7 +353,7 @@ bool Superposition::earlyWeightLimitCheck(Clause* eqClause, Literal* eqLit,
   if(rwrCnt>1) {
     ASS_GE(rwrCnt, 1);
     unsigned approxWeight = rwLit->weight()+(rwrBalance*rwrCnt);
-    if(!limits->fulfilsWeightLimit(nonInvolvedLiteralWLB + approxWeight, numeralWeight, derivedFromGoal, newAge, inf)) {
+    if(!passiveClauseContainer->fulfilsWeightLimit(nonInvolvedLiteralWLB + approxWeight, numeralWeight, derivedFromGoal, newAge, inf)) {
       env.statistics->discardedNonRedundantClauses++;
       RSTAT_CTR_INC("superpositions weight skipped after rewriter weight retrieval with occurrence counting");
       return false;
@@ -363,7 +363,7 @@ bool Superposition::earlyWeightLimitCheck(Clause* eqClause, Literal* eqLit,
   unsigned rwLitSWeight = subst->getApplicationWeight(rwLit, !eqIsResult);
 
   unsigned finalLitWeight = rwLitSWeight+(rwrBalance*rwrCnt);
-  if(!limits->fulfilsWeightLimit(nonInvolvedLiteralWLB + finalLitWeight, numeralWeight, derivedFromGoal, newAge, inf)) {
+  if(!passiveClauseContainer->fulfilsWeightLimit(nonInvolvedLiteralWLB + finalLitWeight, numeralWeight, derivedFromGoal, newAge, inf)) {
     env.statistics->discardedNonRedundantClauses++;
     RSTAT_CTR_INC("superpositions weight skipped after rewrited literal weight retrieval");
     return false;
@@ -402,7 +402,7 @@ size_t Superposition::getSubtermOccurrenceCount(Term* trm, TermList subterm)
 Clause* Superposition::performSuperposition(
     Clause* rwClause, Literal* rwLit, TermList rwTerm,
     Clause* eqClause, Literal* eqLit, TermList eqLHS,
-    ResultSubstitutionSP subst, bool eqIsResult, Limits* limits,
+    ResultSubstitutionSP subst, bool eqIsResult, PassiveClauseContainer* passiveClauseContainer,
     UnificationConstraintStackSP constraints)
 {
   CALL("Superposition::performSuperposition");
@@ -458,9 +458,9 @@ Clause* Superposition::performSuperposition(
   bool derivedFromGoal= rwClause->isGoal() || eqClause->isGoal();
   Inference* inf = new Inference2(hasConstraints ? Inference::  CONSTRAINED_SUPERPOSITION : Inference::SUPERPOSITION,
                           rwClause, eqClause);
-  bool needsToFulfilWeightLimit = limits && !limits->fulfilsAgeLimit(newAge, 0, numeralWeight, derivedFromGoal, inf) && limits->weightLimited(); // 0 here denotes the current weight estimate
+  bool needsToFulfilWeightLimit = passiveClauseContainer && !passiveClauseContainer->fulfilsAgeLimit(newAge, 0, numeralWeight, derivedFromGoal, inf) && passiveClauseContainer->weightLimited(); // 0 here denotes the current weight estimate
   if(needsToFulfilWeightLimit) {
-    if(!earlyWeightLimitCheck(eqClause, eqLit, rwClause, rwLit, rwTerm, eqLHS, tgtTerm, subst, eqIsResult, limits, numeralWeight, derivedFromGoal, newAge, inf)) {
+    if(!earlyWeightLimitCheck(eqClause, eqLit, rwClause, rwLit, rwTerm, eqLHS, tgtTerm, subst, eqIsResult, passiveClauseContainer, numeralWeight, derivedFromGoal, newAge, inf)) {
       return 0;
     }
   }
@@ -574,7 +574,7 @@ Clause* Superposition::performSuperposition(
 
       if(needsToFulfilWeightLimit) {
         weight+=currAfter->weight();
-        if(!limits->fulfilsWeightLimit(weight, numeralWeight, derivedFromGoal, newAge, inf)) {
+        if(!passiveClauseContainer->fulfilsWeightLimit(weight, numeralWeight, derivedFromGoal, newAge, inf)) {
           RSTAT_CTR_INC("superpositions skipped for weight limit while constructing other literals");
           env.statistics->discardedNonRedundantClauses++;
           goto construction_fail;
@@ -610,7 +610,7 @@ Clause* Superposition::performSuperposition(
         }
         if(needsToFulfilWeightLimit) {
           weight+=currAfter->weight();
-          if(!limits->fulfilsWeightLimit(weight, numeralWeight, derivedFromGoal, newAge, inf)) {
+          if(!passiveClauseContainer->fulfilsWeightLimit(weight, numeralWeight, derivedFromGoal, newAge, inf)) {
             RSTAT_CTR_INC("superpositions skipped for weight limit while constructing other literals");
             env.statistics->discardedNonRedundantClauses++;
             goto construction_fail;
@@ -658,7 +658,7 @@ Clause* Superposition::performSuperposition(
     }
   }
 
-  if(needsToFulfilWeightLimit && !limits->fulfilsWeightLimit(weight, numeralWeight, derivedFromGoal, newAge, inf)) {
+  if(needsToFulfilWeightLimit && !passiveClauseContainer->fulfilsWeightLimit(weight, numeralWeight, derivedFromGoal, newAge, inf)) {
     RSTAT_CTR_INC("superpositions skipped for weight limit after the clause was built");
     env.statistics->discardedNonRedundantClauses++;
     construction_fail:

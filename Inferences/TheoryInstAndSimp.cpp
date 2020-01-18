@@ -866,7 +866,6 @@ ClauseIterator TheoryInstAndSimp::generateClauses(Clause* premise,bool& premiseR
   env.statistics->theoryInstSimpCandidates++;
 
   // TODO use limits
-  //Limits* limits = _salg->getLimits();
 
   Clause* flattened = premise;
   if(thi != Options::TheoryInstSimp::NEW){

@@ -34,8 +34,6 @@
 
 #include "Lib/Allocator.hpp"
 
-#include "Limits.hpp"
-
 #define OUTPUT_LRS_DETAILS 0
 
 namespace Saturation
@@ -43,6 +41,7 @@ namespace Saturation
 
 using namespace Lib;
 using namespace Kernel;
+using namespace Shell;
 
 class ClauseContainer
 {
@@ -124,6 +123,8 @@ private:
   Deque<Clause*> _data;
 };
 
+typedef PlainEvent LimitsChangeEvent;
+
 class PassiveClauseContainer
 : public RandomAccessClauseContainer
 {
@@ -131,8 +132,10 @@ public:
   CLASS_NAME(PassiveClauseContainer);
   USE_ALLOCATOR(PassiveClauseContainer);
 
-  PassiveClauseContainer(bool isOutermost, const Options& opt) : _isOutermost(isOutermost), _opt(opt) {}
+  PassiveClauseContainer(bool isOutermost, const Shell::Options& opt) : _isOutermost(isOutermost), _opt(opt) {}
   virtual ~PassiveClauseContainer(){};
+
+  LimitsChangeEvent changedEvent;
 
   virtual bool isEmpty() const = 0;
   virtual Clause* popSelected() = 0;
@@ -140,12 +143,26 @@ public:
   virtual ClauseIterator iterator() = 0;
   virtual unsigned size() const = 0;
 
-  virtual Limits* getLimits() = 0;
-  virtual void updateLimits(long long estReachableCnt) {}
+  // LRS specific methods
+  virtual void updateLimits(long long estReachableCnt) = 0;
+
+  virtual bool ageLimited() const = 0;
+  virtual bool weightLimited() const = 0;
+
+  virtual bool fulfilsAgeLimit(Clause* c) const = 0;
+  // note: w here denotes the weight as returned by weight().
+  // this method internally takes care of computing the corresponding weightForClauseSelection.
+  virtual bool fulfilsAgeLimit(unsigned age, unsigned w, unsigned numeralWeight, bool derivedFromGoal, Inference* inference) const = 0;
+  virtual bool fulfilsWeightLimit(Clause* cl) const = 0;
+  // note: w here denotes the weight as returned by weight().
+  // this method internally takes care of computing the corresponding weightForClauseSelection.
+  virtual bool fulfilsWeightLimit(unsigned w, unsigned numeralWeight, bool derivedFromGoal, unsigned age, Inference* inference) const = 0;
+
+  virtual bool childrenPotentiallyFulfilLimits(Clause* cl, unsigned upperBoundNumSelLits) const = 0;
 
 protected:
   bool _isOutermost;
-  const Options& _opt;
+  const Shell::Options& _opt;
 };
 
 class ActiveClauseContainer
@@ -155,7 +172,7 @@ public:
   CLASS_NAME(ActiveClauseContainer);
   USE_ALLOCATOR(ActiveClauseContainer);
 
-  ActiveClauseContainer(const Options& opt) : _size(0), _opt(opt) {}
+  ActiveClauseContainer(const Shell::Options& opt) : _size(0), _opt(opt) {}
 
   void add(Clause* c);
   void remove(Clause* c);
@@ -166,7 +183,7 @@ protected:
   void onLimitsUpdated();
 private:
   unsigned _size;
-  const Options& _opt;
+  const Shell::Options& _opt;
 };
 
 
