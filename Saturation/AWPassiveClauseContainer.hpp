@@ -83,7 +83,7 @@ public:
 
   void remove(Clause* cl);
 
-  bool byWeight();
+  bool byWeight(int balance);
 
   Clause* popSelected();
   /** True if there are no passive clauses */
@@ -112,11 +112,37 @@ private:
   unsigned _size;
 
   /*
-   * LRS specific methods and fields
+   * LRS specific methods and fields for computation of Limits
    */
 public:
   virtual void updateLimits(long long estReachableCnt);
 
+  void simulationInit();
+  bool simulationHasNext();
+  void simulationPopSelected();
+
+private:
+
+    // returns whether at least one of the limits was tightened
+  bool setLimitsToMax();
+  bool setLimitsFromSimulation();
+  bool setLimits(unsigned newAgeSelectionMaxAge, unsigned newAgeSelectionMaxWeight, unsigned newWeightSelectionMaxWeight, unsigned newWeightSelectionMaxAge);
+
+  int _simulationBalance;
+  ClauseQueue::Iterator _simulationCurrAgeIt;
+  ClauseQueue::Iterator _simulationCurrWeightIt;
+  Clause* _simulationCurrAgeCl;
+  Clause* _simulationCurrWeightCl;
+
+  unsigned _ageSelectionMaxAge;
+  unsigned _ageSelectionMaxWeight;
+  unsigned _weightSelectionMaxWeight;
+  unsigned _weightSelectionMaxAge;
+
+  /*
+   * LRS specific methods and fields for usage of limits
+   */
+public:
   virtual bool ageLimited() const;
   virtual bool weightLimited() const;
 
@@ -134,13 +160,6 @@ public:
 private:
   void onLimitsUpdated();
 
-    // returns whether at least one of the limits was tightened
-  bool setLimits(unsigned newAgeSelectionMaxAge, unsigned newAgeSelectionMaxWeight, unsigned newWeightSelectionMaxWeight, unsigned newWeightSelectionMaxAge);
-
-  unsigned _ageSelectionMaxAge;
-  unsigned _ageSelectionMaxWeight;
-  unsigned _weightSelectionMaxWeight;
-  unsigned _weightSelectionMaxAge;
 }; // class AWPassiveClauseContainer
 
 /**
