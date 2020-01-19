@@ -306,6 +306,11 @@ public:
 
   VirtualIterator<vstring> toSimpleClauseStrings();
 
+  void setAux()
+  {
+    ASS(_auxInUse);
+    _auxTimestamp=_auxCurrTimestamp;
+  }
 
   /** Set auxiliary value of this clause. */
   void setAux(void* ptr)
