@@ -1668,6 +1668,20 @@ bool Splitter::handleEmptyClause(Clause* cl)
 
   addSatClauseToSolver(confl,true);
 
+    if (_showSplitting) {
+      env.beginOutput();
+      env.out() << "[AVATAR] proved ";
+      SplitSet::Iterator sit(*cl->splits());
+      while(sit.hasNext()){
+        env.out() << (_db[sit.next()]->component)->toString();
+        if(sit.hasNext()){ env.out() << " | "; }
+      }
+      env.out() << endl; 
+      env.endOutput();
+    }
+
+
+
   env.statistics->satSplitRefutations++;
   return true;
 }

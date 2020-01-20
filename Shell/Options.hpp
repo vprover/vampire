@@ -1896,6 +1896,7 @@ public:
   bool showTheoryAxioms() const { return showAll() || _showTheoryAxioms.actualValue; }
   bool showFOOL() const { return showAll() || _showFOOL.actualValue; }
   bool showFMBsortInfo() const { return showAll() || _showFMBsortInfo.actualValue; }
+  bool showInduction() const { return showAll() || _showInduction.actualValue; }
 #if VZ3
   bool showZ3() const { return showAll() || _showZ3.actualValue; }
 #endif
@@ -2432,6 +2433,7 @@ private:
   BoolOptionValue _showTheoryAxioms;
   BoolOptionValue _showFOOL;
   BoolOptionValue _showFMBsortInfo;
+  BoolOptionValue _showInduction;
 #if VZ3
   BoolOptionValue _showZ3;
   BoolOptionValue _z3UnsatCores;

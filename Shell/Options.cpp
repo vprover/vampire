@@ -729,6 +729,11 @@ void Options::Options::init()
     _lookup.insert(&_showFMBsortInfo);
     _showFMBsortInfo.tag(OptionTag::OUTPUT);
 
+    _showInduction = BoolOptionValue("show_induction","",false);
+    _showInduction.description = "Print information about induction";
+    _lookup.insert(&_showInduction);
+    _showInduction.tag(OptionTag::OUTPUT);
+
     _manualClauseSelection = BoolOptionValue("manual_cs","",false);
     _manualClauseSelection.description="Run Vampire interactively by manually picking the clauses to be selected";
     _lookup.insert(&_manualClauseSelection);

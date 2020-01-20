@@ -103,7 +103,11 @@ void InductionClauseIterator::process(Clause* premise, Literal* lit)
 {
   CALL("Induction::ClauseIterator::process");
 
-  //cout << "PROCESS " << premise->toString() << endl;
+  if(env.options->showInduction()){
+    env.beginOutput();
+    env.out() << "[Induction] process " << lit->toString() << " in " << premise->toString() << endl;
+    env.endOutput();
+  }
 
   static Options::InductionChoice kind = env.options->inductionChoice();
   static bool all = (kind == Options::InductionChoice::ALL);
@@ -168,7 +172,7 @@ void InductionClauseIterator::process(Clause* premise, Literal* lit)
       Set<Term*>::Iterator citer2(ta_terms);
       while(citer2.hasNext()){
         Term* t = citer2.next();
-        //cout << "PERFORM INDUCTION on " << env.signature->functionName(c) << endl;
+        //cout << "PERFORM INDUCTION on " << t->toString() << endl;
         static bool one = env.options->structInduction() == Options::StructuralInductionKind::ONE ||
                           env.options->structInduction() == Options::StructuralInductionKind::ALL; 
         static bool two = env.options->structInduction() == Options::StructuralInductionKind::TWO ||
