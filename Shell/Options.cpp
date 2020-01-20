@@ -1756,6 +1756,13 @@ void Options::Options::init()
     _symbolPrecedence.tag(OptionTag::SATURATION);
     _symbolPrecedence.setRandomChoices({"arity","occurence","reverse_arity","frequency"});
 
+    _introducedSymbolPrecedence = ChoiceOptionValue<IntroducedSymbolPrecedence>("introduced_symbol_precedence","isp",
+                                                                                IntroducedSymbolPrecedence::TOP,
+                                                                                {"top","bottom"});
+    _introducedSymbolPrecedence.description="Decides where to place symbols introduced during proof search in the symbol precedence";
+    _lookup.insert(&_introducedSymbolPrecedence);
+    _introducedSymbolPrecedence.tag(OptionTag::SATURATION);
+
     _functionPrecedence = StringOptionValue("function_precendence","fp","");
     _functionPrecedence.description = "A name of a file with an explicit user specified precedence on function symbols.";
     _functionPrecedence.setExperimental();
