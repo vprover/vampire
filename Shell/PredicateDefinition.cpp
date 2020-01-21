@@ -134,7 +134,7 @@ struct PredicateDefinition::PredData
       enqueuedForReplacement=true;
       if (env.options->showPreprocessing()) {
         env.beginOutput();
-        ASSERTION_VIOLATION;
+ //       ASSERTION_VIOLATION;
         env.out() << "[PP] " << stateToString() << " to be replaced by " 
                 << ((nocc==0) ? "$false" : "$true") << std::endl;
         env.endOutput();
