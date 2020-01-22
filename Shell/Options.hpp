@@ -2053,8 +2053,8 @@ public:
   unsigned maxInductionDepth() const { return _maxInductionDepth.actualValue; }
   bool inductionNegOnly() const { return _inductionNegOnly.actualValue; }
   bool inductionUnitOnly() const { return _inductionUnitOnly.actualValue; }
-  bool inductionTermSubset() const { return _inductionTermSubset.actualValue; }
-  unsigned maxInductionTermSubsetSize() const { return _maxInductionTermSubsetSize.actualValue; }
+  bool inductionGen() const { return _inductionGen.actualValue; }
+  unsigned maxInductionGenSubsetSize() const { return _maxInductionGenSubsetSize.actualValue; }
 
   float instGenBigRestartRatio() const { return _instGenBigRestartRatio.actualValue; }
   bool instGenPassiveReactivation() const { return _instGenPassiveReactivation.actualValue; }
@@ -2347,8 +2347,8 @@ private:
   UnsignedOptionValue _maxInductionDepth;
   BoolOptionValue _inductionNegOnly;
   BoolOptionValue _inductionUnitOnly;
-  BoolOptionValue _inductionTermSubset;
-  UnsignedOptionValue _maxInductionTermSubsetSize;
+  BoolOptionValue _inductionGen;
+  UnsignedOptionValue _maxInductionGenSubsetSize;
 
   StringOptionValue _latexOutput;
   BoolOptionValue _latexUseDefaultSymbols;

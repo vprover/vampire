@@ -86,7 +86,7 @@ Literal* LiteralSubsetReplacement::transformSubset() {
   CALL("LiteralSubsetReplacement::transformSubset");
   // Increment _iteration, since it either is 0, or was already used.
   _iteration++;
-  static unsigned maxSubsetSize = env.options->maxInductionTermSubsetSize();
+  static unsigned maxSubsetSize = env.options->maxInductionGenSubsetSize();
   // Note: __builtin_popcount() is a GCC built-in function.
   int setBits = __builtin_popcount(_iteration);
   // Skip this iteration if not all bits are set, but more than maxSubset are set.
@@ -149,7 +149,7 @@ void InductionClauseIterator::process(Clause* premise, Literal* lit)
                          env.options->induction() == Options::Induction::STRUCTURAL;
   static bool mathInd = env.options->induction() == Options::Induction::BOTH ||
                          env.options->induction() == Options::Induction::MATHEMATICAL;
-  static bool useTermSubset = env.options->inductionTermSubset();
+  static bool generalize = env.options->inductionGen();
 
   if((!negOnly || lit->isNegative() || 
          (theory->isInterpretedPredicate(lit) && theory->isInequality(theory->interpretPredicate(lit)))
@@ -195,9 +195,9 @@ void InductionClauseIterator::process(Clause* premise, Literal* lit)
         static bool two = env.options->mathInduction() == Options::MathInductionKind::TWO ||
                           env.options->mathInduction() == Options::MathInductionKind::ALL;
         if(notDone(lit,t)){
-          Term* inductionTerm = useTermSubset ? getPlaceholderForTerm(t) : t;
+          Term* inductionTerm = generalize ? getPlaceholderForTerm(t) : t;
           Kernel::LiteralSubsetReplacement subsetReplacement(lit, t, TermList(inductionTerm));
-          Literal* ilit = useTermSubset ? subsetReplacement.transformSubset() : lit;
+          Literal* ilit = generalize ? subsetReplacement.transformSubset() : lit;
           ASS(ilit != nullptr);
           do {
             if(one){
@@ -206,7 +206,7 @@ void InductionClauseIterator::process(Clause* premise, Literal* lit)
             if(two){
               performMathInductionTwo(premise,lit,ilit,inductionTerm);
             }
-          } while (useTermSubset && (ilit = subsetReplacement.transformSubset()));
+          } while (generalize && (ilit = subsetReplacement.transformSubset()));
         }
       }
       Set<Term*>::Iterator citer2(ta_terms);
@@ -220,9 +220,9 @@ void InductionClauseIterator::process(Clause* premise, Literal* lit)
         static bool three = env.options->structInduction() == Options::StructuralInductionKind::THREE ||
                           env.options->structInduction() == Options::StructuralInductionKind::ALL;
         if(notDone(lit,t)){
-          Term* inductionTerm = useTermSubset ? getPlaceholderForTerm(t) : t;
+          Term* inductionTerm = generalize ? getPlaceholderForTerm(t) : t;
           Kernel::LiteralSubsetReplacement subsetReplacement(lit, t, TermList(inductionTerm));
-          Literal* ilit = useTermSubset ? subsetReplacement.transformSubset() : lit;
+          Literal* ilit = generalize ? subsetReplacement.transformSubset() : lit;
           ASS(ilit != nullptr);
           do {
             if(one){
@@ -234,7 +234,7 @@ void InductionClauseIterator::process(Clause* premise, Literal* lit)
             if(three){
               performStructInductionThree(premise,lit,ilit,inductionTerm);
             }
-          } while (useTermSubset && (ilit = subsetReplacement.transformSubset()));
+          } while (generalize && (ilit = subsetReplacement.transformSubset()));
         }
       } 
    }
