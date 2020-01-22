@@ -87,6 +87,7 @@ Literal* LiteralSubsetReplacement::transformSubset() {
   // Increment _iteration, since it either is 0, or was already used.
   _iteration++;
   static unsigned maxSubsetSize = env.options->maxInductionTermSubsetSize();
+  // Note: __builtin_popcount() is a GCC built-in function.
   int setBits = __builtin_popcount(_iteration);
   // Skip this iteration if not all bits are set, but more than maxSubset are set.
   while ((_iteration <= _maxIterations) &&
@@ -724,9 +725,12 @@ bool InductionClauseIterator::notDone(Literal* lit, Term* term)
 Term* InductionClauseIterator::getPlaceholderForTerm(Term* t) {
   CALL("InductionClauseIterator::getPlaceholderForTerm");
 
-  unsigned termType = env.signature->getFunction(t->functor())->fnType()->result();
-  unsigned placeholderConstNumber = env.signature->addFreshFunction(0, "placeholder");
-  env.signature->getFunction(placeholderConstNumber)->setType(OperatorType::getConstantsType(termType));
+  OperatorType* ot = env.signature->getFunction(t->functor())->fnType();
+  bool added; 
+  unsigned placeholderConstNumber = env.signature->addFunction("placeholder_" + ot->toString(), 0, added);
+  if (added) {
+    env.signature->getFunction(placeholderConstNumber)->setType(OperatorType::getConstantsType(ot->result()));
+  }
   return Term::createConstant(placeholderConstNumber);
 }
 
