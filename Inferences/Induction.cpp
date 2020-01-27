@@ -420,10 +420,13 @@ void InductionClauseIterator::performStructInductionOne(Clause* premise, Literal
     ASS(f);
     formulas = new FormulaList(f,formulas);
   }
+  ASS_G(FormulaList::length(formulas), 0);
+  Formula* indPremise = FormulaList::length(formulas) > 1 ? new JunctionFormula(Connective::AND,formulas)
+                                                          : formulas->head();
   TermReplacement cr(term,TermList(var,false));
   Literal* conclusion = cr.transform(clit);
   Formula* hypothesis = new BinaryFormula(Connective::IMP,
-                            Formula::quantify(new JunctionFormula(Connective::AND,formulas)),
+                            Formula::quantify(indPremise),
                             Formula::quantify(new AtomicFormula(conclusion)));
 
   NewCNF cnf(0);
@@ -523,7 +526,9 @@ void InductionClauseIterator::performStructInductionTwo(Clause* premise, Literal
     }
   }
   Formula* exists = new QuantifiedFormula(Connective::EXISTS, new Formula::VarList(y.var(),0),0,
-                  new JunctionFormula(Connective::AND,new FormulaList(new AtomicFormula(Ly),formulas))); 
+                        FormulaList::length(formulas) > 0 ? static_cast<Formula*>(new JunctionFormula(
+                                                                Connective::AND,new FormulaList(new AtomicFormula(Ly),formulas)))
+                                                          : static_cast<Formula*>(new AtomicFormula(Ly)));
   
   TermReplacement cr2(term,TermList(1,false));
   Literal* conclusion = cr2.transform(clit);
