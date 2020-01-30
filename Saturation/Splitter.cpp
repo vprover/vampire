@@ -790,7 +790,7 @@ Unit* Splitter::getDefinitionFromName(SplitLevel compName) const
   CALL("Splitter::getDefinitionFromName");
 
   Unit* def;
-  ALWAYS(_defs.find(compName,def));
+  ALWAYS(_defs.find((compName&~1) /*always stored positively*/,def));
   return def;
 }
 
@@ -1230,19 +1230,33 @@ Clause* Splitter::buildAndInsertComponentClause(SplitLevel name, unsigned size, 
   CALL("Splitter::buildAndInsertComponentClause");
   ASS_EQ(_db[name],0);
 
+  /**
+   * retrieve or prepare a definition formula as in "4 <=> sP0(n0)"
+   * the name is always taken positively (like 4) even when we are introducing a negated ground component (like ~sP0(n0))
+   * so we potentially need to a complementary literal (it's always a ground singleton in such case) for the rhs formula
+   */
+  SplitLevel posName = (name&~1);
+  Unit* def_u;
   Unit::InputType inpType = orig ? orig->inputType() : Unit::AXIOM;
+  if (!_defs.find(posName, def_u)) {
+    Literal* oplit;
+    Literal*const* possibly_flipped_lits = lits;
+    if (size == 1 && lits[0]->ground() && lits[0]->isNegative()) {
+      oplit = Literal::complementaryLiteral(lits[0]);
+      possibly_flipped_lits = &oplit;
+    }
 
-  vstring formula_name = getFormulaStringFromName(name);
+    vstring formula_name = getFormulaStringFromName(posName);
+    Clause* temp = Clause::fromIterator(getArrayishObjectIterator(possibly_flipped_lits, size), inpType,new Inference(Inference::AVATAR_DEFINITION));
+    Formula* def_f = new BinaryFormula(IFF,
+                 new NamedFormula(formula_name),
+                 Formula::fromClause(temp));
 
-  Clause* temp = Clause::fromIterator(getArrayishObjectIterator(lits, size), inpType,new Inference(Inference::AVATAR_DEFINITION));
-  Formula* def_f = new BinaryFormula(IFF,
-               new NamedFormula(formula_name),
-               Formula::fromClause(temp));
-
-  FormulaUnit* def_u = new FormulaUnit(def_f,new Inference(Inference::AVATAR_DEFINITION),inpType);
-  InferenceStore::instance()->recordIntroducedSplitName(def_u,formula_name);
-  //cout << "Add def for " << def_u->toString() << endl;
-  ALWAYS(_defs.insert(name,def_u));
+    def_u = new FormulaUnit(def_f,new Inference(Inference::AVATAR_DEFINITION),inpType);
+    InferenceStore::instance()->recordIntroducedSplitName(def_u,formula_name);
+    // cout << "Add def " << def_u->toString() << " for " << name << endl;
+    ALWAYS(_defs.insert(posName,def_u));
+  }
 
   Clause* compCl = Clause::fromIterator(getArrayishObjectIterator(lits, size), inpType, 
           new Inference1(Inference::AVATAR_COMPONENT,def_u));
@@ -1653,6 +1667,20 @@ bool Splitter::handleEmptyClause(Clause* cl)
   // RSTAT_MCTR_INC("sspl_confl_len", confl->length());
 
   addSatClauseToSolver(confl,true);
+
+    if (_showSplitting) {
+      env.beginOutput();
+      env.out() << "[AVATAR] proved ";
+      SplitSet::Iterator sit(*cl->splits());
+      while(sit.hasNext()){
+        env.out() << (_db[sit.next()]->component)->toString();
+        if(sit.hasNext()){ env.out() << " | "; }
+      }
+      env.out() << endl; 
+      env.endOutput();
+    }
+
+
 
   env.statistics->satSplitRefutations++;
   return true;

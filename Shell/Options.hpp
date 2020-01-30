@@ -601,6 +601,10 @@ public:
     UNIT = 2,
     GOAL_UNIT = 3
   };
+  enum class IntroducedSymbolPrecedence : unsigned int {
+    TOP = 0,
+    BOTTOM = 1
+  };
 
   enum class SineSelection : unsigned int {
     AXIOMS = 0,
@@ -1898,6 +1902,7 @@ public:
   bool showTheoryAxioms() const { return showAll() || _showTheoryAxioms.actualValue; }
   bool showFOOL() const { return showAll() || _showFOOL.actualValue; }
   bool showFMBsortInfo() const { return showAll() || _showFMBsortInfo.actualValue; }
+  bool showInduction() const { return showAll() || _showInduction.actualValue; }
 #if VZ3
   bool showZ3() const { return showAll() || _showZ3.actualValue; }
 #endif
@@ -1968,6 +1973,7 @@ public:
   TermOrdering termOrdering() const { return _termOrdering.actualValue; }
   SymbolPrecedence symbolPrecedence() const { return _symbolPrecedence.actualValue; }
   SymbolPrecedenceBoost symbolPrecedenceBoost() const { return _symbolPrecedenceBoost.actualValue; }
+  IntroducedSymbolPrecedence introducedSymbolPrecedence() const { return _introducedSymbolPrecedence.actualValue; }
   const vstring& functionPrecedence() const { return _functionPrecedence.actualValue; }
   const vstring& predicatePrecedence() const { return _predicatePrecedence.actualValue; }
   // Return time limit in deciseconds, or 0 if there is no time limit
@@ -2440,6 +2446,7 @@ private:
   BoolOptionValue _showTheoryAxioms;
   BoolOptionValue _showFOOL;
   BoolOptionValue _showFMBsortInfo;
+  BoolOptionValue _showInduction;
 #if VZ3
   BoolOptionValue _showZ3;
   BoolOptionValue _z3UnsatCores;
@@ -2481,6 +2488,7 @@ private:
   ChoiceOptionValue<TermOrdering> _termOrdering;
   ChoiceOptionValue<SymbolPrecedence> _symbolPrecedence;
   ChoiceOptionValue<SymbolPrecedenceBoost> _symbolPrecedenceBoost;
+  ChoiceOptionValue<IntroducedSymbolPrecedence> _introducedSymbolPrecedence;
   StringOptionValue _functionPrecedence;
   StringOptionValue _predicatePrecedence;
 
