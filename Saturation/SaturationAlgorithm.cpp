@@ -585,6 +585,15 @@ void SaturationAlgorithm::addInputClause(Clause* cl)
   if (_opt.showForKarel()) {
     cout << "init: " << cl->number() << " isGoal: " << cl->isGoal() << " isTheory: " << isTheory
          << " SInE: " << cl->getSineLevel() << endl;
+
+    // START FROM HERE: tohle stejne bude jinak
+    // i.e. ocisluj je!
+
+    if (isTheory) {
+      Formula* f = Formula::fromClause(cl);
+      cout << "tax: " << cl->number() << " " << TPTPPrinter::toString(f) << endl;
+     f->destroy();
+    }
   }
 
   if (_opt.sineToAge()) {
@@ -1222,6 +1231,10 @@ void SaturationAlgorithm::doOneAlgorithmStep()
   Clause* cl = _passive->popSelected();
   ASS_EQ(cl->store(),Clause::PASSIVE);
   cl->setStore(Clause::SELECTED);
+
+  if (_opt.showForKarel()) {
+    cout << "sel: " << cl->number() << endl;
+  }
 
   if (!handleClauseBeforeActivation(cl)) {
     return;
