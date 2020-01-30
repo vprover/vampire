@@ -579,21 +579,20 @@ void SaturationAlgorithm::addInputClause(Clause* cl)
   bool sosForAxioms = _opt.sos() == Options::Sos::ON || _opt.sos() == Options::Sos::ALL; 
   sosForAxioms = sosForAxioms && cl->inputType()==Clause::AXIOM;
 
-  bool isTheory = cl->inference()->isTheoryAxiom();
+  unsigned isTheory = cl->inference()->isTheoryAxiom() ? static_cast<unsigned>(cl->inference()->rule()) : 0;
   bool sosForTheory = _opt.sos() == Options::Sos::THEORY && _opt.sosTheoryLimit() == 0;
 
   if (_opt.showForKarel()) {
     cout << "init: " << cl->number() << " isGoal: " << cl->isGoal() << " isTheory: " << isTheory
          << " SInE: " << cl->getSineLevel() << endl;
 
-    // START FROM HERE: tohle stejne bude jinak
-    // i.e. ocisluj je!
-
+    /*
     if (isTheory) {
       Formula* f = Formula::fromClause(cl);
       cout << "tax: " << cl->number() << " " << TPTPPrinter::toString(f) << endl;
      f->destroy();
     }
+    */
   }
 
   if (_opt.sineToAge()) {
