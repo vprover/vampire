@@ -210,8 +210,9 @@ public:
   bool isComponent() const { return _component; }
   void setComponent(bool c) { _component = c; }
 
+
   /*
-   * reurns true if clause is a theory descendant
+   * returns true if clause is a theory descendant
    *
    * Definition: A theory descendant is a clause, which
    * has a derivation where each leaf is a theory axiom.
