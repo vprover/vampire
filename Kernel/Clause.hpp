@@ -226,15 +226,10 @@ public:
       return false;
     }
 
-    auto isTheoryAxiom =
-      _inference->rule() == Inference::THEORY_AXIOM ||
-      _inference->rule() == Inference::FOOL_AXIOM ||
-      _inference->rule() == Inference::TERM_ALGEBRA_ACYCLICITY_AXIOM ||
-      _inference->rule() == Inference::TERM_ALGEBRA_DISCRIMINATION_AXIOM ||
-      _inference->rule() == Inference::TERM_ALGEBRA_DISTINCTNESS_AXIOM ||
-      _inference->rule() == Inference::TERM_ALGEBRA_EXHAUSTIVENESS_AXIOM ||
-      _inference->rule() == Inference::TERM_ALGEBRA_INJECTIVITY_AXIOM ||
-      isExternalTheoryAxiom();
+    bool isTheoryAxiom = isExternalTheoryAxiom() || // maybe we don't want these?
+       (static_cast<unsigned>(_inference->rule()) >= static_cast<unsigned>(Inference::THEORY_AXIOM)
+       &&
+       static_cast<unsigned>(_inference->rule()) < static_cast<unsigned>(Inference::INTERNAL_THEORY_AXIOM_LAST));
 
     return isTheoryAxiom;
   }
