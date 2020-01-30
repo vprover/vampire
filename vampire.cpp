@@ -458,7 +458,7 @@ void preprocessMode(bool theory)
   while (units.hasNext()) {
     Unit* u = units.next();
     if (!env.options->showFOOL()) {
-      if (u->inference()->rule() == Inference::FOOL_AXIOM) {
+      if (u->inference()->rule() == Inference::FOOL_AXIOM_TRUE_NEQ_FALSE || u->inference()->rule() == Inference::FOOL_AXIOM_ALL_IS_TRUE_OR_FALSE) {
         continue;
       }
     }

@@ -228,18 +228,66 @@ public:
     SIMPLIFY_PROVER_DISTINCT_NUMBERS_AXIOM,
     /** a not further specified theory axiom internally added by the class TheoryAxioms. */
     THEORY_AXIOM,
+    /** Some specific groups of axioms coming from TheoryAxioms.cpp" */
+    THEORY_AXIOM_COMMUTATIVITY,
+    THEORY_AXIOM_ASSOCIATIVITY,
+    THEORY_AXIOM_RIGHT_IDENTINTY,
+    THEORY_AXIOM_LEFT_IDENTINTY,
+    THEORY_AXIOM_INVERSE_OP_OP_INVERSES,
+    THEORY_AXIOM_INVERSE_OP_UNIT,
+    THEORY_AXIOM_INVERSE_ASSOC,
+    THEORY_AXIOM_NONREFLEX,
+    THEORY_AXIOM_TRANSITIVITY,
+    THEORY_AXIOM_ORDER_TOTALALITY,
+    THEORY_AXIOM_ORDER_MONOTONICITY,
+    THEORY_AXIOM_PLUS_ONE_GREATER,
+    THEORY_AXIOM_ORDER_PLUS_ONE_DICHOTOMY,
+    THEORY_AXIOM_MINUS_MINUS_X,
+    THEORY_AXIOM_TIMES_ZERO,
+    THEORY_AXIOM_DISTRIBUTIVITY,
+    THEORY_AXIOM_DIVISIBILITY,
+    THEORY_AXIOM_MODULO_MULTIPLY,
+    THEORY_AXIOM_MODULO_POSITIVE,
+    THEORY_AXIOM_MODULO_SMALL,
+    THEORY_AXIOM_DIVIDES_MULTIPLY,
+    THEORY_AXIOM_NONDIVIDES_SKOLEM,
+    THEORY_AXIOM_ABS_EQUALS,
+    THEORY_AXIOM_ABS_MINUS_EQUALS,
+    THEORY_AXIOM_QUOTIENT_NON_ZERO,
+    THEORY_AXIOM_QUOTIENT_MULTIPLY,
+    THEORY_AXIOM_EXTRA_INTEGER_ORDERING,
+    THEORY_AXIOM_FLOOR_SMALL,
+    THEORY_AXIOM_FLOOR_BIG,
+    THEORY_AXIOM_CEILING_BIG,
+    THEORY_AXIOM_CEILING_SMALL,
+    THEORY_AXIOM_TRUNC1,
+    THEORY_AXIOM_TRUNC2,
+    THEORY_AXIOM_TRUNC3,
+    THEORY_AXIOM_TRUNC4,
+    THEORY_AXIOM_ARRAY_EXTENSIONALITY,
+    THEORY_AXIOM_BOOLEAN_ARRAY_EXTENSIONALITY, // currently applied to a formula, so won't propagate to clause->isTheoryAxiom()
+    THEORY_AXIOM_BOOLEAN_ARRAY_WRITE1, // currently applied to a formula, so won't propagate to clause->isTheoryAxiom()
+    THEORY_AXIOM_BOOLEAN_ARRAY_WRITE2, // currently applied to a formula, so won't propagate to clause->isTheoryAxiom()
+    THEORY_AXIOM_ARRAY_WRITE1,
+    THEORY_AXIOM_ARRAY_WRITE2,
     /** acyclicity axiom for term algebras */
     TERM_ALGEBRA_ACYCLICITY_AXIOM,
-    /** discrimation axiom for term algebras */
+    TERM_ALGEBRA_DIRECT_SUBTERMS_AXIOM,
+    TERM_ALGEBRA_SUBTERMS_TRANSITIVE_AXIOM,
+    /** discrimination axiom for term algebras */
     TERM_ALGEBRA_DISCRIMINATION_AXIOM,
     /** distinctness axiom for term algebras */
     TERM_ALGEBRA_DISTINCTNESS_AXIOM,
     /** exhaustiveness axiom (or domain closure axiom) for term algebras */
-    TERM_ALGEBRA_EXHAUSTIVENESS_AXIOM,
+    TERM_ALGEBRA_EXHAUSTIVENESS_AXIOM, // currently (sometimes) applied to a formula, so won't propagate to clause->isTheoryAxiom()
     /** exhaustiveness axiom (or domain closure axiom) for term algebras */
     TERM_ALGEBRA_INJECTIVITY_AXIOM,
     /** one of two axioms of FOOL (distinct constants or finite domain) */
-    FOOL_AXIOM,
+    FOOL_AXIOM_TRUE_NEQ_FALSE,
+    FOOL_AXIOM_ALL_IS_TRUE_OR_FALSE,
+    /** the last internal theory axiom marker --
+      axioms between THEORY_AXIOM and INTERNAL_THEORY_AXIOM_LAST will be automatically making their respective clauses isTheoryAxiom() true */
+    INTERNAL_THEORY_AXIOM_LAST,
     /** a theory axiom which is not generated internally in Vampire */
     EXTERNAL_THEORY_AXIOM,
     /** inference rule for term algebras (no cyclic terms)*/
@@ -435,15 +483,10 @@ public:
       return false;
     }
 
-    auto isTheoryAxiom =
-      _rule == Inference::THEORY_AXIOM ||
-      _rule == Inference::FOOL_AXIOM ||
-      _rule == Inference::TERM_ALGEBRA_ACYCLICITY_AXIOM ||
-      _rule == Inference::TERM_ALGEBRA_DISCRIMINATION_AXIOM ||
-      _rule == Inference::TERM_ALGEBRA_DISTINCTNESS_AXIOM ||
-      _rule == Inference::TERM_ALGEBRA_EXHAUSTIVENESS_AXIOM ||
-      _rule == Inference::TERM_ALGEBRA_INJECTIVITY_AXIOM ||
-      isExternalTheoryAxiom();
+    bool isTheoryAxiom = isExternalTheoryAxiom() || // maybe we don't want these?
+       (static_cast<unsigned>(rule()) >= static_cast<unsigned>(Inference::THEORY_AXIOM)
+       &&
+       static_cast<unsigned>(rule()) < static_cast<unsigned>(Inference::INTERNAL_THEORY_AXIOM_LAST));
 
     return isTheoryAxiom;
   }
@@ -464,11 +507,11 @@ public:
    * different behaviour by Vampire, which is probably a bad thing.
    */
   bool isExternalTheoryAxiom() const {
-    return _rule == Inference::EXTERNAL_THEORY_AXIOM;
+    return rule() == Inference::EXTERNAL_THEORY_AXIOM;
   }
 
-  // counting the leaves (in the tree rather than dag sense)
-  // which are theory axioms and the total across all leaves
+  // counting the leafs (in the tree rather than dag sense)
+  // which are theory axioms and the total across all leafs
   float th_ancestors, all_ancestors; // we use floats, because this can grow large (because of the tree understanding of the dag); CAREFUL: could this lead to platform differences?
 
   /*
