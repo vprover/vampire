@@ -203,6 +203,40 @@ void SplittingBranchSelector::handleSatRefutation()
 
     Clause* foRef = Clause::fromIterator(LiteralIterator::getEmpty(),FromSatRefutation(InferenceRule::AVATAR_REFUTATION, prems, satPremises));
     // TODO: in principle, the user might be interested in this final clause's age (currently left 0)
+
+    if (env.options->showForKarel()) {
+      Inference& foInf = foRef->inference();
+
+      foInf.minimizePremises();
+
+      Stack<Clause*> toReport;
+
+      Inference::Iterator it = foInf.iterator();
+      while(foInf.hasNext(it)) {
+        Unit* premUnit = foInf.next(it);
+        //cout << "Premise: " << premUnit->toString() << endl;
+        Inference& inner = premUnit->inference();
+        Inference::Iterator iit = inner.iterator();
+        while (inner.hasNext(iit)) {
+          Unit* innerUnit = inner.next(iit);
+          if(innerUnit->isClause()) {
+            //cout << "InnerClause: " << innerUnit->toString() << endl;
+            Clause* cl = innerUnit->asClause();
+            _parent._sa->talkToKarel(cl);
+            toReport.push(cl);
+          }
+        }
+      }
+      Stack<Clause*>::Iterator sit(toReport);
+      if (sit.hasNext()) {
+        cout << "f: " << sit.next()->number();
+      }
+      while (sit.hasNext()) {
+        cout << "," << sit.next()->number();
+      }
+      cout << "\n";
+    }
+
     throw MainLoop::RefutationFoundException(foRef);
   } else { // we must produce a well colored proof
 
