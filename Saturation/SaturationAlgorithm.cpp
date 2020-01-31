@@ -339,9 +339,11 @@ void SaturationAlgorithm::onPassiveAdded(Clause* c)
     env.endOutput();
   }
   
+  /*
   if (_opt.showForKarel()) {
-    cout << "pass: " << c->number() << endl;
+    cout << "pass: " << c->number() << "\n";
   }
+  */
 
   //when a clause is added to the passive container,
   //we know it is not redundant
@@ -394,53 +396,46 @@ void SaturationAlgorithm::onUnprocessedSelected(Clause* c)
   
 }
 
-
-/**
- * A function that is called whenever a possibly new clause appears.
- */
-void SaturationAlgorithm::onNewClause(Clause* cl)
+void SaturationAlgorithm::talkToKarel(Clause* cl, bool eval)
 {
-  CALL("SaturationAlgorithm::onNewClause");
+  CALL("SaturationAlgorithm::talkToKarel");
 
-  if (_splitter) {
-    _splitter->onNewClause(cl);
+  ASS(_opt.showForKarel() || _opt.evalForKarel());
+
+  if (_reported.find(cl)) {
+    return;
   }
 
-  if (_opt.showForKarel()) {
-    Inference* inf = cl->inference();
-    cout << "inf: " << cl->number();
+  // pre-order traversal on parents:
+  Inference* inf = cl->inference();
+  inf->minimizePremises(); // this is here only formally, we don't look into avatar stuff (yet)
+  unsigned parent_cnt = 0;
+  Inference::Iterator iit = inf->iterator();
+  while(inf->hasNext(iit)) {
+    Unit* premUnit = inf->next(iit);
+    talkToKarel(premUnit->asClause(),eval);
+    parent_cnt++;
+  }
 
-    inf->minimizePremises(); // this is here only formally, we don't look into avatar stuff (yet)
+  // parents known, now its time to report on this one
+
+  // [2,cl_id,cl_age,cl_weight,cl_len,inf_id,parent_cl_id,parent_cl_id,...]
+  if (_opt.showForKarel()) {
+    cout << "d: [2," << cl->number() << "," << cl->age() << "," << cl->weight() << "," << cl->size();
+    cout << "," << inf->rule();
     Inference::Iterator iit = inf->iterator();
     while(inf->hasNext(iit)) {
-       Unit* premUnit = inf->next(iit);
-       cout << " par: " << premUnit->number();
+      Unit* premUnit = inf->next(iit);
+      cout << "," << premUnit->asClause()->number();
     }
-    Inference::Rule rule = inf->rule();
-    cout <<" rule: " << rule << " name: " << Inference::ruleName(rule) << endl;
-
-    cout << "new: " << cl->number() << " age: " << cl->age() << " weight: " << cl->weight() << " len: " << cl->length() << endl;
+    cout << "]\n";
   }
 
-  if (_opt.evalForKarel() && !_inputClauses.find(cl)) {
+  if (_opt.evalForKarel() && eval) {
     TimeCounter t(TC_DEEP_STUFF);
 
-    Inference* inf = cl->inference();
-    inf->minimizePremises(); // this is here only formally, we don't look into avatar stuff (yet)
-    Inference::Iterator iit = inf->iterator();
-
-    const unsigned num_slots = 2;
-    int parent_ids[num_slots];
-
-    unsigned par_cnt = 0;
-    while(inf->hasNext(iit)) {
-       Unit* premUnit = inf->next(iit);
-       parent_ids[par_cnt++] = premUnit->asClause()->number();
-       ASS_LE(par_cnt,num_slots);
-    }
-
     // [2,cl_id,cl_age,cl_weight,cl_len,inf_id,parent_cl_id,parent_cl_id,...]
-    auto init_vec = torch::zeros({6+par_cnt},torch::kInt64);
+    auto init_vec = torch::zeros({6+parent_cnt},torch::kInt64);
 
     init_vec[0] = 2;
     init_vec[1] = (int)cl->number();
@@ -448,8 +443,11 @@ void SaturationAlgorithm::onNewClause(Clause* cl)
     init_vec[3] = (int)cl->weight();
     init_vec[4] = (int)cl->size();
     init_vec[5] = (int)inf->rule();
-    for (int i = 0; i < par_cnt; i++) {
-      init_vec[6+i] = parent_ids[i];
+    unsigned idx = 6;
+    Inference::Iterator iit = inf->iterator();
+    while(inf->hasNext(iit)) {
+      Unit* premUnit = inf->next(iit);
+      init_vec[idx++] = (int) premUnit->asClause()->number();
     }
 
     cout <<  init_vec << endl;
@@ -463,6 +461,21 @@ void SaturationAlgorithm::onNewClause(Clause* cl)
     cout << "onNewClause: " << cl->number() << endl;
     cout << output << endl;
 #endif
+  }
+
+  ALWAYS(_reported.insert(cl));
+}
+
+
+/**
+ * A function that is called whenever a possibly new clause appears.
+ */
+void SaturationAlgorithm::onNewClause(Clause* cl)
+{
+  CALL("SaturationAlgorithm::onNewClause");
+
+  if (_splitter) {
+    _splitter->onNewClause(cl);
   }
 
   if (env.options->showNew()) {
@@ -648,10 +661,20 @@ void SaturationAlgorithm::addInputClause(Clause* cl)
   unsigned isTheory = cl->isTheoryAxiom() ? static_cast<unsigned>(cl->inference()->rule()) : 0;
   bool sosForTheory = _opt.sos() == Options::Sos::THEORY && _opt.sosTheoryLimit() == 0;
 
+  if (_opt.showForKarel() || _opt.evalForKarel()) {
+    ALWAYS(_reported.insert(cl));
+  }
+
   if (_opt.showForKarel()) {
+    // [1,cl_id,cl_age,cl_weight,cl_len,isgoal,istheory,sine]
+
+    cout << "i: [1," << cl->number() << "," << cl->age() << "," << cl->weight() << "," << cl->size();
+    cout << "," << cl->isGoal() << "," << isTheory << "," << cl->getSineLevel() << "]\n";
+
+    /*
     cout << "init: " << cl->number() << " isGoal: " << cl->isGoal() << " isTheory: " << isTheory
          << " SInE: " << cl->getSineLevel() << endl;
-
+    */
     /*
     if (isTheory) {
       Formula* f = Formula::fromClause(cl);
@@ -664,12 +687,8 @@ void SaturationAlgorithm::addInputClause(Clause* cl)
   if (_opt.evalForKarel()) {
     TimeCounter t(TC_DEEP_STUFF);
 
-    ALWAYS(_inputClauses.insert(cl));
-
     // [1,cl_id,cl_age,cl_weight,cl_len,isgoal,istheory,sine]
-
-    auto init_vec = torch::zeros({8},torch::kInt64);
-
+    static auto init_vec = torch::zeros({8},torch::kInt64);
     init_vec[0] = 1;
     init_vec[1] = (int)cl->number();
     init_vec[2] = (int)cl->age();
@@ -679,9 +698,10 @@ void SaturationAlgorithm::addInputClause(Clause* cl)
     init_vec[6] = (int)isTheory;
     init_vec[7] = (int)cl->getSineLevel();
 
-    cout <<  init_vec << endl;
+    cout << init_vec << endl;
 
-    std::vector<torch::jit::IValue> inputs;
+    static std::vector<torch::jit::IValue> inputs;
+    inputs.clear();
     inputs.push_back(init_vec);
 
     auto output = _model.forward(inputs);
@@ -690,6 +710,8 @@ void SaturationAlgorithm::addInputClause(Clause* cl)
     cout << "addInputClause: " << cl->number() << endl;
     cout << output << endl;
 #endif
+
+    // TODO: store the output value
   }
 
   if (_opt.sineToAge()) {
@@ -960,6 +982,13 @@ void SaturationAlgorithm::handleEmptyClause(Clause* cl)
   if (isRefutation(cl)) {
     onNonRedundantClause(cl);
 
+    if (_opt.showForKarel() || _opt.evalForKarel()) {
+      talkToKarel(cl,false);
+    }
+    if (_opt.showForKarel()) {
+      cout << "e: " << cl->number() << "\n";
+    }
+
     if(cl->isTheoryDescendant() ){
       ASSERTION_VIOLATION_REP("A pure theory descendant is empty, which means theory axioms are inconsistent");
       reportSpiderFail();
@@ -1118,9 +1147,11 @@ void SaturationAlgorithm::addToPassive(Clause* cl)
   cl->setStore(Clause::PASSIVE);
   env.statistics->passiveClauses++;
 
+  /*
   if (_opt.showForKarel()) {
-    cout << "pass: " << cl->number() << endl;
+    cout << "pass: " << cl->number() << "\n";
   }
+  */
 
   _passive->add(cl);
 }
@@ -1332,8 +1363,11 @@ void SaturationAlgorithm::doOneAlgorithmStep()
   ASS_EQ(cl->store(),Clause::PASSIVE);
   cl->setStore(Clause::SELECTED);
 
+  if (_opt.showForKarel() || _opt.evalForKarel()) {
+    talkToKarel(cl);
+  }
   if (_opt.showForKarel()) {
-    cout << "sel: " << cl->number() << endl;
+    cout << "s: " << cl->number() << "\n";
   }
 
   if (!handleClauseBeforeActivation(cl)) {
