@@ -177,7 +177,8 @@ private:
   static SaturationAlgorithm* s_instance;
 protected:
   torch::jit::script::Module _model;
-  DHSet<Clause*> _inputClauses; // they are reported to the model in addInputClause; all the others in onNewClause
+  DHSet<Clause*> _reported; // set of clauses the _model already knows about
+  void talkToKarel(Clause*,bool eval = true);
 
   bool _completeOptionSettings;
   int _startTime;
