@@ -107,6 +107,7 @@ using namespace Saturation;
 /** Print information about performed backward simplifications */
 #define REPORT_BW_SIMPL 0
 
+#define DEBUG_MODEL 1
 
 SaturationAlgorithm* SaturationAlgorithm::s_instance = 0;
 
@@ -130,6 +131,17 @@ SaturationAlgorithm::SaturationAlgorithm(Problem& prb, const Options& opt)
 {
   CALL("SaturationAlgorithm::SaturationAlgorithm");
   ASS_EQ(s_instance, 0);  //there can be only one saturation algorithm at a time
+
+  if (opt.evalForKarel()) { // load the models
+    TimeCounter t(TC_DEEP_STUFF);
+
+    // torch::set_num_threads(1);
+    // TODO: https://discuss.pytorch.org/t/use-single-thread-on-intel-cpu/34233
+
+    _model = torch::jit::load("odKarla/vampire.pt");
+
+    // cout << "Models loaded" << endl;
+  }
 
   _activationLimit = opt.activationLimit();
 
@@ -399,6 +411,49 @@ void SaturationAlgorithm::onNewClause(Clause* cl)
     cout << "new: " << cl->number() << " age: " << cl->age() << " weight: " << cl->weight() << " len: " << cl->length() << endl;
   }
 
+  if (_opt.evalForKarel() && !_inputClauses.find(cl)) {
+    TimeCounter t(TC_DEEP_STUFF);
+
+    Inference* inf = cl->inference();
+    inf->minimizePremises(); // this is here only formally, we don't look into avatar stuff (yet)
+    Inference::Iterator iit = inf->iterator();
+
+    const unsigned num_slots = 2;
+    int parent_ids[num_slots];
+
+    unsigned par_cnt = 0;
+    while(inf->hasNext(iit)) {
+       Unit* premUnit = inf->next(iit);
+       parent_ids[par_cnt++] = premUnit->asClause()->number();
+       ASS_LE(par_cnt,num_slots);
+    }
+
+    // [2,cl_id,cl_age,cl_weight,cl_len,inf_id,parent_cl_id,parent_cl_id,...]
+    auto init_vec = torch::zeros({6+par_cnt},torch::kInt64);
+
+    init_vec[0] = 2;
+    init_vec[1] = (int)cl->number();
+    init_vec[2] = (int)cl->age();
+    init_vec[3] = (int)cl->weight();
+    init_vec[4] = (int)cl->size();
+    init_vec[5] = (int)inf->rule();
+    for (int i = 0; i < par_cnt; i++) {
+      init_vec[6+i] = parent_ids[i];
+    }
+
+    cout <<  init_vec << endl;
+
+    std::vector<torch::jit::IValue> inputs;
+    inputs.push_back(init_vec);
+
+    auto output = _model.forward(inputs);
+
+#if DEBUG_MODEL
+    cout << "onNewClause: " << cl->number() << endl;
+    cout << output << endl;
+#endif
+  }
+
   if (env.options->showNew()) {
     env.beginOutput();
     env.out() << "[SA] new: " << cl->toString() << std::endl;
@@ -594,6 +649,38 @@ void SaturationAlgorithm::addInputClause(Clause* cl)
     }
     */
   }
+
+  if (_opt.evalForKarel()) {
+    TimeCounter t(TC_DEEP_STUFF);
+
+    ALWAYS(_inputClauses.insert(cl));
+
+    // [1,cl_id,cl_age,cl_weight,cl_len,isgoal,istheory,sine]
+
+    auto init_vec = torch::zeros({8},torch::kInt64);
+
+    init_vec[0] = 1;
+    init_vec[1] = (int)cl->number();
+    init_vec[2] = (int)cl->age();
+    init_vec[3] = (int)cl->weight();
+    init_vec[4] = (int)cl->size();
+    init_vec[5] = (int)cl->isGoal();
+    init_vec[6] = (int)isTheory;
+    init_vec[7] = (int)cl->getSineLevel();
+
+    cout <<  init_vec << endl;
+
+    std::vector<torch::jit::IValue> inputs;
+    inputs.push_back(init_vec);
+
+    auto output = _model.forward(inputs);
+
+#if DEBUG_MODEL
+    cout << "addInputClause: " << cl->number() << endl;
+    cout << output << endl;
+#endif
+  }
+
 
   if (_opt.sineToAge()) {
     unsigned level = cl->getSineLevel();
@@ -1020,6 +1107,10 @@ void SaturationAlgorithm::addToPassive(Clause* cl)
 
   cl->setStore(Clause::PASSIVE);
   env.statistics->passiveClauses++;
+
+  if (_opt.showForKarel()) {
+    cout << "pass: " << cl->number() << endl;
+  }
 
   _passive->add(cl);
 }

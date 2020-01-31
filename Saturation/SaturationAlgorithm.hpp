@@ -44,6 +44,8 @@
 
 #include "Saturation/ExtensionalityClauseContainer.hpp"
 
+#include <torch/script.h>
+
 #if VDEBUG
 #include<iostream>
 #endif
@@ -174,6 +176,9 @@ private:
 
   static SaturationAlgorithm* s_instance;
 protected:
+  torch::jit::script::Module _model;
+  DHSet<Clause*> _inputClauses; // they are reported to the model in addInputClause; all the others in onNewClause
+
   bool _completeOptionSettings;
   int _startTime;
   bool _clauseActivationInProgress;
