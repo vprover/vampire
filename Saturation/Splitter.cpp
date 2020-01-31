@@ -1263,10 +1263,47 @@ Clause* Splitter::buildAndInsertComponentClause(SplitLevel name, unsigned size, 
 
   if(orig && orig->isTheoryDescendant()){ compCl->setTheoryDescendant(true); }
   if(orig){ compCl->setInductionDepth(orig->inductionDepth()); }
-
-  //cout << "Name " << getLiteralFromName(name).toString() << " for " << compCl->toString() << endl; 
-
   compCl->setAge(orig ? orig->age() : AGE_NOT_FILLED);
+
+  //cout << "Name " << getLiteralFromName(name).toString() << " for " << compCl->toString() << endl;
+
+  if (env.options->showForKarel() || env.options->evalForKarel()) {
+    _sa->talkToKarel(orig);
+    _sa->_reported.insert(compCl);
+  }
+
+  if (env.options->showForKarel()) {
+    // a: [3,cl_id,cl_age,cl_weight,cl_len,causal_parent]
+    cout << "a: [3," << compCl->number() << "," << compCl->age() << "," << compCl->weight() << "," << compCl->size();
+    cout << "," << orig->number() << "]\n";
+  }
+
+  if (env.options->evalForKarel()) {
+    TimeCounter t(TC_DEEP_STUFF);
+
+    // [3,cl_id,cl_age,cl_weight,cl_len,causal_parent]
+    auto init_vec = torch::zeros({6},torch::kInt64);
+
+    init_vec[0] = 3;
+    init_vec[1] = (int)compCl->number();
+    init_vec[2] = (int)compCl->age();
+    init_vec[3] = (int)compCl->weight();
+    init_vec[4] = (int)compCl->size();
+    init_vec[6] = (int)orig->number();
+
+    cout <<  init_vec << endl;
+
+    std::vector<torch::jit::IValue> inputs;
+    inputs.push_back(init_vec);
+
+    auto output = _sa->_model.forward(inputs);
+
+#if DEBUG_MODEL
+    cout << "buildAndInsertComponentClause: " << compCl->number() << endl;
+    cout << output << endl;
+#endif
+
+  }
 
   _db[name] = new SplitRecord(compCl);
   compCl->setSplits(SplitSet::getSingleton(name));
