@@ -50,6 +50,8 @@
 #include<iostream>
 #endif
 
+#define DEBUG_MODEL 1
+
 namespace Saturation
 {
 
@@ -175,11 +177,11 @@ private:
   class PartialSimplificationPerformer;
 
   static SaturationAlgorithm* s_instance;
-protected:
+public:
   torch::jit::script::Module _model;
   DHSet<Clause*> _reported; // set of clauses the _model already knows about
   void talkToKarel(Clause*,bool eval = true);
-
+protected:
   bool _completeOptionSettings;
   int _startTime;
   bool _clauseActivationInProgress;

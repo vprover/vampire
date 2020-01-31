@@ -107,8 +107,6 @@ using namespace Saturation;
 /** Print information about performed backward simplifications */
 #define REPORT_BW_SIMPL 0
 
-#define DEBUG_MODEL 1
-
 SaturationAlgorithm* SaturationAlgorithm::s_instance = 0;
 
 /**
@@ -328,7 +326,7 @@ void SaturationAlgorithm::onPassiveAdded(Clause* c)
     env.out() << "[SA] passive: " << c->toString() << std::endl;
     env.endOutput();
   }
-  
+
   /*
   if (_opt.showForKarel()) {
     cout << "pass: " << c->number() << "\n";
@@ -409,9 +407,9 @@ void SaturationAlgorithm::talkToKarel(Clause* cl, bool eval)
 
   // parents known, now its time to report on this one
 
-  // [2,cl_id,cl_age,cl_weight,cl_len,inf_id,parent_cl_id,parent_cl_id,...]
+  // [2,cl_id,cl_age,cl_weight,cl_len,cl_numsplits,inf_id,parent_cl_id,parent_cl_id,...]
   if (_opt.showForKarel()) {
-    cout << "d: [2," << cl->number() << "," << cl->age() << "," << cl->weight() << "," << cl->size();
+    cout << "d: [2," << cl->number() << "," << cl->age() << "," << cl->weight() << "," << cl->size() << "," << cl->splits()->size();
     cout << "," << inf->rule();
     Inference::Iterator iit = inf->iterator();
     while(inf->hasNext(iit)) {
@@ -424,16 +422,17 @@ void SaturationAlgorithm::talkToKarel(Clause* cl, bool eval)
   if (_opt.evalForKarel() && eval) {
     TimeCounter t(TC_DEEP_STUFF);
 
-    // [2,cl_id,cl_age,cl_weight,cl_len,inf_id,parent_cl_id,parent_cl_id,...]
-    auto init_vec = torch::zeros({6+parent_cnt},torch::kInt64);
+    // [2,cl_id,cl_age,cl_weight,cl_len,cl_numsplits,inf_id,parent_cl_id,parent_cl_id,...]
+    auto init_vec = torch::zeros({7+parent_cnt},torch::kInt64);
 
     init_vec[0] = 2;
     init_vec[1] = (int)cl->number();
     init_vec[2] = (int)cl->age();
     init_vec[3] = (int)cl->weight();
     init_vec[4] = (int)cl->size();
-    init_vec[5] = (int)inf->rule();
-    unsigned idx = 6;
+    init_vec[5] = (int)cl->splits()->size();
+    init_vec[6] = (int)inf->rule();
+    unsigned idx = 7;
     Inference::Iterator iit = inf->iterator();
     while(inf->hasNext(iit)) {
       Unit* premUnit = inf->next(iit);
@@ -448,7 +447,7 @@ void SaturationAlgorithm::talkToKarel(Clause* cl, bool eval)
     auto output = _model.forward(inputs);
 
 #if DEBUG_MODEL
-    cout << "onNewClause: " << cl->number() << endl;
+    cout << "talkToKarel: " << cl->number() << endl;
     cout << output << endl;
 #endif
   }
@@ -970,15 +969,15 @@ void SaturationAlgorithm::handleEmptyClause(Clause* cl)
   CALL("SaturationAlgorithm::handleEmptyClause");
   ASS(cl->isEmpty());
 
+  if (_opt.showForKarel() || _opt.evalForKarel()) {
+    talkToKarel(cl,false);
+  }
+  if (_opt.showForKarel()) {
+    cout << "e: " << cl->number() << "\n";
+  }
+
   if (isRefutation(cl)) {
     onNonRedundantClause(cl);
-
-    if (_opt.showForKarel() || _opt.evalForKarel()) {
-      talkToKarel(cl,false);
-    }
-    if (_opt.showForKarel()) {
-      cout << "e: " << cl->number() << "\n";
-    }
 
     if(cl->isTheoryDescendant() ){
       ASSERTION_VIOLATION_REP("A pure theory descendant is empty, which means theory axioms are inconsistent");
@@ -1138,11 +1137,9 @@ void SaturationAlgorithm::addToPassive(Clause* cl)
   cl->setStore(Clause::PASSIVE);
   env.statistics->passiveClauses++;
 
-  /*
-  if (_opt.showForKarel()) {
-    cout << "pass: " << cl->number() << "\n";
+  if (_opt.evalForKarel()) {
+    talkToKarel(cl);
   }
-  */
 
   _passive->add(cl);
 }
@@ -1354,8 +1351,8 @@ void SaturationAlgorithm::doOneAlgorithmStep()
   ASS_EQ(cl->store(),Clause::PASSIVE);
   cl->setStore(Clause::SELECTED);
 
-  if (_opt.showForKarel() || _opt.evalForKarel()) {
-    talkToKarel(cl);
+  if (_opt.showForKarel()) {
+    talkToKarel(cl,false);
   }
   if (_opt.showForKarel()) {
     cout << "s: " << cl->number() << "\n";
