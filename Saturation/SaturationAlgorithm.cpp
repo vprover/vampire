@@ -409,7 +409,7 @@ void SaturationAlgorithm::talkToKarel(Clause* cl, bool eval)
 
   // [2,cl_id,cl_age,cl_weight,cl_len,cl_numsplits,inf_id,parent_cl_id,parent_cl_id,...]
   if (_opt.showForKarel()) {
-    cout << "d: [2," << cl->number() << "," << cl->age() << "," << cl->weight() << "," << cl->size() << "," << cl->splits()->size();
+    cout << "d: [2," << cl->number() << "," << cl->age() << "," << cl->weight() << "," << cl->size() << "," << (cl->splits() ? cl->splits()->size() : 0);
     cout << "," << inf->rule();
     Inference::Iterator iit = inf->iterator();
     while(inf->hasNext(iit)) {
