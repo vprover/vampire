@@ -105,7 +105,7 @@ using namespace Saturation;
 /** Print information about performed backward simplifications */
 #define REPORT_BW_SIMPL 0
 
-#define DEBUG_MODEL 0
+#define DEBUG_MODEL 1
 
 SaturationAlgorithm* SaturationAlgorithm::s_instance = 0;
 
@@ -137,10 +137,7 @@ SaturationAlgorithm::SaturationAlgorithm(Problem& prb, const Options& opt)
     // torch::set_num_threads(1);
     // TODO: https://discuss.pytorch.org/t/use-single-thread-on-intel-cpu/34233
 
-    model_init = torch::jit::load("model/traced_init.pt");
-    model_unary = torch::jit::load("model/traced_unary.pt");
-    model_binary = torch::jit::load("model/traced_binary.pt");
-    model_final = torch::jit::load("model/traced_final.pt");
+    _model = torch::jit::load("odKarla/vampire.pt");
 
     // cout << "Models loaded" << endl;
   }
@@ -397,24 +394,6 @@ void SaturationAlgorithm::onUnprocessedSelected(Clause* c)
   
 }
 
-static at::Tensor clause_vec(Clause* cl)
-{
-  CALL("clause_vec");
-
-  // [age, weight, length]
-
-  float age = log(cl->age()+1) / 8.0;
-  float weight = log(cl->weight()+1) / 16.0;
-  float length = log(cl->length()+1) / 8.0;
-
-  auto res = torch::zeros({3});
-
-  res[0] = age;
-  res[1] = weight;
-  res[2] = length;
-
-  return res;
-}
 
 /**
  * A function that is called whenever a possibly new clause appears.
@@ -443,69 +422,47 @@ void SaturationAlgorithm::onNewClause(Clause* cl)
     cout << "new: " << cl->number() << " age: " << cl->age() << " weight: " << cl->weight() << " len: " << cl->length() << endl;
   }
 
-  if (_opt.evalForKarel()) {
+  if (_opt.evalForKarel() && !_inputClauses.find(cl)) {
     TimeCounter t(TC_DEEP_STUFF);
 
-    if (!clause_vecs.find(cl)) { // not an inital clause, we need to compute val for it
-      Inference* inf = cl->inference();
+    Inference* inf = cl->inference();
+    inf->minimizePremises(); // this is here only formally, we don't look into avatar stuff (yet)
+    Inference::Iterator iit = inf->iterator();
 
-      torch::jit::IValue par1;
-      torch::jit::IValue par2;
+    const unsigned num_slots = 2;
+    int parent_ids[num_slots];
 
-      inf->minimizePremises(); // this is here only formally, we don't look into avatar stuff (yet)
-      Inference::Iterator iit = inf->iterator();
-      unsigned par_cnt = 0;
-      while(inf->hasNext(iit)) {
-         Unit* premUnit = inf->next(iit);
-
-         if (par_cnt == 0) {
-           par1 = clause_vecs.get(premUnit->asClause());
-           par_cnt++;
-
-         } else if (par_cnt == 1) {
-           par2 = clause_vecs.get(premUnit->asClause());
-           par_cnt++;
-
-         } else {
-           cout << "Panic!!!" << endl;
-         }
-      }
-      if (par_cnt == 1) {
-        auto cl_vec = clause_vec(cl);
-        auto init_input = torch::cat({par1.toTensor(),cl_vec},0);
-
-        std::vector<torch::jit::IValue> inputs;
-        inputs.push_back(init_input);
-
-        auto output = model_unary.forward(inputs);
-
-#if DEBUG_MODEL
-        cout << "unary: " << cl->number() << endl;
-        cout << init_input << endl;
-        cout << output << endl;
-#endif
-
-        clause_vecs.insert(cl,output);
-      } else if (par_cnt == 2) {
-        auto cl_vec = clause_vec(cl);
-        auto init_input = torch::cat({par1.toTensor(),par2.toTensor(),cl_vec},0);
-
-        std::vector<torch::jit::IValue> inputs;
-        inputs.push_back(init_input);
-
-        auto output = model_binary.forward(inputs);
-
-#if DEBUG_MODEL
-        cout << "binary: " << cl->number() << endl;
-        cout << init_input << endl;
-        cout << output << endl;
-#endif
-
-        clause_vecs.insert(cl,output);
-      } else {
-        cout << "Panic!!!" << endl;
-      }
+    unsigned par_cnt = 0;
+    while(inf->hasNext(iit)) {
+       Unit* premUnit = inf->next(iit);
+       parent_ids[par_cnt++] = premUnit->asClause()->number();
+       ASS_LE(par_cnt,num_slots);
     }
+
+    // [2,cl_id,cl_age,cl_weight,cl_len,inf_id,parent_cl_id,parent_cl_id,...]
+    auto init_vec = torch::zeros({6+par_cnt},torch::kInt64);
+
+    init_vec[0] = 2;
+    init_vec[1] = (int)cl->number();
+    init_vec[2] = (int)cl->age();
+    init_vec[3] = (int)cl->weight();
+    init_vec[4] = (int)cl->size();
+    init_vec[5] = (int)inf->rule();
+    for (int i = 0; i < par_cnt; i++) {
+      init_vec[6+i] = parent_ids[i];
+    }
+
+    cout <<  init_vec << endl;
+
+    std::vector<torch::jit::IValue> inputs;
+    inputs.push_back(init_vec);
+
+    auto output = _model.forward(inputs);
+
+#if DEBUG_MODEL
+    cout << "onNewClause: " << cl->number() << endl;
+    cout << output << endl;
+#endif
   }
 
   if (env.options->showNew()) {
@@ -707,42 +664,32 @@ void SaturationAlgorithm::addInputClause(Clause* cl)
   if (_opt.evalForKarel()) {
     TimeCounter t(TC_DEEP_STUFF);
 
-    // [istheory, isgoal, sine, issine_inf]
-    float theory = isTheory ? 1.0 : 0.0;
-    float goal = cl->isGoal() ? 1.0 : 0.0;
-    unsigned prio = cl->getSineLevel();
-    float sine = ((prio > 20) ? 20 : prio) / 20.0;
-    float sineInf = (prio == UINT_MAX) ? 1.0 : 0.0;
+    ALWAYS(_inputClauses.insert(cl));
 
-    auto init_vec = torch::zeros({4});
+    // [1,cl_id,cl_age,cl_weight,cl_len,isgoal,istheory,sine]
 
-    init_vec[0] = theory;
-    init_vec[1] = goal;
-    init_vec[2] = sine;
-    init_vec[3] = sineInf;
+    auto init_vec = torch::zeros({8},torch::kInt64);
 
-    //cout <<  init_vec << endl;
+    init_vec[0] = 1;
+    init_vec[1] = (int)cl->number();
+    init_vec[2] = (int)cl->age();
+    init_vec[3] = (int)cl->weight();
+    init_vec[4] = (int)cl->size();
+    init_vec[5] = (int)cl->isGoal();
+    init_vec[6] = (int)isTheory;
+    init_vec[7] = (int)cl->getSineLevel();
 
-    auto cl_vec = clause_vec(cl);
-
-    //cout << cl_vec << endl;
-
-    auto init_input = torch::cat({init_vec,cl_vec},0);
-
-    // cout << init_input << endl;
+    cout <<  init_vec << endl;
 
     std::vector<torch::jit::IValue> inputs;
-    inputs.push_back(init_input);
+    inputs.push_back(init_vec);
 
-    auto output = model_init.forward(inputs);
+    auto output = _model.forward(inputs);
 
 #if DEBUG_MODEL
-    cout << "init: " << cl->number() << endl;
-    cout << init_input << endl;
+    cout << "addInputClause: " << cl->number() << endl;
     cout << output << endl;
 #endif
-
-    clause_vecs.insert(cl,output);
   }
 
   if (_opt.sineToAge()) {
@@ -1173,50 +1120,6 @@ void SaturationAlgorithm::addToPassive(Clause* cl)
 
   if (_opt.showForKarel()) {
     cout << "pass: " << cl->number() << endl;
-  }
-
-  if (_opt.evalForKarel()) {
-    TimeCounter t(TC_DEEP_STUFF);
-
-    torch::jit::IValue vec = clause_vecs.get(cl);
-
-    std::vector<torch::jit::IValue> inputs;
-    inputs.push_back(vec);
-
-    auto output = model_final.forward(inputs).toTensor();
-    auto o_data = output.data_ptr<float>();
-
-    bool yes = (o_data[0] < o_data[1]);
-    // cout << "yes?:" << yes << " " << o_data[0] << " " << o_data[1] << endl;
-
-#if DEBUG_MODEL
-    cout << "final: " << cl->number() << endl;
-    cout << output << endl;
-#endif
-
-    cl->modelSaidYes = yes;
-
-    static int nwcNumer = _opt.nonGoalWeightCoeffitientNumerator();
-    static int nwcDenom = _opt.nonGoalWeightCoeffitientDenominator();
-    static float ratio_extra = ((float)nwcNumer) / ((float) nwcDenom) - 1.0;
-
-    // non-trivial nwc means we want to scale the clauses weight according to the coefficient and models prediction and store it for future comparison
-    if (nwcNumer != nwcDenom) {
-      unsigned w = cl->weight();
-      // cout << "eval: " << cl->number() << " weight: " << w << endl;
-      float p_yes = 1.0 /(1.0 + exp(o_data[0]-o_data[1]));
-      float p_no = 1.0 /(1.0 + exp(o_data[1]-o_data[0]));
-
-      // cout << "p_yes: " << p_yes << " no: " << p_no << " ratio: " << ratio_extra << endl;
-
-      float effectiveWeight = (1.0 + p_no * ratio_extra) * w;
-      // cout << "effectiveWeight " << effectiveWeight << endl;
-      cl->effectiveWeight = effectiveWeight;
-    }
-
-    if (_opt.showForKarel()) {
-      cout << "eval: " << cl->number() << " " << o_data[0] <<  " " << o_data[1] << endl;
-    }
   }
 
   _passive->add(cl);

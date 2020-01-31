@@ -182,12 +182,8 @@ private:
 
   static SaturationAlgorithm* s_instance;
 protected:
-  torch::jit::script::Module model_init;
-  torch::jit::script::Module model_unary;
-  torch::jit::script::Module model_binary;
-  torch::jit::script::Module model_final;
-
-  DHMap<Clause*,torch::jit::IValue> clause_vecs;
+  torch::jit::script::Module _model;
+  DHSet<Clause*> _inputClauses; // they are reported to the model in addInputClause; all the others in onNewClause
 
   bool _completeOptionSettings;
   int _startTime;
