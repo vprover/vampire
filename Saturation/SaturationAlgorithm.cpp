@@ -95,6 +95,8 @@
 
 #include <math.h>
 
+#include <ATen/Parallel.h>
+
 using namespace Lib;
 using namespace Kernel;
 using namespace Shell;
@@ -133,9 +135,9 @@ SaturationAlgorithm::SaturationAlgorithm(Problem& prb, const Options& opt)
   if (opt.evalForKarel()) { // load the models
     TimeCounter t(TC_DEEP_STUFF);
 
-    // torch::set_num_threads(1);
-    // TODO: https://discuss.pytorch.org/t/use-single-thread-on-intel-cpu/34233
-
+    // seems to be making this nicely single-threaded
+    at::set_num_threads(1);
+    
     _model = torch::jit::load("odKarla/vampire_new.pt");
 
     // cout << "Models loaded" << endl;
