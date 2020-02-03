@@ -50,7 +50,7 @@
 #include<iostream>
 #endif
 
-#define DEBUG_MODEL 1
+#define DEBUG_MODEL 0
 
 namespace Saturation
 {
@@ -179,7 +179,8 @@ private:
   static SaturationAlgorithm* s_instance;
 public:
   torch::jit::script::Module _model;
-  DHSet<Clause*> _reported; // set of clauses the _model already knows about
+  DHSet<Clause*> _shown; // set of clauses already printed via showForKarel
+  DHSet<Clause*> _evaluated; // set of clauses the _model already knows about
   void talkToKarel(Clause*,bool eval = true);
 protected:
   bool _completeOptionSettings;

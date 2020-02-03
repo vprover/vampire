@@ -136,7 +136,7 @@ SaturationAlgorithm::SaturationAlgorithm(Problem& prb, const Options& opt)
     // torch::set_num_threads(1);
     // TODO: https://discuss.pytorch.org/t/use-single-thread-on-intel-cpu/34233
 
-    _model = torch::jit::load("odKarla/vampire.pt");
+    _model = torch::jit::load("odKarla/vampire_new.pt");
 
     // cout << "Models loaded" << endl;
   }
@@ -390,7 +390,8 @@ void SaturationAlgorithm::talkToKarel(Clause* cl, bool eval)
 
   ASS(_opt.showForKarel() || _opt.evalForKarel());
 
-  if (_reported.find(cl)) {
+  if ((!_opt.showForKarel() || _shown.find(cl)) && // now reason to show
+      (!eval || !_opt.evalForKarel() || _evaluated.find(cl))) { // now reason to evaluate
     return;
   }
 
@@ -408,7 +409,7 @@ void SaturationAlgorithm::talkToKarel(Clause* cl, bool eval)
   // parents known, now its time to report on this one
 
   // [2,cl_id,cl_age,cl_weight,cl_len,cl_numsplits,inf_id,parent_cl_id,parent_cl_id,...]
-  if (_opt.showForKarel()) {
+  if (_opt.showForKarel() && !_shown.find(cl)) {
     cout << "d: [2," << cl->number() << "," << cl->age() << "," << cl->weight() << "," << cl->size() << "," << (cl->splits() ? cl->splits()->size() : 0);
     cout << "," << inf->rule();
     Inference::Iterator iit = inf->iterator();
@@ -417,9 +418,11 @@ void SaturationAlgorithm::talkToKarel(Clause* cl, bool eval)
       cout << "," << premUnit->asClause()->number();
     }
     cout << "]\n";
+
+    ALWAYS(_shown.insert(cl));
   }
 
-  if (_opt.evalForKarel() && eval) {
+  if (_opt.evalForKarel() && eval && !_evaluated.find(cl)) {
     TimeCounter t(TC_DEEP_STUFF);
 
     // [2,cl_id,cl_age,cl_weight,cl_len,cl_numsplits,inf_id,parent_cl_id,parent_cl_id,...]
@@ -438,9 +441,9 @@ void SaturationAlgorithm::talkToKarel(Clause* cl, bool eval)
       Unit* premUnit = inf->next(iit);
       init_vec[idx++] = (int) premUnit->asClause()->number();
     }
-
+#if DEBUG_MODEL
     cout <<  init_vec << endl;
-
+#endif
     std::vector<torch::jit::IValue> inputs;
     inputs.push_back(init_vec);
 
@@ -450,9 +453,9 @@ void SaturationAlgorithm::talkToKarel(Clause* cl, bool eval)
     cout << "talkToKarel: " << cl->number() << endl;
     cout << output << endl;
 #endif
-  }
 
-  ALWAYS(_reported.insert(cl));
+    ALWAYS(_evaluated.insert(cl));
+  }
 }
 
 
@@ -650,10 +653,6 @@ void SaturationAlgorithm::addInputClause(Clause* cl)
   unsigned isTheory = cl->inference()->isTheoryAxiom() ? static_cast<unsigned>(cl->inference()->rule()) : 0;
   bool sosForTheory = _opt.sos() == Options::Sos::THEORY && _opt.sosTheoryLimit() == 0;
 
-  if (_opt.showForKarel() || _opt.evalForKarel()) {
-    ALWAYS(_reported.insert(cl));
-  }
-
   if (_opt.showForKarel()) {
     // [1,cl_id,cl_age,cl_weight,cl_len,isgoal,istheory,sine]
 
@@ -671,6 +670,7 @@ void SaturationAlgorithm::addInputClause(Clause* cl)
      f->destroy();
     }
     */
+    ALWAYS(_shown.insert(cl));
   }
 
   if (_opt.evalForKarel()) {
@@ -687,8 +687,9 @@ void SaturationAlgorithm::addInputClause(Clause* cl)
     init_vec[6] = (int)isTheory;
     init_vec[7] = (int)cl->getSineLevel();
 
+#if DEBUG_MODEL
     cout << init_vec << endl;
-
+#endif
     static std::vector<torch::jit::IValue> inputs;
     inputs.clear();
     inputs.push_back(init_vec);
@@ -701,6 +702,7 @@ void SaturationAlgorithm::addInputClause(Clause* cl)
 #endif
 
     // TODO: store the output value
+    ALWAYS(_evaluated.insert(cl));
   }
 
 
@@ -970,7 +972,7 @@ void SaturationAlgorithm::handleEmptyClause(Clause* cl)
   ASS(cl->isEmpty());
 
   if (_opt.showForKarel() || _opt.evalForKarel()) {
-    talkToKarel(cl,false);
+    talkToKarel(cl,false /* not necessary to evaluate this clause (at least not now) */ );
   }
   if (_opt.showForKarel()) {
     cout << "e: " << cl->number() << "\n";
@@ -1352,7 +1354,7 @@ void SaturationAlgorithm::doOneAlgorithmStep()
   cl->setStore(Clause::SELECTED);
 
   if (_opt.showForKarel()) {
-    talkToKarel(cl,false);
+    talkToKarel(cl,false /* just report, if not done yet (evaluation must have taken place before putting into passive)*/);
   }
   if (_opt.showForKarel()) {
     cout << "s: " << cl->number() << "\n";
