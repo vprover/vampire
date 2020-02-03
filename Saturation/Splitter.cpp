@@ -1301,13 +1301,14 @@ Clause* Splitter::buildAndInsertComponentClause(SplitLevel name, unsigned size, 
 
   if (env.options->showForKarel() || env.options->evalForKarel()) {
     _sa->talkToKarel(orig);
-    _sa->_reported.insert(compCl);
   }
 
   if (env.options->showForKarel()) {
     // a: [3,cl_id,cl_age,cl_weight,cl_len,causal_parent]
     cout << "a: [3," << compCl->number() << "," << compCl->age() << "," << compCl->weight() << "," << compCl->size();
     cout << "," << orig->number() << "]\n";
+
+    ALWAYS(_sa->_shown.insert(compCl));
   }
 
   if (env.options->evalForKarel()) {
@@ -1321,10 +1322,11 @@ Clause* Splitter::buildAndInsertComponentClause(SplitLevel name, unsigned size, 
     init_vec[2] = (int)compCl->age();
     init_vec[3] = (int)compCl->weight();
     init_vec[4] = (int)compCl->size();
-    init_vec[6] = (int)orig->number();
+    init_vec[5] = (int)orig->number();
 
+#if DEBUG_MODEL
     cout <<  init_vec << endl;
-
+#endif
     std::vector<torch::jit::IValue> inputs;
     inputs.push_back(init_vec);
 
@@ -1334,7 +1336,7 @@ Clause* Splitter::buildAndInsertComponentClause(SplitLevel name, unsigned size, 
     cout << "buildAndInsertComponentClause: " << compCl->number() << endl;
     cout << output << endl;
 #endif
-
+    ALWAYS(_sa->_evaluated.insert(compCl));
   }
 
   _db[name] = new SplitRecord(compCl);
