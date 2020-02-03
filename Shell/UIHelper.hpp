@@ -54,6 +54,8 @@ public:
    */
   static bool haveConjecture() { return s_haveConjecture; }
   static void setConjecturePresence(bool haveConjecture) { s_haveConjecture=haveConjecture; }
+  static bool haveConjectureInProof() { return s_proofHasConjecture; }
+  static void setConjectureInProof(bool haveConjectureInProof) { s_proofHasConjecture = haveConjectureInProof; }
 
   static void outputAllPremises(ostream& out, UnitList* units, vstring prefix="");
 
@@ -80,6 +82,7 @@ public:
 private:
 
   static bool s_haveConjecture;
+  static bool s_proofHasConjecture;
 #if VDEBUG
   static bool _inputHasBeenRead;
 #endif

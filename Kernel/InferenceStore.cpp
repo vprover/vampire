@@ -509,6 +509,8 @@ struct InferenceStore::TPTPProofPrinter
   TPTPProofPrinter(ostream& out, InferenceStore* is)
   : ProofPrinter(out, is) {
     splitPrefix = Saturation::Splitter::splPrefix; 
+    // Don't delay printing in TPTP proof mode
+    delayPrinting = false;
   }
 
   void print()
@@ -564,12 +566,12 @@ protected:
     ASS_G(splits->size(),0);
 
     if (splits->size()==1) {
-      return "~"+splitPrefix+Int::toString(splits->sval());
+      return Saturation::Splitter::getFormulaStringFromName(splits->sval(),true /*negated*/);
     }
     SplitSet::Iterator sit(*splits);
     vstring res("(");
     while(sit.hasNext()) {
-      res+= "~"+splitPrefix+Int::toString(sit.next());
+      res+= Saturation::Splitter::getFormulaStringFromName(sit.next(),true /*negated*/);
       if (sit.hasNext()) {
 	res+=" | ";
       }

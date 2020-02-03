@@ -227,11 +227,13 @@ void profileMode()
 
   ScopedPtr<Problem> prb(UIHelper::getInputProblem(*env.options));
 
+  /* CAREFUL: Make sure that the order
+   * 1) getProperty, 2) normalise, 3) TheoryFinder::search
+   * is the same as in PortfolioMode::searchForProof
+   * also, cf. the beginning of Preprocessing::preprocess*/
   Property* property = prb->getProperty();
-  TheoryFinder tf(prb->units(), property);
-  // this doesn't do anything
-  Shell::Preprocess prepro(*env.options);
-  tf.search();
+  Normalisation().normalise(*prb);
+  TheoryFinder(prb->units(), property).search();
 
   env.beginOutput();
   env.out() << property->categoryString() << ' ' << property->props() << ' '
@@ -916,7 +918,7 @@ int main(int argc, char* argv[])
       break;
 
     case Options::Mode::SMTCOMP:
-      env.options->setIgnoreMissing(Options::IgnoreMissing::WARN);
+      env.options->setIgnoreMissing(Options::IgnoreMissing::OFF);
       env.options->setInputSyntax(Options::InputSyntax::SMTLIB2);
       env.options->setOutputMode(Options::Output::SMTCOMP);
       env.options->setSchedule(Options::Schedule::SMTCOMP);

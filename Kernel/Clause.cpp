@@ -36,6 +36,7 @@
 #include "Lib/BitUtils.hpp"
 
 #include "Saturation/ClauseContainer.hpp"
+#include "Saturation/Splitter.hpp"
 
 #include "SAT/SATClause.hpp"
 
@@ -79,7 +80,6 @@ Clause::Clause(unsigned length,InputType it,Inference* inf)
     _age(0),
     _weight(0),
     _store(NONE),
-    _in_active(0),
     _refCnt(0),
     _reductionTimestamp(0),
     _literalPositions(0),
@@ -97,21 +97,20 @@ Clause::Clause(unsigned length,InputType it,Inference* inf)
                       env.options->induction() != Options::Induction::NONE;
   if(check){
     Inference::Iterator it = inf->iterator();
-    bool td = inf->hasNext(it); // td should be false if there are no parents
+    bool isTheoryDescendant = isTheoryAxiom();
     unsigned id = 0; 
     while(inf->hasNext(it)){
       Unit* parent = inf->next(it);
       if(parent->isClause()){
-        td &= static_cast<Clause*>(parent)->isTheoryDescendant();
+        isTheoryDescendant &= static_cast<Clause*>(parent)->isTheoryDescendant();
         id = max(id,static_cast<Clause*>(parent)->inductionDepth());
       }
       else{
-        // if a parent is not a clause then it cannot be (i) a theory axiom itself, 
-        // or (ii) a theory descendant clause
-        td = false;
+        // if a parent is not a clause then it cannot be a theory descendant
+        isTheoryDescendant = false;
       }
     }
-    _theoryDescendant=td;
+    _theoryDescendant=isTheoryDescendant;
     _inductionDepth=id;
   }
 }
@@ -422,7 +421,7 @@ vstring Clause::toString() const
 
   // print avatar components clause depends on
   if (splits() && !splits()->isEmpty()) {
-    result += vstring(" <- (") + splits()->toString() + ")";
+    result += vstring(" <- (") + Splitter::splitsToString(splits()) + ")";
   }
 
   // print inference and ids of parent clauses

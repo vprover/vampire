@@ -136,7 +136,7 @@ void Signature::Symbol::addToDistinctGroup(unsigned group,unsigned this_number)
 
   env.signature->_distinctGroupsAddedTo=true;
 
-  Stack<unsigned>* members = env.signature->_distinctGroupMembers[group];
+  Signature::DistinctGroupMembers members = env.signature->_distinctGroupMembers[group];
   if(members->size() <= DistinctGroupExpansion::EXPAND_UP_TO_SIZE || env.options->bfnt()
                        || env.options->saturationAlgorithm()==Options::SaturationAlgorithm::FINITE_MODEL_BUILDING){
     // we add one more than EXPAND_UP_TO_SIZE to signal to DistinctGroupExpansion::apply not to expand
@@ -866,8 +866,8 @@ unsigned Signature::createDistinctGroup(Unit* premise)
 
   unsigned res = _distinctGroupPremises.size();
   _distinctGroupPremises.push(premise);
-  Stack<unsigned>* stack = new Stack<unsigned>;
-  _distinctGroupMembers.push(stack);
+  // DistinctGroupMember stack = ;
+  _distinctGroupMembers.push(DistinctGroupMembers(new Stack<unsigned>));
   return res;
 }
 

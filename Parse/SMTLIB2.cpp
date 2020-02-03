@@ -135,7 +135,10 @@ void SMTLIB2::readBenchmark(LExprList* bench)
 
     if (ibRdr.tryAcceptAtom("declare-sort")) {
       vstring name = ibRdr.readAtom();
-      vstring arity = ibRdr.readAtom();
+      vstring arity;
+      if (!ibRdr.tryReadAtom(arity)) {
+        USER_ERROR("Unspecified arity while declaring sort: "+name);
+      }
 
       readDeclareSort(name,arity);
 
@@ -299,6 +302,7 @@ const char * SMTLIB2::s_smtlibLogicNameStrings[] = {
     "AUFDTLIA",
     "AUFLIA",
     "AUFLIRA",
+    "AUFNIA",
     "AUFNIRA",
     "BV",
     "LIA",
@@ -332,6 +336,7 @@ const char * SMTLIB2::s_smtlibLogicNameStrings[] = {
     "UFBV",
     "UFDT",
     "UFDTLIA",
+    "UFDTNIA",
     "UFIDL",
     "UFLIA",
     "UFLRA",
@@ -364,6 +369,7 @@ void SMTLIB2::readLogic(const vstring& logicStr)
   case SMT_ALIA:
   case SMT_AUFDTLIA:
   case SMT_AUFLIA:
+  case SMT_AUFNIA:
   case SMT_AUFLIRA:
   case SMT_AUFNIRA:
   case SMT_LIA:
@@ -385,6 +391,7 @@ void SMTLIB2::readLogic(const vstring& logicStr)
   case SMT_UF:
   case SMT_UFDT:
   case SMT_UFDTLIA:
+  case SMT_UFDTNIA:
   case SMT_UFIDL:
   case SMT_UFLIA:
   case SMT_UFNIA:
@@ -1866,44 +1873,81 @@ bool SMTLIB2::parseAsBuiltinFormulaSymbol(const vstring& id, LExpr* exp)
     case FS_GREATER_EQ:
     {
       // read the first two arguments
-      TermList first;
       if (_results.isEmpty() || _results.top().isSeparator()) {
         complainAboutArgShortageOrWrongSorts(BUILT_IN_SYMBOL,exp);
       }
-      unsigned sort = _results.pop().asTerm(first);
-      TermList second;
-      if (_results.isEmpty() || _results.top().isSeparator() ||
-          _results.pop().asTerm(second) != sort) { // has the same sort as first
+      auto firstParseResult = _results.pop();
+      if (_results.isEmpty() || _results.top().isSeparator()) {
+        complainAboutArgShortageOrWrongSorts(BUILT_IN_SYMBOL,exp);
+      }
+      auto secondParseResult = _results.pop();
+      if (firstParseResult.sort != secondParseResult.sort)
+      {
+
         complainAboutArgShortageOrWrongSorts(BUILT_IN_SYMBOL,exp);
       }
 
       Formula* lastConjunct;
       unsigned pred = 0;
       if (fs == FS_EQ) {
-        lastConjunct = new AtomicFormula(Literal::createEquality(true, first, second, sort));
+        if (firstParseResult.formula && secondParseResult.formula) {
+          Formula* first;
+          Formula* second;
+          firstParseResult.asFormula(first);
+          secondParseResult.asFormula(second);
+          lastConjunct = new BinaryFormula(IFF, first, second);
+        } else {
+          TermList first;
+          TermList second;
+          firstParseResult.asTerm(first);
+          secondParseResult.asTerm(second);
+          lastConjunct = new AtomicFormula(Literal::createEquality(true, first, second, firstParseResult.sort));
+        }
       } else {
-          
-        Interpretation intp = getFormulaSymbolInterpretation(fs,sort);
+
+        Interpretation intp = getFormulaSymbolInterpretation(fs,firstParseResult.sort);
         pred = env.signature->getInterpretingSymbol(intp);
+        TermList first;
+        TermList second;
+        firstParseResult.asTerm(first);
+        secondParseResult.asTerm(second);
         lastConjunct = new AtomicFormula(Literal::create2(pred,true,first,second));
       }
 
       FormulaList* argLst = nullptr;
       // for every other argument ... pipelining
       while (_results.isEmpty() || !_results.top().isSeparator()) {
-        TermList next;
-        if (_results.pop().asTerm(next) != sort) {
+        auto nextParseResult = _results.pop();
+        if (nextParseResult.sort != firstParseResult.sort) {
           complainAboutArgShortageOrWrongSorts(BUILT_IN_SYMBOL,exp);
         }
         // store the old conjunct
         FormulaList::push(lastConjunct,argLst);
         // shift the arguments
-        first = second;
-        second = next;
+        firstParseResult = secondParseResult;
+        secondParseResult = nextParseResult;
         // create next conjunct
         if (fs == FS_EQ) {
-          lastConjunct = new AtomicFormula(Literal::createEquality(true, first, second, sort));
+          if (firstParseResult.formula && secondParseResult.formula) {
+            Formula* first;
+            Formula* second;
+            firstParseResult.asFormula(first);
+            secondParseResult.asFormula(second);
+            lastConjunct = new BinaryFormula(IFF, first, second);
+          } else {
+            TermList first;
+            TermList second;
+            firstParseResult.asTerm(first);
+            secondParseResult.asTerm(second);
+            lastConjunct = new AtomicFormula(Literal::createEquality(true, first, second, firstParseResult.sort));
+          }
         } else {
+          Interpretation intp = getFormulaSymbolInterpretation(fs,firstParseResult.sort);
+          pred = env.signature->getInterpretingSymbol(intp);
+          TermList first;
+          TermList second;
+          firstParseResult.asTerm(first);
+          secondParseResult.asTerm(second);
           lastConjunct = new AtomicFormula(Literal::create2(pred,true,first,second));
         }
       }
@@ -2544,6 +2588,7 @@ void SMTLIB2::parseRankedFunctionApplication(LExpr* exp)
       if (f.second) {
         TermAlgebraConstructor* c = env.signature->getTermAlgebraConstructor(f.first);
         if (c) /* else the symbol is not a TA constructor */ {
+
           unsigned sort = env.signature->getFunction(f.first)->fnType()->result();
           if (!c->hasDiscriminator()) {
             // add discriminator predicate

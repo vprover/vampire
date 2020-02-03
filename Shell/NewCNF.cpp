@@ -142,7 +142,7 @@ void NewCNF::process(Literal* literal, Occurrences &occurrences) {
   LOG2("process(Literal*)", literal->toString());
   LOG2("occurrences.size", occurrences.size());
 
-//  ASS_REP(!literal->shared(), literal->toString());
+  // shared literals don't contain fool stuff
   if (literal->shared()) {
     return;
   }
@@ -427,6 +427,40 @@ void NewCNF::process(BinaryFormula* g, Occurrences &occurrences)
   }
 }
 
+void NewCNF::BindingStore::pushAndRememberWhileApplying(Binding b, BindingList* &lst)
+{
+  CALL("NewCNF::pushAndRememberWhileApplying");
+
+  // turn b into a singleton substitution
+  static Substitution subst;
+  subst.bind(b.first,b.second);
+
+  // to go through the bindings from the end, put them on a stack...
+  static Stack<BindingList*> st(5);
+  BindingList* traverse = lst;
+  while (BindingList::isNonEmpty(traverse)) {
+    st.push(traverse);
+    traverse = traverse->tail();
+  }
+
+  /// keep applying subst
+  Stack<BindingList*>::TopFirstIterator it(st);
+  bool modified = false;
+  while(it.hasNext()) {
+    BindingList* cell = it.next();
+    Binding someB = cell->head();
+    Term* newTerm = SubstHelper::apply(someB.second, subst);
+    if (modified || newTerm != someB.second) { // applying made a difference
+      modified = true;
+      lst = new BindingList(Binding(someB.first,newTerm),cell->tail());
+      _stored.push(lst);
+    }
+  }
+  pushAndRemember(b,lst);
+  st.reset();
+  subst.reset();
+}
+
 void NewCNF::processBoolVar(SIGN sign, unsigned var, Occurrences &occurrences)
 {
   CALL("NewCNF::processBoolVar");
@@ -457,6 +491,7 @@ void NewCNF::processBoolVar(SIGN sign, unsigned var, Occurrences &occurrences)
     bool bound = false;
     Term* skolem;
 
+    // MS: can a non-fool binding ever map a bool var?
     BindingList::Iterator bit(occ.gc->bindings);
     while (bit.hasNext()) {
       Binding binding = bit.next();
@@ -483,7 +518,9 @@ void NewCNF::processBoolVar(SIGN sign, unsigned var, Occurrences &occurrences)
 
     if (!bound) {
       Term* constant = (occurrenceSign == POSITIVE) ? Term::foolFalse() : Term::foolTrue();
-      _bindingStore.pushAndRemember(Binding(var, constant), occ.gc->bindings);
+      // MS: pushAndRemember is not enough; bindings could already be mentioning var on the rhs!
+      // (BTW, scanning bindings for a second time, which is already ugly and potentially quadratic)
+      _bindingStore.pushAndRememberWhileApplying(Binding(var, constant), occ.gc->bindings);
       removeGenLit(occ);
       continue;
     }
@@ -860,7 +897,7 @@ Term* NewCNF::createSkolemTerm(unsigned var, VarSet* free)
   }
 
   Term* res;
-  bool isPredicate = rangeSort == Sorts::SRT_BOOL;
+  bool isPredicate = (rangeSort == Sorts::SRT_BOOL);
   if (isPredicate) {
     unsigned pred = Skolem::addSkolemPredicate(arity, domainSorts.begin(), var);
     if(_beingClausified->isGoal()){
@@ -888,7 +925,7 @@ Term* NewCNF::createSkolemTerm(unsigned var, VarSet* free)
  * Update the bindings of a generalized clause
  * in which a quantified formula g = (Quant Vars.Inner)
  * is being replaced by Inner. Each variable in Vars
- * with get a new binding. We try not to introduce
+ * will get a new binding. We try not to introduce
  * a new Skolem function unless it is necessary
  * so we cache results from skolemising previous
  * occurrences of g.
@@ -1029,7 +1066,7 @@ void NewCNF::process(QuantifiedFormula* g, Occurrences &occurrences)
   occurrences.replaceBy(g->qarg());
 }
 
-void NewCNF::process(TermList ts, Occurrences &occurrences)
+void NewCNF::processBoolterm(TermList ts, Occurrences &occurrences)
 {
   CALL("NewCNF::process(TermList)");
 
@@ -1176,7 +1213,7 @@ void NewCNF::process(Formula* g, Occurrences &occurrences)
       break;
 
     case BOOL_TERM:
-      process(g->getBooleanTerm(), occurrences);
+      processBoolterm(g->getBooleanTerm(), occurrences);
       break;
 
     case LITERAL:

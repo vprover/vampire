@@ -3040,14 +3040,14 @@ void TPTP::endFof()
     // convert the input formula f to a clause
     Stack<Formula*> forms;
     Stack<Literal*> lits;
-    Formula* g = f;
+    Formula* g = nullptr;
     forms.push(f);
     while (! forms.isEmpty()) {
-      f = forms.pop();
-      switch (f->connective()) {
+      g = forms.pop();
+      switch (g->connective()) {
       case OR:
 	{
-	  FormulaList::Iterator fs(static_cast<JunctionFormula*>(f)->getArgs());
+	  FormulaList::Iterator fs(static_cast<JunctionFormula*>(g)->getArgs());
 	  while (fs.hasNext()) {
 	    forms.push(fs.next());
 	  }
@@ -3058,14 +3058,14 @@ void TPTP::endFof()
       case NOT:
 	{
 	  bool positive = true;
-	  while (f->connective() == NOT) {
-	    f = static_cast<NegatedFormula*>(f)->subformula();
+	  while (g->connective() == NOT) {
+	    g = static_cast<NegatedFormula*>(g)->subformula();
 	    positive = !positive;
 	  }
-	  if (f->connective() != LITERAL) {
-	    USER_ERROR((vstring)"input formula not in CNF: " + g->toString());
+	  if (g->connective() != LITERAL) {
+	    USER_ERROR((vstring)"input formula not in CNF: " + f->toString());
 	  }
-	  Literal* l = static_cast<AtomicFormula*>(f)->literal();
+	  Literal* l = static_cast<AtomicFormula*>(g)->literal();
 	  lits.push(positive ? l : Literal::complementaryLiteral(l));
 	}
 	break;
@@ -3075,7 +3075,7 @@ void TPTP::endFof()
       case FALSE:
 	break;
       default:
-	USER_ERROR((vstring)"input formula not in CNF: " + g->toString());
+	USER_ERROR((vstring)"input formula not in CNF: " + f->toString());
       }
     }
     unit = Clause::fromStack(lits,(Unit::InputType)_lastInputType,new Inference(Inference::INPUT));
@@ -3543,6 +3543,7 @@ void TPTP::unbindVariables()
     SortList* sorts;
     ALWAYS(_variableSorts.find(var,sorts));
     _variableSorts.replace(var,sorts->tail());
+    delete sorts; // this deletes just the "popped" cell
   }
 } // unbindVariables
 

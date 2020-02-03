@@ -250,6 +250,11 @@ public:
     ALL
   };
 
+  enum class PredicateSineLevels : unsigned int {
+    NO,   // no means 1) the reverse of "on", 2) use with caution, it is predicted to be the worse value
+    OFF,
+    ON
+  };
 
  
   enum class InductionChoice : unsigned int {
@@ -431,11 +436,13 @@ public:
     CASC_2016,
     CASC_2017,
     CASC_2018,
+    CASC_2019,
     CASC_SAT,
     CASC_SAT_2014,
     CASC_SAT_2016,
     CASC_SAT_2017,
     CASC_SAT_2018,
+    CASC_SAT_2019,
     LTB_2014,
     LTB_2014_MZR,
     LTB_DEFAULT_2017,
@@ -594,6 +601,10 @@ public:
     UNIT = 2,
     GOAL_UNIT = 3
   };
+  enum class IntroducedSymbolPrecedence : unsigned int {
+    TOP = 0,
+    BOTTOM = 1
+  };
 
   enum class SineSelection : unsigned int {
     AXIOMS = 0,
@@ -740,6 +751,12 @@ public:
     EXISTS_ALL = 3,
     EXISTS_SYM = 4,
     POSITION = 5
+  };
+
+  enum class AgeWeightRatioShape {
+    CONSTANT,
+    DECAY,
+    CONVERGE
   };
     
     //==========================================================
@@ -1822,6 +1839,7 @@ public:
   Statistics statistics() const { return _statistics.actualValue; }
   void setStatistics(Statistics newVal) { _statistics.actualValue=newVal; }
   Proof proof() const { return _proof.actualValue; }
+  bool minimizeSatProofs() const { return _minimizeSatProofs.actualValue; }
   ProofExtra proofExtra() const { return _proofExtra.actualValue; }
   bool proofChecking() const { return _proofChecking.actualValue; }
   int naming() const { return _naming.actualValue; }
@@ -1870,6 +1888,8 @@ public:
   bool showBlocked() const { return showAll() || _showBlocked.actualValue; }
   bool showDefinitions() const { return showAll() || _showDefinitions.actualValue; }
   bool showNew() const { return showAll() || _showNew.actualValue; }
+  bool sineToAge() const { return _sineToAge.actualValue; }
+  PredicateSineLevels sineToPredLevels() const { return _sineToPredLevels.actualValue; }
   bool showSplitting() const { return showAll() || _showSplitting.actualValue; }
   bool showNewPropositional() const { return showAll() || _showNewPropositional.actualValue; }
   bool showPassive() const { return showAll() || _showPassive.actualValue; }
@@ -1880,6 +1900,7 @@ public:
   bool showTheoryAxioms() const { return showAll() || _showTheoryAxioms.actualValue; }
   bool showFOOL() const { return showAll() || _showFOOL.actualValue; }
   bool showFMBsortInfo() const { return showAll() || _showFMBsortInfo.actualValue; }
+  bool showInduction() const { return showAll() || _showInduction.actualValue; }
 #if VZ3
   bool showZ3() const { return showAll() || _showZ3.actualValue; }
 #endif
@@ -1904,6 +1925,8 @@ public:
 #endif
   UnificationWithAbstraction unificationWithAbstraction() const { return _unificationWithAbstraction.actualValue; }
   bool fixUWA() const { return _fixUWA.actualValue; }
+  bool useACeval() const { return _useACeval.actualValue;}
+
   bool unusedPredicateDefinitionRemoval() const { return _unusedPredicateDefinitionRemoval.actualValue; }
   bool blockedClauseElimination() const { return _blockedClauseElimination.actualValue; }
   void setUnusedPredicateDefinitionRemoval(bool newVal) { _unusedPredicateDefinitionRemoval.actualValue = newVal; }
@@ -1926,6 +1949,7 @@ public:
   void setBfnt(bool newVal) { _bfnt.actualValue = newVal; }
   URResolution unitResultingResolution() const { return _unitResultingResolution.actualValue; }
   bool hyperSuperposition() const { return _hyperSuperposition.actualValue; }
+  bool simulatenousSuperposition() const { return _simultaneousSuperposition.actualValue; }
   bool innerRewriting() const { return _innerRewriting.actualValue; }
   bool equationalTautologyRemoval() const { return _equationalTautologyRemoval.actualValue; }
   bool arityCheck() const { return _arityCheck.actualValue; }
@@ -1947,6 +1971,7 @@ public:
   TermOrdering termOrdering() const { return _termOrdering.actualValue; }
   SymbolPrecedence symbolPrecedence() const { return _symbolPrecedence.actualValue; }
   SymbolPrecedenceBoost symbolPrecedenceBoost() const { return _symbolPrecedenceBoost.actualValue; }
+  IntroducedSymbolPrecedence introducedSymbolPrecedence() const { return _introducedSymbolPrecedence.actualValue; }
   const vstring& functionPrecedence() const { return _functionPrecedence.actualValue; }
   const vstring& predicatePrecedence() const { return _predicatePrecedence.actualValue; }
   // Return time limit in deciseconds, or 0 if there is no time limit
@@ -1962,6 +1987,8 @@ public:
   void setAgeRatio(int v){ _ageWeightRatio.actualValue = v; }
   int weightRatio() const { return _ageWeightRatio.otherValue; }
   void setWeightRatio(int v){ _ageWeightRatio.otherValue = v; }
+	AgeWeightRatioShape ageWeightRatioShape() const { return _ageWeightRatioShape.actualValue; }
+	int ageWeightRatioShapeFrequency() const { return _ageWeightRatioShapeFrequency.actualValue; }
   bool literalMaximalityAftercheck() const { return _literalMaximalityAftercheck.actualValue; }
   bool superpositionFromVariables() const { return _superpositionFromVariables.actualValue; }
   EqualityProxy equalityProxy() const { return _equalityProxy.actualValue; }
@@ -2011,9 +2038,11 @@ public:
   bool nonliteralsInClauseWeight() const { return _nonliteralsInClauseWeight.actualValue; }
   unsigned sineDepth() const { return _sineDepth.actualValue; }
   unsigned sineGeneralityThreshold() const { return _sineGeneralityThreshold.actualValue; }
+  unsigned sineToAgeGeneralityThreshold() const { return _sineToAgeGeneralityThreshold.actualValue; }
   SineSelection sineSelection() const { return _sineSelection.actualValue; }
   void setSineSelection(SineSelection val) { _sineSelection.actualValue=val; }
   float sineTolerance() const { return _sineTolerance.actualValue; }
+  float sineToAgeTolerance() const { return _sineToAgeTolerance.actualValue; }
   bool smtlibConsiderIntsReal() const { return _smtlibConsiderIntsReal.actualValue; }
   //void setSmtlibConsiderIntsReal( bool newVal ) { _smtlibConsiderIntsReal = newVal; }
   bool smtlibFletAsDefinition() const { return _smtlibFletAsDefinition.actualValue; }
@@ -2102,6 +2131,9 @@ public:
   bool newCNF() const { return _newCNF.actualValue; }
   int getIteInliningThreshold() const { return _iteInliningThreshold.actualValue; }
   bool getIteInlineLet() const { return _inlineLet.actualValue; }
+
+  bool useManualClauseSelection() const { return _manualClauseSelection.actualValue; }
+
 private:
     
     /**
@@ -2210,6 +2242,8 @@ private:
   BoolOptionValue _encode;
 
   RatioOptionValue _ageWeightRatio;
+	ChoiceOptionValue<AgeWeightRatioShape> _ageWeightRatioShape;
+	UnsignedOptionValue _ageWeightRatioShapeFrequency;
   BoolOptionValue _literalMaximalityAftercheck;
   BoolOptionValue _arityCheck;
   
@@ -2281,6 +2315,7 @@ private:
 
   BoolOptionValue _hyperSuperposition;
 
+  BoolOptionValue _simultaneousSuperposition;
   BoolOptionValue _innerRewriting;
   BoolOptionValue _equationalTautologyRemoval;
 
@@ -2350,6 +2385,7 @@ private:
   BoolOptionValue _printClausifierPremises;
   StringOptionValue _problemName;
   ChoiceOptionValue<Proof> _proof;
+  BoolOptionValue _minimizeSatProofs;
   ChoiceOptionValue<ProofExtra> _proofExtra;
   BoolOptionValue _proofChecking;
   
@@ -2384,6 +2420,8 @@ private:
   BoolOptionValue _showDefinitions;
   ChoiceOptionValue<InterpolantMode> _showInterpolant;
   BoolOptionValue _showNew;
+  BoolOptionValue _sineToAge;
+  ChoiceOptionValue<PredicateSineLevels> _sineToPredLevels;
   BoolOptionValue _showSplitting;
   BoolOptionValue _showNewPropositional;
   BoolOptionValue _showNonconstantSkolemFunctionTrace;
@@ -2400,6 +2438,7 @@ private:
   BoolOptionValue _showTheoryAxioms;
   BoolOptionValue _showFOOL;
   BoolOptionValue _showFMBsortInfo;
+  BoolOptionValue _showInduction;
 #if VZ3
   BoolOptionValue _showZ3;
   BoolOptionValue _z3UnsatCores;
@@ -2409,11 +2448,14 @@ private:
 #endif
   ChoiceOptionValue<UnificationWithAbstraction> _unificationWithAbstraction; 
   BoolOptionValue _fixUWA;
+  BoolOptionValue _useACeval;
   TimeLimitOptionValue _simulatedTimeLimit;
   UnsignedOptionValue _sineDepth;
   UnsignedOptionValue _sineGeneralityThreshold;
+  UnsignedOptionValue _sineToAgeGeneralityThreshold;
   ChoiceOptionValue<SineSelection> _sineSelection;
   FloatOptionValue _sineTolerance;
+  FloatOptionValue _sineToAgeTolerance;
   BoolOptionValue _smtlibConsiderIntsReal;
   BoolOptionValue _smtlibFletAsDefinition;
   ChoiceOptionValue<Sos> _sos;
@@ -2438,6 +2480,7 @@ private:
   ChoiceOptionValue<TermOrdering> _termOrdering;
   ChoiceOptionValue<SymbolPrecedence> _symbolPrecedence;
   ChoiceOptionValue<SymbolPrecedenceBoost> _symbolPrecedenceBoost;
+  ChoiceOptionValue<IntroducedSymbolPrecedence> _introducedSymbolPrecedence;
   StringOptionValue _functionPrecedence;
   StringOptionValue _predicatePrecedence;
 
@@ -2474,6 +2517,8 @@ private:
   BoolOptionValue _newCNF;
   IntOptionValue _iteInliningThreshold;
   BoolOptionValue _inlineLet;
+
+  BoolOptionValue _manualClauseSelection;
 
 
 }; // class Options

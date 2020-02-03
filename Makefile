@@ -44,7 +44,7 @@ MINISAT_FLAGS = $(MINISAT_DBG_FLAGS)
 
 #XFLAGS = -g -DVDEBUG=1 -DVTEST=1 -DCHECK_LEAKS=1 # full debugging + testing
 #XFLAGS = $(DBG_FLAGS)
-XFLAGS = -Wfatal-errors -g -DVDEBUG=1 -DCHECK_LEAKS=0 -DGNUMP=$(GNUMPF)# standard debugging only
+XFLAGS = -Wfatal-errors -g -DVDEBUG=1 -DCHECK_LEAKS=0 -DUSE_SYSTEM_ALLOCATION=1 -DGNUMP=$(GNUMPF)# standard debugging only
 #XFLAGS = -g -DVDEBUG=1 -DCHECK_LEAKS=0 -DUSE_SYSTEM_ALLOCATION=1 -DVALGRIND=1 -DGNUMP=$(GNUMPF)# memory leaks
 #XFLAGS = $(REL_FLAGS)
 
@@ -327,7 +327,8 @@ VST_OBJ= Saturation/AWPassiveClauseContainer.o\
          Saturation/ProvingHelper.o\
          Saturation/SaturationAlgorithm.o\
          Saturation/Splitter.o\
-         Saturation/SymElOutput.o
+         Saturation/SymElOutput.o\
+         Saturation/ManCSPassiveClauseContainer.o\
 
 VS_OBJ = Shell/AnswerExtractor.o\
          Shell/BFNT.o\
@@ -388,7 +389,6 @@ VS_OBJ = Shell/AnswerExtractor.o\
 #         Shell/SMTLEX.o\
 #         Shell/SMTPAR.o\
 #         Shell/CParser.o\
-#         Shell/AxiomGenerator.o\
 #         Shell/EqualityAxiomatizer.o\
 #         Shell/GlobalOptions.o\
 #         Shell/Lexer.o\
@@ -543,7 +543,7 @@ all:#default make disabled
 ################################################################
 # automated generation of Vampire revision information
 
-VERSION_NUMBER = 4.3.0
+VERSION_NUMBER = 4.4.0
 
 # We extract the revision number from svn every time the svn meta-data are modified
 # (that's why there is the dependency on .svn/entries) 

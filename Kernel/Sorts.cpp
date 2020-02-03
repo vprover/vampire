@@ -288,7 +288,7 @@ OperatorType::OperatorKey* OperatorType::setupKey(std::initializer_list<unsigned
 }
 
 /**
- * Pre-initialise an OperatorKey from unsing a uniform range.
+ * Pre-initialise an OperatorKey from using a uniform range.
  */
 OperatorType::OperatorKey* OperatorType::setupKeyUniformRange(unsigned arity, unsigned argsSort)
 {
@@ -296,10 +296,8 @@ OperatorType::OperatorKey* OperatorType::setupKeyUniformRange(unsigned arity, un
 
   OperatorKey* key = OperatorKey::allocate(arity+1);
 
-  static Stack<unsigned> argSorts;
-  argSorts.reset();
   for (unsigned i=0; i<arity; i++) {
-    argSorts.push(argsSort);
+    (*key)[i] = argsSort;
   }
 
   return key;

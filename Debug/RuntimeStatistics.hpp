@@ -94,7 +94,7 @@ square's last digit:
 
 #include "Lib/Array.hpp"
 #include "Lib/Allocator.hpp"
-#include "Lib/List.hpp"
+#include "Lib/SkipList.hpp"
 
 namespace Debug {
 
@@ -163,18 +163,24 @@ class RuntimeStatistics
 public:
   static RuntimeStatistics* instance();
 
+  struct RSObjComparator
+  {
+    static Comparison compare(const char* name, RSObject* o2)
+    {
+      int res=strcmp(name, o2->name());
+      return (res>0) ? GREATER : ((res==0) ? EQUAL : LESS);
+    }
+  };
+
   template<class T>
   T* get(const char* name)
   {
-    ObjList::Iterator it(_objs);
-    while(it.hasNext()) {
-      RSObject* o=it.next();
-      if(o->hasName(name)) {
-	return static_cast<T*>(o);
-      }
+    RSObject** o;
+    if (_objs.getPosition(name,o,true)) {
+      return static_cast<T*>(*o);
     }
     T* res=new T(name);
-    ObjList::push(res, _objs);
+    *o = res;
     return res;
   }
 
@@ -183,10 +189,8 @@ private:
   RuntimeStatistics();
   ~RuntimeStatistics();
 
-  struct RSObjComparator;
-
-  typedef List<RSObject*> ObjList;
-  ObjList* _objs;
+  typedef SkipList<RSObject*,RSObjComparator> ObjSkipList;
+  ObjSkipList _objs;
 };
 
 #define RSTAT_AUX_NAME__(SEED) _rstat_tmp_##SEED##_

@@ -125,13 +125,13 @@ public:
    * a stack of @b usedAssumptions is copied.
    */
   InferenceFromSatRefutation(Rule rule, UnitList* premises, SATClauseList* satPremises, const SATLiteralStack& usedAssumptions) :
-    InferenceMany(rule,premises), _minimized(false), _satPremises(satPremises), _usedAssumptions(usedAssumptions) {}
+    InferenceMany(rule,premises), _minimized(!env.options->minimizeSatProofs()), _satPremises(satPremises), _usedAssumptions(usedAssumptions) {}
 
   /**
    * Constructor versions with no assumptions.
    */
   InferenceFromSatRefutation(Rule rule, UnitList* premises, SATClauseList* satPremises) :
-      InferenceMany(rule,premises), _minimized(false), _satPremises(satPremises) {}
+      InferenceMany(rule,premises), _minimized(!env.options->minimizeSatProofs()), _satPremises(satPremises) {}
 
   virtual void minimizePremises() override;
 

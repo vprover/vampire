@@ -117,18 +117,20 @@ bool PortfolioMode::searchForProof()
   TimeCounter::reinitialize();
 
   _prb = UIHelper::getInputProblem(*env.options);
-  Shell::Property* property = _prb->getProperty();
 
+  /* CAREFUL: Make sure that the order
+   * 1) getProperty, 2) normalise, 3) TheoryFinder::search
+   * is the same as in profileMode (vampire.cpp)
+   * also, cf. the beginning of Preprocessing::preprocess*/
+  Shell::Property* property = _prb->getProperty();
   {
     TimeCounter tc(TC_PREPROCESSING);
 
     //we normalize now so that we don't have to do it in every child Vampire
     ScopedLet<Statistics::ExecutionPhase> phaseLet(env.statistics->phase,Statistics::NORMALIZATION);
-    Normalisation norm;
-    norm.normalise(*_prb);
+    Normalisation().normalise(*_prb);
 
-    TheoryFinder tf(_prb->units(),property);
-    tf.search();
+    TheoryFinder(_prb->units(),property).search();
   }
 
   // now all the cpu usage will be in children, we'll just be waiting for them
@@ -183,11 +185,16 @@ void PortfolioMode::getExtraSchedules(Property& prop, Schedule& extra)
     main.loadFromIterator(fit);
 
     Stack<vstring> extra_opts;
+    extra_opts.push("sp=frequency");
+    extra_opts.push("tha=some");
+    extra_opts.push("sos=theory:sstl=5");
     extra_opts.push("gtg=exists_all");
     extra_opts.push("uwa=fixed:uwaf=on");
-    if(prop.getSMTLIBLogic() == SMT_UFDT || prop.getSMTLIBLogic() == SMT_AUFDTLIA || prop.getSMTLIBLogic() == SMT_UFDTLIA){
-      extra_opts.push("ind=all");
-      extra_opts.push("ind=all:sik=all");
+    if(prop.getSMTLIBLogic() == SMT_UFDT || prop.getSMTLIBLogic() == SMT_AUFDTLIA || 
+       prop.getSMTLIBLogic() == SMT_UFDTNIA || prop.getSMTLIBLogic() == SMT_UFDTLIA){
+      extra_opts.push("gtg=exists_all:ind=all");
+      extra_opts.push("gtg=exists_all:ind=all:sik=all");
+      extra_opts.push("gtg=exists_all:ind=all:sik=all:indmd=1");
     }
 
     Schedule::Iterator it(main);
@@ -218,14 +225,29 @@ void PortfolioMode::getExtraSchedules(Property& prop, Schedule& extra)
     getSchedules(prop,main,fallback);    
     Schedule::BottomFirstIterator fit(fallback);
     main.loadFromIterator(fit);
+
+    Stack<vstring> extra_opts;
+    extra_opts.push("");
+    // contains integers, rationals and reals
+    if(prop.props() & (524288ul | 1048576ul | 2097152ul)){
+      extra_opts.push("tha=some");
+      extra_opts.push("sos=theory:sstl=5");
+      extra_opts.push("uwa=fixed:uwaf=on");
+    }
+
     Schedule::Iterator it(main);
     while(it.hasNext()){
       vstring s = it.next();
       vstring ts = s.substr(s.find_last_of("_")+1,vstring::npos);
       int t;
       if(Lib::Int::stringToInt(ts,t)){
-        s = s.substr(0,s.find_last_of("_")) + "_" + Lib::Int::toString(t*3); 
-        extra.push(s);
+        vstring prefix = s.substr(0,s.find_last_of("_"));
+        Stack<vstring>::Iterator addit(extra_opts);
+        while(addit.hasNext()){
+          s = prefix + ":" + addit.next() + "_" + Lib::Int::toString(t*3);
+          extra.push(s);
+        }
+
       }
       else{ASSERTION_VIOLATION;}
     }
@@ -252,8 +274,11 @@ void PortfolioMode::getSchedules(Property& prop, Schedule& quick, Schedule& fall
     Schedules::getCasc2017Schedule(prop,quick,fallback);
     break;
   case Options::Schedule::CASC_2018:
-  case Options::Schedule::CASC:
     Schedules::getCasc2018Schedule(prop,quick,fallback);
+    break;
+  case Options::Schedule::CASC_2019:
+  case Options::Schedule::CASC:
+    Schedules::getCasc2019Schedule(prop,quick,fallback);
     break;
   case Options::Schedule::CASC_SAT_2014:
     Schedules::getCascSat2014Schedule(prop,quick,fallback);
@@ -265,8 +290,11 @@ void PortfolioMode::getSchedules(Property& prop, Schedule& quick, Schedule& fall
     Schedules::getCascSat2017Schedule(prop,quick,fallback);
     break;
   case Options::Schedule::CASC_SAT_2018:
-  case Options::Schedule::CASC_SAT:
     Schedules::getCascSat2018Schedule(prop,quick,fallback);
+    break;
+  case Options::Schedule::CASC_SAT_2019:
+  case Options::Schedule::CASC_SAT:
+    Schedules::getCascSat2019Schedule(prop,quick,fallback);
     break;
   case Options::Schedule::SMTCOMP_2016:
     Schedules::getSmtcomp2016Schedule(prop,quick,fallback);
@@ -535,14 +563,14 @@ void PortfolioMode::runSlice(Options& strategyOpt)
 
   bool outputResult = false;
   if (!resultValue) {
-    _syncSemaphore.dec(SEM_LOCK); // will block for all accept the first to enter
+    // only successfull vampires get here
+
+    _syncSemaphore.dec(SEM_LOCK); // will block for all accept the first to enter (make sure it's until it has finished printing!)
 
     if (!_syncSemaphore.get(SEM_PRINTED)) {
       _syncSemaphore.set(SEM_PRINTED,1);
       outputResult = true;
     }
-
-    _syncSemaphore.inc(SEM_LOCK); // would be also released after the processes' death, but we are polite and do it already here
   }
 
   if((outputAllowed() && resultValue) || outputResult) { // we can report on every failure, but only once on success
@@ -558,6 +586,10 @@ void PortfolioMode::runSlice(Options& strategyOpt)
       env.endOutput();
     }
     */
+  }
+
+  if (outputResult) {
+    _syncSemaphore.inc(SEM_LOCK); // would be also released after the processes' death, but we are polite and do it already here
   }
 
   STOP_CHECKING_FOR_ALLOCATOR_BYPASSES;

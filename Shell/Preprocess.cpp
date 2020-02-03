@@ -177,6 +177,18 @@ void Preprocess::preprocess(Problem& prb)
   //enough
   prb.getProperty();
 
+  /* CAREFUL, keep this at the beginning of the preprocessing pipeline,
+   * so that it corresponds to how its done
+   * in profileMode() in vampire.cpp and PortfolioMode::searchForProof()
+   * to preserve reproducibility out of casc mode when using --decode */
+  if (_options.normalize()) { // reorder units
+    env.statistics->phase=Statistics::NORMALIZATION;
+    if (env.options->showPreprocessing())
+      env.out() << "normalization" << std::endl;
+
+    Normalisation().normalise(prb);
+  }
+
   if (prb.hasInterpretedOperations()) {
     env.interpretedOperationsUsed = true;
   }
@@ -218,7 +230,6 @@ void Preprocess::preprocess(Problem& prb)
     InterpretedNormalizer().apply(prb);
   }
 
-
   // Expansion of distinct groups happens before other preprocessing
   // If a distinct group is small enough it will add inequality to describe it
   if(env.signature->hasDistinctGroups()){
@@ -227,13 +238,20 @@ void Preprocess::preprocess(Problem& prb)
     DistinctGroupExpansion().apply(prb);
   }
 
-  // reorder units
-  if (_options.normalize()) {
-    env.statistics->phase=Statistics::NORMALIZATION;
-    if (env.options->showPreprocessing())
-      env.out() << "normalization" << std::endl;
+  if (_options.sineToAge() || (_options.sineToPredLevels() != Options::PredicateSineLevels::OFF)) {
+    env.statistics->phase=Statistics::SINE_SELECTION;
 
-    Normalisation().normalise(prb);
+    if (_options.sineToAge()) {
+      env.clauseSineLevels = new DHMap<const Unit*,unsigned>();
+    }
+
+    if (_options.sineToPredLevels() != Options::PredicateSineLevels::OFF) {
+      env.predicateSineLevels = new DHMap<unsigned,unsigned>();
+    }
+
+    // just to initialize ``env.clauseSineLevels'' or ``env.predicateSineLevels''
+    SineSelector(false,_options.sineToAgeTolerance(),0,
+        _options.sineToAgeGeneralityThreshold(),true).perform(prb);
   }
 
   if (_options.sineSelection()!=Options::SineSelection::OFF) {

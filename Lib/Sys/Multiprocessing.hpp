@@ -26,7 +26,7 @@ public:
   void sleep(unsigned ms);
   void kill(pid_t child, int signal);
   void killNoCheck(pid_t child, int signal);
-  pid_t poll_children(bool &stopped, bool &exited, int &code);
+  pid_t poll_children(bool &stopped, bool &exited, bool &signalled, int &code);
 private:
   Multiprocessing();
   ~Multiprocessing();

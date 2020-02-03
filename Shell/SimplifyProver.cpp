@@ -1653,7 +1653,7 @@ SimplifyProver::SymbolInfo* SimplifyProver::addNumber(const vstring& symb)
   while (ts.hasNext()) {
     TermList num1 = ts.next();
     Formula* ineq = new AtomicFormula(Literal::createEquality(false,num,num1,_numberSort));
-    addUnit(new FormulaUnit(ineq,new Inference(Inference::THEORY),Unit::AXIOM));
+    addUnit(new FormulaUnit(ineq,new Inference(Inference::SIMPLIFY_PROVER_DISTINCT_NUMBERS_AXIOM),Unit::AXIOM));
   }
   _numbers.push(num);
 

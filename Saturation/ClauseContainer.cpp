@@ -135,11 +135,7 @@ void ActiveClauseContainer::add(Clause* c)
   _size++;
 
   ASS(c->store()==Clause::ACTIVE);
-  if(!c->in_active()){
-    addedEvent.fire(c);
-    c->toggle_in_active();
-  }
-  ASS(c->in_active());
+  addedEvent.fire(c);
 }
 
 /**
@@ -151,14 +147,9 @@ void ActiveClauseContainer::add(Clause* c)
 void ActiveClauseContainer::remove(Clause* c)
 {
   ASS(c->store()==Clause::ACTIVE);
-  ASS(c->in_active());
 
   _size--;
   removedEvent.fire(c);
-
-  c->toggle_in_active();
-  ASS(!c->in_active());
-
 } // Active::ClauseContainer::remove
 
 void ActiveClauseContainer::onLimitsUpdated(LimitsChangeType change)

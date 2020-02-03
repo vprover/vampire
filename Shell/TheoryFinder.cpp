@@ -184,7 +184,7 @@ bool TheoryFinder::matchCode(const void* obj,
 }
 
 /**
- * Match the code agains an object (a Formula,FormulaList,Literal,TermList or Term).
+ * Match the code against an object (a Formula,FormulaList,Literal,TermList or Term).
  *
  * @return true if succeeds
  * @since 24/06/2004 Dresden
@@ -400,10 +400,12 @@ bool TheoryFinder::matchCode(const void* obj,
   }
 
   case CLS: {
-#if TRACE_FINDER
-    cout << "M: CLS\n";
-#endif
+    ASS(objectPos > 0);
+    obj = objects[--objectPos];
     clause = reinterpret_cast<const Clause*>(obj);
+#if TRACE_FINDER
+    cout << "M: CLS: " << clause->toString() << endl;
+#endif
     clength = clause->length();
     cp++;
     goto match;
@@ -441,19 +443,21 @@ bool TheoryFinder::matchCode(const void* obj,
     if (c == clength) { // no candidate found
       goto backtrack;
     }
-    literals[l] = c;
-    objects[objectPos++] = (*clause)[c];
 
     // create a backtrack point
     Backtrack& back = backtrack[backtrackPos++];
     back.cp = cp;
     back.objPos = objectPos;
 
+    literals[l] = c;
+    objects[objectPos++] = (*clause)[c];
+
     cp += 2;
     goto match;
   }
 
-  case CIFF: {
+  case CIFF:
+  case NBCIFF: {
     ASS(objectPos > 0);
     obj = objects[--objectPos];
     const Formula* f = reinterpret_cast<const Formula*>(obj);
@@ -464,10 +468,12 @@ bool TheoryFinder::matchCode(const void* obj,
       goto backtrack;
     }
 
-    Backtrack& back = backtrack[backtrackPos++];
-    back.cp = cp;
-    back.obj = obj;
-    back.objPos = objectPos;
+    if (code[cp] == CIFF) {
+      Backtrack& back = backtrack[backtrackPos++];
+      back.cp = cp;
+      back.obj = obj;
+      back.objPos = objectPos;
+    }
 
     objects[objectPos++] = f->right();
     objects[objectPos++] = f->left();
@@ -597,6 +603,31 @@ bool TheoryFinder::matchCode(const void* obj,
   Backtrack& back = backtrack[--backtrackPos];
   cp = back.cp;
   obj = back.obj;
+
+  ASS_GE(objectPos,(int)back.objPos); // if we already went below the stored objPos, if the restored code succeeds, we will continue into undefined territory
+  // Actually, this might still be to weak; we should insist the whole objects stack up back.objPos is identical to the one when Backtrack back was created.
+  // Example of the problem: Matching
+  /* {CIFF,                           // <=>
+   *  CFORALL,1,0,CIFF,              // (Ax0)<=>
+   *  POS,NEWPRED,0,2,OLDVAR,0,NEWVAR,1, //  member(x0,x1)
+   *  POS,OLDPRED,0,OLDVAR,0,NEWVAR,2,   //  member(x0,x2)
+   *  POS,EQL,OLDVAR1,1,OLDVAR1,2,END};         // x1=x2
+   * against
+   * set_equal(X,Y) <=> ! [Z] : ( element(Z,X) <=> element(Z,Y) ).
+   *
+   * After
+   * ! [Z] : ( element(Z,X) <=> element(Z,Y) )
+   * succeeds
+   * set_equal(X,Y)
+   * fails (because set_equal is not "=").
+   *
+   * Backtracking to the other polarity of ( element(Z,X) <=> element(Z,Y) )
+   * is at this point evil, since the objects stack no longer contains
+   * set_equal(X,Y) as a LITARAL formula at objectPos==0
+   *
+   * In this case fixed by using non-backtrackable CIFF for the inner <=>
+   **/
+
   objectPos = back.objPos;
 
   switch (code[cp]) {
@@ -628,7 +659,7 @@ bool TheoryFinder::matchCode(const void* obj,
   case PLIT:
   case NLIT: {
 #if TRACE_FINDER
-    cout << "M: backtrack LIT\n";
+    cout << "B: LIT\n";
 #endif
     unsigned l = code[cp+1];
     // bit field of choices for this literal
@@ -657,13 +688,14 @@ bool TheoryFinder::matchCode(const void* obj,
     if (c == clength) { // no candidate found
       goto backtrack;
     }
-    literals[l] = c;
-    objects[objectPos++] = (*clause)[c];
 
     // create a backtrack point
     Backtrack& back = backtrack[backtrackPos++];
     back.cp = cp;
     back.objPos = objectPos;
+
+    literals[l] = c;
+    objects[objectPos++] = (*clause)[c];
 
     cp += 2;
     goto match;
@@ -887,7 +919,7 @@ bool TheoryFinder::matchFLD2(const Clause* c)
  */
 bool TheoryFinder::matchSubset (const Clause* c)
 {
-  CALL("TheoryFinder::matchSubset");
+  CALL("TheoryFinder::matchSubset(const Clause* c)");
 
   static const unsigned char code[] =
   {CLS,
@@ -915,7 +947,7 @@ bool TheoryFinder::matchSubset (const Clause* c)
  */
 bool TheoryFinder::matchSubset (const Formula* f)
 {
-  CALL("TheoryFinder::matchSubset");
+  CALL("TheoryFinder::matchSubset(const Formula* f)");
 
   static const unsigned char code[] =
     {CIFF,                          // <=>
@@ -995,16 +1027,18 @@ bool TheoryFinder::matchExtensionality (const Formula* f)
 
   static const unsigned char code1[] =
     {CIFF,                           // <=>
-      CFORALL,1,0,CIFF,              // (Ax0)<=>
+      CFORALL,1,0,NBCIFF,              // (Ax0)<=>
        POS,NEWPRED,0,2,OLDVAR,0,NEWVAR,1, //  member(x0,x1)
        POS,OLDPRED,0,OLDVAR,0,NEWVAR,2,   //  member(x0,x2)
        POS,EQL,OLDVAR1,1,OLDVAR1,2,END};         // x1=x2
   static const unsigned char code2[] =
     {CIMP,                           // =>
-      CFORALL,1,0,CIFF,              // (Ax0)<=>
+      CFORALL,1,0,NBCIFF,              // (Ax0)<=>
        POS,NEWPRED,0,2,OLDVAR,0,NEWVAR,1, //  member(x0,x1)
        POS,OLDPRED,0,OLDVAR,0,NEWVAR,2,   //  member(x0,x2)
        POS,EQL,OLDVAR1,1,OLDVAR1,2,END};         // x1=x2
+
+  // NBCIFF explained: As the LHS and the RHS of the inner <=> are variants, it does not make sense to backtrack over them; EQL is commutative to check the two versions!
 
   if (matchCode(f,code1,Property::PR_HAS_EXTENSIONALITY) ||
       matchCode(f,code2,Property::PR_HAS_EXTENSIONALITY)) {
