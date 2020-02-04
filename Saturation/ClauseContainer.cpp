@@ -124,7 +124,46 @@ Clause* UnprocessedClauseContainer::pop()
   return res;
 }
 
+void PassiveClauseContainer::updateLimits(long long estReachableCnt)
+{
+  CALL("PassiveClauseContainer::updateLimits");
+  ASS_GE(estReachableCnt,0);
 
+  bool atLeastOneLimitTightened;
+
+  // optimization: if the estimated number of clause-selections is higher than the number of clauses in passive,
+  // we already conclude that we will select all clauses, so we set the limits accordingly.
+  if (estReachableCnt > static_cast<long long>(sizeEstimate())) {
+    atLeastOneLimitTightened = setLimitsToMax();
+    if (atLeastOneLimitTightened) {
+      onLimitsUpdated();
+    }
+    return;
+  }
+  // otherwise we run the simulation and set the limits accordingly
+  else
+  {
+    Clause::requestAux();
+
+    simulationInit();
+
+    long long remains=estReachableCnt;
+    while (simulationHasNext() && remains > 0)
+    {
+      simulationPopSelected();
+      remains--;
+    }
+
+    atLeastOneLimitTightened = setLimitsFromSimulation();
+
+    Clause::releaseAux();
+  }
+
+  if (atLeastOneLimitTightened) {
+    onLimitsUpdated();
+    changedEvent.fire();
+  }
+}
 
 /////////////////   ActiveClauseContainer   //////////////////////
 

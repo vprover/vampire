@@ -34,7 +34,7 @@ public:
   CLASS_NAME(PredicateSplitPassiveClauseContainer);
   USE_ALLOCATOR(PredicateSplitPassiveClauseContainer);
 
-  PredicateSplitPassiveClauseContainer(bool isOutermost, const Shell::Options& opt);
+  PredicateSplitPassiveClauseContainer(bool isOutermost, const Shell::Options& opt, vstring name);
   virtual ~PredicateSplitPassiveClauseContainer();
 
   void add(Clause* cl);
@@ -42,12 +42,9 @@ public:
   Clause* popSelected();
 
   /** True if there are no passive clauses */
-  bool isEmpty() const
-  { ASS(!_queues.empty()); return _queues.back()->isEmpty(); }
+  bool isEmpty() const;
 
-  ClauseIterator iterator();
-
-  virtual unsigned size() const { ASS(!_queues.empty()); return _queues.back()->size(); }
+  virtual unsigned sizeEstimate() const;
 
 private:
   Lib::vvector<std::unique_ptr<AWPassiveClauseContainer>> _queues;
@@ -58,10 +55,27 @@ private:
   unsigned bestQueueHeuristics(Inference* inf) const;
 
   /*
-   * TODO: LRS specific methods and fields
+   * LRS specific methods for computation of Limits
    */
-  void updateLimits(long long estReachableCnt);
+public:
+  virtual void simulationInit();
+  virtual bool simulationHasNext();
+  virtual void simulationPopSelected();
 
+  // returns whether at least one of the limits was tightened
+  virtual bool setLimitsToMax();
+  // returns whether at least one of the limits was tightened
+  virtual bool setLimitsFromSimulation();
+
+  virtual void onLimitsUpdated();
+
+private:
+  Lib::vvector<unsigned> _simulationBalances;
+
+  /*
+   * LRS specific methods and fields for usage of limits
+   */
+public:
   virtual bool ageLimited() const;
   virtual bool weightLimited() const;
 
@@ -75,10 +89,7 @@ private:
   virtual bool fulfilsWeightLimit(unsigned w, unsigned numeralWeight, bool derivedFromGoal, unsigned age, Inference* inference) const;
 
   virtual bool childrenPotentiallyFulfilLimits(Clause* cl, unsigned upperBoundNumSelLits) const;
-
-private:
-  void onLimitsUpdated();
-
+  
 }; // class PredicateSplitPassiveClauseContainer
 
 };

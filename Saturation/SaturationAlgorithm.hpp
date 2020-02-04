@@ -104,9 +104,6 @@ public:
   }
 
   ClauseIterator activeClauses();
-  ClauseIterator passiveClauses();
-  size_t activeClauseCount();
-  size_t passiveClauseCount();
 
   PassiveClauseContainer* getPassiveClauseContainer() { return _passive; }
   IndexManager* getIndexManager() { return _imgr.ptr(); }

@@ -80,7 +80,7 @@ public:
   virtual void attach(SaturationAlgorithm* salg);
   virtual void detach();
 
-  virtual unsigned size() const = 0;
+  virtual unsigned sizeEstimate() const = 0;
   virtual void remove(Clause* c) = 0;
   void removeClauses(ClauseIterator cit);
 
@@ -132,7 +132,7 @@ public:
   CLASS_NAME(PassiveClauseContainer);
   USE_ALLOCATOR(PassiveClauseContainer);
 
-  PassiveClauseContainer(bool isOutermost, const Shell::Options& opt) : _isOutermost(isOutermost), _opt(opt) {}
+  PassiveClauseContainer(bool isOutermost, const Shell::Options& opt, vstring name = "") : _isOutermost(isOutermost), _opt(opt), _name(name) {}
   virtual ~PassiveClauseContainer(){};
 
   LimitsChangeEvent changedEvent;
@@ -140,12 +140,27 @@ public:
   virtual bool isEmpty() const = 0;
   virtual Clause* popSelected() = 0;
 
-  virtual ClauseIterator iterator() = 0;
-  virtual unsigned size() const = 0;
+  virtual unsigned sizeEstimate() const = 0;
 
-  // LRS specific methods
-  virtual void updateLimits(long long estReachableCnt) = 0;
+  /*
+   * LRS specific methods for computation of Limits
+   */
+  void updateLimits(long long estReachableCnt);
 
+  virtual void simulationInit() = 0;
+  virtual bool simulationHasNext() = 0;
+  virtual void simulationPopSelected() = 0;
+
+  // returns whether at least one of the limits was tightened
+  virtual bool setLimitsToMax() = 0;
+  // returns whether at least one of the limits was tightened
+  virtual bool setLimitsFromSimulation() = 0;
+
+  virtual void onLimitsUpdated() = 0;
+
+  /*
+   * LRS specific methods and fields for usage of limits
+   */
   virtual bool ageLimited() const = 0;
   virtual bool weightLimited() const = 0;
 
@@ -163,6 +178,9 @@ public:
 protected:
   bool _isOutermost;
   const Shell::Options& _opt;
+
+public:
+  vstring _name;
 };
 
 class ActiveClauseContainer
@@ -177,7 +195,7 @@ public:
   void add(Clause* c);
   void remove(Clause* c);
 
-  unsigned size() const { return _size; }
+  unsigned sizeEstimate() const { return _size; }
 
 protected:
   void onLimitsUpdated();

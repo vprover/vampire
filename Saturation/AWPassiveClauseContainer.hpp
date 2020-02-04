@@ -77,7 +77,7 @@ public:
   CLASS_NAME(AWPassiveClauseContainer);
   USE_ALLOCATOR(AWPassiveClauseContainer);
 
-  AWPassiveClauseContainer(bool isOutermost, const Shell::Options& opt);
+  AWPassiveClauseContainer(bool isOutermost, const Shell::Options& opt, vstring name);
   virtual ~AWPassiveClauseContainer();
   void add(Clause* cl);
 
@@ -90,9 +90,7 @@ public:
   bool isEmpty() const
   { return _ageQueue.isEmpty() && _weightQueue.isEmpty(); }
 
-  ClauseIterator iterator();
-
-  virtual unsigned size() const { return _size; }
+  virtual unsigned sizeEstimate() const { return _size; }
 
   static Comparison compareWeight(Clause* cl1, Clause* cl2, const Shell::Options& opt);
 
@@ -115,17 +113,17 @@ private:
    * LRS specific methods and fields for computation of Limits
    */
 public:
-  virtual void updateLimits(long long estReachableCnt);
+  virtual void simulationInit();
+  virtual bool simulationHasNext();
+  virtual void simulationPopSelected();
 
-  void simulationInit();
-  bool simulationHasNext();
-  void simulationPopSelected();
+  // returns whether at least one of the limits was tightened
+  virtual bool setLimitsToMax();
+  // returns whether at least one of the limits was tightened
+  virtual bool setLimitsFromSimulation();
 
+  virtual void onLimitsUpdated();
 private:
-
-    // returns whether at least one of the limits was tightened
-  bool setLimitsToMax();
-  bool setLimitsFromSimulation();
   bool setLimits(unsigned newAgeSelectionMaxAge, unsigned newAgeSelectionMaxWeight, unsigned newWeightSelectionMaxWeight, unsigned newWeightSelectionMaxAge);
 
   int _simulationBalance;
@@ -156,10 +154,7 @@ public:
   virtual bool fulfilsWeightLimit(unsigned w, unsigned numeralWeight, bool derivedFromGoal, unsigned age, Inference* inference) const;
 
   virtual bool childrenPotentiallyFulfilLimits(Clause* cl, unsigned upperBoundNumSelLits) const;
-
-private:
-  void onLimitsUpdated();
-
+  
 }; // class AWPassiveClauseContainer
 
 /**

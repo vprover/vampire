@@ -49,8 +49,8 @@ namespace Saturation
 using namespace Lib;
 using namespace Kernel;
 
-AWPassiveClauseContainer::AWPassiveClauseContainer(bool isOutermost, const Shell::Options& opt) :
-  PassiveClauseContainer(isOutermost, opt),
+AWPassiveClauseContainer::AWPassiveClauseContainer(bool isOutermost, const Shell::Options& opt, vstring name) :
+  PassiveClauseContainer(isOutermost, opt, name),
   _ageQueue(opt),
   _weightQueue(opt),
   _ageRatio(opt.ageRatio()),
@@ -82,19 +82,13 @@ AWPassiveClauseContainer::AWPassiveClauseContainer(bool isOutermost, const Shell
 
 AWPassiveClauseContainer::~AWPassiveClauseContainer()
 {
-  if(_isOutermost) {
-    ClauseQueue::Iterator cit(_ageQueue);
-    while (cit.hasNext()) {
-      Clause* cl=cit.next();
-      ASS(cl->store()==Clause::PASSIVE);
-      cl->setStore(Clause::NONE);
-    }
+  ClauseQueue::Iterator cit(_ageQueue);
+  while (cit.hasNext()) 
+  {
+    Clause* cl=cit.next();
+    ASS(!_isOutermost || cl->store()==Clause::PASSIVE);
+    cl->setStore(Clause::NONE);
   }
-}
-
-ClauseIterator AWPassiveClauseContainer::iterator()
-{
-  return pvi( ClauseQueue::Iterator(_weightQueue) );
 }
 
 /**
@@ -310,48 +304,6 @@ Clause* AWPassiveClauseContainer::popSelected()
   return cl;
 } // AWPassiveClauseContainer::popSelected
 
-
-void AWPassiveClauseContainer::updateLimits(long long estReachableCnt)
-{
-  CALL("AWPassiveClauseContainer::updateLimits");
-  ASS_GE(estReachableCnt,0);
-
-  bool atLeastOneLimitTightened;
-
-  // optimization: if the estimated number of clause-selections is higher than the number of clauses in passive,
-  // we already conclude that we will select all clauses, so we set the limits accordingly.
-  if (estReachableCnt > static_cast<long long>(_size)) {
-    atLeastOneLimitTightened = setLimitsToMax();
-    if (atLeastOneLimitTightened) {
-      onLimitsUpdated();
-    }
-    return;
-  }
-  // otherwise we run the simulation and set the limits accordingly
-  else
-  {
-    Clause::requestAux();
-
-    simulationInit();
-
-    long long remains=estReachableCnt;
-    while (simulationHasNext() && remains > 0)
-    {
-      simulationPopSelected();
-      remains--;
-    }
-
-    atLeastOneLimitTightened = setLimitsFromSimulation();
-
-    Clause::releaseAux();
-  }
-
-  if (atLeastOneLimitTightened) {
-    onLimitsUpdated();
-    changedEvent.fire();
-  }
-}
-
 void AWPassiveClauseContainer::onLimitsUpdated()
 {
   CALL("AWPassiveClauseContainer::onLimitsUpdated");
@@ -443,7 +395,7 @@ bool AWPassiveClauseContainer::simulationHasNext()
   ASS(!_simulationCurrAgeCl->hasAux() || _simulationCurrWeightCl->hasAux());
   ASS(_simulationCurrAgeCl->hasAux() || !_simulationCurrWeightCl->hasAux());
 
-  return _simulationCurrAgeIt.hasNext();
+  return !_simulationCurrAgeCl->hasAux();
 }
 
 // assumes that simulationHasNext() has been called before and returned true,

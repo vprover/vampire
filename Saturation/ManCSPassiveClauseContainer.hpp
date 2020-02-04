@@ -45,9 +45,8 @@ public:
   ManCSPassiveClauseContainer(bool isOutermost, const Shell::Options& opt) : PassiveClauseContainer(isOutermost, opt) {}
   virtual ~ManCSPassiveClauseContainer(){}
   
-  virtual unsigned size() const;
+  virtual unsigned sizeEstimate() const;
   bool isEmpty() const;
-  ClauseIterator iterator();
 
   void add(Clause* cl);
   void remove(Clause* cl);
@@ -58,11 +57,23 @@ private:
   std::vector<Clause*> clauses;
 
   /*
-   * LRS specific methods and fields
+   * LRS specific methods for computation of Limits
    */
 public:
-  virtual void updateLimits(long long estReachableCnt) {};
+  virtual void simulationInit() {}
+  virtual bool simulationHasNext() {}
+  virtual void simulationPopSelected() {}
 
+  // returns whether at least one of the limits was tightened
+  virtual bool setLimitsToMax() {}
+  // returns whether at least one of the limits was tightened
+  virtual bool setLimitsFromSimulation() {}
+
+  virtual void onLimitsUpdated() {}
+
+  /*
+   * LRS specific methods and fields for usage of limits
+   */
   virtual bool ageLimited() const { return false; }
   virtual bool weightLimited() const { return false; }
 

@@ -145,8 +145,8 @@ SaturationAlgorithm::SaturationAlgorithm(Problem& prb, const Options& opt)
     _passive = new ManCSPassiveClauseContainer(true, opt);
   } else {
     _passive = (opt.useSplitQueues()) ?
-        static_cast<PassiveClauseContainer*>(new PredicateSplitPassiveClauseContainer(true, opt)) :
-        static_cast<PassiveClauseContainer*>(new AWPassiveClauseContainer(true, opt));
+        static_cast<PassiveClauseContainer*>(new PredicateSplitPassiveClauseContainer(true, opt, "")) :
+        static_cast<PassiveClauseContainer*>(new AWPassiveClauseContainer(true, opt, ""));
   }
   _active = new ActiveClauseContainer(opt);
 
@@ -226,8 +226,8 @@ void SaturationAlgorithm::tryUpdateFinalClauseCount()
   if (!inst) {
     return;
   }
-  env.statistics->finalActiveClauses = inst->_active->size();
-  env.statistics->finalPassiveClauses = inst->_passive->size();
+  env.statistics->finalActiveClauses = inst->_active->sizeEstimate();
+  env.statistics->finalPassiveClauses = inst->_passive->sizeEstimate();
   if (inst->_extensionality != 0) {
     env.statistics->finalExtensionalityClauses = inst->_extensionality->size();
   }
@@ -248,22 +248,6 @@ ClauseIterator SaturationAlgorithm::activeClauses()
   LiteralIndexingStructure* gis=getIndexManager()->getGeneratingLiteralIndexingStructure();
   return pvi( getMappingIterator(gis->getAll(), SLQueryResult::ClauseExtractFn()) );
 }
-
-ClauseIterator SaturationAlgorithm::passiveClauses()
-{
-  return _passive->iterator();
-}
-
-size_t SaturationAlgorithm::activeClauseCount()
-{
-  return _active->size();
-}
-
-size_t SaturationAlgorithm::passiveClauseCount()
-{
-  return _passive->size();
-}
-
 
 /**
  * A function that is called when a clause is added to the active clause container.

@@ -48,12 +48,6 @@ private:
   const std::vector<Clause*>::const_iterator end;
 };
 
-
-ClauseIterator ManCSPassiveClauseContainer::iterator()
-{
-  return vi( new VectorIteratorWrapper(clauses));
-}
-
 void ManCSPassiveClauseContainer::add(Clause* cl)
 {
   clauses.push_back(cl);
@@ -105,6 +99,6 @@ Clause* ManCSPassiveClauseContainer::popSelected()
   return selectedClause;
 }
 
-unsigned ManCSPassiveClauseContainer::size() const { return clauses.size(); }
+unsigned ManCSPassiveClauseContainer::sizeEstimate() const { return clauses.size(); }
 bool ManCSPassiveClauseContainer::isEmpty() const { return clauses.empty(); }
 }
