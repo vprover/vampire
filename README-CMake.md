@@ -31,6 +31,7 @@ All compile flags are added as additional arguments to cmake - for example
 * Debug build: `-DCMAKE_BUILD_TYPE=Debug`
 
 * Z3 Path: use `-DZ3_DIR=$(PATH)` this is the path to the Z3 CMake configuration.
+  MS: for me an absolute path to `/.../z3/build` works, where `build` is my own cmake build directory under z3 (after a successful compile of z3 there).
   It is usually located in `$Z3_ROOT/lib64/cmake/z3` but only when Z3 was built using cmake.
   Currently, the binary distribution of Z3 does not include these files.
   
