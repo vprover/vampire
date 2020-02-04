@@ -489,6 +489,7 @@ source_group(decision_procedures_source_files FILES ${VAMPIRE_DECISION_PROCEDURE
 
 set(VAMPIRE_SATURATION_SOURCES
     Saturation/AWPassiveClauseContainer.cpp
+    Saturation/ManCSPassiveClauseContainer.cpp
     Saturation/ClauseContainer.cpp
     Saturation/ConsequenceFinder.cpp
     Saturation/Discount.cpp
