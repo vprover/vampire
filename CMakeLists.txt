@@ -1,6 +1,5 @@
 cmake_minimum_required (VERSION 3.5.1)
 
-
 project(Vampire)
 
 # require the compiler to use C++11
@@ -8,14 +7,13 @@ set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 #static
+option(BUILD_SHARED_LIBS "Build an executable dynamically linking to libraries instead of a statically-linked one (static not working on Mac)" ON)
 if (NOT BUILD_SHARED_LIBS)
   SET(CMAKE_FIND_LIBRARY_SUFFIXES ".a")
-  # SET(BUILD_SHARED_LIBS OFF)
   SET(CMAKE_EXE_LINKER_FLAGS "-static")
 endif()
 
 #debug flags
-
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -DVDEBUG=1 -DUNIX_USE_SIGALRM=1 -DGNUMP=0 ")
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -DVDEBUG=0")
 
