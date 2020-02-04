@@ -758,7 +758,16 @@ else ()
   message(STATUS "Found Z3 ${Z3_VERSION_STRING}")
   message(STATUS "Z3_DIR: ${Z3_DIR}")
   target_include_directories(vampire PRIVATE ${Z3_CXX_INCLUDE_DIRS})
-  target_link_libraries(vampire PRIVATE ${Z3_LIBRARIES})
+  if (Z3_FOUND AND (NOT BUILD_SHARED_LIBS) AND CMAKE_COMPILER_IS_GNUCXX)
+    # avoid static linking problems with C++ threads
+    # see https://stackoverflow.com/questions/58848694/gcc-whole-archive-recipe-for-static-linking-to-pthread-stopped-working-in-rec
+    message(STATUS "Adding workaround for gcc static linking against pthread")
+    target_link_libraries(vampire PRIVATE ${Z3_LIBRARIES} -pthread -Wl,--whole-archive -lrt -lpthread -Wl,--no-whole-archive)
+  else()
+    target_link_libraries(vampire PRIVATE ${Z3_LIBRARIES})
+  endif()
+
+
   add_library(Z3 SHARED IMPORTED)
   set_property(TARGET Z3 PROPERTY IMPORTED_LOCATION ${Z3_LIBRARY})
   target_compile_definitions(vampire PRIVATE VZ3=1)
