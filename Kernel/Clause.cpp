@@ -89,6 +89,66 @@ Clause::Clause(unsigned length,InputType it,Inference* inf)
     _auxTimestamp(0)
 {
 
+  Inference::Iterator parentIt = inf->iterator();
+
+  // clause without parents
+  if (!inf->hasNext(parentIt))
+  {
+    th_ancestors = isTheoryAxiom() ? 1.0 : 0.0;
+    all_ancestors = 1.0;
+  }
+  else
+  {
+    // TODO: add support for UNIT_RESULTING_RESOLUTION (is the last premise in urr *always* the main premise?)
+    bool isSimplifyingInference =
+        inf->rule() == Inference::TRIVIAL_INEQUALITY_REMOVAL ||
+        inf->rule() == Inference::SUBSUMPTION_RESOLUTION ||
+        inf->rule() == Inference::FORWARD_DEMODULATION ||
+        inf->rule() == Inference::BACKWARD_DEMODULATION ||
+        inf->rule() == Inference::EVALUATION;
+
+    if (isSimplifyingInference && env.options->splitQueueSimplifyingInferences())
+    {
+      // hack: depend on the following fact:
+      // all simplifying inferences save the main premise as first premise,
+      // except backward demodulation, which (inconsistently) saves the main premise as second premise.
+      Unit* mainPremise = inf->next(parentIt);
+      if (inf->rule() == Inference::BACKWARD_DEMODULATION)
+      {
+        mainPremise = inf->next(parentIt);
+      }
+      ASS(mainPremise->isClause());
+      th_ancestors = static_cast<Clause *>(mainPremise)->th_ancestors;
+      all_ancestors = static_cast<Clause *>(mainPremise)->all_ancestors;
+    }
+    else
+    {
+      th_ancestors = 0.0;
+      all_ancestors = 0.0; // there is going to be an at least one, eventually
+      while (inf->hasNext(parentIt))
+      {
+        Unit *parent = inf->next(parentIt);
+        if (parent->isClause())
+        {
+          th_ancestors += static_cast<Clause *>(parent)->th_ancestors;
+          all_ancestors += static_cast<Clause *>(parent)->all_ancestors;
+        }
+        else
+        {
+          // a parent is not a clause, which can only be the case if the clause
+          // occurs as final step of clausification.
+          // We assume that such clauses are never theory axioms.
+          // Note: for the edge case of a term algebra with a constructor with a boolean argument, the exhaustiveness axiom
+          // is not added as a clause, but as a formula (cf. TheoryAxioms.cpp for more information). We therefore
+          // miss to detect these axiom.
+          th_ancestors = 0.0;
+          all_ancestors = 1.0;
+          break;
+        }
+      }
+    }
+  }
+
   if(it == Unit::EXTENSIONALITY_AXIOM){
     //cout << "Setting extensionality" << endl;
     _extensionalityTag = true;
@@ -456,12 +516,14 @@ vstring Clause::toString() const
     }
 
     result += vstring(",inD:") + Int::toString(inductionDepth());
+    result += ",thAx:" + Int::toString((int)th_ancestors);
+    result += ",allAx:" + Int::toString((int)all_ancestors);
+    result += ",crazyPerc:"+Int::toString((int) (100 * (th_ancestors/all_ancestors)));
     result += vstring("}");
   }
 
   return result;
 }
-
 
 /**
  * Convert the clause into sequence of strings, each containing

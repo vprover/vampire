@@ -182,7 +182,8 @@ VL_OBJ= Lib/Allocator.o\
         Lib/StringUtils.o\
         Lib/System.o\
         Lib/TimeCounter.o\
-        Lib/Timer.o
+        Lib/Timer.o\
+        Lib/STL.o
 #        Lib/OptionsReader.o\
 #        Lib/Graph.o\
 
@@ -315,6 +316,7 @@ VSAT_OBJ=SAT/ClauseDisposer.o\
 #         SAT/SingleWatchSAT.o
 
 VST_OBJ= Saturation/AWPassiveClauseContainer.o\
+         Saturation/PredicateSplitPassiveClauseContainer.o\
          Saturation/ClauseContainer.o\
          Saturation/ConsequenceFinder.o\
          Saturation/Discount.o\

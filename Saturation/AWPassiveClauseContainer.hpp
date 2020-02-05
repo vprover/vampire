@@ -25,6 +25,8 @@
 #ifndef __AWPassiveClauseContainer__
 #define __AWPassiveClauseContainer__
 
+#include <memory>
+#include <vector>
 #include "Lib/Comparison.hpp"
 #include "Kernel/Clause.hpp"
 #include "Kernel/ClauseQueue.hpp"
@@ -75,11 +77,13 @@ public:
   CLASS_NAME(AWPassiveClauseContainer);
   USE_ALLOCATOR(AWPassiveClauseContainer);
 
-  AWPassiveClauseContainer(const Options& opt);
+  AWPassiveClauseContainer(bool isOutermost, const Options& opt);
   virtual ~AWPassiveClauseContainer();
   void add(Clause* cl);
 
   void remove(Clause* cl);
+
+  bool byWeight();
 
   Clause* popSelected();
   /** True if there are no passive clauses */

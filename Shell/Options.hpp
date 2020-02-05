@@ -1986,6 +1986,10 @@ public:
   int ageRatio() const { return _ageWeightRatio.actualValue; }
   void setAgeRatio(int v){ _ageWeightRatio.actualValue = v; }
   int weightRatio() const { return _ageWeightRatio.otherValue; }
+  bool useSplitQueues() const { return _useSplitQueues.actualValue; }
+  vstring splitQueueRatios() const { return _splitQueueRatios.actualValue; }
+  vstring splitQueueCutoffs() const { return _splitQueueCutoffs.actualValue; }
+  bool splitQueueSimplifyingInferences() const { return _splitQueueSimplifyingInferences.actualValue; }
   void setWeightRatio(int v){ _ageWeightRatio.otherValue = v; }
 	AgeWeightRatioShape ageWeightRatioShape() const { return _ageWeightRatioShape.actualValue; }
 	int ageWeightRatioShapeFrequency() const { return _ageWeightRatioShapeFrequency.actualValue; }
@@ -2242,6 +2246,10 @@ private:
   RatioOptionValue _ageWeightRatio;
 	ChoiceOptionValue<AgeWeightRatioShape> _ageWeightRatioShape;
 	UnsignedOptionValue _ageWeightRatioShapeFrequency;
+  BoolOptionValue _useSplitQueues;
+  StringOptionValue _splitQueueRatios;
+  StringOptionValue _splitQueueCutoffs;
+  BoolOptionValue _splitQueueSimplifyingInferences;
   BoolOptionValue _literalMaximalityAftercheck;
   BoolOptionValue _arityCheck;
   

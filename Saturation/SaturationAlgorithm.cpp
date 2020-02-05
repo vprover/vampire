@@ -87,6 +87,7 @@
 #include "SaturationAlgorithm.hpp"
 #include "ManCSPassiveClauseContainer.hpp"
 #include "AWPassiveClauseContainer.hpp"
+#include "PredicateSplitPassiveClauseContainer.hpp"
 #include "Discount.hpp"
 #include "LRS.hpp"
 #include "Otter.hpp"
@@ -140,15 +141,15 @@ SaturationAlgorithm::SaturationAlgorithm(Problem& prb, const Options& opt)
   _completeOptionSettings = opt.complete(prb);
 
   _unprocessed = new UnprocessedClauseContainer();
-  if (opt.useManualClauseSelection())
-  {
-    _passive = new ManCSPassiveClauseContainer(opt);
+
+  if (opt.useManualClauseSelection()){
+    _passive = new ManCSPassiveClauseContainer(true);
+  } else {
+    _passive = (opt.useSplitQueues()) ?
+        static_cast<PassiveClauseContainer*>(new PredicateSplitPassiveClauseContainer(true, opt)) :
+        static_cast<PassiveClauseContainer*>(new AWPassiveClauseContainer(true, opt));
   }
-  else
-  {
-    _passive = new AWPassiveClauseContainer(opt);
-  }
-    
+
   _active = new ActiveClauseContainer(opt);
 
   _active->attach(this);

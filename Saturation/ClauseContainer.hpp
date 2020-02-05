@@ -131,6 +131,9 @@ public:
   CLASS_NAME(PassiveClauseContainer);
   USE_ALLOCATOR(PassiveClauseContainer);
 
+  PassiveClauseContainer(bool isOutermost) : _isOutermost(isOutermost) {}
+  virtual ~PassiveClauseContainer(){};
+
   virtual bool isEmpty() const = 0;
   virtual Clause* popSelected() = 0;
 
@@ -138,6 +141,9 @@ public:
   virtual unsigned size() const = 0;
 
   virtual void updateLimits(long long estReachableCnt) {}
+
+protected:
+  bool _isOutermost;
 };
 
 class ActiveClauseContainer

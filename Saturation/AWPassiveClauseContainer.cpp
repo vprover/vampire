@@ -49,9 +49,8 @@ namespace Saturation
 using namespace Lib;
 using namespace Kernel;
 
-
-AWPassiveClauseContainer::AWPassiveClauseContainer(const Options& opt)
-:  _ageQueue(opt), _weightQueue(opt), _balance(0), _size(0), _opt(opt)
+AWPassiveClauseContainer::AWPassiveClauseContainer(bool isOutermost, const Options& opt)
+: PassiveClauseContainer(isOutermost), _ageQueue(opt), _weightQueue(opt), _balance(0), _size(0), _opt(opt)
 {
   CALL("AWPassiveClauseContainer::AWPassiveClauseContainer");
 
@@ -70,11 +69,13 @@ AWPassiveClauseContainer::AWPassiveClauseContainer(const Options& opt)
 
 AWPassiveClauseContainer::~AWPassiveClauseContainer()
 {
-  ClauseQueue::Iterator cit(_ageQueue);
-  while (cit.hasNext()) {
-    Clause* cl=cit.next();
-    ASS(cl->store()==Clause::PASSIVE);
-    cl->setStore(Clause::NONE);
+  if(_isOutermost) {
+    ClauseQueue::Iterator cit(_ageQueue);
+    while (cit.hasNext()) {
+      Clause* cl=cit.next();
+      ASS(cl->store()==Clause::PASSIVE);
+      cl->setStore(Clause::NONE);
+    }
   }
 }
 
@@ -176,6 +177,7 @@ void AWPassiveClauseContainer::add(Clause* cl)
 {
   CALL("AWPassiveClauseContainer::add");
   ASS(_ageRatio > 0 || _weightRatio > 0);
+  ASS(cl->store() == Clause::PASSIVE);
 
   if (_ageRatio) {
     _ageQueue.insert(cl);
@@ -184,7 +186,11 @@ void AWPassiveClauseContainer::add(Clause* cl)
     _weightQueue.insert(cl);
   }
   _size++;
-  addedEvent.fire(cl);
+
+  if (_isOutermost)
+  {
+    addedEvent.fire(cl);
+  }
 } // AWPassiveClauseContainer::add
 
 /**
@@ -196,21 +202,45 @@ void AWPassiveClauseContainer::add(Clause* cl)
 void AWPassiveClauseContainer::remove(Clause* cl)
 {
   CALL("AWPassiveClauseContainer::remove");
-  ASS(cl->store()==Clause::PASSIVE);
-
+  if (_isOutermost)
+  {
+    ASS(cl->store()==Clause::PASSIVE);
+  }
   if (_ageRatio) {
-    ALWAYS(_ageQueue.remove(cl));
+    _ageQueue.remove(cl);
   }
   if (_weightRatio) {
-    ALWAYS(_weightQueue.remove(cl));
+    _weightQueue.remove(cl);
   }
   _size--;
 
-  removedEvent.fire(cl);
-
-  ASS(cl->store()!=Clause::PASSIVE);
+  if (_isOutermost)
+  {
+    removedEvent.fire(cl);
+    ASS(cl->store()!=Clause::PASSIVE);
+  }
 }
 
+bool AWPassiveClauseContainer::byWeight()
+{
+  CALL("AWPassiveClauseContainer::byWeight");
+
+  if (! _ageRatio) {
+    return true;
+  }
+  else if (! _weightRatio) {
+    return false;
+  }
+  else if (_balance > 0) {
+    return true;
+  }
+  else if (_balance < 0) {
+    return false;
+  }
+  else {
+    return (_ageRatio <= _weightRatio);
+  }
+}
 
 /**
  * Return the next selected clause and remove it from the queue.
@@ -249,34 +279,21 @@ Clause* AWPassiveClauseContainer::popSelected()
   //std::cerr << _ageRatio << "\t" << _weightRatio << std::endl;
   _size--;
 
-  bool byWeight;
-  if (! _ageRatio) {
-    byWeight = true;
-  }
-  else if (! _weightRatio) {
-    byWeight = false;
-  }
-  else if (_balance > 0) {
-    byWeight = true;
-  }
-  else if (_balance < 0) {
-    byWeight = false;
-  }
-  else {
-    byWeight = (_ageRatio <= _weightRatio);
+  Clause* cl;
+  if (byWeight()) {
+    _balance -= _ageRatio;
+    cl = _weightQueue.pop();
+    _ageQueue.remove(cl);
+  } else {
+    _balance += _weightRatio;
+    cl = _ageQueue.pop();
+    _weightQueue.remove(cl);
   }
 
-  if (byWeight) {
-    _balance -= _ageRatio;
-    Clause* cl = _weightQueue.pop();
-    _ageQueue.remove(cl);
+  if (_isOutermost) {
     selectedEvent.fire(cl);
-    return cl;
   }
-  _balance += _weightRatio;
-  Clause* cl = _ageQueue.pop();
-  _weightQueue.remove(cl);
-  selectedEvent.fire(cl);
+
   return cl;
 } // AWPassiveClauseContainer::popSelected
 

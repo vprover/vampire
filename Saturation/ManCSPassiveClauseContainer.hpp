@@ -42,7 +42,8 @@ public:
   CLASS_NAME(ManCSPassiveClauseContainer);
   USE_ALLOCATOR(ManCSPassiveClauseContainer);
 
-  ManCSPassiveClauseContainer(const Options& opt) {}
+
+  ManCSPassiveClauseContainer(bool isOutermost) : PassiveClauseContainer(isOutermost) {}
   virtual ~ManCSPassiveClauseContainer(){}
   
   virtual unsigned size() const;
