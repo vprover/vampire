@@ -137,7 +137,7 @@ SaturationAlgorithm::SaturationAlgorithm(Problem& prb, const Options& opt)
     // seems to be making this nicely single-threaded
     at::set_num_threads(1);
     
-    _model = torch::jit::load("odKarla/vampire_new.pt");
+    _model = torch::jit::load(opt.evalForKarelPath().c_str());
 
     // cout << "Models loaded" << endl;
   }
