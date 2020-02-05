@@ -52,8 +52,6 @@
 #include<iostream>
 #endif
 
-#define DEBUG_MODEL 0
-
 namespace Saturation
 {
 
@@ -188,6 +186,7 @@ public:
   DHSet<Clause*> _shown; // set of clauses already printed via showForKarel
   DHSet<Clause*> _evaluated; // set of clauses the _model already knows about
   void talkToKarel(Clause*,bool eval = true);
+  void evaluate(Clause*, std::vector<torch::jit::IValue>& inputs);
 protected:
   bool _completeOptionSettings;
   int _startTime;

@@ -93,6 +93,8 @@
 
 #include <math.h>
 
+#define DEBUG_MODEL 0
+
 #include <ATen/Parallel.h>
 
 using namespace Lib;
@@ -396,6 +398,23 @@ void SaturationAlgorithm::onUnprocessedSelected(Clause* c)
   
 }
 
+void SaturationAlgorithm::evaluate(Clause* cl, std::vector<torch::jit::IValue>& inputs)
+{
+  CALL("SaturationAlgorithm::evaluated");
+
+  auto output = _model.forward(inputs).toTensor();
+  float eval = output.item<float>();
+
+#if DEBUG_MODEL
+  cout << "evaluting: " << cl->number() << endl;
+  cout << inputs[0] << endl;
+  cout << eval << endl;
+#endif
+
+  cl->modelSaidYes = (eval <= 5.0);
+  // cl->modelSaidYes = Random::getBit();
+}
+
 void SaturationAlgorithm::talkToKarel(Clause* cl, bool eval)
 {
   CALL("SaturationAlgorithm::talkToKarel");
@@ -453,18 +472,10 @@ void SaturationAlgorithm::talkToKarel(Clause* cl, bool eval)
       Unit* premUnit = inf->next(iit);
       init_vec[idx++] = (int) premUnit->asClause()->number();
     }
-#if DEBUG_MODEL
-    cout <<  init_vec << endl;
-#endif
     std::vector<torch::jit::IValue> inputs;
     inputs.push_back(init_vec);
 
-    auto output = _model.forward(inputs);
-
-#if DEBUG_MODEL
-    cout << "talkToKarel: " << cl->number() << endl;
-    cout << output << endl;
-#endif
+    evaluate(cl, inputs);
 
     ALWAYS(_evaluated.insert(cl));
   }
@@ -699,19 +710,11 @@ void SaturationAlgorithm::addInputClause(Clause* cl)
     init_vec[6] = (int)isTheory;
     init_vec[7] = (int)cl->getSineLevel();
 
-#if DEBUG_MODEL
-    cout << init_vec << endl;
-#endif
     static std::vector<torch::jit::IValue> inputs;
     inputs.clear();
     inputs.push_back(init_vec);
 
-    auto output = _model.forward(inputs);
-
-#if DEBUG_MODEL
-    cout << "addInputClause: " << cl->number() << endl;
-    cout << output << endl;
-#endif
+    evaluate(cl,inputs);
 
     // TODO: store the output value
     ALWAYS(_evaluated.insert(cl));

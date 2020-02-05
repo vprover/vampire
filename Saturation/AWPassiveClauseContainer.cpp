@@ -101,6 +101,7 @@ Comparison AWPassiveClauseContainer::compareWeight(Clause* cl1, Clause* cl2, con
    * just use the effectiveWeight float stored with the clause for
    * the comparison here.
   */
+  /*
   if (nwcNumer != nwcDenom) {
     if (cl1->effectiveWeight < cl2->effectiveWeight) {
       return Comparison::LESS;
@@ -110,6 +111,7 @@ Comparison AWPassiveClauseContainer::compareWeight(Clause* cl1, Clause* cl2, con
       return Comparison::EQUAL;
     }
   }
+  */
 
   // TODO consider using Clause::getEffectiveWeight
   // since 22/1/15 weight now includes splitWeight

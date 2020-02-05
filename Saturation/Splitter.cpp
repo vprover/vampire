@@ -1324,18 +1324,11 @@ Clause* Splitter::buildAndInsertComponentClause(SplitLevel name, unsigned size, 
     init_vec[4] = (int)compCl->size();
     init_vec[5] = (int)orig->number();
 
-#if DEBUG_MODEL
-    cout <<  init_vec << endl;
-#endif
     std::vector<torch::jit::IValue> inputs;
     inputs.push_back(init_vec);
 
-    auto output = _sa->_model.forward(inputs);
+    _sa->evaluate(compCl,inputs);
 
-#if DEBUG_MODEL
-    cout << "buildAndInsertComponentClause: " << compCl->number() << endl;
-    cout << output << endl;
-#endif
     ALWAYS(_sa->_evaluated.insert(compCl));
   }
 

@@ -68,6 +68,7 @@ bool Clause::_auxInUse = false;
 /** New clause */
 Clause::Clause(unsigned length,InputType it,Inference* inf)
   : Unit(Unit::CLAUSE,inf,it),
+    modelSaidYes(false),
     _length(length),
     _color(COLOR_INVALID),
     _input(0),
