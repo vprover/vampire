@@ -52,14 +52,13 @@ bool Limits::fulfilsWeightLimit(unsigned int w, unsigned int numeralWeight, bool
   return !weightLimited() || weightForClauseSelection <= _weightSelectionMaxWeight;
 }
 
-bool Limits::childrenPotentiallyFulfilLimits(Clause* cl) const
+bool Limits::childrenPotentiallyFulfilLimits(Clause* cl, unsigned upperBoundNumSelLits) const
 {
   if (cl->age() == _ageSelectionMaxAge)
   {
     // clauses inferred from the clause as generating inferences will be over age limit...
-    unsigned clen=cl->length();
     int maxSelWeight=0;
-    for(unsigned i=0;i<clen;i++) {
+    for(unsigned i=0;i<upperBoundNumSelLits;i++) {
       maxSelWeight=max((int)(*cl)[i]->weight(),maxSelWeight);
     }
     // TODO: this lower bound is not correct:

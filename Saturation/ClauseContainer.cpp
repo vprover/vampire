@@ -191,16 +191,10 @@ void ActiveClauseContainer::onLimitsUpdated(LimitsChangeType change)
     if (!limits->fulfilsAgeLimit(cl)) {
       shouldRemove=!limits->fulfilsWeightLimit(cl);
     }
-    else {
-      unsigned selCnt=cl->numSelected();
-      unsigned maxSelWeight=0;
-      for(unsigned i=0;i<selCnt;i++) {
-        maxSelWeight=max((*cl)[i]->weight(),maxSelWeight);
-      }
-      unsigned weightLowerBound = cl->weight() - maxSelWeight; // heuristic: we assume that at most one literal will be removed from the clause.
-      unsigned numeralWeight = 0; // heuristic: we don't know the numeral weight of the child, and conservatively assume that it is 0.
-      bool derivedFromGoal = true; // heuristic: we have to cover the case where the child has another parent which is a goal-clause. We conservatively assume that the result is a goal-clause.
-      shouldRemove = !limits->fulfilsWeightLimit(weightLowerBound, numeralWeight, derivedFromGoal);
+
+    if (!limits->childrenPotentiallyFulfilLimits(cl, cl->numSelected()))
+    {
+      shouldRemove = true;
     }
 
     if (shouldRemove) {

@@ -386,7 +386,7 @@ void AWPassiveClauseContainer::onLimitsUpdated(LimitsChangeType change)
     Clause* cl=wit.next();
     if (!limits->fulfilsAgeLimit(cl) && !limits->fulfilsWeightLimit(cl)) {
       toRemove.push(cl);
-    } else if (!limits->childrenPotentiallyFulfilLimits(cl)) {
+    } else if (!limits->childrenPotentiallyFulfilLimits(cl, cl->length())) {
       toRemove.push(cl);
     }
   }
