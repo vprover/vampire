@@ -171,8 +171,6 @@ void ActiveClauseContainer::onLimitsUpdated(LimitsChangeType change)
     return;
   }
 
-  unsigned ageLimit=limits->ageLimit();
-
   static DHSet<Clause*> checked;
   static Stack<Clause*> toRemove(64);
   checked.reset();
@@ -182,22 +180,13 @@ void ActiveClauseContainer::onLimitsUpdated(LimitsChangeType change)
   while (rit.hasNext()) {
     Clause* cl=rit.next().clause;
     ASS(cl);
-    if (cl->age()<ageLimit || checked.contains(cl)) {
+    if (checked.contains(cl)) {
       continue;
     }
     checked.insert(cl);
 
-    bool shouldRemove;
-    if (!limits->fulfilsAgeLimit(cl)) {
-      shouldRemove=!limits->fulfilsWeightLimit(cl);
-    }
-
     if (!limits->childrenPotentiallyFulfilLimits(cl, cl->numSelected()))
     {
-      shouldRemove = true;
-    }
-
-    if (shouldRemove) {
       ASS(cl->store()==Clause::ACTIVE);
       toRemove.push(cl);
     }
