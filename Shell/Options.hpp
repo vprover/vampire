@@ -1890,7 +1890,8 @@ public:
   bool showDefinitions() const { return showAll() || _showDefinitions.actualValue; }
   bool showNew() const { return showAll() || _showNew.actualValue; }
   bool showForKarel() const { return _showForKarel.actualValue; }
-  bool evalForKarel() const { return _evalForKarel.actualValue; }
+  bool evalForKarel() const { return (!_evalForKarel.actualValue.empty()); }
+  vstring evalForKarelPath() const { return _evalForKarel.actualValue; }
   bool sineToAge() const { return _sineToAge.actualValue; }
   PredicateSineLevels sineToPredLevels() const { return _sineToPredLevels.actualValue; }
   bool showSplitting() const { return showAll() || _showSplitting.actualValue; }
@@ -2430,7 +2431,7 @@ private:
   ChoiceOptionValue<InterpolantMode> _showInterpolant;
   BoolOptionValue _showNew;
   BoolOptionValue _showForKarel;
-  BoolOptionValue _evalForKarel;
+  StringOptionValue _evalForKarel;
   BoolOptionValue _sineToAge;
   ChoiceOptionValue<PredicateSineLevels> _sineToPredLevels;
   BoolOptionValue _showSplitting;
