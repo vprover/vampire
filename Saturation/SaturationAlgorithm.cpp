@@ -533,7 +533,7 @@ void SaturationAlgorithm::talkToKarel(Clause* cl, bool eval)
     init_vec[2] = (int)cl->age();
     init_vec[3] = (int)cl->weight();
     init_vec[4] = (int)cl->size();
-    init_vec[5] = (int)cl->splits()->size();
+    init_vec[5] = (int)(cl->splits() ? cl->splits()->size() : 0);
     init_vec[6] = (int)inf.rule();
     unsigned idx = 7;
     Inference::Iterator iit = inf.iterator();
@@ -1057,13 +1057,6 @@ void SaturationAlgorithm::handleEmptyClause(Clause* cl)
 
   if (isRefutation(cl)) {
     onNonRedundantClause(cl);
-
-    if (_opt.showForKarel() || _opt.evalForKarel()) {
-      talkToKarel(cl,false);
-    }
-    if (_opt.showForKarel()) {
-      cout << "e: " << cl->number() << "\n";
-    }
 
     if(cl->isPureTheoryDescendant() ){
       ASSERTION_VIOLATION_REP("A pure theory descendant is empty, which means theory axioms are inconsistent");
