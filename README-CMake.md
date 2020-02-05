@@ -40,12 +40,6 @@ All compile flags are added as additional arguments to cmake - for example
   * `-DBUILD_LIBZ3_SHARED=0`: static library
   * `-DCMAKE_INSTALL_PREFIX=/opt/z3-devel`: installation path
 
-  MS: curently, there is an issue with static linking against z3 (the produced exectuable immediately segfaults):
-https://github.com/Z3Prover/z3/issues/2457
-https://stackoverflow.com/questions/35116327/when-g-static-link-pthread-cause-segmentation-fault-why
- For now, I am manually fixing the final gcc/linker call to include the whole lpthread as described on the stackoverflow post above. I.e.
- `-pthread -Wl,--whole-archive -lpthread -Wl,--no-whole-archive` is needed at the end of the command.
-
 ## Other Features ##
 
 * Verbose compilation: if you would like to disable the progress reports and see
