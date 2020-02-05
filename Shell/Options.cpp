@@ -650,7 +650,8 @@ void Options::Options::init()
     _lookup.insert(&_showForKarel);
     _showForKarel.tag(OptionTag::DEVELOPMENT);
 
-    _evalForKarel = BoolOptionValue("eval_for_karel","e4k",false);
+    _evalForKarel = StringOptionValue("eval_for_karel","e4k","");
+    _evalForKarel.description = "String option specifying the path to the model to be loaded. No neural guidance, if left empty.";
     _lookup.insert(&_evalForKarel);
     _evalForKarel.tag(OptionTag::DEVELOPMENT);
 
