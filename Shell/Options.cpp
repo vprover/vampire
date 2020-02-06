@@ -893,30 +893,30 @@ void Options::Options::init()
     _lookup.insert(&_ageWeightRatioShapeFrequency);
     _ageWeightRatioShapeFrequency.tag(OptionTag::SATURATION);
 
-    _useSplitQueues = BoolOptionValue("split_queue","sq",false);
-    _useSplitQueues.description = "Turn on experiments: clause selection with multiple queues containing different clauses (split by amount of theory reasoning)";
-    _lookup.insert(&_useSplitQueues);
-    _useSplitQueues.tag(OptionTag::SATURATION);
+    _useTheorySplitQueues = BoolOptionValue("theory_split_queue","thsq",false);
+    _useTheorySplitQueues.description = "Turn on clause selection using multiple queues containing different clauses (split by amount of theory reasoning)";
+    _lookup.insert(&_useTheorySplitQueues);
+    _useTheorySplitQueues.tag(OptionTag::SATURATION);
 
-    _splitQueueExpectedRatioDenom = IntOptionValue("split_queue_expected_ratio_denom","sqd", 8);
-    _splitQueueExpectedRatioDenom.description = "The denominator n such that we expect the final proof to have a ratio of theory-axioms to all-axioms of 1/n.";
-    _lookup.insert(&_splitQueueExpectedRatioDenom);
-    _splitQueueExpectedRatioDenom.reliesOn(_useSplitQueues.is(equal(true)));
-    _splitQueueExpectedRatioDenom.tag(OptionTag::SATURATION);
+    _theorySplitQueueExpectedRatioDenom = IntOptionValue("theory_split_queue_expected_ratio_denom","thsqd", 8);
+    _theorySplitQueueExpectedRatioDenom.description = "The denominator n such that we expect the final proof to have a ratio of theory-axioms to all-axioms of 1/n.";
+    _lookup.insert(&_theorySplitQueueExpectedRatioDenom);
+    _theorySplitQueueExpectedRatioDenom.reliesOn(_useTheorySplitQueues.is(equal(true)));
+    _theorySplitQueueExpectedRatioDenom.tag(OptionTag::SATURATION);
 
-    _splitQueueCutoffs = StringOptionValue("split_queue_cutoffs", "sqc", "0,32,80");
-    _splitQueueCutoffs.description = "The cutoff-values for the split-queues (the cutoff value for the last queue is omitted, since it has to be infinity). Any split-queue contains all clauses which are assigned a niceness-value less or equal to the cutoff-value of the queue. If no custom value for this option is set, the implementation will use cutoffs 0,4*d,10*d,infinity (where d denotes the split-queue-expected-ratio-denominator).";
-    _lookup.insert(&_splitQueueCutoffs);
-    _splitQueueCutoffs.reliesOn(_useSplitQueues.is(equal(true)));
-    _splitQueueCutoffs.tag(OptionTag::SATURATION);
-    _splitQueueCutoffs.setExperimental();
+    _theorySplitQueueCutoffs = StringOptionValue("theory_split_queue_cutoffs", "thsqc", "0,32,80");
+    _theorySplitQueueCutoffs.description = "The cutoff-values for the split-queues (the cutoff value for the last queue has to be omitted, as it is always infinity). Any split-queue contains all clauses which are assigned a feature-value less or equal to the cutoff-value of the queue. If no custom value for this option is set, the implementation will use cutoffs 0,4*d,10*d,infinity (where d denotes the theory-split-queue-expected-ratio-denominator).";
+    _lookup.insert(&_theorySplitQueueCutoffs);
+    _theorySplitQueueCutoffs.reliesOn(_useTheorySplitQueues.is(equal(true)));
+    _theorySplitQueueCutoffs.tag(OptionTag::SATURATION);
+    _theorySplitQueueCutoffs.setExperimental();
 
-    _splitQueueRatios = StringOptionValue("split_queue_ratios", "sqr", "20,10,10,1");
-    _splitQueueRatios.description = "The ratios for picking clauses from the split-queues using weighted round robin. If a queue is empty, the clause will be picked from the next non-empty queue to the right. Note that this option implicitly also sets the number of queues.";
-    _lookup.insert(&_splitQueueRatios);
-    _splitQueueRatios.reliesOn(_useSplitQueues.is(equal(true)));
-    _splitQueueRatios.tag(OptionTag::SATURATION);
-    _splitQueueRatios.setExperimental();
+    _theorySplitQueueRatios = StringOptionValue("theory_split_queue_ratios", "thsqr", "20,10,10,1");
+    _theorySplitQueueRatios.description = "The ratios for picking clauses from the split-queues using weighted round robin. If a queue is empty, the clause will be picked from the next non-empty queue to the right. Note that this option implicitly also sets the number of queues.";
+    _lookup.insert(&_theorySplitQueueRatios);
+    _theorySplitQueueRatios.reliesOn(_useTheorySplitQueues.is(equal(true)));
+    _theorySplitQueueRatios.tag(OptionTag::SATURATION);
+    _theorySplitQueueRatios.setExperimental();
 
 	    _literalMaximalityAftercheck = BoolOptionValue("literal_maximality_aftercheck","lma",false);
 	    _lookup.insert(&_literalMaximalityAftercheck);
@@ -3132,10 +3132,10 @@ bool Options::checkProblemOptionConstraints(Property* prop,bool fail_early)
   return result;
 }
 
-Lib::vvector<int> Options::splitQueueRatios() const
+Lib::vvector<int> Options::theorySplitQueueRatios() const
 {
-  CALL("Options::splitQueueRatios");
-  vstringstream inputRatiosStream(_splitQueueRatios.actualValue);
+  CALL("Options::theorySplitQueueRatios");
+  vstringstream inputRatiosStream(_theorySplitQueueRatios.actualValue);
   Lib::vvector<int> inputRatios;
   std::string currentRatio;
   while (std::getline(inputRatiosStream, currentRatio, ',')) {
@@ -3144,32 +3144,32 @@ Lib::vvector<int> Options::splitQueueRatios() const
 
   // sanity checks
   if (inputRatios.size() < 2) {
-    USER_ERROR("Wrong usage of option '-sqr'. Needs to have at least two values (e.g. '10,1')");
+    USER_ERROR("Wrong usage of option '-thsqr'. Needs to have at least two values (e.g. '10,1')");
   }
   for (unsigned i = 0; i < inputRatios.size(); i++) {
     if(inputRatios[i] <= 0) {
-      USER_ERROR("Each ratio (supplied by option '-sqr') needs to be a positive integer");
+      USER_ERROR("Wrong usage of option '-thsqr'. Each ratio needs to be a positive integer");
     }
   }
 
   return inputRatios;
 }
 
-Lib::vvector<float> Options::splitQueueCutoffs() const
+Lib::vvector<float> Options::theorySplitQueueCutoffs() const
 {
-  CALL("Options::splitQueueCutoffs");
+  CALL("Options::theorySplitQueueCutoffs");
   // initialize cutoffs
   Lib::vvector<float> cutoffs;
-  if (_splitQueueCutoffs.isDefault()) {
+  if (_theorySplitQueueCutoffs.isDefault()) {
     // if no custom cutoffs are set, use heuristics: (0,4*d,10*d,infinity)
-    auto d = _splitQueueExpectedRatioDenom.actualValue;
+    auto d = _theorySplitQueueExpectedRatioDenom.actualValue;
     cutoffs.push_back(0.0f);
     cutoffs.push_back(4.0f * d);
     cutoffs.push_back(10.0f * d);
     cutoffs.push_back(std::numeric_limits<float>::max());
   } else {
     // if custom cutoffs are set, parse them and add float-max as last value
-    vstringstream cutoffsStream(_splitQueueCutoffs.actualValue);
+    vstringstream cutoffsStream(_theorySplitQueueCutoffs.actualValue);
     std::string currentCutoff;
     while (std::getline(cutoffsStream, currentCutoff, ','))
     {
@@ -3185,7 +3185,7 @@ Lib::vvector<float> Options::splitQueueCutoffs() const
 
     if (i > 0 && cutoff <= cutoffs[i-1])
     {
-      USER_ERROR("The cutoff values (supplied by option '-sqc') must be strictly increasing");
+      USER_ERROR("Wrong usage of option '-thsqc'. The cutoff values must be strictly increasing");
     }
   }
 

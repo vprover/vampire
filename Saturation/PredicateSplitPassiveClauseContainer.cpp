@@ -42,12 +42,12 @@ int computeLCM(int a, int b) {
   return (a*b)/computeGCD(a, b);
 }
 
-PredicateSplitPassiveClauseContainer::PredicateSplitPassiveClauseContainer(bool isOutermost, const Shell::Options& opt, vstring name) : PassiveClauseContainer(isOutermost, opt, name), _queues(), _ratios(), _cutoffs(_opt.splitQueueCutoffs()), _balances(), _simulationBalances()
+PredicateSplitPassiveClauseContainer::PredicateSplitPassiveClauseContainer(bool isOutermost, const Shell::Options& opt, vstring name) : PassiveClauseContainer(isOutermost, opt, name), _queues(), _ratios(), _cutoffs(_opt.theorySplitQueueCutoffs()), _balances(), _simulationBalances()
 {
   CALL("PredicateSplitPassiveClauseContainer::PredicateSplitPassiveClauseContainer");
 
   // compute ratios as inverses of the input ratios
-  auto inputRatios = _opt.splitQueueRatios();
+  auto inputRatios = _opt.theorySplitQueueRatios();
 
   // sanity checks for ratios and cutoffs
   if (inputRatios.size() != _cutoffs.size()) {
@@ -76,7 +76,7 @@ PredicateSplitPassiveClauseContainer::~PredicateSplitPassiveClauseContainer() {
 
 unsigned PredicateSplitPassiveClauseContainer::bestQueueHeuristics(Inference* inf) const {
   // heuristically compute likeliness that clause occurs in proof
-  auto expectedRatioDenominator = _opt.splitQueueExpectedRatioDenom();
+  auto expectedRatioDenominator = _opt.theorySplitQueueExpectedRatioDenom();
   auto niceness = inf->th_ancestors * expectedRatioDenominator - inf->all_ancestors;
   
   // compute best queue clause should be placed in

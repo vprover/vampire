@@ -458,7 +458,7 @@ vstring Clause::toString() const
     result += vstring(",inD:") + Int::toString(inductionDepth());
     result += ",thAx:" + Int::toString((int)(_inference->th_ancestors));
     result += ",allAx:" + Int::toString((int)(_inference->all_ancestors));
-    result += ",crazy:" + Int::toString( _inference->th_ancestors * env.options->splitQueueExpectedRatioDenom() - _inference->all_ancestors);
+    result += ",crazy:" + Int::toString( _inference->th_ancestors * env.options->theorySplitQueueExpectedRatioDenom() - _inference->all_ancestors);
     result += vstring("}");
   }
 

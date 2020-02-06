@@ -1986,10 +1986,10 @@ public:
   int ageRatio() const { return _ageWeightRatio.actualValue; }
   void setAgeRatio(int v){ _ageWeightRatio.actualValue = v; }
   int weightRatio() const { return _ageWeightRatio.otherValue; }
-  bool useSplitQueues() const { return _useSplitQueues.actualValue; }
-  Lib::vvector<int> splitQueueRatios() const;
-  Lib::vvector<float> splitQueueCutoffs() const;
-  int splitQueueExpectedRatioDenom() const { return _splitQueueExpectedRatioDenom.actualValue; }
+  bool useTheorySplitQueues() const { return _useTheorySplitQueues.actualValue; }
+  Lib::vvector<int> theorySplitQueueRatios() const;
+  Lib::vvector<float> theorySplitQueueCutoffs() const;
+  int theorySplitQueueExpectedRatioDenom() const { return _theorySplitQueueExpectedRatioDenom.actualValue; }
   void setWeightRatio(int v){ _ageWeightRatio.otherValue = v; }
 	AgeWeightRatioShape ageWeightRatioShape() const { return _ageWeightRatioShape.actualValue; }
 	int ageWeightRatioShapeFrequency() const { return _ageWeightRatioShapeFrequency.actualValue; }
@@ -2246,10 +2246,10 @@ private:
   RatioOptionValue _ageWeightRatio;
 	ChoiceOptionValue<AgeWeightRatioShape> _ageWeightRatioShape;
 	UnsignedOptionValue _ageWeightRatioShapeFrequency;
-  BoolOptionValue _useSplitQueues;
-  StringOptionValue _splitQueueRatios;
-  StringOptionValue _splitQueueCutoffs;
-  IntOptionValue _splitQueueExpectedRatioDenom;
+  BoolOptionValue _useTheorySplitQueues;
+  StringOptionValue _theorySplitQueueRatios;
+  StringOptionValue _theorySplitQueueCutoffs;
+  IntOptionValue _theorySplitQueueExpectedRatioDenom;
   BoolOptionValue _literalMaximalityAftercheck;
   BoolOptionValue _arityCheck;
   
