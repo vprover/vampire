@@ -45,13 +45,11 @@ public:
   ManCSPassiveClauseContainer(bool isOutermost, const Shell::Options& opt) : PassiveClauseContainer(isOutermost, opt) {}
   virtual ~ManCSPassiveClauseContainer(){}
   
-  virtual unsigned sizeEstimate() const;
-  bool isEmpty() const;
-
-  void add(Clause* cl);
-  void remove(Clause* cl);
-
-  Clause* popSelected();
+  unsigned sizeEstimate() const override;
+  bool isEmpty() const override;
+  void add(Clause* cl) override;
+  void remove(Clause* cl) override;
+  Clause* popSelected() override;
   
 private:
   std::vector<Clause*> clauses;
@@ -60,33 +58,33 @@ private:
    * LRS specific methods for computation of Limits
    */
 public:
-  virtual void simulationInit() {}
-  virtual bool simulationHasNext() {}
-  virtual void simulationPopSelected() {}
+  void simulationInit() override {}
+  bool simulationHasNext() override {}
+  void simulationPopSelected() override {}
 
   // returns whether at least one of the limits was tightened
-  virtual bool setLimitsToMax() {}
+  bool setLimitsToMax() override {}
   // returns whether at least one of the limits was tightened
-  virtual bool setLimitsFromSimulation() {}
+  bool setLimitsFromSimulation() override {}
 
-  virtual void onLimitsUpdated() {}
+  void onLimitsUpdated() override {}
 
   /*
    * LRS specific methods and fields for usage of limits
    */
-  virtual bool ageLimited() const { return false; }
-  virtual bool weightLimited() const { return false; }
+  bool ageLimited() const override { return false; }
+  bool weightLimited() const override { return false; }
 
-  virtual bool fulfilsAgeLimit(Clause* c) const { return true; }
+  bool fulfilsAgeLimit(Clause* c) const override { return true; }
   // note: w here denotes the weight as returned by weight().
   // this method internally takes care of computing the corresponding weightForClauseSelection.
-  virtual bool fulfilsAgeLimit(unsigned age, unsigned w, unsigned numeralWeight, bool derivedFromGoal, Inference* inference) const { return true; }
-  virtual bool fulfilsWeightLimit(Clause* cl) const { return true; }
+  bool fulfilsAgeLimit(unsigned age, unsigned w, unsigned numeralWeight, bool derivedFromGoal, Inference* inference) const override { return true; }
+  bool fulfilsWeightLimit(Clause* cl) const override { return true; }
   // note: w here denotes the weight as returned by weight().
   // this method internally takes care of computing the corresponding weightForClauseSelection.
-  virtual bool fulfilsWeightLimit(unsigned w, unsigned numeralWeight, bool derivedFromGoal, unsigned age, Inference* inference) const { return true; }
+  bool fulfilsWeightLimit(unsigned w, unsigned numeralWeight, bool derivedFromGoal, unsigned age, Inference* inference) const override { return true; }
 
-  virtual bool childrenPotentiallyFulfilLimits(Clause* cl, unsigned upperBoundNumSelLits) const { return true; }
+  bool childrenPotentiallyFulfilLimits(Clause* cl, unsigned upperBoundNumSelLits) const override { return true; }
 };
 
 }

@@ -37,14 +37,11 @@ public:
   PredicateSplitPassiveClauseContainer(bool isOutermost, const Shell::Options& opt, vstring name);
   virtual ~PredicateSplitPassiveClauseContainer();
 
-  void add(Clause* cl);
-  void remove(Clause* cl);
-  Clause* popSelected();
-
-  /** True if there are no passive clauses */
-  bool isEmpty() const;
-
-  virtual unsigned sizeEstimate() const;
+  void add(Clause* cl) override;
+  void remove(Clause* cl) override;
+  Clause* popSelected() override;
+  bool isEmpty() const override; /** True if there are no passive clauses */
+  unsigned sizeEstimate() const override;
 
 private:
   Lib::vvector<std::unique_ptr<AWPassiveClauseContainer>> _queues;
@@ -58,16 +55,16 @@ private:
    * LRS specific methods for computation of Limits
    */
 public:
-  virtual void simulationInit();
-  virtual bool simulationHasNext();
-  virtual void simulationPopSelected();
+  void simulationInit() override;
+  bool simulationHasNext() override;
+  void simulationPopSelected() override;
 
   // returns whether at least one of the limits was tightened
-  virtual bool setLimitsToMax();
+  bool setLimitsToMax() override;
   // returns whether at least one of the limits was tightened
-  virtual bool setLimitsFromSimulation();
+  bool setLimitsFromSimulation() override;
 
-  virtual void onLimitsUpdated();
+  void onLimitsUpdated() override;
 
 private:
   Lib::vvector<unsigned> _simulationBalances;
@@ -76,19 +73,19 @@ private:
    * LRS specific methods and fields for usage of limits
    */
 public:
-  virtual bool ageLimited() const;
-  virtual bool weightLimited() const;
+  bool ageLimited() const override;
+  bool weightLimited() const override;
 
-  virtual bool fulfilsAgeLimit(Clause* cl) const;
+  bool fulfilsAgeLimit(Clause* cl) const override;
   // note: w here denotes the weight as returned by weight().
   // this method internally takes care of computing the corresponding weightForClauseSelection.
-  virtual bool fulfilsAgeLimit(unsigned age, unsigned w, unsigned numeralWeight, bool derivedFromGoal, Inference* inference) const;
-  virtual bool fulfilsWeightLimit(Clause* cl) const;
+  bool fulfilsAgeLimit(unsigned age, unsigned w, unsigned numeralWeight, bool derivedFromGoal, Inference* inference) const override;
+  bool fulfilsWeightLimit(Clause* cl) const override;
   // note: w here denotes the weight as returned by weight().
   // this method internally takes care of computing the corresponding weightForClauseSelection.
-  virtual bool fulfilsWeightLimit(unsigned w, unsigned numeralWeight, bool derivedFromGoal, unsigned age, Inference* inference) const;
+  bool fulfilsWeightLimit(unsigned w, unsigned numeralWeight, bool derivedFromGoal, unsigned age, Inference* inference) const override;
 
-  virtual bool childrenPotentiallyFulfilLimits(Clause* cl, unsigned upperBoundNumSelLits) const;
+  bool childrenPotentiallyFulfilLimits(Clause* cl, unsigned upperBoundNumSelLits) const override;
   
 }; // class PredicateSplitPassiveClauseContainer
 

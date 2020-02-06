@@ -99,7 +99,7 @@ public:
   CLASS_NAME(PlainClauseContainer);
   USE_ALLOCATOR(PlainClauseContainer);
 
-  virtual void add(Clause* c)
+  void add(Clause* c) override
   {
     addedEvent.fire(c);
   }
@@ -115,7 +115,7 @@ public:
 
   virtual ~UnprocessedClauseContainer();
   UnprocessedClauseContainer() : _data(64) {}
-  void add(Clause* c);
+  void add(Clause* c) override;
   Clause* pop();
   bool isEmpty() const
   { return _data.isEmpty(); }
@@ -192,13 +192,13 @@ public:
 
   ActiveClauseContainer(const Shell::Options& opt) : _size(0), _opt(opt) {}
 
-  void add(Clause* c);
-  void remove(Clause* c);
+  void add(Clause* c) override;
+  void remove(Clause* c) override;
 
-  unsigned sizeEstimate() const { return _size; }
+  unsigned sizeEstimate() const override { return _size; }
 
 protected:
-  void onLimitsUpdated();
+  void onLimitsUpdated() override;
 private:
   unsigned _size;
   const Shell::Options& _opt;
