@@ -42,54 +42,16 @@ int computeLCM(int a, int b) {
   return (a*b)/computeGCD(a, b);
 }
 
-PredicateSplitPassiveClauseContainer::PredicateSplitPassiveClauseContainer(bool isOutermost, const Shell::Options& opt, vstring name) : PassiveClauseContainer(isOutermost, opt, name), _queues(), _ratios(), _cutoffs(), _balances(), _simulationBalances()
+PredicateSplitPassiveClauseContainer::PredicateSplitPassiveClauseContainer(bool isOutermost, const Shell::Options& opt, vstring name) : PassiveClauseContainer(isOutermost, opt, name), _queues(), _ratios(), _cutoffs(_opt.splitQueueCutoffs()), _balances(), _simulationBalances()
 {
   CALL("PredicateSplitPassiveClauseContainer::PredicateSplitPassiveClauseContainer");
 
-  // initialize ratios
-  vstringstream inputRatiosStream(_opt.splitQueueRatios());
-  Lib::vvector<int> inputRatios;
-  std::string currentRatio; 
-  while (std::getline(inputRatiosStream, currentRatio, ','))
-  {
-    inputRatios.push_back(std::stoi(currentRatio));
-  }
-
-  // initialize cutoffs
-  if (_opt.splitQueueCutoffsIsDefault()) {
-    // if no custom cutoffs are set, use heuristics: (0,4*d,10*d,infinity)
-    auto d = _opt.splitQueueExpectedRatioDenom();
-    _cutoffs = {0.0f, 4.0f * d, 10.0f * d, std::numeric_limits<float>::max()};
-  } else {
-    // if custom cutoffs are set, parse them and add float-max as last value
-    vstringstream cutoffsStream(_opt.splitQueueCutoffs());
-    std::string currentCutoff;
-    while (std::getline(cutoffsStream, currentCutoff, ','))
-    {
-      _cutoffs.push_back(std::stof(currentCutoff));
-    }
-    _cutoffs.push_back(std::numeric_limits<float>::max());
-  }
+  // compute ratios as inverses of the input ratios
+  auto inputRatios = _opt.splitQueueRatios();
 
   // sanity checks for ratios and cutoffs
-  if (inputRatios.size() < 2) {
-    USER_ERROR("Wrong usage of option '-sqr'. Needs to have at least two values (e.g. '10,1')");
-  }
   if (inputRatios.size() != _cutoffs.size()) {
-    USER_ERROR("The number of input ratios (supplied by option '-sqr') needs to match the number of input cutoffs + 1 (cutoffs are supplied by option '-sqc'), but " + Int::toString(inputRatios.size()) + " != " + Int::toString(_cutoffs.size()));
-  }
-  for (unsigned i = 0; i < inputRatios.size(); i++)
-  {
-    auto v = inputRatios[i];
-    auto cutoff = _cutoffs[i];
-
-    if(v <= 0) {
-      USER_ERROR("Each ratio (supplied by option '-sqr') needs to be a positive integer");
-    }
-    if (i > 0 && cutoff <= _cutoffs[i-1])
-    {
-      USER_ERROR("The cutoff values (supplied by option '-sqc') must be strictly increasing");
-    }
+    USER_ERROR("Queue " + name + ": The number of ratios needs to match the number of cutoffs, but " + Int::toString(inputRatios.size()) + " != " + Int::toString(_cutoffs.size()));
   }
 
   // compute lcm, which will be used to compute reverse ratios
@@ -114,7 +76,7 @@ PredicateSplitPassiveClauseContainer::~PredicateSplitPassiveClauseContainer() {
 
 unsigned PredicateSplitPassiveClauseContainer::bestQueueHeuristics(Inference* inf) const {
   // heuristically compute likeliness that clause occurs in proof
-  auto expectedRatioDenominator = _opt.splitQueueExpectedRatioDenom(); // TODO: add option
+  auto expectedRatioDenominator = _opt.splitQueueExpectedRatioDenom();
   auto niceness = inf->th_ancestors * expectedRatioDenominator - inf->all_ancestors;
   
   // compute best queue clause should be placed in

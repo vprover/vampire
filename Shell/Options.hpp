@@ -60,6 +60,7 @@
 #include "Lib/Allocator.hpp"
 #include "Lib/XML.hpp"
 #include "Lib/Comparison.hpp"
+#include "Lib/STL.hpp"
 
 #include "Property.hpp"
 
@@ -1986,9 +1987,8 @@ public:
   void setAgeRatio(int v){ _ageWeightRatio.actualValue = v; }
   int weightRatio() const { return _ageWeightRatio.otherValue; }
   bool useSplitQueues() const { return _useSplitQueues.actualValue; }
-  vstring splitQueueRatios() const { return _splitQueueRatios.actualValue; }
-  vstring splitQueueCutoffs() const { return _splitQueueCutoffs.actualValue; }
-  bool splitQueueCutoffsIsDefault() const { return _splitQueueCutoffs.isDefault(); }
+  Lib::vvector<int> splitQueueRatios() const;
+  Lib::vvector<float> splitQueueCutoffs() const;
   int splitQueueExpectedRatioDenom() const { return _splitQueueExpectedRatioDenom.actualValue; }
   void setWeightRatio(int v){ _ageWeightRatio.otherValue = v; }
 	AgeWeightRatioShape ageWeightRatioShape() const { return _ageWeightRatioShape.actualValue; }

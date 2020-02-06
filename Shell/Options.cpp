@@ -3131,3 +3131,63 @@ bool Options::checkProblemOptionConstraints(Property* prop,bool fail_early)
 
   return result;
 }
+
+Lib::vvector<int> Options::splitQueueRatios() const
+{
+  CALL("Options::splitQueueRatios");
+  vstringstream inputRatiosStream(_splitQueueRatios.actualValue);
+  Lib::vvector<int> inputRatios;
+  std::string currentRatio;
+  while (std::getline(inputRatiosStream, currentRatio, ',')) {
+    inputRatios.push_back(std::stoi(currentRatio));
+  }
+
+  // sanity checks
+  if (inputRatios.size() < 2) {
+    USER_ERROR("Wrong usage of option '-sqr'. Needs to have at least two values (e.g. '10,1')");
+  }
+  for (unsigned i = 0; i < inputRatios.size(); i++) {
+    if(inputRatios[i] <= 0) {
+      USER_ERROR("Each ratio (supplied by option '-sqr') needs to be a positive integer");
+    }
+  }
+
+  return inputRatios;
+}
+
+Lib::vvector<float> Options::splitQueueCutoffs() const
+{
+  CALL("Options::splitQueueCutoffs");
+  // initialize cutoffs
+  Lib::vvector<float> cutoffs;
+  if (_splitQueueCutoffs.isDefault()) {
+    // if no custom cutoffs are set, use heuristics: (0,4*d,10*d,infinity)
+    auto d = _splitQueueExpectedRatioDenom.actualValue;
+    cutoffs.push_back(0.0f);
+    cutoffs.push_back(4.0f * d);
+    cutoffs.push_back(10.0f * d);
+    cutoffs.push_back(std::numeric_limits<float>::max());
+  } else {
+    // if custom cutoffs are set, parse them and add float-max as last value
+    vstringstream cutoffsStream(_splitQueueCutoffs.actualValue);
+    std::string currentCutoff;
+    while (std::getline(cutoffsStream, currentCutoff, ','))
+    {
+      cutoffs.push_back(std::stof(currentCutoff));
+    }
+    cutoffs.push_back(std::numeric_limits<float>::max());
+  }
+
+  // sanity checks
+  for (unsigned i = 0; i < cutoffs.size(); i++)
+  {
+    auto cutoff = cutoffs[i];
+
+    if (i > 0 && cutoff <= cutoffs[i-1])
+    {
+      USER_ERROR("The cutoff values (supplied by option '-sqc') must be strictly increasing");
+    }
+  }
+
+  return cutoffs;
+}
