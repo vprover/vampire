@@ -896,31 +896,27 @@ void Options::Options::init()
     _useSplitQueues = BoolOptionValue("split_queue","sq",false);
     _useSplitQueues.description = "Turn on experiments: clause selection with multiple queues containing different clauses (split by amount of theory reasoning)";
     _lookup.insert(&_useSplitQueues);
-    _useSplitQueues.tag(OptionTag::OTHER);
+    _useSplitQueues.tag(OptionTag::SATURATION);
 
-    _splitQueueRatios = StringOptionValue("split_queue_ratios", "sqr", "80,16,2,2");
+    _splitQueueExpectedRatioDenom = IntOptionValue("split_queue_expected_ratio_denom","sqd", 8);
+    _splitQueueExpectedRatioDenom.description = "The denominator n such that we expect the final proof to have a ratio of theory-axioms to all-axioms of 1/n.";
+    _lookup.insert(&_splitQueueExpectedRatioDenom);
+    _splitQueueExpectedRatioDenom.reliesOn(_useSplitQueues.is(equal(true)));
+    _splitQueueExpectedRatioDenom.tag(OptionTag::SATURATION);
+
+    _splitQueueCutoffs = StringOptionValue("split_queue_cutoffs", "sqc", "0,32,80");
+    _splitQueueCutoffs.description = "The cutoff-values for the split-queues (the cutoff value for the last queue is omitted, since it has to be infinity). Any split-queue contains all clauses which are assigned a niceness-value less or equal to the cutoff-value of the queue. If no custom value for this option is set, the implementation will use cutoffs 0,4*d,10*d,infinity (where d denotes the split-queue-expected-ratio-denominator).";
+    _lookup.insert(&_splitQueueCutoffs);
+    _splitQueueCutoffs.reliesOn(_useSplitQueues.is(equal(true)));
+    _splitQueueCutoffs.tag(OptionTag::SATURATION);
+    _splitQueueCutoffs.setExperimental();
+
+    _splitQueueRatios = StringOptionValue("split_queue_ratios", "sqr", "20,10,10,1");
     _splitQueueRatios.description = "The ratios for picking clauses from the split-queues using weighted round robin. If a queue is empty, the clause will be picked from the next non-empty queue to the right. Note that this option implicitly also sets the number of queues.";
     _lookup.insert(&_splitQueueRatios);
     _splitQueueRatios.reliesOn(_useSplitQueues.is(equal(true)));
-    _splitQueueRatios.tag(OptionTag::OTHER);
-
-    _splitQueueCutoffs = StringOptionValue("split_queue_cutoffs", "sqc", "21,35,56");
-    _splitQueueCutoffs.description = "The cutoff-values for the split-queues. Any split-queue contains all clauses which are assigned a niceness-value less or equal to the cutoff-value of the queue.";
-    _lookup.insert(&_splitQueueCutoffs);
-    _splitQueueCutoffs.reliesOn(_useSplitQueues.is(equal(true)));
-    _splitQueueCutoffs.tag(OptionTag::OTHER);
-
-    _splitQueueFadeIn = BoolOptionValue("split_queue_fade_in","sqf", true);
-    _splitQueueFadeIn.description = "If on, clauses with very small derivations (with less than 5 theory axioms) get assigned a lower niceness-value. Experimental option, not sure wheher there is a better way to define the niceness for such small derivations.";
-    _lookup.insert(&_splitQueueFadeIn);
-    _splitQueueFadeIn.reliesOn(_useSplitQueues.is(equal(true)));
-    _splitQueueFadeIn.tag(OptionTag::OTHER);
-
-    _splitQueueExpectedRatioDenom = IntOptionValue("_split_queue_expected_ratio_denom","sqd", 8);
-    _splitQueueExpectedRatioDenom.description = "The denominator n such that we expect the final proof to have a ratio of theory-axioms to all-axioms of 1/n";
-    _lookup.insert(&_splitQueueExpectedRatioDenom);
-    _splitQueueExpectedRatioDenom.reliesOn(_useSplitQueues.is(equal(true)));
-    _splitQueueExpectedRatioDenom.tag(OptionTag::OTHER);
+    _splitQueueRatios.tag(OptionTag::SATURATION);
+    _splitQueueRatios.setExperimental();
 
 	    _literalMaximalityAftercheck = BoolOptionValue("literal_maximality_aftercheck","lma",false);
 	    _lookup.insert(&_literalMaximalityAftercheck);

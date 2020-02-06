@@ -46,7 +46,7 @@ PredicateSplitPassiveClauseContainer::PredicateSplitPassiveClauseContainer(bool 
 {
   CALL("PredicateSplitPassiveClauseContainer::PredicateSplitPassiveClauseContainer");
 
-  // parse input-ratios
+  // initialize ratios
   vstringstream inputRatiosStream(_opt.splitQueueRatios());
   Lib::vvector<int> inputRatios;
   std::string currentRatio; 
@@ -55,21 +55,28 @@ PredicateSplitPassiveClauseContainer::PredicateSplitPassiveClauseContainer(bool 
     inputRatios.push_back(std::stoi(currentRatio));
   }
 
-  // parse cutoffs
-  vstringstream cutoffsStream(_opt.splitQueueCutoffs());
-  std::string currentCutoff; 
-  while (std::getline(cutoffsStream, currentCutoff, ','))
-  {
-    _cutoffs.push_back(std::stof(currentCutoff));
+  // initialize cutoffs
+  if (_opt.splitQueueCutoffsIsDefault()) {
+    // if no custom cutoffs are set, use heuristics: (0,4*d,10*d,infinity)
+    auto d = _opt.splitQueueExpectedRatioDenom();
+    _cutoffs = {0.0f, 4.0f * d, 10.0f * d, std::numeric_limits<float>::max()};
+  } else {
+    // if custom cutoffs are set, parse them and add float-max as last value
+    vstringstream cutoffsStream(_opt.splitQueueCutoffs());
+    std::string currentCutoff;
+    while (std::getline(cutoffsStream, currentCutoff, ','))
+    {
+      _cutoffs.push_back(std::stof(currentCutoff));
+    }
+    _cutoffs.push_back(std::numeric_limits<float>::max());
   }
-  _cutoffs.push_back(std::numeric_limits<float>::max()); // add float-max as last value, in order to capture all clauses
 
   // sanity checks for ratios and cutoffs
   if (inputRatios.size() < 2) {
     USER_ERROR("Wrong usage of option '-sqr'. Needs to have at least two values (e.g. '10,1')");
   }
   if (inputRatios.size() != _cutoffs.size()) {
-    USER_ERROR("The number of input ratios (supplied by option '-sqr') needs to match (number of input cutoffs - 1) (cutoffs are supplied by option '-sqc')");
+    USER_ERROR("The number of input ratios (supplied by option '-sqr') needs to match the number of input cutoffs + 1 (cutoffs are supplied by option '-sqc'), but " + Int::toString(inputRatios.size()) + " != " + Int::toString(_cutoffs.size()));
   }
   for (unsigned i = 0; i < inputRatios.size(); i++)
   {
