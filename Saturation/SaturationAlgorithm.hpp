@@ -105,7 +105,7 @@ public:
 
   ClauseIterator activeClauses();
 
-  PassiveClauseContainer* getPassiveClauseContainer() { return _passive; }
+  PassiveClauseContainer* getPassiveClauseContainer() { return _passive.get(); }
   IndexManager* getIndexManager() { return _imgr.ptr(); }
   AnswerLiteralManager* getAnswerLiteralManager() { return _answerLiteralManager; }
   Ordering& getOrdering() const { return *_ordering; }
@@ -184,7 +184,7 @@ protected:
   ClauseStack _postponedClauseRemovals;
 
   UnprocessedClauseContainer* _unprocessed;
-  PassiveClauseContainer* _passive;
+  std::unique_ptr<PassiveClauseContainer> _passive;
   ActiveClauseContainer* _active;
   ExtensionalityClauseContainer* _extensionality;
 

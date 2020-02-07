@@ -108,6 +108,68 @@ using namespace Saturation;
 
 SaturationAlgorithm* SaturationAlgorithm::s_instance = 0;
 
+std::unique_ptr<PassiveClauseContainer> makeLevel0(bool isOutermost, const Options& opt, vstring name)
+{
+  return Lib::make_unique<AWPassiveClauseContainer>(isOutermost, opt, name + "AWQ");
+}
+
+std::unique_ptr<PassiveClauseContainer> makeLevel1(bool isOutermost, const Options& opt, vstring name)
+{
+  if (opt.useTheorySplitQueues())
+  {
+    Lib::vvector<std::unique_ptr<PassiveClauseContainer>> queues;
+    auto cutoffs = opt.theorySplitQueueCutoffs();
+    for (unsigned i = 0; i < cutoffs.size(); i++)
+    {
+      auto queueName = name + "ThSQ" + Int::toString(cutoffs[i]) + ":";
+      queues.push_back(makeLevel0(false, opt, queueName));
+    }
+    return Lib::make_unique<TheoryMultiSplitPassiveClauseContainer>(isOutermost, opt, name + "ThSQ", std::move(queues));
+  }
+  else
+  {
+    return makeLevel0(isOutermost, opt, name);
+  }
+}
+
+std::unique_ptr<PassiveClauseContainer> makeLevel2(bool isOutermost, const Options& opt, vstring name)
+{
+  if (opt.useAvatarSplitQueues())
+  {
+    Lib::vvector<std::unique_ptr<PassiveClauseContainer>> queues;
+    auto cutoffs = opt.avatarSplitQueueCutoffs();
+    for (unsigned i = 0; i < cutoffs.size(); i++)
+    {
+      auto queueName = name + "AvSQ" + Int::toString(cutoffs[i]) + ":";
+      queues.push_back(makeLevel1(false, opt, queueName));
+    }
+    return Lib::make_unique<AvatarMultiSplitPassiveClauseContainer>(isOutermost, opt, name + "AvSQ", std::move(queues));
+  }
+  else
+  {
+    return makeLevel1(isOutermost, opt, name);
+  }
+}
+
+std::unique_ptr<PassiveClauseContainer> makeLevel3(bool isOutermost, const Options& opt, vstring name)
+{
+  if (opt.useSineLevelSplitQueues())
+  {
+    Lib::vvector<std::unique_ptr<PassiveClauseContainer>> queues;
+    auto cutoffs = opt.sineLevelSplitQueueCutoffs();
+    for (unsigned i = 0; i < cutoffs.size(); i++)
+    {
+      auto queueName = name + "SLSQ" + Int::toString(cutoffs[i]) + ":";
+      queues.push_back(makeLevel2(false, opt, queueName));
+    }
+    return Lib::make_unique<SineLevelMultiSplitPassiveClauseContainer>(isOutermost, opt, name + "SLSQ", std::move(queues));
+  }
+  else
+  {
+    return makeLevel2(isOutermost, opt, name);
+  }
+}
+
 /**
  * Create a SaturationAlgorithm object
  *
@@ -142,22 +204,13 @@ SaturationAlgorithm::SaturationAlgorithm(Problem& prb, const Options& opt)
 
   _unprocessed = new UnprocessedClauseContainer();
 
-  if (opt.useManualClauseSelection()){
-    _passive = new ManCSPassiveClauseContainer(true, opt);
-  } else {
-    if (opt.useTheorySplitQueues()) {
-      Lib::vvector<std::unique_ptr<PassiveClauseContainer>> queues;
-      auto cutoffs = opt.theorySplitQueueCutoffs();
-      for (unsigned i = 0; i < cutoffs.size(); i++)
-      {
-        auto name =  "Queue " + Int::toString(cutoffs[i]);
-        queues.push_back(Lib::make_unique<AWPassiveClauseContainer>(false, opt, name));
-      }
-
-      _passive = new TheoryMultiSplitPassiveClauseContainer(true, opt, "", std::move(queues));
-    } else {
-      _passive = new AWPassiveClauseContainer(true, opt, "");
-    }
+  if (opt.useManualClauseSelection())
+  {
+    _passive = Lib::make_unique<ManCSPassiveClauseContainer>(true, opt);
+  }
+  else
+  {
+    _passive = makeLevel3(true, opt, "");
   }
   _active = new ActiveClauseContainer(opt);
 
@@ -226,7 +279,6 @@ SaturationAlgorithm::~SaturationAlgorithm()
 
   delete _unprocessed;
   delete _active;
-  delete _passive;
 }
 
 void SaturationAlgorithm::tryUpdateFinalClauseCount()
