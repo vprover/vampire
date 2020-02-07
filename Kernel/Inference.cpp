@@ -31,7 +31,7 @@
 using namespace Kernel;
 
 Inference::Inference(Rule r)
-  : _rule(r), _extra(""),_maxDepth(0)
+  : _rule(r), _extra(""),_maxDepth(0), _splits(nullptr)
 {
 //  switch(r) {
 //  //TODO: move env.statistics object updates here.

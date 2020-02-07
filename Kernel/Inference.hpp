@@ -511,6 +511,12 @@ public:
     }
   }
 
+  SplitSet* splits() const { return _splits; }
+  void setSplits(SplitSet* splits) {
+    ASS(splits != nullptr);
+    ASS(!_splits);
+    _splits=splits;
+  }
 protected:
   /** The rule used */
   Rule _rule;
@@ -518,6 +524,9 @@ protected:
   vstring _extra;
   /** The depth */
   unsigned _maxDepth;
+
+private:
+  SplitSet* _splits;
 }; // class Inference
 
 /**
