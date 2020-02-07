@@ -144,6 +144,21 @@ private:
   void addDivONEAxiom(unsigned srt);
   void addDivAxiomGT2(unsigned srt);
   void addTempAxiom(unsigned srt);
+
+  // Chaos Axioms
+  void addChaosAxiom0(unsigned srt, unsigned size);
+  void addChaosAxiom1(unsigned srt, unsigned size);
+  void addChaosAxiom2(unsigned srt, unsigned size);
+  void addChaosAxiom3(unsigned srt, unsigned size);
+  void addChaosAxiom4(unsigned srt, unsigned size);
+  void addChaosAxiom5(unsigned srt, unsigned size);
+  void addChaosAxiom6(unsigned srt, unsigned size);
+  void addSolverAxiom1(unsigned srt, unsigned size);
+  // bvsgt_bvand
+
+  void addChaosAxiom10(unsigned srt, unsigned size);
+
+
 //------------------------------------------------------------------------------------------------------------------------------------------
   void addExtraIntegerOrderingAxiom(Interpretation plus, TermList oneElement, Interpretation less);
 

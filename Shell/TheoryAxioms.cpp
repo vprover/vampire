@@ -577,8 +577,8 @@ void TheoryAxioms::addConcatAxiom1(unsigned srt0, unsigned srt1, unsigned result
     //RHS END
 
     Formula* ax = new BinaryFormula(IMP, conjunct, bvsge_con_con);
-
-    addAndOutputTheoryUnit(new FormulaUnit(ax, new Inference(Inference::THEORY), Unit::AXIOM),CHEAP);
+    // TODO
+    //addAndOutputTheoryUnit(new FormulaUnit(ax, new Inference(Inference::THEORY), Unit::AXIOM),CHEAP);
 }
 
 // called when encountered:
@@ -629,8 +629,8 @@ void TheoryAxioms::addConcatAxiom2(unsigned srt0, unsigned srt1, unsigned result
     //RHS END
 
     Formula* ax = new BinaryFormula(IMP, conjunct, bvsge_con_con);
-
-    addAndOutputTheoryUnit(new FormulaUnit(ax, new Inference(Inference::THEORY), Unit::AXIOM),CHEAP);
+    // TODO
+    //addAndOutputTheoryUnit(new FormulaUnit(ax, new Inference(Inference::THEORY), Unit::AXIOM),CHEAP);
 }
 
 
@@ -1126,6 +1126,329 @@ void TheoryAxioms::addSpecialEqualAndAxiom(unsigned srt, Interpretation func)
 
 }
 
+/* Add that (signed)
+ * (x!=0 and x!=smin) -> (x & max > 0)
+ * x = 0 OR x = min OR (x & max > 0)
+ * */
+void TheoryAxioms::addChaosAxiom0(unsigned srt, unsigned size)
+{
+	CALL("TheoryAxioms::addChaosAxiom0");
+
+	TermList x(0,false);
+	TermList y(1,false);
+
+
+	unsigned bvand = env.signature->getInterpretingSymbol(Theory::BVAND,OperatorType::getFunctionType({srt,srt},srt));
+	unsigned bvsgt = env.signature->getInterpretingSymbol(Theory::BVSGT,OperatorType::getPredicateType({srt,srt}));
+	unsigned bvslt = env.signature->getInterpretingSymbol(Theory::BVSLT,OperatorType::getPredicateType({srt,srt}));
+
+	cout<<"BVSGT IS: " << bvsgt<< endl;
+	cout<<"BVSLT IS: " << bvslt << endl;
+
+
+	TermList signedMax(theory->representConstant(BitVectorOperations::getSignedMaxBVCT(size)));
+	TermList signedMin(theory->representConstant(BitVectorOperations::getSignedMinBVCT(size)));
+	TermList zero(theory->representConstant(BitVectorOperations::getZeroBVCT(size)));
+
+
+
+	//x=0
+	Literal* l1 = Literal::createEquality(true,x,zero,srt);
+
+	// x = min
+	Literal* l3 = Literal::createEquality(true,x,signedMin,srt);
+
+	// (x & max > 0)
+	TermList xAm(Term::create2(bvand,x,signedMax));
+	Literal* l2 = Literal::create2(true,bvsgt,xAm,zero); // something erronous here
+
+	Literal* ltemp = Literal::create2(true,bvslt,xAm,zero); // something erronous here
+
+	cout<<"BVSGT IS: " << l2->toString()<< endl;
+	cout<<"BVSLT IS: " << ltemp->toString() << endl;
+
+	TermList args[2] = { xAm, zero };
+	Literal* lolo = Literal::create(bvsgt, 2, true, false, args);
+	cout<<"LOLO is " << lolo->toString() <<endl;
+
+
+	addTheoryNonUnitClause(l1,lolo,l3,CHEAP);
+
+}
+
+/* Add that (signed)
+ * x AND smax > -1
+ * */
+void TheoryAxioms::addChaosAxiom1(unsigned srt, unsigned size)
+{
+	CALL("TheoryAxioms::addChaosAxiom1");
+
+	TermList x(0,false);
+	TermList y(1,false);
+
+
+	unsigned bvand = env.signature->getInterpretingSymbol(Theory::BVAND,OperatorType::getFunctionType({srt,srt},srt));
+	unsigned bvsgt = env.signature->getInterpretingSymbol(Theory::BVSGT,OperatorType::getPredicateType({srt,srt}));
+
+	TermList signedMax(theory->representConstant(BitVectorOperations::getSignedMaxBVCT(size)));
+	TermList minusOne(theory->representConstant(BitVectorOperations::getAllOnesBVCT(size)));
+
+	// (x & max > -1)
+	TermList xAm(Term::create2(bvand,x,signedMax));
+
+	TermList args[2] = { xAm, minusOne };
+	Literal* axiom = Literal::create(bvsgt, 2, true, false, args);
+	cout<<endl<<"Chaos1 is: " << axiom->toString() <<endl;
+
+
+	addTheoryUnitClause(axiom,CHEAP);
+
+}
+
+/* Add that (signed)
+ * !(x AND minusOne > x)
+ * */
+void TheoryAxioms::addChaosAxiom2(unsigned srt, unsigned size)
+{
+	CALL("TheoryAxioms::addChaosAxiom2");
+
+	TermList x(0,false);
+	TermList y(1,false);
+
+
+	unsigned bvand = env.signature->getInterpretingSymbol(Theory::BVAND,OperatorType::getFunctionType({srt,srt},srt));
+	unsigned bvsgt = env.signature->getInterpretingSymbol(Theory::BVSGT,OperatorType::getPredicateType({srt,srt}));
+
+	TermList minusOne(theory->representConstant(BitVectorOperations::getAllOnesBVCT(size)));
+
+	// !(x AND minusOne > x)
+	TermList xAm(Term::create2(bvand,x,minusOne));
+
+	TermList args[2] = { xAm, x };
+	Literal* axiom = Literal::create(bvsgt, 2, false, false, args);
+	cout<<endl<<"Chaos2 is: " << axiom->toString() <<endl;
+
+
+	addTheoryUnitClause(axiom,CHEAP);
+
+}
+
+
+    /* Add that (signed)
+     * extractLastBit(x) = 1 -> (x AND zero > x)
+     * extractLastBit(x) != 1 OR (x AND zero > x)
+     * */
+    void TheoryAxioms::addChaosAxiom3(unsigned srt, unsigned size)
+    {
+    	CALL("TheoryAxioms::addChaosAxiom3");
+
+    	TermList x(0,false);
+    	TermList y(1,false);
+
+    	unsigned resultSort = env.sorts->addBitVectorSort(1);
+    	// not sure we are not supposed to store two numbers here (from and to)
+    	Interpretation i = theory->interpretationFromIndexedInterpretation(Theory::EXTRACT,size-1);
+    	OperatorType* t = OperatorType::getFunctionType({srt},resultSort);
+
+    	unsigned extract = env.signature->getInterpretingSymbol(i,t);
+
+    	unsigned bvand = env.signature->getInterpretingSymbol(Theory::BVAND,OperatorType::getFunctionType({srt,srt},srt));
+    	unsigned bvsgt = env.signature->getInterpretingSymbol(Theory::BVSGT,OperatorType::getPredicateType({srt,srt}));
+
+    	TermList zero(theory->representConstant(BitVectorOperations::getZeroBVCT(size)));
+    	TermList singledBitOne(theory->representConstant(BitVectorOperations::getAllOnesBVCT(1)));
+
+    	// extractLastBit(x) != 1
+    	TermList elb(Term::create1(extract,x));
+    	Literal* l1 = Literal::createEquality(false,elb,singledBitOne,resultSort);
+
+    	//(x AND zero > x)
+    	TermList xAz(Term::create2(bvand,x,zero));
+    	TermList args[2] = { xAz, x };
+
+    	Literal* l2 = Literal::create(bvsgt, 2, true, false, args);
+    	cout<<endl<<"Chaos3 is: " << l1->toString() <<endl;
+    	cout<<endl<<"Chaos3 is: " << l2->toString() <<endl;
+
+
+    	addTheoryNonUnitClause(l1,l2,CHEAP);
+
+    }
+
+    /* Add that (signed)
+         * extractLastBit(x) = 0 -> !(x AND y > x)
+         * extractLastBit(x) != 0 OR (x AND y > x)
+         * */
+        void TheoryAxioms::addChaosAxiom4(unsigned srt, unsigned size)
+        {
+        	CALL("TheoryAxioms::addChaosAxiom4");
+
+        	TermList x(0,false);
+        	TermList y(1,false);
+
+        	unsigned resultSort = env.sorts->addBitVectorSort(1);
+        	// not sure we are not supposed to store two numbers here (from and to)
+        	Interpretation i = theory->interpretationFromIndexedInterpretation(Theory::EXTRACT,size-1);
+        	OperatorType* t = OperatorType::getFunctionType({srt},resultSort);
+
+        	unsigned extract = env.signature->getInterpretingSymbol(i,t);
+
+        	unsigned bvand = env.signature->getInterpretingSymbol(Theory::BVAND,OperatorType::getFunctionType({srt,srt},srt));
+        	unsigned bvsgt = env.signature->getInterpretingSymbol(Theory::BVSGT,OperatorType::getPredicateType({srt,srt}));
+
+        	TermList singledBitZero(theory->representConstant(BitVectorOperations::getZeroBVCT(1)));
+
+        	// extractLastBit(x) != 0
+        	TermList elb(Term::create1(extract,x));
+        	Literal* l1 = Literal::createEquality(false,elb,singledBitZero,resultSort);
+
+        	//(x AND y > x)
+        	TermList xAy(Term::create2(bvand,x,y));
+        	TermList args[2] = { xAy, x };
+
+        	Literal* l2 = Literal::create(bvsgt, 2, false, false, args);
+        	cout<<endl<<"Chaos4 is: " << l1->toString() <<endl;
+        	cout<<endl<<"Chaos4 is: " << l2->toString() <<endl;
+
+
+        	addTheoryNonUnitClause(l1,l2,CHEAP);
+
+        }
+
+        /* Add that (signed)
+                * extractLastBit(x) = 0 OR extractLastBit(x) = 0
+                *
+                * */
+               void TheoryAxioms::addChaosAxiom5(unsigned srt, unsigned size)
+               {
+               	CALL("TheoryAxioms::addChaosAxiom5");
+
+               	TermList x(0,false);
+               	TermList y(1,false);
+
+               	unsigned resultSort = env.sorts->addBitVectorSort(1);
+               	// not sure we are not supposed to store two numbers here (from and to)
+               	Interpretation i = theory->interpretationFromIndexedInterpretation(Theory::EXTRACT,size-1);
+               	OperatorType* t = OperatorType::getFunctionType({srt},resultSort);
+
+               	unsigned extract = env.signature->getInterpretingSymbol(i,t);
+
+               	unsigned bvand = env.signature->getInterpretingSymbol(Theory::BVAND,OperatorType::getFunctionType({srt,srt},srt));
+               	unsigned bvsgt = env.signature->getInterpretingSymbol(Theory::BVSGT,OperatorType::getPredicateType({srt,srt}));
+
+               	TermList singledBitZero(theory->representConstant(BitVectorOperations::getZeroBVCT(1)));
+               	TermList singledBitOne(theory->representConstant(BitVectorOperations::getOneBVCT(1)));
+
+               	// extractLastBit(x) = 0
+               	TermList elb(Term::create1(extract,x));
+               	Literal* l1 = Literal::createEquality(true,elb,singledBitZero,resultSort);
+
+               	// extractLastBit(x) = 1
+
+               	Literal* l2 = Literal::createEquality(true,elb,singledBitOne,resultSort);
+
+
+
+
+               	addTheoryNonUnitClause(l1,l2,CHEAP);
+
+               }
+
+               /* Add that (signed)
+               * smax > 0 > smin
+               *
+               * */
+               void TheoryAxioms::addChaosAxiom6(unsigned srt, unsigned size)
+               {
+                   CALL("TheoryAxioms::addChaosAxiom6");
+
+                   TermList x(0,false);
+                   TermList y(1,false);
+
+                   unsigned resultSort = env.sorts->addBitVectorSort(1);
+                   // not sure we are not supposed to store two numbers here (from and to)
+                   Interpretation i = theory->interpretationFromIndexedInterpretation(Theory::EXTRACT,size-1);
+                   OperatorType* t = OperatorType::getFunctionType({srt},resultSort);
+
+                   unsigned bvand = env.signature->getInterpretingSymbol(Theory::BVAND,OperatorType::getFunctionType({srt,srt},srt));
+                   unsigned bvsgt = env.signature->getInterpretingSymbol(Theory::BVSGT,OperatorType::getPredicateType({srt,srt}));
+
+                   TermList signedMin(theory->representConstant(BitVectorOperations::getSignedMinBVCT(size)));
+                   TermList signedMax(theory->representConstant(BitVectorOperations::getSignedMaxBVCT(size)));
+                   TermList zero(theory->representConstant(BitVectorOperations::getZeroBVCT(size)));
+
+
+                   TermList args[2] = { signedMax, zero };
+                   Literal* l1 = Literal::create(bvsgt, 2, true, false, args);
+                   addTheoryUnitClause(l1,CHEAP);
+
+                   TermList args2[2] = { zero, signedMin };
+                   Literal* l2 = Literal::create(bvsgt, 2, true, false, args2);
+                   addTheoryUnitClause(l2,CHEAP);
+
+
+                 }
+               /* Add that (signed)
+                * x & s > t -> (s & max > t)
+                * !(x & s > t) OR (s & max > t)
+                * */
+                void TheoryAxioms::addSolverAxiom1(unsigned srt, unsigned size)
+                {
+                     CALL("TheoryAxioms::addSolverAxiom1");
+
+                     TermList x(0,false);
+                     TermList s(1,false);
+                     TermList t(2,false);
+
+                     unsigned resultSort = env.sorts->addBitVectorSort(1);
+
+
+                     unsigned bvand = env.signature->getInterpretingSymbol(Theory::BVAND,OperatorType::getFunctionType({srt,srt},srt));
+                     unsigned bvsgt = env.signature->getInterpretingSymbol(Theory::BVSGT,OperatorType::getPredicateType({srt,srt}));
+
+                     TermList signedMax(theory->representConstant(BitVectorOperations::getSignedMaxBVCT(size)));
+
+                     // !(x & s > t)
+                     TermList t1(Term::create2(bvand,x,s));
+                     TermList args[2] = { t1, t };
+                     Literal* l1 = Literal::create(bvsgt, 2, false, false, args);
+
+                     // (s & max > t)
+                     TermList t2(Term::create2(bvand,s,signedMax));
+
+                      TermList args2[2] = { t2, t };
+                      Literal* l2 = Literal::create(bvsgt, 2, true, false, args2);
+                       addTheoryNonUnitClause(l1,l2,CHEAP);
+
+                }
+
+                /* Add that (signed)
+                * (x!=0 AND x!=smin) -> ~x != x
+                * x=0 OR x=smin OR x!=x
+                * */
+                 void TheoryAxioms::addChaosAxiom10(unsigned srt, unsigned size)
+                 {
+                     CALL("TheoryAxioms::addChaosAxiom10");
+
+                     TermList x(0,false);
+
+
+
+                     unsigned bvneg = env.signature->getInterpretingSymbol(Theory::BVNEG,OperatorType::getFunctionType({srt},srt));
+
+                     TermList signedMin(theory->representConstant(BitVectorOperations::getSignedMinBVCT(size)));
+                     TermList zero(theory->representConstant(BitVectorOperations::getZeroBVCT(size)));
+
+                     //x=0
+                     Literal* l1 = Literal::createEquality(true,x,zero,srt);
+                     //x=smin
+                     Literal* l2 = Literal::createEquality(true,x,signedMin,srt);
+                     //~x!=x
+                     TermList negX(Term::create1(bvneg,x));
+                     Literal* l3 = Literal::createEquality(false,x,negX,srt);
+
+                     addTheoryNonUnitClause(l1,l2,l3,CHEAP);
+                 }
 
 /* Add that
  * f(x s) = t -> f( g(t s) s) = t
@@ -2598,6 +2921,8 @@ void TheoryAxioms::apply()
          unsigned srt0 = entry.second->arg(0);
          // add that -(-x) = x
          addUnaryFunctionAppliedTwiceEqualsArgument(itp,srt0);
+         addChaosAxiom10(srt0,size);
+
 
 
       }
@@ -2669,6 +2994,7 @@ void TheoryAxioms::apply()
 
     	  unsigned srt0 = entry.second->arg(0);
     	  TermList zero(theory->representConstant(BitVectorOperations::getZeroBVCT(size)));
+    	  TermList signedMax(theory->representConstant(BitVectorOperations::getSignedMaxBVCT(size)));
 
     	  TermList allOnes(theory->representConstant(BitVectorOperations::getAllOnesBVCT(size)));
     	  // add that bvand(X,zero) = zero
@@ -2679,6 +3005,8 @@ void TheoryAxioms::apply()
     	  addFunctionWithSameArgumentEqualArgument(itp, srt0);
 
     	  addSpecialEqualAndAxiom(srt0, itp);
+
+
 
     	  //addTempAndAxiom1(srt0, itp);
 
@@ -2823,6 +3151,16 @@ void TheoryAxioms::apply()
 
           // bvsgt (0 s) -> bvslt(s bvand(s & signedMax)) // TODO CNF REWRITE, check occurence
           // addBVANDSignedPredicatesAxiom(srt0, Theory::BVSGT, Theory::BVSLT, Theory::BVAND,zero, signedMax); // bvsgt (0 s) -> bvslt(s bvand(s & signedMax))
+
+          addChaosAxiom0(srt0,size);
+          addChaosAxiom1(srt0,size);
+          addChaosAxiom2(srt0,size);
+          addChaosAxiom3(srt0,size);
+          addChaosAxiom4(srt0,size);
+          addChaosAxiom5(srt0,size);
+          addChaosAxiom6(srt0,size);
+          addSolverAxiom1(srt0,size);
+
       }
 
       /* ------------------------------------------
