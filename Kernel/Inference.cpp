@@ -30,7 +30,7 @@
 
 using namespace Kernel;
 
-Inference::Inference(Rule r) : _rule(r), _extra(""), _inductionDepth(0) {}
+Inference::Inference(Rule r) : _rule(r), _extra(""), _inductionDepth(0), _splits(nullptr) {}
 
 /**
  * Create an inference object with multiple premisses

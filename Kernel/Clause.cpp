@@ -81,7 +81,6 @@ Clause::Clause(unsigned length,InputType it,Inference* inf)
     _refCnt(0),
     _reductionTimestamp(0),
     _literalPositions(0),
-    _splits(0),
     _numActiveSplits(0),
     _auxTimestamp(0)
 {
@@ -333,7 +332,7 @@ bool Clause::noSplits() const
 {
   CALL("Clause::noSplits");
 
-  return !this->splits() || this->splits()->isEmpty();
+  return !_inference->splits() || _inference->splits()->isEmpty();
 }
 
 /**

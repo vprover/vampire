@@ -252,7 +252,7 @@ public:
   void assertValid();
 #endif
 
-  SplitSet* splits() const { return _splits; }
+  SplitSet* splits() const { return _inference->splits(); }
   bool noSplits() const;
 
   /**
@@ -264,10 +264,8 @@ public:
    */
   void setSplits(SplitSet* splits) {
     CALL("Clause::setSplits");
-    ASS(splits != nullptr);
-    ASS(!_splits);
     ASS(_weight == 0);
-    _splits=splits;
+    _inference->setSplits(splits);
   }
   
   int getNumActiveSplits() const { return _numActiveSplits; }
@@ -386,7 +384,6 @@ protected:
   /** a map that translates Literal* to its index in the clause */
   InverseLookup<Literal>* _literalPositions;
 
-  SplitSet* _splits;
   int _numActiveSplits;
 
   size_t _auxTimestamp;

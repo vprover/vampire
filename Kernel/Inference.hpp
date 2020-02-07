@@ -594,15 +594,25 @@ public:
     }
   }
 
+  SplitSet* splits() const { return _splits; }
+  void setSplits(SplitSet* splits) {
+    ASS(splits != nullptr);
+    ASS(!_splits);
+    _splits=splits;
+  }
 protected:
   /** The rule used */
   Rule _rule;
   /** Extra information */
   vstring _extra;
+
   /** track whether all leafs were theory axioms only */
   bool _isPureTheoryDescendant;
   /** Induction depth **/
   unsigned _inductionDepth;
+
+private:
+  SplitSet* _splits;
 }; // class Inference
 
 /**
