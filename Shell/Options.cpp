@@ -918,6 +918,25 @@ void Options::Options::init()
     _theorySplitQueueRatios.tag(OptionTag::SATURATION);
     _theorySplitQueueRatios.setExperimental();
 
+    _useAvatarSplitQueues = BoolOptionValue("avatar_split_queue","avsq",false);
+    _useAvatarSplitQueues.description = "Turn on experiments: clause selection with multiple queues containing different clauses (split by amount of avatar-split-set-size)";
+    _lookup.insert(&_useAvatarSplitQueues);
+    _useAvatarSplitQueues.tag(OptionTag::AVATAR);
+
+    _avatarSplitQueueCutoffs = StringOptionValue("avatar_split_queue_cutoffs", "avsqc", "0,1,2");
+    _avatarSplitQueueCutoffs.description = "The cutoff-values for the avatar-split-queues (the cutoff value for the last queue is omitted, since it has to be infinity).";
+    _lookup.insert(&_avatarSplitQueueCutoffs);
+    _avatarSplitQueueCutoffs.reliesOn(_useAvatarSplitQueues.is(equal(true)));
+    _avatarSplitQueueCutoffs.tag(OptionTag::AVATAR);
+    // _avatarSplitQueueCutoffs.setExperimental();
+
+    _avatarSplitQueueRatios = StringOptionValue("avatar_split_queue_ratios", "avsqr", "1,1,1,1");
+    _avatarSplitQueueRatios.description = "The ratios for picking clauses from the split-queues using weighted round robin. If a queue is empty, the clause will be picked from the next non-empty queue to the right. Note that this option implicitly also sets the number of queues.";
+    _lookup.insert(&_avatarSplitQueueRatios);
+    _avatarSplitQueueRatios.reliesOn(_useAvatarSplitQueues.is(equal(true)));
+    _avatarSplitQueueRatios.tag(OptionTag::AVATAR);
+    // _avatarSplitQueueRatios.setExperimental();
+
 	    _literalMaximalityAftercheck = BoolOptionValue("literal_maximality_aftercheck","lma",false);
 	    _lookup.insert(&_literalMaximalityAftercheck);
 	    _literalMaximalityAftercheck.tag(OptionTag::SATURATION);
@@ -3186,6 +3205,56 @@ Lib::vvector<float> Options::theorySplitQueueCutoffs() const
     if (i > 0 && cutoff <= cutoffs[i-1])
     {
       USER_ERROR("Wrong usage of option '-thsqc'. The cutoff values must be strictly increasing");
+    }
+  }
+
+  return cutoffs;
+}
+
+Lib::vvector<int> Options::avatarSplitQueueRatios() const
+{
+  CALL("Options::avatarSplitQueueRatios");
+  vstringstream inputRatiosStream(_avatarSplitQueueRatios.actualValue);
+  Lib::vvector<int> inputRatios;
+  std::string currentRatio;
+  while (std::getline(inputRatiosStream, currentRatio, ',')) {
+    inputRatios.push_back(std::stoi(currentRatio));
+  }
+
+  // sanity checks
+  if (inputRatios.size() < 2) {
+    USER_ERROR("Wrong usage of option '-avsqr'. Needs to have at least two values (e.g. '10,1')");
+  }
+  for (unsigned i = 0; i < inputRatios.size(); i++) {
+    if(inputRatios[i] <= 0) {
+      USER_ERROR("Each ratio (supplied by option '-avsqr') needs to be a positive integer");
+    }
+  }
+
+  return inputRatios;
+}
+
+Lib::vvector<float> Options::avatarSplitQueueCutoffs() const
+{
+  CALL("Options::avatarSplitQueueCutoffs");
+  // initialize cutoffs and add float-max as last value
+  Lib::vvector<float> cutoffs;
+  vstringstream cutoffsStream(_avatarSplitQueueCutoffs.actualValue);
+  std::string currentCutoff;
+  while (std::getline(cutoffsStream, currentCutoff, ','))
+  {
+    cutoffs.push_back(std::stof(currentCutoff));
+  }
+  cutoffs.push_back(std::numeric_limits<float>::max());
+
+  // sanity checks
+  for (unsigned i = 0; i < cutoffs.size(); i++)
+  {
+    auto cutoff = cutoffs[i];
+
+    if (i > 0 && cutoff <= cutoffs[i-1])
+    {
+      USER_ERROR("The cutoff values (supplied by option '-avsqc') must be strictly increasing");
     }
   }
 
