@@ -34,7 +34,7 @@ public:
   CLASS_NAME(PredicateSplitPassiveClauseContainer);
   USE_ALLOCATOR(PredicateSplitPassiveClauseContainer);
 
-  PredicateSplitPassiveClauseContainer(bool isOutermost, const Shell::Options& opt, vstring name);
+  PredicateSplitPassiveClauseContainer(bool isOutermost, const Shell::Options& opt, vstring name, Lib::vvector<float> cutoffs, Lib::vvector<int> ratios);
   virtual ~PredicateSplitPassiveClauseContainer();
 
   void add(Clause* cl) override;
@@ -50,6 +50,8 @@ private:
   Lib::vvector<unsigned> _balances;
 
   unsigned bestQueueHeuristics(Inference* inf) const;
+
+  virtual float evaluateFeature(Inference* inf) const = 0;
 
   /*
    * LRS specific methods for computation of Limits
@@ -88,6 +90,15 @@ public:
   bool childrenPotentiallyFulfilLimits(Clause* cl, unsigned upperBoundNumSelLits) const override;
   
 }; // class PredicateSplitPassiveClauseContainer
+
+class TheoryMultiSplitPassiveClauseContainer : public PredicateSplitPassiveClauseContainer
+{
+public:
+  TheoryMultiSplitPassiveClauseContainer(bool isOutermost, const Shell::Options &opt, Lib::vstring name);
+
+private:
+  float evaluateFeature(Inference* inf) const override;
+};
 
 };
 

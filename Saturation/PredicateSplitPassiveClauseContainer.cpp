@@ -42,30 +42,27 @@ int computeLCM(int a, int b) {
   return (a*b)/computeGCD(a, b);
 }
 
-PredicateSplitPassiveClauseContainer::PredicateSplitPassiveClauseContainer(bool isOutermost, const Shell::Options& opt, vstring name) : PassiveClauseContainer(isOutermost, opt, name), _queues(), _ratios(), _cutoffs(_opt.theorySplitQueueCutoffs()), _balances(), _simulationBalances()
+PredicateSplitPassiveClauseContainer::PredicateSplitPassiveClauseContainer(bool isOutermost, const Shell::Options& opt, vstring name, Lib::vvector<float> cutoffs, Lib::vvector<int> ratios) : PassiveClauseContainer(isOutermost, opt, name), _queues(), _cutoffs(cutoffs), _ratios(), _balances(), _simulationBalances()
 {
   CALL("PredicateSplitPassiveClauseContainer::PredicateSplitPassiveClauseContainer");
 
-  // compute ratios as inverses of the input ratios
-  auto inputRatios = _opt.theorySplitQueueRatios();
-
   // sanity checks for ratios and cutoffs
-  if (inputRatios.size() != _cutoffs.size()) {
-    USER_ERROR("Queue " + name + ": The number of ratios needs to match the number of cutoffs, but " + Int::toString(inputRatios.size()) + " != " + Int::toString(_cutoffs.size()));
+  if (ratios.size() != _cutoffs.size()) {
+    USER_ERROR("Queue " + name + ": The number of ratios needs to match the number of cutoffs, but " + Int::toString(ratios.size()) + " != " + Int::toString(_cutoffs.size()));
   }
 
   // compute lcm, which will be used to compute reverse ratios
   auto lcm = 1;
-  for (unsigned i = 0; i < inputRatios.size(); i++)
+  for (unsigned i = 0; i < ratios.size(); i++)
   {
-    lcm = computeLCM(lcm, inputRatios[i]);
+    lcm = computeLCM(lcm, ratios[i]);
   }
 
   // initialize
-  for (int i = 0; i < inputRatios.size(); i++)
+  for (int i = 0; i < ratios.size(); i++)
   {
     _queues.push_back(Lib::make_unique<AWPassiveClauseContainer>(false, opt, "Queue " + Int::toString(_cutoffs[i])));
-    _ratios.push_back(lcm / inputRatios[i]);
+    _ratios.push_back(lcm / ratios[i]);
     _balances.push_back(0);
   }
 }
@@ -75,15 +72,13 @@ PredicateSplitPassiveClauseContainer::~PredicateSplitPassiveClauseContainer() {
 }
 
 unsigned PredicateSplitPassiveClauseContainer::bestQueueHeuristics(Inference* inf) const {
-  // heuristically compute likeliness that clause occurs in proof
-  auto expectedRatioDenominator = _opt.theorySplitQueueExpectedRatioDenom();
-  auto niceness = inf->th_ancestors * expectedRatioDenominator - inf->all_ancestors;
-  
+  auto featureValue = evaluateFeature(inf);
+
   // compute best queue clause should be placed in
   ASS(_cutoffs.back() == std::numeric_limits<float>::max());
   for (unsigned i = 0; i < _cutoffs.size(); i++)
   {
-    if (niceness <= _cutoffs[i])
+    if (featureValue <= _cutoffs[i])
     {
       return i;
     }
@@ -386,6 +381,16 @@ bool PredicateSplitPassiveClauseContainer::childrenPotentiallyFulfilLimits(Claus
     }
   }
   return false;
+}
+
+TheoryMultiSplitPassiveClauseContainer::TheoryMultiSplitPassiveClauseContainer(bool isOutermost, const Shell::Options &opt, Lib::vstring name) :
+PredicateSplitPassiveClauseContainer(isOutermost, opt, name, opt.theorySplitQueueCutoffs(), opt.theorySplitQueueRatios()) {}
+
+float TheoryMultiSplitPassiveClauseContainer::evaluateFeature(Inference* inf) const
+{
+    // heuristically compute likeliness that clause occurs in proof
+    auto expectedRatioDenominator = _opt.theorySplitQueueExpectedRatioDenom();
+    return inf->th_ancestors * expectedRatioDenominator - inf->all_ancestors;
 }
 
 };

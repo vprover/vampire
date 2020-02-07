@@ -145,7 +145,7 @@ SaturationAlgorithm::SaturationAlgorithm(Problem& prb, const Options& opt)
     _passive = new ManCSPassiveClauseContainer(true, opt);
   } else {
     _passive = (opt.useTheorySplitQueues()) ?
-        static_cast<PassiveClauseContainer*>(new PredicateSplitPassiveClauseContainer(true, opt, "")) :
+        static_cast<PassiveClauseContainer*>(new TheoryMultiSplitPassiveClauseContainer(true, opt, "")) :
         static_cast<PassiveClauseContainer*>(new AWPassiveClauseContainer(true, opt, ""));
   }
   _active = new ActiveClauseContainer(opt);
