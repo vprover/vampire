@@ -153,8 +153,16 @@ Clause* PredicateSplitPassiveClauseContainer::popSelected()
   CALL("PredicateSplitPassiveClauseContainer::popSelected");
   // compute queue from which we will pick a clause:
   // choose queue using weighted round robin
-  auto queueIndex = std::distance(_balances.begin(), std::min_element(_balances.begin(), _balances.end()));
+  auto minElementIt = std::min_element(_balances.begin(), _balances.end());
+  auto minElement = *minElementIt; // need to save the value of the min element before updating it to a new value, since it may not remain the minimal element after the update
+
+  auto queueIndex = std::distance(_balances.begin(), minElementIt);
+
   _balances[queueIndex] += _ratios[queueIndex];
+  for (auto& balance : _balances)
+  {
+    balance -= minElement;
+  }
 
   // if chosen queue is empty, use the next queue to the right
   // this succeeds in a non LRS-setting where we have the invariant that each clause from queue i is contained in queue j if i<j
@@ -225,8 +233,15 @@ void PredicateSplitPassiveClauseContainer::simulationPopSelected()
   CALL("PredicateSplitPassiveClauseContainer::simulationPopSelected");
   // compute queue from which we will pick a clause:
   // choose queue using weighted round robin
-  auto queueIndex = std::distance(_simulationBalances.begin(), std::min_element(_simulationBalances.begin(), _simulationBalances.end()));
+  auto minElementIt = std::min_element(_simulationBalances.begin(), _simulationBalances.end());
+  auto minElement = *minElementIt; // need to save the value of the min element before updating it to a new value, since it may not remain the minimal element after the update
+
+  auto queueIndex = std::distance(_simulationBalances.begin(), minElementIt);
   _simulationBalances[queueIndex] += _ratios[queueIndex];
+  for (auto& balance : _simulationBalances)
+  {
+    balance -= minElement;
+  }
 
   // if chosen queue is empty, use the next queue to the right
   // this succeeds in a non LRS-setting where we have the invariant that each clause from queue i is contained in queue j if i<j
