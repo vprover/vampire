@@ -142,10 +142,14 @@ SaturationAlgorithm::SaturationAlgorithm(Problem& prb, const Options& opt)
 
   _unprocessed = new UnprocessedClauseContainer();
 
-  if (opt.useManualClauseSelection()){
+  if (opt.useManualClauseSelection())
+  {
     _passive = new ManCSPassiveClauseContainer(true, opt);
-  } else {
-    if (opt.useTheorySplitQueues()) {
+  }
+  else
+  {
+    if (opt.useTheorySplitQueues())
+    {
       Lib::vvector<std::unique_ptr<PassiveClauseContainer>> queues;
       auto cutoffs = opt.theorySplitQueueCutoffs();
       for (unsigned i = 0; i < cutoffs.size(); i++)
@@ -153,9 +157,21 @@ SaturationAlgorithm::SaturationAlgorithm(Problem& prb, const Options& opt)
         auto name =  "Queue " + Int::toString(cutoffs[i]);
         queues.push_back(Lib::make_unique<AWPassiveClauseContainer>(false, opt, name));
       }
-
       _passive = new TheoryMultiSplitPassiveClauseContainer(true, opt, "", std::move(queues));
-    } else {
+    }
+    else if (opt.useAvatarSplitQueues())
+    {
+      Lib::vvector<std::unique_ptr<PassiveClauseContainer>> queues;
+      auto cutoffs = opt.avatarSplitQueueCutoffs();
+      for (unsigned i = 0; i < cutoffs.size(); i++)
+      {
+        auto name =  "Queue " + Int::toString(cutoffs[i]);
+        queues.push_back(Lib::make_unique<AWPassiveClauseContainer>(false, opt, name));
+      }
+      _passive = new AvatarMultiSplitPassiveClauseContainer(true, opt, "", std::move(queues));
+    }
+    else
+    {
       _passive = new AWPassiveClauseContainer(true, opt, "");
     }
   }
