@@ -42,13 +42,16 @@ int computeLCM(int a, int b) {
   return (a*b)/computeGCD(a, b);
 }
 
-PredicateSplitPassiveClauseContainer::PredicateSplitPassiveClauseContainer(bool isOutermost, const Shell::Options& opt, vstring name, Lib::vvector<float> cutoffs, Lib::vvector<int> ratios) : PassiveClauseContainer(isOutermost, opt, name), _queues(), _cutoffs(cutoffs), _ratios(), _balances(), _simulationBalances()
+PredicateSplitPassiveClauseContainer::PredicateSplitPassiveClauseContainer(bool isOutermost, const Shell::Options& opt, vstring name, Lib::vvector<std::unique_ptr<PassiveClauseContainer>> queues, Lib::vvector<float> cutoffs, Lib::vvector<int> ratios) : PassiveClauseContainer(isOutermost, opt, name), _queues(std::move(queues)), _cutoffs(cutoffs), _ratios(), _balances(), _simulationBalances()
 {
   CALL("PredicateSplitPassiveClauseContainer::PredicateSplitPassiveClauseContainer");
 
-  // sanity checks for ratios and cutoffs
-  if (ratios.size() != _cutoffs.size()) {
-    USER_ERROR("Queue " + name + ": The number of ratios needs to match the number of cutoffs, but " + Int::toString(ratios.size()) + " != " + Int::toString(_cutoffs.size()));
+  // sanity checks
+  if (ratios.size() != _queues.size()) {
+    USER_ERROR("Queue " + name + ": The number of ratios needs to match the number of queues, but " + Int::toString(ratios.size()) + " != " + Int::toString(_queues.size()));
+  }
+  if (_cutoffs.size() != _queues.size()) {
+    USER_ERROR("Queue " + name + ": The number of cutoffs needs to match the number of queues, but " + Int::toString(_cutoffs.size()) + " != " + Int::toString(_queues.size()));
   }
 
   // compute lcm, which will be used to compute reverse ratios
@@ -61,7 +64,6 @@ PredicateSplitPassiveClauseContainer::PredicateSplitPassiveClauseContainer(bool 
   // initialize
   for (int i = 0; i < ratios.size(); i++)
   {
-    _queues.push_back(Lib::make_unique<AWPassiveClauseContainer>(false, opt, "Queue " + Int::toString(_cutoffs[i])));
     _ratios.push_back(lcm / ratios[i]);
     _balances.push_back(0);
   }
@@ -398,8 +400,8 @@ bool PredicateSplitPassiveClauseContainer::childrenPotentiallyFulfilLimits(Claus
   return false;
 }
 
-TheoryMultiSplitPassiveClauseContainer::TheoryMultiSplitPassiveClauseContainer(bool isOutermost, const Shell::Options &opt, Lib::vstring name) :
-PredicateSplitPassiveClauseContainer(isOutermost, opt, name, opt.theorySplitQueueCutoffs(), opt.theorySplitQueueRatios()) {}
+TheoryMultiSplitPassiveClauseContainer::TheoryMultiSplitPassiveClauseContainer(bool isOutermost, const Shell::Options &opt, Lib::vstring name, Lib::vvector<std::unique_ptr<PassiveClauseContainer>> queues) :
+PredicateSplitPassiveClauseContainer(isOutermost, opt, name, std::move(queues), opt.theorySplitQueueCutoffs(), opt.theorySplitQueueRatios()) {}
 
 float TheoryMultiSplitPassiveClauseContainer::evaluateFeature(Inference* inf) const
 {

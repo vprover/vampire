@@ -31,6 +31,7 @@
 #include "Lib/Timer.hpp"
 #include "Lib/VirtualIterator.hpp"
 #include "Lib/System.hpp"
+#include "Lib/STL.hpp"
 
 #include "Indexing/LiteralIndexingStructure.hpp"
 
@@ -144,9 +145,19 @@ SaturationAlgorithm::SaturationAlgorithm(Problem& prb, const Options& opt)
   if (opt.useManualClauseSelection()){
     _passive = new ManCSPassiveClauseContainer(true, opt);
   } else {
-    _passive = (opt.useTheorySplitQueues()) ?
-        static_cast<PassiveClauseContainer*>(new TheoryMultiSplitPassiveClauseContainer(true, opt, "")) :
-        static_cast<PassiveClauseContainer*>(new AWPassiveClauseContainer(true, opt, ""));
+    if (opt.useTheorySplitQueues()) {
+      Lib::vvector<std::unique_ptr<PassiveClauseContainer>> queues;
+      auto cutoffs = opt.theorySplitQueueCutoffs();
+      for (unsigned i = 0; i < cutoffs.size(); i++)
+      {
+        auto name =  "Queue " + Int::toString(cutoffs[i]);
+        queues.push_back(Lib::make_unique<AWPassiveClauseContainer>(false, opt, name));
+      }
+
+      _passive = new TheoryMultiSplitPassiveClauseContainer(true, opt, "", std::move(queues));
+    } else {
+      _passive = new AWPassiveClauseContainer(true, opt, "");
+    }
   }
   _active = new ActiveClauseContainer(opt);
 

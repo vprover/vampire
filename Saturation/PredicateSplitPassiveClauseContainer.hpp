@@ -34,7 +34,7 @@ public:
   CLASS_NAME(PredicateSplitPassiveClauseContainer);
   USE_ALLOCATOR(PredicateSplitPassiveClauseContainer);
 
-  PredicateSplitPassiveClauseContainer(bool isOutermost, const Shell::Options& opt, vstring name, Lib::vvector<float> cutoffs, Lib::vvector<int> ratios);
+  PredicateSplitPassiveClauseContainer(bool isOutermost, const Shell::Options& opt, vstring name, Lib::vvector<std::unique_ptr<PassiveClauseContainer>> queues, Lib::vvector<float> cutoffs, Lib::vvector<int> ratios);
   virtual ~PredicateSplitPassiveClauseContainer();
 
   void add(Clause* cl) override;
@@ -44,7 +44,7 @@ public:
   unsigned sizeEstimate() const override;
 
 private:
-  Lib::vvector<std::unique_ptr<AWPassiveClauseContainer>> _queues;
+  Lib::vvector<std::unique_ptr<PassiveClauseContainer>> _queues;
   Lib::vvector<unsigned> _ratios;
   Lib::vvector<float> _cutoffs;
   Lib::vvector<unsigned> _balances;
@@ -94,7 +94,7 @@ public:
 class TheoryMultiSplitPassiveClauseContainer : public PredicateSplitPassiveClauseContainer
 {
 public:
-  TheoryMultiSplitPassiveClauseContainer(bool isOutermost, const Shell::Options &opt, Lib::vstring name);
+  TheoryMultiSplitPassiveClauseContainer(bool isOutermost, const Shell::Options &opt, Lib::vstring name, Lib::vvector<std::unique_ptr<PassiveClauseContainer>> queues);
 
 private:
   float evaluateFeature(Inference* inf) const override;
