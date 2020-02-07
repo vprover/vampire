@@ -102,6 +102,16 @@ private:
   float evaluateFeatureEstimate(Inference* inf) const override;
 };
 
+class AvatarMultiSplitPassiveClauseContainer : public PredicateSplitPassiveClauseContainer
+{
+public:
+  AvatarMultiSplitPassiveClauseContainer(bool isOutermost, const Shell::Options &opt, Lib::vstring name, Lib::vvector<std::unique_ptr<PassiveClauseContainer>> queues);
+
+private:
+  float evaluateFeature(Clause* cl) const override;
+  float evaluateFeatureEstimate(Inference* inf) const override;
+};
+
 };
 
 #endif /* __PredicateSplitPassiveClauseContainer__ */

@@ -26,6 +26,8 @@
 
 #include "Shell/Options.hpp"
 #include "Kernel/Clause.hpp"
+#include "Kernel/Inference.hpp"
+#include "Lib/SharedSet.hpp"
 
 namespace Saturation
 {
@@ -417,9 +419,25 @@ float TheoryMultiSplitPassiveClauseContainer::evaluateFeature(Clause* cl) const
 
 float TheoryMultiSplitPassiveClauseContainer::evaluateFeatureEstimate(Inference* inf) const
 {
-    // heuristically compute likeliness that clause occurs in proof
-    auto expectedRatioDenominator = _opt.theorySplitQueueExpectedRatioDenom();
-    return inf->th_ancestors * expectedRatioDenominator - inf->all_ancestors;
+  // heuristically compute likeliness that clause occurs in proof
+  auto expectedRatioDenominator = _opt.theorySplitQueueExpectedRatioDenom();
+  return inf->th_ancestors * expectedRatioDenominator - inf->all_ancestors;
+}
+
+AvatarMultiSplitPassiveClauseContainer::AvatarMultiSplitPassiveClauseContainer(bool isOutermost, const Shell::Options &opt, Lib::vstring name, Lib::vvector<std::unique_ptr<PassiveClauseContainer>> queues) :
+PredicateSplitPassiveClauseContainer(isOutermost, opt, name, std::move(queues), opt.avatarSplitQueueCutoffs(), opt.avatarSplitQueueRatios()) {}
+
+float AvatarMultiSplitPassiveClauseContainer::evaluateFeature(Clause* cl) const
+{
+  // heuristically compute likeliness that clause occurs in proof
+  auto inf = cl->inference();
+  return (inf->splits() == nullptr) ? 0 : inf->splits()->size();
+}
+
+float AvatarMultiSplitPassiveClauseContainer::evaluateFeatureEstimate(Inference* inf) const
+{
+  // heuristically compute likeliness that clause occurs in proof
+  return (inf->splits() == nullptr) ? 0 : inf->splits()->size();
 }
 
 };
