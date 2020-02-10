@@ -88,6 +88,7 @@ private:
   void addBitVectorCommutativity(Interpretation op, unsigned size);
   void addBitVectorRightIdentity(Interpretation i, TermList idElement, unsigned size);
   void addPolyMorphicNonReflexivity(Interpretation op, OperatorType* type);
+  void addPolymorphicTransitivity(Interpretation op, unsigned srt);
 
   void addPolyMorphicSpecialConstantAxiom(Interpretation op, TermList arg, TermList out, unsigned size);
   void addPolyMorphicSpecialConstantAxiomVariation(Interpretation op, TermList arg, TermList out, unsigned size);
@@ -157,6 +158,25 @@ private:
   // bvsgt_bvand
 
   void addChaosAxiom10(unsigned srt, unsigned size);
+  void addChaosAxiom11(unsigned srt, unsigned size); // nebvneg
+  void addChaosAxiom12(unsigned srt, unsigned size); //
+
+  void addChaosAxiom21(unsigned srt, unsigned size); //
+  void addChaosAxiom22(unsigned srt, unsigned size); //
+
+  void addChaosAxiom23(unsigned srt, unsigned size);
+  void addChaosAxiom24(unsigned srt, unsigned size);
+  void addChaosAxiom25(unsigned srt, unsigned size);
+
+  void addChaosAxiom26(unsigned srt, unsigned size);
+
+  void addChaosAxiom27(unsigned srt, unsigned size);
+
+  void addChaosAxiom31(unsigned srt, unsigned size);
+  void addChaosAxiom32(unsigned srt, unsigned size);
+
+  void addChaosAxiom33(unsigned srt, unsigned size);
+
 
 
 //------------------------------------------------------------------------------------------------------------------------------------------

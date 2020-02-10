@@ -364,6 +364,27 @@ void TheoryAxioms::addTransitivity(Interpretation op)
 
   addTheoryNonUnitClause(nonL12, nonL23, l13,CHEAP);
 }
+/**
+ * Add axiom ~op(X,Y) | ~op(Y,Z) | op(X,Z)
+ */
+void TheoryAxioms::addPolymorphicTransitivity(Interpretation op, unsigned srt)
+{
+  CALL("TheoryAxioms::addPolymorphicTransitivity");
+  ASS(!theory->isFunction(op));
+  ASS_EQ(theory->getArity(op),2);
+
+  unsigned opPred = env.signature->getInterpretingSymbol(op,OperatorType::getPredicateType({srt,srt}));
+
+  TermList x(0,false);
+  TermList y(1,false);
+  TermList v3(2,false);
+
+  Literal* nonL12 = Literal::create2(opPred, false, x, y);
+  Literal* nonL23 = Literal::create2(opPred, false, y, v3);
+  Literal* l13 = Literal::create2(opPred, true, x, v3);
+
+  addTheoryNonUnitClause(nonL12, nonL23, l13,CHEAP);
+}
 
 /**
  * Add axiom less(X,Y) | less(Y,X) | X=Y
@@ -1424,7 +1445,7 @@ void TheoryAxioms::addChaosAxiom2(unsigned srt, unsigned size)
 
                 /* Add that (signed)
                 * (x!=0 AND x!=smin) -> ~x != x
-                * x=0 OR x=smin OR x!=x
+                * x=0 OR x=smin OR ~x!=x
                 * */
                  void TheoryAxioms::addChaosAxiom10(unsigned srt, unsigned size)
                  {
@@ -1448,6 +1469,255 @@ void TheoryAxioms::addChaosAxiom2(unsigned srt, unsigned size)
                      Literal* l3 = Literal::createEquality(false,x,negX,srt);
 
                      addTheoryNonUnitClause(l1,l2,l3,CHEAP);
+                 }
+
+                /* Add that
+                 *  !x != ~x
+                * */
+                 void TheoryAxioms::addChaosAxiom11(unsigned srt, unsigned size)
+                 {
+                     CALL("TheoryAxioms::addChaosAxiom11");
+
+                     TermList x(0,false);
+
+
+
+                     unsigned bvneg = env.signature->getInterpretingSymbol(Theory::BVNEG,OperatorType::getFunctionType({srt},srt));
+                     unsigned bvnot = env.signature->getInterpretingSymbol(Theory::BVNOT,OperatorType::getFunctionType({srt},srt));
+
+                     TermList negX(Term::create1(bvneg,x));
+                     TermList notX(Term::create1(bvnot,x));
+
+                     //x=0
+                     Literal* l1 = Literal::createEquality(false,negX,notX,srt);
+
+                     addTheoryUnitClause(l1,CHEAP);
+
+                 }
+                 /* Add that
+                 *  !x != x
+                * */
+                 void TheoryAxioms::addChaosAxiom12(unsigned srt, unsigned size)
+                 {
+                     CALL("TheoryAxioms::addChaosAxiom11");
+
+                     TermList x(0,false);
+
+                     unsigned bvnot = env.signature->getInterpretingSymbol(Theory::BVNOT,OperatorType::getFunctionType({srt},srt));
+
+                     TermList notX(Term::create1(bvnot,x));
+
+                     //x=0
+                     Literal* l1 = Literal::createEquality(false,x,notX,srt);
+
+                     addTheoryUnitClause(l1,CHEAP);
+
+                 }
+
+                 /* Add that (unsigned)
+                 *  x || y >= x
+                * */
+                 void TheoryAxioms::addChaosAxiom21(unsigned srt, unsigned size)
+                 {
+                     CALL("TheoryAxioms::addChaosAxiom11");
+
+                     TermList x(0,false);
+                     TermList y(1,false);
+
+                     unsigned bvor = env.signature->getInterpretingSymbol(Theory::BVOR,OperatorType::getFunctionType({srt,srt},srt));
+                     unsigned bvuge = env.signature->getInterpretingSymbol(Theory::BVUGE,OperatorType::getPredicateType({srt,srt}));
+
+                     TermList xOy(Term::create2(bvor,x,y));
+
+                     //x || y >= x
+                     TermList args[2] = { xOy, x };
+                     Literal* l1 = Literal::create(bvuge, 2, true, false, args);
+
+                     addTheoryUnitClause(l1,CHEAP);
+
+                }
+
+                 /* Add that (unsigned)
+				  *  !(x > x OR y)
+				* */
+                 void TheoryAxioms::addChaosAxiom24(unsigned srt, unsigned size)
+                 {
+                     CALL("TheoryAxioms::addChaosAxiom24");
+
+                     TermList x(0,false);
+                     TermList y(1,false);
+
+                     unsigned bvor = env.signature->getInterpretingSymbol(Theory::BVOR,OperatorType::getFunctionType({srt,srt},srt));
+                     unsigned bvugt = env.signature->getInterpretingSymbol(Theory::BVUGT,OperatorType::getPredicateType({srt,srt}));
+
+                     TermList xOy(Term::create2(bvor,x,y));
+
+                     //!(x OR 0 > x)
+                     TermList args[2] = { x, xOy };
+                     Literal* l1 = Literal::create(bvugt, 2, false, false, args);
+
+                     addTheoryUnitClause(l1,CHEAP);
+
+                 }
+
+                 /* Add that (unsigned)
+				  *  (x > y) -> (x != y AND !(y >x ))
+				  *  (!(x>y) OR (x!=y)) AND (!(x>y) OR !(y>x))
+				* */
+                 void TheoryAxioms::addChaosAxiom25(unsigned srt, unsigned size)
+                 {
+                     CALL("TheoryAxioms::addChaosAxiom25");
+
+                     TermList x(0,false);
+                     TermList y(1,false);
+
+                     unsigned bvor = env.signature->getInterpretingSymbol(Theory::BVOR,OperatorType::getFunctionType({srt,srt},srt));
+                     unsigned bvugt = env.signature->getInterpretingSymbol(Theory::BVUGT,OperatorType::getPredicateType({srt,srt}));
+
+                      // !(x>y)
+                     TermList args[2] = { x, y };
+                     Literal* l1 = Literal::create(bvugt, 2, false, false, args);
+
+                     //(x!=y)
+                     Literal* l2 = Literal::createEquality(false,x,y,srt);
+
+                     //(!(x>y) OR (x!=y))
+                     addTheoryNonUnitClause(l1,l2,CHEAP);
+
+
+                     // !(y>x)
+                     TermList args2[2] = { y, x };
+                     Literal* l3 = Literal::create(bvugt, 2, false, false, args2);
+
+                     //(!(x>y) OR !(y>x))
+                     addTheoryNonUnitClause(l1,l3,CHEAP);
+
+                 }
+
+                 /* Add that (unsigned)
+				  *  (x > y) -> (x > 0 || y)
+				  *  !(x > y) OR (x > 0 || y)
+				* */
+                 void TheoryAxioms::addChaosAxiom26(unsigned srt, unsigned size)
+                 {
+                     CALL("TheoryAxioms::addChaosAxiom25");
+
+                     TermList x(0,false);
+                     TermList y(1,false);
+
+                     unsigned bvor = env.signature->getInterpretingSymbol(Theory::BVOR,OperatorType::getFunctionType({srt,srt},srt));
+                     unsigned bvugt = env.signature->getInterpretingSymbol(Theory::BVUGT,OperatorType::getPredicateType({srt,srt}));
+
+                     TermList zero(theory->representConstant(BitVectorOperations::getZeroBVCT(size)));
+
+                      // !(x>y)
+                     TermList args[2] = { x, y };
+                     Literal* l1 = Literal::create(bvugt, 2, false, false, args);
+
+                     //x > 0 || y
+                     TermList yOz(Term::create2(bvor,y,zero));
+                     TermList args2[2] = { x, yOz };
+                     Literal* l2 = Literal::create(bvugt, 2, true, false, args2);
+
+
+                     addTheoryNonUnitClause(l1,l2,CHEAP);
+
+
+                 }
+                 /* Add that (unsigned)
+				  *  !(x > y) -> (y >= X)
+				  *  (x > y) OR (y >= x)
+				* */
+                 void TheoryAxioms::addChaosAxiom27(unsigned srt, unsigned size)
+                 {
+                     CALL("TheoryAxioms::addChaosAxiom25");
+
+                     TermList x(0,false);
+                     TermList y(1,false);
+
+                     unsigned bvugt = env.signature->getInterpretingSymbol(Theory::BVUGT,OperatorType::getPredicateType({srt,srt}));
+                     unsigned bvuge = env.signature->getInterpretingSymbol(Theory::BVUGE,OperatorType::getPredicateType({srt,srt}));
+
+                     TermList zero(theory->representConstant(BitVectorOperations::getZeroBVCT(size)));
+
+                      // (x>y)
+                     TermList args[2] = { x, y };
+                     Literal* l1 = Literal::create(bvugt, 2, true, false, args);
+
+                     //y >= x)
+                     TermList args2[2] = { y, x };
+                     Literal* l2 = Literal::create(bvuge, 2, true, false, args2);
+
+
+                     addTheoryNonUnitClause(l1,l2,CHEAP);
+
+
+                 }
+
+                 /* Add that (signed)
+				  *  !(x >= y) -> (y > X)
+				  *  (x >= y) OR (y > x)
+				* */
+                 void TheoryAxioms::addChaosAxiom32(unsigned srt, unsigned size)
+                 {
+                     CALL("TheoryAxioms::addChaosAxiom25");
+
+                     TermList x(0,false);
+                     TermList y(1,false);
+
+                     unsigned bvsgt = env.signature->getInterpretingSymbol(Theory::BVSGT,OperatorType::getPredicateType({srt,srt}));
+                     unsigned bvsge = env.signature->getInterpretingSymbol(Theory::BVSGE,OperatorType::getPredicateType({srt,srt}));
+
+                     TermList zero(theory->representConstant(BitVectorOperations::getZeroBVCT(size)));
+
+                      // (x >= y)
+                     TermList args[2] = { x, y };
+                     Literal* l1 = Literal::create(bvsge, 2, true, false, args);
+
+                     //(y > x)
+                     TermList args2[2] = { y, x };
+                     Literal* l2 = Literal::create(bvsgt, 2, true, false, args2);
+
+
+                     addTheoryNonUnitClause(l1,l2,CHEAP);
+
+
+                 }
+
+                 /* Add that (signed)
+				  *
+				* */
+                 void TheoryAxioms::addChaosAxiom33(unsigned srt, unsigned size)
+                 {
+
+
+
+                 }
+
+                 /* Add that (signed)
+				  *  x >= (x || smin)
+				* */
+                 void TheoryAxioms::addChaosAxiom31(unsigned srt, unsigned size)
+                 {
+                     CALL("TheoryAxioms::addChaosAxiom25");
+
+                     TermList x(0,false);
+                     TermList y(1,false);
+
+                     unsigned bvor = env.signature->getInterpretingSymbol(Theory::BVOR,OperatorType::getFunctionType({srt,srt},srt));
+                     unsigned bvsge = env.signature->getInterpretingSymbol(Theory::BVSGE,OperatorType::getPredicateType({srt,srt}));
+
+                     TermList smin(theory->representConstant(BitVectorOperations::getSignedMinBVCT(size)));
+
+                     // (x || smin)
+                     TermList xOs(Term::create2(bvor,x,smin));
+                     // x >= (x || smin)
+                     TermList args[2] = { x, xOs };
+                     Literal* l1 = Literal::create(bvsge, 2, true, false, args);
+
+                     addTheoryUnitClause(l1,CHEAP);
+
+
                  }
 
 /* Add that
@@ -2913,7 +3183,8 @@ void TheoryAxioms::apply()
           unsigned srt0 = entry.second->arg(0);
           // add that !(!x) = x
           addUnaryFunctionAppliedTwiceEqualsArgument(itp,srt0);
-
+          // add that !x != x
+          addChaosAxiom12(srt0,size);
 
       }
       else if (itp == Theory::BVNEG){
@@ -2921,7 +3192,11 @@ void TheoryAxioms::apply()
          unsigned srt0 = entry.second->arg(0);
          // add that -(-x) = x
          addUnaryFunctionAppliedTwiceEqualsArgument(itp,srt0);
+         // add that
+         // (x!=0 AND x!=smin) -> ~x != x
          addChaosAxiom10(srt0,size);
+         // add that !x != ~x
+         addChaosAxiom11(srt0,size);
 
 
 
@@ -3045,11 +3320,19 @@ void TheoryAxioms::apply()
     	 // !(bvsge x s) OR (bvsgt x s) OR (x = s)
     	  isPredicateWithEqualRemovedOrEqualAxiom(Theory::BVSGE,Theory::BVSGT,size);
 
+    	  // x >= (x || smin)
+    	  addChaosAxiom31(srt0,size);
+
+    	  // (x >= y) OR (y > x)
+    	  addChaosAxiom32(srt0,size);
+
+    	  addPolymorphicTransitivity(Theory::BVSGE, srt0);
+
 
       }
 
       else if (itp == Theory::BVUGE){
-
+    	  BVUGEPART:
     	  unsigned srt0 = entry.second->arg(0);
     	  TermList zero(theory->representConstant(BitVectorOperations::getZeroBVCT(size)));
           TermList allOnes(theory->representConstant(BitVectorOperations::getAllOnesBVCT(size)));
@@ -3062,8 +3345,9 @@ void TheoryAxioms::apply()
           // add that (bvuge allones x)
           addSimplePolyMorphicPredicateWithConstantAxiom(srt0, itp, allOnes, true, true,false);
 
-          // !bvuge(x y) OR !bvugt(y x)
-          addPolyMorphicClauseAxiom(srt0, Theory::BVUGE , false, false, Theory::BVUGT, true, false);
+          // !bvuge(x y) OR !bvugt(y x) (redundant?)
+         // addPolyMorphicClauseAxiom(srt0, Theory::BVUGE , false, false, Theory::BVUGT, true, false);
+
           // !(bvuge x s) OR (bvugt x s) OR (x = s)
           isPredicateWithEqualRemovedOrEqualAxiom(Theory::BVUGE,Theory::BVUGT,size); // ??
 
@@ -3075,6 +3359,14 @@ void TheoryAxioms::apply()
 
           // bvuge (bvand(s x) t) -> bvuge(s t)
           addTempOrAxiom2(srt0, itp, Interpretation::BVAND);
+
+          addPolymorphicTransitivity(Theory::BVUGE, srt0);
+
+          // add that (unsigned)
+          // x || y >= x
+          addChaosAxiom21(srt0,size);
+
+          addChaosAxiom27(srt0,size);
 
 
       }
@@ -3120,9 +3412,28 @@ void TheoryAxioms::apply()
          //rewrite this
          //bvult(bvor(s, x), t) -> bvult(s,t)
          // addTempOrAxiom2(srt0, Theory::BVULT,  Theory::BVOR);
+
+          addPolyMorphicNonReflexivity(itp,OperatorType::getPredicateType({srt0,srt0}));
+
+          addPolymorphicTransitivity(itp, srt0);
+
+          // !(x > x OR y)
+          addChaosAxiom24(srt0,size);
+
+         // (x > y) -> (x!=y and !(y>x))
+          // !(x > y) OR (x!=y and ())
+         // addChaosAxiom25(srt0,size);
+
+
+        //  addChaosAxiom26(srt0,size);
+          itp = Theory::BVUGE;
+          goto BVUGEPART; // careful about adding axioms twice?
+
+
       }
 
       else if(itp == Theory::BVSGT) {
+    	  BVSGTPART:
           unsigned srt0 = entry.second->arg(0);
           TermList signedMax(theory->representConstant(BitVectorOperations::getSignedMaxBVCT(size)));
           TermList signedMin(theory->representConstant(BitVectorOperations::getSignedMinBVCT(size)));
