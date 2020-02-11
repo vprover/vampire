@@ -74,8 +74,7 @@ PredicateSplitPassiveClauseContainer::~PredicateSplitPassiveClauseContainer() {
   CALL("PredicateSplitPassiveClauseContainer::~PredicateSplitPassiveClauseContainer");
 }
 
-unsigned PredicateSplitPassiveClauseContainer::bestQueueHeuristics(Inference* inf) const {
-  auto featureValue = evaluateFeature(inf);
+unsigned PredicateSplitPassiveClauseContainer::bestQueue(float featureValue) const {
 
   // compute best queue clause should be placed in
   ASS(_cutoffs.back() == std::numeric_limits<float>::max());
@@ -95,7 +94,7 @@ void PredicateSplitPassiveClauseContainer::add(Clause* cl)
   ASS(cl->store() == Clause::PASSIVE);
 
   // add clause to all queues starting from best queue for clause
-  auto bestQueueIndex = bestQueueHeuristics(cl->inference());
+  auto bestQueueIndex = bestQueue(evaluateFeature(cl));
   for (unsigned i = bestQueueIndex; i < _queues.size(); i++)
   {
     _queues[i]->add(cl);
@@ -117,7 +116,7 @@ void PredicateSplitPassiveClauseContainer::remove(Clause* cl)
     ASS(cl->store()==Clause::PASSIVE);
   }
   // remove clause from all queues starting from best queue for clause
-  auto bestQueueIndex = bestQueueHeuristics(cl->inference());
+  auto bestQueueIndex = bestQueue(evaluateFeature(cl));
   for (unsigned i = bestQueueIndex; i < _queues.size(); i++)
   {
     _queues[i]->remove(cl);
@@ -331,7 +330,8 @@ bool PredicateSplitPassiveClauseContainer::weightLimited() const
 // returns true if the cl fulfils at least one age-limit of a queue it is in
 bool PredicateSplitPassiveClauseContainer::fulfilsAgeLimit(Clause* cl) const
 {
-  for (unsigned i = bestQueueHeuristics(cl->inference()); i < _queues.size(); i++)
+  auto bestQueueIndex = bestQueue(evaluateFeature(cl));
+  for (unsigned i = bestQueueIndex; i < _queues.size(); i++)
   {
     auto& queue = _queues[i];
     if (queue->fulfilsAgeLimit(cl))
@@ -347,7 +347,8 @@ bool PredicateSplitPassiveClauseContainer::fulfilsAgeLimit(Clause* cl) const
 // this method internally takes care of computing the corresponding weightForClauseSelection.
 bool PredicateSplitPassiveClauseContainer::fulfilsAgeLimit(unsigned age, unsigned w, unsigned numeralWeight, bool derivedFromGoal, Inference* inference) const
 {
-  for (unsigned i = bestQueueHeuristics(inference); i < _queues.size(); i++)
+  auto bestQueueIndex = bestQueue(evaluateFeatureEstimate(inference));
+  for (unsigned i = bestQueueIndex; i < _queues.size(); i++)
   {
     auto& queue = _queues[i];
     if (queue->fulfilsAgeLimit(age, w, numeralWeight, derivedFromGoal, inference))
@@ -361,7 +362,8 @@ bool PredicateSplitPassiveClauseContainer::fulfilsAgeLimit(unsigned age, unsigne
 // returns true if the cl fulfils at least one weight-limit of a queue it is in
 bool PredicateSplitPassiveClauseContainer::fulfilsWeightLimit(Clause* cl) const
 {
-  for (unsigned i = bestQueueHeuristics(cl->inference()); i < _queues.size(); i++)
+  auto bestQueueIndex = bestQueue(evaluateFeature(cl));
+  for (unsigned i = bestQueueIndex; i < _queues.size(); i++)
   {
     auto& queue = _queues[i];
     if (queue->fulfilsWeightLimit(cl))
@@ -376,7 +378,8 @@ bool PredicateSplitPassiveClauseContainer::fulfilsWeightLimit(Clause* cl) const
 // this method internally takes care of computing the corresponding weightForClauseSelection.
 bool PredicateSplitPassiveClauseContainer::fulfilsWeightLimit(unsigned w, unsigned numeralWeight, bool derivedFromGoal, unsigned age, Inference* inference) const
 {
-  for (unsigned i = bestQueueHeuristics(inference); i < _queues.size(); i++)
+  auto bestQueueIndex = bestQueue(evaluateFeatureEstimate(inference));
+  for (unsigned i = bestQueueIndex; i < _queues.size(); i++)
   {
     auto& queue = _queues[i];
     if (queue->fulfilsWeightLimit(w, numeralWeight, derivedFromGoal, age, inference))
@@ -389,7 +392,7 @@ bool PredicateSplitPassiveClauseContainer::fulfilsWeightLimit(unsigned w, unsign
 
 bool PredicateSplitPassiveClauseContainer::childrenPotentiallyFulfilLimits(Clause* cl, unsigned upperBoundNumSelLits) const 
 {
-  // can't conlude any lower bounds on niceness of child-clause, so have to assume that it is potentially added to all queues.
+  // can't conclude any lower bounds on niceness of child-clause, so have to assume that it is potentially added to all queues.
   // In particular we need to check whether at least one of the queues could potentially select childrens of the clause.
   for (const auto& queue : _queues)
   {
@@ -404,7 +407,15 @@ bool PredicateSplitPassiveClauseContainer::childrenPotentiallyFulfilLimits(Claus
 TheoryMultiSplitPassiveClauseContainer::TheoryMultiSplitPassiveClauseContainer(bool isOutermost, const Shell::Options &opt, Lib::vstring name, Lib::vvector<std::unique_ptr<PassiveClauseContainer>> queues) :
 PredicateSplitPassiveClauseContainer(isOutermost, opt, name, std::move(queues), opt.theorySplitQueueCutoffs(), opt.theorySplitQueueRatios()) {}
 
-float TheoryMultiSplitPassiveClauseContainer::evaluateFeature(Inference* inf) const
+float TheoryMultiSplitPassiveClauseContainer::evaluateFeature(Clause* cl) const
+{
+  // heuristically compute likeliness that clause occurs in proof
+  auto inf = cl->inference();
+  auto expectedRatioDenominator = _opt.theorySplitQueueExpectedRatioDenom();
+  return inf->th_ancestors * expectedRatioDenominator - inf->all_ancestors;
+}
+
+float TheoryMultiSplitPassiveClauseContainer::evaluateFeatureEstimate(Inference* inf) const
 {
     // heuristically compute likeliness that clause occurs in proof
     auto expectedRatioDenominator = _opt.theorySplitQueueExpectedRatioDenom();

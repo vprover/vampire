@@ -49,9 +49,10 @@ private:
   Lib::vvector<unsigned> _ratios;  
   Lib::vvector<unsigned> _balances;
 
-  unsigned bestQueueHeuristics(Inference* inf) const;
+  unsigned bestQueue(float featureValue) const;
 
-  virtual float evaluateFeature(Inference* inf) const = 0;
+  virtual float evaluateFeature(Clause* cl) const = 0;
+  virtual float evaluateFeatureEstimate(Inference* inf) const = 0;
 
   /*
    * LRS specific methods for computation of Limits
@@ -97,7 +98,8 @@ public:
   TheoryMultiSplitPassiveClauseContainer(bool isOutermost, const Shell::Options &opt, Lib::vstring name, Lib::vvector<std::unique_ptr<PassiveClauseContainer>> queues);
 
 private:
-  float evaluateFeature(Inference* inf) const override;
+  float evaluateFeature(Clause* cl) const override;
+  float evaluateFeatureEstimate(Inference* inf) const override;
 };
 
 };
