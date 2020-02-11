@@ -421,7 +421,7 @@ void AWPassiveClauseContainer::simulationPopSelected()
 bool AWPassiveClauseContainer::setLimitsToMax()
 {
   CALL("AWPassiveClauseContainer::setLimitsToMax");
-  setLimits(UINT_MAX, UINT_MAX, UINT_MAX, UINT_MAX);
+  return setLimits(UINT_MAX, UINT_MAX, UINT_MAX, UINT_MAX);
 }
 
 bool AWPassiveClauseContainer::setLimitsFromSimulation()

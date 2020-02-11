@@ -59,13 +59,13 @@ private:
    */
 public:
   void simulationInit() override {}
-  bool simulationHasNext() override {}
+  bool simulationHasNext() override { return false; }
   void simulationPopSelected() override {}
 
   // returns whether at least one of the limits was tightened
-  bool setLimitsToMax() override {}
+  bool setLimitsToMax() override { return false; }
   // returns whether at least one of the limits was tightened
-  bool setLimitsFromSimulation() override {}
+  bool setLimitsFromSimulation() override { return false; }
 
   void onLimitsUpdated() override {}
 
