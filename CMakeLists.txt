@@ -21,7 +21,6 @@ set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -DVDEBUG=0")
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 add_compile_options(
-#    "-Wno-exceptions"  # there's just too many warnings if this is enabled # this option doesn't seem to exist in all compilers
     # "-ftrapv"
     # "-pedantic"
     # "-Wall"
@@ -38,6 +37,9 @@ add_compile_options(
 # -- see also https://cmake.org/pipermail/cmake/2016-May/063452.html
 if(CMAKE_COMPILER_IS_GNUCXX)
   add_compile_options("-Wno-terminate")
+endif()
+if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")  # use MATCHES instead of equality because the value is "AppleClang" on macOS
+  add_compile_options("-Wno-exceptions")
 endif()
 
 
