@@ -45,8 +45,8 @@ public:
 
 private:
   Lib::vvector<std::unique_ptr<PassiveClauseContainer>> _queues;
-  Lib::vvector<unsigned> _ratios;
   Lib::vvector<float> _cutoffs;
+  Lib::vvector<unsigned> _ratios;  
   Lib::vvector<unsigned> _balances;
 
   unsigned bestQueueHeuristics(Inference* inf) const;

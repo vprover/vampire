@@ -42,7 +42,8 @@ int computeLCM(int a, int b) {
   return (a*b)/computeGCD(a, b);
 }
 
-PredicateSplitPassiveClauseContainer::PredicateSplitPassiveClauseContainer(bool isOutermost, const Shell::Options& opt, vstring name, Lib::vvector<std::unique_ptr<PassiveClauseContainer>> queues, Lib::vvector<float> cutoffs, Lib::vvector<int> ratios) : PassiveClauseContainer(isOutermost, opt, name), _queues(std::move(queues)), _cutoffs(cutoffs), _ratios(), _balances(), _simulationBalances()
+PredicateSplitPassiveClauseContainer::PredicateSplitPassiveClauseContainer(bool isOutermost, const Shell::Options& opt, vstring name, Lib::vvector<std::unique_ptr<PassiveClauseContainer>> queues, Lib::vvector<float> cutoffs, Lib::vvector<int> ratios)
+  : PassiveClauseContainer(isOutermost, opt, name), _queues(std::move(queues)), _cutoffs(cutoffs), _ratios(), _balances(), _simulationBalances()
 {
   CALL("PredicateSplitPassiveClauseContainer::PredicateSplitPassiveClauseContainer");
 
@@ -62,7 +63,7 @@ PredicateSplitPassiveClauseContainer::PredicateSplitPassiveClauseContainer(bool 
   }
 
   // initialize
-  for (int i = 0; i < ratios.size(); i++)
+  for (unsigned i = 0; i < ratios.size(); i++)
   {
     _ratios.push_back(lcm / ratios[i]);
     _balances.push_back(0);
