@@ -134,8 +134,10 @@ ClauseIterator PredicateSplitPassiveClauseContainer::iterator()
   return pvi( getConcatenatedIterator(_yesPCC.iterator(),_noPCC.iterator()));
 }
 
+int AWPassiveClauseContainer::static_balance = 0;
+
 AWPassiveClauseContainer::AWPassiveClauseContainer(const Options& opt)
-:  _ageQueue(opt), _weightQueue(opt), _balance(0), _size(0), _opt(opt)
+:  _ageQueue(opt), _weightQueue(opt), _size(0), _opt(opt)
 {
   CALL("AWPassiveClauseContainer::AWPassiveClauseContainer");
 
@@ -388,10 +390,10 @@ bool AWPassiveClauseContainer::byWeight()
   else if (! _weightRatio) {
     return false;
   }
-  else if (_balance > 0) {
+  else if (static_balance > 0) {
     return true;
   }
-  else if (_balance < 0) {
+  else if (static_balance < 0) {
     return false;
   }
   else {
@@ -423,13 +425,13 @@ Clause* AWPassiveClauseContainer::popSelected()
   _size--;
 
   if (byWeight()) {
-    _balance -= _ageRatio;
+    static_balance -= _ageRatio;
     Clause* cl = _weightQueue.pop();
     _ageQueue.remove(cl);
     selectedEvent.fire(cl);
     return cl;
   }
-  _balance += _weightRatio;
+  static_balance += _weightRatio;
   Clause* cl = _ageQueue.pop();
   _weightQueue.remove(cl);
   selectedEvent.fire(cl);

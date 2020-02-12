@@ -116,7 +116,7 @@ private:
   int _weightRatio;
   /** current balance. If &lt;0 then selection by age, if &gt;0
    * then by weight */
-  int _balance;
+  static int static_balance;
 
   unsigned _size;
 
