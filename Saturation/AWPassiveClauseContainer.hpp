@@ -54,7 +54,6 @@ protected:
   friend class AWPassiveClauseContainer;
 private:
   const Shell::Options& _opt;
-  bool _modelSaidYes;
 };
 
 class WeightQueue
@@ -71,7 +70,6 @@ protected:
   friend class AWPassiveClauseContainer;
 private:
   const Shell::Options& _opt;
-  bool _modelSaidYes;
 };
 
 /**
@@ -115,7 +113,7 @@ private:
   int _weightRatio;
   /** current balance. If &lt;0 then selection by age, if &gt;0
    * then by weight */
-  int _balance;
+  static int static_balance;
 
   unsigned _size;
 

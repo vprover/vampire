@@ -49,13 +49,14 @@ namespace Saturation
 using namespace Lib;
 using namespace Kernel;
 
+int AWPassiveClauseContainer::static_balance = 0;
+
 AWPassiveClauseContainer::AWPassiveClauseContainer(bool isOutermost, const Shell::Options& opt, vstring name) :
   PassiveClauseContainer(isOutermost, opt, name),
   _ageQueue(opt),
   _weightQueue(opt),
   _ageRatio(opt.ageRatio()),
   _weightRatio(opt.weightRatio()),
-  _balance(0),
   _size(0),
 
   _simulationBalance(0),
@@ -351,10 +352,10 @@ bool AWPassiveClauseContainer::byWeight(int balance)
   else if (! _weightRatio) {
     return false;
   }
-  else if (balance > 0) {
+  else if (static_balance > 0) {
     return true;
   }
-  else if (balance < 0) {
+  else if (static_balance < 0) {
     return false;
   }
   else {
@@ -367,7 +368,7 @@ Clause* AWPassiveClauseContainer::peekSelected()
   CALL("AWPassiveClauseContainer::peekSelected");
   ASS( ! isEmpty());
 
-  if (byWeight(_balance)) {
+  if (byWeight(static_balance)) {
     return _weightQueue.top();
   } else {
     return _ageQueue.top();
@@ -386,12 +387,12 @@ Clause* AWPassiveClauseContainer::popSelected()
   _size--;
 
   Clause* cl;
-  if (byWeight(_balance)) {
-    _balance -= _ageRatio;
+  if (byWeight(static_balance)) {
+    static_balance -= _ageRatio;
     cl = _weightQueue.pop();
     _ageQueue.remove(cl);
   } else {
-    _balance += _weightRatio;
+    static_balance += _weightRatio;
     cl = _ageQueue.pop();
     _weightQueue.remove(cl);
   }
@@ -444,7 +445,7 @@ void AWPassiveClauseContainer::onLimitsUpdated()
 void AWPassiveClauseContainer::simulationInit()
 {
   CALL("AWPassiveClauseContainer::simulationInit");
-  _simulationBalance = _balance;
+  _simulationBalance = static_balance;
 
   // initialize iterators
   _simulationCurrAgeIt = ClauseQueue::Iterator(_ageQueue);
