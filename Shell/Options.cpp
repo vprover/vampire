@@ -1685,6 +1685,11 @@ void Options::Options::init()
     _lookup.insert(&_maxWeight);
     _maxWeight.tag(OptionTag::SATURATION);
 
+    _maxAge = IntOptionValue("max_age","",0);
+    _maxAge.description="Age limit for clauses (0 means no age limit)";
+    _lookup.insert(&_maxAge);
+    _maxAge.tag(OptionTag::SATURATION);
+
     _nonGoalWeightCoefficient = NonGoalWeightOptionValue("nongoal_weight_coefficient","nwc",1.0);
     _nonGoalWeightCoefficient.description=
              "coefficient that will multiply the weight of theory clauses (those marked as 'axiom' in TPTP)";

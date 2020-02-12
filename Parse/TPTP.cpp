@@ -89,7 +89,8 @@ TPTP::TPTP(istream& in)
     _insideEqualityArgument(0),
     _unitSources(0),
     _filterReserved(false),
-    _seenConjecture(false)
+    _seenConjecture(false),
+    _isThf(false)
 {
 } // TPTP::TPTP
 
@@ -2872,7 +2873,6 @@ void TPTP::term()
     case T_INT:
     case T_REAL:
     case T_RAT: {
-      PARSE_ERROR("Sorry, polymorphic vampire doesn't support thoeries yet", tok);
       resetToks();
       unsigned number;
       switch (tok.tag) {
@@ -2881,12 +2881,15 @@ void TPTP::term()
           break;
         case T_INT:
           //number = addIntegerConstant(tok.content,_overflow,_isFof);
+          PARSE_ERROR("Sorry, polymorphic vampire doesn't support thoeries yet", tok);
           break;
         case T_REAL:
           //number = addRealConstant(tok.content,_overflow,_isFof);
+          PARSE_ERROR("Sorry, polymorphic vampire doesn't support thoeries yet", tok);
           break;
         case T_RAT:
           //number = addRationalConstant(tok.content,_overflow,_isFof);
+          PARSE_ERROR("Sorry, polymorphic vampire doesn't support thoeries yet", tok);
           break;
         default:
           ASSERTION_VIOLATION;
@@ -4050,6 +4053,11 @@ void TPTP::simpleFormula()
     return;
 
   case T_STRING:
+    _states.push(END_EQ);
+    _states.push(TERM);
+    _states.push(MID_EQ);
+    _states.push(TERM);
+    return;
   case T_INT:
   case T_RAT:
   case T_REAL:
@@ -5144,7 +5152,7 @@ const char* TPTP::toString(State s)
 #ifdef DEBUG_SHOW_STATE
 void TPTP::printStacks() {
 
-  Stack<State>::Iterator stit(_states);
+  /*Stack<State>::Iterator stit(_states);
   cout << "States:";
   if   (!stit.hasNext()) cout << " <empty>";
   while (stit.hasNext()) cout << " " << toString(stit.next());
@@ -5160,7 +5168,7 @@ void TPTP::printStacks() {
   cout << "Connectives:";
   if   (!cit.hasNext()) cout << " <empty>";
   while (cit.hasNext()) cout << " " << cit.next();
-  cout << endl;
+  cout << endl; */
 
   Stack<vstring>::Iterator sit(_strings);
   cout << "Strings:";
@@ -5168,7 +5176,7 @@ void TPTP::printStacks() {
   while (sit.hasNext()) cout << " " << sit.next();
   cout << endl;
 
-  Stack<int>::Iterator iit(_ints);
+  /*Stack<int>::Iterator iit(_ints);
   cout << "Ints:";
   if   (!iit.hasNext()) cout << " <empty>";
   while (iit.hasNext()) cout << " " << iit.next();
@@ -5325,7 +5333,7 @@ void TPTP::printStacks() {
       }
       cout << "]";
     }
-  }
+  }*/
   cout << endl;
 }
 #endif

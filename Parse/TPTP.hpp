@@ -38,7 +38,7 @@
 #include "Kernel/Unit.hpp"
 //#include "Kernel/Theory.hpp"
 
-//define DEBUG_SHOW_STATE
+//#define DEBUG_SHOW_STATE
 
 using namespace std;
 using namespace Lib;
