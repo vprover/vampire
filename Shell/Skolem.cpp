@@ -379,8 +379,7 @@ Formula* Skolem::skolemise (Formula* f)
 
       // for proof recording purposes, see below
       Formula::VarList* var_args = Formula::VarList::empty();
-      static Substitution localSubst;
-      localSubst.reset();
+      Formula* before = SubstHelper::apply(f, _subst);
 
       ExVarDepInfo& depInfo = _varDeps.get(f);
 
@@ -424,7 +423,6 @@ Formula* Skolem::skolemise (Formula* f)
 
         Term* skolemTerm = Term::create(fun, arity, fnArgs.begin());
         _subst.bind(v,skolemTerm);
-        localSubst.bind(v,skolemTerm);
 
         if (env.options->showSkolemisations()) {
           env.beginOutput();
@@ -449,7 +447,8 @@ Formula* Skolem::skolemise (Formula* f)
       }
 
       {
-        Formula* def = new BinaryFormula(IMP, f, SubstHelper::apply(f->qarg(), localSubst));
+        Formula* after = SubstHelper::apply(f->qarg(), _subst);
+        Formula* def = new BinaryFormula(IMP, before, after);
 
         if (arity > 0) {
           def = new QuantifiedFormula(FORALL,var_args,nullptr,def);

@@ -375,10 +375,11 @@ Ordering::Result PrecedenceOrdering::compareFunctionPrecedences(unsigned fun1, u
     if(s2->interpreted()) {
       return GREATER;
     }
+    static bool reverse = env.options->introducedSymbolPrecedence() == Shell::Options::IntroducedSymbolPrecedence::BOTTOM;
     //two non-interpreted functions
     return fromComparison(Int::compare(
-        fun1 >= _functions ? (int)fun1 : _functionPrecedences[fun1],
-        fun2 >= _functions ? (int)fun2 : _functionPrecedences[fun2] ));
+        fun1 >= _functions ? (int)(reverse ? -fun1 : fun1) : _functionPrecedences[fun1],
+        fun2 >= _functions ? (int)(reverse ? -fun2 : fun2) : _functionPrecedences[fun2] ));
   }
   if(!s2->interpreted()) {
     return LESS;

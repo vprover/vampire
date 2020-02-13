@@ -42,7 +42,7 @@ public:
   CLASS_NAME(ManCSPassiveClauseContainer);
   USE_ALLOCATOR(ManCSPassiveClauseContainer);
 
-  ManCSPassiveClauseContainer(const Options& opt) : opt(opt) {}
+  ManCSPassiveClauseContainer(const Options& opt) {}
   virtual ~ManCSPassiveClauseContainer(){}
   
   virtual unsigned size() const;
@@ -56,7 +56,6 @@ public:
   
 private:
   std::vector<Clause*> clauses;
-  const Options& opt;
 };
 
 }
