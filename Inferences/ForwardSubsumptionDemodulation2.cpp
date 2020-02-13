@@ -37,8 +37,7 @@ void ForwardSubsumptionDemodulation2::attach(SaturationAlgorithm* salg)
   CALL("ForwardSubsumptionDemodulation2::attach");
   ForwardSimplificationEngine::attach(salg);
 
-  auto index_type = getOptions().forwardSubsumptionDemodulationUseSeparateIndex() ? FSD_SUBST_TREE : FW_SUBSUMPTION_SUBST_TREE;
-  _index.request(salg->getIndexManager(), index_type);
+  _index.request(salg->getIndexManager(), FSD_SUBST_TREE);
 
   _preorderedOnly = false;
   _allowIncompleteness = false;

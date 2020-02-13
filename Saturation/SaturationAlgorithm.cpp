@@ -1431,24 +1431,17 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
   }
   if (prb.hasEquality()) {
     // NOTE:
-    // fsd must be performed after forward subsumption,
-    // because every forward subsumption will lead to a (useless) match in fsd.
+    // fsd should be performed after forward subsumption,
+    // because every successful forward subsumption will lead to a (useless) match in fsd.
     switch (opt.forwardSubsumptionDemodulation()) {
       case Options::FSD::V1:
         res->addForwardSimplifierToFront(new ForwardSubsumptionDemodulation());
         break;
       case Options::FSD::V2:
-        res->addForwardSimplifierToFront(
-          new ForwardSubsumptionDemodulation2(
-            opt.forwardSubsumption() && opt.forwardSubsumptionDemodulationIncludeSubsumptionAndResolution()
-            ));
+        res->addForwardSimplifierToFront(new ForwardSubsumptionDemodulation2(false));
         break;
       case Options::FSD::V3:
-        res->addForwardSimplifierToFront(
-          new ForwardSubsumptionDemodulation3(
-            opt.forwardSubsumption() && opt.forwardSubsumptionDemodulationIncludeSubsumptionAndResolution(),
-            opt.forwardSubsumptionResolution() && opt.forwardSubsumptionDemodulationIncludeSubsumptionAndResolution()
-            ));
+        res->addForwardSimplifierToFront(new ForwardSubsumptionDemodulation3(opt.forwardSubsumption(), opt.forwardSubsumptionResolution()));
         break;
       case Options::FSD::OFF:
         break;
@@ -1472,7 +1465,7 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
 #endif
     }
   }
-  if (!opt.forwardSubsumptionDemodulationIncludeSubsumptionAndResolution()) {
+  if (opt.forwardSubsumptionDemodulation() != Options::FSD::V3) {
     if (opt.forwardSubsumption()) {
       if (opt.forwardSubsumptionResolution()) {
         //res->addForwardSimplifierToFront(new CTFwSubsAndRes(true));

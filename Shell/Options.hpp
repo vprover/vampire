@@ -753,17 +753,12 @@ public:
     POSITION = 5
   };
 
+  // TODO: Remove and leave only V2 (= "on")
   enum class FSD : unsigned int {
     OFF = 0,
     V1 = 1,
     V2 = 2,
     V3 = 3
-  };
-
-  enum class AdjustFSIndexForFSD : unsigned int {
-    WHEN_USED_BY_FSD = 0,
-    ALWAYS = 1,
-    NEVER = 2
   };
 
   enum class AgeWeightRatioShape {
@@ -1958,9 +1953,6 @@ public:
   //void setForwardSubsumptionResolution(bool newVal) { _forwardSubsumptionResolution = newVal; }
   FSD forwardSubsumptionDemodulation() const { return _forwardSubsumptionDemodulation.actualValue; }
   unsigned forwardSubsumptionDemodulationMaxMatches() const { return _forwardSubsumptionDemodulationMaxMatches.actualValue; }
-  AdjustFSIndexForFSD forwardSubsumptionDemodulationAdjustFSIndexForFSD() const { return _forwardSubsumptionDemodulationAdjustFSIndexForFSD.actualValue; }
-  bool forwardSubsumptionDemodulationUseSeparateIndex() const { return _forwardSubsumptionDemodulationUseSeparateIndex.actualValue; }
-  bool forwardSubsumptionDemodulationIncludeSubsumptionAndResolution() const { return _forwardSubsumptionDemodulationIncludeSubsumptionAndResolution.actualValue; }
   Demodulation forwardDemodulation() const { return _forwardDemodulation.actualValue; }
   bool binaryResolution() const { return _binaryResolution.actualValue; }
   bool bfnt() const { return _bfnt.actualValue; }
@@ -2326,9 +2318,6 @@ private:
   BoolOptionValue _forwardSubsumptionResolution;
   ChoiceOptionValue<FSD> _forwardSubsumptionDemodulation;
   UnsignedOptionValue _forwardSubsumptionDemodulationMaxMatches;
-  ChoiceOptionValue<AdjustFSIndexForFSD> _forwardSubsumptionDemodulationAdjustFSIndexForFSD;
-  BoolOptionValue _forwardSubsumptionDemodulationUseSeparateIndex;
-  BoolOptionValue _forwardSubsumptionDemodulationIncludeSubsumptionAndResolution;
   ChoiceOptionValue<FunctionDefinitionElimination> _functionDefinitionElimination;
   IntOptionValue _functionNumber;
   

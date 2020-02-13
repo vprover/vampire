@@ -37,8 +37,11 @@ void ForwardSubsumptionDemodulation3::attach(SaturationAlgorithm* salg)
   CALL("ForwardSubsumptionDemodulation3::attach");
   ForwardSimplificationEngine::attach(salg);
 
-  auto index_type = getOptions().forwardSubsumptionDemodulationUseSeparateIndex() ? FSD_SUBST_TREE : FW_SUBSUMPTION_SUBST_TREE;
-  _index.request(salg->getIndexManager(), index_type);
+  // TODO: Remove this file, but keep v3-specific notes somewhere.
+  // Current implementation relies on adjusted FS-index.
+  ASSERTION_VIOLATION_REP("currently not implemented properly");
+  // auto index_type = getOptions().forwardSubsumptionDemodulationUseSeparateIndex() ? FSD_SUBST_TREE : FW_SUBSUMPTION_SUBST_TREE;
+  // _index.request(salg->getIndexManager(), index_type);
 
   _preorderedOnly = false;
   _allowIncompleteness = false;
@@ -711,9 +714,9 @@ isRedundant:
         mcl->setAux(nullptr);
 
         ASS(dynamic_cast<FwSubsSimplifyingLiteralIndex*>(_index.get()) != nullptr);
-        if (static_cast<FwSubsSimplifyingLiteralIndex*>(_index.get())->isSecondBest(res.clause, res.literal)) {  // FIXME
-          continue;
-        }
+        // if (static_cast<FwSubsSimplifyingLiteralIndex*>(_index.get())->isSecondBest(res.clause, res.literal)) {  // FIXME
+        //   continue;
+        // }
 
         altsStorage.emplace_back(mcl, cl_miniIndex);
         SDClauseMatches const& cm = altsStorage.back();

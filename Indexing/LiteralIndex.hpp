@@ -26,7 +26,6 @@
 #define __LiteralIndex__
 
 #include "Lib/DHMap.hpp"
-#include "Lib/STL.hpp"
 
 #include "Index.hpp"
 
@@ -100,32 +99,12 @@ public:
   CLASS_NAME(FwSubsSimplifyingLiteralIndex);
   USE_ALLOCATOR(FwSubsSimplifyingLiteralIndex);
 
-  FwSubsSimplifyingLiteralIndex(LiteralIndexingStructure* is, bool adjustForFSD)
+  FwSubsSimplifyingLiteralIndex(LiteralIndexingStructure* is)
     : LiteralIndex(is)
-    , adjustForFSD(adjustForFSD)
   { }
-
-  /// Returns whether the clause 'c' was inserted into the index with its second best literal 'lit'.
-  bool isSecondBest(Clause* c, Literal* lit) {
-    if (!adjustForFSD) {
-      ASS(secondBestMap.empty());
-      return false;
-    }
-    auto it = secondBestMap.find(c->number());
-    if (it != secondBestMap.end()) {
-      return it->second == lit;
-    } else {
-      return false;
-    }
-  }
 
 protected:
   void handleClause(Clause* c, bool adding) override;
-private:
-  /// When 'adjustForFSD' is true: if the "best" literal is a positive equality, also insert the clause with the "second best" literal.
-  bool adjustForFSD;
-  /// Maps clause number to second best literal (if the clause was actually inserted with this literal).
-  v_unordered_map<unsigned, Literal*> secondBestMap;
 };
 
 class FSDSimplifyingLiteralIndex

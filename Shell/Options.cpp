@@ -1053,7 +1053,6 @@ void Options::Options::init()
             _backwardSubsumptionDemodulation.tag(OptionTag::INFERENCES);
             _backwardSubsumptionDemodulation.addProblemConstraint(hasEquality());
             _backwardSubsumptionDemodulation.setRandomChoices({"on","off"});
-            _backwardSubsumptionDemodulation.setExperimental();
 
             _backwardSubsumptionDemodulationMaxMatches = UnsignedOptionValue("backward_subsumption_demodulation_max_matches", "bsdmm", 0);
             _backwardSubsumptionDemodulationMaxMatches.description = "Maximum number of multi-literal matches to consider in backward subsumption demodulation. 0 means to try all matches (until first success).";
@@ -1211,13 +1210,12 @@ void Options::Options::init()
     _forwardSubsumptionResolution.reliesOn(_saturationAlgorithm.is(notEqual(SaturationAlgorithm::INST_GEN))->Or<bool>(_instGenWithResolution.is(equal(true))));
     _forwardSubsumptionResolution.setRandomChoices({"on","off"});
 
-    _forwardSubsumptionDemodulation = ChoiceOptionValue<FSD>("forward_subsumption_demodulation", "fsd", FSD::OFF, {"off", "v1", "on", "v3"});
+    _forwardSubsumptionDemodulation = ChoiceOptionValue<FSD>("forward_subsumption_demodulation", "fsd", FSD::OFF, {"off", "v1", "on"});
     _forwardSubsumptionDemodulation.description = "Perform forward subsumption demodulation.";
     _lookup.insert(&_forwardSubsumptionDemodulation);
     _forwardSubsumptionDemodulation.tag(OptionTag::INFERENCES);
     _forwardSubsumptionDemodulation.addProblemConstraint(hasEquality());
-    _forwardSubsumptionDemodulation.setRandomChoices({"off","v1","on","v3"});
-    _forwardSubsumptionDemodulation.setExperimental();
+    _forwardSubsumptionDemodulation.setRandomChoices({"off","v1","on"});
 
     _forwardSubsumptionDemodulationMaxMatches = UnsignedOptionValue("forward_subsumption_demodulation_max_matches", "fsdmm", 0);
     _forwardSubsumptionDemodulationMaxMatches.description = "Maximum number of multi-literal matches to consider in forward subsumption demodulation. 0 means to try all matches (until first success).";
@@ -1225,33 +1223,6 @@ void Options::Options::init()
     _forwardSubsumptionDemodulationMaxMatches.tag(OptionTag::INFERENCES);
     _forwardSubsumptionDemodulationMaxMatches.setRandomChoices({"0", "1", "3"});
     _forwardSubsumptionDemodulationMaxMatches.setExperimental();
-
-    _forwardSubsumptionDemodulationAdjustFSIndexForFSD = ChoiceOptionValue<AdjustFSIndexForFSD>("forward_subsumption_demodulation_adjust_fs_index", "fsd_adjust_fs_ix",
-                                                                                                AdjustFSIndexForFSD::WHEN_USED_BY_FSD, {"when_used_by_fsd", "always", "never"});
-    _forwardSubsumptionDemodulationAdjustFSIndexForFSD.description = "Whether to adjust the forward subsumption index for forward sumsumption demodulation.";
-    _lookup.insert(&_forwardSubsumptionDemodulationAdjustFSIndexForFSD);
-    _forwardSubsumptionDemodulationAdjustFSIndexForFSD.tag(OptionTag::INFERENCES);
-    _forwardSubsumptionDemodulationAdjustFSIndexForFSD.setRandomChoices({"when_fsd_enabled","never"});
-    _forwardSubsumptionDemodulationAdjustFSIndexForFSD.setExperimental();
-
-    _forwardSubsumptionDemodulationUseSeparateIndex = BoolOptionValue("forward_subsumption_demodulation_use_separate_index", "fsd_sep_ix", true);
-    _forwardSubsumptionDemodulationUseSeparateIndex.description = "Whether to use a separate index for forward subsumption demodulation.";
-    _lookup.insert(&_forwardSubsumptionDemodulationUseSeparateIndex);
-    _forwardSubsumptionDemodulationUseSeparateIndex.tag(OptionTag::INFERENCES);
-    _forwardSubsumptionDemodulationUseSeparateIndex.setExperimental();
-
-    _forwardSubsumptionDemodulationIncludeSubsumptionAndResolution = BoolOptionValue("forward_subsumption_demodulation_include_subsumption_and_resolution", "fsd_fs", false);
-    _forwardSubsumptionDemodulationIncludeSubsumptionAndResolution.description =
-        "Whether regular forward subsumption and subsumption resolution is done by (and replaced by) forward subsumption demodulation. "
-        "Note that the existing options -fs and -fsr still control whether FS and FSR are enabled, respectively.";
-    _lookup.insert(&_forwardSubsumptionDemodulationIncludeSubsumptionAndResolution);
-    _forwardSubsumptionDemodulationIncludeSubsumptionAndResolution.tag(OptionTag::INFERENCES);
-    _forwardSubsumptionDemodulationIncludeSubsumptionAndResolution.reliesOn(_forwardSubsumptionDemodulation.is(equal(FSD::V2)->Or(equal(FSD::V3))));
-    _forwardSubsumptionDemodulationIncludeSubsumptionAndResolution.reliesOn(_forwardSubsumptionDemodulationUseSeparateIndex.is(notEqual(true)));
-    // When using V2, FSR must be off.
-    _forwardSubsumptionDemodulationIncludeSubsumptionAndResolution.reliesOn(_forwardSubsumptionDemodulation.is(notEqual(FSD::V2))
-                                                                            ->Or<bool>(_forwardSubsumptionResolution.is(equal(false))));
-    _forwardSubsumptionDemodulationIncludeSubsumptionAndResolution.setExperimental();
 
     _hyperSuperposition = BoolOptionValue("hyper_superposition","",false);
     _hyperSuperposition.description=

@@ -195,26 +195,8 @@ void FwSubsSimplifyingLiteralIndex::handleClause(Clause* c, bool adding)
 
   TimeCounter tc(TC_FORWARD_SUBSUMPTION_INDEX_MAINTENANCE);
 
-  if (!adjustForFSD) {
-    Literal* best = SubsRatedLiteral::find_best_in(c).lit();
-    handleLiteral(best, c, adding);
-  } else {
-    auto res = SubsRatedLiteral::find_best2_in(c);
-    Literal* best = res.first.lit();
-    Literal* secondBest = res.second.lit();
-    handleLiteral(best, c, adding);
-    if (best->isEquality() && best->isPositive()) {
-      handleLiteral(secondBest, c, adding);
-      if (adding) {
-        auto res = secondBestMap.insert({c->number(), secondBest});
-        bool inserted = res.second;
-        ASS(inserted);
-      } else {
-        ASS(secondBestMap.find(c->number()) != secondBestMap.end());
-        secondBestMap.erase(c->number());
-      }
-    }
-  }
+  Literal* best = SubsRatedLiteral::find_best_in(c).lit();
+  handleLiteral(best, c, adding);
 }
 
 void FSDSimplifyingLiteralIndex::handleClause(Clause* c, bool adding)
