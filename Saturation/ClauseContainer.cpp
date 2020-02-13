@@ -160,7 +160,7 @@ void PassiveClauseContainer::updateLimits(long long estReachableCnt)
   }
 
   if (atLeastOneLimitTightened) {
-    onLimitsUpdated();
+    // trigger a change event, in order to notify both passive and active clause-containers
     changedEvent.fire();
   }
 }
