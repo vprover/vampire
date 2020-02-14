@@ -247,7 +247,7 @@ set(VAMPIRE_KERNEL_SOURCES
     Kernel/Matcher.cpp
     Kernel/MaximalLiteralSelector.cpp
     Kernel/MLMatcher.cpp
-    Kernel/MLMatcher2.cpp
+    Kernel/MLMatcherSD.cpp
     Kernel/MLVariant.cpp
     Kernel/Ordering.cpp
     Kernel/Ordering_Equality.cpp
@@ -389,7 +389,7 @@ set(VAMPIRE_INFERENCE_SOURCES
     Inferences/ForwardDemodulation.cpp
     Inferences/ForwardLiteralRewriting.cpp
     Inferences/ForwardSubsumptionAndResolution.cpp
-    Inferences/ForwardSubsumptionDemodulation2.cpp
+    Inferences/ForwardSubsumptionDemodulation.cpp
     Inferences/GlobalSubsumption.cpp
     Inferences/HyperSuperposition.cpp
     Inferences/InnerRewriting.cpp

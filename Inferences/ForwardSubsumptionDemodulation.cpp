@@ -1,4 +1,4 @@
-#include "ForwardSubsumptionDemodulation2.hpp"
+#include "ForwardSubsumptionDemodulation.hpp"
 #include "SubsumptionDemodulationHelper.hpp"
 
 #include "Debug/RuntimeStatistics.hpp"
@@ -9,7 +9,7 @@
 #include "Kernel/ColorHelper.hpp"
 #include "Kernel/EqHelper.hpp"
 #include "Kernel/Inference.hpp"
-#include "Kernel/MLMatcher2.hpp"
+#include "Kernel/MLMatcherSD.hpp"
 #include "Kernel/Matcher.hpp"
 #include "Kernel/Ordering.hpp"
 #include "Kernel/Signature.hpp"
@@ -32,9 +32,9 @@ using namespace Inferences;
 using namespace Saturation;
 
 
-void ForwardSubsumptionDemodulation2::attach(SaturationAlgorithm* salg)
+void ForwardSubsumptionDemodulation::attach(SaturationAlgorithm* salg)
 {
-  CALL("ForwardSubsumptionDemodulation2::attach");
+  CALL("ForwardSubsumptionDemodulation::attach");
   ForwardSimplificationEngine::attach(salg);
 
   _index.request(salg->getIndexManager(), FSD_SUBST_TREE);
@@ -48,7 +48,7 @@ void ForwardSubsumptionDemodulation2::attach(SaturationAlgorithm* salg)
 
 
 
-  // // Small test case for MLMatcher2
+  // // Small test case for MLMatcherSD
   // unsigned p = env.signature->addPredicate("p", 1);
   // unsigned q = env.signature->addPredicate("q", 1);
   // unsigned r = env.signature->addPredicate("r", 2);
@@ -117,7 +117,7 @@ void ForwardSubsumptionDemodulation2::attach(SaturationAlgorithm* salg)
   // lits.push(sc);
   // Clause* cl = Clause::fromStack(lits, Unit::AXIOM, new Inference(Inference::THEORY));
 
-  // MLMatcher2 matcher;
+  // MLMatcherSD matcher;
   // matcher.init(bases, 4, cl, alts);
 
   // bool res = matcher.nextMatch();
@@ -125,7 +125,7 @@ void ForwardSubsumptionDemodulation2::attach(SaturationAlgorithm* salg)
   // std::exit(27);
 
 
-  // // Small test case for MLMatcher2 (b)
+  // // Small test case for MLMatcherSD (b)
   // // .
   // // bases[0] = ~end_point(X3,X0)
   // // bases[1] = X1 = X3
@@ -136,7 +136,7 @@ void ForwardSubsumptionDemodulation2::attach(SaturationAlgorithm* salg)
   // // instance = sK5(X1) = X0 | X0 = X2 | sK5(X1) = X2 | ~end_point(X2,X1) | ~end_point(X0,X1) | closed(X1)
   // // .
   // // Leads to:
-  // // Condition remAlts > 0 in file ../Kernel/MLMatcher2.cpp, line 508 was violated, as:
+  // // Condition remAlts > 0 in file ../Kernel/MLMatcherSD.cpp, line 508 was violated, as:
   // // remAlts == 0
   // // 0 == 0
   // unsigned p = env.signature->addPredicate("p", 2);
@@ -190,7 +190,7 @@ void ForwardSubsumptionDemodulation2::attach(SaturationAlgorithm* salg)
   // lits.push(i5);
   // Clause* cl = Clause::fromStack(lits, Unit::AXIOM, new Inference(Inference::THEORY));
 
-  // MLMatcher2 matcher;
+  // MLMatcherSD matcher;
   // matcher.init(bases, 6, cl, alts);
   // // MLMatcher matcher;
   // // // matcher.init(bases, 6, cl, alts, true);
@@ -201,7 +201,7 @@ void ForwardSubsumptionDemodulation2::attach(SaturationAlgorithm* salg)
   // std::exit(27);
 
 
-  // // Small test case for MLMatcher2 (c)
+  // // Small test case for MLMatcherSD (c)
   // // Should find a match but doesn't due to too aggressive pruning.
   // unsigned p = env.signature->addPredicate("p", 2);
   // unsigned q = env.signature->addPredicate("q", 1);
@@ -253,7 +253,7 @@ void ForwardSubsumptionDemodulation2::attach(SaturationAlgorithm* salg)
   // lits.push(i2);
   // Clause* cl = Clause::fromStack(lits, Unit::AXIOM, new Inference(Inference::THEORY));
 
-  // MLMatcher2 matcher;
+  // MLMatcherSD matcher;
   // matcher.init(bases, 3, cl, alts);
 
   // bool res = matcher.nextMatch();
@@ -282,17 +282,17 @@ void ForwardSubsumptionDemodulation2::attach(SaturationAlgorithm* salg)
 }
 
 
-void ForwardSubsumptionDemodulation2::detach()
+void ForwardSubsumptionDemodulation::detach()
 {
-  CALL("ForwardSubsumptionDemodulation2::detach");
+  CALL("ForwardSubsumptionDemodulation::detach");
   _index.release();
   ForwardSimplificationEngine::detach();
 }
 
 
-bool ForwardSubsumptionDemodulation2::perform(Clause* cl, Clause*& replacement, ClauseIterator& premises)
+bool ForwardSubsumptionDemodulation::perform(Clause* cl, Clause*& replacement, ClauseIterator& premises)
 {
-  CALL("ForwardSubsumptionDemodulation2::perform");
+  CALL("ForwardSubsumptionDemodulation::perform");
 
   //                        cl
   //                 vvvvvvvvvvvvvvvv
@@ -443,13 +443,13 @@ bool ForwardSubsumptionDemodulation2::perform(Clause* cl, Clause*& replacement, 
 
       // Skip due to missing alternatives? (see comment above, "baseLit does not have any suitable alternative")
       if (baseLitsWithoutAlternatives > 1) {
-        RSTAT_CTR_INC("FSDv2, skipped side premise due to baseLitsWithoutAlternatives");
+        RSTAT_CTR_INC("FSD, skipped side premise due to baseLitsWithoutAlternatives");
         continue;
       }
 
       ASS_EQ(mcl->length(), alts.size());
 
-      static MLMatcher2 matcher;
+      static MLMatcherSD matcher;
       matcher.init(mcl, cl, alts.data());
 
       static unsigned const maxMatches =
@@ -570,7 +570,7 @@ bool ForwardSubsumptionDemodulation2::perform(Clause* cl, Clause*& replacement, 
           TermList t1S = binder.applyWithUnboundVariableOffsetTo(t1, cl_maxVar+1, false);
           Ordering::Result eqArgOrderS = ordering.compare(t0S, t1S);
           if (eqArgOrder == Ordering::INCOMPARABLE && eqArgOrderS != Ordering::INCOMPARABLE) {
-            RSTAT_CTR_INC("FSDv2, ordered after partial substitution");
+            RSTAT_CTR_INC("FSD, ordered after partial substitution");
           }
 #else
           // No additional ordering check.
@@ -592,7 +592,7 @@ bool ForwardSubsumptionDemodulation2::perform(Clause* cl, Clause*& replacement, 
                 lhsVector.push_back(t1);
               }
 
-              RSTAT_MCTR_INC("FSDv2, lhsVector.size() when INCOMPARABLE", lhsVector.size());
+              RSTAT_MCTR_INC("FSD, lhsVector.size() when INCOMPARABLE", lhsVector.size());
               break;
             case Ordering::GREATER:
             case Ordering::GREATER_EQ:
@@ -606,7 +606,7 @@ bool ForwardSubsumptionDemodulation2::perform(Clause* cl, Clause*& replacement, 
               break;
             case Ordering::EQUAL:
               // This case may happen due to the partial substitution from the MLMatcher
-              RSTAT_CTR_INC("FSDv2, terms equal after partial substitution");
+              RSTAT_CTR_INC("FSD, terms equal after partial substitution");
               break;
             default:
               ASSERTION_VIOLATION;
@@ -614,7 +614,7 @@ bool ForwardSubsumptionDemodulation2::perform(Clause* cl, Clause*& replacement, 
         }
 
         if (lhsVector.size() == 0) {
-          RSTAT_CTR_INC("FSDv2, skipped match due to no LHS term candidates");
+          RSTAT_CTR_INC("FSD, skipped match due to no LHS term candidates");
           continue;
         }
 
@@ -791,7 +791,7 @@ bool ForwardSubsumptionDemodulation2::perform(Clause* cl, Clause*& replacement, 
                   }
                 }
                 // cl is not be redundant after the inference, possibly leading to incompleteness => skip
-                RSTAT_CTR_INC("FSDv2, main premise not redundant");
+                RSTAT_CTR_INC("FSD, main premise not redundant");
                 continue;
               }  // if (!_allowIncompleteness)
 isRedundant:
@@ -801,7 +801,7 @@ isRedundant:
                 // Check mclΘ < cl.
                 // This is not clear and might easily be violated if we have a bug above.
                 if (!SDHelper::substClauseIsSmaller(mcl, binder, cl, ordering)) {
-                  std::cerr << "FSDv2: redundancy violated!" << std::endl;
+                  std::cerr << "FSD: redundancy violated!" << std::endl;
                   std::cerr << "mcl: " << mcl->toString() << std::endl;
                   std::cerr << " cl: " <<  cl->toString() << std::endl;
                   std::cerr << "mclS < cl required but it doesn't seem to be the case" << std::endl;
@@ -850,7 +850,7 @@ isRedundant:
 
 #if FSD_LOG_INFERENCES
               env.beginOutput();
-              env.out() << "\% Begin Inference \"FSDv2-" << newCl->number() << "\"\n";
+              env.out() << "\% Begin Inference \"FSD-" << newCl->number() << "\"\n";
               env.out() << "\% eqLit: " << eqLit->toString() << "\n";
               env.out() << "\% eqLitS: " << binder.applyTo(eqLit)->toString() << "\n";
               env.out() << "\% dlit: " << dlit->toString() << "\n";
@@ -866,11 +866,11 @@ isRedundant:
               //       Problem: how to detect that situation??
               //       probably if the input only contains FOF and no TFF
               // TODO: Also don't output type defs for $$false and $$true, see problem SYO091^5.p
-              env.out() << "\% End Inference \"FSDv2-" << newCl->number() << "\"" << std::endl;
+              env.out() << "\% End Inference \"FSD-" << newCl->number() << "\"" << std::endl;
               env.endOutput();
 #endif
 
-              RSTAT_MCTR_INC("FSDv2, successes by MLMatch", numMatches + 1);  // +1 so it fits with the previous output
+              RSTAT_MCTR_INC("FSD, successes by MLMatch", numMatches + 1);  // +1 so it fits with the previous output
 
 #if VDEBUG && FSD_VDEBUG_REDUNDANCY_ASSERTIONS
               if (getOptions().literalComparisonMode() != Options::LiteralComparisonMode::REVERSE) {  // see note above
@@ -887,7 +887,7 @@ isRedundant:
       }  // for (numMatches)
 
       if (numMatches > 0) {
-        RSTAT_CTR_INC("FSDv2, MLMatch but no FSD inference");
+        RSTAT_CTR_INC("FSD, MLMatch but no FSD inference");
       }
 
     }  // while (rit.hasNext)

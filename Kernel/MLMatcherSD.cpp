@@ -1,5 +1,5 @@
 /*
- * File MLMatcher2.cpp.
+ * File MLMatcherSD.cpp.
  *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
@@ -30,15 +30,15 @@
 #include "Term.hpp"
 #include "TermIterators.hpp"
 
-#include "MLMatcher2.hpp"
+#include "MLMatcherSD.hpp"
 
 #if VDEBUG
 #include <iostream>
 #include "Test/Output.hpp"
 #endif
 
-#define MLMATCHER2_DEBUG_OUTPUT false
-#define MLMATCHER2_ADDITIONAL_ASSERTIONS true
+#define MLMATCHERSD_DEBUG_OUTPUT false
+#define MLMATCHERSD_ADDITIONAL_ASSERTIONS true
 
 
 namespace {
@@ -574,7 +574,7 @@ struct MatchingData final {
     ASS_EQ(bIndex, currBLit);
 
     if(!isInitialized(bIndex)) {
-#if MLMATCHER2_DEBUG_OUTPUT
+#if MLMATCHERSD_DEBUG_OUTPUT
       std::cerr << "       ensureInit(" << bIndex << ")" << std::endl;
 #endif
       ASS_NEQ(bIndex, eqLitForDemodulation);
@@ -632,7 +632,7 @@ struct MatchingData final {
         remaining->set(bIndex, pbi+1, remAlts);
       }  // for (pbi)
 
-#if MLMATCHER2_DEBUG_OUTPUT
+#if MLMATCHERSD_DEBUG_OUTPUT
       std::cerr << "       remaining:" << std::endl;
       for (unsigned i = 0; i <= bIndex; ++i) {
         std::cerr << "      ";
@@ -686,7 +686,7 @@ struct MatchingData final {
    */
   bool backtrack()
   {
-#if MLMATCHER2_DEBUG_OUTPUT
+#if MLMATCHERSD_DEBUG_OUTPUT
     if (currBLit == 0) {
       std::cerr << "Conflict at level 0." << std::endl;
     } else {
@@ -722,11 +722,11 @@ namespace Kernel
 using namespace Lib;
 
 
-class MLMatcher2::Impl final
+class MLMatcherSD::Impl final
 {
   public:
-    CLASS_NAME(MLMatcher2::Impl);
-    USE_ALLOCATOR(MLMatcher2::Impl);
+    CLASS_NAME(MLMatcherSD::Impl);
+    USE_ALLOCATOR(MLMatcherSD::Impl);
 
     Impl();
     ~Impl() = default;
@@ -771,7 +771,7 @@ class MLMatcher2::Impl final
 };
 
 
-MLMatcher2::Impl::Impl()
+MLMatcherSD::Impl::Impl()
   : s_baseLits(32)
   , s_altsArr(32)
   , s_varCnts(32)
@@ -787,9 +787,9 @@ MLMatcher2::Impl::Impl()
 { }
 
 
-void MLMatcher2::Impl::initMatchingData(Literal** baseLits0, unsigned baseLen, Clause* instance, LiteralList const* const* alts)
+void MLMatcherSD::Impl::initMatchingData(Literal** baseLits0, unsigned baseLen, Clause* instance, LiteralList const* const* alts)
 {
-  CALL("MLMatcher2::Impl::initMatchingData");
+  CALL("MLMatcherSD::Impl::initMatchingData");
 
   s_baseLits.initFromArray(baseLen,baseLits0);
   s_altsArr.initFromArray(baseLen,alts);
@@ -902,12 +902,12 @@ void MLMatcher2::Impl::initMatchingData(Literal** baseLits0, unsigned baseLen, C
 }
 
 
-void MLMatcher2::Impl::init(Literal** baseLits, unsigned baseLen, Clause* instance, LiteralList const* const* alts)
+void MLMatcherSD::Impl::init(Literal** baseLits, unsigned baseLen, Clause* instance, LiteralList const* const* alts)
 {
-  CALL("MLMatcher2::Impl::init");
+  CALL("MLMatcherSD::Impl::init");
 
-#if MLMATCHER2_DEBUG_OUTPUT
-    std::cerr << "\n\n\nMLMatcher2::init:" << std::endl;
+#if MLMATCHERSD_DEBUG_OUTPUT
+    std::cerr << "\n\n\nMLMatcherSD::init:" << std::endl;
     for (unsigned i = 0; i < baseLen; ++i) {
       std::cerr <<   "\tbases[" << i << "]: " << baseLits[i]->toString() << std::endl;
       LiteralList::Iterator ait(alts[i]);
@@ -923,9 +923,9 @@ void MLMatcher2::Impl::init(Literal** baseLits, unsigned baseLen, Clause* instan
 }
 
 
-bool MLMatcher2::Impl::nextMatch()
+bool MLMatcherSD::Impl::nextMatch()
 {
-  CALL("MLMatcher2::Impl::nextMatch");
+  CALL("MLMatcherSD::Impl::nextMatch");
   MatchingData* const md = &s_matchingData;
 
   // General Remarks
@@ -951,7 +951,7 @@ bool MLMatcher2::Impl::nextMatch()
   // The same holds for eqLitForDemodulation.
 
   while (true) {
-#if MLMATCHER2_DEBUG_OUTPUT
+#if MLMATCHERSD_DEBUG_OUTPUT
     std::cerr << "Begin: currBLit = " << md->currBLit << ", which is: " << md->bases[md->currBLit]->toString() << std::endl;
 #endif
 
@@ -991,7 +991,7 @@ bool MLMatcher2::Impl::nextMatch()
     // Get the number of alternatives that are compatible to the previous choices
     unsigned const maxAlt = md->getRemainingInCurrent(md->currBLit);
 
-#if VDEBUG && MLMATCHER2_ADDITIONAL_ASSERTIONS
+#if VDEBUG && MLMATCHERSD_ADDITIONAL_ASSERTIONS
     // Ensure none of the remaining alts have been matched previously
     // (just to make sure I didn't break anything by moving this check to propagation)
     for (unsigned ai = 0; ai < maxAlt; ++ai) {
@@ -1033,7 +1033,7 @@ bool MLMatcher2::Impl::nextMatch()
       // The alternative with index md->nextAlts[md->currBLit] corresponds to the literal instance[matchRecordIndex].
       // So in terms of literals, bases[md->currBLit] is matched to instance[matchRecordIndex].
 
-#if VDEBUG && MLMATCHER2_ADDITIONAL_ASSERTIONS
+#if VDEBUG && MLMATCHERSD_ADDITIONAL_ASSERTIONS
       {
         int cnt = 0;
         for (unsigned i = 0; i < md->matchRecord.size(); i++) {
@@ -1057,7 +1057,7 @@ bool MLMatcher2::Impl::nextMatch()
       ASS_G(md->matchRecord[matchRecordIndex], md->currBLit);  // new match record cannot be set already (this is point 2 in the comment above about what we know here)
       md->matchRecord[matchRecordIndex] = md->currBLit;
 
-#if MLMATCHER2_DEBUG_OUTPUT
+#if MLMATCHERSD_DEBUG_OUTPUT
       std::cerr << "       matched to:             " << (*md->instance)[matchRecordIndex]->toString() << std::endl;
       std::cerr << "       (alt " << md->nextAlts[md->currBLit] << " of " << maxAlt << ")" << std::endl;
 #endif
@@ -1081,7 +1081,7 @@ bool MLMatcher2::Impl::nextMatch()
              && md->bases[md->currBLit]->isPositive()
              && md->selectForDemodulation(md->currBLit)) {
       // Selected current base literal as equality for demodulation
-#if MLMATCHER2_DEBUG_OUTPUT
+#if MLMATCHERSD_DEBUG_OUTPUT
       std::cerr << "       selected as equality for demodulation" << std::endl;
 #endif
       // Unassign existing match records for this level (this should actually be at most one)
@@ -1127,7 +1127,7 @@ bool MLMatcher2::Impl::nextMatch()
   return true;
 }  // nextMatch
 
-Literal* MLMatcher2::Impl::getEqualityForDemodulation() const
+Literal* MLMatcherSD::Impl::getEqualityForDemodulation() const
 {
   MatchingData const* const md = &s_matchingData;
 
@@ -1141,7 +1141,7 @@ Literal* MLMatcher2::Impl::getEqualityForDemodulation() const
   }
 }
 
-void MLMatcher2::Impl::getMatchedAltsBitmap(v_vector<bool>& outMatchedBitmap) const
+void MLMatcherSD::Impl::getMatchedAltsBitmap(v_vector<bool>& outMatchedBitmap) const
 {
   MatchingData const* const md = &s_matchingData;
 
@@ -1159,7 +1159,7 @@ void MLMatcher2::Impl::getMatchedAltsBitmap(v_vector<bool>& outMatchedBitmap) co
 }
 
 
-void MLMatcher2::Impl::getBindings(v_unordered_map<unsigned, TermList>& outBindings) const
+void MLMatcherSD::Impl::getBindings(v_unordered_map<unsigned, TermList>& outBindings) const
 {
   MatchingData const* const md = &s_matchingData;
 
@@ -1185,39 +1185,39 @@ void MLMatcher2::Impl::getBindings(v_unordered_map<unsigned, TermList>& outBindi
 }
 
 
-MLMatcher2::MLMatcher2()
+MLMatcherSD::MLMatcherSD()
   : m_impl{nullptr}
 { }
 
-void MLMatcher2::init(Literal** baseLits, unsigned baseLen, Clause* instance, LiteralList const* const* alts)
+void MLMatcherSD::init(Literal** baseLits, unsigned baseLen, Clause* instance, LiteralList const* const* alts)
 {
   if (!m_impl) {
-    m_impl = make_unique<MLMatcher2::Impl>();
+    m_impl = make_unique<MLMatcherSD::Impl>();
   }
   m_impl->init(baseLits, baseLen, instance, alts);
 }
 
-MLMatcher2::~MLMatcher2() = default;
+MLMatcherSD::~MLMatcherSD() = default;
 
-bool MLMatcher2::nextMatch()
+bool MLMatcherSD::nextMatch()
 {
   ASS(m_impl);
   return m_impl->nextMatch();
 }
 
-Literal* MLMatcher2::getEqualityForDemodulation() const
+Literal* MLMatcherSD::getEqualityForDemodulation() const
 {
   ASS(m_impl);
   return m_impl->getEqualityForDemodulation();
 }
 
-void MLMatcher2::getMatchedAltsBitmap(v_vector<bool>& outMatchedBitmap) const
+void MLMatcherSD::getMatchedAltsBitmap(v_vector<bool>& outMatchedBitmap) const
 {
   ASS(m_impl);
   m_impl->getMatchedAltsBitmap(outMatchedBitmap);
 }
 
-void MLMatcher2::getBindings(v_unordered_map<unsigned, TermList>& outBindings) const
+void MLMatcherSD::getBindings(v_unordered_map<unsigned, TermList>& outBindings) const
 {
   ASS(m_impl);
   m_impl->getBindings(outBindings);

@@ -214,7 +214,7 @@ VK_OBJ= Kernel/Clause.o\
         Kernel/SpassLiteralSelector.o\
         Kernel/ELiteralSelector.o\
         Kernel/MLMatcher.o\
-        Kernel/MLMatcher2.o\
+        Kernel/MLMatcherSD.o\
         Kernel/MLVariant.o\
         Kernel/Ordering.o\
         Kernel/Ordering_Equality.o\
@@ -282,8 +282,6 @@ VINF_OBJ=Inferences/BackwardDemodulation.o\
          Inferences/ForwardSubsumptionAndResolution.o\
          Inferences/SubsumptionDemodulationHelper.o\
          Inferences/ForwardSubsumptionDemodulation.o\
-         Inferences/ForwardSubsumptionDemodulation2.o\
-         Inferences/ForwardSubsumptionDemodulation3.o\
          Inferences/GlobalSubsumption.o\
          Inferences/HyperSuperposition.o\
          Inferences/InnerRewriting.o\

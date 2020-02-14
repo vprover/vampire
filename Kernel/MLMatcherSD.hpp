@@ -1,5 +1,5 @@
 /*
- * File MLMatcher2.hpp.
+ * File MLMatcherSD.hpp.
  *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
@@ -16,8 +16,8 @@
  * licence, which we will make an effort to provide.
  */
 
-#ifndef __MLMatcher2__
-#define __MLMatcher2__
+#ifndef __MLMatcherSD__
+#define __MLMatcherSD__
 
 #include "Clause.hpp"
 #include "Forwards.hpp"
@@ -28,21 +28,25 @@ namespace Kernel {
 using namespace Lib;
 
 
-class MLMatcher2 final
+/** MLMatcherSD solves the Subsumption-Demodulation-Match-Problem.
+ *
+ * TODO high-level explanation of what this class does and what it's good for
+ */
+class MLMatcherSD final
 {
   public:
     /**
-     * Constructs an MLMatcher2 and puts it in an invalid state.
+     * Constructs an MLMatcherSD and puts it in an invalid state.
      */
-    MLMatcher2();
+    MLMatcherSD();
 
-    ~MLMatcher2();
+    ~MLMatcherSD();
 
     /**
      * Initializes the matcher to the given match problem.
      * The matcher will be in a valid (but unmatched) state.
      *
-     * MLMatcher2 solves the FSD-Match-Problem:
+     * MLMatcherSD solves the SD-Match-Problem:
      * - One positive equality of the baseLits is selected for demodulation, and
      * - All other literals are (multiset-)matched to the given alts from the instance
      *   (may involve a uniform substitution from base to alts/instance).
@@ -97,12 +101,12 @@ class MLMatcher2 final
     void getBindings(v_unordered_map<unsigned, TermList>& outBindings) const;
 
     // Disallow copy because the internal implementation still uses pointers to the underlying storage and it seems hard to untangle that.
-    MLMatcher2(MLMatcher2 const&) = delete;
-    MLMatcher2& operator=(MLMatcher2 const&) = delete;
+    MLMatcherSD(MLMatcherSD const&) = delete;
+    MLMatcherSD& operator=(MLMatcherSD const&) = delete;
 
     // Moving works by moving the pointer m_impl
-    MLMatcher2(MLMatcher2&&) = default;
-    MLMatcher2& operator=(MLMatcher2&&) = default;
+    MLMatcherSD(MLMatcherSD&&) = default;
+    MLMatcherSD& operator=(MLMatcherSD&&) = default;
 
   private:
     class Impl;
@@ -112,4 +116,4 @@ class MLMatcher2 final
 
 };
 
-#endif /* __MLMatcher2__ */
+#endif /* __MLMatcherSD__ */

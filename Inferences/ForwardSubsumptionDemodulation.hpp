@@ -1,5 +1,5 @@
-#ifndef FORWARDSUBSUMPTIONDEMODULATION2_HPP
-#define FORWARDSUBSUMPTIONDEMODULATION2_HPP
+#ifndef FORWARDSUBSUMPTIONDEMODULATION_HPP
+#define FORWARDSUBSUMPTIONDEMODULATION_HPP
 
 #include "InferenceEngine.hpp"
 #include "Indexing/LiteralIndex.hpp"
@@ -29,14 +29,14 @@ using namespace Saturation;
  * - How does it help us? Maybe with a small example (a version that works with demodulation; then we introduce conditions s.t. we need FSD)
  * - Relation to conditional rewriting.
  */
-class ForwardSubsumptionDemodulation2
+class ForwardSubsumptionDemodulation
   : public ForwardSimplificationEngine
 {
   public:
-    CLASS_NAME(ForwardSubsumptionDemodulation2);
-    USE_ALLOCATOR(ForwardSubsumptionDemodulation2);
+    CLASS_NAME(ForwardSubsumptionDemodulation);
+    USE_ALLOCATOR(ForwardSubsumptionDemodulation);
 
-    ForwardSubsumptionDemodulation2(bool doSubsumption)
+    ForwardSubsumptionDemodulation(bool doSubsumption)
       : _doSubsumption(doSubsumption)
     { }
 
@@ -57,4 +57,4 @@ class ForwardSubsumptionDemodulation2
 
 }
 
-#endif /* !FORWARDSUBSUMPTIONDEMODULATION2_HPP */
+#endif /* !FORWARDSUBSUMPTIONDEMODULATION_HPP */

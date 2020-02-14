@@ -31,7 +31,7 @@
 #include "Kernel/ColorHelper.hpp"
 #include "Kernel/EqHelper.hpp"
 #include "Kernel/Inference.hpp"
-#include "Kernel/MLMatcher2.hpp"
+#include "Kernel/MLMatcherSD.hpp"
 #include "Kernel/Matcher.hpp"
 #include "Kernel/Ordering.hpp"
 #include "Kernel/Signature.hpp"
@@ -496,7 +496,7 @@ bool BackwardSubsumptionDemodulation::simplifyCandidate(Clause* sideCl, Clause* 
     ASS_LE(baseLitsWithoutAlternatives, 1);
     ASS_EQ(sideCl->length(), alts.size());
 
-    static MLMatcher2 matcher;
+    static MLMatcherSD matcher;
     matcher.init(sideCl, mainCl, alts.data());
 
     static unsigned const maxMatches =
@@ -528,7 +528,7 @@ bool BackwardSubsumptionDemodulation::simplifyCandidate(Clause* sideCl, Clause* 
 
 /// Handles the rewriting part.
 /// Returns true iff the main premise has been simplified.
-bool BackwardSubsumptionDemodulation::simplifyCandidate2(Clause* sideCl, Clause* mainCl, MLMatcher2 const& matcher, Clause*& replacement)
+bool BackwardSubsumptionDemodulation::simplifyCandidate2(Clause* sideCl, Clause* mainCl, MLMatcherSD const& matcher, Clause*& replacement)
 {
   Ordering const& ordering = _salg->getOrdering();
 
@@ -566,7 +566,7 @@ bool BackwardSubsumptionDemodulation::simplifyCandidate2(Clause* sideCl, Clause*
   binder.clear();
   matcher.getBindings(binder.base());
 
-  // NOTE: for explanation see comments in ForwardSubsumptionDemodulation2::perform
+  // NOTE: for explanation see comments in ForwardSubsumptionDemodulation::perform
   static v_vector<TermList> lhsVector;
   lhsVector.clear();
   {
@@ -683,7 +683,7 @@ bool BackwardSubsumptionDemodulation::simplifyCandidate2(Clause* sideCl, Clause*
           continue;
         }
 
-        // NOTE: see comments in ForwardSubsumptionDemodulation2::perform for explanation
+        // NOTE: see comments in ForwardSubsumptionDemodulation::perform for explanation
         if (!_allowIncompleteness) {
           if (!dlit->isEquality()) {
             // non-equality literals are always larger than equality literals ==>  eqLitS < dlit
