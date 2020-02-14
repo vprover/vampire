@@ -1210,12 +1210,12 @@ void Options::Options::init()
     _forwardSubsumptionResolution.reliesOn(_saturationAlgorithm.is(notEqual(SaturationAlgorithm::INST_GEN))->Or<bool>(_instGenWithResolution.is(equal(true))));
     _forwardSubsumptionResolution.setRandomChoices({"on","off"});
 
-    _forwardSubsumptionDemodulation = ChoiceOptionValue<FSD>("forward_subsumption_demodulation", "fsd", FSD::OFF, {"off", "v1", "on"});
+    _forwardSubsumptionDemodulation = BoolOptionValue("forward_subsumption_demodulation", "fsd", false);
     _forwardSubsumptionDemodulation.description = "Perform forward subsumption demodulation.";
     _lookup.insert(&_forwardSubsumptionDemodulation);
     _forwardSubsumptionDemodulation.tag(OptionTag::INFERENCES);
     _forwardSubsumptionDemodulation.addProblemConstraint(hasEquality());
-    _forwardSubsumptionDemodulation.setRandomChoices({"off","v1","on"});
+    _forwardSubsumptionDemodulation.setRandomChoices({"off","on"});
 
     _forwardSubsumptionDemodulationMaxMatches = UnsignedOptionValue("forward_subsumption_demodulation_max_matches", "fsdmm", 0);
     _forwardSubsumptionDemodulationMaxMatches.description = "Maximum number of multi-literal matches to consider in forward subsumption demodulation. 0 means to try all matches (until first success).";

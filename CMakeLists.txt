@@ -389,9 +389,7 @@ set(VAMPIRE_INFERENCE_SOURCES
     Inferences/ForwardDemodulation.cpp
     Inferences/ForwardLiteralRewriting.cpp
     Inferences/ForwardSubsumptionAndResolution.cpp
-    Inferences/ForwardSubsumptionDemodulation.cpp
     Inferences/ForwardSubsumptionDemodulation2.cpp
-    Inferences/ForwardSubsumptionDemodulation3.cpp
     Inferences/GlobalSubsumption.cpp
     Inferences/HyperSuperposition.cpp
     Inferences/InnerRewriting.cpp

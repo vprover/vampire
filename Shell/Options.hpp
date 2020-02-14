@@ -753,14 +753,6 @@ public:
     POSITION = 5
   };
 
-  // TODO: Remove and leave only V2 (= "on")
-  enum class FSD : unsigned int {
-    OFF = 0,
-    V1 = 1,
-    V2 = 2,
-    V3 = 3
-  };
-
   enum class AgeWeightRatioShape {
     CONSTANT,
     DECAY,
@@ -1951,7 +1943,7 @@ public:
   LiteralComparisonMode literalComparisonMode() const { return _literalComparisonMode.actualValue; }
   bool forwardSubsumptionResolution() const { return _forwardSubsumptionResolution.actualValue; }
   //void setForwardSubsumptionResolution(bool newVal) { _forwardSubsumptionResolution = newVal; }
-  FSD forwardSubsumptionDemodulation() const { return _forwardSubsumptionDemodulation.actualValue; }
+  bool forwardSubsumptionDemodulation() const { return _forwardSubsumptionDemodulation.actualValue; }
   unsigned forwardSubsumptionDemodulationMaxMatches() const { return _forwardSubsumptionDemodulationMaxMatches.actualValue; }
   Demodulation forwardDemodulation() const { return _forwardDemodulation.actualValue; }
   bool binaryResolution() const { return _binaryResolution.actualValue; }
@@ -2316,7 +2308,7 @@ private:
   BoolOptionValue _forwardLiteralRewriting;
   BoolOptionValue _forwardSubsumption;
   BoolOptionValue _forwardSubsumptionResolution;
-  ChoiceOptionValue<FSD> _forwardSubsumptionDemodulation;
+  BoolOptionValue _forwardSubsumptionDemodulation;
   UnsignedOptionValue _forwardSubsumptionDemodulationMaxMatches;
   ChoiceOptionValue<FunctionDefinitionElimination> _functionDefinitionElimination;
   IntOptionValue _functionNumber;
