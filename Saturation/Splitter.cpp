@@ -1814,6 +1814,9 @@ void Splitter::removeComponents(const SplitLevelStack& toRemove)
       Clause* ccl=chit.next();
       ASS(ccl->splits()->member(bl));
       if(ccl->store()!=Clause::NONE) {
+        if (env.options->showForKarel() && ccl->store()==Clause::ACTIVE) {
+          cout << "r: " << ccl->number() << "\n";
+        }
         _sa->removeActiveOrPassiveClause(ccl);
         ASS_EQ(ccl->store(), Clause::NONE);
       }
