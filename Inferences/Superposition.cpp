@@ -337,7 +337,7 @@ bool Superposition::earlyWeightLimitCheck(Clause* eqClause, Literal* eqLit,
 
   unsigned lhsSWeight = subst->getApplicationWeight(eqLHS, eqIsResult);
   unsigned rhsSWeight = subst->getApplicationWeight(eqRHS, eqIsResult);
-  unsigned rwrBalance = rhsSWeight-lhsSWeight;
+  int rwrBalance = rhsSWeight-lhsSWeight;
 
   if(rwrBalance>=0) {
     //there must be at least one rewriting, possibly more
