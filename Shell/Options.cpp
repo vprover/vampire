@@ -937,7 +937,7 @@ void Options::Options::init()
 	    _literalMaximalityAftercheck.tag(OptionTag::SATURATION);
 	    _literalMaximalityAftercheck.setExperimental();
 
-    _modelSaidYes = BoolOptionValue("model_said_yes","msy",false);
+    _modelSaidYes = ChoiceOptionValue<AdviceIntegration>("model_said_yes","msy",AdviceIntegration::OFF,{"on","half","plus1","off"});
     _lookup.insert(&_modelSaidYes);
     _modelSaidYes.reliesOn(_evalForKarel.is(notEqual(vstring()/*empty string*/)));
     _modelSaidYes.tag(OptionTag::SATURATION);
