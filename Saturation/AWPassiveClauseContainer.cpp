@@ -180,6 +180,8 @@ Comparison AWPassiveClauseContainer::compareWeight(Clause* cl1, Clause* cl2, con
 {
   CALL("AWPassiveClauseContainer::compareWeight");
 
+  static Options::AdviceIntegration modelSaidYes = opt.modelSaidYes();
+
   static int nwcNumer = opt.nonGoalWeightCoeffitientNumerator();
   static int nwcDenom = opt.nonGoalWeightCoeffitientDenominator();
 
@@ -236,13 +238,25 @@ Comparison AWPassiveClauseContainer::compareWeight(Clause* cl1, Clause* cl2, con
     if(!found){ cl2_goal=false; }
   }
   
+  unsigned c1plus = 0;
+  unsigned c2plus = 0;
+
+  if (modelSaidYes == Options::AdviceIntegration::PLUS1) {
+    if (!cl1->modelSaidYes) {
+      c1plus = 1;
+    }
+    if (!cl2->modelSaidYes) {
+      c2plus = 1;
+    }
+  }
+  // TODO: does not work with a nontrivial nwc
 
   if (!cl1->isGoal() && cl2->isGoal()) {
     return Int::compare(cl1Weight*nwcNumer, cl2Weight*nwcDenom);
   } else if (cl1->isGoal() && !cl2->isGoal()) {
     return Int::compare(cl1Weight*nwcDenom, cl2Weight*nwcNumer);
   }
-  return Int::compare(cl1Weight, cl2Weight);
+  return Int::compare(cl1Weight+c1plus, cl2Weight+c2plus);
 }
 
 /**
@@ -259,8 +273,9 @@ bool WeightQueue::theActualLessThen(Clause* c1,Clause* c2,const Options& opt)
 {
   CALL("WeightQueue::theActualLessThen");
 
-  static bool modelSaidYes = opt.modelSaidYes();
-  if (modelSaidYes) {
+  static Options::AdviceIntegration modelSaidYes = opt.modelSaidYes();
+
+  if (modelSaidYes == Options::AdviceIntegration::ON) {
     if (c1->modelSaidYes && !c2->modelSaidYes) {
       return true;
     }
@@ -273,6 +288,16 @@ bool WeightQueue::theActualLessThen(Clause* c1,Clause* c2,const Options& opt)
   Comparison weightCmp=AWPassiveClauseContainer::compareWeight(c1, c2, opt);
   if (weightCmp!=EQUAL) {
     return weightCmp==LESS;
+  }
+
+  if (modelSaidYes == Options::AdviceIntegration::HALF) {
+    if (c1->modelSaidYes && !c2->modelSaidYes) {
+      return true;
+    }
+
+    if (c2->modelSaidYes && !c1->modelSaidYes) {
+      return false;
+    }
   }
 
   if (c1->age() < c2->age()) {
@@ -304,8 +329,9 @@ bool AgeQueue::theActualLessThen(Clause* c1,Clause* c2,const Options& opt)
 {
   CALL("AgeQueue::theActualLessThan");
 
-  static bool modelSaidYes = opt.modelSaidYes();
-  if (modelSaidYes) {
+  static Options::AdviceIntegration modelSaidYes = opt.modelSaidYes();
+
+  if (modelSaidYes == Options::AdviceIntegration::ON) {
     if (c1->modelSaidYes && !c2->modelSaidYes) {
       return true;
     }
@@ -315,11 +341,33 @@ bool AgeQueue::theActualLessThen(Clause* c1,Clause* c2,const Options& opt)
     }
   }
 
-  if (c1->age() < c2->age()) {
+  unsigned c1plus = 0;
+  unsigned c2plus = 0;
+
+  if (modelSaidYes == Options::AdviceIntegration::PLUS1) {
+    if (!c1->modelSaidYes) {
+      c1plus = 1;
+    }
+    if (!c2->modelSaidYes) {
+      c2plus = 1;
+    }
+  }
+
+  if (c1->age()+c1plus < c2->age()+c2plus) {
     return true;
   }
-  if (c2->age() < c1->age()) {
+  if (c2->age()+c2plus < c1->age()+c1plus) {
     return false;
+  }
+
+  if (modelSaidYes == Options::AdviceIntegration::HALF) {
+    if (c1->modelSaidYes && !c2->modelSaidYes) {
+      return true;
+    }
+
+    if (c2->modelSaidYes && !c1->modelSaidYes) {
+      return false;
+    }
   }
 
   Comparison weightCmp=AWPassiveClauseContainer::compareWeight(c1, c2, opt);

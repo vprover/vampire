@@ -232,6 +232,13 @@ public:
     FIXED
   };
 
+  enum class AdviceIntegration : unsigned int {
+    ON, // like `priority' in E, just applied to both queues
+    HALF, // tie break between age and weight
+    PLUS1, // add plus one to both age and weight as a penalty
+    OFF
+  };
+
   enum class Induction : unsigned int {
     NONE,
     STRUCTURAL,
@@ -1996,7 +2003,7 @@ public:
 	AgeWeightRatioShape ageWeightRatioShape() const { return _ageWeightRatioShape.actualValue; }
 	int ageWeightRatioShapeFrequency() const { return _ageWeightRatioShapeFrequency.actualValue; }
   // AgeWeightBlending ageWeightBlending() const { return _ageWeightBlending.actualValue; }
-  bool modelSaidYes() const { return _modelSaidYes.actualValue; }
+	AdviceIntegration modelSaidYes() const { return _modelSaidYes.actualValue; }
   bool literalMaximalityAftercheck() const { return _literalMaximalityAftercheck.actualValue; }
   bool superpositionFromVariables() const { return _superpositionFromVariables.actualValue; }
   EqualityProxy equalityProxy() const { return _equalityProxy.actualValue; }
@@ -2253,7 +2260,7 @@ private:
 	ChoiceOptionValue<AgeWeightRatioShape> _ageWeightRatioShape;
 	UnsignedOptionValue _ageWeightRatioShapeFrequency;
   // ChoiceOptionValue<AgeWeightBlending> _ageWeightBlending;
-  BoolOptionValue _modelSaidYes;
+  ChoiceOptionValue<AdviceIntegration> _modelSaidYes;
   RatioOptionValue _yesNoRatio;
   BoolOptionValue _twoTierQueuing;
   BoolOptionValue _literalMaximalityAftercheck;
