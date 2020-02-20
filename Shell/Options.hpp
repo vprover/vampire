@@ -1993,6 +1993,9 @@ public:
   bool useAvatarSplitQueues() const { return _useAvatarSplitQueues.actualValue; }
   Lib::vvector<int> avatarSplitQueueRatios() const;
   Lib::vvector<float> avatarSplitQueueCutoffs() const;
+  bool useSineLevelSplitQueues() const { return _useSineLevelSplitQueues.actualValue; }
+  Lib::vvector<int> sineLevelSplitQueueRatios() const;
+  Lib::vvector<float> sineLevelSplitQueueCutoffs() const;
   void setWeightRatio(int v){ _ageWeightRatio.otherValue = v; }
 	AgeWeightRatioShape ageWeightRatioShape() const { return _ageWeightRatioShape.actualValue; }
 	int ageWeightRatioShapeFrequency() const { return _ageWeightRatioShapeFrequency.actualValue; }
@@ -2256,6 +2259,9 @@ private:
   BoolOptionValue _useAvatarSplitQueues;
   StringOptionValue _avatarSplitQueueRatios;
   StringOptionValue _avatarSplitQueueCutoffs;
+  BoolOptionValue _useSineLevelSplitQueues;
+  StringOptionValue _sineLevelSplitQueueRatios;
+  StringOptionValue _sineLevelSplitQueueCutoffs;
   BoolOptionValue _literalMaximalityAftercheck;
   BoolOptionValue _arityCheck;
   

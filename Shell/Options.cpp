@@ -938,6 +938,25 @@ void Options::Options::init()
     _avatarSplitQueueRatios.tag(OptionTag::AVATAR);
     _avatarSplitQueueRatios.setExperimental();
 
+    _useSineLevelSplitQueues = BoolOptionValue("sine_level_split_queue","slsq",false);
+    _useSineLevelSplitQueues.description = "Turn on experiments: clause selection with multiple queues containing different clauses (split by sine-level of clause)";
+    _lookup.insert(&_useSineLevelSplitQueues);
+    _useSineLevelSplitQueues.tag(OptionTag::SATURATION);
+
+    _sineLevelSplitQueueCutoffs = StringOptionValue("sine_level_split_queue_cutoffs", "slsqc", "0");
+    _sineLevelSplitQueueCutoffs.description = "The cutoff-values for the sine-level-split-queues (the cutoff value for the last queue is omitted, since it has to be infinity).";
+    _lookup.insert(&_sineLevelSplitQueueCutoffs);
+    _sineLevelSplitQueueCutoffs.reliesOn(_useSineLevelSplitQueues.is(equal(true)));
+    _sineLevelSplitQueueCutoffs.tag(OptionTag::SATURATION);
+    _sineLevelSplitQueueCutoffs.setExperimental();
+
+    _sineLevelSplitQueueRatios = StringOptionValue("sine_level_split_queue_ratios", "slsqr", "1,3");
+    _sineLevelSplitQueueRatios.description = "The ratios for picking clauses from the sine-level-split-queues using weighted round robin. If a queue is empty, the clause will be picked from the next non-empty queue to the right. Note that this option implicitly also sets the number of queues.";
+    _lookup.insert(&_sineLevelSplitQueueRatios);
+    _sineLevelSplitQueueRatios.reliesOn(_useSineLevelSplitQueues.is(equal(true)));
+    _sineLevelSplitQueueRatios.tag(OptionTag::SATURATION);
+    _sineLevelSplitQueueRatios.setExperimental();
+
 	    _literalMaximalityAftercheck = BoolOptionValue("literal_maximality_aftercheck","lma",false);
 	    _lookup.insert(&_literalMaximalityAftercheck);
 	    _literalMaximalityAftercheck.tag(OptionTag::SATURATION);
@@ -3256,6 +3275,56 @@ Lib::vvector<float> Options::avatarSplitQueueCutoffs() const
     if (i > 0 && cutoff <= cutoffs[i-1])
     {
       USER_ERROR("The cutoff values (supplied by option '-avsqc') must be strictly increasing");
+    }
+  }
+
+  return cutoffs;
+}
+
+Lib::vvector<int> Options::sineLevelSplitQueueRatios() const
+{
+  CALL("Options::sineLevelSplitQueueRatios");
+  vstringstream inputRatiosStream(_sineLevelSplitQueueRatios.actualValue);
+  Lib::vvector<int> inputRatios;
+  std::string currentRatio;
+  while (std::getline(inputRatiosStream, currentRatio, ',')) {
+    inputRatios.push_back(std::stoi(currentRatio));
+  }
+
+  // sanity checks
+  if (inputRatios.size() < 2) {
+    USER_ERROR("Wrong usage of option '-slsqr'. Needs to have at least two values (e.g. '1,3')");
+  }
+  for (unsigned i = 0; i < inputRatios.size(); i++) {
+    if(inputRatios[i] <= 0) {
+      USER_ERROR("Each ratio (supplied by option '-slsqr') needs to be a positive integer");
+    }
+  }
+
+  return inputRatios;
+}
+
+Lib::vvector<float> Options::sineLevelSplitQueueCutoffs() const
+{
+  CALL("Options::sineLevelSplitQueueCutoffs");
+  // initialize cutoffs and add float-max as last value
+  Lib::vvector<float> cutoffs;
+  vstringstream cutoffsStream(_sineLevelSplitQueueCutoffs.actualValue);
+  std::string currentCutoff;
+  while (std::getline(cutoffsStream, currentCutoff, ','))
+  {
+    cutoffs.push_back(std::stof(currentCutoff));
+  }
+  cutoffs.push_back(std::numeric_limits<float>::max());
+
+  // sanity checks
+  for (unsigned i = 0; i < cutoffs.size(); i++)
+  {
+    auto cutoff = cutoffs[i];
+
+    if (i > 0 && cutoff <= cutoffs[i-1])
+    {
+      USER_ERROR("The cutoff values (supplied by option '-slsqc') must be strictly increasing");
     }
   }
 

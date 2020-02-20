@@ -440,4 +440,20 @@ float AvatarMultiSplitPassiveClauseContainer::evaluateFeatureEstimate(Inference*
   return (inf->splits() == nullptr) ? 0 : inf->splits()->size();
 }
 
+SineLevelMultiSplitPassiveClauseContainer::SineLevelMultiSplitPassiveClauseContainer(bool isOutermost, const Shell::Options &opt, Lib::vstring name, Lib::vvector<std::unique_ptr<PassiveClauseContainer>> queues) :
+PredicateSplitPassiveClauseContainer(isOutermost, opt, name, std::move(queues), opt.sineLevelSplitQueueCutoffs(), opt.sineLevelSplitQueueRatios()) {}
+
+float SineLevelMultiSplitPassiveClauseContainer::evaluateFeature(Clause* cl) const
+{
+  // heuristically compute likeliness that clause occurs in proof
+  auto inf = cl->inference();
+  return inf->getSineLevel();
+}
+
+float SineLevelMultiSplitPassiveClauseContainer::evaluateFeatureEstimate(Inference* inf) const
+{
+  // heuristically compute likeliness that clause occurs in proof
+  return inf->getSineLevel();
+}
+
 };
