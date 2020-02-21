@@ -61,6 +61,7 @@ public:
   static LiteralSelector* getSelector(const Ordering& ordering, const Options& options, int selectorNumber);
 
   static void ensureSomeColoredSelected(Clause* c, unsigned eligible);
+  static void ensureNonLemmaPredicateSelected(Clause* c, unsigned eligible);
 
   /**
    * Return true if literal @b l is positive for the purpose of

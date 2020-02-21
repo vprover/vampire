@@ -96,6 +96,8 @@ protected:
     ensureSomeColoredSelected(c, eligible);
     ASS_EQ(c->numSelected(), 1); //if there is colored, it should be selected by the QComparator
 #endif
+
+    ensureNonLemmaPredicateSelected(c, eligible);
   }
 
       private:
@@ -237,6 +239,7 @@ protected:
     LiteralList::destroy(maximals);
 
     ensureSomeColoredSelected(c, eligible);
+    ensureNonLemmaPredicateSelected(c, eligible);
   }
 
 private:

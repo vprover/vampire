@@ -207,6 +207,34 @@ void LiteralSelector::ensureSomeColoredSelected(Clause* c, unsigned eligible)
       c->splits());             // .. unless the color comes from the propositional part
 }
 
+// hack: make sure that at least one non-lemma-predicate is selected
+void LiteralSelector::ensureNonLemmaPredicateSelected(Clause* c, unsigned eligible)
+{
+  CALL("LiteralSelector::ensureNonLemmaPredicateSelected");
+
+  unsigned selCnt=c->numSelected();
+
+  for(unsigned i=0;i<selCnt;i++) {
+    Signature::Symbol* psym=env.signature->getPredicate(((*c)[i]->functor()));
+    if(!psym->isLemmaPredicate)
+    {
+      // the literal selection already contains a non-lemma-literal
+      return;
+    }
+  }
+
+  // we know that no non-lemma-literal is selected, so select some non-lemma-literal if there is one
+  for(unsigned i=selCnt;i<eligible;i++) {
+    Signature::Symbol* psym=env.signature->getPredicate(((*c)[i]->functor()));
+    if(!psym->isLemmaPredicate)
+    {
+      swap((*c)[selCnt], (*c)[i]);
+      c->setSelected(selCnt+1);
+      return;
+    }
+  }
+}
+
 /**
  * Perform literal selection on clause @b c
  *
