@@ -893,6 +893,11 @@ void Options::Options::init()
     _lookup.insert(&_ageWeightRatioShapeFrequency);
     _ageWeightRatioShapeFrequency.tag(OptionTag::SATURATION);
 
+    _useLemmaPredicateLiteralSelection = BoolOptionValue("lemma_literal_selection","lls",true);
+    _useLemmaPredicateLiteralSelection.description = "Turn on clause selection using multiple queues containing different clauses (split by amount of theory reasoning)";
+    _lookup.insert(&_useLemmaPredicateLiteralSelection);
+    _useLemmaPredicateLiteralSelection.tag(OptionTag::SATURATION);
+
     _useTheorySplitQueues = BoolOptionValue("theory_split_queue","thsq",false);
     _useTheorySplitQueues.description = "Turn on clause selection using multiple queues containing different clauses (split by amount of theory reasoning)";
     _lookup.insert(&_useTheorySplitQueues);

@@ -212,6 +212,11 @@ void LiteralSelector::ensureNonLemmaPredicateSelected(Clause* c, unsigned eligib
 {
   CALL("LiteralSelector::ensureNonLemmaPredicateSelected");
 
+  if (!env.options->useLemmaPredicateLiteralSelection())
+  {
+    return;
+  }
+
   unsigned selCnt=c->numSelected();
 
   for(unsigned i=0;i<selCnt;i++) {
@@ -290,13 +295,16 @@ void LiteralSelector::select(Clause* c, unsigned eligibleInp)
   ASS_G(eligible,1);
 
   // hack: if there is a negative lemma-literal, select this literal (and no other literal).
-  for(unsigned i=0;i<eligible;i++) {
-    Signature::Symbol* psym=env.signature->getPredicate(((*c)[i]->functor()));
-    if(psym->isLemmaPredicate && isNegativeForSelection((*c)[i]))
-    {
-      swap((*c)[i], (*c)[0]);
-      c->setSelected(1);
-      return;
+  if (_opt.useLemmaPredicateLiteralSelection())
+  {
+    for(unsigned i=0;i<eligible;i++) {
+      Signature::Symbol* psym=env.signature->getPredicate(((*c)[i]->functor()));
+      if(psym->isLemmaPredicate && isNegativeForSelection((*c)[i]))
+      {
+        swap((*c)[i], (*c)[0]);
+        c->setSelected(1);
+        return;
+      }
     }
   }
 
