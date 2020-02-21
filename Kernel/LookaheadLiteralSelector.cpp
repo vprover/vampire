@@ -352,6 +352,7 @@ selection_done:
   c->setSelected(selCnt);
 
   ensureSomeColoredSelected(c, eligible);
+  ensureNonLemmaPredicateSelected(c, eligible);
 }
 
 }

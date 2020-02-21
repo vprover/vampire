@@ -186,4 +186,5 @@ void ELiteralSelector::doSelection(Clause* c, unsigned eligible)
   c->setSelected(selCnt);
 
   ensureSomeColoredSelected(c, eligible);
+  ensureNonLemmaPredicateSelected(c, eligible);
 }

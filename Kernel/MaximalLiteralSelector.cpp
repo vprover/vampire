@@ -91,4 +91,5 @@ void MaximalLiteralSelector::doSelection(Clause* c, unsigned eligible)
   c->setSelected(selCnt);
 
   ensureSomeColoredSelected(c, eligible);
+  ensureNonLemmaPredicateSelected(c, eligible);
 }
