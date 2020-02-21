@@ -157,6 +157,19 @@ void SMTLIB2::readBenchmark(LExprList* bench)
       continue;
     }
 
+    // custom hack to mark lemma-predicates
+    if (ibRdr.tryAcceptAtom("declare-lemma-predicate")) {
+      vstring name = ibRdr.readAtom();
+      LExprList* iSorts = ibRdr.readList();
+      LExpr* oSort = ibRdr.readNext();
+
+      readDeclareFun(name,iSorts,oSort, true);
+
+      ibRdr.acceptEOL();
+
+      continue;
+    }
+
     if (ibRdr.tryAcceptAtom("declare-fun")) {
       vstring name = ibRdr.readAtom();
       LExprList* iSorts = ibRdr.readList();
@@ -777,7 +790,7 @@ bool SMTLIB2::isAlreadyKnownFunctionSymbol(const vstring& name)
   return false;
 }
 
-void SMTLIB2::readDeclareFun(const vstring& name, LExprList* iSorts, LExpr* oSort)
+void SMTLIB2::readDeclareFun(const vstring& name, LExprList* iSorts, LExpr* oSort, bool isLemmaPredicate)
 {
   CALL("SMTLIB2::readDeclareFun");
 
@@ -796,10 +809,10 @@ void SMTLIB2::readDeclareFun(const vstring& name, LExprList* iSorts, LExpr* oSor
     argSorts.push(declareSort(isRdr.next()));
   }
 
-  declareFunctionOrPredicate(name,rangeSort,argSorts);
+  declareFunctionOrPredicate(name,rangeSort,argSorts, isLemmaPredicate);
 }
 
-SMTLIB2::DeclaredFunction SMTLIB2::declareFunctionOrPredicate(const vstring& name, signed rangeSort, const Stack<unsigned>& argSorts)
+SMTLIB2::DeclaredFunction SMTLIB2::declareFunctionOrPredicate(const vstring& name, signed rangeSort, const Stack<unsigned>& argSorts, bool isLemmaPredicate)
 {
   CALL("SMTLIB2::declareFunctionOrPredicate");
 
@@ -808,10 +821,17 @@ SMTLIB2::DeclaredFunction SMTLIB2::declareFunctionOrPredicate(const vstring& nam
   Signature::Symbol* sym;
   OperatorType* type;
 
+  ASS(!isLemmaPredicate || rangeSort == Sorts::SRT_BOOL);
   if (rangeSort == Sorts::SRT_BOOL) { // predicate
     symNum = env.signature->addPredicate(name, argSorts.size(), added);
 
     sym = env.signature->getPredicate(symNum);
+
+    ASS(added);
+    if (isLemmaPredicate)
+    {
+      sym->isLemmaPredicate = 1;
+    }
 
     type = OperatorType::getPredicateType(argSorts.size(),argSorts.begin());
 

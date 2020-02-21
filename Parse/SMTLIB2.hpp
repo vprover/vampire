@@ -257,14 +257,14 @@ private:
    * store the ensuing DeclaredFunction in _declaredFunctions
    * and return it.
    */
-  DeclaredFunction declareFunctionOrPredicate(const vstring& name, signed rangeSort, const Stack<unsigned>& argSorts);
+  DeclaredFunction declareFunctionOrPredicate(const vstring& name, signed rangeSort, const Stack<unsigned>& argSorts, bool isLemmaPredicate = false);
 
   /**
    * Handle "declare-fun" entry.
    *
    * Declaring a function just extends the signature.
    */
-  void readDeclareFun(const vstring& name, LExprList* iSorts, LExpr* oSort);
+  void readDeclareFun(const vstring& name, LExprList* iSorts, LExpr* oSort, bool isLemmaPredicate = false);
 
   /**
    * Handle "define-fun" entry.
