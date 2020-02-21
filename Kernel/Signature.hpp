@@ -75,6 +75,10 @@ class Signature
     /** marks propositional predicate symbols that are labels to 
         be used as names during consequence finding or function relationship finding */
     unsigned _label : 1;
+  public:
+    /** marks predicate symbols which are annotated by the user as lemma predicates*/
+    unsigned isLemmaPredicate : 1;
+  protected:
     /** marks predicates that are equality proxy */
     unsigned _equalityProxy : 1;
     /** used in coloured proofs and interpolation */

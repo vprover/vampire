@@ -47,6 +47,7 @@ Signature::Symbol::Symbol(const vstring& nm,unsigned arity, bool interpreted, bo
     _protected(0),
     _skip(0),
     _label(0),
+    isLemmaPredicate(0),
     _equalityProxy(0),
     _color(COLOR_TRANSPARENT),
     _stringConstant(stringConstant ? 1: 0),
