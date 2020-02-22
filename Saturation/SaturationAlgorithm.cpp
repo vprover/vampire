@@ -692,6 +692,17 @@ Clause* SaturationAlgorithm::doImmediateSimplification(Clause* cl0)
 
   Clause* cl=cl0;
 
+  ClauseIterator cIt=_immediateSimplifier->simplifyMany(cl);
+  if(cIt.hasNext()){
+    while(cIt.hasNext()){
+      Clause* simpedCl = cIt.next();
+      ASS(simpedCl != cl);
+      addNewClause(simpedCl);
+    }
+    onClauseReduction(cl, 0, 0);
+    return 0;
+  }
+
   Clause* simplCl=_immediateSimplifier->simplify(cl);
   if (simplCl != cl) {
     if (simplCl) {

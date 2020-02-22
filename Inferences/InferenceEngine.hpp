@@ -125,6 +125,7 @@ public:
    * An example of a trivial simplification is deletion of duplicate
    * literals.
    */
+  virtual ClauseIterator simplifyMany(Clause* cl){ NOT_IMPLEMENTED; } ;
   virtual Clause* simplify(Clause* cl) = 0;
 };
 
@@ -226,12 +227,15 @@ public:
   CompositeISE() : _inners(0) {}
   virtual ~CompositeISE();
   void addFront(ImmediateSimplificationEngine* fse);
+  void addFrontMany(ImmediateSimplificationEngine* fse);
   Clause* simplify(Clause* cl);
+  ClauseIterator simplifyMany(Clause* cl);
   void attach(SaturationAlgorithm* salg);
   void detach();
 private:
   typedef List<ImmediateSimplificationEngine*> ISList;
   ISList* _inners;
+  ISList* _innersMany;
 };
 
 //class CompositeFSE

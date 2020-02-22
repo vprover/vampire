@@ -41,7 +41,7 @@ namespace Inferences {
 ClauseIterator Injectivity::generateClauses(Clause* premise) {
   CALL("Injectivity::generateClauses");
 
-  if(premise->length() != 2 ||  (*premise)[0]->polarity() == (*premise)[1]->polarity()){
+  if(premise->length() != 2){
     return ClauseIterator::getEmpty();
   }
 
@@ -49,10 +49,12 @@ ClauseIterator Injectivity::generateClauses(Clause* premise) {
   Literal* sideLit;
   Literal* lit0 = (*premise)[0];
   Literal* lit1 = (*premise)[1];
-  if(!lit0->isTwoVarEquality() && lit1->isTwoVarEquality()){
+  if(!lit0->isTwoVarEquality() && lit1->isTwoVarEquality() && 
+     !lit0->polarity() && lit1->polarity()){
     mainLit = lit0;
     sideLit = lit1;
-  }else if(!lit1->isTwoVarEquality() && lit0->isTwoVarEquality()){
+  }else if(!lit1->isTwoVarEquality() && lit0->isTwoVarEquality() &&
+           !lit1->polarity() && lit0->polarity()) {
     mainLit = lit1;
     sideLit = lit0;
   }else{
@@ -79,6 +81,7 @@ ClauseIterator Injectivity::generateClauses(Clause* premise) {
 
   bool differingArgFound = false;
   unsigned index = 0;
+  termArgs.push(lhsM);
   while(!argsLhs.isEmpty()){
     argLhs = argsLhs.pop();
     argRhs = argsRhs.pop();
@@ -101,7 +104,6 @@ ClauseIterator Injectivity::generateClauses(Clause* premise) {
     }
     if(!differingArgFound){ index++; }
   }
-  termArgs.push(lhsM);
 
   //at this point, we know the clause is of the form f x1 y x2... = f x1 z x2 ... \/ x != y 
   //index holds the index of the different argument
@@ -141,9 +143,9 @@ TermList Injectivity::createNewLhs(TermList oldhead, TermStack& termArgs, unsign
   TermStack sorts;
   TermList newResult;
 
-  sorts.push(oldResult);
-  for(unsigned i = termArgs.size(); i > 0; i--){
-    if(i != index + 1){
+  sorts.push(oldResult); 
+  for(unsigned i = 1; i <= termArgs.size(); i++){
+    if(i - 1 != index){
       sorts.push(ApplicativeHelper::getNthArg(type,i));
     } else {
       newResult = ApplicativeHelper::getNthArg(type,i);
@@ -151,6 +153,7 @@ TermList Injectivity::createNewLhs(TermList oldhead, TermStack& termArgs, unsign
   }
 
   TermList inverseType = Term::arrowSort(sorts, newResult);
+
   OperatorType* invFuncType = OperatorType::getConstantsType(inverseType, qVars);
   Signature::Symbol* invFunc = env.signature->getFunction(iFunc);
   invFunc->setType(invFuncType);

@@ -363,9 +363,9 @@ bool ApplicativeHelper::isSafe(TermStack& args)
   return true;
 }
 
-TermList ApplicativeHelper::replaceFunctionalSubterms(Term* term, FuncSubtermMap* fsm)
+TermList ApplicativeHelper::replaceFunctionalAndBooleanSubterms(Term* term, FuncSubtermMap* fsm)
 {
-  CALL("TermSubstitutionTree::replaceFunctionalSubterms");
+  CALL("TermSubstitutionTree::replaceFunctionalAndBooleanSubterms");
   
   typedef SmartPtr<ApplicativeArgsIt> ArgsIt_ptr;
   typedef ApplicativeHelper AH;
@@ -418,7 +418,8 @@ TermList ApplicativeHelper::replaceFunctionalSubterms(Term* term, FuncSubtermMap
     TermList tl= argIts.top()->next();
     if(tl.isTerm()){
       TermList sort = SortHelper::getResultSort(tl.term());
-      if(sort.isVar() || ApplicativeHelper::isArrowType(sort.term())){
+      if(sort.isVar() || ApplicativeHelper::isArrowType(sort.term()) ||
+         sort == Term::boolSort()){
         tl = getVSpecVar(tl.term(), fsm);
         modified.setTop(true);
       }      
@@ -449,5 +450,8 @@ TermList ApplicativeHelper::replaceFunctionalSubterms(Term* term, FuncSubtermMap
 
   TermList* argLst=&args.top() - (hoti.argNum-1);
   ASS(!term->isLiteral());
-  return AH::createAppTerm(hoti.headSort, hoti.head, argLst, hoti.argNum, false);
+  //cout << "original " + term->toString() << endl;
+  TermList replaced =  AH::createAppTerm(hoti.headSort, hoti.head, argLst, hoti.argNum, false);
+  //cout << "new " + replaced.toString() << endl;
+  return replaced;
 }

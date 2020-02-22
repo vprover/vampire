@@ -1054,7 +1054,7 @@ Term* Term::createLambda(TermList lambdaExp, IntList* vars, SList* sorts, TermLi
   Stack<TermList> revSorts;
   TermList lambdaTmSort = expSort;
   while(sit.hasNext()){
-   revSorts.push(sit.next());
+    revSorts.push(sit.next());
   }
   while(!revSorts.isEmpty()){
     TermList varSort = revSorts.pop();

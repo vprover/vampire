@@ -346,7 +346,19 @@ public:
     /* negative extnsionality */
     NEGATIVE_EXT,
 
-    INJECTIVITY
+    INJECTIVITY,
+
+    HOL_NOT_ELIMINATION,
+
+    BINARY_CONN_ELIMINATION,
+
+    VSIGMA_ELIMINATION,
+
+    VPI_ELIMINATION,
+
+    HOL_EQUALITY_ELIMINATION,
+
+    BINARY_CONN_SHORT_CIRUCIT_EVAL    
   }; // class Inference::Rule
 
   explicit Inference(Rule r);

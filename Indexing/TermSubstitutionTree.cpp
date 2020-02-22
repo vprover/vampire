@@ -75,7 +75,7 @@ void TermSubstitutionTree::handleTerm(TermList t, Literal* lit, Clause* cls, boo
 
   LeafData ld(cls, lit, t);
 
-  //cout << "t is " + t.toString() << endl;
+  //cout << "1 t is " + t.toString() << endl;
 
   if(_replaceFuncSubterms && t.isTerm()){ 
     TermList sort = SortHelper::getResultSort(t.term());
@@ -87,7 +87,7 @@ void TermSubstitutionTree::handleTerm(TermList t, Literal* lit, Clause* cls, boo
     } 
   }
 
-  //cout << "t is " + t.toString() << endl;
+  //cout << "2 t is " + t.toString() << endl;
 
   if(t.isOrdinaryVar()) {
     if(insert) {
@@ -104,7 +104,7 @@ void TermSubstitutionTree::handleTerm(TermList t, Literal* lit, Clause* cls, boo
 
     if(_replaceFuncSubterms){
       //cout << "normTerm is " + normTerm->toString() << endl;
-      t = ApplicativeHelper::replaceFunctionalSubterms(normTerm, &_functionalSubtermMap);   
+      t = ApplicativeHelper::replaceFunctionalAndBooleanSubterms(normTerm, &_functionalSubtermMap);   
       //cout << "t is " + t.toString() << endl; 
       normTerm = t.term();
     }
@@ -151,8 +151,8 @@ TermQueryResultIterator TermSubstitutionTree::getUnificationsUsingSorts(TermList
 
   ASS(_replaceFuncSubterms);
 
-    //cout << "trying to find partners for " + t.toString() << endl;
-    //cout << this->toString() << endl;
+  //cout << "trying to find partners for " + t.toString() << endl;
+  //cout << this->toString() << endl;
 
   bool sortVar = sort.isVar();
   bool sortArrow = !sortVar && ApplicativeHelper::isArrowType(sort.term());

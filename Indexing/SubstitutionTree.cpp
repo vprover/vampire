@@ -721,7 +721,7 @@ clientBDRecording(false), tree(parent), useConstraints(useC)
   Term* queryNorm=queryNormalizer.apply(query);
 
   if(funcSubtermMap){
-    TermList t = ApplicativeHelper::replaceFunctionalSubterms(queryNorm, funcSubtermMap);
+    TermList t = ApplicativeHelper::replaceFunctionalAndBooleanSubterms(queryNorm, funcSubtermMap);
     ASS(!t.isVar());
     queryNorm = t.term();
   }

@@ -294,7 +294,8 @@ VINF_OBJ=Inferences/BackwardDemodulation.o\
          Inferences/SLQueryBackwardSubsumption.o\
          Inferences/Superposition.o\
          Inferences/TautologyDeletionISE.o\
-         Inferences/URResolution.o
+         Inferences/URResolution.o\
+         Inferences/ProxyElimination.o\
 #         Inferences/EquationalTautologyRemoval.o\
 #	 Inferences/Instantiation.o\
 #         Inferences/ExtensionalityResolution.o\

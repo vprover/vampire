@@ -86,8 +86,8 @@ struct EqualityResolution::ResultFn
       TermList sort = SortHelper::getEqualityArgumentSort(lit);
       if(!arg0.isVar() && !arg1.isVar() && 
          !sort.isVar() && !ApplicativeHelper::isArrowType(sort.term())){
-        arg0 = ApplicativeHelper::replaceFunctionalSubterms(arg0.term(), &funcSubtermMap);
-        arg1 = ApplicativeHelper::replaceFunctionalSubterms(arg1.term(), &funcSubtermMap);
+        arg0 = ApplicativeHelper::replaceFunctionalAndBooleanSubterms(arg0.term(), &funcSubtermMap);
+        arg1 = ApplicativeHelper::replaceFunctionalAndBooleanSubterms(arg1.term(), &funcSubtermMap);
       }
     }
 

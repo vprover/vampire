@@ -630,7 +630,7 @@ public:
    * @since 04/05/2013 Manchester, argument includeSelf added
    * @author Andrei Voronkov
    */
-  NonVariableNonTypeIterator(Term* term,bool includeSelf=false)
+  NonVariableNonTypeIterator(Term* term, bool includeSelf=false)
   : _stack(8),
     _added(0)
   {

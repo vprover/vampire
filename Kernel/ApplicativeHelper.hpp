@@ -66,7 +66,7 @@ public:
   static bool isExactApplied(TermList head, unsigned argNum);
   static bool isOverApplied(TermList head, unsigned argNum);
   static bool isSafe(TermStack& args);
-  static TermList replaceFunctionalSubterms(Term* term, FuncSubtermMap* fsm);
+  static TermList replaceFunctionalAndBooleanSubterms(Term* term, FuncSubtermMap* fsm);
 
 private:
 

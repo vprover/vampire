@@ -130,8 +130,8 @@ struct EqualityFactoring::ResultFn
       TermList fLHSreplaced = fLHS;
       if(!sLHS.isVar() && !fLHS.isVar() && 
          !srtS.isVar() && !ApplicativeHelper::isArrowType(srtS.term())){
-        sLHSreplaced = ApplicativeHelper::replaceFunctionalSubterms(sLHS.term(), &funcSubtermMap);
-        fLHSreplaced = ApplicativeHelper::replaceFunctionalSubterms(fLHS.term(), &funcSubtermMap);
+        sLHSreplaced = ApplicativeHelper::replaceFunctionalAndBooleanSubterms(sLHS.term(), &funcSubtermMap);
+        fLHSreplaced = ApplicativeHelper::replaceFunctionalAndBooleanSubterms(fLHS.term(), &funcSubtermMap);
       }
       subst.setMap(&funcSubtermMap);
       if(!subst.unify(sLHSreplaced,0,fLHSreplaced,0)) {
