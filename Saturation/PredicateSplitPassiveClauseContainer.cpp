@@ -419,7 +419,7 @@ PredicateSplitPassiveClauseContainer(isOutermost, opt, name, std::move(queues), 
 float AvatarMultiSplitPassiveClauseContainer::evaluateFeature(Inference* inf) const
 {
     // heuristically compute likeliness that clause occurs in proof
-    return (inf->splits() == nullptr) ? 0 : inf->splits()->size();
+    return inf->getSineLevelMin();
 }
 
 };

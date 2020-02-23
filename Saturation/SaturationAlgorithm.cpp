@@ -286,6 +286,7 @@ void SaturationAlgorithm::onActiveAdded(Clause* c)
   if (env.options->showActive()) {
     env.beginOutput();    
     env.out() << "[SA] active: " << c->toString() << std::endl;
+    env.out() << c->inference()->getSineLevelMin() << endl;
     env.endOutput();             
   }          
 }
@@ -396,6 +397,7 @@ void SaturationAlgorithm::onNewClause(Clause* cl)
   if (env.options->showNew()) {
     env.beginOutput();
     env.out() << "[SA] new: " << cl->toString() << std::endl;
+    env.out() << cl->inference()->getSineLevelMin() << endl;
     env.endOutput();
   }
 
@@ -584,6 +586,17 @@ void SaturationAlgorithm::addInputClause(Clause* cl)
     }
     // cout << endl;
     cl->setAge(level);
+  }
+  if (_opt.useAvatarSplitQueues()) {
+    unsigned level = cl->getSineLevel();
+    if (level == UINT_MAX) {
+      cl->inference()->setSineLevelMin(UINT_MAX);
+    } else {
+      ASS_GE(level,1);
+      // ASS(cl->isGoal() == (level == 1)); // hypothesis in TPTP is parsed as ASSUMPTION(?) which is not isGoal, but it is a seed/``conjecture'' for SiNE
+
+      cl->inference()->setSineLevelMin(level-1); // let it start from 0
+    }
   }
 
   if (sosForAxioms || (cl->inference()->isTheoryAxiom() && sosForTheory)){

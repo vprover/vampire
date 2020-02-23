@@ -31,7 +31,7 @@
 using namespace Kernel;
 
 Inference::Inference(Rule r)
-  : _rule(r), _extra(""),_maxDepth(0), _splits(nullptr)
+  : _rule(r), _extra(""),_maxDepth(0), _splits(nullptr), _sineLevelMin(UINT_MAX)
 {
 //  switch(r) {
 //  //TODO: move env.statistics object updates here.
@@ -52,6 +52,7 @@ InferenceMany::InferenceMany(Rule rule,UnitList* premises)
   while(it) {
     it->head()->incRefCnt();
     md = max(md,it->head()->inference()->maxDepth());
+    _sineLevelMin = min(_sineLevelMin,it->head()->inference()->getSineLevelMin());
     it=it->tail();
   }
   _maxDepth = md+1;

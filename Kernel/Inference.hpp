@@ -395,6 +395,9 @@ public:
 
   unsigned maxDepth(){ return _maxDepth; }
 
+  void setSineLevelMin(unsigned l) { _sineLevelMin = l; }
+  unsigned getSineLevelMin() const { return _sineLevelMin; }
+
   /*
    * returns true if clause is a theory axiom
    *
@@ -524,7 +527,7 @@ protected:
   vstring _extra;
   /** The depth */
   unsigned _maxDepth;
-
+  unsigned _sineLevelMin;
 private:
   SplitSet* _splits;
 }; // class Inference
@@ -566,6 +569,8 @@ public:
     _maxDepth = premise->inference()->maxDepth()+1; 
     if(_rule == EVALUATION){ _maxDepth = premise->inference()->maxDepth(); }
 
+    _sineLevelMin = min(_sineLevelMin,premise->inference()->getSineLevelMin());
+
     computeRunningSums();
   }
 
@@ -598,6 +603,8 @@ public:
     _premise1->incRefCnt();
     _premise2->incRefCnt();
     _maxDepth = max(premise1->inference()->maxDepth(),premise2->inference()->maxDepth())+1;
+
+    _sineLevelMin = min(premise1->inference()->getSineLevelMin(),premise2->inference()->getSineLevelMin());
 
     computeRunningSums();
   }
