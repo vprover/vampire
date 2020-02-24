@@ -558,10 +558,10 @@ void SaturationAlgorithm::addInputClause(Clause* cl)
   bool sosForTheory = _opt.sos() == Options::Sos::THEORY && _opt.sosTheoryLimit() == 0;
 
   if (_opt.sineToAge()) {
-    unsigned level = cl->getSineLevel();
+    unsigned level = cl->inference()->getSineLevel();
     // cout << "Adding " << cl->toString() << " level " << level;
     if (level == UINT_MAX) {
-      level = env.maxClausePriority;
+      level = env.maxClausePriority-1; // as the next available (unused) value
       // cout << " -> " << level;
     }
     // cout << endl;

@@ -487,6 +487,10 @@ public:
   /** Return the extra string */
   vstring extra() { return _extra; }
 
+  unsigned getSineLevel() const { return _sineLevel; }
+  /* should be only used to initialize the "whole chain" by SineUtils */
+  void setSineLevel(unsigned l) { _sineLevel = l; }
+
   /*
    * returns true if clause is a theory axiom
    *
@@ -610,7 +614,10 @@ protected:
   bool _isPureTheoryDescendant;
   /** Induction depth **/
   unsigned _inductionDepth;
-
+  /** Sine level computed in SineUtils and used in various heuristics.
+   * May stay unitialized (i.e. always UINT_MAX), if not needed
+   **/
+  unsigned _sineLevel; // updated as the minimum from parents to children
 private:
   SplitSet* _splits;
 }; // class Inference
@@ -629,6 +636,7 @@ public:
     _isPureTheoryDescendant = isTheoryAxiom();
 
     //_inductionDepth = 0 from Inference::Inference (or set externally)
+    //_sineLevel = UINT_MAX from Inference::Inference (or set externally)
   }
 
   /* Inference0 does not update (it does not have parents anyway).
@@ -665,6 +673,7 @@ public:
 
     computeTheoryRunningSums();
     _isPureTheoryDescendant = _premise1->inference()->isPureTheoryDescendant();
+    _sineLevel = min(_sineLevel,premise->inference()->getSineLevel());
 
     updateStatistics();
   }
@@ -707,6 +716,7 @@ public:
 
     computeTheoryRunningSums();
     _isPureTheoryDescendant = _premise1->inference()->isPureTheoryDescendant() && _premise2->inference()->isPureTheoryDescendant();
+    _sineLevel = min(premise1->inference()->getSineLevel(),premise2->inference()->getSineLevel());
 
     updateStatistics();
   }

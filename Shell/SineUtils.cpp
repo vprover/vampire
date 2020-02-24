@@ -315,9 +315,9 @@ void SineSelector::updateDefRelation(Unit* u)
     if(env.clausePriorities){
       env.clausePriorities->insert(u,1);
     }
-    if(env.clauseSineLevels){
-      env.clauseSineLevels->insert(u,1);
-      // cout << "set level for a non-symboler " << u->toString() << " as " << "(1)" << endl;
+    if(_justForSineLevels){
+      u->inference()->setSineLevel(0);
+      //cout << "set level for a non-symboler " << u->toString() << " as " << "(0)" << endl;
     }
     _unitsWithoutSymbols.push(u);
     return;
@@ -421,7 +421,7 @@ bool SineSelector::perform(UnitList*& units)
     if (performSelection) { // register the unit for later
       updateDefRelation(u);
     }
-    else { // goal units are immediately taken
+    else { // goal units are immediately taken (well, non-axiom, to by more precise. Includes ASSUMPTION, which cl->isGoal() does not take into account)
       selected.insert(u);
       selectedStack.push(u);
       newlySelected.push_back(u);
@@ -430,9 +430,9 @@ bool SineSelector::perform(UnitList*& units)
         env.clausePriorities->insert(u,1);
         //cout << "set priority for " << u->toString() << " as " << (1) << endl;
       }
-      if(env.clauseSineLevels && !env.clauseSineLevels->find(u)) {
-        env.clauseSineLevels->insert(u,1);
-        // cout << "set level for " << u->toString() << " as " << "(1)" << endl;
+      if(_justForSineLevels) {
+        u->inference()->setSineLevel(0);
+        //cout << "set level for " << u->toString() << " as " << "(0)" << endl;
       }
     }
   }
@@ -493,9 +493,9 @@ bool SineSelector::perform(UnitList*& units)
           env.clausePriorities->insert(du,env.maxClausePriority);
           //cout << "set priority for " << du->toString() << " as " << env.maxClausePriority << endl;
         }
-        if(env.clauseSineLevels && !env.clauseSineLevels->find(du)){
-          env.clauseSineLevels->insert(du,env.maxClausePriority+1);
-          // cout << "set level for " << du->toString() << " in iteration as " << env.maxClausePriority+1 << endl;
+        if(_justForSineLevels){
+          du->inference()->setSineLevel(env.maxClausePriority);
+          //cout << "set level for " << du->toString() << " in iteration as " << env.maxClausePriority << endl;
         }
       }
       //all defining units for the symbol sym were selected,
@@ -506,14 +506,7 @@ bool SineSelector::perform(UnitList*& units)
   }
 
   if (_justForSineLevels) {
-    UnitList::Iterator uit(units);
-    while (uit.hasNext()) {
-      Unit* u=uit.next();
-      if(env.clauseSineLevels && !env.clauseSineLevels->find(u)) {
-        env.clauseSineLevels->insert(u,UINT_MAX);
-      }
-    }
-
+    // units we did not touch will by default keep their sineLevel == UINT_MAX
     return false;
   }
 
@@ -606,9 +599,6 @@ void SineTheorySelector::updateDefRelation(Unit* u)
 
     if(env.clausePriorities){
       env.clausePriorities->insert(u,1);
-    }
-    if(env.clauseSineLevels){
-      env.clauseSineLevels->insert(u,1);
     }
 
     _unitsWithoutSymbols.push(u);

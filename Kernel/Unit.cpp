@@ -172,32 +172,6 @@ unsigned Unit::getPriority() const
     return priority;
 }
 
-/**
- * Unlike the above function, which was designed to assign value to all clauses using a kind of average,
- * here we only aspire to give sine level to input clauses, which should inherit it, each from its formula parent.
- */
-unsigned Unit::getSineLevel() const
-{
-  CALL("Unit::getInitialPriority");
-
-  unsigned level = UINT_MAX;
-  if(env.clauseSineLevels->find(this,level)){
-    return level;
-  }
-
-  Inference::Iterator iit = _inference->iterator();
-  while(_inference->hasNext(iit)) {
-    Unit* premUnit = _inference->next(iit);
-    unsigned premLel = premUnit->getSineLevel();
-    if (premLel < level) {
-      level = premLel;
-    }
-  }
-  env.clauseSineLevels->insert(this,level);
-  return level;
-}
-
-
 void Unit::incRefCnt()
 {
   CALL("Unit::incRefCnt");

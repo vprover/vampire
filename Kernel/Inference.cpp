@@ -30,7 +30,8 @@
 
 using namespace Kernel;
 
-Inference::Inference(Rule r) : _rule(r), _extra(""), _inductionDepth(0), _splits(nullptr) {}
+
+Inference::Inference(Rule r) : _rule(r), _extra(""), _inductionDepth(0), _splits(nullptr), _sineLevel(UINT_MAX) {}
 
 /**
  * Create an inference object with multiple premisses
@@ -55,6 +56,7 @@ InferenceMany::InferenceMany(Rule rule,UnitList* premises)
     while(it) {
       Inference* inf = it->head()->inference();
       _isPureTheoryDescendant &= inf->isPureTheoryDescendant();
+      _sineLevel = min(_sineLevel,it->head()->inference()->getSineLevel());
       it=it->tail();
     }
   } else {
