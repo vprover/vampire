@@ -213,13 +213,18 @@ void AWPassiveClauseContainer::remove(Clause* cl)
   {
     ASS(cl->store()==Clause::PASSIVE);
   }
+  ASS(_ageRatio > 0 || _weightRatio > 0);
+  bool wasRemoved; // will be assigned, since at least one of the following checks succeeds
   if (_ageRatio) {
-    _ageQueue.remove(cl);
+    wasRemoved = _ageQueue.remove(cl);
   }
   if (_weightRatio) {
-    _weightQueue.remove(cl);
+    wasRemoved = _weightQueue.remove(cl);
   }
-  _size--;
+
+  if (wasRemoved) {
+    _size--;
+  }
 
   if (_isOutermost)
   {
