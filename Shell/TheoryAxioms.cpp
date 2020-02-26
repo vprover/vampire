@@ -647,8 +647,12 @@ void TheoryAxioms::addExtraIntegerOrderingAxiom(Interpretation plus, TermList on
   Literal* nyLxPOne = Literal::create2(lessPred, false, y,xPOne);
 
   addTheoryClauseFromLits({nxLy,nyLxPOne}, Inference::Rule::THEORY_AXIOM_EXTRA_INTEGER_ORDERING, EXPENSIVE);
+
+  // hack: add additional axiom x!=x+1 to enable simplification using subsumption-resolution
+  Literal* notXIsXPlusOne = Literal::createEquality(false, x, xPOne, theory->getOperationSort(plus));
+  addTheoryClauseFromLits({notXIsXPlusOne}, Inference::Rule::GENERIC_THEORY_AXIOM, CHEAP);
 }
-    
+
 /**
  * Add axioms defining floor function
  * @author Giles
