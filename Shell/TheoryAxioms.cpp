@@ -696,6 +696,10 @@ void TheoryAxioms::addExtraIntegerOrderingAxiom(Interpretation plus, TermList on
   TermList xPOne(Term::create2(plusFun, x, oneElement));
   Literal* nyLxPOne = Literal::create2(lessPred, false, y,xPOne);
   addTheoryNonUnitClause(nxLy, nyLxPOne,EXPENSIVE);
+
+  // hack: add additional axiom x!=x+1 to enable simplification using subsumption-resolution
+  Literal* notXIsXPlusOne = Literal::createEquality(false, x, xPOne, theory->getOperationSort(plus));
+  addTheoryUnitClause(notXIsXPlusOne, CHEAP);
 }
     
 /**
