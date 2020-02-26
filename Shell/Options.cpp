@@ -1784,17 +1784,6 @@ void Options::Options::init()
     //_lookup.insert(&_weightIncrement);
     _weightIncrement.tag(OptionTag::OTHER);
 
-    //******************************************************************
-    //*********************** Unused ??  *******************************
-    //******************************************************************
-
-    _rowVariableMaxLength = IntOptionValue("row_variable_max_length","",2);
-    _rowVariableMaxLength.description="";
-    _lookup.insert(&_rowVariableMaxLength);
-    _rowVariableMaxLength.tag(OptionTag::UNUSED);
-    _rowVariableMaxLength.setExperimental();
-
-
 
     //******************************************************************
     //*********************** Vinter???  *******************************
