@@ -1471,18 +1471,18 @@ void TheoryAxioms::addDefineSubEqAxiom(NatTermAlgebra* nat)
   auto clause1Lit2 = Literal::createEquality(true, x, y, natSort);
   auto clause1Lit3 = nat->createLess(true, x,y);
 
-  addTheoryNonUnitClause(clause1Lit1, clause1Lit2, clause1Lit3, EXPENSIVE);
+  addTheoryNonUnitClause(clause1Lit1, clause1Lit2, clause1Lit3, CHEAP);
 
   // clause 2: x!=y or x<s(y), simplified to x<s(x)
   auto clause2Lit1 = nat->createLess(true, x, sx);
 
-  addTheoryUnitClause(clause2Lit1, EXPENSIVE);
+  addTheoryUnitClause(clause2Lit1, CHEAP);
 
   // clause 3: x!<y or x<s(y)
   auto clause3Lit1 = nat->createLess(false, x, y);
   auto clause3Lit2 = nat->createLess(true, x, sy);
 
-  addTheoryNonUnitClause(clause3Lit1, clause3Lit2, EXPENSIVE);
+  addTheoryNonUnitClause(clause3Lit1, clause3Lit2, CHEAP);
 }
 
 void TheoryAxioms::addMonotonicityAxiom(NatTermAlgebra* nat)
@@ -1498,13 +1498,13 @@ void TheoryAxioms::addMonotonicityAxiom(NatTermAlgebra* nat)
   auto clause1Lit1 = nat->createLess(false, x, y);
   auto clause1Lit2 = nat->createLess(true, sx, sy);
 
-  addTheoryNonUnitClause(clause1Lit1, clause1Lit2, EXPENSIVE);
+  addTheoryNonUnitClause(clause1Lit1, clause1Lit2, CHEAP);
 
   // clause 2: s(x)!<s(y) or x<y
   auto clause2Lit1 = nat->createLess(false, sx, sy);
   auto clause2Lit2 = nat->createLess(true, x, y);
 
-  addTheoryNonUnitClause(clause2Lit1, clause2Lit2, EXPENSIVE);
+  addTheoryNonUnitClause(clause2Lit1, clause2Lit2, CHEAP);
 }
 
 void TheoryAxioms::addTransitivityAxioms(NatTermAlgebra* nat)
@@ -1523,13 +1523,13 @@ void TheoryAxioms::addTransitivityAxioms(NatTermAlgebra* nat)
   auto nonStrict3 = nat->createLess(true, x, sz);
 
   // variant 1: forall x,y,z. x!<y or y!<z or x<z
-  addTheoryNonUnitClause(strict1, strict2, strict3, EXPENSIVE);
+  addTheoryNonUnitClause(strict1, strict2, strict3, CHEAP);
   // variant 2: forall x,y,z. x!<s(y) or y!<z or x<z
-  addTheoryNonUnitClause(nonStrict1, strict2, strict3, EXPENSIVE);
+  addTheoryNonUnitClause(nonStrict1, strict2, strict3, CHEAP);
   // variant 3: forall x,y,z. x!<y or y!<s(z) or x<z
-  addTheoryNonUnitClause(strict1, nonStrict2, strict3, EXPENSIVE);
+  addTheoryNonUnitClause(strict1, nonStrict2, strict3, CHEAP);
   // variant 4: forall x,y,z. x!<s(y) or y!<s(z) or x<s(z)
-  addTheoryNonUnitClause(nonStrict1, nonStrict2, nonStrict3, EXPENSIVE);
+  addTheoryNonUnitClause(nonStrict1, nonStrict2, nonStrict3, CHEAP);
 }
 
 void TheoryAxioms::addTotalityAxiom(NatTermAlgebra* nat)
@@ -1543,7 +1543,7 @@ void TheoryAxioms::addTotalityAxiom(NatTermAlgebra* nat)
   auto lit2 = Literal::createEquality(true, x, y, natSort);
   auto lit3 = nat->createLess(true, y, x);
 
-  addTheoryNonUnitClause(lit1, lit2, lit3, EXPENSIVE);
+  addTheoryNonUnitClause(lit1, lit2, lit3, CHEAP);
 }
 
 void TheoryAxioms::addDisjointnessAxioms(NatTermAlgebra* nat)
@@ -1555,7 +1555,7 @@ void TheoryAxioms::addDisjointnessAxioms(NatTermAlgebra* nat)
   // Clause 1: x!<y or x!=y, simplified to x!<x
   auto clause1Lit1 = nat->createLess(false, x, x);
 
-  addTheoryUnitClause(clause1Lit1, EXPENSIVE);
+  addTheoryUnitClause(clause1Lit1, CHEAP);
 
   // Clause 2: x!<y or y!<x
   // already subsumed by other theory axioms, therefore omitted:
