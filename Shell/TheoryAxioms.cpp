@@ -1414,18 +1414,18 @@ void TheoryAxioms::addDefineSubEqAxiom(NatTermAlgebra* nat)
   auto clause1Lit2 = Literal::createEquality(true, x, y, natSort);
   auto clause1Lit3 = nat->createLess(true, x,y);
 
-  addTheoryClauseFromLits({clause1Lit1, clause1Lit2, clause1Lit3}, Inference::Rule::GENERIC_THEORY_AXIOM, EXPENSIVE);
+  addTheoryClauseFromLits({clause1Lit1, clause1Lit2, clause1Lit3}, Inference::Rule::GENERIC_THEORY_AXIOM, CHEAP);
 
   // clause 2: x!=y or x<s(y), simplified to x<s(x)
   auto clause2Lit1 = nat->createLess(true, x, sx);
 
-  addTheoryClauseFromLits({clause2Lit1}, Inference::Rule::GENERIC_THEORY_AXIOM, EXPENSIVE);
+  addTheoryClauseFromLits({clause2Lit1}, Inference::Rule::GENERIC_THEORY_AXIOM, CHEAP);
 
   // clause 3: x!<y or x<s(y)
   auto clause3Lit1 = nat->createLess(false, x, y);
   auto clause3Lit2 = nat->createLess(true, x, sy);
 
-  addTheoryClauseFromLits({clause3Lit1, clause3Lit2}, Inference::Rule::GENERIC_THEORY_AXIOM, EXPENSIVE);
+  addTheoryClauseFromLits({clause3Lit1, clause3Lit2}, Inference::Rule::GENERIC_THEORY_AXIOM, CHEAP);
 }
 
 void TheoryAxioms::addMonotonicityAxiom(NatTermAlgebra* nat)
@@ -1441,13 +1441,13 @@ void TheoryAxioms::addMonotonicityAxiom(NatTermAlgebra* nat)
   auto clause1Lit1 = nat->createLess(false, x, y);
   auto clause1Lit2 = nat->createLess(true, sx, sy);
 
-  addTheoryClauseFromLits({clause1Lit1, clause1Lit2}, Inference::Rule::GENERIC_THEORY_AXIOM, EXPENSIVE);
+  addTheoryClauseFromLits({clause1Lit1, clause1Lit2}, Inference::Rule::GENERIC_THEORY_AXIOM, CHEAP);
 
   // clause 2: s(x)!<s(y) or x<y
   auto clause2Lit1 = nat->createLess(false, sx, sy);
   auto clause2Lit2 = nat->createLess(true, x, y);
 
-  addTheoryClauseFromLits({clause2Lit1, clause2Lit2}, Inference::Rule::GENERIC_THEORY_AXIOM, EXPENSIVE);
+  addTheoryClauseFromLits({clause2Lit1, clause2Lit2}, Inference::Rule::GENERIC_THEORY_AXIOM, CHEAP);
 }
 
 void TheoryAxioms::addTransitivityAxioms(NatTermAlgebra* nat)
@@ -1466,13 +1466,13 @@ void TheoryAxioms::addTransitivityAxioms(NatTermAlgebra* nat)
   auto nonStrict3 = nat->createLess(true, x, sz);
 
   // variant 1: forall x,y,z. x!<y or y!<z or x<z
-  addTheoryClauseFromLits({strict1, strict2, strict3}, Inference::Rule::GENERIC_THEORY_AXIOM, EXPENSIVE);
+  addTheoryClauseFromLits({strict1, strict2, strict3}, Inference::Rule::GENERIC_THEORY_AXIOM, CHEAP);
   // variant 2: forall x,y,z. x!<s(y) or y!<z or x<z
-  addTheoryClauseFromLits({nonStrict1, strict2, strict3}, Inference::Rule::GENERIC_THEORY_AXIOM, EXPENSIVE);
+  addTheoryClauseFromLits({nonStrict1, strict2, strict3}, Inference::Rule::GENERIC_THEORY_AXIOM, CHEAP);
   // variant 3: forall x,y,z. x!<y or y!<s(z) or x<z
-  addTheoryClauseFromLits({strict1, nonStrict2, strict3}, Inference::Rule::GENERIC_THEORY_AXIOM, EXPENSIVE);
+  addTheoryClauseFromLits({strict1, nonStrict2, strict3}, Inference::Rule::GENERIC_THEORY_AXIOM, CHEAP);
   // variant 4: forall x,y,z. x!<s(y) or y!<s(z) or x<s(z)
-  addTheoryClauseFromLits({nonStrict1, nonStrict2, nonStrict3}, Inference::Rule::GENERIC_THEORY_AXIOM, EXPENSIVE);
+  addTheoryClauseFromLits({nonStrict1, nonStrict2, nonStrict3}, Inference::Rule::GENERIC_THEORY_AXIOM, CHEAP);
 }
 
 void TheoryAxioms::addTotalityAxiom(NatTermAlgebra* nat)
@@ -1486,7 +1486,7 @@ void TheoryAxioms::addTotalityAxiom(NatTermAlgebra* nat)
   auto lit2 = Literal::createEquality(true, x, y, natSort);
   auto lit3 = nat->createLess(true, y, x);
 
-  addTheoryClauseFromLits({lit1, lit2, lit3}, Inference::Rule::GENERIC_THEORY_AXIOM, EXPENSIVE);
+  addTheoryClauseFromLits({lit1, lit2, lit3}, Inference::Rule::GENERIC_THEORY_AXIOM, CHEAP);
 }
 
 void TheoryAxioms::addDisjointnessAxioms(NatTermAlgebra* nat)
@@ -1498,7 +1498,7 @@ void TheoryAxioms::addDisjointnessAxioms(NatTermAlgebra* nat)
   // Clause 1: x!<y or x!=y, simplified to x!<x
   auto clause1Lit1 = nat->createLess(false, x, x);
 
-  addTheoryClauseFromLits({clause1Lit1}, Inference::Rule::GENERIC_THEORY_AXIOM, EXPENSIVE);
+  addTheoryClauseFromLits({clause1Lit1}, Inference::Rule::GENERIC_THEORY_AXIOM, CHEAP);
 
   // Clause 2: x!<y or y!<x
   // already subsumed by other theory axioms, therefore omitted:
