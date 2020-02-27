@@ -156,6 +156,9 @@ ImmediateSimplificationEngine* MainLoop::createISE(Problem& prb, const Options& 
   res->addFront(new TautologyDeletionISE());
   res->addFront(new DuplicateLiteralRemovalISE());
 
+  if(prb.hasEquality() && env.signature->getNat() != nullptr) {
+    res->addFront(new TwoSuccessorsISE());
+  }
   return res;
 }
 
