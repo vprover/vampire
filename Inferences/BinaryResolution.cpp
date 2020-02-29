@@ -154,6 +154,9 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQ
   unsigned dlength = qr.clause->length();
   unsigned newAge=Int::max(queryCl->age(),qr.clause->age())+1;
 
+  unsigned conlength = withConstraints ? constraints->size() : 0;
+  unsigned newLength = clength+dlength-2+conlength;
+
   // LRS-specific optimization:
   // check whether we can conclude that the resulting clause will be discarded by LRS since it does not fulfil the age/weight limits (in which case we can discard the clause)
   // we already know the age here so we can immediately conclude whether the clause fulfils the age limit
@@ -163,7 +166,7 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQ
   unsigned wlb=0;//weight lower bound
   Inference* inf = new Inference2((withConstraints?Inference::CONSTRAINED_RESOLUTION:Inference::RESOLUTION),
                                   queryCl, qr.clause);
-  bool needsToFulfilWeightLimit = passiveClauseContainer && !passiveClauseContainer->fulfilsAgeLimit(newAge, wlb, numeralWeight, derivedFromGoal, inf) && passiveClauseContainer->weightLimited();
+  bool needsToFulfilWeightLimit = passiveClauseContainer && !passiveClauseContainer->fulfilsAgeLimit(newAge, wlb, numeralWeight, newLength, derivedFromGoal, inf) && passiveClauseContainer->weightLimited();
   if(needsToFulfilWeightLimit) {
     for(unsigned i=0;i<clength;i++) {
       Literal* curr=(*queryCl)[i];
@@ -177,15 +180,12 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQ
         wlb+=curr->weight();
       }
     }
-    if(!passiveClauseContainer->fulfilsWeightLimit(wlb, numeralWeight, derivedFromGoal, newAge, inf)) {
+    if(!passiveClauseContainer->fulfilsWeightLimit(wlb, numeralWeight, newLength, derivedFromGoal, newAge, inf)) {
       RSTAT_CTR_INC("binary resolutions skipped for weight limit before building clause");
       env.statistics->discardedNonRedundantClauses++;
       return 0;
     }
   }
-
-  unsigned conlength = withConstraints ? constraints->size() : 0;
-  unsigned newLength = clength+dlength-2+conlength;
 
   Unit::InputType inpType = (Unit::InputType)
   	Int::max(queryCl->inputType(), qr.clause->inputType());
@@ -247,7 +247,7 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQ
       Literal* newLit=qr.substitution->applyToQuery(curr);
       if(needsToFulfilWeightLimit) {
         wlb+=newLit->weight() - curr->weight();
-        if(!passiveClauseContainer->fulfilsWeightLimit(wlb, numeralWeight, derivedFromGoal, newAge, inf)) {
+        if(!passiveClauseContainer->fulfilsWeightLimit(wlb, numeralWeight, newLength, derivedFromGoal, newAge, inf)) {
           RSTAT_CTR_INC("binary resolutions skipped for weight limit while building clause");
           env.statistics->discardedNonRedundantClauses++;
           res->destroy();
@@ -285,7 +285,7 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQ
       Literal* newLit = qr.substitution->applyToResult(curr);
       if(needsToFulfilWeightLimit) {
         wlb+=newLit->weight() - curr->weight();
-        if(!passiveClauseContainer->fulfilsWeightLimit(wlb, numeralWeight, derivedFromGoal, newAge, inf)) {
+        if(!passiveClauseContainer->fulfilsWeightLimit(wlb, numeralWeight, newLength, derivedFromGoal, newAge, inf)) {
           RSTAT_CTR_INC("binary resolutions skipped for weight limit while building clause");
           env.statistics->discardedNonRedundantClauses++;
           res->destroy();

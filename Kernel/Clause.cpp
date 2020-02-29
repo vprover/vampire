@@ -644,22 +644,39 @@ void Clause::computeWeightForClauseSelection(const Options& opt)
     if(!found){ derivedFromGoal=false; }
   }
 
-  _weightForClauseSelection = Clause::computeWeightForClauseSelection(w, numeralWeight, derivedFromGoal, opt);
+  _weightForClauseSelection = Clause::computeWeightForClauseSelection(w, numeralWeight, length(), derivedFromGoal, opt);
 }
 
 /*
  * note: we currently assume in Clause::computeWeightForClauseSelection(opt) that numeralWeight is only used here if
  * the option increasedNumeralWeight() is set to true.
  */
-unsigned Clause::computeWeightForClauseSelection(unsigned w, unsigned numeralWeight, bool derivedFromGoal, const Shell::Options& opt)
+unsigned Clause::computeWeightForClauseSelection(unsigned w, unsigned numeralWeight, unsigned length, bool derivedFromGoal, const Shell::Options& opt)
 {
   static unsigned nongoalWeightCoeffNum = opt.nongoalWeightCoefficientNumerator();
   static unsigned nongoalWeightCoefDenom = opt.nongoalWeightCoefficientDenominator();
 
+  static Options::LenghtMultiplier mult = opt.weightTimesLength();
+  unsigned lm;
+  switch (mult) {
+    case Options::LenghtMultiplier::OFF:
+      lm = 1;
+      break;
+    case Options::LenghtMultiplier::LINEAR:
+      lm = length;
+      break;
+    case Options::LenghtMultiplier::LOG:
+      lm = unsigned(100*log2(1+length));
+      break;
+    case Options::LenghtMultiplier::SQRT:
+      lm = unsigned(100*sqrt(length));
+      break;
+  }
+
   if (opt.increasedNumeralWeight()) {
     w = (2 * w + numeralWeight);
   }
-  return w * ( !derivedFromGoal ? nongoalWeightCoeffNum : nongoalWeightCoefDenom);
+  return w * ( !derivedFromGoal ? nongoalWeightCoeffNum : nongoalWeightCoefDenom) * lm;
 }
 
 void Clause::collectVars(DHSet<unsigned>& acc)

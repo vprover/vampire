@@ -233,6 +233,13 @@ public:
     FIXED
   };
 
+  enum class LenghtMultiplier : unsigned int {
+    OFF,
+    LINEAR,
+    LOG,
+    SQRT
+  };
+
   enum class Induction : unsigned int {
     NONE,
     STRUCTURAL,
@@ -1997,6 +2004,7 @@ public:
 	AgeWeightRatioShape ageWeightRatioShape() const { return _ageWeightRatioShape.actualValue; }
 	int ageWeightRatioShapeFrequency() const { return _ageWeightRatioShapeFrequency.actualValue; }
   bool literalMaximalityAftercheck() const { return _literalMaximalityAftercheck.actualValue; }
+  LenghtMultiplier weightTimesLength() const { return _weightTimesLenght.actualValue; }
   bool superpositionFromVariables() const { return _superpositionFromVariables.actualValue; }
   EqualityProxy equalityProxy() const { return _equalityProxy.actualValue; }
   RuleActivity equalityResolutionWithDeletion() const { return _equalityResolutionWithDeletion.actualValue; }
@@ -2259,6 +2267,8 @@ private:
   BoolOptionValue _literalMaximalityAftercheck;
   BoolOptionValue _arityCheck;
   
+  ChoiceOptionValue<LenghtMultiplier> _weightTimesLenght;
+
   BoolOptionValue _backjumpTargetIsDecisionPoint;
   ChoiceOptionValue<BadOption> _badOption;
   ChoiceOptionValue<Demodulation> _backwardDemodulation;

@@ -937,6 +937,10 @@ void Options::Options::init()
     _avatarSplitQueueRatios.tag(OptionTag::AVATAR);
     // _avatarSplitQueueRatios.setExperimental();
 
+    _weightTimesLenght = ChoiceOptionValue<LenghtMultiplier>("weight_times_length","wtl",LenghtMultiplier::OFF,{"off","linear", "log","sqrt"});
+    _lookup.insert(&_weightTimesLenght);
+    _weightTimesLenght.tag(OptionTag::SATURATION);
+
 	    _literalMaximalityAftercheck = BoolOptionValue("literal_maximality_aftercheck","lma",false);
 	    _lookup.insert(&_literalMaximalityAftercheck);
 	    _literalMaximalityAftercheck.tag(OptionTag::SATURATION);
