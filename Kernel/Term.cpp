@@ -50,6 +50,9 @@
 #include "Term.hpp"
 #include "FormulaVarIterator.hpp"
 
+#include "Shell/Statistics.hpp"
+
+
 /** If non-zero, term ite functors will be always expanded to
  * the ( p ? x : y ) notation on output */
 #define ALWAYS_OUTPUT_TERM_ITE 0
@@ -529,7 +532,7 @@ vstring Term::headToString() const
     if (Theory::tuples()->findProjection(functor(), isLiteral(), proj)) {
       return "$proj(" + Int::toString(proj) + ", ";
     }*/
-    bool print = (env.signature->getFunction(_functor)->combinator() == Signature::NOT_COMB && arity()) ;
+    bool print = false; //(/*env.signature->getFunction(_functor)->combinator() == Signature::NOT_COMB &&*/ arity()) ;
     return (isLiteral() ? static_cast<const Literal *>(this)->predicateName() : functionName() + (print ? "(" : ""));
   }
 }
@@ -630,18 +633,24 @@ vstring Term::toString(bool topLevel) const
       vstring res;
       TermList arg1 = *(nthArgument(2));
       TermList arg2 = *(nthArgument(3));
-      res += topLevel ? "" : "("; 
-      res += arg1.toString() + " @ " + arg2.toString(false);
-      res += topLevel ? "" : ")";
+      //res += topLevel ? "" : "("; AYB hack
+      res += "(" + arg1.toString() + " @ " + arg2.toString(false) + ")";
+      //res += topLevel ? "" : ")";
       return res;
     }
-    printArgs = env.signature->getFunction(_functor)->combinator() == Signature::NOT_COMB;
+    //printArgs = env.signature->getFunction(_functor)->combinator() == Signature::NOT_COMB;
   }
 
   vstring s = headToString();
-
-  if (_arity && printArgs) {
-    s += args()->asArgsToString(); // will also print the ')'
+ 
+  if(_arity && printArgs && env.statistics->higherOrder){
+    const TermList* type = args();
+    while(!type->isEmpty()){
+      s += " @ " + type->toString();
+      type = type->next();
+    }
+  }else if (_arity && printArgs) {
+    s +=  args()->asArgsToString(); // will also print the ')'
   }
   return s;
 } // Term::toString
@@ -665,12 +674,12 @@ vstring Literal::toString() const
     }
 
     vstring res = s + lhs->next()->toString();
-    if (SortHelper::getEqualityArgumentSort(this) == Term::boolSort()){
+    //if (SortHelper::getEqualityArgumentSort(this) == Term::boolSort()){
       res = "("+res+")";
-    }
-    if(isTwoVarEquality()){
+    //}
+    /*if(isTwoVarEquality()){
       res += "___ sort: " + twoVarEqSort().toString();
-    }
+    }*/
 
     return res;
   }

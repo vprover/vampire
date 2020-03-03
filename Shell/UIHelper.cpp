@@ -600,7 +600,7 @@ void UIHelper::outputSymbolTypeDeclarationIfNeeded(ostream& out, bool function, 
     }
   }*/
 
-  if(sym->name() == "'$tType'" || sym->name() == "'$o'" || sym->name() == "'$i'" ){
+  if(sym->name() == "$tType" || sym->name() == "$o" || sym->name() == "$i" ){
     return;
   }
 
@@ -610,9 +610,14 @@ void UIHelper::outputSymbolTypeDeclarationIfNeeded(ostream& out, bool function, 
     return;
   }
 
-  out << "tff(" << (function ? "func" : "pred") << "_def_" << symNumber << ", type, "
-      << sym->name() << ": ";
-  out << type->toString();
+  if(sym->name() != ">" && !sym->app() &&
+    sym->proxy() == Signature::NOT_PROXY){
+    out << (env.statistics->higherOrder ? "thf(" : "tff(")
+        << (function ? "func" : "pred") << "_def_" << symNumber << ", type, "
+        << sym->name() << ": ";
+    out << type->toString();
+    out << ")." << endl;
+  }
 
   /*unsigned arity = sym->arity();
   if (arity>0) {
@@ -637,7 +642,6 @@ void UIHelper::outputSymbolTypeDeclarationIfNeeded(ostream& out, bool function, 
   else {
     out << "$o";
   }*/
-  out << ")." << endl;
 }
 
 /**

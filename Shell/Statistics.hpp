@@ -260,6 +260,8 @@ public:
   /** Number of pure variables eliminated by SAT solver */
   unsigned satPureVarsEliminated;
 
+  bool higherOrder;
+
 #if GNUMP
   /**
    * added for the purpose of Bound propagation

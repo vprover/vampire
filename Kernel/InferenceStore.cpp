@@ -598,6 +598,7 @@ protected:
 
     vstring kind = "fof";
     if(env.statistics->hasTypes){ kind="tff"; }
+    if(env.statistics->higherOrder){ kind="thf"; }
 
     return kind+"("+id+","+getRole(rule,origin)+",("+"\n"
 	+"  "+formula+"),\n"

@@ -618,7 +618,7 @@ class Signature
 
   unsigned getArrowConstructor(){
     bool added = false;
-    unsigned arrow = addFunction("->",2, added);
+    unsigned arrow = addFunction(">",2, added);
     if(added){
       TermList ss = Term::superSort();
       Symbol* arr = getFunction(arrow);

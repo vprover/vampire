@@ -132,6 +132,7 @@ void TPTP::parse()
       break;
     case THF:
       _isThf = true;
+      env.statistics->higherOrder = true;
     case TFF:
       _isFof = false;
       tff();
@@ -4212,7 +4213,7 @@ void TPTP::foldl(TermStack* terms)
 
 void TPTP::readTypeArgs(unsigned arity)
 {
-  CALL("TPTP::readApplicativeTypeTerm");
+  CALL("TPTP::readTypeArgs");
 
   for(unsigned i = 0; i < arity; i++){
     consumeToken(T_APP);
@@ -4227,12 +4228,6 @@ void TPTP::readTypeArgs(unsigned arity)
   }
 }
 
-/**
- * Read a sort and return its number. If a sort is not built-in, then raise an
- * exception if it has been declared and newSortExpected, or it has not been
- * declared and newSortExpected is false.
- * @since 14/07/2011 Manchester
- */
 TermList TPTP::readTerm(bool& reset)
 {
   CALL("TPTP::readTerm");

@@ -120,12 +120,12 @@ void RuntimeStatistics::print(ostream& out)
   }
   sort<RSObjComparator>(objStack.begin(), objStack.end());
 
-  out<<"----  Runtime statistics ----"<<endl;
+  out<<"%----  Runtime statistics ----"<<endl;
 
   for(size_t i=0;i<objStack.size();i++) {
     objStack[i]->print(out);
   }
-  out<<"-----------------------------"<<endl;
+  out<<"%-----------------------------"<<endl;
 }
 
 

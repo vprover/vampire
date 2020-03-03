@@ -914,6 +914,6 @@ bool SortHelper::areSortsValid(Term* t0, DHMap<unsigned,TermList>& varSorts)
 bool SortHelper::isSuper(Term* t){
   CALL("isSuper");
   
-  return (!t->isLiteral() && (env.signature->getFunction(t->functor())->name() == "'$tType'"));
+  return (!t->isLiteral() && (env.signature->getFunction(t->functor())->name() == "$tType"));
  
 }

@@ -154,6 +154,7 @@ Statistics::Statistics()
     maxBFNTModelSize(0),
 
     satPureVarsEliminated(0),
+    higherOrder(0),
     terminationReason(UNKNOWN),
     refutation(0),
     saturatedSet(0),

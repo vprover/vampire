@@ -125,7 +125,7 @@ class RSCounter
 public:
   RSCounter(const char* name) : RSObject(name), _counter(0) {}
 
-  void print(ostream& out) { out << name() << ": " << _counter << endl; }
+  void print(ostream& out) { out << "% " << name() << ": " << _counter << endl; }
   void inc() { _counter++; }
   void inc(size_t num) { _counter+=num; }
 private:
