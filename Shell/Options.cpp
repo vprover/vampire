@@ -918,6 +918,13 @@ void Options::Options::init()
     _theorySplitQueueRatios.tag(OptionTag::SATURATION);
     _theorySplitQueueRatios.setExperimental();
 
+    _theorySplitQueueLayeredArrangement = BoolOptionValue("theory_split_queue_layered_arrangement","thsql",true);
+    _theorySplitQueueLayeredArrangement.description = "If turned on, use a layered arrangement to split clauses into queues. Otherwise use a tammet-style-arrangement.";
+    _lookup.insert(&_theorySplitQueueLayeredArrangement);
+    _theorySplitQueueLayeredArrangement.reliesOn(_useTheorySplitQueues.is(equal(true)));
+    _theorySplitQueueLayeredArrangement.tag(OptionTag::SATURATION);
+    _theorySplitQueueLayeredArrangement.setExperimental();
+
     _useAvatarSplitQueues = BoolOptionValue("avatar_split_queue","avsq",false);
     _useAvatarSplitQueues.description = "Turn on experiments: clause selection with multiple queues containing different clauses (split by amount of avatar-split-set-size)";
     _lookup.insert(&_useAvatarSplitQueues);
@@ -938,6 +945,13 @@ void Options::Options::init()
     _avatarSplitQueueRatios.tag(OptionTag::AVATAR);
     _avatarSplitQueueRatios.setExperimental();
 
+    _avatarSplitQueueLayeredArrangement = BoolOptionValue("avatar_split_queue_layered_arrangement","avsql",true);
+    _avatarSplitQueueLayeredArrangement.description = "If turned on, use a layered arrangement to split clauses into queues. Otherwise use a tammet-style-arrangement.";
+    _lookup.insert(&_avatarSplitQueueLayeredArrangement);
+    _avatarSplitQueueLayeredArrangement.reliesOn(_useAvatarSplitQueues.is(equal(true)));
+    _avatarSplitQueueLayeredArrangement.tag(OptionTag::AVATAR);
+    _avatarSplitQueueLayeredArrangement.setExperimental();
+
     _useSineLevelSplitQueues = BoolOptionValue("sine_level_split_queue","slsq",false);
     _useSineLevelSplitQueues.description = "Turn on experiments: clause selection with multiple queues containing different clauses (split by sine-level of clause)";
     _lookup.insert(&_useSineLevelSplitQueues);
@@ -956,6 +970,13 @@ void Options::Options::init()
     _sineLevelSplitQueueRatios.reliesOn(_useSineLevelSplitQueues.is(equal(true)));
     _sineLevelSplitQueueRatios.tag(OptionTag::SATURATION);
     _sineLevelSplitQueueRatios.setExperimental();
+
+    _sineLevelSplitQueueLayeredArrangement = BoolOptionValue("sine_level_split_queue_layered_arrangement","slsql",true);
+    _sineLevelSplitQueueLayeredArrangement.description = "If turned on, use a layered arrangement to split clauses into queues. Otherwise use a tammet-style-arrangement.";
+    _lookup.insert(&_sineLevelSplitQueueLayeredArrangement);
+    _sineLevelSplitQueueLayeredArrangement.reliesOn(_useSineLevelSplitQueues.is(equal(true)));
+    _sineLevelSplitQueueLayeredArrangement.tag(OptionTag::SATURATION);
+    _sineLevelSplitQueueLayeredArrangement.setExperimental();
 
 	    _literalMaximalityAftercheck = BoolOptionValue("literal_maximality_aftercheck","lma",false);
 	    _lookup.insert(&_literalMaximalityAftercheck);

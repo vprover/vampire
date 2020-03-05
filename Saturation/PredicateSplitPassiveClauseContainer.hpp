@@ -34,7 +34,7 @@ public:
   CLASS_NAME(PredicateSplitPassiveClauseContainer);
   USE_ALLOCATOR(PredicateSplitPassiveClauseContainer);
 
-  PredicateSplitPassiveClauseContainer(bool isOutermost, const Shell::Options& opt, vstring name, Lib::vvector<std::unique_ptr<PassiveClauseContainer>> queues, Lib::vvector<float> cutoffs, Lib::vvector<int> ratios);
+  PredicateSplitPassiveClauseContainer(bool isOutermost, const Shell::Options& opt, vstring name, Lib::vvector<std::unique_ptr<PassiveClauseContainer>> queues, Lib::vvector<float> cutoffs, Lib::vvector<int> ratios, bool layeredArrangement);
   virtual ~PredicateSplitPassiveClauseContainer();
 
   void add(Clause* cl) override;
@@ -48,6 +48,7 @@ private:
   Lib::vvector<float> _cutoffs;
   Lib::vvector<unsigned> _ratios;  
   Lib::vvector<unsigned> _balances;
+  bool _layeredArrangement; // if set to true, queues are arranged as multi-split-queues. if false, queues use a tammet-style arrangement.
 
   unsigned bestQueue(float featureValue) const;
 

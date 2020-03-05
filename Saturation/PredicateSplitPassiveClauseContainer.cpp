@@ -44,8 +44,8 @@ int computeLCM(int a, int b) {
   return (a*b)/computeGCD(a, b);
 }
 
-PredicateSplitPassiveClauseContainer::PredicateSplitPassiveClauseContainer(bool isOutermost, const Shell::Options& opt, vstring name, Lib::vvector<std::unique_ptr<PassiveClauseContainer>> queues, Lib::vvector<float> cutoffs, Lib::vvector<int> ratios)
-  : PassiveClauseContainer(isOutermost, opt, name), _queues(std::move(queues)), _cutoffs(cutoffs), _ratios(), _balances(), _simulationBalances()
+PredicateSplitPassiveClauseContainer::PredicateSplitPassiveClauseContainer(bool isOutermost, const Shell::Options& opt, vstring name, Lib::vvector<std::unique_ptr<PassiveClauseContainer>> queues, Lib::vvector<float> cutoffs, Lib::vvector<int> ratios, bool layeredArrangement)
+  : PassiveClauseContainer(isOutermost, opt, name), _queues(std::move(queues)), _cutoffs(cutoffs), _ratios(), _balances(), _layeredArrangement(layeredArrangement), _simulationBalances()
 {
   CALL("PredicateSplitPassiveClauseContainer::PredicateSplitPassiveClauseContainer");
 
@@ -95,11 +95,19 @@ void PredicateSplitPassiveClauseContainer::add(Clause* cl)
   CALL("PredicateSplitPassiveClauseContainer::add");
   ASS(cl->store() == Clause::PASSIVE);
 
-  // add clause to all queues starting from best queue for clause
   auto bestQueueIndex = bestQueue(evaluateFeature(cl));
-  for (unsigned i = bestQueueIndex; i < _queues.size(); i++)
+  if (_layeredArrangement)
   {
-    _queues[i]->add(cl);
+    // add clause to all queues starting from best queue for clause
+    for (unsigned i = bestQueueIndex; i < _queues.size(); i++)
+    {
+      _queues[i]->add(cl);
+    }
+  }
+  else
+  {
+    // add clause to best queue for clause
+    _queues[bestQueueIndex]->add(cl);
   }
 
   if (_isOutermost)
@@ -117,11 +125,20 @@ void PredicateSplitPassiveClauseContainer::remove(Clause* cl)
   {
     ASS(cl->store()==Clause::PASSIVE);
   }
-  // remove clause from all queues starting from best queue for clause
   auto bestQueueIndex = bestQueue(evaluateFeature(cl));
-  for (unsigned i = bestQueueIndex; i < _queues.size(); i++)
+
+  if (_layeredArrangement)
   {
-    _queues[i]->remove(cl);
+    // remove clause from all queues starting from best queue for clause
+    for (unsigned i = bestQueueIndex; i < _queues.size(); i++)
+    {
+      _queues[i]->remove(cl);
+    }
+  }
+  else
+  {
+    // remove clause from best queue for clause
+    _queues[bestQueueIndex]->remove(cl);
   }
 
   if (_isOutermost)
@@ -146,10 +163,23 @@ bool PredicateSplitPassiveClauseContainer::isEmpty() const
 
 unsigned PredicateSplitPassiveClauseContainer::sizeEstimate() const
 { 
-  ASS(!_queues.empty()); 
-  // Note: If we use LRS, we lose the invariant that the last queue contains all clauses (since it can have stronger limits than the other queues).
-  //       as a consequence the size of the last queue is only an estimate on the size.
-  return _queues.back()->sizeEstimate();
+  ASS(!_queues.empty());
+
+  if (_layeredArrangement)
+  {
+    // Note: If we use LRS, we lose the invariant that the last queue contains all clauses (since it can have stronger limits than the other queues).
+    //       as a consequence the size of the last queue is only an estimate on the size.
+    return _queues.back()->sizeEstimate();
+  }
+  else
+  {
+    unsigned sum = 0;
+    for (const auto& queue : _queues)
+    {
+      sum += queue->sizeEstimate();
+    }
+    return sum;
+  }
 }
 
 Clause* PredicateSplitPassiveClauseContainer::popSelected()
@@ -169,13 +199,13 @@ Clause* PredicateSplitPassiveClauseContainer::popSelected()
   }
 
   // if chosen queue is empty, use the next queue to the right
-  // this succeeds in a non LRS-setting where we have the invariant that each clause from queue i is contained in queue j if i<j
+  // this succeeds in a multi-split-queue-non-LRS-setting where we have the invariant that each clause from queue i is contained in queue j if i<j
   auto currIndex = queueIndex;
   while (currIndex < (long int)_queues.size() && _queues[currIndex]->isEmpty())
   {
     currIndex++;
   }
-  // in the presence of LRS, we need to also consider the queues to the left as additional fallback (using the invar: at least one queue has at least one clause if popSelected is called)
+  // for tammet-style-queues or in the presence of LRS, we need to also consider the queues to the left as additional fallback (using the invar: at least one queue has at least one clause if popSelected is called)
   if (currIndex == (long int)_queues.size())
   {
     // fallback: try remaining queues, at least one of them must be nonempty
@@ -193,10 +223,14 @@ Clause* PredicateSplitPassiveClauseContainer::popSelected()
   auto cl = _queues[currIndex]->popSelected();
   ASS(cl->store() == Clause::PASSIVE);
 
-  // remove clause from all queues
-  for (unsigned i = 0; i < _queues.size(); i++)
+  // note: for a non-layered arrangement, the clause only occured in _queues[currIndex] (from which it was just removed using popSelected(), so we don't need any additional clause-removal
+  if (_layeredArrangement)
   {
-    _queues[i]->remove(cl);
+    // remove clause from all queues
+    for (unsigned i = 0; i < _queues.size(); i++)
+    {
+      _queues[i]->remove(cl);
+    }
   }
 
   selectedEvent.fire(cl);
@@ -248,13 +282,13 @@ void PredicateSplitPassiveClauseContainer::simulationPopSelected()
   }
 
   // if chosen queue is empty, use the next queue to the right
-  // this succeeds in a non LRS-setting where we have the invariant that each clause from queue i is contained in queue j if i<j
+  //  this succeeds in a multi-split-queue-non-LRS-setting where we have the invariant that each clause from queue i is contained in queue j if i<j
   auto currIndex = queueIndex;
   while (currIndex < (long int)_queues.size() && !_queues[currIndex]->simulationHasNext())
   {
     currIndex++;
   }
-  // in the presence of LRS, we need to also consider the queues to the left as additional fallback (using the invar: at least one queue has at least one clause if popSelected is called)
+  // for tammet-style-queues or in the presence of LRS, we need to also consider the queues to the left as additional fallback (using the invar: at least one queue has at least one clause if popSelected is called)
   if (currIndex == (long int)_queues.size())
   {
     // fallback: try remaining queues, at least one of them must be nonempty
@@ -333,15 +367,22 @@ bool PredicateSplitPassiveClauseContainer::weightLimited() const
 bool PredicateSplitPassiveClauseContainer::fulfilsAgeLimit(Clause* cl) const
 {
   auto bestQueueIndex = bestQueue(evaluateFeature(cl));
-  for (unsigned i = bestQueueIndex; i < _queues.size(); i++)
+  if (_layeredArrangement)
   {
-    auto& queue = _queues[i];
-    if (queue->fulfilsAgeLimit(cl))
+    for (unsigned i = bestQueueIndex; i < _queues.size(); i++)
     {
-      return true;
+      auto& queue = _queues[i];
+      if (queue->fulfilsAgeLimit(cl))
+      {
+        return true;
+      }
     }
+    return false;
   }
-  return false;
+  else
+  {
+    return _queues[bestQueueIndex]->fulfilsAgeLimit(cl);
+  }
 }
 
 // returns true if the cl fulfils at least one age-limit of a queue it is in
@@ -350,6 +391,7 @@ bool PredicateSplitPassiveClauseContainer::fulfilsAgeLimit(Clause* cl) const
 bool PredicateSplitPassiveClauseContainer::fulfilsAgeLimit(unsigned age, unsigned w, unsigned numeralWeight, bool derivedFromGoal, Inference* inference) const
 {
   auto bestQueueIndex = bestQueue(evaluateFeatureEstimate(inference));
+  // note: even for non-layered-arrangements, we need to go through all queues, since the values for age, w, ... are only lower bounds (in the sense that the actual value could lead to a worse bestQueueIndex)
   for (unsigned i = bestQueueIndex; i < _queues.size(); i++)
   {
     auto& queue = _queues[i];
@@ -365,22 +407,31 @@ bool PredicateSplitPassiveClauseContainer::fulfilsAgeLimit(unsigned age, unsigne
 bool PredicateSplitPassiveClauseContainer::fulfilsWeightLimit(Clause* cl) const
 {
   auto bestQueueIndex = bestQueue(evaluateFeature(cl));
-  for (unsigned i = bestQueueIndex; i < _queues.size(); i++)
+  if (_layeredArrangement)
   {
-    auto& queue = _queues[i];
-    if (queue->fulfilsWeightLimit(cl))
+    for (unsigned i = bestQueueIndex; i < _queues.size(); i++)
     {
-      return true;
+      auto& queue = _queues[i];
+      if (queue->fulfilsWeightLimit(cl))
+      {
+        return true;
+      }
     }
+    return false;
   }
-  return false;
+  else
+  {
+    return _queues[bestQueueIndex]->fulfilsWeightLimit(cl);
+  }
 }
+
 // returns true if the cl fulfils at least one weight-limit of a queue it is in
 // note: w here denotes the weight as returned by weight().
 // this method internally takes care of computing the corresponding weightForClauseSelection.
 bool PredicateSplitPassiveClauseContainer::fulfilsWeightLimit(unsigned w, unsigned numeralWeight, bool derivedFromGoal, unsigned age, Inference* inference) const
 {
   auto bestQueueIndex = bestQueue(evaluateFeatureEstimate(inference));
+  // note: even for non-layered-arrangements, we need to go through all queues, since the values for age, w, ... are only lower bounds (in the sense that the actual value could lead to a worse bestQueueIndex)
   for (unsigned i = bestQueueIndex; i < _queues.size(); i++)
   {
     auto& queue = _queues[i];
@@ -407,7 +458,7 @@ bool PredicateSplitPassiveClauseContainer::childrenPotentiallyFulfilLimits(Claus
 }
 
 TheoryMultiSplitPassiveClauseContainer::TheoryMultiSplitPassiveClauseContainer(bool isOutermost, const Shell::Options &opt, Lib::vstring name, Lib::vvector<std::unique_ptr<PassiveClauseContainer>> queues) :
-PredicateSplitPassiveClauseContainer(isOutermost, opt, name, std::move(queues), opt.theorySplitQueueCutoffs(), opt.theorySplitQueueRatios()) {}
+PredicateSplitPassiveClauseContainer(isOutermost, opt, name, std::move(queues), opt.theorySplitQueueCutoffs(), opt.theorySplitQueueRatios(), opt.theorySplitQueueLayeredArrangement()) {}
 
 float TheoryMultiSplitPassiveClauseContainer::evaluateFeature(Clause* cl) const
 {
@@ -425,7 +476,7 @@ float TheoryMultiSplitPassiveClauseContainer::evaluateFeatureEstimate(Inference*
 }
 
 AvatarMultiSplitPassiveClauseContainer::AvatarMultiSplitPassiveClauseContainer(bool isOutermost, const Shell::Options &opt, Lib::vstring name, Lib::vvector<std::unique_ptr<PassiveClauseContainer>> queues) :
-PredicateSplitPassiveClauseContainer(isOutermost, opt, name, std::move(queues), opt.avatarSplitQueueCutoffs(), opt.avatarSplitQueueRatios()) {}
+PredicateSplitPassiveClauseContainer(isOutermost, opt, name, std::move(queues), opt.avatarSplitQueueCutoffs(), opt.avatarSplitQueueRatios(), opt.avatarSplitQueueLayeredArrangement()) {}
 
 float AvatarMultiSplitPassiveClauseContainer::evaluateFeature(Clause* cl) const
 {
@@ -441,7 +492,7 @@ float AvatarMultiSplitPassiveClauseContainer::evaluateFeatureEstimate(Inference*
 }
 
 SineLevelMultiSplitPassiveClauseContainer::SineLevelMultiSplitPassiveClauseContainer(bool isOutermost, const Shell::Options &opt, Lib::vstring name, Lib::vvector<std::unique_ptr<PassiveClauseContainer>> queues) :
-PredicateSplitPassiveClauseContainer(isOutermost, opt, name, std::move(queues), opt.sineLevelSplitQueueCutoffs(), opt.sineLevelSplitQueueRatios()) {}
+PredicateSplitPassiveClauseContainer(isOutermost, opt, name, std::move(queues), opt.sineLevelSplitQueueCutoffs(), opt.sineLevelSplitQueueRatios(), opt.sineLevelSplitQueueLayeredArrangement()) {}
 
 float SineLevelMultiSplitPassiveClauseContainer::evaluateFeature(Clause* cl) const
 {
