@@ -601,6 +601,13 @@ public:
     UNIT = 2,
     GOAL_UNIT = 3
   };
+
+  enum class NamesOrdered  : unsigned int {
+    OFF = 0,
+    BEFORE = 1,
+    AFTER = 2
+  };
+
   enum class IntroducedSymbolPrecedence : unsigned int {
     TOP = 0,
     BOTTOM = 1
@@ -1968,6 +1975,7 @@ public:
   int maxInferenceDepth() const { return _maxInferenceDepth.actualValue; }
   TermOrdering termOrdering() const { return _termOrdering.actualValue; }
   SymbolPrecedence symbolPrecedence() const { return _symbolPrecedence.actualValue; }
+  NamesOrdered namesOrdered() const { return _namesOrdered.actualValue; }
   SymbolPrecedenceBoost symbolPrecedenceBoost() const { return _symbolPrecedenceBoost.actualValue; }
   IntroducedSymbolPrecedence introducedSymbolPrecedence() const { return _introducedSymbolPrecedence.actualValue; }
   const vstring& functionPrecedence() const { return _functionPrecedence.actualValue; }
@@ -2476,6 +2484,9 @@ private:
   BoolOptionValue _superpositionFromVariables;
   ChoiceOptionValue<TermOrdering> _termOrdering;
   ChoiceOptionValue<SymbolPrecedence> _symbolPrecedence;
+
+  ChoiceOptionValue<NamesOrdered> _namesOrdered;
+
   ChoiceOptionValue<SymbolPrecedenceBoost> _symbolPrecedenceBoost;
   ChoiceOptionValue<IntroducedSymbolPrecedence> _introducedSymbolPrecedence;
   StringOptionValue _functionPrecedence;

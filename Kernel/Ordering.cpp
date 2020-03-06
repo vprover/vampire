@@ -576,6 +576,43 @@ struct FnArityComparator
     return res;
   }
 };
+
+template<typename Comparator>
+struct PredIntroducedWrapper
+{
+  PredIntroducedWrapper(Comparator comp) : _comp(comp) {}
+  Comparator _comp;
+
+  Comparison compare(unsigned p1, unsigned p2)
+  {
+    static Options::NamesOrdered namesOrdered = env.options->namesOrdered();
+
+    if (namesOrdered != Options::NamesOrdered::OFF) {
+      bool u1i = env.signature->getPredicate(p1)->introduced();
+      bool u2i = env.signature->getPredicate(p2)->introduced();
+
+      if (namesOrdered == Options::NamesOrdered::BEFORE) {
+        if (u1i && !u2i) {
+          return LESS;
+        }
+        if (!u1i && u2i) {
+          return GREATER;
+        }
+      } else {
+        if (u1i && !u2i) {
+          return GREATER;
+        }
+        if (!u1i && u2i) {
+          return LESS;
+        }
+      }
+    }
+
+    return _comp.compare(p1,p2);;
+  }
+};
+
+
 struct PredArityComparator
 {
   Comparison compare(unsigned u1, unsigned u2)
@@ -692,13 +729,13 @@ PrecedenceOrdering::PrecedenceOrdering(Problem& prb, const Options& opt)
       }
     }
 
-    
-    /*cout << "Function precedences:" << endl;
+    /*
+    cout << "Function precedences:" << endl;
     for(unsigned i=0;i<_functions;i++){
       cout << env.signature->functionName(aux[i]) << " ";
     }
-    cout << endl;*/
-    
+    cout << endl;
+    */
 
     /*
     cout << "Function precedence: ";
@@ -727,18 +764,18 @@ PrecedenceOrdering::PrecedenceOrdering(Problem& prb, const Options& opt)
   } else {
     switch(opt.symbolPrecedence()) {
     case Shell::Options::SymbolPrecedence::ARITY:
-      aux.sort(PredBoostWrapper<PredArityComparator>(PredArityComparator()));
+      aux.sort(PredIntroducedWrapper<PredArityComparator>(PredArityComparator()));
       break;
     case Shell::Options::SymbolPrecedence::REVERSE_ARITY:
-      aux.sort(PredBoostWrapper<PredRevArityComparator>(PredRevArityComparator()));
+      aux.sort(PredIntroducedWrapper<PredRevArityComparator>(PredRevArityComparator()));
       break;
     case Shell::Options::SymbolPrecedence::FREQUENCY:
     case Shell::Options::SymbolPrecedence::WEIGHTED_FREQUENCY:
-      aux.sort(PredBoostWrapper<PredFreqComparator>(PredFreqComparator()));
+      aux.sort(PredIntroducedWrapper<PredFreqComparator>(PredFreqComparator()));
       break;
     case Shell::Options::SymbolPrecedence::REVERSE_FREQUENCY:
     case Shell::Options::SymbolPrecedence::REVERSE_WEIGHTED_FREQUENCY:
-     aux.sort(PredBoostWrapper<PredRevFreqComparator>(PredRevFreqComparator()));
+     aux.sort(PredIntroducedWrapper<PredRevFreqComparator>(PredRevFreqComparator()));
      break;
     case Shell::Options::SymbolPrecedence::OCCURRENCE:
       break;
@@ -752,6 +789,7 @@ PrecedenceOrdering::PrecedenceOrdering(Problem& prb, const Options& opt)
         break;
     }
   }
+
   /*
   cout << "Predicate precedences:" << endl;
   for(unsigned i=0;i<_predicates;i++){

@@ -1747,6 +1747,11 @@ void Options::Options::init()
     _termOrdering.tag(OptionTag::SATURATION);
     _lookup.insert(&_termOrdering);
 
+    _namesOrdered = ChoiceOptionValue<NamesOrdered>("names_ordered","no",NamesOrdered::OFF,
+                                                            {"off","before","after"});
+    _lookup.insert(&_namesOrdered);
+    _namesOrdered.tag(OptionTag::SATURATION);
+
     _symbolPrecedence = ChoiceOptionValue<SymbolPrecedence>("symbol_precedence","sp",SymbolPrecedence::ARITY,
                                                             {"arity","occurrence","reverse_arity","scramble",
                                                              "frequency","reverse_frequency",
