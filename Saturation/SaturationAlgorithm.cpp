@@ -687,10 +687,10 @@ Clause* SaturationAlgorithm::doImmediateSimplification(Clause* cl0)
 {
   CALL("SaturationAlgorithm::doImmediateSimplification");
 
-  static bool sosTheoryLimit = _opt.sos()==Options::Sos::THEORY;
-  static unsigned sosTheoryLimitDepth = _opt.sosTheoryLimit();
+  static bool sosTheoryLimit = (_opt.sos()==Options::Sos::THEORY);
+  static unsigned sosTheoryLimitAge = _opt.sosTheoryLimit();
 
-  if(sosTheoryLimit && cl0->isTheoryDescendant() && cl0->inference()->maxDepth() > sosTheoryLimitDepth){
+  if(sosTheoryLimit && cl0->isTheoryDescendant() && cl0->age() > sosTheoryLimitAge){
     return 0;
   }
 

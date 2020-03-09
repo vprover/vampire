@@ -31,7 +31,7 @@
 using namespace Kernel;
 
 Inference::Inference(Rule r)
-  : _rule(r), _extra(""),_maxDepth(0)
+  : _rule(r), _extra("")
 {
 //  switch(r) {
 //  //TODO: move env.statistics object updates here.
@@ -48,13 +48,11 @@ InferenceMany::InferenceMany(Rule rule,UnitList* premises)
 {
   CALL("InferenceMany::InferenceMany");
   UnitList* it=_premises;
-  unsigned md = 0;
+
   while(it) {
     it->head()->incRefCnt();
-    md = max(md,it->head()->inference()->maxDepth());
     it=it->tail();
   }
-  _maxDepth = md+1;
 
   computeRunningSums();
 }

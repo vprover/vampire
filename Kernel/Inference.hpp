@@ -395,8 +395,6 @@ public:
   /** Return the extra string */
   vstring extra() { return _extra; }
 
-  unsigned maxDepth(){ return _maxDepth; }
-
   /*
    * returns true if clause is a theory axiom
    *
@@ -518,8 +516,6 @@ protected:
   Rule _rule;
   /** Extra information */
   vstring _extra;
-  /** The depth */
-  unsigned _maxDepth;
 }; // class Inference
 
 /**
@@ -556,8 +552,6 @@ public:
       _premise1(premise)
   { 
     _premise1->incRefCnt(); 
-    _maxDepth = premise->inference()->maxDepth()+1; 
-    if(_rule == EVALUATION){ _maxDepth = premise->inference()->maxDepth(); }
 
     computeRunningSums();
   }
@@ -590,7 +584,6 @@ public:
   {
     _premise1->incRefCnt();
     _premise2->incRefCnt();
-    _maxDepth = max(premise1->inference()->maxDepth(),premise2->inference()->maxDepth())+1;
 
     computeRunningSums();
   }
