@@ -368,6 +368,8 @@ vstring Inference::ruleName(Rule rule)
     return "inner rewriting";
   case CONDENSATION:
     return "condensation";
+  case THEORY_NORMALIZATION:
+    return "theory normalization";
   case EVALUATION:
     return "evaluation";
   case INTERPRETED_SIMPLIFICATION:

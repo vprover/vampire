@@ -202,6 +202,8 @@ public:
     INNER_REWRITING,
     /** condensation inference */
     CONDENSATION,
+    /** normalizing inference */
+    THEORY_NORMALIZATION,
     /** evaluation inference */
     EVALUATION,
     /** evaluation inference */
