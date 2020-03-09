@@ -70,7 +70,6 @@ Clause::Clause(unsigned length,InputType it,Inference* inf)
   : Unit(Unit::CLAUSE,inf,it),
     _length(length),
     _color(COLOR_INVALID),
-    _input(0),
     _extensionality(false),
     _extensionalityTag(false),
     _component(false),

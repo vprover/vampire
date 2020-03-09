@@ -275,12 +275,6 @@ public:
   void assertValid();
 #endif
 
-  /** Mark clause as input clause for the saturation algorithm */
-  void markInput() { _input=1; }
-  /** Clause is an input clause for the saturation algorithm */
-  bool isInput() { return _input; }
-
-
   SplitSet* splits() const { return _splits; }
   bool noSplits() const;
 
@@ -387,8 +381,6 @@ protected:
   unsigned _length : 20;
   /** clause color, or COLOR_INVALID if not determined yet */
   mutable unsigned _color : 2;
-  /** clause is an input clause for the saturation algorithm */
-  unsigned _input : 1;
   /** Clause was matched as extensionality and is tracked in the extensionality
     * clause container. The matching happens at activation. If the clause
     * becomes passive and is removed from the container, also this bit is unset.

@@ -548,8 +548,6 @@ void SaturationAlgorithm::addInputClause(Clause* cl)
   CALL("SaturationAlgorithm::addInputClause");
   ASS_LE(cl->inputType(),Clause::CLAIM); // larger input types should not appear in proof search
 
-  cl->markInput();
-
   if (_symEl) {
     _symEl->onInputClause(cl);
   }
@@ -703,11 +701,6 @@ Clause* SaturationAlgorithm::doImmediateSimplification(Clause* cl0)
     }
     onClauseReduction(cl, simplCl, 0);
     return 0;
-  }
-
-  if (cl != cl0 && cl0->isInput()) {
-    //immediate simplifications maintain the state of a clause as input
-    cl->markInput();
   }
 
   return cl;
