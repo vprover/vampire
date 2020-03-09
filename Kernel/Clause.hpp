@@ -208,17 +208,6 @@ public:
   bool isComponent() const { return _component; }
   void setComponent(bool c) { _component = c; }
 
-  /*
-   * reurns true if clause is a theory descendant
-   *
-   * Definition: A theory descendant is a clause, which
-   * has a derivation where each leaf is a theory axiom.
-   *
-   * Note that a theory axiom itself is also a theory descendant
-   */
-  bool isTheoryDescendant() const { return _theoryDescendant; }
-  void setTheoryDescendant(bool t) { _theoryDescendant=t; }
-
   unsigned inductionDepth() const { return _inductionDepth; }
   void setInductionDepth(unsigned d){
     ASS(d < 33);
@@ -389,8 +378,6 @@ protected:
   unsigned _extensionalityTag : 1;
   /** Clause is a splitting component. */
   unsigned _component : 1;
-  /** Clause is a theory descendant **/
-  unsigned _theoryDescendant : 1;
   /** Induction depth **/
   unsigned _inductionDepth : 5;
 

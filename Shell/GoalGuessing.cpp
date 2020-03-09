@@ -97,7 +97,7 @@ bool GoalGuessing::apply(Clause* cl)
 {
   CALL("GoalGuessing::apply(Clause* cl)");
 
-  if(cl->isTheoryDescendant()){ return false; }
+  if(cl->inference()->isPureTheoryDescendant()){ return false; }
 
   unsigned clen = cl->length();
   bool looksLikeGoal = false;

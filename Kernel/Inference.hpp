@@ -463,6 +463,20 @@ public:
   // which are theory axioms and the total across all leaves
   float th_ancestors, all_ancestors; // we use floats, because this can grow large (because of the tree understanding of the dag); CAREFUL: could this lead to platform differences?
 
+  /*
+   * Returns true if the unit belonging to this inference is a pure theory descendant.
+   *
+   * Definition: A pure theory descendant is a unit that
+   * has a derivation where each leaf is a theory axiom.
+   * (This propagates in AVATAR from the clause being split to the corresponding components,
+   * because some people thought it should be that way.)
+   *
+   * Note that a theory axiom itself is also a pure theory descendant.
+   */
+  bool isPureTheoryDescendant() const { return _isPureTheoryDescendant; }
+  /** This is how AVATAR sets it... */
+  void setPureTheoryDescendant(bool val) { _isPureTheoryDescendant = val; }
+
   void computeTheoryRunningSums() {
     Inference::Iterator parentIt = iterator();
 
@@ -516,6 +530,8 @@ protected:
   Rule _rule;
   /** Extra information */
   vstring _extra;
+  /** track whether all leafs were theory axioms only */
+  bool _isPureTheoryDescendant;
 }; // class Inference
 
 /**
@@ -528,6 +544,8 @@ public:
   Inference0(Rule rule) : Inference(rule)
   {
     computeTheoryRunningSums();
+
+    _isPureTheoryDescendant = isTheoryAxiom();
   }
 
   virtual void destroy();
@@ -554,6 +572,8 @@ public:
     _premise1->incRefCnt(); 
 
     computeTheoryRunningSums();
+
+    _isPureTheoryDescendant = _premise1->inference()->isPureTheoryDescendant();
   }
 
   virtual void destroy();
@@ -586,6 +606,8 @@ public:
     _premise2->incRefCnt();
 
     computeTheoryRunningSums();
+
+    _isPureTheoryDescendant = _premise1->inference()->isPureTheoryDescendant() && _premise2->inference()->isPureTheoryDescendant();
   }
 
   virtual void destroy();

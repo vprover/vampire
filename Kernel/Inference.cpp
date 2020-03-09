@@ -30,14 +30,7 @@
 
 using namespace Kernel;
 
-Inference::Inference(Rule r)
-  : _rule(r), _extra("")
-{
-//  switch(r) {
-//  //TODO: move env.statistics object updates here.
-//  default: ;
-//  }
-}
+Inference::Inference(Rule r) : _rule(r), _extra("") {}
 
 /**
  * Create an inference object with multiple premisses
@@ -47,14 +40,21 @@ InferenceMany::InferenceMany(Rule rule,UnitList* premises)
     _premises(premises)
 {
   CALL("InferenceMany::InferenceMany");
-  UnitList* it=_premises;
 
+  UnitList* it=_premises;
   while(it) {
     it->head()->incRefCnt();
     it=it->tail();
   }
 
   computeTheoryRunningSums();
+
+  _isPureTheoryDescendant = isTheoryAxiom();
+  it=_premises;
+  while(it) {
+    _isPureTheoryDescendant &= it->head()->inference()->isPureTheoryDescendant();
+    it=it->tail();
+  }
 }
 
 /**

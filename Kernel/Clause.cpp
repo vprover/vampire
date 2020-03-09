@@ -73,7 +73,6 @@ Clause::Clause(unsigned length,InputType it,Inference* inf)
     _extensionality(false),
     _extensionalityTag(false),
     _component(false),
-    _theoryDescendant(false),
     _inductionDepth(0),
     _numSelected(0),
     _age(0),
@@ -97,20 +96,13 @@ Clause::Clause(unsigned length,InputType it,Inference* inf)
                       env.options->induction() != Options::Induction::NONE;
   if(check){
     Inference::Iterator it = inf->iterator();
-    bool isTheoryDescendant = inf->isTheoryAxiom();
     unsigned id = 0; 
     while(inf->hasNext(it)){
       Unit* parent = inf->next(it);
       if(parent->isClause()){
-        isTheoryDescendant &= static_cast<Clause*>(parent)->isTheoryDescendant();
         id = max(id,static_cast<Clause*>(parent)->inductionDepth());
       }
-      else{
-        // if a parent is not a clause then it cannot be a theory descendant
-        isTheoryDescendant = false;
-      }
     }
-    _theoryDescendant=isTheoryDescendant;
     _inductionDepth=id;
   }
 }
@@ -450,8 +442,8 @@ vstring Clause::toString() const
     if(isGoal()){
       result += vstring(",goal:1");
     }
-    if(isTheoryDescendant()){
-      result += vstring(",tD:1");
+    if(_inference->isPureTheoryDescendant()){
+      result += vstring(",ptD:1");
     }
 
     result += vstring(",inD:") + Int::toString(inductionDepth());

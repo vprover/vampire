@@ -688,7 +688,7 @@ Clause* SaturationAlgorithm::doImmediateSimplification(Clause* cl0)
   static bool sosTheoryLimit = (_opt.sos()==Options::Sos::THEORY);
   static unsigned sosTheoryLimitAge = _opt.sosTheoryLimit();
 
-  if(sosTheoryLimit && cl0->isTheoryDescendant() && cl0->age() > sosTheoryLimitAge){
+  if(sosTheoryLimit && cl0->inference()->isPureTheoryDescendant() && cl0->age() > sosTheoryLimitAge){
     return 0;
   }
 
@@ -820,7 +820,7 @@ void SaturationAlgorithm::handleEmptyClause(Clause* cl)
   if (isRefutation(cl)) {
     onNonRedundantClause(cl);
 
-    if(cl->isTheoryDescendant() ){
+    if(cl->inference()->isPureTheoryDescendant()) {
       ASSERTION_VIOLATION_REP("A pure theory descendant is empty, which means theory axioms are inconsistent");
       reportSpiderFail();
       // this is a poor way of handling this in release mode but it prevents unsound proofs

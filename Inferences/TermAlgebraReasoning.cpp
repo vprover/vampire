@@ -133,7 +133,7 @@ namespace Inferences {
   {
     CALL("DistinctnessISE::simplify");
 
-    if (c->isTheoryDescendant())
+    if (c->inference()->isPureTheoryDescendant())
       return c;
     
     int length = c->length();
@@ -244,7 +244,7 @@ namespace Inferences {
   {
     CALL("InjectivityISE::simplify");
     
-    if (c->isTheoryDescendant())
+    if (c->inference()->isPureTheoryDescendant())
       return c;
 
     int length = c->length();
@@ -296,7 +296,7 @@ namespace Inferences {
   {
     CALL("NegativeInjectivityISE::simplify");
 
-    if (c->isTheoryDescendant())
+    if (c->inference()->isPureTheoryDescendant())
       return c;
 
     int length = c->length();

@@ -451,7 +451,7 @@ protected:
     }
 
     // TODO we could make clauses track this information, but I am not sure that that's worth it
-    if(us->isClause() && static_cast<Clause*>(us)->isTheoryDescendant()){
+    if(us->isClause() && us->inference()->isPureTheoryDescendant()){
       //cout << "HERE with " << us->toString() << endl;
       Inference* inf = us->inference();
       while(inf->rule() == Inference::EVALUATION){
