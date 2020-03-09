@@ -459,11 +459,11 @@ public:
     return _rule == Inference::EXTERNAL_THEORY_AXIOM;
   }
 
-    // counting the leaves (in the tree rather than dag sense)
+  // counting the leaves (in the tree rather than dag sense)
   // which are theory axioms and the total across all leaves
-  float th_ancestors, all_ancestors;
+  float th_ancestors, all_ancestors; // we use floats, because this can grow large (because of the tree understanding of the dag); CAREFUL: could this lead to platform differences?
 
-  void computeRunningSums() {
+  void computeTheoryRunningSums() {
     Inference::Iterator parentIt = iterator();
 
     // inference without parents
@@ -527,7 +527,7 @@ class Inference0
 public:
   Inference0(Rule rule) : Inference(rule)
   {
-    computeRunningSums();
+    computeTheoryRunningSums();
   }
 
   virtual void destroy();
@@ -553,7 +553,7 @@ public:
   { 
     _premise1->incRefCnt(); 
 
-    computeRunningSums();
+    computeTheoryRunningSums();
   }
 
   virtual void destroy();
@@ -585,7 +585,7 @@ public:
     _premise1->incRefCnt();
     _premise2->incRefCnt();
 
-    computeRunningSums();
+    computeTheoryRunningSums();
   }
 
   virtual void destroy();

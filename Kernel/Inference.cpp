@@ -54,7 +54,7 @@ InferenceMany::InferenceMany(Rule rule,UnitList* premises)
     it=it->tail();
   }
 
-  computeRunningSums();
+  computeTheoryRunningSums();
 }
 
 /**
