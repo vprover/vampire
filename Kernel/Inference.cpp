@@ -55,6 +55,20 @@ InferenceMany::InferenceMany(Rule rule,UnitList* premises)
   while(it) {
     Inference* inf = it->head()->inference();
     _isPureTheoryDescendant &= inf->isPureTheoryDescendant();
+    it=it->tail();
+  }
+
+  updateStatistics();
+}
+
+void InferenceMany::updateStatistics()
+{
+  CALL("InferenceMany::updateRunningStatistics");
+
+  _inductionDepth = 0;
+  UnitList*  it=_premises;
+  while(it) {
+    Inference* inf = it->head()->inference();
     _inductionDepth = max(_inductionDepth,inf->inductionDepth());
     it=it->tail();
   }

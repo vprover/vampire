@@ -323,6 +323,8 @@ protected:
     Inference::Rule rule;
     UnitIterator parents=_is->getParents(cs, rule);
 
+    cs->inference()->updateStatistics(); // in particular, update inductionDepth (which could have decreased, since we might have fewer parents after miniminization)
+
     if(rule == Inference::INDUCTION){
       env.statistics->inductionInProof++;
     }

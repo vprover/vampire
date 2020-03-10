@@ -360,6 +360,14 @@ public:
    */
   virtual void minimizePremises() {}
 
+  /**
+   * After minimizePremises has been called, some inferences may have fewer parents,
+   * so statistics could change and this function recomputes them.
+   * The function is only responsible for the update between this inference and its parents (if any).
+   * The caller is responsible to ensure that parents are updated before children.
+   **/
+  virtual void updateStatistics() = 0;
+
   static vstring ruleName(Rule rule);
   vstring name() const { return ruleName(_rule); }
 
@@ -479,9 +487,10 @@ public:
 
   unsigned inductionDepth() const { return _inductionDepth; }
   void setInductionDepth(unsigned d) { _inductionDepth = d; }
-  void incInductionDepth() { _inductionDepth++; }
 
   void computeTheoryRunningSums() {
+    CALL("Inference::computeTheoryRunningSums");
+
     Inference::Iterator parentIt = iterator();
 
     // inference without parents
@@ -553,8 +562,17 @@ public:
 
     _isPureTheoryDescendant = isTheoryAxiom();
 
-    //_inductionDepth = 0 from Inference::Inference
+    //_inductionDepth = 0 from Inference::Inference (or set externally)
   }
+
+  /* Inference0 does not update (it does not have parents anyway).
+  * So if any of Inference0's statistics have been set externally during
+  * proof search, update statistics won't reset these "hacky" values.
+  * (C.f., inductionDepth assigned in AVATAR to AVATAR_DEFINITION
+  * and thus later propagated to AVATAR_COMPONENT, AVATAR_SPLIT_CLAUSE, and transitively to AVATAR_REFUTATION,
+  * and similarly inductionDepth assigned INDUCTION "hypothesis" formulas in Induction.)
+  */
+  void updateStatistics() {}
 
   virtual void destroy();
   virtual Iterator iterator() const;
@@ -580,8 +598,15 @@ public:
     _premise1->incRefCnt(); 
 
     computeTheoryRunningSums();
-
     _isPureTheoryDescendant = _premise1->inference()->isPureTheoryDescendant();
+
+    updateStatistics();
+  }
+
+  void updateStatistics()
+  {
+    CALL("Inference1::updateStatistics");
+
     _inductionDepth = _premise1->inference()->inductionDepth();
   }
 
@@ -615,8 +640,14 @@ public:
     _premise2->incRefCnt();
 
     computeTheoryRunningSums();
-
     _isPureTheoryDescendant = _premise1->inference()->isPureTheoryDescendant() && _premise2->inference()->isPureTheoryDescendant();
+
+    updateStatistics();
+  }
+
+  void updateStatistics()
+  {
+    CALL("Inference2::updateStatistics");
 
     _inductionDepth = max(_premise1->inference()->inductionDepth(),_premise2->inference()->inductionDepth());
   }
@@ -654,6 +685,8 @@ public:
 
   CLASS_NAME(InferenceMany);
   USE_ALLOCATOR(InferenceMany);
+
+  void updateStatistics();
 
 protected:
   /** The premises */
