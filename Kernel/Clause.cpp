@@ -424,11 +424,13 @@ vstring Clause::toString() const
     result += vstring(" {");
       
     result += vstring("a:") + Int::toString(_age);
-    result += vstring(",w:") + Int::toString(weight());
+    result += vstring(",w:") + Int::toString(_weight);
+    if (!_weight) {
+      result += "(not initialized yet)";
+    }
     
-    unsigned weightForClauseSelection = const_cast<Clause*>(this)->weightForClauseSelection(const_cast<Shell::Options&>(*(env.options)));
-    if(weightForClauseSelection!=weight()){
-      result += vstring(",wCS:") + Int::toString(weightForClauseSelection);
+    if(_weightForClauseSelection!=_weight){
+      result += vstring(",wCS:") + Int::toString(_weightForClauseSelection);
     }
 
     if (numSelected()>0) {
