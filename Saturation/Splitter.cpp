@@ -205,6 +205,7 @@ void SplittingBranchSelector::handleSatRefutation()
         new InferenceMany(Inference::AVATAR_REFUTATION, prems);
 
     Clause* foRef = Clause::fromIterator(LiteralIterator::getEmpty(), Unit::getInputType(prems), foInf);
+    // TODO: in principle, the user might be interested in this final clause's age (currently left 0)
     throw MainLoop::RefutationFoundException(foRef);
   } else { // we must produce a well colored proof
 
