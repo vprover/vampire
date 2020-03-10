@@ -207,18 +207,6 @@ public:
 
   bool isComponent() const { return _component; }
   void setComponent(bool c) { _component = c; }
-
-  unsigned inductionDepth() const { return _inductionDepth; }
-  void setInductionDepth(unsigned d){
-    ASS(d < 33);
-    _inductionDepth=d;
-  }
-  void incInductionDepth(){ 
-    // _inductionDepth is 5 bits, max out there
-    if(_inductionDepth < 32){
-      _inductionDepth++; 
-    }
-  }
   
   bool skip() const;
 

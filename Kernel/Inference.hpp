@@ -477,6 +477,10 @@ public:
   /** This is how AVATAR sets it... */
   void setPureTheoryDescendant(bool val) { _isPureTheoryDescendant = val; }
 
+  unsigned inductionDepth() const { return _inductionDepth; }
+  void setInductionDepth(unsigned d) { _inductionDepth = d; }
+  void incInductionDepth() { _inductionDepth++; }
+
   void computeTheoryRunningSums() {
     Inference::Iterator parentIt = iterator();
 
@@ -532,6 +536,8 @@ protected:
   vstring _extra;
   /** track whether all leafs were theory axioms only */
   bool _isPureTheoryDescendant;
+  /** Induction depth **/
+  unsigned _inductionDepth;
 }; // class Inference
 
 /**
@@ -546,6 +552,8 @@ public:
     computeTheoryRunningSums();
 
     _isPureTheoryDescendant = isTheoryAxiom();
+
+    //_inductionDepth = 0 from Inference::Inference
   }
 
   virtual void destroy();
@@ -574,6 +582,7 @@ public:
     computeTheoryRunningSums();
 
     _isPureTheoryDescendant = _premise1->inference()->isPureTheoryDescendant();
+    _inductionDepth = _premise1->inference()->inductionDepth();
   }
 
   virtual void destroy();
@@ -608,6 +617,8 @@ public:
     computeTheoryRunningSums();
 
     _isPureTheoryDescendant = _premise1->inference()->isPureTheoryDescendant() && _premise2->inference()->isPureTheoryDescendant();
+
+    _inductionDepth = max(_premise1->inference()->inductionDepth(),_premise2->inference()->inductionDepth());
   }
 
   virtual void destroy();

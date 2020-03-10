@@ -89,7 +89,7 @@ InductionClauseIterator::InductionClauseIterator(Clause* premise)
 
   if((!unitOnly || premise->length()==1) && 
      (all || ( (goal || goal_plus) && premise->isGoal())) &&
-     (maxD == 0 || premise->inductionDepth() < maxD)
+     (maxD == 0 || premise->inference()->inductionDepth() < maxD)
     )
   {
     for(unsigned i=0;i<premise->length();i++){

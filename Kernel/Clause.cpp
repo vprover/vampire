@@ -73,7 +73,6 @@ Clause::Clause(unsigned length,InputType it,Inference* inf)
     _extensionality(false),
     _extensionalityTag(false),
     _component(false),
-    _inductionDepth(0),
     _numSelected(0),
     _age(0),
     _weight(0),
@@ -91,19 +90,6 @@ Clause::Clause(unsigned length,InputType it,Inference* inf)
     //cout << "Setting extensionality" << endl;
     _extensionalityTag = true;
     setInputType(Unit::AXIOM);
-  }
-  static bool check = env.options->theoryAxioms() != Options::TheoryAxiomLevel::OFF ||
-                      env.options->induction() != Options::Induction::NONE;
-  if(check){
-    Inference::Iterator it = inf->iterator();
-    unsigned id = 0; 
-    while(inf->hasNext(it)){
-      Unit* parent = inf->next(it);
-      if(parent->isClause()){
-        id = max(id,static_cast<Clause*>(parent)->inductionDepth());
-      }
-    }
-    _inductionDepth=id;
   }
 }
 
@@ -448,7 +434,7 @@ vstring Clause::toString() const
       result += vstring(",ptD:1");
     }
 
-    result += vstring(",inD:") + Int::toString(inductionDepth());
+    result += vstring(",inD:") + Int::toString(_inference->inductionDepth());
     result += ",thAx:" + Int::toString((int)(_inference->th_ancestors));
     result += ",allAx:" + Int::toString((int)(_inference->all_ancestors));
     result += ",crazy:" + Int::toString( _inference->th_ancestors * env.options->theorySplitQueueExpectedRatioDenom() - _inference->all_ancestors);

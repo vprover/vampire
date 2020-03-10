@@ -71,7 +71,7 @@ public:
   inline bool hasNext() { return _clauses.isNonEmpty(); }
   inline OWN_ELEMENT_TYPE next() { 
     Clause* c = _clauses.pop();
-    c->incInductionDepth();
+    c->inference()->incInductionDepth();
     if(env.options->showInduction()){
       env.beginOutput();
       env.out() << "[Induction] generate " << c->toString() << endl; 

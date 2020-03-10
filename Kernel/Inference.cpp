@@ -30,7 +30,7 @@
 
 using namespace Kernel;
 
-Inference::Inference(Rule r) : _rule(r), _extra("") {}
+Inference::Inference(Rule r) : _rule(r), _extra(""), _inductionDepth(0) {}
 
 /**
  * Create an inference object with multiple premisses
@@ -53,7 +53,9 @@ InferenceMany::InferenceMany(Rule rule,UnitList* premises)
   _isPureTheoryDescendant = true;
   it=_premises;
   while(it) {
-    _isPureTheoryDescendant &= it->head()->inference()->isPureTheoryDescendant();
+    Inference* inf = it->head()->inference();
+    _isPureTheoryDescendant &= inf->isPureTheoryDescendant();
+    _inductionDepth = max(_inductionDepth,inf->inductionDepth());
     it=it->tail();
   }
 }
