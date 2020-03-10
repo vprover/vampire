@@ -204,7 +204,7 @@ void SplittingBranchSelector::handleSatRefutation()
         new InferenceFromSatRefutation(Inference::AVATAR_REFUTATION, prems, satPremises) :
         new InferenceMany(Inference::AVATAR_REFUTATION, prems);
 
-    Clause* foRef = Clause::fromIterator(LiteralIterator::getEmpty(), Unit::CONJECTURE, foInf);
+    Clause* foRef = Clause::fromIterator(LiteralIterator::getEmpty(), Unit::getInputType(prems), foInf);
     throw MainLoop::RefutationFoundException(foRef);
   } else { // we must produce a well colored proof
 
@@ -263,7 +263,7 @@ void SplittingBranchSelector::handleSatRefutation()
 
     if (colorCnts[sndCol] == 0) { // this is a degenerate case, in which we don't need to interpolate at all
       Inference* foInf = new InferenceMany(Inference::AVATAR_REFUTATION, first_prems);
-      Clause* foRef = Clause::fromIterator(LiteralIterator::getEmpty(), Unit::CONJECTURE, foInf);
+      Clause* foRef = Clause::fromIterator(LiteralIterator::getEmpty(), Unit::getInputType(first_prems), foInf);
       throw MainLoop::RefutationFoundException(foRef);
     }
 
@@ -320,12 +320,12 @@ void SplittingBranchSelector::handleSatRefutation()
     // finish constructing the derivation
     {
       Inference* elInf = new InferenceMany(Inference::SAT_COLOR_ELIMINATION, second_prems);
-      FormulaUnit* interpolated = new FormulaUnit(interpolant,elInf,Unit::CONJECTURE /*do we care about input type at all at this point?*/);
+      FormulaUnit* interpolated = new FormulaUnit(interpolant,elInf,Unit::getInputType(second_prems));
 
       UnitList::push(interpolated,first_prems);
 
       Inference* finalInf = new InferenceMany(Inference::SAT_COLOR_ELIMINATION,first_prems);
-      Clause* foRef = Clause::fromIterator(LiteralIterator::getEmpty(), Unit::CONJECTURE, finalInf);
+      Clause* foRef = Clause::fromIterator(LiteralIterator::getEmpty(), Unit::getInputType(first_prems), finalInf);
 
       throw MainLoop::RefutationFoundException(foRef);
     }
