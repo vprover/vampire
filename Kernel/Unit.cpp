@@ -99,25 +99,6 @@ Unit::Unit(Kind kind,Inference* inf,InputType it)
     _included(0),
     _inference(inf)
 {
-  switch (inf->rule()) {
-  case Inference::INPUT:
-  case Inference::NEGATED_CONJECTURE:
-    _adam = _number;
-    break;
-  default:
-    {
-      Inference::Iterator pars = inf->iterator();
-      if (inf->hasNext(pars)) {
-	Unit* parent = inf->next(pars);
-	_adam = parent->_adam;
-      }
-      else {
-	_adam = -1;
-      }
-    }
-    break;
-  }
-
 } // Unit::Unit
 
 unsigned Unit::getPriority() const

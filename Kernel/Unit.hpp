@@ -111,8 +111,6 @@ public:
   const Inference* inference() const { return _inference; }
   /** Set a new inference object (the old one not destroyed). */
   void setInference(Inference* inf) { _inference = inf; }
-  /** the input unit number this clause is generated from, -1 if none */
-  int adam() const {return _adam;}
 
   /** Return the inherited color of the unit or COLOR_INVALID
    * if there isn't an inherited color.
@@ -185,8 +183,6 @@ protected:
   unsigned _included : 1;
   /** inference used to obtain the unit */
   Inference* _inference;
-  /** the input unit number this clause is generated from, -1 if none */
-  int _adam;
 
   Unit(Kind kind,Inference* inf,InputType it);
 
