@@ -64,7 +64,7 @@ private:
   /** Should never be used, just that compiler requires it */
   void operator delete(void* ptr) { ASSERTION_VIOLATION; }
 public:
-  typedef ArrayishObjectIterator<Clause> Iterator;
+  typedef ArrayishObjectIterator<const Clause> Iterator;
 
   DECL_ELEMENT_TYPE(Literal*);
   DECL_ITERATOR_TYPE(Iterator);
@@ -165,11 +165,11 @@ public:
   unsigned weight() const
   {
     if(!_weight) {
-      computeWeight();
+      _weight = computeWeight();
     }
     return _weight;
   }
-  void computeWeight() const;
+  unsigned computeWeight() const;
 
   /**
    * weight used for clause selection
@@ -177,11 +177,11 @@ public:
   unsigned weightForClauseSelection(const Shell::Options& opt)
   {
     if(!_weightForClauseSelection) {
-      computeWeightForClauseSelection(opt);
+      _weightForClauseSelection = computeWeightForClauseSelection(opt);
     }
     return _weightForClauseSelection;
   }
-  void computeWeightForClauseSelection(const Shell::Options& opt);
+  unsigned computeWeightForClauseSelection(const Shell::Options& opt) const;
 
   /*
    * single source of truth for computation of weightForClauseSelection
@@ -347,7 +347,7 @@ public:
   }
 
   unsigned splitWeight() const;
-  unsigned getNumeralWeight();
+  unsigned getNumeralWeight() const;
 
   void collectVars(DHSet<unsigned>& acc);
   unsigned varCnt();

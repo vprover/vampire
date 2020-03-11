@@ -499,14 +499,14 @@ void Clause::computeColor() const
  * @since 02/01/2008 Manchester.
  * @since 22/01/2015 include splitWeight in weight
  */
-void Clause::computeWeight() const
+unsigned Clause::computeWeight() const
 {
   CALL("Clause::computeWeight");
 
-  _weight = 0;
+  unsigned result = 0;
   for (int i = _length-1; i >= 0; i--) {
     ASS(_literals[i]->shared());
-    _weight += _literals[i]->weight();
+    result += _literals[i]->weight();
   }
 
   // We now include this directly in weight()
@@ -514,15 +514,16 @@ void Clause::computeWeight() const
   // The alternative would be to remove the clause and reenter it into the passive queue whenever
   // The split set was changed
   if (env.options->nonliteralsInClauseWeight()) {
-    _weight+=splitWeight(); // no longer includes propWeight
+    result+=splitWeight(); // no longer includes propWeight
   }
 
   // If _weight is zero (empty clause) then no need to do this
-  if(_weight){
+  if(result){
     unsigned priority = getPriority();
-    _weight *= priority;
+    result *= priority;
   }
 
+  return result;
 } // Clause::computeWeight
 
 
@@ -545,7 +546,7 @@ unsigned Clause::splitWeight() const
  * @since 04/05/2013 Manchester, updated to use new NonVariableIterator
  * @author Andrei Voronkov
  */
-unsigned Clause::getNumeralWeight()
+unsigned Clause::getNumeralWeight() const
 {
   CALL("Clause::getNumeralWeight");
 
@@ -597,11 +598,16 @@ unsigned Clause::getNumeralWeight()
 /**
  * compute weight of the clause used by clause selection and cache it
  */
-void Clause::computeWeightForClauseSelection(const Options& opt)
+unsigned Clause::computeWeightForClauseSelection(const Options& opt) const
 {
   CALL("Clause::computeWeightForClauseSelection");
 
-  unsigned w = weight();
+  unsigned w = 0;
+  if (_weight) {
+    w = _weight;
+  } else {
+    w = computeWeight();
+  }
 
   // hack: computation of getNumeralWeight is potentially expensive, so we only compute it if
   // the option increasedNumeralWeight is set to true.
@@ -624,7 +630,7 @@ void Clause::computeWeightForClauseSelection(const Options& opt)
     if(!found){ derivedFromGoal=false; }
   }
 
-  _weightForClauseSelection = Clause::computeWeightForClauseSelection(w, numeralWeight, derivedFromGoal, opt);
+  return Clause::computeWeightForClauseSelection(w, numeralWeight, derivedFromGoal, opt);
 }
 
 /*
