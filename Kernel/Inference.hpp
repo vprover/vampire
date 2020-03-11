@@ -342,7 +342,9 @@ public:
     /** unit resulting resolution */
     UNIT_RESULTING_RESOLUTION,
     /** hyper-superposition */
-    HYPER_SUPERPOSITION,
+    HYPER_SUPERPOSITION_SIMPLIFYING,
+    /** hyper-superposition */
+    HYPER_SUPERPOSITION_GENERATING,
     /** global subsumption */
     GLOBAL_SUBSUMPTION,
     /** refutation in the SAT solver for InstGen */

@@ -507,7 +507,8 @@ vstring Inference::ruleName(Rule rule)
     return "instance generation";
   case UNIT_RESULTING_RESOLUTION:
     return "unit resulting resolution";
-  case HYPER_SUPERPOSITION:
+  case HYPER_SUPERPOSITION_SIMPLIFYING:
+  case HYPER_SUPERPOSITION_GENERATING:
     return "hyper superposition";
   case GLOBAL_SUBSUMPTION:
     return "global subsumption";
