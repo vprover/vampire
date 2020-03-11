@@ -83,7 +83,7 @@ void TheoryAxioms::addAndOutputTheoryUnit(Unit* unit, unsigned level)
  */
 void TheoryAxioms::addTheoryClauseFromLits(std::initializer_list<Literal*> lits, Inference::Rule rule, unsigned level)
 {
-  CALL("TheoryAxioms::addTheoryNonUnitClause");
+  CALL("TheoryAxioms::addTheoryClauseFromLits");
   LiteralStack lit_stack;
   for (Literal* lit : lits) {
     ASS(lit);
