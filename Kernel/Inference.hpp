@@ -555,14 +555,8 @@ public:
       // for simplifying inferences, propagate running sums of main premise
       if (isSimplifyingInference)
       {
-        // hack: depend on the following fact:
-        // all simplifying inferences save the main premise as first premise,
-        // except backward demodulation, which (inconsistently) saves the main premise as second premise.
+        // all simplifying inferences save the main premise as first premise
         Unit* mainPremise = next(parentIt);
-        if (_rule == Inference::BACKWARD_DEMODULATION)
-        {
-          mainPremise = next(parentIt);
-        }
         th_ancestors = mainPremise->inference()->th_ancestors;
         all_ancestors = mainPremise->inference()->all_ancestors;
       }
