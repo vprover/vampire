@@ -410,13 +410,12 @@ vstring Clause::toString() const
     result += vstring(" {");
       
     result += vstring("a:") + Int::toString(_age);
-    result += vstring(",w:") + Int::toString(_weight);
-    if (!_weight) {
-      result += "(not initialized yet)";
-    }
+    unsigned weight = (_weight ? _weight : computeWeight());
+    result += vstring(",w:") + Int::toString(weight);
     
-    if(_weightForClauseSelection!=_weight){
-      result += vstring(",wCS:") + Int::toString(_weightForClauseSelection);
+    unsigned weightForClauseSelection = (_weightForClauseSelection ? _weightForClauseSelection : computeWeightForClauseSelection(*env.options));
+    if(weightForClauseSelection!=weight){
+      result += vstring(",wCS:") + Int::toString(weightForClauseSelection);
     }
 
     if (numSelected()>0) {
@@ -437,7 +436,7 @@ vstring Clause::toString() const
     result += vstring(",inD:") + Int::toString(_inference->inductionDepth());
     result += ",thAx:" + Int::toString((int)(_inference->th_ancestors));
     result += ",allAx:" + Int::toString((int)(_inference->all_ancestors));
-    result += ",crazy:" + Int::toString( _inference->th_ancestors * env.options->theorySplitQueueExpectedRatioDenom() - _inference->all_ancestors);
+    result += ",thDist:" + Int::toString( _inference->th_ancestors * env.options->theorySplitQueueExpectedRatioDenom() - _inference->all_ancestors);
     result += vstring("}");
   }
 
