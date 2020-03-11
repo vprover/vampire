@@ -49,13 +49,16 @@ InferenceMany::InferenceMany(Rule rule,UnitList* premises)
 
   computeTheoryRunningSums();
 
-  ASS(_premises); // any InferenceMany with 0 premises?
-  _isPureTheoryDescendant = true;
-  it=_premises;
-  while(it) {
-    Inference* inf = it->head()->inference();
-    _isPureTheoryDescendant &= inf->isPureTheoryDescendant();
-    it=it->tail();
+  if (_premises) {
+    _isPureTheoryDescendant = true;
+    it=_premises;
+    while(it) {
+      Inference* inf = it->head()->inference();
+      _isPureTheoryDescendant &= inf->isPureTheoryDescendant();
+      it=it->tail();
+    }
+  } else {
+    _isPureTheoryDescendant = isTheoryAxiom();
   }
 
   updateStatistics();

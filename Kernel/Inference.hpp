@@ -481,18 +481,13 @@ public:
    * TODO: handle the exhaustiveness axiom, which should be added as clause
    */
   bool isTheoryAxiom() const {
-    // a theory axiom does not have a parent clauses
-    Inference::Iterator it = iterator();
-    if(hasNext(it)) {
-      return false;
-    }
+    return isExternalTheoryAxiomRule(_rule) || // maybe we don't want these?
+        isTheoryAxiomRule(_rule);
+  }
 
-    bool isTheoryAxiom = isExternalTheoryAxiom() || // maybe we don't want these?
-       (static_cast<unsigned>(rule()) >= static_cast<unsigned>(Inference::THEORY_AXIOM)
-       &&
-       static_cast<unsigned>(rule()) < static_cast<unsigned>(Inference::INTERNAL_THEORY_AXIOM_LAST));
-
-    return isTheoryAxiom;
+  static bool isTheoryAxiomRule(Rule r) {
+    return (static_cast<unsigned>(r) >= static_cast<unsigned>(Inference::THEORY_AXIOM) &&
+        static_cast<unsigned>(r) < static_cast<unsigned>(Inference::INTERNAL_THEORY_AXIOM_LAST));
   }
 
   /*
@@ -511,7 +506,11 @@ public:
    * different behaviour by Vampire, which is probably a bad thing.
    */
   bool isExternalTheoryAxiom() const {
-    return rule() == Inference::EXTERNAL_THEORY_AXIOM;
+    return isExternalTheoryAxiomRule(_rule);
+  }
+
+  static bool isExternalTheoryAxiomRule(Rule r) {
+    return r == Inference::EXTERNAL_THEORY_AXIOM;
   }
 
   // counting the leafs (in the tree rather than dag sense)
