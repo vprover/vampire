@@ -295,7 +295,9 @@ public:
     /** inference rule for term algebras (no equality between terms of different constructors)*/
     TERM_ALGEBRA_DISTINCTNESS,
     /** inference rule for term algebras (injectivity of constructors)*/
-    TERM_ALGEBRA_INJECTIVITY,
+    TERM_ALGEBRA_INJECTIVITY_GENERATING,
+    /** inference rule for term algebras (injectivity of constructors)*/
+    TERM_ALGEBRA_INJECTIVITY_SIMPLIFYING,
     //** Flatten a clause to separate theory literals */
     THEORY_FLATTENING,
     /** Introduction of formula to convert formulas used as argument positions.

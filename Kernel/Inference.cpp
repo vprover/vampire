@@ -469,7 +469,8 @@ vstring Inference::ruleName(Rule rule)
     return "term algebras acyclicity";
   case TERM_ALGEBRA_DISTINCTNESS:
     return "term algebras distinctness";
-  case TERM_ALGEBRA_INJECTIVITY:
+  case TERM_ALGEBRA_INJECTIVITY_GENERATING:
+  case TERM_ALGEBRA_INJECTIVITY_SIMPLIFYING:
     return "term algebras injectivity";
   case THEORY_FLATTENING:
     return "theory flattening";

@@ -186,7 +186,7 @@ namespace Inferences {
       CALL("InjectivityGIE::SubtermIterator::next()");
 
       Clause *res;
-      Inference *inf = new Inference1(Inference::TERM_ALGEBRA_INJECTIVITY, _clause);
+      Inference *inf = new Inference1(Inference::TERM_ALGEBRA_INJECTIVITY_GENERATING, _clause);
       
       
       // from the clause f(x1 ... xn) = f(y1 .. yn) \/ C, we create
@@ -257,7 +257,7 @@ namespace Inferences {
                                                     *lit->nthArgument(0)->term()->nthArgument(0),
                                                     *lit->nthArgument(1)->term()->nthArgument(0),
                                                     type->arg(0));
-          Clause* res = replaceLit(c, lit, newlit, new Inference1(Inference::TERM_ALGEBRA_INJECTIVITY, c));
+          Clause* res = replaceLit(c, lit, newlit, new Inference1(Inference::TERM_ALGEBRA_INJECTIVITY_SIMPLIFYING, c));
           res->setAge(c->age());
           env.statistics->taInjectivitySimplifications++;
           return res;
@@ -309,7 +309,7 @@ namespace Inferences {
         unsigned newLength = oldLength + arity - 1;
         Clause* res = new(newLength) Clause(newLength,
                                             c->inputType(),
-                                            new Inference1(Inference::TERM_ALGEBRA_INJECTIVITY, c));
+                                            new Inference1(Inference::TERM_ALGEBRA_INJECTIVITY_SIMPLIFYING, c));
         Literal *newLit = Literal::createEquality(false,
                                                   *lit->nthArgument(0)->term()->nthArgument(0),
                                                   *lit->nthArgument(1)->term()->nthArgument(0),
