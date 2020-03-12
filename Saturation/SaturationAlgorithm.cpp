@@ -400,6 +400,10 @@ void SaturationAlgorithm::onNewClause(Clause* cl)
   if (_answerLiteralManager) {
     _answerLiteralManager->onNewClause(cl);
   }
+
+  if (env.theorySubclauseAnalyser) {
+    env.theorySubclauseAnalyser->addClause(*cl);
+  }
 }
 
 void SaturationAlgorithm::onNewUsefulPropositionalClause(Clause* c)
@@ -766,14 +770,14 @@ void SaturationAlgorithm::newClausesToUnprocessed()
     case Clause::NONE:
       addUnprocessedClause(cl);
       break;
-#if VDEBUG
     case Clause::SELECTED:
     case Clause::ACTIVE:
+#if VDEBUG
       cout << "FAIL: " << cl->toString() << endl;
       //such clauses should not appear as new ones
       cout << cl->toString() << endl;
-      ASSERTION_VIOLATION_REP(cl->store());
 #endif
+      ASSERTION_VIOLATION_REP(cl->store());
     }
     cl->decRefCnt(); //belongs to _newClauses.popWithoutDec()
   }
