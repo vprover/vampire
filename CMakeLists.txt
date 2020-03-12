@@ -572,6 +572,7 @@ set(VAMPIRE_SHELL_SOURCES
     #Shell/SMTPrinter.cpp
     Shell/FOOLElimination.cpp
     Shell/Statistics.cpp
+    Shell/Analysis/TheorySubclauseAnalyser.cpp
     Shell/SymbolDefinitionInlining.cpp
     Shell/SymbolOccurrenceReplacement.cpp
     Shell/SymCounter.cpp
@@ -643,6 +644,7 @@ set(VAMPIRE_SHELL_SOURCES
     #Shell/SMTPrinter.hpp
     Shell/FOOLElimination.hpp
     Shell/Statistics.hpp
+    Shell/Analysis/TheorySubclauseAnalyser.cpp
     Shell/SymbolDefinitionInlining.hpp
     Shell/SymbolOccurrenceReplacement.hpp
     Shell/SymCounter.hpp
