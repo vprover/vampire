@@ -646,8 +646,7 @@ set(VAMPIRE_SHELL_SOURCES
     #Shell/SMTPrinter.hpp
     Shell/FOOLElimination.hpp
     Shell/Statistics.hpp
-    Shell/Analysis/TheorySubclauseAnalyser.hpp
-    Shell/Analysis/TheorySubclauseAnalyser/AbstractLiteralContainer.hpp
+    Shell/Analysis/TheorySubclauseAnalyser.cpp
     Shell/SymbolDefinitionInlining.hpp
     Shell/SymbolOccurrenceReplacement.hpp
     Shell/SymCounter.hpp
