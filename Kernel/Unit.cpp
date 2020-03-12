@@ -116,10 +116,8 @@ unsigned Unit::getPriority() const
     return env.maxClausePriority;
   }
   // Current cases where there is no input clause ancestor
-  if(
-     _inference->rule() == Inference::CHOICE_AXIOM || 
-     _inference->rule() == Inference::SKOLEM_PREDICATE_INTRODUCTION 
-    ){
+  if(_inference->rule() == Inference::CHOICE_AXIOM)
+  {
     // This is the same as depth 1 in sine selection
     return 2;
   }

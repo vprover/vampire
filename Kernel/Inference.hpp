@@ -54,6 +54,8 @@ public:
     /** introduction of answer literal into the conjecture,
      * or the unit negation of answer literal used to obtain refutation */
     ANSWER_LITERAL,
+    /** claim definition, definition introduced by a claim in the input */
+    CLAIM_DEFINITION,
 //     /** choice_axiom (Ax)((Ey)F(x,y) -> F(x,f(x))) */
 //     CHOICE_AXIOM,
 //     /** (Ax)(F(x)->F'(x)), G[F(t)] / G[F'(t)] */
@@ -124,74 +126,22 @@ public:
 //     HALF_EQUIV,
 //     /** miniscoping */
 //     MINISCOPE,
+    /** choice axiom */
+    CHOICE_AXIOM,
     /** skolemization */
     SKOLEMIZE,
     /** obtain clause from a formula */
     CLAUSIFY,
-    /** obtain a formula from a clause */
-    FORMULIFY,
+
+    /** THIS DEFINES AN INTERVAL IN THIS ENUM WHERE ALL SIMPLIFYING INFERENCES SHOULD BELONG
+     * (see also INTERNAL_SIMPLIFYING_INFERNCE_LAST and isSimplifyingInferenceRule below). */
+    GENERIC_SIMPLIFYING_INFERNCE,
     /** obtain a clause from a clause by removing duplicate literals */
     REMOVE_DUPLICATE_LITERALS,
-//     /** shell clause transformed to a resolution clause */
-//     SHELL_TO_RESOLUTION,
-    /** resolution inference */
-    RESOLUTION,
-    /** constrained resolution inference */
-    CONSTRAINED_RESOLUTION,
-    /** equality proxy replacement */
-    EQUALITY_PROXY_REPLACEMENT,
-    /** definition of the equality proxy predicate in the form E(x,y) <=> x=y */
-    EQUALITY_PROXY_AXIOM1,
-    /** equality proxy axioms such as E(x,x) or ~E(x,y) \/ x=y */
-    EQUALITY_PROXY_AXIOM2,
-    /** unfolding by definitions f(x1,...,xn)=t */
-    DEFINITION_UNFOLDING,
-    /** any kind of definition folding */
-    DEFINITION_FOLDING,
-    /** introduction of auxiliady predicate for EPR-preserving skolemization */
-    SKOLEM_PREDICATE_INTRODUCTION,
-    /** EPR-preserving skolemization */
-    PREDICATE_SKOLEMIZE,
-//     /** expansion of row variable, KIF-specific */
-//     ROW_VARIABLE_EXPANSION,
-    /** introduction of new name p, p <=> C */
-    PREDICATE_DEFINITION,
-    /** unfolding predicate definitions */
-    PREDICATE_DEFINITION_UNFOLDING,
-    /** merging predicate definitions */
-    PREDICATE_DEFINITION_MERGING,
-    /** discovery of equivalences between atoms */
-    EQUIVALENCE_DISCOVERY,
-    /** sharing common subformulas across the problem */
-    FORMULA_SHARING,
-    /** reduce a formula containing false or true, for example
-     *  false & A ---> false */
-    REDUCE_FALSE_TRUE,
-    /** Local simplification of formula, for example A | (B & A) ---> A*/
-    LOCAL_SIMPLIFICATION,
-    /** Normalization of formulas */
-    NORMALIZATION,
-    /** propagate equalities in formulas, for example
-     * X=Y => X=f(Y) ---> X=f(X) */
-    EQUALITY_PROPAGATION,
     /** remove from clause one or more inequalities <i>s != s</i> */
     TRIVIAL_INEQUALITY_REMOVAL,
-    /** factoring inference */
-    FACTORING,
-    /** factoring with constraints */
-    CONSTRAINED_FACTORING,
     /** subsumption resolution simplification rule */
     SUBSUMPTION_RESOLUTION,
-    /** superposition inference */
-    SUPERPOSITION,
-    /** superposition with constraints */
-    CONSTRAINED_SUPERPOSITION,
-    /** equality factoring inference */
-    EQUALITY_FACTORING,
-    /** equality resolution inference */
-    EQUALITY_RESOLUTION,
-    /** redundant inference with extensionality-like clause */
-    EXTENSIONALITY_RESOLUTION,
     /** forward demodulation inference */
     FORWARD_DEMODULATION,
     /** backward demodulation inference */
@@ -202,12 +152,89 @@ public:
     INNER_REWRITING,
     /** condensation inference */
     CONDENSATION,
-    /** normalizing inference */
-    THEORY_NORMALIZATION,
     /** evaluation inference */
     EVALUATION,
-    /** evaluation inference */
+    /** interpreted simplification inference */
     INTERPRETED_SIMPLIFICATION,
+    /** inference rule for term algebras (no equality between terms of different constructors)*/
+    TERM_ALGEBRA_DISTINCTNESS,
+    /** inference rule for term algebras (no cyclic terms)*/
+    TERM_ALGEBRA_ACYCLICITY,
+    /** inference rule for term algebras (injectivity of constructors)*/
+    TERM_ALGEBRA_INJECTIVITY_SIMPLIFYING,
+    /** hyper-superposition */
+    HYPER_SUPERPOSITION_SIMPLIFYING, // not used at the moment
+    /** global subsumption */
+    GLOBAL_SUBSUMPTION, // CEREFUL: the main premise is not necessarily the first one!
+    /** distinct equality removal */
+    DISTINCT_EQUALITY_REMOVAL,
+    /** the last simplifying inference marker --
+      inferences between GENERIC_SIMPLIFYING_INFERNCE and INTERNAL_SIMPLIFYING_INFERNCE_LAST will be automatically understood simplifying
+      (see also isSimplifyingInferenceRule) */
+    INTERNAL_SIMPLIFYING_INFERNCE_LAST,
+
+
+    /** THIS DEFINES AN INTERVAL IN THIS ENUM WHERE ALL SIMPLIFYING INFERENCES SHOULD BELONG
+      * (see also INTERNAL_GENERATING_INFERNCE_LAST and isGeneratingInferenceRule below). */
+    GENERIC_GENERATING_INFERNCE,
+    /** resolution inference */
+    RESOLUTION,
+    /** constrained resolution inference */
+    CONSTRAINED_RESOLUTION,
+    /** factoring inference */
+    FACTORING,
+    /** factoring with constraints */
+    CONSTRAINED_FACTORING,
+    /** superposition inference */
+    SUPERPOSITION,
+    /** superposition with constraints */
+    CONSTRAINED_SUPERPOSITION,
+    /** equality factoring inference */
+    EQUALITY_FACTORING,
+    /** equality resolution inference */
+    EQUALITY_RESOLUTION,
+    /** redundant inference with extensionality-like clause */
+    EXTENSIONALITY_RESOLUTION,
+    /** inference rule for term algebras (injectivity of constructors)*/
+    TERM_ALGEBRA_INJECTIVITY_GENERATING,
+    /** Replaces a literal of the form C[s] with C[true] \/ s = false, where s is a boolean non-variable term */
+    FOOL_PARAMODULATION,
+    /** unit resulting resolution */
+    UNIT_RESULTING_RESOLUTION,
+    /** hyper-superposition */
+    HYPER_SUPERPOSITION_GENERATING,
+
+    /** generated as instance of its parent */
+    INSTANCE_GENERATION, // used by InstGen. Fun fact: the inference has one parent (logically) but the age is set from two parents (and +1)!
+    /* Instantiation */
+    INSTANTIATION, // used for theory reasoning
+    /** the last generating inference marker --
+          inferences between GENERIC_GENERATING_INFERNCE and INTERNAL_GENERATING_INFERNCE_LAST will be automatically understood generating
+          (see also isGeneratingInferenceRule) */
+    INTERNAL_GENERATING_INFERNCE_LAST,
+
+
+    /** equality proxy replacement */
+    EQUALITY_PROXY_REPLACEMENT,
+    /** definition of the equality proxy predicate in the form E(x,y) <=> x=y */
+    EQUALITY_PROXY_AXIOM1,
+    /** equality proxy axioms such as E(x,x) or ~E(x,y) \/ x=y */
+    EQUALITY_PROXY_AXIOM2,
+    /** unfolding by definitions f(x1,...,xn)=t */
+    DEFINITION_UNFOLDING,
+    /** any kind of definition folding */
+    DEFINITION_FOLDING,
+    /** introduction of new name p, p <=> C */
+    PREDICATE_DEFINITION,
+    /** unfolding predicate definitions */
+    PREDICATE_DEFINITION_UNFOLDING,
+    /** merging predicate definitions */
+    PREDICATE_DEFINITION_MERGING,
+    /** reduce a formula containing false or true, for example
+     *  false & A ---> false */
+    REDUCE_FALSE_TRUE,
+    /** normalizing inference */
+    THEORY_NORMALIZATION,
     /** unused predicate definition removal */
     UNUSED_PREDICATE_DEFINITION_REMOVAL,
     /** pure predicate removal */
@@ -220,14 +247,75 @@ public:
     GROUNDING,
     /** equality axiom */
     EQUALITY_AXIOM,
-    /** choice axiom */
-    CHOICE_AXIOM,
     /** conflict clause generated by sat solver */
     SAT_CONFLICT_CLAUSE,
     /** distinctness axiom for numbers, generated by SimplifyProver */
     SIMPLIFY_PROVER_DISTINCT_NUMBERS_AXIOM,
+    /** Introduction of formula to convert formulas used as argument positions.
+     *  Such formulas have the form F->f(x)=1 or ~F->f(x)=0 */
+    BOOLEAN_TERM_ENCODING,
+    //** Flatten a clause to separate theory literals */
+    THEORY_FLATTENING,
+    /** Elimination of FOOL expressions that makes a formula not syntactically first-order */
+    FOOL_ELIMINATION,
+    /** Elimination of $ite expressions */
+    FOOL_ITE_ELIMINATION,
+    /** Elimination of $let expressions */
+    FOOL_LET_ELIMINATION,
+    /** result of general splitting */
+    GENERAL_SPLITTING,
+    /** component introduced by general splitting */
+    GENERAL_SPLITTING_COMPONENT,
+    /** replacing colored constants by skolem functions */
+    COLOR_UNBLOCKING,
+
+    /** refutation in the SAT solver for InstGen */
+    SAT_INSTGEN_REFUTATION,
+
+    /** definition introduced by AVATAR */
+    AVATAR_DEFINITION,
+    /** component introduced by AVATAR */
+    AVATAR_COMPONENT,
+    /** refutation of a AVATAR splitting branch */
+    AVATAR_REFUTATION,
+    /** sat clause representing FO clause for AVATAR */
+    AVATAR_SPLIT_CLAUSE,
+    /** sat clause representing FO clause for AVATAR */
+    AVATAR_CONTRADICTION_CLAUSE,
+    /** sat color elimination */
+    SAT_COLOR_ELIMINATION,
+    /** obtain a formula from a clause */
+    FORMULIFY,
+
+    /** inference coming from outside of Vampire */
+    EXTERNAL,
+
+    /** BNFT flattening */
+    BFNT_FLATTENING,
+    /** BNFT axioms m != n */
+    BFNT_DISTINCT,
+    /** BNFT totality axioms R(x,1) \/ ... \/ R(x,n) */
+    BFNT_TOTALITY,
+
+    /* FMB flattening */
+    FMB_FLATTENING,
+    /* Functional definition for FMB */
+    FMB_FUNC_DEF,
+    /* Definition Introduction for FMB */
+    FMB_DEF_INTRO,
+    /* Finite model not found */
+    MODEL_NOT_FOUND,
+
+    /* Adding sort predicate */
+    ADD_SORT_PREDICATES,
+    /* Adding sort functions */
+    ADD_SORT_FUNCTIONS,
+
+    /* Induction hypothesis*/
+    INDUCTION_AXIOM,
+
     /** a not further specified theory axiom internally added by the class TheoryAxioms. */
-    THEORY_AXIOM,
+    GENERIC_THEORY_AXIOM,
     /** Some specific groups of axioms coming from TheoryAxioms.cpp" */
     THEORY_AXIOM_COMMUTATIVITY,
     THEORY_AXIOM_ASSOCIATIVITY,
@@ -289,99 +377,43 @@ public:
       axioms between THEORY_AXIOM and INTERNAL_THEORY_AXIOM_LAST will be automatically making their respective clauses isTheoryAxiom() true */
     INTERNAL_THEORY_AXIOM_LAST,
     /** a theory axiom which is not generated internally in Vampire */
-    EXTERNAL_THEORY_AXIOM,
-    /** inference rule for term algebras (no cyclic terms)*/
-    TERM_ALGEBRA_ACYCLICITY,
-    /** inference rule for term algebras (no equality between terms of different constructors)*/
-    TERM_ALGEBRA_DISTINCTNESS,
-    /** inference rule for term algebras (injectivity of constructors)*/
-    TERM_ALGEBRA_INJECTIVITY_GENERATING,
-    /** inference rule for term algebras (injectivity of constructors)*/
-    TERM_ALGEBRA_INJECTIVITY_SIMPLIFYING,
-    //** Flatten a clause to separate theory literals */
-    THEORY_FLATTENING,
-    /** Introduction of formula to convert formulas used as argument positions.
-     *  Such formulas have the form F->f(x)=1 or ~F->f(x)=0 */
-    BOOLEAN_TERM_ENCODING,
-    /** Elimination of FOOL expressions that makes a formula not syntactically first-order */
-    FOOL_ELIMINATION,
-    /** Elimination of $ite expressions */
-    FOOL_ITE_ELIMINATION,
-    /** Elimination of $let expressions */
-    FOOL_LET_ELIMINATION,
-    /** Replaces a literal of the form C[s] with C[true] \/ s = false, where s is a boolean non-variable term */
-    FOOL_PARAMODULATION,
-    /** definition introduced by AVATAR */
-    AVATAR_DEFINITION,
-    /** component introduced by AVATAR */
-    AVATAR_COMPONENT,
-    /** refutation of a AVATAR splitting branch */
-    AVATAR_REFUTATION,
-    /** sat clause representing FO clause for AVATAR */
-    AVATAR_SPLIT_CLAUSE,
-    /** sat clause representing FO clause for AVATAR */
-    AVATAR_CONTRADICTION_CLAUSE,
-    /** sat color elimination */
-    SAT_COLOR_ELIMINATION,
-    /** result of general splitting */
-    GENERAL_SPLITTING,
-    /** component introduced by general splitting */
-    GENERAL_SPLITTING_COMPONENT,
-    /** merge of clauses with common non-prop. parts */
-    COMMON_NONPROP_MERGE,
-    /** reducing the propositional part (due to simplification) */
-    PROP_REDUCE,
-    /** clause naming */
-    CLAUSE_NAMING,
-    /** bddzation */
-    BDDZATION,
-    /** tautology introduction */
-    TAUTOLOGY_INTRODUCTION,
-    /** replacing colored constants by skolem functions */
-    COLOR_UNBLOCKING,
-    /** generated as instance of its parent */
-    INSTANCE_GENERATION,
-    /** unit resulting resolution */
-    UNIT_RESULTING_RESOLUTION,
-    /** hyper-superposition */
-    HYPER_SUPERPOSITION_SIMPLIFYING,
-    /** hyper-superposition */
-    HYPER_SUPERPOSITION_GENERATING,
-    /** global subsumption */
-    GLOBAL_SUBSUMPTION,
-    /** refutation in the SAT solver for InstGen */
-    SAT_INSTGEN_REFUTATION,
-    /** distinct equality removal */
-    DISTINCT_EQUALITY_REMOVAL,
-    /** inference coming from outside of Vampire */
-    EXTERNAL,
-    /** claim definition, definition introduced by a claim in the input */
-    CLAIM_DEFINITION,
-    /** BNFT flattening */
-    BFNT_FLATTENING,
-    /** BNFT axioms m != n */
-    BFNT_DISTINCT,
-    /** BNFT totality axioms R(x,1) \/ ... \/ R(x,n) */
-    BFNT_TOTALITY,
-    /* FMB flattening */
-    FMB_FLATTENING,
-    /* Functional definition for FMB */
-    FMB_FUNC_DEF,
-    /* Definition Introduction for FMB */
-    FMB_DEF_INTRO, 
-    /* Adding sort predicate */
-    ADD_SORT_PREDICATES,
-    /* Adding sort functions */
-    ADD_SORT_FUNCTIONS,
-    /* Instantiation */
-    INSTANTIATION,
-    /* Finite model not found */
-    MODEL_NOT_FOUND,
-    /* Induction hypothesis*/
-    INDUCTION,
-    /* Inductive strengthening*/
-    INDUCTIVE_STRENGTH
+    EXTERNAL_THEORY_AXIOM
   }; // class Inference::Rule
+
+  /** Currently not enforced but (almost) assumed:
+   * - these are simplifying inferences used during proof search
+   * - therefore they operate on Clauses
+   * - there is always a main premise, which is going to be the first one returned by Iterator
+   * (CAREFUL: this is currently a problem for GLOBAL_SUBSUMPTION)
+   * - the age of the corresponding Clause is the same as that of this main premise
+   **/
+  static bool isSimplifyingInferenceRule(Rule r) {
+    return (static_cast<unsigned>(r) >= static_cast<unsigned>(Inference::GENERIC_SIMPLIFYING_INFERNCE) &&
+        static_cast<unsigned>(r) < static_cast<unsigned>(Inference::INTERNAL_SIMPLIFYING_INFERNCE_LAST));
+  }
+
+  /**
+   * Currently not enforced but (almost) assumed:
+   * - these are generating inferences used during proof search
+   * - therefore they operate on Clauses
+   * - the age of the corresponding Clause is computed as the max over parent's ages +1
+   */
+  static bool isGeneratingInferenceRule(Rule r) {
+    return (static_cast<unsigned>(r) >= static_cast<unsigned>(Inference::GENERIC_GENERATING_INFERNCE) &&
+        static_cast<unsigned>(r) < static_cast<unsigned>(Inference::INTERNAL_GENERATING_INFERNCE_LAST));
+  }
+
+  /** Currently not enforced but assumed:
+   * - theory axioms should not have any premises
+   **/
+  static bool isTheoryAxiomRule(Rule r) {
+    return (static_cast<unsigned>(r) >= static_cast<unsigned>(Inference::GENERIC_THEORY_AXIOM) &&
+        static_cast<unsigned>(r) < static_cast<unsigned>(Inference::INTERNAL_THEORY_AXIOM_LAST));
+  }
+
+  static bool isExternalTheoryAxiomRule(Rule r) {
+    return r == Inference::EXTERNAL_THEORY_AXIOM;
+  }
 
   explicit Inference(Rule r);
 
@@ -485,10 +517,6 @@ public:
         isTheoryAxiomRule(_rule);
   }
 
-  static bool isTheoryAxiomRule(Rule r) {
-    return (static_cast<unsigned>(r) >= static_cast<unsigned>(Inference::THEORY_AXIOM) &&
-        static_cast<unsigned>(r) < static_cast<unsigned>(Inference::INTERNAL_THEORY_AXIOM_LAST));
-  }
 
   /*
    * returns true if clause is an external theory axiom
@@ -507,10 +535,6 @@ public:
    */
   bool isExternalTheoryAxiom() const {
     return isExternalTheoryAxiomRule(_rule);
-  }
-
-  static bool isExternalTheoryAxiomRule(Rule r) {
-    return r == Inference::EXTERNAL_THEORY_AXIOM;
   }
 
   // counting the leafs (in the tree rather than dag sense)
@@ -547,16 +571,8 @@ public:
     }
     else
     {
-      // hack: hardcode simplifying inferences
-      bool isSimplifyingInference =
-        _rule == Inference::TRIVIAL_INEQUALITY_REMOVAL ||
-        _rule == Inference::SUBSUMPTION_RESOLUTION ||
-        _rule == Inference::FORWARD_DEMODULATION ||
-        _rule == Inference::BACKWARD_DEMODULATION ||
-        _rule == Inference::EVALUATION;
-
       // for simplifying inferences, propagate running sums of main premise
-      if (isSimplifyingInference)
+      if (isSimplifyingInferenceRule(_rule))
       {
         // all simplifying inferences save the main premise as first premise
         Unit* mainPremise = next(parentIt);

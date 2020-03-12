@@ -337,29 +337,15 @@ vstring Inference::ruleName(Rule rule)
     return "definition unfolding";
   case DEFINITION_FOLDING:
     return "definition folding";
-  case SKOLEM_PREDICATE_INTRODUCTION:
-  return "skolem predicate introduction";
-  case PREDICATE_SKOLEMIZE:
-    return "predicate skolemization";
-//  case ROW_VARIABLE_EXPANSION:
   case PREDICATE_DEFINITION:
     return "predicate definition introduction";
   case PREDICATE_DEFINITION_UNFOLDING:
     return "predicate definition unfolding";
   case PREDICATE_DEFINITION_MERGING:
     return "predicate definition merging";
-  case EQUIVALENCE_DISCOVERY:
-    return "equivalence discovery";
-  case FORMULA_SHARING:
-    return "formula sharing";
   case REDUCE_FALSE_TRUE:
     return "true and false elimination";
-  case LOCAL_SIMPLIFICATION:
-    return "local simplification";
-  case NORMALIZATION:
-    return "normalization";
-  case EQUALITY_PROPAGATION:
-    return "equality propagation";
+
   case TRIVIAL_INEQUALITY_REMOVAL:
     return "trivial inequality removal";
   case FACTORING:
@@ -410,7 +396,7 @@ vstring Inference::ruleName(Rule rule)
     return "sat conflict clause";
   case SIMPLIFY_PROVER_DISTINCT_NUMBERS_AXIOM:
     return "distinct numbers";
-  case THEORY_AXIOM:
+  case GENERIC_THEORY_AXIOM:
   case THEORY_AXIOM_COMMUTATIVITY:
   case THEORY_AXIOM_ASSOCIATIVITY:
   case THEORY_AXIOM_RIGHT_IDENTINTY:
@@ -495,16 +481,8 @@ vstring Inference::ruleName(Rule rule)
     return "general splitting component introduction";
   case GENERAL_SPLITTING:
     return "general splitting";
-  case COMMON_NONPROP_MERGE:
-    return "merge";
-  case PROP_REDUCE:
-    return "prop reduce";
-  case CLAUSE_NAMING:
-    return "clause naming";
-  case BDDZATION:
-    return "bddzation";
-  case TAUTOLOGY_INTRODUCTION:
-    return "tautology introduction";
+
+
   case COLOR_UNBLOCKING:
     return "color unblocking";
   case INSTANCE_GENERATION:
@@ -544,10 +522,8 @@ vstring Inference::ruleName(Rule rule)
     return "instantiation";
   case MODEL_NOT_FOUND:
     return "finite model not found";
-  case INDUCTION:
+  case INDUCTION_AXIOM:
     return "induction hypothesis";
-  case INDUCTIVE_STRENGTH:
-    return "inductive strengthening";
   default:
     ASSERTION_VIOLATION;
     return "!UNKNOWN INFERENCE RULE!";

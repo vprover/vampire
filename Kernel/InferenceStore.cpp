@@ -325,7 +325,7 @@ protected:
 
     cs->inference()->updateStatistics(); // in particular, update inductionDepth (which could have decreased, since we might have fewer parents after miniminization)
 
-    if(rule == Inference::INDUCTION){
+    if(rule == Inference::INDUCTION_AXIOM){
       env.statistics->inductionInProof++;
     }
 
@@ -917,7 +917,6 @@ protected:
   {
     switch(rule) {
     case Inference::INPUT:
-    case Inference::CLAUSE_NAMING:
     case Inference::INEQUALITY_SPLITTING_NAME_INTRODUCTION:
     case Inference::INEQUALITY_SPLITTING:
     case Inference::SKOLEMIZE:
