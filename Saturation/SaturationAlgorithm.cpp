@@ -413,6 +413,9 @@ void SaturationAlgorithm::onNewClause(Clause* cl)
     _answerLiteralManager->onNewClause(cl);
   }
 
+  if (env.theorySubclauseAnalyser) {
+    env.theorySubclauseAnalyser->addClause(*cl);
+  }
 }
 
 void SaturationAlgorithm::onNewUsefulPropositionalClause(Clause* c)
