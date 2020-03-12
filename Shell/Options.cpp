@@ -898,6 +898,11 @@ void Options::Options::init()
     _lookup.insert(&_useTheorySplitQueues);
     _useTheorySplitQueues.tag(OptionTag::SATURATION);
 
+    _includedFormulasAsExternalAxioms = BoolOptionValue("included_formulas_as_external_axioms","ifea",false);
+    _includedFormulasAsExternalAxioms.description = "Mark formulas from TPTP includes as external axioms (to be treated as theory axioms by theory_split_queues)";
+    _lookup.insert(&_includedFormulasAsExternalAxioms);
+    _includedFormulasAsExternalAxioms.tag(OptionTag::SATURATION);
+
     _theorySplitQueueExpectedRatioDenom = IntOptionValue("theory_split_queue_expected_ratio_denom","thsqd", 8);
     _theorySplitQueueExpectedRatioDenom.description = "The denominator n such that we expect the final proof to have a ratio of theory-axioms to all-axioms of 1/n.";
     _lookup.insert(&_theorySplitQueueExpectedRatioDenom);

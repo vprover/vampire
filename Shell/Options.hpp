@@ -1987,6 +1987,7 @@ public:
   void setAgeRatio(int v){ _ageWeightRatio.actualValue = v; }
   int weightRatio() const { return _ageWeightRatio.otherValue; }
   bool useTheorySplitQueues() const { return _useTheorySplitQueues.actualValue; }
+  bool includedFormulasAsExternalAxioms() const { return _includedFormulasAsExternalAxioms.actualValue; }
   Lib::vvector<int> theorySplitQueueRatios() const;
   Lib::vvector<float> theorySplitQueueCutoffs() const;
   int theorySplitQueueExpectedRatioDenom() const { return _theorySplitQueueExpectedRatioDenom.actualValue; }
@@ -2256,6 +2257,7 @@ private:
 	ChoiceOptionValue<AgeWeightRatioShape> _ageWeightRatioShape;
 	UnsignedOptionValue _ageWeightRatioShapeFrequency;
   BoolOptionValue _useTheorySplitQueues;
+  BoolOptionValue _includedFormulasAsExternalAxioms;
   StringOptionValue _theorySplitQueueRatios;
   StringOptionValue _theorySplitQueueCutoffs;
   IntOptionValue _theorySplitQueueExpectedRatioDenom;

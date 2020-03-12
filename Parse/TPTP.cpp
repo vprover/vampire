@@ -3029,10 +3029,15 @@ void TPTP::endFof()
     return;
   }
 
+  Inference::Rule default_rule = Inference::INPUT;
+  if (env.options->includedFormulasAsExternalAxioms() && !_inputs.isEmpty() /*comes from a tptp include! */) {
+    default_rule = Inference::EXTERNAL_THEORY_AXIOM;
+  }
+
   Unit* unit;
   if (isFof) { // fof() or tff()
     env.statistics->inputFormulas++;
-    unit = new FormulaUnit(f,new Inference0(Inference::INPUT),(Unit::InputType)_lastInputType);
+    unit = new FormulaUnit(f,new Inference0(default_rule),(Unit::InputType)_lastInputType);
     unit->setInheritedColor(_currentColor);
   }
   else { // cnf()
@@ -3078,7 +3083,7 @@ void TPTP::endFof()
 	USER_ERROR((vstring)"input formula not in CNF: " + f->toString());
       }
     }
-    unit = Clause::fromStack(lits,(Unit::InputType)_lastInputType,new Inference0(Inference::INPUT));
+    unit = Clause::fromStack(lits,(Unit::InputType)_lastInputType,new Inference0(default_rule));
     unit->setInheritedColor(_currentColor);
   }
 
