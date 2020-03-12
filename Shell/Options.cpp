@@ -931,21 +931,21 @@ void Options::Options::init()
     _useAvatarSplitQueues.tag(OptionTag::AVATAR);
     _avatarSplitQueueCutoffs.reliesOn(_splitting.is(equal(true)));
 
-    _avatarSplitQueueCutoffs = StringOptionValue("avatar_split_queue_cutoffs", "avsqc", "0,1,2");
+    _avatarSplitQueueCutoffs = StringOptionValue("avatar_split_queue_cutoffs", "avsqc", "0");
     _avatarSplitQueueCutoffs.description = "The cutoff-values for the avatar-split-queues (the cutoff value for the last queue is omitted, since it has to be infinity).";
     _lookup.insert(&_avatarSplitQueueCutoffs);
     _avatarSplitQueueCutoffs.reliesOn(_useAvatarSplitQueues.is(equal(true)));
     _avatarSplitQueueCutoffs.tag(OptionTag::AVATAR);
     _avatarSplitQueueCutoffs.setExperimental();
 
-    _avatarSplitQueueRatios = StringOptionValue("avatar_split_queue_ratios", "avsqr", "1,1,1,1");
+    _avatarSplitQueueRatios = StringOptionValue("avatar_split_queue_ratios", "avsqr", "1,2");
     _avatarSplitQueueRatios.description = "The ratios for picking clauses from the split-queues using weighted round robin. If a queue is empty, the clause will be picked from the next non-empty queue to the right. Note that this option implicitly also sets the number of queues.";
     _lookup.insert(&_avatarSplitQueueRatios);
     _avatarSplitQueueRatios.reliesOn(_useAvatarSplitQueues.is(equal(true)));
     _avatarSplitQueueRatios.tag(OptionTag::AVATAR);
     _avatarSplitQueueRatios.setExperimental();
 
-    _avatarSplitQueueLayeredArrangement = BoolOptionValue("avatar_split_queue_layered_arrangement","avsql",true);
+    _avatarSplitQueueLayeredArrangement = BoolOptionValue("avatar_split_queue_layered_arrangement","avsql",false);
     _avatarSplitQueueLayeredArrangement.description = "If turned on, use a layered arrangement to split clauses into queues. Otherwise use a tammet-style-arrangement.";
     _lookup.insert(&_avatarSplitQueueLayeredArrangement);
     _avatarSplitQueueLayeredArrangement.reliesOn(_useAvatarSplitQueues.is(equal(true)));
