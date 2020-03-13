@@ -1202,7 +1202,7 @@ void Options::Options::init()
     _lookup.insert(&_hyperSuperposition);
     _hyperSuperposition.tag(OptionTag::INFERENCES);
 
-    _simultaneousSuperposition = BoolOptionValue("simultaneous_superposition","sims",false);
+    _simultaneousSuperposition = BoolOptionValue("simultaneous_superposition","sims",true);
     _simultaneousSuperposition.description="Rewrite the whole RHS clause during superposition, not just the target literal.";
     _lookup.insert(&_simultaneousSuperposition);
     _simultaneousSuperposition.tag(OptionTag::INFERENCES);
