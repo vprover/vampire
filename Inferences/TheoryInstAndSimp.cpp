@@ -821,6 +821,7 @@ partial_check_end:
       _splitter->onNewClause(inst);
     }
 
+    res->setAge(_premise->age()+1);
     env.statistics->theoryInstSimp++;
 #if DPRINT
     cout << "to get " << res->toString() << endl;
