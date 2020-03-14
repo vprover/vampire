@@ -607,6 +607,7 @@ struct ProxyElimination::ProxyEliminationISE::ProxyEliminationIterator
      }
      return _count < 2;            
   }
+
   OWN_ELEMENT_TYPE next()
   {
     CALL("ProxyEliminationISE::proxyEliminationIterator::next()");

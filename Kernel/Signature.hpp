@@ -647,6 +647,7 @@ class Signature
     bool added = false;
 
     auto convert = [] (vstring name) { 
+      if(name == "vIMP"){ return IMP; }
       if(name == "vAND"){ return AND; }
       if(name == "vOR"){ return OR; }
       if(name == "vIFF"){ return IFF; }
