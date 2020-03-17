@@ -432,7 +432,7 @@ vstring Inference::ruleName(Rule rule)
   case THEORY_AXIOM_BOOLEAN_ARRAY_WRITE2:
   case THEORY_AXIOM_ARRAY_WRITE1:
   case THEORY_AXIOM_ARRAY_WRITE2:
-    return "theory axiom";
+    return Int::toString(rule)+" theory axiom";
   case TERM_ALGEBRA_ACYCLICITY_AXIOM:
     return "term algebras acyclicity";
   case TERM_ALGEBRA_DISCRIMINATION_AXIOM:

@@ -2045,6 +2045,7 @@ public:
   void setIgnoreMissing(IgnoreMissing newVal) { _ignoreMissing.actualValue = newVal; }
   bool increasedNumeralWeight() const { return _increasedNumeralWeight.actualValue; }
   TheoryAxiomLevel theoryAxioms() const { return _theoryAxioms.actualValue; }
+  Stack<unsigned> theoryAxiomsSkip() const;
   //void setTheoryAxioms(bool newValue) { _theoryAxioms = newValue; }
   bool interpretedSimplification() const { return _interpretedSimplification.actualValue; }
   //void setInterpretedSimplification(bool val) { _interpretedSimplification = val; }
@@ -2512,6 +2513,7 @@ private:
   ChoiceOptionValue<Output> _outputMode;
   StringOptionValue _thanks;
   ChoiceOptionValue<TheoryAxiomLevel> _theoryAxioms;
+  StringOptionValue _theoryAxiomsSkip;
   BoolOptionValue _theoryFlattening;
 
   /** Time limit in deciseconds */

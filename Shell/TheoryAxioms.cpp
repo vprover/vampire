@@ -84,6 +84,16 @@ void TheoryAxioms::addAndOutputTheoryUnit(Unit* unit, unsigned level)
 void TheoryAxioms::addTheoryClauseFromLits(std::initializer_list<Literal*> lits, Inference::Rule rule, unsigned level)
 {
   CALL("TheoryAxioms::addTheoryNonUnitClause");
+
+  static Stack<unsigned> skipping = env.options->theoryAxiomsSkip();
+  Stack<unsigned>::Iterator it(skipping);
+  while(it.hasNext()) {
+    if ((unsigned)rule == it.next()) {
+      // cout << "Skipping: " << rule << endl;
+      return;
+    }
+  }
+
   LiteralStack lit_stack;
   for (Literal* lit : lits) {
     ASS(lit);

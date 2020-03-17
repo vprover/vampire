@@ -53,6 +53,8 @@
 #include "Options.hpp"
 #include "Property.hpp"
 
+#include <string>
+
 using namespace Lib;
 using namespace Shell;
 
@@ -508,6 +510,13 @@ void Options::Options::init()
     _theoryAxioms.description="Include theory axioms for detected interpreted symbols";
     _lookup.insert(&_theoryAxioms);
     _theoryAxioms.tag(OptionTag::PREPROCESSING);
+
+    _theoryAxiomsSkip = StringOptionValue("theory_axioms_skip","thas","");
+    _theoryAxiomsSkip.description="Out of the included theory axioms, drop those explicitly listed here."
+          "(Use the comma-separated list of the internal axioms ids!)";
+    _lookup.insert(&_theoryAxiomsSkip);
+    _theoryAxiomsSkip.tag(OptionTag::PREPROCESSING);
+    _theoryAxiomsSkip.setExperimental();
 
     _theoryFlattening = BoolOptionValue("theory_flattening","thf",false);
     _theoryFlattening.description = "Flatten clauses to separate theory and non-theory parts";
@@ -1981,6 +1990,24 @@ void Options::Options::init()
                 };
 
 } // Options::init
+
+Stack<unsigned> Options::theoryAxiomsSkip() const
+{
+  CALL ("Options::theoryAxiomsSkip");
+
+  if (_theoryAxiomsSkip.isDefault()) {
+    return Stack<unsigned>(); // just the empty stack
+  } else {
+    Stack<unsigned> res;
+    vstringstream inputStream(_theoryAxiomsSkip.actualValue);
+    string curThax;
+    while (std::getline(inputStream, curThax, ',')) {
+      res.push(std::stoi(curThax));
+    }
+    return res;
+  }
+
+}
 
 void Options::copyValuesFrom(const Options& that)
 {
