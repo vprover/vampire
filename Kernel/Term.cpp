@@ -624,9 +624,9 @@ vstring Term::toString(bool topLevel) const
       vstring res;
       TermList arg1 = *(nthArgument(0));
       TermList arg2 = *(nthArgument(1));
-      res += topLevel ? "" : "("; 
+      res += /*topLevel ? "" :*/ "("; 
       res += arg1.toString(false) + " " + functionName() + " " + arg2.toString();
-      res += topLevel ? "" : ")";
+      res += /*topLevel ? "" : */ ")";
       return res;
     }else if(env.signature->getFunction(_functor)->app()){
       ASS(arity() == 4);

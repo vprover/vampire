@@ -1487,7 +1487,7 @@ unsigned TPTP::getConstructorArity()
 
 void TPTP::holFormula()
 {
-  CALL("TPTP::holFunction");
+  CALL("TPTP::holFormula");
   Token tok = getTok(0);
   
   switch (tok.tag) {
@@ -1610,13 +1610,22 @@ void TPTP::holTerm()
   Token tok = getTok(0);
   resetToks();
 
+  unsigned arity;
   vstring name = tok.content;
 
   if(name.at(0) == '$'){
     USER_ERROR("vampire higher-order is currently not compatible with theory reasoning");
   }
 
-  unsigned arity = _typeArities.find(name) ? _typeArities.get(name) : 0;
+  if(name == "sCOMB" || name == "bCOMB" || name == "cCOMB"){
+    arity = 3;
+  } else if(name == "kCOMB"){
+    arity = 2;
+  } else if (name == "iCOMB"){
+    arity = 1;
+  }else{
+    arity = _typeArities.find(name) ? _typeArities.get(name) : 0;
+  }
 
   switch (tok.tag) {
     case T_AND:
@@ -3210,10 +3219,27 @@ TermList TPTP::createFunctionApplication(vstring name, unsigned arity)
     fun = SYMBOL(ref);
   } else {
     bool dummy;
-    if (arity > 0) {
-      fun = addFunction(name, arity, dummy, _termLists.top());
+    if(name == "sCOMB"){
+      arity = 3;
+      fun = env.signature->getCombinator(Signature::S_COMB);
+    } else if (name == "cCOMB"){ 
+      arity = 3;
+      fun = env.signature->getCombinator(Signature::C_COMB);
+    } else if (name == "bCOMB"){
+      arity = 3;
+      fun = env.signature->getCombinator(Signature::B_COMB);
+    } else if (name == "kCOMB"){
+      arity = 2;
+      fun = env.signature->getCombinator(Signature::K_COMB);
+    } else if (name == "iCOMB"){
+      arity = 1;
+      fun = env.signature->getCombinator(Signature::I_COMB);
     } else {
-      fun = addUninterpretedConstant(name, _overflow, dummy);
+      if (arity > 0) {
+        fun = addFunction(name, arity, dummy, _termLists.top());
+      } else {
+        fun = addUninterpretedConstant(name, _overflow, dummy);
+      }
     }
   }
   Term* t = new(arity) Term;
