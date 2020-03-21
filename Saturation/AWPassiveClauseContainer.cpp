@@ -524,7 +524,9 @@ bool AWPassiveClauseContainer::childrenPotentiallyFulfilLimits(Clause* cl, unsig
     //       if Avatar is used, then the child-clause could become splittable,
     //       in which case we don't know any lower bound on the resulting components.
     unsigned weightLowerBound = cl->weight() - maxSelWeight; // heuristic: we assume that at most one literal will be removed from the clause.
-    if (!fulfilsWeightLimit(weightLowerBound, childAge, nullptr)) {
+    unsigned numPositiveLiteralsParent = cl->numPositiveLiterals();
+    unsigned numPositiveLiteralsLowerBound = numPositiveLiteralsParent > 0 ? numPositiveLiteralsParent-1 : numPositiveLiteralsParent; // heuristic: we assume that at most one literal will be removed from the clause
+    if (!fulfilsWeightLimit(weightLowerBound, childAge, numPositiveLiteralsLowerBound, nullptr)) {
       //and also over weight limit
       return false;
     }
@@ -575,7 +577,7 @@ bool AWPassiveClauseContainer::fulfilsAgeLimit(Clause* cl) const
   return age <= _ageSelectionMaxAge || (age == _ageSelectionMaxAge && weightForClauseSelection <= _ageSelectionMaxWeight);
 }
 
-bool AWPassiveClauseContainer::fulfilsAgeLimit(unsigned age, unsigned w, Inference* inference) const
+bool AWPassiveClauseContainer::fulfilsAgeLimit(unsigned age, unsigned w, unsigned numPositiveLiterals, Inference* inference) const
 {
   const unsigned numeralWeight = 0; // heuristic: we don't want to compute the numeral weight during estimates and conservatively assume that it is 0.
   const unsigned splitWeight = 0; // also conservatively assuming 0
@@ -597,7 +599,7 @@ bool AWPassiveClauseContainer::fulfilsWeightLimit(Clause* cl) const
   return weightForClauseSelection <= _weightSelectionMaxWeight || (weightForClauseSelection == _weightSelectionMaxWeight && age <= _weightSelectionMaxAge);
 }
 
-bool AWPassiveClauseContainer::fulfilsWeightLimit(unsigned w, unsigned age, Inference* inference) const
+bool AWPassiveClauseContainer::fulfilsWeightLimit(unsigned w, unsigned age, unsigned numPositiveLiterals, Inference* inference) const
 {
   const unsigned numeralWeight = 0; // heuristic: we don't want to compute the numeral weight during estimates and conservatively assume that it is 0.
   const unsigned splitWeight = 0; // also conservatively assuming 0

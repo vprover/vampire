@@ -59,7 +59,7 @@ private:
   bool checkClauseColorCompatibility(Clause* eqClause, Clause* rwClause);
   static bool earlyWeightLimitCheck(Clause* eqClause, Literal* eqLit,
       Clause* rwClause, Literal* rwLit, TermList rwTerm, TermList eqLHS, TermList eqRHS,
-      ResultSubstitutionSP subst, bool eqIsResult, PassiveClauseContainer* passiveClauseContainer, unsigned newAge, Inference* inf);
+      ResultSubstitutionSP subst, bool eqIsResult, PassiveClauseContainer* passiveClauseContainer, unsigned newAge, unsigned numPositiveLiteralsLowerBound, Inference* inf);
 
   static bool checkSuperpositionFromVariable(Clause* eqClause, Literal* eqLit, TermList eqLHS);
 

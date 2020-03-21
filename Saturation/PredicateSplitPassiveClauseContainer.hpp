@@ -53,7 +53,7 @@ private:
   unsigned bestQueue(float featureValue) const;
 
   virtual float evaluateFeature(Clause* cl) const = 0;
-  virtual float evaluateFeatureEstimate(Inference* inf) const = 0;
+  virtual float evaluateFeatureEstimate(unsigned numPositiveLiterals, Inference* inference) const = 0;
 
   /*
    * LRS specific methods for computation of Limits
@@ -83,11 +83,11 @@ public:
   bool fulfilsAgeLimit(Clause* cl) const override;
   // note: w here denotes the weight as returned by weight().
   // this method internally takes care of computing the corresponding weightForClauseSelection.
-  bool fulfilsAgeLimit(unsigned age, unsigned w, Inference* inference) const override;
+  bool fulfilsAgeLimit(unsigned age, unsigned w, unsigned numPositiveLiterals, Inference* inference) const override;
   bool fulfilsWeightLimit(Clause* cl) const override;
   // note: w here denotes the weight as returned by weight().
   // this method internally takes care of computing the corresponding weightForClauseSelection.
-  bool fulfilsWeightLimit(unsigned w, unsigned age, Inference* inference) const override;
+  bool fulfilsWeightLimit(unsigned w, unsigned age, unsigned numPositiveLiterals, Inference* inference) const override;
 
   bool childrenPotentiallyFulfilLimits(Clause* cl, unsigned upperBoundNumSelLits) const override;
   
@@ -100,7 +100,7 @@ public:
 
 private:
   float evaluateFeature(Clause* cl) const override;
-  float evaluateFeatureEstimate(Inference* inf) const override;
+  float evaluateFeatureEstimate(unsigned numPositiveLiterals, Inference* inference) const override;
 };
 
 class AvatarMultiSplitPassiveClauseContainer : public PredicateSplitPassiveClauseContainer
@@ -110,7 +110,7 @@ public:
 
 private:
   float evaluateFeature(Clause* cl) const override;
-  float evaluateFeatureEstimate(Inference* inf) const override;
+  float evaluateFeatureEstimate(unsigned numPositiveLiterals, Inference* inference) const override;
 };
 
 class SineLevelMultiSplitPassiveClauseContainer : public PredicateSplitPassiveClauseContainer
@@ -120,7 +120,17 @@ public:
 
 private:
   float evaluateFeature(Clause* cl) const override;
-  float evaluateFeatureEstimate(Inference* inf) const override;
+  float evaluateFeatureEstimate(unsigned numPositiveLiterals, Inference* inference) const override;
+};
+
+class PositiveLiteralMultiSplitPassiveClauseContainer : public PredicateSplitPassiveClauseContainer
+{
+public:
+  PositiveLiteralMultiSplitPassiveClauseContainer(bool isOutermost, const Shell::Options &opt, Lib::vstring name, Lib::vvector<std::unique_ptr<PassiveClauseContainer>> queues);
+
+private:
+  float evaluateFeature(Clause* cl) const override;
+  float evaluateFeatureEstimate(unsigned numPositiveLiterals, Inference* inference) const override;
 };
 
 };
