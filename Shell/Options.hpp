@@ -1999,6 +1999,10 @@ public:
   Lib::vvector<int> sineLevelSplitQueueRatios() const;
   Lib::vvector<float> sineLevelSplitQueueCutoffs() const;
   bool sineLevelSplitQueueLayeredArrangement() const { return _sineLevelSplitQueueLayeredArrangement.actualValue; }
+  bool usePositiveLiteralSplitQueues() const { return _usePositiveLiteralSplitQueues.actualValue; }
+  Lib::vvector<int> positiveLiteralSplitQueueRatios() const;
+  Lib::vvector<float> positiveLiteralSplitQueueCutoffs() const;
+  bool positiveLiteralSplitQueueLayeredArrangement() const { return _positiveLiteralSplitQueueLayeredArrangement.actualValue; }
   void setWeightRatio(int v){ _ageWeightRatio.otherValue = v; }
 	AgeWeightRatioShape ageWeightRatioShape() const { return _ageWeightRatioShape.actualValue; }
 	int ageWeightRatioShapeFrequency() const { return _ageWeightRatioShapeFrequency.actualValue; }
@@ -2268,6 +2272,10 @@ private:
   StringOptionValue _sineLevelSplitQueueRatios;
   StringOptionValue _sineLevelSplitQueueCutoffs;
   BoolOptionValue _sineLevelSplitQueueLayeredArrangement;
+  BoolOptionValue _usePositiveLiteralSplitQueues;
+  StringOptionValue _positiveLiteralSplitQueueRatios;
+  StringOptionValue _positiveLiteralSplitQueueCutoffs;
+  BoolOptionValue _positiveLiteralSplitQueueLayeredArrangement;
   BoolOptionValue _literalMaximalityAftercheck;
   BoolOptionValue _arityCheck;
   

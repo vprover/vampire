@@ -978,6 +978,32 @@ void Options::Options::init()
     _sineLevelSplitQueueLayeredArrangement.tag(OptionTag::SATURATION);
     _sineLevelSplitQueueLayeredArrangement.setExperimental();
 
+    _usePositiveLiteralSplitQueues = BoolOptionValue("positive_literal_split_queue","plsq",false);
+    _usePositiveLiteralSplitQueues.description = "Turn on experiments: clause selection with multiple queues containing different clauses (split by number of positive literals in clause)";
+    _lookup.insert(&_usePositiveLiteralSplitQueues);
+    _usePositiveLiteralSplitQueues.tag(OptionTag::SATURATION);
+
+    _positiveLiteralSplitQueueCutoffs = StringOptionValue("positive_literal_split_queue_cutoffs", "plsqc", "1,2");
+    _positiveLiteralSplitQueueCutoffs.description = "The cutoff-values for the positive-literal-split-queues (the cutoff value for the last queue is omitted, since it has to be infinity).";
+    _lookup.insert(&_positiveLiteralSplitQueueCutoffs);
+    _positiveLiteralSplitQueueCutoffs.reliesOn(_usePositiveLiteralSplitQueues.is(equal(true)));
+    _positiveLiteralSplitQueueCutoffs.tag(OptionTag::SATURATION);
+    _positiveLiteralSplitQueueCutoffs.setExperimental();
+
+    _positiveLiteralSplitQueueRatios = StringOptionValue("positive_literal_split_queue_ratios", "plsqr", "5,5,1");
+    _positiveLiteralSplitQueueRatios.description = "The ratios for picking clauses from the positive-literal-split-queues using weighted round robin. If a queue is empty, the clause will be picked from the next non-empty queue to the right. Note that this option implicitly also sets the number of queues.";
+    _lookup.insert(&_positiveLiteralSplitQueueRatios);
+    _positiveLiteralSplitQueueRatios.reliesOn(_usePositiveLiteralSplitQueues.is(equal(true)));
+    _positiveLiteralSplitQueueRatios.tag(OptionTag::SATURATION);
+    _positiveLiteralSplitQueueRatios.setExperimental();
+
+    _positiveLiteralSplitQueueLayeredArrangement = BoolOptionValue("positive_literal_split_queue_layered_arrangement","plsql",true);
+    _positiveLiteralSplitQueueLayeredArrangement.description = "If turned on, use a layered arrangement to split clauses into queues. Otherwise use a tammet-style-arrangement.";
+    _lookup.insert(&_positiveLiteralSplitQueueLayeredArrangement);
+    _positiveLiteralSplitQueueLayeredArrangement.reliesOn(_usePositiveLiteralSplitQueues.is(equal(true)));
+    _positiveLiteralSplitQueueLayeredArrangement.tag(OptionTag::SATURATION);
+    _positiveLiteralSplitQueueLayeredArrangement.setExperimental();
+
 	    _literalMaximalityAftercheck = BoolOptionValue("literal_maximality_aftercheck","lma",false);
 	    _lookup.insert(&_literalMaximalityAftercheck);
 	    _literalMaximalityAftercheck.tag(OptionTag::SATURATION);
@@ -3346,6 +3372,56 @@ Lib::vvector<float> Options::sineLevelSplitQueueCutoffs() const
     if (i > 0 && cutoff <= cutoffs[i-1])
     {
       USER_ERROR("The cutoff values (supplied by option '-slsqc') must be strictly increasing");
+    }
+  }
+
+  return cutoffs;
+}
+
+Lib::vvector<int> Options::positiveLiteralSplitQueueRatios() const
+{
+  CALL("Options::positiveLiteralSplitQueueRatios");
+  vstringstream inputRatiosStream(_positiveLiteralSplitQueueRatios.actualValue);
+  Lib::vvector<int> inputRatios;
+  std::string currentRatio;
+  while (std::getline(inputRatiosStream, currentRatio, ',')) {
+    inputRatios.push_back(std::stoi(currentRatio));
+  }
+
+  // sanity checks
+  if (inputRatios.size() < 2) {
+    USER_ERROR("Wrong usage of option '-plsqr'. Needs to have at least two values (e.g. '1,3')");
+  }
+  for (unsigned i = 0; i < inputRatios.size(); i++) {
+    if(inputRatios[i] <= 0) {
+      USER_ERROR("Each ratio (supplied by option '-plsqr') needs to be a positive integer");
+    }
+  }
+
+  return inputRatios;
+}
+
+Lib::vvector<float> Options::positiveLiteralSplitQueueCutoffs() const
+{
+  CALL("Options::positiveLiteralSplitQueueCutoffs");
+  // initialize cutoffs and add float-max as last value
+  Lib::vvector<float> cutoffs;
+  vstringstream cutoffsStream(_positiveLiteralSplitQueueCutoffs.actualValue);
+  std::string currentCutoff;
+  while (std::getline(cutoffsStream, currentCutoff, ','))
+  {
+    cutoffs.push_back(std::stof(currentCutoff));
+  }
+  cutoffs.push_back(std::numeric_limits<float>::max());
+
+  // sanity checks
+  for (unsigned i = 0; i < cutoffs.size(); i++)
+  {
+    auto cutoff = cutoffs[i];
+
+    if (i > 0 && cutoff <= cutoffs[i-1])
+    {
+      USER_ERROR("The cutoff values (supplied by option '-plsqc') must be strictly increasing");
     }
   }
 

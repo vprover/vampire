@@ -686,6 +686,21 @@ unsigned Clause::maxVar()
   return max;
 }
 
+unsigned Clause::numPositiveLiterals()
+{
+  CALL("Clause::numPositiveLiterals");
+  unsigned count = 0;
+  for (int i = 0; i < _length; i++)
+  {
+    Literal *lit = (*this)[i];
+    if (lit->isPositive())
+    {
+      count++;
+    }
+  }
+  return count;
+}
+
 /**
  * Return index of @b lit in the clause
  *

@@ -28,6 +28,8 @@
 #include "Kernel/Clause.hpp"
 #include "Kernel/Inference.hpp"
 #include "Lib/SharedSet.hpp"
+#include "Lib/Environment.hpp"
+#include "Kernel/Signature.hpp"
 
 namespace Saturation
 {
@@ -388,14 +390,14 @@ bool PredicateSplitPassiveClauseContainer::fulfilsAgeLimit(Clause* cl) const
 // returns true if the cl fulfils at least one age-limit of a queue it is in
 // note: w here denotes the weight as returned by weight().
 // this method internally takes care of computing the corresponding weightForClauseSelection.
-bool PredicateSplitPassiveClauseContainer::fulfilsAgeLimit(unsigned age, unsigned w, unsigned numeralWeight, bool derivedFromGoal, Inference* inference) const
+bool PredicateSplitPassiveClauseContainer::fulfilsAgeLimit(unsigned age, unsigned w, unsigned numeralWeight, bool derivedFromGoal, unsigned numPositiveLiterals, Inference* inference) const
 {
-  auto bestQueueIndex = bestQueue(evaluateFeatureEstimate(inference));
+  auto bestQueueIndex = bestQueue(evaluateFeatureEstimate(age, w, numeralWeight, derivedFromGoal, numPositiveLiterals, inference));
   // note: even for non-layered-arrangements, we need to go through all queues, since the values for age, w, ... are only lower bounds (in the sense that the actual value could lead to a worse bestQueueIndex)
   for (unsigned i = bestQueueIndex; i < _queues.size(); i++)
   {
     auto& queue = _queues[i];
-    if (queue->fulfilsAgeLimit(age, w, numeralWeight, derivedFromGoal, inference))
+    if (queue->fulfilsAgeLimit(age, w, numeralWeight, derivedFromGoal, numPositiveLiterals, inference))
     {
       return true;
     }
@@ -428,14 +430,14 @@ bool PredicateSplitPassiveClauseContainer::fulfilsWeightLimit(Clause* cl) const
 // returns true if the cl fulfils at least one weight-limit of a queue it is in
 // note: w here denotes the weight as returned by weight().
 // this method internally takes care of computing the corresponding weightForClauseSelection.
-bool PredicateSplitPassiveClauseContainer::fulfilsWeightLimit(unsigned w, unsigned numeralWeight, bool derivedFromGoal, unsigned age, Inference* inference) const
+bool PredicateSplitPassiveClauseContainer::fulfilsWeightLimit(unsigned w, unsigned numeralWeight, bool derivedFromGoal, unsigned age, unsigned numPositiveLiterals, Inference* inference) const
 {
-  auto bestQueueIndex = bestQueue(evaluateFeatureEstimate(inference));
+  auto bestQueueIndex = bestQueue(evaluateFeatureEstimate(age, w, numeralWeight, derivedFromGoal, numPositiveLiterals, inference));
   // note: even for non-layered-arrangements, we need to go through all queues, since the values for age, w, ... are only lower bounds (in the sense that the actual value could lead to a worse bestQueueIndex)
   for (unsigned i = bestQueueIndex; i < _queues.size(); i++)
   {
     auto& queue = _queues[i];
-    if (queue->fulfilsWeightLimit(w, numeralWeight, derivedFromGoal, age, inference))
+    if (queue->fulfilsWeightLimit(w, numeralWeight, derivedFromGoal, age, numPositiveLiterals, inference))
     {
       return true;
     }
@@ -463,16 +465,16 @@ PredicateSplitPassiveClauseContainer(isOutermost, opt, name, std::move(queues), 
 float TheoryMultiSplitPassiveClauseContainer::evaluateFeature(Clause* cl) const
 {
   // heuristically compute likeliness that clause occurs in proof
-  auto inf = cl->inference();
+  auto inference = cl->inference();
   auto expectedRatioDenominator = _opt.theorySplitQueueExpectedRatioDenom();
-  return inf->th_ancestors * expectedRatioDenominator - inf->all_ancestors;
+  return inference->th_ancestors * expectedRatioDenominator - inference->all_ancestors;
 }
 
-float TheoryMultiSplitPassiveClauseContainer::evaluateFeatureEstimate(Inference* inf) const
+float TheoryMultiSplitPassiveClauseContainer::evaluateFeatureEstimate(unsigned age, unsigned w, unsigned numeralWeight, bool derivedFromGoal, unsigned numPositiveLiterals, Inference* inference) const
 {
   // heuristically compute likeliness that clause occurs in proof
   auto expectedRatioDenominator = _opt.theorySplitQueueExpectedRatioDenom();
-  return inf->th_ancestors * expectedRatioDenominator - inf->all_ancestors;
+  return inference->th_ancestors * expectedRatioDenominator - inference->all_ancestors;
 }
 
 AvatarMultiSplitPassiveClauseContainer::AvatarMultiSplitPassiveClauseContainer(bool isOutermost, const Shell::Options &opt, Lib::vstring name, Lib::vvector<std::unique_ptr<PassiveClauseContainer>> queues) :
@@ -481,14 +483,14 @@ PredicateSplitPassiveClauseContainer(isOutermost, opt, name, std::move(queues), 
 float AvatarMultiSplitPassiveClauseContainer::evaluateFeature(Clause* cl) const
 {
   // heuristically compute likeliness that clause occurs in proof
-  auto inf = cl->inference();
-  return (inf->splits() == nullptr) ? 0 : inf->splits()->size();
+  auto inference = cl->inference();
+  return (inference->splits() == nullptr) ? 0 : inference->splits()->size();
 }
 
-float AvatarMultiSplitPassiveClauseContainer::evaluateFeatureEstimate(Inference* inf) const
+float AvatarMultiSplitPassiveClauseContainer::evaluateFeatureEstimate(unsigned age, unsigned w, unsigned numeralWeight, bool derivedFromGoal, unsigned numPositiveLiterals, Inference* inference) const
 {
   // heuristically compute likeliness that clause occurs in proof
-  return (inf->splits() == nullptr) ? 0 : inf->splits()->size();
+  return (inference->splits() == nullptr) ? 0 : inference->splits()->size();
 }
 
 SineLevelMultiSplitPassiveClauseContainer::SineLevelMultiSplitPassiveClauseContainer(bool isOutermost, const Shell::Options &opt, Lib::vstring name, Lib::vvector<std::unique_ptr<PassiveClauseContainer>> queues) :
@@ -497,14 +499,28 @@ PredicateSplitPassiveClauseContainer(isOutermost, opt, name, std::move(queues), 
 float SineLevelMultiSplitPassiveClauseContainer::evaluateFeature(Clause* cl) const
 {
   // heuristically compute likeliness that clause occurs in proof
-  auto inf = cl->inference();
-  return inf->getSineLevel();
+  auto inference = cl->inference();
+  return inference->getSineLevel();
 }
 
-float SineLevelMultiSplitPassiveClauseContainer::evaluateFeatureEstimate(Inference* inf) const
+float SineLevelMultiSplitPassiveClauseContainer::evaluateFeatureEstimate(unsigned age, unsigned w, unsigned numeralWeight, bool derivedFromGoal, unsigned numPositiveLiterals, Inference* inference) const
 {
   // heuristically compute likeliness that clause occurs in proof
-  return inf->getSineLevel();
+  return inference->getSineLevel();
+}
+
+PositiveLiteralMultiSplitPassiveClauseContainer::PositiveLiteralMultiSplitPassiveClauseContainer(bool isOutermost, const Shell::Options &opt, Lib::vstring name, Lib::vvector<std::unique_ptr<PassiveClauseContainer>> queues) :
+PredicateSplitPassiveClauseContainer(isOutermost, opt, name, std::move(queues), opt.positiveLiteralSplitQueueCutoffs(), opt.positiveLiteralSplitQueueRatios(), opt.positiveLiteralSplitQueueLayeredArrangement()) {}
+
+float PositiveLiteralMultiSplitPassiveClauseContainer::evaluateFeature(Clause* cl) const
+{
+  // heuristically compute likeliness that clause occurs in proof
+  return cl->numPositiveLiterals();
+}
+
+float PositiveLiteralMultiSplitPassiveClauseContainer::evaluateFeatureEstimate(unsigned age, unsigned w, unsigned numeralWeight, bool derivedFromGoal, unsigned numPositiveLiterals, Inference* inference) const
+{
+  return numPositiveLiterals;
 }
 
 };
