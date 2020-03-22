@@ -171,6 +171,8 @@ public:
   }
   void computeWeight() const;
 
+
+
   /** Return the color of a clause */
   Color color() const
   {
@@ -406,6 +408,8 @@ public:
     _auxInUse=false;
 #endif
   }
+
+  float avatScore;
 
   unsigned splitWeight() const;
   unsigned getNumeralWeight();

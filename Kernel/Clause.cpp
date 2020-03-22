@@ -68,6 +68,7 @@ bool Clause::_auxInUse = false;
 /** New clause */
 Clause::Clause(unsigned length,InputType it,Inference* inf)
   : Unit(Unit::CLAUSE,inf,it),
+    avatScore(0.0),
     _length(length),
     _color(COLOR_INVALID),
     _input(0),
@@ -434,6 +435,8 @@ vstring Clause::toString() const
     result += vstring("a:") + Int::toString(_age);
     result += vstring(",w:") + Int::toString(weight());
     
+    result += vstring(",as:")+Int::toString(avatScore);
+
     float ew = const_cast<Clause*>(this)->getEffectiveWeight(const_cast<Shell::Options&>(*(env.options)));
     unsigned effective = static_cast<int>(ceil(ew));
     if(effective!=weight()){

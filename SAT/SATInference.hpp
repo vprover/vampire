@@ -133,7 +133,7 @@ public:
   InferenceFromSatRefutation(Rule rule, UnitList* premises, SATClauseList* satPremises) :
       InferenceMany(rule,premises), _minimized(!env.options->minimizeSatProofs()), _satPremises(satPremises) {}
 
-  virtual void minimizePremises() override;
+  virtual SATClauseList* minimizePremises() override;
 
   CLASS_NAME(InferenceFromSatRefutation);
   USE_ALLOCATOR(InferenceFromSatRefutation);

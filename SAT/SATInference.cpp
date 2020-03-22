@@ -139,11 +139,11 @@ FOConversionInference::~FOConversionInference()
 
 /////////////////////////
 
-void InferenceFromSatRefutation::minimizePremises() {
+SATClauseList* InferenceFromSatRefutation::minimizePremises() {
   CALL("InferenceFromSatRefutation::minimizePremises");
 
   if (_minimized) {
-    return;
+    return nullptr;
   }
 
   TimeCounter tc(TC_SAT_PROOF_MINIMIZATION);
@@ -190,9 +190,11 @@ void InferenceFromSatRefutation::minimizePremises() {
     env.statistics->maxInductionDepth=maxInd;
   }
 
-  newSatRef->destroy(); // deletes also the inference and with it the list minimized, but not the clauses inside
+  // newSatRef->destroy(); // deletes also the inference and with it the list minimized, but not the clauses inside
 
   _minimized = true;
+
+  return minimized;
 }
 
 

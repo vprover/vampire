@@ -188,6 +188,14 @@ public:
   Splitter();
   ~Splitter();
 
+  static ZIArray<float> satVarScores;
+  static void updateScores(SATClause* cl);
+  static float rateSet(SplitSet* s);
+
+  static void showClauseAvatarisation(Clause *cl);
+  static void showClauseSplit(SATClause* cl);
+  static void showFinalCore(SATClauseList* prems);
+
   const Options& getOptions() const;
   Ordering& getOrdering() const;
   

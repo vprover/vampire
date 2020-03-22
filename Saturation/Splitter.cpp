@@ -58,12 +58,181 @@
 
 #include "SaturationAlgorithm.hpp"
 
+#include <cmath>
+#include <limits>       // std::numeric_limits
+#include <iomanip>
+
 namespace Saturation
 {
 
 using namespace Lib;
 using namespace Kernel;
 
+ZIArray<float> Splitter::satVarScores(10);
+
+void Splitter::updateScores(SATClause* cl)
+{
+  CALL("Splitter::updateScores");
+
+  int len = cl->length();
+  float delta = std::ldexp(1.0,-len);
+
+  for (unsigned i = 0; i < len; i++) {
+    unsigned varm1 = (*cl)[i].var()-1;
+    float score = satVarScores.get(varm1);
+    satVarScores.set(varm1,score+delta);
+  }
+}
+
+float Splitter::rateSet(SplitSet* s)
+{
+  CALL("Splitter::rateSet");
+
+  if (!s) {
+    return 0.0;
+  }
+
+  int len = s->size();
+
+  if (!len) { //heuristically stipulate that no avatar dependency == as if singleton split already done (consistent with non-splittable all)
+    return 1.0;
+  }
+
+  float delta = std::ldexp(1.0,-len);
+
+  float res = std::numeric_limits<float>::max();
+
+  SplitSet::Iterator it(*s);
+  while (it.hasNext()) {
+    unsigned varm1 = getLiteralFromName(it.next()).var()-1; // variables start at one
+    float score = satVarScores.get(varm1);
+    res = min(res,score+delta);
+  }
+  return res;
+}
+
+const unsigned fo_print_max = 15;
+
+void Splitter::showClauseAvatarisation(Clause* cl)
+{
+  CALL("Splitter::showClauseAvatarisation");
+
+  return;
+
+  // cout << cl->toString() << endl;
+
+  unsigned capped_weight = min(fo_print_max,cl->weight());
+  for (unsigned i = 0; i<fo_print_max-capped_weight; i++)
+    cout << " ";
+  for (unsigned i = 0; i<capped_weight; i++)
+    cout << "x";
+
+  cout << "|";
+  SplitSet* s = cl->splits();
+  std::cout << std::fixed << std::setprecision(5) << std::setw( 7 ) << rateSet(s) << "|";
+
+  if (s) {
+    unsigned cur = 0;
+    SplitSet::Iterator it(*s);
+    while (it.hasNext()) {
+      unsigned next = getLiteralFromName(it.next()).var()-1; // variables start at one
+      while (cur < next) {
+        cout << " ";
+        cur++;
+      }
+      cout << "o";
+      cur++;
+    }
+  }
+  cout << endl;
+}
+
+void Splitter::showClauseSplit(SATClause* cl)
+{
+  CALL("Splitter::showClauseSplit");
+
+  return;
+
+  // cout << cl->toString() << endl;
+
+  static Stack<unsigned> varStack;
+  for (unsigned i = 0; i < cl->length(); i++) {
+    unsigned var = (*cl)[i].var();
+    varStack.push(var);
+  }
+  SplitSet* s = SplitSet::getFromArray(varStack.begin(),varStack.length());
+  varStack.reset();
+
+  for (unsigned i = 0; i<fo_print_max-1; i++)
+    cout << " ";
+  cout << "S|       |";
+
+  unsigned cur = 0;
+  SplitSet::Iterator it(*s);
+  while (it.hasNext()) {
+    unsigned next = it.next()-1; // variables start at one
+    while (cur < next) {
+     cout << " ";
+     cur++;
+    }
+    cout << "o";
+    cur++;
+  }
+
+  cout << endl;
+}
+
+void Splitter::showFinalCore(SATClauseList* prems)
+{
+  CALL("Splitter::showClauseSplit");
+
+  return;
+
+  // cout << "showFinalCore " << prems << endl;
+
+  static Stack<unsigned> varStack;
+  while (prems) {
+    SATClause* cl = prems->head();
+    // cout << cl->toString() << endl;
+
+    prems = prems->tail();
+
+    for (unsigned i = 0; i < cl->length(); i++) {
+      unsigned var = (*cl)[i].var();
+      varStack.push(var);
+    }
+  }
+  SplitSet* s = SplitSet::getFromArray(varStack.begin(),varStack.length());
+  varStack.reset();
+
+  for (unsigned i = 0; i<fo_print_max-1; i++)
+    cout << " ";
+  cout << "C|       |";
+
+  unsigned cur = 0;
+  SplitSet::Iterator it(*s);
+  while (it.hasNext()) {
+    unsigned next = it.next()-1; // variables start at one
+    while (cur < next) {
+      cout << " ";
+      cur++;
+    }
+    cout << "o";
+    cur++;
+  }
+
+  cout << endl;
+
+  cout << "\nsatVarScores:\n";
+  for (unsigned i=0; i<satVarScores.size(); i++) {
+    if (s->member(i+1)) {
+      cout << "x ";
+    } else {
+      cout << "  ";
+    }
+    cout << satVarScores.get(i) << endl;
+  }
+}
 
 /////////////////////////////
 // SplittingBranchSelector
@@ -219,6 +388,9 @@ void SplittingBranchSelector::handleSatRefutation()
     Inference* foInf = satPremises ? // does our SAT solver support postponed minimization?
         new InferenceFromSatRefutation(Inference::AVATAR_REFUTATION, prems, satPremises) :
         new InferenceMany(Inference::AVATAR_REFUTATION, prems);
+
+    SATClauseList* satpremises = foInf->minimizePremises();
+    Splitter::showFinalCore(satpremises);
 
     Clause* foRef = Clause::fromIterator(LiteralIterator::getEmpty(), Unit::CONJECTURE, foInf);
     throw MainLoop::RefutationFoundException(foRef);
@@ -597,6 +769,8 @@ void SplittingBranchSelector::addSatClauseToSolver(SATClause* cl, bool branchRef
   }
 
   RSTAT_CTR_INC("ssat_sat_clauses");
+
+  Splitter::updateScores(cl);
 
   if (branchRefutation && _minSCO) {
     _solver->addClauseIgnoredInPartialModel(cl);
@@ -1009,6 +1183,8 @@ bool Splitter::handleNonSplittable(Clause* cl)
       env.endOutput();
     }
 
+    showClauseSplit(nsClause);
+
     addSatClauseToSolver(nsClause, false);
 
     RSTAT_CTR_INC("ssat_non_splittable_sat_clauses");
@@ -1173,6 +1349,8 @@ bool Splitter::doSplitting(Clause* cl)
   FormulaUnit* scl = new FormulaUnit(f,new InferenceMany(Inference::AVATAR_SPLIT_CLAUSE,ps),cl->inputType());
 
   splitClause->setInference(new FOConversionInference(scl));
+
+  showClauseSplit(splitClause);
 
   addSatClauseToSolver(splitClause, false);
 
@@ -1549,6 +1727,8 @@ void Splitter::onNewClause(Clause* cl)
     SplitSet* splits=getNewClauseSplitSet(cl);
     assignClauseSplitSet(cl, splits);
   }
+
+  cl->avatScore = rateSet(cl->splits());
 
   if (env.colorUsed) {
     SplitSet* splits = cl->splits();

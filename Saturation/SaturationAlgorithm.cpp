@@ -834,6 +834,8 @@ void SaturationAlgorithm::handleEmptyClause(Clause* cl)
   CALL("SaturationAlgorithm::handleEmptyClause");
   ASS(cl->isEmpty());
 
+  Splitter::showClauseAvatarisation(cl);
+
   if (isRefutation(cl)) {
     onNonRedundantClause(cl);
 
@@ -1204,6 +1206,8 @@ void SaturationAlgorithm::doOneAlgorithmStep()
   Clause* cl = _passive->popSelected();
   ASS_EQ(cl->store(),Clause::PASSIVE);
   cl->setStore(Clause::SELECTED);
+
+  Splitter::showClauseAvatarisation(cl);
 
   if (!handleClauseBeforeActivation(cl)) {
     return;

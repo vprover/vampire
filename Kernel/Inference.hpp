@@ -32,6 +32,8 @@
 #include "Lib/Allocator.hpp"
 #include "Lib/VString.hpp"
 
+#include "Forwards.hpp"
+
 using namespace std;
 using namespace Lib;
 
@@ -356,7 +358,7 @@ public:
    *
    * This is meant to be a no-op for all inferences except those related to SAT.
    */
-  virtual void minimizePremises() {}
+  virtual SAT::SATClauseList* minimizePremises() { return nullptr; }
 
   static vstring ruleName(Rule rule);
   vstring name() const { return ruleName(_rule); }
