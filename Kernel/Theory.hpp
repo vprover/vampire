@@ -431,10 +431,6 @@ public:
     return res;
   }
 
-  static bool isNumberConstant(Interpretation i){
-    return i == INT_CONST || i == RAT_CONST || i == REAL_CONST;
-  }
-
   static bool isUnaryMinus(Interpretation i){
     return i == INT_UNARY_MINUS || i == RAT_UNARY_MINUS || i == REAL_UNARY_MINUS;
   }
