@@ -644,7 +644,8 @@ set(VAMPIRE_SHELL_SOURCES
     #Shell/SMTPrinter.hpp
     Shell/FOOLElimination.hpp
     Shell/Statistics.hpp
-    Shell/Analysis/TheorySubclauseAnalyser.cpp
+    Shell/Analysis/TheorySubclauseAnalyser.hpp
+    Shell/Analysis/TheorySubclauseAnalyser/AbstractLiteralContainer.hpp
     Shell/SymbolDefinitionInlining.hpp
     Shell/SymbolOccurrenceReplacement.hpp
     Shell/SymCounter.hpp
@@ -748,7 +749,7 @@ set(VAMPIRE_SOURCES
     Global.cpp
     vampire.cpp
     "${CMAKE_CURRENT_BINARY_DIR}/version.cpp"
-    )
+        Lib/vstd.h)
 
 # TODO: we want at least vampire_dbg, vampire_rel, vampire_z3_dbg, vampire_z3_rel
 #message(STATUS "a test message")
