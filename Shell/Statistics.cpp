@@ -135,6 +135,7 @@ Statistics::Statistics()
     binarySatClauses(0),
     learntSatClauses(0),
     learntSatLiterals(0),
+    theorySubclauseAnalyser(new TheorySubclauseAnalyser()), // TODO command line option for setting this
 
     satSplits(0),
     satSplitRefutations(0),
@@ -162,7 +163,11 @@ Statistics::Statistics()
 } // Statistics::Statistics
 
 Statistics::~Statistics() 
-{ }
+{
+  if (theorySubclauseAnalyser) {
+    delete theorySubclauseAnalyser;
+  }
+}
 
 void Statistics::explainRefutationNotFound(ostream& out)
 {
@@ -417,6 +422,9 @@ void Statistics::print(ostream& out)
     TimeCounter::printReport(out);
   }
 
+  if (theorySubclauseAnalyser) {
+    theorySubclauseAnalyser->dumpStats(out);
+  }
 }
 
 const char* Statistics::phaseToString(ExecutionPhase p)
