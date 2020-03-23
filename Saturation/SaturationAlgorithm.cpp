@@ -835,12 +835,8 @@ void SaturationAlgorithm::addUnprocessedClause(Clause* cl)
   _unprocessed->add(cl);
 
 
-  if (env.statistics->theorySubclauseAnalyser) {
-    if (cl) {
-      env.statistics->theorySubclauseAnalyser->addClause(*cl);
-    } else {
-      cout << "################ " << cl << endl;
-    }
+  if (TheorySubclauseAnalyser::instance && cl) {
+    TheorySubclauseAnalyser::instance->addClause(*cl);
   }
 }
 
