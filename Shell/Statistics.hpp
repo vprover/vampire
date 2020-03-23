@@ -34,6 +34,7 @@
 #include "Lib/ScopedPtr.hpp"
 
 #include "Lib/Allocator.hpp"
+#include "Shell/Analysis/TheorySubclauseAnalyser.hpp"
 
 //#include "Kernel/Assignment.hpp"
 //#include "Kernel/Constraint.hpp"
@@ -135,6 +136,8 @@ public:
   unsigned theoryInstSimpTautologies;
   /** number of theoryInstSimp solutions lost as we could not represent them **/
   unsigned theoryInstSimpLostSolution;
+  /** statistics about theory parts in clauses */
+  Shell::Analysis::TheorySubclauseAnalyser* theorySubclauseAnalyser;
 
   /** number of induction applications **/
   unsigned induction;
