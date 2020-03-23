@@ -48,12 +48,12 @@ public:
 };
 
 
-template<class t> using vvec  = vector<t, vamp_alloc<t>>;
-template<class T> using refw = reference_wrapper<T>;
-template<class T> class rc: public shared_ptr<T> {
+template<class t> using vvec  = std::vector<t, vamp_alloc<t>>;
+template<class T> using refw = std::reference_wrapper<T>;
+template<class T> class rc: public std::shared_ptr<T> {
 public:
-    rc(T* t) : shared_ptr<T>(t, [](T* t){delete t;}, vamp_alloc<T*>()) {}
+    rc(T* t) : std::shared_ptr<T>(t, [](T* t){delete t;}, vamp_alloc<T*>()) {}
 };
-template<class T, class Compare = std::less<T>> using tset = set<T, Compare, vamp_alloc<T>>;
+template<class T, class Compare = std::less<T>> using tset = std::set<T, Compare, vamp_alloc<T>>;
 
 #endif //VAMPIRE_VSTD_H
