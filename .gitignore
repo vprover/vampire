@@ -8,6 +8,7 @@ tptp/
 Scratch/
 
 Makefile_depend*
+CMakeFiles
 
 version.cpp
 
@@ -29,9 +30,14 @@ valgrind.supp
 .cproject
 .project
 .settings/
+.exrc
+.clangd
+build/
+.idea/
 
 *.p
 *.tptp
 *.txt
 *.smt2
 *.cnf
+
