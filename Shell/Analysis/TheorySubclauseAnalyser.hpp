@@ -29,18 +29,22 @@ class AbsLiteral;
 
 class AbsTerm;
 
-// using my_hash = EquivalenceClass<Equality<rc<AbsLiteral>>>::hash;
-// using my_equal = EquivalenceClass<Equality<rc<AbsLiteral>>>::equal;
-// static_assert(__check_hash_requirements<rc<AbsLiteral>,my_hash>::value, "__check_hash_requirements");
-// static_assert(is_copy_constructible<my_hash>::value, "is_copy_constructible");
-// static_assert(is_move_constructible<my_hash>::value, "is_move_constructible");
-// static_assert(__invokable_r<size_t, my_hash, rc<AbsLiteral> const &>::value, "__invokable_r");
+
+struct LitEquiv1;
+template<>
+struct EquivalenceClass<LitEquiv1> {
+  using less = struct {
+    bool operator()(const rc<AbsLiteral>& lhs, const rc<AbsLiteral>& rhs) const;
+  };
+};
 
 using namespace Kernel;
 namespace Shell {
     namespace Analysis {
 
         class TheorySubclauseAnalyser {
+          CLASS_NAME(TheorySubclauseAnalyser)
+          USE_ALLOCATOR(TheorySubclauseAnalyser)
         public:
             TheorySubclauseAnalyser();
 
@@ -59,11 +63,14 @@ namespace Shell {
             void dumpStats(std::ostream &out) const;
 
         private:
-//            unordered_multiset<rc<AbsLiteral>, my_hash, my_equal> my_set;
-//            Container<rc<AbsLiteral>, Equality<rc<AbsLiteral> > > cont;
-//            using literals_type = EquivalenceClass<Equality<rc<AbsLiteral>>>;
             using literals_type = Container<rc<AbsLiteral>, Equality<rc<AbsLiteral> > >;
             literals_type _literals;
+
+
+            using equiv1_t = Container<rc<AbsLiteral>, LitEquiv1>;
+            equiv1_t _eq1;
+        public:
+          static TheorySubclauseAnalyser* instance;
         };
 
     }
