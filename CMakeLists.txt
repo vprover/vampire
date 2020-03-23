@@ -21,7 +21,6 @@ set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -DVDEBUG=0")
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 add_compile_options(
-#    "-Wno-exceptions"  # there's just too many warnings if this is enabled # this option doesn't seem to exist in all compilers
     # "-ftrapv"
     # "-pedantic"
     # "-Wall"
@@ -38,6 +37,9 @@ add_compile_options(
 # -- see also https://cmake.org/pipermail/cmake/2016-May/063452.html
 if(CMAKE_COMPILER_IS_GNUCXX)
   add_compile_options("-Wno-terminate")
+endif()
+if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")  # use MATCHES instead of equality because the value is "AppleClang" on macOS
+  add_compile_options("-Wno-exceptions")
 endif()
 
 
@@ -246,6 +248,7 @@ set(VAMPIRE_KERNEL_SOURCES
     Kernel/Matcher.cpp
     Kernel/MaximalLiteralSelector.cpp
     Kernel/MLMatcher.cpp
+    Kernel/MLMatcherSD.cpp
     Kernel/MLVariant.cpp
     Kernel/Ordering.cpp
     Kernel/Ordering_Equality.cpp
@@ -372,6 +375,7 @@ source_group(indexing_source_files FILES ${VAMPIRE_INDEXING_SOURCES})
 
 set(VAMPIRE_INFERENCE_SOURCES
     Inferences/BackwardDemodulation.cpp
+    Inferences/BackwardSubsumptionDemodulation.cpp
     Inferences/BackwardSubsumptionResolution.cpp
     Inferences/BinaryResolution.cpp
     Inferences/Condensation.cpp
@@ -386,6 +390,7 @@ set(VAMPIRE_INFERENCE_SOURCES
     Inferences/ForwardDemodulation.cpp
     Inferences/ForwardLiteralRewriting.cpp
     Inferences/ForwardSubsumptionAndResolution.cpp
+    Inferences/ForwardSubsumptionDemodulation.cpp
     Inferences/GlobalSubsumption.cpp
     Inferences/HyperSuperposition.cpp
     Inferences/InnerRewriting.cpp
@@ -422,6 +427,7 @@ set(VAMPIRE_INFERENCE_SOURCES
     Inferences/Instantiation.hpp
     Inferences/InterpretedEvaluation.hpp
     Inferences/SLQueryBackwardSubsumption.hpp
+    Inferences/SubsumptionDemodulationHelper.cpp
     Inferences/Superposition.hpp
     Inferences/TautologyDeletionISE.hpp
     Inferences/TermAlgebraReasoning.hpp
@@ -761,7 +767,16 @@ else ()
   message(STATUS "Found Z3 ${Z3_VERSION_STRING}")
   message(STATUS "Z3_DIR: ${Z3_DIR}")
   target_include_directories(vampire PRIVATE ${Z3_CXX_INCLUDE_DIRS})
-  target_link_libraries(vampire PRIVATE ${Z3_LIBRARIES})
+  if (Z3_FOUND AND (NOT BUILD_SHARED_LIBS) AND CMAKE_COMPILER_IS_GNUCXX)
+    # avoid static linking problems with C++ threads
+    # see https://stackoverflow.com/questions/58848694/gcc-whole-archive-recipe-for-static-linking-to-pthread-stopped-working-in-rec
+    message(STATUS "Adding workaround for gcc static linking against pthread")
+    target_link_libraries(vampire PRIVATE ${Z3_LIBRARIES} -pthread -Wl,--whole-archive -lrt -lpthread -Wl,--no-whole-archive)
+  else()
+    target_link_libraries(vampire PRIVATE ${Z3_LIBRARIES})
+  endif()
+
+
   add_library(Z3 SHARED IMPORTED)
   set_property(TARGET Z3 PROPERTY IMPORTED_LOCATION ${Z3_LIBRARY})
   target_compile_definitions(vampire PRIVATE VZ3=1)

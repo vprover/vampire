@@ -111,27 +111,129 @@ void SimplifyingLiteralIndex::handleClause(Clause* c, bool adding)
   }
 }
 
+/**
+ * A literal and its rating (for use in the subsumption index).
+ * Ordered by ratings, breaking ties with the literal's pointer values.
+ *
+ * On the metric used to select the best literal:
+ *
+ *    val == #symbols - #distinct-variables
+ *        == #non-variable-symbols + #variable-duplicates
+ *
+ * This value is the number of symbols that induce constraints for matching.
+ * (Note that variables only induce constraints for instantiation on their repeated occurrences)
+ * We want to maximize this value to have the most restricting literal,
+ * so we get as little matches as possible (because the matches then have
+ * to be passed to the MLMatcher which is expensive).
+ */
+class SubsRatedLiteral
+{
+  private:
+    Literal* m_lit;
+    unsigned m_val;
+
+  public:
+    SubsRatedLiteral(Literal* lit)
+      : m_lit(lit), m_val(computeRating(lit))
+    { }
+
+    static unsigned computeRating(Literal* lit) { return lit->weight() - lit->getDistinctVars(); }
+
+    Literal* lit() const { return m_lit; }
+
+    bool operator<(SubsRatedLiteral const& other) const
+    {
+      return m_val < other.m_val || (m_val == other.m_val && m_lit < other.m_lit);
+    }
+    bool operator>(SubsRatedLiteral const& other) const { return other.operator<(*this); }
+    bool operator<=(SubsRatedLiteral const& other) const { return !operator>(other); }
+    bool operator>=(SubsRatedLiteral const& other) const { return !operator<(other); }
+    bool operator==(SubsRatedLiteral const& other) const { return m_lit == other.m_lit; }
+    bool operator!=(SubsRatedLiteral const& other) const { return !operator==(other); }
+
+    static SubsRatedLiteral find_best_in(Clause* c)
+    {
+      SubsRatedLiteral best{(*c)[0]};
+      for (unsigned i = 1; i < c->length(); ++i) {
+        SubsRatedLiteral curr{(*c)[i]};
+        if (curr > best) {
+          best = curr;
+        }
+      }
+      return best;
+    }
+
+    static std::pair<SubsRatedLiteral,SubsRatedLiteral> find_best2_in(Clause* c)
+    {
+      SubsRatedLiteral best{(*c)[0]};
+      SubsRatedLiteral secondBest{(*c)[1]};
+      if (secondBest > best) {
+        std::swap(best, secondBest);
+      }
+      for (unsigned i = 2; i < c->length(); ++i) {
+        SubsRatedLiteral curr{(*c)[i]};
+        if (curr > best) {
+          secondBest = best;
+          best = curr;
+        } else if (curr > secondBest) {
+          secondBest = curr;
+        }
+      }
+      ASS(best.lit() != secondBest.lit());
+      ASS(best > secondBest);
+      return {best, secondBest};
+    }
+};
+
 void FwSubsSimplifyingLiteralIndex::handleClause(Clause* c, bool adding)
 {
   CALL("FwSubsSimplifyingLiteralIndex::handleClause");
 
-  unsigned clen=c->length();
-  if(clen<2) {
+  if (c->length() < 2) {
     return;
   }
+
   TimeCounter tc(TC_FORWARD_SUBSUMPTION_INDEX_MAINTENANCE);
 
-  Literal* best=(*c)[0];
-  unsigned bestVal=best->weight()-best->getDistinctVars();
-  for(unsigned i=1;i<clen;i++) {
-    Literal* curr=(*c)[i];
-    unsigned currVal=curr->weight()-curr->getDistinctVars();
-    if(currVal>bestVal || (currVal==bestVal && curr>best) ) {
-      best=curr;
-      bestVal=currVal;
+  Literal* best = SubsRatedLiteral::find_best_in(c).lit();
+  handleLiteral(best, c, adding);
+}
+
+void FSDSimplifyingLiteralIndex::handleClause(Clause* c, bool adding)
+{
+  CALL("FSDSimplifyingLiteralIndex::handleClause");
+
+  if (c->length() < 2) {
+    return;
+  }
+
+  TimeCounter tc(TC_FORWARD_SUBSUMPTION_DEMODULATION_INDEX_MAINTENANCE);
+
+  bool hasPosEquality = false;
+  for (unsigned i = 0; i < c->length(); ++i) {
+    Literal *lit = (*c)[i];
+    if (lit->isEquality() && lit->isPositive()) {
+      hasPosEquality = true;
+      break;
     }
   }
-  handleLiteral(best, c, adding);
+  if (!hasPosEquality) {
+    // We only need clauses with at least one positive equality for FSD
+    return;
+  }
+
+  auto res = SubsRatedLiteral::find_best2_in(c);
+  Literal* best = res.first.lit();
+  Literal* secondBest = res.second.lit();
+  if (!best->isEquality() || !best->isPositive()) {
+    handleLiteral(best, c, adding);
+  } else if (!secondBest->isEquality() || !secondBest->isPositive()) {
+    handleLiteral(secondBest, c, adding);
+  } else {
+    // both are positive equalities, so we need to add both
+    handleLiteral(best, c, adding);
+    handleLiteral(secondBest, c, adding);
+  }
 }
 
 void UnitClauseLiteralIndex::handleClause(Clause* c, bool adding)

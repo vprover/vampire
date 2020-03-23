@@ -87,7 +87,7 @@ Z3LIB=
 ifeq (,$(shell echo $(MAKECMDGOALS) | sed 's/.*z3.*//g')) 
 INCLUDES= -I. -Iz3/api -Iz3/api/c++ 
 ifeq (,$(shell echo $(MAKECMDGOALS) | sed 's/.*static.*//g'))
-Z3LIB= -Linclude -lz3 -lgomp -pthread -lrt -ldl
+Z3LIB= -Linclude -lz3 -lgomp -pthread  -Wl,--whole-archive -lrt -lpthread -Wl,--no-whole-archive -ldl
 else
 Z3LIB= -Linclude -lz3
 endif
@@ -214,6 +214,7 @@ VK_OBJ= Kernel/Clause.o\
         Kernel/SpassLiteralSelector.o\
         Kernel/ELiteralSelector.o\
         Kernel/MLMatcher.o\
+        Kernel/MLMatcherSD.o\
         Kernel/MLVariant.o\
         Kernel/Ordering.o\
         Kernel/Ordering_Equality.o\
@@ -266,6 +267,7 @@ VIG_OBJ = InstGen/IGAlgorithm.o\
 
 VINF_OBJ=Inferences/BackwardDemodulation.o\
          Inferences/BackwardSubsumptionResolution.o\
+         Inferences/BackwardSubsumptionDemodulation.o\
          Inferences/BinaryResolution.o\
          Inferences/Condensation.o\
          Inferences/DistinctEqualitySimplifier.o\
@@ -278,6 +280,8 @@ VINF_OBJ=Inferences/BackwardDemodulation.o\
          Inferences/ForwardDemodulation.o\
          Inferences/ForwardLiteralRewriting.o\
          Inferences/ForwardSubsumptionAndResolution.o\
+         Inferences/SubsumptionDemodulationHelper.o\
+         Inferences/ForwardSubsumptionDemodulation.o\
          Inferences/GlobalSubsumption.o\
          Inferences/HyperSuperposition.o\
          Inferences/InnerRewriting.o\
