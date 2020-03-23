@@ -655,7 +655,7 @@ TheorySubclauseAnalyser::~TheorySubclauseAnalyser() {
 
 void TheorySubclauseAnalyser::addClause(Clause &c) {
     CALL("TheorySubclauseAnalyser::addClause")
-    if (!c.isTheoryAxiom()) {
+    if (!c.isTheoryAxiom() && !c.isTheoryDescendant()) {
         auto &scl = maxTheorySubclause(c);
         for (auto l : scl.literals()) {
             _literals.insert(l);
