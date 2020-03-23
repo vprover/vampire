@@ -121,7 +121,7 @@ public:
   inline bool isTerm() const
   { return tag() == REF; }
   inline const Term* term() const
-  { ASS(isTerm()); return _term; }
+  { ASS_REP(isTerm(), tag()); return _term; }
   inline Term* term()
   { ASS(isTerm()); return _term; }
   /** True of the terms have the same content. Useful for comparing
