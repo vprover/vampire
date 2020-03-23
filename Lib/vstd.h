@@ -6,6 +6,7 @@
 #define VAMPIRE_VSTD_H
 #include <set>
 #include <map>
+#include <vector>
 #include <memory>
 
 #include "Lib/Allocator.hpp"
