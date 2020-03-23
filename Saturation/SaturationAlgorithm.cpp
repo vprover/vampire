@@ -403,13 +403,6 @@ void SaturationAlgorithm::onNewClause(Clause* cl)
     _answerLiteralManager->onNewClause(cl);
   }
 
-  if (env.statistics->theorySubclauseAnalyser) {
-    if (cl) {
-      env.statistics->theorySubclauseAnalyser->addClause(*cl);
-    } else {
-      cout << "################ " << cl << endl;
-    }
-  }
 }
 
 void SaturationAlgorithm::onNewUsefulPropositionalClause(Clause* c)
@@ -831,8 +824,12 @@ void SaturationAlgorithm::addUnprocessedClause(Clause* cl)
   _unprocessed->add(cl);
 
 
-  if (TheorySubclauseAnalyser::instance && cl) {
-    TheorySubclauseAnalyser::instance->addClause(*cl);
+  if (env.statistics->theorySubclauseAnalyser) {
+    if (cl) {
+      env.statistics->theorySubclauseAnalyser->addClause(*cl);
+    } else {
+      cout << "################ " << cl << endl;
+    }
   }
 }
 
