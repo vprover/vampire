@@ -305,10 +305,8 @@ void Skolem::preskolemise (Formula* f)
   case FALSE:
     return;
 
-#if VDEBUG
   default:
     ASSERTION_VIOLATION_REP(f->connective());
-#endif
   }
 }
 
@@ -469,10 +467,8 @@ Formula* Skolem::skolemise (Formula* f)
   case FALSE:
     return f;
 
-#if VDEBUG
   default:
     ASSERTION_VIOLATION;
-#endif
   }
 } // Skolem::skolemise
 

@@ -742,11 +742,8 @@ vstring Property::categoryToString(Category cat)
       return "EPR";
     case UEQ:
       return "UEQ";
-#if VDEBUG
     default:
       ASSERTION_VIOLATION;
-      return "";
-#endif
     }
 } // categoryString
 
@@ -958,10 +955,8 @@ bool Property::hasXEqualsY(const Formula* f)
     case BOOL_TERM:
       return true;
 
-#if VDEBUG
     default:
       ASSERTION_VIOLATION;
-#endif
     }
   }
   return false;
