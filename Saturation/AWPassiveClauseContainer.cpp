@@ -162,10 +162,10 @@ bool WeightQueue::lessThan(Clause* c1,Clause* c2)
     return weightCmp==LESS;
   }
 
-  if (c1->avatScore > c2->avatScore) {
+  if (c1->avatScore < c2->avatScore) {
     return true;
   }
-  if (c2->avatScore > c1->avatScore) {
+  if (c2->avatScore < c1->avatScore) {
     return false;
   }
 
@@ -206,10 +206,10 @@ bool AgeQueue::lessThan(Clause* c1,Clause* c2)
     return false;
   }
 
-  if (c1->avatScore > c2->avatScore) {
+  if (c1->avatScore < c2->avatScore) {
     return true;
   }
-  if (c2->avatScore > c1->avatScore) {
+  if (c2->avatScore < c1->avatScore) {
     return false;
   }
 
