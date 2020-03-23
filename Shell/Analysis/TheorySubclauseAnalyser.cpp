@@ -25,6 +25,15 @@ using namespace Kernel;
 
 #define DBG(...) cout << "[ dbg ]\t" << __VA_ARGS__ << endl;
 
+#define CMP_FUN(i) template<class A> bool cmp ## i(const A& lhs, const A& rhs);
+MAP(CMP_FUN, EQ_CLASSES)
+#undef CMP_FUN
+
+#define CMP_FRIEND(i) template<class A> friend bool cmp ## i(const A& lhs, const A& rhs);
+
+#define CMP_FRIENDS MAP(CMP_FRIEND, EQ_CLASSES)
+
+
 /* begin macro_magic */
 #define HASH_CODE(item) \
   code ^= std::hash<decltype(item)>{}(item);
@@ -90,6 +99,7 @@ protected:
 public:
     friend ostream &operator<<(ostream &out, const AbsSymbol &s);
 
+    CMP_FRIENDS
     TIE_CMP(AbsSymbol, x.functor)
 };
 IMPL_HASH(AbsSymbol, x.functor)
@@ -113,6 +123,7 @@ public:
     Signature::Symbol &symbol() const override {
         return *env.signature->getPredicate(functor);
     }
+    CMP_FRIENDS
     TIE_CMP(Predicate, x.functor)
 };
 IMPL_HASH(Predicate, x.functor)
@@ -165,6 +176,7 @@ public:
     bool isUnaryMinus() const {
         return Theory::isUnaryMinus(this->interpret());
     }
+    CMP_FRIENDS
     TIE_CMP(Function, x.functor)
 };
 IMPL_HASH(Function, x.functor)
@@ -222,6 +234,7 @@ public:
 
     void pushMinus() override {}
 
+    CMP_FRIENDS
     TIE_CMP(AbsVarTerm, x._var)
 };
 IMPL_HASH(AbsVarTerm, x._var)
@@ -420,6 +433,7 @@ public:
             out << ")";
         }
     }
+    CMP_FRIENDS
     TIE_CMP(ACTerm, x._fun, x._args)
 };
 IMPL_HASH(ACTerm, x._fun, x._args)
@@ -497,11 +511,23 @@ struct AbsLiteral {
             t.normalize();
             terms.push_back(t);
         }
+
     }
 
+    CMP_FRIENDS
+
+    CMP_FRIENDS
     TIE_CMP(AbsLiteral, x.predicate, x.positive, x.terms);
 };
 IMPL_HASH(AbsLiteral, x.predicate, x.positive, x.terms);
+
+template<> bool cmp1<AbsLiteral>(const AbsLiteral& lhs, const AbsLiteral& rhs) {
+  return false;
+}
+
+template<> bool cmp2<AbsLiteral>(const AbsLiteral& lhs, const AbsLiteral& rhs) {
+  return false;
+}
 
 
 ostream& operator<<(ostream &out, AbsLiteral &lit) {
@@ -585,17 +611,27 @@ AbsTheoryClause &maxTheorySubclause(Clause const &c) {
     }
     return *new AbsTheoryClause(lits);
 }
-bool EquivalenceClass<LitEquiv1>::less::operator()(const rc<AbsLiteral>& lhs, const rc<AbsLiteral>& rhs) const {
-  return false;
-}
+
+/** Equivalence classes */
+
+#define CMP_FUN(i) \
+  bool EquivalenceClass<LitEquiv ## i>::less::operator()(const rc<AbsLiteral>& lhs, const rc<AbsLiteral>& rhs) const {\
+    return cmp ## i <AbsLiteral>(*lhs.get(), *rhs.get()); \
+  }\
+
+MAP(CMP_FUN, EQ_CLASSES)
 
 /* TheorySubclauseAnalyser implementation */
 
+#define INIT_EQ_CLASS_MEMBERS(i) \
+        , _eq ## i (equiv_t_ ## i {})
+
 TheorySubclauseAnalyser::TheorySubclauseAnalyser()
         : _literals(literals_type())
-        , _eq1(equiv1_t{})
+        MAP(INIT_EQ_CLASS_MEMBERS, EQ_CLASSES)
         {}
 
+#undef INIT_EQ_CLASS_MEMBERS
 
 TheorySubclauseAnalyser::~TheorySubclauseAnalyser() {
 
@@ -607,7 +643,9 @@ void TheorySubclauseAnalyser::addClause(Clause &c) {
         auto &scl = maxTheorySubclause(c);
         for (auto l : scl.literals()) {
             _literals.insert(l);
-            _eq1.insert(l);
+#define INSERT(i) _eq ## i .insert(l);
+            MAP(INSERT, EQ_CLASSES)
+#undef INSERT
         }
     }
 
@@ -623,9 +661,15 @@ void dumpContainer(ostream& out, const char* name, const C& cont) {
   }
 }
 
+#define EQ_CLASS_NAME_1 "AllEqual" 
+#define EQ_CLASS_NAME_2 "Class 1" 
+
 void TheorySubclauseAnalyser::dumpStats(ostream &out) const {
   dumpContainer(out, "Equality", _literals);
-  dumpContainer(out, "AllEqual" , _eq1);
+#define DUMP(i) dumpContainer(out, EQ_CLASS_NAME_ ## i, _eq ## i);
+  MAP(DUMP, EQ_CLASSES)
+#undef DUMP
+  // dumpContainer(out, "Eq2" , _eq2);
 }
 
 TheorySubclauseAnalyser* TheorySubclauseAnalyser::instance = new TheorySubclauseAnalyser();
