@@ -229,10 +229,8 @@ Lib::vstring Token::toString (TokenType tt)
   case TT_USER:
     return "<user value>";
     
-#if VDEBUG
   default:
     ASSERTION_VIOLATION;
-#endif
   }
 } // Token::toString
 

@@ -214,18 +214,14 @@ bool SubformulaIterator::hasNext ()
             _reserve = new Element(tupleTerm, polarity, rest);
             break;
           }
-#if VDEBUG
           default:
             ASSERTION_VIOLATION;
-#endif
         }
         break;
       }
 
-#if VDEBUG
       default:
         ASSERTION_VIOLATION;
-#endif
     }
   }
   // _reserve is empty
@@ -311,10 +307,8 @@ Formula* SubformulaIterator::next (int& resultPolarity)
     break;
   }
 
-#if VDEBUG
   default:
     ASSERTION_VIOLATION;
-#endif
   }
 
   return result;
