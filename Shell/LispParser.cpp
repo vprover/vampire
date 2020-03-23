@@ -156,10 +156,8 @@ void LispParser::parse(List** expr0)
           return;
         }
         throw Exception("unmatched left parenthesis",t);
-  #if VDEBUG
       default:
         ASSERTION_VIOLATION;
-  #endif
       }
     }
 
