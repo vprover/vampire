@@ -5,6 +5,7 @@
 #include "Kernel/Clause.hpp"
 #include "Shell/Analysis/TheorySubclauseAnalyser/AbstractLiteralContainer.hpp"
 #include "Lib/vstd.h"
+#include "Lib/macro_magic.h"
 
 #ifdef VDEBUG
 #define IF_DEBUG(...) __VA_ARGS__
@@ -29,14 +30,18 @@ class AbsLiteral;
 
 class AbsTerm;
 
+#define EQ_CLASSES 1, 2
 
-struct LitEquiv1;
-template<>
-struct EquivalenceClass<LitEquiv1> {
-  using less = struct {
-    bool operator()(const rc<AbsLiteral>& lhs, const rc<AbsLiteral>& rhs) const;
-  };
-};
+#define DECLARE_EQ_CLASS(i) \
+  struct LitEquiv ## i;\
+  template<> struct EquivalenceClass<LitEquiv ## i> { \
+    using less = struct { \
+      bool operator()(const rc<AbsLiteral>& lhs, const rc<AbsLiteral>& rhs) const; \
+    }; \
+  }; \
+
+MAP(DECLARE_EQ_CLASS, EQ_CLASSES)
+#undef DECLARE_EQ_CLASS
 
 using namespace Kernel;
 namespace Shell {
@@ -67,8 +72,15 @@ namespace Shell {
             literals_type _literals;
 
 
-            using equiv1_t = Container<rc<AbsLiteral>, LitEquiv1>;
-            equiv1_t _eq1;
+#define DECLARE_EQ_CLAS_MEMBERS(i) \
+    using equiv_t_ ## i  = Container<rc<AbsLiteral>, LitEquiv ## i>; \
+    equiv_t_ ## i  _eq ## i; \
+
+
+            MAP(DECLARE_EQ_CLAS_MEMBERS, EQ_CLASSES)
+
+#undef DECLARE_EQ_CLAS_MEMBERS
+
         public:
           static TheorySubclauseAnalyser* instance;
         };
