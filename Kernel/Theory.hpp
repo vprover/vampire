@@ -288,6 +288,7 @@ public:
     //predicates
     EQUAL,
 
+    INT_CONST,
     INT_IS_INT,
     INT_IS_RAT,
     INT_IS_REAL,
@@ -297,6 +298,7 @@ public:
     INT_LESS_EQUAL,
     INT_DIVIDES,
 
+    RAT_CONST,
     RAT_IS_INT,
     RAT_IS_RAT,
     RAT_IS_REAL,
@@ -305,6 +307,7 @@ public:
     RAT_LESS,
     RAT_LESS_EQUAL,
 
+    REAL_CONST,
     REAL_IS_INT,
     REAL_IS_RAT,
     REAL_IS_REAL,
@@ -428,8 +431,16 @@ public:
     return res;
   }
 
+  static bool isUnaryMinus(Interpretation i){
+    return i == INT_UNARY_MINUS || i == RAT_UNARY_MINUS || i == REAL_UNARY_MINUS;
+  }
+
   static bool isPlus(Interpretation i){
     return i == INT_PLUS || i == RAT_PLUS || i == REAL_PLUS;
+  }
+
+  static bool isTimes(Interpretation i){
+    return i == INT_MULTIPLY || i == RAT_MULTIPLY || i == REAL_MULTIPLY;
   }
 
   static vstring getInterpretationName(Interpretation i);
