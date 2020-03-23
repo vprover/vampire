@@ -11,7 +11,7 @@
 
 template<class A>
 struct EquivalenceClass {
-    using equal = class Equal;
+    // using equal = class Equal;
     using less  = class Less;
 };
 
@@ -20,7 +20,7 @@ class Equality;
 
 template<class A>
 struct EquivalenceClass<Equality<A>> {
-    using equal = std::equal_to<A>;
+    // using equal = std::equal_to<A>;
     using less  = std::less<A>;
 };
 
@@ -29,7 +29,7 @@ class TupEq;
 
 template<class A>
 struct EquivalenceClass<TupEq<A>> {
-    using equal = std::equal_to<A>;
+    // using equal = std::equal_to<A>;
     using less  = std::less<A>;
 };
 
@@ -55,11 +55,11 @@ struct EquivalenceClass<Equality<rc<A>>> {
         return *lhs.get() < *rhs.get();
       }
     };
-    using equal = struct {
-        bool operator()(const rc<A> &lhs, const rc<A> &rhs) const {
-            return *lhs.get() == *rhs.get();
-        }
-    };
+    // using equal = struct {
+    //     bool operator()(const rc<A> &lhs, const rc<A> &rhs) const {
+    //         return *lhs.get() == *rhs.get();
+    //     }
+    // };
 };
 
 
