@@ -214,11 +214,8 @@ void SineSymbolExtractor::extractFormulaSymbols(Formula* f,Stack<SymId>& itms)
     case TRUE:
     case FALSE:
       break;
-#if VDEBUG
     default:
       ASSERTION_VIOLATION;
-      return;
-#endif
     }
   }
 } // SineSymbolExtractor::extractFormulaSymbols

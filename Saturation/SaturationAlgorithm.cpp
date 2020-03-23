@@ -401,8 +401,12 @@ void SaturationAlgorithm::onNewClause(Clause* cl)
     _answerLiteralManager->onNewClause(cl);
   }
 
-  if (env.theorySubclauseAnalyser) {
-    env.theorySubclauseAnalyser->addClause(*cl);
+  if (env.statistics->theorySubclauseAnalyser) {
+    if (cl) {
+      env.statistics->theorySubclauseAnalyser->addClause(*cl);
+    } else {
+      cout << "################ " << cl << endl;
+    }
   }
 }
 
