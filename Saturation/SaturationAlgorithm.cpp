@@ -73,6 +73,7 @@
 
 #include "Saturation/ExtensionalityClauseContainer.hpp"
 
+#include "Shell/Analysis/TheorySubclauseAnalyser.hpp"
 #include "Shell/AnswerExtractor.hpp"
 #include "Shell/Options.hpp"
 #include "Shell/Statistics.hpp"
@@ -94,6 +95,7 @@
 using namespace Lib;
 using namespace Kernel;
 using namespace Shell;
+using namespace Shell::Analysis;
 using namespace Saturation;
 
 /** Print information changes in clause containers */
@@ -822,12 +824,8 @@ void SaturationAlgorithm::addUnprocessedClause(Clause* cl)
   _unprocessed->add(cl);
 
 
-  if (env.statistics->theorySubclauseAnalyser) {
-    if (cl) {
-      env.statistics->theorySubclauseAnalyser->addClause(*cl);
-    } else {
-      cout << "################ " << cl << endl;
-    }
+  if (TheorySubclauseAnalyser::instance && cl) {
+    TheorySubclauseAnalyser::instance->addClause(*cl);
   }
 }
 
