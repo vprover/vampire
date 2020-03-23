@@ -13,75 +13,19 @@
 #include "Kernel/Term.hpp"
 #include "Lib/Environment.hpp"
 #include "Kernel/Signature.hpp"
+#include "Lib/macro_magic.h"
 
 using namespace Shell::Analysis;
 using namespace std;
 using namespace Kernel;
+
 /* ================================================= */
 /* =================== utilities =================== */
 /* ================================================= */
-//_LIBCPP_INLINE_VISIBILITY
-//size_t operator()(const bitset<_Size>& __bs) const _NOEXCEPT
-//{return __bs.__hash_code();}
 
 #define DBG(...) cout << "[ dbg ]\t" << __VA_ARGS__ << endl;
 
 /* begin macro_magic */
-#define FIRST(a, ...) a
-#define SECOND(a, b, ...) b
-
-#define EMPTY()
-
-#define EVAL(...) EVAL1024(__VA_ARGS__)
-#define EVAL1024(...) EVAL512(EVAL512(__VA_ARGS__))
-#define EVAL512(...) EVAL256(EVAL256(__VA_ARGS__))
-#define EVAL256(...) EVAL128(EVAL128(__VA_ARGS__))
-#define EVAL128(...) EVAL64(EVAL64(__VA_ARGS__))
-#define EVAL64(...) EVAL32(EVAL32(__VA_ARGS__))
-#define EVAL32(...) EVAL16(EVAL16(__VA_ARGS__))
-#define EVAL16(...) EVAL8(EVAL8(__VA_ARGS__))
-#define EVAL8(...) EVAL4(EVAL4(__VA_ARGS__))
-#define EVAL4(...) EVAL2(EVAL2(__VA_ARGS__))
-#define EVAL2(...) EVAL1(EVAL1(__VA_ARGS__))
-#define EVAL1(...) __VA_ARGS__
-
-#define DEFER1(m) m EMPTY()
-#define DEFER2(m) m EMPTY EMPTY()()
-#define DEFER3(m) m EMPTY EMPTY EMPTY()()()
-#define DEFER4(m) m EMPTY EMPTY EMPTY EMPTY()()()()
-
-#define IS_PROBE(...) SECOND(__VA_ARGS__, 0)
-#define PROBE() ~, 1
-
-#define CAT(a,b) a ## b
-
-#define NOT(x) IS_PROBE(CAT(_NOT_, x))
-#define _NOT_0 PROBE()
-
-#define BOOL(x) NOT(NOT(x))
-
-#define IF_ELSE(condition) _IF_ELSE(BOOL(condition))
-#define _IF_ELSE(condition) CAT(_IF_, condition)
-
-#define _IF_1(...) __VA_ARGS__ _IF_1_ELSE
-#define _IF_0(...)             _IF_0_ELSE
-
-#define _IF_1_ELSE(...)
-#define _IF_0_ELSE(...) __VA_ARGS__
-
-#define HAS_ARGS(...) BOOL(FIRST(_END_OF_ARGUMENTS_ __VA_ARGS__)())
-#define _END_OF_ARGUMENTS_() 0
-
-#define MAP(m, first, ...)           \
-  m(first)                           \
-  IF_ELSE(HAS_ARGS(__VA_ARGS__))(    \
-    DEFER2(_MAP)()(m, __VA_ARGS__)   \
-  )(                                 \
-    /* Do nothing, just terminate */ \
-  )
-#define _MAP() MAP
-/* end macro_magic */
-
 #define HASH_CODE(item) \
   code ^= std::hash<decltype(item)>{}(item);
 
@@ -99,7 +43,7 @@ using namespace Kernel;
 
 #define HASH_BODY(CLASS, ...) \
   auto code = 786532; \
-  EVAL(MAP(HASH_CODE,__VA_ARGS__)) \
+  MAP(HASH_CODE,__VA_ARGS__) \
   return code; \
 
 #define _IMPL_HASH(CLASS, ...) \
@@ -511,7 +455,7 @@ AbsTerm &AbsTerm::from(TermList &t) {
       if (auto r = dynamic_cast<const CLASS*>(&rhs)) { \
         const CLASS& l_ = *l; \
         const CLASS& r_ = *r; \
-        if( l_ < r_) \
+        if( l_ OP r_) \
           return true; \
       } else { \
         return true; \
@@ -641,11 +585,15 @@ AbsTheoryClause &maxTheorySubclause(Clause const &c) {
     }
     return *new AbsTheoryClause(lits);
 }
+bool EquivalenceClass<LitEquiv1>::less::operator()(const rc<AbsLiteral>& lhs, const rc<AbsLiteral>& rhs) const {
+  return false;
+}
 
 /* TheorySubclauseAnalyser implementation */
 
 TheorySubclauseAnalyser::TheorySubclauseAnalyser()
         : _literals(literals_type())
+        , _eq1(equiv1_t{})
         {}
 
 
@@ -659,18 +607,25 @@ void TheorySubclauseAnalyser::addClause(Clause &c) {
         auto &scl = maxTheorySubclause(c);
         for (auto l : scl.literals()) {
             _literals.insert(l);
+            _eq1.insert(l);
         }
     }
 
 }
 
-void TheorySubclauseAnalyser::dumpStats(ostream &out) const {
-  auto& mymap = _literals._content;
-    for ( auto it = mymap.begin(); it != mymap.end(); ++it ) {
-        auto pair = *it;
-        auto size = pair.second.size();
-        ASS_REP(size > 0, size);
-        out << size << ":\t" << *pair.first << endl;
-    }
+template<class C> 
+void dumpContainer(ostream& out, const char* name, const C& cont) {
+  out << "================= " << "Equivalence class: " << name << " =================" << endl;
+  for ( auto& pair : cont._content) {
+      auto size = pair.second.size();
+      ASS_REP(size > 0, size);
+      out << "\t" << size << "\t" << *pair.first << endl;
+  }
 }
 
+void TheorySubclauseAnalyser::dumpStats(ostream &out) const {
+  dumpContainer(out, "Equality", _literals);
+  dumpContainer(out, "AllEqual" , _eq1);
+}
+
+TheorySubclauseAnalyser* TheorySubclauseAnalyser::instance = new TheorySubclauseAnalyser();
