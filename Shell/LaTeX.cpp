@@ -259,10 +259,8 @@ vstring LaTeX::toString (Formula* f) const
   case TRUE:
     return con;
 
-#if VDEBUG
   default:
     ASSERTION_VIOLATION;
-#endif
   }
 } // LaTeX::toString (const Formula&)
 
