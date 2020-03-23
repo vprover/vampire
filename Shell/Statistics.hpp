@@ -34,6 +34,7 @@
 #include "Lib/ScopedPtr.hpp"
 
 #include "Lib/Allocator.hpp"
+#include "Shell/Analysis/TheorySubclauseAnalyser.hpp"
 
 //#include "Kernel/Assignment.hpp"
 //#include "Kernel/Constraint.hpp"
@@ -61,6 +62,7 @@ public:
   USE_ALLOCATOR(Statistics);
 
   Statistics();
+  ~Statistics();
 
   void print(ostream& out);
   void explainRefutationNotFound(ostream& out);
@@ -134,6 +136,9 @@ public:
   unsigned theoryInstSimpTautologies;
   /** number of theoryInstSimp solutions lost as we could not represent them **/
   unsigned theoryInstSimpLostSolution;
+  /** statistics about theory parts in clauses */
+  Shell::Analysis::TheorySubclauseAnalyser* theorySubclauseAnalyser;
+
   /** number of induction applications **/
   unsigned induction;
   unsigned maxInductionDepth;
@@ -189,6 +194,7 @@ public:
   unsigned taInjectivitySimplifications;
   unsigned taNegativeInjectivitySimplifications;
   unsigned taAcyclicityGeneratedDisequalities;
+
 
   // Saturation
   /** all clauses ever occurring in the unprocessed queue */
