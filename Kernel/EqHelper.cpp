@@ -68,12 +68,10 @@ bool EqHelper::hasGreaterEqualitySide(Literal* eq, const Ordering& ord, TermList
       lhs = *eq->nthArgument(1);
       rhs = *eq->nthArgument(0);
       return true;
-#if VDEBUG
     case Ordering::EQUAL:
       //there should be no equality literals of equal terms
     default:
       ASSERTION_VIOLATION;
-#endif
   }
 }
 
@@ -240,12 +238,10 @@ TermIterator EqHelper::getLHSIterator(Literal* lit, const Ordering& ord)
     case Ordering::LESS:
     case Ordering::LESS_EQ:
       return pvi( getSingletonIterator(t1) );
-#if VDEBUG
     case Ordering::EQUAL:
       //there should be no equality literals of equal terms
     default:
       ASSERTION_VIOLATION;
-#endif
     }
     return TermIterator::getEmpty();
   } else {
