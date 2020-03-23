@@ -215,10 +215,8 @@ Formula* Flattening::flatten (Formula* f)
 				   arg->qarg());
     }
 
-#if VDEBUG
   default:
     ASSERTION_VIOLATION;
-#endif
   }
 
 } // Flattening::flatten ()

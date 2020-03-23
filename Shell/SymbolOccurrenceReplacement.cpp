@@ -156,10 +156,8 @@ Formula* SymbolOccurrenceReplacement::process(Formula* formula) {
     case FALSE:
       return formula;
 
-#if VDEBUG
     default:
       ASSERTION_VIOLATION;
-#endif
     }
 }
 
