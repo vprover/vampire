@@ -41,4 +41,3 @@ build/
 *.smt2
 *.cnf
 
-tags
