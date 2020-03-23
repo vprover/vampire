@@ -937,12 +937,6 @@ void Options::Options::init()
            _lookup.insert(&_unificationWithAbstraction);
            _unificationWithAbstraction.setExperimental();
 
-           _fixUWA = BoolOptionValue("uwa_fix","uwaf",false);
-           _fixUWA.description="";
-           _fixUWA.tag(OptionTag::INFERENCES);
-           _lookup.insert(&_fixUWA);
-           _fixUWA.setExperimental();
-
            _useACeval = BoolOptionValue("use_ac_eval","uace",true);
            _useACeval.description="";
            _useACeval.tag(OptionTag::INFERENCES);
