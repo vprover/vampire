@@ -24,7 +24,7 @@
 #ifndef __CompitOutput__
 #define __CompitOutput__
 
-// #include "Config.hpp" <- does not exist (anymore)
+// #include "Config.hpp"
 
 #if COMPIT_VERSION==1
 
