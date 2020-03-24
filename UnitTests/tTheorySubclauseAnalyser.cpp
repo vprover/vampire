@@ -16,19 +16,8 @@
  * For other uses of Vampire please contact developers for a different
  * licence, which we will make an effort to provide. 
  */
-#include "Forwards.hpp"
-#include "Lib/Environment.hpp"
 
-#include "Kernel/Unit.hpp"
-#include "Kernel/Clause.hpp"
-#include "Kernel/Inference.hpp"
-#include "Kernel/Problem.hpp"
-#include "Kernel/Signature.hpp"
-#include "Kernel/Term.hpp"
-#include "Kernel/Sorts.hpp"
-
-#include "Inferences/Instantiation.hpp"
-
+#include "Shell/Analysis/TheorySubclauseAnalyser.hpp"
 #include "Test/UnitTesting.hpp"
 
 #define UNIT_ID TheorySubclauseAnalyser 
@@ -41,7 +30,9 @@ using namespace Shell;
 using namespace Inferences;
 
 
-TEST_FUN(instances)
+TEST_FUN(test_cmp2)
 {
-
+  // cmp1<void> c{};
+  // using term = AbsTerm::create;
+  // const AbsTerm& t = term()
 }
