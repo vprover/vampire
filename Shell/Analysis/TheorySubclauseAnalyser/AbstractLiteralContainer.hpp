@@ -79,7 +79,7 @@ public:
 
     Container operator()() { return Container(); }
 
-    void insert(A &l) {
+    void insert(A& l) {
         auto x = _content.find(l);
         if (x == _content.end()) {
             auto r = _content.insert(std::pair<A,_set>(l,_set()));
