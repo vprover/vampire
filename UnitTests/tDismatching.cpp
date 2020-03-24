@@ -41,7 +41,7 @@ UT_CREATE;
 
 using namespace Indexing;
 
-#warning compile-time broken test: index
+#warning compile-time broken test
 /* compile broken
 TEST_FUN(index)
 {
