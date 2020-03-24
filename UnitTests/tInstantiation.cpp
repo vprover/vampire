@@ -41,7 +41,7 @@ using namespace Shell;
 using namespace Inferences;
 
 
-#warning Compile-time broken test: instances
+#warning Compile-time broken test
 /*
 TEST_FUN(instances)
 {
