@@ -775,17 +775,27 @@ template <class C>
 void dumpContainer(ostream &out, const char *name, const C &cont) {
   out << "================= "
       << "Equivalence class: " << name << " =================" << endl;
-  for (auto &pair : cont._content) {
-    auto size = pair.second.size();
-    auto &&elems = pair.second;
+  using entry = typename decltype(cont._content)::value_type;
+  auto c = vvec<const entry*>();
+  for (auto& e : cont._content) {
+    c.push_back(&e);
+  }
+  struct {bool operator()(const entry* l, const entry* r) {return l->second.size() > r->second.size(); }} comp;
+  sort(c.begin(), c.end(), comp);
+
+
+
+  for (auto &pair : c) {
+    auto size = pair->second.size();
+    auto &&elems = pair->second;
     ASS_REP(size > 0, size);
     out << "\t" << size
-        // << "\t" << **min_element(begin(elems), end(elems))
-        // << "\t" << **max_element(begin(elems), end(elems))
+        << "\t" << **min_element(begin(elems), end(elems))
+        << "\t" << **max_element(begin(elems), end(elems))
         ;
-    for (auto e : elems) {
-      out << "\t" << *e;
-    }
+    // for (auto e : elems) {
+    //   out << "\t" << *e;
+    // }
     out << endl;
   }
 }
