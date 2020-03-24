@@ -37,13 +37,10 @@ public:
 
     template<class U>
     vamp_alloc(const vamp_alloc<U>& other) noexcept {}
-
     vamp_alloc() noexcept {}
-
     ~vamp_alloc() {}
 
     bool operator==(vamp_alloc &other) { return true; }
-
     bool operator!=(vamp_alloc &other) { return *this != other; }
 };
 
@@ -53,6 +50,17 @@ template<class T> using refw = std::reference_wrapper<T>;
 template<class T> class rc: public std::shared_ptr<T> {
 public:
     rc(T* t) : std::shared_ptr<T>(t, [](T* t){delete t;}, vamp_alloc<T*>()) {}
+    // rc(rc& other) : std::shared_ptr<T>(other) {}
+    // rc(const rc& other) : std::shared_ptr<T>(other) {}
+#define DELEGATE(OP) \
+    friend bool operator OP(const rc& lhs, const rc& rhs) { \
+      const T& l = *lhs; \
+      const T& r = *rhs; \
+      return l OP r; \
+    } \
+
+    DELEGATE(==)
+    DELEGATE(<)
 };
 template<class T, class Compare = std::less<T>> using tset = std::set<T, Compare, vamp_alloc<T>>;
 
