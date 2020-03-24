@@ -125,6 +125,7 @@ set(VAMPIRE_DEBUG_SOURCES
 source_group(debug_source_files FILES ${VAMPIRE_DEBUG_SOURCES})
 
 set(VAMPIRE_LIB_SOURCES
+    Lib/vstd.h
     Lib/Allocator.cpp
     Lib/DHMap.cpp
     Lib/Environment.cpp
@@ -726,6 +727,43 @@ set(VAMPIRE_CASC_SOURCES
     )
 source_group(casc_source_files FILES ${VAMPIRE_CASC_SOURCES})
 
+set(TEST_SOURCES 
+    ${VAMPIRE_DEBUG_SOURCES}
+    ${VAMPIRE_LIB_SOURCES}
+    ${VAMPIRE_LIB_SYS_SOURCES}
+    ${VAMPIRE_KERNEL_SOURCES}
+    ${VAMPIRE_INDEXING_SOURCES}
+    ${VAMPIRE_INFERENCE_SOURCES}
+    ${VAMPIRE_INSTANCEGENERATION_SOURCES}
+    ${VAMPIRE_SAT_SOURCES}
+    ${VAMPIRE_DECISION_PROCEDURES_SOURCES}
+    ${VAMPIRE_SATURATION_SOURCES}
+    ${VAMPIRE_SHELL_SOURCES}
+    ${VAMPIRE_PARSE_SOURCES}
+    ${VAMPIRE_FINITEMODELBUILDING_SOURCES}
+    ${VAMPIRE_SMTCOMP_SOURCES}
+    ${VAMPIRE_MINISAT_SOURCES}
+    ${VAMPIRE_CASC_SOURCES}
+         Test/CheckedSatSolver.cpp
+         Test/CheckedSatSolver.hpp
+         Test/CompitOutput.cpp
+         Test/CompitOutput.hpp
+         Test/Compit2Output.cpp
+         Test/Compit2Output.hpp
+         Test/Output.cpp
+         Test/Output.hpp
+         Test/UnitTesting.cpp
+         Test/UnitTesting.hpp
+    # Test/UnitTesting.cpp
+    # Test/UnitTesting.hpp
+    # Test/CheckedSatSolver.cpp
+    # Test/CheckedSatSolver.hpp
+    Global.cpp
+    vtest.cpp
+    "${CMAKE_CURRENT_BINARY_DIR}/version.cpp"
+     )
+
+
 # also include forwards.hpp?
 set(VAMPIRE_SOURCES 
     ${VAMPIRE_DEBUG_SOURCES}
@@ -749,13 +787,18 @@ set(VAMPIRE_SOURCES
     Global.cpp
     vampire.cpp
     "${CMAKE_CURRENT_BINARY_DIR}/version.cpp"
-        Lib/vstd.h)
+     )
 
 # TODO: we want at least vampire_dbg, vampire_rel, vampire_z3_dbg, vampire_z3_rel
 #message(STATUS "a test message")
 
 add_executable(vampire ${VAMPIRE_SOURCES})
+add_executable(vtest vtest.cpp ${TEST_SOURCES})
+add_test(NAME vtest COMMAND vtest)
 target_compile_definitions(vampire PRIVATE  CHECK_LEAKS=0)
+target_compile_definitions(vtest PRIVATE  CHECK_LEAKS=0)
+
+add_custom_target(test COMMAND vtest DEPENDS vtest)
 
 ################################################################
 # z3 stuff
