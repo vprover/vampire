@@ -24,7 +24,7 @@
 #ifndef __Compit2Output__
 #define __Compit2Output__
 
-#include "Config.hpp"
+// #include "Config.hpp"
 
 #if COMPIT_VERSION==2
 

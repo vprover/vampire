@@ -76,7 +76,7 @@ UnitTesting::UnitTesting()
 
 UnitTesting::~UnitTesting()
 {
-  _units->destroy();
+  TestUnitList::destroy(_units);
 }
 
 TestUnit* UnitTesting::get(const char* unitId)
