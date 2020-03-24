@@ -28,7 +28,28 @@
 
 class AbsLiteral;
 
-class AbsTerm;
+class AbsTerm {
+public:
+  static AbsTerm &from(Kernel::TermList &t);
+
+  friend ostream &operator<<(ostream &out, const AbsTerm &t);
+
+  virtual void normalize() = 0;
+  virtual void distributeLeft() = 0;
+  virtual void distributeRight() = 0;
+  virtual void mergeAssoc() = 0;
+  virtual void sortCommut() = 0;
+  virtual void pushMinus() = 0;
+  virtual void write(ostream &out) const = 0;
+  friend ostream &operator<<(ostream &out, const AbsTerm &t) {
+    t.write(out);
+    return out;
+  }
+
+  static void create(int t);
+};
+
+
 
 #define EQ_CLASSES 1, 2
 
