@@ -74,6 +74,8 @@ void Splitter::updateScores(SATClause* cl)
 {
   CALL("Splitter::updateScores");
 
+  return; // save time, these scores suck!
+
   int len = cl->length();
   float delta = std::ldexp(1.0,-len);
 
@@ -88,9 +90,13 @@ float Splitter::rateSet(SplitSet* s)
 {
   CALL("Splitter::rateSet");
 
-  if (!s) {
+  if (!s || !s->size()) {
     return 0.0;
+  } else {
+    return s->maxval();
   }
+
+  // the original heur is below
 
   int len = s->size();
 
