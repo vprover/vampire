@@ -650,6 +650,10 @@ PrecedenceOrdering::PrecedenceOrdering(Problem& prb, const Options& opt)
   CALL("PrecedenceOrdering::PrecedenceOrdering");
   ASS_G(_predicates, 0);
 
+  // Make sure we (re-)compute usageCnt's for all the symbols;
+  // in particular, the sP's (the Tseitin predicates) and sK's (the Skolem functions), which only exists since preprocessing.
+  prb.getProperty();
+
   DArray<unsigned> aux(32);
   if(_functions) {
     aux.initFromIterator(getRangeIterator(0u, _functions), _functions);
