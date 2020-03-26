@@ -8,6 +8,7 @@
 #include <map>
 #include <vector>
 #include <memory>
+#include <unordered_map>
 
 #include "Lib/Allocator.hpp"
 
@@ -62,6 +63,8 @@ public:
     DELEGATE(==)
     DELEGATE(<)
 };
-template<class T, class Compare = std::less<T>> using tset = std::set<T, Compare, vamp_alloc<T>>;
+template<class T, class Compare = std::less<T>> using vset = std::set<T, Compare, vamp_alloc<T>>;
+template<class K, class V, class Hash = hash<K>, class Pred = std::equal_to<K>> using vumap  = std::unordered_map<K, V, Hash,Pred,  vamp_alloc<std::pair<const K,V>>>;
+template<class K, class V, class Compare = std::less<K>> using vmap  = std::map<K, V, Compare, vamp_alloc<std::pair<const K, V > > >;
 
 #endif //VAMPIRE_VSTD_H
