@@ -319,12 +319,13 @@ TermIterator EqHelper::getDemodulationLHSIterator(Literal* lit, bool forward, co
     case Ordering::LESS_EQ:
       ASS(t1.containsAllVariablesOf(t0));
       return pvi( getSingletonIterator(t1) );
-#if VDEBUG
     case Ordering::EQUAL:
       //there should be no equality literals of equal terms
     default:
-      ASSERTION_VIOLATION;
+#if VDEBUG
+      ASSERTION_VIOLATION
 #endif
+        ;
     }
     return TermIterator::getEmpty();
   } else {

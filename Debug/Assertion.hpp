@@ -216,8 +216,8 @@ private:
 #define DEBUG_CODE(X)
 
 #define ASS(Cond)
-#define ALWAYS(Cond) Cond
-#define NEVER(Cond) Cond
+#define ALWAYS(Cond) (void) ( Cond )
+#define NEVER(Cond) (void) (Cond)
 
 #define ASS_REP(Cond, ReportedVal)
 #define ASS_REP2(Cond, ReportedVal, ReportedVal2)
@@ -234,9 +234,12 @@ private:
 #define ASS_ALLOC_TYPE(PTR,TYPE)
 #define ASS_METHOD(OBJ,METHOD)
 
-#define ASSERTION_VIOLATION
-#define ASSERTION_VIOLATION_REP(Val)
-#define ASSERTION_VIOLATION_REP2(Val1,Val2)
+#define ASSERTION_VIOLATION \
+  throw;
+#define ASSERTION_VIOLATION_REP(Val) \
+  ASSERTION_VIOLATION
+#define ASSERTION_VIOLATION_REP2(Val1,Val2) \
+  ASSERTION_VIOLATION
 
 #define ASSERT_VALID(obj)
 
