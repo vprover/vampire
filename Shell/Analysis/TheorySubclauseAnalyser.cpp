@@ -17,6 +17,8 @@
 #include "Lib/macro_magic.h"
 #include "Shell/Analysis/TheorySubclauseAnalyser.hpp"
 
+#define PRINT_TOP_N 20
+
 using namespace Shell::Analysis;
 using namespace std;
 using namespace Kernel;
@@ -27,7 +29,32 @@ using Interpretation = Theory::Interpretation;
 /* =================== utilities =================== */
 /* ================================================= */
 
-#define DBG(...) cout << "[ dbg ]\t" << __VA_ARGS__ << endl;
+#define DBG(...) dbg(#__VA_ARGS__, " = ", __VA_ARGS__);
+
+template <class A> struct print_debug {
+  void operator()(ostream &out, const A &a) const { out << a; }
+};
+
+template <class A> struct print_debug<vvec<A>> {
+  void operator()(ostream &out, const vvec<A> &a) const {
+    out << "[";
+    auto i = a.begin();
+    if (i != a.end()) {
+      out << *i;
+      i++;
+      for (; i != a.end(); i++) {
+        out << ", " << *i;
+      }
+    }
+    out << "]";
+  }
+};
+
+template <class A> struct print_debug<refw<A>> {
+  void operator()(ostream &out, const refw<A> &a) const {
+    print_debug(out, a.get());
+  }
+};
 
 template <class... As> struct dbgr {
   static void debug(ostream &out, const As &... as);
@@ -39,7 +66,7 @@ template <> struct dbgr<> {
 
 template <class A, class... As> struct dbgr<A, As...> {
   static void debug(ostream &out, const A &a, const As &... as) {
-    out << a;
+    print_debug<A>{}(out, a);
     dbgr<As...>::debug(out, as...);
   }
 };
@@ -50,40 +77,38 @@ template <class... As> void dbg(const As &... as) {
   cout << endl;
 }
 
-#define CMP_FUN(i)                                                             \
-  template <class A> struct cmp##i {                                           \
-    bool operator()(const A &lhs, const A &rhs) const { return lhs < rhs; }    \
-    template <class B> bool cmp(const B &lhs, const B &rhs) const {            \
-      return cmp##i<B>{}(lhs, rhs);                                            \
-    }                                                                          \
-  };                                                                           \
+#define IMPL_DEFAULT_COMPARISONS(i)                                            \
   template <class A> struct cmp##i<vvec<A>> {                                  \
-    bool operator()(const vvec<A> &lhs, const vvec<A> &rhs) const {            \
+    CmpResult operator()(const vvec<A> &lhs, const vvec<A> &rhs) const {       \
       auto li = lhs.begin();                                                   \
       auto ri = rhs.begin();                                                   \
       while (li != lhs.end() && ri != rhs.end()) {                             \
         auto l = *li;                                                          \
         auto r = *ri;                                                          \
-        if (cmp##i<A>{}(l, r))                                                 \
-          return true;                                                         \
-        else if (cmp##i<A>{}(r, l))                                            \
-          return false;                                                        \
+        auto c = cmp##i<A>{}(l, r);                                            \
+        switch (c) {                                                           \
+        case CMP_NONE:                                                         \
+        case CMP_LESS:                                                         \
+        case CMP_GREATER:                                                      \
+          return c;                                                            \
+        case CMP_EQUIV:;                                                       \
+        }                                                                      \
         li++;                                                                  \
         ri++;                                                                  \
       }                                                                        \
-      if (li == lhs.end() && ri == rhs.end())                                  \
-        return false;                                                          \
-      else if (li == lhs.end()) {                                              \
-        return true;                                                           \
-      } else {                                                                 \
-        ASS(ri == rhs.end())                                                   \
-        return false;                                                          \
-      }                                                                        \
+      auto lend = li == lhs.end();                                             \
+      auto rend = ri == rhs.end();                                             \
+      if (!lend && rend)                                                       \
+        return CMP_LESS;                                                       \
+      if (lend && !rend)                                                       \
+        return CMP_GREATER;                                                    \
+                                                                               \
+      return CMP_EQUIV;                                                        \
     }                                                                          \
   };                                                                           \
                                                                                \
   template <class A> struct cmp##i<refw<A>> {                                  \
-    bool operator()(const refw<A> &lhs, const refw<A> &rhs) const {            \
+    CmpResult operator()(const refw<A> &lhs, const refw<A> &rhs) const {       \
       const A &l = lhs.get();                                                  \
       const A &r = rhs.get();                                                  \
       return cmp##i<A>{}(l, r);                                                \
@@ -91,19 +116,79 @@ template <class... As> void dbg(const As &... as) {
   };                                                                           \
                                                                                \
   template <class A> struct cmp##i<rc<A>> {                                    \
-    bool operator()(const rc<A> &lhs, const rc<A> &rhs) const {                \
+    CmpResult operator()(const rc<A> &lhs, const rc<A> &rhs) const {           \
       const A &l = *lhs.get();                                                 \
       const A &r = *rhs.get();                                                 \
       return cmp##i<A>{}(l, r);                                                \
     }                                                                          \
   };
 
-MAP(CMP_FUN, EQ_CLASSES)
+MAP(IMPL_DEFAULT_COMPARISONS, EQ_CLASSES)
+
+struct rect_maps;
+template <class A, class CmpUninterpreted> struct cmp_rectified {
+  CmpResult operator()(const A &l, const A &r, rect_maps &map) const;
+  template <class B>
+  CmpResult cmp(const B &lhs, const B &rhs, rect_maps &map) const {
+    return cmp_rectified<B, CmpUninterpreted>{}(lhs, rhs, map);
+  }
+};
+
+template <class A, class C> struct cmp_rectified<vvec<A>, C> {
+  CmpResult operator()(const vvec<A> &lhs, const vvec<A> &rhs,
+                       rect_maps &map) const {
+    auto li = lhs.begin();
+    auto ri = rhs.begin();
+    while (li != lhs.end() && ri != rhs.end()) {
+      auto l = *li;
+      auto r = *ri;
+      auto c = cmp_rectified<A, C>{}(l, r, map);
+      switch (c) {
+      case CMP_NONE:
+      case CMP_LESS:
+      case CMP_GREATER:
+        return c;
+      case CMP_EQUIV:;
+      }
+      li++;
+      ri++;
+    }
+    auto lend = li == lhs.end();
+    auto rend = ri == rhs.end();
+    if (!lend && rend)
+      return CMP_LESS;
+    if (lend && !rend)
+      return CMP_GREATER;
+
+    return CMP_EQUIV;
+  }
+};
+
+template <class A, class C> struct cmp_rectified<refw<A>, C> {
+  CmpResult operator()(const refw<A> &lhs, const refw<A> &rhs,
+                       rect_maps &map) const {
+    const A &l = lhs.get();
+    const A &r = rhs.get();
+    return cmp_rectified<A, C>{}(l, r, map);
+  }
+};
+
+template <class A, class C> struct cmp_rectified<rc<A>, C> {
+  CmpResult operator()(const rc<A> &lhs, const rc<A> &rhs,
+                       rect_maps &map) const {
+    const A &l = *lhs.get();
+    const A &r = *rhs.get();
+    return cmp_rectified<A, C>{}(l, r, map);
+  }
+};
+
 #undef CMP_FUN
 
 #define CMP_FRIEND(i) template <class A> friend struct cmp##i;
 
-#define CMP_FRIENDS MAP(CMP_FRIEND, EQ_CLASSES)
+#define CMP_FRIENDS                                                            \
+  MAP(CMP_FRIEND, EQ_CLASSES)                                                  \
+  template <class A, class C> friend struct cmp_rectified;
 
 /* begin macro_magic */
 #define HASH_CODE(item) code ^= std::hash<decltype(item)>{}(item);
@@ -113,10 +198,13 @@ MAP(CMP_FUN, EQ_CLASSES)
     auto toTup = [](const CLASS &x) { return std::tie(__VA_ARGS__); };         \
     return toTup(l) < toTup(r);                                                \
   }                                                                            \
-                                                                               \
   inline friend bool operator==(const CLASS &l, const CLASS &r) {              \
     auto toTup = [](const CLASS &x) { return std::tie(__VA_ARGS__); };         \
     return toTup(l) == toTup(r);                                               \
+  }                                                                            \
+  inline friend bool operator<=(const CLASS &l, const CLASS &r) {              \
+    auto toTup = [](const CLASS &x) { return std::tie(__VA_ARGS__); };         \
+    return toTup(l) <= toTup(r);                                               \
   }                                                                            \
   _IMPL_HASH(CLASS, __VA_ARGS__)
 
@@ -198,12 +286,7 @@ public:
   }
 
   Theory::Interpretation interpret() const {
-    // cout << *this << ": " << symbol().getInterpretation() << endl;
     return symbol().getInterpretation();
-    // return sym.interpreted() ? (static_cast<Signature::InterpretedSymbol
-    // &>(sym)
-    //                                 .getInterpretation())
-    //                          : Interpretation::INVALID_INTERPRETATION;
   }
 
   bool isPlus() const { return Theory::isPlus(interpret()); }
@@ -254,6 +337,10 @@ public:
   void distributeLeft() override {}
   void distributeRight() override {}
   void pushMinus() override {}
+  void var_set(vset<unsigned> &v) const override { v.insert(_var); }
+  void vars(vvec<unsigned> &v, on_unsigned_t onUninterpreted) const override {
+    v.push_back(_var);
+  }
   CMP_FRIENDS
   TIE_CMP(AbsVarTerm, x._var)
 };
@@ -272,8 +359,12 @@ private:
   args_t _args;
 
 public:
+
   ACTerm(Function fun, std::initializer_list<refw<AbsTerm>> ts)
       : _fun(fun), _args(args_t(ts)) {}
+
+  ACTerm(Function fun, args_t ts)
+      : _fun(fun), _args(ts) {}
 
   ACTerm(Term &term) : _fun(term.functor()), _args(args_t()) {
     for (auto i = 0; i < term.arity(); i++) {
@@ -292,6 +383,14 @@ public:
       }
     }
     ASS(!_fun.isPlus() || _args.size() > 0)
+  }
+
+  bool isNumberConstant() const {
+    return Theory::isNumberConstant(_fun.interpret());
+  }
+
+  bool uninterpreted() const {
+    return _fun.interpret() == Theory::INVALID_INTERPRETATION;
   }
 
   void normalize() override {
@@ -366,6 +465,22 @@ public:
       }
       _args.clear();
       _args = new_args;
+    }
+  }
+
+  void var_set(vset<unsigned> &vs) const override {
+    for (auto &t : _args) {
+      t.get().var_set(vs);
+    }
+  }
+
+  void vars(vvec<unsigned> &v, on_unsigned_t onUninterpreted) const override {
+    if (uninterpreted()) {
+      onUninterpreted(*this, v);
+    } else {
+      for (auto &t : _args) {
+        t.get().vars(v, onUninterpreted);
+      }
     }
   }
 
@@ -455,7 +570,6 @@ Signature::Symbol &fnSym(const Term &t) {
 }
 
 bool interpretedFun(const Term &t) { return fnSym(t).interpreted(); }
-
 AbsTerm &AbsTerm::from(TermList &t) {
   if (t.isVar()) {
     t.var();
@@ -498,6 +612,11 @@ struct AbsLiteral {
     }
   }
 
+
+  AbsLiteral(bool positive, Predicate pred, vvec<refw<AbsTerm>> terms)
+      : positive(positive), predicate(pred),
+        terms(terms) { }
+
   CMP_FRIENDS
 
   CMP_FRIENDS
@@ -508,76 +627,55 @@ IMPL_HASH(AbsLiteral, x.predicate, x.positive, x.terms);
 /** ============= lexicographical comparison ================== **/
 
 template <class Fn, class A, class... Fs> struct lex_ {
-  static bool cmp(Fn f, A l, A h, Fs... fs);
+  static CmpResult cmp(Fn f, A l, A h, Fs... fs);
 };
 
 template <class Fn, class A> struct lex_<Fn, A> {
-  static bool cmp(Fn f, A l, A r) { return false; }
+  static CmpResult cmp(Fn f, A l, A r) { return CMP_EQUIV; }
 };
 
 template <class Fn, class A, class F, class... Fs>
 struct lex_<Fn, A, F, Fs...> {
-  static bool cmp(Fn cmp, A l, A r, F field, Fs... rest) {
-    if (cmp.template cmp<decltype(field(l))>(field(l), field(r)))
-      return true;
-    else if (cmp.template cmp<decltype(field(l))>(field(r), field(l)))
-      return false;
-    else
+  static CmpResult cmp(Fn cmp, A l, A r, F field, Fs... rest) {
+    auto c = cmp.template cmp<decltype(field(l))>(field(l), field(r));
+    switch (c) {
+    case CMP_LESS:
+    case CMP_GREATER:
+    case CMP_NONE:
+      return c;
+    case CMP_EQUIV:
       return lex_<Fn, A, Fs...>::cmp(cmp, l, r, rest...);
+    }
   }
 };
 
 template <class Fn, class A, class... Fs>
-bool lex_cmp_(Fn f, A l, A r, Fs... fs) {
+CmpResult lex_cmp(Fn f, A l, A r, Fs... fs) {
   return lex_<Fn, A, Fs...>::cmp(f, l, r, fs...);
 }
-
-// /** ============= lexicographical comparison orig ================== **/
-//
-// template <class Fn, class... Args> struct lex {
-//   static bool cmp(Fn f, Args... as);
-// };
-//
-// template <class Fn> struct lex<Fn> {
-//   static bool cmp(Fn f) { return false; }
-// };
-//
-// template <class Fn, class A, class... As> struct lex<Fn, A, A, As...> {
-//   static bool cmp(Fn f, A l, A r, As... rest) {
-//     if (f.template cmp<A>(l, r))
-//       return true;
-//     else if (f.template cmp<A>(r, l))
-//       return false;
-//     else
-//       return lex<Fn, As...>::cmp(f, rest...);
-//   }
-// };
-//
-// template <class Fn, class... As> bool lex_cmp(Fn f, As... as) {
-//   return lex<Fn, As...>::cmp(f, as...);
-// }
 
 /** ============= subclass comparison ================== **/
 
 template <class Fn, class A, class... Bs> struct _subclass_cmp {
-  static bool cmp(Fn f, const A &lhs, const A &rhs);
+  static CmpResult cmp(Fn f, const A &lhs, const A &rhs);
 };
 
 template <class Fn, class A> struct _subclass_cmp<Fn, A> {
-  static bool cmp(Fn f, const A &lhs, const A &rhs) { ASSERTION_VIOLATION }
+  static CmpResult cmp(Fn f, const A &lhs, const A &rhs) { ASSERTION_VIOLATION }
 };
 
 template <class Fn, class A, class B, class... Bs>
 struct _subclass_cmp<Fn, A, B, Bs...> {
-  static bool cmp(Fn f, const A &l, const A &r) {
+  static CmpResult cmp(Fn f, const A &l, const A &r) {
     const B *lhs = dynamic_cast<const B *>(&l);
     const B *rhs = dynamic_cast<const B *>(&r);
     if (lhs && rhs) {
-      return f.template cmp<B>(*lhs, *rhs);
+      auto r = f.template cmp<B>(*lhs, *rhs);
+      return r;
     } else if (lhs && !rhs) {
-      return true;
+      return CMP_LESS;
     } else if (!lhs && rhs) {
-      return false;
+      return CMP_GREATER;
     } else {
       return _subclass_cmp<Fn, A, Bs...>::cmp(f, l, r);
     }
@@ -585,31 +683,49 @@ struct _subclass_cmp<Fn, A, B, Bs...> {
 };
 
 template <class Fn, class A, class... As>
-bool subclass_cmp(Fn f, const A &lhs, const A &rhs) {
+CmpResult subclass_cmp(Fn f, const A &lhs, const A &rhs) {
   return _subclass_cmp<Fn, A, As...>::cmp(f, lhs, rhs);
 }
 
 template <>
-bool cmp1<AbsLiteral>::operator()(const AbsLiteral &lhs,
-                                  const AbsLiteral &rhs) const {
-  return false;
+CmpResult cmp1<AbsLiteral>::operator()(const AbsLiteral &lhs,
+                                       const AbsLiteral &rhs) const {
+  return CMP_EQUIV;
 }
 
 struct cmp_eq {
-  template <class A> bool cmp(const A &l, const A &r) { return l == r; }
+  template <class A> CmpResult cmp(const A &l, const A &r) {
+    if (l == r) {
+      return CMP_NONE;
+    } else {
+      return CMP_EQUIV;
+    }
+  }
 };
 
 struct cmp_less {
-  template <class A> bool cmp(const A &l, const A &r) { return l < r; }
+  template <class A> CmpResult cmp(const A &l, const A &r) {
+    if (l < r)
+      return CMP_LESS;
+    else if (r < l)
+      return CMP_GREATER;
+    else if (l == r)
+      return CMP_EQUIV;
+    else
+      return CMP_NONE;
+  }
 };
 
 bool operator<(const AbsTerm &lhs, const AbsTerm &rhs) {
-  return subclass_cmp<cmp_less, AbsTerm, AbsVarTerm, ACTerm>(cmp_less{}, lhs,
-                                                             rhs);
+  auto r =
+      subclass_cmp<cmp_less, AbsTerm, AbsVarTerm, ACTerm>(cmp_less{}, lhs, rhs);
+  return r == CMP_LESS;
 }
 
 bool operator==(const AbsTerm &lhs, const AbsTerm &rhs) {
-  return subclass_cmp<cmp_eq, AbsTerm, AbsVarTerm, ACTerm>(cmp_eq{}, lhs, rhs);
+  auto r =
+      subclass_cmp<cmp_eq, AbsTerm, AbsVarTerm, ACTerm>(cmp_eq{}, lhs, rhs);
+  return r == CMP_EQUIV;
 }
 
 ostream &operator<<(ostream &out, AbsTerm &t) {
@@ -619,30 +735,313 @@ ostream &operator<<(ostream &out, AbsTerm &t) {
 
 #define PAIRS(x) , lhs.x, rhs.x
 
+#define IMPL_CMP(i, CLASS, BODY)                                               \
+  template <>                                                                  \
+  CmpResult cmp##i<CLASS>::operator()(const CLASS &lhs, const CLASS &rhs)      \
+      const BODY
+
+#define IMPL_CMP_DEFAULT(i, CLASS)                                             \
+  IMPL_CMP(i, CLASS, {                                                         \
+    if (lhs < rhs)                                                             \
+      return CMP_LESS;                                                         \
+    else if (rhs < lhs)                                                        \
+      return CMP_GREATER;                                                      \
+    else if (lhs == rhs)                                                       \
+      return CMP_EQUIV;                                                        \
+    else                                                                       \
+      return CMP_NONE;                                                         \
+  })
+
 #define IMPL_CMP_VALS__TO_CLSR(t) , [](ty x) { return t; }
 #define IMPL_CMP_VALS(i, CLASS, ...)                                           \
-  template <>                                                                  \
-  bool cmp##i<CLASS>::operator()(const CLASS &lhs, const CLASS &rhs) const {   \
+  IMPL_CMP(i, CLASS, {                                                         \
     using ty = const CLASS &;                                                  \
-    return lex_cmp_(cmp##i{}, lhs,                                             \
-                    rhs MAP(IMPL_CMP_VALS__TO_CLSR, __VA_ARGS__));             \
-  }
+    return lex_cmp(cmp##i{}, lhs,                                              \
+                   rhs MAP(IMPL_CMP_VALS__TO_CLSR, __VA_ARGS__));              \
+  })
 
 #define IMPL_CMP_SUBCLASS(i, CLASS, ...)                                       \
   template <>                                                                  \
-  bool cmp##i<CLASS>::operator()(const CLASS &lhs, const CLASS &rhs) const {   \
+  CmpResult cmp##i<CLASS>::operator()(const CLASS &lhs, const CLASS &rhs)      \
+      const {                                                                  \
     auto r = subclass_cmp<decltype(cmp##i{}), CLASS, __VA_ARGS__>(cmp##i{},    \
                                                                   lhs, rhs);   \
     return r;                                                                  \
   }
 
+#define IMPL_CMP_GROUND(i)                                                     \
+  IMPL_CMP_DEFAULT(i, Predicate)                                               \
+  IMPL_CMP_DEFAULT(i, Function)                                               \
+  IMPL_CMP_DEFAULT(i, int)                                                     \
+  IMPL_CMP_DEFAULT(i, bool)                                                    \
+  IMPL_CMP_DEFAULT(i, unsigned)
+
+MAP(IMPL_CMP_GROUND, EQ_CLASSES)
+
 IMPL_CMP_SUBCLASS(2, AbsTerm, ACTerm, AbsVarTerm)
 IMPL_CMP_VALS(2, AbsVarTerm, 0)
 IMPL_CMP_VALS(2, AbsLiteral, x.predicate, x.positive, x.terms)
-IMPL_CMP_VALS(2, ACTerm, x._fun, x._args)
-IMPL_CMP_VALS(2, Function, x.interpret())
-IMPL_CMP_VALS(2, Interpretation, Theory::isNumberConstant(x),
-              x == Interpretation::INVALID_INTERPRETATION)
+
+template <>
+CmpResult cmp2<ACTerm>::operator()(const ACTerm &lhs, const ACTerm &rhs) const {
+
+  auto l_num = lhs.isNumberConstant();
+  auto r_num = rhs.isNumberConstant();
+
+  /* number constants are all equiv */
+  if (l_num && r_num)
+    return CMP_EQUIV;
+  if (l_num && !r_num)
+    return CMP_LESS;
+  if (!l_num && r_num)
+    return CMP_GREATER;
+
+  auto l_unint = lhs._fun.interpret() == Theory::INVALID_INTERPRETATION;
+  auto r_unint = rhs._fun.interpret() == Theory::INVALID_INTERPRETATION;
+
+  /* number constants are all equiv */
+  if (l_unint && r_unint)
+    return CMP_EQUIV;
+  if (!l_unint && r_unint)
+    return CMP_LESS;
+  if (l_unint && !r_unint)
+    return CMP_GREATER;
+
+  auto c =cmp2<Function>{}(lhs._fun, rhs._fun);
+  switch(c) {
+    case CMP_LESS:
+    case CMP_GREATER:
+      return c;
+    case CMP_NONE:
+      ASSERTION_VIOLATION
+    case CMP_EQUIV:
+        ;
+  }
+
+  /* both interpreted terms */
+  return cmp2<vvec<refw<AbsTerm>>>{}(lhs._args, rhs._args);
+}
+
+void onUninterpretedNop(const ACTerm &t, vvec<unsigned> &v) {}
+
+void rectify(vvec<unsigned> &vs) {
+  unsigned nvars = 0;
+  vumap<size_t, size_t> map;
+  for (size_t i = 0; i < vs.size(); i++) {
+    auto iter = map.find(vs[i]);
+    unsigned v;
+    if (iter == map.end()) {
+      v = nvars++;
+      map.insert(decltype(map)::value_type(vs[i], v));
+    } else {
+      v = iter->second;
+    }
+    vs[i] = v;
+  }
+}
+
+CmpResult match_vars(vvec<unsigned> &l, vvec<unsigned> &r) {
+  rectify(l);
+  rectify(r);
+  return cmp_less{}.cmp<decltype(l)>(l, r);
+}
+
+struct rect_map {
+private:
+  unsigned n_vars;
+  vumap<unsigned, unsigned> map;
+
+public:
+  rect_map() : n_vars(0), map(vumap<unsigned, unsigned>()) {}
+  unsigned get(unsigned v) {
+    auto it = map.find(v);
+    unsigned out;
+    if (it == map.end()) {
+      out = n_vars++;
+      map.insert(decltype(map)::value_type(v, out));
+    } else {
+      ASS(it->first == v);
+      out = it->second;
+    }
+    return out;
+  }
+};
+
+struct rect_maps {
+  rect_map l;
+  rect_map r;
+  rect_maps() : l(rect_map()), r(rect_map()) {}
+};
+
+template <class C> struct __cmp_rectified_comp {
+  rect_maps &map;
+  __cmp_rectified_comp(rect_maps &map) : map(map) {}
+  template <class A> CmpResult cmp(const A &l, const A &r) {
+    return cmp_rectified<A, C>{}(l, r, map);
+  }
+};
+
+template <class C> struct cmp_rectified<AbsLiteral, C> {
+  CmpResult operator()(const AbsLiteral &lhs, const AbsLiteral &rhs,
+                       rect_maps &map) const {
+
+
+   
+
+#define CLOSURE(t) , [](const AbsLiteral& x) { return t; }
+
+    using comp = __cmp_rectified_comp<C>;
+    return lex_cmp(comp(map), lhs, rhs MAP(CLOSURE,
+        x.positive, 
+        x.predicate, 
+        x.terms)
+      );
+
+#undef CLSR
+  }
+};
+
+
+template <class C> struct cmp_rectified<AbsTerm, C> {
+  CmpResult operator()(const AbsTerm &lhs, const AbsTerm &rhs,
+                       rect_maps &map) const {
+
+    using comp = __cmp_rectified_comp<C>;
+    auto r =
+        subclass_cmp<comp, AbsTerm, AbsVarTerm, ACTerm>(comp(map), lhs, rhs);
+    return r;
+  }
+};
+
+template <>
+CmpResult cmp3<AbsLiteral>::operator()(const AbsLiteral &lhs,
+                                    const AbsLiteral &rhs) const {
+
+  rect_maps map = rect_maps();
+
+  struct UninterpretedNop {
+    CmpResult operator()(const ACTerm &lhs, const ACTerm &rhs, rect_maps &map) {
+      return CMP_EQUIV;
+    }
+  };
+
+  return cmp_rectified<AbsLiteral, UninterpretedNop>{}(lhs, rhs, map);
+}
+
+
+
+#define IMPL_CMP_RECTIFIED(CLASS, ...) \
+template <class CmpUninterpreted> \
+struct cmp_rectified<CLASS, CmpUninterpreted> { \
+  CmpResult operator()(const CLASS &lhs, const CLASS &rhs, rect_maps &map) const \
+  __VA_ARGS__ \
+};
+
+IMPL_CMP_RECTIFIED(bool, {
+  if (lhs && !rhs) return CMP_LESS;
+  if (!lhs && rhs) return CMP_GREATER;
+  return CMP_EQUIV;
+})
+
+IMPL_CMP_RECTIFIED(Predicate, {
+   if (lhs.functor < rhs.functor) return CMP_LESS;
+   if (lhs.functor > rhs.functor) return CMP_GREATER;
+   return CMP_EQUIV;
+})
+
+IMPL_CMP_RECTIFIED(Function, {
+   if (lhs.functor < rhs.functor) return CMP_LESS;
+   if (lhs.functor > rhs.functor) return CMP_GREATER;
+   return CMP_EQUIV;
+})
+
+IMPL_CMP_RECTIFIED(ACTerm, {
+    auto l_num = lhs.isNumberConstant();
+    auto r_num = rhs.isNumberConstant();
+
+    /* number constants are all equiv */
+    if (l_num && r_num)
+      return CMP_EQUIV;
+    if (l_num && !r_num)
+      return CMP_LESS;
+    if (!l_num && r_num)
+      return CMP_GREATER;
+
+    auto l_unint = lhs._fun.interpret() == Theory::INVALID_INTERPRETATION;
+    auto r_unint = rhs._fun.interpret() == Theory::INVALID_INTERPRETATION;
+
+    /* number constants are all equiv */
+    if (l_unint && r_unint)
+      return CmpUninterpreted{}(lhs, rhs, map);
+    if (!l_unint && r_unint)
+      return CMP_LESS;
+    if (l_unint && !r_unint)
+      return CMP_GREATER;
+
+    auto c = cmp_rectified<Function,CmpUninterpreted>{}(lhs._fun, rhs._fun, map);
+    switch(c) {
+      case CMP_LESS:
+      case CMP_GREATER:
+        return c;
+      case CMP_NONE:
+        ASSERTION_VIOLATION
+      case CMP_EQUIV:
+          ;
+    }
+
+
+    /* both interpreted terms */
+    return cmp_rectified<vvec<refw<AbsTerm>>, CmpUninterpreted>{}(
+        lhs._args, rhs._args, map);
+
+   return CMP_EQUIV;
+})
+
+
+IMPL_CMP_RECTIFIED(AbsVarTerm, {
+  auto l = map.l.get(lhs._var);
+  auto r = map.r.get(rhs._var);
+  if (l < r)
+    return CMP_LESS;
+  if (r < l)
+    return CMP_GREATER;
+  else
+    return CMP_EQUIV;
+})
+
+template <>
+CmpResult cmp4<AbsLiteral>::operator()(const AbsLiteral &lhs,
+                                    const AbsLiteral &rhs) const {
+  rect_maps map = rect_maps();
+
+  struct CmpUninter {
+    CmpResult operator()(const ACTerm &lhs, const ACTerm &rhs, rect_maps &map) {
+      auto l = static_cast<const AbsTerm &>(lhs).var_set();
+      auto r = static_cast<const AbsTerm &>(rhs).var_set();
+      if (l.size() < r.size())
+        return CMP_LESS;
+      if (l.size() > r.size())
+        return CMP_GREATER;
+      auto li = l.begin();
+      auto ri = r.begin();
+
+      while (li != l.end()) {
+        auto vl = map.l.get(*li);
+        auto vr = map.r.get(*ri);
+        if (vl < vr)
+          return CMP_LESS;
+        if (vl > vr)
+          return CMP_GREATER;
+        ri++;
+        li++;
+      }
+
+      return CMP_EQUIV;
+    }
+  };
+
+  return cmp_rectified<AbsLiteral, CmpUninter>{}(lhs, rhs, map);
+}
 
 ostream &operator<<(ostream &out, const AbsLiteral &lit) {
   out << (lit.positive ? " " : "~");
@@ -738,15 +1137,6 @@ AbsTheoryClause &maxTheorySubclause(Clause const &c) {
 }
 
 /** Equivalence classes */
-
-#define CMP_FUN(i)                                                             \
-  bool EquivalenceClass<LitEquiv##i>::less::operator()(                        \
-      const rc<AbsLiteral> &lhs, const rc<AbsLiteral> &rhs) const {            \
-    return cmp##i<AbsLiteral>{}(*lhs.get(), *rhs.get());                       \
-  }
-
-MAP(CMP_FUN, EQ_CLASSES)
-
 /* TheorySubclauseAnalyser implementation */
 
 #define INIT_EQ_CLASS_MEMBERS(i) , _eq##i(equiv_t_##i{})
@@ -776,42 +1166,74 @@ void dumpContainer(ostream &out, const char *name, const C &cont) {
   out << "================= "
       << "Equivalence class: " << name << " =================" << endl;
   using entry = typename decltype(cont._content)::value_type;
-  auto c = vvec<const entry*>();
-  for (auto& e : cont._content) {
+  using elem_t = typename decltype(cont._content)::value_type::first_type;
+  auto c = vvec<const entry *>();
+  for (auto &e : cont._content) {
     c.push_back(&e);
   }
-  struct {bool operator()(const entry* l, const entry* r) {return l->second.size() > r->second.size(); }} comp;
+  struct {
+    bool operator()(const entry *l, const entry *r) {
+      return l->second.size() > r->second.size();
+    }
+  } comp;
   sort(c.begin(), c.end(), comp);
 
+#ifdef PRINT_TOP_N
+  c.resize(min<size_t>(PRINT_TOP_N, c.size()));
+#endif
 
-
+  int i = 1;
   for (auto &pair : c) {
     auto size = pair->second.size();
     auto &&elems = pair->second;
     ASS_REP(size > 0, size);
-    out << "\t" << size
-        << "\t" << **min_element(begin(elems), end(elems))
-        << "\t" << **max_element(begin(elems), end(elems))
-        ;
-    // for (auto e : elems) {
-    //   out << "\t" << *e;
-    // }
+
+    auto &min = **min_element(begin(elems), end(elems));
+    auto &max = **max_element(begin(elems), end(elems));
+
+    out << i << "."
+        << "\t" << size << "\t" << min << "\t" << max;
+    ASS(min <= max);
     out << endl;
+    i++;
   }
 }
 
 #define EQ_CLASS_NAME_1 "AllEqual"
-#define EQ_CLASS_NAME_2 "Class 1"
+#define EQ_CLASS_NAME_2 "IgnoreVars_IgnoreUninterpreted"
+#define EQ_CLASS_NAME_3 "MatchVars_IgnoreUninterpreted"
+#define EQ_CLASS_NAME_4 "VarsMatch_UnintVarsMatch"
 
 void TheorySubclauseAnalyser::dumpStats(ostream &out) const {
-  dumpContainer(out, "Equality", _literals);
+  // dumpContainer(out, "Equality", _literals);
 #define DUMP(i) dumpContainer(out, EQ_CLASS_NAME_##i, _eq##i);
   MAP(DUMP, EQ_CLASSES)
 #undef DUMP
-  // dumpContainer(out, "Eq2" , _eq2);
 }
 
 TheorySubclauseAnalyser *TheorySubclauseAnalyser::instance =
     new TheorySubclauseAnalyser();
+
+#define IMPL_EQUIVALENCE_CLASS_FOR_LIT_EQUIV(i)                                \
+  bool EquivalenceClass<LitEquiv##i>::less::operator()(                         \
+      const rc<AbsLiteral> &lhs, const rc<AbsLiteral> &rhs) const {            \
+    switch (cmp##i<AbsLiteral>{}(*lhs.get(), *rhs.get())) {                    \
+    case CMP_LESS:                                                             \
+      return true;                                                             \
+    default:                                                                   \
+      return false;                                                            \
+    }                                                                          \
+  }                                                                            \
+
+MAP(IMPL_EQUIVALENCE_CLASS_FOR_LIT_EQUIV, EQ_CLASSES)
+
+AbsTerm &AbsTerm::var(int i) { return *new AbsVarTerm(i); }
+AbsTerm &AbsTerm::fun(unsigned functor, vvec<refw<AbsTerm>> args) {
+  return *new ACTerm(Function(functor), args);
+}
+AbsLiteral& create_abs_lit(bool positive, unsigned functor, vvec<refw<AbsTerm>> args) {
+  return *new AbsLiteral(positive, Predicate(functor), args);
+}
+
 
 #endif
