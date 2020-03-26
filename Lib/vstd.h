@@ -21,16 +21,16 @@ public:
     typedef T value_type;
 
     static T *allocate(size_t n, const void *hint = 0) {
-        return (T *) Allocator::current->allocateKnown(n * sizeof(T)
-#ifdef VDEBUG
+        return (T *) Lib::Allocator::current->allocateKnown(n * sizeof(T)
+#if VDEBUG
                 , typeid(T).name()
 #endif
         );
     }
 
     static void deallocate(T *p, size_t n) {
-        return Allocator::current->deallocateKnown((void *) p, n * sizeof(T)
-#ifdef VDEBUG
+        return Lib::Allocator::current->deallocateKnown((void *) p, n * sizeof(T)
+#if VDEBUG
                 , typeid(T).name()
 #endif
         );
