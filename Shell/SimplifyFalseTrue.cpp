@@ -328,10 +328,8 @@ Formula* SimplifyFalseTrue::simplify (Formula* f)
       }
     }
 
-#if VDEBUG
   default:
     ASSERTION_VIOLATION;
-#endif
   }
 } // SimplifyFalseTrue::simplify ()
 
