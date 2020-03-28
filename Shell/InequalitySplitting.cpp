@@ -174,8 +174,13 @@ Literal* InequalitySplitting::splitLiteral(Literal* lit, Unit::InputType inpType
     type = OperatorType::getConstantsType(srt, vars);
   }
 
-  Signature::Symbol* predSym = env.signature->getPredicate(fun);
-  predSym->setType(type);
+  Signature::Symbol* sym;
+  if(_appify){
+    sym = env.signature->getFunction(fun);    
+  } else {
+    sym = env.signature->getPredicate(fun);    
+  }
+  sym->setType(type);
 
   TermList s;
   TermList t; //the ground inequality argument, that'll be split out
@@ -190,10 +195,10 @@ Literal* InequalitySplitting::splitLiteral(Literal* lit, Unit::InputType inpType
 
   ASS(t.isTerm());
   if(env.colorUsed && t.term()->color()!=COLOR_TRANSPARENT) {
-    predSym->addColor(t.term()->color());
+    sym->addColor(t.term()->color());
   }
   if(env.colorUsed && t.term()->skip()) {
-    predSym->markSkip();
+    sym->markSkip();
   }
 
   Inference* inf = new Inference(Inference::INEQUALITY_SPLITTING_NAME_INTRODUCTION);
