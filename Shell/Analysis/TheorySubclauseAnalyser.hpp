@@ -26,6 +26,7 @@
 /* =================== collections ================= */
 /* ================================================= */
 class AbsTerm;
+struct rect_map;
 
 class AbsLiteral;
 AbsLiteral& create_abs_lit(bool positive, unsigned functor, vvec<refw<AbsTerm>> terms);
@@ -38,6 +39,7 @@ public:
   friend ostream &operator<<(ostream &out, const AbsTerm &t);
 
   virtual void normalize() = 0;
+  virtual void rectify(rect_map& r) = 0;
   virtual void distributeLeft() = 0;
   virtual void distributeRight() = 0;
   virtual void mergeAssoc() = 0;
