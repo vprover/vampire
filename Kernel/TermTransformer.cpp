@@ -328,69 +328,6 @@ Literal* TermTransformerTransformTransformed::transform(Literal* lit)
   return static_cast<Literal*>(t);
 }
 
-Term* TermTransformerTransformTransformed::transformSpecial(Term* term)
-{
-  CALL("TermTransformerTransformTransformed::transformSpecial(Term* term)");
-  ASS(term->isSpecial());
-
-  Term::SpecialTermData* sd = term->getSpecialData();
-  switch (sd->getType()) {
-    case Term::SF_ITE: {
-      Formula* condition = transform(sd->getCondition());
-      TermList thenBranch = transform(*term->nthArgument(0));
-      TermList elseBranch = transform(*term->nthArgument(1));
-
-      if ((condition == sd->getCondition()) &&
-          (thenBranch == *term->nthArgument(0)) &&
-          (elseBranch == *term->nthArgument(1))) {
-        return term;
-      } else {
-        return Term::createITE(condition, thenBranch, elseBranch, sd->getSort());
-      }
-    }
-
-    case Term::SF_FORMULA: {
-      Formula* formula = transform(sd->getFormula());
-
-      if (formula != sd->getFormula()) {
-        return term;
-      } else {
-        return Term::createFormula(formula);
-      }
-    }
-
-    case Term::SF_LET: {
-      TermList binding = transform(sd->getBinding());
-      TermList body = transform(*term->nthArgument(0));
-
-      if ((binding == sd->getBinding() && (body == *term->nthArgument(0)))) {
-        return term;
-      } else {
-        return Term::createLet(sd->getFunctor(), sd->getVariables(), binding, body, sd->getSort());
-      }
-    }
-
-    default:
-      ASSERTION_VIOLATION_REP(term->toString());
-  }
-}
-
-TermList TermTransformerTransformTransformed::transform(TermList ts)
-{
-  CALL("TermTransformerTransformTransformed::transform(TermList ts)");
-
-  if (ts.isVar()) {
-    return transformSubterm(ts);
-  } else {
-    Term* transformed = transform(ts.term());
-    if (transformed != ts.term()) {
-      return TermList(transformed);
-    } else {
-      return ts;
-    }
-  }
-}
-
 Formula* TermTransformerTransformTransformed::transform(Formula* f)
 {
   CALL("TermTransformerTransformTransformed::transform(Formula* f)");
