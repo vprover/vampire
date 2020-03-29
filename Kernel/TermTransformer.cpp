@@ -175,7 +175,7 @@ Term* TermTransformer::transformSpecial(Term* term)
     case Term::SF_FORMULA: {
       Formula* formula = transform(sd->getFormula());
 
-      if (formula != sd->getFormula()) {
+      if (formula == sd->getFormula()) {
         return term;
       } else {
         return Term::createFormula(formula);
