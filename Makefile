@@ -44,7 +44,8 @@ MINISAT_FLAGS = $(MINISAT_DBG_FLAGS)
 
 #XFLAGS = -g -DVDEBUG=1 -DVTEST=1 -DCHECK_LEAKS=1 # full debugging + testing
 #XFLAGS = $(DBG_FLAGS)
-XFLAGS = -Wfatal-errors -g -DVDEBUG=1 -DCHECK_LEAKS=0 -DUSE_SYSTEM_ALLOCATION=1 -DGNUMP=$(GNUMPF)# standard debugging only
+# XFLAGS = -Wfatal-errors -g -DVDEBUG=1 -DCHECK_LEAKS=0 -DUSE_SYSTEM_ALLOCATION=1 -DGNUMP=$(GNUMPF)# standard debugging only
+XFLAGS = -Wfatal-errors -g -DVDEBUG=1 -DCHECK_LEAKS=0 -DUSE_SYSTEM_ALLOCATION=1 -DGNUMP=$(GNUMPF) -fsanitize=address -fno-omit-frame-pointer# standard debugging only
 #XFLAGS = -g -DVDEBUG=1 -DCHECK_LEAKS=0 -DUSE_SYSTEM_ALLOCATION=1 -DVALGRIND=1 -DGNUMP=$(GNUMPF)# memory leaks
 #XFLAGS = $(REL_FLAGS)
 
