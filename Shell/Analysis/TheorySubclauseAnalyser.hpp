@@ -29,9 +29,13 @@ class AbsTerm;
 struct rect_map;
 
 class AbsLiteral;
+
 AbsLiteral& create_abs_lit(bool positive, unsigned functor, vvec<refw<AbsTerm>> terms);
+void normalize_absliteral(AbsLiteral& lit);
+bool equal_absliteral(const AbsLiteral&,const AbsLiteral&);
 
 class ACTerm;
+class AbsVarTerm;
 class AbsTerm {
 public:
   static AbsTerm &from(Kernel::TermList &t);
@@ -40,12 +44,14 @@ public:
 
   virtual void normalize() = 0;
   virtual void rectify(rect_map& r) = 0;
+  void rectify();
   virtual void distributeLeft() = 0;
   virtual void distributeRight() = 0;
   virtual void mergeAssoc() = 0;
   virtual void sortCommut() = 0;
   virtual void pushMinus() = 0;
   virtual void write(ostream &out) const = 0;
+
   using on_unsigned_t = void (*)(const ACTerm &, vvec<unsigned> &);
   /** adds all variables contained in this term to @b v, ordered as they occur
    * in the term.
@@ -104,7 +110,18 @@ enum CmpResult {
     }                                                                          \
   };                                                                           \
                                                                                \
-  struct LitEquiv##i;                                                          \
+  struct LitEquiv##i { \
+      static void dump(std::ostream& out, const AbsLiteral&) ; \
+      static void dumpNumberConstant(std::ostream& out, const ACTerm&) ; \
+      static void dumpUninterpreted(std::ostream& out, const ACTerm&) ; \
+      static bool compare(AbsLiteral const&, AbsLiteral const&) ; \
+    using less = struct {                                                      \
+      bool operator()(const rc<AbsLiteral> &lhs,                               \
+                      const rc<AbsLiteral> &rhs) const {\
+        return LitEquiv##i::compare(*lhs.get(),*rhs.get()) == CMP_LESS;\
+      }                        \
+    };                                                                         \
+  };                                                          \
   template <> struct EquivalenceClass<LitEquiv##i> {                           \
     using less = struct {                                                      \
       bool operator()(const rc<AbsLiteral> &lhs,                               \
