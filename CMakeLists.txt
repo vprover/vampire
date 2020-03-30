@@ -116,6 +116,7 @@ source_group(minisat_source_files FILES ${VAMPIRE_MINISAT_SOURCES})
 
 set(VAMPIRE_DEBUG_SOURCES
     Debug/Assertion.cpp
+    Debug/PrintDebug.hpp
     Debug/RuntimeStatistics.cpp
     Debug/Tracer.cpp    
     Debug/Assertion.hpp
