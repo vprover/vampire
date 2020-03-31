@@ -101,20 +101,21 @@ enum CmpResult {
 };
 #define EQ_CLASSES 1, 2, 3, 4
 
+// #define DECLARE_EQ_CLASS(i)                                                    \
+//   template <class A> struct cmp##i {                                           \
+//     CmpResult operator()(const A &lhs, const A &rhs) const;                    \
+//                                                                                \
+//     template <class B> CmpResult cmp(const B &lhs, const B &rhs) const {       \
+//       return cmp##i<B>{}(lhs, rhs);                                            \
+//     }                                                                          \
+//   };                                                                           \
+
 #define DECLARE_EQ_CLASS(i)                                                    \
-  template <class A> struct cmp##i {                                           \
-    CmpResult operator()(const A &lhs, const A &rhs) const;                    \
-                                                                               \
-    template <class B> CmpResult cmp(const B &lhs, const B &rhs) const {       \
-      return cmp##i<B>{}(lhs, rhs);                                            \
-    }                                                                          \
-  };                                                                           \
-                                                                               \
   struct LitEquiv##i { \
       static void dump(std::ostream& out, const AbsLiteral&) ; \
-      static void dumpNumberConstant(std::ostream& out, const ACTerm&) ; \
-      static void dumpUninterpreted(std::ostream& out, const ACTerm&) ; \
-      static bool compare(AbsLiteral const&, AbsLiteral const&) ; \
+      static void dumpNumberConstant(std::ostream& out, const ACTerm&, rect_map&) ; \
+      static void dumpUninterpreted(std::ostream& out, const ACTerm&, rect_map&) ; \
+      static CmpResult compare(AbsLiteral const&, AbsLiteral const&) ; \
     using less = struct {                                                      \
       bool operator()(const rc<AbsLiteral> &lhs,                               \
                       const rc<AbsLiteral> &rhs) const {\
@@ -158,8 +159,10 @@ public:
   void dumpStats(std::ostream &out) const;
 
 private:
-  using literals_type = Container<rc<AbsLiteral>, Equality<rc<AbsLiteral>>>;
-  literals_type _literals;
+  // using literals_type = Container<rc<AbsLiteral>, Equality<rc<AbsLiteral>>>;
+  // literals_type _literals;
+
+  int _nothing;
 
 #define DECLARE_EQ_CLAS_MEMBERS(i)                                             \
   using equiv_t_##i = Container<rc<AbsLiteral>, LitEquiv##i>;                  \
