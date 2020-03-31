@@ -47,28 +47,28 @@ public:
   }
 };
 
-template <class A, class... Cmps> struct gen_comparator {
+template <class A, class Config> struct gen_comparator {
   CmpResult operator()(const A &l, const A &r, rect_maps &map) const;
 
   template <class B>
   CmpResult cmp(const B &lhs, const B &rhs, rect_maps &map) const {
-    return gen_comparator<B, Cmps...>{}(lhs, rhs, map);
+    return gen_comparator<B, Config>{}(lhs, rhs, map);
   }
 };
 
-template <class A, class... Cs> struct state_wrapped_comparator_std {
+template <class A, class Config> struct state_wrapped_comparator_std {
   rect_maps &map;
   state_wrapped_comparator_std(rect_maps& map) : map(map) {}
   bool operator()(A const& l, A const& r) {
-    return gen_comparator<A, Cs...>{}(l, r, map) == CMP_LESS;
+    return gen_comparator<A, Config>{}(l, r, map) == CMP_LESS;
   }
 };
 
-template <class... Cs> struct state_wrapped_comparator_poly {
+template <class Config> struct state_wrapped_comparator_poly {
   rect_maps &map;
   state_wrapped_comparator_poly(rect_maps &map) : map(map) {}
   template <class B> CmpResult cmp(const B &l, const B &r) {
-    return gen_comparator<B, Cs...>{}(l, r, map);
+    return gen_comparator<B, Config>{}(l, r, map);
   }
 };
 
@@ -86,7 +86,7 @@ template <class A> CmpResult compare_ground(A l, A r) {
   return CMP_EQUIV;
 }
 
-template <class A, class... Cs> struct gen_comparator<vvec<A>, Cs...> {
+template <class A, class Config> struct gen_comparator<vvec<A>, Config> {
   CmpResult operator()(const vvec<A> &lhs, const vvec<A> &rhs,
                        rect_maps &map) const {
     auto li = lhs.begin();
@@ -94,7 +94,7 @@ template <class A, class... Cs> struct gen_comparator<vvec<A>, Cs...> {
     while (li != lhs.end() && ri != rhs.end()) {
       auto l = *li;
       auto r = *ri;
-      auto c = gen_comparator<A, Cs...>{}(l, r, map);
+      auto c = gen_comparator<A, Config>{}(l, r, map);
       switch (c) {
       case CMP_NONE:
       case CMP_LESS:
@@ -116,21 +116,21 @@ template <class A, class... Cs> struct gen_comparator<vvec<A>, Cs...> {
   }
 };
 
-template <class A, class... Cs> struct gen_comparator<refw<A>, Cs...> {
+template <class A, class Config> struct gen_comparator<refw<A>, Config> {
   CmpResult operator()(const refw<A> &lhs, const refw<A> &rhs,
                        rect_maps &map) const {
     const A &l = lhs.get();
     const A &r = rhs.get();
-    return gen_comparator<A, Cs...>{}(l, r, map);
+    return gen_comparator<A, Config>{}(l, r, map);
   }
 };
 
-template <class A, class... Cs> struct gen_comparator<rc<A>, Cs...> {
+template <class A, class Config> struct gen_comparator<rc<A>, Config> {
   CmpResult operator()(const rc<A> &lhs, const rc<A> &rhs,
                        rect_maps &map) const {
     const A &l = *lhs.get();
     const A &r = *rhs.get();
-    return gen_comparator<A, Cs...>{}(l, r, map);
+    return gen_comparator<A, Config>{}(l, r, map);
   }
 };
 
@@ -236,7 +236,7 @@ public:
     return symbol().getInterpretation();
   }
 
-  template <class A, class... Cmps> friend struct gen_comparator;
+  template <class A, class Config> friend struct gen_comparator;
   OPERATORS(AbsSymbol, x.functor)
 };
 
@@ -259,7 +259,7 @@ public:
 
   bool isEquality() const { return interpret() == Interpretation::EQUAL; }
 
-  template <class A, class... Cmps> friend struct gen_comparator;
+  template <class A, class Config> friend struct gen_comparator;
   OPERATORS(Predicate, x.functor)
 };
 
@@ -296,7 +296,7 @@ public:
 
   bool isUnaryMinus() const { return Theory::isUnaryMinus(this->interpret()); }
 
-  template <class A, class... Cmps> friend struct gen_comparator;
+  template <class A, class Config> friend struct gen_comparator;
   OPERATORS(Function, x.functor)
 };
 
@@ -328,7 +328,7 @@ public:
   void vars(vvec<unsigned> &v, on_unsigned_t onUninterpreted) const override {
     v.push_back(_var);
   }
-  template <class A, class... Cmps> friend struct gen_comparator;
+  template <class A, class Config> friend struct gen_comparator;
   OPERATORS(AbsVarTerm, x._var)
   friend class CmpVarsMatch;
   friend class CmpVarsEqual;
@@ -337,7 +337,6 @@ public:
 class ACTerm : public AbsTerm {
 public:
   CLASS_NAME(ACTerm);
-
   USE_ALLOCATOR(ACTerm);
 
 private:
@@ -531,7 +530,7 @@ public:
 
 public:
   virtual void write(ostream &out) const override;  
-  template <class A, class... Cmps> friend struct gen_comparator;
+  template <class A, class Config> friend struct gen_comparator;
   OPERATORS(ACTerm, !x.isInterpreted(), !x.isNumberConstant(),  x._fun, x._args)
   template<class D>
   friend void gen_dump(ostream& out, const ACTerm& trm, rect_map& map);
@@ -599,7 +598,7 @@ struct AbsLiteral {
   AbsLiteral(bool positive, Predicate pred, vvec<refw<AbsTerm>> terms)
       : positive(positive), predicate(pred), terms(terms) {}
 
-  template <class A, class... Cmps> friend struct gen_comparator;
+  template <class A, class Config> friend struct gen_comparator;
 
   OPERATORS(AbsLiteral, x.predicate, x.positive, x.terms);
 };
@@ -663,26 +662,26 @@ ostream &operator<<(ostream &out, AbsTerm &t) {
   return out;
 }
 
-template <class... Cs> struct gen_comparator<AbsLiteral, Cs...> {
+template <class Config> struct gen_comparator<AbsLiteral, Config> {
   CmpResult operator()(const AbsLiteral &lhs, const AbsLiteral &rhs,
                        rect_maps &map) const {
 
 #define CLOSURE(t) , [](const AbsLiteral &x) { return t; }
 
-    return lex_cmp(state_wrapped_comparator_poly<Cs...>(map), lhs,
+    return lex_cmp(state_wrapped_comparator_poly<Config>(map), lhs,
                    rhs MAP(CLOSURE, x.positive, x.predicate, x.terms));
 
 #undef CLSR
   }
 };
 
-template <class... Cs> struct gen_comparator<AbsTerm, Cs...> {
+template <class Config> struct gen_comparator<AbsTerm, Config> {
   CmpResult operator()(const AbsTerm &lhs, const AbsTerm &rhs,
                        rect_maps &map) const {
 
     auto r =
-        subclass_cmp<state_wrapped_comparator_poly<Cs...>, AbsTerm, AbsVarTerm,
-                     ACTerm>(state_wrapped_comparator_poly<Cs...>(map), lhs, rhs);
+        subclass_cmp<state_wrapped_comparator_poly<Config>, AbsTerm, AbsVarTerm,
+                     ACTerm>(state_wrapped_comparator_poly<Config>(map), lhs, rhs);
     return r;
   }
 };
@@ -748,17 +747,17 @@ struct CmpUninterpretedVarsMatch {
   }
 };
 
-#define SUB_COMPARATORS CmpUninterpreted, CmpVars, CmpNumberConsts
+#define SUB_COMPARATORS Config
+// #define SUB_COMPARATORS CmpUninterpreted, CmpVars, CmpNumberConsts
 #define FINEST_COMPARATOR                                                      \
-  gen_comparator<AbsTerm, CmpUninterpretedVarsMatch, CmpVarsMatch,             \
-                 CmpNumberConstsNop> {}
+  gen_comparator<LitEquiv4::Config> {}
 
 #define APPLY_CMP_RECTIFIED_TY(l, r, ty)                                       \
-  gen_comparator<ty, SUB_COMPARATORS>{}(l, r, map)
+  gen_comparator<ty, Config>{}(l, r, map)
 #define APPLY_CMP_RECTIFIED(l, r) APPLY_CMP_RECTIFIED_TY(l, r, decltype(l))
 
 #define IMPL_GEN_COMPARATOR_GROUND(CLASS)                                      \
-  template <class... Cs> struct gen_comparator<CLASS, Cs...> {                 \
+  template <class Config> struct gen_comparator<CLASS, Config> {                 \
     CmpResult operator()(const CLASS &lhs, const CLASS &rhs,                   \
                          rect_maps &map) const {                               \
       return compare_ground<CLASS>(lhs, rhs);                                  \
@@ -768,10 +767,11 @@ struct CmpUninterpretedVarsMatch {
 IMPL_GEN_COMPARATOR_GROUND(bool)
 IMPL_GEN_COMPARATOR_GROUND(Predicate)
 IMPL_GEN_COMPARATOR_GROUND(Function)
+  // template <class CmpUninterpreted, class CmpVars, class CmpNumberConsts>      \
 
 #define IMPL_GEN_COMPARATOR(CLASS, ...)                                        \
-  template <class CmpUninterpreted, class CmpVars, class CmpNumberConsts>      \
-  struct gen_comparator<CLASS, SUB_COMPARATORS> {                              \
+  template <class Config>      \
+  struct gen_comparator<CLASS, Config> {                              \
     CmpResult operator()(const CLASS &lhs, const CLASS &rhs,                   \
                          rect_maps &map) const __VA_ARGS__                     \
   };
@@ -783,7 +783,7 @@ IMPL_GEN_COMPARATOR(ACTerm, {
 
   /* number constants are all equiv */
   if (l_unint && r_unint)
-    return CmpUninterpreted::cmp_uninterpreted(lhs, rhs, map);
+    return Config::CmpUninterpreted::cmp_uninterpreted(lhs, rhs, map);
   if (!l_unint && r_unint)
     return CMP_LESS;
   if (l_unint && !r_unint)
@@ -794,7 +794,7 @@ IMPL_GEN_COMPARATOR(ACTerm, {
 
   /* number constants are all equiv */
   if (l_num && r_num)
-    return CmpNumberConsts::compare_number_consts(lhs, rhs);
+    return Config::CmpNumberConsts::compare_number_consts(lhs, rhs);
   if (l_num && !r_num)
     return CMP_LESS;
   if (!l_num && r_num)
@@ -814,36 +814,34 @@ IMPL_GEN_COMPARATOR(ACTerm, {
   return APPLY_CMP_RECTIFIED(lhs._args, rhs._args);
 })
 
-IMPL_GEN_COMPARATOR(AbsVarTerm, { return CmpVars::cmp_vars(lhs, rhs, map); })
+IMPL_GEN_COMPARATOR(AbsVarTerm, { return Config::CmpVars::cmp_vars(lhs, rhs, map); })
 
-CmpResult LitEquiv2::compare(const AbsLiteral &lhs, const AbsLiteral &rhs) {
-
-  rect_maps map = rect_maps();
-
+struct LitEquiv2::Config {
   using CmpUninterpreted = CmpUninterpretedNop;
-  using CmpVars = CmpVarsNop;
-  using CmpNumberConsts = CmpNumberConstsNop;
-  return APPLY_CMP_RECTIFIED_TY(lhs, rhs, AbsLiteral);
-}
-
-CmpResult LitEquiv3::compare(const AbsLiteral &lhs, const AbsLiteral &rhs) {
-
-  rect_maps map = rect_maps();
-
+  using CmpVars          = CmpVarsNop;
+  using CmpNumberConsts  = CmpNumberConstsNop;
+};
+struct LitEquiv3::Config {
   using CmpUninterpreted = CmpUninterpretedNop;
-  using CmpVars = CmpVarsMatch;
-  using CmpNumberConsts = CmpNumberConstsNop;
-  return APPLY_CMP_RECTIFIED_TY(lhs, rhs, AbsLiteral);
-}
+  using CmpVars          = CmpVarsMatch;
+  using CmpNumberConsts  = CmpNumberConstsNop;
+};
 
-CmpResult LitEquiv4::compare(const AbsLiteral &lhs, const AbsLiteral &rhs) {
-  rect_maps map = rect_maps();
-
+struct LitEquiv4::Config {
   using CmpUninterpreted = CmpUninterpretedVarsMatch;
-  using CmpVars = CmpVarsMatch;
-  using CmpNumberConsts = CmpNumberConstsNop;
-  return APPLY_CMP_RECTIFIED_TY(lhs, rhs, AbsLiteral);
-}
+  using CmpVars          = CmpVarsMatch;
+  using CmpNumberConsts  = CmpNumberConstsNop;
+};
+
+#define __IMPL_LIT_EQUIV__COMPARE(i) \
+  CmpResult LitEquiv ## i::compare(const AbsLiteral &lhs, const AbsLiteral &rhs) { \
+   \
+    rect_maps map = rect_maps(); \
+    using Config = LitEquiv##i::Config; \
+    return APPLY_CMP_RECTIFIED_TY(lhs, rhs, AbsLiteral); \
+  } \
+
+MAP(__IMPL_LIT_EQUIV__COMPARE, 2,3,4)
 
 
 template<class D>
@@ -1050,9 +1048,13 @@ void AbsLiteral::normalize() {
   }
   if (predicate.isEquality()) {
     ASS(terms.size() == 2);
-    auto comparator = FINEST_COMPARATOR;
     auto rect = rect_maps();
-    if (comparator(terms[0], terms[1], rect) == CMP_GREATER) {
+    struct Config {
+      using CmpUninterpreted = CmpUninterpretedVarsMatch;
+      using CmpVars          = CmpVarsMatch;
+      using CmpNumberConsts  = CmpNumberConstsNop;
+    };
+    if (gen_comparator<AbsTerm, Config>{}(terms[0], terms[1], rect) == CMP_GREATER) {
       std::swap(terms[0], terms[1]);
     }
   }
@@ -1108,7 +1110,12 @@ void ACTerm::sortCommut() {
   if (_fun.isCommut()) {
     rect_maps map = rect_maps();
     // sort(_args.begin(), _args.end());
-    sort(_args.begin(), _args.end(), state_wrapped_comparator_std<AbsTerm, CmpUninterpretedVarsMatch, CmpVarsMatch, CmpNumberConstsNop>(map));
+    struct Config  {
+      using CmpUninterpreted = CmpUninterpretedVarsMatch;
+      using CmpVars = CmpVarsMatch;
+      using CmpNumberConsts = CmpNumberConstsNop;
+    };
+    sort(_args.begin(), _args.end(), state_wrapped_comparator_std<AbsTerm, Config>(map));
   }
 }
 void ACTerm::write(ostream& out) const {
