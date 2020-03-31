@@ -464,7 +464,7 @@ void AnswerLiteralManager::print()
       InterpretedLiteralEvaluator eval;
       unsigned p = env.signature->addFreshPredicate(1,"p");
       unsigned sort = SortHelper::getResultSort(aLit.term());
-      PredicateType* type = new PredicateType({sort});
+      OperatorType* type = OperatorType::getPredicateType({sort});
       env.signature->getPredicate(p)->setType(type);
       Literal* l = Literal::create1(p,true,aLit);
       Literal* res =0;
