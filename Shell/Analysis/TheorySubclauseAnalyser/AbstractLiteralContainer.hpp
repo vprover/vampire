@@ -14,13 +14,13 @@ template <class A> struct EquivalenceClass {
   // template <class B> void dump(std::ostream &out, const B &t);
 };
 
-template <class A> class Equality;
-
-template <class A> struct EquivalenceClass<Equality<A>> {
-  // using equal = std::equal_to<A>;
-  using less = std::less<A>;
-  // template <class B> void dump(std::ostream &out, const B &t) { out << t; }
-};
+// template <class A> class Equality;
+//
+// template <class A> struct EquivalenceClass<Equality<A>> {
+//   // using equal = std::equal_to<A>;
+//   using less = std::less<A>;
+//   // template <class B> void dump(std::ostream &out, const B &t) { out << t; }
+// };
 
 // template<class A>
 // class TupEq;
@@ -35,44 +35,44 @@ template <class A> struct EquivalenceClass<Equality<A>> {
 //     }
 // };
 
-template <class A> struct EquivalenceClass<Equality<rc<A>>> {
-  // struct _hash {
-  //     _hash() {}
-  //
-  //     ~_hash() {}
-  //
-  //     _hash(const _hash &other) {}
-  //
-  //     _hash(const _hash &&other) {}
-  //
-  //     size_t operator()(const rc<A> &self) const {
-  //         return self.get()->hash_code();
-  //     }
-  // };
-  //
-  // using hash = _hash;
-  using value_type = rc<A>;
-  using less = struct {
-    bool operator()(const rc<A> &lhs, const rc<A> &rhs) const {
-      return *lhs.get() < *rhs.get();
-    }
-  };
-  // template<class B>
-  // void dump(std::ostream& out, const rc<B>& t) {
-  //   EquivalenceClass<Equality<B>>::dump(out, *t.get());
-  // }
-  // using equal = struct {
-  //     bool operator()(const rc<A> &lhs, const rc<A> &rhs) const {
-  //         return *lhs.get() == *rhs.get();
-  //     }
-  // };
-};
+// template <class A> struct EquivalenceClass<Equality<rc<A>>> {
+//   // struct _hash {
+//   //     _hash() {}
+//   //
+//   //     ~_hash() {}
+//   //
+//   //     _hash(const _hash &other) {}
+//   //
+//   //     _hash(const _hash &&other) {}
+//   //
+//   //     size_t operator()(const rc<A> &self) const {
+//   //         return self.get()->hash_code();
+//   //     }
+//   // };
+//   //
+//   // using hash = _hash;
+//   using value_type = rc<A>;
+//   using less = struct {
+//     bool operator()(const rc<A> &lhs, const rc<A> &rhs) const {
+//       return *lhs.get() < *rhs.get();
+//     }
+//   };
+//   // template<class B>
+//   // void dump(std::ostream& out, const rc<B>& t) {
+//   //   EquivalenceClass<Equality<B>>::dump(out, *t.get());
+//   // }
+//   // using equal = struct {
+//   //     bool operator()(const rc<A> &lhs, const rc<A> &rhs) const {
+//   //         return *lhs.get() == *rhs.get();
+//   //     }
+//   // };
+// };
 
 template <class A, class Equiv> class Container {
   CLASS_NAME(Container)
   USE_ALLOCATOR(Container)
 
-  using _less = typename EquivalenceClass<Equiv>::less;
+  using _less = typename Equiv::less;
   using _set = set<A, std::less<A>, vamp_alloc<A>>;
   using m_set = map<A, size_t, _less, vamp_alloc<pair<const A, size_t>>>;
   // using m_set = map<A, _set, _less, vamp_alloc<pair<const A, _set>>>;
