@@ -31,7 +31,7 @@ public:
     static void deallocate(T *p, size_t n) {
         return Lib::Allocator::current->deallocateKnown((void *) p, n * sizeof(T)
 #if VDEBUG
-                , typeid(T).name()
+                , typeid(T).name() 
 #endif
         );
     }
@@ -64,7 +64,7 @@ public:
     DELEGATE(<)
 };
 template<class T, class Compare = std::less<T>> using vset = std::set<T, Compare, vamp_alloc<T>>;
-template<class K, class V, class Hash = hash<K>, class Pred = std::equal_to<K>> using vumap  = std::unordered_map<K, V, Hash,Pred,  vamp_alloc<std::pair<const K,V>>>;
+template<class K, class V, class Hash = std::hash<K>, class Pred = std::equal_to<K>> using vumap  = std::unordered_map<K, V, Hash,Pred,  vamp_alloc<std::pair<const K,V>>>;
 template<class K, class V, class Compare = std::less<K>> using vmap  = std::map<K, V, Compare, vamp_alloc<std::pair<const K, V > > >;
 
 #endif //VAMPIRE_VSTD_H
