@@ -34,6 +34,8 @@ using namespace Inferences;
 
 #define $leq(...)                                                              \
   (create_abs_lit(true, sym_leq, vvec<refw<AbsTerm>>{__VA_ARGS__})) // TODO
+#define $neq(...)                                                             \
+  (create_abs_lit(false, 0,  vvec<refw<AbsTerm>>{__VA_ARGS__})) // TODO
 #define $equal(...)                                                             \
   (create_abs_lit(true, 0,  vvec<refw<AbsTerm>>{__VA_ARGS__})) // TODO
 
@@ -86,13 +88,13 @@ TEST_FUN(test_cmp_basic_term){
 
     SETUP
 
-#define TO_TEST cmp2, cmp3, cmp4
+#define TO_TEST 2, 3, 4
 
-#define DO_TEST(cmp_i)                                                         \
+#define DO_TEST(i)                                                         \
   {                                                                            \
-    CALL(#cmp_i)                                                               \
+    CALL(#i)                                                               \
     auto eq = [=](AbsTerm &l, AbsTerm &r) -> bool {                            \
-      return cmp_i<AbsLiteral>{}($leq(l), $leq(r)) == CMP_EQUIV;               \
+      return LitEquiv##i::compare($leq(l), $leq(r)) == CMP_EQUIV;               \
     };                                                                         \
                                                                                \
     ASS(eq($sum(x1, $sum(x2, x3)), $sum(x1, $sum(x2, x3))))                \
@@ -105,17 +107,17 @@ TEST_FUN(test_cmp_basic_term){
 #undef TO_TEST
 }
 
-TEST_FUN(test_cmp_rectified_term){SETUP
+TEST_FUN(test_compare_rectified_term){SETUP
 
-#define TO_TEST cmp3, cmp4
+#define TO_TEST 3, 4
 
-#define DO_TEST(cmp_i)                                                         \
+#define DO_TEST(i)                                                         \
   {                                                                            \
-    CALL(#cmp_i)                                                               \
+    CALL(#i)                                                               \
     auto eq = [=](AbsTerm &l, AbsTerm &r) -> bool {                            \
       l.rectify();                                                             \
       r.rectify();                                                             \
-      return cmp_i<AbsLiteral>{}($leq(l), $leq(r)) == CMP_EQUIV;               \
+      return LitEquiv##i::compare($leq(l), $leq(r)) == CMP_EQUIV;               \
     };                                                                         \
                                                                                \
     ASS(eq($sum(x2, $times(x19, x7), x1), $sum(x5, $times(x3, x0), x2)))     \
@@ -127,15 +129,15 @@ TEST_FUN(test_cmp_rectified_term){SETUP
 #undef TO_TEST
 }
 
-TEST_FUN(test_cmp_rectified_literal){SETUP
+TEST_FUN(test_compare_rectified_literal){SETUP
 
-#define TO_TEST cmp3, cmp4
+#define TO_TEST 3, 4
 
-#define DO_TEST(cmp_i)                                                         \
+#define DO_TEST(i)                                                         \
   {                                                                            \
-    CALL(#cmp_i)                                                               \
+    CALL(#i)                                                               \
     auto eq = [=](const AbsLiteral &l, const AbsLiteral &r) -> bool {          \
-      return cmp_i<AbsLiteral>{}(l, r) == CMP_EQUIV;                           \
+      return LitEquiv##i::compare(l, r) == CMP_EQUIV;                           \
     };                                                                         \
                                                                                \
     ASS(!eq($leq($sum(x1, x2), x2), $leq($sum(x1, x2), x3)))                 \
@@ -147,11 +149,11 @@ TEST_FUN(test_cmp_rectified_literal){SETUP
 #undef TO_TEST
 }
 
-TEST_FUN(test_cmp3) {
+TEST_FUN(test_compare3) {
   SETUP
 
   auto eq = [=](AbsTerm &l, AbsTerm &r) -> bool {
-    return cmp3<AbsLiteral>{}($leq(l), $leq(r)) == CMP_EQUIV;
+    return LitEquiv3::compare($leq(l), $leq(r)) == CMP_EQUIV;
   };
 
   ASS(eq($sum(x2, f(x19), x1), $sum(x5, f(f(x19)), x2)))
@@ -161,11 +163,15 @@ TEST_FUN(test_cmp3) {
   ASS(eq(f(x1, x2, x2), g(x1, x2, x3)))
 }
 
-TEST_FUN(test_cmp4) {
+TEST_FUN(test_compare4) {
   SETUP
 
+  auto eqLit = [=](AbsLiteral const &l, AbsLiteral const &r) -> bool {
+    return LitEquiv4::compare(l, r) == CMP_EQUIV;
+  };
+
   auto eq = [=](AbsTerm &l, AbsTerm &r) -> bool {
-    return cmp4<AbsLiteral>{}($leq(l), $leq(r)) == CMP_EQUIV;
+    return LitEquiv4::compare($leq(l), $leq(r)) == CMP_EQUIV;
   };
 
   auto less = [=](AbsTerm &l, AbsTerm &r) -> bool {
@@ -173,7 +179,7 @@ TEST_FUN(test_cmp4) {
     l.rectify();
     r.normalize();
     r.rectify();
-    return cmp4<AbsLiteral>{}($leq(l), $leq(r)) == CMP_LESS;
+    return LitEquiv4::compare($leq(l), $leq(r)) == CMP_LESS;
   };
 
 
@@ -182,9 +188,7 @@ TEST_FUN(test_cmp4) {
   ASS(!eq($sum(x1, f(x19, f(x10)), x1), $sum(x5, f(f(x19)), x2)))
   ASS(!eq($sum(x2, x8, x1), $sum(x5, f(f(x19)), x2)))
   ASS(!eq(f(x1, x2, x2), g(x1, x2, x3)))
-
-  ASS(less($sum(x0), f(x0)))
-  ASS(less(n(-10), f(x0)))
+  ASS( eqLit( $neq(n(10), f(x7,g(x0, x7, x2))), $neq(n(-1), f(x2, x1, x3))))
 }
 
 TEST_FUN(test_normalize) {
