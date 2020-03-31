@@ -101,17 +101,9 @@ enum CmpResult {
 };
 #define EQ_CLASSES 1, 2, 3, 4
 
-// #define DECLARE_EQ_CLASS(i)                                                    \
-//   template <class A> struct cmp##i {                                           \
-//     CmpResult operator()(const A &lhs, const A &rhs) const;                    \
-//                                                                                \
-//     template <class B> CmpResult cmp(const B &lhs, const B &rhs) const {       \
-//       return cmp##i<B>{}(lhs, rhs);                                            \
-//     }                                                                          \
-//   };                                                                           \
-
 #define DECLARE_EQ_CLASS(i)                                                    \
   struct LitEquiv##i { \
+      struct Config; \
       static void dump(std::ostream& out, const AbsLiteral&) ; \
       static void dumpNumberConstant(std::ostream& out, const ACTerm&, rect_map&) ; \
       static void dumpUninterpreted(std::ostream& out, const ACTerm&, rect_map&) ; \
