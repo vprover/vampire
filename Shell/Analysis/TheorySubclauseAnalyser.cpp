@@ -18,6 +18,8 @@
 #include "Lib/macro_magic.h"
 #include "Shell/Analysis/TheorySubclauseAnalyser.hpp"
 
+#define _TAIL(x, ...) __VA_ARGS__
+
 using namespace Shell::Analysis;
 using namespace std;
 using namespace Kernel;
@@ -610,17 +612,9 @@ CmpResult LitEquiv1::compare(const AbsLiteral &lhs, const AbsLiteral &rhs) {
   return CMP_EQUIV;
 }
 
-// template <>
-// CmpResult cmp1<AbsLiteral>::operator()(const AbsLiteral &lhs,
-//                                        const AbsLiteral &rhs) const {
-//   return LitEquiv1::compare(lhs,rhs);
-// }
-
 void LitEquiv1::dump(ostream& out, const AbsLiteral& lit) {
   out << "*";
 }
-
-
 
 struct cmp_eq {
   template <class A> CmpResult cmp(const A &l, const A &r) {
@@ -644,7 +638,6 @@ struct cmp_less {
       return CMP_NONE;
   }
 };
-
 bool operator<(const AbsTerm &lhs, const AbsTerm &rhs) {
   auto r =
       subclass_cmp<cmp_less, AbsTerm, AbsVarTerm, ACTerm>(cmp_less{}, lhs, rhs);
@@ -661,6 +654,8 @@ ostream &operator<<(ostream &out, AbsTerm &t) {
   t.write(out);
   return out;
 }
+
+/* === comparisons based on equivalence classes  === */
 
 template <class Config> struct gen_comparator<AbsLiteral, Config> {
   CmpResult operator()(const AbsLiteral &lhs, const AbsLiteral &rhs,
@@ -685,68 +680,6 @@ template <class Config> struct gen_comparator<AbsTerm, Config> {
     return r;
   }
 };
-
-struct CmpNumberConstsNop {
-  static CmpResult compare_number_consts(const ACTerm &lhs, const ACTerm &rhs) {
-    return CMP_EQUIV;
-  }
-};
-
-struct CmpVarsNop {
-  static CmpResult cmp_vars(const AbsVarTerm &lhs, const AbsVarTerm &rhs,
-                            rect_maps &map) {
-    return CMP_EQUIV;
-  }
-};
-
-struct CmpVarsEqual {
-  static CmpResult cmp_vars(const AbsVarTerm &lhs, const AbsVarTerm &rhs,
-                            rect_maps &map) {
-    return compare_ground<unsigned>(lhs._var, rhs._var);
-  }
-};
-
-struct CmpVarsMatch {
-  static CmpResult cmp_vars(const AbsVarTerm &lhs, const AbsVarTerm &rhs,
-                            rect_maps &map) {
-    return compare_ground<unsigned>(map.l.get(lhs._var), map.r.get(rhs._var));
-  }
-};
-
-struct CmpUninterpretedNop {
-  static CmpResult cmp_uninterpreted(const ACTerm &lhs, const ACTerm &rhs,
-                                     rect_maps &map) {
-    return CMP_EQUIV;
-  }
-};
-
-struct CmpUninterpretedVarsMatch {
-  static CmpResult cmp_uninterpreted(const ACTerm &lhs, const ACTerm &rhs,
-                                     rect_maps &map) {
-    auto l = static_cast<const AbsTerm &>(lhs).var_set();
-    auto r = static_cast<const AbsTerm &>(rhs).var_set();
-    if (l.size() < r.size())
-      return CMP_LESS;
-    if (l.size() > r.size())
-      return CMP_GREATER;
-    auto li = l.begin();
-    auto ri = r.begin();
-
-    while (li != l.end()) {
-      auto vl = map.l.get(*li);
-      auto vr = map.r.get(*ri);
-      if (vl < vr)
-        return CMP_LESS;
-      if (vl > vr)
-        return CMP_GREATER;
-      ri++;
-      li++;
-    }
-
-    return CMP_EQUIV;
-  }
-};
-
 #define SUB_COMPARATORS Config
 // #define SUB_COMPARATORS CmpUninterpreted, CmpVars, CmpNumberConsts
 #define FINEST_COMPARATOR                                                      \
@@ -778,16 +711,18 @@ IMPL_GEN_COMPARATOR_GROUND(Function)
 
 IMPL_GEN_COMPARATOR(ACTerm, {
 
-  auto l_unint = !lhs.isInterpreted();
-  auto r_unint = !rhs.isInterpreted();
+  if (Config::CmpUninterpreted::special()) {
+    auto l_unint = !lhs.isInterpreted();
+    auto r_unint = !rhs.isInterpreted();
 
-  /* number constants are all equiv */
-  if (l_unint && r_unint)
-    return Config::CmpUninterpreted::cmp_uninterpreted(lhs, rhs, map);
-  if (!l_unint && r_unint)
-    return CMP_LESS;
-  if (l_unint && !r_unint)
-    return CMP_GREATER;
+    /* number constants are all equiv */
+    if (l_unint && r_unint)
+      return Config::CmpUninterpreted::cmp_uninterpreted(lhs, rhs, map);
+    if (!l_unint && r_unint)
+      return CMP_LESS;
+    if (l_unint && !r_unint)
+      return CMP_GREATER;
+  }
 
   auto l_num = lhs.isNumberConstant();
   auto r_num = rhs.isNumberConstant();
@@ -812,7 +747,144 @@ IMPL_GEN_COMPARATOR(ACTerm, {
 
   /* both interpreted terms */
   return APPLY_CMP_RECTIFIED(lhs._args, rhs._args);
+
 })
+
+/* === dumping out equivalence class represnentativs  === */
+
+template<class Range, class Dump>
+void dumpTuple(ostream& out, Range r, Dump d) {
+  out << "(";
+  auto i = r.begin();
+  auto end = r.end();
+  if (i != end) {
+    d(out, *i);
+    i++;
+    for (; i != end; i++) {
+      out << ", ";
+      d(out, *i);
+    }
+  }
+  out << ")";
+}
+
+template<class D>
+void gen_dump(ostream& out, const AbsLiteral& lit, rect_map& map){
+  out << (lit.positive ? " " : "!");
+  out << lit.predicate;
+  dumpTuple(out, lit.terms, [&](ostream& out, const AbsTerm& t) {gen_dump<D>(out, t, map);});
+}
+
+template<class D>
+void gen_dump(ostream& out, const AbsTerm& trm, rect_map& map) {
+      match(trm, 
+          [&](const ACTerm& t) { gen_dump<D>(out, t, map); },
+          [&](const AbsVarTerm& t) { t.write(out, map); } ); // TODO factor out
+}
+
+template<class D>
+void gen_dump(ostream& out, const ACTerm& trm, rect_map& map) {
+
+  if (D::CmpUninterpreted::special() && !trm.isInterpreted())
+    return D::CmpUninterpreted::dumpUninterpreted(out, trm, map);
+
+  if (trm.isNumberConstant())
+    return D::CmpNumberConsts::dumpNumberConstant(out, trm, map);
+
+  out << trm._fun;
+  if (trm._args.size() > 0) {
+    dumpTuple(out, trm._args, [&](ostream& out, const AbsTerm& t) {gen_dump<D>(out, t, map);});
+  }
+
+}
+
+struct CmpNumberConstsNop {
+  static CmpResult compare_number_consts(const ACTerm &lhs, const ACTerm &rhs) {
+    return CMP_EQUIV;
+  }
+  static void dumpNumberConstant(ostream& out, const ACTerm& lit, rect_map&) {
+    out << "c";
+  }
+};
+
+struct CmpVarsNop {
+  static CmpResult cmp_vars(const AbsVarTerm &lhs, const AbsVarTerm &rhs,
+                            rect_maps &map) {
+    return CMP_EQUIV;
+  }
+};
+
+struct CmpVarsEqual {
+  static CmpResult cmp_vars(const AbsVarTerm &lhs, const AbsVarTerm &rhs,
+                            rect_maps &map) {
+    return compare_ground<unsigned>(lhs._var, rhs._var);
+  }
+};
+
+struct CmpVarsMatch {
+  static CmpResult cmp_vars(const AbsVarTerm &lhs, const AbsVarTerm &rhs,
+                            rect_maps &map) {
+    return compare_ground<unsigned>(map.l.get(lhs._var), map.r.get(rhs._var));
+  }
+};
+
+struct CmpUninterpretedEquiv {
+  static bool special() { return false; }
+  static CmpResult cmp_uninterpreted(const ACTerm &lhs, const ACTerm &rhs,
+                                     rect_maps &map) {
+    ASSERTION_VIOLATION
+  }
+  static void dumpUninterpreted(ostream& out, const ACTerm& lit, rect_map& map) {
+    ASSERTION_VIOLATION
+  }
+};
+
+
+struct CmpUninterpretedVarsMatch {
+  static bool special() { return true; }
+  static CmpResult cmp_uninterpreted(const ACTerm &lhs, const ACTerm &rhs,
+                                     rect_maps &map) {
+    auto l = static_cast<const AbsTerm &>(lhs).var_set();
+    auto r = static_cast<const AbsTerm &>(rhs).var_set();
+    if (l.size() < r.size())
+      return CMP_LESS;
+    if (l.size() > r.size())
+      return CMP_GREATER;
+    auto li = l.begin();
+    auto ri = r.begin();
+
+    while (li != l.end()) {
+      auto vl = map.l.get(*li);
+      auto vr = map.r.get(*ri);
+      if (vl < vr)
+        return CMP_LESS;
+      if (vl > vr)
+        return CMP_GREATER;
+      ri++;
+      li++;
+    }
+
+    return CMP_EQUIV;
+  }
+  static void dumpUninterpreted(ostream& out, const ACTerm& lit, rect_map& map) {
+    out << "?";
+    dumpTuple(out, lit.var_set(), [&](ostream& out, unsigned v) { AbsVarTerm(v).write(out, map); } );
+  }
+};
+
+
+struct CmpUninterpretedNop {
+  static bool special() { return true; }
+  static CmpResult cmp_uninterpreted(const ACTerm &lhs, const ACTerm &rhs,
+                                     rect_maps &map) {
+    return CMP_EQUIV;
+  }
+  static void dumpUninterpreted(ostream& out, const ACTerm& lit, rect_map& map) {
+    out << "?(...)";
+  }
+};
+
+
 
 IMPL_GEN_COMPARATOR(AbsVarTerm, { return Config::CmpVars::cmp_vars(lhs, rhs, map); })
 
@@ -833,6 +905,12 @@ struct LitEquiv4::Config {
   using CmpNumberConsts  = CmpNumberConstsNop;
 };
 
+struct LitEquiv5::Config {
+  using CmpUninterpreted = CmpUninterpretedEquiv;
+  using CmpVars          = CmpVarsMatch;
+  using CmpNumberConsts  = CmpNumberConstsNop;
+};
+
 #define __IMPL_LIT_EQUIV__COMPARE(i) \
   CmpResult LitEquiv ## i::compare(const AbsLiteral &lhs, const AbsLiteral &rhs) { \
    \
@@ -840,69 +918,13 @@ struct LitEquiv4::Config {
     using Config = LitEquiv##i::Config; \
     return APPLY_CMP_RECTIFIED_TY(lhs, rhs, AbsLiteral); \
   } \
+  void LitEquiv ## i::dump(ostream& out, const AbsLiteral &lit) { \
+   \
+    auto map = rect_map(); \
+    gen_dump<LitEquiv##i::Config>(out, lit, map); \
+  } \
 
-MAP(__IMPL_LIT_EQUIV__COMPARE, 2,3,4)
-
-
-template<class D>
-void gen_dump(ostream& out, const AbsLiteral& lit, rect_map& map){
-  out << (lit.positive ? " " : "!");
-  out << lit.predicate;
-  dumpTuple(out, lit.terms, [&](ostream& out, const AbsTerm& t) {gen_dump<D>(out, t, map);});
-}
-
-template<class D>
-void gen_dump(ostream& out, const AbsTerm& trm, rect_map& map) {
-      match(trm, 
-          [&](const ACTerm& t) { gen_dump<D>(out, t, map); },
-          [&](const AbsVarTerm& t) { t.write(out, map); } );
-}
-
-template<class D>
-void gen_dump(ostream& out, const ACTerm& trm, rect_map& map) {
-
-  if (!trm.isInterpreted())
-    return D::dumpUninterpreted(out, trm, map);
-
-  if (trm.isNumberConstant())
-    return D::dumpNumberConstant(out, trm, map);
-
-  out << trm._fun;
-  if (trm._args.size() > 0) {
-    dumpTuple(out, trm._args, [&](ostream& out, const AbsTerm& t) {gen_dump<D>(out, t, map);});
-  }
-
-}
-
-void LitEquiv4::dump(ostream& out, const AbsLiteral& lit) {
-  auto map = rect_map();
-  gen_dump<LitEquiv4>(out, lit, map);
-}
-
-void LitEquiv4::dumpNumberConstant(ostream& out, const ACTerm& lit, rect_map&) {
-  out << "c";
-}
-
-template<class Range, class Dump>
-void dumpTuple(ostream& out, Range r, Dump d) {
-  out << "(";
-  auto i = r.begin();
-  auto end = r.end();
-  if (i != end) {
-    d(out, *i);
-    i++;
-    for (; i != end; i++) {
-      out << ", ";
-      d(out, *i);
-    }
-  }
-  out << ")";
-}
-
-void LitEquiv4::dumpUninterpreted(ostream& out, const ACTerm& lit, rect_map& map) {
-  out << "?";
-  dumpTuple(out, lit.var_set(), [&](ostream& out, unsigned v) { AbsVarTerm(v).write(out, map); } );
-}
+MAP(__IMPL_LIT_EQUIV__COMPARE, EQ_CLASSES)
 
 ostream &operator<<(ostream &out, const AbsLiteral &lit) {
   out << (lit.positive ? " " : "!");
@@ -953,9 +975,6 @@ ostream &operator<<(ostream &out, AbsTheoryClause const &t) {
 bool isTheoryTerm_L(const TermList &t) {
   if (t.isTerm()) {
     return interpretedFun(*t.term());
-    // Signature::Symbol& sym =
-    // *env.signature->getFunction(t.term()->functor()); return
-    // sym.interpreted();
   } else {
     ASS(t.isVar());
     return false;
@@ -991,7 +1010,7 @@ AbsTheoryClause &maxTheorySubclause(Clause const &c) {
 #define INIT_EQ_CLASS_MEMBERS(i) , _eq##i(equiv_t_##i{})
 
 TheorySubclauseAnalyser::TheorySubclauseAnalyser()
-    : _nothing(0) MAP(INIT_EQ_CLASS_MEMBERS, EQ_CLASSES) {}
+    : _nothing(0) MAP(INIT_EQ_CLASS_MEMBERS, EQ_CLASSES_) {}
 
 #undef INIT_EQ_CLASS_MEMBERS
 
@@ -1006,7 +1025,7 @@ void TheorySubclauseAnalyser::addClause(Clause &c) {
       l->normalize();
       l->rectify();
 #define INSERT(i) _eq##i.insert(l);
-      MAP(INSERT, EQ_CLASSES)
+      MAP(INSERT, EQ_CLASSES_)
 #undef INSERT
     }
   }
@@ -1016,6 +1035,7 @@ void TheorySubclauseAnalyser::addClause(Clause &c) {
 #define EQ_CLASS_NAME_2 "IgnoreVars_IgnoreUninterpreted"
 #define EQ_CLASS_NAME_3 "MatchVars_IgnoreUninterpreted"
 #define EQ_CLASS_NAME_4 "VarsMatch_UnintVarsMatch"
+#define EQ_CLASS_NAME_5 "VarsMatch_UnintMatch"
 
 void TheorySubclauseAnalyser::dumpStats(ostream &out) const {
 
@@ -1025,7 +1045,7 @@ void TheorySubclauseAnalyser::dumpStats(ostream &out) const {
   out << endl;
   out << endl;
 
-  MAP(DUMP, 1, 4)
+  MAP(DUMP, 1,4,5)
 #undef DUMP
 }
 
