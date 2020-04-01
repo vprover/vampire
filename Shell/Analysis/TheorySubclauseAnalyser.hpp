@@ -99,14 +99,13 @@ enum CmpResult {
   CMP_EQUIV,
   CMP_NONE,
 };
-#define EQ_CLASSES 1, 2, 3, 4
+#define EQ_CLASSES 2,3,4,5
+#define EQ_CLASSES_ 1,2,3,4,5
 
 #define DECLARE_EQ_CLASS(i)                                                    \
   struct LitEquiv##i { \
       struct Config; \
       static void dump(std::ostream& out, const AbsLiteral&) ; \
-      static void dumpNumberConstant(std::ostream& out, const ACTerm&, rect_map&) ; \
-      static void dumpUninterpreted(std::ostream& out, const ACTerm&, rect_map&) ; \
       static CmpResult compare(AbsLiteral const&, AbsLiteral const&) ; \
     using less = struct {                                                      \
       bool operator()(const rc<AbsLiteral> &lhs,                               \
@@ -122,7 +121,7 @@ enum CmpResult {
     };                                                                         \
   };
 
-MAP(DECLARE_EQ_CLASS, EQ_CLASSES)
+MAP(DECLARE_EQ_CLASS, EQ_CLASSES_)
 #undef DECLARE_EQ_CLASS
 
 using namespace Kernel;
@@ -160,7 +159,7 @@ private:
   using equiv_t_##i = Container<rc<AbsLiteral>, LitEquiv##i>;                  \
   equiv_t_##i _eq##i;
 
-  MAP(DECLARE_EQ_CLAS_MEMBERS, EQ_CLASSES)
+  MAP(DECLARE_EQ_CLAS_MEMBERS, EQ_CLASSES_)
 
 #undef DECLARE_EQ_CLAS_MEMBERS
 
