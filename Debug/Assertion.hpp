@@ -120,64 +120,74 @@ private:
 #define ASS(Cond)                                               \
   if (! (Cond)) {                                               \
     Debug::Assertion::violated(__FILE__,__LINE__,#Cond);		\
-    throw Debug::AssertionViolationException(__FILE__,__LINE__);	\
+    IGNORE_WEXCEPTIONS(throw Debug::AssertionViolationException(__FILE__,__LINE__);)	\
   }
 
 #define ASS_REP(Cond, ReportedVal)                                      \
   if (! (Cond)) {                                               \
     Debug::Assertion::violated(__FILE__,__LINE__,#Cond,ReportedVal,#ReportedVal); \
-    throw Debug::AssertionViolationException(__FILE__,__LINE__);	\
+    IGNORE_WEXCEPTIONS(throw Debug::AssertionViolationException(__FILE__,__LINE__);)	\
   }
 
 #define ASS_REP2(Cond, ReportedVal, ReportedVal2)               \
   if (! (Cond)) {                                               \
     Debug::Assertion::violated(__FILE__,__LINE__,#Cond,ReportedVal,#ReportedVal,ReportedVal2,#ReportedVal2); \
-    throw Debug::AssertionViolationException(__FILE__,__LINE__);	\
+    IGNORE_WEXCEPTIONS(throw Debug::AssertionViolationException(__FILE__,__LINE__);)	\
   }
 
 
 #define ALWAYS(Cond) ASS(Cond)
 #define NEVER(Cond) ASS(!(Cond))
 
+#define IGNORE_WEXCEPTIONS(...) \
+    _Pragma("GCC diagnostic push") \
+    _Pragma("GCC diagnostic ignored \"-Wexceptions\"") \
+    __VA_ARGS__ \
+    _Pragma("GCC diagnostic pop") \
+
+
 #define ASS_EQ(VAL1,VAL2)                                               \
   if (! ((VAL1)==(VAL2)) ) {                                               \
     Debug::Assertion::violatedEquality(__FILE__,__LINE__,#VAL1,#VAL2,VAL1,VAL2); \
-    throw Debug::AssertionViolationException(__FILE__,__LINE__);	\
-  }
+    IGNORE_WEXCEPTIONS( throw Debug::AssertionViolationException(__FILE__,__LINE__);)  \
+  } \
 
 #define ASS_NEQ(VAL1,VAL2)                                               \
   if (! ((VAL1)!=(VAL2)) ) {                                               \
     Debug::Assertion::violatedNonequality(__FILE__,__LINE__,#VAL1,#VAL2,VAL1,VAL2); \
-    throw Debug::AssertionViolationException(__FILE__,__LINE__);	\
-  }
+    IGNORE_WEXCEPTIONS(throw Debug::AssertionViolationException(__FILE__,__LINE__);)	\
+  } \
 
 #define ASS_STR_EQ(VAL1,VAL2)                                               \
   if (strcmp((VAL1),(VAL2)) ) {                                               \
     Debug::Assertion::violatedStrEquality(__FILE__,__LINE__,#VAL1,#VAL2,VAL1,VAL2); \
-    throw Debug::AssertionViolationException(__FILE__,__LINE__);	\
-  }
+    IGNORE_WEXCEPTIONS(throw Debug::AssertionViolationException(__FILE__,__LINE__);	)\
+  } \
 
 
 #define ASS_G(VAL1,VAL2)                                               \
   if (! ((VAL1)>(VAL2)) ) {                                               \
     Debug::Assertion::violatedComparison(__FILE__,__LINE__,#VAL1,#VAL2,VAL1,VAL2,true,true); \
-    throw Debug::AssertionViolationException(__FILE__,__LINE__);	\
-  }
+    IGNORE_WEXCEPTIONS(throw Debug::AssertionViolationException(__FILE__,__LINE__);)	\
+  } \
+
 #define ASS_L(VAL1,VAL2)                                               \
   if (! ((VAL1)<(VAL2)) ) {                                               \
     Debug::Assertion::violatedComparison(__FILE__,__LINE__,#VAL1,#VAL2,VAL1,VAL2,true,false); \
-    throw Debug::AssertionViolationException(__FILE__,__LINE__);	\
-  }
+    IGNORE_WEXCEPTIONS(throw Debug::AssertionViolationException(__FILE__,__LINE__);)	\
+  } \
+
 #define ASS_GE(VAL1,VAL2)                                               \
   if (! ((VAL1)>=(VAL2)) ) {                                               \
     Debug::Assertion::violatedComparison(__FILE__,__LINE__,#VAL1,#VAL2,VAL1,VAL2,false,true); \
-    throw Debug::AssertionViolationException(__FILE__,__LINE__);	\
-  }
+    IGNORE_WEXCEPTIONS(throw Debug::AssertionViolationException(__FILE__,__LINE__);)	\
+  } \
+
 #define ASS_LE(VAL1,VAL2)                                               \
   if (! ((VAL1)<=(VAL2)) ) {                                               \
     Debug::Assertion::violatedComparison(__FILE__,__LINE__,#VAL1,#VAL2,VAL1,VAL2,false,false); \
-    throw Debug::AssertionViolationException(__FILE__,__LINE__);	\
-  }
+    IGNORE_WEXCEPTIONS(throw Debug::AssertionViolationException(__FILE__,__LINE__);)	\
+  } \
 
 #define ASS_ALLOC_TYPE(PTR,TYPE)						\
   Debug::Assertion::checkType(__FILE__,__LINE__,(PTR),(TYPE), #PTR)
@@ -185,15 +195,17 @@ private:
 #define ASS_METHOD(OBJ,METHOD)							\
   if (! ((OBJ).METHOD) ) {							\
     Debug::Assertion::violatedMethod(__FILE__,__LINE__,(OBJ), #OBJ, #METHOD,"");\
-    throw Debug::AssertionViolationException(__FILE__,__LINE__);	\
+    IGNORE_WEXCEPTIONS(throw Debug::AssertionViolationException(__FILE__,__LINE__);)	\
   }
 
 #define ASSERT_VALID(obj) try { (obj).assertValid(); } catch(...) \
-  { Debug::Assertion::reportAssertValidException(__FILE__,__LINE__,#obj); throw; }
+  { Debug::Assertion::reportAssertValidException(__FILE__,__LINE__,#obj); \
+    IGNORE_WEXCEPTIONS(throw;) }
 
 #define ASSERTION_VIOLATION \
   Debug::Assertion::violated(__FILE__,__LINE__,"true");		\
-  throw Debug::AssertionViolationException(__FILE__,__LINE__);
+  IGNORE_WEXCEPTIONS(throw Debug::AssertionViolationException(__FILE__,__LINE__);) \
+
 #define ASSERTION_VIOLATION_REP(Val) \
   ASS_REP(false, Val)
 #define ASSERTION_VIOLATION_REP2(Val1,Val2) \
