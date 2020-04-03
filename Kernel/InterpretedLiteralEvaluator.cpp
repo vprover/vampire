@@ -1395,12 +1395,6 @@ bool InterpretedLiteralEvaluator::evaluate(Literal* lit, bool& isConstant, Liter
   return false;
 }
 
-bool InterpretedLiteralEvaluator::evaluate(Literal* lit, bool& isConstant, Literal*& resLit, bool& resConst) {
-  auto sideConditions = Stack<Literal*>();
-  auto result = evaluate(lit,isConstant,resLit,resConst,sideConditions);
-  ASS(sideConditions.isEmpty());
-  return result;
-}
 
 
 
