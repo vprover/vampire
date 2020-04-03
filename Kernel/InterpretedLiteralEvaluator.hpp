@@ -44,7 +44,7 @@ public:
   InterpretedLiteralEvaluator();
   ~InterpretedLiteralEvaluator();
 
-  bool evaluate(Literal* lit, bool& isConstant, Literal*& resLit, bool& resConst);
+  // TODO: `Literal*` -> `const Literal&` ?
   bool evaluate(Literal* lit, bool& isConstant, Literal*& resLit, bool& resConst,Stack<Literal*>& sideConditions);
 protected:
   class Evaluator;
