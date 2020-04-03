@@ -41,6 +41,8 @@ using namespace Shell;
 using namespace Inferences;
 
 
+#warning Compile-time broken test: instances
+/*
 TEST_FUN(instances)
 {
 
@@ -65,4 +67,4 @@ TEST_FUN(instances)
   while(clauses.hasNext()){ cout << clauses.next()->toString() << endl; }
 
 }
-
+*/

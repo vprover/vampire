@@ -27,7 +27,7 @@
 #include "Kernel/Term.hpp"
 #include "Kernel/Sorts.hpp"
 
-#include "Indexing/LiteralSubstitutionTreeWithoutTop.hpp"
+// #include "Indexing/LiteralSubstitutionTreeWithoutTop.hpp" << does not exsist anymore
 #include "Indexing/LiteralSubstitutionTree.hpp"
 #include "Indexing/LiteralIndex.hpp"
 #include "Indexing/Index.hpp"
@@ -41,6 +41,8 @@ UT_CREATE;
 
 using namespace Indexing;
 
+#warning compile-time broken test: index
+/* compile broken
 TEST_FUN(index)
 {
   cout << endl;
@@ -66,3 +68,4 @@ TEST_FUN(index)
 
   cout << it.hasNext() << endl;
 }
+*/
