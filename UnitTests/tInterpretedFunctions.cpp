@@ -246,6 +246,12 @@ TEST_FUN(literal_to_const)
       false
     );
 
+  // Interpret 13*a > 13*a
+  check_eval(
+      gt(add(mul(real(3),a()), x),add(mul(real(3), a()), x)),
+      false
+    );
+
   // Interpret 3*a > 13*a
   check_eval(
       gt(mul(real(3),a()),mul(real(13), a())),
