@@ -42,8 +42,6 @@ using namespace Shell;
 
 void interpret(Literal* lit)
 {
-  /* TODO: currently does not compile
-
   cout << endl;
   cout << "Start with: " << lit->toString() << endl;
 
@@ -61,13 +59,11 @@ void interpret(Literal* lit)
   }else{
      cout << "res not defined" << endl;
   }
-   */
 }
-/*
 // Interpret x*2=5
 TEST_FUN(interpFunc1)
 {
-  unsigned mult = theory->getFnNum(Theory::REAL_MULTIPLY);
+  unsigned mult = env.signature->addInterpretedFunction(Theory::Interpretation::REAL_MULTIPLY, "mul");
   TermList two(theory->representConstant(RealConstantType("2")));
   TermList five(theory->representConstant(RealConstantType("5")));
   TermList x(1,false);
@@ -80,7 +76,7 @@ TEST_FUN(interpFunc1)
 // Interpret 2.5*2=5
 TEST_FUN(interpFunc2)
 {
-  unsigned mult = theory->getFnNum(Theory::REAL_MULTIPLY);
+  unsigned mult = env.signature->addInterpretedFunction(Theory::Interpretation::REAL_MULTIPLY, "mul");
   TermList two(theory->representConstant(RealConstantType("2")));
   TermList twoHalf(theory->representConstant(RealConstantType("2.5")));
   TermList five(theory->representConstant(RealConstantType("5")));
@@ -93,12 +89,13 @@ TEST_FUN(interpFunc2)
 // Interpret 3*2 > 5
 TEST_FUN(interpFunc3)
 {
-  unsigned mult = theory->getFnNum(Theory::REAL_MULTIPLY);
+  unsigned mult = env.signature->addInterpretedFunction(Theory::Interpretation::REAL_MULTIPLY, "mul");
   TermList two(theory->representConstant(RealConstantType("2")));
   TermList three(theory->representConstant(RealConstantType("3")));
   TermList five(theory->representConstant(RealConstantType("5")));
   TermList multTwoThree(Term::create2(mult, two, three));
-  unsigned greater = theory->getPredNum(Theory::REAL_GREATER);
+  unsigned greater = env.signature->addInterpretedPredicate(Theory::Interpretation::REAL_GREATER, "gt");
+  // unsigned greater = theory->getPredNum(Theory::REAL_GREATER);
   Literal* lit = Literal::create2(greater,true, multTwoThree, five);
 
   interpret(lit);
@@ -108,12 +105,12 @@ TEST_FUN(interpFunc3)
 TEST_FUN(interpFunc4)
 {
 
-  unsigned m = theory->getFnNum(Theory::REAL_MULTIPLY);
+  unsigned m = env.signature->addInterpretedFunction(Theory::Interpretation::REAL_MULTIPLY, "mul");
   TermList two(theory->representConstant(RealConstantType("2")));
   TermList five(theory->representConstant(RealConstantType("5")));
 
   unsigned y = env.signature->addFunction("y",1);
-  env.signature->getFunction(y)->setType(new FunctionType(Sorts::SRT_REAL,Sorts::SRT_REAL));
+  env.signature->getFunction(y)->setType(OperatorType::getFunctionType({ Sorts::SRT_REAL },Sorts::SRT_REAL));
   TermList y5 = TermList(Term::create1(y,five));
 
   TermList mult(Term::create2(m, two, y5));
@@ -122,4 +119,3 @@ TEST_FUN(interpFunc4)
   interpret(lit);
 
 }
-*/

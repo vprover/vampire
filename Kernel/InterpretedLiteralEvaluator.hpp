@@ -44,6 +44,7 @@ public:
   InterpretedLiteralEvaluator();
   ~InterpretedLiteralEvaluator();
 
+  bool evaluate(Literal* lit, bool& isConstant, Literal*& resLit, bool& resConst);
   bool evaluate(Literal* lit, bool& isConstant, Literal*& resLit, bool& resConst,Stack<Literal*>& sideConditions);
 protected:
   class Evaluator;
