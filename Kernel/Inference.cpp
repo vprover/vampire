@@ -515,8 +515,8 @@ vstring Inference::ruleName(Rule rule)
     return "pi clausification";
   case HOL_EQUALITY_ELIMINATION:
     return "equality proxy clausification";
-  case BINARY_CONN_SHORT_CIRUCIT_EVAL:
-    return "short circuit evaluation";
+  case BOOL_SIMP:
+    return "boolean simplification";
   default:
     ASSERTION_VIOLATION;
     return "!UNKNOWN INFERENCE RULE!";

@@ -145,18 +145,6 @@ public:
     Kernel::Clause* simplify(Kernel::Clause* c);
   };
 
-
-  class ORIMPANDRemovalISE2
-    : public ImmediateSimplificationEngine
-  {
-
-  public:
-    CLASS_NAME(ORIMPANDRemovalISE2);
-    USE_ALLOCATOR(ORIMPANDRemovalISE2);
-    
-    Kernel::Clause* simplify(Kernel::Clause* c);
-  };
-
   /*
     Simplification rules:
 

@@ -36,6 +36,7 @@
 #include "Inferences/CombinatorDemodISE.hpp"
 #include "Inferences/CombinatorNormalisationISE.hpp"
 #include "Inferences/ProxyElimination.hpp"
+#include "Inferences/BoolSimp.hpp"
 //#include "Inferences/EquationalTautologyRemoval.hpp"
 
 //#include "InstGen/IGAlgorithm.hpp"
@@ -144,13 +145,14 @@ ImmediateSimplificationEngine* MainLoop::createISE(Problem& prb, const Options& 
     res->addFront(new CombinatorNormalisationISE());
   }
 
-  if(prb.hasLogicalProxy() && !env.options->addProxyAxioms()){
+  //if(prb.hasLogicalProxy() && !env.options->addProxyAxioms()){
     res->addFrontMany(new ProxyElimination::ProxyEliminationISE());
     res->addFront(new ProxyElimination::ORIMPANDRemovalISE());
     res->addFront(new ProxyElimination::NOTRemovalISE());   
     res->addFront(new ProxyElimination::EQUALSRemovalISE());   
     res->addFront(new ProxyElimination::PISIGMARemovalISE());    
-  }
+    res->addFront(new BoolSimp());
+  //}
 
   // Only add if there are distinct groups 
   if(prb.hasEquality() && env.signature->hasDistinctGroups()) {

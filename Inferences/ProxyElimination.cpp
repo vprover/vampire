@@ -347,92 +347,29 @@ Clause* ProxyElimination::replaceLit2(Clause *c, Literal *a, Literal *b, Inferen
 }
 
 Clause* ProxyElimination::ORIMPANDRemovalISE::simplify(Clause* c)
-  {
-    CALL("ORIMPANDRemovalISE::simplify");
-  
-    //cout << "Attempting to simplify" + c->toString() << endl;
-
-    int length = c->length();
-    for (int i = length - 1; i >= 0; i--) {
-      TermList lhs1, rhs1, lhs2, rhs2;
-      Literal *lit = (*c)[i];
-      if (appOfORorIMPorAND(lit, lhs1, rhs1, lhs2, rhs2)) {
-        Literal* newLit1 = Literal::createEquality(true, lhs1, rhs1, Term::boolSort());
-        Literal* newLit2 = Literal::createEquality(true, lhs2, rhs2, Term::boolSort());
-        Clause* res = replaceLit2(c, lit, newLit1, new Inference1(Inference::BINARY_CONN_ELIMINATION, c), newLit2);
-        res->setAge(c->age());
-        //env.statistics->holORIMPANDsimplifications++;
-        return res;
-      }
-    }
-
-    // no literals of the form app(app(vOR... or app(app(vIMP... were found
-    return c;
-  }
- 
-Clause* ProxyElimination::ORIMPANDRemovalISE2::simplify(Clause* c)
 {
-  CALL("ORIMPANDRemovalISE2::simplify");   
+  CALL("ORIMPANDRemovalISE::simplify");
 
-  TermList subterm;
-  TermList newTerm;
-  unsigned literalPosition = 0;
-  unsigned cLen = c->length();
-  Inference* inference = new Inference1(Inference::BINARY_CONN_SHORT_CIRUCIT_EVAL, c);
+  //cout << "Attempting to simplify" + c->toString() << endl;
 
-  while(literalPosition < cLen){
-    Literal *literal = (*c)[literalPosition];
-  
-    NonVariableNonTypeIterator nvi(literal);
-    while (nvi.hasNext()) {
-      subterm = nvi.next();
-
-      ct_ptr cnst = isHolConstantApp(subterm, 2);
-      if(cnst){
-       int val = isBoolValue(cnst->args[1]);
-       int val2 = isBoolValue(cnst->args[0]);
-       switch(cnst->prox){
-        case Signature::AND:
-          if(val == 0 || val2 == 0){
-            newTerm = TermList(Term::foolFalse());
-            goto substitution; 
-          }
-          break;
-        case Signature::OR:
-          if(val == 1 || val2 == 1){ 
-            newTerm = TermList(Term::foolTrue());
-            goto substitution; 
-          }
-          break;
-        case Signature::IMP:
-          if(val == 0){ 
-            newTerm = TermList(Term::foolTrue());
-            goto substitution; 
-          }
-          break;
-        default:
-          break;          
-       }         
-      }
+  int length = c->length();
+  for (int i = length - 1; i >= 0; i--) {
+    TermList lhs1, rhs1, lhs2, rhs2;
+    Literal *lit = (*c)[i];
+    if (appOfORorIMPorAND(lit, lhs1, rhs1, lhs2, rhs2)) {
+      Literal* newLit1 = Literal::createEquality(true, lhs1, rhs1, Term::boolSort());
+      Literal* newLit2 = Literal::createEquality(true, lhs2, rhs2, Term::boolSort());
+      Clause* res = replaceLit2(c, lit, newLit1, new Inference1(Inference::BINARY_CONN_ELIMINATION, c), newLit2);
+      res->setAge(c->age());
+      //env.statistics->holORIMPANDsimplifications++;
+      return res;
     }
-    literalPosition++;
   }
 
+  // no literals of the form app(app(vOR... or app(app(vIMP... were found
   return c;
-  
-  substitution:
-
-  Clause* conclusion = new(cLen) Clause(cLen, c->inputType(), inference);
-  conclusion->setAge(c->age());
-
-  // Copy the literals from the premise except for the one at `literalPosition`,
-  for (unsigned i = 0; i < cLen; i++) {
-    (*conclusion)[i] = i == literalPosition ? EqHelper::replace((*c)[i], subterm, newTerm) : (*c)[i];
-  }
-  //env.statistics->holORIMPANDshortCircuitEval++;
-  return conclusion;
-  
 }
+ 
  
 Clause* ProxyElimination::NOTRemovalISE::simplify(Clause* c)
 {
@@ -539,9 +476,25 @@ struct ProxyElimination::ProxyEliminationISE::ProxyEliminationIterator
   {
 
     CALL("ProxyEliminationISE::ProxyEliminationIterator");
-  
+
     ct_ptr cnst = isHolConstantApp(lit, 2);
-    if (cnst) {     
+    TermList litSort = SortHelper::getEqualityArgumentSort(lit);
+    TermList lhs = *lit->nthArgument(0);
+    TermList rhs = *lit->nthArgument(1);
+
+    if(litSort == Term::boolSort() && isBoolValue(lhs) == -1 && 
+      isBoolValue(rhs) == -1){
+      if(lit->polarity()){
+        _constant = Signature::IFF;
+      } else {
+        _constant = Signature::XOR;
+      }
+      _terms.push(lhs);
+      _terms.push(rhs);
+      _rhsIsTrue = true;
+      _rhsIsFalse = false;
+      _rhsIsTerm = false; 
+    } else if (cnst) {     
            
       TermList otherTermt = *lit->nthArgument(1 - cnst->onRight);
       
@@ -722,10 +675,8 @@ struct ProxyElimination::ProxyEliminationISE::ProxyEliminationIterator
       cout << "l1 is " + l1->toString() << endl;
       cout << "l2 is " + l2->toString() << endl;
     }*/
-
-    //cout << "result is " + res->toString() << endl;
     res->setAge(_clause->age()+1);
-    
+
     //env.statistics->holBINARYCONNgeneratingrules++;
     return res;
   }

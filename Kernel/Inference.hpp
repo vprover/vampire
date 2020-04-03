@@ -358,7 +358,7 @@ public:
 
     HOL_EQUALITY_ELIMINATION,
 
-    BINARY_CONN_SHORT_CIRUCIT_EVAL    
+    BOOL_SIMP    
   }; // class Inference::Rule
 
   explicit Inference(Rule r);

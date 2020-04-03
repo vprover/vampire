@@ -296,6 +296,7 @@ VINF_OBJ=Inferences/BackwardDemodulation.o\
          Inferences/TautologyDeletionISE.o\
          Inferences/URResolution.o\
          Inferences/ProxyElimination.o\
+         Inferences/BoolSimp.o\
 #         Inferences/EquationalTautologyRemoval.o\
 #	 Inferences/Instantiation.o\
 #         Inferences/ExtensionalityResolution.o\
