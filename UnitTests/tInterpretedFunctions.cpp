@@ -47,72 +47,88 @@ using namespace Shell;
 #define x  TermList::var(0)
 #define x1 TermList::var(1)
 
-TermList mul(TermList lhs, TermList rhs) {
-  return TermList(
-      Term::create2(env.signature->addInterpretedFunction(Theory::Interpretation::REAL_MULTIPLY, "mul"), 
-        lhs,
-        rhs));
+TermList _mul(TermList lhs, TermList rhs, Theory::Interpretation inter_mult) { 
+  return TermList( 
+      Term::create2(env.signature->addInterpretedFunction(inter_mult, "mul"),  
+        lhs, 
+        rhs)); 
+} 
+ 
+TermList _uminus(TermList lhs, Theory::Interpretation uminus) { 
+  return TermList( 
+      Term::create1(env.signature->addInterpretedFunction(uminus, "minus"),  
+        lhs)); 
+} 
+ 
+TermList _add(TermList lhs, TermList rhs, Theory::Interpretation add_inter) { 
+  return TermList( 
+      Term::create2(env.signature->addInterpretedFunction(add_inter, "$sum"),  
+        lhs, 
+        rhs)); 
+} 
+ 
+TermList _a(unsigned sort) { 
+  unsigned f = env.signature->addFunction("a",0); 
+  static bool set = false; 
+  if (!set) { 
+    env.signature->getFunction(f)->setType(OperatorType::getFunctionType({},sort)); 
+    set = true; 
+  } 
+  return TermList(Term::createConstant(f)); 
+} 
+ 
+TermList _f(TermList args, unsigned sort) { 
+  unsigned f = env.signature->addFunction("f",1); 
+  static bool set = false; 
+  if (!set) { 
+    env.signature->getFunction(f)->setType(OperatorType::getFunctionType({ sort }, sort)); 
+    set = true; 
+  } 
+  return TermList(Term::create1(f, args)); 
+} 
+ 
+TermList real(int i) { 
+  return TermList(theory->representConstant(RealConstantType(RationalConstantType(i)))); 
+} 
+ 
+TermList real(int a, int b) { 
+  return TermList(theory->representConstant(RealConstantType(RationalConstantType(a,b)))); 
+} 
+ 
+TermList var(int i) {  
+  return TermList::var(i);  
+} 
+
+Literal& _gt(TermList lhs, TermList rhs, Theory::Interpretation greater) { 
+  return *Literal::create2(env.signature->addInterpretedPredicate(greater, "gt"), 
+      true, lhs,rhs); 
+} 
+ 
+ 
+Literal& _eq(TermList lhs, TermList rhs, unsigned s) { 
+  return *Literal::createEquality(true, lhs, rhs, s); 
+} 
+ 
+Literal& _neq(TermList lhs, TermList rhs, unsigned s) { 
+  return *Literal::createEquality(false, lhs, rhs, s); 
 }
+#define _TERM_FUNCTIONS(SORT, GREATER, MULT, ADD, UMINUS)  \
+  _Pragma("GCC diagnostic push") \
+  _Pragma("GCC diagnostic ignored \"-Wunused\"") \
+    auto eq = [](TermList lhs, TermList rhs) -> Literal&  { return _eq(lhs,rhs, SORT); };  \
+    auto neq = [](TermList lhs, TermList rhs) -> Literal& {  return _neq(lhs,rhs,SORT); };  \
+    auto gt = [](TermList lhs, TermList rhs) -> Literal& {  return _gt(lhs,rhs,GREATER); };  \
+    auto a = []() -> TermList { return _a(SORT); }; \
+    auto mul = [](TermList lhs, TermList rhs) -> TermList {  return _mul(lhs,rhs,MULT); }; \
+    auto uminus = [](TermList lhs) -> TermList { return _uminus(lhs, UMINUS); }; \
+    auto add = [](TermList lhs, TermList rhs) -> TermList { return _add(lhs,rhs,ADD); }; \
+    auto f = [](TermList args) -> TermList { return _f(args, SORT); }; \
+  _Pragma("GCC diagnostic pop") \
 
-TermList uminus(TermList lhs) {
-  return TermList(
-      Term::create1(env.signature->addInterpretedFunction(Theory::Interpretation::REAL_UNARY_MINUS, "minus"), 
-        lhs));
-}
+#define TERM_FUNCTIONS(sort) \
+  _TERM_FUNCTIONS(Sorts::SRT_ ## sort, Theory::Interpretation::sort ## _GREATER, Theory::Interpretation:: sort ## _MULTIPLY, Theory::Interpretation::sort ## _PLUS, Theory::Interpretation::sort ## _UNARY_MINUS)
 
-TermList add(TermList lhs, TermList rhs) {
-  return TermList(
-      Term::create2(env.signature->addInterpretedFunction(Theory::Interpretation::REAL_PLUS, "$sum"), 
-        lhs,
-        rhs));
-}
-
-TermList a() {
-  unsigned f = env.signature->addFunction("a",0);
-  static bool set = false;
-  if (!set) {
-    env.signature->getFunction(f)->setType(OperatorType::getFunctionType({},Sorts::SRT_REAL));
-    set = true;
-  }
-  return TermList(Term::createConstant(f));
-}
-
-TermList f(TermList args) {
-  unsigned f = env.signature->addFunction("f",1);
-  static bool set = false;
-  if (!set) {
-    env.signature->getFunction(f)->setType(OperatorType::getFunctionType({ Sorts::SRT_REAL },Sorts::SRT_REAL));
-    set = true;
-  }
-  return TermList(Term::create1(f, args));
-}
-
-TermList real(int i) {
-  return TermList(theory->representConstant(RealConstantType(RationalConstantType(i))));
-}
-
-TermList real(int a, int b) {
-  return TermList(theory->representConstant(RealConstantType(RationalConstantType(a,b))));
-}
-
-TermList var(int i) { 
-  return TermList::var(i); 
-}
-
-
-Literal& gt(TermList lhs, TermList rhs) {
-  return *Literal::create2(env.signature->addInterpretedPredicate(Theory::Interpretation::REAL_GREATER, "gt"),
-      true, lhs,rhs);
-}
-
-Literal& eq(TermList lhs, TermList rhs) {
-  return *Literal::createEquality(true, lhs, rhs, Sorts::SRT_REAL);
-}
-
-Literal& neq(TermList lhs, TermList rhs) {
-  return *Literal::createEquality(false, lhs, rhs, Sorts::SRT_REAL);
-}
-
+ 
 namespace __Dumper {
   template<class... As>
   struct Dumper {
@@ -160,6 +176,7 @@ void check_eq(A l, A r, const char* msg, const Literal& input) {
 }
 
 void check_eval(Literal& orig, bool expected) {
+
   auto eval = InterpretedLiteralEvaluator();
 
   bool constant;
@@ -196,45 +213,54 @@ void check_eval(Literal& orig, const Literal& expected) {
 
 
 // Interpret x*2=5
-TEST_FUN(rebalance_var)
-{
+TEST_FUN(rebalance_var_1) { 
+  TERM_FUNCTIONS(REAL)
 
   check_eval(
       eq(mul(real(2), x), real(5)),
       eq(real(5,2), x)
     );
+}
+
+TEST_FUN(rebalance_var_2) { 
+  TERM_FUNCTIONS(REAL)
 
   check_eval(
       eq(add(real(2), x), real(4)),
       eq(real(2), x)
     );
+}
+
+TEST_FUN(rebalance_var_3) { 
+  TERM_FUNCTIONS(REAL)
 
   check_eval(
       eq(add(real(2), x), a()),
       eq(add(a(), real(-2)), x)
     );
 
-  // check_eval(
-  //     eq(add(real(2), b()), a()),
-  //     eq(add(a(), uminus(b())), x)
-  //   );
-
 }
 
-TEST_FUN(literal_to_const)
-{
+TEST_FUN(literal_to_const_1) {
+  TERM_FUNCTIONS(REAL)
 
   // Interpret 2.5*2=5
   check_eval(
       eq(mul(real(5,2), real(2)), real(5)),
       true 
     );
+}
 
-  // Interpret 2.5*2=5
+TEST_FUN(literal_to_const_2) {
+  TERM_FUNCTIONS(REAL)
   check_eval(
       eq(mul(real(5,2), real(2)), real(6)),
       false 
     );
+}
+
+TEST_FUN(literal_to_const_3) {
+  TERM_FUNCTIONS(REAL)
 
   // Interpret 3*2 > 5
   check_eval(
@@ -242,23 +268,38 @@ TEST_FUN(literal_to_const)
       true
     );
 
+}
+
+TEST_FUN(literal_to_const_4) {
+  TERM_FUNCTIONS(REAL)
   // Interpret 3*2 > 13
   check_eval(
       gt(mul(real(3),real(2)),real(13)),
       false
     );
+}
 
+TEST_FUN(literal_to_const_5) { 
+  TERM_FUNCTIONS(REAL)
   // Interpret 13*a > 13*a
   check_eval(
       gt(add(mul(real(3),a()), x),add(mul(real(3), a()), x)),
       false
     );
+}
+
+TEST_FUN(literal_to_const_6) {
+  TERM_FUNCTIONS(REAL)
 
   // Interpret 3*a > 13*a
   check_eval(
       gt(mul(real(3),a()),mul(real(13), a())),
       false
     );
+}
+
+TEST_FUN(literal_to_const_7) {
+  TERM_FUNCTIONS(REAL)
 
   // Interpret 18*a > 13*a
   check_eval(
@@ -268,9 +309,19 @@ TEST_FUN(literal_to_const)
 
 }
 
+// TEST_FUN(normalize_less)
+// {
+//
+//   check_eval(
+//       lt(real(5), mul(real(2),f(real(5)))),
+//       eq(f(real(5)), real(5,2))
+//     );
+//
+// }
+
 // Interpret 5.0 = 2.0 * y(5.0)
-TEST_FUN(rebalance_uninterpreted)
-{
+TEST_FUN(rebalance_uninterpreted) {
+  TERM_FUNCTIONS(REAL)
 
   check_eval(
       eq(real(5), mul(real(2),f(real(5)))),
@@ -280,13 +331,17 @@ TEST_FUN(rebalance_uninterpreted)
 }
 
 // Interpret x = -x
-TEST_FUN(minus_x_eq_x)
-{
+TEST_FUN(minus_x_eq_x) {
+  TERM_FUNCTIONS(REAL)
 
   check_eval(
       eq(x, uminus(x)),
       eq(x, real(0))
     );
+}
+
+TEST_FUN(minus_x_neq_x) {
+  TERM_FUNCTIONS(REAL)
 
   check_eval(
       neq(x, uminus(x)),
@@ -296,8 +351,8 @@ TEST_FUN(minus_x_eq_x)
 };
 
 // Interpret k*x = 0
-TEST_FUN(k_x_eq_0)
-{
+TEST_FUN(k_x_eq_0) {
+  TERM_FUNCTIONS(REAL)
 
   check_eval(
       eq(mul(real(5),x), real(0)),
@@ -312,8 +367,8 @@ TEST_FUN(k_x_eq_0)
 };
 
 // Interpret -x > x
-TEST_FUN(x_gt_minus_x)
-{
+TEST_FUN(x_gt_minus_x) {
+  TERM_FUNCTIONS(REAL)
 
   check_eval(
       gt(x, uminus(x)),
