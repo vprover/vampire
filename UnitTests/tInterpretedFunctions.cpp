@@ -193,22 +193,42 @@ void check_eq(A l, A r, const char* msg, const Literal& input) {
   }
 }
 
+#define __CHECK(op, is, expected, msg, test_case) \
+  if (!(( is ) op ( expected ))) { \
+    OUT << endl; \
+    OUT << msg << endl; \
+    OUT << "[   case   ] " << test_case << endl; \
+    OUT << "[    is    ] " << #is << " = " << is << endl; \
+    OUT << "[ expected ] " << #is << " " #op << " " << expected << endl; \
+    OUT << endl; \
+  } \
+
+#define CHECK_NE(...) \
+  __CHECK(!=, __VA_ARGS__)
+
+#define CHECK_EQ(...) \
+  __CHECK(==, __VA_ARGS__)
+
 void check_eval(Literal& orig, bool expected) {
 
   auto eval = InterpretedLiteralEvaluator();
 
   bool constant;
-  Literal* result = nullptr;
+  Literal* result = NULL;
   bool constantTrue;
 
   auto sideConditions = Stack<Literal*>();
   auto success = eval.evaluate(&orig,constant,result,constantTrue, sideConditions);
 
-  check(sideConditions.isEmpty(), "non-empty side condictions for ", orig.toString(), ": ", sideConditions);
-  check(success, "evaluation faliled for ", orig.toString());
-  check(result, "result not set for ", orig.toString());
-  check_eq(constant, true, "result not evaluated to constant", orig);
-  check_eq(constantTrue, expected, "result not evaluated to constant", orig);
+  CHECK_EQ(success, true, "evaluation failed", orig.toString());
+  CHECK_EQ(sideConditions.isEmpty(), true, "non-empty side condictions", orig.toString());
+  CHECK_NE(result, NULL, "result not set", orig.toString());
+  CHECK_EQ(constant, true, "result not evaluated to constant", orig.toString());
+  CHECK_EQ(constantTrue, expected, "result not evaluated to constant", orig.toString());
+}
+
+bool operator==(const Literal& lhs, const Literal& rhs) {
+  return Indexing::TermSharing::equals(&lhs, &rhs);
 }
 
 void check_eval(Literal& orig, const Literal& expected) {
@@ -221,11 +241,12 @@ void check_eval(Literal& orig, const Literal& expected) {
   auto sideConditions = Stack<Literal*>();
   auto success = eval.evaluate(&orig,constant,result,constantTrue, sideConditions);
 
-  check(sideConditions.isEmpty(), "non-empty side condictions", sideConditions);
-  check(success, "evaluation faliled");
-  check(result, "result not set");
-  check(Indexing::TermSharing::equals(result, &expected), "unexpected evaluation", 
-      orig.toString(), "\t->\t", result->toString(), "\tis not\t", expected.toString());
+  CHECK_EQ(success, true, "evaluation failed", orig.toString());
+  CHECK_EQ(sideConditions.isEmpty(), true, "non-empty side condictions", orig.toString());
+  CHECK_NE(result, NULL, "result not set", orig.toString());
+  CHECK_EQ(*result, expected, "unexpected evaluation result", orig.toString());
+  // check(Indexing::TermSharing::equals(result, &expected), "unexpected evaluation", 
+  //     orig.toString(), "\t->\t", result->toString(), "\tis not\t", expected.toString());
 
 }
 
