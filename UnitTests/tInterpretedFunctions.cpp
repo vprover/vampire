@@ -40,7 +40,9 @@ using namespace Lib;
 using namespace Kernel;
 using namespace Shell;
 
-#define TEST_FAIL cout << "FAIL" << endl;
+#define TEST_FAIL exit(-1);
+#define OUT cerr
+// #define TEST_FAIL OUT << "FAIL" << endl;
 
 #define x  TermList::var(0)
 #define x1 TermList::var(1)
@@ -125,7 +127,7 @@ namespace __Dumper {
   template<class A, class... As>
   struct Dumper<A, As...> {
     static void dump(A a, As... as) {
-      cout << a;
+      OUT << a;
       Dumper<As...>::dump(as...);
     }
   };
@@ -139,10 +141,10 @@ void dump_all(As... as) {
 template<class... As>
 void check(bool b, const char* msg, As... vs) {
   if (!b) {
-    cout << endl;
-    std::cout << msg << ": ";
-    dump_all(vs...);
-    cout << endl;
+    // OUT << endl;
+    // OUT << msg << ": ";
+    // dump_all(vs...);
+    // OUT << endl;
     TEST_FAIL
   }
 }
@@ -150,9 +152,9 @@ void check(bool b, const char* msg, As... vs) {
 template<class A>
 void check_eq(A l, A r, const char* msg, const Literal& input) {
   if (l != r) {
-    cout << endl;
-    std::cout << msg << ". input: " << input << "\t is: " << l << "\t expected: " << r;
-    cout << endl;
+    // OUT << endl;
+    // std::OUT << msg << ". input: " << input << "\t is: " << l << "\t expected: " << r;
+    // OUT << endl;
     TEST_FAIL
   }
 }
@@ -167,9 +169,9 @@ void check_eval(Literal& orig, bool expected) {
   auto sideConditions = Stack<Literal*>();
   auto success = eval.evaluate(&orig,constant,result,constantTrue, sideConditions);
 
-  check(sideConditions.isEmpty(), "non-empty side condictions", sideConditions);
-  check(success, "evaluation faliled");
-  check(result, "result not set");
+  check(sideConditions.isEmpty(), "non-empty side condictions for ", orig.toString(), ": ", sideConditions);
+  check(success, "evaluation faliled for ", orig.toString());
+  check(result, "result not set for ", orig.toString());
   check_eq(constant, true, "result not evaluated to constant", orig);
   check_eq(constantTrue, expected, "result not evaluated to constant", orig);
 }
