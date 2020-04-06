@@ -146,20 +146,36 @@ private:
 public:
   static UnitTesting* instance();
 
-  bool runTest(const char* unitId, ostream& out);
-  void runAllTests(ostream& out);
+  /** Returns the test unit with the given id, if it exists or NULL otherwise. */
+  TestUnit* get(const char* unitId);
+
+  /** Runs all tests of all existing test units
+   *
+   * returns true iff all tests were successfull.
+   */
+  bool runAllTests(ostream& out);
   void printTestNames(ostream& out);
 
   void add(TestUnit* tu)
   { TestUnitList::push(tu, _units); }
+
+  /** Runs all tests of the given test unit. 
+   *
+   * returns true iff all tests of the unit were successfull.
+   */
+  bool runUnit(TestUnit* unit, ostream& out);
+
 private:
   UnitTesting();
   ~UnitTesting();
 
-  TestUnit* get(const char* name);
 
-  void runTest(TestUnit* unit, ostream& out);
-  void spawnTest(TestProc proc);
+  /** Runs a test as a single process and awaits its termination.
+   * This is to provide isolation when running multiple tests in one go.
+   *
+   *  returns true iff the test process exited with status code 0
+   */
+  bool spawnTest(TestProc proc);
 
   TestUnitList* _units;
 };
