@@ -112,17 +112,26 @@ int main(int argc, char *argv[]) {
   readAndFilterGlobalOpts(args);
 
   try {
-
+    auto& tests = *UnitTesting::instance();
     if (args.size() == 1) {
-      UnitTesting::instance()->runAllTests(cout);
+      bool ok = UnitTesting::instance()->runAllTests(cout);
+      if (!ok) {
+        exit(-1);
+      }
     } else if (args.size() == 2 || args.size() == 3) {
       if (!strcmp(args[1], "-l")) {
-        UnitTesting::instance()->printTestNames(cout);
+        tests.printTestNames(cout);
       } else {
-        if (!UnitTesting::instance()->runTest(args[args.size() - 1], cout)) {
+        auto unit = tests.get(args[args.size() - 1]);
+        if (!unit) {
           cout << "Unknown test name: " << args[1] << endl;
           cout << "Run \"" << args[0]
                << " -l\" for the list of available tests." << endl;
+        } else {
+          bool ok = tests.runUnit(unit, cout);
+          if (!ok) {
+            exit(-1);
+          }
         }
       }
     } else {

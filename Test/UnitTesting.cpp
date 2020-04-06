@@ -93,17 +93,17 @@ TestUnit* UnitTesting::get(const char* unitId)
   return 0;
 }
 
-bool UnitTesting::runTest(const char* unitId, ostream& out)
-{
-  TestUnit* unit=get(unitId);
-  if(!unit) {
-    return false;
-  }
-  runTest(unit, out);
-  return true;
-}
+// TestUnit* UnitTesting::getUnit(const char* unitId)
+// {
+//   TestUnit* unit=get(unitId);
+//   if(!unit) {
+//     return false;
+//   }
+//   runUnit(unit, out);
+//   return true;
+// }
 
-void UnitTesting::runTest(TestUnit* unit, ostream& out)
+bool UnitTesting::runUnit(TestUnit* unit, ostream& out)
 {
   out<<"Testing unit "<<unit->id()<<":"<<endl;
 
@@ -111,24 +111,29 @@ void UnitTesting::runTest(TestUnit* unit, ostream& out)
   if(!uit.hasNext()) {
     out<<"No tests in this unit"<<endl;
   }
+  bool allOk = true;
   while(uit.hasNext()) {
     TestUnit::Test t=uit.next();
-    out<<"Test "<<t.name<<"... ";
+    out << "Running " << t.name << "... ";
     out.flush();
+    bool ok;
     {
       CALL(t.name);
-      spawnTest(t.proc);
+      ok = spawnTest(t.proc);
     }
-    out<<"OK"<<endl;
+    out << "\r" << ( ok ? "[  OK  ]" : "[ FAIL ]" ) << " " << t.name << "          " << endl;
+    allOk &= ok;
   }
+  return allOk;
 }
 
 /**
  * Run test in a different process and wait for its termination
- *
  * This is to provide isolation when running multiple tests in one go.
+ *
+ * returns true iff the test process exited with status code 0
  */
-void UnitTesting::spawnTest(TestProc proc)
+bool UnitTesting::spawnTest(TestProc proc)
 {
   pid_t fres = Multiprocessing::instance()->fork();
   if(!fres) {
@@ -137,20 +142,20 @@ void UnitTesting::spawnTest(TestProc proc)
   }
   int childRes;
   Multiprocessing::instance()->waitForParticularChildTermination(fres, childRes);
-  if(childRes!=0) {
-    exit(childRes);
-  }
+  return  childRes == 0;
 }
 
-void UnitTesting::runAllTests(ostream& out)
+bool UnitTesting::runAllTests(ostream& out)
 {
   TestUnitList::Iterator tuit(_units);
+  bool allOk = true;
   while(tuit.hasNext()) {
-    runTest(tuit.next(), out);
+    allOk &= runUnit(tuit.next(), out);
     if(tuit.hasNext()) {
       out<<endl;
     }
   }
+  return allOk;
 }
 
 void UnitTesting::printTestNames(ostream& out)
