@@ -32,7 +32,15 @@
 
 #include "InterpretedLiteralEvaluator.hpp"
 
-#define IDEBUG 0
+#define IDEBUG 1
+
+#if IDEBUG
+#define _DEBUG(...) 
+#define DEBUG(...) cout << __VA_ARGS__ << endl;
+#else 
+#define DEBUG(...)
+#define _DEBUG(...)
+#endif
 
 namespace Kernel
 {
@@ -66,21 +74,18 @@ public:
  * @author Giles
  * @since 06/12/18
  */
-template<class T>
+template<class Operator>
 class InterpretedLiteralEvaluator::ACFunEvaluator
    : public Evaluator
 {
 public:
-  CLASS_NAME(InterpretedLiteralEvaluator::ACFunEvaluator<T>);
-  USE_ALLOCATOR(InterpretedLiteralEvaluator::ACFunEvaluator<T>);
+CLASS_NAME(InterpretedLiteralEvaluator::ACFunEvaluator<Operator>);
+  USE_ALLOCATOR(InterpretedLiteralEvaluator::ACFunEvaluator<Operator>);
 
-  ACFunEvaluator(unsigned f, Evaluator* e, Term* id) : _fun(f),_eval(e),_identity(id) {
-    T check;
-    ASS(theory->tryInterpretConstant(_identity,check));
-  }
+  using ConstantType = typename Operator::ConstantType;
+
+  ACFunEvaluator() : _fun(env.signature->getInterpretingSymbol(Operator::interpreation)) { }
   unsigned _fun;
-  Evaluator* _eval;
-  Term* _identity;
 
   virtual bool canEvaluatePred(unsigned pred) { return false; }
   virtual bool tryEvaluatePred(Literal* trm, bool& res)  { return false; }
@@ -88,9 +93,7 @@ public:
   virtual bool canEvaluateFunc(unsigned func) { return func == _fun; }
 
   virtual bool tryEvaluateFunc(Term* trm, TermList& res) {
-#if IDEBUG
-     cout << "ACFunEvaluator::tryEvaluateFunc " << trm->toString() << endl;
-#endif
+     _DEBUG( "ACFunEvaluator::tryEvaluateFunc " << trm->toString() );
     ASS_EQ(trm->functor(),_fun);
     ASS_EQ(trm->arity(),2);
 
@@ -113,50 +116,32 @@ public:
 
     Stack<TermList*>::Iterator it(done);
     Stack<TermList*> keep;
-    Term* acc = _identity;
+    ConstantType acc = Operator::IDENTITY;
     int acc_cnt = 0;
     while(it.hasNext()){ 
       TermList* t = it.next();
-#if IDEBUG
-	cout << "considering " << t->toString() << endl;
-#endif
-      T thing;
-      if(t->isTerm() && theory->tryInterpretConstant(t->term(),thing)){
-        TermList tmp;
-        Term* evalThis = Term::create2(_fun,TermList(acc),*t);
-        bool evaluated = _eval->tryEvaluateFunc(evalThis,tmp);
-        // if it is not evaluated then there was no change, so copy the term 
-        if (!evaluated) {
-#if IDEBUG
-          cout << "evaluated is false with " << evalThis->toString() << endl;
-#endif
-          return false;
-        }
-        else{
-#if IDEBUG
-	cout << "evaluated to " << tmp.term()->toString() << endl;
-#endif
-          ASS(tmp.isTerm());
-          acc = tmp.term();
-          acc_cnt++;
-        }
+	_DEBUG( "considering " << t->toString() );
+        ConstantType c;
+      if(t->isTerm() && theory->tryInterpretConstant(t->term(),c)){
+        acc = Operator::groundEval(acc, c);
+	_DEBUG( "evaluated to " << tmp.term()->toString() );
+        acc_cnt++;
+      } else { 
+        keep.push(t); 
       }
-      else{ keep.push(t); }
     } 
     if(keep.length() == done.length() || 
        (keep.length() == done.length()-1 && acc_cnt==1)){ 
-#if IDEBUG
-	cout << "nothing was reduced" << endl;
-#endif
+	_DEBUG( "nothing was reduced" );
       return false; 
     }
  
     // a bit of a hack, we might need a pointer to this below, to have uniform treatment of all the TermLists
-    TermList accT(acc);
+    TermList accT(theory->representConstant(acc));
  
     // Now build a new term from kept and acc (if not identity)
     // We keep acc if it is identity and if there's no other terms
-    if(_identity!=acc || keep.length()==0) {
+    if(Operator::IDENTITY!=acc || keep.length()==0) {
       keep.push(&accT); // Safe because we just use this pointer locally
     }
     ASS(keep.length()>0);
@@ -169,7 +154,6 @@ public:
     return true;
   }
 };
-
 
 /**
  * Interpreted equality has to be treated specially. We do not have separate
@@ -227,7 +211,7 @@ class InterpretedLiteralEvaluator::EqualityEvaluator
        okay = true;
        res = true;
      } 
-#if IDEBUG
+#if I_DEBUG
       cout << "HERE with " << lit->nthArgument(0)->term() << " and " << lit->nthArgument(1)->term() << endl;
       cout << "HERE with " << lit->nthArgument(0)->term()->toString() << " and " << lit->nthArgument(1)->term()->toString() << endl;
       cout << "okay is " << okay << endl;
@@ -394,9 +378,7 @@ public:
     CALL("InterpretedLiteralEvaluator::tryEvaluateFunc");
     ASS(theory->isInterpretedFunction(trm));
 
-#if IDEBUG
-    cout << "try evaluate " << trm->toString() << endl;
-#endif
+    _DEBUG( "try evaluate " << trm->toString() );
 
     try {
       Interpretation itp = theory->interpretFunction(trm);
@@ -439,10 +421,7 @@ public:
           specialCase = false;
         }
         if(specialCase){
-#if IDEBUG
-	cout << "special case" << endl;
-
-#endif
+	_DEBUG( "special case" );
  
           //Special case where itp is division and arg2 is '1'
           //   Important... this is a non-symmetric case!
@@ -481,9 +460,7 @@ public:
     }
     catch(ArithmeticException)
     {
-#if IDEBUG
-       cout << "ArithmeticException" << endl;
-#endif
+       _DEBUG( "ArithmeticException" );
       return false;
     }
   }
@@ -936,6 +913,32 @@ protected:
 
 };
 
+template<Theory::Interpretation op>
+struct Operator;
+
+/** Creates an instance of struct Operatory<oper>, for the use in ACFunEvaluator. */
+#define IMPL_OPERATOR(oper, type, identity, eval) \
+  template<> struct Operator<oper> { \
+    const static Theory::Interpretation interpreation = oper; \
+    using ConstantType = type; \
+    const static type IDENTITY; \
+    static type groundEval(type l, type r) { return eval; } \
+    const static unsigned FUNCTOR; \
+  }; \
+  const type     Operator<oper>::IDENTITY = identity; \
+
+/* int opeators */
+IMPL_OPERATOR(Theory::INT_MULTIPLY, IntegerConstantType, IntegerConstantType(1), l * r)
+IMPL_OPERATOR(Theory::INT_PLUS, IntegerConstantType, IntegerConstantType(0), l + r)
+
+/* rational opeators */
+IMPL_OPERATOR(Theory::RAT_MULTIPLY, RationalConstantType, RationalConstantType(1), l * r)
+IMPL_OPERATOR(Theory::RAT_PLUS, RationalConstantType, RationalConstantType(0), l + r)
+
+/* real opeators */
+IMPL_OPERATOR(Theory::REAL_MULTIPLY, RealConstantType, RealConstantType(RationalConstantType(1)), l * r)
+IMPL_OPERATOR(Theory::REAL_PLUS, RealConstantType, RealConstantType(RationalConstantType(0)), l + r)
+
 ////////////////////////////////
 // InterpretedLiteralEvaluator
 //
@@ -958,32 +961,16 @@ InterpretedLiteralEvaluator::InterpretedLiteralEvaluator()
   if(env.options->useACeval()){
 
   // Special AC evaluators are added to be tried first for Plus and Multiply
-  _evals.push(new ACFunEvaluator<IntegerConstantType>(
-		env.signature->getInterpretingSymbol(Theory::INT_PLUS),
-		new IntEvaluator(),
-		theory->representConstant(IntegerConstantType(0)))); 
-  _evals.push(new ACFunEvaluator<IntegerConstantType>(
-                env.signature->getInterpretingSymbol(Theory::INT_MULTIPLY),
-                new IntEvaluator(),
-                theory->representConstant(IntegerConstantType(1))));
 
-  _evals.push(new ACFunEvaluator<RationalConstantType>(
-                env.signature->getInterpretingSymbol(Theory::RAT_PLUS),
-                new RatEvaluator(),
-                theory->representConstant(RationalConstantType(0))));
-  _evals.push(new ACFunEvaluator<RationalConstantType>(
-                env.signature->getInterpretingSymbol(Theory::RAT_MULTIPLY),
-                new RatEvaluator(),
-                theory->representConstant(RationalConstantType(1))));
+  _evals.push(new ACFunEvaluator<Operator<Theory::INT_PLUS>>()); 
 
-  _evals.push(new ACFunEvaluator<RealConstantType>(
-                env.signature->getInterpretingSymbol(Theory::REAL_PLUS),
-                new RealEvaluator(),
-                theory->representConstant(RealConstantType(RationalConstantType(0)))));
-  _evals.push(new ACFunEvaluator<RealConstantType>(
-                env.signature->getInterpretingSymbol(Theory::REAL_MULTIPLY),
-                new RealEvaluator(),
-                theory->representConstant(RealConstantType(RationalConstantType(1)))));
+  _evals.push(new ACFunEvaluator<Operator<Theory::INT_MULTIPLY>>());
+
+  _evals.push(new ACFunEvaluator<Operator<Theory::RAT_PLUS>>());
+  _evals.push(new ACFunEvaluator<Operator<Theory::RAT_MULTIPLY>> ());
+
+  _evals.push(new ACFunEvaluator<Operator<Theory::REAL_PLUS>> ());
+  _evals.push(new ACFunEvaluator<Operator<Theory::REAL_MULTIPLY>> ());
 
   }
 
@@ -1064,9 +1051,7 @@ bool InterpretedLiteralEvaluator::balance(Literal* lit,Literal*& resLit,Stack<Li
   CALL("InterpretedLiteralEvaluator::balance");
   ASS(balancable(lit));
 
-#if IDEBUG
-  cout << "try balance " << lit->toString() << endl;
-#endif
+  _DEBUG( "try balance " << lit->toString() );
 
   ASS(theory->isInterpretedPredicate(lit->functor()));
 
@@ -1329,16 +1314,12 @@ bool InterpretedLiteralEvaluator::evaluate(Literal* lit, bool& isConstant, Liter
 {
   CALL("InterpretedLiteralEvaluator::evaluate");
 
-#if IDEBUG
-  cout << "evaluate " << lit->toString() << endl;
-#endif
+  _DEBUG( "evaluate " << lit->toString() );
 
   // This tries to transform each subterm using tryEvaluateFunc (see transform Subterm below)
   resLit = TermTransformerTransformTransformed::transform(lit);
 
-#if IDEBUG
-  cout << "transformed " << resLit->toString() << endl;
-#endif
+  _DEBUG( "transformed " << resLit->toString() );
 
   // If it can be balanced we balance it
   // A predicate on constants will not be balancable
@@ -1348,9 +1329,6 @@ bool InterpretedLiteralEvaluator::evaluate(Literal* lit, bool& isConstant, Liter
       ASS(balance_result || resLit==new_resLit);
       resLit=new_resLit;
   }
-#if IDEBUG
-  else{ cout << "NOT" << endl; }
-#endif
 
   // If resLit contains variables the predicate cannot be interpreted
   VariableIterator vit(lit);
@@ -1368,9 +1346,7 @@ bool InterpretedLiteralEvaluator::evaluate(Literal* lit, bool& isConstant, Liter
       return (lit!=resLit);
     } 
   }
-#if IDEBUG
-  cout << resLit->toString()<< " is ground and interpreted, evaluating..." << endl;
-#endif
+  _DEBUG( resLit->toString()<< " is ground and interpreted, evaluating..." );
 
   unsigned pred = resLit->functor();
 
@@ -1378,16 +1354,12 @@ bool InterpretedLiteralEvaluator::evaluate(Literal* lit, bool& isConstant, Liter
   Evaluator* predEv = getPredEvaluator(pred);
   if (predEv) {
     if (predEv->tryEvaluatePred(resLit, resConst)) {
-#if IDEBUG
-        cout << "pred evaluated " << resConst << endl;
-#endif
+        _DEBUG( "pred evaluated " << resConst );
 	isConstant = true;
 	return true;
     }
   }
-#if IDEBUG
-	cout << "pred evaluation failed" << endl;
-#endif
+	_DEBUG( "pred evaluation failed" );
   if (resLit!=lit) {
     isConstant = false;
     return true;
@@ -1407,9 +1379,7 @@ TermList InterpretedLiteralEvaluator::transformSubterm(TermList trm)
 {
   CALL("InterpretedLiteralEvaluator::transformSubterm");
 
-#if IDEBUG
-  cout << "transformSubterm for " << trm.toString() << endl;
-#endif
+  _DEBUG( "transformSubterm for " << trm.toString() );
 
   if (!trm.isTerm()) { return trm; }
   Term* t = trm.term();
@@ -1441,6 +1411,8 @@ InterpretedLiteralEvaluator::Evaluator* InterpretedLiteralEvaluator::getFuncEval
 	while (evit.hasNext()) {
 	  Evaluator* ev = evit.next();
           // we only set the evaluator if it has not yet been set
+
+          // TODO: giles? _funEvaluators[i] is (probably) uninitialized if (i) USE_SYSTEM_ALLOCATION is defined (ii) a new page is allocated by the custom allocator (this internally calls malloc)
 	  if (_funEvaluators[i]==0 && ev->canEvaluateFunc(i)) {
 	    _funEvaluators[i] = ev;
 	  }
@@ -1466,6 +1438,7 @@ InterpretedLiteralEvaluator::Evaluator* InterpretedLiteralEvaluator::getPredEval
       while (evit.hasNext()) {
 	Evaluator* ev = evit.next();
 	if (ev->canEvaluatePred(i)) {
+          // TODO: giles? _predEvaluators[i] is (probably) uninitialized if (i) USE_SYSTEM_ALLOCATION is defined (ii) a new page is allocated by the custom allocator (this internally calls malloc)
 	  ASS_EQ(_predEvaluators[i], 0); //we should have only one evaluator for each predicate
 	  _predEvaluators[i] = ev;
 	}
