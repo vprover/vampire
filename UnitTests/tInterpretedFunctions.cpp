@@ -66,16 +66,20 @@ TermList _add(TermList lhs, TermList rhs, Theory::Interpretation add_inter) {
         lhs, 
         rhs)); 
 } 
- 
-TermList _a(unsigned sort) { 
-  unsigned f = env.signature->addFunction("a",0); 
-  static bool set = false; 
-  if (!set) { 
-    env.signature->getFunction(f)->setType(OperatorType::getFunctionType({},sort)); 
-    set = true; 
+
+#define constant(name) \
+  TermList _constant_ ## name (unsigned sort) {  \
+    unsigned f = env.signature->addFunction(#name,0);  \
+    static bool set = false;  \
+    if (!set) {  \
+      env.signature->getFunction(f)->setType(OperatorType::getFunctionType({},sort));  \
+      set = true;  \
+    }  \
+    return TermList(Term::createConstant(f));  \
   } 
-  return TermList(Term::createConstant(f)); 
-} 
+
+constant(a)
+constant(b)
  
 TermList _f(TermList args, unsigned sort) { 
   unsigned f = env.signature->addFunction("f",1); 
@@ -87,6 +91,14 @@ TermList _f(TermList args, unsigned sort) {
   return TermList(Term::create1(f, args)); 
 } 
  
+TermList num(int i) { 
+  return TermList(theory->representConstant(IntegerConstantType(i))); 
+} 
+ 
+TermList var(int i) {  
+  return TermList::var(i);  
+} 
+ 
 TermList real(int i) { 
   return TermList(theory->representConstant(RealConstantType(RationalConstantType(i)))); 
 } 
@@ -95,14 +107,15 @@ TermList real(int a, int b) {
   return TermList(theory->representConstant(RealConstantType(RationalConstantType(a,b)))); 
 } 
  
-TermList var(int i) {  
-  return TermList::var(i);  
+Literal& neg(Literal& l) { 
+  return *Literal::create(&l, false);
 } 
 
-Literal& _gt(TermList lhs, TermList rhs, Theory::Interpretation greater) { 
-  return *Literal::create2(env.signature->addInterpretedPredicate(greater, "gt"), 
-      true, lhs,rhs); 
-} 
+#define RELATION(name, inter) \
+  auto name = [](TermList lhs, TermList rhs) -> Literal&  {  \
+    return *Literal::create2(env.signature->addInterpretedPredicate(inter, #name),  \
+        true, lhs,rhs);  \
+  }; \
  
  
 Literal& _eq(TermList lhs, TermList rhs, unsigned s) { 
@@ -112,22 +125,27 @@ Literal& _eq(TermList lhs, TermList rhs, unsigned s) {
 Literal& _neq(TermList lhs, TermList rhs, unsigned s) { 
   return *Literal::createEquality(false, lhs, rhs, s); 
 }
-#define _TERM_FUNCTIONS(SORT, GREATER, MULT, ADD, UMINUS)  \
+
+
+#define TERM_FUNCTIONS(sort)  \
   _Pragma("GCC diagnostic push") \
   _Pragma("GCC diagnostic ignored \"-Wunused\"") \
-    auto eq = [](TermList lhs, TermList rhs) -> Literal&  { return _eq(lhs,rhs, SORT); };  \
-    auto neq = [](TermList lhs, TermList rhs) -> Literal& {  return _neq(lhs,rhs,SORT); };  \
-    auto gt = [](TermList lhs, TermList rhs) -> Literal& {  return _gt(lhs,rhs,GREATER); };  \
-    auto a = []() -> TermList { return _a(SORT); }; \
-    auto mul = [](TermList lhs, TermList rhs) -> TermList {  return _mul(lhs,rhs,MULT); }; \
-    auto uminus = [](TermList lhs) -> TermList { return _uminus(lhs, UMINUS); }; \
-    auto add = [](TermList lhs, TermList rhs) -> TermList { return _add(lhs,rhs,ADD); }; \
-    auto f = [](TermList args) -> TermList { return _f(args, SORT); }; \
+    auto eq = [](TermList lhs, TermList rhs) -> Literal&  { return _eq(lhs,rhs, _TO_SORT_ ## sort); };  \
+    auto neq = [](TermList lhs, TermList rhs) -> Literal& {  return _neq(lhs,rhs,_TO_SORT_ ## sort); };  \
+    auto a = []() -> TermList { return _constant_a(_TO_SORT_ ## sort); }; \
+    auto b = []() -> TermList { return _constant_b(_TO_SORT_ ## sort); }; \
+    auto mul = [](TermList lhs, TermList rhs) -> TermList {  return _mul(lhs,rhs,Theory::Interpretation:: sort ## _MULTIPLY); }; \
+    auto uminus = [](TermList lhs) -> TermList { return _uminus(lhs,  Theory::Interpretation::sort ## _UNARY_MINUS); }; \
+    auto add = [](TermList lhs, TermList rhs) -> TermList { return _add(lhs,rhs, Theory::Interpretation::sort ## _PLUS); }; \
+    auto f = [](TermList args) -> TermList { return _f(args, _TO_SORT_ ## sort); }; \
+    RELATION(gt, Theory::Interpretation::sort ## _GREATER)\
+    RELATION(geq, Theory::Interpretation::sort ## _GREATER_EQUAL)\
+    RELATION(lt, Theory::Interpretation::sort ## _LESS)\
+    RELATION(leq, Theory::Interpretation::sort ## _LESS_EQUAL)\
   _Pragma("GCC diagnostic pop") \
 
-#define TERM_FUNCTIONS(sort) \
-  _TERM_FUNCTIONS(Sorts::SRT_ ## sort, Theory::Interpretation::sort ## _GREATER, Theory::Interpretation:: sort ## _MULTIPLY, Theory::Interpretation::sort ## _PLUS, Theory::Interpretation::sort ## _UNARY_MINUS)
-
+#define _TO_SORT_INT Sorts::SRT_INTEGER
+#define _TO_SORT_REAL Sorts::SRT_REAL
  
 namespace __Dumper {
   template<class... As>
@@ -308,17 +326,6 @@ TEST_FUN(literal_to_const_7) {
     );
 
 }
-
-// TEST_FUN(normalize_less)
-// {
-//
-//   check_eval(
-//       lt(real(5), mul(real(2),f(real(5)))),
-//       eq(f(real(5)), real(5,2))
-//     );
-//
-// }
-
 // Interpret 5.0 = 2.0 * y(5.0)
 TEST_FUN(rebalance_uninterpreted) {
   TERM_FUNCTIONS(REAL)
@@ -380,3 +387,95 @@ TEST_FUN(x_gt_minus_x) {
       gt(real(0), x)
     );
 };
+
+TEST_FUN(normalize_less_1) {
+  TERM_FUNCTIONS(INT)
+  check_eval(
+      /* 5 < 2 * x */
+      lt(num(5), mul(num(2),x)),
+      /* 0 < 2 * x - 5 */
+      lt(num(0), add(mul(num(2),x), num(-5)))
+    );
+}
+
+TEST_FUN(normalize_less_2) {
+  TERM_FUNCTIONS(INT)
+  check_eval(
+      /* 5 < a * x */
+      lt(num(5), mul(a(),x)),
+      /* 0 < a * x - 5 */
+      lt(num(0), add(mul(a(),x), num(-5)))
+    );
+}
+
+TEST_FUN(normalize_less_3) {
+  TERM_FUNCTIONS(INT)
+  check_eval(
+      /* b < a * x */
+      lt(b(), mul(a(),x)),
+     /* 0 < a * x - b */
+      lt(num(0), add(mul(a(),x), uminus(b())))
+    );
+
+}
+
+TEST_FUN(normalize_less_4) {
+  TERM_FUNCTIONS(INT)
+  check_eval(
+      /* b < a */
+      lt(b(), mul(a(),x)),
+      /* 0 < a - b */
+      lt(num(0), add(a(), uminus(b())))
+    );
+}
+
+
+TEST_FUN(normalize_less_5) {
+  TERM_FUNCTIONS(INT)
+  check_eval(
+      /* 5 > 2 * x */
+      gt(num(5), mul(num(2),x)),
+      /*  0 < 5 - 2 * x */
+      lt(num(0), add(num(5), uminus(mul(num(2),x))))
+    );
+}
+
+TEST_FUN(normalize_less_equal_1) {
+  TERM_FUNCTIONS(INT)
+  check_eval(
+      /* 5 <= x */
+      leq(num(5), x),
+      /* 0 <  x - 4 */
+      lt(num(0), add(x, num(-4)))
+    );
+}
+
+TEST_FUN(normalize_less_equal_2) {
+  TERM_FUNCTIONS(INT)
+  check_eval(
+      /* ~(5 > x) */
+      neg(gt(num(5), x)),
+      /* 0 <  x - 4 */
+      lt(num(0), add(x, num(-4)))
+    );
+}
+
+TEST_FUN(normalize_less_equal_3) {
+  TERM_FUNCTIONS(INT)
+  check_eval(
+      /* x >= 5 */
+      geq(x, num(5)),
+      /* 0 <  x - 4 */
+      lt(num(0), add(x, num(-4)))
+    );
+}
+
+TEST_FUN(normalize_less_equal_4) {
+  TERM_FUNCTIONS(INT)
+  check_eval(
+      /* ~(x < 5) */
+      neg(lt(x, num(5))),
+      /* 0 <  x - 4 */
+      lt(num(0), add(x, num(-4)))
+    );
+}
