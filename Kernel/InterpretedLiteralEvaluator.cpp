@@ -97,6 +97,7 @@ CLASS_NAME(InterpretedLiteralEvaluator::ACFunEvaluator<Operator>);
     ASS_EQ(trm->functor(),_fun);
     ASS_EQ(trm->arity(),2);
 
+    //TODO: ask giles: why stack and not recursive?
     Stack<TermList*> todo;
     Stack<TermList*> done;
     todo.push(trm->nthArgument(0));
@@ -138,7 +139,7 @@ CLASS_NAME(InterpretedLiteralEvaluator::ACFunEvaluator<Operator>);
  
     // a bit of a hack, we might need a pointer to this below, to have uniform treatment of all the TermLists
     TermList accT(theory->representConstant(acc));
- 
+
     // Now build a new term from kept and acc (if not identity)
     // We keep acc if it is identity and if there's no other terms
     if(Operator::IDENTITY!=acc || keep.length()==0) {
@@ -963,12 +964,9 @@ InterpretedLiteralEvaluator::InterpretedLiteralEvaluator()
   // Special AC evaluators are added to be tried first for Plus and Multiply
 
   _evals.push(new ACFunEvaluator<Operator<Theory::INT_PLUS>>()); 
-
   _evals.push(new ACFunEvaluator<Operator<Theory::INT_MULTIPLY>>());
-
   _evals.push(new ACFunEvaluator<Operator<Theory::RAT_PLUS>>());
   _evals.push(new ACFunEvaluator<Operator<Theory::RAT_MULTIPLY>> ());
-
   _evals.push(new ACFunEvaluator<Operator<Theory::REAL_PLUS>> ());
   _evals.push(new ACFunEvaluator<Operator<Theory::REAL_MULTIPLY>> ());
 
@@ -1412,7 +1410,7 @@ InterpretedLiteralEvaluator::Evaluator* InterpretedLiteralEvaluator::getFuncEval
 	  Evaluator* ev = evit.next();
           // we only set the evaluator if it has not yet been set
 
-          // TODO: giles? _funEvaluators[i] is (probably) uninitialized if (i) USE_SYSTEM_ALLOCATION is defined (ii) a new page is allocated by the custom allocator (this internally calls malloc)
+          // TODO: ask giles: _funEvaluators[i] is (probably) uninitialized if (i) USE_SYSTEM_ALLOCATION is defined (ii) a new page is allocated by the custom allocator (this internally calls malloc)
 	  if (_funEvaluators[i]==0 && ev->canEvaluateFunc(i)) {
 	    _funEvaluators[i] = ev;
 	  }
@@ -1437,9 +1435,8 @@ InterpretedLiteralEvaluator::Evaluator* InterpretedLiteralEvaluator::getPredEval
       EvalStack::Iterator evit(_evals);
       while (evit.hasNext()) {
 	Evaluator* ev = evit.next();
-	if (ev->canEvaluatePred(i)) {
-          // TODO: giles? _predEvaluators[i] is (probably) uninitialized if (i) USE_SYSTEM_ALLOCATION is defined (ii) a new page is allocated by the custom allocator (this internally calls malloc)
-	  ASS_EQ(_predEvaluators[i], 0); //we should have only one evaluator for each predicate
+        // TODO: ask giles: _predEvaluators[i] is (probably) uninitialized if (i) USE_SYSTEM_ALLOCATION is defined (ii) a new page is allocated by the custom allocator (this internally calls malloc)
+	if (_predEvaluators[i] == 0 && ev->canEvaluatePred(i)) {
 	  _predEvaluators[i] = ev;
 	}
       }
