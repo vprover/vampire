@@ -73,8 +73,14 @@ using namespace Inferences;
 #define x20 (AbsTerm::var(20))
 #define x21 (AbsTerm::var(21))
 
+#define ALLOW_UNUSED(...) \
+  _Pragma("GCC diagnostic push") \
+  _Pragma("GCC diagnostic ignored \"-Wunused\"") \
+  __VA_ARGS__ \
+  _Pragma("GCC diagnostic pop")
 
 #define SETUP                                                                  \
+  ALLOW_UNUSED( \
   unsigned symbol_f = env.signature->addFunction("f", 1);                      \
   unsigned symbol_g = env.signature->addFunction("g", 1);                      \
   unsigned sym_leq = env.signature->addInterpretedPredicate(                   \
@@ -82,7 +88,8 @@ using namespace Inferences;
   unsigned times = env.signature->addInterpretedFunction(                      \
       Interpretation::INT_MULTIPLY, "$times");                                 \
   unsigned sum = env.signature->addInterpretedFunction(                       \
-      Interpretation::INT_PLUS, "$sum");
+      Interpretation::INT_PLUS, "$sum");\
+  )
 
 TEST_FUN(test_cmp_basic_term){
 
@@ -173,15 +180,6 @@ TEST_FUN(test_compare4) {
   auto eq = [=](AbsTerm &l, AbsTerm &r) -> bool {
     return LitEquiv4::compare($leq(l), $leq(r)) == CMP_EQUIV;
   };
-
-  auto less = [=](AbsTerm &l, AbsTerm &r) -> bool {
-    l.normalize();
-    l.rectify();
-    r.normalize();
-    r.rectify();
-    return LitEquiv4::compare($leq(l), $leq(r)) == CMP_LESS;
-  };
-
 
   ASS(eq($sum(x2, f(x19), x1), $sum(x5, f(f(x19)), x2)))
   ASS(!eq($sum(x2, f(x19, f(x10)), x1), $sum(x5, f(f(x19)), x2)))
