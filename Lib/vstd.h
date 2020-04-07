@@ -42,7 +42,7 @@ public:
     ~vamp_alloc() {}
 
     bool operator==(vamp_alloc &other) { return true; }
-    bool operator!=(vamp_alloc &other) { return *this != other; }
+    bool operator!=(vamp_alloc &other) { return false; }
 };
 
 
