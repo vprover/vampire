@@ -313,6 +313,7 @@ private:
 
 public:
   AbsVarTerm(unsigned var) : _var(var) {}
+  ~AbsVarTerm() {}
 
   inline void write(ostream& out, rect_map& map) const { out << "X" << map.get(_var); } 
 
@@ -332,9 +333,13 @@ public:
   }
   template <class A, class Config> friend struct gen_comparator;
   OPERATORS(AbsVarTerm, x._var)
-  friend class CmpVarsMatch;
-  friend class CmpVarsEqual;
+  friend struct CmpVarsMatch;
+  friend struct CmpVarsEqual;
 };
+
+AbsTerm::~AbsTerm() {
+
+}
 
 class ACTerm : public AbsTerm {
 public:
@@ -351,6 +356,7 @@ public:
       : _fun(fun), _args(args_t(ts)) {}
 
   ACTerm(Function fun, args_t ts) : _fun(fun), _args(ts) {}
+  ~ACTerm() {}
 
   ACTerm(Term &term) : _fun(term.functor()), _args(args_t()) {
     for (auto i = 0; i < term.arity(); i++) {
@@ -576,7 +582,8 @@ AbsTerm &AbsTerm::from(TermList &t) {
   }
 
 /* utility datatypes */
-struct AbsLiteral {
+class AbsLiteral {
+public:
   CLASS_NAME(AbsLiteral)
   USE_ALLOCATOR(AbsLiteral)
 
@@ -700,7 +707,6 @@ template <class Config> struct gen_comparator<AbsTerm, Config> {
 IMPL_GEN_COMPARATOR_GROUND(bool)
 IMPL_GEN_COMPARATOR_GROUND(Predicate)
 IMPL_GEN_COMPARATOR_GROUND(Function)
-  // template <class CmpUninterpreted, class CmpVars, class CmpNumberConsts>      \
 
 #define IMPL_GEN_COMPARATOR(CLASS, ...)                                        \
   template <class Config>      \
