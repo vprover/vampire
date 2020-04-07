@@ -108,6 +108,15 @@ public:
     loadFromIterator(BottomFirstIterator(const_cast<Stack&>(s)));
   }
 
+  Stack(Stack&& s)
+  {
+    CALL("Stack::Stack(Stack&& s)");
+
+    _capacity = 0;
+    _stack = _cursor = _end = nullptr;
+
+    std::swap(*this,s);
+  }
 
   /** De-allocate the stack
    * @since 13/01/2008 Manchester
@@ -135,8 +144,25 @@ public:
   {
     CALL("Stack::operator=");
 
+    if(&s == this) {
+      return *this;
+    }
     reset();
     loadFromIterator(BottomFirstIterator(const_cast<Stack&>(s)));
+    return *this;
+  }
+
+  Stack& operator=(Stack&& s)
+  {
+    CALL("Stack::operator=&&");
+
+    if(&s == this) {
+      return *this;
+    }
+    reset();
+
+    std::swap(*this,s);
+
     return *this;
   }
 
@@ -246,7 +272,7 @@ public:
    * @since 11/03/2006 Bellevue
    */
   inline
-  void push(C elem)
+  void push(const C& elem)
   {
     CALL("Stack::push");
 
@@ -257,6 +283,20 @@ public:
     new(_cursor) C(elem);
     _cursor++;
   } // Stack::push()
+
+  inline
+  void push(C&& elem)
+  {
+    CALL("Stack::push");
+
+    if (_cursor == _end) {
+      expand();
+    }
+    ASS(_cursor < _end);
+    new(_cursor) C(std::move(elem));
+    _cursor++;
+  } // Stack::push()
+
 
   /**
    * Pop the stack and return the popped element.
@@ -677,8 +717,8 @@ protected:
     C* newStack = static_cast<C*>(mem);
     if(_capacity) {
       for (size_t i = 0; i<_capacity; i++) {
-	new(newStack+i) C(_stack[i]);
-	_stack[i].~C();
+        new(newStack+i) C(std::move(_stack[i]));
+        _stack[i].~C();
       }
       // deallocate the old stack
       DEALLOC_KNOWN(_stack,_capacity*sizeof(C),className());
