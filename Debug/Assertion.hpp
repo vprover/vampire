@@ -33,6 +33,15 @@
 //#define ASS_STATIC(e) extern char (* ASS_AUX_CONCAT(ct_assert, __LINE__) (void)) [sizeof(char[1 - 2*!(e)])]
 #define ASS_STATIC(e) extern char (*ct_assert (void)) [sizeof(char[1 - 2*!(e)])]
 
+
+#define __PUSH_DIAGNOSTICS(diag, ...) \
+    _Pragma("GCC diagnostic push") \
+    _Pragma(diag) \
+    __VA_ARGS__ \
+    _Pragma("GCC diagnostic pop") \
+
+#define __IGNORE_WEXCEPTIONS(...) __PUSH_DIAGNOSTICS("GCC diagnostic ignored \"-Wexceptions\"", __VA_ARGS__)
+
 //#undef CONCAT
 
 #if VDEBUG
@@ -116,12 +125,6 @@ private:
 } // namespace Debug
 
 #define DEBUG_CODE(X)  X
-
-#define __IGNORE_WEXCEPTIONS(...) \
-    _Pragma("GCC diagnostic push") \
-    _Pragma("GCC diagnostic ignored \"-Wexceptions\"") \
-    __VA_ARGS__ \
-    _Pragma("GCC diagnostic pop") \
 
 #define ASS(Cond)                                               \
   if (! (Cond)) {                                               \
@@ -215,9 +218,11 @@ private:
 
 #define DEBUG_CODE(X)
 
-#define ASS(Cond)
-#define ALWAYS(Cond) Cond
-#define NEVER(Cond) Cond
+#define __IGNORE_WUNUSED(...) __PUSH_DIAGNOSTICS("GCC diagnostic ignored \"-Wreturn-type\"", __VA_ARGS__)
+
+#define ASS(Cond) 
+#define ALWAYS(Cond) (void) ( Cond )
+#define NEVER(Cond) (void) ( Cond )
 
 #define ASS_REP(Cond, ReportedVal)
 #define ASS_REP2(Cond, ReportedVal, ReportedVal2)
@@ -234,9 +239,9 @@ private:
 #define ASS_ALLOC_TYPE(PTR,TYPE)
 #define ASS_METHOD(OBJ,METHOD)
 
-#define ASSERTION_VIOLATION
-#define ASSERTION_VIOLATION_REP(Val)
-#define ASSERTION_VIOLATION_REP2(Val1,Val2)
+#define ASSERTION_VIOLATION __IGNORE_WEXCEPTIONS(throw;)
+#define ASSERTION_VIOLATION_REP(Val) ASSERTION_VIOLATION
+#define ASSERTION_VIOLATION_REP2(Val1,Val2)  ASSERTION_VIOLATION
 
 #define ASSERT_VALID(obj)
 
