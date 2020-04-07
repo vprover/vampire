@@ -39,7 +39,6 @@ class AbsVarTerm;
 class AbsTerm {
 public:
   static AbsTerm &from(Kernel::TermList &t);
-  virtual ~AbsTerm() = 0;
 
   friend ostream &operator<<(ostream &out, const AbsTerm &t);
 
@@ -153,10 +152,8 @@ public:
 private:
   // using literals_type = Container<rc<AbsLiteral>, Equality<rc<AbsLiteral>>>;
   // literals_type _literals;
-  _Pragma("GCC diagnostic push") 
-  _Pragma("GCC diagnostic ignored \"-Wunused\"") 
+
   int _nothing;
-  _Pragma("GCC diagnostic pop") 
 
 #define DECLARE_EQ_CLAS_MEMBERS(i)                                             \
   using equiv_t_##i = Container<rc<AbsLiteral>, LitEquiv##i>;                  \

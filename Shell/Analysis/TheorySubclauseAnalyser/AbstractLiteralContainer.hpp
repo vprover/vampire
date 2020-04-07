@@ -14,6 +14,60 @@ template <class A> struct EquivalenceClass {
   // template <class B> void dump(std::ostream &out, const B &t);
 };
 
+// template <class A> class Equality;
+//
+// template <class A> struct EquivalenceClass<Equality<A>> {
+//   // using equal = std::equal_to<A>;
+//   using less = std::less<A>;
+//   // template <class B> void dump(std::ostream &out, const B &t) { out << t; }
+// };
+
+// template<class A>
+// class TupEq;
+//
+// template<class A>
+// struct EquivalenceClass<TupEq<A>> {
+//     // using equal = std::equal_to<A>;
+//     using value_type = A;
+//     using less  = std::less<A>;
+//     void dump(std::ostream& out, const A& t) {
+//       out << t;
+//     }
+// };
+
+// template <class A> struct EquivalenceClass<Equality<rc<A>>> {
+//   // struct _hash {
+//   //     _hash() {}
+//   //
+//   //     ~_hash() {}
+//   //
+//   //     _hash(const _hash &other) {}
+//   //
+//   //     _hash(const _hash &&other) {}
+//   //
+//   //     size_t operator()(const rc<A> &self) const {
+//   //         return self.get()->hash_code();
+//   //     }
+//   // };
+//   //
+//   // using hash = _hash;
+//   using value_type = rc<A>;
+//   using less = struct {
+//     bool operator()(const rc<A> &lhs, const rc<A> &rhs) const {
+//       return *lhs.get() < *rhs.get();
+//     }
+//   };
+//   // template<class B>
+//   // void dump(std::ostream& out, const rc<B>& t) {
+//   //   EquivalenceClass<Equality<B>>::dump(out, *t.get());
+//   // }
+//   // using equal = struct {
+//   //     bool operator()(const rc<A> &lhs, const rc<A> &rhs) const {
+//   //         return *lhs.get() == *rhs.get();
+//   //     }
+//   // };
+// };
+
 template <class A, class Equiv> class Container {
   CLASS_NAME(Container)
   USE_ALLOCATOR(Container)
@@ -64,7 +118,7 @@ public:
   }
   void dump(ostream &out) const {
     using entry = typename decltype(_content)::value_type;
-    // using elem_t = typename decltype(_content)::value_type::first_type;
+    using elem_t = typename decltype(_content)::value_type::first_type;
     auto c = vvec<const entry *>();
     for (auto &e : _content) {
       c.push_back(&e);
