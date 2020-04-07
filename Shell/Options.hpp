@@ -46,6 +46,7 @@
 
 #include <type_traits>
 #include <cstring>
+#include <memory>
 
 #include "Forwards.hpp"
 
@@ -807,18 +808,17 @@ private:
         Stack<vstring> names;
     };
     
-    // Declare constraints here so they can be refered to, but define them below
+    // Declare constraints here so they can be referred to, but define them below
     template<typename T>
     struct OptionValueConstraint;
     template<typename T>
     struct WrappedConstraint;
     struct OptionProblemConstraint;
-    static OptionProblemConstraint* isRandOn();
-    static OptionProblemConstraint* isRandSat();
+    typedef std::unique_ptr<OptionProblemConstraint> OptionProblemConstraintUP;
     
     /**
      * An AbstractOptionValue includes all the information and functionality that does not
-     * depend on the type of the stored option. This is inhereted by the templated OptionValue.
+     * depend on the type of the stored option. This is inherited by the templated OptionValue.
      *
      * The main purpose of the AbstractOptionValue is to allow us to have a collection of pointers
      * to OptionValue objects
@@ -833,11 +833,14 @@ private:
         AbstractOptionValue(){}
         AbstractOptionValue(vstring l,vstring s) :
         longName(l), shortName(s), experimental(false), is_set(false),_should_copy(true), _tag(OptionTag::LAST_TAG), supress_problemconstraints(false) {}
-        
+
         // Never copy an OptionValue... the Constraint system would break
     private:
         AbstractOptionValue(const AbstractOptionValue& that);
     public:
+        // however move-assigment is needed for all the assigns in Options::init()
+        AbstractOptionValue& operator= (AbstractOptionValue && ) = default;
+
         // This is the main method, it sets the value of the option using an input string
         // Returns false if we cannot set (will cause a UserError in Options::set)
         virtual bool setValue(const vstring& value) = 0;
@@ -916,22 +919,22 @@ private:
         bool _should_copy;
         bool shouldCopy() const { return _should_copy; }
        
-        typedef pair<OptionProblemConstraint*,DArray<vstring>*> RandEntry;
+        typedef pair<OptionProblemConstraintUP,DArray<vstring>*> RandEntry;
 
         void setRandomChoices(std::initializer_list<vstring> list){
-          rand_choices.push(RandEntry(0,toArray(list)));
+          rand_choices.push(RandEntry(OptionProblemConstraintUP(),toArray(list)));
         }
         void setRandomChoices(std::initializer_list<vstring> list,
                               std::initializer_list<vstring> list_sat){
           rand_choices.push(RandEntry(isRandOn(),toArray(list)));
           rand_choices.push(RandEntry(isRandSat(),toArray(list_sat)));
         }
-        void setRandomChoices(OptionProblemConstraint* c,
+        void setRandomChoices(OptionProblemConstraintUP c,
                               std::initializer_list<vstring> list){
-          rand_choices.push(RandEntry(c,toArray(list)));
+          rand_choices.push(RandEntry(std::move(c),toArray(list)));
         }
         void setNoPropertyRandomChoices(std::initializer_list<vstring> list){
-          rand_choices.push(RandEntry(0,toArray(list)));
+          rand_choices.push(RandEntry(OptionProblemConstraintUP(),toArray(list)));
           supress_problemconstraints=true;
         }
 
@@ -1022,12 +1025,12 @@ private:
         // This checks the constraints and may cause a UserError
         bool checkConstraints();
         
-        // Produces a seperate constraint object based on this option
+        // Produces a separate constraint object based on this option
         /// Useful for IfThen constraints and reliesOn i.e. _splitting.is(equal(true))
         WrappedConstraint<T>* is(OptionValueConstraint<T>* c);
         
         // Problem constraints place a restriction on problem properties and option values
-        void addProblemConstraint(OptionProblemConstraint* c){ _prob_constraints.push(c); }
+        void addProblemConstraint(OptionProblemConstraintUP c){ _prob_constraints.push(std::move(c)); }
         bool hasProblemConstraints(){ 
           return !supress_problemconstraints && !_prob_constraints.isEmpty(); 
         }
@@ -1043,9 +1046,8 @@ private:
         bool randomize(Property* p);
  
     private:
-        //TODO add destructor to delete constraints, currently a memory leak
         Lib::Stack<OptionValueConstraint<T>*> _constraints;
-        Lib::Stack<OptionProblemConstraint*> _prob_constraints;
+        Lib::Stack<OptionProblemConstraintUP> _prob_constraints;
     };
     
     /**
@@ -1148,6 +1150,7 @@ private:
     struct UnsignedOptionValue : public OptionValue<unsigned> {
         UnsignedOptionValue(){}
         UnsignedOptionValue(vstring l,vstring s, unsigned d) : OptionValue(l,s,d){}
+
         bool setValue(const vstring& value){
             return Int::stringToUnsignedInt(value.c_str(),actualValue);
         }
@@ -1364,21 +1367,17 @@ virtual vstring getStringOfValue(int value) const{ return Lib::Int::toString(val
 * on other OptionValues, as seen in the example above. Most functions work with both
 * OptionValueConstraint and WrappedConstraint but in some cases one of these options
 * may need to be added. In this case see examples from AddWrapper below.
-*
 */
-template<typename T>
-struct WrappedConstraint;
-
 template<typename T>
 struct OptionValueConstraint{
 CLASS_NAME(OptionValueConstraint);
 USE_ALLOCATOR(OptionValueConstraint);
 OptionValueConstraint() : _hard(false) {}
 
+virtual ~OptionValueConstraint() {} // virtual methods present -> there should be virtual destructor
+
 virtual bool check(OptionValue<T>* value) = 0;
-virtual bool check(){ ASSERTION_VIOLATION; }
 virtual vstring msg(OptionValue<T>* value) = 0;
-virtual vstring msg() { ASSERTION_VIOLATION; }
 
 // By default cannot force constraint
 virtual bool force(OptionValue<T>* value){ return false;}
@@ -1397,8 +1396,7 @@ OptionValueConstraint<T>* Or(WrappedConstraint<S>* another);
 
 };
 
-
-// A Wrapped Constraint takes an OptionValue and a Constraint
+    // A Wrapped Constraint takes an OptionValue and a Constraint
     // It allows us to supply a constraint on another OptionValue in an If constraint for example
     template<typename T>
     struct WrappedConstraint{
@@ -1671,7 +1669,7 @@ OptionValueConstraint<T>* Or(WrappedConstraint<S>* another);
      *
      * OptionProblemConstraints are used to capture properties of a problem that
      * should be present when an option is used. The idea being that a warning will
-     * be emited if an option is used for an inappropriate problem.
+     * be emitted if an option is used for an inappropriate problem.
      *
      * TODO - this element of Options is still under development
      */
@@ -1735,27 +1733,27 @@ OptionValueConstraint<T>* Or(WrappedConstraint<S>* another);
     };
 
     // Factory methods
-    static OptionProblemConstraint* notWithCat(Property::Category c){
-      return new CategoryCondition(c,false);
+    static OptionProblemConstraintUP notWithCat(Property::Category c){
+      return OptionProblemConstraintUP(new CategoryCondition(c,false));
     }
-    static OptionProblemConstraint* hasCat(Property::Category c){
-      return new CategoryCondition(c,true);
+    static OptionProblemConstraintUP hasCat(Property::Category c){
+      return OptionProblemConstraintUP(new CategoryCondition(c,true));
     }
-    static OptionProblemConstraint* hasEquality(){ return new UsesEquality; }
-    static OptionProblemConstraint* hasNonUnits(){ return new HasNonUnits; }
-    static OptionProblemConstraint* hasPredicates(){ return new HasPredicates; }
-    static OptionProblemConstraint* atomsMoreThan(int a){
-      return new AtomConstraint(a,true);
+    static OptionProblemConstraintUP hasEquality(){ return OptionProblemConstraintUP(new UsesEquality); }
+    static OptionProblemConstraintUP hasNonUnits(){ return OptionProblemConstraintUP(new HasNonUnits); }
+    static OptionProblemConstraintUP hasPredicates(){ return OptionProblemConstraintUP(new HasPredicates); }
+    static OptionProblemConstraintUP atomsMoreThan(int a){
+      return OptionProblemConstraintUP(new AtomConstraint(a,true));
     }
-    static OptionProblemConstraint* atomsLessThan(int a){
-      return new AtomConstraint(a,false);
+    static OptionProblemConstraintUP atomsLessThan(int a){
+      return OptionProblemConstraintUP(new AtomConstraint(a,false));
     }
 
 
     //Cheating - we refer to env.options to ask about option values
     // There is an assumption that the option values used have been
     // set to their final values
-    // These are used in randomisation where we gaurentee a certain
+    // These are used in randomisation where we guarantee a certain
     // set of options will not be randomized and some will be randomized first
 
     struct OptionHasValue : OptionProblemConstraint{
@@ -1772,7 +1770,7 @@ OptionValueConstraint<T>* Or(WrappedConstraint<S>* another);
       bool check(Property*p){
         CALL("Options::ManyOptionProblemConstraints::check");
         bool res = is_and;
-        Stack<OptionProblemConstraint*>::Iterator it(cons);
+        Stack<OptionProblemConstraintUP>::Iterator it(cons);
         while(it.hasNext()){ 
           bool n=it.next()->check(p);res = is_and ? (res && n) : (res || n);}
         return res;
@@ -1780,49 +1778,52 @@ OptionValueConstraint<T>* Or(WrappedConstraint<S>* another);
 
       vstring msg(){
         vstring res="";
-        Stack<OptionProblemConstraint*>::Iterator it(cons);
+        Stack<OptionProblemConstraintUP>::Iterator it(cons);
         if(it.hasNext()){ res=it.next()->msg();}
         while(it.hasNext()){ res+=",and\n"+it.next()->msg();}
         return res;
       }
 
-      void add(OptionProblemConstraint* c){ cons.push(c);}
-      Stack<OptionProblemConstraint*> cons; 
+      void add(OptionProblemConstraintUP& c){ cons.push(std::move(c));}
+      Stack<OptionProblemConstraintUP> cons;
       bool is_and;
     };
 
-    static OptionProblemConstraint* And(OptionProblemConstraint* left,
-                                        OptionProblemConstraint* right){
+    static OptionProblemConstraintUP And(OptionProblemConstraintUP left,
+                                        OptionProblemConstraintUP right){
        ManyOptionProblemConstraints* c = new ManyOptionProblemConstraints(true);
        c->add(left);c->add(right);
-       return c;
+       return OptionProblemConstraintUP(c);
     }
-    static OptionProblemConstraint* And(OptionProblemConstraint* left,
-                                        OptionProblemConstraint* mid,
-                                        OptionProblemConstraint* right){
+    static OptionProblemConstraintUP And(OptionProblemConstraintUP left,
+                                        OptionProblemConstraintUP mid,
+                                        OptionProblemConstraintUP right){
        ManyOptionProblemConstraints* c = new ManyOptionProblemConstraints(true);
        c->add(left);c->add(mid);c->add(right);
-       return c;
+       return OptionProblemConstraintUP(c);
     }
-    static OptionProblemConstraint* Or(OptionProblemConstraint* left,
-                                        OptionProblemConstraint* right){
+    static OptionProblemConstraintUP Or(OptionProblemConstraintUP left,
+                                        OptionProblemConstraintUP right){
        ManyOptionProblemConstraints* c = new ManyOptionProblemConstraints(false);
        c->add(left);c->add(right);
-       return c;
+       return OptionProblemConstraintUP(c);
     }
-    static OptionProblemConstraint* Or(OptionProblemConstraint* left,
-                                        OptionProblemConstraint* mid,
-                                        OptionProblemConstraint* right){
+    static OptionProblemConstraintUP Or(OptionProblemConstraintUP left,
+                                        OptionProblemConstraintUP mid,
+                                        OptionProblemConstraintUP right){
        ManyOptionProblemConstraints* c = new ManyOptionProblemConstraints(false);
        c->add(left);c->add(mid);c->add(right);
-       return c;
+       return OptionProblemConstraintUP(c);
     }
-    static OptionProblemConstraint* saNotInstGen();
-    static OptionProblemConstraint* isBfnt();
     
+    static OptionProblemConstraintUP isRandOn();
+    static OptionProblemConstraintUP isRandSat();
+    static OptionProblemConstraintUP saNotInstGen();
+    static OptionProblemConstraintUP isBfnt();
+
   //==========================================================
   // Getter functions
-  // -currently disabled all unecessary setter functions
+  // -currently disabled all unnecessary setter functions
   //==========================================================
   //
   // This is how options are accessed so if you add a new option you should add a getter

@@ -79,8 +79,6 @@ void Options::Options::init()
 {
    CALL("Options::init");
 
-   BYPASSING_ALLOCATOR; // Necessary because of use of std::function
-
    // some options that were not give names previously
     _forceIncompleteness = BoolOptionValue("force_incompleteness","",false);
     _equivalentVariableRemoval = BoolOptionValue("equivalentVariableRemoval","",true);
@@ -2038,17 +2036,17 @@ bool Options::OptionHasValue::check(Property*p){
  * Static functions to help specify random choice values
  */
 
-Options::OptionProblemConstraint* Options::isRandOn(){
-      return new OptionHasValue("random_strategy","on");
+Options::OptionProblemConstraintUP Options::isRandOn(){
+      return OptionProblemConstraintUP(new OptionHasValue("random_strategy","on"));
 }
-Options::OptionProblemConstraint* Options::isRandSat(){
-      return new OptionHasValue("random_strategy","sat");
+Options::OptionProblemConstraintUP Options::isRandSat(){
+      return OptionProblemConstraintUP(new OptionHasValue("random_strategy","sat"));
 }
-Options::OptionProblemConstraint* Options::saNotInstGen(){
-      return new OptionHasValue("sa","inst_gen");
+Options::OptionProblemConstraintUP Options::saNotInstGen(){
+      return OptionProblemConstraintUP(new OptionHasValue("sa","inst_gen"));
 }
-Options::OptionProblemConstraint* Options::isBfnt(){
-      return new OptionHasValue("bfnt","on");
+Options::OptionProblemConstraintUP Options::isBfnt(){
+      return OptionProblemConstraintUP(new OptionHasValue("bfnt","on"));
 }
 
 /**
@@ -2286,7 +2284,7 @@ bool Options::OptionValue<T>::randomize(Property* prop){
   //Search for the first set of random choices that is valid
   Stack<RandEntry>::BottomFirstIterator entry_it(rand_choices);
   while(entry_it.hasNext()){
-    auto entry = entry_it.next();
+    auto& entry = entry_it.next();
     if(!entry.first || (prop && entry.first->check(prop))){
       choices = entry.second;
     }  
@@ -2344,9 +2342,9 @@ template<typename T>
 bool Options::OptionValue<T>::checkProblemConstraints(Property* prop){
     CALL("Options::OptionValue::checkProblemConstraints");
 
-    Lib::Stack<OptionProblemConstraint*>::Iterator it(_prob_constraints);
+    Lib::Stack<OptionProblemConstraintUP>::Iterator it(_prob_constraints);
     while(it.hasNext()){
-      OptionProblemConstraint* con = it.next();
+      OptionProblemConstraintUP& con = it.next();
       // Constraint should hold whenever the option is set
       if(is_set && !con->check(prop)){
 
