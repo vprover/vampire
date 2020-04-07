@@ -353,6 +353,10 @@ public:
 
     return _args + (_arity - n);
   }
+  /** Indexing operator for accessing arguments */
+  TermList operator[](int i) {
+    return *nthArgument(i);
+  }
   /** return the arguments */
   TermList* args()
   { return _args + _arity; }

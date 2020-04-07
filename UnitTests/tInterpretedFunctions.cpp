@@ -41,7 +41,7 @@ using namespace Kernel;
 using namespace Shell;
 
 #define TEST_FAIL exit(-1);
-#define OUT cerr
+#define OUT cout
 // #define TEST_FAIL OUT << "FAIL" << endl;
 
 #define x  TermList::var(0)
@@ -229,7 +229,8 @@ void check_eval(Literal& orig, bool expected) {
   bool constantTrue;
 
   auto sideConditions = Stack<Literal*>();
-  auto success = eval.evaluate(&orig,constant,result,constantTrue, sideConditions);
+  Literal* src = Literal::create(&orig, orig.polarity());
+  auto success = eval.evaluate(src,constant,result,constantTrue, sideConditions);
 
   CHECK_EQ(success, true, "evaluation failed", orig.toString());
   CHECK_EQ(sideConditions.isEmpty(), true, "non-empty side condictions", orig.toString());
@@ -500,7 +501,7 @@ TEST_FUN(normalize_less_4) {
   TERM_FUNCTIONS(INT)
   check_eval(
       /* b < a */
-      lt(b(), mul(a(),x)),
+      lt(b(), a()),
       /* 0 < a - b */
       lt(0, add(a(), uminus(b())))
     );
@@ -556,3 +557,40 @@ TEST_FUN(normalize_less_equal_4) {
       lt(0, add(x, -4))
     );
 }
+
+TEST_FUN(x_eq_kx_1) {
+  TERM_FUNCTIONS(INT)
+  check_eval(
+      eq(x, mul(x, 3)),
+      eq(0, x)
+      );
+}
+
+TEST_FUN(x_eq_k_plus_x_1) {
+  TERM_FUNCTIONS(INT)
+  check_eval(
+      eq(x, add(x, y)),
+      eq(y, 0)
+      );
+}
+
+
+TEST_FUN(x_eq_k_plus_x_2) {
+  TERM_FUNCTIONS(INT)
+  check_eval(
+      eq(x, add(x, 1)),
+      false
+      );
+}
+
+TEST_FUN(k_eq_x_plus_x_1) {
+  TERM_FUNCTIONS(INT)
+  check_eval(
+      eq(mul(2, a()), add(x, x)),
+      eq(a(), x)
+      );
+}
+
+// TODO: cases x = k * x <-> k = 1 | x = 0 
+// TODO: cases x = k + x <-> k = 0 
+// TODO: cases x + x = k <-> x = k/2
