@@ -2304,30 +2304,30 @@ bool Options::OptionValue<T>::checkConstraints(){
      typename Lib::Stack<OptionValueConstraint<T>*>::Iterator it(_constraints);
      while(it.hasNext()){
        OptionValueConstraint<T>* con = it.next();
-       if(!con->check(this)){
+       if(!con->check(*this)){
 
          if(env.options->mode()==Mode::SPIDER){
            reportSpiderFail();
-           USER_ERROR("\nBroken Constraint: "+con->msg(this));
+           USER_ERROR("\nBroken Constraint: "+con->msg(*this));
          }
 
          if(con->isHard()){ 
            if(env.options->randomStrategy()!=RandomStrategy::OFF)
               return false; // Skip warning for Hard
-           USER_ERROR("\nBroken Constraint: "+con->msg(this)); 
+           USER_ERROR("\nBroken Constraint: "+con->msg(*this));
          }
          switch(env.options->getBadOptionChoice()){
            case BadOption::HARD :
-               USER_ERROR("\nBroken Constraint: "+con->msg(this));
+               USER_ERROR("\nBroken Constraint: "+con->msg(*this));
            case BadOption::SOFT :
-               cout << "WARNING Broken Constraint: "+con->msg(this) << endl;
+               cout << "WARNING Broken Constraint: "+con->msg(*this) << endl;
                return false;
            case BadOption::FORCED :
                if(con->force(this)){
-                 cout << "Forced constraint " + con->msg(this) << endl;
+                 cout << "Forced constraint " + con->msg(*this) << endl;
                  break;
                }else{
-                 USER_ERROR("\nCould not force Constraint: "+con->msg(this));
+                 USER_ERROR("\nCould not force Constraint: "+con->msg(*this));
                }
            case BadOption::OFF: 
              return false;

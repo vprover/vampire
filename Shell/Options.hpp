@@ -1376,8 +1376,8 @@ OptionValueConstraint() : _hard(false) {}
 
 virtual ~OptionValueConstraint() {} // virtual methods present -> there should be virtual destructor
 
-virtual bool check(OptionValue<T>* value) = 0;
-virtual vstring msg(OptionValue<T>* value) = 0;
+virtual bool check(const OptionValue<T>& value) = 0;
+virtual vstring msg(const OptionValue<T>& value) = 0;
 
 // By default cannot force constraint
 virtual bool force(OptionValue<T>* value){ return false;}
@@ -1403,7 +1403,7 @@ OptionValueConstraint<T>* Or(WrappedConstraint<S>* another);
         CLASS_NAME(WrappedConstraint);
         USE_ALLOCATOR(WrappedConstraint);
         
-        WrappedConstraint(OptionValue<T>* v, OptionValueConstraint<T>* c) : value(v), con(c) {}
+        WrappedConstraint(const OptionValue<T>& v, OptionValueConstraintUP<T> c) : value(v), con(std::move(c)) {}
         
         bool check(){
             return con->check(value);
@@ -1417,8 +1417,8 @@ OptionValueConstraint<T>* Or(WrappedConstraint<S>* another);
         template<typename S, typename R>
         OptionValueConstraint<S>* Or(WrappedConstraint<R>* another);
         
-        OptionValue<T>* value;
-        OptionValueConstraint<T>* con;
+        const OptionValue<T>& value;
+        OptionValueConstraintUP<T> con;
     };
     
     template<typename T, typename S>
@@ -1428,8 +1428,8 @@ OptionValueConstraint<T>* Or(WrappedConstraint<S>* another);
         
         UnWrappedConstraint(WrappedConstraint<S>* c) : con(c) {}
         
-        bool check(OptionValue<T>*){ return con->check(); }
-        vstring msg(OptionValue<T>*){ return con->msg(); }
+        bool check(OptionValue<T>&){ return con->check(); }
+        vstring msg(OptionValue<T>&){ return con->msg(); }
         
         WrappedConstraint<S>* con;
     };
@@ -1439,25 +1439,25 @@ OptionValueConstraint<T>* Or(WrappedConstraint<S>* another);
         CLASS_NAME(OrWrapper);
         USE_ALLOCATOR(OrWrapper);
         OrWrapper(OptionValueConstraint<T>* l, OptionValueConstraint<T>* r) : left(l),right(r) {}
-        bool check(OptionValue<T>* value){
+        bool check(OptionValue<T>& value){
             return left->check(value) || right->check(value);
         }
-        vstring msg(OptionValue<T>* value){ return left->msg(value) + " or " + right->msg(value); }
-        
+        vstring msg(const OptionValue<T>& value){ return left->msg(value) + " or " + right->msg(value); }
+
         OptionValueConstraint<T>* left;
         OptionValueConstraint<T>* right;
     };
-    
+
     template<typename T>
     struct AndWrapper : public OptionValueConstraint<T>{
         CLASS_NAME(AndWrapper);
         USE_ALLOCATOR(AndWrapper);
-        AndWrapper(OptionValueConstraint<T>* l, OptionValueConstraint<T>* r) : left(l),right(r) {}
-        bool check(OptionValue<T>* value){
+        AndWrapper(OptionValueConstraintUP<T> l, OptionValueConstraintUP<T> r) : left(std::move(l)),right(std::move(r)) {}
+        bool check(OptionValue<T>& value){
             return left->check(value) && right->check(value);
         }
-        vstring msg(OptionValue<T>* value){ return left->msg(value) + " and " + right->msg(value); }
-        
+        vstring msg(const OptionValue<T>& value){ return left->msg(value) + " and " + right->msg(value); }
+
         OptionValueConstraint<T>* left;
         OptionValueConstraint<T>* right;
     };
@@ -1467,11 +1467,11 @@ OptionValueConstraint<T>* Or(WrappedConstraint<S>* another);
         CLASS_NAME(Equal);
         USE_ALLOCATOR(Equal);
         Equal(T gv) : _goodvalue(gv) {}
-        bool check(OptionValue<T>* value){
-            return value->actualValue == _goodvalue;
+        bool check(const OptionValue<T>& value){
+            return value.actualValue == _goodvalue;
         }
-        vstring msg(OptionValue<T>* value){
-            return value->longName+"("+value->getStringOfActual()+") is equal to " + value->getStringOfValue(_goodvalue);
+        vstring msg(const OptionValue<T>& value){
+            return value.longName+"("+value.getStringOfActual()+") is equal to " + value.getStringOfValue(_goodvalue);
         }
         T _goodvalue;
     };
@@ -1485,10 +1485,10 @@ OptionValueConstraint<T>* Or(WrappedConstraint<S>* another);
         CLASS_NAME(NotEqual);
         USE_ALLOCATOR(NotEqual);
         NotEqual(T bv) : _badvalue(bv) {}
-        bool check(OptionValue<T>* value){
-            return value->actualValue != _badvalue;
+        bool check(const OptionValue<T>& value){
+            return value.actualValue != _badvalue;
         }
-        vstring msg(OptionValue<T>* value){ return value->longName+"("+value->getStringOfActual()+") is not equal to " + value->getStringOfValue(_badvalue); }
+        vstring msg(const OptionValue<T>& value){ return value.longName+"("+value.getStringOfActual()+") is not equal to " + value.getStringOfValue(_badvalue); }
         T _badvalue;
     };
     template<typename T>
@@ -1503,12 +1503,12 @@ OptionValueConstraint<T>* Or(WrappedConstraint<S>* another);
         CLASS_NAME(LessThan);
         USE_ALLOCATOR(LessThan);
         LessThan(T gv,bool eq=false) : _goodvalue(gv), _orequal(eq) {}
-        bool check(OptionValue<T>* value){
-            return (value->actualValue < _goodvalue || (_orequal && value->actualValue==_goodvalue));
+        bool check(const OptionValue<T>& value){
+            return (value.actualValue < _goodvalue || (_orequal && value.actualValue==_goodvalue));
         }
-        vstring msg(OptionValue<T>* value){
-            if(_orequal) return value->longName+"("+value->getStringOfActual()+") is less than or equal to " + value->getStringOfValue(_goodvalue);
-            return value->longName+"("+value->getStringOfActual()+") is less than "+ value->getStringOfValue(_goodvalue);
+        vstring msg(const OptionValue<T>& value){
+            if(_orequal) return value.longName+"("+value.getStringOfActual()+") is less than or equal to " + value.getStringOfValue(_goodvalue);
+            return value.longName+"("+value.getStringOfActual()+") is less than "+ value.getStringOfValue(_goodvalue);
         }
         
         T _goodvalue;
@@ -1530,13 +1530,13 @@ OptionValueConstraint<T>* Or(WrappedConstraint<S>* another);
         CLASS_NAME(GreaterThan);
         USE_ALLOCATOR(GreaterThan);
         GreaterThan(T gv,bool eq=false) : _goodvalue(gv), _orequal(eq) {}
-        bool check(OptionValue<T>* value){
-            return (value->actualValue > _goodvalue || (_orequal && value->actualValue==_goodvalue));
+        bool check(const OptionValue<T>& value){
+            return (value.actualValue > _goodvalue || (_orequal && value.actualValue==_goodvalue));
         }
         
-        vstring msg(OptionValue<T>* value){
-            if(_orequal) return value->longName+"("+value->getStringOfActual()+") is greater than or equal to " + value->getStringOfValue(_goodvalue);
-            return value->longName+"("+value->getStringOfActual()+") is greater than "+ value->getStringOfValue(_goodvalue);
+        vstring msg(const OptionValue<T>& value){
+            if(_orequal) return value.longName+"("+value.getStringOfActual()+") is greater than or equal to " + value.getStringOfValue(_goodvalue);
+            return value.longName+"("+value.getStringOfActual()+") is greater than "+ value.getStringOfValue(_goodvalue);
         }
         
         T _goodvalue;
@@ -1566,12 +1566,12 @@ OptionValueConstraint<T>* Or(WrappedConstraint<S>* another);
         IfThenConstraint(OptionValueConstraint<T>* ic, OptionValueConstraint<T>* c) :
         if_con(ic), then_con(c) {}
         
-        bool check(OptionValue<T>* value){
+        bool check(const OptionValue<T>& value){
             ASS(then_con);
             return !if_con->check(value) || then_con->check(value);
         }
         
-        vstring msg(OptionValue<T>* value){
+        vstring msg(const OptionValue<T>& value){
             return "if "+if_con->msg(value)+" then "+ then_con->msg(value);
         }
         
@@ -1624,20 +1624,20 @@ OptionValueConstraint<T>* Or(WrappedConstraint<S>* another);
     struct NotDefaultConstraint : public OptionValueConstraint<T> {
         NotDefaultConstraint() {}
         
-        bool check(OptionValue<T>* value){
-            return value->defaultValue != value->actualValue;
+        bool check(const OptionValue<T>& value){
+            return value.defaultValue != value.actualValue;
         }
-        vstring msg(OptionValue<T>* value) { return value->longName+"("+value->getStringOfActual()+") is not default("+value->getStringOfValue(value->defaultValue)+")";}
+        vstring msg(const OptionValue<T>& value) { return value.longName+"("+value.getStringOfActual()+") is not default("+value.getStringOfValue(value.defaultValue)+")";}
     };
     struct NotDefaultRatioConstraint : public OptionValueConstraint<int> {
         NotDefaultRatioConstraint() {}
         
-        bool check(OptionValue<int>* value){
-            RatioOptionValue* rvalue = static_cast<RatioOptionValue*>(value);
-            return (rvalue->defaultValue != rvalue->actualValue ||
-                    rvalue->defaultOtherValue != rvalue->otherValue);
+        bool check(const OptionValue<int>& value){
+            const RatioOptionValue& rvalue = static_cast<const RatioOptionValue&>(value);
+            return (rvalue.defaultValue != rvalue.actualValue ||
+                    rvalue.defaultOtherValue != rvalue.otherValue);
         }
-        vstring msg(OptionValue<int>* value) { return value->longName+"("+value->getStringOfActual()+") is not default";}
+        vstring msg(const OptionValue<int>& value) { return value.longName+"("+value.getStringOfActual()+") is not default";}
         
     };
     
@@ -1655,11 +1655,11 @@ OptionValueConstraint<T>* Or(WrappedConstraint<S>* another);
         CLASS_NAME(isLookAheadSelectionConstraint);
         USE_ALLOCATOR(isLookAheadSelectionConstraint);
         isLookAheadSelectionConstraint() {}
-        bool check(OptionValue<int>* value){
-            return value->actualValue == 11 || value->actualValue == 1011 || value->actualValue == -11 || value->actualValue == -1011;
+        bool check(const OptionValue<int>& value){
+            return value.actualValue == 11 || value.actualValue == 1011 || value.actualValue == -11 || value.actualValue == -1011;
         }
-        vstring msg(OptionValue<int>* value){
-            return value->longName+"("+value->getStringOfActual()+") is not lookahead selection"; 
+        vstring msg(const OptionValue<int>& value){
+            return value.longName+"("+value.getStringOfActual()+") is not lookahead selection";
         }
     };
     
