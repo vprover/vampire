@@ -370,6 +370,7 @@ VS_OBJ = Shell/AnswerExtractor.o\
          Shell/SMTFormula.o\
          Shell/FOOLElimination.o\
          Shell/Statistics.o\
+	 Shell/Analysis/TheorySubclauseAnalyser.o\
          Shell/SubexpressionIterator.o\
          Shell/SymbolDefinitionInlining.o\
          Shell/SymbolOccurrenceReplacement.o\
@@ -479,6 +480,7 @@ LIB_DEP = Indexing/TermSharing.o\
 	  Shell/Options.o\
 	  Shell/Property.o\
 	  Shell/Statistics.o\
+	  Shell/Analysis/TheorySubclauseAnalyser.o\
 	  Shell/GlobalOptions.o\
 	  version.o
 	  # ClausifierDependencyFix.o\
