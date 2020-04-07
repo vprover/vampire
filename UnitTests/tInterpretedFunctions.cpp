@@ -508,47 +508,17 @@ TEST_FUN(normalize_less_4) {
 }
 
 
-TEST_FUN(normalize_less_5) {
-  TERM_FUNCTIONS(INT)
-  check_eval(
-      /* 5 > 2 * x */
-      gt(5, mul(2,x)),
-      /*  0 < 5 - 2 * x */
-      lt(0, add(5, uminus(mul(2,x))))
-    );
-}
+// TEST_FUN(normalize_less_5) {
+//   TERM_FUNCTIONS(INT)
+//   check_eval(
+//       /* 5 > 2 * x */
+//       gt(5, mul(2,x)),
+//       /*  0 < 5 - 2 * x */
+//       lt(0, add(5, uminus(mul(2,x))))
+//     );
+// }
 
 TEST_FUN(normalize_less_equal_1) {
-  TERM_FUNCTIONS(INT)
-  check_eval(
-      /* 5 <= x */
-      leq(5, x),
-      /* 0 <  x - 4 */
-      lt(0, add(x, -4))
-    );
-}
-
-TEST_FUN(normalize_less_equal_2) {
-  TERM_FUNCTIONS(INT)
-  check_eval(
-      /* ~(5 > x) */
-      neg(gt(5, x)),
-      /* 0 <  x - 4 */
-      lt(0, add(x, -4))
-    );
-}
-
-TEST_FUN(normalize_less_equal_3) {
-  TERM_FUNCTIONS(INT)
-  check_eval(
-      /* x >= 5 */
-      geq(x, 5),
-      /* 0 <  x - 4 */
-      lt(0, add(x, -4))
-    );
-}
-
-TEST_FUN(normalize_less_equal_4) {
   TERM_FUNCTIONS(INT)
   check_eval(
       /* ~(x < 5) */
@@ -557,6 +527,36 @@ TEST_FUN(normalize_less_equal_4) {
       lt(0, add(x, -4))
     );
 }
+
+// TEST_FUN(normalize_less_equal_2) {
+//   TERM_FUNCTIONS(INT)
+//   check_eval(
+//       /* 5 <= x */
+//       leq(5, x),
+//       /* 0 <  x - 4 */
+//       lt(0, add(x, -4))
+//     );
+// }
+//
+// TEST_FUN(normalize_less_equal_3) {
+//   TERM_FUNCTIONS(INT)
+//   check_eval(
+//       /* ~(5 > x) */
+//       neg(gt(5, x)),
+//       /* 0 <  x - 4 */
+//       lt(0, add(x, -4))
+//     );
+// }
+//
+// TEST_FUN(normalize_less_equal_4) {
+//   TERM_FUNCTIONS(INT)
+//   check_eval(
+//       /* x >= 5 */
+//       geq(x, 5),
+//       /* 0 <  x - 4 */
+//       lt(0, add(x, -4))
+//     );
+// }
 
 TEST_FUN(x_eq_kx_1) {
   TERM_FUNCTIONS(INT)

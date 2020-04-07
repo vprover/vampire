@@ -81,6 +81,22 @@ public:
   virtual PredEvalResult tryEvaluatePred(Literal* trm)  { return PredEvalResult::nop(); }
 };
 
+//TODO refactor to own file
+template<class ConstantType>
+struct num_traits;
+
+template<> struct num_traits<IntegerConstantType> {
+  const Sorts::DefaultSorts sort = Sorts::SRT_INTEGER;
+  const Theory::Interpretation uminus = Theory::INT_UNARY_MINUS;
+  const Theory::Interpretation plus = Theory::INT_PLUS;
+  const Theory::Interpretation mul = Theory::INT_MULTIPLY;
+  const IntegerConstantType zero = IntegerConstantType(0);
+  bool isZero(const TermList& l) const {
+    return l.tag() == REF && theory->representConstant(zero) == l.term();
+  }
+  const IntegerConstantType one = IntegerConstantType(1);
+};
+
 /**
  * We want to evaluate terms up to AC e.g. (1+a)+1 -> a+2 ... the standard evaluation
  * will not do this. The idea here is to collapse the term tree into a list of terms
@@ -100,7 +116,7 @@ CLASS_NAME(InterpretedLiteralEvaluator::ACFunEvaluator<Operator>);
   using ConstantType = typename Operator::ConstantType;
 
   ACFunEvaluator() : _fun(env.signature->getInterpretingSymbol(Operator::interpreation)) { }
-  unsigned _fun; //TODO make const
+  const unsigned _fun; //TODO make const
 
   virtual bool canEvaluateFunc(unsigned func) { return func == _fun; }
 
@@ -167,32 +183,66 @@ CLASS_NAME(InterpretedLiteralEvaluator::ACFunEvaluator<Operator>);
   }
 };
 
+struct IntLess { 
+  // const Theory::Interpretation interpreation = Theory::INT_LESS; 
+  const bool IS_STRICT = true; 
+  const unsigned functor;
+  using ConstantType = IntegerConstantType; 
+  const num_traits<ConstantType> num = num_traits<ConstantType>{};
+
+  IntLess() : functor(env.signature->getInterpretingSymbol(Theory::INT_LESS)) { }
+
+  TermList minus(TermList t) const {
+    CALL("InterpretedLiteralEvaluator::InequalityNormalizer::minus");
+    return TermList(Term::create1(env.signature->getInterpretingSymbol(num.uminus), t));
+  }
+
+  TermList plus(TermList lhs, TermList rhs) const {
+    const num_traits<ConstantType> num = num_traits<ConstantType>{};
+    CALL("InterpretedLiteralEvaluator::InequalityNormalizer::plus");
+    return TermList(Term::create2(env.signature->getInterpretingSymbol(num.plus), lhs, rhs));
+  }
+
+
+  Literal* normalizeUninterpreted(bool polarity, TermList lhs, TermList rhs) const {
+    const num_traits<ConstantType> num = num_traits<ConstantType>{};
+    auto one  = TermList(theory->representConstant(num.one));
+    auto zero = TermList(theory->representConstant(num.zero));
+    if (polarity) {
+      return Literal::create2(functor, 
+              /* polarity */ true, 
+              zero,
+              plus(rhs, minus(lhs)));
+    } else {
+      /* ~(l < r) ==> (r <= l) ==> r - 1 < l ==> 0 < l - r + 1 */
+      return Literal::create2(functor,
+              /* polarity */ true, 
+              zero,
+              plus(plus(lhs, one), minus(rhs)));
+    }
+  }
+}; 
+
+
+/** Normalizes inequalities 
+ *      a < b ==> 0 < b - a 
+ * and evaluates ones that consist constants only.
+ */
 template<class Inequality>
 class InterpretedLiteralEvaluator::InequalityNormalizer 
   : public Evaluator 
 {
-  const unsigned _functor;
+  const Inequality _ineq;
 
 public:
   CLASS_NAME(InterpretedLiteralEvaluator::InequalityNormalizer<Inequality>);
   USE_ALLOCATOR(InterpretedLiteralEvaluator::InequalityNormalizer<Inequality>);
 
-  InequalityNormalizer() : _functor(env.signature->getInterpretingSymbol(Inequality::interpreation)) { }
+  InequalityNormalizer() : _ineq(Inequality()) { }
 
   bool canEvaluatePred(unsigned pred) override 
   {
-    return pred == _functor;
-  }
-
-
-  static TermList minus(TermList t) {
-    CALL("InterpretedLiteralEvaluator::InequalityNormalizer::minus");
-    return TermList(Term::create1(env.signature->getInterpretingSymbol(Inequality::UNARY_MINUS), t));
-  }
-
-  static TermList plus(TermList lhs, TermList rhs) {
-    CALL("InterpretedLiteralEvaluator::InequalityNormalizer::plus");
-    return TermList(Term::create2(env.signature->getInterpretingSymbol(Inequality::PLUS), lhs, rhs));
+    return pred == _ineq.functor;
   }
 
   PredEvalResult tryEvaluatePred(Literal* lit_) override
@@ -200,20 +250,21 @@ public:
     CALL("InterpretedLiteralEvaluator::InequalityNormalizer::tryEvaluatePred");
     ASS(lit_);
     auto& lit = *lit_;
-    ASS_EQ(lit.functor(), _functor);
+    ASS_EQ(lit.functor(), _ineq.functor);
     ASS_EQ(lit.arity(), 2);
     auto lhs = lit[0];
     auto rhs = lit[1];
     if (lhs == rhs) {
-      auto raw = !Inequality::IS_STRICT;
+      auto raw = !_ineq.IS_STRICT;
       return PredEvalResult::trivial(lit.polarity() ? raw : !raw);
+      //TODO interpretet constants
+    } else if (_ineq.num.isZero(lhs)) {
+      return PredEvalResult::nop();
     } else {
-      return PredEvalResult::simplified(Literal::create2(_functor , 
-            lit.polarity(), 
-            TermList(theory->representConstant(Inequality::ZERO)), 
-            plus(rhs, minus(lhs))));
+      return PredEvalResult::simplified( _ineq.normalizeUninterpreted(lit.polarity(), lhs,rhs));
     }
   }
+
 
 };
 
@@ -957,23 +1008,6 @@ protected:
 };
 
 template<Theory::Interpretation op>
-struct Inequality;
-
-#define IMPL_PREDICATE(pred, strict, type, zero, uminus, plus) \
-  template<> struct Inequality<pred> { \
-    const static Theory::Interpretation interpreation = pred; \
-    const static Theory::Interpretation UNARY_MINUS = uminus; \
-    const static Theory::Interpretation PLUS = plus; \
-    const static bool IS_STRICT = strict; \
-    const static type ZERO; \
-    using ConstantType = type; \
-  }; \
-  const type Inequality<pred>::ZERO = zero; \
-
-IMPL_PREDICATE(Theory::INT_LESS, true, IntegerConstantType, IntegerConstantType(0), Theory::INT_UNARY_MINUS, Theory::INT_PLUS);
-
-
-template<Theory::Interpretation op>
 struct Operator;
 
 /** Creates an instance of struct Operatory<oper>, for the use in ACFunEvaluator. */
@@ -1029,7 +1063,7 @@ InterpretedLiteralEvaluator::InterpretedLiteralEvaluator()
   _evals.push(new ACFunEvaluator<Operator<Theory::REAL_PLUS>> ());
   _evals.push(new ACFunEvaluator<Operator<Theory::REAL_MULTIPLY>> ());
 
-  _evals.push(new InequalityNormalizer<Inequality<Theory::INT_LESS>>());
+  _evals.push(new InequalityNormalizer<IntLess>());
 
   }
 
