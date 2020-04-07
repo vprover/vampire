@@ -303,10 +303,13 @@ private:
   /** All pages allocated by this allocator and not returned to 
    *  the global manager via deallocatePages (doubly linked).  */
   Page* _myPages;
-  // /** Number of bytes available on the reserve page */
-  // size_t _reserveBytesAvailable;
-  // /** next available known */
-  // char* _nextAvailableReserve;
+#if VDEBUG
+#else 
+  /** Number of bytes available on the reserve page */
+  size_t _reserveBytesAvailable;
+  /** next available known */
+  char* _nextAvailableReserve;
+#endif
 
   /** Total memory allocated by pages */
   static size_t _usedMemory;
