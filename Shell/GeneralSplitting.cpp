@@ -266,9 +266,6 @@ bool GeneralSplitting::apply(Clause*& cl, UnitList*& resultStack)
   UnitList::push(mdvCl, resultStack);
 
   InferenceStore::instance()->recordSplittingNameLiteral(mdvCl, pnLit);
-  if(env.clausePriorities){
-    env.clausePriorities->insert(mdvCl,cl->getPriority());
-  }
 
   Clause* otherCl=Clause::fromStack(otherLits, cl->inputType(), new Inference2(Inference::GENERAL_SPLITTING, cl, mdvCl));
   otherCl->setAge(cl->age());

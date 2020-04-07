@@ -610,8 +610,7 @@ public:
   enum class SineSelection : unsigned int {
     AXIOMS = 0,
     INCLUDED = 1,
-    OFF = 2,
-    PRIORITY = 3
+    OFF = 2
   };
 
   enum class Proof : unsigned int {

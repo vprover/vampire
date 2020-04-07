@@ -515,12 +515,6 @@ unsigned Clause::computeWeight() const
     result+=splitWeight(); // no longer includes propWeight
   }
 
-  // If _weight is zero (empty clause) then no need to do this
-  if(result){
-    unsigned priority = getPriority();
-    result *= priority;
-  }
-
   return result;
 } // Clause::computeWeight
 

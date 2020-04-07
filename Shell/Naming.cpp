@@ -109,12 +109,7 @@ FormulaUnit* Naming::apply(FormulaUnit* unit, UnitList*& defs) {
   }
   ASS(UnitList::isNonEmpty(_defs));
   UnitList::Iterator defit(_defs);
-  if(env.clausePriorities){
-    while(defit.hasNext()){
-      Unit* def = defit.next();
-      env.clausePriorities->insert(def,unit->getPriority());
-    }
-  }
+
   defs = _defs;
   UnitList* premises = UnitList::copy(_defs);
   UnitList::push(unit, premises);

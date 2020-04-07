@@ -121,9 +121,6 @@ Clause* InequalitySplitting::trySplitClause(Clause* cl)
       Clause* prem;
       resLits[i] = splitLiteral(lit, inpType , prem);
       UnitList::push(prem, premises);
-      if(env.clausePriorities){
-        env.clausePriorities->insert(prem,cl->getPriority());
-      }
     } else {
       resLits[i] = lit;
     }
