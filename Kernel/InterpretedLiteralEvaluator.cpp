@@ -46,6 +46,21 @@ namespace Kernel
 {
 using namespace Lib;
 
+struct PredEvalResult {
+  enum {
+    Simplified,
+    Trivial,
+    Nop,
+  } status;
+  union {
+    bool trivial_val;
+    Literal* simplified_val;
+  };
+  static PredEvalResult nop() {return  PredEvalResult {.status = Nop}; }
+  static PredEvalResult trivial(bool value) {return  PredEvalResult {.status = Trivial, .trivial_val = value}; }
+  static PredEvalResult simplified(Literal* value) {return  PredEvalResult {.status = Simplified, .simplified_val = value}; }
+};
+
 /**
  * We use descendants of this class to evaluate various functions.
  *
@@ -63,7 +78,7 @@ public:
   virtual bool canEvaluatePred(unsigned pred) { return false; }
 
   virtual bool tryEvaluateFunc(Term* trm, TermList& res) { return false; }
-  virtual bool tryEvaluatePred(Literal* trm, bool& res)  { return false; }
+  virtual PredEvalResult tryEvaluatePred(Literal* trm)  { return PredEvalResult::nop(); }
 };
 
 /**
@@ -85,14 +100,11 @@ CLASS_NAME(InterpretedLiteralEvaluator::ACFunEvaluator<Operator>);
   using ConstantType = typename Operator::ConstantType;
 
   ACFunEvaluator() : _fun(env.signature->getInterpretingSymbol(Operator::interpreation)) { }
-  unsigned _fun;
-
-  virtual bool canEvaluatePred(unsigned pred) { return false; }
-  virtual bool tryEvaluatePred(Literal* trm, bool& res)  { return false; }
+  unsigned _fun; //TODO make const
 
   virtual bool canEvaluateFunc(unsigned func) { return func == _fun; }
 
-  virtual bool tryEvaluateFunc(Term* trm, TermList& res) {
+  virtual bool tryEvaluateFunc(Term* trm, TermList& res) { // TODO make const
      _DEBUG( "ACFunEvaluator::tryEvaluateFunc " << trm->toString() );
     ASS_EQ(trm->functor(),_fun);
     ASS_EQ(trm->arity(),2);
@@ -128,8 +140,7 @@ CLASS_NAME(InterpretedLiteralEvaluator::ACFunEvaluator<Operator>);
 	_DEBUG( "evaluated to " << tmp.term()->toString() );
         acc_cnt++;
       } else { 
-        keep.push(t); 
-      }
+        keep.push(t); }
     } 
     if(keep.length() == done.length() || 
        (keep.length() == done.length()-1 && acc_cnt==1)){ 
@@ -154,6 +165,56 @@ CLASS_NAME(InterpretedLiteralEvaluator::ACFunEvaluator<Operator>);
     }
     return true;
   }
+};
+
+template<class Inequality>
+class InterpretedLiteralEvaluator::InequalityNormalizer 
+  : public Evaluator 
+{
+  const unsigned _functor;
+
+public:
+  CLASS_NAME(InterpretedLiteralEvaluator::InequalityNormalizer<Inequality>);
+  USE_ALLOCATOR(InterpretedLiteralEvaluator::InequalityNormalizer<Inequality>);
+
+  InequalityNormalizer() : _functor(env.signature->getInterpretingSymbol(Inequality::interpreation)) { }
+
+  bool canEvaluatePred(unsigned pred) override 
+  {
+    return pred == _functor;
+  }
+
+
+  static TermList minus(TermList t) {
+    CALL("InterpretedLiteralEvaluator::InequalityNormalizer::minus");
+    return TermList(Term::create1(env.signature->getInterpretingSymbol(Inequality::UNARY_MINUS), t));
+  }
+
+  static TermList plus(TermList lhs, TermList rhs) {
+    CALL("InterpretedLiteralEvaluator::InequalityNormalizer::plus");
+    return TermList(Term::create2(env.signature->getInterpretingSymbol(Inequality::PLUS), lhs, rhs));
+  }
+
+  PredEvalResult tryEvaluatePred(Literal* lit_) override
+  {
+    CALL("InterpretedLiteralEvaluator::InequalityNormalizer::tryEvaluatePred");
+    ASS(lit_);
+    auto& lit = *lit_;
+    ASS_EQ(lit.functor(), _functor);
+    ASS_EQ(lit.arity(), 2);
+    auto lhs = lit[0];
+    auto rhs = lit[1];
+    if (lhs == rhs) {
+      auto raw = !Inequality::IS_STRICT;
+      return PredEvalResult::trivial(lit.polarity() ? raw : !raw);
+    } else {
+      return PredEvalResult::simplified(Literal::create2(_functor , 
+            lit.polarity(), 
+            TermList(theory->representConstant(Inequality::ZERO)), 
+            plus(rhs, minus(lhs))));
+    }
+  }
+
 };
 
 /**
@@ -191,44 +252,24 @@ class InterpretedLiteralEvaluator::EqualityEvaluator
     return true;
   }
 
-  bool tryEvaluatePred(Literal* lit, bool& res) override
+  /** is to be called when interpreted functions were already evaluated */
+  PredEvalResult tryEvaluatePred(Literal* lit_) override
   {
-    CALL("InterpretedLiteralEvaluator::EqualityEvaluator::tryEvaluatePred");
-
-    try{
-      ASS(lit->isEquality());
-    
-      // We try and interpret the equality as a number of different sorts
-      // If it is not an equality between two constants of the same sort the
-      // checkEquality function will return false, otherwise res will contain
-      // the result of the equality check
-      bool okay = checkEquality<IntegerConstantType>(lit,res)  ||
-                  checkEquality<RationalConstantType>(lit,res) ||
-                  checkEquality<RealConstantType>(lit,res);
-
-     // Also check if the two terms are already equivalent, although that should be captured elsewhere
-     // This allows us to return true even if we couldn't interpret lit due to arithmetic exception
-     if(lit->nthArgument(0)->term() == lit->nthArgument(1)->term()){
-       okay = true;
-       res = true;
-     } 
-#if I_DEBUG
-      cout << "HERE with " << lit->nthArgument(0)->term() << " and " << lit->nthArgument(1)->term() << endl;
-      cout << "HERE with " << lit->nthArgument(0)->term()->toString() << " and " << lit->nthArgument(1)->term()->toString() << endl;
-      cout << "okay is " << okay << endl;
-#endif
-      if(!okay) return false;
-
-      if(lit->isNegative()){ res = !res; }
-
-      return true;
-
+    auto& lit = *lit_;
+    ASS(lit.isEquality());
+    TermList l = lit[0];
+    TermList r = lit[1];
+    if (l == r) {
+      return PredEvalResult::trivial(lit.polarity());
+    } else {
+      // l != r
+      // TODO lift to evaluate inductive datatypes as well
+      if (theory->isInterpretedNumber(l) && theory->isInterpretedNumber(r)) {
+        return PredEvalResult::trivial(!lit.polarity());
+      } else {
+        return PredEvalResult::nop();
+      }
     }
-    catch(ArithmeticException&)
-    {
-      return false;
-    }
-
   }
 };
 
@@ -466,10 +507,11 @@ public:
     }
   }
 
-  virtual bool tryEvaluatePred(Literal* lit, bool& res) override
+  virtual PredEvalResult tryEvaluatePred(Literal* lit) override
   {
     CALL("InterpretedLiteralEvaluator::tryEvaluatePred");
     ASS(theory->isInterpretedPredicate(lit));
+    bool res;
 
     try {
       Interpretation itp = theory->interpretPredicate(lit);
@@ -481,24 +523,24 @@ public:
       }
       TermList arg1Trm = *lit->nthArgument(0);
       T arg1;
-      if (!theory->tryInterpretConstant(arg1Trm, arg1)) { return false; }
+      if (!theory->tryInterpretConstant(arg1Trm, arg1)) { return PredEvalResult::nop(); }
       if (arity==1) {
-	if (!tryEvaluateUnaryPred(itp, arg1, res)) { return false;}
+	if (!tryEvaluateUnaryPred(itp, arg1, res)) { return PredEvalResult::nop();}
       }
       else {
 	TermList arg2Trm = *lit->nthArgument(1);
 	T arg2;
-	if (!theory->tryInterpretConstant(arg2Trm, arg2)) { return false; }
-	if (!tryEvaluateBinaryPred(itp, arg1, arg2, res)) { return false;}
+	if (!theory->tryInterpretConstant(arg2Trm, arg2)) { return PredEvalResult::nop(); }
+	if (!tryEvaluateBinaryPred(itp, arg1, arg2, res)) { return PredEvalResult::nop();}
       }
       if (lit->isNegative()) {
 	res = !res;
       }
-      return true;
+      return PredEvalResult::trivial(res);
     }
     catch(ArithmeticException&)
     {
-      return false;
+      return PredEvalResult::nop();
     }
 
   }
@@ -915,6 +957,23 @@ protected:
 };
 
 template<Theory::Interpretation op>
+struct Inequality;
+
+#define IMPL_PREDICATE(pred, strict, type, zero, uminus, plus) \
+  template<> struct Inequality<pred> { \
+    const static Theory::Interpretation interpreation = pred; \
+    const static Theory::Interpretation UNARY_MINUS = uminus; \
+    const static Theory::Interpretation PLUS = plus; \
+    const static bool IS_STRICT = strict; \
+    const static type ZERO; \
+    using ConstantType = type; \
+  }; \
+  const type Inequality<pred>::ZERO = zero; \
+
+IMPL_PREDICATE(Theory::INT_LESS, true, IntegerConstantType, IntegerConstantType(0), Theory::INT_UNARY_MINUS, Theory::INT_PLUS);
+
+
+template<Theory::Interpretation op>
 struct Operator;
 
 /** Creates an instance of struct Operatory<oper>, for the use in ACFunEvaluator. */
@@ -924,7 +983,7 @@ struct Operator;
     using ConstantType = type; \
     const static type IDENTITY; \
     static type groundEval(type l, type r) { return eval; } \
-    const static unsigned FUNCTOR; \
+    /*const static unsigned FUNCTOR;*/ \
   }; \
   const type     Operator<oper>::IDENTITY = identity; \
 
@@ -969,6 +1028,8 @@ InterpretedLiteralEvaluator::InterpretedLiteralEvaluator()
   _evals.push(new ACFunEvaluator<Operator<Theory::RAT_MULTIPLY>> ());
   _evals.push(new ACFunEvaluator<Operator<Theory::REAL_PLUS>> ());
   _evals.push(new ACFunEvaluator<Operator<Theory::REAL_MULTIPLY>> ());
+
+  _evals.push(new InequalityNormalizer<Inequality<Theory::INT_LESS>>());
 
   }
 
@@ -1328,36 +1389,47 @@ bool InterpretedLiteralEvaluator::evaluate(Literal* lit, bool& isConstant, Liter
       resLit=new_resLit;
   }
 
-  // If resLit contains variables the predicate cannot be interpreted
-  VariableIterator vit(lit);
-  if(vit.hasNext()){
-    isConstant=false;
-    return (lit!=resLit);
-  }
-  // If resLit contains uninterpreted functions then it cannot be interpreted
-  TermFunIterator tit(lit);
-  ASS(tit.hasNext()); tit.next(); // pop off literal symbol
-  while(tit.hasNext()){
-    unsigned f = tit.next();
-    if(!env.signature->getFunction(f)->interpreted()){
-      isConstant=false;
-      return (lit!=resLit);
-    } 
-  }
-  _DEBUG( resLit->toString()<< " is ground and interpreted, evaluating..." );
+  // // If resLit contains variables the predicate cannot be interpreted
+  // VariableIterator vit(lit);
+  // if(vit.hasNext()){
+  //   isConstant=false;
+  //   return (lit!=resLit);
+  // }
+  // // If resLit contains uninterpreted functions then it cannot be interpreted
+  // TermFunIterator tit(lit);
+  // ASS(tit.hasNext()); tit.next(); // pop off literal symbol
+  // while(tit.hasNext()){
+  //   unsigned f = tit.next();
+  //   if(!env.signature->getFunction(f)->interpreted()){
+  //     isConstant=false;
+  //     return (lit!=resLit);
+  //   } 
+  // }
+  // _DEBUG( resLit->toString()<< " is ground and interpreted, evaluating..." );
+
+  //TODO doesn't reach this point. continue here
 
   unsigned pred = resLit->functor();
 
   // Now we try and evaluate the predicate
   Evaluator* predEv = getPredEvaluator(pred);
   if (predEv) {
-    if (predEv->tryEvaluatePred(resLit, resConst)) {
-        _DEBUG( "pred evaluated " << resConst );
-	isConstant = true;
-	return true;
+    auto r = predEv->tryEvaluatePred(resLit);
+    switch (r.status) {
+      case PredEvalResult::Nop: 
+        break;
+      case PredEvalResult::Simplified: 
+        // resLit = r.simplified_val;
+        resLit = TermTransformerTransformTransformed::transform(r.simplified_val);
+        isConstant = false;
+        return true;
+      case PredEvalResult::Trivial: 
+        isConstant = true;
+        resConst = r.trivial_val;
+        return true;
     }
   }
-	_DEBUG( "pred evaluation failed" );
+
   if (resLit!=lit) {
     isConstant = false;
     return true;
