@@ -262,8 +262,8 @@ public:
     ASS_EQ(lit.arity(), 2);
     auto lhs = lit[0];
     auto rhs = lit[1];
-    DEBUG("lit = " << lit)
-    DEBUG("lhs = " << lhs)
+    // DEBUG("lit = " << lit)
+    // DEBUG("lhs = " << lhs)
     if (lhs == rhs) {
       auto raw = !_ineq.IS_STRICT;
       return PredEvalResult::trivial(lit.polarity() == raw);
