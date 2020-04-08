@@ -98,6 +98,16 @@ using namespace Shell;
 using namespace Shell::Analysis;
 using namespace Saturation;
 
+
+struct Dbg {
+  vstring value;
+  Dbg(vstring value) : value(value) {
+    cout << "begin: " << value << endl;
+  }
+  ~Dbg(){
+    cout << "end:   " << value << endl;
+  }
+};
 /** Print information changes in clause containers */
 #define REPORT_CONTAINERS 0
 /** Print information about performed forward simplifications */
@@ -711,6 +721,7 @@ Clause* SaturationAlgorithm::doImmediateSimplification(Clause* cl0)
 
   Clause* simplCl=_immediateSimplifier->simplify(cl);
   if (simplCl != cl) {
+    cout << "simplified: " << *cl <<  "\t==> " << *simplCl << endl;
     if (simplCl) {
       addNewClause(simplCl);
     }
@@ -755,6 +766,7 @@ void SaturationAlgorithm::addNewClause(Clause* cl)
 void SaturationAlgorithm::newClausesToUnprocessed()
 {
   CALL("SaturationAlgorithm::newClausesToUnprocessed");
+  auto x = Dbg("lala 2");
 
   while (_newClauses.isNonEmpty()) {
     Clause* cl=_newClauses.popWithoutDec();
@@ -803,6 +815,7 @@ bool SaturationAlgorithm::clausesFlushed()
 void SaturationAlgorithm::addUnprocessedClause(Clause* cl)
 {
   CALL("SaturationAlgorithm::addUnprocessedClause");
+  auto x = Dbg("lala 3");
 
   _generatedClauseCount++;
   env.statistics->generatedClauses++;
@@ -815,6 +828,8 @@ void SaturationAlgorithm::addUnprocessedClause(Clause* cl)
     return;
   }
 
+  {
+  auto x = Dbg("lala 4");
   if (cl->isEmpty()) {
     handleEmptyClause(cl);
     return;
@@ -826,6 +841,7 @@ void SaturationAlgorithm::addUnprocessedClause(Clause* cl)
 
   if (TheorySubclauseAnalyser::instance && cl) {
     TheorySubclauseAnalyser::instance->addClause(*cl);
+  }
   }
 }
 
@@ -1097,6 +1113,7 @@ bool SaturationAlgorithm::activate(Clause* cl)
 void SaturationAlgorithm::doUnprocessedLoop()
 {
   CALL("SaturationAlgorithm::doUnprocessedLoop");
+  auto x = Dbg("lala 1");
 
 start:
 
@@ -1129,6 +1146,7 @@ start:
     //there were some new clauses added, so let's process them
     goto start;
   }
+  cout << "### lalalal " << endl;
 
 }
 
