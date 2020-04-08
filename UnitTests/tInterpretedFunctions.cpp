@@ -220,6 +220,26 @@ void check_eq(A l, A r, const char* msg, const Literal& input) {
 #define CHECK_EQ(...) \
   __CHECK(==, __VA_ARGS__)
 
+void check_no_succ(Literal& orig) {
+
+  auto eval = InterpretedLiteralEvaluator();
+
+  bool constant;
+  Literal* result = NULL;
+  bool constantTrue;
+
+  auto sideConditions = Stack<Literal*>();
+  Literal* src = Literal::create(&orig, orig.polarity());
+  auto success = eval.evaluate(src,constant,result,constantTrue, sideConditions);
+
+  CHECK_EQ(success, false, "evaluation successful", orig.toString());
+  // CHECK_EQ(result, NULL, "result was set", orig.toString());
+  // CHECK_EQ(sideConditions.isEmpty(), true, "non-empty side condictions", orig.toString());
+  // CHECK_EQ(constant, true, "result not evaluated to constant", orig.toString());
+  // CHECK_EQ(constantTrue, expected, "result not evaluated to constant", orig.toString());
+}
+
+
 void check_eval(Literal& orig, bool expected) {
 
   auto eval = InterpretedLiteralEvaluator();
@@ -262,6 +282,7 @@ void check_eval(Literal& orig, const Literal& expected) {
 
 }
 
+#ifdef TEST_EVAL
 // Interpret x*2=5
 TEST_FUN(rebalance_var_1) { 
   TERM_FUNCTIONS(REAL)
@@ -402,8 +423,8 @@ TEST_FUN(literal_to_const_7) {
       gt(mul(real(18),a()),mul(real(13), a())),
       true
     );
-
 }
+
 // Interpret 5.0 = 2.0 * y(5.0)
 TEST_FUN(rebalance_uninterpreted) {
   TERM_FUNCTIONS(REAL)
@@ -451,20 +472,7 @@ TEST_FUN(k_x_eq_0) {
 
 };
 
-// Interpret -x > x
-TEST_FUN(x_gt_minus_x) {
-  TERM_FUNCTIONS(REAL)
-
-  check_eval(
-      gt(x, uminus(x)),
-      gt(x, real(0))
-    );
-
-  check_eval(
-      gt(uminus(x), x),
-      gt(real(0), x)
-    );
-};
+#endif
 
 TEST_FUN(normalize_less_1) {
   TERM_FUNCTIONS(INT)
@@ -507,17 +515,6 @@ TEST_FUN(normalize_less_4) {
     );
 }
 
-
-// TEST_FUN(normalize_less_5) {
-//   TERM_FUNCTIONS(INT)
-//   check_eval(
-//       /* 5 > 2 * x */
-//       gt(5, mul(2,x)),
-//       /*  0 < 5 - 2 * x */
-//       lt(0, add(5, uminus(mul(2,x))))
-//     );
-// }
-
 TEST_FUN(normalize_less_equal_1) {
   TERM_FUNCTIONS(INT)
   check_eval(
@@ -528,36 +525,33 @@ TEST_FUN(normalize_less_equal_1) {
     );
 }
 
-// TEST_FUN(normalize_less_equal_2) {
-//   TERM_FUNCTIONS(INT)
-//   check_eval(
-//       /* 5 <= x */
-//       leq(5, x),
-//       /* 0 <  x - 4 */
-//       lt(0, add(x, -4))
-//     );
-// }
-//
-// TEST_FUN(normalize_less_equal_3) {
-//   TERM_FUNCTIONS(INT)
-//   check_eval(
-//       /* ~(5 > x) */
-//       neg(gt(5, x)),
-//       /* 0 <  x - 4 */
-//       lt(0, add(x, -4))
-//     );
-// }
-//
-// TEST_FUN(normalize_less_equal_4) {
-//   TERM_FUNCTIONS(INT)
-//   check_eval(
-//       /* x >= 5 */
-//       geq(x, 5),
-//       /* 0 <  x - 4 */
-//       lt(0, add(x, -4))
-//     );
-// }
+TEST_FUN(normalize_less_equal_2) {
+  TERM_FUNCTIONS(INT)
+    /* 0 <= x + 1*/
+  check_eval(
+      neg(lt(x, a())),
+      /* !(x < a) 
+       * <-> a <= x 
+       * <-> a - 1 < x 
+       * <-> 0 < x + 1 - a
+       */
+      lt(0, add(add(x, 1), uminus(a())))
+      );
+}
 
+TEST_FUN(test_normalize_stable) {
+  TERM_FUNCTIONS(INT)
+    /* 0 <= x + 1*/
+  // check_eval(
+  //     leq(0, add(x, 1)),
+  //     leq(0, add(x, 1))
+      // );
+  check_no_succ(
+      lt(0, add(x, 1))
+      );
+}
+
+#ifdef TEST_EVAL
 TEST_FUN(x_eq_kx_1) {
   TERM_FUNCTIONS(INT)
   check_eval(
@@ -591,14 +585,25 @@ TEST_FUN(k_eq_x_plus_x_1) {
       );
 }
 
-TEST_FUN(test_normalize_stable) {
-  TERM_FUNCTIONS(INT)
-    /* 0 <= x + 1*/
+// Interpret -x > x
+TEST_FUN(x_gt_minus_x) {
+  TERM_FUNCTIONS(REAL)
+
   check_eval(
-      leq(0, add(x, 1)),
-      leq(0, add(x, 1))
-      );
-}
+      gt(x, uminus(x)),
+      gt(x, real(0))
+    );
+
+  check_eval(
+      gt(uminus(x), x),
+      gt(real(0), x)
+    );
+};
+
+
+#endif
+
+
 
 // TODO: cases x = k * x <-> k = 1 | x = 0 
 // TODO: cases x = k + x <-> k = 0 
