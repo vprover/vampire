@@ -1024,7 +1024,6 @@ TheorySubclauseAnalyser::~TheorySubclauseAnalyser() {}
 
 void TheorySubclauseAnalyser::addClause(Clause &c) {
   CALL("TheorySubclauseAnalyser::addClause")
-  cout << "lala" << endl;
   if (!c.isTheoryAxiom() && !c.isTheoryDescendant()) {
 
     auto &scl = maxTheorySubclause(c);
