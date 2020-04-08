@@ -1081,6 +1081,7 @@ InterpretedLiteralEvaluator::~InterpretedLiteralEvaluator()
   }
 }
 
+
 /**
  * This checks if a literal is 'balancable' i.e. can be put into the form term=constant or term=var
  * 
@@ -1096,12 +1097,10 @@ bool InterpretedLiteralEvaluator::balancable(Literal* lit)
   // One thing that we cannot check, but assume is that it has already been simplified once
   // balance applies further checks
 
-  // lit must be an interpretted predicate
-  if(!theory->isInterpretedPredicate(lit->functor())) return false;
-
-  // the perdicate must be binary
-  Interpretation ip = theory->interpretPredicate(lit->functor());
-  if(theory->getArity(ip)!=2) return false;
+  // we can only rebalance for equality. 
+  // (Inequalities would be possible as well but this would interfer with the normalization ( t < s ==> 0 < s - t ))
+  if (!lit->isEquality()) return false;
+  ASS_EQ(lit->arity(), 2)
 
   // one side must be a constant and the other interpretted
   // the other side can contain at most one variable or uninterpreted subterm 

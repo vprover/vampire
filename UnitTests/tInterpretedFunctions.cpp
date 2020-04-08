@@ -591,6 +591,15 @@ TEST_FUN(k_eq_x_plus_x_1) {
       );
 }
 
+TEST_FUN(test_normalize_stable) {
+  TERM_FUNCTIONS(INT)
+    /* 0 <= x + 1*/
+  check_eval(
+      leq(0, add(x, 1)),
+      leq(0, add(x, 1))
+      );
+}
+
 // TODO: cases x = k * x <-> k = 1 | x = 0 
 // TODO: cases x = k + x <-> k = 0 
 // TODO: cases x + x = k <-> x = k/2
