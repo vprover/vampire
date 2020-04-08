@@ -5,13 +5,13 @@ project(Vampire)
 # require the compiler to use C++11
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-
-#static
-option(BUILD_SHARED_LIBS "Build an executable dynamically linking to libraries instead of a statically-linked one (static not working on Mac)" ON)
-if (NOT BUILD_SHARED_LIBS)
-  SET(CMAKE_FIND_LIBRARY_SUFFIXES ".a")
-  SET(CMAKE_EXE_LINKER_FLAGS "-static")
-endif()
+set(VAMPIRE_BINARY "vampire")
+set(VAMPIRE_BINARY_BUILD "_rel")
+set(VAMPIRE_BINARY_STATIC "")
+set(VAMPIRE_BINARY_Z3 "")
+set(VAMPIRE_BINARY_HASH "")
+set(VAMPIRE_BINARY_BRANCH "")
+set(VAMPIRE_BINARY_REV_COUNT "")
 
 #debug flags
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -DVDEBUG=1 -DUNIX_USE_SIGALRM=1 -DGNUMP=0 ")
@@ -20,7 +20,19 @@ set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -DVDEBUG=0")
 if(NOT CMAKE_BUILD_TYPE)
   message(STATUS "Setting build type to 'Release' as none was specified.")
   set(CMAKE_BUILD_TYPE "Release" CACHE
-      STRING "Choose the type of build." FORCE)
+    STRING "Choose the type of build." FORCE)
+elseif (CMAKE_BUILD_TYPE STREQUAL "Debug")
+  set(VAMPIRE_BINARY_BUILD "_dbg")
+else()
+  set(VAMPIRE_BINARY_BUILD "_${CMAKE_BUILD_TYPE}")
+endif()
+
+#static
+option(BUILD_SHARED_LIBS "Build an executable dynamically linking to libraries instead of a statically-linked one (static not working on Mac)" ON)
+if (NOT BUILD_SHARED_LIBS)
+  SET(CMAKE_FIND_LIBRARY_SUFFIXES ".a")
+  SET(CMAKE_EXE_LINKER_FLAGS "-static")
+  set(VAMPIRE_BINARY_STATIC "_static")
 endif()
 
 # support sourcetrail
@@ -779,22 +791,59 @@ else ()
   add_library(Z3 SHARED IMPORTED)
   set_property(TARGET Z3 PROPERTY IMPORTED_LOCATION ${Z3_LIBRARY})
   target_compile_definitions(vampire PRIVATE VZ3=1)
+  set(VAMPIRE_BINARY_Z3 "_z3")
 endif()
-
-
-
-
 
 #################################################################
 # automated generation of Vampire revision information from git #
 #################################################################
-set(VAMPIRE_VERSION_NUMBER "4.3.0")
+set(VAMPIRE_VERSION_NUMBER "4.4.0")
 
 execute_process(
+    COMMAND git rev-parse --is-inside-work-tree
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+    OUTPUT_VARIABLE GIT_IS_REPOSITORY
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+    )
+
+if (GIT_IS_REPOSITORY STREQUAL "true")
+
+  execute_process(
     COMMAND git log -1 --format=%h\ on\ %ci
     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
     OUTPUT_VARIABLE GIT_COMMIT_DESCRIPTION
     OUTPUT_STRIP_TRAILING_WHITESPACE
     )
+
+  execute_process(
+    COMMAND git rev-parse --abbrev-ref HEAD
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+    OUTPUT_VARIABLE GIT_BRANCH
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+    )
+
+  execute_process(
+    COMMAND git rev-list HEAD --count
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+    OUTPUT_VARIABLE GIT_REV_COUNT
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+    )
+
+  execute_process(
+    COMMAND git log -1 --format=%h
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+    OUTPUT_VARIABLE GIT_COMMIT_HASH
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+    )
+
+  set(VAMPIRE_BINARY_HASH "_${GIT_COMMIT_HASH}")
+  set(VAMPIRE_BINARY_BRANCH "_${GIT_BRANCH}")
+  set(VAMPIRE_BINARY_REV_COUNT "_${GIT_REV_COUNT}")
+endif()
+
+################# set binary name #######################
+set(VAMPIRE_BINARY "vampire_${VAMPIRE_BINARY_Z3}${VAMPIRE_BINARY_BUILD}${VAMPIRE_BINARY_STATIC}${VAMPIRE_BINARY_BRANCH}${VAMPIRE_BINARY_REV_COUNT}")
+message(STATUS "Setting binary name to " "${VAMPIRE_BINARY}")
+set_target_properties(vampire PROPERTIES OUTPUT_NAME ${VAMPIRE_BINARY})
 
 configure_file(version.cpp.in version.cpp)
