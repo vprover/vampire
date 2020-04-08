@@ -92,7 +92,9 @@ template<> struct num_traits<IntegerConstantType> {
   const Theory::Interpretation mul = Theory::INT_MULTIPLY;
   const IntegerConstantType zero = IntegerConstantType(0);
   bool isZero(const TermList& l) const {
-    return l.tag() == REF && theory->representConstant(zero) == l.term();
+    auto out = l.tag() == REF && theory->representConstant(zero) == l.term();
+    DEBUG("isZero( " << l << ") = " << out)
+      return out;
   }
   const IntegerConstantType one = IntegerConstantType(1);
 };
@@ -204,6 +206,7 @@ struct IntLess {
   }
 
 
+  // TODO $less(0,$sum(X0,1))
   Literal* normalizeUninterpreted(bool polarity, TermList lhs, TermList rhs) const {
     const num_traits<ConstantType> num = num_traits<ConstantType>{};
     auto one  = TermList(theory->representConstant(num.one));
@@ -254,6 +257,8 @@ public:
     ASS_EQ(lit.arity(), 2);
     auto lhs = lit[0];
     auto rhs = lit[1];
+    DEBUG("lit = " << lit)
+    DEBUG("lhs = " << lhs)
     if (lhs == rhs) {
       auto raw = !_ineq.IS_STRICT;
       return PredEvalResult::trivial(lit.polarity() ? raw : !raw);
@@ -1406,12 +1411,13 @@ bool InterpretedLiteralEvaluator::evaluate(Literal* lit, bool& isConstant, Liter
 {
   CALL("InterpretedLiteralEvaluator::evaluate");
 
-  _DEBUG( "evaluate " << lit->toString() );
+  DEBUG( "evaluate " << lit->toString() );
 
   // This tries to transform each subterm using tryEvaluateFunc (see transform Subterm below)
   resLit = TermTransformerTransformTransformed::transform(lit);
 
   _DEBUG( "transformed " << resLit->toString() );
+  DEBUG( "\t1 ==> " << *resLit );
 
   // If it can be balanced we balance it
   // A predicate on constants will not be balancable
@@ -1421,6 +1427,7 @@ bool InterpretedLiteralEvaluator::evaluate(Literal* lit, bool& isConstant, Liter
       ASS(balance_result || resLit==new_resLit);
       resLit=new_resLit;
   }
+  DEBUG( "\t2 ==> " << *resLit );
 
   // // If resLit contains variables the predicate cannot be interpreted
   // VariableIterator vit(lit);
@@ -1462,6 +1469,7 @@ bool InterpretedLiteralEvaluator::evaluate(Literal* lit, bool& isConstant, Liter
         return true;
     }
   }
+  DEBUG( "\t3 ==> " << *resLit );
 
   if (resLit!=lit) {
     isConstant = false;
