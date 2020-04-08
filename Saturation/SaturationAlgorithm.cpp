@@ -721,7 +721,6 @@ Clause* SaturationAlgorithm::doImmediateSimplification(Clause* cl0)
 
   Clause* simplCl=_immediateSimplifier->simplify(cl);
   if (simplCl != cl) {
-    cout << "simplified: " << *cl <<  "\t==> " << *simplCl << endl;
     if (simplCl) {
       addNewClause(simplCl);
     }
@@ -766,7 +765,6 @@ void SaturationAlgorithm::addNewClause(Clause* cl)
 void SaturationAlgorithm::newClausesToUnprocessed()
 {
   CALL("SaturationAlgorithm::newClausesToUnprocessed");
-  auto x = Dbg("lala 2");
 
   while (_newClauses.isNonEmpty()) {
     Clause* cl=_newClauses.popWithoutDec();
@@ -815,7 +813,6 @@ bool SaturationAlgorithm::clausesFlushed()
 void SaturationAlgorithm::addUnprocessedClause(Clause* cl)
 {
   CALL("SaturationAlgorithm::addUnprocessedClause");
-  auto x = Dbg("lala 3");
 
   _generatedClauseCount++;
   env.statistics->generatedClauses++;
@@ -829,7 +826,6 @@ void SaturationAlgorithm::addUnprocessedClause(Clause* cl)
   }
 
   {
-  auto x = Dbg("lala 4");
   if (cl->isEmpty()) {
     handleEmptyClause(cl);
     return;
@@ -1112,7 +1108,6 @@ bool SaturationAlgorithm::activate(Clause* cl)
 void SaturationAlgorithm::doUnprocessedLoop()
 {
   CALL("SaturationAlgorithm::doUnprocessedLoop");
-  auto x = Dbg("lala 1");
 
 start:
 
@@ -1145,7 +1140,6 @@ start:
     //there were some new clauses added, so let's process them
     goto start;
   }
-  cout << "### lalalal " << endl;
 
 }
 
