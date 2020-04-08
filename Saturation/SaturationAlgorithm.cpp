@@ -842,6 +842,7 @@ void SaturationAlgorithm::addUnprocessedClause(Clause* cl)
   if (TheorySubclauseAnalyser::instance && cl) {
     TheorySubclauseAnalyser::instance->addClause(*cl);
   }
+  }
 }
 
 /**
