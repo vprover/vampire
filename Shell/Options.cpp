@@ -1008,6 +1008,23 @@ void Options::Options::init()
             _inductionUnitOnly.reliesOn(_induction.is(notEqual(Induction::NONE)));
             _lookup.insert(&_inductionUnitOnly);
 
+            _inductionGen = BoolOptionValue("induction_gen","indgen",false);
+            _inductionGen.description = "Apply induction with generalization (on both all & selected occurrences)";
+            _inductionGen.setExperimental();
+            _inductionGen.tag(OptionTag::INFERENCES);
+            _inductionGen.reliesOn(_induction.is(notEqual(Induction::NONE)));
+            _lookup.insert(&_inductionGen);
+
+            _maxInductionGenSubsetSize = UnsignedOptionValue("max_induction_gen_subset_size","indgenss",3);
+            _maxInductionGenSubsetSize.description = "Set maximum number of occurrences of the induction term to be"
+                                                      " generalized, where 0 means no max. (Regular induction will"
+                                                      " be applied without this restriction.)";
+            _maxInductionGenSubsetSize.setExperimental();
+            _maxInductionGenSubsetSize.tag(OptionTag::INFERENCES);
+            _maxInductionGenSubsetSize.reliesOn(_inductionGen.is(equal(true)));
+            _maxInductionGenSubsetSize.addHardConstraint(lessThan(10u));
+            _lookup.insert(&_maxInductionGenSubsetSize);
+
 	    _instantiation = ChoiceOptionValue<Instantiation>("instantiation","inst",Instantiation::OFF,{"off","on"});
 	    _instantiation.description = "Heuristically instantiate variables";
 	    _instantiation.tag(OptionTag::INFERENCES);
