@@ -67,7 +67,8 @@ bool TrivialPredicateRemover::apply(UnitList*& units)
   UnitList::DelIterator dit(units);
   while(dit.hasNext()) {
     Clause* cl = static_cast<Clause*>(dit.next());
-    if(_removed.contains(cl)) {
+    if(_removed.contains(cl) && 
+       !(cl->isGoal() && env.options->ignoreConjectureInPreprocessing())) {
       dit.del();
       modified = true;
     }

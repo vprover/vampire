@@ -77,6 +77,7 @@ bool InnerRewriting::perform(Clause* cl, Clause*& replacement, ClauseIterator& p
               }
             }
 
+            res->setAge(cl->age());
             env.statistics->innerRewrites++;
 
             replacement = res;

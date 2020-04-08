@@ -84,8 +84,8 @@ private:
       : Stack<T*> (initialCapacity) { }
   
     inline ~OwnedPtrStack() { 
-      while (this->template isNonEmpty())
-        delete (this->template pop());
+      while (this->isNonEmpty())
+        delete (this->pop());
      }
   };
 

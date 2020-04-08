@@ -135,11 +135,7 @@ void ActiveClauseContainer::add(Clause* c)
   _size++;
 
   ASS(c->store()==Clause::ACTIVE);
-  if(!c->in_active()){
-    addedEvent.fire(c);
-    c->toggle_in_active();
-  }
-  ASS(c->in_active());
+  addedEvent.fire(c);
 }
 
 /**
@@ -151,14 +147,9 @@ void ActiveClauseContainer::add(Clause* c)
 void ActiveClauseContainer::remove(Clause* c)
 {
   ASS(c->store()==Clause::ACTIVE);
-  ASS(c->in_active());
 
   _size--;
   removedEvent.fire(c);
-
-  c->toggle_in_active();
-  ASS(!c->in_active());
-
 } // Active::ClauseContainer::remove
 
 void ActiveClauseContainer::onLimitsUpdated(LimitsChangeType change)
@@ -175,9 +166,11 @@ void ActiveClauseContainer::onLimitsUpdated(LimitsChangeType change)
   }
   Limits* limits=getSaturationAlgorithm()->getLimits();
 
+  ASS(limits);
   if (!limits->ageLimited() || !limits->weightLimited()) {
     return;
   }
+
   unsigned ageLimit=limits->ageLimit();
   unsigned weightLimit=limits->weightLimit();
 
@@ -189,6 +182,7 @@ void ActiveClauseContainer::onLimitsUpdated(LimitsChangeType change)
   SLQueryResultIterator rit=gis->getAll();
   while (rit.hasNext()) {
     Clause* cl=rit.next().clause;
+    ASS(cl);
     if (cl->age()<ageLimit || checked.contains(cl)) {
       continue;
     }
@@ -235,7 +229,7 @@ void ActiveClauseContainer::onLimitsUpdated(LimitsChangeType change)
     env.statistics->discardedNonRedundantClauses++;
 
     remove(removed);
-    ASS_NEQ(removed->store(), Clause::ACTIVE);
+    // ASS_NEQ(removed->store(), Clause::ACTIVE); -- the remove could have deleted the clause - do not touch!
   }
 }
 

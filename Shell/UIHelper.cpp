@@ -133,6 +133,7 @@ ostream& addCommentSignForSZS(ostream& out)
 }
 
 bool UIHelper::s_haveConjecture=false;
+bool UIHelper::s_proofHasConjecture=true;
 
 void UIHelper::outputAllPremises(ostream& out, UnitList* units, vstring prefix)
 {
@@ -267,6 +268,7 @@ Problem* UIHelper::getInputProblem(const Options& opts)
   {
 	  Parse::SMTLIB2 parser(opts);
 	  parser.parse(*input);
+          Unit::onParsingEnd();
 
 	  units = parser.getFormulas();
     smtLibLogic = parser.getLogic();
@@ -353,7 +355,7 @@ void UIHelper::outputResult(ostream& out)
     addCommentSignForSZS(out);
     out << "Refutation found. Thanks to " << env.options->thanks() << "!\n";
     if (szsOutputMode()) {
-      out << "% SZS status " << ( UIHelper::haveConjecture() ? "Theorem" : "Unsatisfiable" )
+      out << "% SZS status " << (UIHelper::haveConjecture() ? ( UIHelper::haveConjectureInProof() ? "Theorem" : "ContradictoryAxioms" ) : "Unsatisfiable")
 	  << " for " << env.options->problemName() << endl;
     }
     if (env.options->questionAnswering()!=Options::QuestionAnsweringMode::OFF) {
@@ -462,18 +464,7 @@ void UIHelper::outputResult(ostream& out)
       return;
     }
     addCommentSignForSZS(out);
-    if (env.statistics->discardedNonRedundantClauses) {
-      out << "Refutation not found, non-redundant clauses discarded\n";
-    }
-    else if(env.statistics->inferencesSkippedDueToColors){
-      out << "Refutation not found, inferences skipped due to colors\n";
-    }
-    else if(env.statistics->smtReturnedUnknown){
-      out << "Refutation not found, SMT solver inside AVATAR returned Unknown";
-    }
-    else {
-      out << "Refutation not found, incomplete strategy\n";
-    }
+    env.statistics->explainRefutationNotFound(out);
     break;
   case Statistics::SATISFIABLE:
     if(env.options->outputMode() == Options::Output::SMTCOMP){
@@ -514,7 +505,7 @@ void UIHelper::outputSatisfiableResult(ostream& out)
 {
   CALL("UIHelper::outputSatisfiableResult");
 
-  out << "Satisfiable!\n";
+  //out << "Satisfiable!\n";
   if (szsOutputMode() && !satisfiableStatusWasAlreadyOutput) {
     out << "% SZS status " << ( UIHelper::haveConjecture() ? "CounterSatisfiable" : "Satisfiable" )
 	  <<" for " << env.options->problemName() << endl;

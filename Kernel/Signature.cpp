@@ -56,7 +56,12 @@ Signature::Symbol::Symbol(const vstring& nm,unsigned arity, bool interpreted, bo
     _termAlgebraCons(0),
     _type(0),
     _distinctGroups(0),
-    _usageCount(0)
+    _usageCount(0),
+    _unitUsageCount(0),
+    _inGoal(0),
+    _inUnit(0),
+    _inductionSkolem(0),
+    _skolem(0)
 {
   CALL("Signature::Symbol::Symbol");
   ASS(!stringConstant || arity==0);
@@ -127,7 +132,7 @@ void Signature::Symbol::addToDistinctGroup(unsigned group,unsigned this_number)
 
   env.signature->_distinctGroupsAddedTo=true;
 
-  Stack<unsigned>* members = env.signature->_distinctGroupMembers[group];
+  Signature::DistinctGroupMembers members = env.signature->_distinctGroupMembers[group];
   if(members->size() <= DistinctGroupExpansion::EXPAND_UP_TO_SIZE || env.options->bfnt()
                        || env.options->saturationAlgorithm()==Options::SaturationAlgorithm::FINITE_MODEL_BUILDING){
     // we add one more than EXPAND_UP_TO_SIZE to signal to DistinctGroupExpansion::apply not to expand
@@ -767,6 +772,7 @@ unsigned Signature::addSkolemFunction (unsigned arity, const char* suffix)
   CALL("Signature::addSkolemFunction");
 
   unsigned f = addFreshFunction(arity, "sK", suffix);
+  getFunction(f)->markSkolem();
 
   // Register it as a LaTeX function
   theory->registerLaTeXFuncName(f,"\\sigma_{"+Int::toString(_skolemFunctionCount)+"}(a0)");
@@ -785,6 +791,7 @@ unsigned Signature::addSkolemPredicate(unsigned arity, const char* suffix)
   CALL("Signature::addSkolemPredicate");
 
   unsigned f = addFreshPredicate(arity, "sK", suffix);
+  getPredicate(f)->markSkolem();
 
   // Register it as a LaTeX function
   theory->registerLaTeXFuncName(f,"\\sigma_{"+Int::toString(_skolemFunctionCount)+"}(a0)");
@@ -830,8 +837,8 @@ unsigned Signature::createDistinctGroup(Unit* premise)
 
   unsigned res = _distinctGroupPremises.size();
   _distinctGroupPremises.push(premise);
-  Stack<unsigned>* stack = new Stack<unsigned>;
-  _distinctGroupMembers.push(stack);
+  // DistinctGroupMember stack = ;
+  _distinctGroupMembers.push(DistinctGroupMembers(new Stack<unsigned>));
   return res;
 }
 

@@ -31,6 +31,7 @@
 #include "Kernel/Clause.hpp"
 #include "Kernel/Problem.hpp"
 
+#include "GoalGuessing.hpp"
 #include "AnswerExtractor.hpp"
 #include "CNF.hpp"
 #include "NewCNF.hpp"
@@ -176,12 +177,32 @@ void Preprocess::preprocess(Problem& prb)
   //enough
   prb.getProperty();
 
+  /* CAREFUL, keep this at the beginning of the preprocessing pipeline,
+   * so that it corresponds to how its done
+   * in profileMode() in vampire.cpp and PortfolioMode::searchForProof()
+   * to preserve reproducibility out of casc mode when using --decode */
+  if (_options.normalize()) { // reorder units
+    env.statistics->phase=Statistics::NORMALIZATION;
+    if (env.options->showPreprocessing())
+      env.out() << "normalization" << std::endl;
+
+    Normalisation().normalise(prb);
+  }
+
   if (prb.hasInterpretedOperations()) {
     env.interpretedOperationsUsed = true;
   }
 
+  if(_options.guessTheGoal() != Options::GoalGuess::OFF){
+    prb.invalidateProperty();
+    prb.getProperty();
+    GoalGuessing().apply(prb);
+  }
+
   // If there are interpreted operations
   if (prb.hasInterpretedOperations() || env.signature->hasTermAlgebras()){
+    // Normalizer is needed, because the TheoryAxioms code assumes Normalized problem
+    InterpretedNormalizer().apply(prb);
     // Add theory axioms if needed
     if( _options.theoryAxioms() != Options::TheoryAxiomLevel::OFF){
       env.statistics->phase=Statistics::INCLUDING_THEORY_AXIOMS;
@@ -205,7 +226,7 @@ void Preprocess::preprocess(Problem& prb)
   }
 
   if (prb.hasInterpretedOperations() || env.signature->hasTermAlgebras()){
-    // Normalize them e.g. replace $greater with not $lesseq
+    // Some axioms needed to be normalized, so we call InterpretedNormalizer twice
     InterpretedNormalizer().apply(prb);
   }
 
@@ -217,13 +238,20 @@ void Preprocess::preprocess(Problem& prb)
     DistinctGroupExpansion().apply(prb);
   }
 
-  // reorder units
-  if (_options.normalize()) {
-    env.statistics->phase=Statistics::NORMALIZATION;
-    if (env.options->showPreprocessing())
-      env.out() << "normalization" << std::endl;
+  if (_options.sineToAge() || (_options.sineToPredLevels() != Options::PredicateSineLevels::OFF)) {
+    env.statistics->phase=Statistics::SINE_SELECTION;
 
-    Normalisation().normalise(prb);
+    if (_options.sineToAge()) {
+      env.clauseSineLevels = new DHMap<const Unit*,unsigned>();
+    }
+
+    if (_options.sineToPredLevels() != Options::PredicateSineLevels::OFF) {
+      env.predicateSineLevels = new DHMap<unsigned,unsigned>();
+    }
+
+    // just to initialize ``env.clauseSineLevels'' or ``env.predicateSineLevels''
+    SineSelector(false,_options.sineToAgeTolerance(),0,
+        _options.sineToAgeGeneralityThreshold(),true).perform(prb);
   }
 
   if (_options.sineSelection()!=Options::SineSelection::OFF) {
@@ -242,8 +270,8 @@ void Preprocess::preprocess(Problem& prb)
     AnswerLiteralManager::getInstance()->addAnswerLiterals(prb);
   }
 
-  // stop here if clausification is not required
-  if (!_clausify) {
+  // stop here if clausification is not required and still simplify not set
+  if (!_clausify && !_stillSimplify) {
     return;
   }
 
@@ -252,6 +280,11 @@ void Preprocess::preprocess(Problem& prb)
       env.out() << "preprocess1 (rectify, simplify false true, flatten)" << std::endl;
 
     preprocess1(prb);
+  }
+
+  // stop here if clausification is not required
+  if (!_clausify) {
+    return;
   }
 
   // Remove unused predicates

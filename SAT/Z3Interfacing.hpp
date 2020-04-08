@@ -156,7 +156,7 @@ private:
         return z3::expr(e.ctx(), Z3_mk_int2real(e.ctx(), e));
   }
   z3::expr ceiling(z3::expr e){
-        return -to_real(to_int((e)));
+        return -to_real(to_int(-e));
   }
   z3::expr is_even(z3::expr e) {
         z3::context& ctx = e.ctx();

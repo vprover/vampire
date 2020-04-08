@@ -56,6 +56,7 @@ Environment::Environment()
     property(0),
     clausePriorities(0),
     maxClausePriority(1),
+    clauseSineLevels(nullptr),
     colorUsed(false),
     _outputDepth(0),
     _priorityOutput(0),

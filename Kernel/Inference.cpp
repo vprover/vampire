@@ -387,10 +387,36 @@ vstring Inference::ruleName(Rule rule)
     return "equality axiom";
   case CHOICE_AXIOM:
     return "choice axiom";
-  case THEORY:
+  case SAT_CONFLICT_CLAUSE:
+    return "sat conflict clause";
+  case SIMPLIFY_PROVER_DISTINCT_NUMBERS_AXIOM:
+    return "distinct numbers";
+  case THEORY_AXIOM:
     return "theory axiom";
+  case TERM_ALGEBRA_ACYCLICITY_AXIOM:
+    return "term algebras acyclicity";
+  case TERM_ALGEBRA_DISCRIMINATION_AXIOM:
+    return "term algebras discriminators";
+  case TERM_ALGEBRA_DISTINCTNESS_AXIOM:
+    return "term algebras distinctness";
+  case TERM_ALGEBRA_EXHAUSTIVENESS_AXIOM:
+    return "term algebras exhaustiveness";
+  case TERM_ALGEBRA_INJECTIVITY_AXIOM:
+    return "term algebras injectivity";
+  case TERM_ALGEBRA_INJECTIVITY:
+    return "term algebras injectivity";
+  case TERM_ALGEBRA_DISTINCTNESS:
+    return "term algebras distinctness";
+  case TERM_ALGEBRA_ACYCLICITY:
+    return "term algebras acyclicity";
+  case TERM_ALGEBRA_CYCLES:
+    return "infinite terms cyclicity";
+  case TERM_ALGEBRA_INFINITENESS:
+    return "term algebra infiniteness";
   case FOOL_AXIOM:
     return "fool axiom";
+  case EXTERNAL_THEORY_AXIOM:
+    return "external theory axiom";
   case THEORY_FLATTENING:
     return "theory flattening";
   case BOOLEAN_TERM_ENCODING:
@@ -435,20 +461,6 @@ vstring Inference::ruleName(Rule rule)
     return "sat instgen refutation";
   case DISTINCT_EQUALITY_REMOVAL:
     return "distinct equality removal";
-  case TERM_ALGEBRA_EXHAUSTIVENESS:
-    return "term algebras exhaustiveness";
-  case TERM_ALGEBRA_DISTINCTNESS:
-    return "term algebras distinctness";
-  case TERM_ALGEBRA_INJECTIVITY:
-    return "term algebras injectivity";
-  case TERM_ALGEBRA_DISCRIMINATION:
-    return "term algebras discriminators";
-  case TERM_ALGEBRA_ACYCLICITY:
-    return "term algebras acyclicity";
-  case TERM_ALGEBRA_CYCLES:
-    return "infinite terms cyclicity";
-  case TERM_ALGEBRA_INFINITENESS:
-    return "term algebra infiniteness";
   case EXTERNAL:
     return "external";
   case CLAIM_DEFINITION:
@@ -473,6 +485,10 @@ vstring Inference::ruleName(Rule rule)
     return "instantiation";
   case MODEL_NOT_FOUND:
     return "finite model not found";
+  case INDUCTION:
+    return "induction hypothesis";
+  case INDUCTIVE_STRENGTH:
+    return "inductive strengthening";
   default:
     ASSERTION_VIOLATION;
     return "!UNKNOWN INFERENCE RULE!";

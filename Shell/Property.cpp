@@ -92,6 +92,7 @@ Property::Property()
 {
   _interpretationPresence.init(Theory::instance()->numberOfFixedInterpretations(), false);
   env.property = this;
+  _symbolsInFormula = new DHSet<int>();
 } // Property::Property
 
 /**
@@ -103,8 +104,14 @@ Property* Property::scan(UnitList* units)
   CALL("Property::scan");
 
   // a bit of a hack, these counts belong in Property
-  for(unsigned f=0;f<env.signature->functions();f++){ env.signature->getFunction(f)->resetUsageCnt(); }
-  for(unsigned p=0;p<env.signature->predicates();p++){ env.signature->getPredicate(p)->resetUsageCnt(); }
+  for(unsigned f=0;f<env.signature->functions();f++){ 
+    env.signature->getFunction(f)->resetUsageCnt(); 
+    env.signature->getFunction(f)->resetUnitUsageCnt(); 
+   }
+  for(unsigned p=0;p<env.signature->predicates();p++){ 
+    env.signature->getPredicate(p)->resetUsageCnt(); 
+    env.signature->getPredicate(p)->resetUnitUsageCnt(); 
+   }
 
   Property* prop = new Property;
   prop->add(units);
@@ -118,6 +125,8 @@ Property* Property::scan(UnitList* units)
 Property::~Property()
 {
   CALL("Property::~Property");
+
+  delete _symbolsInFormula;
   if (this == env.property) {
     env.property = 0;
   }
@@ -224,6 +233,9 @@ void Property::scan(Unit* unit)
 {
   CALL("Property::scan(const Unit*)");
 
+  ASS(_symbolsInFormula);
+  _symbolsInFormula->reset();
+
   if (unit->isClause()) {
     scan(static_cast<Clause*>(unit));
   }
@@ -238,6 +250,18 @@ void Property::scan(Unit* unit)
       FunctionDefinition::deleteDef(def);
     }
   }
+
+  DHSet<int>::Iterator it(*_symbolsInFormula);
+  while(it.hasNext()){
+    int symbol = it.next();
+    if(symbol >= 0){
+      env.signature->getFunction(symbol)->incUnitUsageCnt();
+    }else{
+      symbol = -symbol;
+      env.signature->getPredicate(symbol)->incUnitUsageCnt();
+    }
+  }
+
 } // Property::scan(const Unit* unit)
 
 /**
@@ -344,7 +368,7 @@ void Property::scan(Clause* clause)
 
   if (_variablesInThisClause > 0) {
     _allClausesGround = false;
-    if(clause->inference()->rule()!=Inference::THEORY && clause->inference()->rule()!=Inference::FOOL_AXIOM){
+    if(!clause->isTheoryAxiom()){
       _allNonTheoryClausesGround = false;
     }
   }
@@ -360,6 +384,7 @@ void Property::scan(Clause* clause)
 void Property::scan(FormulaUnit* unit)
 {
   CALL("Property::scan(const FormulaUnit*)");
+
 
   if (unit->inputType() == Unit::AXIOM) {
     _axiomFormulas ++;
@@ -462,6 +487,13 @@ void Property::scanSort(unsigned sort)
 
   if(sort >= Sorts::FIRST_USER_SORT){
     if(env.sorts->isOfStructuredSort(sort,Sorts::StructuredSort::ARRAY)){
+      // an array sort is infinite, if the index or value sort is infinite
+      // we rely on the recursive calls setting appropriate flags
+      unsigned idx = env.sorts->getArraySort(sort)->getIndexSort();
+      scanSort(idx);
+      unsigned inner = env.sorts->getArraySort(sort)->getInnerSort();
+      scanSort(inner);
+
       addProp(PR_HAS_ARRAYS);
     }
     if (env.signature->isTermAlgebraSort(sort)) {
@@ -514,6 +546,7 @@ void Property::scan(Literal* lit, int polarity, unsigned cLen, bool goal)
     scanSort(SortHelper::getEqualityArgumentSort(lit));
   }
   else {
+    _symbolsInFormula->insert(-lit->functor());
     int arity = lit->arity();
     if (arity > _maxPredArity) {
       _maxPredArity = arity;
@@ -590,6 +623,7 @@ void Property::scan(TermList ts,bool unit,bool goal)
   } else {
     scanForInterpreted(t);
 
+    _symbolsInFormula->insert(t->functor());
     Signature::Symbol* func = env.signature->getFunction(t->functor());
     func->incUsageCnt();
     if(unit){ func->markInUnit();}

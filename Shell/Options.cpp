@@ -117,19 +117,22 @@ void Options::Options::init()
                                         "output",
                                         "portfolio",
                                         "preprocess",
+                                        "preprocess2",
                                         "profile",
                                         "random_strategy",
                                         "sat_solver",
                                         "smtcomp",
                                         "spider",
                                         "tclausify",
+                                        "tpreprocess",
                                         "vampire"});
     _mode.description=
     "Select the mode of operation. Choices are:\n"
     "  -vampire: the standard mode of operation for first-order theorem proving\n"
     "  -portfolio: a portfolio mode running a specified schedule (see schedule)\n"
     "  -casc, casc_sat, smtcomp - like portfolio mode, with competition specific presets for schedule, etc.\n"
-    "  -preprocess,axiom_select,clausify,grounding: modes for producing output\n   for other solvers.\n"
+    "  -preprocess,axiom_selection,clausify,grounding: modes for producing output\n   for other solvers.\n"
+    "  -tpreprocess,tclausify: output modes for theory input"
     "  -output,profile: output information about the problem\n"
     "  -sat_solver: accepts problems in DIMACS and uses the internal sat solver\n   directly\n"
     "Some modes are not currently maintained:\n"
@@ -145,10 +148,14 @@ void Options::Options::init()
          "casc_2014_epr",
          "casc_2016",
          "casc_2017",
+         "casc_2018",
+         "casc_2019",
          "casc_sat",
          "casc_sat_2014",
          "casc_sat_2016",
          "casc_sat_2017",
+         "casc_sat_2018",
+         "casc_sat_2019",
          "ltb_2014",
          "ltb_2014_mzr",
          "ltb_default_2017",
@@ -170,7 +177,8 @@ void Options::Options::init()
          "ltb_mzr_2017",
          "smtcomp",
          "smtcomp_2016",
-         "smtcomp_2017"});
+         "smtcomp_2017",
+         "smtcomp_2018"});
     _schedule.description = "Schedule to be run by the portfolio mode.";
     _lookup.insert(&_schedule);
     _schedule.reliesOnHard(_mode.is(equal(Mode::CASC)->
@@ -287,6 +295,11 @@ void Options::Options::init()
     _lookup.insert(&_proof);
     _proof.tag(OptionTag::OUTPUT);
 
+    _minimizeSatProofs = BoolOptionValue("minimize_sat_proofs","",true);
+    _minimizeSatProofs.description="Perform unsat core minimization when a sat solver finds a clause set UNSAT\n"
+        "(such as with AVATAR proofs or with global subsumption).";
+    _lookup.insert(&_minimizeSatProofs);
+
     _proofExtra = ChoiceOptionValue<ProofExtra>("proof_extra","",ProofExtra::OFF,{"off","free","full"});
     _proofExtra.description="Add extra detail to proofs. "
       "When 'free' this uses known information only. " 
@@ -316,7 +329,7 @@ void Options::Options::init()
     _lookup.insert(&_testId);
     _testId.setExperimental();
 
-    _outputMode = ChoiceOptionValue<Output>("output_mode","",Output::SZS,{"smtcomp","spider","szs","vampire"});
+    _outputMode = ChoiceOptionValue<Output>("output_mode","om",Output::SZS,{"smtcomp","spider","szs","vampire"});
     _outputMode.description="";
     _lookup.insert(&_outputMode);
     _outputMode.setExperimental();
@@ -372,8 +385,27 @@ void Options::Options::init()
     _smtlibFletAsDefinition.setExperimental();
     _smtlibFletAsDefinition.tag(OptionTag::INPUT);
 
+    _guessTheGoal = ChoiceOptionValue<GoalGuess>("guess_the_goal","gtg",GoalGuess::OFF,{"off","all","exists_top","exists_all","exists_sym","position"});
+    _guessTheGoal.description = "Use heuristics to guess formulas that correspond to the goal. Doesn't "
+                                "really make sense if there is already a goal.";
+    _lookup.insert(&_guessTheGoal);
+    _guessTheGoal.tag(OptionTag::INPUT);
+    _guessTheGoal.setExperimental();
+
+    _guessTheGoalLimit = UnsignedOptionValue("guess_the_goal_limit","gtgl",1);
+    _guessTheGoalLimit.description = "The maximum number of input units a symbol appears for it to be considered in a goal";
+    _guessTheGoalLimit.tag(OptionTag::INPUT);
+    _guessTheGoalLimit.setExperimental();
+    //_guessTheGoalLimit.reliesOn(_guessTheGoal.is(equal(true)));
+    _lookup.insert(&_guessTheGoalLimit);
+
 
 //*********************** Preprocessing  ***********************
+
+    _ignoreConjectureInPreprocessing = BoolOptionValue("ignore_conjecture_in_preprocessing","icip",false);
+    _ignoreConjectureInPreprocessing.description="Make sure we do not delete the conjecture in preprocessing";
+    _lookup.insert(&_ignoreConjectureInPreprocessing);
+    _ignoreConjectureInPreprocessing.tag(OptionTag::PREPROCESSING);
 
     _inequalitySplitting = IntOptionValue("inequality_splitting","ins",0);
     _inequalitySplitting.description=
@@ -607,6 +639,33 @@ void Options::Options::init()
     _lookup.insert(&_showNew);
     _showNew.tag(OptionTag::DEVELOPMENT);
 
+    _sineToAge = BoolOptionValue("sine_to_age","s2a",false);
+    _lookup.insert(&_sineToAge);
+    _sineToAge.tag(OptionTag::DEVELOPMENT);
+
+    _sineToPredLevels = ChoiceOptionValue<PredicateSineLevels>("sine_to_pred_levels","s2pl",PredicateSineLevels::OFF,{"no","off","on"});
+    _sineToPredLevels.description = "Assign levels to predicate symbols as they are used to trigger axioms during SInE computation. "
+        "Then used then as predicateLevels determining the ordering. on means conjecture symbols are larger, no means the opposite. (equality keeps its standard lowest level).";
+    _lookup.insert(&_sineToPredLevels);
+    _sineToPredLevels.tag(OptionTag::DEVELOPMENT);
+    _sineToPredLevels.addHardConstraint(If(notEqual(PredicateSineLevels::OFF)).then(_literalComparisonMode.is(notEqual(LiteralComparisonMode::PREDICATE))));
+    _sineToPredLevels.addHardConstraint(If(notEqual(PredicateSineLevels::OFF)).then(_literalComparisonMode.is(notEqual(LiteralComparisonMode::REVERSE))));
+
+    // Like generality threshold for SiNE, except used by the sine2age trick
+    _sineToAgeGeneralityThreshold = UnsignedOptionValue("sine_to_age_generality_threshold","s2agt",0);
+    _lookup.insert(&_sineToAgeGeneralityThreshold);
+    _sineToAgeGeneralityThreshold.tag(OptionTag::DEVELOPMENT);
+    _sineToAgeGeneralityThreshold.reliesOn(_sineToAge.is(equal(true)->Or(_sineToPredLevels.is(notEqual(PredicateSineLevels::OFF)))));
+
+    // Like generality threshold for SiNE, except used by the sine2age trick
+    _sineToAgeTolerance = FloatOptionValue("sine_to_age_tolerance","s2at",1.0);
+    _lookup.insert(&_sineToAgeTolerance);
+    _sineToAgeTolerance.tag(OptionTag::DEVELOPMENT);
+    _sineToAgeTolerance.addConstraint(equal(0.0f)->Or(greaterThanEq(1.0f) ));
+    // Captures that if the value is not 1.0 then sineSelection must be on
+    _sineToAgeTolerance.reliesOn(_sineToAge.is(equal(true)->Or(_sineToPredLevels.is(notEqual(PredicateSineLevels::OFF)))));
+    _sineToAgeTolerance.setRandomChoices({"1.0","1.2","1.5","2.0","3.0","5.0"});
+
     _showSplitting = BoolOptionValue("show_splitting","",false);
     _showSplitting.description="Show updates within AVATAR";
     _lookup.insert(&_showSplitting);
@@ -670,6 +729,16 @@ void Options::Options::init()
     _lookup.insert(&_showFMBsortInfo);
     _showFMBsortInfo.tag(OptionTag::OUTPUT);
 
+    _showInduction = BoolOptionValue("show_induction","",false);
+    _showInduction.description = "Print information about induction";
+    _lookup.insert(&_showInduction);
+    _showInduction.tag(OptionTag::OUTPUT);
+
+    _manualClauseSelection = BoolOptionValue("manual_cs","",false);
+    _manualClauseSelection.description="Run Vampire interactively by manually picking the clauses to be selected";
+    _lookup.insert(&_manualClauseSelection);
+    _manualClauseSelection.tag(OptionTag::DEVELOPMENT);
+    
 //************************************************************************
 //*********************** VAMPIRE (includes CASC)  ***********************
 //************************************************************************
@@ -813,38 +882,48 @@ void Options::Options::init()
     _ageWeightRatio.reliesOn(_saturationAlgorithm.is(notEqual(SaturationAlgorithm::INST_GEN))->Or<int>(_instGenWithResolution.is(equal(true))));
     _ageWeightRatio.setRandomChoices({"8:1","5:1","4:1","3:1","2:1","3:2","5:4","1","2:3","2","3","4","5","6","7","8","10","12","14","16","20","24","28","32","40","50","64","128","1024"});
 
-	    _literalMaximalityAftercheck = BoolOptionValue("literal_maximality_aftercheck","lma",false);
-	    _lookup.insert(&_literalMaximalityAftercheck);
-	    _literalMaximalityAftercheck.tag(OptionTag::SATURATION);
-	    _literalMaximalityAftercheck.setExperimental();
+    _ageWeightRatioShape = ChoiceOptionValue<AgeWeightRatioShape>("age_weight_ratio_shape","awrs",AgeWeightRatioShape::CONSTANT,{"constant","decay", "converge"});
+    _ageWeightRatioShape.description = "How to change the age/weight ratio during proof search.";
+    _lookup.insert(&_ageWeightRatioShape);
+    _ageWeightRatioShape.tag(OptionTag::SATURATION);
 
-	    _lrsFirstTimeCheck = IntOptionValue("lrs_first_time_check","",5);
-	    _lrsFirstTimeCheck.description=
-	    "Percentage of time limit at which the LRS algorithm will for the first time estimate the number of reachable clauses.";
-	    _lookup.insert(&_lrsFirstTimeCheck);
-	    _lrsFirstTimeCheck.tag(OptionTag::LRS);
-	    _lrsFirstTimeCheck.addConstraint(greaterThanEq(0));
-	    _lrsFirstTimeCheck.addConstraint(lessThan(100));
+    _ageWeightRatioShapeFrequency = UnsignedOptionValue("age_weight_ratio_shape_frequency","awrsf",100);
+    _ageWeightRatioShapeFrequency.description = "How frequently the age/weight ratio shape is to change: i.e. if set to 'decay' at a frequency of 100, the age/weight ratio will change every 100 age/weight choices.";
+    _lookup.insert(&_ageWeightRatioShapeFrequency);
+    _ageWeightRatioShapeFrequency.tag(OptionTag::SATURATION);
 
-	    _lrsWeightLimitOnly = BoolOptionValue("lrs_weight_limit_only","lwlo",false);
-	    _lrsWeightLimitOnly.description=
-	    "If off, the lrs sets both age and weight limit according to clause reachability, otherwise it sets the age limit to 0 and only the weight limit reflects reachable clauses";
-	    _lookup.insert(&_lrsWeightLimitOnly);
-	    _lrsWeightLimitOnly.tag(OptionTag::LRS);
+      _literalMaximalityAftercheck = BoolOptionValue("literal_maximality_aftercheck","lma",false);
+      _lookup.insert(&_literalMaximalityAftercheck);
+      _literalMaximalityAftercheck.tag(OptionTag::SATURATION);
+      _literalMaximalityAftercheck.setExperimental();
 
-	    _simulatedTimeLimit = TimeLimitOptionValue("simulated_time_limit","stl",0);
-	    _simulatedTimeLimit.description=
-	    "Time limit in seconds for the purpose of reachability estimations of the LRS saturation algorithm (if 0, the actual time limit is used)";
-	    _lookup.insert(&_simulatedTimeLimit);
-	    _simulatedTimeLimit.tag(OptionTag::LRS);
+      _lrsFirstTimeCheck = IntOptionValue("lrs_first_time_check","",5);
+      _lrsFirstTimeCheck.description=
+      "Percentage of time limit at which the LRS algorithm will for the first time estimate the number of reachable clauses.";
+      _lookup.insert(&_lrsFirstTimeCheck);
+      _lrsFirstTimeCheck.tag(OptionTag::LRS);
+      _lrsFirstTimeCheck.addConstraint(greaterThanEq(0));
+      _lrsFirstTimeCheck.addConstraint(lessThan(100));
+
+      _lrsWeightLimitOnly = BoolOptionValue("lrs_weight_limit_only","lwlo",false);
+      _lrsWeightLimitOnly.description=
+      "If off, the lrs sets both age and weight limit according to clause reachability, otherwise it sets the age limit to 0 and only the weight limit reflects reachable clauses";
+      _lookup.insert(&_lrsWeightLimitOnly);
+      _lrsWeightLimitOnly.tag(OptionTag::LRS);
+
+      _simulatedTimeLimit = TimeLimitOptionValue("simulated_time_limit","stl",0);
+      _simulatedTimeLimit.description=
+      "Time limit in seconds for the purpose of reachability estimations of the LRS saturation algorithm (if 0, the actual time limit is used)";
+      _lookup.insert(&_simulatedTimeLimit);
+      _simulatedTimeLimit.tag(OptionTag::LRS);
 
 
-	//*********************** Inferences  ***********************
+  //*********************** Inferences  ***********************
 
 #if VZ3
 
            _theoryInstAndSimp = ChoiceOptionValue<TheoryInstSimp>("theory_instantiation","thi",
-                                                TheoryInstSimp::OFF,{"off","all","strong","overlap","full"});
+                                                TheoryInstSimp::OFF,{"off","all","strong","overlap","full","new"});
            _theoryInstAndSimp.description = ""; 
            _theoryInstAndSimp.tag(OptionTag::INFERENCES);
            _lookup.insert(&_theoryInstAndSimp);
@@ -852,11 +931,93 @@ void Options::Options::init()
 #endif
            _unificationWithAbstraction = ChoiceOptionValue<UnificationWithAbstraction>("unification_with_abstraction","uwa",
                                              UnificationWithAbstraction::OFF,
-                                             {"off","interpreted_only","one_side_interpreted","one_side_constant","all","ground"});
+                                             {"off","interpreted_only","one_side_interpreted","one_side_constant","all","ground","fixed"});
            _unificationWithAbstraction.description="";
            _unificationWithAbstraction.tag(OptionTag::INFERENCES);
            _lookup.insert(&_unificationWithAbstraction);
            _unificationWithAbstraction.setExperimental();
+
+           _useACeval = BoolOptionValue("use_ac_eval","uace",true);
+           _useACeval.description="";
+           _useACeval.tag(OptionTag::INFERENCES);
+           _lookup.insert(&_useACeval);
+           _useACeval.setExperimental();
+
+            _induction = ChoiceOptionValue<Induction>("induction","ind",Induction::NONE,
+                                {"none","struct","math","both"});
+            _induction.description = "Apply structural and/or mathematical induction on datatypes and integers";
+            _induction.tag(OptionTag::INFERENCES);
+            _lookup.insert(&_induction);
+            //_induction.setRandomChoices
+            _induction.setExperimental();
+
+            _structInduction = ChoiceOptionValue<StructuralInductionKind>("structural_induction_kind","sik",
+                                 StructuralInductionKind::ONE,{"one","two","three","all"});
+            _structInduction.description="";
+            _structInduction.tag(OptionTag::INFERENCES);
+            _structInduction.reliesOn(_induction.is(equal(Induction::STRUCTURAL))->Or<StructuralInductionKind>(_induction.is(equal(Induction::BOTH))));
+            _lookup.insert(&_structInduction);
+            _structInduction.setExperimental();
+
+            _mathInduction = ChoiceOptionValue<MathInductionKind>("math_induction_kind","mik",
+                                 MathInductionKind::ONE,{"one","two","all"});
+            _mathInduction.description="";
+            _mathInduction.tag(OptionTag::INFERENCES);
+            _mathInduction.setExperimental();
+            _mathInduction.reliesOn(_induction.is(equal(Induction::MATHEMATICAL))->Or<MathInductionKind>(_induction.is(equal(Induction::BOTH))));
+            //_lookup.insert(&_mathInduction);
+
+            _inductionChoice = ChoiceOptionValue<InductionChoice>("induction_choice","indc",InductionChoice::ALL,
+                                {"all","goal","goal_plus"});
+            _inductionChoice.description="Where to apply induction. Goal only applies to constants in goal, goal_plus"
+                                         " extends this with skolem constants introduced by induction. Consider using" 
+                                         " guess_the_goal for problems in SMTLIB as they do not come with a conjecture";
+            _inductionChoice.tag(OptionTag::INFERENCES);
+            _lookup.insert(&_inductionChoice);
+            _inductionChoice.setExperimental();
+            _inductionChoice.reliesOn(_induction.is(notEqual(Induction::NONE)));
+            //_inductionChoice.addHardConstraint(If(equal(InductionChoice::GOAL)->Or(equal(InductionChoice::GOAL_PLUS))).then(
+            //  _inputSyntax.is(equal(InputSyntax::TPTP))->Or<InductionChoice>(_guessTheGoal.is(equal(true)))));
+
+
+            _maxInductionDepth = UnsignedOptionValue("induction_max_depth","indmd",0);
+            _maxInductionDepth.description = "Set maximum depth of induction where 0 means no max.";
+            _maxInductionDepth.setExperimental();
+            _maxInductionDepth.tag(OptionTag::INFERENCES);
+            _maxInductionDepth.reliesOn(_induction.is(notEqual(Induction::NONE)));
+            _maxInductionDepth.addHardConstraint(lessThan(33u));
+            _lookup.insert(&_maxInductionDepth);
+
+            _inductionNegOnly = BoolOptionValue("induction_neg_only","indn",true);
+            _inductionNegOnly.description = "Only apply induction to negative literals";
+            _inductionNegOnly.setExperimental();
+            _inductionNegOnly.tag(OptionTag::INFERENCES);
+            _inductionNegOnly.reliesOn(_induction.is(notEqual(Induction::NONE)));
+            _lookup.insert(&_inductionNegOnly);
+
+            _inductionUnitOnly = BoolOptionValue("induction_unit_only","indu",true);
+            _inductionUnitOnly.description = "Only apply induction to unit clauses";
+            _inductionUnitOnly.setExperimental();
+            _inductionUnitOnly.tag(OptionTag::INFERENCES);
+            _inductionUnitOnly.reliesOn(_induction.is(notEqual(Induction::NONE)));
+            _lookup.insert(&_inductionUnitOnly);
+
+            _inductionGen = BoolOptionValue("induction_gen","indgen",false);
+            _inductionGen.description = "Apply induction with generalization (on both all & selected occurrences)";
+            _inductionGen.setExperimental();
+            _inductionGen.tag(OptionTag::INFERENCES);
+            _inductionGen.reliesOn(_induction.is(notEqual(Induction::NONE)));
+            _lookup.insert(&_inductionGen);
+
+            _maxInductionGenSubsetSize = UnsignedOptionValue("max_induction_gen_subset_size","indgenss",3);
+            _maxInductionGenSubsetSize.description = "Set maximum number of occurrences of the induction term to be"
+                                                      " generalized, where 0 means no max. (Regular induction will"
+                                                      " be applied without this restriction.)";
+            _maxInductionGenSubsetSize.setExperimental();
+            _maxInductionGenSubsetSize.tag(OptionTag::INFERENCES);
+            _maxInductionGenSubsetSize.reliesOn(_inductionGen.is(equal(true)));
+            _maxInductionGenSubsetSize.addHardConstraint(lessThan(10u));
+            _lookup.insert(&_maxInductionGenSubsetSize);
 
 	    _instantiation = ChoiceOptionValue<Instantiation>("instantiation","inst",Instantiation::OFF,{"off","on"});
 	    _instantiation.description = "Heuristically instantiate variables";
@@ -1058,6 +1219,12 @@ void Options::Options::init()
     "Generating inference that attempts to do several rewritings at once if it will eliminate literals of the original clause (now we aim just for elimination by equality resolution)";
     _lookup.insert(&_hyperSuperposition);
     _hyperSuperposition.tag(OptionTag::INFERENCES);
+
+    _simultaneousSuperposition = BoolOptionValue("simultaneous_superposition","sims",true);
+    _simultaneousSuperposition.description="Rewrite the whole RHS clause during superposition, not just the target literal.";
+    _lookup.insert(&_simultaneousSuperposition);
+    _simultaneousSuperposition.tag(OptionTag::INFERENCES);
+    _simultaneousSuperposition.setExperimental();
 
     _innerRewriting = BoolOptionValue("inner_rewriting","irw",false);
     _innerRewriting.description="C[t_1] | t1 != t2 ==> C[t_2] | t1 != t2 when t1>t2";
@@ -1562,6 +1729,13 @@ void Options::Options::init()
     _nonGoalWeightCoefficient.tag(OptionTag::SATURATION);
     _nonGoalWeightCoefficient.setRandomChoices({"1","1.1","1.2","1.3","1.5","1.7","2","2.5","3","4","5","10"});
 
+    _restrictNWCtoGC = BoolOptionValue("restrict_nwc_to_goal_constants","rnwc",false);
+    _restrictNWCtoGC.description = "restrict nongoal_weight_coefficient to those containing goal constants";
+    _lookup.insert(&_restrictNWCtoGC);
+    _restrictNWCtoGC.tag(OptionTag::SATURATION);
+    _restrictNWCtoGC.setExperimental();
+    _restrictNWCtoGC.reliesOn(_nonGoalWeightCoefficient.is(notEqual(1.0f)));
+
 
     _normalize = BoolOptionValue("normalize","norm",false);
     _normalize.description="Normalize the problem so that the ordering of clauses etc does not effect proof search.";
@@ -1590,6 +1764,7 @@ void Options::Options::init()
     _termOrdering.description="The term ordering used by Vampire to orient equations and order literals";
     _termOrdering.tag(OptionTag::SATURATION);
     _lookup.insert(&_termOrdering);
+
     _symbolPrecedence = ChoiceOptionValue<SymbolPrecedence>("symbol_precedence","sp",SymbolPrecedence::ARITY,
                                                             {"arity","occurrence","reverse_arity","scramble",
                                                              "frequency","reverse_frequency",
@@ -1598,6 +1773,13 @@ void Options::Options::init()
     _lookup.insert(&_symbolPrecedence);
     _symbolPrecedence.tag(OptionTag::SATURATION);
     _symbolPrecedence.setRandomChoices({"arity","occurence","reverse_arity","frequency"});
+
+    _introducedSymbolPrecedence = ChoiceOptionValue<IntroducedSymbolPrecedence>("introduced_symbol_precedence","isp",
+                                                                                IntroducedSymbolPrecedence::TOP,
+                                                                                {"top","bottom"});
+    _introducedSymbolPrecedence.description="Decides where to place symbols introduced during proof search in the symbol precedence";
+    _lookup.insert(&_introducedSymbolPrecedence);
+    _introducedSymbolPrecedence.tag(OptionTag::SATURATION);
 
     _functionPrecedence = StringOptionValue("function_precendence","fp","");
     _functionPrecedence.description = "A name of a file with an explicit user specified precedence on function symbols.";
@@ -1619,17 +1801,6 @@ void Options::Options::init()
     _weightIncrement.description="";
     //_lookup.insert(&_weightIncrement);
     _weightIncrement.tag(OptionTag::OTHER);
-
-    //******************************************************************
-    //*********************** Unused ??  *******************************
-    //******************************************************************
-
-    _rowVariableMaxLength = IntOptionValue("row_variable_max_length","",2);
-    _rowVariableMaxLength.description="";
-    _lookup.insert(&_rowVariableMaxLength);
-    _rowVariableMaxLength.tag(OptionTag::UNUSED);
-    _rowVariableMaxLength.setExperimental();
-
 
 
     //******************************************************************
@@ -2294,6 +2465,12 @@ bool Options::RatioOptionValue::readRatio(const char* val, char separator)
       return false;
     }
     otherValue = weight;
+
+    // don't allow ratios 0:0
+    if (actualValue == 0 && otherValue == 0) {
+      return false;
+    }
+
     return true;
   }
   actualValue = 1;
@@ -2814,6 +2991,10 @@ bool Options::complete(const Problem& prb) const
     return false;
   }
 
+  if(_maxWeight.actualValue > 0){
+    return false;
+  }
+
   Property& prop = *prb.getProperty();
 
   // general properties causing incompleteness
@@ -2821,6 +3002,7 @@ bool Options::complete(const Problem& prb) const
       || prop.hasProp(Property::PR_HAS_INTEGERS)
       || prop.hasProp(Property::PR_HAS_REALS)
       || prop.hasProp(Property::PR_HAS_RATS)
+      || prop.hasProp(Property::PR_HAS_ARRAYS)
       || (!prop.onlyFiniteDomainDatatypes() && prop.hasProp(Property::PR_HAS_DT_CONSTRUCTORS))
       || (!prop.onlyFiniteDomainDatatypes() && prop.hasProp(Property::PR_HAS_CDT_CONSTRUCTORS))) {
     return false;

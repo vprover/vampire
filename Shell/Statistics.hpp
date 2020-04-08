@@ -63,6 +63,7 @@ public:
   Statistics();
 
   void print(ostream& out);
+  void explainRefutationNotFound(ostream& out);
 
   // Input
   /** number of input clauses */
@@ -133,6 +134,10 @@ public:
   unsigned theoryInstSimpTautologies;
   /** number of theoryInstSimp solutions lost as we could not represent them **/
   unsigned theoryInstSimpLostSolution;
+  /** number of induction applications **/
+  unsigned induction;
+  unsigned maxInductionDepth;
+  unsigned inductionInProof;
 
   // Simplifying inferences
   /** number of duplicate literals deleted */
@@ -207,6 +212,7 @@ public:
   unsigned inferencesBlockedForOrderingAftercheck;
 
   bool smtReturnedUnknown;
+  bool smtDidNotEvaluate;
 
   unsigned inferencesSkippedDueToColors;
 

@@ -54,79 +54,70 @@ Term* TermTransformer::transform(Term* term)
   modified.push(false);
   toDo.push(term->args());
 
-  for(;;) {
-    TermList* tt=toDo.pop();
-    if(tt->isEmpty()) {
-      if(terms.isEmpty()) {
-	//we're done, args stack contains modified arguments
-	//of the literal.
-	ASS(toDo.isEmpty());
-	break;
+  for (;;) {
+    TermList* tt = toDo.pop();
+
+    if (tt->isEmpty()) {
+      if (terms.isEmpty()) {
+        //we're done, args stack contains modified arguments
+        //of the literal.
+        ASS(toDo.isEmpty());
+        break;
       }
-      Term* orig=terms.pop();
-      if(!modified.pop()) {
-        if (!orig->isSpecial()) {
-          args.truncate(args.length() - orig->arity());
-        }
-	args.push(TermList(orig));
-	continue;
+      Term* orig = terms.pop();
+      ASS(!orig->isSpecial());
+      if (!modified.pop()) {
+        args.truncate(args.length() - orig->arity());
+        args.push(TermList(orig));
+        continue;
       }
 
-      if (orig->isSpecial()) {
-        args.push(TermList(orig));
-      } else {
-        //here we assume, that stack is an array with
-        //second topmost element as &top()-1, third at
-        //&top()-2, etc...
-        TermList *argLst = &args.top() - (orig->arity() - 1);
-        args.truncate(args.length() - orig->arity());
-        args.push(TermList(Term::create(orig, argLst)));
-      }
+      //here we assume, that stack is an array with
+      //second topmost element as &top()-1, third at
+      //&top()-2, etc...
+      TermList *argLst = &args.top() - (orig->arity() - 1);
+      args.truncate(args.length() - orig->arity()); // potentially evil. Calls destructors on the truncated objects, which we are happily reading just below
+      args.push(TermList(Term::create(orig, argLst)));
       modified.setTop(true);
       continue;
     } else {
       toDo.push(tt->next());
     }
 
-    TermList tl=*tt;
-    TermList dest;
+    TermList tl = *tt;
     if (tl.isTerm() && tl.term()->isSpecial()) {
       Term* td = transformSpecial(tl.term());
-      if (td == tl.term()) {
-        dest = tl;
-      } else {
-        dest = TermList(td);
+      if (td != tl.term()) {
+        modified.setTop(true);
       }
-    } else {
-      dest = transformSubterm(tl);
+      args.push(TermList(td));
+      continue;
     }
-    if(tl!=dest) {
+
+    TermList dest = transformSubterm(tl);
+    if (tl != dest) {
       args.push(dest);
       modified.setTop(true);
       continue;
     }
-    if(tl.isVar()) {
+    if (tl.isVar()) {
       args.push(tl);
       continue;
     }
+
     ASS(tl.isTerm());
-    Term* t=tl.term();
+    Term* t = tl.term();
+    ASS(!t->isSpecial());
     terms.push(t);
     modified.push(false);
-    if (t->isSpecial()) {
-      TermList aux[1];
-      aux[0].makeEmpty();
-      toDo.push(aux);
-    } else {
-      toDo.push(t->args());
-    }
+    toDo.push(t->args());
   }
   ASS(toDo.isEmpty());
   ASS(terms.isEmpty());
-  ASS_EQ(modified.length(),1);
+  ASS_EQ(modified.length(), 1);
   ASS_EQ(args.length(), term->arity());
 
-  if(!modified.pop()) {
+  if (!modified.pop()) {
     return term;
   }
 
@@ -134,7 +125,7 @@ Term* TermTransformer::transform(Term* term)
   //here we assume, that stack is an array with
   //second topmost element as &top()-1, third at
   //&top()-2, etc...
-  TermList* argLst=&args.top() - (term->arity() - 1);
+  TermList* argLst = &args.top() - (term->arity() - 1);
 
   if (term->isLiteral()) {
     return Literal::create(static_cast<Literal*>(term), argLst);
@@ -175,7 +166,7 @@ Term* TermTransformer::transformSpecial(Term* term)
     case Term::SF_FORMULA: {
       Formula* formula = transform(sd->getFormula());
 
-      if (formula != sd->getFormula()) {
+      if (formula == sd->getFormula()) {
         return term;
       } else {
         return Term::createFormula(formula);
@@ -239,7 +230,7 @@ TermList TermTransformer::transform(TermList ts)
 Formula* TermTransformer::transform(Formula* f)
 {
   CALL("TermTransformer::transform(Formula* f)");
-  static TermTransformingFormulaTransformer ttft(*this);
+  TermTransformingFormulaTransformer ttft(*this);
   return ttft.transform(f);
 }
 
@@ -326,69 +317,6 @@ Literal* TermTransformerTransformTransformed::transform(Literal* lit)
   Term* t = transform(static_cast<Term*>(lit));
   ASS(t->isLiteral());
   return static_cast<Literal*>(t);
-}
-
-Term* TermTransformerTransformTransformed::transformSpecial(Term* term)
-{
-  CALL("TermTransformerTransformTransformed::transformSpecial(Term* term)");
-  ASS(term->isSpecial());
-
-  Term::SpecialTermData* sd = term->getSpecialData();
-  switch (sd->getType()) {
-    case Term::SF_ITE: {
-      Formula* condition = transform(sd->getCondition());
-      TermList thenBranch = transform(*term->nthArgument(0));
-      TermList elseBranch = transform(*term->nthArgument(1));
-
-      if ((condition == sd->getCondition()) &&
-          (thenBranch == *term->nthArgument(0)) &&
-          (elseBranch == *term->nthArgument(1))) {
-        return term;
-      } else {
-        return Term::createITE(condition, thenBranch, elseBranch, sd->getSort());
-      }
-    }
-
-    case Term::SF_FORMULA: {
-      Formula* formula = transform(sd->getFormula());
-
-      if (formula != sd->getFormula()) {
-        return term;
-      } else {
-        return Term::createFormula(formula);
-      }
-    }
-
-    case Term::SF_LET: {
-      TermList binding = transform(sd->getBinding());
-      TermList body = transform(*term->nthArgument(0));
-
-      if ((binding == sd->getBinding() && (body == *term->nthArgument(0)))) {
-        return term;
-      } else {
-        return Term::createLet(sd->getFunctor(), sd->getVariables(), binding, body, sd->getSort());
-      }
-    }
-
-    default:
-      ASSERTION_VIOLATION_REP(term->toString());
-  }
-}
-
-TermList TermTransformerTransformTransformed::transform(TermList ts)
-{
-  CALL("TermTransformerTransformTransformed::transform(TermList ts)");
-
-  if (ts.isVar()) {
-    return transformSubterm(ts);
-  } else {
-    Term* transformed = transform(ts.term());
-    if (transformed != ts.term()) {
-      return TermList(transformed);
-    } else {
-      return ts;
-    }
-  }
 }
 
 Formula* TermTransformerTransformTransformed::transform(Formula* f)

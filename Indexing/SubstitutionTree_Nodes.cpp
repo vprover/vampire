@@ -21,12 +21,16 @@
  * Different SubstitutionTree Node implementations.
  */
 
+
 #include "Lib/DHMultiset.hpp"
 #include "Lib/Exception.hpp"
 #include "Lib/List.hpp"
 #include "Lib/Metaiterators.hpp"
 #include "Lib/SkipList.hpp"
 #include "Lib/VirtualIterator.hpp"
+#include "Lib/Environment.hpp"
+
+#include "Shell/Options.hpp"
 
 #include "Index.hpp"
 #include "SubstitutionTree.hpp"
@@ -61,12 +65,14 @@ public:
   inline
   void insert(LeafData ld)
   {
+    CALL("SubstitutionTree::UListLeaf::insert");
     LDList::push(ld, _children);
     _size++;
   }
   inline
   void remove(LeafData ld)
   {
+    CALL("SubstitutionTree::UListLeaf::remove");
     _children = LDList::remove(ld, _children);
     _size--;
   }
@@ -102,8 +108,14 @@ public:
   {
     return pvi( LDSkipList::RefIterator(_children) );
   }
-  void insert(LeafData ld) { _children.insert(ld); }
-  void remove(LeafData ld) { _children.remove(ld); }
+  void insert(LeafData ld) {
+    CALL("SubstitutionTree::SListLeaf::insert");
+    _children.insert(ld);
+  }
+  void remove(LeafData ld) {
+    CALL("SubstitutionTree::SListLeaf::remove");
+    _children.remove(ld);
+  }
 
   CLASS_NAME(SubstitutionTree::SListLeaf);
   USE_ALLOCATOR(SListLeaf);
@@ -207,6 +219,7 @@ SubstitutionTree::IntermediateNode* SubstitutionTree::SListIntermediateNode
   IntermediateNode* res= 0;
   if(orig->withSorts()){
     res = new SListIntermediateNodeWithSorts(orig->term, orig->childVar);
+    res->_childBySortHelper->loadFrom(orig->_childBySortHelper);
   }else{
     res = new SListIntermediateNode(orig->term, orig->childVar);
   }

@@ -134,6 +134,14 @@ string Lib::___prettyFunToClassName(std::string str)
 
 #endif
 
+void* Allocator::operator new(size_t s) {
+  return malloc(s);
+}
+
+void Allocator::operator delete(void* obj) {
+  free(obj);
+}
+
 /**
  * Create a new allocator.
  * @since 10/01/2008 Manchester
@@ -310,7 +318,7 @@ void Allocator::cleanup()
       _pages[i] = pg->next;
       
       char* mem = reinterpret_cast<char*>(pg);
-      ::delete[] mem;
+      free(mem);
 #if VDEBUG && TRACE_ALLOCATIONS
       cnt++;
 #endif    
@@ -363,7 +371,6 @@ void Allocator::deallocateKnown(void* obj,size_t size)
   desc->allocated = 0;
 #endif
   free(obj);
-//  delete obj;
   return;
 #else   // ! USE_SYSTEM_ALLOCATION
   if (size >= REQUIRES_PAGE) {
@@ -435,7 +442,6 @@ void Allocator::deallocateUnknown(void* obj)
 #if USE_SYSTEM_ALLOCATION
   char* memObj = reinterpret_cast<char*>(obj) - sizeof(Known);
   free(memObj);
-//  delete obj;
   return;
 #endif
 
@@ -614,12 +620,8 @@ Allocator::Page* Allocator::allocatePages(size_t size)
     }
     _usedMemory = newSize;
 
-    char* mem;
-    try {
-      BYPASSING_ALLOCATOR;
-      
-      mem = new char[realSize];
-    } catch(bad_alloc) {
+    char* mem = static_cast<char*>(malloc(realSize));
+    if (!mem) {
       env.beginOutput();
       reportSpiderStatus('m');
       env.out() << "Memory limit exceeded!\n";
@@ -960,7 +962,7 @@ Allocator::Descriptor* Allocator::Descriptor::find (const void* addr)
     Descriptor* oldMap = map;
     try {
       map = new Descriptor [capacity];
-    } catch(bad_alloc) {
+    } catch(bad_alloc&) {
       env.beginOutput();
       reportSpiderStatus('m');
       env.out() << "Memory limit exceeded!\n";
@@ -1024,6 +1026,14 @@ ostream& Lib::operator<<(ostream& out, const Allocator::Descriptor& d) {
   return out;
 }
 
+void* Allocator::Descriptor::operator new[](size_t s) {
+  return malloc(s);
+}
+
+void Allocator::Descriptor::operator delete[](void* obj) {
+  free(obj);
+}
+
 /**
  * Initialise a descriptor.
  * @since 17/12/2005 Vancouver
@@ -1058,7 +1068,6 @@ unsigned Allocator::Descriptor::hash (const void* addr)
 
 #endif
 
-#if VDEBUG
 /**
  * In debug mode we replace the global new and delete (also the array versions)
  * and terminate in cases when they are used "unwillingly".
@@ -1066,6 +1075,9 @@ unsigned Allocator::Descriptor::hash (const void* addr)
  * and yet they attempt to call global new (and not the class specific versions 
  * built on top of Allocator).
  * 
+ * Update: In release, we newly use global new/delete as well,
+ * but just silently redirect the allocations to our Allocator.
+ *
  * This is a link about some requirements on new/delete: 
  * http://stackoverflow.com/questions/7194127/how-should-i-write-iso-c-standard-conformant-custom-new-and-delete-operators/
  * (Note that we ignore the globalHandler issue here.)
@@ -1074,18 +1086,14 @@ unsigned Allocator::Descriptor::hash (const void* addr)
 void* operator new(size_t sz) {    
   ASS_REP(Allocator::_tolerantZone > 0,"Attempted to use global new operator, thus bypassing Allocator!");
   // Please read: https://github.com/easychair/vampire/wiki/Attempted-to-use-global-new-operator,-thus-bypassing-Allocator!
-
-  if(Allocator::_tolerantZone == 0){
-    Debug::Tracer::printStack(cout);
   
-    cout << "Warning, bypassing Allocator" << endl;
-  }
+  static Allocator::Initialiser i; // to initialize Allocator even for other libraries
   
   if (sz == 0)
     sz = 1;
-      
-  void* res = malloc(sz);  
   
+  void* res = ALLOC_UNKNOWN(sz,"global new");
+
   if (!res)
     throw bad_alloc();
   
@@ -1096,17 +1104,13 @@ void* operator new[](size_t sz) {
   ASS_REP(Allocator::_tolerantZone > 0,"Attempted to use global new[] operator, thus bypassing Allocator!");
   // Please read: https://github.com/easychair/vampire/wiki/Attempted-to-use-global-new-operator,-thus-bypassing-Allocator!
 
-  if(Allocator::_tolerantZone == 0){
-    Debug::Tracer::printStack(cout);
-    
-    cout << "Warning, bypassing Allocator" << endl;
-  }
-  
+  static Allocator::Initialiser i; // to initialize Allocator even for other libraries
+
   if (sz == 0)
     sz = 1;
-      
-  void* res = malloc(sz);  
   
+  void* res = ALLOC_UNKNOWN(sz,"global new[]");
+
   if (!res)
     throw bad_alloc();
   
@@ -1117,26 +1121,23 @@ void operator delete(void* obj) throw() {
   ASS_REP(Allocator::_tolerantZone > 0,"Custom operator new matched by global delete!");
   // Please read: https://github.com/easychair/vampire/wiki/Attempted-to-use-global-new-operator,-thus-bypassing-Allocator!
 
-  if(Allocator::_tolerantZone==0){
-    Debug::Tracer::printStack(cout);
-    
-    cout << "Warning, custom new matched by global delete" << endl;
+  static Allocator::Initialiser i; // to initialize Allocator even for other libraries
+
+  if (obj != nullptr) {
+    DEALLOC_UNKNOWN(obj,"global new");
   }
-  free(obj);
 }
 
 void operator delete[](void* obj) throw() {  
   ASS_REP(Allocator::_tolerantZone > 0,"Custom operator new[] matched by global delete[]!");
   // Please read: https://github.com/easychair/vampire/wiki/Attempted-to-use-global-new-operator,-thus-bypassing-Allocator!
 
-  if(Allocator::_tolerantZone==0){
-        Debug::Tracer::printStack(cout);
-  
-    cout << "Warning, custom new matched by global delete[]" << endl;
+  static Allocator::Initialiser i; // to initialize Allocator even for other libraries
+
+  if (obj != nullptr) {
+    DEALLOC_UNKNOWN(obj,"global new[]");
   }
-  free(obj);
 }
-#endif // VDEBUG
 
 #if VTEST
 

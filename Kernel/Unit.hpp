@@ -82,6 +82,8 @@ public:
   unsigned varCnt();
   unsigned getPriority() const;
 
+  unsigned getSineLevel() const;
+
   vstring inferenceAsString() const;
 
   /** True if a clause unit */
@@ -167,6 +169,8 @@ public:
 
 
   static void onPreprocessingEnd();
+  static void onParsingEnd(){ _lastParsingNumber = _lastNumber;}
+  static unsigned getLastParsingNumber(){ return _lastParsingNumber;}
 
 protected:
   /** Number of this unit, used for printing and statistics */
@@ -193,6 +197,8 @@ protected:
    *
    * 0 means preprocessing is not over yet.*/
   static unsigned _firstNonPreprocessingNumber;
+
+  static unsigned _lastParsingNumber;
 }; // class Unit
 
 std::ostream& operator<< (ostream& out, const Unit& u );

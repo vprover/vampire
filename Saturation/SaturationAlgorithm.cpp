@@ -69,6 +69,7 @@
 #include "Inferences/URResolution.hpp"
 #include "Inferences/Instantiation.hpp"
 #include "Inferences/TheoryInstAndSimp.hpp"
+#include "Inferences/Induction.hpp"
 
 #include "Saturation/ExtensionalityClauseContainer.hpp"
 
@@ -84,6 +85,7 @@
 #include "Splitter.hpp"
 #include "SymElOutput.hpp"
 #include "SaturationAlgorithm.hpp"
+#include "ManCSPassiveClauseContainer.hpp"
 #include "AWPassiveClauseContainer.hpp"
 #include "Discount.hpp"
 #include "LRS.hpp"
@@ -138,7 +140,15 @@ SaturationAlgorithm::SaturationAlgorithm(Problem& prb, const Options& opt)
   _completeOptionSettings = opt.complete(prb);
 
   _unprocessed = new UnprocessedClauseContainer();
-  _passive = new AWPassiveClauseContainer(opt);
+  if (opt.useManualClauseSelection())
+  {
+    _passive = new ManCSPassiveClauseContainer(opt);
+  }
+  else
+  {
+    _passive = new AWPassiveClauseContainer(opt);
+  }
+    
   _active = new ActiveClauseContainer(opt);
 
   _active->attach(this);
@@ -161,7 +171,7 @@ SaturationAlgorithm::SaturationAlgorithm(Problem& prb, const Options& opt)
   }
   
   if (opt.maxWeight()) {
-    _limits.setLimits(0,opt.maxWeight());
+    _limits.setLimits(0,opt.maxWeight(),true);
   }
 
   s_instance=this;
@@ -557,10 +567,20 @@ void SaturationAlgorithm::addInputClause(Clause* cl)
   bool sosForAxioms = _opt.sos() == Options::Sos::ON || _opt.sos() == Options::Sos::ALL; 
   sosForAxioms = sosForAxioms && cl->inputType()==Clause::AXIOM;
 
-  bool isTheory = cl->inference()->rule()==Inference::THEORY;
   bool sosForTheory = _opt.sos() == Options::Sos::THEORY && _opt.sosTheoryLimit() == 0;
 
-  if (sosForAxioms || (isTheory && sosForTheory)){
+  if (_opt.sineToAge()) {
+    unsigned level = cl->getSineLevel();
+    // cout << "Adding " << cl->toString() << " level " << level;
+    if (level == UINT_MAX) {
+      level = env.maxClausePriority;
+      // cout << " -> " << level;
+    }
+    // cout << endl;
+    cl->setAge(level);
+  }
+
+  if (sosForAxioms || (cl->isTheoryAxiom() && sosForTheory)){
     addInputSOSClause(cl);
   } else {
     addNewClause(cl);
@@ -822,6 +842,9 @@ void SaturationAlgorithm::handleEmptyClause(Clause* cl)
       reportSpiderFail();
       // this is a poor way of handling this in release mode but it prevents unsound proofs
       throw MainLoop::MainLoopFinishedException(Statistics::REFUTATION_NOT_FOUND);
+    }
+    if(cl->inputType() == Unit::AXIOM){
+      UIHelper::setConjectureInProof(false);
     }
 
     throw RefutationFoundException(cl);
@@ -1336,6 +1359,11 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
   // create generating inference engine
   CompositeGIE* gie=new CompositeGIE();
 
+  //TODO here induction is last, is that right?
+  if(opt.induction()!=Options::Induction::NONE){
+    gie->addFront(new Induction());
+  }
+
   if(opt.instantiation()!=Options::Instantiation::OFF){
     res->_instantiation = new Instantiation();
     //res->_instantiation->init();
@@ -1346,6 +1374,9 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
     gie->addFront(new EqualityFactoring());
     gie->addFront(new EqualityResolution());
     gie->addFront(new Superposition());
+  }
+  else if(opt.unificationWithAbstraction()!=Options::UnificationWithAbstraction::OFF){
+    gie->addFront(new EqualityResolution()); 
   }
   gie->addFront(new Factoring());
   if (opt.binaryResolution()) {

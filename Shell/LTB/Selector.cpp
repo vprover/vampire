@@ -161,7 +161,7 @@ void Selector::selectForProblem(UnitList*& units)
   TimeCounter tc(TC_SINE_SELECTION);
 
   if(_storage.getEmptyClausePossession()) {
-    Clause* cl=Clause::fromIterator(VirtualIterator<Literal*>::getEmpty(), Unit::AXIOM, new Inference(Inference::THEORY));
+    Clause* cl=Clause::fromIterator(VirtualIterator<Literal*>::getEmpty(), Unit::AXIOM, new Inference(Inference::EXTERNAL_THEORY_AXIOM));
     units->destroy();
     units=0;
     UnitList::push(cl, units);

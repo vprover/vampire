@@ -89,7 +89,13 @@ Clause* InterpretedEvaluation::simplify(Clause* cl)
   TimeCounter tc(TC_INTERPRETED_EVALUATION);
 
   // do not evaluate theory axioms
-  if(cl->inference()->rule()==Inference::THEORY) return cl;
+  // TODO: We want to skip the evaluation of theory axioms, because we already assume that
+  // internally added theory axioms are simplified as much as possible. Note that the 
+  // isTheoryAxiom-check also returns true for externally added theory axioms. It is unclear
+  // whether we should skip those externally added theory axioms, since it is not clear
+  // that they are simplified as much as possible (since they are potentially written by
+  // users unfamiliar with theorem proving, in contrast to our internally added axioms).
+  if(cl->isTheoryAxiom()) return cl;
 
   static DArray<Literal*> newLits(32);
   unsigned clen=cl->length();

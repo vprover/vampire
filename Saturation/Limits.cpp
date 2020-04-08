@@ -41,7 +41,7 @@ bool Limits::fulfillsLimits(Clause* cl)
   return (cl->age() <= ageLimit()) || (cl->getEffectiveWeight(_opt) <= weightLimit());
 }
 
-void Limits::setLimits(int newMaxAge, int newMaxWeight)
+void Limits::setLimits(int newMaxAge, int newMaxWeight,bool initial)
 {
   CALL("Limits::setLimits");
   ASS_GE(newMaxAge,-1);
@@ -69,7 +69,7 @@ void Limits::setLimits(int newMaxAge, int newMaxWeight)
 	_maxNonGoalWeight=static_cast<int>(_maxWeight/_opt.nongoalWeightCoefficient());
     }
   }
-  if(res!=NO_LIMITS_CHANGE) {
+  if(res!=NO_LIMITS_CHANGE && !initial) {
     changedEvent.fire(res);
   }
 }

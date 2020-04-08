@@ -58,19 +58,23 @@
 /** The largest piece of memory that can be allocated at once */
 #define MAXIMAL_ALLOCATION (static_cast<unsigned long long>(VPAGE_SIZE)*MAX_PAGES)
 
-//this macro is undefine at the end of the file
+//this macro is undefined at the end of the file
+// alloc_size follows C notation, for a C++ method, argument 1 is the pointer to this, so
+// the actual allocation size lies in argument 2
 #if defined(__GNUC__) && !defined(__ICC) && (__GNUC__ > 4 || __GNUC__ == 4 && __GNUC_MINOR__ > 2)
-# define ALLOC_SIZE_ATTR __attribute__((malloc, alloc_size(1)))
+# define ALLOC_SIZE_ATTR __attribute__((malloc, alloc_size(2)))
 #else
 # define ALLOC_SIZE_ATTR
 #endif
-
-
 
 namespace Lib {
 
 class Allocator {
 public:
+  // Allocator is the only class which we don't allocate using Allocator ;)
+  void* operator new (size_t s);
+  void operator delete (void* obj);
+
   Allocator();
   ~Allocator();
   
@@ -216,6 +220,10 @@ public:
   /** Descriptor stores information about allocated pieces of memory */
   struct Descriptor
   {
+    // Allocator (and its Descriptor) are the only classes which we don't allocate using Allocator
+    void* operator new[] (size_t s);
+    void operator delete[] (void* obj);
+
     /** address of a piece of memory */
     const void* address;
     /** class to which it belongs */

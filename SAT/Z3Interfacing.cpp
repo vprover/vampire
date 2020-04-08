@@ -220,12 +220,10 @@ SATSolver::VarAssignment Z3Interfacing::getAssignment(unsigned var)
     return FALSE;
   }
 
-  // with model_completion true (see above), there should be no don't cares!
+  // with model_completion true (see above), there should be no don't-knows
 
-  ASSERTION_VIOLATION;
-
-  //cout << "returning don't care for " << var << endl;
-  return DONT_CARE;
+  ASSERTION_VIOLATION_REP(assignment); // This is actually not a problem for AVATAR in release (see recomputeModel in Splitter.cpp)
+  return NOT_KNOWN;
 }
 
 Term* Z3Interfacing::evaluateInModel(Term* trm)

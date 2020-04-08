@@ -272,6 +272,7 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQ
           return 0;
         }
       }
+      ASS(next < newLength);
       (*res)[next] = newLit;
       next++;
     }

@@ -38,13 +38,18 @@ public:
   static void getCasc2014EprSchedule(const Shell::Property& property, Schedule& quick, Schedule& fallback);
   static void getCasc2016Schedule(const Shell::Property& property, Schedule& quick, Schedule& fallback);
   static void getCasc2017Schedule(const Shell::Property& property, Schedule& quick, Schedule& fallback);
+  static void getCasc2018Schedule(const Shell::Property& property, Schedule& quick, Schedule& fallback);
+  static void getCasc2019Schedule(const Shell::Property& property, Schedule& quick, Schedule& fallback);
 
   static void getCascSat2014Schedule(const Shell::Property& property, Schedule& quick, Schedule& fallback);
   static void getCascSat2016Schedule(const Shell::Property& property, Schedule& quick, Schedule& fallback);
   static void getCascSat2017Schedule(const Shell::Property& property, Schedule& quick, Schedule& fallback);
+  static void getCascSat2018Schedule(const Shell::Property& property, Schedule& quick, Schedule& fallback);
+  static void getCascSat2019Schedule(const Shell::Property& property, Schedule& quick, Schedule& fallback);
 
   static void getSmtcomp2016Schedule(const Shell::Property& property, Schedule& quick, Schedule& fallback);
   static void getSmtcomp2017Schedule(const Shell::Property& property, Schedule& quick, Schedule& fallback);
+  static void getSmtcomp2018Schedule(const Shell::Property& property, Schedule& quick, Schedule& fallback);
 
   static void getLtb2015Hh4FastSchedule(const Shell::Property& property, Schedule& sched);
   static void getLtb2015Hh4MiddSchedule(const Shell::Property& property, Schedule& sched);

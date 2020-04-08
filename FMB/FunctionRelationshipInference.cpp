@@ -90,7 +90,7 @@ void FunctionRelationshipInference::findFunctionRelationships(ClauseIterator cla
     salg->setLabelFinder(labelFinder);
     MainLoopResult sres(salg->run());
     (void)sres; //TODO do we even care about sres?
-  }catch (TimeLimitExceededException){
+  }catch (TimeLimitExceededException&){
     // This is expected behaviour
   }
 

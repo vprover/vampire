@@ -1,6 +1,6 @@
 #/*
 # * This file is part of the source code of the software program
-# * Vampire 4.2.2. It is protected by applicable
+# * Vampire. It is protected by applicable
 # * copyright laws.
 # *
 # * This source code is distributed under the licence found here
@@ -33,7 +33,7 @@
 #   VZ3              - compile with Z3
 
 GNUMPF = 0
-DBG_FLAGS = -g -DVDEBUG=1 -DCHECK_LEAKS=0 -DUNIX_USE_SIGALRM=1 -DGNUMP=$(GNUMPF)# debugging for spider 
+DBG_FLAGS = -g -O1 -fsanitize=address -fno-omit-frame-pointer -DUSE_SYSTEM_ALLOCATION=1 -DVDEBUG=1 -DCHECK_LEAKS=0 -DUNIX_USE_SIGALRM=1 -DGNUMP=$(GNUMPF)# debugging for spider 
 # DELETEMEin2017: the bug with gcc-6.2 and problems in ClauseQueue could be also fixed by adding -fno-tree-ch
 REL_FLAGS = -O6 -DVDEBUG=0 -DGNUMP=$(GNUMPF)# no debugging 
 GCOV_FLAGS = -O0 --coverage #-pedantic
@@ -44,7 +44,9 @@ MINISAT_FLAGS = $(MINISAT_DBG_FLAGS)
 
 #XFLAGS = -g -DVDEBUG=1 -DVTEST=1 -DCHECK_LEAKS=1 # full debugging + testing
 #XFLAGS = $(DBG_FLAGS)
-XFLAGS = -Wfatal-errors -g -DVDEBUG=1 -DCHECK_LEAKS=0 -DGNUMP=$(GNUMPF)# standard debugging only
+# XFLAGS = -Wfatal-errors -g -DVDEBUG=1 -DCHECK_LEAKS=0 -DUSE_SYSTEM_ALLOCATION=1 -DGNUMP=$(GNUMPF)# standard debugging only
+# careful, AddressSanitizer for clang does not show line numbers by default: https://stackoverflow.com/questions/24566416/how-do-i-get-line-numbers-in-the-debug-output-with-clangs-fsanitize-address
+XFLAGS = -Wfatal-errors -g -DVDEBUG=1 -DCHECK_LEAKS=0 -DUSE_SYSTEM_ALLOCATION=1 -DGNUMP=$(GNUMPF) -fsanitize=address -fno-omit-frame-pointer # standard debugging only
 #XFLAGS = -g -DVDEBUG=1 -DCHECK_LEAKS=0 -DUSE_SYSTEM_ALLOCATION=1 -DVALGRIND=1 -DGNUMP=$(GNUMPF)# memory leaks
 #XFLAGS = $(REL_FLAGS)
 
@@ -85,11 +87,11 @@ INCLUDES= -I.
 Z3FLAG= -DVZ3=0
 Z3LIB=
 ifeq (,$(shell echo $(MAKECMDGOALS) | sed 's/.*z3.*//g')) 
-INCLUDES= -I. -Linclude -Iz3/api -Iz3/api/c++ 
+INCLUDES= -I. -Iz3/api -Iz3/api/c++ 
 ifeq (,$(shell echo $(MAKECMDGOALS) | sed 's/.*static.*//g'))
-Z3LIB= -lz3 -lgomp -pthread -lrt
+Z3LIB= -Linclude -lz3 -lgomp -pthread  -Wl,--whole-archive -lrt -lpthread -Wl,--no-whole-archive -ldl
 else
-Z3LIB= -lz3
+Z3LIB= -Linclude -lz3
 endif
 
 Z3FLAG= -DVZ3=1
@@ -290,6 +292,7 @@ VINF_OBJ=Inferences/BackwardDemodulation.o\
          Inferences/TautologyDeletionISE.o\
          Inferences/TermAlgebraReasoning.o\
          Inferences/TheoryInstAndSimp.o\
+         Inferences/Induction.o\
          Inferences/URResolution.o
 #         Inferences/CTFwSubsAndRes.o\
 
@@ -325,7 +328,8 @@ VST_OBJ= Saturation/AWPassiveClauseContainer.o\
          Saturation/ProvingHelper.o\
          Saturation/SaturationAlgorithm.o\
          Saturation/Splitter.o\
-         Saturation/SymElOutput.o
+         Saturation/SymElOutput.o\
+         Saturation/ManCSPassiveClauseContainer.o\
 
 VS_OBJ = Shell/AnswerExtractor.o\
          Shell/BFNT.o\
@@ -340,6 +344,7 @@ VS_OBJ = Shell/AnswerExtractor.o\
          Shell/Flattening.o\
          Shell/FunctionDefinition.o\
          Shell/GeneralSplitting.o\
+         Shell/GoalGuessing.o\
          Shell/Grounding.o\
          Shell/InequalitySplitting.o\
          Shell/InterpolantMinimizer.o\
@@ -385,7 +390,6 @@ VS_OBJ = Shell/AnswerExtractor.o\
 #         Shell/SMTLEX.o\
 #         Shell/SMTPAR.o\
 #         Shell/CParser.o\
-#         Shell/AxiomGenerator.o\
 #         Shell/EqualityAxiomatizer.o\
 #         Shell/GlobalOptions.o\
 #         Shell/Lexer.o\
@@ -540,7 +544,7 @@ all:#default make disabled
 ################################################################
 # automated generation of Vampire revision information
 
-VERSION_NUMBER = 4.2.2
+VERSION_NUMBER = 4.4.0
 
 # We extract the revision number from svn every time the svn meta-data are modified
 # (that's why there is the dependency on .svn/entries) 
@@ -566,7 +570,8 @@ version.cpp: .git/HEAD .git/index Makefile
 # separate directory for object files implementation
 
 # different directory for each configuration, so there is no need for "make clean"
-BRANCH=$(shell git branch | grep "\*" | cut -d ' ' -f 2)
+SED_CMD='s/^[(]HEAD$$/detached/'      #
+BRANCH=$(shell git branch | grep "\*" | cut -d ' ' -f 2 | sed -e $(SED_CMD)  )
 COM_CNT=$(shell git rev-list HEAD --count)
 CONF_ID := obj/$(shell echo -n "$(BRANCH) $(XFLAGS)"|sum|cut -d ' ' -f1)X
 

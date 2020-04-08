@@ -206,7 +206,10 @@ TermIterator EqHelper::getRewritableSubtermIterator(Literal* lit, const Ordering
 //    if (lit->isNegative()) {
 //      return TermIterator::getEmpty();
 //    }
-  if (lit->isEquality() && lit->isPositive()) {
+
+// Remove positive check as per commit 517ad0a24cdbbff0fbf488d00f022bdd117c6510
+//  if (lit->isEquality() && lit->isPositive()) {
+  if (lit->isEquality()) {
     if (smallSideRewritingAllowed(lit)) {
       NonVariableIterator nvi(lit);
       return getUniquePersistentIteratorFromPtr(&nvi);

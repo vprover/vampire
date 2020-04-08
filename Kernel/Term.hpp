@@ -426,6 +426,19 @@ public:
     _weight = w;
   } // setWeight
 
+  /** Set term id */
+  void setId(unsigned id)
+  {
+    _id = id;
+  } // setWeight
+
+  /** Set (shared) term's id */
+  unsigned getId() const
+  {
+    ASS(shared());
+    return _id;
+  }
+
   /** Set the number of variables */
   void setVars(unsigned v)
   {
@@ -533,6 +546,7 @@ public:
 
   bool containsSubterm(TermList v);
   bool containsAllVariablesOf(Term* t);
+  size_t countSubtermOccurrences(TermList subterm);
   /** Return true if term has no non-constant functions as subterms */
   bool isShallow() const;
 
@@ -621,6 +635,8 @@ protected:
 
 #endif
 
+  /** For shared terms, this is a unique id used for deterministic comparison */
+  unsigned _id;
   /** The number of this symbol in a signature */
   unsigned _functor;
   /** Arity of the symbol */

@@ -219,7 +219,8 @@ public:
     ALL,    // select all interpreted
     STRONG, // select strong only
     OVERLAP, // select strong and weak which overlap with strong
-    FULL    // perform full abstraction
+    FULL,    // perform full abstraction
+    NEW
   };
   enum class UnificationWithAbstraction : unsigned int {
     OFF,
@@ -227,7 +228,41 @@ public:
     ONE_INTERP,
     CONSTANT,
     ALL,
-    GROUND
+    GROUND,
+    FIXED
+  };
+
+  enum class Induction : unsigned int {
+    NONE,
+    STRUCTURAL,
+    MATHEMATICAL,
+    BOTH
+  };
+  enum class StructuralInductionKind : unsigned int {
+    ONE,
+    TWO,
+    THREE,
+    ALL
+  };
+  enum class MathInductionKind : unsigned int {
+    ONE,
+    TWO,
+    ALL
+  };
+
+  enum class PredicateSineLevels : unsigned int {
+    NO,   // no means 1) the reverse of "on", 2) use with caution, it is predicted to be the worse value
+    OFF,
+    ON
+  };
+
+ 
+  enum class InductionChoice : unsigned int {
+    ALL,
+    GOAL,                     // only apply induction to goal constants
+                              // a goal constant is one appearing in an explicit goal, or if gtg is used
+                              // a constant that is used to lift a clause to a goal (uniqueness or Skolem) 
+    GOAL_PLUS,                // above plus skolem terms introduced in induction inferences
   };
 
   enum class TheoryAxiomLevel : unsigned int {
@@ -383,12 +418,14 @@ public:
     OUTPUT,
     PORTFOLIO,
     PREPROCESS,
+    PREPROCESS2,
     PROFILE,
     RANDOM_STRATEGY,
     SAT,
     SMTCOMP,
     SPIDER,
     TCLAUSIFY,
+    TPREPROCESS,
     VAMPIRE
 };
 
@@ -398,10 +435,14 @@ public:
     CASC_2014_EPR,
     CASC_2016,
     CASC_2017,
+    CASC_2018,
+    CASC_2019,
     CASC_SAT,
     CASC_SAT_2014,
     CASC_SAT_2016,
     CASC_SAT_2017,
+    CASC_SAT_2018,
+    CASC_SAT_2019,
     LTB_2014,
     LTB_2014_MZR,
     LTB_DEFAULT_2017,
@@ -425,9 +466,11 @@ public:
     LTB_MZR_2015_MIDD,
     LTB_MZR_2015_SLOW,
     LTB_MZR_2017,
+
     SMTCOMP,
     SMTCOMP_2016,
-    SMTCOMP_2017
+    SMTCOMP_2017,
+    SMTCOMP_2018
 };
 
 
@@ -557,6 +600,10 @@ public:
     GOAL = 1,
     UNIT = 2,
     GOAL_UNIT = 3
+  };
+  enum class IntroducedSymbolPrecedence : unsigned int {
+    TOP = 0,
+    BOTTOM = 1
   };
 
   enum class SineSelection : unsigned int {
@@ -701,7 +748,20 @@ public:
     RULE = 2 // n-ary rule, complete
   };
 
+  enum class GoalGuess : unsigned int {
+    OFF = 0,
+    ALL = 1,
+    EXISTS_TOP = 2,
+    EXISTS_ALL = 3,
+    EXISTS_SYM = 4,
+    POSITION = 5
+  };
 
+  enum class AgeWeightRatioShape {
+    CONSTANT,
+    DECAY,
+    CONVERGE
+  };
     
     //==========================================================
     // The Internals
@@ -1120,229 +1180,229 @@ private:
         vstring getStringOfValue(long value) const{ return Lib::Int::toString(value); }
     };
     
-    struct FloatOptionValue : public OptionValue<float>{
-        FloatOptionValue(){}
-        FloatOptionValue(vstring l,vstring s, float d) : OptionValue(l,s,d){}
-        bool setValue(const vstring& value){
-            return Int::stringToFloat(value.c_str(),actualValue);
-        }
-        vstring getStringOfValue(float value) const{ return Lib::Int::toString(value); }
-    };
-    
-    /**
-     * Ratios have two actual values and two default values
-     * Therefore, we often need to tread them specially
-     * @author Giles
-     */
-    struct RatioOptionValue : public OptionValue<int> {
-        
-        CLASS_NAME(RatioOptionValue);
-        USE_ALLOCATOR(RatioOptionValue);
-        
-        RatioOptionValue(){}
-        RatioOptionValue(vstring l, vstring s, int def, int other, char sp=':') :
-        OptionValue(l,s,def), sep(sp), defaultOtherValue(other), otherValue(other) {};
-        
-        virtual OptionValueConstraint<int>* getNotDefault() override { return isNotDefaultRatio(); }
+struct FloatOptionValue : public OptionValue<float>{
+FloatOptionValue(){}
+FloatOptionValue(vstring l,vstring s, float d) : OptionValue(l,s,d){}
+bool setValue(const vstring& value){
+    return Int::stringToFloat(value.c_str(),actualValue);
+}
+vstring getStringOfValue(float value) const{ return Lib::Int::toString(value); }
+};
 
-        template<typename S>
-        void addConstraintIfNotDefault(WrappedConstraint<S>* c){
-            addConstraint(If(isNotDefaultRatio()).then(c));
-        }
-        
-        bool readRatio(const char* val,char seperator);
-        bool setValue(const vstring& value) override {
-            return readRatio(value.c_str(),sep);
-        }
-        
-        char sep;
-        int defaultOtherValue;
-        int otherValue;
-        
-        virtual void output(ostream& out) const override {
-            AbstractOptionValue::output(out);
-            out << "\tdefault left: " << defaultValue << endl;
-            out << "\tdefault right: " << defaultOtherValue << endl;
-        }
-        
-        virtual vstring getStringOfValue(int value) const override { ASSERTION_VIOLATION;}
-        virtual vstring getStringOfActual() const override {
-            return Lib::Int::toString(actualValue)+sep+Lib::Int::toString(otherValue);
-        }
-        
-    };
-    
-    // We now have a number of option-specific values
-    // These are necessary when the option needs to be read in a special way
-    
-    /**
-     * Oddly gets set with a float value and then creates a ratio of value*100/100
-     * @author Giles
-     */
-    struct NonGoalWeightOptionValue : public OptionValue<float>{
-        
-        CLASS_NAME(NonGoalWeightOptionValue);
-        USE_ALLOCATOR(NonGoalWeightOptionValue);
-        
-        NonGoalWeightOptionValue(){}
-        NonGoalWeightOptionValue(vstring l, vstring s, float def) :
-        OptionValue(l,s,def), numerator(1), denominator(1) {};
-        
-        bool setValue(const vstring& value);
-        
-        // output does not output numerator and denominator as they
-        // are produced from defaultValue
-        int numerator;
-        int denominator;
-        
-        virtual vstring getStringOfValue(float value) const{ return Lib::Int::toString(value); }
-    };
-    
-    /**
-     * Selection is defined by a set of integers (TODO: make enum)
-     * For now we need to check the integer is a valid one
-     * @author Giles
-     */
-    struct SelectionOptionValue : public OptionValue<int>{
-        SelectionOptionValue(){}
-        SelectionOptionValue(vstring l,vstring s, int def):
-        OptionValue(l,s,def){};
-        
-        bool setValue(const vstring& value);
-        
-        virtual void output(ostream& out) const {
-            AbstractOptionValue::output(out);
-            out << "\tdefault: " << defaultValue << endl;;
-        }
-        
-        virtual vstring getStringOfValue(int value) const{ return Lib::Int::toString(value); }
+/**
+* Ratios have two actual values and two default values
+* Therefore, we often need to tread them specially
+* @author Giles
+*/
+struct RatioOptionValue : public OptionValue<int> {
+
+CLASS_NAME(RatioOptionValue);
+USE_ALLOCATOR(RatioOptionValue);
+
+RatioOptionValue(){}
+RatioOptionValue(vstring l, vstring s, int def, int other, char sp=':') :
+OptionValue(l,s,def), sep(sp), defaultOtherValue(other), otherValue(other) {};
+
+virtual OptionValueConstraint<int>* getNotDefault() override { return isNotDefaultRatio(); }
+
+template<typename S>
+void addConstraintIfNotDefault(WrappedConstraint<S>* c){
+    addConstraint(If(isNotDefaultRatio()).then(c));
+}
+
+bool readRatio(const char* val,char seperator);
+bool setValue(const vstring& value) override {
+    return readRatio(value.c_str(),sep);
+}
+
+char sep;
+int defaultOtherValue;
+int otherValue;
+
+virtual void output(ostream& out) const override {
+    AbstractOptionValue::output(out);
+    out << "\tdefault left: " << defaultValue << endl;
+    out << "\tdefault right: " << defaultOtherValue << endl;
+}
+
+virtual vstring getStringOfValue(int value) const override { ASSERTION_VIOLATION;}
+virtual vstring getStringOfActual() const override {
+    return Lib::Int::toString(actualValue)+sep+Lib::Int::toString(otherValue);
+}
+
+};
+
+// We now have a number of option-specific values
+// These are necessary when the option needs to be read in a special way
+
+/**
+* Oddly gets set with a float value and then creates a ratio of value*100/100
+* @author Giles
+*/
+struct NonGoalWeightOptionValue : public OptionValue<float>{
+
+CLASS_NAME(NonGoalWeightOptionValue);
+USE_ALLOCATOR(NonGoalWeightOptionValue);
+
+NonGoalWeightOptionValue(){}
+NonGoalWeightOptionValue(vstring l, vstring s, float def) :
+OptionValue(l,s,def), numerator(1), denominator(1) {};
+
+bool setValue(const vstring& value);
+
+// output does not output numerator and denominator as they
+// are produced from defaultValue
+int numerator;
+int denominator;
+
+virtual vstring getStringOfValue(float value) const{ return Lib::Int::toString(value); }
+};
+
+/**
+* Selection is defined by a set of integers (TODO: make enum)
+* For now we need to check the integer is a valid one
+* @author Giles
+*/
+struct SelectionOptionValue : public OptionValue<int>{
+SelectionOptionValue(){}
+SelectionOptionValue(vstring l,vstring s, int def):
+OptionValue(l,s,def){};
+
+bool setValue(const vstring& value);
+
+virtual void output(ostream& out) const {
+    AbstractOptionValue::output(out);
+    out << "\tdefault: " << defaultValue << endl;;
+}
+
+virtual vstring getStringOfValue(int value) const{ return Lib::Int::toString(value); }
 
 
-        WrappedConstraint<int>* isLookAheadSelection(){
-          return new WrappedConstraint<int>(this,new isLookAheadSelectionConstraint());
-        }
-    };
-    
-    /**
-     * This also updates problemName
-     * @author Giles
-     */
-    struct InputFileOptionValue : public OptionValue<vstring>{
-        InputFileOptionValue(){}
-        InputFileOptionValue(vstring l,vstring s, vstring def,Options* p):
-        OptionValue(l,s,def), parent(p){};
-        
-        bool setValue(const vstring& value);
-        
-        virtual void output(ostream& out) const {
-            AbstractOptionValue::output(out);
-            out << "\tdefault: " << defaultValue << endl;;
-        }
-        virtual vstring getStringOfValue(vstring value) const{ return value; }
-    private:
-        Options* parent;
-        
-    };
-    /**
-     * We need to decode the encoded option string
-     * @author Giles
-     */
-    struct DecodeOptionValue : public OptionValue<vstring>{
-        DecodeOptionValue(){ AbstractOptionValue::_should_copy=false;}
-        DecodeOptionValue(vstring l,vstring s,Options* p):
-        OptionValue(l,s,""), parent(p){ AbstractOptionValue::_should_copy=false;}
-        
-        bool setValue(const vstring& value){
-            parent->readFromEncodedOptions(value);
-            return true;
-        }
-        virtual vstring getStringOfValue(vstring value) const{ return value; }
-        
-    private:
-        Options* parent;
-        
-    };
-    /**
-     * Need to read the time limit. By default it assumes seconds (and stores deciseconds) but you can give
-     * a multiplier i.e. d,s,m,h,D for deciseconds,seconds,minutes,hours,Days
-     * @author Giles
-     */
-    struct TimeLimitOptionValue : public OptionValue<int>{
-        TimeLimitOptionValue(){}
-        TimeLimitOptionValue(vstring l, vstring s, float def) :
-        OptionValue(l,s,def) {};
-        
-        bool setValue(const vstring& value);
-        
-        virtual void output(ostream& out) const {
-            CALL("Options::TimeLimitOptionValue::output");
-            AbstractOptionValue::output(out);
-            out << "\tdefault: " << defaultValue << "d" << endl;
-        }
-        virtual vstring getStringOfValue(int value) const{ return Lib::Int::toString(value)+"d"; }
-    };
-    
-    /**
-     * NOTE on OptionValueConstraints
-     *
-     * OptionValueConstraints are used to declare constraints on and between option values
-     * these are checked in checkGlobalOptionConstraints, which should be called after
-     * Options is updated
-     *
-     * As usual, see Options.cpp for examples.
-     *
-     * There are two kinds of ValueConstraints (see below for ProblemConstraints)
-     *
-     * - Unary constraints such as greaterThan, equals, ...
-     * - If-then constraints that capture dependencies
-     *
-     * In both cases an attempt has been made to make the declaration of constraints
-     * in Options.cpp as readable as possible. For example, an If-then constraint is
-     * written as follows
-     *
-     *  If(equals(0)).then(_otherOption.is(lessThan(5)))
-     *
-     * Note that the equals(0) will apply to the OptionValue that the constraint belongs to
-     *
-     * WrappedConstraints are produced by OptionValue.is and are used to provide constraints
-     * on other OptionValues, as seen in the example above. Most functions work with both
-     * OptionValueConstraint and WrappedConstraint but in some cases one of these options
-     * may need to be added. In this case see examples from AddWrapper below.
-     *
-     */
-    template<typename T>
-    struct WrappedConstraint;
-    
-    template<typename T>
-    struct OptionValueConstraint{
-        CLASS_NAME(OptionValueConstraint);
-        USE_ALLOCATOR(OptionValueConstraint);
-        OptionValueConstraint() : _hard(false) {}
-        
-        virtual bool check(OptionValue<T>* value) = 0;
-        virtual bool check(){ ASSERTION_VIOLATION; }
-        virtual vstring msg(OptionValue<T>* value) = 0;
-        virtual vstring msg() { ASSERTION_VIOLATION; }
-        
-        // By default cannot force constraint
-        virtual bool force(OptionValue<T>* value){ return false;}
-        // TODO - allow for hard constraints
-        bool isHard(){ return _hard; }
-        void setHard(){ _hard=true;}
-        bool _hard;
-        
-        OptionValueConstraint<T>* And(OptionValueConstraint<T>* another);
-        OptionValueConstraint<T>* Or(OptionValueConstraint<T>* another);
-        
-        template<typename S>
-        OptionValueConstraint<T>* And(WrappedConstraint<S>* another);
-        template<typename S>
-        OptionValueConstraint<T>* Or(WrappedConstraint<S>* another);
-        
-    };
-    
-    
-    // A Wrapped Constraint takes an OptionValue and a Constraint
+WrappedConstraint<int>* isLookAheadSelection(){
+  return new WrappedConstraint<int>(this,new isLookAheadSelectionConstraint());
+}
+};
+
+/**
+* This also updates problemName
+* @author Giles
+*/
+struct InputFileOptionValue : public OptionValue<vstring>{
+InputFileOptionValue(){}
+InputFileOptionValue(vstring l,vstring s, vstring def,Options* p):
+OptionValue(l,s,def), parent(p){};
+
+bool setValue(const vstring& value);
+
+virtual void output(ostream& out) const {
+    AbstractOptionValue::output(out);
+    out << "\tdefault: " << defaultValue << endl;;
+}
+virtual vstring getStringOfValue(vstring value) const{ return value; }
+private:
+Options* parent;
+
+};
+/**
+* We need to decode the encoded option string
+* @author Giles
+*/
+struct DecodeOptionValue : public OptionValue<vstring>{
+DecodeOptionValue(){ AbstractOptionValue::_should_copy=false;}
+DecodeOptionValue(vstring l,vstring s,Options* p):
+OptionValue(l,s,""), parent(p){ AbstractOptionValue::_should_copy=false;}
+
+bool setValue(const vstring& value){
+    parent->readFromEncodedOptions(value);
+    return true;
+}
+virtual vstring getStringOfValue(vstring value) const{ return value; }
+
+private:
+Options* parent;
+
+};
+/**
+* Need to read the time limit. By default it assumes seconds (and stores deciseconds) but you can give
+* a multiplier i.e. d,s,m,h,D for deciseconds,seconds,minutes,hours,Days
+* @author Giles
+*/
+struct TimeLimitOptionValue : public OptionValue<int>{
+TimeLimitOptionValue(){}
+TimeLimitOptionValue(vstring l, vstring s, float def) :
+OptionValue(l,s,def) {};
+
+bool setValue(const vstring& value);
+
+virtual void output(ostream& out) const {
+    CALL("Options::TimeLimitOptionValue::output");
+    AbstractOptionValue::output(out);
+    out << "\tdefault: " << defaultValue << "d" << endl;
+}
+virtual vstring getStringOfValue(int value) const{ return Lib::Int::toString(value)+"d"; }
+};
+
+/**
+* NOTE on OptionValueConstraints
+*
+* OptionValueConstraints are used to declare constraints on and between option values
+* these are checked in checkGlobalOptionConstraints, which should be called after
+* Options is updated
+*
+* As usual, see Options.cpp for examples.
+*
+* There are two kinds of ValueConstraints (see below for ProblemConstraints)
+*
+* - Unary constraints such as greaterThan, equals, ...
+* - If-then constraints that capture dependencies
+*
+* In both cases an attempt has been made to make the declaration of constraints
+* in Options.cpp as readable as possible. For example, an If-then constraint is
+* written as follows
+*
+*  If(equals(0)).then(_otherOption.is(lessThan(5)))
+*
+* Note that the equals(0) will apply to the OptionValue that the constraint belongs to
+*
+* WrappedConstraints are produced by OptionValue.is and are used to provide constraints
+* on other OptionValues, as seen in the example above. Most functions work with both
+* OptionValueConstraint and WrappedConstraint but in some cases one of these options
+* may need to be added. In this case see examples from AddWrapper below.
+*
+*/
+template<typename T>
+struct WrappedConstraint;
+
+template<typename T>
+struct OptionValueConstraint{
+CLASS_NAME(OptionValueConstraint);
+USE_ALLOCATOR(OptionValueConstraint);
+OptionValueConstraint() : _hard(false) {}
+
+virtual bool check(OptionValue<T>* value) = 0;
+virtual bool check(){ ASSERTION_VIOLATION; }
+virtual vstring msg(OptionValue<T>* value) = 0;
+virtual vstring msg() { ASSERTION_VIOLATION; }
+
+// By default cannot force constraint
+virtual bool force(OptionValue<T>* value){ return false;}
+// TODO - allow for hard constraints
+bool isHard(){ return _hard; }
+void setHard(){ _hard=true;}
+bool _hard;
+
+OptionValueConstraint<T>* And(OptionValueConstraint<T>* another);
+OptionValueConstraint<T>* Or(OptionValueConstraint<T>* another);
+
+template<typename S>
+OptionValueConstraint<T>* And(WrappedConstraint<S>* another);
+template<typename S>
+OptionValueConstraint<T>* Or(WrappedConstraint<S>* another);
+
+};
+
+
+// A Wrapped Constraint takes an OptionValue and a Constraint
     // It allows us to supply a constraint on another OptionValue in an If constraint for example
     template<typename T>
     struct WrappedConstraint{
@@ -1783,6 +1843,7 @@ public:
   Statistics statistics() const { return _statistics.actualValue; }
   void setStatistics(Statistics newVal) { _statistics.actualValue=newVal; }
   Proof proof() const { return _proof.actualValue; }
+  bool minimizeSatProofs() const { return _minimizeSatProofs.actualValue; }
   ProofExtra proofExtra() const { return _proofExtra.actualValue; }
   bool proofChecking() const { return _proofChecking.actualValue; }
   int naming() const { return _naming.actualValue; }
@@ -1811,6 +1872,9 @@ public:
   void setInputSyntax(InputSyntax newVal) { _inputSyntax.actualValue = newVal; }
   bool normalize() const { return _normalize.actualValue; }
   void setNormalize(bool normalize) { _normalize.actualValue = normalize; }
+  GoalGuess guessTheGoal() const { return _guessTheGoal.actualValue; }
+  unsigned gtgLimit() const { return _guessTheGoalLimit.actualValue; }
+
   void setNaming(int n){ _naming.actualValue = n;} //TODO: ensure global constraints
   vstring include() const { return _include.actualValue; }
   void setInclude(vstring val) { _include.actualValue = val; }
@@ -1818,8 +1882,6 @@ public:
   vstring inputFile() const { return _inputFile.actualValue; }
   int activationLimit() const { return _activationLimit.actualValue; }
   int randomSeed() const { return _randomSeed.actualValue; }
-  int rowVariableMaxLength() const { return _rowVariableMaxLength.actualValue; }
-  //void setRowVariableMaxLength(int newVal) { _rowVariableMaxLength = newVal; }
   bool printClausifierPremises() const { return _printClausifierPremises.actualValue; }
 
   // IMPORTANT, if you add a showX command then include showAll
@@ -1828,6 +1890,8 @@ public:
   bool showBlocked() const { return showAll() || _showBlocked.actualValue; }
   bool showDefinitions() const { return showAll() || _showDefinitions.actualValue; }
   bool showNew() const { return showAll() || _showNew.actualValue; }
+  bool sineToAge() const { return _sineToAge.actualValue; }
+  PredicateSineLevels sineToPredLevels() const { return _sineToPredLevels.actualValue; }
   bool showSplitting() const { return showAll() || _showSplitting.actualValue; }
   bool showNewPropositional() const { return showAll() || _showNewPropositional.actualValue; }
   bool showPassive() const { return showAll() || _showPassive.actualValue; }
@@ -1838,6 +1902,7 @@ public:
   bool showTheoryAxioms() const { return showAll() || _showTheoryAxioms.actualValue; }
   bool showFOOL() const { return showAll() || _showFOOL.actualValue; }
   bool showFMBsortInfo() const { return showAll() || _showFMBsortInfo.actualValue; }
+  bool showInduction() const { return showAll() || _showInduction.actualValue; }
 #if VZ3
   bool showZ3() const { return showAll() || _showZ3.actualValue; }
 #endif
@@ -1861,6 +1926,8 @@ public:
   TheoryInstSimp theoryInstAndSimp() const { return _theoryInstAndSimp.actualValue; }
 #endif
   UnificationWithAbstraction unificationWithAbstraction() const { return _unificationWithAbstraction.actualValue; }
+  bool useACeval() const { return _useACeval.actualValue;}
+
   bool unusedPredicateDefinitionRemoval() const { return _unusedPredicateDefinitionRemoval.actualValue; }
   bool blockedClauseElimination() const { return _blockedClauseElimination.actualValue; }
   void setUnusedPredicateDefinitionRemoval(bool newVal) { _unusedPredicateDefinitionRemoval.actualValue = newVal; }
@@ -1883,6 +1950,7 @@ public:
   void setBfnt(bool newVal) { _bfnt.actualValue = newVal; }
   URResolution unitResultingResolution() const { return _unitResultingResolution.actualValue; }
   bool hyperSuperposition() const { return _hyperSuperposition.actualValue; }
+  bool simulatenousSuperposition() const { return _simultaneousSuperposition.actualValue; }
   bool innerRewriting() const { return _innerRewriting.actualValue; }
   bool equationalTautologyRemoval() const { return _equationalTautologyRemoval.actualValue; }
   bool arityCheck() const { return _arityCheck.actualValue; }
@@ -1904,6 +1972,7 @@ public:
   TermOrdering termOrdering() const { return _termOrdering.actualValue; }
   SymbolPrecedence symbolPrecedence() const { return _symbolPrecedence.actualValue; }
   SymbolPrecedenceBoost symbolPrecedenceBoost() const { return _symbolPrecedenceBoost.actualValue; }
+  IntroducedSymbolPrecedence introducedSymbolPrecedence() const { return _introducedSymbolPrecedence.actualValue; }
   const vstring& functionPrecedence() const { return _functionPrecedence.actualValue; }
   const vstring& predicatePrecedence() const { return _predicatePrecedence.actualValue; }
   // Return time limit in deciseconds, or 0 if there is no time limit
@@ -1919,6 +1988,8 @@ public:
   void setAgeRatio(int v){ _ageWeightRatio.actualValue = v; }
   int weightRatio() const { return _ageWeightRatio.otherValue; }
   void setWeightRatio(int v){ _ageWeightRatio.otherValue = v; }
+	AgeWeightRatioShape ageWeightRatioShape() const { return _ageWeightRatioShape.actualValue; }
+	int ageWeightRatioShapeFrequency() const { return _ageWeightRatioShapeFrequency.actualValue; }
   bool literalMaximalityAftercheck() const { return _literalMaximalityAftercheck.actualValue; }
   bool superpositionFromVariables() const { return _superpositionFromVariables.actualValue; }
   EqualityProxy equalityProxy() const { return _equalityProxy.actualValue; }
@@ -1931,9 +2002,13 @@ public:
   unsigned extensionalityMaxLength() const { return _extensionalityMaxLength.actualValue; }
   bool extensionalityAllowPosEq() const { return _extensionalityAllowPosEq.actualValue; }
   float nongoalWeightCoefficient() const { return _nonGoalWeightCoefficient.actualValue; }
+  bool restrictNWCtoGC() const { return _restrictNWCtoGC.actualValue; }
   Sos sos() const { return _sos.actualValue; }
   unsigned sosTheoryLimit() const { return _sosTheoryLimit.actualValue; }
   //void setSos(Sos newVal) { _sos = newVal; }
+
+  bool ignoreConjectureInPreprocessing() const {return _ignoreConjectureInPreprocessing.actualValue;}
+
   FunctionDefinitionElimination functionDefinitionElimination() const { return _functionDefinitionElimination.actualValue; }
   bool outputAxiomNames() const { return _outputAxiomNames.actualValue; }
   void setOutputAxiomNames(bool newVal) { _outputAxiomNames.actualValue = newVal; }
@@ -1965,9 +2040,11 @@ public:
   bool nonliteralsInClauseWeight() const { return _nonliteralsInClauseWeight.actualValue; }
   unsigned sineDepth() const { return _sineDepth.actualValue; }
   unsigned sineGeneralityThreshold() const { return _sineGeneralityThreshold.actualValue; }
+  unsigned sineToAgeGeneralityThreshold() const { return _sineToAgeGeneralityThreshold.actualValue; }
   SineSelection sineSelection() const { return _sineSelection.actualValue; }
   void setSineSelection(SineSelection val) { _sineSelection.actualValue=val; }
   float sineTolerance() const { return _sineTolerance.actualValue; }
+  float sineToAgeTolerance() const { return _sineToAgeTolerance.actualValue; }
   bool smtlibConsiderIntsReal() const { return _smtlibConsiderIntsReal.actualValue; }
   //void setSmtlibConsiderIntsReal( bool newVal ) { _smtlibConsiderIntsReal = newVal; }
   bool smtlibFletAsDefinition() const { return _smtlibFletAsDefinition.actualValue; }
@@ -1976,6 +2053,16 @@ public:
 
   Instantiation instantiation() const { return _instantiation.actualValue; }
   bool theoryFlattening() const { return _theoryFlattening.actualValue; }
+
+  Induction induction() const { return _induction.actualValue; }
+  StructuralInductionKind structInduction() const { return _structInduction.actualValue; }
+  MathInductionKind mathInduction() const { return _mathInduction.actualValue; }
+  InductionChoice inductionChoice() const { return _inductionChoice.actualValue; }
+  unsigned maxInductionDepth() const { return _maxInductionDepth.actualValue; }
+  bool inductionNegOnly() const { return _inductionNegOnly.actualValue; }
+  bool inductionUnitOnly() const { return _inductionUnitOnly.actualValue; }
+  bool inductionGen() const { return _inductionGen.actualValue; }
+  unsigned maxInductionGenSubsetSize() const { return _maxInductionGenSubsetSize.actualValue; }
 
   float instGenBigRestartRatio() const { return _instGenBigRestartRatio.actualValue; }
   bool instGenPassiveReactivation() const { return _instGenPassiveReactivation.actualValue; }
@@ -2048,6 +2135,9 @@ public:
   bool newCNF() const { return _newCNF.actualValue; }
   int getIteInliningThreshold() const { return _iteInliningThreshold.actualValue; }
   bool getIteInlineLet() const { return _inlineLet.actualValue; }
+
+  bool useManualClauseSelection() const { return _manualClauseSelection.actualValue; }
+
 private:
     
     /**
@@ -2156,6 +2246,8 @@ private:
   BoolOptionValue _encode;
 
   RatioOptionValue _ageWeightRatio;
+	ChoiceOptionValue<AgeWeightRatioShape> _ageWeightRatioShape;
+	UnsignedOptionValue _ageWeightRatioShapeFrequency;
   BoolOptionValue _literalMaximalityAftercheck;
   BoolOptionValue _arityCheck;
   
@@ -2223,9 +2315,12 @@ private:
   ChoiceOptionValue<GlobalSubsumptionSatSolverPower> _globalSubsumptionSatSolverPower;
   ChoiceOptionValue<GlobalSubsumptionExplicitMinim> _globalSubsumptionExplicitMinim;
   ChoiceOptionValue<GlobalSubsumptionAvatarAssumptions> _globalSubsumptionAvatarAssumptions;
+  ChoiceOptionValue<GoalGuess> _guessTheGoal;
+  UnsignedOptionValue _guessTheGoalLimit;
 
   BoolOptionValue _hyperSuperposition;
 
+  BoolOptionValue _simultaneousSuperposition;
   BoolOptionValue _innerRewriting;
   BoolOptionValue _equationalTautologyRemoval;
 
@@ -2238,6 +2333,9 @@ private:
    * may be extensive, see Clause::getNumeralWeight()
    */
   BoolOptionValue _increasedNumeralWeight;
+
+  BoolOptionValue _ignoreConjectureInPreprocessing;
+
   IntOptionValue _inequalitySplitting;
   ChoiceOptionValue<InputSyntax> _inputSyntax;
   ChoiceOptionValue<Instantiation> _instantiation;
@@ -2250,6 +2348,16 @@ private:
   BoolOptionValue _instGenWithResolution;
   BoolOptionValue _useHashingVariantIndex;
   BoolOptionValue _interpretedSimplification;
+
+  ChoiceOptionValue<Induction> _induction;
+  ChoiceOptionValue<StructuralInductionKind> _structInduction;
+  ChoiceOptionValue<MathInductionKind> _mathInduction;
+  ChoiceOptionValue<InductionChoice> _inductionChoice;
+  UnsignedOptionValue _maxInductionDepth;
+  BoolOptionValue _inductionNegOnly;
+  BoolOptionValue _inductionUnitOnly;
+  BoolOptionValue _inductionGen;
+  UnsignedOptionValue _maxInductionGenSubsetSize;
 
   StringOptionValue _latexOutput;
   BoolOptionValue _latexUseDefaultSymbols;
@@ -2284,6 +2392,7 @@ private:
   BoolOptionValue _printClausifierPremises;
   StringOptionValue _problemName;
   ChoiceOptionValue<Proof> _proof;
+  BoolOptionValue _minimizeSatProofs;
   ChoiceOptionValue<ProofExtra> _proofExtra;
   BoolOptionValue _proofChecking;
   
@@ -2292,7 +2401,6 @@ private:
   ChoiceOptionValue<QuestionAnsweringMode> _questionAnswering;
 
   IntOptionValue _randomSeed;
-  IntOptionValue _rowVariableMaxLength;
 
   IntOptionValue _activationLimit;
 
@@ -2318,6 +2426,8 @@ private:
   BoolOptionValue _showDefinitions;
   ChoiceOptionValue<InterpolantMode> _showInterpolant;
   BoolOptionValue _showNew;
+  BoolOptionValue _sineToAge;
+  ChoiceOptionValue<PredicateSineLevels> _sineToPredLevels;
   BoolOptionValue _showSplitting;
   BoolOptionValue _showNewPropositional;
   BoolOptionValue _showNonconstantSkolemFunctionTrace;
@@ -2334,6 +2444,7 @@ private:
   BoolOptionValue _showTheoryAxioms;
   BoolOptionValue _showFOOL;
   BoolOptionValue _showFMBsortInfo;
+  BoolOptionValue _showInduction;
 #if VZ3
   BoolOptionValue _showZ3;
   BoolOptionValue _z3UnsatCores;
@@ -2342,11 +2453,15 @@ private:
   ChoiceOptionValue<TheoryInstSimp> _theoryInstAndSimp;
 #endif
   ChoiceOptionValue<UnificationWithAbstraction> _unificationWithAbstraction; 
+  BoolOptionValue _fixUWA;
+  BoolOptionValue _useACeval;
   TimeLimitOptionValue _simulatedTimeLimit;
   UnsignedOptionValue _sineDepth;
   UnsignedOptionValue _sineGeneralityThreshold;
+  UnsignedOptionValue _sineToAgeGeneralityThreshold;
   ChoiceOptionValue<SineSelection> _sineSelection;
   FloatOptionValue _sineTolerance;
+  FloatOptionValue _sineToAgeTolerance;
   BoolOptionValue _smtlibConsiderIntsReal;
   BoolOptionValue _smtlibFletAsDefinition;
   ChoiceOptionValue<Sos> _sos;
@@ -2371,6 +2486,7 @@ private:
   ChoiceOptionValue<TermOrdering> _termOrdering;
   ChoiceOptionValue<SymbolPrecedence> _symbolPrecedence;
   ChoiceOptionValue<SymbolPrecedenceBoost> _symbolPrecedenceBoost;
+  ChoiceOptionValue<IntroducedSymbolPrecedence> _introducedSymbolPrecedence;
   StringOptionValue _functionPrecedence;
   StringOptionValue _predicatePrecedence;
 
@@ -2397,6 +2513,7 @@ private:
   OptionChoiceValues _tagNames;
 
   NonGoalWeightOptionValue _nonGoalWeightCoefficient;
+  BoolOptionValue _restrictNWCtoGC;
 
   SelectionOptionValue _selection;
   SelectionOptionValue _instGenSelection;
@@ -2406,6 +2523,8 @@ private:
   BoolOptionValue _newCNF;
   IntOptionValue _iteInliningThreshold;
   BoolOptionValue _inlineLet;
+
+  BoolOptionValue _manualClauseSelection;
 
 
 }; // class Options

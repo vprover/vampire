@@ -36,6 +36,7 @@
 #include "Lib/BitUtils.hpp"
 
 #include "Saturation/ClauseContainer.hpp"
+#include "Saturation/Splitter.hpp"
 
 #include "SAT/SATClause.hpp"
 
@@ -74,11 +75,11 @@ Clause::Clause(unsigned length,InputType it,Inference* inf)
     _extensionalityTag(false),
     _component(false),
     _theoryDescendant(false),
+    _inductionDepth(0),
     _numSelected(0),
     _age(0),
     _weight(0),
     _store(NONE),
-    _in_active(0),
     _refCnt(0),
     _reductionTimestamp(0),
     _literalPositions(0),
@@ -92,28 +93,26 @@ Clause::Clause(unsigned length,InputType it,Inference* inf)
     _extensionalityTag = true;
     setInputType(Unit::AXIOM);
   }
-  static bool hasTheoryAxioms = env.options->theoryAxioms() != Options::TheoryAxiomLevel::OFF;
-  if(hasTheoryAxioms){
+  static bool check = env.options->theoryAxioms() != Options::TheoryAxiomLevel::OFF ||
+                      env.options->induction() != Options::Induction::NONE;
+  if(check){
     Inference::Iterator it = inf->iterator();
-    bool td = inf->hasNext(it); // td should be false if there are no parents
-    while(inf->hasNext(it) && td){
+    bool isTheoryDescendant = isTheoryAxiom();
+    unsigned id = 0; 
+    while(inf->hasNext(it)){
       Unit* parent = inf->next(it);
       if(parent->isClause()){
-        td &= static_cast<Clause*>(parent)->isTheoryDescendant();
-        if(!td){break;}
+        isTheoryDescendant &= static_cast<Clause*>(parent)->isTheoryDescendant();
+        id = max(id,static_cast<Clause*>(parent)->inductionDepth());
       }
       else{
-        // if a parent is not a clause then it cannot be (i) a theory axiom itself, 
-        // or (ii) a theory descendant clause
-        td = false;
+        // if a parent is not a clause then it cannot be a theory descendant
+        isTheoryDescendant = false;
       }
     }
-    _theoryDescendant=td;
+    _theoryDescendant=isTheoryDescendant;
+    _inductionDepth=id;
   }
-
-//#if VDEBUG
-_freeze_count=0;
-//#endif
 }
 
 /**
@@ -417,30 +416,51 @@ vstring Clause::toString() const
 {
   CALL("Clause::toString()");
 
+  // print id and literals of clause
   vstring result = Int::toString(_number) + ". " + literalsOnlyToString();
 
+  // print avatar components clause depends on
   if (splits() && !splits()->isEmpty()) {
-    result += vstring(" {") + splits()->toString() + "}";
+    result += vstring(" <- (") + Splitter::splitsToString(splits()) + ")";
   }
 
-  if (env.colorUsed) {
-    result += " C" + Int::toString(color()) + " ";
+  // print inference and ids of parent clauses
+  result += " " + inferenceAsString();
+
+  if(env.options->proofExtra()!=Options::ProofExtra::OFF){
+    // print statistics: each entry should have the form key:value
+    result += vstring(" {");
+      
+    result += vstring("a:") + Int::toString(_age);
+    result += vstring(",w:") + Int::toString(weight());
+    
+    float ew = const_cast<Clause*>(this)->getEffectiveWeight(const_cast<Shell::Options&>(*(env.options)));
+    unsigned effective = static_cast<int>(ceil(ew));
+    if(effective!=weight()){
+      result += vstring(",effW:") + Int::toString(effective);
+    }
+
+    if (numSelected()>0) {
+      result += vstring(",nSel:") + Int::toString(numSelected());
+    }
+
+    if (env.colorUsed) {
+      result += vstring(",col:") + Int::toString(color());
+    }
+
+    if(isGoal()){
+      result += vstring(",goal:1");
+    }
+    if(isTheoryDescendant()){
+      result += vstring(",tD:1");
+    }
+
+    if(env.options->induction() != Shell::Options::Induction::NONE){
+      result += vstring(",inD:") + Int::toString(inductionDepth());
+    }
+    result += vstring("}");
   }
 
-  result += vstring(" (") + Int::toString(_age) + ':' + Int::toString(weight());
-  float ew = const_cast<Clause*>(this)->getEffectiveWeight(const_cast<Shell::Options&>(*(env.options)));
-  unsigned effective = static_cast<int>(ceil(ew));
-  if(effective!=weight()){
-    result += "["+Int::toString(effective)+"]";
-  }
-  if (numSelected()>0) {
-    result += ':' + Int::toString(numSelected());
-  }
-  result += ") ";
-  if(isTheoryDescendant()){
-    result += "T ";
-  }
-  result +=  inferenceAsString();
   return result;
 }
 
@@ -605,17 +625,27 @@ float Clause::getEffectiveWeight(const Options& opt)
   CALL("Clause::getEffectiveWeight");
 
   static float nongoalWeightCoef=opt.nongoalWeightCoefficient();
+  static bool restrictNWC = opt.restrictNWCtoGC();
+
+  bool goal = isGoal();
+  if(goal && restrictNWC){
+    bool found = false;
+    for(unsigned i=0;i<_length;i++){
+      TermFunIterator it(_literals[i]);
+      it.next(); // skip literal symbol
+      while(it.hasNext()){
+        found |= env.signature->getFunction(it.next())->inGoal();
+      }
+    }
+    if(!found){ goal=false; }
+  } 
 
   unsigned w=weight();
-  // Now in weight() by default
-  //if (opt.nonliteralsInClauseWeight()) {
-  //  w+=+splitWeight(); // no longer includes propWeight
-  //}
   if (opt.increasedNumeralWeight()) {
-    return (2*w+getNumeralWeight()) * ( (!isGoal()) ? nongoalWeightCoef : 1.0f);
+    return (2*w+getNumeralWeight()) * ( !goal ? nongoalWeightCoef : 1.0f);
   }
   else {
-    return w * ( (!isGoal()) ? nongoalWeightCoef : 1.0f);
+    return w * ( !goal ? nongoalWeightCoef : 1.0f);
   }
 }
 

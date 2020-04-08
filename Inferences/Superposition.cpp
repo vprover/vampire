@@ -196,9 +196,8 @@ ClauseIterator Superposition::generateClauses(Clause* premise)
   auto itf1 = premise->getSelectedLiteralIterator();
 
   // Get an iterator of pairs of selected literals and rewritable subterms of those literals
-  // A subterm is rewritable (see EqHelper) if
-  //  a) The literal is a positive equality t1=t2 and the subterm is max(t1,t2) wrt ordering
-  //  b) The subterm is not a variable
+  // A subterm is rewritable (see EqHelper) if it is a non-variable subterm of either
+  // a maximal side of an equality or of a non-equational literal
   auto itf2 = getMapAndFlattenIterator(itf1,RewriteableSubtermsFn(_salg->getOrdering()));
 
   // Get clauses with a literal whose complement unifies with the rewritable subterm,
@@ -282,7 +281,7 @@ int Superposition::getWeightLimit(Clause* eqClause, Clause* rwClause, Limits* li
  * performed.
  *
  * This function checks that we don't perform superpositions from
- * variables that occurr in the remainin part of the clause either in
+ * variables that occur in the remaining part of the clause either in
  * a literal which is not an equality, or in a as an argument of a function.
  * Such situation would mean that there is no ground substitution in which
  * @c eqLHS would be the larger argument of the largest literal.
@@ -371,7 +370,7 @@ bool Superposition::earlyWeightLimitCheck(Clause* eqClause, Literal* eqLit,
     }
   }
   //if rewrite balance is 0, it doesn't matter how many times we rewrite
-  size_t rwrCnt = (rwrBalance==0) ? 0 : getSubtermOccurrenceCount(rwLit, rwTerm);
+  size_t rwrCnt = (rwrBalance==0) ? 0 : rwLit->countSubtermOccurrences(rwTerm);
   if(rwrCnt>1) {
     ASS_GE(rwrCnt, 1);
     int approxWeight = rwLit->weight()+static_cast<int>(rwrBalance*rwrCnt);
@@ -392,29 +391,6 @@ bool Superposition::earlyWeightLimitCheck(Clause* eqClause, Literal* eqLit,
   }
 
   return true;
-}
-
-size_t Superposition::getSubtermOccurrenceCount(Term* trm, TermList subterm)
-{
-  CALL("Superposition::getSubtermOccurrenceCount");
-
-  size_t res = 0;
-
-  unsigned stWeight = subterm.isTerm() ? subterm.term()->weight() : 1;
-  SubtermIterator stit(trm);
-  while(stit.hasNext()) {
-    TermList t = stit.next();
-    if(t==subterm) {
-      res++;
-      stit.right();
-    }
-    else if(t.isTerm()) {
-      if(t.term()->weight()<=stWeight) {
-	stit.right();
-      }
-    }
-  }
-  return res;
 }
 
 /**
@@ -518,6 +494,8 @@ Clause* Superposition::performSuperposition(
 
   Literal* tgtLitS = EqHelper::replace(rwLitS,rwTermS,tgtTermS);
 
+  static bool doSimS = getOptions().simulatenousSuperposition();
+
   //check we don't create an equational tautology (this happens during self-superposition)
   if(EqHelper::isEqTautology(tgtLitS)) {
     return 0;
@@ -566,7 +544,7 @@ Clause* Superposition::performSuperposition(
     inf->setExtra(extra);
   }
 
-  bool afterCheck = getOptions().literalMaximalityAftercheck() && _salg->getLiteralSelector().isBGComplete();
+  static bool afterCheck = getOptions().literalMaximalityAftercheck() && _salg->getLiteralSelector().isBGComplete();
 
   Clause* res = new(newLength) Clause(newLength, inpType, inf);
 
@@ -577,6 +555,10 @@ Clause* Superposition::performSuperposition(
     Literal* curr=(*rwClause)[i];
     if(curr!=rwLit) {
       Literal* currAfter = subst->apply(curr, !eqIsResult);
+
+      if (doSimS) {
+        currAfter = EqHelper::replace(currAfter,rwTermS,tgtTermS);
+      }
 
       if(EqHelper::isEqTautology(currAfter)) {
         goto construction_fail;

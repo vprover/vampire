@@ -432,6 +432,9 @@ Clause* PredicateDefinition::replacePurePredicates(Clause* cl)
 
 Unit* PredicateDefinition::replacePurePredicates(Unit* u)
 {
+  if(u->isGoal() && env.options->ignoreConjectureInPreprocessing()){
+    return u;
+  }
   if(u->isClause()) {
     return replacePurePredicates(static_cast<Clause*>(u));
   }
@@ -735,10 +738,12 @@ FormulaUnit* PredicateDefinition::makeImplFromDef(FormulaUnit* def, unsigned pre
 
 void PredicateDefinition::scan(Unit* u)
 {
-  if(u->isClause()) {
-    scan(static_cast<Clause*>(u));
-  } else {
-    scan(static_cast<FormulaUnit*>(u));
+  if(!(u->isGoal() && env.options->ignoreConjectureInPreprocessing())){
+    if(u->isClause()) {
+      scan(static_cast<Clause*>(u));
+    } else {
+      scan(static_cast<FormulaUnit*>(u));
+    }
   }
 }
 

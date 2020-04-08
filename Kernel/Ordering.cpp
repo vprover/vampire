@@ -375,10 +375,11 @@ Ordering::Result PrecedenceOrdering::compareFunctionPrecedences(unsigned fun1, u
     if(s2->interpreted()) {
       return GREATER;
     }
+    static bool reverse = env.options->introducedSymbolPrecedence() == Shell::Options::IntroducedSymbolPrecedence::BOTTOM;
     //two non-interpreted functions
     return fromComparison(Int::compare(
-        fun1 >= _functions ? (int)fun1 : _functionPrecedences[fun1],
-        fun2 >= _functions ? (int)fun2 : _functionPrecedences[fun2] ));
+        fun1 >= _functions ? (int)(reverse ? -fun1 : fun1) : _functionPrecedences[fun1],
+        fun2 >= _functions ? (int)(reverse ? -fun2 : fun2) : _functionPrecedences[fun2] ));
   }
   if(!s2->interpreted()) {
     return LESS;
@@ -649,6 +650,10 @@ PrecedenceOrdering::PrecedenceOrdering(Problem& prb, const Options& opt)
   CALL("PrecedenceOrdering::PrecedenceOrdering");
   ASS_G(_predicates, 0);
 
+  // Make sure we (re-)compute usageCnt's for all the symbols;
+  // in particular, the sP's (the Tseitin predicates) and sK's (the Skolem functions), which only exists since preprocessing.
+  prb.getProperty();
+
   DArray<unsigned> aux(32);
   if(_functions) {
     aux.initFromIterator(getRangeIterator(0u, _functions), _functions);
@@ -783,6 +788,21 @@ PrecedenceOrdering::PrecedenceOrdering(Problem& prb, const Options& opt)
   }
   //equality is on the lowest level
   _predicateLevels[0]=0;
+
+  if (env.predicateSineLevels) {
+    // predicateSineLevels start from zero
+    unsigned bound = env.maxClausePriority; // this is at least as large as the maximal value of a predicateSineLevel
+    bool reverse = (opt.sineToPredLevels() == Options::PredicateSineLevels::ON); // the ON, i.e. reasonable, version wants low sine levels mapping to high predicateLevels
+
+    for(unsigned i=1;i<_predicates;i++) { // starting from 1, keeping _predicateLevels[0]=0;
+      unsigned level;
+      if (!env.predicateSineLevels->find(i,level)) {
+        level = bound;
+      }
+      _predicateLevels[i] = reverse ? (bound - level + 1) : level;
+      // cout << "setting predicate level of " << env.signature->predicateName(i) << " to " << _predicateLevels[i] << endl;
+    }
+  }
 
   _reverseLCM = opt.literalComparisonMode()==Shell::Options::LiteralComparisonMode::REVERSE;
 

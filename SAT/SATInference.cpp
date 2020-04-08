@@ -23,6 +23,7 @@
 
 #include "Kernel/Clause.hpp"
 #include "Lib/TimeCounter.hpp"
+#include "Shell/Statistics.hpp"
 
 #include "SATInference.hpp"
 
@@ -169,10 +170,24 @@ void InferenceFromSatRefutation::minimizePremises() {
   {
     _premises = newFOPrems;
     UnitList* it=_premises;
+    unsigned maxInd = 0;
     while(it) {
-      it->head()->incRefCnt();
+      Unit* u = it->head();
+      u->incRefCnt();
+
+      Inference* inf = u->inference();
+      Inference::Iterator iit = inf->iterator();
+      while(inf->hasNext(iit)) {
+        Unit* premUnit = inf->next(iit);
+        if(premUnit->isClause()){
+          unsigned ind = static_cast<Clause*>(premUnit)->inductionDepth();
+          if(ind>maxInd){ maxInd=ind; }
+        }
+      }
+
       it=it->tail();
     }
+    env.statistics->maxInductionDepth=maxInd;
   }
 
   newSatRef->destroy(); // deletes also the inference and with it the list minimized, but not the clauses inside

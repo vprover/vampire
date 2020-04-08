@@ -241,7 +241,7 @@ void SortInference::doInference()
    Clause* c = cit.next();
   
 #if DEBUG_SORT_INFERENCE
-   //cout << "CLAUSE " << c->toString() << endl;
+   cout << "CLAUSE " << c->toString() << endl;
 #endif
 
    Array<Stack<unsigned>> varPositions(c->varCnt());
@@ -253,12 +253,16 @@ void SortInference::doInference()
        if(l->isTwoVarEquality()){
          varEqualityVampireSorts.push(l->twoVarEqSort());
 #if DEBUG_SORT_INFERENCE
-         //cout << "join X" << l->nthArgument(0)->var()<< " and X" << l->nthArgument(1)->var() << endl;
+         cout << "join X" << l->nthArgument(0)->var()<< " and X" << l->nthArgument(1)->var() << endl;
 #endif
          localUF.doUnion(l->nthArgument(0)->var(),l->nthArgument(1)->var());
          if(l->polarity()){
            varsWithPosEq[l->nthArgument(0)->var()]=1;
            varsWithPosEq[l->nthArgument(1)->var()]=1;
+#if DEBUG_SORT_INFERENCE
+           cout << "varsWithPosEq X" << l->nthArgument(0)->var() << endl;
+           cout << "varsWithPosEq X" << l->nthArgument(1)->var() << endl;
+#endif
          }
          
        }else{
@@ -270,13 +274,13 @@ void SortInference::doInference()
          unsigned n = offset_f[f];
          varPositions[l->nthArgument(1)->var()].push(n);
 #if DEBUG_SORT_INFERENCE
-         //cout << "push " << n << " for X" << l->nthArgument(1)->var() << endl;
+         cout << "push " << n << " for X" << l->nthArgument(1)->var() << endl;
 #endif
          for(unsigned i=0;i<t->arity();i++){
            ASS(t->nthArgument(i)->isVar());
            varPositions[t->nthArgument(i)->var()].push(n+1+i);
 #if DEBUG_SORT_INFERENCE
-           //cout << "push " << (n+1+i) << " for X" << t->nthArgument(i)->var() << endl;
+           cout << "push " << (n+1+i) << " for X" << t->nthArgument(i)->var() << endl;
 #endif
          }
          if(l->polarity()){
@@ -290,7 +294,7 @@ void SortInference::doInference()
            ASS(l->nthArgument(i)->isVar());
            varPositions[l->nthArgument(i)->var()].push(n+i);
 #if DEBUG_SORT_INFERENCE
-           //cout << "push " << (n+i) << " for X" << l->nthArgument(i)->var() << endl;
+           cout << "push " << (n+i) << " for X" << l->nthArgument(i)->var() << endl;
 #endif
        }
      }
@@ -304,18 +308,17 @@ void SortInference::doInference()
    }
    for(unsigned v=0;v<varPositions.size();v++){
      Stack<unsigned> stack = varPositions[v];
-     if(stack.size()<=1) continue;
      // for each pair of stuff in the stack say that they are the same
      for(unsigned i=0;i<stack.size();i++){
        if(varsWithPosEq[v]){
 #if DEBUG_SORT_INFERENCE
-         //cout << "recording posEq for " << stack[i] << endl;
+         cout << "recording posEq for " << stack[i] << endl;
 #endif
          posEqualitiesOnPos[stack[i]]=true;
        }
        for(unsigned j=i+1;j<stack.size();j++){
 #if DEBUG_SORT_INFERENCE
-         //cout << "doing union " << stack[i] << " and " << stack[j] << endl;
+         cout << "doing union " << stack[i] << " and " << stack[j] << endl;
 #endif
          unionFind.doUnion(stack[i],stack[j]);
        }
@@ -692,14 +695,14 @@ void SortInference::doInference()
       // add those constraints between children and parent
       unsigned parent = _sig->vampireToDistinctParent.get(s);
 #if DEBUG_SORT_INFERENCE 
-      cout << "Parent " << parent << " for " << env.count->sortName(s) << endl;
+      cout << "Parent " << parent << " for " << env.sorts->sortName(s) << endl;
 #endif
       Stack<unsigned>::Iterator children(*_sig->vampireToDistinct.get(s));
       while(children.hasNext()){
         unsigned child = children.next();
         if(child==parent) continue;
 #if DEBUG_SORT_INFERENCE 
-        cout << "Child " << child << " for " << env.count->sortName(s) << endl;
+        cout << "Child " << child << " for " << env.sorts->sortName(s) << endl;
 #endif
         _sort_constraints.push(make_pair(parent,child));
       }

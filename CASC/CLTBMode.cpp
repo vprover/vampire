@@ -76,7 +76,7 @@ void CLTBMode::perform()
     USER_ERROR("Input file must be specified for ltb mode");
   }
   // to prevent from terminating by time limit
-  env.options->setTimeLimitInSeconds(100000);
+  env.options->setTimeLimitInSeconds(1000000);
 
   env.options->setOutputMode(Options::Output::SZS);
   env.options->setProof(Options::Proof::TPTP);
@@ -653,7 +653,7 @@ void CLTBProblem::performStrategy(int terminationTime,int timeLimit,Category cat
   }
   Schedule fallback;
   Schedule fallback2;
-  Schedules::getCasc2017Schedule(*property,fallback,fallback2);
+  Schedules::getCasc2018Schedule(*property,fallback,fallback2);
   runSchedule(fallback,usedSlices,terminationTime);
   runSchedule(fallback2,usedSlices,terminationTime);
 } // CLTBProblem::performStrategy

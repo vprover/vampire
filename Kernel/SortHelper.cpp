@@ -181,7 +181,7 @@ unsigned SortHelper::getEqualityArgumentSort(const Literal* lit)
   unsigned srt2;
   ALWAYS(tryGetResultSort(arg2, srt2));
   return srt2;
-} // 
+} //
 
 /**
  * Return sort of term @c trm that appears inside literal @c lit.
@@ -192,6 +192,9 @@ unsigned SortHelper::getTermSort(TermList trm, Literal* lit)
 
   if (trm.isTerm()) {
     return getResultSort(trm.term());
+  }
+  if(!trm.isVar()){
+    cout << "ERROR with " << trm.toString() << " in " << lit->toString() << endl;
   }
   ASS(trm.isVar());
   return getVariableSort(trm, lit);

@@ -12,9 +12,9 @@
  *
  * In summary, you are allowed to use Vampire for non-commercial
  * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
+ * or use in competitions.
  * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
+ * licence, which we will make an effort to provide.
  */
 /**
  * @file TheoryInstAndSimp.cpp
@@ -39,6 +39,8 @@
 #include "Kernel/Substitution.hpp"
 #include "Kernel/TermIterators.hpp"
 #include "Kernel/SubstHelper.hpp"
+#include "Kernel/Sorts.hpp"
+#include "Kernel/Theory.hpp"
 
 #include "Saturation/SaturationAlgorithm.hpp"
 #include "Saturation/Splitter.hpp"
@@ -52,6 +54,7 @@
 #include "SAT/Z3Interfacing.hpp"
 
 #include "TheoryInstAndSimp.hpp"
+
 
 namespace Inferences
 {
@@ -71,14 +74,367 @@ void TheoryInstAndSimp::attach(SaturationAlgorithm* salg)
   _splitter = salg->getSplitter();
 }
 
+bool TheoryInstAndSimp::isSupportedSort(const unsigned sort) {
+  //TODO: extend for more sorts (arrays, datatypes)
+  switch (sort) {
+  case Kernel::Sorts::SRT_INTEGER:
+  case Kernel::Sorts::SRT_RATIONAL:
+  case Kernel::Sorts::SRT_REAL:
+    return true;
+  }
+  return false;
+}
+
 /**
- * 
+  Wraps around interpretePredicate to support interpreted equality
+ */
+bool TheoryInstAndSimp::isSupportedLiteral(Literal* lit) {
+  //check equality spearately (X=Y needs special handling)
+  if (lit->isEquality()) {
+    unsigned sort = SortHelper::getEqualityArgumentSort(lit);
+    return isSupportedSort(sort);
+  }
+
+  //check if predicate is interpreted
+  if (! theory->isInterpretedPredicate(lit)){
+    return false;
+  }
+
+  //check if arguments of predicate are supported
+  for (unsigned i=0; i<lit->arity(); i++) {
+    unsigned sort = SortHelper::getArgSort(lit,i);
+    if (! isSupportedSort(sort))
+      return false;
+  }
+
+  return true;
+}
+
+
+bool TheoryInstAndSimp::isPure(Literal* lit) {
+  if (lit->isSpecial()) /* TODO: extend for let .. in / if then else */ {
+#if DPRINT
+    cout << "special lit " << lit -> toString() << endl;
+#endif
+    return false;
+  }
+
+  //check if the predicate is a theory predicate
+  Theory* theory = Theory::instance();
+  if (! isSupportedLiteral(lit) ) {
+    //    cout << "uninterpreted predicate symbol " << lit -> toString() << endl;
+    return false;
+  }
+  //check all (proper) subterms
+  SubtermIterator sti(lit);
+  while( sti.hasNext() ) {
+    TermList tl = sti.next();
+    //cout << "looking at subterm " << tl.toString() << endl;
+    if ( tl.isEmpty() || tl.isVar() ){
+      continue;
+    }
+    if ( tl.isTerm()   ) {
+      Term* term = tl.term();
+
+      //we can stop if we found an uninterpreted function / constant
+      if (! (theory->isInterpretedFunction(term)  ||
+             theory->isInterpretedConstant(term) )){
+        return false;
+      }
+      //check if return value of term is supported
+      if (! isSupportedSort(SortHelper::getResultSort(term))){
+        return false;
+      }
+      //check if arguments of term are supported. covers e.g. f(X) = 0 where
+      // f could map uninterpreted sorts to integer. when iterating over X
+      // itself, its sort cannot be checked.
+      for (unsigned i=0; i<term->arity(); i++) {
+        unsigned sort = SortHelper::getArgSort(term,i);
+        if (! isSupportedSort(sort))
+          return false;
+      }
+
+    }
+  }
+
+#if DPRINT
+  cout << "found pure literal: " << lit->toString() << endl;
+#endif
+  return true;
+}
+
+bool TheoryInstAndSimp::isXeqTerm(const TermList* left, const TermList* right) {
+  bool r = left->isVar() &&
+    right->isTerm() &&
+    !IntList::member(left->var(), right->term()->freeVariables());
+  return r;
+}
+
+unsigned TheoryInstAndSimp::varOfXeqTerm(const Literal* lit,bool flip) {
+  ASS(lit->isEquality());
+  ASS(! lit->isPositive());
+  //add assertion
+  if (lit->isEquality()) {
+    const TermList* left = lit->nthArgument(0);
+    const TermList* right = lit->nthArgument(1);
+    if (isXeqTerm(left,right)){ return left->var();}
+    if (isXeqTerm(right,left)){ return right->var();}
+    ASS(lit->isTwoVarEquality());
+    if(flip){
+      return left->var(); 
+    }else{
+      return right->var();
+    }
+  }
+  ASSERTION_VIOLATION ;
+  return -1; //TODO: do something proper to prevent compilation warnings
+}
+
+/** checks if variable v is contained in literal lit */
+bool TheoryInstAndSimp::literalContainsVar(const Literal* lit, unsigned v) {
+  SubtermIterator it(lit);
+  while (it.hasNext()) {
+    const TermList t = it.next();
+    if ((t.isVar()) && (t.var() == v)){
+      return true;
+    }
+  }
+  return false;
+}
+
+
+/**
+ * Scans through a clause C and selects the largest set T s.t. all literals in
+ * T are trivial. A literal L is trivial in C if:
+ *   1 L is of the form X != s where X does not occur in s
+ *   2 L is pure
+ *   3 for all literals L' in C that X (different from L) either
+ *      + L' is not pure
+ *      + L' is trivial in C
+ * some observations:
+ *   - consider X != Y + 1 | Y != X - 1 | p(X,Y)
+ *     then {} as well as {X != Y+1, Y != X-1} are sets of trivial literals
+ *   - we can partition the clause into pure and impure literals
+ *   - trivial literals are always a subset of the pure literals
+ *   - a literal that violates condition is pure and not trivial
+ * the algorithm is as follows:
+ *   - find the set of trivial candidates TC that fulfill conditions 1 and 2
+ *   - define the set of certainly non-trivial pure literals NT as
+ *     { X in C | X is pure, X not in TC}
+ *   - move all X from TC to NT that do not fulfill criterion 3
+ *     (by checking against all elements of NT)
+ *   - repeat this step until no element was removed or TC is empty
+ * the algorithm can be optimized by only checking the freshly removed elements
  **/
-void TheoryInstAndSimp::selectTheoryLiterals(Clause* cl, Stack<Literal*>& theoryLits,bool forZ3)
+void TheoryInstAndSimp::selectTrivialLiterals(Clause* cl,
+                                              Stack<Literal*>& trivialLits)
 {
+  CALL("TheoryInstAndSimp::selectTrivialLiterals");
+#if DPRINT
+  cout << "selecting trivial literals in " << cl->toString() << endl ;
+#endif
+  /* find trivial candidates of the form x != t (x not occurring in t) */
+  Clause::Iterator it(*cl);
+  /* invariants:
+       triv_candidates \cup nontriv_pure \cup impure = cl
+       triv_candidates \cap nontriv_pure = 0
+       triv_candidates \cap impure = 0
+       nontriv_pure \cap impure = 0 */
+  Stack<Literal*> triv_candidates;
+  Stack<Literal*> nontriv_pure;
+  Stack<Literal*> impure;
+  while( it.hasNext() ) {
+    Literal* c = it.next();
+    if (isPure(c)) {
+      //a liteal X != s is possibly trivial
+      if (c->isNegative()
+          && c->isEquality()) {
+#if DPRINT
+        cout << "checking " << c->toString() << endl;
+#endif
+        const TermList* left = c->nthArgument(0);
+        const TermList* right = c->nthArgument(1);
+        /* distinguish between X = s where s not a variable, X = Y and X = X */
+        if (TheoryInstAndSimp::isXeqTerm(left, right) ||
+            TheoryInstAndSimp::isXeqTerm(right, left) ) {
+          triv_candidates.push(c);
+        } else {
+          // X=Y case
+          if( left->isVar()
+              && right->isVar()) {
+            if (left->var() != right->var()) {
+              triv_candidates.push(c);
+            } else {
+              //this is required by the definition, but making X=X trivial would
+              //make more sense
+              nontriv_pure.push(c);
+            }
+          } else { //term = term case
+            nontriv_pure.push(c);
+          }
+        }
+      } else {
+        //mark as nontrivial pure
+#if DPRINT
+        cout << "non trivial pure found " << c->toString() << endl;
+#endif
+        nontriv_pure.push(c);
+      }
+    } else { // !isPure(c)
+      impure.push(c);
+    }
+  }
+
+#if DPRINT
+  cout << "Found " << triv_candidates.length() << " trivial candidates." << endl;
+  cout << "Found " << nontriv_pure.length() << " nontrivial pure literals." << endl;
+  cout << "Found " << impure.length() << " impure literals." << endl;
+#endif
+  /* remove all candidates where the variable occurs in other pure
+     non-trivial lits  */
+  Stack<Literal*> nt_pure_tocheck(nontriv_pure);
+  Stack<Literal*> nt_new;
+
+  while( ! (nt_pure_tocheck.isEmpty() || triv_candidates.isEmpty()) ) {
+    //for each candidate X=s, check if any literal in nt_pure_tocheck contains X
+    //if yes, put it onto the removal list
+
+    Stack<Literal*>::Iterator cand_it(triv_candidates);
+    while(cand_it.hasNext() ) {
+      Literal* cand = cand_it.next();
+      Stack<Literal*>::Iterator tocheck_it(nt_pure_tocheck);
+      while (tocheck_it.hasNext()) {
+        Literal* checklit = tocheck_it.next();
+        if (literalContainsVar(checklit, varOfXeqTerm(cand))) {
+          nt_new.push(cand);
+        }
+        if(cand->isTwoVarEquality() && literalContainsVar(checklit,varOfXeqTerm(cand,true))){
+          nt_new.push(cand);
+        }
+      } // ! nt_pure_tocheck.hasNext()
+    }   // ! cand_it.hasNext()
+    //remove nt_new from candidates, replace tocheck by nt_new
+    Stack<Literal*>::Iterator nt_new_it(nt_new);
+    while(nt_new_it.hasNext()) {
+      triv_candidates.remove(nt_new_it.next());
+    }
+    nt_pure_tocheck = nt_new;
+  }
+
+#if DPRINT
+  cout << "Found " << triv_candidates.length() << " trivial literals." << endl;
+#endif
+  
+  //copy triv_candidates to trivialLits
+  trivialLits = triv_candidates;
+}
+
+
+void TheoryInstAndSimp::selectTheoryLiterals(Clause* cl, Stack<Literal*>& theoryLits) {
   CALL("TheoryInstAndSimp::selectTheoryLiterals");
 #if DPRINT
-  cout << "selectTheoryLiterals["<<forZ3<<"] in " << cl->toString() << endl;
+  cout << "selectTheoryLiterals in " << cl->toString() << endl;
+#endif
+
+  static Shell::Options::TheoryInstSimp selection = env.options->theoryInstAndSimp();
+  ASS(selection!=Shell::Options::TheoryInstSimp::OFF);
+
+  //  Stack<Literal*> pure_lits;
+  Stack<Literal*> trivial_lits;
+  selectTrivialLiterals(cl, trivial_lits);
+
+  Clause::Iterator cl_it(*cl);
+  while (cl_it.hasNext()) {
+    auto lit = cl_it.next();
+    if (isPure(lit) && !trivial_lits.find(lit))
+      theoryLits.push(lit);
+  }
+  
+}
+
+
+// literals containing top-level terms that are partial functions with 0 on the right should never be selected
+// we only focus on top-level terms as otherwise the literal can be selected and have such terms abstracted out (abstraction treats
+// these terms as uninterpreted) and then in the abstracted version we want them to not be selected!
+  void TheoryInstAndSimp::filterDivisionByZero(Stack<Literal*>& theoryLits, Stack<Literal*>& filteredLits) {
+  Stack<Literal*>::BottomFirstIterator it(theoryLits);
+  while(it.hasNext()) {
+    Literal* lit = it.next();
+    bool keep_lit = true;
+    for(TermList* ts = lit->args(); ts->isNonEmpty(); ts = ts->next()){
+#if DPRINT
+          cout << "div zero filtering checking: " << lit->toString() << endl;
+#endif
+      
+      if(ts->isTerm()){
+        Term* t = ts->term();
+        if(theory->isInterpretedPartialFunction(t->functor()) &&
+           theory->isZero(*(t->nthArgument(1)))){
+          // treat this literal as uninterpreted
+          keep_lit = false;
+#if DPRINT
+          cout << "division by zero removed: " << lit->toString() << endl;
+#endif
+        }
+      }
+    }
+
+    if (keep_lit) {
+      filteredLits.push(lit);
+    }
+  }
+}
+
+void TheoryInstAndSimp::filterDivisionByZeroDeep(Stack<Literal*>& theoryLits, Stack<Literal*>& filteredLits) {
+#if DPRINT
+  cout << "div zero filtering checking!" << endl;
+#endif
+  Stack<Literal*>::BottomFirstIterator it(theoryLits);
+  while(it.hasNext()) {
+    Literal* lit = it.next();
+#if DPRINT
+    cout << "div zero filtering checking: " << lit->toString() << endl;
+#endif
+    bool keep_lit = true;
+    SubtermIterator sit(lit);
+    while(sit.hasNext() && keep_lit){
+      auto ts = sit.next();
+      if(ts.isTerm()){
+        Term* t = ts.term();
+        if(theory->isInterpretedPartialFunction(t->functor()) &&
+           theory->isZero(*(t->nthArgument(1)))){
+          // treat this literal as uninterpreted
+          keep_lit = false;
+#if DPRINT
+          cout << "division by zero removed: " << lit->toString() << endl;
+#endif
+        }
+      }
+    }
+
+    if (keep_lit) {
+      filteredLits.push(lit);
+    }
+  }
+}
+
+void TheoryInstAndSimp::applyFilters(Stack<Literal*>& theoryLits, bool forZ3) {
+  //TODO: too much copying, optimize
+  if (forZ3) {
+    Stack<Literal*> filteredLits;
+    filterDivisionByZeroDeep(theoryLits, filteredLits);
+    theoryLits=filteredLits; 
+  }
+}
+
+/**
+ * Scans through a clause and selects candidates for theory instantiation
+ **/
+void TheoryInstAndSimp::originalSelectTheoryLiterals(Clause* cl, Stack<Literal*>& theoryLits,bool forZ3)
+{
+  CALL("TheoryInstAndSimp::originalSelectTheoryLiterals");
+#if DPRINT
+  cout << "originalSelectTheoryLiterals["<<forZ3<<"] in " << cl->toString() << endl;
 #endif
 
   static Shell::Options::TheoryInstSimp selection = env.options->theoryInstAndSimp();
@@ -247,7 +603,7 @@ Term* getFreshConstant(unsigned index, unsigned srt)
     Stack<Term*>* stack = new Stack<Term*>;
     constants.push(stack);
   }
-  Stack<Term*>* sortedConstants = constants[srt]; 
+  Stack<Term*>* sortedConstants = constants[srt];
   while(index+1 > sortedConstants->length()){
     unsigned sym = env.signature->addFreshFunction(0,"$inst");
     OperatorType* type = OperatorType::getConstantsType(srt);
@@ -283,9 +639,9 @@ VirtualIterator<Solution> TheoryInstAndSimp::getSolutions(Stack<Literal*>& theor
   while(it.hasNext()){
     // get the complementary of the literal
     Literal* lit = Literal::complementaryLiteral(it.next());
-    // replace variables consistently by fresh constants 
+    // replace variables consistently by fresh constants
     DHMap<unsigned,unsigned > srtMap;
-    SortHelper::collectVariableSorts(lit,srtMap); 
+    SortHelper::collectVariableSorts(lit,srtMap);
     TermVarIterator vit(lit);
     while(vit.hasNext()){
       unsigned var = vit.next();
@@ -317,7 +673,7 @@ VirtualIterator<Solution> TheoryInstAndSimp::getSolutions(Stack<Literal*>& theor
     static SATLiteralStack satLits;
     satLits.reset();
     satLits.push(slit);
-    SATClause* sc = SATClause::fromStack(satLits); 
+    SATClause* sc = SATClause::fromStack(satLits);
     //clause->setInference(new FOConversionInference(cl));
     // guarded is normally true, apart from when we are checking a theory tautology
     try{
@@ -368,18 +724,18 @@ VirtualIterator<Solution> TheoryInstAndSimp::getSolutions(Stack<Literal*>& theor
 #endif
 
   // SMT solving was incomplete
-  return VirtualIterator<Solution>::getEmpty(); 
+  return VirtualIterator<Solution>::getEmpty();
 
 }
 
 
 struct InstanceFn
 {
-  InstanceFn(Clause* premise, Clause* cl,Stack<Literal*>& tl,Splitter* splitter, 
-             SaturationAlgorithm* salg, TheoryInstAndSimp* parent,bool& red) : 
-         _premise(premise), _cl(cl), _theoryLits(tl), _splitter(splitter), 
+  InstanceFn(Clause* premise,Clause* cl, Stack<Literal*>& tl,Splitter* splitter,
+             SaturationAlgorithm* salg, TheoryInstAndSimp* parent,bool& red) :
+         _premise(premise),  _cl(cl), _theoryLits(tl), _splitter(splitter),
          _salg(salg), _parent(parent), _red(red) {}
-  
+
   DECL_RETURN_TYPE(Clause*);
   OWN_RETURN_TYPE operator()(Solution sol)
   {
@@ -430,6 +786,9 @@ partial_check_end:
 #if DPRINT
     cout << "Instantiate " << _cl->toString() << endl;
     cout << "with " << sol.subst.toString() << endl;
+    cout << "theoryLits are" << endl;
+    Stack<Literal*>::Iterator tit(_theoryLits);
+    while(tit.hasNext()){ cout << "\t" << tit.next()->toString() << endl;}
 #endif
     Inference* inf_inst = new Inference1(Inference::INSTANTIATION,_cl);
     Clause* inst = new(_cl->length()) Clause(_cl->length(),_cl->inputType(),inf_inst);
@@ -448,11 +807,11 @@ partial_check_end:
       (*inst)[i] = lit_inst;
       // we implicitly remove all theoryLits as the solution makes their combination false
       if(!_theoryLits.find(lit)){
-        (*res)[j] = lit_inst; 
+        (*res)[j] = lit_inst;
         j++;
       }
 #if VDEBUG
-      else{skip++;}
+      else{skip++;}//cout << "skip " << lit->toString() << endl;}
 #endif
     }
     ASS_EQ(skip, _theoryLits.size());
@@ -462,6 +821,7 @@ partial_check_end:
       _splitter->onNewClause(inst);
     }
 
+    res->setAge(_premise->age()+1);
     env.statistics->theoryInstSimp++;
 #if DPRINT
     cout << "to get " << res->toString() << endl;
@@ -485,10 +845,18 @@ ClauseIterator TheoryInstAndSimp::generateClauses(Clause* premise,bool& premiseR
 
   if(premise->isTheoryDescendant()){ return ClauseIterator::getEmpty(); }
 
+  static Options::TheoryInstSimp thi = env.options->theoryInstAndSimp();
+
   static Stack<Literal*> selectedLiterals;
   selectedLiterals.reset();
 
-  selectTheoryLiterals(premise,selectedLiterals,false);
+  if(thi == Options::TheoryInstSimp::NEW){
+    selectTheoryLiterals(premise,selectedLiterals);
+    applyFilters(selectedLiterals,true);
+  }
+  else{
+    originalSelectTheoryLiterals(premise,selectedLiterals,false);
+  }
 
   // if there are no eligable theory literals selected then there is nothing to do
   if(selectedLiterals.isEmpty()){
@@ -501,50 +869,59 @@ ClauseIterator TheoryInstAndSimp::generateClauses(Clause* premise,bool& premiseR
   // TODO use limits
   //Limits* limits = _salg->getLimits();
 
-  // we will use flattening which is non-recursive and sharing
-  static Options::TheoryInstSimp thi = env.options->theoryInstAndSimp();
-  static TheoryFlattening flattener((thi==Options::TheoryInstSimp::FULL),true);
+  Clause* flattened = premise;
+  if(thi != Options::TheoryInstSimp::NEW){
+    // we will use flattening which is non-recursive and sharing
+    static TheoryFlattening flattener((thi==Options::TheoryInstSimp::FULL),true);
 
-  Clause* flattened = flattener.apply(premise,selectedLiterals);
+    flattened = flattener.apply(premise,selectedLiterals);
 
-  ASS(flattened);
+    ASS(flattened);
 
-  // ensure that splits are copied to flattened
-  if(_splitter && flattened!=premise){
-    _splitter->onNewClause(flattened);
-  }
+    // ensure that splits are copied to flattened
+    if(_splitter && flattened!=premise){
+      _splitter->onNewClause(flattened);
+    }
 
-  static Stack<Literal*> theoryLiterals;
-  theoryLiterals.reset();
+    static Stack<Literal*> theoryLiterals;
+    theoryLiterals.reset();
 
-  // Now go through the abstracted clause and select the things we send to SMT
-  // Selection and abstraction could be done in a single step but we are reusing existing theory flattening
-  selectTheoryLiterals(flattened,theoryLiterals,true);
+    // Now go through the abstracted clause and select the things we send to SMT
+    // Selection and abstraction could be done in a single step but we are reusing existing theory flattening
+    originalSelectTheoryLiterals(flattened,theoryLiterals,true);
 
-  // At this point theoryLiterals should contain abstracted versions of what is in selectedLiterals
-  // all of the namings will be ineligable as, by construction, they will contain uninterpreted things
+    // At this point theoryLiterals should contain abstracted versions of what is in selectedLiterals
+    // all of the namings will be ineligable as, by construction, they will contain uninterpreted things
 
 #if DPRINT
   cout << "Generate instances of " << premise->toString() << endl;
   cout << "With flattened " << flattened->toString() << endl;
 #endif
-  if(theoryLiterals.isEmpty()){
-     //cout << "None" << endl;
-     return ClauseIterator::getEmpty();
+    if(theoryLiterals.isEmpty()){
+       //cout << "None" << endl;
+       return ClauseIterator::getEmpty();
+    }
+    selectedLiterals.reset();
+    selectedLiterals.loadFromIterator(Stack<Literal*>::Iterator(theoryLiterals));
   }
 
-  auto it1 = getSolutions(theoryLiterals);
+  {
+    TimeCounter t(TC_THEORY_INST_SIMP);
 
-  auto it2 = getMappingIterator(it1,
-               InstanceFn(premise,flattened,theoryLiterals,_splitter,_salg,this,premiseRedundant));
+    //auto it1 = getSolutions(theoryLiterals);
+    auto it1 = getSolutions(selectedLiterals);
 
-  // filter out only non-zero results
-  auto it3 = getFilteredIterator(it2, NonzeroFn());
+    auto it2 = getMappingIterator(it1,
+               InstanceFn(premise,flattened,selectedLiterals,_splitter,_salg,this,premiseRedundant));
 
-  // measure time of the overall processing
-  auto it4 = getTimeCountedIterator(it3,TC_THEORY_INST_SIMP);
+    // filter out only non-zero results
+    auto it3 = getFilteredIterator(it2, NonzeroFn());
 
-  return pvi(it4);
+    // measure time of the overall processing
+    auto it4 = getTimeCountedIterator(it3,TC_THEORY_INST_SIMP);
+
+    return pvi(it4);
+  }
 }
 
 }
