@@ -921,7 +921,9 @@ private:
         bool _should_copy;
         bool shouldCopy() const { return _should_copy; }
        
-        typedef pair<OptionProblemConstraintUP,DArray<vstring>*> RandEntry;
+        typedef std::unique_ptr<DArray<vstring>> vstringDArrayUP;
+
+        typedef pair<OptionProblemConstraintUP,vstringDArrayUP> RandEntry;
 
         void setRandomChoices(std::initializer_list<vstring> list){
           rand_choices.push(RandEntry(OptionProblemConstraintUP(),toArray(list)));
@@ -946,12 +948,12 @@ private:
         OptionTag _tag;
         Lib::Stack<Options::Mode> _modes;
 
-        DArray<vstring>* toArray(std::initializer_list<vstring>& list){
+        vstringDArrayUP toArray(std::initializer_list<vstring>& list){
           DArray<vstring>* array = new DArray<vstring>(list.size());
           unsigned index=0;
           for(typename std::initializer_list<vstring>::iterator it = list.begin();
            it!=list.end();++it){ (*array)[index++] =*it; }
-          return array;
+          return vstringDArrayUP(array);
         }
     protected:
         // Note has LIFO semantics so use BottomFirstIterator

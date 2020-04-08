@@ -2263,7 +2263,7 @@ template<typename T>
 bool Options::OptionValue<T>::randomize(Property* prop){
   CALL("Options::OptionValue::randomize()");
 
-  DArray<vstring>* choices = 0;
+  DArray<vstring>* choices = nullptr;
   if(env.options->randomStrategy()==RandomStrategy::NOCHECK) prop=0;
 
   // Only randomize if we have a property and need it or don't have one and don't need it!
@@ -2272,7 +2272,7 @@ bool Options::OptionValue<T>::randomize(Property* prop){
     ){
     return false;
   }
-  // Note that if we supressed the problem constraints
+  // Note that if we suppressed the problem constraints
   // the checks will be skipped
 
   //Search for the first set of random choices that is valid
@@ -2280,7 +2280,8 @@ bool Options::OptionValue<T>::randomize(Property* prop){
   while(entry_it.hasNext()){
     auto& entry = entry_it.next();
     if(!entry.first || (prop && entry.first->check(prop))){
-      choices = entry.second;
+      choices = entry.second.get();
+      break;
     }  
   }
   if(!choices || choices->size()==0) return false; // no valid choices
