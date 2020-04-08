@@ -47,16 +47,16 @@ public:
 
   using ref = Container<refw<A>, Equiv>;
 
-  void serialize(const char* container_name, ostream &out) const {
+  void serialize(const char* container_name, size_t total, ostream &out) const {
     for (auto &pair : _content) {
       auto size = pair.second; //.size();
       // auto &&elems = pair.second;
       // ASS_REP(size > 0, size);
 
       out << "[ equivalence class ]" 
-          << "\t"
-          << container_name
-          << "\t" << size << "\t";
+          << "\t" << container_name
+          << "\t" << size
+          << "\t" << total << "\t";
       // Equiv::dump(out, **min_element(elems.begin(), elems.end()));
       Equiv::dump(out, *pair.first.get());
       out << endl;
