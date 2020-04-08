@@ -93,6 +93,7 @@ template<> struct num_traits<IntegerConstantType> {
   const IntegerConstantType zero = IntegerConstantType(0);
   bool isZero(const TermList& l) const {
     auto out = l.tag() == REF && theory->representConstant(zero) == l.term();
+    DEBUG("isZero( " << l << ") = " << out)
       return out;
   }
   const IntegerConstantType one = IntegerConstantType(1);
@@ -258,8 +259,8 @@ public:
     ASS_EQ(lit.arity(), 2);
     auto lhs = lit[0];
     auto rhs = lit[1];
-    ConstantType l;
-    ConstantType r;
+    DEBUG("lit = " << lit)
+    DEBUG("lhs = " << lhs)
     if (lhs == rhs) {
       auto raw = !_ineq.IS_STRICT;
       return PredEvalResult::trivial(lit.polarity() == raw);
