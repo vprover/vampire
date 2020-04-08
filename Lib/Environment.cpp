@@ -54,9 +54,8 @@ Environment::Environment()
   : signature(0),
     sharing(0),
     property(0),
-    clausePriorities(0),
-    maxClausePriority(1),
-    clauseSineLevels(nullptr),
+    maxSineLevel(1),
+    predicateSineLevels(nullptr),
     colorUsed(false),
     _outputDepth(0),
     _priorityOutput(0),
@@ -89,7 +88,7 @@ Environment::~Environment()
   delete signature;
   delete sorts;
   delete statistics;
-  if(clausePriorities) delete clausePriorities; 
+  if (predicateSineLevels) delete predicateSineLevels;
   {
     BYPASSING_ALLOCATOR; // use of std::function in options
     delete options;

@@ -787,7 +787,7 @@ PrecedenceOrdering::PrecedenceOrdering(Problem& prb, const Options& opt)
 
   if (env.predicateSineLevels) {
     // predicateSineLevels start from zero
-    unsigned bound = env.maxClausePriority; // this is at least as large as the maximal value of a predicateSineLevel
+    unsigned bound = env.maxSineLevel; // this is at least as large as the maximal value of a predicateSineLevel
     bool reverse = (opt.sineToPredLevels() == Options::PredicateSineLevels::ON); // the ON, i.e. reasonable, version wants low sine levels mapping to high predicateLevels
 
     for(unsigned i=1;i<_predicates;i++) { // starting from 1, keeping _predicateLevels[0]=0;

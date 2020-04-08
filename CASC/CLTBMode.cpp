@@ -692,8 +692,6 @@ void CLTBProblem::searchForProof(int terminationTime,int timeLimit,const Categor
         //cout << "create cutoff " << cutoff << endl;
         cutoff /= 2;
       }
-
-      env.maxClausePriority = cutoffs.length();
     }
   }
 

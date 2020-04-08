@@ -613,7 +613,7 @@ void SaturationAlgorithm::addInputClause(Clause* cl)
     unsigned level = cl->inference()->getSineLevel();
     // cout << "Adding " << cl->toString() << " level " << level;
     if (level == UINT_MAX) {
-      level = env.maxClausePriority-1; // as the next available (unused) value
+      level = env.maxSineLevel-1; // as the next available (unused) value
       // cout << " -> " << level;
     }
     // cout << endl;

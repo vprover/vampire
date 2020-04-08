@@ -64,10 +64,7 @@ public:
   /** Currently used timer, this is used by all timers as a global clock */
   Timer* timer;
 
-  DHMap<const Kernel::Unit*,unsigned>* clausePriorities;
-  unsigned maxClausePriority;
-
-  DHMap<const Kernel::Unit*,unsigned>* clauseSineLevels;
+  unsigned maxSineLevel;
   DHMap<unsigned, unsigned>* predicateSineLevels;
 
   bool haveOutput();

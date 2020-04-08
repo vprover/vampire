@@ -443,7 +443,9 @@ bool SineSelector::perform(UnitList*& units)
 	break;
       }
       ASS(!_depthLimit || depth<_depthLimit);
-      env.maxClausePriority++;
+      if(_justForSineLevels){
+        env.maxSineLevel++;
+      }
       // cout << "Time to inc" << endl;
 
       if (newlySelected.isNonEmpty()) {
@@ -462,7 +464,7 @@ bool SineSelector::perform(UnitList*& units)
         unsigned functor;
         SineSymbolExtractor::decodeSymId(sym,pred,functor);
         if (pred && !env.predicateSineLevels->find(functor)) {
-          env.predicateSineLevels->insert(functor,env.maxClausePriority);
+          env.predicateSineLevels->insert(functor,env.maxSineLevel);
           // cout << "set level of predicate " << functor << " i.e. " << env.signature->predicateName(functor) << " to " << env.maxClausePriority << endl;
         }
       }
@@ -478,7 +480,7 @@ bool SineSelector::perform(UnitList*& units)
         newlySelected.push_back(du);
 
         if(_justForSineLevels){
-          du->inference()->setSineLevel(env.maxClausePriority);
+          du->inference()->setSineLevel(env.maxSineLevel);
           //cout << "set level for " << du->toString() << " in iteration as " << env.maxClausePriority << endl;
         }
       }
