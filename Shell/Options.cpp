@@ -2295,9 +2295,9 @@ bool Options::OptionValue<T>::randomize(Property* prop){
 template<typename T>
 bool Options::OptionValue<T>::checkConstraints(){
      CALL("Options::OptionValue::checkConstraints");
-     typename Lib::Stack<OptionValueConstraint<T>*>::Iterator it(_constraints);
+     typename Lib::Stack<OptionValueConstraintUP<T>>::Iterator it(_constraints);
      while(it.hasNext()){
-       OptionValueConstraint<T>* con = it.next();
+       const OptionValueConstraintUP<T>& con = it.next();
        if(!con->check(*this)){
 
          if(env.options->mode()==Mode::SPIDER){
@@ -2359,9 +2359,9 @@ bool Options::OptionValue<T>::checkProblemConstraints(Property* prop){
 }
 
 template<typename T>
-Options::AbstractWrappedConstraintUP Options::OptionValue<T>::is(OptionValueConstraint<T>* c)
+Options::AbstractWrappedConstraintUP Options::OptionValue<T>::is(OptionValueConstraintUP<T> c)
 {
-    return AbstractWrappedConstraintUP(new WrappedConstraint<T>(*this,c));
+    return AbstractWrappedConstraintUP(new WrappedConstraint<T>(*this,std::move(c)));
 }
 
 /**

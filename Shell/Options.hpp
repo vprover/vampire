@@ -811,6 +811,8 @@ private:
     // Declare constraints here so they can be referred to, but define them below
     template<typename T>
     struct OptionValueConstraint;
+    template<typename T>
+    using OptionValueConstraintUP = std::unique_ptr<OptionValueConstraint<T>>;
     struct AbstractWrappedConstraint;
     typedef std::unique_ptr<AbstractWrappedConstraint> AbstractWrappedConstraintUP;
     struct OptionProblemConstraint;
@@ -998,8 +1000,8 @@ private:
         // Adding and checking constraints
         // By default constraints are soft and reaction to them is controlled by the bad_option option
         // But a constraint can be added as Hard, meaning that it always causes a UserError
-        void addConstraint(OptionValueConstraint<T>* c){ _constraints.push(c); }
-        void addHardConstraint(OptionValueConstraint<T>* c){ c->setHard();addConstraint(c); }
+        void addConstraint(OptionValueConstraintUP<T> c){ _constraints.push(std::move(c)); }
+        void addHardConstraint(OptionValueConstraintUP<T> c){ c->setHard();addConstraint(std::move(c)); }
 
         // A reliesOn constraint gives a constraint that must be true if a non-default value is used
         // For example, split_at_activation relies on splitting being on
@@ -1007,26 +1009,26 @@ private:
         void reliesOn(AbstractWrappedConstraintUP c){
             _constraints.push(If(getNotDefault()).then(unwrap<T>(c)));
         }
-        void reliesOn(OptionValueConstraint<T>* c){
-            _constraints.push(If(getNotDefault()).then(c));
+        void reliesOn(OptionValueConstraintUP<T> c){
+            _constraints.push(If(getNotDefault()).then(std::move(c)));
         }
-        virtual OptionValueConstraint<T>* getNotDefault(){ return isNotDefault<T>(); }
+        virtual OptionValueConstraintUP<T> getNotDefault(){ return isNotDefault<T>(); }
         void reliesOnHard(AbstractWrappedConstraintUP c){
-            OptionValueConstraint<T>* tc = If(getNotDefault()).then(unwrap<T>(c));
+            OptionValueConstraintUP<T> tc = If(getNotDefault()).then(unwrap<T>(c));
             tc->setHard();
-            _constraints.push(tc);
+            _constraints.push(std::move(tc));
         }
-        void reliesOnHard(OptionValueConstraint<T>* c){
-            OptionValueConstraint<T>* tc = If(getNotDefault()).then(c);
+        void reliesOnHard(OptionValueConstraintUP<T> c){
+            OptionValueConstraintUP<T> tc = If(getNotDefault()).then(c);
             tc->setHard();
-            _constraints.push(tc);
+            _constraints.push(std::move(tc));
         }
         // This checks the constraints and may cause a UserError
         bool checkConstraints();
         
         // Produces a separate constraint object based on this option
         /// Useful for IfThen constraints and reliesOn i.e. _splitting.is(equal(true))
-        AbstractWrappedConstraintUP is(OptionValueConstraint<T>* c);
+        AbstractWrappedConstraintUP is(OptionValueConstraintUP<T> c);
         
         // Problem constraints place a restriction on problem properties and option values
         void addProblemConstraint(OptionProblemConstraintUP c){ _prob_constraints.push(std::move(c)); }
@@ -1045,7 +1047,7 @@ private:
         bool randomize(Property* p);
  
     private:
-        Lib::Stack<OptionValueConstraint<T>*> _constraints;
+        Lib::Stack<OptionValueConstraintUP<T>> _constraints;
         Lib::Stack<OptionProblemConstraintUP> _prob_constraints;
     };
     
@@ -1201,7 +1203,7 @@ RatioOptionValue(){}
 RatioOptionValue(vstring l, vstring s, int def, int other, char sp=':') :
 OptionValue(l,s,def), sep(sp), defaultOtherValue(other), otherValue(other) {};
 
-virtual OptionValueConstraint<int>* getNotDefault() override { return isNotDefaultRatio(); }
+virtual OptionValueConstraintUP<int> getNotDefault() override { return isNotDefaultRatio(); }
 
 void addConstraintIfNotDefault(AbstractWrappedConstraintUP c){
     addConstraint(If(isNotDefaultRatio()).then(unwrap<int>(c)));
@@ -1275,7 +1277,7 @@ virtual void output(ostream& out) const {
 virtual vstring getStringOfValue(int value) const{ return Lib::Int::toString(value); }
 
 AbstractWrappedConstraintUP isLookAheadSelection(){
-  return AbstractWrappedConstraintUP(new WrappedConstraint<int>(*this,new isLookAheadSelectionConstraint()));
+  return AbstractWrappedConstraintUP(new WrappedConstraint<int>(*this,OptionValueConstraintUP<int>(new isLookAheadSelectionConstraint())));
 }
 };
 
@@ -1410,7 +1412,7 @@ bool _hard;
         CLASS_NAME(WrappedConstraint);
         USE_ALLOCATOR(WrappedConstraint);
         
-        WrappedConstraint(const OptionValue<T>& v, OptionValueConstraint<T>* c) : value(v), con(c) {}
+        WrappedConstraint(const OptionValue<T>& v, OptionValueConstraintUP<T> c) : value(v), con(std::move(c)) {}
         
         bool check() override {
             return con->check(value);
@@ -1420,7 +1422,7 @@ bool _hard;
         }
 
         const OptionValue<T>& value;
-        OptionValueConstraint<T>* con;
+        OptionValueConstraintUP<T> con;
     };
     
     struct WrappedConstraintOrWrapper : public AbstractWrappedConstraint {
@@ -1453,28 +1455,28 @@ bool _hard;
     struct OptionValueConstraintOrWrapper : public OptionValueConstraint<T>{
         CLASS_NAME(OptionValueConstraintOrWrapper);
         USE_ALLOCATOR(OptionValueConstraintOrWrapper);
-        OptionValueConstraintOrWrapper(OptionValueConstraint<T>* l, OptionValueConstraint<T>* r) : left(l),right(r) {}
+        OptionValueConstraintOrWrapper(OptionValueConstraintUP<T> l, OptionValueConstraintUP<T> r) : left(std::move(l)),right(std::move(r)) {}
         bool check(const OptionValue<T>& value){
             return left->check(value) || right->check(value);
         }
         vstring msg(const OptionValue<T>& value){ return left->msg(value) + " or " + right->msg(value); }
 
-        OptionValueConstraint<T>* left;
-        OptionValueConstraint<T>* right;
+        OptionValueConstraintUP<T> left;
+        OptionValueConstraintUP<T> right;
     };
 
     template<typename T>
     struct OptionValueConstraintAndWrapper : public OptionValueConstraint<T>{
         CLASS_NAME(OptionValueConstraintAndWrapper);
         USE_ALLOCATOR(OptionValueConstraintAndWrapper);
-        OptionValueConstraintAndWrapper(OptionValueConstraint<T>* l, OptionValueConstraint<T>* r) : left(l),right(r) {}
+        OptionValueConstraintAndWrapper(OptionValueConstraintUP<T> l, OptionValueConstraintUP<T> r) : left(std::move(l)),right(std::move(r)) {}
         bool check(const OptionValue<T>& value){
             return left->check(value) && right->check(value);
         }
         vstring msg(const OptionValue<T>& value){ return left->msg(value) + " and " + right->msg(value); }
 
-        OptionValueConstraint<T>* left;
-        OptionValueConstraint<T>* right;
+        OptionValueConstraintUP<T> left;
+        OptionValueConstraintUP<T> right;
     };
 
     template<typename T>
@@ -1491,13 +1493,13 @@ bool _hard;
     };
     
     template <typename T>
-    static OptionValueConstraint<T>* maybe_unwrap(OptionValueConstraint<T>* c) { return c; }
+    static OptionValueConstraintUP<T> maybe_unwrap(OptionValueConstraintUP<T> c) { return c; }
 
     template <typename T>
-    static OptionValueConstraint<T>* unwrap(AbstractWrappedConstraintUP& c) { return new UnWrappedConstraint<T>(std::move(c)); }
+    static OptionValueConstraintUP<T> unwrap(AbstractWrappedConstraintUP& c) { return OptionValueConstraintUP<T>(new UnWrappedConstraint<T>(std::move(c))); }
 
     template <typename T>
-    static OptionValueConstraint<T>* maybe_unwrap(AbstractWrappedConstraintUP& c) { return unwrap<T>(c); }
+    static OptionValueConstraintUP<T> maybe_unwrap(AbstractWrappedConstraintUP& c) { return unwrap<T>(c); }
 
     /*
      * To avoid too many cases a certain discipline is required from the user.
@@ -1506,14 +1508,14 @@ bool _hard;
 
     // the base case (the unary Or)
     template <typename T>
-    OptionValueConstraint<T>* Or(OptionValueConstraint<T>* a) { return a; }
+    OptionValueConstraintUP<T> Or(OptionValueConstraintUP<T> a) { return a; }
     AbstractWrappedConstraintUP Or(AbstractWrappedConstraintUP a) { return a; }
 
     template<typename T, typename... Args>
-    OptionValueConstraint<T>* Or(OptionValueConstraint<T>* a, Args... args)
+    OptionValueConstraintUP<T> Or(OptionValueConstraintUP<T> a, Args... args)
     {
-      OptionValueConstraint<T>* r = maybe_unwrap<T>(Or(std::move(args)...));
-      return new OptionValueConstraintOrWrapper<T>(a,r);
+      OptionValueConstraintUP<T> r = maybe_unwrap<T>(Or(std::move(args)...));
+      return OptionValueConstraintUP<T>(new OptionValueConstraintOrWrapper<T>(std::move(a),std::move(r)));
     }
 
     template<typename... Args>
@@ -1525,14 +1527,14 @@ bool _hard;
 
     // the base case (the unary And)
     template <typename T>
-    OptionValueConstraint<T>* And(OptionValueConstraint<T>* a) { return a; }
+    OptionValueConstraintUP<T> And(OptionValueConstraintUP<T> a) { return a; }
     AbstractWrappedConstraintUP And(AbstractWrappedConstraintUP a) { return a; }
 
     template<typename T, typename... Args>
-    OptionValueConstraint<T>* And(OptionValueConstraint<T>* a, Args... args)
+    OptionValueConstraintUP<T> And(OptionValueConstraintUP<T> a, Args... args)
     {
-      OptionValueConstraint<T>* r = maybe_unwrap<T>(And(std::move(args)...));
-      return new OptionValueConstraintAndWrapper<T>(a,r);
+      OptionValueConstraintUP<T> r = maybe_unwrap<T>(And(std::move(args)...));
+      return OptionValueConstraintUP<T>(new OptionValueConstraintAndWrapper<T>(std::move(a),std::move(r)));
     }
 
     template<typename... Args>
@@ -1556,8 +1558,8 @@ bool _hard;
         T _goodvalue;
     };
     template<typename T>
-    static OptionValueConstraint<T>* equal(T bv){
-        return new Equal<T>(bv);
+    static OptionValueConstraintUP<T> equal(T bv){
+        return OptionValueConstraintUP<T>(new Equal<T>(bv));
     }
     
     template<typename T>
@@ -1572,8 +1574,8 @@ bool _hard;
         T _badvalue;
     };
     template<typename T>
-    static OptionValueConstraint<T>* notEqual(T bv){
-        return new NotEqual<T>(bv);
+    static OptionValueConstraintUP<T> notEqual(T bv){
+        return OptionValueConstraintUP<T>(new NotEqual<T>(bv));
     }
     
     // Constraint that the value should be less than a given value
@@ -1595,12 +1597,12 @@ bool _hard;
         bool _orequal;
     };
     template<typename T>
-    static OptionValueConstraint<T>* lessThan(T bv){
-        return new LessThan<T>(bv,false);
+    static OptionValueConstraintUP<T> lessThan(T bv){
+        return OptionValueConstraintUP<T>(new LessThan<T>(bv,false));
     }
     template<typename T>
-    static OptionValueConstraint<T>* lessThanEq(T bv){
-        return new LessThan<T>(bv,true);
+    static OptionValueConstraintUP<T> lessThanEq(T bv){
+        return OptionValueConstraintUP<T>(new LessThan<T>(bv,true));
     }
     
     // Constraint that the value should be greater than a given value
@@ -1623,12 +1625,12 @@ bool _hard;
         bool _orequal;
     };
     template<typename T>
-    static OptionValueConstraint<T>* greaterThan(T bv){
-        return new GreaterThan<T>(bv,false);
+    static OptionValueConstraintUP<T> greaterThan(T bv){
+        return OptionValueConstraintUP<T>(new GreaterThan<T>(bv,false));
     }
     template<typename T>
-    static OptionValueConstraint<T>* greaterThanEq(T bv){
-        return new GreaterThan<T>(bv,true);
+    static OptionValueConstraintUP<T> greaterThanEq(T bv){
+        return OptionValueConstraintUP<T>(new GreaterThan<T>(bv,true));
     }
     
     /**
@@ -1643,8 +1645,8 @@ bool _hard;
         CLASS_NAME(IfThenConstraint);
         USE_ALLOCATOR(IfThenConstraint);
         
-        IfThenConstraint(OptionValueConstraint<T>* ic, OptionValueConstraint<T>* c) :
-        if_con(ic), then_con(c) {}
+        IfThenConstraint(OptionValueConstraintUP<T> ic, OptionValueConstraintUP<T> c) :
+        if_con(std::move(ic)), then_con(std::move(c)) {}
         
         bool check(const OptionValue<T>& value){
             ASS(then_con);
@@ -1655,44 +1657,33 @@ bool _hard;
             return "if "+if_con->msg(value)+" then "+ then_con->msg(value);
         }
         
-        OptionValueConstraint<T>* if_con;
-        OptionValueConstraint<T>* then_con;
+        OptionValueConstraintUP<T> if_con;
+        OptionValueConstraintUP<T> then_con;
     };
     
     template<typename T>
     struct IfConstraint {
         CLASS_NAME(IfConstraint);
         USE_ALLOCATOR(IfConstraint);
-        IfConstraint(OptionValueConstraint<T>* c) :if_con(c) {}
+        IfConstraint(OptionValueConstraintUP<T> c) :if_con(std::move(c)) {}
 
-        OptionValueConstraint<T>* then(OptionValueConstraint<T>* c){
-          return new IfThenConstraint<T>(if_con,c);
+        OptionValueConstraintUP<T> then(OptionValueConstraintUP<T> c){
+          return OptionValueConstraintUP<T>(new IfThenConstraint<T>(std::move(if_con),std::move(c)));
         }
-        OptionValueConstraint<T>* then(AbstractWrappedConstraintUP c){
-          return new IfThenConstraint<T>(if_con,unwrap<T>(c));
+        OptionValueConstraintUP<T> then(AbstractWrappedConstraintUP c){
+          return OptionValueConstraintUP<T>(new IfThenConstraint<T>(std::move(if_con),unwrap<T>(c)));
         }
         
-        OptionValueConstraint<T>* if_con;
+        OptionValueConstraintUP<T> if_con;
     };
     
     template<typename T>
-    static IfConstraint<T> If(OptionValueConstraint<T>* c){
-        return IfConstraint<T>(c);
+    static IfConstraint<T> If(OptionValueConstraintUP<T> c){
+        return IfConstraint<T>(std::move(c));
     }
     template<typename T>
     static IfConstraint<T> If(AbstractWrappedConstraintUP c){
         return IfConstraint<T>(unwrap<T>(c));
-    }
-
-    template<typename T>
-    static OptionValueConstraint<T>* ifOnThen(OptionValueConstraint<T>* c){
-      IfConstraint<bool> ifc(equal(true));
-      return ifc.then(c);
-    }
-    template<typename T>
-    static OptionValueConstraint<T>* ifOnThen(AbstractWrappedConstraintUP c){
-      IfConstraint<bool> ifc(equal(true));
-      return ifc.then(unwrap<T>(c));
     }
 
     /**
@@ -1722,12 +1713,12 @@ bool _hard;
     
     // You will need to provide the type, optionally use addConstraintIfNotDefault
     template<typename T>
-    static OptionValueConstraint<T>* isNotDefault(){
-        return new NotDefaultConstraint<T>();
+    static OptionValueConstraintUP<T> isNotDefault(){
+        return OptionValueConstraintUP<T>(new NotDefaultConstraint<T>());
     }
     // You will need to provide the type, optionally use addConstraintIfNotDefault
-    static OptionValueConstraint<int>* isNotDefaultRatio(){
-        return new NotDefaultRatioConstraint();
+    static OptionValueConstraintUP<int> isNotDefaultRatio(){
+        return OptionValueConstraintUP<int>(new NotDefaultRatioConstraint());
     }
 
     struct isLookAheadSelectionConstraint : public OptionValueConstraint<int>{
