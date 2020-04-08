@@ -1749,6 +1749,7 @@ bool _hard;
     struct OptionProblemConstraint{
         virtual bool check(Property* p) = 0;
         virtual vstring msg() = 0;
+        virtual ~OptionProblemConstraint() {};
     };
     
     struct CategoryCondition : OptionProblemConstraint{
