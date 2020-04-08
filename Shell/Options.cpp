@@ -2359,9 +2359,9 @@ bool Options::OptionValue<T>::checkProblemConstraints(Property* prop){
 }
 
 template<typename T>
-Options::AbstractWrappedConstraint* Options::OptionValue<T>::is(OptionValueConstraint<T>* c)
+Options::AbstractWrappedConstraintUP Options::OptionValue<T>::is(OptionValueConstraint<T>* c)
 {
-    return new WrappedConstraint<T>(*this,c);
+    return AbstractWrappedConstraintUP(new WrappedConstraint<T>(*this,c));
 }
 
 /**
