@@ -1016,7 +1016,7 @@ AbsTheoryClause &maxTheorySubclause(Clause const &c) {
 #define INIT_EQ_CLASS_MEMBERS(i) , _eq##i(equiv_t_##i{})
 
 TheorySubclauseAnalyser::TheorySubclauseAnalyser()
-    : _nothing(0) MAP(INIT_EQ_CLASS_MEMBERS, EQ_CLASSES_) {}
+    : _total(0) MAP(INIT_EQ_CLASS_MEMBERS, EQ_CLASSES_) {}
 
 #undef INIT_EQ_CLASS_MEMBERS
 
@@ -1025,11 +1025,11 @@ TheorySubclauseAnalyser::~TheorySubclauseAnalyser() {}
 void TheorySubclauseAnalyser::addClause(Clause &c) {
   CALL("TheorySubclauseAnalyser::addClause")
   if (!c.isTheoryAxiom() && !c.isTheoryDescendant()) {
-
     auto &scl = maxTheorySubclause(c);
     for (auto l : scl.literals()) {
       l->normalize();
       l->rectify();
+      _total++;
 #define INSERT(i) _eq##i.insert(l);
       MAP(INSERT, EQ_CLASSES_)
 #undef INSERT
@@ -1046,7 +1046,7 @@ void TheorySubclauseAnalyser::addClause(Clause &c) {
 void TheorySubclauseAnalyser::dumpStats(ostream &out) const {
 
 #define DUMP(i)                                                                \
-  _eq##i.serialize(EQ_CLASS_NAME_##i, out);
+  _eq##i.serialize(EQ_CLASS_NAME_##i, _total, out);
 
   out << endl;
   out << endl;
