@@ -476,7 +476,7 @@ Clause* Superposition::performSuperposition(
     return 0;
   }
 
-  if(rwLitS->isEquality()) {
+  if(rwLitS->isEquality() && !EqHelper::smallSideRewritingAllowed(rwLitS)) {
     //check that we're not rewriting only the smaller side of an equality
     TermList arg0=*rwLitS->nthArgument(0);
     TermList arg1=*rwLitS->nthArgument(1);
@@ -527,7 +527,7 @@ Clause* Superposition::performSuperposition(
     vstring eqPlace = Lib::Int::toString(eqClause->getLiteralPosition(eqLit));
 
     vstring rwPos="_";
-    ALWAYS(Inference::positionIn(rwTerm,rwLit,rwPos));
+    ALWAYS(TermList::positionIn(rwTerm,rwLit,rwPos));
     vstring eqPos = "("+eqPlace+").2";
     rwPos = "("+rwPlace+")."+rwPos;
 

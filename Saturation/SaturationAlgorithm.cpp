@@ -1394,11 +1394,17 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
   if(prb.hasEquality() && env.signature->hasTermAlgebras()) {
     if (opt.termAlgebraCyclicityCheck() == Options::TACyclicityCheck::RULE) {
       gie->addFront(new AcyclicityGIE());
-    } else if (opt.termAlgebraCyclicityCheck() == Options::TACyclicityCheck::RULELIGHT) {
-      gie->addFront(new AcyclicityGIE1());
     }
-    if (opt.termAlgebraInferences()) {
+    if (opt.termAlgebraUniquenessCheck() == Options::TAUniquenessCheck::RULE) {
+      gie->addFront(new UniquenessGIE());
+    }
+    if (opt.termAlgebraInferences() == Options::TAInferences::SIMPL) {
       gie->addFront(new InjectivityGIE());
+    } else if (opt.termAlgebraInferences() == Options::TAInferences::FULL) {
+      gie->addFront(new InjectivityGIE());
+      gie->addFront(new Injectivity1GIE());
+      gie->addFront(new Distinctness1GIE());
+      gie->addFront(new DistAndInj2GIE());
     }
   }
 #if VZ3

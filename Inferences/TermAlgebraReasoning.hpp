@@ -29,7 +29,7 @@
 
 #include "Forwards.hpp"
 
-#include "Indexing/AcyclicityIndex.hpp"
+#include "Indexing/TermAlgebraIndex.hpp"
 
 #include "Inferences/InferenceEngine.hpp"
 
@@ -63,6 +63,75 @@ public:
   USE_ALLOCATOR(DistinctnessISE);
   
   Kernel::Clause* simplify(Kernel::Clause* c);
+};
+
+/*
+  Generating rule:
+
+      f(...) = x \/ A
+  -----------------------
+  A { x <- g(y1 ... yn) }
+
+  for constructor g s.t. f != g
+
+  yi's fresh variables
+ */
+class Distinctness1GIE
+  : public GeneratingInferenceEngine {
+public:
+  CLASS_NAME(Distinctness1GIE);
+  USE_ALLOCATOR(Distinctness1GIE);
+
+  Kernel::ClauseIterator generateClauses(Kernel::Clause* c);
+
+private:
+  struct Distinctness1GenFn;
+  struct Distinctness1GenIterator; 
+};
+
+/*
+  This class implements two generating rules at once:
+
+  Distinctness rule:
+
+  f(...) = u \/ A      g(...) = u' \/ B
+  -------------------------------------
+             (A \/ B)\sigma
+
+  where sigma = mgu(u, u')
+        f(...)\sigma not smaller than u\sigma
+        g(...)\sigma not smaller than u'\sigma
+
+  Injectivity rule:
+
+  f(s1 ... sn) = u \/ A      f(t1 ... tn) = u' \/ B
+  -------------------------------------------------
+             (si = ti \/ A \/ B)\sigma
+
+  where sigma = mgu(u, u')
+        f(...)\sigma not smaller than u\sigma
+        f(...)\sigma not smaller than u'\sigma
+
+ */
+class DistAndInj2GIE
+  : public GeneratingInferenceEngine {
+public:
+  CLASS_NAME(DistAndInj2GIE);
+  USE_ALLOCATOR(DistAndInj2GIE);
+
+  void attach(SaturationAlgorithm* salg);
+  void detach();
+
+  Kernel::ClauseIterator generateClauses(Kernel::Clause* c);
+
+private:
+  struct DistAndInj2PerformFn;
+  struct DistAndInj2GenFn;
+  struct Injectivity2Iterator;
+
+  static Clause* distinctnessConclusion(Clause *c1, Clause *c2, Literal *lit1, Literal *lit2, ResultSubstitutionSP sigma);
+
+  Indexing::TARulesRHSIndex *_index;
 };
 
 /*
@@ -108,6 +177,43 @@ public:
   Kernel::Clause* simplify(Kernel::Clause* c);
 };
 
+/*
+  Generating rule:
+
+  f(s1 ... sn) = x \/ A
+  ---------------------
+   si = yi \/ A\sigma
+
+  where sigma = { x <- f(y1 ... yn) }
+
+  yi's fresh variables
+ */
+class Injectivity1GIE
+  : public GeneratingInferenceEngine {
+public:
+  CLASS_NAME(Injectivity1GIE);
+  USE_ALLOCATOR(Injectivity1GIE);
+
+  Kernel::ClauseIterator generateClauses(Kernel::Clause* c);
+
+private:
+  struct Injectivity1GenIterator;
+  struct Injectivity1GenFn;
+};
+
+/*
+  Simplification rule:
+
+  f(s1 ... sn) != f(t1 ... tn) \/ A
+  ---------------------------------
+  s1 != t1 \/ ... \/ t1 != tn \/ A
+
+  The soundness of the rule is not a property of injectivity but only
+  of f being a function.
+  
+  However since f is injective the conclusion is equivalent to the
+  premise and can be removed (not true of arbitrary functions)
+ */
 class NegativeInjectivityISE
   : public ImmediateSimplificationEngine
 {
@@ -121,6 +227,9 @@ private:
   bool litCondition(Clause* c, unsigned i);
 };
 
+/*
+  The hyper-resolution rule presented in the Vampire workshop paper
+ */
 class AcyclicityGIE
   : public GeneratingInferenceEngine {
 public:
@@ -134,21 +243,46 @@ private:
   struct AcyclicityGenIterator;
   struct AcyclicityGenFn;
   
-  Indexing::AcyclicityIndex *_acyclIndex;
+  Indexing::ChainIndex *_chainIndex;
 };
 
-class AcyclicityGIE1
+class UniquenessGIE
   : public GeneratingInferenceEngine {
 public:
-  CLASS_NAME(AcyclicityGIE1);
-  USE_ALLOCATOR(AcyclicityGIE1);
+  CLASS_NAME(UniquenessGIE);
+  USE_ALLOCATOR(UniquenessGIE);
+
+  void attach(Saturation::SaturationAlgorithm* salg);
+  void detach();
+  Kernel::ClauseIterator generateClauses(Kernel::Clause *c);
+private:
+  struct UniquenessGenIterator;
+  struct UniquenessGenFn;
   
-  Kernel::ClauseIterator generateClauses(Kernel::Clause* c);
+  Indexing::ChainIndex *_chainIndex;
+};
+
+/*
+  Simplification rule
+  
+  x = t1 \/ ... \/ x = t2 \/ A
+  ----------------------------
+               A
+
+  if the type of x is a (co)datatype with infinite domain and x does
+  not occur in t1, ..., t2 or A
+ */
+class InfinitenessISE
+  : public ImmediateSimplificationEngine
+{
+public:
+  CLASS_NAME(InfinitenessISE);
+  USE_ALLOCATOR(InfinitenessISE);
+
+  Kernel::Clause* simplify(Kernel::Clause* c);
 
 private:
-  struct SubtermDisequalityFn;
-  struct LiteralIterator;
-  struct SubtermDisequalityIterator;
+  Kernel::Clause* deleteLits(Kernel::Clause* c, TermList var, bool* positions);
 };
   
 };

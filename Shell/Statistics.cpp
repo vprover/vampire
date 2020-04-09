@@ -110,9 +110,16 @@ Statistics::Statistics()
     backwardSubsumed(0),
     taDistinctnessSimplifications(0),
     taDistinctnessTautologyDeletions(0),
+    taDistinctness1Generations(0),
+    taDistinctness2Generations(0),
     taInjectivitySimplifications(0),
+    taInjectivity1Generations(0),
+    taInjectivity2Generations(0),
     taNegativeInjectivitySimplifications(0),
     taAcyclicityGeneratedDisequalities(0),
+    taAcyclicityResolution(0),
+    taUniquenessResolution(0),
+    taInfinitenessSimplifications(0),
     generatedClauses(0),
     passiveClauses(0),
     activeClauses(0),
@@ -339,13 +346,24 @@ void Statistics::print(ostream& out)
   SEPARATOR;
 
   HEADING("Term algebra simplifications",taDistinctnessSimplifications+
-      taDistinctnessTautologyDeletions+taInjectivitySimplifications+
-      taAcyclicityGeneratedDisequalities+taNegativeInjectivitySimplifications);
+      taDistinctnessTautologyDeletions+taDistinctness1Generations+
+      taDistinctness2Generations+taInjectivitySimplifications+
+      taInjectivity1Generations+taInjectivity2Generations+
+      taAcyclicityGeneratedDisequalities+taAcyclicityResolution+
+      taUniquenessResolution+taNegativeInjectivitySimplifications+taInfinitenessSimplifications);
   COND_OUT("Distinctness simplifications",taDistinctnessSimplifications);
   COND_OUT("Distinctness tautology deletions",taDistinctnessTautologyDeletions);
+  COND_OUT("Distinctness generations (unary)",taDistinctness1Generations);
+  COND_OUT("Distinctness generations (binary)",taDistinctness2Generations);
   COND_OUT("Injectivity simplifications",taInjectivitySimplifications);
+  COND_OUT("Injectivity generations (unary)",taInjectivity1Generations);
+  COND_OUT("Injectivity generations (binary)",taInjectivity2Generations);
   COND_OUT("Negative injectivity simplifications",taNegativeInjectivitySimplifications);
   COND_OUT("Disequalities generated from acyclicity",taAcyclicityGeneratedDisequalities);
+  COND_OUT("Acyclicity resolution",taAcyclicityResolution);
+  COND_OUT("Uniqueness resolution",taUniquenessResolution);
+  COND_OUT("Infiniteness simplifications",taInfinitenessSimplifications);
+  SEPARATOR;
 
   HEADING("AVATAR",splitClauses+splitComponents+uniqueComponents+satSplits+
         satSplitRefutations);

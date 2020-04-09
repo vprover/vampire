@@ -164,6 +164,117 @@ IntList* TermList::freeVariables() const
   return result;
 } // TermList::freeVariables
 
+bool TermList::positionIn(TermList& subterm, TermList* term, vstring& position)
+{
+  CALL("TermList::positionIn(TermList, vstring)");
+   //cout << "positionIn " << subterm.toString() << " in " << term->toString() << endl;
+
+  if(!term->isTerm()){
+    if(subterm.isTerm()) return false;
+    if (term->var()==subterm.var()){
+      position = "1";
+      return true;
+    }
+    return false;
+  }
+  return positionIn(subterm,term->term(),position);
+}
+
+bool TermList::positionIn(TermList& subterm, Term* term, vstring& position)
+{
+  CALL("TermList::positionIn(Term, vstring)");
+  //cout << "positionIn " << subterm.toString() << " in " << term->toString() << endl;
+
+  if(subterm.isTerm() && subterm.term()==term){
+    position = "1";
+    return true;
+  }
+  if(term->arity()==0) return false;
+
+  unsigned pos=1;
+  TermList* ts = term->args();
+  while(true){
+    if(*ts==subterm){
+      position=Lib::Int::toString(pos); 
+      return true;
+    }
+    if(positionIn(subterm,ts,position)){
+      position = Lib::Int::toString(pos) + "." + position;
+      return true;
+    }
+    pos++;
+    ts = ts->next();
+    if(ts->isEmpty()) break;
+  }
+
+  return false;
+}
+
+bool TermList::positionIn(TermList& subterm, TermList* term, Position*& position)
+{
+  CALL("TermList::positionIn(TermList, List<unsigned>)");
+
+  if(!term->isTerm()){
+    if(subterm.isTerm()) return false;
+    if (term->var()==subterm.var()) {
+      return true;
+    }
+    return false;
+  }
+  return positionIn(subterm, term->term(), position);
+}
+
+bool TermList::positionIn(TermList& subterm, Term* term, Position*& position)
+{
+  CALL("TermList::positionIn(Term, List<unsigned>)");
+
+  if(subterm.isTerm() && subterm.term() == term) {
+    return true;
+  }
+
+  for (unsigned i = 0; i < term->arity(); i++) {
+    if (positionIn(subterm, term->nthArgument(i), position)) {
+      Position::push(i, position);
+      return true;
+    }
+  }
+  return false;
+}
+
+// the position should be a valid position in term
+TermList TermList::replacePosition(TermList subterm, TermList& term, Position* position)
+{
+  CALL("TermList::replacePosition");
+
+  if (List<unsigned>::isEmpty(position)) {
+    return subterm;
+  }
+  ASS(term.isTerm());
+  Term *t = term.term();
+  ASS_L(position->head(), t->arity());
+
+  Stack<TermList> args;
+  for (unsigned i = 0; i < t->arity(); i++) {
+    if (i == position->head()) {
+      args.push(replacePosition(subterm, *t->nthArgument(i), position->tail()));
+    } else {
+      args.push(*t->nthArgument(i));
+    }
+  }
+  return TermList(Term::create(t->functor(), t->arity(), args.begin()));
+}
+
+TermList* TermList::atPosition(TermList& term, Position* position) {
+  Position* p = position;
+  TermList *t = &term;
+  while (Position::isNonEmpty(p)) {
+    ASS(t->isTerm());
+    ASS_L(position->head(), t->term()->arity());
+    t = t->term()->nthArgument(position->head());
+  }
+  return t;
+}
+
 /**
  * Return true if @b ss and @b tt have the same top symbols, that is,
  * either both are the same variable or both are complex terms with the

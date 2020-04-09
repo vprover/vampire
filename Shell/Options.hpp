@@ -729,19 +729,23 @@ public:
     THEORY = 3
   };
 
-  enum class TARules : unsigned int {
+  enum class TAInferences : unsigned int {
     OFF = 0,
-    INJECTGEN = 1,
-    INJECTSIMPL = 2,
-    INJECTOPT = 2,
-    FULL = 3  
+    SIMPL = 1,
+    FULL = 2,
   };
 
+  // TODO clean up after experiments
   enum class TACyclicityCheck : unsigned int {
     OFF = 0,
     AXIOM = 1,
-    RULE = 2,
-    RULELIGHT = 3
+    RULE = 2 // n-ary rule, complete
+  };
+
+  enum class TAUniquenessCheck : unsigned int {
+    OFF = 0,
+    AXIOM = 1,
+    RULE = 2 // n-ary rule, complete
   };
 
   enum class GoalGuess : unsigned int {
@@ -1992,8 +1996,9 @@ public:
   RuleActivity equalityResolutionWithDeletion() const { return _equalityResolutionWithDeletion.actualValue; }
   ExtensionalityResolution extensionalityResolution() const { return _extensionalityResolution.actualValue; }
   bool FOOLParamodulation() const { return _FOOLParamodulation.actualValue; }
-  bool termAlgebraInferences() const { return _termAlgebraInferences.actualValue; }
+  TAInferences termAlgebraInferences() const { return _termAlgebraInferences.actualValue; }
   TACyclicityCheck termAlgebraCyclicityCheck() const { return _termAlgebraCyclicityCheck.actualValue; }
+  TAUniquenessCheck termAlgebraUniquenessCheck() const { return _termAlgebraUniquenessCheck.actualValue; }
   unsigned extensionalityMaxLength() const { return _extensionalityMaxLength.actualValue; }
   bool extensionalityAllowPosEq() const { return _extensionalityAllowPosEq.actualValue; }
   float nongoalWeightCoefficient() const { return _nonGoalWeightCoefficient.actualValue; }
@@ -2279,8 +2284,9 @@ private:
 
   BoolOptionValue _FOOLParamodulation;
 
-  BoolOptionValue _termAlgebraInferences;
+  ChoiceOptionValue<TAInferences> _termAlgebraInferences;
   ChoiceOptionValue<TACyclicityCheck> _termAlgebraCyclicityCheck;
+  ChoiceOptionValue<TAUniquenessCheck> _termAlgebraUniquenessCheck;
 
   BoolOptionValue _fmbNonGroundDefs;
   UnsignedOptionValue _fmbStartSize;

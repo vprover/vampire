@@ -154,6 +154,22 @@ public:
 
   bool isSafe() const;
 
+  // TODO there is a difference in notation between the string version
+  // (empty position is "1", indices start at 1) and the
+  // List<unsigned> version (empty position is the empty list, indices
+  // start at 0).
+  static bool positionIn(TermList& subterm, TermList* term, vstring& position);
+  static bool positionIn(TermList& subterm, Term* term, vstring& position);
+
+  typedef List<unsigned> Position;
+  // preprend subterm position (as a list of indices) to the argument list
+  static bool positionIn(TermList& subterm, TermList* term, Position*& pos);
+  static bool positionIn(TermList& subterm, Term* term, Position*& pos);
+
+  static TermList replacePosition(TermList subterm, TermList& term, Position* position);
+
+  static TermList* atPosition(TermList& term, Position* position);
+
   IntList* freeVariables() const;
 
 #if VDEBUG
@@ -319,7 +335,7 @@ public:
 
   //** fool constants
   static Term* foolTrue(); 
-  static Term* foolFalse(); 
+  static Term* foolFalse();
 
   IntList* freeVariables() const;
 

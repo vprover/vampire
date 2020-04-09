@@ -22,12 +22,20 @@
 #include "Forwards.hpp"
 
 #include "Lib/Allocator.hpp"
-#include "Lib/List.hpp"
 #include "Lib/Array.hpp"
+#include "Lib/Environment.hpp"
+#include "Lib/List.hpp"
+#include "Lib/Map.hpp"
+#include "Lib/Set.hpp"
+#include "Lib/VirtualIterator.hpp"
 #include "Lib/VString.hpp"
+
 #include "Kernel/Sorts.hpp"
 
 namespace Shell {
+
+  class TermAlgebra;
+  
   class TermAlgebraConstructor {
   public:
     CLASS_NAME(TermAlgebraConstructor);
@@ -40,9 +48,10 @@ namespace Shell {
     TermAlgebraConstructor(unsigned functor, unsigned discriminator, Lib::Array<unsigned> destructors);
     ~TermAlgebraConstructor() {}
 
-    unsigned arity();
-    unsigned argSort(unsigned ith);
-    unsigned rangeSort();
+    unsigned arity() { return _type->arity(); }
+    unsigned argSort(unsigned ith) { return _type->arg(ith); }
+    unsigned rangeSort() { return _type->result(); }
+    Lib::vstring name();
 
     /* True iff one of the arguments has the same sort as the range */
     bool recursive();
@@ -58,6 +67,9 @@ namespace Shell {
     void addDiscriminator(unsigned d) { ASS(!_hasDiscriminator); _hasDiscriminator = true; _discriminator = d; }
 
     Lib::vstring discriminatorName();
+
+    Lib::vstring getCtxFunctionName(TermAlgebra* ta);
+    unsigned getCtxFunction(TermAlgebra* ta);
     
   private:
     Kernel::OperatorType* _type;
@@ -81,6 +93,7 @@ namespace Shell {
        the option -tar is not set to off, then the acyclicity rule
        will be enforced for terms of this algebra*/
     TermAlgebra(unsigned sort,
+                Lib::vstring name,
                 unsigned n,
                 TermAlgebraConstructor** constrs,
                 bool allowsCyclicTerms = false);
@@ -90,29 +103,68 @@ namespace Shell {
     unsigned nConstructors() { return _n; }
     TermAlgebraConstructor* constructor(unsigned ith) { ASS_L(ith, _n); return _constrs[ith]; }
     bool allowsCyclicTerms() { return _allowsCyclicTerms; }
+    Lib::vstring name() { return _name; }
 
+    enum DomainSize {
+      NOT_COMPUTED,
+      UNKNOWN,
+      EMPTY,
+      SINGLETON_CDT,
+      FINITE,
+      INFINITE
+    };
     /* True iff the algebra defines an empty domain, which could be
        due to:
        - having no constructors
-       - not allowing cyclic terms and having only recursive constructors
+       - not allowing cyclic terms and having only recursive constructors (possibly mutual)
      */
     bool emptyDomain();
-
-    /* True iff all the constructors are constants */
+    /* True iff co-datatype with only one unary recursive constructor */
+    bool singletonCodatatype();
+    /* True iff all the constructors are constants, or singleton co-datatype (false does NOT mean that the domain is necessarily infinite) */
     bool finiteDomain();
-    /* True iff one of the constructors is recursive */
+    /* True iff  has recursive constructors and not a singleton co-datatype (false does not NOT mean that the domain is necessarily finite) */
     bool infiniteDomain();
 
-    /* The predicate of the subterm relation, used only if the option
-       -tac is set to "axiom"*/
-    Lib::vstring getSubtermPredicateName();
-    unsigned getSubtermPredicate();
+    /* True iff a term of the term algebra ta can appear under
+       constructors of this algebra */
+    bool isMutualType(TermAlgebra* ta);
+    bool isMutualTypeSort(unsigned tasort);
+    Lib::VirtualIterator<TermAlgebra*> mutualTypes();
+    Lib::VirtualIterator<unsigned> mutualTypesSorts();
+
+    /* The predicate of the subterm relation for axioms of
+       datatypes */
+    Lib::vstring getSubtermPredicateName(TermAlgebra* ta);
+    unsigned getSubtermPredicate(TermAlgebra* ta);
+
+    /* The constant-context, cycle and application functions, used
+       only for axioms of co-datatypes */
+    unsigned contextSort(TermAlgebra* ta);
+    Lib::vstring getCstFunctionName(TermAlgebra* ta);
+    unsigned getCstFunction(TermAlgebra* ta);
+    Lib::vstring getHoleConstantName();
+    unsigned getHoleConstant();
+    Lib::vstring getCycleFunctionName();
+    unsigned getCycleFunction();
+    Lib::vstring getAppFunctionName(TermAlgebra* ta);
+    unsigned getAppFunction(TermAlgebra* ta);
 
   private:
+    void computeDomainSize();
+    void setMutualTypes();
+
+    /* true if there exists a constructor without datatype arguments */ 
+    bool existsSmallestTerm();
+    
     unsigned _sort;
+    Lib::vstring _name;
+    Lib::Set<unsigned>* _mutualTypes; /* This contains the sorts of types mutually defined. null if not initialized, else its content should also be set */
+    Lib::Map<TermAlgebra*, unsigned> _contextSorts; /* sorts of context (used to axiomatize codatatypes) */
     unsigned _n; /* number of constructors */
     bool _allowsCyclicTerms;
     ConstructorArray _constrs;
+    DomainSize _domain;
   };
 }
 

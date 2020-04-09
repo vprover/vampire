@@ -23,6 +23,8 @@
 
 #include "Lib/Environment.hpp"
 
+#include "Kernel/Signature.hpp"
+
 #include "Shell/Options.hpp"
 
 #include "Ordering.hpp"
@@ -172,6 +174,26 @@ Term* EqHelper::replace(Term* trm0, TermList tSrc, TermList tDest)
   return Term::create(trm0,argLst);
 }
 
+// for the term algebra rules to be complete, superposition is relaxed
+// and rewriting allowed in the small side of an equation if the head
+// of the larger term is a term algebra constructor
+bool EqHelper::smallSideRewritingAllowed(Literal *lit)
+{
+  CALL("EqHelper::smallSideRewritingAllowed");
+  ASS(lit->isEquality());
+  
+  static bool taCalculus = (env.options->termAlgebraCyclicityCheck() == Options::TACyclicityCheck::RULE
+                            || env.options->termAlgebraInferences() == Options::TAInferences::FULL);
+
+  if (taCalculus && lit->isPositive()) {
+    TermList *s = lit->nthArgument(0);
+    TermList *t = lit->nthArgument(0);
+    return ((s->isTerm() && env.signature->getFunction(s->term()->functor())->termAlgebraCons())
+            || (t->isTerm() && env.signature->getFunction(t->term()->functor())->termAlgebraCons()));
+  }
+  return false;
+}
+
 /**
  * Return iterator on subterms of a literal, that can be rewritten by
  * superposition.
@@ -180,7 +202,18 @@ TermIterator EqHelper::getRewritableSubtermIterator(Literal* lit, const Ordering
 {
   CALL("EqHelper::getRewritableSubtermIterator");
 
+//  if (lit->isEquality()) {
+//    if (lit->isNegative()) {
+//      return TermIterator::getEmpty();
+//    }
+
+// Remove positive check as per commit 517ad0a24cdbbff0fbf488d00f022bdd117c6510
+//  if (lit->isEquality() && lit->isPositive()) {
   if (lit->isEquality()) {
+    if (smallSideRewritingAllowed(lit)) {
+      NonVariableIterator nvi(lit);
+      return getUniquePersistentIteratorFromPtr(&nvi);
+    }
     TermList sel;
     switch(ord.getEqualityArgumentOrder(lit)) {
     case Ordering::INCOMPARABLE:

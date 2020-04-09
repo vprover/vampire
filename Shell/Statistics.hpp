@@ -186,9 +186,16 @@ public:
   /** statistics of term algebra rules */
   unsigned taDistinctnessSimplifications;
   unsigned taDistinctnessTautologyDeletions;
+  unsigned taDistinctness1Generations;
+  unsigned taDistinctness2Generations;
   unsigned taInjectivitySimplifications;
+  unsigned taInjectivity1Generations;
+  unsigned taInjectivity2Generations;
   unsigned taNegativeInjectivitySimplifications;
   unsigned taAcyclicityGeneratedDisequalities;
+  unsigned taAcyclicityResolution;
+  unsigned taUniquenessResolution;
+  unsigned taInfinitenessSimplifications;
 
   // Saturation
   /** all clauses ever occurring in the unprocessed queue */

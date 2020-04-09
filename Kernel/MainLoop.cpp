@@ -141,9 +141,11 @@ ImmediateSimplificationEngine* MainLoop::createISE(Problem& prb, const Options& 
     res->addFront(new DistinctEqualitySimplifier());
   }
   if(prb.hasEquality() && env.signature->hasTermAlgebras()) {
-    if (opt.termAlgebraInferences()) {
+    if (opt.termAlgebraInferences() == Options::TAInferences::SIMPL
+        || opt.termAlgebraInferences() == Options::TAInferences::FULL) {
       res->addFront(new DistinctnessISE());
       res->addFront(new InjectivityISE());
+      res->addFront(new InfinitenessISE());
       res->addFront(new NegativeInjectivityISE());
     }
   }

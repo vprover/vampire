@@ -246,6 +246,12 @@ public:
     TERM_ALGEBRA_DISTINCTNESS,
     /** inference rule for term algebras (injectivity of constructors)*/
     TERM_ALGEBRA_INJECTIVITY,
+    /** cycles axiom for term algebras */
+    TERM_ALGEBRA_CYCLES_AXIOM,
+    /** inference rule for infinite terms algebras/co-datatypes (existence of unique cyclic terms)*/
+    TERM_ALGEBRA_CYCLES,
+    /** inference rule for terms algebras/co-datatypes with infinite domains */
+    TERM_ALGEBRA_INFINITENESS,
     //** Flatten a clause to separate theory literals */
     THEORY_FLATTENING,
     /** Introduction of formula to convert formulas used as argument positions.
@@ -360,11 +366,6 @@ public:
 
   static vstring ruleName(Rule rule);
   vstring name() const { return ruleName(_rule); }
-
-  // TODO used in some proofExtra output
-  //      find a better place for this
-  static bool positionIn(TermList& subterm,TermList* term, vstring& position);
-  static bool positionIn(TermList& subterm,Term* term, vstring& position);
 
   CLASS_NAME(Inference);
   USE_ALLOCATOR(Inference);
