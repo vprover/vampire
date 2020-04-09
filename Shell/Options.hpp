@@ -428,7 +428,8 @@ public:
     SPIDER,
     TCLAUSIFY,
     TPREPROCESS,
-    VAMPIRE
+    VAMPIRE,
+    SUBSUMPTION_TESTING,
 };
 
   enum class Schedule : unsigned int {

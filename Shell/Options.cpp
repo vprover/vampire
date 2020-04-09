@@ -123,7 +123,8 @@ void Options::Options::init()
                                         "spider",
                                         "tclausify",
                                         "tpreprocess",
-                                        "vampire"});
+                                        "vampire",
+                                        "stest"});
     _mode.description=
     "Select the mode of operation. Choices are:\n"
     "  -vampire: the standard mode of operation for first-order theorem proving\n"

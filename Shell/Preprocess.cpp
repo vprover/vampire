@@ -449,6 +449,127 @@ void Preprocess::preprocess(Problem& prb)
 } // Preprocess::preprocess ()
 
 
+
+void Preprocess::preprocess_very_lightly(Problem& prb) {
+  CALL("Preprocess::preprocess_very_lightly");
+
+  if (env.options->showPreprocessing()) {
+    env.beginOutput();
+    env.out() << "preprocessing started" << std::endl;
+    UnitList::Iterator uit(prb.units());
+    while(uit.hasNext()) {
+      Unit* u = uit.next();
+      env.out() << "[PP] input: " << u->toString() << std::endl;
+    }
+  }
+
+  //we ensure that in the beginning we have a valid property object, to
+  //know that the queries to uncertain problem properties will be precise
+  //enough
+  prb.getProperty();
+
+  /* CAREFUL, keep this at the beginning of the preprocessing pipeline,
+   * so that it corresponds to how its done
+   * in profileMode() in vampire.cpp and PortfolioMode::searchForProof()
+   * to preserve reproducibility out of casc mode when using --decode */
+  if (_options.normalize()) { // reorder units
+    env.statistics->phase=Statistics::NORMALIZATION;
+    if (env.options->showPreprocessing())
+      env.out() << "normalization" << std::endl;
+
+    Normalisation().normalise(prb);
+  }
+
+  if (prb.hasInterpretedOperations()) {
+    env.interpretedOperationsUsed = true;
+  }
+
+  /*
+  // If there are interpreted operations
+  if (prb.hasInterpretedOperations() || env.signature->hasTermAlgebras()){
+    // Normalizer is needed, because the TheoryAxioms code assumes Normalized problem
+    InterpretedNormalizer().apply(prb);
+    // Add theory axioms if needed
+    if( _options.theoryAxioms() != Options::TheoryAxiomLevel::OFF){
+      env.statistics->phase=Statistics::INCLUDING_THEORY_AXIOMS;
+      if (env.options->showPreprocessing())
+        env.out() << "adding theory axioms" << std::endl;
+      TheoryAxioms(prb).apply();
+    }
+  }
+
+  if (prb.hasFOOL()) {
+    // This is the point to extend the signature with $$true and $$false
+    // If we don't have fool then these constants get in the way (a lot)
+
+    if (!_options.newCNF()) {
+      if (env.options->showPreprocessing())
+        env.out() << "FOOL elimination" << std::endl;
+      TheoryAxioms(prb).applyFOOL();
+      FOOLElimination().apply(prb);
+    }
+  }
+
+  if (prb.hasInterpretedOperations() || env.signature->hasTermAlgebras()){
+    // Some axioms needed to be normalized, so we call InterpretedNormalizer twice
+    InterpretedNormalizer().apply(prb);
+  }
+  */
+
+  if (prb.mayHaveFormulas()) {
+    if (env.options->showPreprocessing())
+      env.out() << "preprocess1 (rectify, simplify false true, flatten)" << std::endl;
+
+    preprocess1(prb);
+  }
+
+  if (prb.mayHaveFormulas()) {
+    if (env.options->showPreprocessing())
+      env.out() << "preprocess 2 (ennf,flatten)" << std::endl;
+
+    preprocess2(prb);
+  }
+
+  if (prb.mayHaveFormulas() && _options.naming()) {
+    if (env.options->showPreprocessing())
+      env.out() << "naming" << std::endl;
+
+    naming(prb);
+  }
+
+  if (prb.mayHaveFormulas()) {
+    if (env.options->showPreprocessing())
+      env.out() << "preprocess3 (nnf, flatten, skolemize)" << std::endl;
+
+    preprocess3(prb);
+  }
+
+  if (prb.mayHaveFormulas()) {
+    if (env.options->showPreprocessing())
+      env.out() << "clausify" << std::endl;
+
+    clausify(prb);
+  }
+
+  if (env.options->showPreprocessing()) {
+    UnitList::Iterator uit(prb.units());
+    while(uit.hasNext()) {
+      Unit* u = uit.next();
+      env.out() << "[PP] final: " << u->toString() << std::endl;
+    }
+  }
+
+  if (_options.printClausifierPremises()) {
+    UIHelper::outputAllPremises(cerr, prb.units());
+  }
+
+  if (env.options->showPreprocessing()) {
+    env.out() << "preprocessing finished" << std::endl;
+    env.endOutput();
+  }
+} // Preprocess::preprocess_very_lightly()
+
+
 /**
  * Preprocess the unit using options from opt. Preprocessing may
  * involve inferences and replacement of this unit by a newly inferred one.

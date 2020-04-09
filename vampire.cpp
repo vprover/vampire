@@ -60,6 +60,7 @@
 
 #include "Inferences/InferenceEngine.hpp"
 #include "Inferences/TautologyDeletionISE.hpp"
+#include "SMTSubsumption/SMTSubsumption.hpp"
 
 #include "InstGen/IGAlgorithm.hpp"
 
@@ -622,6 +623,71 @@ void vampireMode()
   }
 } // vampireMode
 
+
+
+void subsumptionTestingMode()
+{
+  CALL("subsumptionTestingMode()");
+
+  // env.options->setNormalize(false);
+  // env.options->setUnusedPredicateDefinitionRemoval(false);
+
+  // We need to set this option to make the parser save axiom names
+  env.options->setOutputAxiomNames(true);
+
+  ScopedPtr<Problem> prb(UIHelper::getInputProblem(*env.options));
+
+  Shell::Preprocess prepro(*env.options);
+  prepro.preprocess_very_lightly(*prb);
+
+  Clause* side_premise = nullptr;
+  Clause* main_premise = nullptr;
+
+  UnitList* units = prb->units();
+  while (UnitList::isNonEmpty(units)) {
+    Clause* clause = units->head()->asClause();
+    // std::cerr << "Clause: " << clause->toString() << std::endl;
+
+    Unit* unit = clause;
+    while (true) {
+      auto const& inference = unit->inference();
+      auto parents = inference.iterator();
+      if (!inference.hasNext(parents)) {
+        // no parents -> we have an axiom
+        vstring name;
+        Parse::TPTP::findAxiomName(unit, name);
+        if (name == "side_premise") {
+          // std::cerr << "Found side premise axiom: " << unit->toString() << std::endl;
+          side_premise = clause;
+        } else if (name == "main_premise") {
+          // std::cerr << "Found main premise axiom: " << unit->toString() << std::endl;
+          main_premise = clause;
+        } else {
+          std::cerr << "Unexpected axiom: " << unit->toString() << std::endl;
+          ASSERTION_VIOLATION;
+        }
+        break;
+      } else {
+        // There's still parents to process
+        Unit* parent = inference.next(parents);
+        ASS(!inference.hasNext(parents));  // only one parent
+        unit = parent;
+      }
+    }
+
+    units = units->tail();
+  }
+
+  ASS(main_premise);
+  ASS(side_premise);
+  ASS(main_premise != side_premise);
+
+  SMTSubsumption s;
+  s.test(side_premise, main_premise);
+}
+
+
+
 void spiderMode()
 {
   CALL("spiderMode()");
@@ -898,6 +964,10 @@ int main(int argc, char* argv[])
     case Options::Mode::CONSEQUENCE_ELIMINATION:
     case Options::Mode::VAMPIRE:
       vampireMode();
+      break;
+
+    case Options::Mode::SUBSUMPTION_TESTING:
+      subsumptionTestingMode();
       break;
 
     case Options::Mode::CASC:

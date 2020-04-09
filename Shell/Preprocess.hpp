@@ -54,6 +54,8 @@ public:
   void preprocess(ConstraintRCList*& constraints);
 #endif
 
+  void preprocess_very_lightly(Problem& prb);
+
   void preprocess1(Problem& prb);
   /** turn off clausification, can be used when only preprocessing without clausification is needed */
   void turnClausifierOff() {_clausify = false;}
