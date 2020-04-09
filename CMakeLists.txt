@@ -765,6 +765,9 @@ set(VAMPIRE_SMT_SUBSUMPTION_SOURCES
     SMTSubsumption/minisat/SolverTypes.h
     SMTSubsumption/minisat/Sort.h
     SMTSubsumption/minisat/VarOrder.h
+
+    SMTSubsumption/SMTSubsumption.cpp
+    SMTSubsumption/SMTSubsumption.hpp
     )
 source_group(sat_source_files FILES ${VAMPIRE_SAT_SOURCES})
 
