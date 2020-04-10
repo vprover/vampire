@@ -640,6 +640,7 @@ void subsumptionTestingMode()
   Shell::Preprocess prepro(*env.options);
   prepro.preprocess_very_lightly(*prb);
 
+  // Find side premise and main premise from input file
   Clause* side_premise = nullptr;
   Clause* main_premise = nullptr;
 
@@ -670,7 +671,7 @@ void subsumptionTestingMode()
       } else {
         // There's still parents to process
         Unit* parent = inference.next(parents);
-        ASS(!inference.hasNext(parents));  // only one parent
+        ASS(!inference.hasNext(parents));  // we expect exactly one parent
         unit = parent;
       }
     }
@@ -684,6 +685,8 @@ void subsumptionTestingMode()
 
   SMTSubsumption s;
   s.test(side_premise, main_premise);
+
+  vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
 }
 
 
