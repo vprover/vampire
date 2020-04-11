@@ -33,7 +33,7 @@
 #   VZ3              - compile with Z3
 
 GNUMPF = 0
-DBG_FLAGS = -g -O1 -fsanitize=address -fno-omit-frame-pointer -DUSE_SYSTEM_ALLOCATION=1 -DVDEBUG=1 -DCHECK_LEAKS=0 -DUNIX_USE_SIGALRM=1 -DGNUMP=$(GNUMPF)# debugging for spider 
+DBG_FLAGS = -g -DVDEBUG=1 -DCHECK_LEAKS=0 -DUNIX_USE_SIGALRM=1 -DGNUMP=$(GNUMPF)# debugging for spider 
 # DELETEMEin2017: the bug with gcc-6.2 and problems in ClauseQueue could be also fixed by adding -fno-tree-ch
 REL_FLAGS = -O6 -DVDEBUG=0 -DGNUMP=$(GNUMPF)# no debugging 
 GCOV_FLAGS = -O0 --coverage #-pedantic
