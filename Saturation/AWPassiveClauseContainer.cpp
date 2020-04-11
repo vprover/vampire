@@ -579,7 +579,12 @@ bool AWPassiveClauseContainer::fulfilsAgeLimit(Clause* cl) const
 bool AWPassiveClauseContainer::fulfilsAgeLimit(unsigned age, unsigned w, bool derivedFromGoal, Inference* inference) const
 {
   const unsigned numeralWeight = 0; // heuristic: we don't want to compute the numeral weight during estimates and conservatively assume that it is 0.
-  unsigned weightForClauseSelection = Clause::computeWeightForClauseSelection(w, numeralWeight, derivedFromGoal, _opt);
+  const unsigned splitWeight = 0; // also conservatively assuming 0
+  /* In principle, we could compute this from the Inference (and it's not so expensive)
+   * but it's only relevant with avatar on (and avatar would later compute the splitset of the new clause again)
+   * and nonliteralsInClauseWeight on, which is not the default. So keeping the cheap version for now.
+   */
+  unsigned weightForClauseSelection = Clause::computeWeightForClauseSelection(w, splitWeight, numeralWeight, derivedFromGoal, _opt);
   return age <= _ageSelectionMaxAge || (age == _ageSelectionMaxAge && weightForClauseSelection <= _ageSelectionMaxWeight);
 }
 
@@ -594,7 +599,12 @@ bool AWPassiveClauseContainer::fulfilsWeightLimit(Clause* cl) const
 bool AWPassiveClauseContainer::fulfilsWeightLimit(unsigned w, bool derivedFromGoal, unsigned age, Inference* inference) const
 {
   const unsigned numeralWeight = 0; // heuristic: we don't want to compute the numeral weight during estimates and conservatively assume that it is 0.
-  unsigned weightForClauseSelection = Clause::computeWeightForClauseSelection(w, numeralWeight, derivedFromGoal, _opt);
+  const unsigned splitWeight = 0; // also conservatively assuming 0
+  /* In principle, we could compute this from the Inference (and it's not so expensive)
+   * but it's only relevant with avatar on (and avatar would later compute the splitset of the new clause again)
+   * and nonliteralsInClauseWeight on, which is not the default. So keeping the cheap version for now.
+   */
+  unsigned weightForClauseSelection = Clause::computeWeightForClauseSelection(w, splitWeight, numeralWeight, derivedFromGoal, _opt);
   return weightForClauseSelection <= _weightSelectionMaxWeight || (weightForClauseSelection == _weightSelectionMaxWeight && age <= _weightSelectionMaxAge);
 }
 

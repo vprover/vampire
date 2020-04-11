@@ -507,14 +507,6 @@ unsigned Clause::computeWeight() const
     result += _literals[i]->weight();
   }
 
-  // We now include this directly in weight()
-  // This is so that we can reduce the split set and keep the original weight
-  // The alternative would be to remove the clause and reenter it into the passive queue whenever
-  // The split set was changed
-  if (env.options->nonliteralsInClauseWeight()) {
-    result+=splitWeight(); // no longer includes propWeight
-  }
-
   return result;
 } // Clause::computeWeight
 
@@ -601,6 +593,11 @@ unsigned Clause::computeWeightForClauseSelection(const Options& opt) const
     w = computeWeight();
   }
 
+  unsigned splWeight = 0;
+  if (opt.nonliteralsInClauseWeight()) {
+    splWeight = splitWeight(); // no longer includes propWeight
+  }
+
   // hack: computation of getNumeralWeight is potentially expensive, so we only compute it if
   // the option increasedNumeralWeight is set to true.
   unsigned numeralWeight = 0;
@@ -622,17 +619,19 @@ unsigned Clause::computeWeightForClauseSelection(const Options& opt) const
     if(!found){ derivedFromGoal=false; }
   }
 
-  return Clause::computeWeightForClauseSelection(w, numeralWeight, derivedFromGoal, opt);
+  return Clause::computeWeightForClauseSelection(w, splWeight, numeralWeight, derivedFromGoal, opt);
 }
 
 /*
  * note: we currently assume in Clause::computeWeightForClauseSelection(opt) that numeralWeight is only used here if
  * the option increasedNumeralWeight() is set to true.
  */
-unsigned Clause::computeWeightForClauseSelection(unsigned w, unsigned numeralWeight, bool derivedFromGoal, const Shell::Options& opt)
+unsigned Clause::computeWeightForClauseSelection(unsigned w, unsigned splitWeight, unsigned numeralWeight, bool derivedFromGoal, const Shell::Options& opt)
 {
   static unsigned nongoalWeightCoeffNum = opt.nongoalWeightCoefficientNumerator();
   static unsigned nongoalWeightCoefDenom = opt.nongoalWeightCoefficientDenominator();
+
+  w += splitWeight;
 
   if (opt.increasedNumeralWeight()) {
     w = (2 * w + numeralWeight);
