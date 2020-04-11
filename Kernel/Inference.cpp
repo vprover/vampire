@@ -31,7 +31,7 @@
 using namespace Kernel;
 
 
-Inference::Inference(Rule r) : _rule(r), _extra(""), _inductionDepth(0), _splits(nullptr), _sineLevel(UINT_MAX) {}
+Inference::Inference(Rule r) : _rule(r), _extra(""), _inductionDepth(0), _sineLevel(UINT_MAX), _splits(nullptr) {}
 
 /**
  * Create an inference object with multiple premisses
