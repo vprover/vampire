@@ -28,6 +28,9 @@
 #include "Forwards.hpp"
 #include "Lib/SmartPtr.hpp"
 
+#include "Kernel/Term.hpp"
+#include "Kernel/Signature.hpp"
+
 #include "Lib/VirtualIterator.hpp"
 #include "Lib/List.hpp"
 
@@ -271,6 +274,34 @@ private:
   GIList* _inners;
 };
 
+
+//removes clauses which define choice operators
+class ChoiceDefinitionISE
+: public ImmediateSimplificationEngine
+{
+public:
+  CLASS_NAME(ChoiceDefinitionISE);
+  USE_ALLOCATOR(ChoiceDefinitionISE);
+
+  Clause* simplify(Clause* cl);
+
+  bool isBool(TermList t){
+    return isTrue(t) || isFalse(t);
+  }
+
+  bool isTrue(TermList term){
+    return term.isTerm() && env.signature->isFoolConstantSymbol(true, term.term()->functor());
+  }
+
+  bool isFalse(TermList term){
+    return term.isTerm() && env.signature->isFoolConstantSymbol(false, term.term()->functor());
+  }
+  bool isPositive(Literal* lit);
+ 
+  bool is_of_form_xy(Literal* lit,  TermList& x);
+  bool is_of_form_xfx(Literal* lit, TermList x, TermList& f);
+};
+
 class DuplicateLiteralRemovalISE
 : public ImmediateSimplificationEngine
 {
@@ -286,6 +317,14 @@ class TrivialInequalitiesRemovalISE
 {
 public:
   Clause* simplify(Clause* cl);
+
+  bool isTrue(TermList term){
+    return term.isTerm() && env.signature->isFoolConstantSymbol(true, term.term()->functor());
+  }
+
+  bool isFalse(TermList term){
+    return term.isTerm() && env.signature->isFoolConstantSymbol(false, term.term()->functor());
+  }
 };
 
 };

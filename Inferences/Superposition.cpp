@@ -446,12 +446,12 @@ Clause* Superposition::performSuperposition(
   ASS(rwClause->store()==Clause::ACTIVE);
   ASS(eqClause->store()==Clause::ACTIVE);
 
-  //if(rwClause->number() == 124 && eqClause->number() == 1842){
-    //cout << "performSuperposition with " << rwClause->toString() << " and " << eqClause->toString() << endl;
-    //cout << "rwTerm " << rwTerm.toString() << " eqLHS " << eqLHS.toString() << endl;
-    //cout << "subst " << endl << subst->tryGetRobSubstitution()->toString() << endl;
-    //cout << "isTypeSub " << isTypeSub << endl;
-  //}
+  /*if(rwClause->number() == 148 && eqClause->number() == 164){
+    cout << "performSuperposition with " << rwClause->toString() << " and " << eqClause->toString() << endl;
+    cout << "rwTerm " << rwTerm.toString() << " eqLHS " << eqLHS.toString() << endl;
+    cout << "subst " << endl << subst->tryGetRobSubstitution()->toString() << endl;
+    cout << "eqIsResult " << eqIsResult << endl;
+  }*/
 
   // the first checks the reference and the second checks the stack
 /*

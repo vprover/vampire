@@ -711,7 +711,7 @@ unsigned Signature::getChoice(){
   CALL("Signature::getChoice");
 
   bool added = false;
-  unsigned choice = addFunction("choice",1, added);      
+  unsigned choice = addFunction("vEPSILON",1, added);      
   if(added){
     VarList* vl = new VarList(0);
     TermList alpha = TermList(0, false);

@@ -517,6 +517,10 @@ vstring Inference::ruleName(Rule rule)
     return "equality proxy clausification";
   case BOOL_SIMP:
     return "boolean simplification";
+  case PRIMITIVE_INSTANTIATION:
+    return "primitive instantiation";
+  case LEIBNIZ_ELIMINATION:
+    return "leibniz equality elimination";
   default:
     ASSERTION_VIOLATION;
     return "!UNKNOWN INFERENCE RULE!";

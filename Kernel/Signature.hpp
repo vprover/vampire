@@ -33,6 +33,7 @@
 
 #include "Lib/Allocator.hpp"
 #include "Lib/Stack.hpp"
+#include "Lib/DHSet.hpp"
 #include "Lib/Map.hpp"
 #include "Lib/List.hpp"
 #include "Lib/DHMap.hpp"
@@ -494,6 +495,18 @@ class Signature
     return _predNames.find(symbolKey,tmp);
   }
 
+  void addChoiceOperator(unsigned fun){
+    _choiceSymbols.insert(fun);
+  }
+
+  bool isChoiceOperator(unsigned fun){
+    return _choiceSymbols.contains(fun);
+  }
+
+  DHSet<unsigned>* getChoiceOperators(){
+    return &_choiceSymbols;
+  }
+
   /** return the number of functions */
   unsigned functions() const { return _funs.length(); }
   /** return the number of predicates */
@@ -694,6 +707,8 @@ class Signature
     return proxy;  
   } //TODO merge with above?  
 
+  //TODO make all these names protected
+
   unsigned getCombinator(Combinator c){
     bool added = false;
     unsigned comb;
@@ -783,6 +798,8 @@ private:
   Stack<Symbol*> _funs;
   /** Stack of predicate symbols */
   Stack<Symbol*> _preds;
+
+  DHSet<unsigned> _choiceSymbols;
   /**
    * Map from vstring "name_arity" to their numbers
    *

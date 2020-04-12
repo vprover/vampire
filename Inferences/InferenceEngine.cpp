@@ -30,6 +30,7 @@
 #include "Kernel/Term.hpp"
 #include "Kernel/Clause.hpp"
 #include "Kernel/Inference.hpp"
+#include "Kernel/ApplicativeHelper.hpp"
 
 #include "Saturation/SaturationAlgorithm.hpp"
 
@@ -209,6 +210,71 @@ void CompositeGIE::detach()
   GeneratingInferenceEngine::detach();
 }
 
+Clause* ChoiceDefinitionISE::simplify(Clause* c)
+{
+  CALL("ChoiceDefinitionISE::simplify");
+
+  if (c->length() != 2) {
+    return c;
+  }
+
+  Literal* lit1 = (*c)[0];
+  Literal* lit2 = (*c)[1];
+  
+  TermList x, f;
+
+  if(!isPositive(lit1) && is_of_form_xy(lit1, x) &&
+      isPositive(lit2) && is_of_form_xfx(lit2, x, f)){
+    unsigned fun = f.term()->functor();
+    env.signature->addChoiceOperator(fun);
+    return 0;
+  } else if(!isPositive(lit2) && is_of_form_xy(lit2, x) && 
+             isPositive(lit1) && is_of_form_xfx(lit1, x, f)) {
+    unsigned fun = f.term()->functor();
+    env.signature->addChoiceOperator(fun);
+    return 0;
+  }
+  return c;
+}
+
+bool ChoiceDefinitionISE::isPositive(Literal* lit) {
+  TermList lhs = *lit->nthArgument(0);
+  TermList rhs = *lit->nthArgument(1);
+  if(!isBool(lhs) && !isBool(rhs)){ return false; }
+  if(isBool(lhs) && isBool(rhs)){ return false; }
+  if(isBool(lhs)){ 
+    return lit->polarity() == isTrue(lhs);
+  }
+  if(isBool(rhs)){ 
+    return lit->polarity() == isTrue(rhs);
+  }
+  return false;
+};
+
+bool ChoiceDefinitionISE::is_of_form_xy(Literal* lit, TermList& x){
+  CALL("ChoiceDefinitionISE::is_of_form_xy");
+
+  TermList term = isBool(*lit->nthArgument(0)) ? *lit->nthArgument(1) : *lit->nthArgument(0);
+  
+  TermStack args;
+  ApplicativeHelper::getHeadAndArgs(term, x, args);
+  return (x.isVar() && args.size() == 1 && args[0].isVar());
+}
+
+bool ChoiceDefinitionISE::is_of_form_xfx(Literal* lit, TermList x, TermList& f){
+  CALL("ChoiceDefinitionISE::is_of_form_xfx");
+  
+  TermList term = isBool(*lit->nthArgument(0)) ? *lit->nthArgument(1) : *lit->nthArgument(0);
+  
+  TermStack args;
+  TermList head;
+  ApplicativeHelper::getHeadAndArgs(term, head, args);
+  if(head == x && args.size() == 1){
+    TermList arg = args[0];
+    ApplicativeHelper::getHeadAndArgs(arg, f, args);
+    return (!f.isVar() && args.size() == 1 && args[0] == x);
+  }
+}
 
 Clause* DuplicateLiteralRemovalISE::simplify(Clause* c)
 {
@@ -320,12 +386,21 @@ Clause* TrivialInequalitiesRemovalISE::simplify(Clause* c)
   int found = 0;
   for (int i = length-1;i >= 0;i--) {
     Literal* l = (*c)[i];
-    if (l->isPositive() || ! l->isEquality()) {
+    if (!l->isEquality()) {
       lits[j++] = l;
       continue;
     }
     TermList* t1 = l->args();
     TermList* t2 = t1->next();
+    if((isTrue(*t1) && isFalse(*t2) && l->polarity()) || 
+       (isTrue(*t2) && isFalse(*t1) && l->polarity())){
+      found++;
+      continue;
+    }
+    if(l->isPositive()){
+      lits[j++] = l;
+      continue;
+    }
     if (t1->sameContent(t2)) {
       found++;
     }

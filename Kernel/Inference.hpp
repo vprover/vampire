@@ -358,7 +358,11 @@ public:
 
     HOL_EQUALITY_ELIMINATION,
 
-    BOOL_SIMP    
+    BOOL_SIMP,
+
+    PRIMITIVE_INSTANTIATION,
+
+    LEIBNIZ_ELIMINATION 
   }; // class Inference::Rule
 
   explicit Inference(Rule r);

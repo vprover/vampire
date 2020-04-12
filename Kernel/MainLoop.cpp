@@ -145,6 +145,10 @@ ImmediateSimplificationEngine* MainLoop::createISE(Problem& prb, const Options& 
     res->addFront(new CombinatorNormalisationISE());
   }
 
+  if(env.options->choiceReasoning()){
+    res->addFront(new ChoiceDefinitionISE());
+  }
+
   //if(prb.hasLogicalProxy() && !env.options->addProxyAxioms()){
     res->addFrontMany(new ProxyElimination::ProxyEliminationISE());
     res->addFront(new ProxyElimination::ORIMPANDRemovalISE());

@@ -47,7 +47,7 @@ Clause* BoolSimp::simplify(Clause* premise) {
     NonVariableNonTypeIterator nvi(literal);
 
     while (nvi.hasNext()) {
-      TermList subTerm = nvi.next();
+      subTerm = nvi.next();
       if(SortHelper::getResultSort(subTerm.term()) == Term::boolSort()){
         simpedSubTerm = boolSimplify(subTerm);
         if(simpedSubTerm != subTerm){
@@ -67,12 +67,13 @@ Clause* BoolSimp::simplify(Clause* premise) {
   // Found a boolean term! Create the C[true] \/ s = false clause
   unsigned conclusionLength = premise->length();
   Inference* inference = new Inference1(Inference::BOOL_SIMP, premise);
+
   Clause* conclusion = new(conclusionLength) Clause(conclusionLength, premise->inputType(), inference);
   conclusion->setAge(premise->age() + 1);
 
   // Copy the literals from the premise except for the one at `literalPosition`,
   // that has the occurrence of `booleanTerm` replaced with false
-  for (unsigned i = 0; i < conclusion->length() - 1; i++) {
+  for (unsigned i = 0; i < conclusion->length(); i++) {
     (*conclusion)[i] = i == literalPosition ? EqHelper::replace((*premise)[i], subTerm, simpedSubTerm) : (*premise)[i];
   }
 
@@ -152,9 +153,9 @@ TermList BoolSimp::boolSimplify(TermList term){
     case Signature::OR:{
       ASS(args.size() == 2);
       if(args[0] == troo || args[1] == troo){ return troo; }
-      if(args[0] == fols){ return args[1]; }else
+      if(args[0] == fols){  return args[1]; }else
       if(args[1] == fols){ return args[0]; }
-      if(args[0] == args[0]){ return args[0]; }
+      if(args[0] == args[1]){ return args[0]; }
       if(areComplements(args[0], args[1])){ return troo; }  
       break;    
     }
@@ -192,7 +193,13 @@ TermList BoolSimp::boolSimplify(TermList term){
       break;
     }
     case Signature::EQUALS:{
-
+      ASS(args.size() == 2);
+      if(args[0] == args[1]){ return troo; }
+      /*if(args[0].isTerm() && args[0].term()->ground() && 
+         args[1].isTerm() && args[1].term()->ground() &&
+         args[0] != args[1]){
+        return fols;
+      }*/
     }
     default:
       return term;

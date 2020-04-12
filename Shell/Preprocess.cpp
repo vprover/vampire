@@ -172,6 +172,10 @@ void Preprocess::preprocess(Problem& prb)
     env.options->setMaxXX(2);
   }
 
+  if(env.options->choiceReasoning()){
+    env.signature->addChoiceOperator(env.signature->getChoice());
+  }
+
   // reorder units
   if (_options.normalize()) {
     env.statistics->phase=Statistics::NORMALIZATION;

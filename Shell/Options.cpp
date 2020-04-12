@@ -1197,11 +1197,17 @@ void Options::Options::init()
     _combinatorySuperposition.reliesOn(_addCombAxioms.is(equal(false))); //no point having two together
     _combinatorySuperposition.tag(OptionTag::INFERENCES);
 
-
     _choiceAxiom = BoolOptionValue("choice_ax","cha",false);
     _choiceAxiom.description="Adds the cnf form of the Hilbert choice axiom";
     _lookup.insert(&_choiceAxiom);
     _choiceAxiom.tag(OptionTag::INFERENCES);
+
+    _choiceReasoning = BoolOptionValue("choice_reasoning","chr",false);
+    _choiceReasoning.description="Reason about choice by adding relevant instances of the axiom";
+    _lookup.insert(&_choiceReasoning);
+    _choiceReasoning.reliesOn(_choiceAxiom.is(equal(false))); //no point having two together
+    _choiceReasoning.tag(OptionTag::INFERENCES);
+
 
     _injectivity = BoolOptionValue("injectivity","inj",false);
     _injectivity.description="Attempts to identify injective functions and postulates a left-inverse";

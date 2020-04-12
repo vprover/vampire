@@ -70,6 +70,9 @@
 #include "Inferences/ArgCong.hpp"
 #include "Inferences/NegativeExt.hpp"
 #include "Inferences/Narrow.hpp"
+#include "Inferences/PrimitiveInstantiation.hpp"
+#include "Inferences/Choice.hpp"
+#include "Inferences/ElimLeibniz.hpp"
 #include "Inferences/SubVarSup.hpp"
 #include "Inferences/URResolution.hpp"
 //#include "Inferences/Instantiation.hpp"
@@ -1371,9 +1374,15 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
     gie->addFront(new ArgCong());
     gie->addFront(new NegativeExt());//TODO add option
     gie->addFront(new Narrow());
+    gie->addFront(new PrimitiveInstantiation()); //TODO only add in some cases
     if(!opt.pragmatic()){
       gie->addFront(new SubVarSup());
     }
+    gie->addFront(new ElimLeibniz());
+  }
+
+  if(env.options->choiceReasoning()){
+    gie->addFront(new Choice());
   }
   /*else if(opt.unificationWithAbstraction()!=Options::UnificationWithAbstraction::OFF){
     gie->addFront(new EqualityResolution()); 

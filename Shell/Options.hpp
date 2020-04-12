@@ -2116,6 +2116,7 @@ public:
   bool choiceAxiom() const { return _choiceAxiom.actualValue; }
   bool injectivityReasoning() const { return _injectivity.actualValue; }
   bool pragmatic() const { return _pragmatic.actualValue; }
+  bool choiceReasoning() const { return _choiceReasoning.actualValue; }
   int maxXXNarrows() const { return _maximumXXNarrows.actualValue; }
   FunctionExtensionality functionExtensionality() const { return _functionExtensionality.actualValue; }
 
@@ -2498,6 +2499,7 @@ private:
   BoolOptionValue _choiceAxiom;
   BoolOptionValue _injectivity;
   BoolOptionValue _pragmatic;
+  BoolOptionValue _choiceReasoning;
   IntOptionValue  _maximumXXNarrows;
   ChoiceOptionValue<FunctionExtensionality> _functionExtensionality;
 

@@ -167,7 +167,45 @@ void SubVarSupLHSIndex::handleClause(Clause* c, bool adding)
     }
   }
 }
+void PrimitiveInstantiationIndex::populateIndex()
+{
+  CALL("PrimitiveInstantiationIndex::populateIndex");
+ 
+  typedef ApplicativeHelper AH;
 
+  auto srtOf = [] (TermList t) { 
+    ASS(t.isTerm());
+    return SortHelper::getResultSort(t.term());
+  };
+
+  TermList s1 = TermList(0, false);  
+  TermList x = TermList(1, false);
+  TermList y = TermList(2, false);
+
+  unsigned v_and = env.signature->getBinaryProxy("vAND");
+  unsigned v_or = env.signature->getBinaryProxy("vOR");
+  unsigned v_imp = env.signature->getBinaryProxy("vIMP");
+  unsigned v_not = env.signature->getNotProxy();
+  unsigned v_equals = env.signature->getEqualityProxy();
+
+  TermList vand = TermList(Term::createConstant(v_and));
+  TermList vor = TermList(Term::createConstant(v_or));
+  TermList vimp = TermList(Term::createConstant(v_imp));
+  TermList vnot = TermList(Term::createConstant(v_not));
+  TermList vequals = TermList(Term::create1(v_equals, s1));
+
+  TermList andTerm = AH::createAppTerm3(srtOf(vand), vand, x, y);
+  TermList orTerm = AH::createAppTerm3(srtOf(vor), vor, x, y);
+  TermList impTerm = AH::createAppTerm3(srtOf(vimp), vimp, x, y);
+  TermList notTerm = AH::createAppTerm(srtOf(vnot), vnot, x);
+  TermList equalsTerm = AH::createAppTerm3(srtOf(vequals), vequals, x, y);
+
+  _is->insert(andTerm, 0, 0);
+  _is->insert(orTerm, 0, 0);
+  _is->insert(impTerm, 0, 0);
+  _is->insert(notTerm, 0, 0);
+  _is->insert(equalsTerm, 0, 0);   
+}
 
 void NarrowingIndex::populateIndex()
 {
