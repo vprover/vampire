@@ -1380,9 +1380,10 @@ void TPTP::tff()
       // now we know that this is a new type declaration
       bool added;
       env.sorts->addSort(nm,added,false);
-      if (!added) {
-	PARSE_ERROR("Sort name must be unique",tok);
-      }
+      // GR: Multiple identical type declarations for a symbol are allowed
+      //if (!added) {
+      //  PARSE_ERROR("Sort name must be unique",tok);
+      //}
       resetToks();
       while (lpars--) {
 	consumeToken(T_RPAR);
@@ -3209,22 +3210,32 @@ void TPTP::endTff()
   Signature::Symbol* symbol;
   if (isPredicate) {
     unsigned pred = env.signature->addPredicate(name, arity, added);
-    if (!added) {
-      USER_ERROR("Predicate symbol type is declared after its use: " + name);
-    }
     symbol = env.signature->getPredicate(pred);
-    if (arity != 0) {
-      symbol->setType(ot);
+    if (!added) {
+      // GR: Multiple identical type declarations for a symbol are allowed
+      if(symbol->predType()->toString().compare(ot->toString()) != 0){
+        USER_ERROR("Predicate symbol type is declared after its use: " + name);
+      }
+    }
+    else{
+      if (arity != 0) {
+        symbol->setType(ot);
+      }
     }
   } else {
     unsigned fun = arity == 0
                    ? addUninterpretedConstant(name, _overflow, added)
                    : env.signature->addFunction(name, arity, added);
-    if (!added) {
-      USER_ERROR("Function symbol type is declared after its use: " + name);
-    }
     symbol = env.signature->getFunction(fun);
-    symbol->setType(ot);
+    if (!added) {
+      // GR: Multiple identical type declarations for a symbol are allowed
+      if(symbol->fnType()->toString().compare(ot->toString()) != 0){
+        USER_ERROR("Function symbol type is declared after its use: " + name);
+      }
+    }
+    else{
+      symbol->setType(ot);
+    }
   }
 } // endTff
 
