@@ -147,11 +147,11 @@ public:
   bool fulfilsAgeLimit(Clause* c) const override;
   // note: w here denotes the weight as returned by weight().
   // this method internally takes care of computing the corresponding weightForClauseSelection.
-  bool fulfilsAgeLimit(unsigned age, unsigned w, bool derivedFromGoal, Inference* inference) const override;
+  bool fulfilsAgeLimit(unsigned age, unsigned w, Inference* inference) const override;
   bool fulfilsWeightLimit(Clause* cl) const override;
   // note: w here denotes the weight as returned by weight().
   // this method internally takes care of computing the corresponding weightForClauseSelection.
-  bool fulfilsWeightLimit(unsigned w, bool derivedFromGoal, unsigned age, Inference* inference) const override;
+  bool fulfilsWeightLimit(unsigned w, unsigned age, Inference* inference) const override;
 
   bool childrenPotentiallyFulfilLimits(Clause* cl, unsigned upperBoundNumSelLits) const override;
   

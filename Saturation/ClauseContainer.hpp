@@ -167,11 +167,11 @@ public:
   virtual bool fulfilsAgeLimit(Clause* c) const = 0;
   // note: w here denotes the weight as returned by weight().
   // this method internally takes care of computing the corresponding weightForClauseSelection.
-  virtual bool fulfilsAgeLimit(unsigned age, unsigned w, bool derivedFromGoal, Inference* inference) const = 0;
+  virtual bool fulfilsAgeLimit(unsigned age, unsigned w, Inference* inference) const = 0;
   virtual bool fulfilsWeightLimit(Clause* cl) const = 0;
   // note: w here denotes the weight as returned by weight().
   // this method internally takes care of computing the corresponding weightForClauseSelection.
-  virtual bool fulfilsWeightLimit(unsigned w, bool derivedFromGoal, unsigned age, Inference* inference) const = 0;
+  virtual bool fulfilsWeightLimit(unsigned w, unsigned age, Inference* inference) const = 0;
 
   virtual bool childrenPotentiallyFulfilLimits(Clause* cl, unsigned upperBoundNumSelLits) const = 0;
 
