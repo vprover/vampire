@@ -325,7 +325,7 @@ protected:
 
     cs->inference()->updateStatistics(); // in particular, update inductionDepth (which could have decreased, since we might have fewer parents after miniminization)
 
-    if(rule == Inference::INDUCTION_AXIOM){
+    if(rule == Inference::Rule::INDUCTION_AXIOM){
       env.statistics->inductionInProof++;
     }
 
@@ -343,7 +343,7 @@ protected:
 
       out <<"["<<Inference::ruleName(rule);
 
-      if (outputAxiomNames && rule==Inference::INPUT) {
+      if (outputAxiomNames && rule==Inference::Rule::INPUT) {
         ASS(!parents.hasNext()); //input clauses don't have parents
         vstring name;
         if (Parse::TPTP::findAxiomName(cs, name)) {
@@ -456,7 +456,7 @@ protected:
     if(us->isClause() && us->inference()->isPureTheoryDescendant()){
       //cout << "HERE with " << us->toString() << endl;
       Inference* inf = us->inference();
-      while(inf->rule() == Inference::EVALUATION){
+      while(inf->rule() == Inference::Rule::EVALUATION){
               Inference::Iterator piit = inf->iterator();
               inf = inf->next(piit)->inference();
      }
@@ -473,7 +473,7 @@ protected:
           while(inf->hasNext(iit)) {
             Unit* premUnit=inf->next(iit);
             Inference* premInf = premUnit->inference();
-            while(premInf->rule() == Inference::EVALUATION){
+            while(premInf->rule() == Inference::Rule::EVALUATION){
               Inference::Iterator piit = premInf->iterator();
               premUnit = premInf->next(piit);
               premInf = premUnit->inference(); 
@@ -525,17 +525,17 @@ struct InferenceStore::TPTPProofPrinter
 protected:
   vstring splitPrefix;
 
-  vstring getRole(Inference::Rule rule, Unit::InputType origin)
+  vstring getRole(Inference::Rule rule, Inference::InputType origin)
   {
     switch(rule) {
-    case Inference::INPUT:
-      if (origin==Unit::CONJECTURE) {
+    case Inference::Rule::INPUT:
+      if (origin==Inference::InputType::CONJECTURE) {
 	return "conjecture";
       }
       else {
 	return "axiom";
       }
-    case Inference::NEGATED_CONJECTURE:
+    case Inference::Rule::NEGATED_CONJECTURE:
       return "negated_conjecture";
     default:
       return "plain";
@@ -596,7 +596,7 @@ protected:
     return n;
   }
 
-  vstring getFofString(vstring id, vstring formula, vstring inference, Inference::Rule rule, Unit::InputType origin=Unit::AXIOM)
+  vstring getFofString(vstring id, vstring formula, vstring inference, Inference::Rule rule, Inference::InputType origin=Inference::InputType::AXIOM)
   {
     CALL("InferenceStore::TPTPProofPrinter::getFofString");
 
@@ -683,10 +683,10 @@ protected:
     //case Inference::AVATAR_COMPONENT:
     //  printSplittingComponentIntroduction(us);
     //  return;
-    case Inference::GENERAL_SPLITTING_COMPONENT:
+    case Inference::Rule::GENERAL_SPLITTING_COMPONENT:
       printGeneralSplittingComponent(us);
       return;
-    case Inference::GENERAL_SPLITTING:
+    case Inference::Rule::GENERAL_SPLITTING:
       printSplitting(us);
       return;
     default: ;
@@ -700,7 +700,7 @@ protected:
     //get inference vstring
 
     vstring inferenceStr;
-    if (rule==Inference::INPUT) {
+    if (rule==Inference::Rule::INPUT) {
       vstring fileName;
       if (env.options->inputFile()=="") {
 	fileName="unknown";
@@ -724,7 +724,7 @@ protected:
     else {
       ASS(parents.hasNext());
       vstring statusStr;
-      if (rule==Inference::SKOLEMIZE) {
+      if (rule==Inference::Rule::SKOLEMIZE) {
 	statusStr="status(esa),"+getNewSymbols("skolem",us);
       }
 
@@ -743,7 +743,7 @@ protected:
       inferenceStr+="])";
     }
 
-    out<<getFofString(tptpUnitId(us), formulaStr, inferenceStr, rule, us->inputType())<<endl;
+    out<<getFofString(tptpUnitId(us), formulaStr, inferenceStr, rule, us->inference()->inputType())<<endl;
   }
 
   void printSplitting(Unit* us)
@@ -753,7 +753,7 @@ protected:
 
     Inference::Rule rule;
     UnitIterator parents=_is->getParents(us, rule);
-    ASS(rule==Inference::GENERAL_SPLITTING);
+    ASS(rule==Inference::Rule::GENERAL_SPLITTING);
 
     vstring inferenceStr="inference("+tptpRuleName(rule)+",[],[";
 
@@ -789,7 +789,7 @@ protected:
     vstring defId=tptpDefId(us);
 
     out<<getFofString(tptpUnitId(us), getFormulaString(us),
-	"inference("+tptpRuleName(Inference::CLAUSIFY)+",[],["+defId+"])", Inference::CLAUSIFY)<<endl;
+	"inference("+tptpRuleName(Inference::Rule::CLAUSIFY)+",[],["+defId+"])", Inference::Rule::CLAUSIFY)<<endl;
 
 
     List<unsigned>* nameVars=0;
@@ -854,14 +854,14 @@ protected:
     ASS(cl->splits());
     ASS_EQ(cl->splits()->size(),1);
 
-    Inference::Rule rule=Inference::AVATAR_COMPONENT;
+    Inference::Rule rule=Inference::Rule::AVATAR_COMPONENT;
 
     vstring defId=tptpDefId(us);
     vstring splitPred = splitsToString(cl->splits());
     vstring defStr=getQuantifiedStr(cl)+" <=> ~"+splitPred;
 
     out<<getFofString(tptpUnitId(us), getFormulaString(us),
-  "inference("+tptpRuleName(Inference::CLAUSIFY)+",[],["+defId+"])", Inference::CLAUSIFY)<<endl;
+  "inference("+tptpRuleName(Inference::Rule::CLAUSIFY)+",[],["+defId+"])", Inference::Rule::CLAUSIFY)<<endl;
 
     vstringstream originStm;
     originStm << "introduced(" << tptpRuleName(rule)
@@ -916,30 +916,30 @@ protected:
   bool hideProofStep(Inference::Rule rule)
   {
     switch(rule) {
-    case Inference::INPUT:
-    case Inference::INEQUALITY_SPLITTING_NAME_INTRODUCTION:
-    case Inference::INEQUALITY_SPLITTING:
-    case Inference::SKOLEMIZE:
-    case Inference::EQUALITY_PROXY_REPLACEMENT:
-    case Inference::EQUALITY_PROXY_AXIOM1:
-    case Inference::EQUALITY_PROXY_AXIOM2:
-    case Inference::NEGATED_CONJECTURE:
-    case Inference::RECTIFY:
-    case Inference::FLATTEN:
-    case Inference::ENNF:
-    case Inference::NNF:
-    case Inference::CLAUSIFY:
-    case Inference::AVATAR_DEFINITION:
-    case Inference::AVATAR_COMPONENT:
-    case Inference::AVATAR_REFUTATION:
-    case Inference::AVATAR_SPLIT_CLAUSE:
-    case Inference::AVATAR_CONTRADICTION_CLAUSE:
-    case Inference::FOOL_LET_ELIMINATION:
-    case Inference::FOOL_ITE_ELIMINATION:
-    case Inference::FOOL_ELIMINATION:
-    case Inference::BOOLEAN_TERM_ENCODING:
-    case Inference::CHOICE_AXIOM:
-    case Inference::PREDICATE_DEFINITION:
+    case Inference::Rule::INPUT:
+    case Inference::Rule::INEQUALITY_SPLITTING_NAME_INTRODUCTION:
+    case Inference::Rule::INEQUALITY_SPLITTING:
+    case Inference::Rule::SKOLEMIZE:
+    case Inference::Rule::EQUALITY_PROXY_REPLACEMENT:
+    case Inference::Rule::EQUALITY_PROXY_AXIOM1:
+    case Inference::Rule::EQUALITY_PROXY_AXIOM2:
+    case Inference::Rule::NEGATED_CONJECTURE:
+    case Inference::Rule::RECTIFY:
+    case Inference::Rule::FLATTEN:
+    case Inference::Rule::ENNF:
+    case Inference::Rule::NNF:
+    case Inference::Rule::CLAUSIFY:
+    case Inference::Rule::AVATAR_DEFINITION:
+    case Inference::Rule::AVATAR_COMPONENT:
+    case Inference::Rule::AVATAR_REFUTATION:
+    case Inference::Rule::AVATAR_SPLIT_CLAUSE:
+    case Inference::Rule::AVATAR_CONTRADICTION_CLAUSE:
+    case Inference::Rule::FOOL_LET_ELIMINATION:
+    case Inference::Rule::FOOL_ITE_ELIMINATION:
+    case Inference::Rule::FOOL_ELIMINATION:
+    case Inference::Rule::BOOLEAN_TERM_ENCODING:
+    case Inference::Rule::CHOICE_AXIOM:
+    case Inference::Rule::PREDICATE_DEFINITION:
       return true;
     default:
       return false;

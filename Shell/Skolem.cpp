@@ -105,14 +105,14 @@ FormulaUnit* Skolem::skolemiseImpl (FormulaUnit* unit)
 
   UnitList* premiseList = new UnitList(unit,_skolimizingDefinitions);
 
-  Inference* inf = new InferenceMany(Inference::SKOLEMIZE,premiseList);
-  FormulaUnit* res = new FormulaUnit(g, inf, unit->inputType());
+  Inference* inf = new InferenceMany(Inference::Rule::SKOLEMIZE,premiseList);
+  FormulaUnit* res = new FormulaUnit(g, inf);
 
   ASS(_introducedSkolemFuns.isNonEmpty());
   while(_introducedSkolemFuns.isNonEmpty()) {
     unsigned fn = _introducedSkolemFuns.pop();
     InferenceStore::instance()->recordIntroducedSymbol(res,true,fn);
-    if(unit->isGoal()){
+    if(unit->inference()->derivedFromGoal()){
       env.signature->getFunction(fn)->markInGoal();
     }
   }
@@ -454,7 +454,7 @@ Formula* Skolem::skolemise (Formula* f)
           def = new QuantifiedFormula(FORALL,var_args,nullptr,def);
         }
 
-        Unit* defUnit = new FormulaUnit(def, new Inference0(Inference::CHOICE_AXIOM), Unit::AXIOM);
+        Unit* defUnit = new FormulaUnit(def, new Inference0(Inference::InputType::AXIOM,Inference::Rule::CHOICE_AXIOM));
         UnitList::push(defUnit,_skolimizingDefinitions);
       }
 

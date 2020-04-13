@@ -109,7 +109,7 @@ Clause* InequalitySplitting::trySplitClause(Clause* cl)
   static DArray<Literal*> resLits(8);
   resLits.ensure(clen);
 
-  Unit::InputType inpType = cl->inputType();
+  Inference::InputType inpType = cl->inference()->inputType();
   UnitList* premises=0;
 
   for(unsigned i=0; i<firstSplittable; i++) {
@@ -127,9 +127,9 @@ Clause* InequalitySplitting::trySplitClause(Clause* cl)
   }
 
   UnitList::push(cl, premises);
-  Inference* inf = new InferenceMany(Inference::INEQUALITY_SPLITTING, premises);
+  Inference* inf = new InferenceMany(Inference::Rule::INEQUALITY_SPLITTING, premises);
 
-  Clause* res = new(clen) Clause(clen, inpType, inf);
+  Clause* res = new(clen) Clause(clen, inf);
   res->setAge(cl->age());
 
   for(unsigned i=0;i<clen;i++) {
@@ -151,7 +151,7 @@ Clause* InequalitySplitting::trySplitClause(Clause* cl)
 
 }
 
-Literal* InequalitySplitting::splitLiteral(Literal* lit, Unit::InputType inpType, Clause*& premise)
+Literal* InequalitySplitting::splitLiteral(Literal* lit, Inference::InputType inpType, Clause*& premise)
 {
   CALL("InequalitySplitting::splitLiteral");
   ASS(isSplittable(lit));
@@ -182,8 +182,8 @@ Literal* InequalitySplitting::splitLiteral(Literal* lit, Unit::InputType inpType
     predSym->markSkip();
   }
 
-  Inference* inf = new Inference0(Inference::INEQUALITY_SPLITTING_NAME_INTRODUCTION);
-  Clause* defCl=new(1) Clause(1, inpType, inf);
+  Inference* inf = new Inference0(inpType,Inference::Rule::INEQUALITY_SPLITTING_NAME_INTRODUCTION);
+  Clause* defCl=new(1) Clause(1,inf);
   (*defCl)[0]=makeNameLiteral(predNum, t, false);
   _predDefs.push(defCl);
 

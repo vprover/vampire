@@ -327,7 +327,7 @@ void CLTBMode::learnFromSolutionFile(vstring& solnFileName)
     UnitList::DelIterator it(solnUnits);
     while (it.hasNext()) {
       Unit* unit = it.next();
-      if (unit->inputType()==Unit::AXIOM){
+      if (unit->inference()->inputType()==Inference::InputType::AXIOM){
         if (sources->find(unit)){
           if (sources->get(unit)->isFile()){
             vstring name = static_cast<Parse::TPTP::FileSourceRecord*>(sources->get(unit))->nameInFile;

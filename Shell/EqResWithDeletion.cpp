@@ -104,8 +104,8 @@ start_applying:
   unsigned nlen=resLits.size();
   ASS_L(nlen, clen);
 
-  Inference* inf = new Inference1(Inference::EQUALITY_RESOLUTION, cl);
-  Clause* res = new(nlen) Clause(nlen, cl->inputType(), inf);
+  Inference* inf = new Inference1(Inference::Rule::EQUALITY_RESOLUTION, cl);
+  Clause* res = new(nlen) Clause(nlen, inf);
   res->setAge(cl->age());
 
   for(unsigned i=0;i<nlen;i++) {

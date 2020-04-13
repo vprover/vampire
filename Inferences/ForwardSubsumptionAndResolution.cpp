@@ -193,11 +193,8 @@ Clause* ForwardSubsumptionAndResolution::generateSubsumptionResolutionClause(Cla
   int clen = cl->length();
   int nlen = clen-1;
 
-  Inference* inf = new Inference2(Inference::SUBSUMPTION_RESOLUTION, cl, baseClause);
-  Unit::InputType inpType = (Unit::InputType)
-  	max(cl->inputType(), baseClause->inputType());
-
-  Clause* res = new(nlen) Clause(nlen, inpType, inf);
+  Inference* inf = new Inference2(Inference::Rule::SUBSUMPTION_RESOLUTION, cl, baseClause);
+  Clause* res = new(nlen) Clause(nlen, inf);
 
   int next = 0;
   bool found=false;

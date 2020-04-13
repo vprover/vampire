@@ -120,8 +120,8 @@ public:
     CALL("Factoring::ResultsFn::operator()");
 
     unsigned newLength = _cLen-1;
-    Inference* inf = new Inference1(Inference::FACTORING, _cl);
-    Clause* res = new(newLength) Clause(newLength, _cl->inputType(), inf);
+    Inference* inf = new Inference1(Inference::Rule::FACTORING, _cl);
+    Clause* res = new(newLength) Clause(newLength, inf);
 
     unsigned next = 0;
     Literal* skipped=arg.first;

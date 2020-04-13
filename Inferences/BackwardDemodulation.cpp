@@ -201,12 +201,9 @@ struct BackwardDemodulation::ResultFn
       return BwSimplificationRecord(qr.clause);
     }
 
-    Inference* inf = new Inference2(Inference::BACKWARD_DEMODULATION, qr.clause, _cl);
-    Unit::InputType inpType = (Unit::InputType)
-    Int::max(_cl->inputType(), qr.clause->inputType());
-
+    Inference* inf = new Inference2(Inference::Rule::BACKWARD_DEMODULATION, qr.clause, _cl);
     unsigned cLen=qr.clause->length();
-    Clause* res = new(cLen) Clause(cLen, inpType, inf);
+    Clause* res = new(cLen) Clause(cLen, inf);
 
     (*res)[0]=resLit;
 

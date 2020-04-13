@@ -132,9 +132,8 @@ Clause* InterpretedEvaluation::simplify(Clause* cl)
   newLits.expand(clen+sideConditions.length());
   while(side.hasNext()){ newLits[next++]=side.next();}
   int newLength = next;
-  Inference* inf = new Inference1(Inference::EVALUATION, cl);
-  Unit::InputType inpType = cl->inputType();
-  Clause* res = new(newLength) Clause(newLength, inpType, inf);
+  Inference* inf = new Inference1(Inference::Rule::EVALUATION, cl);
+  Clause* res = new(newLength) Clause(newLength, inf);
 
   for(int i=0;i<newLength;i++) {
     (*res)[i] = newLits[i];

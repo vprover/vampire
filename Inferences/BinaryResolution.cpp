@@ -158,9 +158,9 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQ
   // check whether we can conclude that the resulting clause will be discarded by LRS since it does not fulfil the age/weight limits (in which case we can discard the clause)
   // we already know the age here so we can immediately conclude whether the clause fulfils the age limit
   // since we have not built the clause yet we compute lower bounds on the weight of the clause after each step and recheck whether the weight-limit can still be fulfilled.
-  bool derivedFromGoal= queryCl->isGoal() || qr.clause->isGoal();
   unsigned wlb=0;//weight lower bound
-  ScopedPtr<Inference> infSp(new Inference2((withConstraints?Inference::CONSTRAINED_RESOLUTION:Inference::RESOLUTION),queryCl, qr.clause));
+  ScopedPtr<Inference> infSp(new Inference2((withConstraints?Inference::Rule::CONSTRAINED_RESOLUTION:Inference::Rule::RESOLUTION),queryCl, qr.clause));
+  bool derivedFromGoal = infSp->derivedFromGoal();
 
   bool needsToFulfilWeightLimit = passiveClauseContainer && !passiveClauseContainer->fulfilsAgeLimit(newAge, wlb, derivedFromGoal, infSp.ptr()) && passiveClauseContainer->weightLimited();
   if(needsToFulfilWeightLimit) {
@@ -186,10 +186,7 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQ
   unsigned conlength = withConstraints ? constraints->size() : 0;
   unsigned newLength = clength+dlength-2+conlength;
 
-  Unit::InputType inpType = (Unit::InputType)
-  	Int::max(queryCl->inputType(), qr.clause->inputType());
-
-  Clause* res = new(newLength) Clause(newLength, inpType, infSp.release()); // the inference object owned by res from now on
+  Clause* res = new(newLength) Clause(newLength, infSp.release()); // the inference object owned by res from now on
 
   Literal* queryLitAfter = 0;
   if (ord && queryCl->numSelected() > 1) {

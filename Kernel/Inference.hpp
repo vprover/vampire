@@ -43,10 +43,46 @@ namespace Kernel {
 class Inference
 {
 public:
+  /** Kind of input. The integers should not be changed, they are used in
+   *  Compare. */
+  enum class InputType : unsigned int {
+    /** Axiom or derives from axioms */
+    AXIOM = 0,
+    /** Assumption or derives from axioms and assumptions */
+    ASSUMPTION = 1,
+    /** derives from the goal */
+    CONJECTURE = 2,
+    /** negated conjecture */
+    NEGATED_CONJECTURE = 3,
+    /** Vampire-only, for the consequence-finding mode */
+    CLAIM = 4,
+    /** Used in parsing and preprocessing for extensionality clause tagging, should not appear in proof search */
+    EXTENSIONALITY_AXIOM = 5,
+    /** Used to seperate model definitions in model_check mode, should not appear in proof search */
+    MODEL_DEFINITION = 6
+  };
+
+  static InputType getInputType(UnitList* units);
+  static InputType getInputType(InputType t1, InputType t2);
+
+  /** return the input type of the unit */
+  InputType inputType() const
+  { return (InputType)_inputType; }
+  /** set the input type of the unit */
+  void setInputType(InputType it)
+  { _inputType=it; }
+  /** return true if inputType relates to a goal **/
+  bool derivedFromGoal() const
+  { return static_cast<unsigned>(_inputType) > static_cast<unsigned>(InputType::ASSUMPTION); }
+
+protected:
+  InputType _inputType;
+public:
+
   /**
    * Tag to denote various kinds of inference rules.
    */
-  enum Rule {
+  enum class Rule : unsigned int {
     /** input formula or clause */
     INPUT,
     /** negated conjecture from the input */
@@ -388,8 +424,8 @@ public:
    * - the age of the corresponding Clause is the same as that of this main premise
    **/
   static bool isSimplifyingInferenceRule(Rule r) {
-    return (static_cast<unsigned>(r) >= static_cast<unsigned>(Inference::GENERIC_SIMPLIFYING_INFERNCE) &&
-        static_cast<unsigned>(r) < static_cast<unsigned>(Inference::INTERNAL_SIMPLIFYING_INFERNCE_LAST));
+    return (static_cast<unsigned>(r) >= static_cast<unsigned>(Rule::GENERIC_SIMPLIFYING_INFERNCE) &&
+        static_cast<unsigned>(r) < static_cast<unsigned>(Rule::INTERNAL_SIMPLIFYING_INFERNCE_LAST));
   }
 
   /**
@@ -399,23 +435,23 @@ public:
    * - the age of the corresponding Clause is computed as the max over parent's ages +1
    */
   static bool isGeneratingInferenceRule(Rule r) {
-    return (static_cast<unsigned>(r) >= static_cast<unsigned>(Inference::GENERIC_GENERATING_INFERNCE) &&
-        static_cast<unsigned>(r) < static_cast<unsigned>(Inference::INTERNAL_GENERATING_INFERNCE_LAST));
+    return (static_cast<unsigned>(r) >= static_cast<unsigned>(Rule::GENERIC_GENERATING_INFERNCE) &&
+        static_cast<unsigned>(r) < static_cast<unsigned>(Rule::INTERNAL_GENERATING_INFERNCE_LAST));
   }
 
   /** Currently not enforced but assumed:
    * - theory axioms should not have any premises
    **/
   static bool isTheoryAxiomRule(Rule r) {
-    return (static_cast<unsigned>(r) >= static_cast<unsigned>(Inference::GENERIC_THEORY_AXIOM) &&
-        static_cast<unsigned>(r) < static_cast<unsigned>(Inference::INTERNAL_THEORY_AXIOM_LAST));
+    return (static_cast<unsigned>(r) >= static_cast<unsigned>(Rule::GENERIC_THEORY_AXIOM) &&
+        static_cast<unsigned>(r) < static_cast<unsigned>(Rule::INTERNAL_THEORY_AXIOM_LAST));
   }
 
   static bool isExternalTheoryAxiomRule(Rule r) {
-    return r == Inference::EXTERNAL_THEORY_AXIOM;
+    return r == Rule::EXTERNAL_THEORY_AXIOM;
   }
 
-  explicit Inference(Rule r);
+  explicit Inference(InputType inputType, Rule r);
 
   /**
    * Destroy the Inference object and decrease reference
@@ -629,7 +665,7 @@ class Inference0
   : public Inference
 {
 public:
-  Inference0(Rule rule) : Inference(rule)
+  Inference0(InputType inputType, Rule rule) : Inference(inputType, rule)
   {
     computeTheoryRunningSums();
 
@@ -666,7 +702,7 @@ class Inference1
 {
 public:
   Inference1(Rule rule,Unit* premise)
-    : Inference(rule),
+    : Inference(premise->inference()->inputType(), rule),
       _premise1(premise)
   { 
     _premise1->incRefCnt(); 
@@ -707,7 +743,7 @@ class Inference2
 {
 public:
   Inference2(Rule rule,Unit* premise1,Unit* premise2)
-    : Inference(rule),
+    : Inference(getInputType(premise1->inference()->inputType(),premise2->inference()->inputType()), rule),
       _premise1(premise1),
       _premise2(premise2)
   {

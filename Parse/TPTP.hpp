@@ -37,6 +37,7 @@
 #include "Kernel/Formula.hpp"
 #include "Kernel/Unit.hpp"
 #include "Kernel/Theory.hpp"
+#include "Kernel/Inference.hpp"
 
 //#define DEBUG_SHOW_STATE
 
@@ -537,7 +538,7 @@ private:
   /** stack of unprocessed states */
   Stack<State> _states;
   /** input type of the last read unit */ // it must be int since -1 can be used as a value
-  int _lastInputType;
+  Inference::InputType _lastInputType;
   /** true if the last read unit is a question */ 
   bool _isQuestion;
   /** true if the last read unit is fof() or cnf() due to a subtle difference

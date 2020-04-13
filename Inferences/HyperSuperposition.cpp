@@ -317,10 +317,8 @@ void HyperSuperposition::tryUnifyingSuperpositioins(Clause* cl, unsigned literal
   UnitList::pushFromIterator(ClauseStack::Iterator(premises), premLst);
   UnitList::push(cl, premLst);
 
-  Unit::InputType it = Unit::getInputType(premLst);
-  Inference* inf = new InferenceMany(Inference::HYPER_SUPERPOSITION_GENERATING, premLst);
-
-  Clause* res = Clause::fromStack(resLits, it, inf);
+  Inference* inf = new InferenceMany(Inference::Rule::HYPER_SUPERPOSITION_GENERATING, premLst);
+  Clause* res = Clause::fromStack(resLits, inf);
   res->setAge(cl->age()+1);
 
   RSTAT_CTR_INC("hyper-superposition");
@@ -473,9 +471,8 @@ Clause* HyperSuperposition::tryGetContradictionFromUnification(Clause* cl, Term*
   UnitList* premLst = 0;
   UnitList::pushFromIterator(ClauseStack::Iterator(premStack), premLst);
   UnitList::push(cl, premLst);
-  Inference* inf = new InferenceMany(Inference::HYPER_SUPERPOSITION_SIMPLIFYING, premLst);
-  Unit::InputType inp = Unit::getInputType(premLst);
-  Clause* res = Clause::fromIterator(LiteralIterator::getEmpty(), inp, inf);
+  Inference* inf = new InferenceMany(Inference::Rule::HYPER_SUPERPOSITION_SIMPLIFYING, premLst);
+  Clause* res = Clause::fromIterator(LiteralIterator::getEmpty(), inf);
   res->setAge(cl->age());
   return res;
 }

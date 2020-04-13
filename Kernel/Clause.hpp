@@ -84,23 +84,22 @@ public:
     SELECTED = 4u
   };
 
-  Clause(unsigned length,InputType it,Inference* inf);
-
+  Clause(unsigned length,Inference* inf);
 
   void* operator new(size_t,unsigned length);
   void operator delete(void* ptr,unsigned length);
 
-  static Clause* fromStack(const Stack<Literal*>& lits, InputType it, Inference* inf);
+  static Clause* fromStack(const Stack<Literal*>& lits, Inference* inf);
 
   template<class Iter>
-  static Clause* fromIterator(Iter litit, InputType it, Inference* inf)
+  static Clause* fromIterator(Iter litit, Inference* inf)
   {
     CALL("Clause::fromIterator");
 
     static Stack<Literal*> st;
     st.reset();
     st.loadFromIterator(litit);
-    return fromStack(st, it, inf);
+    return fromStack(st, inf);
   }
 
   static Clause* fromClause(Clause* c);

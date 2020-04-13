@@ -139,7 +139,7 @@ bool Normalisation::lessThan (Unit* u1, Unit* u2)
 
   // the below code should be uncommented, it gives the best behavior
   // on the average
-  switch (compare((int)u1->inputType(),(int)u2->inputType())) {
+  switch (compare(static_cast<int>(u1->inference()->inputType()),static_cast<int>(u2->inference()->inputType()))) {
   case LESS:
     return false;
   case EQUAL:

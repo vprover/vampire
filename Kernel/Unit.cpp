@@ -57,44 +57,10 @@ void Unit::onPreprocessingEnd()
   _firstNonPreprocessingNumber=_lastNumber+1;
 }
 
-
-/**
- * Return InputType of which should be a formula that has
- * units of types @c t1 and @c t2 as premises.
- */
-Unit::InputType Unit::getInputType(InputType t1, InputType t2)
-{
-  CALL("Unit::getInputType");
-
-  return static_cast<Unit::InputType>(Int::max(t1, t2));
-}
-
-/**
- * Return InputType of which should be a formula that has
- * @c units as premises.
- *
- * @c units must be a non-empty list.
- */
-Unit::InputType Unit::getInputType(UnitList* units)
-{
-  CALL("Unit::getInputType");
-  ASS(units);
-
-  UnitList::Iterator uit(units);
-  ALWAYS(uit.hasNext());
-  InputType res = uit.next()->inputType();
-
-  while(uit.hasNext()) {
-    res = getInputType(res, uit.next()->inputType());
-  }
-  return res;
-}
-
 /** New unit of a given kind */
-Unit::Unit(Kind kind,Inference* inf,InputType it)
+Unit::Unit(Kind kind,Inference* inf)
   : _number(++_lastNumber),
     _kind(kind),
-    _inputType(it),
     _inheritedColor(COLOR_INVALID),
     _included(0),
     _inference(inf)

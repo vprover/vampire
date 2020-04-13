@@ -66,8 +66,8 @@ bool Clause::_auxInUse = false;
 
 
 /** New clause */
-Clause::Clause(unsigned length,InputType it,Inference* inf)
-  : Unit(Unit::CLAUSE,inf,it),
+Clause::Clause(unsigned length,Inference* inf)
+  : Unit(Unit::CLAUSE,inf),
     _length(length),
     _color(COLOR_INVALID),
     _extensionality(false),
@@ -84,11 +84,11 @@ Clause::Clause(unsigned length,InputType it,Inference* inf)
     _numActiveSplits(0),
     _auxTimestamp(0)
 {
-
-  if(it == Unit::EXTENSIONALITY_AXIOM){
+  // MS: TODO: not sure if this belongs here and whether EXTENSIONALITY_AXIOM input types ever appear anywhere (as a vampire-extension TPTP formula role)
+  if(inf->inputType() == Inference::InputType::EXTENSIONALITY_AXIOM){
     //cout << "Setting extensionality" << endl;
     _extensionalityTag = true;
-    setInputType(Unit::AXIOM);
+    inf->setInputType(Inference::InputType::AXIOM);
   }
 }
 
@@ -145,12 +145,12 @@ void Clause::destroyExceptInferenceObject()
 }
 
 
-Clause* Clause::fromStack(const Stack<Literal*>& lits, InputType it, Inference* inf)
+Clause* Clause::fromStack(const Stack<Literal*>& lits, Inference* inf)
 {
   CALL("Clause::fromStack");
 
   unsigned clen = lits.size();
-  Clause* res = new (clen) Clause(clen, it, inf);
+  Clause* res = new (clen) Clause(clen, inf);
 
   for(unsigned i = 0; i < clen; i++) {
     (*res)[i] = lits[i];
@@ -171,8 +171,8 @@ Clause* Clause::fromClause(Clause* c)
 {
   CALL("Clause::fromClause");
 
-  Inference* inf = new Inference1(Inference::REORDER_LITERALS, c);
-  Clause* res = fromIterator(Clause::Iterator(*c), c->inputType(), inf);
+  Inference* inf = new Inference1(Inference::Rule::REORDER_LITERALS, c);
+  Clause* res = fromIterator(Clause::Iterator(*c), inf);
 
   res->setAge(c->age());
   //res->setProp(c->prop());
@@ -425,7 +425,7 @@ vstring Clause::toString() const
       result += vstring(",col:") + Int::toString(color());
     }
 
-    if(isGoal()){
+    if(_inference->derivedFromGoal()){
       result += vstring(",goal:1");
     }
     if(_inference->isPureTheoryDescendant()){
@@ -606,7 +606,7 @@ unsigned Clause::computeWeightForClauseSelection(const Options& opt) const
     numeralWeight = getNumeralWeight();
   }
 
-  bool derivedFromGoal = isGoal();
+  bool derivedFromGoal = _inference->derivedFromGoal();
   if(derivedFromGoal && opt.restrictNWCtoGC()){
     bool found = false;
     for(unsigned i=0;i<_length;i++){

@@ -261,13 +261,13 @@ bool GeneralSplitting::apply(Clause*& cl, UnitList*& resultStack)
   Literal* nnLit=Literal::create(namingPred, minDeg, false, false, args.begin());
   otherLits.push(nnLit);
 
-  Clause* mdvCl=Clause::fromStack(mdvLits, cl->inputType(), new Inference0(Inference::GENERAL_SPLITTING_COMPONENT));
+  Clause* mdvCl=Clause::fromStack(mdvLits, new Inference0(cl->inference()->inputType(),Inference::Rule::GENERAL_SPLITTING_COMPONENT));
   mdvCl->setAge(cl->age());
   UnitList::push(mdvCl, resultStack);
 
   InferenceStore::instance()->recordSplittingNameLiteral(mdvCl, pnLit);
 
-  Clause* otherCl=Clause::fromStack(otherLits, cl->inputType(), new Inference2(Inference::GENERAL_SPLITTING, cl, mdvCl));
+  Clause* otherCl=Clause::fromStack(otherLits, new Inference2(Inference::Rule::GENERAL_SPLITTING, cl, mdvCl));
   otherCl->setAge(cl->age());
 
   cl=otherCl;

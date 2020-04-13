@@ -454,8 +454,8 @@ Clause* Superposition::performSuperposition(
   // check whether we can conclude that the resulting clause will be discarded by LRS since it does not fulfil the age/weight limits (in which case we can discard the clause)
   // we already know the age here so we can immediately conclude whether the clause fulfils the age limit
   // since we have not built the clause yet we compute lower bounds on the weight of the clause after each step and recheck whether the weight-limit can still be fulfilled.
-  bool derivedFromGoal= rwClause->isGoal() || eqClause->isGoal();
-  ScopedPtr<Inference> infSp(new Inference2(hasConstraints ? Inference::  CONSTRAINED_SUPERPOSITION : Inference::SUPERPOSITION, rwClause, eqClause));
+  ScopedPtr<Inference> infSp(new Inference2(hasConstraints ? Inference::Rule::CONSTRAINED_SUPERPOSITION : Inference::Rule::SUPERPOSITION, rwClause, eqClause));
+  bool derivedFromGoal= infSp->derivedFromGoal();
 
   bool needsToFulfilWeightLimit = passiveClauseContainer && !passiveClauseContainer->fulfilsAgeLimit(newAge, 0, derivedFromGoal, infSp.ptr()) && passiveClauseContainer->weightLimited(); // 0 here denotes the current weight estimate
   if(needsToFulfilWeightLimit) {
@@ -512,9 +512,6 @@ Clause* Superposition::performSuperposition(
 
   unsigned newLength = rwLength+eqLength-1+conLength;
 
-  Unit::InputType inpType = (Unit::InputType)
-  	    Int::max(rwClause->inputType(), eqClause->inputType());
-
   // If proof extra is on let's compute the positions we have performed
   // superposition on 
   if(env.options->proofExtra()==Options::ProofExtra::FULL){
@@ -553,7 +550,7 @@ Clause* Superposition::performSuperposition(
 
   static bool afterCheck = getOptions().literalMaximalityAftercheck() && _salg->getLiteralSelector().isBGComplete();
 
-  Clause* res = new(newLength) Clause(newLength, inpType, infSp.release()); // the inference object owned by res from now on
+  Clause* res = new(newLength) Clause(newLength, infSp.release()); // the inference object owned by res from now on
 
   (*res)[0] = tgtLitS;
   int next = 1;

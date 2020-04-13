@@ -130,10 +130,10 @@ bool WeightQueue::lessThan(Clause* c1,Clause* c2)
   if (c2->age() < c1->age()) {
     return false;
   }
-  if (c1->inputType() < c2->inputType()) {
+  if (c1->inference()->inputType() < c2->inference()->inputType()) {
     return false;
   }
-  if (c2->inputType() < c1->inputType()) {
+  if (c2->inference()->inputType() < c1->inference()->inputType()) {
     return true;
   }
   return c1->number() < c2->number();
@@ -166,10 +166,10 @@ bool AgeQueue::lessThan(Clause* c1,Clause* c2)
     return weightCmp==LESS;
   }
 
-  if (c1->inputType() < c2->inputType()) {
+  if (c1->inference()->inputType() < c2->inference()->inputType()) {
     return false;
   }
-  if (c2->inputType() < c1->inputType()) {
+  if (c2->inference()->inputType() < c1->inference()->inputType()) {
     return true;
   }
 

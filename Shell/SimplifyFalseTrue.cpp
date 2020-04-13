@@ -59,8 +59,7 @@ FormulaUnit* SimplifyFalseTrue::simplify (FormulaUnit* unit)
   }
 
   FormulaUnit* res = new FormulaUnit(g,
-			 new Inference1(Inference::REDUCE_FALSE_TRUE,unit),
-			 unit->inputType());
+			 new Inference1(Inference::Rule::REDUCE_FALSE_TRUE,unit));
   if(unit->included()) {
     res->markIncluded();
   }

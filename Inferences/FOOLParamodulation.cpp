@@ -121,8 +121,8 @@ ClauseIterator FOOLParamodulation::generateClauses(Clause* premise) {
 
   // Found a boolean term! Create the C[true] \/ s = false clause
   unsigned conclusionLength = premise->length() + 1;
-  Inference* inference = new Inference1(Inference::FOOL_PARAMODULATION, premise);
-  Clause* conclusion = new(conclusionLength) Clause(conclusionLength, premise->inputType(), inference);
+  Inference* inference = new Inference1(Inference::Rule::FOOL_PARAMODULATION, premise);
+  Clause* conclusion = new(conclusionLength) Clause(conclusionLength, inference);
   conclusion->setAge(premise->age() + 1);
 
   // Copy the literals from the premise except for the one at `literalPosition`,

@@ -107,8 +107,7 @@ Clause* ClauseFlattening::resolveNegativeVariableEqualities(Clause* cl)
     diffVar = true;
     Substitution subst;
     subst.bind(v1,*v2);
-    cl = new(n) Clause(n,cl->inputType(),
-                       new Inference1(Inference::EQUALITY_RESOLUTION,cl));
+    cl = new(n) Clause(n,new Inference1(Inference::Rule::EQUALITY_RESOLUTION,cl));
     for (int i = n-1;i >= 0;i--) {
       Literal* lit = SubstHelper::apply<Substitution>(lits[i],subst);
       (*cl)[i] = lit;
@@ -116,8 +115,7 @@ Clause* ClauseFlattening::resolveNegativeVariableEqualities(Clause* cl)
     }
   }
   if (!diffVar) { // only X != X found, we should still perform the inference
-    cl = new(n) Clause(n,cl->inputType(),
-                       new Inference1(Inference::EQUALITY_RESOLUTION,cl));
+    cl = new(n) Clause(n,new Inference1(Inference::Rule::EQUALITY_RESOLUTION,cl));
     for (int i = n-1;i >= 0;i--) {
       (*cl)[i] = lits[i];
     }
@@ -257,8 +255,7 @@ Clause* ClauseFlattening::flatten(Clause* cl)
   // If no new literals were added just return cl
   if(!updated) return cl;
 
-  return Clause::fromStack(result,cl->inputType(),
-                            new Inference1(Inference::FMB_FLATTENING,cl));
+  return Clause::fromStack(result,new Inference1(Inference::Rule::FMB_FLATTENING,cl));
 }
 
 }

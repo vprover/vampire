@@ -181,15 +181,14 @@ struct URResolution::Item
 	UnitList::push(premise, premLst);
       }
     }
-    Unit::InputType inpType = Unit::getInputType(premLst);
-    Inference* inf = new InferenceMany(Inference::UNIT_RESULTING_RESOLUTION, premLst);
+    Inference* inf = new InferenceMany(Inference::Rule::UNIT_RESULTING_RESOLUTION, premLst);
     Clause* res;
     if(single) {
       single = Renaming::normalize(single);
-      res = Clause::fromIterator(getSingletonIterator(single), inpType, inf);
+      res = Clause::fromIterator(getSingletonIterator(single), inf);
     }
     else {
-      res = Clause::fromIterator(LiteralIterator::getEmpty(), inpType, inf);
+      res = Clause::fromIterator(LiteralIterator::getEmpty(), inf);
     }
     res->setAge(premisesAge+1);
     return res;

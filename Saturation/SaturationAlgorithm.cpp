@@ -598,14 +598,14 @@ int SaturationAlgorithm::elapsedTime()
 void SaturationAlgorithm::addInputClause(Clause* cl)
 {
   CALL("SaturationAlgorithm::addInputClause");
-  ASS_LE(cl->inputType(),Clause::CLAIM); // larger input types should not appear in proof search
+  ASS_LE(static_cast<unsigned>(cl->inference()->inputType()),static_cast<unsigned>(Inference::InputType::CLAIM)); // larger input types should not appear in proof search
 
   if (_symEl) {
     _symEl->onInputClause(cl);
   }
 
   bool sosForAxioms = _opt.sos() == Options::Sos::ON || _opt.sos() == Options::Sos::ALL; 
-  sosForAxioms = sosForAxioms && cl->inputType()==Clause::AXIOM;
+  sosForAxioms = sosForAxioms && cl->inference()->inputType()==Inference::InputType::AXIOM;
 
   bool sosForTheory = _opt.sos() == Options::Sos::THEORY && _opt.sosTheoryLimit() == 0;
 
@@ -657,7 +657,7 @@ LiteralSelector& SaturationAlgorithm::getSosLiteralSelector()
 void SaturationAlgorithm::addInputSOSClause(Clause* cl)
 {
   CALL("SaturationAlgorithm::addInputSOSClause");
-  ASS_EQ(cl->inputType(),Clause::AXIOM);
+  ASS_EQ(static_cast<unsigned>(cl->inference()->inputType()),static_cast<unsigned>(Inference::InputType::AXIOM));
 
   //we add an extra reference until the clause is added to some container, so that
   //it won't get deleted during some code e.g. in the onNewClause handler
@@ -878,7 +878,7 @@ void SaturationAlgorithm::handleEmptyClause(Clause* cl)
       // this is a poor way of handling this in release mode but it prevents unsound proofs
       throw MainLoop::MainLoopFinishedException(Statistics::REFUTATION_NOT_FOUND);
     }
-    if(cl->inputType() == Unit::AXIOM){
+    if(cl->inference()->inputType() == Inference::InputType::AXIOM){
       UIHelper::setConjectureInProof(false);
     }
 

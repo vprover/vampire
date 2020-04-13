@@ -253,9 +253,8 @@ Clause* ExtensionalityResolution::performExtensionalityResolution(
   unsigned otherLen = otherCl->length();
   
   unsigned newLength = otherLen + extLen - 2;
-  Unit::InputType newInputType = Unit::getInputType(extCl->inputType(), otherCl->inputType());
-  Inference* inf = new Inference2(Inference::EXTENSIONALITY_RESOLUTION, extCl, otherCl);
-  Clause* res = new(newLength) Clause(newLength, newInputType, inf);
+  Inference* inf = new Inference2(Inference::Rule::EXTENSIONALITY_RESOLUTION, extCl, otherCl);
+  Clause* res = new(newLength) Clause(newLength, inf);
 
   unsigned next = 0;
 

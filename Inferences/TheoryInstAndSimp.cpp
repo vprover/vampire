@@ -790,12 +790,12 @@ partial_check_end:
     Stack<Literal*>::Iterator tit(_theoryLits);
     while(tit.hasNext()){ cout << "\t" << tit.next()->toString() << endl;}
 #endif
-    Inference* inf_inst = new Inference1(Inference::INSTANTIATION,_cl);
-    Clause* inst = new(_cl->length()) Clause(_cl->length(),_cl->inputType(),inf_inst);
+    Inference* inf_inst = new Inference1(Inference::Rule::INSTANTIATION,_cl);
+    Clause* inst = new(_cl->length()) Clause(_cl->length(),inf_inst);
 
-    Inference* inf_simp = new Inference1(Inference::INTERPRETED_SIMPLIFICATION,inst);
+    Inference* inf_simp = new Inference1(Inference::Rule::INTERPRETED_SIMPLIFICATION,inst);
     unsigned newLen = _cl->length() - _theoryLits.size();
-    Clause* res = new(newLen) Clause(newLen,_cl->inputType(),inf_simp);
+    Clause* res = new(newLen) Clause(newLen,inf_simp);
 
 #if VDEBUG
     unsigned skip = 0;

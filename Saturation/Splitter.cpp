@@ -201,10 +201,10 @@ void SplittingBranchSelector::handleSatRefutation()
     UnitList* prems = SATInference::getFOPremises(satRefutation);
 
     Inference* foInf = satPremises ? // does our SAT solver support postponed minimization?
-        new InferenceFromSatRefutation(Inference::AVATAR_REFUTATION, prems, satPremises) :
-        new InferenceMany(Inference::AVATAR_REFUTATION, prems);
+        new InferenceFromSatRefutation(Inference::Rule::AVATAR_REFUTATION, prems, satPremises) :
+        new InferenceMany(Inference::Rule::AVATAR_REFUTATION, prems);
 
-    Clause* foRef = Clause::fromIterator(LiteralIterator::getEmpty(), Unit::getInputType(prems), foInf);
+    Clause* foRef = Clause::fromIterator(LiteralIterator::getEmpty(), foInf);
     // TODO: in principle, the user might be interested in this final clause's age (currently left 0)
     throw MainLoop::RefutationFoundException(foRef);
   } else { // we must produce a well colored proof
@@ -263,8 +263,8 @@ void SplittingBranchSelector::handleSatRefutation()
     }
 
     if (colorCnts[sndCol] == 0) { // this is a degenerate case, in which we don't need to interpolate at all
-      Inference* foInf = new InferenceMany(Inference::AVATAR_REFUTATION, first_prems);
-      Clause* foRef = Clause::fromIterator(LiteralIterator::getEmpty(), Unit::getInputType(first_prems), foInf);
+      Inference* foInf = new InferenceMany(Inference::Rule::AVATAR_REFUTATION, first_prems);
+      Clause* foRef = Clause::fromIterator(LiteralIterator::getEmpty(), foInf);
       throw MainLoop::RefutationFoundException(foRef);
     }
 
@@ -320,13 +320,13 @@ void SplittingBranchSelector::handleSatRefutation()
 
     // finish constructing the derivation
     {
-      Inference* elInf = new InferenceMany(Inference::SAT_COLOR_ELIMINATION, second_prems);
-      FormulaUnit* interpolated = new FormulaUnit(interpolant,elInf,Unit::getInputType(second_prems));
+      Inference* elInf = new InferenceMany(Inference::Rule::SAT_COLOR_ELIMINATION, second_prems);
+      FormulaUnit* interpolated = new FormulaUnit(interpolant,elInf);
 
       UnitList::push(interpolated,first_prems);
 
-      Inference* finalInf = new InferenceMany(Inference::SAT_COLOR_ELIMINATION,first_prems);
-      Clause* foRef = Clause::fromIterator(LiteralIterator::getEmpty(), Unit::getInputType(first_prems), finalInf);
+      Inference* finalInf = new InferenceMany(Inference::Rule::SAT_COLOR_ELIMINATION,first_prems);
+      Clause* foRef = Clause::fromIterator(LiteralIterator::getEmpty(), finalInf);
 
       throw MainLoop::RefutationFoundException(foRef);
     }
@@ -984,7 +984,7 @@ bool Splitter::handleNonSplittable(Clause* cl)
     UnitList::push(cl,ps); // making sure this clause is the last one pushed (for the sake of colorFromAssumedFOConversion)
 
     Formula* f = JunctionFormula::generalJunction(OR,resLst);
-    FormulaUnit* scl = new FormulaUnit(f,new InferenceMany(Inference::AVATAR_SPLIT_CLAUSE,ps),cl->inputType());
+    FormulaUnit* scl = new FormulaUnit(f,new InferenceMany(Inference::Rule::AVATAR_SPLIT_CLAUSE,ps));
 
     nsClause->setInference(new FOConversionInference(scl));
 
@@ -1155,7 +1155,7 @@ bool Splitter::doSplitting(Clause* cl)
   UnitList::push(cl,ps); // making sure this clause is the last one pushed (for the sake of colorFromAssumedFOConversion)
 
   Formula* f = JunctionFormula::generalJunction(OR,resLst);
-  FormulaUnit* scl = new FormulaUnit(f,new InferenceMany(Inference::AVATAR_SPLIT_CLAUSE,ps),cl->inputType());
+  FormulaUnit* scl = new FormulaUnit(f,new InferenceMany(Inference::Rule::AVATAR_SPLIT_CLAUSE,ps));
 
   splitClause->setInference(new FOConversionInference(scl));
 
@@ -1222,7 +1222,7 @@ Clause* Splitter::buildAndInsertComponentClause(SplitLevel name, unsigned size, 
    */
   SplitLevel posName = (name&~1);
   Unit* def_u;
-  Unit::InputType inpType = orig ? orig->inputType() : Unit::AXIOM;
+  Inference::InputType inpType = orig ? orig->inference()->inputType() : Inference::InputType::AXIOM;
   if (!_defs.find(posName, def_u)) {
     Literal* oplit;
     Literal*const* possibly_flipped_lits = lits;
@@ -1232,22 +1232,22 @@ Clause* Splitter::buildAndInsertComponentClause(SplitLevel name, unsigned size, 
     }
 
     vstring formula_name = getFormulaStringFromName(posName);
-    Clause* temp = Clause::fromIterator(getArrayishObjectIterator(possibly_flipped_lits, size), inpType,new Inference0(Inference::AVATAR_DEFINITION));
+    Clause* temp = Clause::fromIterator(getArrayishObjectIterator(possibly_flipped_lits, size), new Inference0(inpType,Inference::Rule::AVATAR_DEFINITION));
     Formula* def_f = new BinaryFormula(IFF,
                  new NamedFormula(formula_name),
                  Formula::fromClause(temp));
 
-    Inference0* def_u_i = new Inference0(Inference::AVATAR_DEFINITION);
+    Inference0* def_u_i = new Inference0(inpType,Inference::Rule::AVATAR_DEFINITION);
     def_u_i->setPureTheoryDescendant(orig->inference()->isPureTheoryDescendant());
     def_u_i->setInductionDepth(orig->inference()->inductionDepth());
-    def_u = new FormulaUnit(def_f,def_u_i,inpType);
+    def_u = new FormulaUnit(def_f,def_u_i);
     InferenceStore::instance()->recordIntroducedSplitName(def_u,formula_name);
     // cout << "Add def " << def_u->toString() << " for " << name << endl;
     ALWAYS(_defs.insert(posName,def_u));
   }
 
-  Clause* compCl = Clause::fromIterator(getArrayishObjectIterator(lits, size), inpType, 
-          new Inference1(Inference::AVATAR_COMPONENT,def_u));
+  Clause* compCl = Clause::fromIterator(getArrayishObjectIterator(lits, size),
+          new Inference1(Inference::Rule::AVATAR_COMPONENT,def_u));
 
   // propagate running sums:
   // - we have certain values we propagate from the parents of a clause d to d. These values are mainly used to guide saturation.
@@ -1658,7 +1658,7 @@ bool Splitter::handleEmptyClause(Clause* cl)
   UnitList::push(cl,ps);
 
   Formula* f = JunctionFormula::generalJunction(OR,resLst);
-  FormulaUnit* scl = new FormulaUnit(f,new InferenceMany(Inference::AVATAR_CONTRADICTION_CLAUSE,ps),cl->inputType());
+  FormulaUnit* scl = new FormulaUnit(f,new InferenceMany(Inference::Rule::AVATAR_CONTRADICTION_CLAUSE,ps));
 
   confl->setInference(new FOConversionInference(scl));
   
@@ -1848,11 +1848,12 @@ UnitList* Splitter::explicateAssertionsForSaturatedClauseSet(UnitList* clauses)
     }
 
     // cout << "fla out: " << f->toString() << endl;
-
-    UnitList::push(new FormulaUnit(f,new Inference1(Inference::FORMULIFY,cl),
-        // because units which are conjectures are explicitly negated in TPTPPrinter::toString for some reason:
-        cl->inputType() == Unit::CONJECTURE ? Unit::NEGATED_CONJECTURE : cl->inputType()),
-        result); // would be nice to preserve
+    Inference* inf = new Inference1(Inference::Rule::FORMULIFY,cl);
+    if (cl->inference()->inputType() == Inference::InputType::CONJECTURE) {
+      // because units which are conjectures are explicitly negated in TPTPPrinter::toString for some reason:
+      inf->setInputType(Inference::InputType::NEGATED_CONJECTURE);
+    }
+    UnitList::push(new FormulaUnit(f,inf),result);
 
     ALWAYS(processed.insert(cl,f));
   }

@@ -55,28 +55,6 @@ public:
     FORMULA = 1
   };
 
-  /** Kind of input. The integers should not be changed, they are used in
-   *  Compare. */
-  enum InputType {
-    /** Axiom or derives from axioms */
-    AXIOM = 0,
-    /** Assumption or derives from axioms and assumptions */
-    ASSUMPTION = 1,
-    /** derives from the goal */
-    CONJECTURE = 2,
-    /** negated conjecture */
-    NEGATED_CONJECTURE = 3,
-    /** Vampire-only, for the consequence-finding mode */
-    CLAIM = 4,
-    /** Used in parsing and preprocessing for extensionality clause tagging, should not appear in proof search */
-    EXTENSIONALITY_AXIOM = 5,
-    /** Used to seperate model definitions in model_check mode, should not appear in proof search */
-    MODEL_DEFINITION = 6
-  };
-
-  static InputType getInputType(UnitList* units);
-  static InputType getInputType(InputType t1, InputType t2);
-
   void destroy();
   vstring toString() const;
   unsigned varCnt();
@@ -88,16 +66,6 @@ public:
   { return _kind == CLAUSE; }
 
   Clause* asClause();
-
-  /** return the input type of the unit */
-  InputType inputType() const
-  { return (InputType)_inputType; }
-  /** set the input type of the unit */
-  void setInputType(InputType it)
-  { _inputType=it; }
-  /** return true if inputType relates to a goal **/
-  bool isGoal() const 
-  { return _inputType > ASSUMPTION; }  
 
   /** Return the number of this unit */
   unsigned number() const { return _number; }
@@ -159,9 +127,7 @@ public:
   inline bool isFromPreprocessing()
   { return !_firstNonPreprocessingNumber || _number<_firstNonPreprocessingNumber; }
 
-
   void assertValid();
-
 
   static void onPreprocessingEnd();
   static void onParsingEnd(){ _lastParsingNumber = _lastNumber;}
@@ -181,7 +147,7 @@ protected:
   /** inference used to obtain the unit */
   Inference* _inference;
 
-  Unit(Kind kind,Inference* inf,InputType it);
+  Unit(Kind kind,Inference* inf);
 
   /** Used to enumerate units */
   static unsigned _lastNumber;
