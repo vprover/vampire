@@ -32,6 +32,8 @@
 #include "Lib/Allocator.hpp"
 #include "Lib/VString.hpp"
 
+#include <type_traits>
+
 using namespace std;
 using namespace Lib;
 
@@ -45,7 +47,7 @@ class Inference
 public:
   /** Kind of input. The integers should not be changed, they are used in
    *  Compare. */
-  enum class InputType : unsigned int {
+  enum class InputType : unsigned char {
     /** Axiom or derives from axioms */
     AXIOM = 0,
     /** Assumption or derives from axioms and assumptions */
@@ -62,27 +64,22 @@ public:
     MODEL_DEFINITION = 6
   };
 
+  static std::underlying_type<InputType>::type toNumber(InputType t) { return static_cast<std::underlying_type<InputType>::type>(t); }
+
   static InputType getInputType(UnitList* units);
   static InputType getInputType(InputType t1, InputType t2);
 
   /** return the input type of the unit */
-  InputType inputType() const
-  { return (InputType)_inputType; }
+  InputType inputType() const { return (InputType)_inputType; }
   /** set the input type of the unit */
-  void setInputType(InputType it)
-  { _inputType=it; }
+  void setInputType(InputType it) { _inputType=it; }
   /** return true if inputType relates to a goal **/
-  bool derivedFromGoal() const
-  { return static_cast<unsigned>(_inputType) > static_cast<unsigned>(InputType::ASSUMPTION); }
-
-protected:
-  InputType _inputType;
-public:
+  bool derivedFromGoal() const { return toNumber(_inputType) > toNumber(InputType::ASSUMPTION); }
 
   /**
    * Tag to denote various kinds of inference rules.
    */
-  enum class Rule : unsigned int {
+  enum class Rule : unsigned char {
     /** input formula or clause */
     INPUT,
     /** negated conjecture from the input */
@@ -416,6 +413,8 @@ public:
     EXTERNAL_THEORY_AXIOM
   }; // class Inference::Rule
 
+  static std::underlying_type<Rule>::type toNumber(Rule r) { return static_cast<std::underlying_type<Rule>::type>(r); }
+
   /** Currently not enforced but (almost) assumed:
    * - these are simplifying inferences used during proof search
    * - therefore they operate on Clauses
@@ -424,8 +423,8 @@ public:
    * - the age of the corresponding Clause is the same as that of this main premise
    **/
   static bool isSimplifyingInferenceRule(Rule r) {
-    return (static_cast<unsigned>(r) >= static_cast<unsigned>(Rule::GENERIC_SIMPLIFYING_INFERNCE) &&
-        static_cast<unsigned>(r) < static_cast<unsigned>(Rule::INTERNAL_SIMPLIFYING_INFERNCE_LAST));
+    return (toNumber(r) >= toNumber(Rule::GENERIC_SIMPLIFYING_INFERNCE) &&
+        toNumber(r) < toNumber(Rule::INTERNAL_SIMPLIFYING_INFERNCE_LAST));
   }
 
   /**
@@ -435,16 +434,16 @@ public:
    * - the age of the corresponding Clause is computed as the max over parent's ages +1
    */
   static bool isGeneratingInferenceRule(Rule r) {
-    return (static_cast<unsigned>(r) >= static_cast<unsigned>(Rule::GENERIC_GENERATING_INFERNCE) &&
-        static_cast<unsigned>(r) < static_cast<unsigned>(Rule::INTERNAL_GENERATING_INFERNCE_LAST));
+    return (toNumber(r) >= toNumber(Rule::GENERIC_GENERATING_INFERNCE) &&
+        toNumber(r) < toNumber(Rule::INTERNAL_GENERATING_INFERNCE_LAST));
   }
 
   /** Currently not enforced but assumed:
    * - theory axioms should not have any premises
    **/
   static bool isTheoryAxiomRule(Rule r) {
-    return (static_cast<unsigned>(r) >= static_cast<unsigned>(Rule::GENERIC_THEORY_AXIOM) &&
-        static_cast<unsigned>(r) < static_cast<unsigned>(Rule::INTERNAL_THEORY_AXIOM_LAST));
+    return (toNumber(r) >= toNumber(Rule::GENERIC_THEORY_AXIOM) &&
+        toNumber(r) < toNumber(Rule::INTERNAL_THEORY_AXIOM_LAST));
   }
 
   static bool isExternalTheoryAxiomRule(Rule r) {
@@ -523,9 +522,9 @@ public:
   /** Return the extra string */
   vstring extra() { return _extra; }
 
-  unsigned getSineLevel() const { return _sineLevel; }
+  unsigned char getSineLevel() const { return _sineLevel; }
   /* should be only used to initialize the "whole chain" by SineUtils */
-  void setSineLevel(unsigned l) { _sineLevel = l; }
+  void setSineLevel(unsigned char l) { _sineLevel = l; }
 
   /*
    * returns true if clause is a theory axiom
@@ -576,10 +575,6 @@ public:
   bool isExternalTheoryAxiom() const {
     return isExternalTheoryAxiomRule(_rule);
   }
-
-  // counting the leafs (in the tree rather than dag sense)
-  // which are theory axioms and the total across all leafs
-  float th_ancestors, all_ancestors; // we use floats, because this can grow large (because of the tree understanding of the dag); CAREFUL: could this lead to platform differences?
 
   /*
    * Returns true if the unit belonging to this inference is a pure theory descendant.
@@ -640,22 +635,34 @@ public:
     ASS(!_splits);
     _splits=splits;
   }
+
 protected:
+  InputType _inputType : 3;
+
   /** The rule used */
-  Rule _rule;
-  /** Extra information */
-  vstring _extra;
+  Rule _rule : 8;
 
   /** track whether all leafs were theory axioms only */
-  bool _isPureTheoryDescendant;
+  bool _isPureTheoryDescendant : 1;
+
   /** Induction depth **/
-  unsigned _inductionDepth;
+  unsigned _inductionDepth : 5;
+
   /** Sine level computed in SineUtils and used in various heuristics.
-   * May stay unitialized (i.e. always UINT_MAX), if not needed
+   * May stay uninitialized (i.e. always MAX), if not needed
    **/
-  unsigned _sineLevel; // updated as the minimum from parents to children
-private:
+  unsigned char _sineLevel : 8; // updated as the minimum from parents to children
+
   SplitSet* _splits;
+
+public:
+  // counting the leafs (in the tree rather than dag sense)
+  // which are theory axioms and the total across all leafs
+  float th_ancestors, all_ancestors; // we use floats, because this can grow large (because of the tree understanding of the dag);
+  // CAREFUL: could this lead to platform differences?
+
+  /** Extra information */
+  vstring _extra;
 }; // class Inference
 
 /**
@@ -672,7 +679,7 @@ public:
     _isPureTheoryDescendant = isTheoryAxiom();
 
     //_inductionDepth = 0 from Inference::Inference (or set externally)
-    //_sineLevel = UINT_MAX from Inference::Inference (or set externally)
+    //_sineLevel = MAX from Inference::Inference (or set externally)
   }
 
   /* Inference0 does not update (it does not have parents anyway).

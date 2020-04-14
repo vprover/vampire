@@ -64,7 +64,7 @@ public:
   /** Currently used timer, this is used by all timers as a global clock */
   Timer* timer;
 
-  unsigned maxSineLevel;
+  unsigned char maxSineLevel;
   DHMap<unsigned, unsigned>* predicateSineLevels;
 
   bool haveOutput();

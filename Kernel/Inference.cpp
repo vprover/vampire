@@ -39,7 +39,7 @@ Inference::InputType Inference::getInputType(InputType t1, InputType t2)
 {
   CALL("Unit::getInputType");
 
-  return static_cast<Inference::InputType>(Int::max(static_cast<unsigned>(t1), static_cast<unsigned>(t2)));
+  return static_cast<Inference::InputType>(std::max(toNumber(t1), toNumber(t2)));
 }
 
 /**
@@ -63,10 +63,14 @@ Inference::InputType Inference::getInputType(UnitList* units)
   return res;
 }
 
-Inference::Inference(InputType inputType, Rule r) : _inputType(inputType), _rule(r), _extra(""), _inductionDepth(0), _sineLevel(UINT_MAX), _splits(nullptr) {}
+Inference::Inference(InputType inputType, Rule r) :
+    _inputType(inputType), _rule(r),
+    _inductionDepth(0),
+    _sineLevel(std::numeric_limits<decltype(_sineLevel)>::max()),
+    _splits(nullptr) {}
 
 /**
- * Create an inference object with multiple premisses
+ * Create an inference object with multiple premises
  */
 InferenceMany::InferenceMany(Rule rule,UnitList* premises)
   : Inference(InputType::AXIOM /* the minimal element; we later compute maximum over premises*/,rule),

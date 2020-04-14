@@ -444,7 +444,9 @@ bool SineSelector::perform(UnitList*& units)
       }
       ASS(!_depthLimit || depth<_depthLimit);
       if(_justForSineLevels){
-        env.maxSineLevel++;
+        if (env.maxSineLevel < std::numeric_limits<decltype(env.maxSineLevel)>::max()) { // saturate at 255 or something
+          env.maxSineLevel++;
+        }
       }
       // cout << "Time to inc" << endl;
 

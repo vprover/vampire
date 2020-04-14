@@ -138,8 +138,6 @@ protected:
   unsigned _number;
   /** Kind  */
   unsigned _kind : 1;
-  /** input type  */
-  unsigned _inputType : 3;
   /** used in interpolation to denote parents of what color have been used */
   unsigned _inheritedColor : 2;
   /** true if the unit is read from a TPTP included file  */

@@ -598,7 +598,7 @@ int SaturationAlgorithm::elapsedTime()
 void SaturationAlgorithm::addInputClause(Clause* cl)
 {
   CALL("SaturationAlgorithm::addInputClause");
-  ASS_LE(static_cast<unsigned>(cl->inference()->inputType()),static_cast<unsigned>(Inference::InputType::CLAIM)); // larger input types should not appear in proof search
+  ASS_LE(Inference::toNumber(cl->inference()->inputType()),Inference::toNumber(Inference::InputType::CLAIM)); // larger input types should not appear in proof search
 
   if (_symEl) {
     _symEl->onInputClause(cl);
@@ -657,7 +657,7 @@ LiteralSelector& SaturationAlgorithm::getSosLiteralSelector()
 void SaturationAlgorithm::addInputSOSClause(Clause* cl)
 {
   CALL("SaturationAlgorithm::addInputSOSClause");
-  ASS_EQ(static_cast<unsigned>(cl->inference()->inputType()),static_cast<unsigned>(Inference::InputType::AXIOM));
+  ASS_EQ(Inference::toNumber(cl->inference()->inputType()),Inference::toNumber(Inference::InputType::AXIOM));
 
   //we add an extra reference until the clause is added to some container, so that
   //it won't get deleted during some code e.g. in the onNewClause handler
