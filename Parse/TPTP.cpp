@@ -3213,7 +3213,7 @@ void TPTP::endTff()
     symbol = env.signature->getPredicate(pred);
     if (!added) {
       // GR: Multiple identical type declarations for a symbol are allowed
-      if(symbol->predType()->toString().compare(ot->toString()) != 0){
+      if(symbol->predType() != ot){
         USER_ERROR("Predicate symbol type is declared after its use: " + name);
       }
     }
@@ -3229,7 +3229,7 @@ void TPTP::endTff()
     symbol = env.signature->getFunction(fun);
     if (!added) {
       // GR: Multiple identical type declarations for a symbol are allowed
-      if(symbol->fnType()->toString().compare(ot->toString()) != 0){
+      if(symbol->fnType() != ot){
         USER_ERROR("Function symbol type is declared after its use: " + name);
       }
     }
