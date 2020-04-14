@@ -569,49 +569,4 @@ vstring Inference::ruleName(Rule rule)
   }
 } // Inference::name()
 
-bool Inference::positionIn(TermList& subterm,TermList* term,vstring& position)
-{
-  CALL("Inference::positionIn(TermList)");
-   //cout << "positionIn " << subterm.toString() << " in " << term->toString() << endl;
-
-  if(!term->isTerm()){
-    if(subterm.isTerm()) return false;
-    if (term->var()==subterm.var()){
-      position = "1";
-      return true;
-    }
-    return false;
-  }
-  return positionIn(subterm,term->term(),position);
-}
-
-bool Inference::positionIn(TermList& subterm,Term* term,vstring& position)
-{
-  CALL("Inference::positionIn(Term)");
-  //cout << "positionIn " << subterm.toString() << " in " << term->toString() << endl;
-
-  if(subterm.isTerm() && subterm.term()==term){
-    position = "1";
-    return true;
-  }
-  if(term->arity()==0) return false;
-
-  unsigned pos=1;
-  TermList* ts = term->args();
-  while(true){
-    if(*ts==subterm){
-      position=Lib::Int::toString(pos); 
-      return true;
-    }
-    if(positionIn(subterm,ts,position)){
-      position = Lib::Int::toString(pos) + "." + position;
-      return true;
-    }
-    pos++;
-    ts = ts->next();
-    if(ts->isEmpty()) break;
-  }
-
-  return false;
-}
 

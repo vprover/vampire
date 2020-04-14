@@ -511,6 +511,10 @@ Clause* Superposition::performSuperposition(
 
   unsigned newLength = rwLength+eqLength-1+conLength;
 
+  static bool afterCheck = getOptions().literalMaximalityAftercheck() && _salg->getLiteralSelector().isBGComplete();
+
+  Clause* res = new(newLength) Clause(newLength, infSp.release()); // the inference object owned by res from now on
+
   // If proof extra is on let's compute the positions we have performed
   // superposition on 
   if(env.options->proofExtra()==Options::ProofExtra::FULL){
@@ -530,7 +534,7 @@ Clause* Superposition::performSuperposition(
     vstring eqPlace = Lib::Int::toString(eqClause->getLiteralPosition(eqLit));
 
     vstring rwPos="_";
-    ALWAYS(Inference::positionIn(rwTerm,rwLit,rwPos));
+    ALWAYS(Kernel::positionIn(rwTerm,rwLit,rwPos));
     vstring eqPos = "("+eqPlace+").2";
     rwPos = "("+rwPlace+")."+rwPos;
 
@@ -544,12 +548,11 @@ Clause* Superposition::performSuperposition(
     //cout << extra << endl;
     //NOT_IMPLEMENTED;
 
-    infSp->setExtra(extra);
+    if (!env.proofExtra) {
+      env.proofExtra = new DHMap<void*,vstring>();
+    }
+    env.proofExtra->insert(res,extra);
   }
-
-  static bool afterCheck = getOptions().literalMaximalityAftercheck() && _salg->getLiteralSelector().isBGComplete();
-
-  Clause* res = new(newLength) Clause(newLength, infSp.release()); // the inference object owned by res from now on
 
   (*res)[0] = tgtLitS;
   int next = 1;

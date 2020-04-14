@@ -360,8 +360,8 @@ protected:
       }
 
       // print Extra
-      vstring extra = cs->inference()->extra(); 
-      if(extra != ""){
+      vstring extra;
+      if (env.proofExtra && env.proofExtra->find(cs,extra) && extra != "") {
         out << ", " << extra;
       }
       out << "]" << endl;
