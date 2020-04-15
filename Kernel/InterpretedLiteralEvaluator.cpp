@@ -265,10 +265,10 @@ public:
     ConstantType r;
     if (lhs == rhs) {
       auto raw = !_ineq.IS_STRICT;
-      return PredEvalResult::trivial(lit.polarity() ? raw : !raw);
+      return PredEvalResult::trivial(lit.polarity() == raw);
     } else if (theory->tryInterpretConstant(lhs, l) 
         && theory->tryInterpretConstant(rhs, r)) { 
-      return PredEvalResult::trivial(_ineq(l, r));
+      return PredEvalResult::trivial(lit.polarity() == _ineq(l, r));
     } else if (_ineq.num.isZero(lhs)) {
       return PredEvalResult::nop();
     } else {
