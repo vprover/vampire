@@ -118,7 +118,7 @@ TermWrapper real(int a, int b) {
 } 
  
 Literal& neg(Literal& l) { 
-  return *Literal::create(&l, false);
+  return *Literal::create(&l, !l.polarity());
 } 
 
 #define RELATION(name, inter) \
@@ -357,6 +357,7 @@ TEST_FUN(rebalance_var_uninter) {
     );
 
 }
+#endif
 
 TEST_FUN(literal_to_const_1) {
   TERM_FUNCTIONS(REAL)
@@ -377,6 +378,23 @@ TEST_FUN(literal_to_const_2) {
 }
 
 TEST_FUN(literal_to_const_3) {
+  TERM_FUNCTIONS(INT)
+
+  // Interpret 3*2 < 5
+  check_eval(
+      lt(mul(3,2),5),
+      false
+    );
+
+  // Interpret 3*2 < 5
+  check_eval(
+      neg(lt(mul(3,2),5)),
+      true
+    );
+
+}
+
+TEST_FUN(literal_to_const_4) {
   TERM_FUNCTIONS(REAL)
 
   // Interpret 3*2 > 5
@@ -387,7 +405,7 @@ TEST_FUN(literal_to_const_3) {
 
 }
 
-TEST_FUN(literal_to_const_4) {
+TEST_FUN(literal_to_const_5) {
   TERM_FUNCTIONS(REAL)
   // Interpret 3*2 > 13
   check_eval(
@@ -395,6 +413,9 @@ TEST_FUN(literal_to_const_4) {
       false
     );
 }
+
+#ifdef TEST_EVAL
+
 
 TEST_FUN(literal_to_const_5) { 
   TERM_FUNCTIONS(REAL)
