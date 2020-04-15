@@ -117,7 +117,7 @@ CLASS_NAME(InterpretedLiteralEvaluator::ACFunEvaluator<Operator>);
   using ConstantType = typename Operator::ConstantType;
 
   ACFunEvaluator() : _fun(env.signature->getInterpretingSymbol(Operator::interpreation)) { }
-  const unsigned _fun; //TODO make const
+  const unsigned _fun; 
 
   virtual bool canEvaluateFunc(unsigned func) { return func == _fun; }
 
@@ -144,12 +144,10 @@ CLASS_NAME(InterpretedLiteralEvaluator::ACFunEvaluator<Operator>);
     }
     ASS(done.length()>1);
 
-    Stack<TermList*>::Iterator it(done);
     Stack<TermList*> keep;
     ConstantType acc = Operator::IDENTITY;
     int acc_cnt = 0;
-    while(it.hasNext()){ 
-      TermList* t = it.next();
+    for(TermList* t : done){ 
 	_DEBUG( "considering " << t->toString() );
         ConstantType c;
       if(t->isTerm() && theory->tryInterpretConstant(t->term(),c)){
@@ -1460,7 +1458,6 @@ bool InterpretedLiteralEvaluator::evaluate(Literal* lit, bool& isConstant, Liter
   // }
   // _DEBUG( resLit->toString()<< " is ground and interpreted, evaluating..." );
 
-  //TODO doesn't reach this point. continue here
 
   unsigned pred = resLit->functor();
 
@@ -1535,12 +1532,12 @@ InterpretedLiteralEvaluator::Evaluator* InterpretedLiteralEvaluator::getFuncEval
 	while (evit.hasNext()) {
 	  Evaluator* ev = evit.next();
           // we only set the evaluator if it has not yet been set
-
-          // TODO: ask giles: _funEvaluators[i] is (probably) uninitialized if (i) USE_SYSTEM_ALLOCATION is defined (ii) a new page is allocated by the custom allocator (this internally calls malloc)
-	  if (_funEvaluators[i]==0 && ev->canEvaluateFunc(i)) {
+	  if (ev->canEvaluateFunc(i)) {
 	    _funEvaluators[i] = ev;
+            goto break_inner0;
 	  }
 	}
+break_inner0:;
     }
   }
   return _funEvaluators[func];
@@ -1561,11 +1558,12 @@ InterpretedLiteralEvaluator::Evaluator* InterpretedLiteralEvaluator::getPredEval
       EvalStack::Iterator evit(_evals);
       while (evit.hasNext()) {
 	Evaluator* ev = evit.next();
-        // TODO: ask giles: _predEvaluators[i] is (probably) uninitialized if (i) USE_SYSTEM_ALLOCATION is defined (ii) a new page is allocated by the custom allocator (this internally calls malloc)
-	if (_predEvaluators[i] == 0 && ev->canEvaluatePred(i)) {
+	if (ev->canEvaluatePred(i)) {
 	  _predEvaluators[i] = ev;
+          goto break_inner1;
 	}
       }
+break_inner1:;
     }
   }
   return _predEvaluators[pred];
