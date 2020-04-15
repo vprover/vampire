@@ -82,6 +82,11 @@ public:
   enum class Rule : unsigned char {
     /** input formula or clause */
     INPUT,
+
+    /** THIS DEFINES AN INTERVAL IN THIS ENUM WHERE ALL
+     * (preprocessing/normalisation) FORMULA TRANSFORMATION SHOULD BELONG
+     * (see also INTERNAL_FORMULA_TRANSFORMATION_LAST and isFormulaTransformation below). */
+    GENERIC_FORMULA_TRANSFORMATION,
     /** negated conjecture from the input */
     NEGATED_CONJECTURE,
     /** introduction of answer literal into the conjecture,
@@ -130,6 +135,10 @@ public:
     ENNF,
     /** obtained by transformation into NNF */
     NNF,
+    /** reduce a formula containing false or true, for example
+     *  false & A ---> false */
+    REDUCE_FALSE_TRUE,
+
 //     /** Replace formula (Q x1 ... xk ... x_n)A by
 //      * (Q x1 ... xk-1 xk+1 ... x_n)A, where xk does not occur in A */
 //     DUMMY_QUANTIFIER_REMOVAL,
@@ -160,11 +169,20 @@ public:
 //     /** miniscoping */
 //     MINISCOPE,
     /** choice axiom */
+
+    /** normalizing inference */
+    THEORY_NORMALIZATION,
+
+    /** a premise to skolemization */
     CHOICE_AXIOM,
     /** skolemization */
     SKOLEMIZE,
     /** obtain clause from a formula */
     CLAUSIFY,
+    /** the (preprocessing/normalisation) formula transformation marker --
+      inferences between GENERIC_FORMULA_TRANSFORMATION and INTERNAL_FORMULA_TRANSFORMATION_LAST
+      will be automatically understood as formula transformations (see also isFormulaTransformation) */
+    INTERNAL_FORMULA_TRANSFORMATION_LAST,
 
     /** THIS DEFINES AN INTERVAL IN THIS ENUM WHERE ALL SIMPLIFYING INFERENCES SHOULD BELONG
      * (see also INTERNAL_SIMPLIFYING_INFERNCE_LAST and isSimplifyingInferenceRule below). */
@@ -263,11 +281,8 @@ public:
     PREDICATE_DEFINITION_UNFOLDING,
     /** merging predicate definitions */
     PREDICATE_DEFINITION_MERGING,
-    /** reduce a formula containing false or true, for example
-     *  false & A ---> false */
-    REDUCE_FALSE_TRUE,
-    /** normalizing inference */
-    THEORY_NORMALIZATION,
+
+
     /** unused predicate definition removal */
     UNUSED_PREDICATE_DEFINITION_REMOVAL,
     /** pure predicate removal */
@@ -415,6 +430,11 @@ public:
 
   static std::underlying_type<Rule>::type toNumber(Rule r) { return static_cast<std::underlying_type<Rule>::type>(r); }
 
+  static bool isFormulaTransformation(Rule r) {
+    return (toNumber(r) >= toNumber(Rule::GENERIC_FORMULA_TRANSFORMATION) &&
+        toNumber(r) < toNumber(Rule::INTERNAL_FORMULA_TRANSFORMATION_LAST));
+  }
+
   /** Currently not enforced but (almost) assumed:
    * - these are simplifying inferences used during proof search
    * - therefore they operate on Clauses
@@ -451,6 +471,8 @@ public:
   }
 
   explicit Inference(InputType inputType, Rule r);
+
+  static Inference* newFormulaTransformation(Rule r, Unit* premise);
 
   /**
    * Destroy the Inference object and decrease reference
@@ -566,6 +588,11 @@ public:
     return isExternalTheoryAxiomRule(_rule);
   }
 
+  /** Mark the corresponding unit as read from a TPTP included file  */
+  void markIncluded() { _included = 1; }
+  /** true if the unit is read from a TPTP included file  */
+  bool included() const { return _included; }
+
   /*
    * Returns true if the unit belonging to this inference is a pure theory descendant.
    *
@@ -631,6 +658,9 @@ protected:
 
   /** The rule used */
   Rule _rule : 8;
+
+  /** true if the unit is read from a TPTP included file  */
+  bool _included : 1;
 
   /** track whether all leafs were theory axioms only */
   bool _isPureTheoryDescendant : 1;

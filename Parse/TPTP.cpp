@@ -3089,7 +3089,7 @@ void TPTP::endFof()
   cout << "Unit: " << unit->toString() << "\n";
 #endif
   if (!_inputs.isEmpty()) {
-    unit->markIncluded();
+    unit->inference()->markIncluded();
   }
 
   switch (_lastInputType) {

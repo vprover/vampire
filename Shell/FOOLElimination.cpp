@@ -159,12 +159,13 @@ FormulaUnit* FOOLElimination::apply(FormulaUnit* unit) {
     return rectifiedUnit;
   }
 
-  Inference* inference = new Inference1(Inference::Rule::FOOL_ELIMINATION, rectifiedUnit);
+  /*
+   * MS/TODO: We should be presenting the new formula as following
+   * from the rectifiedUnit and the generated definitions
+   * (similarly to how this is done with Naming)
+   */
+  Inference* inference = Inference::newFormulaTransformation(Inference::Rule::FOOL_ELIMINATION, rectifiedUnit);
   FormulaUnit* processedUnit = new FormulaUnit(processedFormula, inference);
-
-  if (unit->included()) {
-    processedUnit->markIncluded();
-  }
 
   if (env.options->showPreprocessing()) {
     env.beginOutput();

@@ -117,11 +117,6 @@ public:
    */
   void decRefCnt();
 
-  /** mark the unit as read from a TPTP included file  */
-  inline void markIncluded() {_included = 1;}
-  /** true if the unit is read from a TPTP included file  */
-  inline bool included() const {return _included;}
-
   /** Return true iff unit was created during preprocessing
    * (and not during the run of the saturation algorithm) */
   inline bool isFromPreprocessing()
@@ -140,8 +135,7 @@ protected:
   unsigned _kind : 1;
   /** used in interpolation to denote parents of what color have been used */
   unsigned _inheritedColor : 2;
-  /** true if the unit is read from a TPTP included file  */
-  unsigned _included : 1;
+
   /** inference used to obtain the unit */
   Inference* _inference;
 

@@ -296,12 +296,12 @@ void CLTBModeLearning::loadIncludes()
       parser.parse();
       UnitList* funits = parser.units();
       if (parser.containsConjecture()) {
-	USER_ERROR("Axiom file " + fname + " contains a conjecture.");
+        USER_ERROR("Axiom file " + fname + " contains a conjecture.");
       }
 
       UnitList::Iterator fuit(funits);
       while (fuit.hasNext()) {
-	fuit.next()->markIncluded();
+        fuit.next()->inference()->markIncluded();
       }
       theoryAxioms=UnitList::concat(funits,theoryAxioms);
     }

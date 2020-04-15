@@ -62,7 +62,6 @@ Unit::Unit(Kind kind,Inference* inf)
   : _number(++_lastNumber),
     _kind(kind),
     _inheritedColor(COLOR_INVALID),
-    _included(0),
     _inference(inf)
 {
 } // Unit::Unit

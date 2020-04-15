@@ -368,7 +368,7 @@ FormulaUnit* LocalFormulaUnitTransformer::transform(FormulaUnit* unit)
   if(f==newForm) {
     return unit;
   }
-  Inference* inf = new Inference1(_rule, unit);
+  Inference* inf = Inference::newFormulaTransformation(_rule, unit);
   return new FormulaUnit(newForm, inf);
 }
 

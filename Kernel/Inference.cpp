@@ -65,9 +65,23 @@ Inference::InputType Inference::getInputType(UnitList* units)
 
 Inference::Inference(InputType inputType, Rule r) :
     _inputType(inputType), _rule(r),
+    _included(false),
     _inductionDepth(0),
     _sineLevel(std::numeric_limits<decltype(_sineLevel)>::max()),
     _splits(nullptr) {}
+
+Inference* Inference::newFormulaTransformation(Rule r, Unit* premise)
+{
+  CALL("Inference::newFormulaTransformation/2");
+
+  ASS(isSimplifyingInferenceRule(r));
+  ASS(!premise->isClause());
+
+  Inference* res =  new Inference1(r,premise);
+  res->_included = premise->inference()->_included;
+
+  return res;
+}
 
 /**
  * Create an inference object with multiple premises
