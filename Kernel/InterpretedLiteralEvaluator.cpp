@@ -32,7 +32,7 @@
 
 #include "InterpretedLiteralEvaluator.hpp"
 
-#define IDEBUG 0
+#define IDEBUG 1
 
 #if IDEBUG
 #define _DEBUG(...) 
@@ -495,9 +495,9 @@ public:
       T arg1;
       if (arity==1) {
         if (theory->tryInterpretConstant(arg1Trm, arg1)){
+          // TODO do something
           if (!tryEvaluateUnaryFunc(itp, arg1, resNum)) { return false;}
-        }
-        else{ return false;}
+        } else{ return false;}
       }
       else if(arity==2){
         // If one argument is not a constant and the other is zero, one or minus one then
@@ -1519,28 +1519,41 @@ TermList InterpretedLiteralEvaluator::transformSubterm(TermList trm)
 /**
  * This searches for an Evaluator for a function
  */
+template<class Fn>
+InterpretedLiteralEvaluator::Evaluator* InterpretedLiteralEvaluator::getEvaluator(unsigned functor, DArray<Evaluator*>& evaluators, Fn canEval) 
+{
+  CALL("InterpretedLiteralEvaluator::getEvaluator");
+
+  if (functor >= evaluators.size()) {
+    unsigned oldSz = evaluators.size();
+    unsigned newSz = functor + 1 ;
+    evaluators.expand(newSz);
+    for (unsigned i=oldSz; i<newSz; i++) {
+        EvalStack::Iterator evit(_evals);
+	while (evit.hasNext()) {
+          Evaluator* ev = evit.next();
+          // we only set the evaluator if it has not yet been set
+	  if (canEval(ev, i)) {
+            DEBUG("setting eval " << i)
+	    evaluators[i] = ev;
+            goto break_inner;
+	  }
+	}
+break_inner:;
+    }
+  }
+  return evaluators[functor];
+}
+
+/**
+ * This searches for an Evaluator for a function
+ */
 InterpretedLiteralEvaluator::Evaluator* InterpretedLiteralEvaluator::getFuncEvaluator(unsigned func)
 {
   CALL("InterpretedLiteralEvaluator::getFuncEvaluator");
-
-  if (func>=_funEvaluators.size()) {
-    unsigned oldSz = _funEvaluators.size();
-    unsigned newSz = func+1;
-    _funEvaluators.expand(newSz);
-    for (unsigned i=oldSz; i<newSz; i++) {
-	EvalStack::Iterator evit(_evals);
-	while (evit.hasNext()) {
-	  Evaluator* ev = evit.next();
-          // we only set the evaluator if it has not yet been set
-	  if (ev->canEvaluateFunc(i)) {
-	    _funEvaluators[i] = ev;
-            goto break_inner0;
-	  }
-	}
-break_inner0:;
-    }
-  }
-  return _funEvaluators[func];
+   return getEvaluator(func, 
+       this->_funEvaluators, 
+       [] (Evaluator* ev, unsigned i) {return ev->canEvaluateFunc(i); });
 }
 
 /**
@@ -1549,24 +1562,8 @@ break_inner0:;
 InterpretedLiteralEvaluator::Evaluator* InterpretedLiteralEvaluator::getPredEvaluator(unsigned pred)
 {
   CALL("InterpretedLiteralEvaluator::getPredEvaluator");
-
-  if (pred>=_predEvaluators.size()) {
-    unsigned oldSz = _predEvaluators.size();
-    unsigned newSz = pred+1;
-    _predEvaluators.expand(newSz);
-    for (unsigned i=oldSz; i<newSz; i++) {
-      EvalStack::Iterator evit(_evals);
-      while (evit.hasNext()) {
-	Evaluator* ev = evit.next();
-	if (ev->canEvaluatePred(i)) {
-	  _predEvaluators[i] = ev;
-          goto break_inner1;
-	}
-      }
-break_inner1:;
-    }
-  }
-  return _predEvaluators[pred];
+   return getEvaluator(pred, this->_predEvaluators,
+       [] (Evaluator* ev, unsigned i) {return ev->canEvaluatePred(i); });
 }
 
 }

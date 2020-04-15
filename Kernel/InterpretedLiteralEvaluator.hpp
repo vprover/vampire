@@ -90,6 +90,9 @@ protected:
   bool balanceDivide(Interpretation multiply, 
                        Term* AmultiplyB, TermList* A, TermList C, TermList& result, bool& swap, Stack<Literal*>& sideConditions);
   
+private:
+  template<class Fn>
+  Evaluator* getEvaluator(unsigned func, DArray<Evaluator*>& evaluators, Fn canEval);
 };
 
 
