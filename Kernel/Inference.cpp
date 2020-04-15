@@ -74,7 +74,7 @@ Inference* Inference::newFormulaTransformation(Rule r, Unit* premise)
 {
   CALL("Inference::newFormulaTransformation/2");
 
-  ASS(isSimplifyingInferenceRule(r));
+  ASS(isFormulaTransformation(r));
   ASS(!premise->isClause());
 
   Inference* res =  new Inference1(r,premise);

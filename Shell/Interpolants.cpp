@@ -227,7 +227,7 @@ void Interpolants::removeConjectureNodesFromRefutation(Unit* refutation)
 * For any input unit marked as properly colored but which is, in fact, transparent,
 * we add an artificial parent which is forced to pretend it was truly colored that way,
 * so that InterpolantMinimizer can consider this input unit as a result of a symbol eliminating inference.
-* (Without this, InterpolantMinimizer does not work properly is such cases.)
+* (Without this, InterpolantMinimizer does not work properly in such cases.)
  */
 void Interpolants::fakeNodesFromRightButGrayInputsRefutation(Unit* refutation)
 {

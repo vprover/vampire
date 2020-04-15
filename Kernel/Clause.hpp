@@ -363,8 +363,6 @@ protected:
   unsigned _extensionalityTag : 1;
   /** Clause is a splitting component. */
   unsigned _component : 1;
-  /** Induction depth **/
-  unsigned _inductionDepth : 5;
 
   /** number of selected literals */
   unsigned _numSelected;

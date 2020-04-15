@@ -133,6 +133,8 @@ protected:
   unsigned _number;
   /** Kind  */
   unsigned _kind : 1;
+
+
   /** used in interpolation to denote parents of what color have been used */
   unsigned _inheritedColor : 2;
 

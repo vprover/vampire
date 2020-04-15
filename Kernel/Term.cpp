@@ -92,7 +92,7 @@ void Term::destroy ()
 
   size_t sz = sizeof(Term)+_arity*sizeof(TermList);
   void* mem = this;
-  mem = reinterpret_cast<void*>(reinterpret_cast<char*>(mem)+getPreDataSize());
+  mem = reinterpret_cast<void*>(reinterpret_cast<char*>(mem)+getPreDataSize()); // MS: shouldn't here be "-getPreDataSize()" to complement the "operator new" above?
   DEALLOC_KNOWN(mem,sz,"Term");
 } // Term::destroy
 
