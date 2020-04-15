@@ -825,7 +825,6 @@ void SaturationAlgorithm::addUnprocessedClause(Clause* cl)
     return;
   }
 
-  {
   if (cl->isEmpty()) {
     handleEmptyClause(cl);
     return;
