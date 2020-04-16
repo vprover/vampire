@@ -463,6 +463,8 @@ bool RealConstantType::parseDouble(const vstring& num, RationalConstantType& res
   return true;
 }
 
+RealConstantType::RealConstantType(int number) : RealConstantType(RationalConstantType(number)) {}
+
 RealConstantType::RealConstantType(const vstring& number)
 {
   CALL("RealConstantType::RealConstantType");
