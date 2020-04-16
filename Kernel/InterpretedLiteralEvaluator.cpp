@@ -132,7 +132,6 @@ CLASS_NAME(InterpretedLiteralEvaluator::ACFunEvaluator<Operator>);
     ASS_EQ(trm->functor(),_fun);
     ASS_EQ(trm->arity(),2);
 
-    //TODO: ask giles: why stack and not recursive?
     Stack<TermList*> todo;
     Stack<TermList*> done;
     todo.push(trm->nthArgument(0));
@@ -457,6 +456,7 @@ public:
 
   TypedEvaluator() {}
 
+  // TODO unvirtualize methods
   virtual bool isZero(T arg) = 0;
   virtual TermList getZero() = 0;
   virtual bool isOne(T arg) = 0;
@@ -568,6 +568,7 @@ public:
         }
         else{ return false;}
       }
+      // TODO FIXME: this point should not be reachable due to check for !(arity!=1 && arity!=2) before.
       res = TermList(theory->representConstant(resNum));
       return true;
     }
