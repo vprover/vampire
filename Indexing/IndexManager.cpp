@@ -231,7 +231,7 @@ Index* IndexManager::create(IndexType t)
 
   case FSD_SUBST_TREE:
     is = new LiteralSubstitutionTree();
-    res = new FSDSimplifyingLiteralIndex(is);
+    res = new FSDLiteralIndex(is);
     isGenerating = false;
     break;
 

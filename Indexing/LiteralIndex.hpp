@@ -107,14 +107,14 @@ protected:
   void handleClause(Clause* c, bool adding) override;
 };
 
-class FSDSimplifyingLiteralIndex
+class FSDLiteralIndex
 : public LiteralIndex
 {
 public:
-  CLASS_NAME(FSDSimplifyingLiteralIndex);
-  USE_ALLOCATOR(FSDSimplifyingLiteralIndex);
+  CLASS_NAME(FSDLiteralIndex);
+  USE_ALLOCATOR(FSDLiteralIndex);
 
-  FSDSimplifyingLiteralIndex(LiteralIndexingStructure* is)
+  FSDLiteralIndex(LiteralIndexingStructure* is)
     : LiteralIndex(is)
   { }
 
