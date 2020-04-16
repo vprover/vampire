@@ -18,13 +18,13 @@ template< typename Key
         , typename T
         , typename Compare = std::less<Key>
         >
-using v_map = std::map<Key, T, Compare, STLAllocator<std::pair<const Key, T>>>;
+using vmap = std::map<Key, T, Compare, STLAllocator<std::pair<const Key, T>>>;
 
 
 template< typename Key
         , typename Compare = std::less<Key>
         >
-using v_set = std::set<Key, Compare, STLAllocator<Key>>;
+using vset = std::set<Key, Compare, STLAllocator<Key>>;
 
 
 template< typename Key
@@ -32,18 +32,18 @@ template< typename Key
         , typename Hash = std::hash<Key>
         , typename KeyEqual = std::equal_to<Key>
         >
-using v_unordered_map = std::unordered_map<Key, T, Hash, KeyEqual, STLAllocator<std::pair<const Key, T>>>;
+using vunordered_map = std::unordered_map<Key, T, Hash, KeyEqual, STLAllocator<std::pair<const Key, T>>>;
 
 
 template< typename Key
         , typename Hash = std::hash<Key>
         , typename KeyEqual = std::equal_to<Key>
         >
-using v_unordered_set = std::unordered_set<Key, Hash, KeyEqual, STLAllocator<Key>>;
+using vunordered_set = std::unordered_set<Key, Hash, KeyEqual, STLAllocator<Key>>;
 
 
 template< typename T >
-using v_vector = std::vector<T, STLAllocator<T>>;
+using vvector = std::vector<T, STLAllocator<T>>;
 
 
 /** See https://en.cppreference.com/w/cpp/memory/unique_ptr/make_unique

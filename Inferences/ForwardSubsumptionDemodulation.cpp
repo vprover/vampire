@@ -148,7 +148,7 @@ bool ForwardSubsumptionDemodulation::perform(Clause* cl, Clause*& replacement, C
       /**
        * Step 2: choose a positive equality in mcl to use for demodulation and try to instantiate the rest to some subset of cl
        */
-      static v_vector<LiteralList*> alts;
+      static vvector<LiteralList*> alts;
       alts.clear();
       alts.reserve(mcl->length());
       ASS_EQ(alts.size(), 0);
@@ -258,7 +258,7 @@ bool ForwardSubsumptionDemodulation::perform(Clause* cl, Clause*& replacement, C
         }
 
         // isMatched[i] is true iff (*cl)[i] is matched my some literal in mcl (without eqLit)
-        static v_vector<bool> isMatched;
+        static vvector<bool> isMatched;
         matcher.getMatchedAltsBitmap(isMatched);
 
         static OverlayBinder binder;
@@ -287,7 +287,7 @@ bool ForwardSubsumptionDemodulation::perform(Clause* cl, Clause*& replacement, C
         // 1. No LHS (if INCOMPARABLE and different variables)
         // 2. One LHS
         // 3. Two LHSs (INCOMPARABLE and same variables)
-        static v_vector<TermList> lhsVector;
+        static vvector<TermList> lhsVector;
         lhsVector.clear();
         {
           TermList t0 = *eqLit->nthArgument(0);

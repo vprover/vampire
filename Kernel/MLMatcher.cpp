@@ -389,9 +389,9 @@ class MLMatcher::Impl final
     void init(Literal** baseLits, unsigned baseLen, Clause* instance, LiteralList const* const* alts, Literal* resolvedLit, bool multiset);
     bool nextMatch();
 
-    void getMatchedAltsBitmap(v_vector<bool>& outMatchedBitmap) const;
+    void getMatchedAltsBitmap(vvector<bool>& outMatchedBitmap) const;
 
-    void getBindings(v_unordered_map<unsigned, TermList>& outBindings) const;
+    void getBindings(vunordered_map<unsigned, TermList>& outBindings) const;
 
     // Disallow copy and move because the internal implementation still uses pointers to the underlying storage and it seems hard to untangle that.
     Impl(Impl const&) = delete;
@@ -663,7 +663,7 @@ bool MLMatcher::Impl::nextMatch()
 }
 
 
-void MLMatcher::Impl::getMatchedAltsBitmap(v_vector<bool>& outMatchedBitmap) const
+void MLMatcher::Impl::getMatchedAltsBitmap(vvector<bool>& outMatchedBitmap) const
 {
   MatchingData const* const md = &s_matchingData;
 
@@ -684,7 +684,7 @@ void MLMatcher::Impl::getMatchedAltsBitmap(v_vector<bool>& outMatchedBitmap) con
 }
 
 
-void MLMatcher::Impl::getBindings(v_unordered_map<unsigned, TermList>& outBindings) const
+void MLMatcher::Impl::getBindings(vunordered_map<unsigned, TermList>& outBindings) const
 {
   MatchingData const* const md = &s_matchingData;
 
@@ -731,13 +731,13 @@ bool MLMatcher::nextMatch()
   return m_impl->nextMatch();
 }
 
-void MLMatcher::getMatchedAltsBitmap(v_vector<bool>& outMatchedBitmap) const
+void MLMatcher::getMatchedAltsBitmap(vvector<bool>& outMatchedBitmap) const
 {
   ASS(m_impl);
   m_impl->getMatchedAltsBitmap(outMatchedBitmap);
 }
 
-void MLMatcher::getBindings(v_unordered_map<unsigned, TermList>& outBindings) const
+void MLMatcher::getBindings(vunordered_map<unsigned, TermList>& outBindings) const
 {
   ASS(m_impl);
   m_impl->getBindings(outBindings);

@@ -92,13 +92,13 @@ class MLMatcherSD final
      *
      * The given vector will be cleared before operating on it.
      */
-    void getMatchedAltsBitmap(v_vector<bool>& outMatchedBitmap) const;
+    void getMatchedAltsBitmap(vvector<bool>& outMatchedBitmap) const;
 
     /**
      * Returns the variable bindings due to the current match.
      * May only be called in a matched state (i.e., after nextMatch() has returned true).
      */
-    void getBindings(v_unordered_map<unsigned, TermList>& outBindings) const;
+    void getBindings(vunordered_map<unsigned, TermList>& outBindings) const;
 
     // Disallow copy because the internal implementation still uses pointers to the underlying storage and it seems hard to untangle that.
     MLMatcherSD(MLMatcherSD const&) = delete;

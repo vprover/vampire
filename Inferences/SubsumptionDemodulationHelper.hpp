@@ -53,7 +53,7 @@ class OverlayBinder
 
   public:
     using Var = unsigned int;
-    using BindingsMap = v_unordered_map<Var, TermList>;
+    using BindingsMap = vunordered_map<Var, TermList>;
 
     OverlayBinder()
       : m_base(16)
@@ -258,7 +258,7 @@ class SDClauseMatches
 
   private:
     Clause* m_base;
-    v_vector<LiteralList*> m_alts;
+    vvector<LiteralList*> m_alts;
     unsigned m_basePosEqs;
     unsigned m_baseLitsWithoutAlts;
     unsigned m_basePosEqsWithoutAlts;
@@ -286,7 +286,7 @@ class SDHelper
     template <typename Applicator>
     static ClauseComparisonResult substClauseCompare(Clause* mcl, Applicator const& applicator, Clause* cl, Ordering const& ordering)
     {
-      v_vector<Literal*> mclS(mcl->literals(), mcl->literals() + mcl->length());
+      vvector<Literal*> mclS(mcl->literals(), mcl->literals() + mcl->length());
       ASS_EQ(mcl->length(), mclS.size());
       for (auto it = mclS.begin(); it != mclS.end(); ++it) {
         *it = applicator.applyTo(*it);
@@ -340,7 +340,7 @@ bool termContainsAllVariablesOfOtherUnderSubst(TermList term, TermList other, Ap
 {
   CALL("termContainsAllVariablesOfOtherUnderSubst");
 
-  static v_unordered_set<unsigned int> vars(16);
+  static vunordered_set<unsigned int> vars(16);
   vars.clear();
 
   static VariableIterator vit;

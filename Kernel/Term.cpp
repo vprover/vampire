@@ -367,7 +367,7 @@ bool TermList::containsAllVariableOccurrencesOf(TermList t)
 {
   CALL("TermList:containsAllVariableOccurrencesOf");
   // varBalance[x] = (#occurrences of x in this) - (#occurrences of x in t)
-  static v_unordered_map<unsigned int, int> varBalance(16);
+  static vunordered_map<unsigned int, int> varBalance(16);
   varBalance.clear();
 
   static VariableIterator vit;
