@@ -230,6 +230,7 @@ public:
 
   RealConstantType() {}
   explicit RealConstantType(const vstring& number);
+  explicit RealConstantType(int number);
   explicit RealConstantType(const RationalConstantType& rat) : RationalConstantType(rat) {}
 
   RealConstantType operator+(const RealConstantType& num) const
