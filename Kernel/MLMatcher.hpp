@@ -33,11 +33,17 @@ namespace Kernel {
 using namespace Lib;
 
 
+/**
+ * MLMatcher implements a solver for the multi-literal match problem.
+ *
+ * Input: two clauses, a base clause C and an instance clause D.
+ * Question: Does a substitution θ exist such that Cθ is a subset (or submultiset) of D?
+ */
 class MLMatcher
 {
   private:
     /**
-     * Initializes the matcher to the given match problem.  TODO: describe the match problem and what the parameters mean.
+     * Initializes the matcher to the given match problem.
      * The matcher will be in a valid (but unmatched) state.
      *
      * Preconditions:

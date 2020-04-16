@@ -28,9 +28,14 @@ namespace Kernel {
 using namespace Lib;
 
 
-/** MLMatcherSD solves the Subsumption-Demodulation-Match-Problem.
+/**
+ * MLMatcherSD implements a solver for the subsumption-demodulation match problem,
+ * an extension of the multi-literal match problem (see MLMatcher.hpp).
  *
- * TODO high-level explanation of what this class does and what it's good for
+ * Input: two clauses, a base clause C and an instance clause D.
+ * Question: Is there a positive equality literal L in C and a substitution θ such that (C \ {L})θ is a submultiset of D?
+ *
+ * This is needed by ForwardSubsumptionDemodulation and BackwardSubsumptionDemodulation.
  */
 class MLMatcherSD final
 {
