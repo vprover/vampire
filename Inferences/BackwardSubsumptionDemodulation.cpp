@@ -31,6 +31,7 @@
 #include "Kernel/ColorHelper.hpp"
 #include "Kernel/EqHelper.hpp"
 #include "Kernel/Inference.hpp"
+#include "Kernel/LiteralByMatchability.hpp"
 #include "Kernel/MLMatcherSD.hpp"
 #include "Kernel/Matcher.hpp"
 #include "Kernel/Ordering.hpp"
@@ -82,87 +83,6 @@ void BackwardSubsumptionDemodulation::detach()
   CALL("BackwardSubsumptionDemodulation::detach");
   _index.release();
   BackwardSimplificationEngine::detach();
-}
-
-
-namespace {
-
-// TODO: copied from LiteralIndex.cpp; should put this into a separate file.
-//       and call it something more memorable, e.g. LeastMatchableLiteralRating ?
-//       (and "least matchable" is more descriptive than "best", so rename the methods as well)
-/**
- * A literal and its rating (for use in the subsumption index).
- * Ordered by ratings, breaking ties with the literal's pointer values.
- *
- * On the metric used to select the best literal:
- *
- *    val == #symbols - #distinct-variables
- *        == #non-variable-symbols + #variable-duplicates
- *
- * This value is the number of symbols that induce constraints for matching.
- * (Note that variables only induce constraints for instantiation on their repeated occurrences)
- * We want to maximize this value to have the most restricting literal,
- * so we get as little matches as possible (because the matches then have
- * to be passed to the MLMatcher which is expensive).
- */
-class SubsRatedLiteral
-{
-  private:
-    Literal* m_lit;
-    unsigned m_val;
-
-  public:
-    SubsRatedLiteral(Literal* lit)
-      : m_lit(lit), m_val(computeRating(lit))
-    { }
-
-    static unsigned computeRating(Literal* lit) { return lit->weight() - lit->getDistinctVars(); }
-
-    Literal* lit() const { return m_lit; }
-
-    bool operator<(SubsRatedLiteral const& other) const
-    {
-      return m_val < other.m_val || (m_val == other.m_val && m_lit < other.m_lit);
-    }
-    bool operator>(SubsRatedLiteral const& other) const { return other.operator<(*this); }
-    bool operator<=(SubsRatedLiteral const& other) const { return !operator>(other); }
-    bool operator>=(SubsRatedLiteral const& other) const { return !operator<(other); }
-    bool operator==(SubsRatedLiteral const& other) const { return m_lit == other.m_lit; }
-    bool operator!=(SubsRatedLiteral const& other) const { return !operator==(other); }
-
-    static SubsRatedLiteral find_best_in(Clause* c)
-    {
-      SubsRatedLiteral best{(*c)[0]};
-      for (unsigned i = 1; i < c->length(); ++i) {
-        SubsRatedLiteral curr{(*c)[i]};
-        if (curr > best) {
-          best = curr;
-        }
-      }
-      return best;
-    }
-
-    static std::pair<SubsRatedLiteral,SubsRatedLiteral> find_best2_in(Clause* c)
-    {
-      SubsRatedLiteral best{(*c)[0]};
-      SubsRatedLiteral secondBest{(*c)[1]};
-      if (secondBest > best) {
-        std::swap(best, secondBest);
-      }
-      for (unsigned i = 2; i < c->length(); ++i) {
-        SubsRatedLiteral curr{(*c)[i]};
-        if (curr > best) {
-          secondBest = best;
-          best = curr;
-        } else if (curr > secondBest) {
-          secondBest = curr;
-        }
-      }
-      ASS(best.lit() != secondBest.lit());
-      ASS(best > secondBest);
-      return {best, secondBest};
-    }
-};
 }
 
 
@@ -235,8 +155,7 @@ void BackwardSubsumptionDemodulation::perform(Clause* sideCl, BwSimplificationRe
   Clause::requestAux();
   ON_SCOPE_EXIT({ Clause::releaseAux(); });
 
-
-  auto best2 = SubsRatedLiteral::find_best2_in(cl);
+  auto best2 = LiteralByMatchability::find_two_least_matchable_in(sideCl);
   Literal* lmLit1 = best2.first.lit();
   Literal* lmLit2 = best2.second.lit();
 
