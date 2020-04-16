@@ -199,30 +199,28 @@ STLIterator<Iterator> getSTLIterator(Iterator begin, Iterator end)
 }
 
 
-void BackwardSubsumptionDemodulation::perform(Clause* cl, BwSimplificationRecordIterator& simplifications)
+void BackwardSubsumptionDemodulation::perform(Clause* sideCl, BwSimplificationRecordIterator& simplifications)
 {
-  // TODO rename cl -> sideCl because it is the side premise
   CALL("BackwardSubsumptionDemodulation::perform");
-  ASSERT_VALID(*cl);
+  ASSERT_VALID(*sideCl);
 
   TimeCounter tc(TC_BACKWARD_SUBSUMPTION_DEMODULATION);
 
   simplifications = BwSimplificationRecordIterator::getEmpty();
 
-  if (cl->length() == 0) {
-    // No BSD with empty clause possible
-    ASSERTION_VIOLATION;  // wouldn't we just terminate in this case???  FIXME
+  if (sideCl->length() == 0) {
+    // No BSD with empty side clause possible
     return;
   }
 
-  if (cl->length() == 1) {
+  if (sideCl->length() == 1) {
     // Handled by regular backward demodulation
     return;
   }
 
   bool hasPositiveEquality = false;
-  for (unsigned i = 0; i < cl->length(); ++i) {
-    Literal* lit = (*cl)[i];
+  for (unsigned i = 0; i < sideCl->length(); ++i) {
+    Literal* lit = (*sideCl)[i];
     if (lit->isEquality() && lit->isPositive()) {
       hasPositiveEquality = true;
       break;
@@ -247,13 +245,13 @@ void BackwardSubsumptionDemodulation::perform(Clause* cl, BwSimplificationRecord
 
   if (!lmLit1->isEquality() || !lmLit1->isPositive()) {
     // lmLit1 is not a positive equality, so we don't need to check the other one
-    perform2(cl, lmLit1, simplificationsStorage);
+    perform2(sideCl, lmLit1, simplificationsStorage);
   } else if (!lmLit2->isEquality() || !lmLit2->isPositive()) {
-    perform2(cl, lmLit2, simplificationsStorage);
+    perform2(sideCl, lmLit2, simplificationsStorage);
   } else {
     // both are positive equalities so we need to check both of them
-    perform2(cl, lmLit1, simplificationsStorage);
-    perform2(cl, lmLit2, simplificationsStorage);
+    perform2(sideCl, lmLit1, simplificationsStorage);
+    perform2(sideCl, lmLit2, simplificationsStorage);
   }
 
   simplifications = getPersistentIterator(getSTLIterator(simplificationsStorage.begin(), simplificationsStorage.end()));
@@ -283,12 +281,6 @@ void BackwardSubsumptionDemodulation::perform2(Clause* sideCl, Literal* candidat
   }
 #endif
 
-  /*
-  ClauseList* subsumed=0;
-
-  static DHSet<unsigned> basePreds;
-  bool basePredsInit=false;
-  */
   bool mustPredInit = false;
   bool mustPredActive = false;
   unsigned mustPred;
@@ -318,13 +310,8 @@ void BackwardSubsumptionDemodulation::perform2(Clause* sideCl, Literal* candidat
 
     RSTAT_CTR_INC("bsd 0 candidates");
 
-    // TODO: maybe reinstate (some of?) these checks
-    // Literal* icl=qr.clause;
-    // Literal* ilit=qr.literal;
-    // unsigned ilen=icl->length();
-
-    //here we pick one literal header of the base clause and make sure that
-    //every instance clause has it
+    // Here we pick one literal header of the base clause and make sure that
+    // every instance clause has it
     //
     // Possibilities to consider:
     // 1. Choose one that is not a positive equality, the other clause must contain it.
@@ -342,7 +329,7 @@ void BackwardSubsumptionDemodulation::perform2(Clause* sideCl, Literal* candidat
     //   Case B.2: BSD where candidateQueryLit is not the rewriting equality:
     //             => we must skip one positive equality for the "mustPred" check
     //
-    // Summary: must skip one positive equality in the remaining literals for the "mustPred" check.
+    // Summary: must skip one positive equality in the remaining literals for this "mustPred" check.
     if (!mustPredInit) {
       unsigned numPosEqs = 0;
       //since the base clause has at least two children, this will always
@@ -386,47 +373,7 @@ void BackwardSubsumptionDemodulation::perform2(Clause* sideCl, Literal* candidat
     }
     RSTAT_CTR_INC("bsd 1 mustPred survivors");
 
-    /*
-    //here we check that for every literal header in the base clause
-    //there is a literal with the same header in the instance
-    if(!basePredsInit) {
-      basePredsInit=true;
-      basePreds.reset();
-      for(unsigned bi=0;bi<clen;bi++) {
-        if(bi==lmIndex) {
-          continue;
-        }
-        unsigned pred=(*sideCl)[bi]->header();
-        basePreds.insert(pred);
-      }
-    }
-    unsigned allowedMisses=ilen-clen; //how many times the instance may contain a predicate that is not in the base clause
-    bool fail=false;
-    for(unsigned ii=0;ii<ilen;ii++) {
-      Literal* l=(*icl)[ii];
-      if(l==ilit) {
-        continue;
-      }
-      unsigned pred=l->header();
-      if(!basePreds.find(pred)) {
-        if(allowedMisses==0) {
-          fail=true;
-          break;
-        }
-        else {
-          allowedMisses--;
-        }
-      }
-    }
-    if(fail) {
-      continue;
-    }
-
-    RSTAT_CTR_INC("bsd 2 survived");
-  */
-
     simplifyCandidate(sideCl, candidate, simplifications);
-
   }
 }  // perform2
 
@@ -444,7 +391,6 @@ bool BackwardSubsumptionDemodulation::simplifyCandidate(Clause* sideCl, Clause* 
     for (unsigned bi = 0; bi < sideCl->length(); ++bi) {
       Literal* baseLit = (*sideCl)[bi];
 
-      // TODO: a minor optimization is possible here: we already know one instance of candidateQueryLit, namely qr.literal
       for (unsigned ii = 0; ii < mainCl->length(); ++ii) {
         Literal* instLit = (*mainCl)[ii];
         if (MatchingUtils::match(baseLit, instLit, false)) {

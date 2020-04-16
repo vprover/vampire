@@ -108,9 +108,6 @@ bool ForwardSubsumptionDemodulation::perform(Clause* cl, Clause*& replacement, C
     }
   }
 
-  // Initialize miniIndex with literals in the clause cl
-  // TODO(idea for later): maybe it helps to order alternatives, either smaller to larger or larger to smaller, or unordered
-  // to do this, we can simply order the literals inside the miniIndex (i.e., in each equivalence class w.r.t. literal header)
   LiteralMiniIndex const cl_miniIndex(cl);
 
   unsigned int const cl_maxVar = cl->maxVar();
@@ -325,7 +322,7 @@ bool ForwardSubsumptionDemodulation::perform(Clause* cl, Clause*& replacement, C
           // Problem: fills up term sharing structure with temporary terms.
           // Currently there is no way to compare terms under a substitution without materializing them,
           // and non-shared terms cannot be compared (triggers assertions in at least KBO).
-          // TODO: to fix this, it would be nice to have a function such as
+          // To fix this, it would be nice to have a function such as
           //    Ordering::compare(TermList t1, std::function<TermList(unsigned)> theta1,
           //                      TermList t2, std::function<TermList(unsigned)> theta2)
           // which compares terms under the given substitution.
