@@ -1655,7 +1655,7 @@ bool Splitter::handleEmptyClause(Clause* cl)
   }
 
   Formula* f = JunctionFormula::generalJunction(OR,resLst);
-  FormulaUnit* scl = new FormulaUnit(f,new Inference1(Inference::Rule::AVATAR_CONTRADICTION_CLAUSE,cl),cl->inputType());
+  FormulaUnit* scl = new FormulaUnit(f,new Inference1(Inference::Rule::AVATAR_CONTRADICTION_CLAUSE,cl));
 
   confl->setInference(new FOConversionInference(scl));
   
