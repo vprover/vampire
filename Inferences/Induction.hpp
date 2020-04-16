@@ -24,6 +24,8 @@
 #ifndef __Induction__
 #define __Induction__
 
+#include <math.h>
+
 #include "Forwards.hpp"
 
 #include "Kernel/TermTransformer.hpp"
@@ -42,6 +44,33 @@ public:
   TermReplacement(Term* o, TermList r) : _o(o), _r(r) {} 
   virtual TermList transformSubterm(TermList trm);
 private:
+  Term* _o;
+  TermList _r;
+};
+
+class LiteralSubsetReplacement : TermTransformer {
+public:
+  LiteralSubsetReplacement(Literal* lit, Term* o, TermList r)
+      : _lit(lit), _o(o), _r(r) {
+    _occurrences = _lit->countSubtermOccurrences(TermList(_o));
+    _maxIterations = pow(2, _occurrences);
+  }
+
+  // Returns transformed lit for the first 2^(_occurences) - 1 calls, then returns nullptr.
+  Literal* transformSubset();
+
+protected:
+  virtual TermList transformSubterm(TermList trm);
+
+private:
+  // _iteration serves as a map of occurrences to replace
+  unsigned _iteration = 0;
+  unsigned _maxIterations;
+  // Counts how many occurrences were already encountered in one transformation
+  unsigned _matchCount = 0;
+  unsigned _occurrences;
+  const unsigned _maxOccurrences = 20;
+  Literal* _lit;
   Term* _o;
   TermList _r;
 };
@@ -83,14 +112,15 @@ public:
 private:
   void process(Clause* premise, Literal* lit);
 
-  void performMathInductionOne(Clause* premise, Literal* lit, Term* t); 
-  void performMathInductionTwo(Clause* premise, Literal* lit, Term* t);
+  void performMathInductionOne(Clause* premise, Literal* origLit, Literal* lit, Term* t); 
+  void performMathInductionTwo(Clause* premise, Literal* origLit, Literal* lit, Term* t);
 
-  void performStructInductionOne(Clause* premise, Literal* lit, Term* t);
-  void performStructInductionTwo(Clause* premise, Literal* lit, Term* t);
-  void performStructInductionThree(Clause* premise, Literal* lit, Term* t);
+  void performStructInductionOne(Clause* premise, Literal* origLit, Literal* lit, Term* t);
+  void performStructInductionTwo(Clause* premise, Literal* origLit, Literal* lit, Term* t);
+  void performStructInductionThree(Clause* premise, Literal* origLit, Literal* lit, Term* t);
 
   bool notDone(Literal* lit, Term* t);
+  Term* getPlaceholderForTerm(Term* t);
 
   Stack<Clause*> _clauses;
 };

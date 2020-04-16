@@ -57,6 +57,7 @@ Signature::Symbol::Symbol(const vstring& nm,unsigned arity, bool interpreted, bo
     _type(0),
     _distinctGroups(0),
     _usageCount(0),
+    _unitUsageCount(0),
     _inGoal(0),
     _inUnit(0),
     _inductionSkolem(0),

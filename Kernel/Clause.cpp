@@ -455,7 +455,9 @@ vstring Clause::toString() const
       result += vstring(",tD:1");
     }
 
-    result += vstring(",inD:") + Int::toString(inductionDepth());
+    if(env.options->induction() != Shell::Options::Induction::NONE){
+      result += vstring(",inD:") + Int::toString(inductionDepth());
+    }
     result += vstring("}");
   }
 
