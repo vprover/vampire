@@ -241,7 +241,7 @@ void ActiveClauseContainer::onLimitsUpdated()
     env.statistics->discardedNonRedundantClauses++;
 
     remove(removed);
-    ASS_NEQ(removed->store(), Clause::ACTIVE);
+    // ASS_NEQ(removed->store(), Clause::ACTIVE); -- the remove could have deleted the clause - do not touch!
   }
 }
 

@@ -293,6 +293,20 @@ public:
                 }
             }
         }
+        void remove(TermList t)
+        {
+            CALL("SubstitutionTree::ChildBySortHelper::remove");
+            if(!t.isTerm()){ return;}
+            unsigned srt;
+            if(SortHelper::tryGetResultSort(t,srt)){
+                if(srt > Sorts::SRT_DEFAULT && srt < Sorts::FIRST_USER_SORT){
+                    unsigned f = t.term()->functor();
+                    if(bySort[srt].remove(f)){
+                        bySortTerms[srt].remove(t);
+                    }
+                }
+            }
+        }
         
     };// class SubstitutionTree::ChildBySortHelper
     
@@ -581,6 +595,9 @@ public:
     void remove(TermList t)
     {
       _nodes.remove(t);
+      if(_childBySortHelper){
+        _childBySortHelper->remove(t);
+      }
     }
 
     CLASS_NAME(SubstitutionTree::SListIntermediateNode);

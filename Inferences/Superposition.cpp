@@ -349,7 +349,7 @@ bool Superposition::earlyWeightLimitCheck(Clause* eqClause, Literal* eqLit,
     }
   }
   //if rewrite balance is 0, it doesn't matter how many times we rewrite
-  size_t rwrCnt = (rwrBalance==0) ? 0 : getSubtermOccurrenceCount(rwLit, rwTerm);
+  size_t rwrCnt = (rwrBalance==0) ? 0 : rwLit->countSubtermOccurrences(rwTerm);
   if(rwrCnt>1) {
     ASS_GE(rwrCnt, 1);
     unsigned approxWeight = rwLit->weight()+(rwrBalance*rwrCnt);
@@ -370,29 +370,6 @@ bool Superposition::earlyWeightLimitCheck(Clause* eqClause, Literal* eqLit,
   }
 
   return true;
-}
-
-size_t Superposition::getSubtermOccurrenceCount(Term* trm, TermList subterm)
-{
-  CALL("Superposition::getSubtermOccurrenceCount");
-
-  size_t res = 0;
-
-  unsigned stWeight = subterm.isTerm() ? subterm.term()->weight() : 1;
-  SubtermIterator stit(trm);
-  while(stit.hasNext()) {
-    TermList t = stit.next();
-    if(t==subterm) {
-      res++;
-      stit.right();
-    }
-    else if(t.isTerm()) {
-      if(t.term()->weight()<=stWeight) {
-	stit.right();
-      }
-    }
-  }
-  return res;
 }
 
 /**

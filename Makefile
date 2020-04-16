@@ -44,7 +44,9 @@ MINISAT_FLAGS = $(MINISAT_DBG_FLAGS)
 
 #XFLAGS = -g -DVDEBUG=1 -DVTEST=1 -DCHECK_LEAKS=1 # full debugging + testing
 #XFLAGS = $(DBG_FLAGS)
-XFLAGS = -Wfatal-errors -g -DVDEBUG=1 -DCHECK_LEAKS=0 -DUSE_SYSTEM_ALLOCATION=1 -DGNUMP=$(GNUMPF)# standard debugging only
+# XFLAGS = -Wfatal-errors -g -DVDEBUG=1 -DCHECK_LEAKS=0 -DUSE_SYSTEM_ALLOCATION=1 -DGNUMP=$(GNUMPF)# standard debugging only
+# careful, AddressSanitizer for clang does not show line numbers by default: https://stackoverflow.com/questions/24566416/how-do-i-get-line-numbers-in-the-debug-output-with-clangs-fsanitize-address
+XFLAGS = -Wfatal-errors -g -DVDEBUG=1 -DCHECK_LEAKS=0 -DUSE_SYSTEM_ALLOCATION=1 -DGNUMP=$(GNUMPF) -fsanitize=address -fno-omit-frame-pointer # standard debugging only
 #XFLAGS = -g -DVDEBUG=1 -DCHECK_LEAKS=0 -DUSE_SYSTEM_ALLOCATION=1 -DVALGRIND=1 -DGNUMP=$(GNUMPF)# memory leaks
 #XFLAGS = $(REL_FLAGS)
 
@@ -87,7 +89,7 @@ Z3LIB=
 ifeq (,$(shell echo $(MAKECMDGOALS) | sed 's/.*z3.*//g')) 
 INCLUDES= -I. -Iz3/api -Iz3/api/c++ 
 ifeq (,$(shell echo $(MAKECMDGOALS) | sed 's/.*static.*//g'))
-Z3LIB= -Linclude -lz3 -lgomp -pthread -lrt -ldl
+Z3LIB= -Linclude -lz3 -lgomp -pthread  -Wl,--whole-archive -lrt -lpthread -Wl,--no-whole-archive -ldl
 else
 Z3LIB= -Linclude -lz3
 endif

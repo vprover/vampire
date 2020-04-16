@@ -274,6 +274,7 @@ Clause* ExtensionalityResolution::performExtensionalityResolution(
     
   ASS_EQ(next,newLength);
   counter++;
+  res->setAge(max(extCl->age(),otherCl->age())+1);
      
   return res;
 }

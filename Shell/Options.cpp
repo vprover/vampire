@@ -1023,12 +1023,6 @@ void Options::Options::init()
            _lookup.insert(&_unificationWithAbstraction);
            _unificationWithAbstraction.setExperimental();
 
-           _fixUWA = BoolOptionValue("uwa_fix","uwaf",false);
-           _fixUWA.description="";
-           _fixUWA.tag(OptionTag::INFERENCES);
-           _lookup.insert(&_fixUWA);
-           _fixUWA.setExperimental();
-
            _useACeval = BoolOptionValue("use_ac_eval","uace",true);
            _useACeval.description="";
            _useACeval.tag(OptionTag::INFERENCES);
@@ -1093,6 +1087,23 @@ void Options::Options::init()
             _inductionUnitOnly.tag(OptionTag::INFERENCES);
             _inductionUnitOnly.reliesOn(_induction.is(notEqual(Induction::NONE)));
             _lookup.insert(&_inductionUnitOnly);
+
+            _inductionGen = BoolOptionValue("induction_gen","indgen",false);
+            _inductionGen.description = "Apply induction with generalization (on both all & selected occurrences)";
+            _inductionGen.setExperimental();
+            _inductionGen.tag(OptionTag::INFERENCES);
+            _inductionGen.reliesOn(_induction.is(notEqual(Induction::NONE)));
+            _lookup.insert(&_inductionGen);
+
+            _maxInductionGenSubsetSize = UnsignedOptionValue("max_induction_gen_subset_size","indgenss",3);
+            _maxInductionGenSubsetSize.description = "Set maximum number of occurrences of the induction term to be"
+                                                      " generalized, where 0 means no max. (Regular induction will"
+                                                      " be applied without this restriction.)";
+            _maxInductionGenSubsetSize.setExperimental();
+            _maxInductionGenSubsetSize.tag(OptionTag::INFERENCES);
+            _maxInductionGenSubsetSize.reliesOn(_inductionGen.is(equal(true)));
+            _maxInductionGenSubsetSize.addHardConstraint(lessThan(10u));
+            _lookup.insert(&_maxInductionGenSubsetSize);
 
 	    _instantiation = ChoiceOptionValue<Instantiation>("instantiation","inst",Instantiation::OFF,{"off","on"});
 	    _instantiation.description = "Heuristically instantiate variables";
@@ -1288,7 +1299,7 @@ void Options::Options::init()
     _lookup.insert(&_hyperSuperposition);
     _hyperSuperposition.tag(OptionTag::INFERENCES);
 
-    _simultaneousSuperposition = BoolOptionValue("simultaneous_superposition","sims",false);
+    _simultaneousSuperposition = BoolOptionValue("simultaneous_superposition","sims",true);
     _simultaneousSuperposition.description="Rewrite the whole RHS clause during superposition, not just the target literal.";
     _lookup.insert(&_simultaneousSuperposition);
     _simultaneousSuperposition.tag(OptionTag::INFERENCES);
@@ -1864,17 +1875,6 @@ void Options::Options::init()
     _weightIncrement.description="";
     //_lookup.insert(&_weightIncrement);
     _weightIncrement.tag(OptionTag::OTHER);
-
-    //******************************************************************
-    //*********************** Unused ??  *******************************
-    //******************************************************************
-
-    _rowVariableMaxLength = IntOptionValue("row_variable_max_length","",2);
-    _rowVariableMaxLength.description="";
-    _lookup.insert(&_rowVariableMaxLength);
-    _rowVariableMaxLength.tag(OptionTag::UNUSED);
-    _rowVariableMaxLength.setExperimental();
-
 
 
     //******************************************************************

@@ -530,6 +530,7 @@ public:
 
   bool containsSubterm(TermList v);
   bool containsAllVariablesOf(Term* t);
+  size_t countSubtermOccurrences(TermList subterm);
   /** Return true if term has no non-constant functions as subterms */
   bool isShallow() const;
 

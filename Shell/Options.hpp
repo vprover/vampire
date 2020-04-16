@@ -1878,8 +1878,6 @@ public:
   vstring inputFile() const { return _inputFile.actualValue; }
   int activationLimit() const { return _activationLimit.actualValue; }
   int randomSeed() const { return _randomSeed.actualValue; }
-  int rowVariableMaxLength() const { return _rowVariableMaxLength.actualValue; }
-  //void setRowVariableMaxLength(int newVal) { _rowVariableMaxLength = newVal; }
   bool printClausifierPremises() const { return _printClausifierPremises.actualValue; }
 
   // IMPORTANT, if you add a showX command then include showAll
@@ -1924,7 +1922,6 @@ public:
   TheoryInstSimp theoryInstAndSimp() const { return _theoryInstAndSimp.actualValue; }
 #endif
   UnificationWithAbstraction unificationWithAbstraction() const { return _unificationWithAbstraction.actualValue; }
-  bool fixUWA() const { return _fixUWA.actualValue; }
   bool useACeval() const { return _useACeval.actualValue;}
 
   bool unusedPredicateDefinitionRemoval() const { return _unusedPredicateDefinitionRemoval.actualValue; }
@@ -2072,6 +2069,8 @@ public:
   unsigned maxInductionDepth() const { return _maxInductionDepth.actualValue; }
   bool inductionNegOnly() const { return _inductionNegOnly.actualValue; }
   bool inductionUnitOnly() const { return _inductionUnitOnly.actualValue; }
+  bool inductionGen() const { return _inductionGen.actualValue; }
+  unsigned maxInductionGenSubsetSize() const { return _maxInductionGenSubsetSize.actualValue; }
 
   float instGenBigRestartRatio() const { return _instGenBigRestartRatio.actualValue; }
   bool instGenPassiveReactivation() const { return _instGenPassiveReactivation.actualValue; }
@@ -2374,6 +2373,8 @@ private:
   UnsignedOptionValue _maxInductionDepth;
   BoolOptionValue _inductionNegOnly;
   BoolOptionValue _inductionUnitOnly;
+  BoolOptionValue _inductionGen;
+  UnsignedOptionValue _maxInductionGenSubsetSize;
 
   StringOptionValue _latexOutput;
   BoolOptionValue _latexUseDefaultSymbols;
@@ -2416,7 +2417,6 @@ private:
   ChoiceOptionValue<QuestionAnsweringMode> _questionAnswering;
 
   IntOptionValue _randomSeed;
-  IntOptionValue _rowVariableMaxLength;
 
   IntOptionValue _activationLimit;
 

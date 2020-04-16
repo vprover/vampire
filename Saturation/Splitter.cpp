@@ -1654,11 +1654,8 @@ bool Splitter::handleEmptyClause(Clause* cl)
     FormulaList::push(new NamedFormula(getFormulaStringFromName(nm,true /*negated*/)),resLst);
   }
 
-  UnitList* ps = UnitList::empty();
-  UnitList::push(cl,ps);
-
   Formula* f = JunctionFormula::generalJunction(OR,resLst);
-  FormulaUnit* scl = new FormulaUnit(f,new InferenceMany(Inference::Rule::AVATAR_CONTRADICTION_CLAUSE,ps));
+  FormulaUnit* scl = new FormulaUnit(f,new Inference1(Inference::Rule::AVATAR_CONTRADICTION_CLAUSE,cl),cl->inputType());
 
   confl->setInference(new FOConversionInference(scl));
   
